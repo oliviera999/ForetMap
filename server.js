@@ -55,9 +55,18 @@ app.use('/api/tasks', tasksRouter);
 app.use('/api/stats', statsRouter);
 app.use('/api/students', studentsRouter);
 
+// Favicon : évite le fallback SPA et un éventuel 500
+app.get('/favicon.ico', (req, res) => res.status(204).end());
+
 // Fallback SPA
 app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+  const indexPath = path.join(__dirname, 'public', 'index.html');
+  res.sendFile(indexPath, (err) => {
+    if (err) {
+      logger.error({ err, path: req.path }, 'Envoi index.html en échec');
+      if (!res.headersSent) res.status(500).json({ error: 'Erreur serveur' });
+    }
+  });
 });
 
 // Gestion d'erreurs centralisée (pour les routes qui font next(err))
