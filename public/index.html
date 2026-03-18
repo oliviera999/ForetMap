@@ -1,0 +1,2549 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="theme-color" content="#1a4731" />
+  <title>ForêtMap – Lycée Lyautey</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing:border-box; margin:0; padding:0; }
+
+    :root {
+      --forest:   #1a4731;
+      --leaf:     #2d6a4f;
+      --sage:     #52b788;
+      --mint:     #b7e4c7;
+      --cream:    #fefae0;
+      --parchment:#f4e9d0;
+      --soil:     #6b4226;
+      --sun:      #e9c46a;
+      --alert:    #e76f51;
+      --shadow:   0 4px 24px rgba(26,71,49,.13);
+      --radius:   14px;
+      --safe-bottom: env(safe-area-inset-bottom, 0px);
+      --safe-top:    env(safe-area-inset-top, 0px);
+      /* Spring easing */
+      --spring: cubic-bezier(.34,1.56,.64,1);
+      --ease-out: cubic-bezier(.22,1,.36,1);
+    }
+
+    html { -webkit-text-size-adjust:100%; }
+    body {
+      background:var(--cream); font-family:'DM Sans',sans-serif;
+      color:var(--forest); min-height:100vh;
+      overscroll-behavior:none;
+      -webkit-font-smoothing:antialiased;
+    }
+    h1,h2,h3 { font-family:'Playfair Display',serif; }
+    #root { display:flex; flex-direction:column; min-height:100vh; min-height:100dvh; }
+
+    /* Prevent iOS zoom on input */
+    input, select, textarea {
+      font-size:16px !important;
+      font-family:'DM Sans',sans-serif;
+    }
+
+    /* ── LOADER ── */
+    .loader { display:flex; flex-direction:column; align-items:center; justify-content:center; height:100vh; gap:16px; background:var(--cream); }
+    .loader-leaf { font-size:3rem; animation:sway 1.5s ease-in-out infinite; }
+    @keyframes sway { 0%,100%{transform:rotate(-8deg)} 50%{transform:rotate(8deg)} }
+    .loader p { color:var(--leaf); font-size:1rem; letter-spacing:.05em; }
+
+    /* ── FORMS ── */
+    .field { display:flex; flex-direction:column; gap:6px; margin-bottom:14px; }
+    .field label { font-size:.78rem; font-weight:700; color:var(--leaf); letter-spacing:.07em; text-transform:uppercase; }
+    .field input, .field select, .field textarea {
+      padding:13px 14px;
+      border:1.5px solid var(--mint); border-radius:10px;
+      color:var(--forest); background:var(--cream);
+      outline:none; width:100%;
+      transition:border-color .18s var(--ease-out), background .18s, box-shadow .18s;
+    }
+    .field input:focus, .field select:focus, .field textarea:focus {
+      border-color:var(--sage); background:white;
+      box-shadow:0 0 0 3px rgba(82,183,136,.15);
+    }
+
+    /* ── BUTTONS ── */
+    .btn {
+      display:inline-flex; align-items:center; justify-content:center; gap:8px;
+      padding:13px 20px; min-height:44px;
+      border:none; border-radius:10px;
+      font-family:'DM Sans',sans-serif; font-size:1rem; font-weight:600;
+      cursor:pointer;
+      transition:transform .12s var(--spring), box-shadow .15s, background .15s, color .15s;
+      -webkit-tap-highlight-color:transparent;
+      user-select:none;
+    }
+    .btn:active { transform:scale(.95) !important; }
+    .btn-primary { background:var(--forest); color:white; box-shadow:0 2px 8px rgba(26,71,49,.2); }
+    .btn-primary:active { background:var(--leaf); }
+    .btn-secondary { background:var(--mint); color:var(--forest); }
+    .btn-secondary:active { background:var(--sage); color:white; }
+    .btn-danger { background:#fee2e2; color:#991b1b; }
+    .btn-danger:active { background:#fca5a5; }
+    .btn-ghost { background:transparent; color:var(--forest); border:1.5px solid var(--mint); }
+    .btn-ghost:active { background:var(--mint); }
+    .btn-sm { padding:9px 13px; font-size:.85rem; min-height:38px; border-radius:8px; }
+    .btn-full { width:100%; }
+    @media(hover:hover) {
+      .btn-primary:hover { background:var(--leaf); transform:translateY(-1px); box-shadow:0 4px 14px rgba(26,71,49,.25); }
+      .btn-secondary:hover { background:var(--sage); color:white; }
+      .btn-ghost:hover { background:var(--parchment); }
+      .btn-danger:hover { background:#fca5a5; }
+    }
+
+    /* ── HEADER ── */
+    header {
+      background:var(--forest); color:white;
+      padding:0 16px; padding-top:var(--safe-top);
+      height:calc(56px + var(--safe-top));
+      display:flex; align-items:center; justify-content:space-between;
+      position:sticky; top:0; z-index:100;
+    }
+    header .logo { display:flex; align-items:center; gap:8px; font-family:'Playfair Display',serif; font-size:1.1rem; }
+    header .logo span { font-size:1.3rem; }
+    .header-right { display:flex; align-items:center; gap:6px; }
+    .user-badge {
+      background:rgba(255,255,255,.15); border-radius:8px;
+      padding:4px 10px; font-size:.8rem;
+      max-width:130px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+      border:none; cursor:pointer; color:white;
+      display:flex; align-items:center; gap:5px;
+      transition:background .15s;
+      -webkit-tap-highlight-color:transparent;
+    }
+    .user-badge:active { background:rgba(255,255,255,.28); transform:scale(.96); }
+    .lock-btn {
+      background:rgba(255,255,255,.12); border:none; color:white;
+      border-radius:8px; padding:8px 10px;
+      cursor:pointer; font-size:.82rem; font-family:'DM Sans',sans-serif;
+      display:flex; align-items:center; gap:5px;
+      min-height:40px; min-width:40px;
+      transition:background .15s, transform .1s var(--spring);
+      -webkit-tap-highlight-color:transparent;
+    }
+    .lock-btn:active { background:rgba(255,255,255,.28); transform:scale(.93); }
+    .lock-btn.active { background:var(--sun); color:var(--forest); }
+    @media(max-width:380px) {
+      .lock-btn .lock-label { display:none; }
+      .user-badge { max-width:80px; font-size:.72rem; }
+    }
+
+    /* ── BOTTOM NAV ── */
+    .bottom-nav {
+      position:fixed; bottom:0; left:0; right:0;
+      background:white; border-top:1px solid rgba(183,228,199,.6);
+      display:flex; z-index:99;
+      box-shadow:0 -2px 20px rgba(26,71,49,.06);
+      padding-bottom:var(--safe-bottom);
+    }
+    .nav-btn {
+      flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center;
+      gap:3px; padding:10px 4px; border:none; background:transparent;
+      cursor:pointer; font-family:'DM Sans',sans-serif;
+      font-size:.68rem; color:#aaa; min-height:56px;
+      -webkit-tap-highlight-color:transparent;
+      position:relative;
+      transition:color .2s var(--ease-out);
+    }
+    .nav-btn.active { color:var(--forest); font-weight:700; }
+    .nav-btn .nav-icon {
+      font-size:1.35rem;
+      transition:transform .25s var(--spring);
+    }
+    .nav-btn.active .nav-icon { transform:scale(1.2) translateY(-1px); }
+    /* Active indicator dot */
+    .nav-btn::after {
+      content:''; position:absolute; bottom:6px; left:50%; transform:translateX(-50%);
+      width:4px; height:4px; border-radius:50%; background:var(--sage);
+      opacity:0; transition:opacity .2s, transform .25s var(--spring);
+    }
+    .nav-btn.active::after { opacity:1; transform:translateX(-50%) scale(1); }
+    .nav-btn:active .nav-icon { transform:scale(.88); }
+
+    /* ── MAIN ── */
+    .main { flex:1; padding:16px; padding-bottom:calc(72px + var(--safe-bottom) + 16px); max-width:900px; margin:0 auto; width:100%; }
+    .teacher-main { padding:16px; padding-bottom:24px; max-width:900px; margin:0 auto; width:100%; }
+
+    /* ── TOP TABS (teacher) ── */
+    .top-tabs {
+      display:flex; background:var(--parchment); border-radius:12px;
+      padding:4px; margin-bottom:16px;
+      overflow-x:auto; -webkit-overflow-scrolling:touch; scrollbar-width:none;
+    }
+    .top-tabs::-webkit-scrollbar { display:none; }
+    .top-tab {
+      flex:1; min-width:fit-content;
+      padding:10px 12px; border:none; background:transparent; cursor:pointer;
+      border-radius:9px; font-family:'DM Sans',sans-serif; font-size:.82rem;
+      font-weight:500; color:var(--soil); white-space:nowrap;
+      transition:background .2s var(--ease-out), color .2s, transform .12s var(--spring);
+      -webkit-tap-highlight-color:transparent;
+    }
+    .top-tab.active { background:var(--forest); color:white; font-weight:700; }
+    .top-tab:active { transform:scale(.95); }
+
+    /* ── SECTION TITLES ── */
+    .section-title { font-size:1.3rem; color:var(--forest); margin-bottom:4px; }
+    .section-sub { font-size:.85rem; color:#aaa; margin-bottom:16px; }
+
+    /* ── MAP WRAP ── */
+    .map-wrap { background:white; border-radius:var(--radius); padding:12px; box-shadow:var(--shadow); overflow:hidden; }
+    .map-legend { display:flex; gap:10px; flex-wrap:wrap; margin-top:10px; }
+    .legend-item { display:flex; align-items:center; gap:6px; font-size:.78rem; color:#666; }
+    .legend-dot { width:12px; height:12px; border-radius:3px; flex-shrink:0; }
+
+    /* ── ZONE INFO ── */
+    .zone-info { background:var(--parchment); border-radius:12px; padding:16px; border:1.5px solid var(--mint); }
+    .stage-badge { display:inline-block; padding:4px 12px; border-radius:20px; font-size:.73rem; font-weight:700; letter-spacing:.05em; text-transform:uppercase; }
+    .stage-growing { background:#dcfce7; color:#166534; }
+    .stage-ready   { background:#fef9c3; color:#854d0e; }
+    .stage-empty   { background:#f1f5f9; color:#475569; }
+    .stage-special { background:#dbeafe; color:#1e40af; }
+    .history-list { margin-top:12px; }
+    .history-list h4 { font-size:.75rem; font-weight:700; color:#aaa; text-transform:uppercase; letter-spacing:.06em; margin-bottom:6px; }
+    .history-item { display:flex; justify-content:space-between; font-size:.82rem; padding:6px 0; border-bottom:1px solid var(--mint); color:#555; }
+    .edit-zone { background:#f0fdf4; border-radius:12px; padding:14px; border:1.5px dashed var(--sage); margin-top:12px; }
+
+    /* ── TASK CARDS ── */
+    .tasks-section { margin-bottom:24px; }
+    .tasks-section-title {
+      font-size:.75rem; font-weight:700; text-transform:uppercase;
+      letter-spacing:.08em; color:#aaa; margin-bottom:10px;
+      display:flex; align-items:center; gap:8px;
+    }
+    .tasks-section-title::after { content:''; flex:1; height:1px; background:var(--mint); }
+    .task-card {
+      background:white; border-radius:12px; padding:16px; margin-bottom:10px;
+      box-shadow:0 1px 6px rgba(0,0,0,.05);
+      border:1.5px solid transparent;
+    }
+    .task-card:active { transform:scale(.99); }
+    .task-card.mine { border-color:var(--sage); background:#f7fef9; }
+    .task-card.done { opacity:.65; }
+    .task-top { display:flex; justify-content:space-between; align-items:flex-start; gap:8px; margin-bottom:8px; }
+    .task-title { font-weight:600; font-size:1rem; color:var(--forest); line-height:1.3; }
+    .task-meta { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:10px; }
+    .task-chip { background:var(--parchment); border-radius:6px; padding:4px 9px; font-size:.76rem; color:var(--soil); }
+    .task-chip.urgent { background:#fff1f2; color:#e11d48; }
+    .task-desc { font-size:.88rem; color:#666; margin-bottom:10px; line-height:1.55; }
+    .task-actions { display:flex; gap:8px; flex-wrap:wrap; }
+    .assignees { margin-bottom:8px; display:flex; gap:6px; flex-wrap:wrap; }
+    .assignee-tag { background:var(--mint); color:var(--forest); border-radius:6px; padding:3px 9px; font-size:.76rem; font-weight:500; }
+    .slots { font-size:.82rem; color:#aaa; margin-bottom:6px; }
+
+    /* ── STATUS BADGES ── */
+    .status-badge { border-radius:20px; padding:4px 10px; font-size:.7rem; font-weight:700; text-transform:uppercase; letter-spacing:.05em; white-space:nowrap; flex-shrink:0; }
+    .status-available   { background:#dcfce7; color:#166534; }
+    .status-in_progress { background:#fef9c3; color:#854d0e; }
+    .status-done        { background:#dbeafe; color:#1e40af; }
+    .status-validated   { background:#f1f5f9; color:#64748b; }
+
+    /* ── MODALS — slide up with spring ── */
+    .modal-overlay {
+      position:fixed; inset:0; z-index:200;
+      display:flex; align-items:flex-end;
+      background:rgba(0,0,0,0);
+      animation:overlayIn .22s var(--ease-out) forwards;
+    }
+    @keyframes overlayIn { to { background:rgba(0,0,0,.45); backdrop-filter:blur(2px); -webkit-backdrop-filter:blur(2px); } }
+
+    .modal {
+      background:white; border-radius:20px 20px 0 0;
+      padding:20px; width:100%; max-height:90vh; overflow-y:auto;
+      animation:sheetUp .3s var(--spring) forwards;
+    }
+    @keyframes sheetUp { from{transform:translateY(100%);opacity:.5} to{transform:translateY(0);opacity:1} }
+
+    .log-modal {
+      background:white; border-radius:20px 20px 0 0;
+      padding:20px 20px calc(20px + var(--safe-bottom));
+      width:100%; max-height:92vh; overflow-y:auto;
+      animation:sheetUp .3s var(--spring) forwards;
+    }
+    .modal h3, .log-modal h3 { font-size:1.2rem; margin-bottom:16px; color:var(--forest); }
+    .modal-close {
+      background:rgba(0,0,0,.06); border:none; border-radius:50%;
+      width:32px; height:32px; cursor:pointer; float:right;
+      display:flex; align-items:center; justify-content:center;
+      font-size:1rem; color:#666;
+      transition:background .15s, transform .12s var(--spring);
+      -webkit-tap-highlight-color:transparent;
+    }
+    .modal-close:active { background:rgba(0,0,0,.12); transform:scale(.88); }
+
+    /* ── PIN MODAL ── */
+    .pin-overlay {
+      position:fixed; inset:0; z-index:300;
+      display:flex; align-items:center; justify-content:center; padding:20px;
+      background:rgba(0,0,0,0);
+      animation:overlayIn .22s var(--ease-out) forwards;
+    }
+    .pin-card {
+      background:white; border-radius:20px; padding:32px 24px;
+      max-width:320px; width:100%; text-align:center;
+      animation:popIn .3s var(--spring) forwards;
+    }
+    @keyframes popIn { from{transform:scale(.88) translateY(12px);opacity:0} to{transform:none;opacity:1} }
+    .pin-card h3 { font-size:1.2rem; margin-bottom:8px; }
+    .pin-card p { font-size:.85rem; color:#aaa; margin-bottom:20px; }
+    .pin-input {
+      font-size:1.8rem !important; text-align:center; letter-spacing:.3em;
+      padding:14px; border:2px solid var(--mint); border-radius:10px;
+      width:100%; outline:none; margin-bottom:16px;
+      transition:border-color .18s, box-shadow .18s;
+    }
+    .pin-input:focus { border-color:var(--sage); box-shadow:0 0 0 3px rgba(82,183,136,.15); }
+    .pin-error { color:var(--alert); font-size:.85rem; margin-bottom:10px; animation:shake .3s ease; }
+    @keyframes shake { 0%,100%{transform:none} 25%{transform:translateX(-6px)} 75%{transform:translateX(6px)} }
+
+    /* ── AUTH SCREEN ── */
+    .auth-wrap {
+      min-height:100vh; min-height:100dvh;
+      display:flex; align-items:center; justify-content:center;
+      background:radial-gradient(ellipse at 30% 70%, #d8f3dc 0%, var(--cream) 60%);
+      padding:20px; padding-top:max(20px, var(--safe-top));
+    }
+    .auth-card {
+      background:white; border-radius:20px;
+      padding:32px 24px; max-width:420px; width:100%;
+      box-shadow:var(--shadow), 0 0 0 1px rgba(45,106,79,.06);
+      animation:popIn .4s var(--spring);
+    }
+    @media(max-width:400px) { .auth-card { padding:24px 18px; border-radius:16px; } }
+    .auth-card h1 { font-size:1.8rem; color:var(--forest); margin-bottom:4px; }
+    .auth-card .sub { color:var(--leaf); font-size:.88rem; margin-bottom:24px; }
+    .auth-tabs { display:flex; background:var(--parchment); border-radius:10px; padding:3px; margin-bottom:20px; }
+    .auth-tab {
+      flex:1; padding:10px; border:none; background:transparent; border-radius:8px;
+      cursor:pointer; font-family:'DM Sans',sans-serif; font-size:.9rem; font-weight:500;
+      color:var(--soil); transition:background .2s var(--ease-out), color .2s, transform .1s var(--spring);
+      -webkit-tap-highlight-color:transparent;
+    }
+    .auth-tab.active { background:var(--forest); color:white; font-weight:700; }
+    .auth-tab:active { transform:scale(.95); }
+    .auth-error {
+      background:#fff1f2; color:#e11d48; border-radius:8px;
+      padding:10px 14px; font-size:.85rem; margin-bottom:12px;
+      animation:shake .3s ease;
+    }
+
+    /* ── ROWS ── */
+    .row { display:flex; gap:10px; }
+    .row .field { flex:1; }
+    @media(max-width:440px) { .row { flex-direction:column; gap:0; } }
+
+    /* ── MAP BUBBLE ── */
+    .map-bubble > div:first-child { transition:transform .15s var(--spring); }
+    .map-bubble:hover > div:first-child { transform:scale(1.18) translateY(-2px); }
+    .map-bubble:active > div:first-child { transform:scale(.9); }
+
+    /* ── EMPTY STATE ── */
+    .empty { text-align:center; padding:40px 20px; color:#bbb; }
+    .empty-icon { font-size:2.5rem; margin-bottom:10px; opacity:.6; }
+    .empty p { font-size:.9rem; }
+
+    /* ── ANIMATIONS ── */
+    .fade-in { animation:fadeIn .22s var(--ease-out) both; }
+    @keyframes fadeIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:none} }
+
+    /* Staggered children */
+    .stagger > * { animation:fadeIn .22s var(--ease-out) both; }
+    .stagger > *:nth-child(1) { animation-delay:.04s }
+    .stagger > *:nth-child(2) { animation-delay:.08s }
+    .stagger > *:nth-child(3) { animation-delay:.12s }
+    .stagger > *:nth-child(4) { animation-delay:.16s }
+    .stagger > *:nth-child(5) { animation-delay:.20s }
+    .stagger > *:nth-child(n+6) { animation-delay:.22s }
+
+    /* ── TOAST ── */
+    .toast {
+      position:fixed;
+      bottom:calc(72px + var(--safe-bottom) + 12px);
+      left:50%; transform:translateX(-50%);
+      background:var(--forest); color:white;
+      padding:11px 22px; border-radius:30px; font-size:.88rem;
+      z-index:500; pointer-events:none;
+      white-space:nowrap; max-width:90vw;
+      overflow:hidden; text-overflow:ellipsis;
+      animation:toastIn .35s var(--spring) forwards;
+      box-shadow:0 4px 20px rgba(26,71,49,.3);
+    }
+    @keyframes toastIn {
+      from { opacity:0; transform:translateX(-50%) translateY(16px) scale(.92); }
+      to   { opacity:1; transform:translateX(-50%) translateY(0) scale(1); }
+    }
+
+    .divider { height:1px; background:var(--mint); margin:20px 0; }
+
+    /* ── UPLOAD / LOG ── */
+    .img-upload-area {
+      border:2px dashed var(--mint); border-radius:12px;
+      padding:28px 20px; text-align:center; cursor:pointer;
+      transition:background .2s, border-color .2s, transform .12s var(--spring);
+      background:var(--cream);
+      -webkit-tap-highlight-color:transparent;
+    }
+    .img-upload-area:active { background:#f0fdf4; border-color:var(--sage); transform:scale(.98); }
+    .img-upload-area input { display:none; }
+    .img-preview { width:100%; max-height:220px; object-fit:cover; border-radius:10px; margin-top:10px; }
+    .img-preview-wrap { position:relative; }
+    .img-remove {
+      position:absolute; top:10px; right:10px;
+      background:rgba(0,0,0,.55); color:white; border:none;
+      border-radius:50%; width:32px; height:32px; cursor:pointer;
+      font-size:1rem; display:flex; align-items:center; justify-content:center;
+      transition:transform .12s var(--spring);
+    }
+    .img-remove:active { transform:scale(.85); }
+
+    .log-entry { background:var(--parchment); border-radius:10px; padding:14px; margin-bottom:10px; }
+    .log-entry-header { display:flex; justify-content:space-between; flex-wrap:wrap; gap:4px; margin-bottom:8px; font-size:.82rem; color:#aaa; }
+    .log-entry-author { font-weight:700; color:var(--forest); }
+    .log-comment { font-size:.9rem; color:#333; line-height:1.55; margin-bottom:10px; }
+    .log-image { width:100%; border-radius:8px; max-height:250px; object-fit:cover; cursor:pointer; transition:transform .15s; }
+    .log-image:active { transform:scale(.97); }
+
+    /* ── PLANT MANAGER ── */
+    .plant-manager { display:flex; flex-direction:column; }
+    .plant-row { display:flex; align-items:center; gap:12px; padding:14px 0; border-bottom:1px solid rgba(183,228,199,.5); transition:background .15s; }
+    .plant-row:last-child { border-bottom:none; }
+    .plant-emoji-big { font-size:1.8rem; width:38px; text-align:center; flex-shrink:0; }
+    .plant-info { flex:1; min-width:0; }
+    .plant-row-name { font-weight:600; font-size:.95rem; color:var(--forest); }
+    .plant-row-desc { font-size:.8rem; color:#aaa; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .plant-actions { display:flex; gap:6px; flex-shrink:0; }
+    .plant-edit-form { background:#f0fdf4; border-radius:12px; padding:16px; border:1.5px dashed var(--sage); margin-bottom:12px; animation:fadeIn .2s var(--ease-out); }
+    .plant-edit-form h4 { font-size:.9rem; font-weight:700; color:var(--forest); margin-bottom:12px; }
+    .emoji-row { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px; }
+    .emoji-btn {
+      font-size:1.3rem; padding:6px 10px;
+      border:1.5px solid var(--mint); border-radius:8px;
+      cursor:pointer; background:white;
+      min-width:44px; min-height:44px;
+      display:flex; align-items:center; justify-content:center;
+      transition:transform .12s var(--spring), background .15s, border-color .15s;
+      -webkit-tap-highlight-color:transparent;
+    }
+    .emoji-btn:active { transform:scale(.85); }
+    .emoji-btn.sel { background:var(--mint); border-color:var(--sage); transform:scale(1.1); }
+
+    /* ── STATS ── */
+    .stats-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:10px; margin-bottom:20px; }
+    .stat-card {
+      background:white; border-radius:14px; padding:16px 12px;
+      box-shadow:0 1px 6px rgba(0,0,0,.05); text-align:center;
+      border:1.5px solid transparent;
+      animation:statPop .4s var(--spring) both;
+    }
+    .stat-card:nth-child(1) { animation-delay:.05s }
+    .stat-card:nth-child(2) { animation-delay:.1s }
+    .stat-card:nth-child(3) { animation-delay:.15s }
+    .stat-card:nth-child(4) { animation-delay:.2s }
+    @keyframes statPop { from{opacity:0;transform:scale(.88) translateY(10px)} to{opacity:1;transform:none} }
+    .stat-card.highlight { border-color:var(--sage); background:#f7fef9; }
+    .stat-number { font-family:'Playfair Display',serif; font-size:2.2rem; font-weight:700; color:var(--forest); line-height:1; }
+    .stat-label { font-size:.7rem; color:#aaa; margin-top:4px; text-transform:uppercase; letter-spacing:.07em; }
+    .stat-icon { font-size:1.3rem; margin-bottom:6px; }
+    .activity-list { background:white; border-radius:14px; padding:14px; box-shadow:0 1px 6px rgba(0,0,0,.05); }
+    .activity-item { display:flex; align-items:center; gap:12px; padding:10px 0; border-bottom:1px solid rgba(183,228,199,.4); }
+    .activity-item:last-child { border-bottom:none; }
+    .activity-dot { width:10px; height:10px; border-radius:50%; flex-shrink:0; }
+    .activity-dot.validated { background:var(--sage); }
+    .activity-dot.done { background:var(--sun); }
+    .activity-dot.in_progress { background:#93c5fd; }
+    .activity-dot.available { background:#e5e7eb; border:1.5px solid #ccc; }
+    .activity-info { flex:1; min-width:0; }
+    .activity-title { font-size:.9rem; font-weight:500; color:var(--forest); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .activity-meta { font-size:.76rem; color:#bbb; }
+
+    /* ── LEADERBOARD ── */
+    .leaderboard { background:white; border-radius:14px; overflow:hidden; box-shadow:0 1px 6px rgba(0,0,0,.05); }
+    .lb-row {
+      display:flex; align-items:center; gap:10px;
+      padding:14px; border-bottom:1px solid rgba(183,228,199,.4);
+      transition:background .15s;
+      animation:fadeIn .22s var(--ease-out) both;
+    }
+    .lb-row:last-child { border-bottom:none; }
+    .lb-rank { font-family:'Playfair Display',serif; font-size:1.1rem; font-weight:700; color:var(--leaf); width:28px; text-align:center; flex-shrink:0; }
+    .lb-rank.gold   { color:#b45309; }
+    .lb-rank.silver { color:#6b7280; }
+    .lb-rank.bronze { color:#92400e; }
+    .lb-name { flex:1; min-width:0; }
+    .lb-name strong { font-size:.92rem; color:var(--forest); display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .lb-name small { display:block; font-size:.72rem; color:#bbb; }
+    .lb-stat { text-align:center; min-width:36px; }
+    .lb-stat-num { font-weight:700; font-size:.95rem; color:var(--forest); }
+    .lb-stat-label { font-size:.62rem; color:#ccc; text-transform:uppercase; }
+    .lb-bar-bg { background:#e5e7eb; border-radius:4px; height:6px; overflow:hidden; margin-top:4px; }
+    .lb-bar-fill { background:var(--sage); border-radius:4px; height:6px; transition:width .6s var(--ease-out); }
+    @media(max-width:500px) { .lb-bar-bg { display:none; } .lb-row { gap:8px; padding:12px; } }
+  </style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel">
+const { useState, useEffect, useCallback, useRef } = React;
+
+const API = '';
+
+// Custom error for deleted accounts — caught globally in App
+class AccountDeletedError extends Error {
+  constructor() { super('Compte supprimé'); this.deleted = true; }
+}
+
+async function api(path, method = 'GET', body) {
+  const res = await fetch(API + path, {
+    method,
+    headers: { 'Content-Type': 'application/json' },
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    if (res.status === 401 && err.deleted) throw new AccountDeletedError();
+    throw new Error(err.error || 'Erreur serveur');
+  }
+  return res.json();
+}
+
+// ── STAGE HELPERS ──────────────────────────────────────────────────────────
+const STAGE_LABELS = { growing: 'En croissance', ready: 'Prêt à récolter', empty: 'Vide', special: 'Zone spéciale' };
+const STAGE_CLASS  = { growing: 'stage-growing', ready: 'stage-ready', empty: 'stage-empty', special: 'stage-special' };
+const ZONE_FILL    = { growing: '#86efac', ready: '#fde047', empty: '#e5e7eb', special: '#bfdbfe' };
+
+function stageBadge(stage) {
+  return <span className={`stage-badge ${STAGE_CLASS[stage] || 'stage-empty'}`}>{STAGE_LABELS[stage] || stage}</span>;
+}
+
+function statusBadge(status) {
+  const labels = { available:'Disponible', in_progress:'En cours', done:'Terminée', validated:'Validée ✓' };
+  return <span className={`status-badge status-${status}`}>{labels[status] || status}</span>;
+}
+
+function daysUntil(date) {
+  if (!date) return null;
+  const diff = Math.ceil((new Date(date) - new Date()) / 86400000);
+  return diff;
+}
+
+function dueDateChip(date) {
+  if (!date) return null;
+  const d = daysUntil(date);
+  const label = d < 0 ? `En retard de ${-d}j` : d === 0 ? "Aujourd'hui" : d === 1 ? 'Demain' : `Dans ${d}j`;
+  return <span className={`task-chip ${d <= 1 ? 'urgent' : ''}`}>📅 {label}</span>;
+}
+
+// ── GARDEN CONSTANTS ───────────────────────────────────────────────────────
+const SPECIAL_EMOJI = {
+  'ruches':'🐝','mare-g':'💧','mare-b':'💧',
+  'butte-fleurie':'🌸','butte-b':'🌿',
+  'sa':'🌀','pergola':'🏛️','fumier':'♻️',
+  'compostage':'♻️','cuve':'💦',
+};
+const SPECIAL_DESC = {
+  'ruches':       'Ruches à miel — zone protégée. Ne pas déranger les abeilles.',
+  'mare-g':       'Mare naturelle — habitat pour la biodiversité locale.',
+  'mare-b':       'Mare naturelle — habitat pour la biodiversité locale.',
+  'butte-fleurie':'Butte fleurie — zone de plantation de fleurs mellifères.',
+  'butte-b':      'Butte de plantation — zone de repos du sol.',
+  'sa':           'Spirale Aromatique — conception permaculture sur plusieurs niveaux.',
+  'pergola':      'Pergola — structure d\'ombrage avec plantes grimpantes.',
+  'fumier':       'Fumier — matière organique pour amendement du sol.',
+  'compostage':   'Zone de compostage — transformation des déchets organiques.',
+  'cuve':         'Cuve à eau — récupération des eaux de pluie pour arrosage.',
+};
+const TREE_LEGEND = [
+  [1,'Passiflore'],[2,'Grenadier'],[3,'Bananier'],[4,'Eucalyptus'],
+  [5,'Papayer'],[6,'Laurier rose'],[7,'Canne de Provence'],[8,'Manguier'],
+  [9,'Néflier'],[10,'Olivier'],[11,'Palmier'],[12,'Citronnier'],
+  [13,'Arganier'],[14,'Dattier du désert'],[15,'Frêne dimorphe'],[16,'Mimosa Flava'],
+  [17,'Pommier'],[18,'Gommier Rouge'],[19,'Laurier sauce'],[20,'Figuier'],
+  [21,'Avocatier'],[22,'Cotonnier'],[23,'Vigne'],[24,'Goyavier'],
+  [25,'Mimosa 4 saisons'],[26,'Faux poivrier'],[27,'Rosier'],[28,'Prunier'],
+  [29,'Mûrier'],[30,'Pluméria'],[31,'Cognassier'],[32,'Figuiers de Barbarie'],
+  [33,'Cannes à sucre'],
+];
+// Approximate positions of numbered trees on the SVG (non-clickable)
+const TREE_DOTS = [
+  {n:3, x:192,y:118},{n:29,x:188,y:132},{n:11,x:240,y:142},{n:5, x:208,y:155},
+  {n:20,x:308,y:142},{n:28,x:232,y:175},{n:7, x:213,y:178},{n:6, x:226,y:165},
+  {n:12,x:245,y:178},{n:10,x:255,y:202},{n:31,x:228,y:218},{n:9, x:290,y:190},
+  {n:8, x:232,y:275},{n:13,x:250,y:242},{n:24,x:338,y:270},{n:24,x:388,y:320},
+  {n:33,x:342,y:208},{n:23,x:270,y:218},{n:27,x:538,y:168},{n:30,x:548,y:180},
+  {n:21,x:578,y:265},{n:22,x:598,y:278},{n:22,x:614,y:278},{n:22,x:630,y:278},
+  {n:16,x:510,y:318},{n:17,x:525,y:332},{n:12,x:598,y:342},{n:4, x:648,y:358},
+  {n:25,x:580,y:385},{n:25,x:638,y:388},{n:7, x:528,y:455},{n:11,x:524,y:488},
+  {n:19,x:460,y:462},{n:32,x:638,y:448},{n:32,x:655,y:488},{n:4, x:652,y:480},
+  {n:15,x:396,y:488},{n:26,x:398,y:398},{n:2, x:300,y:66}, {n:2, x:360,y:66},
+  {n:2, x:420,y:66}, {n:1, x:308,y:222},{n:14,x:262,y:348},
+];
+
+// ── TOAST ──────────────────────────────────────────────────────────────────
+function Toast({ msg, onDone }) {
+  useEffect(() => { const t = setTimeout(onDone, 2400); return () => clearTimeout(t); }, []);
+  return <div className="toast">{msg}</div>;
+}
+
+// ── INTERACTIVE MAP ──────────────────────────────────────────────────────────
+
+const ZONE_COLORS = [
+  '#86efac90','#fde04790','#93c5fd90','#f9a8d490','#a5f3fc90',
+  '#d9f99d90','#fca5a590','#e9d5ff90','#fed7aa90','#99f6e490',
+];
+
+// ── LIGHTBOX PORTAL — renders at body level, escapes any overflow parent ─────
+function Lightbox({ src, caption, onClose }) {
+  // Render via portal so position:fixed isn't trapped by parent overflow
+  const el = React.useMemo(() => document.createElement('div'), []);
+  useEffect(() => {
+    document.body.appendChild(el);
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.removeChild(el);
+      document.body.style.overflow = '';
+    };
+  }, [el]);
+
+  const content = (
+    <div
+      style={{position:'fixed',inset:0,background:'rgba(0,0,0,.93)',zIndex:99999,
+        display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',
+        padding:20, animation:'overlayIn .2s ease forwards'}}
+      onClick={onClose}>
+      <img src={src} onClick={e => e.stopPropagation()}
+        style={{maxWidth:'95vw',maxHeight:'85vh',borderRadius:10,
+          objectFit:'contain',boxShadow:'0 8px 40px rgba(0,0,0,.5)',
+          animation:'popIn .25s var(--spring,cubic-bezier(.34,1.56,.64,1))'}}
+        alt={caption||''}/>
+      {caption && (
+        <p style={{color:'rgba(255,255,255,.8)',marginTop:12,fontSize:'.9rem',
+          maxWidth:'80vw',textAlign:'center'}}>{caption}</p>
+      )}
+      <button
+        style={{position:'absolute',top:16,right:16,
+          background:'rgba(255,255,255,.15)',backdropFilter:'blur(4px)',
+          border:'none',color:'white',borderRadius:'50%',
+          width:40,height:40,fontSize:'1.1rem',cursor:'pointer',
+          display:'flex',alignItems:'center',justifyContent:'center'}}
+        onClick={onClose}>✕</button>
+    </div>
+  );
+
+  return ReactDOM.createPortal(content, el);
+}
+function compressImage(file, maxPx=1200, quality=0.75) {
+  return new Promise((res, rej) => {
+    if (file.size > 15*1024*1024) return rej(new Error('Image trop lourde (max 15MB)'));
+    const reader = new FileReader();
+    reader.onload = ev => {
+      const img = new Image();
+      img.onload = () => {
+        let w = img.width, h = img.height;
+        if (w > maxPx) { h = Math.round(h*maxPx/w); w = maxPx; }
+        else if (h > maxPx) { w = Math.round(w*maxPx/h); h = maxPx; }
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        res(canvas.toDataURL('image/jpeg', quality));
+      };
+      img.src = ev.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+// ── PHOTO GALLERY COMPONENT ───────────────────────────────────────────────────
+function PhotoGallery({ zoneId, isTeacher }) {
+  const [photos,  setPhotos]  = useState([]);
+  const [big,     setBig]     = useState(null);   // { src, caption }
+  const [loading, setLoading] = useState(true);
+  const [uploading, setUploading] = useState(false);
+  const [caption,   setCaption]   = useState('');
+  const fileRef = useRef();
+
+  const load = async () => {
+    setLoading(true);
+    try {
+      const list = await api(`/api/zones/${zoneId}/photos`);
+      setPhotos(list.map(p => ({ ...p, image_data: null }))); // show placeholders first
+      setLoading(false);
+      // Load images one by one to avoid hammering server
+      for (const p of list) {
+        try {
+          const d = await api(`/api/zones/${zoneId}/photos/${p.id}/data`);
+          setPhotos(prev => prev.map(x => x.id === p.id ? { ...x, image_data: d.image_data } : x));
+        } catch(e) {}
+      }
+    } catch(e) { setLoading(false); }
+  };
+
+  useEffect(() => { load(); }, [zoneId]);
+
+  const upload = async e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setUploading(true);
+    try {
+      const img = await compressImage(file);
+      await api(`/api/zones/${zoneId}/photos`, 'POST', { image_data: img, caption });
+      setCaption('');
+      await load();
+    } catch(err) { alert(err.message); }
+    setUploading(false);
+  };
+
+  const del = async id => {
+    if (!confirm('Supprimer cette photo ?')) return;
+    await api(`/api/zones/${zoneId}/photos/${id}`, 'DELETE');
+    await load();
+  };
+
+  return (
+    <div style={{marginTop:12}}>
+      {/* Lightbox — rendered via portal, escapes modal overflow */}
+      {big && <Lightbox src={big.src} caption={big.caption} onClose={() => setBig(null)}/>}
+
+      {loading
+        ? <p style={{color:'#aaa',fontSize:'.85rem',textAlign:'center',padding:'16px 0'}}>Chargement...</p>
+        : photos.length === 0
+          ? <p style={{color:'#bbb',fontSize:'.85rem',fontStyle:'italic',textAlign:'center',padding:'12px 0'}}>
+              Aucune photo pour cette zone.
+            </p>
+          : <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(100px,1fr))',gap:8,marginBottom:12}}>
+              {photos.map(p => (
+                <div key={p.id} style={{position:'relative',borderRadius:8,overflow:'hidden',
+                  aspectRatio:'1',background:'#e8f5e9'}}>
+                  {p.image_data
+                    ? <img src={p.image_data} style={{width:'100%',height:'100%',objectFit:'cover',cursor:'pointer'}}
+                        onClick={() => setBig({src:p.image_data, caption:p.caption})} alt={p.caption||''}/>
+                    : <div style={{width:'100%',height:'100%',display:'flex',alignItems:'center',
+                        justifyContent:'center',fontSize:'1.5rem',animation:'sway 1.5s infinite'}}>🌿</div>
+                  }
+                  {p.image_data && p.caption && (
+                    <div style={{position:'absolute',bottom:0,left:0,right:0,background:'rgba(0,0,0,.55)',
+                      color:'white',fontSize:'.62rem',padding:'3px 5px',
+                      overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{p.caption}</div>
+                  )}
+                  {isTeacher && p.image_data && (
+                    <button onClick={() => del(p.id)}
+                      style={{position:'absolute',top:4,right:4,background:'rgba(0,0,0,.55)',
+                        border:'none',color:'white',borderRadius:'50%',width:22,height:22,
+                        fontSize:'.7rem',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}>
+                      ✕
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+      }
+
+      {isTeacher && (
+        <div>
+          <input value={caption} onChange={e=>setCaption(e.target.value)}
+            placeholder="Légende (optionnel)" style={{fontSize:'16px',width:'100%',marginBottom:6,
+              padding:'8px 12px',border:'1.5px solid var(--mint)',borderRadius:8,background:'var(--cream)'}}/>
+          <button className="btn btn-secondary btn-sm btn-full" disabled={uploading}
+            onClick={() => fileRef.current.click()}>
+            {uploading ? 'Envoi...' : '📷 Ajouter une photo'}
+          </button>
+          <input ref={fileRef} type="file" accept="image/*" capture="environment"
+            style={{display:'none'}} onChange={upload}/>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── ZONE INFO MODAL ───────────────────────────────────────────────────────────
+function ZoneInfoModal({ zone, plants, isTeacher, onClose, onUpdate, onDelete, onEditPoints }) {
+  const [tab,    setTab]    = useState('info');   // 'info' | 'photos' | 'edit'
+  const [plant,  setPlant]  = useState(zone.current_plant || '');
+  const [stage,  setStage]  = useState(zone.stage || 'empty');
+  const [desc,   setDesc]   = useState(zone.description || '');
+  const [saving, setSaving] = useState(false);
+  const [toast,  setToast]  = useState(null);
+
+  const displayStage = zone.special ? 'special' : zone.stage;
+  const plantObj = plants.find(p => p.name === zone.current_plant);
+
+  const save = async () => {
+    setSaving(true);
+    try {
+      await onUpdate(zone.id, { current_plant: plant, stage, description: desc });
+      setToast('Sauvegardé ✓');
+      setTab('info');
+    } catch(e) { setToast('Erreur'); }
+    setSaving(false);
+  };
+
+  const TABS = [
+    { id:'info',   label:'ℹ️ Info'   },
+    { id:'photos', label:'📷 Photos' },
+    ...(isTeacher && !zone.special ? [{ id:'edit', label:'✏️ Modifier' }] : []),
+  ];
+
+  return (
+    <div className="modal-overlay" onClick={e => e.target===e.currentTarget && onClose()}>
+      <div className="log-modal fade-in" style={{paddingTop:16}}>
+        {toast && <Toast msg={toast} onDone={() => setToast(null)}/>}
+        <button className="modal-close" onClick={onClose}>✕</button>
+
+        {/* Header */}
+        <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:12}}>
+          <span style={{fontSize:'1.8rem'}}>
+            {zone.special
+              ? (zone.id.includes('ruche')?'🐝':zone.id.includes('mare')?'💧':zone.id.includes('butte')?'🌸':'🏛️')
+              : (plantObj?.emoji || (zone.current_plant?'🌱':'🪨'))
+            }
+          </span>
+          <div style={{flex:1,minWidth:0}}>
+            <h3 style={{margin:0,fontSize:'1.1rem'}}>{zone.name}</h3>
+            <div style={{marginTop:3}}>{stageBadge(displayStage)}</div>
+          </div>
+          {isTeacher && !zone.special && (
+            <button className="btn btn-danger btn-sm"
+              onClick={() => { if(confirm(`Supprimer "${zone.name}" ?`)) { onDelete(zone.id); onClose(); } }}>
+              🗑️
+            </button>
+          )}
+        </div>
+
+        {/* Tabs */}
+        <div style={{display:'flex',background:'var(--parchment)',borderRadius:10,padding:3,marginBottom:14,gap:2}}>
+          {TABS.map(t => (
+            <button key={t.id} onClick={() => setTab(t.id)}
+              style={{flex:1,padding:'8px 4px',border:'none',borderRadius:8,cursor:'pointer',
+                fontFamily:'DM Sans,sans-serif',fontSize:'.8rem',fontWeight:tab===t.id?700:400,
+                background:tab===t.id?'var(--forest)':'transparent',
+                color:tab===t.id?'white':'var(--soil)',transition:'all .15s'}}>
+              {t.label}
+            </button>
+          ))}
+        </div>
+
+        {/* INFO TAB */}
+        {tab === 'info' && (
+          <div className="fade-in">
+            {!zone.special && zone.current_plant && (
+              <div style={{background:'var(--parchment)',borderRadius:10,padding:'10px 14px',marginBottom:12}}>
+                <div style={{fontWeight:700,color:'var(--forest)',marginBottom:3}}>{zone.current_plant}</div>
+                {plantObj?.description && <p style={{fontSize:'.83rem',color:'#555',lineHeight:1.5,margin:0}}>{plantObj.description}</p>}
+              </div>
+            )}
+            {zone.description && (
+              <div style={{background:'#f0fdf4',borderRadius:10,padding:'10px 14px',marginBottom:12,
+                border:'1px solid var(--mint)',fontSize:'.88rem',color:'#333',lineHeight:1.6}}>
+                {zone.description}
+              </div>
+            )}
+            {zone.history?.length > 0 && (
+              <div className="history-list">
+                <h4>Historique cultures</h4>
+                {zone.history.map((h,i) => (
+                  <div key={i} className="history-item">
+                    <span>{h.plant}</span><span style={{color:'#aaa',fontSize:'.76rem'}}>{h.harvested_at}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+            {!zone.special && !zone.current_plant && !zone.description && zone.history?.length === 0 && (
+              <p style={{color:'#bbb',fontSize:'.85rem',fontStyle:'italic',textAlign:'center',padding:'20px 0'}}>
+                Zone vide — aucune information pour l'instant.
+              </p>
+            )}
+          </div>
+        )}
+
+        {/* PHOTOS TAB */}
+        {tab === 'photos' && (
+          <div className="fade-in">
+            <PhotoGallery zoneId={zone.id} isTeacher={isTeacher}/>
+          </div>
+        )}
+
+        {/* EDIT TAB */}
+        {tab === 'edit' && isTeacher && !zone.special && (
+          <div className="fade-in">
+            <div className="field"><label>Plante actuelle</label>
+              <select value={plant} onChange={e => {
+                setPlant(e.target.value);
+                if (e.target.value && stage==='empty') setStage('growing');
+                if (!e.target.value) setStage('empty');
+              }}>
+                <option value="">— Vide —</option>
+                {plants.map(p => <option key={p.id} value={p.name}>{p.emoji} {p.name}</option>)}
+              </select>
+            </div>
+            <div className="field"><label>État</label>
+              <select value={stage} onChange={e => setStage(e.target.value)}>
+                <option value="empty">Vide</option>
+                <option value="growing">En croissance</option>
+                <option value="ready">Prêt à récolter</option>
+              </select>
+            </div>
+            <div className="field"><label>Description</label>
+              <textarea value={desc} onChange={e => setDesc(e.target.value)} rows={3}
+                placeholder="Observations, conseils, notes sur cette zone..."/>
+            </div>
+            <button className="btn btn-primary btn-full" onClick={save} disabled={saving}>
+              {saving ? '...' : '💾 Sauvegarder'}
+            </button>
+            {onEditPoints && (
+              <button className="btn btn-ghost btn-full" style={{marginTop:8}}
+                onClick={() => { onEditPoints(zone); onClose(); }}>
+                🔷 Modifier le contour de la zone
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── ZONE DRAW MODAL ───────────────────────────────────────────────────────────
+function ZoneDrawModal({ points_pct, onClose, onSave, plants }) {
+  const [form, setForm] = useState({ name:'', current_plant:'', stage:'empty', description:'', color: ZONE_COLORS[0] });
+  const [saving, setSaving] = useState(false);
+  const set = k => e => setForm(f => ({...f, [k]: e.target.value}));
+  const save = async () => {
+    if (!form.name.trim()) return;
+    setSaving(true);
+    try { await onSave({ ...form, points: points_pct }); onClose(); }
+    catch(e) { setSaving(false); }
+  };
+  return (
+    <div className="modal-overlay" onClick={e => e.target===e.currentTarget && onClose()}>
+      <div className="log-modal fade-in">
+        <button className="modal-close" onClick={onClose}>✕</button>
+        <h3>🖊️ Nouvelle zone</h3>
+        <p style={{fontSize:'.83rem', color:'#888', marginBottom:14}}>{points_pct.length} points tracés</p>
+        <div className="field"><label>Nom *</label>
+          <input value={form.name} onChange={set('name')} placeholder="Ex: Potager Est" autoFocus/>
+        </div>
+        <div className="row">
+          <div className="field"><label>Plante</label>
+            <select value={form.current_plant} onChange={set('current_plant')}>
+              <option value="">— Vide —</option>
+              {plants.map(p => <option key={p.id} value={p.name}>{p.emoji} {p.name}</option>)}
+            </select>
+          </div>
+          <div className="field"><label>État</label>
+            <select value={form.stage} onChange={set('stage')}>
+              <option value="empty">Vide</option>
+              <option value="growing">En croissance</option>
+              <option value="ready">Prêt à récolter</option>
+            </select>
+          </div>
+        </div>
+        <div className="field"><label>Description</label>
+          <textarea value={form.description} onChange={set('description')} rows={2}
+            placeholder="Notes, observations sur cette zone..."/>
+        </div>
+        <div className="field"><label>Couleur</label>
+          <div style={{display:'flex', gap:8, flexWrap:'wrap'}}>
+            {ZONE_COLORS.map(c => (
+              <div key={c} onClick={() => setForm(f => ({...f, color:c}))}
+                style={{width:30, height:30, borderRadius:8, background:c, cursor:'pointer',
+                  border: form.color===c ? '3px solid #1a4731' : '2px solid #ddd',
+                  transition:'transform .1s', transform: form.color===c ? 'scale(1.15)' : 'none'}}/>
+            ))}
+          </div>
+        </div>
+        <button className="btn btn-primary btn-full" onClick={save} disabled={saving} style={{marginTop:4}}>
+          {saving ? '...' : '✅ Créer la zone'}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ── MARKER MODAL ─────────────────────────────────────────────────────────────
+function MarkerModal({ marker, plants, onClose, onSave, onDelete, isTeacher }) {
+  const isNew = !marker.id;
+  const [form, setForm] = useState({
+    label: marker.label || '', plant_name: marker.plant_name || '',
+    note: marker.note || '', emoji: marker.emoji || '🌱',
+  });
+  const [saving, setSaving] = useState(false);
+  const set = k => e => setForm(f => ({...f, [k]: e.target.value}));
+  const EMOJIS = ['🌱','🌿','🥬','🥕','🍅','🍓','🫘','🌸','🌳','🌲','🐝','💧','🪨','🏠','⚠️','🌾','🍋'];
+
+  const save = async () => {
+    if (!form.label.trim()) return;
+    setSaving(true);
+    try { await onSave({ ...marker, ...form }); onClose(); }
+    catch(e) { setSaving(false); }
+  };
+
+  return (
+    <div className="modal-overlay" onClick={e => e.target===e.currentTarget && onClose()}>
+      <div className="log-modal fade-in">
+        <button className="modal-close" onClick={onClose}>✕</button>
+        <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:14}}>
+          <span style={{fontSize:'2rem'}}>{form.emoji}</span>
+          <h3 style={{margin:0}}>{isNew ? 'Nouveau repère' : form.label}</h3>
+        </div>
+
+        {isTeacher ? (
+          <>
+            <div style={{display:'flex',gap:6,flexWrap:'wrap',marginBottom:12}}>
+              {EMOJIS.map(e => (
+                <button key={e} className={`emoji-btn ${form.emoji===e?'sel':''}`}
+                  onClick={() => setForm(f=>({...f,emoji:e}))}>{e}</button>
+              ))}
+            </div>
+            <div className="field"><label>Nom du repère *</label>
+              <input value={form.label} onChange={set('label')} placeholder="Ex: Olivier n°10"/>
+            </div>
+            <div className="field"><label>Plante associée</label>
+              <select value={form.plant_name} onChange={set('plant_name')}>
+                <option value="">— Aucune —</option>
+                {plants.map(p => <option key={p.id} value={p.name}>{p.emoji} {p.name}</option>)}
+              </select>
+            </div>
+            <div className="field"><label>Note</label>
+              <textarea value={form.note} onChange={set('note')} rows={3}
+                placeholder="Observations, entretien..."/>
+            </div>
+            <div style={{display:'flex',gap:8,marginTop:4}}>
+              <button className="btn btn-primary" style={{flex:1}} onClick={save} disabled={saving}>
+                {saving?'...':(isNew?'📍 Placer':'💾 Sauver')}
+              </button>
+              {!isNew && (
+                <button className="btn btn-danger" onClick={() => {
+                  if(confirm('Supprimer ce repère ?')) { onDelete(marker.id); onClose(); }
+                }}>🗑️</button>
+              )}
+            </div>
+          </>
+        ) : (
+          <div>
+            {form.plant_name && (
+              <div style={{background:'var(--parchment)',borderRadius:10,padding:'10px 14px',marginBottom:12}}>
+                <div style={{fontWeight:700,color:'var(--forest)'}}>{form.plant_name}</div>
+              </div>
+            )}
+            {form.note
+              ? <p style={{fontSize:'.9rem',color:'#444',lineHeight:1.6}}>{form.note}</p>
+              : <p style={{fontSize:'.85rem',color:'#aaa',fontStyle:'italic'}}>Aucune note.</p>
+            }
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── MAIN MAP COMPONENT ────────────────────────────────────────────────────────
+function MapView({ zones, markers, plants, isTeacher, onZoneUpdate, onRefresh }) {
+  const containerRef = useRef(null);
+  const worldRef     = useRef(null);
+  const imgRef       = useRef(null);
+
+  // Single source of truth: refs for live values, state only for coordinate math in render
+  const tx = useRef({ x:0, y:0, s:1 }); // live transform — never causes re-render
+  const [committed, setCommitted] = useState({ x:0, y:0, s:1 }); // for SVG/markers math
+  const [imgSize, setImgSize] = useState({ w:1, h:1 });
+  const imgSizeRef = useRef({ w:1, h:1 });
+
+  const applyTransform = () => {
+    if (worldRef.current) {
+      const { x, y, s } = tx.current;
+      worldRef.current.style.transform = `translate(${x}px,${y}px) scale(${s})`;
+    }
+  };
+
+  // Only call when gesture ends — triggers React re-render for SVG coordinate recalc
+  // We also re-apply the transform after React renders to prevent any flash
+  const commitRef = useRef(null);
+  const commit = () => {
+    const snap = { ...tx.current };
+    setCommitted(snap);
+    // Re-apply after React paints to prevent any frame where React's stale transform shows
+    cancelAnimationFrame(commitRef.current);
+    commitRef.current = requestAnimationFrame(applyTransform);
+  };
+
+  const [mode,          setMode]          = useState('view');
+  const [showLabels,    setShowLabels]    = useState(true);
+  const [drawPoints,    setDrawPoints]    = useState([]);
+  const [editZone,      setEditZone]      = useState(null);
+  const [editPoints,    setEditPoints]    = useState([]);
+  const [draggingPtIdx, setDraggingPtIdx] = useState(-1);
+  const [selectedZone,   setSelectedZone]   = useState(null);
+  const [selectedMarker, setSelectedMarker] = useState(null);
+  const [pendingZone,    setPendingZone]     = useState(null);
+  const [pendingMarker,  setPendingMarker]   = useState(null);
+  const [toast,          setToast]           = useState(null);
+
+  const modeRef           = useRef('view');
+  const draggingMarkerRef = useRef(null);
+  const draggingMarkerEl  = useRef(null);
+  const isPanning         = useRef(false);
+  const panStart          = useRef({ x:0, y:0 });
+  const moved             = useRef(false);
+  const pinching          = useRef(false);
+  const pinchRef          = useRef({});
+  const rafId             = useRef(null);
+
+  useEffect(() => { modeRef.current = mode; }, [mode]);
+
+  useEffect(() => {
+    const img = imgRef.current;
+    if (!img) return;
+    const onLoad = () => {
+      imgSizeRef.current = { w: img.naturalWidth, h: img.naturalHeight };
+      setImgSize({ w: img.naturalWidth, h: img.naturalHeight });
+    };
+    if (img.complete) onLoad(); else img.addEventListener('load', onLoad);
+    return () => img.removeEventListener('load', onLoad);
+  }, []);
+
+  useEffect(() => {
+    const c = containerRef.current;
+    if (!c || imgSizeRef.current.w <= 1) return;
+    const { w, h } = imgSizeRef.current;
+    const s  = Math.min(c.clientWidth / w, c.clientHeight / h, 1);
+    const x  = (c.clientWidth  - w * s) / 2;
+    const y  = (c.clientHeight - h * s) / 2;
+    tx.current = { x, y, s };
+    applyTransform();
+    setCommitted({ x, y, s });
+  }, [imgSize]);
+
+  const fitMap = () => {
+    const c = containerRef.current;
+    if (!c) return;
+    const { w, h } = imgSizeRef.current;
+    const s  = Math.min(c.clientWidth / w, c.clientHeight / h, 1);
+    const x  = (c.clientWidth  - w * s) / 2;
+    const y  = (c.clientHeight - h * s) / 2;
+    tx.current = { x, y, s };
+    applyTransform();
+    setCommitted({ x, y, s });
+  };
+
+  const scheduleApply = () => {
+    if (rafId.current) return;
+    rafId.current = requestAnimationFrame(() => {
+      applyTransform();
+      rafId.current = null;
+    });
+  };
+
+  const toImagePct = (clientX, clientY) => {
+    const c = containerRef.current;
+    if (!c) return null;
+    const r  = c.getBoundingClientRect();
+    const { x, y, s } = tx.current;
+    const { w, h }    = imgSizeRef.current;
+    return { xp: ((clientX - r.left  - x) / s / w) * 100,
+             yp: ((clientY - r.top - y) / s / h) * 100 };
+  };
+
+  // ── NATIVE LISTENERS ──────────────────────────────────────────────────────
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+
+    const onPD = e => {
+      if (e.target.closest('.edit-pt') || e.target.closest('.map-bubble')) return;
+      moved.current = false;
+      if (modeRef.current === 'view') {
+        isPanning.current = true;
+        panStart.current  = { x: e.clientX - tx.current.x, y: e.clientY - tx.current.y };
+      }
+    };
+
+    const onPM = e => {
+      if (isPanning.current) {
+        if (!moved.current) {
+          moved.current = true;
+          try { el.setPointerCapture(e.pointerId); } catch(_) {}
+        }
+        tx.current.x = e.clientX - panStart.current.x;
+        tx.current.y = e.clientY - panStart.current.y;
+        scheduleApply();
+        e.preventDefault();
+        return;
+      }
+      if (draggingMarkerRef.current && draggingMarkerEl.current) {
+        if (!moved.current) moved.current = true;
+        const p = toImagePct(e.clientX, e.clientY);
+        if (!p) return;
+        const mel = draggingMarkerEl.current;
+        mel.style.left = p.xp + '%';
+        mel.style.top  = p.yp + '%';
+        mel._pct = p;
+        e.preventDefault();
+      }
+    };
+
+    const onPU = e => {
+      if (isPanning.current) {
+        isPanning.current = false;
+        commit(); // sync React state ONCE on release
+      }
+      if (draggingMarkerRef.current) {
+        const id  = draggingMarkerRef.current;
+        const mel = draggingMarkerEl.current;
+        if (mel?._pct) {
+          api(`/api/map/markers/${id}`, 'PUT', { x_pct: mel._pct.xp, y_pct: mel._pct.yp }).then(onRefresh);
+          delete mel._pct;
+        }
+        draggingMarkerRef.current = null;
+        draggingMarkerEl.current  = null;
+      }
+      setTimeout(() => { moved.current = false; }, 0);
+    };
+
+    const onWH = e => {
+      e.preventDefault();
+      const r    = el.getBoundingClientRect();
+      const mx   = e.clientX - r.left, my = e.clientY - r.top;
+      const d    = e.deltaY > 0 ? 0.85 : 1.18;
+      const ns   = Math.min(Math.max(tx.current.s * d, 0.15), 6);
+      tx.current.x = mx - (mx - tx.current.x) * (ns / tx.current.s);
+      tx.current.y = my - (my - tx.current.y) * (ns / tx.current.s);
+      tx.current.s = ns;
+      scheduleApply();
+      clearTimeout(onWH._t);
+      onWH._t = setTimeout(commit, 80);
+    };
+
+    const touchRef2 = {};
+    const onTS = e => {
+      if (e.touches.length === 2) {
+        isPanning.current = false;
+        pinching.current  = true;
+        const t0 = e.touches[0], t1 = e.touches[1];
+        const rect = el.getBoundingClientRect();
+        touchRef2.dist = Math.hypot(t0.clientX-t1.clientX, t0.clientY-t1.clientY);
+        touchRef2.s    = tx.current.s;
+        touchRef2.ox   = tx.current.x;
+        touchRef2.oy   = tx.current.y;
+        touchRef2.mx   = (t0.clientX+t1.clientX)/2 - rect.left;
+        touchRef2.my   = (t0.clientY+t1.clientY)/2 - rect.top;
+        e.preventDefault();
+      }
+    };
+    const onTM = e => {
+      if (pinching.current && e.touches.length === 2) {
+        e.preventDefault();
+        const t0   = e.touches[0], t1 = e.touches[1];
+        const dist = Math.hypot(t0.clientX-t1.clientX, t0.clientY-t1.clientY);
+        const ns   = Math.min(Math.max(touchRef2.s*(dist/touchRef2.dist), 0.15), 6);
+        tx.current.x = touchRef2.mx - (touchRef2.mx - touchRef2.ox) * (ns / touchRef2.s);
+        tx.current.y = touchRef2.my - (touchRef2.my - touchRef2.oy) * (ns / touchRef2.s);
+        tx.current.s = ns;
+        scheduleApply();
+      }
+    };
+    const onTE = e => {
+      if (pinching.current && e.touches.length < 2) {
+        pinching.current = false;
+        commit();
+      }
+    };
+
+    el.addEventListener('pointerdown',  onPD, { passive: true  });
+    el.addEventListener('pointermove',  onPM, { passive: false });
+    el.addEventListener('pointerup',    onPU, { passive: true  });
+    el.addEventListener('pointerleave', onPU, { passive: true  });
+    el.addEventListener('wheel',        onWH, { passive: false });
+    el.addEventListener('touchstart',   onTS, { passive: false });
+    el.addEventListener('touchmove',    onTM, { passive: false });
+    el.addEventListener('touchend',     onTE, { passive: true  });
+
+    return () => {
+      el.removeEventListener('pointerdown',  onPD);
+      el.removeEventListener('pointermove',  onPM);
+      el.removeEventListener('pointerup',    onPU);
+      el.removeEventListener('pointerleave', onPU);
+      el.removeEventListener('wheel',        onWH);
+      el.removeEventListener('touchstart',   onTS);
+      el.removeEventListener('touchmove',    onTM);
+      el.removeEventListener('touchend',     onTE);
+    };
+  }, [onRefresh]);
+
+  const onMapClick = e => {
+    if (moved.current) return;
+    if (e.target.closest('.map-zone-hit') || e.target.closest('.map-bubble')) return;
+    const p = toImagePct(e.clientX, e.clientY);
+    if (!p) return;
+    if (modeRef.current === 'draw-zone') setDrawPoints(pts => [...pts, p]);
+    else if (modeRef.current === 'add-marker') { setPendingMarker(p); setMode('view'); }
+  };
+
+  const finishZone   = () => { if (drawPoints.length >= 3) { setPendingZone(drawPoints); setDrawPoints([]); setMode('view'); }};
+  const undoPoint    = () => setDrawPoints(pts => pts.slice(0,-1));
+  const cancelDraw   = () => { setDrawPoints([]); setMode('view'); };
+
+  const startEditPoints = z => {
+    let pts; try { pts = z.points ? JSON.parse(z.points) : []; } catch(e) { pts = []; }
+    setEditZone(z); setEditPoints(pts); setMode('edit-points'); setSelectedZone(null);
+  };
+  const saveEditPoints = async () => {
+    if (!editZone) return;
+    await api(`/api/zones/${editZone.id}`, 'PUT', { points: editPoints });
+    await onRefresh();
+    setEditZone(null); setEditPoints([]); setMode('view');
+    setToast('Contour sauvegardé ✓');
+  };
+
+  const saveMarker   = async d => { if(d.id) await api(`/api/map/markers/${d.id}`,'PUT',d); else await api('/api/map/markers','POST',d); await onRefresh(); };
+  const deleteMarker = async id => { await api(`/api/map/markers/${id}`,'DELETE'); await onRefresh(); };
+  const deleteZone   = async id => { await api(`/api/zones/${id}`,'DELETE'); await onRefresh(); };
+
+  // SVG coords use committed state (updated only on gesture end)
+  const { x: cx, y: cy, s: cs } = committed;
+  const { w: iw, h: ih } = imgSize;
+  const inv = 1 / cs;
+
+  const toWorld = p => ({ cx:(p.xp/100)*iw, cy:(p.yp/100)*ih });
+
+  const renderZonePoly = z => {
+    let pts; try { pts = z.points ? JSON.parse(z.points) : null; } catch(e) { pts = null; }
+    if (!pts || pts.length < 3) return null;
+    const wp  = pts.map(toWorld);
+    const str = wp.map(p=>`${p.cx},${p.cy}`).join(' ');
+    const mx  = wp.reduce((s,p)=>s+p.cx,0)/wp.length;
+    const my  = wp.reduce((s,p)=>s+p.cy,0)/wp.length;
+    const isEd = mode==='edit-points' && editZone?.id===z.id;
+    return (
+      <g key={z.id} className={mode==='view'?'map-zone-hit':''} style={{cursor:mode==='view'?'pointer':'default'}}
+        onClick={e=>{if(mode==='view'&&!moved.current){e.stopPropagation();setSelectedZone(z);}}}>
+        <polygon points={str} fill={isEd?'rgba(82,183,136,0.35)':(z.color||'#86efac90')}
+          stroke={isEd?'#52b788':'rgba(26,71,49,0.5)'}
+          strokeWidth={(isEd?2.5:1.5)*inv} strokeDasharray={z.special?`${5*inv},${3*inv}`:'none'}/>
+        {showLabels && (
+          <text x={mx} y={my} textAnchor="middle" dominantBaseline="middle"
+            fontSize={Math.max(8,12*inv)} fontWeight="700" fontFamily="DM Sans,sans-serif"
+            fill="#1a4731" stroke="rgba(255,255,255,0.8)" strokeWidth={3*inv} paintOrder="stroke"
+            style={{pointerEvents:'none',userSelect:'none'}}>{z.name}</text>
+        )}
+      </g>
+    );
+  };
+
+  const renderEditPts = () => {
+    if (mode!=='edit-points'||!editPoints.length) return null;
+    const wp  = editPoints.map(toWorld);
+    const str = wp.map(p=>`${p.cx},${p.cy}`).join(' ');
+    const r   = Math.max(5, 8*inv);
+    return (
+      <g>
+        <polygon points={str} fill="rgba(82,183,136,0.2)" stroke="#52b788" strokeWidth={2*inv}/>
+        {wp.map((p,i)=>(
+          <circle key={i} className="edit-pt" cx={p.cx} cy={p.cy} r={r}
+            fill={draggingPtIdx===i?'#1a4731':'white'} stroke="#1a4731" strokeWidth={2*inv}
+            style={{cursor:'grab'}}
+            onPointerDown={e=>{e.stopPropagation();setDraggingPtIdx(i);e.currentTarget.setPointerCapture(e.pointerId);}}
+            onPointerMove={e=>{if(draggingPtIdx===i){const p2=toImagePct(e.clientX,e.clientY);if(p2)setEditPoints(pts=>pts.map((pt,j)=>j===i?p2:pt));}}}
+            onPointerUp={e=>{e.stopPropagation();setDraggingPtIdx(-1);}}/>
+        ))}
+      </g>
+    );
+  };
+
+  const renderDrawing = () => {
+    if (!drawPoints.length) return null;
+    const wp  = drawPoints.map(toWorld);
+    const str = wp.map(p=>`${p.cx},${p.cy}`).join(' ');
+    const r   = Math.max(4,6*inv);
+    return (
+      <g>
+        {drawPoints.length>1&&<polyline points={str} fill="none" stroke="#52b788" strokeWidth={2*inv} strokeDasharray={`${6*inv},${3*inv}`}/>}
+        {wp.map((p,i)=><circle key={i} cx={p.cx} cy={p.cy} r={r} fill="#1a4731" stroke="white" strokeWidth={1.5*inv}/>)}
+      </g>
+    );
+  };
+
+  const cursor = mode==='view'?'grab':mode==='draw-zone'?'crosshair':mode==='edit-points'?'default':'cell';
+
+  return (
+    <div style={{display:'flex',flexDirection:'column',height:'calc(100dvh - 56px - 72px)',minHeight:380}}>
+      {toast && <Toast msg={toast} onDone={()=>setToast(null)}/>}
+
+      {selectedZone && (
+        <ZoneInfoModal zone={selectedZone} plants={plants} isTeacher={isTeacher}
+          onClose={()=>setSelectedZone(null)}
+          onUpdate={async(id,data)=>{await onZoneUpdate(id,data);setSelectedZone(null);await onRefresh();}}
+          onDelete={async id=>{await deleteZone(id);setSelectedZone(null);}}
+          onEditPoints={isTeacher?z=>startEditPoints(z):null}/>
+      )}
+      {selectedMarker && (
+        <MarkerModal marker={selectedMarker} plants={plants} isTeacher={isTeacher}
+          onClose={()=>setSelectedMarker(null)} onSave={saveMarker} onDelete={deleteMarker}/>
+      )}
+      {pendingZone && (
+        <ZoneDrawModal points_pct={pendingZone} plants={plants}
+          onClose={()=>setPendingZone(null)}
+          onSave={async data=>{await api('/api/zones','POST',data);setPendingZone(null);await onRefresh();}}/>
+      )}
+      {pendingMarker && (
+        <MarkerModal marker={{x_pct:pendingMarker.xp,y_pct:pendingMarker.yp,label:'',note:'',emoji:'🌱',plant_name:''}}
+          plants={plants} isTeacher={isTeacher}
+          onClose={()=>setPendingMarker(null)}
+          onSave={async data=>{await api('/api/map/markers','POST',data);setPendingMarker(null);await onRefresh();}}
+          onDelete={()=>setPendingMarker(null)}/>
+      )}
+
+      {/* Toolbar */}
+      <div style={{display:'flex',alignItems:'center',gap:6,padding:'7px 12px',
+        background:'white',borderBottom:'1.5px solid var(--mint)',flexShrink:0,flexWrap:'wrap',minHeight:50}}>
+        <div style={{display:'flex',gap:3,background:'var(--parchment)',borderRadius:10,padding:3}}>
+          {[['view','🖐️ Nav'],
+            ...(isTeacher&&mode!=='edit-points'?[
+              ['draw-zone',`🖊️ Zone${mode==='draw-zone'&&drawPoints.length>0?` (${drawPoints.length})`:''}`],
+              ['add-marker','📍 Repère'],
+            ]:[])
+          ].map(([m,label])=>(
+            <button key={m}
+              style={{background:mode===m?'var(--forest)':'transparent',color:mode===m?'white':'var(--soil)',
+                border:'none',borderRadius:8,padding:'7px 11px',cursor:'pointer',
+                fontFamily:'DM Sans,sans-serif',fontSize:'.82rem',fontWeight:600,
+                transition:'all .15s',whiteSpace:'nowrap'}}
+              onClick={()=>{setMode(p=>p===m&&m!=='view'?'view':m);if(m==='view'){setDrawPoints([]);setEditZone(null);setEditPoints([]);}}}>
+              {label}
+            </button>
+          ))}
+        </div>
+
+        {isTeacher&&mode==='draw-zone'&&drawPoints.length>0&&(
+          <div style={{display:'flex',gap:4}}>
+            {drawPoints.length>=3&&<button className="btn btn-secondary btn-sm" onClick={finishZone}>✅ Terminer</button>}
+            <button className="btn btn-ghost btn-sm" onClick={undoPoint}>↩ Undo</button>
+            <button className="btn btn-danger btn-sm" onClick={cancelDraw}>✕</button>
+          </div>
+        )}
+        {mode==='edit-points'&&(
+          <div style={{display:'flex',gap:6,alignItems:'center'}}>
+            <span style={{fontSize:'.8rem',color:'var(--leaf)',fontWeight:700,
+              background:'#f0fdf4',padding:'5px 10px',borderRadius:8,border:'1px solid var(--mint)'}}>
+              ✏️ {editZone?.name}
+            </span>
+            <button className="btn btn-primary btn-sm" onClick={saveEditPoints}>💾 Sauver</button>
+            <button className="btn btn-ghost btn-sm" onClick={()=>{setMode('view');setEditZone(null);setEditPoints([]);}}>✕</button>
+          </div>
+        )}
+
+        <div style={{marginLeft:'auto',display:'flex',gap:4,alignItems:'center'}}>
+          <button title={showLabels?'Masquer':'Afficher noms'}
+            onClick={()=>setShowLabels(l=>!l)}
+            style={{background:showLabels?'var(--mint)':'transparent',border:'1.5px solid var(--mint)',
+              color:'var(--forest)',borderRadius:8,padding:'6px 10px',cursor:'pointer',fontSize:'.9rem'}}>🏷️</button>
+          <div style={{display:'flex',background:'var(--parchment)',borderRadius:10,padding:3,gap:2}}>
+            {[['＋',1.28],['－',0.78],['⊡',0]].map(([label,factor])=>(
+              <button key={label} onClick={()=>{
+                if(factor===0){fitMap();return;}
+                const c=containerRef.current;if(!c)return;
+                const r=c.getBoundingClientRect();
+                const mx=r.width/2,my=r.height/2;
+                const ns=factor>1?Math.min(tx.current.s*factor,6):Math.max(tx.current.s*factor,0.15);
+                tx.current.x=mx-(mx-tx.current.x)*(ns/tx.current.s);
+                tx.current.y=my-(my-tx.current.y)*(ns/tx.current.s);
+                tx.current.s=ns;
+                applyTransform();
+                commit();
+              }}
+              style={{background:'transparent',border:'none',color:'var(--soil)',
+                padding:'6px 10px',cursor:'pointer',fontSize:'1rem',borderRadius:7}}>{label}</button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Canvas */}
+      <div ref={containerRef}
+        style={{flex:1,overflow:'hidden',position:'relative',background:'#eef2ee',
+          cursor,touchAction:'none',userSelect:'none',WebkitUserSelect:'none'}}
+        onClick={onMapClick}>
+
+        {/* World — single CSS transform, GPU composited */}
+        <div ref={worldRef}
+          style={{position:'absolute',left:0,top:0,width:iw,height:ih,
+            transformOrigin:'0 0',willChange:'transform',
+            }}>
+
+          <img ref={imgRef} src="/map.png" draggable={false} alt="Plan du jardin"
+            style={{position:'absolute',left:0,top:0,width:iw,height:ih,
+              userSelect:'none',pointerEvents:'none',
+              boxShadow:'0 4px 24px rgba(0,0,0,.18)'}}/>
+
+          <svg style={{position:'absolute',left:0,top:0,width:iw,height:ih,
+            overflow:'visible',pointerEvents:'none'}}>
+            <g style={{pointerEvents:'all'}}>
+              {zones.map(z=>renderZonePoly(z))}
+              {renderDrawing()}
+              {renderEditPts()}
+            </g>
+          </svg>
+
+          {markers.map(m=>(
+            <div key={m.id} className="map-bubble"
+              style={{position:'absolute',left:m.x_pct+'%',top:m.y_pct+'%',
+                transform:'translate(-50%,-50%)',zIndex:10,cursor:isTeacher?'grab':'pointer'}}
+              onClick={e=>{e.stopPropagation();if(!moved.current)setSelectedMarker(m);}}
+              onPointerDown={isTeacher?e=>{
+                e.stopPropagation();
+                draggingMarkerRef.current=m.id;
+                draggingMarkerEl.current=e.currentTarget;
+                e.currentTarget.setPointerCapture(e.pointerId);
+              }:undefined}
+              onPointerUp={e=>e.stopPropagation()}>
+              <div style={{background:'white',border:'2.5px solid var(--forest)',
+                borderRadius:'50%',width:36,height:36,
+                display:'flex',alignItems:'center',justifyContent:'center',
+                fontSize:'1.1rem',boxShadow:'0 2px 10px rgba(0,0,0,.22)'}}>
+                {m.emoji}
+              </div>
+              {showLabels&&(
+                <div style={{position:'absolute',top:'100%',left:'50%',transform:'translateX(-50%)',
+                  background:'rgba(26,71,49,.9)',color:'white',borderRadius:5,
+                  padding:'2px 7px',fontSize:'.62rem',fontWeight:700,
+                  whiteSpace:'nowrap',marginTop:3,maxWidth:90,
+                  overflow:'hidden',textOverflow:'ellipsis',pointerEvents:'none',
+                  boxShadow:'0 1px 5px rgba(0,0,0,.2)'}}>
+                  {m.label}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+
+        {mode!=='view'&&mode!=='edit-points'&&(
+          <div style={{position:'absolute',bottom:14,left:'50%',transform:'translateX(-50%)',
+            background:'rgba(26,71,49,.9)',color:'white',borderRadius:22,
+            padding:'9px 20px',fontSize:'.82rem',fontWeight:600,
+            pointerEvents:'none',whiteSpace:'nowrap',zIndex:20}}>
+            {mode==='draw-zone'&&drawPoints.length<3&&'🖊️ Touche la carte (min. 3 pts)'}
+            {mode==='draw-zone'&&drawPoints.length>=3&&`✅ ${drawPoints.length} pts — Terminer`}
+            {mode==='add-marker'&&'📍 Touche la carte pour placer'}
+          </div>
+        )}
+        {mode==='edit-points'&&(
+          <div style={{position:'absolute',bottom:14,left:'50%',transform:'translateX(-50%)',
+            background:'rgba(82,183,136,.92)',color:'white',borderRadius:22,
+            padding:'9px 20px',fontSize:'.82rem',fontWeight:600,
+            pointerEvents:'none',whiteSpace:'nowrap',zIndex:20}}>
+            ✋ Glisse les points pour modifier
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+
+// ── TASK FORM MODAL ───────────────────────────────────────────────────────────
+function TaskFormModal({ zones, onClose, onSave, editTask }) {
+  const [form, setForm] = useState(editTask ? {
+    title: editTask.title, description: editTask.description || '',
+    zone_id: editTask.zone_id || '', due_date: editTask.due_date || '',
+    required_students: editTask.required_students || 1
+  } : { title:'', description:'', zone_id:'', due_date:'', required_students:1 });
+  const [saving, setSaving] = useState(false);
+  const [err, setErr] = useState('');
+
+  const set = k => e => setForm(f => ({...f, [k]: e.target.value}));
+
+  const submit = async () => {
+    if (!form.title.trim()) return setErr('Le titre est requis');
+    setSaving(true);
+    try { await onSave(form); onClose(); }
+    catch(e) { setErr(e.message); setSaving(false); }
+  };
+
+  return (
+    <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
+      <div className="modal fade-in">
+        <button className="modal-close" onClick={onClose}>✕</button>
+        <h3>{editTask ? 'Modifier la tâche' : 'Nouvelle tâche'}</h3>
+        {err && <p style={{color:var_alert, marginBottom:12, fontSize:'.85rem'}}>{err}</p>}
+        <div className="field"><label>Titre *</label><input value={form.title} onChange={set('title')} placeholder="Ex: Arroser les tomates"/></div>
+        <div className="field"><label>Description</label><textarea value={form.description} onChange={set('description')} rows={2} placeholder="Instructions détaillées..."/></div>
+        <div className="row">
+          <div className="field"><label>Zone</label>
+            <select value={form.zone_id} onChange={set('zone_id')}>
+              <option value="">— Aucune —</option>
+              {zones.filter(z => !z.special).map(z => <option key={z.id} value={z.id}>{z.name}{z.current_plant ? ` — ${z.current_plant}` : ''}</option>)}
+            </select>
+          </div>
+          <div className="field"><label>Élèves requis</label>
+            <input type="number" min="1" max="10" value={form.required_students} onChange={set('required_students')}/>
+          </div>
+        </div>
+        <div className="field"><label>Date limite</label><input type="date" value={form.due_date} onChange={set('due_date')}/></div>
+        <button className="btn btn-primary btn-full" onClick={submit} disabled={saving}>{saving ? 'Sauvegarde...' : editTask ? 'Modifier' : 'Créer la tâche'}</button>
+      </div>
+    </div>
+  );
+}
+
+// quick workaround for CSS variable in JSX
+const var_alert = 'var(--alert)';
+
+// ── TASKS VIEW ────────────────────────────────────────────────────────────────
+function TasksView({ tasks, zones, isTeacher, student, onRefresh, onForceLogout }) {
+  const [showForm,   setShowForm]   = useState(false);
+  const [editTask,   setEditTask]   = useState(null);
+  const [logTask,    setLogTask]    = useState(null);
+  const [logsTask,   setLogsTask]   = useState(null);
+  const [loading,    setLoading]    = useState({});
+  const [toast,      setToast]      = useState(null);
+  const [confirmTask, setConfirmTask] = useState(null); // { task, action, label }
+
+  const withLoad = async (id, fn) => {
+    setLoading(l => ({...l, [id]: true}));
+    try { await fn(); await onRefresh(); }
+    catch(e) {
+      if (e instanceof AccountDeletedError) onForceLogout();
+      else setToast('Erreur : ' + e.message);
+    }
+    setLoading(l => ({...l, [id]: false}));
+  };
+
+  const assign = t => withLoad(t.id + 'assign', async () => {
+    await api(`/api/tasks/${t.id}/assign`, 'POST', {
+      firstName: student.first_name, lastName: student.last_name, studentId: student.id
+    });
+    setToast('Tâche prise en charge ! ✓');
+  });
+
+  const unassign = t => {
+    setConfirmTask({
+      task: t,
+      label: `Te retirer de "${t.title}" ?`,
+      action: async () => {
+        await withLoad(t.id + 'unassign', async () => {
+          await api(`/api/tasks/${t.id}/unassign`, 'POST', {
+            firstName: student.first_name, lastName: student.last_name, studentId: student.id
+          });
+          setToast('Tu t\'es retiré de la tâche.');
+        });
+      }
+    });
+  };
+
+  const validate = t => withLoad(t.id + 'val', async () => {
+    await api(`/api/tasks/${t.id}/validate`, 'POST');
+    setToast('Tâche validée ✓');
+  });
+
+  const deleteTask = t => {
+    setConfirmTask({
+      task: t,
+      label: `Supprimer "${t.title}" ?`,
+      action: async () => {
+        await withLoad(t.id + 'del', async () => {
+          await api(`/api/tasks/${t.id}`, 'DELETE');
+          setToast('Tâche supprimée');
+        });
+      }
+    });
+  };
+
+  const saveTask = async form => {
+    if (editTask) await api(`/api/tasks/${editTask.id}`, 'PUT', form);
+    else await api('/api/tasks', 'POST', form);
+    await onRefresh();
+  };
+
+  const myTasks = tasks.filter(t => student && t.status !== 'validated' && t.assignments?.some(
+    a => a.student_first_name === student.first_name && a.student_last_name === student.last_name
+  ));
+  const available = tasks.filter(t => t.status === 'available' || (t.status === 'in_progress' && t.assignments?.length < t.required_students));
+  const inProgress = tasks.filter(t => t.status === 'in_progress');
+  const done = tasks.filter(t => t.status === 'done');
+  const validated = tasks.filter(t => t.status === 'validated');
+
+  const TaskCard = ({ t, showValidate, showDone }) => {
+    const isMine = myTasks.some(m => m.id === t.id);
+    const slots  = t.required_students - (t.assignments?.length || 0);
+    return (
+      <div className={`task-card ${isMine ? 'mine' : ''} ${t.status === 'validated' ? 'done' : ''}`}>
+        <div className="task-top">
+          <div className="task-title">{t.title}</div>
+          {statusBadge(t.status)}
+        </div>
+        <div className="task-meta">
+          {t.zone_name && <span className="task-chip">🌿 {t.zone_name}</span>}
+          {dueDateChip(t.due_date)}
+          {!isTeacher && <span className="task-chip">👤 {t.required_students} élève{t.required_students > 1 ? 's' : ''}</span>}
+        </div>
+        {t.description && <div className="task-desc">{t.description}</div>}
+        {t.assignments?.length > 0 && (
+          <div className="assignees">
+            {t.assignments.map((a, i) => <span key={i} className="assignee-tag">{a.student_first_name} {a.student_last_name}</span>)}
+          </div>
+        )}
+        {slots > 0 && t.status !== 'validated' && (
+          <div className="slots">{slots} place{slots > 1 ? 's' : ''} disponible{slots > 1 ? 's' : ''}</div>
+        )}
+        <div className="task-actions">
+          {!isTeacher && !isMine && slots > 0 && t.status !== 'validated' && (
+            <button className="btn btn-primary btn-sm" disabled={loading[t.id+'assign']} onClick={() => assign(t)}>
+              {loading[t.id+'assign'] ? '...' : '✋ Je m\'en occupe'}
+            </button>
+          )}
+          {!isTeacher && isMine && (t.status === 'in_progress' || t.status === 'available') && (
+            <>
+              <button className="btn btn-secondary btn-sm" onClick={() => setLogTask(t)}>
+                ✅ Marquer terminée
+              </button>
+              <button className="btn btn-ghost btn-sm" disabled={loading[t.id+'unassign']}
+                onClick={() => unassign(t)}
+                title="Me retirer de cette tâche">
+                {loading[t.id+'unassign'] ? '...' : '↩️ Me retirer'}
+              </button>
+            </>
+          )}
+          {isTeacher && t.status === 'done' && (
+            <button className="btn btn-primary btn-sm" disabled={loading[t.id+'val']} onClick={() => validate(t)}>
+              {loading[t.id+'val'] ? '...' : '✓ Valider'}
+            </button>
+          )}
+          {isTeacher && (t.status === 'done' || t.status === 'validated') && (
+            <button className="btn btn-ghost btn-sm" onClick={() => setLogsTask(t)}>📋 Rapports</button>
+          )}
+          {isTeacher && (
+            <>
+              <button className="btn btn-ghost btn-sm" onClick={() => { setEditTask(t); setShowForm(true); }}>✏️</button>
+              <button className="btn btn-danger btn-sm" disabled={loading[t.id+'del']} onClick={() => deleteTask(t)}>🗑️</button>
+            </>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  return (
+    <div>
+      {toast && <Toast msg={toast} onDone={() => setToast(null)}/>}
+      {(showForm || editTask) && (
+        <TaskFormModal zones={zones} editTask={editTask} onClose={() => { setShowForm(false); setEditTask(null); }} onSave={saveTask}/>
+      )}
+      {logTask && (
+        <LogModal task={logTask} student={student}
+          onClose={() => setLogTask(null)}
+          onDone={async () => { await onRefresh(); setToast('Rapport envoyé ✓'); }}
+        />
+      )}
+      {logsTask && <TaskLogsViewer task={logsTask} onClose={() => setLogsTask(null)}/>}
+
+      {/* Inline confirm — replaces browser confirm() which blocks/fails on mobile */}
+      {confirmTask && (
+        <div className="modal-overlay" onClick={() => setConfirmTask(null)}>
+          <div className="log-modal fade-in" style={{paddingBottom:'calc(20px + var(--safe-bottom))'}}>
+            <h3 style={{marginBottom:8}}>Confirmation</h3>
+            <p style={{fontSize:'.95rem',color:'#444',marginBottom:20,lineHeight:1.5}}>{confirmTask.label}</p>
+            <div style={{display:'flex',gap:10}}>
+              <button className="btn btn-danger" style={{flex:1}} onClick={async () => {
+                const a = confirmTask.action; setConfirmTask(null); await a();
+              }}>Confirmer</button>
+              <button className="btn btn-ghost" style={{flex:1}} onClick={() => setConfirmTask(null)}>Annuler</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:4}}>
+        <h2 className="section-title">✅ Tâches</h2>
+        {isTeacher && <button className="btn btn-primary btn-sm" onClick={() => setShowForm(true)}>+ Nouvelle tâche</button>}
+      </div>
+      <p className="section-sub">{isTeacher ? 'Gérer et valider les tâches' : 'Prends en charge une tâche ou suis tes activités'}</p>
+
+      {!isTeacher && myTasks.length > 0 && (
+        <div className="tasks-section">
+          <div className="tasks-section-title">Mes tâches</div>
+          <div>{myTasks.map(t => <TaskCard key={t.id} t={t}/>)}</div>
+        </div>
+      )}
+
+      {isTeacher ? (
+        <>
+          {done.length > 0 && (
+        <div className="tasks-section">
+          <div className="tasks-section-title">En attente de validation ({done.length})</div>
+          <div>{done.map(t => <TaskCard key={t.id} t={t}/>)}</div>
+        </div>
+      )}
+      {inProgress.length > 0 && (
+        <div className="tasks-section">
+          <div className="tasks-section-title">En cours</div>
+          <div>{inProgress.map(t => <TaskCard key={t.id} t={t}/>)}</div>
+        </div>
+      )}
+      {available.length > 0 && (
+        <div className="tasks-section">
+          <div className="tasks-section-title">Disponibles</div>
+          <div>{available.map(t => <TaskCard key={t.id} t={t}/>)}</div>
+        </div>
+      )}
+      {validated.length > 0 && (
+        <div className="tasks-section">
+          <div className="tasks-section-title">Validées</div>
+          <div>{validated.map(t => <TaskCard key={t.id} t={t}/>)}</div>
+        </div>
+      )}
+        </>
+      ) : (
+        <>
+          {available.filter(t => !myTasks.some(m => m.id === t.id)).length > 0 && (
+            <div className="tasks-section">
+              <div className="tasks-section-title">Tâches disponibles</div>
+              <div>{available.filter(t => !myTasks.some(m => m.id === t.id)).map(t => <TaskCard key={t.id} t={t}/>)}</div>
+            </div>
+          )}
+          {tasks.filter(t => t.status === 'validated' && t.assignments?.some(
+              a => a.student_first_name === student?.first_name && a.student_last_name === student?.last_name
+            )).length > 0 && (
+            <div className="tasks-section">
+              <div className="tasks-section-title">Récemment validées ✓</div>
+              <div>{tasks.filter(t => t.status === 'validated' && t.assignments?.some(
+                a => a.student_first_name === student?.first_name && a.student_last_name === student?.last_name
+              )).map(t => <TaskCard key={t.id} t={t}/>)}</div>
+            </div>
+          )}
+        </>
+      )}
+
+      {tasks.length === 0 && (
+        <div className="empty"><div className="empty-icon">🌿</div><p>Aucune tâche pour le moment</p></div>
+      )}
+    </div>
+  );
+}
+
+// ── PIN MODAL ─────────────────────────────────────────────────────────────────
+function PinModal({ onSuccess, onClose }) {
+  const [pin, setPin] = useState('');
+  const [err, setErr] = useState('');
+  const CORRECT = '1234';
+
+  const check = () => {
+    if (pin === CORRECT) onSuccess();
+    else { setErr('Code incorrect'); setPin(''); }
+  };
+
+  return (
+    <div className="pin-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
+      <div className="pin-card fade-in">
+        <div style={{fontSize:'2rem', marginBottom:8}}>🔒</div>
+        <h3>Mode professeur</h3>
+        <p>Entrez le code PIN pour accéder au tableau de bord</p>
+        {err && <div className="pin-error">{err}</div>}
+        <input
+          className="pin-input" type="password" maxLength={4}
+          value={pin} onChange={e => { setPin(e.target.value); setErr(''); }}
+          onKeyDown={e => e.key === 'Enter' && check()}
+          placeholder="••••" autoFocus
+        />
+        <button className="btn btn-primary btn-full" onClick={check}>Entrer</button>
+        <button className="btn btn-ghost btn-full" style={{marginTop:8}} onClick={onClose}>Annuler</button>
+      </div>
+    </div>
+  );
+}
+
+// ── AUTH SCREEN ───────────────────────────────────────────────────────────────
+function AuthScreen({ onLogin }) {
+  const [mode,    setMode]    = useState('login');   // 'login' | 'register'
+  const [first,   setFirst]   = useState('');
+  const [last,    setLast]    = useState('');
+  const [pass,    setPass]    = useState('');
+  const [pass2,   setPass2]   = useState('');
+  const [err,     setErr]     = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const submit = async () => {
+    setErr('');
+    if (!first.trim() || !last.trim() || !pass) return setErr('Tous les champs sont requis');
+    if (mode === 'register' && pass !== pass2) return setErr('Les mots de passe ne correspondent pas');
+    if (mode === 'register' && pass.length < 4) return setErr('Mot de passe trop court (min 4 caractères)');
+    setLoading(true);
+    try {
+      const endpoint = mode === 'login' ? '/api/auth/login' : '/api/auth/register';
+      const student  = await api(endpoint, 'POST', { firstName: first.trim(), lastName: last.trim(), password: pass });
+      localStorage.setItem('foretmap_student', JSON.stringify(student));
+      onLogin(student);
+    } catch(e) { setErr(e.message); }
+    setLoading(false);
+  };
+
+  const onKey = e => e.key === 'Enter' && submit();
+
+  return (
+    <div className="auth-wrap">
+      <div className="auth-card fade-in">
+        <div style={{fontSize:'2.5rem', marginBottom:10}}>🌿</div>
+        <h1>ForêtMap</h1>
+        <p className="sub">Atelier forêt comestible — Lycée Lyautey</p>
+
+        <div className="auth-tabs">
+          <button className={`auth-tab ${mode==='login'?'active':''}`} onClick={() => { setMode('login'); setErr(''); }}>Connexion</button>
+          <button className={`auth-tab ${mode==='register'?'active':''}`} onClick={() => { setMode('register'); setErr(''); }}>Créer un compte</button>
+        </div>
+
+        {err && <div className="auth-error">⚠️ {err}</div>}
+
+        <div className="row">
+          <div className="field"><label>Prénom</label>
+            <input value={first} onChange={e=>setFirst(e.target.value)} placeholder="Mohamed" autoFocus onKeyDown={onKey}/>
+          </div>
+          <div className="field"><label>Nom</label>
+            <input value={last} onChange={e=>setLast(e.target.value)} placeholder="El Farrai" onKeyDown={onKey}/>
+          </div>
+        </div>
+        <div className="field"><label>Mot de passe</label>
+          <input type="password" value={pass} onChange={e=>setPass(e.target.value)} placeholder="••••" onKeyDown={onKey}/>
+        </div>
+        {mode === 'register' && (
+          <div className="field"><label>Confirmer le mot de passe</label>
+            <input type="password" value={pass2} onChange={e=>setPass2(e.target.value)} placeholder="••••" onKeyDown={onKey}/>
+          </div>
+        )}
+        <button className="btn btn-primary btn-full" onClick={submit} disabled={loading} style={{marginTop:4}}>
+          {loading ? '...' : mode === 'login' ? 'Se connecter 🌱' : 'Créer le compte'}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ── LOG MODAL (student finishes task) ────────────────────────────────────────
+function LogModal({ task, student, onClose, onDone }) {
+  const [comment,   setComment]   = useState('');
+  const [imageData, setImageData] = useState(null);
+  const [preview,   setPreview]   = useState(null);
+  const [saving,    setSaving]    = useState(false);
+  const [err,       setErr]       = useState('');
+  const inputRef = React.useRef();
+
+  const handleFile = e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    if (file.size > 15 * 1024 * 1024) return setErr('Image trop lourde (max 15MB)');
+
+    const reader = new FileReader();
+    reader.onload = ev => {
+      // Compress via canvas — resize to max 1200px wide, quality 0.7
+      const img = new Image();
+      img.onload = () => {
+        const MAX = 1200;
+        let w = img.width, h = img.height;
+        if (w > MAX) { h = Math.round(h * MAX / w); w = MAX; }
+        else if (h > MAX) { w = Math.round(w * MAX / h); h = MAX; }
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        const compressed = canvas.toDataURL('image/jpeg', 0.72);
+        setImageData(compressed);
+        setPreview(compressed);
+        setErr('');
+      };
+      img.src = ev.target.result;
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const submit = async () => {
+    setSaving(true);
+    try {
+      await api(`/api/tasks/${task.id}/done`, 'POST', {
+        comment, imageData,
+        firstName: student.first_name, lastName: student.last_name,
+        studentId: student.id
+      });
+      onDone();
+      onClose();
+    } catch(e) { setErr(e.message); setSaving(false); }
+  };
+
+  return (
+    <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
+      <div className="log-modal fade-in">
+        <button className="modal-close" onClick={onClose}>✕</button>
+        <h3>📋 Rapport de tâche</h3>
+        <p style={{fontSize:'.85rem', color:'#777', marginBottom:16}}>
+          <strong>{task.title}</strong> — laisse un commentaire ou une photo avant de valider
+        </p>
+        {err && <p style={{color:'var(--alert)', fontSize:'.82rem', marginBottom:8}}>{err}</p>}
+
+        <div className="field">
+          <label>Commentaire (optionnel)</label>
+          <textarea value={comment} onChange={e => setComment(e.target.value)} rows={3}
+            placeholder="Comment ça s'est passé ? Des observations sur la plante ?"/>
+        </div>
+
+        <div className="field">
+          <label>Photo (optionnel)</label>
+          {!preview ? (
+            <div className="img-upload-area" onClick={() => inputRef.current.click()}>
+              <div style={{fontSize:'2rem', marginBottom:6}}>📷</div>
+              <div style={{fontSize:'.85rem', color:'#888'}}>Touche pour prendre ou choisir une photo</div>
+              <input ref={inputRef} type="file" accept="image/*" capture="environment" onChange={handleFile}/>
+            </div>
+          ) : (
+            <div className="img-preview-wrap">
+              <img src={preview} className="img-preview" alt="preview"/>
+              <button className="img-remove" onClick={() => { setImageData(null); setPreview(null); }}>✕</button>
+            </div>
+          )}
+        </div>
+
+        <div style={{display:'flex', gap:8, marginTop:16}}>
+          <button className="btn btn-primary" style={{flex:1}} onClick={submit} disabled={saving}>
+            {saving ? 'Envoi...' : '✅ Marquer comme terminée'}
+          </button>
+          <button className="btn btn-ghost" onClick={onClose}>Annuler</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── TASK LOGS VIEWER (teacher sees logs on a done task) ───────────────────────
+function TaskLogsViewer({ task, onClose }) {
+  const [logs, setLogs] = useState([]);
+  const [big,  setBig]  = useState(null);
+
+  useEffect(() => {
+    api(`/api/tasks/${task.id}/logs`).then(setLogs).catch(() => {});
+  }, [task.id]);
+
+  return (
+    <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
+      {big && <Lightbox src={big} caption="" onClose={() => setBig(null)}/>}
+      <div className="log-modal fade-in">
+        <button className="modal-close" onClick={onClose}>✕</button>
+        <h3>📋 Rapports — {task.title}</h3>
+        {logs.length === 0
+          ? <div className="empty"><div className="empty-icon">📭</div><p>Aucun rapport pour cette tâche</p></div>
+          : logs.map(l => (
+            <div key={l.id} className="log-entry fade-in">
+              <div className="log-entry-header">
+                <span className="log-entry-author">{l.student_first_name} {l.student_last_name}</span>
+                <span>{new Date(l.created_at).toLocaleDateString('fr-FR', {day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})}</span>
+              </div>
+              {l.comment && <div className="log-comment">{l.comment}</div>}
+              {l.image_data && (
+                <img src={l.image_data} className="log-image" alt="rapport" onClick={() => setBig(l.image_data)}/>
+              )}
+            </div>
+          ))
+        }
+      </div>
+    </div>
+  );
+}
+
+// ── PLANT EDIT FORM (outside PlantManager to avoid remount on every keystroke) ──
+function PlantEditForm({ title, form, setForm, onSave, onCancel, saving }) {
+  const set = k => e => setForm(f => ({...f, [k]: e.target.value}));
+  return (
+    <div className="plant-edit-form fade-in">
+      <h4>{title}</h4>
+      <div className="field"><label>Emoji</label>
+        <div className="emoji-row">
+          {EMOJI_OPTS.map(e => (
+            <button key={e} className={`emoji-btn ${form.emoji === e ? 'sel' : ''}`}
+              onClick={() => setForm(f => ({...f, emoji: e}))}>{e}</button>
+          ))}
+        </div>
+        <input value={form.emoji} onChange={set('emoji')} placeholder="ou colle un emoji" style={{marginTop:6}}/>
+      </div>
+      <div className="field"><label>Nom *</label>
+        <input value={form.name} onChange={set('name')} placeholder="Ex: Aubergine"/>
+      </div>
+      <div className="field"><label>Description d'identification</label>
+        <textarea value={form.description} onChange={set('description')} rows={3}
+          placeholder="Comment reconnaître cette plante ? Feuilles, taille, odeur..."/>
+      </div>
+      <div style={{display:'flex',gap:8}}>
+        <button className="btn btn-primary btn-sm" onClick={onSave} disabled={saving}>{saving ? '...' : '💾 Sauvegarder'}</button>
+        <button className="btn btn-ghost btn-sm" onClick={onCancel}>Annuler</button>
+      </div>
+    </div>
+  );
+}
+
+// ── PLANT MANAGER (teacher) ───────────────────────────────────────────────────
+const EMOJI_OPTS = ['🌱','🌿','🥬','🥕','🍅','🫑','🥒','🍓','🌸','🌺','🫘','🌾','🍋','🍊','🌰','🧅','🧄','🫚'];
+
+function PlantManager({ plants, onRefresh }) {
+  const [editId,  setEditId]  = useState(null);
+  const [form,    setForm]    = useState({ name:'', emoji:'🌱', description:'' });
+  const [showAdd, setShowAdd] = useState(false);
+  const [saving,  setSaving]  = useState(false);
+  const [toast,   setToast]   = useState(null);
+
+  const startEdit = p => {
+    setEditId(p.id);
+    setForm({ name: p.name, emoji: p.emoji, description: p.description || '' });
+    setShowAdd(false);
+  };
+
+  const cancelEdit = () => { setEditId(null); setShowAdd(false); };
+
+  const save = async () => {
+    if (!form.name.trim()) return;
+    setSaving(true);
+    try {
+      if (editId) await api(`/api/plants/${editId}`, 'PUT', form);
+      else        await api('/api/plants', 'POST', form);
+      await onRefresh();
+      setEditId(null);
+      setShowAdd(false);
+      setForm({ name:'', emoji:'🌱', description:'' });
+      setToast(editId ? 'Plante modifiée ✓' : 'Plante ajoutée ✓');
+    } catch(e) { setToast('Erreur : ' + e.message); }
+    setSaving(false);
+  };
+
+  const del = async p => {
+    if (!confirm(`Supprimer "${p.name}" ?`)) return;
+    try {
+      await api(`/api/plants/${p.id}`, 'DELETE');
+      await onRefresh();
+      setToast('Plante supprimée');
+    } catch(e) { setToast('Erreur : ' + e.message); }
+  };
+
+  return (
+    <div>
+      {toast && <Toast msg={toast} onDone={() => setToast(null)}/>}
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:4}}>
+        <h2 className="section-title">🌱 Base de données plantes</h2>
+        {!showAdd && !editId && (
+          <button className="btn btn-primary btn-sm" onClick={() => { setShowAdd(true); setForm({ name:'', emoji:'🌱', description:'' }); }}>
+            + Ajouter
+          </button>
+        )}
+      </div>
+      <p className="section-sub">{plants.length} plantes enregistrées</p>
+
+      {showAdd && (
+        <PlantEditForm
+          title="Nouvelle plante"
+          form={form} setForm={setForm}
+          onSave={save} onCancel={cancelEdit} saving={saving}
+        />
+      )}
+
+      <div className="map-wrap plant-manager">
+        {plants.map(p => (
+          <div key={p.id}>
+            {editId === p.id ? (
+              <PlantEditForm
+                title={`Modifier — ${p.name}`}
+                form={form} setForm={setForm}
+                onSave={save} onCancel={cancelEdit} saving={saving}
+              />
+            ) : (
+              <div className="plant-row">
+                <div className="plant-emoji-big">{p.emoji}</div>
+                <div className="plant-info">
+                  <div className="plant-row-name">{p.name}</div>
+                  <div className="plant-row-desc">{p.description || <em style={{color:'#bbb'}}>Pas de description</em>}</div>
+                </div>
+                <div className="plant-actions">
+                  <button className="btn btn-ghost btn-sm" onClick={() => startEdit(p)}>✏️</button>
+                  <button className="btn btn-danger btn-sm" onClick={() => del(p)}>🗑️</button>
+                </div>
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ── STUDENT STATS ─────────────────────────────────────────────────────────────
+function StudentStats({ student }) {
+  const [data, setData] = useState(null);
+
+  useEffect(() => {
+    api(`/api/stats/me/${student.id}`).then(setData).catch(() => {});
+  }, [student.id]);
+
+  if (!data) return <div className="loader" style={{height:'60vh'}}><div className="loader-leaf">🌿</div><p>Chargement...</p></div>;
+
+  const { stats, assignments } = data;
+  const rankLabel = stats.done >= 10 ? '🏆 Expert' : stats.done >= 5 ? '🌿 Actif' : stats.done >= 1 ? '🌱 Débutant' : '🪨 Nouveau';
+
+  return (
+    <div className="fade-in">
+      <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:4}}>
+        <h2 className="section-title">📊 Mes statistiques</h2>
+        <span style={{background:'var(--parchment)', borderRadius:20, padding:'4px 12px', fontSize:'.8rem', fontWeight:600, color:'var(--soil)'}}>{rankLabel}</span>
+      </div>
+      <p className="section-sub">Bonjour {data.first_name} ! Voici ton bilan dans la forêt.</p>
+
+      <div className="stats-grid">
+        <div className="stat-card highlight">
+          <div className="stat-icon">✅</div>
+          <div className="stat-number">{stats.done}</div>
+          <div className="stat-label">Tâches validées</div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-icon">⏳</div>
+          <div className="stat-number">{stats.pending}</div>
+          <div className="stat-label">En cours</div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-icon">📋</div>
+          <div className="stat-number">{stats.submitted}</div>
+          <div className="stat-label">En attente prof</div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-icon">🌱</div>
+          <div className="stat-number">{stats.total}</div>
+          <div className="stat-label">Total prises</div>
+        </div>
+      </div>
+
+      <h3 style={{fontFamily:'Playfair Display,serif', fontSize:'1.1rem', marginBottom:12, color:'var(--forest)'}}>Activité récente</h3>
+      <div className="activity-list">
+        {assignments.length === 0
+          ? <div className="empty"><div className="empty-icon">🌿</div><p>Aucune tâche prise pour l'instant</p></div>
+          : assignments.slice(0, 10).map((a, i) => (
+            <div key={i} className="activity-item">
+              <div className={`activity-dot ${a.status}`}/>
+              <div className="activity-info">
+                <div className="activity-title">{a.title}</div>
+                <div className="activity-meta">
+                  {a.zone_name && `📍 ${a.zone_name} · `}
+                  {new Date(a.assigned_at).toLocaleDateString('fr-FR', {day:'2-digit', month:'short'})}
+                </div>
+              </div>
+              {statusBadge(a.status)}
+            </div>
+          ))
+        }
+      </div>
+    </div>
+  );
+}
+
+// ── TEACHER STATS ─────────────────────────────────────────────────────────────
+function TeacherStats() {
+  const [data,          setData]          = useState(null);
+  const [search,        setSearch]        = useState('');
+  const [toast,         setToast]         = useState(null);
+  const [confirmStudent, setConfirmStudent] = useState(null); // student to delete
+
+  const load = () => api('/api/stats/all').then(setData).catch(() => {});
+  useEffect(() => { load(); }, []);
+
+  const deleteStudent = async (s) => {
+    // Show inline confirm instead of browser confirm() (broken on mobile)
+    setConfirmStudent(s);
+  };
+
+  const confirmDelete = async () => {
+    const s = confirmStudent;
+    setConfirmStudent(null);
+    try {
+      await api(`/api/students/${s.id}`, 'DELETE');
+      setToast(`${s.first_name} ${s.last_name} supprimé`);
+      await load();
+    } catch(e) { setToast('Erreur : ' + e.message); }
+  };
+
+  if (!data) return <div className="loader" style={{height:'60vh'}}><div className="loader-leaf">🌿</div><p>Chargement...</p></div>;
+
+  const filtered = data.filter(s =>
+    `${s.first_name} ${s.last_name}`.toLowerCase().includes(search.toLowerCase())
+  );
+
+  const maxDone    = Math.max(...data.map(s => s.stats.done), 1);
+  const rankIcon   = i => i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${i+1}.`;
+  const rankClass  = i => i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : '';
+
+  const totalValidated = data.reduce((s, d) => s + d.stats.done, 0);
+  const totalPending   = data.reduce((s, d) => s + d.stats.pending, 0);
+  const activeStudents = data.filter(d => d.stats.total > 0).length;
+
+  return (
+    <div className="fade-in">
+      {toast && <Toast msg={toast} onDone={() => setToast(null)}/>}
+
+      {confirmStudent && (
+        <div className="modal-overlay" onClick={() => setConfirmStudent(null)}>
+          <div className="log-modal fade-in" style={{paddingBottom:'calc(20px + var(--safe-bottom))'}}>
+            <h3 style={{marginBottom:8}}>Supprimer l'élève ?</h3>
+            <p style={{fontSize:'.95rem',color:'#444',marginBottom:6,lineHeight:1.5}}>
+              <strong>{confirmStudent.first_name} {confirmStudent.last_name}</strong>
+            </p>
+            <p style={{fontSize:'.85rem',color:'#888',marginBottom:20,lineHeight:1.5}}>
+              Ses assignations de tâches seront également supprimées.
+            </p>
+            <div style={{display:'flex',gap:10}}>
+              <button className="btn btn-danger" style={{flex:1}} onClick={confirmDelete}>Supprimer</button>
+              <button className="btn btn-ghost" style={{flex:1}} onClick={() => setConfirmStudent(null)}>Annuler</button>
+            </div>
+          </div>
+        </div>
+      )}
+      <h2 className="section-title">📊 Gestion des élèves</h2>
+      <p className="section-sub">{data.length} élève{data.length>1?'s':''} inscrits</p>
+
+      {/* Global stats */}
+      <div className="stats-grid" style={{gridTemplateColumns:'repeat(3,1fr)', marginBottom:20}}>
+        <div className="stat-card highlight">
+          <div className="stat-icon">✅</div>
+          <div className="stat-number">{totalValidated}</div>
+          <div className="stat-label">Tâches validées</div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-icon">⏳</div>
+          <div className="stat-number">{totalPending}</div>
+          <div className="stat-label">En cours</div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-icon">👤</div>
+          <div className="stat-number">{activeStudents}</div>
+          <div className="stat-label">Actifs</div>
+        </div>
+      </div>
+
+      {/* Search */}
+      <div className="field" style={{marginBottom:12}}>
+        <input value={search} onChange={e => setSearch(e.target.value)}
+          placeholder="🔍 Rechercher un élève..."
+          style={{background:'white'}}/>
+      </div>
+
+      {/* Leaderboard */}
+      <div className="leaderboard">
+        {filtered.length === 0
+          ? <div className="empty" style={{padding:32}}>
+              <div className="empty-icon">👤</div>
+              <p>{search ? 'Aucun élève trouvé' : 'Aucun élève inscrit'}</p>
+            </div>
+          : filtered.map((s, i) => {
+              // find real rank in full list
+              const realRank = data.findIndex(d => d.id === s.id);
+              return (
+                <div key={s.id} className="lb-row" style={{gap:8}}>
+                  <div className={`lb-rank ${rankClass(realRank)}`}>{rankIcon(realRank)}</div>
+                  <div className="lb-name" style={{flex:1,minWidth:0}}>
+                    <strong>{s.first_name} {s.last_name}</strong>
+                    <small>
+                      {s.last_seen
+                        ? `Vu le ${new Date(s.last_seen).toLocaleDateString('fr-FR')}`
+                        : 'Jamais connecté'}
+                    </small>
+                  </div>
+                  <div style={{display:'flex', gap:10, alignItems:'center', flexShrink:0}}>
+                    <div className="lb-stat">
+                      <div className="lb-stat-num" style={{color:'var(--sage)'}}>{s.stats.done}</div>
+                      <div className="lb-stat-label">✅</div>
+                    </div>
+                    <div className="lb-stat">
+                      <div className="lb-stat-num" style={{color:'#f59e0b'}}>{s.stats.pending}</div>
+                      <div className="lb-stat-label">⏳</div>
+                    </div>
+                    <div className="lb-stat">
+                      <div className="lb-stat-num">{s.stats.total}</div>
+                      <div className="lb-stat-label">total</div>
+                    </div>
+                    <div style={{width:60, display:'none'}} className="lb-bar-desktop">
+                      <div className="lb-bar-bg">
+                        <div className="lb-bar-fill" style={{width:`${(s.stats.done/maxDone)*100}%`}}/>
+                      </div>
+                    </div>
+                  </div>
+                  <button className="btn btn-danger btn-sm"
+                    style={{flexShrink:0}}
+                    onClick={() => deleteStudent(s)}
+                    title={`Supprimer ${s.first_name}`}>
+                    🗑️
+                  </button>
+                </div>
+              );
+            })
+        }
+      </div>
+    </div>
+  );
+}
+
+// ── APP ───────────────────────────────────────────────────────────────────────
+function App() {
+  const [student,    setStudent]    = useState(null);
+  const [isTeacher,  setIsTeacher]  = useState(false);
+  const [showPin,    setShowPin]    = useState(false);
+  const [showStats,  setShowStats]  = useState(false);
+  const [tab,        setTab]        = useState('map');
+  const [zones,      setZones]      = useState([]);
+  const [tasks,      setTasks]      = useState([]);
+  const [plants,     setPlants]     = useState([]);
+  const [markers,    setMarkers]    = useState([]);
+  const [loading,    setLoading]    = useState(true);
+  const [toast,      setToast]      = useState(null);
+
+  // Called from anywhere when a 401-deleted is detected
+  const forceLogout = useCallback(() => {
+    localStorage.removeItem('foretmap_student');
+    setStudent(null);
+    setIsTeacher(false);
+    setToast('Votre compte a été supprimé par le professeur.');
+  }, []);
+
+  // Restore session — validates against server on load
+  useEffect(() => {
+    const saved = localStorage.getItem('foretmap_student');
+    if (saved) {
+      try {
+        const s = JSON.parse(saved);
+        setStudent(s); // show app immediately with cached data
+        api('/api/students/register', 'POST', { studentId: s.id })
+          .then(fresh => setStudent(fresh))
+          .catch(err => {
+            if (err instanceof AccountDeletedError || err.deleted) forceLogout();
+          });
+      } catch(e) {}
+    }
+  }, []);
+
+  const fetchAll = useCallback(async () => {
+    try {
+      const [z, t, p, m] = await Promise.all([
+        api('/api/zones'), api('/api/tasks'), api('/api/plants'), api('/api/map/markers')
+      ]);
+      setZones(z); setTasks(t); setPlants(p); setMarkers(m);
+    } catch(e) {
+      if (e instanceof AccountDeletedError) forceLogout();
+      else console.error(e);
+    }
+    setLoading(false);
+  }, [forceLogout]);
+
+  useEffect(() => { fetchAll(); }, []);
+
+  // Auto-refresh every 30s
+  useEffect(() => {
+    const id = setInterval(fetchAll, 30000);
+    return () => clearInterval(id);
+  }, [fetchAll]);
+
+  const updateZone = async (id, data) => {
+    await api(`/api/zones/${id}`, 'PUT', data);
+    await fetchAll();
+  };
+
+  if (!student) return <AuthScreen onLogin={s => setStudent(s)}/>;
+  if (loading) return (
+    <div className="loader">
+      <div className="loader-leaf">🌿</div>
+      <p>Chargement de la forêt...</p>
+    </div>
+  );
+
+  return (
+    <div id="app">
+      {toast && <Toast msg={toast} onDone={() => setToast(null)}/>}
+      {showPin && <PinModal
+        onSuccess={() => { setIsTeacher(true); setShowPin(false); setToast('Mode professeur activé 🔓'); }}
+        onClose={() => setShowPin(false)}
+      />}
+      {showStats && !isTeacher && (
+        <div className="modal-overlay" onClick={e => e.target === e.currentTarget && setShowStats(false)}>
+          <div className="log-modal fade-in" style={{maxHeight:'88vh'}}>
+            <button className="modal-close" onClick={() => setShowStats(false)}>✕</button>
+            <StudentStats student={student}/>
+          </div>
+        </div>
+      )}
+
+      <header>
+        <div className="logo">
+          <span>🌿</span> ForêtMap
+        </div>
+        <div className="header-right">
+          <button
+            className="user-badge"
+            onClick={() => !isTeacher && setShowStats(true)}
+            style={{
+              border:'none', cursor: isTeacher ? 'default' : 'pointer',
+              background:'rgba(255,255,255,.15)', borderRadius:8,
+              padding:'4px 10px', fontSize:'.8rem', color:'white',
+              maxWidth:130, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap',
+              display:'flex', alignItems:'center', gap:5,
+            }}
+            title={isTeacher ? '' : 'Voir mes statistiques'}
+          >
+            {!isTeacher && <span style={{fontSize:'.7rem', opacity:.7}}>📊</span>}
+            {student.first_name} {student.last_name}
+          </button>
+          <button className={`lock-btn ${isTeacher ? 'active' : ''}`} onClick={() => {
+            if (isTeacher) { setIsTeacher(false); setToast('Mode élève'); }
+            else setShowPin(true);
+          }}>
+            {isTeacher ? <>🔓 <span className="lock-label">Prof</span></> : '🔒'}
+          </button>
+          <button className="lock-btn" title="Déconnexion" onClick={() => {
+            localStorage.removeItem('foretmap_student');
+            setStudent(null); setIsTeacher(false);
+          }}>↩️</button>
+        </div>
+      </header>
+
+      {isTeacher ? (
+        <div className="main teacher-main">
+          <div className="top-tabs">
+            <button className={`top-tab ${tab === 'map' ? 'active' : ''}`} onClick={() => setTab('map')}>🗺️ Carte & Zones</button>
+            <button className={`top-tab ${tab === 'tasks' ? 'active' : ''}`} onClick={() => setTab('tasks')}>
+              ✅ Tâches {tasks.filter(t => t.status === 'done').length > 0 && `(${tasks.filter(t => t.status === 'done').length} à valider)`}
+            </button>
+            <button className={`top-tab ${tab === 'plants' ? 'active' : ''}`} onClick={() => setTab('plants')}>🌱 Plantes</button>
+            <button className={`top-tab ${tab === 'stats' ? 'active' : ''}`} onClick={() => setTab('stats')}>📊 Stats</button>
+          </div>
+          {tab === 'map'    && <MapView zones={zones} markers={markers} plants={plants} isTeacher onZoneUpdate={updateZone} onRefresh={fetchAll}/>}
+          {tab === 'tasks'  && <TasksView  tasks={tasks} zones={zones} isTeacher student={student} onRefresh={fetchAll} onForceLogout={forceLogout}/>}
+          {tab === 'plants' && <PlantManager plants={plants} onRefresh={fetchAll}/>}
+          {tab === 'stats'  && <TeacherStats/>}
+        </div>
+      ) : (
+        <>
+          <div className="main">
+            {tab === 'map'   && <MapView zones={zones} markers={markers} plants={plants} isTeacher={false} onZoneUpdate={updateZone} onRefresh={fetchAll}/>}
+            {tab === 'tasks' && <TasksView tasks={tasks} zones={zones} isTeacher={false} student={student} onRefresh={fetchAll} onForceLogout={forceLogout}/>}
+          </div>
+          <nav className="bottom-nav">
+            <button className={`nav-btn ${tab === 'map' ? 'active' : ''}`} onClick={() => setTab('map')}>
+              <span className="nav-icon">🗺️</span> Carte
+            </button>
+            <button className={`nav-btn ${tab === 'tasks' ? 'active' : ''}`} onClick={() => setTab('tasks')}>
+              <span className="nav-icon">✅</span>
+              Tâches {tasks.filter(t => t.assignments?.some(a => a.student_first_name === student.first_name && a.student_last_name === student.last_name) && (t.status === 'available' || t.status === 'in_progress')).length > 0
+                && `(${tasks.filter(t => t.assignments?.some(a => a.student_first_name === student.first_name && a.student_last_name === student.last_name) && (t.status === 'available' || t.status === 'in_progress')).length})`}
+            </button>
+          </nav>
+        </>
+      )}
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>
