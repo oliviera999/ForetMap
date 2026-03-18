@@ -1,6 +1,6 @@
 ---
 name: foretmap-project
-description: Donne le contexte du projet ForetMap (forêt comestible, Lycée Lyautey). À utiliser quand on travaille sur l’application ForetMap, l’API, la base SQLite, ou le frontend React (zones, tâches, plantes, élèves, mode prof).
+description: Donne le contexte du projet ForetMap (forêt comestible, Lycée Lyautey). À utiliser quand on travaille sur l’application ForetMap, l’API, la base MySQL, ou le frontend React (zones, tâches, plantes, élèves, mode prof).
 ---
 
 # Contexte projet ForetMap
@@ -12,7 +12,7 @@ description: Donne le contexte du projet ForetMap (forêt comestible, Lycée Lya
 
 ## Stack
 
-- **Backend :** Node.js, Express, SQLite (better-sqlite3). Fichiers : `server.js` (routes API), `database.js` (schéma, migrations, seed). Auth élèves : bcrypt, session en localStorage côté client.
+- **Backend :** Node.js, Express, MySQL (mysql2, pool). Fichiers : `server.js` (montage des routeurs), `database.js` (pool, schéma, seed), `routes/` (zones, plants, tasks, auth, stats, students, map), `middleware/requireTeacher.js`. Auth élèves : bcrypt, session en localStorage. Auth prof : PIN vérifié côté serveur, JWT.
 - **Frontend :** React 18 (UMD) + Babel standalone, tout dans `public/index.html`. Pas de build. Thème « forêt » (couleurs CSS, mobile-first).
 
 ## Points d’attention
@@ -25,6 +25,7 @@ description: Donne le contexte du projet ForetMap (forêt comestible, Lycée Lya
 
 | Fichier | Rôle |
 |---------|------|
-| `server.js` | Toutes les routes `/api/*`, CORS, static, fallback SPA |
-| `database.js` | Connexion DB, `initDatabase()`, schéma, seed |
-| `public/index.html` | App React complète (carte, zones, tâches, auth, PIN prof) |
+| `server.js` | Montage des routeurs `/api/*`, CORS, static, fallback SPA |
+| `database.js` | Pool MySQL, `initDatabase()`, schéma, seed |
+| `routes/*.js` | Routeurs (zones, plants, tasks, auth, stats, students, map) |
+| `public/index.html` | App React complète (carte, zones, tâches, auth, mode prof via API) |

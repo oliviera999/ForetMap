@@ -1,0 +1,164 @@
+const express = require('express');
+const path = require('path');
+const { v4: uuidv4 } = require('uuid');
+const { queryAll, queryOne, execute } = require('../database');
+const { requireTeacher } = require('../middleware/requireTeacher');
+const { saveBase64ToDisk, getAbsolutePath, deleteFile } = require('../lib/uploads');
+
+const router = express.Router();
+
+router.get('/', async (req, res) => {
+  try {
+    const zones   = await queryAll('SELECT * FROM zones');
+    const history = await queryAll('SELECT * FROM zone_history ORDER BY harvested_at DESC');
+    const result  = zones.map(z => ({
+      ...z,
+      special: !!z.special,
+      history: history.filter(h => h.zone_id === z.id)
+    }));
+    res.json(result);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+router.get('/:id', async (req, res) => {
+  try {
+    const zone = await queryOne('SELECT * FROM zones WHERE id = ?', [req.params.id]);
+    if (!zone) return res.status(404).json({ error: 'Zone introuvable' });
+    const history = await queryAll(
+      'SELECT * FROM zone_history WHERE zone_id = ? ORDER BY harvested_at DESC',
+      [req.params.id]
+    );
+    res.json({ ...zone, special: !!zone.special, history });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+router.put('/:id', requireTeacher, async (req, res) => {
+  try {
+    const zone = await queryOne('SELECT * FROM zones WHERE id = ?', [req.params.id]);
+    if (!zone) return res.status(404).json({ error: 'Zone introuvable' });
+    const { current_plant, stage, description, points, color } = req.body;
+    if (zone.current_plant && current_plant !== undefined &&
+        zone.current_plant !== current_plant && zone.current_plant.trim() !== '') {
+      await execute(
+        'INSERT INTO zone_history (zone_id, plant, harvested_at) VALUES (?, ?, ?)',
+        [zone.id, zone.current_plant, new Date().toISOString().split('T')[0]]
+      );
+    }
+    await execute(
+      'UPDATE zones SET current_plant=?, stage=?, description=?, points=?, color=? WHERE id=?',
+      [
+        current_plant  ?? zone.current_plant,
+        stage          ?? zone.stage,
+        description    !== undefined ? description : (zone.description ?? ''),
+        points         !== undefined ? JSON.stringify(points) : zone.points,
+        color          ?? zone.color,
+        zone.id
+      ]
+    );
+    const updated = await queryOne('SELECT * FROM zones WHERE id = ?', [zone.id]);
+    const history = await queryAll('SELECT * FROM zone_history WHERE zone_id=? ORDER BY harvested_at DESC', [zone.id]);
+    res.json({ ...updated, special: !!updated.special, history });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+router.get('/:id/photos', async (req, res) => {
+  try {
+    const zoneId = req.params.id;
+    const photos = await queryAll(
+      'SELECT id, zone_id, caption, uploaded_at, image_path FROM zone_photos WHERE zone_id=? ORDER BY uploaded_at DESC',
+      [zoneId]
+    );
+    res.json(photos.map(p => ({
+      ...p,
+      image_url: p.image_path ? `/api/zones/${zoneId}/photos/${p.id}/data` : null,
+    })));
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+router.get('/:id/photos/:pid/data', async (req, res) => {
+  try {
+    const p = await queryOne('SELECT image_path, image_data FROM zone_photos WHERE id=? AND zone_id=?', [req.params.pid, req.params.id]);
+    if (!p) return res.status(404).json({ error: 'Photo introuvable' });
+    if (p.image_path) {
+      const absolutePath = getAbsolutePath(p.image_path);
+      return res.sendFile(absolutePath, (err) => {
+        if (err && !res.headersSent) res.status(404).json({ error: 'Fichier introuvable' });
+      });
+    }
+    res.json({ image_data: p.image_data });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+router.post('/:id/photos', requireTeacher, async (req, res) => {
+  try {
+    const zone = await queryOne('SELECT * FROM zones WHERE id=?', [req.params.id]);
+    if (!zone) return res.status(404).json({ error: 'Zone introuvable' });
+    const { image_data, caption } = req.body;
+    if (!image_data) return res.status(400).json({ error: 'Image requise' });
+    const result = await execute(
+      'INSERT INTO zone_photos (zone_id, image_data, caption) VALUES (?, ?, ?)',
+      [req.params.id, null, caption || '']
+    );
+    const photoId = result.insertId;
+    const relativePath = `zones/${req.params.id}/${photoId}.jpg`;
+    saveBase64ToDisk(relativePath, image_data);
+    await execute('UPDATE zone_photos SET image_path = ? WHERE id = ?', [relativePath, photoId]);
+    const photo = await queryOne('SELECT id, zone_id, caption, uploaded_at FROM zone_photos WHERE id=?', [photoId]);
+    res.status(201).json(photo);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+router.delete('/:id/photos/:pid', requireTeacher, async (req, res) => {
+  try {
+    const p = await queryOne('SELECT image_path FROM zone_photos WHERE id=? AND zone_id=?', [req.params.pid, req.params.id]);
+    if (p && p.image_path) deleteFile(p.image_path);
+    await execute('DELETE FROM zone_photos WHERE id=? AND zone_id=?', [req.params.pid, req.params.id]);
+    res.json({ success: true });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+router.post('/', requireTeacher, async (req, res) => {
+  try {
+    const { name, points, color, current_plant, stage } = req.body;
+    if (!name?.trim()) return res.status(400).json({ error: 'Nom requis' });
+    if (!points || points.length < 3) return res.status(400).json({ error: 'Au moins 3 points requis' });
+    const id = 'zone-' + uuidv4().slice(0, 8);
+    await execute(
+      'INSERT INTO zones (id, name, x, y, width, height, current_plant, stage, special, points, color) VALUES (?, ?, 0, 0, 0, 0, ?, ?, 0, ?, ?)',
+      [id, name.trim(), current_plant || '', stage || 'empty', JSON.stringify(points), color || '#86efac80']
+    );
+    const zone = await queryOne('SELECT * FROM zones WHERE id = ?', [id]);
+    res.status(201).json({ ...zone, history: [] });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+router.delete('/:id', requireTeacher, async (req, res) => {
+  try {
+    const zone = await queryOne('SELECT * FROM zones WHERE id = ?', [req.params.id]);
+    if (!zone) return res.status(404).json({ error: 'Zone introuvable' });
+    await execute('DELETE FROM zone_history WHERE zone_id = ?', [req.params.id]);
+    await execute('DELETE FROM zone_photos WHERE zone_id = ?', [req.params.id]);
+    await execute('DELETE FROM zones WHERE id = ?', [req.params.id]);
+    res.json({ success: true });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+module.exports = router;

@@ -80,8 +80,46 @@ async function initSchema() {
     if (!rows || rows.length === 0) {
       throw new Error('La table zones n\'a pas été créée. Vérifiez les erreurs MySQL ci-dessus ou exécutez sql/schema_foretmap.sql à la main (mysql -u user -p base < sql/schema_foretmap.sql).');
     }
+    await runMigrations(conn);
   } finally {
     conn.release();
+  }
+}
+
+/**
+ * Exécute les migrations du dossier migrations/ (fichiers 001_xxx.sql, 002_xxx.sql, ...).
+ * Utilise la table schema_version pour ne ré-exécuter que les migrations manquantes.
+ */
+async function runMigrations(conn) {
+  const migrationsDir = path.join(__dirname, 'migrations');
+  if (!fs.existsSync(migrationsDir)) return;
+  const files = fs.readdirSync(migrationsDir)
+    .filter(f => /^\d{3}_.*\.sql$/.test(f))
+    .sort();
+  let current = -1;
+  try {
+    const [rows] = await conn.query('SELECT version FROM schema_version LIMIT 1');
+    if (rows && rows[0]) current = rows[0].version;
+  } catch (e) { /* table n'existe pas encore */ }
+  if (current < 0 && files.length > 0) {
+    const first = files[0];
+    const sql = fs.readFileSync(path.join(migrationsDir, first), 'utf8');
+    const statements = sql.split(';').map(s => s.trim()).filter(s => s.length > 0 && !s.startsWith('--'));
+    for (const stmt of statements) {
+      try { await conn.query(stmt); } catch (err) { /* ignore */ }
+    }
+    await conn.query('UPDATE schema_version SET version = ?', [parseInt(first.slice(0, 3), 10)]);
+    current = parseInt(first.slice(0, 3), 10);
+  }
+  for (const file of files) {
+    const num = parseInt(file.slice(0, 3), 10);
+    if (num <= current) continue;
+    const sql = fs.readFileSync(path.join(migrationsDir, file), 'utf8');
+    const statements = sql.split(';').map(s => s.trim()).filter(s => s.length > 0 && !s.startsWith('--'));
+    for (const stmt of statements) {
+      try { await conn.query(stmt); } catch (e) { /* colonne déjà existante, etc. */ }
+    }
+    await conn.query('UPDATE schema_version SET version = ?', [num]);
   }
 }
 

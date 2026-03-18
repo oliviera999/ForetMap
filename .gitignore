@@ -11,6 +11,9 @@ node_modules/
 # *.sqlite
 # *.sqlite3
 
+# Uploads (images zones / task-logs)
+uploads/
+
 # Logs
 logs/
 *.log
