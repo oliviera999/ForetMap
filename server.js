@@ -31,6 +31,22 @@ app.get('/health', (req, res) => {
   res.type('application/json').status(200).json({ ok: true });
 });
 
+// Version de l'app (pied de page frontend)
+const appVersion = require('./package.json').version;
+app.get('/api/version', (req, res) => {
+  res.json({ version: appVersion });
+});
+
+// Redémarrage déclenché après déploiement (secret requis ; le gestionnaire de process relance l'app)
+app.post('/api/admin/restart', (req, res) => {
+  const secret = req.headers['x-deploy-secret'] || req.body?.secret;
+  if (!process.env.DEPLOY_SECRET || secret !== process.env.DEPLOY_SECRET) {
+    return res.status(403).json({ error: 'Secret invalide' });
+  }
+  res.json({ ok: true, message: 'Redémarrage dans 1s' });
+  setTimeout(() => process.exit(0), 1000);
+});
+
 app.use('/api/auth', authRouter);
 app.use('/api/zones', zonesRouter);
 app.use('/api/map', mapRouter);

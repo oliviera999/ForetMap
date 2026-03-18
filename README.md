@@ -45,6 +45,7 @@ L’app est servie sur **http://localhost:3000** (ou le port défini par `proces
 | `DB_PASS` | Mot de passe MySQL |
 | `PORT` | Port du serveur (défaut : 3000) |
 | `IP` ou `ALWAYSDATA_HTTPD_IP` | Adresse d’écoute (défaut : 0.0.0.0) |
+| `DEPLOY_SECRET` | Optionnel : secret pour redémarrage à distance après déploiement (voir ci‑dessous) |
 
 Un fichier `.env` (copié depuis `.env.example`) est utilisé en local ; il est ignoré par Git. En production sur o2switch, configurer les variables dans l’interface « Setup Node.js App ».
 
@@ -83,6 +84,19 @@ Le script vide les tables MySQL puis recopie toutes les données (zones, plantes
 6. **Sous-domaine** : pointer **foretmap.olution.info** vers l’application Node (domaine/addon dans cPanel, puis lier au répertoire de l’app Node).
 
 7. **Redémarrer** l’app depuis l’interface Setup Node.js App après toute modification des variables ou du code.
+
+### Redémarrage automatique après déploiement
+
+Si vous définissez la variable d’environnement `DEPLOY_SECRET` (une chaîne secrète de votre choix), vous pouvez déclencher un redémarrage de l’app à distance après un `git pull` ou un déploiement. Le processus Node s’arrête proprement ; le gestionnaire de process (o2switch, PM2, systemd, etc.) le relance s’il est configuré pour cela.
+
+Depuis votre script de déploiement ou en ligne de commande après un pull :
+
+```bash
+curl -X POST https://foretmap.olution.info/api/admin/restart \
+  -H "X-Deploy-Secret: VOTRE_DEPLOY_SECRET"
+```
+
+Ou en JSON : `POST /api/admin/restart` avec body `{ "secret": "VOTRE_DEPLOY_SECRET" }`. En cas de succès, l’app répond puis s’arrête 1 seconde après ; le serveur doit être configuré pour relancer l’application automatiquement.
 
 Référence : [FAQ o2switch – Node.js](https://faq.o2switch.fr/cpanel/logiciels/hebergement-nodejs-multi-version/).
 

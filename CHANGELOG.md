@@ -9,6 +9,14 @@ _(aucun changement en cours)_
 
 ---
 
+## [1.1.1] - 2026-03-18
+
+### Ajouté
+- Version de l’app en pied de page : `GET /api/version`, affichage sur l’écran de connexion et en bas de l’interface une fois connecté.
+- Redémarrage déclenché après déploiement : `POST /api/admin/restart` (secret `DEPLOY_SECRET`, header `X-Deploy-Secret` ou body `secret`). Documentation dans README et `.env.example`.
+
+---
+
 ## [1.1.0] - 2026-03-18
 
 ### Ajouté

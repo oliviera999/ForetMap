@@ -170,6 +170,14 @@
     .nav-btn.active::after { opacity:1; transform:translateX(-50%) scale(1); }
     .nav-btn:active .nav-icon { transform:scale(.88); }
 
+    /* ── FOOTER VERSION ── */
+    .app-footer {
+      text-align:center; font-size:.7rem; color:#aaa;
+      padding:8px 16px; margin-top:auto;
+      border-top:1px solid rgba(183,228,199,.4);
+      background:rgba(254,250,224,.5);
+    }
+
     /* ── MAIN ── */
     .main { flex:1; padding:16px; padding-bottom:calc(72px + var(--safe-bottom) + 16px); max-width:900px; margin:0 auto; width:100%; }
     .teacher-main { padding:16px; padding-bottom:24px; max-width:900px; margin:0 auto; width:100%; }
@@ -336,6 +344,7 @@
       padding:10px 14px; font-size:.85rem; margin-bottom:12px;
       animation:shake .3s ease;
     }
+    .auth-version { font-size:.7rem; color:#aaa; margin-top:16px; margin-bottom:0; text-align:center; }
 
     /* ── ROWS ── */
     .row { display:flex; gap:10px; }
@@ -1884,7 +1893,7 @@ function PinModal({ onSuccess, onClose }) {
 }
 
 // ── AUTH SCREEN ───────────────────────────────────────────────────────────────
-function AuthScreen({ onLogin }) {
+function AuthScreen({ onLogin, appVersion }) {
   const [mode,    setMode]    = useState('login');   // 'login' | 'register'
   const [first,   setFirst]   = useState('');
   const [last,    setLast]    = useState('');
@@ -1943,6 +1952,7 @@ function AuthScreen({ onLogin }) {
         <button className="btn btn-primary btn-full" onClick={submit} disabled={loading} style={{marginTop:4}}>
           {loading ? '...' : mode === 'login' ? 'Se connecter 🌱' : 'Créer le compte'}
         </button>
+        {appVersion != null && <p className="auth-version">Version {appVersion}</p>}
       </div>
     </div>
   );
@@ -2421,6 +2431,11 @@ function App() {
   const [markers,    setMarkers]    = useState([]);
   const [loading,    setLoading]    = useState(true);
   const [toast,      setToast]      = useState(null);
+  const [appVersion, setAppVersion] = useState(null);
+
+  useEffect(() => {
+    api('/api/version').then(d => setAppVersion(d.version)).catch(() => {});
+  }, []);
 
   // Called from anywhere when a 401-deleted is detected
   const forceLogout = useCallback(() => {
@@ -2479,7 +2494,7 @@ function App() {
     await fetchAll();
   };
 
-  if (!student) return <AuthScreen onLogin={s => setStudent(s)}/>;
+  if (!student) return <AuthScreen onLogin={s => setStudent(s)} appVersion={appVersion}/>;
   if (loading) return (
     <div className="loader">
       <div className="loader-leaf">🌿</div>
@@ -2570,6 +2585,7 @@ function App() {
           </nav>
         </>
       )}
+      <footer className="app-footer">Version {appVersion != null ? appVersion : '…'}</footer>
     </div>
   );
 }
