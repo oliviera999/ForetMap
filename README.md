@@ -71,10 +71,11 @@ Le script vide les tables MySQL puis recopie toutes les données (zones, plantes
 
 ## Déploiement o2switch (foretmap.olution.info)
 
-1. **Créer l’application Node.js** dans cPanel : **Setup Node.js App** — choisir la version Node (18 ou 20), définir le répertoire du projet (ex. `foretmap` ou racine du domaine).
+1. **Créer l’application Node.js** dans cPanel : **Setup Node.js App** — choisir la version Node (18 ou 20). **Le répertoire de l’application** doit être le dossier qui contient **à la fois** `server.js` et le dossier **`public/`** (avec `public/index.html`). Sinon le fallback SPA et les fichiers statiques peuvent renvoyer des erreurs.
 
-2. **Variables d’environnement** dans l’interface de l’app Node :  
-   `DB_HOST=localhost`, `DB_NAME=oliviera_foretmap`, `DB_USER=oliviera_foretmap`, `DB_PASS=...`, `NODE_ENV=production`.
+2. **Variables d’environnement** dans l’interface de l’app Node (obligatoires pour l’API) :  
+   `DB_HOST=localhost`, `DB_NAME=oliviera_foretmap`, `DB_USER=oliviera_foretmap`, `DB_PASS=...`, `NODE_ENV=production`.  
+   Sans ces variables MySQL, la page d’accueil peut s’afficher mais les appels `/api/*` échoueront (erreur serveur).
 
 3. **Fichier d’entrée** : `server.js` (ou point d’entrée configuré dans Setup Node.js App).
 
@@ -82,6 +83,7 @@ Le script vide les tables MySQL puis recopie toutes les données (zones, plantes
    ```bash
    npm install --production
    ```
+   **Erreur « Can't acquire lock for app: … »** : message du panel o2switch (pas de l’app). **Arrêter l’application** dans Setup Node.js App, attendre quelques secondes, lancer **npm install**, puis **redémarrer** l’app. Ne pas ouvrir l’URL du site pendant l’install si le panel ou un script interroge l’app à ce moment.
 
 5. **Initialiser la BDD** (une fois) : exécuter le schéma puis éventuellement la migration :
    - En SSH, depuis le répertoire de l’app : `npm run db:init`
@@ -105,6 +107,11 @@ curl -X POST https://foretmap.olution.info/api/admin/restart \
 Ou en JSON : `POST /api/admin/restart` avec body `{ "secret": "VOTRE_DEPLOY_SECRET" }`. En cas de succès, l’app répond puis s’arrête 1 seconde après ; le serveur doit être configuré pour relancer l’application automatiquement.
 
 Référence : [FAQ o2switch – Node.js](https://faq.o2switch.fr/cpanel/logiciels/hebergement-nodejs-multi-version/).
+
+### Diagnostic (BDD vs app)
+
+- **`GET /api/health`** — l’app répond (sans toucher à MySQL).
+- **`GET /api/health/db`** — renvoie `200` si la connexion MySQL fonctionne, **`503`** si la base est inaccessible (utile pour distinguer une panne BDD d’un problème de fichiers ou de proxy).
 
 ---
 

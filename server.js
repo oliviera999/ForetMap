@@ -1,7 +1,7 @@
 const express = require('express');
 const cors    = require('cors');
 const path    = require('path');
-const { initDatabase } = require('./database');
+const { initDatabase, ping: dbPing } = require('./database');
 const { validateEnv } = require('./lib/env');
 const logger = require('./lib/logger');
 
@@ -31,8 +31,18 @@ app.get('/health', (req, res) => {
   res.type('application/json').status(200).json({ ok: true });
 });
 
+app.get('/api/health/db', async (req, res) => {
+  try {
+    await dbPing();
+    res.type('application/json').status(200).json({ ok: true, database: true });
+  } catch (err) {
+    logger.warn({ err }, 'Health check BDD en échec');
+    res.status(503).json({ ok: false, error: 'Database unavailable' });
+  }
+});
+
 // Version de l'app (pied de page frontend)
-const appVersion = require('./package.json').version;
+const appVersion = require(path.join(__dirname, 'package.json')).version;
 app.get('/api/version', (req, res) => {
   res.json({ version: appVersion });
 });
@@ -60,10 +70,13 @@ app.get('/favicon.ico', (req, res) => res.status(204).end());
 
 // Fallback SPA
 app.get('*', (req, res) => {
-  const indexPath = path.join(__dirname, 'public', 'index.html');
+  const indexPath = path.resolve(__dirname, 'public', 'index.html');
   res.sendFile(indexPath, (err) => {
     if (err) {
-      logger.error({ err, path: req.path }, 'Envoi index.html en échec');
+      logger.error(
+        { err, path: req.path, resolvedPath: indexPath, code: err.code },
+        'Envoi index.html en échec'
+      );
       if (!res.headersSent) res.status(500).json({ error: 'Erreur serveur' });
     }
   });

@@ -11,6 +11,7 @@ Réponses JSON. En cas d’erreur : `{ "error": "message" }` avec statut HTTP ad
 | Méthode | URL | Description |
 |--------|-----|-------------|
 | GET | `/api/health` | Santé sans BDD |
+| GET | `/api/health/db` | Ping MySQL : `200` si OK, `503` si base indisponible |
 | GET | `/health` | Alias |
 
 ---

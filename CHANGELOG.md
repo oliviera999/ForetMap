@@ -5,7 +5,14 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
-_(aucun changement en cours)_
+### Ajouté
+- Route `GET /api/health/db` (ping MySQL, 200 ou 503) pour le diagnostic en prod.
+- Front : après 3 échecs serveur consécutifs (5xx / réseau), rafraîchissement espacé (2 min) + bandeau « Serveur indisponible » et bouton « Réessayer ».
+
+### Modifié
+- Fallback SPA : chemin absolu `path.resolve`, logs enrichis (`resolvedPath`, `code`) si `index.html` introuvable.
+- Version API : lecture de `package.json` via `path.join(__dirname, …)`.
+- README : procédure « Can't acquire lock » o2switch, racine d’app + variables BDD, section diagnostic `/api/health` vs `/api/health/db`.
 
 ---
 

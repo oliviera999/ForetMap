@@ -543,13 +543,15 @@ async function api(path, method = 'GET', body) {
     body: body ? JSON.stringify(body) : undefined,
   });
   if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    if (res.status === 401 && err.deleted) throw new AccountDeletedError();
-    if (res.status === 401 && teacherToken && (err.error || '').toLowerCase().includes('token')) {
+    const body = await res.json().catch(() => ({}));
+    if (res.status === 401 && body.deleted) throw new AccountDeletedError();
+    if (res.status === 401 && teacherToken && (body.error || '').toLowerCase().includes('token')) {
       localStorage.removeItem('foretmap_teacher_token');
       window.dispatchEvent(new CustomEvent('foretmap_teacher_expired'));
     }
-    throw new Error(err.error || 'Erreur serveur');
+    const ex = new Error(body.error || 'Erreur serveur');
+    ex.status = res.status;
+    throw ex;
   }
   return res.json();
 }
@@ -2453,6 +2455,9 @@ function App() {
   const [loading,    setLoading]    = useState(true);
   const [toast,      setToast]      = useState(null);
   const [appVersion, setAppVersion] = useState(null);
+  const [refreshMs,  setRefreshMs]  = useState(30000);
+  const [serverDown, setServerDown] = useState(false);
+  const failCountRef = useRef(0);
 
   useEffect(() => {
     api('/api/version').then(d => setAppVersion(d.version)).catch(() => {});
@@ -2495,20 +2500,33 @@ function App() {
         api('/api/zones'), api('/api/tasks'), api('/api/plants'), api('/api/map/markers')
       ]);
       setZones(z); setTasks(t); setPlants(p); setMarkers(m);
+      failCountRef.current = 0;
+      setRefreshMs(30000);
+      setServerDown(false);
     } catch(e) {
       if (e instanceof AccountDeletedError) forceLogout();
-      else console.error(e);
+      else {
+        console.error(e);
+        const isServerSide = e.status == null || e.status >= 500;
+        if (isServerSide) {
+          failCountRef.current += 1;
+          if (failCountRef.current >= 3) {
+            setServerDown(true);
+            setRefreshMs(120000);
+          }
+        }
+      }
     }
     setLoading(false);
   }, [forceLogout]);
 
   useEffect(() => { fetchAll(); }, []);
 
-  // Auto-refresh every 30s
+  // Auto-refresh (30 s ; 2 min après 3 échecs serveur consécutifs)
   useEffect(() => {
-    const id = setInterval(fetchAll, 30000);
+    const id = setInterval(fetchAll, refreshMs);
     return () => clearInterval(id);
-  }, [fetchAll]);
+  }, [fetchAll, refreshMs]);
 
   const updateZone = async (id, data) => {
     await api(`/api/zones/${id}`, 'PUT', data);
@@ -2525,6 +2543,18 @@ function App() {
 
   return (
     <div id="app">
+      {serverDown && (
+        <div className="fade-in" role="alert" style={{
+          margin:'8px 12px 0', padding:'10px 14px', borderRadius:12,
+          background:'#fef3c7', border:'1px solid #f59e0b', color:'#78350f', fontSize:'.9rem'
+        }}>
+          <strong>Serveur indisponible.</strong> Nouvel essai automatique toutes les 2 minutes.
+          <button type="button" className="btn btn-sm" style={{marginLeft:10, verticalAlign:'middle'}}
+            onClick={() => { failCountRef.current = 0; setRefreshMs(30000); setServerDown(false); fetchAll(); }}>
+            Réessayer maintenant
+          </button>
+        </div>
+      )}
       {toast && <Toast msg={toast} onDone={() => setToast(null)}/>}
       {showPin && <PinModal
         onSuccess={() => { setIsTeacher(true); setShowPin(false); setToast('Mode professeur activé 🔓'); }}
