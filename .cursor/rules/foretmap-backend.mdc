@@ -1,0 +1,13 @@
+---
+description: Conventions backend Express et MySQL (server, database, routes)
+globs: server.js, database.js, routes/**/*.js
+alwaysApply: false
+---
+
+# Backend ForetMap (Express + MySQL)
+
+- **Base de données :** MySQL via `mysql2` (pool), fichier `database.js`. Utiliser `queryAll(sql, params)`, `queryOne(sql, params)` et `execute(sql, params)` avec des paramètres `?` uniquement (jamais d’interpolation de chaînes). Après `execute`, utiliser `result.insertId` pour l'ID généré.
+- **Réponses API :** JSON avec `res.json(...)`. Erreurs : `res.status(4xx|5xx).json({ error: '...' })`. Pour 404 ressource introuvable : `res.status(404).json({ error: '... introuvable' })`. Toutes les routes qui accèdent à la BDD sont **async**.
+- **Structure actuelle :** Toute l’API est dans `server.js` ; les évolutions peuvent extraire des routeurs dans `routes/` (zones, plants, tasks, auth, stats, students, map) et les monter sous `/api/...`.
+- **Fichier statique :** `express.static('public')` ; fallback SPA `app.get('*', ...)` renvoie `index.html`. Ne pas casser cet ordre.
+- **Schéma / migrations :** DDL dans `sql/schema_foretmap.sql`. Init au démarrage via `initDatabase()` (schéma + seed si tables vides). Toute nouvelle migration doit être documentée ; éviter les migrations destructives sans avertissement.

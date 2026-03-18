@@ -1,0 +1,14 @@
+---
+description: Conventions frontend React (public/index.html et composants)
+globs: public/**/*.html, public/**/*.jsx, src/**/*.jsx, src/**/*.tsx
+alwaysApply: false
+---
+
+# Frontend ForetMap (React)
+
+- **Stack actuelle :** React 18 UMD + Babel standalone dans le navigateur ; tout le code dans `public/index.html` (HTML + CSS + JSX). Pas de build (Vite/Webpack) pour l’instant.
+- **Composants :** Fonctionnels, hooks (`useState`, `useEffect`, `useCallback`, `useRef`). Pas de classes.
+- **API :** Appels via une fonction centrale (ex. `api(url, method, body)`). Gérer les réponses 401 avec `deleted: true` (compte supprimé) en déconnectant et en affichant un toast.
+- **Styles :** CSS dans le même fichier (balise `<style>`) ou futurs fichiers CSS si migration vers un build. Variables CSS dans `:root` (thème forêt : `--forest`, `--leaf`, `--sage`, etc.). Boutons et zones cliquables : min-height 44px pour le tactile.
+- **Locale :** Français (fr-FR) pour les dates et textes utilisateur. Pas de texte en dur en anglais dans l’UI.
+- **Mode professeur :** Actuellement contrôlé côté client (PIN dans le front). Toute évolution doit viser à déléguer la vérification au serveur et à ne plus stocker le PIN dans le code source (voir docs/EVOLUTION.md).
