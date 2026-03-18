@@ -13,6 +13,14 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
 
+// Route de santé sans BDD — pour le contrôle de disponibilité (o2switch / Passenger)
+app.get('/api/health', (req, res) => {
+  res.type('application/json').status(200).json({ ok: true });
+});
+app.get('/health', (req, res) => {
+  res.type('application/json').status(200).json({ ok: true });
+});
+
 async function getTaskWithAssignments(taskId) {
   const task = await queryOne(
     'SELECT t.*, z.name as zone_name FROM tasks t LEFT JOIN zones z ON t.zone_id = z.id WHERE t.id = ?',
@@ -651,13 +659,17 @@ app.get('*', (req, res) => {
 const host = process.env.IP || process.env.ALWAYSDATA_HTTPD_IP || '0.0.0.0';
 const port = process.env.PORT || process.env.ALWAYSDATA_HTTPD_PORT || 3000;
 
+function startServer() {
+  app.listen(port, host, () => {
+    console.log(`\n🌿 ForêtMap lancé sur http://${host}:${port}\n`);
+  });
+}
+
 initDatabase()
   .then(() => {
-    app.listen(port, host, () => {
-      console.log(`\n🌿 ForêtMap lancé sur http://${host}:${port}\n`);
-    });
+    startServer();
   })
   .catch((err) => {
-    console.error('Erreur init BDD:', err);
-    process.exit(1);
+    console.error('Erreur init BDD (le serveur démarre quand même) :', err.message || err);
+    startServer();
   });
