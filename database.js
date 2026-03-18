@@ -53,12 +53,15 @@ async function ping() {
 /**
  * Initialise le schéma MySQL (tables) à partir de sql/schema_foretmap.sql.
  * Idempotent : peut être rappelé sans effet de bord si les tables existent déjà.
+ * @throws si le fichier est introuvable ou si l'exécution SQL échoue
  */
 async function initSchema() {
   const schemaPath = path.join(__dirname, 'sql', 'schema_foretmap.sql');
   if (!fs.existsSync(schemaPath)) {
-    console.warn('⚠️ sql/schema_foretmap.sql introuvable, skip init schema.');
-    return;
+    throw new Error(
+      `Fichier introuvable: ${schemaPath}\n` +
+      'Vérifiez que le dossier sql/ et le fichier schema_foretmap.sql sont bien déployés sur le serveur.'
+    );
   }
   const sql = fs.readFileSync(schemaPath, 'utf8');
   const statements = sql
@@ -69,6 +72,13 @@ async function initSchema() {
   try {
     for (const stmt of statements) {
       if (stmt) await conn.query(stmt);
+    }
+    const [rows] = await conn.query(
+      "SELECT 1 FROM information_schema.tables WHERE table_schema = ? AND table_name = 'zones'",
+      [process.env.DB_NAME || 'oliviera_foretmap']
+    );
+    if (!rows || rows.length === 0) {
+      throw new Error('La table zones n\'a pas été créée. Vérifiez les erreurs MySQL ci-dessus ou exécutez sql/schema_foretmap.sql à la main (mysql -u user -p base < sql/schema_foretmap.sql).');
     }
   } finally {
     conn.release();
