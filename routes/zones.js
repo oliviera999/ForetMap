@@ -113,8 +113,8 @@ router.post('/:id/photos', requireTeacher, async (req, res) => {
     const { image_data, caption } = req.body;
     if (!image_data) return res.status(400).json({ error: 'Image requise' });
     const result = await execute(
-      'INSERT INTO zone_photos (zone_id, image_data, caption) VALUES (?, ?, ?)',
-      [req.params.id, null, caption || '']
+      'INSERT INTO zone_photos (zone_id, image_data, caption, uploaded_at) VALUES (?, ?, ?, ?)',
+      [req.params.id, null, caption || '', new Date().toISOString()]
     );
     photoId = result.insertId;
     const relativePath = `zones/${req.params.id}/${photoId}.jpg`;
