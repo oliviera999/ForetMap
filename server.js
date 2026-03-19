@@ -101,7 +101,7 @@ if (require.main === module) {
   try {
     validateEnv();
   } catch (e) {
-    console.error(e.message);
+    logger.error({ err: e }, 'Variables d\'environnement invalides');
     process.exit(1);
   }
   initDatabase()

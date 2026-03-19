@@ -2,6 +2,7 @@ const express = require('express');
 const { v4: uuidv4 } = require('uuid');
 const { queryAll, queryOne, execute } = require('../database');
 const { requireTeacher } = require('../middleware/requireTeacher');
+const { logRouteError } = require('../lib/routeLog');
 
 const router = express.Router();
 
@@ -10,6 +11,7 @@ router.get('/markers', async (req, res) => {
     const rows = await queryAll('SELECT * FROM map_markers ORDER BY created_at');
     res.json(rows);
   } catch (e) {
+    logRouteError(e, req);
     res.status(500).json({ error: e.message });
   }
 });
@@ -26,6 +28,7 @@ router.post('/markers', requireTeacher, async (req, res) => {
     const row = await queryOne('SELECT * FROM map_markers WHERE id = ?', [id]);
     res.status(201).json(row);
   } catch (e) {
+    logRouteError(e, req);
     res.status(500).json({ error: e.message });
   }
 });
@@ -42,6 +45,7 @@ router.put('/markers/:id', requireTeacher, async (req, res) => {
     const updated = await queryOne('SELECT * FROM map_markers WHERE id = ?', [m.id]);
     res.json(updated);
   } catch (e) {
+    logRouteError(e, req);
     res.status(500).json({ error: e.message });
   }
 });
@@ -53,6 +57,7 @@ router.delete('/markers/:id', requireTeacher, async (req, res) => {
     await execute('DELETE FROM map_markers WHERE id = ?', [req.params.id]);
     res.json({ success: true });
   } catch (e) {
+    logRouteError(e, req);
     res.status(500).json({ error: e.message });
   }
 });

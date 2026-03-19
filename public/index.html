@@ -723,9 +723,9 @@ function PhotoGallery({ zoneId, isTeacher }) {
         try {
           const d = await api(`/api/zones/${zoneId}/photos/${p.id}/data`);
           setPhotos(prev => prev.map(x => x.id === p.id ? { ...x, image_data: d.image_data } : x));
-        } catch(e) {}
+        } catch (e) { console.error('[ForetMap] photo legacy (data)', e); }
       }
-    } catch(e) { setLoading(false); }
+    } catch (e) { console.error('[ForetMap] chargement photos zone', e); setLoading(false); }
   };
 
   useEffect(() => { load(); }, [zoneId]);
@@ -2079,7 +2079,10 @@ function TaskLogsViewer({ task, onClose }) {
   const [big,  setBig]  = useState(null);
 
   useEffect(() => {
-    api(`/api/tasks/${task.id}/logs`).then(setLogs).catch(() => {});
+    api(`/api/tasks/${task.id}/logs`).then(setLogs).catch(err => {
+      console.error('[ForetMap] logs tâche', err);
+      setLogs([]);
+    });
   }, [task.id]);
 
   return (
@@ -2235,7 +2238,9 @@ function StudentStats({ student }) {
   const [data, setData] = useState(null);
 
   useEffect(() => {
-    api(`/api/stats/me/${student.id}`).then(setData).catch(() => {});
+    api(`/api/stats/me/${student.id}`).then(setData).catch(err => {
+      console.error('[ForetMap] stats élève', err);
+    });
   }, [student.id]);
 
   if (!data) return <div className="loader" style={{height:'60vh'}}><div className="loader-leaf">🌿</div><p>Chargement...</p></div>;
@@ -2304,7 +2309,10 @@ function TeacherStats() {
   const [toast,         setToast]         = useState(null);
   const [confirmStudent, setConfirmStudent] = useState(null); // student to delete
 
-  const load = () => api('/api/stats/all').then(setData).catch(() => {});
+  const load = () => api('/api/stats/all').then(setData).catch(err => {
+    console.error('[ForetMap] stats tous', err);
+    setToast('Impossible de charger les statistiques.');
+  });
   useEffect(() => { load(); }, []);
 
   const deleteStudent = async (s) => {
@@ -2460,7 +2468,9 @@ function App() {
   const failCountRef = useRef(0);
 
   useEffect(() => {
-    api('/api/version').then(d => setAppVersion(d.version)).catch(() => {});
+    api('/api/version').then(d => setAppVersion(d.version)).catch(err => {
+      console.error('[ForetMap] version app', err);
+    });
   }, []);
 
   // Called from anywhere when a 401-deleted is detected
@@ -2483,8 +2493,9 @@ function App() {
           .then(fresh => setStudent(fresh))
           .catch(err => {
             if (err instanceof AccountDeletedError || err.deleted) forceLogout();
+            else console.error('[ForetMap] validation session élève', err);
           });
-      } catch(e) {}
+      } catch (e) { console.error('[ForetMap] lecture session locale', e); }
     }
   }, []);
 

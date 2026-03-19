@@ -1,6 +1,7 @@
 const express = require('express');
 const { queryAll, queryOne } = require('../database');
 const { requireTeacher } = require('../middleware/requireTeacher');
+const { logRouteError } = require('../lib/routeLog');
 
 const router = express.Router();
 
@@ -29,6 +30,7 @@ router.get('/me/:studentId', async (req, res) => {
     if (!data) return res.status(404).json({ error: 'Élève introuvable' });
     res.json(data);
   } catch (e) {
+    logRouteError(e, req);
     res.status(500).json({ error: e.message });
   }
 });
@@ -59,6 +61,7 @@ router.get('/all', requireTeacher, async (req, res) => {
     result.sort((a, b) => b.stats.done - a.stats.done);
     res.json(result);
   } catch (e) {
+    logRouteError(e, req);
     res.status(500).json({ error: e.message });
   }
 });

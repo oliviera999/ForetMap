@@ -4,6 +4,7 @@ const jwt     = require('jsonwebtoken');
 const { v4: uuidv4 } = require('uuid');
 const { queryOne, execute } = require('../database');
 const { JWT_SECRET } = require('../middleware/requireTeacher');
+const { logRouteError } = require('../lib/routeLog');
 
 const router = express.Router();
 const TEACHER_PIN = process.env.TEACHER_PIN ?? (process.env.NODE_ENV === 'production' ? null : '1234');
@@ -39,6 +40,7 @@ router.post('/register', async (req, res) => {
     const student = await queryOne('SELECT * FROM students WHERE id = ?', [id]);
     res.status(201).json({ ...student, password: undefined });
   } catch (e) {
+    logRouteError(e, req);
     res.status(500).json({ error: e.message });
   }
 });
@@ -62,6 +64,7 @@ router.post('/login', async (req, res) => {
     await execute('UPDATE students SET last_seen = ? WHERE id = ?', [new Date().toISOString(), student.id]);
     res.json({ ...student, password: undefined });
   } catch (e) {
+    logRouteError(e, req);
     res.status(500).json({ error: e.message });
   }
 });

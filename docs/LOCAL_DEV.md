@@ -59,7 +59,15 @@ npm run test:local
 
 Le script force `DB_NAME=foretmap_test` ; le schéma est (re)créé par les fichiers de test.
 
-## 6. Vérifications rapides (smoke)
+## 6. Vérifier l’environnement local
+
+```bash
+npm run check:local
+```
+
+Vérifie la présence de `.env`, des variables requises et la connexion MySQL (si Docker est démarré).
+
+## 7. Vérifications rapides (smoke)
 
 Avec le serveur lancé :
 
@@ -68,7 +76,7 @@ curl http://localhost:3000/api/health
 curl http://localhost:3000/api/health/db
 ```
 
-## Arrêter MySQL
+## 8. Arrêter MySQL
 
 ```bash
 npm run docker:down

@@ -34,6 +34,13 @@ npm start
 
 L’app est servie sur **http://localhost:3000** (ou le port défini par `process.env.PORT`).
 
+### Débogage (logs, breakpoints)
+
+- **Niveau de log :** variable optionnelle `LOG_LEVEL` (ex. `debug`, `info`, `warn`). Sans `LOG_LEVEL`, Pino utilise `debug` hors production et `info` en production — voir `lib/logger.js`.
+- **Erreurs API :** les réponses HTTP 500 sont journalisées côté serveur (`lib/routeLog.js`) avec chemin et méthode ; les migrations SQL loguent les échecs inattendus (`database.js`).
+- **Inspect Node :** `npm run debug` (ou `npm run debug:dev` avec rechargement nodemon), puis dans VS Code / Cursor : exécuter la configuration **ForetMap : attacher au process Node** (port d’inspect par défaut **9229**), ou **ForetMap : lancer server.js (inspect)** depuis [`.vscode/launch.json`](.vscode/launch.json).
+- **Frontend :** éviter les blocs `catch` vides sur les appels réseau ; les erreurs secondaires sont au minimum tracées dans la console du navigateur (`[ForetMap] …`).
+
 ### Environnement local complet (Docker + tests avant déploiement)
 
 Guide pas à pas : **[docs/LOCAL_DEV.md](docs/LOCAL_DEV.md)** — MySQL 8 via Docker, `env.local.example` → `.env`, `npm run db:init`, `npm run dev`, `npm run test:local` (base `foretmap_test` séparée).
@@ -53,6 +60,7 @@ Guide pas à pas : **[docs/LOCAL_DEV.md](docs/LOCAL_DEV.md)** — MySQL 8 via Do
 | `TEACHER_PIN` | Code PIN du mode professeur (recommandé en production) |
 | `JWT_SECRET` | Secret pour signer les tokens prof (recommandé en production) |
 | `FRONTEND_ORIGIN` | En production : origine CORS autorisée (ex. `https://foretmap.olution.info`) |
+| `LOG_LEVEL` | Optionnel : niveau Pino (`debug`, `info`, …). Voir section *Débogage* ci‑dessus. |
 
 **Obligatoires au démarrage** : `DB_HOST`, `DB_USER`, `DB_PASS`, `DB_NAME`. Si l’une manque, le serveur refuse de démarrer.  
 **En production** : si `TEACHER_PIN` n’est pas défini, le serveur démarre quand même ; seul le mode professeur est désactivé (`POST /api/auth/teacher` renvoie 503 « Mode prof non configuré »). Il est recommandé de définir `TEACHER_PIN` et `JWT_SECRET` en production.

@@ -4,6 +4,7 @@ const { v4: uuidv4 } = require('uuid');
 const { queryAll, queryOne, execute } = require('../database');
 const { requireTeacher } = require('../middleware/requireTeacher');
 const { saveBase64ToDisk, getAbsolutePath, deleteFile } = require('../lib/uploads');
+const { logRouteError } = require('../lib/routeLog');
 
 const router = express.Router();
 
@@ -18,6 +19,7 @@ router.get('/', async (req, res) => {
     }));
     res.json(result);
   } catch (e) {
+    logRouteError(e, req);
     res.status(500).json({ error: e.message });
   }
 });
@@ -32,6 +34,7 @@ router.get('/:id', async (req, res) => {
     );
     res.json({ ...zone, special: !!zone.special, history });
   } catch (e) {
+    logRouteError(e, req);
     res.status(500).json({ error: e.message });
   }
 });
@@ -63,6 +66,7 @@ router.put('/:id', requireTeacher, async (req, res) => {
     const history = await queryAll('SELECT * FROM zone_history WHERE zone_id=? ORDER BY harvested_at DESC', [zone.id]);
     res.json({ ...updated, special: !!updated.special, history });
   } catch (e) {
+    logRouteError(e, req);
     res.status(500).json({ error: e.message });
   }
 });
@@ -79,6 +83,7 @@ router.get('/:id/photos', async (req, res) => {
       image_url: p.image_path ? `/api/zones/${zoneId}/photos/${p.id}/data` : null,
     })));
   } catch (e) {
+    logRouteError(e, req);
     res.status(500).json({ error: e.message });
   }
 });
@@ -95,11 +100,13 @@ router.get('/:id/photos/:pid/data', async (req, res) => {
     }
     res.json({ image_data: p.image_data });
   } catch (e) {
+    logRouteError(e, req);
     res.status(500).json({ error: e.message });
   }
 });
 
 router.post('/:id/photos', requireTeacher, async (req, res) => {
+  let photoId = null;
   try {
     const zone = await queryOne('SELECT * FROM zones WHERE id=?', [req.params.id]);
     if (!zone) return res.status(404).json({ error: 'Zone introuvable' });
@@ -109,13 +116,19 @@ router.post('/:id/photos', requireTeacher, async (req, res) => {
       'INSERT INTO zone_photos (zone_id, image_data, caption) VALUES (?, ?, ?)',
       [req.params.id, null, caption || '']
     );
-    const photoId = result.insertId;
+    photoId = result.insertId;
     const relativePath = `zones/${req.params.id}/${photoId}.jpg`;
-    saveBase64ToDisk(relativePath, image_data);
+    try {
+      saveBase64ToDisk(relativePath, image_data);
+    } catch (fileErr) {
+      await execute('DELETE FROM zone_photos WHERE id = ?', [photoId]);
+      throw fileErr;
+    }
     await execute('UPDATE zone_photos SET image_path = ? WHERE id = ?', [relativePath, photoId]);
     const photo = await queryOne('SELECT id, zone_id, caption, uploaded_at FROM zone_photos WHERE id=?', [photoId]);
     res.status(201).json(photo);
   } catch (e) {
+    logRouteError(e, req);
     res.status(500).json({ error: e.message });
   }
 });
@@ -127,6 +140,7 @@ router.delete('/:id/photos/:pid', requireTeacher, async (req, res) => {
     await execute('DELETE FROM zone_photos WHERE id=? AND zone_id=?', [req.params.pid, req.params.id]);
     res.json({ success: true });
   } catch (e) {
+    logRouteError(e, req);
     res.status(500).json({ error: e.message });
   }
 });
@@ -144,6 +158,7 @@ router.post('/', requireTeacher, async (req, res) => {
     const zone = await queryOne('SELECT * FROM zones WHERE id = ?', [id]);
     res.status(201).json({ ...zone, history: [] });
   } catch (e) {
+    logRouteError(e, req);
     res.status(500).json({ error: e.message });
   }
 });
@@ -157,6 +172,7 @@ router.delete('/:id', requireTeacher, async (req, res) => {
     await execute('DELETE FROM zones WHERE id = ?', [req.params.id]);
     res.json({ success: true });
   } catch (e) {
+    logRouteError(e, req);
     res.status(500).json({ error: e.message });
   }
 });

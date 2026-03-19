@@ -1,6 +1,7 @@
 const express = require('express');
 const { queryAll, queryOne, execute } = require('../database');
 const { requireTeacher } = require('../middleware/requireTeacher');
+const { logRouteError } = require('../lib/routeLog');
 
 const router = express.Router();
 
@@ -9,6 +10,7 @@ router.get('/', async (req, res) => {
     const rows = await queryAll('SELECT * FROM plants ORDER BY name');
     res.json(rows);
   } catch (e) {
+    logRouteError(e, req);
     res.status(500).json({ error: e.message });
   }
 });
@@ -24,6 +26,7 @@ router.post('/', requireTeacher, async (req, res) => {
     const plant = await queryOne('SELECT * FROM plants WHERE id = ?', [result.insertId]);
     res.status(201).json(plant);
   } catch (e) {
+    logRouteError(e, req);
     res.status(500).json({ error: e.message });
   }
 });
@@ -40,6 +43,7 @@ router.put('/:id', requireTeacher, async (req, res) => {
     const updated = await queryOne('SELECT * FROM plants WHERE id = ?', [plant.id]);
     res.json(updated);
   } catch (e) {
+    logRouteError(e, req);
     res.status(500).json({ error: e.message });
   }
 });
@@ -51,6 +55,7 @@ router.delete('/:id', requireTeacher, async (req, res) => {
     await execute('DELETE FROM plants WHERE id = ?', [req.params.id]);
     res.json({ success: true });
   } catch (e) {
+    logRouteError(e, req);
     res.status(500).json({ error: e.message });
   }
 });

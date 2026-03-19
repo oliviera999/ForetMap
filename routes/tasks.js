@@ -4,8 +4,14 @@ const { v4: uuidv4 } = require('uuid');
 const { queryAll, queryOne, execute } = require('../database');
 const { requireTeacher } = require('../middleware/requireTeacher');
 const { saveBase64ToDisk, getAbsolutePath } = require('../lib/uploads');
+const { logRouteError } = require('../lib/routeLog');
 
 const router = express.Router();
+
+function sanitizeRequiredStudents(value) {
+  const n = parseInt(value, 10);
+  return Number.isFinite(n) && n >= 1 ? n : 1;
+}
 
 async function getTaskWithAssignments(taskId) {
   const task = await queryOne(
@@ -28,6 +34,7 @@ router.get('/', async (req, res) => {
       assignments: assignments.filter(a => a.task_id === t.id)
     })));
   } catch (e) {
+    logRouteError(e, req);
     res.status(500).json({ error: e.message });
   }
 });
@@ -38,6 +45,7 @@ router.get('/:id', async (req, res) => {
     if (!task) return res.status(404).json({ error: 'Tâche introuvable' });
     res.json(task);
   } catch (e) {
+    logRouteError(e, req);
     res.status(500).json({ error: e.message });
   }
 });
@@ -46,14 +54,16 @@ router.post('/', requireTeacher, async (req, res) => {
   try {
     const { title, description, zone_id, due_date, required_students } = req.body;
     if (!title) return res.status(400).json({ error: 'Titre requis' });
+    const reqStudents = sanitizeRequiredStudents(required_students);
     const id = uuidv4();
     await execute(
       'INSERT INTO tasks (id, title, description, zone_id, due_date, required_students) VALUES (?, ?, ?, ?, ?, ?)',
-      [id, title, description || '', zone_id || null, due_date || null, required_students || 1]
+      [id, title, description || '', zone_id || null, due_date || null, reqStudents]
     );
     const task = await getTaskWithAssignments(id);
     res.status(201).json(task);
   } catch (e) {
+    logRouteError(e, req);
     res.status(500).json({ error: e.message });
   }
 });
@@ -63,6 +73,9 @@ router.put('/:id', requireTeacher, async (req, res) => {
     const task = await queryOne('SELECT * FROM tasks WHERE id = ?', [req.params.id]);
     if (!task) return res.status(404).json({ error: 'Tâche introuvable' });
     const { title, description, zone_id, due_date, required_students, status } = req.body;
+    const reqStudents = required_students != null
+      ? sanitizeRequiredStudents(required_students)
+      : task.required_students;
     await execute(
       'UPDATE tasks SET title=?, description=?, zone_id=?, due_date=?, required_students=?, status=? WHERE id=?',
       [
@@ -70,7 +83,7 @@ router.put('/:id', requireTeacher, async (req, res) => {
         description ?? task.description,
         zone_id ?? task.zone_id,
         due_date ?? task.due_date,
-        required_students ?? task.required_students,
+        reqStudents,
         status ?? task.status,
         task.id
       ]
@@ -78,6 +91,7 @@ router.put('/:id', requireTeacher, async (req, res) => {
     const updated = await getTaskWithAssignments(task.id);
     res.json(updated);
   } catch (e) {
+    logRouteError(e, req);
     res.status(500).json({ error: e.message });
   }
 });
@@ -91,6 +105,7 @@ router.delete('/:id', requireTeacher, async (req, res) => {
     await execute('DELETE FROM tasks WHERE id = ?', [req.params.id]);
     res.json({ success: true });
   } catch (e) {
+    logRouteError(e, req);
     res.status(500).json({ error: e.message });
   }
 });
@@ -131,6 +146,7 @@ router.post('/:id/assign', async (req, res) => {
     const updated = await getTaskWithAssignments(task.id);
     res.json(updated);
   } catch (e) {
+    logRouteError(e, req);
     res.status(500).json({ error: e.message });
   }
 });
@@ -155,7 +171,12 @@ router.post('/:id/done', async (req, res) => {
       const logId = result.insertId;
       if (imageData) {
         const relativePath = `task-logs/${task.id}_${logId}.jpg`;
-        saveBase64ToDisk(relativePath, imageData);
+        try {
+          saveBase64ToDisk(relativePath, imageData);
+        } catch (fileErr) {
+          await execute('DELETE FROM task_logs WHERE id = ?', [logId]);
+          throw fileErr;
+        }
         await execute('UPDATE task_logs SET image_path = ? WHERE id = ?', [relativePath, logId]);
       }
     }
@@ -164,6 +185,7 @@ router.post('/:id/done', async (req, res) => {
     const updated = await getTaskWithAssignments(task.id);
     res.json(updated);
   } catch (e) {
+    logRouteError(e, req);
     res.status(500).json({ error: e.message });
   }
 });
@@ -181,6 +203,7 @@ router.get('/:id/logs', async (req, res) => {
       image_url: l.image_path ? `${baseUrl}/${l.id}/image` : null,
     })));
   } catch (e) {
+    logRouteError(e, req);
     res.status(500).json({ error: e.message });
   }
 });
@@ -198,6 +221,7 @@ router.get('/:id/logs/:logId/image', async (req, res) => {
     if (log.image_data) return res.json({ image_data: log.image_data });
     res.status(404).json({ error: 'Aucune image' });
   } catch (e) {
+    logRouteError(e, req);
     res.status(500).json({ error: e.message });
   }
 });
@@ -210,6 +234,7 @@ router.post('/:id/validate', requireTeacher, async (req, res) => {
     const updated = await getTaskWithAssignments(task.id);
     res.json(updated);
   } catch (e) {
+    logRouteError(e, req);
     res.status(500).json({ error: e.message });
   }
 });
@@ -237,12 +262,21 @@ router.post('/:id/unassign', requireTeacher, async (req, res) => {
 
     const remainingRow = await queryOne('SELECT COUNT(*) AS c FROM task_assignments WHERE task_id = ?', [task.id]);
     const remaining = remainingRow ? Number(remainingRow.c) : 0;
-    await execute('UPDATE tasks SET status = ? WHERE id = ?', [remaining === 0 ? 'available' : 'available', task.id]);
+
+    let newStatus;
+    if (remaining === 0) {
+      newStatus = 'available';
+    } else if (remaining >= task.required_students) {
+      newStatus = task.status === 'done' ? 'done' : 'in_progress';
+    } else {
+      newStatus = 'available';
+    }
+    await execute('UPDATE tasks SET status = ? WHERE id = ?', [newStatus, task.id]);
 
     const updated = await getTaskWithAssignments(task.id);
     res.json(updated);
   } catch (err) {
-    console.error('Unassign error:', err);
+    logRouteError(err, req, 'Erreur retrait assignation tâche');
     res.status(500).json({ error: 'Erreur lors du retrait : ' + err.message });
   }
 });

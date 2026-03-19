@@ -1,6 +1,7 @@
 const express = require('express');
 const { queryAll, queryOne, execute } = require('../database');
 const { requireTeacher } = require('../middleware/requireTeacher');
+const { logRouteError } = require('../lib/routeLog');
 
 const router = express.Router();
 
@@ -13,6 +14,7 @@ router.post('/register', async (req, res) => {
     await execute('UPDATE students SET last_seen = ? WHERE id = ?', [new Date().toISOString(), studentId]);
     res.json({ ...s, password: undefined });
   } catch (e) {
+    logRouteError(e, req);
     res.status(500).json({ error: e.message });
   }
 });
@@ -59,6 +61,7 @@ router.delete('/:id', requireTeacher, async (req, res) => {
     await execute('DELETE FROM students WHERE id = ?', [req.params.id]);
     res.json({ success: true });
   } catch (e) {
+    logRouteError(e, req);
     res.status(500).json({ error: e.message });
   }
 });

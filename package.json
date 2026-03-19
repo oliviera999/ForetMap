@@ -16,6 +16,8 @@
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon server.js",
+    "debug": "node --inspect server.js",
+    "debug:dev": "nodemon --inspect server.js",
     "db:init": "node -e \"require('dotenv').config(); const { initSchema, seedData } = require('./database'); (async () => { await initSchema(); await seedData(); console.log('DB init OK'); process.exit(0); })()\"",
     "migrate:sqlite-to-mysql": "node scripts/migrate-sqlite-to-mysql.js",
     "bump:patch": "npm version patch --no-git-tag-version",
@@ -28,6 +30,7 @@
     "test:local": "cross-env DB_NAME=foretmap_test node --test tests/",
     "docker:up": "docker compose up -d",
     "docker:down": "docker compose down",
+    "check:local": "node scripts/check-local-env.js",
     "build": "vite build",
     "preview": "vite preview"
   },

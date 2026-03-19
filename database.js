@@ -3,10 +3,39 @@ const mysql = require('mysql2/promise');
 const { v4: uuidv4 } = require('uuid');
 const path = require('path');
 const fs = require('fs');
+const logger = require('./lib/logger');
+
+/** Errnos MySQL souvent attendus lors de migrations idempotentes (table/colonne/index déjà présents). */
+const MYSQL_MIGRATION_EXPECTED_ERRNO = new Set([1050, 1060, 1061]);
+
+function migrationStmtSnippet(stmt) {
+  const s = (stmt || '').replace(/\s+/g, ' ').trim();
+  return s.length > 200 ? `${s.slice(0, 200)}…` : s;
+}
+
+function logMigrationStmtError(err, stmt, migrationFile) {
+  const num = typeof err.errno === 'number' ? err.errno : null;
+  if (num != null && MYSQL_MIGRATION_EXPECTED_ERRNO.has(num)) {
+    logger.debug(
+      { err, migrationFile, stmt: migrationStmtSnippet(stmt) },
+      'Étape migration ignorée (déjà appliquée)'
+    );
+    return;
+  }
+  logger.warn(
+    { err, migrationFile, stmt: migrationStmtSnippet(stmt) },
+    'Échec étape migration SQL'
+  );
+}
+
+function safePort(raw, fallback) {
+  const n = parseInt(raw, 10);
+  return Number.isFinite(n) && n >= 1 && n <= 65535 ? n : fallback;
+}
 
 const pool = mysql.createPool({
   host: process.env.DB_HOST || 'localhost',
-  port: parseInt(process.env.DB_PORT || '3306', 10),
+  port: safePort(process.env.DB_PORT, 3306),
   user: process.env.DB_USER,
   password: process.env.DB_PASS,
   database: process.env.DB_NAME,
@@ -75,7 +104,7 @@ async function initSchema() {
     }
     const [rows] = await conn.query(
       "SELECT 1 FROM information_schema.tables WHERE table_schema = ? AND table_name = 'zones'",
-      [process.env.DB_NAME || 'oliviera_foretmap']
+      [process.env.DB_NAME]
     );
     if (!rows || rows.length === 0) {
       throw new Error('La table zones n\'a pas été créée. Vérifiez les erreurs MySQL ci-dessus ou exécutez sql/schema_foretmap.sql à la main (mysql -u user -p base < sql/schema_foretmap.sql).');
@@ -100,13 +129,23 @@ async function runMigrations(conn) {
   try {
     const [rows] = await conn.query('SELECT version FROM schema_version LIMIT 1');
     if (rows && rows[0]) current = rows[0].version;
-  } catch (e) { /* table n'existe pas encore */ }
+  } catch (e) {
+    if (e.errno === 1146 || e.code === 'ER_NO_SUCH_TABLE') {
+      logger.debug({ err: e }, 'Table schema_version absente (première migration)');
+    } else {
+      logger.warn({ err: e }, 'Lecture schema_version en échec');
+    }
+  }
   if (current < 0 && files.length > 0) {
     const first = files[0];
     const sql = fs.readFileSync(path.join(migrationsDir, first), 'utf8');
     const statements = sql.split(';').map(s => s.trim()).filter(s => s.length > 0 && !s.startsWith('--'));
     for (const stmt of statements) {
-      try { await conn.query(stmt); } catch (err) { /* ignore */ }
+      try {
+        await conn.query(stmt);
+      } catch (err) {
+        logMigrationStmtError(err, stmt, first);
+      }
     }
     await conn.query('UPDATE schema_version SET version = ?', [parseInt(first.slice(0, 3), 10)]);
     current = parseInt(first.slice(0, 3), 10);
@@ -117,7 +156,11 @@ async function runMigrations(conn) {
     const sql = fs.readFileSync(path.join(migrationsDir, file), 'utf8');
     const statements = sql.split(';').map(s => s.trim()).filter(s => s.length > 0 && !s.startsWith('--'));
     for (const stmt of statements) {
-      try { await conn.query(stmt); } catch (e) { /* colonne déjà existante, etc. */ }
+      try {
+        await conn.query(stmt);
+      } catch (err) {
+        logMigrationStmtError(err, stmt, file);
+      }
     }
     await conn.query('UPDATE schema_version SET version = ?', [num]);
   }

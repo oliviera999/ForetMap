@@ -145,6 +145,19 @@ Ce document s’appuie sur l’audit du projet pour proposer un plan d’évolut
 
 **Fichiers concernés :** `package.json`.
 
+### 4.3 Débogage, logs et IDE (réalisé)
+
+**Mis en œuvre :**
+
+- **Pino** (`lib/logger.js`) : variable `LOG_LEVEL` documentée dans `.env.example` ; avertissements prod (`lib/env.js`) et uploads (`lib/uploads.js`) passent par le logger.
+- **Routes API** : chaque `catch` de réponse 500 appelle `logRouteError` (`lib/routeLog.js`) pour tracer `err`, `path`, `method`.
+- **Migrations** (`database.js`) : échecs SQL inattendus en `warn` ; erreurs « déjà appliquées » (errno MySQL 1050, 1060, 1061) en `debug` ; lecture `schema_version` absente en `debug` / `warn` selon le cas.
+- **Scripts** : `npm run debug`, `npm run debug:dev` ; **`.vscode/launch.json`** : lancement avec inspect, attachement au process, exécution des tests `node --test`.
+- **Frontend** : réduction des `catch` / `.catch` silencieux sur les appels API (journal `console.error` préfixé `[ForetMap]`, toast pour l’échec du chargement des stats prof).
+- **Build Vite** : `build.sourcemap: true` pour faciliter le diagnostic sur le bundle.
+
+**Bonnes pratiques :** ne pas laisser de `catch` vides sur les appels réseau ; en production, collecter les logs stdout (hébergeur) pour exploiter les traces Pino.
+
 ---
 
 ## 5. Ordre suggéré des actions
