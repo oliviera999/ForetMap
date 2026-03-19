@@ -232,14 +232,15 @@ async function seedData() {
     d.setDate(d.getDate() + n);
     return d.toISOString().split('T')[0];
   };
+  const now = new Date().toISOString();
   const tasks = [
-    [uuidv4(), 'Arroser les tomates', 'Arrosoir rouge, 2L par plant', 'potager-n', fmt(2), 2, 'available'],
-    [uuidv4(), 'Récolter les laitues', 'Couper à la base avec les ciseaux verts', 'potager-s', fmt(1), 3, 'available'],
-    [uuidv4(), 'Désherber Potager Sud-Est', 'Retirer les mauvaises herbes autour du basilic', 'potager-se', fmt(4), 2, 'available'],
+    [uuidv4(), 'Arroser les tomates', 'Arrosoir rouge, 2L par plant', 'potager-n', fmt(2), 2, 'available', now],
+    [uuidv4(), 'Récolter les laitues', 'Couper à la base avec les ciseaux verts', 'potager-s', fmt(1), 3, 'available', now],
+    [uuidv4(), 'Désherber Potager Sud-Est', 'Retirer les mauvaises herbes autour du basilic', 'potager-se', fmt(4), 2, 'available', now],
   ];
   for (const t of tasks) {
     await execute(
-      'INSERT INTO tasks (id, title, description, zone_id, due_date, required_students, status) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      'INSERT INTO tasks (id, title, description, zone_id, due_date, required_students, status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
       t
     );
   }
