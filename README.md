@@ -34,6 +34,10 @@ npm start
 
 L’app est servie sur **http://localhost:3000** (ou le port défini par `process.env.PORT`).
 
+### Environnement local complet (Docker + tests avant déploiement)
+
+Guide pas à pas : **[docs/LOCAL_DEV.md](docs/LOCAL_DEV.md)** — MySQL 8 via Docker, `env.local.example` → `.env`, `npm run db:init`, `npm run dev`, `npm run test:local` (base `foretmap_test` séparée).
+
 ### Variables d’environnement
 
 | Variable | Description |
@@ -121,14 +125,18 @@ Référence : [FAQ o2switch – Node.js](https://faq.o2switch.fr/cpanel/logiciel
 ForetMap/
 ├── server.js          # Serveur Express, routes API async (zones, plants, tasks, auth, stats…)
 ├── database.js        # Pool MySQL (mysql2), helpers queryAll/queryOne/execute, init + seed
+├── docker-compose.yml # MySQL 8 local (dev / tests)
+├── docker/mysql-init/ # Création des bases foretmap_local + foretmap_test
 ├── sql/
 │   └── schema_foretmap.sql   # DDL MySQL (InnoDB, utf8mb4)
 ├── scripts/
 │   └── migrate-sqlite-to-mysql.js   # Migration SQLite → MySQL
 ├── package.json
 ├── .env.example
+├── env.local.example  # Modèle .env pour Docker local (voir docs/LOCAL_DEV.md)
 ├── README.md
 ├── docs/
+│   ├── LOCAL_DEV.md    # Environnement local complet avant déploiement
 │   └── EVOLUTION.md    # Recommandations d’évolution (audit)
 ├── .cursor/
 │   ├── rules/          # Règles Cursor (conventions du projet)
