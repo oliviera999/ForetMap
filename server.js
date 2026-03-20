@@ -11,7 +11,9 @@ const mapRouter     = require('./routes/map');
 const plantsRouter  = require('./routes/plants');
 const tasksRouter   = require('./routes/tasks');
 const statsRouter   = require('./routes/stats');
-const studentsRouter = require('./routes/students');
+const studentsRouter      = require('./routes/students');
+const observationsRouter  = require('./routes/observations');
+const auditRouter         = require('./routes/audit');
 
 const app = express();
 
@@ -64,6 +66,8 @@ app.use('/api/plants', plantsRouter);
 app.use('/api/tasks', tasksRouter);
 app.use('/api/stats', statsRouter);
 app.use('/api/students', studentsRouter);
+app.use('/api/observations', observationsRouter);
+app.use('/api/audit', auditRouter);
 
 // Favicon : évite le fallback SPA et un éventuel 500
 app.get('/favicon.ico', (req, res) => res.status(204).end());

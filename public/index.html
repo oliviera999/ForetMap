@@ -497,6 +497,80 @@
     .lb-bar-bg { background:#e5e7eb; border-radius:4px; height:6px; overflow:hidden; margin-top:4px; }
     .lb-bar-fill { background:var(--sage); border-radius:4px; height:6px; transition:width .6s var(--ease-out); }
     @media(max-width:500px) { .lb-bar-bg { display:none; } .lb-row { gap:8px; padding:12px; } }
+
+    /* ── TASK FILTERS ── */
+    .task-filters {
+      display:flex; gap:8px; flex-wrap:wrap; margin-bottom:14px;
+      animation:fadeIn .22s var(--ease-out);
+    }
+    .task-filters input, .task-filters select {
+      padding:9px 12px; border:1.5px solid var(--mint); border-radius:8px;
+      background:white; color:var(--forest); font-family:'DM Sans',sans-serif;
+      font-size:.85rem; outline:none; min-height:38px;
+      transition:border-color .18s, box-shadow .18s;
+    }
+    .task-filters input { flex:1; min-width:120px; }
+    .task-filters select { min-width:100px; }
+    .task-filters input:focus, .task-filters select:focus {
+      border-color:var(--sage); box-shadow:0 0 0 3px rgba(82,183,136,.12);
+    }
+
+    /* ── URGENCY SECTION ── */
+    .urgency-banner {
+      background:linear-gradient(135deg,#fff7ed,#fff1f2); border:1.5px solid #fed7aa;
+      border-radius:12px; padding:14px; margin-bottom:16px;
+      animation:fadeIn .3s var(--ease-out);
+    }
+    .urgency-banner h4 {
+      font-size:.82rem; font-weight:700; color:#c2410c; margin-bottom:8px;
+      display:flex; align-items:center; gap:6px;
+    }
+    .urgency-item {
+      display:flex; align-items:center; gap:10px; padding:6px 0;
+      border-bottom:1px solid rgba(254,215,170,.5); font-size:.88rem;
+    }
+    .urgency-item:last-child { border-bottom:none; }
+    .urgency-days { font-weight:700; color:#ea580c; min-width:55px; font-size:.78rem; }
+
+    /* ── RANK PROGRESS ── */
+    .rank-progress { margin-bottom:20px; }
+    .rank-bar-bg {
+      background:#e5e7eb; border-radius:8px; height:10px; overflow:hidden; margin-top:8px;
+    }
+    .rank-bar-fill {
+      height:10px; border-radius:8px; transition:width .8s var(--ease-out);
+      background:linear-gradient(90deg, var(--sage), var(--forest));
+    }
+    .rank-steps {
+      display:flex; justify-content:space-between; margin-top:6px; font-size:.68rem; color:#aaa;
+    }
+    .rank-steps span.current { color:var(--forest); font-weight:700; }
+
+    /* ── OBSERVATION NOTEBOOK ── */
+    .obs-card {
+      background:white; border-radius:12px; padding:14px; margin-bottom:10px;
+      box-shadow:0 1px 6px rgba(0,0,0,.05); border-left:4px solid var(--sage);
+    }
+    .obs-header { display:flex; justify-content:space-between; margin-bottom:6px; }
+    .obs-author { font-weight:600; font-size:.88rem; color:var(--forest); }
+    .obs-date { font-size:.76rem; color:#bbb; }
+    .obs-content { font-size:.9rem; color:#444; line-height:1.55; }
+    .obs-zone { font-size:.76rem; color:var(--soil); margin-top:4px; }
+
+    /* ── PLANT VIEWER (student) ── */
+    .plant-viewer-card {
+      background:white; border-radius:14px; padding:16px; margin-bottom:10px;
+      box-shadow:0 1px 6px rgba(0,0,0,.05); cursor:pointer;
+      border:1.5px solid transparent;
+      transition:border-color .2s, transform .12s var(--spring);
+    }
+    .plant-viewer-card:active { transform:scale(.98); }
+    .plant-viewer-card.expanded { border-color:var(--sage); }
+    .plant-zones { display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; }
+    .plant-zone-chip { background:var(--parchment); border-radius:6px; padding:3px 8px; font-size:.74rem; color:var(--soil); }
+
+    /* ── EXPORT BUTTON ── */
+    .export-row { display:flex; gap:8px; margin-bottom:16px; }
   </style>
 </head>
 <body>
@@ -1594,8 +1668,9 @@ function TaskFormModal({ zones, onClose, onSave, editTask }) {
   const [form, setForm] = useState(editTask ? {
     title: editTask.title, description: editTask.description || '',
     zone_id: editTask.zone_id || '', due_date: editTask.due_date || '',
-    required_students: editTask.required_students || 1
-  } : { title:'', description:'', zone_id:'', due_date:'', required_students:1 });
+    required_students: editTask.required_students || 1,
+    recurrence: editTask.recurrence || ''
+  } : { title:'', description:'', zone_id:'', due_date:'', required_students:1, recurrence:'' });
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState('');
 
@@ -1627,7 +1702,17 @@ function TaskFormModal({ zones, onClose, onSave, editTask }) {
             <input type="number" min="1" max="10" value={form.required_students} onChange={set('required_students')}/>
           </div>
         </div>
-        <div className="field"><label>Date limite</label><input type="date" value={form.due_date} onChange={set('due_date')}/></div>
+        <div className="row">
+          <div className="field"><label>Date limite</label><input type="date" value={form.due_date} onChange={set('due_date')}/></div>
+          <div className="field"><label>Récurrence</label>
+            <select value={form.recurrence || ''} onChange={set('recurrence')}>
+              <option value="">Aucune (unique)</option>
+              <option value="weekly">Hebdomadaire</option>
+              <option value="biweekly">Toutes les 2 semaines</option>
+              <option value="monthly">Mensuelle</option>
+            </select>
+          </div>
+        </div>
         <button className="btn btn-primary btn-full" onClick={submit} disabled={saving}>{saving ? 'Sauvegarde...' : editTask ? 'Modifier' : 'Créer la tâche'}</button>
       </div>
     </div>
@@ -1646,6 +1731,9 @@ function TasksView({ tasks, zones, isTeacher, student, onRefresh, onForceLogout 
   const [loading,    setLoading]    = useState({});
   const [toast,      setToast]      = useState(null);
   const [confirmTask, setConfirmTask] = useState(null); // { task, action, label }
+  const [filterText, setFilterText] = useState('');
+  const [filterZone, setFilterZone] = useState('');
+  const [filterStatus, setFilterStatus] = useState('');
 
   const withLoad = async (id, fn) => {
     setLoading(l => ({...l, [id]: true}));
@@ -1703,13 +1791,31 @@ function TasksView({ tasks, zones, isTeacher, student, onRefresh, onForceLogout 
     await onRefresh();
   };
 
-  const myTasks = tasks.filter(t => student && t.status !== 'validated' && t.assignments?.some(
+  const applyFilters = list => list.filter(t => {
+    if (filterText && !t.title.toLowerCase().includes(filterText.toLowerCase()) &&
+        !(t.description || '').toLowerCase().includes(filterText.toLowerCase())) return false;
+    if (filterZone && t.zone_id !== filterZone) return false;
+    if (filterStatus && t.status !== filterStatus) return false;
+    return true;
+  });
+
+  const allFiltered = applyFilters(tasks);
+  const myTasks = allFiltered.filter(t => student && t.status !== 'validated' && t.assignments?.some(
     a => a.student_first_name === student.first_name && a.student_last_name === student.last_name
   ));
-  const available = tasks.filter(t => t.status === 'available' || (t.status === 'in_progress' && t.assignments?.length < t.required_students));
-  const inProgress = tasks.filter(t => t.status === 'in_progress');
-  const done = tasks.filter(t => t.status === 'done');
-  const validated = tasks.filter(t => t.status === 'validated');
+  const available = allFiltered.filter(t => t.status === 'available' || (t.status === 'in_progress' && t.assignments?.length < t.required_students));
+  const inProgress = allFiltered.filter(t => t.status === 'in_progress');
+  const done = allFiltered.filter(t => t.status === 'done');
+  const validated = allFiltered.filter(t => t.status === 'validated');
+
+  // Échéances proches (3 jours) pour les élèves
+  const urgentTasks = !isTeacher ? tasks.filter(t => {
+    if (t.status === 'validated' || t.status === 'done') return false;
+    const d = daysUntil(t.due_date);
+    return d !== null && d <= 3 && d >= -2;
+  }).sort((a, b) => daysUntil(a.due_date) - daysUntil(b.due_date)) : [];
+
+  const usedZones = [...new Set(tasks.filter(t => t.zone_id).map(t => t.zone_id))];
 
   const TaskCard = ({ t, showValidate, showDone }) => {
     const isMine = myTasks.some(m => m.id === t.id);
@@ -1724,6 +1830,7 @@ function TasksView({ tasks, zones, isTeacher, student, onRefresh, onForceLogout 
           {t.zone_name && <span className="task-chip">🌿 {t.zone_name}</span>}
           {dueDateChip(t.due_date)}
           {!isTeacher && <span className="task-chip">👤 {t.required_students} élève{t.required_students > 1 ? 's' : ''}</span>}
+          {t.recurrence && <span className="task-chip">🔄 {t.recurrence === 'weekly' ? 'Hebdo' : t.recurrence === 'biweekly' ? 'Bi-hebdo' : t.recurrence === 'monthly' ? 'Mensuel' : t.recurrence}</span>}
         </div>
         {t.description && <div className="task-desc">{t.description}</div>}
         {t.assignments?.length > 0 && (
@@ -1806,6 +1913,46 @@ function TasksView({ tasks, zones, isTeacher, student, onRefresh, onForceLogout 
         {isTeacher && <button className="btn btn-primary btn-sm" onClick={() => setShowForm(true)}>+ Nouvelle tâche</button>}
       </div>
       <p className="section-sub">{isTeacher ? 'Gérer et valider les tâches' : 'Prends en charge une tâche ou suis tes activités'}</p>
+
+      {/* Barre de filtres */}
+      <div className="task-filters">
+        <input value={filterText} onChange={e => setFilterText(e.target.value)}
+          placeholder="🔍 Rechercher une tâche..." />
+        <select value={filterZone} onChange={e => setFilterZone(e.target.value)}>
+          <option value="">Toutes les zones</option>
+          {usedZones.map(zId => {
+            const z = zones.find(zz => zz.id === zId);
+            return <option key={zId} value={zId}>{z ? z.name : zId}</option>;
+          })}
+        </select>
+        {isTeacher && (
+          <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)}>
+            <option value="">Tous les statuts</option>
+            <option value="available">Disponible</option>
+            <option value="in_progress">En cours</option>
+            <option value="done">Terminée</option>
+            <option value="validated">Validée</option>
+          </select>
+        )}
+      </div>
+
+      {/* Échéances proches (élèves uniquement) */}
+      {!isTeacher && urgentTasks.length > 0 && (
+        <div className="urgency-banner">
+          <h4>🔥 Échéances proches</h4>
+          {urgentTasks.slice(0, 5).map(t => {
+            const d = daysUntil(t.due_date);
+            const label = d < 0 ? `Retard ${-d}j` : d === 0 ? "Aujourd'hui" : d === 1 ? 'Demain' : `${d} jours`;
+            return (
+              <div key={t.id} className="urgency-item">
+                <span className="urgency-days">{label}</span>
+                <span style={{flex:1, color:'var(--forest)', fontWeight:500}}>{t.title}</span>
+                {t.zone_name && <span style={{fontSize:'.76rem', color:'#aaa'}}>{t.zone_name}</span>}
+              </div>
+            );
+          })}
+        </div>
+      )}
 
       {!isTeacher && myTasks.length > 0 && (
         <div className="tasks-section">
@@ -2077,17 +2224,29 @@ function LogModal({ task, student, onClose, onDone }) {
 function TaskLogsViewer({ task, onClose }) {
   const [logs, setLogs] = useState([]);
   const [big,  setBig]  = useState(null);
+  const [toast, setToast] = useState(null);
 
-  useEffect(() => {
+  const loadLogs = () => {
     api(`/api/tasks/${task.id}/logs`).then(setLogs).catch(err => {
       console.error('[ForetMap] logs tâche', err);
       setLogs([]);
     });
-  }, [task.id]);
+  };
+
+  useEffect(() => { loadLogs(); }, [task.id]);
+
+  const deleteLog = async (logId) => {
+    try {
+      await api(`/api/tasks/${task.id}/logs/${logId}`, 'DELETE');
+      setToast('Rapport supprimé');
+      loadLogs();
+    } catch (e) { setToast('Erreur : ' + e.message); }
+  };
 
   return (
     <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
       {big && <Lightbox src={big} caption="" onClose={() => setBig(null)}/>}
+      {toast && <Toast msg={toast} onDone={() => setToast(null)}/>}
       <div className="log-modal fade-in">
         <button className="modal-close" onClick={onClose}>✕</button>
         <h3>📋 Rapports — {task.title}</h3>
@@ -2097,7 +2256,12 @@ function TaskLogsViewer({ task, onClose }) {
             <div key={l.id} className="log-entry fade-in">
               <div className="log-entry-header">
                 <span className="log-entry-author">{l.student_first_name} {l.student_last_name}</span>
-                <span>{new Date(l.created_at).toLocaleDateString('fr-FR', {day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})}</span>
+                <div style={{display:'flex', alignItems:'center', gap:8}}>
+                  <span>{new Date(l.created_at).toLocaleDateString('fr-FR', {day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})}</span>
+                  <button className="btn btn-danger btn-sm" style={{padding:'4px 8px', minHeight:'auto', fontSize:'.72rem'}}
+                    onClick={() => { if (confirm('Supprimer ce rapport ?')) deleteLog(l.id); }}
+                    title="Supprimer ce rapport">🗑️</button>
+                </div>
               </div>
               {l.comment && <div className="log-comment">{l.comment}</div>}
               {(l.image_url || l.image_data) && (
@@ -2233,6 +2397,194 @@ function PlantManager({ plants, onRefresh }) {
   );
 }
 
+// ── OBSERVATION NOTEBOOK (student) ────────────────────────────────────────────
+function ObservationNotebook({ student, zones }) {
+  const [entries, setEntries] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [showForm, setShowForm] = useState(false);
+  const [content, setContent] = useState('');
+  const [zoneId, setZoneId] = useState('');
+  const [imageData, setImageData] = useState(null);
+  const [preview, setPreview] = useState(null);
+  const [saving, setSaving] = useState(false);
+  const [toast, setToast] = useState(null);
+  const fileRef = useRef();
+
+  const load = async () => {
+    try {
+      const data = await api(`/api/observations/student/${student.id}`);
+      setEntries(data);
+    } catch (e) { console.error('[ForetMap] observations', e); }
+    setLoading(false);
+  };
+
+  useEffect(() => { load(); }, [student.id]);
+
+  const handleFile = e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    compressImage(file).then(d => { setImageData(d); setPreview(d); }).catch(() => {});
+  };
+
+  const submit = async () => {
+    if (!content.trim()) return;
+    setSaving(true);
+    try {
+      await api('/api/observations', 'POST', {
+        studentId: student.id,
+        zone_id: zoneId || null,
+        content: content.trim(),
+        imageData,
+      });
+      setContent(''); setZoneId(''); setImageData(null); setPreview(null);
+      setShowForm(false);
+      setToast('Observation enregistrée ✓');
+      await load();
+    } catch (e) { setToast('Erreur : ' + e.message); }
+    setSaving(false);
+  };
+
+  const deleteObs = async (id) => {
+    try {
+      await api(`/api/observations/${id}`, 'DELETE');
+      setToast('Observation supprimée');
+      await load();
+    } catch (e) { setToast('Erreur : ' + e.message); }
+  };
+
+  return (
+    <div className="fade-in">
+      {toast && <Toast msg={toast} onDone={() => setToast(null)}/>}
+      <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:4}}>
+        <h2 className="section-title">📓 Mon carnet</h2>
+        {!showForm && <button className="btn btn-primary btn-sm" onClick={() => setShowForm(true)}>+ Observation</button>}
+      </div>
+      <p className="section-sub">Tes observations sur la forêt comestible</p>
+
+      {showForm && (
+        <div className="plant-edit-form fade-in" style={{marginBottom:16}}>
+          <h4>Nouvelle observation</h4>
+          <div className="field"><label>Zone (optionnel)</label>
+            <select value={zoneId} onChange={e => setZoneId(e.target.value)}>
+              <option value="">— Aucune zone —</option>
+              {zones.map(z => <option key={z.id} value={z.id}>{z.name}</option>)}
+            </select>
+          </div>
+          <div className="field"><label>Observation *</label>
+            <textarea value={content} onChange={e => setContent(e.target.value)} rows={3}
+              placeholder="Qu'as-tu observé ? Croissance, insectes, couleur des feuilles..." autoFocus/>
+          </div>
+          <div className="field"><label>Photo (optionnel)</label>
+            {!preview ? (
+              <div className="img-upload-area" onClick={() => fileRef.current.click()}>
+                <div style={{fontSize:'1.5rem', marginBottom:4}}>📷</div>
+                <div style={{fontSize:'.82rem', color:'#888'}}>Ajouter une photo</div>
+                <input ref={fileRef} type="file" accept="image/*" capture="environment" onChange={handleFile}/>
+              </div>
+            ) : (
+              <div className="img-preview-wrap">
+                <img src={preview} className="img-preview" alt="preview"/>
+                <button className="img-remove" onClick={() => { setImageData(null); setPreview(null); }}>✕</button>
+              </div>
+            )}
+          </div>
+          <div style={{display:'flex', gap:8}}>
+            <button className="btn btn-primary btn-sm" onClick={submit} disabled={saving || !content.trim()}>
+              {saving ? '...' : '💾 Enregistrer'}
+            </button>
+            <button className="btn btn-ghost btn-sm" onClick={() => { setShowForm(false); setContent(''); setImageData(null); setPreview(null); }}>
+              Annuler
+            </button>
+          </div>
+        </div>
+      )}
+
+      {loading
+        ? <div className="loader" style={{height:'40vh'}}><div className="loader-leaf">🌿</div><p>Chargement...</p></div>
+        : entries.length === 0
+          ? <div className="empty"><div className="empty-icon">📓</div><p>Ton carnet est vide. Ajoute ta première observation !</p></div>
+          : entries.map(e => (
+            <div key={e.id} className="obs-card fade-in">
+              <div className="obs-header">
+                <span className="obs-date">{new Date(e.created_at).toLocaleDateString('fr-FR', {day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'})}</span>
+                <button className="btn btn-ghost btn-sm" style={{padding:'2px 6px', minHeight:'auto', fontSize:'.7rem'}}
+                  onClick={() => { if (confirm('Supprimer cette observation ?')) deleteObs(e.id); }}>🗑️</button>
+              </div>
+              <div className="obs-content">{e.content}</div>
+              {e.zone_name && <div className="obs-zone">📍 {e.zone_name}</div>}
+              {e.image_url && <img src={e.image_url} alt="observation" style={{width:'100%',borderRadius:8,marginTop:8,maxHeight:200,objectFit:'cover'}}/>}
+            </div>
+          ))
+      }
+    </div>
+  );
+}
+
+// ── PLANT VIEWER (student read-only) ──────────────────────────────────────────
+function PlantViewer({ plants, zones }) {
+  const [search, setSearch] = useState('');
+  const [expanded, setExpanded] = useState(null);
+
+  const filtered = plants.filter(p =>
+    p.name.toLowerCase().includes(search.toLowerCase()) ||
+    (p.description || '').toLowerCase().includes(search.toLowerCase())
+  );
+
+  const zonesForPlant = p => zones.filter(z => z.current_plant === p.name);
+
+  return (
+    <div className="fade-in">
+      <h2 className="section-title">🌱 Catalogue des plantes</h2>
+      <p className="section-sub">{plants.length} espèces dans la forêt</p>
+
+      <div className="field" style={{marginBottom:12}}>
+        <input value={search} onChange={e => setSearch(e.target.value)}
+          placeholder="🔍 Chercher une plante..." style={{background:'white'}}/>
+      </div>
+
+      {filtered.length === 0
+        ? <div className="empty"><div className="empty-icon">🌿</div><p>Aucune plante trouvée</p></div>
+        : filtered.map(p => {
+            const pZones = zonesForPlant(p);
+            const isExpanded = expanded === p.id;
+            return (
+              <div key={p.id} className={`plant-viewer-card ${isExpanded ? 'expanded' : ''}`}
+                onClick={() => setExpanded(isExpanded ? null : p.id)}>
+                <div style={{display:'flex', alignItems:'center', gap:12}}>
+                  <span style={{fontSize:'2rem'}}>{p.emoji}</span>
+                  <div style={{flex:1, minWidth:0}}>
+                    <div style={{fontWeight:600, fontSize:'.95rem', color:'var(--forest)'}}>{p.name}</div>
+                    {!isExpanded && p.description && (
+                      <div style={{fontSize:'.8rem', color:'#aaa', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{p.description}</div>
+                    )}
+                  </div>
+                  <span style={{fontSize:'.9rem', color:'#ccc'}}>{isExpanded ? '▲' : '▼'}</span>
+                </div>
+                {isExpanded && (
+                  <div className="fade-in" style={{marginTop:10}}>
+                    {p.description && (
+                      <p style={{fontSize:'.88rem', color:'#555', lineHeight:1.6, marginBottom:8}}>{p.description}</p>
+                    )}
+                    {pZones.length > 0 ? (
+                      <div>
+                        <div style={{fontSize:'.74rem', fontWeight:700, color:'#aaa', textTransform:'uppercase', marginBottom:4}}>Zones associées</div>
+                        <div className="plant-zones">
+                          {pZones.map(z => <span key={z.id} className="plant-zone-chip">📍 {z.name}</span>)}
+                        </div>
+                      </div>
+                    ) : (
+                      <p style={{fontSize:'.82rem', color:'#bbb', fontStyle:'italic'}}>Pas encore plantée dans une zone</p>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })
+      }
+    </div>
+  );
+}
+
 // ── STUDENT STATS ─────────────────────────────────────────────────────────────
 function StudentStats({ student }) {
   const [data, setData] = useState(null);
@@ -2246,15 +2598,42 @@ function StudentStats({ student }) {
   if (!data) return <div className="loader" style={{height:'60vh'}}><div className="loader-leaf">🌿</div><p>Chargement...</p></div>;
 
   const { stats, assignments } = data;
-  const rankLabel = stats.done >= 10 ? '🏆 Expert' : stats.done >= 5 ? '🌿 Actif' : stats.done >= 1 ? '🌱 Débutant' : '🪨 Nouveau';
+  const RANKS = [
+    { min: 0,  label: '🪨 Nouveau',  color: '#94a3b8' },
+    { min: 1,  label: '🌱 Débutant', color: '#86efac' },
+    { min: 5,  label: '🌿 Actif',    color: '#52b788' },
+    { min: 10, label: '🏆 Expert',   color: '#1a4731' },
+  ];
+  const currentRank = [...RANKS].reverse().find(r => stats.done >= r.min) || RANKS[0];
+  const nextRank = RANKS[RANKS.indexOf(currentRank) + 1];
+  const progressPct = nextRank
+    ? Math.min(100, ((stats.done - currentRank.min) / (nextRank.min - currentRank.min)) * 100)
+    : 100;
 
   return (
     <div className="fade-in">
       <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:4}}>
         <h2 className="section-title">📊 Mes statistiques</h2>
-        <span style={{background:'var(--parchment)', borderRadius:20, padding:'4px 12px', fontSize:'.8rem', fontWeight:600, color:'var(--soil)'}}>{rankLabel}</span>
+        <span style={{background:'var(--parchment)', borderRadius:20, padding:'4px 12px', fontSize:'.8rem', fontWeight:600, color:'var(--soil)'}}>{currentRank.label}</span>
       </div>
       <p className="section-sub">Bonjour {data.first_name} ! Voici ton bilan dans la forêt.</p>
+
+      {/* Barre de progression de rang */}
+      <div className="rank-progress">
+        <div style={{display:'flex', justifyContent:'space-between', alignItems:'baseline'}}>
+          <span style={{fontSize:'.82rem', fontWeight:600, color:'var(--forest)'}}>{currentRank.label}</span>
+          {nextRank && <span style={{fontSize:'.76rem', color:'#aaa'}}>Prochain : {nextRank.label} ({nextRank.min - stats.done} tâche{nextRank.min - stats.done > 1 ? 's' : ''} restante{nextRank.min - stats.done > 1 ? 's' : ''})</span>}
+          {!nextRank && <span style={{fontSize:'.76rem', color:currentRank.color, fontWeight:600}}>Rang maximum atteint !</span>}
+        </div>
+        <div className="rank-bar-bg">
+          <div className="rank-bar-fill" style={{width:`${progressPct}%`}}/>
+        </div>
+        <div className="rank-steps">
+          {RANKS.map(r => (
+            <span key={r.min} className={stats.done >= r.min ? 'current' : ''}>{r.label.split(' ')[0]}</span>
+          ))}
+        </div>
+      </div>
 
       <div className="stats-grid">
         <div className="stat-card highlight">
@@ -2365,8 +2744,32 @@ function TeacherStats() {
           </div>
         </div>
       )}
-      <h2 className="section-title">📊 Gestion des élèves</h2>
+      <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:4}}>
+        <h2 className="section-title">📊 Gestion des élèves</h2>
+      </div>
       <p className="section-sub">{data.length} élève{data.length>1?'s':''} inscrits</p>
+
+      {/* Export CSV */}
+      <div className="export-row">
+        <button className="btn btn-secondary btn-sm" onClick={() => {
+          const token = localStorage.getItem('foretmap_teacher_token');
+          const link = document.createElement('a');
+          link.href = API + '/api/stats/export';
+          const headers = new Headers();
+          if (token) headers.set('Authorization', 'Bearer ' + token);
+          fetch(API + '/api/stats/export', { headers })
+            .then(r => r.blob())
+            .then(blob => {
+              link.href = URL.createObjectURL(blob);
+              link.download = `foretmap-stats-${new Date().toISOString().slice(0,10)}.csv`;
+              link.click();
+              URL.revokeObjectURL(link.href);
+            })
+            .catch(() => setToast('Erreur lors de l\'export'));
+        }}>
+          📥 Exporter CSV
+        </button>
+      </div>
 
       {/* Global stats */}
       <div className="stats-grid" style={{gridTemplateColumns:'repeat(3,1fr)', marginBottom:20}}>
@@ -2445,6 +2848,56 @@ function TeacherStats() {
             })
         }
       </div>
+    </div>
+  );
+}
+
+// ── AUDIT LOG (teacher) ───────────────────────────────────────────────────────
+function AuditLog() {
+  const [entries, setEntries] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    api('/api/audit?limit=100').then(setEntries).catch(err => {
+      console.error('[ForetMap] audit', err);
+    }).finally(() => setLoading(false));
+  }, []);
+
+  const actionLabels = {
+    'validate_task': 'Validation tâche',
+    'delete_task': 'Suppression tâche',
+    'delete_student': 'Suppression élève',
+    'delete_log': 'Suppression rapport',
+    'create_task': 'Création tâche',
+    'update_task': 'Modification tâche',
+    'create_zone': 'Création zone',
+    'delete_zone': 'Suppression zone',
+  };
+
+  if (loading) return <div className="loader" style={{height:'40vh'}}><div className="loader-leaf">🌿</div><p>Chargement...</p></div>;
+
+  return (
+    <div className="fade-in">
+      <h2 className="section-title">📜 Historique d'actions</h2>
+      <p className="section-sub">Dernières actions effectuées en mode professeur</p>
+      {entries.length === 0
+        ? <div className="empty"><div className="empty-icon">📜</div><p>Aucune action enregistrée</p></div>
+        : <div className="activity-list">
+            {entries.map(e => (
+              <div key={e.id} className="activity-item">
+                <div className="activity-dot validated"/>
+                <div className="activity-info">
+                  <div className="activity-title">{actionLabels[e.action] || e.action}</div>
+                  <div className="activity-meta">
+                    {e.details && `${e.details} · `}
+                    {e.target_type} {e.target_id ? `#${e.target_id.slice(0,8)}` : ''}
+                    {' · '}{new Date(e.created_at).toLocaleDateString('fr-FR', {day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+      }
     </div>
   );
 }
@@ -2623,17 +3076,21 @@ function App() {
             </button>
             <button className={`top-tab ${tab === 'plants' ? 'active' : ''}`} onClick={() => setTab('plants')}>🌱 Plantes</button>
             <button className={`top-tab ${tab === 'stats' ? 'active' : ''}`} onClick={() => setTab('stats')}>📊 Stats</button>
+            <button className={`top-tab ${tab === 'audit' ? 'active' : ''}`} onClick={() => setTab('audit')}>📜 Audit</button>
           </div>
           {tab === 'map'    && <MapView zones={zones} markers={markers} plants={plants} isTeacher onZoneUpdate={updateZone} onRefresh={fetchAll}/>}
           {tab === 'tasks'  && <TasksView  tasks={tasks} zones={zones} isTeacher student={student} onRefresh={fetchAll} onForceLogout={forceLogout}/>}
           {tab === 'plants' && <PlantManager plants={plants} onRefresh={fetchAll}/>}
           {tab === 'stats'  && <TeacherStats/>}
+          {tab === 'audit'  && <AuditLog/>}
         </div>
       ) : (
         <>
           <div className="main">
-            {tab === 'map'   && <MapView zones={zones} markers={markers} plants={plants} isTeacher={false} onZoneUpdate={updateZone} onRefresh={fetchAll}/>}
-            {tab === 'tasks' && <TasksView tasks={tasks} zones={zones} isTeacher={false} student={student} onRefresh={fetchAll} onForceLogout={forceLogout}/>}
+            {tab === 'map'    && <MapView zones={zones} markers={markers} plants={plants} isTeacher={false} onZoneUpdate={updateZone} onRefresh={fetchAll}/>}
+            {tab === 'tasks'  && <TasksView tasks={tasks} zones={zones} isTeacher={false} student={student} onRefresh={fetchAll} onForceLogout={forceLogout}/>}
+            {tab === 'plants' && <PlantViewer plants={plants} zones={zones}/>}
+            {tab === 'notebook' && <ObservationNotebook student={student} zones={zones}/>}
           </div>
           <nav className="bottom-nav">
             <button className={`nav-btn ${tab === 'map' ? 'active' : ''}`} onClick={() => setTab('map')}>
@@ -2644,6 +3101,12 @@ function App() {
               Tâches {tasks.filter(t => t.assignments?.some(a => a.student_first_name === student.first_name && a.student_last_name === student.last_name) && (t.status === 'available' || t.status === 'in_progress')).length > 0
                 && `(${tasks.filter(t => t.assignments?.some(a => a.student_first_name === student.first_name && a.student_last_name === student.last_name) && (t.status === 'available' || t.status === 'in_progress')).length})`}
             </button>
+            <button className={`nav-btn ${tab === 'plants' ? 'active' : ''}`} onClick={() => setTab('plants')}>
+              <span className="nav-icon">🌱</span> Plantes
+            </button>
+            <button className={`nav-btn ${tab === 'notebook' ? 'active' : ''}`} onClick={() => setTab('notebook')}>
+              <span className="nav-icon">📓</span> Carnet
+            </button>
           </nav>
         </>
       )}
@@ -2653,6 +3116,11 @@ function App() {
 }
 
 ReactDOM.createRoot(document.getElementById('root')).render(<ErrorBoundary><App/></ErrorBoundary>);
+
+// Service Worker pour le mode hors-ligne (consultation)
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/sw.js').catch(() => {});
+}
 </script>
 </body>
 </html>
