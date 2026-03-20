@@ -109,18 +109,46 @@ process.on('unhandledRejection', (reason) => {
 });
 
 if (require.main === module) {
+  // ── Diagnostic de démarrage écrit dans startup.log (lisible via Gestionnaire de fichiers cPanel)
+  const fs = require('fs');
+  const diagPath = path.join(__dirname, 'startup.log');
+  const diagLines = [
+    `=== DÉMARRAGE ${new Date().toISOString()} ===`,
+    `node: ${process.version}`,
+    `cwd: ${process.cwd()}`,
+    `__dirname: ${__dirname}`,
+    `PORT: ${process.env.PORT}`,
+    `IP: ${process.env.IP}`,
+    `NODE_ENV: ${process.env.NODE_ENV}`,
+    `DB_HOST: ${process.env.DB_HOST}`,
+    `DB_USER: ${process.env.DB_USER}`,
+    `DB_NAME: ${process.env.DB_NAME}`,
+    `DB_PASS set: ${!!process.env.DB_PASS}`,
+    `public/index.html exists: ${fs.existsSync(path.join(__dirname, 'public', 'index.html'))}`,
+  ];
+  fs.writeFileSync(diagPath, diagLines.join('\n') + '\n', 'utf8');
+
   try {
     validateEnv();
+    fs.appendFileSync(diagPath, 'validateEnv: OK\n');
   } catch (e) {
+    fs.appendFileSync(diagPath, `validateEnv ERREUR: ${e.message}\n`);
     logger.error({ err: e }, 'Variables d\'environnement invalides');
     process.exit(1);
   }
   // Écoute immédiatement — le health-check Passenger répond dès le démarrage
   startServer();
+  fs.appendFileSync(diagPath, `startServer appelé sur PORT=${process.env.PORT || 3000}\n`);
   // Init BDD en arrière-plan
   initDatabase()
-    .then(() => logger.info('BDD initialisée'))
-    .catch((err) => logger.error({ err }, 'Erreur init BDD — routes DB indisponibles'));
+    .then(() => {
+      fs.appendFileSync(diagPath, 'initDatabase: OK\n');
+      logger.info('BDD initialisée');
+    })
+    .catch((err) => {
+      fs.appendFileSync(diagPath, `initDatabase ERREUR: ${err.message}\n`);
+      logger.error({ err }, 'Erreur init BDD — routes DB indisponibles');
+    });
 }
 
 module.exports = { app };
