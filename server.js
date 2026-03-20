@@ -92,10 +92,22 @@ const host = process.env.IP || process.env.ALWAYSDATA_HTTPD_IP || '0.0.0.0';
 const port = process.env.PORT || process.env.ALWAYSDATA_HTTPD_PORT || 3000;
 
 function startServer() {
-  app.listen(port, host, () => {
+  const server = app.listen(port, host, () => {
     logger.info(`ForêtMap lancé sur http://${host}:${port}`);
   });
+  server.on('error', (err) => {
+    logger.error({ err }, 'Impossible de démarrer le serveur HTTP');
+    process.exit(1);
+  });
 }
+
+process.on('uncaughtException', (err) => {
+  logger.error({ err }, 'Exception non capturée — arrêt');
+  process.exit(1);
+});
+process.on('unhandledRejection', (reason) => {
+  logger.error({ reason }, 'Promesse rejetée non gérée');
+});
 
 if (require.main === module) {
   try {
@@ -104,14 +116,12 @@ if (require.main === module) {
     logger.error({ err: e }, 'Variables d\'environnement invalides');
     process.exit(1);
   }
+  // Écoute immédiatement — le health-check Passenger répond dès le démarrage
+  startServer();
+  // Init BDD en arrière-plan
   initDatabase()
-    .then(() => {
-      startServer();
-    })
-    .catch((err) => {
-      logger.error({ err }, 'Erreur init BDD (le serveur démarre quand même)');
-      startServer();
-    });
+    .then(() => logger.info('BDD initialisée'))
+    .catch((err) => logger.error({ err }, 'Erreur init BDD — routes DB indisponibles'));
 }
 
 module.exports = { app };
