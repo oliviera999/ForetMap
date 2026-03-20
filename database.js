@@ -45,6 +45,11 @@ const pool = mysql.createPool({
   charset: 'utf8mb4',
 });
 
+// Empêche les erreurs de connexion idle de devenir des uncaughtException
+pool.on('error', (err) => {
+  logger.error({ err }, 'Erreur pool MySQL (connexion perdue)');
+});
+
 /** Exécute une requête et retourne les lignes (tableau). */
 async function queryAll(sql, params = []) {
   const [rows] = await pool.execute(sql, params);

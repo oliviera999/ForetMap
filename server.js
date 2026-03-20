@@ -102,8 +102,7 @@ function startServer() {
 }
 
 process.on('uncaughtException', (err) => {
-  logger.error({ err }, 'Exception non capturée — arrêt');
-  process.exit(1);
+  logger.error({ err }, 'Exception non capturée — app continue');
 });
 process.on('unhandledRejection', (reason) => {
   logger.error({ reason }, 'Promesse rejetée non gérée');
