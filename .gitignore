@@ -30,3 +30,4 @@ Thumbs.db
 *.swo
 *~
 startup.log
+startup-diag.log

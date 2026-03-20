@@ -89,7 +89,7 @@ Le script vide les tables MySQL puis recopie toutes les données (zones, plantes
    `DB_HOST=localhost`, `DB_NAME=oliviera_foretmap`, `DB_USER=oliviera_foretmap`, `DB_PASS=...`, `NODE_ENV=production`.  
    Sans ces variables MySQL, la page d’accueil peut s’afficher mais les appels `/api/*` échoueront (erreur serveur).
 
-3. **Fichier d’entrée** : `server.js` (ou point d’entrée configuré dans Setup Node.js App).
+3. **Fichier d’entrée (Application startup file)** : **`app.js`** (valeur par défaut de cPanel). Ce fichier charge `server.js` et lance le serveur via `boot()`. Il écrit un diagnostic immédiat dans `startup-diag.log` pour faciliter le débogage. Si le champ est sur `server.js`, le démarrage direct fonctionne aussi (`node server.js` appelle `boot()` automatiquement).
 
 4. **Déployer le code** : upload du dépôt (sans `.env`), puis sur le serveur :
    ```bash
@@ -124,6 +124,8 @@ Référence : [FAQ o2switch – Node.js](https://faq.o2switch.fr/cpanel/logiciel
 
 - **`GET /api/health`** — l’app répond (sans toucher à MySQL).
 - **`GET /api/health/db`** — renvoie `200` si la connexion MySQL fonctionne, **`503`** si la base est inaccessible (utile pour distinguer une panne BDD d’un problème de fichiers ou de proxy).
+- **`startup-diag.log`** — écrit par `app.js` dès son chargement (avant même `server.js`). Si ce fichier n’apparaît pas après un redémarrage cPanel, le fichier d’entrée configuré n’est pas `app.js`.
+- **`startup.log`** — écrit par `server.js` lors du `boot()`. Contient les variables d’environnement, le port, et le résultat de l’init BDD.
 
 ---
 

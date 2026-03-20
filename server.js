@@ -110,8 +110,12 @@ process.on('unhandledRejection', (reason) => {
   logger.error({ reason }, 'Promesse rejetée non gérée');
 });
 
-if (require.main === module) {
-  // ── Diagnostic de démarrage écrit dans startup.log (lisible via Gestionnaire de fichiers cPanel)
+// ── Fonction de démarrage — appelable depuis app.js (Passenger) ou directement ──
+let booted = false;
+function boot() {
+  if (booted) return;
+  booted = true;
+
   const fs = require('fs');
   const diagPath = path.join(__dirname, 'startup.log');
   const diagLines = [
@@ -127,6 +131,7 @@ if (require.main === module) {
     `DB_NAME: ${process.env.DB_NAME}`,
     `DB_PASS set: ${!!process.env.DB_PASS}`,
     `public/index.html exists: ${fs.existsSync(path.join(__dirname, 'public', 'index.html'))}`,
+    `appelé via: ${require.main === module ? 'node server.js' : 'require (Passenger / app.js)'}`,
   ];
   fs.writeFileSync(diagPath, diagLines.join('\n') + '\n', 'utf8');
 
@@ -138,10 +143,10 @@ if (require.main === module) {
     logger.error({ err: e }, 'Variables d\'environnement invalides');
     process.exit(1);
   }
-  // Écoute immédiatement — le health-check Passenger répond dès le démarrage
+
   startServer();
   fs.appendFileSync(diagPath, `startServer appelé sur PORT=${process.env.PORT || 3000}\n`);
-  // Vérification connectivité BDD (tables gérées via npm run db:init / db:migrate)
+
   initDatabase()
     .then(() => {
       fs.appendFileSync(diagPath, 'initDatabase: OK\n');
@@ -153,4 +158,8 @@ if (require.main === module) {
     });
 }
 
-module.exports = { app };
+if (require.main === module) {
+  boot();
+}
+
+module.exports = { app, boot };
