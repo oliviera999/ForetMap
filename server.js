@@ -88,12 +88,14 @@ app.use((err, req, res, next) => {
   res.status(err.status || 500).json({ error: err.message || 'Erreur serveur' });
 });
 
-const host = process.env.IP || process.env.ALWAYSDATA_HTTPD_IP || '0.0.0.0';
+// Ne pas utiliser process.env.IP — sur o2switch il contient l'IP publique du serveur,
+// ce qui ferait écouter l'app sur une interface que Passenger ne peut pas joindre.
+// On écoute sur 0.0.0.0 (toutes interfaces) pour que Passenger puisse se connecter.
 const port = process.env.PORT || process.env.ALWAYSDATA_HTTPD_PORT || 3000;
 
 function startServer() {
-  const server = app.listen(port, host, () => {
-    logger.info(`ForêtMap lancé sur http://${host}:${port}`);
+  const server = app.listen(port, () => {
+    logger.info(`ForêtMap lancé sur port ${port}`);
   });
   server.on('error', (err) => {
     logger.error({ err }, 'Impossible de démarrer le serveur HTTP');
@@ -117,8 +119,8 @@ if (require.main === module) {
     `node: ${process.version}`,
     `cwd: ${process.cwd()}`,
     `__dirname: ${__dirname}`,
-    `PORT: ${process.env.PORT}`,
-    `IP: ${process.env.IP}`,
+    `PORT: ${process.env.PORT}  ← port utilisé pour listen()`,
+    `IP env: ${process.env.IP}  ← ignoré désormais, listen sur 0.0.0.0`,
     `NODE_ENV: ${process.env.NODE_ENV}`,
     `DB_HOST: ${process.env.DB_HOST}`,
     `DB_USER: ${process.env.DB_USER}`,
