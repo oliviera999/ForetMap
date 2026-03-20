@@ -2,6 +2,7 @@ const express = require('express');
 const { queryAll, queryOne, execute } = require('../database');
 const { requireTeacher } = require('../middleware/requireTeacher');
 const { logRouteError } = require('../lib/routeLog');
+const { logAudit } = require('./audit');
 
 const router = express.Router();
 
@@ -59,6 +60,7 @@ router.delete('/:id', requireTeacher, async (req, res) => {
     }
 
     await execute('DELETE FROM students WHERE id = ?', [req.params.id]);
+    logAudit('delete_student', 'student', req.params.id, `${s.first_name} ${s.last_name}`);
     res.json({ success: true });
   } catch (e) {
     logRouteError(e, req);

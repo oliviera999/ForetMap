@@ -5,6 +5,7 @@ const { queryAll, queryOne, execute } = require('../database');
 const { requireTeacher } = require('../middleware/requireTeacher');
 const { saveBase64ToDisk, getAbsolutePath } = require('../lib/uploads');
 const { logRouteError } = require('../lib/routeLog');
+const { logAudit } = require('./audit');
 
 const router = express.Router();
 
@@ -52,15 +53,16 @@ router.get('/:id', async (req, res) => {
 
 router.post('/', requireTeacher, async (req, res) => {
   try {
-    const { title, description, zone_id, due_date, required_students } = req.body;
+    const { title, description, zone_id, due_date, required_students, recurrence } = req.body;
     if (!title) return res.status(400).json({ error: 'Titre requis' });
     const reqStudents = sanitizeRequiredStudents(required_students);
     const id = uuidv4();
     await execute(
-      'INSERT INTO tasks (id, title, description, zone_id, due_date, required_students, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
-      [id, title, description || '', zone_id || null, due_date || null, reqStudents, new Date().toISOString()]
+      'INSERT INTO tasks (id, title, description, zone_id, due_date, required_students, recurrence, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+      [id, title, description || '', zone_id || null, due_date || null, reqStudents, recurrence || null, new Date().toISOString()]
     );
     const task = await getTaskWithAssignments(id);
+    logAudit('create_task', 'task', id, title);
     res.status(201).json(task);
   } catch (e) {
     logRouteError(e, req);
@@ -72,12 +74,12 @@ router.put('/:id', requireTeacher, async (req, res) => {
   try {
     const task = await queryOne('SELECT * FROM tasks WHERE id = ?', [req.params.id]);
     if (!task) return res.status(404).json({ error: 'Tâche introuvable' });
-    const { title, description, zone_id, due_date, required_students, status } = req.body;
+    const { title, description, zone_id, due_date, required_students, status, recurrence } = req.body;
     const reqStudents = required_students != null
       ? sanitizeRequiredStudents(required_students)
       : task.required_students;
     await execute(
-      'UPDATE tasks SET title=?, description=?, zone_id=?, due_date=?, required_students=?, status=? WHERE id=?',
+      'UPDATE tasks SET title=?, description=?, zone_id=?, due_date=?, required_students=?, status=?, recurrence=? WHERE id=?',
       [
         title ?? task.title,
         description ?? task.description,
@@ -85,6 +87,7 @@ router.put('/:id', requireTeacher, async (req, res) => {
         due_date ?? task.due_date,
         reqStudents,
         status ?? task.status,
+        recurrence !== undefined ? (recurrence || null) : (task.recurrence || null),
         task.id
       ]
     );
@@ -103,6 +106,7 @@ router.delete('/:id', requireTeacher, async (req, res) => {
     await execute('DELETE FROM task_logs WHERE task_id = ?', [req.params.id]);
     await execute('DELETE FROM task_assignments WHERE task_id = ?', [req.params.id]);
     await execute('DELETE FROM tasks WHERE id = ?', [req.params.id]);
+    logAudit('delete_task', 'task', req.params.id, task.title);
     res.json({ success: true });
   } catch (e) {
     logRouteError(e, req);
@@ -226,11 +230,31 @@ router.get('/:id/logs/:logId/image', async (req, res) => {
   }
 });
 
+// Suppression d'un log de tâche (modération prof)
+router.delete('/:id/logs/:logId', requireTeacher, async (req, res) => {
+  try {
+    const log = await queryOne('SELECT * FROM task_logs WHERE id = ? AND task_id = ?', [req.params.logId, req.params.id]);
+    if (!log) return res.status(404).json({ error: 'Rapport introuvable' });
+    if (log.image_path) {
+      const fs = require('fs');
+      const absPath = getAbsolutePath(log.image_path);
+      try { fs.unlinkSync(absPath); } catch (_) { /* fichier absent, ok */ }
+    }
+    await execute('DELETE FROM task_logs WHERE id = ?', [req.params.logId]);
+    logAudit('delete_log', 'task_log', req.params.logId, `Tâche ${req.params.id}`);
+    res.json({ success: true });
+  } catch (e) {
+    logRouteError(e, req);
+    res.status(500).json({ error: e.message });
+  }
+});
+
 router.post('/:id/validate', requireTeacher, async (req, res) => {
   try {
     const task = await queryOne('SELECT * FROM tasks WHERE id = ?', [req.params.id]);
     if (!task) return res.status(404).json({ error: 'Tâche introuvable' });
     await execute("UPDATE tasks SET status = 'validated' WHERE id = ?", [req.params.id]);
+    logAudit('validate_task', 'task', req.params.id, task.title);
     const updated = await getTaskWithAssignments(task.id);
     res.json(updated);
   } catch (e) {
