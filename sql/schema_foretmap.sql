@@ -92,7 +92,7 @@ CREATE TABLE IF NOT EXISTS task_logs (
   CONSTRAINT fk_task_logs_task FOREIGN KEY (task_id) REFERENCES tasks(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- zone_photos (photos par zone ; image_path si sur disque, sinon image_data legacy)
+-- zone_photos (photos par zone - image_path si sur disque, sinon image_data legacy)
 CREATE TABLE IF NOT EXISTS zone_photos (
   id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
   zone_id VARCHAR(64) NOT NULL,
