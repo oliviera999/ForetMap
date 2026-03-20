@@ -141,7 +141,7 @@ if (require.main === module) {
   // Écoute immédiatement — le health-check Passenger répond dès le démarrage
   startServer();
   fs.appendFileSync(diagPath, `startServer appelé sur PORT=${process.env.PORT || 3000}\n`);
-  // Init BDD en arrière-plan
+  // Vérification connectivité BDD (tables gérées via npm run db:init / db:migrate)
   initDatabase()
     .then(() => {
       fs.appendFileSync(diagPath, 'initDatabase: OK\n');
