@@ -22,8 +22,8 @@ router.post('/markers', requireTeacher, async (req, res) => {
     if (!label?.trim()) return res.status(400).json({ error: 'Label requis' });
     const id = uuidv4();
     await execute(
-      'INSERT INTO map_markers (id, x_pct, y_pct, label, plant_name, note, emoji) VALUES (?, ?, ?, ?, ?, ?, ?)',
-      [id, x_pct, y_pct, label.trim(), plant_name || '', note || '', emoji || '🌱']
+      'INSERT INTO map_markers (id, x_pct, y_pct, label, plant_name, note, emoji, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+      [id, x_pct, y_pct, label.trim(), plant_name || '', note || '', emoji || '🌱', new Date().toISOString()]
     );
     const row = await queryOne('SELECT * FROM map_markers WHERE id = ?', [id]);
     res.status(201).json(row);

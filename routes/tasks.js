@@ -57,8 +57,8 @@ router.post('/', requireTeacher, async (req, res) => {
     const reqStudents = sanitizeRequiredStudents(required_students);
     const id = uuidv4();
     await execute(
-      'INSERT INTO tasks (id, title, description, zone_id, due_date, required_students) VALUES (?, ?, ?, ?, ?, ?)',
-      [id, title, description || '', zone_id || null, due_date || null, reqStudents]
+      'INSERT INTO tasks (id, title, description, zone_id, due_date, required_students, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      [id, title, description || '', zone_id || null, due_date || null, reqStudents, new Date().toISOString()]
     );
     const task = await getTaskWithAssignments(id);
     res.status(201).json(task);
@@ -135,8 +135,8 @@ router.post('/:id/assign', async (req, res) => {
     }
 
     await execute(
-      'INSERT INTO task_assignments (task_id, student_first_name, student_last_name) VALUES (?, ?, ?)',
-      [task.id, firstName, lastName]
+      'INSERT INTO task_assignments (task_id, student_first_name, student_last_name, assigned_at) VALUES (?, ?, ?, ?)',
+      [task.id, firstName, lastName, new Date().toISOString()]
     );
 
     const newCount = task.assignments.length + 1;
@@ -165,8 +165,8 @@ router.post('/:id/done', async (req, res) => {
 
     if (comment || imageData) {
       const result = await execute(
-        'INSERT INTO task_logs (task_id, student_first_name, student_last_name, comment, image_data, image_path) VALUES (?, ?, ?, ?, ?, ?)',
-        [task.id, firstName || '', lastName || '', comment || '', null, null]
+        'INSERT INTO task_logs (task_id, student_first_name, student_last_name, comment, image_data, image_path, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
+        [task.id, firstName || '', lastName || '', comment || '', null, null, new Date().toISOString()]
       );
       const logId = result.insertId;
       if (imageData) {
