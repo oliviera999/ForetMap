@@ -1,0 +1,5 @@
+---
+deployment:
+  tasks:
+    - export DEPLOYPATH=/home/$USER/$(basename `pwd`)
+    - /usr/local/bin/npm install --production --prefix $DEPLOYPATH
