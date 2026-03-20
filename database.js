@@ -265,12 +265,11 @@ async function seedData() {
 }
 
 /**
- * Initialise la BDD : schéma puis seed si tables vides.
- * À appeler au démarrage du serveur (ou une seule fois via npm run db:init).
+ * Vérifie la connectivité BDD au démarrage du serveur.
+ * La création des tables et le seed sont gérés via `npm run db:init`.
  */
 async function initDatabase() {
-  await initSchema();
-  await seedData();
+  await ping();
 }
 
 module.exports = {
