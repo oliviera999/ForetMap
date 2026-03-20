@@ -94,7 +94,7 @@ app.use((err, req, res, next) => {
 const port = process.env.PORT || process.env.ALWAYSDATA_HTTPD_PORT || 3000;
 
 function startServer() {
-  const server = app.listen(port, () => {
+  const server = app.listen(port, '0.0.0.0', () => {
     logger.info(`ForêtMap lancé sur port ${port}`);
   });
   server.on('error', (err) => {
