@@ -19,6 +19,7 @@
     "debug": "node --inspect server.js",
     "debug:dev": "nodemon --inspect server.js",
     "db:init": "node -e \"require('dotenv').config(); const { initSchema, seedData } = require('./database'); (async () => { await initSchema(); await seedData(); console.log('DB init OK'); process.exit(0); })()\"",
+    "db:migrate": "node -e \"require('dotenv').config(); const { initSchema } = require('./database'); (async () => { await initSchema(); console.log('Migrations OK'); process.exit(0); })()\"",
     "migrate:sqlite-to-mysql": "node scripts/migrate-sqlite-to-mysql.js",
     "bump:patch": "npm version patch --no-git-tag-version",
     "bump:minor": "npm version minor --no-git-tag-version",
