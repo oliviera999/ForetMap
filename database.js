@@ -85,6 +85,19 @@ async function ping() {
 }
 
 /**
+ * Retire les commentaires SQL (-- ligne et /* bloc *\/) d'un fragment SQL
+ * pour éviter que des lignes de commentaire en tête de statement ne fassent
+ * filtrer le vrai SQL qui suit.
+ */
+function stripSqlComments(fragment) {
+  // Retire les commentaires de bloc /* ... */ (non greedy)
+  let s = fragment.replace(/\/\*[\s\S]*?\*\//g, '');
+  // Retire les commentaires de ligne -- jusqu'à la fin de ligne
+  s = s.replace(/--[^\r\n]*/g, '');
+  return s.trim();
+}
+
+/**
  * Initialise le schéma MySQL (tables) à partir de sql/schema_foretmap.sql.
  * Idempotent : peut être rappelé sans effet de bord si les tables existent déjà.
  * @throws si le fichier est introuvable ou si l'exécution SQL échoue
@@ -100,8 +113,8 @@ async function initSchema() {
   const sql = fs.readFileSync(schemaPath, 'utf8');
   const statements = sql
     .split(';')
-    .map(s => s.trim())
-    .filter(s => s.length > 0 && !s.startsWith('--'));
+    .map(s => stripSqlComments(s))
+    .filter(s => s.length > 0);
   const conn = await pool.getConnection();
   try {
     for (const stmt of statements) {
@@ -144,7 +157,7 @@ async function runMigrations(conn) {
   if (current < 0 && files.length > 0) {
     const first = files[0];
     const sql = fs.readFileSync(path.join(migrationsDir, first), 'utf8');
-    const statements = sql.split(';').map(s => s.trim()).filter(s => s.length > 0 && !s.startsWith('--'));
+    const statements = sql.split(';').map(s => stripSqlComments(s)).filter(s => s.length > 0);
     for (const stmt of statements) {
       try {
         await conn.query(stmt);
@@ -159,7 +172,7 @@ async function runMigrations(conn) {
     const num = parseInt(file.slice(0, 3), 10);
     if (num <= current) continue;
     const sql = fs.readFileSync(path.join(migrationsDir, file), 'utf8');
-    const statements = sql.split(';').map(s => s.trim()).filter(s => s.length > 0 && !s.startsWith('--'));
+    const statements = sql.split(';').map(s => stripSqlComments(s)).filter(s => s.length > 0);
     for (const stmt of statements) {
       try {
         await conn.query(stmt);
