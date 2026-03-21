@@ -45,6 +45,12 @@ L’app est servie sur **http://localhost:3000** (ou le port défini par `proces
 
 Guide pas à pas : **[docs/LOCAL_DEV.md](docs/LOCAL_DEV.md)** — MySQL 8 via Docker, `env.local.example` → `.env`, `npm run db:init`, `npm run dev`, `npm run test:local` (base `foretmap_test` séparée).
 
+### Dépendances npm (mises à jour prudentes)
+
+- **Lockfile** : le dépôt versionne `package-lock.json` ; en CI et en prod, privilégier **`npm ci`** (déjà le cas dans [`.github/workflows/ci.yml`](.github/workflows/ci.yml)) pour des installs reproductibles.
+- **Dependabot** : configuration dans [`.github/dependabot.yml`](.github/dependabot.yml) — ouverture hebdomadaire (lundi) de **pull requests** proposant les mises à jour. **Ne pas merger** sans vérifier que la CI est verte et, pour une version **majeure**, jeter un œil au changelog du paquet.
+- **Version de l’application** (SemVer dans `package.json`) : ce n’est pas géré par Dependabot ; utiliser les scripts `npm run bump:patch|minor|major` et suivre [docs/VERSIONING.md](docs/VERSIONING.md) + [CHANGELOG.md](CHANGELOG.md).
+
 ### Variables d’environnement
 
 | Variable | Description |
