@@ -3,6 +3,9 @@ const { defineConfig, devices } = require('@playwright/test');
 module.exports = defineConfig({
   testDir: './e2e',
   timeout: 30_000,
+  globalTimeout: process.env.CI ? 12 * 60_000 : undefined,
+  workers: process.env.CI ? 1 : undefined,
+  forbidOnly: !!process.env.CI,
   expect: {
     timeout: 8_000,
   },
