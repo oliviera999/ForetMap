@@ -175,7 +175,7 @@ router.post('/:id/done', async (req, res) => {
     if (comment || imageData) {
       const result = await execute(
         'INSERT INTO task_logs (task_id, student_first_name, student_last_name, comment, image_data, image_path, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
-        [task.id, firstName || '', lastName || '', comment || '', null, null, new Date().toISOString()]
+        [task.id, firstName || '', lastName || '', comment || '', imageData || null, null, new Date().toISOString()]
       );
       const logId = result.insertId;
       if (imageData) {
@@ -186,7 +186,7 @@ router.post('/:id/done', async (req, res) => {
           await execute('DELETE FROM task_logs WHERE id = ?', [logId]);
           throw fileErr;
         }
-        await execute('UPDATE task_logs SET image_path = ? WHERE id = ?', [relativePath, logId]);
+        await execute('UPDATE task_logs SET image_path = ?, image_data = NULL WHERE id = ?', [relativePath, logId]);
       }
     }
 

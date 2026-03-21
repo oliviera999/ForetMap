@@ -47,7 +47,8 @@ L’app est servie sur **http://localhost:3000** (ou le port défini par `proces
 
 ### Environnement local complet (Docker + tests avant déploiement)
 
-Guide pas à pas : **[docs/LOCAL_DEV.md](docs/LOCAL_DEV.md)** — MySQL 8 via Docker, `env.local.example` → `.env`, `npm run db:init`, `npm run dev`, `npm run test:local` (base `foretmap_test` séparée).
+Guide pas à pas : **[docs/LOCAL_DEV.md](docs/LOCAL_DEV.md)** — MySQL 8 via Docker, `env.local.example` → `.env`, `npm run db:init`, `npm run dev`, `npm run test:local` (base `foretmap_test` séparée).  
+Exploitation prod : **[docs/EXPLOITATION.md](docs/EXPLOITATION.md)** (check post-déploiement, lock o2switch, bascule images).
 
 ### Dépendances npm (mises à jour prudentes)
 
@@ -151,6 +152,7 @@ Le script vide les tables MySQL puis recopie toutes les données (zones, plantes
    ```bash
    npm run deploy:check:prod
    ```
+   Voir aussi la checklist complète d'exploitation : [docs/EXPLOITATION.md](docs/EXPLOITATION.md).
 
 ### Incident temps réel Socket.IO (WebSocket)
 

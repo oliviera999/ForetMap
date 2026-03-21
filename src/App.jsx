@@ -5,7 +5,6 @@ import { RT_PROF_TOOLTIPS } from './constants/realtime';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import {
   Toast,
-  MapView,
   TasksView,
   PlantManager,
   PlantViewer,
@@ -15,6 +14,7 @@ import {
   AuditLog,
   AboutView,
 } from './components/foretmap-views';
+import { MapView } from './components/map-views';
 import { AuthScreen, PinModal } from './components/auth-views';
 
 // ── APP ───────────────────────────────────────────────────────────────────────

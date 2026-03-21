@@ -134,4 +134,5 @@ module.exports = {
   parseFlags,
   targetPathForZonePhoto,
   targetPathForTaskLog,
+  migrateTable,
 };

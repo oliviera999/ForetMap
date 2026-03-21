@@ -17,16 +17,17 @@ Il a été mis à jour pour refléter l’état réel du dépôt (mars 2026), pu
 - **Tests backend en place** (node:test + supertest) : auth, statuts tâches, suppression élève, temps réel, nouvelles fonctionnalités.
 - **Migrations versionnées** : table `schema_version`, dossier `migrations/` (001+).
 - **Images majoritairement sur disque** : `uploads/` + colonnes `image_path` (fallback legacy conservé).
+- **Migration image legacy outillée** : scripts `db:migrate:images:report|dry|clear` pour piloter la bascule progressive.
 - **Lockfile et outillage dev** : `package-lock.json`, `nodemon`, scripts debug.
 - **Journalisation et observabilité** : logger Pino, traces d’erreurs route, endpoint admin de lecture des logs.
+- **Vérification de déploiement** : scripts `deploy:check` et `deploy:check:prod` (sans argument) pour contrôler `/api/health`, `/api/health/db`, `/api/version`.
 
 ## 1.2 Partiellement réalisé / restant
 
 - **Décommission base64** : `image_data` reste présent pour compatibilité.
   - **Avancement** : scripts de migration/reporting disponibles (`npm run db:migrate:images:report`, `npm run db:migrate:images:dry`, puis `npm run db:migrate:images`, et option finale `npm run db:migrate:images:clear` après validation).
-- **Durcissement sécurité production** : comportements permissifs utiles en dev, à verrouiller davantage en prod (secret JWT, endpoints admin, conventions de rotation).
 - **Frontend** : certains composants restent volumineux (notamment `src/components/foretmap-views.jsx`).
-- **Couverture tests** : bonne base, mais des zones critiques restent peu couvertes (config prod, admin/restart, cas limite upload/observations).
+- **Couverture tests** : bonne base, mais des zones critiques restent peu couvertes (cas limite upload/observations, scénarios de bascule finale images).
 
 ---
 
@@ -34,40 +35,31 @@ Il a été mis à jour pour refléter l’état réel du dépôt (mars 2026), pu
 
 ## 2.1 Quick wins (faible risque, fort retour)
 
-1. **Mettre la documentation en cohérence stricte avec le code**
-   - Éviter les constats obsolètes (ex. “pas de tests”, “Vite à migrer”).
-   - Aligner scripts annoncés et scripts réellement disponibles.
+1. **Boucler la bascule finale image_data**
+   - Exécuter la séquence `report -> dry-run -> migrate -> report`.
+   - Passer `db:migrate:images:clear` uniquement après validation UI/BDD.
 
-2. **Durcir les prérequis de configuration prod**
-   - Documenter clairement les variables obligatoires/recommandées (`TEACHER_PIN`, `JWT_SECRET`, `FRONTEND_ORIGIN`, `DEPLOY_SECRET`).
-   - Préciser les comportements de repli et leur impact sécurité.
-
-3. **Documenter la sortie progressive du legacy image base64**
-   - Garder la rétrocompatibilité court terme.
-   - Définir la cible de fin (`image_path` uniquement) et les étapes de migration.
-   - **Fait partiellement** : script et commandes de migration ajoutés, suppression finale de `image_data` encore différée.
+2. **Finaliser la doc opérationnelle serveur**
+   - Vérifier que les pages d’exploitation mentionnent systématiquement `deploy:check:prod` pour les interfaces sans arguments.
+   - Garder la checklist lock/restart o2switch à jour.
+   - **Avancement** : doc d’exploitation dédiée ajoutée (`docs/EXPLOITATION.md`).
 
 ## 2.2 Moyen terme
 
-4. **Étendre les tests ciblés**
-   - Cas de sécurité prof (token invalide/expiré).
-   - Endpoints admin sensibles (`/api/admin/restart`, `/api/admin/logs`).
-   - Parcours images (création/suppression, fichier manquant, fallback legacy).
+3. **Étendre les tests ciblés**
+   - Parcours images (création/suppression, fichier manquant, bascule post-`clear`).
+   - Vérifications de scripts d’exploitation (reporting/migration/check déploiement).
 
-5. **Poursuivre le découpage du frontend**
+4. **Poursuivre le découpage du frontend**
    - Scinder `foretmap-views.jsx` par domaines (carte, tâches, auth, stats, audit, à-propos).
    - Réduire le coût des changements et améliorer la lisibilité.
 
 ## 2.3 Long terme
 
-6. **Finaliser la migration des données image**
-   - Migration SQL + script de conversion éventuel vers `image_path`.
+5. **Retirer le legacy image_data du code et du schéma**
+   - Supprimer les branches de fallback API qui renvoient `image_data`.
+   - Préparer migration SQL de retrait des colonnes legacy.
    - Retrait progressif des colonnes `image_data` après fenêtre de transition.
-
-7. **Renforcer la stratégie de déploiement**
-   - Contrôles de santé et rollback documentés.
-   - Clarifier le flux recommandé entre build local, livraison `dist/`, et redémarrage.
-   - **Avancement** : script post-déploiement ajouté (`npm run deploy:check`) pour valider `/api/health`, `/api/health/db` et `/api/version`.
 
 ---
 
@@ -97,12 +89,11 @@ Il a été mis à jour pour refléter l’état réel du dépôt (mars 2026), pu
 
 | Ordre | Action | Priorité |
 |-------|--------|----------|
-| 1 | Cohérence docs + scripts (quick wins) | Haute |
-| 2 | Clarification/hardening config prod | Haute |
-| 3 | Plan de sortie `image_data` legacy | Moyenne |
-| 4 | Tests ciblés sécurité/admin/images | Moyenne |
-| 5 | Découpage progressif du frontend | Moyenne |
-| 6 | Migration finale des données image | Basse |
+| 1 | Bascule finale `image_data` (report -> migrate -> clear) | Haute |
+| 2 | Vérification doc d’exploitation serveur (`deploy:check:prod`) | Haute |
+| 3 | Tests ciblés scripts/images post-bascule | Moyenne |
+| 4 | Découpage progressif du frontend | Moyenne |
+| 5 | Retrait définitif fallback `image_data` + migration SQL | Basse |
 
 ---
 
