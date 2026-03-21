@@ -73,7 +73,9 @@ export function useForetmapRealtime({
       API && String(API).trim() ? new URL(API, window.location.href).origin : window.location.origin;
     const socket = io(origin, {
       path: '/socket.io',
-      transports: ['websocket', 'polling'],
+      // Contournement temporaire: certains proxys de prod altèrent les trames WebSocket.
+      // On force le polling tant que l'infra n'est pas corrigée.
+      transports: ['polling'],
     });
     const onConnect = () => setRtStatus('live');
     const onDisconnect = () => setRtStatus('offline');
