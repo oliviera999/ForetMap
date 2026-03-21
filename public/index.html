@@ -304,22 +304,34 @@
     .status-validated   { background:#f1f5f9; color:#64748b; }
 
     /* ── MODALS — slide up with spring ── */
+    /* Fond fixe (pas d’animation transparent→opaque) : évite calque invisible qui bloque les clics
+       (Safari / mouvement réduit / bugs backdrop-filter). */
     .modal-overlay {
       position:fixed; inset:0; z-index:200;
       display:flex; align-items:flex-end;
-      background:rgba(0,0,0,0);
-      animation:overlayIn .22s var(--ease-out) forwards;
+      background:rgba(0,0,0,.48);
     }
-    @keyframes overlayIn { to { background:rgba(0,0,0,.45); backdrop-filter:blur(2px); -webkit-backdrop-filter:blur(2px); } }
 
     .modal {
+      position:relative;
+      z-index:1;
       background:white; border-radius:20px 20px 0 0;
       padding:20px; width:100%; max-height:90vh; overflow-y:auto;
       animation:sheetUp .3s var(--spring) forwards;
     }
     @keyframes sheetUp { from{transform:translateY(100%);opacity:.5} to{transform:translateY(0);opacity:1} }
 
+    @media (prefers-reduced-motion: reduce) {
+      .modal, .log-modal, .pin-card {
+        animation: none !important;
+        opacity: 1 !important;
+        transform: none !important;
+      }
+    }
+
     .log-modal {
+      position:relative;
+      z-index:1;
       background:white; border-radius:20px 20px 0 0;
       padding:20px 20px calc(20px + var(--safe-bottom));
       width:100%; max-height:92vh; overflow-y:auto;
@@ -340,10 +352,11 @@
     .pin-overlay {
       position:fixed; inset:0; z-index:300;
       display:flex; align-items:center; justify-content:center; padding:20px;
-      background:rgba(0,0,0,0);
-      animation:overlayIn .22s var(--ease-out) forwards;
+      background:rgba(0,0,0,.48);
     }
     .pin-card {
+      position:relative;
+      z-index:1;
       background:white; border-radius:20px; padding:32px 24px;
       max-width:320px; width:100%; text-align:center;
       animation:popIn .3s var(--spring) forwards;
@@ -787,7 +800,7 @@ function Lightbox({ src, caption, onClose }) {
     <div
       style={{position:'fixed',inset:0,background:'rgba(0,0,0,.93)',zIndex:99999,
         display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',
-        padding:20, animation:'overlayIn .2s ease forwards'}}
+        padding:20}}
       onClick={onClose}>
       <img src={src} onClick={e => e.stopPropagation()}
         style={{maxWidth:'95vw',maxHeight:'85vh',borderRadius:10,
@@ -1543,8 +1556,11 @@ function MapView({ zones, markers, plants, isTeacher, onZoneUpdate, onRefresh })
 
   const cursor = mode==='view'?'grab':mode==='draw-zone'?'crosshair':mode==='edit-points'?'default':'cell';
 
+  /* Prof : pas de barre du bas → ne pas réserver 72px (évite zone morte / chevauchements) */
+  const mapColHeight = isTeacher ? 'calc(100dvh - 56px)' : 'calc(100dvh - 56px - 72px)';
+
   return (
-    <div style={{display:'flex',flexDirection:'column',height:'calc(100dvh - 56px - 72px)',minHeight:380}}>
+    <div style={{display:'flex',flexDirection:'column',height:mapColHeight,minHeight:380}}>
       {toast && <Toast msg={toast} onDone={()=>setToast(null)}/>}
 
       {selectedZone && (
@@ -1949,8 +1965,8 @@ function TasksView({ tasks, zones, isTeacher, student, onRefresh, onForceLogout 
 
       {/* Inline confirm — replaces browser confirm() which blocks/fails on mobile */}
       {confirmTask && (
-        <div className="modal-overlay" onClick={() => setConfirmTask(null)}>
-          <div className="log-modal fade-in" style={{paddingBottom:'calc(20px + var(--safe-bottom))'}}>
+        <div className="modal-overlay" onClick={e => e.target === e.currentTarget && setConfirmTask(null)}>
+          <div className="log-modal fade-in" style={{paddingBottom:'calc(20px + var(--safe-bottom))'}} onClick={e => e.stopPropagation()}>
             <h3 style={{marginBottom:8}}>Confirmation</h3>
             <p style={{fontSize:'.95rem',color:'#444',marginBottom:20,lineHeight:1.5}}>{confirmTask.label}</p>
             <div style={{display:'flex',gap:10}}>
@@ -2791,8 +2807,8 @@ function TeacherStats() {
       {toast && <Toast msg={toast} onDone={() => setToast(null)}/>}
 
       {confirmStudent && (
-        <div className="modal-overlay" onClick={() => setConfirmStudent(null)}>
-          <div className="log-modal fade-in" style={{paddingBottom:'calc(20px + var(--safe-bottom))'}}>
+        <div className="modal-overlay" onClick={e => e.target === e.currentTarget && setConfirmStudent(null)}>
+          <div className="log-modal fade-in" style={{paddingBottom:'calc(20px + var(--safe-bottom))'}} onClick={e => e.stopPropagation()}>
             <h3 style={{marginBottom:8}}>Supprimer l'élève ?</h3>
             <p style={{fontSize:'.95rem',color:'#444',marginBottom:6,lineHeight:1.5}}>
               <strong>{confirmStudent.first_name} {confirmStudent.last_name}</strong>
