@@ -113,6 +113,22 @@
     header .logo { display:flex; align-items:center; gap:8px; font-family:'Playfair Display',serif; font-size:1.1rem; }
     header .logo span { font-size:1.3rem; }
     .header-right { display:flex; align-items:center; gap:6px; }
+    /* Indicateur discret temps réel (mode prof uniquement) */
+    .realtime-prof-wrap {
+      display:inline-flex; align-items:center; justify-content:center;
+      padding:0 4px; min-width:28px; min-height:32px;
+      cursor:default; opacity:.92;
+    }
+    .realtime-dot {
+      width:8px; height:8px; border-radius:50%; flex-shrink:0;
+      box-shadow:0 0 0 2px rgba(255,255,255,.28);
+    }
+    .realtime-dot--live { background:#4ade80; animation:rtPulse 2.4s ease-in-out infinite; }
+    .realtime-dot--connecting { background:#fbbf24; animation:rtBlink 1.1s ease-in-out infinite; }
+    .realtime-dot--offline { background:#f97316; opacity:.9; }
+    .realtime-dot--no-client { background:#94a3b8; opacity:.85; }
+    @keyframes rtPulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.72;transform:scale(.92)} }
+    @keyframes rtBlink { 0%,100%{opacity:1} 50%{opacity:.35} }
     .user-badge {
       background:rgba(255,255,255,.15); border-radius:8px;
       padding:4px 10px; font-size:.8rem;
@@ -611,6 +627,14 @@
 const { useState, useEffect, useCallback, useRef } = React;
 
 const API = '';
+
+/** Infobulles indicateur temps réel (mode prof) */
+const RT_PROF_TOOLTIPS = {
+  live: 'Temps réel actif — les listes se mettent à jour tout de suite.',
+  connecting: 'Connexion au temps réel…',
+  offline: 'Temps réel coupé — reconnexion automatique ou rafraîchissement environ toutes les 30 s.',
+  'no-client': 'Module temps réel indisponible — mises à jour par rafraîchissement seulement.',
+};
 
 // Custom error for deleted accounts — caught globally in App
 class AccountDeletedError extends Error {
@@ -2965,7 +2989,8 @@ function AboutView({ appVersion }) {
           </p>
           <div className="about-meta">
             <span className="about-chip">Version: {appVersion || 'indisponible'}</span>
-            <span className="about-chip">Auteur: oliviera999</span>
+            <span className="about-chip">Auteur: Mohammed El Farrai</span>
+            <span className="about-chip">Contributeur: oliviera999</span>
           </div>
         </div>
 
@@ -3009,6 +3034,8 @@ function App() {
   const [appVersion, setAppVersion] = useState(null);
   const [refreshMs,  setRefreshMs]  = useState(30000);
   const [serverDown, setServerDown] = useState(false);
+  /** État Socket.IO pour indicateur mode prof : off | no-client | connecting | live | offline */
+  const [rtStatus, setRtStatus] = useState('off');
   const failCountRef = useRef(0);
 
   useEffect(() => {
@@ -3120,11 +3147,16 @@ function App() {
   }, []);
 
   useEffect(() => {
-    if (!student) return undefined;
-    if (typeof io === 'undefined') {
-      console.warn('[ForetMap] Client Socket.IO indisponible — mise à jour uniquement par intervalle');
+    if (!student) {
+      setRtStatus('off');
       return undefined;
     }
+    if (typeof io === 'undefined') {
+      console.warn('[ForetMap] Client Socket.IO indisponible — mise à jour uniquement par intervalle');
+      setRtStatus('no-client');
+      return undefined;
+    }
+    setRtStatus('connecting');
     const origin = (API && String(API).trim())
       ? new URL(API, window.location.href).origin
       : window.location.origin;
@@ -3132,22 +3164,38 @@ function App() {
       path: '/socket.io',
       transports: ['websocket', 'polling'],
     });
+    const onConnect = () => setRtStatus('live');
+    const onDisconnect = () => setRtStatus('offline');
+    const onConnectError = (err) => {
+      console.warn('[ForetMap] Socket.IO connect_error', err?.message || err);
+      setRtStatus('offline');
+    };
+    const onReconnectAttempt = () => setRtStatus('connecting');
+    const onReconnect = () => { fetchAll(); };
+
+    socket.on('connect', onConnect);
+    socket.on('disconnect', onDisconnect);
+    socket.on('connect_error', onConnectError);
+    socket.io.on('reconnect_attempt', onReconnectAttempt);
+    socket.io.on('reconnect', onReconnect);
     socket.on('tasks:changed', scheduleTasksRefresh);
     socket.on('students:changed', onStudentsRealtime);
     socket.on('garden:changed', scheduleGardenRefresh);
-    socket.on('connect_error', (err) => {
-      console.warn('[ForetMap] Socket.IO connect_error', err?.message || err);
-    });
-    socket.io.on('reconnect', () => {
-      fetchAll();
-    });
+    if (socket.connected) setRtStatus('live');
+
     return () => {
+      socket.io.off('reconnect_attempt', onReconnectAttempt);
+      socket.io.off('reconnect', onReconnect);
+      socket.off('connect', onConnect);
+      socket.off('disconnect', onDisconnect);
+      socket.off('connect_error', onConnectError);
       socket.off('tasks:changed', scheduleTasksRefresh);
       socket.off('students:changed', onStudentsRealtime);
       socket.off('garden:changed', scheduleGardenRefresh);
       if (tasksRtDebounceRef.current) clearTimeout(tasksRtDebounceRef.current);
       if (gardenRtDebounceRef.current) clearTimeout(gardenRtDebounceRef.current);
       socket.disconnect();
+      setRtStatus('off');
     };
   }, [student, fetchAll, scheduleTasksRefresh, scheduleGardenRefresh, onStudentsRealtime]);
 
@@ -3205,6 +3253,16 @@ function App() {
           <span>🌿</span> ForêtMap
         </div>
         <div className="header-right">
+          {isTeacher && rtStatus !== 'off' && (
+            <span
+              className="realtime-prof-wrap"
+              title={RT_PROF_TOOLTIPS[rtStatus] || ''}
+              aria-label={RT_PROF_TOOLTIPS[rtStatus] || 'État du temps réel'}
+              role="status"
+            >
+              <span className={`realtime-dot realtime-dot--${rtStatus}`} aria-hidden />
+            </span>
+          )}
           <button
             className="user-badge"
             onClick={() => !isTeacher && setShowStats(true)}
