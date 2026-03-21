@@ -60,6 +60,9 @@ Guide pas à pas : **[docs/LOCAL_DEV.md](docs/LOCAL_DEV.md)** — MySQL 8 via Do
 Le backend reste rétrocompatible (`image_data` legacy toujours servi si `image_path` absent), mais vous pouvez migrer les données historiques par étapes :
 
 ```bash
+# 0) Mesurer les reliquats legacy
+npm run db:migrate:images:report
+
 # 1) Simulation (aucune écriture)
 npm run db:migrate:images:dry
 
@@ -71,6 +74,12 @@ npm run db:migrate:images:clear
 ```
 
 Le script cible `zone_photos` et `task_logs` quand `image_path` est vide et `image_data` présent.
+
+Checklist recommandée avant `db:migrate:images:clear` :
+
+1. `npm run db:migrate:images:report` retourne `total legacy: 0`.
+2. Vérification fonctionnelle des photos zones et logs de tâches en UI.
+3. Sauvegarde BDD récente disponible (rollback).
 
 ### Variables d’environnement
 

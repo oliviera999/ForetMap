@@ -44,6 +44,9 @@ Cela applique le schéma et le seed sur **`foretmap_local`**.
 ### Optionnel — migrer les images legacy base64 vers disque
 
 ```bash
+# Mesurer les reliquats
+npm run db:migrate:images:report
+
 # Simulation
 npm run db:migrate:images:dry
 

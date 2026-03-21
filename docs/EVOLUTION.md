@@ -23,7 +23,7 @@ Il a été mis à jour pour refléter l’état réel du dépôt (mars 2026), pu
 ## 1.2 Partiellement réalisé / restant
 
 - **Décommission base64** : `image_data` reste présent pour compatibilité.
-  - **Avancement** : script de migration progressive disponible (`npm run db:migrate:images:dry`, puis `npm run db:migrate:images`, et option finale `npm run db:migrate:images:clear` après validation).
+  - **Avancement** : scripts de migration/reporting disponibles (`npm run db:migrate:images:report`, `npm run db:migrate:images:dry`, puis `npm run db:migrate:images`, et option finale `npm run db:migrate:images:clear` après validation).
 - **Durcissement sécurité production** : comportements permissifs utiles en dev, à verrouiller davantage en prod (secret JWT, endpoints admin, conventions de rotation).
 - **Frontend** : certains composants restent volumineux (notamment `src/components/foretmap-views.jsx`).
 - **Couverture tests** : bonne base, mais des zones critiques restent peu couvertes (config prod, admin/restart, cas limite upload/observations).
