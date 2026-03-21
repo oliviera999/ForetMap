@@ -55,6 +55,23 @@ Guide pas à pas : **[docs/LOCAL_DEV.md](docs/LOCAL_DEV.md)** — MySQL 8 via Do
 - **Dependabot** : configuration dans [`.github/dependabot.yml`](.github/dependabot.yml) — ouverture hebdomadaire (lundi) de **pull requests** proposant les mises à jour. **Ne pas merger** sans vérifier que la CI est verte et, pour une version **majeure**, jeter un œil au changelog du paquet.
 - **Version de l’application** (SemVer dans `package.json`) : ce n’est pas géré par Dependabot ; utiliser les scripts `npm run bump:patch|minor|major` et suivre [docs/VERSIONING.md](docs/VERSIONING.md) + [CHANGELOG.md](CHANGELOG.md).
 
+### Migration progressive des images legacy (base64 -> disque)
+
+Le backend reste rétrocompatible (`image_data` legacy toujours servi si `image_path` absent), mais vous pouvez migrer les données historiques par étapes :
+
+```bash
+# 1) Simulation (aucune écriture)
+npm run db:migrate:images:dry
+
+# 2) Migration disque (conserve image_data pour rollback)
+npm run db:migrate:images
+
+# 3) (optionnel, plus tard) nettoyage image_data après validation
+npm run db:migrate:images:clear
+```
+
+Le script cible `zone_photos` et `task_logs` quand `image_path` est vide et `image_data` présent.
+
 ### Variables d’environnement
 
 | Variable | Description |

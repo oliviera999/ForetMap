@@ -41,6 +41,16 @@ npm run db:init
 
 Cela applique le schéma et le seed sur **`foretmap_local`**.
 
+### Optionnel — migrer les images legacy base64 vers disque
+
+```bash
+# Simulation
+npm run db:migrate:images:dry
+
+# Migration réelle (conserve image_data pour compat)
+npm run db:migrate:images
+```
+
 ## 4. Lancer l’application
 
 ### Option A — Développement (recommandé : Express + Vite)
