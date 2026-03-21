@@ -14,7 +14,7 @@
 
 require('dotenv').config({ path: require('path').join(__dirname, '..', '.env') });
 
-const { queryAll, execute } = require('../database');
+const { queryAll, queryOne, execute } = require('../database');
 const { saveBase64ToDisk } = require('../lib/uploads');
 
 function parseFlags(argv) {
@@ -63,13 +63,27 @@ async function migrateTable(options, config) {
   return summary;
 }
 
-async function main() {
-  const options = parseFlags(process.argv.slice(2));
-  const mode = options.dryRun ? 'DRY-RUN' : 'EXECUTION';
-  console.log(`[migrate-images] mode=${mode} clearLegacy=${options.clearLegacy ? 'yes' : 'no'}`);
+async function hasImageDataColumn(tableName) {
+  const row = await queryOne(
+    `SELECT COUNT(*) AS c
+     FROM information_schema.COLUMNS
+     WHERE TABLE_SCHEMA = DATABASE()
+       AND TABLE_NAME = ?
+       AND COLUMN_NAME = 'image_data'`,
+    [tableName]
+  );
+  return Number(row?.c || 0) > 0;
+}
 
-  const tables = [
-    {
+async function buildLegacyTableConfigs() {
+  const [hasZoneLegacy, hasTaskLegacy] = await Promise.all([
+    hasImageDataColumn('zone_photos'),
+    hasImageDataColumn('task_logs'),
+  ]);
+
+  const tables = [];
+  if (hasZoneLegacy) {
+    tables.push({
       name: 'zone_photos',
       selectSql: `
         SELECT id, zone_id, image_data
@@ -81,8 +95,10 @@ async function main() {
       relativePath: targetPathForZonePhoto,
       updateSql: 'UPDATE zone_photos SET image_path = ? WHERE id = ?',
       updateWithClearSql: 'UPDATE zone_photos SET image_path = ?, image_data = NULL WHERE id = ?',
-    },
-    {
+    });
+  }
+  if (hasTaskLegacy) {
+    tables.push({
       name: 'task_logs',
       selectSql: `
         SELECT id, task_id, image_data
@@ -94,8 +110,22 @@ async function main() {
       relativePath: targetPathForTaskLog,
       updateSql: 'UPDATE task_logs SET image_path = ? WHERE id = ?',
       updateWithClearSql: 'UPDATE task_logs SET image_path = ?, image_data = NULL WHERE id = ?',
-    },
-  ];
+    });
+  }
+
+  return tables;
+}
+
+async function main() {
+  const options = parseFlags(process.argv.slice(2));
+  const mode = options.dryRun ? 'DRY-RUN' : 'EXECUTION';
+  console.log(`[migrate-images] mode=${mode} clearLegacy=${options.clearLegacy ? 'yes' : 'no'}`);
+
+  const tables = await buildLegacyTableConfigs();
+  if (tables.length === 0) {
+    console.log('[migrate-images] aucune colonne legacy image_data détectée, rien à migrer.');
+    return;
+  }
 
   const results = [];
   for (const table of tables) {
@@ -135,4 +165,5 @@ module.exports = {
   targetPathForZonePhoto,
   targetPathForTaskLog,
   migrateTable,
+  buildLegacyTableConfigs,
 };

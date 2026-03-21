@@ -6,7 +6,7 @@ const fs = require('fs');
 const logger = require('./lib/logger');
 
 /** Errnos MySQL souvent attendus lors de migrations idempotentes (table/colonne/index déjà présents). */
-const MYSQL_MIGRATION_EXPECTED_ERRNO = new Set([1050, 1060, 1061]);
+const MYSQL_MIGRATION_EXPECTED_ERRNO = new Set([1050, 1060, 1061, 1091]);
 
 function migrationStmtSnippet(stmt) {
   const s = (stmt || '').replace(/\s+/g, ' ').trim();

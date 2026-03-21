@@ -526,8 +526,8 @@ function TaskLogsViewer({ task, onClose }) {
                 </div>
               </div>
               {l.comment && <div className="log-comment">{l.comment}</div>}
-              {(l.image_url || l.image_data) && (
-                <img src={l.image_url || l.image_data} className="log-image" alt="rapport" onClick={() => setBig(l.image_url || l.image_data)} />
+              {l.image_url && (
+                <img src={l.image_url} className="log-image" alt="rapport" onClick={() => setBig(l.image_url)} />
               )}
             </div>
           ))

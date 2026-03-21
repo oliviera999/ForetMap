@@ -69,7 +69,7 @@ Routes protégées « prof » : header `Authorization: Bearer <token>`.
 | POST | `/api/zones` | oui | Créer zone |
 | DELETE | `/api/zones/:id` | oui | Supprimer zone |
 | GET | `/api/zones/:id/photos` | non | Liste des photos (méta) |
-| GET | `/api/zones/:id/photos/:pid/data` | non | Données image (fichier ou `{ image_data }`) |
+| GET | `/api/zones/:id/photos/:pid/data` | non | Données image (fichier disque) |
 | POST | `/api/zones/:id/photos` | oui | Ajouter photo (`image_data` base64, `caption`) |
 | DELETE | `/api/zones/:id/photos/:pid` | oui | Supprimer photo |
 
@@ -110,7 +110,7 @@ Routes protégées « prof » : header `Authorization: Bearer <token>`.
 | POST | `/api/tasks/:id/unassign` | non | Se désassigner |
 | POST | `/api/tasks/:id/done` | non | Marquer comme fait (commentaire/image) |
 | GET | `/api/tasks/:id/logs` | non | Logs de la tâche |
-| GET | `/api/tasks/:id/logs/:logId/image` | non | Image d’un log (fichier ou JSON) |
+| GET | `/api/tasks/:id/logs/:logId/image` | non | Image d’un log (fichier disque) |
 | POST | `/api/tasks/:id/validate` | oui | Valider la tâche |
 
 ---
@@ -139,7 +139,7 @@ Routes protégées « prof » : header `Authorization: Bearer <token>`.
 - **403** : Accès refusé.
 - **404** : Ressource introuvable.
 - **409** : Conflit (ex. compte déjà existant).
-- **503** : Mode prof non configuré (`TEACHER_PIN` manquant).
+- **503** : Mode prof non configuré (`TEACHER_PIN` ou `JWT_SECRET` manquant en production).
 
 ---
 

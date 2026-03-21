@@ -21,7 +21,32 @@ async function fetchCount(sql) {
   return row ? Number(row.c || 0) : 0;
 }
 
+async function hasImageDataColumn(tableName) {
+  const row = await queryOne(
+    `SELECT COUNT(*) AS c
+     FROM information_schema.COLUMNS
+     WHERE TABLE_SCHEMA = DATABASE()
+       AND TABLE_NAME = ?
+       AND COLUMN_NAME = 'image_data'`,
+    [tableName]
+  );
+  return Number(row?.c || 0) > 0;
+}
+
 async function buildReport() {
+  const hasZoneLegacy = await hasImageDataColumn('zone_photos');
+  const hasTaskLegacy = await hasImageDataColumn('task_logs');
+
+  if (!hasZoneLegacy && !hasTaskLegacy) {
+    return {
+      zone_photos_legacy: 0,
+      task_logs_legacy: 0,
+      total_legacy: 0,
+      ready_for_clear: true,
+      legacy_columns_present: false,
+    };
+  }
+
   const zonePhotosLegacy = await fetchCount(`
     SELECT COUNT(*) AS c
     FROM zone_photos
@@ -44,6 +69,7 @@ async function buildReport() {
     task_logs_legacy: taskLogsLegacy,
     total_legacy: totalLegacy,
     ready_for_clear: totalLegacy === 0,
+    legacy_columns_present: true,
   };
 }
 
@@ -54,6 +80,9 @@ function printHuman(report) {
   console.log(
     `[image-report] bascule clear-legacy: ${report.ready_for_clear ? 'OK (aucun reliquat)' : 'NON (reliquats présents)'}`
   );
+  if (!report.legacy_columns_present) {
+    console.log('[image-report] legacy désactivé: colonnes image_data déjà retirées.');
+  }
 }
 
 async function main() {

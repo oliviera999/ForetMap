@@ -21,6 +21,7 @@ if (!fs.existsSync(sqlitePath)) {
 
 const Database = require('better-sqlite3');
 const mysql = require('mysql2/promise');
+const { saveBase64ToDisk } = require('../lib/uploads');
 
 const sqlite = new Database(sqlitePath, { readonly: true });
 
@@ -120,27 +121,37 @@ async function main() {
     }
     console.log('task_assignments:', taskAssignments.length);
 
-    // ─── task_logs (image_data peut être volumineux) ───
+    // ─── task_logs (images sur disque) ───
     const taskLogs = sqlite.prepare('SELECT * FROM task_logs').all();
     for (const l of taskLogs) {
-      await conn.execute(
-        `INSERT INTO task_logs (task_id, student_first_name, student_last_name, comment, image_data, created_at)
+      const [inserted] = await conn.execute(
+        `INSERT INTO task_logs (task_id, student_first_name, student_last_name, comment, image_path, created_at)
          VALUES (?, ?, ?, ?, ?, ?)`,
         [
           l.task_id, l.student_first_name, l.student_last_name,
-          l.comment ?? null, l.image_data ?? null, l.created_at ?? null
+          l.comment ?? null, null, l.created_at ?? null
         ]
       );
+      if (l.image_data) {
+        const relativePath = `task-logs/${l.task_id}_${inserted.insertId}.jpg`;
+        saveBase64ToDisk(relativePath, l.image_data);
+        await conn.execute('UPDATE task_logs SET image_path = ? WHERE id = ?', [relativePath, inserted.insertId]);
+      }
     }
     console.log('task_logs:', taskLogs.length);
 
-    // ─── zone_photos (image_data LONGTEXT) ───
+    // ─── zone_photos (images sur disque) ───
     const zonePhotos = sqlite.prepare('SELECT * FROM zone_photos').all();
     for (const p of zonePhotos) {
-      await conn.execute(
-        'INSERT INTO zone_photos (zone_id, image_data, caption, uploaded_at) VALUES (?, ?, ?, ?)',
-        [p.zone_id, p.image_data, p.caption ?? '', p.uploaded_at ?? null]
+      const [inserted] = await conn.execute(
+        'INSERT INTO zone_photos (zone_id, image_path, caption, uploaded_at) VALUES (?, ?, ?, ?)',
+        [p.zone_id, null, p.caption ?? '', p.uploaded_at ?? null]
       );
+      if (p.image_data) {
+        const relativePath = `zones/${p.zone_id}/${inserted.insertId}.jpg`;
+        saveBase64ToDisk(relativePath, p.image_data);
+        await conn.execute('UPDATE zone_photos SET image_path = ? WHERE id = ?', [relativePath, inserted.insertId]);
+      }
     }
     console.log('zone_photos:', zonePhotos.length);
 

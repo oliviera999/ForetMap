@@ -10,6 +10,7 @@ const {
   targetPathForZonePhoto,
   targetPathForTaskLog,
   migrateTable,
+  buildLegacyTableConfigs,
 } = require('../scripts/migrate-images-to-disk');
 
 test.before(async () => {
@@ -44,31 +45,43 @@ test('migrateTable en dry-run ne modifie pas la ligne', async () => {
     'INSERT INTO zones (id, name, x, y, width, height, current_plant, stage, special, points, color) VALUES (?, ?, 0, 0, 0, 0, ?, ?, 0, ?, ?)',
     [zoneId, 'Zone dry-run', '', 'empty', '[]', '#86efac80']
   );
+  const tempTable = `tmp_legacy_images_${Date.now()}`;
+  await execute(
+    `CREATE TABLE ${tempTable} (
+      id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+      zone_id VARCHAR(64) NOT NULL,
+      image_data LONGTEXT DEFAULT NULL,
+      image_path VARCHAR(512) DEFAULT NULL
+    )`
+  );
   const inserted = await execute(
-    'INSERT INTO zone_photos (zone_id, image_data, image_path, caption, uploaded_at) VALUES (?, ?, ?, ?, ?)',
-    [
-      zoneId,
-      'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO5qXg8AAAAASUVORK5CYII=',
-      null,
-      'dry-run',
-      new Date().toISOString(),
-    ]
+    `INSERT INTO ${tempTable} (zone_id, image_data, image_path) VALUES (?, ?, ?)`,
+    [zoneId, 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO5qXg8AAAAASUVORK5CYII=', null]
   );
   const photoId = inserted.insertId;
 
-  const summary = await migrateTable(
-    { dryRun: true, clearLegacy: false },
-    {
-      name: 'zone_photos',
-      selectSql: `SELECT id, zone_id, image_data FROM zone_photos WHERE id = ${photoId}`,
-      relativePath: targetPathForZonePhoto,
-      updateSql: 'UPDATE zone_photos SET image_path = ? WHERE id = ?',
-      updateWithClearSql: 'UPDATE zone_photos SET image_path = ?, image_data = NULL WHERE id = ?',
-    }
-  );
-  assert.ok(summary.migrated >= 1);
+  try {
+    const summary = await migrateTable(
+      { dryRun: true, clearLegacy: false },
+      {
+        name: tempTable,
+        selectSql: `SELECT id, zone_id, image_data FROM ${tempTable} WHERE id = ${photoId}`,
+        relativePath: targetPathForZonePhoto,
+        updateSql: `UPDATE ${tempTable} SET image_path = ? WHERE id = ?`,
+        updateWithClearSql: `UPDATE ${tempTable} SET image_path = ?, image_data = NULL WHERE id = ?`,
+      }
+    );
+    assert.ok(summary.migrated >= 1);
 
-  const row = await queryOne('SELECT image_path, image_data FROM zone_photos WHERE id = ?', [photoId]);
-  assert.strictEqual(row.image_path, null);
-  assert.ok(row.image_data);
+    const row = await queryOne(`SELECT image_path, image_data FROM ${tempTable} WHERE id = ?`, [photoId]);
+    assert.strictEqual(row.image_path, null);
+    assert.ok(row.image_data);
+  } finally {
+    await execute(`DROP TABLE ${tempTable}`);
+  }
+});
+
+test('buildLegacyTableConfigs retourne vide si les colonnes legacy sont retirées', async () => {
+  const tables = await buildLegacyTableConfigs();
+  assert.deepStrictEqual(tables, []);
 });

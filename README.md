@@ -56,9 +56,11 @@ Exploitation prod : **[docs/EXPLOITATION.md](docs/EXPLOITATION.md)** (check post
 - **Dependabot** : configuration dans [`.github/dependabot.yml`](.github/dependabot.yml) — ouverture hebdomadaire (lundi) de **pull requests** proposant les mises à jour. **Ne pas merger** sans vérifier que la CI est verte et, pour une version **majeure**, jeter un œil au changelog du paquet.
 - **Version de l’application** (SemVer dans `package.json`) : ce n’est pas géré par Dependabot ; utiliser les scripts `npm run bump:patch|minor|major` et suivre [docs/VERSIONING.md](docs/VERSIONING.md) + [CHANGELOG.md](CHANGELOG.md).
 
-### Migration progressive des images legacy (base64 -> disque)
+### Migration images (état actuel)
 
-Le backend reste rétrocompatible (`image_data` legacy toujours servi si `image_path` absent), mais vous pouvez migrer les données historiques par étapes :
+Le fallback legacy `image_data` a été retiré côté API/frontend. La source d’image est désormais `image_path` (fichiers disque) uniquement.
+
+Les scripts de migration existent encore pour les environnements n’ayant pas encore appliqué la migration SQL finale :
 
 ```bash
 # 0) Mesurer les reliquats legacy
@@ -67,16 +69,16 @@ npm run db:migrate:images:report
 # 1) Simulation (aucune écriture)
 npm run db:migrate:images:dry
 
-# 2) Migration disque (conserve image_data pour rollback)
+# 2) Migration disque
 npm run db:migrate:images
 
-# 3) (optionnel, plus tard) nettoyage image_data après validation
+# 3) nettoyage legacy (avant migration SQL finale)
 npm run db:migrate:images:clear
 ```
 
-Le script cible `zone_photos` et `task_logs` quand `image_path` est vide et `image_data` présent.
+Une fois la migration SQL finale appliquée (`migrations/006_drop_legacy_image_data.sql`), `report`/`migrate` indiquent qu’il n’y a plus de colonnes legacy à traiter.
 
-Checklist recommandée avant `db:migrate:images:clear` :
+Checklist recommandée avant migration SQL finale :
 
 1. `npm run db:migrate:images:report` retourne `total legacy: 0`.
 2. Vérification fonctionnelle des photos zones et logs de tâches en UI.
