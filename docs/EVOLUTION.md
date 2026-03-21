@@ -25,11 +25,12 @@ Il a été mis à jour pour refléter l’état réel du dépôt (mars 2026), pu
 ## 1.2 Partiellement réalisé / restant
 
 - **Frontend (partiellement réalisé)** :
-  - `auth` et `tâches` sont déjà extraits en modules dédiés.
-  - **Reste à faire** : extraction complète du domaine carte (`MapView`, `ZoneInfoModal`, `ZoneDrawModal`, `MarkerModal`, `PhotoGallery`, `Lightbox`) hors de `src/components/foretmap-views.jsx`.
+  - `auth`, `tâches` et **carte** sont désormais extraits en modules dédiés (`auth-views`, `tasks-views`, `map-views`).
+  - **Reste à faire** : poursuivre le découpage de `foretmap-views.jsx` sur les domaines restants (stats, audit, à-propos) pour finir l’allègement.
 - **Couverture tests (partiellement réalisé)** :
   - parcours critiques scripts/images déjà renforcés (`post-deploy-check`, images tâches/zones/observations en mode disque).
-  - **Reste à faire** : scénarios fonctionnels UI bout en bout (prof/élève) et régressions de navigation après découpage frontend.
+  - checklist de vérifications UI manuelles post-modularisation ajoutée dans `docs/EXPLOITATION.md`.
+  - **Reste à faire** : scénarios UI automatisés bout en bout (prof/élève) en complément des checks manuels.
 
 ---
 
@@ -47,14 +48,14 @@ Il a été mis à jour pour refléter l’état réel du dépôt (mars 2026), pu
 3. **Étendre les tests ciblés**
    - Parcours images (création/suppression, fichier manquant, bascule post-`clear`).
    - Vérifications de scripts d’exploitation (reporting/migration/check déploiement).
-   - **Avancement** : partiellement fait (tests scripts `post-deploy-check` renforcés, tests images observations ajoutés, couverture disk-only consolidée).
-   - **Reste à faire** : tests UI de non-régression après modularisation carte.
+   - **Avancement** : majoritairement fait (tests scripts `post-deploy-check` renforcés, tests images observations ajoutés, couverture disk-only consolidée, checklist UI manuelle documentée).
+   - **Reste à faire** : tests UI automatisés de non-régression.
 
 4. **Poursuivre le découpage du frontend**
    - Scinder `foretmap-views.jsx` par domaines (carte, tâches, auth, stats, audit, à-propos).
    - Réduire le coût des changements et améliorer la lisibilité.
-   - **Avancement** : partiellement fait (auth + tâches extraits).
-   - **Reste à faire** : extraction carte complète puis allègement final de `foretmap-views.jsx`.
+   - **Avancement** : partiellement fait (auth + tâches + carte extraits).
+   - **Reste à faire** : extraction des sous-domaines restants de `foretmap-views.jsx` (stats/audit/à-propos) si l’on veut une séparation complète.
 
 ## 2.3 Long terme
 
