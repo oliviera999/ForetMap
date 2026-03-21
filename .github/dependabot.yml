@@ -1,0 +1,26 @@
+# Dependabot — propositions de mises à jour npm (PR à relire ; CI doit passer avant merge).
+# Doc : https://docs.github.com/code-security/dependabot/dependabot-version-updates
+
+version: 2
+updates:
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "07:00"
+      timezone: "Europe/Paris"
+    # Évite l’avalanche de PR ouvertes en parallèle
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+    commit-message:
+      prefix: "chore(deps)"
+    # Regroupe correctifs + mineures en une PR ; les majeures restent des PR séparées (plus visibles)
+    groups:
+      npm-patch-minor:
+        patterns:
+          - "*"
+        update-types:
+          - "patch"
+          - "minor"
