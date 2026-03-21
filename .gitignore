@@ -3,6 +3,7 @@ node_modules/
 
 # Build frontend Vite
 dist/
+deploy/
 
 # Fichiers d'environnement (secrets)
 .env

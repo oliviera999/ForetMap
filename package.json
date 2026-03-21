@@ -1,6 +1,6 @@
 {
   "name": "foretmap",
-  "version": "1.4.0",
+  "version": "1.4.1",
   "description": "Application de gestion de la forêt comestible - Lycée Lyautey",
   "main": "server.js",
   "dependencies": {
@@ -34,7 +34,9 @@
     "docker:down": "docker compose down",
     "check:local": "node scripts/check-local-env.js",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "deploy:prepare": "powershell -ExecutionPolicy Bypass -File scripts/prepare-dist-deploy.ps1",
+    "deploy:prepare:fast": "powershell -ExecutionPolicy Bypass -File scripts/prepare-dist-deploy.ps1 -SkipInstall"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.2.1",
