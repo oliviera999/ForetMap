@@ -147,6 +147,10 @@ Le script vide les tables MySQL puis recopie toutes les données (zones, plantes
    npm run deploy:check -- --base-url https://foretmap.olution.info
    ```
    Ce script valide `/api/health` et `/api/health/db` (bloquants), puis `/api/version` (non bloquant).
+   Si votre interface ne permet pas de passer des arguments, utilisez :
+   ```bash
+   npm run deploy:check:prod
+   ```
 
 ### Incident temps réel Socket.IO (WebSocket)
 
