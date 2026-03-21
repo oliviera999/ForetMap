@@ -22,6 +22,7 @@ Il a été mis à jour pour refléter l’état réel du dépôt (mars 2026), pu
 - **Journalisation et observabilité** : logger Pino, traces d’erreurs route, endpoint admin de lecture des logs.
 - **Vérification de déploiement** : scripts `deploy:check` et `deploy:check:prod` (sans argument) pour contrôler `/api/health`, `/api/health/db`, `/api/version`.
 - **Tests UI smoke Playwright** : infrastructure e2e ajoutée (`playwright.config.js`, `e2e/`) pour couvrir les parcours critiques élève/prof.
+- **CI enrichie avec e2e** : le workflow CI exécute désormais les tests Playwright smoke après build et démarrage applicatif.
 - **Modularisation frontend avancée** : extraction des vues `stats`, `audit`, `about` hors de `foretmap-views.jsx` vers des modules dédiés.
 
 ## 1.2 Partiellement réalisé / restant
@@ -31,8 +32,8 @@ Il a été mis à jour pour refléter l’état réel du dépôt (mars 2026), pu
   - **Reste à faire** : éventuel nettoyage final de façade dans `foretmap-views.jsx` (optionnel, faible valeur métier).
 - **Couverture tests (partiellement réalisé)** :
   - parcours critiques scripts/images déjà renforcés (`post-deploy-check`, images tâches/zones/observations en mode disque).
-  - checklist de vérifications UI manuelles post-modularisation ajoutée dans `docs/EXPLOITATION.md` + premiers tests UI smoke Playwright.
-  - **Reste à faire** : élargir la couverture e2e (cas d’erreur, flux complets de validation tâche/photo) et l’intégrer systématiquement en CI.
+  - checklist de vérifications UI manuelles post-modularisation ajoutée dans `docs/EXPLOITATION.md` + tests UI smoke Playwright + exécution e2e en CI.
+  - **Reste à faire** : élargir la couverture e2e (flux complets de validation tâche/photo, cas limites métiers) pour réduire la part de validation manuelle.
 
 ---
 
@@ -46,15 +47,14 @@ Il a été mis à jour pour refléter l’état réel du dépôt (mars 2026), pu
 
 ## 2.2 Priorité moyenne
 
-2. **Intégrer l’e2e dans la routine CI**
-   - Ajouter une étape e2e dédiée (ou job séparé) avec prérequis backend/BDD.
-   - Formaliser la stratégie de lancement local et CI (URL cible, seed test, timeouts).
+2. **Maintenance continue post-bascule image**
+   - Maintenir les scripts/reportings en mode no-op explicite quand il n’y a plus de legacy.
+   - Garder la documentation “disk-only” alignée avec l’état réel de prod/dev.
 
 ## 2.3 Priorité basse
 
-3. **Maintenance continue post-bascule image**
-   - Maintenir les scripts/reportings en mode no-op explicite quand il n’y a plus de legacy.
-   - Garder la documentation “disk-only” alignée avec l’état réel de prod/dev.
+3. **Nettoyage façade historique frontend (optionnel)**
+   - Réduire encore `foretmap-views.jsx` si souhaité, sans changement de comportement.
 
 ---
 
@@ -67,8 +67,8 @@ Il a été mis à jour pour refléter l’état réel du dépôt (mars 2026), pu
 
 ## Phase 2 — Industrialiser l’exécution
 
-- Brancher les tests e2e dans la CI.
-- Définir un protocole de debug e2e (logs, traces Playwright, artefacts).
+- Maintenir la stabilité des runs e2e CI (timeouts, artefacts, diagnostics).
+- Ajuster les scénarios flaky au fil des retours pipeline.
 
 ## Phase 3 — Maintenance de routine
 
@@ -82,8 +82,8 @@ Il a été mis à jour pour refléter l’état réel du dépôt (mars 2026), pu
 | Ordre | Action | Priorité |
 |-------|--------|----------|
 | 1 | Étendre les scénarios Playwright e2e (flux complets) | Haute |
-| 2 | Intégrer l’e2e dans la CI | Moyenne |
-| 3 | Maintenir scripts/docs post-bascule image (disk-only) | Basse |
+| 2 | Maintenir scripts/docs post-bascule image (disk-only) | Moyenne |
+| 3 | Nettoyage façade historique frontend (optionnel) | Basse |
 
 ---
 
