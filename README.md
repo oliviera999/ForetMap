@@ -133,6 +133,12 @@ Le script vide les tables MySQL puis recopie toutes les données (zones, plantes
 
 7. **Redémarrer** l’app depuis l’interface Setup Node.js App après toute modification des variables ou du code.
 
+8. **Vérifier le déploiement** (recommandé) :
+   ```bash
+   npm run deploy:check -- --base-url https://foretmap.olution.info
+   ```
+   Ce script valide `/api/health` et `/api/health/db` (bloquants), puis `/api/version` (non bloquant).
+
 ### Incident temps réel Socket.IO (WebSocket)
 
 Si la console navigateur affiche `reserved bits are on` ou `connect_error websocket error`, cela indique généralement une altération des trames WebSocket par un proxy/CDN (pas une erreur métier ForetMap).
