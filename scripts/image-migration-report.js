@@ -73,4 +73,4 @@ if (require.main === module) {
   });
 }
 
-module.exports = { parseFlags };
+module.exports = { parseFlags, buildReport };
