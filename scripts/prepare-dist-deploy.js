@@ -1,0 +1,98 @@
+#!/usr/bin/env node
+const fs = require('fs');
+const path = require('path');
+const { spawnSync, execSync } = require('child_process');
+
+const rootDir = path.resolve(__dirname, '..');
+const skipInstall = process.argv.includes('--skip-install');
+
+function runCommand(cmd, args, options = {}) {
+  const commandLine = [cmd, ...args].join(' ');
+  try {
+    execSync(commandLine, {
+      cwd: rootDir,
+      stdio: 'inherit',
+      shell: true,
+      ...options,
+    });
+    return true;
+  } catch (err) {
+    if (err && typeof err.status === 'number') {
+      console.error(`[cmd-failed] ${commandLine} (code ${err.status})`);
+    } else {
+      console.error(`[cmd-failed] ${commandLine}`);
+    }
+    return false;
+  }
+}
+
+function commandExists(cmd) {
+  const check = spawnSync(process.platform === 'win32' ? 'where' : 'which', [cmd], {
+    cwd: rootDir,
+    stdio: 'ignore',
+    shell: false,
+  });
+  return check.status === 0;
+}
+
+function fail(message) {
+  console.error(message);
+  process.exit(1);
+}
+
+if (!commandExists('npm')) {
+  fail("Commande introuvable: npm. Installe Node.js/npm puis réessaie.");
+}
+
+if (!skipInstall) {
+  console.log('==> Installation des dépendances (npm ci --include=dev)');
+  if (!runCommand('npm', ['ci', '--include=dev'])) {
+    console.warn('npm ci a échoué (lockfile potentiellement désynchronisé). Bascule sur npm install --include=dev...');
+    if (!runCommand('npm', ['install', '--include=dev'])) {
+      fail("Échec installation dépendances (npm ci puis npm install).");
+    }
+  }
+} else {
+  console.log('==> Installation sautée (--skip-install)');
+}
+
+console.log('==> Build frontend (npm run build)');
+if (!runCommand('npm', ['run', 'build'])) {
+  fail("Échec du build frontend (npm run build).");
+}
+
+const distPath = path.join(rootDir, 'dist');
+const distIndex = path.join(distPath, 'index.html');
+if (!fs.existsSync(distIndex)) {
+  fail('Build incomplet: dist/index.html introuvable.');
+}
+
+const deployDir = path.join(rootDir, 'deploy');
+if (!fs.existsSync(deployDir)) {
+  fs.mkdirSync(deployDir, { recursive: true });
+}
+
+const stamp = new Date().toISOString().replace(/[-:]/g, '').replace('T', '-').slice(0, 15);
+const zipPath = path.join(deployDir, `foretmap-dist-${stamp}.zip`);
+
+let archived = false;
+if (process.platform === 'win32' && commandExists('powershell')) {
+  archived = runCommand('powershell', [
+    '-ExecutionPolicy',
+    'Bypass',
+    '-Command',
+    `Compress-Archive -Path "${path.join(distPath, '*')}" -DestinationPath "${zipPath}" -Force`,
+  ]);
+} else if (commandExists('zip')) {
+  archived = runCommand('zip', ['-qr', zipPath, 'dist'], { cwd: rootDir });
+}
+
+console.log('\nTerminé.');
+console.log(`- Build prêt: ${distPath}`);
+if (archived) {
+  console.log(`- Archive prête: ${zipPath}`);
+} else {
+  console.log("- Archive ZIP non générée (commande 'zip' ou 'powershell' indisponible).");
+  console.log('- Upload le dossier dist/ directement sur le serveur.');
+}
+console.log("Upload le dossier dist/ (ou l'archive ZIP) sur le serveur, puis redémarre l'app Node.js.");
