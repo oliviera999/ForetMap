@@ -67,6 +67,7 @@ Il a été mis à jour pour refléter l’état réel du dépôt (mars 2026), pu
 7. **Renforcer la stratégie de déploiement**
    - Contrôles de santé et rollback documentés.
    - Clarifier le flux recommandé entre build local, livraison `dist/`, et redémarrage.
+   - **Avancement** : script post-déploiement ajouté (`npm run deploy:check`) pour valider `/api/health`, `/api/health/db` et `/api/version`.
 
 ---
 
