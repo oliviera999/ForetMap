@@ -75,6 +75,10 @@ jobs:
           DB_PASS: ''
           TEACHER_PIN: '1234'
 
+      - name: Dump server log on failure
+        if: failure()
+        run: cat /tmp/foretmap-server.log || true
+
       - name: Upload Playwright report
         if: failure()
         uses: actions/upload-artifact@v4

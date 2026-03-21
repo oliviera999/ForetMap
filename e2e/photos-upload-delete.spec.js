@@ -33,6 +33,7 @@ test('parcours photos zone: upload puis suppression', async ({ page }) => {
 
   await expect(page.getByRole('button', { name: /Ajouter une photo|Envoi/ })).toBeVisible();
   await expect(caption).toHaveValue('');
+  await expect(page.locator('img[alt="Photo e2e"]').first()).toBeVisible();
 
   const deleteButtons = page.locator('button', { hasText: '✕' });
   const deleteCount = await deleteButtons.count();
