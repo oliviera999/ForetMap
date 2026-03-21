@@ -24,8 +24,12 @@ Il a été mis à jour pour refléter l’état réel du dépôt (mars 2026), pu
 
 ## 1.2 Partiellement réalisé / restant
 
-- **Frontend** : certains composants restent volumineux (notamment `src/components/foretmap-views.jsx`).
-- **Couverture tests** : bonne base, mais des zones critiques restent peu couvertes (notamment découpage frontend et parcours UI complets).
+- **Frontend (partiellement réalisé)** :
+  - `auth` et `tâches` sont déjà extraits en modules dédiés.
+  - **Reste à faire** : extraction complète du domaine carte (`MapView`, `ZoneInfoModal`, `ZoneDrawModal`, `MarkerModal`, `PhotoGallery`, `Lightbox`) hors de `src/components/foretmap-views.jsx`.
+- **Couverture tests (partiellement réalisé)** :
+  - parcours critiques scripts/images déjà renforcés (`post-deploy-check`, images tâches/zones/observations en mode disque).
+  - **Reste à faire** : scénarios fonctionnels UI bout en bout (prof/élève) et régressions de navigation après découpage frontend.
 
 ---
 
@@ -36,18 +40,21 @@ Il a été mis à jour pour refléter l’état réel du dépôt (mars 2026), pu
 1. **Finaliser la doc opérationnelle serveur**
    - Vérifier que les pages d’exploitation mentionnent systématiquement `deploy:check:prod` pour les interfaces sans arguments.
    - Garder la checklist lock/restart o2switch à jour.
-   - **Avancement** : doc d’exploitation dédiée ajoutée (`docs/EXPLOITATION.md`).
+   - **Avancement** : fait (`docs/EXPLOITATION.md` + liens README/EVOLUTION + rappel `deploy:check:prod`).
 
 ## 2.2 Moyen terme
 
 3. **Étendre les tests ciblés**
    - Parcours images (création/suppression, fichier manquant, bascule post-`clear`).
    - Vérifications de scripts d’exploitation (reporting/migration/check déploiement).
-   - **Avancement** : tests scripts `post-deploy-check` renforcés (réponses HTTP réelles), et tests images d’observations ajoutés (lecture fichier + fichier manquant).
+   - **Avancement** : partiellement fait (tests scripts `post-deploy-check` renforcés, tests images observations ajoutés, couverture disk-only consolidée).
+   - **Reste à faire** : tests UI de non-régression après modularisation carte.
 
 4. **Poursuivre le découpage du frontend**
    - Scinder `foretmap-views.jsx` par domaines (carte, tâches, auth, stats, audit, à-propos).
    - Réduire le coût des changements et améliorer la lisibilité.
+   - **Avancement** : partiellement fait (auth + tâches extraits).
+   - **Reste à faire** : extraction carte complète puis allègement final de `foretmap-views.jsx`.
 
 ## 2.3 Long terme
 
