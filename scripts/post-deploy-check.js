@@ -13,6 +13,8 @@
  */
 
 const { URL } = require('url');
+const http = require('http');
+const https = require('https');
 
 function parseArgs(argv) {
   const args = {};
@@ -27,27 +29,49 @@ function parseArgs(argv) {
   };
 }
 
-async function fetchJsonWithTimeout(url, timeoutMs) {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), timeoutMs);
-  try {
-    const res = await fetch(url, { signal: controller.signal });
-    let body = {};
-    try {
-      body = await res.json();
-    } catch (_) {
-      body = {};
-    }
-    return { ok: res.ok, status: res.status, body };
-  } finally {
-    clearTimeout(timer);
-  }
+function requestJsonWithTimeout(urlString, timeoutMs) {
+  return new Promise((resolve, reject) => {
+    const url = new URL(urlString);
+    const client = url.protocol === 'https:' ? https : http;
+
+    const req = client.request(
+      {
+        protocol: url.protocol,
+        hostname: url.hostname,
+        port: url.port || undefined,
+        path: `${url.pathname}${url.search}`,
+        method: 'GET',
+        headers: { Accept: 'application/json' },
+      },
+      (res) => {
+        let raw = '';
+        res.setEncoding('utf8');
+        res.on('data', (chunk) => { raw += chunk; });
+        res.on('end', () => {
+          let body = {};
+          try {
+            body = raw ? JSON.parse(raw) : {};
+          } catch (_) {
+            body = {};
+          }
+          const status = typeof res.statusCode === 'number' ? res.statusCode : 0;
+          resolve({ ok: status >= 200 && status < 300, status, body });
+        });
+      }
+    );
+
+    req.setTimeout(timeoutMs, () => {
+      req.destroy(new Error(`timeout après ${timeoutMs}ms`));
+    });
+    req.on('error', reject);
+    req.end();
+  });
 }
 
 async function checkEndpoint(baseUrl, path, timeoutMs, required = true) {
   const full = new URL(path, baseUrl).toString();
   try {
-    const res = await fetchJsonWithTimeout(full, timeoutMs);
+    const res = await requestJsonWithTimeout(full, timeoutMs);
     const pass = res.ok;
     const label = pass ? 'OK' : 'FAIL';
     console.log(`${label} ${path} -> HTTP ${res.status}`);
