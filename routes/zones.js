@@ -92,7 +92,7 @@ router.get('/:id/photos', async (req, res) => {
 
 router.get('/:id/photos/:pid/data', async (req, res) => {
   try {
-    const p = await queryOne('SELECT image_path, image_data FROM zone_photos WHERE id=? AND zone_id=?', [req.params.pid, req.params.id]);
+    const p = await queryOne('SELECT image_path FROM zone_photos WHERE id=? AND zone_id=?', [req.params.pid, req.params.id]);
     if (!p) return res.status(404).json({ error: 'Photo introuvable' });
     if (p.image_path) {
       const absolutePath = getAbsolutePath(p.image_path);
@@ -100,7 +100,7 @@ router.get('/:id/photos/:pid/data', async (req, res) => {
         if (err && !res.headersSent) res.status(404).json({ error: 'Fichier introuvable' });
       });
     }
-    res.json({ image_data: p.image_data });
+    return res.status(404).json({ error: 'Aucune image' });
   } catch (e) {
     logRouteError(e, req);
     res.status(500).json({ error: e.message });
@@ -115,7 +115,7 @@ router.post('/:id/photos', requireTeacher, async (req, res) => {
     const { image_data, caption } = req.body;
     if (!image_data) return res.status(400).json({ error: 'Image requise' });
     const result = await execute(
-      'INSERT INTO zone_photos (zone_id, image_data, caption, uploaded_at) VALUES (?, ?, ?, ?)',
+      'INSERT INTO zone_photos (zone_id, image_path, caption, uploaded_at) VALUES (?, ?, ?, ?)',
       [req.params.id, null, caption || '', new Date().toISOString()]
     );
     photoId = result.insertId;

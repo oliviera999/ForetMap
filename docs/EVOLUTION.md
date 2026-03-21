@@ -16,16 +16,14 @@ Il a été mis à jour pour refléter l’état réel du dépôt (mars 2026), pu
 - **Frontend migré vers Vite + React modulaire** : source dans `src/`, build `dist/`, entrée `index.vite.html`.
 - **Tests backend en place** (node:test + supertest) : auth, statuts tâches, suppression élève, temps réel, nouvelles fonctionnalités.
 - **Migrations versionnées** : table `schema_version`, dossier `migrations/` (001+).
-- **Images majoritairement sur disque** : `uploads/` + colonnes `image_path` (fallback legacy conservé).
-- **Migration image legacy outillée** : scripts `db:migrate:images:report|dry|clear` pour piloter la bascule progressive.
+- **Images sur disque (source unique)** : `uploads/` + `image_path` côté API/frontend.
+- **Retrait legacy base64 réalisé** : fallback `image_data` retiré du code et migration SQL de suppression des colonnes legacy ajoutée (`migrations/006_drop_legacy_image_data.sql`).
 - **Lockfile et outillage dev** : `package-lock.json`, `nodemon`, scripts debug.
 - **Journalisation et observabilité** : logger Pino, traces d’erreurs route, endpoint admin de lecture des logs.
 - **Vérification de déploiement** : scripts `deploy:check` et `deploy:check:prod` (sans argument) pour contrôler `/api/health`, `/api/health/db`, `/api/version`.
 
 ## 1.2 Partiellement réalisé / restant
 
-- **Décommission base64** : `image_data` reste présent pour compatibilité.
-  - **Avancement** : scripts de migration/reporting disponibles (`npm run db:migrate:images:report`, `npm run db:migrate:images:dry`, puis `npm run db:migrate:images`, et option finale `npm run db:migrate:images:clear` après validation).
 - **Frontend** : certains composants restent volumineux (notamment `src/components/foretmap-views.jsx`).
 - **Couverture tests** : bonne base, mais des zones critiques restent peu couvertes (cas limite upload/observations, scénarios de bascule finale images).
 
@@ -35,11 +33,7 @@ Il a été mis à jour pour refléter l’état réel du dépôt (mars 2026), pu
 
 ## 2.1 Quick wins (faible risque, fort retour)
 
-1. **Boucler la bascule finale image_data**
-   - Exécuter la séquence `report -> dry-run -> migrate -> report`.
-   - Passer `db:migrate:images:clear` uniquement après validation UI/BDD.
-
-2. **Finaliser la doc opérationnelle serveur**
+1. **Finaliser la doc opérationnelle serveur**
    - Vérifier que les pages d’exploitation mentionnent systématiquement `deploy:check:prod` pour les interfaces sans arguments.
    - Garder la checklist lock/restart o2switch à jour.
    - **Avancement** : doc d’exploitation dédiée ajoutée (`docs/EXPLOITATION.md`).
@@ -56,10 +50,9 @@ Il a été mis à jour pour refléter l’état réel du dépôt (mars 2026), pu
 
 ## 2.3 Long terme
 
-5. **Retirer le legacy image_data du code et du schéma**
-   - Supprimer les branches de fallback API qui renvoient `image_data`.
-   - Préparer migration SQL de retrait des colonnes legacy.
-   - Retrait progressif des colonnes `image_data` après fenêtre de transition.
+5. **Stabiliser la maintenance post-bascule image**
+   - Conserver les scripts de migration/reporting en mode no-op explicite une fois le legacy retiré.
+   - Documenter le mode “disk-only” dans les guides d’exploitation et de dev.
 
 ---
 
@@ -75,13 +68,13 @@ Il a été mis à jour pour refléter l’état réel du dépôt (mars 2026), pu
 
 - Aligner `README.md`, `docs/LOCAL_DEV.md` et `package.json` sur le flux dev actuel.
 - Formaliser les prérequis prod et les valeurs de secours acceptées.
-- Poser le plan de sortie du legacy base64 (sans suppression immédiate).
+- Stabiliser le mode “disk-only” après retrait du legacy base64.
 
 ## Phase 3 — Itérations structurantes
 
 - Ajouter les tests manquants sur les points à plus fort risque de régression.
 - Continuer la modularisation frontend.
-- Préparer/valider la migration data image complète.
+- Renforcer les tests post-bascule image (mode disque uniquement).
 
 ---
 
@@ -89,11 +82,10 @@ Il a été mis à jour pour refléter l’état réel du dépôt (mars 2026), pu
 
 | Ordre | Action | Priorité |
 |-------|--------|----------|
-| 1 | Bascule finale `image_data` (report -> migrate -> clear) | Haute |
-| 2 | Vérification doc d’exploitation serveur (`deploy:check:prod`) | Haute |
-| 3 | Tests ciblés scripts/images post-bascule | Moyenne |
-| 4 | Découpage progressif du frontend | Moyenne |
-| 5 | Retrait définitif fallback `image_data` + migration SQL | Basse |
+| 1 | Vérification doc d’exploitation serveur (`deploy:check:prod`) | Haute |
+| 2 | Tests ciblés scripts/images en mode disk-only | Moyenne |
+| 3 | Découpage progressif du frontend | Moyenne |
+| 4 | Maintenance outillage migration (no-op explicites) | Basse |
 
 ---
 

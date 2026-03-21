@@ -41,7 +41,7 @@ npm run db:init
 
 Cela applique le schéma et le seed sur **`foretmap_local`**.
 
-### Optionnel — migrer les images legacy base64 vers disque
+### Optionnel — migration legacy images (avant migration SQL finale)
 
 ```bash
 # Mesurer les reliquats
@@ -50,9 +50,11 @@ npm run db:migrate:images:report
 # Simulation
 npm run db:migrate:images:dry
 
-# Migration réelle (conserve image_data pour compat)
+# Migration réelle
 npm run db:migrate:images
 ```
+
+Après la migration SQL finale (`migrations/006_drop_legacy_image_data.sql`), ces commandes deviennent des no-op (colonnes legacy absentes).
 
 ## 4. Lancer l’application
 

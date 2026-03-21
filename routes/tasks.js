@@ -174,8 +174,8 @@ router.post('/:id/done', async (req, res) => {
 
     if (comment || imageData) {
       const result = await execute(
-        'INSERT INTO task_logs (task_id, student_first_name, student_last_name, comment, image_data, image_path, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
-        [task.id, firstName || '', lastName || '', comment || '', imageData || null, null, new Date().toISOString()]
+        'INSERT INTO task_logs (task_id, student_first_name, student_last_name, comment, image_path, created_at) VALUES (?, ?, ?, ?, ?, ?)',
+        [task.id, firstName || '', lastName || '', comment || '', null, new Date().toISOString()]
       );
       const logId = result.insertId;
       if (imageData) {
@@ -186,7 +186,7 @@ router.post('/:id/done', async (req, res) => {
           await execute('DELETE FROM task_logs WHERE id = ?', [logId]);
           throw fileErr;
         }
-        await execute('UPDATE task_logs SET image_path = ?, image_data = NULL WHERE id = ?', [relativePath, logId]);
+        await execute('UPDATE task_logs SET image_path = ? WHERE id = ?', [relativePath, logId]);
       }
     }
 
@@ -203,7 +203,7 @@ router.post('/:id/done', async (req, res) => {
 router.get('/:id/logs', async (req, res) => {
   try {
     const logs = await queryAll(
-      'SELECT id, task_id, student_first_name, student_last_name, comment, image_data, image_path, created_at FROM task_logs WHERE task_id = ? ORDER BY created_at DESC',
+      'SELECT id, task_id, student_first_name, student_last_name, comment, image_path, created_at FROM task_logs WHERE task_id = ? ORDER BY created_at DESC',
       [req.params.id]
     );
     const taskId = req.params.id;
@@ -220,7 +220,7 @@ router.get('/:id/logs', async (req, res) => {
 
 router.get('/:id/logs/:logId/image', async (req, res) => {
   try {
-    const log = await queryOne('SELECT image_path, image_data FROM task_logs WHERE id = ? AND task_id = ?', [req.params.logId, req.params.id]);
+    const log = await queryOne('SELECT image_path FROM task_logs WHERE id = ? AND task_id = ?', [req.params.logId, req.params.id]);
     if (!log) return res.status(404).json({ error: 'Log introuvable' });
     if (log.image_path) {
       const absolutePath = getAbsolutePath(log.image_path);
@@ -228,7 +228,6 @@ router.get('/:id/logs/:logId/image', async (req, res) => {
         if (err && !res.headersSent) res.status(404).json({ error: 'Fichier introuvable' });
       });
     }
-    if (log.image_data) return res.json({ image_data: log.image_data });
     res.status(404).json({ error: 'Aucune image' });
   } catch (e) {
     logRouteError(e, req);

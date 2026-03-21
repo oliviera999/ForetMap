@@ -78,25 +78,23 @@ CREATE TABLE IF NOT EXISTS students (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- task_logs (commentaires / images de réalisation d'une tâche)
--- image_path : chemin relatif vers uploads/ si image sur disque (sinon image_data legacy)
+-- image_path : chemin relatif vers uploads/ (source unique des images)
 CREATE TABLE IF NOT EXISTS task_logs (
   id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
   task_id VARCHAR(64) NOT NULL,
   student_first_name VARCHAR(255) NOT NULL,
   student_last_name VARCHAR(255) NOT NULL,
   comment TEXT DEFAULT NULL,
-  image_data LONGTEXT DEFAULT NULL,
   image_path VARCHAR(512) DEFAULT NULL,
   created_at VARCHAR(32) DEFAULT NULL,
   INDEX idx_task_logs_task_id (task_id),
   CONSTRAINT fk_task_logs_task FOREIGN KEY (task_id) REFERENCES tasks(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- zone_photos (photos par zone - image_path si sur disque, sinon image_data legacy)
+-- zone_photos (photos par zone)
 CREATE TABLE IF NOT EXISTS zone_photos (
   id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
   zone_id VARCHAR(64) NOT NULL,
-  image_data LONGTEXT DEFAULT NULL,
   image_path VARCHAR(512) DEFAULT NULL,
   caption VARCHAR(512) DEFAULT '',
   uploaded_at VARCHAR(32) DEFAULT NULL,

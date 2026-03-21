@@ -67,16 +67,8 @@ function PhotoGallery({ zoneId, isTeacher }) {
     setLoading(true);
     try {
       const list = await api(`/api/zones/${zoneId}/photos`);
-      setPhotos(list.map(p => ({ ...p, image_data: null })));
+      setPhotos(list);
       setLoading(false);
-      // Pour les photos sans image_url (legacy base64), charger image_data
-      for (const p of list) {
-        if (p.image_url) continue;
-        try {
-          const d = await api(`/api/zones/${zoneId}/photos/${p.id}/data`);
-          setPhotos(prev => prev.map(x => x.id === p.id ? { ...x, image_data: d.image_data } : x));
-        } catch (e) { console.error('[ForetMap] photo legacy (data)', e); }
-      }
     } catch (e) { console.error('[ForetMap] chargement photos zone', e); setLoading(false); }
   };
 
@@ -116,18 +108,18 @@ function PhotoGallery({ zoneId, isTeacher }) {
               {photos.map(p => (
                 <div key={p.id} style={{position:'relative',borderRadius:8,overflow:'hidden',
                   aspectRatio:'1',background:'#e8f5e9'}}>
-                  {(p.image_url || p.image_data)
-                    ? <img src={p.image_url || p.image_data} style={{width:'100%',height:'100%',objectFit:'cover',cursor:'pointer'}}
-                        onClick={() => setBig({src:p.image_url || p.image_data, caption:p.caption})} alt={p.caption||''}/>
+                  {p.image_url
+                    ? <img src={p.image_url} style={{width:'100%',height:'100%',objectFit:'cover',cursor:'pointer'}}
+                        onClick={() => setBig({src:p.image_url, caption:p.caption})} alt={p.caption||''}/>
                     : <div style={{width:'100%',height:'100%',display:'flex',alignItems:'center',
                         justifyContent:'center',fontSize:'1.5rem',animation:'sway 1.5s infinite'}}>🌿</div>
                   }
-                  {(p.image_url || p.image_data) && p.caption && (
+                  {p.image_url && p.caption && (
                     <div style={{position:'absolute',bottom:0,left:0,right:0,background:'rgba(0,0,0,.55)',
                       color:'white',fontSize:'.62rem',padding:'3px 5px',
                       overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{p.caption}</div>
                   )}
-                  {isTeacher && (p.image_url || p.image_data) && (
+                  {isTeacher && p.image_url && (
                     <button onClick={() => del(p.id)}
                       style={{position:'absolute',top:4,right:4,background:'rgba(0,0,0,.55)',
                         border:'none',color:'white',borderRadius:'50%',width:22,height:22,
