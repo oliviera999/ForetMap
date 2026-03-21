@@ -5,6 +5,7 @@ const { spawnSync, execSync } = require('child_process');
 
 const rootDir = path.resolve(__dirname, '..');
 const skipInstall = process.argv.includes('--skip-install');
+const viteBinPath = path.join(rootDir, 'node_modules', 'vite', 'bin', 'vite.js');
 
 function runCommand(cmd, args, options = {}) {
   const commandLine = [cmd, ...args].join(' ');
@@ -54,6 +55,12 @@ if (!skipInstall) {
   }
 } else {
   console.log('==> Installation sautée (--skip-install)');
+  if (!fs.existsSync(viteBinPath)) {
+    console.warn("Vite absent (devDependencies non installées). Installation automatique via npm install --include=dev...");
+    if (!runCommand('npm', ['install', '--include=dev'])) {
+      fail("Échec installation des dépendances dev requises pour le build.");
+    }
+  }
 }
 
 console.log('==> Build frontend (npm run build)');
