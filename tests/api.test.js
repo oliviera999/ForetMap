@@ -127,3 +127,37 @@ test('DELETE /api/students/:id supprime l’élève et recalcule les statuts des
   const task = await queryOne('SELECT * FROM tasks WHERE id = ?', [taskId]);
   assert.strictEqual(task.status, 'available');
 });
+
+// ─── Admin logs (tampon Pino) ─────────────────────────────────────────────
+test('GET /api/admin/logs sans DEPLOY_SECRET → 403', async () => {
+  const prev = process.env.DEPLOY_SECRET;
+  delete process.env.DEPLOY_SECRET;
+  const res = await request(app).get('/api/admin/logs').expect(403);
+  assert.ok(res.body.error);
+  process.env.DEPLOY_SECRET = prev;
+});
+
+test('GET /api/admin/logs avec mauvais secret → 403', async () => {
+  const prev = process.env.DEPLOY_SECRET;
+  process.env.DEPLOY_SECRET = 'secret-admin-logs-test';
+  const res = await request(app)
+    .get('/api/admin/logs')
+    .set('X-Deploy-Secret', 'wrong')
+    .expect(403);
+  assert.ok(res.body.error);
+  process.env.DEPLOY_SECRET = prev;
+});
+
+test('GET /api/admin/logs avec bon secret → 200', async () => {
+  const prev = process.env.DEPLOY_SECRET;
+  process.env.DEPLOY_SECRET = 'secret-admin-logs-test';
+  const res = await request(app)
+    .get('/api/admin/logs?lines=50')
+    .set('X-Deploy-Secret', 'secret-admin-logs-test')
+    .expect(200);
+  assert.strictEqual(res.body.ok, true);
+  assert.ok(Array.isArray(res.body.entries));
+  assert.ok(typeof res.body.bufferLines === 'number');
+  assert.ok(typeof res.body.bufferMax === 'number');
+  process.env.DEPLOY_SECRET = prev;
+});

@@ -124,6 +124,17 @@ curl -X POST https://foretmap.olution.info/api/admin/restart \
 
 Ou en JSON : `POST /api/admin/restart` avec body `{ "secret": "VOTRE_DEPLOY_SECRET" }`. En cas de succès, l’app répond puis s’arrête 1 seconde après ; le serveur doit être configuré pour relancer l’application automatiquement.
 
+### Consultation des logs applicatifs (tampon mémoire)
+
+Avec le **même** `DEPLOY_SECRET`, tu peux récupérer les dernières lignes émises par **Pino** depuis le démarrage du process (JSON par ligne) :
+
+```bash
+curl -s "https://foretmap.olution.info/api/admin/logs?lines=300" \
+  -H "X-Deploy-Secret: VOTRE_DEPLOY_SECRET"
+```
+
+Réponse JSON : `entries` (tableau de chaînes), `bufferLines`, `bufferMax`. Préférer le **header** au secret en query string pour limiter l’exposition dans les journaux d’accès du serveur web. Taille du tampon : variable optionnelle **`LOG_BUFFER_MAX_LINES`** (voir `.env.example`). Pour l’historique complet ou les erreurs avant boot, utiliser aussi les logs du panel Node (o2switch).
+
 Référence : [FAQ o2switch – Node.js](https://faq.o2switch.fr/cpanel/logiciels/hebergement-nodejs-multi-version/).
 
 ### Diagnostic (BDD vs app)
