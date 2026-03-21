@@ -25,7 +25,7 @@ Il a été mis à jour pour refléter l’état réel du dépôt (mars 2026), pu
 ## 1.2 Partiellement réalisé / restant
 
 - **Frontend** : certains composants restent volumineux (notamment `src/components/foretmap-views.jsx`).
-- **Couverture tests** : bonne base, mais des zones critiques restent peu couvertes (cas limite upload/observations, scénarios de bascule finale images).
+- **Couverture tests** : bonne base, mais des zones critiques restent peu couvertes (notamment découpage frontend et parcours UI complets).
 
 ---
 
@@ -43,6 +43,7 @@ Il a été mis à jour pour refléter l’état réel du dépôt (mars 2026), pu
 3. **Étendre les tests ciblés**
    - Parcours images (création/suppression, fichier manquant, bascule post-`clear`).
    - Vérifications de scripts d’exploitation (reporting/migration/check déploiement).
+   - **Avancement** : tests scripts `post-deploy-check` renforcés (réponses HTTP réelles), et tests images d’observations ajoutés (lecture fichier + fichier manquant).
 
 4. **Poursuivre le découpage du frontend**
    - Scinder `foretmap-views.jsx` par domaines (carte, tâches, auth, stats, audit, à-propos).

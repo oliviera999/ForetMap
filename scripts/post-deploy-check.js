@@ -126,4 +126,4 @@ if (require.main === module) {
   });
 }
 
-module.exports = { parseArgs };
+module.exports = { parseArgs, requestJsonWithTimeout, checkEndpoint };
