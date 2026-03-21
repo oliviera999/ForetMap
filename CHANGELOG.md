@@ -10,6 +10,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - **Frontend** : client Socket.IO (CDN) après connexion élève ; rafraîchissement ciblé des tâches / jardin (debounce) ; événement DOM `foretmap_realtime` pour recharger les stats prof ; reconnexion → `fetchAll()`. Polling ~30 s conservé en secours.
 - **Tests** : `tests/realtime.test.js` ; devDependency `socket.io-client`.
 - **Documentation** : section *Temps réel* dans [docs/API.md](docs/API.md).
+- **Page À propos** : nouvel onglet (élève/prof) avec description de l'application, version affichée, mention de l'auteur, liens de documentation locaux (`/README.md`, `/CHANGELOG.md`, `/docs/*`) et lien global vers le dépôt GitHub.
 
 ### Modifié
 - `server.js` : création du serveur via `http.createServer(app)` pour attacher Socket.IO.
