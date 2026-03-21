@@ -12,7 +12,7 @@ Les élèves peuvent consulter la carte des zones, s’inscrire à des tâches e
 
 | Couche      | Technologie |
 |------------|-------------|
-| Backend    | Node.js, Express |
+| Backend    | Node.js, Express, Socket.IO (mises à jour temps réel) |
 | Base de données | **MySQL** (mysql2, pool promesses) — hébergement o2switch |
 | Frontend   | React 18 (UMD via CDN), Babel standalone (transpilation dans le navigateur) |
 | Auth élèves | bcrypt (hash des mots de passe), session en `localStorage` |

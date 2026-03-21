@@ -13,6 +13,7 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+  <script src="https://cdn.socket.io/4.8.1/socket.io.min.js" crossorigin="anonymous"></script>
   <style>
     *, *::before, *::after { box-sizing:border-box; margin:0; padding:0; }
 
@@ -203,6 +204,36 @@
     /* ── SECTION TITLES ── */
     .section-title { font-size:1.3rem; color:var(--forest); margin-bottom:4px; }
     .section-sub { font-size:.85rem; color:#aaa; margin-bottom:16px; }
+
+    /* ── ABOUT ── */
+    .about-grid { display:grid; gap:12px; }
+    .about-card {
+      background:white; border-radius:12px; padding:14px;
+      border:1.5px solid var(--mint);
+      box-shadow:0 1px 6px rgba(0,0,0,.04);
+    }
+    .about-card h3 {
+      font-size:.92rem; color:var(--leaf); margin-bottom:8px;
+      text-transform:uppercase; letter-spacing:.04em;
+    }
+    .about-card p { line-height:1.5; color:#365043; }
+    .about-meta { display:flex; flex-wrap:wrap; gap:8px; margin-top:8px; }
+    .about-chip {
+      border-radius:999px; padding:6px 10px; font-size:.76rem;
+      background:var(--parchment); color:var(--soil); font-weight:600;
+    }
+    .about-links { display:grid; gap:8px; }
+    .about-link {
+      display:block; width:100%; text-decoration:none; color:var(--forest);
+      background:#f8fbf9; border:1px solid var(--mint); border-radius:10px;
+      padding:10px 12px; min-height:44px;
+      transition:background .18s var(--ease-out), border-color .18s var(--ease-out);
+    }
+    .about-link:active { background:#eef8f2; border-color:var(--sage); }
+    .about-link small { color:#5e7468; }
+    @media(hover:hover) {
+      .about-link:hover { background:#eef8f2; border-color:var(--sage); }
+    }
 
     /* ── MAP WRAP ── */
     .map-wrap { background:white; border-radius:var(--radius); padding:12px; box-shadow:var(--shadow); overflow:hidden; }
@@ -2688,11 +2719,19 @@ function TeacherStats() {
   const [toast,         setToast]         = useState(null);
   const [confirmStudent, setConfirmStudent] = useState(null); // student to delete
 
-  const load = () => api('/api/stats/all').then(setData).catch(err => {
+  const load = useCallback(() => api('/api/stats/all').then(setData).catch(err => {
     console.error('[ForetMap] stats tous', err);
     setToast('Impossible de charger les statistiques.');
-  });
-  useEffect(() => { load(); }, []);
+  }), []);
+  useEffect(() => { load(); }, [load]);
+
+  useEffect(() => {
+    const onRealtime = (e) => {
+      if (e.detail && e.detail.domain === 'students') load();
+    };
+    window.addEventListener('foretmap_realtime', onRealtime);
+    return () => window.removeEventListener('foretmap_realtime', onRealtime);
+  }, [load]);
 
   const deleteStudent = async (s) => {
     // Show inline confirm instead of browser confirm() (broken on mobile)
@@ -2902,6 +2941,58 @@ function AuditLog() {
   );
 }
 
+function AboutView({ appVersion }) {
+  const docsLinks = [
+    { label: 'CHANGELOG', href: '/CHANGELOG.md', desc: 'Historique des modifications publiées' },
+    { label: 'README', href: '/README.md', desc: 'Présentation du projet et installation' },
+    { label: 'API', href: '/docs/API.md', desc: 'Routes backend et formats JSON' },
+    { label: 'LOCAL_DEV', href: '/docs/LOCAL_DEV.md', desc: 'Mise en place locale (Docker + tests)' },
+    { label: 'EVOLUTION', href: '/docs/EVOLUTION.md', desc: 'Feuille de route d\'évolution' },
+    { label: 'VERSIONING', href: '/docs/VERSIONING.md', desc: 'Règles de versionnage SemVer' },
+  ];
+
+  return (
+    <div className="fade-in">
+      <h2 className="section-title">ℹ️ À propos</h2>
+      <p className="section-sub">Informations du projet ForetMap</p>
+
+      <div className="about-grid">
+        <div className="about-card">
+          <h3>Objet de l'application</h3>
+          <p>
+            ForetMap aide les élèves et les professeurs du Lycée Lyautey à organiser les activités de la forêt
+            comestible: suivi des zones, des plantes, des tâches et des observations.
+          </p>
+          <div className="about-meta">
+            <span className="about-chip">Version: {appVersion || 'indisponible'}</span>
+            <span className="about-chip">Auteur: oliviera999</span>
+          </div>
+        </div>
+
+        <div className="about-card">
+          <h3>Documentation</h3>
+          <div className="about-links">
+            {docsLinks.map(link => (
+              <a key={link.label} className="about-link" href={link.href} target="_blank" rel="noopener noreferrer">
+                <strong>{link.label}</strong><br/>
+                <small>{link.desc}</small>
+              </a>
+            ))}
+          </div>
+        </div>
+
+        <div className="about-card">
+          <h3>Dépôt GitHub</h3>
+          <a className="about-link" href="https://github.com/oliviera999/ForetMap" target="_blank" rel="noopener noreferrer">
+            <strong>github.com/oliviera999/ForetMap</strong><br/>
+            <small>Code source complet du projet</small>
+          </a>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── APP ───────────────────────────────────────────────────────────────────────
 function App() {
   const [student,    setStudent]    = useState(null);
@@ -2983,6 +3074,82 @@ function App() {
     }
     setLoading(false);
   }, [forceLogout]);
+
+  const tasksRtDebounceRef = useRef(null);
+  const gardenRtDebounceRef = useRef(null);
+
+  const refreshTasksFromServer = useCallback(async () => {
+    try {
+      const t = await api('/api/tasks');
+      setTasks(t);
+    } catch (e) {
+      if (e instanceof AccountDeletedError) forceLogout();
+      else console.error('[ForetMap] rafraîchissement tâches (temps réel)', e);
+    }
+  }, [forceLogout]);
+
+  const refreshGardenFromServer = useCallback(async () => {
+    try {
+      const [z, p, m] = await Promise.all([
+        api('/api/zones'), api('/api/plants'), api('/api/map/markers')
+      ]);
+      setZones(z); setPlants(p); setMarkers(m);
+    } catch (e) {
+      console.error('[ForetMap] rafraîchissement jardin (temps réel)', e);
+    }
+  }, []);
+
+  const scheduleTasksRefresh = useCallback(() => {
+    if (tasksRtDebounceRef.current) clearTimeout(tasksRtDebounceRef.current);
+    tasksRtDebounceRef.current = setTimeout(() => {
+      tasksRtDebounceRef.current = null;
+      refreshTasksFromServer();
+    }, 200);
+  }, [refreshTasksFromServer]);
+
+  const scheduleGardenRefresh = useCallback(() => {
+    if (gardenRtDebounceRef.current) clearTimeout(gardenRtDebounceRef.current);
+    gardenRtDebounceRef.current = setTimeout(() => {
+      gardenRtDebounceRef.current = null;
+      refreshGardenFromServer();
+    }, 200);
+  }, [refreshGardenFromServer]);
+
+  const onStudentsRealtime = useCallback(() => {
+    window.dispatchEvent(new CustomEvent('foretmap_realtime', { detail: { domain: 'students' } }));
+  }, []);
+
+  useEffect(() => {
+    if (!student) return undefined;
+    if (typeof io === 'undefined') {
+      console.warn('[ForetMap] Client Socket.IO indisponible — mise à jour uniquement par intervalle');
+      return undefined;
+    }
+    const origin = (API && String(API).trim())
+      ? new URL(API, window.location.href).origin
+      : window.location.origin;
+    const socket = io(origin, {
+      path: '/socket.io',
+      transports: ['websocket', 'polling'],
+    });
+    socket.on('tasks:changed', scheduleTasksRefresh);
+    socket.on('students:changed', onStudentsRealtime);
+    socket.on('garden:changed', scheduleGardenRefresh);
+    socket.on('connect_error', (err) => {
+      console.warn('[ForetMap] Socket.IO connect_error', err?.message || err);
+    });
+    socket.io.on('reconnect', () => {
+      fetchAll();
+    });
+    return () => {
+      socket.off('tasks:changed', scheduleTasksRefresh);
+      socket.off('students:changed', onStudentsRealtime);
+      socket.off('garden:changed', scheduleGardenRefresh);
+      if (tasksRtDebounceRef.current) clearTimeout(tasksRtDebounceRef.current);
+      if (gardenRtDebounceRef.current) clearTimeout(gardenRtDebounceRef.current);
+      socket.disconnect();
+    };
+  }, [student, fetchAll, scheduleTasksRefresh, scheduleGardenRefresh, onStudentsRealtime]);
 
   useEffect(() => { fetchAll(); }, []);
 
@@ -3077,12 +3244,14 @@ function App() {
             <button className={`top-tab ${tab === 'plants' ? 'active' : ''}`} onClick={() => setTab('plants')}>🌱 Plantes</button>
             <button className={`top-tab ${tab === 'stats' ? 'active' : ''}`} onClick={() => setTab('stats')}>📊 Stats</button>
             <button className={`top-tab ${tab === 'audit' ? 'active' : ''}`} onClick={() => setTab('audit')}>📜 Audit</button>
+            <button className={`top-tab ${tab === 'about' ? 'active' : ''}`} onClick={() => setTab('about')}>ℹ️ À propos</button>
           </div>
           {tab === 'map'    && <MapView zones={zones} markers={markers} plants={plants} isTeacher onZoneUpdate={updateZone} onRefresh={fetchAll}/>}
           {tab === 'tasks'  && <TasksView  tasks={tasks} zones={zones} isTeacher student={student} onRefresh={fetchAll} onForceLogout={forceLogout}/>}
           {tab === 'plants' && <PlantManager plants={plants} onRefresh={fetchAll}/>}
           {tab === 'stats'  && <TeacherStats/>}
           {tab === 'audit'  && <AuditLog/>}
+          {tab === 'about'  && <AboutView appVersion={appVersion}/>}
         </div>
       ) : (
         <>
@@ -3091,6 +3260,7 @@ function App() {
             {tab === 'tasks'  && <TasksView tasks={tasks} zones={zones} isTeacher={false} student={student} onRefresh={fetchAll} onForceLogout={forceLogout}/>}
             {tab === 'plants' && <PlantViewer plants={plants} zones={zones}/>}
             {tab === 'notebook' && <ObservationNotebook student={student} zones={zones}/>}
+            {tab === 'about' && <AboutView appVersion={appVersion}/>}
           </div>
           <nav className="bottom-nav">
             <button className={`nav-btn ${tab === 'map' ? 'active' : ''}`} onClick={() => setTab('map')}>
@@ -3106,6 +3276,9 @@ function App() {
             </button>
             <button className={`nav-btn ${tab === 'notebook' ? 'active' : ''}`} onClick={() => setTab('notebook')}>
               <span className="nav-icon">📓</span> Carnet
+            </button>
+            <button className={`nav-btn ${tab === 'about' ? 'active' : ''}`} onClick={() => setTab('about')}>
+              <span className="nav-icon">ℹ️</span> À propos
             </button>
           </nav>
         </>

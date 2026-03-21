@@ -1,9 +1,11 @@
 const express = require('express');
+const http    = require('http');
 const cors    = require('cors');
 const path    = require('path');
 const { initDatabase, ping: dbPing } = require('./database');
 const { validateEnv } = require('./lib/env');
 const logger = require('./lib/logger');
+const { initRealtime } = require('./lib/realtime');
 
 const authRouter    = require('./routes/auth');
 const zonesRouter   = require('./routes/zones');
@@ -69,6 +71,27 @@ app.use('/api/students', studentsRouter);
 app.use('/api/observations', observationsRouter);
 app.use('/api/audit', auditRouter);
 
+// Docs locales (Markdown) accessibles depuis l'onglet "À propos"
+const rootDocs = new Map([
+  ['/README.md', path.resolve(__dirname, 'README.md')],
+  ['/CHANGELOG.md', path.resolve(__dirname, 'CHANGELOG.md')],
+]);
+const allowedDocFiles = new Set(['API.md', 'LOCAL_DEV.md', 'EVOLUTION.md', 'VERSIONING.md']);
+
+for (const [routePath, filePath] of rootDocs.entries()) {
+  app.get(routePath, (req, res) => {
+    res.type('text/markdown; charset=utf-8');
+    res.sendFile(filePath);
+  });
+}
+
+app.get('/docs/:file', (req, res) => {
+  const file = req.params.file;
+  if (!allowedDocFiles.has(file)) return res.status(404).json({ error: 'Document introuvable' });
+  res.type('text/markdown; charset=utf-8');
+  res.sendFile(path.resolve(__dirname, 'docs', file));
+});
+
 // Favicon : évite le fallback SPA et un éventuel 500
 app.get('/favicon.ico', (req, res) => res.status(204).end());
 
@@ -98,13 +121,16 @@ app.use((err, req, res, next) => {
 const port = process.env.PORT || process.env.ALWAYSDATA_HTTPD_PORT || 3000;
 
 function startServer() {
-  const server = app.listen(port, '0.0.0.0', () => {
+  const server = http.createServer(app);
+  initRealtime(server);
+  server.listen(port, '0.0.0.0', () => {
     logger.info(`ForêtMap lancé sur port ${port}`);
   });
   server.on('error', (err) => {
     logger.error({ err }, 'Impossible de démarrer le serveur HTTP');
     process.exit(1);
   });
+  return server;
 }
 
 process.on('uncaughtException', (err) => {

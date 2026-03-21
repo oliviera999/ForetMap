@@ -6,6 +6,7 @@ const { requireTeacher } = require('../middleware/requireTeacher');
 const { saveBase64ToDisk, getAbsolutePath } = require('../lib/uploads');
 const { logRouteError } = require('../lib/routeLog');
 const { logAudit } = require('./audit');
+const { emitTasksChanged } = require('../lib/realtime');
 
 const router = express.Router();
 
@@ -63,6 +64,7 @@ router.post('/', requireTeacher, async (req, res) => {
     );
     const task = await getTaskWithAssignments(id);
     logAudit('create_task', 'task', id, title);
+    emitTasksChanged({ reason: 'create_task', taskId: id });
     res.status(201).json(task);
   } catch (e) {
     logRouteError(e, req);
@@ -92,6 +94,7 @@ router.put('/:id', requireTeacher, async (req, res) => {
       ]
     );
     const updated = await getTaskWithAssignments(task.id);
+    emitTasksChanged({ reason: 'update_task', taskId: task.id });
     res.json(updated);
   } catch (e) {
     logRouteError(e, req);
@@ -107,6 +110,7 @@ router.delete('/:id', requireTeacher, async (req, res) => {
     await execute('DELETE FROM task_assignments WHERE task_id = ?', [req.params.id]);
     await execute('DELETE FROM tasks WHERE id = ?', [req.params.id]);
     logAudit('delete_task', 'task', req.params.id, task.title);
+    emitTasksChanged({ reason: 'delete_task', taskId: req.params.id });
     res.json({ success: true });
   } catch (e) {
     logRouteError(e, req);
@@ -148,6 +152,7 @@ router.post('/:id/assign', async (req, res) => {
     await execute('UPDATE tasks SET status = ? WHERE id = ?', [newStatus, task.id]);
 
     const updated = await getTaskWithAssignments(task.id);
+    emitTasksChanged({ reason: 'assign', taskId: task.id });
     res.json(updated);
   } catch (e) {
     logRouteError(e, req);
@@ -187,6 +192,7 @@ router.post('/:id/done', async (req, res) => {
 
     await execute("UPDATE tasks SET status = 'done' WHERE id = ?", [task.id]);
     const updated = await getTaskWithAssignments(task.id);
+    emitTasksChanged({ reason: 'done', taskId: task.id });
     res.json(updated);
   } catch (e) {
     logRouteError(e, req);
@@ -242,6 +248,7 @@ router.delete('/:id/logs/:logId', requireTeacher, async (req, res) => {
     }
     await execute('DELETE FROM task_logs WHERE id = ?', [req.params.logId]);
     logAudit('delete_log', 'task_log', req.params.logId, `Tâche ${req.params.id}`);
+    emitTasksChanged({ reason: 'delete_log', taskId: req.params.id });
     res.json({ success: true });
   } catch (e) {
     logRouteError(e, req);
@@ -256,6 +263,7 @@ router.post('/:id/validate', requireTeacher, async (req, res) => {
     await execute("UPDATE tasks SET status = 'validated' WHERE id = ?", [req.params.id]);
     logAudit('validate_task', 'task', req.params.id, task.title);
     const updated = await getTaskWithAssignments(task.id);
+    emitTasksChanged({ reason: 'validate', taskId: task.id });
     res.json(updated);
   } catch (e) {
     logRouteError(e, req);
@@ -298,6 +306,7 @@ router.post('/:id/unassign', requireTeacher, async (req, res) => {
     await execute('UPDATE tasks SET status = ? WHERE id = ?', [newStatus, task.id]);
 
     const updated = await getTaskWithAssignments(task.id);
+    emitTasksChanged({ reason: 'unassign', taskId: task.id });
     res.json(updated);
   } catch (err) {
     logRouteError(err, req, 'Erreur retrait assignation tâche');

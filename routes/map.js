@@ -3,6 +3,7 @@ const { v4: uuidv4 } = require('uuid');
 const { queryAll, queryOne, execute } = require('../database');
 const { requireTeacher } = require('../middleware/requireTeacher');
 const { logRouteError } = require('../lib/routeLog');
+const { emitGardenChanged } = require('../lib/realtime');
 
 const router = express.Router();
 
@@ -26,6 +27,7 @@ router.post('/markers', requireTeacher, async (req, res) => {
       [id, x_pct, y_pct, label.trim(), plant_name || '', note || '', emoji || '🌱', new Date().toISOString()]
     );
     const row = await queryOne('SELECT * FROM map_markers WHERE id = ?', [id]);
+    emitGardenChanged({ reason: 'create_marker', markerId: id });
     res.status(201).json(row);
   } catch (e) {
     logRouteError(e, req);
@@ -43,6 +45,7 @@ router.put('/markers/:id', requireTeacher, async (req, res) => {
       [x_pct ?? m.x_pct, y_pct ?? m.y_pct, label ?? m.label, plant_name ?? m.plant_name, note ?? m.note, emoji ?? m.emoji, m.id]
     );
     const updated = await queryOne('SELECT * FROM map_markers WHERE id = ?', [m.id]);
+    emitGardenChanged({ reason: 'update_marker', markerId: m.id });
     res.json(updated);
   } catch (e) {
     logRouteError(e, req);
@@ -55,6 +58,7 @@ router.delete('/markers/:id', requireTeacher, async (req, res) => {
     const m = await queryOne('SELECT * FROM map_markers WHERE id = ?', [req.params.id]);
     if (!m) return res.status(404).json({ error: 'Repère introuvable' });
     await execute('DELETE FROM map_markers WHERE id = ?', [req.params.id]);
+    emitGardenChanged({ reason: 'delete_marker', markerId: req.params.id });
     res.json({ success: true });
   } catch (e) {
     logRouteError(e, req);
