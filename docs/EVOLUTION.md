@@ -33,7 +33,8 @@ Il a été mis à jour pour refléter l’état réel du dépôt (mars 2026), pu
 - **Couverture tests (partiellement réalisé)** :
   - parcours critiques scripts/images déjà renforcés (`post-deploy-check`, images tâches/zones/observations en mode disque).
   - checklist de vérifications UI manuelles post-modularisation ajoutée dans `docs/EXPLOITATION.md` + tests UI smoke Playwright + exécution e2e en CI.
-  - **Reste à faire** : élargir la couverture e2e (flux complets de validation tâche/photo, cas limites métiers) pour réduire la part de validation manuelle.
+  - **Avancement récent** : scénarios e2e ajoutés pour le cycle complet tâche (création -> prise -> soumission -> validation) et pour le parcours photo zone (upload/suppression).
+  - **Reste à faire** : renforcer les cas limites métiers et stabiliser les tests e2e sur environnements lents.
 
 ---
 
@@ -42,8 +43,8 @@ Il a été mis à jour pour refléter l’état réel du dépôt (mars 2026), pu
 ## 2.1 Priorité haute
 
 1. **Consolider les tests UI automatisés**
-   - Étendre les scénarios Playwright au cycle complet tâches/photos (création, soumission, validation, erreurs).
-   - Stabiliser les sélecteurs et jeux de données de test pour limiter la fragilité.
+   - Maintenir et stabiliser les scénarios Playwright désormais étendus au cycle complet tâches/photos.
+   - Ajouter des cas limites (erreurs API, données extrêmes, parcours multi-élèves) pour limiter la fragilité.
 
 ## 2.2 Priorité moyenne
 
