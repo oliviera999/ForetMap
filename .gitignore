@@ -34,3 +34,6 @@ Thumbs.db
 *~
 startup.log
 startup-diag.log
+playwright-report/
+test-results/
+blob-report/

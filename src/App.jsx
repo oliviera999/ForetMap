@@ -9,13 +9,12 @@ import {
   PlantManager,
   PlantViewer,
   ObservationNotebook,
-  StudentStats,
-  TeacherStats,
-  AuditLog,
-  AboutView,
 } from './components/foretmap-views';
 import { MapView } from './components/map-views';
 import { AuthScreen, PinModal } from './components/auth-views';
+import { StudentStats, TeacherStats } from './components/stats-views';
+import { AuditLog } from './components/audit-views';
+import { AboutView } from './components/about-views';
 
 // ── APP ───────────────────────────────────────────────────────────────────────
 function App() {

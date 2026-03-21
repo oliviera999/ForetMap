@@ -10,6 +10,7 @@
  * Usage:
  *   node scripts/post-deploy-check.js --base-url https://foretmap.olution.info
  *   node scripts/post-deploy-check.js --base-url http://localhost:3000 --timeout-ms 8000
+ *   node scripts/post-deploy-check.js --base-url https://foretmap.olution.info --image-check-path /api/zones/zone_1/photos/1/data
  */
 
 const { URL } = require('url');
@@ -22,10 +23,12 @@ function parseArgs(argv) {
     const a = argv[i];
     if (a === '--base-url') args.baseUrl = argv[i + 1];
     if (a === '--timeout-ms') args.timeoutMs = argv[i + 1];
+    if (a === '--image-check-path') args.imageCheckPath = argv[i + 1];
   }
   return {
     baseUrl: args.baseUrl || process.env.DEPLOY_BASE_URL || 'http://localhost:3000',
     timeoutMs: Number.isFinite(parseInt(args.timeoutMs, 10)) ? parseInt(args.timeoutMs, 10) : 10000,
+    imageCheckPath: args.imageCheckPath || process.env.DEPLOY_IMAGE_CHECK_PATH || '',
   };
 }
 
@@ -94,8 +97,34 @@ async function checkEndpoint(baseUrl, path, timeoutMs, required = true) {
   }
 }
 
+async function checkImageEndpoint(baseUrl, path, timeoutMs) {
+  const full = new URL(path, baseUrl).toString();
+  try {
+    const res = await requestJsonWithTimeout(full, timeoutMs);
+    const pass = res.status === 200 || res.status === 404;
+    const label = pass ? 'OK' : 'FAIL';
+    console.log(`${label} ${path} -> HTTP ${res.status}${res.status === 404 ? ' (ressource absente, check optionnel)' : ''}`);
+    return {
+      path,
+      required: false,
+      pass,
+      status: res.status,
+      body: res.body,
+    };
+  } catch (err) {
+    console.log(`FAIL ${path} -> ${err.name || 'Error'}: ${err.message || err}`);
+    return {
+      path,
+      required: false,
+      pass: false,
+      status: 0,
+      body: { error: err.message || String(err) },
+    };
+  }
+}
+
 async function main() {
-  const { baseUrl, timeoutMs } = parseArgs(process.argv.slice(2));
+  const { baseUrl, timeoutMs, imageCheckPath } = parseArgs(process.argv.slice(2));
   console.log(`[post-deploy-check] baseUrl=${baseUrl} timeoutMs=${timeoutMs}`);
 
   const checks = [
@@ -103,6 +132,9 @@ async function main() {
     await checkEndpoint(baseUrl, '/api/health/db', timeoutMs, true),
     await checkEndpoint(baseUrl, '/api/version', timeoutMs, false),
   ];
+  if (imageCheckPath) {
+    checks.push(await checkImageEndpoint(baseUrl, imageCheckPath, timeoutMs));
+  }
 
   const requiredFails = checks.filter((c) => c.required && !c.pass);
   const optionalFails = checks.filter((c) => !c.required && !c.pass);
@@ -126,4 +158,4 @@ if (require.main === module) {
   });
 }
 
-module.exports = { parseArgs, requestJsonWithTimeout, checkEndpoint };
+module.exports = { parseArgs, requestJsonWithTimeout, checkEndpoint, checkImageEndpoint };

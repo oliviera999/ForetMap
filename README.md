@@ -267,3 +267,13 @@ ForetMap/
 ## Évolution du projet
 
 Les recommandations issues de l’audit (sécurité, architecture, performance, tests) sont détaillées dans **[docs/EVOLUTION.md](docs/EVOLUTION.md)**. Ce document sert de feuille de route pour faire évoluer le code sans modifier le comportement actuel de l’application.
+
+## Tests UI smoke (Playwright)
+
+Des tests UI de non-régression (parcours élève/prof) sont disponibles dans `e2e/`.
+
+```bash
+npm run test:e2e
+```
+
+Par défaut, ils ciblent `http://127.0.0.1:3000`. Vous pouvez surcharger avec `E2E_BASE_URL`.

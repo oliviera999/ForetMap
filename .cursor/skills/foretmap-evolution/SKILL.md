@@ -33,8 +33,8 @@ Toutes les recommandations détaillées sont dans **docs/EVOLUTION.md** (à la r
 ## Priorités (résumé)
 
 1. **Haute — Sécurité :** Auth côté serveur pour les actions « prof » (middleware JWT + vérification PIN côté serveur). Supprimer le PIN du frontend. Restreindre CORS en production.
-2. **Moyenne :** Lockfile, script `dev` (nodemon), images sur disque au lieu de base64.
-3. **Basse :** Tests supplémentaires, migration frontend React + Vite, migrations de schéma versionnées.
+2. **Moyenne :** Renforcer la non-régression UI automatisée et l’intégration CI e2e.
+3. **Basse :** Maintenance continue des scripts/docs post-bascule image.
 
 ## État d'avancement
 
@@ -46,20 +46,20 @@ Toutes les recommandations détaillées sont dans **docs/EVOLUTION.md** (à la r
 | Script `dev` avec nodemon | Fait |
 | Logger Pino + trace erreurs | Fait |
 | Tests backend (auth, statuts, suppression) | Fait (base) |
-| Supprimer PIN du frontend | À vérifier |
-| Images sur disque (au lieu de base64) | À faire |
-| Migration frontend Vite | À faire (stub prêt) |
-| Migrations de schéma versionnées | À faire |
+| Supprimer PIN du frontend | Fait |
+| Images sur disque (au lieu de base64) | Fait |
+| Migration frontend Vite | Fait |
+| Migrations de schéma versionnées | Fait |
 
 ## Fichiers à modifier selon le sujet
 
 | Sujet | Fichiers |
 |-------|----------|
-| Auth / PIN / CORS | `server.js`, `middleware/requireTeacher.js`, `routes/auth.js`, `public/index.html` (PinModal) |
+| Auth / PIN / CORS | `server.js`, `middleware/requireTeacher.js`, `routes/auth.js`, `src/components/auth-views.jsx` |
 | Images | `routes/zones.js`, `routes/tasks.js`, `database.js` (schéma), `lib/uploads.js` |
 | Tests | `tests/`, `tests/helpers/setup.js`, `package.json` |
-| Migration Vite | `src/`, `vite.config.js`, `package.json`, `public/index.html` |
-| Schéma / migrations | `database.js`, `sql/schema_foretmap.sql` |
+| Migration Vite | `src/`, `vite.config.js`, `package.json`, `index.vite.html` |
+| Schéma / migrations | `database.js`, `sql/schema_foretmap.sql`, `migrations/` |
 | Config | `package.json`, `.env.example`, `docker-compose.yml` |
 
 Lire systématiquement le fichier `docs/EVOLUTION.md` à la racine du projet avant d'implémenter une évolution pour respecter le plan et l'ordre suggéré.
