@@ -7,6 +7,7 @@ alwaysApply: true
 
 - **Projet :** Application de gestion de la forêt comestible (Lycée Lyautey). Backend Node/Express/MySQL, frontend React 18 en un seul HTML (CDN + Babel).
 - **Répondre en français** pour les commentaires, messages utilisateur et documentation.
+- **Terminal/GUI :** `npm` n'est pas utilisable dans le terminal de cet environnement. Pour agir sur l'application (lancement, interactions, vérifications fonctionnelles), utiliser uniquement le GUI.
 - **Ne pas modifier le comportement métier** sans demande explicite ; pour les évolutions, s’appuyer sur [docs/EVOLUTION.md](docs/EVOLUTION.md).
 - **Sécurité :** Toujours utiliser des requêtes SQL paramétrées (mysql2, paramètres `?`) ; pas de concaténation de chaînes pour les requêtes. Les mots de passe élèves sont hashés avec bcrypt (facteur 10). Secrets BDD dans `.env` (non versionné).
 - **Versionnage :** SemVer dans `package.json`. [CHANGELOG.md](CHANGELOG.md) : section `[Non publié]` pendant le dev ; à la release, section datée + `npm run bump:patch|minor|major`, puis `git add CHANGELOG.md package.json`, commit et tag `vX.Y.Z` (flux détaillé : [docs/VERSIONING.md](docs/VERSIONING.md)). Scripts `release:*` = commit Git auto **sans** le CHANGELOG dans le même commit.
