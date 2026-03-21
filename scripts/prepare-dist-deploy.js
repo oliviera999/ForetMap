@@ -69,9 +69,11 @@ if (!runCommand('npm', ['run', 'build'])) {
 }
 
 const distPath = path.join(rootDir, 'dist');
-const distIndex = path.join(distPath, 'index.html');
+const distIndex = fs.existsSync(path.join(distPath, 'index.vite.html'))
+  ? path.join(distPath, 'index.vite.html')
+  : path.join(distPath, 'index.html');
 if (!fs.existsSync(distIndex)) {
-  fail('Build incomplet: dist/index.html introuvable.');
+  fail('Build incomplet: dist/index.vite.html (ou index.html) introuvable.');
 }
 
 const deployDir = path.join(rootDir, 'deploy');
