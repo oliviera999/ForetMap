@@ -1,6 +1,6 @@
 {
   "name": "foretmap",
-  "version": "1.4.7",
+  "version": "1.4.8",
   "description": "Application de gestion de la forêt comestible - Lycée Lyautey",
   "main": "server.js",
   "dependencies": {
@@ -17,6 +17,7 @@
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon server.js",
+    "dev:client": "vite",
     "debug": "node --inspect server.js",
     "debug:dev": "nodemon --inspect server.js",
     "db:init": "node -e \"require('dotenv').config(); const { initSchema, seedData } = require('./database'); (async () => { await initSchema(); await seedData(); console.log('DB init OK'); process.exit(0); })()\"",

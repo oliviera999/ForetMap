@@ -1,175 +1,109 @@
-# Évolution du code ForetMap — Recommandations
+# Évolution du code ForetMap — État réel et suite
 
-Ce document s’appuie sur l’audit du projet pour proposer un plan d’évolution **sans changer le comportement actuel** jusqu’à ce que chaque étape soit décidée et implémentée. Il sert de feuille de route pour la sécurité, l’architecture, les données et la maintenabilité.
-
----
-
-## 1. Sécurité (priorité haute)
-
-### 1.1 Protéger l’API côté serveur
-
-**Constat :** Toutes les routes sont publiques. Le rôle « professeur » n’existe que côté client (variable d’état après saisie du PIN).
-
-**Évolution proposée :**
-
-- Introduire un **middleware d’authentification** pour les routes réservées au professeur :
-  - Exemples : `GET /api/stats/all`, `DELETE /api/students/:id`, `POST/DELETE /api/zones`, `POST/DELETE /api/plants`, `POST/PUT/DELETE /api/tasks`, `POST /api/tasks/:id/validate`, etc.
-- Vérifier le **PIN professeur côté serveur** (variable d’environnement `TEACHER_PIN` ou hash en base) et émettre un **token** (JWT ou cookie de session) après validation.
-- Les requêtes « prof » devront envoyer ce token (header ou cookie) ; le middleware rejettera avec 401/403 si absent ou invalide.
-
-**Fichiers concernés :** `server.js` (nouveau middleware, nouvelles routes auth), éventuellement `database.js` si stockage du PIN en base.
-
-### 1.2 Supprimer le PIN du frontend
-
-**Constat :** Dans `public/index.html` (ligne ~1836), `const CORRECT = '1234'` est visible dans le code source.
-
-**Évolution proposée :**
-
-- Ne plus comparer le PIN dans le client. Le client envoie le PIN à un endpoint dédié (ex. `POST /api/auth/teacher`) ; le serveur vérifie et renvoie un token en cas de succès.
-- Supprimer toute constante ou logique de vérification du PIN dans `index.html`.
-
-**Fichiers concernés :** `public/index.html` (composant `PinModal`), `server.js` (nouvel endpoint + vérification serveur).
-
-### 1.3 Restreindre CORS en production
-
-**Constat :** `app.use(cors());` autorise toute origine.
-
-**Évolution proposée :**
-
-- En production, utiliser `cors({ origin: process.env.FRONTEND_ORIGIN || '...' })` pour n’accepter que l’origine du frontend.
-- Garder un comportement permissif en développement (ex. si `NODE_ENV !== 'production'`).
-
-**Fichiers concernés :** `server.js`.
+Ce document sert de feuille de route d’évolution **sans changement métier non souhaité**.
+Il a été mis à jour pour refléter l’état réel du dépôt (mars 2026), puis prioriser la suite en commençant par des quick wins.
 
 ---
 
-## 2. Architecture et maintenabilité
+## 1. État actuel (2026-03)
 
-### 2.1 Découper le backend en modules
+## 1.1 Réalisé
 
-**Constat :** Toute la logique API est dans `server.js` (zones, photos, marqueurs, plantes, tâches, auth, stats, students).
+- **Auth professeur côté serveur** : `POST /api/auth/teacher`, token JWT, middleware `requireTeacher` sur les routes sensibles.
+- **Suppression du PIN en dur côté client** : plus de vérification locale ; le front passe par l’API auth.
+- **CORS conditionnel** : origine restreinte en production via `FRONTEND_ORIGIN`.
+- **Backend découpé en routeurs** : `routes/auth`, `zones`, `tasks`, `plants`, `stats`, `students`, `map`, `observations`, `audit`.
+- **Frontend migré vers Vite + React modulaire** : source dans `src/`, build `dist/`, entrée `index.vite.html`.
+- **Tests backend en place** (node:test + supertest) : auth, statuts tâches, suppression élève, temps réel, nouvelles fonctionnalités.
+- **Migrations versionnées** : table `schema_version`, dossier `migrations/` (001+).
+- **Images majoritairement sur disque** : `uploads/` + colonnes `image_path` (fallback legacy conservé).
+- **Lockfile et outillage dev** : `package-lock.json`, `nodemon`, scripts debug.
+- **Journalisation et observabilité** : logger Pino, traces d’erreurs route, endpoint admin de lecture des logs.
 
-**Évolution proposée :**
+## 1.2 Partiellement réalisé / restant
 
-- Créer des modules de routes, par exemple :
-  - `routes/zones.js` — CRUD zones, photos
-  - `routes/plants.js` — CRUD plantes
-  - `routes/tasks.js` — CRUD tâches, assign, done, validate, unassign, logs
-  - `routes/auth.js` — register, login, teacher login
-  - `routes/stats.js` — stats élève, stats tous
-  - `routes/students.js` — register (last_seen), delete
-  - `routes/map.js` — marqueurs carte
-- Dans `server.js`, monter ces routeurs sur `/api/...` et conserver uniquement la config Express (CORS, body, static, fallback SPA).
-
-**Fichiers concernés :** nouveau dossier `routes/`, `server.js`.
-
-### 2.2 Frontend : build et découpage
-
-**Statut (2026-03) :** migration effectuée vers **Vite** : sources dans `src/` (React modulaire), styles dans `src/index.css`, client **Socket.IO** npm (plus de CDN), build `npm run build` → **`dist/`**. En production, Express sert `dist/` lorsque `NODE_ENV=production` et que `dist/index.html` est présent ; `public/` conserve les assets statiques (`sw.js`, etc.) copiés au build. `public/index.html` est une page d’information si le build est absent.
-
-**Pistes d’amélioration continues :** découper davantage `src/components/foretmap-views.jsx` en fichiers par domaine ; CSS modules ou organisation par feature si le besoin apparaît.
-
-### 2.3 Tests
-
-**Constat :** Aucun test unitaire ou e2e.
-
-**Évolution proposée :**
-
-- Ajouter un runner de tests (Jest ou Node built-in) pour le backend.
-- Tester en priorité :
-  - Auth (register, login, rejet mot de passe incorrect).
-  - Recalcul des statuts de tâches après assign / unassign / suppression élève.
-  - Suppression d’un élève (cascade assignments/logs, statuts des tâches).
-- Optionnel : tests e2e (Cypress ou Playwright) sur le parcours élève (login, prise de tâche, marquer fait).
-
-**Fichiers concernés :** nouveau dossier `tests/` ou `__tests__/`, `package.json` (scripts test, devDependencies).
+- **Décommission base64** : `image_data` reste présent pour compatibilité.
+- **Durcissement sécurité production** : comportements permissifs utiles en dev, à verrouiller davantage en prod (secret JWT, endpoints admin, conventions de rotation).
+- **Frontend** : certains composants restent volumineux (notamment `src/components/foretmap-views.jsx`).
+- **Couverture tests** : bonne base, mais des zones critiques restent peu couvertes (config prod, admin/restart, cas limite upload/observations).
 
 ---
 
-## 3. Données et performance
+## 2. Backlog restant priorisé
 
-### 3.1 Images : éviter le base64 en base
+## 2.1 Quick wins (faible risque, fort retour)
 
-**Constat :** `zone_photos.image_data` et `task_logs.image_data` stockent du base64 ; la base peut devenir lourde.
+1. **Mettre la documentation en cohérence stricte avec le code**
+   - Éviter les constats obsolètes (ex. “pas de tests”, “Vite à migrer”).
+   - Aligner scripts annoncés et scripts réellement disponibles.
 
-**Évolution proposée :**
+2. **Durcir les prérequis de configuration prod**
+   - Documenter clairement les variables obligatoires/recommandées (`TEACHER_PIN`, `JWT_SECRET`, `FRONTEND_ORIGIN`, `DEPLOY_SECRET`).
+   - Préciser les comportements de repli et leur impact sécurité.
 
-- Stocker les fichiers sur disque (dossier dédié, ex. `uploads/`) ou sur un stockage objet.
-- En base, ne garder que le chemin ou l’URL (colonne `image_path` ou `image_url`).
-- Adapter les routes qui renvoient l’image (ex. servir le fichier depuis le disque ou rediriger vers l’URL).
-- En parallèle, limiter taille et/ou nombre d’images par zone/tâche si besoin.
+3. **Documenter la sortie progressive du legacy image base64**
+   - Garder la rétrocompatibilité court terme.
+   - Définir la cible de fin (`image_path` uniquement) et les étapes de migration.
 
-**Fichiers concernés :** `server.js` (routes zones/tasks), `database.js` (schéma, migration éventuelle).
+## 2.2 Moyen terme
 
-### 3.2 Migrations de schéma
+4. **Étendre les tests ciblés**
+   - Cas de sécurité prof (token invalide/expiré).
+   - Endpoints admin sensibles (`/api/admin/restart`, `/api/admin/logs`).
+   - Parcours images (création/suppression, fichier manquant, fallback legacy).
 
-**Constat :** Colonnes ajoutées via `try { db.exec('ALTER TABLE...'); } catch(e) {}` ; migration « plan réel du jardin » destructive (vide tout si un `id` de zone commence par `zone-`).
+5. **Poursuivre le découpage du frontend**
+   - Scinder `foretmap-views.jsx` par domaines (carte, tâches, auth, stats, audit, à-propos).
+   - Réduire le coût des changements et améliorer la lisibilité.
 
-**Évolution proposée :**
+## 2.3 Long terme
 
-- Documenter clairement la migration destructive dans `database.js` ou dans ce document (déjà partiellement fait ici).
-- À terme : introduire une table `schema_version` et des scripts de migration versionnés (ex. `migrations/001_add_xxx.sql`) pour éviter les migrations implicites au démarrage.
+6. **Finaliser la migration des données image**
+   - Migration SQL + script de conversion éventuel vers `image_path`.
+   - Retrait progressif des colonnes `image_data` après fenêtre de transition.
 
-**Fichiers concernés :** `database.js`, éventuellement `docs/EVOLUTION.md` ou README.
-
----
-
-## 4. Configuration et déploiement
-
-### 4.1 Lockfile et reproductibilité
-
-**Constat :** Pas de `package-lock.json` (ou équivalent).
-
-**Évolution proposée :**
-
-- Générer un lockfile (`npm install` une fois, puis committer `package-lock.json`).
-- Utiliser ce lockfile en CI et en production (`npm ci`).
-
-**Fichiers concernés :** racine du projet, `.gitignore` (ne pas ignorer le lockfile).
-
-### 4.2 Script de développement
-
-**Constat :** Le script `dev` est identique à `start` ; pas de rechargement à chaud.
-
-**Évolution proposée :**
-
-- Ajouter `nodemon` en devDependency et un script du type `"dev": "nodemon server.js"` pour recharger le serveur à chaque modification.
-
-**Fichiers concernés :** `package.json`.
-
-### 4.3 Débogage, logs et IDE (réalisé)
-
-**Mis en œuvre :**
-
-- **Pino** (`lib/logger.js`) : variable `LOG_LEVEL` documentée dans `.env.example` ; avertissements prod (`lib/env.js`) et uploads (`lib/uploads.js`) passent par le logger.
-- **Routes API** : chaque `catch` de réponse 500 appelle `logRouteError` (`lib/routeLog.js`) pour tracer `err`, `path`, `method`.
-- **Migrations** (`database.js`) : échecs SQL inattendus en `warn` ; erreurs « déjà appliquées » (errno MySQL 1050, 1060, 1061) en `debug` ; lecture `schema_version` absente en `debug` / `warn` selon le cas.
-- **Scripts** : `npm run debug`, `npm run debug:dev` ; **`.vscode/launch.json`** : lancement avec inspect, attachement au process, exécution des tests `node --test`.
-- **Frontend** : réduction des `catch` / `.catch` silencieux sur les appels API (journal `console.error` préfixé `[ForetMap]`, toast pour l’échec du chargement des stats prof).
-- **Build Vite** : `build.sourcemap: true` pour faciliter le diagnostic sur le bundle.
-
-**Bonnes pratiques :** ne pas laisser de `catch` vides sur les appels réseau ; en production, collecter les logs stdout (hébergeur) pour exploiter les traces Pino.
+7. **Renforcer la stratégie de déploiement**
+   - Contrôles de santé et rollback documentés.
+   - Clarifier le flux recommandé entre build local, livraison `dist/`, et redémarrage.
 
 ---
 
-## 5. Ordre suggéré des actions
+## 3. Plan d’exécution proposé (suite)
+
+## Phase 1 — Documentation vérité terrain (quick win)
+
+- Mettre à jour `docs/EVOLUTION.md` et les docs annexes pour refléter l’existant.
+- Garder trois statuts explicites : **réalisé**, **partiel**, **à faire**.
+- Produire un ordre d’action centré uniquement sur ce qui reste.
+
+## Phase 2 — Quick wins techniques
+
+- Aligner `README.md`, `docs/LOCAL_DEV.md` et `package.json` sur le flux dev actuel.
+- Formaliser les prérequis prod et les valeurs de secours acceptées.
+- Poser le plan de sortie du legacy base64 (sans suppression immédiate).
+
+## Phase 3 — Itérations structurantes
+
+- Ajouter les tests manquants sur les points à plus fort risque de régression.
+- Continuer la modularisation frontend.
+- Préparer/valider la migration data image complète.
+
+---
+
+## 4. Ordre suggéré des actions (à partir de maintenant)
 
 | Ordre | Action | Priorité |
 |-------|--------|----------|
-| 1 | Auth serveur (PIN + token) et protection des routes prof | Haute |
-| 2 | Supprimer le PIN du frontend, appeler l’API auth | Haute |
-| 3 | CORS restreint en production | Moyenne |
-| 4 | Lockfile + script `dev` avec nodemon | Moyenne |
-| 5 | Découpage du backend en routes | Moyenne |
-| 6 | Images sur disque (ou URL) au lieu de base64 | Moyenne |
-| 7 | Tests (auth, statuts tâches, suppression élève) | Basse |
-| 8 | Migration React + Vite (frontend) | Basse |
-| 9 | Migrations de schéma versionnées | Basse |
+| 1 | Cohérence docs + scripts (quick wins) | Haute |
+| 2 | Clarification/hardening config prod | Haute |
+| 3 | Plan de sortie `image_data` legacy | Moyenne |
+| 4 | Tests ciblés sécurité/admin/images | Moyenne |
+| 5 | Découpage progressif du frontend | Moyenne |
+| 6 | Migration finale des données image | Basse |
 
 ---
 
-## Versionnage applicatif (en place)
+## Versionnage
 
-Release SemVer + `CHANGELOG.md` + scripts `bump:*` / `release:*` — voir [VERSIONING.md](VERSIONING.md).
-
-Ce document peut être mis à jour au fur et à mesure que des évolutions sont réalisées ou que de nouvelles recommandations émergent.
+Le flux SemVer, `CHANGELOG.md` et les scripts `bump:*` / `release:*` sont décrits dans [VERSIONING.md](VERSIONING.md).
+Ce document est mis à jour au fil des évolutions implémentées.

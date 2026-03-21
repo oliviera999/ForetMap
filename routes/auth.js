@@ -14,6 +14,7 @@ const TEACHER_PIN = process.env.TEACHER_PIN ?? (process.env.NODE_ENV === 'produc
 router.post('/teacher', (req, res) => {
   const pin = req.body && req.body.pin;
   if (!TEACHER_PIN) return res.status(503).json({ error: 'Mode prof non configuré' });
+  if (!JWT_SECRET) return res.status(503).json({ error: 'Mode prof non configuré' });
   if (pin !== TEACHER_PIN) return res.status(401).json({ error: 'PIN incorrect' });
   const token = jwt.sign({ role: 'teacher' }, JWT_SECRET, { expiresIn: '24h' });
   res.json({ token });

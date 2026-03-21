@@ -14,9 +14,8 @@ import {
   TeacherStats,
   AuditLog,
   AboutView,
-  AuthScreen,
-  PinModal,
 } from './components/foretmap-views';
+import { AuthScreen, PinModal } from './components/auth-views';
 
 // ── APP ───────────────────────────────────────────────────────────────────────
 function App() {

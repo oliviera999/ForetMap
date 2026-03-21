@@ -67,13 +67,14 @@ Guide pas à pas : **[docs/LOCAL_DEV.md](docs/LOCAL_DEV.md)** — MySQL 8 via Do
 | `PORT` | Port du serveur (défaut : 3000) |
 | `IP` ou `ALWAYSDATA_HTTPD_IP` | Adresse d’écoute (défaut : 0.0.0.0) |
 | `DEPLOY_SECRET` | Optionnel : secret pour redémarrage à distance après déploiement (voir ci‑dessous) |
-| `TEACHER_PIN` | Code PIN du mode professeur (recommandé en production) |
-| `JWT_SECRET` | Secret pour signer les tokens prof (recommandé en production) |
+| `TEACHER_PIN` | Code PIN du mode professeur (requis en production pour activer le mode prof) |
+| `JWT_SECRET` | Secret pour signer les tokens prof (requis en production pour activer le mode prof) |
 | `FRONTEND_ORIGIN` | En production : origine CORS autorisée (ex. `https://foretmap.olution.info`) |
 | `LOG_LEVEL` | Optionnel : niveau Pino (`debug`, `info`, …). Voir section *Débogage* ci‑dessus. |
 
 **Obligatoires au démarrage** : `DB_HOST`, `DB_USER`, `DB_PASS`, `DB_NAME`. Si l’une manque, le serveur refuse de démarrer.  
-**En production** : si `TEACHER_PIN` n’est pas défini, le serveur démarre quand même ; seul le mode professeur est désactivé (`POST /api/auth/teacher` renvoie 503 « Mode prof non configuré »). Il est recommandé de définir `TEACHER_PIN` et `JWT_SECRET` en production.
+**En production** : si `TEACHER_PIN` ou `JWT_SECRET` manque, le serveur démarre quand même mais le mode professeur est désactivé (`POST /api/auth/teacher` renvoie 503 « Mode prof non configuré »).  
+**Recommandé en production** : définir `FRONTEND_ORIGIN` (CORS restreint) et `DEPLOY_SECRET` (activer les endpoints admin protégés).
 
 Un fichier `.env` (copié depuis `.env.example`) est utilisé en local ; il est ignoré par Git. En production sur o2switch, configurer les variables dans l’interface « Setup Node.js App ».
 
