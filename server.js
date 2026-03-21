@@ -1,5 +1,6 @@
 const express = require('express');
 const http    = require('http');
+const fs      = require('fs');
 const cors    = require('cors');
 const path    = require('path');
 const { initDatabase, ping: dbPing } = require('./database');
@@ -26,7 +27,12 @@ const corsOpts = process.env.NODE_ENV === 'production' && process.env.FRONTEND_O
 app.use(cors(corsOpts));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
-app.use(express.static(path.join(__dirname, 'public')));
+
+const distDir = path.join(__dirname, 'dist');
+const distIndex = path.join(distDir, 'index.html');
+const serveDist = process.env.NODE_ENV === 'production' && fs.existsSync(distIndex);
+const staticRoot = serveDist ? distDir : path.join(__dirname, 'public');
+app.use(express.static(staticRoot));
 
 // Route de santé sans BDD — pour le contrôle de disponibilité (o2switch / Passenger)
 app.get('/api/health', (req, res) => {
@@ -114,9 +120,9 @@ app.get('/docs/:file', (req, res) => {
 // Favicon : évite le fallback SPA et un éventuel 500
 app.get('/favicon.ico', (req, res) => res.status(204).end());
 
-// Fallback SPA
+// Fallback SPA (build Vite en prod, sinon legacy public/)
 app.get('*', (req, res) => {
-  const indexPath = path.resolve(__dirname, 'public', 'index.html');
+  const indexPath = serveDist ? distIndex : path.resolve(__dirname, 'public', 'index.html');
   res.sendFile(indexPath, (err) => {
     if (err) {
       logger.error(
@@ -165,7 +171,6 @@ function boot() {
   if (booted) return;
   booted = true;
 
-  const fs = require('fs');
   const diagPath = path.join(__dirname, 'startup.log');
   const diagLines = [
     `=== DÉMARRAGE ${new Date().toISOString()} ===`,
@@ -180,6 +185,7 @@ function boot() {
     `DB_NAME: ${process.env.DB_NAME}`,
     `DB_PASS set: ${!!process.env.DB_PASS}`,
     `public/index.html exists: ${fs.existsSync(path.join(__dirname, 'public', 'index.html'))}`,
+    `dist/index.html exists: ${fs.existsSync(path.join(__dirname, 'dist', 'index.html'))}  ← SPA prod si NODE_ENV=production`,
     `appelé via: ${require.main === module ? 'node server.js' : 'require (Passenger / app.js)'}`,
   ];
   fs.writeFileSync(diagPath, diagLines.join('\n') + '\n', 'utf8');

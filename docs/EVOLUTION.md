@@ -65,17 +65,9 @@ Ce document s’appuie sur l’audit du projet pour proposer un plan d’évolut
 
 ### 2.2 Frontend : build et découpage
 
-**Constat :** Un seul fichier `public/index.html` (HTML + CSS + JSX), Babel dans le navigateur, pas de minification.
+**Statut (2026-03) :** migration effectuée vers **Vite** : sources dans `src/` (React modulaire), styles dans `src/index.css`, client **Socket.IO** npm (plus de CDN), build `npm run build` → **`dist/`**. En production, Express sert `dist/` lorsque `NODE_ENV=production` et que `dist/index.html` est présent ; `public/` conserve les assets statiques (`sw.js`, etc.) copiés au build. `public/index.html` est une page d’information si le build est absent.
 
-**Évolution proposée (à moyen terme) :**
-
-- Migrer vers un projet React avec build (Vite recommandé) :
-  - Composants dans `src/components/`, styles (CSS/SCSS ou CSS modules).
-  - Un point d’entrée (ex. `src/main.jsx`) et un `index.html` minimal qui charge le bundle.
-- Servir le build depuis `public/` ou un dossier `dist/` selon la config choisie.
-- Conserver la même API et le même comportement ; seul le mode de développement et la structure des fichiers changent.
-
-**Fichiers concernés :** nouveau dossier `src/`, `vite.config.js`, `package.json` (scripts, dépendances).
+**Pistes d’amélioration continues :** découper davantage `src/components/foretmap-views.jsx` en fichiers par domaine ; CSS modules ou organisation par feature si le besoin apparaît.
 
 ### 2.3 Tests
 

@@ -43,11 +43,32 @@ Cela applique le schéma et le seed sur **`foretmap_local`**.
 
 ## 4. Lancer l’application
 
+### Option A — Développement (recommandé : Express + Vite)
+
+Deux terminaux à la racine du projet :
+
 ```bash
+# Terminal 1 — API + Socket.IO (port 3000)
 npm run dev
 ```
 
-Ouvrir **http://localhost:3000**. Connexion prof : PIN défini dans `.env` (`TEACHER_PIN`, ex. `1234`).
+```bash
+# Terminal 2 — interface React avec proxy vers l’API
+npm run dev:client
+```
+
+Ouvrir l’URL affichée par Vite (souvent **http://localhost:5173**). Les requêtes `/api/*` et `/socket.io` sont proxifiées vers **localhost:3000**.
+
+Connexion prof : PIN défini dans `.env` (`TEACHER_PIN`, ex. `1234`).
+
+### Option B — Comme en production (un seul port)
+
+```bash
+npm run build
+npm run dev
+```
+
+Ouvrir **http://localhost:3000** : Express sert le contenu de **`dist/`** (SPA compilée).
 
 ## 5. Tests d’intégration (base séparée)
 
