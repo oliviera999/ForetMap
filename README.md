@@ -93,7 +93,7 @@ Le script vide les tables MySQL puis recopie toutes les données (zones, plantes
 
 ## Déploiement o2switch (foretmap.olution.info)
 
-1. **Créer l’application Node.js** dans cPanel : **Setup Node.js App** — choisir la version Node (18 ou 20). **Le répertoire de l’application** doit contenir `server.js`, le dossier **`public/`** (assets + `sw.js`) et, après build, le dossier **`dist/`** avec `index.html`. **Avant chaque déploiement :** `npm ci` (ou `npm install`) puis **`npm run build`** pour régénérer `dist/`. En production (`NODE_ENV=production`), l’UI est servie depuis **`dist/`**.
+1. **Créer l’application Node.js** dans cPanel : **Setup Node.js App** — choisir la version Node (18 ou 20). **Le répertoire de l’application** doit contenir `server.js`, le dossier **`public/`** (assets + `sw.js` + page d’aide `deploy-help.html`) et, après build, le dossier **`dist/`** avec l’entrée SPA Vite (`index.vite.html`). **Avant chaque déploiement :** `npm ci` (ou `npm install`) puis **`npm run build`** pour régénérer `dist/`. En production (`NODE_ENV=production`), l’UI est servie depuis **`dist/`**.
 
 2. **Variables d’environnement** dans l’interface de l’app Node (obligatoires pour l’API) :  
    `DB_HOST=localhost`, `DB_NAME=oliviera_foretmap`, `DB_USER=oliviera_foretmap`, `DB_PASS=...`, `NODE_ENV=production`.  

@@ -29,10 +29,12 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 const distDir = path.join(__dirname, 'dist');
-const distIndex = path.join(distDir, 'index.html');
-const serveDist = process.env.NODE_ENV === 'production' && fs.existsSync(distIndex);
+const distSpaIndex = fs.existsSync(path.join(distDir, 'index.vite.html'))
+  ? path.join(distDir, 'index.vite.html')
+  : path.join(distDir, 'index.html');
+const serveDist = process.env.NODE_ENV === 'production' && fs.existsSync(distSpaIndex);
 const staticRoot = serveDist ? distDir : path.join(__dirname, 'public');
-app.use(express.static(staticRoot));
+app.use(express.static(staticRoot, serveDist ? { index: false } : undefined));
 
 // Route de santé sans BDD — pour le contrôle de disponibilité (o2switch / Passenger)
 app.get('/api/health', (req, res) => {
@@ -120,9 +122,9 @@ app.get('/docs/:file', (req, res) => {
 // Favicon : évite le fallback SPA et un éventuel 500
 app.get('/favicon.ico', (req, res) => res.status(204).end());
 
-// Fallback SPA (build Vite en prod, sinon legacy public/)
+// Fallback SPA (build Vite en prod, sinon page d'aide locale)
 app.get('*', (req, res) => {
-  const indexPath = serveDist ? distIndex : path.resolve(__dirname, 'public', 'index.html');
+  const indexPath = serveDist ? distSpaIndex : path.resolve(__dirname, 'public', 'deploy-help.html');
   res.sendFile(indexPath, (err) => {
     if (err) {
       logger.error(
@@ -184,8 +186,9 @@ function boot() {
     `DB_USER: ${process.env.DB_USER}`,
     `DB_NAME: ${process.env.DB_NAME}`,
     `DB_PASS set: ${!!process.env.DB_PASS}`,
-    `public/index.html exists: ${fs.existsSync(path.join(__dirname, 'public', 'index.html'))}`,
-    `dist/index.html exists: ${fs.existsSync(path.join(__dirname, 'dist', 'index.html'))}  ← SPA prod si NODE_ENV=production`,
+    `public/deploy-help.html exists: ${fs.existsSync(path.join(__dirname, 'public', 'deploy-help.html'))}`,
+    `dist/index.vite.html exists: ${fs.existsSync(path.join(__dirname, 'dist', 'index.vite.html'))}`,
+    `dist/index.html exists (legacy): ${fs.existsSync(path.join(__dirname, 'dist', 'index.html'))}`,
     `appelé via: ${require.main === module ? 'node server.js' : 'require (Passenger / app.js)'}`,
   ];
   fs.writeFileSync(diagPath, diagLines.join('\n') + '\n', 'utf8');
