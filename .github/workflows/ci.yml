@@ -46,6 +46,45 @@ jobs:
       - name: Build frontend (Vite)
         run: npm run build
 
+      - name: Install Playwright browser
+        run: npx playwright install --with-deps chromium
+
+      - name: Start app server for e2e
+        run: |
+          npm run db:init
+          nohup npm start > /tmp/foretmap-server.log 2>&1 &
+
+      - name: Wait for app health
+        run: |
+          for i in {1..30}; do
+            curl -fsS http://127.0.0.1:3000/api/health && exit 0
+            sleep 2
+          done
+          echo "API did not become healthy in time"
+          exit 1
+
+      - name: Run Playwright smoke e2e
+        run: npm run test:e2e
+        env:
+          E2E_BASE_URL: http://127.0.0.1:3000
+          NODE_ENV: test
+          DB_HOST: 127.0.0.1
+          DB_PORT: 3306
+          DB_NAME: foretmap_test
+          DB_USER: root
+          DB_PASS: ''
+          TEACHER_PIN: '1234'
+
+      - name: Upload Playwright report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            playwright-report/
+            test-results/
+            /tmp/foretmap-server.log
+
   # Optionnel : lint si un config existe
   # lint:
   #   runs-on: ubuntu-latest
