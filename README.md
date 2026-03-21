@@ -14,10 +14,10 @@ Les élèves peuvent consulter la carte des zones, s’inscrire à des tâches e
 |------------|-------------|
 | Backend    | Node.js, Express, Socket.IO (mises à jour temps réel) |
 | Base de données | **MySQL** (mysql2, pool promesses) — hébergement o2switch |
-| Frontend   | React 18 (UMD via CDN), Babel standalone (transpilation dans le navigateur) |
+| Frontend   | React 18, build **Vite** (`src/`), bundle servi depuis `dist/` en production |
 | Auth élèves | bcrypt (hash des mots de passe), session en `localStorage` |
 
-Fichiers principaux : `server.js` (API async), `database.js` (pool MySQL, helpers, seed), `sql/schema_foretmap.sql` (DDL), `public/index.html` (application React complète).
+Fichiers principaux : `server.js` (API + fichiers statiques), `database.js` (pool MySQL, helpers, seed), `sql/schema_foretmap.sql` (DDL), `src/` (application React), `index.vite.html` + `vite.config.js` (build → `dist/`).
 
 ---
 
@@ -29,10 +29,13 @@ npm install
 cp .env.example .env
 # Éditer .env avec DB_HOST, DB_NAME, DB_USER, DB_PASS (MySQL)
 npm run db:init   # applique le schéma + seed si tables vides
+npm run build     # compile le frontend React dans dist/ (obligatoire avant prod)
 npm start
 ```
 
-L’app est servie sur **http://localhost:3000** (ou le port défini par `process.env.PORT`).
+L’app est servie sur **http://localhost:3000** (ou le port défini par `process.env.PORT`). Avec `NODE_ENV=production`, Express sert **`dist/`** ; sans build, vous verrez la page d’information dans `public/index.html`.
+
+**Développement UI :** terminal 1 — `npm run dev` (Express, port 3000) ; terminal 2 — `npm run dev:client` (Vite, proxy `/api` et `/socket.io` vers 3000). Ouvrir l’URL affichée par Vite (souvent **http://localhost:5173**).
 
 ### Débogage (logs, breakpoints)
 
@@ -40,6 +43,7 @@ L’app est servie sur **http://localhost:3000** (ou le port défini par `proces
 - **Erreurs API :** les réponses HTTP 500 sont journalisées côté serveur (`lib/routeLog.js`) avec chemin et méthode ; les migrations SQL loguent les échecs inattendus (`database.js`).
 - **Inspect Node :** `npm run debug` (ou `npm run debug:dev` avec rechargement nodemon), puis dans VS Code / Cursor : exécuter la configuration **ForetMap : attacher au process Node** (port d’inspect par défaut **9229**), ou **ForetMap : lancer server.js (inspect)** depuis [`.vscode/launch.json`](.vscode/launch.json).
 - **Frontend :** éviter les blocs `catch` vides sur les appels réseau ; les erreurs secondaires sont au minimum tracées dans la console du navigateur (`[ForetMap] …`).
+- **Frontend :** plus de Babel dans le navigateur ; le bundle est produit par **Vite** (`npm run build`). Voir [docs/LOCAL_DEV.md](docs/LOCAL_DEV.md) pour le mode dev (Express + Vite).
 
 ### Environnement local complet (Docker + tests avant déploiement)
 
@@ -89,7 +93,7 @@ Le script vide les tables MySQL puis recopie toutes les données (zones, plantes
 
 ## Déploiement o2switch (foretmap.olution.info)
 
-1. **Créer l’application Node.js** dans cPanel : **Setup Node.js App** — choisir la version Node (18 ou 20). **Le répertoire de l’application** doit être le dossier qui contient **à la fois** `server.js` et le dossier **`public/`** (avec `public/index.html`). Sinon le fallback SPA et les fichiers statiques peuvent renvoyer des erreurs.
+1. **Créer l’application Node.js** dans cPanel : **Setup Node.js App** — choisir la version Node (18 ou 20). **Le répertoire de l’application** doit contenir `server.js`, le dossier **`public/`** (assets + `sw.js`) et, après build, le dossier **`dist/`** avec `index.html`. **Avant chaque déploiement :** `npm ci` (ou `npm install`) puis **`npm run build`** pour régénérer `dist/`. En production (`NODE_ENV=production`), l’UI est servie depuis **`dist/`**.
 
 2. **Variables d’environnement** dans l’interface de l’app Node (obligatoires pour l’API) :  
    `DB_HOST=localhost`, `DB_NAME=oliviera_foretmap`, `DB_USER=oliviera_foretmap`, `DB_PASS=...`, `NODE_ENV=production`.  
@@ -158,18 +162,23 @@ ForetMap/
 │   └── schema_foretmap.sql   # DDL MySQL (InnoDB, utf8mb4)
 ├── scripts/
 │   └── migrate-sqlite-to-mysql.js   # Migration SQLite → MySQL
+├── index.vite.html     # Entrée HTML du build Vite
+├── vite.config.js
 ├── package.json
 ├── .env.example
 ├── env.local.example  # Modèle .env pour Docker local (voir docs/LOCAL_DEV.md)
 ├── README.md
+├── src/                # Application React (App, composants, services, hooks, styles)
 ├── docs/
 │   ├── LOCAL_DEV.md    # Environnement local complet avant déploiement
 │   └── EVOLUTION.md    # Recommandations d’évolution (audit)
 ├── .cursor/
 │   ├── rules/          # Règles Cursor (conventions du projet)
 │   └── skills/         # Skills Cursor (contexte ForetMap)
+├── dist/               # Sortie `npm run build` (servi en prod, non versionné si absent)
 └── public/
-    └── index.html      # Application React (carte, zones, tâches, auth, mode prof)
+    ├── index.html      # Message si build absent ; assets copiés dans dist/ au build
+    └── sw.js           # Service worker (PWA légère)
 ```
 
 ---

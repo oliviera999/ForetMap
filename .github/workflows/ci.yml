@@ -43,6 +43,9 @@ jobs:
           DB_PASS: ''
           TEACHER_PIN: '1234'
 
+      - name: Build frontend (Vite)
+        run: npm run build
+
   # Optionnel : lint si un config existe
   # lint:
   #   runs-on: ubuntu-latest
