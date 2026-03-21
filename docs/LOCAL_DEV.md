@@ -95,6 +95,17 @@ npm run test:local
 
 Le script force `DB_NAME=foretmap_test` ; le schéma est (re)créé par les fichiers de test.
 
+## 5bis. Tests UI smoke (Playwright)
+
+Avec backend lancé (port 3000) et navigateurs Playwright installés:
+
+```bash
+npx playwright install
+npm run test:e2e
+```
+
+Vous pouvez cibler une autre URL avec `E2E_BASE_URL`.
+
 ## 6. Vérifier l’environnement local
 
 ```bash
