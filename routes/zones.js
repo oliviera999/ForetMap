@@ -5,6 +5,7 @@ const { queryAll, queryOne, execute } = require('../database');
 const { requireTeacher } = require('../middleware/requireTeacher');
 const { saveBase64ToDisk, getAbsolutePath, deleteFile } = require('../lib/uploads');
 const { logRouteError } = require('../lib/routeLog');
+const { emitGardenChanged } = require('../lib/realtime');
 
 const router = express.Router();
 
@@ -64,6 +65,7 @@ router.put('/:id', requireTeacher, async (req, res) => {
     );
     const updated = await queryOne('SELECT * FROM zones WHERE id = ?', [zone.id]);
     const history = await queryAll('SELECT * FROM zone_history WHERE zone_id=? ORDER BY harvested_at DESC', [zone.id]);
+    emitGardenChanged({ reason: 'update_zone', zoneId: zone.id });
     res.json({ ...updated, special: !!updated.special, history });
   } catch (e) {
     logRouteError(e, req);
@@ -126,6 +128,7 @@ router.post('/:id/photos', requireTeacher, async (req, res) => {
     }
     await execute('UPDATE zone_photos SET image_path = ? WHERE id = ?', [relativePath, photoId]);
     const photo = await queryOne('SELECT id, zone_id, caption, uploaded_at FROM zone_photos WHERE id=?', [photoId]);
+    emitGardenChanged({ reason: 'add_zone_photo', zoneId: req.params.id });
     res.status(201).json(photo);
   } catch (e) {
     logRouteError(e, req);
@@ -138,6 +141,7 @@ router.delete('/:id/photos/:pid', requireTeacher, async (req, res) => {
     const p = await queryOne('SELECT image_path FROM zone_photos WHERE id=? AND zone_id=?', [req.params.pid, req.params.id]);
     if (p && p.image_path) deleteFile(p.image_path);
     await execute('DELETE FROM zone_photos WHERE id=? AND zone_id=?', [req.params.pid, req.params.id]);
+    emitGardenChanged({ reason: 'delete_zone_photo', zoneId: req.params.id });
     res.json({ success: true });
   } catch (e) {
     logRouteError(e, req);
@@ -156,6 +160,7 @@ router.post('/', requireTeacher, async (req, res) => {
       [id, name.trim(), current_plant || '', stage || 'empty', JSON.stringify(points), color || '#86efac80']
     );
     const zone = await queryOne('SELECT * FROM zones WHERE id = ?', [id]);
+    emitGardenChanged({ reason: 'create_zone', zoneId: id });
     res.status(201).json({ ...zone, history: [] });
   } catch (e) {
     logRouteError(e, req);
@@ -170,6 +175,7 @@ router.delete('/:id', requireTeacher, async (req, res) => {
     await execute('DELETE FROM zone_history WHERE zone_id = ?', [req.params.id]);
     await execute('DELETE FROM zone_photos WHERE zone_id = ?', [req.params.id]);
     await execute('DELETE FROM zones WHERE id = ?', [req.params.id]);
+    emitGardenChanged({ reason: 'delete_zone', zoneId: req.params.id });
     res.json({ success: true });
   } catch (e) {
     logRouteError(e, req);

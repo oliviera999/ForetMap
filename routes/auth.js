@@ -5,6 +5,7 @@ const { v4: uuidv4 } = require('uuid');
 const { queryOne, execute } = require('../database');
 const { JWT_SECRET } = require('../middleware/requireTeacher');
 const { logRouteError } = require('../lib/routeLog');
+const { emitStudentsChanged } = require('../lib/realtime');
 
 const router = express.Router();
 const TEACHER_PIN = process.env.TEACHER_PIN ?? (process.env.NODE_ENV === 'production' ? null : '1234');
@@ -38,6 +39,7 @@ router.post('/register', async (req, res) => {
       [id, firstName.trim(), lastName.trim(), hash, now]
     );
     const student = await queryOne('SELECT * FROM students WHERE id = ?', [id]);
+    emitStudentsChanged({ reason: 'register', studentId: id });
     res.status(201).json({ ...student, password: undefined });
   } catch (e) {
     logRouteError(e, req);

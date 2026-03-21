@@ -16,6 +16,24 @@ Réponses JSON. En cas d’erreur : `{ "error": "message" }` avec statut HTTP ad
 
 ---
 
+## Temps réel (Socket.IO)
+
+Connexion **WebSocket** (avec repli **polling** long) sur le **même hôte** que l’API, chemin Socket.IO : `/socket.io`.
+
+- **CORS** : en production, même règle que l’API (`FRONTEND_ORIGIN` si défini).
+- **Rôle** : notifier les clients qu’une ressource a changé ; les données à jour restent à charger via les routes REST (`GET /api/tasks`, etc.).
+- **Client** : le frontend se connecte une fois l’élève authentifié ; en cas d’échec de connexion, le rafraîchissement périodique (≈ 30 s) reste actif.
+
+Événements émis par le serveur (payload JSON, toujours avec un champ `ts` — horodatage) :
+
+| Événement | Quand | Champs utiles (exemples) |
+|-----------|--------|---------------------------|
+| `tasks:changed` | Création / modification / suppression de tâche, assignation, désassignation, marquer fait, validation, suppression d’un log | `reason`, `taskId` |
+| `students:changed` | Inscription d’un élève, suppression d’un élève | `reason`, `studentId` |
+| `garden:changed` | Zones, photos de zone, plantes, marqueurs carte | `reason`, `zoneId`, `plantId`, `markerId`… |
+
+---
+
 ## Auth
 
 | Méthode | URL | Body | Description |

@@ -5,6 +5,15 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Ajouté
+- **Temps réel (Socket.IO)** : serveur HTTP + `socket.io` sur `/socket.io` ; événements `tasks:changed`, `students:changed`, `garden:changed` émis après les mutations concernées (tâches, auth inscription, élèves, zones/photos, plantes, marqueurs).
+- **Frontend** : client Socket.IO (CDN) après connexion élève ; rafraîchissement ciblé des tâches / jardin (debounce) ; événement DOM `foretmap_realtime` pour recharger les stats prof ; reconnexion → `fetchAll()`. Polling ~30 s conservé en secours.
+- **Tests** : `tests/realtime.test.js` ; devDependency `socket.io-client`.
+- **Documentation** : section *Temps réel* dans [docs/API.md](docs/API.md).
+
+### Modifié
+- `server.js` : création du serveur via `http.createServer(app)` pour attacher Socket.IO.
+
 ---
 
 ## [1.2.0] - 2026-03-20

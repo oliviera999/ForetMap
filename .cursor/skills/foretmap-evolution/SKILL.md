@@ -1,9 +1,30 @@
 ---
 name: foretmap-evolution
-description: S’appuie sur les recommandations d’évolution du projet ForetMap (audit). À utiliser quand on planifie ou implémente des changements de sécurité, d’architecture, de données ou de tests sans casser le comportement actuel.
+description: S'appuie sur les recommandations d'évolution du projet ForetMap (audit). À utiliser quand on planifie ou implémente des changements de sécurité, d'architecture, de données, de tests ou de configuration sans casser le comportement actuel.
 ---
 
 # Évolution du code ForetMap
+
+## Quand utiliser ce skill
+
+- Planification ou implémentation d'une évolution listée dans [docs/EVOLUTION.md](docs/EVOLUTION.md).
+- Refactoring, amélioration de sécurité, changement d'architecture, migration de schéma.
+- Ajout ou amélioration de tests.
+
+## Quand ne pas l'utiliser
+
+- Bug fix simple ou feature courante sans impact architectural : préférer **foretmap-project**.
+- Release ou versionnage uniquement : préférer **foretmap-versioning**.
+
+## Checklist avant toute évolution
+
+1. **Lire** `docs/EVOLUTION.md` (section concernée) pour connaître le contexte et la solution proposée.
+2. **Vérifier l'ordre** suggéré (§ 5 du document) — respecter les dépendances entre étapes.
+3. **Identifier les fichiers impactés** à l'aide du tableau ci-dessous.
+4. **Tester le comportement actuel** avant de modifier (lancer `npm test` ou vérifier manuellement).
+5. **Implémenter par petites étapes** : un commit par changement logique, pas de big-bang.
+6. **Valider** : relancer les tests, vérifier qu'aucune régression n'est introduite.
+7. **Documenter** : mettre à jour `CHANGELOG.md` (section `[Non publié]`) et, si nécessaire, `docs/EVOLUTION.md`.
 
 ## Référence
 
@@ -11,16 +32,39 @@ Toutes les recommandations détaillées sont dans **docs/EVOLUTION.md** (à la r
 
 ## Priorités (résumé)
 
-1. **Haute — Sécurité :** Auth côté serveur pour les actions « prof » (middleware + vérification PIN), supprimer le PIN du frontend, optionnellement restreindre CORS en production.
-2. **Moyenne :** Lockfile, script `dev` (nodemon), découpage du backend en routes, images sur disque au lieu de base64.
-3. **Basse :** Tests (auth, statuts tâches, suppression élève), migration frontend React + Vite, migrations de schéma versionnées.
+1. **Haute — Sécurité :** Auth côté serveur pour les actions « prof » (middleware JWT + vérification PIN côté serveur). Supprimer le PIN du frontend. Restreindre CORS en production.
+2. **Moyenne :** Lockfile, script `dev` (nodemon), images sur disque au lieu de base64.
+3. **Basse :** Tests supplémentaires, migration frontend React + Vite, migrations de schéma versionnées.
+
+## État d'avancement
+
+| Évolution | Statut |
+|-----------|--------|
+| Auth serveur JWT + middleware `requireTeacher` | Fait |
+| CORS restreint en production | Fait |
+| Découpage backend en `routes/` | Fait |
+| Script `dev` avec nodemon | Fait |
+| Logger Pino + trace erreurs | Fait |
+| Tests backend (auth, statuts, suppression) | Fait (base) |
+| Supprimer PIN du frontend | À vérifier |
+| Images sur disque (au lieu de base64) | À faire |
+| Migration frontend Vite | À faire (stub prêt) |
+| Migrations de schéma versionnées | À faire |
 
 ## Fichiers à modifier selon le sujet
 
-- **Auth / PIN / CORS :** `server.js`, `public/index.html` (PinModal).
-- **Découpage backend :** nouveau dossier `routes/`, puis `server.js` (montage des routeurs).
-- **Images :** `server.js` (routes zones/tasks), `database.js` (schéma).
-- **Tests :** nouveau dossier `tests/` ou `__tests__/`, `package.json`.
-- **Config :** `package.json` (lockfile, script dev).
+| Sujet | Fichiers |
+|-------|----------|
+| Auth / PIN / CORS | `server.js`, `middleware/requireTeacher.js`, `routes/auth.js`, `public/index.html` (PinModal) |
+| Images | `routes/zones.js`, `routes/tasks.js`, `database.js` (schéma), `lib/uploads.js` |
+| Tests | `tests/`, `tests/helpers/setup.js`, `package.json` |
+| Migration Vite | `src/`, `vite.config.js`, `package.json`, `public/index.html` |
+| Schéma / migrations | `database.js`, `sql/schema_foretmap.sql` |
+| Config | `package.json`, `.env.example`, `docker-compose.yml` |
 
-Lire systématiquement le fichier docs/EVOLUTION.md à la racine du projet avant d’implémenter une évolution pour respecter le plan et l’ordre suggéré.
+Lire systématiquement le fichier `docs/EVOLUTION.md` à la racine du projet avant d'implémenter une évolution pour respecter le plan et l'ordre suggéré.
+
+## Voir aussi
+
+- Règles Cursor : `.cursor/rules/foretmap-conventions.mdc`, `foretmap-backend.mdc`, `foretmap-frontend.mdc`
+- Skill contexte : `.cursor/skills/foretmap-project/SKILL.md`

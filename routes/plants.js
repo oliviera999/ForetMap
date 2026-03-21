@@ -2,6 +2,7 @@ const express = require('express');
 const { queryAll, queryOne, execute } = require('../database');
 const { requireTeacher } = require('../middleware/requireTeacher');
 const { logRouteError } = require('../lib/routeLog');
+const { emitGardenChanged } = require('../lib/realtime');
 
 const router = express.Router();
 
@@ -24,6 +25,7 @@ router.post('/', requireTeacher, async (req, res) => {
       [name.trim(), emoji || '🌱', description || '']
     );
     const plant = await queryOne('SELECT * FROM plants WHERE id = ?', [result.insertId]);
+    emitGardenChanged({ reason: 'create_plant', plantId: result.insertId });
     res.status(201).json(plant);
   } catch (e) {
     logRouteError(e, req);
@@ -41,6 +43,7 @@ router.put('/:id', requireTeacher, async (req, res) => {
       [name ?? plant.name, emoji ?? plant.emoji, description ?? plant.description, plant.id]
     );
     const updated = await queryOne('SELECT * FROM plants WHERE id = ?', [plant.id]);
+    emitGardenChanged({ reason: 'update_plant', plantId: plant.id });
     res.json(updated);
   } catch (e) {
     logRouteError(e, req);
@@ -53,6 +56,7 @@ router.delete('/:id', requireTeacher, async (req, res) => {
     const plant = await queryOne('SELECT * FROM plants WHERE id = ?', [req.params.id]);
     if (!plant) return res.status(404).json({ error: 'Plante introuvable' });
     await execute('DELETE FROM plants WHERE id = ?', [req.params.id]);
+    emitGardenChanged({ reason: 'delete_plant', plantId: req.params.id });
     res.json({ success: true });
   } catch (e) {
     logRouteError(e, req);
