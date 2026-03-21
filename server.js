@@ -6,6 +6,7 @@ const { initDatabase, ping: dbPing } = require('./database');
 const { validateEnv } = require('./lib/env');
 const logger = require('./lib/logger');
 const { initRealtime } = require('./lib/realtime');
+const { tailLogLines, getBufferedLineCount, getMaxLines } = require('./lib/logBuffer');
 
 const authRouter    = require('./routes/auth');
 const zonesRouter   = require('./routes/zones');
@@ -59,6 +60,24 @@ app.post('/api/admin/restart', (req, res) => {
   }
   res.json({ ok: true, message: 'Redémarrage dans 1s' });
   setTimeout(() => process.exit(0), 1000);
+});
+
+// Dernières lignes de log Pino (tampon mémoire) — même secret que /api/admin/restart ; uniquement en HTTPS en prod
+app.get('/api/admin/logs', (req, res) => {
+  const secret = req.headers['x-deploy-secret'] || req.query?.secret;
+  if (!process.env.DEPLOY_SECRET || secret !== process.env.DEPLOY_SECRET) {
+    return res.status(403).json({ error: 'Secret invalide ou DEPLOY_SECRET non configuré' });
+  }
+  const raw = parseInt(req.query.lines, 10);
+  const n = Number.isFinite(raw) ? raw : 200;
+  const entries = tailLogLines(n);
+  res.type('application/json').json({
+    ok: true,
+    returned: entries.length,
+    bufferLines: getBufferedLineCount(),
+    bufferMax: getMaxLines(),
+    entries,
+  });
 });
 
 app.use('/api/auth', authRouter);

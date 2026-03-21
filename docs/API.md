@@ -16,6 +16,19 @@ Réponses JSON. En cas d’erreur : `{ "error": "message" }` avec statut HTTP ad
 
 ---
 
+## Administration (secret `DEPLOY_SECRET`)
+
+Nécessite la variable d’environnement **`DEPLOY_SECRET`** et le header **`X-Deploy-Secret: <valeur>`** (éviter de passer le secret en query string en prod : risque dans les journaux d’accès).
+
+| Méthode | URL | Description |
+|--------|-----|-------------|
+| POST | `/api/admin/restart` | Redémarre le processus Node (body JSON `{ "secret" }` ou header) |
+| GET | `/api/admin/logs` | Dernières lignes des logs applicatifs (Pino) depuis un **tampon mémoire** (`?lines=200` par défaut, max 5000). Réponse JSON : `entries` (tableau de chaînes), `bufferLines`, `bufferMax`. |
+
+Le tampon est dimensionné par **`LOG_BUFFER_MAX_LINES`** (défaut 2000, plafond 5000). Les logs antérieurs au démarrage du process ne sont pas disponibles ici (voir aussi les logs du panel hébergeur / stdout).
+
+---
+
 ## Temps réel (Socket.IO)
 
 Connexion **WebSocket** (avec repli **polling** long) sur le **même hôte** que l’API, chemin Socket.IO : `/socket.io`.
