@@ -115,6 +115,26 @@ Le script vide les tables MySQL puis recopie toutes les données (zones, plantes
 
 7. **Redémarrer** l’app depuis l’interface Setup Node.js App après toute modification des variables ou du code.
 
+### Incident temps réel Socket.IO (WebSocket)
+
+Si la console navigateur affiche `reserved bits are on` ou `connect_error websocket error`, cela indique généralement une altération des trames WebSocket par un proxy/CDN (pas une erreur métier ForetMap).
+
+**Contournement actuellement appliqué côté client :**
+- transport forcé en `polling` dans `src/hooks/useForetmapRealtime.js` pour maintenir le temps réel sans dépendre de WebSocket.
+
+**Checklist de diagnostic côté hébergeur / proxy :**
+- vérifier que la route `https://foretmap.olution.info/socket.io/` est bien routée vers l’app Node ;
+- vérifier la prise en charge WebSocket (upgrade HTTP) sur le reverse proxy ;
+- transmettre correctement les headers `Upgrade: websocket` et `Connection: upgrade` ;
+- éviter toute réécriture/inspection de trames WebSocket par un CDN/WAF/antivirus proxy ;
+- vérifier que l’origine front (`FRONTEND_ORIGIN`) correspond exactement au domaine servi (schéma + hôte).
+
+**Marche arrière une fois l’infra corrigée :**
+1. remettre `transports: ['websocket', 'polling']` dans `src/hooks/useForetmapRealtime.js` ;
+2. redéployer le frontend (`npm run build`) ;
+3. redémarrer l’app Node.js ;
+4. valider en navigateur qu’il n’y a plus de `connect_error websocket error`.
+
 ### Redémarrage automatique après déploiement
 
 Si vous définissez la variable d’environnement `DEPLOY_SECRET` (une chaîne secrète de votre choix), vous pouvez déclencher un redémarrage de l’app à distance après un `git pull` ou un déploiement. Le processus Node s’arrête proprement ; le gestionnaire de process (o2switch, PM2, systemd, etc.) le relance s’il est configuré pour cela.
