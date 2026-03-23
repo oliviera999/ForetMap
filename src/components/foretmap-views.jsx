@@ -133,6 +133,18 @@ function isHttpLink(value) {
   return /^https?:\/\//i.test(value);
 }
 
+function isLikelyDirectImageUrl(value) {
+  if (!isHttpLink(value)) return false;
+  try {
+    const url = new URL(value);
+    const path = url.pathname.toLowerCase();
+    // Accepte les URLs pointant vers un fichier image direct.
+    return /\.(avif|bmp|gif|jpe?g|png|svg|webp)(?:$|\?)/.test(path);
+  } catch {
+    return false;
+  }
+}
+
 function getSourceLabel(value) {
   try {
     const url = new URL(value);
@@ -200,7 +212,23 @@ function PlantMetaSections({ plant }) {
                         const photoEntries = entries.filter(isHttpLink);
 
                         if (PHOTO_FIELD_KEYS.has(item.key) && photoEntries.length > 0) {
-                          return renderPhotoLinks(item, photoEntries);
+                          const imageEntries = photoEntries.filter(isLikelyDirectImageUrl);
+                          const pageEntries = photoEntries.filter((entry) => !isLikelyDirectImageUrl(entry));
+                          return (
+                            <>
+                              {imageEntries.length > 0 && renderPhotoLinks(item, imageEntries)}
+                              {pageEntries.map((entry, idx) => (
+                                <a
+                                  key={`${item.key}-page-${idx}`}
+                                  href={entry}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  title={entry}>
+                                  {getSourceLabel(entry)}
+                                </a>
+                              ))}
+                            </>
+                          );
                         }
 
                         return entries.map((entry, idx) => (
