@@ -96,6 +96,19 @@
     header .logo { display:flex; align-items:center; gap:8px; font-family:'Playfair Display',serif; font-size:1.1rem; }
     header .logo span { font-size:1.3rem; }
     .header-right { display:flex; align-items:center; gap:6px; }
+    .app-version-badge {
+      display:inline-flex; align-items:center; gap:6px;
+      min-height:30px; padding:4px 8px;
+      border-radius:999px;
+      background:rgba(255,255,255,.14);
+      border:1px solid rgba(255,255,255,.24);
+      color:#f8fff9;
+      font-size:.68rem; line-height:1;
+      white-space:nowrap;
+      cursor:default;
+    }
+    .app-version-badge__version { font-weight:700; letter-spacing:.02em; }
+    .app-version-badge__status { opacity:.9; }
     /* Indicateur discret temps réel (mode prof uniquement) */
     .realtime-prof-wrap {
       display:inline-flex; align-items:center; justify-content:center;
@@ -140,6 +153,8 @@
     @media(max-width:380px) {
       .lock-btn .lock-label { display:none; }
       .user-badge { max-width:108px; font-size:.72rem; }
+      .app-version-badge { padding:4px 7px; font-size:.64rem; }
+      .app-version-badge__status { display:none; }
     }
 
     /* ── BOTTOM NAV ── */

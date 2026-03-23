@@ -42,6 +42,15 @@ function App() {
     });
   }, []);
 
+  useEffect(() => {
+    try {
+      if (sessionStorage.getItem('foretmap_sw_updated') === '1') {
+        sessionStorage.removeItem('foretmap_sw_updated');
+        setToast('Nouvelle version installée.');
+      }
+    } catch (_) {}
+  }, []);
+
   // Called from anywhere when a 401-deleted is detected
   const forceLogout = useCallback(() => {
     localStorage.removeItem('foretmap_student');
@@ -128,7 +137,12 @@ function App() {
     await fetchAll();
   };
 
-  if (!student) return <AuthScreen onLogin={s => updateStudentSession(s)} appVersion={appVersion}/>;
+  if (!student) return (
+    <>
+      {toast && <Toast msg={toast} onDone={() => setToast(null)}/>}
+      <AuthScreen onLogin={s => updateStudentSession(s)} appVersion={appVersion}/>
+    </>
+  );
   if (loading) return (
     <div className="loader">
       <div className="loader-leaf">🌿</div>
@@ -181,6 +195,14 @@ function App() {
           <span>🌿</span> ForêtMap
         </div>
         <div className="header-right">
+          <span
+            className="app-version-badge"
+            title={`Version installée: ${appVersion != null ? appVersion : 'chargement...'}`}
+            aria-label={`Version ${appVersion != null ? appVersion : 'en chargement'}`}
+          >
+            <span className="app-version-badge__version">v{appVersion != null ? appVersion : '…'}</span>
+            <span className="app-version-badge__status">à jour</span>
+          </span>
           {isTeacher && rtStatus !== 'off' && (
             <span
               className="realtime-prof-wrap"

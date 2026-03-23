@@ -61,9 +61,17 @@ app.get('/api/health/db', async (req, res) => {
 });
 
 // Version de l'app (pied de page frontend)
-const appVersion = require(path.join(__dirname, 'package.json')).version;
+const startupVersion = require(path.join(__dirname, 'package.json')).version;
 app.get('/api/version', (req, res) => {
-  res.json({ version: appVersion });
+  try {
+    const pkgPath = path.join(__dirname, 'package.json');
+    const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
+    const version = typeof pkg?.version === 'string' ? pkg.version : startupVersion;
+    res.json({ version });
+  } catch (err) {
+    logger.warn({ err }, 'Lecture package.json échouée pour /api/version');
+    res.json({ version: startupVersion });
+  }
 });
 
 // Redémarrage déclenché après déploiement (secret requis ; le gestionnaire de process relance l'app)
