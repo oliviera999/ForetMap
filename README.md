@@ -2,7 +2,7 @@
 
 Application de gestion de la forêt comestible — **Lycée Lyautey**.
 
-Les élèves peuvent consulter la carte des zones, s’inscrire à des tâches et marquer leur travail comme fait. Les professeurs gèrent les zones, les plantes, les tâches et les statistiques via un mode protégé par PIN.
+Les élèves peuvent consulter la carte des zones, s’inscrire à des tâches et marquer leur travail comme fait. Les professeurs gèrent les zones, la biodiversité, les tâches et les statistiques via un mode protégé par PIN.
 
 **Version :** `package.json` (SemVer) · [CHANGELOG](CHANGELOG.md) · procédure : [docs/VERSIONING.md](docs/VERSIONING.md) (`bump:*` + commit + tag)
 
@@ -117,7 +117,7 @@ Si vous partez d’un ancien fichier `foretmap.db` (SQLite) :
 2. Placer `foretmap.db` à la racine du projet (ou définir `SQLITE_PATH`).
 3. Lancer la migration : `npm run migrate:sqlite-to-mysql`.
 
-Le script vide les tables MySQL puis recopie toutes les données (zones, plantes, tâches, élèves, photos, etc.). Tester de préférence sur une copie de la BDD avant la prod.
+Le script vide les tables MySQL puis recopie toutes les données (zones, biodiversité, tâches, élèves, photos, etc.). Tester de préférence sur une copie de la BDD avant la prod.
 
 ---
 

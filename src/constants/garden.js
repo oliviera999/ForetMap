@@ -37,7 +37,7 @@ export const SPECIAL_DESC = {
   'butte-fleurie': 'Butte fleurie — zone de plantation de fleurs mellifères.',
   'butte-b': 'Butte de plantation — zone de repos du sol.',
   sa: 'Spirale Aromatique — conception permaculture sur plusieurs niveaux.',
-  pergola: "Pergola — structure d'ombrage avec plantes grimpantes.",
+  pergola: "Pergola — structure d'ombrage avec espèces grimpantes.",
   fumier: 'Fumier — matière organique pour amendement du sol.',
   compostage: 'Zone de compostage — transformation des déchets organiques.',
   cuve: 'Cuve à eau — récupération des eaux de pluie pour arrosage.',

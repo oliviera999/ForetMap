@@ -453,7 +453,7 @@ function LogModal({ task, student, onClose, onDone }) {
         <div className="field">
           <label>Commentaire (optionnel)</label>
           <textarea value={comment} onChange={e => setComment(e.target.value)} rows={3}
-            placeholder="Comment ça s'est passé ? Des observations sur la plante ?" />
+            placeholder="Comment ça s'est passé ? Des observations sur l'être vivant ?" />
         </div>
 
         <div className="field">

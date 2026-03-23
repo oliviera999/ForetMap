@@ -246,7 +246,7 @@ function ZoneInfoModal({ zone, plants, isTeacher, onClose, onUpdate, onDelete, o
 
         {tab === 'edit' && isTeacher && !zone.special && (
           <div className="fade-in">
-            <div className="field"><label>Plante actuelle</label>
+            <div className="field"><label>Être vivant actuel</label>
               <select value={plant} onChange={e => {
                 setPlant(e.target.value);
                 if (e.target.value && stage === 'empty') setStage('growing');
@@ -303,7 +303,7 @@ function ZoneDrawModal({ points_pct, onClose, onSave, plants }) {
           <input value={form.name} onChange={set('name')} placeholder="Ex: Potager Est" autoFocus />
         </div>
         <div className="row">
-          <div className="field"><label>Plante</label>
+          <div className="field"><label>Être vivant</label>
             <select value={form.current_plant} onChange={set('current_plant')}>
               <option value="">— Vide —</option>
               {plants.map(p => <option key={p.id} value={p.name}>{p.emoji} {p.name}</option>)}
@@ -376,7 +376,7 @@ function MarkerModal({ marker, plants, onClose, onSave, onDelete, isTeacher }) {
             <div className="field"><label>Nom du repère *</label>
               <input value={form.label} onChange={set('label')} placeholder="Ex: Olivier n°10" />
             </div>
-            <div className="field"><label>Plante associée</label>
+            <div className="field"><label>Être vivant associé</label>
               <select value={form.plant_name} onChange={set('plant_name')}>
                 <option value="">— Aucune —</option>
                 {plants.map(p => <option key={p.id} value={p.name}>{p.emoji} {p.name}</option>)}

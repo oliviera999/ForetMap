@@ -230,7 +230,7 @@ function App() {
             <button className={`top-tab ${tab === 'tasks' ? 'active' : ''}`} onClick={() => setTab('tasks')}>
               ✅ Tâches {tasks.filter(t => t.status === 'done').length > 0 && `(${tasks.filter(t => t.status === 'done').length} à valider)`}
             </button>
-            <button className={`top-tab ${tab === 'plants' ? 'active' : ''}`} onClick={() => setTab('plants')}>🌱 Plantes</button>
+            <button className={`top-tab ${tab === 'plants' ? 'active' : ''}`} onClick={() => setTab('plants')}>🌱 Biodiversité</button>
             <button className={`top-tab ${tab === 'stats' ? 'active' : ''}`} onClick={() => setTab('stats')}>📊 Stats</button>
             <button className={`top-tab ${tab === 'audit' ? 'active' : ''}`} onClick={() => setTab('audit')}>📜 Audit</button>
             <button className={`top-tab ${tab === 'about' ? 'active' : ''}`} onClick={() => setTab('about')}>ℹ️ À propos</button>
@@ -261,7 +261,7 @@ function App() {
                 && `(${tasks.filter(t => t.assignments?.some(a => a.student_first_name === student.first_name && a.student_last_name === student.last_name) && (t.status === 'available' || t.status === 'in_progress')).length})`}
             </button>
             <button className={`nav-btn ${tab === 'plants' ? 'active' : ''}`} onClick={() => setTab('plants')}>
-              <span className="nav-icon">🌱</span> Plantes
+              <span className="nav-icon">🌱</span> Biodiversité
             </button>
             <button className={`nav-btn ${tab === 'notebook' ? 'active' : ''}`} onClick={() => setTab('notebook')}>
               <span className="nav-icon">📓</span> Carnet
