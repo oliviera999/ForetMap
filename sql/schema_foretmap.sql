@@ -38,6 +38,35 @@ CREATE TABLE IF NOT EXISTS plants (
   name VARCHAR(255) NOT NULL,
   emoji VARCHAR(16) DEFAULT NULL,
   description TEXT DEFAULT NULL,
+  second_name VARCHAR(255) DEFAULT NULL,
+  scientific_name VARCHAR(255) DEFAULT NULL,
+  group_1 VARCHAR(255) DEFAULT NULL,
+  group_2 VARCHAR(255) DEFAULT NULL,
+  group_3 VARCHAR(255) DEFAULT NULL,
+  habitat VARCHAR(255) DEFAULT NULL,
+  photo TEXT DEFAULT NULL,
+  nutrition TEXT DEFAULT NULL,
+  agroecosystem_category VARCHAR(255) DEFAULT NULL,
+  longevity VARCHAR(255) DEFAULT NULL,
+  remark_1 TEXT DEFAULT NULL,
+  remark_2 TEXT DEFAULT NULL,
+  remark_3 TEXT DEFAULT NULL,
+  reproduction VARCHAR(255) DEFAULT NULL,
+  size VARCHAR(255) DEFAULT NULL,
+  sources TEXT DEFAULT NULL,
+  ideal_temperature_c VARCHAR(64) DEFAULT NULL,
+  optimal_ph VARCHAR(64) DEFAULT NULL,
+  ecosystem_role TEXT DEFAULT NULL,
+  geographic_origin VARCHAR(255) DEFAULT NULL,
+  human_utility TEXT DEFAULT NULL,
+  harvest_part VARCHAR(255) DEFAULT NULL,
+  planting_recommendations TEXT DEFAULT NULL,
+  preferred_nutrients TEXT DEFAULT NULL,
+  photo_species TEXT DEFAULT NULL,
+  photo_leaf TEXT DEFAULT NULL,
+  photo_flower TEXT DEFAULT NULL,
+  photo_fruit TEXT DEFAULT NULL,
+  photo_harvest_part TEXT DEFAULT NULL,
   INDEX idx_plants_name (name)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -72,9 +101,15 @@ CREATE TABLE IF NOT EXISTS students (
   id VARCHAR(64) PRIMARY KEY,
   first_name VARCHAR(255) NOT NULL,
   last_name VARCHAR(255) NOT NULL,
+  pseudo VARCHAR(50) DEFAULT NULL,
+  email VARCHAR(255) DEFAULT NULL,
+  description TEXT DEFAULT NULL,
+  avatar_path VARCHAR(512) DEFAULT NULL,
   password VARCHAR(255) DEFAULT NULL,
   last_seen VARCHAR(32) DEFAULT NULL,
-  INDEX idx_students_names (first_name, last_name)
+  INDEX idx_students_names (first_name, last_name),
+  UNIQUE KEY uq_students_pseudo (pseudo),
+  UNIQUE KEY uq_students_email (email)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- task_logs (commentaires / images de réalisation d'une tâche)

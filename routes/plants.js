@@ -5,6 +5,67 @@ const { logRouteError } = require('../lib/routeLog');
 const { emitGardenChanged } = require('../lib/realtime');
 
 const router = express.Router();
+const PLANT_EXTRA_FIELDS = [
+  'second_name',
+  'scientific_name',
+  'group_1',
+  'group_2',
+  'group_3',
+  'habitat',
+  'photo',
+  'nutrition',
+  'agroecosystem_category',
+  'longevity',
+  'remark_1',
+  'remark_2',
+  'remark_3',
+  'reproduction',
+  'size',
+  'sources',
+  'ideal_temperature_c',
+  'optimal_ph',
+  'ecosystem_role',
+  'geographic_origin',
+  'human_utility',
+  'harvest_part',
+  'planting_recommendations',
+  'preferred_nutrients',
+  'photo_species',
+  'photo_leaf',
+  'photo_flower',
+  'photo_fruit',
+  'photo_harvest_part',
+];
+const PLANT_COLUMNS = ['name', 'emoji', 'description', ...PLANT_EXTRA_FIELDS];
+
+function hasOwn(obj, key) {
+  return Object.prototype.hasOwnProperty.call(obj || {}, key);
+}
+
+function asTrimmedString(value) {
+  if (value == null) return '';
+  return String(value).trim();
+}
+
+function asOptionalText(value) {
+  const s = asTrimmedString(value);
+  return s.length > 0 ? s : null;
+}
+
+function buildPlantPayload(body, fallback = {}) {
+  const payload = {};
+  const rawName = hasOwn(body, 'name') ? body.name : fallback.name;
+  const rawEmoji = hasOwn(body, 'emoji') ? body.emoji : fallback.emoji;
+  const rawDescription = hasOwn(body, 'description') ? body.description : fallback.description;
+  payload.name = asTrimmedString(rawName);
+  payload.emoji = asTrimmedString(rawEmoji) || '🌱';
+  payload.description = asTrimmedString(rawDescription);
+  for (const field of PLANT_EXTRA_FIELDS) {
+    const sourceValue = hasOwn(body, field) ? body[field] : fallback[field];
+    payload[field] = asOptionalText(sourceValue);
+  }
+  return payload;
+}
 
 router.get('/', async (req, res) => {
   try {
@@ -18,11 +79,13 @@ router.get('/', async (req, res) => {
 
 router.post('/', requireTeacher, async (req, res) => {
   try {
-    const { name, emoji, description } = req.body;
-    if (!name?.trim()) return res.status(400).json({ error: 'Nom requis' });
+    const payload = buildPlantPayload(req.body);
+    if (!payload.name) return res.status(400).json({ error: 'Nom requis' });
+    const placeholders = PLANT_COLUMNS.map(() => '?').join(', ');
+    const values = PLANT_COLUMNS.map(col => payload[col]);
     const result = await execute(
-      'INSERT INTO plants (name, emoji, description) VALUES (?, ?, ?)',
-      [name.trim(), emoji || '🌱', description || '']
+      `INSERT INTO plants (${PLANT_COLUMNS.join(', ')}) VALUES (${placeholders})`,
+      values
     );
     const plant = await queryOne('SELECT * FROM plants WHERE id = ?', [result.insertId]);
     emitGardenChanged({ reason: 'create_plant', plantId: result.insertId });
@@ -37,10 +100,13 @@ router.put('/:id', requireTeacher, async (req, res) => {
   try {
     const plant = await queryOne('SELECT * FROM plants WHERE id = ?', [req.params.id]);
     if (!plant) return res.status(404).json({ error: 'Plante introuvable' });
-    const { name, emoji, description } = req.body;
+    const payload = buildPlantPayload(req.body, plant);
+    if (!payload.name) return res.status(400).json({ error: 'Nom requis' });
+    const setClause = PLANT_COLUMNS.map(col => `${col}=?`).join(', ');
+    const values = [...PLANT_COLUMNS.map(col => payload[col]), plant.id];
     await execute(
-      'UPDATE plants SET name=?, emoji=?, description=? WHERE id=?',
-      [name ?? plant.name, emoji ?? plant.emoji, description ?? plant.description, plant.id]
+      `UPDATE plants SET ${setClause} WHERE id=?`,
+      values
     );
     const updated = await queryOne('SELECT * FROM plants WHERE id = ?', [plant.id]);
     emitGardenChanged({ reason: 'update_plant', plantId: plant.id });

@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { API, api } from '../services/api';
 import { statusBadge } from '../utils/badges';
+import { getDicebearAvatarUrl, getStudentAvatarUrl } from '../utils/avatar';
+import { StudentAvatar } from './student-avatar';
 
 function Toast({ msg, onDone }) {
   useEffect(() => { const t = setTimeout(onDone, 2400); return () => clearTimeout(t); }, []);
@@ -33,11 +35,16 @@ function StudentStats({ student }) {
 
   return (
     <div className="fade-in">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-        <h2 className="section-title">📊 Mes statistiques</h2>
+      <div className="stats-title-row">
+        <div className="stats-title-left">
+          <StudentAvatar student={data} size={34} />
+          <h2 className="section-title" style={{ marginBottom: 0 }}>📊 Mes statistiques</h2>
+        </div>
         <span style={{ background: 'var(--parchment)', borderRadius: 20, padding: '4px 12px', fontSize: '.8rem', fontWeight: 600, color: 'var(--soil)' }}>{currentRank.label}</span>
       </div>
       <p className="section-sub">Bonjour {data.first_name} ! Voici ton bilan dans la forêt.</p>
+      {data.pseudo && <p className="section-sub" style={{ marginTop: 0 }}>Pseudo public : @{data.pseudo}</p>}
+      {data.description && <p className="section-sub" style={{ marginTop: 0 }}>{data.description}</p>}
 
       <div className="rank-progress">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
@@ -96,6 +103,159 @@ function StudentStats({ student }) {
             </div>
           ))
         }
+      </div>
+    </div>
+  );
+}
+
+function StudentProfileEditor({ student, onUpdated, onClose }) {
+  const [pseudo, setPseudo] = useState(student.pseudo || '');
+  const [email, setEmail] = useState(student.email || '');
+  const [description, setDescription] = useState(student.description || '');
+  const [avatarPreview, setAvatarPreview] = useState(getStudentAvatarUrl(student));
+  const [avatarData, setAvatarData] = useState(null);
+  const [removeAvatar, setRemoveAvatar] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [err, setErr] = useState('');
+  const [okMsg, setOkMsg] = useState('');
+
+  const onAvatarSelected = (file) => {
+    if (!file) return;
+    const allowed = new Set(['image/png', 'image/jpeg', 'image/webp']);
+    if (!allowed.has(file.type)) {
+      setErr('Format image invalide (png/jpg/webp)');
+      return;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      setErr('Image trop lourde (max 2 Mo)');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      const dataUrl = String(reader.result || '');
+      setAvatarData(dataUrl);
+      setAvatarPreview(dataUrl);
+      setRemoveAvatar(false);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const save = async () => {
+    setErr('');
+    setOkMsg('');
+    if (!currentPassword) return setErr('Mot de passe actuel requis');
+    if (pseudo.trim() && !/^[A-Za-z0-9_.-]{3,30}$/.test(pseudo.trim())) {
+      return setErr('Pseudo invalide (3-30 caractères, lettres/chiffres/._-)');
+    }
+    if (email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+      return setErr('Email invalide');
+    }
+    if (description.trim().length > 300) {
+      return setErr('Description trop longue (max 300 caractères)');
+    }
+
+    setLoading(true);
+    try {
+      const payload = {
+        pseudo: pseudo.trim() || null,
+        email: email.trim() || null,
+        description: description.trim() || null,
+        currentPassword,
+      };
+      if (avatarData) payload.avatarData = avatarData;
+      if (removeAvatar) payload.removeAvatar = true;
+
+      const updated = await api(`/api/students/${student.id}/profile`, 'PATCH', payload);
+      onUpdated(updated);
+      setCurrentPassword('');
+      setAvatarData(null);
+      setRemoveAvatar(false);
+      setAvatarPreview(getStudentAvatarUrl(updated));
+      setOkMsg('Profil mis à jour');
+    } catch (e) {
+      setErr(e.message || 'Impossible de mettre à jour le profil');
+    }
+    setLoading(false);
+  };
+
+  return (
+    <div className="fade-in">
+      <h2 className="section-title">👤 Mon profil</h2>
+      <p className="section-sub">
+        Modifie ton pseudo, ton mail et ta description. Ton mail reste privé.
+      </p>
+
+      <div className="field">
+        <label>Photo de profil</label>
+        <div className="profile-avatar-row">
+          {avatarPreview
+            ? <img src={avatarPreview} alt="Aperçu avatar" style={{ width: 52, height: 52, borderRadius: '50%', objectFit: 'cover', border: '1px solid #ddd' }} />
+            : <StudentAvatar student={student} size={52} style={{ border: '1px solid #ddd' }} />}
+          <div className="profile-avatar-help">
+            Par défaut, l&apos;avatar est généré automatiquement via DiceBear.
+          </div>
+        </div>
+        <input
+          type="file"
+          accept="image/png,image/jpeg,image/webp"
+          onChange={e => onAvatarSelected(e.target.files?.[0])}
+        />
+        <div className="profile-avatar-actions">
+          <button
+            type="button"
+            className="btn btn-ghost btn-sm"
+            onClick={() => {
+              setAvatarData(null);
+              setRemoveAvatar(true);
+              setAvatarPreview(getDicebearAvatarUrl(student));
+            }}
+          >
+            Utiliser l&apos;avatar DiceBear
+          </button>
+        </div>
+      </div>
+
+      <div className="field">
+        <label>Nom complet</label>
+        <input value={`${student.first_name} ${student.last_name}`} disabled />
+      </div>
+      <div className="field">
+        <label>Pseudo</label>
+        <input value={pseudo} onChange={e => setPseudo(e.target.value)} placeholder="momo_lyautey" />
+      </div>
+      <div className="field">
+        <label>Mail</label>
+        <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="moi@exemple.com" />
+      </div>
+      <div className="field">
+        <label>Description</label>
+        <textarea
+          value={description}
+          onChange={e => setDescription(e.target.value)}
+          rows={4}
+          maxLength={300}
+          placeholder="Je participe souvent à l'arrosage."
+        />
+      </div>
+      <div className="field">
+        <label>Mot de passe actuel</label>
+        <input
+          type="password"
+          value={currentPassword}
+          onChange={e => setCurrentPassword(e.target.value)}
+          placeholder="••••"
+        />
+      </div>
+      {err && <div className="auth-error">⚠️ {err}</div>}
+      {okMsg && <div className="toast" style={{ position: 'static', marginTop: 4 }}>{okMsg}</div>}
+      <div style={{ display: 'flex', gap: 10, marginTop: 10 }}>
+        <button className="btn btn-primary" onClick={save} disabled={loading} style={{ flex: 1 }}>
+          {loading ? 'Enregistrement…' : 'Enregistrer'}
+        </button>
+        <button className="btn btn-ghost" onClick={onClose} disabled={loading} style={{ flex: 1 }}>
+          Fermer
+        </button>
       </div>
     </div>
   );
@@ -231,6 +391,7 @@ function TeacherStats() {
             return (
               <div key={s.id} className="lb-row" style={{ gap: 8 }}>
                 <div className={`lb-rank ${rankClass(realRank)}`}>{rankIcon(realRank)}</div>
+                <StudentAvatar student={s} size={30} style={{ border: '1px solid #ddd' }} />
                 <div className="lb-name" style={{ flex: 1, minWidth: 0 }}>
                   <strong>{s.first_name} {s.last_name}</strong>
                   <small>
@@ -273,4 +434,4 @@ function TeacherStats() {
   );
 }
 
-export { StudentStats, TeacherStats };
+export { StudentStats, StudentProfileEditor, TeacherStats };

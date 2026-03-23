@@ -51,7 +51,7 @@ Connexion **WebSocket** (avec repli **polling** long) sur le **même hôte** que
 
 | Méthode | URL | Body | Description |
 |--------|-----|------|-------------|
-| POST | `/api/auth/register` | `{ firstName, lastName, password }` | Créer un compte élève |
+| POST | `/api/auth/register` | `{ firstName, lastName, password, pseudo?, email?, description? }` | Créer un compte élève |
 | POST | `/api/auth/login` | `{ firstName, lastName, password }` | Connexion élève |
 | POST | `/api/auth/teacher` | `{ pin }` | Connexion prof → `{ token }` (JWT) |
 
@@ -95,6 +95,16 @@ Routes protégées « prof » : header `Authorization: Bearer <token>`.
 | PUT | `/api/plants/:id` | oui | Modifier plante |
 | DELETE | `/api/plants/:id` | oui | Supprimer plante |
 
+`GET /api/plants` renvoie les champs historiques (`id`, `name`, `emoji`, `description`) et les champs de biodiversité:
+`second_name`, `scientific_name`, `group_1`, `group_2`, `group_3`, `habitat`, `photo`, `nutrition`,
+`agroecosystem_category`, `longevity`, `remark_1`, `remark_2`, `remark_3`, `reproduction`, `size`,
+`sources`, `ideal_temperature_c`, `optimal_ph`, `ecosystem_role`, `geographic_origin`, `human_utility`,
+`harvest_part`, `planting_recommendations`, `preferred_nutrients`, `photo_species`, `photo_leaf`,
+`photo_flower`, `photo_fruit`, `photo_harvest_part`.
+
+`POST /api/plants` et `PUT /api/plants/:id` acceptent ces mêmes champs en JSON. Les champs texte vides
+des métadonnées biodiversité sont normalisés en `null`.
+
 ---
 
 ## Tâches
@@ -119,8 +129,8 @@ Routes protégées « prof » : header `Authorization: Bearer <token>`.
 
 | Méthode | URL | Prof | Description |
 |--------|-----|------|-------------|
-| GET | `/api/stats/me/:studentId` | non | Stats d’un élève |
-| GET | `/api/stats/all` | oui | Stats de tous les élèves |
+| GET | `/api/stats/me/:studentId` | non | Stats d’un élève (inclut `pseudo`, `description`, `avatar_path`, n’expose pas `email`) |
+| GET | `/api/stats/all` | oui | Stats de tous les élèves (inclut `pseudo`, `description`, `avatar_path`, n’expose pas `email`) |
 
 ---
 
@@ -129,7 +139,10 @@ Routes protégées « prof » : header `Authorization: Bearer <token>`.
 | Méthode | URL | Prof | Description |
 |--------|-----|------|-------------|
 | POST | `/api/students/register` | non | Rafraîchir last_seen (`{ studentId }`) |
+| PATCH | `/api/students/:id/profile` | non | Mettre à jour son profil (`{ pseudo?, email?, description?, avatarData?, removeAvatar?, currentPassword }`) |
 | DELETE | `/api/students/:id` | oui | Supprimer un élève (cascade) |
+
+`avatarData` doit être une data URL image (`png`, `jpg/jpeg`, `webp`). Les fichiers sont stockés sous `uploads/students/...` et exposés via `/uploads/...`.
 
 ---
 

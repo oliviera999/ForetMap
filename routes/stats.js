@@ -21,7 +21,17 @@ async function studentStats(studentId) {
   const pending   = assignments.filter(a => a.status === 'available' || a.status === 'in_progress').length;
   const submitted = assignments.filter(a => a.status === 'done').length;
   const total     = assignments.length;
-  return { ...s, password: undefined, stats: { done, pending, submitted, total }, assignments };
+  return {
+    id: s.id,
+    first_name: s.first_name,
+    last_name: s.last_name,
+    pseudo: s.pseudo,
+    description: s.description,
+    avatar_path: s.avatar_path,
+    last_seen: s.last_seen,
+    stats: { done, pending, submitted, total },
+    assignments,
+  };
 }
 
 router.get('/me/:studentId', async (req, res) => {
@@ -49,6 +59,9 @@ router.get('/all', requireTeacher, async (req, res) => {
         id: s.id,
         first_name: s.first_name,
         last_name: s.last_name,
+        pseudo: s.pseudo,
+        description: s.description,
+        avatar_path: s.avatar_path,
         last_seen: s.last_seen,
         stats: {
           total: assignments.length,
