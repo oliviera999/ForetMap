@@ -83,6 +83,16 @@ log "Mise à jour détectée: $LOCAL_SHA -> $REMOTE_SHA"
 # Détermine les fichiers changés pour déclencher les étapes utiles.
 CHANGED_FILES="$(git diff --name-only "$LOCAL_SHA" "$REMOTE_SHA" || true)"
 
+# Garde-fou: en mode "build local", toute modif frontend doit inclure une mise à jour de dist/.
+FRONTEND_PATTERNS='^(src/|index\.vite\.html$|vite\.config\.js$|public/)'
+if grep -Eq "$FRONTEND_PATTERNS" <<<"$CHANGED_FILES"; then
+  if ! grep -Eq '^dist/' <<<"$CHANGED_FILES"; then
+    log "Déploiement bloqué: modifications frontend détectées sans mise à jour de dist/."
+    log "Action requise: exécuter npm run build en local puis pousser les fichiers dist/."
+    exit 1
+  fi
+fi
+
 log "git pull --ff-only origin $DEPLOY_BRANCH"
 git pull --ff-only origin "$DEPLOY_BRANCH"
 
