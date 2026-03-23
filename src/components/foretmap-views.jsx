@@ -97,6 +97,15 @@ const PLANT_META_SECTIONS = [
   },
 ];
 
+const PHOTO_FIELD_KEYS = new Set([
+  'photo',
+  'photo_species',
+  'photo_leaf',
+  'photo_flower',
+  'photo_fruit',
+  'photo_harvest_part',
+]);
+
 function normalizedPlantValue(value) {
   if (value == null) return '';
   const s = String(value).trim();
@@ -143,8 +152,26 @@ function PlantSummaryBadges({ plant }) {
 }
 
 function PlantMetaSections({ plant }) {
+  const [bigPhoto, setBigPhoto] = useState(null);
+
+  const renderPhotoLinks = (item, entries) => (
+    <div className="plant-photo-grid">
+      {entries.map((entry, idx) => (
+        <button
+          key={`${item.key}-${idx}`}
+          type="button"
+          className="plant-photo-thumb"
+          onClick={() => setBigPhoto({ src: entry, caption: item.label })}>
+          <img src={entry} alt={item.label} loading="lazy" />
+          <span className="plant-photo-overlay">🔍 Voir</span>
+        </button>
+      ))}
+    </div>
+  );
+
   return (
     <>
+      {bigPhoto && <Lightbox src={bigPhoto.src} caption={bigPhoto.caption} onClose={() => setBigPhoto(null)} />}
       {PLANT_META_SECTIONS.map(section => {
         const values = section.items
           .map(item => ({ ...item, value: normalizedPlantValue(plant[item.key]) }))
@@ -159,11 +186,20 @@ function PlantMetaSections({ plant }) {
                   <div className="plant-meta-label">{item.label}</div>
                   {item.links ? (
                     <div className="plant-links">
-                      {parseLinkCandidates(item.value).map((entry, idx) => (
-                        isHttpLink(entry)
-                          ? <a key={`${item.key}-${idx}`} href={entry} target="_blank" rel="noreferrer">{entry}</a>
-                          : <span key={`${item.key}-${idx}`}>{entry}</span>
-                      ))}
+                      {(() => {
+                        const entries = parseLinkCandidates(item.value);
+                        const photoEntries = entries.filter(isHttpLink);
+
+                        if (PHOTO_FIELD_KEYS.has(item.key) && photoEntries.length > 0) {
+                          return renderPhotoLinks(item, photoEntries);
+                        }
+
+                        return entries.map((entry, idx) => (
+                          isHttpLink(entry)
+                            ? <a key={`${item.key}-${idx}`} href={entry} target="_blank" rel="noreferrer">{entry}</a>
+                            : <span key={`${item.key}-${idx}`}>{entry}</span>
+                        ));
+                      })()}
                     </div>
                   ) : (
                     <div className="plant-meta-value">{item.value}</div>
