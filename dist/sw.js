@@ -12,6 +12,12 @@ const API_CACHE_URLS = [
   '/api/tasks',
 ];
 
+self.addEventListener('message', event => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
+});
+
 self.addEventListener('install', event => {
   event.waitUntil(
     caches.open(CACHE_NAME)
@@ -31,6 +37,23 @@ self.addEventListener('activate', event => {
 self.addEventListener('fetch', event => {
   const url = new URL(event.request.url);
 
+  // HTML en network-first pour récupérer les dernières versions quand en ligne.
+  if (
+    event.request.method === 'GET' &&
+    (url.pathname === '/' || url.pathname === '/index.html')
+  ) {
+    event.respondWith(
+      fetch(event.request)
+        .then(response => {
+          const clone = response.clone();
+          caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
+          return response;
+        })
+        .catch(() => caches.match(event.request))
+    );
+    return;
+  }
+
   // Stratégie network-first pour les API cachées
   if (API_CACHE_URLS.some(p => url.pathname === p) && event.request.method === 'GET') {
     event.respondWith(
@@ -47,8 +70,6 @@ self.addEventListener('fetch', event => {
 
   // Stratégie cache-first pour les assets statiques
   if (event.request.method === 'GET' && (
-    url.pathname === '/' ||
-    url.pathname === '/index.html' ||
     url.pathname.endsWith('.css') ||
     url.pathname.endsWith('.js')
   )) {

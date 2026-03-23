@@ -42,6 +42,10 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - **Page À propos** : nouvel onglet (élève/prof) avec description de l'application, version affichée, mention de l'auteur, liens de documentation locaux (`/README.md`, `/CHANGELOG.md`, `/docs/*`) et lien global vers le dépôt GitHub.
 
 ### Modifié
+- **Mise à jour automatique frontend** : service worker amélioré pour activer immédiatement une nouvelle version (`SKIP_WAITING`), vérifier les updates au retour onglet actif et recharger automatiquement quand le nouveau worker prend le contrôle.
+- **Stratégie de cache HTML** : `/` et `/index.html` passent en `network-first` pour éviter de rester bloqué sur une ancienne interface quand le réseau est disponible.
+- **Version affichée fiable** : route `GET /api/version` lit désormais `package.json` à chaque requête (fallback sécurisé sur la version de démarrage) pour refléter la version réellement déployée.
+- **Retour utilisateur MAJ** : ajout d’un toast « Nouvelle version installée. » et d’un badge persistant `vX.Y.Z` dans l’en-tête.
 - **Script auto-deploy cron** : ajout d’un garde-fou qui bloque le déploiement si des fichiers frontend (`src/`, Vite/public) changent sans mise à jour de `dist/` (build local obligatoire avant push).
 - **Terminologie UI/docs** : renommage de l’onglet « Plantes » en « Biodiversité » et harmonisation des libellés vers « biodiversité » / « êtres vivants » selon le contexte (frontend, docs API/README, tests e2e).
 - **Déploiement runtime local** : ajout d'un script `deploy:prepare:runtime` pour préparer un bundle complet (`dist` + `node_modules` prod) afin d'éviter les erreurs de build/install sur serveur (`vite` introuvable, locks panel).
