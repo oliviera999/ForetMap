@@ -16,6 +16,7 @@
 const { URL } = require('url');
 const http = require('http');
 const https = require('https');
+const CHECK_USER_AGENT = 'ForetMap-DeployCheck/1.0';
 
 function parseArgs(argv) {
   const args = {};
@@ -44,7 +45,10 @@ function requestJsonWithTimeout(urlString, timeoutMs) {
         port: url.port || undefined,
         path: `${url.pathname}${url.search}`,
         method: 'GET',
-        headers: { Accept: 'application/json' },
+        headers: {
+          Accept: 'application/json',
+          'User-Agent': CHECK_USER_AGENT,
+        },
       },
       (res) => {
         let raw = '';
@@ -58,7 +62,12 @@ function requestJsonWithTimeout(urlString, timeoutMs) {
             body = {};
           }
           const status = typeof res.statusCode === 'number' ? res.statusCode : 0;
-          resolve({ ok: status >= 200 && status < 300, status, body });
+          resolve({
+            ok: status >= 200 && status < 300,
+            status,
+            body,
+            headers: res.headers || {},
+          });
         });
       }
     );
@@ -71,10 +80,40 @@ function requestJsonWithTimeout(urlString, timeoutMs) {
   });
 }
 
+function wait(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function parseRetryAfterMs(rawValue) {
+  if (!rawValue) return 0;
+  const asNumber = Number.parseInt(String(rawValue).trim(), 10);
+  if (Number.isFinite(asNumber) && asNumber >= 0) return asNumber * 1000;
+  const asDateMs = Date.parse(String(rawValue));
+  if (Number.isFinite(asDateMs)) {
+    const delta = asDateMs - Date.now();
+    return delta > 0 ? delta : 0;
+  }
+  return 0;
+}
+
+async function requestJsonWithRetry(urlString, timeoutMs, maxAttempts = 3) {
+  let last = null;
+  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    const out = await requestJsonWithTimeout(urlString, timeoutMs);
+    last = out;
+    if (out.status !== 429 || attempt >= maxAttempts) return out;
+    const retryAfterHeader = out.headers && (out.headers['retry-after'] || out.headers['Retry-After']);
+    const retryAfterMs = parseRetryAfterMs(retryAfterHeader);
+    const backoffMs = Math.min(4000, 500 * attempt);
+    await wait(retryAfterMs > 0 ? retryAfterMs : backoffMs);
+  }
+  return last;
+}
+
 async function checkEndpoint(baseUrl, path, timeoutMs, required = true) {
   const full = new URL(path, baseUrl).toString();
   try {
-    const res = await requestJsonWithTimeout(full, timeoutMs);
+    const res = await requestJsonWithRetry(full, timeoutMs);
     const pass = res.ok;
     const label = pass ? 'OK' : 'FAIL';
     console.log(`${label} ${path} -> HTTP ${res.status}`);
@@ -100,7 +139,7 @@ async function checkEndpoint(baseUrl, path, timeoutMs, required = true) {
 async function checkImageEndpoint(baseUrl, path, timeoutMs) {
   const full = new URL(path, baseUrl).toString();
   try {
-    const res = await requestJsonWithTimeout(full, timeoutMs);
+    const res = await requestJsonWithRetry(full, timeoutMs);
     const pass = res.status === 200 || res.status === 404;
     const label = pass ? 'OK' : 'FAIL';
     console.log(`${label} ${path} -> HTTP ${res.status}${res.status === 404 ? ' (ressource absente, check optionnel)' : ''}`);
@@ -158,4 +197,11 @@ if (require.main === module) {
   });
 }
 
-module.exports = { parseArgs, requestJsonWithTimeout, checkEndpoint, checkImageEndpoint };
+module.exports = {
+  parseArgs,
+  requestJsonWithTimeout,
+  requestJsonWithRetry,
+  parseRetryAfterMs,
+  checkEndpoint,
+  checkImageEndpoint,
+};

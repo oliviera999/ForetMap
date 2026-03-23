@@ -4,7 +4,14 @@ const test = require('node:test');
 const assert = require('node:assert');
 const http = require('http');
 
-const { parseArgs, requestJsonWithTimeout, checkEndpoint, checkImageEndpoint } = require('../scripts/post-deploy-check');
+const {
+  parseArgs,
+  requestJsonWithTimeout,
+  requestJsonWithRetry,
+  parseRetryAfterMs,
+  checkEndpoint,
+  checkImageEndpoint,
+} = require('../scripts/post-deploy-check');
 
 test('parseArgs lit --base-url et --timeout-ms', () => {
   const parsed = parseArgs(['--base-url', 'https://example.org', '--timeout-ms', '7000', '--image-check-path', '/api/zones/x/photos/1/data']);
@@ -37,6 +44,53 @@ test('requestJsonWithTimeout lit une réponse JSON locale', async () => {
   } finally {
     await new Promise((resolve) => server.close(resolve));
   }
+});
+
+test('requestJsonWithTimeout envoie un User-Agent explicite', async () => {
+  const server = http.createServer((req, res) => {
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ userAgent: req.headers['user-agent'] || '' }));
+  });
+
+  await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+  const port = server.address().port;
+  try {
+    const out = await requestJsonWithTimeout(`http://127.0.0.1:${port}/api/version`, 3000);
+    assert.strictEqual(out.status, 200);
+    assert.ok(String(out.body.userAgent).includes('ForetMap-DeployCheck/1.0'));
+  } finally {
+    await new Promise((resolve) => server.close(resolve));
+  }
+});
+
+test('requestJsonWithRetry réessaie après 429', async () => {
+  let count = 0;
+  const server = http.createServer((req, res) => {
+    count += 1;
+    if (count === 1) {
+      res.writeHead(429, { 'Content-Type': 'application/json', 'Retry-After': '0' });
+      res.end(JSON.stringify({ error: 'rate limited' }));
+      return;
+    }
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ ok: true }));
+  });
+
+  await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+  const port = server.address().port;
+  try {
+    const out = await requestJsonWithRetry(`http://127.0.0.1:${port}/api/health`, 3000, 3);
+    assert.strictEqual(out.status, 200);
+    assert.strictEqual(out.ok, true);
+    assert.strictEqual(count >= 2, true);
+  } finally {
+    await new Promise((resolve) => server.close(resolve));
+  }
+});
+
+test('parseRetryAfterMs convertit les formats supportés', () => {
+  assert.strictEqual(parseRetryAfterMs('2'), 2000);
+  assert.strictEqual(parseRetryAfterMs('abc'), 0);
 });
 
 test('checkEndpoint marque un endpoint requis en échec si 503', async () => {
