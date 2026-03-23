@@ -130,3 +130,19 @@ npm run docker:down
 ```
 
 Les données persistent dans le volume Docker jusqu’à `docker compose down -v`.
+
+## 9. Préparer un bundle de déploiement complet (sans npm serveur)
+
+Pour produire en local un package prêt à être extrait en production (avec `dist/` et `node_modules` prod):
+
+```bash
+npm run deploy:prepare:runtime
+```
+
+Version rapide (si `dist/` et `node_modules` sont déjà à jour):
+
+```bash
+npm run deploy:prepare:runtime:fast
+```
+
+Le ZIP est créé dans `deploy/` sous la forme `foretmap-runtime-YYYYMMDD-HHMMSS.zip`.

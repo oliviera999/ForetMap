@@ -1,6 +1,6 @@
 {
   "name": "foretmap",
-  "version": "1.5.3",
+  "version": "1.5.4",
   "description": "Application de gestion de la forêt comestible - Lycée Lyautey",
   "main": "server.js",
   "dependencies": {
@@ -44,6 +44,8 @@
     "preview": "vite preview",
     "deploy:prepare": "node scripts/prepare-dist-deploy.js",
     "deploy:prepare:fast": "node scripts/prepare-dist-deploy.js --skip-install",
+    "deploy:prepare:runtime": "powershell -ExecutionPolicy Bypass -File scripts/prepare-runtime-deploy.ps1",
+    "deploy:prepare:runtime:fast": "powershell -ExecutionPolicy Bypass -File scripts/prepare-runtime-deploy.ps1 -SkipInstall -SkipBuild",
     "deploy:check": "node scripts/post-deploy-check.js",
     "deploy:check:prod": "node scripts/post-deploy-check.js --base-url https://foretmap.olution.info"
   },

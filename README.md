@@ -123,7 +123,7 @@ Le script vide les tables MySQL puis recopie toutes les données (zones, plantes
 
 ## Déploiement o2switch (foretmap.olution.info)
 
-1. **Créer l’application Node.js** dans cPanel : **Setup Node.js App** — choisir la version Node (18 ou 20). **Le répertoire de l’application** doit contenir `server.js`, le dossier **`public/`** (assets + `sw.js` + page d’aide `deploy-help.html`) et, après build, le dossier **`dist/`** avec l’entrée SPA Vite (`index.vite.html`). **Avant chaque déploiement :** `npm ci` (ou `npm install`) puis **`npm run build`** pour régénérer `dist/`. En production (`NODE_ENV=production`), l’UI est servie depuis **`dist/`**.
+1. **Créer l’application Node.js** dans cPanel : **Setup Node.js App** — choisir la version Node (18 ou 20). **Le répertoire de l’application** doit contenir `server.js`, le dossier **`public/`** (assets + `sw.js` + page d’aide `deploy-help.html`) et, après build, le dossier **`dist/`** avec l’entrée SPA Vite (`index.vite.html`). En production (`NODE_ENV=production`), l’UI est servie depuis **`dist/`**.
 
 2. **Variables d’environnement** dans l’interface de l’app Node (obligatoires pour l’API) :  
    `DB_HOST=localhost`, `DB_NAME=oliviera_foretmap`, `DB_USER=oliviera_foretmap`, `DB_PASS=...`, `NODE_ENV=production`.  
@@ -131,7 +131,7 @@ Le script vide les tables MySQL puis recopie toutes les données (zones, plantes
 
 3. **Fichier d’entrée (Application startup file)** : **`app.js`** (valeur par défaut de cPanel). Ce fichier charge `server.js` et lance le serveur via `boot()`. Il écrit un diagnostic immédiat dans `startup-diag.log` pour faciliter le débogage. Si le champ est sur `server.js`, le démarrage direct fonctionne aussi (`node server.js` appelle `boot()` automatiquement).
 
-4. **Déployer le code** : upload du dépôt (sans `.env`), puis sur le serveur :
+4. **Déployer le code (mode standard)** : upload du dépôt (sans `.env`), puis sur le serveur :
    ```bash
    npm install --production
    ```
@@ -155,6 +155,32 @@ Le script vide les tables MySQL puis recopie toutes les données (zones, plantes
    npm run deploy:check:prod
    ```
    Voir aussi la checklist complète d'exploitation : [docs/EXPLOITATION.md](docs/EXPLOITATION.md).
+
+### Variante recommandée: bundle runtime préparé en local (sans npm côté serveur)
+
+Cette variante évite les pannes observées côté hébergeur (`vite` absent, lock panel pendant `npm install`).
+
+1. En local (Windows):
+   ```bash
+   npm run deploy:prepare:runtime
+   ```
+   Cette commande:
+   - installe les dépendances (dev),
+   - build le frontend,
+   - prune en dépendances production,
+   - génère un bundle complet `deploy/foretmap-runtime-*.zip` (code + `dist/` + `node_modules` prod).
+
+2. Sur le serveur:
+   - extraire le ZIP dans le dossier de l'app (celui avec `server.js`),
+   - **sans** lancer `npm install`,
+   - redémarrer l'application Node.js.
+
+3. Vérifier:
+   ```bash
+   npm run deploy:check:prod
+   ```
+
+> Le bundle runtime est spécifique à l'OS cible. Préparer le ZIP sur un environnement compatible avec le serveur d'hébergement.
 
 ### Incident temps réel Socket.IO (WebSocket)
 
