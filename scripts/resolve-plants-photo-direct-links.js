@@ -11,6 +11,8 @@
 
 require('dotenv').config({ path: require('path').join(__dirname, '..', '.env') });
 
+const http = require('http');
+const https = require('https');
 const { queryAll, execute } = require('../database');
 
 const PHOTO_FIELDS = [
@@ -68,12 +70,57 @@ function toCsvLinks(links) {
   return links.join(', ');
 }
 
-async function fetchJson(url) {
-  const res = await fetch(url, {
-    headers: { 'user-agent': 'ForetMap/1.0 (photo-link-resolver)' },
+async function fetchJson(url, timeoutMs = 15000) {
+  return new Promise((resolve, reject) => {
+    let parsed;
+    try {
+      parsed = new URL(url);
+    } catch {
+      reject(new Error(`URL invalide: ${url}`));
+      return;
+    }
+
+    const client = parsed.protocol === 'https:' ? https : http;
+    const req = client.request(
+      parsed,
+      {
+        method: 'GET',
+        headers: {
+          'user-agent': 'ForetMap/1.0 (photo-link-resolver)',
+          accept: 'application/json',
+        },
+      },
+      (res) => {
+        let body = '';
+        res.setEncoding('utf8');
+        res.on('data', (chunk) => {
+          body += chunk;
+          // Garde-fou memoire en environnement contraint.
+          if (body.length > 2 * 1024 * 1024) {
+            req.destroy(new Error('Reponse JSON trop volumineuse'));
+          }
+        });
+        res.on('end', () => {
+          const status = Number(res.statusCode || 0);
+          if (status < 200 || status >= 300) {
+            reject(new Error(`HTTP ${status}`));
+            return;
+          }
+          try {
+            resolve(body ? JSON.parse(body) : {});
+          } catch (err) {
+            reject(new Error(`JSON invalide: ${err.message}`));
+          }
+        });
+      }
+    );
+
+    req.setTimeout(timeoutMs, () => {
+      req.destroy(new Error(`Timeout HTTP (${timeoutMs}ms)`));
+    });
+    req.on('error', reject);
+    req.end();
   });
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  return res.json();
 }
 
 function parseCommonsCategoryTitle(value) {
