@@ -5,6 +5,14 @@ const { logRouteError } = require('../lib/routeLog');
 const { emitGardenChanged } = require('../lib/realtime');
 
 const router = express.Router();
+const PHOTO_FIELDS = [
+  'photo',
+  'photo_species',
+  'photo_leaf',
+  'photo_flower',
+  'photo_fruit',
+  'photo_harvest_part',
+];
 const PLANT_EXTRA_FIELDS = [
   'second_name',
   'scientific_name',
@@ -12,7 +20,7 @@ const PLANT_EXTRA_FIELDS = [
   'group_2',
   'group_3',
   'habitat',
-  'photo',
+  ...PHOTO_FIELDS,
   'nutrition',
   'agroecosystem_category',
   'longevity',
@@ -30,11 +38,6 @@ const PLANT_EXTRA_FIELDS = [
   'harvest_part',
   'planting_recommendations',
   'preferred_nutrients',
-  'photo_species',
-  'photo_leaf',
-  'photo_flower',
-  'photo_fruit',
-  'photo_harvest_part',
 ];
 const PLANT_COLUMNS = ['name', 'emoji', 'description', ...PLANT_EXTRA_FIELDS];
 
@@ -50,6 +53,36 @@ function asTrimmedString(value) {
 function asOptionalText(value) {
   const s = asTrimmedString(value);
   return s.length > 0 ? s : null;
+}
+
+function parseLinkCandidates(value) {
+  const raw = asTrimmedString(value);
+  if (!raw) return [];
+  return raw
+    .split(/\n|,\s*/)
+    .map((entry) => entry.trim())
+    .filter(Boolean);
+}
+
+function validateHttpsPhotoLinks(body = {}) {
+  for (const field of PHOTO_FIELDS) {
+    if (!hasOwn(body, field)) continue;
+    const raw = asTrimmedString(body[field]);
+    if (!raw) continue;
+    const links = parseLinkCandidates(raw);
+    for (const link of links) {
+      let url;
+      try {
+        url = new URL(link);
+      } catch {
+        return `${field}: URL invalide`;
+      }
+      if (url.protocol !== 'https:') {
+        return `${field}: seules les URLs HTTPS sont autorisées`;
+      }
+    }
+  }
+  return null;
 }
 
 function buildPlantPayload(body, fallback = {}) {
@@ -79,6 +112,8 @@ router.get('/', async (req, res) => {
 
 router.post('/', requireTeacher, async (req, res) => {
   try {
+    const photoError = validateHttpsPhotoLinks(req.body);
+    if (photoError) return res.status(400).json({ error: photoError });
     const payload = buildPlantPayload(req.body);
     if (!payload.name) return res.status(400).json({ error: 'Nom requis' });
     const placeholders = PLANT_COLUMNS.map(() => '?').join(', ');
@@ -100,6 +135,8 @@ router.put('/:id', requireTeacher, async (req, res) => {
   try {
     const plant = await queryOne('SELECT * FROM plants WHERE id = ?', [req.params.id]);
     if (!plant) return res.status(404).json({ error: 'Plante introuvable' });
+    const photoError = validateHttpsPhotoLinks(req.body);
+    if (photoError) return res.status(400).json({ error: photoError });
     const payload = buildPlantPayload(req.body, plant);
     if (!payload.name) return res.status(400).json({ error: 'Nom requis' });
     const setClause = PLANT_COLUMNS.map(col => `${col}=?`).join(', ');
