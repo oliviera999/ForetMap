@@ -14,6 +14,170 @@ function Toast({ msg, onDone }) {
 // ── INTERACTIVE MAP ──────────────────────────────────────────────────────────
 
 
+const EMOJI_OPTS = ['🌱','🌿','🥬','🥕','🍅','🫑','🥒','🍓','🌸','🌺','🫘','🌾','🍋','🍊','🌰','🧅','🧄','🫚'];
+const EMPTY_PLANT_FORM = {
+  name: '',
+  emoji: '🌱',
+  description: '',
+  second_name: '',
+  scientific_name: '',
+  group_1: '',
+  group_2: '',
+  group_3: '',
+  habitat: '',
+  photo: '',
+  nutrition: '',
+  agroecosystem_category: '',
+  longevity: '',
+  remark_1: '',
+  remark_2: '',
+  remark_3: '',
+  reproduction: '',
+  size: '',
+  sources: '',
+  ideal_temperature_c: '',
+  optimal_ph: '',
+  ecosystem_role: '',
+  geographic_origin: '',
+  human_utility: '',
+  harvest_part: '',
+  planting_recommendations: '',
+  preferred_nutrients: '',
+  photo_species: '',
+  photo_leaf: '',
+  photo_flower: '',
+  photo_fruit: '',
+  photo_harvest_part: '',
+};
+
+const PLANT_META_SECTIONS = [
+  {
+    title: 'Identité',
+    items: [
+      { key: 'second_name', label: 'Deuxième nom' },
+      { key: 'scientific_name', label: 'Nom scientifique' },
+      { key: 'group_1', label: 'Groupe 1' },
+      { key: 'group_2', label: 'Groupe 2' },
+      { key: 'group_3', label: 'Groupe 3' },
+      { key: 'geographic_origin', label: 'Origine géographique' },
+      { key: 'longevity', label: 'Longévité' },
+      { key: 'size', label: 'Taille' },
+      { key: 'reproduction', label: 'Reproduction' },
+      { key: 'remark_1', label: 'Remarque 1' },
+      { key: 'remark_2', label: 'Remarque 2' },
+      { key: 'remark_3', label: 'Remarque 3' },
+    ],
+  },
+  {
+    title: 'Écologie et usages',
+    items: [
+      { key: 'habitat', label: 'Habitat' },
+      { key: 'agroecosystem_category', label: "Catégorie de l'agrosystème" },
+      { key: 'ecosystem_role', label: "Rôle dans l'écosystème" },
+      { key: 'human_utility', label: "Utilité pour l'être humain" },
+      { key: 'harvest_part', label: 'Partie à récolter' },
+      { key: 'planting_recommendations', label: 'Recommandations de plantation' },
+      { key: 'preferred_nutrients', label: 'Nutriments préférés' },
+      { key: 'nutrition', label: 'Nutrition' },
+      { key: 'ideal_temperature_c', label: 'Température idéale (°C)' },
+      { key: 'optimal_ph', label: 'pH optimal' },
+    ],
+  },
+  {
+    title: 'Ressources',
+    items: [
+      { key: 'sources', label: 'Sources', links: true },
+      { key: 'photo', label: 'Photo', links: true },
+      { key: 'photo_species', label: 'Photo espèce', links: true },
+      { key: 'photo_leaf', label: 'Photo feuille', links: true },
+      { key: 'photo_flower', label: 'Photo fleur', links: true },
+      { key: 'photo_fruit', label: 'Photo fruit', links: true },
+      { key: 'photo_harvest_part', label: 'Photo partie à récolter', links: true },
+    ],
+  },
+];
+
+function normalizedPlantValue(value) {
+  if (value == null) return '';
+  const s = String(value).trim();
+  if (!s || s === '-') return '';
+  return s;
+}
+
+function extractPlantForm(plant = {}) {
+  const form = { ...EMPTY_PLANT_FORM };
+  Object.keys(form).forEach((k) => {
+    form[k] = normalizedPlantValue(plant[k]);
+  });
+  if (!form.emoji) form.emoji = '🌱';
+  return form;
+}
+
+function parseLinkCandidates(value) {
+  return normalizedPlantValue(value)
+    .split(/\n|,\s*/)
+    .map(s => s.trim())
+    .filter(Boolean);
+}
+
+function isHttpLink(value) {
+  return /^https?:\/\//i.test(value);
+}
+
+function PlantSummaryBadges({ plant }) {
+  const chips = [];
+  const nutrition = normalizedPlantValue(plant.nutrition);
+  const temp = normalizedPlantValue(plant.ideal_temperature_c);
+  const ph = normalizedPlantValue(plant.optimal_ph);
+  if (nutrition) chips.push(`🍽️ ${nutrition}`);
+  if (temp) chips.push(`🌡️ ${temp}°C`);
+  if (ph) chips.push(`🧪 pH ${ph}`);
+  if (chips.length === 0) return null;
+  return (
+    <div className="plant-badges">
+      {chips.slice(0, 3).map(chip => (
+        <span key={chip} className="plant-badge">{chip}</span>
+      ))}
+    </div>
+  );
+}
+
+function PlantMetaSections({ plant }) {
+  return (
+    <>
+      {PLANT_META_SECTIONS.map(section => {
+        const values = section.items
+          .map(item => ({ ...item, value: normalizedPlantValue(plant[item.key]) }))
+          .filter(item => !!item.value);
+        if (values.length === 0) return null;
+        return (
+          <details key={section.title} className="plant-more">
+            <summary>{section.title}</summary>
+            <div className="plant-meta-grid">
+              {values.map(item => (
+                <div key={item.key} className="plant-meta-item">
+                  <div className="plant-meta-label">{item.label}</div>
+                  {item.links ? (
+                    <div className="plant-links">
+                      {parseLinkCandidates(item.value).map((entry, idx) => (
+                        isHttpLink(entry)
+                          ? <a key={`${item.key}-${idx}`} href={entry} target="_blank" rel="noreferrer">{entry}</a>
+                          : <span key={`${item.key}-${idx}`}>{entry}</span>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="plant-meta-value">{item.value}</div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </details>
+        );
+      })}
+    </>
+  );
+}
+
 // ── PLANT EDIT FORM (outside PlantManager to avoid remount on every keystroke) ──
 function PlantEditForm({ title, form, setForm, onSave, onCancel, saving }) {
   const set = k => e => setForm(f => ({...f, [k]: e.target.value}));
@@ -36,6 +200,41 @@ function PlantEditForm({ title, form, setForm, onSave, onCancel, saving }) {
         <textarea value={form.description} onChange={set('description')} rows={3}
           placeholder="Comment reconnaître cette plante ? Feuilles, taille, odeur..."/>
       </div>
+      <div className="plant-form-grid">
+        <div className="field"><label>Nom scientifique</label><input value={form.scientific_name} onChange={set('scientific_name')} placeholder="Ex: Solanum lycopersicum"/></div>
+        <div className="field"><label>Deuxième nom</label><input value={form.second_name} onChange={set('second_name')} placeholder="Nom alternatif"/></div>
+        <div className="field"><label>Habitat</label><input value={form.habitat} onChange={set('habitat')} placeholder="Aquarium, potager..."/></div>
+        <div className="field"><label>Catégorie agrosystème</label><input value={form.agroecosystem_category} onChange={set('agroecosystem_category')} placeholder="Producteur primaire..."/></div>
+        <div className="field"><label>Nutrition</label><input value={form.nutrition} onChange={set('nutrition')} placeholder="Autotrophe, omnivore..."/></div>
+        <div className="field"><label>Longévité</label><input value={form.longevity} onChange={set('longevity')} placeholder="Annuelle, vivace..."/></div>
+        <div className="field"><label>Taille</label><input value={form.size} onChange={set('size')} placeholder="Ex: 30-80 cm"/></div>
+        <div className="field"><label>Reproduction</label><input value={form.reproduction} onChange={set('reproduction')} placeholder="Sexuée, bouturage..."/></div>
+        <div className="field"><label>Température idéale (°C)</label><input value={form.ideal_temperature_c} onChange={set('ideal_temperature_c')} placeholder="Ex: 18-24"/></div>
+        <div className="field"><label>pH optimal</label><input value={form.optimal_ph} onChange={set('optimal_ph')} placeholder="Ex: 6,0-7,0"/></div>
+        <div className="field"><label>Origine géographique</label><input value={form.geographic_origin} onChange={set('geographic_origin')} placeholder="Ex: Bassin méditerranéen"/></div>
+        <div className="field"><label>Partie à récolter</label><input value={form.harvest_part} onChange={set('harvest_part')} placeholder="Feuilles, fruits..."/></div>
+        <div className="field"><label>Groupe 1</label><input value={form.group_1} onChange={set('group_1')} placeholder="Végétal / Animal..."/></div>
+        <div className="field"><label>Groupe 2</label><input value={form.group_2} onChange={set('group_2')} placeholder="Angiosperme..."/></div>
+        <div className="field"><label>Groupe 3</label><input value={form.group_3} onChange={set('group_3')} placeholder="Famille..."/></div>
+      </div>
+      <div className="field"><label>Rôle dans l'écosystème</label><textarea value={form.ecosystem_role} onChange={set('ecosystem_role')} rows={2} placeholder="Fonction écologique principale"/></div>
+      <div className="field"><label>Utilité pour l'être humain</label><textarea value={form.human_utility} onChange={set('human_utility')} rows={2} placeholder="Usages alimentaires, pédagogiques..."/></div>
+      <div className="field"><label>Recommandations de plantation</label><textarea value={form.planting_recommendations} onChange={set('planting_recommendations')} rows={2} placeholder="Semis, exposition, espacement..."/></div>
+      <div className="field"><label>Nutriments préférés</label><textarea value={form.preferred_nutrients} onChange={set('preferred_nutrients')} rows={2} placeholder="Azote, phosphore, potassium..."/></div>
+      <div className="field"><label>Sources</label><textarea value={form.sources} onChange={set('sources')} rows={2} placeholder="URL ou références, séparées par virgules"/></div>
+      <div className="plant-form-grid">
+        <div className="field"><label>Photo espèce (URL)</label><input value={form.photo_species} onChange={set('photo_species')} placeholder="https://..."/></div>
+        <div className="field"><label>Photo feuille (URL)</label><input value={form.photo_leaf} onChange={set('photo_leaf')} placeholder="https://..."/></div>
+        <div className="field"><label>Photo fleur (URL)</label><input value={form.photo_flower} onChange={set('photo_flower')} placeholder="https://..."/></div>
+        <div className="field"><label>Photo fruit (URL)</label><input value={form.photo_fruit} onChange={set('photo_fruit')} placeholder="https://..."/></div>
+        <div className="field"><label>Photo partie récoltée (URL)</label><input value={form.photo_harvest_part} onChange={set('photo_harvest_part')} placeholder="https://..."/></div>
+        <div className="field"><label>Photo (URL)</label><input value={form.photo} onChange={set('photo')} placeholder="https://..."/></div>
+      </div>
+      <div className="plant-form-grid">
+        <div className="field"><label>Remarque 1</label><input value={form.remark_1} onChange={set('remark_1')} placeholder="Optionnel"/></div>
+        <div className="field"><label>Remarque 2</label><input value={form.remark_2} onChange={set('remark_2')} placeholder="Optionnel"/></div>
+        <div className="field"><label>Remarque 3</label><input value={form.remark_3} onChange={set('remark_3')} placeholder="Optionnel"/></div>
+      </div>
       <div style={{display:'flex',gap:8}}>
         <button className="btn btn-primary btn-sm" onClick={onSave} disabled={saving}>{saving ? '...' : '💾 Sauvegarder'}</button>
         <button className="btn btn-ghost btn-sm" onClick={onCancel}>Annuler</button>
@@ -45,18 +244,16 @@ function PlantEditForm({ title, form, setForm, onSave, onCancel, saving }) {
 }
 
 // ── PLANT MANAGER (teacher) ───────────────────────────────────────────────────
-const EMOJI_OPTS = ['🌱','🌿','🥬','🥕','🍅','🫑','🥒','🍓','🌸','🌺','🫘','🌾','🍋','🍊','🌰','🧅','🧄','🫚'];
-
 function PlantManager({ plants, onRefresh }) {
   const [editId,  setEditId]  = useState(null);
-  const [form,    setForm]    = useState({ name:'', emoji:'🌱', description:'' });
+  const [form,    setForm]    = useState({ ...EMPTY_PLANT_FORM });
   const [showAdd, setShowAdd] = useState(false);
   const [saving,  setSaving]  = useState(false);
   const [toast,   setToast]   = useState(null);
 
   const startEdit = p => {
     setEditId(p.id);
-    setForm({ name: p.name, emoji: p.emoji, description: p.description || '' });
+    setForm(extractPlantForm(p));
     setShowAdd(false);
   };
 
@@ -71,7 +268,7 @@ function PlantManager({ plants, onRefresh }) {
       await onRefresh();
       setEditId(null);
       setShowAdd(false);
-      setForm({ name:'', emoji:'🌱', description:'' });
+      setForm({ ...EMPTY_PLANT_FORM });
       setToast(editId ? 'Plante modifiée ✓' : 'Plante ajoutée ✓');
     } catch(e) { setToast('Erreur : ' + e.message); }
     setSaving(false);
@@ -92,7 +289,7 @@ function PlantManager({ plants, onRefresh }) {
       <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:4}}>
         <h2 className="section-title">🌱 Base de données plantes</h2>
         {!showAdd && !editId && (
-          <button className="btn btn-primary btn-sm" onClick={() => { setShowAdd(true); setForm({ name:'', emoji:'🌱', description:'' }); }}>
+          <button className="btn btn-primary btn-sm" onClick={() => { setShowAdd(true); setForm({ ...EMPTY_PLANT_FORM }); }}>
             + Ajouter
           </button>
         )}
@@ -121,7 +318,14 @@ function PlantManager({ plants, onRefresh }) {
                 <div className="plant-emoji-big">{p.emoji}</div>
                 <div className="plant-info">
                   <div className="plant-row-name">{p.name}</div>
+                  <div className="plant-scientific">{normalizedPlantValue(p.scientific_name) || 'Nom scientifique non renseigné'}</div>
                   <div className="plant-row-desc">{p.description || <em style={{color:'#bbb'}}>Pas de description</em>}</div>
+                  <div className="plant-inline-meta">
+                    {normalizedPlantValue(p.habitat) && <span>{p.habitat}</span>}
+                    {normalizedPlantValue(p.agroecosystem_category) && <span>{p.agroecosystem_category}</span>}
+                  </div>
+                  <PlantSummaryBadges plant={p}/>
+                  <PlantMetaSections plant={p}/>
                 </div>
                 <div className="plant-actions">
                   <button className="btn btn-ghost btn-sm" onClick={() => startEdit(p)}>✏️</button>
@@ -266,7 +470,9 @@ function PlantViewer({ plants, zones }) {
 
   const filtered = plants.filter(p =>
     p.name.toLowerCase().includes(search.toLowerCase()) ||
-    (p.description || '').toLowerCase().includes(search.toLowerCase())
+    normalizedPlantValue(p.description).toLowerCase().includes(search.toLowerCase()) ||
+    normalizedPlantValue(p.scientific_name).toLowerCase().includes(search.toLowerCase()) ||
+    normalizedPlantValue(p.habitat).toLowerCase().includes(search.toLowerCase())
   );
 
   const zonesForPlant = p => zones.filter(z => z.current_plant === p.name);
@@ -287,23 +493,29 @@ function PlantViewer({ plants, zones }) {
             const pZones = zonesForPlant(p);
             const isExpanded = expanded === p.id;
             return (
-              <div key={p.id} className={`plant-viewer-card ${isExpanded ? 'expanded' : ''}`}
-                onClick={() => setExpanded(isExpanded ? null : p.id)}>
-                <div style={{display:'flex', alignItems:'center', gap:12}}>
+              <div key={p.id} className={`plant-viewer-card ${isExpanded ? 'expanded' : ''}`}>
+                <div className="plant-viewer-head" onClick={() => setExpanded(isExpanded ? null : p.id)}>
                   <span style={{fontSize:'2rem'}}>{p.emoji}</span>
                   <div style={{flex:1, minWidth:0}}>
                     <div style={{fontWeight:600, fontSize:'.95rem', color:'var(--forest)'}}>{p.name}</div>
+                    <div className="plant-scientific">{normalizedPlantValue(p.scientific_name) || 'Nom scientifique non renseigné'}</div>
                     {!isExpanded && p.description && (
-                      <div style={{fontSize:'.8rem', color:'#aaa', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{p.description}</div>
+                      <div className="plant-row-desc">{p.description}</div>
                     )}
                   </div>
                   <span style={{fontSize:'.9rem', color:'#ccc'}}>{isExpanded ? '▲' : '▼'}</span>
                 </div>
                 {isExpanded && (
                   <div className="fade-in" style={{marginTop:10}}>
+                    <div className="plant-inline-meta">
+                      {normalizedPlantValue(p.habitat) && <span>{p.habitat}</span>}
+                      {normalizedPlantValue(p.agroecosystem_category) && <span>{p.agroecosystem_category}</span>}
+                    </div>
+                    <PlantSummaryBadges plant={p}/>
                     {p.description && (
                       <p style={{fontSize:'.88rem', color:'#555', lineHeight:1.6, marginBottom:8}}>{p.description}</p>
                     )}
+                    <PlantMetaSections plant={p}/>
                     {pZones.length > 0 ? (
                       <div>
                         <div style={{fontSize:'.74rem', fontWeight:700, color:'#aaa', textTransform:'uppercase', marginBottom:4}}>Zones associées</div>
