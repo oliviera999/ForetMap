@@ -253,7 +253,7 @@ function PlantEditForm({ title, form, setForm, onSave, onCancel, saving }) {
       </div>
       <div className="field"><label>Description d'identification</label>
         <textarea value={form.description} onChange={set('description')} rows={3}
-          placeholder="Comment reconnaître cette plante ? Feuilles, taille, odeur..."/>
+          placeholder="Comment reconnaître cet être vivant ? Feuilles, taille, odeur..."/>
       </div>
       <div className="plant-form-grid">
         <div className="field"><label>Nom scientifique</label><input value={form.scientific_name} onChange={set('scientific_name')} placeholder="Ex: Solanum lycopersicum"/></div>
@@ -305,6 +305,31 @@ function PlantManager({ plants, onRefresh }) {
   const [showAdd, setShowAdd] = useState(false);
   const [saving,  setSaving]  = useState(false);
   const [toast,   setToast]   = useState(null);
+  const [search,  setSearch]  = useState('');
+  const [groupFilter, setGroupFilter] = useState('');
+
+  const groupOptions = [...new Set(
+    plants
+      .map(p => normalizedPlantValue(p.group_1))
+      .filter(Boolean)
+  )].sort((a, b) => a.localeCompare(b, 'fr', { sensitivity: 'base' }));
+
+  const filteredPlants = plants.filter((p) => {
+    const matchesGroup = !groupFilter || normalizedPlantValue(p.group_1) === groupFilter;
+    if (!matchesGroup) return false;
+
+    const query = search.trim().toLowerCase();
+    if (!query) return true;
+
+    return (
+      normalizedPlantValue(p.name).toLowerCase().includes(query) ||
+      normalizedPlantValue(p.description).toLowerCase().includes(query) ||
+      normalizedPlantValue(p.scientific_name).toLowerCase().includes(query) ||
+      normalizedPlantValue(p.group_1).toLowerCase().includes(query) ||
+      normalizedPlantValue(p.group_2).toLowerCase().includes(query) ||
+      normalizedPlantValue(p.group_3).toLowerCase().includes(query)
+    );
+  });
 
   const startEdit = p => {
     setEditId(p.id);
@@ -324,7 +349,7 @@ function PlantManager({ plants, onRefresh }) {
       setEditId(null);
       setShowAdd(false);
       setForm({ ...EMPTY_PLANT_FORM });
-      setToast(editId ? 'Plante modifiée ✓' : 'Plante ajoutée ✓');
+      setToast(editId ? 'Entrée biodiversité modifiée ✓' : 'Entrée biodiversité ajoutée ✓');
     } catch(e) { setToast('Erreur : ' + e.message); }
     setSaving(false);
   };
@@ -334,7 +359,7 @@ function PlantManager({ plants, onRefresh }) {
     try {
       await api(`/api/plants/${p.id}`, 'DELETE');
       await onRefresh();
-      setToast('Plante supprimée');
+      setToast('Entrée biodiversité supprimée');
     } catch(e) { setToast('Erreur : ' + e.message); }
   };
 
@@ -342,25 +367,45 @@ function PlantManager({ plants, onRefresh }) {
     <div>
       {toast && <Toast msg={toast} onDone={() => setToast(null)}/>}
       <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:4}}>
-        <h2 className="section-title">🌱 Base de données plantes</h2>
+        <h2 className="section-title">🌱 Base biodiversité</h2>
         {!showAdd && !editId && (
           <button className="btn btn-primary btn-sm" onClick={() => { setShowAdd(true); setForm({ ...EMPTY_PLANT_FORM }); }}>
             + Ajouter
           </button>
         )}
       </div>
-      <p className="section-sub">{plants.length} plantes enregistrées</p>
+      <p className="section-sub">
+        {filteredPlants.length} / {plants.length} êtres vivants affichés
+      </p>
+
+      <div style={{display:'grid', gap:8, marginBottom:12}}>
+        <div className="field" style={{marginBottom:0}}>
+          <label>Grand groupe</label>
+          <select value={groupFilter} onChange={e => setGroupFilter(e.target.value)} style={{background:'white'}}>
+            <option value="">Tous les groupes</option>
+            {groupOptions.map(group => <option key={group} value={group}>{group}</option>)}
+          </select>
+        </div>
+        <div className="field" style={{marginBottom:0}}>
+          <input
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder="🔍 Rechercher dans la biodiversité..."
+            style={{background:'white'}}
+          />
+        </div>
+      </div>
 
       {showAdd && (
         <PlantEditForm
-          title="Nouvelle plante"
+          title="Nouvel être vivant"
           form={form} setForm={setForm}
           onSave={save} onCancel={cancelEdit} saving={saving}
         />
       )}
 
       <div className="map-wrap plant-manager">
-        {plants.map(p => (
+        {filteredPlants.map(p => (
           <div key={p.id}>
             {editId === p.id ? (
               <PlantEditForm
@@ -521,29 +566,56 @@ function ObservationNotebook({ student, zones }) {
 // ── PLANT VIEWER (student read-only) ──────────────────────────────────────────
 function PlantViewer({ plants, zones }) {
   const [search, setSearch] = useState('');
+  const [groupFilter, setGroupFilter] = useState('');
   const [expanded, setExpanded] = useState(null);
 
-  const filtered = plants.filter(p =>
-    p.name.toLowerCase().includes(search.toLowerCase()) ||
-    normalizedPlantValue(p.description).toLowerCase().includes(search.toLowerCase()) ||
-    normalizedPlantValue(p.scientific_name).toLowerCase().includes(search.toLowerCase()) ||
-    normalizedPlantValue(p.habitat).toLowerCase().includes(search.toLowerCase())
-  );
+  const groupOptions = [...new Set(
+    plants
+      .map(p => normalizedPlantValue(p.group_1))
+      .filter(Boolean)
+  )].sort((a, b) => a.localeCompare(b, 'fr', { sensitivity: 'base' }));
+
+  const filtered = plants.filter(p => {
+    const matchesGroup = !groupFilter || normalizedPlantValue(p.group_1) === groupFilter;
+    if (!matchesGroup) return false;
+
+    const query = search.trim().toLowerCase();
+    if (!query) return true;
+
+    return (
+      normalizedPlantValue(p.name).toLowerCase().includes(query) ||
+      normalizedPlantValue(p.description).toLowerCase().includes(query) ||
+      normalizedPlantValue(p.scientific_name).toLowerCase().includes(query) ||
+      normalizedPlantValue(p.habitat).toLowerCase().includes(query) ||
+      normalizedPlantValue(p.group_1).toLowerCase().includes(query) ||
+      normalizedPlantValue(p.group_2).toLowerCase().includes(query) ||
+      normalizedPlantValue(p.group_3).toLowerCase().includes(query)
+    );
+  });
 
   const zonesForPlant = p => zones.filter(z => z.current_plant === p.name);
 
   return (
     <div className="fade-in">
-      <h2 className="section-title">🌱 Catalogue des plantes</h2>
+      <h2 className="section-title">🌱 Catalogue de biodiversité</h2>
       <p className="section-sub">{plants.length} espèces dans la forêt</p>
 
-      <div className="field" style={{marginBottom:12}}>
-        <input value={search} onChange={e => setSearch(e.target.value)}
-          placeholder="🔍 Chercher une plante..." style={{background:'white'}}/>
+      <div style={{display:'grid', gap:8, marginBottom:12}}>
+        <div className="field" style={{marginBottom:0}}>
+          <label>Grand groupe</label>
+          <select value={groupFilter} onChange={e => setGroupFilter(e.target.value)} style={{background:'white'}}>
+            <option value="">Tous les groupes</option>
+            {groupOptions.map(group => <option key={group} value={group}>{group}</option>)}
+          </select>
+        </div>
+        <div className="field" style={{marginBottom:0}}>
+          <input value={search} onChange={e => setSearch(e.target.value)}
+            placeholder="🔍 Chercher un être vivant..." style={{background:'white'}}/>
+        </div>
       </div>
 
       {filtered.length === 0
-        ? <div className="empty"><div className="empty-icon">🌿</div><p>Aucune plante trouvée</p></div>
+        ? <div className="empty"><div className="empty-icon">🌿</div><p>Aucun être vivant trouvé</p></div>
         : filtered.map(p => {
             const pZones = zonesForPlant(p);
             const isExpanded = expanded === p.id;
@@ -553,6 +625,11 @@ function PlantViewer({ plants, zones }) {
                   <span style={{fontSize:'2rem'}}>{p.emoji}</span>
                   <div style={{flex:1, minWidth:0}}>
                     <div style={{fontWeight:600, fontSize:'.95rem', color:'var(--forest)'}}>{p.name}</div>
+                    {normalizedPlantValue(p.group_1) && (
+                      <div style={{fontSize:'.72rem', color:'#7a7a7a', fontWeight:600, marginTop:2}}>
+                        {p.group_1}
+                      </div>
+                    )}
                     <div className="plant-scientific">{normalizedPlantValue(p.scientific_name) || 'Nom scientifique non renseigné'}</div>
                     {!isExpanded && p.description && (
                       <div className="plant-row-desc">{p.description}</div>
@@ -579,7 +656,7 @@ function PlantViewer({ plants, zones }) {
                         </div>
                       </div>
                     ) : (
-                      <p style={{fontSize:'.82rem', color:'#bbb', fontStyle:'italic'}}>Pas encore plantée dans une zone</p>
+                      <p style={{fontSize:'.82rem', color:'#bbb', fontStyle:'italic'}}>Pas encore associé à une zone</p>
                     )}
                   </div>
                 )}

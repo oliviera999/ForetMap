@@ -22,7 +22,7 @@ test('POST /api/plants rejette les URLs photo en http', async () => {
     .post('/api/plants')
     .set('Authorization', 'Bearer ' + teacherToken)
     .send({
-      name: `Plante HTTP ${Date.now()}`,
+      name: `Entrée biodiversité HTTP ${Date.now()}`,
       emoji: '🌿',
       photo: 'http://example.com/photo.jpg',
     })
@@ -36,7 +36,7 @@ test('POST /api/plants accepte les URLs photo en https', async () => {
     .post('/api/plants')
     .set('Authorization', 'Bearer ' + teacherToken)
     .send({
-      name: `Plante HTTPS ${Date.now()}`,
+      name: `Entrée biodiversité HTTPS ${Date.now()}`,
       emoji: '🌱',
       photo: 'https://example.com/photo.jpg',
       photo_leaf: 'https://example.com/leaf.jpg, https://example.com/leaf-2.jpg',

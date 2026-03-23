@@ -43,7 +43,7 @@ Connexion **WebSocket** (avec repli **polling** long) sur le **même hôte** que
 |-----------|--------|---------------------------|
 | `tasks:changed` | Création / modification / suppression de tâche, assignation, désassignation, marquer fait, validation, suppression d’un log | `reason`, `taskId` |
 | `students:changed` | Inscription d’un élève, suppression d’un élève | `reason`, `studentId` |
-| `garden:changed` | Zones, photos de zone, plantes, marqueurs carte | `reason`, `zoneId`, `plantId`, `markerId`… |
+| `garden:changed` | Zones, photos de zone, biodiversité, marqueurs carte | `reason`, `zoneId`, `plantId`, `markerId`… |
 
 ---
 
@@ -86,14 +86,14 @@ Routes protégées « prof » : header `Authorization: Bearer <token>`.
 
 ---
 
-## Plantes
+## Biodiversité (`/api/plants`)
 
 | Méthode | URL | Prof | Description |
 |--------|-----|------|-------------|
-| GET | `/api/plants` | non | Liste des plantes |
-| POST | `/api/plants` | oui | Créer plante |
-| PUT | `/api/plants/:id` | oui | Modifier plante |
-| DELETE | `/api/plants/:id` | oui | Supprimer plante |
+| GET | `/api/plants` | non | Liste des entrées biodiversité |
+| POST | `/api/plants` | oui | Créer une entrée biodiversité |
+| PUT | `/api/plants/:id` | oui | Modifier une entrée biodiversité |
+| DELETE | `/api/plants/:id` | oui | Supprimer une entrée biodiversité |
 
 `GET /api/plants` renvoie les champs historiques (`id`, `name`, `emoji`, `description`) et les champs de biodiversité:
 `second_name`, `scientific_name`, `group_1`, `group_2`, `group_3`, `habitat`, `photo`, `nutrition`,

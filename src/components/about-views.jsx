@@ -20,7 +20,7 @@ function AboutView({ appVersion }) {
           <h3>Objet de l'application</h3>
           <p>
             ForetMap aide les élèves et les professeurs du Lycée Lyautey à organiser les activités de la forêt
-            comestible: suivi des zones, des plantes, des tâches et des observations.
+            comestible: suivi des zones, de la biodiversité, des tâches et des observations.
           </p>
           <div className="about-meta">
             <span className="about-chip">Version: {appVersion || 'indisponible'}</span>

@@ -7,8 +7,8 @@ test('parcours élève: inscription puis navigation principale', async ({ page }
   await expect(page.locator('header')).toBeVisible();
   await expect(page.getByRole('button', { name: /Carte/ })).toBeVisible();
 
-  await page.getByRole('button', { name: /^Plantes$/ }).click();
-  await expect(page.getByText('Catalogue des plantes')).toBeVisible();
+  await page.getByRole('button', { name: /^Biodiversité$/ }).click();
+  await expect(page.getByText('Catalogue de biodiversité')).toBeVisible();
 
   await page.getByRole('button', { name: /^À propos$/ }).click();
   await expect(page.getByText('Informations du projet ForetMap')).toBeVisible();
