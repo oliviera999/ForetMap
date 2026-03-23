@@ -49,6 +49,7 @@ L’app est servie sur **http://localhost:3000** (ou le port défini par `proces
 
 Guide pas à pas : **[docs/LOCAL_DEV.md](docs/LOCAL_DEV.md)** — MySQL 8 via Docker, `env.local.example` → `.env`, `npm run db:init`, `npm run dev`, `npm run test:local` (base `foretmap_test` séparée).  
 Exploitation prod : **[docs/EXPLOITATION.md](docs/EXPLOITATION.md)** (check post-déploiement, lock o2switch, bascule images).
+Déploiement entièrement automatisé (push -> cron -> mise à jour): voir la section dédiée dans `docs/EXPLOITATION.md`.
 
 ### Dépendances npm (mises à jour prudentes)
 
