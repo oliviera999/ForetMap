@@ -1,5 +1,8 @@
 const express = require('express');
-const { queryAll, queryOne, execute } = require('../database');
+const http = require('http');
+const https = require('https');
+const XLSX = require('xlsx');
+const { pool, queryAll, queryOne, execute } = require('../database');
 const { requireTeacher } = require('../middleware/requireTeacher');
 const { logRouteError } = require('../lib/routeLog');
 const { emitGardenChanged } = require('../lib/realtime');
@@ -42,6 +45,9 @@ const PLANT_EXTRA_FIELDS = [
 ];
 const PLANT_COLUMNS = ['name', 'emoji', 'description', ...PLANT_EXTRA_FIELDS];
 const MAX_PLANT_PHOTO_BYTES = 5 * 1024 * 1024;
+const MAX_IMPORT_FILE_BYTES = 8 * 1024 * 1024;
+const MAX_IMPORT_ROWS = 2000;
+const IMPORT_STRATEGIES = new Set(['upsert_name', 'insert_only', 'replace_all']);
 
 function hasOwn(obj, key) {
   return Object.prototype.hasOwnProperty.call(obj || {}, key);
@@ -64,6 +70,85 @@ function parseLinkCandidates(value) {
     .split(/\n|,\s*/)
     .map((entry) => entry.trim())
     .filter(Boolean);
+}
+
+function normalizeHeader(value) {
+  return String(value || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '');
+}
+
+const HEADER_ALIASES = new Map([
+  ['nom', 'name'],
+  ['nom_commun', 'name'],
+  ['common_name', 'name'],
+  ['description_courte', 'description'],
+  ['nom_scientifique', 'scientific_name'],
+  ['deuxieme_nom', 'second_name'],
+  ['groupe_1', 'group_1'],
+  ['groupe_2', 'group_2'],
+  ['groupe_3', 'group_3'],
+  ['categorie_agrosysteme', 'agroecosystem_category'],
+  ['temperature_ideale_c', 'ideal_temperature_c'],
+  ['temperature_ideale', 'ideal_temperature_c'],
+  ['ph_optimal', 'optimal_ph'],
+  ['role_ecosysteme', 'ecosystem_role'],
+  ['origine_geographique', 'geographic_origin'],
+  ['utilite_humaine', 'human_utility'],
+  ['partie_a_recolter', 'harvest_part'],
+  ['recommandations_plantation', 'planting_recommendations'],
+  ['nutriments_preferes', 'preferred_nutrients'],
+  ['photo_espece', 'photo_species'],
+  ['photo_feuille', 'photo_leaf'],
+  ['photo_fleur', 'photo_flower'],
+  ['photo_fruit', 'photo_fruit'],
+  ['photo_partie_recoltee', 'photo_harvest_part'],
+  ['sources_url', 'sources'],
+]);
+
+const NORMALIZED_CANONICAL_KEYS = new Map(
+  PLANT_COLUMNS.map((k) => [normalizeHeader(k), k])
+);
+
+function mapImportRowToPlantShape(input = {}) {
+  const out = {};
+  for (const [rawKey, rawValue] of Object.entries(input || {})) {
+    const nk = normalizeHeader(rawKey);
+    const canonical = HEADER_ALIASES.get(nk) || NORMALIZED_CANONICAL_KEYS.get(nk);
+    if (!canonical) continue;
+    out[canonical] = rawValue;
+  }
+  return out;
+}
+
+function parseNumberish(value) {
+  const s = asTrimmedString(value).replace(',', '.');
+  if (!s) return null;
+  const n = Number(s);
+  return Number.isFinite(n) ? n : null;
+}
+
+function validateRangeText(value, min, max) {
+  const s = asTrimmedString(value);
+  if (!s) return null;
+
+  const range = s.match(/^(-?\d+(?:[.,]\d+)?)\s*[-/]\s*(-?\d+(?:[.,]\d+)?)$/);
+  if (range) {
+    const a = Number(range[1].replace(',', '.'));
+    const b = Number(range[2].replace(',', '.'));
+    if (!Number.isFinite(a) || !Number.isFinite(b)) return 'valeur non numérique';
+    if (a > b) return 'intervalle inversé';
+    if (a < min || b > max) return `intervalle hors plage (${min}-${max})`;
+    return null;
+  }
+
+  const n = parseNumberish(s);
+  if (!Number.isFinite(n)) return 'valeur non numérique';
+  if (n < min || n > max) return `valeur hors plage (${min}-${max})`;
+  return null;
 }
 
 function detectImageExtensionFromDataUrl(dataUrl) {
@@ -137,6 +222,99 @@ function validateHttpsPhotoLinks(body = {}) {
   return null;
 }
 
+function parseWorkbookRowsFromBuffer(buffer) {
+  const wb = XLSX.read(buffer, { type: 'buffer', raw: false, cellDates: false });
+  const first = wb.SheetNames[0];
+  if (!first) return [];
+  const ws = wb.Sheets[first];
+  return XLSX.utils.sheet_to_json(ws, { defval: '', raw: false, blankrows: false });
+}
+
+function toGoogleSheetCsvUrl(rawUrl) {
+  const value = asTrimmedString(rawUrl);
+  if (!value) return null;
+  let url;
+  try {
+    url = new URL(value);
+  } catch {
+    return null;
+  }
+  if (!/^(?:docs\.)?google\.com$/i.test(url.hostname)) return null;
+  const m = url.pathname.match(/^\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
+  if (!m) return null;
+  const sheetId = m[1];
+  const gidFromQuery = asTrimmedString(url.searchParams.get('gid'));
+  const gidFromHash = (url.hash.match(/gid=(\d+)/) || [])[1] || '';
+  const gid = gidFromQuery || gidFromHash || '0';
+  return `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv&gid=${encodeURIComponent(gid)}`;
+}
+
+function requestText(url, timeoutMs = 15000) {
+  return new Promise((resolve, reject) => {
+    let parsed;
+    try {
+      parsed = new URL(url);
+    } catch {
+      reject(new Error('URL invalide'));
+      return;
+    }
+    const client = parsed.protocol === 'https:' ? https : http;
+    const req = client.request(
+      parsed,
+      {
+        method: 'GET',
+        headers: { 'user-agent': 'ForetMap/1.0 (plants-import)' },
+      },
+      (res) => {
+        const status = Number(res.statusCode || 0);
+        if (status < 200 || status >= 300) {
+          res.resume();
+          reject(new Error(`HTTP ${status}`));
+          return;
+        }
+        let body = '';
+        res.setEncoding('utf8');
+        res.on('data', (chunk) => {
+          body += chunk;
+          if (body.length > MAX_IMPORT_FILE_BYTES * 2) {
+            req.destroy(new Error('Fichier distant trop volumineux'));
+          }
+        });
+        res.on('end', () => resolve(body));
+      }
+    );
+    req.setTimeout(timeoutMs, () => req.destroy(new Error(`Timeout HTTP (${timeoutMs}ms)`)));
+    req.on('error', reject);
+    req.end();
+  });
+}
+
+async function resolveImportRows(body = {}) {
+  if (Array.isArray(body.rows)) {
+    return body.rows;
+  }
+
+  const fileData = asTrimmedString(body.fileDataBase64);
+  if (fileData) {
+    const raw = fileData.includes(',') ? fileData.split(',')[1] : fileData;
+    const buf = Buffer.from(raw, 'base64');
+    if (!buf || buf.length === 0) throw new Error('Fichier import vide');
+    if (buf.length > MAX_IMPORT_FILE_BYTES) throw new Error('Fichier import trop volumineux (max 8 Mo)');
+    return parseWorkbookRowsFromBuffer(buf);
+  }
+
+  const gsheetUrl = asTrimmedString(body.gsheetUrl);
+  if (gsheetUrl) {
+    const csvUrl = toGoogleSheetCsvUrl(gsheetUrl);
+    if (!csvUrl) throw new Error('URL Google Sheet invalide');
+    const csvText = await requestText(csvUrl);
+    const buf = Buffer.from(csvText, 'utf8');
+    return parseWorkbookRowsFromBuffer(buf);
+  }
+
+  throw new Error('Aucune source d’import fournie');
+}
+
 function buildPlantPayload(body, fallback = {}) {
   const payload = {};
   const rawName = hasOwn(body, 'name') ? body.name : fallback.name;
@@ -150,6 +328,49 @@ function buildPlantPayload(body, fallback = {}) {
     payload[field] = asOptionalText(sourceValue);
   }
   return payload;
+}
+
+function buildImportReportBase(strategy, dryRun, sourceType, rowsCount) {
+  return {
+    strategy,
+    dryRun,
+    sourceType,
+    totals: {
+      received: rowsCount,
+      valid: 0,
+      created: 0,
+      updated: 0,
+      skipped_existing: 0,
+      skipped_invalid: 0,
+    },
+    preview: [],
+    errors: [],
+  };
+}
+
+function validateImportPayloadRow(row, rowNumber) {
+  const mapped = mapImportRowToPlantShape(row);
+  const payload = buildPlantPayload(mapped);
+  if (!payload.name) {
+    return {
+      payload: null,
+      errors: [{ row: rowNumber, field: 'name', error: 'Nom requis' }],
+    };
+  }
+
+  const errors = [];
+  const photoErr = validateHttpsPhotoLinks(payload);
+  if (photoErr) {
+    const [field, ...rest] = photoErr.split(':');
+    errors.push({ row: rowNumber, field: (field || 'photo').trim(), error: rest.join(':').trim() || photoErr });
+  }
+
+  const tempErr = validateRangeText(payload.ideal_temperature_c, -20, 80);
+  if (tempErr) errors.push({ row: rowNumber, field: 'ideal_temperature_c', error: tempErr });
+  const phErr = validateRangeText(payload.optimal_ph, 0, 14);
+  if (phErr) errors.push({ row: rowNumber, field: 'optimal_ph', error: phErr });
+
+  return { payload, errors };
 }
 
 router.post('/:id/photo-upload', requireTeacher, async (req, res) => {
@@ -189,6 +410,105 @@ router.post('/:id/photo-upload', requireTeacher, async (req, res) => {
     const updated = await queryOne('SELECT * FROM plants WHERE id = ?', [plant.id]);
     emitGardenChanged({ reason: 'update_plant_photo', plantId: plant.id });
     res.json({ field, url: publicUrl, plant: updated });
+  } catch (e) {
+    logRouteError(e, req);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+router.post('/import', requireTeacher, async (req, res) => {
+  try {
+    const strategy = asTrimmedString(req.body?.strategy) || 'upsert_name';
+    const dryRun = !!req.body?.dryRun;
+    const sourceType = asTrimmedString(req.body?.sourceType) || 'unknown';
+    if (!IMPORT_STRATEGIES.has(strategy)) {
+      return res.status(400).json({ error: 'Stratégie d’import invalide' });
+    }
+
+    const rawRows = await resolveImportRows(req.body || {});
+    if (!Array.isArray(rawRows) || rawRows.length === 0) {
+      return res.status(400).json({ error: 'Aucune ligne importable détectée' });
+    }
+    if (rawRows.length > MAX_IMPORT_ROWS) {
+      return res.status(400).json({ error: `Import limité à ${MAX_IMPORT_ROWS} lignes` });
+    }
+
+    const report = buildImportReportBase(strategy, dryRun, sourceType, rawRows.length);
+    const validRows = [];
+
+    rawRows.forEach((rawRow, idx) => {
+      const rowNumber = idx + 2;
+      const { payload, errors } = validateImportPayloadRow(rawRow, rowNumber);
+      if (!payload || errors.length > 0) {
+        report.totals.skipped_invalid += 1;
+        report.errors.push(...errors);
+        return;
+      }
+      validRows.push(payload);
+      if (report.preview.length < 10) {
+        report.preview.push({
+          row: rowNumber,
+          name: payload.name,
+          scientific_name: payload.scientific_name || null,
+        });
+      }
+    });
+
+    report.totals.valid = validRows.length;
+    if (strategy === 'replace_all' && report.errors.length > 0 && !dryRun) {
+      return res.status(400).json({
+        error: 'Import interrompu: corrige les lignes invalides avant un remplacement complet',
+        report,
+      });
+    }
+    if (dryRun || validRows.length === 0) {
+      return res.json({ report });
+    }
+
+    const insertSql = `INSERT INTO plants (${PLANT_COLUMNS.join(', ')}) VALUES (${PLANT_COLUMNS.map(() => '?').join(', ')})`;
+    const updateSql = `UPDATE plants SET ${PLANT_COLUMNS.map((c) => `${c}=?`).join(', ')} WHERE id=?`;
+
+    const conn = await pool.getConnection();
+    try {
+      await conn.beginTransaction();
+      if (strategy === 'replace_all') {
+        await conn.execute('DELETE FROM plants');
+        for (const payload of validRows) {
+          await conn.execute(insertSql, PLANT_COLUMNS.map((c) => payload[c]));
+          report.totals.created += 1;
+        }
+      } else {
+        const [existingRows] = await conn.execute('SELECT id, name FROM plants');
+        const existing = Array.isArray(existingRows) ? existingRows : [];
+        const existingByName = new Map(existing.map((p) => [asTrimmedString(p.name).toLowerCase(), p]));
+
+        for (const payload of validRows) {
+          const key = asTrimmedString(payload.name).toLowerCase();
+          const found = existingByName.get(key);
+          if (found && strategy === 'insert_only') {
+            report.totals.skipped_existing += 1;
+            continue;
+          }
+          if (found && strategy === 'upsert_name') {
+            await conn.execute(updateSql, [...PLANT_COLUMNS.map((c) => payload[c]), found.id]);
+            report.totals.updated += 1;
+            continue;
+          }
+          const [insertResult] = await conn.execute(insertSql, PLANT_COLUMNS.map((c) => payload[c]));
+          report.totals.created += 1;
+          existingByName.set(key, { id: insertResult.insertId, name: payload.name });
+        }
+      }
+      await conn.commit();
+    } catch (err) {
+      await conn.rollback();
+      throw err;
+    } finally {
+      conn.release();
+    }
+
+    emitGardenChanged({ reason: 'import_plants' });
+    res.json({ report });
   } catch (e) {
     logRouteError(e, req);
     res.status(500).json({ error: e.message });

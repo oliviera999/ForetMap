@@ -86,6 +86,27 @@ Checklist recommandée avant migration SQL finale :
 2. Vérification fonctionnelle des photos zones et logs de tâches en UI.
 3. Sauvegarde BDD récente disponible (rollback).
 
+### Import biodiversité (mode professeur)
+
+Le mode prof inclut un bloc **Import biodiversité** dans la gestion des plantes.
+
+Sources supportées:
+
+- fichier `.csv`, `.xlsx`, `.xls`,
+- URL Google Sheet (partage lecture).
+
+Stratégies disponibles à l’import:
+
+- `upsert_name` (maj si même nom, sinon création),
+- `insert_only` (création uniquement),
+- `replace_all` (remplacement complet avec confirmation).
+
+Documentation détaillée et templates:
+
+- [docs/IMPORT_BIODIVERSITE.md](docs/IMPORT_BIODIVERSITE.md)
+- [docs/templates/plants-import-template-minimal.csv](docs/templates/plants-import-template-minimal.csv)
+- [docs/templates/plants-import-template.csv](docs/templates/plants-import-template.csv)
+
 ### Variables d’environnement
 
 | Variable | Description |
