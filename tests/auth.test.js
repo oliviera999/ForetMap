@@ -16,14 +16,20 @@ describe('Auth', () => {
   const firstName = unique;
   const lastName = 'User';
   const password = 'password123';
+  const pseudo = `test_${Date.now()}`;
+  const email = `test_${Date.now()}@example.com`;
+  const description = 'Profil de test';
 
   it('POST /api/auth/register crée un compte et renvoie l’élève sans mot de passe', async () => {
     const res = await request(app)
       .post('/api/auth/register')
-      .send({ firstName, lastName, password })
+      .send({ firstName, lastName, password, pseudo, email, description })
       .expect(201);
     assert.strictEqual(res.body.first_name, firstName);
     assert.strictEqual(res.body.last_name, lastName);
+    assert.strictEqual(res.body.pseudo, pseudo);
+    assert.strictEqual(res.body.email, email);
+    assert.strictEqual(res.body.description, description);
     assert.strictEqual(res.body.password, undefined);
     assert.ok(res.body.id);
   });

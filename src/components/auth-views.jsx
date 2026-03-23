@@ -52,6 +52,9 @@ function AuthScreen({ onLogin, appVersion }) {
   const [mode, setMode] = useState('login'); // 'login' | 'register'
   const [first, setFirst] = useState('');
   const [last, setLast] = useState('');
+  const [pseudo, setPseudo] = useState('');
+  const [email, setEmail] = useState('');
+  const [description, setDescription] = useState('');
   const [pass, setPass] = useState('');
   const [pass2, setPass2] = useState('');
   const [err, setErr] = useState('');
@@ -62,10 +65,25 @@ function AuthScreen({ onLogin, appVersion }) {
     if (!first.trim() || !last.trim() || !pass) return setErr('Tous les champs sont requis');
     if (mode === 'register' && pass !== pass2) return setErr('Les mots de passe ne correspondent pas');
     if (mode === 'register' && pass.length < 4) return setErr('Mot de passe trop court (min 4 caractères)');
+    if (mode === 'register' && pseudo.trim() && !/^[A-Za-z0-9_.-]{3,30}$/.test(pseudo.trim())) {
+      return setErr('Pseudo invalide (3-30 caractères, lettres/chiffres/._-)');
+    }
+    if (mode === 'register' && email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+      return setErr('Email invalide');
+    }
+    if (mode === 'register' && description.trim().length > 300) {
+      return setErr('Description trop longue (max 300 caractères)');
+    }
     setLoading(true);
     try {
       const endpoint = mode === 'login' ? '/api/auth/login' : '/api/auth/register';
-      const student = await api(endpoint, 'POST', { firstName: first.trim(), lastName: last.trim(), password: pass });
+      const payload = { firstName: first.trim(), lastName: last.trim(), password: pass };
+      if (mode === 'register') {
+        payload.pseudo = pseudo.trim() || null;
+        payload.email = email.trim() || null;
+        payload.description = description.trim() || null;
+      }
+      const student = await api(endpoint, 'POST', payload);
       localStorage.setItem('foretmap_student', JSON.stringify(student));
       onLogin(student);
     } catch (e) { setErr(e.message); }
@@ -104,9 +122,27 @@ function AuthScreen({ onLogin, appVersion }) {
           <input type="password" value={pass} onChange={e => setPass(e.target.value)} placeholder="••••" onKeyDown={onKey} />
         </div>
         {mode === 'register' && (
-          <div className="field"><label>Confirmer le mot de passe</label>
-            <input type="password" value={pass2} onChange={e => setPass2(e.target.value)} placeholder="••••" onKeyDown={onKey} />
-          </div>
+          <>
+            <div className="field"><label>Pseudo (optionnel)</label>
+              <input value={pseudo} onChange={e => setPseudo(e.target.value)} placeholder="momo_lyautey" onKeyDown={onKey} />
+            </div>
+            <div className="field"><label>Email (optionnel)</label>
+              <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="moi@exemple.com" onKeyDown={onKey} />
+            </div>
+            <div className="field"><label>Description (optionnel)</label>
+              <textarea
+                value={description}
+                onChange={e => setDescription(e.target.value)}
+                maxLength={300}
+                rows={3}
+                placeholder="Je participe souvent à l'arrosage."
+                onKeyDown={onKey}
+              />
+            </div>
+            <div className="field"><label>Confirmer le mot de passe</label>
+              <input type="password" value={pass2} onChange={e => setPass2(e.target.value)} placeholder="••••" onKeyDown={onKey} />
+            </div>
+          </>
         )}
         <button className="btn btn-primary btn-full" onClick={submit} disabled={loading} style={{ marginTop: 4 }}>
           {loading ? '...' : mode === 'login' ? 'Se connecter 🌱' : 'Créer le compte'}

@@ -12,9 +12,10 @@ import {
 } from './components/foretmap-views';
 import { MapView } from './components/map-views';
 import { AuthScreen, PinModal } from './components/auth-views';
-import { StudentStats, TeacherStats } from './components/stats-views';
+import { StudentProfileEditor, StudentStats, TeacherStats } from './components/stats-views';
 import { AuditLog } from './components/audit-views';
 import { AboutView } from './components/about-views';
+import { StudentAvatar } from './components/student-avatar';
 
 // ── APP ───────────────────────────────────────────────────────────────────────
 function App() {
@@ -22,6 +23,7 @@ function App() {
   const [isTeacher,  setIsTeacher]  = useState(() => !!localStorage.getItem('foretmap_teacher_token'));
   const [showPin,    setShowPin]    = useState(false);
   const [showStats,  setShowStats]  = useState(false);
+  const [showProfile,setShowProfile]= useState(false);
   const [tab,        setTab]        = useState('map');
   const [zones,      setZones]      = useState([]);
   const [tasks,      setTasks]      = useState([]);
@@ -49,6 +51,11 @@ function App() {
     setToast('Votre compte a été supprimé par le professeur.');
   }, []);
 
+  const updateStudentSession = useCallback((nextStudent) => {
+    setStudent(nextStudent);
+    localStorage.setItem('foretmap_student', JSON.stringify(nextStudent));
+  }, []);
+
   // Restore session — validates against server on load
   useEffect(() => {
     const saved = localStorage.getItem('foretmap_student');
@@ -57,14 +64,14 @@ function App() {
         const s = JSON.parse(saved);
         setStudent(s); // show app immediately with cached data
         api('/api/students/register', 'POST', { studentId: s.id })
-          .then(fresh => setStudent(fresh))
+          .then(fresh => updateStudentSession(fresh))
           .catch(err => {
             if (err instanceof AccountDeletedError || err.deleted) forceLogout();
             else console.error('[ForetMap] validation session élève', err);
           });
       } catch (e) { console.error('[ForetMap] lecture session locale', e); }
     }
-  }, []);
+  }, [forceLogout, updateStudentSession]);
 
   useEffect(() => {
     const onExpired = () => { setIsTeacher(false); setToast('Session professeur expirée.'); };
@@ -121,7 +128,7 @@ function App() {
     await fetchAll();
   };
 
-  if (!student) return <AuthScreen onLogin={s => setStudent(s)} appVersion={appVersion}/>;
+  if (!student) return <AuthScreen onLogin={s => updateStudentSession(s)} appVersion={appVersion}/>;
   if (loading) return (
     <div className="loader">
       <div className="loader-leaf">🌿</div>
@@ -156,6 +163,18 @@ function App() {
           </div>
         </div>
       )}
+      {showProfile && !isTeacher && (
+        <div className="modal-overlay" onClick={e => e.target === e.currentTarget && setShowProfile(false)}>
+          <div className="log-modal fade-in" style={{maxHeight:'88vh'}}>
+            <button className="modal-close" onClick={() => setShowProfile(false)}>✕</button>
+            <StudentProfileEditor
+              student={student}
+              onUpdated={updateStudentSession}
+              onClose={() => setShowProfile(false)}
+            />
+          </div>
+        </div>
+      )}
 
       <header>
         <div className="logo">
@@ -175,18 +194,21 @@ function App() {
           <button
             className="user-badge"
             onClick={() => !isTeacher && setShowStats(true)}
-            style={{
-              border:'none', cursor: isTeacher ? 'default' : 'pointer',
-              background:'rgba(255,255,255,.15)', borderRadius:8,
-              padding:'4px 10px', fontSize:'.8rem', color:'white',
-              maxWidth:130, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap',
-              display:'flex', alignItems:'center', gap:5,
-            }}
+            style={{ cursor: isTeacher ? 'default' : 'pointer' }}
             title={isTeacher ? '' : 'Voir mes statistiques'}
           >
-            {!isTeacher && <span style={{fontSize:'.7rem', opacity:.7}}>📊</span>}
-            {student.first_name} {student.last_name}
+            {!isTeacher && <StudentAvatar student={student} size={20} style={{ border: 'none' }} />}
+            <span className="user-badge-text">{student.pseudo || `${student.first_name} ${student.last_name}`}</span>
           </button>
+          {!isTeacher && (
+            <button
+              className="lock-btn"
+              title="Modifier mon profil"
+              onClick={() => setShowProfile(true)}
+            >
+              ✏️
+            </button>
+          )}
           <button className={`lock-btn ${isTeacher ? 'active' : ''}`} onClick={() => {
             if (isTeacher) { setIsTeacher(false); localStorage.removeItem('foretmap_teacher_token'); setToast('Mode élève'); }
             else setShowPin(true);

@@ -1,7 +1,7 @@
 require('./helpers/setup');
 const test = require('node:test');
 const assert = require('node:assert');
-const { initDatabase } = require('../database');
+const { initSchema } = require('../database');
 const { app } = require('../server');
 const request = require('supertest');
 
@@ -9,7 +9,7 @@ let teacherToken;
 let studentData;
 
 test.before(async () => {
-  await initDatabase();
+  await initSchema();
   const auth = await request(app)
     .post('/api/auth/teacher')
     .send({ pin: process.env.TEACHER_PIN || '1234' });
@@ -106,4 +106,61 @@ test('DELETE /api/observations/:id supprime une observation', async () => {
   await request(app)
     .delete(`/api/observations/${obs.body.id}`)
     .expect(200);
+});
+
+// ─── Profil élève enrichi ────────────────────────────────────────────────────
+test('PATCH /api/students/:id/profile met à jour pseudo/email/description', async () => {
+  const tinyAvatar = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/a9sAAAAASUVORK5CYII=';
+  const res = await request(app)
+    .patch(`/api/students/${studentData.id}/profile`)
+    .send({
+      pseudo: `profil_${Date.now()}`,
+      email: `profil_${Date.now()}@example.com`,
+      description: 'Description mise à jour',
+      avatarData: tinyAvatar,
+      currentPassword: 'pwd123',
+    })
+    .expect(200);
+
+  assert.ok(res.body.pseudo);
+  assert.ok(res.body.email);
+  assert.strictEqual(res.body.description, 'Description mise à jour');
+  assert.ok(res.body.avatar_path);
+  assert.strictEqual(res.body.password, undefined);
+});
+
+test('PATCH /api/students/:id/profile rejette un email invalide', async () => {
+  const res = await request(app)
+    .patch(`/api/students/${studentData.id}/profile`)
+    .send({ email: 'pas-un-email', currentPassword: 'pwd123' })
+    .expect(400);
+  assert.ok(res.body.error);
+});
+
+test('PATCH /api/students/:id/profile rejette un conflit pseudo', async () => {
+  const pseudoConflict = `conflict_${Date.now()}`;
+  await request(app)
+    .post('/api/auth/register')
+    .send({
+      firstName: 'Another',
+      lastName: `Student${Date.now()}`,
+      password: 'pwd123',
+      pseudo: pseudoConflict,
+      email: `another_${Date.now()}@example.com`,
+    })
+    .expect(201);
+
+  const res = await request(app)
+    .patch(`/api/students/${studentData.id}/profile`)
+    .send({ pseudo: pseudoConflict, currentPassword: 'pwd123' })
+    .expect(409);
+  assert.ok(res.body.error);
+});
+
+test('PATCH /api/students/:id/profile rejette un mot de passe actuel invalide', async () => {
+  const res = await request(app)
+    .patch(`/api/students/${studentData.id}/profile`)
+    .send({ pseudo: `new_${Date.now()}`, currentPassword: 'bad-password' })
+    .expect(401);
+  assert.ok(res.body.error);
 });

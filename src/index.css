@@ -115,11 +115,15 @@
     .user-badge {
       background:rgba(255,255,255,.15); border-radius:8px;
       padding:4px 10px; font-size:.8rem;
-      max-width:130px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+      max-width:155px; overflow:hidden;
       border:none; cursor:pointer; color:white;
       display:flex; align-items:center; gap:5px;
       transition:background .15s;
       -webkit-tap-highlight-color:transparent;
+    }
+    .user-badge-text {
+      overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+      display:block;
     }
     .user-badge:active { background:rgba(255,255,255,.28); transform:scale(.96); }
     .lock-btn {
@@ -135,7 +139,7 @@
     .lock-btn.active { background:var(--sun); color:var(--forest); }
     @media(max-width:380px) {
       .lock-btn .lock-label { display:none; }
-      .user-badge { max-width:80px; font-size:.72rem; }
+      .user-badge { max-width:108px; font-size:.72rem; }
     }
 
     /* ── BOTTOM NAV ── */
@@ -203,6 +207,11 @@
     /* ── SECTION TITLES ── */
     .section-title { font-size:1.3rem; color:var(--forest); margin-bottom:4px; }
     .section-sub { font-size:.85rem; color:#aaa; margin-bottom:16px; }
+    .stats-title-row {
+      display:flex; justify-content:space-between; align-items:center;
+      margin-bottom:4px; gap:8px;
+    }
+    .stats-title-left { display:flex; align-items:center; gap:10px; min-width:0; }
 
     /* ── ABOUT ── */
     .about-grid { display:grid; gap:12px; }
@@ -457,6 +466,10 @@
       transition:transform .12s var(--spring);
     }
     .img-remove:active { transform:scale(.85); }
+    .profile-avatar-row { display:flex; align-items:center; gap:12px; margin-bottom:8px; }
+    .profile-avatar-help { font-size:.82rem; color:#666; line-height:1.4; }
+    .profile-avatar-actions { display:flex; gap:8px; margin-top:8px; flex-wrap:wrap; }
+    .student-avatar { box-shadow:0 1px 4px rgba(0,0,0,.08); flex-shrink:0; }
 
     .log-entry { background:var(--parchment); border-radius:10px; padding:14px; margin-bottom:10px; }
     .log-entry-header { display:flex; justify-content:space-between; flex-wrap:wrap; gap:4px; margin-bottom:8px; font-size:.82rem; color:#aaa; }

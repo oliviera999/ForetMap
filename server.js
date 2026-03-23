@@ -35,6 +35,7 @@ const distSpaIndex = fs.existsSync(path.join(distDir, 'index.vite.html'))
 const serveDist = process.env.NODE_ENV === 'production' && fs.existsSync(distSpaIndex);
 const staticRoot = serveDist ? distDir : path.join(__dirname, 'public');
 app.use(express.static(staticRoot, serveDist ? { index: false } : undefined));
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Route de santé sans BDD — pour le contrôle de disponibilité (o2switch / Passenger)
 app.get('/api/health', (req, res) => {
