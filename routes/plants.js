@@ -64,6 +64,13 @@ function parseLinkCandidates(value) {
     .filter(Boolean);
 }
 
+function isDirectImageUrl(url) {
+  const path = (url?.pathname || '').toLowerCase();
+  if (/\.(avif|bmp|gif|jpe?g|png|svg|webp)$/.test(path)) return true;
+  if (/\/wiki\/special:filepath\//.test(path)) return true;
+  return false;
+}
+
 function validateHttpsPhotoLinks(body = {}) {
   for (const field of PHOTO_FIELDS) {
     if (!hasOwn(body, field)) continue;
@@ -79,6 +86,9 @@ function validateHttpsPhotoLinks(body = {}) {
       }
       if (url.protocol !== 'https:') {
         return `${field}: seules les URLs HTTPS sont autorisées`;
+      }
+      if (!isDirectImageUrl(url)) {
+        return `${field}: URL d'image directe requise (.jpg/.png/... ou /wiki/Special:FilePath/...)`;
       }
     }
   }

@@ -6,6 +6,8 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 ## [Non publié]
 
 ### Ajouté
+- **Migration photo* direct-only** : ajout de `migrations/012_plants_photo_links_direct_only.sql` pour ne conserver en base que des URLs photo directes (`.jpg/.png/...` ou `Special:FilePath`) et neutraliser les liens non compatibles.
+- **Résolution auto des photos biodiversité** : ajout du script `scripts/resolve-plants-photo-direct-links.js` (+ commandes `db:plants:photos:direct:dry` et `db:plants:photos:direct`) pour rechercher automatiquement des images Wikimedia cohérentes et remplacer les liens `photo*` non directs dans la table `plants`.
 - **Migration plantes depuis Excel (data-only)** : ajout de `migrations/010_plants_excel_data_only.sql` pour synchroniser le référentiel biodiversité (mise à jour des plantes existantes par `name`, insertion des nouvelles entrées) sans modifier le schéma.
 - **Déploiement serveur 100% automatisé (cron)** : ajout du script `scripts/auto-deploy-cron.sh` (fetch/pull conditionnel, redémarrage sécurisé via `DEPLOY_SECRET`, check post-déploiement, lock anti-concurrence) et documentation d’activation dans `docs/EXPLOITATION.md` avec exemple cron robuste (`mkdir -p logs` + chemin `scripts/` explicite).
 - **Filtre Biodiversité par grand groupe** : ajout d’un sélecteur “Grand groupe” (champ `group_1`) dans les vues élève/prof, combinable avec la recherche texte.
@@ -43,6 +45,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - **Page À propos** : nouvel onglet (élève/prof) avec description de l'application, version affichée, mention de l'auteur, liens de documentation locaux (`/README.md`, `/CHANGELOG.md`, `/docs/*`) et lien global vers le dépôt GitHub.
 
 ### Modifié
+- **Biodiversité (liens photos stricts)** : validation backend renforcée sur `POST/PUT /api/plants` pour accepter uniquement des URLs d'image directes (et rejeter les pages/catégories), avec consigne explicite dans le formulaire prof.
 - **Check post-déploiement (`deploy:check:prod`)** : ajout d’un `User-Agent` explicite et d’un retry léger sur HTTP `429` (respect de `Retry-After`) pour fiabiliser les vérifications derrière proxy/CDN.
 - **Photos biodiversité (Wikimedia Category)** : résolution automatique côté frontend d’une image représentative pour les liens `commons.wikimedia.org/wiki/Category:...` (API Wikimedia), afin de réafficher des miniatures au lieu de simples liens.
 - **Photos biodiversité (liens cassés)** : rendu frontend durci pour afficher en vignette uniquement les URLs d’images directes ; les pages (ex. Wikimedia `Category`) restent des liens cliquables pour éviter les miniatures cassées.
