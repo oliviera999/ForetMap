@@ -27,6 +27,11 @@ const corsOpts = process.env.NODE_ENV === 'production' && process.env.FRONTEND_O
 app.use(cors(corsOpts));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+app.use((req, res, next) => {
+  // Limite les sources d'images (photos externes + base64 locales).
+  res.setHeader('Content-Security-Policy', "img-src 'self' https: data: blob:;");
+  next();
+});
 
 const distDir = path.join(__dirname, 'dist');
 const distSpaIndex = fs.existsSync(path.join(distDir, 'index.vite.html'))

@@ -133,6 +133,15 @@ function isHttpLink(value) {
   return /^https?:\/\//i.test(value);
 }
 
+function getSourceLabel(value) {
+  try {
+    const url = new URL(value);
+    return url.hostname.replace(/^www\./i, '');
+  } catch {
+    return value;
+  }
+}
+
 function PlantSummaryBadges({ plant }) {
   const chips = [];
   const nutrition = normalizedPlantValue(plant.nutrition);
@@ -196,7 +205,17 @@ function PlantMetaSections({ plant }) {
 
                         return entries.map((entry, idx) => (
                           isHttpLink(entry)
-                            ? <a key={`${item.key}-${idx}`} href={entry} target="_blank" rel="noreferrer">{entry}</a>
+                            ? (
+                              <a
+                                key={`${item.key}-${idx}`}
+                                href={entry}
+                                target="_blank"
+                                rel="noreferrer"
+                                className={item.key === 'sources' ? 'plant-source-link' : undefined}
+                                title={entry}>
+                                {item.key === 'sources' ? getSourceLabel(entry) : entry}
+                              </a>
+                            )
                             : <span key={`${item.key}-${idx}`}>{entry}</span>
                         ));
                       })()}

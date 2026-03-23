@@ -519,6 +519,27 @@
     .plant-meta-value, .plant-links { font-size:.82rem; color:#42544a; line-height:1.45; word-break:break-word; }
     .plant-links { display:flex; flex-direction:column; gap:4px; }
     .plant-links a { color:var(--leaf); text-decoration:underline; text-underline-offset:2px; }
+    .plant-source-link {
+      display:inline-flex;
+      align-items:center;
+      width:fit-content;
+      max-width:100%;
+      background:#eefbf3;
+      border:1px solid rgba(82,183,136,.25);
+      border-radius:999px;
+      padding:2px 8px;
+      text-decoration:none;
+      font-weight:600;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+    .plant-source-link:hover,
+    .plant-source-link:focus-visible {
+      background:#e2f7eb;
+      border-color:rgba(82,183,136,.45);
+      outline:none;
+    }
     .plant-photo-grid {
       display:grid;
       grid-template-columns:repeat(auto-fill, minmax(120px, 1fr));
