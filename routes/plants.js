@@ -3,6 +3,7 @@ const { queryAll, queryOne, execute } = require('../database');
 const { requireTeacher } = require('../middleware/requireTeacher');
 const { logRouteError } = require('../lib/routeLog');
 const { emitGardenChanged } = require('../lib/realtime');
+const { saveBase64ToDisk, deleteFile } = require('../lib/uploads');
 
 const router = express.Router();
 const PHOTO_FIELDS = [
@@ -40,6 +41,7 @@ const PLANT_EXTRA_FIELDS = [
   'preferred_nutrients',
 ];
 const PLANT_COLUMNS = ['name', 'emoji', 'description', ...PLANT_EXTRA_FIELDS];
+const MAX_PLANT_PHOTO_BYTES = 5 * 1024 * 1024;
 
 function hasOwn(obj, key) {
   return Object.prototype.hasOwnProperty.call(obj || {}, key);
@@ -64,11 +66,45 @@ function parseLinkCandidates(value) {
     .filter(Boolean);
 }
 
+function detectImageExtensionFromDataUrl(dataUrl) {
+  const m = /^data:image\/(png|jpe?g|webp|gif|bmp|avif);base64,/i.exec(dataUrl || '');
+  if (!m) return null;
+  const ext = String(m[1]).toLowerCase();
+  return ext === 'jpeg' ? 'jpg' : ext;
+}
+
+function isLocalUploadsPath(value) {
+  return /^\/uploads\/[^?#\s]+/i.test(asTrimmedString(value));
+}
+
+function isDirectImagePath(value) {
+  const raw = asTrimmedString(value);
+  return /\.(avif|bmp|gif|jpe?g|png|svg|webp)(?:$|\?)/i.test(raw);
+}
+
+function isDevLocalhostHttp(url) {
+  if (!url || url.protocol !== 'http:') return false;
+  return /^(localhost|127\.0\.0\.1)$/i.test(url.hostname);
+}
+
 function isDirectImageUrl(url) {
   const path = (url?.pathname || '').toLowerCase();
   if (/\.(avif|bmp|gif|jpe?g|png|svg|webp)$/.test(path)) return true;
   if (/\/wiki\/special:filepath\//.test(path)) return true;
   return false;
+}
+
+function extractUploadsRelativePath(value) {
+  const raw = asTrimmedString(value);
+  if (!raw) return null;
+  if (raw.startsWith('/uploads/')) return raw.slice('/uploads/'.length);
+  try {
+    const u = new URL(raw);
+    if (u.pathname.startsWith('/uploads/')) return u.pathname.slice('/uploads/'.length);
+  } catch {
+    return null;
+  }
+  return null;
 }
 
 function validateHttpsPhotoLinks(body = {}) {
@@ -78,14 +114,20 @@ function validateHttpsPhotoLinks(body = {}) {
     if (!raw) continue;
     const links = parseLinkCandidates(raw);
     for (const link of links) {
+      if (isLocalUploadsPath(link)) {
+        if (!isDirectImagePath(link)) {
+          return `${field}: chemin local invalide (extension image requise)`;
+        }
+        continue;
+      }
       let url;
       try {
         url = new URL(link);
       } catch {
         return `${field}: URL invalide`;
       }
-      if (url.protocol !== 'https:') {
-        return `${field}: seules les URLs HTTPS sont autorisées`;
+      if (url.protocol !== 'https:' && !isDevLocalhostHttp(url)) {
+        return `${field}: seules les URLs HTTPS (ou localhost en dev) sont autorisées`;
       }
       if (!isDirectImageUrl(url)) {
         return `${field}: URL d'image directe requise (.jpg/.png/... ou /wiki/Special:FilePath/...)`;
@@ -109,6 +151,49 @@ function buildPlantPayload(body, fallback = {}) {
   }
   return payload;
 }
+
+router.post('/:id/photo-upload', requireTeacher, async (req, res) => {
+  try {
+    const plant = await queryOne('SELECT * FROM plants WHERE id = ?', [req.params.id]);
+    if (!plant) return res.status(404).json({ error: 'Plante introuvable' });
+
+    const field = asTrimmedString(req.body?.field);
+    const imageData = asTrimmedString(req.body?.imageData);
+    if (!PHOTO_FIELDS.includes(field)) {
+      return res.status(400).json({ error: 'Champ photo invalide' });
+    }
+    if (!imageData) {
+      return res.status(400).json({ error: 'Image requise' });
+    }
+
+    const ext = detectImageExtensionFromDataUrl(imageData);
+    if (!ext) {
+      return res.status(400).json({ error: 'Format image invalide (png/jpg/webp/gif/bmp/avif)' });
+    }
+    const base64Payload = imageData.includes(',') ? imageData.split(',')[1] : imageData;
+    const bytes = Buffer.byteLength(base64Payload, 'base64');
+    if (bytes > MAX_PLANT_PHOTO_BYTES) {
+      return res.status(400).json({ error: 'Image trop lourde (max 5 Mo)' });
+    }
+
+    const relativePath = `plants/${plant.id}/${field}-${Date.now()}.${ext}`;
+    saveBase64ToDisk(relativePath, imageData);
+    const publicUrl = `/uploads/${relativePath}`;
+
+    const previousRelativePath = extractUploadsRelativePath(plant[field]);
+    if (previousRelativePath && previousRelativePath !== relativePath) {
+      deleteFile(previousRelativePath);
+    }
+
+    await execute(`UPDATE plants SET ${field} = ? WHERE id = ?`, [publicUrl, plant.id]);
+    const updated = await queryOne('SELECT * FROM plants WHERE id = ?', [plant.id]);
+    emitGardenChanged({ reason: 'update_plant_photo', plantId: plant.id });
+    res.json({ field, url: publicUrl, plant: updated });
+  } catch (e) {
+    logRouteError(e, req);
+    res.status(500).json({ error: e.message });
+  }
+});
 
 router.get('/', async (req, res) => {
   try {

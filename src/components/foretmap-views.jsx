@@ -133,7 +133,14 @@ function isHttpLink(value) {
   return /^https?:\/\//i.test(value);
 }
 
+function isLocalUploadsPath(value) {
+  return /^\/uploads\/[^?#\s]+/i.test(value);
+}
+
 function isLikelyDirectImageUrl(value) {
+  if (isLocalUploadsPath(value)) {
+    return /\.(avif|bmp|gif|jpe?g|png|svg|webp)(?:$|\?)/i.test(value);
+  }
   if (!isHttpLink(value)) return false;
   try {
     const url = new URL(value);
@@ -149,6 +156,7 @@ function isLikelyDirectImageUrl(value) {
 }
 
 function getSourceLabel(value) {
+  if (isLocalUploadsPath(value)) return 'fichier local';
   try {
     const url = new URL(value);
     return url.hostname.replace(/^www\./i, '');
@@ -212,7 +220,7 @@ function PlantMetaSections({ plant }) {
                     <div className="plant-links">
                       {(() => {
                         const entries = parseLinkCandidates(item.value);
-                        const photoEntries = entries.filter(isHttpLink);
+                        const photoEntries = entries.filter((entry) => isHttpLink(entry) || isLocalUploadsPath(entry));
 
                         if (PHOTO_FIELD_KEYS.has(item.key) && photoEntries.length > 0) {
                           const imageEntries = photoEntries
@@ -267,8 +275,38 @@ function PlantMetaSections({ plant }) {
 }
 
 // ── PLANT EDIT FORM (outside PlantManager to avoid remount on every keystroke) ──
-function PlantEditForm({ title, form, setForm, onSave, onCancel, saving }) {
+function PlantEditForm({ title, form, setForm, onSave, onCancel, saving, plantId, onToast }) {
   const set = k => e => setForm(f => ({...f, [k]: e.target.value}));
+  const [uploadingField, setUploadingField] = useState('');
+
+  const photoFields = [
+    { key: 'photo_species', label: 'Photo espèce' },
+    { key: 'photo_leaf', label: 'Photo feuille' },
+    { key: 'photo_flower', label: 'Photo fleur' },
+    { key: 'photo_fruit', label: 'Photo fruit' },
+    { key: 'photo_harvest_part', label: 'Photo partie récoltée' },
+    { key: 'photo', label: 'Photo' },
+  ];
+
+  const uploadPhoto = async (field, file) => {
+    if (!file) return;
+    if (!plantId) {
+      onToast?.('Crée d\'abord la fiche, puis ajoute les photos.');
+      return;
+    }
+    setUploadingField(field);
+    try {
+      const imageData = await compressImage(file, 1600, 0.82);
+      const result = await api(`/api/plants/${plantId}/photo-upload`, 'POST', { field, imageData });
+      setForm((prev) => ({ ...prev, [field]: result?.url || prev[field] }));
+      onToast?.('Photo importée ✓');
+    } catch (e) {
+      onToast?.('Erreur import photo : ' + e.message);
+    } finally {
+      setUploadingField('');
+    }
+  };
+
   return (
     <div className="plant-edit-form fade-in">
       <h4>{title}</h4>
@@ -314,12 +352,32 @@ function PlantEditForm({ title, form, setForm, onSave, onCancel, saving }) {
         Photos : utiliser uniquement des liens directs vers image (`.jpg`, `.png`, `.webp`, etc.) ou `.../wiki/Special:FilePath/...`.
       </p>
       <div className="plant-form-grid">
-        <div className="field"><label>Photo espèce (URL directe)</label><input value={form.photo_species} onChange={set('photo_species')} placeholder="https://.../image.jpg"/></div>
-        <div className="field"><label>Photo feuille (URL directe)</label><input value={form.photo_leaf} onChange={set('photo_leaf')} placeholder="https://.../image.jpg"/></div>
-        <div className="field"><label>Photo fleur (URL directe)</label><input value={form.photo_flower} onChange={set('photo_flower')} placeholder="https://.../image.jpg"/></div>
-        <div className="field"><label>Photo fruit (URL directe)</label><input value={form.photo_fruit} onChange={set('photo_fruit')} placeholder="https://.../image.jpg"/></div>
-        <div className="field"><label>Photo partie récoltée (URL directe)</label><input value={form.photo_harvest_part} onChange={set('photo_harvest_part')} placeholder="https://.../image.jpg"/></div>
-        <div className="field"><label>Photo (URL directe)</label><input value={form.photo} onChange={set('photo')} placeholder="https://.../image.jpg"/></div>
+        {photoFields.map((field) => (
+          <div className="field" key={field.key}>
+            <label>{field.label} (URL directe)</label>
+            <input
+              value={form[field.key]}
+              onChange={set(field.key)}
+              placeholder="https://.../image.jpg ou /uploads/..."
+            />
+            <div style={{ display: 'flex', gap: 8, marginTop: 6 }}>
+              <label className="btn btn-ghost btn-sm" style={{ cursor: 'pointer' }}>
+                {uploadingField === field.key ? 'Upload...' : '📤 Charger un fichier'}
+                <input
+                  type="file"
+                  accept="image/*"
+                  style={{ display: 'none' }}
+                  disabled={saving || uploadingField === field.key}
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    e.target.value = '';
+                    uploadPhoto(field.key, file);
+                  }}
+                />
+              </label>
+            </div>
+          </div>
+        ))}
       </div>
       <div className="plant-form-grid">
         <div className="field"><label>Remarque 1</label><input value={form.remark_1} onChange={set('remark_1')} placeholder="Optionnel"/></div>
@@ -437,6 +495,8 @@ function PlantManager({ plants, onRefresh }) {
           title="Nouvel être vivant"
           form={form} setForm={setForm}
           onSave={save} onCancel={cancelEdit} saving={saving}
+          plantId={null}
+          onToast={setToast}
         />
       )}
 
@@ -448,6 +508,8 @@ function PlantManager({ plants, onRefresh }) {
                 title={`Modifier — ${p.name}`}
                 form={form} setForm={setForm}
                 onSave={save} onCancel={cancelEdit} saving={saving}
+                plantId={p.id}
+                onToast={setToast}
               />
             ) : (
               <div className="plant-row">
