@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { api, AccountDeletedError } from '../services/api';
 import { SPECIAL_EMOJI, SPECIAL_DESC, TREE_LEGEND, TREE_DOTS } from '../constants/garden';
 import { compressImage } from '../utils/image';
@@ -145,6 +145,42 @@ function isLikelyDirectImageUrl(value) {
   }
 }
 
+function parseCommonsCategoryFromUrl(value) {
+  if (!isHttpLink(value)) return null;
+  try {
+    const url = new URL(value);
+    if (!/^(?:www\.)?commons\.wikimedia\.org$/i.test(url.hostname)) return null;
+    const m = url.pathname.match(/^\/wiki\/(Category:.+)$/i);
+    if (!m) return null;
+    return decodeURIComponent(m[1]);
+  } catch {
+    return null;
+  }
+}
+
+async function fetchCommonsCategoryPreview(urlValue) {
+  const categoryTitle = parseCommonsCategoryFromUrl(urlValue);
+  if (!categoryTitle) return null;
+  const endpoint = new URL('https://commons.wikimedia.org/w/api.php');
+  endpoint.searchParams.set('action', 'query');
+  endpoint.searchParams.set('format', 'json');
+  endpoint.searchParams.set('origin', '*');
+  endpoint.searchParams.set('generator', 'categorymembers');
+  endpoint.searchParams.set('gcmtype', 'file');
+  endpoint.searchParams.set('gcmtitle', categoryTitle);
+  endpoint.searchParams.set('gcmlimit', '1');
+  endpoint.searchParams.set('prop', 'imageinfo');
+  endpoint.searchParams.set('iiprop', 'url');
+  endpoint.searchParams.set('iiurlwidth', '1200');
+  const res = await fetch(endpoint.toString());
+  if (!res.ok) return null;
+  const data = await res.json();
+  const pages = data?.query?.pages ? Object.values(data.query.pages) : [];
+  const first = pages[0];
+  const info = first?.imageinfo?.[0];
+  return info?.thumburl || info?.url || null;
+}
+
 function getSourceLabel(value) {
   try {
     const url = new URL(value);
@@ -174,6 +210,40 @@ function PlantSummaryBadges({ plant }) {
 
 function PlantMetaSections({ plant }) {
   const [bigPhoto, setBigPhoto] = useState(null);
+  const [commonsPreviewByUrl, setCommonsPreviewByUrl] = useState({});
+
+  const plantPhotoLinks = useMemo(() => {
+    const links = [];
+    for (const section of PLANT_META_SECTIONS) {
+      for (const item of section.items) {
+        if (!PHOTO_FIELD_KEYS.has(item.key)) continue;
+        const entries = parseLinkCandidates(plant[item.key]).filter(isHttpLink);
+        for (const entry of entries) links.push(entry);
+      }
+    }
+    return Array.from(new Set(links));
+  }, [plant]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const categoryLinks = plantPhotoLinks.filter((entry) => !!parseCommonsCategoryFromUrl(entry));
+    const missing = categoryLinks.filter((entry) => !Object.prototype.hasOwnProperty.call(commonsPreviewByUrl, entry));
+    if (missing.length === 0) return () => { cancelled = true; };
+    (async () => {
+      const resolved = {};
+      for (const link of missing) {
+        try {
+          resolved[link] = await fetchCommonsCategoryPreview(link);
+        } catch {
+          resolved[link] = null;
+        }
+      }
+      if (!cancelled) {
+        setCommonsPreviewByUrl((prev) => ({ ...prev, ...resolved }));
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [plantPhotoLinks, commonsPreviewByUrl]);
 
   const renderPhotoLinks = (item, entries) => (
     <div className="plant-photo-grid">
@@ -182,8 +252,8 @@ function PlantMetaSections({ plant }) {
           key={`${item.key}-${idx}`}
           type="button"
           className="plant-photo-thumb"
-          onClick={() => setBigPhoto({ src: entry, caption: item.label })}>
-          <img src={entry} alt={item.label} loading="lazy" />
+          onClick={() => setBigPhoto({ src: entry.src, caption: item.label })}>
+          <img src={entry.src} alt={item.label} loading="lazy" />
           <span className="plant-photo-overlay">🔍 Voir</span>
         </button>
       ))}
@@ -212,7 +282,17 @@ function PlantMetaSections({ plant }) {
                         const photoEntries = entries.filter(isHttpLink);
 
                         if (PHOTO_FIELD_KEYS.has(item.key) && photoEntries.length > 0) {
-                          const imageEntries = photoEntries.filter(isLikelyDirectImageUrl);
+                          const directImageEntries = photoEntries
+                            .filter(isLikelyDirectImageUrl)
+                            .map((entry) => ({ src: entry, source: entry }));
+                          const commonsCategoryImageEntries = photoEntries
+                            .filter((entry) => !!parseCommonsCategoryFromUrl(entry))
+                            .map((entry) => ({
+                              src: commonsPreviewByUrl[entry],
+                              source: entry,
+                            }))
+                            .filter((entry) => !!entry.src);
+                          const imageEntries = [...directImageEntries, ...commonsCategoryImageEntries];
                           const pageEntries = photoEntries.filter((entry) => !isLikelyDirectImageUrl(entry));
                           return (
                             <>
