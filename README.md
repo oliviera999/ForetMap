@@ -184,6 +184,12 @@ Cette variante évite les pannes observées côté hébergeur (`vite` absent, lo
 
 > Le bundle runtime est spécifique à l'OS cible. Préparer le ZIP sur un environnement compatible avec le serveur d'hébergement.
 
+### Workflow conseillé (résumé)
+
+- **Si auto-deploy cron est actif sur le serveur**: build local + `dist/` à jour, commit/push, attendre le run cron, puis vérifier avec `npm run deploy:check:prod`.
+- **Si l'hébergement est instable avec npm côté serveur**: utiliser `npm run deploy:prepare:runtime`, extraire le ZIP sur le serveur, redémarrer, puis `npm run deploy:check:prod`.
+- En cas de `429` ponctuel au check post-déploiement, relancer la vérification après quelques secondes puis confirmer `GET /api/version`.
+
 ### Incident temps réel Socket.IO (WebSocket)
 
 Si la console navigateur affiche `reserved bits are on` ou `connect_error websocket error`, cela indique généralement une altération des trames WebSocket par un proxy/CDN (pas une erreur métier ForetMap).
