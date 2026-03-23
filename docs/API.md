@@ -94,6 +94,8 @@ Routes protégées « prof » : header `Authorization: Bearer <token>`.
 | POST | `/api/plants` | oui | Créer une entrée biodiversité |
 | PUT | `/api/plants/:id` | oui | Modifier une entrée biodiversité |
 | DELETE | `/api/plants/:id` | oui | Supprimer une entrée biodiversité |
+| POST | `/api/plants/:id/photo-upload` | oui | Uploader une photo locale pour un champ `photo*` |
+| POST | `/api/plants/import` | oui | Importer des fiches biodiversité (CSV/XLSX/Google Sheet) |
 
 `GET /api/plants` renvoie les champs historiques (`id`, `name`, `emoji`, `description`) et les champs de biodiversité:
 `second_name`, `scientific_name`, `group_1`, `group_2`, `group_3`, `habitat`, `photo`, `nutrition`,
@@ -104,6 +106,36 @@ Routes protégées « prof » : header `Authorization: Bearer <token>`.
 
 `POST /api/plants` et `PUT /api/plants/:id` acceptent ces mêmes champs en JSON. Les champs texte vides
 des métadonnées biodiversité sont normalisés en `null`.
+
+`POST /api/plants/:id/photo-upload` (prof):
+
+- Body: `{ field, imageData }`
+- `field` doit être l'un des champs photo (`photo`, `photo_species`, `photo_leaf`, `photo_flower`, `photo_fruit`, `photo_harvest_part`)
+- `imageData` doit être une Data URL image (png/jpg/webp/gif/bmp/avif)
+- Réponse: `{ field, url, plant }`
+
+`POST /api/plants/import` (prof):
+
+- Body (source fichier):
+  - `{ sourceType: "file", strategy, dryRun, fileName, fileDataBase64 }`
+- Body (source Google Sheet):
+  - `{ sourceType: "gsheet", strategy, dryRun, gsheetUrl }`
+- Body (source standardisée optionnelle):
+  - `{ sourceType: "rows", strategy, dryRun, rows: [...] }`
+
+Stratégies:
+
+- `upsert_name` : met à jour si `name` existe déjà, sinon crée.
+- `insert_only` : crée uniquement les nouvelles entrées.
+- `replace_all` : remplace entièrement le catalogue (bloqué si lignes invalides).
+
+Réponse:
+
+- `{ report }` avec:
+  - `totals.received`, `totals.valid`, `totals.created`, `totals.updated`,
+  - `totals.skipped_existing`, `totals.skipped_invalid`,
+  - `preview` (aperçu des lignes valides),
+  - `errors` (liste des erreurs ligne/champ).
 
 ---
 

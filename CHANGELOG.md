@@ -6,6 +6,8 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 ## [Non publié]
 
 ### Ajouté
+- **Import biodiversité (prof)** : ajout de la route `POST /api/plants/import` (CSV/XLSX/Google Sheet), stratégies `upsert_name|insert_only|replace_all`, mode prévisualisation (`dryRun`) et rapport d’erreurs ligne/champ.
+- **Guide + templates d’import biodiversité** : ajout de `docs/IMPORT_BIODIVERSITE.md` et des fichiers `docs/templates/plants-import-template.csv` + `docs/templates/plants-import-template-minimal.csv`.
 - **Migration 014 photos biodiversité (curation manuelle)** : ajout de `migrations/014_plants_manual_photo_links_curated.sql` avec un jeu de liens directs `Special:FilePath` sélectionnés manuellement pour `Menthe` et les espèces récemment corrigées, sans auto-résolution heuristique.
 - **Corrections scientifiques ciblées `plants`** : ajout de `migrations/013_plants_scientific_fixes.sql` (températures invalides corrigées, noms scientifiques normalisés pour certaines espèces, fiche `Menthe` complétée).
 - **Consolidation des sources biodiversité** : ajout du script `scripts/consolidate-plants-sources.js` (+ commandes `db:plants:sources:consolidate:dry` et `db:plants:sources:consolidate`) pour vérifier les liens `sources`, retirer les URLs injoignables et enrichir avec des références fiables (Wikipedia/Wikidata) cohérentes avec l’espèce.
@@ -48,6 +50,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - **Page À propos** : nouvel onglet (élève/prof) avec description de l'application, version affichée, mention de l'auteur, liens de documentation locaux (`/README.md`, `/CHANGELOG.md`, `/docs/*`) et lien global vers le dépôt GitHub.
 
 ### Modifié
+- **Mode prof biodiversité** : ajout d’un panneau d’import dans `PlantManager` pour charger un CSV/XLSX ou une URL Google Sheet avec choix de stratégie, prévisualisation et rapport détaillé.
 - **Script résolution photos biodiversité** : remplacement des appels `fetch` (undici/Wasm) par `http/https` natif Node dans `scripts/resolve-plants-photo-direct-links.js` pour éviter les erreurs mémoire sur hébergement contraint (CloudLinux/LVE).
 - **Biodiversité (liens photos stricts)** : validation backend renforcée sur `POST/PUT /api/plants` pour accepter uniquement des URLs d'image directes (et rejeter les pages/catégories), avec consigne explicite dans le formulaire prof.
 - **Check post-déploiement (`deploy:check:prod`)** : ajout d’un `User-Agent` explicite et d’un retry léger sur HTTP `429` (respect de `Retry-After`) pour fiabiliser les vérifications derrière proxy/CDN.
