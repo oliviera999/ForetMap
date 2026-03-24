@@ -431,7 +431,7 @@ router.post('/:id/assign', async (req, res) => {
     );
 
     const newCount = task.assignments.length + 1;
-    const newStatus = newCount >= task.required_students ? 'in_progress' : 'available';
+    const newStatus = newCount > 0 ? 'in_progress' : 'available';
     await execute('UPDATE tasks SET status = ? WHERE id = ?', [newStatus, task.id]);
 
     const updated = await getTaskWithAssignments(task.id);
@@ -586,10 +586,10 @@ router.post('/:id/unassign', async (req, res) => {
     let newStatus;
     if (remaining === 0) {
       newStatus = 'available';
-    } else if (remaining >= task.required_students) {
-      newStatus = task.status === 'done' ? 'done' : 'in_progress';
+    } else if (task.status === 'done') {
+      newStatus = 'done';
     } else {
-      newStatus = 'available';
+      newStatus = 'in_progress';
     }
     await execute('UPDATE tasks SET status = ? WHERE id = ?', [newStatus, task.id]);
 
