@@ -57,7 +57,7 @@ function initialLocationIds(editTask, keyMulti, keySingle) {
   return one ? [one] : [];
 }
 
-function TaskFormModal({ zones, markers = [], maps = [], activeMapId = 'foret', onClose, onSave, editTask }) {
+function TaskFormModal({ zones, markers = [], maps = [], tutorials = [], activeMapId = 'foret', onClose, onSave, editTask }) {
   const initialMapId = editTask
     ? (editTask.map_id_resolved || editTask.map_id || editTask.zone_map_id || editTask.marker_map_id || null)
     : activeMapId;
@@ -66,12 +66,13 @@ function TaskFormModal({ zones, markers = [], maps = [], activeMapId = 'foret', 
     map_id: initialMapId || '',
     zone_ids: initialLocationIds(editTask, 'zone_ids', 'zone_id'),
     marker_ids: initialLocationIds(editTask, 'marker_ids', 'marker_id'),
+    tutorial_ids: initialLocationIds(editTask, 'tutorial_ids', 'tutorial_id'),
     due_date: editTask.due_date || '',
     required_students: editTask.required_students || 1,
     recurrence: editTask.recurrence || ''
   } : {
     title: '', description: '', map_id: initialMapId || '',
-    zone_ids: [], marker_ids: [],
+    zone_ids: [], marker_ids: [], tutorial_ids: [],
     due_date: '', required_students: 1, recurrence: ''
   });
   const [saving, setSaving] = useState(false);
@@ -111,6 +112,16 @@ function TaskFormModal({ zones, markers = [], maps = [], activeMapId = 'foret', 
     });
   };
 
+  const toggleTutorialId = (tutorialId) => {
+    setForm(f => {
+      const has = f.tutorial_ids.includes(tutorialId);
+      return {
+        ...f,
+        tutorial_ids: has ? f.tutorial_ids.filter(id => id !== tutorialId) : [...f.tutorial_ids, tutorialId],
+      };
+    });
+  };
+
   const submit = async () => {
     if (!form.title.trim()) return setErr('Le titre est requis');
     const mapFromLinks = () => {
@@ -130,6 +141,7 @@ function TaskFormModal({ zones, markers = [], maps = [], activeMapId = 'foret', 
       map_id: form.map_id || null,
       zone_ids: form.zone_ids,
       marker_ids: form.marker_ids,
+      tutorial_ids: form.tutorial_ids,
       due_date: form.due_date || null,
       required_students: form.required_students,
       recurrence: form.recurrence || null,
@@ -191,6 +203,22 @@ function TaskFormModal({ zones, markers = [], maps = [], activeMapId = 'foret', 
               ))}
           </div>
         </div>
+        <div className="field"><label>Tutoriels associés (optionnel)</label>
+          <div style={pickListStyle}>
+            {tutorials.length === 0
+              ? <p style={{ fontSize: '.82rem', color: '#888', margin: 8 }}>Aucun tutoriel disponible.</p>
+              : tutorials.map(t => (
+                <label key={t.id} style={pickRow}>
+                  <input
+                    type="checkbox"
+                    checked={form.tutorial_ids.includes(t.id)}
+                    onChange={() => toggleTutorialId(t.id)}
+                  />
+                  <span style={{ fontSize: '.88rem' }}>📘 {t.title}</span>
+                </label>
+              ))}
+          </div>
+        </div>
         <div className="row">
           <div className="field"><label>Élèves requis</label>
             <input type="number" min="1" max="10" value={form.required_students} onChange={set('required_students')} />
@@ -219,7 +247,7 @@ function taskHasZone(t, zoneId) {
   return t.zone_id === zoneId;
 }
 
-function TasksView({ tasks, zones, markers = [], maps = [], activeMapId = 'foret', isTeacher, student, onRefresh, onForceLogout }) {
+function TasksView({ tasks, zones, markers = [], maps = [], tutorials = [], activeMapId = 'foret', isTeacher, student, onRefresh, onForceLogout }) {
   const [showForm, setShowForm] = useState(false);
   const [editTask, setEditTask] = useState(null);
   const [logTask, setLogTask] = useState(null);
@@ -354,6 +382,9 @@ function TasksView({ tasks, zones, markers = [], maps = [], activeMapId = 'foret
             <span key={m.id} className="task-chip">📍 {m.label}</span>
           ))}
           {!((t.markers_linked || []).length) && t.marker_label && <span className="task-chip">📍 {t.marker_label}</span>}
+          {(t.tutorials_linked || []).map((tu) => (
+            <span key={tu.id} className="task-chip">📘 {tu.title}</span>
+          ))}
           {dueDateChip(t.due_date)}
           {!isTeacher && <span className="task-chip">👤 {t.required_students} élève{t.required_students > 1 ? 's' : ''}</span>}
           {t.recurrence && <span className="task-chip">🔄 {t.recurrence === 'weekly' ? 'Hebdo' : t.recurrence === 'biweekly' ? 'Bi-hebdo' : t.recurrence === 'monthly' ? 'Mensuel' : t.recurrence}</span>}
@@ -408,7 +439,16 @@ function TasksView({ tasks, zones, markers = [], maps = [], activeMapId = 'foret
     <div>
       {toast && <Toast msg={toast} onDone={() => setToast(null)} />}
       {(showForm || editTask) && (
-        <TaskFormModal zones={zones} markers={markers} maps={maps} activeMapId={activeMapId} editTask={editTask} onClose={() => { setShowForm(false); setEditTask(null); }} onSave={saveTask} />
+        <TaskFormModal
+          zones={zones}
+          markers={markers}
+          maps={maps}
+          tutorials={tutorials}
+          activeMapId={activeMapId}
+          editTask={editTask}
+          onClose={() => { setShowForm(false); setEditTask(null); }}
+          onSave={saveTask}
+        />
       )}
       {logTask && (
         <LogModal task={logTask} student={student}

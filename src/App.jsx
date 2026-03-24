@@ -16,6 +16,7 @@ import { StudentProfileEditor, StudentStats, TeacherStats } from './components/s
 import { AuditLog } from './components/audit-views';
 import { AboutView } from './components/about-views';
 import { StudentAvatar } from './components/student-avatar';
+import { TutorialsView } from './components/tutorials-views';
 
 // ── APP ───────────────────────────────────────────────────────────────────────
 function App() {
@@ -34,6 +35,7 @@ function App() {
   const [zones,      setZones]      = useState([]);
   const [tasks,      setTasks]      = useState([]);
   const [plants,     setPlants]     = useState([]);
+  const [tutorials,  setTutorials]  = useState([]);
   const [markers,    setMarkers]    = useState([]);
   const [loading,    setLoading]    = useState(true);
   const [toast,      setToast]      = useState(null);
@@ -101,19 +103,20 @@ function App() {
   const fetchAll = useCallback(async () => {
     try {
       const mapQuery = `map_id=${encodeURIComponent(activeMapId)}`;
-      const [mapsRes, z, t, p, m] = await Promise.all([
+      const [mapsRes, z, t, p, m, tu] = await Promise.all([
         api('/api/maps').catch(() => DEFAULT_MAPS),
         api(`/api/zones?${mapQuery}`),
         api('/api/tasks'),
         api('/api/plants'),
         api(`/api/map/markers?${mapQuery}`),
+        api('/api/tutorials'),
       ]);
       const safeMaps = Array.isArray(mapsRes) && mapsRes.length > 0 ? mapsRes : DEFAULT_MAPS;
       setMaps(safeMaps);
       if (!safeMaps.some(mp => mp.id === activeMapId)) {
         setActiveMapId(safeMaps[0].id);
       }
-      setZones(z); setTasks(t); setPlants(p); setMarkers(m);
+      setZones(z); setTasks(t); setPlants(p); setMarkers(m); setTutorials(tu);
       failCountRef.current = 0;
       setRefreshMs(30000);
       setServerDown(false);
@@ -281,13 +284,15 @@ function App() {
               ✅ Tâches {tasksForActiveMap.filter(t => t.status === 'done').length > 0 && `(${tasksForActiveMap.filter(t => t.status === 'done').length} à valider)`}
             </button>
             <button className={`top-tab ${tab === 'plants' ? 'active' : ''}`} onClick={() => setTab('plants')}>🌱 Biodiversité</button>
+            <button className={`top-tab ${tab === 'tuto' ? 'active' : ''}`} onClick={() => setTab('tuto')}>📘 Tuto</button>
             <button className={`top-tab ${tab === 'stats' ? 'active' : ''}`} onClick={() => setTab('stats')}>📊 Stats</button>
             <button className={`top-tab ${tab === 'audit' ? 'active' : ''}`} onClick={() => setTab('audit')}>📜 Audit</button>
             <button className={`top-tab ${tab === 'about' ? 'active' : ''}`} onClick={() => setTab('about')}>ℹ️ À propos</button>
           </div>
-          {tab === 'map'    && <MapView zones={zones} markers={markers} tasks={tasks} plants={plants} maps={maps} activeMapId={activeMapId} onMapChange={setActiveMapId} isTeacher onZoneUpdate={updateZone} onRefresh={fetchAll}/>}
-          {tab === 'tasks'  && <TasksView  tasks={tasks} zones={zones} markers={markers} maps={maps} activeMapId={activeMapId} isTeacher student={student} onRefresh={fetchAll} onForceLogout={forceLogout}/>}
+          {tab === 'map'    && <MapView zones={zones} markers={markers} tasks={tasks} plants={plants} maps={maps} activeMapId={activeMapId} onMapChange={setActiveMapId} isTeacher student={student} onZoneUpdate={updateZone} onRefresh={fetchAll}/>}
+          {tab === 'tasks'  && <TasksView  tasks={tasks} zones={zones} markers={markers} maps={maps} tutorials={tutorials} activeMapId={activeMapId} isTeacher student={student} onRefresh={fetchAll} onForceLogout={forceLogout}/>}
           {tab === 'plants' && <PlantManager plants={plants} onRefresh={fetchAll}/>}
+          {tab === 'tuto'   && <TutorialsView tutorials={tutorials} isTeacher onRefresh={fetchAll} onForceLogout={forceLogout} />}
           {tab === 'stats'  && <TeacherStats/>}
           {tab === 'audit'  && <AuditLog/>}
           {tab === 'about'  && <AboutView appVersion={appVersion}/>}
@@ -295,15 +300,10 @@ function App() {
       ) : (
         <>
           <div className="main">
-            {tab === 'map'    && <MapView zones={zones} markers={markers} tasks={tasks} plants={plants} maps={maps} activeMapId={activeMapId} onMapChange={setActiveMapId} isTeacher={false} onZoneUpdate={updateZone} onRefresh={fetchAll}/>}
-            {tab === 'tasks'  && <TasksView tasks={tasks} zones={zones} markers={markers} maps={maps} activeMapId={activeMapId} isTeacher={false} student={student} onRefresh={fetchAll} onForceLogout={forceLogout}/>}
+            {tab === 'map'    && <MapView zones={zones} markers={markers} tasks={tasks} plants={plants} maps={maps} activeMapId={activeMapId} onMapChange={setActiveMapId} isTeacher={false} student={student} onZoneUpdate={updateZone} onRefresh={fetchAll}/>}
+            {tab === 'tasks'  && <TasksView tasks={tasks} zones={zones} markers={markers} maps={maps} tutorials={tutorials} activeMapId={activeMapId} isTeacher={false} student={student} onRefresh={fetchAll} onForceLogout={forceLogout}/>}
             {tab === 'plants' && <PlantViewer plants={plants} zones={zones}/>}
-            {tab === 'tuto' && (
-              <section className="empty" aria-label="Page Tuto">
-                <div className="empty-icon">📘</div>
-                <p>Tuto (bientôt disponible)</p>
-              </section>
-            )}
+            {tab === 'tuto' && <TutorialsView tutorials={tutorials} isTeacher={false} onRefresh={fetchAll} onForceLogout={forceLogout} />}
             {tab === 'notebook' && <ObservationNotebook student={student} zones={zones}/>}
             {tab === 'about' && <AboutView appVersion={appVersion}/>}
           </div>

@@ -11,7 +11,7 @@ test('parcours élève: inscription puis navigation principale', async ({ page }
   await expect(page.getByText('Catalogue de biodiversité')).toBeVisible();
 
   await page.getByRole('button', { name: /^Tuto$/ }).click();
-  await expect(page.getByText('Tuto (bientôt disponible)')).toBeVisible();
+  await expect(page.getByText('Guides pratiques consultables et téléchargeables')).toBeVisible();
 
   await page.getByRole('button', { name: /^À propos$/ }).click();
   await expect(page.getByText('Informations du projet ForetMap')).toBeVisible();

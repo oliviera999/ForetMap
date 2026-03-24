@@ -1,0 +1,739 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Jardin Punk — ForêtMap n³</title>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Special+Elite&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --noir:     #0d0d0b;
+      --sale:     #1a1a14;
+      --jaune:    #d4e84a;
+      --rouille:  #c4421a;
+      --mousse:   #4a7a38;
+      --vert-acide: #7ecf2e;
+      --creme:    #e8e0cc;
+      --gris:     #888070;
+      --blanc:    #f0ebe0;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--noir);
+      color: var(--creme);
+      min-height: 100vh;
+      overflow-x: hidden;
+      cursor: crosshair;
+    }
+
+    /* ── GRAIN OVERLAY ── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 1000;
+      opacity: .6;
+    }
+
+    /* ── HERO ── */
+    .hero {
+      position: relative;
+      min-height: 92vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      padding: 3rem 2.5rem 2.5rem;
+      border-bottom: 3px solid var(--jaune);
+      overflow: hidden;
+    }
+
+    /* grille brutaliste en fond */
+    .hero::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(var(--mousse) 1px, transparent 1px),
+        linear-gradient(90deg, var(--mousse) 1px, transparent 1px);
+      background-size: 60px 60px;
+      opacity: .07;
+    }
+
+    /* cercle organique */
+    .hero::after {
+      content: '';
+      position: absolute;
+      top: -120px;
+      right: -120px;
+      width: 500px;
+      height: 500px;
+      border-radius: 43% 57% 61% 39% / 47% 53% 47% 53%;
+      background: radial-gradient(ellipse, rgba(126,207,46,.12) 0%, transparent 70%);
+      animation: blob 12s ease-in-out infinite alternate;
+    }
+
+    @keyframes blob {
+      0%   { border-radius: 43% 57% 61% 39% / 47% 53% 47% 53%; transform: scale(1) rotate(0deg); }
+      50%  { border-radius: 61% 39% 43% 57% / 53% 47% 53% 47%; transform: scale(1.08) rotate(5deg); }
+      100% { border-radius: 39% 61% 57% 43% / 57% 43% 61% 39%; transform: scale(.95) rotate(-3deg); }
+    }
+
+    .hero-eyebrow {
+      font-family: 'DM Mono', monospace;
+      font-size: .65rem;
+      letter-spacing: .25em;
+      text-transform: uppercase;
+      color: var(--jaune);
+      margin-bottom: 1.5rem;
+      position: relative;
+    }
+
+    .hero h1 {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: clamp(4.5rem, 14vw, 10rem);
+      line-height: .9;
+      letter-spacing: -.01em;
+      position: relative;
+      color: var(--blanc);
+    }
+
+    .hero h1 .strike {
+      position: relative;
+      color: var(--gris);
+    }
+    .hero h1 .strike::after {
+      content: '';
+      position: absolute;
+      left: 0; right: 0;
+      top: 50%;
+      height: 4px;
+      background: var(--rouille);
+      transform: translateY(-50%) rotate(-1.5deg);
+    }
+
+    .hero h1 .accent { color: var(--jaune); }
+
+    .hero-sub {
+      font-family: 'Special Elite', cursive;
+      font-size: clamp(.95rem, 2vw, 1.2rem);
+      color: var(--creme);
+      max-width: 520px;
+      line-height: 1.6;
+      margin-top: 1.75rem;
+      opacity: .85;
+      position: relative;
+    }
+
+    .hero-manifeste {
+      margin-top: 2rem;
+      display: inline-block;
+      border: 2px solid var(--jaune);
+      padding: .6rem 1.25rem;
+      font-family: 'DM Mono', monospace;
+      font-size: .75rem;
+      letter-spacing: .15em;
+      text-transform: uppercase;
+      color: var(--jaune);
+      position: relative;
+      animation: blink-border 3s ease-in-out infinite;
+    }
+
+    @keyframes blink-border {
+      0%, 100% { border-color: var(--jaune); }
+      50%       { border-color: var(--vert-acide); }
+    }
+
+    /* ── LAYOUT ── */
+    .content {
+      max-width: 820px;
+      margin: 0 auto;
+      padding: 3rem 2rem 5rem;
+    }
+
+    /* ── SECTION HEADER PUNK ── */
+    .s-header {
+      display: flex;
+      align-items: baseline;
+      gap: 1rem;
+      margin: 3.5rem 0 1.25rem;
+      border-top: 1px solid rgba(212,232,74,.2);
+      padding-top: 1rem;
+    }
+    .s-num {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 3.5rem;
+      color: rgba(212,232,74,.15);
+      line-height: 1;
+      flex-shrink: 0;
+    }
+    .s-title {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: clamp(1.6rem, 4vw, 2.4rem);
+      letter-spacing: .03em;
+      color: var(--blanc);
+      line-height: 1;
+    }
+    .s-title .hl { color: var(--jaune); }
+
+    /* ── MANIFESTE BLOC ── */
+    .manifeste {
+      border-left: 4px solid var(--rouille);
+      padding: 1.25rem 1.75rem;
+      margin: 2rem 0;
+      background: rgba(196,66,26,.06);
+      font-family: 'Special Elite', cursive;
+      font-size: 1.05rem;
+      line-height: 1.7;
+      color: var(--creme);
+    }
+    .manifeste strong { color: var(--jaune); font-family: 'Bebas Neue', sans-serif; font-size: 1.2em; letter-spacing: .05em; }
+
+    /* ── PRINCIPE CARD ── */
+    .principes { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 1px; margin: 2rem 0; background: rgba(212,232,74,.1); }
+
+    .principe {
+      background: var(--sale);
+      padding: 1.5rem 1.25rem;
+      position: relative;
+      transition: background .2s;
+    }
+    .principe:hover { background: #1f1f17; }
+
+    .principe-num {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 3rem;
+      color: rgba(212,232,74,.08);
+      line-height: 1;
+      position: absolute;
+      top: .5rem;
+      right: 1rem;
+    }
+    .principe h3 {
+      font-family: 'DM Mono', monospace;
+      font-size: .72rem;
+      letter-spacing: .15em;
+      text-transform: uppercase;
+      color: var(--jaune);
+      margin-bottom: .6rem;
+    }
+    .principe p {
+      font-size: .85rem;
+      line-height: 1.6;
+      color: #b8b090;
+    }
+
+    /* ── RÈGLE PUNK ── */
+    .regle-punk {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 1.25rem;
+      align-items: start;
+      margin: 1.25rem 0;
+      padding: 1.25rem;
+      border: 1px solid rgba(255,255,255,.06);
+      background: rgba(255,255,255,.02);
+      transition: border-color .2s;
+    }
+    .regle-punk:hover { border-color: rgba(212,232,74,.3); }
+
+    .rp-glyph {
+      font-size: 1.75rem;
+      line-height: 1;
+      flex-shrink: 0;
+      width: 2.5rem;
+      text-align: center;
+    }
+    .regle-punk h3 {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 1.3rem;
+      letter-spacing: .04em;
+      color: var(--blanc);
+      margin-bottom: .35rem;
+    }
+    .regle-punk p {
+      font-size: .875rem;
+      line-height: 1.65;
+      color: #a8a090;
+    }
+    .regle-punk .sci {
+      margin-top: .6rem;
+      font-size: .78rem;
+      font-family: 'DM Mono', monospace;
+      color: var(--vert-acide);
+      border-left: 2px solid var(--vert-acide);
+      padding: .4rem .75rem;
+      line-height: 1.5;
+      background: rgba(126,207,46,.05);
+    }
+    .regle-punk .non {
+      margin-top: .6rem;
+      font-size: .78rem;
+      font-family: 'DM Mono', monospace;
+      color: var(--rouille);
+      border-left: 2px solid var(--rouille);
+      padding: .4rem .75rem;
+      line-height: 1.5;
+      background: rgba(196,66,26,.06);
+    }
+
+    /* ── QUESTION SCI ── */
+    .question-sci {
+      margin: 2rem 0;
+      padding: 1.5rem 1.75rem;
+      background: rgba(126,207,46,.05);
+      border: 1px solid rgba(126,207,46,.2);
+      position: relative;
+    }
+    .question-sci::before {
+      content: '?';
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 6rem;
+      color: rgba(126,207,46,.06);
+      position: absolute;
+      right: 1rem;
+      top: -.5rem;
+      line-height: 1;
+    }
+    .question-sci .q-label {
+      font-family: 'DM Mono', monospace;
+      font-size: .65rem;
+      letter-spacing: .18em;
+      text-transform: uppercase;
+      color: var(--vert-acide);
+      margin-bottom: .6rem;
+    }
+    .question-sci .q-text {
+      font-family: 'Special Elite', cursive;
+      font-size: 1rem;
+      color: var(--blanc);
+      line-height: 1.5;
+      margin-bottom: .75rem;
+    }
+    .question-sci .q-reponse {
+      font-size: .85rem;
+      line-height: 1.7;
+      color: #a8a090;
+    }
+
+    /* ── LISTE ESPÈCES ── */
+    .especes {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+      margin: 1.5rem 0;
+      border: 1px solid rgba(212,232,74,.12);
+    }
+    .espece {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 1rem;
+      padding: .85rem 1.25rem;
+      border-bottom: 1px solid rgba(212,232,74,.06);
+      align-items: center;
+      transition: background .15s;
+    }
+    .espece:last-child { border-bottom: none; }
+    .espece:hover { background: rgba(212,232,74,.03); }
+    .espece-nom {
+      font-family: 'Special Elite', cursive;
+      font-size: .95rem;
+      color: var(--blanc);
+      margin-bottom: .15rem;
+    }
+    .espece-role {
+      font-size: .78rem;
+      color: var(--gris);
+      line-height: 1.4;
+    }
+    .espece-tag {
+      font-family: 'DM Mono', monospace;
+      font-size: .6rem;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      padding: .2rem .6rem;
+      border-radius: 999px;
+      white-space: nowrap;
+    }
+    .tag-fixe  { background: rgba(74,122,56,.25); color: var(--vert-acide); border: 1px solid rgba(126,207,46,.3); }
+    .tag-repul { background: rgba(196,66,26,.15);  color: #e87a5a;           border: 1px solid rgba(196,66,26,.3); }
+    .tag-attir { background: rgba(91,159,181,.15);  color: #8ad0e8;          border: 1px solid rgba(91,159,181,.3); }
+    .tag-comest { background: rgba(212,232,74,.1);  color: var(--jaune);     border: 1px solid rgba(212,232,74,.3); }
+
+    /* ── FARMFLOW ── */
+    .farmflow {
+      margin: 2.5rem 0;
+      padding: 1.25rem 1.75rem;
+      border: 1px dashed rgba(91,159,181,.4);
+      display: flex;
+      gap: 1.25rem;
+      align-items: flex-start;
+    }
+    .farmflow .ff-icon { font-size: 1.75rem; flex-shrink: 0; }
+    .farmflow h4 {
+      font-family: 'DM Mono', monospace;
+      font-size: .7rem;
+      letter-spacing: .15em;
+      color: #8ad0e8;
+      text-transform: uppercase;
+      margin-bottom: .35rem;
+    }
+    .farmflow p { font-size: .82rem; line-height: 1.6; color: var(--gris); }
+
+    /* ── MÉMO ── */
+    .memo {
+      margin-top: 3rem;
+      padding: 2rem 2.5rem;
+      background: var(--jaune);
+      color: var(--noir);
+      position: relative;
+      overflow: hidden;
+    }
+    .memo::before {
+      content: 'DO IT YOURSELF';
+      position: absolute;
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 5rem;
+      opacity: .06;
+      bottom: -.5rem;
+      right: 1rem;
+      letter-spacing: .05em;
+      white-space: nowrap;
+    }
+    .memo h3 {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 1.6rem;
+      letter-spacing: .05em;
+      margin-bottom: 1rem;
+      color: var(--noir);
+    }
+    .memo-list { display: flex; flex-direction: column; gap: .5rem; }
+    .memo-item {
+      display: flex;
+      align-items: baseline;
+      gap: .75rem;
+      font-size: .875rem;
+      line-height: 1.5;
+      color: #1a1a0a;
+    }
+    .memo-item .bullet {
+      font-family: 'DM Mono', monospace;
+      font-size: .7rem;
+      color: var(--rouille);
+      flex-shrink: 0;
+      font-weight: 500;
+    }
+
+    /* ── FOOTER ── */
+    footer {
+      text-align: center;
+      padding: 2rem 1rem;
+      font-family: 'DM Mono', monospace;
+      font-size: .62rem;
+      letter-spacing: .12em;
+      color: rgba(232,224,204,.25);
+      border-top: 1px solid rgba(255,255,255,.05);
+    }
+    footer a { color: var(--vert-acide); text-decoration: none; }
+
+    /* ── ANIMATIONS REVEAL ── */
+    .reveal {
+      opacity: 0;
+      transform: translateY(18px);
+      transition: opacity .5s ease, transform .5s ease;
+    }
+    .reveal.visible {
+      opacity: 1;
+      transform: none;
+    }
+
+    @media (max-width: 540px) {
+      .principes { grid-template-columns: 1fr; }
+      .regle-punk { grid-template-columns: 1fr; }
+      .rp-glyph { display: none; }
+      .espece { grid-template-columns: 1fr; }
+      .espece-tag { align-self: flex-start; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ════ HERO ════ -->
+<header class="hero">
+  <p class="hero-eyebrow">n³ · ForêtMap · Lycée Lyautey / Casablanca <span style="opacity:.5;margin-left:.5em;">· v1.0</span></p>
+  <h1>
+    <span class="strike">JARDIN</span><br>
+    <span class="accent">PUNK</span><br>
+    <span style="font-size:.55em;color:var(--gris);">×&nbsp;permaculture</span>
+  </h1>
+  <p class="hero-sub">
+    Pas de pelouse. Pas de symétrie. Pas de désherbant.<br>
+    Un jardin qui travaille avec le vivant — pas contre lui.
+  </p>
+  <div class="hero-manifeste">⚡ Observe · Connecte · Laisse pousser</div>
+</header>
+
+<!-- ════ CONTENU ════ -->
+<main class="content">
+
+  <!-- MANIFESTE -->
+  <div class="s-header reveal">
+    <div class="s-num">00</div>
+    <div class="s-title">Le <span class="hl">manifeste</span></div>
+  </div>
+
+  <div class="manifeste reveal">
+    Le jardin conventionnel est une guerre. <strong>Contre les herbes.</strong> Contre les insectes. Contre la pluie, contre la sécheresse, contre tout ce qui n'est pas prévu dans le plan. Il demande de l'énergie, du pétrole, des produits chimiques, et du contrôle permanent.<br><br>
+    La permaculture dit : et si le jardin bossait à ta place ? Et si tu arrêtais de résister au vivant pour le laisser s'organiser ?<br><br>
+    Le punk dit : les règles sont là pour être comprises, pas obéies. Comprends-les. Puis fais ce qui marche pour toi.
+  </div>
+
+  <!-- LES 3 ÉTHIQUES -->
+  <div class="s-header reveal">
+    <div class="s-num">01</div>
+    <div class="s-title">Les 3 <span class="hl">éthiques</span></div>
+  </div>
+
+  <div class="principes reveal">
+    <div class="principe">
+      <div class="principe-num">I</div>
+      <h3>Prendre soin de la Terre</h3>
+      <p>Le sol n'est pas un support inerte. C'est un écosystème. Un gramme de terre saine contient plus d'un milliard de bactéries, des kilomètres de filaments fongiques. Tu travailles avec eux ou tu travailles contre eux.</p>
+    </div>
+    <div class="principe">
+      <div class="principe-num">II</div>
+      <h3>Prendre soin des gens</h3>
+      <p>Nourrir sa famille, son quartier, partager les graines, les techniques, les récoltes. Un jardin productif est un jardin généreux.</p>
+    </div>
+    <div class="principe">
+      <div class="principe-num">III</div>
+      <h3>Redistribuer les surplus</h3>
+      <p>Ce que le jardin produit en excès retourne au sol (compost), aux voisins, aux animaux. Pas de gaspillage. Pas d'accumulation. Tout circule.</p>
+    </div>
+  </div>
+
+  <div class="question-sci reveal">
+    <p class="q-label">Question scientifique</p>
+    <p class="q-text">Qu'est-ce qu'un réseau mycorhizien et pourquoi est-il central en permaculture ?</p>
+    <p class="q-reponse">Les champignons mycorhiziens forment des associations symbiotiques avec les racines de 90 % des plantes terrestres. Leurs hyphes (filaments) étendent la surface d'absorption racinaire de plusieurs centaines de fois et transportent eau, phosphore et azote vers la plante. En échange, la plante fournit jusqu'à 30 % de ses sucres photosynthétiques au champignon. Ce réseau connecte également plusieurs plantes entre elles — transferts de nutriments, signaux chimiques d'alerte. Retourner le sol régulièrement détruit ces réseaux. La permaculture minimise le travail du sol précisément pour les préserver.</p>
+  </div>
+
+  <!-- PRINCIPES DE CONCEPTION -->
+  <div class="s-header reveal">
+    <div class="s-num">02</div>
+    <div class="s-title">Principes de <span class="hl">conception</span></div>
+  </div>
+
+  <div class="regle-punk reveal">
+    <div class="rp-glyph">🔭</div>
+    <div>
+      <h3>Observer avant d'agir</h3>
+      <p>Passe une saison entière à observer ton espace avant de planter quoi que ce soit. Où le soleil frappe-t-il le matin ? Où stagne l'eau après la pluie ? Où le vent souffle-t-il fort ? Le site te dit ce qu'il peut accueillir.</p>
+      <div class="sci">→ Méthode n³ : photographies à heures fixes, relevés d'humidité par zone, carte des expositions. Les données valent mieux que les intuitions.</div>
+    </div>
+  </div>
+
+  <div class="regle-punk reveal">
+    <div class="rp-glyph">🔗</div>
+    <div>
+      <h3>Chaque élément a plusieurs fonctions</h3>
+      <p>Un pommier n'est pas juste un pommier. C'est de l'ombre, un habitat pour les oiseaux, du bois mort pour les insectes, du mulch quand les feuilles tombent, un indicateur de gel printanier. Concevoir en pensant aux fonctions, pas aux objets.</p>
+      <div class="sci">→ Principe de redondance : chaque fonction importante (fertilité, eau, nourriture) doit être assurée par plusieurs éléments. Si l'un disparaît, le système tient.</div>
+    </div>
+  </div>
+
+  <div class="regle-punk reveal">
+    <div class="rp-glyph">🚯</div>
+    <div>
+      <h3>Les déchets n'existent pas</h3>
+      <p>Les épluchures deviennent compost. Le compost devient sol. Le sol devient plante. La plante devient nourriture. Les tailles deviennent paillis. Tout output d'un élément est l'input d'un autre.</p>
+      <div class="non">✗ Ce qui ne doit pas sortir du jardin : la matière organique. Chaque brouette de déchets verts qui part à la benne, c'est de la fertilité qui disparaît.</div>
+    </div>
+  </div>
+
+  <div class="regle-punk reveal">
+    <div class="rp-glyph">🐌</div>
+    <div>
+      <h3>Commencer petit. Vraiment petit.</h3>
+      <p>La permaculture mal comprise devient un projet pharaonique impossible à maintenir. Une spirale d'herbes aromatiques, un bac de compost, trois associations de légumes — c'est suffisant pour commencer à comprendre le système.</p>
+      <div class="sci">→ La complexité émerge. Elle ne se conçoit pas de A à Z sur papier avant d'exister.</div>
+    </div>
+  </div>
+
+  <div class="regle-punk reveal">
+    <div class="rp-glyph">🌧</div>
+    <div>
+      <h3>Le sol ne doit jamais être nu</h3>
+      <p>Un sol nu est un sol qui s'érode, qui sèche, qui perd ses nutriments, dont les micro-organismes meurent. Pailler, couvrir, planter des engrais verts, laisser une zone de végétation spontanée — le sol doit toujours être habillé.</p>
+      <div class="sci">→ En permaculture, le sol nu est considéré comme une blessure. La nature le recouvre toujours — si tu ne choisis pas ce qui pousse, elle choisit à ta place (adventices). Mieux vaut choisir.</div>
+    </div>
+  </div>
+
+  <!-- ASSOCIATIONS -->
+  <div class="s-header reveal">
+    <div class="s-num">03</div>
+    <div class="s-title">Espèces <span class="hl">alliées</span></div>
+  </div>
+
+  <div class="manifeste reveal" style="border-color:var(--jaune);background:rgba(212,232,74,.04);">
+    Le jardin punk n'est pas une collection de plantes isolées. C'est un réseau. Chaque espèce joue un rôle — <strong>fixation d'azote, répulsion des ravageurs, attraction des pollinisateurs, couverture du sol</strong>. Voici les alliés à recruter.
+  </div>
+
+  <div class="especes reveal">
+    <div class="espece">
+      <div>
+        <div class="espece-nom">Bourrache</div>
+        <div class="espece-role">Attire les abeilles et les bourdons, repousse les chenilles de la piéride. Feuilles comestibles, riches en oméga-3.</div>
+      </div>
+      <span class="espece-tag tag-attir">Pollinisateurs</span>
+    </div>
+    <div class="espece">
+      <div>
+        <div class="espece-nom">Trèfle blanc</div>
+        <div class="espece-role">Fixe l'azote atmosphérique via des bactéries symbiotiques dans ses nodules racinaires. Excellent couvre-sol vivant.</div>
+      </div>
+      <span class="espece-tag tag-fixe">Azote</span>
+    </div>
+    <div class="espece">
+      <div>
+        <div class="espece-nom">Souci officinal</div>
+        <div class="espece-role">Sécrétions racinaires répulsives pour les nématodes phytopathogènes. Attire les syrphes (larves prédatrices de pucerons).</div>
+      </div>
+      <span class="espece-tag tag-repul">Répulsif</span>
+    </div>
+    <div class="espece">
+      <div>
+        <div class="espece-nom">Consoude</div>
+        <div class="espece-role">Racines profondes remontant potassium et phosphore. Feuilles en mulch = engrais liquide puissant. Pousse à l'ombre.</div>
+      </div>
+      <span class="espece-tag tag-fixe">Fertilité</span>
+    </div>
+    <div class="espece">
+      <div>
+        <div class="espece-nom">Ortie</div>
+        <div class="espece-role">Indicateur de sol riche. Purin activateur de compost et fongicide doux. Abrite les larves de coccinelles et chrysopes.</div>
+      </div>
+      <span class="espece-tag tag-comest">Auxiliaires</span>
+    </div>
+    <div class="espece">
+      <div>
+        <div class="espece-nom">Basilic (avec tomates)</div>
+        <div class="espece-role">Composés volatils (linalool, eugénol) perturbant les thrips et aleurodes. Améliore le goût des tomates par compétition chimique douce.</div>
+      </div>
+      <span class="espece-tag tag-repul">Répulsif</span>
+    </div>
+    <div class="espece">
+      <div>
+        <div class="espece-nom">Tournesol</div>
+        <div class="espece-role">Tige creuse = hôtel à insectes naturel. Attire les syrphes. Graines pour les oiseaux en hiver. Structure verticale gratuite.</div>
+      </div>
+      <span class="espece-tag tag-attir">Multi-rôle</span>
+    </div>
+    <div class="espece">
+      <div>
+        <div class="espece-nom">Pourpier</div>
+        <div class="espece-role">Couvre-sol spontané comestible (oméga-3, vitamines). Indicateur de sol chaud et sec. À consommer jeune, gérer avant graine.</div>
+      </div>
+      <span class="espece-tag tag-comest">Comestible</span>
+    </div>
+  </div>
+
+  <div class="question-sci reveal">
+    <p class="q-label">Question scientifique</p>
+    <p class="q-text">Comment les associations de plantes fonctionnent-elles chimiquement ?</p>
+    <p class="q-reponse">Les plantes communiquent par des composés organiques volatils (COV) libérés dans l'air, et par des exsudats racinaires dans le sol. Certains COV (comme le linalool du basilic) désorganisent la navigation olfactive des ravageurs. D'autres signaux chimiques déclenchent chez les plantes voisines une production préventive de défenses enzymatiques. Dans le sol, les exsudats racinaires de la bourrache ou de la consoude modifient le microbiome rhizosphérique — favorisant certaines bactéries bénéfiques au détriment de pathogènes.</p>
+  </div>
+
+  <!-- GESTES FONDAMENTAUX -->
+  <div class="s-header reveal">
+    <div class="s-num">04</div>
+    <div class="s-title">Gestes <span class="hl">fondamentaux</span></div>
+  </div>
+
+  <div class="regle-punk reveal">
+    <div class="rp-glyph">🍂</div>
+    <div>
+      <h3>Pailler en profondeur</h3>
+      <p>10–15 cm de matière organique (paille, BRF, feuilles mortes, carton) autour des plants. Ça économise l'arrosage, nourrit les vers, empêche les adventices, régule la température du sol.</p>
+      <div class="sci">→ Le BRF (Bois Raméal Fragmenté) — branches broyées de moins de 7 cm de diamètre — est particulièrement efficace : il favorise les champignons saprophytes qui construisent l'humus stablement.</div>
+    </div>
+  </div>
+
+  <div class="regle-punk reveal">
+    <div class="rp-glyph">♻</div>
+    <div>
+      <h3>Composter tout</h3>
+      <p>Épluchures, marc de café, tontes, carton non imprimé, cendres de bois (avec modération), branchages broyés. Retourner toutes les 3–4 semaines, maintenir humide. En 2–3 mois : de la terre noire, vivante, odorante.</p>
+      <div class="non">✗ Ne pas composter : viandes, poissons, matières cuites grasses, plantes malades, rhizomes d'adventices (chiendent, liseron).</div>
+    </div>
+  </div>
+
+  <div class="regle-punk reveal">
+    <div class="rp-glyph">💧</div>
+    <div>
+      <h3>Récupérer l'eau de pluie</h3>
+      <p>Une cuve de 1000 litres connectée à une gouttière — c'est plusieurs semaines d'arrosage gratuit, sans chlore (meilleur pour les microorganismes du sol). L'eau de pluie est légèrement acide : parfaite pour la plupart des légumes.</p>
+    </div>
+  </div>
+
+  <div class="regle-punk reveal">
+    <div class="rp-glyph">🌀</div>
+    <div>
+      <h3>La spirale d'herbes aromatiques</h3>
+      <p>Structure en colimaçon montant sur 60–80 cm, orientée plein sud. En haut (sec, chaud) : romarin, thym, origan. Au milieu : basilic, sauge. En bas (humide, ombre partielle) : menthe, cerfeuil, ciboulette. Maximal en biodiversité, minimal en espace.</p>
+      <div class="sci">→ La spirale crée des microclimats distincts en quelques mètres carrés — exposition, drainage et humidité varient selon la position. C'est un condensé de design permaculturel.</div>
+    </div>
+  </div>
+
+  <!-- FARMFLOW -->
+  <div class="farmflow reveal">
+    <div class="ff-icon">📡</div>
+    <div>
+      <h4>Connexion Farmflow / n³</h4>
+      <p>Un réseau de capteurs ESP32 distribués dans le jardin permaculturel permet de mesurer en temps réel les gradients d'humidité entre zones paillées et zones nues, la température du sol sous BRF vs sol nu, et l'évolution de ces données après chaque intervention. Les données terrain confirment ou infirment les intuitions — et construisent une connaissance du site qui s'affine sur plusieurs saisons.</p>
+    </div>
+  </div>
+
+  <!-- MÉMO -->
+  <div class="memo reveal">
+    <h3>📋 Les 7 règles du jardin punk</h3>
+    <div class="memo-list">
+      <div class="memo-item"><span class="bullet">01 /</span> Observe une saison entière avant d'agir. Le site sait ce qu'il veut.</div>
+      <div class="memo-item"><span class="bullet">02 /</span> Le sol ne doit jamais être nu. Pailler, couvrir, planter — toujours.</div>
+      <div class="memo-item"><span class="bullet">03 /</span> Ne retourne pas le sol. Griffe en surface, laisse les réseaux mycorhiziens tranquilles.</div>
+      <div class="memo-item"><span class="bullet">04 /</span> Rien ne sort du jardin en matière organique. Tout composte, tout paille, tout nourrit.</div>
+      <div class="memo-item"><span class="bullet">05 /</span> Plante en associations. Chaque espèce joue un rôle dans le réseau.</div>
+      <div class="memo-item"><span class="bullet">06 /</span> Zéro intrant chimique. Jamais. Pas d'exception.</div>
+      <div class="memo-item"><span class="bullet">07 /</span> Commence petit. La complexité émerge d'elle-même si tu la laisses faire.</div>
+    </div>
+  </div>
+
+</main>
+
+<footer>
+  <p>ForêtMap · <a href="https://olution.info">olution.info</a> · projet n³ — Nature · Numérique · Nomade · v1.0<br>
+  Lycée Lyautey, Casablanca · AEFE &nbsp;·&nbsp; Do It Yourself · Do It Together</p>
+</footer>
+
+<script>
+  // Scroll reveal léger
+  const els = document.querySelectorAll('.reveal');
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach((e, i) => {
+      if (e.isIntersecting) {
+        setTimeout(() => e.target.classList.add('visible'), i * 60);
+        io.unobserve(e.target);
+      }
+    });
+  }, { threshold: .08 });
+  els.forEach(el => io.observe(el));
+</script>
+
+</body>
+</html>
