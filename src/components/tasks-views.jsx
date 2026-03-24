@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { api, AccountDeletedError } from '../services/api';
-import { statusBadge, daysUntil, dueDateChip } from '../utils/badges';
+import { taskStatusIndicator, daysUntil, dueDateChip } from '../utils/badges';
 
 function Toast({ msg, onDone }) {
   useEffect(() => { const t = setTimeout(onDone, 2400); return () => clearTimeout(t); }, []);
@@ -49,48 +49,107 @@ function Lightbox({ src, caption, onClose }) {
 
 const var_alert = 'var(--alert)';
 
-function TaskFormModal({ zones, maps = [], activeMapId = 'foret', onClose, onSave, editTask }) {
+function initialLocationIds(editTask, keyMulti, keySingle) {
+  if (!editTask) return [];
+  const multi = editTask[keyMulti];
+  if (Array.isArray(multi) && multi.length) return [...multi];
+  const one = editTask[keySingle];
+  return one ? [one] : [];
+}
+
+function TaskFormModal({ zones, markers = [], maps = [], activeMapId = 'foret', onClose, onSave, editTask }) {
   const initialMapId = editTask
-    ? (editTask.map_id_resolved || editTask.map_id || editTask.zone_map_id || null)
+    ? (editTask.map_id_resolved || editTask.map_id || editTask.zone_map_id || editTask.marker_map_id || null)
     : activeMapId;
   const [form, setForm] = useState(editTask ? {
     title: editTask.title, description: editTask.description || '',
     map_id: initialMapId || '',
-    zone_id: editTask.zone_id || '', due_date: editTask.due_date || '',
+    zone_ids: initialLocationIds(editTask, 'zone_ids', 'zone_id'),
+    marker_ids: initialLocationIds(editTask, 'marker_ids', 'marker_id'),
+    due_date: editTask.due_date || '',
     required_students: editTask.required_students || 1,
     recurrence: editTask.recurrence || ''
-  } : { title: '', description: '', map_id: initialMapId || '', zone_id: '', due_date: '', required_students: 1, recurrence: '' });
+  } : {
+    title: '', description: '', map_id: initialMapId || '',
+    zone_ids: [], marker_ids: [],
+    due_date: '', required_students: 1, recurrence: ''
+  });
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState('');
 
   const set = k => e => {
     const value = e.target.value;
     if (k === 'map_id') {
-      setForm(f => ({ ...f, map_id: value, zone_id: '' }));
-      return;
-    }
-    if (k === 'zone_id') {
-      const selectedZone = zones.find(z => z.id === value);
-      setForm(f => ({ ...f, zone_id: value, map_id: selectedZone?.map_id || f.map_id }));
+      setForm(f => {
+        const next = { ...f, map_id: value };
+        if (value) {
+          next.zone_ids = f.zone_ids.filter(id => zones.find(z => z.id === id)?.map_id === value);
+          next.marker_ids = f.marker_ids.filter(id => markers.find(m => m.id === id)?.map_id === value);
+        }
+        return next;
+      });
       return;
     }
     setForm(f => ({ ...f, [k]: value }));
   };
 
+  const toggleZoneId = (zoneId) => {
+    setForm(f => {
+      const has = f.zone_ids.includes(zoneId);
+      const zoneIds = has ? f.zone_ids.filter(id => id !== zoneId) : [...f.zone_ids, zoneId];
+      const z = zones.find(zz => zz.id === zoneId);
+      return { ...f, zone_ids: zoneIds, map_id: z?.map_id && !f.map_id ? z.map_id : f.map_id };
+    });
+  };
+
+  const toggleMarkerId = (markerId) => {
+    setForm(f => {
+      const has = f.marker_ids.includes(markerId);
+      const marker_ids = has ? f.marker_ids.filter(id => id !== markerId) : [...f.marker_ids, markerId];
+      const mk = markers.find(m => m.id === markerId);
+      return { ...f, marker_ids, map_id: mk?.map_id && !f.map_id ? mk.map_id : f.map_id };
+    });
+  };
+
   const submit = async () => {
     if (!form.title.trim()) return setErr('Le titre est requis');
-    const selectedZone = zones.find(z => z.id === form.zone_id);
-    const payload = {
-      ...form,
-      map_id: selectedZone?.map_id || form.map_id || null,
-      zone_id: form.zone_id || null,
+    const mapFromLinks = () => {
+      for (const id of form.zone_ids) {
+        const z = zones.find(zz => zz.id === id);
+        if (z?.map_id) return z.map_id;
+      }
+      for (const id of form.marker_ids) {
+        const m = markers.find(mm => mm.id === id);
+        if (m?.map_id) return m.map_id;
+      }
+      return form.map_id || null;
     };
+    const payload = {
+      title: form.title.trim(),
+      description: form.description || '',
+      map_id: form.map_id || null,
+      zone_ids: form.zone_ids,
+      marker_ids: form.marker_ids,
+      due_date: form.due_date || null,
+      required_students: form.required_students,
+      recurrence: form.recurrence || null,
+    };
+    if (!payload.map_id && (payload.zone_ids.length || payload.marker_ids.length)) {
+      payload.map_id = mapFromLinks();
+    }
     setSaving(true);
     try { await onSave(payload); onClose(); }
     catch (e) { setErr(e.message); setSaving(false); }
   };
 
   const selectableZones = zones.filter(z => !z.special && (!form.map_id || z.map_id === form.map_id));
+  const selectableMarkers = markers.filter(m => !form.map_id || m.map_id === form.map_id);
+
+  const pickListStyle = {
+    maxHeight: 168, overflowY: 'auto', border: '1px solid rgba(0,0,0,.08)', borderRadius: 10,
+    padding: '6px 8px', background: 'var(--parchment, #faf8f3)',
+  };
+  const pickRow = { display: 'flex', alignItems: 'center', gap: 10, minHeight: 44, cursor: 'pointer' };
 
   return (
     <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
@@ -107,11 +166,29 @@ function TaskFormModal({ zones, maps = [], activeMapId = 'foret', onClose, onSav
               {maps.map(mp => <option key={mp.id} value={mp.id}>{mp.label}</option>)}
             </select>
           </div>
-          <div className="field"><label>Zone</label>
-            <select value={form.zone_id} onChange={set('zone_id')}>
-              <option value="">— Aucune —</option>
-              {selectableZones.map(z => <option key={z.id} value={z.id}>{z.name}{z.current_plant ? ` — ${z.current_plant}` : ''}</option>)}
-            </select>
+        </div>
+        <div className="field"><label>Zones (plusieurs possibles)</label>
+          <div style={pickListStyle}>
+            {selectableZones.length === 0
+              ? <p style={{ fontSize: '.82rem', color: '#888', margin: 8 }}>Aucune zone pour cette carte.</p>
+              : selectableZones.map(z => (
+                <label key={z.id} style={pickRow}>
+                  <input type="checkbox" checked={form.zone_ids.includes(z.id)} onChange={() => toggleZoneId(z.id)} />
+                  <span style={{ fontSize: '.88rem' }}>{z.name}{z.current_plant ? ` — ${z.current_plant}` : ''}</span>
+                </label>
+              ))}
+          </div>
+        </div>
+        <div className="field"><label>Repères (plusieurs possibles)</label>
+          <div style={pickListStyle}>
+            {selectableMarkers.length === 0
+              ? <p style={{ fontSize: '.82rem', color: '#888', margin: 8 }}>Aucun repère pour cette carte.</p>
+              : selectableMarkers.map(m => (
+                <label key={m.id} style={pickRow}>
+                  <input type="checkbox" checked={form.marker_ids.includes(m.id)} onChange={() => toggleMarkerId(m.id)} />
+                  <span style={{ fontSize: '.88rem' }}>{m.emoji ? `${m.emoji} ` : ''}{m.label}</span>
+                </label>
+              ))}
           </div>
         </div>
         <div className="row">
@@ -136,7 +213,13 @@ function TaskFormModal({ zones, maps = [], activeMapId = 'foret', onClose, onSav
   );
 }
 
-function TasksView({ tasks, zones, maps = [], activeMapId = 'foret', isTeacher, student, onRefresh, onForceLogout }) {
+function taskHasZone(t, zoneId) {
+  if (!zoneId) return true;
+  if ((t.zone_ids || []).includes(zoneId)) return true;
+  return t.zone_id === zoneId;
+}
+
+function TasksView({ tasks, zones, markers = [], maps = [], activeMapId = 'foret', isTeacher, student, onRefresh, onForceLogout }) {
   const [showForm, setShowForm] = useState(false);
   const [editTask, setEditTask] = useState(null);
   const [logTask, setLogTask] = useState(null);
@@ -223,7 +306,7 @@ function TasksView({ tasks, zones, maps = [], activeMapId = 'foret', isTeacher, 
     if (filterMap !== 'active' && filterMap !== 'all' && taskMapId !== filterMap && taskMapId != null) return false;
     if (filterText && !t.title.toLowerCase().includes(filterText.toLowerCase()) &&
       !(t.description || '').toLowerCase().includes(filterText.toLowerCase())) return false;
-    if (filterZone && t.zone_id !== filterZone) return false;
+    if (filterZone && !taskHasZone(t, filterZone)) return false;
     if (filterStatus && t.status !== filterStatus) return false;
     return true;
   });
@@ -243,7 +326,12 @@ function TasksView({ tasks, zones, maps = [], activeMapId = 'foret', isTeacher, 
     return d !== null && d <= 3 && d >= -2;
   }).sort((a, b) => daysUntil(a.due_date) - daysUntil(b.due_date)) : [];
 
-  const usedZones = [...new Set(allFiltered.filter(t => t.zone_id).map(t => t.zone_id))];
+  const usedZoneIds = new Set();
+  for (const t of allFiltered) {
+    (t.zone_ids || []).forEach((id) => usedZoneIds.add(id));
+    if (t.zone_id) usedZoneIds.add(t.zone_id);
+  }
+  const usedZones = [...usedZoneIds];
 
   const TaskCard = ({ t }) => {
     const isMine = myTasks.some(m => m.id === t.id);
@@ -251,13 +339,21 @@ function TasksView({ tasks, zones, maps = [], activeMapId = 'foret', isTeacher, 
     return (
       <div className={`task-card ${isMine ? 'mine' : ''} ${t.status === 'validated' ? 'done' : ''}`}>
         <div className="task-top">
-          <div className="task-title">{t.title}</div>
-          {statusBadge(t.status)}
+          <div className="task-title-row">
+            {taskStatusIndicator(t.status)}
+            <div className="task-title">{t.title}</div>
+          </div>
         </div>
         <div className="task-meta">
           <span className="task-chip">{taskEffectiveMapId(t) ? `🗺️ ${mapLabelById(taskEffectiveMapId(t))}` : '🌐 Globale'}</span>
-          {t.zone_name && <span className="task-chip">🌿 {t.zone_name}</span>}
-          {t.marker_label && <span className="task-chip">📍 {t.marker_label}</span>}
+          {(t.zones_linked || []).map((z) => (
+            <span key={z.id} className="task-chip">🌿 {z.name}</span>
+          ))}
+          {!((t.zones_linked || []).length) && t.zone_name && <span className="task-chip">🌿 {t.zone_name}</span>}
+          {(t.markers_linked || []).map((m) => (
+            <span key={m.id} className="task-chip">📍 {m.label}</span>
+          ))}
+          {!((t.markers_linked || []).length) && t.marker_label && <span className="task-chip">📍 {t.marker_label}</span>}
           {dueDateChip(t.due_date)}
           {!isTeacher && <span className="task-chip">👤 {t.required_students} élève{t.required_students > 1 ? 's' : ''}</span>}
           {t.recurrence && <span className="task-chip">🔄 {t.recurrence === 'weekly' ? 'Hebdo' : t.recurrence === 'biweekly' ? 'Bi-hebdo' : t.recurrence === 'monthly' ? 'Mensuel' : t.recurrence}</span>}
@@ -312,7 +408,7 @@ function TasksView({ tasks, zones, maps = [], activeMapId = 'foret', isTeacher, 
     <div>
       {toast && <Toast msg={toast} onDone={() => setToast(null)} />}
       {(showForm || editTask) && (
-        <TaskFormModal zones={zones} maps={maps} activeMapId={activeMapId} editTask={editTask} onClose={() => { setShowForm(false); setEditTask(null); }} onSave={saveTask} />
+        <TaskFormModal zones={zones} markers={markers} maps={maps} activeMapId={activeMapId} editTask={editTask} onClose={() => { setShowForm(false); setEditTask(null); }} onSave={saveTask} />
       )}
       {logTask && (
         <LogModal task={logTask} student={student}
@@ -379,7 +475,9 @@ function TasksView({ tasks, zones, maps = [], activeMapId = 'foret', isTeacher, 
               <div key={t.id} className="urgency-item">
                 <span className="urgency-days">{label}</span>
                 <span style={{ flex: 1, color: 'var(--forest)', fontWeight: 500 }}>{t.title}</span>
-                {t.zone_name && <span style={{ fontSize: '.76rem', color: '#aaa' }}>{t.zone_name}</span>}
+                {(t.zones_linked?.[0]?.name || t.zone_name) && (
+                  <span style={{ fontSize: '.76rem', color: '#aaa' }}>{t.zones_linked?.[0]?.name || t.zone_name}</span>
+                )}
               </div>
             );
           })}

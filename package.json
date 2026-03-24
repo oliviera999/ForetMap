@@ -1,6 +1,6 @@
 {
   "name": "foretmap",
-  "version": "1.5.28",
+  "version": "1.5.30",
   "description": "Application de gestion de la forêt comestible - Lycée Lyautey",
   "main": "server.js",
   "dependencies": {
@@ -27,6 +27,8 @@
     "db:migrate:images:dry": "node scripts/migrate-images-to-disk.js --dry-run",
     "db:migrate:images:clear": "node scripts/migrate-images-to-disk.js --clear-legacy",
     "db:migrate:images:report": "node scripts/image-migration-report.js",
+    "db:uploads:reconcile:dry": "node scripts/reconcile-orphan-uploads.js",
+    "db:uploads:reconcile": "node scripts/reconcile-orphan-uploads.js --apply",
     "db:plants:photos:direct:dry": "node scripts/resolve-plants-photo-direct-links.js",
     "db:plants:photos:direct": "node scripts/resolve-plants-photo-direct-links.js --write",
     "db:plants:sources:consolidate:dry": "node scripts/consolidate-plants-sources.js",
