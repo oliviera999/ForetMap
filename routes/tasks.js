@@ -19,6 +19,19 @@ function normalizeIdArray(value) {
   return [...new Set(value.map((x) => (x != null ? String(x).trim() : '')).filter(Boolean))];
 }
 
+function normalizeTutorialIdArray(value) {
+  if (!Array.isArray(value)) return [];
+  const out = [];
+  const seen = new Set();
+  for (const raw of value) {
+    const n = parseInt(raw, 10);
+    if (!Number.isFinite(n) || n <= 0 || seen.has(n)) continue;
+    seen.add(n);
+    out.push(n);
+  }
+  return out;
+}
+
 async function mapExists(mapId) {
   if (!mapId) return false;
   const row = await queryOne('SELECT id FROM maps WHERE id = ?', [mapId]);
@@ -45,6 +58,11 @@ async function getTaskMarkerIds(taskId) {
   return rows.map((r) => r.marker_id);
 }
 
+async function getTaskTutorialIds(taskId) {
+  const rows = await queryAll('SELECT tutorial_id FROM task_tutorials WHERE task_id = ? ORDER BY tutorial_id', [taskId]);
+  return rows.map((r) => Number(r.tutorial_id));
+}
+
 async function setTaskZones(taskId, zoneIds) {
   await execute('DELETE FROM task_zones WHERE task_id = ?', [taskId]);
   for (const zid of zoneIds) {
@@ -57,6 +75,27 @@ async function setTaskMarkers(taskId, markerIds) {
   for (const mid of markerIds) {
     await execute('INSERT INTO task_markers (task_id, marker_id) VALUES (?, ?)', [taskId, mid]);
   }
+}
+
+async function setTaskTutorials(taskId, tutorialIds) {
+  await execute('DELETE FROM task_tutorials WHERE task_id = ?', [taskId]);
+  for (const tid of tutorialIds) {
+    await execute('INSERT INTO task_tutorials (task_id, tutorial_id) VALUES (?, ?)', [taskId, tid]);
+  }
+}
+
+async function validateTutorialIds(tutorialIds) {
+  if (!tutorialIds.length) return { tutorialIds };
+  const placeholders = tutorialIds.map(() => '?').join(',');
+  const rows = await queryAll(
+    `SELECT id FROM tutorials WHERE id IN (${placeholders}) AND is_active = 1`,
+    tutorialIds
+  );
+  const existing = new Set(rows.map((r) => Number(r.id)));
+  for (const tid of tutorialIds) {
+    if (!existing.has(Number(tid))) return { error: 'Tutoriel introuvable' };
+  }
+  return { tutorialIds };
 }
 
 async function syncLegacyLocationColumns(taskId, zoneIds, markerIds) {
@@ -105,15 +144,51 @@ async function fetchMarkersForTasks(taskIds) {
   return m;
 }
 
-function enrichTaskRow(task, zonesLinked, markersLinked) {
+async function fetchTutorialsForTasks(taskIds) {
+  if (!taskIds.length) return new Map();
+  const ph = taskIds.map(() => '?').join(',');
+  const rows = await queryAll(
+    `SELECT tt.task_id, tu.id AS tutorial_id, tu.title, tu.slug, tu.type, tu.source_url, tu.source_file_path
+       FROM task_tutorials tt
+       INNER JOIN tutorials tu ON tu.id = tt.tutorial_id
+      WHERE tt.task_id IN (${ph}) AND tu.is_active = 1
+      ORDER BY tu.sort_order ASC, tu.title ASC`,
+    taskIds
+  );
+  const m = new Map();
+  for (const r of rows) {
+    if (!m.has(r.task_id)) m.set(r.task_id, []);
+    m.get(r.task_id).push({
+      id: Number(r.tutorial_id),
+      title: r.title,
+      slug: r.slug,
+      type: r.type,
+      source_url: r.source_url,
+      source_file_path: r.source_file_path,
+    });
+  }
+  return m;
+}
+
+function enrichTaskRow(task, zonesLinked, markersLinked, tutorialsLinked) {
   const zl = zonesLinked || [];
   const ml = markersLinked || [];
+  const tl = tutorialsLinked || [];
   const prevZoneName = task.zone_name;
   const prevMarkerLabel = task.marker_label;
   task.zone_ids = zl.map((z) => z.id);
   task.marker_ids = ml.map((x) => x.id);
+  task.tutorial_ids = tl.map((x) => Number(x.id));
   task.zones_linked = zl.map((z) => ({ id: z.id, name: z.name }));
   task.markers_linked = ml.map((x) => ({ id: x.id, label: x.label }));
+  task.tutorials_linked = tl.map((x) => ({
+    id: Number(x.id),
+    title: x.title,
+    slug: x.slug,
+    type: x.type,
+    source_url: x.source_url || null,
+    source_file_path: x.source_file_path || null,
+  }));
   const mapsFromLinks = [
     ...new Set([...zl.map((z) => z.map_id), ...ml.map((x) => x.map_id)].filter(Boolean)),
   ];
@@ -181,7 +256,8 @@ async function getTaskWithAssignments(taskId) {
   if (!task) return null;
   const zm = await fetchZonesForTasks([taskId]);
   const mm = await fetchMarkersForTasks([taskId]);
-  enrichTaskRow(task, zm.get(taskId), mm.get(taskId));
+  const tm = await fetchTutorialsForTasks([taskId]);
+  enrichTaskRow(task, zm.get(taskId), mm.get(taskId), tm.get(taskId));
   if (!task.zone_name && task.zone_name_legacy) task.zone_name = task.zone_name_legacy;
   if (!task.marker_label && task.marker_label_legacy) task.marker_label = task.marker_label_legacy;
   delete task.zone_name_legacy;
@@ -229,10 +305,11 @@ router.get('/', async (req, res) => {
     const taskIds = tasks.map((t) => t.id);
     const zm = await fetchZonesForTasks(taskIds);
     const mm = await fetchMarkersForTasks(taskIds);
+    const tutorialsMap = await fetchTutorialsForTasks(taskIds);
     const assignments = await queryAll('SELECT * FROM task_assignments');
     const enriched = tasks.map((t) => {
       const row = { ...t };
-      enrichTaskRow(row, zm.get(t.id), mm.get(t.id));
+      enrichTaskRow(row, zm.get(t.id), mm.get(t.id), tutorialsMap.get(t.id));
       delete row.map_id_resolved_join;
       row.assignments = assignments.filter((a) => a.task_id === t.id);
       return row;
@@ -268,7 +345,7 @@ router.get('/:id', async (req, res) => {
 
 router.post('/', requireTeacher, async (req, res) => {
   try {
-    const { title, description, zone_id, marker_id, zone_ids, marker_ids, map_id, due_date, required_students, recurrence } = req.body;
+    const { title, description, zone_id, marker_id, zone_ids, marker_ids, tutorial_ids, map_id, due_date, required_students, recurrence } = req.body;
     if (!title) return res.status(400).json({ error: 'Titre requis' });
 
     let zIds = normalizeIdArray(zone_ids);
@@ -279,6 +356,9 @@ router.post('/', requireTeacher, async (req, res) => {
     const explicitMap = map_id !== undefined ? map_id : null;
     const loc = await validateTaskLocations(zIds, mIds, explicitMap);
     if (loc.error) return res.status(400).json({ error: loc.error });
+    const tutorialIds = normalizeTutorialIdArray(tutorial_ids);
+    const tutorialValidation = await validateTutorialIds(tutorialIds);
+    if (tutorialValidation.error) return res.status(400).json({ error: tutorialValidation.error });
 
     const reqStudents = sanitizeRequiredStudents(required_students);
     const id = uuidv4();
@@ -299,6 +379,7 @@ router.post('/', requireTeacher, async (req, res) => {
     );
     await setTaskZones(id, zIds);
     await setTaskMarkers(id, mIds);
+    await setTaskTutorials(id, tutorialIds);
     await syncLegacyLocationColumns(id, zIds, mIds);
     const task = await getTaskWithAssignments(id);
     logAudit('create_task', 'task', id, title);
@@ -321,6 +402,7 @@ router.put('/:id', requireTeacher, async (req, res) => {
       marker_id,
       zone_ids,
       marker_ids,
+      tutorial_ids,
       map_id,
       due_date,
       required_students,
@@ -356,6 +438,15 @@ router.put('/:id', requireTeacher, async (req, res) => {
     const loc = await validateTaskLocations(nextZoneIds, nextMarkerIds, explicitMap);
     if (loc.error) return res.status(400).json({ error: loc.error });
 
+    let nextTutorialIds;
+    if (Object.prototype.hasOwnProperty.call(req.body, 'tutorial_ids')) {
+      nextTutorialIds = normalizeTutorialIdArray(tutorial_ids);
+    } else {
+      nextTutorialIds = await getTaskTutorialIds(task.id);
+    }
+    const tutorialValidation = await validateTutorialIds(nextTutorialIds);
+    if (tutorialValidation.error) return res.status(400).json({ error: tutorialValidation.error });
+
     const reqStudents = required_students != null ? sanitizeRequiredStudents(required_students) : task.required_students;
     await execute(
       'UPDATE tasks SET title=?, description=?, map_id=?, zone_id=?, marker_id=?, due_date=?, required_students=?, status=?, recurrence=? WHERE id=?',
@@ -374,6 +465,7 @@ router.put('/:id', requireTeacher, async (req, res) => {
     );
     await setTaskZones(task.id, nextZoneIds);
     await setTaskMarkers(task.id, nextMarkerIds);
+    await setTaskTutorials(task.id, nextTutorialIds);
     await syncLegacyLocationColumns(task.id, nextZoneIds, nextMarkerIds);
     const updated = await getTaskWithAssignments(task.id);
     emitTasksChanged({ reason: 'update_task', taskId: task.id });

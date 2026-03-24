@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Le désherbage – ForêtMap n³</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;1,400&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400&display=swap" rel="stylesheet" />
+  <style>
+    :root { --terre: #3d2b1f; --mousse: #4a6741; --herbe: #7aab5e; --eau: #5b9fb5; --ciel: #c8e6f0; --sable: #e8dcc8; --creme: #f5f0e8; --ink: #1e1a16; --accent: #b85c2a; --argile: #9b6b4a; --vert-sombre: #2e4a28; }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'DM Sans', sans-serif; background: var(--creme); color: var(--ink); min-height: 100vh; overflow-x: hidden; }
+    .hero { position: relative; background: var(--vert-sombre); padding: 3.5rem 2rem 2.5rem; overflow: hidden; }
+    .hero::before { content: ''; position: absolute; inset: 0; background: radial-gradient(ellipse 55% 70% at 95% 110%, rgba(122,171,94,.2) 0%, transparent 60%), radial-gradient(ellipse 35% 50% at 0% -10%, rgba(155,107,74,.2) 0%, transparent 55%); }
+    .hero-tag { font-family: 'DM Mono', monospace; font-size: .7rem; letter-spacing: .18em; text-transform: uppercase; color: var(--herbe); margin-bottom: .75rem; position: relative; opacity: .8; }
+    .hero h1 { font-family: 'Playfair Display', serif; font-size: clamp(2rem, 5vw, 3.2rem); color: var(--creme); line-height: 1.15; position: relative; max-width: 560px; }
+    .hero h1 em { font-style: italic; color: var(--herbe); }
+    .hero-sub { margin-top: 1rem; font-size: .9rem; color: rgba(245,240,232,.7); font-weight: 300; position: relative; max-width: 460px; line-height: 1.6; }
+    .pillules { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: 1.5rem; position: relative; }
+    .pillule { font-size: .7rem; font-family: 'DM Mono', monospace; letter-spacing: .1em; padding: .3rem .75rem; border-radius: 999px; border: 1px solid rgba(255,255,255,.2); color: rgba(255,255,255,.75); background: rgba(255,255,255,.07); }
+    .content { max-width: 780px; margin: 0 auto; padding: 2.5rem 1.5rem 4rem; }
+    .section-label { font-family: 'DM Mono', monospace; font-size: .65rem; letter-spacing: .2em; text-transform: uppercase; color: var(--vert-sombre); margin-bottom: .4rem; display: flex; align-items: center; gap: .5rem; }
+    .section-label::after { content: ''; flex: 1; height: 1px; background: var(--vert-sombre); opacity: .2; }
+    .intro-sensorielle { background: var(--vert-sombre); color: var(--creme); border-radius: 12px; padding: 1.75rem 2rem; margin: 2rem 0; position: relative; overflow: hidden; }
+    .intro-sensorielle::after { content: '⌇'; position: absolute; right: 1.5rem; bottom: -.5rem; font-size: 6rem; opacity: .06; }
+    .intro-sensorielle p { font-family: 'Playfair Display', serif; font-style: italic; font-size: 1.1rem; line-height: 1.7; opacity: .92; }
+    .intro-sensorielle cite { display: block; font-family: 'DM Mono', monospace; font-style: normal; font-size: .65rem; letter-spacing: .12em; margin-top: .75rem; color: var(--herbe); }
+    .idee-recue { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 2rem 0; }
+    .ir-non { background: rgba(184,92,42,.08); border: 1.5px solid var(--accent); border-radius: 12px; padding: 1.25rem 1.5rem; }
+    .ir-oui { background: rgba(74,103,65,.08); border: 1.5px solid var(--mousse); border-radius: 12px; padding: 1.25rem 1.5rem; }
+    .ir-label { font-family: 'DM Mono', monospace; font-size: .65rem; letter-spacing: .15em; text-transform: uppercase; margin-bottom: .5rem; }
+    .ir-non .ir-label { color: var(--accent); }
+    .ir-oui .ir-label { color: var(--mousse); }
+    .ir-non p, .ir-oui p { font-size: .85rem; line-height: 1.6; color: #4a3f35; }
+    .etapes { display: flex; flex-direction: column; gap: 1.25rem; margin: 2rem 0; }
+    .etape { display: grid; grid-template-columns: 3rem 1fr; gap: 1rem; align-items: start; }
+    .etape-num { width: 3rem; height: 3rem; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-family: 'Playfair Display', serif; font-size: 1.3rem; font-weight: 700; flex-shrink: 0; }
+    .etape-body h3 { font-family: 'DM Sans', sans-serif; font-weight: 500; font-size: 1rem; margin-bottom: .3rem; color: var(--terre); }
+    .etape-body p { font-size: .875rem; line-height: 1.65; color: #4a3f35; }
+    .etape-body .sci { margin-top: .5rem; font-size: .8rem; font-family: 'DM Mono', monospace; color: var(--mousse); background: rgba(74,103,65,.08); border-left: 2px solid var(--mousse); padding: .4rem .75rem; border-radius: 0 4px 4px 0; line-height: 1.5; }
+    .etape-body .attention { margin-top: .5rem; font-size: .8rem; color: #7a3a10; background: rgba(184,92,42,.08); border-left: 2px solid var(--accent); padding: .4rem .75rem; border-radius: 0 4px 4px 0; line-height: 1.5; }
+    .adventices { background: var(--sable); border-radius: 12px; padding: 1.5rem 2rem; margin: 2rem 0; }
+    .adventices h3 { font-family: 'Playfair Display', serif; font-size: 1.05rem; color: var(--terre); margin-bottom: .9rem; }
+    .adventices-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: .75rem; }
+    .adventice-item { background: rgba(255,255,255,.55); border-radius: 8px; padding: .85rem 1rem; font-size: .82rem; line-height: 1.5; color: #4a3f35; }
+    .adventice-item .nom { font-family: 'Playfair Display', serif; font-style: italic; font-size: .95rem; color: var(--terre); margin-bottom: .15rem; }
+    .adventice-item .strategie { font-family: 'DM Mono', monospace; font-size: .65rem; letter-spacing: .08em; color: var(--accent); margin-bottom: .35rem; text-transform: uppercase; }
+    .question-sci { border: 1.5px solid var(--mousse); border-radius: 12px; padding: 1.5rem 2rem; margin: 2rem 0; position: relative; }
+    .question-sci .q-label { position: absolute; top: -0.6rem; left: 1.25rem; background: var(--creme); padding: 0 .5rem; font-family: 'DM Mono', monospace; font-size: .65rem; letter-spacing: .15em; color: var(--mousse); text-transform: uppercase; }
+    .question-sci .q-text { font-family: 'Playfair Display', serif; font-style: italic; font-size: 1.05rem; color: var(--terre); line-height: 1.55; margin-bottom: .75rem; }
+    .question-sci .q-reponse { font-size: .85rem; line-height: 1.65; color: #4a3f35; }
+    .alternatives { background: var(--ciel); border-radius: 12px; padding: 1.5rem 2rem; margin: 2rem 0; }
+    .alternatives h3 { font-family: 'Playfair Display', serif; font-size: 1.05rem; color: var(--terre); margin-bottom: .9rem; }
+    .alt-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: .75rem; }
+    .alt-item { background: rgba(255,255,255,.6); border-radius: 8px; padding: .75rem 1rem; font-size: .82rem; line-height: 1.5; color: #2a4a58; }
+    .alt-item strong { display: block; font-size: .72rem; font-family: 'DM Mono', monospace; letter-spacing: .08em; color: var(--eau); margin-bottom: .25rem; }
+    .nuance { border: 1.5px solid var(--vert-sombre); border-radius: 12px; padding: 1.5rem 2rem; margin: 2rem 0; position: relative; background: rgba(46,74,40,.04); }
+    .nuance .n-label { position: absolute; top: -0.6rem; left: 1.25rem; background: var(--creme); padding: 0 .5rem; font-family: 'DM Mono', monospace; font-size: .65rem; letter-spacing: .15em; color: var(--vert-sombre); text-transform: uppercase; }
+    .nuance p { font-size: .875rem; line-height: 1.7; color: #2e4a28; }
+    .nuance p + p { margin-top: .6rem; }
+    .farmflow { border: 1px dashed var(--eau); border-radius: 12px; padding: 1.25rem 1.75rem; margin: 2rem 0; display: flex; gap: 1rem; align-items: flex-start; }
+    .farmflow .ff-icon { font-size: 1.75rem; flex-shrink: 0; margin-top: .1rem; }
+    .farmflow h4 { font-family: 'DM Mono', monospace; font-size: .75rem; letter-spacing: .12em; color: var(--eau); text-transform: uppercase; margin-bottom: .35rem; }
+    .farmflow p { font-size: .82rem; line-height: 1.6; color: #3a5a6a; }
+    .memo { background: var(--vert-sombre); color: var(--creme); border-radius: 12px; padding: 1.75rem 2rem; margin-top: 2.5rem; }
+    .memo h3 { font-family: 'Playfair Display', serif; font-size: 1.1rem; margin-bottom: 1rem; opacity: .9; }
+    .memo-list { display: flex; flex-direction: column; gap: .5rem; }
+    .memo-item { display: flex; align-items: baseline; gap: .75rem; font-size: .85rem; line-height: 1.5; opacity: .88; }
+    .memo-item .bullet { font-family: 'DM Mono', monospace; color: var(--herbe); font-size: .75rem; flex-shrink: 0; }
+    footer { text-align: center; padding: 2rem 1rem; font-family: 'DM Mono', monospace; font-size: .65rem; letter-spacing: .12em; color: rgba(30,26,22,.35); }
+    footer a { color: var(--mousse); text-decoration: none; }
+    @media (max-width: 560px) { .idee-recue { grid-template-columns: 1fr; } .etape { grid-template-columns: 2.5rem 1fr; } .adventices-grid, .alt-grid { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+<header class="hero">
+  <p class="hero-tag">n³ · Nature · Numérique · Nomade / ForêtMap</p>
+  <h1>Arracher —<br><em>ou comprendre ce qui pousse là</em></h1>
+  <p class="hero-sub">"Mauvaise herbe" est un jugement de valeur, pas une catégorie botanique. Ce qui pousse là dit quelque chose sur ton sol. Arracher sans lire, c'est effacer un message.</p>
+  <div class="pillules">
+    <span class="pillule">🌿 Terrain / sensoriel</span>
+    <span class="pillule">🔬 Questionnement scientifique</span>
+    <span class="pillule">✋ Gestes pratiques</span>
+  </div>
+</header>
+<main class="content">
+
+  <div class="intro-sensorielle">
+    <p>Accroupis-toi entre les rangs. Regarde vraiment ce qui pousse. Un pissenlit dit que le sol est compacté. Du mouron des oiseaux dit qu'il est frais et humide. De l'ortie dit qu'il est riche en azote. Ce sont des diagnostics gratuits, en temps réel, écrits par le sol lui-même. Lire avant d'arracher, c'est ne pas manquer l'information.</p>
+    <cite>→ Identifie avant d'arracher. La plante qui pousse dit quelque chose sur ce qui se passe en dessous.</cite>
+  </div>
+
+  <p class="section-label">Cadre — Ce que "mauvaise herbe" veut vraiment dire</p>
+  <div class="idee-recue">
+    <div class="ir-non">
+      <p class="ir-label">✗ La vision industrielle</p>
+      <p>Les adventices sont des ennemies à éliminer chimiquement, rapidement, totalement. Le sol nu est l'objectif. Le contrôle absolu est la norme.</p>
+    </div>
+    <div class="ir-oui">
+      <p class="ir-label">✓ Ce qui se passe réellement</p>
+      <p>Une adventice concurrence les cultures pour l'eau et la lumière — et abrite parfois des auxiliaires, fixe l'azote, ou signale un déséquilibre du sol. Ce n'est pas une ennemie. C'est un indicateur.</p>
+    </div>
+  </div>
+
+  <p class="section-label">01 — Reconnaître avant d'agir</p>
+  <div class="adventices">
+    <h3>Six adventices courantes — ce qu'elles disent</h3>
+    <div class="adventices-grid">
+      <div class="adventice-item">
+        <div class="nom">Chiendent</div>
+        <div class="strategie">Rhizomes souterrains</div>
+        La plus tenace. Le moindre fragment repart. Fouille profond, ramasse tout, ne laisse rien dans le sol.
+      </div>
+      <div class="adventice-item">
+        <div class="nom">Liseron</div>
+        <div class="strategie">Pivot jusqu'à 2 mètres</div>
+        Racine profonde. On ne l'éradique pas — on l'épuise progressivement en arrachant régulièrement en surface.
+      </div>
+      <div class="adventice-item">
+        <div class="nom">Pissenlit</div>
+        <div class="strategie">Pivot + sol compacté</div>
+        Sa présence suggère d'ameublir le sol autant que d'arracher. Le symptôme visible n'est pas la cause.
+      </div>
+      <div class="adventice-item">
+        <div class="nom">Mouron des oiseaux</div>
+        <div class="strategie">Annuelle prolifique</div>
+        Graines en masse, germination rapide. Arracher avant floraison — après, c'est trop tard pour cette saison et les deux suivantes.
+      </div>
+      <div class="adventice-item">
+        <div class="nom">Ortie</div>
+        <div class="strategie">Sol riche en azote</div>
+        Indicateur positif. Purin activateur de compost, fongicide doux, abri pour coccinelles et chrysopes. À gérer, pas à éradiquer.
+      </div>
+      <div class="adventice-item">
+        <div class="nom">Pourpier</div>
+        <div class="strategie">Sol chaud et sec</div>
+        Comestible, riche en oméga-3. Arracher avant graine ou laisser en bordure comme couvre-sol utile.
+      </div>
+    </div>
+  </div>
+
+  <div class="question-sci">
+    <span class="q-label">Question scientifique</span>
+    <p class="q-text">Comment une adventice concurrence-t-elle concrètement une plante cultivée ?</p>
+    <p class="q-reponse">La compétition se joue sur trois ressources : lumière (les feuilles les plus hautes captent le rayonnement en premier), eau (les racines explorantes prélèvent l'humidité avant les racines des cultures), minéraux (azote, phosphore, potassium prélevés dans le même volume de sol). Une adventice à croissance rapide peut réduire le rendement d'une culture de 30 à 80 % si elle s'installe en même temps que le semis. Le timing de désherbage est donc plus important que la méthode.</p>
+  </div>
+
+  <p class="section-label">02 — Quand désherber change tout</p>
+  <div class="etapes">
+    <div class="etape">
+      <div class="etape-num" style="background:var(--herbe);color:#fff;">☀</div>
+      <div class="etape-body">
+        <h3>Désherber jeune — toujours</h3>
+        <p>Moins de 5 cm : deux doigts, racines comprises, 2 secondes. Adulte installé : outil, effort, vide dans le sol, et la plante a déjà probablement semé. Le timing est la seule vraie variable qui compte.</p>
+        <div class="sci">Les jeunes plantules n'ont pas encore développé leur système racinaire. Arracher tôt n'endommage pas le sol et supprime la compétition avant qu'elle commence.</div>
+      </div>
+    </div>
+    <div class="etape">
+      <div class="etape-num" style="background:var(--sable);color:var(--terre);">🌧</div>
+      <div class="etape-body">
+        <h3>Après la pluie ou l'arrosage</h3>
+        <p>Sol humide : les racines sortent entières. Sol sec : on arrache la tige, les racines restent et repartent. La pluie fait 80 % du travail de désherbage si on intervient dans les 24h qui suivent.</p>
+        <div class="attention">✗ Désherber par vent fort ou soleil intense : les adventices retournées se réenracinent si le sol est encore humide. Les retirer du sol, les laisser sécher avant d'en faire du paillis.</div>
+      </div>
+    </div>
+    <div class="etape">
+      <div class="etape-num" style="background:var(--accent);color:#fff;">✗</div>
+      <div class="etape-body">
+        <h3>Avant la floraison — sans exception</h3>
+        <p>Une adventice qui fleurit va grainer. Un seul pied de mouron des oiseaux : jusqu'à 2 500 graines. Une fois au sol, viables plusieurs années. Laisser fleurir une adventice, c'est créer du travail pour les trois saisons suivantes.</p>
+        <div class="sci">Le "bank" de graines : les graines d'adventices s'accumulent dans le sol sur des décennies. Retourner le sol profondément remonte ces graines à la lumière et déclenche une nouvelle vague de germination. C'est pourquoi le labour crée plus de problèmes qu'il n'en résout.</div>
+      </div>
+    </div>
+  </div>
+
+  <p class="section-label">03 — Les bons gestes selon l'adversaire</p>
+  <div class="etapes">
+    <div class="etape">
+      <div class="etape-num" style="background:var(--mousse);color:#fff;">✋</div>
+      <div class="etape-body">
+        <h3>À la main — pour les annuelles</h3>
+        <p>Saisir au ras du sol, tirer lentement et verticalement. Pour les pivotants : tourner légèrement en tirant pour déloger le pivot entier. Simple et infaillible si le sol est humide.</p>
+      </div>
+    </div>
+    <div class="etape">
+      <div class="etape-num" style="background:var(--argile);color:#fff;">🔧</div>
+      <div class="etape-body">
+        <h3>À l'outil — pour les vivaces à rhizomes</h3>
+        <p>La binette tranche à ras et ameublit. La fourche-bêche extrait les rhizomes profonds. Ne pas hacher les rhizomes de chiendent ou liseron — chaque fragment repart.</p>
+        <div class="attention">✗ Chiendent et liseron : ramasse chaque fragment de rhizome, laisse-le sécher au soleil avant tout compostage. Un rhizome humide dans un compost chaud repart sans problème.</div>
+      </div>
+    </div>
+    <div class="etape">
+      <div class="etape-num" style="background:var(--eau);color:#fff;">🌡</div>
+      <div class="etape-body">
+        <h3>Eau bouillante — sur les allées uniquement</h3>
+        <p>Sur joints de dallage et allées : un jet d'eau bouillante détruit les adventices en surface sans produit. Inutile sur racines profondes, dangereux à proximité des cultures.</p>
+        <div class="sci">La chaleur dénature les protéines membranaires des cellules végétales en quelques secondes — mort par nécrose thermique. Efficace sur les parties aériennes, sans effet sur les racines profondes.</div>
+      </div>
+    </div>
+  </div>
+
+  <p class="section-label">04 — Prévenir plutôt que subir</p>
+  <div class="alternatives">
+    <h3>Réduire le désherbage à la source</h3>
+    <div class="alt-grid">
+      <div class="alt-item"><strong>Paillage épais</strong>8–10 cm bloquent la lumière et empêchent la germination de 80 % des adventices. La méthode la plus efficace, point.</div>
+      <div class="alt-item"><strong>Couvre-sol vivant</strong>Trèfle blanc, thym rampant entre les rangs — occuper le sol avant que les adventices ne le fassent.</div>
+      <div class="alt-item"><strong>Densité de plantation</strong>Des plants en nombre suffisant ferment le couvert rapidement et privent les adventices de lumière.</div>
+      <div class="alt-item"><strong>Ne pas retourner le sol</strong>Le labour remonte le stock de graines dormantes. Préférer le griffage de surface — toujours.</div>
+    </div>
+  </div>
+
+  <div class="nuance">
+    <span class="n-label">Ce qu'on ne dit pas assez</span>
+    <p>Un jardin sans aucune adventice est chimiquement maintenu ou trop stressé pour abriter de la biodiversité fonctionnelle. L'ortie abrite les larves de coccinelles et chrysopes — des auxiliaires contre les pucerons. Le lierre terrestre attire les pollinisateurs. Le mouron des oiseaux arraché jeune va directement au compost comme excellente matière verte.</p>
+    <p>L'objectif n'est pas le sol nu — c'est la maîtrise de la compétition. Ce sont deux choses radicalement différentes.</p>
+  </div>
+
+  <div class="question-sci">
+    <span class="q-label">Question scientifique</span>
+    <p class="q-text">Pourquoi le désherbant chimique au potager est un non-sens écologique et alimentaire ?</p>
+    <p class="q-reponse">Les herbicides de synthèse (glyphosate et autres) bloquent la voie du shikimate — une voie métabolique présente chez toutes les plantes vertes et de nombreux microorganismes. Dans le sol, ils perturbent les champignons mycorhiziens essentiels à l'absorption racinaire des minéraux, et persistent plusieurs semaines. Au potager alimentaire, les résidus peuvent être absorbés par les légumes. L'impact sur la faune du sol (vers de terre, collemboles, nématodes bénéfiques) dégrade durablement la structure et la fertilité. Résultat : on résout un problème de compétition en détruisant le système qui rend le sol vivant.</p>
+  </div>
+
+  <div class="farmflow">
+    <div class="ff-icon">📡</div>
+    <div>
+      <h4>Connexion n³ — Documenter la recolonisation</h4>
+      <p>Un timelapse ESP32-CAM en position fixe sur une zone du potager permet de suivre la vitesse de recolonisation après désherbage, d'identifier les espèces dominantes par saison, et de mesurer l'effet du paillage sur la densité des adventices. Des données concrètes pour ajuster la stratégie d'une année sur l'autre.</p>
+    </div>
+  </div>
+
+  <div class="memo">
+    <h3>📋 Ce qu'il faut retenir</h3>
+    <div class="memo-list">
+      <div class="memo-item"><span class="bullet">01 /</span> Identifie avant d'arracher — l'adventice est un indicateur du sol, pas une ennemie par nature.</div>
+      <div class="memo-item"><span class="bullet">02 /</span> Le timing prime sur la méthode : désherber jeune (moins de 5 cm), sur sol humide.</div>
+      <div class="memo-item"><span class="bullet">03 /</span> Impératif : avant floraison. Après, tu travailles pour les trois prochaines saisons.</div>
+      <div class="memo-item"><span class="bullet">04 /</span> Rhizomes (chiendent, liseron) : extraire entier, sécher au soleil avant compost.</div>
+      <div class="memo-item"><span class="bullet">05 /</span> Pailler épais et densifier les plantations — prévenir plutôt que subir.</div>
+      <div class="memo-item"><span class="bullet">06 /</span> Zéro désherbant chimique au potager. Jamais. Pas d'exception.</div>
+    </div>
+  </div>
+</main>
+<footer>
+  <p>ForêtMap · <a href="https://olution.info">olution.info</a> · projet n³ — Nature · Numérique · Nomade · v1.1<br>Lycée Lyautey, Casablanca · AEFE</p>
+</footer>
+</body>
+</html>

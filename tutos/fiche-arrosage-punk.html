@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>L'arrosage au potager – ForêtMap n³</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;1,400&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400&display=swap" rel="stylesheet" />
+  <style>
+    :root { --terre: #3d2b1f; --mousse: #4a6741; --herbe: #7aab5e; --eau: #5b9fb5; --ciel: #c8e6f0; --sable: #e8dcc8; --creme: #f5f0e8; --ink: #1e1a16; --accent: #b85c2a; }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'DM Sans', sans-serif; background: var(--creme); color: var(--ink); min-height: 100vh; overflow-x: hidden; }
+    .hero { position: relative; background: var(--mousse); padding: 3.5rem 2rem 2.5rem; overflow: hidden; }
+    .hero::before { content: ''; position: absolute; inset: 0; background: radial-gradient(ellipse 60% 80% at 80% 110%, rgba(90,160,80,.35) 0%, transparent 60%), radial-gradient(ellipse 40% 60% at 10% -20%, rgba(91,159,181,.2) 0%, transparent 55%); }
+    .hero-tag { font-family: 'DM Mono', monospace; font-size: .7rem; letter-spacing: .18em; text-transform: uppercase; color: var(--herbe); margin-bottom: .75rem; position: relative; }
+    .hero h1 { font-family: 'Playfair Display', serif; font-size: clamp(2rem, 5vw, 3.2rem); color: var(--creme); line-height: 1.15; position: relative; max-width: 560px; }
+    .hero h1 em { font-style: italic; color: var(--ciel); }
+    .hero-sub { margin-top: 1rem; font-size: .9rem; color: rgba(245,240,232,.7); font-weight: 300; position: relative; max-width: 460px; line-height: 1.6; }
+    .pillules { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: 1.5rem; position: relative; }
+    .pillule { font-size: .7rem; font-family: 'DM Mono', monospace; letter-spacing: .1em; padding: .3rem .75rem; border-radius: 999px; border: 1px solid rgba(255,255,255,.25); color: rgba(255,255,255,.8); background: rgba(255,255,255,.08); }
+    .content { max-width: 780px; margin: 0 auto; padding: 2.5rem 1.5rem 4rem; }
+    .section-label { font-family: 'DM Mono', monospace; font-size: .65rem; letter-spacing: .2em; text-transform: uppercase; color: var(--mousse); margin-bottom: .4rem; display: flex; align-items: center; gap: .5rem; }
+    .section-label::after { content: ''; flex: 1; height: 1px; background: var(--mousse); opacity: .25; }
+    .intro-sensorielle { background: var(--terre); color: var(--creme); border-radius: 12px; padding: 1.75rem 2rem; margin: 2rem 0; position: relative; overflow: hidden; }
+    .intro-sensorielle::after { content: '〰'; position: absolute; right: 1.5rem; bottom: .5rem; font-size: 3rem; opacity: .08; letter-spacing: -.2em; }
+    .intro-sensorielle p { font-family: 'Playfair Display', serif; font-style: italic; font-size: 1.1rem; line-height: 1.7; opacity: .92; }
+    .intro-sensorielle cite { display: block; font-family: 'DM Mono', monospace; font-style: normal; font-size: .65rem; letter-spacing: .12em; margin-top: .75rem; color: var(--herbe); }
+    .etapes { display: flex; flex-direction: column; gap: 1.25rem; margin: 2rem 0; }
+    .etape { display: grid; grid-template-columns: 3rem 1fr; gap: 1rem; align-items: start; }
+    .etape-num { width: 3rem; height: 3rem; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-family: 'Playfair Display', serif; font-size: 1.3rem; font-weight: 700; flex-shrink: 0; }
+    .etape-body h3 { font-family: 'DM Sans', sans-serif; font-weight: 500; font-size: 1rem; margin-bottom: .3rem; color: var(--terre); }
+    .etape-body p { font-size: .875rem; line-height: 1.65; color: #4a3f35; }
+    .etape-body .sci { margin-top: .5rem; font-size: .8rem; font-family: 'DM Mono', monospace; color: var(--mousse); background: rgba(74,103,65,.08); border-left: 2px solid var(--mousse); padding: .4rem .75rem; border-radius: 0 4px 4px 0; line-height: 1.5; }
+    .etape-body .attention { margin-top: .5rem; font-size: .8rem; color: #7a3a10; background: rgba(184,92,42,.08); border-left: 2px solid var(--accent); padding: .4rem .75rem; border-radius: 0 4px 4px 0; line-height: 1.5; }
+    .test-doigt { background: var(--ciel); border-radius: 12px; padding: 1.5rem 2rem; margin: 2rem 0; display: grid; grid-template-columns: auto 1fr; gap: 1.25rem; align-items: center; }
+    .test-doigt .icon { font-size: 3rem; line-height: 1; }
+    .test-doigt h3 { font-family: 'Playfair Display', serif; font-size: 1.1rem; color: var(--terre); margin-bottom: .4rem; }
+    .test-doigt p { font-size: .85rem; line-height: 1.6; color: #2a4a58; }
+    .test-doigt .steps { margin-top: .6rem; display: flex; flex-direction: column; gap: .25rem; }
+    .test-doigt .step { font-size: .8rem; color: #2a4a58; display: flex; align-items: baseline; gap: .5rem; }
+    .test-doigt .step::before { content: '→'; color: var(--eau); flex-shrink: 0; }
+    .question-sci { border: 1.5px solid var(--mousse); border-radius: 12px; padding: 1.5rem 2rem; margin: 2rem 0; position: relative; }
+    .question-sci .q-label { position: absolute; top: -0.6rem; left: 1.25rem; background: var(--creme); padding: 0 .5rem; font-family: 'DM Mono', monospace; font-size: .65rem; letter-spacing: .15em; color: var(--mousse); text-transform: uppercase; }
+    .question-sci .q-text { font-family: 'Playfair Display', serif; font-style: italic; font-size: 1.05rem; color: var(--terre); line-height: 1.55; margin-bottom: .75rem; }
+    .question-sci .q-reponse { font-size: .85rem; line-height: 1.65; color: #4a3f35; }
+    .paillage { background: var(--sable); border-radius: 12px; padding: 1.5rem 2rem; margin: 2rem 0; }
+    .paillage h3 { font-family: 'Playfair Display', serif; font-size: 1.1rem; color: var(--terre); margin-bottom: .75rem; }
+    .paillage-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: .75rem; }
+    .paillage-item { background: rgba(255,255,255,.5); border-radius: 8px; padding: .75rem 1rem; font-size: .82rem; line-height: 1.5; }
+    .paillage-item strong { display: block; font-size: .75rem; font-family: 'DM Mono', monospace; letter-spacing: .08em; color: var(--accent); margin-bottom: .2rem; }
+    .farmflow { border: 1px dashed var(--eau); border-radius: 12px; padding: 1.25rem 1.75rem; margin: 2rem 0; display: flex; gap: 1rem; align-items: flex-start; }
+    .farmflow .ff-icon { font-size: 1.75rem; flex-shrink: 0; margin-top: .1rem; }
+    .farmflow h4 { font-family: 'DM Mono', monospace; font-size: .75rem; letter-spacing: .12em; color: var(--eau); text-transform: uppercase; margin-bottom: .35rem; }
+    .farmflow p { font-size: .82rem; line-height: 1.6; color: #3a5a6a; }
+    .memo { background: var(--mousse); color: var(--creme); border-radius: 12px; padding: 1.75rem 2rem; margin-top: 2.5rem; }
+    .memo h3 { font-family: 'Playfair Display', serif; font-size: 1.1rem; margin-bottom: 1rem; opacity: .9; }
+    .memo-list { display: flex; flex-direction: column; gap: .5rem; }
+    .memo-item { display: flex; align-items: baseline; gap: .75rem; font-size: .85rem; line-height: 1.5; opacity: .88; }
+    .memo-item .bullet { font-family: 'DM Mono', monospace; color: var(--herbe); font-size: .75rem; flex-shrink: 0; }
+    footer { text-align: center; padding: 2rem 1rem; font-family: 'DM Mono', monospace; font-size: .65rem; letter-spacing: .12em; color: rgba(30,26,22,.35); }
+    footer a { color: var(--mousse); text-decoration: none; }
+    @media (max-width: 520px) { .test-doigt { grid-template-columns: 1fr; } .etape { grid-template-columns: 2.5rem 1fr; } }
+  </style>
+</head>
+<body>
+
+<header class="hero">
+  <p class="hero-tag">n³ · Nature · Numérique · Nomade &nbsp;/&nbsp; ForêtMap</p>
+  <h1>Arroser —<br><em>ou écouter ce que le sol dit</em></h1>
+  <p class="hero-sub">L'arrosage automatique est une métaphore de tout ce qui cloche dans le jardinage industriel. On arrose parce que c'est l'heure. Pas parce que la plante a soif.</p>
+  <div class="pillules">
+    <span class="pillule">🌱 Terrain / sensoriel</span>
+    <span class="pillule">🔬 Questionnement scientifique</span>
+    <span class="pillule">💧 Gestes pratiques</span>
+  </div>
+</header>
+
+<main class="content">
+
+  <div class="intro-sensorielle">
+    <p>Avant d'arroser, arrête-toi. Mets un doigt dans le sol. Regarde les feuilles — pas vite, vraiment regarde. Une plante qui manque d'eau depuis trop longtemps le dit autrement qu'une plante qui vient juste d'avoir soif. La différence est dans les détails. Apprends à les lire et tu n'auras plus jamais besoin d'un minuteur.</p>
+    <cite>→ L'arrosage n'est pas une routine. C'est une réponse à une observation.</cite>
+  </div>
+
+  <p class="section-label">01 — La plante a soif. Elle le dit déjà.</p>
+
+  <div class="test-doigt">
+    <div class="icon">☝️</div>
+    <div>
+      <h3>Le test du doigt — ton seul vrai capteur</h3>
+      <p>Gratuit, infaillible, disponible en permanence. Tous les gadgets d'humidité du monde sont là pour compenser l'absence de ce geste.</p>
+      <div class="steps">
+        <div class="step">Enfonce un doigt à <strong>5 cm</strong> dans le sol, près des racines.</div>
+        <div class="step"><strong>Humide</strong> → n'arrose pas. Tu vas noyer les racines et chasser l'oxygène.</div>
+        <div class="step"><strong>Frais sans être humide</strong> → surveille. Demain peut-être.</div>
+        <div class="step"><strong>Sec</strong> → arrose maintenant, lentement, profond.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="etapes">
+    <div class="etape">
+      <div class="etape-num" style="background:var(--herbe);color:#fff;">👁</div>
+      <div class="etape-body">
+        <h3>Lire les feuilles avant de toucher le tuyau</h3>
+        <p>Feuilles légèrement affaissées en fin de journée : signal précoce, normal en été. Feuilles qui s'affaissent le matin : urgence. Couleur terne, tiges molles : ça fait plusieurs jours que tu aurais dû arroser.</p>
+        <div class="sci">Pourquoi les feuilles tombent ? La plante perd de l'eau par transpiration (stomates ouverts). Sans apport racinaire suffisant, la pression de turgescence chute — les tissus se ramollissent. Ce n'est pas une maladie. C'est de la physique cellulaire.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="question-sci">
+    <span class="q-label">Question scientifique</span>
+    <p class="q-text">Pourquoi arroser le matin détruit moins d'eau qu'arroser à midi ?</p>
+    <p class="q-reponse">À midi, les températures de surface dépassent souvent 40°C au sol. L'eau s'évapore avant d'infiltrer : jusqu'à 60 % peut disparaître sans atteindre une racine. Le matin, sol encore frais, l'eau pénètre. Le soir, le feuillage reste humide toute la nuit — conditions optimales pour les champignons pathogènes (mildiou, oïdium). Arroser le matin n'est pas un conseil esthétique. C'est de la thermodynamique appliquée.</p>
+  </div>
+
+  <p class="section-label">02 — Comment arroser sans gâcher</p>
+
+  <div class="etapes">
+    <div class="etape">
+      <div class="etape-num" style="background:var(--eau);color:#fff;">💧</div>
+      <div class="etape-body">
+        <h3>Au pied. Toujours au pied.</h3>
+        <p>L'eau va aux racines, pas aux feuilles. Arroser par-dessus le feuillage, c'est humidifier ce qui n'a besoin de rien et laisser les racines à sec. Un arrosoir à long bec ou un goutte-à-goutte au sol — c'est tout.</p>
+        <div class="attention">✗ Le jet de tuyau qui arrose tout en grand : gaspillage d'eau, feuillage mouillé, racines à peine touchées. C'est l'arrosage pour se donner bonne conscience.</div>
+      </div>
+    </div>
+
+    <div class="etape">
+      <div class="etape-num" style="background:var(--eau);color:#fff;">🌊</div>
+      <div class="etape-body">
+        <h3>Profond et rare — pas superficiel et quotidien</h3>
+        <p>Un arrosage abondant une fois par semaine vaut mieux qu'un filet d'eau chaque soir. L'eau doit descendre à 15–20 cm pour atteindre les racines actives. En surface, elle s'évapore en quelques heures et n'apporte rien.</p>
+        <div class="sci">Les racines poussent là où l'eau se trouve. Un arrosage profond et rare entraîne les racines vers le bas, là où l'humidité est stable. Un arrosage superficiel quotidien crée des plantes dépendantes, fragiles, incapables de survivre une semaine sans intervention.</div>
+      </div>
+    </div>
+  </div>
+
+  <p class="section-label">03 — Pailler : travailler moins en faisant mieux</p>
+
+  <div class="paillage">
+    <h3>Le paillage coupe l'arrosage de moitié</h3>
+    <div class="paillage-grid">
+      <div class="paillage-item">
+        <strong>Évaporation</strong>
+        Un paillage épais réduit les pertes d'eau de 30 à 70 %. Le sol reste frais même par 35°C en surface.
+      </div>
+      <div class="paillage-item">
+        <strong>Adventices</strong>
+        Pas de lumière au sol, pas de germination. Moins de désherbage, moins de compétition hydrique.
+      </div>
+      <div class="paillage-item">
+        <strong>Vie du sol</strong>
+        La matière organique en décomposition nourrit vers et microorganismes qui structurent le sol et retiennent l'eau.
+      </div>
+      <div class="paillage-item">
+        <strong>Ce qu'on utilise</strong>
+        Paille, tontes séchées, feuilles mortes, BRF, carton. Ce qu'on a sous la main. Rien à acheter.
+      </div>
+    </div>
+  </div>
+
+  <div class="farmflow">
+    <div class="ff-icon">📡</div>
+    <div>
+      <h4>Farmflow — quand le capteur confirme le doigt</h4>
+      <p>Un capteur d'humidité sol (ESP32 + sonde capacitive) mesure ce que tu estimes. Pas pour remplacer l'observation — pour la documenter, la comparer sur plusieurs semaines, repérer des patterns que l'œil rate. Le numérique au service du geste. Pas à sa place.</p>
+    </div>
+  </div>
+
+  <div class="memo">
+    <h3>📋 Ce qu'il faut retenir</h3>
+    <div class="memo-list">
+      <div class="memo-item"><span class="bullet">01 /</span> Observe avant d'arroser. Le doigt dans le sol, les yeux sur les feuilles.</div>
+      <div class="memo-item"><span class="bullet">02 /</span> Le matin. Au pied. Jamais sur le feuillage.</div>
+      <div class="memo-item"><span class="bullet">03 /</span> Profond et rare — pas superficiel et quotidien.</div>
+      <div class="memo-item"><span class="bullet">04 /</span> Pailler : la meilleure façon d'arroser moins.</div>
+      <div class="memo-item"><span class="bullet">05 /</span> Un arrosage automatique sans observation préalable, c'est du jardinage en aveugle.</div>
+    </div>
+  </div>
+
+</main>
+
+<footer>
+  <p>ForêtMap · <a href="https://olution.info">olution.info</a> · projet n³ — Nature · Numérique · Nomade · v1.1<br>
+  Lycée Lyautey, Casablanca · AEFE</p>
+</footer>
+</body>
+</html>

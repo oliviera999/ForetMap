@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Le rempotage – ForêtMap n³</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;1,400&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400&display=swap" rel="stylesheet" />
+  <style>
+    :root { --terre: #3d2b1f; --mousse: #4a6741; --herbe: #7aab5e; --eau: #5b9fb5; --ciel: #c8e6f0; --sable: #e8dcc8; --creme: #f5f0e8; --ink: #1e1a16; --accent: #b85c2a; --argile: #9b6b4a; }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'DM Sans', sans-serif; background: var(--creme); color: var(--ink); min-height: 100vh; overflow-x: hidden; }
+    .hero { position: relative; background: var(--argile); padding: 3.5rem 2rem 2.5rem; overflow: hidden; }
+    .hero::before { content: ''; position: absolute; inset: 0; background: radial-gradient(ellipse 50% 70% at 90% 120%, rgba(61,43,31,.5) 0%, transparent 60%), radial-gradient(ellipse 40% 50% at 5% -10%, rgba(122,171,94,.15) 0%, transparent 55%); }
+    .hero-tag { font-family: 'DM Mono', monospace; font-size: .7rem; letter-spacing: .18em; text-transform: uppercase; color: var(--sable); margin-bottom: .75rem; position: relative; opacity: .75; }
+    .hero h1 { font-family: 'Playfair Display', serif; font-size: clamp(2rem, 5vw, 3.2rem); color: var(--creme); line-height: 1.15; position: relative; max-width: 560px; }
+    .hero h1 em { font-style: italic; color: var(--sable); }
+    .hero-sub { margin-top: 1rem; font-size: .9rem; color: rgba(245,240,232,.72); font-weight: 300; position: relative; max-width: 460px; line-height: 1.6; }
+    .pillules { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: 1.5rem; position: relative; }
+    .pillule { font-size: .7rem; font-family: 'DM Mono', monospace; letter-spacing: .1em; padding: .3rem .75rem; border-radius: 999px; border: 1px solid rgba(255,255,255,.2); color: rgba(255,255,255,.75); background: rgba(255,255,255,.07); }
+    .content { max-width: 780px; margin: 0 auto; padding: 2.5rem 1.5rem 4rem; }
+    .section-label { font-family: 'DM Mono', monospace; font-size: .65rem; letter-spacing: .2em; text-transform: uppercase; color: var(--argile); margin-bottom: .4rem; display: flex; align-items: center; gap: .5rem; }
+    .section-label::after { content: ''; flex: 1; height: 1px; background: var(--argile); opacity: .25; }
+    .intro-sensorielle { background: var(--terre); color: var(--creme); border-radius: 12px; padding: 1.75rem 2rem; margin: 2rem 0; position: relative; overflow: hidden; }
+    .intro-sensorielle::after { content: '◎'; position: absolute; right: 1.5rem; bottom: .25rem; font-size: 5rem; opacity: .05; }
+    .intro-sensorielle p { font-family: 'Playfair Display', serif; font-style: italic; font-size: 1.1rem; line-height: 1.7; opacity: .92; }
+    .intro-sensorielle cite { display: block; font-family: 'DM Mono', monospace; font-style: normal; font-size: .65rem; letter-spacing: .12em; margin-top: .75rem; color: var(--herbe); }
+    .signes { background: var(--sable); border-radius: 12px; padding: 1.5rem 2rem; margin: 2rem 0; }
+    .signes h3 { font-family: 'Playfair Display', serif; font-size: 1.05rem; color: var(--terre); margin-bottom: .9rem; }
+    .signes-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: .75rem; }
+    .signe-item { background: rgba(255,255,255,.55); border-radius: 8px; padding: .75rem 1rem; font-size: .82rem; line-height: 1.5; color: #4a3f35; border-left: 3px solid var(--accent); }
+    .signe-item strong { display: block; font-size: .72rem; font-family: 'DM Mono', monospace; letter-spacing: .08em; color: var(--accent); margin-bottom: .25rem; }
+    .etapes { display: flex; flex-direction: column; gap: 1.25rem; margin: 2rem 0; }
+    .etape { display: grid; grid-template-columns: 3rem 1fr; gap: 1rem; align-items: start; }
+    .etape-num { width: 3rem; height: 3rem; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-family: 'Playfair Display', serif; font-size: 1.3rem; font-weight: 700; flex-shrink: 0; }
+    .etape-body h3 { font-family: 'DM Sans', sans-serif; font-weight: 500; font-size: 1rem; margin-bottom: .3rem; color: var(--terre); }
+    .etape-body p { font-size: .875rem; line-height: 1.65; color: #4a3f35; }
+    .etape-body .sci { margin-top: .5rem; font-size: .8rem; font-family: 'DM Mono', monospace; color: var(--mousse); background: rgba(74,103,65,.08); border-left: 2px solid var(--mousse); padding: .4rem .75rem; border-radius: 0 4px 4px 0; line-height: 1.5; }
+    .etape-body .attention { margin-top: .5rem; font-size: .8rem; color: #7a3a10; background: rgba(184,92,42,.08); border-left: 2px solid var(--accent); padding: .4rem .75rem; border-radius: 0 4px 4px 0; line-height: 1.5; }
+    .substrats { background: var(--ciel); border-radius: 12px; padding: 1.5rem 2rem; margin: 2rem 0; }
+    .substrats h3 { font-family: 'Playfair Display', serif; font-size: 1.05rem; color: var(--terre); margin-bottom: .9rem; }
+    .substrats-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: .75rem; }
+    .substrat-item { background: rgba(255,255,255,.6); border-radius: 8px; padding: .75rem 1rem; font-size: .82rem; line-height: 1.5; color: #2a4a58; }
+    .substrat-item strong { display: block; font-size: .72rem; font-family: 'DM Mono', monospace; letter-spacing: .08em; color: var(--eau); margin-bottom: .25rem; }
+    .question-sci { border: 1.5px solid var(--mousse); border-radius: 12px; padding: 1.5rem 2rem; margin: 2rem 0; position: relative; }
+    .question-sci .q-label { position: absolute; top: -0.6rem; left: 1.25rem; background: var(--creme); padding: 0 .5rem; font-family: 'DM Mono', monospace; font-size: .65rem; letter-spacing: .15em; color: var(--mousse); text-transform: uppercase; }
+    .question-sci .q-text { font-family: 'Playfair Display', serif; font-style: italic; font-size: 1.05rem; color: var(--terre); line-height: 1.55; margin-bottom: .75rem; }
+    .question-sci .q-reponse { font-size: .85rem; line-height: 1.65; color: #4a3f35; }
+    .taille-pot { border: 1.5px solid var(--argile); border-radius: 12px; padding: 1.5rem 2rem; margin: 2rem 0; position: relative; }
+    .taille-pot .tp-label { position: absolute; top: -0.6rem; left: 1.25rem; background: var(--creme); padding: 0 .5rem; font-family: 'DM Mono', monospace; font-size: .65rem; letter-spacing: .15em; color: var(--argile); text-transform: uppercase; }
+    .taille-pot p { font-size: .875rem; line-height: 1.65; color: #4a3f35; }
+    .taille-pot .regle { margin-top: .75rem; display: flex; flex-direction: column; gap: .4rem; }
+    .taille-pot .regle-item { display: flex; align-items: baseline; gap: .6rem; font-size: .82rem; color: #4a3f35; }
+    .taille-pot .regle-item::before { content: '→'; color: var(--argile); flex-shrink: 0; }
+    .farmflow { border: 1px dashed var(--eau); border-radius: 12px; padding: 1.25rem 1.75rem; margin: 2rem 0; display: flex; gap: 1rem; align-items: flex-start; }
+    .farmflow .ff-icon { font-size: 1.75rem; flex-shrink: 0; margin-top: .1rem; }
+    .farmflow h4 { font-family: 'DM Mono', monospace; font-size: .75rem; letter-spacing: .12em; color: var(--eau); text-transform: uppercase; margin-bottom: .35rem; }
+    .farmflow p { font-size: .82rem; line-height: 1.6; color: #3a5a6a; }
+    .memo { background: var(--argile); color: var(--creme); border-radius: 12px; padding: 1.75rem 2rem; margin-top: 2.5rem; }
+    .memo h3 { font-family: 'Playfair Display', serif; font-size: 1.1rem; margin-bottom: 1rem; opacity: .9; }
+    .memo-list { display: flex; flex-direction: column; gap: .5rem; }
+    .memo-item { display: flex; align-items: baseline; gap: .75rem; font-size: .85rem; line-height: 1.5; opacity: .88; }
+    .memo-item .bullet { font-family: 'DM Mono', monospace; color: var(--sable); font-size: .75rem; flex-shrink: 0; }
+    footer { text-align: center; padding: 2rem 1rem; font-family: 'DM Mono', monospace; font-size: .65rem; letter-spacing: .12em; color: rgba(30,26,22,.35); }
+    footer a { color: var(--mousse); text-decoration: none; }
+    @media (max-width: 520px) { .etape { grid-template-columns: 2.5rem 1fr; } .signes-grid, .substrats-grid { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+<header class="hero">
+  <p class="hero-tag">n³ · Nature · Numérique · Nomade / ForêtMap</p>
+  <h1>Rempoter —<br><em>rouvrir l'espace qu'on avait fermé</em></h1>
+  <p class="hero-sub">Un pot, c'est une prison à taille variable. La plante ne se plaint pas — elle ralentit, se tait, s'étiole. C'est à toi de remarquer que le contrat est rompu.</p>
+  <div class="pillules">
+    <span class="pillule">🌱 Terrain / sensoriel</span>
+    <span class="pillule">🔬 Questionnement scientifique</span>
+    <span class="pillule">🪴 Gestes pratiques</span>
+  </div>
+</header>
+<main class="content">
+  <div class="intro-sensorielle">
+    <p>Retourne le pot. Regarde ce qui sort. Des racines qui ont fait le tour, qui se croisent, qui remontent — c'est une plante qui a cartographié chaque centimètre de substrat disponible et qui cherche une sortie depuis des semaines. Elle n'attendait que toi.</p>
+    <cite>→ Les racines parlent avant les feuilles. Retourne le pot de temps en temps, juste pour voir.</cite>
+  </div>
+
+  <p class="section-label">01 — Ce que la plante dit quand le pot est trop petit</p>
+  <div class="signes">
+    <h3>Quatre signaux, un seul diagnostic</h3>
+    <div class="signes-grid">
+      <div class="signe-item"><strong>Racines visibles</strong>Elles sortent par les trous ou remontent en surface. Le pot est saturé. C'était il y a plusieurs semaines qu'il fallait agir.</div>
+      <div class="signe-item"><strong>Croissance stoppée</strong>La plante ne grandit plus malgré de bons soins. Elle ne peut pas — elle n'a plus de volume racinaire disponible.</div>
+      <div class="signe-item"><strong>Sol qui se rétracte</strong>Le substrat se détache des parois. Épuisé, compacté, lessivé. Ce n'est plus de la terre — c'est de la poussière structurée.</div>
+      <div class="signe-item"><strong>Arrosage ingérable</strong>L'eau traverse d'un coup sans être absorbée. Le réseau racinaire a pris toute la place. Il ne reste rien pour retenir l'eau.</div>
+    </div>
+  </div>
+
+  <div class="question-sci">
+    <span class="q-label">Question scientifique</span>
+    <p class="q-text">Pourquoi une plante s'arrête-t-elle de grandir quand ses racines manquent d'espace ?</p>
+    <p class="q-reponse">Les racines absorbent eau et ions minéraux (azote, phosphore, potassium) nécessaires à la photosynthèse. Trop comprimées, leur surface d'absorption chute. La plante reçoit moins de matière première, ralentit. Elle produit aussi de l'éthylène — hormone de stress — qui déclenche le jaunissement foliaire. Ce n'est pas une maladie. C'est une contrainte physique traduite en signal chimique.</p>
+  </div>
+
+  <p class="section-label">02 — Le pot suivant</p>
+  <div class="taille-pot">
+    <span class="tp-label">La règle des +3 cm</span>
+    <p>On ne saute pas plusieurs tailles. Un pot trop grand retient trop d'humidité dans le substrat non colonisé — c'est là que la pourriture commence.</p>
+    <div class="regle">
+      <div class="regle-item">Petite plante : <strong>+2 à 3 cm</strong> de diamètre par rapport au pot actuel.</div>
+      <div class="regle-item">Grande plante : <strong>+4 à 5 cm</strong> maximum.</div>
+      <div class="regle-item">Toujours des <strong>trous de drainage</strong> — sans exception.</div>
+      <div class="regle-item">Terre cuite respire et sèche vite. Plastique retient l'humidité. Selon l'espèce et le climat.</div>
+    </div>
+  </div>
+
+  <p class="section-label">03 — Ce qu'on met dedans</p>
+  <div class="substrats">
+    <h3>Le substrat n'est pas de la terre — c'est un écosystème</h3>
+    <div class="substrats-grid">
+      <div class="substrat-item"><strong>Terreau universel</strong>Base pour la plupart des plantes. Point de départ, pas point d'arrivée.</div>
+      <div class="substrat-item"><strong>Sable / perlite</strong>Drainage impératif pour succulentes et plantes méditerranéennes. Sans ça, les racines asphyxient.</div>
+      <div class="substrat-item"><strong>Compost maison</strong>Nutriments vivants, microorganismes actifs. Incomparablement supérieur à l'engrais chimique qui nourrit la plante sans nourrir le sol.</div>
+      <div class="substrat-item"><strong>Billes d'argile</strong>2–3 cm au fond. Crée un espace drainant entre substrat et trou d'évacuation.</div>
+    </div>
+  </div>
+
+  <div class="question-sci">
+    <span class="q-label">Question scientifique</span>
+    <p class="q-text">Pourquoi l'absence de drainage tue les racines — et comment ?</p>
+    <p class="q-reponse">Les racines respirent. Elles consomment de l'O₂ et rejettent du CO₂ par respiration cellulaire. Un sol gorgé d'eau en permanence chasse l'air des pores du substrat — les racines s'asphyxient. Les cellules meurent par manque d'oxygène, pas par excès d'eau. La pourriture racinaire est la conséquence d'un sol anaérobie. Un bon drainage rétablit des cycles air/eau alternés après chaque arrosage.</p>
+  </div>
+
+  <p class="section-label">04 — Le geste, dans l'ordre</p>
+  <div class="etapes">
+    <div class="etape">
+      <div class="etape-num" style="background:var(--sable);color:var(--terre);">1</div>
+      <div class="etape-body">
+        <h3>Arroser la veille</h3>
+        <p>Un substrat légèrement humide se démoule proprement et protège les racines fines. Pas détrempé — juste souple. La motte doit tenir sans s'effondrer.</p>
+      </div>
+    </div>
+    <div class="etape">
+      <div class="etape-num" style="background:var(--argile);color:#fff;">2</div>
+      <div class="etape-body">
+        <h3>Démouler sans arracher</h3>
+        <p>Renverse doucement, soutiens la motte d'une main. Si ça résiste : tape les parois, passe un couteau fin sur les bords.</p>
+        <div class="attention">✗ Tirer sur la tige : c'est exactement l'inverse du bon geste. La tige n'est pas une poignée.</div>
+      </div>
+    </div>
+    <div class="etape">
+      <div class="etape-num" style="background:var(--mousse);color:#fff;">3</div>
+      <div class="etape-body">
+        <h3>Observer et démêler les racines</h3>
+        <p>Racines fines et claires : actives. Racines épaisses : charpente, ne pas toucher. Racines noires ou molles : mortes, à retirer. Racines en spirale : à dérouler — elles repartiront droit.</p>
+        <div class="sci">Une racine en boucle finit par s'étrangler elle-même. Libérée, elle reprend une croissance radiale normale. Ce démêlage n'est pas cosmétique — c'est une correction de trajectoire.</div>
+      </div>
+    </div>
+    <div class="etape">
+      <div class="etape-num" style="background:var(--herbe);color:#fff;">4</div>
+      <div class="etape-body">
+        <h3>Installer dans le nouveau pot</h3>
+        <p>Billes d'argile au fond (2–3 cm), couche de substrat frais, pose de la motte. Le collet — jonction tige/racines — reste exactement au même niveau qu'avant. Ni enterré, ni surélevé.</p>
+      </div>
+    </div>
+    <div class="etape">
+      <div class="etape-num" style="background:var(--eau);color:#fff;">5</div>
+      <div class="etape-body">
+        <h3>Combler, tasser, arroser une fois — puis laisser</h3>
+        <p>Remplis avec du substrat frais en tassant pour chasser les poches d'air. Laisse 2 cm libres en haut. Arrose généreusement une fois. Ensuite : une semaine sans y toucher.</p>
+        <div class="sci">Les racines dérangées cicatrisent avant de repartir. Arroser excessivement juste après rempotage, c'est attaquer des blessures ouvertes. La semaine de tranquillité n'est pas optionnelle.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="farmflow">
+    <div class="ff-icon">📡</div>
+    <div>
+      <h4>Farmflow — Suivre la reprise après rempotage</h4>
+      <p>Après rempotage, l'humidité du nouveau substrat évolue différemment de l'ancien. Un capteur en place permet de suivre cette transition semaine par semaine et d'ajuster les arrosages sans deviner.</p>
+    </div>
+  </div>
+
+  <div class="memo">
+    <h3>📋 Ce qu'il faut retenir</h3>
+    <div class="memo-list">
+      <div class="memo-item"><span class="bullet">01 /</span> Retourne le pot régulièrement. Les racines qui sortent parlent depuis plusieurs semaines.</div>
+      <div class="memo-item"><span class="bullet">02 /</span> Pas plus de +5 cm de diamètre — trop grand tue aussi bien que trop petit.</div>
+      <div class="memo-item"><span class="bullet">03 /</span> Le drainage n'est pas un détail. C'est la condition de survie des racines.</div>
+      <div class="memo-item"><span class="bullet">04 /</span> Arroser la veille, démouler sans tirer, collet au même niveau.</div>
+      <div class="memo-item"><span class="bullet">05 /</span> Démêler les racines spiralées — correction, pas option.</div>
+      <div class="memo-item"><span class="bullet">06 /</span> Une semaine sans y toucher après rempotage. Les racines travaillent. Laisse-les.</div>
+    </div>
+  </div>
+</main>
+<footer>
+  <p>ForêtMap · <a href="https://olution.info">olution.info</a> · projet n³ — Nature · Numérique · Nomade · v1.1<br>Lycée Lyautey, Casablanca · AEFE</p>
+</footer>
+</body>
+</html>

@@ -10,13 +10,17 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - **Retrait de tâche (élève)** : `POST /api/tasks/:id/unassign` n’exige plus le JWT professeur, comme `assign` et comme l’UI « Me retirer » ; corrige le `401 Unauthorized` en production.
 
 ### Modifié
-- **Navigation élève** : ajout d’un onglet `Tuto` vide (placeholder) dans la barre du bas, positionné entre `Biodiversité` et `Carnet`.
+- **Navigation Tuto (élève/prof)** : l’onglet `Tuto` affiche désormais une vraie liste consultable (cartes animées), avec aperçu intégré et actions de téléchargement HTML/PDF.
+- **Tâches** : ajout du champ `tutorial_ids` sur création/édition de tâche, affichage des tutoriels liés dans les cartes de tâches et sélection multi-tutoriels dans le formulaire prof.
 - **Liste des tâches** : pastille de statut discrète (rouge/orange en fondu pulsé pour à faire / en cours, vert fixe pour terminée ou validée), avec libellé accessible au survol et pour les lecteurs d’écran.
 - **Carte (zones/repères)** : ajout des pastilles de statut des tâches directement sur la carte (rouge/orange en fondu, vert fixe), avec agrégation par priorité quand plusieurs tâches sont liées au même élément.
 - **Contraste des statuts** : teinte orange “en cours” renforcée (`#f59e0b`) pour mieux se distinguer du rouge “à faire”, en vue tâches et sur la carte.
 - **Préparation de déploiement** : exécution du workflow build local `npm run deploy:prepare` pour générer `dist/` et l’archive de livraison.
 
 ### Ajouté
+- **Module Tutoriels complet** : nouveau routeur `routes/tutorials.js` (`GET/POST/PUT/DELETE`, rendu HTML, téléchargement HTML et PDF généré à la volée), nouveau composant frontend `src/components/tutorials-views.jsx`, et exposition statique du dossier `tutos/`.
+- **Schéma tutoriels + lien avec tâches** : ajout des tables `tutorials` et `task_tutorials` (migration `020_tutorials_and_task_links.sql`), avec seed initial des 4 tutoriels HTML du dossier `tutos/`.
+- **Tests tutoriels** : nouveau fichier `tests/tutorials.test.js` couvrant la lecture, les droits prof, les téléchargements HTML/PDF et l’association `tutorial_ids` lors de la création d’une tâche.
 - **Tâches multi-zones / multi-repères** : tables `task_zones` et `task_markers`, API `zone_ids` / `marker_ids`, formulaire prof avec cases à cocher (plusieurs zones et repères sur la même carte), liens/déliens depuis la carte sans écraser les autres associations ; migration `019_task_zones_markers_multi.sql`.
 - **Réconciliation des uploads orphelins** : nouveau script `scripts/reconcile-orphan-uploads.js` + commandes `db:uploads:reconcile:dry` et `db:uploads:reconcile` pour détecter/supprimer les fichiers orphelins sous `uploads/` (mode dry-run par défaut, scope géré sécurisé) ; tests dans `tests/uploads-reconcile-script.test.js`.
 - **Audit consolidé bugs/incohérences** : ajout de `docs/AUDIT_BUGS_INCOHERENCES.md` avec une matrice unique des constats (sécurité, médias, temps réel, documentation) et priorisation d'actions.

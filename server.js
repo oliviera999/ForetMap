@@ -15,6 +15,7 @@ const mapsRouter    = require('./routes/maps');
 const mapRouter     = require('./routes/map');
 const plantsRouter  = require('./routes/plants');
 const tasksRouter   = require('./routes/tasks');
+const tutorialsRouter = require('./routes/tutorials');
 const statsRouter   = require('./routes/stats');
 const studentsRouter      = require('./routes/students');
 const observationsRouter  = require('./routes/observations');
@@ -42,6 +43,7 @@ const serveDist = process.env.NODE_ENV === 'production' && fs.existsSync(distSpa
 const staticRoot = serveDist ? distDir : path.join(__dirname, 'public');
 app.use(express.static(staticRoot, serveDist ? { index: false } : undefined));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+app.use('/tutos', express.static(path.join(__dirname, 'tutos')));
 
 // Route de santé sans BDD — pour le contrôle de disponibilité (o2switch / Passenger)
 app.get('/api/health', (req, res) => {
@@ -109,6 +111,7 @@ app.use('/api/maps', mapsRouter);
 app.use('/api/map', mapRouter);
 app.use('/api/plants', plantsRouter);
 app.use('/api/tasks', tasksRouter);
+app.use('/api/tutorials', tutorialsRouter);
 app.use('/api/stats', statsRouter);
 app.use('/api/students', studentsRouter);
 app.use('/api/observations', observationsRouter);
