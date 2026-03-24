@@ -5,9 +5,21 @@
 SET NAMES utf8mb4;
 SET FOREIGN_KEY_CHECKS = 0;
 
+-- maps (cartes de travail: foret, n3, ...)
+CREATE TABLE IF NOT EXISTS maps (
+  id VARCHAR(32) PRIMARY KEY,
+  label VARCHAR(255) NOT NULL,
+  map_image_url VARCHAR(512) DEFAULT NULL,
+  sort_order INT UNSIGNED DEFAULT 0
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+INSERT IGNORE INTO maps (id, label, map_image_url, sort_order) VALUES
+  ('foret', 'Forêt comestible', '/maps/map-foret.svg', 1),
+  ('n3', 'N3', '/maps/plan%20n3.jpg', 2);
+
 -- zones (zones du jardin, rect ou polygon)
 CREATE TABLE IF NOT EXISTS zones (
   id VARCHAR(64) PRIMARY KEY,
+  map_id VARCHAR(32) NOT NULL DEFAULT 'foret',
   name VARCHAR(255) NOT NULL,
   x DOUBLE DEFAULT NULL,
   y DOUBLE DEFAULT NULL,
@@ -19,7 +31,9 @@ CREATE TABLE IF NOT EXISTS zones (
   shape VARCHAR(32) DEFAULT 'rect',
   points TEXT DEFAULT NULL,
   color VARCHAR(32) DEFAULT '#86efac80',
-  description TEXT DEFAULT ''
+  description TEXT DEFAULT '',
+  INDEX idx_zones_map_id (map_id),
+  CONSTRAINT fk_zones_map FOREIGN KEY (map_id) REFERENCES maps(id) ON DELETE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- zone_history (historique récoltes par zone)
@@ -75,13 +89,16 @@ CREATE TABLE IF NOT EXISTS tasks (
   id VARCHAR(64) PRIMARY KEY,
   title VARCHAR(512) NOT NULL,
   description TEXT DEFAULT NULL,
+  map_id VARCHAR(32) DEFAULT NULL,
   zone_id VARCHAR(64) DEFAULT NULL,
   due_date VARCHAR(32) DEFAULT NULL,
   required_students INT UNSIGNED DEFAULT 1,
   status VARCHAR(32) DEFAULT 'available',
   created_at VARCHAR(32) DEFAULT NULL,
+  INDEX idx_tasks_map_id (map_id),
   INDEX idx_tasks_zone_id (zone_id),
   INDEX idx_tasks_due_date (due_date),
+  CONSTRAINT fk_tasks_map FOREIGN KEY (map_id) REFERENCES maps(id) ON DELETE SET NULL,
   CONSTRAINT fk_tasks_zone FOREIGN KEY (zone_id) REFERENCES zones(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -140,6 +157,7 @@ CREATE TABLE IF NOT EXISTS zone_photos (
 -- map_markers (repères sur la carte)
 CREATE TABLE IF NOT EXISTS map_markers (
   id VARCHAR(64) PRIMARY KEY,
+  map_id VARCHAR(32) NOT NULL DEFAULT 'foret',
   x_pct DOUBLE NOT NULL,
   y_pct DOUBLE NOT NULL,
   label VARCHAR(255) NOT NULL,
@@ -147,6 +165,8 @@ CREATE TABLE IF NOT EXISTS map_markers (
   note TEXT DEFAULT '',
   emoji VARCHAR(16) DEFAULT '🌱',
   created_at VARCHAR(32) DEFAULT NULL,
+  INDEX idx_map_markers_map_id (map_id),
+  CONSTRAINT fk_map_markers_map FOREIGN KEY (map_id) REFERENCES maps(id) ON DELETE RESTRICT,
   INDEX idx_map_markers_created (created_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 

@@ -48,6 +48,15 @@ test('POST /api/auth/teacher avec bon PIN renvoie 200 et un token', async () => 
   assert.ok(res.body.token);
 });
 
+test('GET /api/maps renvoie les cartes configurées', async () => {
+  const res = await request(app)
+    .get('/api/maps')
+    .expect(200);
+  assert.ok(Array.isArray(res.body));
+  assert.ok(res.body.some(m => m.id === 'foret'));
+  assert.ok(res.body.some(m => m.id === 'n3'));
+});
+
 // ─── Statuts tâches (assign / unassign) ───────────────────────────────────
 test('Assign puis unassign met à jour le statut de la tâche', async () => {
   const auth = await request(app)
@@ -84,6 +93,50 @@ test('Assign puis unassign met à jour le statut de la tâche', async () => {
     .expect(200);
   const afterUnassign = await request(app).get(`/api/tasks/${taskId}`).expect(200);
   assert.strictEqual(afterUnassign.body.status, 'available');
+});
+
+test('Zones et tâches supportent le filtrage multi-cartes', async () => {
+  const auth = await request(app)
+    .post('/api/auth/teacher')
+    .send({ pin: process.env.TEACHER_PIN || '1234' });
+  const token = auth.body.token;
+
+  const zoneN3 = await request(app)
+    .post('/api/zones')
+    .set('Authorization', 'Bearer ' + token)
+    .send({
+      name: 'Zone test N3',
+      map_id: 'n3',
+      points: [{ xp: 10, yp: 10 }, { xp: 20, yp: 10 }, { xp: 15, yp: 20 }],
+      stage: 'empty',
+    })
+    .expect(201);
+  assert.strictEqual(zoneN3.body.map_id, 'n3');
+
+  const n3Zones = await request(app).get('/api/zones?map_id=n3').expect(200);
+  const foretZones = await request(app).get('/api/zones?map_id=foret').expect(200);
+  assert.ok(n3Zones.body.some(z => z.id === zoneN3.body.id));
+  assert.ok(!foretZones.body.some(z => z.id === zoneN3.body.id));
+
+  const n3Task = await request(app)
+    .post('/api/tasks')
+    .set('Authorization', 'Bearer ' + token)
+    .send({ title: `Tâche N3 ${Date.now()}`, zone_id: zoneN3.body.id, required_students: 1 })
+    .expect(201);
+  assert.strictEqual(n3Task.body.map_id_resolved, 'n3');
+
+  await request(app)
+    .post('/api/tasks')
+    .set('Authorization', 'Bearer ' + token)
+    .send({ title: `Tâche globale ${Date.now()}`, map_id: null, required_students: 1 })
+    .expect(201);
+
+  const tasksN3 = await request(app).get('/api/tasks?map_id=n3').expect(200);
+  assert.ok(tasksN3.body.some(t => t.id === n3Task.body.id));
+  assert.ok(tasksN3.body.some(t => (t.map_id_resolved || t.map_id || t.zone_map_id || null) == null));
+
+  const tasksForet = await request(app).get('/api/tasks?map_id=foret').expect(200);
+  assert.ok(!tasksForet.body.some(t => t.id === n3Task.body.id));
 });
 
 // ─── Suppression élève (cascade + statuts) ──────────────────────────────────

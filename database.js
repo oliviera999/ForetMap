@@ -6,7 +6,7 @@ const fs = require('fs');
 const logger = require('./lib/logger');
 
 /** Errnos MySQL souvent attendus lors de migrations idempotentes (table/colonne/index déjà présents). */
-const MYSQL_MIGRATION_EXPECTED_ERRNO = new Set([1050, 1060, 1061, 1091]);
+const MYSQL_MIGRATION_EXPECTED_ERRNO = new Set([1050, 1060, 1061, 1091, 1826]);
 
 function migrationStmtSnippet(stmt) {
   const s = (stmt || '').replace(/\s+/g, ' ').trim();
@@ -188,27 +188,32 @@ async function runMigrations(conn) {
  * Seed des données de démo si les tables sont vides (pas de migration destructive zone-*).
  */
 async function seedData() {
+  await execute(
+    'INSERT IGNORE INTO maps (id, label, map_image_url, sort_order) VALUES (?, ?, ?, ?), (?, ?, ?, ?)',
+    ['foret', 'Forêt comestible', '/maps/map-foret.svg', 1, 'n3', 'N3', '/maps/plan%20n3.jpg', 2]
+  );
+
   const zoneCount = await queryOne('SELECT COUNT(*) AS c FROM zones').then(r => r?.c ?? 0);
   if (zoneCount > 0) return;
 
-  const iz = `INSERT INTO zones (id, name, x, y, width, height, current_plant, stage, special, shape) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+  const iz = `INSERT INTO zones (id, map_id, name, x, y, width, height, current_plant, stage, special, shape) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
   const zones = [
-    ['pg', 'Plantes Grasses', 183, 88, 56, 38, 'Cactus', 'growing', 0, 'rect'],
-    ['aromatiques', 'Aromatiques (A)', 572, 258, 50, 46, 'Menthe', 'growing', 0, 'rect'],
-    ['potager-n', 'Potager Nord', 478, 262, 88, 88, 'Tomate', 'growing', 0, 'rect'],
-    ['potager-s', 'Potager Sud', 478, 356, 88, 88, 'Laitue', 'ready', 0, 'rect'],
-    ['potager-ne', 'Potager Nord-Est', 572, 262, 88, 88, 'Carotte', 'growing', 0, 'rect'],
-    ['potager-se', 'Potager Sud-Est', 572, 356, 88, 88, 'Basilic', 'growing', 0, 'rect'],
-    ['butte-fleurie', 'Butte fleurie', 295, 108, 100, 100, '', 'special', 1, 'circle'],
-    ['sa', 'Spirale Arom.', 430, 174, 36, 36, '', 'special', 1, 'circle'],
-    ['compostage', 'Compostage', 472, 116, 42, 36, '', 'special', 1, 'rect'],
-    ['cuve', 'Cuve à eau', 536, 95, 44, 33, '', 'special', 1, 'rect'],
-    ['pergola', 'Pergola', 293, 205, 90, 68, '', 'special', 1, 'rect'],
-    ['fumier', 'Fumier', 382, 262, 50, 55, '', 'special', 1, 'rect'],
-    ['mare-g', 'Mare', 220, 258, 76, 104, '', 'special', 1, 'ellipse'],
-    ['mare-b', 'Mare (bas)', 444, 470, 72, 44, '', 'special', 1, 'ellipse'],
-    ['butte-b', 'Butte', 392, 444, 60, 36, '', 'special', 1, 'ellipse'],
-    ['ruches', 'Ruches', 520, 447, 52, 50, '', 'special', 1, 'rect'],
+    ['pg', 'foret', 'Plantes Grasses', 183, 88, 56, 38, 'Cactus', 'growing', 0, 'rect'],
+    ['aromatiques', 'foret', 'Aromatiques (A)', 572, 258, 50, 46, 'Menthe', 'growing', 0, 'rect'],
+    ['potager-n', 'foret', 'Potager Nord', 478, 262, 88, 88, 'Tomate', 'growing', 0, 'rect'],
+    ['potager-s', 'foret', 'Potager Sud', 478, 356, 88, 88, 'Laitue', 'ready', 0, 'rect'],
+    ['potager-ne', 'foret', 'Potager Nord-Est', 572, 262, 88, 88, 'Carotte', 'growing', 0, 'rect'],
+    ['potager-se', 'foret', 'Potager Sud-Est', 572, 356, 88, 88, 'Basilic', 'growing', 0, 'rect'],
+    ['butte-fleurie', 'foret', 'Butte fleurie', 295, 108, 100, 100, '', 'special', 1, 'circle'],
+    ['sa', 'foret', 'Spirale Arom.', 430, 174, 36, 36, '', 'special', 1, 'circle'],
+    ['compostage', 'foret', 'Compostage', 472, 116, 42, 36, '', 'special', 1, 'rect'],
+    ['cuve', 'foret', 'Cuve à eau', 536, 95, 44, 33, '', 'special', 1, 'rect'],
+    ['pergola', 'foret', 'Pergola', 293, 205, 90, 68, '', 'special', 1, 'rect'],
+    ['fumier', 'foret', 'Fumier', 382, 262, 50, 55, '', 'special', 1, 'rect'],
+    ['mare-g', 'foret', 'Mare', 220, 258, 76, 104, '', 'special', 1, 'ellipse'],
+    ['mare-b', 'foret', 'Mare (bas)', 444, 470, 72, 44, '', 'special', 1, 'ellipse'],
+    ['butte-b', 'foret', 'Butte', 392, 444, 60, 36, '', 'special', 1, 'ellipse'],
+    ['ruches', 'foret', 'Ruches', 520, 447, 52, 50, '', 'special', 1, 'rect'],
   ];
   for (const z of zones) {
     await execute(iz, z);
@@ -264,13 +269,13 @@ async function seedData() {
   };
   const now = new Date().toISOString();
   const tasks = [
-    [uuidv4(), 'Arroser les tomates', 'Arrosoir rouge, 2L par plant', 'potager-n', fmt(2), 2, 'available', now],
-    [uuidv4(), 'Récolter les laitues', 'Couper à la base avec les ciseaux verts', 'potager-s', fmt(1), 3, 'available', now],
-    [uuidv4(), 'Désherber Potager Sud-Est', 'Retirer les mauvaises herbes autour du basilic', 'potager-se', fmt(4), 2, 'available', now],
+    [uuidv4(), 'Arroser les tomates', 'Arrosoir rouge, 2L par plant', 'foret', 'potager-n', fmt(2), 2, 'available', now],
+    [uuidv4(), 'Récolter les laitues', 'Couper à la base avec les ciseaux verts', 'foret', 'potager-s', fmt(1), 3, 'available', now],
+    [uuidv4(), 'Désherber Potager Sud-Est', 'Retirer les mauvaises herbes autour du basilic', 'foret', 'potager-se', fmt(4), 2, 'available', now],
   ];
   for (const t of tasks) {
     await execute(
-      'INSERT INTO tasks (id, title, description, zone_id, due_date, required_students, status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+      'INSERT INTO tasks (id, title, description, map_id, zone_id, due_date, required_students, status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
       t
     );
   }

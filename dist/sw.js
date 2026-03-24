@@ -2,6 +2,8 @@ const CACHE_NAME = 'foretmap-offline-v1';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
+  '/maps/map-foret.svg',
+  '/maps/plan%20n3.jpg',
 ];
 
 // URLs d'API à mettre en cache pour la consultation hors-ligne
