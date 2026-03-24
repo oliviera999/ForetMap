@@ -263,6 +263,56 @@
     .map-legend { display:flex; gap:10px; flex-wrap:wrap; margin-top:10px; }
     .legend-item { display:flex; align-items:center; gap:6px; font-size:.78rem; color:#666; }
     .legend-dot { width:12px; height:12px; border-radius:3px; flex-shrink:0; }
+    .map-bubble-pin { position:relative; }
+    .map-task-status-dot {
+      position:absolute; top:-1px; right:-1px;
+      width:10px; height:10px; border-radius:50%;
+      border:1.5px solid #fff; box-shadow:0 1px 4px rgba(0,0,0,.18);
+    }
+    .map-task-status-dot--todo {
+      background:#dc2626;
+      animation:mapStatusFadeRed 2.2s ease-in-out infinite;
+    }
+    .map-task-status-dot--progress {
+      background:#ea580c;
+      animation:mapStatusFadeOrange 2.2s ease-in-out infinite;
+    }
+    .map-task-status-dot--done {
+      background:#16a34a;
+      animation:none;
+      opacity:1;
+    }
+    .map-task-status { stroke:#fff; stroke-width:1.5px; }
+    .map-task-status--todo {
+      fill:#dc2626;
+      filter:drop-shadow(0 0 6px rgba(220,38,38,.45));
+      animation:mapStatusFadeRed 2.2s ease-in-out infinite;
+    }
+    .map-task-status--progress {
+      fill:#ea580c;
+      filter:drop-shadow(0 0 6px rgba(234,88,12,.45));
+      animation:mapStatusFadeOrange 2.2s ease-in-out infinite;
+    }
+    .map-task-status--done {
+      fill:#16a34a;
+      filter:drop-shadow(0 0 5px rgba(22,163,74,.34));
+      animation:none;
+      opacity:1;
+    }
+    @keyframes mapStatusFadeRed {
+      0%, 100% { opacity:1; }
+      50% { opacity:.42; }
+    }
+    @keyframes mapStatusFadeOrange {
+      0%, 100% { opacity:1; }
+      50% { opacity:.42; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .map-task-status-dot--todo,
+      .map-task-status-dot--progress,
+      .map-task-status--todo,
+      .map-task-status--progress { animation:none; opacity:.92; }
+    }
 
     /* ── ZONE INFO ── */
     .zone-info { background:var(--parchment); border-radius:12px; padding:16px; border:1.5px solid var(--mint); }
