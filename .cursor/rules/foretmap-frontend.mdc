@@ -1,15 +1,15 @@
 ---
-description: Conventions frontend React (public/index.html et futur build Vite)
+description: Conventions frontend React (stack Vite active)
 globs: public/**/*.html, public/**/*.jsx, public/**/*.css, src/**/*.jsx, src/**/*.tsx, src/**/*.css
 alwaysApply: false
 ---
 
 # Frontend ForetMap (React)
 
-- **Stack actuelle :** React 18 UMD + Babel standalone dans le navigateur ; l'application complète est dans `public/index.html` (HTML + CSS + JSX). Un build Vite est configuré (`vite.config.js`, `src/main.jsx`) mais sert uniquement de point d'entrée stub ; la migration effective n'est pas encore faite.
+- **Stack actuelle :** React 18 + Vite actifs. Entrée HTML dans `index.vite.html`, bootstrap dans `src/main.jsx`, application modulaire dans `src/` (composants, hooks, services). Le build de production sert `dist/`.
 - **Composants :** Fonctionnels, hooks (`useState`, `useEffect`, `useCallback`, `useRef`). Pas de classes.
 - **API :** Appels via une fonction centrale (ex. `api(url, method, body)`). Gérer les réponses 401 avec `deleted: true` (compte supprimé) en déconnectant et en affichant un toast. Les actions prof envoient un token JWT (header `Authorization: Bearer <token>`) obtenu via `POST /api/auth/teacher`.
-- **Styles :** CSS dans le même fichier (balise `<style>`) ou futurs fichiers CSS si migration vers le build Vite. Variables CSS dans `:root` (thème forêt : `--forest`, `--leaf`, `--sage`, etc.). Boutons et zones cliquables : min-height 44px pour le tactile.
+- **Styles :** CSS global dans `src/index.css` (variables `:root` du thème forêt : `--forest`, `--leaf`, `--sage`, etc.). Garder la cohérence visuelle et l'accessibilité tactile (zones d'action min-height 44px).
 - **Locale :** Français (fr-FR) pour les dates et textes utilisateur. Pas de texte en dur en anglais dans l'UI.
 - **Mode professeur :** Auth gérée côté serveur (middleware JWT). Le PIN est envoyé au serveur via `POST /api/auth/teacher` ; le client stocke le token reçu. Ne jamais stocker le PIN en dur dans le code source.
-- **Migration Vite (à venir) :** `src/main.jsx` est un placeholder. Quand la migration sera lancée, déplacer les composants de `public/index.html` vers `src/components/`, les styles vers `src/`, et servir `dist/` en production (voir [docs/EVOLUTION.md](docs/EVOLUTION.md) § 2.2).
+- **Organisation recommandée :** conserver la logique UI dans `src/components/`, les hooks dans `src/hooks/`, l'accès API dans `src/services/`. Éviter de réintroduire de la logique applicative dans `public/` (réservé aux assets statiques).

@@ -231,6 +231,10 @@ router.delete('/:id', requireTeacher, async (req, res) => {
   try {
     const zone = await queryOne('SELECT * FROM zones WHERE id = ?', [req.params.id]);
     if (!zone) return res.status(404).json({ error: 'Zone introuvable' });
+    const photos = await queryAll('SELECT image_path FROM zone_photos WHERE zone_id = ?', [req.params.id]);
+    for (const p of photos) {
+      if (p && p.image_path) deleteFile(p.image_path);
+    }
     await execute('DELETE FROM zone_history WHERE zone_id = ?', [req.params.id]);
     await execute('DELETE FROM zone_photos WHERE zone_id = ?', [req.params.id]);
     await execute('DELETE FROM zones WHERE id = ?', [req.params.id]);

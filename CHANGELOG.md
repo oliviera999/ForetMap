@@ -6,6 +6,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 ## [Non publié]
 
 ### Ajouté
+- **Audit consolidé bugs/incohérences** : ajout de `docs/AUDIT_BUGS_INCOHERENCES.md` avec une matrice unique des constats (sécurité, médias, temps réel, documentation) et priorisation d'actions.
 - **Affectation des tâches depuis la carte** : ajout du lien direct tâche↔zone et tâche↔repère depuis les modales carte (onglets/actions dédiés en mode prof), avec support backend `marker_id` sur les tâches.
 - **Associations multiples d’êtres vivants** : les zones et repères acceptent désormais plusieurs êtres vivants associés (`living_beings`), avec conservation d’un être vivant principal pour compatibilité UI/API.
 - **Multi-cartes (Forêt + N3)** : ajout du support de cartes multiples avec entité `maps`, `map_id` sur zones/repères/tâches, switch de carte dans l’UI, création de zones/repères contextualisée, filtrage des tâches par carte (avec option toutes cartes) et route `GET /api/maps`.
@@ -56,6 +57,9 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - **Page À propos** : nouvel onglet (élève/prof) avec description de l'application, version affichée, mention de l'auteur, liens de documentation locaux (`/README.md`, `/CHANGELOG.md`, `/docs/*`) et lien global vers le dépôt GitHub.
 
 ### Modifié
+- **Sécurité observations** : restriction de `GET /api/observations/student/:studentId` (prof ou élève concerné) et de `DELETE /api/observations/:id` (prof ou propriétaire) pour limiter l'IDOR et les suppressions non autorisées.
+- **Suppression de zone** : purge explicite des fichiers photos associés avant suppression SQL afin d'éviter les fichiers orphelins sur disque.
+- **Règle Cursor frontend** : `.cursor/rules/foretmap-frontend.mdc` alignée sur la stack réelle React + Vite (`src/`, `dist/`) pour éviter les corrections erronées de type legacy UMD.
 - **Affichage carte responsive** : ajout d’un padding configurable par carte (`frame_padding_px` si fourni, sinon défaut par carte) pour mieux adapter le cadre d’affichage aux dimensions des plans, notamment N3.
 - **Cartes multi-zones (correctif compatibilité)** : fallback robuste des fonds de carte côté frontend (ordre de secours N3/Forêt), normalisation des URLs `/api/maps` et migration `016_maps_image_urls_backfill.sql` pour éviter la disparition visuelle des zones en cas de déploiement partiel ou d’URL historique.
 - **Mode prof biodiversité** : ajout d’un panneau d’import dans `PlantManager` pour charger un CSV/XLSX ou une URL Google Sheet avec choix de stratégie, prévisualisation et rapport détaillé.
