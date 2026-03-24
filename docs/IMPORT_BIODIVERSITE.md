@@ -43,8 +43,14 @@ En cas d'erreur, le rapport indique la ligne et le champ bloquant.
 
 ## 5) Templates fournis
 
+- `docs/templates/plants-import-template-vierge.csv`
 - `docs/templates/plants-import-template-minimal.csv`
 - `docs/templates/plants-import-template.csv`
+
+Dans l'interface mode professeur, deux boutons permettent aussi de générer un CSV:
+
+- `Télécharger template vierge` (colonnes minimales)
+- `Télécharger template complet` (toutes les colonnes `plants`)
 
 ## 6) Conseils Google Sheet
 
