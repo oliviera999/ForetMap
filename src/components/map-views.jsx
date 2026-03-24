@@ -461,6 +461,11 @@ function MapView({ zones, markers, plants, maps = [], activeMapId = 'foret', onM
   }, [activeMap?.map_image_url, activeMapId]);
   const [mapImageIdx, setMapImageIdx] = useState(0);
   const mapImageSrc = mapImageCandidates[Math.min(mapImageIdx, mapImageCandidates.length - 1)];
+  const mapFramePaddingPx = useMemo(() => {
+    const custom = Number(activeMap?.frame_padding_px);
+    if (Number.isFinite(custom) && custom >= 0) return Math.min(custom, 32);
+    return activeMapId === 'n3' ? 14 : 8;
+  }, [activeMap?.frame_padding_px, activeMapId]);
 
   const modeRef = useRef('view');
   const draggingMarkerRef = useRef(null);
@@ -765,6 +770,7 @@ function MapView({ zones, markers, plants, maps = [], activeMapId = 'foret', onM
 
   const cursor = mode === 'view' ? 'grab' : mode === 'draw-zone' ? 'crosshair' : mode === 'edit-points' ? 'default' : 'cell';
   const mapColHeight = isTeacher ? 'calc(100dvh - 56px)' : 'calc(100dvh - 56px - 72px)';
+  const mapAspect = imgSize.w > 1 && imgSize.h > 1 ? `${imgSize.w} / ${imgSize.h}` : '16 / 10';
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: mapColHeight, minHeight: 380 }}>
@@ -872,14 +878,16 @@ function MapView({ zones, markers, plants, maps = [], activeMapId = 'foret', onM
         </div>
       </div>
 
-      <div ref={containerRef}
-        style={{ flex: 1, overflow: 'hidden', position: 'relative', background: '#eef2ee',
-          cursor, touchAction: 'none', userSelect: 'none', WebkitUserSelect: 'none' }}
-        onClick={onMapClick}>
+      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: mapFramePaddingPx }}>
+        <div ref={containerRef}
+          style={{ width: '100%', maxWidth: '100%', maxHeight: '100%', aspectRatio: mapAspect,
+            overflow: 'hidden', position: 'relative', background: '#eef2ee',
+            cursor, touchAction: 'none', userSelect: 'none', WebkitUserSelect: 'none' }}
+          onClick={onMapClick}>
 
-        <div ref={worldRef}
-          style={{ position: 'absolute', left: 0, top: 0, width: iw, height: ih,
-            transformOrigin: '0 0', willChange: 'transform' }}>
+          <div ref={worldRef}
+            style={{ position: 'absolute', left: 0, top: 0, width: iw, height: ih,
+              transformOrigin: '0 0', willChange: 'transform' }}>
 
           <img ref={imgRef} src={mapImageSrc} draggable={false} alt={`Plan ${activeMap?.label || 'du jardin'}`}
             onError={() => setMapImageIdx((idx) => (
@@ -928,26 +936,27 @@ function MapView({ zones, markers, plants, maps = [], activeMapId = 'foret', onM
               )}
             </div>
           ))}
-        </div>
+          </div>
 
-        {mode !== 'view' && mode !== 'edit-points' && (
-          <div style={{ position: 'absolute', bottom: 14, left: '50%', transform: 'translateX(-50%)',
-            background: 'rgba(26,71,49,.9)', color: 'white', borderRadius: 22,
-            padding: '9px 20px', fontSize: '.82rem', fontWeight: 600,
-            pointerEvents: 'none', whiteSpace: 'nowrap', zIndex: 20 }}>
-            {mode === 'draw-zone' && drawPoints.length < 3 && '🖊️ Touche la carte (min. 3 pts)'}
-            {mode === 'draw-zone' && drawPoints.length >= 3 && `✅ ${drawPoints.length} pts — Terminer`}
-            {mode === 'add-marker' && '📍 Touche la carte pour placer'}
-          </div>
-        )}
-        {mode === 'edit-points' && (
-          <div style={{ position: 'absolute', bottom: 14, left: '50%', transform: 'translateX(-50%)',
-            background: 'rgba(82,183,136,.92)', color: 'white', borderRadius: 22,
-            padding: '9px 20px', fontSize: '.82rem', fontWeight: 600,
-            pointerEvents: 'none', whiteSpace: 'nowrap', zIndex: 20 }}>
-            ✋ Glisse les points pour modifier
-          </div>
-        )}
+          {mode !== 'view' && mode !== 'edit-points' && (
+            <div style={{ position: 'absolute', bottom: 14, left: '50%', transform: 'translateX(-50%)',
+              background: 'rgba(26,71,49,.9)', color: 'white', borderRadius: 22,
+              padding: '9px 20px', fontSize: '.82rem', fontWeight: 600,
+              pointerEvents: 'none', whiteSpace: 'nowrap', zIndex: 20 }}>
+              {mode === 'draw-zone' && drawPoints.length < 3 && '🖊️ Touche la carte (min. 3 pts)'}
+              {mode === 'draw-zone' && drawPoints.length >= 3 && `✅ ${drawPoints.length} pts — Terminer`}
+              {mode === 'add-marker' && '📍 Touche la carte pour placer'}
+            </div>
+          )}
+          {mode === 'edit-points' && (
+            <div style={{ position: 'absolute', bottom: 14, left: '50%', transform: 'translateX(-50%)',
+              background: 'rgba(82,183,136,.92)', color: 'white', borderRadius: 22,
+              padding: '9px 20px', fontSize: '.82rem', fontWeight: 600,
+              pointerEvents: 'none', whiteSpace: 'nowrap', zIndex: 20 }}>
+              ✋ Glisse les points pour modifier
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
