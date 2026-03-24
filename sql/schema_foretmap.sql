@@ -106,6 +106,25 @@ CREATE TABLE IF NOT EXISTS tasks (
   CONSTRAINT fk_tasks_marker FOREIGN KEY (marker_id) REFERENCES map_markers(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- Liens N-N tâches / zones et tâches / repères (zone_id et marker_id sur tasks = premier lien pour compat)
+CREATE TABLE IF NOT EXISTS task_zones (
+  task_id VARCHAR(64) NOT NULL,
+  zone_id VARCHAR(64) NOT NULL,
+  PRIMARY KEY (task_id, zone_id),
+  INDEX idx_task_zones_zone (zone_id),
+  CONSTRAINT fk_task_zones_task FOREIGN KEY (task_id) REFERENCES tasks(id) ON DELETE CASCADE,
+  CONSTRAINT fk_task_zones_zone FOREIGN KEY (zone_id) REFERENCES zones(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS task_markers (
+  task_id VARCHAR(64) NOT NULL,
+  marker_id VARCHAR(64) NOT NULL,
+  PRIMARY KEY (task_id, marker_id),
+  INDEX idx_task_markers_marker (marker_id),
+  CONSTRAINT fk_task_markers_task FOREIGN KEY (task_id) REFERENCES tasks(id) ON DELETE CASCADE,
+  CONSTRAINT fk_task_markers_marker FOREIGN KEY (marker_id) REFERENCES map_markers(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- task_assignments (élèves assignés à une tâche)
 CREATE TABLE IF NOT EXISTS task_assignments (
   id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,

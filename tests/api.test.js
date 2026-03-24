@@ -139,6 +139,67 @@ test('Zones et tâches supportent le filtrage multi-cartes', async () => {
   assert.ok(!tasksForet.body.some(t => t.id === n3Task.body.id));
 });
 
+test('Tâche liée à plusieurs zones et repères sur la même carte', async () => {
+  const auth = await request(app)
+    .post('/api/auth/teacher')
+    .send({ pin: process.env.TEACHER_PIN || '1234' });
+  const token = auth.body.token;
+
+  const zonesForet = await request(app).get('/api/zones?map_id=foret').expect(200);
+  const zList = (zonesForet.body || []).filter(z => !z.special);
+  const z1 = zList[0]?.id;
+  const z2 = zList[1]?.id;
+  if (!z1 || !z2) return;
+
+  const markerRes = await request(app)
+    .post('/api/map/markers')
+    .set('Authorization', 'Bearer ' + token)
+    .send({
+      map_id: 'foret',
+      x_pct: 50,
+      y_pct: 50,
+      label: 'Repère pour tâche multi',
+      emoji: '📍',
+    })
+    .expect(201);
+  const mid = markerRes.body.id;
+
+  const create = await request(app)
+    .post('/api/tasks')
+    .set('Authorization', 'Bearer ' + token)
+    .send({
+      title: `Tâche multi lieux ${Date.now()}`,
+      zone_ids: [z1, z2],
+      marker_ids: [mid],
+      required_students: 1,
+    })
+    .expect(201);
+  assert.strictEqual(create.body.zones_linked.length, 2);
+  assert.strictEqual(create.body.markers_linked.length, 1);
+  assert.strictEqual(create.body.map_id_resolved, 'foret');
+
+  const otherMapZone = await request(app)
+    .post('/api/zones')
+    .set('Authorization', 'Bearer ' + token)
+    .send({
+      name: 'Zone autre carte tâche',
+      map_id: 'n3',
+      points: [{ xp: 10, yp: 10 }, { xp: 20, yp: 10 }, { xp: 15, yp: 20 }],
+      stage: 'empty',
+    })
+    .expect(201);
+
+  await request(app)
+    .post('/api/tasks')
+    .set('Authorization', 'Bearer ' + token)
+    .send({
+      title: 'Incohérent',
+      zone_ids: [z1, otherMapZone.body.id],
+      required_students: 1,
+    })
+    .expect(400);
+});
+
 test('Zones et repères acceptent plusieurs êtres vivants associés', async () => {
   const auth = await request(app)
     .post('/api/auth/teacher')

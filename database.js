@@ -279,6 +279,9 @@ async function seedData() {
       t
     );
   }
+  await execute(
+    'INSERT IGNORE INTO task_zones (task_id, zone_id) SELECT id, zone_id FROM tasks WHERE zone_id IS NOT NULL'
+  );
 }
 
 /**
