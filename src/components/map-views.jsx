@@ -159,6 +159,14 @@ function PhotoGallery({ zoneId, isTeacher }) {
   );
 }
 
+/** IDs zones/repères liés à une tâche (API multi + champs legacy). */
+function taskLocationIds(t) {
+  if (!t) return { zoneIds: [], markerIds: [] };
+  const zoneIds = [...new Set([...(t.zone_ids || []), ...(t.zone_id ? [t.zone_id] : [])])];
+  const markerIds = [...new Set([...(t.marker_ids || []), ...(t.marker_id ? [t.marker_id] : [])])];
+  return { zoneIds, markerIds };
+}
+
 function ZoneInfoModal({ zone, plants, tasks, isTeacher, onClose, onUpdate, onDelete, onEditPoints, onLinkTask, onUnlinkTask }) {
   const [tab, setTab] = useState('info');
   const [plant, setPlant] = useState(zone.current_plant || '');
@@ -172,7 +180,7 @@ function ZoneInfoModal({ zone, plants, tasks, isTeacher, onClose, onUpdate, onDe
   const displayStage = zone.special ? 'special' : zone.stage;
   const plantObj = plants.find(p => p.name === zone.current_plant);
   const taskMapId = (t) => t.map_id_resolved || t.map_id || t.zone_map_id || t.marker_map_id || null;
-  const linkedTasks = (tasks || []).filter((t) => t.zone_id === zone.id);
+  const linkedTasks = (tasks || []).filter((t) => taskLocationIds(t).zoneIds.includes(zone.id));
   const assignableTasks = (tasks || []).filter((t) => {
     if (linkedTasks.some((lt) => lt.id === t.id)) return false;
     const mapId = taskMapId(t);
@@ -456,7 +464,7 @@ function MarkerModal({ marker, plants, tasks, onClose, onSave, onDelete, onLinkT
   const EMOJIS = ['🌱', '🌿', '🥬', '🥕', '🍅', '🍓', '🫘', '🌸', '🌳', '🌲', '🐝', '💧', '🪨', '🏠', '⚠️', '🌾', '🍋'];
 
   const taskMapId = (t) => t.map_id_resolved || t.map_id || t.zone_map_id || t.marker_map_id || null;
-  const linkedTasks = (tasks || []).filter((t) => t.marker_id === marker.id);
+  const linkedTasks = (tasks || []).filter((t) => taskLocationIds(t).markerIds.includes(marker.id));
   const assignableTasks = (tasks || []).filter((t) => {
     if (linkedTasks.some((lt) => lt.id === t.id)) return false;
     const mapId = taskMapId(t);
@@ -871,15 +879,33 @@ function MapView({ zones, markers, tasks = [], plants, maps = [], activeMapId = 
     await onRefresh();
   };
   const linkTaskToZone = async (taskId, zoneId) => {
-    await api(`/api/tasks/${taskId}`, 'PUT', { zone_id: zoneId, marker_id: null });
+    const t = (tasks || []).find((x) => x.id === taskId);
+    const { zoneIds: zi, markerIds: mi } = taskLocationIds(t);
+    const zoneIds = [...new Set([...zi, zoneId])];
+    await api(`/api/tasks/${taskId}`, 'PUT', { zone_ids: zoneIds, marker_ids: mi });
     await onRefresh();
   };
   const linkTaskToMarker = async (taskId, markerId) => {
-    await api(`/api/tasks/${taskId}`, 'PUT', { marker_id: markerId, zone_id: null });
+    const t = (tasks || []).find((x) => x.id === taskId);
+    const { zoneIds: zi, markerIds: mi } = taskLocationIds(t);
+    const markerIds = [...new Set([...mi, markerId])];
+    await api(`/api/tasks/${taskId}`, 'PUT', { zone_ids: zi, marker_ids: markerIds });
     await onRefresh();
   };
-  const unlinkTaskFromMapTarget = async (task) => {
-    await api(`/api/tasks/${task.id}`, 'PUT', { zone_id: null, marker_id: null, map_id: activeMapId });
+  const unlinkTaskFromZone = async (task, zoneId) => {
+    const { zoneIds: zi, markerIds: mi } = taskLocationIds(task);
+    const zoneIds = zi.filter((id) => id !== zoneId);
+    const payload = { zone_ids: zoneIds, marker_ids: mi };
+    if (zoneIds.length === 0 && mi.length === 0) payload.map_id = activeMapId;
+    await api(`/api/tasks/${task.id}`, 'PUT', payload);
+    await onRefresh();
+  };
+  const unlinkTaskFromMarker = async (task, markerId) => {
+    const { zoneIds: zi, markerIds: mi } = taskLocationIds(task);
+    const markerIds = mi.filter((id) => id !== markerId);
+    const payload = { zone_ids: zi, marker_ids: markerIds };
+    if (zi.length === 0 && markerIds.length === 0) payload.map_id = activeMapId;
+    await api(`/api/tasks/${task.id}`, 'PUT', payload);
     await onRefresh();
   };
   const deleteMarker = async id => { await api(`/api/map/markers/${id}`, 'DELETE'); await onRefresh(); };
@@ -962,14 +988,14 @@ function MapView({ zones, markers, tasks = [], plants, maps = [], activeMapId = 
           onUpdate={async (id, data) => { await onZoneUpdate(id, data); setSelectedZone(null); await onRefresh(); }}
           onDelete={async id => { await deleteZone(id); setSelectedZone(null); }}
           onLinkTask={async (taskId) => linkTaskToZone(taskId, selectedZone.id)}
-          onUnlinkTask={unlinkTaskFromMapTarget}
+          onUnlinkTask={(t) => unlinkTaskFromZone(t, selectedZone.id)}
           onEditPoints={isTeacher ? z => startEditPoints(z) : null} />
       )}
       {selectedMarker && (
         <MarkerModal marker={selectedMarker} plants={plants} tasks={tasks} isTeacher={isTeacher}
           onClose={() => setSelectedMarker(null)} onSave={saveMarker} onDelete={deleteMarker}
           onLinkTask={async (taskId) => linkTaskToMarker(taskId, selectedMarker.id)}
-          onUnlinkTask={unlinkTaskFromMapTarget} />
+          onUnlinkTask={(t) => unlinkTaskFromMarker(t, selectedMarker.id)} />
       )}
       {pendingZone && (
         <ZoneDrawModal points_pct={pendingZone} plants={plants}
