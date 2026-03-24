@@ -765,7 +765,7 @@ function ObservationNotebook({ student, zones }) {
 
   const load = async () => {
     try {
-      const data = await api(`/api/observations/student/${student.id}`);
+      const data = await api(`/api/observations/student/${student.id}?studentId=${encodeURIComponent(student.id)}`);
       setEntries(data);
     } catch (e) { console.error('[ForetMap] observations', e); }
     setLoading(false);
@@ -799,7 +799,7 @@ function ObservationNotebook({ student, zones }) {
 
   const deleteObs = async (id) => {
     try {
-      await api(`/api/observations/${id}`, 'DELETE');
+      await api(`/api/observations/${id}`, 'DELETE', { studentId: student.id });
       setToast('Observation supprimée');
       await load();
     } catch (e) { setToast('Erreur : ' + e.message); }

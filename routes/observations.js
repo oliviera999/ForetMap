@@ -1,21 +1,44 @@
 const express = require('express');
+const jwt = require('jsonwebtoken');
 const { queryAll, queryOne, execute } = require('../database');
-const { requireTeacher } = require('../middleware/requireTeacher');
-const { saveBase64ToDisk, getAbsolutePath } = require('../lib/uploads');
+const { requireTeacher, JWT_SECRET } = require('../middleware/requireTeacher');
+const { saveBase64ToDisk, getAbsolutePath, deleteFile } = require('../lib/uploads');
 const { logRouteError } = require('../lib/routeLog');
 
 const router = express.Router();
 
+function isTeacherRequest(req) {
+  try {
+    if (!JWT_SECRET) return false;
+    const auth = req.headers.authorization;
+    const token = auth && auth.startsWith('Bearer ') ? auth.slice(7) : null;
+    if (!token) return false;
+    jwt.verify(token, JWT_SECRET);
+    return true;
+  } catch (_) {
+    return false;
+  }
+}
+
 // Observations d'un élève
 router.get('/student/:studentId', async (req, res) => {
   try {
+    const askedStudentId = String(req.params.studentId || '').trim();
+    const teacherRequest = isTeacherRequest(req);
+    const requesterStudentId = String(req.query.studentId || '').trim();
+    if (!teacherRequest && requesterStudentId !== askedStudentId) {
+      return res.status(403).json({ error: 'Accès refusé à ce carnet' });
+    }
+    const student = await queryOne('SELECT id FROM students WHERE id = ?', [askedStudentId]);
+    if (!student) return res.status(401).json({ error: 'Compte supprimé', deleted: true });
+
     const rows = await queryAll(
       `SELECT o.*, z.name as zone_name
        FROM observation_logs o
        LEFT JOIN zones z ON o.zone_id = z.id
        WHERE o.student_id = ?
        ORDER BY o.created_at DESC`,
-      [req.params.studentId]
+      [askedStudentId]
     );
     res.json(rows.map(r => ({
       ...r,
@@ -98,12 +121,17 @@ router.delete('/:id', async (req, res) => {
   try {
     const obs = await queryOne('SELECT * FROM observation_logs WHERE id = ?', [req.params.id]);
     if (!obs) return res.status(404).json({ error: 'Observation introuvable' });
-
-    if (obs.image_path) {
-      const fs = require('fs');
-      const absPath = getAbsolutePath(obs.image_path);
-      try { fs.unlinkSync(absPath); } catch (_) { /* fichier absent */ }
+    const teacherRequest = isTeacherRequest(req);
+    if (!teacherRequest) {
+      const studentId = String(req.body?.studentId || '').trim();
+      if (!studentId || studentId !== String(obs.student_id)) {
+        return res.status(403).json({ error: 'Suppression non autorisée' });
+      }
+      const student = await queryOne('SELECT id FROM students WHERE id = ?', [studentId]);
+      if (!student) return res.status(401).json({ error: 'Compte supprimé', deleted: true });
     }
+
+    if (obs.image_path) deleteFile(obs.image_path);
     await execute('DELETE FROM observation_logs WHERE id = ?', [req.params.id]);
     res.json({ success: true });
   } catch (e) {
