@@ -298,6 +298,12 @@ function App() {
             {tab === 'map'    && <MapView zones={zones} markers={markers} tasks={tasks} plants={plants} maps={maps} activeMapId={activeMapId} onMapChange={setActiveMapId} isTeacher={false} onZoneUpdate={updateZone} onRefresh={fetchAll}/>}
             {tab === 'tasks'  && <TasksView tasks={tasks} zones={zones} markers={markers} maps={maps} activeMapId={activeMapId} isTeacher={false} student={student} onRefresh={fetchAll} onForceLogout={forceLogout}/>}
             {tab === 'plants' && <PlantViewer plants={plants} zones={zones}/>}
+            {tab === 'tuto' && (
+              <section className="empty" aria-label="Page Tuto">
+                <div className="empty-icon">📘</div>
+                <p>Tuto (bientôt disponible)</p>
+              </section>
+            )}
             {tab === 'notebook' && <ObservationNotebook student={student} zones={zones}/>}
             {tab === 'about' && <AboutView appVersion={appVersion}/>}
           </div>
@@ -312,6 +318,9 @@ function App() {
             </button>
             <button className={`nav-btn ${tab === 'plants' ? 'active' : ''}`} onClick={() => setTab('plants')}>
               <span className="nav-icon">🌱</span> Biodiversité
+            </button>
+            <button className={`nav-btn ${tab === 'tuto' ? 'active' : ''}`} onClick={() => setTab('tuto')}>
+              <span className="nav-icon">📘</span> Tuto
             </button>
             <button className={`nav-btn ${tab === 'notebook' ? 'active' : ''}`} onClick={() => setTab('notebook')}>
               <span className="nav-icon">📓</span> Carnet

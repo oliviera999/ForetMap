@@ -9,8 +9,10 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - **Retrait de tâche (élève)** : `POST /api/tasks/:id/unassign` n’exige plus le JWT professeur, comme `assign` et comme l’UI « Me retirer » ; corrige le `401 Unauthorized` en production.
 
 ### Modifié
+- **Navigation élève** : ajout d’un onglet `Tuto` vide (placeholder) dans la barre du bas, positionné entre `Biodiversité` et `Carnet`.
 - **Liste des tâches** : pastille de statut discrète (rouge/orange en fondu pulsé pour à faire / en cours, vert fixe pour terminée ou validée), avec libellé accessible au survol et pour les lecteurs d’écran.
 - **Carte (zones/repères)** : ajout des pastilles de statut des tâches directement sur la carte (rouge/orange en fondu, vert fixe), avec agrégation par priorité quand plusieurs tâches sont liées au même élément.
+- **Contraste des statuts** : teinte orange “en cours” renforcée (`#f59e0b`) pour mieux se distinguer du rouge “à faire”, en vue tâches et sur la carte.
 - **Préparation de déploiement** : exécution du workflow build local `npm run deploy:prepare` pour générer `dist/` et l’archive de livraison.
 
 ### Ajouté

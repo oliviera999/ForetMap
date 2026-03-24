@@ -10,6 +10,9 @@ test('parcours élève: inscription puis navigation principale', async ({ page }
   await page.getByRole('button', { name: /^Biodiversité$/ }).click();
   await expect(page.getByText('Catalogue de biodiversité')).toBeVisible();
 
+  await page.getByRole('button', { name: /^Tuto$/ }).click();
+  await expect(page.getByText('Tuto (bientôt disponible)')).toBeVisible();
+
   await page.getByRole('button', { name: /^À propos$/ }).click();
   await expect(page.getByText('Informations du projet ForetMap')).toBeVisible();
 });

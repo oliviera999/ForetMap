@@ -274,7 +274,7 @@
       animation:mapStatusFadeRed 2.2s ease-in-out infinite;
     }
     .map-task-status-dot--progress {
-      background:#ea580c;
+      background:#f59e0b;
       animation:mapStatusFadeOrange 2.2s ease-in-out infinite;
     }
     .map-task-status-dot--done {
@@ -289,8 +289,8 @@
       animation:mapStatusFadeRed 2.2s ease-in-out infinite;
     }
     .map-task-status--progress {
-      fill:#ea580c;
-      filter:drop-shadow(0 0 6px rgba(234,88,12,.45));
+      fill:#f59e0b;
+      filter:drop-shadow(0 0 6px rgba(245,158,11,.48));
       animation:mapStatusFadeOrange 2.2s ease-in-out infinite;
     }
     .map-task-status--done {
@@ -353,7 +353,7 @@
       animation:taskStatusFadeRed 2.2s ease-in-out infinite;
     }
     .task-status-dot--progress {
-      background:#ea580c;
+      background:#f59e0b;
       animation:taskStatusFadeOrange 2.2s ease-in-out infinite;
     }
     .task-status-dot--done {
@@ -367,8 +367,8 @@
       50% { opacity:.42; filter:brightness(.92); box-shadow:0 0 0 2px rgba(255,255,255,.95), 0 0 4px rgba(220,38,38,.15); }
     }
     @keyframes taskStatusFadeOrange {
-      0%, 100% { opacity:1; filter:brightness(1); box-shadow:0 0 0 2px rgba(255,255,255,.95), 0 0 14px rgba(234,88,12,.48); }
-      50% { opacity:.42; filter:brightness(.95); box-shadow:0 0 0 2px rgba(255,255,255,.95), 0 0 4px rgba(234,88,12,.18); }
+      0%, 100% { opacity:1; filter:brightness(1); box-shadow:0 0 0 2px rgba(255,255,255,.95), 0 0 14px rgba(245,158,11,.52); }
+      50% { opacity:.42; filter:brightness(.95); box-shadow:0 0 0 2px rgba(255,255,255,.95), 0 0 4px rgba(245,158,11,.2); }
     }
     @media (prefers-reduced-motion: reduce) {
       .task-status-dot--todo, .task-status-dot--progress { animation:none; opacity:.92; }
