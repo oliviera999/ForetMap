@@ -49,6 +49,49 @@ const EMPTY_PLANT_FORM = {
   photo_fruit: '',
   photo_harvest_part: '',
 };
+const PLANTS_IMPORT_TEMPLATE_HEADERS = [
+  'name',
+  'emoji',
+  'description',
+  'scientific_name',
+  'group_1',
+  'sources',
+  'photo',
+];
+const PLANTS_IMPORT_TEMPLATE_HEADERS_FULL = [
+  'name',
+  'emoji',
+  'description',
+  'second_name',
+  'scientific_name',
+  'group_1',
+  'group_2',
+  'group_3',
+  'habitat',
+  'photo',
+  'nutrition',
+  'agroecosystem_category',
+  'longevity',
+  'remark_1',
+  'remark_2',
+  'remark_3',
+  'reproduction',
+  'size',
+  'sources',
+  'ideal_temperature_c',
+  'optimal_ph',
+  'ecosystem_role',
+  'geographic_origin',
+  'human_utility',
+  'harvest_part',
+  'planting_recommendations',
+  'preferred_nutrients',
+  'photo_species',
+  'photo_leaf',
+  'photo_flower',
+  'photo_fruit',
+  'photo_harvest_part',
+];
 
 const PLANT_META_SECTIONS = [
   {
@@ -136,6 +179,19 @@ function fileToDataUrl(file) {
     reader.onerror = () => reject(new Error('Lecture du fichier impossible'));
     reader.readAsDataURL(file);
   });
+}
+
+function downloadCsvTemplate(headers, filename) {
+  const csv = `${headers.join(',')}\n`;
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
 }
 
 function isHttpLink(value) {
@@ -600,6 +656,18 @@ function PlantManager({ plants, onRefresh }) {
           )}
 
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <button
+              className="btn btn-ghost btn-sm"
+              onClick={() => downloadCsvTemplate(PLANTS_IMPORT_TEMPLATE_HEADERS, 'plants-import-template-vierge.csv')}
+              disabled={importing}>
+              Télécharger template vierge
+            </button>
+            <button
+              className="btn btn-ghost btn-sm"
+              onClick={() => downloadCsvTemplate(PLANTS_IMPORT_TEMPLATE_HEADERS_FULL, 'plants-import-template-complet.csv')}
+              disabled={importing}>
+              Télécharger template complet
+            </button>
             <button className="btn btn-ghost btn-sm" onClick={() => runImport({ dryRun: true })} disabled={importing}>
               {importing ? 'Analyse...' : 'Analyser (prévisualisation)'}
             </button>
