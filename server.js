@@ -11,6 +11,7 @@ const { tailLogLines, getBufferedLineCount, getMaxLines } = require('./lib/logBu
 
 const authRouter    = require('./routes/auth');
 const zonesRouter   = require('./routes/zones');
+const mapsRouter    = require('./routes/maps');
 const mapRouter     = require('./routes/map');
 const plantsRouter  = require('./routes/plants');
 const tasksRouter   = require('./routes/tasks');
@@ -104,6 +105,7 @@ app.get('/api/admin/logs', (req, res) => {
 
 app.use('/api/auth', authRouter);
 app.use('/api/zones', zonesRouter);
+app.use('/api/maps', mapsRouter);
 app.use('/api/map', mapRouter);
 app.use('/api/plants', plantsRouter);
 app.use('/api/tasks', tasksRouter);

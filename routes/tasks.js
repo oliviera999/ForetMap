@@ -15,9 +15,25 @@ function sanitizeRequiredStudents(value) {
   return Number.isFinite(n) && n >= 1 ? n : 1;
 }
 
+async function mapExists(mapId) {
+  if (!mapId) return false;
+  const row = await queryOne('SELECT id FROM maps WHERE id = ?', [mapId]);
+  return !!row;
+}
+
+async function getZone(zoneId) {
+  if (!zoneId) return null;
+  return queryOne('SELECT id, map_id, name FROM zones WHERE id = ?', [zoneId]);
+}
+
 async function getTaskWithAssignments(taskId) {
   const task = await queryOne(
-    'SELECT t.*, z.name as zone_name FROM tasks t LEFT JOIN zones z ON t.zone_id = z.id WHERE t.id = ?',
+    `SELECT t.*, z.name as zone_name, z.map_id as zone_map_id,
+            m.id as map_id_resolved, m.label as map_label
+       FROM tasks t
+       LEFT JOIN zones z ON t.zone_id = z.id
+       LEFT JOIN maps m ON m.id = COALESCE(t.map_id, z.map_id)
+      WHERE t.id = ?`,
     [taskId]
   );
   if (!task) return null;
@@ -27,9 +43,25 @@ async function getTaskWithAssignments(taskId) {
 
 router.get('/', async (req, res) => {
   try {
-    const tasks = await queryAll(
-      'SELECT t.*, z.name as zone_name FROM tasks t LEFT JOIN zones z ON t.zone_id = z.id ORDER BY due_date ASC'
-    );
+    const mapId = req.query.map_id ? String(req.query.map_id).trim() : '';
+    if (mapId && !(await mapExists(mapId))) {
+      return res.status(400).json({ error: 'Carte introuvable' });
+    }
+    const sqlBase = `
+      SELECT t.*, z.name as zone_name, z.map_id as zone_map_id,
+             m.id as map_id_resolved, m.label as map_label
+        FROM tasks t
+        LEFT JOIN zones z ON t.zone_id = z.id
+        LEFT JOIN maps m ON m.id = COALESCE(t.map_id, z.map_id)
+    `;
+    const tasks = mapId
+      ? await queryAll(
+        `${sqlBase}
+         WHERE (COALESCE(t.map_id, z.map_id) = ? OR (t.map_id IS NULL AND t.zone_id IS NULL))
+         ORDER BY due_date ASC`,
+        [mapId]
+      )
+      : await queryAll(`${sqlBase} ORDER BY due_date ASC`);
     const assignments = await queryAll('SELECT * FROM task_assignments');
     res.json(tasks.map(t => ({
       ...t,
@@ -54,13 +86,27 @@ router.get('/:id', async (req, res) => {
 
 router.post('/', requireTeacher, async (req, res) => {
   try {
-    const { title, description, zone_id, due_date, required_students, recurrence } = req.body;
+    const { title, description, zone_id, map_id, due_date, required_students, recurrence } = req.body;
     if (!title) return res.status(400).json({ error: 'Titre requis' });
+
+    const requestedZoneId = zone_id ? String(zone_id).trim() : null;
+    let resolvedMapId = map_id != null && String(map_id).trim() !== '' ? String(map_id).trim() : null;
+    if (requestedZoneId) {
+      const zone = await getZone(requestedZoneId);
+      if (!zone) return res.status(400).json({ error: 'Zone introuvable' });
+      if (resolvedMapId && resolvedMapId !== zone.map_id) {
+        return res.status(400).json({ error: 'Incohérence entre zone et carte' });
+      }
+      resolvedMapId = zone.map_id;
+    } else if (resolvedMapId && !(await mapExists(resolvedMapId))) {
+      return res.status(400).json({ error: 'Carte introuvable' });
+    }
+
     const reqStudents = sanitizeRequiredStudents(required_students);
     const id = uuidv4();
     await execute(
-      'INSERT INTO tasks (id, title, description, zone_id, due_date, required_students, recurrence, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-      [id, title, description || '', zone_id || null, due_date || null, reqStudents, recurrence || null, new Date().toISOString()]
+      'INSERT INTO tasks (id, title, description, map_id, zone_id, due_date, required_students, recurrence, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      [id, title, description || '', resolvedMapId, requestedZoneId, due_date || null, reqStudents, recurrence || null, new Date().toISOString()]
     );
     const task = await getTaskWithAssignments(id);
     logAudit('create_task', 'task', id, title);
@@ -76,16 +122,39 @@ router.put('/:id', requireTeacher, async (req, res) => {
   try {
     const task = await queryOne('SELECT * FROM tasks WHERE id = ?', [req.params.id]);
     if (!task) return res.status(404).json({ error: 'Tâche introuvable' });
-    const { title, description, zone_id, due_date, required_students, status, recurrence } = req.body;
+    const { title, description, zone_id, map_id, due_date, required_students, status, recurrence } = req.body;
+
+    let nextZoneId = task.zone_id;
+    if (Object.prototype.hasOwnProperty.call(req.body, 'zone_id')) {
+      nextZoneId = zone_id ? String(zone_id).trim() : null;
+    }
+
+    let nextMapId = task.map_id;
+    if (nextZoneId) {
+      const zone = await getZone(nextZoneId);
+      if (!zone) return res.status(400).json({ error: 'Zone introuvable' });
+      if (map_id != null && String(map_id).trim() !== '' && String(map_id).trim() !== zone.map_id) {
+        return res.status(400).json({ error: 'Incohérence entre zone et carte' });
+      }
+      nextMapId = zone.map_id;
+    } else if (Object.prototype.hasOwnProperty.call(req.body, 'map_id')) {
+      const askedMapId = map_id ? String(map_id).trim() : null;
+      if (askedMapId && !(await mapExists(askedMapId))) {
+        return res.status(400).json({ error: 'Carte introuvable' });
+      }
+      nextMapId = askedMapId;
+    }
+
     const reqStudents = required_students != null
       ? sanitizeRequiredStudents(required_students)
       : task.required_students;
     await execute(
-      'UPDATE tasks SET title=?, description=?, zone_id=?, due_date=?, required_students=?, status=?, recurrence=? WHERE id=?',
+      'UPDATE tasks SET title=?, description=?, map_id=?, zone_id=?, due_date=?, required_students=?, status=?, recurrence=? WHERE id=?',
       [
         title ?? task.title,
         description ?? task.description,
-        zone_id ?? task.zone_id,
+        nextMapId,
+        nextZoneId,
         due_date ?? task.due_date,
         reqStudents,
         status ?? task.status,

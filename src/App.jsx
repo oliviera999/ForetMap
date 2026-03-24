@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { api, AccountDeletedError } from './services/api';
 import { useForetmapRealtime } from './hooks/useForetmapRealtime';
 import { RT_PROF_TOOLTIPS } from './constants/realtime';
@@ -19,12 +19,18 @@ import { StudentAvatar } from './components/student-avatar';
 
 // ── APP ───────────────────────────────────────────────────────────────────────
 function App() {
+  const DEFAULT_MAPS = useMemo(() => ([
+    { id: 'foret', label: 'Forêt comestible', map_image_url: '/maps/map-foret.svg', sort_order: 1 },
+    { id: 'n3', label: 'N3', map_image_url: '/maps/plan%20n3.jpg', sort_order: 2 },
+  ]), []);
   const [student,    setStudent]    = useState(null);
   const [isTeacher,  setIsTeacher]  = useState(() => !!localStorage.getItem('foretmap_teacher_token'));
   const [showPin,    setShowPin]    = useState(false);
   const [showStats,  setShowStats]  = useState(false);
   const [showProfile,setShowProfile]= useState(false);
   const [tab,        setTab]        = useState('map');
+  const [maps,       setMaps]       = useState(DEFAULT_MAPS);
+  const [activeMapId, setActiveMapId] = useState(() => localStorage.getItem('foretmap_active_map') || 'foret');
   const [zones,      setZones]      = useState([]);
   const [tasks,      setTasks]      = useState([]);
   const [plants,     setPlants]     = useState([]);
@@ -35,6 +41,10 @@ function App() {
   const [refreshMs,  setRefreshMs]  = useState(30000);
   const [serverDown, setServerDown] = useState(false);
   const failCountRef = useRef(0);
+
+  useEffect(() => {
+    localStorage.setItem('foretmap_active_map', activeMapId);
+  }, [activeMapId]);
 
   useEffect(() => {
     api('/api/version').then(d => setAppVersion(d.version)).catch(err => {
@@ -90,9 +100,19 @@ function App() {
 
   const fetchAll = useCallback(async () => {
     try {
-      const [z, t, p, m] = await Promise.all([
-        api('/api/zones'), api('/api/tasks'), api('/api/plants'), api('/api/map/markers')
+      const mapQuery = `map_id=${encodeURIComponent(activeMapId)}`;
+      const [mapsRes, z, t, p, m] = await Promise.all([
+        api('/api/maps').catch(() => DEFAULT_MAPS),
+        api(`/api/zones?${mapQuery}`),
+        api('/api/tasks'),
+        api('/api/plants'),
+        api(`/api/map/markers?${mapQuery}`),
       ]);
+      const safeMaps = Array.isArray(mapsRes) && mapsRes.length > 0 ? mapsRes : DEFAULT_MAPS;
+      setMaps(safeMaps);
+      if (!safeMaps.some(mp => mp.id === activeMapId)) {
+        setActiveMapId(safeMaps[0].id);
+      }
       setZones(z); setTasks(t); setPlants(p); setMarkers(m);
       failCountRef.current = 0;
       setRefreshMs(30000);
@@ -112,19 +132,27 @@ function App() {
       }
     }
     setLoading(false);
-  }, [forceLogout]);
+  }, [activeMapId, DEFAULT_MAPS, forceLogout]);
+
+  const tasksForActiveMap = useMemo(() => (
+    tasks.filter((t) => {
+      const effectiveMapId = t.map_id_resolved || t.map_id || t.zone_map_id || null;
+      return effectiveMapId === activeMapId || effectiveMapId == null;
+    })
+  ), [tasks, activeMapId]);
 
   const rtStatus = useForetmapRealtime({
     student,
     fetchAll,
     forceLogout,
+    activeMapId,
     setTasks,
     setZones,
     setPlants,
     setMarkers,
   });
 
-  useEffect(() => { fetchAll(); }, []);
+  useEffect(() => { fetchAll(); }, [fetchAll]);
 
   // Auto-refresh (30 s ; 2 min après 3 échecs serveur consécutifs)
   useEffect(() => {
@@ -250,15 +278,15 @@ function App() {
           <div className="top-tabs">
             <button className={`top-tab ${tab === 'map' ? 'active' : ''}`} onClick={() => setTab('map')}>🗺️ Carte & Zones</button>
             <button className={`top-tab ${tab === 'tasks' ? 'active' : ''}`} onClick={() => setTab('tasks')}>
-              ✅ Tâches {tasks.filter(t => t.status === 'done').length > 0 && `(${tasks.filter(t => t.status === 'done').length} à valider)`}
+              ✅ Tâches {tasksForActiveMap.filter(t => t.status === 'done').length > 0 && `(${tasksForActiveMap.filter(t => t.status === 'done').length} à valider)`}
             </button>
             <button className={`top-tab ${tab === 'plants' ? 'active' : ''}`} onClick={() => setTab('plants')}>🌱 Biodiversité</button>
             <button className={`top-tab ${tab === 'stats' ? 'active' : ''}`} onClick={() => setTab('stats')}>📊 Stats</button>
             <button className={`top-tab ${tab === 'audit' ? 'active' : ''}`} onClick={() => setTab('audit')}>📜 Audit</button>
             <button className={`top-tab ${tab === 'about' ? 'active' : ''}`} onClick={() => setTab('about')}>ℹ️ À propos</button>
           </div>
-          {tab === 'map'    && <MapView zones={zones} markers={markers} plants={plants} isTeacher onZoneUpdate={updateZone} onRefresh={fetchAll}/>}
-          {tab === 'tasks'  && <TasksView  tasks={tasks} zones={zones} isTeacher student={student} onRefresh={fetchAll} onForceLogout={forceLogout}/>}
+          {tab === 'map'    && <MapView zones={zones} markers={markers} plants={plants} maps={maps} activeMapId={activeMapId} onMapChange={setActiveMapId} isTeacher onZoneUpdate={updateZone} onRefresh={fetchAll}/>}
+          {tab === 'tasks'  && <TasksView  tasks={tasks} zones={zones} maps={maps} activeMapId={activeMapId} isTeacher student={student} onRefresh={fetchAll} onForceLogout={forceLogout}/>}
           {tab === 'plants' && <PlantManager plants={plants} onRefresh={fetchAll}/>}
           {tab === 'stats'  && <TeacherStats/>}
           {tab === 'audit'  && <AuditLog/>}
@@ -267,8 +295,8 @@ function App() {
       ) : (
         <>
           <div className="main">
-            {tab === 'map'    && <MapView zones={zones} markers={markers} plants={plants} isTeacher={false} onZoneUpdate={updateZone} onRefresh={fetchAll}/>}
-            {tab === 'tasks'  && <TasksView tasks={tasks} zones={zones} isTeacher={false} student={student} onRefresh={fetchAll} onForceLogout={forceLogout}/>}
+            {tab === 'map'    && <MapView zones={zones} markers={markers} plants={plants} maps={maps} activeMapId={activeMapId} onMapChange={setActiveMapId} isTeacher={false} onZoneUpdate={updateZone} onRefresh={fetchAll}/>}
+            {tab === 'tasks'  && <TasksView tasks={tasks} zones={zones} maps={maps} activeMapId={activeMapId} isTeacher={false} student={student} onRefresh={fetchAll} onForceLogout={forceLogout}/>}
             {tab === 'plants' && <PlantViewer plants={plants} zones={zones}/>}
             {tab === 'notebook' && <ObservationNotebook student={student} zones={zones}/>}
             {tab === 'about' && <AboutView appVersion={appVersion}/>}
@@ -279,8 +307,8 @@ function App() {
             </button>
             <button className={`nav-btn ${tab === 'tasks' ? 'active' : ''}`} onClick={() => setTab('tasks')}>
               <span className="nav-icon">✅</span>
-              Tâches {tasks.filter(t => t.assignments?.some(a => a.student_first_name === student.first_name && a.student_last_name === student.last_name) && (t.status === 'available' || t.status === 'in_progress')).length > 0
-                && `(${tasks.filter(t => t.assignments?.some(a => a.student_first_name === student.first_name && a.student_last_name === student.last_name) && (t.status === 'available' || t.status === 'in_progress')).length})`}
+              Tâches {tasksForActiveMap.filter(t => t.assignments?.some(a => a.student_first_name === student.first_name && a.student_last_name === student.last_name) && (t.status === 'available' || t.status === 'in_progress')).length > 0
+                && `(${tasksForActiveMap.filter(t => t.assignments?.some(a => a.student_first_name === student.first_name && a.student_last_name === student.last_name) && (t.status === 'available' || t.status === 'in_progress')).length})`}
             </button>
             <button className={`nav-btn ${tab === 'plants' ? 'active' : ''}`} onClick={() => setTab('plants')}>
               <span className="nav-icon">🌱</span> Biodiversité

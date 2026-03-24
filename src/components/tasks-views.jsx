@@ -49,24 +49,48 @@ function Lightbox({ src, caption, onClose }) {
 
 const var_alert = 'var(--alert)';
 
-function TaskFormModal({ zones, onClose, onSave, editTask }) {
+function TaskFormModal({ zones, maps = [], activeMapId = 'foret', onClose, onSave, editTask }) {
+  const initialMapId = editTask
+    ? (editTask.map_id_resolved || editTask.map_id || editTask.zone_map_id || null)
+    : activeMapId;
   const [form, setForm] = useState(editTask ? {
     title: editTask.title, description: editTask.description || '',
+    map_id: initialMapId || '',
     zone_id: editTask.zone_id || '', due_date: editTask.due_date || '',
     required_students: editTask.required_students || 1,
     recurrence: editTask.recurrence || ''
-  } : { title: '', description: '', zone_id: '', due_date: '', required_students: 1, recurrence: '' });
+  } : { title: '', description: '', map_id: initialMapId || '', zone_id: '', due_date: '', required_students: 1, recurrence: '' });
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState('');
 
-  const set = k => e => setForm(f => ({ ...f, [k]: e.target.value }));
+  const set = k => e => {
+    const value = e.target.value;
+    if (k === 'map_id') {
+      setForm(f => ({ ...f, map_id: value, zone_id: '' }));
+      return;
+    }
+    if (k === 'zone_id') {
+      const selectedZone = zones.find(z => z.id === value);
+      setForm(f => ({ ...f, zone_id: value, map_id: selectedZone?.map_id || f.map_id }));
+      return;
+    }
+    setForm(f => ({ ...f, [k]: value }));
+  };
 
   const submit = async () => {
     if (!form.title.trim()) return setErr('Le titre est requis');
+    const selectedZone = zones.find(z => z.id === form.zone_id);
+    const payload = {
+      ...form,
+      map_id: selectedZone?.map_id || form.map_id || null,
+      zone_id: form.zone_id || null,
+    };
     setSaving(true);
-    try { await onSave(form); onClose(); }
+    try { await onSave(payload); onClose(); }
     catch (e) { setErr(e.message); setSaving(false); }
   };
+
+  const selectableZones = zones.filter(z => !z.special && (!form.map_id || z.map_id === form.map_id));
 
   return (
     <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
@@ -77,18 +101,26 @@ function TaskFormModal({ zones, onClose, onSave, editTask }) {
         <div className="field"><label>Titre *</label><input value={form.title} onChange={set('title')} placeholder="Ex: Arroser les tomates" /></div>
         <div className="field"><label>Description</label><textarea value={form.description} onChange={set('description')} rows={2} placeholder="Instructions détaillées..." /></div>
         <div className="row">
+          <div className="field"><label>Carte</label>
+            <select value={form.map_id} onChange={set('map_id')}>
+              <option value="">🌐 Globale (toutes cartes)</option>
+              {maps.map(mp => <option key={mp.id} value={mp.id}>{mp.label}</option>)}
+            </select>
+          </div>
           <div className="field"><label>Zone</label>
             <select value={form.zone_id} onChange={set('zone_id')}>
               <option value="">— Aucune —</option>
-              {zones.filter(z => !z.special).map(z => <option key={z.id} value={z.id}>{z.name}{z.current_plant ? ` — ${z.current_plant}` : ''}</option>)}
+              {selectableZones.map(z => <option key={z.id} value={z.id}>{z.name}{z.current_plant ? ` — ${z.current_plant}` : ''}</option>)}
             </select>
-          </div>
-          <div className="field"><label>Élèves requis</label>
-            <input type="number" min="1" max="10" value={form.required_students} onChange={set('required_students')} />
           </div>
         </div>
         <div className="row">
+          <div className="field"><label>Élèves requis</label>
+            <input type="number" min="1" max="10" value={form.required_students} onChange={set('required_students')} />
+          </div>
           <div className="field"><label>Date limite</label><input type="date" value={form.due_date} onChange={set('due_date')} /></div>
+        </div>
+        <div className="row">
           <div className="field"><label>Récurrence</label>
             <select value={form.recurrence || ''} onChange={set('recurrence')}>
               <option value="">Aucune (unique)</option>
@@ -104,7 +136,7 @@ function TaskFormModal({ zones, onClose, onSave, editTask }) {
   );
 }
 
-function TasksView({ tasks, zones, isTeacher, student, onRefresh, onForceLogout }) {
+function TasksView({ tasks, zones, maps = [], activeMapId = 'foret', isTeacher, student, onRefresh, onForceLogout }) {
   const [showForm, setShowForm] = useState(false);
   const [editTask, setEditTask] = useState(null);
   const [logTask, setLogTask] = useState(null);
@@ -115,6 +147,19 @@ function TasksView({ tasks, zones, isTeacher, student, onRefresh, onForceLogout 
   const [filterText, setFilterText] = useState('');
   const [filterZone, setFilterZone] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
+  const [filterMap, setFilterMap] = useState('active');
+
+  useEffect(() => {
+    setFilterMap('active');
+  }, [activeMapId]);
+
+  const mapLabelById = (mapId) => {
+    if (!mapId) return 'Globale';
+    const map = maps.find(m => m.id === mapId);
+    return map ? map.label : mapId;
+  };
+
+  const taskEffectiveMapId = (task) => task.map_id_resolved || task.map_id || task.zone_map_id || null;
 
   const withLoad = async (id, fn) => {
     setLoading(l => ({ ...l, [id]: true }));
@@ -173,6 +218,9 @@ function TasksView({ tasks, zones, isTeacher, student, onRefresh, onForceLogout 
   };
 
   const applyFilters = list => list.filter(t => {
+    const taskMapId = taskEffectiveMapId(t);
+    if (filterMap === 'active' && taskMapId !== activeMapId && taskMapId != null) return false;
+    if (filterMap !== 'active' && filterMap !== 'all' && taskMapId !== filterMap && taskMapId != null) return false;
     if (filterText && !t.title.toLowerCase().includes(filterText.toLowerCase()) &&
       !(t.description || '').toLowerCase().includes(filterText.toLowerCase())) return false;
     if (filterZone && t.zone_id !== filterZone) return false;
@@ -189,13 +237,13 @@ function TasksView({ tasks, zones, isTeacher, student, onRefresh, onForceLogout 
   const done = allFiltered.filter(t => t.status === 'done');
   const validated = allFiltered.filter(t => t.status === 'validated');
 
-  const urgentTasks = !isTeacher ? tasks.filter(t => {
+  const urgentTasks = !isTeacher ? allFiltered.filter(t => {
     if (t.status === 'validated' || t.status === 'done') return false;
     const d = daysUntil(t.due_date);
     return d !== null && d <= 3 && d >= -2;
   }).sort((a, b) => daysUntil(a.due_date) - daysUntil(b.due_date)) : [];
 
-  const usedZones = [...new Set(tasks.filter(t => t.zone_id).map(t => t.zone_id))];
+  const usedZones = [...new Set(allFiltered.filter(t => t.zone_id).map(t => t.zone_id))];
 
   const TaskCard = ({ t }) => {
     const isMine = myTasks.some(m => m.id === t.id);
@@ -207,6 +255,7 @@ function TasksView({ tasks, zones, isTeacher, student, onRefresh, onForceLogout 
           {statusBadge(t.status)}
         </div>
         <div className="task-meta">
+          <span className="task-chip">{taskEffectiveMapId(t) ? `🗺️ ${mapLabelById(taskEffectiveMapId(t))}` : '🌐 Globale'}</span>
           {t.zone_name && <span className="task-chip">🌿 {t.zone_name}</span>}
           {dueDateChip(t.due_date)}
           {!isTeacher && <span className="task-chip">👤 {t.required_students} élève{t.required_students > 1 ? 's' : ''}</span>}
@@ -262,7 +311,7 @@ function TasksView({ tasks, zones, isTeacher, student, onRefresh, onForceLogout 
     <div>
       {toast && <Toast msg={toast} onDone={() => setToast(null)} />}
       {(showForm || editTask) && (
-        <TaskFormModal zones={zones} editTask={editTask} onClose={() => { setShowForm(false); setEditTask(null); }} onSave={saveTask} />
+        <TaskFormModal zones={zones} maps={maps} activeMapId={activeMapId} editTask={editTask} onClose={() => { setShowForm(false); setEditTask(null); }} onSave={saveTask} />
       )}
       {logTask && (
         <LogModal task={logTask} student={student}
@@ -294,6 +343,11 @@ function TasksView({ tasks, zones, isTeacher, student, onRefresh, onForceLogout 
       <p className="section-sub">{isTeacher ? 'Gérer et valider les tâches' : 'Prends en charge une tâche ou suis tes activités'}</p>
 
       <div className="task-filters">
+        <select value={filterMap} onChange={e => setFilterMap(e.target.value)}>
+          <option value="active">Carte active ({mapLabelById(activeMapId)})</option>
+          <option value="all">Toutes cartes</option>
+          {maps.map(mp => <option key={mp.id} value={mp.id}>{mp.label}</option>)}
+        </select>
         <input value={filterText} onChange={e => setFilterText(e.target.value)}
           placeholder="🔍 Rechercher une tâche..." />
         <select value={filterZone} onChange={e => setFilterZone(e.target.value)}>
@@ -373,12 +427,12 @@ function TasksView({ tasks, zones, isTeacher, student, onRefresh, onForceLogout 
               <div>{available.filter(t => !myTasks.some(m => m.id === t.id)).map(t => <TaskCard key={t.id} t={t} />)}</div>
             </div>
           )}
-          {tasks.filter(t => t.status === 'validated' && t.assignments?.some(
+          {allFiltered.filter(t => t.status === 'validated' && t.assignments?.some(
             a => a.student_first_name === student?.first_name && a.student_last_name === student?.last_name
           )).length > 0 && (
               <div className="tasks-section">
                 <div className="tasks-section-title">Récemment validées ✓</div>
-                <div>{tasks.filter(t => t.status === 'validated' && t.assignments?.some(
+                <div>{allFiltered.filter(t => t.status === 'validated' && t.assignments?.some(
                   a => a.student_first_name === student?.first_name && a.student_last_name === student?.last_name
                 )).map(t => <TaskCard key={t.id} t={t} />)}</div>
               </div>
@@ -386,7 +440,7 @@ function TasksView({ tasks, zones, isTeacher, student, onRefresh, onForceLogout 
         </>
       )}
 
-      {tasks.length === 0 && (
+      {allFiltered.length === 0 && (
         <div className="empty"><div className="empty-icon">🌿</div><p>Aucune tâche pour le moment</p></div>
       )}
     </div>

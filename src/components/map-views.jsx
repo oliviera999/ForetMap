@@ -415,7 +415,7 @@ function MarkerModal({ marker, plants, onClose, onSave, onDelete, isTeacher }) {
   );
 }
 
-function MapView({ zones, markers, plants, isTeacher, onZoneUpdate, onRefresh }) {
+function MapView({ zones, markers, plants, maps = [], activeMapId = 'foret', onMapChange, isTeacher, onZoneUpdate, onRefresh }) {
   const containerRef = useRef(null);
   const worldRef = useRef(null);
   const imgRef = useRef(null);
@@ -451,6 +451,9 @@ function MapView({ zones, markers, plants, isTeacher, onZoneUpdate, onRefresh })
   const [pendingZone, setPendingZone] = useState(null);
   const [pendingMarker, setPendingMarker] = useState(null);
   const [toast, setToast] = useState(null);
+  const activeMap = maps.find((m) => m.id === activeMapId);
+  const mapImageSrc = activeMap?.map_image_url
+    || (activeMapId === 'n3' ? '/maps/plan%20n3.jpg' : '/maps/map-foret.svg');
 
   const modeRef = useRef('view');
   const draggingMarkerRef = useRef(null);
@@ -472,7 +475,7 @@ function MapView({ zones, markers, plants, isTeacher, onZoneUpdate, onRefresh })
     };
     if (img.complete) onLoad(); else img.addEventListener('load', onLoad);
     return () => img.removeEventListener('load', onLoad);
-  }, []);
+  }, [mapImageSrc]);
 
   useEffect(() => {
     const c = containerRef.current;
@@ -485,6 +488,17 @@ function MapView({ zones, markers, plants, isTeacher, onZoneUpdate, onRefresh })
     applyTransform();
     setCommitted({ x, y, s });
   }, [imgSize]);
+
+  useEffect(() => {
+    setMode('view');
+    setDrawPoints([]);
+    setEditZone(null);
+    setEditPoints([]);
+    setSelectedZone(null);
+    setSelectedMarker(null);
+    setPendingZone(null);
+    setPendingMarker(null);
+  }, [activeMapId]);
 
   const fitMap = () => {
     const c = containerRef.current;
@@ -666,7 +680,12 @@ function MapView({ zones, markers, plants, isTeacher, onZoneUpdate, onRefresh })
     setToast('Contour sauvegardé ✓');
   };
 
-  const saveMarker = async d => { if (d.id) await api(`/api/map/markers/${d.id}`, 'PUT', d); else await api('/api/map/markers', 'POST', d); await onRefresh(); };
+  const saveMarker = async d => {
+    const payload = { ...d, map_id: d.map_id || activeMapId };
+    if (d.id) await api(`/api/map/markers/${d.id}`, 'PUT', payload);
+    else await api('/api/map/markers', 'POST', payload);
+    await onRefresh();
+  };
   const deleteMarker = async id => { await api(`/api/map/markers/${id}`, 'DELETE'); await onRefresh(); };
   const deleteZone = async id => { await api(`/api/zones/${id}`, 'DELETE'); await onRefresh(); };
 
@@ -754,18 +773,32 @@ function MapView({ zones, markers, plants, isTeacher, onZoneUpdate, onRefresh })
       {pendingZone && (
         <ZoneDrawModal points_pct={pendingZone} plants={plants}
           onClose={() => setPendingZone(null)}
-          onSave={async data => { await api('/api/zones', 'POST', data); setPendingZone(null); await onRefresh(); }} />
+          onSave={async data => { await api('/api/zones', 'POST', { ...data, map_id: activeMapId }); setPendingZone(null); await onRefresh(); }} />
       )}
       {pendingMarker && (
-        <MarkerModal marker={{ x_pct: pendingMarker.xp, y_pct: pendingMarker.yp, label: '', note: '', emoji: '🌱', plant_name: '' }}
+        <MarkerModal marker={{ x_pct: pendingMarker.xp, y_pct: pendingMarker.yp, label: '', note: '', emoji: '🌱', plant_name: '', map_id: activeMapId }}
           plants={plants} isTeacher={isTeacher}
           onClose={() => setPendingMarker(null)}
-          onSave={async data => { await api('/api/map/markers', 'POST', data); setPendingMarker(null); await onRefresh(); }}
+          onSave={async data => { await api('/api/map/markers', 'POST', { ...data, map_id: activeMapId }); setPendingMarker(null); await onRefresh(); }}
           onDelete={() => setPendingMarker(null)} />
       )}
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 12px',
         background: 'white', borderBottom: '1.5px solid var(--mint)', flexShrink: 0, flexWrap: 'wrap', minHeight: 50 }}>
+        {maps.length > 0 && (
+          <div style={{ display: 'flex', gap: 3, background: 'var(--parchment)', borderRadius: 10, padding: 3 }}>
+            {maps.map((mp) => (
+              <button key={mp.id}
+                style={{ background: activeMapId === mp.id ? 'var(--forest)' : 'transparent', color: activeMapId === mp.id ? 'white' : 'var(--soil)',
+                  border: 'none', borderRadius: 8, padding: '7px 11px', cursor: 'pointer',
+                  fontFamily: 'DM Sans,sans-serif', fontSize: '.82rem', fontWeight: 700, whiteSpace: 'nowrap' }}
+                onClick={() => onMapChange?.(mp.id)}>
+                {mp.label}
+              </button>
+            ))}
+          </div>
+        )}
+
         <div style={{ display: 'flex', gap: 3, background: 'var(--parchment)', borderRadius: 10, padding: 3 }}>
           {[['view', '🖐️ Nav'],
             ...(isTeacher && mode !== 'edit-points' ? [
@@ -837,7 +870,7 @@ function MapView({ zones, markers, plants, isTeacher, onZoneUpdate, onRefresh })
           style={{ position: 'absolute', left: 0, top: 0, width: iw, height: ih,
             transformOrigin: '0 0', willChange: 'transform' }}>
 
-          <img ref={imgRef} src="/map.png" draggable={false} alt="Plan du jardin"
+          <img ref={imgRef} src={mapImageSrc} draggable={false} alt={`Plan ${activeMap?.label || 'du jardin'}`}
             style={{ position: 'absolute', left: 0, top: 0, width: iw, height: ih,
               userSelect: 'none', pointerEvents: 'none',
               boxShadow: '0 4px 24px rgba(0,0,0,.18)' }} />

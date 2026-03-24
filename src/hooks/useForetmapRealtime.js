@@ -9,6 +9,7 @@ export function useForetmapRealtime({
   student,
   fetchAll,
   forceLogout,
+  activeMapId,
   setTasks,
   setZones,
   setPlants,
@@ -30,10 +31,11 @@ export function useForetmapRealtime({
 
   const refreshGardenFromServer = useCallback(async () => {
     try {
+      const mapQuery = `map_id=${encodeURIComponent(activeMapId)}`;
       const [z, p, m] = await Promise.all([
-        api('/api/zones'),
+        api(`/api/zones?${mapQuery}`),
         api('/api/plants'),
-        api('/api/map/markers'),
+        api(`/api/map/markers?${mapQuery}`),
       ]);
       setZones(z);
       setPlants(p);
@@ -41,7 +43,7 @@ export function useForetmapRealtime({
     } catch (e) {
       console.error('[ForetMap] rafraîchissement jardin (temps réel)', e);
     }
-  }, [setZones, setPlants, setMarkers]);
+  }, [activeMapId, setZones, setPlants, setMarkers]);
 
   const scheduleTasksRefresh = useCallback(() => {
     if (tasksRtDebounceRef.current) clearTimeout(tasksRtDebounceRef.current);

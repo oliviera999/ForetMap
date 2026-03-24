@@ -6,6 +6,8 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 ## [Non publié]
 
 ### Ajouté
+- **Multi-cartes (Forêt + N3)** : ajout du support de cartes multiples avec entité `maps`, `map_id` sur zones/repères/tâches, switch de carte dans l’UI, création de zones/repères contextualisée, filtrage des tâches par carte (avec option toutes cartes) et route `GET /api/maps`.
+- **Carte N3 réelle** : intégration du plan image `public/maps/plan n3.jpg` comme fond de la carte `N3`.
 - **Import biodiversité (UI prof)** : ajout d’un bouton `Télécharger template complet` (toutes les colonnes `plants`) en complément du template vierge.
 - **Template vierge téléchargeable (import biodiversité)** : ajout d’un bouton mode prof pour télécharger un CSV vierge prêt à remplir, plus le fichier `docs/templates/plants-import-template-vierge.csv`.
 - **Import biodiversité (prof)** : ajout de la route `POST /api/plants/import` (CSV/XLSX/Google Sheet), stratégies `upsert_name|insert_only|replace_all`, mode prévisualisation (`dryRun`) et rapport d’erreurs ligne/champ.

@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1000" role="img" aria-label="Carte Forêt comestible">
+  <rect width="1600" height="1000" fill="#edf7ed"/>
+  <rect x="24" y="24" width="1552" height="952" rx="24" fill="#f8fcf8" stroke="#d2e7d5" stroke-width="4"/>
+  <text x="800" y="420" text-anchor="middle" font-family="Arial, sans-serif" font-size="92" fill="#1a4731" font-weight="700">
+    Forêt comestible
+  </text>
+  <text x="800" y="500" text-anchor="middle" font-family="Arial, sans-serif" font-size="34" fill="#4f7a63">
+    Carte principale
+  </text>
+</svg>

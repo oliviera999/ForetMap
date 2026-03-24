@@ -9,9 +9,21 @@ const { emitGardenChanged } = require('../lib/realtime');
 
 const router = express.Router();
 
+async function mapExists(mapId) {
+  if (!mapId) return false;
+  const row = await queryOne('SELECT id FROM maps WHERE id = ?', [mapId]);
+  return !!row;
+}
+
 router.get('/', async (req, res) => {
   try {
-    const zones   = await queryAll('SELECT * FROM zones');
+    const mapId = req.query.map_id ? String(req.query.map_id).trim() : '';
+    if (mapId && !(await mapExists(mapId))) {
+      return res.status(400).json({ error: 'Carte introuvable' });
+    }
+    const zones = mapId
+      ? await queryAll('SELECT * FROM zones WHERE map_id = ?', [mapId])
+      : await queryAll('SELECT * FROM zones');
     const history = await queryAll('SELECT * FROM zone_history ORDER BY harvested_at DESC');
     const result  = zones.map(z => ({
       ...z,
@@ -44,7 +56,12 @@ router.put('/:id', requireTeacher, async (req, res) => {
   try {
     const zone = await queryOne('SELECT * FROM zones WHERE id = ?', [req.params.id]);
     if (!zone) return res.status(404).json({ error: 'Zone introuvable' });
-    const { current_plant, stage, description, points, color } = req.body;
+    const { current_plant, stage, description, points, color, map_id } = req.body;
+    if (map_id != null) {
+      const nextMapId = String(map_id).trim();
+      if (!nextMapId) return res.status(400).json({ error: 'map_id invalide' });
+      if (!(await mapExists(nextMapId))) return res.status(400).json({ error: 'Carte introuvable' });
+    }
     if (zone.current_plant && current_plant !== undefined &&
         zone.current_plant !== current_plant && zone.current_plant.trim() !== '') {
       await execute(
@@ -53,8 +70,9 @@ router.put('/:id', requireTeacher, async (req, res) => {
       );
     }
     await execute(
-      'UPDATE zones SET current_plant=?, stage=?, description=?, points=?, color=? WHERE id=?',
+      'UPDATE zones SET map_id=?, current_plant=?, stage=?, description=?, points=?, color=? WHERE id=?',
       [
+        map_id != null ? String(map_id).trim() : zone.map_id,
         current_plant  ?? zone.current_plant,
         stage          ?? zone.stage,
         description    !== undefined ? description : (zone.description ?? ''),
@@ -151,13 +169,16 @@ router.delete('/:id/photos/:pid', requireTeacher, async (req, res) => {
 
 router.post('/', requireTeacher, async (req, res) => {
   try {
-    const { name, points, color, current_plant, stage } = req.body;
+    const { name, points, color, current_plant, stage, map_id } = req.body;
     if (!name?.trim()) return res.status(400).json({ error: 'Nom requis' });
     if (!points || points.length < 3) return res.status(400).json({ error: 'Au moins 3 points requis' });
+    const mapId = String(map_id || 'foret').trim();
+    if (!mapId) return res.status(400).json({ error: 'map_id requis' });
+    if (!(await mapExists(mapId))) return res.status(400).json({ error: 'Carte introuvable' });
     const id = 'zone-' + uuidv4().slice(0, 8);
     await execute(
-      'INSERT INTO zones (id, name, x, y, width, height, current_plant, stage, special, points, color) VALUES (?, ?, 0, 0, 0, 0, ?, ?, 0, ?, ?)',
-      [id, name.trim(), current_plant || '', stage || 'empty', JSON.stringify(points), color || '#86efac80']
+      'INSERT INTO zones (id, map_id, name, x, y, width, height, current_plant, stage, special, points, color) VALUES (?, ?, ?, 0, 0, 0, 0, ?, ?, 0, ?, ?)',
+      [id, mapId, name.trim(), current_plant || '', stage || 'empty', JSON.stringify(points), color || '#86efac80']
     );
     const zone = await queryOne('SELECT * FROM zones WHERE id = ?', [id]);
     emitGardenChanged({ reason: 'create_zone', zoneId: id });
