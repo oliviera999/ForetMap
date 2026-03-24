@@ -15,6 +15,36 @@ async function mapExists(mapId) {
   return !!row;
 }
 
+function normalizeLivingBeings(input, fallback = '') {
+  const base = Array.isArray(input)
+    ? input
+    : typeof input === 'string' && input.trim()
+      ? (() => {
+        try {
+          const parsed = JSON.parse(input);
+          if (Array.isArray(parsed)) return parsed;
+        } catch (_) {}
+        return input.split(',');
+      })()
+      : [];
+  const cleaned = [...new Set(base
+    .map((v) => String(v || '').trim())
+    .filter(Boolean))];
+  if (cleaned.length === 0 && fallback && String(fallback).trim()) return [String(fallback).trim()];
+  return cleaned;
+}
+
+function serializeLivingBeings(input, fallback = '') {
+  return JSON.stringify(normalizeLivingBeings(input, fallback));
+}
+
+function withLivingBeings(zone) {
+  return {
+    ...zone,
+    living_beings_list: normalizeLivingBeings(zone.living_beings, zone.current_plant),
+  };
+}
+
 router.get('/', async (req, res) => {
   try {
     const mapId = req.query.map_id ? String(req.query.map_id).trim() : '';
@@ -26,7 +56,7 @@ router.get('/', async (req, res) => {
       : await queryAll('SELECT * FROM zones');
     const history = await queryAll('SELECT * FROM zone_history ORDER BY harvested_at DESC');
     const result  = zones.map(z => ({
-      ...z,
+      ...withLivingBeings(z),
       special: !!z.special,
       history: history.filter(h => h.zone_id === z.id)
     }));
@@ -45,7 +75,7 @@ router.get('/:id', async (req, res) => {
       'SELECT * FROM zone_history WHERE zone_id = ? ORDER BY harvested_at DESC',
       [req.params.id]
     );
-    res.json({ ...zone, special: !!zone.special, history });
+    res.json({ ...withLivingBeings(zone), special: !!zone.special, history });
   } catch (e) {
     logRouteError(e, req);
     res.status(500).json({ error: e.message });
@@ -56,24 +86,30 @@ router.put('/:id', requireTeacher, async (req, res) => {
   try {
     const zone = await queryOne('SELECT * FROM zones WHERE id = ?', [req.params.id]);
     if (!zone) return res.status(404).json({ error: 'Zone introuvable' });
-    const { current_plant, stage, description, points, color, map_id } = req.body;
+    const { current_plant, living_beings, stage, description, points, color, map_id } = req.body;
     if (map_id != null) {
       const nextMapId = String(map_id).trim();
       if (!nextMapId) return res.status(400).json({ error: 'map_id invalide' });
       if (!(await mapExists(nextMapId))) return res.status(400).json({ error: 'Carte introuvable' });
     }
+    const existingLiving = normalizeLivingBeings(zone.living_beings, zone.current_plant);
+    const nextLiving = living_beings !== undefined ? normalizeLivingBeings(living_beings, current_plant ?? zone.current_plant) : existingLiving;
+    const nextCurrentPlant = current_plant !== undefined
+      ? (current_plant || nextLiving[0] || '')
+      : (nextLiving[0] || zone.current_plant || '');
     if (zone.current_plant && current_plant !== undefined &&
-        zone.current_plant !== current_plant && zone.current_plant.trim() !== '') {
+        zone.current_plant !== nextCurrentPlant && zone.current_plant.trim() !== '') {
       await execute(
         'INSERT INTO zone_history (zone_id, plant, harvested_at) VALUES (?, ?, ?)',
         [zone.id, zone.current_plant, new Date().toISOString().split('T')[0]]
       );
     }
     await execute(
-      'UPDATE zones SET map_id=?, current_plant=?, stage=?, description=?, points=?, color=? WHERE id=?',
+      'UPDATE zones SET map_id=?, current_plant=?, living_beings=?, stage=?, description=?, points=?, color=? WHERE id=?',
       [
         map_id != null ? String(map_id).trim() : zone.map_id,
-        current_plant  ?? zone.current_plant,
+        nextCurrentPlant,
+        serializeLivingBeings(nextLiving, nextCurrentPlant),
         stage          ?? zone.stage,
         description    !== undefined ? description : (zone.description ?? ''),
         points         !== undefined ? JSON.stringify(points) : zone.points,
@@ -84,7 +120,7 @@ router.put('/:id', requireTeacher, async (req, res) => {
     const updated = await queryOne('SELECT * FROM zones WHERE id = ?', [zone.id]);
     const history = await queryAll('SELECT * FROM zone_history WHERE zone_id=? ORDER BY harvested_at DESC', [zone.id]);
     emitGardenChanged({ reason: 'update_zone', zoneId: zone.id });
-    res.json({ ...updated, special: !!updated.special, history });
+    res.json({ ...withLivingBeings(updated), special: !!updated.special, history });
   } catch (e) {
     logRouteError(e, req);
     res.status(500).json({ error: e.message });
@@ -169,20 +205,22 @@ router.delete('/:id/photos/:pid', requireTeacher, async (req, res) => {
 
 router.post('/', requireTeacher, async (req, res) => {
   try {
-    const { name, points, color, current_plant, stage, map_id } = req.body;
+    const { name, points, color, current_plant, living_beings, stage, map_id } = req.body;
     if (!name?.trim()) return res.status(400).json({ error: 'Nom requis' });
     if (!points || points.length < 3) return res.status(400).json({ error: 'Au moins 3 points requis' });
     const mapId = String(map_id || 'foret').trim();
     if (!mapId) return res.status(400).json({ error: 'map_id requis' });
     if (!(await mapExists(mapId))) return res.status(400).json({ error: 'Carte introuvable' });
+    const nextLiving = normalizeLivingBeings(living_beings, current_plant);
+    const nextCurrentPlant = (current_plant || nextLiving[0] || '').trim();
     const id = 'zone-' + uuidv4().slice(0, 8);
     await execute(
-      'INSERT INTO zones (id, map_id, name, x, y, width, height, current_plant, stage, special, points, color) VALUES (?, ?, ?, 0, 0, 0, 0, ?, ?, 0, ?, ?)',
-      [id, mapId, name.trim(), current_plant || '', stage || 'empty', JSON.stringify(points), color || '#86efac80']
+      'INSERT INTO zones (id, map_id, name, x, y, width, height, current_plant, living_beings, stage, special, points, color) VALUES (?, ?, ?, 0, 0, 0, 0, ?, ?, ?, 0, ?, ?)',
+      [id, mapId, name.trim(), nextCurrentPlant, serializeLivingBeings(nextLiving, nextCurrentPlant), stage || 'empty', JSON.stringify(points), color || '#86efac80']
     );
     const zone = await queryOne('SELECT * FROM zones WHERE id = ?', [id]);
     emitGardenChanged({ reason: 'create_zone', zoneId: id });
-    res.status(201).json({ ...zone, history: [] });
+    res.status(201).json({ ...withLivingBeings(zone), history: [] });
   } catch (e) {
     logRouteError(e, req);
     res.status(500).json({ error: e.message });
