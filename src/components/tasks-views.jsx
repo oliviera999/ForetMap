@@ -159,7 +159,7 @@ function TasksView({ tasks, zones, maps = [], activeMapId = 'foret', isTeacher, 
     return map ? map.label : mapId;
   };
 
-  const taskEffectiveMapId = (task) => task.map_id_resolved || task.map_id || task.zone_map_id || null;
+  const taskEffectiveMapId = (task) => task.map_id_resolved || task.map_id || task.zone_map_id || task.marker_map_id || null;
 
   const withLoad = async (id, fn) => {
     setLoading(l => ({ ...l, [id]: true }));
@@ -257,6 +257,7 @@ function TasksView({ tasks, zones, maps = [], activeMapId = 'foret', isTeacher, 
         <div className="task-meta">
           <span className="task-chip">{taskEffectiveMapId(t) ? `🗺️ ${mapLabelById(taskEffectiveMapId(t))}` : '🌐 Globale'}</span>
           {t.zone_name && <span className="task-chip">🌿 {t.zone_name}</span>}
+          {t.marker_label && <span className="task-chip">📍 {t.marker_label}</span>}
           {dueDateChip(t.due_date)}
           {!isTeacher && <span className="task-chip">👤 {t.required_students} élève{t.required_students > 1 ? 's' : ''}</span>}
           {t.recurrence && <span className="task-chip">🔄 {t.recurrence === 'weekly' ? 'Hebdo' : t.recurrence === 'biweekly' ? 'Bi-hebdo' : t.recurrence === 'monthly' ? 'Mensuel' : t.recurrence}</span>}

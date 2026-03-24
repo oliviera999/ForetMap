@@ -159,17 +159,25 @@ function PhotoGallery({ zoneId, isTeacher }) {
   );
 }
 
-function ZoneInfoModal({ zone, plants, isTeacher, onClose, onUpdate, onDelete, onEditPoints }) {
+function ZoneInfoModal({ zone, plants, tasks, isTeacher, onClose, onUpdate, onDelete, onEditPoints, onLinkTask, onUnlinkTask }) {
   const [tab, setTab] = useState('info');
   const [plant, setPlant] = useState(zone.current_plant || '');
   const [livingBeings, setLivingBeings] = useState(parseLivingBeings(zone.living_beings_list || zone.living_beings, zone.current_plant));
   const [stage, setStage] = useState(zone.stage || 'empty');
   const [desc, setDesc] = useState(zone.description || '');
+  const [linkTaskId, setLinkTaskId] = useState('');
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState(null);
 
   const displayStage = zone.special ? 'special' : zone.stage;
   const plantObj = plants.find(p => p.name === zone.current_plant);
+  const taskMapId = (t) => t.map_id_resolved || t.map_id || t.zone_map_id || t.marker_map_id || null;
+  const linkedTasks = (tasks || []).filter((t) => t.zone_id === zone.id);
+  const assignableTasks = (tasks || []).filter((t) => {
+    if (linkedTasks.some((lt) => lt.id === t.id)) return false;
+    const mapId = taskMapId(t);
+    return mapId === zone.map_id || mapId == null;
+  });
 
   const save = async () => {
     setSaving(true);
@@ -184,6 +192,7 @@ function ZoneInfoModal({ zone, plants, isTeacher, onClose, onUpdate, onDelete, o
   const TABS = [
     { id: 'info', label: 'ℹ️ Info' },
     { id: 'photos', label: '📷 Photos' },
+    ...(isTeacher ? [{ id: 'tasks', label: '✅ Tâches' }] : []),
     ...(isTeacher && !zone.special ? [{ id: 'edit', label: '✏️ Modifier' }] : []),
   ];
 
@@ -321,6 +330,40 @@ function ZoneInfoModal({ zone, plants, isTeacher, onClose, onUpdate, onDelete, o
             )}
           </div>
         )}
+        {tab === 'tasks' && isTeacher && (
+          <div className="fade-in">
+            <div className="field"><label>Lier une tâche existante</label>
+              <select value={linkTaskId} onChange={e => setLinkTaskId(e.target.value)}>
+                <option value="">— Choisir une tâche —</option>
+                {assignableTasks.map(t => <option key={t.id} value={t.id}>{t.title}</option>)}
+              </select>
+            </div>
+            <button className="btn btn-primary btn-full" disabled={!linkTaskId}
+              onClick={async () => {
+                await onLinkTask?.(linkTaskId);
+                setLinkTaskId('');
+                setToast('Tâche liée à la zone ✓');
+              }}>
+              🔗 Lier la tâche
+            </button>
+            <div style={{ marginTop: 12 }}>
+              {linkedTasks.length === 0 ? (
+                <p style={{ color: '#999', fontSize: '.85rem' }}>Aucune tâche liée à cette zone.</p>
+              ) : linkedTasks.map((t) => (
+                <div key={t.id} className="history-item" style={{ alignItems: 'center' }}>
+                  <span>{t.title}</span>
+                  <button className="btn btn-ghost btn-sm"
+                    onClick={async () => {
+                      await onUnlinkTask?.(t);
+                      setToast('Tâche dissociée');
+                    }}>
+                    Délier
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -400,7 +443,7 @@ function ZoneDrawModal({ points_pct, onClose, onSave, plants }) {
   );
 }
 
-function MarkerModal({ marker, plants, onClose, onSave, onDelete, isTeacher }) {
+function MarkerModal({ marker, plants, tasks, onClose, onSave, onDelete, onLinkTask, onUnlinkTask, isTeacher }) {
   const isNew = !marker.id;
   const [form, setForm] = useState({
     label: marker.label || '', plant_name: marker.plant_name || '',
@@ -408,8 +451,17 @@ function MarkerModal({ marker, plants, onClose, onSave, onDelete, isTeacher }) {
     note: marker.note || '', emoji: marker.emoji || '🌱',
   });
   const [saving, setSaving] = useState(false);
+  const [linkTaskId, setLinkTaskId] = useState('');
   const set = k => e => setForm(f => ({ ...f, [k]: e.target.value }));
   const EMOJIS = ['🌱', '🌿', '🥬', '🥕', '🍅', '🍓', '🫘', '🌸', '🌳', '🌲', '🐝', '💧', '🪨', '🏠', '⚠️', '🌾', '🍋'];
+
+  const taskMapId = (t) => t.map_id_resolved || t.map_id || t.zone_map_id || t.marker_map_id || null;
+  const linkedTasks = (tasks || []).filter((t) => t.marker_id === marker.id);
+  const assignableTasks = (tasks || []).filter((t) => {
+    if (linkedTasks.some((lt) => lt.id === t.id)) return false;
+    const mapId = taskMapId(t);
+    return mapId === marker.map_id || mapId == null;
+  });
 
   const save = async () => {
     if (!form.label.trim()) return;
@@ -468,6 +520,33 @@ function MarkerModal({ marker, plants, onClose, onSave, onDelete, isTeacher }) {
               <textarea value={form.note} onChange={set('note')} rows={3}
                 placeholder="Observations, entretien..." />
             </div>
+            {!!marker.id && (
+              <>
+                <div className="field"><label>Lier une tâche existante</label>
+                  <select value={linkTaskId} onChange={e => setLinkTaskId(e.target.value)}>
+                    <option value="">— Choisir une tâche —</option>
+                    {assignableTasks.map(t => <option key={t.id} value={t.id}>{t.title}</option>)}
+                  </select>
+                </div>
+                <button className="btn btn-secondary btn-full" disabled={!linkTaskId}
+                  onClick={async () => {
+                    await onLinkTask?.(linkTaskId);
+                    setLinkTaskId('');
+                  }}>
+                  🔗 Lier à ce repère
+                </button>
+                <div style={{ marginTop: 10 }}>
+                  {linkedTasks.length === 0 ? (
+                    <p style={{ color: '#999', fontSize: '.85rem' }}>Aucune tâche liée à ce repère.</p>
+                  ) : linkedTasks.map((t) => (
+                    <div key={t.id} className="history-item" style={{ alignItems: 'center' }}>
+                      <span>{t.title}</span>
+                      <button className="btn btn-ghost btn-sm" onClick={async () => onUnlinkTask?.(t)}>Délier</button>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
             <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
               <button className="btn btn-primary" style={{ flex: 1 }} onClick={save} disabled={saving}>
                 {saving ? '...' : (isNew ? '📍 Placer' : '💾 Sauver')}
@@ -504,7 +583,7 @@ function MarkerModal({ marker, plants, onClose, onSave, onDelete, isTeacher }) {
   );
 }
 
-function MapView({ zones, markers, plants, maps = [], activeMapId = 'foret', onMapChange, isTeacher, onZoneUpdate, onRefresh }) {
+function MapView({ zones, markers, tasks = [], plants, maps = [], activeMapId = 'foret', onMapChange, isTeacher, onZoneUpdate, onRefresh }) {
   const containerRef = useRef(null);
   const worldRef = useRef(null);
   const imgRef = useRef(null);
@@ -791,6 +870,18 @@ function MapView({ zones, markers, plants, maps = [], activeMapId = 'foret', onM
     else await api('/api/map/markers', 'POST', payload);
     await onRefresh();
   };
+  const linkTaskToZone = async (taskId, zoneId) => {
+    await api(`/api/tasks/${taskId}`, 'PUT', { zone_id: zoneId, marker_id: null });
+    await onRefresh();
+  };
+  const linkTaskToMarker = async (taskId, markerId) => {
+    await api(`/api/tasks/${taskId}`, 'PUT', { marker_id: markerId, zone_id: null });
+    await onRefresh();
+  };
+  const unlinkTaskFromMapTarget = async (task) => {
+    await api(`/api/tasks/${task.id}`, 'PUT', { zone_id: null, marker_id: null, map_id: activeMapId });
+    await onRefresh();
+  };
   const deleteMarker = async id => { await api(`/api/map/markers/${id}`, 'DELETE'); await onRefresh(); };
   const deleteZone = async id => { await api(`/api/zones/${id}`, 'DELETE'); await onRefresh(); };
 
@@ -866,15 +957,19 @@ function MapView({ zones, markers, plants, maps = [], activeMapId = 'foret', onM
       {toast && <Toast msg={toast} onDone={() => setToast(null)} />}
 
       {selectedZone && (
-        <ZoneInfoModal zone={selectedZone} plants={plants} isTeacher={isTeacher}
+        <ZoneInfoModal zone={selectedZone} plants={plants} tasks={tasks} isTeacher={isTeacher}
           onClose={() => setSelectedZone(null)}
           onUpdate={async (id, data) => { await onZoneUpdate(id, data); setSelectedZone(null); await onRefresh(); }}
           onDelete={async id => { await deleteZone(id); setSelectedZone(null); }}
+          onLinkTask={async (taskId) => linkTaskToZone(taskId, selectedZone.id)}
+          onUnlinkTask={unlinkTaskFromMapTarget}
           onEditPoints={isTeacher ? z => startEditPoints(z) : null} />
       )}
       {selectedMarker && (
-        <MarkerModal marker={selectedMarker} plants={plants} isTeacher={isTeacher}
-          onClose={() => setSelectedMarker(null)} onSave={saveMarker} onDelete={deleteMarker} />
+        <MarkerModal marker={selectedMarker} plants={plants} tasks={tasks} isTeacher={isTeacher}
+          onClose={() => setSelectedMarker(null)} onSave={saveMarker} onDelete={deleteMarker}
+          onLinkTask={async (taskId) => linkTaskToMarker(taskId, selectedMarker.id)}
+          onUnlinkTask={unlinkTaskFromMapTarget} />
       )}
       {pendingZone && (
         <ZoneDrawModal points_pct={pendingZone} plants={plants}

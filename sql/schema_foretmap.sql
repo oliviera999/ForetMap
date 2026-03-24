@@ -92,15 +92,18 @@ CREATE TABLE IF NOT EXISTS tasks (
   description TEXT DEFAULT NULL,
   map_id VARCHAR(32) DEFAULT NULL,
   zone_id VARCHAR(64) DEFAULT NULL,
+  marker_id VARCHAR(64) DEFAULT NULL,
   due_date VARCHAR(32) DEFAULT NULL,
   required_students INT UNSIGNED DEFAULT 1,
   status VARCHAR(32) DEFAULT 'available',
   created_at VARCHAR(32) DEFAULT NULL,
   INDEX idx_tasks_map_id (map_id),
   INDEX idx_tasks_zone_id (zone_id),
+  INDEX idx_tasks_marker_id (marker_id),
   INDEX idx_tasks_due_date (due_date),
   CONSTRAINT fk_tasks_map FOREIGN KEY (map_id) REFERENCES maps(id) ON DELETE SET NULL,
-  CONSTRAINT fk_tasks_zone FOREIGN KEY (zone_id) REFERENCES zones(id) ON DELETE SET NULL
+  CONSTRAINT fk_tasks_zone FOREIGN KEY (zone_id) REFERENCES zones(id) ON DELETE SET NULL,
+  CONSTRAINT fk_tasks_marker FOREIGN KEY (marker_id) REFERENCES map_markers(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- task_assignments (élèves assignés à une tâche)

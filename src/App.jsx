@@ -136,7 +136,7 @@ function App() {
 
   const tasksForActiveMap = useMemo(() => (
     tasks.filter((t) => {
-      const effectiveMapId = t.map_id_resolved || t.map_id || t.zone_map_id || null;
+      const effectiveMapId = t.map_id_resolved || t.map_id || t.zone_map_id || t.marker_map_id || null;
       return effectiveMapId === activeMapId || effectiveMapId == null;
     })
   ), [tasks, activeMapId]);
@@ -285,7 +285,7 @@ function App() {
             <button className={`top-tab ${tab === 'audit' ? 'active' : ''}`} onClick={() => setTab('audit')}>📜 Audit</button>
             <button className={`top-tab ${tab === 'about' ? 'active' : ''}`} onClick={() => setTab('about')}>ℹ️ À propos</button>
           </div>
-          {tab === 'map'    && <MapView zones={zones} markers={markers} plants={plants} maps={maps} activeMapId={activeMapId} onMapChange={setActiveMapId} isTeacher onZoneUpdate={updateZone} onRefresh={fetchAll}/>}
+          {tab === 'map'    && <MapView zones={zones} markers={markers} tasks={tasks} plants={plants} maps={maps} activeMapId={activeMapId} onMapChange={setActiveMapId} isTeacher onZoneUpdate={updateZone} onRefresh={fetchAll}/>}
           {tab === 'tasks'  && <TasksView  tasks={tasks} zones={zones} maps={maps} activeMapId={activeMapId} isTeacher student={student} onRefresh={fetchAll} onForceLogout={forceLogout}/>}
           {tab === 'plants' && <PlantManager plants={plants} onRefresh={fetchAll}/>}
           {tab === 'stats'  && <TeacherStats/>}
@@ -295,7 +295,7 @@ function App() {
       ) : (
         <>
           <div className="main">
-            {tab === 'map'    && <MapView zones={zones} markers={markers} plants={plants} maps={maps} activeMapId={activeMapId} onMapChange={setActiveMapId} isTeacher={false} onZoneUpdate={updateZone} onRefresh={fetchAll}/>}
+            {tab === 'map'    && <MapView zones={zones} markers={markers} tasks={tasks} plants={plants} maps={maps} activeMapId={activeMapId} onMapChange={setActiveMapId} isTeacher={false} onZoneUpdate={updateZone} onRefresh={fetchAll}/>}
             {tab === 'tasks'  && <TasksView tasks={tasks} zones={zones} maps={maps} activeMapId={activeMapId} isTeacher={false} student={student} onRefresh={fetchAll} onForceLogout={forceLogout}/>}
             {tab === 'plants' && <PlantViewer plants={plants} zones={zones}/>}
             {tab === 'notebook' && <ObservationNotebook student={student} zones={zones}/>}
