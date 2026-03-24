@@ -49,6 +49,23 @@ function Lightbox({ src, caption, onClose }) {
   return createPortal(content, el);
 }
 
+function parseLivingBeings(value, fallback = '') {
+  const raw = Array.isArray(value) ? value : (() => {
+    if (!value) return [];
+    if (typeof value === 'string') {
+      try {
+        const parsed = JSON.parse(value);
+        if (Array.isArray(parsed)) return parsed;
+      } catch (_) {}
+      return value.split(',');
+    }
+    return [];
+  })();
+  const cleaned = [...new Set(raw.map(v => String(v || '').trim()).filter(Boolean))];
+  if (cleaned.length === 0 && fallback) return [String(fallback).trim()];
+  return cleaned;
+}
+
 function PhotoGallery({ zoneId, isTeacher }) {
   const [photos, setPhotos] = useState([]);
   const [big, setBig] = useState(null);
@@ -145,6 +162,7 @@ function PhotoGallery({ zoneId, isTeacher }) {
 function ZoneInfoModal({ zone, plants, isTeacher, onClose, onUpdate, onDelete, onEditPoints }) {
   const [tab, setTab] = useState('info');
   const [plant, setPlant] = useState(zone.current_plant || '');
+  const [livingBeings, setLivingBeings] = useState(parseLivingBeings(zone.living_beings_list || zone.living_beings, zone.current_plant));
   const [stage, setStage] = useState(zone.stage || 'empty');
   const [desc, setDesc] = useState(zone.description || '');
   const [saving, setSaving] = useState(false);
@@ -156,7 +174,7 @@ function ZoneInfoModal({ zone, plants, isTeacher, onClose, onUpdate, onDelete, o
   const save = async () => {
     setSaving(true);
     try {
-      await onUpdate(zone.id, { current_plant: plant, stage, description: desc });
+      await onUpdate(zone.id, { current_plant: plant, living_beings: livingBeings, stage, description: desc });
       setToast('Sauvegardé ✓');
       setTab('info');
     } catch (e) { setToast('Erreur'); }
@@ -214,6 +232,16 @@ function ZoneInfoModal({ zone, plants, isTeacher, onClose, onUpdate, onDelete, o
                 {plantObj?.description && <p style={{ fontSize: '.83rem', color: '#555', lineHeight: 1.5, margin: 0 }}>{plantObj.description}</p>}
               </div>
             )}
+            {parseLivingBeings(zone.living_beings_list || zone.living_beings, zone.current_plant).length > 0 && (
+              <div style={{ background: '#f8fafc', borderRadius: 10, padding: '10px 14px', marginBottom: 12, border: '1px solid #dbeafe' }}>
+                <div style={{ fontSize: '.78rem', fontWeight: 700, color: '#64748b', marginBottom: 6, textTransform: 'uppercase' }}>Êtres vivants associés</div>
+                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                  {parseLivingBeings(zone.living_beings_list || zone.living_beings, zone.current_plant).map((name) => (
+                    <span key={name} className="task-chip">🌱 {name}</span>
+                  ))}
+                </div>
+              </div>
+            )}
             {zone.description && (
               <div style={{ background: '#f0fdf4', borderRadius: 10, padding: '10px 14px', marginBottom: 12,
                 border: '1px solid var(--mint)', fontSize: '.88rem', color: '#333', lineHeight: 1.6 }}>
@@ -249,10 +277,25 @@ function ZoneInfoModal({ zone, plants, isTeacher, onClose, onUpdate, onDelete, o
             <div className="field"><label>Être vivant actuel</label>
               <select value={plant} onChange={e => {
                 setPlant(e.target.value);
+                setLivingBeings((prev) => {
+                  const list = parseLivingBeings(prev, e.target.value);
+                  return e.target.value ? [...new Set([e.target.value, ...list])] : list;
+                });
                 if (e.target.value && stage === 'empty') setStage('growing');
                 if (!e.target.value) setStage('empty');
               }}>
                 <option value="">— Vide —</option>
+                {plants.map(p => <option key={p.id} value={p.name}>{p.emoji} {p.name}</option>)}
+              </select>
+            </div>
+            <div className="field"><label>Autres êtres vivants associés</label>
+              <select
+                multiple
+                value={livingBeings}
+                onChange={e => {
+                  const list = Array.from(e.target.selectedOptions).map(opt => opt.value);
+                  setLivingBeings([...new Set([...(plant ? [plant] : []), ...list])]);
+                }}>
                 {plants.map(p => <option key={p.id} value={p.name}>{p.emoji} {p.name}</option>)}
               </select>
             </div>
@@ -284,7 +327,7 @@ function ZoneInfoModal({ zone, plants, isTeacher, onClose, onUpdate, onDelete, o
 }
 
 function ZoneDrawModal({ points_pct, onClose, onSave, plants }) {
-  const [form, setForm] = useState({ name: '', current_plant: '', stage: 'empty', description: '', color: ZONE_COLORS[0] });
+  const [form, setForm] = useState({ name: '', current_plant: '', living_beings: [], stage: 'empty', description: '', color: ZONE_COLORS[0] });
   const [saving, setSaving] = useState(false);
   const set = k => e => setForm(f => ({ ...f, [k]: e.target.value }));
   const save = async () => {
@@ -304,7 +347,14 @@ function ZoneDrawModal({ points_pct, onClose, onSave, plants }) {
         </div>
         <div className="row">
           <div className="field"><label>Être vivant</label>
-            <select value={form.current_plant} onChange={set('current_plant')}>
+            <select value={form.current_plant} onChange={e => {
+              const value = e.target.value;
+              setForm((f) => ({
+                ...f,
+                current_plant: value,
+                living_beings: value ? [...new Set([value, ...f.living_beings])] : f.living_beings,
+              }));
+            }}>
               <option value="">— Vide —</option>
               {plants.map(p => <option key={p.id} value={p.name}>{p.emoji} {p.name}</option>)}
             </select>
@@ -316,6 +366,17 @@ function ZoneDrawModal({ points_pct, onClose, onSave, plants }) {
               <option value="ready">Prêt à récolter</option>
             </select>
           </div>
+        </div>
+        <div className="field"><label>Êtres vivants associés</label>
+          <select
+            multiple
+            value={form.living_beings}
+            onChange={e => {
+              const list = Array.from(e.target.selectedOptions).map(opt => opt.value);
+              setForm((f) => ({ ...f, living_beings: [...new Set([...(f.current_plant ? [f.current_plant] : []), ...list])] }));
+            }}>
+            {plants.map(p => <option key={p.id} value={p.name}>{p.emoji} {p.name}</option>)}
+          </select>
         </div>
         <div className="field"><label>Description</label>
           <textarea value={form.description} onChange={set('description')} rows={2}
@@ -343,6 +404,7 @@ function MarkerModal({ marker, plants, onClose, onSave, onDelete, isTeacher }) {
   const isNew = !marker.id;
   const [form, setForm] = useState({
     label: marker.label || '', plant_name: marker.plant_name || '',
+    living_beings: parseLivingBeings(marker.living_beings_list || marker.living_beings, marker.plant_name),
     note: marker.note || '', emoji: marker.emoji || '🌱',
   });
   const [saving, setSaving] = useState(false);
@@ -352,7 +414,9 @@ function MarkerModal({ marker, plants, onClose, onSave, onDelete, isTeacher }) {
   const save = async () => {
     if (!form.label.trim()) return;
     setSaving(true);
-    try { await onSave({ ...marker, ...form }); onClose(); }
+    const living = parseLivingBeings(form.living_beings, form.plant_name);
+    const payload = { ...marker, ...form, living_beings: living, plant_name: form.plant_name || living[0] || '' };
+    try { await onSave(payload); onClose(); }
     catch (e) { setSaving(false); }
   };
 
@@ -377,8 +441,26 @@ function MarkerModal({ marker, plants, onClose, onSave, onDelete, isTeacher }) {
               <input value={form.label} onChange={set('label')} placeholder="Ex: Olivier n°10" />
             </div>
             <div className="field"><label>Être vivant associé</label>
-              <select value={form.plant_name} onChange={set('plant_name')}>
+              <select value={form.plant_name} onChange={e => {
+                const value = e.target.value;
+                setForm(f => ({
+                  ...f,
+                  plant_name: value,
+                  living_beings: value ? [...new Set([value, ...parseLivingBeings(f.living_beings, value)])] : parseLivingBeings(f.living_beings, ''),
+                }));
+              }}>
                 <option value="">— Aucune —</option>
+                {plants.map(p => <option key={p.id} value={p.name}>{p.emoji} {p.name}</option>)}
+              </select>
+            </div>
+            <div className="field"><label>Autres êtres vivants associés</label>
+              <select
+                multiple
+                value={form.living_beings}
+                onChange={e => {
+                  const list = Array.from(e.target.selectedOptions).map(opt => opt.value);
+                  setForm(f => ({ ...f, living_beings: [...new Set([...(f.plant_name ? [f.plant_name] : []), ...list])] }));
+                }}>
                 {plants.map(p => <option key={p.id} value={p.name}>{p.emoji} {p.name}</option>)}
               </select>
             </div>
@@ -408,6 +490,13 @@ function MarkerModal({ marker, plants, onClose, onSave, onDelete, isTeacher }) {
               ? <p style={{ fontSize: '.9rem', color: '#444', lineHeight: 1.6 }}>{form.note}</p>
               : <p style={{ fontSize: '.85rem', color: '#aaa', fontStyle: 'italic' }}>Aucune note.</p>
             }
+            {parseLivingBeings(form.living_beings, form.plant_name).length > 0 && (
+              <div style={{ marginTop: 10, display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                {parseLivingBeings(form.living_beings, form.plant_name).map((name) => (
+                  <span key={name} className="task-chip">🌱 {name}</span>
+                ))}
+              </div>
+            )}
           </div>
         )}
       </div>

@@ -139,6 +139,45 @@ test('Zones et tâches supportent le filtrage multi-cartes', async () => {
   assert.ok(!tasksForet.body.some(t => t.id === n3Task.body.id));
 });
 
+test('Zones et repères acceptent plusieurs êtres vivants associés', async () => {
+  const auth = await request(app)
+    .post('/api/auth/teacher')
+    .send({ pin: process.env.TEACHER_PIN || '1234' });
+  const token = auth.body.token;
+
+  const zoneRes = await request(app)
+    .post('/api/zones')
+    .set('Authorization', 'Bearer ' + token)
+    .send({
+      name: 'Zone multi-vivants',
+      map_id: 'foret',
+      points: [{ xp: 12, yp: 12 }, { xp: 22, yp: 12 }, { xp: 18, yp: 22 }],
+      current_plant: 'Menthe',
+      living_beings: ['Menthe', 'Tomate', 'Basilic'],
+    })
+    .expect(201);
+  assert.ok(Array.isArray(zoneRes.body.living_beings_list));
+  assert.ok(zoneRes.body.living_beings_list.includes('Menthe'));
+  assert.ok(zoneRes.body.living_beings_list.includes('Tomate'));
+
+  const markerRes = await request(app)
+    .post('/api/map/markers')
+    .set('Authorization', 'Bearer ' + token)
+    .send({
+      map_id: 'foret',
+      x_pct: 30,
+      y_pct: 30,
+      label: 'Repère multi-vivants',
+      plant_name: 'Laitue',
+      living_beings: ['Laitue', 'Carotte'],
+      emoji: '🌱',
+    })
+    .expect(201);
+  assert.ok(Array.isArray(markerRes.body.living_beings_list));
+  assert.ok(markerRes.body.living_beings_list.includes('Laitue'));
+  assert.ok(markerRes.body.living_beings_list.includes('Carotte'));
+});
+
 // ─── Suppression élève (cascade + statuts) ──────────────────────────────────
 test('DELETE /api/students/:id supprime l’élève et recalcule les statuts des tâches', async () => {
   const auth = await request(app)
