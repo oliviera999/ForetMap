@@ -167,6 +167,64 @@ function taskLocationIds(t) {
   return { zoneIds, markerIds };
 }
 
+function isTaskAssignedToStudent(task, student) {
+  if (!task || !student) return false;
+  const first = String(student.first_name || '').toLowerCase();
+  const last = String(student.last_name || '').toLowerCase();
+  return (task.assignments || []).some((a) => (
+    String(a.student_first_name || '').toLowerCase() === first &&
+    String(a.student_last_name || '').toLowerCase() === last
+  ));
+}
+
+function taskOpenSlots(task) {
+  const required = Number(task?.required_students || 1);
+  const assigned = Array.isArray(task?.assignments) ? task.assignments.length : 0;
+  return Math.max(0, required - assigned);
+}
+
+function canStudentAssignTask(task, student) {
+  if (!task || !student) return false;
+  if (task.status === 'validated' || task.status === 'done') return false;
+  if (isTaskAssignedToStudent(task, student)) return false;
+  return taskOpenSlots(task) > 0;
+}
+
+function taskEnrollmentMeta(task, student) {
+  const isMine = isTaskAssignedToStudent(task, student);
+  const slots = taskOpenSlots(task);
+  const isClosed = task?.status === 'validated' || task?.status === 'done';
+  if (isMine) {
+    return { tone: '#0f766e', bg: '#f0fdfa', border: '#99f6e4', dot: '●', label: 'Déjà prise par toi' };
+  }
+  if (isClosed) {
+    return { tone: '#92400e', bg: '#fffbeb', border: '#fde68a', dot: '●', label: task.status === 'done' ? 'Terminée (en attente)' : 'Validée' };
+  }
+  if (slots <= 0) {
+    return { tone: '#991b1b', bg: '#fef2f2', border: '#fecaca', dot: '●', label: 'Complet' };
+  }
+  return { tone: '#166534', bg: '#f0fdf4', border: '#86efac', dot: '●', label: `${slots} place${slots > 1 ? 's' : ''} disponible${slots > 1 ? 's' : ''}` };
+}
+
+function TaskEnrollmentLegend() {
+  const items = [
+    { key: 'mine', color: '#0f766e', label: 'Déjà prise' },
+    { key: 'open', color: '#166534', label: 'Disponible' },
+    { key: 'full', color: '#991b1b', label: 'Complet' },
+    { key: 'closed', color: '#92400e', label: 'Fermée' },
+  ];
+  return (
+    <div style={{ marginBottom: 10, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+      {items.map((item) => (
+        <span key={item.key} style={{ fontSize: '.78rem', color: '#555', display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+          <span style={{ color: item.color, fontSize: '.9rem', lineHeight: 1 }}>●</span>
+          {item.label}
+        </span>
+      ))}
+    </div>
+  );
+}
+
 const TASK_VISUAL_PRIORITY = { done: 1, progress: 2, todo: 3 };
 const TASK_VISUAL_LABEL = {
   todo: 'Tâche à faire',
@@ -187,13 +245,15 @@ function mergeTaskVisualStatus(current, next) {
   return (TASK_VISUAL_PRIORITY[next] || 0) > (TASK_VISUAL_PRIORITY[current] || 0) ? next : current;
 }
 
-function ZoneInfoModal({ zone, plants, tasks, isTeacher, onClose, onUpdate, onDelete, onEditPoints, onLinkTask, onUnlinkTask }) {
+function ZoneInfoModal({ zone, plants, tasks, isTeacher, student, onClose, onUpdate, onDelete, onEditPoints, onLinkTask, onUnlinkTask, onAssignTasks }) {
   const [tab, setTab] = useState('info');
   const [plant, setPlant] = useState(zone.current_plant || '');
   const [livingBeings, setLivingBeings] = useState(parseLivingBeings(zone.living_beings_list || zone.living_beings, zone.current_plant));
   const [stage, setStage] = useState(zone.stage || 'empty');
   const [desc, setDesc] = useState(zone.description || '');
   const [linkTaskId, setLinkTaskId] = useState('');
+  const [selectedTaskIds, setSelectedTaskIds] = useState([]);
+  const [assigning, setAssigning] = useState(false);
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState(null);
 
@@ -201,11 +261,17 @@ function ZoneInfoModal({ zone, plants, tasks, isTeacher, onClose, onUpdate, onDe
   const plantObj = plants.find(p => p.name === zone.current_plant);
   const taskMapId = (t) => t.map_id_resolved || t.map_id || t.zone_map_id || t.marker_map_id || null;
   const linkedTasks = (tasks || []).filter((t) => taskLocationIds(t).zoneIds.includes(zone.id));
+  const studentAssignableTasks = linkedTasks.filter((t) => canStudentAssignTask(t, student));
   const assignableTasks = (tasks || []).filter((t) => {
     if (linkedTasks.some((lt) => lt.id === t.id)) return false;
     const mapId = taskMapId(t);
     return mapId === zone.map_id || mapId == null;
   });
+  const showTasksTab = isTeacher || (!!student && linkedTasks.length > 0);
+
+  useEffect(() => {
+    setSelectedTaskIds((prev) => prev.filter((id) => studentAssignableTasks.some((t) => t.id === id)));
+  }, [studentAssignableTasks]);
 
   const save = async () => {
     setSaving(true);
@@ -220,7 +286,7 @@ function ZoneInfoModal({ zone, plants, tasks, isTeacher, onClose, onUpdate, onDe
   const TABS = [
     { id: 'info', label: 'ℹ️ Info' },
     { id: 'photos', label: '📷 Photos' },
-    ...(isTeacher ? [{ id: 'tasks', label: '✅ Tâches' }] : []),
+    ...(showTasksTab ? [{ id: 'tasks', label: '✅ Tâches' }] : []),
     ...(isTeacher && !zone.special ? [{ id: 'edit', label: '✏️ Modifier' }] : []),
   ];
 
@@ -392,6 +458,78 @@ function ZoneInfoModal({ zone, plants, tasks, isTeacher, onClose, onUpdate, onDe
             </div>
           </div>
         )}
+        {tab === 'tasks' && !isTeacher && (
+          <div className="fade-in">
+            {linkedTasks.length === 0 ? (
+              <p style={{ color: '#999', fontSize: '.85rem' }}>Aucune tâche liée à cette zone.</p>
+            ) : (
+              <>
+                <TaskEnrollmentLegend />
+                <p style={{ color: '#666', fontSize: '.84rem', marginBottom: 10 }}>
+                  Sélectionne une ou plusieurs tâches puis inscris-toi directement.
+                </p>
+                <div style={{ display: 'grid', gap: 8 }}>
+                  {linkedTasks.map((t) => {
+                    const canAssign = canStudentAssignTask(t, student);
+                    const meta = taskEnrollmentMeta(t, student);
+                    const checked = selectedTaskIds.includes(t.id);
+                    return (
+                      <label key={t.id} style={{
+                        display: 'flex',
+                        alignItems: 'flex-start',
+                        gap: 10,
+                        border: '1px solid rgba(0,0,0,.08)',
+                        borderRadius: 10,
+                        padding: '10px 12px',
+                        background: checked ? '#f0fdf4' : 'var(--parchment)',
+                        cursor: canAssign ? 'pointer' : 'default',
+                        opacity: canAssign || isMine ? 1 : 0.72,
+                      }}>
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          disabled={!canAssign || assigning}
+                          onChange={() => {
+                            if (!canAssign) return;
+                            setSelectedTaskIds((prev) => (
+                              prev.includes(t.id) ? prev.filter((id) => id !== t.id) : [...prev, t.id]
+                            ));
+                          }} />
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontWeight: 700, color: 'var(--forest)', fontSize: '.9rem' }}>{t.title}</div>
+                          <div style={{ marginTop: 4, display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                            <span className="task-chip" style={{ color: meta.tone, borderColor: meta.border, background: meta.bg }}>
+                              <span style={{ marginRight: 4, opacity: .8 }}>{meta.dot}</span>{meta.label}
+                            </span>
+                          </div>
+                        </div>
+                      </label>
+                    );
+                  })}
+                </div>
+                <button
+                  className="btn btn-primary btn-full"
+                  style={{ marginTop: 12 }}
+                  disabled={assigning || selectedTaskIds.length === 0}
+                  onClick={async () => {
+                    if (!onAssignTasks || selectedTaskIds.length === 0) return;
+                    setAssigning(true);
+                    const result = await onAssignTasks(selectedTaskIds);
+                    if (result.failedCount > 0) {
+                      const ok = result.assignedCount > 0 ? `${result.assignedCount} tâche(s) prise(s). ` : '';
+                      setToast(`${ok}${result.failedCount} échec(s) : ${result.firstError || 'erreur inconnue'}`);
+                    } else {
+                      setToast(`${result.assignedCount} tâche(s) prise(s) en charge ✓`);
+                    }
+                    setSelectedTaskIds([]);
+                    setAssigning(false);
+                  }}>
+                  {assigning ? 'Inscription...' : `✋ M'inscrire à ${selectedTaskIds.length || '...'} tâche(s)`}
+                </button>
+              </>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -471,7 +609,7 @@ function ZoneDrawModal({ points_pct, onClose, onSave, plants }) {
   );
 }
 
-function MarkerModal({ marker, plants, tasks, onClose, onSave, onDelete, onLinkTask, onUnlinkTask, isTeacher }) {
+function MarkerModal({ marker, plants, tasks, onClose, onSave, onDelete, onLinkTask, onUnlinkTask, onAssignTasks, isTeacher, student }) {
   const isNew = !marker.id;
   const [form, setForm] = useState({
     label: marker.label || '', plant_name: marker.plant_name || '',
@@ -480,16 +618,24 @@ function MarkerModal({ marker, plants, tasks, onClose, onSave, onDelete, onLinkT
   });
   const [saving, setSaving] = useState(false);
   const [linkTaskId, setLinkTaskId] = useState('');
+  const [selectedTaskIds, setSelectedTaskIds] = useState([]);
+  const [assigning, setAssigning] = useState(false);
+  const [toast, setToast] = useState(null);
   const set = k => e => setForm(f => ({ ...f, [k]: e.target.value }));
   const EMOJIS = ['🌱', '🌿', '🥬', '🥕', '🍅', '🍓', '🫘', '🌸', '🌳', '🌲', '🐝', '💧', '🪨', '🏠', '⚠️', '🌾', '🍋'];
 
   const taskMapId = (t) => t.map_id_resolved || t.map_id || t.zone_map_id || t.marker_map_id || null;
   const linkedTasks = (tasks || []).filter((t) => taskLocationIds(t).markerIds.includes(marker.id));
+  const studentAssignableTasks = linkedTasks.filter((t) => canStudentAssignTask(t, student));
   const assignableTasks = (tasks || []).filter((t) => {
     if (linkedTasks.some((lt) => lt.id === t.id)) return false;
     const mapId = taskMapId(t);
     return mapId === marker.map_id || mapId == null;
   });
+
+  useEffect(() => {
+    setSelectedTaskIds((prev) => prev.filter((id) => studentAssignableTasks.some((t) => t.id === id)));
+  }, [studentAssignableTasks]);
 
   const save = async () => {
     if (!form.label.trim()) return;
@@ -503,6 +649,7 @@ function MarkerModal({ marker, plants, tasks, onClose, onSave, onDelete, onLinkT
   return (
     <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
       <div className="log-modal fade-in">
+        {toast && <Toast msg={toast} onDone={() => setToast(null)} />}
         <button className="modal-close" onClick={onClose}>✕</button>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
           <span style={{ fontSize: '2rem' }}>{form.emoji}</span>
@@ -604,6 +751,77 @@ function MarkerModal({ marker, plants, tasks, onClose, onSave, onDelete, onLinkT
                 ))}
               </div>
             )}
+            <div style={{ marginTop: 14 }}>
+              <h4 style={{ margin: '0 0 8px', fontSize: '.95rem' }}>✅ Tâches liées</h4>
+              {linkedTasks.length === 0 ? (
+                <p style={{ color: '#999', fontSize: '.85rem' }}>Aucune tâche liée à ce repère.</p>
+              ) : (
+                <>
+                  <TaskEnrollmentLegend />
+                  <p style={{ color: '#666', fontSize: '.84rem', marginBottom: 10 }}>
+                    Tu peux t'inscrire à une ou plusieurs tâches liées à ce repère.
+                  </p>
+                  <div style={{ display: 'grid', gap: 8 }}>
+                    {linkedTasks.map((t) => {
+                      const canAssign = canStudentAssignTask(t, student);
+                      const meta = taskEnrollmentMeta(t, student);
+                      const checked = selectedTaskIds.includes(t.id);
+                      return (
+                        <label key={t.id} style={{
+                          display: 'flex',
+                          alignItems: 'flex-start',
+                          gap: 10,
+                          border: '1px solid rgba(0,0,0,.08)',
+                          borderRadius: 10,
+                          padding: '10px 12px',
+                          background: checked ? '#f0fdf4' : 'var(--parchment)',
+                          cursor: canAssign ? 'pointer' : 'default',
+                          opacity: canAssign || isMine ? 1 : 0.72,
+                        }}>
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            disabled={!canAssign || assigning}
+                            onChange={() => {
+                              if (!canAssign) return;
+                              setSelectedTaskIds((prev) => (
+                                prev.includes(t.id) ? prev.filter((id) => id !== t.id) : [...prev, t.id]
+                              ));
+                            }} />
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ fontWeight: 700, color: 'var(--forest)', fontSize: '.9rem' }}>{t.title}</div>
+                            <div style={{ marginTop: 4, display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                              <span className="task-chip" style={{ color: meta.tone, borderColor: meta.border, background: meta.bg }}>
+                                <span style={{ marginRight: 4, opacity: .8 }}>{meta.dot}</span>{meta.label}
+                              </span>
+                            </div>
+                          </div>
+                        </label>
+                      );
+                    })}
+                  </div>
+                  <button
+                    className="btn btn-primary btn-full"
+                    style={{ marginTop: 12 }}
+                    disabled={assigning || selectedTaskIds.length === 0}
+                    onClick={async () => {
+                      if (!onAssignTasks || selectedTaskIds.length === 0) return;
+                      setAssigning(true);
+                      const result = await onAssignTasks(selectedTaskIds);
+                      if (result.failedCount > 0) {
+                        const ok = result.assignedCount > 0 ? `${result.assignedCount} tâche(s) prise(s). ` : '';
+                        setToast(`${ok}${result.failedCount} échec(s) : ${result.firstError || 'erreur inconnue'}`);
+                      } else {
+                        setToast(`${result.assignedCount} tâche(s) prise(s) en charge ✓`);
+                      }
+                      setSelectedTaskIds([]);
+                      setAssigning(false);
+                    }}>
+                    {assigning ? 'Inscription...' : `✋ M'inscrire à ${selectedTaskIds.length || '...'} tâche(s)`}
+                  </button>
+                </>
+              )}
+            </div>
           </div>
         )}
       </div>
@@ -611,7 +829,7 @@ function MarkerModal({ marker, plants, tasks, onClose, onSave, onDelete, onLinkT
   );
 }
 
-function MapView({ zones, markers, tasks = [], plants, maps = [], activeMapId = 'foret', onMapChange, isTeacher, onZoneUpdate, onRefresh }) {
+function MapView({ zones, markers, tasks = [], plants, maps = [], activeMapId = 'foret', onMapChange, isTeacher, student, onZoneUpdate, onRefresh }) {
   const containerRef = useRef(null);
   const worldRef = useRef(null);
   const imgRef = useRef(null);
@@ -946,6 +1164,30 @@ function MapView({ zones, markers, tasks = [], plants, maps = [], activeMapId = 
   };
   const deleteMarker = async id => { await api(`/api/map/markers/${id}`, 'DELETE'); await onRefresh(); };
   const deleteZone = async id => { await api(`/api/zones/${id}`, 'DELETE'); await onRefresh(); };
+  const assignTasksToStudent = async (taskIds) => {
+    const ids = [...new Set((taskIds || []).filter(Boolean))];
+    if (!ids.length || !student) {
+      return { assignedCount: 0, failedCount: 0, firstError: null };
+    }
+    let assignedCount = 0;
+    let failedCount = 0;
+    let firstError = null;
+    for (const taskId of ids) {
+      try {
+        await api(`/api/tasks/${taskId}/assign`, 'POST', {
+          firstName: student.first_name,
+          lastName: student.last_name,
+          studentId: student.id,
+        });
+        assignedCount += 1;
+      } catch (err) {
+        failedCount += 1;
+        if (!firstError) firstError = err?.message || 'Erreur serveur';
+      }
+    }
+    await onRefresh();
+    return { assignedCount, failedCount, firstError };
+  };
 
   const { s: cs } = committed;
   const { w: iw, h: ih } = imgSize;
@@ -1030,19 +1272,21 @@ function MapView({ zones, markers, tasks = [], plants, maps = [], activeMapId = 
       {toast && <Toast msg={toast} onDone={() => setToast(null)} />}
 
       {selectedZone && (
-        <ZoneInfoModal zone={selectedZone} plants={plants} tasks={tasks} isTeacher={isTeacher}
+        <ZoneInfoModal zone={selectedZone} plants={plants} tasks={tasks} isTeacher={isTeacher} student={student}
           onClose={() => setSelectedZone(null)}
           onUpdate={async (id, data) => { await onZoneUpdate(id, data); setSelectedZone(null); await onRefresh(); }}
           onDelete={async id => { await deleteZone(id); setSelectedZone(null); }}
           onLinkTask={async (taskId) => linkTaskToZone(taskId, selectedZone.id)}
           onUnlinkTask={(t) => unlinkTaskFromZone(t, selectedZone.id)}
+          onAssignTasks={assignTasksToStudent}
           onEditPoints={isTeacher ? z => startEditPoints(z) : null} />
       )}
       {selectedMarker && (
-        <MarkerModal marker={selectedMarker} plants={plants} tasks={tasks} isTeacher={isTeacher}
+        <MarkerModal marker={selectedMarker} plants={plants} tasks={tasks} isTeacher={isTeacher} student={student}
           onClose={() => setSelectedMarker(null)} onSave={saveMarker} onDelete={deleteMarker}
           onLinkTask={async (taskId) => linkTaskToMarker(taskId, selectedMarker.id)}
-          onUnlinkTask={(t) => unlinkTaskFromMarker(t, selectedMarker.id)} />
+          onUnlinkTask={(t) => unlinkTaskFromMarker(t, selectedMarker.id)}
+          onAssignTasks={assignTasksToStudent} />
       )}
       {pendingZone && (
         <ZoneDrawModal points_pct={pendingZone} plants={plants}
