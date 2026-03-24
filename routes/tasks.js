@@ -558,7 +558,8 @@ router.post('/:id/validate', requireTeacher, async (req, res) => {
   }
 });
 
-router.post('/:id/unassign', requireTeacher, async (req, res) => {
+/** Même modèle que POST assign : l’élève envoie son nom (+ studentId pour compte supprimé) ; pas de JWT élève. */
+router.post('/:id/unassign', async (req, res) => {
   try {
     const task = await getTaskWithAssignments(req.params.id);
     if (!task) return res.status(404).json({ error: 'Tâche introuvable' });
