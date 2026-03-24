@@ -26,13 +26,20 @@ async function getZone(zoneId) {
   return queryOne('SELECT id, map_id, name FROM zones WHERE id = ?', [zoneId]);
 }
 
+async function getMarker(markerId) {
+  if (!markerId) return null;
+  return queryOne('SELECT id, map_id, label FROM map_markers WHERE id = ?', [markerId]);
+}
+
 async function getTaskWithAssignments(taskId) {
   const task = await queryOne(
     `SELECT t.*, z.name as zone_name, z.map_id as zone_map_id,
+            mkr.label as marker_label, mkr.map_id as marker_map_id,
             m.id as map_id_resolved, m.label as map_label
        FROM tasks t
        LEFT JOIN zones z ON t.zone_id = z.id
-       LEFT JOIN maps m ON m.id = COALESCE(t.map_id, z.map_id)
+       LEFT JOIN map_markers mkr ON t.marker_id = mkr.id
+       LEFT JOIN maps m ON m.id = COALESCE(t.map_id, z.map_id, mkr.map_id)
       WHERE t.id = ?`,
     [taskId]
   );
@@ -49,10 +56,12 @@ router.get('/', async (req, res) => {
     }
     const sqlBase = `
       SELECT t.*, z.name as zone_name, z.map_id as zone_map_id,
+             mkr.label as marker_label, mkr.map_id as marker_map_id,
              m.id as map_id_resolved, m.label as map_label
         FROM tasks t
         LEFT JOIN zones z ON t.zone_id = z.id
-        LEFT JOIN maps m ON m.id = COALESCE(t.map_id, z.map_id)
+        LEFT JOIN map_markers mkr ON t.marker_id = mkr.id
+        LEFT JOIN maps m ON m.id = COALESCE(t.map_id, z.map_id, mkr.map_id)
     `;
     const tasks = mapId
       ? await queryAll(
@@ -86,10 +95,14 @@ router.get('/:id', async (req, res) => {
 
 router.post('/', requireTeacher, async (req, res) => {
   try {
-    const { title, description, zone_id, map_id, due_date, required_students, recurrence } = req.body;
+    const { title, description, zone_id, marker_id, map_id, due_date, required_students, recurrence } = req.body;
     if (!title) return res.status(400).json({ error: 'Titre requis' });
 
     const requestedZoneId = zone_id ? String(zone_id).trim() : null;
+    const requestedMarkerId = marker_id ? String(marker_id).trim() : null;
+    if (requestedZoneId && requestedMarkerId) {
+      return res.status(400).json({ error: 'Associer une tâche soit à une zone soit à un repère' });
+    }
     let resolvedMapId = map_id != null && String(map_id).trim() !== '' ? String(map_id).trim() : null;
     if (requestedZoneId) {
       const zone = await getZone(requestedZoneId);
@@ -98,6 +111,13 @@ router.post('/', requireTeacher, async (req, res) => {
         return res.status(400).json({ error: 'Incohérence entre zone et carte' });
       }
       resolvedMapId = zone.map_id;
+    } else if (requestedMarkerId) {
+      const marker = await getMarker(requestedMarkerId);
+      if (!marker) return res.status(400).json({ error: 'Repère introuvable' });
+      if (resolvedMapId && resolvedMapId !== marker.map_id) {
+        return res.status(400).json({ error: 'Incohérence entre repère et carte' });
+      }
+      resolvedMapId = marker.map_id;
     } else if (resolvedMapId && !(await mapExists(resolvedMapId))) {
       return res.status(400).json({ error: 'Carte introuvable' });
     }
@@ -105,8 +125,8 @@ router.post('/', requireTeacher, async (req, res) => {
     const reqStudents = sanitizeRequiredStudents(required_students);
     const id = uuidv4();
     await execute(
-      'INSERT INTO tasks (id, title, description, map_id, zone_id, due_date, required_students, recurrence, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
-      [id, title, description || '', resolvedMapId, requestedZoneId, due_date || null, reqStudents, recurrence || null, new Date().toISOString()]
+      'INSERT INTO tasks (id, title, description, map_id, zone_id, marker_id, due_date, required_students, recurrence, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      [id, title, description || '', resolvedMapId, requestedZoneId, requestedMarkerId, due_date || null, reqStudents, recurrence || null, new Date().toISOString()]
     );
     const task = await getTaskWithAssignments(id);
     logAudit('create_task', 'task', id, title);
@@ -122,11 +142,18 @@ router.put('/:id', requireTeacher, async (req, res) => {
   try {
     const task = await queryOne('SELECT * FROM tasks WHERE id = ?', [req.params.id]);
     if (!task) return res.status(404).json({ error: 'Tâche introuvable' });
-    const { title, description, zone_id, map_id, due_date, required_students, status, recurrence } = req.body;
+    const { title, description, zone_id, marker_id, map_id, due_date, required_students, status, recurrence } = req.body;
 
     let nextZoneId = task.zone_id;
     if (Object.prototype.hasOwnProperty.call(req.body, 'zone_id')) {
       nextZoneId = zone_id ? String(zone_id).trim() : null;
+    }
+    let nextMarkerId = task.marker_id;
+    if (Object.prototype.hasOwnProperty.call(req.body, 'marker_id')) {
+      nextMarkerId = marker_id ? String(marker_id).trim() : null;
+    }
+    if (nextZoneId && nextMarkerId) {
+      return res.status(400).json({ error: 'Associer une tâche soit à une zone soit à un repère' });
     }
 
     let nextMapId = task.map_id;
@@ -137,6 +164,15 @@ router.put('/:id', requireTeacher, async (req, res) => {
         return res.status(400).json({ error: 'Incohérence entre zone et carte' });
       }
       nextMapId = zone.map_id;
+      nextMarkerId = null;
+    } else if (nextMarkerId) {
+      const marker = await getMarker(nextMarkerId);
+      if (!marker) return res.status(400).json({ error: 'Repère introuvable' });
+      if (map_id != null && String(map_id).trim() !== '' && String(map_id).trim() !== marker.map_id) {
+        return res.status(400).json({ error: 'Incohérence entre repère et carte' });
+      }
+      nextMapId = marker.map_id;
+      nextZoneId = null;
     } else if (Object.prototype.hasOwnProperty.call(req.body, 'map_id')) {
       const askedMapId = map_id ? String(map_id).trim() : null;
       if (askedMapId && !(await mapExists(askedMapId))) {
@@ -149,12 +185,13 @@ router.put('/:id', requireTeacher, async (req, res) => {
       ? sanitizeRequiredStudents(required_students)
       : task.required_students;
     await execute(
-      'UPDATE tasks SET title=?, description=?, map_id=?, zone_id=?, due_date=?, required_students=?, status=?, recurrence=? WHERE id=?',
+      'UPDATE tasks SET title=?, description=?, map_id=?, zone_id=?, marker_id=?, due_date=?, required_students=?, status=?, recurrence=? WHERE id=?',
       [
         title ?? task.title,
         description ?? task.description,
         nextMapId,
         nextZoneId,
+        nextMarkerId,
         due_date ?? task.due_date,
         reqStudents,
         status ?? task.status,
