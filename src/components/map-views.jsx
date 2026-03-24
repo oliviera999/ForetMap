@@ -167,6 +167,26 @@ function taskLocationIds(t) {
   return { zoneIds, markerIds };
 }
 
+const TASK_VISUAL_PRIORITY = { done: 1, progress: 2, todo: 3 };
+const TASK_VISUAL_LABEL = {
+  todo: 'Tâche à faire',
+  progress: 'Tâche en cours',
+  done: 'Tâche terminée',
+};
+
+function taskVisualStatus(status) {
+  if (status === 'available') return 'todo';
+  if (status === 'in_progress') return 'progress';
+  if (status === 'done' || status === 'validated') return 'done';
+  return null;
+}
+
+function mergeTaskVisualStatus(current, next) {
+  if (!current) return next;
+  if (!next) return current;
+  return (TASK_VISUAL_PRIORITY[next] || 0) > (TASK_VISUAL_PRIORITY[current] || 0) ? next : current;
+}
+
 function ZoneInfoModal({ zone, plants, tasks, isTeacher, onClose, onUpdate, onDelete, onEditPoints, onLinkTask, onUnlinkTask }) {
   const [tab, setTab] = useState('info');
   const [plant, setPlant] = useState(zone.current_plant || '');
@@ -642,6 +662,22 @@ function MapView({ zones, markers, tasks = [], plants, maps = [], activeMapId = 
     if (Number.isFinite(custom) && custom >= 0) return Math.min(custom, 32);
     return activeMapId === 'n3' ? 14 : 8;
   }, [activeMap?.frame_padding_px, activeMapId]);
+  const { zoneTaskVisualById, markerTaskVisualById } = useMemo(() => {
+    const zoneMap = new Map();
+    const markerMap = new Map();
+    for (const t of tasks || []) {
+      const visual = taskVisualStatus(t.status);
+      if (!visual) continue;
+      const { zoneIds, markerIds } = taskLocationIds(t);
+      zoneIds.forEach((id) => {
+        zoneMap.set(id, mergeTaskVisualStatus(zoneMap.get(id), visual));
+      });
+      markerIds.forEach((id) => {
+        markerMap.set(id, mergeTaskVisualStatus(markerMap.get(id), visual));
+      });
+    }
+    return { zoneTaskVisualById: zoneMap, markerTaskVisualById: markerMap };
+  }, [tasks]);
 
   const modeRef = useRef('view');
   const draggingMarkerRef = useRef(null);
@@ -925,6 +961,7 @@ function MapView({ zones, markers, tasks = [], plants, maps = [], activeMapId = 
     const mx = wp.reduce((s, p) => s + p.cx, 0) / wp.length;
     const my = wp.reduce((s, p) => s + p.cy, 0) / wp.length;
     const isEd = mode === 'edit-points' && editZone?.id === z.id;
+    const zoneTaskVisual = zoneTaskVisualById.get(z.id);
     return (
       <g key={z.id} className={mode === 'view' ? 'map-zone-hit' : ''} style={{ cursor: mode === 'view' ? 'pointer' : 'default' }}
         onClick={e => { if (mode === 'view' && !moved.current) { e.stopPropagation(); setSelectedZone(z); } }}>
@@ -936,6 +973,16 @@ function MapView({ zones, markers, tasks = [], plants, maps = [], activeMapId = 
             fontSize={Math.max(8, 12 * inv)} fontWeight="700" fontFamily="DM Sans,sans-serif"
             fill="#1a4731" stroke="rgba(255,255,255,0.8)" strokeWidth={3 * inv} paintOrder="stroke"
             style={{ pointerEvents: 'none', userSelect: 'none' }}>{z.name}</text>
+        )}
+        {zoneTaskVisual && (
+          <circle
+            className={`map-task-status map-task-status--${zoneTaskVisual}`}
+            cx={mx + (14 * inv)}
+            cy={my - (11 * inv)}
+            r={Math.max(4, 6 * inv)}
+            style={{ pointerEvents: 'none' }}>
+            <title>{TASK_VISUAL_LABEL[zoneTaskVisual]}</title>
+          </circle>
         )}
       </g>
     );
@@ -1116,7 +1163,10 @@ function MapView({ zones, markers, tasks = [], plants, maps = [], activeMapId = 
             </g>
           </svg>
 
-          {markers.map(m => (
+          {markers.map((m) => {
+            const markerTaskVisual = markerTaskVisualById.get(m.id);
+            const markerTaskLabel = markerTaskVisual ? TASK_VISUAL_LABEL[markerTaskVisual] : '';
+            return (
             <div key={m.id} className="map-bubble"
               style={{ position: 'absolute', left: m.x_pct + '%', top: m.y_pct + '%',
                 transform: 'translate(-50%,-50%)', zIndex: 10, cursor: isTeacher ? 'grab' : 'pointer' }}
@@ -1128,11 +1178,19 @@ function MapView({ zones, markers, tasks = [], plants, maps = [], activeMapId = 
                 e.currentTarget.setPointerCapture(e.pointerId);
               } : undefined}
               onPointerUp={e => e.stopPropagation()}>
-              <div style={{ background: 'white', border: '2.5px solid var(--forest)',
+              <div className="map-bubble-pin" style={{ background: 'white', border: '2.5px solid var(--forest)',
                 borderRadius: '50%', width: 36, height: 36,
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 fontSize: '1.1rem', boxShadow: '0 2px 10px rgba(0,0,0,.22)' }}>
                 {m.emoji}
+                {markerTaskVisual && (
+                  <span
+                    className={`map-task-status-dot map-task-status-dot--${markerTaskVisual}`}
+                    role="img"
+                    aria-label={markerTaskLabel}
+                    title={markerTaskLabel}
+                  />
+                )}
               </div>
               {showLabels && (
                 <div style={{ position: 'absolute', top: '100%', left: '50%', transform: 'translateX(-50%)',
@@ -1145,7 +1203,8 @@ function MapView({ zones, markers, tasks = [], plants, maps = [], activeMapId = 
                 </div>
               )}
             </div>
-          ))}
+            );
+          })}
           </div>
 
           {mode !== 'view' && mode !== 'edit-points' && (
