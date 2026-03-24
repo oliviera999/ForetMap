@@ -452,8 +452,15 @@ function MapView({ zones, markers, plants, maps = [], activeMapId = 'foret', onM
   const [pendingMarker, setPendingMarker] = useState(null);
   const [toast, setToast] = useState(null);
   const activeMap = maps.find((m) => m.id === activeMapId);
-  const mapImageSrc = activeMap?.map_image_url
-    || (activeMapId === 'n3' ? '/maps/plan%20n3.jpg' : '/maps/map-foret.svg');
+  const mapImageCandidates = useMemo(() => {
+    const base = activeMapId === 'n3'
+      ? ['/maps/plan%20n3.jpg', '/maps/map-n3.svg', '/map.png']
+      : ['/map.png', '/maps/map-foret.svg'];
+    const first = activeMap?.map_image_url ? [activeMap.map_image_url] : [];
+    return [...new Set([...first, ...base])];
+  }, [activeMap?.map_image_url, activeMapId]);
+  const [mapImageIdx, setMapImageIdx] = useState(0);
+  const mapImageSrc = mapImageCandidates[Math.min(mapImageIdx, mapImageCandidates.length - 1)];
 
   const modeRef = useRef('view');
   const draggingMarkerRef = useRef(null);
@@ -465,6 +472,10 @@ function MapView({ zones, markers, plants, maps = [], activeMapId = 'foret', onM
   const rafId = useRef(null);
 
   useEffect(() => { modeRef.current = mode; }, [mode]);
+
+  useEffect(() => {
+    setMapImageIdx(0);
+  }, [mapImageCandidates]);
 
   useEffect(() => {
     const img = imgRef.current;
@@ -871,6 +882,9 @@ function MapView({ zones, markers, plants, maps = [], activeMapId = 'foret', onM
             transformOrigin: '0 0', willChange: 'transform' }}>
 
           <img ref={imgRef} src={mapImageSrc} draggable={false} alt={`Plan ${activeMap?.label || 'du jardin'}`}
+            onError={() => setMapImageIdx((idx) => (
+              idx < mapImageCandidates.length - 1 ? idx + 1 : idx
+            ))}
             style={{ position: 'absolute', left: 0, top: 0, width: iw, height: ih,
               userSelect: 'none', pointerEvents: 'none',
               boxShadow: '0 4px 24px rgba(0,0,0,.18)' }} />
