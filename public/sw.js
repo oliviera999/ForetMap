@@ -2,7 +2,9 @@ const CACHE_NAME = 'foretmap-offline-v1';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
+  '/map.png',
   '/maps/map-foret.svg',
+  '/maps/map-n3.svg',
   '/maps/plan%20n3.jpg',
 ];
 

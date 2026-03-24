@@ -20,7 +20,7 @@ import { StudentAvatar } from './components/student-avatar';
 // ── APP ───────────────────────────────────────────────────────────────────────
 function App() {
   const DEFAULT_MAPS = useMemo(() => ([
-    { id: 'foret', label: 'Forêt comestible', map_image_url: '/maps/map-foret.svg', sort_order: 1 },
+    { id: 'foret', label: 'Forêt comestible', map_image_url: '/map.png', sort_order: 1 },
     { id: 'n3', label: 'N3', map_image_url: '/maps/plan%20n3.jpg', sort_order: 2 },
   ]), []);
   const [student,    setStudent]    = useState(null);
