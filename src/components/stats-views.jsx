@@ -266,6 +266,10 @@ function TeacherStats() {
   const [search, setSearch] = useState('');
   const [toast, setToast] = useState(null);
   const [confirmStudent, setConfirmStudent] = useState(null);
+  const [importFile, setImportFile] = useState(null);
+  const [importLoading, setImportLoading] = useState(false);
+  const [importReport, setImportReport] = useState(null);
+  const [dryRunImport, setDryRunImport] = useState(false);
 
   const load = useCallback(() => api('/api/stats/all').then(setData).catch(err => {
     console.error('[ForetMap] stats tous', err);
@@ -293,6 +297,59 @@ function TeacherStats() {
       setToast(`${s.first_name} ${s.last_name} supprimé`);
       await load();
     } catch (e) { setToast('Erreur : ' + e.message); }
+  };
+
+  const downloadStudentsTemplate = async (format) => {
+    try {
+      const token = localStorage.getItem('foretmap_teacher_token');
+      const headers = new Headers();
+      if (token) headers.set('Authorization', 'Bearer ' + token);
+      const res = await fetch(`${API}/api/students/import/template?format=${encodeURIComponent(format)}`, { headers });
+      if (!res.ok) throw new Error('Téléchargement impossible');
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = format === 'xlsx' ? 'foretmap-modele-eleves.xlsx' : 'foretmap-modele-eleves.csv';
+      link.click();
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      setToast(e.message || 'Erreur lors du téléchargement du modèle');
+    }
+  };
+
+  const importStudents = async () => {
+    if (!importFile) {
+      setToast('Choisissez un fichier CSV ou XLSX');
+      return;
+    }
+    setImportLoading(true);
+    setImportReport(null);
+    try {
+      const base64 = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result || ''));
+        reader.onerror = () => reject(new Error('Lecture du fichier impossible'));
+        reader.readAsDataURL(importFile);
+      });
+      const result = await api('/api/students/import', 'POST', {
+        fileName: importFile.name,
+        fileDataBase64: base64,
+        dryRun: dryRunImport,
+      });
+      setImportReport(result.report || null);
+      if ((result.report?.totals?.created || 0) > 0) {
+        setToast(`${result.report.totals.created} élève(s) créé(s)`);
+      } else if (dryRunImport) {
+        setToast('Simulation terminée');
+      } else {
+        setToast('Import terminé');
+      }
+      await load();
+    } catch (e) {
+      setToast('Erreur import: ' + (e.message || 'inconnue'));
+    }
+    setImportLoading(false);
   };
 
   if (!data) return <div className="loader" style={{ height: '60vh' }}><div className="loader-leaf">🌿</div><p>Chargement...</p></div>;
@@ -354,6 +411,73 @@ function TeacherStats() {
         }}>
           📥 Exporter CSV
         </button>
+      </div>
+
+      <div style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: 12, padding: 12, marginBottom: 16 }}>
+        <h3 style={{ margin: '0 0 8px', fontSize: '1rem', color: 'var(--forest)' }}>Import élèves (CSV / XLSX)</h3>
+        <p style={{ margin: '0 0 10px', fontSize: '.85rem', color: '#6b7280' }}>
+          Téléchargez un modèle vierge, complétez-le puis importez le fichier.
+        </p>
+        <p style={{ margin: '0 0 10px', fontSize: '.8rem', color: '#9a3412' }}>
+          Le modèle contient une ligne d&apos;exemple: pensez à la remplacer ou la supprimer avant l&apos;import.
+        </p>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 10 }}>
+          <button className="btn btn-ghost btn-sm" onClick={() => downloadStudentsTemplate('csv')}>
+            📄 Modèle CSV
+          </button>
+          <button className="btn btn-ghost btn-sm" onClick={() => downloadStudentsTemplate('xlsx')}>
+            📗 Modèle XLSX
+          </button>
+        </div>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
+          <input
+            type="file"
+            accept=".csv,.xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,text/csv"
+            onChange={e => {
+              setImportFile(e.target.files?.[0] || null);
+              setImportReport(null);
+            }}
+          />
+          <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: '.85rem', color: '#374151' }}>
+            <input
+              type="checkbox"
+              checked={dryRunImport}
+              onChange={e => setDryRunImport(e.target.checked)}
+            />
+            Simulation (sans création)
+          </label>
+          <button className="btn btn-primary btn-sm" onClick={importStudents} disabled={importLoading}>
+            {importLoading ? 'Import…' : 'Importer'}
+          </button>
+        </div>
+        {importFile && (
+          <p style={{ margin: '8px 0 0', fontSize: '.8rem', color: '#6b7280' }}>
+            Fichier sélectionné: <strong>{importFile.name}</strong>
+          </p>
+        )}
+        {importReport && (
+          <div style={{ marginTop: 10, padding: 10, background: '#f8fafc', borderRadius: 10, border: '1px solid #e2e8f0' }}>
+            <div style={{ fontSize: '.85rem', color: '#1f2937', marginBottom: 4 }}>
+              Reçus: <strong>{importReport.totals?.received || 0}</strong> ·
+              Valides: <strong>{importReport.totals?.valid || 0}</strong> ·
+              Créés: <strong>{importReport.totals?.created || 0}</strong> ·
+              Déjà existants: <strong>{importReport.totals?.skipped_existing || 0}</strong> ·
+              Invalides: <strong>{importReport.totals?.skipped_invalid || 0}</strong>
+            </div>
+            {Array.isArray(importReport.errors) && importReport.errors.length > 0 && (
+              <div style={{ maxHeight: 120, overflow: 'auto', fontSize: '.8rem', color: '#991b1b' }}>
+                {importReport.errors.slice(0, 15).map((err, idx) => (
+                  <div key={`${err.row}-${err.field}-${idx}`}>
+                    Ligne {err.row} ({err.field}): {err.error}
+                  </div>
+                ))}
+                {importReport.errors.length > 15 && (
+                  <div>… {importReport.errors.length - 15} erreur(s) supplémentaire(s)</div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       <div className="stats-grid" style={{ gridTemplateColumns: 'repeat(3,1fr)', marginBottom: 20 }}>
