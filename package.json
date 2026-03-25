@@ -1,6 +1,6 @@
 {
   "name": "foretmap",
-  "version": "1.9.1",
+  "version": "1.10.0",
   "description": "Application de gestion de la forêt comestible - Lycée Lyautey",
   "main": "server.js",
   "dependencies": {
@@ -27,6 +27,7 @@
     "db:init": "node -e \"require('dotenv').config(); const { initSchema, seedData } = require('./database'); (async () => { await initSchema(); await seedData(); console.log('DB init OK'); process.exit(0); })()\"",
     "db:migrate": "node -e \"require('dotenv').config(); const { initSchema } = require('./database'); (async () => { await initSchema(); console.log('Migrations OK'); process.exit(0); })()\"",
     "db:seed:teacher": "node scripts/seed-teacher-admin.js",
+    "db:backfill:users": "node scripts/backfill-users-unification.js",
     "db:migrate:images": "node scripts/migrate-images-to-disk.js",
     "db:migrate:images:dry": "node scripts/migrate-images-to-disk.js --dry-run",
     "db:migrate:images:clear": "node scripts/migrate-images-to-disk.js --clear-legacy",

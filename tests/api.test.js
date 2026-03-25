@@ -83,6 +83,11 @@ test('Assign puis unassign met à jour le statut de la tâche', async () => {
     .post(`/api/tasks/${taskId}/assign`)
     .send({ firstName: first_name, lastName: last_name, studentId })
     .expect(200);
+  const assignmentRow = await queryOne(
+    'SELECT student_id FROM task_assignments WHERE task_id = ? AND (student_id = ? OR (student_first_name = ? AND student_last_name = ?)) LIMIT 1',
+    [taskId, studentId, first_name, last_name]
+  );
+  assert.strictEqual(assignmentRow?.student_id, studentId);
   const afterAssign = await request(app).get(`/api/tasks/${taskId}`).expect(200);
   assert.strictEqual(afterAssign.body.status, 'in_progress');
 

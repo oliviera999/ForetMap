@@ -15,6 +15,12 @@ const {
   ensurePrimaryRole,
   verifyRolePin,
 } = require('../lib/rbac');
+const { logAudit, logSecurityEvent } = require('./audit');
+const {
+  ensureCanonicalUserFromStudent,
+  ensureCanonicalUserFromTeacher,
+  ensureCanonicalUserByAuth,
+} = require('../lib/identity');
 
 const router = express.Router();
 const MAX_DESCRIPTION_LEN = 300;
@@ -254,6 +260,14 @@ async function ensureTeacherSeedFromEnv() {
       'INSERT INTO teachers (id, email, password_hash, display_name, is_active, last_seen, created_at, updated_at) VALUES (?, ?, ?, ?, 1, ?, ?, ?)',
       [teacherId, email, hash, displayName, now, now, now]
     );
+    await ensureCanonicalUserFromTeacher({
+      id: teacherId,
+      email,
+      password_hash: hash,
+      display_name: displayName,
+      is_active: 1,
+      last_seen: now,
+    });
     await ensurePrimaryRole('teacher', teacherId, 'admin');
   } catch (err) {
     if (!(err && (err.errno === 1062 || err.code === 'ER_DUP_ENTRY'))) {
@@ -263,12 +277,14 @@ async function ensureTeacherSeedFromEnv() {
 }
 
 async function buildSessionPayload(userType, userId, elevated = false) {
+  const canonicalUserId = await ensureCanonicalUserByAuth({ userType, userId });
   const authz = await buildAuthzPayload(userType, userId, elevated);
   if (!authz) return null;
   return {
     tokenPayload: {
       userType,
       userId,
+      canonicalUserId: canonicalUserId || null,
       roleId: authz.roleId,
       roleSlug: authz.roleSlug,
       roleDisplayName: authz.roleDisplayName,
@@ -282,6 +298,8 @@ async function buildSessionPayload(userType, userId, elevated = false) {
 function exposeAuth(auth) {
   return {
     userType: auth.userType,
+    userId: auth.userId,
+    canonicalUserId: auth.canonicalUserId || null,
     roleId: auth.roleId,
     roleSlug: auth.roleSlug,
     roleDisplayName: auth.roleDisplayName,
@@ -337,8 +355,17 @@ router.post('/register', async (req, res) => {
     }
     await ensurePrimaryRole('student', id, 'eleve_novice');
     const student = await queryOne('SELECT * FROM students WHERE id = ?', [id]);
+    await ensureCanonicalUserFromStudent(student);
     const session = await buildSessionPayload('student', id, false);
     const token = session ? signAuthToken(session.tokenPayload, false) : null;
+    await logSecurityEvent('auth.register.student', {
+      req,
+      actorUserType: 'student',
+      actorUserId: id,
+      targetType: 'student',
+      targetId: id,
+      payload: { via: 'password' },
+    });
     emitStudentsChanged({ reason: 'register', studentId: id });
     res.status(201).json({
       ...student,
@@ -372,16 +399,55 @@ router.post('/login', async (req, res) => {
       );
     }
 
-    if (!student) return res.status(401).json({ error: 'Compte introuvable' });
-    if (!student.password) return res.status(401).json({ error: 'Ce compte n\'a pas de mot de passe. Contactez le prof.' });
+    if (!student) {
+      await logSecurityEvent('auth.login.student', {
+        req,
+        result: 'failure',
+        reason: 'account_not_found',
+        payload: { identifier: identifier || `${firstName || ''} ${lastName || ''}`.trim() },
+      });
+      return res.status(401).json({ error: 'Compte introuvable' });
+    }
+    if (!student.password) {
+      await logSecurityEvent('auth.login.student', {
+        req,
+        actorUserType: 'student',
+        actorUserId: student.id,
+        targetType: 'student',
+        targetId: student.id,
+        result: 'failure',
+        reason: 'password_not_set',
+      });
+      return res.status(401).json({ error: 'Ce compte n\'a pas de mot de passe. Contactez le prof.' });
+    }
 
     const ok = await bcrypt.compare(password, student.password);
-    if (!ok) return res.status(401).json({ error: 'Mot de passe incorrect' });
+    if (!ok) {
+      await logSecurityEvent('auth.login.student', {
+        req,
+        actorUserType: 'student',
+        actorUserId: student.id,
+        targetType: 'student',
+        targetId: student.id,
+        result: 'failure',
+        reason: 'password_invalid',
+      });
+      return res.status(401).json({ error: 'Mot de passe incorrect' });
+    }
 
     await ensurePrimaryRole('student', student.id, 'eleve_novice');
     await execute('UPDATE students SET last_seen = ? WHERE id = ?', [new Date().toISOString(), student.id]);
+    await ensureCanonicalUserFromStudent(student);
     const session = await buildSessionPayload('student', student.id, false);
     const token = session ? signAuthToken(session.tokenPayload, false) : null;
+    await logSecurityEvent('auth.login.student', {
+      req,
+      actorUserType: 'student',
+      actorUserId: student.id,
+      targetType: 'student',
+      targetId: student.id,
+      payload: { via: identifier ? 'identifier' : 'name' },
+    });
     res.json({
       ...student,
       password: undefined,
@@ -488,11 +554,19 @@ router.get('/google/callback', async (req, res) => {
       await ensurePrimaryRole('teacher', teacher.id, 'prof');
       const now = new Date().toISOString();
       await execute('UPDATE teachers SET last_seen = ?, updated_at = ? WHERE id = ?', [now, now, teacher.id]);
+      await ensureCanonicalUserFromTeacher({ id: teacher.id });
       const session = await buildSessionPayload('teacher', teacher.id, false);
       if (!session) {
         return res.redirect(buildOAuthFrontendErrorRedirect(cfg.frontendOrigin, 'oauth_teacher_no_role', mode));
       }
       const token = signAuthToken(session.tokenPayload, false);
+      await logSecurityEvent('auth.login.teacher.oauth_google', {
+        req,
+        actorUserType: 'teacher',
+        actorUserId: teacher.id,
+        targetType: 'teacher',
+        targetId: teacher.id,
+      });
       return res.redirect(buildOAuthFrontendRedirect(cfg.frontendOrigin, {
         type: 'teacher',
         token,
@@ -514,13 +588,22 @@ router.get('/google/callback', async (req, res) => {
       await ensurePrimaryRole('student', id, 'eleve_novice');
       emitStudentsChanged({ reason: 'register_google', studentId: id });
       student = await queryOne('SELECT * FROM students WHERE id = ?', [id]);
+      await ensureCanonicalUserFromStudent(student);
     } else {
       await execute('UPDATE students SET last_seen = ? WHERE id = ?', [new Date().toISOString(), student.id]);
       student = await queryOne('SELECT * FROM students WHERE id = ?', [student.id]);
+      await ensureCanonicalUserFromStudent(student);
     }
 
     const session = await buildSessionPayload('student', student.id, false);
     const token = session ? signAuthToken(session.tokenPayload, false) : null;
+    await logSecurityEvent('auth.login.student.oauth_google', {
+      req,
+      actorUserType: 'student',
+      actorUserId: student.id,
+      targetType: 'student',
+      targetId: student.id,
+    });
     return res.redirect(buildOAuthFrontendRedirect(cfg.frontendOrigin, {
       type: 'student',
       student: {
@@ -554,6 +637,13 @@ router.post('/forgot-password', async (req, res) => {
         resetUrl: makeResetUrl('student', token),
         roleLabel: 'élève',
       });
+      await logSecurityEvent('auth.password_reset.request.student', {
+        req,
+        actorUserType: 'student',
+        actorUserId: student.id,
+        targetType: 'student',
+        targetId: student.id,
+      });
     }
     res.json({ ok: true, message: 'Si un compte existe, un email de réinitialisation a été envoyé.' });
   } catch (e) {
@@ -574,6 +664,15 @@ router.post('/reset-password', async (req, res) => {
     if (!studentId) return res.status(400).json({ error: 'Token invalide ou expiré' });
     const hash = await bcrypt.hash(password, 10);
     await execute('UPDATE students SET password = ? WHERE id = ?', [hash, studentId]);
+    const updatedStudent = await queryOne('SELECT * FROM students WHERE id = ? LIMIT 1', [studentId]);
+    await ensureCanonicalUserFromStudent(updatedStudent);
+    await logSecurityEvent('auth.password_reset.confirm.student', {
+      req,
+      actorUserType: 'student',
+      actorUserId: studentId,
+      targetType: 'student',
+      targetId: studentId,
+    });
     res.json({ ok: true });
   } catch (e) {
     logRouteError(e, req);
@@ -594,15 +693,43 @@ router.post('/teacher/login', async (req, res) => {
       'SELECT id, email, password_hash, is_active FROM teachers WHERE LOWER(email)=LOWER(?) LIMIT 1',
       [email]
     );
-    if (!teacher || !teacher.is_active) return res.status(401).json({ error: 'Compte professeur introuvable' });
+    if (!teacher || !teacher.is_active) {
+      await logSecurityEvent('auth.login.teacher', {
+        req,
+        result: 'failure',
+        reason: 'account_not_found_or_inactive',
+        payload: { email },
+      });
+      return res.status(401).json({ error: 'Compte professeur introuvable' });
+    }
     const ok = await bcrypt.compare(password, teacher.password_hash);
-    if (!ok) return res.status(401).json({ error: 'Mot de passe incorrect' });
+    if (!ok) {
+      await logSecurityEvent('auth.login.teacher', {
+        req,
+        actorUserType: 'teacher',
+        actorUserId: teacher.id,
+        targetType: 'teacher',
+        targetId: teacher.id,
+        result: 'failure',
+        reason: 'password_invalid',
+      });
+      return res.status(401).json({ error: 'Mot de passe incorrect' });
+    }
 
     await ensurePrimaryRole('teacher', teacher.id, 'prof');
     await execute('UPDATE teachers SET last_seen = ?, updated_at = ? WHERE id = ?', [new Date().toISOString(), new Date().toISOString(), teacher.id]);
+    await ensureCanonicalUserFromTeacher({ id: teacher.id });
     const session = await buildSessionPayload('teacher', teacher.id, false);
     if (!session) return res.status(403).json({ error: 'Aucun profil attribué' });
     const token = signAuthToken(session.tokenPayload, false);
+    await logSecurityEvent('auth.login.teacher', {
+      req,
+      actorUserType: 'teacher',
+      actorUserId: teacher.id,
+      targetType: 'teacher',
+      targetId: teacher.id,
+      payload: { via: 'password' },
+    });
     res.json({ token, auth: exposeAuth(session.tokenPayload) });
   } catch (e) {
     logRouteError(e, req);
@@ -629,6 +756,13 @@ router.post('/teacher/forgot-password', async (req, res) => {
         resetUrl: makeResetUrl('teacher', token),
         roleLabel: 'professeur',
       });
+      await logSecurityEvent('auth.password_reset.request.teacher', {
+        req,
+        actorUserType: 'teacher',
+        actorUserId: teacher.id,
+        targetType: 'teacher',
+        targetId: teacher.id,
+      });
     }
     res.json({ ok: true, message: 'Si un compte existe, un email de réinitialisation a été envoyé.' });
   } catch (e) {
@@ -650,6 +784,14 @@ router.post('/teacher/reset-password', async (req, res) => {
     const hash = await bcrypt.hash(password, 10);
     const now = new Date().toISOString();
     await execute('UPDATE teachers SET password_hash = ?, updated_at = ? WHERE id = ?', [hash, now, teacherId]);
+    await ensureCanonicalUserFromTeacher({ id: teacherId });
+    await logSecurityEvent('auth.password_reset.confirm.teacher', {
+      req,
+      actorUserType: 'teacher',
+      actorUserId: teacherId,
+      targetType: 'teacher',
+      targetId: teacherId,
+    });
     res.json({ ok: true });
   } catch (e) {
     logRouteError(e, req);
@@ -673,6 +815,12 @@ router.post('/elevate', requireAuth, async (req, res) => {
     const session = await buildSessionPayload(req.auth.userType, req.auth.userId, true);
     if (!session) return res.status(403).json({ error: 'Aucun profil attribué' });
     const token = signAuthToken(session.tokenPayload, true);
+    await logAudit('auth_elevate', 'auth', req.auth.userId, `Élévation ${req.auth.userType}`, {
+      req,
+      actorUserType: req.auth.userType,
+      actorUserId: req.auth.userId,
+      payload: { role_id: req.auth.roleId, elevated: true },
+    });
     res.json({ token, auth: exposeAuth(session.tokenPayload) });
   } catch (e) {
     logRouteError(e, req);
@@ -700,6 +848,12 @@ router.post('/teacher', async (req, res) => {
       const session = await buildSessionPayload(claims.userType, claims.userId, true);
       if (!session) return res.status(403).json({ error: 'Aucun profil attribué' });
       const token = signAuthToken(session.tokenPayload, true);
+      await logAudit('auth_teacher_legacy_elevate', 'auth', claims.userId, `Élévation via endpoint legacy (${claims.userType})`, {
+        req,
+        actorUserType: claims.userType,
+        actorUserId: claims.userId,
+        payload: { role_id: claims.roleId, elevated: true },
+      });
       return res.json({ token, auth: exposeAuth(session.tokenPayload) });
     }
 
@@ -716,6 +870,12 @@ router.post('/teacher', async (req, res) => {
     const session = await buildSessionPayload('teacher', teacher.id, true);
     if (!session) return res.status(403).json({ error: 'Aucun profil attribué' });
     const token = signAuthToken(session.tokenPayload, true);
+    await logAudit('auth_teacher_legacy_pin_global', 'auth', teacher.id, 'Mode secours PIN global', {
+      req,
+      actorUserType: 'teacher',
+      actorUserId: teacher.id,
+      payload: { elevated: true, legacy_global_pin: true },
+    });
     return res.json({ token, auth: exposeAuth(session.tokenPayload) });
   } catch (e) {
     logRouteError(e, req);

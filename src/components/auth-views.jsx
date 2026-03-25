@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { api } from '../services/api';
+import { api, saveStoredSession } from '../services/api';
 
 function startGoogleAuth(mode) {
   const safeMode = mode === 'teacher' ? 'teacher' : 'student';
@@ -34,6 +34,14 @@ function PinModal({ onSuccess, onClose }) {
       }
       localStorage.setItem('foretmap_auth_token', data.token);
       localStorage.setItem('foretmap_teacher_token', data.token);
+      saveStoredSession({
+        token: data.token,
+        user: {
+          id: data?.auth?.canonicalUserId || data?.auth?.userId || null,
+          userType: 'teacher',
+          displayName: data?.auth?.roleDisplayName || 'Professeur',
+        },
+      });
       onSuccess();
     } catch (e) {
       setErr(e.message || 'Code incorrect');
@@ -56,6 +64,15 @@ function PinModal({ onSuccess, onClose }) {
       }
       localStorage.setItem('foretmap_auth_token', data.token);
       localStorage.setItem('foretmap_teacher_token', data.token);
+      saveStoredSession({
+        token: data.token,
+        user: {
+          id: data?.auth?.canonicalUserId || data?.auth?.userId || null,
+          userType: 'teacher',
+          displayName: data?.auth?.roleDisplayName || email.trim(),
+          email: email.trim(),
+        },
+      });
       onSuccess();
     } catch (e) {
       setErr(e.message || 'Connexion impossible');
@@ -269,6 +286,16 @@ function AuthScreen({ onLogin, appVersion, onVisitGuest }) {
         localStorage.setItem('foretmap_auth_token', student.authToken);
       }
       localStorage.setItem('foretmap_student', JSON.stringify(student));
+      saveStoredSession({
+        token: student?.authToken || null,
+        user: {
+          id: student?.auth?.canonicalUserId || student?.id || null,
+          userType: 'student',
+          displayName: student?.pseudo || `${student?.first_name || ''} ${student?.last_name || ''}`.trim() || 'Élève',
+          email: student?.email || null,
+        },
+        student,
+      });
       onLogin(student);
     } catch (e) { setErr(e.message); }
     setLoading(false);

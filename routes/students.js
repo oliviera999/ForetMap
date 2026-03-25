@@ -359,6 +359,10 @@ router.post('/import', requirePermission('students.import', { needsElevation: tr
     }
 
     if (report.totals.created > 0) {
+      logAudit('students_import', 'student', null, `Import de ${report.totals.created} élève(s)`, {
+        req,
+        payload: { report: report.totals },
+      });
       emitStudentsChanged({ reason: 'students_import', created: report.totals.created });
     }
     res.json({ report });
@@ -474,6 +478,12 @@ router.patch('/:id/profile', async (req, res) => {
       throw err;
     }
     const updated = await queryOne('SELECT * FROM students WHERE id = ?', [student.id]);
+    logAudit('update_student_profile', 'student', student.id, `${student.first_name} ${student.last_name}`, {
+      req,
+      actorUserType: 'student',
+      actorUserId: student.id,
+      payload: { pseudo: !!hasPseudo, email: !!hasEmail, description: !!hasDescription, affiliation: !!hasAffiliation, avatar: !!(hasAvatarData || removeAvatar) },
+    });
     emitStudentsChanged({ reason: 'student_profile_update', studentId: student.id });
     res.json({ ...updated, password: undefined });
   } catch (e) {
@@ -488,18 +498,18 @@ router.delete('/:id', requirePermission('students.delete', { needsElevation: tru
     if (!s) return res.status(404).json({ error: 'Élève introuvable' });
 
     const affectedRows = await queryAll(
-      'SELECT DISTINCT task_id FROM task_assignments WHERE student_first_name = ? AND student_last_name = ?',
-      [s.first_name, s.last_name]
+      'SELECT DISTINCT task_id FROM task_assignments WHERE student_id = ? OR (student_first_name = ? AND student_last_name = ?)',
+      [s.id, s.first_name, s.last_name]
     );
     const affectedTasks = affectedRows.map(r => r.task_id);
 
     await execute(
-      'DELETE FROM task_assignments WHERE student_first_name = ? AND student_last_name = ?',
-      [s.first_name, s.last_name]
+      'DELETE FROM task_assignments WHERE student_id = ? OR (student_first_name = ? AND student_last_name = ?)',
+      [s.id, s.first_name, s.last_name]
     );
     await execute(
-      'DELETE FROM task_logs WHERE student_first_name = ? AND student_last_name = ?',
-      [s.first_name, s.last_name]
+      'DELETE FROM task_logs WHERE student_id = ? OR (student_first_name = ? AND student_last_name = ?)',
+      [s.id, s.first_name, s.last_name]
     );
 
     for (const taskId of affectedTasks) {
@@ -522,7 +532,10 @@ router.delete('/:id', requirePermission('students.delete', { needsElevation: tru
     }
 
     await execute('DELETE FROM students WHERE id = ?', [req.params.id]);
-    logAudit('delete_student', 'student', req.params.id, `${s.first_name} ${s.last_name}`);
+    logAudit('delete_student', 'student', req.params.id, `${s.first_name} ${s.last_name}`, {
+      req,
+      payload: { affected_tasks: affectedTasks.length },
+    });
     emitStudentsChanged({ reason: 'delete_student', studentId: req.params.id });
     emitTasksChanged({ reason: 'delete_student_assignments' });
     res.json({ success: true });
