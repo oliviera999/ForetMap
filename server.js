@@ -99,7 +99,7 @@ app.post('/api/admin/restart', (req, res) => {
 
 // Dernières lignes de log Pino (tampon mémoire) — même secret que /api/admin/restart ; uniquement en HTTPS en prod
 app.get('/api/admin/logs', (req, res) => {
-  const secret = req.headers['x-deploy-secret'] || req.query?.secret;
+  const secret = req.headers['x-deploy-secret'];
   if (!process.env.DEPLOY_SECRET || secret !== process.env.DEPLOY_SECRET) {
     return res.status(403).json({ error: 'Secret invalide ou DEPLOY_SECRET non configuré' });
   }
@@ -117,7 +117,7 @@ app.get('/api/admin/logs', (req, res) => {
 
 // Diagnostic OAuth (sans secrets) : vérifie les URLs réellement résolues au runtime.
 app.get('/api/admin/oauth-debug', (req, res) => {
-  const secret = req.headers['x-deploy-secret'] || req.query?.secret;
+  const secret = req.headers['x-deploy-secret'];
   if (!process.env.DEPLOY_SECRET || secret !== process.env.DEPLOY_SECRET) {
     return res.status(403).json({ error: 'Secret invalide ou DEPLOY_SECRET non configuré' });
   }
@@ -228,10 +228,12 @@ function startServer() {
 }
 
 process.on('uncaughtException', (err) => {
-  logger.error({ err }, 'Exception non capturée — app continue');
+  logger.fatal({ err }, 'Exception non capturée — arrêt du process');
+  setTimeout(() => process.exit(1), 50);
 });
 process.on('unhandledRejection', (reason) => {
-  logger.error({ reason }, 'Promesse rejetée non gérée');
+  logger.fatal({ reason }, 'Promesse rejetée non gérée — arrêt du process');
+  setTimeout(() => process.exit(1), 50);
 });
 
 // ── Fonction de démarrage — appelable depuis app.js (Passenger) ou directement ──

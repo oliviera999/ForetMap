@@ -472,6 +472,7 @@ function ZoneInfoModal({ zone, plants, tasks, isTeacher, student, onClose, onUpd
                 <div style={{ display: 'grid', gap: 8 }}>
                   {linkedTasks.map((t) => {
                     const canAssign = canStudentAssignTask(t, student);
+                    const isMine = isTaskAssignedToStudent(t, student);
                     const meta = taskEnrollmentMeta(t, student);
                     const checked = selectedTaskIds.includes(t.id);
                     return (
@@ -764,6 +765,7 @@ function MarkerModal({ marker, plants, tasks, onClose, onSave, onDelete, onLinkT
                   <div style={{ display: 'grid', gap: 8 }}>
                     {linkedTasks.map((t) => {
                       const canAssign = canStudentAssignTask(t, student);
+                      const isMine = isTaskAssignedToStudent(t, student);
                       const meta = taskEnrollmentMeta(t, student);
                       const checked = selectedTaskIds.includes(t.id);
                       return (

@@ -1,6 +1,6 @@
 {
   "name": "foretmap",
-  "version": "1.10.4",
+  "version": "1.10.5",
   "description": "Application de gestion de la forêt comestible - Lycée Lyautey",
   "main": "server.js",
   "dependencies": {
@@ -45,8 +45,8 @@
     "release:patch": "npm version patch -m \"chore(release): v%s\"",
     "release:minor": "npm version minor -m \"chore(release): v%s\"",
     "release:major": "npm version major -m \"chore(release): v%s\"",
-    "test": "node --test tests/",
-    "test:local": "cross-env DB_NAME=foretmap_test node --test tests/",
+    "test": "node --test \"tests/*.test.js\"",
+    "test:local": "cross-env DB_NAME=foretmap_test node --test \"tests/*.test.js\"",
     "test:e2e": "npx playwright test",
     "test:e2e:headed": "npx playwright test --headed",
     "docker:up": "docker compose up -d || docker-compose up -d",
@@ -62,6 +62,7 @@
     "deploy:check:prod": "node scripts/post-deploy-check.js --base-url https://foretmap.olution.info"
   },
   "devDependencies": {
+    "@playwright/test": "^1.58.2",
     "@vitejs/plugin-react": "^4.2.1",
     "cross-env": "^7.0.3",
     "nodemon": "^3.0.2",
