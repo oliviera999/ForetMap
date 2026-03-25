@@ -315,7 +315,7 @@ router.get('/progress', async (req, res) => {
   try {
     const studentId = String(req.query.student_id || '').trim();
     if (studentId) {
-      const student = await queryOne('SELECT id FROM students WHERE id = ? LIMIT 1', [studentId]);
+      const student = await queryOne("SELECT id FROM users WHERE user_type = 'student' AND id = ? LIMIT 1", [studentId]);
       if (!student) return res.status(404).json({ error: 'Élève introuvable' });
       const rows = await queryAll(
         `SELECT target_type, target_id
@@ -362,7 +362,7 @@ router.post('/seen', async (req, res) => {
     }
 
     if (studentId) {
-      const student = await queryOne('SELECT id FROM students WHERE id = ? LIMIT 1', [studentId]);
+      const student = await queryOne("SELECT id FROM users WHERE user_type = 'student' AND id = ? LIMIT 1", [studentId]);
       if (!student) return res.status(404).json({ error: 'Élève introuvable' });
       if (seen) {
         await execute(

@@ -32,6 +32,9 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - **Tests visite** : nouveaux scénarios backend sur le contenu visite, la persistance anonyme via cookie signé et la persistance élève en base.
 
 ### Modifié
+- **Bascule users-only** : suppression des accès backend aux tables `students`/`teachers` au profit de `users` (auth, RBAC, routes métier, scripts SQL/ops), ajout de la migration de coupure `029_users_only_cutover.sql` (repointage des FK + drop legacy).
+- **Authentification élève** : suppression du login `firstName+lastName`, maintien du seul mode `identifier` (`email`/`pseudo`) + mot de passe.
+- **Couverture de tests migration users** : adaptation des tests backend critiques (`auth`, `api`, `students-delete`, `students-import`, `new-features`, `observations-images`) aux requêtes et payloads `users`.
 - **Compatibilité applicative migration users** : double lecture/écriture côté backend et frontend (session unifiée `foretmap_session`, JWT enrichi avec `canonicalUserId`, fallback legacy maintenu).
 - **Traçabilité des tâches/stats** : ajout de `student_id` sur `task_assignments`/`task_logs` avec fallback nominal maintenu pour rétrocompatibilité.
 - **Durcissement admin prod** : garde-fou explicite pour conserver les droits admin de l’identité canonique `oliviera9` lors des migrations.

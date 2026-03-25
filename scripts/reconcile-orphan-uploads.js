@@ -99,7 +99,7 @@ async function loadReferencedImagePaths(scope = 'managed') {
     { name: 'zone_photos', sql: "SELECT image_path AS p FROM zone_photos WHERE image_path IS NOT NULL AND image_path <> ''" },
     { name: 'task_logs', sql: "SELECT image_path AS p FROM task_logs WHERE image_path IS NOT NULL AND image_path <> ''" },
     { name: 'observation_logs', sql: "SELECT image_path AS p FROM observation_logs WHERE image_path IS NOT NULL AND image_path <> ''" },
-    { name: 'students', sql: "SELECT avatar_path AS p FROM students WHERE avatar_path IS NOT NULL AND avatar_path <> ''" },
+    { name: 'students', sql: "SELECT avatar_path AS p FROM users WHERE user_type = 'student' AND avatar_path IS NOT NULL AND avatar_path <> ''" },
   ];
 
   for (const src of sources) {

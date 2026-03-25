@@ -18,8 +18,10 @@ test.before(async () => {
 test('GET /api/observations/:id/image retourne le fichier image', async () => {
   const studentId = `obs-student-${Date.now()}`;
   await execute(
-    'INSERT INTO students (id, first_name, last_name, password, last_seen) VALUES (?, ?, ?, ?, ?)',
-    [studentId, 'Obs', 'Image', 'x', new Date().toISOString()]
+    `INSERT INTO users
+      (id, user_type, legacy_user_id, email, pseudo, first_name, last_name, display_name, description, avatar_path, affiliation, password_hash, auth_provider, is_active, last_seen, created_at, updated_at)
+     VALUES (?, 'student', NULL, NULL, NULL, ?, ?, ?, NULL, NULL, 'both', ?, 'local', 1, ?, NOW(), NOW())`,
+    [studentId, 'Obs', 'Image', 'Obs Image', 'x', new Date().toISOString()]
   );
   const created = await execute(
     'INSERT INTO observation_logs (student_id, zone_id, content, image_path, created_at) VALUES (?, ?, ?, ?, ?)',
@@ -37,8 +39,10 @@ test('GET /api/observations/:id/image retourne le fichier image', async () => {
 test('GET /api/observations/:id/image retourne 404 si fichier absent', async () => {
   const studentId = `obs-missing-${Date.now()}`;
   await execute(
-    'INSERT INTO students (id, first_name, last_name, password, last_seen) VALUES (?, ?, ?, ?, ?)',
-    [studentId, 'Obs', 'Missing', 'x', new Date().toISOString()]
+    `INSERT INTO users
+      (id, user_type, legacy_user_id, email, pseudo, first_name, last_name, display_name, description, avatar_path, affiliation, password_hash, auth_provider, is_active, last_seen, created_at, updated_at)
+     VALUES (?, 'student', NULL, NULL, NULL, ?, ?, ?, NULL, NULL, 'both', ?, 'local', 1, ?, NOW(), NOW())`,
+    [studentId, 'Obs', 'Missing', 'Obs Missing', 'x', new Date().toISOString()]
   );
   const created = await execute(
     'INSERT INTO observation_logs (student_id, zone_id, content, image_path, created_at) VALUES (?, ?, ?, ?, ?)',

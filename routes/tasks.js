@@ -466,7 +466,7 @@ router.post('/proposals', async (req, res) => {
     if (!firstName || !lastName) return res.status(400).json({ error: 'Nom requis' });
     if (!studentId) return res.status(400).json({ error: 'Identifiant élève requis' });
 
-    const student = await queryOne('SELECT id FROM students WHERE id = ?', [studentId]);
+    const student = await queryOne("SELECT id FROM users WHERE user_type = 'student' AND id = ?", [studentId]);
     if (!student) return res.status(401).json({ error: 'Compte supprimé', deleted: true });
     const permission = await ensureStudentPermission({ studentId, permissionKey: 'tasks.propose', profilePin });
     if (!permission.ok) return res.status(403).json({ error: permission.error });
@@ -647,7 +647,7 @@ router.post('/:id/assign', async (req, res) => {
     if (!firstName || !lastName) return res.status(400).json({ error: 'Nom requis' });
 
     if (studentId) {
-      const exists = await queryOne('SELECT id FROM students WHERE id = ?', [studentId]);
+      const exists = await queryOne("SELECT id FROM users WHERE user_type = 'student' AND id = ?", [studentId]);
       if (!exists) return res.status(401).json({ error: 'Compte supprimé', deleted: true });
       const permission = await ensureStudentPermission({ studentId, permissionKey: 'tasks.assign_self', profilePin });
       if (!permission.ok) return res.status(403).json({ error: permission.error });
@@ -696,7 +696,7 @@ router.post('/:id/done', async (req, res) => {
     const { comment, imageData, firstName, lastName, studentId, profilePin } = req.body || {};
 
     if (studentId) {
-      const exists = await queryOne('SELECT id FROM students WHERE id = ?', [studentId]);
+      const exists = await queryOne("SELECT id FROM users WHERE user_type = 'student' AND id = ?", [studentId]);
       if (!exists) return res.status(401).json({ error: 'Compte supprimé', deleted: true });
       const permission = await ensureStudentPermission({ studentId, permissionKey: 'tasks.done_self', profilePin });
       if (!permission.ok) return res.status(403).json({ error: permission.error });
@@ -824,7 +824,7 @@ router.post('/:id/unassign', async (req, res) => {
     if (!firstName || !lastName) return res.status(400).json({ error: 'Nom requis' });
 
     if (studentId) {
-      const exists = await queryOne('SELECT id FROM students WHERE id = ?', [studentId]);
+      const exists = await queryOne("SELECT id FROM users WHERE user_type = 'student' AND id = ?", [studentId]);
       if (!exists) return res.status(401).json({ error: 'Compte supprimé', deleted: true });
       const permission = await ensureStudentPermission({ studentId, permissionKey: 'tasks.unassign_self', profilePin });
       if (!permission.ok) return res.status(403).json({ error: permission.error });

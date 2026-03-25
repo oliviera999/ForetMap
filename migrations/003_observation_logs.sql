@@ -6,7 +6,7 @@ CREATE TABLE IF NOT EXISTS observation_logs (
   content TEXT NOT NULL,
   image_path VARCHAR(512) DEFAULT NULL,
   created_at VARCHAR(32) DEFAULT NULL,
-  FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE,
+  FOREIGN KEY (student_id) REFERENCES users(id) ON DELETE CASCADE,
   FOREIGN KEY (zone_id) REFERENCES zones(id) ON DELETE SET NULL
 );
 

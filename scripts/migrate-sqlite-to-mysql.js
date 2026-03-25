@@ -45,7 +45,7 @@ async function main() {
 
     const deleteOrder = [
       'task_logs', 'task_assignments', 'zone_photos', 'zone_history',
-      'tasks', 'zones', 'students', 'plants', 'map_markers'
+      'tasks', 'zones', 'users', 'plants', 'map_markers'
     ];
     for (const table of deleteOrder) {
       await conn.query(`DELETE FROM \`${table}\``);
@@ -87,15 +87,17 @@ async function main() {
     }
     console.log('plants:', plants.length);
 
-    // ─── students ───
+    // ─── users (students) ───
     const students = sqlite.prepare('SELECT * FROM students').all();
     for (const s of students) {
       await conn.execute(
-        'INSERT INTO students (id, first_name, last_name, password, last_seen) VALUES (?, ?, ?, ?, ?)',
-        [s.id, s.first_name, s.last_name, s.password ?? null, s.last_seen ?? null]
+        `INSERT INTO users
+          (id, user_type, legacy_user_id, email, pseudo, first_name, last_name, display_name, description, avatar_path, affiliation, password_hash, auth_provider, is_active, last_seen, created_at, updated_at)
+         VALUES (?, 'student', NULL, NULL, NULL, ?, ?, ?, NULL, NULL, 'both', ?, 'local', 1, ?, NOW(), NOW())`,
+        [s.id, s.first_name, s.last_name, `${s.first_name || ''} ${s.last_name || ''}`.trim(), s.password ?? null, s.last_seen ?? null]
       );
     }
-    console.log('students:', students.length);
+    console.log('users/students:', students.length);
 
     // ─── tasks ───
     const tasks = sqlite.prepare('SELECT * FROM tasks').all();

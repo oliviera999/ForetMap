@@ -1,17 +1,4 @@
--- Auth: comptes prof en base + tokens de réinitialisation mot de passe
-
-CREATE TABLE IF NOT EXISTS teachers (
-  id VARCHAR(64) PRIMARY KEY,
-  email VARCHAR(255) NOT NULL,
-  password_hash VARCHAR(255) NOT NULL,
-  display_name VARCHAR(255) DEFAULT 'Professeur',
-  is_active TINYINT(1) NOT NULL DEFAULT 1,
-  last_seen VARCHAR(32) DEFAULT NULL,
-  created_at VARCHAR(32) DEFAULT NULL,
-  updated_at VARCHAR(32) DEFAULT NULL,
-  UNIQUE KEY uq_teachers_email (email),
-  INDEX idx_teachers_active (is_active)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+-- Auth: tokens de réinitialisation mot de passe (users-only)
 
 CREATE TABLE IF NOT EXISTS password_reset_tokens (
   id VARCHAR(64) PRIMARY KEY,

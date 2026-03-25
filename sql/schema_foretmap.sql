@@ -196,37 +196,6 @@ CREATE TABLE IF NOT EXISTS task_assignments (
   CONSTRAINT fk_task_assignments_task FOREIGN KEY (task_id) REFERENCES tasks(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- students (comptes élèves, mot de passe hashé bcrypt)
-CREATE TABLE IF NOT EXISTS students (
-  id VARCHAR(64) PRIMARY KEY,
-  first_name VARCHAR(255) NOT NULL,
-  last_name VARCHAR(255) NOT NULL,
-  pseudo VARCHAR(50) DEFAULT NULL,
-  email VARCHAR(255) DEFAULT NULL,
-  description TEXT DEFAULT NULL,
-  avatar_path VARCHAR(512) DEFAULT NULL,
-  affiliation VARCHAR(16) NOT NULL DEFAULT 'both',
-  password VARCHAR(255) DEFAULT NULL,
-  last_seen VARCHAR(32) DEFAULT NULL,
-  INDEX idx_students_names (first_name, last_name),
-  UNIQUE KEY uq_students_pseudo (pseudo),
-  UNIQUE KEY uq_students_email (email)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
--- teachers (comptes professeurs, auth email + mot de passe hashé)
-CREATE TABLE IF NOT EXISTS teachers (
-  id VARCHAR(64) PRIMARY KEY,
-  email VARCHAR(255) NOT NULL,
-  password_hash VARCHAR(255) NOT NULL,
-  display_name VARCHAR(255) DEFAULT 'Professeur',
-  is_active TINYINT(1) NOT NULL DEFAULT 1,
-  last_seen VARCHAR(32) DEFAULT NULL,
-  created_at VARCHAR(32) DEFAULT NULL,
-  updated_at VARCHAR(32) DEFAULT NULL,
-  UNIQUE KEY uq_teachers_email (email),
-  INDEX idx_teachers_active (is_active)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
 -- users (identité unifiée progressive, compatible students/teachers)
 CREATE TABLE IF NOT EXISTS users (
   id VARCHAR(64) PRIMARY KEY,
@@ -378,7 +347,7 @@ CREATE TABLE IF NOT EXISTS task_logs (
   created_at VARCHAR(32) DEFAULT NULL,
   INDEX idx_task_logs_task_id (task_id),
   INDEX idx_task_logs_student_id (student_id),
-  CONSTRAINT fk_task_logs_student FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE SET NULL,
+  CONSTRAINT fk_task_logs_student FOREIGN KEY (student_id) REFERENCES users(id) ON DELETE SET NULL,
   CONSTRAINT fk_task_logs_task FOREIGN KEY (task_id) REFERENCES tasks(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -510,7 +479,7 @@ CREATE TABLE IF NOT EXISTS visit_seen_students (
   updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (student_id, target_type, target_id),
   INDEX idx_visit_seen_students_target (target_type, target_id),
-  CONSTRAINT fk_visit_seen_students_student FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE
+  CONSTRAINT fk_visit_seen_students_student FOREIGN KEY (student_id) REFERENCES users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- visite : progression vue/non-vu pour visiteurs anonymes (TTL applicatif 1 jour)
