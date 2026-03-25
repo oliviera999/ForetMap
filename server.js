@@ -27,6 +27,12 @@ const rbacRouter          = require('./routes/rbac');
 
 const app = express();
 
+function normalizeOptionalString(value) {
+  if (value == null) return null;
+  const s = String(value).trim();
+  return s.length > 0 ? s : null;
+}
+
 const corsOpts = process.env.NODE_ENV === 'production' && process.env.FRONTEND_ORIGIN
   ? { origin: process.env.FRONTEND_ORIGIN }
   : {};
@@ -106,6 +112,41 @@ app.get('/api/admin/logs', (req, res) => {
     bufferLines: getBufferedLineCount(),
     bufferMax: getMaxLines(),
     entries,
+  });
+});
+
+// Diagnostic OAuth (sans secrets) : vérifie les URLs réellement résolues au runtime.
+app.get('/api/admin/oauth-debug', (req, res) => {
+  const secret = req.headers['x-deploy-secret'] || req.query?.secret;
+  if (!process.env.DEPLOY_SECRET || secret !== process.env.DEPLOY_SECRET) {
+    return res.status(403).json({ error: 'Secret invalide ou DEPLOY_SECRET non configuré' });
+  }
+
+  const frontendOrigin = normalizeOptionalString(process.env.FRONTEND_ORIGIN)
+    || normalizeOptionalString(process.env.PASSWORD_RESET_BASE_URL)
+    || `${req.protocol}://${req.get('host')}`;
+  const redirectUri = normalizeOptionalString(process.env.GOOGLE_OAUTH_REDIRECT_URI)
+    || `${req.protocol}://${req.get('host')}/api/auth/google/callback`;
+
+  res.type('application/json').json({
+    ok: true,
+    runtime: {
+      pid: process.pid,
+      nodeEnv: process.env.NODE_ENV || null,
+      host: req.get('host') || null,
+      protocol: req.protocol || null,
+      forwardedProto: req.get('x-forwarded-proto') || null,
+      forwardedHost: req.get('x-forwarded-host') || null,
+    },
+    oauth: {
+      googleClientIdSet: !!normalizeOptionalString(process.env.GOOGLE_OAUTH_CLIENT_ID),
+      googleClientSecretSet: !!normalizeOptionalString(process.env.GOOGLE_OAUTH_CLIENT_SECRET),
+      googleRedirectUriEnv: normalizeOptionalString(process.env.GOOGLE_OAUTH_REDIRECT_URI),
+      frontendOriginEnv: normalizeOptionalString(process.env.FRONTEND_ORIGIN),
+      passwordResetBaseUrlEnv: normalizeOptionalString(process.env.PASSWORD_RESET_BASE_URL),
+      resolvedFrontendOrigin: frontendOrigin,
+      resolvedGoogleRedirectUri: redirectUri,
+    },
   });
 });
 
