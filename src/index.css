@@ -342,6 +342,11 @@
     .task-card:active { transform:scale(.99); }
     .task-card.mine { border-color:var(--sage); background:#f7fef9; }
     .task-card.done { opacity:.65; }
+    .task-card.proposed {
+      border-color:#c4b5fd;
+      background:#faf5ff;
+      box-shadow:0 2px 10px rgba(124,58,237,.12);
+    }
     .task-top { display:flex; justify-content:space-between; align-items:flex-start; gap:8px; margin-bottom:8px; }
     .task-title-row { display:flex; align-items:flex-start; gap:10px; min-width:0; flex:1; }
     .task-status-dot {
@@ -377,6 +382,12 @@
     .task-meta { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:10px; }
     .task-chip { background:var(--parchment); border-radius:6px; padding:4px 9px; font-size:.76rem; color:var(--soil); }
     .task-chip.urgent { background:#fff1f2; color:#e11d48; }
+    .task-chip.proposal {
+      background:#ede9fe;
+      color:#5b21b6;
+      font-weight:600;
+      border:1px solid #d8b4fe;
+    }
     .task-desc { font-size:.88rem; color:#666; margin-bottom:10px; line-height:1.55; }
     .task-actions { display:flex; gap:8px; flex-wrap:wrap; }
     .assignees { margin-bottom:8px; display:flex; gap:6px; flex-wrap:wrap; }

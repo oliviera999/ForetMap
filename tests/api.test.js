@@ -95,6 +95,33 @@ test('Assign puis unassign met à jour le statut de la tâche', async () => {
   assert.strictEqual(afterUnassign.body.status, 'available');
 });
 
+test('Un élève peut proposer une tâche en statut proposed', async () => {
+  const studentRes = await request(app)
+    .post('/api/auth/register')
+    .send({ firstName: 'Prop', lastName: 'Eleve' + Date.now(), password: 'pwd1' })
+    .expect(201);
+  const { first_name, last_name, id: studentId } = studentRes.body;
+
+  const zones = await request(app).get('/api/zones').expect(200);
+  const zoneId = zones.body[0]?.id || 'pg';
+
+  const res = await request(app)
+    .post('/api/tasks/proposals')
+    .send({
+      title: `Proposition ${Date.now()}`,
+      description: 'On pourrait ajouter cette tâche.',
+      zone_id: zoneId,
+      firstName: first_name,
+      lastName: last_name,
+      studentId,
+    })
+    .expect(201);
+
+  assert.strictEqual(res.body.status, 'proposed');
+  assert.ok(String(res.body.description || '').includes('Proposition élève:'));
+  assert.strictEqual(res.body.zone_id, zoneId);
+});
+
 test('Zones et tâches supportent le filtrage multi-cartes', async () => {
   const auth = await request(app)
     .post('/api/auth/teacher')

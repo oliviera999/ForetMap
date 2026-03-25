@@ -57,7 +57,17 @@ function initialLocationIds(editTask, keyMulti, keySingle) {
   return one ? [one] : [];
 }
 
-function TaskFormModal({ zones, markers = [], maps = [], tutorials = [], activeMapId = 'foret', onClose, onSave, editTask }) {
+function TaskFormModal({
+  zones,
+  markers = [],
+  maps = [],
+  tutorials = [],
+  activeMapId = 'foret',
+  onClose,
+  onSave,
+  editTask,
+  isProposal = false,
+}) {
   const initialMapId = editTask
     ? (editTask.map_id_resolved || editTask.map_id || editTask.zone_map_id || editTask.marker_map_id || null)
     : activeMapId;
@@ -167,7 +177,7 @@ function TaskFormModal({ zones, markers = [], maps = [], tutorials = [], activeM
     <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
       <div className="modal fade-in">
         <button className="modal-close" onClick={onClose}>✕</button>
-        <h3>{editTask ? 'Modifier la tâche' : 'Nouvelle tâche'}</h3>
+        <h3>{editTask ? 'Modifier la tâche' : isProposal ? 'Proposer une tâche' : 'Nouvelle tâche'}</h3>
         {err && <p style={{ color: var_alert, marginBottom: 12, fontSize: '.85rem' }}>{err}</p>}
         <div className="field"><label>Titre *</label><input value={form.title} onChange={set('title')} placeholder="Ex: Arroser les tomates" /></div>
         <div className="field"><label>Description</label><textarea value={form.description} onChange={set('description')} rows={2} placeholder="Instructions détaillées..." /></div>
@@ -203,39 +213,47 @@ function TaskFormModal({ zones, markers = [], maps = [], tutorials = [], activeM
               ))}
           </div>
         </div>
-        <div className="field"><label>Tutoriels associés (optionnel)</label>
-          <div style={pickListStyle}>
-            {tutorials.length === 0
-              ? <p style={{ fontSize: '.82rem', color: '#888', margin: 8 }}>Aucun tutoriel disponible.</p>
-              : tutorials.map(t => (
-                <label key={t.id} style={pickRow}>
-                  <input
-                    type="checkbox"
-                    checked={form.tutorial_ids.includes(t.id)}
-                    onChange={() => toggleTutorialId(t.id)}
-                  />
-                  <span style={{ fontSize: '.88rem' }}>📘 {t.title}</span>
-                </label>
-              ))}
+        {!isProposal && (
+          <div className="field"><label>Tutoriels associés (optionnel)</label>
+            <div style={pickListStyle}>
+              {tutorials.length === 0
+                ? <p style={{ fontSize: '.82rem', color: '#888', margin: 8 }}>Aucun tutoriel disponible.</p>
+                : tutorials.map(t => (
+                  <label key={t.id} style={pickRow}>
+                    <input
+                      type="checkbox"
+                      checked={form.tutorial_ids.includes(t.id)}
+                      onChange={() => toggleTutorialId(t.id)}
+                    />
+                    <span style={{ fontSize: '.88rem' }}>📘 {t.title}</span>
+                  </label>
+                ))}
+            </div>
           </div>
-        </div>
+        )}
         <div className="row">
-          <div className="field"><label>Élèves requis</label>
-            <input type="number" min="1" max="10" value={form.required_students} onChange={set('required_students')} />
-          </div>
+          {!isProposal && (
+            <div className="field"><label>Élèves requis</label>
+              <input type="number" min="1" max="10" value={form.required_students} onChange={set('required_students')} />
+            </div>
+          )}
           <div className="field"><label>Date limite</label><input type="date" value={form.due_date} onChange={set('due_date')} /></div>
         </div>
-        <div className="row">
-          <div className="field"><label>Récurrence</label>
-            <select value={form.recurrence || ''} onChange={set('recurrence')}>
-              <option value="">Aucune (unique)</option>
-              <option value="weekly">Hebdomadaire</option>
-              <option value="biweekly">Toutes les 2 semaines</option>
-              <option value="monthly">Mensuelle</option>
-            </select>
+        {!isProposal && (
+          <div className="row">
+            <div className="field"><label>Récurrence</label>
+              <select value={form.recurrence || ''} onChange={set('recurrence')}>
+                <option value="">Aucune (unique)</option>
+                <option value="weekly">Hebdomadaire</option>
+                <option value="biweekly">Toutes les 2 semaines</option>
+                <option value="monthly">Mensuelle</option>
+              </select>
+            </div>
           </div>
-        </div>
-        <button className="btn btn-primary btn-full" onClick={submit} disabled={saving}>{saving ? 'Sauvegarde...' : editTask ? 'Modifier' : 'Créer la tâche'}</button>
+        )}
+        <button className="btn btn-primary btn-full" onClick={submit} disabled={saving}>
+          {saving ? 'Sauvegarde...' : editTask ? 'Modifier' : isProposal ? 'Envoyer la proposition' : 'Créer la tâche'}
+        </button>
       </div>
     </div>
   );
@@ -247,8 +265,21 @@ function taskHasZone(t, zoneId) {
   return t.zone_id === zoneId;
 }
 
+function proposalMetaFromDescription(description) {
+  const raw = String(description || '');
+  if (!raw) return { proposer: '', cleanedDescription: '' };
+  const match = raw.match(/(?:^|\n)Proposition élève:\s*(.+)\s*$/m);
+  const proposer = match?.[1]?.trim() || '';
+  const cleanedDescription = raw
+    .replace(/(?:^|\n)Proposition élève:\s*.+\s*$/m, '')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+  return { proposer, cleanedDescription };
+}
+
 function TasksView({ tasks, zones, markers = [], maps = [], tutorials = [], activeMapId = 'foret', isTeacher, student, onRefresh, onForceLogout }) {
   const [showForm, setShowForm] = useState(false);
+  const [showProposalForm, setShowProposalForm] = useState(false);
   const [editTask, setEditTask] = useState(null);
   const [logTask, setLogTask] = useState(null);
   const [logsTask, setLogsTask] = useState(null);
@@ -328,6 +359,17 @@ function TasksView({ tasks, zones, markers = [], maps = [], tutorials = [], acti
     await onRefresh();
   };
 
+  const proposeTask = async form => {
+    await api('/api/tasks/proposals', 'POST', {
+      ...form,
+      firstName: student.first_name,
+      lastName: student.last_name,
+      studentId: student.id,
+    });
+    setToast('Proposition envoyée au professeur ✓');
+    await onRefresh();
+  };
+
   const applyFilters = list => list.filter(t => {
     const taskMapId = taskEffectiveMapId(t);
     if (filterMap === 'active' && taskMapId !== activeMapId && taskMapId != null) return false;
@@ -347,6 +389,7 @@ function TasksView({ tasks, zones, markers = [], maps = [], tutorials = [], acti
   const inProgress = allFiltered.filter(t => t.status === 'in_progress');
   const done = allFiltered.filter(t => t.status === 'done');
   const validated = allFiltered.filter(t => t.status === 'validated');
+  const proposed = allFiltered.filter(t => t.status === 'proposed');
 
   const urgentTasks = !isTeacher ? allFiltered.filter(t => {
     if (t.status === 'validated' || t.status === 'done') return false;
@@ -364,8 +407,10 @@ function TasksView({ tasks, zones, markers = [], maps = [], tutorials = [], acti
   const TaskCard = ({ t }) => {
     const isMine = myTasks.some(m => m.id === t.id);
     const slots = t.required_students - (t.assignments?.length || 0);
+    const proposalMeta = proposalMetaFromDescription(t.description);
+    const cardDescription = t.status === 'proposed' ? proposalMeta.cleanedDescription : (t.description || '');
     return (
-      <div className={`task-card ${isMine ? 'mine' : ''} ${t.status === 'validated' ? 'done' : ''}`}>
+      <div className={`task-card ${isMine ? 'mine' : ''} ${t.status === 'validated' ? 'done' : ''} ${t.status === 'proposed' ? 'proposed' : ''}`}>
         <div className="task-top">
           <div className="task-title-row">
             {taskStatusIndicator(t.status)}
@@ -385,11 +430,14 @@ function TasksView({ tasks, zones, markers = [], maps = [], tutorials = [], acti
           {(t.tutorials_linked || []).map((tu) => (
             <span key={tu.id} className="task-chip">📘 {tu.title}</span>
           ))}
+          {isTeacher && t.status === 'proposed' && proposalMeta.proposer && (
+            <span className="task-chip proposal">🙋 Proposée par {proposalMeta.proposer}</span>
+          )}
           {dueDateChip(t.due_date)}
           {!isTeacher && <span className="task-chip">👤 {t.required_students} élève{t.required_students > 1 ? 's' : ''}</span>}
           {t.recurrence && <span className="task-chip">🔄 {t.recurrence === 'weekly' ? 'Hebdo' : t.recurrence === 'biweekly' ? 'Bi-hebdo' : t.recurrence === 'monthly' ? 'Mensuel' : t.recurrence}</span>}
         </div>
-        {t.description && <div className="task-desc">{t.description}</div>}
+        {cardDescription && <div className="task-desc">{cardDescription}</div>}
         {t.assignments?.length > 0 && (
           <div className="assignees">
             {t.assignments.map((a, i) => <span key={i} className="assignee-tag">{a.student_first_name} {a.student_last_name}</span>)}
@@ -421,6 +469,14 @@ function TasksView({ tasks, zones, markers = [], maps = [], tutorials = [], acti
               {loading[t.id + 'val'] ? '...' : '✓ Valider'}
             </button>
           )}
+          {isTeacher && t.status === 'proposed' && (
+            <button className="btn btn-primary btn-sm" disabled={loading[t.id + 'approve']} onClick={() => withLoad(t.id + 'approve', async () => {
+              await api(`/api/tasks/${t.id}`, 'PUT', { status: 'available' });
+              setToast('Proposition acceptée ✓');
+            })}>
+              {loading[t.id + 'approve'] ? '...' : '✅ Accepter'}
+            </button>
+          )}
           {isTeacher && (t.status === 'done' || t.status === 'validated') && (
             <button className="btn btn-ghost btn-sm" onClick={() => setLogsTask(t)}>📋 Rapports</button>
           )}
@@ -438,7 +494,7 @@ function TasksView({ tasks, zones, markers = [], maps = [], tutorials = [], acti
   return (
     <div>
       {toast && <Toast msg={toast} onDone={() => setToast(null)} />}
-      {(showForm || editTask) && (
+      {(showForm || editTask || showProposalForm) && (
         <TaskFormModal
           zones={zones}
           markers={markers}
@@ -446,8 +502,9 @@ function TasksView({ tasks, zones, markers = [], maps = [], tutorials = [], acti
           tutorials={tutorials}
           activeMapId={activeMapId}
           editTask={editTask}
-          onClose={() => { setShowForm(false); setEditTask(null); }}
-          onSave={saveTask}
+          isProposal={showProposalForm && !isTeacher}
+          onClose={() => { setShowForm(false); setEditTask(null); setShowProposalForm(false); }}
+          onSave={showProposalForm && !isTeacher ? proposeTask : saveTask}
         />
       )}
       {logTask && (
@@ -476,8 +533,9 @@ function TasksView({ tasks, zones, markers = [], maps = [], tutorials = [], acti
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
         <h2 className="section-title">✅ Tâches</h2>
         {isTeacher && <button className="btn btn-primary btn-sm" onClick={() => setShowForm(true)}>+ Nouvelle tâche</button>}
+        {!isTeacher && <button className="btn btn-ghost btn-sm" onClick={() => setShowProposalForm(true)}>+ Proposer</button>}
       </div>
-      <p className="section-sub">{isTeacher ? 'Gérer et valider les tâches' : 'Prends en charge une tâche ou suis tes activités'}</p>
+      <p className="section-sub">{isTeacher ? 'Gérer, valider et traiter les propositions' : 'Prends en charge une tâche ou propose-en une nouvelle'}</p>
 
       <div className="task-filters">
         <select value={filterMap} onChange={e => setFilterMap(e.target.value)}>
@@ -501,6 +559,7 @@ function TasksView({ tasks, zones, markers = [], maps = [], tutorials = [], acti
             <option value="in_progress">En cours</option>
             <option value="done">Terminée</option>
             <option value="validated">Validée</option>
+            <option value="proposed">Proposée</option>
           </select>
         )}
       </div>
@@ -533,6 +592,12 @@ function TasksView({ tasks, zones, markers = [], maps = [], tutorials = [], acti
 
       {isTeacher ? (
         <>
+          {proposed.length > 0 && (
+            <div className="tasks-section">
+              <div className="tasks-section-title">Propositions élèves ({proposed.length})</div>
+              <div>{proposed.map(t => <TaskCard key={t.id} t={t} />)}</div>
+            </div>
+          )}
           {done.length > 0 && (
             <div className="tasks-section">
               <div className="tasks-section-title">En attente de validation ({done.length})</div>
