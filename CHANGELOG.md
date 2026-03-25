@@ -6,6 +6,10 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 ## [Non publié]
 
 ### Ajouté
+- **Import élèves en masse (prof)** : ajout de `POST /api/students/import` pour importer des comptes élèves depuis un fichier CSV/XLSX, avec validation par ligne, mode simulation (`dryRun`) et rapport détaillé des erreurs.
+- **Template élèves téléchargeable** : ajout de `GET /api/students/import/template` (CSV/XLSX) avec colonnes prêtes à l’emploi et une ligne d’exemple à remplacer/supprimer avant import.
+- **UI prof — Gestion des élèves** : nouveau panneau d’import dans `TeacherStats` (`src/components/stats-views.jsx`) avec téléchargement des modèles, sélection de fichier, simulation, import et affichage du rapport.
+- **Tests import élèves** : nouveau fichier `tests/students-import.test.js` couvrant le template CSV, la simulation et la création réelle d’élèves.
 - **Page Visite publique** : nouvelle expérience `Visite` accessible sans connexion depuis l’écran d’accueil, et via un onglet dédié placé avant « À propos » pour les utilisateurs connectés.
 - **API visite dédiée** : nouveau routeur `routes/visit.js` (`/api/visit/content`, `/api/visit/progress`, `/api/visit/seen`) avec endpoints prof pour éditer les contenus zone/repère, gérer les médias de visite et sélectionner les tutoriels affichés.
 - **Persistance vu/non-vu** : support connecté (BDD) et non connecté (cookie signé `anon_visit_token` + stockage serveur TTL 1 jour) pour conserver l’état même après fermeture de l’app.
@@ -14,6 +18,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - **Tests visite** : nouveaux scénarios backend sur le contenu visite, la persistance anonyme via cookie signé et la persistance élève en base.
 
 ### Modifié
+- **Visite/tâches complètement dissociées** : la visite utilise désormais ses propres entités (`visit_zones`, `visit_markers`) avec outils professeur dédiés pour créer/éditer/supprimer zones et repères directement sur la carte de visite, sans dépendre des zones/repères du système de tâches.
 - **Panel emojis centralisé et enrichi** : création de `src/constants/emojis.js`, remplacement des listes locales, ajout d’emojis biodiversité, techno et école pour les repères (tâches/visite) et formulaires liés.
 - **Navigation/auth** : ajout d’un CTA « Visiter sans connexion » dans l’écran d’authentification et intégration de l’onglet `Visite` dans les navigations élève/prof.
 

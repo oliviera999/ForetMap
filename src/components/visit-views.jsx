@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { api, AccountDeletedError } from '../services/api';
+import { MARKER_EMOJIS } from '../constants/emojis';
 
 function parsePctPoints(raw) {
   try {
@@ -20,14 +21,28 @@ function itemSeenKey(type, id) {
   return `${type}:${id}`;
 }
 
+function pointToPct(event, element) {
+  const rect = element.getBoundingClientRect();
+  if (!rect.width || !rect.height) return null;
+  const xp = ((event.clientX - rect.left) / rect.width) * 100;
+  const yp = ((event.clientY - rect.top) / rect.height) * 100;
+  if (!Number.isFinite(xp) || !Number.isFinite(yp)) return null;
+  return {
+    xp: Math.max(0, Math.min(100, Number(xp.toFixed(2)))),
+    yp: Math.max(0, Math.min(100, Number(yp.toFixed(2)))),
+  };
+}
+
 function VisitEditorPanel({ selected, selectedType, onSaved, onForceLogout, isTeacher }) {
   const [form, setForm] = useState({
+    title: '',
     subtitle: '',
     short_description: '',
     details_title: 'Détails',
     details_text: '',
     sort_order: 0,
     is_active: true,
+    emoji: '📍',
   });
   const [saving, setSaving] = useState(false);
   const [mediaUrl, setMediaUrl] = useState('');
@@ -36,23 +51,38 @@ function VisitEditorPanel({ selected, selectedType, onSaved, onForceLogout, isTe
 
   useEffect(() => {
     setForm({
+      title: selectedType === 'zone' ? (selected?.name || '') : (selected?.label || ''),
       subtitle: selected?.visit_subtitle || '',
       short_description: selected?.visit_short_description || '',
       details_title: selected?.visit_details_title || 'Détails',
       details_text: selected?.visit_details_text || '',
       sort_order: Number(selected?.visit_sort_order || 0),
       is_active: Number(selected?.visit_is_active ?? 1) === 1,
+      emoji: selected?.emoji || '📍',
     });
     setMediaUrl('');
     setMediaCaption('');
-  }, [selected]);
+  }, [selected, selectedType]);
 
   if (!isTeacher || !selected || !selectedType) return null;
 
   const save = async () => {
     setSaving(true);
     try {
-      await api(`/api/visit/${selectedType === 'zone' ? 'zones' : 'markers'}/${selected.id}`, 'PUT', form);
+      const payload = {
+        subtitle: form.subtitle,
+        short_description: form.short_description,
+        details_title: form.details_title,
+        details_text: form.details_text,
+        sort_order: form.sort_order,
+        is_active: form.is_active,
+      };
+      if (selectedType === 'zone') payload.name = form.title;
+      else {
+        payload.label = form.title;
+        payload.emoji = form.emoji;
+      }
+      await api(`/api/visit/${selectedType === 'zone' ? 'zones' : 'markers'}/${selected.id}`, 'PUT', payload);
       await onSaved?.();
     } catch (err) {
       if (err instanceof AccountDeletedError) onForceLogout?.();
@@ -98,6 +128,26 @@ function VisitEditorPanel({ selected, selectedType, onSaved, onForceLogout, isTe
     <div className="visit-editor">
       <h4>🎛️ Édition visite (prof)</h4>
       <div className="field">
+        <label>{selectedType === 'zone' ? 'Titre de zone' : 'Titre du repère'}</label>
+        <input value={form.title} onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))} />
+      </div>
+      {selectedType === 'marker' && (
+        <div className="field">
+          <label>Emoji du repère</label>
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+            {MARKER_EMOJIS.map((emoji) => (
+              <button
+                key={emoji}
+                className={`emoji-btn ${form.emoji === emoji ? 'sel' : ''}`}
+                onClick={() => setForm((f) => ({ ...f, emoji }))}
+              >
+                {emoji}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+      <div className="field">
         <label>Sous-titre</label>
         <input value={form.subtitle} onChange={(e) => setForm((f) => ({ ...f, subtitle: e.target.value }))} />
       </div>
@@ -136,6 +186,22 @@ function VisitEditorPanel({ selected, selectedType, onSaved, onForceLogout, isTe
       </div>
       <button className="btn btn-primary btn-sm" disabled={saving} onClick={save}>
         {saving ? 'Enregistrement...' : '💾 Sauver'}
+      </button>
+      <button
+        className="btn btn-danger btn-sm"
+        style={{ marginLeft: 8 }}
+        onClick={async () => {
+          if (!confirm(`Supprimer ce ${selectedType === 'zone' ? 'zone de visite' : 'repère de visite'} ?`)) return;
+          try {
+            await api(`/api/visit/${selectedType === 'zone' ? 'zones' : 'markers'}/${selected.id}`, 'DELETE');
+            await onSaved?.();
+          } catch (err) {
+            if (err instanceof AccountDeletedError) onForceLogout?.();
+            else alert(err.message || 'Erreur suppression');
+          }
+        }}
+      >
+        🗑️ Supprimer
       </button>
 
       <div className="visit-media-editor">
@@ -182,6 +248,9 @@ function VisitView({
   const [savingSeen, setSavingSeen] = useState(false);
   const [tutorialSelection, setTutorialSelection] = useState([]);
   const [savingTutorials, setSavingTutorials] = useState(false);
+  const [mode, setMode] = useState('view');
+  const [drawPoints, setDrawPoints] = useState([]);
+  const [creating, setCreating] = useState(false);
 
   const currentMap = useMemo(() => maps.find((m) => m.id === mapId), [maps, mapId]);
 
@@ -243,6 +312,62 @@ function VisitView({
     }
   };
 
+  const createZoneFromPoints = async () => {
+    if (drawPoints.length < 3) return;
+    const name = prompt('Titre de la zone de visite ?');
+    if (!name || !name.trim()) return;
+    setCreating(true);
+    try {
+      await api('/api/visit/zones', 'POST', {
+        map_id: mapId,
+        name: name.trim(),
+        points: drawPoints,
+      });
+      setDrawPoints([]);
+      setMode('view');
+      await loadData();
+    } catch (err) {
+      if (err instanceof AccountDeletedError) onForceLogout?.();
+      else alert(err.message || 'Erreur création zone');
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  const onMapClick = async (event) => {
+    if (!isTeacher || mode === 'view') return;
+    const stage = event.currentTarget;
+    const p = pointToPct(event, stage);
+    if (!p) return;
+
+    if (mode === 'draw-zone') {
+      setDrawPoints((prev) => [...prev, p]);
+      return;
+    }
+
+    if (mode === 'add-marker') {
+      const label = prompt('Titre du repère de visite ?');
+      if (!label || !label.trim()) return;
+      setCreating(true);
+      try {
+        await api('/api/visit/markers', 'POST', {
+          map_id: mapId,
+          x_pct: p.xp,
+          y_pct: p.yp,
+          label: label.trim(),
+          emoji: '📍',
+        });
+        setMode('view');
+        await loadData();
+      } catch (err) {
+        if (err instanceof AccountDeletedError) onForceLogout?.();
+        else alert(err.message || 'Erreur création repère');
+      } finally {
+        setCreating(false);
+      }
+    }
+  };
+
   const saveTutorialSelection = async () => {
     setSavingTutorials(true);
     try {
@@ -288,10 +413,40 @@ function VisitView({
           </button>
         ))}
       </div>
+      {isTeacher && (
+        <div className="visit-map-switch">
+          <button className={`btn btn-sm ${mode === 'view' ? 'btn-primary' : 'btn-ghost'}`} onClick={() => { setMode('view'); setDrawPoints([]); }}>
+            🖐️ Navigation
+          </button>
+          <button className={`btn btn-sm ${mode === 'draw-zone' ? 'btn-primary' : 'btn-ghost'}`} onClick={() => setMode('draw-zone')}>
+            🖊️ Zone visite
+          </button>
+          <button className={`btn btn-sm ${mode === 'add-marker' ? 'btn-primary' : 'btn-ghost'}`} onClick={() => setMode('add-marker')}>
+            📍 Repère visite
+          </button>
+          {mode === 'draw-zone' && (
+            <>
+              <button className="btn btn-secondary btn-sm" disabled={drawPoints.length < 3 || creating} onClick={createZoneFromPoints}>
+                ✅ Terminer zone ({drawPoints.length})
+              </button>
+              <button className="btn btn-ghost btn-sm" onClick={() => setDrawPoints((prev) => prev.slice(0, -1))}>
+                ↩️ Retirer point
+              </button>
+              <button className="btn btn-danger btn-sm" onClick={() => setDrawPoints([])}>
+                ✕ Annuler
+              </button>
+            </>
+          )}
+        </div>
+      )}
 
       <div className="visit-grid">
         <div className="visit-map-card">
-          <div className="visit-map-stage">
+          <div
+            className="visit-map-stage"
+            onClick={onMapClick}
+            style={{ cursor: isTeacher && mode !== 'view' ? 'crosshair' : 'default' }}
+          >
             <img
               src={currentMap?.map_image_url || '/map.png'}
               alt={`Plan ${currentMap?.label || 'Forêt'}`}
@@ -316,6 +471,20 @@ function VisitView({
                   />
                 );
               })}
+              {mode === 'draw-zone' && drawPoints.length >= 1 && (
+                <>
+                  <polyline
+                    points={drawPoints.map((pt) => `${pt.xp},${pt.yp}`).join(' ')}
+                    fill="none"
+                    stroke="#166534"
+                    strokeWidth="0.35"
+                    strokeDasharray="0.8 0.4"
+                  />
+                  {drawPoints.map((pt, idx) => (
+                    <circle key={`draw-${idx}`} cx={pt.xp} cy={pt.yp} r="0.7" fill="#166534" />
+                  ))}
+                </>
+              )}
             </svg>
 
             {(content.markers || []).map((m) => {
@@ -325,7 +494,8 @@ function VisitView({
                   key={m.id}
                   className="visit-marker-btn"
                   style={{ left: `${m.x_pct}%`, top: `${m.y_pct}%` }}
-                  onClick={() => {
+                  onClick={(e) => {
+                    e.stopPropagation();
                     setSelected(m);
                     setSelectedType('marker');
                   }}

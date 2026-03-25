@@ -166,21 +166,17 @@ test('PATCH /api/students/:id/profile rejette un mot de passe actuel invalide', 
 });
 
 test('GET /api/visit/content expose les contenus visite et les tutos choisis', async () => {
-  const zonesRes = await request(app).get('/api/zones?map_id=foret').expect(200);
-  const zoneId = zonesRes.body[0]?.id;
-  assert.ok(zoneId);
-
-  const markerRes = await request(app)
-    .post('/api/map/markers')
+  const zoneRes = await request(app)
+    .post('/api/visit/zones')
     .set('Authorization', 'Bearer ' + teacherToken)
     .send({
       map_id: 'foret',
-      x_pct: 44,
-      y_pct: 41,
-      label: `Repère visite ${Date.now()}`,
-      emoji: '🧭',
+      name: `Zone visite ${Date.now()}`,
+      points: [{ xp: 10, yp: 10 }, { xp: 24, yp: 11 }, { xp: 18, yp: 23 }],
     })
     .expect(201);
+  const zoneId = zoneRes.body.id;
+  assert.ok(zoneId);
 
   await request(app)
     .put(`/api/visit/zones/${zoneId}`)
@@ -194,6 +190,18 @@ test('GET /api/visit/content expose les contenus visite et les tutos choisis', a
       is_active: true,
     })
     .expect(200);
+
+  const markerRes = await request(app)
+    .post('/api/visit/markers')
+    .set('Authorization', 'Bearer ' + teacherToken)
+    .send({
+      map_id: 'foret',
+      x_pct: 44,
+      y_pct: 41,
+      label: `Repère visite ${Date.now()}`,
+      emoji: '🧭',
+    })
+    .expect(201);
 
   await request(app)
     .put(`/api/visit/markers/${markerRes.body.id}`)
@@ -227,8 +235,16 @@ test('GET /api/visit/content expose les contenus visite et les tutos choisis', a
 });
 
 test('Progression visite anonyme persiste via cookie signé', async () => {
-  const zonesRes = await request(app).get('/api/zones?map_id=foret').expect(200);
-  const zoneId = zonesRes.body[0]?.id;
+  const zoneRes = await request(app)
+    .post('/api/visit/zones')
+    .set('Authorization', 'Bearer ' + teacherToken)
+    .send({
+      map_id: 'foret',
+      name: `Zone progress ${Date.now()}`,
+      points: [{ xp: 42, yp: 42 }, { xp: 53, yp: 42 }, { xp: 46, yp: 50 }],
+    })
+    .expect(201);
+  const zoneId = zoneRes.body.id;
   assert.ok(zoneId);
 
   const agent = request.agent(app);
@@ -245,8 +261,18 @@ test('Progression visite anonyme persiste via cookie signé', async () => {
 });
 
 test('Progression visite élève connecté persiste en BDD', async () => {
-  const markersRes = await request(app).get('/api/map/markers?map_id=foret').expect(200);
-  const markerId = markersRes.body[0]?.id;
+  const markerRes = await request(app)
+    .post('/api/visit/markers')
+    .set('Authorization', 'Bearer ' + teacherToken)
+    .send({
+      map_id: 'foret',
+      x_pct: 35,
+      y_pct: 35,
+      label: `Repère progress ${Date.now()}`,
+      emoji: '📍',
+    })
+    .expect(201);
+  const markerId = markerRes.body.id;
   assert.ok(markerId);
 
   await request(app)
