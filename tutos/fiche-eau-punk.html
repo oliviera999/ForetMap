@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>L'eau au jardin – ForêtMap n³</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;1,400&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400&display=swap" rel="stylesheet"/>
+  <style>
+    :root { --noir: #0d0d0b; --sale: #1a1a14; --jaune: #d4e84a; --rouille: #c4421a; --mousse: #4a7a38; --vert-acide: #7ecf2e; --creme: #e8e0cc; --gris: #888070; --blanc: #f0ebe0; --bleu: #4a8fa8; --bleu-clair: #a8d4e8; }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'DM Sans', sans-serif; background: var(--noir); color: var(--creme); min-height: 100vh; overflow-x: hidden; cursor: crosshair; }
+    body::before { content: ''; position: fixed; inset: 0; background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E"); pointer-events: none; z-index: 1000; opacity: .6; }
+    .hero { position: relative; min-height: 88vh; display: flex; flex-direction: column; justify-content: flex-end; padding: 3rem 2.5rem 2.5rem; border-bottom: 3px solid var(--bleu-clair); overflow: hidden; }
+    .hero::before { content: ''; position: absolute; inset: 0; background-image: linear-gradient(var(--bleu) 1px, transparent 1px), linear-gradient(90deg, var(--bleu) 1px, transparent 1px); background-size: 60px 60px; opacity: .05; }
+    .hero::after { content: ''; position: absolute; top: -80px; right: -100px; width: 420px; height: 420px; border-radius: 38% 62% 55% 45% / 42% 58% 42% 58%; background: radial-gradient(ellipse, rgba(74,143,168,.15) 0%, transparent 70%); animation: blob 14s ease-in-out infinite alternate; }
+    @keyframes blob { 0% { border-radius: 38% 62% 55% 45% / 42% 58% 42% 58%; transform: scale(1); } 50% { border-radius: 62% 38% 45% 55% / 58% 42% 58% 42%; transform: scale(1.06); } 100% { border-radius: 50% 50% 62% 38% / 55% 45% 55% 45%; transform: scale(.96); } }
+    .hero-eyebrow { font-family: 'DM Mono', monospace; font-size: .65rem; letter-spacing: .25em; text-transform: uppercase; color: var(--bleu-clair); margin-bottom: 1.5rem; position: relative; opacity: .8; }
+    .hero h1 { font-family: 'Playfair Display', serif; font-size: clamp(3.5rem, 12vw, 8rem); line-height: .9; letter-spacing: -.01em; position: relative; color: var(--blanc); }
+    .hero h1 .strike { position: relative; color: var(--gris); }
+    .hero h1 .strike::after { content: ''; position: absolute; left: 0; right: 0; top: 50%; height: 4px; background: var(--rouille); transform: translateY(-50%) rotate(-1.5deg); }
+    .hero h1 .accent { color: var(--bleu-clair); }
+    .hero-sub { font-family: 'Playfair Display', serif; font-style: italic; font-size: clamp(.95rem, 2vw, 1.2rem); color: var(--creme); max-width: 520px; line-height: 1.6; margin-top: 1.75rem; opacity: .85; position: relative; }
+    .hero-manifeste { margin-top: 2rem; display: inline-block; border: 2px solid var(--bleu-clair); padding: .6rem 1.25rem; font-family: 'DM Mono', monospace; font-size: .75rem; letter-spacing: .15em; text-transform: uppercase; color: var(--bleu-clair); position: relative; animation: blink-border 4s ease-in-out infinite; }
+    @keyframes blink-border { 0%, 100% { border-color: var(--bleu-clair); } 50% { border-color: var(--vert-acide); } }
+    .content { max-width: 820px; margin: 0 auto; padding: 3rem 2rem 5rem; }
+    .s-header { display: flex; align-items: baseline; gap: 1rem; margin: 3.5rem 0 1.25rem; border-top: 1px solid rgba(168,212,232,.15); padding-top: 1rem; }
+    .s-num { font-family: 'Playfair Display', serif; font-size: 3.5rem; color: rgba(168,212,232,.12); line-height: 1; flex-shrink: 0; }
+    .s-title { font-family: 'Playfair Display', serif; font-size: clamp(1.6rem, 4vw, 2.4rem); letter-spacing: .03em; color: var(--blanc); line-height: 1; }
+    .s-title .hl { color: var(--bleu-clair); }
+    .manifeste { border-left: 4px solid var(--rouille); padding: 1.25rem 1.75rem; margin: 2rem 0; background: rgba(196,66,26,.06); font-family: 'Playfair Display', serif; font-style: italic; font-size: 1.05rem; line-height: 1.7; color: var(--creme); }
+    .manifeste strong { color: var(--bleu-clair); font-family: 'Playfair Display', serif; font-size: 1.1em; }
+    .regle-punk { display: grid; grid-template-columns: auto 1fr; gap: 1.25rem; align-items: start; margin: 1.25rem 0; padding: 1.25rem; border: 1px solid rgba(255,255,255,.06); background: rgba(255,255,255,.02); transition: border-color .2s; }
+    .regle-punk:hover { border-color: rgba(168,212,232,.3); }
+    .rp-glyph { font-size: 1.75rem; line-height: 1; width: 2.5rem; text-align: center; }
+    .regle-punk h3 { font-family: 'Playfair Display', serif; font-size: 1.3rem; letter-spacing: .04em; color: var(--blanc); margin-bottom: .35rem; }
+    .regle-punk p { font-size: .875rem; line-height: 1.65; color: #a8a090; }
+    .regle-punk .sci { margin-top: .6rem; font-size: .78rem; font-family: 'DM Mono', monospace; color: var(--vert-acide); border-left: 2px solid var(--vert-acide); padding: .4rem .75rem; line-height: 1.5; background: rgba(126,207,46,.05); }
+    .regle-punk .non { margin-top: .6rem; font-size: .78rem; font-family: 'DM Mono', monospace; color: var(--rouille); border-left: 2px solid var(--rouille); padding: .4rem .75rem; line-height: 1.5; background: rgba(196,66,26,.06); }
+    .question-sci { margin: 2rem 0; padding: 1.5rem 1.75rem; background: rgba(74,143,168,.07); border: 1px solid rgba(74,143,168,.25); position: relative; }
+    .question-sci::before { content: '?'; font-family: 'Playfair Display', serif; font-size: 6rem; color: rgba(74,143,168,.06); position: absolute; right: 1rem; top: -.5rem; line-height: 1; }
+    .question-sci .q-label { font-family: 'DM Mono', monospace; font-size: .65rem; letter-spacing: .18em; text-transform: uppercase; color: var(--bleu-clair); margin-bottom: .6rem; }
+    .question-sci .q-text { font-family: 'Playfair Display', serif; font-style: italic; font-size: 1rem; color: var(--blanc); line-height: 1.5; margin-bottom: .75rem; }
+    .question-sci .q-reponse { font-size: .85rem; line-height: 1.7; color: #a8a090; }
+    .grille { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 1px; margin: 1.5rem 0; background: rgba(168,212,232,.08); }
+    .grille-item { background: var(--sale); padding: 1.25rem; font-size: .85rem; line-height: 1.5; color: #a8a090; }
+    .grille-item h4 { font-family: 'DM Mono', monospace; font-size: .7rem; letter-spacing: .12em; text-transform: uppercase; color: var(--bleu-clair); margin-bottom: .5rem; }
+    .memo { margin-top: 3rem; padding: 2rem 2.5rem; background: var(--bleu); color: var(--noir); position: relative; overflow: hidden; }
+    .memo::before { content: 'CHAQUE GOUTTE COMPTE'; position: absolute; font-family: 'Playfair Display', serif; font-size: 4rem; opacity: .05; bottom: -.5rem; right: 1rem; letter-spacing: .05em; white-space: nowrap; }
+    .memo h3 { font-family: 'Playfair Display', serif; font-size: 1.6rem; letter-spacing: .05em; margin-bottom: 1rem; }
+    .memo-list { display: flex; flex-direction: column; gap: .5rem; }
+    .memo-item { display: flex; align-items: baseline; gap: .75rem; font-size: .875rem; line-height: 1.5; color: #0d1a20; }
+    .memo-item .bullet { font-family: 'DM Mono', monospace; font-size: .7rem; color: var(--noir); flex-shrink: 0; opacity: .5; }
+    .reveal { opacity: 0; transform: translateY(18px); transition: opacity .5s ease, transform .5s ease; }
+    .reveal.visible { opacity: 1; transform: none; }
+    footer { text-align: center; padding: 2rem 1rem; font-family: 'DM Mono', monospace; font-size: .62rem; letter-spacing: .12em; color: rgba(232,224,204,.2); border-top: 1px solid rgba(255,255,255,.04); }
+    footer a { color: var(--vert-acide); text-decoration: none; }
+    @media (max-width: 540px) { .regle-punk { grid-template-columns: 1fr; } .rp-glyph { display: none; } }
+  </style>
+</head>
+<body>
+<header class="hero">
+  <p class="hero-eyebrow">n³ · ForêtMap · Lycée Lyautey / Casablanca <span style="opacity:.5;margin-left:.5em;">· v1.1</span></p>
+  <h1>
+    <span class="strike">EAU</span><br>
+    <span class="accent">LIBRE</span><br>
+    <span style="font-size:.45em;color:var(--gris);">× jardin</span>
+  </h1>
+  <p class="hero-sub">L'eau du robinet est traitée, chlorée, facturée. La pluie tombe gratuitement sur ton toit et s'écoule dans les égouts. Ce problème a une solution évidente.</p>
+  <div class="hero-manifeste">💧 Capter · Retenir · Économiser</div>
+</header>
+
+<main class="content">
+
+  <div class="manifeste reveal">
+    Le jardin industriel consomme de l'eau potable pour irriguer. Il arrose à heures fixes, sans regarder le ciel ni le sol. Il perd la moitié de cette eau par évaporation.<br><br>
+    Un jardin qui <strong>observe</strong> récupère l'eau de pluie, paille son sol, oriente ses cultures, et n'arrose que quand c'est nécessaire. Il peut réduire sa consommation d'eau de 60 à 80 %.
+  </div>
+
+  <div class="s-header reveal"><div class="s-num">01</div><div class="s-title">Récupérer <span class="hl">la pluie</span></div></div>
+
+  <div class="regle-punk reveal">
+    <div class="rp-glyph">🛢</div>
+    <div>
+      <h3>La cuve — base de tout</h3>
+      <p>Une gouttière + une cuve de 500 à 1000 L = plusieurs semaines d'arrosage gratuit, sans chlore. L'eau de pluie est légèrement acide (pH 5,5–6,5) — idéale pour la plupart des légumes. Le chlore du robinet, lui, perturbe les microorganismes du sol.</p>
+      <div class="sci">→ Un toit de 50 m² peut collecter 35 000 litres par an pour 600 mm de pluie annuelle. Formule : surface (m²) × pluviométrie (mm) × 0,85 (pertes) = volume récupérable (litres).</div>
+    </div>
+  </div>
+
+  <div class="regle-punk reveal">
+    <div class="rp-glyph">🫙</div>
+    <div>
+      <h3>Les récupérateurs intermédiaires</h3>
+      <p>Bidons recyclés, bassines, tonneaux — tout conteneur propre fait l'affaire. Un couvercle est indispensable : l'eau stagnante à l'air libre devient un bouillon de culture pour moustiques en moins de 5 jours.</p>
+      <div class="non">✗ Eau de pluie stockée sans couvercle + chaleur = larves de moustiques en 4–5 jours. Couvrir systématiquement.</div>
+    </div>
+  </div>
+
+  <div class="question-sci reveal">
+    <p class="q-label">Question scientifique</p>
+    <p class="q-text">Pourquoi l'eau de pluie est-elle meilleure pour les plantes que l'eau du robinet ?</p>
+    <p class="q-reponse">L'eau du robinet est chlorée pour éliminer les bactéries pathogènes — ce qui est utile pour la consommation humaine. Mais le chlore affecte aussi les bactéries bénéfiques du sol et les champignons mycorhiziens essentiels à l'absorption racinaire. L'eau de pluie, elle, est douce (peu de calcaire), légèrement acide, et ne contient pas de désinfectant. Elle nourrit le sol vivant au lieu de le neutraliser partiellement.</p>
+  </div>
+
+  <div class="s-header reveal"><div class="s-num">02</div><div class="s-title">Retenir <span class="hl">l'eau dans le sol</span></div></div>
+
+  <div class="regle-punk reveal">
+    <div class="rp-glyph">🍂</div>
+    <div>
+      <h3>Pailler — la décision la plus rentable</h3>
+      <p>8 à 10 cm de matière organique (paille, feuilles mortes, BRF, tontes séchées) réduisent l'évaporation de 50 à 70 %. Le sol reste frais même par 35°C. Les vers de terre prospèrent. Les adventices ne germent pas.</p>
+      <div class="sci">→ Sous paillage épais, la température du sol est jusqu'à 10°C plus basse en été. L'évapotranspiration chute radicalement — les plantes ont moins chaud, transpirent moins, ont moins soif.</div>
+    </div>
+  </div>
+
+  <div class="regle-punk reveal">
+    <div class="rp-glyph">🌿</div>
+    <div>
+      <h3>Ne jamais laisser le sol nu</h3>
+      <p>Un sol nu perd son humidité par évaporation directe, se compacte sous la pluie, et se réchauffe au soleil. Un sol couvert — par un paillage ou un couvre-sol vivant — retient l'humidité, reste meuble, et maintient une température stable.</p>
+      <div class="sci">→ La croûte de battance (surface imperméable qui se forme après la pluie sur sol nu) empêche l'infiltration de l'eau suivante. Le paillage casse les gouttes avant qu'elles n'impactent le sol.</div>
+    </div>
+  </div>
+
+  <div class="regle-punk reveal">
+    <div class="rp-glyph">🏔</div>
+    <div>
+      <h3>Les buttes et swales — topographie active</h3>
+      <p>Une butte en courbe de niveau (swale) ralentit le ruissellement et force l'eau à s'infiltrer plutôt que de partir. Même sur une petite surface, une légère dépression autour des plants concentre naturellement l'eau de pluie vers les racines.</p>
+      <div class="sci">→ Principe de la permaculture : capturer l'eau là où elle tombe, la ralentir, l'infiltrer. Chaque centimètre d'infiltration supplémentaire = eau disponible pour les semaines suivantes.</div>
+    </div>
+  </div>
+
+  <div class="question-sci reveal">
+    <p class="q-label">Question scientifique</p>
+    <p class="q-text">Qu'est-ce que la capacité de rétention en eau d'un sol, et comment l'améliorer ?</p>
+    <p class="q-reponse">La capacité de rétention en eau (CRE) est la quantité d'eau qu'un sol peut retenir contre la gravité après drainage. Elle dépend de la texture (argile > limon > sable) et surtout de la teneur en matière organique. L'humus peut absorber jusqu'à 20 fois son poids en eau. Chaque ajout de compost, de BRF ou de paillage décomposé augmente la matière organique du sol — et donc sa capacité à retenir l'eau entre deux pluies. Un sol à 5 % de matière organique retient 4 fois plus d'eau qu'un sol à 1 %.</p>
+  </div>
+
+  <div class="s-header reveal"><div class="s-num">03</div><div class="s-title">Économiser <span class="hl">par la conception</span></div></div>
+
+  <div class="regle-punk reveal">
+    <div class="rp-glyph">🧭</div>
+    <div>
+      <h3>Orientation et ombre — penser avant de planter</h3>
+      <p>Une plante exposée au vent et au soleil direct transpire 3 à 5 fois plus qu'une plante à mi-ombre. Haies brise-vent, tuteurs, arbustes en bordure — créer de l'ombre réduit le stress hydrique autant qu'un arrosage supplémentaire.</p>
+    </div>
+  </div>
+
+  <div class="regle-punk reveal">
+    <div class="rp-glyph">💧</div>
+    <div>
+      <h3>Le goutte-à-goutte — précision contre gaspillage</h3>
+      <p>Un goutte-à-goutte artisanal (bouteilles plastique percées retournées) délivre l'eau directement au pied, lentement, en profondeur. Zéro évaporation, zéro ruissellement. Efficacité 90 % contre 50 % pour un arrosoir standard.</p>
+      <div class="sci">→ Un arrosage par aspersion perd jusqu'à 40 % de l'eau par évaporation avant qu'elle atteigne le sol. Par vent, cette perte monte à 60 %. Le goutte-à-goutte élimine ces pertes.</div>
+    </div>
+  </div>
+
+  <div class="regle-punk reveal">
+    <div class="rp-glyph">🌱</div>
+    <div>
+      <h3>Choisir des variétés adaptées</h3>
+      <p>Les variétés anciennes et locales sont souvent plus résistantes à la sécheresse que les variétés commerciales sélectionnées pour le rendement sous irrigation. Tomates cornues, haricots secs, courges — les cultures méditerranéennes ont des millénaires d'adaptation à la chaleur.</p>
+      <div class="non">✗ Les hybrides F1 du commerce sont optimisés pour des conditions d'irrigation maîtrisée. En jardin pluvial, ils décrochent vite.</div>
+    </div>
+  </div>
+
+  <div class="s-header reveal"><div class="s-num">04</div><div class="s-title">Le <span class="hl">cycle complet</span></div></div>
+
+  <div class="grille reveal">
+    <div class="grille-item"><h4>Capter</h4>Toiture + cuve. Récupérer avant que l'eau parte aux égouts.</div>
+    <div class="grille-item"><h4>Ralentir</h4>Buttes, swales, dépression autour des plants. Garder l'eau sur place.</div>
+    <div class="grille-item"><h4>Infiltrer</h4>Sol non compacté, non nu. L'eau doit descendre vers les nappes.</div>
+    <div class="grille-item"><h4>Retenir</h4>Matière organique, paillage. Plus d'humus = plus de réserve.</div>
+    <div class="grille-item"><h4>Économiser</h4>Paillage, ombre, goutte-à-goutte. Réduire la demande.</div>
+    <div class="grille-item"><h4>Observer</h4>Sol, feuilles, météo. Arroser seulement quand nécessaire.</div>
+  </div>
+
+  <div class="memo reveal">
+    <h3>📋 Les 6 décisions</h3>
+    <div class="memo-list">
+      <div class="memo-item"><span class="bullet">01 /</span>Installer une cuve de récupération d'eau de pluie — priorité absolue.</div>
+      <div class="memo-item"><span class="bullet">02 /</span>Pailler épais (8–10 cm) : divise le besoin en eau par deux.</div>
+      <div class="memo-item"><span class="bullet">03 /</span>Ne jamais laisser le sol nu — paillage ou couvre-sol vivant.</div>
+      <div class="memo-item"><span class="bullet">04 /</span>Créer de l'ombre et des brise-vent : réduit la transpiration des plantes.</div>
+      <div class="memo-item"><span class="bullet">05 /</span>Goutte-à-goutte artisanal pour les cultures gourmandes.</div>
+      <div class="memo-item"><span class="bullet">06 /</span>Augmenter la matière organique du sol : chaque % d'humus = plus de rétention.</div>
+    </div>
+  </div>
+
+</main>
+<footer>ForêtMap · <a href="https://olution.info">olution.info</a> · projet n³ — Nature · Numérique · Nomade · v1.1<br>Lycée Lyautey, Casablanca · AEFE</footer>
+<script>
+  const els = document.querySelectorAll('.reveal');
+  const io = new IntersectionObserver((entries) => { entries.forEach((e,i) => { if(e.isIntersecting){ setTimeout(()=>e.target.classList.add('visible'),i*60); io.unobserve(e.target); } }); }, {threshold:.08});
+  els.forEach(el=>io.observe(el));
+</script>
+</body>
+</html>

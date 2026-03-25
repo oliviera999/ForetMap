@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Le sol vivant – ForêtMap n³</title>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Special+Elite&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400&display=swap" rel="stylesheet"/>
+  <style>
+    :root { --noir: #0d0d0b; --sale: #1a1a14; --jaune: #d4e84a; --rouille: #c4421a; --mousse: #4a7a38; --vert-acide: #7ecf2e; --creme: #e8e0cc; --gris: #888070; --blanc: #f0ebe0; }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'DM Sans', sans-serif; background: var(--noir); color: var(--creme); min-height: 100vh; overflow-x: hidden; cursor: crosshair; }
+    body::before { content: ''; position: fixed; inset: 0; background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E"); pointer-events: none; z-index: 1000; opacity: .6; }
+    .hero { position: relative; min-height: 88vh; display: flex; flex-direction: column; justify-content: flex-end; padding: 3rem 2.5rem 2.5rem; border-bottom: 3px solid var(--vert-acide); overflow: hidden; background: #0a100a; }
+    .hero::before { content: ''; position: absolute; inset: 0; background-image: linear-gradient(var(--mousse) 1px, transparent 1px), linear-gradient(90deg, var(--mousse) 1px, transparent 1px); background-size: 60px 60px; opacity: .07; }
+    .hero-eyebrow { font-family: 'DM Mono', monospace; font-size: .65rem; letter-spacing: .25em; text-transform: uppercase; color: var(--vert-acide); margin-bottom: 1.5rem; position: relative; opacity: .8; }
+    .hero h1 { font-family: 'Bebas Neue', sans-serif; font-size: clamp(4rem, 13vw, 9rem); line-height: .9; position: relative; color: var(--blanc); }
+    .hero h1 .accent { color: var(--vert-acide); }
+    .hero h1 .sub { font-size: .42em; color: var(--gris); }
+    .hero-sub { font-family: 'Special Elite', cursive; font-size: clamp(.95rem, 2vw, 1.15rem); color: var(--creme); max-width: 520px; line-height: 1.6; margin-top: 1.75rem; opacity: .85; }
+    .hero-manifeste { margin-top: 2rem; display: inline-block; border: 2px solid var(--vert-acide); padding: .6rem 1.25rem; font-family: 'DM Mono', monospace; font-size: .75rem; letter-spacing: .15em; text-transform: uppercase; color: var(--vert-acide); animation: blink 3s ease-in-out infinite; }
+    @keyframes blink { 0%,100% { border-color: var(--vert-acide); } 50% { border-color: var(--jaune); } }
+    .content { max-width: 820px; margin: 0 auto; padding: 3rem 2rem 5rem; }
+    .s-header { display: flex; align-items: baseline; gap: 1rem; margin: 3.5rem 0 1.25rem; border-top: 1px solid rgba(126,207,46,.15); padding-top: 1rem; }
+    .s-num { font-family: 'Bebas Neue', sans-serif; font-size: 3.5rem; color: rgba(126,207,46,.08); line-height: 1; flex-shrink: 0; }
+    .s-title { font-family: 'Bebas Neue', sans-serif; font-size: clamp(1.6rem, 4vw, 2.4rem); color: var(--blanc); line-height: 1; }
+    .s-title .hl { color: var(--vert-acide); }
+    .manifeste { border-left: 4px solid var(--rouille); padding: 1.25rem 1.75rem; margin: 2rem 0; background: rgba(196,66,26,.06); font-family: 'Special Elite', cursive; font-size: 1.05rem; line-height: 1.7; color: var(--creme); }
+    .manifeste strong { color: var(--vert-acide); font-family: 'Bebas Neue', sans-serif; font-size: 1.2em; letter-spacing: .05em; }
+    .acteur { display: grid; grid-template-columns: auto 1fr; gap: 1.25rem; align-items: start; margin: 1.25rem 0; padding: 1.25rem; border: 1px solid rgba(255,255,255,.06); background: rgba(255,255,255,.02); }
+    .acteur:hover { border-color: rgba(126,207,46,.25); }
+    .acteur-emoji { font-size: 1.75rem; line-height: 1; width: 2.5rem; text-align: center; }
+    .acteur h3 { font-family: 'Bebas Neue', sans-serif; font-size: 1.3rem; color: var(--blanc); margin-bottom: .35rem; }
+    .acteur .role { font-family: 'DM Mono', monospace; font-size: .65rem; letter-spacing: .12em; text-transform: uppercase; color: var(--vert-acide); margin-bottom: .4rem; }
+    .acteur p { font-size: .875rem; line-height: 1.65; color: #a8a090; }
+    .acteur .sci { margin-top: .6rem; font-size: .78rem; font-family: 'DM Mono', monospace; color: var(--vert-acide); border-left: 2px solid var(--vert-acide); padding: .4rem .75rem; line-height: 1.5; background: rgba(126,207,46,.05); }
+    .acteur .non { margin-top: .6rem; font-size: .78rem; font-family: 'DM Mono', monospace; color: var(--rouille); border-left: 2px solid var(--rouille); padding: .4rem .75rem; line-height: 1.5; background: rgba(196,66,26,.06); }
+    .question-sci { margin: 2rem 0; padding: 1.5rem 1.75rem; background: rgba(126,207,46,.05); border: 1px solid rgba(126,207,46,.18); position: relative; }
+    .question-sci::before { content: '?'; font-family: 'Bebas Neue', sans-serif; font-size: 6rem; color: rgba(126,207,46,.05); position: absolute; right: 1rem; top: -.5rem; line-height: 1; }
+    .question-sci .q-label { font-family: 'DM Mono', monospace; font-size: .65rem; letter-spacing: .18em; text-transform: uppercase; color: var(--vert-acide); margin-bottom: .6rem; }
+    .question-sci .q-text { font-family: 'Special Elite', cursive; font-size: 1rem; color: var(--blanc); line-height: 1.5; margin-bottom: .75rem; }
+    .question-sci .q-reponse { font-size: .85rem; line-height: 1.7; color: #a8a090; }
+    .ennemis { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 1px; margin: 1.5rem 0; background: rgba(196,66,26,.15); }
+    .ennemi-item { background: var(--sale); padding: 1.1rem; }
+    .ennemi-item h4 { font-family: 'DM Mono', monospace; font-size: .68rem; letter-spacing: .1em; text-transform: uppercase; color: var(--rouille); margin-bottom: .4rem; }
+    .ennemi-item p { font-size: .82rem; line-height: 1.5; color: #a8a090; }
+    .memo { margin-top: 3rem; padding: 2rem 2.5rem; background: var(--mousse); color: var(--blanc); position: relative; overflow: hidden; }
+    .memo::before { content: 'SOL = FONDATION'; position: absolute; font-family: 'Bebas Neue', sans-serif; font-size: 5rem; opacity: .06; bottom: -.5rem; right: 1rem; white-space: nowrap; }
+    .memo h3 { font-family: 'Bebas Neue', sans-serif; font-size: 1.6rem; margin-bottom: 1rem; }
+    .memo-list { display: flex; flex-direction: column; gap: .5rem; }
+    .memo-item { display: flex; align-items: baseline; gap: .75rem; font-size: .875rem; line-height: 1.5; }
+    .memo-item .bullet { font-family: 'DM Mono', monospace; font-size: .7rem; color: var(--vert-acide); flex-shrink: 0; }
+    .reveal { opacity: 0; transform: translateY(18px); transition: opacity .5s ease, transform .5s ease; }
+    .reveal.visible { opacity: 1; transform: none; }
+    footer { text-align: center; padding: 2rem 1rem; font-family: 'DM Mono', monospace; font-size: .62rem; letter-spacing: .12em; color: rgba(232,224,204,.2); border-top: 1px solid rgba(255,255,255,.04); }
+    footer a { color: var(--vert-acide); text-decoration: none; }
+    @media (max-width: 540px) { .acteur { grid-template-columns: 1fr; } .acteur-emoji { display: none; } }
+  </style>
+</head>
+<body>
+<header class="hero">
+  <p class="hero-eyebrow">n³ · ForêtMap · Lycée Lyautey / Casablanca <span style="opacity:.5;margin-left:.5em;">· v1.1</span></p>
+  <h1>
+    <span class="accent">SOL</span><br>
+    <span>VIVANT</span><br>
+    <span class="sub">× l'écosystème sous tes pieds</span>
+  </h1>
+  <p class="hero-sub">Un gramme de sol sain contient plus d'un milliard de bactéries, des kilomètres de filaments fongiques, des centaines d'espèces invisibles à l'œil nu. Ce que tu fais en surface les affecte directement.</p>
+  <div class="hero-manifeste">🌍 Comprendre · Nourrir · Ne pas détruire</div>
+</header>
+
+<main class="content">
+
+  <div class="manifeste reveal">
+    L'agriculture industrielle traite le sol comme un <strong>substrat inerte</strong> — un support qu'on arrose d'engrais chimiques et de pesticides pour forcer la production. Le résultat : des sols morts, compactés, érodés, incapables de retenir l'eau ou la vie. Un sol vivant, nourri et non perturbé, produit plus avec moins. Indéfiniment.
+  </div>
+
+  <div class="s-header reveal"><div class="s-num">01</div><div class="s-title">Les <span class="hl">acteurs invisibles</span></div></div>
+
+  <div class="acteur reveal">
+    <div class="acteur-emoji">🦠</div>
+    <div>
+      <div class="role">Bactéries — décomposeurs primaires</div>
+      <h3>Un milliard par gramme</h3>
+      <p>Les bactéries décomposent la matière organique en éléments assimilables par les plantes (azote, phosphore, soufre). Certaines fixent l'azote atmosphérique directement (Azotobacter, Rhizobium en symbiose avec les légumineuses). Elles produisent aussi de la géosmine — cette odeur de terre fraîche après la pluie.</p>
+      <div class="sci">→ Les bactéries nitrifiantes transforment l'ammonium (NH₄⁺) en nitrate (NO₃⁻), la forme d'azote la plus absorbable par les plantes. Sans elles, l'azote organique reste inutilisable.</div>
+    </div>
+  </div>
+
+  <div class="acteur reveal">
+    <div class="acteur-emoji">🍄</div>
+    <div>
+      <div class="role">Champignons — réseau et décomposeurs de lignine</div>
+      <h3>Des kilomètres de filaments par poignée de sol</h3>
+      <p>Les champignons saprophytes décomposent la lignine (bois, BRF) — que les bactéries seules ne peuvent pas traiter. Les champignons mycorhiziens forment des associations symbiotiques avec 90 % des plantes : ils multiplient la surface d'absorption racinaire par 100 à 10 000 fois.</p>
+      <div class="sci">→ Le réseau mycorhizien transporte eau, phosphore et azote vers les racines. En échange, la plante fournit jusqu'à 30 % de ses sucres photosynthétiques. Un sol non perturbé accumule ce réseau pendant des années.</div>
+    </div>
+  </div>
+
+  <div class="acteur reveal">
+    <div class="acteur-emoji">🪱</div>
+    <div>
+      <div class="role">Vers de terre — ingénieurs du sol</div>
+      <h3>Brasseurs, aérateurs, fertiliseurs</h3>
+      <p>Les vers creusent des galeries qui aèrent le sol, améliorent le drainage et permettent la pénétration des racines. Leurs déjections (turricules) sont 5 fois plus riches en azote disponible que le sol environnant. Un sol sain peut abriter 400 vers par m².</p>
+      <div class="non">✗ Un labour profond remonte les vers en surface (mort par dessèchement ou prédation) et détruit les galeries construites pendant des mois.</div>
+    </div>
+  </div>
+
+  <div class="acteur reveal">
+    <div class="acteur-emoji">🦟</div>
+    <div>
+      <div class="role">Collemboles, acariens, nématodes — la microfaune</div>
+      <h3>La chaîne alimentaire souterraine</h3>
+      <p>Les collemboles broutent les champignons et les bactéries, régulant leurs populations. Les nématodes prédateurs s'attaquent aux bactéries, champignons et autres nématodes. Cette chaîne trophique régule la disponibilité des nutriments dans le temps.</p>
+    </div>
+  </div>
+
+  <div class="question-sci reveal">
+    <p class="q-label">Question scientifique</p>
+    <p class="q-text">Qu'est-ce que l'humus et comment se forme-t-il ?</p>
+    <p class="q-reponse">L'humus est la fraction stable de la matière organique du sol — ce qui reste après la décomposition avancée des débris végétaux et animaux. Il est constitué de molécules complexes (acides humiques et fulviques) formées par l'action combinée des champignons, bactéries, vers de terre et microfaune sur la matière organique fraîche. L'humus peut retenir jusqu'à 20 fois son poids en eau, stocke durablement les nutriments et donne au sol sa structure en agrégats stables. Sa formation est lente (des décennies) mais sa destruction peut être rapide (labour, sécheresse, pesticides).</p>
+  </div>
+
+  <div class="s-header reveal"><div class="s-num">02</div><div class="s-title">Ce qui <span class="hl">tue le sol</span></div></div>
+
+  <div class="ennemis reveal">
+    <div class="ennemi-item"><h4>Labour profond</h4>Détruit les réseaux mycorhiziens, remonte les graines dormantes, expose l'humus à l'oxydation. Effet visible : sol "propre" mais biologie dévastée.</div>
+    <div class="ennemi-item"><h4>Pesticides & fongicides</h4>Tuent indiscriminément bactéries et champignons bénéfiques. Les fongicides détruisent directement les mycorhizes — ironie pour un sol "protégé".</div>
+    <div class="ennemi-item"><h4>Engrais chimiques azotés</h4>L'apport massif de nitrates rend les plantes "dépendantes" et inhibe les bactéries fixatrices d'azote. Le sol n'apprend plus à se nourrir seul.</div>
+    <div class="ennemi-item"><h4>Sol nu</h4>Sans couvert, le sol s'érode, se dessèche, se réchauffe. La microfaune meurt par dessèchement. L'humus s'oxyde et disparaît.</div>
+    <div class="ennemi-item"><h4>Compaction</h4>Piétinement répété, machines lourdes. Les pores du sol se ferment — plus d'air, plus d'eau, plus de vie. Racines incapables de pénétrer.</div>
+    <div class="ennemi-item"><h4>Monoculture continue</h4>Même espèce au même endroit : épuisement des mêmes nutriments, accumulation des mêmes pathogènes, appauvrissement de la diversité microbienne.</div>
+  </div>
+
+  <div class="s-header reveal"><div class="s-num">03</div><div class="s-title">Ce qui <span class="hl">nourrit le sol</span></div></div>
+
+  <div class="acteur reveal">
+    <div class="acteur-emoji">♻</div>
+    <div>
+      <div class="role">Matière organique — l'unique carburant</div>
+      <h3>Tout ce qui vient du vivant retourne au sol</h3>
+      <p>Compost, BRF, paillage, résidus de culture, tonte — toute matière organique apportée au sol est décomposée par les organismes du sol et transformée en nutriments disponibles. Plus on apporte, plus la vie s'installe. C'est un cercle vertueux, pas un apport ponctuel.</p>
+    </div>
+  </div>
+
+  <div class="acteur reveal">
+    <div class="acteur-emoji">🌿</div>
+    <div>
+      <div class="role">Engrais verts — nourrir en couvrant</div>
+      <h3>Une culture au service du sol</h3>
+      <p>Phacélie, moutarde, trèfle, seigle — semés en interculture, ils couvrent le sol nu, fixent l'azote (légumineuses), ameublissent les couches superficielles et sont enfouis ou fauchés avant floraison pour nourrir le sol.</p>
+      <div class="sci">→ Un couvert de trèfle pendant 3 mois peut fixer 80 à 150 kg d'azote par hectare via les nodules bactériens (Rhizobium). Gratuit. Sans énergie fossile.</div>
+    </div>
+  </div>
+
+  <div class="acteur reveal">
+    <div class="acteur-emoji">🔄</div>
+    <div>
+      <div class="role">Rotation des cultures — diversifier dans le temps</div>
+      <h3>Ne jamais planter la même famille deux fois au même endroit</h3>
+      <p>Chaque famille de légumes a ses maladies, ses ravageurs, ses exigences en nutriments. Alterner sur 3 à 4 ans casse les cycles des pathogènes, équilibre les prélèvements en minéraux et maintient la diversité microbienne du sol.</p>
+    </div>
+  </div>
+
+  <div class="memo reveal">
+    <h3>📋 Les 6 commandements</h3>
+    <div class="memo-list">
+      <div class="memo-item"><span class="bullet">01 /</span>Ne jamais laisser le sol nu — paillage ou engrais vert en permanence.</div>
+      <div class="memo-item"><span class="bullet">02 /</span>Ne pas labourer profond — griffer en surface seulement.</div>
+      <div class="memo-item"><span class="bullet">03 /</span>Nourrir le sol avec de la matière organique, pas les plantes avec des engrais chimiques.</div>
+      <div class="memo-item"><span class="bullet">04 /</span>Zéro pesticide, zéro fongicide de synthèse — jamais.</div>
+      <div class="memo-item"><span class="bullet">05 /</span>Diversifier les cultures et les familles botaniques — rotation sur 3–4 ans minimum.</div>
+      <div class="memo-item"><span class="bullet">06 /</span>Compter les vers. Moins de 5 par cube de 20cm³ = sol à soigner d'urgence.</div>
+    </div>
+  </div>
+
+</main>
+<footer>ForêtMap · <a href="https://olution.info">olution.info</a> · projet n³ — Nature · Numérique · Nomade · v1.1<br>Lycée Lyautey, Casablanca · AEFE</footer>
+<script>
+  const els = document.querySelectorAll('.reveal');
+  const io = new IntersectionObserver((e) => { e.forEach((el,i) => { if(el.isIntersecting){ setTimeout(()=>el.target.classList.add('visible'),i*60); io.unobserve(el.target); } }); }, {threshold:.08});
+  els.forEach(el=>io.observe(el));
+</script>
+</body>
+</html>
