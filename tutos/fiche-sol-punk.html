@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Lire son sol – ForêtMap n³</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;1,400&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400&display=swap" rel="stylesheet"/>
+  <style>
+    :root { --noir: #0d0d0b; --sale: #1a1a14; --jaune: #d4e84a; --rouille: #c4421a; --mousse: #4a7a38; --vert-acide: #7ecf2e; --creme: #e8e0cc; --gris: #888070; --blanc: #f0ebe0; --brun: #8b5e3c; --brun-clair: #c4956a; }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'DM Sans', sans-serif; background: var(--noir); color: var(--creme); min-height: 100vh; overflow-x: hidden; cursor: crosshair; }
+    body::before { content: ''; position: fixed; inset: 0; background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E"); pointer-events: none; z-index: 1000; opacity: .6; }
+    .hero { position: relative; min-height: 88vh; display: flex; flex-direction: column; justify-content: flex-end; padding: 3rem 2.5rem 2.5rem; border-bottom: 3px solid var(--brun-clair); overflow: hidden; }
+    .hero::before { content: ''; position: absolute; inset: 0; background-image: linear-gradient(var(--brun) 1px, transparent 1px), linear-gradient(90deg, var(--brun) 1px, transparent 1px); background-size: 60px 60px; opacity: .05; }
+    .hero::after { content: ''; position: absolute; top: -80px; right: -100px; width: 420px; height: 420px; border-radius: 45% 55% 38% 62% / 50% 50% 50% 50%; background: radial-gradient(ellipse, rgba(139,94,60,.18) 0%, transparent 70%); animation: blob 16s ease-in-out infinite alternate; }
+    @keyframes blob { 0% { transform: scale(1) rotate(0deg); } 100% { transform: scale(1.1) rotate(8deg); } }
+    .hero-eyebrow { font-family: 'DM Mono', monospace; font-size: .65rem; letter-spacing: .25em; text-transform: uppercase; color: var(--brun-clair); margin-bottom: 1.5rem; position: relative; opacity: .8; }
+    .hero h1 { font-family: 'Playfair Display', serif; font-size: clamp(3.5rem, 12vw, 8rem); line-height: .9; position: relative; color: var(--blanc); }
+    .hero h1 .accent { color: var(--brun-clair); }
+    .hero h1 .gris { color: var(--gris); font-size: .45em; }
+    .hero-sub { font-family: 'Playfair Display', serif; font-style: italic; font-size: clamp(.95rem, 2vw, 1.2rem); color: var(--creme); max-width: 520px; line-height: 1.6; margin-top: 1.75rem; opacity: .85; position: relative; }
+    .hero-manifeste { margin-top: 2rem; display: inline-block; border: 2px solid var(--brun-clair); padding: .6rem 1.25rem; font-family: 'DM Mono', monospace; font-size: .75rem; letter-spacing: .15em; text-transform: uppercase; color: var(--brun-clair); position: relative; }
+    .content { max-width: 820px; margin: 0 auto; padding: 3rem 2rem 5rem; }
+    .s-header { display: flex; align-items: baseline; gap: 1rem; margin: 3.5rem 0 1.25rem; border-top: 1px solid rgba(196,149,106,.15); padding-top: 1rem; }
+    .s-num { font-family: 'Playfair Display', serif; font-size: 3.5rem; color: rgba(196,149,106,.1); line-height: 1; flex-shrink: 0; }
+    .s-title { font-family: 'Playfair Display', serif; font-size: clamp(1.6rem, 4vw, 2.4rem); color: var(--blanc); line-height: 1; }
+    .s-title .hl { color: var(--brun-clair); }
+    .manifeste { border-left: 4px solid var(--rouille); padding: 1.25rem 1.75rem; margin: 2rem 0; background: rgba(196,66,26,.06); font-family: 'Playfair Display', serif; font-style: italic; font-size: 1.05rem; line-height: 1.7; color: var(--creme); }
+    .manifeste strong { color: var(--brun-clair); }
+    .indicateur { display: grid; grid-template-columns: auto 1fr; gap: 1.25rem; align-items: start; margin: 1.25rem 0; padding: 1.25rem; border: 1px solid rgba(255,255,255,.06); background: rgba(255,255,255,.02); }
+    .indicateur:hover { border-color: rgba(196,149,106,.3); }
+    .ind-glyph { font-size: 1.75rem; line-height: 1; width: 2.5rem; text-align: center; }
+    .indicateur h3 { font-family: 'Playfair Display', serif; font-size: 1.3rem; color: var(--blanc); margin-bottom: .35rem; }
+    .indicateur p { font-size: .875rem; line-height: 1.65; color: #a8a090; }
+    .indicateur .sci { margin-top: .6rem; font-size: .78rem; font-family: 'DM Mono', monospace; color: var(--vert-acide); border-left: 2px solid var(--vert-acide); padding: .4rem .75rem; line-height: 1.5; background: rgba(126,207,46,.05); }
+    .indicateur .signal { margin-top: .6rem; font-size: .78rem; font-family: 'DM Mono', monospace; color: var(--brun-clair); border-left: 2px solid var(--brun-clair); padding: .4rem .75rem; line-height: 1.5; background: rgba(139,94,60,.08); }
+    .question-sci { margin: 2rem 0; padding: 1.5rem 1.75rem; background: rgba(139,94,60,.07); border: 1px solid rgba(196,149,106,.2); position: relative; }
+    .question-sci::before { content: '?'; font-family: 'Playfair Display', serif; font-size: 6rem; color: rgba(196,149,106,.05); position: absolute; right: 1rem; top: -.5rem; line-height: 1; }
+    .question-sci .q-label { font-family: 'DM Mono', monospace; font-size: .65rem; letter-spacing: .18em; text-transform: uppercase; color: var(--brun-clair); margin-bottom: .6rem; }
+    .question-sci .q-text { font-family: 'Playfair Display', serif; font-style: italic; font-size: 1rem; color: var(--blanc); line-height: 1.5; margin-bottom: .75rem; }
+    .question-sci .q-reponse { font-size: .85rem; line-height: 1.7; color: #a8a090; }
+    .plantes-tableau { display: flex; flex-direction: column; gap: 0; margin: 1.5rem 0; border: 1px solid rgba(196,149,106,.15); }
+    .plante-ligne { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0; padding: .85rem 1.25rem; border-bottom: 1px solid rgba(196,149,106,.08); font-size: .82rem; }
+    .plante-ligne:last-child { border-bottom: none; }
+    .plante-ligne:hover { background: rgba(196,149,106,.04); }
+    .plante-ligne .nom { font-family: 'Playfair Display', serif; font-style: italic; color: var(--blanc); }
+    .plante-ligne .signal-txt { color: var(--brun-clair); font-size: .78rem; }
+    .plante-ligne .action { color: var(--gris); font-size: .75rem; }
+    .plante-header { display: grid; grid-template-columns: 1fr 1fr 1fr; padding: .5rem 1.25rem; font-family: 'DM Mono', monospace; font-size: .6rem; letter-spacing: .12em; text-transform: uppercase; color: var(--gris); border-bottom: 1px solid rgba(196,149,106,.2); }
+    .test-bloc { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 1px; margin: 1.5rem 0; background: rgba(196,149,106,.08); }
+    .test-item { background: var(--sale); padding: 1.1rem; }
+    .test-item h4 { font-family: 'DM Mono', monospace; font-size: .68rem; letter-spacing: .12em; text-transform: uppercase; color: var(--brun-clair); margin-bottom: .45rem; }
+    .test-item p { font-size: .82rem; line-height: 1.5; color: #a8a090; }
+    .memo { margin-top: 3rem; padding: 2rem 2.5rem; background: var(--brun); color: var(--blanc); position: relative; overflow: hidden; }
+    .memo::before { content: 'SOUS TES PIEDS'; position: absolute; font-family: 'Playfair Display', serif; font-size: 5rem; opacity: .05; bottom: -.5rem; right: 1rem; white-space: nowrap; }
+    .memo h3 { font-family: 'Playfair Display', serif; font-size: 1.6rem; margin-bottom: 1rem; }
+    .memo-list { display: flex; flex-direction: column; gap: .5rem; }
+    .memo-item { display: flex; align-items: baseline; gap: .75rem; font-size: .875rem; line-height: 1.5; }
+    .memo-item .bullet { font-family: 'DM Mono', monospace; font-size: .7rem; color: var(--brun-clair); flex-shrink: 0; }
+    .reveal { opacity: 0; transform: translateY(18px); transition: opacity .5s ease, transform .5s ease; }
+    .reveal.visible { opacity: 1; transform: none; }
+    footer { text-align: center; padding: 2rem 1rem; font-family: 'DM Mono', monospace; font-size: .62rem; letter-spacing: .12em; color: rgba(232,224,204,.2); border-top: 1px solid rgba(255,255,255,.04); }
+    footer a { color: var(--vert-acide); text-decoration: none; }
+    @media (max-width: 540px) { .indicateur { grid-template-columns: 1fr; } .ind-glyph { display: none; } .plante-ligne, .plante-header { grid-template-columns: 1fr 1fr; } .plante-ligne .action, .plante-header :last-child { display: none; } }
+  </style>
+</head>
+<body>
+<header class="hero">
+  <p class="hero-eyebrow">n³ · ForêtMap · Lycée Lyautey / Casablanca <span style="opacity:.5;margin-left:.5em;">· v1.1</span></p>
+  <h1>
+    <span class="accent">LIRE</span><br>
+    <span style="color:var(--blanc);">SON SOL</span><br>
+    <span class="gris">× sans laboratoire</span>
+  </h1>
+  <p class="hero-sub">Le sol parle. Couleur, texture, odeur, faune, plantes indicatrices — tout est là, lisible à mains nues. Avant d'acheter un engrais ou un amendement, regarde ce qui est déjà écrit.</p>
+  <div class="hero-manifeste">🌍 Observer · Interpréter · Agir</div>
+</header>
+
+<main class="content">
+
+  <div class="manifeste reveal">
+    Un sol n'est pas un substrat inerte. C'est un <strong>écosystème</strong>. Un gramme de sol sain contient plus d'un milliard de bactéries, des centaines de mètres de filaments fongiques, des dizaines d'espèces de vers et d'arthropodes. Ce que tu vois en surface — couleur, texture, odeur, végétation spontanée — est la lecture de cet écosystème.
+  </div>
+
+  <div class="s-header reveal"><div class="s-num">01</div><div class="s-title">La couleur <span class="hl">et la texture</span></div></div>
+
+  <div class="indicateur reveal">
+    <div class="ind-glyph">⬛</div>
+    <div>
+      <h3>Sol très sombre, presque noir</h3>
+      <p>Riche en matière organique, en humus. Sol vivant, fertile, bonne rétention en eau. C'est ce qu'on veut.</p>
+      <div class="signal">→ Signal positif. Continuer à apporter du compost et du paillage.</div>
+    </div>
+  </div>
+
+  <div class="indicateur reveal">
+    <div class="ind-glyph">🟫</div>
+    <div>
+      <h3>Sol brun moyen</h3>
+      <p>Teneur correcte en matière organique. Peut être amélioré. La majorité des sols de jardin.</p>
+      <div class="signal">→ Signal neutre. Enrichir progressivement avec compost et BRF.</div>
+    </div>
+  </div>
+
+  <div class="indicateur reveal">
+    <div class="ind-glyph">🟡</div>
+    <div>
+      <h3>Sol clair, jaune ou blanc</h3>
+      <p>Pauvre en matière organique, souvent sableux ou calcaire. Drainage excessif, peu de rétention, peu de vie.</p>
+      <div class="signal">→ Signal d'alerte. Apports massifs de compost, paillage permanent, plantes améliorantes (trèfle, consoude).</div>
+      <div class="sci">→ Un sol calcaire (pH élevé) bloque l'absorption du fer et du manganèse par les plantes — même si ces éléments sont présents dans le sol, les racines ne peuvent pas les assimiler.</div>
+    </div>
+  </div>
+
+  <div class="indicateur reveal">
+    <div class="ind-glyph">🔴</div>
+    <div>
+      <h3>Sol rouge ou orangé</h3>
+      <p>Riche en oxyde de fer. Sol souvent bien drainé mais pauvre en matière organique. Fréquent dans les régions méditerranéennes et tropicales.</p>
+    </div>
+  </div>
+
+  <div class="question-sci reveal">
+    <p class="q-label">Question scientifique</p>
+    <p class="q-text">Qu'est-ce que le pH du sol et pourquoi change-t-il tout ?</p>
+    <p class="q-reponse">Le pH mesure l'acidité ou l'alcalinité du sol, sur une échelle de 0 à 14 (7 = neutre). La plupart des légumes poussent bien entre pH 6 et 7. Un pH trop bas (acide) ou trop haut (alcalin) bloque chimiquement l'absorption de certains minéraux par les racines, même s'ils sont présents en abondance dans le sol. Le pH influence aussi les microorganismes : les champignons tolèrent mieux l'acidité, les bactéries préfèrent un pH proche de la neutralité. Changer le pH d'un sol est lent — c'est un travail de plusieurs saisons, pas d'un seul amendement.</p>
+  </div>
+
+  <div class="s-header reveal"><div class="s-num">02</div><div class="s-title">L'odeur <span class="hl">et la structure</span></div></div>
+
+  <div class="test-bloc reveal">
+    <div class="test-item">
+      <h4>Odeur de forêt, de terre fraîche</h4>
+      <p>Géosmine produite par les actinobactéries — bonne activité biologique. Sol sain et vivant.</p>
+    </div>
+    <div class="test-item">
+      <h4>Odeur d'œuf pourri, de soufre</h4>
+      <p>Sol anaérobie, gorgé d'eau ou compacté. Les bactéries anaérobies produisent de l'H₂S. Drainage urgent nécessaire.</p>
+    </div>
+    <div class="test-item">
+      <h4>Odeur acide, de vinaigre</h4>
+      <p>Fermentation acide — sol trop humide avec matière organique mal décomposée. Aérer, pailler sec.</p>
+    </div>
+    <div class="test-item">
+      <h4>Sans odeur particulière</h4>
+      <p>Sol peu actif biologiquement. Faible teneur en matière organique ou sol très sec. À enrichir.</p>
+    </div>
+    <div class="test-item">
+      <h4>Test de la boulette</h4>
+      <p>Pince une poignée de terre humide. Argileuse : se roule en boudin. Sableuse : s'effrite. Limoneuse : se compacte mais se brise net.</p>
+    </div>
+    <div class="test-item">
+      <h4>Test du bocal</h4>
+      <p>Terre + eau dans un bocal, agiter, laisser 24h. Les couches se séparent : sable au fond, limon, argile, matière organique en surface.</p>
+    </div>
+  </div>
+
+  <div class="s-header reveal"><div class="s-num">03</div><div class="s-title">La faune <span class="hl">visible</span></div></div>
+
+  <div class="indicateur reveal">
+    <div class="ind-glyph">🪱</div>
+    <div>
+      <h3>Vers de terre — le baromètre ultime</h3>
+      <p>Compter les vers dans un cube de sol de 20×20×20 cm. Moins de 5 : sol pauvre ou dégradé. 5 à 10 : sol moyen. Plus de 10 : sol vivant et fertile. Un sol sain peut contenir jusqu'à 400 vers par m².</p>
+      <div class="sci">→ Les vers de terre brassent, aèrent, drainent et fertilisent. Leurs déjections (turricules) sont 5 fois plus riches en azote disponible que le sol environnant. Leur présence est le meilleur indicateur de fertilité.</div>
+    </div>
+  </div>
+
+  <div class="indicateur reveal">
+    <div class="ind-glyph">🐛</div>
+    <div>
+      <h3>Cloportes, collemboles, myriapodes</h3>
+      <p>Décomposeurs de matière organique. Leur présence abondante indique un sol en bonne décomposition, riche en litière. C'est bon signe.</p>
+    </div>
+  </div>
+
+  <div class="indicateur reveal">
+    <div class="ind-glyph">🐜</div>
+    <div>
+      <h3>Fourmis en masse</h3>
+      <p>Souvent indicateur de sol sec et bien drainé. Les fourmis évitent les sols humides et frais. Leur présence massive peut signaler un manque de matière organique.</p>
+    </div>
+  </div>
+
+  <div class="s-header reveal"><div class="s-num">04</div><div class="s-title">Les plantes <span class="hl">indicatrices</span></div></div>
+
+  <div class="plantes-tableau reveal">
+    <div class="plante-header"><span>Plante</span><span>Ce qu'elle dit</span><span>Action</span></div>
+    <div class="plante-ligne"><span class="nom">Pissenlit</span><span class="signal-txt">Sol compacté, sous-sol riche</span><span class="action">Ameublir, grelinette</span></div>
+    <div class="plante-ligne"><span class="nom">Ortie</span><span class="signal-txt">Sol riche en azote et humide</span><span class="action">Exploiter — sol fertile</span></div>
+    <div class="plante-ligne"><span class="nom">Rumex</span><span class="signal-txt">Sol acide, humide, compacté</span><span class="action">Drainer, chauler légèrement</span></div>
+    <div class="plante-ligne"><span class="nom">Prêle</span><span class="signal-txt">Sol acide, humide, siliceux</span><span class="action">Drainage, pH à corriger</span></div>
+    <div class="plante-ligne"><span class="nom">Mouron des oiseaux</span><span class="signal-txt">Sol frais, humide, riche</span><span class="action">Signal positif de fertilité</span></div>
+    <div class="plante-ligne"><span class="nom">Liseron</span><span class="signal-txt">Sol profond, lourd, calcaire</span><span class="action">Travailler la structure</span></div>
+    <div class="plante-ligne"><span class="nom">Plantain</span><span class="signal-txt">Sol très compacté, tassé</span><span class="action">Ameublissement profond</span></div>
+    <div class="plante-ligne"><span class="nom">Trèfle sauvage</span><span class="signal-txt">Sol pauvre en azote</span><span class="action">Laisser — il fixe l'azote</span></div>
+  </div>
+
+  <div class="question-sci reveal">
+    <p class="q-label">Question scientifique</p>
+    <p class="q-text">Comment une plante peut-elle indiquer l'état du sol ?</p>
+    <p class="q-reponse">Chaque espèce végétale a des tolérances et des préférences précises pour le pH, l'humidité, la compaction, la disponibilité en nutriments. Une plante qui s'installe spontanément le fait parce que les conditions lui sont favorables — elle sélectionne son habitat. Le pissenlit, avec sa longue racine pivotante, peut s'alimenter dans des sols compactés où d'autres plantes échouent. L'ortie prospère là où l'azote organique est abondant. Ce ne sont pas des coïncidences — ce sont des adaptations évolutives lisibles comme un texte.</p>
+  </div>
+
+  <div class="memo reveal">
+    <h3>📋 Les 6 lectures</h3>
+    <div class="memo-list">
+      <div class="memo-item"><span class="bullet">01 /</span>Couleur : sombre = fertile, clair = pauvre. Rouge = fer, gris-bleu = anaérobie.</div>
+      <div class="memo-item"><span class="bullet">02 /</span>Odeur de forêt = sol vivant. Odeur d'œuf = urgence drainage.</div>
+      <div class="memo-item"><span class="bullet">03 /</span>Compter les vers : moins de 5 par cube de 20cm³ = sol à soigner.</div>
+      <div class="memo-item"><span class="bullet">04 /</span>Plantes indicatrices : pissenlit = compaction, ortie = richesse, prêle = acidité.</div>
+      <div class="memo-item"><span class="bullet">05 /</span>Test de la boulette et du bocal : connaître sa texture avant d'amender.</div>
+      <div class="memo-item"><span class="bullet">06 /</span>Tout diagnostic mène à la même réponse : plus de matière organique, moins de compaction.</div>
+    </div>
+  </div>
+
+</main>
+<footer>ForêtMap · <a href="https://olution.info">olution.info</a> · projet n³ — Nature · Numérique · Nomade · v1.1<br>Lycée Lyautey, Casablanca · AEFE</footer>
+<script>
+  const els = document.querySelectorAll('.reveal');
+  const io = new IntersectionObserver((entries) => { entries.forEach((e,i) => { if(e.isIntersecting){ setTimeout(()=>e.target.classList.add('visible'),i*60); io.unobserve(e.target); } }); }, {threshold:.08});
+  els.forEach(el=>io.observe(el));
+</script>
+</body>
+</html>

@@ -160,7 +160,13 @@ VALUES
   ('Arrosage au potager', 'arrosage-potager', 'html', 'Tutoriel pratique pour bien arroser au potager.', '/tutos/fiche-arrosage-punk.html', 1, NOW(), NOW()),
   ('Désherbage doux', 'desherbage-doux', 'html', 'Méthodes de désherbage respectueuses du sol vivant.', '/tutos/fiche-desherbage-punk.html', 2, NOW(), NOW()),
   ('Jardin N3', 'jardin-n3', 'html', 'Repères et bonnes pratiques sur la zone N3.', '/tutos/fiche-jardin-punk-n3.html', 3, NOW(), NOW()),
-  ('Rempotage', 'rempotage', 'html', 'Tutoriel pas à pas pour le rempotage.', '/tutos/fiche-rempotage-punk.html', 4, NOW(), NOW());
+  ('Rempotage', 'rempotage', 'html', 'Tutoriel pas à pas pour le rempotage.', '/tutos/fiche-rempotage-punk.html', 4, NOW(), NOW()),
+  ('Associations de plantes', 'associations-plantes', 'html', 'Associer les plantes pour favoriser la biodiversité et les récoltes.', '/tutos/fiche-associations-punk.html', 5, NOW(), NOW()),
+  ('Compostage', 'compostage', 'html', 'Comprendre et réussir le compostage au jardin.', '/tutos/fiche-compost-punk.html', 6, NOW(), NOW()),
+  ('Eau au jardin', 'eau-au-jardin', 'html', 'Mieux gérer l’eau au jardin et limiter le gaspillage.', '/tutos/fiche-eau-punk.html', 7, NOW(), NOW()),
+  ('Semences', 'semences', 'html', 'Récolter, conserver et utiliser les semences.', '/tutos/fiche-semences-punk.html', 8, NOW(), NOW()),
+  ('Lire son sol', 'lire-son-sol', 'html', 'Observer et interpréter les caractéristiques du sol.', '/tutos/fiche-sol-punk.html', 9, NOW(), NOW()),
+  ('Sol vivant', 'sol-vivant', 'html', 'Découvrir le rôle du sol vivant dans la santé du jardin.', '/tutos/fiche-sol-vivant-punk.html', 10, NOW(), NOW());
 
 -- task_assignments (élèves assignés à une tâche)
 CREATE TABLE IF NOT EXISTS task_assignments (

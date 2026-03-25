@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Semences – ForêtMap n³</title>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Special+Elite&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400&display=swap" rel="stylesheet"/>
+  <style>
+    :root { --noir: #0d0d0b; --sale: #1a1a14; --jaune: #d4e84a; --rouille: #c4421a; --mousse: #4a7a38; --vert-acide: #7ecf2e; --creme: #e8e0cc; --gris: #888070; --blanc: #f0ebe0; }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'DM Sans', sans-serif; background: var(--noir); color: var(--creme); min-height: 100vh; overflow-x: hidden; cursor: crosshair; }
+    body::before { content: ''; position: fixed; inset: 0; background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E"); pointer-events: none; z-index: 1000; opacity: .6; }
+    .hero { position: relative; min-height: 88vh; display: flex; flex-direction: column; justify-content: flex-end; padding: 3rem 2.5rem 2.5rem; border-bottom: 3px solid var(--jaune); overflow: hidden; }
+    .hero::before { content: ''; position: absolute; inset: 0; background-image: linear-gradient(var(--mousse) 1px, transparent 1px), linear-gradient(90deg, var(--mousse) 1px, transparent 1px); background-size: 60px 60px; opacity: .06; }
+    .hero-eyebrow { font-family: 'DM Mono', monospace; font-size: .65rem; letter-spacing: .25em; text-transform: uppercase; color: var(--jaune); margin-bottom: 1.5rem; position: relative; opacity: .8; }
+    .hero h1 { font-family: 'Bebas Neue', sans-serif; font-size: clamp(4rem, 13vw, 9rem); line-height: .9; position: relative; color: var(--blanc); }
+    .hero h1 .accent { color: var(--jaune); }
+    .hero h1 .sub { font-size: .45em; color: var(--gris); }
+    .hero-sub { font-family: 'Special Elite', cursive; font-size: clamp(.95rem, 2vw, 1.15rem); color: var(--creme); max-width: 520px; line-height: 1.6; margin-top: 1.75rem; opacity: .85; }
+    .hero-manifeste { margin-top: 2rem; display: inline-block; border: 2px solid var(--jaune); padding: .6rem 1.25rem; font-family: 'DM Mono', monospace; font-size: .75rem; letter-spacing: .15em; text-transform: uppercase; color: var(--jaune); animation: blink 3.5s ease-in-out infinite; }
+    @keyframes blink { 0%,100% { border-color: var(--jaune); } 50% { border-color: var(--vert-acide); } }
+    .content { max-width: 820px; margin: 0 auto; padding: 3rem 2rem 5rem; }
+    .s-header { display: flex; align-items: baseline; gap: 1rem; margin: 3.5rem 0 1.25rem; border-top: 1px solid rgba(212,232,74,.15); padding-top: 1rem; }
+    .s-num { font-family: 'Bebas Neue', sans-serif; font-size: 3.5rem; color: rgba(212,232,74,.1); line-height: 1; flex-shrink: 0; }
+    .s-title { font-family: 'Bebas Neue', sans-serif; font-size: clamp(1.6rem, 4vw, 2.4rem); color: var(--blanc); line-height: 1; }
+    .s-title .hl { color: var(--jaune); }
+    .manifeste { border-left: 4px solid var(--rouille); padding: 1.25rem 1.75rem; margin: 2rem 0; background: rgba(196,66,26,.06); font-family: 'Special Elite', cursive; font-size: 1.05rem; line-height: 1.7; color: var(--creme); }
+    .manifeste strong { color: var(--jaune); font-family: 'Bebas Neue', sans-serif; font-size: 1.2em; letter-spacing: .05em; }
+    .regle-punk { display: grid; grid-template-columns: auto 1fr; gap: 1.25rem; align-items: start; margin: 1.25rem 0; padding: 1.25rem; border: 1px solid rgba(255,255,255,.06); background: rgba(255,255,255,.02); }
+    .regle-punk:hover { border-color: rgba(212,232,74,.25); }
+    .rp-glyph { font-size: 1.75rem; line-height: 1; width: 2.5rem; text-align: center; }
+    .regle-punk h3 { font-family: 'Bebas Neue', sans-serif; font-size: 1.3rem; color: var(--blanc); margin-bottom: .35rem; }
+    .regle-punk p { font-size: .875rem; line-height: 1.65; color: #a8a090; }
+    .regle-punk .sci { margin-top: .6rem; font-size: .78rem; font-family: 'DM Mono', monospace; color: var(--vert-acide); border-left: 2px solid var(--vert-acide); padding: .4rem .75rem; line-height: 1.5; background: rgba(126,207,46,.05); }
+    .regle-punk .non { margin-top: .6rem; font-size: .78rem; font-family: 'DM Mono', monospace; color: var(--rouille); border-left: 2px solid var(--rouille); padding: .4rem .75rem; line-height: 1.5; background: rgba(196,66,26,.06); }
+    .question-sci { margin: 2rem 0; padding: 1.5rem 1.75rem; background: rgba(126,207,46,.05); border: 1px solid rgba(126,207,46,.18); position: relative; }
+    .question-sci::before { content: '?'; font-family: 'Bebas Neue', sans-serif; font-size: 6rem; color: rgba(126,207,46,.05); position: absolute; right: 1rem; top: -.5rem; line-height: 1; }
+    .question-sci .q-label { font-family: 'DM Mono', monospace; font-size: .65rem; letter-spacing: .18em; text-transform: uppercase; color: var(--vert-acide); margin-bottom: .6rem; }
+    .question-sci .q-text { font-family: 'Special Elite', cursive; font-size: 1rem; color: var(--blanc); line-height: 1.5; margin-bottom: .75rem; }
+    .question-sci .q-reponse { font-size: .85rem; line-height: 1.7; color: #a8a090; }
+    .especes { display: flex; flex-direction: column; gap: 0; margin: 1.5rem 0; border: 1px solid rgba(212,232,74,.1); }
+    .espece { display: grid; grid-template-columns: 1fr auto; gap: 1rem; padding: .85rem 1.25rem; border-bottom: 1px solid rgba(212,232,74,.06); align-items: center; }
+    .espece:last-child { border-bottom: none; }
+    .espece:hover { background: rgba(212,232,74,.03); }
+    .espece-nom { font-family: 'Special Elite', cursive; font-size: .95rem; color: var(--blanc); margin-bottom: .15rem; }
+    .espece-info { font-size: .78rem; color: var(--gris); line-height: 1.4; }
+    .espece-tag { font-family: 'DM Mono', monospace; font-size: .6rem; letter-spacing: .1em; text-transform: uppercase; padding: .2rem .6rem; border-radius: 999px; white-space: nowrap; }
+    .tag-facile { background: rgba(74,122,56,.2); color: var(--vert-acide); border: 1px solid rgba(126,207,46,.3); }
+    .tag-moyen { background: rgba(212,232,74,.1); color: var(--jaune); border: 1px solid rgba(212,232,74,.3); }
+    .tag-difficile { background: rgba(196,66,26,.12); color: #e87a5a; border: 1px solid rgba(196,66,26,.3); }
+    .memo { margin-top: 3rem; padding: 2rem 2.5rem; background: var(--jaune); color: var(--noir); position: relative; overflow: hidden; }
+    .memo::before { content: 'SEMENCE = AUTONOMIE'; position: absolute; font-family: 'Bebas Neue', sans-serif; font-size: 4.5rem; opacity: .05; bottom: -.5rem; right: 1rem; white-space: nowrap; }
+    .memo h3 { font-family: 'Bebas Neue', sans-serif; font-size: 1.6rem; margin-bottom: 1rem; }
+    .memo-list { display: flex; flex-direction: column; gap: .5rem; }
+    .memo-item { display: flex; align-items: baseline; gap: .75rem; font-size: .875rem; line-height: 1.5; color: #1a1a0a; }
+    .memo-item .bullet { font-family: 'DM Mono', monospace; font-size: .7rem; color: var(--rouille); flex-shrink: 0; }
+    .reveal { opacity: 0; transform: translateY(18px); transition: opacity .5s ease, transform .5s ease; }
+    .reveal.visible { opacity: 1; transform: none; }
+    footer { text-align: center; padding: 2rem 1rem; font-family: 'DM Mono', monospace; font-size: .62rem; letter-spacing: .12em; color: rgba(232,224,204,.2); border-top: 1px solid rgba(255,255,255,.04); }
+    footer a { color: var(--vert-acide); text-decoration: none; }
+    @media (max-width: 540px) { .regle-punk { grid-template-columns: 1fr; } .rp-glyph { display: none; } .espece { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+<header class="hero">
+  <p class="hero-eyebrow">n³ · ForêtMap · Lycée Lyautey / Casablanca <span style="opacity:.5;margin-left:.5em;">· v1.1</span></p>
+  <h1>
+    <span class="accent">SEMENCES</span><br>
+    <span>LIBRES</span><br>
+    <span class="sub">× autonomie totale</span>
+  </h1>
+  <p class="hero-sub">Chaque graine achetée est une dépendance. Chaque graine récupérée est une liberté. Apprendre à sauvegarder ses semences, c'est couper le cordon avec l'industrie semencière.</p>
+  <div class="hero-manifeste">🌱 Choisir · Récolter · Conserver</div>
+</header>
+
+<main class="content">
+
+  <div class="manifeste reveal">
+    <strong>4 entreprises</strong> contrôlent 60 % du marché mondial des semences. Leurs variétés hybrides F1 sont stériles ou dégénèrent dès la deuxième génération — tu dois racheter chaque année. Les variétés anciennes, elles, se reproduisent librement depuis des millénaires. Récupérer ses semences, c'est un acte politique autant qu'agronomique.
+  </div>
+
+  <div class="s-header reveal"><div class="s-num">01</div><div class="s-title">Ce qu'il faut <span class="hl">comprendre d'abord</span></div></div>
+
+  <div class="regle-punk reveal">
+    <div class="rp-glyph">🚫</div>
+    <div>
+      <h3>Hybrides F1 — ne pas récupérer</h3>
+      <p>Les graines F1 sont le résultat d'un croisement contrôlé entre deux lignées pures. Leurs descendants (F2) ne ressemblent pas aux parents — ils "ségrèguent", perdent les caractéristiques sélectionnées. Inutile de récupérer leurs graines.</p>
+      <div class="non">✗ Comment les reconnaître : mention "F1" ou "hybride" sur le sachet. Les semences industrielles en grande surface sont quasi toujours des F1.</div>
+    </div>
+  </div>
+
+  <div class="regle-punk reveal">
+    <div class="rp-glyph">✅</div>
+    <div>
+      <h3>Variétés anciennes — à sauvegarder</h3>
+      <p>Variétés à pollinisation libre (OP), stables depuis plusieurs générations. Leurs graines reproduisent fidèlement les caractéristiques de la plante mère. Ce sont ces variétés qu'on récupère, échange, transmet.</p>
+      <div class="sci">→ Une variété "fixée" est génétiquement stable après plusieurs générations d'autofécondation. Elle peut encore évoluer légèrement par sélection naturelle locale — ce qui est un avantage, pas un défaut.</div>
+    </div>
+  </div>
+
+  <div class="question-sci reveal">
+    <p class="q-label">Question scientifique</p>
+    <p class="q-text">Pourquoi les plantes hybrides F1 ne donnent-elles pas de graines fiables ?</p>
+    <p class="q-reponse">Un hybride F1 est le produit d'un croisement entre deux lignées pures homozygotes. La génération F1 est uniforme grâce à l'hétérosis (vigueur hybride). Mais lors de la reproduction, les gènes se séparent et se recombinent selon les lois de Mendel — la génération F2 présente une grande variabilité génétique. Les caractères intéressants (précocité, calibre, résistance) sont dissous dans cette diversité. C'est un mécanisme naturel que l'industrie exploite pour créer une dépendance commerciale.</p>
+  </div>
+
+  <div class="s-header reveal"><div class="s-num">02</div><div class="s-title">Récolter <span class="hl">au bon moment</span></div></div>
+
+  <div class="regle-punk reveal">
+    <div class="rp-glyph">⏰</div>
+    <div>
+      <h3>La règle universelle : maturité totale</h3>
+      <p>Une graine n'est viable que si elle a atteint sa maturité physiologique complète — pas juste sa maturité de consommation. Pour la tomate, on mange à maturité mais on attend que le fruit soit presque trop mûr pour la graine. Pour le haricot, on attend que la cosse sèche entièrement sur pied.</p>
+    </div>
+  </div>
+
+  <div class="regle-punk reveal">
+    <div class="rp-glyph">🌦</div>
+    <div>
+      <h3>Récolter par temps sec</h3>
+      <p>L'humidité au moment de la récolte est l'ennemi principal des semences. Des graines récoltées sous la pluie ou mouillées de rosée développeront des moisissures pendant le stockage. Choisir une période sèche, en fin de matinée.</p>
+      <div class="non">✗ Graines humides + stockage fermé = moisissures en quelques semaines. Sécher systématiquement avant de stocker.</div>
+    </div>
+  </div>
+
+  <div class="s-header reveal"><div class="s-num">03</div><div class="s-title">Par espèce — <span class="hl">méthodes spécifiques</span></div></div>
+
+  <div class="especes reveal">
+    <div class="espece">
+      <div><div class="espece-nom">Tomate</div><div class="espece-info">Fermentation 2–3 jours dans l'eau (détruit les inhibiteurs), rinçage, séchage 2–3 semaines. Autofécondée, pas de risque de croisement.</div></div>
+      <span class="espece-tag tag-facile">Facile</span>
+    </div>
+    <div class="espece">
+      <div><div class="espece-nom">Haricot / Pois</div><div class="espece-info">Laisser sécher les cosses sur pied jusqu'à brunissement complet. Battre pour extraire. Séchage supplémentaire 2 semaines.</div></div>
+      <span class="espece-tag tag-facile">Facile</span>
+    </div>
+    <div class="espece">
+      <div><div class="espece-nom">Courgette / Courge</div><div class="espece-info">Laisser le fruit au-delà de la maturité de consommation (peau dure). Extraire les graines, rincer, sécher 3–4 semaines.</div></div>
+      <span class="espece-tag tag-facile">Facile</span>
+    </div>
+    <div class="espece">
+      <div><div class="espece-nom">Salade / Laitue</div><div class="espece-info">Laisser monter en graines (fleurs jaunes, puis akènes duveteux). Secouer les tiges mûres dans un sac. Trier au tamis.</div></div>
+      <span class="espece-tag tag-moyen">Moyen</span>
+    </div>
+    <div class="espece">
+      <div><div class="espece-nom">Poivron / Piment</div><div class="espece-info">Laisser le fruit bien rouge et presque ridé. Extraire les graines, sécher 2–3 semaines à l'ombre. Attention aux croisements avec d'autres capsicum.</div></div>
+      <span class="espece-tag tag-moyen">Moyen</span>
+    </div>
+    <div class="espece">
+      <div><div class="espece-nom">Carotte / Panais</div><div class="espece-info">Plante bisannuelle — fleurit la 2e année. Isolement nécessaire (croise avec carotte sauvage). Ombelles à récolter à maturité progressive.</div></div>
+      <span class="espece-tag tag-difficile">Attention</span>
+    </div>
+    <div class="espece">
+      <div><div class="espece-nom">Maïs</div><div class="espece-info">Pollinisation croisée par le vent. Isolement de 300 m ou maïs de même variété uniquement dans un rayon large. Récolter épis secs en fin de saison.</div></div>
+      <span class="espece-tag tag-difficile">Isolement</span>
+    </div>
+  </div>
+
+  <div class="s-header reveal"><div class="s-num">04</div><div class="s-title">Conserver <span class="hl">pour des années</span></div></div>
+
+  <div class="regle-punk reveal">
+    <div class="rp-glyph">🌡</div>
+    <div>
+      <h3>Les trois ennemis : chaleur, humidité, lumière</h3>
+      <p>Une graine bien sèche, dans le noir, à température stable et fraîche, peut rester viable de 3 à 10 ans selon l'espèce. La règle simple : température (°C) + humidité relative (%) doit être inférieure à 100 pour un stockage fiable.</p>
+      <div class="sci">→ Règle des "100" : si T° ambiante = 18°C, l'humidité relative doit rester sous 82 %. Un sachet de gel de silice dans le contenant absorbe l'humidité résiduelle.</div>
+    </div>
+  </div>
+
+  <div class="regle-punk reveal">
+    <div class="rp-glyph">📦</div>
+    <div>
+      <h3>Contenants et étiquetage</h3>
+      <p>Enveloppes papier (respirent) dans une boîte hermétique avec gel de silice. Étiqueter impérativement : espèce, variété, date de récolte, lieu. Sans étiquette, les graines deviennent inutilisables en quelques saisons.</p>
+    </div>
+  </div>
+
+  <div class="regle-punk reveal">
+    <div class="rp-glyph">🔄</div>
+    <div>
+      <h3>Tester la germination avant de planter</h3>
+      <p>Placer 10 graines sur un papier humide, à 20°C, 7–10 jours. Compter les germinations. Moins de 6/10 : augmenter la densité de semis. Moins de 3/10 : chercher des semences fraîches.</p>
+    </div>
+  </div>
+
+  <div class="memo reveal">
+    <h3>📋 Les 7 règles</h3>
+    <div class="memo-list">
+      <div class="memo-item"><span class="bullet">01 /</span>Jamais de F1 — uniquement des variétés anciennes à pollinisation libre.</div>
+      <div class="memo-item"><span class="bullet">02 /</span>Toujours la maturité physiologique complète, pas juste la maturité de consommation.</div>
+      <div class="memo-item"><span class="bullet">03 /</span>Récolter par temps sec, en fin de matinée.</div>
+      <div class="memo-item"><span class="bullet">04 /</span>Sécher 2 à 4 semaines avant de stocker — pas d'exception.</div>
+      <div class="memo-item"><span class="bullet">05 /</span>Stocker au sec, au frais, dans le noir. Gel de silice dans le contenant.</div>
+      <div class="memo-item"><span class="bullet">06 /</span>Étiqueter immédiatement : espèce, variété, date, lieu.</div>
+      <div class="memo-item"><span class="bullet">07 /</span>Tester la germination avant chaque saison de semis.</div>
+    </div>
+  </div>
+
+</main>
+<footer>ForêtMap · <a href="https://olution.info">olution.info</a> · projet n³ — Nature · Numérique · Nomade · v1.1<br>Lycée Lyautey, Casablanca · AEFE</footer>
+<script>
+  const els = document.querySelectorAll('.reveal');
+  const io = new IntersectionObserver((e) => { e.forEach((el,i) => { if(el.isIntersecting){ setTimeout(()=>el.target.classList.add('visible'),i*60); io.unobserve(el.target); } }); }, {threshold:.08});
+  els.forEach(el=>io.observe(el));
+</script>
+</body>
+</html>

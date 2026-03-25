@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Associations de plantes – ForêtMap n³</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;1,400&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400&display=swap" rel="stylesheet"/>
+  <style>
+    :root { --noir: #0d0d0b; --sale: #1a1a14; --jaune: #d4e84a; --rouille: #c4421a; --mousse: #4a7a38; --vert-acide: #7ecf2e; --creme: #e8e0cc; --gris: #888070; --blanc: #f0ebe0; --violet: #7a5a9a; --violet-clair: #b89acc; }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'DM Sans', sans-serif; background: var(--noir); color: var(--creme); min-height: 100vh; overflow-x: hidden; cursor: crosshair; }
+    body::before { content: ''; position: fixed; inset: 0; background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E"); pointer-events: none; z-index: 1000; opacity: .6; }
+    .hero { position: relative; min-height: 88vh; display: flex; flex-direction: column; justify-content: flex-end; padding: 3rem 2.5rem 2.5rem; border-bottom: 3px solid var(--violet-clair); overflow: hidden; }
+    .hero::before { content: ''; position: absolute; inset: 0; background-image: linear-gradient(var(--violet) 1px, transparent 1px), linear-gradient(90deg, var(--violet) 1px, transparent 1px); background-size: 60px 60px; opacity: .05; }
+    .hero-eyebrow { font-family: 'DM Mono', monospace; font-size: .65rem; letter-spacing: .25em; text-transform: uppercase; color: var(--violet-clair); margin-bottom: 1.5rem; position: relative; opacity: .8; }
+    .hero h1 { font-family: 'Playfair Display', serif; font-size: clamp(3rem, 10vw, 7.5rem); line-height: .92; position: relative; color: var(--blanc); }
+    .hero h1 .accent { color: var(--violet-clair); font-style: italic; }
+    .hero h1 .sub { font-size: .42em; color: var(--gris); font-style: normal; }
+    .hero-sub { font-family: 'Playfair Display', serif; font-style: italic; font-size: clamp(.95rem, 2vw, 1.2rem); color: var(--creme); max-width: 520px; line-height: 1.6; margin-top: 1.75rem; opacity: .85; }
+    .hero-manifeste { margin-top: 2rem; display: inline-block; border: 2px solid var(--violet-clair); padding: .6rem 1.25rem; font-family: 'DM Mono', monospace; font-size: .75rem; letter-spacing: .15em; text-transform: uppercase; color: var(--violet-clair); }
+    .content { max-width: 820px; margin: 0 auto; padding: 3rem 2rem 5rem; }
+    .s-header { display: flex; align-items: baseline; gap: 1rem; margin: 3.5rem 0 1.25rem; border-top: 1px solid rgba(184,154,204,.12); padding-top: 1rem; }
+    .s-num { font-family: 'Playfair Display', serif; font-size: 3.5rem; color: rgba(184,154,204,.1); line-height: 1; flex-shrink: 0; }
+    .s-title { font-family: 'Playfair Display', serif; font-size: clamp(1.6rem, 4vw, 2.4rem); color: var(--blanc); line-height: 1; }
+    .s-title .hl { color: var(--violet-clair); font-style: italic; }
+    .manifeste { border-left: 4px solid var(--rouille); padding: 1.25rem 1.75rem; margin: 2rem 0; background: rgba(196,66,26,.06); font-family: 'Playfair Display', serif; font-style: italic; font-size: 1.05rem; line-height: 1.7; color: var(--creme); }
+    .manifeste strong { color: var(--violet-clair); }
+    .assoc { display: grid; grid-template-columns: auto 1fr; gap: 1.25rem; align-items: start; margin: 1.25rem 0; padding: 1.25rem; border: 1px solid rgba(255,255,255,.06); background: rgba(255,255,255,.02); }
+    .assoc:hover { border-color: rgba(184,154,204,.3); }
+    .assoc-emoji { font-size: 1.75rem; line-height: 1; width: 2.5rem; text-align: center; }
+    .assoc h3 { font-family: 'Playfair Display', serif; font-size: 1.2rem; color: var(--blanc); margin-bottom: .35rem; }
+    .assoc .duo { font-family: 'DM Mono', monospace; font-size: .7rem; letter-spacing: .1em; color: var(--violet-clair); text-transform: uppercase; margin-bottom: .5rem; }
+    .assoc p { font-size: .875rem; line-height: 1.65; color: #a8a090; }
+    .assoc .sci { margin-top: .6rem; font-size: .78rem; font-family: 'DM Mono', monospace; color: var(--vert-acide); border-left: 2px solid var(--vert-acide); padding: .4rem .75rem; line-height: 1.5; background: rgba(126,207,46,.05); }
+    .assoc .non { margin-top: .6rem; font-size: .78rem; font-family: 'DM Mono', monospace; color: var(--rouille); border-left: 2px solid var(--rouille); padding: .4rem .75rem; line-height: 1.5; background: rgba(196,66,26,.06); }
+    .question-sci { margin: 2rem 0; padding: 1.5rem 1.75rem; background: rgba(126,207,46,.04); border: 1px solid rgba(126,207,46,.15); position: relative; }
+    .question-sci::before { content: '?'; font-family: 'Playfair Display', serif; font-size: 6rem; color: rgba(126,207,46,.05); position: absolute; right: 1rem; top: -.5rem; line-height: 1; }
+    .question-sci .q-label { font-family: 'DM Mono', monospace; font-size: .65rem; letter-spacing: .18em; text-transform: uppercase; color: var(--vert-acide); margin-bottom: .6rem; }
+    .question-sci .q-text { font-family: 'Playfair Display', serif; font-style: italic; font-size: 1rem; color: var(--blanc); line-height: 1.5; margin-bottom: .75rem; }
+    .question-sci .q-reponse { font-size: .85rem; line-height: 1.7; color: #a8a090; }
+    .incompatibles { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1px; margin: 1.5rem 0; background: rgba(196,66,26,.12); }
+    .incompatible-item { background: var(--sale); padding: 1.1rem; font-size: .82rem; line-height: 1.5; color: #a8a090; }
+    .incompatible-item h4 { font-family: 'DM Mono', monospace; font-size: .68rem; letter-spacing: .1em; text-transform: uppercase; color: #e87a5a; margin-bottom: .4rem; }
+    .memo { margin-top: 3rem; padding: 2rem 2.5rem; background: var(--violet); color: var(--blanc); position: relative; overflow: hidden; }
+    .memo::before { content: 'PLANTER ENSEMBLE'; position: absolute; font-family: 'Playfair Display', serif; font-size: 5rem; opacity: .05; bottom: -.5rem; right: 1rem; white-space: nowrap; font-style: italic; }
+    .memo h3 { font-family: 'Playfair Display', serif; font-size: 1.6rem; margin-bottom: 1rem; }
+    .memo-list { display: flex; flex-direction: column; gap: .5rem; }
+    .memo-item { display: flex; align-items: baseline; gap: .75rem; font-size: .875rem; line-height: 1.5; }
+    .memo-item .bullet { font-family: 'DM Mono', monospace; font-size: .7rem; color: var(--violet-clair); flex-shrink: 0; }
+    .reveal { opacity: 0; transform: translateY(18px); transition: opacity .5s ease, transform .5s ease; }
+    .reveal.visible { opacity: 1; transform: none; }
+    footer { text-align: center; padding: 2rem 1rem; font-family: 'DM Mono', monospace; font-size: .62rem; letter-spacing: .12em; color: rgba(232,224,204,.2); border-top: 1px solid rgba(255,255,255,.04); }
+    footer a { color: var(--vert-acide); text-decoration: none; }
+    @media (max-width: 540px) { .assoc { grid-template-columns: 1fr; } .assoc-emoji { display: none; } }
+  </style>
+</head>
+<body>
+<header class="hero">
+  <p class="hero-eyebrow">n³ · ForêtMap · Lycée Lyautey / Casablanca <span style="opacity:.5;margin-left:.5em;">· v1.1</span></p>
+  <h1>
+    <span class="accent">Plantes</span><br>
+    <span>alliées</span><br>
+    <span class="sub">× associations & incompatibilités</span>
+  </h1>
+  <p class="hero-sub">Les plantes ne sont pas des individus isolés. Elles communiquent par des molécules, se protègent mutuellement, se concurrencent ou se nourrissent. Planter ensemble, c'est exploiter ces réseaux.</p>
+  <div class="hero-manifeste">🌿 Observer · Associer · Diversifier</div>
+</header>
+
+<main class="content">
+
+  <div class="manifeste reveal">
+    La monoculture simplifie la gestion mais brise les équilibres. Un champ de carottes sans rien d'autre est un buffet ouvert pour les ravageurs spécialistes. Un potager <strong>diversifié et associé</strong> crée de la complexité écologique — les ravageurs ne trouvent pas leurs hôtes facilement, les prédateurs trouvent refuge et nourriture.
+  </div>
+
+  <div class="s-header reveal"><div class="s-num">01</div><div class="s-title">Les <span class="hl">mécanismes</span></div></div>
+
+  <div class="question-sci reveal">
+    <p class="q-label">Question scientifique</p>
+    <p class="q-text">Comment les plantes "communiquent"-elles chimiquement ?</p>
+    <p class="q-reponse">Les plantes émettent des composés organiques volatils (COV) dans l'air et des exsudats racinaires dans le sol. Certains COV (linalool du basilic, soufre des alliacées) perturbent la navigation olfactive des ravageurs. D'autres déclenchent chez les plantes voisines une production préventive d'enzymes de défense. Dans le sol, les exsudats racinaires modifient le microbiome rhizosphérique — favorisant certaines bactéries bénéfiques. Ce n'est pas de la magie. C'est de la chimie écologique.</p>
+  </div>
+
+  <div class="s-header reveal"><div class="s-num">02</div><div class="s-title">Associations <span class="hl">qui fonctionnent</span></div></div>
+
+  <div class="assoc reveal">
+    <div class="assoc-emoji">🍅🌿</div>
+    <div>
+      <div class="duo">Tomate + Basilic</div>
+      <h3>La classique — et elle marche vraiment</h3>
+      <p>Le basilic émet des composés volatils (linalool, eugénol) qui perturbent les thrips et les aleurodes (mouches blanches) ciblant les tomates. En retour, la tomate offre de l'ombre partielle appréciée du basilic en plein été.</p>
+      <div class="sci">→ Étude : les tomates associées au basilic présentent jusqu'à 60 % moins d'attaques d'aleurodes. L'effet est chimique, pas homéopathique.</div>
+    </div>
+  </div>
+
+  <div class="assoc reveal">
+    <div class="assoc-emoji">🌽🫘🎃</div>
+    <div>
+      <div class="duo">Maïs + Haricot + Courge — Les Trois Sœurs</div>
+      <h3>L'association amérindienne — 3000 ans d'efficacité</h3>
+      <p>Le maïs monte haut et sert de tuteur au haricot. Le haricot fixe l'azote atmosphérique (via Rhizobium) et nourrit le maïs et la courge. La courge couvre le sol, retient l'humidité et empêche les adventices par son grand feuillage.</p>
+      <div class="sci">→ Chaque plante occupe un niveau différent (vertical) et joue un rôle différent (structurel, azote, couvre-sol). Trois niches écologiques, zéro compétition directe.</div>
+    </div>
+  </div>
+
+  <div class="assoc reveal">
+    <div class="assoc-emoji">🥕🧅</div>
+    <div>
+      <div class="duo">Carotte + Oignon / Poireau</div>
+      <h3>La protection croisée</h3>
+      <p>La mouche de la carotte et la mouche de l'oignon se repoussent mutuellement — chacune est perturbée par les odeurs soufrées de l'autre culture. Association en rangs alternés pour maximiser l'effet.</p>
+      <div class="sci">→ Les composés soufrés volatils des alliacées (allyl sulfide) masquent le profil olfactif de la carotte pour la mouche. Même principe pour la mouche de l'oignon face aux carottes.</div>
+    </div>
+  </div>
+
+  <div class="assoc reveal">
+    <div class="assoc-emoji">🌹🧄</div>
+    <div>
+      <div class="duo">Roses + Ail</div>
+      <h3>Contre les pucerons et les maladies fongiques</h3>
+      <p>L'ail planté en bordure de rosiers émet des composés soufrés qui repoussent les pucerons et inhibent certains champignons pathogènes (black spot). Discrètement efficace, invisible en jardin ornemental.</p>
+    </div>
+  </div>
+
+  <div class="assoc reveal">
+    <div class="assoc-emoji">🌻🫛</div>
+    <div>
+      <div class="duo">Tournesol + Concombre / Haricot grimpant</div>
+      <h3>Tuteur vivant et attracteur</h3>
+      <p>Le tournesol sert de tuteur naturel aux plantes grimpantes et attire les syrphes (dont les larves sont prédatrices de pucerons). En fin de saison, les graines nourrissent les oiseaux.</p>
+    </div>
+  </div>
+
+  <div class="assoc reveal">
+    <div class="assoc-emoji">🌼🥦</div>
+    <div>
+      <div class="duo">Souci + Tomate / Poivron</div>
+      <h3>Contre les nématodes du sol</h3>
+      <p>Les racines du souci officinal sécrètent de l'alpha-terthienyl, un composé toxique pour les nématodes phytopathogènes. Planter en bordure ou en intercalaire des cultures sensibles.</p>
+      <div class="sci">→ Effet avéré sur Meloidogyne spp. (nématodes à galles). Le souci doit rester 2–3 mois pour que les sécrétions racinaires atteignent une concentration efficace dans le sol.</div>
+    </div>
+  </div>
+
+  <div class="s-header reveal"><div class="s-num">03</div><div class="s-title">Incompatibilités <span class="hl">à éviter</span></div></div>
+
+  <div class="incompatibles reveal">
+    <div class="incompatible-item"><h4>Fenouil + tout le reste</h4>Le fenouil émet des substances allélopathiques inhibant la germination et la croissance de la plupart des légumes. À isoler ou planter seul.</div>
+    <div class="incompatible-item"><h4>Oignon + Haricot / Pois</h4>Les composés soufrés des alliacées inhibent la croissance des légumineuses. Pas de compagnonnage entre ces familles.</div>
+    <div class="incompatible-item"><h4>Chou + Tomate</h4>Concurrence racinaire intense. Les deux cultures sont gourmandes et se disputent azote et potassium sur les mêmes horizons de sol.</div>
+    <div class="incompatible-item"><h4>Pomme de terre + Tomate</h4>Même famille (Solanacées). Partagent les mêmes maladies (mildiou). Une contamination se propage instantanément des unes aux autres.</div>
+  </div>
+
+  <div class="question-sci reveal">
+    <p class="q-label">Question scientifique</p>
+    <p class="q-text">Qu'est-ce que l'allélopathie ?</p>
+    <p class="q-reponse">L'allélopathie est la capacité d'une plante à influencer la croissance d'autres plantes via des substances chimiques libérées dans le sol ou l'air — les allélopathiques. Ces substances peuvent inhiber la germination, ralentir la croissance racinaire ou favoriser certaines espèces au détriment d'autres. Le fenouil et la noix en sont des exemples classiques. C'est un mécanisme de compétition chimique entre végétaux, distinct de la compétition pour les ressources physiques (eau, lumière, minéraux).</p>
+  </div>
+
+  <div class="memo reveal">
+    <h3>📋 Les 6 principes</h3>
+    <div class="memo-list">
+      <div class="memo-item"><span class="bullet">01 /</span>Diversifier toujours — la monoculture est un buffet pour les ravageurs spécialistes.</div>
+      <div class="memo-item"><span class="bullet">02 /</span>Tomate + basilic, carotte + oignon : associations prouvées, pas de magie.</div>
+      <div class="memo-item"><span class="bullet">03 /</span>Les Trois Sœurs : maïs + haricot + courge — l'association la plus productive au m².</div>
+      <div class="memo-item"><span class="bullet">04 /</span>Souci en bordure de toutes les cultures sensibles aux nématodes.</div>
+      <div class="memo-item"><span class="bullet">05 /</span>Fenouil seul — jamais en association avec d'autres légumes.</div>
+      <div class="memo-item"><span class="bullet">06 /</span>Mêmes familles botaniques = mêmes maladies. Ne pas concentrer les solanacées ensemble.</div>
+    </div>
+  </div>
+
+</main>
+<footer>ForêtMap · <a href="https://olution.info">olution.info</a> · projet n³ — Nature · Numérique · Nomade · v1.1<br>Lycée Lyautey, Casablanca · AEFE</footer>
+<script>
+  const els = document.querySelectorAll('.reveal');
+  const io = new IntersectionObserver((e) => { e.forEach((el,i) => { if(el.isIntersecting){ setTimeout(()=>el.target.classList.add('visible'),i*60); io.unobserve(el.target); } }); }, {threshold:.08});
+  els.forEach(el=>io.observe(el));
+</script>
+</body>
+</html>
