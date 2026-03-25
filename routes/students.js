@@ -279,7 +279,7 @@ router.post('/import', requirePermission('students.import', { needsElevation: tr
       errors: [],
     };
 
-    const existingStudents = await queryAll('SELECT id, first_name, last_name, pseudo, email FROM students');
+    const existingStudents = await queryAll("SELECT id, first_name, last_name, pseudo, email FROM users WHERE user_type = 'student'");
     const existingByName = new Map(existingStudents.map((s) => [`${asTrimmedString(s.first_name).toLowerCase()}|${asTrimmedString(s.last_name).toLowerCase()}`, s]));
     const pseudoSet = new Set(existingStudents.map((s) => asTrimmedString(s.pseudo).toLowerCase()).filter(Boolean));
     const emailSet = new Set(existingStudents.map((s) => asTrimmedString(s.email).toLowerCase()).filter(Boolean));
@@ -340,8 +340,10 @@ router.post('/import', requirePermission('students.import', { needsElevation: tr
       const now = new Date().toISOString();
       try {
         await execute(
-          'INSERT INTO students (id, first_name, last_name, pseudo, email, description, avatar_path, password, last_seen) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
-          [id, payload.firstName, payload.lastName, payload.pseudo, payload.email, payload.description, null, hash, now]
+          `INSERT INTO users
+            (id, user_type, legacy_user_id, email, pseudo, first_name, last_name, display_name, description, avatar_path, affiliation, password_hash, auth_provider, is_active, last_seen, created_at, updated_at)
+           VALUES (?, 'student', NULL, ?, ?, ?, ?, ?, ?, NULL, 'both', ?, 'local', 1, ?, NOW(), NOW())`,
+          [id, payload.email, payload.pseudo, payload.firstName, payload.lastName, `${payload.firstName} ${payload.lastName}`.trim(), payload.description, hash, now]
         );
         report.totals.created += 1;
       } catch (err) {
@@ -376,10 +378,10 @@ router.post('/register', async (req, res) => {
   try {
     const { studentId } = req.body;
     if (!studentId) return res.status(400).json({ error: 'studentId requis' });
-    const s = await queryOne('SELECT * FROM students WHERE id = ?', [studentId]);
+    const s = await queryOne("SELECT * FROM users WHERE id = ? AND user_type = 'student'", [studentId]);
     if (!s) return res.status(401).json({ error: 'Compte supprimé', deleted: true });
-    await execute('UPDATE students SET last_seen = ? WHERE id = ?', [new Date().toISOString(), studentId]);
-    res.json({ ...s, password: undefined });
+    await execute("UPDATE users SET last_seen = ? WHERE id = ? AND user_type = 'student'", [new Date().toISOString(), studentId]);
+    res.json({ ...s, password_hash: undefined });
   } catch (e) {
     logRouteError(e, req);
     res.status(500).json({ error: e.message });
@@ -391,11 +393,11 @@ router.patch('/:id/profile', async (req, res) => {
     const body = req.body || {};
     if (!body.currentPassword) return res.status(400).json({ error: 'Mot de passe actuel requis' });
 
-    const student = await queryOne('SELECT * FROM students WHERE id = ?', [req.params.id]);
+    const student = await queryOne("SELECT * FROM users WHERE id = ? AND user_type = 'student'", [req.params.id]);
     if (!student) return res.status(404).json({ error: 'Élève introuvable' });
-    if (!student.password) return res.status(401).json({ error: 'Ce compte n\'a pas de mot de passe. Contactez le prof.' });
+    if (!student.password_hash) return res.status(401).json({ error: 'Ce compte n\'a pas de mot de passe. Contactez le prof.' });
 
-    const passwordOk = await bcrypt.compare(String(body.currentPassword), student.password);
+    const passwordOk = await bcrypt.compare(String(body.currentPassword), student.password_hash);
     if (!passwordOk) return res.status(401).json({ error: 'Mot de passe actuel incorrect' });
 
     const hasPseudo = hasOwn(body, 'pseudo');
@@ -453,14 +455,14 @@ router.patch('/:id/profile', async (req, res) => {
 
     if (pseudo) {
       const existingPseudo = await queryOne(
-        'SELECT id FROM students WHERE LOWER(pseudo)=LOWER(?) AND id <> ?',
+        "SELECT id FROM users WHERE user_type = 'student' AND LOWER(pseudo)=LOWER(?) AND id <> ?",
         [pseudo, student.id]
       );
       if (existingPseudo) return res.status(409).json({ error: 'Ce pseudo est déjà utilisé' });
     }
     if (email) {
       const existingEmail = await queryOne(
-        'SELECT id FROM students WHERE LOWER(email)=LOWER(?) AND id <> ?',
+        "SELECT id FROM users WHERE user_type = 'student' AND LOWER(email)=LOWER(?) AND id <> ?",
         [email, student.id]
       );
       if (existingEmail) return res.status(409).json({ error: 'Cet email est déjà utilisé' });
@@ -468,7 +470,7 @@ router.patch('/:id/profile', async (req, res) => {
 
     try {
       await execute(
-        'UPDATE students SET pseudo = ?, email = ?, description = ?, avatar_path = ?, affiliation = ? WHERE id = ?',
+        "UPDATE users SET pseudo = ?, email = ?, description = ?, avatar_path = ?, affiliation = ?, display_name = TRIM(CONCAT(COALESCE(first_name,''), ' ', COALESCE(last_name,''))) WHERE id = ? AND user_type = 'student'",
         [pseudo, email, description, avatarPath, affiliation, student.id]
       );
     } catch (err) {
@@ -477,7 +479,7 @@ router.patch('/:id/profile', async (req, res) => {
       }
       throw err;
     }
-    const updated = await queryOne('SELECT * FROM students WHERE id = ?', [student.id]);
+    const updated = await queryOne("SELECT * FROM users WHERE id = ? AND user_type = 'student'", [student.id]);
     logAudit('update_student_profile', 'student', student.id, `${student.first_name} ${student.last_name}`, {
       req,
       actorUserType: 'student',
@@ -485,7 +487,7 @@ router.patch('/:id/profile', async (req, res) => {
       payload: { pseudo: !!hasPseudo, email: !!hasEmail, description: !!hasDescription, affiliation: !!hasAffiliation, avatar: !!(hasAvatarData || removeAvatar) },
     });
     emitStudentsChanged({ reason: 'student_profile_update', studentId: student.id });
-    res.json({ ...updated, password: undefined });
+    res.json({ ...updated, password_hash: undefined });
   } catch (e) {
     logRouteError(e, req);
     res.status(500).json({ error: e.message });
@@ -494,7 +496,7 @@ router.patch('/:id/profile', async (req, res) => {
 
 router.delete('/:id', requirePermission('students.delete', { needsElevation: true }), async (req, res) => {
   try {
-    const s = await queryOne('SELECT * FROM students WHERE id = ?', [req.params.id]);
+    const s = await queryOne("SELECT * FROM users WHERE id = ? AND user_type = 'student'", [req.params.id]);
     if (!s) return res.status(404).json({ error: 'Élève introuvable' });
 
     const affectedRows = await queryAll(
@@ -531,7 +533,7 @@ router.delete('/:id', requirePermission('students.delete', { needsElevation: tru
       await execute('UPDATE tasks SET status = ? WHERE id = ?', [newStatus, taskId]);
     }
 
-    await execute('DELETE FROM students WHERE id = ?', [req.params.id]);
+    await execute("DELETE FROM users WHERE id = ? AND user_type = 'student'", [req.params.id]);
     logAudit('delete_student', 'student', req.params.id, `${s.first_name} ${s.last_name}`, {
       req,
       payload: { affected_tasks: affectedTasks.length },

@@ -28,7 +28,7 @@ router.get('/', requirePermission('audit.read', { needsElevation: true }), async
 async function resolveCanonicalActorId(actorUserType, actorUserId) {
   if (!actorUserType || !actorUserId) return null;
   const existing = await queryOne(
-    'SELECT id FROM users WHERE user_type = ? AND legacy_user_id = ? LIMIT 1',
+    'SELECT id FROM users WHERE user_type = ? AND id = ? LIMIT 1',
     [actorUserType, actorUserId]
   );
   if (existing?.id) return existing.id;
@@ -41,7 +41,7 @@ async function logSecurityEvent(action, options = {}) {
     const req = options.req || null;
     const actorFromReq = resolveActorFromReq(req);
     const actorUserType = options.actorUserType || actorFromReq.actorUserType || null;
-    const actorLegacyUserId = options.actorUserId || actorFromReq.actorLegacyUserId || null;
+    const actorLegacyUserId = options.actorUserId || actorFromReq.actorUserId || null;
     const actorUserId = options.actorUserCanonicalId
       || await resolveCanonicalActorId(actorUserType, actorLegacyUserId);
     const payload = options.payload ? JSON.stringify(options.payload) : null;
@@ -72,7 +72,7 @@ async function logAudit(action, targetType, targetId, details, options = {}) {
     const req = options.req || null;
     const actorFromReq = resolveActorFromReq(req);
     const actorUserType = options.actorUserType || actorFromReq.actorUserType || null;
-    const actorLegacyUserId = options.actorUserId || actorFromReq.actorLegacyUserId || null;
+    const actorLegacyUserId = options.actorUserId || actorFromReq.actorUserId || null;
     const actorUserId = options.actorUserCanonicalId
       || await resolveCanonicalActorId(actorUserType, actorLegacyUserId);
     const payload = options.payload ? JSON.stringify(options.payload) : null;

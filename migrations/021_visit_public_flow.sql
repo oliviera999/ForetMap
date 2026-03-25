@@ -56,7 +56,7 @@ CREATE TABLE IF NOT EXISTS visit_seen_students (
   updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (student_id, target_type, target_id),
   INDEX idx_visit_seen_students_target (target_type, target_id),
-  CONSTRAINT fk_visit_seen_students_student FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE
+  CONSTRAINT fk_visit_seen_students_student FOREIGN KEY (student_id) REFERENCES users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS visit_seen_anonymous (

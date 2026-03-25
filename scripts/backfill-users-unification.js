@@ -3,30 +3,45 @@ require('dotenv').config();
 const fs = require('fs');
 const path = require('path');
 const { queryAll, queryOne, execute } = require('../database');
-const { ensureCanonicalUserFromStudent, ensureCanonicalUserFromTeacher } = require('../lib/identity');
 
 async function backfillUsers(report) {
-  const students = await queryAll('SELECT * FROM students');
-  const teachers = await queryAll('SELECT * FROM teachers');
-
-  for (const student of students) {
-    try {
-      const userId = await ensureCanonicalUserFromStudent(student);
-      report.users.students += 1;
-      if (!userId) report.warnings.push({ type: 'student_without_user', legacy_id: student.id });
-    } catch (err) {
-      report.errors.push({ type: 'student_user_backfill_error', legacy_id: student.id, message: err.message });
-    }
+  const hasStudentsTable = await queryOne(
+    "SELECT COUNT(*) AS c FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = 'students'"
+  );
+  const hasTeachersTable = await queryOne(
+    "SELECT COUNT(*) AS c FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = 'teachers'"
+  );
+  if (Number(hasStudentsTable?.c || 0) > 0) {
+    await execute(
+      `INSERT INTO users (
+         id, user_type, legacy_user_id, email, pseudo, first_name, last_name, display_name,
+         description, avatar_path, affiliation, password_hash, auth_provider, is_active, last_seen
+       )
+       SELECT
+         s.id, 'student', NULL, s.email, s.pseudo, s.first_name, s.last_name,
+         TRIM(CONCAT(COALESCE(s.first_name, ''), ' ', COALESCE(s.last_name, ''))),
+         s.description, s.avatar_path, COALESCE(s.affiliation, 'both'), s.password, 'local', 1, s.last_seen
+       FROM students s
+       WHERE NOT EXISTS (SELECT 1 FROM users u WHERE u.id = s.id)`
+    );
+    const countStudents = await queryOne("SELECT COUNT(*) AS c FROM users WHERE user_type = 'student'");
+    report.users.students = Number(countStudents?.c || 0);
   }
-
-  for (const teacher of teachers) {
-    try {
-      const userId = await ensureCanonicalUserFromTeacher(teacher);
-      report.users.teachers += 1;
-      if (!userId) report.warnings.push({ type: 'teacher_without_user', legacy_id: teacher.id });
-    } catch (err) {
-      report.errors.push({ type: 'teacher_user_backfill_error', legacy_id: teacher.id, message: err.message });
-    }
+  if (Number(hasTeachersTable?.c || 0) > 0) {
+    await execute(
+      `INSERT INTO users (
+         id, user_type, legacy_user_id, email, pseudo, first_name, last_name, display_name,
+         description, avatar_path, affiliation, password_hash, auth_provider, is_active, last_seen
+       )
+       SELECT
+         t.id, 'teacher', NULL, t.email, LOWER(SUBSTRING_INDEX(t.email, '@', 1)), NULL, NULL,
+         COALESCE(NULLIF(t.display_name, ''), t.email),
+         NULL, NULL, 'both', t.password_hash, 'local', COALESCE(t.is_active, 1), t.last_seen
+       FROM teachers t
+       WHERE NOT EXISTS (SELECT 1 FROM users u WHERE u.id = t.id)`
+    );
+    const countTeachers = await queryOne("SELECT COUNT(*) AS c FROM users WHERE user_type = 'teacher'");
+    report.users.teachers = Number(countTeachers?.c || 0);
   }
 }
 
@@ -34,8 +49,9 @@ async function backfillTaskAssignments(report) {
   const rows = await queryAll(
     `SELECT ta.id, ta.student_first_name, ta.student_last_name, s.id AS student_id
        FROM task_assignments ta
-  LEFT JOIN students s
-         ON LOWER(s.first_name) = LOWER(ta.student_first_name)
+  LEFT JOIN users s
+         ON s.user_type = 'student'
+        AND LOWER(s.first_name) = LOWER(ta.student_first_name)
         AND LOWER(s.last_name) = LOWER(ta.student_last_name)`
   );
   for (const row of rows) {
@@ -57,8 +73,9 @@ async function backfillTaskLogs(report) {
   const rows = await queryAll(
     `SELECT tl.id, tl.student_first_name, tl.student_last_name, s.id AS student_id
        FROM task_logs tl
-  LEFT JOIN students s
-         ON LOWER(s.first_name) = LOWER(tl.student_first_name)
+  LEFT JOIN users s
+         ON s.user_type = 'student'
+        AND LOWER(s.first_name) = LOWER(tl.student_first_name)
         AND LOWER(s.last_name) = LOWER(tl.student_last_name)`
   );
   for (const row of rows) {

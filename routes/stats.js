@@ -6,7 +6,7 @@ const { logRouteError } = require('../lib/routeLog');
 const router = express.Router();
 
 async function studentStats(studentId) {
-  const s = await queryOne('SELECT * FROM students WHERE id = ?', [studentId]);
+  const s = await queryOne("SELECT * FROM users WHERE user_type = 'student' AND id = ?", [studentId]);
   if (!s) return null;
   const assignments = await queryAll(
     `SELECT ta.*, t.status, t.title, t.due_date, t.zone_id, z.name as zone_name
@@ -47,7 +47,7 @@ router.get('/me/:studentId', async (req, res) => {
 
 router.get('/all', requirePermission('stats.read.all'), async (req, res) => {
   try {
-    const students = await queryAll('SELECT * FROM students');
+    const students = await queryAll("SELECT * FROM users WHERE user_type = 'student'");
     const result = await Promise.all(students.map(async (s) => {
       const assignments = await queryAll(
         `SELECT ta.*, t.status FROM task_assignments ta
@@ -82,7 +82,7 @@ router.get('/all', requirePermission('stats.read.all'), async (req, res) => {
 // Export CSV des stats élèves (prof uniquement)
 router.get('/export', requirePermission('stats.export', { needsElevation: true }), async (req, res) => {
   try {
-    const students = await queryAll('SELECT * FROM students');
+    const students = await queryAll("SELECT * FROM users WHERE user_type = 'student'");
     const result = await Promise.all(students.map(async (s) => {
       const assignments = await queryAll(
         `SELECT ta.*, t.status FROM task_assignments ta

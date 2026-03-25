@@ -17,17 +17,18 @@ test('POST /api/auth/register crée un élève et renvoie 201', async () => {
     .expect(201);
   assert.ok(res.body.id);
   assert.strictEqual(res.body.first_name, 'Test');
-  assert.strictEqual(res.body.password, undefined);
+  assert.strictEqual(res.body.password_hash, undefined);
 });
 
 test('POST /api/auth/login avec mauvais mot de passe renvoie 401', async () => {
   const last = 'User' + Date.now();
+  const email = `badpass_${Date.now()}@example.com`;
   await request(app)
     .post('/api/auth/register')
-    .send({ firstName: 'BadPass', lastName: last, password: 'good' });
+    .send({ firstName: 'BadPass', lastName: last, email, password: 'good' });
   const res = await request(app)
     .post('/api/auth/login')
-    .send({ firstName: 'BadPass', lastName: last, password: 'wrong' })
+    .send({ identifier: email, password: 'wrong' })
     .expect(401);
   assert.ok(res.body.error);
 });

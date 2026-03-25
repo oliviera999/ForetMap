@@ -52,7 +52,7 @@ ALTER TABLE task_assignments
   ADD INDEX idx_task_assignments_student_id (student_id);
 
 ALTER TABLE task_assignments
-  ADD CONSTRAINT fk_task_assignments_student FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE SET NULL;
+  ADD CONSTRAINT fk_task_assignments_student FOREIGN KEY (student_id) REFERENCES users(id) ON DELETE SET NULL;
 
 ALTER TABLE task_logs
   ADD COLUMN student_id VARCHAR(64) DEFAULT NULL;
@@ -61,7 +61,7 @@ ALTER TABLE task_logs
   ADD INDEX idx_task_logs_student_id (student_id);
 
 ALTER TABLE task_logs
-  ADD CONSTRAINT fk_task_logs_student FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE SET NULL;
+  ADD CONSTRAINT fk_task_logs_student FOREIGN KEY (student_id) REFERENCES users(id) ON DELETE SET NULL;
 
 ALTER TABLE audit_log
   ADD COLUMN actor_user_type VARCHAR(16) DEFAULT NULL;

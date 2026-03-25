@@ -75,7 +75,7 @@ test('POST /api/students/import crée les élèves valides', async () => {
 
   assert.strictEqual(res.body.report.totals.created, 1);
   const inserted = await queryOne(
-    'SELECT * FROM students WHERE LOWER(first_name)=LOWER(?) AND LOWER(last_name)=LOWER(?)',
+    "SELECT * FROM users WHERE user_type = 'student' AND LOWER(first_name)=LOWER(?) AND LOWER(last_name)=LOWER(?)",
     ['Mass', `Create-${unique}`]
   );
   assert.ok(inserted);

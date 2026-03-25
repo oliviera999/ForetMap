@@ -30,7 +30,7 @@ router.get('/student/:studentId', async (req, res) => {
     if (!teacherRequest && requesterStudentId !== askedStudentId) {
       return res.status(403).json({ error: 'Accès refusé à ce carnet' });
     }
-    const student = await queryOne('SELECT id FROM students WHERE id = ?', [askedStudentId]);
+    const student = await queryOne("SELECT id FROM users WHERE user_type = 'student' AND id = ?", [askedStudentId]);
     if (!student) return res.status(401).json({ error: 'Compte supprimé', deleted: true });
 
     const rows = await queryAll(
@@ -58,7 +58,7 @@ router.get('/all', requirePermission('observations.read.all', { needsElevation: 
       `SELECT o.*, z.name as zone_name, s.first_name, s.last_name
        FROM observation_logs o
        LEFT JOIN zones z ON o.zone_id = z.id
-       LEFT JOIN students s ON o.student_id = s.id
+       LEFT JOIN users s ON o.student_id = s.id AND s.user_type = 'student'
        ORDER BY o.created_at DESC
        LIMIT 100`
     );
@@ -79,7 +79,7 @@ router.post('/', async (req, res) => {
     if (!studentId || !content?.trim()) {
       return res.status(400).json({ error: 'Contenu et identifiant élève requis' });
     }
-    const student = await queryOne('SELECT id FROM students WHERE id = ?', [studentId]);
+    const student = await queryOne("SELECT id FROM users WHERE user_type = 'student' AND id = ?", [studentId]);
     if (!student) return res.status(401).json({ error: 'Compte supprimé', deleted: true });
 
     const result = await execute(
@@ -128,7 +128,7 @@ router.delete('/:id', async (req, res) => {
       if (!studentId || studentId !== String(obs.student_id)) {
         return res.status(403).json({ error: 'Suppression non autorisée' });
       }
-      const student = await queryOne('SELECT id FROM students WHERE id = ?', [studentId]);
+      const student = await queryOne("SELECT id FROM users WHERE user_type = 'student' AND id = ?", [studentId]);
       if (!student) return res.status(401).json({ error: 'Compte supprimé', deleted: true });
     }
 

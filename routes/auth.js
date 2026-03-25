@@ -17,8 +17,6 @@ const {
 } = require('../lib/rbac');
 const { logAudit, logSecurityEvent } = require('./audit');
 const {
-  ensureCanonicalUserFromStudent,
-  ensureCanonicalUserFromTeacher,
   ensureCanonicalUserByAuth,
 } = require('../lib/identity');
 
@@ -249,7 +247,10 @@ async function ensureTeacherSeedFromEnv() {
   const displayName = normalizeOptionalString(process.env.TEACHER_ADMIN_DISPLAY_NAME) || 'Professeur';
   if (!email || !password || password.length < PASSWORD_RESET_MIN_LEN) return;
 
-  const existing = await queryOne('SELECT id FROM teachers WHERE LOWER(email) = LOWER(?) LIMIT 1', [email]);
+  const existing = await queryOne(
+    "SELECT id FROM users WHERE user_type = 'teacher' AND LOWER(email) = LOWER(?) LIMIT 1",
+    [email]
+  );
   if (existing) return;
 
   const hash = await bcrypt.hash(password, 10);
@@ -257,17 +258,11 @@ async function ensureTeacherSeedFromEnv() {
   try {
     const teacherId = uuidv4();
     await execute(
-      'INSERT INTO teachers (id, email, password_hash, display_name, is_active, last_seen, created_at, updated_at) VALUES (?, ?, ?, ?, 1, ?, ?, ?)',
-      [teacherId, email, hash, displayName, now, now, now]
+      `INSERT INTO users
+        (id, user_type, legacy_user_id, email, pseudo, first_name, last_name, display_name, description, avatar_path, affiliation, password_hash, auth_provider, is_active, last_seen, created_at, updated_at)
+       VALUES (?, 'teacher', NULL, ?, ?, NULL, NULL, ?, NULL, NULL, 'both', ?, 'local', 1, ?, NOW(), NOW())`,
+      [teacherId, email, email.split('@')[0] || null, displayName, hash, now]
     );
-    await ensureCanonicalUserFromTeacher({
-      id: teacherId,
-      email,
-      password_hash: hash,
-      display_name: displayName,
-      is_active: 1,
-      last_seen: now,
-    });
     await ensurePrimaryRole('teacher', teacherId, 'admin');
   } catch (err) {
     if (!(err && (err.errno === 1062 || err.code === 'ER_DUP_ENTRY'))) {
@@ -326,16 +321,16 @@ router.post('/register', async (req, res) => {
     if (profileError) return res.status(400).json({ error: profileError });
 
     const existing = await queryOne(
-      'SELECT * FROM students WHERE LOWER(first_name)=LOWER(?) AND LOWER(last_name)=LOWER(?)',
+      "SELECT * FROM users WHERE user_type = 'student' AND LOWER(first_name)=LOWER(?) AND LOWER(last_name)=LOWER(?)",
       [firstName.trim(), lastName.trim()]
     );
     if (existing) return res.status(409).json({ error: 'Un compte avec ce nom existe déjà' });
     if (pseudo) {
-      const existingPseudo = await queryOne('SELECT id FROM students WHERE LOWER(pseudo)=LOWER(?)', [pseudo]);
+      const existingPseudo = await queryOne("SELECT id FROM users WHERE LOWER(pseudo)=LOWER(?)", [pseudo]);
       if (existingPseudo) return res.status(409).json({ error: 'Ce pseudo est déjà utilisé' });
     }
     if (email) {
-      const existingEmail = await queryOne('SELECT id FROM students WHERE LOWER(email)=LOWER(?)', [email]);
+      const existingEmail = await queryOne("SELECT id FROM users WHERE LOWER(email)=LOWER(?)", [email]);
       if (existingEmail) return res.status(409).json({ error: 'Cet email est déjà utilisé' });
     }
 
@@ -344,8 +339,10 @@ router.post('/register', async (req, res) => {
     const now  = new Date().toISOString();
     try {
       await execute(
-        'INSERT INTO students (id, first_name, last_name, pseudo, email, description, avatar_path, affiliation, password, last_seen) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-        [id, firstName.trim(), lastName.trim(), pseudo, email, description, null, affiliation, hash, now]
+        `INSERT INTO users
+          (id, user_type, legacy_user_id, email, pseudo, first_name, last_name, display_name, description, avatar_path, affiliation, password_hash, auth_provider, is_active, last_seen, created_at, updated_at)
+         VALUES (?, 'student', NULL, ?, ?, ?, ?, ?, ?, NULL, ?, ?, 'local', 1, ?, NOW(), NOW())`,
+        [id, email, pseudo, firstName.trim(), lastName.trim(), `${firstName.trim()} ${lastName.trim()}`.trim(), description, affiliation, hash, now]
       );
     } catch (err) {
       if (err && (err.errno === 1062 || err.code === 'ER_DUP_ENTRY')) {
@@ -354,8 +351,7 @@ router.post('/register', async (req, res) => {
       throw err;
     }
     await ensurePrimaryRole('student', id, 'eleve_novice');
-    const student = await queryOne('SELECT * FROM students WHERE id = ?', [id]);
-    await ensureCanonicalUserFromStudent(student);
+    const student = await queryOne("SELECT * FROM users WHERE id = ? AND user_type = 'student'", [id]);
     const session = await buildSessionPayload('student', id, false);
     const token = session ? signAuthToken(session.tokenPayload, false) : null;
     await logSecurityEvent('auth.register.student', {
@@ -369,7 +365,7 @@ router.post('/register', async (req, res) => {
     emitStudentsChanged({ reason: 'register', studentId: id });
     res.status(201).json({
       ...student,
-      password: undefined,
+      password_hash: undefined,
       authToken: token,
       auth: session ? exposeAuth(session.tokenPayload) : null,
     });
@@ -381,34 +377,26 @@ router.post('/register', async (req, res) => {
 
 router.post('/login', async (req, res) => {
   try {
-    const { firstName, lastName, password } = req.body;
+    const { password } = req.body;
     const identifier = normalizeOptionalString(req.body?.identifier);
-    if (!password) return res.status(400).json({ error: 'Champs requis' });
+    if (!password || !identifier) return res.status(400).json({ error: 'Identifiant (email ou pseudo) et mot de passe requis' });
 
     let student;
-    if (identifier) {
-      student = await queryOne(
-        'SELECT * FROM students WHERE LOWER(pseudo)=LOWER(?) OR LOWER(email)=LOWER(?) LIMIT 1',
-        [identifier, identifier]
-      );
-    } else {
-      if (!firstName || !lastName) return res.status(400).json({ error: 'Champs requis' });
-      student = await queryOne(
-        'SELECT * FROM students WHERE LOWER(first_name)=LOWER(?) AND LOWER(last_name)=LOWER(?)',
-        [firstName.trim(), lastName.trim()]
-      );
-    }
+    student = await queryOne(
+      "SELECT * FROM users WHERE user_type = 'student' AND (LOWER(pseudo)=LOWER(?) OR LOWER(email)=LOWER(?)) LIMIT 1",
+      [identifier, identifier]
+    );
 
     if (!student) {
       await logSecurityEvent('auth.login.student', {
         req,
         result: 'failure',
         reason: 'account_not_found',
-        payload: { identifier: identifier || `${firstName || ''} ${lastName || ''}`.trim() },
+        payload: { identifier },
       });
       return res.status(401).json({ error: 'Compte introuvable' });
     }
-    if (!student.password) {
+    if (!student.password_hash) {
       await logSecurityEvent('auth.login.student', {
         req,
         actorUserType: 'student',
@@ -421,7 +409,7 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ error: 'Ce compte n\'a pas de mot de passe. Contactez le prof.' });
     }
 
-    const ok = await bcrypt.compare(password, student.password);
+    const ok = await bcrypt.compare(password, student.password_hash);
     if (!ok) {
       await logSecurityEvent('auth.login.student', {
         req,
@@ -436,8 +424,7 @@ router.post('/login', async (req, res) => {
     }
 
     await ensurePrimaryRole('student', student.id, 'eleve_novice');
-    await execute('UPDATE students SET last_seen = ? WHERE id = ?', [new Date().toISOString(), student.id]);
-    await ensureCanonicalUserFromStudent(student);
+    await execute("UPDATE users SET last_seen = ? WHERE id = ? AND user_type = 'student'", [new Date().toISOString(), student.id]);
     const session = await buildSessionPayload('student', student.id, false);
     const token = session ? signAuthToken(session.tokenPayload, false) : null;
     await logSecurityEvent('auth.login.student', {
@@ -446,11 +433,11 @@ router.post('/login', async (req, res) => {
       actorUserId: student.id,
       targetType: 'student',
       targetId: student.id,
-      payload: { via: identifier ? 'identifier' : 'name' },
+      payload: { via: 'identifier' },
     });
     res.json({
       ...student,
-      password: undefined,
+      password_hash: undefined,
       authToken: token,
       auth: session ? exposeAuth(session.tokenPayload) : null,
     });
@@ -544,7 +531,7 @@ router.get('/google/callback', async (req, res) => {
     }
 
     const teacher = await queryOne(
-      'SELECT id, email, is_active FROM teachers WHERE LOWER(email)=LOWER(?) LIMIT 1',
+      "SELECT id, email, is_active FROM users WHERE user_type = 'teacher' AND LOWER(email)=LOWER(?) LIMIT 1",
       [email]
     );
     if (teacher) {
@@ -553,8 +540,7 @@ router.get('/google/callback', async (req, res) => {
       }
       await ensurePrimaryRole('teacher', teacher.id, 'prof');
       const now = new Date().toISOString();
-      await execute('UPDATE teachers SET last_seen = ?, updated_at = ? WHERE id = ?', [now, now, teacher.id]);
-      await ensureCanonicalUserFromTeacher({ id: teacher.id });
+      await execute("UPDATE users SET last_seen = ?, updated_at = NOW() WHERE id = ? AND user_type = 'teacher'", [now, teacher.id]);
       const session = await buildSessionPayload('teacher', teacher.id, false);
       if (!session) {
         return res.redirect(buildOAuthFrontendErrorRedirect(cfg.frontendOrigin, 'oauth_teacher_no_role', mode));
@@ -574,7 +560,10 @@ router.get('/google/callback', async (req, res) => {
       }));
     }
 
-    let student = await queryOne('SELECT * FROM students WHERE LOWER(email)=LOWER(?) LIMIT 1', [email]);
+    let student = await queryOne(
+      "SELECT * FROM users WHERE user_type = 'student' AND LOWER(email)=LOWER(?) LIMIT 1",
+      [email]
+    );
     if (!student) {
       const id = uuidv4();
       const now = new Date().toISOString();
@@ -582,17 +571,17 @@ router.get('/google/callback', async (req, res) => {
       const firstName = normalizeOptionalString(payload.given_name) || splitName.firstName;
       const lastName = normalizeOptionalString(payload.family_name) || splitName.lastName;
       await execute(
-        'INSERT INTO students (id, first_name, last_name, pseudo, email, description, avatar_path, affiliation, password, last_seen) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-        [id, firstName, lastName, null, email, 'Compte Google', null, 'both', null, now]
+        `INSERT INTO users
+          (id, user_type, legacy_user_id, email, pseudo, first_name, last_name, display_name, description, avatar_path, affiliation, password_hash, auth_provider, is_active, last_seen, created_at, updated_at)
+         VALUES (?, 'student', NULL, ?, NULL, ?, ?, ?, 'Compte Google', NULL, 'both', NULL, 'google', 1, ?, NOW(), NOW())`,
+        [id, email, firstName, lastName, `${firstName} ${lastName}`.trim(), now]
       );
       await ensurePrimaryRole('student', id, 'eleve_novice');
       emitStudentsChanged({ reason: 'register_google', studentId: id });
-      student = await queryOne('SELECT * FROM students WHERE id = ?', [id]);
-      await ensureCanonicalUserFromStudent(student);
+      student = await queryOne("SELECT * FROM users WHERE id = ? AND user_type = 'student'", [id]);
     } else {
-      await execute('UPDATE students SET last_seen = ? WHERE id = ?', [new Date().toISOString(), student.id]);
-      student = await queryOne('SELECT * FROM students WHERE id = ?', [student.id]);
-      await ensureCanonicalUserFromStudent(student);
+      await execute("UPDATE users SET last_seen = ? WHERE id = ? AND user_type = 'student'", [new Date().toISOString(), student.id]);
+      student = await queryOne("SELECT * FROM users WHERE id = ? AND user_type = 'student'", [student.id]);
     }
 
     const session = await buildSessionPayload('student', student.id, false);
@@ -608,7 +597,7 @@ router.get('/google/callback', async (req, res) => {
       type: 'student',
       student: {
         ...student,
-        password: undefined,
+        password_hash: undefined,
         authToken: token,
         auth: session ? exposeAuth(session.tokenPayload) : null,
       },
@@ -626,10 +615,10 @@ router.post('/forgot-password', async (req, res) => {
       return res.json({ ok: true, message: 'Si un compte existe, un email de réinitialisation a été envoyé.' });
     }
     const student = await queryOne(
-      'SELECT id, first_name, last_name, email, password FROM students WHERE LOWER(email)=LOWER(?) LIMIT 1',
+      "SELECT id, first_name, last_name, email, password_hash FROM users WHERE user_type = 'student' AND LOWER(email)=LOWER(?) LIMIT 1",
       [email]
     );
-    if (student && student.password) {
+    if (student && student.password_hash) {
       const token = await createPasswordResetToken('student', student.id);
       await sendPasswordResetEmail({
         to: student.email,
@@ -663,9 +652,7 @@ router.post('/reset-password', async (req, res) => {
     const studentId = await consumePasswordResetToken('student', token);
     if (!studentId) return res.status(400).json({ error: 'Token invalide ou expiré' });
     const hash = await bcrypt.hash(password, 10);
-    await execute('UPDATE students SET password = ? WHERE id = ?', [hash, studentId]);
-    const updatedStudent = await queryOne('SELECT * FROM students WHERE id = ? LIMIT 1', [studentId]);
-    await ensureCanonicalUserFromStudent(updatedStudent);
+    await execute("UPDATE users SET password_hash = ? WHERE id = ? AND user_type = 'student'", [hash, studentId]);
     await logSecurityEvent('auth.password_reset.confirm.student', {
       req,
       actorUserType: 'student',
@@ -690,7 +677,7 @@ router.post('/teacher/login', async (req, res) => {
     if (!email || !password) return res.status(400).json({ error: 'Champs requis' });
 
     const teacher = await queryOne(
-      'SELECT id, email, password_hash, is_active FROM teachers WHERE LOWER(email)=LOWER(?) LIMIT 1',
+      "SELECT id, email, password_hash, is_active FROM users WHERE user_type = 'teacher' AND LOWER(email)=LOWER(?) LIMIT 1",
       [email]
     );
     if (!teacher || !teacher.is_active) {
@@ -717,8 +704,7 @@ router.post('/teacher/login', async (req, res) => {
     }
 
     await ensurePrimaryRole('teacher', teacher.id, 'prof');
-    await execute('UPDATE teachers SET last_seen = ?, updated_at = ? WHERE id = ?', [new Date().toISOString(), new Date().toISOString(), teacher.id]);
-    await ensureCanonicalUserFromTeacher({ id: teacher.id });
+    await execute("UPDATE users SET last_seen = ?, updated_at = NOW() WHERE id = ? AND user_type = 'teacher'", [new Date().toISOString(), teacher.id]);
     const session = await buildSessionPayload('teacher', teacher.id, false);
     if (!session) return res.status(403).json({ error: 'Aucun profil attribué' });
     const token = signAuthToken(session.tokenPayload, false);
@@ -745,7 +731,7 @@ router.post('/teacher/forgot-password', async (req, res) => {
       return res.json({ ok: true, message: 'Si un compte existe, un email de réinitialisation a été envoyé.' });
     }
     const teacher = await queryOne(
-      'SELECT id, email, is_active FROM teachers WHERE LOWER(email)=LOWER(?) LIMIT 1',
+      "SELECT id, email, is_active FROM users WHERE user_type = 'teacher' AND LOWER(email)=LOWER(?) LIMIT 1",
       [email]
     );
     if (teacher && teacher.is_active) {
@@ -783,8 +769,7 @@ router.post('/teacher/reset-password', async (req, res) => {
     if (!teacherId) return res.status(400).json({ error: 'Token invalide ou expiré' });
     const hash = await bcrypt.hash(password, 10);
     const now = new Date().toISOString();
-    await execute('UPDATE teachers SET password_hash = ?, updated_at = ? WHERE id = ?', [hash, now, teacherId]);
-    await ensureCanonicalUserFromTeacher({ id: teacherId });
+    await execute("UPDATE users SET password_hash = ?, updated_at = NOW() WHERE id = ? AND user_type = 'teacher'", [hash, teacherId]);
     await logSecurityEvent('auth.password_reset.confirm.teacher', {
       req,
       actorUserType: 'teacher',
@@ -864,7 +849,10 @@ router.post('/teacher', async (req, res) => {
     await ensureTeacherSeedFromEnv();
     const adminEmail = normalizeEmail(process.env.TEACHER_ADMIN_EMAIL);
     if (!adminEmail) return res.status(503).json({ error: 'TEACHER_ADMIN_EMAIL requis pour le mode secours' });
-    const teacher = await queryOne('SELECT id FROM teachers WHERE LOWER(email)=LOWER(?) LIMIT 1', [adminEmail]);
+    const teacher = await queryOne(
+      "SELECT id FROM users WHERE user_type = 'teacher' AND LOWER(email)=LOWER(?) LIMIT 1",
+      [adminEmail]
+    );
     if (!teacher) return res.status(503).json({ error: 'Compte admin introuvable' });
     await ensurePrimaryRole('teacher', teacher.id, 'admin');
     const session = await buildSessionPayload('teacher', teacher.id, true);

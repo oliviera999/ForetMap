@@ -153,12 +153,14 @@ SELECT id, SHA2('1234', 256) FROM roles;
 -- Hard-switch: attribution des rôles existants
 INSERT IGNORE INTO user_roles (user_type, user_id, role_id, is_primary)
 SELECT 'teacher', t.id, r.id, 1
-FROM teachers t
-JOIN roles r ON r.slug = 'prof';
+FROM users t
+JOIN roles r ON r.slug = 'prof'
+WHERE t.user_type = 'teacher';
 
 INSERT IGNORE INTO user_roles (user_type, user_id, role_id, is_primary)
 SELECT 'student', s.id, r.id, 1
-FROM students s
-JOIN roles r ON r.slug = 'eleve_novice';
+FROM users s
+JOIN roles r ON r.slug = 'eleve_novice'
+WHERE s.user_type = 'student';
 
 UPDATE schema_version SET version = 25;

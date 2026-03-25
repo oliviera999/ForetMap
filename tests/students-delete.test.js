@@ -44,7 +44,7 @@ describe('Suppression élève', () => {
     assert.strictEqual(res.body.success, true);
     const task = await queryOne('SELECT status FROM tasks WHERE id = ?', [taskId]);
     assert.strictEqual(task.status, 'available');
-    const student = await queryOne('SELECT id FROM students WHERE id = ?', [studentId]);
+    const student = await queryOne("SELECT id FROM users WHERE user_type = 'student' AND id = ?", [studentId]);
     assert.strictEqual(student, undefined);
   });
 });

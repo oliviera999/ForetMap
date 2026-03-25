@@ -50,7 +50,7 @@ describe('Auth', () => {
     assert.strictEqual(res.body.pseudo, pseudo);
     assert.strictEqual(res.body.email, email);
     assert.strictEqual(res.body.description, description);
-    assert.strictEqual(res.body.password, undefined);
+    assert.strictEqual(res.body.password_hash, undefined);
     assert.ok(res.body.id);
   });
 
@@ -68,7 +68,7 @@ describe('Auth', () => {
       .send({ identifier: pseudo, password })
       .expect(200);
     assert.strictEqual(res.body.first_name, firstName);
-    assert.strictEqual(res.body.password, undefined);
+    assert.strictEqual(res.body.password_hash, undefined);
   });
 
   it('POST /api/auth/login accepte identifier=email', async () => {
@@ -77,22 +77,21 @@ describe('Auth', () => {
       .send({ identifier: email, password })
       .expect(200);
     assert.strictEqual(res.body.first_name, firstName);
-    assert.strictEqual(res.body.password, undefined);
+    assert.strictEqual(res.body.password_hash, undefined);
   });
 
-  it('POST /api/auth/login garde la compatibilité firstName+lastName', async () => {
+  it('POST /api/auth/login refuse firstName+lastName (users-only identifier)', async () => {
     const res = await request(app)
       .post('/api/auth/login')
       .send({ firstName, lastName, password })
-      .expect(200);
-    assert.strictEqual(res.body.first_name, firstName);
-    assert.strictEqual(res.body.password, undefined);
+      .expect(400);
+    assert.ok(String(res.body.error || '').includes('Identifiant'));
   });
 
   it('POST /api/auth/login avec mauvais mot de passe renvoie 401', async () => {
     const res = await request(app)
       .post('/api/auth/login')
-      .send({ firstName, lastName, password: 'wrong' })
+      .send({ identifier: email, password: 'wrong' })
       .expect(401);
     assert.ok(res.body.error);
     const evt = await queryOne(
@@ -105,7 +104,7 @@ describe('Auth', () => {
   it('POST /api/auth/login compte inexistant renvoie 401', async () => {
     const res = await request(app)
       .post('/api/auth/login')
-      .send({ firstName: 'Nobody', lastName: 'Here', password: 'x' })
+      .send({ identifier: `nobody_${Date.now()}@example.com`, password: 'x' })
       .expect(401);
     assert.ok(res.body.error);
   });
@@ -120,7 +119,7 @@ describe('Auth', () => {
   });
 
   it('POST /api/auth/reset-password consomme un token valide', async () => {
-    const student = await queryOne('SELECT id FROM students WHERE LOWER(email)=LOWER(?) LIMIT 1', [email]);
+    const student = await queryOne("SELECT id FROM users WHERE user_type = 'student' AND LOWER(email)=LOWER(?) LIMIT 1", [email]);
     assert.ok(student?.id);
     const resetToken = `student-reset-${Date.now()}`;
     const tokenHash = crypto.createHash('sha256').update(resetToken).digest('hex');
@@ -152,8 +151,10 @@ describe('Auth', () => {
     const hash = await bcrypt.hash(teacherPassword, 10);
     const now = new Date().toISOString();
     await execute(
-      'INSERT INTO teachers (id, email, password_hash, display_name, is_active, last_seen, created_at, updated_at) VALUES (?, ?, ?, ?, 1, ?, ?, ?)',
-      [uuidv4(), teacherEmail, hash, 'Prof Test', now, now, now]
+      `INSERT INTO users
+        (id, user_type, legacy_user_id, email, pseudo, first_name, last_name, display_name, description, avatar_path, affiliation, password_hash, auth_provider, is_active, last_seen, created_at, updated_at)
+       VALUES (?, 'teacher', NULL, ?, ?, NULL, NULL, ?, NULL, NULL, 'both', ?, 'local', 1, ?, NOW(), NOW())`,
+      [uuidv4(), teacherEmail, teacherEmail.split('@')[0], 'Prof Test', hash, now]
     );
 
     const res = await request(app)
@@ -188,8 +189,10 @@ describe('Auth', () => {
     const teacherEmail = 'oauth.prof@pedagolyautey.org';
     const now = new Date().toISOString();
     await execute(
-      'INSERT INTO teachers (id, email, password_hash, display_name, is_active, last_seen, created_at, updated_at) VALUES (?, ?, ?, ?, 1, ?, ?, ?)',
-      [uuidv4(), teacherEmail, await bcrypt.hash('dummy-password', 10), 'Prof OAuth', now, now, now]
+      `INSERT INTO users
+        (id, user_type, legacy_user_id, email, pseudo, first_name, last_name, display_name, description, avatar_path, affiliation, password_hash, auth_provider, is_active, last_seen, created_at, updated_at)
+       VALUES (?, 'teacher', NULL, ?, ?, NULL, NULL, ?, NULL, NULL, 'both', ?, 'local', 1, ?, NOW(), NOW())`,
+      [uuidv4(), teacherEmail, teacherEmail.split('@')[0], 'Prof OAuth', await bcrypt.hash('dummy-password', 10), now]
     );
     authRouter.__setGoogleOAuthHooks({
       exchangeCode: async () => ({ id_token: 'token-prof' }),
@@ -234,7 +237,7 @@ describe('Auth', () => {
     assert.strictEqual(payload?.type, 'student');
     assert.ok(payload?.student?.id);
     assert.strictEqual(String(payload?.student?.email || '').toLowerCase(), studentEmail.toLowerCase());
-    const created = await queryOne('SELECT id, email FROM students WHERE LOWER(email)=LOWER(?) LIMIT 1', [studentEmail]);
+    const created = await queryOne("SELECT id, email FROM users WHERE user_type = 'student' AND LOWER(email)=LOWER(?) LIMIT 1", [studentEmail]);
     assert.ok(created?.id);
     authRouter.__setGoogleOAuthHooks();
   });
@@ -266,8 +269,10 @@ describe('Auth', () => {
     const now = new Date().toISOString();
     const teacherId = uuidv4();
     await execute(
-      'INSERT INTO teachers (id, email, password_hash, display_name, is_active, last_seen, created_at, updated_at) VALUES (?, ?, ?, ?, 1, ?, ?, ?)',
-      [teacherId, teacherEmail, hash, 'Prof Reset', now, now, now]
+      `INSERT INTO users
+        (id, user_type, legacy_user_id, email, pseudo, first_name, last_name, display_name, description, avatar_path, affiliation, password_hash, auth_provider, is_active, last_seen, created_at, updated_at)
+       VALUES (?, 'teacher', NULL, ?, ?, NULL, NULL, ?, NULL, NULL, 'both', ?, 'local', 1, ?, NOW(), NOW())`,
+      [teacherId, teacherEmail, teacherEmail.split('@')[0], 'Prof Reset', hash, now]
     );
 
     const resetToken = `teacher-reset-${Date.now()}`;

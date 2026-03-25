@@ -223,7 +223,7 @@ test('PATCH /api/students/:id/profile met à jour pseudo/email/description', asy
   assert.strictEqual(res.body.description, 'Description mise à jour');
   assert.strictEqual(res.body.affiliation, 'n3');
   assert.ok(res.body.avatar_path);
-  assert.strictEqual(res.body.password, undefined);
+  assert.strictEqual(res.body.password_hash, undefined);
 });
 
 test('PATCH /api/students/:id/profile rejette un email invalide', async () => {

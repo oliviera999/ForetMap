@@ -4,7 +4,6 @@ const { requirePermission } = require('../middleware/requireTeacher');
 const { hashPin, setPrimaryRole } = require('../lib/rbac');
 const { logRouteError } = require('../lib/routeLog');
 const { logAudit } = require('./audit');
-const { ensureCanonicalUserFromStudent, ensureCanonicalUserFromTeacher } = require('../lib/identity');
 
 const router = express.Router();
 
@@ -131,52 +130,26 @@ router.get(
   requirePermission('admin.users.assign_roles', { needsElevation: true }),
   async (req, res) => {
     try {
-      const canonicalUsers = await queryAll(
-        `SELECT u.id, u.user_type, u.legacy_user_id,
+      const users = await queryAll(
+        `SELECT u.id, u.user_type,
                 COALESCE(NULLIF(u.display_name, ''), NULLIF(CONCAT(COALESCE(u.first_name, ''), ' ', COALESCE(u.last_name, '')), ''), u.email, u.pseudo, u.id) AS display_name,
                 u.email, ur.role_id, r.slug AS role_slug, r.display_name AS role_display_name
            FROM users u
-      LEFT JOIN user_roles ur ON ur.user_type = u.user_type AND ur.user_id = u.legacy_user_id AND ur.is_primary = 1
+      LEFT JOIN user_roles ur ON ur.user_type = u.user_type AND ur.user_id = u.id AND ur.is_primary = 1
       LEFT JOIN roles r ON r.id = ur.role_id
        ORDER BY u.user_type ASC, display_name ASC`
       );
-      const students = await queryAll(
-        `SELECT s.id, 'student' AS user_type, CONCAT(s.first_name, ' ', s.last_name) AS display_name, s.email,
-                ur.role_id, r.slug AS role_slug, r.display_name AS role_display_name
-           FROM students s
-      LEFT JOIN user_roles ur ON ur.user_type = 'student' AND ur.user_id = s.id AND ur.is_primary = 1
-      LEFT JOIN roles r ON r.id = ur.role_id
-       ORDER BY s.first_name, s.last_name`
-      );
-      const teachers = await queryAll(
-        `SELECT t.id, 'teacher' AS user_type, COALESCE(NULLIF(t.display_name, ''), t.email) AS display_name, t.email,
-                ur.role_id, r.slug AS role_slug, r.display_name AS role_display_name
-           FROM teachers t
-      LEFT JOIN user_roles ur ON ur.user_type = 'teacher' AND ur.user_id = t.id AND ur.is_primary = 1
-      LEFT JOIN roles r ON r.id = ur.role_id
-       ORDER BY display_name`
-      );
-      const canonicalLegacyKeys = new Set(
-        canonicalUsers.map((u) => `${u.user_type}:${u.legacy_user_id}`).filter((k) => !k.endsWith(':null') && !k.endsWith(':undefined'))
-      );
-      const legacyFallback = [
-        ...teachers.filter((t) => !canonicalLegacyKeys.has(`teacher:${t.id}`)),
-        ...students.filter((s) => !canonicalLegacyKeys.has(`student:${s.id}`)),
-      ];
-      res.json([
-        ...canonicalUsers.map((u) => ({
+      res.json(
+        users.map((u) => ({
           id: u.id,
-          user_type: 'user',
-          legacy_user_type: u.user_type,
-          legacy_user_id: u.legacy_user_id,
+          user_type: u.user_type,
           display_name: u.display_name,
           email: u.email,
           role_id: u.role_id,
           role_slug: u.role_slug,
           role_display_name: u.role_display_name,
-        })),
-        ...legacyFallback,
-      ]);
+        }))
+      );
     } catch (e) {
       logRouteError(e, req);
       res.status(500).json({ error: e.message });
@@ -198,14 +171,12 @@ router.put(
       let resolvedUserType = userType;
       let resolvedLegacyUserId = req.params.userId;
       if (userType === 'user') {
-        const user = await queryOne('SELECT id, user_type, legacy_user_id FROM users WHERE id = ? LIMIT 1', [req.params.userId]);
+        const user = await queryOne('SELECT id, user_type FROM users WHERE id = ? LIMIT 1', [req.params.userId]);
         if (!user) return res.status(404).json({ error: 'Utilisateur introuvable' });
         resolvedUserType = user.user_type;
-        resolvedLegacyUserId = user.legacy_user_id;
+        resolvedLegacyUserId = user.id;
       }
       await setPrimaryRole(resolvedUserType, resolvedLegacyUserId, roleId);
-      if (resolvedUserType === 'teacher') await ensureCanonicalUserFromTeacher({ id: resolvedLegacyUserId });
-      if (resolvedUserType === 'student') await ensureCanonicalUserFromStudent({ id: resolvedLegacyUserId });
       logAudit('rbac_assign_role', 'role', String(roleId), `${resolvedUserType}:${resolvedLegacyUserId}`, {
         req,
         payload: { user_type: resolvedUserType, user_id: resolvedLegacyUserId, role_id: roleId },
