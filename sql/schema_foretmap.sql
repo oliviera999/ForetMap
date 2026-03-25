@@ -232,6 +232,45 @@ CREATE TABLE IF NOT EXISTS map_markers (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- visite : contenus éditoriaux par zone (publics)
+CREATE TABLE IF NOT EXISTS visit_zones (
+  id VARCHAR(64) NOT NULL PRIMARY KEY,
+  map_id VARCHAR(32) NOT NULL,
+  name VARCHAR(255) NOT NULL,
+  points TEXT NOT NULL,
+  subtitle VARCHAR(255) DEFAULT '',
+  short_description TEXT DEFAULT NULL,
+  details_title VARCHAR(255) DEFAULT 'Détails',
+  details_text TEXT DEFAULT NULL,
+  is_active TINYINT(1) NOT NULL DEFAULT 1,
+  sort_order INT UNSIGNED DEFAULT 0,
+  created_at VARCHAR(32) DEFAULT NULL,
+  updated_at VARCHAR(32) DEFAULT NULL,
+  INDEX idx_visit_zones_map (map_id),
+  INDEX idx_visit_zones_active_sort (is_active, sort_order),
+  CONSTRAINT fk_visit_zones_map FOREIGN KEY (map_id) REFERENCES maps(id) ON DELETE RESTRICT
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS visit_markers (
+  id VARCHAR(64) NOT NULL PRIMARY KEY,
+  map_id VARCHAR(32) NOT NULL,
+  x_pct DOUBLE NOT NULL,
+  y_pct DOUBLE NOT NULL,
+  label VARCHAR(255) NOT NULL,
+  emoji VARCHAR(16) DEFAULT '📍',
+  subtitle VARCHAR(255) DEFAULT '',
+  short_description TEXT DEFAULT NULL,
+  details_title VARCHAR(255) DEFAULT 'Détails',
+  details_text TEXT DEFAULT NULL,
+  is_active TINYINT(1) NOT NULL DEFAULT 1,
+  sort_order INT UNSIGNED DEFAULT 0,
+  created_at VARCHAR(32) DEFAULT NULL,
+  updated_at VARCHAR(32) DEFAULT NULL,
+  INDEX idx_visit_markers_map (map_id),
+  INDEX idx_visit_markers_active_sort (is_active, sort_order),
+  CONSTRAINT fk_visit_markers_map FOREIGN KEY (map_id) REFERENCES maps(id) ON DELETE RESTRICT
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Legacy V1 (visit_zone_content / visit_marker_content) conservées pour rétrocompatibilité.
 CREATE TABLE IF NOT EXISTS visit_zone_content (
   zone_id VARCHAR(64) NOT NULL PRIMARY KEY,
   subtitle VARCHAR(255) DEFAULT '',

@@ -88,10 +88,44 @@ async function mapExists(mapId) {
   return !!row;
 }
 
+function parsePointsInput(points) {
+  if (Array.isArray(points)) return points;
+  if (typeof points === 'string' && points.trim()) {
+    try { return JSON.parse(points); } catch (_) { return null; }
+  }
+  return null;
+}
+
+function normalizePoints(points) {
+  const parsed = parsePointsInput(points);
+  if (!Array.isArray(parsed)) return null;
+  const out = parsed
+    .map((p) => ({
+      xp: Number(p?.xp),
+      yp: Number(p?.yp),
+    }))
+    .filter((p) => Number.isFinite(p.xp) && Number.isFinite(p.yp) && p.xp >= 0 && p.xp <= 100 && p.yp >= 0 && p.yp <= 100);
+  return out.length >= 3 ? out : null;
+}
+
+function normalizeCoord(value) {
+  const n = Number(value);
+  return Number.isFinite(n) && n >= 0 && n <= 100 ? n : null;
+}
+
 async function cleanupAnonymousSeen() {
   await execute(
     "DELETE FROM visit_seen_anonymous WHERE updated_at < DATE_SUB(UTC_TIMESTAMP(), INTERVAL 1 DAY)"
   );
+}
+
+async function visitTargetExists(targetType, targetId) {
+  if (targetType === 'zone') {
+    const row = await queryOne('SELECT id FROM visit_zones WHERE id = ? LIMIT 1', [targetId]);
+    return !!row;
+  }
+  const row = await queryOne('SELECT id FROM visit_markers WHERE id = ? LIMIT 1', [targetId]);
+  return !!row;
 }
 
 router.get('/content', async (req, res) => {
@@ -102,33 +136,31 @@ router.get('/content', async (req, res) => {
 
     const zones = await queryAll(
       `SELECT
-         z.*,
-         COALESCE(vz.subtitle, '') AS visit_subtitle,
-         COALESCE(vz.short_description, '') AS visit_short_description,
-         COALESCE(vz.details_title, 'Détails') AS visit_details_title,
-         COALESCE(vz.details_text, '') AS visit_details_text,
-         COALESCE(vz.is_active, 1) AS visit_is_active,
-         COALESCE(vz.sort_order, 0) AS visit_sort_order
-       FROM zones z
-       LEFT JOIN visit_zone_content vz ON vz.zone_id = z.id
+         z.id, z.map_id, z.name, z.points,
+         z.subtitle AS visit_subtitle,
+         z.short_description AS visit_short_description,
+         z.details_title AS visit_details_title,
+         z.details_text AS visit_details_text,
+         z.is_active AS visit_is_active,
+         z.sort_order AS visit_sort_order
+       FROM visit_zones z
        WHERE z.map_id = ?
-       ORDER BY COALESCE(vz.sort_order, 0) ASC, z.name ASC`,
+       ORDER BY z.sort_order ASC, z.name ASC`,
       [mapId]
     );
 
     const markers = await queryAll(
       `SELECT
-         m.*,
-         COALESCE(vm.subtitle, '') AS visit_subtitle,
-         COALESCE(vm.short_description, '') AS visit_short_description,
-         COALESCE(vm.details_title, 'Détails') AS visit_details_title,
-         COALESCE(vm.details_text, '') AS visit_details_text,
-         COALESCE(vm.is_active, 1) AS visit_is_active,
-         COALESCE(vm.sort_order, 0) AS visit_sort_order
-       FROM map_markers m
-       LEFT JOIN visit_marker_content vm ON vm.marker_id = m.id
+         m.id, m.map_id, m.x_pct, m.y_pct, m.label, m.emoji,
+         m.subtitle AS visit_subtitle,
+         m.short_description AS visit_short_description,
+         m.details_title AS visit_details_title,
+         m.details_text AS visit_details_text,
+         m.is_active AS visit_is_active,
+         m.sort_order AS visit_sort_order
+       FROM visit_markers m
        WHERE m.map_id = ?
-       ORDER BY COALESCE(vm.sort_order, 0) ASC, m.label ASC`,
+       ORDER BY m.sort_order ASC, m.label ASC`,
       [mapId]
     );
 
@@ -224,6 +256,9 @@ router.post('/seen', async (req, res) => {
     if (!targetType || !targetId) {
       return res.status(400).json({ error: 'Cible de visite invalide' });
     }
+    if (!(await visitTargetExists(targetType, targetId))) {
+      return res.status(404).json({ error: 'Cible de visite introuvable' });
+    }
 
     if (studentId) {
       const student = await queryOne('SELECT id FROM students WHERE id = ? LIMIT 1', [studentId]);
@@ -268,34 +303,140 @@ router.post('/seen', async (req, res) => {
   }
 });
 
+router.post('/zones', requireTeacher, async (req, res) => {
+  try {
+    const mapId = String(req.body.map_id || 'foret').trim();
+    const name = String(req.body.name || '').trim();
+    const points = normalizePoints(req.body.points);
+    if (!mapId || !(await mapExists(mapId))) return res.status(400).json({ error: 'Carte introuvable' });
+    if (!name) return res.status(400).json({ error: 'Nom de zone requis' });
+    if (!points) return res.status(400).json({ error: 'Polygone invalide (min 3 points)' });
+    const id = uuidv4();
+    await execute(
+      `INSERT INTO visit_zones
+        (id, map_id, name, points, subtitle, short_description, details_title, details_text, sort_order, is_active, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        id,
+        mapId,
+        name,
+        JSON.stringify(points),
+        String(req.body.subtitle || '').trim(),
+        String(req.body.short_description || '').trim(),
+        String(req.body.details_title || 'Détails').trim() || 'Détails',
+        String(req.body.details_text || '').trim(),
+        Number.isFinite(Number(req.body.sort_order)) ? Math.max(0, Number(req.body.sort_order)) : 0,
+        req.body.is_active === false ? 0 : 1,
+        nowIso(),
+        nowIso(),
+      ]
+    );
+    const row = await queryOne('SELECT * FROM visit_zones WHERE id = ?', [id]);
+    res.status(201).json(row);
+  } catch (err) {
+    logRouteError(err, req);
+    res.status(500).json({ error: 'Erreur serveur' });
+  }
+});
+
 router.put('/zones/:id', requireTeacher, async (req, res) => {
   try {
     const zoneId = String(req.params.id || '').trim();
     if (!zoneId) return res.status(400).json({ error: 'Zone invalide' });
-    const exists = await queryOne('SELECT id FROM zones WHERE id = ? LIMIT 1', [zoneId]);
+    const exists = await queryOne('SELECT * FROM visit_zones WHERE id = ? LIMIT 1', [zoneId]);
     if (!exists) return res.status(404).json({ error: 'Zone introuvable' });
-    const subtitle = String(req.body.subtitle || '').trim();
-    const shortDescription = String(req.body.short_description || '').trim();
-    const detailsTitle = String(req.body.details_title || 'Détails').trim() || 'Détails';
-    const detailsText = String(req.body.details_text || '').trim();
-    const isActive = req.body.is_active === false ? 0 : 1;
-    const sortOrder = Number.isFinite(Number(req.body.sort_order)) ? Math.max(0, Number(req.body.sort_order)) : 0;
+    const name = req.body.name !== undefined ? String(req.body.name || '').trim() : exists.name;
+    if (!name) return res.status(400).json({ error: 'Nom de zone requis' });
+    const maybePoints = req.body.points !== undefined ? normalizePoints(req.body.points) : null;
+    if (req.body.points !== undefined && !maybePoints) {
+      return res.status(400).json({ error: 'Polygone invalide (min 3 points)' });
+    }
+    const subtitle = req.body.subtitle !== undefined ? String(req.body.subtitle || '').trim() : String(exists.subtitle || '');
+    const shortDescription = req.body.short_description !== undefined
+      ? String(req.body.short_description || '').trim()
+      : String(exists.short_description || '');
+    const detailsTitle = req.body.details_title !== undefined
+      ? (String(req.body.details_title || 'Détails').trim() || 'Détails')
+      : (String(exists.details_title || 'Détails').trim() || 'Détails');
+    const detailsText = req.body.details_text !== undefined ? String(req.body.details_text || '').trim() : String(exists.details_text || '');
+    const isActive = req.body.is_active !== undefined ? (req.body.is_active === false ? 0 : 1) : Number(exists.is_active ?? 1);
+    const sortOrder = req.body.sort_order !== undefined
+      ? (Number.isFinite(Number(req.body.sort_order)) ? Math.max(0, Number(req.body.sort_order)) : Number(exists.sort_order || 0))
+      : Number(exists.sort_order || 0);
     await execute(
-      `INSERT INTO visit_zone_content
-        (zone_id, subtitle, short_description, details_title, details_text, is_active, sort_order, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-       ON DUPLICATE KEY UPDATE
-         subtitle = VALUES(subtitle),
-         short_description = VALUES(short_description),
-         details_title = VALUES(details_title),
-         details_text = VALUES(details_text),
-         is_active = VALUES(is_active),
-         sort_order = VALUES(sort_order),
-         updated_at = VALUES(updated_at)`,
-      [zoneId, subtitle, shortDescription, detailsTitle, detailsText, isActive, sortOrder, nowIso()]
+      `UPDATE visit_zones
+       SET name = ?, points = ?, subtitle = ?, short_description = ?, details_title = ?, details_text = ?,
+           is_active = ?, sort_order = ?, updated_at = ?
+       WHERE id = ?`,
+      [
+        name,
+        maybePoints ? JSON.stringify(maybePoints) : exists.points,
+        subtitle,
+        shortDescription,
+        detailsTitle,
+        detailsText,
+        isActive,
+        sortOrder,
+        nowIso(),
+        zoneId,
+      ]
     );
-    const row = await queryOne('SELECT * FROM visit_zone_content WHERE zone_id = ?', [zoneId]);
+    const row = await queryOne('SELECT * FROM visit_zones WHERE id = ?', [zoneId]);
     res.json(row);
+  } catch (err) {
+    logRouteError(err, req);
+    res.status(500).json({ error: 'Erreur serveur' });
+  }
+});
+
+router.delete('/zones/:id', requireTeacher, async (req, res) => {
+  try {
+    const zoneId = String(req.params.id || '').trim();
+    if (!zoneId) return res.status(400).json({ error: 'Zone invalide' });
+    await execute('DELETE FROM visit_zones WHERE id = ?', [zoneId]);
+    await execute(`DELETE FROM visit_media WHERE target_type = 'zone' AND target_id = ?`, [zoneId]);
+    await execute(`DELETE FROM visit_seen_students WHERE target_type = 'zone' AND target_id = ?`, [zoneId]);
+    await execute(`DELETE FROM visit_seen_anonymous WHERE target_type = 'zone' AND target_id = ?`, [zoneId]);
+    res.json({ ok: true });
+  } catch (err) {
+    logRouteError(err, req);
+    res.status(500).json({ error: 'Erreur serveur' });
+  }
+});
+
+router.post('/markers', requireTeacher, async (req, res) => {
+  try {
+    const mapId = String(req.body.map_id || 'foret').trim();
+    const label = String(req.body.label || '').trim();
+    const x = normalizeCoord(req.body.x_pct);
+    const y = normalizeCoord(req.body.y_pct);
+    if (!mapId || !(await mapExists(mapId))) return res.status(400).json({ error: 'Carte introuvable' });
+    if (!label) return res.status(400).json({ error: 'Nom du repère requis' });
+    if (x == null || y == null) return res.status(400).json({ error: 'Position repère invalide' });
+    const id = uuidv4();
+    await execute(
+      `INSERT INTO visit_markers
+        (id, map_id, x_pct, y_pct, label, emoji, subtitle, short_description, details_title, details_text, sort_order, is_active, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        id,
+        mapId,
+        x,
+        y,
+        label,
+        String(req.body.emoji || '📍').trim() || '📍',
+        String(req.body.subtitle || '').trim(),
+        String(req.body.short_description || '').trim(),
+        String(req.body.details_title || 'Détails').trim() || 'Détails',
+        String(req.body.details_text || '').trim(),
+        Number.isFinite(Number(req.body.sort_order)) ? Math.max(0, Number(req.body.sort_order)) : 0,
+        req.body.is_active === false ? 0 : 1,
+        nowIso(),
+        nowIso(),
+      ]
+    );
+    const row = await queryOne('SELECT * FROM visit_markers WHERE id = ?', [id]);
+    res.status(201).json(row);
   } catch (err) {
     logRouteError(err, req);
     res.status(500).json({ error: 'Erreur serveur' });
@@ -306,30 +447,63 @@ router.put('/markers/:id', requireTeacher, async (req, res) => {
   try {
     const markerId = String(req.params.id || '').trim();
     if (!markerId) return res.status(400).json({ error: 'Repère invalide' });
-    const exists = await queryOne('SELECT id FROM map_markers WHERE id = ? LIMIT 1', [markerId]);
+    const exists = await queryOne('SELECT * FROM visit_markers WHERE id = ? LIMIT 1', [markerId]);
     if (!exists) return res.status(404).json({ error: 'Repère introuvable' });
-    const subtitle = String(req.body.subtitle || '').trim();
-    const shortDescription = String(req.body.short_description || '').trim();
-    const detailsTitle = String(req.body.details_title || 'Détails').trim() || 'Détails';
-    const detailsText = String(req.body.details_text || '').trim();
-    const isActive = req.body.is_active === false ? 0 : 1;
-    const sortOrder = Number.isFinite(Number(req.body.sort_order)) ? Math.max(0, Number(req.body.sort_order)) : 0;
+    const label = req.body.label !== undefined ? String(req.body.label || '').trim() : exists.label;
+    if (!label) return res.status(400).json({ error: 'Nom du repère requis' });
+    const x = req.body.x_pct !== undefined ? normalizeCoord(req.body.x_pct) : Number(exists.x_pct);
+    const y = req.body.y_pct !== undefined ? normalizeCoord(req.body.y_pct) : Number(exists.y_pct);
+    if (x == null || y == null) return res.status(400).json({ error: 'Position repère invalide' });
+    const emoji = req.body.emoji !== undefined ? (String(req.body.emoji || '📍').trim() || '📍') : String(exists.emoji || '📍');
+    const subtitle = req.body.subtitle !== undefined ? String(req.body.subtitle || '').trim() : String(exists.subtitle || '');
+    const shortDescription = req.body.short_description !== undefined
+      ? String(req.body.short_description || '').trim()
+      : String(exists.short_description || '');
+    const detailsTitle = req.body.details_title !== undefined
+      ? (String(req.body.details_title || 'Détails').trim() || 'Détails')
+      : (String(exists.details_title || 'Détails').trim() || 'Détails');
+    const detailsText = req.body.details_text !== undefined ? String(req.body.details_text || '').trim() : String(exists.details_text || '');
+    const isActive = req.body.is_active !== undefined ? (req.body.is_active === false ? 0 : 1) : Number(exists.is_active ?? 1);
+    const sortOrder = req.body.sort_order !== undefined
+      ? (Number.isFinite(Number(req.body.sort_order)) ? Math.max(0, Number(req.body.sort_order)) : Number(exists.sort_order || 0))
+      : Number(exists.sort_order || 0);
     await execute(
-      `INSERT INTO visit_marker_content
-        (marker_id, subtitle, short_description, details_title, details_text, is_active, sort_order, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-       ON DUPLICATE KEY UPDATE
-         subtitle = VALUES(subtitle),
-         short_description = VALUES(short_description),
-         details_title = VALUES(details_title),
-         details_text = VALUES(details_text),
-         is_active = VALUES(is_active),
-         sort_order = VALUES(sort_order),
-         updated_at = VALUES(updated_at)`,
-      [markerId, subtitle, shortDescription, detailsTitle, detailsText, isActive, sortOrder, nowIso()]
+      `UPDATE visit_markers
+       SET label = ?, x_pct = ?, y_pct = ?, emoji = ?, subtitle = ?, short_description = ?, details_title = ?, details_text = ?,
+           is_active = ?, sort_order = ?, updated_at = ?
+       WHERE id = ?`,
+      [
+        label,
+        x,
+        y,
+        emoji,
+        subtitle,
+        shortDescription,
+        detailsTitle,
+        detailsText,
+        isActive,
+        sortOrder,
+        nowIso(),
+        markerId,
+      ]
     );
-    const row = await queryOne('SELECT * FROM visit_marker_content WHERE marker_id = ?', [markerId]);
+    const row = await queryOne('SELECT * FROM visit_markers WHERE id = ?', [markerId]);
     res.json(row);
+  } catch (err) {
+    logRouteError(err, req);
+    res.status(500).json({ error: 'Erreur serveur' });
+  }
+});
+
+router.delete('/markers/:id', requireTeacher, async (req, res) => {
+  try {
+    const markerId = String(req.params.id || '').trim();
+    if (!markerId) return res.status(400).json({ error: 'Repère invalide' });
+    await execute('DELETE FROM visit_markers WHERE id = ?', [markerId]);
+    await execute(`DELETE FROM visit_media WHERE target_type = 'marker' AND target_id = ?`, [markerId]);
+    await execute(`DELETE FROM visit_seen_students WHERE target_type = 'marker' AND target_id = ?`, [markerId]);
+    await execute(`DELETE FROM visit_seen_anonymous WHERE target_type = 'marker' AND target_id = ?`, [markerId]);
+    res.json({ ok: true });
   } catch (err) {
     logRouteError(err, req);
     res.status(500).json({ error: 'Erreur serveur' });
@@ -345,6 +519,13 @@ router.post('/media', requireTeacher, async (req, res) => {
     const sortOrder = Number.isFinite(Number(req.body.sort_order)) ? Math.max(0, Number(req.body.sort_order)) : 0;
     if (!targetType || !targetId || !imageUrl) {
       return res.status(400).json({ error: 'Photo de visite invalide' });
+    }
+    if (targetType === 'zone') {
+      const zone = await queryOne('SELECT id FROM visit_zones WHERE id = ? LIMIT 1', [targetId]);
+      if (!zone) return res.status(404).json({ error: 'Zone de visite introuvable' });
+    } else {
+      const marker = await queryOne('SELECT id FROM visit_markers WHERE id = ? LIMIT 1', [targetId]);
+      if (!marker) return res.status(404).json({ error: 'Repère de visite introuvable' });
     }
     const now = nowIso();
     const result = await execute(
