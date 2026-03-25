@@ -316,7 +316,18 @@ function App() {
       ) : (
         <AuthScreen
           onLogin={s => {
-            updateStudentSession(s);
+            const userType = String(s?.auth?.userType || s?.user_type || 'student').toLowerCase();
+            if (userType === 'teacher') {
+              setStudent(null);
+              setSessionUser({
+                id: s?.auth?.canonicalUserId || s?.id || null,
+                userType: 'teacher',
+                displayName: s?.display_name || s?.auth?.roleDisplayName || 'Professeur',
+                email: s?.email || null,
+              });
+            } else {
+              updateStudentSession(s);
+            }
             const claims = getAuthClaims();
             setAuthClaims(claims);
             setIsTeacher(Array.isArray(claims?.permissions) && claims.permissions.includes('teacher.access'));
