@@ -17,6 +17,7 @@ import { AuditLog } from './components/audit-views';
 import { AboutView } from './components/about-views';
 import { StudentAvatar } from './components/student-avatar';
 import { TutorialsView } from './components/tutorials-views';
+import { VisitView } from './components/visit-views';
 
 // ── APP ───────────────────────────────────────────────────────────────────────
 function App() {
@@ -27,6 +28,7 @@ function App() {
   const [student,    setStudent]    = useState(null);
   const [isTeacher,  setIsTeacher]  = useState(() => !!localStorage.getItem('foretmap_teacher_token'));
   const [showPin,    setShowPin]    = useState(false);
+  const [showPublicVisit, setShowPublicVisit] = useState(false);
   const [showStats,  setShowStats]  = useState(false);
   const [showProfile,setShowProfile]= useState(false);
   const [tab,        setTab]        = useState('map');
@@ -171,7 +173,26 @@ function App() {
   if (!student) return (
     <>
       {toast && <Toast msg={toast} onDone={() => setToast(null)}/>}
-      <AuthScreen onLogin={s => updateStudentSession(s)} appVersion={appVersion}/>
+      {showPublicVisit ? (
+        <div id="app">
+          <div className="main" style={{ paddingBottom: 20 }}>
+            <VisitView
+              student={null}
+              isTeacher={false}
+              initialMapId={activeMapId}
+              onBackToAuth={() => setShowPublicVisit(false)}
+              availableTutorials={[]}
+            />
+          </div>
+          <footer className="app-footer">Version {appVersion != null ? appVersion : '…'}</footer>
+        </div>
+      ) : (
+        <AuthScreen
+          onLogin={s => updateStudentSession(s)}
+          appVersion={appVersion}
+          onVisitGuest={() => setShowPublicVisit(true)}
+        />
+      )}
     </>
   );
   if (loading) return (
@@ -287,6 +308,7 @@ function App() {
             <button className={`top-tab ${tab === 'tuto' ? 'active' : ''}`} onClick={() => setTab('tuto')}>📘 Tuto</button>
             <button className={`top-tab ${tab === 'stats' ? 'active' : ''}`} onClick={() => setTab('stats')}>📊 Stats</button>
             <button className={`top-tab ${tab === 'audit' ? 'active' : ''}`} onClick={() => setTab('audit')}>📜 Audit</button>
+            <button className={`top-tab ${tab === 'visit' ? 'active' : ''}`} onClick={() => setTab('visit')}>🧭 Visite</button>
             <button className={`top-tab ${tab === 'about' ? 'active' : ''}`} onClick={() => setTab('about')}>ℹ️ À propos</button>
           </div>
           {tab === 'map'    && <MapView zones={zones} markers={markers} tasks={tasks} plants={plants} maps={maps} activeMapId={activeMapId} onMapChange={setActiveMapId} isTeacher student={student} onZoneUpdate={updateZone} onRefresh={fetchAll}/>}
@@ -295,6 +317,7 @@ function App() {
           {tab === 'tuto'   && <TutorialsView tutorials={tutorials} isTeacher onRefresh={fetchAll} onForceLogout={forceLogout} />}
           {tab === 'stats'  && <TeacherStats/>}
           {tab === 'audit'  && <AuditLog/>}
+          {tab === 'visit'  && <VisitView student={student} isTeacher availableTutorials={tutorials} initialMapId={activeMapId} onForceLogout={forceLogout} />}
           {tab === 'about'  && <AboutView appVersion={appVersion}/>}
         </div>
       ) : (
@@ -305,6 +328,7 @@ function App() {
             {tab === 'plants' && <PlantViewer plants={plants} zones={zones}/>}
             {tab === 'tuto' && <TutorialsView tutorials={tutorials} isTeacher={false} onRefresh={fetchAll} onForceLogout={forceLogout} />}
             {tab === 'notebook' && <ObservationNotebook student={student} zones={zones}/>}
+            {tab === 'visit' && <VisitView student={student} isTeacher={false} availableTutorials={tutorials} initialMapId={activeMapId} onForceLogout={forceLogout} />}
             {tab === 'about' && <AboutView appVersion={appVersion}/>}
           </div>
           <nav className="bottom-nav">
@@ -324,6 +348,9 @@ function App() {
             </button>
             <button className={`nav-btn ${tab === 'notebook' ? 'active' : ''}`} onClick={() => setTab('notebook')}>
               <span className="nav-icon">📓</span> Carnet
+            </button>
+            <button className={`nav-btn ${tab === 'visit' ? 'active' : ''}`} onClick={() => setTab('visit')}>
+              <span className="nav-icon">🧭</span> Visite
             </button>
             <button className={`nav-btn ${tab === 'about' ? 'active' : ''}`} onClick={() => setTab('about')}>
               <span className="nav-icon">ℹ️</span> À propos

@@ -164,3 +164,105 @@ test('PATCH /api/students/:id/profile rejette un mot de passe actuel invalide', 
     .expect(401);
   assert.ok(res.body.error);
 });
+
+test('GET /api/visit/content expose les contenus visite et les tutos choisis', async () => {
+  const zonesRes = await request(app).get('/api/zones?map_id=foret').expect(200);
+  const zoneId = zonesRes.body[0]?.id;
+  assert.ok(zoneId);
+
+  const markerRes = await request(app)
+    .post('/api/map/markers')
+    .set('Authorization', 'Bearer ' + teacherToken)
+    .send({
+      map_id: 'foret',
+      x_pct: 44,
+      y_pct: 41,
+      label: `Repère visite ${Date.now()}`,
+      emoji: '🧭',
+    })
+    .expect(201);
+
+  await request(app)
+    .put(`/api/visit/zones/${zoneId}`)
+    .set('Authorization', 'Bearer ' + teacherToken)
+    .send({
+      subtitle: 'Sous-titre zone visite',
+      short_description: 'Description zone visite',
+      details_title: 'Détails zone',
+      details_text: 'Contenu dépliable zone',
+      sort_order: 1,
+      is_active: true,
+    })
+    .expect(200);
+
+  await request(app)
+    .put(`/api/visit/markers/${markerRes.body.id}`)
+    .set('Authorization', 'Bearer ' + teacherToken)
+    .send({
+      subtitle: 'Sous-titre repère visite',
+      short_description: 'Description repère visite',
+      details_text: 'Contenu repère',
+      sort_order: 2,
+      is_active: true,
+    })
+    .expect(200);
+
+  const tutosRes = await request(app).get('/api/tutorials').expect(200);
+  const firstTutorial = tutosRes.body[0]?.id;
+  assert.ok(firstTutorial);
+
+  await request(app)
+    .put('/api/visit/tutorials')
+    .set('Authorization', 'Bearer ' + teacherToken)
+    .send({ tutorial_ids: [firstTutorial] })
+    .expect(200);
+
+  const visitRes = await request(app).get('/api/visit/content?map_id=foret').expect(200);
+  assert.ok(Array.isArray(visitRes.body.zones));
+  assert.ok(Array.isArray(visitRes.body.markers));
+  assert.ok(Array.isArray(visitRes.body.tutorials));
+  assert.ok(visitRes.body.zones.some((z) => z.id === zoneId));
+  assert.ok(visitRes.body.markers.some((m) => m.id === markerRes.body.id));
+  assert.ok(visitRes.body.tutorials.some((t) => t.id === firstTutorial));
+});
+
+test('Progression visite anonyme persiste via cookie signé', async () => {
+  const zonesRes = await request(app).get('/api/zones?map_id=foret').expect(200);
+  const zoneId = zonesRes.body[0]?.id;
+  assert.ok(zoneId);
+
+  const agent = request.agent(app);
+  const firstProgress = await agent.get('/api/visit/progress').expect(200);
+  assert.strictEqual(firstProgress.body.mode, 'anonymous');
+
+  await agent
+    .post('/api/visit/seen')
+    .send({ target_type: 'zone', target_id: zoneId, seen: true })
+    .expect(200);
+
+  const secondProgress = await agent.get('/api/visit/progress').expect(200);
+  assert.ok(secondProgress.body.seen.some((item) => item.target_type === 'zone' && item.target_id === zoneId));
+});
+
+test('Progression visite élève connecté persiste en BDD', async () => {
+  const markersRes = await request(app).get('/api/map/markers?map_id=foret').expect(200);
+  const markerId = markersRes.body[0]?.id;
+  assert.ok(markerId);
+
+  await request(app)
+    .post('/api/visit/seen')
+    .send({
+      student_id: studentData.id,
+      target_type: 'marker',
+      target_id: markerId,
+      seen: true,
+    })
+    .expect(200);
+
+  const progress = await request(app)
+    .get(`/api/visit/progress?student_id=${encodeURIComponent(studentData.id)}`)
+    .expect(200);
+
+  assert.strictEqual(progress.body.mode, 'student');
+  assert.ok(progress.body.seen.some((item) => item.target_type === 'marker' && item.target_id === markerId));
+});

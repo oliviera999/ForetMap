@@ -48,7 +48,7 @@ function PinModal({ onSuccess, onClose }) {
   );
 }
 
-function AuthScreen({ onLogin, appVersion }) {
+function AuthScreen({ onLogin, appVersion, onVisitGuest }) {
   const [mode, setMode] = useState('login'); // 'login' | 'register'
   const [first, setFirst] = useState('');
   const [last, setLast] = useState('');
@@ -147,6 +147,11 @@ function AuthScreen({ onLogin, appVersion }) {
         <button className="btn btn-primary btn-full" onClick={submit} disabled={loading} style={{ marginTop: 4 }}>
           {loading ? '...' : mode === 'login' ? 'Se connecter 🌱' : 'Créer le compte'}
         </button>
+        {onVisitGuest && (
+          <button className="btn btn-ghost btn-full" onClick={onVisitGuest} style={{ marginTop: 8 }}>
+            🧭 Visiter sans connexion
+          </button>
+        )}
         {appVersion != null && <p className="auth-version">Version {appVersion}</p>}
       </div>
     </div>

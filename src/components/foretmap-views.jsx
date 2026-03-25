@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { api, AccountDeletedError } from '../services/api';
 import { SPECIAL_EMOJI, SPECIAL_DESC, TREE_LEGEND, TREE_DOTS } from '../constants/garden';
+import { PLANT_EMOJIS } from '../constants/emojis';
 import { compressImage } from '../utils/image';
 import { TaskFormModal, TasksView, LogModal, TaskLogsViewer } from './tasks-views';
 import { Lightbox, PhotoGallery, ZoneInfoModal, ZoneDrawModal, MarkerModal, MapView } from './map-views';
@@ -14,7 +15,6 @@ function Toast({ msg, onDone }) {
 // ── INTERACTIVE MAP ──────────────────────────────────────────────────────────
 
 
-const EMOJI_OPTS = ['🌱','🌿','🥬','🥕','🍅','🫑','🥒','🍓','🌸','🌺','🫘','🌾','🍋','🍊','🌰','🧅','🧄','🫚'];
 const EMPTY_PLANT_FORM = {
   name: '',
   emoji: '🌱',
@@ -377,7 +377,7 @@ function PlantEditForm({ title, form, setForm, onSave, onCancel, saving, plantId
       <h4>{title}</h4>
       <div className="field"><label>Emoji</label>
         <div className="emoji-row">
-          {EMOJI_OPTS.map(e => (
+          {PLANT_EMOJIS.map(e => (
             <button key={e} className={`emoji-btn ${form.emoji === e ? 'sel' : ''}`}
               onClick={() => setForm(f => ({...f, emoji: e}))}>{e}</button>
           ))}
