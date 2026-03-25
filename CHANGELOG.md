@@ -6,6 +6,12 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 ## [Non publié]
 
 ### Ajouté
+- **Auth élève par identifiant** : la connexion accepte désormais un champ unique `identifier` (pseudo ou email) avec compatibilité maintenue sur l’ancien format `firstName + lastName`.
+- **Mot de passe oublié (élève + prof)** : nouveaux endpoints de reset (`forgot-password` / `reset-password`) avec email de réinitialisation, token fort hashé, expiration et usage unique.
+- **Comptes prof email/mot de passe** : ajout de la table `teachers`, de l’auth prof par email (`POST /api/auth/teacher/login`) et conservation complète du mode PIN existant.
+- **Service email SMTP** : nouveau module `lib/mailer.js`, variables `.env` associées, script `npm run db:seed:teacher`, et documentation API/README mise à jour.
+- **UI authentification refondue** : écran de connexion en `identifiant + mot de passe`, lien `Mot de passe oublié`, et coexistence PIN / email côté modal prof.
+- **Couverture de tests auth** : extension des tests backend auth et ajout d’un scénario e2e de connexion par pseudo/email.
 - **Import élèves en masse (prof)** : ajout de `POST /api/students/import` pour importer des comptes élèves depuis un fichier CSV/XLSX, avec validation par ligne, mode simulation (`dryRun`) et rapport détaillé des erreurs.
 - **Template élèves téléchargeable** : ajout de `GET /api/students/import/template` (CSV/XLSX) avec colonnes prêtes à l’emploi et une ligne d’exemple à remplacer/supprimer avant import.
 - **UI prof — Gestion des élèves** : nouveau panneau d’import dans `TeacherStats` (`src/components/stats-views.jsx`) avec téléchargement des modèles, sélection de fichier, simulation, import et affichage du rapport.

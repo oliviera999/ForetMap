@@ -52,8 +52,13 @@ Connexion **WebSocket** (avec repli **polling** long) sur le **même hôte** que
 | Méthode | URL | Body | Description |
 |--------|-----|------|-------------|
 | POST | `/api/auth/register` | `{ firstName, lastName, password, pseudo?, email?, description? }` | Créer un compte élève |
-| POST | `/api/auth/login` | `{ firstName, lastName, password }` | Connexion élève |
+| POST | `/api/auth/login` | `{ identifier, password }` | Connexion élève (pseudo ou email) |
+| POST | `/api/auth/forgot-password` | `{ email }` | Déclencher un email de réinitialisation élève (réponse neutre) |
+| POST | `/api/auth/reset-password` | `{ token, password }` | Réinitialiser le mot de passe élève |
 | POST | `/api/auth/teacher` | `{ pin }` | Connexion prof → `{ token }` (JWT) |
+| POST | `/api/auth/teacher/login` | `{ email, password }` | Connexion prof email/mot de passe → `{ token }` (JWT) |
+| POST | `/api/auth/teacher/forgot-password` | `{ email }` | Déclencher un email de réinitialisation prof (réponse neutre) |
+| POST | `/api/auth/teacher/reset-password` | `{ token, password }` | Réinitialiser le mot de passe prof |
 
 Routes protégées « prof » : header `Authorization: Bearer <token>`.
 

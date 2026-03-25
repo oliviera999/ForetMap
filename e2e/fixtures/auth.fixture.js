@@ -14,7 +14,42 @@ async function loginAsNewStudent(page) {
 
   await page.locator('header').waitFor({ state: 'visible' });
   await page.waitForLoadState('networkidle');
-  return { firstName, lastName, password };
+  return { firstName, lastName, password, pseudo: '', email: '' };
+}
+
+async function registerStudentWithProfile(page) {
+  const nonce = `${Date.now().toString().slice(-6)}${Math.floor(Math.random() * 1000)}`;
+  const firstName = `E2E${nonce}`;
+  const lastName = 'Eleve';
+  const pseudo = `e2e_${nonce}`;
+  const email = `e2e_${nonce}@example.com`;
+  const password = '1234';
+
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Créer un compte' }).click();
+  await page.getByLabel('Prénom').fill(firstName);
+  await page.getByLabel('Nom').fill(lastName);
+  await page.getByLabel('Mot de passe').fill(password);
+  await page.getByLabel('Pseudo (optionnel)').fill(pseudo);
+  await page.getByLabel('Email (optionnel)').fill(email);
+  await page.getByLabel('Confirmer le mot de passe').fill(password);
+  await page.getByRole('button', { name: 'Créer le compte' }).click();
+  await page.locator('header').waitFor({ state: 'visible' });
+  await page.waitForLoadState('networkidle');
+  return { firstName, lastName, pseudo, email, password };
+}
+
+async function logoutToAuth(page) {
+  await page.getByRole('button', { name: '↩️' }).click();
+  await page.getByRole('button', { name: 'Connexion' }).waitFor({ state: 'visible' });
+}
+
+async function loginByIdentifier(page, identifier, password) {
+  await page.getByLabel('Identifiant (pseudo ou email)').fill(identifier);
+  await page.getByLabel('Mot de passe').fill(password);
+  await page.getByRole('button', { name: 'Se connecter 🌱' }).click();
+  await page.locator('header').waitFor({ state: 'visible' });
+  await page.waitForLoadState('networkidle');
 }
 
 async function enableTeacherMode(page, pin = '1234') {
@@ -45,6 +80,9 @@ async function openStudentTasksTab(page) {
 
 module.exports = {
   loginAsNewStudent,
+  registerStudentWithProfile,
+  logoutToAuth,
+  loginByIdentifier,
   enableTeacherMode,
   disableTeacherMode,
   openTeacherTasksTab,
