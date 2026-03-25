@@ -187,10 +187,12 @@ VALUES
 CREATE TABLE IF NOT EXISTS task_assignments (
   id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
   task_id VARCHAR(64) NOT NULL,
+  student_id VARCHAR(64) DEFAULT NULL,
   student_first_name VARCHAR(255) NOT NULL,
   student_last_name VARCHAR(255) NOT NULL,
   assigned_at VARCHAR(32) DEFAULT NULL,
   INDEX idx_task_assignments_task_id (task_id),
+  INDEX idx_task_assignments_student_id (student_id),
   CONSTRAINT fk_task_assignments_task FOREIGN KEY (task_id) REFERENCES tasks(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -223,6 +225,32 @@ CREATE TABLE IF NOT EXISTS teachers (
   updated_at VARCHAR(32) DEFAULT NULL,
   UNIQUE KEY uq_teachers_email (email),
   INDEX idx_teachers_active (is_active)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- users (identité unifiée progressive, compatible students/teachers)
+CREATE TABLE IF NOT EXISTS users (
+  id VARCHAR(64) PRIMARY KEY,
+  user_type VARCHAR(16) NOT NULL,
+  legacy_user_id VARCHAR(64) DEFAULT NULL,
+  email VARCHAR(255) DEFAULT NULL,
+  pseudo VARCHAR(50) DEFAULT NULL,
+  first_name VARCHAR(255) DEFAULT NULL,
+  last_name VARCHAR(255) DEFAULT NULL,
+  display_name VARCHAR(255) DEFAULT NULL,
+  description TEXT DEFAULT NULL,
+  avatar_path VARCHAR(512) DEFAULT NULL,
+  affiliation VARCHAR(16) DEFAULT 'both',
+  password_hash VARCHAR(255) DEFAULT NULL,
+  auth_provider VARCHAR(32) NOT NULL DEFAULT 'local',
+  is_active TINYINT(1) NOT NULL DEFAULT 1,
+  last_seen VARCHAR(32) DEFAULT NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  UNIQUE KEY uq_users_type_legacy (user_type, legacy_user_id),
+  UNIQUE KEY uq_users_email (email),
+  UNIQUE KEY uq_users_pseudo (pseudo),
+  INDEX idx_users_type_active (user_type, is_active),
+  INDEX idx_users_display_name (display_name)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- password_reset_tokens (usage unique, hash du token uniquement)
@@ -299,17 +327,58 @@ CREATE TABLE IF NOT EXISTS elevation_audit (
   CONSTRAINT fk_elevation_audit_role FOREIGN KEY (role_id) REFERENCES roles(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- security_events (historique structuré des actions utilisateur)
+CREATE TABLE IF NOT EXISTS security_events (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  occurred_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  actor_user_id VARCHAR(64) DEFAULT NULL,
+  actor_user_type VARCHAR(16) DEFAULT NULL,
+  action VARCHAR(96) NOT NULL,
+  target_type VARCHAR(32) DEFAULT NULL,
+  target_id VARCHAR(64) DEFAULT NULL,
+  result VARCHAR(16) NOT NULL DEFAULT 'success',
+  reason VARCHAR(255) DEFAULT NULL,
+  ip_address VARCHAR(64) DEFAULT NULL,
+  user_agent VARCHAR(255) DEFAULT NULL,
+  payload_json JSON DEFAULT NULL,
+  INDEX idx_security_events_occurred (occurred_at),
+  INDEX idx_security_events_actor (actor_user_id, occurred_at),
+  INDEX idx_security_events_action (action, occurred_at),
+  INDEX idx_security_events_target (target_type, target_id, occurred_at),
+  CONSTRAINT fk_security_events_actor FOREIGN KEY (actor_user_id) REFERENCES users(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- audit_log (historique consultable en UI prof)
+CREATE TABLE IF NOT EXISTS audit_log (
+  id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  action VARCHAR(64) NOT NULL,
+  target_type VARCHAR(32) NOT NULL,
+  target_id VARCHAR(64) DEFAULT NULL,
+  details TEXT DEFAULT NULL,
+  actor_user_type VARCHAR(16) DEFAULT NULL,
+  actor_user_id VARCHAR(64) DEFAULT NULL,
+  result VARCHAR(16) NOT NULL DEFAULT 'success',
+  created_at VARCHAR(32) DEFAULT NULL,
+  occurred_at DATETIME DEFAULT NULL,
+  payload_json JSON DEFAULT NULL,
+  INDEX idx_audit_actor (actor_user_type, actor_user_id, id),
+  INDEX idx_audit_action (action, id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- task_logs (commentaires / images de réalisation d'une tâche)
 -- image_path : chemin relatif vers uploads/ (source unique des images)
 CREATE TABLE IF NOT EXISTS task_logs (
   id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
   task_id VARCHAR(64) NOT NULL,
+  student_id VARCHAR(64) DEFAULT NULL,
   student_first_name VARCHAR(255) NOT NULL,
   student_last_name VARCHAR(255) NOT NULL,
   comment TEXT DEFAULT NULL,
   image_path VARCHAR(512) DEFAULT NULL,
   created_at VARCHAR(32) DEFAULT NULL,
   INDEX idx_task_logs_task_id (task_id),
+  INDEX idx_task_logs_student_id (student_id),
+  CONSTRAINT fk_task_logs_student FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE SET NULL,
   CONSTRAINT fk_task_logs_task FOREIGN KEY (task_id) REFERENCES tasks(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 

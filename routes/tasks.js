@@ -434,7 +434,10 @@ router.post('/', requirePermission('tasks.manage', { needsElevation: true }), as
     await setTaskTutorials(id, tutorialIds);
     await syncLegacyLocationColumns(id, zIds, mIds);
     const task = await getTaskWithAssignments(id);
-    logAudit('create_task', 'task', id, title);
+    logAudit('create_task', 'task', id, title, {
+      req,
+      payload: { map_id: projectValidation.mapId, project_id: projectValidation.projectId || null },
+    });
     emitTasksChanged({ reason: 'create_task', taskId: id, projectId: projectValidation.projectId || null });
     res.status(201).json(task);
   } catch (e) {
@@ -504,7 +507,12 @@ router.post('/proposals', async (req, res) => {
     await setTaskTutorials(id, []);
     await syncLegacyLocationColumns(id, zIds, mIds);
     const task = await getTaskWithAssignments(id);
-    logAudit('propose_task', 'task', id, `${String(title).trim()} (${proposer})`);
+    logAudit('propose_task', 'task', id, `${String(title).trim()} (${proposer})`, {
+      req,
+      actorUserType: 'student',
+      actorUserId: studentId,
+      payload: { proposer, student_id: studentId },
+    });
     emitTasksChanged({ reason: 'propose_task', taskId: id });
     res.status(201).json(task);
   } catch (e) {
@@ -597,6 +605,14 @@ router.put('/:id', requirePermission('tasks.manage', { needsElevation: true }), 
     await setTaskTutorials(task.id, nextTutorialIds);
     await syncLegacyLocationColumns(task.id, nextZoneIds, nextMarkerIds);
     const updated = await getTaskWithAssignments(task.id);
+    logAudit('update_task', 'task', task.id, updated.title, {
+      req,
+      payload: {
+        status: updated.status,
+        required_students: updated.required_students,
+        project_id: updated.project_id || null,
+      },
+    });
     emitTasksChanged({ reason: 'update_task', taskId: task.id, projectId: projectValidation.projectId || null });
     res.json(updated);
   } catch (e) {
@@ -612,7 +628,7 @@ router.delete('/:id', requirePermission('tasks.manage', { needsElevation: true }
     await execute('DELETE FROM task_logs WHERE task_id = ?', [req.params.id]);
     await execute('DELETE FROM task_assignments WHERE task_id = ?', [req.params.id]);
     await execute('DELETE FROM tasks WHERE id = ?', [req.params.id]);
-    logAudit('delete_task', 'task', req.params.id, task.title);
+    logAudit('delete_task', 'task', req.params.id, task.title, { req });
     emitTasksChanged({ reason: 'delete_task', taskId: req.params.id });
     res.json({ success: true });
   } catch (e) {
@@ -649,8 +665,8 @@ router.post('/:id/assign', async (req, res) => {
     }
 
     await execute(
-      'INSERT INTO task_assignments (task_id, student_first_name, student_last_name, assigned_at) VALUES (?, ?, ?, ?)',
-      [task.id, firstName, lastName, new Date().toISOString()]
+      'INSERT INTO task_assignments (task_id, student_id, student_first_name, student_last_name, assigned_at) VALUES (?, ?, ?, ?, ?)',
+      [task.id, studentId || null, firstName, lastName, new Date().toISOString()]
     );
 
     const newCount = task.assignments.length + 1;
@@ -658,6 +674,12 @@ router.post('/:id/assign', async (req, res) => {
     await execute('UPDATE tasks SET status = ? WHERE id = ?', [newStatus, task.id]);
 
     const updated = await getTaskWithAssignments(task.id);
+    logAudit('assign_task', 'task', task.id, `${firstName} ${lastName}`, {
+      req,
+      actorUserType: studentId ? 'student' : null,
+      actorUserId: studentId || null,
+      payload: { student_id: studentId || null, status: newStatus },
+    });
     emitTasksChanged({ reason: 'assign', taskId: task.id });
     res.json(updated);
   } catch (e) {
@@ -682,8 +704,8 @@ router.post('/:id/done', async (req, res) => {
 
     if (comment || imageData) {
       const result = await execute(
-        'INSERT INTO task_logs (task_id, student_first_name, student_last_name, comment, image_path, created_at) VALUES (?, ?, ?, ?, ?, ?)',
-        [task.id, firstName || '', lastName || '', comment || '', null, new Date().toISOString()]
+        'INSERT INTO task_logs (task_id, student_id, student_first_name, student_last_name, comment, image_path, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
+        [task.id, studentId || null, firstName || '', lastName || '', comment || '', null, new Date().toISOString()]
       );
       const logId = result.insertId;
       if (imageData) {
@@ -700,6 +722,12 @@ router.post('/:id/done', async (req, res) => {
 
     await execute("UPDATE tasks SET status = 'done' WHERE id = ?", [task.id]);
     const updated = await getTaskWithAssignments(task.id);
+    logAudit('done_task', 'task', task.id, `${firstName || ''} ${lastName || ''}`.trim(), {
+      req,
+      actorUserType: studentId ? 'student' : null,
+      actorUserId: studentId || null,
+      payload: { student_id: studentId || null, with_comment: !!comment, with_image: !!imageData },
+    });
     emitTasksChanged({ reason: 'done', taskId: task.id });
     res.json(updated);
   } catch (e) {
@@ -711,7 +739,7 @@ router.post('/:id/done', async (req, res) => {
 router.get('/:id/logs', async (req, res) => {
   try {
     const logs = await queryAll(
-      'SELECT id, task_id, student_first_name, student_last_name, comment, image_path, created_at FROM task_logs WHERE task_id = ? ORDER BY created_at DESC',
+      'SELECT id, task_id, student_id, student_first_name, student_last_name, comment, image_path, created_at FROM task_logs WHERE task_id = ? ORDER BY created_at DESC',
       [req.params.id]
     );
     const taskId = req.params.id;
@@ -759,7 +787,7 @@ router.delete('/:id/logs/:logId', requirePermission('tasks.manage', { needsEleva
       }
     }
     await execute('DELETE FROM task_logs WHERE id = ?', [req.params.logId]);
-    logAudit('delete_log', 'task_log', req.params.logId, `Tâche ${req.params.id}`);
+    logAudit('delete_log', 'task_log', req.params.logId, `Tâche ${req.params.id}`, { req });
     emitTasksChanged({ reason: 'delete_log', taskId: req.params.id });
     res.json({ success: true });
   } catch (e) {
@@ -773,7 +801,7 @@ router.post('/:id/validate', requirePermission('tasks.validate', { needsElevatio
     const task = await queryOne('SELECT * FROM tasks WHERE id = ?', [req.params.id]);
     if (!task) return res.status(404).json({ error: 'Tâche introuvable' });
     await execute("UPDATE tasks SET status = 'validated' WHERE id = ?", [req.params.id]);
-    logAudit('validate_task', 'task', req.params.id, task.title);
+    logAudit('validate_task', 'task', req.params.id, task.title, { req });
     const updated = await getTaskWithAssignments(task.id);
     emitTasksChanged({ reason: 'validate', taskId: task.id });
     res.json(updated);
@@ -802,10 +830,17 @@ router.post('/:id/unassign', async (req, res) => {
       if (!permission.ok) return res.status(403).json({ error: permission.error });
     }
 
-    await execute(
-      'DELETE FROM task_assignments WHERE task_id = ? AND student_first_name = ? AND student_last_name = ?',
-      [task.id, firstName, lastName]
-    );
+    if (studentId) {
+      await execute(
+        'DELETE FROM task_assignments WHERE task_id = ? AND (student_id = ? OR (student_first_name = ? AND student_last_name = ?))',
+        [task.id, studentId, firstName, lastName]
+      );
+    } else {
+      await execute(
+        'DELETE FROM task_assignments WHERE task_id = ? AND student_first_name = ? AND student_last_name = ?',
+        [task.id, firstName, lastName]
+      );
+    }
 
     const remainingRow = await queryOne('SELECT COUNT(*) AS c FROM task_assignments WHERE task_id = ?', [task.id]);
     const remaining = remainingRow ? Number(remainingRow.c) : 0;
@@ -821,6 +856,12 @@ router.post('/:id/unassign', async (req, res) => {
     await execute('UPDATE tasks SET status = ? WHERE id = ?', [newStatus, task.id]);
 
     const updated = await getTaskWithAssignments(task.id);
+    logAudit('unassign_task', 'task', task.id, `${firstName} ${lastName}`, {
+      req,
+      actorUserType: studentId ? 'student' : null,
+      actorUserId: studentId || null,
+      payload: { student_id: studentId || null, status: newStatus },
+    });
     emitTasksChanged({ reason: 'unassign', taskId: task.id });
     res.json(updated);
   } catch (err) {

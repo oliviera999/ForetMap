@@ -8,6 +8,7 @@ const { validateEnv } = require('./lib/env');
 const logger = require('./lib/logger');
 const { initRealtime } = require('./lib/realtime');
 const { tailLogLines, getBufferedLineCount, getMaxLines } = require('./lib/logBuffer');
+const { checkCriticalAdminAccount } = require('./lib/rbac');
 
 const authRouter    = require('./routes/auth');
 const zonesRouter   = require('./routes/zones');
@@ -234,6 +235,17 @@ function boot() {
     .then(() => {
       fs.appendFileSync(diagPath, 'initDatabase: OK\n');
       logger.info('BDD initialisée');
+      checkCriticalAdminAccount()
+        .then((state) => {
+          if (state?.ok) {
+            logger.info({ admin: state.email }, 'Contrôle admin critique OK');
+            return;
+          }
+          logger.warn({ state }, 'Contrôle admin critique en anomalie');
+        })
+        .catch((err) => {
+          logger.warn({ err }, 'Contrôle admin critique en échec');
+        });
     })
     .catch((err) => {
       fs.appendFileSync(diagPath, `initDatabase ERREUR: ${err.message}\n`);

@@ -115,8 +115,8 @@ async function main() {
     const taskAssignments = sqlite.prepare('SELECT * FROM task_assignments').all();
     for (const a of taskAssignments) {
       await conn.execute(
-        'INSERT INTO task_assignments (task_id, student_first_name, student_last_name, assigned_at) VALUES (?, ?, ?, ?)',
-        [a.task_id, a.student_first_name, a.student_last_name, a.assigned_at ?? null]
+        'INSERT INTO task_assignments (task_id, student_id, student_first_name, student_last_name, assigned_at) VALUES (?, ?, ?, ?, ?)',
+        [a.task_id, a.student_id ?? null, a.student_first_name, a.student_last_name, a.assigned_at ?? null]
       );
     }
     console.log('task_assignments:', taskAssignments.length);
@@ -125,10 +125,10 @@ async function main() {
     const taskLogs = sqlite.prepare('SELECT * FROM task_logs').all();
     for (const l of taskLogs) {
       const [inserted] = await conn.execute(
-        `INSERT INTO task_logs (task_id, student_first_name, student_last_name, comment, image_path, created_at)
-         VALUES (?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO task_logs (task_id, student_id, student_first_name, student_last_name, comment, image_path, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
         [
-          l.task_id, l.student_first_name, l.student_last_name,
+          l.task_id, l.student_id ?? null, l.student_first_name, l.student_last_name,
           l.comment ?? null, null, l.created_at ?? null
         ]
       );

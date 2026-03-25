@@ -3,6 +3,8 @@ const { queryAll, queryOne, execute } = require('../database');
 const { requirePermission } = require('../middleware/requireTeacher');
 const { hashPin, setPrimaryRole } = require('../lib/rbac');
 const { logRouteError } = require('../lib/routeLog');
+const { logAudit } = require('./audit');
+const { ensureCanonicalUserFromStudent, ensureCanonicalUserFromTeacher } = require('../lib/identity');
 
 const router = express.Router();
 
@@ -43,6 +45,7 @@ router.post(
       if (!slug || !displayName) return res.status(400).json({ error: 'slug et display_name requis' });
       await execute('INSERT INTO roles (slug, display_name, rank, is_system) VALUES (?, ?, ?, 0)', [slug, displayName, rank]);
       const role = await queryOne('SELECT id, slug, display_name, rank, is_system FROM roles WHERE slug = ? LIMIT 1', [slug]);
+      logAudit('rbac_create_profile', 'role', role?.id || null, slug, { req });
       res.status(201).json(role);
     } catch (e) {
       logRouteError(e, req);
@@ -64,6 +67,7 @@ router.patch(
       if (!displayName) return res.status(400).json({ error: 'display_name requis' });
       await execute('UPDATE roles SET display_name = ?, rank = COALESCE(?, rank), updated_at = NOW() WHERE id = ?', [displayName, rank, role.id]);
       const updated = await queryOne('SELECT id, slug, display_name, rank, is_system FROM roles WHERE id = ?', [role.id]);
+      logAudit('rbac_update_profile', 'role', role.id, updated?.slug || String(role.id), { req });
       res.json(updated);
     } catch (e) {
       logRouteError(e, req);
@@ -91,6 +95,7 @@ router.put(
           [role.id, key, item?.requires_elevation ? 1 : 0]
         );
       }
+      logAudit('rbac_update_profile_permissions', 'role', role.id, `permissions=${entries.length}`, { req });
       res.json({ ok: true });
     } catch (e) {
       logRouteError(e, req);
@@ -112,6 +117,7 @@ router.put(
         'INSERT INTO role_pin_secrets (role_id, pin_hash) VALUES (?, ?) ON DUPLICATE KEY UPDATE pin_hash = VALUES(pin_hash), updated_at = NOW()',
         [role.id, hashPin(pin)]
       );
+      logAudit('rbac_update_profile_pin', 'role', role.id, 'PIN mis à jour', { req });
       res.json({ ok: true });
     } catch (e) {
       logRouteError(e, req);
@@ -125,6 +131,15 @@ router.get(
   requirePermission('admin.users.assign_roles', { needsElevation: true }),
   async (req, res) => {
     try {
+      const canonicalUsers = await queryAll(
+        `SELECT u.id, u.user_type, u.legacy_user_id,
+                COALESCE(NULLIF(u.display_name, ''), NULLIF(CONCAT(COALESCE(u.first_name, ''), ' ', COALESCE(u.last_name, '')), ''), u.email, u.pseudo, u.id) AS display_name,
+                u.email, ur.role_id, r.slug AS role_slug, r.display_name AS role_display_name
+           FROM users u
+      LEFT JOIN user_roles ur ON ur.user_type = u.user_type AND ur.user_id = u.legacy_user_id AND ur.is_primary = 1
+      LEFT JOIN roles r ON r.id = ur.role_id
+       ORDER BY u.user_type ASC, display_name ASC`
+      );
       const students = await queryAll(
         `SELECT s.id, 'student' AS user_type, CONCAT(s.first_name, ' ', s.last_name) AS display_name, s.email,
                 ur.role_id, r.slug AS role_slug, r.display_name AS role_display_name
@@ -141,7 +156,27 @@ router.get(
       LEFT JOIN roles r ON r.id = ur.role_id
        ORDER BY display_name`
       );
-      res.json([...teachers, ...students]);
+      const canonicalLegacyKeys = new Set(
+        canonicalUsers.map((u) => `${u.user_type}:${u.legacy_user_id}`).filter((k) => !k.endsWith(':null') && !k.endsWith(':undefined'))
+      );
+      const legacyFallback = [
+        ...teachers.filter((t) => !canonicalLegacyKeys.has(`teacher:${t.id}`)),
+        ...students.filter((s) => !canonicalLegacyKeys.has(`student:${s.id}`)),
+      ];
+      res.json([
+        ...canonicalUsers.map((u) => ({
+          id: u.id,
+          user_type: 'user',
+          legacy_user_type: u.user_type,
+          legacy_user_id: u.legacy_user_id,
+          display_name: u.display_name,
+          email: u.email,
+          role_id: u.role_id,
+          role_slug: u.role_slug,
+          role_display_name: u.role_display_name,
+        })),
+        ...legacyFallback,
+      ]);
     } catch (e) {
       logRouteError(e, req);
       res.status(500).json({ error: e.message });
@@ -155,12 +190,26 @@ router.put(
   async (req, res) => {
     try {
       const userType = String(req.params.userType || '').trim();
-      if (!['teacher', 'student'].includes(userType)) return res.status(400).json({ error: 'userType invalide' });
+      if (!['teacher', 'student', 'user'].includes(userType)) return res.status(400).json({ error: 'userType invalide' });
       const roleId = parseInt(req.body?.role_id, 10);
       if (!Number.isFinite(roleId) || roleId <= 0) return res.status(400).json({ error: 'role_id invalide' });
       const role = await queryOne('SELECT id FROM roles WHERE id = ?', [roleId]);
       if (!role) return res.status(404).json({ error: 'Profil introuvable' });
-      await setPrimaryRole(userType, req.params.userId, roleId);
+      let resolvedUserType = userType;
+      let resolvedLegacyUserId = req.params.userId;
+      if (userType === 'user') {
+        const user = await queryOne('SELECT id, user_type, legacy_user_id FROM users WHERE id = ? LIMIT 1', [req.params.userId]);
+        if (!user) return res.status(404).json({ error: 'Utilisateur introuvable' });
+        resolvedUserType = user.user_type;
+        resolvedLegacyUserId = user.legacy_user_id;
+      }
+      await setPrimaryRole(resolvedUserType, resolvedLegacyUserId, roleId);
+      if (resolvedUserType === 'teacher') await ensureCanonicalUserFromTeacher({ id: resolvedLegacyUserId });
+      if (resolvedUserType === 'student') await ensureCanonicalUserFromStudent({ id: resolvedLegacyUserId });
+      logAudit('rbac_assign_role', 'role', String(roleId), `${resolvedUserType}:${resolvedLegacyUserId}`, {
+        req,
+        payload: { user_type: resolvedUserType, user_id: resolvedLegacyUserId, role_id: roleId },
+      });
       res.json({ ok: true });
     } catch (e) {
       logRouteError(e, req);

@@ -13,9 +13,9 @@ async function studentStats(studentId) {
      FROM task_assignments ta
      JOIN tasks t ON ta.task_id = t.id
      LEFT JOIN zones z ON t.zone_id = z.id
-     WHERE ta.student_first_name = ? AND ta.student_last_name = ?
+     WHERE ta.student_id = ? OR (ta.student_first_name = ? AND ta.student_last_name = ?)
      ORDER BY ta.assigned_at DESC`,
-    [s.first_name, s.last_name]
+    [s.id, s.first_name, s.last_name]
   );
   const done      = assignments.filter(a => a.status === 'validated').length;
   const pending   = assignments.filter(a => a.status === 'available' || a.status === 'in_progress').length;
@@ -52,8 +52,8 @@ router.get('/all', requirePermission('stats.read.all'), async (req, res) => {
       const assignments = await queryAll(
         `SELECT ta.*, t.status FROM task_assignments ta
          JOIN tasks t ON ta.task_id = t.id
-         WHERE ta.student_first_name = ? AND ta.student_last_name = ?`,
-        [s.first_name, s.last_name]
+         WHERE ta.student_id = ? OR (ta.student_first_name = ? AND ta.student_last_name = ?)`,
+        [s.id, s.first_name, s.last_name]
       );
       return {
         id: s.id,
@@ -87,8 +87,8 @@ router.get('/export', requirePermission('stats.export', { needsElevation: true }
       const assignments = await queryAll(
         `SELECT ta.*, t.status FROM task_assignments ta
          JOIN tasks t ON ta.task_id = t.id
-         WHERE ta.student_first_name = ? AND ta.student_last_name = ?`,
-        [s.first_name, s.last_name]
+         WHERE ta.student_id = ? OR (ta.student_first_name = ? AND ta.student_last_name = ?)`,
+        [s.id, s.first_name, s.last_name]
       );
       return {
         first_name: s.first_name,

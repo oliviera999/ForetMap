@@ -95,6 +95,11 @@ describe('Auth', () => {
       .send({ firstName, lastName, password: 'wrong' })
       .expect(401);
     assert.ok(res.body.error);
+    const evt = await queryOne(
+      "SELECT action, result FROM security_events WHERE action = 'auth.login.student' ORDER BY id DESC LIMIT 1"
+    );
+    assert.ok(evt);
+    assert.strictEqual(evt.result, 'failure');
   });
 
   it('POST /api/auth/login compte inexistant renvoie 401', async () => {
@@ -156,6 +161,11 @@ describe('Auth', () => {
       .send({ email: teacherEmail, password: teacherPassword })
       .expect(200);
     assert.ok(res.body.token);
+    const evt = await queryOne(
+      "SELECT action, result FROM security_events WHERE action = 'auth.login.teacher' ORDER BY id DESC LIMIT 1"
+    );
+    assert.ok(evt);
+    assert.strictEqual(evt.result, 'success');
   });
 
   it('GET /api/auth/google/start redirige vers Google avec state', async () => {

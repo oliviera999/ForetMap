@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { api, AccountDeletedError, getAuthClaims } from './services/api';
+import { api, AccountDeletedError, getAuthClaims, getStoredSession, saveStoredSession, clearStoredSession } from './services/api';
 import { useForetmapRealtime } from './hooks/useForetmapRealtime';
 import { RT_PROF_TOOLTIPS } from './constants/realtime';
 import { ErrorBoundary } from './components/ErrorBoundary';
@@ -42,11 +42,13 @@ function decodeBase64UrlJson(value) {
 
 // ── APP ───────────────────────────────────────────────────────────────────────
 function App() {
+  const initialSession = useMemo(() => getStoredSession(), []);
   const DEFAULT_MAPS = useMemo(() => ([
     { id: 'foret', label: 'Forêt comestible', map_image_url: '/map.png', sort_order: 1 },
     { id: 'n3', label: 'N3', map_image_url: '/maps/plan%20n3.jpg', sort_order: 2 },
   ]), []);
-  const [student,    setStudent]    = useState(null);
+  const [student,    setStudent]    = useState(() => initialSession?.student || null);
+  const [sessionUser, setSessionUser] = useState(() => initialSession?.user || null);
   const [isTeacher,  setIsTeacher]  = useState(() => {
     const claims = getAuthClaims();
     return Array.isArray(claims?.permissions) && claims.permissions.includes('teacher.access');
@@ -95,6 +97,16 @@ function App() {
       const payload = decodeBase64UrlJson(oauthPayload);
       if (payload?.type === 'teacher' && payload?.token) {
         localStorage.setItem('foretmap_teacher_token', payload.token);
+        localStorage.setItem('foretmap_auth_token', payload.token);
+        saveStoredSession({
+          token: payload.token,
+          user: {
+            id: payload?.auth?.canonicalUserId || payload?.auth?.userId || null,
+            userType: 'teacher',
+            displayName: payload?.auth?.roleDisplayName || 'Professeur',
+          },
+        });
+        setSessionUser(getStoredSession()?.user || null);
         setAuthClaims(getAuthClaims());
         setIsTeacher(true);
         setToast('Connexion Google professeur réussie.');
@@ -102,8 +114,22 @@ function App() {
       }
       if (payload?.type === 'student' && payload?.student) {
         const nextStudent = payload.student;
+        if (nextStudent?.authToken) {
+          localStorage.setItem('foretmap_auth_token', nextStudent.authToken);
+        }
         localStorage.setItem('foretmap_student', JSON.stringify(nextStudent));
+        saveStoredSession({
+          token: nextStudent?.authToken || getStoredSession()?.token || null,
+          user: {
+            id: nextStudent?.auth?.canonicalUserId || nextStudent?.id || null,
+            userType: 'student',
+            displayName: nextStudent?.pseudo || `${nextStudent?.first_name || ''} ${nextStudent?.last_name || ''}`.trim() || 'Élève',
+            email: nextStudent?.email || null,
+          },
+          student: nextStudent,
+        });
         setStudent(nextStudent);
+        setSessionUser(getStoredSession()?.user || null);
         setIsTeacher(false);
         setToast('Connexion Google élève réussie.');
         return;
@@ -135,10 +161,9 @@ function App() {
 
   // Called from anywhere when a 401-deleted is detected
   const forceLogout = useCallback(() => {
-    localStorage.removeItem('foretmap_student');
-    localStorage.removeItem('foretmap_auth_token');
-    localStorage.removeItem('foretmap_teacher_token');
+    clearStoredSession();
     setStudent(null);
+    setSessionUser(null);
     setIsTeacher(false);
     setAuthClaims(null);
     setToast('Votre compte a été supprimé par le professeur.');
@@ -147,6 +172,17 @@ function App() {
   const updateStudentSession = useCallback((nextStudent) => {
     setStudent(nextStudent);
     localStorage.setItem('foretmap_student', JSON.stringify(nextStudent));
+    saveStoredSession({
+      token: getStoredSession()?.token || nextStudent?.authToken || null,
+      user: {
+        id: nextStudent?.auth?.canonicalUserId || nextStudent?.id || null,
+        userType: 'student',
+        displayName: nextStudent?.pseudo || `${nextStudent?.first_name || ''} ${nextStudent?.last_name || ''}`.trim() || 'Élève',
+        email: nextStudent?.email || null,
+      },
+      student: nextStudent,
+    });
+    setSessionUser(getStoredSession()?.user || null);
   }, []);
 
   // Restore session — validates against server on load
@@ -164,10 +200,14 @@ function App() {
           });
       } catch (e) { console.error('[ForetMap] lecture session locale', e); }
     }
+    const session = getStoredSession();
+    if (session?.user && !session?.student) {
+      setSessionUser(session.user);
+    }
   }, [forceLogout, updateStudentSession]);
 
   useEffect(() => {
-    const onExpired = () => { setIsTeacher(false); setAuthClaims(null); setToast('Session professeur expirée.'); };
+    const onExpired = () => { setIsTeacher(false); setAuthClaims(null); setSessionUser(null); setToast('Session professeur expirée.'); };
     window.addEventListener('foretmap_teacher_expired', onExpired);
     return () => window.removeEventListener('foretmap_teacher_expired', onExpired);
   }, []);
@@ -251,7 +291,7 @@ function App() {
     await fetchAll();
   };
 
-  if (!student) return (
+  if (!student && !isTeacher) return (
     <>
       {toast && <Toast msg={toast} onDone={() => setToast(null)}/>}
       {showPublicVisit ? (
@@ -287,6 +327,12 @@ function App() {
       <p>Chargement de la forêt...</p>
     </div>
   );
+
+  const currentUser = student || sessionUser || {
+    pseudo: null,
+    first_name: authClaims?.roleDisplayName || 'Utilisateur',
+    last_name: '',
+  };
 
   return (
     <div id="app">
@@ -363,8 +409,8 @@ function App() {
             style={{ cursor: isTeacher ? 'default' : 'pointer' }}
             title={isTeacher ? '' : 'Voir mes statistiques'}
           >
-            {!isTeacher && <StudentAvatar student={student} size={20} style={{ border: 'none' }} />}
-            <span className="user-badge-text">{student.pseudo || `${student.first_name} ${student.last_name}`}</span>
+            {!isTeacher && <StudentAvatar student={currentUser} size={20} style={{ border: 'none' }} />}
+            <span className="user-badge-text">{currentUser.pseudo || `${currentUser.first_name || ''} ${currentUser.last_name || ''}`.trim() || 'Utilisateur'}</span>
           </button>
           {!isTeacher && (
             <button
@@ -378,6 +424,10 @@ function App() {
           <button className={`lock-btn ${authClaims?.elevated ? 'active' : ''}`} onClick={() => {
             if (authClaims?.elevated) {
               localStorage.removeItem('foretmap_teacher_token');
+              const authToken = localStorage.getItem('foretmap_auth_token');
+              if (authToken) {
+                saveStoredSession({ token: authToken });
+              }
               const claims = getAuthClaims();
               setAuthClaims(claims);
               setToast('Droits étendus désactivés');
@@ -388,10 +438,8 @@ function App() {
             {authClaims?.elevated ? <>🔓 <span className="lock-label">Élevé</span></> : '🔒'}
           </button>
           <button className="lock-btn" title="Déconnexion" onClick={() => {
-            localStorage.removeItem('foretmap_student');
-            localStorage.removeItem('foretmap_auth_token');
-            localStorage.removeItem('foretmap_teacher_token');
-            setStudent(null); setIsTeacher(false); setAuthClaims(null);
+            clearStoredSession();
+            setStudent(null); setSessionUser(null); setIsTeacher(false); setAuthClaims(null);
           }}>↩️</button>
         </div>
       </header>
@@ -413,14 +461,14 @@ function App() {
             <button className={`top-tab ${tab === 'visit' ? 'active' : ''}`} onClick={() => setTab('visit')}>🧭 Visite</button>
             <button className={`top-tab ${tab === 'about' ? 'active' : ''}`} onClick={() => setTab('about')}>ℹ️ À propos</button>
           </div>
-          {tab === 'map'    && <MapView zones={zones} markers={markers} tasks={tasks} plants={plants} maps={maps} activeMapId={activeMapId} onMapChange={setActiveMapId} isTeacher student={student} onZoneUpdate={updateZone} onRefresh={fetchAll}/>}
-          {tab === 'tasks'  && <TasksView  tasks={tasks} taskProjects={taskProjects} zones={zones} markers={markers} maps={maps} tutorials={tutorials} activeMapId={activeMapId} isTeacher student={student} onRefresh={fetchAll} onForceLogout={forceLogout}/>}
+          {tab === 'map'    && <MapView zones={zones} markers={markers} tasks={tasks} plants={plants} maps={maps} activeMapId={activeMapId} onMapChange={setActiveMapId} isTeacher student={currentUser} onZoneUpdate={updateZone} onRefresh={fetchAll}/>}
+          {tab === 'tasks'  && <TasksView  tasks={tasks} taskProjects={taskProjects} zones={zones} markers={markers} maps={maps} tutorials={tutorials} activeMapId={activeMapId} isTeacher student={currentUser} onRefresh={fetchAll} onForceLogout={forceLogout}/>}
           {tab === 'plants' && <PlantManager plants={plants} onRefresh={fetchAll}/>}
           {tab === 'tuto'   && <TutorialsView tutorials={tutorials} isTeacher onRefresh={fetchAll} onForceLogout={forceLogout} />}
           {tab === 'stats'  && (hasPermission('stats.read.all') ? <TeacherStats/> : <div className="empty"><p>Permission insuffisante</p></div>)}
           {tab === 'profiles' && <ProfilesAdminView/>}
           {tab === 'audit'  && (hasPermission('audit.read') ? <AuditLog/> : <div className="empty"><p>Permission insuffisante</p></div>)}
-          {tab === 'visit'  && <VisitView student={student} isTeacher availableTutorials={tutorials} initialMapId={activeMapId} onForceLogout={forceLogout} />}
+          {tab === 'visit'  && <VisitView student={currentUser} isTeacher availableTutorials={tutorials} initialMapId={activeMapId} onForceLogout={forceLogout} />}
           {tab === 'about'  && <AboutView appVersion={appVersion}/>}
         </div>
       ) : (
