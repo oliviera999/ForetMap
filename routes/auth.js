@@ -281,6 +281,22 @@ async function buildSessionPayload(userType, userId, elevated = false) {
   };
 }
 
+async function resolveLoginUserType(user) {
+  const explicit = normalizeOptionalString(user?.user_type)?.toLowerCase();
+  const primary = await queryOne(
+    `SELECT ur.user_type
+       FROM user_roles ur
+       INNER JOIN roles r ON r.id = ur.role_id
+      WHERE ur.user_id = ? AND ur.is_primary = 1
+      ORDER BY r.rank DESC, ur.assigned_at ASC
+      LIMIT 1`,
+    [user?.id]
+  );
+  if (primary?.user_type) return String(primary.user_type).toLowerCase();
+  if (explicit) return explicit;
+  return 'student';
+}
+
 function exposeAuth(auth) {
   return {
     userType: auth.userType,
@@ -427,19 +443,26 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ error: 'Mot de passe incorrect' });
     }
 
-    const userType = String(account.user_type || '').trim().toLowerCase();
-    if (!['student', 'teacher'].includes(userType)) {
-      return res.status(403).json({ error: 'Type de compte non pris en charge' });
-    }
-    await ensurePrimaryRole(userType, account.id, userType === 'teacher' ? 'prof' : 'eleve_novice');
+    const userType = await resolveLoginUserType(account);
+    const preferredRole = userType === 'teacher' || userType === 'user' ? 'prof' : 'eleve_novice';
+    await ensurePrimaryRole(userType, account.id, preferredRole);
     await execute('UPDATE users SET last_seen = ?, updated_at = NOW() WHERE id = ?', [new Date().toISOString(), account.id]);
-    const session = await buildSessionPayload(userType, account.id, false);
+    let session = await buildSessionPayload(userType, account.id, false);
+    if (!session && userType !== 'teacher') {
+      session = await buildSessionPayload('teacher', account.id, false);
+    }
+    if (!session && userType !== 'student') {
+      session = await buildSessionPayload('student', account.id, false);
+    }
+    if (!session) {
+      return res.status(403).json({ error: 'Aucun profil attribué' });
+    }
     const token = session ? signAuthToken(session.tokenPayload, false) : null;
     await logSecurityEvent('auth.login', {
       req,
-      actorUserType: userType,
+      actorUserType: session.tokenPayload.userType,
       actorUserId: account.id,
-      targetType: userType,
+      targetType: session.tokenPayload.userType,
       targetId: account.id,
       payload: { via: 'identifier' },
     });
