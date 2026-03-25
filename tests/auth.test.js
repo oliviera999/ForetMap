@@ -145,7 +145,7 @@ describe('Auth', () => {
     assert.ok(consumed?.used_at);
   });
 
-  it('POST /api/auth/teacher/login authentifie un compte prof email/mot de passe', async () => {
+  it('POST /api/auth/login authentifie un compte prof email/mot de passe', async () => {
     const teacherEmail = `prof_${Date.now()}@example.com`;
     const teacherPassword = 'teacherPwd123';
     const hash = await bcrypt.hash(teacherPassword, 10);
@@ -158,12 +158,13 @@ describe('Auth', () => {
     );
 
     const res = await request(app)
-      .post('/api/auth/teacher/login')
-      .send({ email: teacherEmail, password: teacherPassword })
+      .post('/api/auth/login')
+      .send({ identifier: teacherEmail, password: teacherPassword })
       .expect(200);
-    assert.ok(res.body.token);
+    assert.ok(res.body.authToken);
+    assert.strictEqual(res.body.user_type, 'teacher');
     const evt = await queryOne(
-      "SELECT action, result FROM security_events WHERE action = 'auth.login.teacher' ORDER BY id DESC LIMIT 1"
+      "SELECT action, result FROM security_events WHERE action = 'auth.login' ORDER BY id DESC LIMIT 1"
     );
     assert.ok(evt);
     assert.strictEqual(evt.result, 'success');
@@ -288,9 +289,9 @@ describe('Auth', () => {
       .expect(200);
 
     const login = await request(app)
-      .post('/api/auth/teacher/login')
-      .send({ email: teacherEmail, password: newPassword })
+      .post('/api/auth/login')
+      .send({ identifier: teacherEmail, password: newPassword })
       .expect(200);
-    assert.ok(login.body.token);
+    assert.ok(login.body.authToken);
   });
 });

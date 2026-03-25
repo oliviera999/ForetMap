@@ -56,16 +56,22 @@ function PinModal({ onSuccess, onClose }) {
     setErr('');
     setLoading(true);
     try {
-      const data = await api('/api/auth/teacher/login', 'POST', { email: email.trim(), password });
-      if (!data || !data.token) {
+      const data = await api('/api/auth/login', 'POST', { identifier: email.trim(), password });
+      if (!data || !data.authToken) {
         setErr('Réponse serveur invalide');
         setLoading(false);
         return;
       }
-      localStorage.setItem('foretmap_auth_token', data.token);
-      localStorage.setItem('foretmap_teacher_token', data.token);
+      const perms = Array.isArray(data?.auth?.permissions) ? data.auth.permissions : [];
+      if (!perms.includes('teacher.access')) {
+        setErr('Ce compte ne possède pas les droits professeur.');
+        setLoading(false);
+        return;
+      }
+      localStorage.setItem('foretmap_auth_token', data.authToken);
+      localStorage.setItem('foretmap_teacher_token', data.authToken);
       saveStoredSession({
-        token: data.token,
+        token: data.authToken,
         user: {
           id: data?.auth?.canonicalUserId || data?.auth?.userId || null,
           userType: 'teacher',
@@ -285,16 +291,23 @@ function AuthScreen({ onLogin, appVersion, onVisitGuest }) {
       if (student?.authToken) {
         localStorage.setItem('foretmap_auth_token', student.authToken);
       }
-      localStorage.setItem('foretmap_student', JSON.stringify(student));
+      const userType = String(student?.auth?.userType || student?.user_type || 'student').toLowerCase();
+      const isTeacher = userType === 'teacher';
+      if (!isTeacher) {
+        localStorage.setItem('foretmap_student', JSON.stringify(student));
+      } else {
+        localStorage.removeItem('foretmap_student');
+        if (student?.authToken) localStorage.setItem('foretmap_teacher_token', student.authToken);
+      }
       saveStoredSession({
         token: student?.authToken || null,
         user: {
           id: student?.auth?.canonicalUserId || student?.id || null,
-          userType: 'student',
-          displayName: student?.pseudo || `${student?.first_name || ''} ${student?.last_name || ''}`.trim() || 'Élève',
+          userType,
+          displayName: student?.display_name || student?.pseudo || `${student?.first_name || ''} ${student?.last_name || ''}`.trim() || (isTeacher ? 'Professeur' : 'Élève'),
           email: student?.email || null,
         },
-        student,
+        student: isTeacher ? null : student,
       });
       onLogin(student);
     } catch (e) { setErr(e.message); }

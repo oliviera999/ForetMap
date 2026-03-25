@@ -26,7 +26,6 @@ const PSEUDO_RE = /^[A-Za-z0-9_.-]{3,30}$/;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PASSWORD_RESET_MIN_LEN = 4;
 const PASSWORD_RESET_TTL_MINUTES = 60;
-const LEGACY_TEACHER_PIN = process.env.TEACHER_PIN || null;
 const ALLOWED_STUDENT_AFFILIATIONS = new Set(['n3', 'foret', 'both']);
 const OAUTH_STATE_COOKIE = 'foretmap_oauth_state';
 const OAUTH_MODE_COOKIE = 'foretmap_oauth_mode';
@@ -194,14 +193,6 @@ function getPasswordResetBaseUrl() {
 function makeResetUrl(type, token) {
   const base = getPasswordResetBaseUrl().replace(/\/$/, '');
   return `${base}/?resetType=${encodeURIComponent(type)}&resetToken=${encodeURIComponent(token)}`;
-}
-
-function jwtNotConfigured(res) {
-  if (!JWT_SECRET) {
-    res.status(503).json({ error: 'Auth non configurée' });
-    return true;
-  }
-  return false;
 }
 
 async function createPasswordResetToken(userType, userId) {
@@ -380,15 +371,15 @@ router.post('/login', async (req, res) => {
     const { password } = req.body;
     const identifier = normalizeOptionalString(req.body?.identifier);
     if (!password || !identifier) return res.status(400).json({ error: 'Identifiant (email ou pseudo) et mot de passe requis' });
+    await ensureTeacherSeedFromEnv();
 
-    let student;
-    student = await queryOne(
-      "SELECT * FROM users WHERE user_type = 'student' AND (LOWER(pseudo)=LOWER(?) OR LOWER(email)=LOWER(?)) LIMIT 1",
+    const account = await queryOne(
+      "SELECT * FROM users WHERE (LOWER(pseudo)=LOWER(?) OR LOWER(email)=LOWER(?)) LIMIT 1",
       [identifier, identifier]
     );
 
-    if (!student) {
-      await logSecurityEvent('auth.login.student', {
+    if (!account) {
+      await logSecurityEvent('auth.login', {
         req,
         result: 'failure',
         reason: 'account_not_found',
@@ -396,48 +387,66 @@ router.post('/login', async (req, res) => {
       });
       return res.status(401).json({ error: 'Compte introuvable' });
     }
-    if (!student.password_hash) {
-      await logSecurityEvent('auth.login.student', {
+    if (!account.password_hash) {
+      await logSecurityEvent('auth.login', {
         req,
-        actorUserType: 'student',
-        actorUserId: student.id,
-        targetType: 'student',
-        targetId: student.id,
+        actorUserType: account.user_type,
+        actorUserId: account.id,
+        targetType: account.user_type,
+        targetId: account.id,
         result: 'failure',
         reason: 'password_not_set',
       });
       return res.status(401).json({ error: 'Ce compte n\'a pas de mot de passe. Contactez le prof.' });
     }
 
-    const ok = await bcrypt.compare(password, student.password_hash);
-    if (!ok) {
-      await logSecurityEvent('auth.login.student', {
+    if (account.is_active != null && !Number(account.is_active)) {
+      await logSecurityEvent('auth.login', {
         req,
-        actorUserType: 'student',
-        actorUserId: student.id,
-        targetType: 'student',
-        targetId: student.id,
+        actorUserType: account.user_type,
+        actorUserId: account.id,
+        targetType: account.user_type,
+        targetId: account.id,
+        result: 'failure',
+        reason: 'account_inactive',
+      });
+      return res.status(401).json({ error: 'Compte inactif' });
+    }
+
+    const ok = await bcrypt.compare(password, account.password_hash);
+    if (!ok) {
+      await logSecurityEvent('auth.login', {
+        req,
+        actorUserType: account.user_type,
+        actorUserId: account.id,
+        targetType: account.user_type,
+        targetId: account.id,
         result: 'failure',
         reason: 'password_invalid',
       });
       return res.status(401).json({ error: 'Mot de passe incorrect' });
     }
 
-    await ensurePrimaryRole('student', student.id, 'eleve_novice');
-    await execute("UPDATE users SET last_seen = ? WHERE id = ? AND user_type = 'student'", [new Date().toISOString(), student.id]);
-    const session = await buildSessionPayload('student', student.id, false);
+    const userType = String(account.user_type || '').trim().toLowerCase();
+    if (!['student', 'teacher'].includes(userType)) {
+      return res.status(403).json({ error: 'Type de compte non pris en charge' });
+    }
+    await ensurePrimaryRole(userType, account.id, userType === 'teacher' ? 'prof' : 'eleve_novice');
+    await execute('UPDATE users SET last_seen = ?, updated_at = NOW() WHERE id = ?', [new Date().toISOString(), account.id]);
+    const session = await buildSessionPayload(userType, account.id, false);
     const token = session ? signAuthToken(session.tokenPayload, false) : null;
-    await logSecurityEvent('auth.login.student', {
+    await logSecurityEvent('auth.login', {
       req,
-      actorUserType: 'student',
-      actorUserId: student.id,
-      targetType: 'student',
-      targetId: student.id,
+      actorUserType: userType,
+      actorUserId: account.id,
+      targetType: userType,
+      targetId: account.id,
       payload: { via: 'identifier' },
     });
+    const safeUser = { ...account };
+    delete safeUser.password_hash;
     res.json({
-      ...student,
-      password_hash: undefined,
+      ...safeUser,
       authToken: token,
       auth: session ? exposeAuth(session.tokenPayload) : null,
     });
@@ -668,59 +677,7 @@ router.post('/reset-password', async (req, res) => {
 });
 
 router.post('/teacher/login', async (req, res) => {
-  try {
-    if (jwtNotConfigured(res)) return;
-    await ensureRbacBootstrap();
-    await ensureTeacherSeedFromEnv();
-    const email = normalizeEmail(req.body?.email);
-    const password = req.body?.password;
-    if (!email || !password) return res.status(400).json({ error: 'Champs requis' });
-
-    const teacher = await queryOne(
-      "SELECT id, email, password_hash, is_active FROM users WHERE user_type = 'teacher' AND LOWER(email)=LOWER(?) LIMIT 1",
-      [email]
-    );
-    if (!teacher || !teacher.is_active) {
-      await logSecurityEvent('auth.login.teacher', {
-        req,
-        result: 'failure',
-        reason: 'account_not_found_or_inactive',
-        payload: { email },
-      });
-      return res.status(401).json({ error: 'Compte professeur introuvable' });
-    }
-    const ok = await bcrypt.compare(password, teacher.password_hash);
-    if (!ok) {
-      await logSecurityEvent('auth.login.teacher', {
-        req,
-        actorUserType: 'teacher',
-        actorUserId: teacher.id,
-        targetType: 'teacher',
-        targetId: teacher.id,
-        result: 'failure',
-        reason: 'password_invalid',
-      });
-      return res.status(401).json({ error: 'Mot de passe incorrect' });
-    }
-
-    await ensurePrimaryRole('teacher', teacher.id, 'prof');
-    await execute("UPDATE users SET last_seen = ?, updated_at = NOW() WHERE id = ? AND user_type = 'teacher'", [new Date().toISOString(), teacher.id]);
-    const session = await buildSessionPayload('teacher', teacher.id, false);
-    if (!session) return res.status(403).json({ error: 'Aucun profil attribué' });
-    const token = signAuthToken(session.tokenPayload, false);
-    await logSecurityEvent('auth.login.teacher', {
-      req,
-      actorUserType: 'teacher',
-      actorUserId: teacher.id,
-      targetType: 'teacher',
-      targetId: teacher.id,
-      payload: { via: 'password' },
-    });
-    res.json({ token, auth: exposeAuth(session.tokenPayload) });
-  } catch (e) {
-    logRouteError(e, req);
-    res.status(500).json({ error: e.message });
-  }
+  return res.status(410).json({ error: 'Endpoint supprimé. Utilisez /api/auth/login.' });
 });
 
 router.post('/teacher/forgot-password', async (req, res) => {
@@ -841,30 +798,7 @@ router.post('/teacher', async (req, res) => {
       });
       return res.json({ token, auth: exposeAuth(session.tokenPayload) });
     }
-
-    // Compatibilité secours: PIN global => élévation admin du compte TEACHER_ADMIN_EMAIL
-    if (!LEGACY_TEACHER_PIN || pin !== LEGACY_TEACHER_PIN) {
-      return res.status(401).json({ error: 'PIN incorrect' });
-    }
-    await ensureTeacherSeedFromEnv();
-    const adminEmail = normalizeEmail(process.env.TEACHER_ADMIN_EMAIL);
-    if (!adminEmail) return res.status(503).json({ error: 'TEACHER_ADMIN_EMAIL requis pour le mode secours' });
-    const teacher = await queryOne(
-      "SELECT id FROM users WHERE user_type = 'teacher' AND LOWER(email)=LOWER(?) LIMIT 1",
-      [adminEmail]
-    );
-    if (!teacher) return res.status(503).json({ error: 'Compte admin introuvable' });
-    await ensurePrimaryRole('teacher', teacher.id, 'admin');
-    const session = await buildSessionPayload('teacher', teacher.id, true);
-    if (!session) return res.status(403).json({ error: 'Aucun profil attribué' });
-    const token = signAuthToken(session.tokenPayload, true);
-    await logAudit('auth_teacher_legacy_pin_global', 'auth', teacher.id, 'Mode secours PIN global', {
-      req,
-      actorUserType: 'teacher',
-      actorUserId: teacher.id,
-      payload: { elevated: true, legacy_global_pin: true },
-    });
-    return res.json({ token, auth: exposeAuth(session.tokenPayload) });
+    return res.status(401).json({ error: 'Token requis avant élévation PIN' });
   } catch (e) {
     logRouteError(e, req);
     res.status(500).json({ error: e.message });

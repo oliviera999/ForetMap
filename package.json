@@ -1,6 +1,6 @@
 {
   "name": "foretmap",
-  "version": "1.10.2",
+  "version": "1.10.3",
   "description": "Application de gestion de la forêt comestible - Lycée Lyautey",
   "main": "server.js",
   "dependencies": {
