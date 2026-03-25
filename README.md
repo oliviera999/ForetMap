@@ -119,11 +119,12 @@ Documentation détaillée et templates:
 | `PORT` | Port du serveur (défaut : 3000) |
 | `IP` ou `ALWAYSDATA_HTTPD_IP` | Adresse d’écoute (défaut : 0.0.0.0) |
 | `DEPLOY_SECRET` | Optionnel : secret pour redémarrage à distance après déploiement (voir ci‑dessous) |
-| `TEACHER_PIN` | Code PIN du mode professeur (requis en production pour activer le mode prof) |
-| `JWT_SECRET` | Secret pour signer les tokens prof (requis en production pour activer le mode prof) |
+| `TEACHER_PIN` | PIN de secours historique (élévation admin de compatibilité) |
+| `JWT_SECRET` | Secret JWT (requis en production) |
 | `TEACHER_ADMIN_EMAIL` | Optionnel : email du compte prof auto-créé (auth email/mot de passe) |
 | `TEACHER_ADMIN_PASSWORD` | Optionnel : mot de passe initial du compte prof auto-créé |
 | `TEACHER_ADMIN_DISPLAY_NAME` | Optionnel : nom affiché du compte prof auto-créé |
+| `RBAC_DEFAULT_STUDENT_ROLE` | Optionnel : rôle élève assigné par défaut (`eleve_novice` par défaut) |
 | `FRONTEND_ORIGIN` | En production : origine CORS autorisée (ex. `https://foretmap.olution.info`) |
 | `PASSWORD_RESET_BASE_URL` | URL de base incluse dans les emails de réinitialisation (défaut `FRONTEND_ORIGIN` puis `http://localhost:3000`) |
 | `SMTP_HOST` | Hôte SMTP pour l’envoi d’emails (mot de passe oublié) |
@@ -135,7 +136,7 @@ Documentation détaillée et templates:
 | `LOG_LEVEL` | Optionnel : niveau Pino (`debug`, `info`, …). Voir section *Débogage* ci‑dessus. |
 
 **Obligatoires au démarrage** : `DB_HOST`, `DB_USER`, `DB_PASS`, `DB_NAME`. Si l’une manque, le serveur refuse de démarrer.  
-**En production** : si `TEACHER_PIN` ou `JWT_SECRET` manque, le serveur démarre quand même mais le mode professeur est désactivé (`POST /api/auth/teacher` renvoie 503 « Mode prof non configuré »).  
+**En production** : `JWT_SECRET` est requis pour l’authentification JWT. `TEACHER_PIN` est uniquement un secours de compatibilité.  
 **Recommandé en production** : définir `FRONTEND_ORIGIN` (CORS restreint), `DEPLOY_SECRET` (activer les endpoints admin protégés), ainsi que la configuration SMTP pour le flux « mot de passe oublié ».
 
 Pour créer/mettre à jour manuellement le compte prof email avec les variables `TEACHER_ADMIN_*` :

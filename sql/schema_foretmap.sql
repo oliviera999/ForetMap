@@ -85,12 +85,25 @@ CREATE TABLE IF NOT EXISTS plants (
   INDEX idx_plants_name (name)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- task_projects (regroupement de tâches par projet)
+CREATE TABLE IF NOT EXISTS task_projects (
+  id VARCHAR(64) PRIMARY KEY,
+  map_id VARCHAR(32) NOT NULL,
+  title VARCHAR(255) NOT NULL,
+  description TEXT DEFAULT NULL,
+  created_at VARCHAR(32) DEFAULT NULL,
+  INDEX idx_task_projects_map_id (map_id),
+  INDEX idx_task_projects_title (title),
+  CONSTRAINT fk_task_projects_map FOREIGN KEY (map_id) REFERENCES maps(id) ON DELETE RESTRICT
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- tasks (tâches assignables aux élèves)
 CREATE TABLE IF NOT EXISTS tasks (
   id VARCHAR(64) PRIMARY KEY,
   title VARCHAR(512) NOT NULL,
   description TEXT DEFAULT NULL,
   map_id VARCHAR(32) DEFAULT NULL,
+  project_id VARCHAR(64) DEFAULT NULL,
   zone_id VARCHAR(64) DEFAULT NULL,
   marker_id VARCHAR(64) DEFAULT NULL,
   due_date VARCHAR(32) DEFAULT NULL,
@@ -98,10 +111,12 @@ CREATE TABLE IF NOT EXISTS tasks (
   status VARCHAR(32) DEFAULT 'available',
   created_at VARCHAR(32) DEFAULT NULL,
   INDEX idx_tasks_map_id (map_id),
+  INDEX idx_tasks_project_id (project_id),
   INDEX idx_tasks_zone_id (zone_id),
   INDEX idx_tasks_marker_id (marker_id),
   INDEX idx_tasks_due_date (due_date),
   CONSTRAINT fk_tasks_map FOREIGN KEY (map_id) REFERENCES maps(id) ON DELETE SET NULL,
+  CONSTRAINT fk_tasks_project FOREIGN KEY (project_id) REFERENCES task_projects(id) ON DELETE SET NULL,
   CONSTRAINT fk_tasks_zone FOREIGN KEY (zone_id) REFERENCES zones(id) ON DELETE SET NULL,
   CONSTRAINT fk_tasks_marker FOREIGN KEY (marker_id) REFERENCES map_markers(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -188,6 +203,7 @@ CREATE TABLE IF NOT EXISTS students (
   email VARCHAR(255) DEFAULT NULL,
   description TEXT DEFAULT NULL,
   avatar_path VARCHAR(512) DEFAULT NULL,
+  affiliation VARCHAR(16) NOT NULL DEFAULT 'both',
   password VARCHAR(255) DEFAULT NULL,
   last_seen VARCHAR(32) DEFAULT NULL,
   INDEX idx_students_names (first_name, last_name),
@@ -222,6 +238,65 @@ CREATE TABLE IF NOT EXISTS password_reset_tokens (
   INDEX idx_password_reset_expires (expires_at),
   INDEX idx_password_reset_used (used_at),
   UNIQUE KEY uq_password_reset_token_hash (token_hash)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- RBAC: profils et permissions configurables
+CREATE TABLE IF NOT EXISTS roles (
+  id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  slug VARCHAR(64) NOT NULL,
+  display_name VARCHAR(120) NOT NULL,
+  rank INT NOT NULL DEFAULT 0,
+  is_system TINYINT(1) NOT NULL DEFAULT 1,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  UNIQUE KEY uq_roles_slug (slug)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS permissions (
+  `key` VARCHAR(120) NOT NULL PRIMARY KEY,
+  label VARCHAR(160) NOT NULL,
+  description TEXT DEFAULT NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS role_permissions (
+  role_id INT UNSIGNED NOT NULL,
+  permission_key VARCHAR(120) NOT NULL,
+  requires_elevation TINYINT(1) NOT NULL DEFAULT 0,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (role_id, permission_key),
+  CONSTRAINT fk_role_permissions_role FOREIGN KEY (role_id) REFERENCES roles(id) ON DELETE CASCADE,
+  CONSTRAINT fk_role_permissions_permission FOREIGN KEY (permission_key) REFERENCES permissions(`key`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS role_pin_secrets (
+  role_id INT UNSIGNED NOT NULL PRIMARY KEY,
+  pin_hash VARCHAR(128) NOT NULL,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  CONSTRAINT fk_role_pin_role FOREIGN KEY (role_id) REFERENCES roles(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS user_roles (
+  user_type VARCHAR(16) NOT NULL,
+  user_id VARCHAR(64) NOT NULL,
+  role_id INT UNSIGNED NOT NULL,
+  is_primary TINYINT(1) NOT NULL DEFAULT 1,
+  assigned_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (user_type, user_id, role_id),
+  INDEX idx_user_roles_lookup (user_type, user_id, is_primary),
+  CONSTRAINT fk_user_roles_role FOREIGN KEY (role_id) REFERENCES roles(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS elevation_audit (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  user_type VARCHAR(16) NOT NULL,
+  user_id VARCHAR(64) NOT NULL,
+  role_id INT UNSIGNED NOT NULL,
+  success TINYINT(1) NOT NULL DEFAULT 0,
+  reason VARCHAR(255) DEFAULT NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_elevation_audit_user (user_type, user_id, created_at),
+  CONSTRAINT fk_elevation_audit_role FOREIGN KEY (role_id) REFERENCES roles(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- task_logs (commentaires / images de réalisation d'une tâche)

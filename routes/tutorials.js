@@ -3,7 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const PDFDocument = require('pdfkit');
 const { queryAll, queryOne, execute } = require('../database');
-const { requireTeacher } = require('../middleware/requireTeacher');
+const { requirePermission } = require('../middleware/requireTeacher');
 const { logRouteError } = require('../lib/routeLog');
 const { emitTasksChanged } = require('../lib/realtime');
 
@@ -195,7 +195,7 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-router.post('/', requireTeacher, async (req, res) => {
+router.post('/', requirePermission('tutorials.manage', { needsElevation: true }), async (req, res) => {
   try {
     const title = normalizeString(req.body.title);
     const type = normalizeString(req.body.type || 'html').toLowerCase();
@@ -240,7 +240,7 @@ router.post('/', requireTeacher, async (req, res) => {
   }
 });
 
-router.put('/:id', requireTeacher, async (req, res) => {
+router.put('/:id', requirePermission('tutorials.manage', { needsElevation: true }), async (req, res) => {
   try {
     const existing = await queryOne('SELECT * FROM tutorials WHERE id = ?', [req.params.id]);
     if (!existing) return res.status(404).json({ error: 'Tutoriel introuvable' });
@@ -300,7 +300,7 @@ router.put('/:id', requireTeacher, async (req, res) => {
   }
 });
 
-router.delete('/:id', requireTeacher, async (req, res) => {
+router.delete('/:id', requirePermission('tutorials.manage', { needsElevation: true }), async (req, res) => {
   try {
     const existing = await queryOne('SELECT id FROM tutorials WHERE id = ?', [req.params.id]);
     if (!existing) return res.status(404).json({ error: 'Tutoriel introuvable' });

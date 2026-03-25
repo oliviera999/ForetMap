@@ -6,6 +6,11 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 ## [Non publié]
 
 ### Ajouté
+- **RBAC complet configurable** : ajout d’un gestionnaire de profils (Admin, Prof, Élève chevronné, Élève avancé, Élève novice) avec permissions par profil, attribution utilisateur et élévation des droits via PIN de profil.
+- **Schéma RBAC** : nouvelles tables `roles`, `permissions`, `role_permissions`, `role_pin_secrets`, `user_roles`, `elevation_audit` + migration `025_rbac_profiles.sql` et seed initial des profils.
+- **API admin RBAC** : nouvelles routes `/api/rbac/*` pour gérer profils, permissions, PIN et affectation des rôles.
+- **Page dédiée admin** : nouvelle vue frontend `Gestionnaire de profils` (onglet prof/admin) pour administrer noms de profil, droits, PIN et attributions.
+- **Auth enrichie** : endpoint `/api/auth/elevate`, endpoint `/api/auth/me`, tokens JWT avec permissions effectives et statut `elevated`.
 - **Auth élève par identifiant** : la connexion accepte désormais un champ unique `identifier` (pseudo ou email) avec compatibilité maintenue sur l’ancien format `firstName + lastName`.
 - **Mot de passe oublié (élève + prof)** : nouveaux endpoints de reset (`forgot-password` / `reset-password`) avec email de réinitialisation, token fort hashé, expiration et usage unique.
 - **Comptes prof email/mot de passe** : ajout de la table `teachers`, de l’auth prof par email (`POST /api/auth/teacher/login`) et conservation complète du mode PIN existant.
@@ -24,6 +29,9 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - **Tests visite** : nouveaux scénarios backend sur le contenu visite, la persistance anonyme via cookie signé et la persistance élève en base.
 
 ### Modifié
+- **Protection des routes sensibles** : remplacement de la logique binaire `requireTeacher` par des permissions RBAC explicites sur zones, tâches, plantes, stats, audit, visite, observations, tutoriels et gestion élèves.
+- **Flux professeur** : la saisie du PIN devient une élévation de session post-connexion (compatibilité PIN historique conservée en secours).
+- **Gating UI** : affichage/activation conditionnelle de plusieurs actions prof selon permissions réelles et statut d’élévation.
 - **Visite/tâches complètement dissociées** : la visite utilise désormais ses propres entités (`visit_zones`, `visit_markers`) avec outils professeur dédiés pour créer/éditer/supprimer zones et repères directement sur la carte de visite, sans dépendre des zones/repères du système de tâches.
 - **Panel emojis centralisé et enrichi** : création de `src/constants/emojis.js`, remplacement des listes locales, ajout d’emojis biodiversité, techno et école pour les repères (tâches/visite) et formulaires liés.
 - **Navigation/auth** : ajout d’un CTA « Visiter sans connexion » dans l’écran d’authentification et intégration de l’onglet `Visite` dans les navigations élève/prof.

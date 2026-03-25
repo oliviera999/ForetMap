@@ -2,7 +2,7 @@ const express = require('express');
 const crypto = require('crypto');
 const { v4: uuidv4 } = require('uuid');
 const { queryAll, queryOne, execute } = require('../database');
-const { requireTeacher, JWT_SECRET } = require('../middleware/requireTeacher');
+const { requirePermission, JWT_SECRET } = require('../middleware/requireTeacher');
 const { logRouteError } = require('../lib/routeLog');
 
 const router = express.Router();
@@ -127,6 +127,107 @@ async function visitTargetExists(targetType, targetId) {
   const row = await queryOne('SELECT id FROM visit_markers WHERE id = ? LIMIT 1', [targetId]);
   return !!row;
 }
+
+function ratioPct(numerator, denominator) {
+  if (!Number.isFinite(numerator) || !Number.isFinite(denominator) || denominator <= 0) return 0;
+  return Number(((numerator / denominator) * 100).toFixed(1));
+}
+
+router.get('/stats', requirePermission('stats.read.all'), async (req, res) => {
+  try {
+    await cleanupAnonymousSeen();
+
+    const activeRow = await queryOne(
+      `SELECT
+         (SELECT COUNT(*) FROM visit_zones WHERE is_active = 1) AS active_zones,
+         (SELECT COUNT(*) FROM visit_markers WHERE is_active = 1) AS active_markers`
+    );
+    const activeZones = Number(activeRow?.active_zones || 0);
+    const activeMarkers = Number(activeRow?.active_markers || 0);
+    const activeTargetsTotal = activeZones + activeMarkers;
+
+    const activeTargetsFilter = '(z.id IS NOT NULL OR m.id IS NOT NULL)';
+    const studentSessions = await queryOne(
+      `SELECT
+         COUNT(*) AS sessions,
+         COALESCE(SUM(grouped.seen_count), 0) AS seen_actions,
+         COALESCE(SUM(CASE WHEN grouped.seen_count >= ? THEN 1 ELSE 0 END), 0) AS completed_visits
+       FROM (
+         SELECT s.student_id AS session_id, COUNT(*) AS seen_count
+         FROM visit_seen_students s
+         LEFT JOIN visit_zones z ON s.target_type = 'zone' AND z.id = s.target_id AND z.is_active = 1
+         LEFT JOIN visit_markers m ON s.target_type = 'marker' AND m.id = s.target_id AND m.is_active = 1
+         WHERE ${activeTargetsFilter}
+         GROUP BY s.student_id
+       ) grouped`,
+      [activeTargetsTotal]
+    );
+
+    const anonymousSessions = await queryOne(
+      `SELECT
+         COUNT(*) AS sessions,
+         COALESCE(SUM(grouped.seen_count), 0) AS seen_actions,
+         COALESCE(SUM(CASE WHEN grouped.seen_count >= ? THEN 1 ELSE 0 END), 0) AS completed_visits
+       FROM (
+         SELECT s.anon_token AS session_id, COUNT(*) AS seen_count
+         FROM visit_seen_anonymous s
+         LEFT JOIN visit_zones z ON s.target_type = 'zone' AND z.id = s.target_id AND z.is_active = 1
+         LEFT JOIN visit_markers m ON s.target_type = 'marker' AND m.id = s.target_id AND m.is_active = 1
+         WHERE s.updated_at >= DATE_SUB(UTC_TIMESTAMP(), INTERVAL 1 DAY)
+           AND ${activeTargetsFilter}
+         GROUP BY s.anon_token
+       ) grouped`,
+      [activeTargetsTotal]
+    );
+
+    const students = {
+      sessions: Number(studentSessions?.sessions || 0),
+      seen_actions: Number(studentSessions?.seen_actions || 0),
+      completed_visits: Number(studentSessions?.completed_visits || 0),
+    };
+    const anonymous = {
+      sessions: Number(anonymousSessions?.sessions || 0),
+      seen_actions: Number(anonymousSessions?.seen_actions || 0),
+      completed_visits: Number(anonymousSessions?.completed_visits || 0),
+    };
+    const sessionsTotal = students.sessions + anonymous.sessions;
+    const seenActionsTotal = students.seen_actions + anonymous.seen_actions;
+    const completedVisitsTotal = students.completed_visits + anonymous.completed_visits;
+    const completionRatePct = ratioPct(seenActionsTotal, sessionsTotal * activeTargetsTotal);
+    const completedVisitsRatePct = ratioPct(completedVisitsTotal, sessionsTotal);
+
+    return res.json({
+      generated_at: nowIso(),
+      active_targets: {
+        total: activeTargetsTotal,
+        zones: activeZones,
+        markers: activeMarkers,
+      },
+      kpis: {
+        sessions_total: sessionsTotal,
+        completed_visits_total: completedVisitsTotal,
+        seen_actions_total: seenActionsTotal,
+        completion_rate_pct: completionRatePct,
+        completed_visits_rate_pct: completedVisitsRatePct,
+      },
+      breakdown: {
+        students: {
+          ...students,
+          completion_rate_pct: ratioPct(students.seen_actions, students.sessions * activeTargetsTotal),
+          completed_visits_rate_pct: ratioPct(students.completed_visits, students.sessions),
+        },
+        anonymous: {
+          ...anonymous,
+          completion_rate_pct: ratioPct(anonymous.seen_actions, anonymous.sessions * activeTargetsTotal),
+          completed_visits_rate_pct: ratioPct(anonymous.completed_visits, anonymous.sessions),
+        },
+      },
+    });
+  } catch (err) {
+    logRouteError(err, req);
+    return res.status(500).json({ error: 'Erreur serveur' });
+  }
+});
 
 router.get('/content', async (req, res) => {
   try {
@@ -303,7 +404,7 @@ router.post('/seen', async (req, res) => {
   }
 });
 
-router.post('/zones', requireTeacher, async (req, res) => {
+router.post('/zones', requirePermission('visit.manage', { needsElevation: true }), async (req, res) => {
   try {
     const mapId = String(req.body.map_id || 'foret').trim();
     const name = String(req.body.name || '').trim();
@@ -339,7 +440,7 @@ router.post('/zones', requireTeacher, async (req, res) => {
   }
 });
 
-router.put('/zones/:id', requireTeacher, async (req, res) => {
+router.put('/zones/:id', requirePermission('visit.manage', { needsElevation: true }), async (req, res) => {
   try {
     const zoneId = String(req.params.id || '').trim();
     if (!zoneId) return res.status(400).json({ error: 'Zone invalide' });
@@ -389,7 +490,7 @@ router.put('/zones/:id', requireTeacher, async (req, res) => {
   }
 });
 
-router.delete('/zones/:id', requireTeacher, async (req, res) => {
+router.delete('/zones/:id', requirePermission('visit.manage', { needsElevation: true }), async (req, res) => {
   try {
     const zoneId = String(req.params.id || '').trim();
     if (!zoneId) return res.status(400).json({ error: 'Zone invalide' });
@@ -404,7 +505,7 @@ router.delete('/zones/:id', requireTeacher, async (req, res) => {
   }
 });
 
-router.post('/markers', requireTeacher, async (req, res) => {
+router.post('/markers', requirePermission('visit.manage', { needsElevation: true }), async (req, res) => {
   try {
     const mapId = String(req.body.map_id || 'foret').trim();
     const label = String(req.body.label || '').trim();
@@ -443,7 +544,7 @@ router.post('/markers', requireTeacher, async (req, res) => {
   }
 });
 
-router.put('/markers/:id', requireTeacher, async (req, res) => {
+router.put('/markers/:id', requirePermission('visit.manage', { needsElevation: true }), async (req, res) => {
   try {
     const markerId = String(req.params.id || '').trim();
     if (!markerId) return res.status(400).json({ error: 'Repère invalide' });
@@ -495,7 +596,7 @@ router.put('/markers/:id', requireTeacher, async (req, res) => {
   }
 });
 
-router.delete('/markers/:id', requireTeacher, async (req, res) => {
+router.delete('/markers/:id', requirePermission('visit.manage', { needsElevation: true }), async (req, res) => {
   try {
     const markerId = String(req.params.id || '').trim();
     if (!markerId) return res.status(400).json({ error: 'Repère invalide' });
@@ -510,7 +611,7 @@ router.delete('/markers/:id', requireTeacher, async (req, res) => {
   }
 });
 
-router.post('/media', requireTeacher, async (req, res) => {
+router.post('/media', requirePermission('visit.manage', { needsElevation: true }), async (req, res) => {
   try {
     const targetType = sanitizeTargetType(req.body.target_type);
     const targetId = sanitizeTargetId(req.body.target_id);
@@ -541,7 +642,7 @@ router.post('/media', requireTeacher, async (req, res) => {
   }
 });
 
-router.put('/media/:id', requireTeacher, async (req, res) => {
+router.put('/media/:id', requirePermission('visit.manage', { needsElevation: true }), async (req, res) => {
   try {
     const mediaId = Number(req.params.id);
     if (!Number.isFinite(mediaId) || mediaId <= 0) return res.status(400).json({ error: 'Photo invalide' });
@@ -565,7 +666,7 @@ router.put('/media/:id', requireTeacher, async (req, res) => {
   }
 });
 
-router.delete('/media/:id', requireTeacher, async (req, res) => {
+router.delete('/media/:id', requirePermission('visit.manage', { needsElevation: true }), async (req, res) => {
   try {
     const mediaId = Number(req.params.id);
     if (!Number.isFinite(mediaId) || mediaId <= 0) return res.status(400).json({ error: 'Photo invalide' });
@@ -577,7 +678,7 @@ router.delete('/media/:id', requireTeacher, async (req, res) => {
   }
 });
 
-router.put('/tutorials', requireTeacher, async (req, res) => {
+router.put('/tutorials', requirePermission('visit.manage', { needsElevation: true }), async (req, res) => {
   try {
     const ids = Array.isArray(req.body.tutorial_ids) ? req.body.tutorial_ids : [];
     const uniqueIds = [...new Set(ids.map((v) => Number(v)).filter((n) => Number.isFinite(n) && n > 0))];

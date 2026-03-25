@@ -714,6 +714,13 @@
 
     /* ── STATS ── */
     .stats-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:10px; margin-bottom:20px; }
+    .audit-subtabs { margin-bottom:14px; }
+    .audit-subtabs .top-tab { flex:0 0 auto; min-width:150px; }
+    .audit-stats-grid { margin-bottom:14px; }
+    .audit-stats-details .activity-title { white-space:normal; }
+    @media (max-width:620px) {
+      .audit-stats-grid { grid-template-columns:1fr; }
+    }
     .stat-card {
       background:white; border-radius:14px; padding:16px 12px;
       box-shadow:0 1px 6px rgba(0,0,0,.05); text-align:center;

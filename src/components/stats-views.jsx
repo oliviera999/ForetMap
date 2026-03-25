@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { API, api } from '../services/api';
+import { API, api, getAuthToken } from '../services/api';
 import { statusBadge } from '../utils/badges';
 import { getDicebearAvatarUrl, getStudentAvatarUrl } from '../utils/avatar';
 import { StudentAvatar } from './student-avatar';
@@ -112,6 +112,7 @@ function StudentProfileEditor({ student, onUpdated, onClose }) {
   const [pseudo, setPseudo] = useState(student.pseudo || '');
   const [email, setEmail] = useState(student.email || '');
   const [description, setDescription] = useState(student.description || '');
+  const [affiliation, setAffiliation] = useState(student.affiliation || 'both');
   const [avatarPreview, setAvatarPreview] = useState(getStudentAvatarUrl(student));
   const [avatarData, setAvatarData] = useState(null);
   const [removeAvatar, setRemoveAvatar] = useState(false);
@@ -161,6 +162,7 @@ function StudentProfileEditor({ student, onUpdated, onClose }) {
         pseudo: pseudo.trim() || null,
         email: email.trim() || null,
         description: description.trim() || null,
+        affiliation,
         currentPassword,
       };
       if (avatarData) payload.avatarData = avatarData;
@@ -229,6 +231,14 @@ function StudentProfileEditor({ student, onUpdated, onClose }) {
         <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="moi@exemple.com" />
       </div>
       <div className="field">
+        <label>Mon espace</label>
+        <select value={affiliation} onChange={e => setAffiliation(e.target.value)}>
+          <option value="both">N3 + Forêt comestible</option>
+          <option value="n3">N3 uniquement</option>
+          <option value="foret">Forêt comestible uniquement</option>
+        </select>
+      </div>
+      <div className="field">
         <label>Description</label>
         <textarea
           value={description}
@@ -270,12 +280,26 @@ function TeacherStats() {
   const [importLoading, setImportLoading] = useState(false);
   const [importReport, setImportReport] = useState(null);
   const [dryRunImport, setDryRunImport] = useState(false);
+  const [authPerms, setAuthPerms] = useState([]);
+  const [authElevated, setAuthElevated] = useState(false);
 
   const load = useCallback(() => api('/api/stats/all').then(setData).catch(err => {
     console.error('[ForetMap] stats tous', err);
     setToast('Impossible de charger les statistiques.');
   }), []);
   useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    api('/api/auth/me')
+      .then((d) => {
+        const perms = Array.isArray(d?.auth?.permissions) ? d.auth.permissions : [];
+        setAuthPerms(perms);
+        setAuthElevated(!!d?.auth?.elevated);
+      })
+      .catch(() => {
+        setAuthPerms([]);
+        setAuthElevated(false);
+      });
+  }, []);
 
   useEffect(() => {
     const onRealtime = (e) => {
@@ -301,7 +325,7 @@ function TeacherStats() {
 
   const downloadStudentsTemplate = async (format) => {
     try {
-      const token = localStorage.getItem('foretmap_teacher_token');
+      const token = getAuthToken();
       const headers = new Headers();
       if (token) headers.set('Authorization', 'Bearer ' + token);
       const res = await fetch(`${API}/api/students/import/template?format=${encodeURIComponent(format)}`, { headers });
@@ -366,6 +390,10 @@ function TeacherStats() {
   const totalPending = data.reduce((s, d) => s + d.stats.pending, 0);
   const activeStudents = data.filter(d => d.stats.total > 0).length;
 
+  const canExport = authPerms.includes('stats.export') && authElevated;
+  const canImport = authPerms.includes('students.import') && authElevated;
+  const canDelete = authPerms.includes('students.delete') && authElevated;
+
   return (
     <div className="fade-in">
       {toast && <Toast msg={toast} onDone={() => setToast(null)} />}
@@ -393,8 +421,8 @@ function TeacherStats() {
       <p className="section-sub">{data.length} élève{data.length > 1 ? 's' : ''} inscrits</p>
 
       <div className="export-row">
-        <button className="btn btn-secondary btn-sm" onClick={() => {
-          const token = localStorage.getItem('foretmap_teacher_token');
+        <button className="btn btn-secondary btn-sm" disabled={!canExport} onClick={() => {
+          const token = getAuthToken();
           const link = document.createElement('a');
           link.href = API + '/api/stats/export';
           const headers = new Headers();
@@ -409,11 +437,11 @@ function TeacherStats() {
             })
             .catch(() => setToast('Erreur lors de l\'export'));
         }}>
-          📥 Exporter CSV
+          📥 Exporter CSV {canExport ? '' : '(PIN requis)'}
         </button>
       </div>
 
-      <div style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: 12, padding: 12, marginBottom: 16 }}>
+      <div style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: 12, padding: 12, marginBottom: 16, opacity: canImport ? 1 : 0.65 }}>
         <h3 style={{ margin: '0 0 8px', fontSize: '1rem', color: 'var(--forest)' }}>Import élèves (CSV / XLSX)</h3>
         <p style={{ margin: '0 0 10px', fontSize: '.85rem', color: '#6b7280' }}>
           Téléchargez un modèle vierge, complétez-le puis importez le fichier.
@@ -446,7 +474,7 @@ function TeacherStats() {
             />
             Simulation (sans création)
           </label>
-          <button className="btn btn-primary btn-sm" onClick={importStudents} disabled={importLoading}>
+          <button className="btn btn-primary btn-sm" onClick={importStudents} disabled={importLoading || !canImport}>
             {importLoading ? 'Import…' : 'Importer'}
           </button>
         </div>
@@ -545,6 +573,7 @@ function TeacherStats() {
                 </div>
                 <button className="btn btn-danger btn-sm"
                   style={{ flexShrink: 0 }}
+                  disabled={!canDelete}
                   onClick={() => deleteStudent(s)}
                   title={`Supprimer ${s.first_name}`}>
                   🗑️

@@ -9,12 +9,27 @@ const assert = require('node:assert');
 const request = require('supertest');
 const bcrypt = require('bcryptjs');
 const { app } = require('../server');
+const authRouter = require('../routes/auth');
 const { initSchema, execute, queryOne } = require('../database');
 
 before(async () => {
   process.env.SMTP_JSON_TRANSPORT = 'true';
+  process.env.GOOGLE_OAUTH_CLIENT_ID = 'test-google-client-id.apps.googleusercontent.com';
+  process.env.GOOGLE_OAUTH_CLIENT_SECRET = 'test-google-client-secret';
+  process.env.GOOGLE_OAUTH_REDIRECT_URI = 'http://localhost:3000/api/auth/google/callback';
+  process.env.GOOGLE_OAUTH_ALLOWED_DOMAINS = 'pedagolyautey.org,lyceelyautey.org';
+  process.env.GOOGLE_OAUTH_ALLOWED_EMAILS = 'oliv.arn.lau@gmail.com';
+  process.env.FRONTEND_ORIGIN = 'http://localhost:3000';
   await initSchema();
 });
+
+function decodeOAuthPayloadFromRedirect(location) {
+  const hashPart = String(location || '').split('#')[1] || '';
+  const params = new URLSearchParams(hashPart);
+  const encoded = params.get('oauth');
+  if (!encoded) return null;
+  return JSON.parse(Buffer.from(decodeURIComponent(encoded), 'base64url').toString('utf8'));
+}
 
 describe('Auth', () => {
   const unique = `Test${Date.now()}`;
@@ -141,6 +156,96 @@ describe('Auth', () => {
       .send({ email: teacherEmail, password: teacherPassword })
       .expect(200);
     assert.ok(res.body.token);
+  });
+
+  it('GET /api/auth/google/start redirige vers Google avec state', async () => {
+    const res = await request(app)
+      .get('/api/auth/google/start?mode=student')
+      .expect(302);
+    assert.ok(String(res.headers.location || '').startsWith('https://accounts.google.com/o/oauth2/v2/auth?'));
+    assert.ok((res.headers['set-cookie'] || []).some((c) => c.startsWith('foretmap_oauth_state=')));
+  });
+
+  it('GET /api/auth/google/callback refuse un state invalide', async () => {
+    const res = await request(app)
+      .get('/api/auth/google/callback?state=bad&code=abc')
+      .set('Cookie', ['foretmap_oauth_state=good', 'foretmap_oauth_mode=student'])
+      .expect(302);
+    assert.ok(String(res.headers.location || '').includes('oauth_invalid_state'));
+  });
+
+  it('GET /api/auth/google/callback connecte un professeur existant', async () => {
+    const teacherEmail = 'oauth.prof@pedagolyautey.org';
+    const now = new Date().toISOString();
+    await execute(
+      'INSERT INTO teachers (id, email, password_hash, display_name, is_active, last_seen, created_at, updated_at) VALUES (?, ?, ?, ?, 1, ?, ?, ?)',
+      [uuidv4(), teacherEmail, await bcrypt.hash('dummy-password', 10), 'Prof OAuth', now, now, now]
+    );
+    authRouter.__setGoogleOAuthHooks({
+      exchangeCode: async () => ({ id_token: 'token-prof' }),
+      verifyIdToken: async () => ({
+        aud: process.env.GOOGLE_OAUTH_CLIENT_ID,
+        iss: 'https://accounts.google.com',
+        email: teacherEmail,
+        email_verified: true,
+        hd: 'pedagolyautey.org',
+      }),
+    });
+    const res = await request(app)
+      .get('/api/auth/google/callback?state=ok&code=code-prof')
+      .set('Cookie', ['foretmap_oauth_state=ok', 'foretmap_oauth_mode=teacher'])
+      .expect(302);
+    const payload = decodeOAuthPayloadFromRedirect(res.headers.location);
+    assert.strictEqual(payload?.type, 'teacher');
+    assert.ok(payload?.token);
+    authRouter.__setGoogleOAuthHooks();
+  });
+
+  it('GET /api/auth/google/callback crée un élève OAuth si absent', async () => {
+    const studentEmail = `oauth_student_${Date.now()}@lyceelyautey.org`;
+    authRouter.__setGoogleOAuthHooks({
+      exchangeCode: async () => ({ id_token: 'token-student' }),
+      verifyIdToken: async () => ({
+        aud: process.env.GOOGLE_OAUTH_CLIENT_ID,
+        iss: 'accounts.google.com',
+        email: studentEmail,
+        email_verified: true,
+        hd: 'lyceelyautey.org',
+        given_name: 'Google',
+        family_name: 'Student',
+        name: 'Google Student',
+      }),
+    });
+    const res = await request(app)
+      .get('/api/auth/google/callback?state=ok2&code=code-student')
+      .set('Cookie', ['foretmap_oauth_state=ok2', 'foretmap_oauth_mode=student'])
+      .expect(302);
+    const payload = decodeOAuthPayloadFromRedirect(res.headers.location);
+    assert.strictEqual(payload?.type, 'student');
+    assert.ok(payload?.student?.id);
+    assert.strictEqual(String(payload?.student?.email || '').toLowerCase(), studentEmail.toLowerCase());
+    const created = await queryOne('SELECT id, email FROM students WHERE LOWER(email)=LOWER(?) LIMIT 1', [studentEmail]);
+    assert.ok(created?.id);
+    authRouter.__setGoogleOAuthHooks();
+  });
+
+  it('GET /api/auth/google/callback refuse un email non autorisé', async () => {
+    authRouter.__setGoogleOAuthHooks({
+      exchangeCode: async () => ({ id_token: 'token-denied' }),
+      verifyIdToken: async () => ({
+        aud: process.env.GOOGLE_OAUTH_CLIENT_ID,
+        iss: 'https://accounts.google.com',
+        email: 'intrus@example.com',
+        email_verified: true,
+        hd: 'example.com',
+      }),
+    });
+    const res = await request(app)
+      .get('/api/auth/google/callback?state=ok3&code=code-denied')
+      .set('Cookie', ['foretmap_oauth_state=ok3', 'foretmap_oauth_mode=student'])
+      .expect(302);
+    assert.ok(String(res.headers.location || '').includes('oauth_email_not_allowed'));
+    authRouter.__setGoogleOAuthHooks();
   });
 
   it('POST /api/auth/teacher/reset-password met à jour le mot de passe prof', async () => {

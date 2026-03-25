@@ -1,6 +1,6 @@
 const express = require('express');
 const { queryAll, queryOne } = require('../database');
-const { requireTeacher } = require('../middleware/requireTeacher');
+const { requirePermission } = require('../middleware/requireTeacher');
 const { logRouteError } = require('../lib/routeLog');
 
 const router = express.Router();
@@ -45,7 +45,7 @@ router.get('/me/:studentId', async (req, res) => {
   }
 });
 
-router.get('/all', requireTeacher, async (req, res) => {
+router.get('/all', requirePermission('stats.read.all'), async (req, res) => {
   try {
     const students = await queryAll('SELECT * FROM students');
     const result = await Promise.all(students.map(async (s) => {
@@ -80,7 +80,7 @@ router.get('/all', requireTeacher, async (req, res) => {
 });
 
 // Export CSV des stats élèves (prof uniquement)
-router.get('/export', requireTeacher, async (req, res) => {
+router.get('/export', requirePermission('stats.export', { needsElevation: true }), async (req, res) => {
   try {
     const students = await queryAll('SELECT * FROM students');
     const result = await Promise.all(students.map(async (s) => {

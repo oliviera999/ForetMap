@@ -1,7 +1,7 @@
 const express = require('express');
 const jwt = require('jsonwebtoken');
 const { queryAll, queryOne, execute } = require('../database');
-const { requireTeacher, JWT_SECRET } = require('../middleware/requireTeacher');
+const { requirePermission, JWT_SECRET } = require('../middleware/requireTeacher');
 const { saveBase64ToDisk, getAbsolutePath, deleteFile } = require('../lib/uploads');
 const { logRouteError } = require('../lib/routeLog');
 
@@ -13,8 +13,9 @@ function isTeacherRequest(req) {
     const auth = req.headers.authorization;
     const token = auth && auth.startsWith('Bearer ') ? auth.slice(7) : null;
     if (!token) return false;
-    jwt.verify(token, JWT_SECRET);
-    return true;
+    const payload = jwt.verify(token, JWT_SECRET);
+    const perms = Array.isArray(payload?.permissions) ? payload.permissions : [];
+    return perms.includes('observations.read.all');
   } catch (_) {
     return false;
   }
@@ -51,7 +52,7 @@ router.get('/student/:studentId', async (req, res) => {
 });
 
 // Toutes les observations (prof)
-router.get('/all', requireTeacher, async (req, res) => {
+router.get('/all', requirePermission('observations.read.all', { needsElevation: true }), async (req, res) => {
   try {
     const rows = await queryAll(
       `SELECT o.*, z.name as zone_name, s.first_name, s.last_name

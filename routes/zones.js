@@ -2,7 +2,7 @@ const express = require('express');
 const path = require('path');
 const { v4: uuidv4 } = require('uuid');
 const { queryAll, queryOne, execute } = require('../database');
-const { requireTeacher } = require('../middleware/requireTeacher');
+const { requirePermission } = require('../middleware/requireTeacher');
 const { saveBase64ToDisk, getAbsolutePath, deleteFile } = require('../lib/uploads');
 const { logRouteError } = require('../lib/routeLog');
 const { emitGardenChanged } = require('../lib/realtime');
@@ -82,7 +82,7 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-router.put('/:id', requireTeacher, async (req, res) => {
+router.put('/:id', requirePermission('zones.manage', { needsElevation: true }), async (req, res) => {
   try {
     const zone = await queryOne('SELECT * FROM zones WHERE id = ?', [req.params.id]);
     if (!zone) return res.status(404).json({ error: 'Zone introuvable' });
@@ -161,7 +161,7 @@ router.get('/:id/photos/:pid/data', async (req, res) => {
   }
 });
 
-router.post('/:id/photos', requireTeacher, async (req, res) => {
+router.post('/:id/photos', requirePermission('zones.manage', { needsElevation: true }), async (req, res) => {
   let photoId = null;
   try {
     const zone = await queryOne('SELECT * FROM zones WHERE id=?', [req.params.id]);
@@ -190,7 +190,7 @@ router.post('/:id/photos', requireTeacher, async (req, res) => {
   }
 });
 
-router.delete('/:id/photos/:pid', requireTeacher, async (req, res) => {
+router.delete('/:id/photos/:pid', requirePermission('zones.manage', { needsElevation: true }), async (req, res) => {
   try {
     const p = await queryOne('SELECT image_path FROM zone_photos WHERE id=? AND zone_id=?', [req.params.pid, req.params.id]);
     if (p && p.image_path) deleteFile(p.image_path);
@@ -203,7 +203,7 @@ router.delete('/:id/photos/:pid', requireTeacher, async (req, res) => {
   }
 });
 
-router.post('/', requireTeacher, async (req, res) => {
+router.post('/', requirePermission('zones.manage', { needsElevation: true }), async (req, res) => {
   try {
     const { name, points, color, current_plant, living_beings, stage, map_id } = req.body;
     if (!name?.trim()) return res.status(400).json({ error: 'Nom requis' });
@@ -227,7 +227,7 @@ router.post('/', requireTeacher, async (req, res) => {
   }
 });
 
-router.delete('/:id', requireTeacher, async (req, res) => {
+router.delete('/:id', requirePermission('zones.manage', { needsElevation: true }), async (req, res) => {
   try {
     const zone = await queryOne('SELECT * FROM zones WHERE id = ?', [req.params.id]);
     if (!zone) return res.status(404).json({ error: 'Zone introuvable' });

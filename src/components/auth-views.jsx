@@ -1,6 +1,11 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { api } from '../services/api';
 
+function startGoogleAuth(mode) {
+  const safeMode = mode === 'teacher' ? 'teacher' : 'student';
+  window.location.assign(`/api/auth/google/start?mode=${encodeURIComponent(safeMode)}`);
+}
+
 function PinModal({ onSuccess, onClose }) {
   const [authMode, setAuthMode] = useState('pin'); // pin | email
   const [pin, setPin] = useState('');
@@ -15,16 +20,19 @@ function PinModal({ onSuccess, onClose }) {
 
   const checkPin = async () => {
     if (!pin.trim()) return setErr('Code requis');
+    const currentToken = localStorage.getItem('foretmap_auth_token') || localStorage.getItem('foretmap_teacher_token');
+    if (!currentToken) return setErr('Connectez-vous d’abord avant d’entrer un PIN');
     setInfo('');
     setErr('');
     setLoading(true);
     try {
-      const data = await api('/api/auth/teacher', 'POST', { pin: pin.trim() });
+      const data = await api('/api/auth/elevate', 'POST', { pin: pin.trim() });
       if (!data || !data.token) {
         setErr('Réponse serveur invalide');
         setLoading(false);
         return;
       }
+      localStorage.setItem('foretmap_auth_token', data.token);
       localStorage.setItem('foretmap_teacher_token', data.token);
       onSuccess();
     } catch (e) {
@@ -46,6 +54,7 @@ function PinModal({ onSuccess, onClose }) {
         setLoading(false);
         return;
       }
+      localStorage.setItem('foretmap_auth_token', data.token);
       localStorage.setItem('foretmap_teacher_token', data.token);
       onSuccess();
     } catch (e) {
@@ -179,6 +188,14 @@ function PinModal({ onSuccess, onClose }) {
             </div>
           </>
         )}
+        <button
+          className="btn btn-ghost btn-full"
+          style={{ marginTop: 8 }}
+          onClick={() => startGoogleAuth('teacher')}
+          disabled={loading}
+        >
+          Continuer avec Google (@pedagolyautey.org / @lyceelyautey.org)
+        </button>
         <button className="btn btn-ghost btn-full" style={{ marginTop: 8 }} onClick={onClose}>Annuler</button>
       </div>
     </div>
@@ -248,6 +265,9 @@ function AuthScreen({ onLogin, appVersion, onVisitGuest }) {
         payload.description = description.trim() || null;
       }
       const student = await api(endpoint, 'POST', payload);
+      if (student?.authToken) {
+        localStorage.setItem('foretmap_auth_token', student.authToken);
+      }
       localStorage.setItem('foretmap_student', JSON.stringify(student));
       onLogin(student);
     } catch (e) { setErr(e.message); }
@@ -355,6 +375,14 @@ function AuthScreen({ onLogin, appVersion, onVisitGuest }) {
         )}
         <button className="btn btn-primary btn-full" onClick={submit} disabled={loading} style={{ marginTop: 4 }}>
           {loading ? '...' : mode === 'login' ? 'Se connecter 🌱' : 'Créer le compte'}
+        </button>
+        <button
+          className="btn btn-ghost btn-full"
+          onClick={() => startGoogleAuth('student')}
+          disabled={loading}
+          style={{ marginTop: 8 }}
+        >
+          Continuer avec Google (@pedagolyautey.org / @lyceelyautey.org)
         </button>
         {mode === 'login' && (
           <button

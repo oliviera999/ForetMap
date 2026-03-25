@@ -1,11 +1,12 @@
 const express = require('express');
 const { v4: uuidv4 } = require('uuid');
 const { queryAll, queryOne, execute } = require('../database');
-const { requireTeacher } = require('../middleware/requireTeacher');
+const { requirePermission } = require('../middleware/requireTeacher');
 const { saveBase64ToDisk, getAbsolutePath } = require('../lib/uploads');
 const { logRouteError } = require('../lib/routeLog');
 const { logAudit } = require('./audit');
 const { emitTasksChanged } = require('../lib/realtime');
+const { ensurePrimaryRole, buildAuthzPayload, verifyRolePin } = require('../lib/rbac');
 
 const router = express.Router();
 
@@ -32,6 +33,12 @@ function normalizeTutorialIdArray(value) {
   return out;
 }
 
+function normalizeOptionalId(value) {
+  if (value == null) return null;
+  const v = String(value).trim();
+  return v || null;
+}
+
 async function mapExists(mapId) {
   if (!mapId) return false;
   const row = await queryOne('SELECT id FROM maps WHERE id = ?', [mapId]);
@@ -46,6 +53,24 @@ async function getZone(zoneId) {
 async function getMarker(markerId) {
   if (!markerId) return null;
   return queryOne('SELECT id, map_id, label FROM map_markers WHERE id = ?', [markerId]);
+}
+
+async function getTaskProject(projectId) {
+  if (!projectId) return null;
+  return queryOne(
+    'SELECT id, map_id, title FROM task_projects WHERE id = ?',
+    [projectId]
+  );
+}
+
+async function validateTaskProject(projectId, resolvedMapId) {
+  if (!projectId) return { projectId: null, mapId: resolvedMapId || null };
+  const project = await getTaskProject(projectId);
+  if (!project) return { error: 'Projet introuvable' };
+  if (resolvedMapId && project.map_id !== resolvedMapId) {
+    return { error: 'Le projet doit appartenir à la même carte que la tâche' };
+  }
+  return { projectId: project.id, mapId: resolvedMapId || project.map_id };
 }
 
 async function getTaskZoneIds(taskId) {
@@ -246,10 +271,12 @@ async function validateTaskLocations(zoneIds, markerIds, explicitMapId) {
 
 async function getTaskWithAssignments(taskId) {
   const task = await queryOne(
-    `SELECT t.*, z.name AS zone_name_legacy, mkr.label AS marker_label_legacy
+    `SELECT t.*, z.name AS zone_name_legacy, mkr.label AS marker_label_legacy,
+            tp.map_id AS project_map_id, tp.title AS project_title
        FROM tasks t
        LEFT JOIN zones z ON t.zone_id = z.id
        LEFT JOIN map_markers mkr ON t.marker_id = mkr.id
+       LEFT JOIN task_projects tp ON tp.id = t.project_id
       WHERE t.id = ?`,
     [taskId]
   );
@@ -268,26 +295,46 @@ async function getTaskWithAssignments(taskId) {
   return task;
 }
 
+async function ensureStudentPermission({ studentId, permissionKey, profilePin }) {
+  await ensurePrimaryRole('student', studentId, 'eleve_novice');
+  const base = await buildAuthzPayload('student', studentId, false);
+  if (!base) return { ok: false, error: 'Profil introuvable' };
+  if (base.permissions.includes(permissionKey)) return { ok: true, elevated: false };
+  if (!profilePin) return { ok: false, error: 'Permission insuffisante' };
+  const pinOk = await verifyRolePin(base.roleId, profilePin);
+  if (!pinOk) return { ok: false, error: 'PIN profil incorrect' };
+  const elevated = await buildAuthzPayload('student', studentId, true);
+  if (!elevated || !elevated.permissions.includes(permissionKey)) {
+    return { ok: false, error: 'Permission insuffisante' };
+  }
+  return { ok: true, elevated: true };
+}
+
 router.get('/', async (req, res) => {
   try {
     const mapId = req.query.map_id ? String(req.query.map_id).trim() : '';
+    const projectId = req.query.project_id ? String(req.query.project_id).trim() : '';
     if (mapId && !(await mapExists(mapId))) {
       return res.status(400).json({ error: 'Carte introuvable' });
+    }
+    if (projectId && !(await getTaskProject(projectId))) {
+      return res.status(400).json({ error: 'Projet introuvable' });
     }
     const sqlBase = `
       SELECT t.*, z.name AS zone_name, z.map_id AS zone_map_id,
              mkr.label AS marker_label, mkr.map_id AS marker_map_id,
+             tp.map_id AS project_map_id, tp.title AS project_title,
              m.id AS map_id_resolved_join, m.label AS map_label
         FROM tasks t
         LEFT JOIN zones z ON t.zone_id = z.id
         LEFT JOIN map_markers mkr ON t.marker_id = mkr.id
+        LEFT JOIN task_projects tp ON tp.id = t.project_id
         LEFT JOIN maps m ON m.id = COALESCE(t.map_id, z.map_id, mkr.map_id)
     `;
-    let tasks;
+    const where = [];
+    const params = [];
     if (mapId) {
-      tasks = await queryAll(
-        `${sqlBase}
-         WHERE (
+      where.push(`(
            t.id IN (SELECT tz.task_id FROM task_zones tz INNER JOIN zones zz ON zz.id = tz.zone_id WHERE zz.map_id = ?)
            OR t.id IN (SELECT tm.task_id FROM task_markers tm INNER JOIN map_markers mm ON mm.id = tm.marker_id WHERE mm.map_id = ?)
            OR (
@@ -295,13 +342,15 @@ router.get('/', async (req, res) => {
              AND NOT EXISTS (SELECT 1 FROM task_markers tm2 WHERE tm2.task_id = t.id)
              AND (t.map_id = ? OR t.map_id IS NULL)
            )
-         )
-         ORDER BY t.due_date ASC`,
-        [mapId, mapId, mapId]
-      );
-    } else {
-      tasks = await queryAll(`${sqlBase} ORDER BY t.due_date ASC`);
+         )`);
+      params.push(mapId, mapId, mapId);
     }
+    if (projectId) {
+      where.push('t.project_id = ?');
+      params.push(projectId);
+    }
+    const whereSql = where.length ? `WHERE ${where.join(' AND ')}` : '';
+    const tasks = await queryAll(`${sqlBase} ${whereSql} ORDER BY t.due_date ASC`, params);
     const taskIds = tasks.map((t) => t.id);
     const zm = await fetchZonesForTasks(taskIds);
     const mm = await fetchMarkersForTasks(taskIds);
@@ -343,9 +392,9 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-router.post('/', requireTeacher, async (req, res) => {
+router.post('/', requirePermission('tasks.manage', { needsElevation: true }), async (req, res) => {
   try {
-    const { title, description, zone_id, marker_id, zone_ids, marker_ids, tutorial_ids, map_id, due_date, required_students, recurrence } = req.body;
+    const { title, description, zone_id, marker_id, zone_ids, marker_ids, tutorial_ids, map_id, project_id, due_date, required_students, recurrence } = req.body;
     if (!title) return res.status(400).json({ error: 'Titre requis' });
 
     let zIds = normalizeIdArray(zone_ids);
@@ -356,6 +405,8 @@ router.post('/', requireTeacher, async (req, res) => {
     const explicitMap = map_id !== undefined ? map_id : null;
     const loc = await validateTaskLocations(zIds, mIds, explicitMap);
     if (loc.error) return res.status(400).json({ error: loc.error });
+    const projectValidation = await validateTaskProject(normalizeOptionalId(project_id), loc.mapId);
+    if (projectValidation.error) return res.status(400).json({ error: projectValidation.error });
     const tutorialIds = normalizeTutorialIdArray(tutorial_ids);
     const tutorialValidation = await validateTutorialIds(tutorialIds);
     if (tutorialValidation.error) return res.status(400).json({ error: tutorialValidation.error });
@@ -363,12 +414,13 @@ router.post('/', requireTeacher, async (req, res) => {
     const reqStudents = sanitizeRequiredStudents(required_students);
     const id = uuidv4();
     await execute(
-      'INSERT INTO tasks (id, title, description, map_id, zone_id, marker_id, due_date, required_students, recurrence, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      'INSERT INTO tasks (id, title, description, map_id, project_id, zone_id, marker_id, due_date, required_students, recurrence, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
       [
         id,
         title,
         description || '',
-        loc.mapId,
+        projectValidation.mapId,
+        projectValidation.projectId,
         zIds[0] || null,
         mIds[0] || null,
         due_date || null,
@@ -383,7 +435,7 @@ router.post('/', requireTeacher, async (req, res) => {
     await syncLegacyLocationColumns(id, zIds, mIds);
     const task = await getTaskWithAssignments(id);
     logAudit('create_task', 'task', id, title);
-    emitTasksChanged({ reason: 'create_task', taskId: id });
+    emitTasksChanged({ reason: 'create_task', taskId: id, projectId: projectValidation.projectId || null });
     res.status(201).json(task);
   } catch (e) {
     logRouteError(e, req);
@@ -405,6 +457,7 @@ router.post('/proposals', async (req, res) => {
       firstName,
       lastName,
       studentId,
+      profilePin,
     } = req.body || {};
     if (!title || !String(title).trim()) return res.status(400).json({ error: 'Titre requis' });
     if (!firstName || !lastName) return res.status(400).json({ error: 'Nom requis' });
@@ -412,6 +465,8 @@ router.post('/proposals', async (req, res) => {
 
     const student = await queryOne('SELECT id FROM students WHERE id = ?', [studentId]);
     if (!student) return res.status(401).json({ error: 'Compte supprimé', deleted: true });
+    const permission = await ensureStudentPermission({ studentId, permissionKey: 'tasks.propose', profilePin });
+    if (!permission.ok) return res.status(403).json({ error: permission.error });
 
     let zIds = normalizeIdArray(zone_ids);
     let mIds = normalizeIdArray(marker_ids);
@@ -458,7 +513,7 @@ router.post('/proposals', async (req, res) => {
   }
 });
 
-router.put('/:id', requireTeacher, async (req, res) => {
+router.put('/:id', requirePermission('tasks.manage', { needsElevation: true }), async (req, res) => {
   try {
     const task = await queryOne('SELECT * FROM tasks WHERE id = ?', [req.params.id]);
     if (!task) return res.status(404).json({ error: 'Tâche introuvable' });
@@ -475,6 +530,7 @@ router.put('/:id', requireTeacher, async (req, res) => {
       required_students,
       status,
       recurrence,
+      project_id,
     } = req.body;
 
     let nextZoneIds;
@@ -504,6 +560,11 @@ router.put('/:id', requireTeacher, async (req, res) => {
 
     const loc = await validateTaskLocations(nextZoneIds, nextMarkerIds, explicitMap);
     if (loc.error) return res.status(400).json({ error: loc.error });
+    const nextProjectId = Object.prototype.hasOwnProperty.call(req.body, 'project_id')
+      ? normalizeOptionalId(project_id)
+      : task.project_id || null;
+    const projectValidation = await validateTaskProject(nextProjectId, loc.mapId);
+    if (projectValidation.error) return res.status(400).json({ error: projectValidation.error });
 
     let nextTutorialIds;
     if (Object.prototype.hasOwnProperty.call(req.body, 'tutorial_ids')) {
@@ -516,11 +577,12 @@ router.put('/:id', requireTeacher, async (req, res) => {
 
     const reqStudents = required_students != null ? sanitizeRequiredStudents(required_students) : task.required_students;
     await execute(
-      'UPDATE tasks SET title=?, description=?, map_id=?, zone_id=?, marker_id=?, due_date=?, required_students=?, status=?, recurrence=? WHERE id=?',
+      'UPDATE tasks SET title=?, description=?, map_id=?, project_id=?, zone_id=?, marker_id=?, due_date=?, required_students=?, status=?, recurrence=? WHERE id=?',
       [
         title ?? task.title,
         description ?? task.description,
-        loc.mapId,
+        projectValidation.mapId,
+        projectValidation.projectId,
         nextZoneIds[0] || null,
         nextMarkerIds[0] || null,
         due_date ?? task.due_date,
@@ -535,7 +597,7 @@ router.put('/:id', requireTeacher, async (req, res) => {
     await setTaskTutorials(task.id, nextTutorialIds);
     await syncLegacyLocationColumns(task.id, nextZoneIds, nextMarkerIds);
     const updated = await getTaskWithAssignments(task.id);
-    emitTasksChanged({ reason: 'update_task', taskId: task.id });
+    emitTasksChanged({ reason: 'update_task', taskId: task.id, projectId: projectValidation.projectId || null });
     res.json(updated);
   } catch (e) {
     logRouteError(e, req);
@@ -543,7 +605,7 @@ router.put('/:id', requireTeacher, async (req, res) => {
   }
 });
 
-router.delete('/:id', requireTeacher, async (req, res) => {
+router.delete('/:id', requirePermission('tasks.manage', { needsElevation: true }), async (req, res) => {
   try {
     const task = await queryOne('SELECT * FROM tasks WHERE id = ?', [req.params.id]);
     if (!task) return res.status(404).json({ error: 'Tâche introuvable' });
@@ -565,12 +627,14 @@ router.post('/:id/assign', async (req, res) => {
     if (!task) return res.status(404).json({ error: 'Tâche introuvable' });
     if (task.status === 'validated') return res.status(400).json({ error: 'Tâche déjà validée' });
 
-    const { firstName, lastName, studentId } = req.body;
+    const { firstName, lastName, studentId, profilePin } = req.body;
     if (!firstName || !lastName) return res.status(400).json({ error: 'Nom requis' });
 
     if (studentId) {
       const exists = await queryOne('SELECT id FROM students WHERE id = ?', [studentId]);
       if (!exists) return res.status(401).json({ error: 'Compte supprimé', deleted: true });
+      const permission = await ensureStudentPermission({ studentId, permissionKey: 'tasks.assign_self', profilePin });
+      if (!permission.ok) return res.status(403).json({ error: permission.error });
     }
 
     const already = task.assignments.find(
@@ -607,11 +671,13 @@ router.post('/:id/done', async (req, res) => {
     const task = await queryOne('SELECT * FROM tasks WHERE id = ?', [req.params.id]);
     if (!task) return res.status(404).json({ error: 'Tâche introuvable' });
 
-    const { comment, imageData, firstName, lastName, studentId } = req.body || {};
+    const { comment, imageData, firstName, lastName, studentId, profilePin } = req.body || {};
 
     if (studentId) {
       const exists = await queryOne('SELECT id FROM students WHERE id = ?', [studentId]);
       if (!exists) return res.status(401).json({ error: 'Compte supprimé', deleted: true });
+      const permission = await ensureStudentPermission({ studentId, permissionKey: 'tasks.done_self', profilePin });
+      if (!permission.ok) return res.status(403).json({ error: permission.error });
     }
 
     if (comment || imageData) {
@@ -679,7 +745,7 @@ router.get('/:id/logs/:logId/image', async (req, res) => {
   }
 });
 
-router.delete('/:id/logs/:logId', requireTeacher, async (req, res) => {
+router.delete('/:id/logs/:logId', requirePermission('tasks.manage', { needsElevation: true }), async (req, res) => {
   try {
     const log = await queryOne('SELECT * FROM task_logs WHERE id = ? AND task_id = ?', [req.params.logId, req.params.id]);
     if (!log) return res.status(404).json({ error: 'Rapport introuvable' });
@@ -702,7 +768,7 @@ router.delete('/:id/logs/:logId', requireTeacher, async (req, res) => {
   }
 });
 
-router.post('/:id/validate', requireTeacher, async (req, res) => {
+router.post('/:id/validate', requirePermission('tasks.validate', { needsElevation: true }), async (req, res) => {
   try {
     const task = await queryOne('SELECT * FROM tasks WHERE id = ?', [req.params.id]);
     if (!task) return res.status(404).json({ error: 'Tâche introuvable' });
@@ -726,12 +792,14 @@ router.post('/:id/unassign', async (req, res) => {
       return res.status(400).json({ error: 'Impossible de quitter une tâche déjà terminée' });
     }
 
-    const { firstName, lastName, studentId } = req.body;
+    const { firstName, lastName, studentId, profilePin } = req.body;
     if (!firstName || !lastName) return res.status(400).json({ error: 'Nom requis' });
 
     if (studentId) {
       const exists = await queryOne('SELECT id FROM students WHERE id = ?', [studentId]);
       if (!exists) return res.status(401).json({ error: 'Compte supprimé', deleted: true });
+      const permission = await ensureStudentPermission({ studentId, permissionKey: 'tasks.unassign_self', profilePin });
+      if (!permission.ok) return res.status(403).json({ error: permission.error });
     }
 
     await execute(

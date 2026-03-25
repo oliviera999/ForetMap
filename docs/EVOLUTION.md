@@ -36,6 +36,26 @@ Il a été mis à jour pour refléter l’état réel du dépôt (mars 2026), pu
   - **Avancement récent** : ajout des flux complets tâche (création -> prise -> soumission -> validation), photo zone (upload/suppression), retrait d’une tâche par élève et cas PIN invalide.
   - **Reste à faire** : élargir progressivement vers des cas limites métiers rares (multi-élèves concurrents, interruptions réseau réelles).
 
+## 1.3 Fonctionnalité livrée — Projets de tâches (V1 minimale)
+
+- **Ajouté :** les tâches peuvent désormais être rattachées à un **projet**.
+- **Portée V1 :**
+  - projet lié à une carte (`map_id`) ;
+  - création de projet dans l’onglet tâches (prof) ;
+  - sélection d’un projet dans le formulaire de tâche ;
+  - affichage et filtre par projet dans la vue tâches ;
+  - API dédiée `/api/task-projects` (GET, POST, PUT, DELETE).
+- **Compatibilité :** les tâches existantes sans projet restent valides (`project_id = NULL`).
+- **Comportement suppression projet :** les tâches sont conservées et leur `project_id` est remis à `NULL` (`ON DELETE SET NULL`).
+
+### Évolutions possibles (jalons)
+
+1. Vue dédiée de gestion de projets (liste détaillée, édition en masse, archivage).
+2. Indicateurs de progression de projet (% tâches terminées/validées, restant à faire).
+3. Permissions RBAC fines par projet (création, édition, validation, visibilité).
+4. Filtres/stats avancés par projet (prof et élève, export ciblé).
+5. Lien projet ↔ tutoriels/ressources pédagogiques pour guider un parcours complet.
+
 ---
 
 ## 2. Backlog restant priorisé
