@@ -41,6 +41,18 @@ npm run db:init
 
 Cela applique le schéma et le seed sur **`foretmap_local`**.
 
+### Option rapide (bootstrap en une commande)
+
+```bash
+npm run local:setup
+```
+
+Cette commande enchaîne :
+- démarrage Docker MySQL,
+- installation des dépendances (incluant dev),
+- initialisation BDD,
+- vérification locale (`check:local`).
+
 ### Optionnel — migration legacy images (avant migration SQL finale)
 
 ```bash
@@ -97,7 +109,8 @@ Le script force `DB_NAME=foretmap_test` ; le schéma est (re)créé par les fich
 
 ## 5bis. Tests UI smoke (Playwright)
 
-Avec backend lancé (port 3000) et navigateurs Playwright installés:
+Playwright démarre automatiquement le serveur local (hors CI) et réutilise un serveur existant si déjà lancé.
+Il faut simplement MySQL accessible et les navigateurs Playwright installés:
 
 ```bash
 npx playwright install

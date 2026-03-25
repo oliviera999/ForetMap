@@ -6,6 +6,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 ## [Non publié]
 
 ### Ajouté
+- **Bootstrap local en une commande** : ajout du script `npm run local:setup` (Docker MySQL + install deps + init BDD + check local).
 - **Unification progressive des identités** : ajout d’une table canonique `users`, d’un script de backfill (`npm run db:backfill:users`) et de migrations dédiées (`027_users_unification_and_history.sql`, `028_admin_oliviera9_guard.sql`) pour converger sans rupture depuis `students`/`teachers`.
 - **Historique structuré des actions utilisateur** : nouvelle table `security_events`, enrichissement de `audit_log` (acteur/résultat/payload), et journalisation étendue (auth succès/échec, élévation PIN, opérations RBAC, actions tâches).
 - **Plan de validation migration users** : nouveau document `docs/USERS_MIGRATION.md` avec matrice de tests, contrôles SQL et critères de bascule.
@@ -49,6 +50,9 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - **Navigation/auth** : ajout d’un CTA « Visiter sans connexion » dans l’écran d’authentification et intégration de l’onglet `Visite` dans les navigations élève/prof.
 
 ### Corrigé
+- **Environnement local** : suppression de la configuration npm qui omettait les dépendances dev par défaut, ce qui bloquait `supertest` et `@playwright/test` après un `npm install` standard.
+- **E2E local** : Playwright démarre automatiquement l’application hors CI (`db:init` + `npm start`) et bloque les service workers pour éviter les caches obsolètes.
+- **Helpers e2e auth** : attente explicite du champ `Prénom` après bascule “Créer un compte” pour réduire les faux timeouts.
 - **Sécurité stats élève** : `GET /api/stats/me/:studentId` exige désormais une session authentifiée et limite l’accès au propriétaire (élève) ou aux rôles autorisés (`stats.read.all`).
 - **Sécurité carnet d’observations** : suppression de la confiance dans `studentId` envoyé par le client ; lecture/création/suppression et accès image reposent maintenant sur l’identité JWT (propriétaire ou professeur autorisé).
 - **Fuite d’affectations sur les tâches** : `GET /api/tasks` ne charge plus toutes les assignations globales ; filtrage SQL par `task_id` et exposition réduite selon le rôle.

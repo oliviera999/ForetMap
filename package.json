@@ -1,6 +1,6 @@
 {
   "name": "foretmap",
-  "version": "1.10.5",
+  "version": "1.10.6",
   "description": "Application de gestion de la forêt comestible - Lycée Lyautey",
   "main": "server.js",
   "dependencies": {
@@ -51,6 +51,7 @@
     "test:e2e:headed": "npx playwright test --headed",
     "docker:up": "docker compose up -d || docker-compose up -d",
     "docker:down": "docker compose down || docker-compose down",
+    "local:setup": "npm run docker:up && npm install --include=dev && npm run db:init && npm run check:local",
     "check:local": "node scripts/check-local-env.js",
     "build": "vite build",
     "preview": "vite preview",
