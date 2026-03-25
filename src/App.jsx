@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { api, AccountDeletedError } from './services/api';
+import { api, AccountDeletedError, getAuthClaims } from './services/api';
 import { useForetmapRealtime } from './hooks/useForetmapRealtime';
 import { RT_PROF_TOOLTIPS } from './constants/realtime';
 import { ErrorBoundary } from './components/ErrorBoundary';
@@ -18,6 +18,27 @@ import { AboutView } from './components/about-views';
 import { StudentAvatar } from './components/student-avatar';
 import { TutorialsView } from './components/tutorials-views';
 import { VisitView } from './components/visit-views';
+import { ProfilesAdminView } from './components/profiles-views';
+
+const OAUTH_ERROR_MESSAGES = {
+  oauth_not_configured: 'Connexion Google indisponible (configuration serveur incomplète).',
+  oauth_google_refused: 'Connexion Google annulée.',
+  oauth_invalid_state: 'Connexion Google invalide (session expirée).',
+  oauth_missing_code: 'Connexion Google impossible (code manquant).',
+  oauth_missing_id_token: 'Connexion Google impossible (token manquant).',
+  oauth_invalid_token: 'Connexion Google impossible (token invalide).',
+  oauth_claims_invalid: 'Connexion Google refusée (compte non vérifié).',
+  oauth_email_not_allowed: 'Adresse Google non autorisée pour ForetMap.',
+  oauth_teacher_inactive: 'Compte professeur inactif.',
+  oauth_teacher_no_role: 'Aucun rôle professeur attribué à ce compte.',
+  oauth_server_error: 'Erreur serveur pendant la connexion Google.',
+};
+
+function decodeBase64UrlJson(value) {
+  const normalized = String(value || '').replace(/-/g, '+').replace(/_/g, '/');
+  const padded = normalized + '='.repeat((4 - (normalized.length % 4)) % 4);
+  return JSON.parse(window.atob(padded));
+}
 
 // ── APP ───────────────────────────────────────────────────────────────────────
 function App() {
@@ -26,7 +47,10 @@ function App() {
     { id: 'n3', label: 'N3', map_image_url: '/maps/plan%20n3.jpg', sort_order: 2 },
   ]), []);
   const [student,    setStudent]    = useState(null);
-  const [isTeacher,  setIsTeacher]  = useState(() => !!localStorage.getItem('foretmap_teacher_token'));
+  const [isTeacher,  setIsTeacher]  = useState(() => {
+    const claims = getAuthClaims();
+    return Array.isArray(claims?.permissions) && claims.permissions.includes('teacher.access');
+  });
   const [showPin,    setShowPin]    = useState(false);
   const [showPublicVisit, setShowPublicVisit] = useState(false);
   const [showStats,  setShowStats]  = useState(false);
@@ -36,6 +60,7 @@ function App() {
   const [activeMapId, setActiveMapId] = useState(() => localStorage.getItem('foretmap_active_map') || 'foret');
   const [zones,      setZones]      = useState([]);
   const [tasks,      setTasks]      = useState([]);
+  const [taskProjects, setTaskProjects] = useState([]);
   const [plants,     setPlants]     = useState([]);
   const [tutorials,  setTutorials]  = useState([]);
   const [markers,    setMarkers]    = useState([]);
@@ -44,7 +69,50 @@ function App() {
   const [appVersion, setAppVersion] = useState(null);
   const [refreshMs,  setRefreshMs]  = useState(30000);
   const [serverDown, setServerDown] = useState(false);
+  const [authClaims, setAuthClaims] = useState(() => getAuthClaims());
   const failCountRef = useRef(0);
+
+  const hasPermission = useCallback((perm) => {
+    return Array.isArray(authClaims?.permissions) && authClaims.permissions.includes(perm);
+  }, [authClaims]);
+
+  useEffect(() => {
+    const hashRaw = window.location.hash.startsWith('#') ? window.location.hash.slice(1) : '';
+    if (!hashRaw) return;
+    const hashParams = new URLSearchParams(hashRaw);
+    const oauthPayload = hashParams.get('oauth');
+    const oauthError = hashParams.get('oauth_error');
+    if (!oauthPayload && !oauthError) return;
+
+    const cleanUrl = `${window.location.pathname}${window.location.search}`;
+    window.history.replaceState({}, document.title, cleanUrl);
+
+    if (oauthError) {
+      setToast(OAUTH_ERROR_MESSAGES[oauthError] || 'Connexion Google refusée.');
+      return;
+    }
+    try {
+      const payload = decodeBase64UrlJson(oauthPayload);
+      if (payload?.type === 'teacher' && payload?.token) {
+        localStorage.setItem('foretmap_teacher_token', payload.token);
+        setAuthClaims(getAuthClaims());
+        setIsTeacher(true);
+        setToast('Connexion Google professeur réussie.');
+        return;
+      }
+      if (payload?.type === 'student' && payload?.student) {
+        const nextStudent = payload.student;
+        localStorage.setItem('foretmap_student', JSON.stringify(nextStudent));
+        setStudent(nextStudent);
+        setIsTeacher(false);
+        setToast('Connexion Google élève réussie.');
+        return;
+      }
+      setToast('Réponse Google invalide.');
+    } catch (_) {
+      setToast('Réponse Google illisible.');
+    }
+  }, []);
 
   useEffect(() => {
     localStorage.setItem('foretmap_active_map', activeMapId);
@@ -68,9 +136,11 @@ function App() {
   // Called from anywhere when a 401-deleted is detected
   const forceLogout = useCallback(() => {
     localStorage.removeItem('foretmap_student');
+    localStorage.removeItem('foretmap_auth_token');
     localStorage.removeItem('foretmap_teacher_token');
     setStudent(null);
     setIsTeacher(false);
+    setAuthClaims(null);
     setToast('Votre compte a été supprimé par le professeur.');
   }, []);
 
@@ -97,7 +167,7 @@ function App() {
   }, [forceLogout, updateStudentSession]);
 
   useEffect(() => {
-    const onExpired = () => { setIsTeacher(false); setToast('Session professeur expirée.'); };
+    const onExpired = () => { setIsTeacher(false); setAuthClaims(null); setToast('Session professeur expirée.'); };
     window.addEventListener('foretmap_teacher_expired', onExpired);
     return () => window.removeEventListener('foretmap_teacher_expired', onExpired);
   }, []);
@@ -105,10 +175,11 @@ function App() {
   const fetchAll = useCallback(async () => {
     try {
       const mapQuery = `map_id=${encodeURIComponent(activeMapId)}`;
-      const [mapsRes, z, t, p, m, tu] = await Promise.all([
+      const [mapsRes, z, t, taskProjectsRes, p, m, tu] = await Promise.all([
         api('/api/maps').catch(() => DEFAULT_MAPS),
         api(`/api/zones?${mapQuery}`),
         api('/api/tasks'),
+        api('/api/task-projects').catch(() => []),
         api('/api/plants'),
         api(`/api/map/markers?${mapQuery}`),
         api('/api/tutorials'),
@@ -118,7 +189,8 @@ function App() {
       if (!safeMaps.some(mp => mp.id === activeMapId)) {
         setActiveMapId(safeMaps[0].id);
       }
-      setZones(z); setTasks(t); setPlants(p); setMarkers(m); setTutorials(tu);
+      setZones(z); setTasks(t); setTaskProjects(Array.isArray(taskProjectsRes) ? taskProjectsRes : []);
+      setPlants(p); setMarkers(m); setTutorials(tu);
       failCountRef.current = 0;
       setRefreshMs(30000);
       setServerDown(false);
@@ -145,6 +217,8 @@ function App() {
       return effectiveMapId === activeMapId || effectiveMapId == null;
     })
   ), [tasks, activeMapId]);
+  const studentAffiliation = (student?.affiliation || 'both').toLowerCase();
+  const canAccessStudentMapTasks = isTeacher || studentAffiliation !== 'n3';
 
   const rtStatus = useForetmapRealtime({
     student,
@@ -158,6 +232,13 @@ function App() {
   });
 
   useEffect(() => { fetchAll(); }, [fetchAll]);
+
+  useEffect(() => {
+    if (isTeacher) return;
+    if (!canAccessStudentMapTasks && (tab === 'map' || tab === 'tasks')) {
+      setTab('plants');
+    }
+  }, [isTeacher, canAccessStudentMapTasks, tab]);
 
   // Auto-refresh (30 s ; 2 min après 3 échecs serveur consécutifs)
   useEffect(() => {
@@ -188,7 +269,12 @@ function App() {
         </div>
       ) : (
         <AuthScreen
-          onLogin={s => updateStudentSession(s)}
+          onLogin={s => {
+            updateStudentSession(s);
+            const claims = getAuthClaims();
+            setAuthClaims(claims);
+            setIsTeacher(Array.isArray(claims?.permissions) && claims.permissions.includes('teacher.access'));
+          }}
           appVersion={appVersion}
           onVisitGuest={() => setShowPublicVisit(true)}
         />
@@ -218,7 +304,13 @@ function App() {
       )}
       {toast && <Toast msg={toast} onDone={() => setToast(null)}/>}
       {showPin && <PinModal
-        onSuccess={() => { setIsTeacher(true); setShowPin(false); setToast('Mode professeur activé 🔓'); }}
+        onSuccess={() => {
+          const claims = getAuthClaims();
+          setAuthClaims(claims);
+          setIsTeacher(Array.isArray(claims?.permissions) && claims.permissions.includes('teacher.access'));
+          setShowPin(false);
+          setToast(claims?.elevated ? 'Droits étendus activés 🔓' : 'Session mise à jour');
+        }}
         onClose={() => setShowPin(false)}
       />}
       {showStats && !isTeacher && (
@@ -283,16 +375,23 @@ function App() {
               ✏️
             </button>
           )}
-          <button className={`lock-btn ${isTeacher ? 'active' : ''}`} onClick={() => {
-            if (isTeacher) { setIsTeacher(false); localStorage.removeItem('foretmap_teacher_token'); setToast('Mode élève'); }
-            else setShowPin(true);
+          <button className={`lock-btn ${authClaims?.elevated ? 'active' : ''}`} onClick={() => {
+            if (authClaims?.elevated) {
+              localStorage.removeItem('foretmap_teacher_token');
+              const claims = getAuthClaims();
+              setAuthClaims(claims);
+              setToast('Droits étendus désactivés');
+            } else {
+              setShowPin(true);
+            }
           }}>
-            {isTeacher ? <>🔓 <span className="lock-label">Prof</span></> : '🔒'}
+            {authClaims?.elevated ? <>🔓 <span className="lock-label">Élevé</span></> : '🔒'}
           </button>
           <button className="lock-btn" title="Déconnexion" onClick={() => {
             localStorage.removeItem('foretmap_student');
+            localStorage.removeItem('foretmap_auth_token');
             localStorage.removeItem('foretmap_teacher_token');
-            setStudent(null); setIsTeacher(false);
+            setStudent(null); setIsTeacher(false); setAuthClaims(null);
           }}>↩️</button>
         </div>
       </header>
@@ -307,24 +406,28 @@ function App() {
             <button className={`top-tab ${tab === 'plants' ? 'active' : ''}`} onClick={() => setTab('plants')}>🌱 Biodiversité</button>
             <button className={`top-tab ${tab === 'tuto' ? 'active' : ''}`} onClick={() => setTab('tuto')}>📘 Tuto</button>
             <button className={`top-tab ${tab === 'stats' ? 'active' : ''}`} onClick={() => setTab('stats')}>📊 Stats</button>
+            {hasPermission('admin.roles.manage') && (
+              <button className={`top-tab ${tab === 'profiles' ? 'active' : ''}`} onClick={() => setTab('profiles')}>🛡️ Profils</button>
+            )}
             <button className={`top-tab ${tab === 'audit' ? 'active' : ''}`} onClick={() => setTab('audit')}>📜 Audit</button>
             <button className={`top-tab ${tab === 'visit' ? 'active' : ''}`} onClick={() => setTab('visit')}>🧭 Visite</button>
             <button className={`top-tab ${tab === 'about' ? 'active' : ''}`} onClick={() => setTab('about')}>ℹ️ À propos</button>
           </div>
           {tab === 'map'    && <MapView zones={zones} markers={markers} tasks={tasks} plants={plants} maps={maps} activeMapId={activeMapId} onMapChange={setActiveMapId} isTeacher student={student} onZoneUpdate={updateZone} onRefresh={fetchAll}/>}
-          {tab === 'tasks'  && <TasksView  tasks={tasks} zones={zones} markers={markers} maps={maps} tutorials={tutorials} activeMapId={activeMapId} isTeacher student={student} onRefresh={fetchAll} onForceLogout={forceLogout}/>}
+          {tab === 'tasks'  && <TasksView  tasks={tasks} taskProjects={taskProjects} zones={zones} markers={markers} maps={maps} tutorials={tutorials} activeMapId={activeMapId} isTeacher student={student} onRefresh={fetchAll} onForceLogout={forceLogout}/>}
           {tab === 'plants' && <PlantManager plants={plants} onRefresh={fetchAll}/>}
           {tab === 'tuto'   && <TutorialsView tutorials={tutorials} isTeacher onRefresh={fetchAll} onForceLogout={forceLogout} />}
-          {tab === 'stats'  && <TeacherStats/>}
-          {tab === 'audit'  && <AuditLog/>}
+          {tab === 'stats'  && (hasPermission('stats.read.all') ? <TeacherStats/> : <div className="empty"><p>Permission insuffisante</p></div>)}
+          {tab === 'profiles' && <ProfilesAdminView/>}
+          {tab === 'audit'  && (hasPermission('audit.read') ? <AuditLog/> : <div className="empty"><p>Permission insuffisante</p></div>)}
           {tab === 'visit'  && <VisitView student={student} isTeacher availableTutorials={tutorials} initialMapId={activeMapId} onForceLogout={forceLogout} />}
           {tab === 'about'  && <AboutView appVersion={appVersion}/>}
         </div>
       ) : (
         <>
           <div className="main">
-            {tab === 'map'    && <MapView zones={zones} markers={markers} tasks={tasks} plants={plants} maps={maps} activeMapId={activeMapId} onMapChange={setActiveMapId} isTeacher={false} student={student} onZoneUpdate={updateZone} onRefresh={fetchAll}/>}
-            {tab === 'tasks'  && <TasksView tasks={tasks} zones={zones} markers={markers} maps={maps} tutorials={tutorials} activeMapId={activeMapId} isTeacher={false} student={student} onRefresh={fetchAll} onForceLogout={forceLogout}/>}
+            {tab === 'map'    && canAccessStudentMapTasks && <MapView zones={zones} markers={markers} tasks={tasks} plants={plants} maps={maps} activeMapId={activeMapId} onMapChange={setActiveMapId} isTeacher={false} student={student} onZoneUpdate={updateZone} onRefresh={fetchAll}/>}
+            {tab === 'tasks'  && canAccessStudentMapTasks && <TasksView tasks={tasks} taskProjects={taskProjects} zones={zones} markers={markers} maps={maps} tutorials={tutorials} activeMapId={activeMapId} isTeacher={false} student={student} onRefresh={fetchAll} onForceLogout={forceLogout}/>}
             {tab === 'plants' && <PlantViewer plants={plants} zones={zones}/>}
             {tab === 'tuto' && <TutorialsView tutorials={tutorials} isTeacher={false} onRefresh={fetchAll} onForceLogout={forceLogout} />}
             {tab === 'notebook' && <ObservationNotebook student={student} zones={zones}/>}
@@ -332,14 +435,18 @@ function App() {
             {tab === 'about' && <AboutView appVersion={appVersion}/>}
           </div>
           <nav className="bottom-nav">
-            <button className={`nav-btn ${tab === 'map' ? 'active' : ''}`} onClick={() => setTab('map')}>
-              <span className="nav-icon">🗺️</span> Carte
-            </button>
-            <button className={`nav-btn ${tab === 'tasks' ? 'active' : ''}`} onClick={() => setTab('tasks')}>
-              <span className="nav-icon">✅</span>
-              Tâches {tasksForActiveMap.filter(t => t.assignments?.some(a => a.student_first_name === student.first_name && a.student_last_name === student.last_name) && (t.status === 'available' || t.status === 'in_progress')).length > 0
-                && `(${tasksForActiveMap.filter(t => t.assignments?.some(a => a.student_first_name === student.first_name && a.student_last_name === student.last_name) && (t.status === 'available' || t.status === 'in_progress')).length})`}
-            </button>
+            {canAccessStudentMapTasks && (
+              <button className={`nav-btn ${tab === 'map' ? 'active' : ''}`} onClick={() => setTab('map')}>
+                <span className="nav-icon">🗺️</span> Carte
+              </button>
+            )}
+            {canAccessStudentMapTasks && (
+              <button className={`nav-btn ${tab === 'tasks' ? 'active' : ''}`} onClick={() => setTab('tasks')}>
+                <span className="nav-icon">✅</span>
+                Tâches {tasksForActiveMap.filter(t => t.assignments?.some(a => a.student_first_name === student.first_name && a.student_last_name === student.last_name) && (t.status === 'available' || t.status === 'in_progress')).length > 0
+                  && `(${tasksForActiveMap.filter(t => t.assignments?.some(a => a.student_first_name === student.first_name && a.student_last_name === student.last_name) && (t.status === 'available' || t.status === 'in_progress')).length})`}
+              </button>
+            )}
             <button className={`nav-btn ${tab === 'plants' ? 'active' : ''}`} onClick={() => setTab('plants')}>
               <span className="nav-icon">🌱</span> Biodiversité
             </button>

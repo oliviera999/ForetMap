@@ -1,7 +1,7 @@
 const express = require('express');
 const { v4: uuidv4 } = require('uuid');
 const { queryAll, queryOne, execute } = require('../database');
-const { requireTeacher } = require('../middleware/requireTeacher');
+const { requirePermission } = require('../middleware/requireTeacher');
 const { logRouteError } = require('../lib/routeLog');
 const { emitGardenChanged } = require('../lib/realtime');
 
@@ -59,7 +59,7 @@ router.get('/markers', async (req, res) => {
   }
 });
 
-router.post('/markers', requireTeacher, async (req, res) => {
+router.post('/markers', requirePermission('map.manage_markers', { needsElevation: true }), async (req, res) => {
   try {
     const { x_pct, y_pct, label, plant_name, living_beings, note, emoji, map_id } = req.body;
     const mapId = String(map_id || 'foret').trim();
@@ -82,7 +82,7 @@ router.post('/markers', requireTeacher, async (req, res) => {
   }
 });
 
-router.put('/markers/:id', requireTeacher, async (req, res) => {
+router.put('/markers/:id', requirePermission('map.manage_markers', { needsElevation: true }), async (req, res) => {
   try {
     const m = await queryOne('SELECT * FROM map_markers WHERE id = ?', [req.params.id]);
     if (!m) return res.status(404).json({ error: 'Repère introuvable' });
@@ -120,7 +120,7 @@ router.put('/markers/:id', requireTeacher, async (req, res) => {
   }
 });
 
-router.delete('/markers/:id', requireTeacher, async (req, res) => {
+router.delete('/markers/:id', requirePermission('map.manage_markers', { needsElevation: true }), async (req, res) => {
   try {
     const m = await queryOne('SELECT * FROM map_markers WHERE id = ?', [req.params.id]);
     if (!m) return res.status(404).json({ error: 'Repère introuvable' });

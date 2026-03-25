@@ -1,12 +1,12 @@
 const express = require('express');
 const { queryAll, execute } = require('../database');
-const { requireTeacher } = require('../middleware/requireTeacher');
+const { requirePermission } = require('../middleware/requireTeacher');
 const { logRouteError } = require('../lib/routeLog');
 
 const router = express.Router();
 
 // Consulter l'historique (prof uniquement)
-router.get('/', requireTeacher, async (req, res) => {
+router.get('/', requirePermission('audit.read', { needsElevation: true }), async (req, res) => {
   try {
     const limit = Math.min(parseInt(req.query.limit, 10) || 50, 200);
     const rows = await queryAll(

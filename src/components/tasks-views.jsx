@@ -61,6 +61,7 @@ function TaskFormModal({
   zones,
   markers = [],
   maps = [],
+  taskProjects = [],
   tutorials = [],
   activeMapId = 'foret',
   onClose,
@@ -77,12 +78,14 @@ function TaskFormModal({
     zone_ids: initialLocationIds(editTask, 'zone_ids', 'zone_id'),
     marker_ids: initialLocationIds(editTask, 'marker_ids', 'marker_id'),
     tutorial_ids: initialLocationIds(editTask, 'tutorial_ids', 'tutorial_id'),
+    project_id: editTask.project_id || '',
     due_date: editTask.due_date || '',
     required_students: editTask.required_students || 1,
     recurrence: editTask.recurrence || ''
   } : {
     title: '', description: '', map_id: initialMapId || '',
     zone_ids: [], marker_ids: [], tutorial_ids: [],
+    project_id: '',
     due_date: '', required_students: 1, recurrence: ''
   });
   const [saving, setSaving] = useState(false);
@@ -93,10 +96,26 @@ function TaskFormModal({
     if (k === 'map_id') {
       setForm(f => {
         const next = { ...f, map_id: value };
+        const selectedProject = taskProjects.find((p) => p.id === f.project_id);
+        if (selectedProject && value && selectedProject.map_id !== value) {
+          next.project_id = '';
+        }
         if (value) {
           next.zone_ids = f.zone_ids.filter(id => zones.find(z => z.id === id)?.map_id === value);
           next.marker_ids = f.marker_ids.filter(id => markers.find(m => m.id === id)?.map_id === value);
         }
+        return next;
+      });
+      return;
+    }
+    if (k === 'project_id') {
+      setForm(f => {
+        const next = { ...f, project_id: value };
+        const selectedProject = taskProjects.find((p) => p.id === value);
+        if (!selectedProject) return next;
+        next.map_id = selectedProject.map_id;
+        next.zone_ids = f.zone_ids.filter((id) => zones.find((z) => z.id === id)?.map_id === selectedProject.map_id);
+        next.marker_ids = f.marker_ids.filter((id) => markers.find((m) => m.id === id)?.map_id === selectedProject.map_id);
         return next;
       });
       return;
@@ -152,6 +171,7 @@ function TaskFormModal({
       zone_ids: form.zone_ids,
       marker_ids: form.marker_ids,
       tutorial_ids: form.tutorial_ids,
+      project_id: form.project_id || null,
       due_date: form.due_date || null,
       required_students: form.required_students,
       recurrence: form.recurrence || null,
@@ -166,6 +186,7 @@ function TaskFormModal({
 
   const selectableZones = zones.filter(z => !z.special && (!form.map_id || z.map_id === form.map_id));
   const selectableMarkers = markers.filter(m => !form.map_id || m.map_id === form.map_id);
+  const selectableProjects = taskProjects.filter((p) => !form.map_id || p.map_id === form.map_id);
 
   const pickListStyle = {
     maxHeight: 168, overflowY: 'auto', border: '1px solid rgba(0,0,0,.08)', borderRadius: 10,
@@ -189,6 +210,14 @@ function TaskFormModal({
             </select>
           </div>
         </div>
+        {!isProposal && (
+          <div className="field"><label>Projet (optionnel)</label>
+            <select value={form.project_id} onChange={set('project_id')}>
+              <option value="">Aucun projet</option>
+              {selectableProjects.map((p) => <option key={p.id} value={p.id}>📁 {p.title}</option>)}
+            </select>
+          </div>
+        )}
         <div className="field"><label>Zones (plusieurs possibles)</label>
           <div style={pickListStyle}>
             {selectableZones.length === 0
@@ -259,6 +288,53 @@ function TaskFormModal({
   );
 }
 
+function TaskProjectFormModal({ maps = [], activeMapId = 'foret', onClose, onSave }) {
+  const [form, setForm] = useState({
+    title: '',
+    description: '',
+    map_id: activeMapId || (maps[0]?.id || 'foret'),
+  });
+  const [saving, setSaving] = useState(false);
+  const [err, setErr] = useState('');
+
+  const submit = async () => {
+    if (!form.title.trim()) return setErr('Le titre est requis');
+    if (!form.map_id) return setErr('La carte est requise');
+    setSaving(true);
+    try {
+      await onSave({
+        title: form.title.trim(),
+        description: form.description.trim() || null,
+        map_id: form.map_id,
+      });
+      onClose();
+    } catch (e) {
+      setErr(e.message);
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="modal-overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
+      <div className="modal fade-in">
+        <button className="modal-close" onClick={onClose}>✕</button>
+        <h3>Nouveau projet</h3>
+        {err && <p style={{ color: var_alert, marginBottom: 12, fontSize: '.85rem' }}>{err}</p>}
+        <div className="field"><label>Titre *</label><input value={form.title} onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))} placeholder="Ex: Préparer la serre de printemps" /></div>
+        <div className="field"><label>Description</label><textarea value={form.description} onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))} rows={2} placeholder="Objectif du projet..." /></div>
+        <div className="field"><label>Carte</label>
+          <select value={form.map_id} onChange={(e) => setForm((f) => ({ ...f, map_id: e.target.value }))}>
+            {maps.map((mp) => <option key={mp.id} value={mp.id}>{mp.label}</option>)}
+          </select>
+        </div>
+        <button className="btn btn-primary btn-full" onClick={submit} disabled={saving}>
+          {saving ? 'Création...' : 'Créer le projet'}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function taskHasZone(t, zoneId) {
   if (!zoneId) return true;
   if ((t.zone_ids || []).includes(zoneId)) return true;
@@ -277,8 +353,9 @@ function proposalMetaFromDescription(description) {
   return { proposer, cleanedDescription };
 }
 
-function TasksView({ tasks, zones, markers = [], maps = [], tutorials = [], activeMapId = 'foret', isTeacher, student, onRefresh, onForceLogout }) {
+function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], tutorials = [], activeMapId = 'foret', isTeacher, student, onRefresh, onForceLogout }) {
   const [showForm, setShowForm] = useState(false);
+  const [showProjectForm, setShowProjectForm] = useState(false);
   const [showProposalForm, setShowProposalForm] = useState(false);
   const [editTask, setEditTask] = useState(null);
   const [logTask, setLogTask] = useState(null);
@@ -290,6 +367,7 @@ function TasksView({ tasks, zones, markers = [], maps = [], tutorials = [], acti
   const [filterZone, setFilterZone] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
   const [filterMap, setFilterMap] = useState('active');
+  const [filterProject, setFilterProject] = useState('');
 
   useEffect(() => {
     setFilterMap('active');
@@ -370,6 +448,12 @@ function TasksView({ tasks, zones, markers = [], maps = [], tutorials = [], acti
     await onRefresh();
   };
 
+  const createProject = async form => {
+    await api('/api/task-projects', 'POST', form);
+    setToast('Projet créé ✓');
+    await onRefresh();
+  };
+
   const applyFilters = list => list.filter(t => {
     const taskMapId = taskEffectiveMapId(t);
     if (filterMap === 'active' && taskMapId !== activeMapId && taskMapId != null) return false;
@@ -378,6 +462,7 @@ function TasksView({ tasks, zones, markers = [], maps = [], tutorials = [], acti
       !(t.description || '').toLowerCase().includes(filterText.toLowerCase())) return false;
     if (filterZone && !taskHasZone(t, filterZone)) return false;
     if (filterStatus && t.status !== filterStatus) return false;
+    if (filterProject && t.project_id !== filterProject) return false;
     return true;
   });
 
@@ -430,6 +515,7 @@ function TasksView({ tasks, zones, markers = [], maps = [], tutorials = [], acti
           {(t.tutorials_linked || []).map((tu) => (
             <span key={tu.id} className="task-chip">📘 {tu.title}</span>
           ))}
+          {t.project_title && <span className="task-chip">📁 {t.project_title}</span>}
           {isTeacher && t.status === 'proposed' && proposalMeta.proposer && (
             <span className="task-chip proposal">🙋 Proposée par {proposalMeta.proposer}</span>
           )}
@@ -499,12 +585,21 @@ function TasksView({ tasks, zones, markers = [], maps = [], tutorials = [], acti
           zones={zones}
           markers={markers}
           maps={maps}
+          taskProjects={taskProjects}
           tutorials={tutorials}
           activeMapId={activeMapId}
           editTask={editTask}
           isProposal={showProposalForm && !isTeacher}
           onClose={() => { setShowForm(false); setEditTask(null); setShowProposalForm(false); }}
           onSave={showProposalForm && !isTeacher ? proposeTask : saveTask}
+        />
+      )}
+      {showProjectForm && (
+        <TaskProjectFormModal
+          maps={maps}
+          activeMapId={activeMapId}
+          onClose={() => setShowProjectForm(false)}
+          onSave={createProject}
         />
       )}
       {logTask && (
@@ -532,7 +627,12 @@ function TasksView({ tasks, zones, markers = [], maps = [], tutorials = [], acti
 
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
         <h2 className="section-title">✅ Tâches</h2>
-        {isTeacher && <button className="btn btn-primary btn-sm" onClick={() => setShowForm(true)}>+ Nouvelle tâche</button>}
+        {isTeacher && (
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button className="btn btn-ghost btn-sm" onClick={() => setShowProjectForm(true)}>+ Projet</button>
+            <button className="btn btn-primary btn-sm" onClick={() => setShowForm(true)}>+ Nouvelle tâche</button>
+          </div>
+        )}
         {!isTeacher && <button className="btn btn-ghost btn-sm" onClick={() => setShowProposalForm(true)}>+ Proposer</button>}
       </div>
       <p className="section-sub">{isTeacher ? 'Gérer, valider et traiter les propositions' : 'Prends en charge une tâche ou propose-en une nouvelle'}</p>
@@ -551,6 +651,18 @@ function TasksView({ tasks, zones, markers = [], maps = [], tutorials = [], acti
             const z = zones.find(zz => zz.id === zId);
             return <option key={zId} value={zId}>{z ? z.name : zId}</option>;
           })}
+        </select>
+        <select value={filterProject} onChange={e => setFilterProject(e.target.value)}>
+          <option value="">Tous les projets</option>
+          {taskProjects
+            .filter((p) => {
+              if (filterMap === 'all') return true;
+              if (filterMap === 'active') return p.map_id === activeMapId;
+              return p.map_id === filterMap;
+            })
+            .map((p) => (
+              <option key={p.id} value={p.id}>{p.title}</option>
+            ))}
         </select>
         {isTeacher && (
           <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)}>

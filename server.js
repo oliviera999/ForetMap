@@ -15,12 +15,14 @@ const mapsRouter    = require('./routes/maps');
 const mapRouter     = require('./routes/map');
 const plantsRouter  = require('./routes/plants');
 const tasksRouter   = require('./routes/tasks');
+const taskProjectsRouter = require('./routes/task-projects');
 const tutorialsRouter = require('./routes/tutorials');
 const visitRouter   = require('./routes/visit');
 const statsRouter   = require('./routes/stats');
 const studentsRouter      = require('./routes/students');
 const observationsRouter  = require('./routes/observations');
 const auditRouter         = require('./routes/audit');
+const rbacRouter          = require('./routes/rbac');
 
 const app = express();
 
@@ -112,12 +114,14 @@ app.use('/api/maps', mapsRouter);
 app.use('/api/map', mapRouter);
 app.use('/api/plants', plantsRouter);
 app.use('/api/tasks', tasksRouter);
+app.use('/api/task-projects', taskProjectsRouter);
 app.use('/api/tutorials', tutorialsRouter);
 app.use('/api/visit', visitRouter);
 app.use('/api/stats', statsRouter);
 app.use('/api/students', studentsRouter);
 app.use('/api/observations', observationsRouter);
 app.use('/api/audit', auditRouter);
+app.use('/api/rbac', rbacRouter);
 
 // Docs locales (Markdown) accessibles depuis l'onglet "À propos"
 const rootDocs = new Map([

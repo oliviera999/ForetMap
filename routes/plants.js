@@ -3,7 +3,7 @@ const http = require('http');
 const https = require('https');
 const XLSX = require('xlsx');
 const { pool, queryAll, queryOne, execute } = require('../database');
-const { requireTeacher } = require('../middleware/requireTeacher');
+const { requirePermission } = require('../middleware/requireTeacher');
 const { logRouteError } = require('../lib/routeLog');
 const { emitGardenChanged } = require('../lib/realtime');
 const { saveBase64ToDisk, deleteFile } = require('../lib/uploads');
@@ -373,7 +373,7 @@ function validateImportPayloadRow(row, rowNumber) {
   return { payload, errors };
 }
 
-router.post('/:id/photo-upload', requireTeacher, async (req, res) => {
+router.post('/:id/photo-upload', requirePermission('plants.manage', { needsElevation: true }), async (req, res) => {
   try {
     const plant = await queryOne('SELECT * FROM plants WHERE id = ?', [req.params.id]);
     if (!plant) return res.status(404).json({ error: 'Plante introuvable' });
@@ -416,7 +416,7 @@ router.post('/:id/photo-upload', requireTeacher, async (req, res) => {
   }
 });
 
-router.post('/import', requireTeacher, async (req, res) => {
+router.post('/import', requirePermission('plants.manage', { needsElevation: true }), async (req, res) => {
   try {
     const strategy = asTrimmedString(req.body?.strategy) || 'upsert_name';
     const dryRun = !!req.body?.dryRun;
@@ -525,7 +525,7 @@ router.get('/', async (req, res) => {
   }
 });
 
-router.post('/', requireTeacher, async (req, res) => {
+router.post('/', requirePermission('plants.manage', { needsElevation: true }), async (req, res) => {
   try {
     const photoError = validateHttpsPhotoLinks(req.body);
     if (photoError) return res.status(400).json({ error: photoError });
@@ -546,7 +546,7 @@ router.post('/', requireTeacher, async (req, res) => {
   }
 });
 
-router.put('/:id', requireTeacher, async (req, res) => {
+router.put('/:id', requirePermission('plants.manage', { needsElevation: true }), async (req, res) => {
   try {
     const plant = await queryOne('SELECT * FROM plants WHERE id = ?', [req.params.id]);
     if (!plant) return res.status(404).json({ error: 'Plante introuvable' });
@@ -569,7 +569,7 @@ router.put('/:id', requireTeacher, async (req, res) => {
   }
 });
 
-router.delete('/:id', requireTeacher, async (req, res) => {
+router.delete('/:id', requirePermission('plants.manage', { needsElevation: true }), async (req, res) => {
   try {
     const plant = await queryOne('SELECT * FROM plants WHERE id = ?', [req.params.id]);
     if (!plant) return res.status(404).json({ error: 'Plante introuvable' });

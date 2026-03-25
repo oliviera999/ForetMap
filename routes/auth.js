@@ -1,21 +1,39 @@
 const express = require('express');
 const bcrypt  = require('bcryptjs');
-const jwt     = require('jsonwebtoken');
+const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
+const { OAuth2Client } = require('google-auth-library');
 const { v4: uuidv4 } = require('uuid');
 const { queryOne, execute } = require('../database');
-const { JWT_SECRET } = require('../middleware/requireTeacher');
+const { JWT_SECRET, requireAuth, signAuthToken } = require('../middleware/requireTeacher');
 const { logRouteError } = require('../lib/routeLog');
 const { emitStudentsChanged } = require('../lib/realtime');
 const { sendPasswordResetEmail } = require('../lib/mailer');
+const {
+  ensureRbacBootstrap,
+  buildAuthzPayload,
+  ensurePrimaryRole,
+  verifyRolePin,
+} = require('../lib/rbac');
 
 const router = express.Router();
-const TEACHER_PIN = process.env.TEACHER_PIN ?? (process.env.NODE_ENV === 'production' ? null : '1234');
 const MAX_DESCRIPTION_LEN = 300;
 const PSEUDO_RE = /^[A-Za-z0-9_.-]{3,30}$/;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PASSWORD_RESET_MIN_LEN = 4;
 const PASSWORD_RESET_TTL_MINUTES = 60;
+const LEGACY_TEACHER_PIN = process.env.TEACHER_PIN || null;
+const ALLOWED_STUDENT_AFFILIATIONS = new Set(['n3', 'foret', 'both']);
+const OAUTH_STATE_COOKIE = 'foretmap_oauth_state';
+const OAUTH_MODE_COOKIE = 'foretmap_oauth_mode';
+const OAUTH_STATE_TTL_MS = 10 * 60 * 1000;
+const GOOGLE_ALLOWED_DOMAINS_DEFAULT = ['pedagolyautey.org', 'lyceelyautey.org'];
+const GOOGLE_ALLOWED_EMAILS_DEFAULT = ['oliv.arn.lau@gmail.com'];
+const googleOidcClient = new OAuth2Client();
+const googleOAuthHooks = {
+  exchangeCode: null,
+  verifyIdToken: null,
+};
 
 function normalizeOptionalString(value) {
   if (value == null) return null;
@@ -26,6 +44,124 @@ function normalizeOptionalString(value) {
 function normalizeEmail(value) {
   const email = normalizeOptionalString(value);
   return email ? email.toLowerCase() : null;
+}
+
+function normalizeStudentAffiliation(value) {
+  const raw = normalizeOptionalString(value);
+  if (!raw) return 'both';
+  const normalized = raw.toLowerCase();
+  if (!ALLOWED_STUDENT_AFFILIATIONS.has(normalized)) return null;
+  return normalized;
+}
+
+function parseCsvLowercaseSet(raw, defaults = []) {
+  const value = String(raw || '').trim();
+  if (!value) return new Set(defaults.map((v) => String(v).trim().toLowerCase()).filter(Boolean));
+  return new Set(
+    value
+      .split(',')
+      .map((v) => v.trim().toLowerCase())
+      .filter(Boolean)
+  );
+}
+
+function readCookie(req, name) {
+  const header = req?.headers?.cookie;
+  if (!header) return null;
+  const parts = String(header).split(';');
+  for (const part of parts) {
+    const [k, ...rest] = part.trim().split('=');
+    if (k === name) return decodeURIComponent(rest.join('=') || '');
+  }
+  return null;
+}
+
+function makeGoogleOAuthState() {
+  return crypto.randomBytes(24).toString('hex');
+}
+
+function normalizeOAuthMode(value) {
+  return String(value || '').toLowerCase() === 'teacher' ? 'teacher' : 'student';
+}
+
+function getGoogleOauthConfig(req) {
+  const clientId = normalizeOptionalString(process.env.GOOGLE_OAUTH_CLIENT_ID);
+  const clientSecret = normalizeOptionalString(process.env.GOOGLE_OAUTH_CLIENT_SECRET);
+  const redirectUri = normalizeOptionalString(process.env.GOOGLE_OAUTH_REDIRECT_URI)
+    || `${req.protocol}://${req.get('host')}/api/auth/google/callback`;
+  const frontendOrigin = normalizeOptionalString(process.env.FRONTEND_ORIGIN)
+    || normalizeOptionalString(process.env.PASSWORD_RESET_BASE_URL)
+    || `${req.protocol}://${req.get('host')}`;
+  const allowedDomains = parseCsvLowercaseSet(process.env.GOOGLE_OAUTH_ALLOWED_DOMAINS, GOOGLE_ALLOWED_DOMAINS_DEFAULT);
+  const allowedEmails = parseCsvLowercaseSet(process.env.GOOGLE_OAUTH_ALLOWED_EMAILS, GOOGLE_ALLOWED_EMAILS_DEFAULT);
+  return { clientId, clientSecret, redirectUri, frontendOrigin, allowedDomains, allowedEmails };
+}
+
+function googleOauthConfigured(cfg) {
+  return !!(cfg?.clientId && cfg?.clientSecret && cfg?.redirectUri);
+}
+
+async function exchangeGoogleCode({ code, clientId, clientSecret, redirectUri }) {
+  if (googleOAuthHooks.exchangeCode) {
+    return googleOAuthHooks.exchangeCode({ code, clientId, clientSecret, redirectUri });
+  }
+  const params = new URLSearchParams({
+    code,
+    client_id: clientId,
+    client_secret: clientSecret,
+    redirect_uri: redirectUri,
+    grant_type: 'authorization_code',
+  });
+  const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: params,
+  });
+  if (!tokenRes.ok) throw new Error('Échange OAuth Google échoué');
+  return tokenRes.json();
+}
+
+async function verifyGoogleIdToken({ idToken, audience }) {
+  if (googleOAuthHooks.verifyIdToken) {
+    return googleOAuthHooks.verifyIdToken({ idToken, audience });
+  }
+  const ticket = await googleOidcClient.verifyIdToken({ idToken, audience });
+  return ticket.getPayload() || null;
+}
+
+function splitDisplayName(name) {
+  const value = normalizeOptionalString(name);
+  if (!value) return { firstName: 'Google', lastName: 'Utilisateur' };
+  const parts = value.split(/\s+/).filter(Boolean);
+  if (parts.length <= 1) return { firstName: parts[0], lastName: 'Utilisateur' };
+  return {
+    firstName: parts.slice(0, -1).join(' '),
+    lastName: parts[parts.length - 1],
+  };
+}
+
+function isGoogleEmailAllowed(email, hd, allowedDomains, allowedEmails) {
+  if (!email) return false;
+  if (allowedEmails.has(email)) return true;
+  const domain = String(email.split('@')[1] || '').toLowerCase();
+  if (domain && allowedDomains.has(domain)) return true;
+  const hostedDomain = normalizeOptionalString(hd)?.toLowerCase();
+  if (hostedDomain && hostedDomain === domain && allowedDomains.has(hostedDomain)) return true;
+  return false;
+}
+
+function encodeOAuthPayload(payload) {
+  return Buffer.from(JSON.stringify(payload), 'utf8').toString('base64url');
+}
+
+function buildOAuthFrontendRedirect(frontendOrigin, payload) {
+  const base = String(frontendOrigin || '').replace(/\/+$/, '');
+  return `${base}/#oauth=${encodeURIComponent(encodeOAuthPayload(payload))}`;
+}
+
+function buildOAuthFrontendErrorRedirect(frontendOrigin, code, mode) {
+  const base = String(frontendOrigin || '').replace(/\/+$/, '');
+  return `${base}/#oauth_error=${encodeURIComponent(code)}&mode=${encodeURIComponent(normalizeOAuthMode(mode))}`;
 }
 
 function validateProfileInput({ pseudo, email, description }) {
@@ -58,7 +194,7 @@ function makeResetUrl(type, token) {
 
 function jwtNotConfigured(res) {
   if (!JWT_SECRET) {
-    res.status(503).json({ error: 'Mode prof non configuré' });
+    res.status(503).json({ error: 'Auth non configurée' });
     return true;
   }
   return false;
@@ -113,10 +249,12 @@ async function ensureTeacherSeedFromEnv() {
   const hash = await bcrypt.hash(password, 10);
   const now = new Date().toISOString();
   try {
+    const teacherId = uuidv4();
     await execute(
       'INSERT INTO teachers (id, email, password_hash, display_name, is_active, last_seen, created_at, updated_at) VALUES (?, ?, ?, ?, 1, ?, ?, ?)',
-      [uuidv4(), email, hash, displayName, now, now, now]
+      [teacherId, email, hash, displayName, now, now, now]
     );
+    await ensurePrimaryRole('teacher', teacherId, 'admin');
   } catch (err) {
     if (!(err && (err.errno === 1062 || err.code === 'ER_DUP_ENTRY'))) {
       throw err;
@@ -124,14 +262,36 @@ async function ensureTeacherSeedFromEnv() {
   }
 }
 
-/** POST /api/auth/teacher — vérifie le PIN et renvoie un JWT. */
-router.post('/teacher', (req, res) => {
-  const pin = req.body && req.body.pin;
-  if (!TEACHER_PIN) return res.status(503).json({ error: 'Mode prof non configuré' });
-  if (jwtNotConfigured(res)) return;
-  if (pin !== TEACHER_PIN) return res.status(401).json({ error: 'PIN incorrect' });
-  const token = jwt.sign({ role: 'teacher' }, JWT_SECRET, { expiresIn: '24h' });
-  res.json({ token });
+async function buildSessionPayload(userType, userId, elevated = false) {
+  const authz = await buildAuthzPayload(userType, userId, elevated);
+  if (!authz) return null;
+  return {
+    tokenPayload: {
+      userType,
+      userId,
+      roleId: authz.roleId,
+      roleSlug: authz.roleSlug,
+      roleDisplayName: authz.roleDisplayName,
+      permissions: authz.permissions,
+      elevated,
+    },
+    authz,
+  };
+}
+
+function exposeAuth(auth) {
+  return {
+    userType: auth.userType,
+    roleId: auth.roleId,
+    roleSlug: auth.roleSlug,
+    roleDisplayName: auth.roleDisplayName,
+    permissions: auth.permissions,
+    elevated: !!auth.elevated,
+  };
+}
+
+router.get('/me', requireAuth, async (req, res) => {
+  res.json({ auth: exposeAuth(req.auth) });
 });
 
 router.post('/register', async (req, res) => {
@@ -140,8 +300,10 @@ router.post('/register', async (req, res) => {
     const pseudo = normalizeOptionalString(req.body?.pseudo);
     const email = normalizeEmail(req.body?.email ?? req.body?.mail);
     const description = normalizeOptionalString(req.body?.description);
+    const affiliation = normalizeStudentAffiliation(req.body?.affiliation);
     if (!firstName?.trim() || !lastName?.trim()) return res.status(400).json({ error: 'Prénom et nom requis' });
     if (!password || password.length < 4) return res.status(400).json({ error: 'Mot de passe trop court (min 4 caractères)' });
+    if (!affiliation) return res.status(400).json({ error: "Affiliation invalide (n3, foret ou both)" });
     const profileError = validateProfileInput({ pseudo, email, description });
     if (profileError) return res.status(400).json({ error: profileError });
 
@@ -164,8 +326,8 @@ router.post('/register', async (req, res) => {
     const now  = new Date().toISOString();
     try {
       await execute(
-        'INSERT INTO students (id, first_name, last_name, pseudo, email, description, avatar_path, password, last_seen) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
-        [id, firstName.trim(), lastName.trim(), pseudo, email, description, null, hash, now]
+        'INSERT INTO students (id, first_name, last_name, pseudo, email, description, avatar_path, affiliation, password, last_seen) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        [id, firstName.trim(), lastName.trim(), pseudo, email, description, null, affiliation, hash, now]
       );
     } catch (err) {
       if (err && (err.errno === 1062 || err.code === 'ER_DUP_ENTRY')) {
@@ -173,9 +335,17 @@ router.post('/register', async (req, res) => {
       }
       throw err;
     }
+    await ensurePrimaryRole('student', id, 'eleve_novice');
     const student = await queryOne('SELECT * FROM students WHERE id = ?', [id]);
+    const session = await buildSessionPayload('student', id, false);
+    const token = session ? signAuthToken(session.tokenPayload, false) : null;
     emitStudentsChanged({ reason: 'register', studentId: id });
-    res.status(201).json({ ...student, password: undefined });
+    res.status(201).json({
+      ...student,
+      password: undefined,
+      authToken: token,
+      auth: session ? exposeAuth(session.tokenPayload) : null,
+    });
   } catch (e) {
     logRouteError(e, req);
     res.status(500).json({ error: e.message });
@@ -208,11 +378,161 @@ router.post('/login', async (req, res) => {
     const ok = await bcrypt.compare(password, student.password);
     if (!ok) return res.status(401).json({ error: 'Mot de passe incorrect' });
 
+    await ensurePrimaryRole('student', student.id, 'eleve_novice');
     await execute('UPDATE students SET last_seen = ? WHERE id = ?', [new Date().toISOString(), student.id]);
-    res.json({ ...student, password: undefined });
+    const session = await buildSessionPayload('student', student.id, false);
+    const token = session ? signAuthToken(session.tokenPayload, false) : null;
+    res.json({
+      ...student,
+      password: undefined,
+      authToken: token,
+      auth: session ? exposeAuth(session.tokenPayload) : null,
+    });
   } catch (e) {
     logRouteError(e, req);
     res.status(500).json({ error: e.message });
+  }
+});
+
+router.get('/google/start', async (req, res) => {
+  const mode = normalizeOAuthMode(req.query?.mode);
+  const cfg = getGoogleOauthConfig(req);
+  if (!googleOauthConfigured(cfg)) {
+    return res.status(503).json({ error: 'OAuth Google non configuré' });
+  }
+  const state = makeGoogleOAuthState();
+  const cookieSecure = process.env.NODE_ENV === 'production';
+  res.cookie(OAUTH_STATE_COOKIE, state, {
+    httpOnly: true,
+    sameSite: 'lax',
+    secure: cookieSecure,
+    maxAge: OAUTH_STATE_TTL_MS,
+    path: '/api/auth/google',
+  });
+  res.cookie(OAUTH_MODE_COOKIE, mode, {
+    httpOnly: true,
+    sameSite: 'lax',
+    secure: cookieSecure,
+    maxAge: OAUTH_STATE_TTL_MS,
+    path: '/api/auth/google',
+  });
+  const params = new URLSearchParams({
+    client_id: cfg.clientId,
+    redirect_uri: cfg.redirectUri,
+    response_type: 'code',
+    scope: 'openid email profile',
+    state,
+    prompt: 'select_account',
+    include_granted_scopes: 'true',
+  });
+  return res.redirect(`https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`);
+});
+
+router.get('/google/callback', async (req, res) => {
+  const cfg = getGoogleOauthConfig(req);
+  const stateCookie = readCookie(req, OAUTH_STATE_COOKIE);
+  const modeCookie = normalizeOAuthMode(readCookie(req, OAUTH_MODE_COOKIE));
+  const mode = normalizeOAuthMode(modeCookie || req.query?.mode);
+  res.clearCookie(OAUTH_STATE_COOKIE, { path: '/api/auth/google' });
+  res.clearCookie(OAUTH_MODE_COOKIE, { path: '/api/auth/google' });
+
+  if (!googleOauthConfigured(cfg)) {
+    return res.redirect(buildOAuthFrontendErrorRedirect(cfg.frontendOrigin, 'oauth_not_configured', mode));
+  }
+  if (normalizeOptionalString(req.query?.error)) {
+    return res.redirect(buildOAuthFrontendErrorRedirect(cfg.frontendOrigin, 'oauth_google_refused', mode));
+  }
+  const state = normalizeOptionalString(req.query?.state);
+  if (!state || !stateCookie || state !== stateCookie) {
+    return res.redirect(buildOAuthFrontendErrorRedirect(cfg.frontendOrigin, 'oauth_invalid_state', mode));
+  }
+  const code = normalizeOptionalString(req.query?.code);
+  if (!code) {
+    return res.redirect(buildOAuthFrontendErrorRedirect(cfg.frontendOrigin, 'oauth_missing_code', mode));
+  }
+
+  try {
+    const tokenData = await exchangeGoogleCode({
+      code,
+      clientId: cfg.clientId,
+      clientSecret: cfg.clientSecret,
+      redirectUri: cfg.redirectUri,
+    });
+    const idToken = normalizeOptionalString(tokenData?.id_token);
+    if (!idToken) {
+      return res.redirect(buildOAuthFrontendErrorRedirect(cfg.frontendOrigin, 'oauth_missing_id_token', mode));
+    }
+    const payload = await verifyGoogleIdToken({ idToken, audience: cfg.clientId });
+    if (!payload) {
+      return res.redirect(buildOAuthFrontendErrorRedirect(cfg.frontendOrigin, 'oauth_invalid_token', mode));
+    }
+    const email = normalizeEmail(payload.email);
+    const issuer = String(payload.iss || '');
+    const emailVerified = payload.email_verified === true || String(payload.email_verified) === 'true';
+    const audience = String(payload.aud || '');
+    if (!email || !emailVerified || audience !== cfg.clientId || !['accounts.google.com', 'https://accounts.google.com'].includes(issuer)) {
+      return res.redirect(buildOAuthFrontendErrorRedirect(cfg.frontendOrigin, 'oauth_claims_invalid', mode));
+    }
+    if (!isGoogleEmailAllowed(email, payload.hd, cfg.allowedDomains, cfg.allowedEmails)) {
+      return res.redirect(buildOAuthFrontendErrorRedirect(cfg.frontendOrigin, 'oauth_email_not_allowed', mode));
+    }
+
+    const teacher = await queryOne(
+      'SELECT id, email, is_active FROM teachers WHERE LOWER(email)=LOWER(?) LIMIT 1',
+      [email]
+    );
+    if (teacher) {
+      if (!teacher.is_active) {
+        return res.redirect(buildOAuthFrontendErrorRedirect(cfg.frontendOrigin, 'oauth_teacher_inactive', mode));
+      }
+      await ensurePrimaryRole('teacher', teacher.id, 'prof');
+      const now = new Date().toISOString();
+      await execute('UPDATE teachers SET last_seen = ?, updated_at = ? WHERE id = ?', [now, now, teacher.id]);
+      const session = await buildSessionPayload('teacher', teacher.id, false);
+      if (!session) {
+        return res.redirect(buildOAuthFrontendErrorRedirect(cfg.frontendOrigin, 'oauth_teacher_no_role', mode));
+      }
+      const token = signAuthToken(session.tokenPayload, false);
+      return res.redirect(buildOAuthFrontendRedirect(cfg.frontendOrigin, {
+        type: 'teacher',
+        token,
+        auth: exposeAuth(session.tokenPayload),
+      }));
+    }
+
+    let student = await queryOne('SELECT * FROM students WHERE LOWER(email)=LOWER(?) LIMIT 1', [email]);
+    if (!student) {
+      const id = uuidv4();
+      const now = new Date().toISOString();
+      const splitName = splitDisplayName(payload.name);
+      const firstName = normalizeOptionalString(payload.given_name) || splitName.firstName;
+      const lastName = normalizeOptionalString(payload.family_name) || splitName.lastName;
+      await execute(
+        'INSERT INTO students (id, first_name, last_name, pseudo, email, description, avatar_path, affiliation, password, last_seen) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        [id, firstName, lastName, null, email, 'Compte Google', null, 'both', null, now]
+      );
+      await ensurePrimaryRole('student', id, 'eleve_novice');
+      emitStudentsChanged({ reason: 'register_google', studentId: id });
+      student = await queryOne('SELECT * FROM students WHERE id = ?', [id]);
+    } else {
+      await execute('UPDATE students SET last_seen = ? WHERE id = ?', [new Date().toISOString(), student.id]);
+      student = await queryOne('SELECT * FROM students WHERE id = ?', [student.id]);
+    }
+
+    const session = await buildSessionPayload('student', student.id, false);
+    const token = session ? signAuthToken(session.tokenPayload, false) : null;
+    return res.redirect(buildOAuthFrontendRedirect(cfg.frontendOrigin, {
+      type: 'student',
+      student: {
+        ...student,
+        password: undefined,
+        authToken: token,
+        auth: session ? exposeAuth(session.tokenPayload) : null,
+      },
+    }));
+  } catch (e) {
+    logRouteError(e, req);
+    return res.redirect(buildOAuthFrontendErrorRedirect(cfg.frontendOrigin, 'oauth_server_error', mode));
   }
 });
 
@@ -264,6 +584,7 @@ router.post('/reset-password', async (req, res) => {
 router.post('/teacher/login', async (req, res) => {
   try {
     if (jwtNotConfigured(res)) return;
+    await ensureRbacBootstrap();
     await ensureTeacherSeedFromEnv();
     const email = normalizeEmail(req.body?.email);
     const password = req.body?.password;
@@ -277,9 +598,12 @@ router.post('/teacher/login', async (req, res) => {
     const ok = await bcrypt.compare(password, teacher.password_hash);
     if (!ok) return res.status(401).json({ error: 'Mot de passe incorrect' });
 
+    await ensurePrimaryRole('teacher', teacher.id, 'prof');
     await execute('UPDATE teachers SET last_seen = ?, updated_at = ? WHERE id = ?', [new Date().toISOString(), new Date().toISOString(), teacher.id]);
-    const token = jwt.sign({ role: 'teacher', teacherId: teacher.id, auth: 'email' }, JWT_SECRET, { expiresIn: '24h' });
-    res.json({ token });
+    const session = await buildSessionPayload('teacher', teacher.id, false);
+    if (!session) return res.status(403).json({ error: 'Aucun profil attribué' });
+    const token = signAuthToken(session.tokenPayload, false);
+    res.json({ token, auth: exposeAuth(session.tokenPayload) });
   } catch (e) {
     logRouteError(e, req);
     res.status(500).json({ error: e.message });
@@ -332,5 +656,76 @@ router.post('/teacher/reset-password', async (req, res) => {
     res.status(500).json({ error: e.message });
   }
 });
+
+router.post('/elevate', requireAuth, async (req, res) => {
+  try {
+    const pin = normalizeOptionalString(req.body?.pin);
+    if (!pin) return res.status(400).json({ error: 'PIN requis' });
+    if (!req.auth?.roleId) return res.status(401).json({ error: 'Session invalide' });
+
+    const ok = await verifyRolePin(req.auth.roleId, pin);
+    await execute(
+      'INSERT INTO elevation_audit (user_type, user_id, role_id, success, reason) VALUES (?, ?, ?, ?, ?)',
+      [req.auth.userType, req.auth.userId, req.auth.roleId, ok ? 1 : 0, ok ? 'ok' : 'pin_invalid']
+    );
+    if (!ok) return res.status(401).json({ error: 'PIN incorrect' });
+
+    const session = await buildSessionPayload(req.auth.userType, req.auth.userId, true);
+    if (!session) return res.status(403).json({ error: 'Aucun profil attribué' });
+    const token = signAuthToken(session.tokenPayload, true);
+    res.json({ token, auth: exposeAuth(session.tokenPayload) });
+  } catch (e) {
+    logRouteError(e, req);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// Compatibilité historique: "mode prof via PIN".
+// Désormais, ce endpoint exige d'être déjà connecté puis élève la session.
+router.post('/teacher', async (req, res) => {
+  try {
+    const pin = normalizeOptionalString(req.body?.pin);
+    if (!pin) return res.status(400).json({ error: 'PIN requis' });
+    const bearer = req.headers.authorization;
+    const tokenIn = bearer && bearer.startsWith('Bearer ') ? bearer.slice(7) : null;
+    if (tokenIn) {
+      let claims;
+      try {
+        claims = jwt.verify(tokenIn, JWT_SECRET);
+      } catch (_) {
+        return res.status(401).json({ error: 'Token invalide ou expiré' });
+      }
+      const ok = await verifyRolePin(claims.roleId, pin);
+      if (!ok) return res.status(401).json({ error: 'PIN incorrect' });
+      const session = await buildSessionPayload(claims.userType, claims.userId, true);
+      if (!session) return res.status(403).json({ error: 'Aucun profil attribué' });
+      const token = signAuthToken(session.tokenPayload, true);
+      return res.json({ token, auth: exposeAuth(session.tokenPayload) });
+    }
+
+    // Compatibilité secours: PIN global => élévation admin du compte TEACHER_ADMIN_EMAIL
+    if (!LEGACY_TEACHER_PIN || pin !== LEGACY_TEACHER_PIN) {
+      return res.status(401).json({ error: 'PIN incorrect' });
+    }
+    await ensureTeacherSeedFromEnv();
+    const adminEmail = normalizeEmail(process.env.TEACHER_ADMIN_EMAIL);
+    if (!adminEmail) return res.status(503).json({ error: 'TEACHER_ADMIN_EMAIL requis pour le mode secours' });
+    const teacher = await queryOne('SELECT id FROM teachers WHERE LOWER(email)=LOWER(?) LIMIT 1', [adminEmail]);
+    if (!teacher) return res.status(503).json({ error: 'Compte admin introuvable' });
+    await ensurePrimaryRole('teacher', teacher.id, 'admin');
+    const session = await buildSessionPayload('teacher', teacher.id, true);
+    if (!session) return res.status(403).json({ error: 'Aucun profil attribué' });
+    const token = signAuthToken(session.tokenPayload, true);
+    return res.json({ token, auth: exposeAuth(session.tokenPayload) });
+  } catch (e) {
+    logRouteError(e, req);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+router.__setGoogleOAuthHooks = function setGoogleOAuthHooks({ exchangeCode, verifyIdToken } = {}) {
+  googleOAuthHooks.exchangeCode = typeof exchangeCode === 'function' ? exchangeCode : null;
+  googleOAuthHooks.verifyIdToken = typeof verifyIdToken === 'function' ? verifyIdToken : null;
+};
 
 module.exports = router;

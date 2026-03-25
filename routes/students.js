@@ -3,7 +3,7 @@ const bcrypt = require('bcryptjs');
 const { v4: uuidv4 } = require('uuid');
 const XLSX = require('xlsx');
 const { queryAll, queryOne, execute } = require('../database');
-const { requireTeacher } = require('../middleware/requireTeacher');
+const { requirePermission } = require('../middleware/requireTeacher');
 const { logRouteError } = require('../lib/routeLog');
 const { logAudit } = require('./audit');
 const { emitStudentsChanged, emitTasksChanged } = require('../lib/realtime');
@@ -16,6 +16,7 @@ const MAX_IMPORT_FILE_BYTES = 8 * 1024 * 1024;
 const MAX_IMPORT_ROWS = 1000;
 const PSEUDO_RE = /^[A-Za-z0-9_.-]{3,30}$/;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const ALLOWED_STUDENT_AFFILIATIONS = new Set(['n3', 'foret', 'both']);
 const TEMPLATE_COLUMNS = [
   'Prénom',
   'Nom',
@@ -62,6 +63,14 @@ function asTrimmedString(value) {
 
 function hasOwn(obj, key) {
   return Object.prototype.hasOwnProperty.call(obj || {}, key);
+}
+
+function normalizeStudentAffiliation(value) {
+  const raw = normalizeOptionalString(value);
+  if (!raw) return 'both';
+  const normalized = raw.toLowerCase();
+  if (!ALLOWED_STUDENT_AFFILIATIONS.has(normalized)) return null;
+  return normalized;
 }
 
 function detectAvatarExtension(dataUrl) {
@@ -210,7 +219,7 @@ function buildTemplateWorkbookRows() {
   }];
 }
 
-router.get('/import/template', requireTeacher, async (req, res) => {
+router.get('/import/template', requirePermission('students.import', { needsElevation: true }), async (req, res) => {
   try {
     const format = asTrimmedString(req.query?.format || 'csv').toLowerCase();
     if (format === 'xlsx') {
@@ -246,7 +255,7 @@ router.get('/import/template', requireTeacher, async (req, res) => {
   }
 });
 
-router.post('/import', requireTeacher, async (req, res) => {
+router.post('/import', requirePermission('students.import', { needsElevation: true }), async (req, res) => {
   try {
     const dryRun = !!req.body?.dryRun;
     const rawRows = await resolveImportRows(req.body || {});
@@ -388,15 +397,19 @@ router.patch('/:id/profile', async (req, res) => {
     const hasPseudo = hasOwn(body, 'pseudo');
     const hasEmail = hasOwn(body, 'email') || hasOwn(body, 'mail');
     const hasDescription = hasOwn(body, 'description');
+    const hasAffiliation = hasOwn(body, 'affiliation');
     const hasAvatarData = hasOwn(body, 'avatarData');
     const removeAvatar = !!body.removeAvatar;
-    if (!hasPseudo && !hasEmail && !hasDescription && !hasAvatarData && !removeAvatar) {
+    if (!hasPseudo && !hasEmail && !hasDescription && !hasAffiliation && !hasAvatarData && !removeAvatar) {
       return res.status(400).json({ error: 'Aucun champ de profil à mettre à jour' });
     }
 
     const pseudo = hasPseudo ? normalizeOptionalString(body.pseudo) : student.pseudo;
     const email = hasEmail ? normalizeOptionalString(body.email ?? body.mail) : student.email;
     const description = hasDescription ? normalizeOptionalString(body.description) : student.description;
+    const affiliation = hasAffiliation
+      ? normalizeStudentAffiliation(body.affiliation)
+      : (normalizeStudentAffiliation(student.affiliation) || 'both');
     let avatarPath = student.avatar_path || null;
 
     if (pseudo != null && !PSEUDO_RE.test(pseudo)) {
@@ -407,6 +420,9 @@ router.patch('/:id/profile', async (req, res) => {
     }
     if (description != null && description.length > MAX_DESCRIPTION_LEN) {
       return res.status(400).json({ error: `Description trop longue (max ${MAX_DESCRIPTION_LEN} caractères)` });
+    }
+    if (!affiliation) {
+      return res.status(400).json({ error: "Affiliation invalide (n3, foret ou both)" });
     }
     if (hasAvatarData) {
       const avatarData = normalizeOptionalString(body.avatarData);
@@ -448,8 +464,8 @@ router.patch('/:id/profile', async (req, res) => {
 
     try {
       await execute(
-        'UPDATE students SET pseudo = ?, email = ?, description = ?, avatar_path = ? WHERE id = ?',
-        [pseudo, email, description, avatarPath, student.id]
+        'UPDATE students SET pseudo = ?, email = ?, description = ?, avatar_path = ?, affiliation = ? WHERE id = ?',
+        [pseudo, email, description, avatarPath, affiliation, student.id]
       );
     } catch (err) {
       if (err && (err.errno === 1062 || err.code === 'ER_DUP_ENTRY')) {
@@ -466,7 +482,7 @@ router.patch('/:id/profile', async (req, res) => {
   }
 });
 
-router.delete('/:id', requireTeacher, async (req, res) => {
+router.delete('/:id', requirePermission('students.delete', { needsElevation: true }), async (req, res) => {
   try {
     const s = await queryOne('SELECT * FROM students WHERE id = ?', [req.params.id]);
     if (!s) return res.status(404).json({ error: 'Élève introuvable' });

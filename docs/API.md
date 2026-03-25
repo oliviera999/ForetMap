@@ -53,14 +53,32 @@ Connexion **WebSocket** (avec repli **polling** long) sur le **même hôte** que
 |--------|-----|------|-------------|
 | POST | `/api/auth/register` | `{ firstName, lastName, password, pseudo?, email?, description? }` | Créer un compte élève |
 | POST | `/api/auth/login` | `{ identifier, password }` | Connexion élève (pseudo ou email) |
+| GET | `/api/auth/me` | — | Retourne le contexte d’auth courant (`role`, `permissions`, `elevated`) |
+| POST | `/api/auth/elevate` | `{ pin }` | Élévation de session via PIN du profil |
 | POST | `/api/auth/forgot-password` | `{ email }` | Déclencher un email de réinitialisation élève (réponse neutre) |
 | POST | `/api/auth/reset-password` | `{ token, password }` | Réinitialiser le mot de passe élève |
-| POST | `/api/auth/teacher` | `{ pin }` | Connexion prof → `{ token }` (JWT) |
+| POST | `/api/auth/teacher` | `{ pin }` | Compatibilité historique : élévation PIN (ou mode secours admin) |
 | POST | `/api/auth/teacher/login` | `{ email, password }` | Connexion prof email/mot de passe → `{ token }` (JWT) |
 | POST | `/api/auth/teacher/forgot-password` | `{ email }` | Déclencher un email de réinitialisation prof (réponse neutre) |
 | POST | `/api/auth/teacher/reset-password` | `{ token, password }` | Réinitialiser le mot de passe prof |
 
 Routes protégées « prof » : header `Authorization: Bearer <token>`.
+
+---
+
+## RBAC (admin)
+
+Toutes les routes RBAC exigent un token admin avec élévation PIN active.
+
+| Méthode | URL | Description |
+|--------|-----|-------------|
+| GET | `/api/rbac/profiles` | Liste des profils + permissions |
+| POST | `/api/rbac/profiles` | Créer un profil |
+| PATCH | `/api/rbac/profiles/:id` | Renommer/ajuster rang d’un profil |
+| PUT | `/api/rbac/profiles/:id/permissions` | Remplacer les permissions d’un profil |
+| PUT | `/api/rbac/profiles/:id/pin` | Changer le PIN d’un profil |
+| GET | `/api/rbac/users` | Liste utilisateurs et profil attribué |
+| PUT | `/api/rbac/users/:userType/:userId/role` | Attribuer le profil principal d’un utilisateur |
 
 ---
 
