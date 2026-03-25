@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { api } from '../services/api';
 import { ZONE_COLORS } from '../constants/garden';
+import { MARKER_EMOJIS } from '../constants/emojis';
 import { stageBadge } from '../utils/badges';
 import { compressImage } from '../utils/image';
 
@@ -622,7 +623,6 @@ function MarkerModal({ marker, plants, tasks, onClose, onSave, onDelete, onLinkT
   const [assigning, setAssigning] = useState(false);
   const [toast, setToast] = useState(null);
   const set = k => e => setForm(f => ({ ...f, [k]: e.target.value }));
-  const EMOJIS = ['🌱', '🌿', '🥬', '🥕', '🍅', '🍓', '🫘', '🌸', '🌳', '🌲', '🐝', '💧', '🪨', '🏠', '⚠️', '🌾', '🍋'];
 
   const taskMapId = (t) => t.map_id_resolved || t.map_id || t.zone_map_id || t.marker_map_id || null;
   const linkedTasks = (tasks || []).filter((t) => taskLocationIds(t).markerIds.includes(marker.id));
@@ -659,7 +659,7 @@ function MarkerModal({ marker, plants, tasks, onClose, onSave, onDelete, onLinkT
         {isTeacher ? (
           <>
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 12 }}>
-              {EMOJIS.map(e => (
+              {MARKER_EMOJIS.map(e => (
                 <button key={e} className={`emoji-btn ${form.emoji === e ? 'sel' : ''}`}
                   onClick={() => setForm(f => ({ ...f, emoji: e }))}>{e}</button>
               ))}
