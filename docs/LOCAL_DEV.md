@@ -50,6 +50,7 @@ npm run local:setup
 Cette commande enchaîne :
 - démarrage Docker MySQL,
 - installation des dépendances (incluant dev),
+- attente active de disponibilité MySQL,
 - initialisation BDD,
 - vérification locale (`check:local`).
 
