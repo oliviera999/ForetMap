@@ -1,7 +1,7 @@
 const express = require('express');
 const jwt = require('jsonwebtoken');
 const { queryAll, queryOne, execute } = require('../database');
-const { requirePermission, JWT_SECRET } = require('../middleware/requireTeacher');
+const { requireAuth, requirePermission, JWT_SECRET } = require('../middleware/requireTeacher');
 const { saveBase64ToDisk, getAbsolutePath, deleteFile } = require('../lib/uploads');
 const { logRouteError } = require('../lib/routeLog');
 
@@ -22,12 +22,13 @@ function isTeacherRequest(req) {
 }
 
 // Observations d'un élève
-router.get('/student/:studentId', async (req, res) => {
+router.get('/student/:studentId', requireAuth, async (req, res) => {
   try {
     const askedStudentId = String(req.params.studentId || '').trim();
     const teacherRequest = isTeacherRequest(req);
-    const requesterStudentId = String(req.query.studentId || '').trim();
-    if (!teacherRequest && requesterStudentId !== askedStudentId) {
+    const auth = req.auth || null;
+    const isOwner = auth?.userType === 'student' && String(auth?.userId || '') === askedStudentId;
+    if (!teacherRequest && !isOwner) {
       return res.status(403).json({ error: 'Accès refusé à ce carnet' });
     }
     const student = await queryOne("SELECT id FROM users WHERE user_type = 'student' AND id = ?", [askedStudentId]);
@@ -73,23 +74,28 @@ router.get('/all', requirePermission('observations.read.all', { needsElevation: 
 });
 
 // Créer une observation
-router.post('/', async (req, res) => {
+router.post('/', requireAuth, async (req, res) => {
   try {
     const { studentId, zone_id, content, imageData } = req.body;
-    if (!studentId || !content?.trim()) {
+    const auth = req.auth || null;
+    const teacherRequest = isTeacherRequest(req);
+    const resolvedStudentId = teacherRequest
+      ? String(studentId || '').trim()
+      : String(auth?.userType === 'student' ? auth.userId : '').trim();
+    if (!resolvedStudentId || !content?.trim()) {
       return res.status(400).json({ error: 'Contenu et identifiant élève requis' });
     }
-    const student = await queryOne("SELECT id FROM users WHERE user_type = 'student' AND id = ?", [studentId]);
+    const student = await queryOne("SELECT id FROM users WHERE user_type = 'student' AND id = ?", [resolvedStudentId]);
     if (!student) return res.status(401).json({ error: 'Compte supprimé', deleted: true });
 
     const result = await execute(
       'INSERT INTO observation_logs (student_id, zone_id, content, image_path, created_at) VALUES (?, ?, ?, ?, ?)',
-      [studentId, zone_id || null, content.trim(), null, new Date().toISOString()]
+      [resolvedStudentId, zone_id || null, content.trim(), null, new Date().toISOString()]
     );
     const logId = result.insertId;
 
     if (imageData) {
-      const relativePath = `observations/${studentId}_${logId}.jpg`;
+      const relativePath = `observations/${resolvedStudentId}_${logId}.jpg`;
       saveBase64ToDisk(relativePath, imageData);
       await execute('UPDATE observation_logs SET image_path = ? WHERE id = ?', [relativePath, logId]);
     }
@@ -103,10 +109,16 @@ router.post('/', async (req, res) => {
 });
 
 // Image d'une observation
-router.get('/:id/image', async (req, res) => {
+router.get('/:id/image', requireAuth, async (req, res) => {
   try {
-    const obs = await queryOne('SELECT image_path FROM observation_logs WHERE id = ?', [req.params.id]);
+    const obs = await queryOne('SELECT student_id, image_path FROM observation_logs WHERE id = ?', [req.params.id]);
     if (!obs || !obs.image_path) return res.status(404).json({ error: 'Image introuvable' });
+    const teacherRequest = isTeacherRequest(req);
+    const auth = req.auth || null;
+    const isOwner = auth?.userType === 'student' && String(auth?.userId || '') === String(obs.student_id || '');
+    if (!teacherRequest && !isOwner) {
+      return res.status(403).json({ error: 'Accès refusé à cette image' });
+    }
     const absolutePath = getAbsolutePath(obs.image_path);
     res.sendFile(absolutePath, (err) => {
       if (err && !res.headersSent) res.status(404).json({ error: 'Fichier introuvable' });
@@ -118,13 +130,14 @@ router.get('/:id/image', async (req, res) => {
 });
 
 // Supprimer une observation (prof ou élève propriétaire)
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', requireAuth, async (req, res) => {
   try {
     const obs = await queryOne('SELECT * FROM observation_logs WHERE id = ?', [req.params.id]);
     if (!obs) return res.status(404).json({ error: 'Observation introuvable' });
     const teacherRequest = isTeacherRequest(req);
     if (!teacherRequest) {
-      const studentId = String(req.body?.studentId || '').trim();
+      const auth = req.auth || null;
+      const studentId = String(auth?.userType === 'student' ? auth.userId : '').trim();
       if (!studentId || studentId !== String(obs.student_id)) {
         return res.status(403).json({ error: 'Suppression non autorisée' });
       }

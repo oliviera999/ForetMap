@@ -49,6 +49,14 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - **Navigation/auth** : ajout d’un CTA « Visiter sans connexion » dans l’écran d’authentification et intégration de l’onglet `Visite` dans les navigations élève/prof.
 
 ### Corrigé
+- **Sécurité stats élève** : `GET /api/stats/me/:studentId` exige désormais une session authentifiée et limite l’accès au propriétaire (élève) ou aux rôles autorisés (`stats.read.all`).
+- **Sécurité carnet d’observations** : suppression de la confiance dans `studentId` envoyé par le client ; lecture/création/suppression et accès image reposent maintenant sur l’identité JWT (propriétaire ou professeur autorisé).
+- **Fuite d’affectations sur les tâches** : `GET /api/tasks` ne charge plus toutes les assignations globales ; filtrage SQL par `task_id` et exposition réduite selon le rôle.
+- **Migrations SQL** : arrêt explicite sur erreur non idempotente au lieu d’avancer silencieusement la version de schéma.
+- **Résilience process** : en cas de `uncaughtException` / `unhandledRejection`, le serveur journalise en fatal puis s’arrête proprement (`exit 1`) pour éviter un état incohérent.
+- **Endpoints admin** : retrait du secret en query string pour `/api/admin/logs` et `/api/admin/oauth-debug` (header `x-deploy-secret` uniquement).
+- **Frontend carte** : correction d’un `ReferenceError` (`isMine`) dans les modales d’inscription aux tâches liées zone/repère.
+- **Outillage tests** : script `npm test` rendu portable (`node --test \"tests/*.test.js\"`) et ajout de `@playwright/test` dans les dépendances de développement.
 - **Connexion multi-profils** : suppression du blocage `Type de compte non pris en charge` sur `/api/auth/login`; la session est désormais résolue via le rôle RBAC principal pour accepter les comptes élève/prof/admin.
 - **Accès admin profils/utilisateurs** : l’onglet professeur affiche désormais `Profils & utilisateurs` dès qu’un rôle possède les permissions RBAC concernées (`admin.roles.manage` ou `admin.users.assign_roles`), même avant élévation PIN.
 - **Statut des tâches à l'inscription** : une tâche passe désormais en `en cours` dès la première prise en charge élève (même si `required_students > 1`) ; le recalcul `unassign` reste cohérent (`available` seulement quand il ne reste aucune assignation).

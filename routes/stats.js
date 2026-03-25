@@ -1,6 +1,6 @@
 const express = require('express');
 const { queryAll, queryOne } = require('../database');
-const { requirePermission } = require('../middleware/requireTeacher');
+const { requireAuth, requirePermission } = require('../middleware/requireTeacher');
 const { logRouteError } = require('../lib/routeLog');
 
 const router = express.Router();
@@ -34,9 +34,17 @@ async function studentStats(studentId) {
   };
 }
 
-router.get('/me/:studentId', async (req, res) => {
+router.get('/me/:studentId', requireAuth, async (req, res) => {
   try {
-    const data = await studentStats(req.params.studentId);
+    const askedStudentId = String(req.params.studentId || '').trim();
+    const auth = req.auth || null;
+    const perms = Array.isArray(auth?.permissions) ? auth.permissions : [];
+    const canReadAll = perms.includes('stats.read.all');
+    const isOwner = auth?.userType === 'student' && String(auth?.userId || '') === askedStudentId;
+    if (!canReadAll && !isOwner) {
+      return res.status(403).json({ error: 'Accès refusé à ces statistiques' });
+    }
+    const data = await studentStats(askedStudentId);
     if (!data) return res.status(404).json({ error: 'Élève introuvable' });
     res.json(data);
   } catch (e) {

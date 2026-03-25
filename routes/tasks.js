@@ -1,7 +1,8 @@
 const express = require('express');
+const jwt = require('jsonwebtoken');
 const { v4: uuidv4 } = require('uuid');
 const { queryAll, queryOne, execute } = require('../database');
-const { requirePermission } = require('../middleware/requireTeacher');
+const { requirePermission, JWT_SECRET } = require('../middleware/requireTeacher');
 const { saveBase64ToDisk, getAbsolutePath } = require('../lib/uploads');
 const { logRouteError } = require('../lib/routeLog');
 const { logAudit } = require('./audit');
@@ -9,6 +10,24 @@ const { emitTasksChanged } = require('../lib/realtime');
 const { ensurePrimaryRole, buildAuthzPayload, verifyRolePin } = require('../lib/rbac');
 
 const router = express.Router();
+
+function parseOptionalAuth(req) {
+  try {
+    if (!JWT_SECRET) return null;
+    const auth = req.headers.authorization;
+    const token = auth && auth.startsWith('Bearer ') ? auth.slice(7) : null;
+    if (!token) return null;
+    return jwt.verify(token, JWT_SECRET);
+  } catch (_) {
+    return null;
+  }
+}
+
+function canReadAllAssignments(auth) {
+  const perms = Array.isArray(auth?.permissions) ? auth.permissions : [];
+  if (auth?.userType === 'teacher') return true;
+  return perms.includes('tasks.manage') || perms.includes('tasks.validate') || perms.includes('stats.read.all');
+}
 
 function sanitizeRequiredStudents(value) {
   const n = parseInt(value, 10);
@@ -312,6 +331,7 @@ async function ensureStudentPermission({ studentId, permissionKey, profilePin })
 
 router.get('/', async (req, res) => {
   try {
+    const auth = parseOptionalAuth(req);
     const mapId = req.query.map_id ? String(req.query.map_id).trim() : '';
     const projectId = req.query.project_id ? String(req.query.project_id).trim() : '';
     if (mapId && !(await mapExists(mapId))) {
@@ -355,12 +375,27 @@ router.get('/', async (req, res) => {
     const zm = await fetchZonesForTasks(taskIds);
     const mm = await fetchMarkersForTasks(taskIds);
     const tutorialsMap = await fetchTutorialsForTasks(taskIds);
-    const assignments = await queryAll('SELECT * FROM task_assignments');
+    let assignments = [];
+    if (taskIds.length && canReadAllAssignments(auth)) {
+      const ph = taskIds.map(() => '?').join(',');
+      assignments = await queryAll(`SELECT * FROM task_assignments WHERE task_id IN (${ph})`, taskIds);
+    } else if (taskIds.length && auth?.userType === 'student' && auth?.userId) {
+      const ph = taskIds.map(() => '?').join(',');
+      assignments = await queryAll(
+        `SELECT * FROM task_assignments WHERE task_id IN (${ph}) AND student_id = ?`,
+        [...taskIds, auth.userId]
+      );
+    }
+    const assignmentsByTask = new Map();
+    for (const a of assignments) {
+      if (!assignmentsByTask.has(a.task_id)) assignmentsByTask.set(a.task_id, []);
+      assignmentsByTask.get(a.task_id).push(a);
+    }
     const enriched = tasks.map((t) => {
       const row = { ...t };
       enrichTaskRow(row, zm.get(t.id), mm.get(t.id), tutorialsMap.get(t.id));
       delete row.map_id_resolved_join;
-      row.assignments = assignments.filter((a) => a.task_id === t.id);
+      row.assignments = assignmentsByTask.get(t.id) || [];
       return row;
     });
     const mapLabelIds = [...new Set(enriched.map((r) => r.map_id_resolved).filter(Boolean))];

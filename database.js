@@ -20,12 +20,13 @@ function logMigrationStmtError(err, stmt, migrationFile) {
       { err, migrationFile, stmt: migrationStmtSnippet(stmt) },
       'Étape migration ignorée (déjà appliquée)'
     );
-    return;
+    return true;
   }
   logger.warn(
     { err, migrationFile, stmt: migrationStmtSnippet(stmt) },
     'Échec étape migration SQL'
   );
+  return false;
 }
 
 function safePort(raw, fallback) {
@@ -162,7 +163,8 @@ async function runMigrations(conn) {
       try {
         await conn.query(stmt);
       } catch (err) {
-        logMigrationStmtError(err, stmt, first);
+        const ignored = logMigrationStmtError(err, stmt, first);
+        if (!ignored) throw err;
       }
     }
     await conn.query('UPDATE schema_version SET version = ?', [parseInt(first.slice(0, 3), 10)]);
@@ -177,7 +179,8 @@ async function runMigrations(conn) {
       try {
         await conn.query(stmt);
       } catch (err) {
-        logMigrationStmtError(err, stmt, file);
+        const ignored = logMigrationStmtError(err, stmt, file);
+        if (!ignored) throw err;
       }
     }
     await conn.query('UPDATE schema_version SET version = ?', [num]);
