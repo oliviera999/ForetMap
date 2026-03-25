@@ -6,6 +6,7 @@ async function loginAsNewStudent(page) {
 
   await page.goto('/');
   await page.getByRole('button', { name: 'Créer un compte' }).click();
+  await page.getByLabel('Prénom').waitFor({ state: 'visible' });
   await page.getByLabel('Prénom').fill(firstName);
   await page.getByLabel('Nom').fill(lastName);
   await page.getByLabel('Mot de passe').fill(password);
@@ -27,6 +28,7 @@ async function registerStudentWithProfile(page) {
 
   await page.goto('/');
   await page.getByRole('button', { name: 'Créer un compte' }).click();
+  await page.getByLabel('Prénom').waitFor({ state: 'visible' });
   await page.getByLabel('Prénom').fill(firstName);
   await page.getByLabel('Nom').fill(lastName);
   await page.getByLabel('Mot de passe').fill(password);
