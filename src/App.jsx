@@ -78,6 +78,12 @@ function App() {
     return Array.isArray(authClaims?.permissions) && authClaims.permissions.includes(perm);
   }, [authClaims]);
 
+  const hasPermissionInRole = useCallback((perm) => {
+    const activePerms = Array.isArray(authClaims?.permissions) ? authClaims.permissions : [];
+    const elevatablePerms = Array.isArray(authClaims?.elevatedPermissions) ? authClaims.elevatedPermissions : [];
+    return activePerms.includes(perm) || elevatablePerms.includes(perm);
+  }, [authClaims]);
+
   useEffect(() => {
     const hashRaw = window.location.hash.startsWith('#') ? window.location.hash.slice(1) : '';
     if (!hashRaw) return;
@@ -454,8 +460,13 @@ function App() {
             <button className={`top-tab ${tab === 'plants' ? 'active' : ''}`} onClick={() => setTab('plants')}>🌱 Biodiversité</button>
             <button className={`top-tab ${tab === 'tuto' ? 'active' : ''}`} onClick={() => setTab('tuto')}>📘 Tuto</button>
             <button className={`top-tab ${tab === 'stats' ? 'active' : ''}`} onClick={() => setTab('stats')}>📊 Stats</button>
-            {hasPermission('admin.roles.manage') && (
-              <button className={`top-tab ${tab === 'profiles' ? 'active' : ''}`} onClick={() => setTab('profiles')}>🛡️ Profils</button>
+            {(
+              hasPermissionInRole('admin.roles.manage')
+              || hasPermissionInRole('admin.users.assign_roles')
+            ) && (
+              <button className={`top-tab ${tab === 'profiles' ? 'active' : ''}`} onClick={() => setTab('profiles')}>
+                🛡️ Profils & utilisateurs
+              </button>
             )}
             <button className={`top-tab ${tab === 'audit' ? 'active' : ''}`} onClick={() => setTab('audit')}>📜 Audit</button>
             <button className={`top-tab ${tab === 'visit' ? 'active' : ''}`} onClick={() => setTab('visit')}>🧭 Visite</button>
