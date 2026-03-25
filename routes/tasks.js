@@ -391,6 +391,73 @@ router.post('/', requireTeacher, async (req, res) => {
   }
 });
 
+router.post('/proposals', async (req, res) => {
+  try {
+    const {
+      title,
+      description,
+      zone_id,
+      marker_id,
+      zone_ids,
+      marker_ids,
+      map_id,
+      due_date,
+      firstName,
+      lastName,
+      studentId,
+    } = req.body || {};
+    if (!title || !String(title).trim()) return res.status(400).json({ error: 'Titre requis' });
+    if (!firstName || !lastName) return res.status(400).json({ error: 'Nom requis' });
+    if (!studentId) return res.status(400).json({ error: 'Identifiant élève requis' });
+
+    const student = await queryOne('SELECT id FROM students WHERE id = ?', [studentId]);
+    if (!student) return res.status(401).json({ error: 'Compte supprimé', deleted: true });
+
+    let zIds = normalizeIdArray(zone_ids);
+    let mIds = normalizeIdArray(marker_ids);
+    if (!zIds.length && zone_id) zIds = [String(zone_id).trim()].filter(Boolean);
+    if (!mIds.length && marker_id) mIds = [String(marker_id).trim()].filter(Boolean);
+
+    const explicitMap = map_id !== undefined ? map_id : null;
+    const loc = await validateTaskLocations(zIds, mIds, explicitMap);
+    if (loc.error) return res.status(400).json({ error: loc.error });
+
+    const id = uuidv4();
+    const proposer = `${String(firstName).trim()} ${String(lastName).trim()}`.trim();
+    const baseDescription = description ? String(description).trim() : '';
+    const finalDescription = [baseDescription, proposer ? `Proposition élève: ${proposer}` : '']
+      .filter(Boolean)
+      .join('\n\n');
+    await execute(
+      'INSERT INTO tasks (id, title, description, map_id, zone_id, marker_id, due_date, required_students, status, recurrence, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      [
+        id,
+        String(title).trim(),
+        finalDescription,
+        loc.mapId,
+        zIds[0] || null,
+        mIds[0] || null,
+        due_date || null,
+        1,
+        'proposed',
+        null,
+        new Date().toISOString(),
+      ]
+    );
+    await setTaskZones(id, zIds);
+    await setTaskMarkers(id, mIds);
+    await setTaskTutorials(id, []);
+    await syncLegacyLocationColumns(id, zIds, mIds);
+    const task = await getTaskWithAssignments(id);
+    logAudit('propose_task', 'task', id, `${String(title).trim()} (${proposer})`);
+    emitTasksChanged({ reason: 'propose_task', taskId: id });
+    res.status(201).json(task);
+  } catch (e) {
+    logRouteError(e, req);
+    res.status(500).json({ error: e.message });
+  }
+});
+
 router.put('/:id', requireTeacher, async (req, res) => {
   try {
     const task = await queryOne('SELECT * FROM tasks WHERE id = ?', [req.params.id]);

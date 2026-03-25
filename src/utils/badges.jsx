@@ -14,6 +14,7 @@ const TASK_STATUS_ARIA = {
   in_progress: 'En cours',
   done: 'Terminée',
   validated: 'Validée',
+  proposed: 'Proposition élève',
 };
 
 /** Pastille discrète : rouge/orange pulsés, vert fixe une fois terminée. */
@@ -22,6 +23,8 @@ export function taskStatusIndicator(status) {
   const pulseClass =
     status === 'available'
       ? 'task-status-dot--todo'
+      : status === 'proposed'
+        ? 'task-status-dot--todo'
       : status === 'in_progress'
         ? 'task-status-dot--progress'
         : 'task-status-dot--done';
@@ -41,6 +44,7 @@ export function statusBadge(status) {
     in_progress: 'En cours',
     done: 'Terminée',
     validated: 'Validée ✓',
+    proposed: 'Proposée',
   };
   return <span className={`status-badge status-${status}`}>{labels[status] || status}</span>;
 }
