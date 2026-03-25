@@ -121,12 +121,28 @@ Documentation détaillée et templates:
 | `DEPLOY_SECRET` | Optionnel : secret pour redémarrage à distance après déploiement (voir ci‑dessous) |
 | `TEACHER_PIN` | Code PIN du mode professeur (requis en production pour activer le mode prof) |
 | `JWT_SECRET` | Secret pour signer les tokens prof (requis en production pour activer le mode prof) |
+| `TEACHER_ADMIN_EMAIL` | Optionnel : email du compte prof auto-créé (auth email/mot de passe) |
+| `TEACHER_ADMIN_PASSWORD` | Optionnel : mot de passe initial du compte prof auto-créé |
+| `TEACHER_ADMIN_DISPLAY_NAME` | Optionnel : nom affiché du compte prof auto-créé |
 | `FRONTEND_ORIGIN` | En production : origine CORS autorisée (ex. `https://foretmap.olution.info`) |
+| `PASSWORD_RESET_BASE_URL` | URL de base incluse dans les emails de réinitialisation (défaut `FRONTEND_ORIGIN` puis `http://localhost:3000`) |
+| `SMTP_HOST` | Hôte SMTP pour l’envoi d’emails (mot de passe oublié) |
+| `SMTP_PORT` | Port SMTP (défaut 587) |
+| `SMTP_SECURE` | `true` pour SMTPS (défaut auto selon port) |
+| `SMTP_USER` / `SMTP_PASS` | Identifiants SMTP (si requis par le fournisseur) |
+| `SMTP_FROM` | Expéditeur des emails (ex. `ForetMap <no-reply@exemple.com>`) |
+| `SMTP_JSON_TRANSPORT` | Optionnel (dev/test) : active un transport JSON sans envoi réel |
 | `LOG_LEVEL` | Optionnel : niveau Pino (`debug`, `info`, …). Voir section *Débogage* ci‑dessus. |
 
 **Obligatoires au démarrage** : `DB_HOST`, `DB_USER`, `DB_PASS`, `DB_NAME`. Si l’une manque, le serveur refuse de démarrer.  
 **En production** : si `TEACHER_PIN` ou `JWT_SECRET` manque, le serveur démarre quand même mais le mode professeur est désactivé (`POST /api/auth/teacher` renvoie 503 « Mode prof non configuré »).  
-**Recommandé en production** : définir `FRONTEND_ORIGIN` (CORS restreint) et `DEPLOY_SECRET` (activer les endpoints admin protégés).
+**Recommandé en production** : définir `FRONTEND_ORIGIN` (CORS restreint), `DEPLOY_SECRET` (activer les endpoints admin protégés), ainsi que la configuration SMTP pour le flux « mot de passe oublié ».
+
+Pour créer/mettre à jour manuellement le compte prof email avec les variables `TEACHER_ADMIN_*` :
+
+```bash
+npm run db:seed:teacher
+```
 
 Un fichier `.env` (copié depuis `.env.example`) est utilisé en local ; il est ignoré par Git. En production sur o2switch, configurer les variables dans l’interface « Setup Node.js App ».
 

@@ -502,6 +502,10 @@
       padding:10px 14px; font-size:.85rem; margin-bottom:12px;
       animation:shake .3s ease;
     }
+    .auth-success {
+      background:#ecfdf3; color:#166534; border-radius:8px;
+      padding:10px 14px; font-size:.85rem; margin-bottom:12px;
+    }
     .auth-version { font-size:.7rem; color:#aaa; margin-top:16px; margin-bottom:0; text-align:center; }
 
     /* ── ROWS ── */
