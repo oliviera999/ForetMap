@@ -172,6 +172,10 @@
       font-size:.68rem; color:#aaa; min-height:56px;
       -webkit-tap-highlight-color:transparent;
       position:relative;
+      min-width:0;
+      overflow-wrap:anywhere;
+      text-align:center;
+      line-height:1.05;
       transition:color .2s var(--ease-out);
     }
     .nav-btn.active { color:var(--forest); font-weight:700; }

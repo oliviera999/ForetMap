@@ -118,6 +118,17 @@ function StudentStats({ student }) {
 }
 
 function StudentProfileEditor({ student, onUpdated, onClose }) {
+  const profileType = (() => {
+    const roleSlug = String(student?.auth?.roleSlug || '').toLowerCase();
+    if (roleSlug === 'admin') return 'admin';
+    if (roleSlug.startsWith('prof')) return 'prof';
+    if (roleSlug.startsWith('eleve')) return 'eleve';
+    const userType = String(student?.auth?.userType || student?.user_type || '').toLowerCase();
+    if (userType === 'teacher' || userType === 'user') return 'prof';
+    if (userType === 'student') return 'eleve';
+    return 'eleve';
+  })();
+
   const [pseudo, setPseudo] = useState(student.pseudo || '');
   const [email, setEmail] = useState(student.email || '');
   const [description, setDescription] = useState(student.description || '');
@@ -230,6 +241,10 @@ function StudentProfileEditor({ student, onUpdated, onClose }) {
       <div className="field">
         <label>Nom complet</label>
         <input value={`${student.first_name} ${student.last_name}`} disabled />
+      </div>
+      <div className="field">
+        <label>Type de profil</label>
+        <input value={profileType} disabled />
       </div>
       <div className="field">
         <label>Pseudo</label>
