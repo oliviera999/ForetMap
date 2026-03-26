@@ -1,4 +1,4 @@
-const CACHE_NAME = 'foretmap-offline-v1';
+const CACHE_NAME = 'foretmap-offline-v2';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
@@ -72,13 +72,19 @@ self.addEventListener('fetch', event => {
     return;
   }
 
-  // Stratégie cache-first pour les assets statiques
+  // Stratégie network-first pour JS/CSS afin d'éviter de servir des bundles obsolètes.
   if (event.request.method === 'GET' && (
     url.pathname.endsWith('.css') ||
     url.pathname.endsWith('.js')
   )) {
     event.respondWith(
-      caches.match(event.request).then(cached => cached || fetch(event.request))
+      fetch(event.request)
+        .then(response => {
+          const clone = response.clone();
+          caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
+          return response;
+        })
+        .catch(() => caches.match(event.request))
     );
     return;
   }
