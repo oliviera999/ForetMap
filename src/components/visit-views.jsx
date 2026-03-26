@@ -241,6 +241,13 @@ function VisitView({
   isN3Affiliated = false,
 }) {
   const roleTerms = getRoleTerms(isN3Affiliated);
+  const studentIdForProgress = useMemo(() => {
+    if (isTeacher) return null;
+    if (!student?.id) return null;
+    if (student?.preview_mode) return null;
+    const id = String(student.id).trim();
+    return id || null;
+  }, [isTeacher, student?.id, student?.preview_mode]);
   const [mapId, setMapId] = useState(initialMapId || 'foret');
   const [maps, setMaps] = useState([]);
   const [content, setContent] = useState({ zones: [], markers: [], tutorials: [] });
@@ -263,8 +270,8 @@ function VisitView({
       const [mapsRes, visitRes, progressRes] = await Promise.all([
         api('/api/maps').catch(() => []),
         api(`/api/visit/content?map_id=${encodeURIComponent(mapId)}`),
-        api(student?.id
-          ? `/api/visit/progress?student_id=${encodeURIComponent(student.id)}`
+        api(studentIdForProgress
+          ? `/api/visit/progress?student_id=${encodeURIComponent(studentIdForProgress)}`
           : '/api/visit/progress'),
       ]);
       setMaps(Array.isArray(mapsRes) ? mapsRes : []);
@@ -284,7 +291,7 @@ function VisitView({
     } finally {
       setLoading(false);
     }
-  }, [mapId, onForceLogout, selected?.id, student?.id]);
+  }, [mapId, onForceLogout, selected?.id, studentIdForProgress]);
 
   useEffect(() => {
     loadData();
@@ -304,7 +311,7 @@ function VisitView({
         target_type: selectedType,
         target_id: selected.id,
         seen: next,
-        student_id: student?.id || null,
+        student_id: studentIdForProgress,
       });
     } catch (err) {
       if (err instanceof AccountDeletedError) onForceLogout?.();

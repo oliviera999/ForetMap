@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { api, AccountDeletedError, getAuthClaims, getStoredSession, saveStoredSession, clearStoredSession } from './services/api';
 import { useForetmapRealtime } from './hooks/useForetmapRealtime';
+import { useNotificationCenter } from './hooks/useNotificationCenter';
 import { RT_PROF_TOOLTIPS } from './constants/realtime';
+import { NOTIFICATION_CATEGORY, NOTIFICATION_LEVEL } from './constants/notifications';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import {
   Toast,
@@ -21,6 +23,7 @@ import { VisitView } from './components/visit-views';
 import { ProfilesAdminView } from './components/profiles-views';
 import { SettingsAdminView } from './components/settings-admin-views';
 import { CollectiveView } from './components/collective-view';
+import { NotificationCenter } from './components/notifications-center';
 import { getRoleTerms, isN3OnlyAffiliation } from './utils/n3-terminology';
 import { useDialogA11y } from './hooks/useDialogA11y';
 
@@ -104,6 +107,7 @@ function App() {
   const [markers,    setMarkers]    = useState([]);
   const [loading,    setLoading]    = useState(true);
   const [toast,      setToast]      = useState(null);
+  const [sessionValidationError, setSessionValidationError] = useState(false);
   const [appVersion, setAppVersion] = useState(null);
   const [refreshMs,  setRefreshMs]  = useState(30000);
   const [serverDown, setServerDown] = useState(false);
@@ -253,11 +257,13 @@ function App() {
     setSessionUser(null);
     setIsTeacher(false);
     setAuthClaims(null);
+    setSessionValidationError(false);
     setToast('Votre compte a été supprimé par un responsable.');
   }, []);
 
   const updateStudentSession = useCallback((nextStudent) => {
     setStudent(nextStudent);
+    setSessionValidationError(false);
     localStorage.setItem('foretmap_student', JSON.stringify(nextStudent));
     saveStoredSession({
       token: getStoredSession()?.token || nextStudent?.authToken || null,
@@ -272,6 +278,22 @@ function App() {
     setSessionUser(getStoredSession()?.user || null);
   }, []);
 
+  const validateStudentSession = useCallback(async (savedStudent) => {
+    if (!savedStudent?.id) return;
+    try {
+      const fresh = await api('/api/students/register', 'POST', { studentId: savedStudent.id });
+      updateStudentSession(fresh);
+    } catch (err) {
+      if (err instanceof AccountDeletedError || err.deleted) {
+        forceLogout();
+        return;
+      }
+      console.error('[ForetMap] validation session élève', err);
+      setSessionValidationError(true);
+      setToast('Connexion instable: session élève non vérifiée.');
+    }
+  }, [forceLogout, updateStudentSession]);
+
   // Restore session — validates against server on load
   useEffect(() => {
     const saved = localStorage.getItem('foretmap_student');
@@ -279,19 +301,14 @@ function App() {
       try {
         const s = JSON.parse(saved);
         setStudent(s); // show app immediately with cached data
-        api('/api/students/register', 'POST', { studentId: s.id })
-          .then(fresh => updateStudentSession(fresh))
-          .catch(err => {
-            if (err instanceof AccountDeletedError || err.deleted) forceLogout();
-            else console.error('[ForetMap] validation session élève', err);
-          });
+        validateStudentSession(s);
       } catch (e) { console.error('[ForetMap] lecture session locale', e); }
     }
     const session = getStoredSession();
     if (session?.user && !session?.student) {
       setSessionUser(session.user);
     }
-  }, [forceLogout, updateStudentSession]);
+  }, [validateStudentSession]);
 
   useEffect(() => {
     const onExpired = () => { setIsTeacher(false); setAuthClaims(null); setSessionUser(null); setToast('Session enseignant expirée.'); };
@@ -461,7 +478,7 @@ function App() {
   }, [viewportWidth]);
   const isMapTasksTab = tab === 'map' || tab === 'tasks';
   const useSplitMapTasks = shouldUseDesktopSplit && isMapTasksTab && canAccessStudentMapTasks;
-  const useWideMain = shouldUseDesktopSplit && (isMapTasksTab || tab === 'collective');
+  const useWideMain = shouldUseDesktopSplit;
 
   const rtStatus = useForetmapRealtime({
     enabled: !!(student || effectiveIsTeacher),
@@ -475,6 +492,7 @@ function App() {
     setMarkers,
   });
   const teacherSyncStatus = effectiveIsTeacher ? (rtStatus === 'off' ? 'polling' : rtStatus) : rtStatus;
+  const isAdmin = effectiveRoleContext.roleSlug === 'admin';
 
   useEffect(() => { fetchAll(); }, [fetchAll]);
 
@@ -510,6 +528,59 @@ function App() {
   };
   const studentStatsDialogRef = useDialogA11y(() => setShowStats(false));
   const studentProfileDialogRef = useDialogA11y(() => setShowProfile(false));
+  const {
+    roleKey: notificationRoleKey,
+    items: notifications,
+    unreadCount: notificationsUnreadCount,
+    latestCritical: latestCriticalNotification,
+    prefs: notificationPrefs,
+    metrics: notificationMetrics,
+    addNotification,
+    updatePreference,
+    markAllRead,
+    markAsRead,
+    removeNotification,
+    clearRead,
+    trackOpenedPanel,
+    trackActionClick,
+    resetMetrics,
+  } = useNotificationCenter({
+    isTeacher: effectiveIsTeacher,
+    isAdmin,
+    tasksForActiveMap,
+    student: studentForUi,
+    teacherPendingValidationCount,
+    rtStatus: teacherSyncStatus,
+    serverDown,
+    sessionValidationError,
+    publicSettings,
+  });
+
+  useEffect(() => {
+    if (!toast) return;
+    addNotification({
+      key: `toast:${toast}`,
+      level: NOTIFICATION_LEVEL.INFO,
+      category: NOTIFICATION_CATEGORY.OPERATIONS,
+      title: 'Information',
+      message: String(toast),
+    });
+  }, [addNotification, toast]);
+
+  const openNotificationAction = useCallback((item) => {
+    if (!item?.id) return;
+    markAsRead(item.id);
+    trackActionClick();
+    const action = item.action || {};
+    if (action.type === 'retryStudentValidation' && studentForUi && !effectiveIsTeacher) {
+      validateStudentSession(studentForUi);
+      return;
+    }
+    if (action.tab) {
+      setTab(action.tab);
+      return;
+    }
+  }, [effectiveIsTeacher, markAsRead, studentForUi, trackActionClick, validateStudentSession]);
 
   if (!student && !isTeacher) return (
     <>
@@ -554,13 +625,6 @@ function App() {
       )}
     </>
   );
-  if (loading) return (
-    <div className="loader">
-      <div className="loader-leaf">🌿</div>
-      <p>Chargement de la forêt...</p>
-    </div>
-  );
-
   const currentUser = (effectiveIsTeacher ? sessionUser : studentForUi) || sessionUser || {
     pseudo: null,
     displayName: authClaims?.roleDisplayName || null,
@@ -583,6 +647,30 @@ function App() {
           <button type="button" className="btn btn-sm" style={{marginLeft:10, verticalAlign:'middle'}}
             onClick={() => { failCountRef.current = 0; setRefreshMs(30000); setServerDown(false); fetchAll(); }}>
             Réessayer maintenant
+          </button>
+        </div>
+      )}
+      {!serverDown && latestCriticalNotification && (
+        <div className="fade-in notif-critical-banner" role="alert">
+          <strong>{latestCriticalNotification.title}</strong> {latestCriticalNotification.message}
+        </div>
+      )}
+      {sessionValidationError && studentForUi && !effectiveIsTeacher && (
+        <div className="fade-in" role="alert" style={{
+          margin:'8px 12px 0', padding:'10px 14px', borderRadius:12,
+          background:'#eff6ff', border:'1px solid #93c5fd', color:'#1e3a8a', fontSize:'.9rem'
+        }}>
+          <strong>Session élève non vérifiée.</strong> Les informations affichées peuvent être périmées.
+          <button
+            type="button"
+            className="btn btn-sm"
+            style={{ marginLeft: 10, verticalAlign: 'middle' }}
+            onClick={() => {
+              setSessionValidationError(false);
+              validateStudentSession(studentForUi);
+            }}
+          >
+            Réessayer
           </button>
         </div>
       )}
@@ -684,6 +772,21 @@ function App() {
               <span className={`realtime-dot realtime-dot--${teacherSyncStatus}`} aria-hidden />
             </span>
           )}
+          <NotificationCenter
+            roleKey={notificationRoleKey}
+            unreadCount={notificationsUnreadCount}
+            items={notifications}
+            prefs={notificationPrefs}
+            metrics={notificationMetrics}
+            onTogglePref={updatePreference}
+            onOpenAction={openNotificationAction}
+            onMarkAsRead={markAsRead}
+            onMarkAllRead={markAllRead}
+            onRemove={removeNotification}
+            onClearRead={clearRead}
+            onOpenPanel={trackOpenedPanel}
+            onResetMetrics={resetMetrics}
+          />
           <button
             type="button"
             className="user-badge"
@@ -701,6 +804,11 @@ function App() {
               canOpenStudentDialogs
                 ? 'Voir mes statistiques'
                 : (canOpenTeacherStatsFromBadge ? `Ouvrir les statistiques ${roleTerms.studentPlural}` : '')
+            }
+            aria-label={
+              canOpenStudentDialogs
+                ? 'Voir mes statistiques'
+                : (canOpenTeacherStatsFromBadge ? `Ouvrir les statistiques ${roleTerms.studentPlural}` : 'Badge utilisateur')
             }
           >
             <StudentAvatar student={currentUser} size={20} style={{ border: 'none' }} />
@@ -843,117 +951,135 @@ function App() {
             <button className={`top-tab ${tab === 'audit' ? 'active' : ''}`} onClick={() => setTab('audit')}>📜 Audit</button>
             <button className={`top-tab ${tab === 'about' ? 'active' : ''}`} onClick={() => setTab('about')}>ℹ️ À propos</button>
           </div>
-          {useSplitMapTasks && (
-            <div className="desktop-split-view" role="region" aria-label="Vue carte et tâches">
-              <section className="desktop-split-pane desktop-split-pane--map">
-                <MapView
-                  zones={zones}
-                  markers={markers}
-                  tasks={tasks}
-                  plants={plants}
-                  maps={visibleMaps}
-                  activeMapId={activeMapId}
-                  onMapChange={setActiveMapId}
-                  isTeacher
-                  student={currentUser}
-                  onZoneUpdate={updateZone}
-                  onRefresh={fetchAll}
-                  embedded
-                />
-              </section>
-              <section className="desktop-split-pane desktop-split-pane--tasks">
-                <div className="desktop-split-scroll">
-                  <TasksView
+          {loading ? (
+            <div className="loader" style={{ height: '60vh' }}>
+              <div className="loader-leaf">🌿</div>
+              <p>Chargement de la forêt...</p>
+            </div>
+          ) : (
+            <>
+              {useSplitMapTasks && (
+                <div className="desktop-split-view" role="region" aria-label="Vue carte et tâches">
+                  <section className="desktop-split-pane desktop-split-pane--map">
+                    <MapView
+                      zones={zones}
+                      markers={markers}
+                      tasks={tasks}
+                      plants={plants}
+                      maps={visibleMaps}
+                      activeMapId={activeMapId}
+                      onMapChange={setActiveMapId}
+                      isTeacher
+                      student={currentUser}
+                      onZoneUpdate={updateZone}
+                      onRefresh={fetchAll}
+                      embedded
+                    />
+                  </section>
+                  <section className="desktop-split-pane desktop-split-pane--tasks">
+                    <div className="desktop-split-scroll">
+                      <TasksView
+                        tasks={tasks}
+                        taskProjects={taskProjects}
+                        zones={zones}
+                        markers={markers}
+                        maps={maps}
+                        tutorials={tutorials}
+                        activeMapId={activeMapId}
+                        isTeacher
+                        student={currentUser}
+                        onRefresh={fetchAll}
+                        onForceLogout={forceLogout}
+                        isN3Affiliated={isN3Affiliated}
+                      />
+                    </div>
+                  </section>
+                </div>
+              )}
+              {!useSplitMapTasks && tab === 'map'    && <MapView zones={zones} markers={markers} tasks={tasks} plants={plants} maps={visibleMaps} activeMapId={activeMapId} onMapChange={setActiveMapId} isTeacher student={currentUser} onZoneUpdate={updateZone} onRefresh={fetchAll}/>}
+              {!useSplitMapTasks && tab === 'tasks'  && <TasksView  tasks={tasks} taskProjects={taskProjects} zones={zones} markers={markers} maps={maps} tutorials={tutorials} activeMapId={activeMapId} isTeacher student={currentUser} onRefresh={fetchAll} onForceLogout={forceLogout} isN3Affiliated={isN3Affiliated} />}
+              {tab === 'plants' && <PlantManager plants={plants} onRefresh={fetchAll}/>}
+              {publicSettings?.modules?.tutorials_enabled !== false && tab === 'tuto'   && <TutorialsView tutorials={tutorials} isTeacher onRefresh={fetchAll} onForceLogout={forceLogout} />}
+              {publicSettings?.modules?.stats_enabled !== false && tab === 'stats'  && (hasPermission('stats.read.all') ? <TeacherStats isN3Affiliated={isN3Affiliated} /> : <div className="empty"><p>Permission insuffisante</p></div>)}
+              {tab === 'profiles' && <ProfilesAdminView isN3Affiliated={isN3Affiliated} />}
+              {tab === 'audit'  && (hasPermission('audit.read') ? <AuditLog isN3Affiliated={isN3Affiliated} /> : <div className="empty"><p>Permission insuffisante</p></div>)}
+              {publicSettings?.modules?.visit_enabled !== false && tab === 'visit'  && <VisitView student={currentUser} isTeacher availableTutorials={tutorials} initialMapId={activeMapId} onForceLogout={forceLogout} isN3Affiliated={isN3Affiliated} />}
+              {tab === 'settings' && <SettingsAdminView isN3Affiliated={isN3Affiliated} />}
+              {tab === 'collective' && (
+                canUseCollectiveView ? (
+                  <CollectiveView
                     tasks={tasks}
-                    taskProjects={taskProjects}
-                    zones={zones}
-                    markers={markers}
                     maps={maps}
-                    tutorials={tutorials}
+                    taskProjects={taskProjects}
                     activeMapId={activeMapId}
-                    isTeacher
-                    student={currentUser}
                     onRefresh={fetchAll}
-                    onForceLogout={forceLogout}
+                    canManageSession={canUseCollectiveView}
+                    isWideLayout={shouldUseDesktopSplit}
                     isN3Affiliated={isN3Affiliated}
                   />
-                </div>
-              </section>
-            </div>
+                ) : <div className="empty"><p>Permission insuffisante</p></div>
+              )}
+              {tab === 'about'  && <AboutView appVersion={appVersion} isN3Affiliated={isN3Affiliated} />}
+            </>
           )}
-          {!useSplitMapTasks && tab === 'map'    && <MapView zones={zones} markers={markers} tasks={tasks} plants={plants} maps={visibleMaps} activeMapId={activeMapId} onMapChange={setActiveMapId} isTeacher student={currentUser} onZoneUpdate={updateZone} onRefresh={fetchAll}/>}
-          {!useSplitMapTasks && tab === 'tasks'  && <TasksView  tasks={tasks} taskProjects={taskProjects} zones={zones} markers={markers} maps={maps} tutorials={tutorials} activeMapId={activeMapId} isTeacher student={currentUser} onRefresh={fetchAll} onForceLogout={forceLogout} isN3Affiliated={isN3Affiliated} />}
-          {tab === 'plants' && <PlantManager plants={plants} onRefresh={fetchAll}/>}
-          {publicSettings?.modules?.tutorials_enabled !== false && tab === 'tuto'   && <TutorialsView tutorials={tutorials} isTeacher onRefresh={fetchAll} onForceLogout={forceLogout} />}
-          {publicSettings?.modules?.stats_enabled !== false && tab === 'stats'  && (hasPermission('stats.read.all') ? <TeacherStats isN3Affiliated={isN3Affiliated} /> : <div className="empty"><p>Permission insuffisante</p></div>)}
-          {tab === 'profiles' && <ProfilesAdminView isN3Affiliated={isN3Affiliated} />}
-          {tab === 'audit'  && (hasPermission('audit.read') ? <AuditLog isN3Affiliated={isN3Affiliated} /> : <div className="empty"><p>Permission insuffisante</p></div>)}
-          {publicSettings?.modules?.visit_enabled !== false && tab === 'visit'  && <VisitView student={currentUser} isTeacher availableTutorials={tutorials} initialMapId={activeMapId} onForceLogout={forceLogout} isN3Affiliated={isN3Affiliated} />}
-          {tab === 'settings' && <SettingsAdminView isN3Affiliated={isN3Affiliated} />}
-          {tab === 'collective' && (
-            canUseCollectiveView ? (
-              <CollectiveView
-                tasks={tasks}
-                maps={maps}
-                taskProjects={taskProjects}
-                activeMapId={activeMapId}
-                onRefresh={fetchAll}
-                canManageSession={canUseCollectiveView}
-                isWideLayout={shouldUseDesktopSplit}
-                isN3Affiliated={isN3Affiliated}
-              />
-            ) : <div className="empty"><p>Permission insuffisante</p></div>
-          )}
-          {tab === 'about'  && <AboutView appVersion={appVersion} isN3Affiliated={isN3Affiliated} />}
         </div>
       ) : (
         <>
           <div className={`main ${useWideMain ? 'main--wide' : ''}`}>
-            {useSplitMapTasks && (
-              <div className="desktop-split-view" role="region" aria-label="Vue carte et tâches">
-                <section className="desktop-split-pane desktop-split-pane--map">
-                  <MapView
-                    zones={zones}
-                    markers={markers}
-                    tasks={tasks}
-                    plants={plants}
-                    maps={visibleMaps}
-                    activeMapId={activeMapId}
-                    onMapChange={setActiveMapId}
-                    isTeacher={false}
-                    student={studentForUi}
-                    onZoneUpdate={updateZone}
-                    onRefresh={fetchAll}
-                    embedded
-                  />
-                </section>
-                <section className="desktop-split-pane desktop-split-pane--tasks">
-                  <div className="desktop-split-scroll">
-                    <TasksView
-                      tasks={tasks}
-                      taskProjects={taskProjects}
-                      zones={zones}
-                      markers={markers}
-                      maps={maps}
-                      tutorials={tutorials}
-                      activeMapId={activeMapId}
-                      isTeacher={false}
-                      student={studentForUi}
-                      onRefresh={fetchAll}
-                      onForceLogout={forceLogout}
-                    isN3Affiliated={isN3Affiliated}
-                    />
-                  </div>
-                </section>
+            {loading ? (
+              <div className="loader" style={{ height: '60vh' }}>
+                <div className="loader-leaf">🌿</div>
+                <p>Chargement de la forêt...</p>
               </div>
+            ) : (
+              <>
+                {useSplitMapTasks && (
+                  <div className="desktop-split-view" role="region" aria-label="Vue carte et tâches">
+                    <section className="desktop-split-pane desktop-split-pane--map">
+                      <MapView
+                        zones={zones}
+                        markers={markers}
+                        tasks={tasks}
+                        plants={plants}
+                        maps={visibleMaps}
+                        activeMapId={activeMapId}
+                        onMapChange={setActiveMapId}
+                        isTeacher={false}
+                        student={studentForUi}
+                        onZoneUpdate={updateZone}
+                        onRefresh={fetchAll}
+                        embedded
+                      />
+                    </section>
+                    <section className="desktop-split-pane desktop-split-pane--tasks">
+                      <div className="desktop-split-scroll">
+                        <TasksView
+                          tasks={tasks}
+                          taskProjects={taskProjects}
+                          zones={zones}
+                          markers={markers}
+                          maps={maps}
+                          tutorials={tutorials}
+                          activeMapId={activeMapId}
+                          isTeacher={false}
+                          student={studentForUi}
+                          onRefresh={fetchAll}
+                          onForceLogout={forceLogout}
+                        isN3Affiliated={isN3Affiliated}
+                        />
+                      </div>
+                    </section>
+                  </div>
+                )}
+                {!useSplitMapTasks && tab === 'map'    && canAccessStudentMapTasks && <MapView zones={zones} markers={markers} tasks={tasks} plants={plants} maps={visibleMaps} activeMapId={activeMapId} onMapChange={setActiveMapId} isTeacher={false} student={studentForUi} onZoneUpdate={updateZone} onRefresh={fetchAll}/>}
+                {!useSplitMapTasks && tab === 'tasks'  && canAccessStudentMapTasks && <TasksView tasks={tasks} taskProjects={taskProjects} zones={zones} markers={markers} maps={maps} tutorials={tutorials} activeMapId={activeMapId} isTeacher={false} student={studentForUi} onRefresh={fetchAll} onForceLogout={forceLogout} isN3Affiliated={isN3Affiliated} />}
+                {tab === 'plants' && <PlantViewer plants={plants} zones={zones}/>}
+                {publicSettings?.modules?.tutorials_enabled !== false && tab === 'tuto' && <TutorialsView tutorials={tutorials} isTeacher={false} onRefresh={fetchAll} onForceLogout={forceLogout} />}
+                {publicSettings?.modules?.observations_enabled !== false && tab === 'notebook' && <ObservationNotebook student={studentForUi} zones={zones} onForceLogout={forceLogout} />}
+                {publicSettings?.modules?.visit_enabled !== false && tab === 'visit' && <VisitView student={studentForUi} isTeacher={false} availableTutorials={tutorials} initialMapId={activeMapId} onForceLogout={forceLogout} isN3Affiliated={isN3Affiliated} />}
+                {tab === 'about' && <AboutView appVersion={appVersion} isN3Affiliated={isN3Affiliated} />}
+              </>
             )}
-            {!useSplitMapTasks && tab === 'map'    && canAccessStudentMapTasks && <MapView zones={zones} markers={markers} tasks={tasks} plants={plants} maps={visibleMaps} activeMapId={activeMapId} onMapChange={setActiveMapId} isTeacher={false} student={studentForUi} onZoneUpdate={updateZone} onRefresh={fetchAll}/>}
-            {!useSplitMapTasks && tab === 'tasks'  && canAccessStudentMapTasks && <TasksView tasks={tasks} taskProjects={taskProjects} zones={zones} markers={markers} maps={maps} tutorials={tutorials} activeMapId={activeMapId} isTeacher={false} student={studentForUi} onRefresh={fetchAll} onForceLogout={forceLogout} isN3Affiliated={isN3Affiliated} />}
-            {tab === 'plants' && <PlantViewer plants={plants} zones={zones}/>}
-            {publicSettings?.modules?.tutorials_enabled !== false && tab === 'tuto' && <TutorialsView tutorials={tutorials} isTeacher={false} onRefresh={fetchAll} onForceLogout={forceLogout} />}
-            {publicSettings?.modules?.observations_enabled !== false && tab === 'notebook' && <ObservationNotebook student={studentForUi} zones={zones}/>}
-            {publicSettings?.modules?.visit_enabled !== false && tab === 'visit' && <VisitView student={studentForUi} isTeacher={false} availableTutorials={tutorials} initialMapId={activeMapId} onForceLogout={forceLogout} isN3Affiliated={isN3Affiliated} />}
-            {tab === 'about' && <AboutView appVersion={appVersion} isN3Affiliated={isN3Affiliated} />}
           </div>
           <nav className="bottom-nav">
             {canAccessStudentMapTasks && shouldUseDesktopSplit ? (

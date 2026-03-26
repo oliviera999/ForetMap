@@ -7,7 +7,7 @@ import { StudentAvatar } from './student-avatar';
 
 function Toast({ msg, onDone }) {
   useEffect(() => { const t = setTimeout(onDone, 2400); return () => clearTimeout(t); }, []);
-  return <div className="toast">{msg}</div>;
+  return <div className="toast" role="status" aria-live="polite" aria-atomic="true">{msg}</div>;
 }
 
 function StudentStats({ student, isN3Affiliated = false }) {

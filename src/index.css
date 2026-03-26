@@ -168,6 +168,126 @@
     }
     .lock-btn:active { background:rgba(255,255,255,.28); transform:scale(.93); }
     .lock-btn.active { background:var(--sun); color:var(--forest); }
+    .notif-center { position:relative; display:inline-flex; }
+    .notif-bell { position:relative; }
+    .notif-bell.has-unread { background:rgba(255,255,255,.2); }
+    .notif-badge {
+      position:absolute;
+      top:-4px;
+      right:-4px;
+      min-width:18px;
+      height:18px;
+      padding:0 4px;
+      border-radius:999px;
+      background:#ef4444;
+      color:#fff;
+      font-size:.64rem;
+      font-weight:700;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      line-height:1;
+      border:1px solid rgba(255,255,255,.5);
+    }
+    .notif-panel {
+      position:absolute;
+      top:calc(100% + 8px);
+      right:0;
+      width:min(92vw, 420px);
+      max-height:min(78vh, 680px);
+      overflow:auto;
+      background:#fff;
+      color:var(--forest);
+      border:1px solid var(--mint);
+      border-radius:12px;
+      box-shadow:0 12px 28px rgba(0,0,0,.22);
+      padding:10px;
+      z-index:240;
+    }
+    .notif-panel-head {
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:8px;
+      margin-bottom:8px;
+      position:sticky;
+      top:0;
+      background:#fff;
+      padding-bottom:6px;
+    }
+    .notif-panel-actions { display:flex; gap:6px; }
+    .notif-prefs {
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+      margin-bottom:8px;
+      border:1px solid #eef4ef;
+      border-radius:10px;
+      padding:8px;
+      background:#fafdfb;
+    }
+    .notif-pref-item {
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      font-size:.78rem;
+      color:#4f5f56;
+      min-height:28px;
+    }
+    .notif-list { display:grid; gap:8px; }
+    .notif-empty { color:#7a8b81; font-size:.84rem; padding:6px 2px; }
+    .notif-item {
+      border-radius:10px;
+      border:1px solid #e5eee7;
+      background:#fff;
+      padding:8px;
+      display:grid;
+      gap:6px;
+    }
+    .notif-item.unread { border-color:#badac4; background:#f9fefb; }
+    .notif-item.read { opacity:.88; }
+    .notif-item-top { display:flex; justify-content:space-between; align-items:center; gap:8px; }
+    .notif-level {
+      font-size:.68rem;
+      border-radius:999px;
+      padding:2px 8px;
+      font-weight:700;
+    }
+    .notif-level-critical { background:#fee2e2; color:#991b1b; }
+    .notif-level-important { background:#fef3c7; color:#92400e; }
+    .notif-level-info { background:#e0f2fe; color:#0c4a6e; }
+    .notif-time { font-size:.7rem; color:#7a8b81; }
+    .notif-title { font-size:.86rem; font-weight:700; color:var(--forest); }
+    .notif-message { font-size:.8rem; color:#53645a; line-height:1.35; }
+    .notif-item-actions { display:flex; gap:6px; flex-wrap:wrap; }
+    .notif-metrics {
+      margin-top:8px;
+      border-top:1px solid #edf3ee;
+      padding-top:8px;
+    }
+    .notif-metrics summary {
+      cursor:pointer;
+      font-size:.78rem;
+      color:#61756a;
+      font-weight:700;
+      margin-bottom:6px;
+    }
+    .notif-metrics-grid {
+      display:grid;
+      gap:4px;
+      font-size:.76rem;
+      color:#607569;
+      margin-bottom:6px;
+    }
+    .notif-critical-banner {
+      margin:8px 12px 0;
+      padding:10px 14px;
+      border-radius:12px;
+      background:#fff1f2;
+      border:1px solid #fda4af;
+      color:#881337;
+      font-size:.9rem;
+    }
     @media(max-width:380px) {
       .lock-btn .lock-label { display:none; }
       .user-badge { max-width:108px; font-size:.72rem; }
@@ -664,10 +784,12 @@
       bottom:calc(var(--bottom-nav-height) + var(--safe-bottom) + 12px);
       left:50%; transform:translateX(-50%);
       background:var(--forest); color:white;
-      padding:11px 22px; border-radius:30px; font-size:.88rem;
+      padding:11px 16px; border-radius:16px; font-size:.88rem;
       z-index:500; pointer-events:none;
-      white-space:nowrap; max-width:90vw;
-      overflow:hidden; text-overflow:ellipsis;
+      white-space:normal; max-width:min(90vw, 560px);
+      text-wrap:balance;
+      line-height:1.35;
+      text-align:center;
       animation:toastIn .35s var(--spring) forwards;
       box-shadow:0 4px 20px rgba(26,71,49,.3);
     }

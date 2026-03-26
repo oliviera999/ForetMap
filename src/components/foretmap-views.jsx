@@ -9,7 +9,7 @@ import { Lightbox, PhotoGallery, ZoneInfoModal, ZoneDrawModal, MarkerModal, MapV
 // ── TOAST ──────────────────────────────────────────────────────────────────
 function Toast({ msg, onDone }) {
   useEffect(() => { const t = setTimeout(onDone, 2400); return () => clearTimeout(t); }, []);
-  return <div className="toast">{msg}</div>;
+  return <div className="toast" role="status" aria-live="polite" aria-atomic="true">{msg}</div>;
 }
 
 // ── INTERACTIVE MAP ──────────────────────────────────────────────────────────
@@ -751,9 +751,10 @@ function PlantManager({ plants, onRefresh }) {
 }
 
 // ── OBSERVATION NOTEBOOK (student) ────────────────────────────────────────────
-function ObservationNotebook({ student, zones }) {
+function ObservationNotebook({ student, zones, onForceLogout = null }) {
   const [entries, setEntries] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [content, setContent] = useState('');
   const [zoneId, setZoneId] = useState('');
@@ -764,10 +765,19 @@ function ObservationNotebook({ student, zones }) {
   const fileRef = useRef();
 
   const load = async () => {
+    setLoadError('');
     try {
       const data = await api(`/api/observations/student/${student.id}?studentId=${encodeURIComponent(student.id)}`);
       setEntries(data);
-    } catch (e) { console.error('[ForetMap] observations', e); }
+    } catch (e) {
+      if (e instanceof AccountDeletedError) {
+        onForceLogout?.();
+        return;
+      }
+      console.error('[ForetMap] observations', e);
+      setEntries([]);
+      setLoadError(e?.message || 'Impossible de charger ton carnet.');
+    }
     setLoading(false);
   };
 
@@ -793,7 +803,13 @@ function ObservationNotebook({ student, zones }) {
       setShowForm(false);
       setToast('Observation enregistrée ✓');
       await load();
-    } catch (e) { setToast('Erreur : ' + e.message); }
+    } catch (e) {
+      if (e instanceof AccountDeletedError) {
+        onForceLogout?.();
+        return;
+      }
+      setToast('Erreur : ' + e.message);
+    }
     setSaving(false);
   };
 
@@ -802,7 +818,13 @@ function ObservationNotebook({ student, zones }) {
       await api(`/api/observations/${id}`, 'DELETE', { studentId: student.id });
       setToast('Observation supprimée');
       await load();
-    } catch (e) { setToast('Erreur : ' + e.message); }
+    } catch (e) {
+      if (e instanceof AccountDeletedError) {
+        onForceLogout?.();
+        return;
+      }
+      setToast('Erreur : ' + e.message);
+    }
   };
 
   return (
@@ -854,7 +876,17 @@ function ObservationNotebook({ student, zones }) {
 
       {loading
         ? <div className="loader" style={{height:'40vh'}}><div className="loader-leaf">🌿</div><p>Chargement...</p></div>
-        : entries.length === 0
+        : loadError
+          ? (
+            <div className="empty">
+              <div className="empty-icon">⚠️</div>
+              <p>{loadError}</p>
+              <button className="btn btn-ghost btn-sm" style={{ marginTop: 10 }} onClick={load}>
+                Réessayer
+              </button>
+            </div>
+          )
+          : entries.length === 0
           ? <div className="empty"><div className="empty-icon">📓</div><p>Ton carnet est vide. Ajoute ta première observation !</p></div>
           : entries.map(e => (
             <div key={e.id} className="obs-card fade-in">
