@@ -64,6 +64,7 @@ Connexion Socket.IO (transport **polling** actuellement forcé côté client) su
 | `tasks:changed` | Création / modification / suppression de tâche, assignation, désassignation, marquer fait, validation, suppression d’un log | `reason`, `taskId`, `mapId` |
 | `students:changed` | Inscription d’un élève, suppression d’un élève | `reason`, `studentId` |
 | `garden:changed` | Zones, photos de zone, biodiversité, marqueurs carte | `reason`, `zoneId`, `plantId`, `markerId`, `mapId`… |
+| `forum:changed` | Création de sujet, réponse, suppression de message, verrouillage, signalement | `reason`, `threadId`, `postId` |
 
 ---
 
@@ -216,6 +217,29 @@ Réponse:
 | GET | `/api/tasks/:id/logs` | non | Logs de la tâche |
 | GET | `/api/tasks/:id/logs/:logId/image` | non | Image d’un log (fichier disque) |
 | POST | `/api/tasks/:id/validate` | oui | Valider la tâche |
+
+---
+
+## Forum global
+
+Toutes les routes forum exigent un utilisateur connecté (`Authorization: Bearer <token>`), élève ou prof.
+
+| Méthode | URL | Description |
+|--------|-----|-------------|
+| GET | `/api/forum/threads?page=1&page_size=20` | Liste paginée des sujets (tri : épinglés puis activité récente) |
+| POST | `/api/forum/threads` | Créer un sujet + premier message (`{ title, body }`) |
+| GET | `/api/forum/threads/:id?page=1&page_size=50` | Détail d’un sujet + messages paginés |
+| POST | `/api/forum/threads/:id/posts` | Ajouter une réponse (`{ body }`) |
+| POST | `/api/forum/posts/:id/report` | Signaler un message (`{ reason }`) |
+| PATCH | `/api/forum/threads/:id/lock` | Verrouiller/déverrouiller un sujet (`{ locked }`, prof/admin) |
+| DELETE | `/api/forum/posts/:id` | Supprimer un message (auteur ou prof/admin) |
+
+Contraintes principales :
+
+- Validation serveur des longueurs (titre/message/motif).
+- Anti-abus V1 : cooldown par utilisateur sur création de sujet/réponse.
+- `409` sur réponse dans un sujet verrouillé.
+- `409` sur signalement dupliqué (même utilisateur, même message, signalement déjà ouvert).
 
 ---
 

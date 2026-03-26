@@ -74,6 +74,9 @@ export function useForetmapRealtime({
   const onStudentsRealtime = useCallback(() => {
     window.dispatchEvent(new CustomEvent('foretmap_realtime', { detail: { domain: 'students' } }));
   }, []);
+  const onForumRealtime = useCallback(() => {
+    window.dispatchEvent(new CustomEvent('foretmap_realtime', { detail: { domain: 'forum' } }));
+  }, []);
 
   useEffect(() => {
     if (!enabled) {
@@ -115,6 +118,7 @@ export function useForetmapRealtime({
     socket.on('tasks:changed', scheduleTasksRefresh);
     socket.on('students:changed', onStudentsRealtime);
     socket.on('garden:changed', scheduleGardenRefresh);
+    socket.on('forum:changed', onForumRealtime);
     if (socket.connected) setRtStatus('live');
 
     return () => {
@@ -127,12 +131,13 @@ export function useForetmapRealtime({
       socket.off('tasks:changed', scheduleTasksRefresh);
       socket.off('students:changed', onStudentsRealtime);
       socket.off('garden:changed', scheduleGardenRefresh);
+      socket.off('forum:changed', onForumRealtime);
       if (tasksRtDebounceRef.current) clearTimeout(tasksRtDebounceRef.current);
       if (gardenRtDebounceRef.current) clearTimeout(gardenRtDebounceRef.current);
       socket.disconnect();
       setRtStatus('off');
     };
-  }, [enabled, fetchAll, onStudentsRealtime, scheduleGardenRefresh, scheduleTasksRefresh]);
+  }, [enabled, fetchAll, onForumRealtime, onStudentsRealtime, scheduleGardenRefresh, scheduleTasksRefresh]);
 
   useEffect(() => {
     const socket = socketRef.current;

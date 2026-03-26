@@ -6,6 +6,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 ## [Non publié]
 
 ### Ajouté
+- **Forum global natif** : ajout d’un module forum complet (BDD `forum_threads/forum_posts/forum_reports`, routeur `routes/forum.js`, vue `src/components/forum-views.jsx`, onglet `Forum` élève/prof, événement temps réel `forum:changed`, tests backend `tests/forum.test.js` et documentation API associée).
 - **Édition du profil connecté (API unifiée)** : ajout de `PATCH /api/auth/me/profile` avec vérification du mot de passe actuel, validation/normalisation des champs (`pseudo`, `email`, `description`, `affiliation`), contrôles d’unicité et journalisation d’audit.
 - **Diagnostics problèmes site (MD + JSON)** : ajout des endpoints `GET /api/site-issues` et `GET /api/site-issues.json` pour exposer un inventaire centralisé des risques techniques potentiels (`docs/SITE_ISSUES.md`, `docs/SITE_ISSUES.json`).
 - **Sélection de session “Collectif”** : ajout d’une sélection persistée des tâches et des élèves par session (`collective_session_tasks`, `collective_session_students`), avec API dédiée pour inclure/exclure les éléments sans perdre le contexte.
