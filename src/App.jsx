@@ -402,16 +402,36 @@ function App() {
       />}
       {showStats && !isTeacher && (
         <div className="modal-overlay" onClick={e => e.target === e.currentTarget && setShowStats(false)}>
-          <div className="log-modal fade-in" style={{maxHeight:'88vh'}}>
-            <button className="modal-close" onClick={() => setShowStats(false)}>✕</button>
+          <div className="log-modal fade-in" style={{maxHeight:'88vh'}} onClick={e => e.stopPropagation()}>
+            <button
+              type="button"
+              className="modal-close"
+              aria-label="Fermer la fenêtre des statistiques"
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowStats(false);
+              }}
+            >
+              ✕
+            </button>
             <StudentStats student={student}/>
           </div>
         </div>
       )}
       {showProfile && !isTeacher && (
         <div className="modal-overlay" onClick={e => e.target === e.currentTarget && setShowProfile(false)}>
-          <div className="log-modal fade-in" style={{maxHeight:'88vh'}}>
-            <button className="modal-close" onClick={() => setShowProfile(false)}>✕</button>
+          <div className="log-modal fade-in" style={{maxHeight:'88vh'}} onClick={e => e.stopPropagation()}>
+            <button
+              type="button"
+              className="modal-close"
+              aria-label="Fermer la fenêtre du profil"
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowProfile(false);
+              }}
+            >
+              ✕
+            </button>
             <StudentProfileEditor
               student={student}
               onUpdated={updateStudentSession}

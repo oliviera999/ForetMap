@@ -50,6 +50,9 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - **Navigation/auth** : ajout d’un CTA « Visiter sans connexion » dans l’écran d’authentification et intégration de l’onglet `Visite` dans les navigations élève/prof.
 
 ### Corrigé
+- **Profil utilisateur explicite** : la vue `Mon profil` affiche désormais clairement le type de profil (`admin`, `prof` ou `eleve`) pour éviter l’ambiguïté sur les droits actifs.
+- **Modales stats/profil** : amélioration de la fermeture des fenêtres (bouton accessible + arrêt de propagation du clic) pour éviter les fermetures involontaires.
+- **Navigation mobile** : meilleure lisibilité des libellés d’onglets avec retour à la ligne contrôlé sur petits écrans.
 - **Session prof et vues stats** : correction du décodage JWT base64url (padding inclus), revalidation `/api/auth/me` au démarrage pour resynchroniser les permissions, et suppression des loaders infinis sur les vues statistiques en cas d’erreur API.
 - **Build serveur sans Vite** : `npm run build` devient tolérant en production sans dépendances dev ; si `vite` est absent mais `dist/` est déjà présent, la commande ne casse plus (`scripts/build-safe.js`).
 - **Bootstrap local MySQL** : `local:setup` attend désormais explicitement la disponibilité du serveur MySQL (`scripts/wait-mysql-ready.js`) avant `db:init`, évitant les échecs aléatoires de type `PROTOCOL_CONNECTION_LOST`.
