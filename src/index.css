@@ -567,6 +567,23 @@
     .map-bubble > div:first-child { transition:transform .15s var(--spring); }
     .map-bubble:hover > div:first-child { transform:scale(1.18) translateY(-2px); }
     .map-bubble:active > div:first-child { transform:scale(.9); }
+    .map-gesture-toggle {
+      border:1.5px solid var(--mint);
+      background:transparent;
+      color:var(--forest);
+      border-radius:8px;
+      padding:6px 10px;
+      min-height:36px;
+      font-size:.78rem;
+      font-weight:700;
+      cursor:pointer;
+      font-family:'DM Sans',sans-serif;
+    }
+    .map-gesture-toggle.is-on {
+      background:#ecfdf3;
+      border-color:var(--sage);
+      color:#166534;
+    }
 
     /* ── EMPTY STATE ── */
     .empty { text-align:center; padding:40px 20px; color:#bbb; }
