@@ -39,11 +39,12 @@ self.addEventListener('activate', event => {
 });
 
 self.addEventListener('fetch', event => {
+  if (event.request.method !== 'GET') return;
+  if (!event.request.url.startsWith('http://') && !event.request.url.startsWith('https://')) return;
   const url = new URL(event.request.url);
 
   // HTML en network-first pour récupérer les dernières versions quand en ligne.
   if (
-    event.request.method === 'GET' &&
     (url.pathname === '/' || url.pathname === '/index.html')
   ) {
     event.respondWith(
@@ -59,7 +60,7 @@ self.addEventListener('fetch', event => {
   }
 
   // Stratégie network-first pour les API cachées
-  if (API_CACHE_URLS.some(p => url.pathname === p) && event.request.method === 'GET') {
+  if (API_CACHE_URLS.some(p => url.pathname === p)) {
     event.respondWith(
       fetch(event.request)
         .then(response => {
@@ -73,7 +74,7 @@ self.addEventListener('fetch', event => {
   }
 
   // Stratégie network-first pour JS/CSS afin d'éviter de servir des bundles obsolètes.
-  if (event.request.method === 'GET' && (
+  if ((
     url.pathname.endsWith('.css') ||
     url.pathname.endsWith('.js')
   )) {
