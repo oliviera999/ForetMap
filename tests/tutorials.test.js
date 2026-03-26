@@ -82,3 +82,35 @@ test('POST /api/tasks accepte tutorial_ids et renvoie tutorials_linked', async (
   assert.ok(Array.isArray(taskCreate.body.tutorials_linked));
   assert.ok(taskCreate.body.tutorials_linked.some((t) => t.id === tutorialId));
 });
+
+test('GET /api/tutorials?include_inactive=1 exige la permission prof', async () => {
+  await request(app).get('/api/tutorials?include_inactive=1').expect(403);
+});
+
+test('Tutoriel archivé: invisible publiquement mais éditable par prof', async () => {
+  const create = await request(app)
+    .post('/api/tutorials')
+    .set('Authorization', 'Bearer ' + teacherToken)
+    .send({
+      title: `Tuto archivé ${Date.now()}`,
+      type: 'html',
+      html_content: '<h1>Archive</h1>',
+    })
+    .expect(201);
+
+  await request(app)
+    .delete(`/api/tutorials/${create.body.id}`)
+    .set('Authorization', 'Bearer ' + teacherToken)
+    .expect(200);
+
+  await request(app)
+    .get(`/api/tutorials/${create.body.id}`)
+    .expect(404);
+
+  const managed = await request(app)
+    .get(`/api/tutorials/${create.body.id}?include_inactive=1&include_content=1`)
+    .set('Authorization', 'Bearer ' + teacherToken)
+    .expect(200);
+  assert.strictEqual(managed.body.is_active, false);
+  assert.ok((managed.body.html_content || '').includes('Archive'));
+});

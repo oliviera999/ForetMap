@@ -6,8 +6,10 @@ function startGoogleAuth(mode) {
   window.location.assign(`/api/auth/google/start?mode=${encodeURIComponent(safeMode)}`);
 }
 
-function PinModal({ onSuccess, onClose }) {
+function PinModal({ onSuccess, onClose, uiSettings }) {
   const [authMode, setAuthMode] = useState('pin'); // pin | email
+  const allowGoogleTeacher = uiSettings?.auth?.allow_google_teacher !== false;
+
   const [pin, setPin] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -163,6 +165,7 @@ function PinModal({ onSuccess, onClose }) {
                 onChange={e => { setEmail(e.target.value); setErr(''); }}
                 onKeyDown={e => e.key === 'Enter' && !loading && loginByEmail()}
                 placeholder="prof@exemple.com"
+                autoComplete="off"
                 autoFocus
               />
             </div>
@@ -174,6 +177,7 @@ function PinModal({ onSuccess, onClose }) {
                 onChange={e => { setPassword(e.target.value); setErr(''); }}
                 onKeyDown={e => e.key === 'Enter' && !loading && loginByEmail()}
                 placeholder="••••"
+                autoComplete="new-password"
               />
             </div>
             <button className="btn btn-primary btn-full" onClick={loginByEmail} disabled={loading}>
@@ -211,21 +215,23 @@ function PinModal({ onSuccess, onClose }) {
             </div>
           </>
         )}
-        <button
-          className="btn btn-ghost btn-full"
-          style={{ marginTop: 8 }}
-          onClick={() => startGoogleAuth('teacher')}
-          disabled={loading}
-        >
-          Continuer avec Google (@pedagolyautey.org / @lyceelyautey.org)
-        </button>
+        {allowGoogleTeacher && (
+          <button
+            className="btn btn-ghost btn-full"
+            style={{ marginTop: 8 }}
+            onClick={() => startGoogleAuth('teacher')}
+            disabled={loading}
+          >
+            Continuer avec Google (@pedagolyautey.org / @lyceelyautey.org)
+          </button>
+        )}
         <button className="btn btn-ghost btn-full" style={{ marginTop: 8 }} onClick={onClose}>Annuler</button>
       </div>
     </div>
   );
 }
 
-function AuthScreen({ onLogin, appVersion, onVisitGuest }) {
+function AuthScreen({ onLogin, appVersion, onVisitGuest, uiSettings }) {
   const [mode, setMode] = useState('login'); // 'login' | 'register'
   const [identifier, setIdentifier] = useState('');
   const [first, setFirst] = useState('');
@@ -243,6 +249,10 @@ function AuthScreen({ onLogin, appVersion, onVisitGuest }) {
   const [info, setInfo] = useState('');
   const [err, setErr] = useState('');
   const [loading, setLoading] = useState(false);
+  const allowRegister = uiSettings?.auth?.allow_register !== false;
+  const allowGoogleStudent = uiSettings?.auth?.allow_google_student !== false;
+  const allowGuestVisit = uiSettings?.auth?.allow_guest_visit !== false;
+  const welcomeMessage = String(uiSettings?.auth?.welcome_message || '').trim();
 
   const resetTokenFromUrl = useMemo(() => {
     const params = new URLSearchParams(window.location.search);
@@ -260,10 +270,20 @@ function AuthScreen({ onLogin, appVersion, onVisitGuest }) {
     }
   }, [resetTokenFromUrl]);
 
+  useEffect(() => {
+    const def = uiSettings?.auth?.default_mode === 'register' ? 'register' : 'login';
+    if (!allowRegister && def === 'register') {
+      setMode('login');
+      return;
+    }
+    setMode(def);
+  }, [uiSettings?.auth?.default_mode, allowRegister]);
+
   const submit = async () => {
     setInfo('');
     setErr('');
     if (mode === 'login' && (!identifier.trim() || !pass)) return setErr('Identifiant et mot de passe requis');
+    if (mode === 'register' && !allowRegister) return setErr('Inscriptions désactivées');
     if (mode === 'register' && (!first.trim() || !last.trim() || !pass)) return setErr('Tous les champs sont requis');
     if (mode === 'register' && pass !== pass2) return setErr('Les mots de passe ne correspondent pas');
     if (mode === 'register' && pass.length < 4) return setErr('Mot de passe trop court (min 4 caractères)');
@@ -353,14 +373,17 @@ function AuthScreen({ onLogin, appVersion, onVisitGuest }) {
         <div style={{ fontSize: '2.5rem', marginBottom: 10 }}>🌿</div>
         <h1>ForêtMap</h1>
         <p className="sub">Atelier forêt comestible — Lycée Lyautey</p>
+        {welcomeMessage && <p className="sub" style={{ marginTop: -4 }}>{welcomeMessage}</p>}
 
         <div className="auth-tabs">
           <button className={`auth-tab ${mode === 'login' ? 'active' : ''}`} onClick={() => { setMode('login'); setErr(''); setInfo(''); }}>
             Connexion
           </button>
-          <button className={`auth-tab ${mode === 'register' ? 'active' : ''}`} onClick={() => { setMode('register'); setErr(''); setInfo(''); }}>
-            Créer un compte
-          </button>
+          {allowRegister && (
+            <button className={`auth-tab ${mode === 'register' ? 'active' : ''}`} onClick={() => { setMode('register'); setErr(''); setInfo(''); }}>
+              Créer un compte
+            </button>
+          )}
         </div>
 
         {info && <div className="auth-success">{info}</div>}
@@ -373,6 +396,7 @@ function AuthScreen({ onLogin, appVersion, onVisitGuest }) {
               value={identifier}
               onChange={e => setIdentifier(e.target.value)}
               placeholder="momo_lyautey ou moi@exemple.com"
+              autoComplete="off"
               autoFocus
               onKeyDown={onKey}
             />
@@ -388,9 +412,9 @@ function AuthScreen({ onLogin, appVersion, onVisitGuest }) {
           </div>
         )}
         <div className="field"><label>Mot de passe</label>
-          <input type="password" value={pass} onChange={e => setPass(e.target.value)} placeholder="••••" onKeyDown={onKey} />
+          <input type="password" value={pass} onChange={e => setPass(e.target.value)} placeholder="••••" onKeyDown={onKey} autoComplete="new-password" />
         </div>
-        {mode === 'register' && (
+        {mode === 'register' && allowRegister && (
           <>
             <div className="field"><label>Pseudo (optionnel)</label>
               <input value={pseudo} onChange={e => setPseudo(e.target.value)} placeholder="momo_lyautey" onKeyDown={onKey} />
@@ -416,14 +440,16 @@ function AuthScreen({ onLogin, appVersion, onVisitGuest }) {
         <button className="btn btn-primary btn-full" onClick={submit} disabled={loading} style={{ marginTop: 4 }}>
           {loading ? '...' : mode === 'login' ? 'Se connecter 🌱' : 'Créer le compte'}
         </button>
-        <button
-          className="btn btn-ghost btn-full"
-          onClick={() => startGoogleAuth('student')}
-          disabled={loading}
-          style={{ marginTop: 8 }}
-        >
-          Continuer avec Google (@pedagolyautey.org / @lyceelyautey.org)
-        </button>
+        {allowGoogleStudent && (
+          <button
+            className="btn btn-ghost btn-full"
+            onClick={() => startGoogleAuth('student')}
+            disabled={loading}
+            style={{ marginTop: 8 }}
+          >
+            Continuer avec Google (@pedagolyautey.org / @lyceelyautey.org)
+          </button>
+        )}
         {mode === 'login' && (
           <button
             className="btn btn-ghost btn-full"
@@ -466,7 +492,7 @@ function AuthScreen({ onLogin, appVersion, onVisitGuest }) {
             </div>
           </div>
         )}
-        {onVisitGuest && (
+        {onVisitGuest && allowGuestVisit && (
           <button className="btn btn-ghost btn-full" onClick={onVisitGuest} style={{ marginTop: 8 }}>
             🧭 Visiter sans connexion
           </button>

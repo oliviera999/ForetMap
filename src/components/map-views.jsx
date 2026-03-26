@@ -1425,9 +1425,9 @@ function MapView({ zones, markers, tasks = [], plants, maps = [], activeMapId = 
               } : undefined}
               onPointerUp={e => e.stopPropagation()}>
               <div className="map-bubble-pin" style={{ background: 'white', border: '2.5px solid var(--forest)',
-                borderRadius: '50%', width: 36, height: 36,
+                borderRadius: '50%', width: 'clamp(30px, 7.5vw, 36px)', height: 'clamp(30px, 7.5vw, 36px)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: '1.1rem', boxShadow: '0 2px 10px rgba(0,0,0,.22)' }}>
+                fontSize: 'clamp(.95rem, 3.8vw, 1.1rem)', boxShadow: '0 2px 10px rgba(0,0,0,.22)' }}>
                 {m.emoji}
                 {markerTaskVisual && (
                   <span

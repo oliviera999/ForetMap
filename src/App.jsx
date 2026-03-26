@@ -19,6 +19,7 @@ import { StudentAvatar } from './components/student-avatar';
 import { TutorialsView } from './components/tutorials-views';
 import { VisitView } from './components/visit-views';
 import { ProfilesAdminView } from './components/profiles-views';
+import { SettingsAdminView } from './components/settings-admin-views';
 
 const OAUTH_ERROR_MESSAGES = {
   oauth_not_configured: 'Connexion Google indisponible (configuration serveur incomplète).',
@@ -44,9 +45,30 @@ function decodeBase64UrlJson(value) {
 function App() {
   const initialSession = useMemo(() => getStoredSession(), []);
   const DEFAULT_MAPS = useMemo(() => ([
-    { id: 'foret', label: 'Forêt comestible', map_image_url: '/map.png', sort_order: 1 },
-    { id: 'n3', label: 'N3', map_image_url: '/maps/plan%20n3.jpg', sort_order: 2 },
+    { id: 'foret', label: 'Forêt comestible', map_image_url: '/map.png', sort_order: 1, is_active: true },
+    { id: 'n3', label: 'N3', map_image_url: '/maps/plan%20n3.jpg', sort_order: 2, is_active: true },
   ]), []);
+  const DEFAULT_PUBLIC_SETTINGS = useMemo(() => ({
+    auth: {
+      allow_register: true,
+      allow_google_student: true,
+      allow_google_teacher: true,
+      allow_guest_visit: true,
+      default_mode: 'login',
+      welcome_message: '',
+    },
+    map: {
+      default_map_student: 'foret',
+      default_map_teacher: 'foret',
+      default_map_visit: 'foret',
+    },
+    modules: {
+      tutorials_enabled: true,
+      visit_enabled: true,
+      stats_enabled: true,
+      observations_enabled: true,
+    },
+  }), []);
   const [student,    setStudent]    = useState(() => initialSession?.student || null);
   const [sessionUser, setSessionUser] = useState(() => initialSession?.user || null);
   const [isTeacher,  setIsTeacher]  = useState(() => {
@@ -72,6 +94,7 @@ function App() {
   const [refreshMs,  setRefreshMs]  = useState(30000);
   const [serverDown, setServerDown] = useState(false);
   const [authClaims, setAuthClaims] = useState(() => getAuthClaims());
+  const [publicSettings, setPublicSettings] = useState(DEFAULT_PUBLIC_SETTINGS);
   const failCountRef = useRef(0);
 
   const hasPermission = useCallback((perm) => {
@@ -83,6 +106,12 @@ function App() {
     const elevatablePerms = Array.isArray(authClaims?.elevatedPermissions) ? authClaims.elevatedPermissions : [];
     return activePerms.includes(perm) || elevatablePerms.includes(perm);
   }, [authClaims]);
+
+  const canManageTutorials = useMemo(() => {
+    const roleSlug = String(authClaims?.roleSlug || '').toLowerCase();
+    const allowedRole = roleSlug === 'prof' || roleSlug === 'admin';
+    return allowedRole && hasPermissionInRole('tutorials.manage');
+  }, [authClaims?.roleSlug, hasPermissionInRole]);
 
   useEffect(() => {
     const hashRaw = window.location.hash.startsWith('#') ? window.location.hash.slice(1) : '';
@@ -154,6 +183,16 @@ function App() {
     api('/api/version').then(d => setAppVersion(d.version)).catch(err => {
       console.error('[ForetMap] version app', err);
     });
+  }, []);
+
+  useEffect(() => {
+    api('/api/settings/public')
+      .then((d) => {
+        if (d?.settings) setPublicSettings((prev) => ({ ...prev, ...d.settings }));
+      })
+      .catch(() => {
+        // Réglages publics non bloquants.
+      });
   }, []);
 
   useEffect(() => {
@@ -245,6 +284,9 @@ function App() {
   const fetchAll = useCallback(async () => {
     try {
       const mapQuery = `map_id=${encodeURIComponent(activeMapId)}`;
+      const tutorialsEndpoint = canManageTutorials
+        ? '/api/tutorials?include_inactive=1'
+        : '/api/tutorials';
       const [mapsRes, z, t, taskProjectsRes, p, m, tu] = await Promise.all([
         api('/api/maps').catch(() => DEFAULT_MAPS),
         api(`/api/zones?${mapQuery}`),
@@ -252,12 +294,18 @@ function App() {
         api('/api/task-projects').catch(() => []),
         api('/api/plants'),
         api(`/api/map/markers?${mapQuery}`),
-        api('/api/tutorials'),
+        api(tutorialsEndpoint),
       ]);
       const safeMaps = Array.isArray(mapsRes) && mapsRes.length > 0 ? mapsRes : DEFAULT_MAPS;
       setMaps(safeMaps);
-      if (!safeMaps.some(mp => mp.id === activeMapId)) {
-        setActiveMapId(safeMaps[0].id);
+      const activeMaps = safeMaps.filter((mp) => mp.is_active !== false);
+      const allowedMaps = activeMaps.length > 0 ? activeMaps : safeMaps;
+      if (!allowedMaps.some(mp => mp.id === activeMapId)) {
+        const defaultMap = showPublicVisit
+          ? publicSettings?.map?.default_map_visit
+          : (isTeacher ? publicSettings?.map?.default_map_teacher : publicSettings?.map?.default_map_student);
+        const fallbackMap = allowedMaps.find((mp) => mp.id === defaultMap)?.id || allowedMaps[0]?.id || 'foret';
+        setActiveMapId(fallbackMap);
       }
       setZones(z); setTasks(t); setTaskProjects(Array.isArray(taskProjectsRes) ? taskProjectsRes : []);
       setPlants(p); setMarkers(m); setTutorials(tu);
@@ -279,7 +327,7 @@ function App() {
       }
     }
     setLoading(false);
-  }, [activeMapId, DEFAULT_MAPS, forceLogout]);
+  }, [activeMapId, DEFAULT_MAPS, canManageTutorials, forceLogout, isTeacher, publicSettings?.map?.default_map_student, publicSettings?.map?.default_map_teacher, publicSettings?.map?.default_map_visit, showPublicVisit]);
 
   const tasksForActiveMap = useMemo(() => (
     tasks.filter((t) => {
@@ -287,6 +335,10 @@ function App() {
       return effectiveMapId === activeMapId || effectiveMapId == null;
     })
   ), [tasks, activeMapId]);
+  const visibleMaps = useMemo(() => {
+    const active = maps.filter((mp) => mp.is_active !== false);
+    return active.length > 0 ? active : maps;
+  }, [maps]);
   const studentAffiliation = (student?.affiliation || 'both').toLowerCase();
   const canAccessStudentMapTasks = isTeacher || studentAffiliation !== 'n3';
 
@@ -310,6 +362,13 @@ function App() {
     }
   }, [isTeacher, canAccessStudentMapTasks, tab]);
 
+  useEffect(() => {
+    if (tab === 'tuto' && publicSettings?.modules?.tutorials_enabled === false) setTab('map');
+    if (tab === 'stats' && publicSettings?.modules?.stats_enabled === false) setTab('map');
+    if (tab === 'visit' && publicSettings?.modules?.visit_enabled === false) setTab('map');
+    if (tab === 'notebook' && publicSettings?.modules?.observations_enabled === false) setTab('map');
+  }, [tab, publicSettings?.modules?.tutorials_enabled, publicSettings?.modules?.stats_enabled, publicSettings?.modules?.visit_enabled, publicSettings?.modules?.observations_enabled]);
+
   // Auto-refresh (30 s ; 2 min après 3 échecs serveur consécutifs)
   useEffect(() => {
     const id = setInterval(fetchAll, refreshMs);
@@ -330,7 +389,7 @@ function App() {
             <VisitView
               student={null}
               isTeacher={false}
-              initialMapId={activeMapId}
+              initialMapId={publicSettings?.map?.default_map_visit || activeMapId}
               onBackToAuth={() => setShowPublicVisit(false)}
               availableTutorials={[]}
             />
@@ -357,6 +416,7 @@ function App() {
             setIsTeacher(Array.isArray(claims?.permissions) && claims.permissions.includes('teacher.access'));
           }}
           appVersion={appVersion}
+          uiSettings={publicSettings}
           onVisitGuest={() => setShowPublicVisit(true)}
         />
       )}
@@ -399,6 +459,7 @@ function App() {
           setToast(claims?.elevated ? 'Droits étendus activés 🔓' : 'Session mise à jour');
         }}
         onClose={() => setShowPin(false)}
+        uiSettings={publicSettings}
       />}
       {showStats && !isTeacher && (
         <div className="modal-overlay" onClick={e => e.target === e.currentTarget && setShowStats(false)}>
@@ -513,8 +574,12 @@ function App() {
               ✅ Tâches {tasksForActiveMap.filter(t => t.status === 'done').length > 0 && `(${tasksForActiveMap.filter(t => t.status === 'done').length} à valider)`}
             </button>
             <button className={`top-tab ${tab === 'plants' ? 'active' : ''}`} onClick={() => setTab('plants')}>🌱 Biodiversité</button>
-            <button className={`top-tab ${tab === 'tuto' ? 'active' : ''}`} onClick={() => setTab('tuto')}>📘 Tuto</button>
-            <button className={`top-tab ${tab === 'stats' ? 'active' : ''}`} onClick={() => setTab('stats')}>📊 Stats</button>
+            {publicSettings?.modules?.tutorials_enabled !== false && (
+              <button className={`top-tab ${tab === 'tuto' ? 'active' : ''}`} onClick={() => setTab('tuto')}>📘 Tuto</button>
+            )}
+            {publicSettings?.modules?.stats_enabled !== false && (
+              <button className={`top-tab ${tab === 'stats' ? 'active' : ''}`} onClick={() => setTab('stats')}>📊 Stats</button>
+            )}
             {(
               hasPermissionInRole('admin.roles.manage')
               || hasPermissionInRole('admin.users.assign_roles')
@@ -524,28 +589,36 @@ function App() {
               </button>
             )}
             <button className={`top-tab ${tab === 'audit' ? 'active' : ''}`} onClick={() => setTab('audit')}>📜 Audit</button>
-            <button className={`top-tab ${tab === 'visit' ? 'active' : ''}`} onClick={() => setTab('visit')}>🧭 Visite</button>
+            {publicSettings?.modules?.visit_enabled !== false && (
+              <button className={`top-tab ${tab === 'visit' ? 'active' : ''}`} onClick={() => setTab('visit')}>🧭 Visite</button>
+            )}
+            {hasPermissionInRole('admin.settings.read') && (
+              <button className={`top-tab ${tab === 'settings' ? 'active' : ''}`} onClick={() => setTab('settings')}>
+                ⚙️ Paramètres
+              </button>
+            )}
             <button className={`top-tab ${tab === 'about' ? 'active' : ''}`} onClick={() => setTab('about')}>ℹ️ À propos</button>
           </div>
-          {tab === 'map'    && <MapView zones={zones} markers={markers} tasks={tasks} plants={plants} maps={maps} activeMapId={activeMapId} onMapChange={setActiveMapId} isTeacher student={currentUser} onZoneUpdate={updateZone} onRefresh={fetchAll}/>}
+          {tab === 'map'    && <MapView zones={zones} markers={markers} tasks={tasks} plants={plants} maps={visibleMaps} activeMapId={activeMapId} onMapChange={setActiveMapId} isTeacher student={currentUser} onZoneUpdate={updateZone} onRefresh={fetchAll}/>}
           {tab === 'tasks'  && <TasksView  tasks={tasks} taskProjects={taskProjects} zones={zones} markers={markers} maps={maps} tutorials={tutorials} activeMapId={activeMapId} isTeacher student={currentUser} onRefresh={fetchAll} onForceLogout={forceLogout}/>}
           {tab === 'plants' && <PlantManager plants={plants} onRefresh={fetchAll}/>}
-          {tab === 'tuto'   && <TutorialsView tutorials={tutorials} isTeacher onRefresh={fetchAll} onForceLogout={forceLogout} />}
-          {tab === 'stats'  && (hasPermission('stats.read.all') ? <TeacherStats/> : <div className="empty"><p>Permission insuffisante</p></div>)}
+          {publicSettings?.modules?.tutorials_enabled !== false && tab === 'tuto'   && <TutorialsView tutorials={tutorials} isTeacher onRefresh={fetchAll} onForceLogout={forceLogout} />}
+          {publicSettings?.modules?.stats_enabled !== false && tab === 'stats'  && (hasPermission('stats.read.all') ? <TeacherStats/> : <div className="empty"><p>Permission insuffisante</p></div>)}
           {tab === 'profiles' && <ProfilesAdminView/>}
           {tab === 'audit'  && (hasPermission('audit.read') ? <AuditLog/> : <div className="empty"><p>Permission insuffisante</p></div>)}
-          {tab === 'visit'  && <VisitView student={currentUser} isTeacher availableTutorials={tutorials} initialMapId={activeMapId} onForceLogout={forceLogout} />}
+          {publicSettings?.modules?.visit_enabled !== false && tab === 'visit'  && <VisitView student={currentUser} isTeacher availableTutorials={tutorials} initialMapId={activeMapId} onForceLogout={forceLogout} />}
+          {tab === 'settings' && <SettingsAdminView/>}
           {tab === 'about'  && <AboutView appVersion={appVersion}/>}
         </div>
       ) : (
         <>
           <div className="main">
-            {tab === 'map'    && canAccessStudentMapTasks && <MapView zones={zones} markers={markers} tasks={tasks} plants={plants} maps={maps} activeMapId={activeMapId} onMapChange={setActiveMapId} isTeacher={false} student={student} onZoneUpdate={updateZone} onRefresh={fetchAll}/>}
+            {tab === 'map'    && canAccessStudentMapTasks && <MapView zones={zones} markers={markers} tasks={tasks} plants={plants} maps={visibleMaps} activeMapId={activeMapId} onMapChange={setActiveMapId} isTeacher={false} student={student} onZoneUpdate={updateZone} onRefresh={fetchAll}/>}
             {tab === 'tasks'  && canAccessStudentMapTasks && <TasksView tasks={tasks} taskProjects={taskProjects} zones={zones} markers={markers} maps={maps} tutorials={tutorials} activeMapId={activeMapId} isTeacher={false} student={student} onRefresh={fetchAll} onForceLogout={forceLogout}/>}
             {tab === 'plants' && <PlantViewer plants={plants} zones={zones}/>}
-            {tab === 'tuto' && <TutorialsView tutorials={tutorials} isTeacher={false} onRefresh={fetchAll} onForceLogout={forceLogout} />}
-            {tab === 'notebook' && <ObservationNotebook student={student} zones={zones}/>}
-            {tab === 'visit' && <VisitView student={student} isTeacher={false} availableTutorials={tutorials} initialMapId={activeMapId} onForceLogout={forceLogout} />}
+            {publicSettings?.modules?.tutorials_enabled !== false && tab === 'tuto' && <TutorialsView tutorials={tutorials} isTeacher={false} onRefresh={fetchAll} onForceLogout={forceLogout} />}
+            {publicSettings?.modules?.observations_enabled !== false && tab === 'notebook' && <ObservationNotebook student={student} zones={zones}/>}
+            {publicSettings?.modules?.visit_enabled !== false && tab === 'visit' && <VisitView student={student} isTeacher={false} availableTutorials={tutorials} initialMapId={activeMapId} onForceLogout={forceLogout} />}
             {tab === 'about' && <AboutView appVersion={appVersion}/>}
           </div>
           <nav className="bottom-nav">
@@ -564,15 +637,21 @@ function App() {
             <button className={`nav-btn ${tab === 'plants' ? 'active' : ''}`} onClick={() => setTab('plants')}>
               <span className="nav-icon">🌱</span> Biodiversité
             </button>
-            <button className={`nav-btn ${tab === 'tuto' ? 'active' : ''}`} onClick={() => setTab('tuto')}>
-              <span className="nav-icon">📘</span> Tuto
-            </button>
-            <button className={`nav-btn ${tab === 'notebook' ? 'active' : ''}`} onClick={() => setTab('notebook')}>
-              <span className="nav-icon">📓</span> Carnet
-            </button>
-            <button className={`nav-btn ${tab === 'visit' ? 'active' : ''}`} onClick={() => setTab('visit')}>
-              <span className="nav-icon">🧭</span> Visite
-            </button>
+            {publicSettings?.modules?.tutorials_enabled !== false && (
+              <button className={`nav-btn ${tab === 'tuto' ? 'active' : ''}`} onClick={() => setTab('tuto')}>
+                <span className="nav-icon">📘</span> Tuto
+              </button>
+            )}
+            {publicSettings?.modules?.observations_enabled !== false && (
+              <button className={`nav-btn ${tab === 'notebook' ? 'active' : ''}`} onClick={() => setTab('notebook')}>
+                <span className="nav-icon">📓</span> Carnet
+              </button>
+            )}
+            {publicSettings?.modules?.visit_enabled !== false && (
+              <button className={`nav-btn ${tab === 'visit' ? 'active' : ''}`} onClick={() => setTab('visit')}>
+                <span className="nav-icon">🧭</span> Visite
+              </button>
+            )}
             <button className={`nav-btn ${tab === 'about' ? 'active' : ''}`} onClick={() => setTab('about')}>
               <span className="nav-icon">ℹ️</span> À propos
             </button>

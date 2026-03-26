@@ -21,12 +21,21 @@ function normalizeMapImageUrl(mapId, mapImageUrl) {
 
 router.get('/', async (req, res) => {
   try {
-    const rows = await queryAll(
-      'SELECT id, label, map_image_url, sort_order FROM maps ORDER BY sort_order ASC, label ASC'
-    );
+    let rows = [];
+    try {
+      rows = await queryAll(
+        'SELECT id, label, map_image_url, sort_order, frame_padding_px, is_active FROM maps ORDER BY sort_order ASC, label ASC'
+      );
+    } catch (e) {
+      if (!(e && (e.errno === 1054 || e.code === 'ER_BAD_FIELD_ERROR'))) throw e;
+      rows = await queryAll(
+        'SELECT id, label, map_image_url, sort_order, NULL AS frame_padding_px, 1 AS is_active FROM maps ORDER BY sort_order ASC, label ASC'
+      );
+    }
     res.json(rows.map((row) => ({
       ...row,
       map_image_url: normalizeMapImageUrl(row.id, row.map_image_url),
+      is_active: !!row.is_active,
     })));
   } catch (e) {
     logRouteError(e, req);
