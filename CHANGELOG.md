@@ -65,6 +65,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - **Navigation/auth** : ajout d’un CTA « Visiter sans connexion » dans l’écran d’authentification et intégration de l’onglet `Visite` dans les navigations élève/prof.
 
 ### Corrigé
+- **Résilience API Express (async)** : les erreurs des handlers asynchrones sont désormais redirigées vers le middleware d’erreur centralisé, évitant un `unhandledRejection` fatal et une indisponibilité complète du site en cas d’erreur BDD.
 - **Carte (repères interactifs)** : conversion des pastilles de repère en boutons clavier/accessibles, avec libellés contextuels et styles `focus-visible` pour améliorer la navigation non tactile.
 - **Modales zone/repère (ordre des actions)** : réorganisation de sections dans les vues prof pour privilégier la lecture des liaisons existantes avant l’action de liaison, sans changer la logique métier.
 - **Affichage grand écran** : stabilisation de la barre de navigation élève (hauteur maîtrisée et non-expansive), alignement de l’espace réservé (`main`/`toast`) sur la hauteur réelle de menu, et densification légère desktop des champs/boutons/onglets pour réduire l’effet visuel trop “gros” sans régression mobile.
