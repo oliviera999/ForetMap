@@ -62,6 +62,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - **Navigation/auth** : ajout d’un CTA « Visiter sans connexion » dans l’écran d’authentification et intégration de l’onglet `Visite` dans les navigations élève/prof.
 
 ### Corrigé
+- **Affichage grand écran** : stabilisation de la barre de navigation élève (hauteur maîtrisée et non-expansive), alignement de l’espace réservé (`main`/`toast`) sur la hauteur réelle de menu, et densification légère desktop des champs/boutons/onglets pour réduire l’effet visuel trop “gros” sans régression mobile.
 - **Navigation carte mobile (refonte gestes)** : extraction de la logique tactile dans un hook dédié avec stratégie mobile explicite (carte passive par défaut, bouton d’activation des gestes, réverrouillage auto après inactivité), pour supprimer les blocages de scroll tout en conservant le zoom/pan volontaire.
 - **Carte mobile (gestes tactiles)** : en mode vue non zoomé, le glissement à un doigt privilégie désormais le scroll de page (et conserve le zoom/pan carte à deux doigts), pour éviter les blocages de navigation sur smartphone.
 - **Carte mobile (repères)** : augmentation légère de la taille des icônes de repère sur smartphone pour restaurer la lisibilité, tout en conservant un rendu plus compact que la taille historique initiale.
