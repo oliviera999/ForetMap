@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../services/api';
+import { getRoleTerms } from '../utils/n3-terminology';
 
-function AuditHistoryPanel() {
+function AuditHistoryPanel({ roleTerms }) {
   const [entries, setEntries] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -22,7 +23,7 @@ function AuditHistoryPanel() {
   const actionLabels = {
     validate_task: 'Validation tâche',
     delete_task: 'Suppression tâche',
-    delete_student: 'Suppression élève',
+    delete_student: `Suppression ${roleTerms.studentSingular}`,
     delete_log: 'Suppression rapport',
     create_task: 'Création tâche',
     update_task: 'Modification tâche',
@@ -65,7 +66,7 @@ function AuditHistoryPanel() {
   );
 }
 
-function VisitStatsPanel() {
+function VisitStatsPanel({ roleTerms }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [stats, setStats] = useState(null);
@@ -139,7 +140,7 @@ function VisitStatsPanel() {
         </div>
         <div className="activity-item">
           <div className="activity-info">
-            <div className="activity-title">Élèves connectés</div>
+            <div className="activity-title">{roleTerms.studentPlural.charAt(0).toUpperCase() + roleTerms.studentPlural.slice(1)} connectés</div>
             <div className="activity-meta">
               Sessions: {Number(students.sessions || 0).toLocaleString('fr-FR')} · Visites terminées: {Number(students.completed_visits || 0).toLocaleString('fr-FR')} · Complétion: {Number(students.completion_rate_pct || 0).toLocaleString('fr-FR', { maximumFractionDigits: 1 })}%
             </div>
@@ -158,13 +159,14 @@ function VisitStatsPanel() {
   );
 }
 
-function AuditLog() {
+function AuditLog({ isN3Affiliated = false }) {
+  const roleTerms = getRoleTerms(isN3Affiliated);
   const [subTab, setSubTab] = useState('history');
 
   return (
     <div className="fade-in">
       <h2 className="section-title">📜 Audit & Statistiques</h2>
-      <p className="section-sub">Historique des actions prof et indicateurs de visite.</p>
+      <p className="section-sub">Historique des actions {roleTerms.teacherShort} et indicateurs de visite.</p>
       <div className="top-tabs audit-subtabs">
         <button className={`top-tab ${subTab === 'history' ? 'active' : ''}`} onClick={() => setSubTab('history')}>
           📜 Historique
@@ -173,7 +175,7 @@ function AuditLog() {
           📊 Stats visite
         </button>
       </div>
-      {subTab === 'history' ? <AuditHistoryPanel /> : <VisitStatsPanel />}
+      {subTab === 'history' ? <AuditHistoryPanel roleTerms={roleTerms} /> : <VisitStatsPanel roleTerms={roleTerms} />}
     </div>
   );
 }

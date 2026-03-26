@@ -1,5 +1,6 @@
 import React from 'react';
 import { STAGE_LABELS, STAGE_CLASS } from '../constants/garden';
+import { getRoleTerms } from './n3-terminology';
 
 export function stageBadge(stage) {
   return (
@@ -9,17 +10,21 @@ export function stageBadge(stage) {
   );
 }
 
-const TASK_STATUS_ARIA = {
-  available: 'À faire',
-  in_progress: 'En cours',
-  done: 'Terminée',
-  validated: 'Validée',
-  proposed: 'Proposition élève',
-};
+function taskStatusAria(status, isN3Affiliated) {
+  const roleTerms = getRoleTerms(isN3Affiliated);
+  const labels = {
+    available: 'À faire',
+    in_progress: 'En cours',
+    done: 'Terminée',
+    validated: 'Validée',
+    proposed: `Proposition ${roleTerms.studentSingular}`,
+  };
+  return labels[status] || status;
+}
 
 /** Pastille discrète : rouge/orange pulsés, vert fixe une fois terminée. */
-export function taskStatusIndicator(status) {
-  const aria = TASK_STATUS_ARIA[status] || status;
+export function taskStatusIndicator(status, isN3Affiliated = false) {
+  const aria = taskStatusAria(status, isN3Affiliated);
   const pulseClass =
     status === 'available'
       ? 'task-status-dot--todo'

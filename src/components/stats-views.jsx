@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { api } from '../services/api';
 import { statusBadge } from '../utils/badges';
 import { getDicebearAvatarUrl, getStudentAvatarUrl } from '../utils/avatar';
+import { getRoleTerms } from '../utils/n3-terminology';
 import { StudentAvatar } from './student-avatar';
 
 function Toast({ msg, onDone }) {
@@ -9,7 +10,8 @@ function Toast({ msg, onDone }) {
   return <div className="toast">{msg}</div>;
 }
 
-function StudentStats({ student }) {
+function StudentStats({ student, isN3Affiliated = false }) {
+  const roleTerms = getRoleTerms(isN3Affiliated);
   const [data, setData] = useState(null);
   const [error, setError] = useState('');
 
@@ -85,7 +87,7 @@ function StudentStats({ student }) {
         <div className="stat-card">
           <div className="stat-icon">📋</div>
           <div className="stat-number">{stats.submitted}</div>
-          <div className="stat-label">En attente prof</div>
+          <div className="stat-label">En attente {roleTerms.teacherShort}</div>
         </div>
         <div className="stat-card">
           <div className="stat-icon">🌱</div>
@@ -117,16 +119,17 @@ function StudentStats({ student }) {
   );
 }
 
-function StudentProfileEditor({ student, onUpdated, onClose }) {
+function StudentProfileEditor({ student, onUpdated, onClose, isN3Affiliated = false }) {
+  const roleTerms = getRoleTerms(isN3Affiliated);
   const profileType = (() => {
     const roleSlug = String(student?.auth?.roleSlug || '').toLowerCase();
     if (roleSlug === 'admin') return 'admin';
-    if (roleSlug.startsWith('prof')) return 'prof';
-    if (roleSlug.startsWith('eleve')) return 'eleve';
+    if (roleSlug.startsWith('prof')) return roleTerms.teacherShort;
+    if (roleSlug.startsWith('eleve')) return roleTerms.studentSingular;
     const userType = String(student?.auth?.userType || student?.user_type || '').toLowerCase();
-    if (userType === 'teacher' || userType === 'user') return 'prof';
-    if (userType === 'student') return 'eleve';
-    return 'eleve';
+    if (userType === 'teacher' || userType === 'user') return roleTerms.teacherShort;
+    if (userType === 'student') return roleTerms.studentSingular;
+    return roleTerms.studentSingular;
   })();
 
   const [pseudo, setPseudo] = useState(student.pseudo || '');
@@ -295,7 +298,8 @@ function StudentProfileEditor({ student, onUpdated, onClose }) {
   );
 }
 
-function TeacherStats() {
+function TeacherStats({ isN3Affiliated = false }) {
+  const roleTerms = getRoleTerms(isN3Affiliated);
   const [data, setData] = useState(null);
   const [error, setError] = useState('');
   const [search, setSearch] = useState('');
@@ -338,9 +342,9 @@ function TeacherStats() {
     <div className="fade-in">
       {toast && <Toast msg={toast} onDone={() => setToast(null)} />}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-        <h2 className="section-title">📊 Statistiques des élèves</h2>
+        <h2 className="section-title">📊 Statistiques des {roleTerms.studentPlural}</h2>
       </div>
-      <p className="section-sub">{data.length} élève{data.length > 1 ? 's' : ''} inscrits</p>
+      <p className="section-sub">{data.length} {data.length > 1 ? roleTerms.studentPlural : roleTerms.studentSingular} inscrit{data.length > 1 ? 's' : ''}</p>
       {error && (
         <div className="auth-error" style={{ marginBottom: 10 }}>
           ⚠️ {error}
@@ -367,7 +371,7 @@ function TeacherStats() {
 
       <div className="field" style={{ marginBottom: 12 }}>
         <input value={search} onChange={e => setSearch(e.target.value)}
-          placeholder="🔍 Rechercher un élève..."
+          placeholder={`🔍 Rechercher un(e) ${roleTerms.studentSingular}...`}
           style={{ background: 'white' }} />
       </div>
 
@@ -375,7 +379,7 @@ function TeacherStats() {
         {filtered.length === 0
           ? <div className="empty" style={{ padding: 32 }}>
             <div className="empty-icon">👤</div>
-            <p>{search ? 'Aucun élève trouvé' : 'Aucun élève inscrit'}</p>
+            <p>{search ? `Aucun(e) ${roleTerms.studentSingular} trouvé(e)` : `Aucun(e) ${roleTerms.studentSingular} inscrit(e)`}</p>
           </div>
           : filtered.map((s) => {
             const realRank = data.findIndex(d => d.id === s.id);

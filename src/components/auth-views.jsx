@@ -1,12 +1,14 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { api, saveStoredSession, withAppBase } from '../services/api';
+import { getRoleTerms } from '../utils/n3-terminology';
 
 function startGoogleAuth(mode) {
   const safeMode = mode === 'teacher' ? 'teacher' : 'student';
   window.location.assign(withAppBase(`/api/auth/google/start?mode=${encodeURIComponent(safeMode)}`));
 }
 
-function PinModal({ onSuccess, onClose, uiSettings }) {
+function PinModal({ onSuccess, onClose, uiSettings, isN3Affiliated = false }) {
+  const roleTerms = getRoleTerms(isN3Affiliated);
   const [authMode, setAuthMode] = useState('pin'); // pin | email
   const allowGoogleTeacher = uiSettings?.auth?.allow_google_teacher !== false;
 
@@ -41,7 +43,7 @@ function PinModal({ onSuccess, onClose, uiSettings }) {
         user: {
           id: data?.auth?.canonicalUserId || data?.auth?.userId || null,
           userType: 'teacher',
-          displayName: data?.auth?.roleDisplayName || 'Professeur',
+          displayName: data?.auth?.roleDisplayName || 'Utilisateur',
         },
       });
       onSuccess();
@@ -66,7 +68,7 @@ function PinModal({ onSuccess, onClose, uiSettings }) {
       }
       const perms = Array.isArray(data?.auth?.permissions) ? data.auth.permissions : [];
       if (!perms.includes('teacher.access')) {
-        setErr('Ce compte ne possède pas les droits professeur.');
+        setErr(`Ce compte ne possède pas les droits ${roleTerms.teacherSingular}.`);
         setLoading(false);
         return;
       }
@@ -112,7 +114,7 @@ function PinModal({ onSuccess, onClose, uiSettings }) {
         token: resetToken.trim(),
         password: newPassword,
       });
-      setInfo('Mot de passe professeur réinitialisé. Vous pouvez vous connecter.');
+      setInfo(`Mot de passe ${roleTerms.teacherSingular} réinitialisé. Vous pouvez vous connecter.`);
       setResetToken('');
       setNewPassword('');
     } catch (e) {
@@ -125,8 +127,8 @@ function PinModal({ onSuccess, onClose, uiSettings }) {
     <div className="pin-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
       <div className="pin-card fade-in">
         <div style={{ fontSize: '2rem', marginBottom: 8 }}>🔒</div>
-        <h3>Mode professeur</h3>
-        <p>Utilisez le PIN ou un compte prof email/mot de passe.</p>
+        <h3>Mode {roleTerms.teacherSingular}</h3>
+        <p>Utilisez le PIN ou un compte {roleTerms.teacherShort} email/mot de passe.</p>
         <div className="auth-tabs" style={{ marginBottom: 12 }}>
           <button
             className={`auth-tab ${authMode === 'pin' ? 'active' : ''}`}
@@ -158,13 +160,13 @@ function PinModal({ onSuccess, onClose, uiSettings }) {
         ) : (
           <>
             <div className="field" style={{ marginBottom: 8 }}>
-              <label>Email professeur</label>
+              <label>Email {roleTerms.teacherSingular}</label>
               <input
                 type="email"
                 value={email}
                 onChange={e => { setEmail(e.target.value); setErr(''); }}
                 onKeyDown={e => e.key === 'Enter' && !loading && loginByEmail()}
-                placeholder="prof@exemple.com"
+                placeholder={`${roleTerms.teacherShort}@exemple.com`}
                 autoComplete="off"
                 autoFocus
               />
@@ -189,7 +191,7 @@ function PinModal({ onSuccess, onClose, uiSettings }) {
                 type="email"
                 value={forgotEmail}
                 onChange={e => setForgotEmail(e.target.value)}
-                placeholder="prof@exemple.com"
+                placeholder={`${roleTerms.teacherShort}@exemple.com`}
               />
               <button className="btn btn-ghost btn-full" style={{ marginTop: 6 }} onClick={requestReset} disabled={loading}>
                 Envoyer un lien de réinitialisation
@@ -231,7 +233,8 @@ function PinModal({ onSuccess, onClose, uiSettings }) {
   );
 }
 
-function AuthScreen({ onLogin, appVersion, onVisitGuest, uiSettings }) {
+function AuthScreen({ onLogin, appVersion, onVisitGuest, uiSettings, isN3Affiliated = false }) {
+  const roleTerms = getRoleTerms(isN3Affiliated);
   const [mode, setMode] = useState('login'); // 'login' | 'register'
   const [identifier, setIdentifier] = useState('');
   const [first, setFirst] = useState('');
@@ -332,7 +335,7 @@ function AuthScreen({ onLogin, appVersion, onVisitGuest, uiSettings }) {
         user: {
           id: student?.auth?.canonicalUserId || student?.id || null,
           userType,
-          displayName: student?.display_name || student?.pseudo || `${student?.first_name || ''} ${student?.last_name || ''}`.trim() || (isTeacher ? 'Professeur' : 'Élève'),
+          displayName: student?.display_name || student?.pseudo || `${student?.first_name || ''} ${student?.last_name || ''}`.trim() || (isTeacher ? roleTerms.teacherSingular : roleTerms.studentSingular),
           email: student?.email || null,
         },
         student: isTeacher ? null : student,
@@ -482,13 +485,13 @@ function AuthScreen({ onLogin, appVersion, onVisitGuest, uiSettings }) {
                 className={`auth-tab ${forgotRole === 'student' ? 'active' : ''}`}
                 onClick={() => setForgotRole('student')}
               >
-                Élève
+                {roleTerms.studentSingular}
               </button>
               <button
                 className={`auth-tab ${forgotRole === 'teacher' ? 'active' : ''}`}
                 onClick={() => setForgotRole('teacher')}
               >
-                Professeur
+                {roleTerms.teacherSingular}
               </button>
             </div>
             <div className="field">

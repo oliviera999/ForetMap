@@ -1,7 +1,8 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import { api, AccountDeletedError } from '../services/api';
+import { api, API, getAuthToken, AccountDeletedError } from '../services/api';
 import { taskStatusIndicator, daysUntil, dueDateChip } from '../utils/badges';
+import { getRoleTerms } from '../utils/n3-terminology';
 
 function Toast({ msg, onDone }) {
   useEffect(() => { const t = setTimeout(onDone, 2400); return () => clearTimeout(t); }, []);
@@ -49,12 +50,32 @@ function Lightbox({ src, caption, onClose }) {
 
 const var_alert = 'var(--alert)';
 
+function fileToDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result || ''));
+    reader.onerror = () => reject(new Error('Lecture du fichier impossible'));
+    reader.readAsDataURL(file);
+  });
+}
+
 function initialLocationIds(editTask, keyMulti, keySingle) {
   if (!editTask) return [];
   const multi = editTask[keyMulti];
   if (Array.isArray(multi) && multi.length) return [...multi];
   const one = editTask[keySingle];
   return one ? [one] : [];
+}
+
+function normalizeTutorialIds(ids) {
+  if (!Array.isArray(ids)) return [];
+  const unique = new Set();
+  for (const raw of ids) {
+    const n = Number.parseInt(raw, 10);
+    if (!Number.isFinite(n) || n <= 0) continue;
+    unique.add(n);
+  }
+  return [...unique];
 }
 
 function TaskFormModal({
@@ -68,7 +89,9 @@ function TaskFormModal({
   onSave,
   editTask,
   isProposal = false,
+  roleTerms = null,
 }) {
+  const terms = roleTerms || getRoleTerms(false);
   const initialMapId = editTask
     ? (editTask.map_id_resolved || editTask.map_id || editTask.zone_map_id || editTask.marker_map_id || null)
     : activeMapId;
@@ -77,7 +100,7 @@ function TaskFormModal({
     map_id: initialMapId || '',
     zone_ids: initialLocationIds(editTask, 'zone_ids', 'zone_id'),
     marker_ids: initialLocationIds(editTask, 'marker_ids', 'marker_id'),
-    tutorial_ids: initialLocationIds(editTask, 'tutorial_ids', 'tutorial_id'),
+    tutorial_ids: normalizeTutorialIds(initialLocationIds(editTask, 'tutorial_ids', 'tutorial_id')),
     project_id: editTask.project_id || '',
     due_date: editTask.due_date || '',
     required_students: editTask.required_students || 1,
@@ -90,6 +113,7 @@ function TaskFormModal({
   });
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState('');
+  const [tutorialSearch, setTutorialSearch] = useState('');
 
   const set = k => e => {
     const value = e.target.value;
@@ -142,11 +166,14 @@ function TaskFormModal({
   };
 
   const toggleTutorialId = (tutorialId) => {
+    const id = Number.parseInt(tutorialId, 10);
+    if (!Number.isFinite(id) || id <= 0) return;
     setForm(f => {
-      const has = f.tutorial_ids.includes(tutorialId);
+      const tutorialIds = normalizeTutorialIds(f.tutorial_ids);
+      const has = tutorialIds.includes(id);
       return {
         ...f,
-        tutorial_ids: has ? f.tutorial_ids.filter(id => id !== tutorialId) : [...f.tutorial_ids, tutorialId],
+        tutorial_ids: has ? tutorialIds.filter((x) => x !== id) : [...tutorialIds, id],
       };
     });
   };
@@ -170,7 +197,7 @@ function TaskFormModal({
       map_id: form.map_id || null,
       zone_ids: form.zone_ids,
       marker_ids: form.marker_ids,
-      tutorial_ids: form.tutorial_ids,
+      tutorial_ids: normalizedTutorialIds,
       project_id: form.project_id || null,
       due_date: form.due_date || null,
       required_students: form.required_students,
@@ -187,6 +214,19 @@ function TaskFormModal({
   const selectableZones = zones.filter(z => !z.special && (!form.map_id || z.map_id === form.map_id));
   const selectableMarkers = markers.filter(m => !form.map_id || m.map_id === form.map_id);
   const selectableProjects = taskProjects.filter((p) => !form.map_id || p.map_id === form.map_id);
+  const normalizedTutorialIds = useMemo(
+    () => normalizeTutorialIds(form.tutorial_ids),
+    [form.tutorial_ids]
+  );
+  const searchableTutorials = useMemo(
+    () => [...tutorials].sort((a, b) => String(a.title || '').localeCompare(String(b.title || ''), 'fr')),
+    [tutorials]
+  );
+  const filteredTutorials = useMemo(() => {
+    const q = tutorialSearch.trim().toLowerCase();
+    if (!q) return searchableTutorials;
+    return searchableTutorials.filter((t) => String(t.title || '').toLowerCase().includes(q));
+  }, [searchableTutorials, tutorialSearch]);
 
   const pickListStyle = {
     maxHeight: 168, overflowY: 'auto', border: '1px solid rgba(0,0,0,.08)', borderRadius: 10,
@@ -244,14 +284,46 @@ function TaskFormModal({
         </div>
         {!isProposal && (
           <div className="field"><label>Tutoriels associés (optionnel)</label>
+            {tutorials.length > 0 && (
+              <div style={{ display: 'grid', gap: 8, marginBottom: 8 }}>
+                <input
+                  value={tutorialSearch}
+                  onChange={(e) => setTutorialSearch(e.target.value)}
+                  placeholder="🔍 Rechercher un tutoriel..."
+                />
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}>
+                  <span style={{ fontSize: '.8rem', color: '#666' }}>
+                    {normalizedTutorialIds.length} sélectionné{normalizedTutorialIds.length > 1 ? 's' : ''}
+                  </span>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <button
+                      type="button"
+                      className="btn btn-ghost btn-sm"
+                      onClick={() => setForm((f) => ({ ...f, tutorial_ids: normalizeTutorialIds(tutorials.map((t) => t.id)) }))}
+                    >
+                      Tout sélectionner
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-ghost btn-sm"
+                      onClick={() => setForm((f) => ({ ...f, tutorial_ids: [] }))}
+                    >
+                      Effacer
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
             <div style={pickListStyle}>
               {tutorials.length === 0
                 ? <p style={{ fontSize: '.82rem', color: '#888', margin: 8 }}>Aucun tutoriel disponible.</p>
-                : tutorials.map(t => (
+                : filteredTutorials.length === 0
+                  ? <p style={{ fontSize: '.82rem', color: '#888', margin: 8 }}>Aucun tutoriel trouvé.</p>
+                  : filteredTutorials.map(t => (
                   <label key={t.id} style={pickRow}>
                     <input
                       type="checkbox"
-                      checked={form.tutorial_ids.includes(t.id)}
+                      checked={normalizedTutorialIds.includes(Number.parseInt(t.id, 10))}
                       onChange={() => toggleTutorialId(t.id)}
                     />
                     <span style={{ fontSize: '.88rem' }}>📘 {t.title}</span>
@@ -262,7 +334,7 @@ function TaskFormModal({
         )}
         <div className="row">
           {!isProposal && (
-            <div className="field"><label>Élèves requis</label>
+            <div className="field"><label>{terms.studentPlural.charAt(0).toUpperCase() + terms.studentPlural.slice(1)} requis</label>
               <input type="number" min="1" max="10" value={form.required_students} onChange={set('required_students')} />
             </div>
           )}
@@ -353,7 +425,8 @@ function proposalMetaFromDescription(description) {
   return { proposer, cleanedDescription };
 }
 
-function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], tutorials = [], activeMapId = 'foret', isTeacher, student, onRefresh, onForceLogout }) {
+function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], tutorials = [], activeMapId = 'foret', isTeacher, student, onRefresh, onForceLogout, isN3Affiliated = false }) {
+  const roleTerms = getRoleTerms(isN3Affiliated);
   const [showForm, setShowForm] = useState(false);
   const [showProjectForm, setShowProjectForm] = useState(false);
   const [showProposalForm, setShowProposalForm] = useState(false);
@@ -368,6 +441,10 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
   const [filterStatus, setFilterStatus] = useState('');
   const [filterMap, setFilterMap] = useState('active');
   const [filterProject, setFilterProject] = useState('');
+  const [importFile, setImportFile] = useState(null);
+  const [importDryRun, setImportDryRun] = useState(false);
+  const [importing, setImporting] = useState(false);
+  const [importReport, setImportReport] = useState(null);
 
   useEffect(() => {
     setFilterMap('active');
@@ -444,7 +521,7 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
       lastName: student.last_name,
       studentId: student.id,
     });
-    setToast('Proposition envoyée au professeur ✓');
+    setToast(`Proposition envoyée au ${roleTerms.teacherSingular} ✓`);
     await onRefresh();
   };
 
@@ -452,6 +529,57 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
     await api('/api/task-projects', 'POST', form);
     setToast('Projet créé ✓');
     await onRefresh();
+  };
+
+  const downloadImportTemplate = async (format) => {
+    try {
+      const token = getAuthToken();
+      const headers = new Headers();
+      if (token) headers.set('Authorization', 'Bearer ' + token);
+      const res = await fetch(`${API}/api/tasks/import/template?format=${encodeURIComponent(format)}`, { headers });
+      if (!res.ok) throw new Error('Téléchargement impossible');
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = format === 'xlsx'
+        ? 'foretmap-modele-taches-projets.xlsx'
+        : 'foretmap-modele-taches-projets.csv';
+      link.click();
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      setToast('Erreur modèle : ' + (e.message || 'inconnue'));
+    }
+  };
+
+  const runImportTasksProjects = async () => {
+    if (!importFile) {
+      setToast('Choisis un fichier CSV ou XLSX.');
+      return;
+    }
+    setImporting(true);
+    setImportReport(null);
+    try {
+      const fileDataBase64 = await fileToDataUrl(importFile);
+      const result = await api('/api/tasks/import', 'POST', {
+        fileName: importFile.name,
+        fileDataBase64,
+        dryRun: importDryRun,
+      });
+      setImportReport(result?.report || null);
+      if (importDryRun) {
+        setToast('Simulation import terminée ✓');
+      } else {
+        const createdProjects = Number(result?.report?.totals?.created_projects || 0);
+        const createdTasks = Number(result?.report?.totals?.created_tasks || 0);
+        setToast(`Import terminé : ${createdProjects} projet(s), ${createdTasks} tâche(s)`);
+        await onRefresh();
+      }
+    } catch (e) {
+      setToast('Erreur import : ' + (e.message || 'inconnue'));
+    } finally {
+      setImporting(false);
+    }
   };
 
   const applyFilters = list => list.filter(t => {
@@ -498,7 +626,7 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
       <div className={`task-card ${isMine ? 'mine' : ''} ${t.status === 'validated' ? 'done' : ''} ${t.status === 'proposed' ? 'proposed' : ''}`}>
         <div className="task-top">
           <div className="task-title-row">
-            {taskStatusIndicator(t.status)}
+            {taskStatusIndicator(t.status, isN3Affiliated)}
             <div className="task-title">{t.title}</div>
           </div>
         </div>
@@ -520,7 +648,7 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
             <span className="task-chip proposal">🙋 Proposée par {proposalMeta.proposer}</span>
           )}
           {dueDateChip(t.due_date)}
-          {!isTeacher && <span className="task-chip">👤 {t.required_students} élève{t.required_students > 1 ? 's' : ''}</span>}
+          {!isTeacher && <span className="task-chip">👤 {t.required_students} {t.required_students > 1 ? roleTerms.studentPlural : roleTerms.studentSingular}</span>}
           {t.recurrence && <span className="task-chip">🔄 {t.recurrence === 'weekly' ? 'Hebdo' : t.recurrence === 'biweekly' ? 'Bi-hebdo' : t.recurrence === 'monthly' ? 'Mensuel' : t.recurrence}</span>}
         </div>
         {cardDescription && <div className="task-desc">{cardDescription}</div>}
@@ -590,6 +718,7 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
           activeMapId={activeMapId}
           editTask={editTask}
           isProposal={showProposalForm && !isTeacher}
+          roleTerms={roleTerms}
           onClose={() => { setShowForm(false); setEditTask(null); setShowProposalForm(false); }}
           onSave={showProposalForm && !isTeacher ? proposeTask : saveTask}
         />
@@ -636,6 +765,74 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
         {!isTeacher && <button className="btn btn-ghost btn-sm" onClick={() => setShowProposalForm(true)}>+ Proposer</button>}
       </div>
       <p className="section-sub">{isTeacher ? 'Gérer, valider et traiter les propositions' : 'Prends en charge une tâche ou propose-en une nouvelle'}</p>
+      {isTeacher && (
+        <details className="plant-more" style={{ marginBottom: 10 }}>
+          <summary>Import tâches/projets (CSV / XLSX)</summary>
+          <div style={{ display: 'grid', gap: 8, marginTop: 10 }}>
+            <p style={{ margin: 0, fontSize: '.85rem', color: '#6b7280' }}>
+              Le fichier peut contenir des lignes de type <strong>project</strong> et <strong>task</strong>.
+            </p>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+              <button className="btn btn-ghost btn-sm" onClick={() => downloadImportTemplate('csv')} disabled={importing}>
+                📄 Modèle CSV
+              </button>
+              <button className="btn btn-ghost btn-sm" onClick={() => downloadImportTemplate('xlsx')} disabled={importing}>
+                📗 Modèle XLSX
+              </button>
+            </div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
+              <input
+                type="file"
+                accept=".csv,.xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,text/csv"
+                onChange={(e) => {
+                  setImportFile(e.target.files?.[0] || null);
+                  setImportReport(null);
+                }}
+              />
+              <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: '.85rem', color: '#374151' }}>
+                <input
+                  type="checkbox"
+                  checked={importDryRun}
+                  onChange={(e) => setImportDryRun(e.target.checked)}
+                />
+                Simulation (sans création)
+              </label>
+              <button className="btn btn-primary btn-sm" onClick={runImportTasksProjects} disabled={importing}>
+                {importing ? 'Import...' : 'Importer'}
+              </button>
+            </div>
+            {importFile && (
+              <p style={{ margin: 0, fontSize: '.8rem', color: '#6b7280' }}>
+                Fichier sélectionné: <strong>{importFile.name}</strong>
+              </p>
+            )}
+            {importReport && (
+              <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 10, padding: 10 }}>
+                <div style={{ fontSize: '.85rem', color: '#1f2937', marginBottom: 4 }}>
+                  Reçues: <strong>{importReport?.totals?.received || 0}</strong> ·
+                  Valides: <strong>{importReport?.totals?.valid || 0}</strong> ·
+                  Projets créés: <strong>{importReport?.totals?.created_projects || 0}</strong> ·
+                  Tâches créées: <strong>{importReport?.totals?.created_tasks || 0}</strong> ·
+                  Déjà existants: <strong>{importReport?.totals?.skipped_existing || 0}</strong> ·
+                  Invalides: <strong>{importReport?.totals?.skipped_invalid || 0}</strong>
+                </div>
+                {Array.isArray(importReport?.errors) && importReport.errors.length > 0 && (
+                  <div style={{ maxHeight: 120, overflow: 'auto', fontSize: '.8rem', color: '#991b1b' }}>
+                    {importReport.errors.slice(0, 15).map((item, idx) => (
+                      <div key={`${item.row}-${item.field}-${idx}`}>
+                        Ligne {item.row} ({item.field}): {item.error}
+                      </div>
+                    ))}
+                    {importReport.errors.length > 15 && (
+                      <div>... {importReport.errors.length - 15} erreur(s) supplémentaire(s)</div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </details>
+      )}
 
       <div className="task-filters">
         <select value={filterMap} onChange={e => setFilterMap(e.target.value)}>
@@ -706,7 +903,7 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
         <>
           {proposed.length > 0 && (
             <div className="tasks-section">
-              <div className="tasks-section-title">Propositions élèves ({proposed.length})</div>
+              <div className="tasks-section-title">Propositions {roleTerms.studentPlural} ({proposed.length})</div>
               <div>{proposed.map(t => <TaskCard key={t.id} t={t} />)}</div>
             </div>
           )}

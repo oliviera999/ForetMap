@@ -1,8 +1,10 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { api } from '../services/api';
 import { compressImage } from '../utils/image';
+import { getRoleTerms } from '../utils/n3-terminology';
 
-function SettingsAdminView() {
+function SettingsAdminView({ isN3Affiliated = false }) {
+  const roleTerms = getRoleTerms(isN3Affiliated);
   const [loading, setLoading] = useState(true);
   const [savingKey, setSavingKey] = useState('');
   const [settings, setSettings] = useState([]);
@@ -135,8 +137,8 @@ function SettingsAdminView() {
           <h3 style={{ marginTop: 0 }}>Accueil & authentification</h3>
           {[
             ['ui.auth.allow_register', 'Afficher "Créer un compte"'],
-            ['ui.auth.allow_google_student', 'Afficher "Google élève"'],
-            ['ui.auth.allow_google_teacher', 'Afficher "Google prof"'],
+            ['ui.auth.allow_google_student', `Afficher "Google ${roleTerms.studentSingular}"`],
+            ['ui.auth.allow_google_teacher', `Afficher "Google ${roleTerms.teacherShort}"`],
             ['ui.auth.allow_guest_visit', 'Afficher "Visiter sans connexion"'],
           ].map(([key, label]) => (
             <label key={key} style={{ display: 'block', marginBottom: 8 }}>
@@ -192,13 +194,13 @@ function SettingsAdminView() {
             </label>
           ))}
           <div className="field">
-            <label>Carte par défaut (élève)</label>
+            <label>Carte par défaut ({roleTerms.studentSingular})</label>
             <select value={get('ui.map.default_map_student', 'foret')} onChange={(e) => saveSetting('ui.map.default_map_student', e.target.value)}>
               {maps.map((m) => <option key={m.id} value={m.id}>{m.label}</option>)}
             </select>
           </div>
           <div className="field">
-            <label>Carte par défaut (professeur)</label>
+            <label>Carte par défaut ({roleTerms.teacherSingular})</label>
             <select value={get('ui.map.default_map_teacher', 'foret')} onChange={(e) => saveSetting('ui.map.default_map_teacher', e.target.value)}>
               {maps.map((m) => <option key={m.id} value={m.id}>{m.label}</option>)}
             </select>

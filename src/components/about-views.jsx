@@ -1,6 +1,8 @@
 import React from 'react';
+import { getRoleTerms } from '../utils/n3-terminology';
 
-function AboutView({ appVersion }) {
+function AboutView({ appVersion, isN3Affiliated = false }) {
+  const roleTerms = getRoleTerms(isN3Affiliated);
   const docsLinks = [
     { label: 'CHANGELOG', href: '/CHANGELOG.md', desc: 'Historique des modifications publiées' },
     { label: 'README', href: '/README.md', desc: 'Présentation du projet et installation' },
@@ -19,7 +21,7 @@ function AboutView({ appVersion }) {
         <div className="about-card">
           <h3>Objet de l'application</h3>
           <p>
-            ForetMap aide les élèves et les professeurs du Lycée Lyautey à organiser les activités de la forêt
+            ForetMap aide les {roleTerms.studentPlural} et les {roleTerms.teacherPlural} du Lycée Lyautey à organiser les activités de la forêt
             comestible: suivi des zones, de la biodiversité, des tâches et des observations.
           </p>
           <div className="about-meta">

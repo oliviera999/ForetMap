@@ -1,7 +1,9 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { API, api, getAuthToken } from '../services/api';
+import { getRoleTerms } from '../utils/n3-terminology';
 
-function ProfilesAdminView() {
+function ProfilesAdminView({ isN3Affiliated = false }) {
+  const roleTerms = getRoleTerms(isN3Affiliated);
   const [roles, setRoles] = useState([]);
   const [catalog, setCatalog] = useState([]);
   const [users, setUsers] = useState([]);
@@ -272,7 +274,7 @@ function ProfilesAdminView() {
       });
       setImportReport(result.report || null);
       if ((result.report?.totals?.created || 0) > 0) {
-        setMsg(`${result.report.totals.created} élève(s) créé(s)`);
+        setMsg(`${result.report.totals.created} ${roleTerms.studentSingular}(s) créé(s)`);
       } else if (dryRunImport) {
         setMsg('Simulation terminée');
       } else {
@@ -320,14 +322,14 @@ function ProfilesAdminView() {
   return (
     <div className="fade-in">
       <h2 className="section-title">🛡️ Profils & utilisateurs</h2>
-      <p className="section-sub">Gestion des profils, des comptes et des opérations élèves (création, import, export, suppression).</p>
+      <p className="section-sub">Gestion des profils, des comptes et des opérations {roleTerms.studentPlural} (création, import, export, suppression).</p>
       {err && <div className="auth-error">⚠️ {err}</div>}
       {msg && <div className="auth-success">{msg}</div>}
 
       {confirmStudent && (
         <div className="modal-overlay" onClick={(e) => e.target === e.currentTarget && setConfirmStudent(null)}>
           <div className="log-modal fade-in" style={{ paddingBottom: 'calc(20px + var(--safe-bottom))' }} onClick={(e) => e.stopPropagation()}>
-            <h3 style={{ marginBottom: 8 }}>Supprimer l&apos;élève ?</h3>
+            <h3 style={{ marginBottom: 8 }}>Supprimer le/la {roleTerms.studentSingular} ?</h3>
             <p style={{ fontSize: '.95rem', color: '#444', marginBottom: 6, lineHeight: 1.5 }}>
               <strong>{confirmStudent.first_name} {confirmStudent.last_name}</strong>
             </p>
@@ -428,8 +430,8 @@ function ProfilesAdminView() {
               <div className="field" style={{ margin: 0 }}>
                 <label>Profil</label>
                 <select value={createRole} onChange={(e) => setCreateRole(e.target.value)} disabled={!canCreateUsers || createLoading}>
-                  <option value="eleve_novice">Élève</option>
-                  <option value="prof">Prof</option>
+                  <option value="eleve_novice">{roleTerms.studentSingular}</option>
+                  <option value="prof">{roleTerms.teacherShort}</option>
                   {isAdmin && <option value="admin">Admin</option>}
                 </select>
               </div>
@@ -458,7 +460,7 @@ function ProfilesAdminView() {
                 <input value={createDescription} onChange={(e) => setCreateDescription(e.target.value)} disabled={!canCreateUsers || createLoading} />
               </div>
               <div className="field" style={{ margin: 0 }}>
-                <label>Affiliation élève</label>
+                <label>Affiliation {roleTerms.studentSingular}</label>
                 <select value={createAffiliation} onChange={(e) => setCreateAffiliation(e.target.value)} disabled={!canCreateUsers || createLoading || createRole !== 'eleve_novice'}>
                   <option value="both">N3 + Forêt comestible</option>
                   <option value="n3">N3 uniquement</option>
@@ -474,7 +476,7 @@ function ProfilesAdminView() {
           </div>
 
           <div style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: 12, padding: 12, marginTop: 12, opacity: canImport ? 1 : 0.65 }}>
-            <h3 style={{ margin: '0 0 8px', fontSize: '1rem', color: 'var(--forest)' }}>Import élèves (CSV / XLSX)</h3>
+            <h3 style={{ margin: '0 0 8px', fontSize: '1rem', color: 'var(--forest)' }}>Import {roleTerms.studentPlural} (CSV / XLSX)</h3>
             <p style={{ margin: '0 0 10px', fontSize: '.85rem', color: '#6b7280' }}>
               Téléchargez un modèle vierge, complétez-le puis importez le fichier.
             </p>
@@ -542,19 +544,19 @@ function ProfilesAdminView() {
 
           {canReadAllStats && (
             <div style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: 12, padding: 12, marginTop: 12, opacity: canDeleteUi ? 1 : 0.65 }}>
-            <h3 style={{ marginTop: 0 }}>Suppression d&apos;élèves</h3>
+            <h3 style={{ marginTop: 0 }}>Suppression de {roleTerms.studentPlural}</h3>
             <div className="field" style={{ marginBottom: 10 }}>
               <input
                 value={searchStudent}
                 onChange={(e) => setSearchStudent(e.target.value)}
-                placeholder="🔍 Rechercher un élève..."
+                placeholder={`🔍 Rechercher un(e) ${roleTerms.studentSingular}...`}
                 style={{ background: 'white' }}
               />
             </div>
             <div style={{ maxHeight: 280, overflow: 'auto' }}>
               {filteredStudents.length === 0 ? (
                 <p style={{ margin: 0, color: '#6b7280' }}>
-                  {searchStudent ? 'Aucun élève trouvé.' : 'Aucun élève disponible.'}
+                  {searchStudent ? `Aucun(e) ${roleTerms.studentSingular} trouvé(e).` : `Aucun(e) ${roleTerms.studentSingular} disponible.`}
                 </p>
               ) : (
                 filteredStudents.map((s) => (
@@ -579,7 +581,7 @@ function ProfilesAdminView() {
 
       {!canManageProfiles && !canManageStudents && (
         <div className="empty" style={{ marginTop: 12 }}>
-          <p>Aucune permission disponible pour gérer les profils ou les élèves.</p>
+          <p>Aucune permission disponible pour gérer les profils ou les {roleTerms.studentPlural}.</p>
         </div>
       )}
     </div>

@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { api, AccountDeletedError } from '../services/api';
 import { MARKER_EMOJIS } from '../constants/emojis';
+import { getRoleTerms } from '../utils/n3-terminology';
 
 function parsePctPoints(raw) {
   try {
@@ -33,7 +34,7 @@ function pointToPct(event, element) {
   };
 }
 
-function VisitEditorPanel({ selected, selectedType, onSaved, onForceLogout, isTeacher }) {
+function VisitEditorPanel({ selected, selectedType, onSaved, onForceLogout, isTeacher, roleTerms }) {
   const [form, setForm] = useState({
     title: '',
     subtitle: '',
@@ -126,7 +127,7 @@ function VisitEditorPanel({ selected, selectedType, onSaved, onForceLogout, isTe
 
   return (
     <div className="visit-editor">
-      <h4>🎛️ Édition visite (prof)</h4>
+      <h4>🎛️ Édition visite ({roleTerms.teacherShort})</h4>
       <div className="field">
         <label>{selectedType === 'zone' ? 'Titre de zone' : 'Titre du repère'}</label>
         <input value={form.title} onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))} />
@@ -237,7 +238,9 @@ function VisitView({
   initialMapId = 'foret',
   availableTutorials = [],
   onBackToAuth,
+  isN3Affiliated = false,
 }) {
+  const roleTerms = getRoleTerms(isN3Affiliated);
   const [mapId, setMapId] = useState(initialMapId || 'foret');
   const [maps, setMaps] = useState([]);
   const [content, setContent] = useState({ zones: [], markers: [], tutorials: [] });
@@ -544,6 +547,7 @@ function VisitView({
                 onSaved={loadData}
                 onForceLogout={onForceLogout}
                 isTeacher={isTeacher}
+                roleTerms={roleTerms}
               />
             </div>
           )}
