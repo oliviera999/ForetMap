@@ -3,6 +3,7 @@ const http    = require('http');
 const fs      = require('fs');
 const cors    = require('cors');
 const path    = require('path');
+const Layer   = require('express/lib/router/layer');
 const { initDatabase, ping: dbPing } = require('./database');
 const { validateEnv } = require('./lib/env');
 const logger = require('./lib/logger');
@@ -28,6 +29,32 @@ const settingsRouter      = require('./routes/settings');
 const collectiveRouter    = require('./routes/collective');
 
 const app = express();
+
+function installAsyncErrorForwarding() {
+  if (Layer.prototype.__foretmapAsyncPatched) return;
+  const originalHandleRequest = Layer.prototype.handle_request;
+
+  Layer.prototype.handle_request = function patchedHandleRequest(req, res, next) {
+    const handler = this.handle;
+    if (handler.length > 3) {
+      return originalHandleRequest.call(this, req, res, next);
+    }
+
+    try {
+      const result = handler(req, res, next);
+      if (result && typeof result.then === 'function' && typeof result.catch === 'function') {
+        result.catch(next);
+      }
+      return result;
+    } catch (err) {
+      return next(err);
+    }
+  };
+
+  Layer.prototype.__foretmapAsyncPatched = true;
+}
+
+installAsyncErrorForwarding();
 
 function normalizeOptionalString(value) {
   if (value == null) return null;
