@@ -831,24 +831,33 @@ function MarkerModal({ marker, plants, tasks, onClose, onSave, onDelete, onLinkT
   );
 }
 
-function MapView({ zones, markers, tasks = [], plants, maps = [], activeMapId = 'foret', onMapChange, isTeacher, student, onZoneUpdate, onRefresh, embedded = false }) {
+function useMapGestures({ mapImageSrc, activeMapId, mode, onRefresh }) {
   const containerRef = useRef(null);
   const worldRef = useRef(null);
   const imgRef = useRef(null);
-
   const tx = useRef({ x: 0, y: 0, s: 1 });
   const [committed, setCommitted] = useState({ x: 0, y: 0, s: 1 });
   const [imgSize, setImgSize] = useState({ w: 1, h: 1 });
   const imgSizeRef = useRef({ w: 1, h: 1 });
+  const moved = useRef(false);
+  const isPanning = useRef(false);
+  const panStart = useRef({ x: 0, y: 0 });
+  const pinching = useRef(false);
+  const rafId = useRef(null);
+  const commitRef = useRef(null);
+  const draggingMarkerRef = useRef(null);
+  const draggingMarkerEl = useRef(null);
+  const [isCoarsePointer, setIsCoarsePointer] = useState(false);
+  const [mapInteractionEnabled, setMapInteractionEnabled] = useState(false);
+  const [interactionBeat, setInteractionBeat] = useState(0);
+  const lastBeatRef = useRef(0);
 
   const applyTransform = () => {
-    if (worldRef.current) {
-      const { x, y, s } = tx.current;
-      worldRef.current.style.transform = `translate(${x}px,${y}px) scale(${s})`;
-    }
+    if (!worldRef.current) return;
+    const { x, y, s } = tx.current;
+    worldRef.current.style.transform = `translate(${x}px,${y}px) scale(${s})`;
   };
 
-  const commitRef = useRef(null);
   const commit = () => {
     const snap = { ...tx.current };
     setCommitted(snap);
@@ -856,64 +865,33 @@ function MapView({ zones, markers, tasks = [], plants, maps = [], activeMapId = 
     commitRef.current = requestAnimationFrame(applyTransform);
   };
 
-  const [mode, setMode] = useState('view');
-  const [showLabels, setShowLabels] = useState(true);
-  const [drawPoints, setDrawPoints] = useState([]);
-  const [editZone, setEditZone] = useState(null);
-  const [editPoints, setEditPoints] = useState([]);
-  const [draggingPtIdx, setDraggingPtIdx] = useState(-1);
-  const [selectedZone, setSelectedZone] = useState(null);
-  const [selectedMarker, setSelectedMarker] = useState(null);
-  const [pendingZone, setPendingZone] = useState(null);
-  const [pendingMarker, setPendingMarker] = useState(null);
-  const [toast, setToast] = useState(null);
-  const [isCoarsePointer, setIsCoarsePointer] = useState(false);
-  const activeMap = maps.find((m) => m.id === activeMapId);
-  const mapImageCandidates = useMemo(() => {
-    const base = activeMapId === 'n3'
-      ? ['/maps/plan%20n3.jpg', '/maps/map-n3.svg', '/map.png']
-      : ['/map.png', '/maps/map-foret.svg'];
-    const first = activeMap?.map_image_url ? [activeMap.map_image_url] : [];
-    return [...new Set([...first, ...base])];
-  }, [activeMap?.map_image_url, activeMapId]);
-  const [mapImageIdx, setMapImageIdx] = useState(0);
-  const mapImageSrc = mapImageCandidates[Math.min(mapImageIdx, mapImageCandidates.length - 1)];
-  const mapFramePaddingPx = useMemo(() => {
-    const custom = Number(activeMap?.frame_padding_px);
-    if (Number.isFinite(custom) && custom >= 0) return Math.min(custom, 32);
-    return activeMapId === 'n3' ? 14 : 8;
-  }, [activeMap?.frame_padding_px, activeMapId]);
-  const { zoneTaskVisualById, markerTaskVisualById } = useMemo(() => {
-    const zoneMap = new Map();
-    const markerMap = new Map();
-    for (const t of tasks || []) {
-      const visual = taskVisualStatus(t.status);
-      if (!visual) continue;
-      const { zoneIds, markerIds } = taskLocationIds(t);
-      zoneIds.forEach((id) => {
-        zoneMap.set(id, mergeTaskVisualStatus(zoneMap.get(id), visual));
-      });
-      markerIds.forEach((id) => {
-        markerMap.set(id, mergeTaskVisualStatus(markerMap.get(id), visual));
-      });
-    }
-    return { zoneTaskVisualById: zoneMap, markerTaskVisualById: markerMap };
-  }, [tasks]);
+  const scheduleApply = () => {
+    if (rafId.current) return;
+    rafId.current = requestAnimationFrame(() => {
+      applyTransform();
+      rafId.current = null;
+    });
+  };
 
-  const modeRef = useRef('view');
-  const draggingMarkerRef = useRef(null);
-  const draggingMarkerEl = useRef(null);
-  const isPanning = useRef(false);
-  const panStart = useRef({ x: 0, y: 0 });
-  const moved = useRef(false);
-  const pinching = useRef(false);
-  const rafId = useRef(null);
+  const signalInteraction = () => {
+    const now = Date.now();
+    if (now - lastBeatRef.current < 700) return;
+    lastBeatRef.current = now;
+    setInteractionBeat(now);
+  };
 
-  useEffect(() => { modeRef.current = mode; }, [mode]);
+  const enableMapInteraction = () => {
+    setMapInteractionEnabled(true);
+    signalInteraction();
+  };
 
-  useEffect(() => {
-    setMapImageIdx(0);
-  }, [mapImageCandidates]);
+  const toggleMapInteraction = () => {
+    setMapInteractionEnabled((prev) => {
+      const next = !prev;
+      if (next) signalInteraction();
+      return next;
+    });
+  };
 
   useEffect(() => {
     if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return;
@@ -927,6 +905,10 @@ function MapView({ zones, markers, tasks = [], plants, maps = [], activeMapId = 
     media.addListener(update);
     return () => media.removeListener(update);
   }, []);
+
+  useEffect(() => {
+    setMapInteractionEnabled(false);
+  }, [activeMapId]);
 
   useEffect(() => {
     const img = imgRef.current;
@@ -952,35 +934,10 @@ function MapView({ zones, markers, tasks = [], plants, maps = [], activeMapId = 
   }, [imgSize]);
 
   useEffect(() => {
-    setMode('view');
-    setDrawPoints([]);
-    setEditZone(null);
-    setEditPoints([]);
-    setSelectedZone(null);
-    setSelectedMarker(null);
-    setPendingZone(null);
-    setPendingMarker(null);
-  }, [activeMapId]);
-
-  const fitMap = () => {
-    const c = containerRef.current;
-    if (!c) return;
-    const { w, h } = imgSizeRef.current;
-    const s = Math.min(c.clientWidth / w, c.clientHeight / h, 1);
-    const x = (c.clientWidth - w * s) / 2;
-    const y = (c.clientHeight - h * s) / 2;
-    tx.current = { x, y, s };
-    applyTransform();
-    setCommitted({ x, y, s });
-  };
-
-  const scheduleApply = () => {
-    if (rafId.current) return;
-    rafId.current = requestAnimationFrame(() => {
-      applyTransform();
-      rafId.current = null;
-    });
-  };
+    if (!isCoarsePointer || mode !== 'view' || !mapInteractionEnabled) return;
+    const t = setTimeout(() => setMapInteractionEnabled(false), 9000);
+    return () => clearTimeout(t);
+  }, [isCoarsePointer, mode, mapInteractionEnabled, interactionBeat]);
 
   const toImagePct = (clientX, clientY) => {
     const c = containerRef.current;
@@ -988,29 +945,26 @@ function MapView({ zones, markers, tasks = [], plants, maps = [], activeMapId = 
     const r = c.getBoundingClientRect();
     const { x, y, s } = tx.current;
     const { w, h } = imgSizeRef.current;
-    return { xp: ((clientX - r.left - x) / s / w) * 100,
-      yp: ((clientY - r.top - y) / s / h) * 100 };
+    return { xp: ((clientX - r.left - x) / s / w) * 100, yp: ((clientY - r.top - y) / s / h) * 100 };
   };
 
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
 
-    const onPD = e => {
+    const onPD = (e) => {
       if (e.target.closest('.edit-pt') || e.target.closest('.map-bubble')) return;
       moved.current = false;
-      if (modeRef.current === 'view') {
-        const touchLike = e.pointerType === 'touch' || e.pointerType === 'pen';
-        const zoomedIn = tx.current.s > 1.05;
-        // Mobile: priorité au scroll vertical de page tant qu'on n'est pas zoomé.
-        // Le déplacement de carte reste possible quand l'utilisateur zoome.
-        if (touchLike && isCoarsePointer && !zoomedIn) return;
-        isPanning.current = true;
-        panStart.current = { x: e.clientX - tx.current.x, y: e.clientY - tx.current.y };
-      }
+      if (mode !== 'view') return;
+      const touchLike = e.pointerType === 'touch' || e.pointerType === 'pen';
+      const interactionActive = mapInteractionEnabled || tx.current.s > 1.05;
+      if (touchLike && isCoarsePointer && !interactionActive) return;
+      isPanning.current = true;
+      panStart.current = { x: e.clientX - tx.current.x, y: e.clientY - tx.current.y };
+      signalInteraction();
     };
 
-    const onPM = e => {
+    const onPM = (e) => {
       if (isPanning.current) {
         if (!moved.current) {
           moved.current = true;
@@ -1019,6 +973,7 @@ function MapView({ zones, markers, tasks = [], plants, maps = [], activeMapId = 
         tx.current.x = e.clientX - panStart.current.x;
         tx.current.y = e.clientY - panStart.current.y;
         scheduleApply();
+        signalInteraction();
         e.preventDefault();
         return;
       }
@@ -1030,11 +985,12 @@ function MapView({ zones, markers, tasks = [], plants, maps = [], activeMapId = 
         mel.style.left = p.xp + '%';
         mel.style.top = p.yp + '%';
         mel._pct = p;
+        signalInteraction();
         e.preventDefault();
       }
     };
 
-    const onPU = e => {
+    const onPU = () => {
       if (isPanning.current) {
         isPanning.current = false;
         commit();
@@ -1052,49 +1008,55 @@ function MapView({ zones, markers, tasks = [], plants, maps = [], activeMapId = 
       setTimeout(() => { moved.current = false; }, 0);
     };
 
-    const onWH = e => {
+    const onWH = (e) => {
       e.preventDefault();
       const r = el.getBoundingClientRect();
-      const mx = e.clientX - r.left, my = e.clientY - r.top;
+      const mx = e.clientX - r.left;
+      const my = e.clientY - r.top;
       const d = e.deltaY > 0 ? 0.85 : 1.18;
       const ns = Math.min(Math.max(tx.current.s * d, 0.15), 6);
       tx.current.x = mx - (mx - tx.current.x) * (ns / tx.current.s);
       tx.current.y = my - (my - tx.current.y) * (ns / tx.current.s);
       tx.current.s = ns;
       scheduleApply();
+      signalInteraction();
       clearTimeout(onWH._t);
       onWH._t = setTimeout(commit, 80);
     };
 
     const touchRef2 = {};
-    const onTS = e => {
-      if (e.touches.length === 2) {
-        isPanning.current = false;
-        pinching.current = true;
-        const t0 = e.touches[0], t1 = e.touches[1];
-        const rect = el.getBoundingClientRect();
-        touchRef2.dist = Math.hypot(t0.clientX - t1.clientX, t0.clientY - t1.clientY);
-        touchRef2.s = tx.current.s;
-        touchRef2.ox = tx.current.x;
-        touchRef2.oy = tx.current.y;
-        touchRef2.mx = (t0.clientX + t1.clientX) / 2 - rect.left;
-        touchRef2.my = (t0.clientY + t1.clientY) / 2 - rect.top;
-        e.preventDefault();
-      }
+    const onTS = (e) => {
+      if (e.touches.length !== 2) return;
+      isPanning.current = false;
+      pinching.current = true;
+      const t0 = e.touches[0];
+      const t1 = e.touches[1];
+      const rect = el.getBoundingClientRect();
+      touchRef2.dist = Math.hypot(t0.clientX - t1.clientX, t0.clientY - t1.clientY);
+      touchRef2.s = tx.current.s;
+      touchRef2.ox = tx.current.x;
+      touchRef2.oy = tx.current.y;
+      touchRef2.mx = (t0.clientX + t1.clientX) / 2 - rect.left;
+      touchRef2.my = (t0.clientY + t1.clientY) / 2 - rect.top;
+      enableMapInteraction();
+      e.preventDefault();
     };
-    const onTM = e => {
-      if (pinching.current && e.touches.length === 2) {
-        e.preventDefault();
-        const t0 = e.touches[0], t1 = e.touches[1];
-        const dist = Math.hypot(t0.clientX - t1.clientX, t0.clientY - t1.clientY);
-        const ns = Math.min(Math.max(touchRef2.s * (dist / touchRef2.dist), 0.15), 6);
-        tx.current.x = touchRef2.mx - (touchRef2.mx - touchRef2.ox) * (ns / touchRef2.s);
-        tx.current.y = touchRef2.my - (touchRef2.my - touchRef2.oy) * (ns / touchRef2.s);
-        tx.current.s = ns;
-        scheduleApply();
-      }
+
+    const onTM = (e) => {
+      if (!pinching.current || e.touches.length !== 2) return;
+      const t0 = e.touches[0];
+      const t1 = e.touches[1];
+      const dist = Math.hypot(t0.clientX - t1.clientX, t0.clientY - t1.clientY);
+      const ns = Math.min(Math.max(touchRef2.s * (dist / touchRef2.dist), 0.15), 6);
+      tx.current.x = touchRef2.mx - (touchRef2.mx - touchRef2.ox) * (ns / touchRef2.s);
+      tx.current.y = touchRef2.my - (touchRef2.my - touchRef2.oy) * (ns / touchRef2.s);
+      tx.current.s = ns;
+      scheduleApply();
+      signalInteraction();
+      e.preventDefault();
     };
-    const onTE = e => {
+
+    const onTE = (e) => {
       if (pinching.current && e.touches.length < 2) {
         pinching.current = false;
         commit();
@@ -1120,15 +1082,138 @@ function MapView({ zones, markers, tasks = [], plants, maps = [], activeMapId = 
       el.removeEventListener('touchmove', onTM);
       el.removeEventListener('touchend', onTE);
     };
-  }, [onRefresh, isCoarsePointer]);
+  }, [enableMapInteraction, isCoarsePointer, mapInteractionEnabled, mode, onRefresh]);
+
+  const fitMap = () => {
+    const c = containerRef.current;
+    if (!c) return;
+    const { w, h } = imgSizeRef.current;
+    const s = Math.min(c.clientWidth / w, c.clientHeight / h, 1);
+    const x = (c.clientWidth - w * s) / 2;
+    const y = (c.clientHeight - h * s) / 2;
+    tx.current = { x, y, s };
+    applyTransform();
+    setCommitted({ x, y, s });
+  };
+
+  const beginMarkerDrag = (id, target, pointerId) => {
+    draggingMarkerRef.current = id;
+    draggingMarkerEl.current = target;
+    target.setPointerCapture(pointerId);
+    enableMapInteraction();
+  };
+
+  const prefersPageScroll = isCoarsePointer && mode === 'view' && committed.s <= 1.05 && !mapInteractionEnabled;
+  const touchAction = prefersPageScroll ? 'pan-y' : 'none';
+
+  return {
+    containerRef,
+    worldRef,
+    imgRef,
+    tx,
+    committed,
+    imgSize,
+    imgSizeRef,
+    moved,
+    applyTransform,
+    commit,
+    fitMap,
+    toImagePct,
+    beginMarkerDrag,
+    isCoarsePointer,
+    mapInteractionEnabled,
+    setMapInteractionEnabled,
+    toggleMapInteraction,
+    prefersPageScroll,
+    touchAction,
+  };
+}
+
+function MapView({ zones, markers, tasks = [], plants, maps = [], activeMapId = 'foret', onMapChange, isTeacher, student, onZoneUpdate, onRefresh, embedded = false }) {
+  const [mode, setMode] = useState('view');
+  const [showLabels, setShowLabels] = useState(true);
+  const [drawPoints, setDrawPoints] = useState([]);
+  const [editZone, setEditZone] = useState(null);
+  const [editPoints, setEditPoints] = useState([]);
+  const [draggingPtIdx, setDraggingPtIdx] = useState(-1);
+  const [selectedZone, setSelectedZone] = useState(null);
+  const [selectedMarker, setSelectedMarker] = useState(null);
+  const [pendingZone, setPendingZone] = useState(null);
+  const [pendingMarker, setPendingMarker] = useState(null);
+  const [toast, setToast] = useState(null);
+  const activeMap = maps.find((m) => m.id === activeMapId);
+  const mapImageCandidates = useMemo(() => {
+    const base = activeMapId === 'n3'
+      ? ['/maps/plan%20n3.jpg', '/maps/map-n3.svg', '/map.png']
+      : ['/map.png', '/maps/map-foret.svg'];
+    const first = activeMap?.map_image_url ? [activeMap.map_image_url] : [];
+    return [...new Set([...first, ...base])];
+  }, [activeMap?.map_image_url, activeMapId]);
+  const [mapImageIdx, setMapImageIdx] = useState(0);
+  const mapImageSrc = mapImageCandidates[Math.min(mapImageIdx, mapImageCandidates.length - 1)];
+  const mapFramePaddingPx = useMemo(() => {
+    const custom = Number(activeMap?.frame_padding_px);
+    if (Number.isFinite(custom) && custom >= 0) return Math.min(custom, 32);
+    return activeMapId === 'n3' ? 14 : 8;
+  }, [activeMap?.frame_padding_px, activeMapId]);
+  const {
+    containerRef,
+    worldRef,
+    imgRef,
+    tx,
+    committed,
+    imgSize,
+    moved,
+    applyTransform,
+    commit,
+    fitMap,
+    toImagePct,
+    beginMarkerDrag,
+    isCoarsePointer,
+    mapInteractionEnabled,
+    toggleMapInteraction,
+    prefersPageScroll,
+    touchAction,
+  } = useMapGestures({ mapImageSrc, activeMapId, mode, onRefresh });
+  const { zoneTaskVisualById, markerTaskVisualById } = useMemo(() => {
+    const zoneMap = new Map();
+    const markerMap = new Map();
+    for (const t of tasks || []) {
+      const visual = taskVisualStatus(t.status);
+      if (!visual) continue;
+      const { zoneIds, markerIds } = taskLocationIds(t);
+      zoneIds.forEach((id) => {
+        zoneMap.set(id, mergeTaskVisualStatus(zoneMap.get(id), visual));
+      });
+      markerIds.forEach((id) => {
+        markerMap.set(id, mergeTaskVisualStatus(markerMap.get(id), visual));
+      });
+    }
+    return { zoneTaskVisualById: zoneMap, markerTaskVisualById: markerMap };
+  }, [tasks]);
+
+  useEffect(() => {
+    setMapImageIdx(0);
+  }, [mapImageCandidates]);
+
+  useEffect(() => {
+    setMode('view');
+    setDrawPoints([]);
+    setEditZone(null);
+    setEditPoints([]);
+    setSelectedZone(null);
+    setSelectedMarker(null);
+    setPendingZone(null);
+    setPendingMarker(null);
+  }, [activeMapId]);
 
   const onMapClick = e => {
     if (moved.current) return;
     if (e.target.closest('.map-zone-hit') || e.target.closest('.map-bubble')) return;
     const p = toImagePct(e.clientX, e.clientY);
     if (!p) return;
-    if (modeRef.current === 'draw-zone') setDrawPoints(pts => [...pts, p]);
-    else if (modeRef.current === 'add-marker') { setPendingMarker(p); setMode('view'); }
+    if (mode === 'draw-zone') setDrawPoints(pts => [...pts, p]);
+    else if (mode === 'add-marker') { setPendingMarker(p); setMode('view'); }
   };
 
   const finishZone = () => { if (drawPoints.length >= 3) { setPendingZone(drawPoints); setDrawPoints([]); setMode('view'); } };
@@ -1289,7 +1374,7 @@ function MapView({ zones, markers, tasks = [], plants, maps = [], activeMapId = 
     ? 'min(78dvh, 920px)'
     : (isTeacher ? 'calc(100dvh - 56px)' : 'calc(100dvh - 56px - 72px)');
   const mapAspect = imgSize.w > 1 && imgSize.h > 1 ? `${imgSize.w} / ${imgSize.h}` : '16 / 10';
-  const prefersPageScroll = isCoarsePointer && mode === 'view' && committed.s <= 1.05;
+  const mobileInteractionsActive = mapInteractionEnabled || committed.s > 1.05;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: mapColHeight, minHeight: embedded ? 520 : 380 }}>
@@ -1378,6 +1463,14 @@ function MapView({ zones, markers, tasks = [], plants, maps = [], activeMapId = 
         )}
 
         <div style={{ marginLeft: 'auto', display: 'flex', gap: 4, alignItems: 'center' }}>
+          {isCoarsePointer && mode === 'view' && (
+            <button
+              className={`map-gesture-toggle ${mobileInteractionsActive ? 'is-on' : ''}`}
+              onClick={toggleMapInteraction}
+              title={mobileInteractionsActive ? 'Désactiver les gestes carte' : 'Activer les gestes carte'}>
+              {mobileInteractionsActive ? '🔓 Gestes' : '🔒 Gestes'}
+            </button>
+          )}
           <button title={showLabels ? 'Masquer' : 'Afficher noms'}
             onClick={() => setShowLabels(l => !l)}
             style={{ background: showLabels ? 'var(--mint)' : 'transparent', border: '1.5px solid var(--mint)',
@@ -1407,7 +1500,7 @@ function MapView({ zones, markers, tasks = [], plants, maps = [], activeMapId = 
         <div ref={containerRef}
           style={{ width: '100%', maxWidth: '100%', maxHeight: '100%', aspectRatio: mapAspect,
             overflow: 'hidden', position: 'relative', background: '#eef2ee',
-            cursor, touchAction: prefersPageScroll ? 'pan-y' : 'none', userSelect: 'none', WebkitUserSelect: 'none' }}
+            cursor, touchAction, userSelect: 'none', WebkitUserSelect: 'none' }}
           onClick={onMapClick}>
 
           <div ref={worldRef}
@@ -1441,9 +1534,7 @@ function MapView({ zones, markers, tasks = [], plants, maps = [], activeMapId = 
               onClick={e => { e.stopPropagation(); if (!moved.current) setSelectedMarker(m); }}
               onPointerDown={isTeacher ? e => {
                 e.stopPropagation();
-                draggingMarkerRef.current = m.id;
-                draggingMarkerEl.current = e.currentTarget;
-                e.currentTarget.setPointerCapture(e.pointerId);
+                beginMarkerDrag(m.id, e.currentTarget, e.pointerId);
               } : undefined}
               onPointerUp={e => e.stopPropagation()}>
               <div className="map-bubble-pin" style={{ background: 'white', border: '2.5px solid var(--forest)',
@@ -1499,6 +1590,14 @@ function MapView({ zones, markers, tasks = [], plants, maps = [], activeMapId = 
               padding: '6px 12px', fontSize: '.72rem', fontWeight: 600,
               pointerEvents: 'none', whiteSpace: 'nowrap', zIndex: 20 }}>
               📱 1 doigt: page · 2 doigts: zoom carte
+            </div>
+          )}
+          {isCoarsePointer && mode === 'view' && !prefersPageScroll && (
+            <div style={{ position: 'absolute', top: 10, left: '50%', transform: 'translateX(-50%)',
+              background: 'rgba(26,71,49,.82)', color: 'white', borderRadius: 18,
+              padding: '6px 12px', fontSize: '.72rem', fontWeight: 600,
+              pointerEvents: 'none', whiteSpace: 'nowrap', zIndex: 20 }}>
+              ✋ Gestes carte actifs
             </div>
           )}
         </div>
