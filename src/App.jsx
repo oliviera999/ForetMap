@@ -475,9 +475,14 @@ function App() {
 
   const currentUser = (effectiveIsTeacher ? sessionUser : studentForUi) || sessionUser || {
     pseudo: null,
+    displayName: authClaims?.roleDisplayName || null,
     first_name: authClaims?.roleDisplayName || 'Utilisateur',
     last_name: '',
   };
+  const currentUserLabel = currentUser?.pseudo
+    || currentUser?.displayName
+    || `${currentUser?.first_name || ''} ${currentUser?.last_name || ''}`.trim()
+    || 'Utilisateur';
 
   return (
     <div id="app">
@@ -577,8 +582,8 @@ function App() {
             style={{ cursor: canOpenStudentDialogs ? 'pointer' : 'default' }}
             title={canOpenStudentDialogs ? 'Voir mes statistiques' : ''}
           >
-            {!effectiveIsTeacher && <StudentAvatar student={currentUser} size={20} style={{ border: 'none' }} />}
-            <span className="user-badge-text">{currentUser.pseudo || `${currentUser.first_name || ''} ${currentUser.last_name || ''}`.trim() || 'Utilisateur'}</span>
+            <StudentAvatar student={currentUser} size={20} style={{ border: 'none' }} />
+            <span className="user-badge-text">{currentUserLabel}</span>
           </button>
           {!effectiveIsTeacher && canOpenStudentDialogs && (
             <button
