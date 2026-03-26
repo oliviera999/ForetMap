@@ -727,7 +727,6 @@ function App() {
             {publicSettings?.modules?.stats_enabled !== false && (
               <button className={`top-tab ${tab === 'stats' ? 'active' : ''}`} onClick={() => setTab('stats')}>📊 Stats</button>
             )}
-            <button className={`top-tab ${tab === 'audit' ? 'active' : ''}`} onClick={() => setTab('audit')}>📜 Audit</button>
             {publicSettings?.modules?.visit_enabled !== false && (
               <button className={`top-tab ${tab === 'visit' ? 'active' : ''}`} onClick={() => setTab('visit')}>🧭 Visite</button>
             )}
@@ -748,11 +747,10 @@ function App() {
                 ⚙️ Paramètres
               </button>
             )}
-            {canUseCollectiveView && (
-              <button className={`top-tab ${tab === 'collective' ? 'active' : ''}`} onClick={() => setTab('collective')}>
-                👥 Collectif
-              </button>
-            )}
+            <button className={`top-tab ${tab === 'collective' ? 'active' : ''}`} onClick={() => setTab('collective')}>
+              👥 Collectif
+            </button>
+            <button className={`top-tab ${tab === 'audit' ? 'active' : ''}`} onClick={() => setTab('audit')}>📜 Audit</button>
             <button className={`top-tab ${tab === 'about' ? 'active' : ''}`} onClick={() => setTab('about')}>ℹ️ À propos</button>
           </div>
           {useSplitMapTasks && (
@@ -802,17 +800,19 @@ function App() {
           {tab === 'audit'  && (hasPermission('audit.read') ? <AuditLog isN3Affiliated={isN3Affiliated} /> : <div className="empty"><p>Permission insuffisante</p></div>)}
           {publicSettings?.modules?.visit_enabled !== false && tab === 'visit'  && <VisitView student={currentUser} isTeacher availableTutorials={tutorials} initialMapId={activeMapId} onForceLogout={forceLogout} isN3Affiliated={isN3Affiliated} />}
           {tab === 'settings' && <SettingsAdminView isN3Affiliated={isN3Affiliated} />}
-          {tab === 'collective' && canUseCollectiveView && (
-            <CollectiveView
-              tasks={tasks}
-              maps={maps}
-              taskProjects={taskProjects}
-              activeMapId={activeMapId}
-              onRefresh={fetchAll}
-              canManageSession={canUseCollectiveView}
-              isWideLayout={shouldUseDesktopSplit}
-              isN3Affiliated={isN3Affiliated}
-            />
+          {tab === 'collective' && (
+            canUseCollectiveView ? (
+              <CollectiveView
+                tasks={tasks}
+                maps={maps}
+                taskProjects={taskProjects}
+                activeMapId={activeMapId}
+                onRefresh={fetchAll}
+                canManageSession={canUseCollectiveView}
+                isWideLayout={shouldUseDesktopSplit}
+                isN3Affiliated={isN3Affiliated}
+              />
+            ) : <div className="empty"><p>Permission insuffisante</p></div>
           )}
           {tab === 'about'  && <AboutView appVersion={appVersion} isN3Affiliated={isN3Affiliated} />}
         </div>
