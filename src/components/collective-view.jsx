@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { api } from '../services/api';
 
 const MOBILE_BREAKPOINT = 768;
@@ -55,11 +55,19 @@ function CollectiveView({
   const [contextType, setContextType] = useState('map');
   const [contextId, setContextId] = useState(activeMapId || 'foret');
   const [selectedStudentId, setSelectedStudentId] = useState('');
+  const [taskToAddId, setTaskToAddId] = useState('');
+  const [studentToAddId, setStudentToAddId] = useState('');
   const [dragStudentId, setDragStudentId] = useState('');
   const [sessionState, setSessionState] = useState({
     session: { is_active: 0 },
     absent_student_ids: [],
+    selected_task_ids: [],
+    selected_student_ids: [],
   });
+  const knownContextTaskIdsRef = useRef(new Set());
+  const knownStudentIdsRef = useRef(new Set());
+  const contextPromptPrimedRef = useRef(false);
+  const studentsPromptPrimedRef = useRef(false);
 
   const projectById = useMemo(() => {
     const m = new Map();
@@ -112,7 +120,12 @@ function CollectiveView({
     try {
       const qs = new URLSearchParams({ contextType, contextId });
       const data = await api(`/api/collective/session?${qs.toString()}`);
-      setSessionState(data || { session: { is_active: 0 }, absent_student_ids: [] });
+      setSessionState(data || {
+        session: { is_active: 0 },
+        absent_student_ids: [],
+        selected_task_ids: [],
+        selected_student_ids: [],
+      });
     } catch (err) {
       setToast(`Erreur session collectif : ${err.message}`);
     } finally {
@@ -135,6 +148,8 @@ function CollectiveView({
   }, [toast]);
 
   const absentSet = useMemo(() => new Set(sessionState?.absent_student_ids || []), [sessionState]);
+  const selectedTaskSet = useMemo(() => new Set(sessionState?.selected_task_ids || []), [sessionState]);
+  const selectedStudentSet = useMemo(() => new Set(sessionState?.selected_student_ids || []), [sessionState]);
   const contextMapId = useMemo(() => {
     if (contextType === 'map') return contextId || activeMapId;
     const project = projectById.get(contextId);
@@ -142,7 +157,7 @@ function CollectiveView({
   }, [activeMapId, contextId, contextType, projectById]);
   const contextMap = mapById.get(contextMapId) || null;
 
-  const visibleTasks = useMemo(() => {
+  const contextTasks = useMemo(() => {
     const list = Array.isArray(tasks) ? tasks : [];
     const filtered = list.filter((t) => {
       if (contextType === 'project') return t.project_id === contextId;
@@ -157,20 +172,34 @@ function CollectiveView({
       return String(a.title || '').localeCompare(String(b.title || ''), 'fr');
     });
   }, [contextId, contextType, tasks]);
+  const visibleTasks = useMemo(
+    () => contextTasks.filter((t) => selectedTaskSet.has(t.id)),
+    [contextTasks, selectedTaskSet]
+  );
+  const availableContextTasks = useMemo(
+    () => contextTasks.filter((t) => !selectedTaskSet.has(t.id)),
+    [contextTasks, selectedTaskSet]
+  );
 
-  const filteredStudents = useMemo(() => {
+  const selectedStudents = useMemo(
+    () => students.filter((s) => selectedStudentSet.has(s.id)).sort(sortByName),
+    [students, selectedStudentSet]
+  );
+  const availableStudents = useMemo(
+    () => students.filter((s) => !selectedStudentSet.has(s.id)).sort(sortByName),
+    [students, selectedStudentSet]
+  );
+  const visibleSelectedStudents = useMemo(() => {
     const q = query.trim().toLowerCase();
-    const list = students.filter((s) => {
+    return selectedStudents.filter((s) => {
       if (!q) return true;
       const label = `${s.first_name || ''} ${s.last_name || ''}`.toLowerCase();
       const pseudo = String(s.pseudo || '').toLowerCase();
       return label.includes(q) || pseudo.includes(q);
     });
-    return list;
-  }, [query, students]);
-
-  const presentStudents = filteredStudents.filter((s) => !absentSet.has(s.id));
-  const absentStudents = filteredStudents.filter((s) => absentSet.has(s.id));
+  }, [query, selectedStudents]);
+  const presentStudents = visibleSelectedStudents.filter((s) => !absentSet.has(s.id));
+  const absentStudents = visibleSelectedStudents.filter((s) => absentSet.has(s.id));
   const selectedStudent = students.find((s) => s.id === selectedStudentId) || null;
 
   const toggleSessionActive = async () => {
@@ -224,6 +253,44 @@ function CollectiveView({
     }
   };
 
+  const setTaskSelected = async (taskId, selected) => {
+    if (!canManageSession || !contextId || !taskId) return;
+    setSaving(true);
+    try {
+      const data = await api('/api/collective/session/tasks', 'PUT', {
+        contextType,
+        contextId,
+        taskId,
+        selected,
+      });
+      setSessionState(data);
+      setToast(selected ? 'Tâche ajoutée à la session' : 'Tâche retirée de la session');
+    } catch (err) {
+      setToast(`Erreur sélection tâche : ${err.message}`);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const setSessionStudentSelected = async (studentId, selected) => {
+    if (!canManageSession || !contextId || !studentId) return;
+    setSaving(true);
+    try {
+      const data = await api('/api/collective/session/students', 'PUT', {
+        contextType,
+        contextId,
+        studentId,
+        selected,
+      });
+      setSessionState(data);
+      setToast(selected ? 'Élève ajouté à la session' : 'Élève retiré de la session');
+    } catch (err) {
+      setToast(`Erreur sélection élève : ${err.message}`);
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const assignStudentToTask = async (task, student) => {
     if (!task || !student) return;
     const isSessionActive = !!sessionState?.session?.is_active;
@@ -270,6 +337,53 @@ function CollectiveView({
     await assignStudentToTask(task, student);
   };
 
+  useEffect(() => {
+    const current = new Set(contextTasks.map((t) => t.id));
+    if (!contextPromptPrimedRef.current) {
+      knownContextTaskIdsRef.current = current;
+      contextPromptPrimedRef.current = true;
+      return;
+    }
+    const isSessionActive = !!sessionState?.session?.is_active;
+    if (!isSessionActive) {
+      knownContextTaskIdsRef.current = current;
+      return;
+    }
+    const newcomers = [...current].filter((id) => !knownContextTaskIdsRef.current.has(id));
+    const candidates = newcomers.filter((id) => !selectedTaskSet.has(id));
+    for (const taskId of candidates) {
+      const task = contextTasks.find((t) => t.id === taskId);
+      if (!task) continue;
+      const ok = window.confirm(`Nouvelle tâche détectée: "${task.title}". Ajouter à la session collectif ?`);
+      if (ok) setTaskSelected(task.id, true);
+    }
+    knownContextTaskIdsRef.current = current;
+  }, [contextTasks, selectedTaskSet, sessionState?.session?.is_active]);
+
+  useEffect(() => {
+    const current = new Set(students.map((s) => s.id));
+    if (!studentsPromptPrimedRef.current) {
+      knownStudentIdsRef.current = current;
+      studentsPromptPrimedRef.current = true;
+      return;
+    }
+    const isSessionActive = !!sessionState?.session?.is_active;
+    if (!isSessionActive) {
+      knownStudentIdsRef.current = current;
+      return;
+    }
+    const newcomers = [...current].filter((id) => !knownStudentIdsRef.current.has(id));
+    const candidates = newcomers.filter((id) => !selectedStudentSet.has(id));
+    for (const studentId of candidates) {
+      const student = students.find((s) => s.id === studentId);
+      if (!student) continue;
+      const fullName = `${student.first_name || ''} ${student.last_name || ''}`.trim();
+      const ok = window.confirm(`Nouvel élève détecté: "${fullName}". Ajouter à la session collectif ?`);
+      if (ok) setSessionStudentSelected(student.id, true);
+    }
+    knownStudentIdsRef.current = current;
+  }, [students, selectedStudentSet, sessionState?.session?.is_active]);
+
   if (isMobileWidth) {
     return (
       <div className="empty">
@@ -305,6 +419,42 @@ function CollectiveView({
           <span className={`collective-status ${sessionState?.session?.is_active ? 'on' : 'off'}`}>
             {sessionState?.session?.is_active ? 'Session active' : 'Session inactive'}
           </span>
+        </div>
+      </div>
+
+      <div className="collective-toolbar collective-selector-bar">
+        <div className="collective-toolbar-group">
+          <label>Ajouter une tâche à la session</label>
+          <div className="row">
+            <select value={taskToAddId} onChange={(e) => setTaskToAddId(e.target.value)}>
+              <option value="">Choisir une tâche…</option>
+              {availableContextTasks.map((t) => <option key={t.id} value={t.id}>{t.title}</option>)}
+            </select>
+            <button className="btn btn-secondary btn-sm" disabled={!taskToAddId || saving} onClick={() => {
+              setTaskSelected(taskToAddId, true);
+              setTaskToAddId('');
+            }}>
+              Pousser
+            </button>
+          </div>
+        </div>
+
+        <div className="collective-toolbar-group">
+          <label>Ajouter un élève à la session</label>
+          <div className="row">
+            <select value={studentToAddId} onChange={(e) => setStudentToAddId(e.target.value)}>
+              <option value="">Choisir un élève…</option>
+              {availableStudents.map((s) => (
+                <option key={s.id} value={s.id}>{`${s.first_name || ''} ${s.last_name || ''}`.trim()}</option>
+              ))}
+            </select>
+            <button className="btn btn-secondary btn-sm" disabled={!studentToAddId || saving} onClick={() => {
+              setSessionStudentSelected(studentToAddId, true);
+              setStudentToAddId('');
+            }}>
+              Pousser
+            </button>
+          </div>
         </div>
       </div>
 
@@ -374,6 +524,9 @@ function CollectiveView({
                     <span className="collective-drop-tip">
                       {canAssign ? 'Dépose un élève ici' : 'Inscription bloquée pour cette tâche'}
                     </span>
+                    <button className="btn btn-ghost btn-sm" disabled={saving} onClick={() => setTaskSelected(t.id, false)}>
+                      Retirer de la session
+                    </button>
                   </div>
                 </article>
               );
@@ -415,6 +568,7 @@ function CollectiveView({
                     <div className="collective-student-actions">
                       <button className="btn btn-ghost btn-sm" onClick={() => setSelectedStudentId(s.id)}>Sélectionner</button>
                       <button className="btn btn-ghost btn-sm" onClick={() => setStudentAbsent(s.id, true)} disabled={saving}>Absent</button>
+                      <button className="btn btn-ghost btn-sm" onClick={() => setSessionStudentSelected(s.id, false)} disabled={saving}>Retirer</button>
                     </div>
                   </div>
                 ))}
@@ -426,9 +580,12 @@ function CollectiveView({
                 {absentStudents.map((s) => (
                   <div key={s.id} className="collective-student absent">
                     <div className="collective-student-name">{s.first_name} {s.last_name}</div>
-                    <button className="btn btn-secondary btn-sm" onClick={() => setStudentAbsent(s.id, false)} disabled={saving}>
-                      Réintégrer
-                    </button>
+                    <div className="collective-student-actions">
+                      <button className="btn btn-secondary btn-sm" onClick={() => setStudentAbsent(s.id, false)} disabled={saving}>
+                        Réintégrer
+                      </button>
+                      <button className="btn btn-ghost btn-sm" onClick={() => setSessionStudentSelected(s.id, false)} disabled={saving}>Retirer</button>
+                    </div>
                   </div>
                 ))}
                 {absentStudents.length === 0 && <p className="collective-muted">Aucun absent marqué.</p>}

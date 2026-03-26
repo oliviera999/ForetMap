@@ -1125,6 +1125,12 @@
   align-items:flex-end;
   gap:8px;
 }
+.collective-selector-bar .row {
+  align-items:center;
+}
+.collective-selector-bar select {
+  min-width:220px;
+}
 .collective-status {
   font-size:.78rem;
   font-weight:700;
@@ -1233,7 +1239,8 @@
 .collective-task-actions {
   display:flex;
   align-items:center;
-  justify-content:space-between;
+  justify-content:flex-start;
+  flex-wrap:wrap;
   gap:8px;
 }
 .collective-drop-tip {
