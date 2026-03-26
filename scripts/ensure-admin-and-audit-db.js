@@ -8,10 +8,12 @@ function parseArgs(argv) {
   const out = {
     login: process.env.ADMIN_CANONICAL_LOGIN || 'oliviera9',
     dryRun: false,
+    fixOrphans: false,
   };
   for (let i = 0; i < argv.length; i += 1) {
     const a = String(argv[i] || '').trim();
     if (a === '--dry-run') out.dryRun = true;
+    else if (a === '--fix-orphans') out.fixOrphans = true;
     else if (a === '--login' && argv[i + 1]) {
       out.login = String(argv[i + 1]).trim();
       i += 1;
@@ -112,7 +114,40 @@ async function ensureAdminForLogin(login, dryRun) {
   };
 }
 
-async function auditDatabase() {
+async function countOrphanStudentAssignments() {
+  const row = await queryOne(
+    `SELECT COUNT(*) AS c
+       FROM task_assignments ta
+       LEFT JOIN users u ON u.id = ta.student_id AND u.user_type = 'student'
+      WHERE ta.student_id IS NOT NULL
+        AND u.id IS NULL`
+  );
+  return Number(row?.c || 0);
+}
+
+async function fixOrphanStudentAssignments(dryRun) {
+  const before = await countOrphanStudentAssignments();
+  if (before === 0) return { before, fixed: 0, after: 0 };
+  if (dryRun) return { before, fixed: before, after: before };
+
+  const result = await execute(
+    `UPDATE task_assignments ta
+       LEFT JOIN users u ON u.id = ta.student_id AND u.user_type = 'student'
+       SET ta.student_id = NULL
+     WHERE ta.student_id IS NOT NULL
+       AND u.id IS NULL`
+  );
+  const after = await countOrphanStudentAssignments();
+  return {
+    before,
+    fixed: Number(result?.affectedRows || 0),
+    after,
+  };
+}
+
+async function auditDatabase(options = {}) {
+  const dryRun = !!options.dryRun;
+  const fixOrphans = !!options.fixOrphans;
   const checks = [];
   const push = (state, label, details = '') => checks.push({ state, label, details });
 
@@ -205,17 +240,22 @@ async function auditDatabase() {
     Number(orphanAssignments?.c || 0) === 0 ? '' : `${orphanAssignments.c} assignation(s) orpheline(s)`
   );
 
-  const orphanStudentAssignments = await queryOne(
-    `SELECT COUNT(*) AS c
-       FROM task_assignments ta
-       LEFT JOIN users u ON u.id = ta.student_id AND u.user_type = 'student'
-      WHERE ta.student_id IS NOT NULL
-        AND u.id IS NULL`
-  );
+  let orphanStudentAssignments = await countOrphanStudentAssignments();
+  if (fixOrphans && orphanStudentAssignments > 0) {
+    const fix = await fixOrphanStudentAssignments(dryRun);
+    orphanStudentAssignments = fix.after;
+    if (dryRun) {
+      push('warn', 'Correction orphelins student_id (dry-run)', `${fix.before} ligne(s) seraient corrigées`);
+    } else if (fix.after === 0) {
+      push('ok', 'Correction orphelins student_id', `${fix.fixed} ligne(s) corrigée(s)`);
+    } else {
+      push('warn', 'Correction orphelins student_id', `${fix.fixed} corrigée(s), ${fix.after} restante(s)`);
+    }
+  }
   push(
-    Number(orphanStudentAssignments?.c || 0) === 0 ? 'ok' : 'warn',
+    Number(orphanStudentAssignments || 0) === 0 ? 'ok' : 'warn',
     'Assignations avec student_id valide',
-    Number(orphanStudentAssignments?.c || 0) === 0 ? '' : `${orphanStudentAssignments.c} référence(s) élève absente(s)`
+    Number(orphanStudentAssignments || 0) === 0 ? '' : `${orphanStudentAssignments} référence(s) élève absente(s)`
   );
 
   const orphanTaskZones = await queryOne(
@@ -248,7 +288,7 @@ async function auditDatabase() {
 }
 
 async function main() {
-  const { login, dryRun } = parseArgs(process.argv.slice(2));
+  const { login, dryRun, fixOrphans } = parseArgs(process.argv.slice(2));
   let exitCode = 0;
 
   printSection('Connexion BDD');
@@ -266,7 +306,7 @@ async function main() {
   }
 
   printSection('Audit intégrité BDD');
-  const checks = await auditDatabase();
+  const checks = await auditDatabase({ dryRun, fixOrphans });
   for (const c of checks) {
     printCheck(c.state, c.label, c.details);
     if (c.state === 'fail') exitCode = 2;

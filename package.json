@@ -1,6 +1,6 @@
 {
   "name": "foretmap",
-  "version": "1.12.1",
+  "version": "1.12.2",
   "description": "Application de gestion de la forêt comestible - Lycée Lyautey",
   "main": "server.js",
   "dependencies": {
@@ -29,6 +29,7 @@
     "db:seed:teacher": "node scripts/seed-teacher-admin.js",
     "db:admin:audit": "node scripts/ensure-admin-and-audit-db.js --login oliviera9",
     "db:admin:audit:dry": "node scripts/ensure-admin-and-audit-db.js --login oliviera9 --dry-run",
+    "db:admin:audit:fix-orphans": "node scripts/ensure-admin-and-audit-db.js --login oliviera9 --fix-orphans",
     "db:backfill:users": "node scripts/backfill-users-unification.js",
     "db:migrate:images": "node scripts/migrate-images-to-disk.js",
     "db:migrate:images:dry": "node scripts/migrate-images-to-disk.js --dry-run",
