@@ -227,6 +227,12 @@ app.get('/docs/:file', (req, res) => {
   res.sendFile(path.resolve(__dirname, 'docs', file));
 });
 
+// Liste centralisée des problèmes potentiels du site (audit interne)
+app.get('/api/site-issues', (req, res) => {
+  res.type('text/markdown; charset=utf-8');
+  res.sendFile(path.resolve(__dirname, 'docs', 'SITE_ISSUES.md'));
+});
+
 // Favicon : évite le fallback SPA et un éventuel 500
 app.get('/favicon.ico', (req, res) => res.status(204).end());
 
