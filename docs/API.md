@@ -16,6 +16,24 @@ Réponses JSON. En cas d’erreur : `{ "error": "message" }` avec statut HTTP ad
 
 ---
 
+## Diagnostic public (site)
+
+Ces endpoints exposent un inventaire des problèmes techniques potentiels déjà identifiés.
+Ils sont utiles pour l’exploitation, la QA et le suivi des correctifs.
+
+| Méthode | URL | Description |
+|--------|-----|-------------|
+| GET | `/api/site-issues` | Retourne le rapport en **Markdown** (`text/markdown`) |
+| GET | `/api/site-issues.json` | Retourne le rapport en **JSON** (`application/json`) |
+
+Sources de référence :
+
+- `docs/SITE_ISSUES.md`
+- `docs/SITE_ISSUES.json`
+- audits détaillés : `docs/AUDIT_BUGS_INCOHERENCES.md`, `docs/AUDIT_PHOTOS_BIODIVERSITE.md`
+
+---
+
 ## Administration (secret `DEPLOY_SECRET`)
 
 Nécessite la variable d’environnement **`DEPLOY_SECRET`** et le header **`X-Deploy-Secret: <valeur>`** (éviter de passer le secret en query string en prod : risque dans les journaux d’accès).
@@ -31,19 +49,21 @@ Le tampon est dimensionné par **`LOG_BUFFER_MAX_LINES`** (défaut 2000, plafond
 
 ## Temps réel (Socket.IO)
 
-Connexion **WebSocket** (avec repli **polling** long) sur le **même hôte** que l’API, chemin Socket.IO : `/socket.io`.
+Connexion Socket.IO (transport **polling** actuellement forcé côté client) sur le **même hôte** que l’API, chemin `/socket.io`.
 
 - **CORS** : en production, même règle que l’API (`FRONTEND_ORIGIN` si défini).
 - **Rôle** : notifier les clients qu’une ressource a changé ; les données à jour restent à charger via les routes REST (`GET /api/tasks`, etc.).
-- **Client** : le frontend se connecte une fois l’élève authentifié ; en cas d’échec de connexion, le rafraîchissement périodique (≈ 30 s) reste actif.
+- **Auth socket** : token JWT requis (transmis dans le handshake Socket.IO).
+- **Rooms** : souscription de domaine (`tasks`, `students`, `garden`) + souscription carte via `subscribe:map` (payload `{ mapId }`).
+- **Client** : le frontend se connecte pour élève/prof authentifié ; en cas d’échec, le rafraîchissement périodique reste actif (cadence adaptative).
 
 Événements émis par le serveur (payload JSON, toujours avec un champ `ts` — horodatage) :
 
 | Événement | Quand | Champs utiles (exemples) |
 |-----------|--------|---------------------------|
-| `tasks:changed` | Création / modification / suppression de tâche, assignation, désassignation, marquer fait, validation, suppression d’un log | `reason`, `taskId` |
+| `tasks:changed` | Création / modification / suppression de tâche, assignation, désassignation, marquer fait, validation, suppression d’un log | `reason`, `taskId`, `mapId` |
 | `students:changed` | Inscription d’un élève, suppression d’un élève | `reason`, `studentId` |
-| `garden:changed` | Zones, photos de zone, biodiversité, marqueurs carte | `reason`, `zoneId`, `plantId`, `markerId`… |
+| `garden:changed` | Zones, photos de zone, biodiversité, marqueurs carte | `reason`, `zoneId`, `plantId`, `markerId`, `mapId`… |
 
 ---
 
