@@ -66,6 +66,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - **Navigation/auth** : ajout d’un CTA « Visiter sans connexion » dans l’écran d’authentification et intégration de l’onglet `Visite` dans les navigations élève/prof.
 
 ### Corrigé
+- **Catalogue biodiversité (photos)** : affichage des vignettes en bande horizontale avec défilement latéral pour éviter l’empilement vertical sur écran étroit.
 - **Crash frontend (React #310)** : stabilisation de l’ordre des hooks dans `App` en rendant `useDialogA11y` inconditionnel, ce qui supprime l’écran “Une erreur s’est produite / Recharger la page” au changement d’état de chargement/session.
 - **Service worker (schémas non HTTP)** : les requêtes `chrome-extension://` (et autres schémas non supportés) sont désormais ignorées dans le cache runtime pour éviter l’exception `Failed to execute 'put' on 'Cache'`.
 - **Service worker (mise à jour forcée)** : passage du cache offline en `foretmap-offline-v2`, stratégie `network-first` pour les bundles JS/CSS et `Cache-Control: no-store` sur `/sw.js` pour réduire les cas de frontend bloqué sur des assets obsolètes après déploiement.
