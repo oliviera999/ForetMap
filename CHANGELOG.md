@@ -40,6 +40,9 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - **Tests visite** : nouveaux scénarios backend sur le contenu visite, la persistance anonyme via cookie signé et la persistance élève en base.
 
 ### Modifié
+- **Accessibilité des modales et formulaires** : ajout d’un hook partagé `useDialogA11y` (focus initial, piège de focus, fermeture `Escape`, retour focus) et application sur les modales clés (profil/stats, carte, tâches, lightbox), avec labels/`htmlFor`/`aria-*` renforcés.
+- **Navigation adaptative carte+tâches** : en grand écran, fusion des onglets carte/tâches en une entrée unifiée côté prof et élève, avec compteur de tâches contextualisé (à valider / assignées actives).
+- **Formulaires tâches multi-liens** : normalisation des identifiants `zone_ids`/`marker_ids` (trim, dédoublonnage, comparaisons robustes) pour éviter les incohérences de sélection selon les cartes/projets.
 - **Terminologie UI conditionnelle N3** : pour les comptes avec `affiliation = n3`, les libellés visibles `élève(s)` et `prof(esseur)(s)` sont remplacés en interface par `n3beur(s)` et `n3boss` (auth, profils, stats, tâches, collectif, audit, visite, paramètres, à propos), sans modifier les clés techniques backend/API.
 - **Layout grand écran (prof + élèves)** : ajout d’un mode adaptatif qui fusionne `Carte` et `Tâches` sur une seule page quand la largeur disponible le permet (fallback automatique en onglets si l’espace devient insuffisant), extension de la zone utile en desktop et agrandissement de la carte en vue `Collectif`.
 - **Inscription élève (UI)** : le formulaire demande désormais explicitement l’espace d’activité (`N3`, `Forêt comestible` ou `les deux`) via un sélecteur obligatoire, puis transmet ce choix (`affiliation`) à l’API d’inscription.
@@ -62,6 +65,8 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - **Navigation/auth** : ajout d’un CTA « Visiter sans connexion » dans l’écran d’authentification et intégration de l’onglet `Visite` dans les navigations élève/prof.
 
 ### Corrigé
+- **Carte (repères interactifs)** : conversion des pastilles de repère en boutons clavier/accessibles, avec libellés contextuels et styles `focus-visible` pour améliorer la navigation non tactile.
+- **Modales zone/repère (ordre des actions)** : réorganisation de sections dans les vues prof pour privilégier la lecture des liaisons existantes avant l’action de liaison, sans changer la logique métier.
 - **Affichage grand écran** : stabilisation de la barre de navigation élève (hauteur maîtrisée et non-expansive), alignement de l’espace réservé (`main`/`toast`) sur la hauteur réelle de menu, et densification légère desktop des champs/boutons/onglets pour réduire l’effet visuel trop “gros” sans régression mobile.
 - **Navigation carte mobile (refonte gestes)** : extraction de la logique tactile dans un hook dédié avec stratégie mobile explicite (carte passive par défaut, bouton d’activation des gestes, réverrouillage auto après inactivité), pour supprimer les blocages de scroll tout en conservant le zoom/pan volontaire.
 - **Carte mobile (gestes tactiles)** : en mode vue non zoomé, le glissement à un doigt privilégie désormais le scroll de page (et conserve le zoom/pan carte à deux doigts), pour éviter les blocages de navigation sur smartphone.

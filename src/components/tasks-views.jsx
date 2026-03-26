@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { api, API, getAuthToken, AccountDeletedError } from '../services/api';
 import { taskStatusIndicator, daysUntil, dueDateChip } from '../utils/badges';
 import { getRoleTerms } from '../utils/n3-terminology';
+import { useDialogA11y } from '../hooks/useDialogA11y';
 
 function Toast({ msg, onDone }) {
   useEffect(() => { const t = setTimeout(onDone, 2400); return () => clearTimeout(t); }, []);
@@ -11,6 +12,7 @@ function Toast({ msg, onDone }) {
 
 function Lightbox({ src, caption, onClose }) {
   const el = React.useMemo(() => document.createElement('div'), []);
+  const dialogRef = useDialogA11y(onClose);
   useEffect(() => {
     document.body.appendChild(el);
     document.body.style.overflow = 'hidden';
@@ -26,6 +28,15 @@ function Lightbox({ src, caption, onClose }) {
         display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
         padding: 20 }}
       onClick={onClose}>
+      <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Aperçu image"
+        tabIndex={-1}
+        style={{ position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center' }}
+        onClick={(e) => e.stopPropagation()}
+      >
       <img src={src} onClick={e => e.stopPropagation()}
         style={{ maxWidth: '95vw', maxHeight: '85vh', borderRadius: 10,
           objectFit: 'contain', boxShadow: '0 8px 40px rgba(0,0,0,.5)',
@@ -41,7 +52,9 @@ function Lightbox({ src, caption, onClose }) {
           border: 'none', color: 'white', borderRadius: '50%',
           width: 40, height: 40, fontSize: '1.1rem', cursor: 'pointer',
           display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+        aria-label="Fermer l'aperçu"
         onClick={onClose}>✕</button>
+      </div>
     </div>
   );
 
@@ -62,9 +75,11 @@ function fileToDataUrl(file) {
 function initialLocationIds(editTask, keyMulti, keySingle) {
   if (!editTask) return [];
   const multi = editTask[keyMulti];
-  if (Array.isArray(multi) && multi.length) return [...multi];
+  if (Array.isArray(multi) && multi.length) {
+    return [...new Set(multi.map((id) => String(id || '').trim()).filter(Boolean))];
+  }
   const one = editTask[keySingle];
-  return one ? [one] : [];
+  return one ? [String(one).trim()].filter(Boolean) : [];
 }
 
 function normalizeTutorialIds(ids) {
@@ -91,6 +106,7 @@ function TaskFormModal({
   isProposal = false,
   roleTerms = null,
 }) {
+  const dialogRef = useDialogA11y(onClose);
   const terms = roleTerms || getRoleTerms(false);
   const initialMapId = editTask
     ? (editTask.map_id_resolved || editTask.map_id || editTask.zone_map_id || editTask.marker_map_id || null)
@@ -125,8 +141,12 @@ function TaskFormModal({
           next.project_id = '';
         }
         if (value) {
-          next.zone_ids = f.zone_ids.filter(id => zones.find(z => z.id === id)?.map_id === value);
-          next.marker_ids = f.marker_ids.filter(id => markers.find(m => m.id === id)?.map_id === value);
+          next.zone_ids = f.zone_ids.filter((id) => (
+            zones.find((z) => String(z.id || '').trim() === String(id || '').trim())?.map_id === value
+          ));
+          next.marker_ids = f.marker_ids.filter((id) => (
+            markers.find((m) => String(m.id || '').trim() === String(id || '').trim())?.map_id === value
+          ));
         }
         return next;
       });
@@ -138,8 +158,12 @@ function TaskFormModal({
         const selectedProject = taskProjects.find((p) => p.id === value);
         if (!selectedProject) return next;
         next.map_id = selectedProject.map_id;
-        next.zone_ids = f.zone_ids.filter((id) => zones.find((z) => z.id === id)?.map_id === selectedProject.map_id);
-        next.marker_ids = f.marker_ids.filter((id) => markers.find((m) => m.id === id)?.map_id === selectedProject.map_id);
+        next.zone_ids = f.zone_ids.filter((id) => (
+          zones.find((z) => String(z.id || '').trim() === String(id || '').trim())?.map_id === selectedProject.map_id
+        ));
+        next.marker_ids = f.marker_ids.filter((id) => (
+          markers.find((m) => String(m.id || '').trim() === String(id || '').trim())?.map_id === selectedProject.map_id
+        ));
         return next;
       });
       return;
@@ -148,19 +172,27 @@ function TaskFormModal({
   };
 
   const toggleZoneId = (zoneId) => {
+    const normalizedZoneId = String(zoneId || '').trim();
+    if (!normalizedZoneId) return;
     setForm(f => {
-      const has = f.zone_ids.includes(zoneId);
-      const zoneIds = has ? f.zone_ids.filter(id => id !== zoneId) : [...f.zone_ids, zoneId];
-      const z = zones.find(zz => zz.id === zoneId);
+      const has = f.zone_ids.includes(normalizedZoneId);
+      const zoneIds = has
+        ? f.zone_ids.filter((id) => id !== normalizedZoneId)
+        : [...f.zone_ids, normalizedZoneId];
+      const z = zones.find((zz) => String(zz.id || '').trim() === normalizedZoneId);
       return { ...f, zone_ids: zoneIds, map_id: z?.map_id && !f.map_id ? z.map_id : f.map_id };
     });
   };
 
   const toggleMarkerId = (markerId) => {
+    const normalizedMarkerId = String(markerId || '').trim();
+    if (!normalizedMarkerId) return;
     setForm(f => {
-      const has = f.marker_ids.includes(markerId);
-      const marker_ids = has ? f.marker_ids.filter(id => id !== markerId) : [...f.marker_ids, markerId];
-      const mk = markers.find(m => m.id === markerId);
+      const has = f.marker_ids.includes(normalizedMarkerId);
+      const marker_ids = has
+        ? f.marker_ids.filter((id) => id !== normalizedMarkerId)
+        : [...f.marker_ids, normalizedMarkerId];
+      const mk = markers.find((m) => String(m.id || '').trim() === normalizedMarkerId);
       return { ...f, marker_ids, map_id: mk?.map_id && !f.map_id ? mk.map_id : f.map_id };
     });
   };
@@ -182,11 +214,11 @@ function TaskFormModal({
     if (!form.title.trim()) return setErr('Le titre est requis');
     const mapFromLinks = () => {
       for (const id of form.zone_ids) {
-        const z = zones.find(zz => zz.id === id);
+        const z = zones.find((zz) => String(zz.id || '').trim() === String(id || '').trim());
         if (z?.map_id) return z.map_id;
       }
       for (const id of form.marker_ids) {
-        const m = markers.find(mm => mm.id === id);
+        const m = markers.find((mm) => String(mm.id || '').trim() === String(id || '').trim());
         if (m?.map_id) return m.map_id;
       }
       return form.map_id || null;
@@ -195,8 +227,8 @@ function TaskFormModal({
       title: form.title.trim(),
       description: form.description || '',
       map_id: form.map_id || null,
-      zone_ids: form.zone_ids,
-      marker_ids: form.marker_ids,
+      zone_ids: [...new Set(form.zone_ids.map((id) => String(id || '').trim()).filter(Boolean))],
+      marker_ids: [...new Set(form.marker_ids.map((id) => String(id || '').trim()).filter(Boolean))],
       tutorial_ids: normalizedTutorialIds,
       project_id: form.project_id || null,
       due_date: form.due_date || null,
@@ -236,7 +268,14 @@ function TaskFormModal({
 
   return (
     <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
-      <div className="modal fade-in">
+      <div
+        ref={dialogRef}
+        className="modal fade-in"
+        role="dialog"
+        aria-modal="true"
+        aria-label={editTask ? 'Modifier la tâche' : isProposal ? 'Proposer une tâche' : 'Nouvelle tâche'}
+        tabIndex={-1}
+      >
         <button className="modal-close" onClick={onClose}>✕</button>
         <h3>{editTask ? 'Modifier la tâche' : isProposal ? 'Proposer une tâche' : 'Nouvelle tâche'}</h3>
         {err && <p style={{ color: var_alert, marginBottom: 12, fontSize: '.85rem' }}>{err}</p>}
@@ -264,7 +303,11 @@ function TaskFormModal({
               ? <p style={{ fontSize: '.82rem', color: '#888', margin: 8 }}>Aucune zone pour cette carte.</p>
               : selectableZones.map(z => (
                 <label key={z.id} style={pickRow}>
-                  <input type="checkbox" checked={form.zone_ids.includes(z.id)} onChange={() => toggleZoneId(z.id)} />
+                  <input
+                    type="checkbox"
+                    checked={form.zone_ids.includes(String(z.id || '').trim())}
+                    onChange={() => toggleZoneId(z.id)}
+                  />
                   <span style={{ fontSize: '.88rem' }}>{z.name}{z.current_plant ? ` — ${z.current_plant}` : ''}</span>
                 </label>
               ))}
@@ -276,7 +319,11 @@ function TaskFormModal({
               ? <p style={{ fontSize: '.82rem', color: '#888', margin: 8 }}>Aucun repère pour cette carte.</p>
               : selectableMarkers.map(m => (
                 <label key={m.id} style={pickRow}>
-                  <input type="checkbox" checked={form.marker_ids.includes(m.id)} onChange={() => toggleMarkerId(m.id)} />
+                  <input
+                    type="checkbox"
+                    checked={form.marker_ids.includes(String(m.id || '').trim())}
+                    onChange={() => toggleMarkerId(m.id)}
+                  />
                   <span style={{ fontSize: '.88rem' }}>{m.emoji ? `${m.emoji} ` : ''}{m.label}</span>
                 </label>
               ))}
@@ -359,6 +406,7 @@ function TaskFormModal({
 }
 
 function TaskProjectFormModal({ maps = [], activeMapId = 'foret', onClose, onSave }) {
+  const dialogRef = useDialogA11y(onClose);
   const [form, setForm] = useState({
     title: '',
     description: '',
@@ -386,7 +434,14 @@ function TaskProjectFormModal({ maps = [], activeMapId = 'foret', onClose, onSav
 
   return (
     <div className="modal-overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
-      <div className="modal fade-in">
+      <div
+        ref={dialogRef}
+        className="modal fade-in"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Nouveau projet"
+        tabIndex={-1}
+      >
         <button className="modal-close" onClick={onClose}>✕</button>
         <h3>Nouveau projet</h3>
         {err && <p style={{ color: var_alert, marginBottom: 12, fontSize: '.85rem' }}>{err}</p>}
@@ -472,6 +527,7 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
   const [importDryRun, setImportDryRun] = useState(false);
   const [importing, setImporting] = useState(false);
   const [importReport, setImportReport] = useState(null);
+  const confirmDialogRef = useDialogA11y(() => setConfirmTask(null));
 
   useEffect(() => {
     setFilterMap('active');
@@ -634,6 +690,16 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
   const done = allFiltered.filter(t => t.status === 'done');
   const validated = allFiltered.filter(t => t.status === 'validated');
   const proposed = allFiltered.filter(t => t.status === 'proposed');
+  const availableNotMine = useMemo(
+    () => available.filter((t) => !myTasks.some((m) => m.id === t.id)),
+    [available, myTasks]
+  );
+  const recentlyValidatedForStudent = useMemo(
+    () => allFiltered.filter((t) => t.status === 'validated' && t.assignments?.some(
+      (a) => a.student_first_name === student?.first_name && a.student_last_name === student?.last_name
+    )),
+    [allFiltered, student?.first_name, student?.last_name]
+  );
 
   const urgentTasks = !isTeacher ? allFiltered.filter(t => {
     if (t.status === 'validated' || t.status === 'done') return false;
@@ -799,7 +865,16 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
 
       {confirmTask && (
         <div className="modal-overlay" onClick={e => e.target === e.currentTarget && setConfirmTask(null)}>
-          <div className="log-modal fade-in" style={{ paddingBottom: 'calc(20px + var(--safe-bottom))' }} onClick={e => e.stopPropagation()}>
+          <div
+            ref={confirmDialogRef}
+            className="log-modal fade-in"
+            style={{ paddingBottom: 'calc(20px + var(--safe-bottom))' }}
+            onClick={e => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Confirmation d'action"
+            tabIndex={-1}
+          >
             <h3 style={{ marginBottom: 8 }}>Confirmation</h3>
             <p style={{ fontSize: '.95rem', color: '#444', marginBottom: 20, lineHeight: 1.5 }}>{confirmTask.label}</p>
             <div style={{ display: 'flex', gap: 10 }}>
@@ -992,20 +1067,16 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
         </>
       ) : (
         <>
-          {available.filter(t => !myTasks.some(m => m.id === t.id)).length > 0 && (
+          {availableNotMine.length > 0 && (
             <div className="tasks-section">
               <div className="tasks-section-title">Tâches disponibles</div>
-              <div>{available.filter(t => !myTasks.some(m => m.id === t.id)).map(t => <TaskCard key={t.id} t={t} />)}</div>
+              <div>{availableNotMine.map(t => <TaskCard key={t.id} t={t} />)}</div>
             </div>
           )}
-          {allFiltered.filter(t => t.status === 'validated' && t.assignments?.some(
-            a => a.student_first_name === student?.first_name && a.student_last_name === student?.last_name
-          )).length > 0 && (
+          {recentlyValidatedForStudent.length > 0 && (
               <div className="tasks-section">
                 <div className="tasks-section-title">Récemment validées ✓</div>
-                <div>{allFiltered.filter(t => t.status === 'validated' && t.assignments?.some(
-                  a => a.student_first_name === student?.first_name && a.student_last_name === student?.last_name
-                )).map(t => <TaskCard key={t.id} t={t} />)}</div>
+                <div>{recentlyValidatedForStudent.map(t => <TaskCard key={t.id} t={t} />)}</div>
               </div>
             )}
         </>
@@ -1019,6 +1090,7 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
 }
 
 function LogModal({ task, student, onClose, onDone }) {
+  const dialogRef = useDialogA11y(onClose);
   const [comment, setComment] = useState('');
   const [imageData, setImageData] = useState(null);
   const [preview, setPreview] = useState(null);
@@ -1067,7 +1139,14 @@ function LogModal({ task, student, onClose, onDone }) {
 
   return (
     <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
-      <div className="log-modal fade-in">
+      <div
+        ref={dialogRef}
+        className="log-modal fade-in"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Rapport de tâche"
+        tabIndex={-1}
+      >
         <button className="modal-close" onClick={onClose}>✕</button>
         <h3>📋 Rapport de tâche</h3>
         <p style={{ fontSize: '.85rem', color: '#777', marginBottom: 16 }}>
@@ -1109,6 +1188,7 @@ function LogModal({ task, student, onClose, onDone }) {
 }
 
 function TaskLogsViewer({ task, onClose }) {
+  const dialogRef = useDialogA11y(onClose);
   const [logs, setLogs] = useState([]);
   const [big, setBig] = useState(null);
   const [toast, setToast] = useState(null);
@@ -1134,7 +1214,14 @@ function TaskLogsViewer({ task, onClose }) {
     <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
       {big && <Lightbox src={big} caption="" onClose={() => setBig(null)} />}
       {toast && <Toast msg={toast} onDone={() => setToast(null)} />}
-      <div className="log-modal fade-in">
+      <div
+        ref={dialogRef}
+        className="log-modal fade-in"
+        role="dialog"
+        aria-modal="true"
+        aria-label={`Rapports de la tâche ${task.title}`}
+        tabIndex={-1}
+      >
         <button className="modal-close" onClick={onClose}>✕</button>
         <h3>📋 Rapports — {task.title}</h3>
         {logs.length === 0

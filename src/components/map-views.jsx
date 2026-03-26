@@ -5,6 +5,7 @@ import { ZONE_COLORS } from '../constants/garden';
 import { MARKER_EMOJIS } from '../constants/emojis';
 import { stageBadge } from '../utils/badges';
 import { compressImage } from '../utils/image';
+import { useDialogA11y } from '../hooks/useDialogA11y';
 
 function Toast({ msg, onDone }) {
   useEffect(() => { const t = setTimeout(onDone, 2400); return () => clearTimeout(t); }, []);
@@ -13,6 +14,7 @@ function Toast({ msg, onDone }) {
 
 function Lightbox({ src, caption, onClose }) {
   const el = useMemo(() => document.createElement('div'), []);
+  const dialogRef = useDialogA11y(onClose);
   useEffect(() => {
     document.body.appendChild(el);
     document.body.style.overflow = 'hidden';
@@ -28,6 +30,15 @@ function Lightbox({ src, caption, onClose }) {
         display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
         padding: 20 }}
       onClick={onClose}>
+      <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Aperçu image"
+        tabIndex={-1}
+        style={{ position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center' }}
+        onClick={(e) => e.stopPropagation()}
+      >
       <img src={src} onClick={e => e.stopPropagation()}
         style={{ maxWidth: '95vw', maxHeight: '85vh', borderRadius: 10,
           objectFit: 'contain', boxShadow: '0 8px 40px rgba(0,0,0,.5)',
@@ -43,7 +54,9 @@ function Lightbox({ src, caption, onClose }) {
           border: 'none', color: 'white', borderRadius: '50%',
           width: 40, height: 40, fontSize: '1.1rem', cursor: 'pointer',
           display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+        aria-label="Fermer l'aperçu"
         onClick={onClose}>✕</button>
+      </div>
     </div>
   );
 
@@ -247,7 +260,8 @@ function mergeTaskVisualStatus(current, next) {
 }
 
 function ZoneInfoModal({ zone, plants, tasks, isTeacher, student, onClose, onUpdate, onDelete, onEditPoints, onLinkTask, onUnlinkTask, onAssignTasks }) {
-  const [tab, setTab] = useState('info');
+  const dialogRef = useDialogA11y(onClose);
+  const [tab, setTab] = useState('tasks');
   const [zoneName, setZoneName] = useState(zone.name || '');
   const [plant, setPlant] = useState(zone.current_plant || '');
   const [livingBeings, setLivingBeings] = useState(parseLivingBeings(zone.living_beings_list || zone.living_beings, zone.current_plant));
@@ -272,6 +286,12 @@ function ZoneInfoModal({ zone, plants, tasks, isTeacher, student, onClose, onUpd
   const showTasksTab = isTeacher || (!!student && linkedTasks.length > 0);
 
   useEffect(() => {
+    if (!showTasksTab && tab === 'tasks') {
+      setTab('info');
+    }
+  }, [showTasksTab, tab]);
+
+  useEffect(() => {
     setSelectedTaskIds((prev) => prev.filter((id) => studentAssignableTasks.some((t) => t.id === id)));
   }, [studentAssignableTasks]);
 
@@ -290,15 +310,23 @@ function ZoneInfoModal({ zone, plants, tasks, isTeacher, student, onClose, onUpd
   };
 
   const TABS = [
+    ...(showTasksTab ? [{ id: 'tasks', label: '✅ Tâches' }] : []),
     { id: 'info', label: 'ℹ️ Info' },
     { id: 'photos', label: '📷 Photos' },
-    ...(showTasksTab ? [{ id: 'tasks', label: '✅ Tâches' }] : []),
     ...(isTeacher && !zone.special ? [{ id: 'edit', label: '✏️ Modifier' }] : []),
   ];
 
   return (
     <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
-      <div className="log-modal fade-in" style={{ paddingTop: 16 }}>
+      <div
+        ref={dialogRef}
+        className="log-modal fade-in"
+        style={{ paddingTop: 16 }}
+        role="dialog"
+        aria-modal="true"
+        aria-label={`Zone ${zone.name}`}
+        tabIndex={-1}
+      >
         {toast && <Toast msg={toast} onDone={() => setToast(null)} />}
         <button className="modal-close" onClick={onClose}>✕</button>
 
@@ -435,20 +463,6 @@ function ZoneInfoModal({ zone, plants, tasks, isTeacher, student, onClose, onUpd
         )}
         {tab === 'tasks' && isTeacher && (
           <div className="fade-in">
-            <div className="field"><label>Lier une tâche existante</label>
-              <select value={linkTaskId} onChange={e => setLinkTaskId(e.target.value)}>
-                <option value="">— Choisir une tâche —</option>
-                {assignableTasks.map(t => <option key={t.id} value={t.id}>{t.title}</option>)}
-              </select>
-            </div>
-            <button className="btn btn-primary btn-full" disabled={!linkTaskId}
-              onClick={async () => {
-                await onLinkTask?.(linkTaskId);
-                setLinkTaskId('');
-                setToast('Tâche liée à la zone ✓');
-              }}>
-              🔗 Lier la tâche
-            </button>
             <div style={{ marginTop: 12 }}>
               {linkedTasks.length === 0 ? (
                 <p style={{ color: '#999', fontSize: '.85rem' }}>Aucune tâche liée à cette zone.</p>
@@ -465,6 +479,20 @@ function ZoneInfoModal({ zone, plants, tasks, isTeacher, student, onClose, onUpd
                 </div>
               ))}
             </div>
+            <div className="field" style={{ marginTop: 14 }}><label>Lier une tâche existante</label>
+              <select value={linkTaskId} onChange={e => setLinkTaskId(e.target.value)}>
+                <option value="">— Choisir une tâche —</option>
+                {assignableTasks.map(t => <option key={t.id} value={t.id}>{t.title}</option>)}
+              </select>
+            </div>
+            <button className="btn btn-primary btn-full" disabled={!linkTaskId}
+              onClick={async () => {
+                await onLinkTask?.(linkTaskId);
+                setLinkTaskId('');
+                setToast('Tâche liée à la zone ✓');
+              }}>
+              🔗 Lier la tâche
+            </button>
           </div>
         )}
         {tab === 'tasks' && !isTeacher && (
@@ -546,6 +574,7 @@ function ZoneInfoModal({ zone, plants, tasks, isTeacher, student, onClose, onUpd
 }
 
 function ZoneDrawModal({ points_pct, onClose, onSave, plants }) {
+  const dialogRef = useDialogA11y(onClose);
   const [form, setForm] = useState({ name: '', current_plant: '', living_beings: [], stage: 'empty', description: '', color: ZONE_COLORS[0] });
   const [saving, setSaving] = useState(false);
   const set = k => e => setForm(f => ({ ...f, [k]: e.target.value }));
@@ -557,7 +586,14 @@ function ZoneDrawModal({ points_pct, onClose, onSave, plants }) {
   };
   return (
     <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
-      <div className="log-modal fade-in">
+      <div
+        ref={dialogRef}
+        className="log-modal fade-in"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Nouvelle zone"
+        tabIndex={-1}
+      >
         <button className="modal-close" onClick={onClose}>✕</button>
         <h3>🖊️ Nouvelle zone</h3>
         <p style={{ fontSize: '.83rem', color: '#888', marginBottom: 14 }}>{points_pct.length} points tracés</p>
@@ -620,6 +656,7 @@ function ZoneDrawModal({ points_pct, onClose, onSave, plants }) {
 }
 
 function MarkerModal({ marker, plants, tasks, onClose, onSave, onDelete, onLinkTask, onUnlinkTask, onAssignTasks, isTeacher, student }) {
+  const dialogRef = useDialogA11y(onClose);
   const isNew = !marker.id;
   const [form, setForm] = useState({
     label: marker.label || '', plant_name: marker.plant_name || '',
@@ -657,7 +694,14 @@ function MarkerModal({ marker, plants, tasks, onClose, onSave, onDelete, onLinkT
 
   return (
     <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
-      <div className="log-modal fade-in">
+      <div
+        ref={dialogRef}
+        className="log-modal fade-in"
+        role="dialog"
+        aria-modal="true"
+        aria-label={isNew ? 'Nouveau repère' : `Repère ${form.label || marker.label || ''}`}
+        tabIndex={-1}
+      >
         {toast && <Toast msg={toast} onDone={() => setToast(null)} />}
         <button className="modal-close" onClick={onClose}>✕</button>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
@@ -744,22 +788,6 @@ function MarkerModal({ marker, plants, tasks, onClose, onSave, onDelete, onLinkT
           </>
         ) : (
           <div>
-            {form.plant_name && (
-              <div style={{ background: 'var(--parchment)', borderRadius: 10, padding: '10px 14px', marginBottom: 12 }}>
-                <div style={{ fontWeight: 700, color: 'var(--forest)' }}>{form.plant_name}</div>
-              </div>
-            )}
-            {form.note
-              ? <p style={{ fontSize: '.9rem', color: '#444', lineHeight: 1.6 }}>{form.note}</p>
-              : <p style={{ fontSize: '.85rem', color: '#aaa', fontStyle: 'italic' }}>Aucune note.</p>
-            }
-            {parseLivingBeings(form.living_beings, form.plant_name).length > 0 && (
-              <div style={{ marginTop: 10, display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                {parseLivingBeings(form.living_beings, form.plant_name).map((name) => (
-                  <span key={name} className="task-chip">🌱 {name}</span>
-                ))}
-              </div>
-            )}
             <div style={{ marginTop: 14 }}>
               <h4 style={{ margin: '0 0 8px', fontSize: '.95rem' }}>✅ Tâches liées</h4>
               {linkedTasks.length === 0 ? (
@@ -832,6 +860,22 @@ function MarkerModal({ marker, plants, tasks, onClose, onSave, onDelete, onLinkT
                 </>
               )}
             </div>
+            {form.plant_name && (
+              <div style={{ background: 'var(--parchment)', borderRadius: 10, padding: '10px 14px', marginBottom: 12 }}>
+                <div style={{ fontWeight: 700, color: 'var(--forest)' }}>{form.plant_name}</div>
+              </div>
+            )}
+            {form.note
+              ? <p style={{ fontSize: '.9rem', color: '#444', lineHeight: 1.6 }}>{form.note}</p>
+              : <p style={{ fontSize: '.85rem', color: '#aaa', fontStyle: 'italic' }}>Aucune note.</p>
+            }
+            {parseLivingBeings(form.living_beings, form.plant_name).length > 0 && (
+              <div style={{ marginTop: 10, display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                {parseLivingBeings(form.living_beings, form.plant_name).map((name) => (
+                  <span key={name} className="task-chip">🌱 {name}</span>
+                ))}
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -1535,11 +1579,25 @@ function MapView({ zones, markers, tasks = [], plants, maps = [], activeMapId = 
           {markers.map((m) => {
             const markerTaskVisual = markerTaskVisualById.get(m.id);
             const markerTaskLabel = markerTaskVisual ? TASK_VISUAL_LABEL[markerTaskVisual] : '';
+            const markerAriaLabel = [m.label || 'Repère', markerTaskLabel].filter(Boolean).join(' — ');
+            const openMarker = (e) => {
+              e.stopPropagation();
+              if (!moved.current) setSelectedMarker(m);
+            };
             return (
-            <div key={m.id} className="map-bubble"
+            <button key={m.id} className="map-bubble" type="button"
               style={{ position: 'absolute', left: m.x_pct + '%', top: m.y_pct + '%',
-                transform: 'translate(-50%,-50%)', zIndex: 10, cursor: isTeacher ? 'grab' : 'pointer' }}
-              onClick={e => { e.stopPropagation(); if (!moved.current) setSelectedMarker(m); }}
+                transform: 'translate(-50%,-50%)', zIndex: 10, cursor: isTeacher ? 'grab' : 'pointer',
+                border: 'none', background: 'transparent', padding: 0 }}
+              aria-label={markerAriaLabel}
+              title={markerAriaLabel}
+              onClick={openMarker}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  openMarker(e);
+                }
+              }}
               onPointerDown={isTeacher ? e => {
                 e.stopPropagation();
                 beginMarkerDrag(m.id, e.currentTarget, e.pointerId);
@@ -1569,7 +1627,7 @@ function MapView({ zones, markers, tasks = [], plants, maps = [], activeMapId = 
                   {m.label}
                 </div>
               )}
-            </div>
+            </button>
             );
           })}
           </div>
