@@ -7,6 +7,20 @@ function taskMapId(task) {
   return task?.map_id_resolved || task?.map_id || task?.zone_map_id || task?.marker_map_id || null;
 }
 
+function canAssignOnTask(task, isSessionActive) {
+  if (!isSessionActive) return false;
+  if (!task) return false;
+  if (task.status === 'validated' || task.status === 'done' || task.status === 'proposed') return false;
+  const required = Math.max(1, Number(task.required_students || 1));
+  const assigned = Array.isArray(task.assignments) ? task.assignments.length : 0;
+  return assigned < required;
+}
+
+function canUnassignOnTask(task) {
+  if (!task) return false;
+  return task.status !== 'validated' && task.status !== 'done';
+}
+
 function statusLabel(status) {
   if (status === 'available') return 'Disponible';
   if (status === 'in_progress') return 'En cours';
@@ -211,6 +225,11 @@ function CollectiveView({
 
   const assignStudentToTask = async (task, student) => {
     if (!task || !student) return;
+    const isSessionActive = !!sessionState?.session?.is_active;
+    if (!canAssignOnTask(task, isSessionActive)) {
+      setToast('Cette tâche ne peut pas recevoir de nouvelle inscription.');
+      return;
+    }
     try {
       await api(`/api/tasks/${task.id}/assign`, 'POST', {
         firstName: student.first_name,
@@ -225,6 +244,10 @@ function CollectiveView({
 
   const unassignStudentFromTask = async (task, assignment) => {
     if (!task || !assignment) return;
+    if (!canUnassignOnTask(task)) {
+      setToast('Impossible de retirer un élève d’une tâche terminée/validée.');
+      return;
+    }
     try {
       await api(`/api/tasks/${task.id}/unassign`, 'POST', {
         firstName: assignment.student_first_name,
@@ -310,12 +333,15 @@ function CollectiveView({
             {visibleTasks.map((t) => {
               const assigned = Array.isArray(t.assignments) ? t.assignments.length : 0;
               const slots = Math.max(0, Number(t.required_students || 1) - assigned);
+              const isSessionActive = !!sessionState?.session?.is_active;
+              const canAssign = canAssignOnTask(t, isSessionActive);
+              const canUnassign = canUnassignOnTask(t);
               return (
                 <article
                   key={t.id}
-                  className="collective-task-card"
-                  onDragOver={(evt) => evt.preventDefault()}
-                  onDrop={(evt) => onDropStudent(t, evt)}
+                  className={`collective-task-card ${canAssign ? '' : 'blocked'}`}
+                  onDragOver={(evt) => { if (canAssign) evt.preventDefault(); }}
+                  onDrop={(evt) => { if (canAssign) onDropStudent(t, evt); }}
                 >
                   <div className="collective-task-top">
                     <strong>{t.title}</strong>
@@ -329,6 +355,7 @@ function CollectiveView({
                         <button
                           className="collective-remove"
                           title="Retirer de la tâche"
+                          disabled={!canUnassign}
                           onClick={() => unassignStudentFromTask(t, a)}
                         >×</button>
                       </span>
@@ -338,12 +365,14 @@ function CollectiveView({
                   <div className="collective-task-actions">
                     <button
                       className="btn btn-secondary btn-sm"
-                      disabled={!selectedStudent}
+                      disabled={!selectedStudent || !canAssign}
                       onClick={() => assignStudentToTask(t, selectedStudent)}
                     >
                       Inscrire l'élève sélectionné
                     </button>
-                    <span className="collective-drop-tip">Dépose un élève ici</span>
+                    <span className="collective-drop-tip">
+                      {canAssign ? 'Dépose un élève ici' : 'Inscription bloquée pour cette tâche'}
+                    </span>
                   </div>
                 </article>
               );
