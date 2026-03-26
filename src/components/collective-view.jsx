@@ -43,6 +43,7 @@ function CollectiveView({
   activeMapId = 'foret',
   onRefresh,
   canManageSession = false,
+  isWideLayout = false,
 }) {
   const [isMobileWidth, setIsMobileWidth] = useState(() => window.innerWidth < MOBILE_BREAKPOINT);
   const [students, setStudents] = useState([]);
@@ -278,7 +279,7 @@ function CollectiveView({
   }
 
   return (
-    <div className="collective-view">
+    <div className={`collective-view ${isWideLayout ? 'collective-view--wide' : ''}`}>
       <div className="collective-toolbar">
         <div className="collective-toolbar-group">
           <label>Contexte</label>
