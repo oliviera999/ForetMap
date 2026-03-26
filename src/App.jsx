@@ -508,6 +508,8 @@ function App() {
     await api(`/api/zones/${id}`, 'PUT', data);
     await fetchAll();
   };
+  const studentStatsDialogRef = useDialogA11y(() => setShowStats(false));
+  const studentProfileDialogRef = useDialogA11y(() => setShowProfile(false));
 
   if (!student && !isTeacher) return (
     <>
@@ -569,8 +571,6 @@ function App() {
     || currentUser?.displayName
     || `${currentUser?.first_name || ''} ${currentUser?.last_name || ''}`.trim()
     || 'Utilisateur';
-  const studentStatsDialogRef = useDialogA11y(() => setShowStats(false));
-  const studentProfileDialogRef = useDialogA11y(() => setShowProfile(false));
 
   return (
     <div id="app">
