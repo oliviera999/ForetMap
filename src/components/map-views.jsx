@@ -831,7 +831,7 @@ function MarkerModal({ marker, plants, tasks, onClose, onSave, onDelete, onLinkT
   );
 }
 
-function MapView({ zones, markers, tasks = [], plants, maps = [], activeMapId = 'foret', onMapChange, isTeacher, student, onZoneUpdate, onRefresh }) {
+function MapView({ zones, markers, tasks = [], plants, maps = [], activeMapId = 'foret', onMapChange, isTeacher, student, onZoneUpdate, onRefresh, embedded = false }) {
   const containerRef = useRef(null);
   const worldRef = useRef(null);
   const imgRef = useRef(null);
@@ -1266,11 +1266,13 @@ function MapView({ zones, markers, tasks = [], plants, maps = [], activeMapId = 
   };
 
   const cursor = mode === 'view' ? 'grab' : mode === 'draw-zone' ? 'crosshair' : mode === 'edit-points' ? 'default' : 'cell';
-  const mapColHeight = isTeacher ? 'calc(100dvh - 56px)' : 'calc(100dvh - 56px - 72px)';
+  const mapColHeight = embedded
+    ? 'min(78dvh, 920px)'
+    : (isTeacher ? 'calc(100dvh - 56px)' : 'calc(100dvh - 56px - 72px)');
   const mapAspect = imgSize.w > 1 && imgSize.h > 1 ? `${imgSize.w} / ${imgSize.h}` : '16 / 10';
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: mapColHeight, minHeight: 380 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: mapColHeight, minHeight: embedded ? 520 : 380 }}>
       {toast && <Toast msg={toast} onDone={() => setToast(null)} />}
 
       {selectedZone && (

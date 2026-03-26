@@ -220,6 +220,34 @@
     /* ── MAIN ── */
     .main { flex:1; padding:16px; padding-bottom:calc(72px + var(--safe-bottom) + 16px); max-width:900px; margin:0 auto; width:100%; }
     .teacher-main { padding:16px; padding-bottom:24px; max-width:900px; margin:0 auto; width:100%; }
+    .desktop-split-view {
+      display:grid;
+      grid-template-columns:1.25fr 1fr;
+      gap:16px;
+      align-items:start;
+    }
+    .desktop-split-pane {
+      min-width:0;
+    }
+    .desktop-split-pane--tasks {
+      background:#fff;
+      border:1px solid var(--mint);
+      border-radius:12px;
+      box-shadow:var(--shadow);
+      padding:12px;
+    }
+    .desktop-split-scroll {
+      max-height:min(82dvh, 980px);
+      overflow:auto;
+      padding-right:2px;
+    }
+    @media (min-width:1024px) {
+      .main.main--wide,
+      .teacher-main.main--wide {
+        max-width:none;
+        width:100%;
+      }
+    }
 
     /* ── TOP TABS (teacher) ── */
     .top-tabs {
@@ -1116,6 +1144,9 @@
   grid-template-columns:1.1fr 1.35fr 1fr;
   gap:12px;
 }
+.collective-view--wide .collective-grid {
+  grid-template-columns:minmax(520px, 1.7fr) minmax(430px, 1.35fr) minmax(320px, 1fr);
+}
 .collective-panel {
   background:white;
   border:1px solid var(--mint);
@@ -1157,6 +1188,10 @@
   height:100%;
   object-fit:contain;
   display:block;
+}
+.collective-view--wide .collective-map-stage {
+  aspect-ratio:16/9;
+  min-height:360px;
 }
 .collective-help {
   font-size:.78rem;
@@ -1278,5 +1313,14 @@
   }
   .collective-panel:last-child {
     grid-column:1 / span 2;
+  }
+}
+@media (max-width:1023px) {
+  .desktop-split-view {
+    grid-template-columns:1fr;
+  }
+  .desktop-split-scroll {
+    max-height:none;
+    overflow:visible;
   }
 }
