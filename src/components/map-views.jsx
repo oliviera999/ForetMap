@@ -248,6 +248,7 @@ function mergeTaskVisualStatus(current, next) {
 
 function ZoneInfoModal({ zone, plants, tasks, isTeacher, student, onClose, onUpdate, onDelete, onEditPoints, onLinkTask, onUnlinkTask, onAssignTasks }) {
   const [tab, setTab] = useState('info');
+  const [zoneName, setZoneName] = useState(zone.name || '');
   const [plant, setPlant] = useState(zone.current_plant || '');
   const [livingBeings, setLivingBeings] = useState(parseLivingBeings(zone.living_beings_list || zone.living_beings, zone.current_plant));
   const [stage, setStage] = useState(zone.stage || 'empty');
@@ -275,9 +276,13 @@ function ZoneInfoModal({ zone, plants, tasks, isTeacher, student, onClose, onUpd
   }, [studentAssignableTasks]);
 
   const save = async () => {
+    if (!zoneName.trim()) {
+      setToast('Nom requis');
+      return;
+    }
     setSaving(true);
     try {
-      await onUpdate(zone.id, { current_plant: plant, living_beings: livingBeings, stage, description: desc });
+      await onUpdate(zone.id, { name: zoneName, current_plant: plant, living_beings: livingBeings, stage, description: desc });
       setToast('Sauvegardé ✓');
       setTab('info');
     } catch (e) { setToast('Erreur'); }
@@ -378,6 +383,9 @@ function ZoneInfoModal({ zone, plants, tasks, isTeacher, student, onClose, onUpd
 
         {tab === 'edit' && isTeacher && !zone.special && (
           <div className="fade-in">
+            <div className="field"><label>Nom de la zone *</label>
+              <input value={zoneName} onChange={e => setZoneName(e.target.value)} placeholder="Ex: Potager Est" />
+            </div>
             <div className="field"><label>Être vivant actuel</label>
               <select value={plant} onChange={e => {
                 setPlant(e.target.value);

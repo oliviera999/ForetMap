@@ -87,6 +87,9 @@ router.put('/markers/:id', requirePermission('map.manage_markers', { needsElevat
     const m = await queryOne('SELECT * FROM map_markers WHERE id = ?', [req.params.id]);
     if (!m) return res.status(404).json({ error: 'Repère introuvable' });
     const { x_pct, y_pct, label, plant_name, living_beings, note, emoji, map_id } = req.body;
+    if (label !== undefined && !String(label).trim()) {
+      return res.status(400).json({ error: 'Label requis' });
+    }
     if (map_id != null) {
       const mapId = String(map_id).trim();
       if (!mapId) return res.status(400).json({ error: 'map_id invalide' });
@@ -103,7 +106,7 @@ router.put('/markers/:id', requirePermission('map.manage_markers', { needsElevat
         map_id != null ? String(map_id).trim() : m.map_id,
         x_pct ?? m.x_pct,
         y_pct ?? m.y_pct,
-        label ?? m.label,
+        label !== undefined ? String(label).trim() : m.label,
         nextPlantName,
         serializeLivingBeings(nextLiving, nextPlantName),
         note ?? m.note,

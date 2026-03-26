@@ -86,7 +86,10 @@ router.put('/:id', requirePermission('zones.manage', { needsElevation: true }), 
   try {
     const zone = await queryOne('SELECT * FROM zones WHERE id = ?', [req.params.id]);
     if (!zone) return res.status(404).json({ error: 'Zone introuvable' });
-    const { current_plant, living_beings, stage, description, points, color, map_id } = req.body;
+    const { name, current_plant, living_beings, stage, description, points, color, map_id } = req.body;
+    if (name !== undefined && !String(name).trim()) {
+      return res.status(400).json({ error: 'Nom requis' });
+    }
     if (map_id != null) {
       const nextMapId = String(map_id).trim();
       if (!nextMapId) return res.status(400).json({ error: 'map_id invalide' });
@@ -105,9 +108,10 @@ router.put('/:id', requirePermission('zones.manage', { needsElevation: true }), 
       );
     }
     await execute(
-      'UPDATE zones SET map_id=?, current_plant=?, living_beings=?, stage=?, description=?, points=?, color=? WHERE id=?',
+      'UPDATE zones SET map_id=?, name=?, current_plant=?, living_beings=?, stage=?, description=?, points=?, color=? WHERE id=?',
       [
         map_id != null ? String(map_id).trim() : zone.map_id,
+        name !== undefined ? String(name).trim() : zone.name,
         nextCurrentPlant,
         serializeLivingBeings(nextLiving, nextCurrentPlant),
         stage          ?? zone.stage,
