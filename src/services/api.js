@@ -13,7 +13,9 @@ function decodeJwtPayload(token) {
   try {
     const parts = String(token || '').split('.');
     if (parts.length < 2) return null;
-    const json = atob(parts[1].replace(/-/g, '+').replace(/_/g, '/'));
+    const normalized = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+    const padded = normalized + '='.repeat((4 - (normalized.length % 4)) % 4);
+    const json = atob(padded);
     return JSON.parse(json);
   } catch (_) {
     return null;

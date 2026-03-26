@@ -218,6 +218,30 @@ function App() {
     return () => window.removeEventListener('foretmap_teacher_expired', onExpired);
   }, []);
 
+  useEffect(() => {
+    const session = getStoredSession();
+    if (!session?.token) return;
+    api('/api/auth/me')
+      .then((d) => {
+        const auth = d?.auth || null;
+        if (!auth) return;
+        const claims = getAuthClaims();
+        setAuthClaims(claims);
+        setIsTeacher(Array.isArray(claims?.permissions) && claims.permissions.includes('teacher.access'));
+        if (auth.userType === 'teacher') {
+          setSessionUser((prev) => ({
+            id: auth.canonicalUserId || prev?.id || null,
+            userType: 'teacher',
+            displayName: auth.roleDisplayName || prev?.displayName || 'Professeur',
+            email: prev?.email || null,
+          }));
+        }
+      })
+      .catch(() => {
+        // Session absente/invalide: on laisse les états locaux existants.
+      });
+  }, []);
+
   const fetchAll = useCallback(async () => {
     try {
       const mapQuery = `map_id=${encodeURIComponent(activeMapId)}`;
