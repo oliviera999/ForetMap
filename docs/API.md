@@ -74,6 +74,7 @@ Connexion Socket.IO (transport **polling** actuellement forcé côté client) su
 | POST | `/api/auth/register` | `{ firstName, lastName, password, pseudo?, email?, description? }` | Créer un compte élève |
 | POST | `/api/auth/login` | `{ identifier, password }` | Connexion élève (pseudo ou email) |
 | GET | `/api/auth/me` | — | Retourne le contexte d’auth courant (`role`, `permissions`, `elevated`) |
+| PATCH | `/api/auth/me/profile` | `{ pseudo?, email?, description?, affiliation?, avatarData?, removeAvatar?, currentPassword }` | Mettre à jour son profil utilisateur connecté (élève, prof, admin local) |
 | POST | `/api/auth/elevate` | `{ pin }` | Élévation de session via PIN du profil |
 | POST | `/api/auth/forgot-password` | `{ email }` | Déclencher un email de réinitialisation élève (réponse neutre) |
 | POST | `/api/auth/reset-password` | `{ token, password }` | Réinitialiser le mot de passe élève |
@@ -222,7 +223,7 @@ Réponse:
 
 | Méthode | URL | Prof | Description |
 |--------|-----|------|-------------|
-| GET | `/api/stats/me/:studentId` | non | Stats d’un élève (inclut `pseudo`, `description`, `avatar_path`, n’expose pas `email`) |
+| GET | `/api/stats/me/:studentId` | non | Stats de l’utilisateur ciblé (propriétaire ou permission `stats.read.all`) ; pour prof/admin sans activités élève, compteurs à `0` |
 | GET | `/api/stats/all` | oui | Stats de tous les élèves (inclut `pseudo`, `description`, `avatar_path`, n’expose pas `email`) |
 
 ---

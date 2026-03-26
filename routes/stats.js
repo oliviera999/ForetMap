@@ -5,26 +5,33 @@ const { logRouteError } = require('../lib/routeLog');
 
 const router = express.Router();
 
-async function studentStats(studentId) {
-  const s = await queryOne("SELECT * FROM users WHERE user_type = 'student' AND id = ?", [studentId]);
+async function userStats(userId) {
+  const s = await queryOne('SELECT * FROM users WHERE id = ? LIMIT 1', [userId]);
   if (!s) return null;
-  const assignments = await queryAll(
-    `SELECT ta.*, t.status, t.title, t.due_date, t.zone_id, z.name as zone_name
-     FROM task_assignments ta
-     JOIN tasks t ON ta.task_id = t.id
-     LEFT JOIN zones z ON t.zone_id = z.id
-     WHERE ta.student_id = ? OR (ta.student_first_name = ? AND ta.student_last_name = ?)
-     ORDER BY ta.assigned_at DESC`,
-    [s.id, s.first_name, s.last_name]
-  );
-  const done      = assignments.filter(a => a.status === 'validated').length;
-  const pending   = assignments.filter(a => a.status === 'available' || a.status === 'in_progress').length;
-  const submitted = assignments.filter(a => a.status === 'done').length;
-  const total     = assignments.length;
+  let assignments = [];
+  if (String(s.user_type || '').toLowerCase() === 'student') {
+    assignments = await queryAll(
+      `SELECT ta.*, t.status, t.title, t.due_date, t.zone_id, z.name as zone_name
+       FROM task_assignments ta
+       JOIN tasks t ON ta.task_id = t.id
+       LEFT JOIN zones z ON t.zone_id = z.id
+       WHERE ta.student_id = ? OR (ta.student_first_name = ? AND ta.student_last_name = ?)
+       ORDER BY ta.assigned_at DESC`,
+      [s.id, s.first_name, s.last_name]
+    );
+  }
+  const done = assignments.filter((a) => a.status === 'validated').length;
+  const pending = assignments.filter((a) => a.status === 'available' || a.status === 'in_progress').length;
+  const submitted = assignments.filter((a) => a.status === 'done').length;
+  const total = assignments.length;
   return {
     id: s.id,
+    user_type: s.user_type,
     first_name: s.first_name,
     last_name: s.last_name,
+    display_name: s.display_name,
+    email: s.email,
+    affiliation: s.affiliation,
     pseudo: s.pseudo,
     description: s.description,
     avatar_path: s.avatar_path,
@@ -45,8 +52,8 @@ router.get('/me/:studentId', requireAuth, async (req, res) => {
     if (!canReadAll && !isOwner) {
       return res.status(403).json({ error: 'Accès refusé à ces statistiques' });
     }
-    const data = await studentStats(askedStudentId);
-    if (!data) return res.status(404).json({ error: 'Élève introuvable' });
+    const data = await userStats(askedStudentId);
+    if (!data) return res.status(404).json({ error: 'Utilisateur introuvable' });
     res.json(data);
   } catch (e) {
     logRouteError(e, req);

@@ -6,6 +6,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 ## [Non publié]
 
 ### Ajouté
+- **Édition du profil connecté (API unifiée)** : ajout de `PATCH /api/auth/me/profile` avec vérification du mot de passe actuel, validation/normalisation des champs (`pseudo`, `email`, `description`, `affiliation`), contrôles d’unicité et journalisation d’audit.
 - **Diagnostics problèmes site (MD + JSON)** : ajout des endpoints `GET /api/site-issues` et `GET /api/site-issues.json` pour exposer un inventaire centralisé des risques techniques potentiels (`docs/SITE_ISSUES.md`, `docs/SITE_ISSUES.json`).
 - **Sélection de session “Collectif”** : ajout d’une sélection persistée des tâches et des élèves par session (`collective_session_tasks`, `collective_session_students`), avec API dédiée pour inclure/exclure les éléments sans perdre le contexte.
 - **Vue “Collectif” (prof/admin)** : ajout d’une nouvelle vue `👥 Collectif` (desktop) pour piloter une session collective (présents/absents) et assigner/retirer des élèves sur les tâches par contexte (carte/projet), avec API `/api/collective/*` et migration `031_collective_sessions.sql`.
@@ -41,6 +42,8 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - **Tests visite** : nouveaux scénarios backend sur le contenu visite, la persistance anonyme via cookie signé et la persistance élève en base.
 
 ### Modifié
+- **Profil utilisateur (prof/admin)** : la modale `Mon profil` passe par l’API unifiée `/api/auth/me/profile` et prend en charge les comptes prof/admin (nom affiché robuste, mise à jour immédiate de la session locale).
+- **Badge utilisateur (en-tête)** : ouverture des modales stats/profil alignée sur l’utilisateur connecté (élève, prof ou admin) au lieu d’être limitée au parcours élève.
 - **Accessibilité des modales et formulaires** : ajout d’un hook partagé `useDialogA11y` (focus initial, piège de focus, fermeture `Escape`, retour focus) et application sur les modales clés (profil/stats, carte, tâches, lightbox), avec labels/`htmlFor`/`aria-*` renforcés.
 - **Navigation adaptative carte+tâches** : en grand écran, fusion des onglets carte/tâches en une entrée unifiée côté prof et élève, avec compteur de tâches contextualisé (à valider / assignées actives).
 - **Formulaires tâches multi-liens** : normalisation des identifiants `zone_ids`/`marker_ids` (trim, dédoublonnage, comparaisons robustes) pour éviter les incohérences de sélection selon les cartes/projets.
@@ -66,6 +69,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - **Navigation/auth** : ajout d’un CTA « Visiter sans connexion » dans l’écran d’authentification et intégration de l’onglet `Visite` dans les navigations élève/prof.
 
 ### Corrigé
+- **Carte mobile (déplacement)** : les gestes carte sont de nouveau actifs par défaut en mode vue sur mobile, sans réverrouillage automatique après inactivité.
 - **Centre de notifications (clic)** : le panneau de notifications est désormais affiché en couche fixe sous l’en-tête, ce qui restaure l’ouverture/clic sur mobile et desktop quand le badge est visible.
 - **Catalogue biodiversité (photos)** : affichage des vignettes en bande horizontale avec défilement latéral pour éviter l’empilement vertical sur écran étroit.
 - **Crash frontend (React #310)** : stabilisation de l’ordre des hooks dans `App` en rendant `useDialogA11y` inconditionnel, ce qui supprime l’écran “Une erreur s’est produite / Recharger la page” au changement d’état de chargement/session.

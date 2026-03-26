@@ -460,7 +460,31 @@ function App() {
   const roleTerms = getRoleTerms(isN3Affiliated);
   const canAccessStudentMapTasks = true;
   const isPreviewStudentView = !!previewStudent;
-  const canOpenStudentDialogs = !effectiveIsTeacher && !isPreviewStudentView;
+  const profileTargetUserId = useMemo(() => {
+    if (effectiveIsTeacher) return sessionUser?.id || authClaims?.userId || null;
+    return student?.id || null;
+  }, [authClaims?.userId, effectiveIsTeacher, sessionUser?.id, student?.id]);
+  const canOpenUserDialogs = !!profileTargetUserId && !isPreviewStudentView;
+  const profileTargetUser = useMemo(() => {
+    if (!canOpenUserDialogs) return null;
+    if (!effectiveIsTeacher && student) return student;
+    const fallbackName = String(sessionUser?.displayName || authClaims?.roleDisplayName || 'Utilisateur').trim();
+    return {
+      id: profileTargetUserId,
+      user_type: 'teacher',
+      first_name: fallbackName,
+      last_name: '',
+      display_name: fallbackName,
+      pseudo: null,
+      email: sessionUser?.email || null,
+      description: '',
+      affiliation: 'both',
+      auth: {
+        roleSlug: authClaims?.roleSlug || null,
+        userType: authClaims?.userType || 'teacher',
+      },
+    };
+  }, [authClaims?.roleDisplayName, authClaims?.roleSlug, authClaims?.userType, canOpenUserDialogs, effectiveIsTeacher, profileTargetUserId, sessionUser?.displayName, sessionUser?.email, student]);
   const canOpenTeacherStatsFromBadge = effectiveIsTeacher
     && publicSettings?.modules?.stats_enabled !== false
     && hasPermission('stats.read.all');
@@ -526,6 +550,23 @@ function App() {
     await api(`/api/zones/${id}`, 'PUT', data);
     await fetchAll();
   };
+  const updateTeacherSession = useCallback((updatedUser) => {
+    setSessionUser((prev) => {
+      const nextDisplayName = updatedUser?.pseudo
+        || updatedUser?.display_name
+        || `${updatedUser?.first_name || ''} ${updatedUser?.last_name || ''}`.trim()
+        || prev?.displayName
+        || 'Utilisateur';
+      const next = {
+        id: updatedUser?.id || prev?.id || authClaims?.userId || null,
+        userType: 'teacher',
+        displayName: nextDisplayName,
+        email: updatedUser?.email ?? prev?.email ?? null,
+      };
+      saveStoredSession({ user: next });
+      return next;
+    });
+  }, [authClaims?.userId]);
   const studentStatsDialogRef = useDialogA11y(() => setShowStats(false));
   const studentProfileDialogRef = useDialogA11y(() => setShowProfile(false));
   const {
@@ -687,7 +728,7 @@ function App() {
         uiSettings={publicSettings}
         isN3Affiliated={isN3Affiliated}
       />}
-      {showStats && canOpenStudentDialogs && (
+      {showStats && canOpenUserDialogs && (
         <div className="modal-overlay" onClick={e => e.target === e.currentTarget && setShowStats(false)}>
           <div
             ref={studentStatsDialogRef}
@@ -696,7 +737,7 @@ function App() {
             onClick={e => e.stopPropagation()}
             role="dialog"
             aria-modal="true"
-            aria-label="Statistiques élève"
+            aria-label="Statistiques utilisateur"
             tabIndex={-1}
           >
             <button
@@ -710,11 +751,11 @@ function App() {
             >
               ✕
             </button>
-            <StudentStats student={student} isN3Affiliated={isN3Affiliated} />
+            <StudentStats student={{ id: profileTargetUserId }} isN3Affiliated={isN3Affiliated} />
           </div>
         </div>
       )}
-      {showProfile && canOpenStudentDialogs && (
+      {showProfile && canOpenUserDialogs && profileTargetUser && (
         <div className="modal-overlay" onClick={e => e.target === e.currentTarget && setShowProfile(false)}>
           <div
             ref={studentProfileDialogRef}
@@ -723,7 +764,7 @@ function App() {
             onClick={e => e.stopPropagation()}
             role="dialog"
             aria-modal="true"
-            aria-label="Profil élève"
+            aria-label="Profil utilisateur"
             tabIndex={-1}
           >
             <button
@@ -738,8 +779,14 @@ function App() {
               ✕
             </button>
             <StudentProfileEditor
-              student={student}
-              onUpdated={updateStudentSession}
+              student={profileTargetUser}
+              onUpdated={(updated) => {
+                if (effectiveIsTeacher) {
+                  updateTeacherSession(updated);
+                  return;
+                }
+                updateStudentSession(updated);
+              }}
               onClose={() => setShowProfile(false)}
               isN3Affiliated={isN3Affiliated}
             />
@@ -791,7 +838,7 @@ function App() {
             type="button"
             className="user-badge"
             onClick={() => {
-              if (canOpenStudentDialogs) {
+              if (canOpenUserDialogs) {
                 setShowStats(true);
                 return;
               }
@@ -799,14 +846,14 @@ function App() {
                 setTab('stats');
               }
             }}
-            style={{ cursor: (canOpenStudentDialogs || canOpenTeacherStatsFromBadge) ? 'pointer' : 'default' }}
+            style={{ cursor: (canOpenUserDialogs || canOpenTeacherStatsFromBadge) ? 'pointer' : 'default' }}
             title={
-              canOpenStudentDialogs
+              canOpenUserDialogs
                 ? 'Voir mes statistiques'
                 : (canOpenTeacherStatsFromBadge ? `Ouvrir les statistiques ${roleTerms.studentPlural}` : '')
             }
             aria-label={
-              canOpenStudentDialogs
+              canOpenUserDialogs
                 ? 'Voir mes statistiques'
                 : (canOpenTeacherStatsFromBadge ? `Ouvrir les statistiques ${roleTerms.studentPlural}` : 'Badge utilisateur')
             }
@@ -814,7 +861,7 @@ function App() {
             <StudentAvatar student={currentUser} size={20} style={{ border: 'none' }} />
             <span className="user-badge-text">{currentUserLabel}</span>
           </button>
-          {!effectiveIsTeacher && canOpenStudentDialogs && (
+          {canOpenUserDialogs && (
             <button
               className="lock-btn"
               title="Modifier mon profil"
