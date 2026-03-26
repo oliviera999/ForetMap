@@ -92,10 +92,21 @@
       height:calc(56px + var(--safe-top));
       display:flex; align-items:center; justify-content:space-between;
       position:sticky; top:0; z-index:100;
+      gap:8px;
+      overflow:hidden;
     }
-    header .logo { display:flex; align-items:center; gap:8px; font-family:'Playfair Display',serif; font-size:1.1rem; }
+    header .logo {
+      display:flex; align-items:center; gap:8px; font-family:'Playfair Display',serif; font-size:1.1rem;
+      min-width:0; flex-shrink:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+    }
     header .logo span { font-size:1.3rem; }
-    .header-right { display:flex; align-items:center; gap:6px; }
+    .header-right {
+      display:flex; align-items:center; gap:6px;
+      min-width:0; max-width:70%;
+      overflow-x:auto; overflow-y:hidden;
+      -webkit-overflow-scrolling:touch; scrollbar-width:none;
+    }
+    .header-right::-webkit-scrollbar { display:none; }
     .app-version-badge {
       display:inline-flex; align-items:center; gap:6px;
       min-height:30px; padding:4px 8px;
@@ -155,6 +166,11 @@
       .user-badge { max-width:108px; font-size:.72rem; }
       .app-version-badge { padding:4px 7px; font-size:.64rem; }
       .app-version-badge__status { display:none; }
+    }
+    @media(max-width:560px) {
+      .header-right { max-width:62%; }
+      .app-version-badge__status { display:none; }
+      .user-badge { max-width:132px; }
     }
 
     /* ── BOTTOM NAV ── */
