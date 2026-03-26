@@ -299,6 +299,50 @@ test('Zones et repères acceptent plusieurs êtres vivants associés', async () 
   assert.ok(markerRes.body.living_beings_list.includes('Carotte'));
 });
 
+test('PUT /api/zones/:id et /api/map/markers/:id permettent de renommer', async () => {
+  const auth = await request(app)
+    .post('/api/auth/teacher')
+    .send({ pin: process.env.TEACHER_PIN || '1234' });
+  const token = auth.body.token;
+
+  const zoneRes = await request(app)
+    .post('/api/zones')
+    .set('Authorization', 'Bearer ' + token)
+    .send({
+      name: 'Zone renommage',
+      map_id: 'foret',
+      points: [{ xp: 14, yp: 14 }, { xp: 24, yp: 14 }, { xp: 19, yp: 24 }],
+      stage: 'empty',
+    })
+    .expect(201);
+
+  const zoneUpdate = await request(app)
+    .put(`/api/zones/${zoneRes.body.id}`)
+    .set('Authorization', 'Bearer ' + token)
+    .send({ name: 'Zone renommée API' })
+    .expect(200);
+  assert.strictEqual(zoneUpdate.body.name, 'Zone renommée API');
+
+  const markerRes = await request(app)
+    .post('/api/map/markers')
+    .set('Authorization', 'Bearer ' + token)
+    .send({
+      map_id: 'foret',
+      x_pct: 42,
+      y_pct: 42,
+      label: 'Repère renommage',
+      emoji: '📍',
+    })
+    .expect(201);
+
+  const markerUpdate = await request(app)
+    .put(`/api/map/markers/${markerRes.body.id}`)
+    .set('Authorization', 'Bearer ' + token)
+    .send({ label: 'Repère renommé API' })
+    .expect(200);
+  assert.strictEqual(markerUpdate.body.label, 'Repère renommé API');
+});
+
 // ─── Suppression élève (cascade + statuts) ──────────────────────────────────
 test('DELETE /api/students/:id supprime l’élève et recalcule les statuts des tâches', async () => {
   const auth = await request(app)
