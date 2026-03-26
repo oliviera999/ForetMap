@@ -1558,6 +1558,16 @@ function MapView({ zones, markers, tasks = [], plants, maps = [], activeMapId = 
             const markerTaskVisual = markerTaskVisualById.get(m.id);
             const markerTaskLabel = markerTaskVisual ? TASK_VISUAL_LABEL[markerTaskVisual] : '';
             const markerAriaLabel = [m.label || 'Repère', markerTaskLabel].filter(Boolean).join(' — ');
+            const markerPinSize = isCoarsePointer
+              ? 'clamp(42px, 12vw, 48px)'
+              : 'clamp(34px, 8vw, 38px)';
+            const markerEmojiSize = isCoarsePointer
+              ? 'clamp(1.2rem, 4.8vw, 1.45rem)'
+              : 'clamp(1rem, 4.1vw, 1.08rem)';
+            const markerHitPadding = isCoarsePointer ? 4 : 0;
+            const markerStatusDotSize = isCoarsePointer ? 13 : 10;
+            const markerStatusDotBorder = isCoarsePointer ? 2 : 1.5;
+            const markerStatusDotOffset = isCoarsePointer ? -2 : -1;
             const openMarker = (e) => {
               e.stopPropagation();
               if (!moved.current) setSelectedMarker(m);
@@ -1566,7 +1576,7 @@ function MapView({ zones, markers, tasks = [], plants, maps = [], activeMapId = 
             <button key={m.id} className="map-bubble" type="button"
               style={{ position: 'absolute', left: m.x_pct + '%', top: m.y_pct + '%',
                 transform: 'translate(-50%,-50%)', zIndex: 10, cursor: isTeacher ? 'grab' : 'pointer',
-                border: 'none', background: 'transparent', padding: 0 }}
+                border: 'none', background: 'transparent', padding: markerHitPadding }}
               aria-label={markerAriaLabel}
               title={markerAriaLabel}
               onClick={openMarker}
@@ -1582,9 +1592,9 @@ function MapView({ zones, markers, tasks = [], plants, maps = [], activeMapId = 
               } : undefined}
               onPointerUp={e => e.stopPropagation()}>
               <div className="map-bubble-pin" style={{ background: 'white', border: '2.5px solid var(--forest)',
-                borderRadius: '50%', width: 'clamp(32px, 8vw, 35px)', height: 'clamp(32px, 8vw, 35px)',
+                borderRadius: '50%', width: markerPinSize, height: markerPinSize,
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: 'clamp(1rem, 4.1vw, 1.08rem)', boxShadow: '0 2px 10px rgba(0,0,0,.22)' }}>
+                fontSize: markerEmojiSize, boxShadow: '0 2px 10px rgba(0,0,0,.22)' }}>
                 {m.emoji}
                 {markerTaskVisual && (
                   <span
@@ -1592,6 +1602,13 @@ function MapView({ zones, markers, tasks = [], plants, maps = [], activeMapId = 
                     role="img"
                     aria-label={markerTaskLabel}
                     title={markerTaskLabel}
+                    style={{
+                      width: markerStatusDotSize,
+                      height: markerStatusDotSize,
+                      borderWidth: markerStatusDotBorder,
+                      top: markerStatusDotOffset,
+                      right: markerStatusDotOffset,
+                    }}
                   />
                 )}
               </div>
