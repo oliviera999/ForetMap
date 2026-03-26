@@ -333,11 +333,9 @@ function TaskFormModal({
           </div>
         )}
         <div className="row">
-          {!isProposal && (
-            <div className="field"><label>{terms.studentPlural.charAt(0).toUpperCase() + terms.studentPlural.slice(1)} requis</label>
-              <input type="number" min="1" max="10" value={form.required_students} onChange={set('required_students')} />
-            </div>
-          )}
+          <div className="field"><label>{terms.studentPlural.charAt(0).toUpperCase() + terms.studentPlural.slice(1)} requis</label>
+            <input type="number" min="1" max="10" value={form.required_students} onChange={set('required_students')} />
+          </div>
           <div className="field"><label>Date limite</label><input type="date" value={form.due_date} onChange={set('due_date')} /></div>
         </div>
         {!isProposal && (
@@ -425,6 +423,35 @@ function proposalMetaFromDescription(description) {
   return { proposer, cleanedDescription };
 }
 
+function formatAssigneeName(assignee, student) {
+  const firstName = String(assignee?.student_first_name || '').trim();
+  const lastName = String(assignee?.student_last_name || '').trim();
+  const fullName = `${firstName} ${lastName}`.trim() || 'Élève';
+  const isCurrentStudent = !!student
+    && firstName.toLowerCase() === String(student.first_name || '').trim().toLowerCase()
+    && lastName.toLowerCase() === String(student.last_name || '').trim().toLowerCase();
+  return { fullName, isCurrentStudent };
+}
+
+function getAssignedCount(task) {
+  const fromApi = Number(task?.assigned_count);
+  if (Number.isFinite(fromApi) && fromApi >= 0) return fromApi;
+  return Array.isArray(task?.assignments) ? task.assignments.length : 0;
+}
+
+function getAvailableSlots(task) {
+  const required = Math.max(1, Number(task?.required_students || 1));
+  return Math.max(0, required - getAssignedCount(task));
+}
+
+const TEACHER_STATUS_ACTIONS = [
+  { value: 'available', label: 'Disponible', icon: '🟢' },
+  { value: 'in_progress', label: 'En cours', icon: '🟡' },
+  { value: 'done', label: 'Terminée', icon: '✅' },
+  { value: 'validated', label: 'Validée', icon: '✔️' },
+  { value: 'proposed', label: 'Proposée', icon: '💡' },
+];
+
 function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], tutorials = [], activeMapId = 'foret', isTeacher, student, onRefresh, onForceLogout, isN3Affiliated = false }) {
   const roleTerms = getRoleTerms(isN3Affiliated);
   const [showForm, setShowForm] = useState(false);
@@ -490,9 +517,13 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
     });
   };
 
-  const validate = t => withLoad(t.id + 'val', async () => {
-    await api(`/api/tasks/${t.id}/validate`, 'POST');
-    setToast('Tâche validée ✓');
+  const setTaskStatus = (task, nextStatus) => withLoad(`${task.id}status${nextStatus}`, async () => {
+    if (nextStatus === 'validated') {
+      await api(`/api/tasks/${task.id}/validate`, 'POST');
+    } else {
+      await api(`/api/tasks/${task.id}`, 'PUT', { status: nextStatus });
+    }
+    setToast(`Statut mis à jour : ${TEACHER_STATUS_ACTIONS.find((s) => s.value === nextStatus)?.label || nextStatus}`);
   });
 
   const deleteTask = t => {
@@ -598,7 +629,7 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
   const myTasks = allFiltered.filter(t => student && t.status !== 'validated' && t.assignments?.some(
     a => a.student_first_name === student.first_name && a.student_last_name === student.last_name
   ));
-  const available = allFiltered.filter(t => t.status === 'available' || (t.status === 'in_progress' && t.assignments?.length < t.required_students));
+  const available = allFiltered.filter(t => t.status === 'available' || (t.status === 'in_progress' && getAvailableSlots(t) > 0));
   const inProgress = allFiltered.filter(t => t.status === 'in_progress');
   const done = allFiltered.filter(t => t.status === 'done');
   const validated = allFiltered.filter(t => t.status === 'validated');
@@ -619,9 +650,11 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
 
   const TaskCard = ({ t }) => {
     const isMine = myTasks.some(m => m.id === t.id);
-    const slots = t.required_students - (t.assignments?.length || 0);
+    const slots = getAvailableSlots(t);
     const proposalMeta = proposalMetaFromDescription(t.description);
     const cardDescription = t.status === 'proposed' ? proposalMeta.cleanedDescription : (t.description || '');
+    const assignees = Array.isArray(t.assignments) ? t.assignments : [];
+    const assigneeLabels = assignees.map((a) => formatAssigneeName(a, student));
     return (
       <div className={`task-card ${isMine ? 'mine' : ''} ${t.status === 'validated' ? 'done' : ''} ${t.status === 'proposed' ? 'proposed' : ''}`}>
         <div className="task-top">
@@ -651,10 +684,29 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
           {!isTeacher && <span className="task-chip">👤 {t.required_students} {t.required_students > 1 ? roleTerms.studentPlural : roleTerms.studentSingular}</span>}
           {t.recurrence && <span className="task-chip">🔄 {t.recurrence === 'weekly' ? 'Hebdo' : t.recurrence === 'biweekly' ? 'Bi-hebdo' : t.recurrence === 'monthly' ? 'Mensuel' : t.recurrence}</span>}
         </div>
+        <div className="task-assignees-overview">
+          <span className="task-assignees-title">👥 Inscrits</span>
+          <span className="task-assignees-list">
+            {assigneeLabels.length > 0
+              ? assigneeLabels.map((item, idx) => (
+                <span key={`${item.fullName}-${idx}`} className={`task-assignee-inline ${item.isCurrentStudent ? 'me' : ''}`}>
+                  {item.isCurrentStudent ? `${item.fullName} (toi)` : item.fullName}
+                </span>
+              ))
+              : <span className="task-assignee-inline empty">Personne pour le moment</span>}
+          </span>
+        </div>
         {cardDescription && <div className="task-desc">{cardDescription}</div>}
-        {t.assignments?.length > 0 && (
+        {assignees.length > 0 && (
           <div className="assignees">
-            {t.assignments.map((a, i) => <span key={i} className="assignee-tag">{a.student_first_name} {a.student_last_name}</span>)}
+            {assignees.map((a, i) => {
+              const item = formatAssigneeName(a, student);
+              return (
+                <span key={`${a.student_first_name}-${a.student_last_name}-${i}`} className={`assignee-tag ${item.isCurrentStudent ? 'me' : ''}`}>
+                  {item.isCurrentStudent ? `${item.fullName} (toi)` : item.fullName}
+                </span>
+              );
+            })}
           </div>
         )}
         {slots > 0 && t.status !== 'validated' && (
@@ -678,18 +730,24 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
               </button>
             </>
           )}
-          {isTeacher && t.status === 'done' && (
-            <button className="btn btn-primary btn-sm" disabled={loading[t.id + 'val']} onClick={() => validate(t)}>
-              {loading[t.id + 'val'] ? '...' : '✓ Valider'}
-            </button>
-          )}
-          {isTeacher && t.status === 'proposed' && (
-            <button className="btn btn-primary btn-sm" disabled={loading[t.id + 'approve']} onClick={() => withLoad(t.id + 'approve', async () => {
-              await api(`/api/tasks/${t.id}`, 'PUT', { status: 'available' });
-              setToast('Proposition acceptée ✓');
-            })}>
-              {loading[t.id + 'approve'] ? '...' : '✅ Accepter'}
-            </button>
+          {isTeacher && (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+              {TEACHER_STATUS_ACTIONS.map((opt) => {
+                const isCurrent = t.status === opt.value;
+                const isBusy = !!loading[`${t.id}status${opt.value}`];
+                return (
+                  <button
+                    key={opt.value}
+                    className={`btn btn-sm ${isCurrent ? 'btn-primary' : 'btn-ghost'}`}
+                    disabled={isCurrent || isBusy}
+                    onClick={() => setTaskStatus(t, opt.value)}
+                    title={isCurrent ? `Statut actuel: ${opt.label}` : `Passer en ${opt.label.toLowerCase()}`}
+                  >
+                    {isBusy ? '...' : `${opt.icon} ${opt.label}`}
+                  </button>
+                );
+              })}
+            </div>
           )}
           {isTeacher && (t.status === 'done' || t.status === 'validated') && (
             <button className="btn btn-ghost btn-sm" onClick={() => setLogsTask(t)}>📋 Rapports</button>

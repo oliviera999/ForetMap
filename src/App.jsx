@@ -41,6 +41,13 @@ const OAUTH_ERROR_MESSAGES = {
   oauth_server_error: 'Erreur serveur pendant la connexion Google.',
 };
 
+function allowedMapIdsFromAffiliation(affiliation) {
+  const normalized = String(affiliation || 'both').toLowerCase();
+  if (normalized === 'n3') return ['n3'];
+  if (normalized === 'foret') return ['foret'];
+  return null;
+}
+
 function decodeBase64UrlJson(value) {
   const normalized = String(value || '').replace(/-/g, '+').replace(/_/g, '/');
   const padded = normalized + '='.repeat((4 - (normalized.length % 4)) % 4);
@@ -326,15 +333,23 @@ function App() {
 
   const fetchAll = useCallback(async () => {
     try {
-      const mapQuery = `map_id=${encodeURIComponent(activeMapId)}`;
+      const restrictedMapIds = (!effectiveIsTeacher && !showPublicVisit)
+        ? allowedMapIdsFromAffiliation(student?.affiliation)
+        : null;
+      const requestedMapId = (restrictedMapIds && !restrictedMapIds.includes(activeMapId))
+        ? restrictedMapIds[0]
+        : activeMapId;
+      const mapQuery = `map_id=${encodeURIComponent(requestedMapId)}`;
       const tutorialsEndpoint = canManageTutorials
         ? '/api/tutorials?include_inactive=1'
         : '/api/tutorials';
+      const tasksEndpoint = `/api/tasks?${mapQuery}`;
+      const taskProjectsEndpoint = `/api/task-projects?${mapQuery}`;
       const [mapsRes, z, t, taskProjectsRes, p, m, tu] = await Promise.all([
         api('/api/maps').catch(() => DEFAULT_MAPS),
         api(`/api/zones?${mapQuery}`),
-        api('/api/tasks'),
-        api('/api/task-projects').catch(() => []),
+        api(tasksEndpoint),
+        api(taskProjectsEndpoint).catch(() => []),
         api('/api/plants'),
         api(`/api/map/markers?${mapQuery}`),
         api(tutorialsEndpoint),
@@ -343,11 +358,15 @@ function App() {
       setMaps(safeMaps);
       const activeMaps = safeMaps.filter((mp) => mp.is_active !== false);
       const allowedMaps = activeMaps.length > 0 ? activeMaps : safeMaps;
-      if (!allowedMaps.some(mp => mp.id === activeMapId)) {
+      const affiliationAllowedMaps = restrictedMapIds
+        ? allowedMaps.filter((mp) => restrictedMapIds.includes(mp.id))
+        : allowedMaps;
+      const visibleAllowedMaps = affiliationAllowedMaps.length > 0 ? affiliationAllowedMaps : allowedMaps;
+      if (!visibleAllowedMaps.some(mp => mp.id === activeMapId)) {
         const defaultMap = showPublicVisit
           ? publicSettings?.map?.default_map_visit
           : (effectiveIsTeacher ? publicSettings?.map?.default_map_teacher : publicSettings?.map?.default_map_student);
-        const fallbackMap = allowedMaps.find((mp) => mp.id === defaultMap)?.id || allowedMaps[0]?.id || 'foret';
+        const fallbackMap = visibleAllowedMaps.find((mp) => mp.id === defaultMap)?.id || visibleAllowedMaps[0]?.id || 'foret';
         setActiveMapId(fallbackMap);
       }
       setZones(z); setTasks(t); setTaskProjects(Array.isArray(taskProjectsRes) ? taskProjectsRes : []);
@@ -370,7 +389,7 @@ function App() {
       }
     }
     setLoading(false);
-  }, [activeMapId, DEFAULT_MAPS, canManageTutorials, effectiveIsTeacher, forceLogout, publicSettings?.map?.default_map_student, publicSettings?.map?.default_map_teacher, publicSettings?.map?.default_map_visit, showPublicVisit]);
+  }, [activeMapId, DEFAULT_MAPS, canManageTutorials, effectiveIsTeacher, forceLogout, publicSettings?.map?.default_map_student, publicSettings?.map?.default_map_teacher, publicSettings?.map?.default_map_visit, showPublicVisit, student?.affiliation]);
 
   const tasksForActiveMap = useMemo(() => (
     tasks.filter((t) => {
@@ -380,8 +399,13 @@ function App() {
   ), [tasks, activeMapId]);
   const visibleMaps = useMemo(() => {
     const active = maps.filter((mp) => mp.is_active !== false);
-    return active.length > 0 ? active : maps;
-  }, [maps]);
+    const baseMaps = active.length > 0 ? active : maps;
+    if (effectiveIsTeacher || showPublicVisit) return baseMaps;
+    const allowedMapIds = allowedMapIdsFromAffiliation(student?.affiliation);
+    if (!allowedMapIds) return baseMaps;
+    const scopedMaps = baseMaps.filter((mp) => allowedMapIds.includes(mp.id));
+    return scopedMaps.length > 0 ? scopedMaps : baseMaps;
+  }, [maps, effectiveIsTeacher, showPublicVisit, student?.affiliation]);
   const previewStudent = useMemo(() => {
     if (!isTeacher || roleViewMode !== 'student') return null;
     const fallbackName = String(sessionUser?.displayName || authClaims?.roleDisplayName || 'Utilisateur').trim();
@@ -398,7 +422,7 @@ function App() {
   const studentAffiliation = (studentForUi?.affiliation || 'both').toLowerCase();
   const isN3Affiliated = isN3OnlyAffiliation(studentAffiliation);
   const roleTerms = getRoleTerms(isN3Affiliated);
-  const canAccessStudentMapTasks = effectiveIsTeacher || studentAffiliation !== 'n3';
+  const canAccessStudentMapTasks = true;
   const isPreviewStudentView = !!previewStudent;
   const canOpenStudentDialogs = !effectiveIsTeacher && !isPreviewStudentView;
   const canOpenTeacherStatsFromBadge = effectiveIsTeacher
