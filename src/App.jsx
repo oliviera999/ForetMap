@@ -22,6 +22,7 @@ import { ProfilesAdminView } from './components/profiles-views';
 import { SettingsAdminView } from './components/settings-admin-views';
 import { CollectiveView } from './components/collective-view';
 import { getRoleTerms, isN3OnlyAffiliation } from './utils/n3-terminology';
+import { useDialogA11y } from './hooks/useDialogA11y';
 
 const DESKTOP_SPLIT_MIN_WIDTH = 1024;
 const DESKTOP_SPLIT_MIN_MAP_PX = 620;
@@ -397,6 +398,10 @@ function App() {
       return effectiveMapId === activeMapId || effectiveMapId == null;
     })
   ), [tasks, activeMapId]);
+  const teacherPendingValidationCount = useMemo(
+    () => tasksForActiveMap.filter((t) => t.status === 'done').length,
+    [tasksForActiveMap]
+  );
   const visibleMaps = useMemo(() => {
     const active = maps.filter((mp) => mp.is_active !== false);
     const baseMaps = active.length > 0 ? active : maps;
@@ -419,6 +424,13 @@ function App() {
     };
   }, [authClaims?.roleDisplayName, authClaims?.userId, isTeacher, roleViewMode, sessionUser?.displayName]);
   const studentForUi = student || previewStudent;
+  const studentActiveAssignedTasksCount = useMemo(() => {
+    if (!studentForUi) return 0;
+    return tasksForActiveMap.filter((t) => (
+      t.assignments?.some((a) => a.student_first_name === studentForUi.first_name && a.student_last_name === studentForUi.last_name)
+      && (t.status === 'available' || t.status === 'in_progress')
+    )).length;
+  }, [studentForUi, tasksForActiveMap]);
   const studentAffiliation = (studentForUi?.affiliation || 'both').toLowerCase();
   const isN3Affiliated = isN3OnlyAffiliation(studentAffiliation);
   const roleTerms = getRoleTerms(isN3Affiliated);
@@ -542,6 +554,8 @@ function App() {
     || currentUser?.displayName
     || `${currentUser?.first_name || ''} ${currentUser?.last_name || ''}`.trim()
     || 'Utilisateur';
+  const studentStatsDialogRef = useDialogA11y(() => setShowStats(false));
+  const studentProfileDialogRef = useDialogA11y(() => setShowProfile(false));
 
   return (
     <div id="app">
@@ -572,7 +586,16 @@ function App() {
       />}
       {showStats && canOpenStudentDialogs && (
         <div className="modal-overlay" onClick={e => e.target === e.currentTarget && setShowStats(false)}>
-          <div className="log-modal log-modal--with-close fade-in" style={{maxHeight:'88vh'}} onClick={e => e.stopPropagation()}>
+          <div
+            ref={studentStatsDialogRef}
+            className="log-modal log-modal--with-close fade-in"
+            style={{maxHeight:'88vh'}}
+            onClick={e => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Statistiques élève"
+            tabIndex={-1}
+          >
             <button
               type="button"
               className="modal-close"
@@ -590,7 +613,16 @@ function App() {
       )}
       {showProfile && canOpenStudentDialogs && (
         <div className="modal-overlay" onClick={e => e.target === e.currentTarget && setShowProfile(false)}>
-          <div className="log-modal log-modal--with-close fade-in" style={{maxHeight:'88vh'}} onClick={e => e.stopPropagation()}>
+          <div
+            ref={studentProfileDialogRef}
+            className="log-modal log-modal--with-close fade-in"
+            style={{maxHeight:'88vh'}}
+            onClick={e => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Profil élève"
+            tabIndex={-1}
+          >
             <button
               type="button"
               className="modal-close"
@@ -663,6 +695,7 @@ function App() {
             <button
               className="lock-btn"
               title="Modifier mon profil"
+              aria-label="Modifier mon profil"
               onClick={() => setShowProfile(true)}
             >
               ✏️
@@ -674,6 +707,7 @@ function App() {
                 <button
                   className="lock-btn"
                   title="Revenir au rôle normal"
+                  aria-label="Revenir au rôle normal"
                   onClick={() => {
                     setRoleViewMode('native');
                     setTab('map');
@@ -688,6 +722,7 @@ function App() {
                 <button
                   className="lock-btn"
                   title={`Passer en vue ${roleTerms.studentSingular}`}
+                  aria-label={`Passer en vue ${roleTerms.studentSingular}`}
                   onClick={() => {
                     setRoleViewMode('student');
                     setTab('map');
@@ -702,6 +737,7 @@ function App() {
                 <button
                   className="lock-btn"
                   title={`Passer en vue ${roleTerms.teacherShort}`}
+                  aria-label={`Passer en vue ${roleTerms.teacherShort}`}
                   onClick={() => {
                     setRoleViewMode('teacher');
                     setTab('map');
@@ -714,7 +750,11 @@ function App() {
               )}
             </>
           )}
-          <button className={`lock-btn ${authClaims?.elevated ? 'active' : ''}`} onClick={() => {
+          <button
+            className={`lock-btn ${authClaims?.elevated ? 'active' : ''}`}
+            aria-label={authClaims?.elevated ? 'Désactiver les droits étendus' : 'Activer les droits étendus'}
+            title={authClaims?.elevated ? 'Désactiver les droits étendus' : 'Activer les droits étendus'}
+            onClick={() => {
             if (authClaims?.elevated) {
               localStorage.removeItem('foretmap_teacher_token');
               const authToken = localStorage.getItem('foretmap_auth_token');
@@ -727,10 +767,11 @@ function App() {
             } else {
               setShowPin(true);
             }
-          }}>
+          }}
+          >
             {authClaims?.elevated ? <>🔓 <span className="lock-label">Élevé</span></> : '🔒'}
           </button>
-          <button className="lock-btn" title="Déconnexion" onClick={() => {
+          <button className="lock-btn" title="Déconnexion" aria-label="Déconnexion" onClick={() => {
             clearStoredSession();
             setStudent(null); setSessionUser(null); setIsTeacher(false); setAuthClaims(null);
           }}>↩️</button>
@@ -740,10 +781,18 @@ function App() {
       {effectiveIsTeacher ? (
         <div className={`main teacher-main ${useWideMain ? 'main--wide' : ''}`}>
           <div className="top-tabs">
-            <button className={`top-tab ${tab === 'map' ? 'active' : ''}`} onClick={() => setTab('map')}>🗺️ Carte & Zones</button>
-            <button className={`top-tab ${tab === 'tasks' ? 'active' : ''}`} onClick={() => setTab('tasks')}>
-              ✅ Tâches {tasksForActiveMap.filter(t => t.status === 'done').length > 0 && `(${tasksForActiveMap.filter(t => t.status === 'done').length} à valider)`}
-            </button>
+            {shouldUseDesktopSplit ? (
+              <button className={`top-tab ${isMapTasksTab ? 'active' : ''}`} onClick={() => setTab('map')}>
+                🗺️ Cartes & tâches {teacherPendingValidationCount > 0 && `(${teacherPendingValidationCount} à valider)`}
+              </button>
+            ) : (
+              <>
+                <button className={`top-tab ${tab === 'map' ? 'active' : ''}`} onClick={() => setTab('map')}>🗺️ Carte & Zones</button>
+                <button className={`top-tab ${tab === 'tasks' ? 'active' : ''}`} onClick={() => setTab('tasks')}>
+                  ✅ Tâches {teacherPendingValidationCount > 0 && `(${teacherPendingValidationCount} à valider)`}
+                </button>
+              </>
+            )}
             <button className={`top-tab ${tab === 'plants' ? 'active' : ''}`} onClick={() => setTab('plants')}>🌱 Biodiversité</button>
             {publicSettings?.modules?.tutorials_enabled !== false && (
               <button className={`top-tab ${tab === 'tuto' ? 'active' : ''}`} onClick={() => setTab('tuto')}>📘 Tuto</button>
@@ -890,17 +939,25 @@ function App() {
             {tab === 'about' && <AboutView appVersion={appVersion} isN3Affiliated={isN3Affiliated} />}
           </div>
           <nav className="bottom-nav">
-            {canAccessStudentMapTasks && (
-              <button className={`nav-btn ${(useSplitMapTasks ? isMapTasksTab : tab === 'map') ? 'active' : ''}`} onClick={() => setTab('map')}>
-                <span className="nav-icon">🗺️</span> Carte
+            {canAccessStudentMapTasks && shouldUseDesktopSplit ? (
+              <button className={`nav-btn ${isMapTasksTab ? 'active' : ''}`} onClick={() => setTab('map')}>
+                <span className="nav-icon">🗺️</span>
+                Cartes & tâches {studentActiveAssignedTasksCount > 0 && `(${studentActiveAssignedTasksCount})`}
               </button>
-            )}
-            {canAccessStudentMapTasks && (
-              <button className={`nav-btn ${(useSplitMapTasks ? isMapTasksTab : tab === 'tasks') ? 'active' : ''}`} onClick={() => setTab('tasks')}>
-                <span className="nav-icon">✅</span>
-                Tâches {tasksForActiveMap.filter(t => t.assignments?.some(a => a.student_first_name === studentForUi?.first_name && a.student_last_name === studentForUi?.last_name) && (t.status === 'available' || t.status === 'in_progress')).length > 0
-                  && `(${tasksForActiveMap.filter(t => t.assignments?.some(a => a.student_first_name === studentForUi?.first_name && a.student_last_name === studentForUi?.last_name) && (t.status === 'available' || t.status === 'in_progress')).length})`}
-              </button>
+            ) : (
+              <>
+                {canAccessStudentMapTasks && (
+                  <button className={`nav-btn ${(useSplitMapTasks ? isMapTasksTab : tab === 'map') ? 'active' : ''}`} onClick={() => setTab('map')}>
+                    <span className="nav-icon">🗺️</span> Carte
+                  </button>
+                )}
+                {canAccessStudentMapTasks && (
+                  <button className={`nav-btn ${(useSplitMapTasks ? isMapTasksTab : tab === 'tasks') ? 'active' : ''}`} onClick={() => setTab('tasks')}>
+                    <span className="nav-icon">✅</span>
+                    Tâches {studentActiveAssignedTasksCount > 0 && `(${studentActiveAssignedTasksCount})`}
+                  </button>
+                )}
+              </>
             )}
             <button className={`nav-btn ${tab === 'plants' ? 'active' : ''}`} onClick={() => setTab('plants')}>
               <span className="nav-icon">🌱</span> Biodiversité

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useId, useMemo, useState } from 'react';
 import { api, saveStoredSession, withAppBase } from '../services/api';
 import { getRoleTerms } from '../utils/n3-terminology';
 
@@ -9,6 +9,14 @@ function startGoogleAuth(mode) {
 
 function PinModal({ onSuccess, onClose, uiSettings, isN3Affiliated = false }) {
   const roleTerms = getRoleTerms(isN3Affiliated);
+  const fieldIdPrefix = useId();
+  const fieldIds = {
+    email: `${fieldIdPrefix}-teacher-email`,
+    password: `${fieldIdPrefix}-teacher-password`,
+    forgotEmail: `${fieldIdPrefix}-teacher-forgot-email`,
+    resetToken: `${fieldIdPrefix}-teacher-reset-token`,
+    newPassword: `${fieldIdPrefix}-teacher-new-password`,
+  };
   const [authMode, setAuthMode] = useState('pin'); // pin | email
   const allowGoogleTeacher = uiSettings?.auth?.allow_google_teacher !== false;
 
@@ -152,6 +160,7 @@ function PinModal({ onSuccess, onClose, uiSettings, isN3Affiliated = false }) {
               value={pin} onChange={e => { setPin(e.target.value); setErr(''); }}
               onKeyDown={e => e.key === 'Enter' && !loading && checkPin()}
               placeholder="••••" autoFocus
+              aria-label="Code PIN"
             />
             <button className="btn btn-primary btn-full" onClick={checkPin} disabled={loading}>
               {loading ? 'Vérification…' : 'Entrer'}
@@ -160,8 +169,9 @@ function PinModal({ onSuccess, onClose, uiSettings, isN3Affiliated = false }) {
         ) : (
           <>
             <div className="field" style={{ marginBottom: 8 }}>
-              <label>Email {roleTerms.teacherSingular}</label>
+              <label htmlFor={fieldIds.email}>Email {roleTerms.teacherSingular}</label>
               <input
+                id={fieldIds.email}
                 type="email"
                 value={email}
                 onChange={e => { setEmail(e.target.value); setErr(''); }}
@@ -172,8 +182,9 @@ function PinModal({ onSuccess, onClose, uiSettings, isN3Affiliated = false }) {
               />
             </div>
             <div className="field">
-              <label>Mot de passe</label>
+              <label htmlFor={fieldIds.password}>Mot de passe</label>
               <input
+                id={fieldIds.password}
                 type="password"
                 value={password}
                 onChange={e => { setPassword(e.target.value); setErr(''); }}
@@ -186,8 +197,9 @@ function PinModal({ onSuccess, onClose, uiSettings, isN3Affiliated = false }) {
               {loading ? 'Connexion…' : 'Se connecter'}
             </button>
             <div className="field" style={{ marginTop: 10 }}>
-              <label>Mot de passe oublié (email)</label>
+              <label htmlFor={fieldIds.forgotEmail}>Mot de passe oublié (email)</label>
               <input
+                id={fieldIds.forgotEmail}
                 type="email"
                 value={forgotEmail}
                 onChange={e => setForgotEmail(e.target.value)}
@@ -198,13 +210,16 @@ function PinModal({ onSuccess, onClose, uiSettings, isN3Affiliated = false }) {
               </button>
             </div>
             <div className="field" style={{ marginTop: 8 }}>
-              <label>Réinitialiser avec token</label>
+              <label htmlFor={fieldIds.resetToken}>Réinitialiser avec token</label>
               <input
+                id={fieldIds.resetToken}
                 value={resetToken}
                 onChange={e => setResetToken(e.target.value)}
                 placeholder="Token reçu par email"
               />
+              <label htmlFor={fieldIds.newPassword} style={{ marginTop: 6 }}>Nouveau mot de passe</label>
               <input
+                id={fieldIds.newPassword}
                 type="password"
                 value={newPassword}
                 onChange={e => setNewPassword(e.target.value)}
@@ -235,6 +250,21 @@ function PinModal({ onSuccess, onClose, uiSettings, isN3Affiliated = false }) {
 
 function AuthScreen({ onLogin, appVersion, onVisitGuest, uiSettings, isN3Affiliated = false }) {
   const roleTerms = getRoleTerms(isN3Affiliated);
+  const fieldIdPrefix = useId();
+  const fieldIds = {
+    identifier: `${fieldIdPrefix}-identifier`,
+    first: `${fieldIdPrefix}-first`,
+    last: `${fieldIdPrefix}-last`,
+    pass: `${fieldIdPrefix}-pass`,
+    pseudo: `${fieldIdPrefix}-pseudo`,
+    email: `${fieldIdPrefix}-email`,
+    description: `${fieldIdPrefix}-description`,
+    affiliation: `${fieldIdPrefix}-affiliation`,
+    pass2: `${fieldIdPrefix}-pass2`,
+    forgotEmail: `${fieldIdPrefix}-forgot-email`,
+    resetToken: `${fieldIdPrefix}-reset-token`,
+    resetPass: `${fieldIdPrefix}-reset-pass`,
+  };
   const [mode, setMode] = useState('login'); // 'login' | 'register'
   const [identifier, setIdentifier] = useState('');
   const [first, setFirst] = useState('');
@@ -402,8 +432,9 @@ function AuthScreen({ onLogin, appVersion, onVisitGuest, uiSettings, isN3Affilia
 
         {mode === 'login' ? (
           <div className="field">
-            <label>Identifiant (pseudo ou email)</label>
+            <label htmlFor={fieldIds.identifier}>Identifiant (pseudo ou email)</label>
             <input
+              id={fieldIds.identifier}
               value={identifier}
               onChange={e => setIdentifier(e.target.value)}
               placeholder="momo_lyautey ou moi@exemple.com"
@@ -414,27 +445,28 @@ function AuthScreen({ onLogin, appVersion, onVisitGuest, uiSettings, isN3Affilia
           </div>
         ) : (
           <div className="row">
-            <div className="field"><label>Prénom</label>
-              <input value={first} onChange={e => setFirst(e.target.value)} placeholder="Mohamed" autoFocus onKeyDown={onKey} />
+            <div className="field"><label htmlFor={fieldIds.first}>Prénom</label>
+              <input id={fieldIds.first} value={first} onChange={e => setFirst(e.target.value)} placeholder="Mohamed" autoFocus onKeyDown={onKey} />
             </div>
-            <div className="field"><label>Nom</label>
-              <input value={last} onChange={e => setLast(e.target.value)} placeholder="El Farrai" onKeyDown={onKey} />
+            <div className="field"><label htmlFor={fieldIds.last}>Nom</label>
+              <input id={fieldIds.last} value={last} onChange={e => setLast(e.target.value)} placeholder="El Farrai" onKeyDown={onKey} />
             </div>
           </div>
         )}
-        <div className="field"><label>Mot de passe</label>
-          <input type="password" value={pass} onChange={e => setPass(e.target.value)} placeholder="••••" onKeyDown={onKey} autoComplete="new-password" />
+        <div className="field"><label htmlFor={fieldIds.pass}>Mot de passe</label>
+          <input id={fieldIds.pass} type="password" value={pass} onChange={e => setPass(e.target.value)} placeholder="••••" onKeyDown={onKey} autoComplete="new-password" />
         </div>
         {mode === 'register' && allowRegister && (
           <>
-            <div className="field"><label>Pseudo (optionnel)</label>
-              <input value={pseudo} onChange={e => setPseudo(e.target.value)} placeholder="momo_lyautey" onKeyDown={onKey} />
+            <div className="field"><label htmlFor={fieldIds.pseudo}>Pseudo (optionnel)</label>
+              <input id={fieldIds.pseudo} value={pseudo} onChange={e => setPseudo(e.target.value)} placeholder="momo_lyautey" onKeyDown={onKey} />
             </div>
-            <div className="field"><label>Email (optionnel)</label>
-              <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="moi@exemple.com" onKeyDown={onKey} />
+            <div className="field"><label htmlFor={fieldIds.email}>Email (optionnel)</label>
+              <input id={fieldIds.email} type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="moi@exemple.com" onKeyDown={onKey} />
             </div>
-            <div className="field"><label>Description (optionnel)</label>
+            <div className="field"><label htmlFor={fieldIds.description}>Description (optionnel)</label>
               <textarea
+                id={fieldIds.description}
                 value={description}
                 onChange={e => setDescription(e.target.value)}
                 maxLength={300}
@@ -443,16 +475,16 @@ function AuthScreen({ onLogin, appVersion, onVisitGuest, uiSettings, isN3Affilia
                 onKeyDown={onKey}
               />
             </div>
-            <div className="field"><label>Mon espace</label>
-              <select value={affiliation} onChange={e => setAffiliation(e.target.value)}>
+            <div className="field"><label htmlFor={fieldIds.affiliation}>Mon espace</label>
+              <select id={fieldIds.affiliation} value={affiliation} onChange={e => setAffiliation(e.target.value)}>
                 <option value="" disabled>-- Choisir --</option>
                 <option value="both">N3 + Forêt comestible</option>
                 <option value="n3">N3 uniquement</option>
                 <option value="foret">Forêt comestible uniquement</option>
               </select>
             </div>
-            <div className="field"><label>Confirmer le mot de passe</label>
-              <input type="password" value={pass2} onChange={e => setPass2(e.target.value)} placeholder="••••" onKeyDown={onKey} />
+            <div className="field"><label htmlFor={fieldIds.pass2}>Confirmer le mot de passe</label>
+              <input id={fieldIds.pass2} type="password" value={pass2} onChange={e => setPass2(e.target.value)} placeholder="••••" onKeyDown={onKey} />
             </div>
           </>
         )}
@@ -495,16 +527,17 @@ function AuthScreen({ onLogin, appVersion, onVisitGuest, uiSettings, isN3Affilia
               </button>
             </div>
             <div className="field">
-              <label>Email</label>
-              <input type="email" value={forgotEmail} onChange={e => setForgotEmail(e.target.value)} placeholder="moi@exemple.com" />
+              <label htmlFor={fieldIds.forgotEmail}>Email</label>
+              <input id={fieldIds.forgotEmail} type="email" value={forgotEmail} onChange={e => setForgotEmail(e.target.value)} placeholder="moi@exemple.com" />
               <button className="btn btn-ghost btn-full" style={{ marginTop: 6 }} onClick={requestPasswordReset} disabled={loading}>
                 Envoyer un lien de réinitialisation
               </button>
             </div>
             <div className="field" style={{ marginTop: 8 }}>
-              <label>Réinitialiser avec token</label>
-              <input value={resetToken} onChange={e => setResetToken(e.target.value)} placeholder="Token reçu par email" />
-              <input type="password" value={resetPass} onChange={e => setResetPass(e.target.value)} placeholder="Nouveau mot de passe" style={{ marginTop: 6 }} />
+              <label htmlFor={fieldIds.resetToken}>Réinitialiser avec token</label>
+              <input id={fieldIds.resetToken} value={resetToken} onChange={e => setResetToken(e.target.value)} placeholder="Token reçu par email" />
+              <label htmlFor={fieldIds.resetPass} style={{ marginTop: 6 }}>Nouveau mot de passe</label>
+              <input id={fieldIds.resetPass} type="password" value={resetPass} onChange={e => setResetPass(e.target.value)} placeholder="Nouveau mot de passe" style={{ marginTop: 6 }} />
               <button className="btn btn-ghost btn-full" style={{ marginTop: 6 }} onClick={confirmResetPassword} disabled={loading}>
                 Valider la réinitialisation
               </button>

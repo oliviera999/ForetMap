@@ -192,7 +192,7 @@
       flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center;
       gap:3px; padding:10px 4px; border:none; background:transparent;
       cursor:pointer; font-family:'DM Sans',sans-serif;
-      font-size:.68rem; color:#aaa; min-height:56px;
+      font-size:.68rem; color:#6d756f; min-height:56px;
       -webkit-tap-highlight-color:transparent;
       position:relative;
       min-width:0;
@@ -216,6 +216,13 @@
     }
     .nav-btn.active::after { opacity:1; transform:translateX(-50%) scale(1); }
     .nav-btn:active .nav-icon { transform:scale(.88); }
+    .nav-btn:focus-visible,
+    .top-tab:focus-visible,
+    .lock-btn:focus-visible,
+    .map-bubble:focus-visible {
+      outline:3px solid rgba(82,183,136,.45);
+      outline-offset:2px;
+    }
 
     /* ── FOOTER VERSION ── */
     .app-footer {
@@ -321,6 +328,9 @@
     .legend-item { display:flex; align-items:center; gap:6px; font-size:.78rem; color:#666; }
     .legend-dot { width:12px; height:12px; border-radius:3px; flex-shrink:0; }
     .map-bubble-pin { position:relative; }
+    .map-bubble {
+      border-radius:999px;
+    }
     .map-task-status-dot {
       position:absolute; top:-1px; right:-1px;
       width:10px; height:10px; border-radius:50%;
