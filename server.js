@@ -80,6 +80,16 @@ const distSpaIndex = fs.existsSync(path.join(distDir, 'index.vite.html'))
   : path.join(distDir, 'index.html');
 const serveDist = process.env.NODE_ENV === 'production' && fs.existsSync(distSpaIndex);
 const staticRoot = serveDist ? distDir : path.join(__dirname, 'public');
+const serviceWorkerPath = path.join(staticRoot, 'sw.js');
+if (fs.existsSync(serviceWorkerPath)) {
+  app.get('/sw.js', (req, res) => {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+    res.setHeader('Service-Worker-Allowed', '/');
+    res.sendFile(serviceWorkerPath);
+  });
+}
 app.use(express.static(staticRoot, serveDist ? { index: false } : undefined));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 app.use('/tutos', express.static(path.join(__dirname, 'tutos')));
