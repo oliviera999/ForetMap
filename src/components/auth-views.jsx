@@ -239,6 +239,7 @@ function AuthScreen({ onLogin, appVersion, onVisitGuest, uiSettings }) {
   const [pseudo, setPseudo] = useState('');
   const [email, setEmail] = useState('');
   const [description, setDescription] = useState('');
+  const [affiliation, setAffiliation] = useState('');
   const [pass, setPass] = useState('');
   const [pass2, setPass2] = useState('');
   const [showForgot, setShowForgot] = useState(false);
@@ -296,6 +297,12 @@ function AuthScreen({ onLogin, appVersion, onVisitGuest, uiSettings }) {
     if (mode === 'register' && description.trim().length > 300) {
       return setErr('Description trop longue (max 300 caractères)');
     }
+    if (mode === 'register' && !affiliation) {
+      return setErr('Choisissez votre espace (N3, Forêt comestible ou les deux)');
+    }
+    if (mode === 'register' && !['n3', 'foret', 'both'].includes(affiliation)) {
+      return setErr('Choix d’espace invalide');
+    }
     setLoading(true);
     try {
       const endpoint = mode === 'login' ? '/api/auth/login' : '/api/auth/register';
@@ -306,6 +313,7 @@ function AuthScreen({ onLogin, appVersion, onVisitGuest, uiSettings }) {
         payload.pseudo = pseudo.trim() || null;
         payload.email = email.trim() || null;
         payload.description = description.trim() || null;
+        payload.affiliation = affiliation;
       }
       const student = await api(endpoint, 'POST', payload);
       if (student?.authToken) {
@@ -431,6 +439,14 @@ function AuthScreen({ onLogin, appVersion, onVisitGuest, uiSettings }) {
                 placeholder="Je participe souvent à l'arrosage."
                 onKeyDown={onKey}
               />
+            </div>
+            <div className="field"><label>Mon espace</label>
+              <select value={affiliation} onChange={e => setAffiliation(e.target.value)}>
+                <option value="" disabled>-- Choisir --</option>
+                <option value="both">N3 + Forêt comestible</option>
+                <option value="n3">N3 uniquement</option>
+                <option value="foret">Forêt comestible uniquement</option>
+              </select>
             </div>
             <div className="field"><label>Confirmer le mot de passe</label>
               <input type="password" value={pass2} onChange={e => setPass2(e.target.value)} placeholder="••••" onKeyDown={onKey} />

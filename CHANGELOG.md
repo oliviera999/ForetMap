@@ -37,6 +37,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - **Tests visite** : nouveaux scénarios backend sur le contenu visite, la persistance anonyme via cookie signé et la persistance élève en base.
 
 ### Modifié
+- **Inscription élève (UI)** : le formulaire demande désormais explicitement l’espace d’activité (`N3`, `Forêt comestible` ou `les deux`) via un sélecteur obligatoire, puis transmet ce choix (`affiliation`) à l’API d’inscription.
 - **Connexion unifiée multi-rôles** : `POST /api/auth/login` devient l’unique endpoint de connexion (élève/prof/admin) via `identifier` + mot de passe, sans fallback legacy.
 - **Mode professeur frontend** : la connexion email passe désormais par `/api/auth/login`, avec activation du mode prof selon la permission `teacher.access`.
 - **Compat legacy supprimée** : les anciens endpoints de connexion prof (`/api/auth/teacher/login` et PIN global hors session) sont désactivés côté backend.
