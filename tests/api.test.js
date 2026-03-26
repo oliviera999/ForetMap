@@ -128,6 +128,60 @@ test('Assign puis unassign met à jour le statut de la tâche', async () => {
   assert.strictEqual(afterUnassign.body.status, 'available');
 });
 
+test('GET /api/tasks côté élève expose assigned_count global', async () => {
+  const auth = await request(app)
+    .post('/api/auth/teacher')
+    .send({ pin: process.env.TEACHER_PIN || '1234' });
+  const teacherToken = auth.body.token;
+
+  const zones = await request(app).get('/api/zones').expect(200);
+  const zoneId = zones.body[0]?.id || 'pg';
+  const createRes = await request(app)
+    .post('/api/tasks')
+    .set('Authorization', 'Bearer ' + teacherToken)
+    .send({ title: `Tâche capacité ${Date.now()}`, zone_id: zoneId, required_students: 3 })
+    .expect(201);
+  const taskId = createRes.body.id;
+
+  const studentARes = await request(app)
+    .post('/api/auth/register')
+    .send({ firstName: 'CapA', lastName: 'Eleve' + Date.now(), password: 'pwd1' })
+    .expect(201);
+  const studentBRes = await request(app)
+    .post('/api/auth/register')
+    .send({ firstName: 'CapB', lastName: 'Eleve' + Date.now(), password: 'pwd1' })
+    .expect(201);
+
+  await request(app)
+    .post(`/api/tasks/${taskId}/assign`)
+    .send({ firstName: studentARes.body.first_name, lastName: studentARes.body.last_name, studentId: studentARes.body.id })
+    .expect(200);
+  await request(app)
+    .post(`/api/tasks/${taskId}/assign`)
+    .send({ firstName: studentBRes.body.first_name, lastName: studentBRes.body.last_name, studentId: studentBRes.body.id })
+    .expect(200);
+
+  const studentAToken = signAuthToken({
+    userType: 'student',
+    userId: studentARes.body.id,
+    roleId: null,
+    roleSlug: 'eleve_novice',
+    roleDisplayName: 'Élève',
+    permissions: [],
+    elevated: false,
+  }, false);
+
+  const listRes = await request(app)
+    .get('/api/tasks?map_id=foret')
+    .set('Authorization', 'Bearer ' + studentAToken)
+    .expect(200);
+  const task = listRes.body.find((t) => t.id === taskId);
+  assert.ok(task);
+  assert.strictEqual(Number(task.assigned_count), 2);
+  assert.ok(Array.isArray(task.assignments));
+  assert.strictEqual(task.assignments.length, 1);
+});
+
 test('Un élève peut proposer une tâche en statut proposed', async () => {
   const studentRes = await request(app)
     .post('/api/auth/register')
@@ -144,6 +198,7 @@ test('Un élève peut proposer une tâche en statut proposed', async () => {
       title: `Proposition ${Date.now()}`,
       description: 'On pourrait ajouter cette tâche.',
       zone_id: zoneId,
+      required_students: 3,
       firstName: first_name,
       lastName: last_name,
       studentId,
@@ -153,6 +208,7 @@ test('Un élève peut proposer une tâche en statut proposed', async () => {
   assert.strictEqual(res.body.status, 'proposed');
   assert.ok(String(res.body.description || '').includes('Proposition élève:'));
   assert.strictEqual(res.body.zone_id, zoneId);
+  assert.strictEqual(Number(res.body.required_students), 3);
 });
 
 test('Zones et tâches supportent le filtrage multi-cartes', async () => {

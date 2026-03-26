@@ -550,6 +550,7 @@ async function getTaskWithAssignments(taskId) {
   const m = await queryOne('SELECT id, label FROM maps WHERE id = ?', [task.map_id_resolved]);
   task.map_label = m ? m.label : null;
   task.assignments = await queryAll('SELECT * FROM task_assignments WHERE task_id = ? ORDER BY assigned_at', [taskId]);
+  task.assigned_count = Array.isArray(task.assignments) ? task.assignments.length : 0;
   return task;
 }
 
@@ -630,11 +631,26 @@ router.get('/', async (req, res) => {
       if (!assignmentsByTask.has(a.task_id)) assignmentsByTask.set(a.task_id, []);
       assignmentsByTask.get(a.task_id).push(a);
     }
+    const assignedCountByTask = new Map();
+    if (taskIds.length) {
+      const ph = taskIds.map(() => '?').join(',');
+      const countRows = await queryAll(
+        `SELECT task_id, COUNT(*) AS assigned_count
+           FROM task_assignments
+          WHERE task_id IN (${ph})
+          GROUP BY task_id`,
+        taskIds
+      );
+      for (const row of countRows) {
+        assignedCountByTask.set(row.task_id, Number(row.assigned_count) || 0);
+      }
+    }
     const enriched = tasks.map((t) => {
       const row = { ...t };
       enrichTaskRow(row, zm.get(t.id), mm.get(t.id), tutorialsMap.get(t.id));
       delete row.map_id_resolved_join;
       row.assignments = assignmentsByTask.get(t.id) || [];
+      row.assigned_count = assignedCountByTask.get(t.id) || 0;
       return row;
     });
     const mapLabelIds = [...new Set(enriched.map((r) => r.map_id_resolved).filter(Boolean))];
@@ -1010,6 +1026,7 @@ router.post('/proposals', async (req, res) => {
       marker_ids,
       map_id,
       due_date,
+      required_students,
       firstName,
       lastName,
       studentId,
@@ -1032,6 +1049,7 @@ router.post('/proposals', async (req, res) => {
     const explicitMap = map_id !== undefined ? map_id : null;
     const loc = await validateTaskLocations(zIds, mIds, explicitMap);
     if (loc.error) return res.status(400).json({ error: loc.error });
+    const reqStudents = sanitizeRequiredStudents(required_students);
 
     const id = uuidv4();
     const proposer = `${String(firstName).trim()} ${String(lastName).trim()}`.trim();
@@ -1049,7 +1067,7 @@ router.post('/proposals', async (req, res) => {
         zIds[0] || null,
         mIds[0] || null,
         due_date || null,
-        1,
+        reqStudents,
         'proposed',
         null,
         new Date().toISOString(),
@@ -1064,7 +1082,7 @@ router.post('/proposals', async (req, res) => {
       req,
       actorUserType: 'student',
       actorUserId: studentId,
-      payload: { proposer, student_id: studentId },
+      payload: { proposer, student_id: studentId, required_students: reqStudents },
     });
     emitTasksChanged({ reason: 'propose_task', taskId: id });
     res.status(201).json(task);

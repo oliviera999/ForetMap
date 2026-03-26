@@ -445,10 +445,45 @@
       font-weight:600;
       border:1px solid #d8b4fe;
     }
+    .task-assignees-overview {
+      display:flex;
+      flex-wrap:wrap;
+      align-items:flex-start;
+      gap:6px;
+      margin-bottom:10px;
+      font-size:.8rem;
+    }
+    .task-assignees-title {
+      color:#4b5563;
+      font-weight:700;
+      letter-spacing:.01em;
+      padding-top:2px;
+    }
+    .task-assignees-list { display:flex; flex-wrap:wrap; gap:6px; }
+    .task-assignee-inline {
+      background:#eefbf2;
+      color:#166534;
+      border:1px solid #bbf7d0;
+      border-radius:999px;
+      padding:2px 8px;
+      line-height:1.4;
+    }
+    .task-assignee-inline.me {
+      background:#dcfce7;
+      border-color:#86efac;
+      font-weight:700;
+    }
+    .task-assignee-inline.empty {
+      background:#f3f4f6;
+      border-color:#e5e7eb;
+      color:#6b7280;
+      font-style:italic;
+    }
     .task-desc { font-size:.88rem; color:#666; margin-bottom:10px; line-height:1.55; }
     .task-actions { display:flex; gap:8px; flex-wrap:wrap; }
     .assignees { margin-bottom:8px; display:flex; gap:6px; flex-wrap:wrap; }
     .assignee-tag { background:var(--mint); color:var(--forest); border-radius:6px; padding:3px 9px; font-size:.76rem; font-weight:500; }
+    .assignee-tag.me { font-weight:700; border:1px solid #86efac; }
     .slots { font-size:.82rem; color:#aaa; margin-bottom:6px; }
 
     /* ── STATUS BADGES ── */

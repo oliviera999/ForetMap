@@ -13,7 +13,10 @@ function canAssignOnTask(task, isSessionActive) {
   if (!task) return false;
   if (task.status === 'validated' || task.status === 'done' || task.status === 'proposed') return false;
   const required = Math.max(1, Number(task.required_students || 1));
-  const assigned = Array.isArray(task.assignments) ? task.assignments.length : 0;
+  const apiCount = Number(task.assigned_count);
+  const assigned = Number.isFinite(apiCount) && apiCount >= 0
+    ? apiCount
+    : (Array.isArray(task.assignments) ? task.assignments.length : 0);
   return assigned < required;
 }
 
@@ -485,7 +488,10 @@ function CollectiveView({
           </div>
           <div className="collective-scroll">
             {visibleTasks.map((t) => {
-              const assigned = Array.isArray(t.assignments) ? t.assignments.length : 0;
+              const apiCount = Number(t.assigned_count);
+              const assigned = Number.isFinite(apiCount) && apiCount >= 0
+                ? apiCount
+                : (Array.isArray(t.assignments) ? t.assignments.length : 0);
               const slots = Math.max(0, Number(t.required_students || 1) - assigned);
               const isSessionActive = !!sessionState?.session?.is_active;
               const canAssign = canAssignOnTask(t, isSessionActive);
