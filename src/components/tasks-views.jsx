@@ -103,6 +103,7 @@ function TaskFormModal({
   onClose,
   onSave,
   editTask,
+  isDuplicate = false,
   isProposal = false,
   roleTerms = null,
 }) {
@@ -112,7 +113,7 @@ function TaskFormModal({
     ? (editTask.map_id_resolved || editTask.map_id || editTask.zone_map_id || editTask.marker_map_id || null)
     : activeMapId;
   const [form, setForm] = useState(editTask ? {
-    title: editTask.title, description: editTask.description || '',
+    title: isDuplicate ? `${editTask.title} (copie)` : editTask.title, description: editTask.description || '',
     map_id: initialMapId || '',
     zone_ids: initialLocationIds(editTask, 'zone_ids', 'zone_id'),
     marker_ids: initialLocationIds(editTask, 'marker_ids', 'marker_id'),
@@ -273,11 +274,11 @@ function TaskFormModal({
         className="modal fade-in"
         role="dialog"
         aria-modal="true"
-        aria-label={editTask ? 'Modifier la tâche' : isProposal ? 'Proposer une tâche' : 'Nouvelle tâche'}
+        aria-label={isDuplicate ? 'Dupliquer la tâche' : editTask ? 'Modifier la tâche' : isProposal ? 'Proposer une tâche' : 'Nouvelle tâche'}
         tabIndex={-1}
       >
         <button className="modal-close" aria-label="Fermer la fenêtre" onClick={onClose}>✕</button>
-        <h3>{editTask ? 'Modifier la tâche' : isProposal ? 'Proposer une tâche' : 'Nouvelle tâche'}</h3>
+        <h3>{isDuplicate ? 'Dupliquer la tâche' : editTask ? 'Modifier la tâche' : isProposal ? 'Proposer une tâche' : 'Nouvelle tâche'}</h3>
         {err && <p style={{ color: var_alert, marginBottom: 12, fontSize: '.85rem' }}>{err}</p>}
         <div className="field"><label>Titre *</label><input value={form.title} onChange={set('title')} placeholder="Ex: Arroser les tomates" /></div>
         <div className="field"><label>Description</label><textarea value={form.description} onChange={set('description')} rows={2} placeholder="Instructions détaillées..." /></div>
@@ -398,7 +399,7 @@ function TaskFormModal({
           </div>
         )}
         <button className="btn btn-primary btn-full" onClick={submit} disabled={saving}>
-          {saving ? 'Sauvegarde...' : editTask ? 'Modifier' : isProposal ? 'Envoyer la proposition' : 'Créer la tâche'}
+          {saving ? 'Sauvegarde...' : isDuplicate ? 'Créer la copie' : editTask ? 'Modifier' : isProposal ? 'Envoyer la proposition' : 'Créer la tâche'}
         </button>
       </div>
     </div>
@@ -513,6 +514,7 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
   const [showProjectForm, setShowProjectForm] = useState(false);
   const [showProposalForm, setShowProposalForm] = useState(false);
   const [editTask, setEditTask] = useState(null);
+  const [duplicateTask, setDuplicateTask] = useState(null);
   const [logTask, setLogTask] = useState(null);
   const [logsTask, setLogsTask] = useState(null);
   const [loading, setLoading] = useState({});
@@ -596,7 +598,7 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
   };
 
   const saveTask = async form => {
-    if (editTask) await api(`/api/tasks/${editTask.id}`, 'PUT', form);
+    if (editTask && !duplicateTask) await api(`/api/tasks/${editTask.id}`, 'PUT', form);
     else await api('/api/tasks', 'POST', form);
     await onRefresh();
   };
@@ -820,7 +822,14 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
           )}
           {isTeacher && (
             <>
-              <button className="btn btn-ghost btn-sm" onClick={() => { setEditTask(t); setShowForm(true); }}>✏️</button>
+              <button className="btn btn-ghost btn-sm" onClick={() => { setEditTask(t); setDuplicateTask(null); setShowForm(true); }}>✏️</button>
+              <button
+                className="btn btn-ghost btn-sm"
+                onClick={() => { setDuplicateTask(t); setEditTask(null); setShowForm(true); }}
+                title="Dupliquer cette tâche"
+              >
+                📄
+              </button>
               <button className="btn btn-danger btn-sm" disabled={loading[t.id + 'del']} onClick={() => deleteTask(t)}>🗑️</button>
             </>
           )}
@@ -832,7 +841,7 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
   return (
     <div>
       {toast && <Toast msg={toast} onDone={() => setToast(null)} />}
-      {(showForm || editTask || showProposalForm) && (
+      {(showForm || editTask || duplicateTask || showProposalForm) && (
         <TaskFormModal
           zones={zones}
           markers={markers}
@@ -840,10 +849,11 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
           taskProjects={taskProjects}
           tutorials={tutorials}
           activeMapId={activeMapId}
-          editTask={editTask}
+          editTask={editTask || duplicateTask}
+          isDuplicate={!!duplicateTask}
           isProposal={showProposalForm && !isTeacher}
           roleTerms={roleTerms}
-          onClose={() => { setShowForm(false); setEditTask(null); setShowProposalForm(false); }}
+          onClose={() => { setShowForm(false); setEditTask(null); setDuplicateTask(null); setShowProposalForm(false); }}
           onSave={showProposalForm && !isTeacher ? proposeTask : saveTask}
         />
       )}
