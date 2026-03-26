@@ -74,7 +74,7 @@ router.post('/markers', requirePermission('map.manage_markers', { needsElevation
       [id, mapId, x_pct, y_pct, label.trim(), nextPlantName, serializeLivingBeings(nextLiving, nextPlantName), note || '', emoji || '🌱', new Date().toISOString()]
     );
     const row = await queryOne('SELECT * FROM map_markers WHERE id = ?', [id]);
-    emitGardenChanged({ reason: 'create_marker', markerId: id });
+    emitGardenChanged({ reason: 'create_marker', markerId: id, mapId });
     res.status(201).json(withLivingBeings(row));
   } catch (e) {
     logRouteError(e, req);
@@ -115,7 +115,7 @@ router.put('/markers/:id', requirePermission('map.manage_markers', { needsElevat
       ]
     );
     const updated = await queryOne('SELECT * FROM map_markers WHERE id = ?', [m.id]);
-    emitGardenChanged({ reason: 'update_marker', markerId: m.id });
+    emitGardenChanged({ reason: 'update_marker', markerId: m.id, mapId: updated.map_id });
     res.json(withLivingBeings(updated));
   } catch (e) {
     logRouteError(e, req);
@@ -128,7 +128,7 @@ router.delete('/markers/:id', requirePermission('map.manage_markers', { needsEle
     const m = await queryOne('SELECT * FROM map_markers WHERE id = ?', [req.params.id]);
     if (!m) return res.status(404).json({ error: 'Repère introuvable' });
     await execute('DELETE FROM map_markers WHERE id = ?', [req.params.id]);
-    emitGardenChanged({ reason: 'delete_marker', markerId: req.params.id });
+    emitGardenChanged({ reason: 'delete_marker', markerId: req.params.id, mapId: m.map_id });
     res.json({ success: true });
   } catch (e) {
     logRouteError(e, req);

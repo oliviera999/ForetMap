@@ -111,6 +111,7 @@ function App() {
   const [roleViewMode, setRoleViewMode] = useState('native'); // native | student | teacher
   const [publicSettings, setPublicSettings] = useState(DEFAULT_PUBLIC_SETTINGS);
   const [viewportWidth, setViewportWidth] = useState(() => window.innerWidth || 0);
+  const [isTabVisible, setIsTabVisible] = useState(() => document.visibilityState !== 'hidden');
   const failCountRef = useRef(0);
 
   const effectiveRoleContext = useMemo(() => {
@@ -309,6 +310,12 @@ function App() {
   }, []);
 
   useEffect(() => {
+    const onVisibilityChange = () => setIsTabVisible(document.visibilityState !== 'hidden');
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', onVisibilityChange);
+  }, []);
+
+  useEffect(() => {
     const session = getStoredSession();
     if (!session?.token) return;
     api('/api/auth/me')
@@ -457,15 +464,17 @@ function App() {
   const useWideMain = shouldUseDesktopSplit && (isMapTasksTab || tab === 'collective');
 
   const rtStatus = useForetmapRealtime({
-    student,
+    enabled: !!(student || effectiveIsTeacher),
     fetchAll,
     forceLogout,
     activeMapId,
     setTasks,
+    setTaskProjects,
     setZones,
     setPlants,
     setMarkers,
   });
+  const teacherSyncStatus = effectiveIsTeacher ? (rtStatus === 'off' ? 'polling' : rtStatus) : rtStatus;
 
   useEffect(() => { fetchAll(); }, [fetchAll]);
 
@@ -481,13 +490,19 @@ function App() {
     if (tab === 'stats' && publicSettings?.modules?.stats_enabled === false) setTab('map');
     if (tab === 'visit' && publicSettings?.modules?.visit_enabled === false) setTab('map');
     if (tab === 'notebook' && publicSettings?.modules?.observations_enabled === false) setTab('map');
-  }, [tab, publicSettings?.modules?.tutorials_enabled, publicSettings?.modules?.stats_enabled, publicSettings?.modules?.visit_enabled, publicSettings?.modules?.observations_enabled]);
+    if (tab === 'collective' && !canUseCollectiveView) setTab('map');
+  }, [tab, publicSettings?.modules?.tutorials_enabled, publicSettings?.modules?.stats_enabled, publicSettings?.modules?.visit_enabled, publicSettings?.modules?.observations_enabled, canUseCollectiveView]);
 
-  // Auto-refresh (30 s ; 2 min après 3 échecs serveur consécutifs)
+  // Auto-refresh adaptatif (ralenti quand le push est actif, ralenti en arrière-plan).
+  const pollingIntervalMs = useMemo(() => {
+    const liveAdjusted = rtStatus === 'live' ? Math.max(refreshMs, 90000) : refreshMs;
+    return isTabVisible ? liveAdjusted : Math.max(liveAdjusted, 120000);
+  }, [isTabVisible, refreshMs, rtStatus]);
+
   useEffect(() => {
-    const id = setInterval(fetchAll, refreshMs);
+    const id = setInterval(fetchAll, pollingIntervalMs);
     return () => clearInterval(id);
-  }, [fetchAll, refreshMs]);
+  }, [fetchAll, pollingIntervalMs]);
 
   const updateZone = async (id, data) => {
     await api(`/api/zones/${id}`, 'PUT', data);
@@ -659,14 +674,14 @@ function App() {
               <span className="app-version-badge__status">à jour</span>
             </span>
           )}
-          {effectiveIsTeacher && rtStatus !== 'off' && (
+          {effectiveIsTeacher && (
             <span
               className="realtime-prof-wrap"
-              title={RT_PROF_TOOLTIPS[rtStatus] || ''}
-              aria-label={RT_PROF_TOOLTIPS[rtStatus] || 'État du temps réel'}
+              title={RT_PROF_TOOLTIPS[teacherSyncStatus] || ''}
+              aria-label={RT_PROF_TOOLTIPS[teacherSyncStatus] || 'État du temps réel'}
               role="status"
             >
-              <span className={`realtime-dot realtime-dot--${rtStatus}`} aria-hidden />
+              <span className={`realtime-dot realtime-dot--${teacherSyncStatus}`} aria-hidden />
             </span>
           )}
           <button
@@ -820,9 +835,11 @@ function App() {
                 ⚙️ Paramètres
               </button>
             )}
-            <button className={`top-tab ${tab === 'collective' ? 'active' : ''}`} onClick={() => setTab('collective')}>
-              👥 Collectif
-            </button>
+            {canUseCollectiveView && (
+              <button className={`top-tab ${tab === 'collective' ? 'active' : ''}`} onClick={() => setTab('collective')}>
+                👥 Collectif
+              </button>
+            )}
             <button className={`top-tab ${tab === 'audit' ? 'active' : ''}`} onClick={() => setTab('audit')}>📜 Audit</button>
             <button className={`top-tab ${tab === 'about' ? 'active' : ''}`} onClick={() => setTab('about')}>ℹ️ À propos</button>
           </div>

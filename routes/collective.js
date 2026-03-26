@@ -99,6 +99,36 @@ async function getContextTaskIds(contextType, contextId) {
   return rows.map((r) => r.id);
 }
 
+async function taskBelongsToContext(taskId, contextType, contextId) {
+  if (contextType === 'project') {
+    const row = await queryOne('SELECT id FROM tasks WHERE id = ? AND project_id = ? LIMIT 1', [taskId, contextId]);
+    return !!row;
+  }
+  const row = await queryOne(
+    `SELECT DISTINCT t.id
+       FROM tasks t
+  LEFT JOIN zones z ON z.id = t.zone_id
+  LEFT JOIN map_markers m ON m.id = t.marker_id
+  LEFT JOIN task_projects tp ON tp.id = t.project_id
+  LEFT JOIN task_zones tz ON tz.task_id = t.id
+  LEFT JOIN zones z2 ON z2.id = tz.zone_id
+  LEFT JOIN task_markers tm ON tm.task_id = t.id
+  LEFT JOIN map_markers m2 ON m2.id = tm.marker_id
+      WHERE t.id = ?
+        AND (
+          t.map_id = ? OR t.map_id IS NULL
+          OR z.map_id = ?
+          OR m.map_id = ?
+          OR tp.map_id = ?
+          OR z2.map_id = ?
+          OR m2.map_id = ?
+        )
+      LIMIT 1`,
+    [taskId, contextId, contextId, contextId, contextId, contextId, contextId]
+  );
+  return !!row;
+}
+
 async function getAllStudentIds() {
   const rows = await queryAll(
     "SELECT id FROM users WHERE user_type = 'student' AND is_active = 1 ORDER BY last_name ASC, first_name ASC, id ASC"
@@ -198,7 +228,7 @@ router.get('/session', async (req, res) => {
     return res.json(payload);
   } catch (err) {
     logRouteError(err, req, 'Erreur lecture session collectif');
-    return res.status(500).json({ error: err.message });
+    return res.status(500).json({ error: 'Erreur interne du serveur' });
   }
 });
 
@@ -222,7 +252,7 @@ router.put('/session', async (req, res) => {
     return res.json(payload);
   } catch (err) {
     logRouteError(err, req, 'Erreur mise à jour session collectif');
-    return res.status(500).json({ error: err.message });
+    return res.status(500).json({ error: 'Erreur interne du serveur' });
   }
 });
 
@@ -270,7 +300,7 @@ router.put('/session/attendance', async (req, res) => {
     return res.json(payload);
   } catch (err) {
     logRouteError(err, req, 'Erreur présence/absence session collectif');
-    return res.status(500).json({ error: err.message });
+    return res.status(500).json({ error: 'Erreur interne du serveur' });
   }
 });
 
@@ -288,6 +318,8 @@ router.put('/session/tasks', async (req, res) => {
     }
     const task = await queryOne('SELECT id FROM tasks WHERE id = ? LIMIT 1', [taskId]);
     if (!task) return res.status(404).json({ error: 'Tâche introuvable' });
+    const inContext = await taskBelongsToContext(taskId, contextType, contextId);
+    if (!inContext) return res.status(400).json({ error: 'Tâche hors contexte' });
     const sessionId = await ensureSession({ contextType, contextId, auth: req.auth, isActive: true });
     if (selected) {
       await execute(
@@ -306,7 +338,7 @@ router.put('/session/tasks', async (req, res) => {
     return res.json(payload);
   } catch (err) {
     logRouteError(err, req, 'Erreur sélection tâches session collectif');
-    return res.status(500).json({ error: err.message });
+    return res.status(500).json({ error: 'Erreur interne du serveur' });
   }
 });
 
@@ -343,7 +375,7 @@ router.put('/session/students', async (req, res) => {
     return res.json(payload);
   } catch (err) {
     logRouteError(err, req, 'Erreur sélection élèves session collectif');
-    return res.status(500).json({ error: err.message });
+    return res.status(500).json({ error: 'Erreur interne du serveur' });
   }
 });
 
@@ -373,7 +405,7 @@ router.post('/session/reset', async (req, res) => {
     return res.json(payload);
   } catch (err) {
     logRouteError(err, req, 'Erreur reset session collectif');
-    return res.status(500).json({ error: err.message });
+    return res.status(500).json({ error: 'Erreur interne du serveur' });
   }
 });
 

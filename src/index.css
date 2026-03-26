@@ -137,6 +137,7 @@
       box-shadow:0 0 0 2px rgba(255,255,255,.28);
     }
     .realtime-dot--live { background:#4ade80; animation:rtPulse 2.4s ease-in-out infinite; }
+    .realtime-dot--polling { background:#60a5fa; opacity:.9; }
     .realtime-dot--connecting { background:#fbbf24; animation:rtBlink 1.1s ease-in-out infinite; }
     .realtime-dot--offline { background:#f97316; opacity:.9; }
     .realtime-dot--no-client { background:#94a3b8; opacity:.85; }
@@ -1245,6 +1246,18 @@
 }
 .collective-selector-bar .row {
   align-items:center;
+}
+.collective-new-items {
+  display:grid;
+  gap:8px;
+}
+.collective-new-item {
+  display:flex;
+  align-items:center;
+  gap:8px;
+  flex-wrap:wrap;
+  font-size:.82rem;
+  color:#355c45;
 }
 .collective-selector-bar select {
   min-width:220px;
