@@ -11,14 +11,23 @@ function Toast({ msg, onDone }) {
 
 function StudentStats({ student }) {
   const [data, setData] = useState(null);
+  const [error, setError] = useState('');
 
   useEffect(() => {
+    setError('');
     api(`/api/stats/me/${student.id}`).then(setData).catch(err => {
       console.error('[ForetMap] stats élève', err);
+      setError(err?.message || 'Impossible de charger vos statistiques.');
     });
   }, [student.id]);
 
-  if (!data) return <div className="loader" style={{ height: '60vh' }}><div className="loader-leaf">🌿</div><p>Chargement...</p></div>;
+  if (!data && !error) return <div className="loader" style={{ height: '60vh' }}><div className="loader-leaf">🌿</div><p>Chargement...</p></div>;
+  if (!data && error) return (
+    <div className="empty" style={{ minHeight: '40vh' }}>
+      <div className="empty-icon">⚠️</div>
+      <p>{error}</p>
+    </div>
+  );
 
   const { stats, assignments } = data;
   const RANKS = [
@@ -273,6 +282,7 @@ function StudentProfileEditor({ student, onUpdated, onClose }) {
 
 function TeacherStats() {
   const [data, setData] = useState(null);
+  const [error, setError] = useState('');
   const [search, setSearch] = useState('');
   const [toast, setToast] = useState(null);
   const [confirmStudent, setConfirmStudent] = useState(null);
@@ -283,8 +293,13 @@ function TeacherStats() {
   const [authPerms, setAuthPerms] = useState([]);
   const [authElevated, setAuthElevated] = useState(false);
 
-  const load = useCallback(() => api('/api/stats/all').then(setData).catch(err => {
+  const load = useCallback(() => api('/api/stats/all').then((rows) => {
+    setData(rows);
+    setError('');
+  }).catch(err => {
     console.error('[ForetMap] stats tous', err);
+    setData([]);
+    setError(err?.message || 'Impossible de charger les statistiques.');
     setToast('Impossible de charger les statistiques.');
   }), []);
   useEffect(() => { load(); }, [load]);
@@ -419,6 +434,11 @@ function TeacherStats() {
         <h2 className="section-title">📊 Gestion des élèves</h2>
       </div>
       <p className="section-sub">{data.length} élève{data.length > 1 ? 's' : ''} inscrits</p>
+      {error && (
+        <div className="auth-error" style={{ marginBottom: 10 }}>
+          ⚠️ {error}
+        </div>
+      )}
 
       <div className="export-row">
         <button className="btn btn-secondary btn-sm" disabled={!canExport} onClick={() => {
