@@ -61,7 +61,7 @@ router.post('/', requirePermission('tasks.manage', { needsElevation: true }), as
         WHERE p.id = ?`,
       [id]
     );
-    emitTasksChanged({ reason: 'project_create', projectId: id });
+    emitTasksChanged({ reason: 'project_create', projectId: id, mapId });
     res.status(201).json(created);
   } catch (err) {
     logRouteError(err, req);
@@ -95,7 +95,7 @@ router.put('/:id', requirePermission('tasks.manage', { needsElevation: true }), 
         WHERE p.id = ?`,
       [req.params.id]
     );
-    emitTasksChanged({ reason: 'project_update', projectId: req.params.id });
+    emitTasksChanged({ reason: 'project_update', projectId: req.params.id, mapId: nextMapId });
     res.json(updated);
   } catch (err) {
     logRouteError(err, req);
@@ -105,10 +105,10 @@ router.put('/:id', requirePermission('tasks.manage', { needsElevation: true }), 
 
 router.delete('/:id', requirePermission('tasks.manage', { needsElevation: true }), async (req, res) => {
   try {
-    const existing = await queryOne('SELECT id FROM task_projects WHERE id = ?', [req.params.id]);
+    const existing = await queryOne('SELECT id, map_id FROM task_projects WHERE id = ?', [req.params.id]);
     if (!existing) return res.status(404).json({ error: 'Projet introuvable' });
     await execute('DELETE FROM task_projects WHERE id = ?', [req.params.id]);
-    emitTasksChanged({ reason: 'project_delete', projectId: req.params.id });
+    emitTasksChanged({ reason: 'project_delete', projectId: req.params.id, mapId: existing.map_id });
     res.json({ success: true });
   } catch (err) {
     logRouteError(err, req);

@@ -1,16 +1,17 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { io } from 'socket.io-client';
-import { api, AccountDeletedError, API, withAppBase } from '../services/api';
+import { api, AccountDeletedError, API, withAppBase, getAuthToken } from '../services/api';
 
 /**
  * Connexion Socket.IO (tâches, jardin, élèves) + indicateur temps réel mode prof.
  */
 export function useForetmapRealtime({
-  student,
+  enabled,
   fetchAll,
   forceLogout,
   activeMapId,
   setTasks,
+  setTaskProjects,
   setZones,
   setPlants,
   setMarkers,
@@ -18,16 +19,23 @@ export function useForetmapRealtime({
   const [rtStatus, setRtStatus] = useState('off');
   const tasksRtDebounceRef = useRef(null);
   const gardenRtDebounceRef = useRef(null);
+  const socketRef = useRef(null);
 
   const refreshTasksFromServer = useCallback(async () => {
     try {
-      const t = await api('/api/tasks');
+      const mapQuery = `map_id=${encodeURIComponent(activeMapId)}`;
+      const [t, projects] = await Promise.all([
+        api('/api/tasks'),
+        api(`/api/task-projects?${mapQuery}`).catch(() => []),
+      ]);
       setTasks(t);
+      setTaskProjects(Array.isArray(projects) ? projects : []);
+      window.dispatchEvent(new CustomEvent('foretmap_realtime', { detail: { domain: 'tasks' } }));
     } catch (e) {
       if (e instanceof AccountDeletedError) forceLogout();
       else console.error('[ForetMap] rafraîchissement tâches (temps réel)', e);
     }
-  }, [forceLogout, setTasks]);
+  }, [activeMapId, forceLogout, setTaskProjects, setTasks]);
 
   const refreshGardenFromServer = useCallback(async () => {
     try {
@@ -40,10 +48,12 @@ export function useForetmapRealtime({
       setZones(z);
       setPlants(p);
       setMarkers(m);
+      window.dispatchEvent(new CustomEvent('foretmap_realtime', { detail: { domain: 'garden' } }));
     } catch (e) {
-      console.error('[ForetMap] rafraîchissement jardin (temps réel)', e);
+      if (e instanceof AccountDeletedError) forceLogout();
+      else console.error('[ForetMap] rafraîchissement jardin (temps réel)', e);
     }
-  }, [activeMapId, setZones, setPlants, setMarkers]);
+  }, [activeMapId, forceLogout, setMarkers, setPlants, setZones]);
 
   const scheduleTasksRefresh = useCallback(() => {
     if (tasksRtDebounceRef.current) clearTimeout(tasksRtDebounceRef.current);
@@ -66,7 +76,12 @@ export function useForetmapRealtime({
   }, []);
 
   useEffect(() => {
-    if (!student) {
+    if (!enabled) {
+      setRtStatus('off');
+      return undefined;
+    }
+    const authToken = getAuthToken();
+    if (!authToken) {
       setRtStatus('off');
       return undefined;
     }
@@ -75,10 +90,12 @@ export function useForetmapRealtime({
       API && String(API).trim() ? new URL(API, window.location.href).origin : window.location.origin;
     const socket = io(origin, {
       path: withAppBase('/socket.io'),
+      auth: { token: authToken },
       // Contournement temporaire: certains proxys de prod altèrent les trames WebSocket.
       // On force le polling tant que l'infra n'est pas corrigée.
       transports: ['polling'],
     });
+    socketRef.current = socket;
     const onConnect = () => setRtStatus('live');
     const onDisconnect = () => setRtStatus('offline');
     const onConnectError = (err) => {
@@ -101,6 +118,7 @@ export function useForetmapRealtime({
     if (socket.connected) setRtStatus('live');
 
     return () => {
+      socketRef.current = null;
       socket.io.off('reconnect_attempt', onReconnectAttempt);
       socket.io.off('reconnect', onReconnect);
       socket.off('connect', onConnect);
@@ -114,7 +132,13 @@ export function useForetmapRealtime({
       socket.disconnect();
       setRtStatus('off');
     };
-  }, [student, fetchAll, scheduleTasksRefresh, scheduleGardenRefresh, onStudentsRealtime]);
+  }, [enabled, fetchAll, onStudentsRealtime, scheduleGardenRefresh, scheduleTasksRefresh]);
+
+  useEffect(() => {
+    const socket = socketRef.current;
+    if (!socket || !activeMapId) return;
+    socket.emit('subscribe:map', { mapId: activeMapId });
+  }, [activeMapId]);
 
   return rtStatus;
 }

@@ -123,7 +123,7 @@ router.put('/:id', requirePermission('zones.manage', { needsElevation: true }), 
     );
     const updated = await queryOne('SELECT * FROM zones WHERE id = ?', [zone.id]);
     const history = await queryAll('SELECT * FROM zone_history WHERE zone_id=? ORDER BY harvested_at DESC', [zone.id]);
-    emitGardenChanged({ reason: 'update_zone', zoneId: zone.id });
+    emitGardenChanged({ reason: 'update_zone', zoneId: zone.id, mapId: updated.map_id });
     res.json({ ...withLivingBeings(updated), special: !!updated.special, history });
   } catch (e) {
     logRouteError(e, req);
@@ -186,7 +186,7 @@ router.post('/:id/photos', requirePermission('zones.manage', { needsElevation: t
     }
     await execute('UPDATE zone_photos SET image_path = ? WHERE id = ?', [relativePath, photoId]);
     const photo = await queryOne('SELECT id, zone_id, caption, uploaded_at FROM zone_photos WHERE id=?', [photoId]);
-    emitGardenChanged({ reason: 'add_zone_photo', zoneId: req.params.id });
+    emitGardenChanged({ reason: 'add_zone_photo', zoneId: req.params.id, mapId: zone.map_id });
     res.status(201).json(photo);
   } catch (e) {
     logRouteError(e, req);
@@ -196,10 +196,11 @@ router.post('/:id/photos', requirePermission('zones.manage', { needsElevation: t
 
 router.delete('/:id/photos/:pid', requirePermission('zones.manage', { needsElevation: true }), async (req, res) => {
   try {
+    const zone = await queryOne('SELECT map_id FROM zones WHERE id = ?', [req.params.id]);
     const p = await queryOne('SELECT image_path FROM zone_photos WHERE id=? AND zone_id=?', [req.params.pid, req.params.id]);
     if (p && p.image_path) deleteFile(p.image_path);
     await execute('DELETE FROM zone_photos WHERE id=? AND zone_id=?', [req.params.pid, req.params.id]);
-    emitGardenChanged({ reason: 'delete_zone_photo', zoneId: req.params.id });
+    emitGardenChanged({ reason: 'delete_zone_photo', zoneId: req.params.id, mapId: zone?.map_id || null });
     res.json({ success: true });
   } catch (e) {
     logRouteError(e, req);
@@ -223,7 +224,7 @@ router.post('/', requirePermission('zones.manage', { needsElevation: true }), as
       [id, mapId, name.trim(), nextCurrentPlant, serializeLivingBeings(nextLiving, nextCurrentPlant), stage || 'empty', JSON.stringify(points), color || '#86efac80']
     );
     const zone = await queryOne('SELECT * FROM zones WHERE id = ?', [id]);
-    emitGardenChanged({ reason: 'create_zone', zoneId: id });
+    emitGardenChanged({ reason: 'create_zone', zoneId: id, mapId });
     res.status(201).json({ ...withLivingBeings(zone), history: [] });
   } catch (e) {
     logRouteError(e, req);
@@ -242,7 +243,7 @@ router.delete('/:id', requirePermission('zones.manage', { needsElevation: true }
     await execute('DELETE FROM zone_history WHERE zone_id = ?', [req.params.id]);
     await execute('DELETE FROM zone_photos WHERE zone_id = ?', [req.params.id]);
     await execute('DELETE FROM zones WHERE id = ?', [req.params.id]);
-    emitGardenChanged({ reason: 'delete_zone', zoneId: req.params.id });
+    emitGardenChanged({ reason: 'delete_zone', zoneId: req.params.id, mapId: zone.map_id });
     res.json({ success: true });
   } catch (e) {
     logRouteError(e, req);

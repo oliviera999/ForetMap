@@ -1,0 +1,92 @@
+{
+  "title": "Problemes potentiels du site ForetMap",
+  "reference_date": "2026-03-26",
+  "sources": [
+    "docs/AUDIT_BUGS_INCOHERENCES.md",
+    "docs/AUDIT_PHOTOS_BIODIVERSITE.md"
+  ],
+  "items": {
+    "high": [
+      {
+        "id": "B1",
+        "summary": "Suppression d'observation insuffisamment protegee",
+        "details": "DELETE /api/observations/:id"
+      },
+      {
+        "id": "B2",
+        "summary": "Risque d'IDOR sur la lecture d'observations",
+        "details": "Lecture par studentId"
+      },
+      {
+        "id": "B3",
+        "summary": "Actions eleves basees sur un studentId client",
+        "details": "Risque d'usurpation selon contexte reseau"
+      },
+      {
+        "id": "R1",
+        "summary": "Suppressions SQL sans purge systematique des medias associes"
+      },
+      {
+        "id": "R2",
+        "summary": "Validation des uploads image a durcir",
+        "details": "MIME, magic bytes, taille decodee"
+      },
+      {
+        "id": "R3",
+        "summary": "Exposition potentielle de medias via routes ouvertes",
+        "details": "Politique d'acces non unifiee"
+      }
+    ],
+    "medium": [
+      {
+        "id": "B5",
+        "summary": "Temps reel incomplet sur les observations"
+      },
+      {
+        "id": "R4",
+        "summary": "Pipeline base64 JSON couteux en CPU/memoire"
+      },
+      {
+        "id": "R5",
+        "summary": "Logique de compression image dupliquee cote frontend"
+      },
+      {
+        "id": "R6",
+        "summary": "Gouvernance des URLs externes plantes a renforcer"
+      },
+      {
+        "id": "R7",
+        "summary": "Moderation explicite des photos eleves a clarifier"
+      }
+    ],
+    "low": [
+      {
+        "id": "R8",
+        "summary": "Strategie de distribution medias a harmoniser",
+        "details": "/uploads + endpoints sendFile"
+      },
+      {
+        "id": "B7",
+        "summary": "Evenements de presence eleve non diffuses en temps reel"
+      }
+    ],
+    "resolved": [
+      {
+        "id": "B4",
+        "summary": "Incoherence unassign eleve/prof corrigee"
+      },
+      {
+        "id": "B6",
+        "summary": "Regle interne frontend mise a jour sur la stack Vite"
+      }
+    ]
+  },
+  "endpoints": {
+    "markdown": "/api/site-issues",
+    "json": "/api/site-issues.json"
+  },
+  "notes": [
+    "Inventaire technique des risques et incoherences possibles.",
+    "Consulter les rapports d'audit sources pour le detail complet."
+  ]
+}

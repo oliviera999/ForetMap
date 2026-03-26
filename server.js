@@ -232,6 +232,10 @@ app.get('/api/site-issues', (req, res) => {
   res.type('text/markdown; charset=utf-8');
   res.sendFile(path.resolve(__dirname, 'docs', 'SITE_ISSUES.md'));
 });
+app.get('/api/site-issues.json', (req, res) => {
+  res.type('application/json; charset=utf-8');
+  res.sendFile(path.resolve(__dirname, 'docs', 'SITE_ISSUES.json'));
+});
 
 // Favicon : évite le fallback SPA et un éventuel 500
 app.get('/favicon.ico', (req, res) => res.status(204).end());

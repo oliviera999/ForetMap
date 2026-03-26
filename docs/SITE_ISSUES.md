@@ -38,6 +38,7 @@ Il consolide les constats des audits internes, notamment:
 ## Endpoint d'acces
 
 - API: `GET /api/site-issues`
+- API: `GET /api/site-issues.json`
 - Type de contenu: `text/markdown; charset=utf-8`
 
 ## Notes
