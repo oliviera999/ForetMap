@@ -1590,3 +1590,128 @@
     overflow:visible;
   }
 }
+
+/* ── FORUM GLOBAL ── */
+.forum-view {
+  display:grid;
+  gap:12px;
+}
+.forum-grid {
+  display:grid;
+  grid-template-columns: minmax(280px, 360px) minmax(0, 1fr);
+  gap:12px;
+}
+.forum-panel {
+  background:white;
+  border:1px solid var(--mint);
+  border-radius:12px;
+  box-shadow:var(--shadow);
+  padding:12px;
+  display:grid;
+  gap:10px;
+}
+.forum-form {
+  display:grid;
+  gap:8px;
+}
+.forum-head {
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+  gap:8px;
+}
+.forum-thread-list {
+  display:grid;
+  gap:8px;
+  max-height:68vh;
+  overflow:auto;
+}
+.forum-thread-item {
+  border:1px solid rgba(0,0,0,.08);
+  background:#fafdfb;
+  border-radius:10px;
+  padding:9px;
+  text-align:left;
+  display:grid;
+  gap:4px;
+  cursor:pointer;
+  color:inherit;
+  font-family:'DM Sans',sans-serif;
+}
+.forum-thread-item.active {
+  border-color:var(--sage);
+  background:#f0fdf4;
+}
+.forum-meta-line {
+  font-size:.76rem;
+  color:#53705f;
+}
+.forum-muted {
+  font-size:.8rem;
+  color:#63756a;
+}
+.forum-post-list {
+  display:grid;
+  gap:8px;
+  max-height:52vh;
+  overflow:auto;
+}
+.forum-post {
+  border:1px solid rgba(0,0,0,.08);
+  border-radius:10px;
+  padding:10px;
+  background:#fbfffc;
+  display:grid;
+  gap:8px;
+}
+.forum-post.is-deleted {
+  opacity:.7;
+  background:#f8f8f8;
+}
+.forum-post-head {
+  display:flex;
+  justify-content:space-between;
+  gap:8px;
+  font-size:.8rem;
+  color:#415449;
+}
+.forum-post-body {
+  margin:0;
+  white-space:pre-wrap;
+  line-height:1.45;
+  color:#1e2b24;
+  font-size:.9rem;
+}
+.forum-post-actions {
+  display:grid;
+  grid-template-columns:auto 1fr auto;
+  gap:6px;
+  align-items:center;
+}
+.forum-post-actions input {
+  border:1.5px solid var(--mint);
+  border-radius:8px;
+  padding:8px 10px;
+  min-height:36px;
+}
+.forum-pager {
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+.forum-pager--posts {
+  justify-content:flex-end;
+}
+.forum-reply-form {
+  border-top:1px solid var(--mint);
+  padding-top:8px;
+}
+@media (max-width:960px) {
+  .forum-grid {
+    grid-template-columns:1fr;
+  }
+  .forum-thread-list,
+  .forum-post-list {
+    max-height:none;
+  }
+}

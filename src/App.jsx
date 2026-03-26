@@ -24,6 +24,7 @@ import { ProfilesAdminView } from './components/profiles-views';
 import { SettingsAdminView } from './components/settings-admin-views';
 import { CollectiveView } from './components/collective-view';
 import { NotificationCenter } from './components/notifications-center';
+import { ForumView } from './components/forum-views';
 import { getRoleTerms, isN3OnlyAffiliation } from './utils/n3-terminology';
 import { useDialogA11y } from './hooks/useDialogA11y';
 
@@ -995,6 +996,7 @@ function App() {
                 👥 Collectif
               </button>
             )}
+            <button className={`top-tab ${tab === 'forum' ? 'active' : ''}`} onClick={() => setTab('forum')}>💬 Forum</button>
             <button className={`top-tab ${tab === 'audit' ? 'active' : ''}`} onClick={() => setTab('audit')}>📜 Audit</button>
             <button className={`top-tab ${tab === 'about' ? 'active' : ''}`} onClick={() => setTab('about')}>ℹ️ À propos</button>
           </div>
@@ -1066,6 +1068,7 @@ function App() {
                   />
                 ) : <div className="empty"><p>Permission insuffisante</p></div>
               )}
+              {tab === 'forum' && <ForumView authClaims={authClaims} />}
               {tab === 'about'  && <AboutView appVersion={appVersion} isN3Affiliated={isN3Affiliated} />}
             </>
           )}
@@ -1124,6 +1127,7 @@ function App() {
                 {publicSettings?.modules?.tutorials_enabled !== false && tab === 'tuto' && <TutorialsView tutorials={tutorials} isTeacher={false} onRefresh={fetchAll} onForceLogout={forceLogout} />}
                 {publicSettings?.modules?.observations_enabled !== false && tab === 'notebook' && <ObservationNotebook student={studentForUi} zones={zones} onForceLogout={forceLogout} />}
                 {publicSettings?.modules?.visit_enabled !== false && tab === 'visit' && <VisitView student={studentForUi} isTeacher={false} availableTutorials={tutorials} initialMapId={activeMapId} onForceLogout={forceLogout} isN3Affiliated={isN3Affiliated} />}
+                {tab === 'forum' && <ForumView authClaims={authClaims} />}
                 {tab === 'about' && <AboutView appVersion={appVersion} isN3Affiliated={isN3Affiliated} />}
               </>
             )}
@@ -1167,6 +1171,9 @@ function App() {
                 <span className="nav-icon">🧭</span> Visite
               </button>
             )}
+            <button className={`nav-btn ${tab === 'forum' ? 'active' : ''}`} onClick={() => setTab('forum')}>
+              <span className="nav-icon">💬</span> Forum
+            </button>
             <button className={`nav-btn ${tab === 'about' ? 'active' : ''}`} onClick={() => setTab('about')}>
               <span className="nav-icon">ℹ️</span> À propos
             </button>
