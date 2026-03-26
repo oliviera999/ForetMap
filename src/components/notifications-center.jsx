@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import {
   NOTIFICATION_CATEGORY,
   NOTIFICATION_LEVEL,
@@ -65,13 +66,89 @@ function NotificationCenter({
   onResetMetrics,
 }) {
   const [open, setOpen] = useState(false);
+  const [portalNode, setPortalNode] = useState(null);
   const categories = useMemo(() => preferenceCategoriesForRole(roleKey), [roleKey]);
   const openClose = () => setOpen((prev) => !prev);
+
+  useEffect(() => {
+    const node = document.createElement('div');
+    document.body.appendChild(node);
+    setPortalNode(node);
+    return () => {
+      document.body.removeChild(node);
+    };
+  }, []);
 
   useEffect(() => {
     if (!open) return;
     onOpenPanel?.();
   }, [onOpenPanel, open]);
+
+  const panel = open ? (
+    <div className="notif-panel fade-in" role="dialog" aria-modal="false" aria-label="Centre de notifications">
+      <div className="notif-panel-head">
+        <strong>Notifications</strong>
+        <div className="notif-panel-actions">
+          <button type="button" className="btn btn-ghost btn-sm" onClick={onMarkAllRead}>Tout lu</button>
+          <button type="button" className="btn btn-ghost btn-sm" onClick={onClearRead}>Nettoyer lues</button>
+        </div>
+      </div>
+      <div className="notif-prefs">
+        {categories.map((category) => (
+          <label key={category} className="notif-pref-item">
+            <input
+              type="checkbox"
+              checked={prefs?.[category] !== false}
+              onChange={(event) => onTogglePref?.(category, event.target.checked)}
+            />
+            {CATEGORY_LABELS[category]}
+          </label>
+        ))}
+      </div>
+      <div className="notif-list">
+        {items.length === 0 && <p className="notif-empty">Aucune notification pour le moment.</p>}
+        {items.map((item) => (
+          <article
+            key={item.id}
+            className={`notif-item ${item.read ? 'read' : 'unread'} notif-${levelClass(item.level)}`}
+          >
+            <div className="notif-item-top">
+              <span className={`notif-level notif-level-${levelClass(item.level)}`}>
+                {NOTIFICATION_LEVEL_LABELS[item.level] || 'Info'}
+              </span>
+              <span className="notif-time">{formatRelative(item.createdAt)}</span>
+            </div>
+            <div className="notif-title">{item.title}</div>
+            <p className="notif-message">{item.message}</p>
+            <div className="notif-item-actions">
+              {!item.read && (
+                <button type="button" className="btn btn-ghost btn-sm" onClick={() => onMarkAsRead?.(item.id)}>
+                  Marquer lu
+                </button>
+              )}
+              {item.action && (
+                <button type="button" className="btn btn-secondary btn-sm" onClick={() => onOpenAction?.(item)}>
+                  Ouvrir
+                </button>
+              )}
+              <button type="button" className="btn btn-ghost btn-sm" onClick={() => onRemove?.(item.id)}>
+                Retirer
+              </button>
+            </div>
+          </article>
+        ))}
+      </div>
+      <details className="notif-metrics">
+        <summary>Diagnostic notifications</summary>
+        <div className="notif-metrics-grid">
+          <span>Créées: {Number(metrics?.created || 0).toLocaleString('fr-FR')}</span>
+          <span>Ouvertures panneau: {Number(metrics?.opened || 0).toLocaleString('fr-FR')}</span>
+          <span>Actions ouvertes: {Number(metrics?.actions || 0).toLocaleString('fr-FR')}</span>
+        </div>
+        <button type="button" className="btn btn-ghost btn-sm" onClick={onResetMetrics}>Réinitialiser</button>
+      </details>
+    </div>
+  ) : null;
 
   return (
     <div className="notif-center">
@@ -85,71 +162,7 @@ function NotificationCenter({
         🔔
         {unreadCount > 0 && <span className="notif-badge">{unreadCount > 99 ? '99+' : unreadCount}</span>}
       </button>
-      {open && (
-        <div className="notif-panel fade-in" role="dialog" aria-modal="false" aria-label="Centre de notifications">
-          <div className="notif-panel-head">
-            <strong>Notifications</strong>
-            <div className="notif-panel-actions">
-              <button type="button" className="btn btn-ghost btn-sm" onClick={onMarkAllRead}>Tout lu</button>
-              <button type="button" className="btn btn-ghost btn-sm" onClick={onClearRead}>Nettoyer lues</button>
-            </div>
-          </div>
-          <div className="notif-prefs">
-            {categories.map((category) => (
-              <label key={category} className="notif-pref-item">
-                <input
-                  type="checkbox"
-                  checked={prefs?.[category] !== false}
-                  onChange={(event) => onTogglePref?.(category, event.target.checked)}
-                />
-                {CATEGORY_LABELS[category]}
-              </label>
-            ))}
-          </div>
-          <div className="notif-list">
-            {items.length === 0 && <p className="notif-empty">Aucune notification pour le moment.</p>}
-            {items.map((item) => (
-              <article
-                key={item.id}
-                className={`notif-item ${item.read ? 'read' : 'unread'} notif-${levelClass(item.level)}`}
-              >
-                <div className="notif-item-top">
-                  <span className={`notif-level notif-level-${levelClass(item.level)}`}>
-                    {NOTIFICATION_LEVEL_LABELS[item.level] || 'Info'}
-                  </span>
-                  <span className="notif-time">{formatRelative(item.createdAt)}</span>
-                </div>
-                <div className="notif-title">{item.title}</div>
-                <p className="notif-message">{item.message}</p>
-                <div className="notif-item-actions">
-                  {!item.read && (
-                    <button type="button" className="btn btn-ghost btn-sm" onClick={() => onMarkAsRead?.(item.id)}>
-                      Marquer lu
-                    </button>
-                  )}
-                  {item.action && (
-                    <button type="button" className="btn btn-secondary btn-sm" onClick={() => onOpenAction?.(item)}>
-                      Ouvrir
-                    </button>
-                  )}
-                  <button type="button" className="btn btn-ghost btn-sm" onClick={() => onRemove?.(item.id)}>
-                    Retirer
-                  </button>
-                </div>
-              </article>
-            ))}
-          </div>
-          <details className="notif-metrics">
-            <summary>Diagnostic notifications</summary>
-            <div className="notif-metrics-grid">
-              <span>Créées: {Number(metrics?.created || 0).toLocaleString('fr-FR')}</span>
-              <span>Ouvertures panneau: {Number(metrics?.opened || 0).toLocaleString('fr-FR')}</span>
-              <span>Actions ouvertes: {Number(metrics?.actions || 0).toLocaleString('fr-FR')}</span>
-            </div>
-            <button type="button" className="btn btn-ghost btn-sm" onClick={onResetMetrics}>Réinitialiser</button>
-          </details>
-        </div>
-      )}
+      {portalNode && panel ? createPortal(panel, portalNode) : null}
     </div>
   );
 }

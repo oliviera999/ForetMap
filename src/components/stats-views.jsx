@@ -121,6 +121,9 @@ function StudentStats({ student, isN3Affiliated = false }) {
 
 function StudentProfileEditor({ student, onUpdated, onClose, isN3Affiliated = false }) {
   const roleTerms = getRoleTerms(isN3Affiliated);
+  const fallbackDisplayName = String(student?.display_name || student?.displayName || student?.email || 'Utilisateur').trim();
+  const displayFirstName = String(student?.first_name || '').trim() || fallbackDisplayName;
+  const displayLastName = String(student?.last_name || '').trim();
   const profileType = (() => {
     const roleSlug = String(student?.auth?.roleSlug || '').toLowerCase();
     if (roleSlug === 'admin') return 'admin';
@@ -132,10 +135,10 @@ function StudentProfileEditor({ student, onUpdated, onClose, isN3Affiliated = fa
     return roleTerms.studentSingular;
   })();
 
-  const [pseudo, setPseudo] = useState(student.pseudo || '');
-  const [email, setEmail] = useState(student.email || '');
-  const [description, setDescription] = useState(student.description || '');
-  const [affiliation, setAffiliation] = useState(student.affiliation || 'both');
+  const [pseudo, setPseudo] = useState(student?.pseudo || '');
+  const [email, setEmail] = useState(student?.email || '');
+  const [description, setDescription] = useState(student?.description || '');
+  const [affiliation, setAffiliation] = useState(student?.affiliation || 'both');
   const [avatarPreview, setAvatarPreview] = useState(getStudentAvatarUrl(student));
   const [avatarData, setAvatarData] = useState(null);
   const [removeAvatar, setRemoveAvatar] = useState(false);
@@ -191,8 +194,16 @@ function StudentProfileEditor({ student, onUpdated, onClose, isN3Affiliated = fa
       if (avatarData) payload.avatarData = avatarData;
       if (removeAvatar) payload.removeAvatar = true;
 
-      const updated = await api(`/api/students/${student.id}/profile`, 'PATCH', payload);
+      const roleSlug = String(student?.auth?.roleSlug || '').toLowerCase();
+      const userType = String(student?.auth?.userType || student?.user_type || '').toLowerCase();
+      const isTeacherLike = roleSlug === 'admin' || roleSlug.startsWith('prof') || userType === 'teacher' || userType === 'user';
+      const endpoint = isTeacherLike ? '/api/auth/me/profile' : `/api/students/${student.id}/profile`;
+      const updated = await api(endpoint, 'PATCH', payload);
       onUpdated(updated);
+      setPseudo(updated?.pseudo || '');
+      setEmail(updated?.email || '');
+      setDescription(updated?.description || '');
+      setAffiliation(updated?.affiliation || 'both');
       setCurrentPassword('');
       setAvatarData(null);
       setRemoveAvatar(false);
@@ -243,7 +254,7 @@ function StudentProfileEditor({ student, onUpdated, onClose, isN3Affiliated = fa
 
       <div className="field">
         <label>Nom complet</label>
-        <input value={`${student.first_name} ${student.last_name}`} disabled />
+        <input value={`${displayFirstName} ${displayLastName}`.trim()} disabled />
       </div>
       <div className="field">
         <label>Type de profil</label>

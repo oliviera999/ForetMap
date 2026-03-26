@@ -20,9 +20,11 @@ const { logAudit, logSecurityEvent } = require('./audit');
 const {
   ensureCanonicalUserByAuth,
 } = require('../lib/identity');
+const { saveBase64ToDisk, deleteFile } = require('../lib/uploads');
 
 const router = express.Router();
 const MAX_DESCRIPTION_LEN = 300;
+const MAX_AVATAR_BYTES = 2 * 1024 * 1024;
 const PSEUDO_RE = /^[A-Za-z0-9_.-]{3,30}$/;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PASSWORD_RESET_MIN_LEN = 4;
@@ -56,6 +58,13 @@ function normalizeStudentAffiliation(value) {
   const normalized = raw.toLowerCase();
   if (!ALLOWED_STUDENT_AFFILIATIONS.has(normalized)) return null;
   return normalized;
+}
+
+function detectAvatarExtension(dataUrl) {
+  const m = /^data:image\/(png|jpe?g|webp);base64,/i.exec(dataUrl || '');
+  if (!m) return null;
+  const raw = String(m[1]).toLowerCase();
+  return raw === 'jpeg' ? 'jpg' : raw;
 }
 
 function parseCsvLowercaseSet(raw, defaults = []) {
@@ -320,6 +329,103 @@ function exposeAuth(auth) {
 
 router.get('/me', requireAuth, async (req, res) => {
   res.json({ auth: exposeAuth(req.auth) });
+});
+
+router.patch('/me/profile', requireAuth, async (req, res) => {
+  try {
+    const body = req.body || {};
+    if (!body.currentPassword) return res.status(400).json({ error: 'Mot de passe actuel requis' });
+
+    const auth = req.auth || {};
+    const account = await queryOne('SELECT * FROM users WHERE id = ? LIMIT 1', [auth.userId]);
+    if (!account) return res.status(404).json({ error: 'Utilisateur introuvable' });
+    if (!account.password_hash) return res.status(401).json({ error: 'Ce compte n\'a pas de mot de passe. Contactez un responsable.' });
+
+    const passwordOk = await bcrypt.compare(String(body.currentPassword), account.password_hash);
+    if (!passwordOk) return res.status(401).json({ error: 'Mot de passe actuel incorrect' });
+
+    const hasPseudo = Object.prototype.hasOwnProperty.call(body, 'pseudo');
+    const hasEmail = Object.prototype.hasOwnProperty.call(body, 'email')
+      || Object.prototype.hasOwnProperty.call(body, 'mail');
+    const hasDescription = Object.prototype.hasOwnProperty.call(body, 'description');
+    const hasAffiliation = Object.prototype.hasOwnProperty.call(body, 'affiliation');
+    const hasAvatarData = Object.prototype.hasOwnProperty.call(body, 'avatarData');
+    const removeAvatar = !!body.removeAvatar;
+    if (!hasPseudo && !hasEmail && !hasDescription && !hasAffiliation && !hasAvatarData && !removeAvatar) {
+      return res.status(400).json({ error: 'Aucun champ de profil à mettre à jour' });
+    }
+
+    const pseudo = hasPseudo ? normalizeOptionalString(body.pseudo) : account.pseudo;
+    const email = hasEmail ? normalizeEmail(body.email ?? body.mail) : account.email;
+    const description = hasDescription ? normalizeOptionalString(body.description) : account.description;
+    const affiliation = hasAffiliation
+      ? normalizeStudentAffiliation(body.affiliation)
+      : (normalizeStudentAffiliation(account.affiliation) || 'both');
+    let avatarPath = account.avatar_path || null;
+
+    const profileError = validateProfileInput({ pseudo, email, description });
+    if (profileError) return res.status(400).json({ error: profileError });
+    if (!affiliation) return res.status(400).json({ error: "Affiliation invalide (n3, foret ou both)" });
+    if (hasAvatarData) {
+      const avatarData = normalizeOptionalString(body.avatarData);
+      if (!avatarData) return res.status(400).json({ error: 'Image de profil invalide' });
+      const ext = detectAvatarExtension(avatarData);
+      if (!ext) return res.status(400).json({ error: 'Format image invalide (png/jpg/webp)' });
+      const base64Payload = avatarData.includes(',') ? avatarData.split(',')[1] : avatarData;
+      const bytes = Buffer.byteLength(base64Payload, 'base64');
+      if (bytes > MAX_AVATAR_BYTES) {
+        return res.status(400).json({ error: 'Image trop lourde (max 2 Mo)' });
+      }
+      const userFolder = String(account.user_type || 'users').toLowerCase();
+      const relativePath = `${userFolder}/${account.id}/avatar-${Date.now()}.${ext}`;
+      saveBase64ToDisk(relativePath, avatarData);
+      if (account.avatar_path && account.avatar_path !== relativePath) {
+        deleteFile(account.avatar_path);
+      }
+      avatarPath = relativePath;
+    } else if (removeAvatar) {
+      if (account.avatar_path) deleteFile(account.avatar_path);
+      avatarPath = null;
+    }
+
+    if (pseudo) {
+      const existingPseudo = await queryOne('SELECT id FROM users WHERE LOWER(pseudo)=LOWER(?) AND id <> ? LIMIT 1', [pseudo, account.id]);
+      if (existingPseudo) return res.status(409).json({ error: 'Ce pseudo est déjà utilisé' });
+    }
+    if (email) {
+      const existingEmail = await queryOne('SELECT id FROM users WHERE LOWER(email)=LOWER(?) AND id <> ? LIMIT 1', [email, account.id]);
+      if (existingEmail) return res.status(409).json({ error: 'Cet email est déjà utilisé' });
+    }
+
+    try {
+      await execute(
+        `UPDATE users
+            SET pseudo = ?, email = ?, description = ?, affiliation = ?, avatar_path = ?, updated_at = NOW()
+          WHERE id = ?`,
+        [pseudo, email, description, affiliation, avatarPath, account.id]
+      );
+    } catch (err) {
+      if (err && (err.errno === 1062 || err.code === 'ER_DUP_ENTRY')) {
+        return res.status(409).json({ error: 'Pseudo ou email déjà utilisé' });
+      }
+      throw err;
+    }
+
+    const updated = await queryOne('SELECT * FROM users WHERE id = ? LIMIT 1', [account.id]);
+    logAudit('update_user_profile', 'user', account.id, `${updated?.first_name || ''} ${updated?.last_name || ''}`.trim() || updated?.display_name || account.id, {
+      req,
+      actorUserType: account.user_type,
+      actorUserId: account.id,
+      payload: { pseudo: !!hasPseudo, email: !!hasEmail, description: !!hasDescription, affiliation: !!hasAffiliation, avatar: !!(hasAvatarData || removeAvatar) },
+    });
+    if (String(account.user_type || '').toLowerCase() === 'student') {
+      emitStudentsChanged({ reason: 'student_profile_update', studentId: account.id });
+    }
+    res.json({ ...updated, password_hash: undefined });
+  } catch (e) {
+    logRouteError(e, req);
+    res.status(500).json({ error: e.message });
+  }
 });
 
 router.post('/register', async (req, res) => {

@@ -900,9 +900,7 @@ function useMapGestures({ mapImageSrc, activeMapId, mode, onRefresh }) {
   const draggingMarkerRef = useRef(null);
   const draggingMarkerEl = useRef(null);
   const [isCoarsePointer, setIsCoarsePointer] = useState(false);
-  const [mapInteractionEnabled, setMapInteractionEnabled] = useState(false);
-  const [interactionBeat, setInteractionBeat] = useState(0);
-  const lastBeatRef = useRef(0);
+  const [mapInteractionEnabled, setMapInteractionEnabled] = useState(true);
 
   const applyTransform = () => {
     if (!worldRef.current) return;
@@ -925,22 +923,13 @@ function useMapGestures({ mapImageSrc, activeMapId, mode, onRefresh }) {
     });
   };
 
-  const signalInteraction = () => {
-    const now = Date.now();
-    if (now - lastBeatRef.current < 700) return;
-    lastBeatRef.current = now;
-    setInteractionBeat(now);
-  };
-
   const enableMapInteraction = () => {
     setMapInteractionEnabled(true);
-    signalInteraction();
   };
 
   const toggleMapInteraction = () => {
     setMapInteractionEnabled((prev) => {
       const next = !prev;
-      if (next) signalInteraction();
       return next;
     });
   };
@@ -959,7 +948,7 @@ function useMapGestures({ mapImageSrc, activeMapId, mode, onRefresh }) {
   }, []);
 
   useEffect(() => {
-    setMapInteractionEnabled(false);
+    setMapInteractionEnabled(true);
   }, [activeMapId]);
 
   useEffect(() => {
@@ -985,12 +974,6 @@ function useMapGestures({ mapImageSrc, activeMapId, mode, onRefresh }) {
     setCommitted({ x, y, s });
   }, [imgSize]);
 
-  useEffect(() => {
-    if (!isCoarsePointer || mode !== 'view' || !mapInteractionEnabled) return;
-    const t = setTimeout(() => setMapInteractionEnabled(false), 9000);
-    return () => clearTimeout(t);
-  }, [isCoarsePointer, mode, mapInteractionEnabled, interactionBeat]);
-
   const toImagePct = (clientX, clientY) => {
     const c = containerRef.current;
     if (!c) return null;
@@ -1013,7 +996,6 @@ function useMapGestures({ mapImageSrc, activeMapId, mode, onRefresh }) {
       if (touchLike && isCoarsePointer && !interactionActive) return;
       isPanning.current = true;
       panStart.current = { x: e.clientX - tx.current.x, y: e.clientY - tx.current.y };
-      signalInteraction();
     };
 
     const onPM = (e) => {
@@ -1025,7 +1007,6 @@ function useMapGestures({ mapImageSrc, activeMapId, mode, onRefresh }) {
         tx.current.x = e.clientX - panStart.current.x;
         tx.current.y = e.clientY - panStart.current.y;
         scheduleApply();
-        signalInteraction();
         e.preventDefault();
         return;
       }
@@ -1037,7 +1018,6 @@ function useMapGestures({ mapImageSrc, activeMapId, mode, onRefresh }) {
         mel.style.left = p.xp + '%';
         mel.style.top = p.yp + '%';
         mel._pct = p;
-        signalInteraction();
         e.preventDefault();
       }
     };
@@ -1071,7 +1051,6 @@ function useMapGestures({ mapImageSrc, activeMapId, mode, onRefresh }) {
       tx.current.y = my - (my - tx.current.y) * (ns / tx.current.s);
       tx.current.s = ns;
       scheduleApply();
-      signalInteraction();
       clearTimeout(onWH._t);
       onWH._t = setTimeout(commit, 80);
     };
@@ -1104,7 +1083,6 @@ function useMapGestures({ mapImageSrc, activeMapId, mode, onRefresh }) {
       tx.current.y = touchRef2.my - (touchRef2.my - touchRef2.oy) * (ns / touchRef2.s);
       tx.current.s = ns;
       scheduleApply();
-      signalInteraction();
       e.preventDefault();
     };
 
