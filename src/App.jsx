@@ -94,24 +94,47 @@ function App() {
   const [refreshMs,  setRefreshMs]  = useState(30000);
   const [serverDown, setServerDown] = useState(false);
   const [authClaims, setAuthClaims] = useState(() => getAuthClaims());
+  const [roleViewMode, setRoleViewMode] = useState('native'); // native | student | teacher
   const [publicSettings, setPublicSettings] = useState(DEFAULT_PUBLIC_SETTINGS);
   const failCountRef = useRef(0);
 
+  const effectiveRoleContext = useMemo(() => {
+    const roleSlug = String(authClaims?.roleSlug || '').toLowerCase();
+    const activePermsRaw = Array.isArray(authClaims?.permissions) ? authClaims.permissions : [];
+    const elevatablePermsRaw = Array.isArray(authClaims?.elevatedPermissions) ? authClaims.elevatedPermissions : [];
+    let activePerms = activePermsRaw;
+    let elevatablePerms = elevatablePermsRaw;
+    if (roleViewMode === 'teacher' && roleSlug === 'admin') {
+      activePerms = activePermsRaw.filter((perm) => !String(perm).startsWith('admin.'));
+      elevatablePerms = elevatablePermsRaw.filter((perm) => !String(perm).startsWith('admin.'));
+    }
+    const canUseTeacherUi = activePerms.includes('teacher.access');
+    const effectiveIsTeacher = canUseTeacherUi && roleViewMode !== 'student';
+    return {
+      roleSlug,
+      activePerms,
+      elevatablePerms,
+      effectiveIsTeacher,
+    };
+  }, [authClaims, roleViewMode]);
+
+  const effectiveIsTeacher = effectiveRoleContext.effectiveIsTeacher;
+
   const hasPermission = useCallback((perm) => {
-    return Array.isArray(authClaims?.permissions) && authClaims.permissions.includes(perm);
-  }, [authClaims]);
+    return effectiveRoleContext.activePerms.includes(perm);
+  }, [effectiveRoleContext.activePerms]);
 
   const hasPermissionInRole = useCallback((perm) => {
-    const activePerms = Array.isArray(authClaims?.permissions) ? authClaims.permissions : [];
-    const elevatablePerms = Array.isArray(authClaims?.elevatedPermissions) ? authClaims.elevatedPermissions : [];
+    const activePerms = effectiveRoleContext.activePerms;
+    const elevatablePerms = effectiveRoleContext.elevatablePerms;
     return activePerms.includes(perm) || elevatablePerms.includes(perm);
-  }, [authClaims]);
+  }, [effectiveRoleContext.activePerms, effectiveRoleContext.elevatablePerms]);
 
   const canManageTutorials = useMemo(() => {
-    const roleSlug = String(authClaims?.roleSlug || '').toLowerCase();
+    const roleSlug = effectiveRoleContext.roleSlug;
     const allowedRole = roleSlug === 'prof' || roleSlug === 'admin';
     return allowedRole && hasPermissionInRole('tutorials.manage');
-  }, [authClaims?.roleSlug, hasPermissionInRole]);
+  }, [effectiveRoleContext.roleSlug, hasPermissionInRole]);
 
   useEffect(() => {
     const hashRaw = window.location.hash.startsWith('#') ? window.location.hash.slice(1) : '';
@@ -258,6 +281,10 @@ function App() {
   }, []);
 
   useEffect(() => {
+    setRoleViewMode('native');
+  }, [authClaims?.roleSlug, authClaims?.userId, isTeacher]);
+
+  useEffect(() => {
     const session = getStoredSession();
     if (!session?.token) return;
     api('/api/auth/me')
@@ -303,7 +330,7 @@ function App() {
       if (!allowedMaps.some(mp => mp.id === activeMapId)) {
         const defaultMap = showPublicVisit
           ? publicSettings?.map?.default_map_visit
-          : (isTeacher ? publicSettings?.map?.default_map_teacher : publicSettings?.map?.default_map_student);
+          : (effectiveIsTeacher ? publicSettings?.map?.default_map_teacher : publicSettings?.map?.default_map_student);
         const fallbackMap = allowedMaps.find((mp) => mp.id === defaultMap)?.id || allowedMaps[0]?.id || 'foret';
         setActiveMapId(fallbackMap);
       }
@@ -327,7 +354,7 @@ function App() {
       }
     }
     setLoading(false);
-  }, [activeMapId, DEFAULT_MAPS, canManageTutorials, forceLogout, isTeacher, publicSettings?.map?.default_map_student, publicSettings?.map?.default_map_teacher, publicSettings?.map?.default_map_visit, showPublicVisit]);
+  }, [activeMapId, DEFAULT_MAPS, canManageTutorials, effectiveIsTeacher, forceLogout, publicSettings?.map?.default_map_student, publicSettings?.map?.default_map_teacher, publicSettings?.map?.default_map_visit, showPublicVisit]);
 
   const tasksForActiveMap = useMemo(() => (
     tasks.filter((t) => {
@@ -339,8 +366,25 @@ function App() {
     const active = maps.filter((mp) => mp.is_active !== false);
     return active.length > 0 ? active : maps;
   }, [maps]);
-  const studentAffiliation = (student?.affiliation || 'both').toLowerCase();
-  const canAccessStudentMapTasks = isTeacher || studentAffiliation !== 'n3';
+  const previewStudent = useMemo(() => {
+    if (!isTeacher || roleViewMode !== 'student') return null;
+    const fallbackName = String(sessionUser?.displayName || authClaims?.roleDisplayName || 'Professeur').trim();
+    return {
+      id: `preview-${authClaims?.userId || 'teacher'}`,
+      first_name: fallbackName,
+      last_name: '',
+      pseudo: null,
+      affiliation: 'both',
+      preview_mode: true,
+    };
+  }, [authClaims?.roleDisplayName, authClaims?.userId, isTeacher, roleViewMode, sessionUser?.displayName]);
+  const studentForUi = student || previewStudent;
+  const studentAffiliation = (studentForUi?.affiliation || 'both').toLowerCase();
+  const canAccessStudentMapTasks = effectiveIsTeacher || studentAffiliation !== 'n3';
+  const isPreviewStudentView = !!previewStudent;
+  const canOpenStudentDialogs = !effectiveIsTeacher && !isPreviewStudentView;
+  const canSwitchToStudentView = isTeacher && (effectiveRoleContext.roleSlug === 'prof' || effectiveRoleContext.roleSlug === 'admin');
+  const canSwitchToTeacherView = isTeacher && effectiveRoleContext.roleSlug === 'admin';
 
   const rtStatus = useForetmapRealtime({
     student,
@@ -356,11 +400,11 @@ function App() {
   useEffect(() => { fetchAll(); }, [fetchAll]);
 
   useEffect(() => {
-    if (isTeacher) return;
+    if (effectiveIsTeacher) return;
     if (!canAccessStudentMapTasks && (tab === 'map' || tab === 'tasks')) {
       setTab('plants');
     }
-  }, [isTeacher, canAccessStudentMapTasks, tab]);
+  }, [effectiveIsTeacher, canAccessStudentMapTasks, tab]);
 
   useEffect(() => {
     if (tab === 'tuto' && publicSettings?.modules?.tutorials_enabled === false) setTab('map');
@@ -429,7 +473,7 @@ function App() {
     </div>
   );
 
-  const currentUser = student || sessionUser || {
+  const currentUser = (effectiveIsTeacher ? sessionUser : studentForUi) || sessionUser || {
     pseudo: null,
     first_name: authClaims?.roleDisplayName || 'Utilisateur',
     last_name: '',
@@ -461,7 +505,7 @@ function App() {
         onClose={() => setShowPin(false)}
         uiSettings={publicSettings}
       />}
-      {showStats && !isTeacher && (
+      {showStats && canOpenStudentDialogs && (
         <div className="modal-overlay" onClick={e => e.target === e.currentTarget && setShowStats(false)}>
           <div className="log-modal fade-in" style={{maxHeight:'88vh'}} onClick={e => e.stopPropagation()}>
             <button
@@ -479,7 +523,7 @@ function App() {
           </div>
         </div>
       )}
-      {showProfile && !isTeacher && (
+      {showProfile && canOpenStudentDialogs && (
         <div className="modal-overlay" onClick={e => e.target === e.currentTarget && setShowProfile(false)}>
           <div className="log-modal fade-in" style={{maxHeight:'88vh'}} onClick={e => e.stopPropagation()}>
             <button
@@ -515,7 +559,7 @@ function App() {
             <span className="app-version-badge__version">v{appVersion != null ? appVersion : '…'}</span>
             <span className="app-version-badge__status">à jour</span>
           </span>
-          {isTeacher && rtStatus !== 'off' && (
+          {effectiveIsTeacher && rtStatus !== 'off' && (
             <span
               className="realtime-prof-wrap"
               title={RT_PROF_TOOLTIPS[rtStatus] || ''}
@@ -527,14 +571,14 @@ function App() {
           )}
           <button
             className="user-badge"
-            onClick={() => !isTeacher && setShowStats(true)}
-            style={{ cursor: isTeacher ? 'default' : 'pointer' }}
-            title={isTeacher ? '' : 'Voir mes statistiques'}
+            onClick={() => canOpenStudentDialogs && setShowStats(true)}
+            style={{ cursor: canOpenStudentDialogs ? 'pointer' : 'default' }}
+            title={canOpenStudentDialogs ? 'Voir mes statistiques' : ''}
           >
-            {!isTeacher && <StudentAvatar student={currentUser} size={20} style={{ border: 'none' }} />}
+            {!effectiveIsTeacher && <StudentAvatar student={currentUser} size={20} style={{ border: 'none' }} />}
             <span className="user-badge-text">{currentUser.pseudo || `${currentUser.first_name || ''} ${currentUser.last_name || ''}`.trim() || 'Utilisateur'}</span>
           </button>
-          {!isTeacher && (
+          {!effectiveIsTeacher && canOpenStudentDialogs && (
             <button
               className="lock-btn"
               title="Modifier mon profil"
@@ -542,6 +586,52 @@ function App() {
             >
               ✏️
             </button>
+          )}
+          {isTeacher && (
+            <>
+              {roleViewMode !== 'native' && (
+                <button
+                  className="lock-btn"
+                  title="Revenir au rôle normal"
+                  onClick={() => {
+                    setRoleViewMode('native');
+                    setTab('map');
+                    setShowStats(false);
+                    setShowProfile(false);
+                  }}
+                >
+                  ↩️
+                </button>
+              )}
+              {roleViewMode !== 'student' && canSwitchToStudentView && (
+                <button
+                  className="lock-btn"
+                  title="Passer en vue élève"
+                  onClick={() => {
+                    setRoleViewMode('student');
+                    setTab('map');
+                    setShowStats(false);
+                    setShowProfile(false);
+                  }}
+                >
+                  🎓
+                </button>
+              )}
+              {roleViewMode !== 'teacher' && canSwitchToTeacherView && (
+                <button
+                  className="lock-btn"
+                  title="Passer en vue prof"
+                  onClick={() => {
+                    setRoleViewMode('teacher');
+                    setTab('map');
+                    setShowStats(false);
+                    setShowProfile(false);
+                  }}
+                >
+                  🧑‍🏫
+                </button>
+              )}
+            </>
           )}
           <button className={`lock-btn ${authClaims?.elevated ? 'active' : ''}`} onClick={() => {
             if (authClaims?.elevated) {
@@ -566,7 +656,7 @@ function App() {
         </div>
       </header>
 
-      {isTeacher ? (
+      {effectiveIsTeacher ? (
         <div className="main teacher-main">
           <div className="top-tabs">
             <button className={`top-tab ${tab === 'map' ? 'active' : ''}`} onClick={() => setTab('map')}>🗺️ Carte & Zones</button>
@@ -580,6 +670,10 @@ function App() {
             {publicSettings?.modules?.stats_enabled !== false && (
               <button className={`top-tab ${tab === 'stats' ? 'active' : ''}`} onClick={() => setTab('stats')}>📊 Stats</button>
             )}
+            <button className={`top-tab ${tab === 'audit' ? 'active' : ''}`} onClick={() => setTab('audit')}>📜 Audit</button>
+            {publicSettings?.modules?.visit_enabled !== false && (
+              <button className={`top-tab ${tab === 'visit' ? 'active' : ''}`} onClick={() => setTab('visit')}>🧭 Visite</button>
+            )}
             {(
               hasPermissionInRole('admin.roles.manage')
               || hasPermissionInRole('admin.users.assign_roles')
@@ -587,10 +681,6 @@ function App() {
               <button className={`top-tab ${tab === 'profiles' ? 'active' : ''}`} onClick={() => setTab('profiles')}>
                 🛡️ Profils & utilisateurs
               </button>
-            )}
-            <button className={`top-tab ${tab === 'audit' ? 'active' : ''}`} onClick={() => setTab('audit')}>📜 Audit</button>
-            {publicSettings?.modules?.visit_enabled !== false && (
-              <button className={`top-tab ${tab === 'visit' ? 'active' : ''}`} onClick={() => setTab('visit')}>🧭 Visite</button>
             )}
             {hasPermissionInRole('admin.settings.read') && (
               <button className={`top-tab ${tab === 'settings' ? 'active' : ''}`} onClick={() => setTab('settings')}>
@@ -613,12 +703,12 @@ function App() {
       ) : (
         <>
           <div className="main">
-            {tab === 'map'    && canAccessStudentMapTasks && <MapView zones={zones} markers={markers} tasks={tasks} plants={plants} maps={visibleMaps} activeMapId={activeMapId} onMapChange={setActiveMapId} isTeacher={false} student={student} onZoneUpdate={updateZone} onRefresh={fetchAll}/>}
-            {tab === 'tasks'  && canAccessStudentMapTasks && <TasksView tasks={tasks} taskProjects={taskProjects} zones={zones} markers={markers} maps={maps} tutorials={tutorials} activeMapId={activeMapId} isTeacher={false} student={student} onRefresh={fetchAll} onForceLogout={forceLogout}/>}
+            {tab === 'map'    && canAccessStudentMapTasks && <MapView zones={zones} markers={markers} tasks={tasks} plants={plants} maps={visibleMaps} activeMapId={activeMapId} onMapChange={setActiveMapId} isTeacher={false} student={studentForUi} onZoneUpdate={updateZone} onRefresh={fetchAll}/>}
+            {tab === 'tasks'  && canAccessStudentMapTasks && <TasksView tasks={tasks} taskProjects={taskProjects} zones={zones} markers={markers} maps={maps} tutorials={tutorials} activeMapId={activeMapId} isTeacher={false} student={studentForUi} onRefresh={fetchAll} onForceLogout={forceLogout}/>}
             {tab === 'plants' && <PlantViewer plants={plants} zones={zones}/>}
             {publicSettings?.modules?.tutorials_enabled !== false && tab === 'tuto' && <TutorialsView tutorials={tutorials} isTeacher={false} onRefresh={fetchAll} onForceLogout={forceLogout} />}
-            {publicSettings?.modules?.observations_enabled !== false && tab === 'notebook' && <ObservationNotebook student={student} zones={zones}/>}
-            {publicSettings?.modules?.visit_enabled !== false && tab === 'visit' && <VisitView student={student} isTeacher={false} availableTutorials={tutorials} initialMapId={activeMapId} onForceLogout={forceLogout} />}
+            {publicSettings?.modules?.observations_enabled !== false && tab === 'notebook' && <ObservationNotebook student={studentForUi} zones={zones}/>}
+            {publicSettings?.modules?.visit_enabled !== false && tab === 'visit' && <VisitView student={studentForUi} isTeacher={false} availableTutorials={tutorials} initialMapId={activeMapId} onForceLogout={forceLogout} />}
             {tab === 'about' && <AboutView appVersion={appVersion}/>}
           </div>
           <nav className="bottom-nav">
@@ -630,8 +720,8 @@ function App() {
             {canAccessStudentMapTasks && (
               <button className={`nav-btn ${tab === 'tasks' ? 'active' : ''}`} onClick={() => setTab('tasks')}>
                 <span className="nav-icon">✅</span>
-                Tâches {tasksForActiveMap.filter(t => t.assignments?.some(a => a.student_first_name === student.first_name && a.student_last_name === student.last_name) && (t.status === 'available' || t.status === 'in_progress')).length > 0
-                  && `(${tasksForActiveMap.filter(t => t.assignments?.some(a => a.student_first_name === student.first_name && a.student_last_name === student.last_name) && (t.status === 'available' || t.status === 'in_progress')).length})`}
+                Tâches {tasksForActiveMap.filter(t => t.assignments?.some(a => a.student_first_name === studentForUi?.first_name && a.student_last_name === studentForUi?.last_name) && (t.status === 'available' || t.status === 'in_progress')).length > 0
+                  && `(${tasksForActiveMap.filter(t => t.assignments?.some(a => a.student_first_name === studentForUi?.first_name && a.student_last_name === studentForUi?.last_name) && (t.status === 'available' || t.status === 'in_progress')).length})`}
               </button>
             )}
             <button className={`nav-btn ${tab === 'plants' ? 'active' : ''}`} onClick={() => setTab('plants')}>
