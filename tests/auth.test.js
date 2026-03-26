@@ -170,6 +170,24 @@ describe('Auth', () => {
     assert.strictEqual(evt.result, 'success');
   });
 
+  it('POST /api/auth/login admin permet les routes élévation sans PIN', async () => {
+    const res = await request(app)
+      .post('/api/auth/login')
+      .send({
+        identifier: process.env.TEACHER_ADMIN_EMAIL,
+        password: process.env.TEACHER_ADMIN_PASSWORD,
+      })
+      .expect(200);
+    assert.ok(res.body.authToken);
+
+    const profiles = await request(app)
+      .get('/api/rbac/profiles')
+      .set('Authorization', `Bearer ${res.body.authToken}`)
+      .expect(200);
+    assert.ok(Array.isArray(profiles.body));
+    assert.ok(profiles.body.some((r) => r.slug === 'admin'));
+  });
+
   it('GET /api/auth/google/start redirige vers Google avec state', async () => {
     const res = await request(app)
       .get('/api/auth/google/start?mode=student')
