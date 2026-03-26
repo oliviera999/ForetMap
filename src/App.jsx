@@ -22,6 +22,10 @@ import { ProfilesAdminView } from './components/profiles-views';
 import { SettingsAdminView } from './components/settings-admin-views';
 import { CollectiveView } from './components/collective-view';
 
+const DESKTOP_SPLIT_MIN_WIDTH = 1024;
+const DESKTOP_SPLIT_MIN_MAP_PX = 620;
+const DESKTOP_SPLIT_MIN_TASKS_PX = 420;
+
 const OAUTH_ERROR_MESSAGES = {
   oauth_not_configured: 'Connexion Google indisponible (configuration serveur incomplète).',
   oauth_google_refused: 'Connexion Google annulée.',
@@ -97,6 +101,7 @@ function App() {
   const [authClaims, setAuthClaims] = useState(() => getAuthClaims());
   const [roleViewMode, setRoleViewMode] = useState('native'); // native | student | teacher
   const [publicSettings, setPublicSettings] = useState(DEFAULT_PUBLIC_SETTINGS);
+  const [viewportWidth, setViewportWidth] = useState(() => window.innerWidth || 0);
   const failCountRef = useRef(0);
 
   const effectiveRoleContext = useMemo(() => {
@@ -289,6 +294,12 @@ function App() {
   }, [authClaims?.roleSlug, authClaims?.userId, isTeacher]);
 
   useEffect(() => {
+    const onResize = () => setViewportWidth(window.innerWidth || 0);
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
+
+  useEffect(() => {
     const session = getStoredSession();
     if (!session?.token) return;
     api('/api/auth/me')
@@ -392,6 +403,19 @@ function App() {
     && hasPermission('stats.read.all');
   const canSwitchToStudentView = isTeacher && (effectiveRoleContext.roleSlug === 'prof' || effectiveRoleContext.roleSlug === 'admin');
   const canSwitchToTeacherView = isTeacher && effectiveRoleContext.roleSlug === 'admin';
+  const shouldUseDesktopSplit = useMemo(() => {
+    if (viewportWidth < DESKTOP_SPLIT_MIN_WIDTH) return false;
+    const pagePadding = 32;
+    const columnGap = 16;
+    const usableWidth = Math.max(0, viewportWidth - pagePadding);
+    const availableForColumns = Math.max(0, usableWidth - columnGap);
+    const mapWidth = availableForColumns * (1.25 / 2.25);
+    const tasksWidth = availableForColumns * (1 / 2.25);
+    return mapWidth >= DESKTOP_SPLIT_MIN_MAP_PX && tasksWidth >= DESKTOP_SPLIT_MIN_TASKS_PX;
+  }, [viewportWidth]);
+  const isMapTasksTab = tab === 'map' || tab === 'tasks';
+  const useSplitMapTasks = shouldUseDesktopSplit && isMapTasksTab && canAccessStudentMapTasks;
+  const useWideMain = shouldUseDesktopSplit && (isMapTasksTab || tab === 'collective');
 
   const rtStatus = useForetmapRealtime({
     student,
@@ -684,7 +708,7 @@ function App() {
       </header>
 
       {effectiveIsTeacher ? (
-        <div className="main teacher-main">
+        <div className={`main teacher-main ${useWideMain ? 'main--wide' : ''}`}>
           <div className="top-tabs">
             <button className={`top-tab ${tab === 'map' ? 'active' : ''}`} onClick={() => setTab('map')}>🗺️ Carte & Zones</button>
             <button className={`top-tab ${tab === 'tasks' ? 'active' : ''}`} onClick={() => setTab('tasks')}>
@@ -725,8 +749,45 @@ function App() {
             )}
             <button className={`top-tab ${tab === 'about' ? 'active' : ''}`} onClick={() => setTab('about')}>ℹ️ À propos</button>
           </div>
-          {tab === 'map'    && <MapView zones={zones} markers={markers} tasks={tasks} plants={plants} maps={visibleMaps} activeMapId={activeMapId} onMapChange={setActiveMapId} isTeacher student={currentUser} onZoneUpdate={updateZone} onRefresh={fetchAll}/>}
-          {tab === 'tasks'  && <TasksView  tasks={tasks} taskProjects={taskProjects} zones={zones} markers={markers} maps={maps} tutorials={tutorials} activeMapId={activeMapId} isTeacher student={currentUser} onRefresh={fetchAll} onForceLogout={forceLogout}/>}
+          {useSplitMapTasks && (
+            <div className="desktop-split-view" role="region" aria-label="Vue carte et tâches">
+              <section className="desktop-split-pane desktop-split-pane--map">
+                <MapView
+                  zones={zones}
+                  markers={markers}
+                  tasks={tasks}
+                  plants={plants}
+                  maps={visibleMaps}
+                  activeMapId={activeMapId}
+                  onMapChange={setActiveMapId}
+                  isTeacher
+                  student={currentUser}
+                  onZoneUpdate={updateZone}
+                  onRefresh={fetchAll}
+                  embedded
+                />
+              </section>
+              <section className="desktop-split-pane desktop-split-pane--tasks">
+                <div className="desktop-split-scroll">
+                  <TasksView
+                    tasks={tasks}
+                    taskProjects={taskProjects}
+                    zones={zones}
+                    markers={markers}
+                    maps={maps}
+                    tutorials={tutorials}
+                    activeMapId={activeMapId}
+                    isTeacher
+                    student={currentUser}
+                    onRefresh={fetchAll}
+                    onForceLogout={forceLogout}
+                  />
+                </div>
+              </section>
+            </div>
+          )}
+          {!useSplitMapTasks && tab === 'map'    && <MapView zones={zones} markers={markers} tasks={tasks} plants={plants} maps={visibleMaps} activeMapId={activeMapId} onMapChange={setActiveMapId} isTeacher student={currentUser} onZoneUpdate={updateZone} onRefresh={fetchAll}/>}
+          {!useSplitMapTasks && tab === 'tasks'  && <TasksView  tasks={tasks} taskProjects={taskProjects} zones={zones} markers={markers} maps={maps} tutorials={tutorials} activeMapId={activeMapId} isTeacher student={currentUser} onRefresh={fetchAll} onForceLogout={forceLogout}/>}
           {tab === 'plants' && <PlantManager plants={plants} onRefresh={fetchAll}/>}
           {publicSettings?.modules?.tutorials_enabled !== false && tab === 'tuto'   && <TutorialsView tutorials={tutorials} isTeacher onRefresh={fetchAll} onForceLogout={forceLogout} />}
           {publicSettings?.modules?.stats_enabled !== false && tab === 'stats'  && (hasPermission('stats.read.all') ? <TeacherStats/> : <div className="empty"><p>Permission insuffisante</p></div>)}
@@ -742,15 +803,53 @@ function App() {
               activeMapId={activeMapId}
               onRefresh={fetchAll}
               canManageSession={canUseCollectiveView}
+              isWideLayout={shouldUseDesktopSplit}
             />
           )}
           {tab === 'about'  && <AboutView appVersion={appVersion}/>}
         </div>
       ) : (
         <>
-          <div className="main">
-            {tab === 'map'    && canAccessStudentMapTasks && <MapView zones={zones} markers={markers} tasks={tasks} plants={plants} maps={visibleMaps} activeMapId={activeMapId} onMapChange={setActiveMapId} isTeacher={false} student={studentForUi} onZoneUpdate={updateZone} onRefresh={fetchAll}/>}
-            {tab === 'tasks'  && canAccessStudentMapTasks && <TasksView tasks={tasks} taskProjects={taskProjects} zones={zones} markers={markers} maps={maps} tutorials={tutorials} activeMapId={activeMapId} isTeacher={false} student={studentForUi} onRefresh={fetchAll} onForceLogout={forceLogout}/>}
+          <div className={`main ${useWideMain ? 'main--wide' : ''}`}>
+            {useSplitMapTasks && (
+              <div className="desktop-split-view" role="region" aria-label="Vue carte et tâches">
+                <section className="desktop-split-pane desktop-split-pane--map">
+                  <MapView
+                    zones={zones}
+                    markers={markers}
+                    tasks={tasks}
+                    plants={plants}
+                    maps={visibleMaps}
+                    activeMapId={activeMapId}
+                    onMapChange={setActiveMapId}
+                    isTeacher={false}
+                    student={studentForUi}
+                    onZoneUpdate={updateZone}
+                    onRefresh={fetchAll}
+                    embedded
+                  />
+                </section>
+                <section className="desktop-split-pane desktop-split-pane--tasks">
+                  <div className="desktop-split-scroll">
+                    <TasksView
+                      tasks={tasks}
+                      taskProjects={taskProjects}
+                      zones={zones}
+                      markers={markers}
+                      maps={maps}
+                      tutorials={tutorials}
+                      activeMapId={activeMapId}
+                      isTeacher={false}
+                      student={studentForUi}
+                      onRefresh={fetchAll}
+                      onForceLogout={forceLogout}
+                    />
+                  </div>
+                </section>
+              </div>
+            )}
+            {!useSplitMapTasks && tab === 'map'    && canAccessStudentMapTasks && <MapView zones={zones} markers={markers} tasks={tasks} plants={plants} maps={visibleMaps} activeMapId={activeMapId} onMapChange={setActiveMapId} isTeacher={false} student={studentForUi} onZoneUpdate={updateZone} onRefresh={fetchAll}/>}
+            {!useSplitMapTasks && tab === 'tasks'  && canAccessStudentMapTasks && <TasksView tasks={tasks} taskProjects={taskProjects} zones={zones} markers={markers} maps={maps} tutorials={tutorials} activeMapId={activeMapId} isTeacher={false} student={studentForUi} onRefresh={fetchAll} onForceLogout={forceLogout}/>}
             {tab === 'plants' && <PlantViewer plants={plants} zones={zones}/>}
             {publicSettings?.modules?.tutorials_enabled !== false && tab === 'tuto' && <TutorialsView tutorials={tutorials} isTeacher={false} onRefresh={fetchAll} onForceLogout={forceLogout} />}
             {publicSettings?.modules?.observations_enabled !== false && tab === 'notebook' && <ObservationNotebook student={studentForUi} zones={zones}/>}
@@ -759,12 +858,12 @@ function App() {
           </div>
           <nav className="bottom-nav">
             {canAccessStudentMapTasks && (
-              <button className={`nav-btn ${tab === 'map' ? 'active' : ''}`} onClick={() => setTab('map')}>
+              <button className={`nav-btn ${(useSplitMapTasks ? isMapTasksTab : tab === 'map') ? 'active' : ''}`} onClick={() => setTab('map')}>
                 <span className="nav-icon">🗺️</span> Carte
               </button>
             )}
             {canAccessStudentMapTasks && (
-              <button className={`nav-btn ${tab === 'tasks' ? 'active' : ''}`} onClick={() => setTab('tasks')}>
+              <button className={`nav-btn ${(useSplitMapTasks ? isMapTasksTab : tab === 'tasks') ? 'active' : ''}`} onClick={() => setTab('tasks')}>
                 <span className="nav-icon">✅</span>
                 Tâches {tasksForActiveMap.filter(t => t.assignments?.some(a => a.student_first_name === studentForUi?.first_name && a.student_last_name === studentForUi?.last_name) && (t.status === 'available' || t.status === 'in_progress')).length > 0
                   && `(${tasksForActiveMap.filter(t => t.assignments?.some(a => a.student_first_name === studentForUi?.first_name && a.student_last_name === studentForUi?.last_name) && (t.status === 'available' || t.status === 'in_progress')).length})`}
