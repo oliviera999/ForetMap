@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { api } from '../services/api';
+import { getRoleTerms } from '../utils/n3-terminology';
 
 const MOBILE_BREAKPOINT = 768;
 
@@ -44,7 +45,9 @@ function CollectiveView({
   onRefresh,
   canManageSession = false,
   isWideLayout = false,
+  isN3Affiliated = false,
 }) {
+  const roleTerms = getRoleTerms(isN3Affiliated);
   const [isMobileWidth, setIsMobileWidth] = useState(() => window.innerWidth < MOBILE_BREAKPOINT);
   const [students, setStudents] = useState([]);
   const [loadingStudents, setLoadingStudents] = useState(true);
@@ -108,7 +111,7 @@ function CollectiveView({
       const list = Array.isArray(rows) ? rows.slice().sort(sortByName) : [];
       setStudents(list);
     } catch (err) {
-      setToast(`Erreur chargement élèves : ${err.message}`);
+      setToast(`Erreur chargement ${roleTerms.studentPlural} : ${err.message}`);
     } finally {
       setLoadingStudents(false);
     }
@@ -245,7 +248,7 @@ function CollectiveView({
         absent,
       });
       setSessionState(data);
-      setToast(absent ? 'Élève masqué (absent)' : 'Élève réintégré');
+      setToast(absent ? `${roleTerms.studentSingular} masqué(e) (absent)` : `${roleTerms.studentSingular} réintégré(e)`);
     } catch (err) {
       setToast(`Erreur présence : ${err.message}`);
     } finally {
@@ -283,9 +286,9 @@ function CollectiveView({
         selected,
       });
       setSessionState(data);
-      setToast(selected ? 'Élève ajouté à la session' : 'Élève retiré de la session');
+      setToast(selected ? `${roleTerms.studentSingular} ajouté(e) à la session` : `${roleTerms.studentSingular} retiré(e) de la session`);
     } catch (err) {
-      setToast(`Erreur sélection élève : ${err.message}`);
+      setToast(`Erreur sélection ${roleTerms.studentSingular} : ${err.message}`);
     } finally {
       setSaving(false);
     }
@@ -313,7 +316,7 @@ function CollectiveView({
   const unassignStudentFromTask = async (task, assignment) => {
     if (!task || !assignment) return;
     if (!canUnassignOnTask(task)) {
-      setToast('Impossible de retirer un élève d’une tâche terminée/validée.');
+      setToast(`Impossible de retirer un(e) ${roleTerms.studentSingular} d’une tâche terminée/validée.`);
       return;
     }
     try {
@@ -378,7 +381,7 @@ function CollectiveView({
       const student = students.find((s) => s.id === studentId);
       if (!student) continue;
       const fullName = `${student.first_name || ''} ${student.last_name || ''}`.trim();
-      const ok = window.confirm(`Nouvel élève détecté: "${fullName}". Ajouter à la session collectif ?`);
+      const ok = window.confirm(`Nouveau/nouvelle ${roleTerms.studentSingular} détecté(e): "${fullName}". Ajouter à la session collectif ?`);
       if (ok) setSessionStudentSelected(student.id, true);
     }
     knownStudentIdsRef.current = current;
@@ -440,10 +443,10 @@ function CollectiveView({
         </div>
 
         <div className="collective-toolbar-group">
-          <label>Ajouter un élève à la session</label>
+          <label>Ajouter un(e) {roleTerms.studentSingular} à la session</label>
           <div className="row">
             <select value={studentToAddId} onChange={(e) => setStudentToAddId(e.target.value)}>
-              <option value="">Choisir un élève…</option>
+              <option value="">Choisir un(e) {roleTerms.studentSingular}…</option>
               {availableStudents.map((s) => (
                 <option key={s.id} value={s.id}>{`${s.first_name || ''} ${s.last_name || ''}`.trim()}</option>
               ))}
@@ -477,7 +480,7 @@ function CollectiveView({
           <div className="collective-panel-head">
             <h3>Tâches ({visibleTasks.length})</h3>
             {selectedStudent && (
-              <span className="collective-selected">Élève sélectionné: {selectedStudent.first_name} {selectedStudent.last_name}</span>
+              <span className="collective-selected">{roleTerms.studentSingular.charAt(0).toUpperCase() + roleTerms.studentSingular.slice(1)} sélectionné(e): {selectedStudent.first_name} {selectedStudent.last_name}</span>
             )}
           </div>
           <div className="collective-scroll">
@@ -511,7 +514,7 @@ function CollectiveView({
                         >×</button>
                       </span>
                     ))}
-                    {(t.assignments || []).length === 0 && <span className="collective-muted">Aucun élève inscrit</span>}
+                    {(t.assignments || []).length === 0 && <span className="collective-muted">Aucun(e) {roleTerms.studentSingular} inscrit(e)</span>}
                   </div>
                   <div className="collective-task-actions">
                     <button
@@ -519,10 +522,10 @@ function CollectiveView({
                       disabled={!selectedStudent || !canAssign}
                       onClick={() => assignStudentToTask(t, selectedStudent)}
                     >
-                      Inscrire l'élève sélectionné
+                      Inscrire le/la {roleTerms.studentSingular} sélectionné(e)
                     </button>
                     <span className="collective-drop-tip">
-                      {canAssign ? 'Dépose un élève ici' : 'Inscription bloquée pour cette tâche'}
+                      {canAssign ? `Dépose un(e) ${roleTerms.studentSingular} ici` : 'Inscription bloquée pour cette tâche'}
                     </span>
                     <button className="btn btn-ghost btn-sm" disabled={saving} onClick={() => setTaskSelected(t.id, false)}>
                       Retirer de la session
@@ -537,16 +540,16 @@ function CollectiveView({
 
         <section className="collective-panel">
           <div className="collective-panel-head">
-            <h3>Élèves ({students.length})</h3>
+            <h3>{roleTerms.studentPlural.charAt(0).toUpperCase() + roleTerms.studentPlural.slice(1)} ({students.length})</h3>
           </div>
           <input
             className="input"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Rechercher un élève..."
+            placeholder={`Rechercher un(e) ${roleTerms.studentSingular}...`}
           />
           {loadingStudents ? (
-            <p className="collective-muted">Chargement des élèves...</p>
+            <p className="collective-muted">Chargement des {roleTerms.studentPlural}...</p>
           ) : (
             <>
               <h4 className="collective-subtitle">Présents ({presentStudents.length})</h4>
@@ -572,7 +575,7 @@ function CollectiveView({
                     </div>
                   </div>
                 ))}
-                {presentStudents.length === 0 && <p className="collective-muted">Aucun élève présent dans le filtre.</p>}
+                {presentStudents.length === 0 && <p className="collective-muted">Aucun(e) {roleTerms.studentSingular} présent(e) dans le filtre.</p>}
               </div>
 
               <h4 className="collective-subtitle">Absents ({absentStudents.length})</h4>

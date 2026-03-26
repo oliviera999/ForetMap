@@ -21,6 +21,7 @@ import { VisitView } from './components/visit-views';
 import { ProfilesAdminView } from './components/profiles-views';
 import { SettingsAdminView } from './components/settings-admin-views';
 import { CollectiveView } from './components/collective-view';
+import { getRoleTerms, isN3OnlyAffiliation } from './utils/n3-terminology';
 
 const DESKTOP_SPLIT_MIN_WIDTH = 1024;
 const DESKTOP_SPLIT_MIN_MAP_PX = 620;
@@ -35,8 +36,8 @@ const OAUTH_ERROR_MESSAGES = {
   oauth_invalid_token: 'Connexion Google impossible (token invalide).',
   oauth_claims_invalid: 'Connexion Google refusée (compte non vérifié).',
   oauth_email_not_allowed: 'Adresse Google non autorisée pour ForetMap.',
-  oauth_teacher_inactive: 'Compte professeur inactif.',
-  oauth_teacher_no_role: 'Aucun rôle professeur attribué à ce compte.',
+  oauth_teacher_inactive: 'Compte enseignant inactif.',
+  oauth_teacher_no_role: 'Aucun rôle enseignant attribué à ce compte.',
   oauth_server_error: 'Erreur serveur pendant la connexion Google.',
 };
 
@@ -170,13 +171,13 @@ function App() {
           user: {
             id: payload?.auth?.canonicalUserId || payload?.auth?.userId || null,
             userType: 'teacher',
-            displayName: payload?.auth?.roleDisplayName || 'Professeur',
+            displayName: payload?.auth?.roleDisplayName || 'Utilisateur',
           },
         });
         setSessionUser(getStoredSession()?.user || null);
         setAuthClaims(getAuthClaims());
         setIsTeacher(true);
-        setToast('Connexion Google professeur réussie.');
+        setToast('Connexion Google réussie.');
         return;
       }
       if (payload?.type === 'student' && payload?.student) {
@@ -190,7 +191,7 @@ function App() {
           user: {
             id: nextStudent?.auth?.canonicalUserId || nextStudent?.id || null,
             userType: 'student',
-            displayName: nextStudent?.pseudo || `${nextStudent?.first_name || ''} ${nextStudent?.last_name || ''}`.trim() || 'Élève',
+            displayName: nextStudent?.pseudo || `${nextStudent?.first_name || ''} ${nextStudent?.last_name || ''}`.trim() || 'Utilisateur',
             email: nextStudent?.email || null,
           },
           student: nextStudent,
@@ -198,7 +199,7 @@ function App() {
         setStudent(nextStudent);
         setSessionUser(getStoredSession()?.user || null);
         setIsTeacher(false);
-        setToast('Connexion Google élève réussie.');
+        setToast('Connexion Google réussie.');
         return;
       }
       setToast('Réponse Google invalide.');
@@ -243,7 +244,7 @@ function App() {
     setSessionUser(null);
     setIsTeacher(false);
     setAuthClaims(null);
-    setToast('Votre compte a été supprimé par le professeur.');
+    setToast('Votre compte a été supprimé par un responsable.');
   }, []);
 
   const updateStudentSession = useCallback((nextStudent) => {
@@ -254,7 +255,7 @@ function App() {
       user: {
         id: nextStudent?.auth?.canonicalUserId || nextStudent?.id || null,
         userType: 'student',
-        displayName: nextStudent?.pseudo || `${nextStudent?.first_name || ''} ${nextStudent?.last_name || ''}`.trim() || 'Élève',
+        displayName: nextStudent?.pseudo || `${nextStudent?.first_name || ''} ${nextStudent?.last_name || ''}`.trim() || 'Utilisateur',
         email: nextStudent?.email || null,
       },
       student: nextStudent,
@@ -284,7 +285,7 @@ function App() {
   }, [forceLogout, updateStudentSession]);
 
   useEffect(() => {
-    const onExpired = () => { setIsTeacher(false); setAuthClaims(null); setSessionUser(null); setToast('Session professeur expirée.'); };
+    const onExpired = () => { setIsTeacher(false); setAuthClaims(null); setSessionUser(null); setToast('Session enseignant expirée.'); };
     window.addEventListener('foretmap_teacher_expired', onExpired);
     return () => window.removeEventListener('foretmap_teacher_expired', onExpired);
   }, []);
@@ -313,7 +314,7 @@ function App() {
           setSessionUser((prev) => ({
             id: auth.canonicalUserId || prev?.id || null,
             userType: 'teacher',
-            displayName: auth.roleDisplayName || prev?.displayName || 'Professeur',
+            displayName: auth.roleDisplayName || prev?.displayName || 'Utilisateur',
             email: prev?.email || null,
           }));
         }
@@ -383,7 +384,7 @@ function App() {
   }, [maps]);
   const previewStudent = useMemo(() => {
     if (!isTeacher || roleViewMode !== 'student') return null;
-    const fallbackName = String(sessionUser?.displayName || authClaims?.roleDisplayName || 'Professeur').trim();
+    const fallbackName = String(sessionUser?.displayName || authClaims?.roleDisplayName || 'Utilisateur').trim();
     return {
       id: `preview-${authClaims?.userId || 'teacher'}`,
       first_name: fallbackName,
@@ -395,6 +396,8 @@ function App() {
   }, [authClaims?.roleDisplayName, authClaims?.userId, isTeacher, roleViewMode, sessionUser?.displayName]);
   const studentForUi = student || previewStudent;
   const studentAffiliation = (studentForUi?.affiliation || 'both').toLowerCase();
+  const isN3Affiliated = isN3OnlyAffiliation(studentAffiliation);
+  const roleTerms = getRoleTerms(isN3Affiliated);
   const canAccessStudentMapTasks = effectiveIsTeacher || studentAffiliation !== 'n3';
   const isPreviewStudentView = !!previewStudent;
   const canOpenStudentDialogs = !effectiveIsTeacher && !isPreviewStudentView;
@@ -480,7 +483,7 @@ function App() {
               setSessionUser({
                 id: s?.auth?.canonicalUserId || s?.id || null,
                 userType: 'teacher',
-                displayName: s?.display_name || s?.auth?.roleDisplayName || 'Professeur',
+                displayName: s?.display_name || s?.auth?.roleDisplayName || 'Utilisateur',
                 email: s?.email || null,
               });
             } else {
@@ -493,6 +496,7 @@ function App() {
           appVersion={appVersion}
           uiSettings={publicSettings}
           onVisitGuest={() => setShowPublicVisit(true)}
+          isN3Affiliated={isN3Affiliated}
         />
       )}
     </>
@@ -540,6 +544,7 @@ function App() {
         }}
         onClose={() => setShowPin(false)}
         uiSettings={publicSettings}
+        isN3Affiliated={isN3Affiliated}
       />}
       {showStats && canOpenStudentDialogs && (
         <div className="modal-overlay" onClick={e => e.target === e.currentTarget && setShowStats(false)}>
@@ -555,7 +560,7 @@ function App() {
             >
               ✕
             </button>
-            <StudentStats student={student}/>
+            <StudentStats student={student} isN3Affiliated={isN3Affiliated} />
           </div>
         </div>
       )}
@@ -577,6 +582,7 @@ function App() {
               student={student}
               onUpdated={updateStudentSession}
               onClose={() => setShowProfile(false)}
+              isN3Affiliated={isN3Affiliated}
             />
           </div>
         </div>
@@ -623,7 +629,7 @@ function App() {
             title={
               canOpenStudentDialogs
                 ? 'Voir mes statistiques'
-                : (canOpenTeacherStatsFromBadge ? 'Ouvrir les statistiques élèves' : '')
+                : (canOpenTeacherStatsFromBadge ? `Ouvrir les statistiques ${roleTerms.studentPlural}` : '')
             }
           >
             <StudentAvatar student={currentUser} size={20} style={{ border: 'none' }} />
@@ -657,7 +663,7 @@ function App() {
               {roleViewMode !== 'student' && canSwitchToStudentView && (
                 <button
                   className="lock-btn"
-                  title="Passer en vue élève"
+                  title={`Passer en vue ${roleTerms.studentSingular}`}
                   onClick={() => {
                     setRoleViewMode('student');
                     setTab('map');
@@ -671,7 +677,7 @@ function App() {
               {roleViewMode !== 'teacher' && canSwitchToTeacherView && (
                 <button
                   className="lock-btn"
-                  title="Passer en vue prof"
+                  title={`Passer en vue ${roleTerms.teacherShort}`}
                   onClick={() => {
                     setRoleViewMode('teacher');
                     setTab('map');
@@ -734,7 +740,7 @@ function App() {
               || hasPermissionInRole('users.create')
             ) && (
               <button className={`top-tab ${tab === 'profiles' ? 'active' : ''}`} onClick={() => setTab('profiles')}>
-                🛡️ Profils & utilisateurs
+                🛡️ {isN3Affiliated ? 'n3boss & utilisateurs' : 'Profils & utilisateurs'}
               </button>
             )}
             {hasPermissionInRole('admin.settings.read') && (
@@ -781,20 +787,21 @@ function App() {
                     student={currentUser}
                     onRefresh={fetchAll}
                     onForceLogout={forceLogout}
+                    isN3Affiliated={isN3Affiliated}
                   />
                 </div>
               </section>
             </div>
           )}
           {!useSplitMapTasks && tab === 'map'    && <MapView zones={zones} markers={markers} tasks={tasks} plants={plants} maps={visibleMaps} activeMapId={activeMapId} onMapChange={setActiveMapId} isTeacher student={currentUser} onZoneUpdate={updateZone} onRefresh={fetchAll}/>}
-          {!useSplitMapTasks && tab === 'tasks'  && <TasksView  tasks={tasks} taskProjects={taskProjects} zones={zones} markers={markers} maps={maps} tutorials={tutorials} activeMapId={activeMapId} isTeacher student={currentUser} onRefresh={fetchAll} onForceLogout={forceLogout}/>}
+          {!useSplitMapTasks && tab === 'tasks'  && <TasksView  tasks={tasks} taskProjects={taskProjects} zones={zones} markers={markers} maps={maps} tutorials={tutorials} activeMapId={activeMapId} isTeacher student={currentUser} onRefresh={fetchAll} onForceLogout={forceLogout} isN3Affiliated={isN3Affiliated} />}
           {tab === 'plants' && <PlantManager plants={plants} onRefresh={fetchAll}/>}
           {publicSettings?.modules?.tutorials_enabled !== false && tab === 'tuto'   && <TutorialsView tutorials={tutorials} isTeacher onRefresh={fetchAll} onForceLogout={forceLogout} />}
-          {publicSettings?.modules?.stats_enabled !== false && tab === 'stats'  && (hasPermission('stats.read.all') ? <TeacherStats/> : <div className="empty"><p>Permission insuffisante</p></div>)}
-          {tab === 'profiles' && <ProfilesAdminView/>}
-          {tab === 'audit'  && (hasPermission('audit.read') ? <AuditLog/> : <div className="empty"><p>Permission insuffisante</p></div>)}
-          {publicSettings?.modules?.visit_enabled !== false && tab === 'visit'  && <VisitView student={currentUser} isTeacher availableTutorials={tutorials} initialMapId={activeMapId} onForceLogout={forceLogout} />}
-          {tab === 'settings' && <SettingsAdminView/>}
+          {publicSettings?.modules?.stats_enabled !== false && tab === 'stats'  && (hasPermission('stats.read.all') ? <TeacherStats isN3Affiliated={isN3Affiliated} /> : <div className="empty"><p>Permission insuffisante</p></div>)}
+          {tab === 'profiles' && <ProfilesAdminView isN3Affiliated={isN3Affiliated} />}
+          {tab === 'audit'  && (hasPermission('audit.read') ? <AuditLog isN3Affiliated={isN3Affiliated} /> : <div className="empty"><p>Permission insuffisante</p></div>)}
+          {publicSettings?.modules?.visit_enabled !== false && tab === 'visit'  && <VisitView student={currentUser} isTeacher availableTutorials={tutorials} initialMapId={activeMapId} onForceLogout={forceLogout} isN3Affiliated={isN3Affiliated} />}
+          {tab === 'settings' && <SettingsAdminView isN3Affiliated={isN3Affiliated} />}
           {tab === 'collective' && canUseCollectiveView && (
             <CollectiveView
               tasks={tasks}
@@ -804,9 +811,10 @@ function App() {
               onRefresh={fetchAll}
               canManageSession={canUseCollectiveView}
               isWideLayout={shouldUseDesktopSplit}
+              isN3Affiliated={isN3Affiliated}
             />
           )}
-          {tab === 'about'  && <AboutView appVersion={appVersion}/>}
+          {tab === 'about'  && <AboutView appVersion={appVersion} isN3Affiliated={isN3Affiliated} />}
         </div>
       ) : (
         <>
@@ -843,18 +851,19 @@ function App() {
                       student={studentForUi}
                       onRefresh={fetchAll}
                       onForceLogout={forceLogout}
+                    isN3Affiliated={isN3Affiliated}
                     />
                   </div>
                 </section>
               </div>
             )}
             {!useSplitMapTasks && tab === 'map'    && canAccessStudentMapTasks && <MapView zones={zones} markers={markers} tasks={tasks} plants={plants} maps={visibleMaps} activeMapId={activeMapId} onMapChange={setActiveMapId} isTeacher={false} student={studentForUi} onZoneUpdate={updateZone} onRefresh={fetchAll}/>}
-            {!useSplitMapTasks && tab === 'tasks'  && canAccessStudentMapTasks && <TasksView tasks={tasks} taskProjects={taskProjects} zones={zones} markers={markers} maps={maps} tutorials={tutorials} activeMapId={activeMapId} isTeacher={false} student={studentForUi} onRefresh={fetchAll} onForceLogout={forceLogout}/>}
+            {!useSplitMapTasks && tab === 'tasks'  && canAccessStudentMapTasks && <TasksView tasks={tasks} taskProjects={taskProjects} zones={zones} markers={markers} maps={maps} tutorials={tutorials} activeMapId={activeMapId} isTeacher={false} student={studentForUi} onRefresh={fetchAll} onForceLogout={forceLogout} isN3Affiliated={isN3Affiliated} />}
             {tab === 'plants' && <PlantViewer plants={plants} zones={zones}/>}
             {publicSettings?.modules?.tutorials_enabled !== false && tab === 'tuto' && <TutorialsView tutorials={tutorials} isTeacher={false} onRefresh={fetchAll} onForceLogout={forceLogout} />}
             {publicSettings?.modules?.observations_enabled !== false && tab === 'notebook' && <ObservationNotebook student={studentForUi} zones={zones}/>}
-            {publicSettings?.modules?.visit_enabled !== false && tab === 'visit' && <VisitView student={studentForUi} isTeacher={false} availableTutorials={tutorials} initialMapId={activeMapId} onForceLogout={forceLogout} />}
-            {tab === 'about' && <AboutView appVersion={appVersion}/>}
+            {publicSettings?.modules?.visit_enabled !== false && tab === 'visit' && <VisitView student={studentForUi} isTeacher={false} availableTutorials={tutorials} initialMapId={activeMapId} onForceLogout={forceLogout} isN3Affiliated={isN3Affiliated} />}
+            {tab === 'about' && <AboutView appVersion={appVersion} isN3Affiliated={isN3Affiliated} />}
           </div>
           <nav className="bottom-nav">
             {canAccessStudentMapTasks && (
