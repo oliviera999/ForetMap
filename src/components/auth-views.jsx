@@ -222,7 +222,7 @@ function PinModal({ onSuccess, onClose, uiSettings }) {
             onClick={() => startGoogleAuth('teacher')}
             disabled={loading}
           >
-            Continuer avec Google (@pedagolyautey.org / @lyceelyautey.org)
+            Continuer avec Google
           </button>
         )}
         <button className="btn btn-ghost btn-full" style={{ marginTop: 8 }} onClick={onClose}>Annuler</button>
@@ -463,7 +463,7 @@ function AuthScreen({ onLogin, appVersion, onVisitGuest, uiSettings }) {
             disabled={loading}
             style={{ marginTop: 8 }}
           >
-            Continuer avec Google (@pedagolyautey.org / @lyceelyautey.org)
+            Continuer avec Google
           </button>
         )}
         {mode === 'login' && (
