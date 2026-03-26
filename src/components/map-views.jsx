@@ -867,6 +867,7 @@ function MapView({ zones, markers, tasks = [], plants, maps = [], activeMapId = 
   const [pendingZone, setPendingZone] = useState(null);
   const [pendingMarker, setPendingMarker] = useState(null);
   const [toast, setToast] = useState(null);
+  const [isCoarsePointer, setIsCoarsePointer] = useState(false);
   const activeMap = maps.find((m) => m.id === activeMapId);
   const mapImageCandidates = useMemo(() => {
     const base = activeMapId === 'n3'
@@ -913,6 +914,19 @@ function MapView({ zones, markers, tasks = [], plants, maps = [], activeMapId = 
   useEffect(() => {
     setMapImageIdx(0);
   }, [mapImageCandidates]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return;
+    const media = window.matchMedia('(pointer: coarse)');
+    const update = () => setIsCoarsePointer(media.matches);
+    update();
+    if (typeof media.addEventListener === 'function') {
+      media.addEventListener('change', update);
+      return () => media.removeEventListener('change', update);
+    }
+    media.addListener(update);
+    return () => media.removeListener(update);
+  }, []);
 
   useEffect(() => {
     const img = imgRef.current;
@@ -986,6 +1000,11 @@ function MapView({ zones, markers, tasks = [], plants, maps = [], activeMapId = 
       if (e.target.closest('.edit-pt') || e.target.closest('.map-bubble')) return;
       moved.current = false;
       if (modeRef.current === 'view') {
+        const touchLike = e.pointerType === 'touch' || e.pointerType === 'pen';
+        const zoomedIn = tx.current.s > 1.05;
+        // Mobile: priorité au scroll vertical de page tant qu'on n'est pas zoomé.
+        // Le déplacement de carte reste possible quand l'utilisateur zoome.
+        if (touchLike && isCoarsePointer && !zoomedIn) return;
         isPanning.current = true;
         panStart.current = { x: e.clientX - tx.current.x, y: e.clientY - tx.current.y };
       }
@@ -1101,7 +1120,7 @@ function MapView({ zones, markers, tasks = [], plants, maps = [], activeMapId = 
       el.removeEventListener('touchmove', onTM);
       el.removeEventListener('touchend', onTE);
     };
-  }, [onRefresh]);
+  }, [onRefresh, isCoarsePointer]);
 
   const onMapClick = e => {
     if (moved.current) return;
@@ -1270,6 +1289,7 @@ function MapView({ zones, markers, tasks = [], plants, maps = [], activeMapId = 
     ? 'min(78dvh, 920px)'
     : (isTeacher ? 'calc(100dvh - 56px)' : 'calc(100dvh - 56px - 72px)');
   const mapAspect = imgSize.w > 1 && imgSize.h > 1 ? `${imgSize.w} / ${imgSize.h}` : '16 / 10';
+  const prefersPageScroll = isCoarsePointer && mode === 'view' && committed.s <= 1.05;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: mapColHeight, minHeight: embedded ? 520 : 380 }}>
@@ -1387,7 +1407,7 @@ function MapView({ zones, markers, tasks = [], plants, maps = [], activeMapId = 
         <div ref={containerRef}
           style={{ width: '100%', maxWidth: '100%', maxHeight: '100%', aspectRatio: mapAspect,
             overflow: 'hidden', position: 'relative', background: '#eef2ee',
-            cursor, touchAction: 'none', userSelect: 'none', WebkitUserSelect: 'none' }}
+            cursor, touchAction: prefersPageScroll ? 'pan-y' : 'none', userSelect: 'none', WebkitUserSelect: 'none' }}
           onClick={onMapClick}>
 
           <div ref={worldRef}
@@ -1471,6 +1491,14 @@ function MapView({ zones, markers, tasks = [], plants, maps = [], activeMapId = 
               padding: '9px 20px', fontSize: '.82rem', fontWeight: 600,
               pointerEvents: 'none', whiteSpace: 'nowrap', zIndex: 20 }}>
               ✋ Glisse les points pour modifier
+            </div>
+          )}
+          {prefersPageScroll && (
+            <div style={{ position: 'absolute', top: 10, left: '50%', transform: 'translateX(-50%)',
+              background: 'rgba(26,71,49,.9)', color: 'white', borderRadius: 18,
+              padding: '6px 12px', fontSize: '.72rem', fontWeight: 600,
+              pointerEvents: 'none', whiteSpace: 'nowrap', zIndex: 20 }}>
+              📱 1 doigt: page · 2 doigts: zoom carte
             </div>
           )}
         </div>
