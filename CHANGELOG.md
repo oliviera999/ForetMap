@@ -57,6 +57,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - **Navigation/auth** : ajout d’un CTA « Visiter sans connexion » dans l’écran d’authentification et intégration de l’onglet `Visite` dans les navigations élève/prof.
 
 ### Corrigé
+- **Badge de version (en-tête)** : le badge de version en haut de page n'est plus affiché pour les élèves (visible uniquement en mode professeur).
 - **Profil utilisateur explicite** : la vue `Mon profil` affiche désormais clairement le type de profil (`admin`, `prof` ou `eleve`) pour éviter l’ambiguïté sur les droits actifs.
 - **Modales stats/profil** : amélioration de la fermeture des fenêtres (bouton accessible + arrêt de propagation du clic) pour éviter les fermetures involontaires.
 - **Navigation mobile** : meilleure lisibilité des libellés d’onglets avec retour à la ligne contrôlé sur petits écrans.
