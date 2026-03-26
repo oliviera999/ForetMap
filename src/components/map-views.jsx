@@ -1559,15 +1559,16 @@ function MapView({ zones, markers, tasks = [], plants, maps = [], activeMapId = 
             const markerTaskLabel = markerTaskVisual ? TASK_VISUAL_LABEL[markerTaskVisual] : '';
             const markerAriaLabel = [m.label || 'Repère', markerTaskLabel].filter(Boolean).join(' — ');
             const markerPinSize = isCoarsePointer
-              ? 'clamp(42px, 12vw, 48px)'
+              ? 'clamp(46px, 13vw, 54px)'
               : 'clamp(34px, 8vw, 38px)';
             const markerEmojiSize = isCoarsePointer
-              ? 'clamp(1.2rem, 4.8vw, 1.45rem)'
+              ? 'clamp(1.3rem, 5.2vw, 1.6rem)'
               : 'clamp(1rem, 4.1vw, 1.08rem)';
-            const markerHitPadding = isCoarsePointer ? 4 : 0;
-            const markerStatusDotSize = isCoarsePointer ? 13 : 10;
+            const markerHitPadding = isCoarsePointer ? 6 : 0;
+            const markerStatusDotSize = isCoarsePointer ? 15 : 10;
             const markerStatusDotBorder = isCoarsePointer ? 2 : 1.5;
             const markerStatusDotOffset = isCoarsePointer ? -2 : -1;
+            const markerLabelFontSize = isCoarsePointer ? '.75rem' : '.66rem';
             const openMarker = (e) => {
               e.stopPropagation();
               if (!moved.current) setSelectedMarker(m);
@@ -1615,8 +1616,8 @@ function MapView({ zones, markers, tasks = [], plants, maps = [], activeMapId = 
               {showLabels && (
                 <div style={{ position: 'absolute', top: '100%', left: '50%', transform: 'translateX(-50%)',
                   background: 'rgba(26,71,49,.9)', color: 'white', borderRadius: 5,
-                  padding: '2px 7px', fontSize: '.62rem', fontWeight: 700,
-                  whiteSpace: 'nowrap', marginTop: 3, maxWidth: 90,
+                  padding: '2px 7px', fontSize: markerLabelFontSize, fontWeight: 700,
+                  whiteSpace: 'nowrap', marginTop: 3, maxWidth: isCoarsePointer ? 120 : 90,
                   overflow: 'hidden', textOverflow: 'ellipsis', pointerEvents: 'none',
                   boxShadow: '0 1px 5px rgba(0,0,0,.2)' }}>
                   {m.label}
