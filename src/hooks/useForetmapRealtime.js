@@ -25,7 +25,7 @@ export function useForetmapRealtime({
     try {
       const mapQuery = `map_id=${encodeURIComponent(activeMapId)}`;
       const [t, projects] = await Promise.all([
-        api('/api/tasks'),
+        api(`/api/tasks?${mapQuery}`),
         api(`/api/task-projects?${mapQuery}`).catch(() => []),
       ]);
       setTasks(t);
