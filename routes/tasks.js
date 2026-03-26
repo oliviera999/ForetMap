@@ -69,6 +69,11 @@ function normalizeOptionalString(value) {
   return s ? s : null;
 }
 
+function resolveTaskMapId(task) {
+  if (!task) return null;
+  return task.map_id_resolved || task.map_id || task.zone_map_id || task.marker_map_id || task.project_map_id || null;
+}
+
 function normalizeImportHeader(value) {
   return asTrimmedString(value)
     .toLowerCase()
@@ -1007,7 +1012,7 @@ router.post('/', requirePermission('tasks.manage', { needsElevation: true }), as
       req,
       payload: { map_id: projectValidation.mapId, project_id: projectValidation.projectId || null },
     });
-    emitTasksChanged({ reason: 'create_task', taskId: id, projectId: projectValidation.projectId || null });
+    emitTasksChanged({ reason: 'create_task', taskId: id, projectId: projectValidation.projectId || null, mapId: projectValidation.mapId });
     res.status(201).json(task);
   } catch (e) {
     logRouteError(e, req);
@@ -1084,7 +1089,7 @@ router.post('/proposals', async (req, res) => {
       actorUserId: studentId,
       payload: { proposer, student_id: studentId, required_students: reqStudents },
     });
-    emitTasksChanged({ reason: 'propose_task', taskId: id });
+    emitTasksChanged({ reason: 'propose_task', taskId: id, mapId: resolveTaskMapId(task) });
     res.status(201).json(task);
   } catch (e) {
     logRouteError(e, req);
@@ -1184,7 +1189,7 @@ router.put('/:id', requirePermission('tasks.manage', { needsElevation: true }), 
         project_id: updated.project_id || null,
       },
     });
-    emitTasksChanged({ reason: 'update_task', taskId: task.id, projectId: projectValidation.projectId || null });
+    emitTasksChanged({ reason: 'update_task', taskId: task.id, projectId: projectValidation.projectId || null, mapId: resolveTaskMapId(updated) });
     res.json(updated);
   } catch (e) {
     logRouteError(e, req);
@@ -1200,7 +1205,7 @@ router.delete('/:id', requirePermission('tasks.manage', { needsElevation: true }
     await execute('DELETE FROM task_assignments WHERE task_id = ?', [req.params.id]);
     await execute('DELETE FROM tasks WHERE id = ?', [req.params.id]);
     logAudit('delete_task', 'task', req.params.id, task.title, { req });
-    emitTasksChanged({ reason: 'delete_task', taskId: req.params.id });
+    emitTasksChanged({ reason: 'delete_task', taskId: req.params.id, mapId: resolveTaskMapId(task) });
     res.json({ success: true });
   } catch (e) {
     logRouteError(e, req);
@@ -1251,7 +1256,7 @@ router.post('/:id/assign', async (req, res) => {
       actorUserId: studentId || null,
       payload: { student_id: studentId || null, status: newStatus },
     });
-    emitTasksChanged({ reason: 'assign', taskId: task.id });
+    emitTasksChanged({ reason: 'assign', taskId: task.id, mapId: resolveTaskMapId(updated) });
     res.json(updated);
   } catch (e) {
     logRouteError(e, req);
@@ -1299,7 +1304,7 @@ router.post('/:id/done', async (req, res) => {
       actorUserId: studentId || null,
       payload: { student_id: studentId || null, with_comment: !!comment, with_image: !!imageData },
     });
-    emitTasksChanged({ reason: 'done', taskId: task.id });
+    emitTasksChanged({ reason: 'done', taskId: task.id, mapId: resolveTaskMapId(updated) });
     res.json(updated);
   } catch (e) {
     logRouteError(e, req);
@@ -1347,6 +1352,7 @@ router.get('/:id/logs/:logId/image', async (req, res) => {
 router.delete('/:id/logs/:logId', requirePermission('tasks.manage', { needsElevation: true }), async (req, res) => {
   try {
     const log = await queryOne('SELECT * FROM task_logs WHERE id = ? AND task_id = ?', [req.params.logId, req.params.id]);
+    const taskForLog = await queryOne('SELECT map_id FROM tasks WHERE id = ?', [req.params.id]);
     if (!log) return res.status(404).json({ error: 'Rapport introuvable' });
     if (log.image_path) {
       const fs = require('fs');
@@ -1359,7 +1365,7 @@ router.delete('/:id/logs/:logId', requirePermission('tasks.manage', { needsEleva
     }
     await execute('DELETE FROM task_logs WHERE id = ?', [req.params.logId]);
     logAudit('delete_log', 'task_log', req.params.logId, `Tâche ${req.params.id}`, { req });
-    emitTasksChanged({ reason: 'delete_log', taskId: req.params.id });
+    emitTasksChanged({ reason: 'delete_log', taskId: req.params.id, mapId: resolveTaskMapId(taskForLog) });
     res.json({ success: true });
   } catch (e) {
     logRouteError(e, req);
@@ -1374,7 +1380,7 @@ router.post('/:id/validate', requirePermission('tasks.validate', { needsElevatio
     await execute("UPDATE tasks SET status = 'validated' WHERE id = ?", [req.params.id]);
     logAudit('validate_task', 'task', req.params.id, task.title, { req });
     const updated = await getTaskWithAssignments(task.id);
-    emitTasksChanged({ reason: 'validate', taskId: task.id });
+    emitTasksChanged({ reason: 'validate', taskId: task.id, mapId: resolveTaskMapId(updated) });
     res.json(updated);
   } catch (e) {
     logRouteError(e, req);
@@ -1433,7 +1439,7 @@ router.post('/:id/unassign', async (req, res) => {
       actorUserId: studentId || null,
       payload: { student_id: studentId || null, status: newStatus },
     });
-    emitTasksChanged({ reason: 'unassign', taskId: task.id });
+    emitTasksChanged({ reason: 'unassign', taskId: task.id, mapId: resolveTaskMapId(updated) });
     res.json(updated);
   } catch (err) {
     logRouteError(err, req, 'Erreur retrait assignation tâche');
