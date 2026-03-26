@@ -40,7 +40,8 @@ router.get('/me/:studentId', requireAuth, async (req, res) => {
     const auth = req.auth || null;
     const perms = Array.isArray(auth?.permissions) ? auth.permissions : [];
     const canReadAll = perms.includes('stats.read.all');
-    const isOwner = auth?.userType === 'student' && String(auth?.userId || '') === askedStudentId;
+    // Autorise l'accès aux propres stats sur l'ID du compte, y compris profils legacy.
+    const isOwner = String(auth?.userId || '') === askedStudentId;
     if (!canReadAll && !isOwner) {
       return res.status(403).json({ error: 'Accès refusé à ces statistiques' });
     }

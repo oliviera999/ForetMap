@@ -10,11 +10,23 @@ CREATE TABLE IF NOT EXISTS maps (
   id VARCHAR(32) PRIMARY KEY,
   label VARCHAR(255) NOT NULL,
   map_image_url VARCHAR(512) DEFAULT NULL,
-  sort_order INT UNSIGNED DEFAULT 0
+  sort_order INT UNSIGNED DEFAULT 0,
+  frame_padding_px INT UNSIGNED DEFAULT NULL,
+  is_active TINYINT(1) NOT NULL DEFAULT 1
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 INSERT IGNORE INTO maps (id, label, map_image_url, sort_order) VALUES
   ('foret', 'Forêt comestible', '/maps/map-foret.svg', 1),
   ('n3', 'N3', '/maps/plan%20n3.jpg', 2);
+
+-- app_settings (réglages applicatifs pilotables depuis la GUI admin)
+CREATE TABLE IF NOT EXISTS app_settings (
+  `key` VARCHAR(191) NOT NULL PRIMARY KEY,
+  scope ENUM('public','teacher','admin') NOT NULL DEFAULT 'public',
+  value_json LONGTEXT NOT NULL,
+  updated_by_user_type VARCHAR(32) DEFAULT NULL,
+  updated_by_user_id VARCHAR(64) DEFAULT NULL,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- zones (zones du jardin, rect ou polygon)
 CREATE TABLE IF NOT EXISTS zones (

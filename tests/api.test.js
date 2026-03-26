@@ -4,6 +4,7 @@ const assert = require('node:assert');
 const { initDatabase, queryAll, queryOne, execute } = require('../database');
 const { app } = require('../server');
 const request = require('supertest');
+const { signAuthToken } = require('../middleware/requireTeacher');
 
 test.before(async () => {
   await initDatabase();
@@ -31,6 +32,32 @@ test('POST /api/auth/login avec mauvais mot de passe renvoie 401', async () => {
     .send({ identifier: email, password: 'wrong' })
     .expect(401);
   assert.ok(res.body.error);
+});
+
+test('GET /api/stats/me/:studentId autorise le propriétaire même en userType legacy', async () => {
+  const studentRes = await request(app)
+    .post('/api/auth/register')
+    .send({ firstName: 'Legacy', lastName: 'Stats' + Date.now(), password: 'pass1234' })
+    .expect(201);
+  const studentId = studentRes.body.id;
+
+  const legacyToken = signAuthToken({
+    userType: 'user',
+    userId: studentId,
+    roleId: null,
+    roleSlug: 'legacy',
+    roleDisplayName: 'Legacy',
+    permissions: [],
+    elevated: false,
+  }, false);
+
+  const res = await request(app)
+    .get(`/api/stats/me/${studentId}`)
+    .set('Authorization', 'Bearer ' + legacyToken)
+    .expect(200);
+
+  assert.strictEqual(res.body.id, studentId);
+  assert.ok(res.body.stats);
 });
 
 test('POST /api/auth/teacher avec mauvais PIN renvoie 401', async () => {

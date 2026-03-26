@@ -15,6 +15,7 @@ const {
   ensurePrimaryRole,
   verifyRolePin,
 } = require('../lib/rbac');
+const { getSettingValue } = require('../lib/settings');
 const { logAudit, logSecurityEvent } = require('./audit');
 const {
   ensureCanonicalUserByAuth,
@@ -190,6 +191,13 @@ function getPasswordResetBaseUrl() {
     || 'http://localhost:3000';
 }
 
+async function getPasswordMinLength() {
+  const n = await getSettingValue('security.password_min_length', PASSWORD_RESET_MIN_LEN);
+  const parsed = parseInt(n, 10);
+  if (!Number.isFinite(parsed)) return PASSWORD_RESET_MIN_LEN;
+  return Math.min(Math.max(parsed, 4), 32);
+}
+
 function makeResetUrl(type, token) {
   const base = getPasswordResetBaseUrl().replace(/\/$/, '');
   return `${base}/?resetType=${encodeURIComponent(type)}&resetToken=${encodeURIComponent(token)}`;
@@ -322,7 +330,8 @@ router.post('/register', async (req, res) => {
     const description = normalizeOptionalString(req.body?.description);
     const affiliation = normalizeStudentAffiliation(req.body?.affiliation);
     if (!firstName?.trim() || !lastName?.trim()) return res.status(400).json({ error: 'Prénom et nom requis' });
-    if (!password || password.length < 4) return res.status(400).json({ error: 'Mot de passe trop court (min 4 caractères)' });
+    const minPasswordLen = await getPasswordMinLength();
+    if (!password || password.length < minPasswordLen) return res.status(400).json({ error: `Mot de passe trop court (min ${minPasswordLen} caractères)` });
     if (!affiliation) return res.status(400).json({ error: "Affiliation invalide (n3, foret ou both)" });
     const profileError = validateProfileInput({ pseudo, email, description });
     if (profileError) return res.status(400).json({ error: profileError });
@@ -481,6 +490,12 @@ router.post('/login', async (req, res) => {
 
 router.get('/google/start', async (req, res) => {
   const mode = normalizeOAuthMode(req.query?.mode);
+  const googleEnabled = await getSettingValue('integration.google.enabled', true);
+  const allowStudent = await getSettingValue('ui.auth.allow_google_student', true);
+  const allowTeacher = await getSettingValue('ui.auth.allow_google_teacher', true);
+  if (!googleEnabled || (mode === 'teacher' ? !allowTeacher : !allowStudent)) {
+    return res.status(403).json({ error: 'Connexion Google désactivée par l’administrateur' });
+  }
   const cfg = getGoogleOauthConfig(req);
   if (!googleOauthConfigured(cfg)) {
     return res.status(503).json({ error: 'OAuth Google non configuré' });
@@ -514,6 +529,14 @@ router.get('/google/start', async (req, res) => {
 });
 
 router.get('/google/callback', async (req, res) => {
+  const googleEnabled = await getSettingValue('integration.google.enabled', true);
+  if (!googleEnabled) {
+    return res.redirect(buildOAuthFrontendErrorRedirect(
+      normalizeOptionalString(process.env.FRONTEND_ORIGIN) || `${req.protocol}://${req.get('host')}`,
+      'oauth_not_configured',
+      normalizeOAuthMode(req.query?.mode)
+    ));
+  }
   const cfg = getGoogleOauthConfig(req);
   const stateCookie = readCookie(req, OAUTH_STATE_COOKIE);
   const modeCookie = normalizeOAuthMode(readCookie(req, OAUTH_MODE_COOKIE));
@@ -678,8 +701,9 @@ router.post('/reset-password', async (req, res) => {
     const token = normalizeOptionalString(req.body?.token);
     const password = req.body?.password;
     if (!token || !password) return res.status(400).json({ error: 'Champs requis' });
-    if (String(password).length < PASSWORD_RESET_MIN_LEN) {
-      return res.status(400).json({ error: `Mot de passe trop court (min ${PASSWORD_RESET_MIN_LEN} caractères)` });
+    const minPasswordLen = await getPasswordMinLength();
+    if (String(password).length < minPasswordLen) {
+      return res.status(400).json({ error: `Mot de passe trop court (min ${minPasswordLen} caractères)` });
     }
     const studentId = await consumePasswordResetToken('student', token);
     if (!studentId) return res.status(400).json({ error: 'Token invalide ou expiré' });
@@ -742,8 +766,9 @@ router.post('/teacher/reset-password', async (req, res) => {
     const token = normalizeOptionalString(req.body?.token);
     const password = req.body?.password;
     if (!token || !password) return res.status(400).json({ error: 'Champs requis' });
-    if (String(password).length < PASSWORD_RESET_MIN_LEN) {
-      return res.status(400).json({ error: `Mot de passe trop court (min ${PASSWORD_RESET_MIN_LEN} caractères)` });
+    const minPasswordLen = await getPasswordMinLength();
+    if (String(password).length < minPasswordLen) {
+      return res.status(400).json({ error: `Mot de passe trop court (min ${minPasswordLen} caractères)` });
     }
     const teacherId = await consumePasswordResetToken('teacher', token);
     if (!teacherId) return res.status(400).json({ error: 'Token invalide ou expiré' });
@@ -766,6 +791,8 @@ router.post('/teacher/reset-password', async (req, res) => {
 
 router.post('/elevate', requireAuth, async (req, res) => {
   try {
+    const allowPinElevation = await getSettingValue('security.allow_pin_elevation', true);
+    if (!allowPinElevation) return res.status(403).json({ error: 'Élévation PIN désactivée' });
     const pin = normalizeOptionalString(req.body?.pin);
     if (!pin) return res.status(400).json({ error: 'PIN requis' });
     if (!req.auth?.roleId) return res.status(401).json({ error: 'Session invalide' });
@@ -797,6 +824,8 @@ router.post('/elevate', requireAuth, async (req, res) => {
 // Désormais, ce endpoint exige d'être déjà connecté puis élève la session.
 router.post('/teacher', async (req, res) => {
   try {
+    const allowPinElevation = await getSettingValue('security.allow_pin_elevation', true);
+    if (!allowPinElevation) return res.status(403).json({ error: 'Élévation PIN désactivée' });
     const pin = normalizeOptionalString(req.body?.pin);
     if (!pin) return res.status(400).json({ error: 'PIN requis' });
     const bearer = req.headers.authorization;

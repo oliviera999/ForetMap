@@ -46,12 +46,14 @@ function initialForm() {
     source_url: '',
     source_file_path: '',
     sort_order: 0,
+    is_active: true,
   };
 }
 
 function TutorialsView({ tutorials, isTeacher, onRefresh, onForceLogout }) {
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState('all');
   const [toast, setToast] = useState('');
   const [showEditor, setShowEditor] = useState(false);
   const [form, setForm] = useState(initialForm());
@@ -64,13 +66,15 @@ function TutorialsView({ tutorials, isTeacher, onRefresh, onForceLogout }) {
     const q = search.trim().toLowerCase();
     return tutorials.filter((t) => {
       if (typeFilter !== 'all' && t.type !== typeFilter) return false;
+      if (statusFilter === 'active' && !t.is_active) return false;
+      if (statusFilter === 'archived' && t.is_active) return false;
       if (!q) return true;
       return (
         String(t.title || '').toLowerCase().includes(q) ||
         String(t.summary || '').toLowerCase().includes(q)
       );
     });
-  }, [tutorials, search, typeFilter]);
+  }, [tutorials, search, typeFilter, statusFilter]);
 
   const openPreview = (t) => {
     const preview_url = t.type === 'html' ? `/api/tutorials/${t.id}/view` : (t.source_file_path || '');
@@ -105,7 +109,7 @@ function TutorialsView({ tutorials, isTeacher, onRefresh, onForceLogout }) {
 
   const beginEdit = async (row) => {
     try {
-      const detail = await api(`/api/tutorials/${row.id}?include_content=1`);
+      const detail = await api(`/api/tutorials/${row.id}?include_content=1&include_inactive=1`);
       setForm({
         id: detail.id,
         title: detail.title || '',
@@ -115,6 +119,7 @@ function TutorialsView({ tutorials, isTeacher, onRefresh, onForceLogout }) {
         source_url: detail.source_url || '',
         source_file_path: detail.source_file_path || '',
         sort_order: detail.sort_order || 0,
+        is_active: detail.is_active !== false,
       });
       setShowEditor(true);
     } catch (e) {
@@ -139,6 +144,7 @@ function TutorialsView({ tutorials, isTeacher, onRefresh, onForceLogout }) {
       source_url: form.type === 'link' ? (form.source_url || null) : null,
       source_file_path: form.source_file_path || null,
       sort_order: Number(form.sort_order) || 0,
+      is_active: !!form.is_active,
     };
     try {
       if (form.id) await api(`/api/tutorials/${form.id}`, 'PUT', payload);
@@ -158,11 +164,24 @@ function TutorialsView({ tutorials, isTeacher, onRefresh, onForceLogout }) {
   };
 
   const archiveTutorial = async (row) => {
-    if (!confirm(`Retirer "${row.title}" de la liste ?`)) return;
+    if (!confirm(`Archiver "${row.title}" ?`)) return;
     try {
       await api(`/api/tutorials/${row.id}`, 'DELETE');
       await onRefresh?.();
-      setToast('Tutoriel retiré');
+      setToast('Tutoriel archivé');
+      setTimeout(() => setToast(''), 2500);
+    } catch (e) {
+      if (e instanceof AccountDeletedError) onForceLogout?.();
+      setToast('Erreur : ' + e.message);
+      setTimeout(() => setToast(''), 2500);
+    }
+  };
+
+  const restoreTutorial = async (row) => {
+    try {
+      await api(`/api/tutorials/${row.id}`, 'PUT', { is_active: true });
+      await onRefresh?.();
+      setToast('Tutoriel restauré ✓');
       setTimeout(() => setToast(''), 2500);
     } catch (e) {
       if (e instanceof AccountDeletedError) onForceLogout?.();
@@ -196,6 +215,13 @@ function TutorialsView({ tutorials, isTeacher, onRefresh, onForceLogout }) {
           <option value="link">Lien</option>
           <option value="pdf">PDF</option>
         </select>
+        {isTeacher && (
+          <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
+            <option value="all">Tous les statuts</option>
+            <option value="active">Actifs</option>
+            <option value="archived">Archivés</option>
+          </select>
+        )}
       </div>
 
       {isTeacher && showEditor && (
@@ -216,6 +242,18 @@ function TutorialsView({ tutorials, isTeacher, onRefresh, onForceLogout }) {
               <input type="number" min="0" value={form.sort_order} onChange={set('sort_order')} />
             </div>
           </div>
+          {form.id && (
+            <div className="field">
+              <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <input
+                  type="checkbox"
+                  checked={!!form.is_active}
+                  onChange={e => setForm((f) => ({ ...f, is_active: e.target.checked }))}
+                />
+                Tutoriel actif
+              </label>
+            </div>
+          )}
           {form.type === 'html' && (
             <>
               <div className="field">
@@ -255,26 +293,37 @@ function TutorialsView({ tutorials, isTeacher, onRefresh, onForceLogout }) {
       ) : (
         <div className="tuto-grid">
           {filtered.map((t, idx) => (
-            <article key={t.id} className="tuto-card fade-in" style={{ animationDelay: `${Math.min(idx * 60, 360)}ms` }}>
+            <article key={t.id} className={`tuto-card fade-in ${!t.is_active ? 'archived' : ''}`} style={{ animationDelay: `${Math.min(idx * 60, 360)}ms` }}>
               <div className="tuto-card-head">
                 <div>
                   <h3>{t.title}</h3>
                   {t.summary && <p>{t.summary}</p>}
                 </div>
-                <span className="task-chip">{t.type.toUpperCase()}</span>
+                <span className={`task-chip ${!t.is_active ? 'archived' : ''}`}>
+                  {t.type.toUpperCase()}
+                  {!t.is_active ? ' · ARCHIVÉ' : ''}
+                </span>
               </div>
               <div className="task-meta">
                 <span className="task-chip">🔗 {t.linked_tasks_count || 0} tâche(s) liée(s)</span>
               </div>
               <div className="task-actions">
-                <button className="btn btn-ghost btn-sm" onClick={() => openPreview(t)}>👁️ Aperçu</button>
-                <button className="btn btn-ghost btn-sm" onClick={() => openSource(t)}>🌐 Ouvrir</button>
-                <button className="btn btn-ghost btn-sm" onClick={() => downloadUrl(`/api/tutorials/${t.id}/download/html`)}>⬇️ HTML</button>
-                <button className="btn btn-primary btn-sm" onClick={() => downloadUrl(`/api/tutorials/${t.id}/download/pdf`)}>⬇️ PDF</button>
+                {t.is_active && (
+                  <>
+                    <button className="btn btn-ghost btn-sm" onClick={() => openPreview(t)}>👁️ Aperçu</button>
+                    <button className="btn btn-ghost btn-sm" onClick={() => openSource(t)}>🌐 Ouvrir</button>
+                    <button className="btn btn-ghost btn-sm" onClick={() => downloadUrl(`/api/tutorials/${t.id}/download/html`)}>⬇️ HTML</button>
+                    <button className="btn btn-primary btn-sm" onClick={() => downloadUrl(`/api/tutorials/${t.id}/download/pdf`)}>⬇️ PDF</button>
+                  </>
+                )}
                 {isTeacher && (
                   <>
                     <button className="btn btn-ghost btn-sm" onClick={() => beginEdit(t)}>✏️</button>
-                    <button className="btn btn-danger btn-sm" onClick={() => archiveTutorial(t)}>🗑️</button>
+                    {t.is_active ? (
+                      <button className="btn btn-danger btn-sm" onClick={() => archiveTutorial(t)}>🗑️</button>
+                    ) : (
+                      <button className="btn btn-primary btn-sm" onClick={() => restoreTutorial(t)}>♻️ Restaurer</button>
+                    )}
                   </>
                 )}
               </div>

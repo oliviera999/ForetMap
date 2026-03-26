@@ -176,6 +176,29 @@ router.put(
         resolvedUserType = user.user_type;
         resolvedLegacyUserId = user.id;
       }
+
+      const currentRole = await queryOne(
+        `SELECT r.slug
+           FROM user_roles ur
+           INNER JOIN roles r ON r.id = ur.role_id
+          WHERE ur.user_type = ? AND ur.user_id = ? AND ur.is_primary = 1
+          LIMIT 1`,
+        [resolvedUserType, resolvedLegacyUserId]
+      );
+      const nextRole = await queryOne('SELECT slug FROM roles WHERE id = ? LIMIT 1', [roleId]);
+      const leavingAdmin = currentRole?.slug === 'admin' && nextRole?.slug !== 'admin';
+      if (leavingAdmin) {
+        const adminCountRow = await queryOne(
+          `SELECT COUNT(*) AS c
+             FROM user_roles ur
+             INNER JOIN roles r ON r.id = ur.role_id
+            WHERE ur.is_primary = 1 AND r.slug = 'admin'`
+        );
+        const adminCount = Number(adminCountRow?.c || 0);
+        if (adminCount <= 1) {
+          return res.status(409).json({ error: 'Action refusée: dernier administrateur actif' });
+        }
+      }
       await setPrimaryRole(resolvedUserType, resolvedLegacyUserId, roleId);
       logAudit('rbac_assign_role', 'role', String(roleId), `${resolvedUserType}:${resolvedLegacyUserId}`, {
         req,

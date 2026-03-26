@@ -3,12 +3,20 @@ const fs = require('fs');
 const path = require('path');
 const PDFDocument = require('pdfkit');
 const { queryAll, queryOne, execute } = require('../database');
-const { requirePermission } = require('../middleware/requireTeacher');
+const { authenticate, requirePermission } = require('../middleware/requireTeacher');
 const { logRouteError } = require('../lib/routeLog');
 const { emitTasksChanged } = require('../lib/realtime');
 
 const router = express.Router();
 const ROOT_DIR = path.resolve(__dirname, '..');
+const TUTORIAL_MANAGER_ROLES = new Set(['prof', 'admin']);
+router.use(authenticate);
+
+function canManageTutorials(req) {
+  const perms = Array.isArray(req.auth?.permissions) ? req.auth.permissions : [];
+  const roleSlug = String(req.auth?.roleSlug || '').toLowerCase();
+  return perms.includes('tutorials.manage') && TUTORIAL_MANAGER_ROLES.has(roleSlug);
+}
 
 function normalizeString(value) {
   if (value == null) return '';
@@ -157,7 +165,11 @@ function toPublicTutorialRow(row) {
 
 router.get('/', async (req, res) => {
   try {
-    const includeInactive = String(req.query.include_inactive || '') === '1';
+    const includeInactiveRequested = String(req.query.include_inactive || '') === '1';
+    if (includeInactiveRequested && !canManageTutorials(req)) {
+      return res.status(403).json({ error: 'Permission insuffisante' });
+    }
+    const includeInactive = includeInactiveRequested && canManageTutorials(req);
     const where = includeInactive ? '' : 'WHERE t.is_active = 1';
     const rows = await queryAll(
       `SELECT t.*, COUNT(tt.task_id) AS linked_tasks_count
@@ -177,6 +189,11 @@ router.get('/', async (req, res) => {
 router.get('/:id', async (req, res) => {
   try {
     const includeContent = String(req.query.include_content || '') === '1';
+    const includeInactiveRequested = String(req.query.include_inactive || '') === '1';
+    if (includeInactiveRequested && !canManageTutorials(req)) {
+      return res.status(403).json({ error: 'Permission insuffisante' });
+    }
+    const includeInactive = includeInactiveRequested && canManageTutorials(req);
     const row = await queryOne(
       `SELECT t.*, COUNT(tt.task_id) AS linked_tasks_count
          FROM tutorials t
@@ -185,7 +202,9 @@ router.get('/:id', async (req, res) => {
         GROUP BY t.id`,
       [req.params.id]
     );
-    if (!row || Number(row.is_active) !== 1) return res.status(404).json({ error: 'Tutoriel introuvable' });
+    if (!row || (!includeInactive && Number(row.is_active) !== 1)) {
+      return res.status(404).json({ error: 'Tutoriel introuvable' });
+    }
     const out = toPublicTutorialRow(row);
     if (includeContent) out.html_content = row.html_content || null;
     res.json(out);
@@ -197,6 +216,7 @@ router.get('/:id', async (req, res) => {
 
 router.post('/', requirePermission('tutorials.manage', { needsElevation: true }), async (req, res) => {
   try {
+    if (!canManageTutorials(req)) return res.status(403).json({ error: 'Permission insuffisante' });
     const title = normalizeString(req.body.title);
     const type = normalizeString(req.body.type || 'html').toLowerCase();
     const summary = normalizeString(req.body.summary);
@@ -242,6 +262,7 @@ router.post('/', requirePermission('tutorials.manage', { needsElevation: true })
 
 router.put('/:id', requirePermission('tutorials.manage', { needsElevation: true }), async (req, res) => {
   try {
+    if (!canManageTutorials(req)) return res.status(403).json({ error: 'Permission insuffisante' });
     const existing = await queryOne('SELECT * FROM tutorials WHERE id = ?', [req.params.id]);
     if (!existing) return res.status(404).json({ error: 'Tutoriel introuvable' });
 
@@ -302,6 +323,7 @@ router.put('/:id', requirePermission('tutorials.manage', { needsElevation: true 
 
 router.delete('/:id', requirePermission('tutorials.manage', { needsElevation: true }), async (req, res) => {
   try {
+    if (!canManageTutorials(req)) return res.status(403).json({ error: 'Permission insuffisante' });
     const existing = await queryOne('SELECT id FROM tutorials WHERE id = ?', [req.params.id]);
     if (!existing) return res.status(404).json({ error: 'Tutoriel introuvable' });
     await execute('UPDATE tutorials SET is_active = 0, updated_at = ? WHERE id = ?', [new Date().toISOString(), req.params.id]);

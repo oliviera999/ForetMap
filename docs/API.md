@@ -82,6 +82,24 @@ Toutes les routes RBAC exigent un token admin avec élévation PIN active.
 
 ---
 
+## Paramètres admin (GUI)
+
+Ces routes sont destinées à la console admin et exigent un token avec permissions
+`admin.settings.read` / `admin.settings.write` / `admin.settings.secrets.write` + élévation PIN.
+
+| Méthode | URL | Description |
+|--------|-----|-------------|
+| GET | `/api/settings/public` | Réglages publics consommés par l’UI (accueil, modules, cartes par défaut) |
+| GET | `/api/settings/admin` | Liste complète des réglages + métadonnées + cartes |
+| PUT | `/api/settings/admin/:key` | Mettre à jour un réglage (`{ value }`) |
+| PUT | `/api/settings/admin/maps/:id` | Mettre à jour une carte (label, ordre, activation, URL image, padding) |
+| POST | `/api/settings/admin/maps/:id/image` | Upload image de plan (`{ image_data }`) |
+| GET | `/api/settings/admin/system/logs` | Lecture des logs applicatifs via GUI |
+| GET | `/api/settings/admin/system/oauth-debug` | Diagnostic runtime OAuth (sans secrets) |
+| POST | `/api/settings/admin/system/restart` | Redémarrage applicatif contrôlé |
+
+---
+
 ## Zones
 
 | Méthode | URL | Prof | Description |
