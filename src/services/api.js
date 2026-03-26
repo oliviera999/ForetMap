@@ -1,5 +1,22 @@
-/** Base URL API (même origine en prod et avec proxy Vite en dev) */
-export const API = '';
+/**
+ * Préfixe de base de l'app (Vite `base`) sans slash final.
+ *
+ * Pourquoi:
+ * - En déploiement "sous-dossier" (ex: https://domaine.tld/foretmap/),
+ *   les appels absolus "/api/..." pointent vers la racine du domaine et
+ *   peuvent être réécrits vers l'accueil (symptôme: retour page d'accueil sans message).
+ * - `import.meta.env.BASE_URL` est toujours suffixé par "/".
+ */
+export const API = String(import.meta.env.BASE_URL || '/').replace(/\/+$/, '');
+
+export function withAppBase(path) {
+  const raw = String(path || '');
+  if (!raw) return API || '/';
+  if (raw.startsWith('http://') || raw.startsWith('https://')) return raw;
+  const normalized = raw.startsWith('/') ? raw : `/${raw}`;
+  // Quand API === '' (base '/'), on retombe sur une URL absolue classique.
+  return `${API}${normalized}` || normalized;
+}
 const SESSION_KEY = 'foretmap_session';
 
 export class AccountDeletedError extends Error {
@@ -81,7 +98,7 @@ export async function api(path, method = 'GET', body) {
   const headers = { 'Content-Type': 'application/json' };
   const authToken = getAuthToken();
   if (authToken) headers.Authorization = 'Bearer ' + authToken;
-  const res = await fetch(API + path, {
+  const res = await fetch(withAppBase(path), {
     method,
     headers,
     body: body ? JSON.stringify(body) : undefined,

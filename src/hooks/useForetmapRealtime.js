@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { io } from 'socket.io-client';
-import { api, AccountDeletedError, API } from '../services/api';
+import { api, AccountDeletedError, API, withAppBase } from '../services/api';
 
 /**
  * Connexion Socket.IO (tâches, jardin, élèves) + indicateur temps réel mode prof.
@@ -74,7 +74,7 @@ export function useForetmapRealtime({
     const origin =
       API && String(API).trim() ? new URL(API, window.location.href).origin : window.location.origin;
     const socket = io(origin, {
-      path: '/socket.io',
+      path: withAppBase('/socket.io'),
       // Contournement temporaire: certains proxys de prod altèrent les trames WebSocket.
       // On force le polling tant que l'infra n'est pas corrigée.
       transports: ['polling'],

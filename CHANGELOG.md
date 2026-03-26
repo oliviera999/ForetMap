@@ -6,6 +6,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 ## [Non publié]
 
 ### Ajouté
+- **Vue “Collectif” (prof/admin)** : ajout d’une nouvelle vue `👥 Collectif` (desktop) pour piloter une session collective (présents/absents) et assigner/retirer des élèves sur les tâches par contexte (carte/projet), avec API `/api/collective/*` et migration `031_collective_sessions.sql`.
 - **Audit admin + intégrité BDD** : nouveau script `scripts/ensure-admin-and-audit-db.js` (commandes `db:admin:audit` et `db:admin:audit:dry`) pour garantir que l’utilisateur critique (`oliviera9` par défaut) reste admin RBAC et pour contrôler la cohérence globale de la base (tables clés, rôles primaires, liens orphelins).
 - **Réparation ciblée des assignations orphelines** : ajout de l’option `--fix-orphans` et de la commande `db:admin:audit:fix-orphans` pour neutraliser automatiquement les `task_assignments.student_id` sans élève existant (compatible `--dry-run`).
 - **Mode de vue par rôle (prof/admin)** : ajout d’une bascule d’interface `vue élève` (prof + admin) et `vue prof` (admin), avec retour immédiat au rôle normal en un clic pour prévisualiser les parcours sans se déconnecter.
@@ -27,7 +28,8 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - **Couverture de tests auth** : extension des tests backend auth et ajout d’un scénario e2e de connexion par pseudo/email.
 - **Import élèves en masse (prof)** : ajout de `POST /api/students/import` pour importer des comptes élèves depuis un fichier CSV/XLSX, avec validation par ligne, mode simulation (`dryRun`) et rapport détaillé des erreurs.
 - **Template élèves téléchargeable** : ajout de `GET /api/students/import/template` (CSV/XLSX) avec colonnes prêtes à l’emploi et une ligne d’exemple à remplacer/supprimer avant import.
-- **UI prof — Gestion des élèves** : nouveau panneau d’import dans `TeacherStats` (`src/components/stats-views.jsx`) avec téléchargement des modèles, sélection de fichier, simulation, import et affichage du rapport.
+- **UI prof — Gestion des élèves** : import/export/création/suppression déplacés dans l’onglet `Profils & utilisateurs` (`src/components/profiles-views.jsx`) pour centraliser l’administration.
+- **Vue “Collectif” (prof/admin)** : nouvel onglet `Collectif` (tablette/desktop) pour activer une session par carte/projet, marquer des absences, et assigner/retirer des élèves sur les tâches (drag & drop ou boutons).
 - **Tests import élèves** : nouveau fichier `tests/students-import.test.js` couvrant le template CSV, la simulation et la création réelle d’élèves.
 - **Page Visite publique** : nouvelle expérience `Visite` accessible sans connexion depuis l’écran d’accueil, et via un onglet dédié placé avant « À propos » pour les utilisateurs connectés.
 - **API visite dédiée** : nouveau routeur `routes/visit.js` (`/api/visit/content`, `/api/visit/progress`, `/api/visit/seen`) avec endpoints prof pour éditer les contenus zone/repère, gérer les médias de visite et sélectionner les tutoriels affichés.
@@ -57,6 +59,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - **Navigation/auth** : ajout d’un CTA « Visiter sans connexion » dans l’écran d’authentification et intégration de l’onglet `Visite` dans les navigations élève/prof.
 
 ### Corrigé
+- **Accès stats (admin/prof)** : l’icône de profil (badge utilisateur en haut à droite) ouvre désormais la page `📊 Stats` en vue professeur/admin, au lieu de rester inactive.
 - **En-tête prof/admin (mobile)** : suppression du débordement horizontal en petite largeur (conteneur d’actions contraint et scroll interne) et réaffichage de l’avatar/logo utilisateur dans le badge stats, avec libellé nom fiable (plus de fallback intempestif sur « Utilisateur »).
 - **Connexion Google (UI)** : simplification du libellé du bouton de connexion pour n’afficher que `Continuer avec Google` (sans parenthèses de domaines) en mode élève et professeur.
 - **Badge de version (en-tête)** : le badge de version en haut de page n'est plus affiché pour les élèves (visible uniquement en mode professeur).

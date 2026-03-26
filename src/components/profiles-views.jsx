@@ -1,27 +1,71 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { api } from '../services/api';
+import { API, api, getAuthToken } from '../services/api';
 
 function ProfilesAdminView() {
   const [roles, setRoles] = useState([]);
   const [catalog, setCatalog] = useState([]);
   const [users, setUsers] = useState([]);
+  const [students, setStudents] = useState([]);
   const [selectedRoleId, setSelectedRoleId] = useState(null);
   const [pin, setPin] = useState('');
   const [msg, setMsg] = useState('');
   const [err, setErr] = useState('');
   const [loading, setLoading] = useState(false);
+  const [searchStudent, setSearchStudent] = useState('');
+  const [confirmStudent, setConfirmStudent] = useState(null);
+  const [importFile, setImportFile] = useState(null);
+  const [importLoading, setImportLoading] = useState(false);
+  const [importReport, setImportReport] = useState(null);
+  const [dryRunImport, setDryRunImport] = useState(false);
+  const [authPerms, setAuthPerms] = useState([]);
+  const [authElevated, setAuthElevated] = useState(false);
+  const [authRoleSlug, setAuthRoleSlug] = useState('');
+  const [createRole, setCreateRole] = useState('eleve_novice');
+  const [createFirstName, setCreateFirstName] = useState('');
+  const [createLastName, setCreateLastName] = useState('');
+  const [createPassword, setCreatePassword] = useState('');
+  const [createPseudo, setCreatePseudo] = useState('');
+  const [createEmail, setCreateEmail] = useState('');
+  const [createDescription, setCreateDescription] = useState('');
+  const [createAffiliation, setCreateAffiliation] = useState('both');
+  const [createLoading, setCreateLoading] = useState(false);
 
   const load = async () => {
     setErr('');
-    const [profileRows, userRows] = await Promise.all([
-      api('/api/rbac/profiles'),
-      api('/api/rbac/users'),
-    ]);
-    const normalized = Array.isArray(profileRows) ? profileRows : [];
-    setRoles(normalized.map((r) => ({ ...r, permissions: Array.isArray(r.permissions) ? r.permissions : [] })));
-    setCatalog(normalized[0]?.catalog || []);
-    setUsers(Array.isArray(userRows) ? userRows : []);
-    setSelectedRoleId((prev) => prev ?? normalized[0]?.id ?? null);
+    const auth = await api('/api/auth/me').catch(() => null);
+    const perms = Array.isArray(auth?.auth?.permissions) ? auth.auth.permissions : [];
+    const elevated = !!auth?.auth?.elevated;
+    const roleSlug = String(auth?.auth?.roleSlug || '').toLowerCase();
+    setAuthPerms(perms);
+    setAuthElevated(elevated);
+    setAuthRoleSlug(roleSlug);
+
+    const canManageProfiles = perms.includes('admin.roles.manage') || perms.includes('admin.users.assign_roles');
+    const canLoadStudents = perms.includes('stats.read.all');
+
+    if (canManageProfiles) {
+      const [profileRows, userRows] = await Promise.all([
+        api('/api/rbac/profiles'),
+        api('/api/rbac/users'),
+      ]);
+      const normalized = Array.isArray(profileRows) ? profileRows : [];
+      setRoles(normalized.map((r) => ({ ...r, permissions: Array.isArray(r.permissions) ? r.permissions : [] })));
+      setCatalog(normalized[0]?.catalog || []);
+      setUsers(Array.isArray(userRows) ? userRows : []);
+      setSelectedRoleId((prev) => prev ?? normalized[0]?.id ?? null);
+    } else {
+      setRoles([]);
+      setCatalog([]);
+      setUsers([]);
+      setSelectedRoleId(null);
+    }
+
+    if (canLoadStudents) {
+      const rows = await api('/api/stats/all');
+      setStudents(Array.isArray(rows) ? rows : []);
+    } else {
+      setStudents([]);
+    }
   };
 
   useEffect(() => { load().catch((e) => setErr(e.message)); }, []);
@@ -30,6 +74,20 @@ function ProfilesAdminView() {
     () => roles.find((r) => Number(r.id) === Number(selectedRoleId)) || null,
     [roles, selectedRoleId]
   );
+  const canManageProfiles = authPerms.includes('admin.roles.manage') || authPerms.includes('admin.users.assign_roles');
+  const canExport = authPerms.includes('stats.export') && authElevated;
+  const canImport = authPerms.includes('students.import') && authElevated;
+  const canDelete = authPerms.includes('students.delete') && authElevated;
+  const canCreateUsers = authPerms.includes('users.create') && authElevated;
+  const canReadAllStats = authPerms.includes('stats.read.all');
+  const isAdmin = authRoleSlug === 'admin';
+  const canManageStudents = canExport || canImport || canDelete || canCreateUsers;
+  const canDeleteUi = canDelete && canReadAllStats;
+  const filteredStudents = useMemo(() => {
+    const needle = searchStudent.trim().toLowerCase();
+    if (!needle) return students;
+    return students.filter((s) => `${s.first_name || ''} ${s.last_name || ''}`.toLowerCase().includes(needle));
+  }, [students, searchStudent]);
 
   const saveRoleName = async (role) => {
     const displayName = window.prompt('Nouveau nom du profil', role.display_name || '');
@@ -46,7 +104,7 @@ function ProfilesAdminView() {
     setLoading(false);
   };
 
-  const createRole = async () => {
+  const createRoleProfile = async () => {
     const slug = window.prompt('Slug du nouveau profil (ex: eleve_mentor)', '');
     if (!slug || !slug.trim()) return;
     const displayName = window.prompt('Nom du profil', slug.trim());
@@ -123,77 +181,407 @@ function ProfilesAdminView() {
     setLoading(false);
   };
 
+  const createUser = async () => {
+    if (!createFirstName.trim() || !createLastName.trim() || !createPassword) {
+      setErr('Prénom, nom et mot de passe sont requis');
+      return;
+    }
+    if (createPseudo.trim() && !/^[A-Za-z0-9_.-]{3,30}$/.test(createPseudo.trim())) {
+      setErr('Pseudo invalide (3-30 caractères, lettres/chiffres/._-)');
+      return;
+    }
+    if (createEmail.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(createEmail.trim())) {
+      setErr('Email invalide');
+      return;
+    }
+    if (createDescription.trim().length > 300) {
+      setErr('Description trop longue (max 300 caractères)');
+      return;
+    }
+    if (createRole === 'admin' && !isAdmin) {
+      setErr('Seul un admin peut créer un admin');
+      return;
+    }
+    setCreateLoading(true);
+    setErr('');
+    try {
+      const result = await api('/api/rbac/users', 'POST', {
+        role_slug: createRole,
+        first_name: createFirstName.trim(),
+        last_name: createLastName.trim(),
+        password: createPassword,
+        pseudo: createPseudo.trim() || null,
+        email: createEmail.trim() || null,
+        description: createDescription.trim() || null,
+        affiliation: createAffiliation,
+      });
+      setMsg(`Utilisateur créé : ${result.first_name} ${result.last_name} (${result.role_display_name || result.role_slug})`);
+      setCreateFirstName('');
+      setCreateLastName('');
+      setCreatePassword('');
+      setCreatePseudo('');
+      setCreateEmail('');
+      setCreateDescription('');
+      setCreateAffiliation('both');
+      if (!isAdmin && createRole === 'admin') setCreateRole('prof');
+      await load();
+    } catch (e) {
+      setErr(e.message || 'Erreur création utilisateur');
+    }
+    setCreateLoading(false);
+  };
+
+  const downloadStudentsTemplate = async (format) => {
+    try {
+      const token = getAuthToken();
+      const headers = new Headers();
+      if (token) headers.set('Authorization', 'Bearer ' + token);
+      const res = await fetch(`${API}/api/students/import/template?format=${encodeURIComponent(format)}`, { headers });
+      if (!res.ok) throw new Error('Téléchargement impossible');
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = format === 'xlsx' ? 'foretmap-modele-eleves.xlsx' : 'foretmap-modele-eleves.csv';
+      link.click();
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      setErr(e.message || 'Erreur lors du téléchargement du modèle');
+    }
+  };
+
+  const importStudents = async () => {
+    if (!importFile) {
+      setErr('Choisissez un fichier CSV ou XLSX');
+      return;
+    }
+    setImportLoading(true);
+    setImportReport(null);
+    setErr('');
+    try {
+      const base64 = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result || ''));
+        reader.onerror = () => reject(new Error('Lecture du fichier impossible'));
+        reader.readAsDataURL(importFile);
+      });
+      const result = await api('/api/students/import', 'POST', {
+        fileName: importFile.name,
+        fileDataBase64: base64,
+        dryRun: dryRunImport,
+      });
+      setImportReport(result.report || null);
+      if ((result.report?.totals?.created || 0) > 0) {
+        setMsg(`${result.report.totals.created} élève(s) créé(s)`);
+      } else if (dryRunImport) {
+        setMsg('Simulation terminée');
+      } else {
+        setMsg('Import terminé');
+      }
+      await load();
+    } catch (e) {
+      setErr('Erreur import: ' + (e.message || 'inconnue'));
+    }
+    setImportLoading(false);
+  };
+
+  const exportStats = async () => {
+    try {
+      const token = getAuthToken();
+      const headers = new Headers();
+      if (token) headers.set('Authorization', 'Bearer ' + token);
+      const response = await fetch(`${API}/api/stats/export`, { headers });
+      if (!response.ok) throw new Error('Export impossible');
+      const blob = await response.blob();
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = `foretmap-stats-${new Date().toISOString().slice(0, 10)}.csv`;
+      link.click();
+      URL.revokeObjectURL(link.href);
+    } catch (e) {
+      setErr(e.message || 'Erreur lors de l’export');
+    }
+  };
+
+  const confirmDelete = async () => {
+    if (!confirmStudent) return;
+    const target = confirmStudent;
+    setConfirmStudent(null);
+    setErr('');
+    try {
+      await api(`/api/students/${target.id}`, 'DELETE');
+      setMsg(`${target.first_name} ${target.last_name} supprimé`);
+      await load();
+    } catch (e) {
+      setErr(e.message || 'Erreur suppression');
+    }
+  };
+
   return (
     <div className="fade-in">
-      <h2 className="section-title">🛡️ Gestionnaire de profils</h2>
-      <p className="section-sub">Admin : profils, permissions, PIN et attribution utilisateurs.</p>
+      <h2 className="section-title">🛡️ Profils & utilisateurs</h2>
+      <p className="section-sub">Gestion des profils, des comptes et des opérations élèves (création, import, export, suppression).</p>
       {err && <div className="auth-error">⚠️ {err}</div>}
       {msg && <div className="auth-success">{msg}</div>}
 
-      <div style={{ display: 'grid', gap: 12, gridTemplateColumns: '1fr 1fr' }}>
-        <div style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: 12, padding: 12 }}>
-          <h3 style={{ marginTop: 0 }}>Profils</h3>
-          <button className="btn btn-secondary btn-sm" onClick={createRole} disabled={loading} style={{ marginBottom: 10 }}>
-            + Créer un profil
-          </button>
-          {roles.map((r) => (
-            <div key={r.id} style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 8 }}>
-              <button className={`btn btn-sm ${Number(selectedRoleId) === Number(r.id) ? 'btn-primary' : 'btn-ghost'}`} onClick={() => setSelectedRoleId(r.id)}>
-                {r.display_name}
+      {confirmStudent && (
+        <div className="modal-overlay" onClick={(e) => e.target === e.currentTarget && setConfirmStudent(null)}>
+          <div className="log-modal fade-in" style={{ paddingBottom: 'calc(20px + var(--safe-bottom))' }} onClick={(e) => e.stopPropagation()}>
+            <h3 style={{ marginBottom: 8 }}>Supprimer l&apos;élève ?</h3>
+            <p style={{ fontSize: '.95rem', color: '#444', marginBottom: 6, lineHeight: 1.5 }}>
+              <strong>{confirmStudent.first_name} {confirmStudent.last_name}</strong>
+            </p>
+            <p style={{ fontSize: '.85rem', color: '#888', marginBottom: 20, lineHeight: 1.5 }}>
+              Ses assignations de tâches seront également supprimées.
+            </p>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button className="btn btn-danger" style={{ flex: 1 }} onClick={confirmDelete}>Supprimer</button>
+              <button className="btn btn-ghost" style={{ flex: 1 }} onClick={() => setConfirmStudent(null)}>Annuler</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {canManageProfiles && (
+        <>
+          <div style={{ display: 'grid', gap: 12, gridTemplateColumns: '1fr 1fr' }}>
+            <div style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: 12, padding: 12 }}>
+              <h3 style={{ marginTop: 0 }}>Profils</h3>
+              <button className="btn btn-secondary btn-sm" onClick={createRoleProfile} disabled={loading} style={{ marginBottom: 10 }}>
+                + Créer un profil
               </button>
-              <button className="btn btn-ghost btn-sm" onClick={() => saveRoleName(r)} disabled={loading}>Renommer</button>
-            </div>
-          ))}
-          {selectedRole && (
-            <div style={{ marginTop: 8 }}>
-              <div className="field">
-                <label>PIN du profil {selectedRole.display_name}</label>
-                <input type="password" value={pin} onChange={(e) => setPin(e.target.value)} placeholder="Nouveau PIN" />
-              </div>
-              <button className="btn btn-secondary btn-sm" onClick={savePin} disabled={loading}>Enregistrer PIN</button>
-            </div>
-          )}
-        </div>
-
-        <div style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: 12, padding: 12 }}>
-          <h3 style={{ marginTop: 0 }}>Permissions</h3>
-          {!selectedRole && <p style={{ margin: 0 }}>Sélectionnez un profil.</p>}
-          {selectedRole && catalog.map((perm) => {
-            const current = (selectedRole.permissions || []).find((p) => p.key === perm.key);
-            return (
-              <div key={perm.key} style={{ display: 'grid', gridTemplateColumns: '1fr auto auto', gap: 8, alignItems: 'center', marginBottom: 6 }}>
-                <div>
-                  <div style={{ fontSize: '.86rem', fontWeight: 600 }}>{perm.label}</div>
-                  <div style={{ fontSize: '.75rem', color: '#6b7280' }}>{perm.key}</div>
+              {roles.map((r) => (
+                <div key={r.id} style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 8 }}>
+                  <button className={`btn btn-sm ${Number(selectedRoleId) === Number(r.id) ? 'btn-primary' : 'btn-ghost'}`} onClick={() => setSelectedRoleId(r.id)}>
+                    {r.display_name}
+                  </button>
+                  <button className="btn btn-ghost btn-sm" onClick={() => saveRoleName(r)} disabled={loading}>Renommer</button>
                 </div>
-                <label style={{ fontSize: '.8rem' }}>
-                  <input type="checkbox" checked={!!current} onChange={(e) => togglePermission(perm.key, e.target.checked)} disabled={loading} /> Actif
-                </label>
-                <label style={{ fontSize: '.8rem' }}>
-                  <input type="checkbox" checked={!!current?.requires_elevation} onChange={(e) => togglePermissionElevation(perm.key, e.target.checked)} disabled={!current || loading} /> PIN
-                </label>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
-      <div style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: 12, padding: 12, marginTop: 12 }}>
-        <h3 style={{ marginTop: 0 }}>Attribution des profils</h3>
-        <div style={{ maxHeight: 360, overflow: 'auto' }}>
-          {users.map((u) => (
-            <div key={`${u.user_type}-${u.id}`} style={{ display: 'grid', gridTemplateColumns: '1fr 180px', gap: 8, alignItems: 'center', marginBottom: 8 }}>
-              <div>
-                <strong>{u.display_name}</strong> <span style={{ color: '#6b7280' }}>({u.user_type})</span>
-              </div>
-              <select value={u.role_id || ''} onChange={(e) => assignRole(u.user_type, u.id, parseInt(e.target.value, 10))} disabled={loading}>
-                <option value="">Aucun profil</option>
-                {roles.map((r) => <option key={r.id} value={r.id}>{r.display_name}</option>)}
-              </select>
+              ))}
+              {selectedRole && (
+                <div style={{ marginTop: 8 }}>
+                  <div className="field">
+                    <label>PIN du profil {selectedRole.display_name}</label>
+                    <input type="password" value={pin} onChange={(e) => setPin(e.target.value)} placeholder="Nouveau PIN" />
+                  </div>
+                  <button className="btn btn-secondary btn-sm" onClick={savePin} disabled={loading}>Enregistrer PIN</button>
+                </div>
+              )}
             </div>
-          ))}
+
+            <div style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: 12, padding: 12 }}>
+              <h3 style={{ marginTop: 0 }}>Permissions</h3>
+              {!selectedRole && <p style={{ margin: 0 }}>Sélectionnez un profil.</p>}
+              {selectedRole && catalog.map((perm) => {
+                const current = (selectedRole.permissions || []).find((p) => p.key === perm.key);
+                return (
+                  <div key={perm.key} style={{ display: 'grid', gridTemplateColumns: '1fr auto auto', gap: 8, alignItems: 'center', marginBottom: 6 }}>
+                    <div>
+                      <div style={{ fontSize: '.86rem', fontWeight: 600 }}>{perm.label}</div>
+                      <div style={{ fontSize: '.75rem', color: '#6b7280' }}>{perm.key}</div>
+                    </div>
+                    <label style={{ fontSize: '.8rem' }}>
+                      <input type="checkbox" checked={!!current} onChange={(e) => togglePermission(perm.key, e.target.checked)} disabled={loading} /> Actif
+                    </label>
+                    <label style={{ fontSize: '.8rem' }}>
+                      <input type="checkbox" checked={!!current?.requires_elevation} onChange={(e) => togglePermissionElevation(perm.key, e.target.checked)} disabled={!current || loading} /> PIN
+                    </label>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          <div style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: 12, padding: 12, marginTop: 12 }}>
+            <h3 style={{ marginTop: 0 }}>Attribution des profils</h3>
+            <div style={{ maxHeight: 360, overflow: 'auto' }}>
+              {users.map((u) => (
+                <div key={`${u.user_type}-${u.id}`} style={{ display: 'grid', gridTemplateColumns: '1fr 180px', gap: 8, alignItems: 'center', marginBottom: 8 }}>
+                  <div>
+                    <strong>{u.display_name}</strong> <span style={{ color: '#6b7280' }}>({u.user_type})</span>
+                  </div>
+                  <select value={u.role_id || ''} onChange={(e) => assignRole(u.user_type, u.id, parseInt(e.target.value, 10))} disabled={loading}>
+                    <option value="">Aucun profil</option>
+                    {roles.map((r) => <option key={r.id} value={r.id}>{r.display_name}</option>)}
+                  </select>
+                </div>
+              ))}
+            </div>
+          </div>
+        </>
+      )}
+
+      {canManageStudents && (
+        <>
+          <div className="export-row" style={{ marginTop: 12 }}>
+            <button className="btn btn-secondary btn-sm" disabled={!canExport} onClick={exportStats}>
+              📥 Exporter CSV {canExport ? '' : '(PIN requis)'}
+            </button>
+          </div>
+
+          <div style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: 12, padding: 12, marginTop: 12, opacity: canCreateUsers ? 1 : 0.65 }}>
+            <h3 style={{ margin: '0 0 8px', fontSize: '1rem', color: 'var(--forest)' }}>Création unitaire d&apos;utilisateur</h3>
+            <p style={{ margin: '0 0 10px', fontSize: '.85rem', color: '#6b7280' }}>
+              Créez un compte sans import. Action réservée aux sessions élevées (PIN).
+            </p>
+            <div style={{ display: 'grid', gap: 8, gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))' }}>
+              <div className="field" style={{ margin: 0 }}>
+                <label>Profil</label>
+                <select value={createRole} onChange={(e) => setCreateRole(e.target.value)} disabled={!canCreateUsers || createLoading}>
+                  <option value="eleve_novice">Élève</option>
+                  <option value="prof">Prof</option>
+                  {isAdmin && <option value="admin">Admin</option>}
+                </select>
+              </div>
+              <div className="field" style={{ margin: 0 }}>
+                <label>Prénom</label>
+                <input value={createFirstName} onChange={(e) => setCreateFirstName(e.target.value)} disabled={!canCreateUsers || createLoading} />
+              </div>
+              <div className="field" style={{ margin: 0 }}>
+                <label>Nom</label>
+                <input value={createLastName} onChange={(e) => setCreateLastName(e.target.value)} disabled={!canCreateUsers || createLoading} />
+              </div>
+              <div className="field" style={{ margin: 0 }}>
+                <label>Mot de passe</label>
+                <input type="password" value={createPassword} onChange={(e) => setCreatePassword(e.target.value)} disabled={!canCreateUsers || createLoading} />
+              </div>
+              <div className="field" style={{ margin: 0 }}>
+                <label>Pseudo (optionnel)</label>
+                <input value={createPseudo} onChange={(e) => setCreatePseudo(e.target.value)} disabled={!canCreateUsers || createLoading} />
+              </div>
+              <div className="field" style={{ margin: 0 }}>
+                <label>Email (optionnel)</label>
+                <input type="email" value={createEmail} onChange={(e) => setCreateEmail(e.target.value)} disabled={!canCreateUsers || createLoading} />
+              </div>
+              <div className="field" style={{ margin: 0 }}>
+                <label>Description (optionnel)</label>
+                <input value={createDescription} onChange={(e) => setCreateDescription(e.target.value)} disabled={!canCreateUsers || createLoading} />
+              </div>
+              <div className="field" style={{ margin: 0 }}>
+                <label>Affiliation élève</label>
+                <select value={createAffiliation} onChange={(e) => setCreateAffiliation(e.target.value)} disabled={!canCreateUsers || createLoading || createRole !== 'eleve_novice'}>
+                  <option value="both">N3 + Forêt comestible</option>
+                  <option value="n3">N3 uniquement</option>
+                  <option value="foret">Forêt comestible uniquement</option>
+                </select>
+              </div>
+            </div>
+            <div style={{ marginTop: 10 }}>
+              <button className="btn btn-primary btn-sm" onClick={createUser} disabled={!canCreateUsers || createLoading}>
+                {createLoading ? 'Création…' : `Créer ${canCreateUsers ? '' : '(PIN requis)'}`}
+              </button>
+            </div>
+          </div>
+
+          <div style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: 12, padding: 12, marginTop: 12, opacity: canImport ? 1 : 0.65 }}>
+            <h3 style={{ margin: '0 0 8px', fontSize: '1rem', color: 'var(--forest)' }}>Import élèves (CSV / XLSX)</h3>
+            <p style={{ margin: '0 0 10px', fontSize: '.85rem', color: '#6b7280' }}>
+              Téléchargez un modèle vierge, complétez-le puis importez le fichier.
+            </p>
+            <p style={{ margin: '0 0 10px', fontSize: '.8rem', color: '#9a3412' }}>
+              Le modèle contient une ligne d&apos;exemple: pensez à la remplacer ou la supprimer avant l&apos;import.
+            </p>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 10 }}>
+              <button className="btn btn-ghost btn-sm" onClick={() => downloadStudentsTemplate('csv')}>
+                📄 Modèle CSV
+              </button>
+              <button className="btn btn-ghost btn-sm" onClick={() => downloadStudentsTemplate('xlsx')}>
+                📗 Modèle XLSX
+              </button>
+            </div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
+              <input
+                type="file"
+                accept=".csv,.xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,text/csv"
+                onChange={(e) => {
+                  setImportFile(e.target.files?.[0] || null);
+                  setImportReport(null);
+                }}
+              />
+              <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: '.85rem', color: '#374151' }}>
+                <input
+                  type="checkbox"
+                  checked={dryRunImport}
+                  onChange={(e) => setDryRunImport(e.target.checked)}
+                />
+                Simulation (sans création)
+              </label>
+              <button className="btn btn-primary btn-sm" onClick={importStudents} disabled={importLoading || !canImport}>
+                {importLoading ? 'Import…' : 'Importer'}
+              </button>
+            </div>
+            {importFile && (
+              <p style={{ margin: '8px 0 0', fontSize: '.8rem', color: '#6b7280' }}>
+                Fichier sélectionné: <strong>{importFile.name}</strong>
+              </p>
+            )}
+            {importReport && (
+              <div style={{ marginTop: 10, padding: 10, background: '#f8fafc', borderRadius: 10, border: '1px solid #e2e8f0' }}>
+                <div style={{ fontSize: '.85rem', color: '#1f2937', marginBottom: 4 }}>
+                  Reçus: <strong>{importReport.totals?.received || 0}</strong> ·
+                  Valides: <strong>{importReport.totals?.valid || 0}</strong> ·
+                  Créés: <strong>{importReport.totals?.created || 0}</strong> ·
+                  Déjà existants: <strong>{importReport.totals?.skipped_existing || 0}</strong> ·
+                  Invalides: <strong>{importReport.totals?.skipped_invalid || 0}</strong>
+                </div>
+                {Array.isArray(importReport.errors) && importReport.errors.length > 0 && (
+                  <div style={{ maxHeight: 120, overflow: 'auto', fontSize: '.8rem', color: '#991b1b' }}>
+                    {importReport.errors.slice(0, 15).map((item, idx) => (
+                      <div key={`${item.row}-${item.field}-${idx}`}>
+                        Ligne {item.row} ({item.field}): {item.error}
+                      </div>
+                    ))}
+                    {importReport.errors.length > 15 && (
+                      <div>… {importReport.errors.length - 15} erreur(s) supplémentaire(s)</div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          {canReadAllStats && (
+            <div style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: 12, padding: 12, marginTop: 12, opacity: canDeleteUi ? 1 : 0.65 }}>
+            <h3 style={{ marginTop: 0 }}>Suppression d&apos;élèves</h3>
+            <div className="field" style={{ marginBottom: 10 }}>
+              <input
+                value={searchStudent}
+                onChange={(e) => setSearchStudent(e.target.value)}
+                placeholder="🔍 Rechercher un élève..."
+                style={{ background: 'white' }}
+              />
+            </div>
+            <div style={{ maxHeight: 280, overflow: 'auto' }}>
+              {filteredStudents.length === 0 ? (
+                <p style={{ margin: 0, color: '#6b7280' }}>
+                  {searchStudent ? 'Aucun élève trouvé.' : 'Aucun élève disponible.'}
+                </p>
+              ) : (
+                filteredStudents.map((s) => (
+                  <div key={s.id} style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 8, alignItems: 'center', marginBottom: 8 }}>
+                    <div>
+                      <strong>{s.first_name} {s.last_name}</strong>
+                      <div style={{ fontSize: '.78rem', color: '#6b7280' }}>
+                        {s.stats?.done || 0} validée(s) · {s.stats?.pending || 0} en cours
+                      </div>
+                    </div>
+                    <button className="btn btn-danger btn-sm" disabled={!canDeleteUi} onClick={() => setConfirmStudent(s)}>
+                      🗑️ Supprimer
+                    </button>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+          )}
+        </>
+      )}
+
+      {!canManageProfiles && !canManageStudents && (
+        <div className="empty" style={{ marginTop: 12 }}>
+          <p>Aucune permission disponible pour gérer les profils ou les élèves.</p>
         </div>
-      </div>
+      )}
     </div>
   );
 }
