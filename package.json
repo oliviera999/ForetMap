@@ -1,6 +1,6 @@
 {
   "name": "foretmap",
-  "version": "1.10.7",
+  "version": "1.10.8",
   "description": "Application de gestion de la forêt comestible - Lycée Lyautey",
   "main": "server.js",
   "dependencies": {
@@ -53,7 +53,7 @@
     "docker:down": "docker compose down || docker-compose down",
     "local:setup": "npm run docker:up && npm install --include=dev && node scripts/wait-mysql-ready.js && npm run db:init && npm run check:local",
     "check:local": "node scripts/check-local-env.js",
-    "build": "vite build",
+    "build": "node scripts/build-safe.js",
     "preview": "vite preview",
     "deploy:prepare": "node scripts/prepare-dist-deploy.js",
     "deploy:prepare:fast": "node scripts/prepare-dist-deploy.js --skip-install",
