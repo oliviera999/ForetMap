@@ -8,6 +8,7 @@ const { logRouteError } = require('../lib/routeLog');
 const { logAudit } = require('./audit');
 const { emitStudentsChanged, emitTasksChanged } = require('../lib/realtime');
 const { saveBase64ToDisk, deleteFile } = require('../lib/uploads');
+const { ensurePrimaryRole } = require('../lib/rbac');
 
 const router = express.Router();
 const MAX_DESCRIPTION_LEN = 300;
@@ -18,15 +19,25 @@ const PSEUDO_RE = /^[A-Za-z0-9_.-]{3,30}$/;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const ALLOWED_STUDENT_AFFILIATIONS = new Set(['n3', 'foret', 'both']);
 const TEMPLATE_COLUMNS = [
+  'Rôle',
   'Prénom',
   'Nom',
   'Mot de passe',
+  'Affiliation (n3|foret|both)',
   'Pseudo (optionnel)',
   'Email (optionnel)',
   'Description (optionnel)',
 ];
 
+const ALLOWED_IMPORT_USER_TYPES = new Set(['student', 'teacher']);
+
 const IMPORT_HEADER_ALIASES = new Map([
+  ['role', 'userType'],
+  ['rôle', 'userType'],
+  ['profil', 'userType'],
+  ['type', 'userType'],
+  ['user_type', 'userType'],
+  ['utilisateur_type', 'userType'],
   ['prenom', 'firstName'],
   ['prénom', 'firstName'],
   ['first_name', 'firstName'],
@@ -48,6 +59,10 @@ const IMPORT_HEADER_ALIASES = new Map([
   ['email_optionnel', 'email'],
   ['description', 'description'],
   ['description_optionnel', 'description'],
+  ['affiliation', 'affiliation'],
+  ['espace', 'affiliation'],
+  ['mon_espace', 'affiliation'],
+  ['zone', 'affiliation'],
 ]);
 
 function normalizeOptionalString(value) {
@@ -71,6 +86,15 @@ function normalizeStudentAffiliation(value) {
   const normalized = raw.toLowerCase();
   if (!ALLOWED_STUDENT_AFFILIATIONS.has(normalized)) return null;
   return normalized;
+}
+
+function normalizeImportUserType(value) {
+  const raw = normalizeOptionalString(value);
+  if (!raw) return 'student';
+  const normalized = raw.toLowerCase();
+  if (['eleve', 'élève', 'student', 'students'].includes(normalized)) return 'student';
+  if (['prof', 'professeur', 'teacher', 'teachers'].includes(normalized)) return 'teacher';
+  return null;
 }
 
 function detectAvatarExtension(dataUrl) {
@@ -158,9 +182,11 @@ function mapImportRowToStudentShape(row = {}) {
 function buildImportStudentPayload(row = {}) {
   const mapped = mapImportRowToStudentShape(row);
   return {
+    userType: normalizeImportUserType(mapped.userType),
     firstName: asTrimmedString(mapped.firstName),
     lastName: asTrimmedString(mapped.lastName),
     password: asTrimmedString(mapped.password),
+    affiliation: normalizeStudentAffiliation(mapped.affiliation),
     pseudo: normalizeOptionalString(mapped.pseudo),
     email: normalizeOptionalString(mapped.email),
     description: normalizeOptionalString(mapped.description),
@@ -169,12 +195,18 @@ function buildImportStudentPayload(row = {}) {
 
 function validateImportStudentPayload(payload, rowNumber) {
   const errors = [];
+  if (!payload.userType || !ALLOWED_IMPORT_USER_TYPES.has(payload.userType)) {
+    errors.push({ row: rowNumber, field: 'userType', error: "Rôle invalide (élève/prof)" });
+  }
   if (!payload.firstName) errors.push({ row: rowNumber, field: 'firstName', error: 'Prénom requis' });
   if (!payload.lastName) errors.push({ row: rowNumber, field: 'lastName', error: 'Nom requis' });
   if (!payload.password) {
     errors.push({ row: rowNumber, field: 'password', error: 'Mot de passe requis' });
   } else if (payload.password.length < 4) {
     errors.push({ row: rowNumber, field: 'password', error: 'Mot de passe trop court (min 4 caractères)' });
+  }
+  if (!payload.affiliation) {
+    errors.push({ row: rowNumber, field: 'affiliation', error: "Affiliation invalide (n3, foret ou both)" });
   }
   if (payload.pseudo != null && !PSEUDO_RE.test(payload.pseudo)) {
     errors.push({ row: rowNumber, field: 'pseudo', error: 'Pseudo invalide (3-30 caractères, lettres/chiffres/._-)' });
@@ -210,12 +242,14 @@ function csvEscape(value) {
 
 function buildTemplateWorkbookRows() {
   return [{
-    [TEMPLATE_COLUMNS[0]]: 'Exemple',
-    [TEMPLATE_COLUMNS[1]]: 'Eleve',
-    [TEMPLATE_COLUMNS[2]]: 'azerty123',
-    [TEMPLATE_COLUMNS[3]]: 'exemple_eleve',
-    [TEMPLATE_COLUMNS[4]]: 'exemple.eleve@lyautey.ma',
-    [TEMPLATE_COLUMNS[5]]: 'Remplacer ou supprimer cette ligne avant import.',
+    [TEMPLATE_COLUMNS[0]]: 'eleve',
+    [TEMPLATE_COLUMNS[1]]: 'Exemple',
+    [TEMPLATE_COLUMNS[2]]: 'Eleve',
+    [TEMPLATE_COLUMNS[3]]: 'azerty123',
+    [TEMPLATE_COLUMNS[4]]: 'both',
+    [TEMPLATE_COLUMNS[5]]: 'exemple_eleve',
+    [TEMPLATE_COLUMNS[6]]: 'exemple.eleve@lyautey.ma',
+    [TEMPLATE_COLUMNS[7]]: 'Remplacer ou supprimer cette ligne avant import.',
   }];
 }
 
@@ -238,9 +272,11 @@ router.get('/import/template', requirePermission('students.import', { needsEleva
     const BOM = '\uFEFF';
     const line = TEMPLATE_COLUMNS.map(csvEscape).join(';');
     const sampleRow = [
+      'eleve',
       'Exemple',
       'Eleve',
       'azerty123',
+      'both',
       'exemple_eleve',
       'exemple.eleve@lyautey.ma',
       'Remplacer ou supprimer cette ligne avant import.',
@@ -279,10 +315,10 @@ router.post('/import', requirePermission('students.import', { needsElevation: tr
       errors: [],
     };
 
-    const existingStudents = await queryAll("SELECT id, first_name, last_name, pseudo, email FROM users WHERE user_type = 'student'");
-    const existingByName = new Map(existingStudents.map((s) => [`${asTrimmedString(s.first_name).toLowerCase()}|${asTrimmedString(s.last_name).toLowerCase()}`, s]));
-    const pseudoSet = new Set(existingStudents.map((s) => asTrimmedString(s.pseudo).toLowerCase()).filter(Boolean));
-    const emailSet = new Set(existingStudents.map((s) => asTrimmedString(s.email).toLowerCase()).filter(Boolean));
+    const existingUsers = await queryAll("SELECT id, user_type, first_name, last_name, pseudo, email FROM users WHERE user_type IN ('student', 'teacher')");
+    const existingByName = new Map(existingUsers.map((u) => [`${asTrimmedString(u.user_type).toLowerCase()}|${asTrimmedString(u.first_name).toLowerCase()}|${asTrimmedString(u.last_name).toLowerCase()}`, u]));
+    const pseudoSet = new Set(existingUsers.map((u) => asTrimmedString(u.pseudo).toLowerCase()).filter(Boolean));
+    const emailSet = new Set(existingUsers.map((u) => asTrimmedString(u.email).toLowerCase()).filter(Boolean));
     const seenName = new Set();
 
     const validRows = [];
@@ -291,13 +327,13 @@ router.post('/import', requirePermission('students.import', { needsElevation: tr
       const payload = buildImportStudentPayload(row);
       const errors = validateImportStudentPayload(payload, rowNumber);
 
-      const keyByName = `${payload.firstName.toLowerCase()}|${payload.lastName.toLowerCase()}`;
+      const keyByName = `${payload.userType}|${payload.firstName.toLowerCase()}|${payload.lastName.toLowerCase()}`;
       if (!errors.length && seenName.has(keyByName)) {
-        errors.push({ row: rowNumber, field: 'name', error: 'Doublon dans le fichier (prénom + nom)' });
+        errors.push({ row: rowNumber, field: 'name', error: 'Doublon dans le fichier (rôle + prénom + nom)' });
       }
       if (!errors.length && existingByName.has(keyByName)) {
         report.totals.skipped_existing += 1;
-        report.errors.push({ row: rowNumber, field: 'name', error: 'Élève déjà existant (prénom + nom)' });
+        report.errors.push({ row: rowNumber, field: 'name', error: 'Utilisateur déjà existant (rôle + prénom + nom)' });
         return;
       }
 
@@ -322,8 +358,10 @@ router.post('/import', requirePermission('students.import', { needsElevation: tr
       if (report.preview.length < 20) {
         report.preview.push({
           row: rowNumber,
+          user_type: payload.userType,
           first_name: payload.firstName,
           last_name: payload.lastName,
+          affiliation: payload.affiliation,
         });
       }
     });
@@ -338,13 +376,15 @@ router.post('/import', requirePermission('students.import', { needsElevation: tr
       const hash = await bcrypt.hash(payload.password, 10);
       const id = uuidv4();
       const now = new Date().toISOString();
+      const roleSlug = payload.userType === 'teacher' ? 'prof' : 'eleve_novice';
       try {
         await execute(
           `INSERT INTO users
             (id, user_type, legacy_user_id, email, pseudo, first_name, last_name, display_name, description, avatar_path, affiliation, password_hash, auth_provider, is_active, last_seen, created_at, updated_at)
-           VALUES (?, 'student', NULL, ?, ?, ?, ?, ?, ?, NULL, 'both', ?, 'local', 1, ?, NOW(), NOW())`,
-          [id, payload.email, payload.pseudo, payload.firstName, payload.lastName, `${payload.firstName} ${payload.lastName}`.trim(), payload.description, hash, now]
+           VALUES (?, ?, NULL, ?, ?, ?, ?, ?, ?, NULL, ?, ?, 'local', 1, ?, NOW(), NOW())`,
+          [id, payload.userType, payload.email, payload.pseudo, payload.firstName, payload.lastName, `${payload.firstName} ${payload.lastName}`.trim(), payload.description, payload.affiliation, hash, now]
         );
+        await ensurePrimaryRole(payload.userType, id, roleSlug);
         report.totals.created += 1;
       } catch (err) {
         if (err && (err.errno === 1062 || err.code === 'ER_DUP_ENTRY')) {

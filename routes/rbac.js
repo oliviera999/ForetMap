@@ -1,11 +1,148 @@
 const express = require('express');
+const bcrypt = require('bcryptjs');
+const { v4: uuidv4 } = require('uuid');
 const { queryAll, queryOne, execute } = require('../database');
 const { requirePermission } = require('../middleware/requireTeacher');
 const { hashPin, setPrimaryRole } = require('../lib/rbac');
+const { getSettingValue } = require('../lib/settings');
+const { emitStudentsChanged } = require('../lib/realtime');
 const { logRouteError } = require('../lib/routeLog');
 const { logAudit } = require('./audit');
 
 const router = express.Router();
+const MAX_DESCRIPTION_LEN = 300;
+const PSEUDO_RE = /^[A-Za-z0-9_.-]{3,30}$/;
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const ALLOWED_STUDENT_AFFILIATIONS = new Set(['n3', 'foret', 'both']);
+
+function normalizeOptionalString(value) {
+  if (value == null) return null;
+  const s = String(value).trim();
+  return s.length > 0 ? s : null;
+}
+
+function normalizeEmail(value) {
+  const email = normalizeOptionalString(value);
+  return email ? email.toLowerCase() : null;
+}
+
+function normalizeStudentAffiliation(value) {
+  const raw = normalizeOptionalString(value);
+  if (!raw) return 'both';
+  const normalized = raw.toLowerCase();
+  if (!ALLOWED_STUDENT_AFFILIATIONS.has(normalized)) return null;
+  return normalized;
+}
+
+async function getPasswordMinLength() {
+  const n = await getSettingValue('security.password_min_length', 4);
+  const parsed = parseInt(n, 10);
+  if (!Number.isFinite(parsed)) return 4;
+  return Math.min(Math.max(parsed, 4), 32);
+}
+
+router.post(
+  '/users',
+  requirePermission('users.create', { needsElevation: true }),
+  async (req, res) => {
+    try {
+      const actorRoleSlug = String(req.auth?.roleSlug || '').trim().toLowerCase();
+      if (!['prof', 'admin'].includes(actorRoleSlug)) {
+        return res.status(403).json({ error: 'Seuls les profils prof/admin peuvent créer des utilisateurs' });
+      }
+
+      const roleSlug = String(req.body?.role_slug || '').trim().toLowerCase();
+      if (!['eleve_novice', 'prof', 'admin'].includes(roleSlug)) {
+        return res.status(400).json({ error: 'role_slug invalide (eleve_novice, prof, admin)' });
+      }
+      if (actorRoleSlug === 'prof' && roleSlug === 'admin') {
+        return res.status(403).json({ error: 'Un profil prof ne peut pas créer un admin' });
+      }
+
+      const firstName = normalizeOptionalString(req.body?.first_name);
+      const lastName = normalizeOptionalString(req.body?.last_name);
+      const password = String(req.body?.password || '');
+      const pseudo = normalizeOptionalString(req.body?.pseudo);
+      const email = normalizeEmail(req.body?.email);
+      const description = normalizeOptionalString(req.body?.description);
+      const minPasswordLen = await getPasswordMinLength();
+      if (!firstName || !lastName) return res.status(400).json({ error: 'Prénom et nom requis' });
+      if (!password || password.length < minPasswordLen) {
+        return res.status(400).json({ error: `Mot de passe trop court (min ${minPasswordLen} caractères)` });
+      }
+      if (pseudo != null && !PSEUDO_RE.test(pseudo)) {
+        return res.status(400).json({ error: 'Pseudo invalide (3-30 caractères, lettres/chiffres/._-)' });
+      }
+      if (email != null && !EMAIL_RE.test(email)) {
+        return res.status(400).json({ error: 'Email invalide' });
+      }
+      if (description != null && description.length > MAX_DESCRIPTION_LEN) {
+        return res.status(400).json({ error: `Description trop longue (max ${MAX_DESCRIPTION_LEN} caractères)` });
+      }
+
+      const userType = roleSlug === 'eleve_novice' ? 'student' : 'teacher';
+      const affiliation = userType === 'student'
+        ? normalizeStudentAffiliation(req.body?.affiliation)
+        : 'both';
+      if (!affiliation) return res.status(400).json({ error: "Affiliation invalide (n3, foret ou both)" });
+
+      if (userType === 'student') {
+        const existingByName = await queryOne(
+          "SELECT id FROM users WHERE user_type = 'student' AND LOWER(first_name)=LOWER(?) AND LOWER(last_name)=LOWER(?) LIMIT 1",
+          [firstName, lastName]
+        );
+        if (existingByName) return res.status(409).json({ error: 'Un élève avec ce nom existe déjà' });
+      }
+      if (pseudo) {
+        const existingPseudo = await queryOne('SELECT id FROM users WHERE LOWER(pseudo)=LOWER(?) LIMIT 1', [pseudo]);
+        if (existingPseudo) return res.status(409).json({ error: 'Ce pseudo est déjà utilisé' });
+      }
+      if (email) {
+        const existingEmail = await queryOne('SELECT id FROM users WHERE LOWER(email)=LOWER(?) LIMIT 1', [email]);
+        if (existingEmail) return res.status(409).json({ error: 'Cet email est déjà utilisé' });
+      }
+
+      const role = await queryOne('SELECT id, slug, display_name FROM roles WHERE slug = ? LIMIT 1', [roleSlug]);
+      if (!role) return res.status(404).json({ error: 'Profil introuvable' });
+
+      const hash = await bcrypt.hash(password, 10);
+      const id = uuidv4();
+      const now = new Date().toISOString();
+      try {
+        await execute(
+          `INSERT INTO users
+            (id, user_type, legacy_user_id, email, pseudo, first_name, last_name, display_name, description, avatar_path, affiliation, password_hash, auth_provider, is_active, last_seen, created_at, updated_at)
+           VALUES (?, ?, NULL, ?, ?, ?, ?, ?, ?, NULL, ?, ?, 'local', 1, ?, NOW(), NOW())`,
+          [id, userType, email, pseudo, firstName, lastName, `${firstName} ${lastName}`.trim(), description, affiliation, hash, now]
+        );
+      } catch (err) {
+        if (err && (err.errno === 1062 || err.code === 'ER_DUP_ENTRY')) {
+          return res.status(409).json({ error: 'Pseudo, email ou identité déjà utilisé(e)' });
+        }
+        throw err;
+      }
+      await setPrimaryRole(userType, id, role.id);
+
+      const created = await queryOne('SELECT * FROM users WHERE id = ? LIMIT 1', [id]);
+      logAudit('create_user_manual', 'user', id, `${firstName} ${lastName}`, {
+        req,
+        payload: { user_type: userType, role_slug: role.slug },
+      });
+      if (userType === 'student') {
+        emitStudentsChanged({ reason: 'create_student_manual', studentId: id });
+      }
+      res.status(201).json({
+        ...created,
+        password_hash: undefined,
+        role_slug: role.slug,
+        role_display_name: role.display_name,
+      });
+    } catch (e) {
+      logRouteError(e, req);
+      res.status(500).json({ error: e.message });
+    }
+  }
+);
 
 router.get(
   '/profiles',

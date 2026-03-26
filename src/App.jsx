@@ -507,7 +507,7 @@ function App() {
       />}
       {showStats && canOpenStudentDialogs && (
         <div className="modal-overlay" onClick={e => e.target === e.currentTarget && setShowStats(false)}>
-          <div className="log-modal fade-in" style={{maxHeight:'88vh'}} onClick={e => e.stopPropagation()}>
+          <div className="log-modal log-modal--with-close fade-in" style={{maxHeight:'88vh'}} onClick={e => e.stopPropagation()}>
             <button
               type="button"
               className="modal-close"
@@ -525,7 +525,7 @@ function App() {
       )}
       {showProfile && canOpenStudentDialogs && (
         <div className="modal-overlay" onClick={e => e.target === e.currentTarget && setShowProfile(false)}>
-          <div className="log-modal fade-in" style={{maxHeight:'88vh'}} onClick={e => e.stopPropagation()}>
+          <div className="log-modal log-modal--with-close fade-in" style={{maxHeight:'88vh'}} onClick={e => e.stopPropagation()}>
             <button
               type="button"
               className="modal-close"
@@ -551,14 +551,16 @@ function App() {
           <span>🌿</span> ForêtMap
         </div>
         <div className="header-right">
-          <span
-            className="app-version-badge"
-            title={`Version installée: ${appVersion != null ? appVersion : 'chargement...'}`}
-            aria-label={`Version ${appVersion != null ? appVersion : 'en chargement'}`}
-          >
-            <span className="app-version-badge__version">v{appVersion != null ? appVersion : '…'}</span>
-            <span className="app-version-badge__status">à jour</span>
-          </span>
+          {isTeacher && (
+            <span
+              className="app-version-badge"
+              title={`Version installée: ${appVersion != null ? appVersion : 'chargement...'}`}
+              aria-label={`Version ${appVersion != null ? appVersion : 'en chargement'}`}
+            >
+              <span className="app-version-badge__version">v{appVersion != null ? appVersion : '…'}</span>
+              <span className="app-version-badge__status">à jour</span>
+            </span>
+          )}
           {effectiveIsTeacher && rtStatus !== 'off' && (
             <span
               className="realtime-prof-wrap"

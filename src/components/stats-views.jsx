@@ -307,6 +307,16 @@ function TeacherStats() {
   const [dryRunImport, setDryRunImport] = useState(false);
   const [authPerms, setAuthPerms] = useState([]);
   const [authElevated, setAuthElevated] = useState(false);
+  const [authRoleSlug, setAuthRoleSlug] = useState('');
+  const [createRole, setCreateRole] = useState('eleve_novice');
+  const [createFirstName, setCreateFirstName] = useState('');
+  const [createLastName, setCreateLastName] = useState('');
+  const [createPassword, setCreatePassword] = useState('');
+  const [createPseudo, setCreatePseudo] = useState('');
+  const [createEmail, setCreateEmail] = useState('');
+  const [createDescription, setCreateDescription] = useState('');
+  const [createAffiliation, setCreateAffiliation] = useState('both');
+  const [createLoading, setCreateLoading] = useState(false);
 
   const load = useCallback(() => api('/api/stats/all').then((rows) => {
     setData(rows);
@@ -324,10 +334,12 @@ function TeacherStats() {
         const perms = Array.isArray(d?.auth?.permissions) ? d.auth.permissions : [];
         setAuthPerms(perms);
         setAuthElevated(!!d?.auth?.elevated);
+        setAuthRoleSlug(String(d?.auth?.roleSlug || '').toLowerCase());
       })
       .catch(() => {
         setAuthPerms([]);
         setAuthElevated(false);
+        setAuthRoleSlug('');
       });
   }, []);
 
@@ -423,6 +435,57 @@ function TeacherStats() {
   const canExport = authPerms.includes('stats.export') && authElevated;
   const canImport = authPerms.includes('students.import') && authElevated;
   const canDelete = authPerms.includes('students.delete') && authElevated;
+  const canCreateUsers = authPerms.includes('users.create') && authElevated;
+  const isAdmin = authRoleSlug === 'admin';
+
+  const createUser = async () => {
+    if (!createFirstName.trim() || !createLastName.trim() || !createPassword) {
+      setToast('Prénom, nom et mot de passe sont requis');
+      return;
+    }
+    if (createPseudo.trim() && !/^[A-Za-z0-9_.-]{3,30}$/.test(createPseudo.trim())) {
+      setToast('Pseudo invalide (3-30 caractères, lettres/chiffres/._-)');
+      return;
+    }
+    if (createEmail.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(createEmail.trim())) {
+      setToast('Email invalide');
+      return;
+    }
+    if (createDescription.trim().length > 300) {
+      setToast('Description trop longue (max 300 caractères)');
+      return;
+    }
+    if (createRole === 'admin' && !isAdmin) {
+      setToast('Seul un admin peut créer un admin');
+      return;
+    }
+    setCreateLoading(true);
+    try {
+      const result = await api('/api/rbac/users', 'POST', {
+        role_slug: createRole,
+        first_name: createFirstName.trim(),
+        last_name: createLastName.trim(),
+        password: createPassword,
+        pseudo: createPseudo.trim() || null,
+        email: createEmail.trim() || null,
+        description: createDescription.trim() || null,
+        affiliation: createAffiliation,
+      });
+      setToast(`Utilisateur créé : ${result.first_name} ${result.last_name} (${result.role_display_name || result.role_slug})`);
+      setCreateFirstName('');
+      setCreateLastName('');
+      setCreatePassword('');
+      setCreatePseudo('');
+      setCreateEmail('');
+      setCreateDescription('');
+      setCreateAffiliation('both');
+      if (!isAdmin && createRole === 'admin') setCreateRole('prof');
+      await load();
+    } catch (e) {
+      setToast(`Erreur création: ${e.message || 'inconnue'}`);
+    }
+    setCreateLoading(false);
+  };
 
   return (
     <div className="fade-in">
@@ -474,6 +537,60 @@ function TeacherStats() {
         }}>
           📥 Exporter CSV {canExport ? '' : '(PIN requis)'}
         </button>
+      </div>
+
+      <div style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: 12, padding: 12, marginBottom: 16, opacity: canCreateUsers ? 1 : 0.65 }}>
+        <h3 style={{ margin: '0 0 8px', fontSize: '1rem', color: 'var(--forest)' }}>Création unitaire d&apos;utilisateur</h3>
+        <p style={{ margin: '0 0 10px', fontSize: '.85rem', color: '#6b7280' }}>
+          Créez un compte sans import. Action réservée aux sessions élevées (PIN).
+        </p>
+        <div style={{ display: 'grid', gap: 8, gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))' }}>
+          <div className="field" style={{ margin: 0 }}>
+            <label>Profil</label>
+            <select value={createRole} onChange={(e) => setCreateRole(e.target.value)} disabled={!canCreateUsers || createLoading}>
+              <option value="eleve_novice">Élève</option>
+              <option value="prof">Prof</option>
+              {isAdmin && <option value="admin">Admin</option>}
+            </select>
+          </div>
+          <div className="field" style={{ margin: 0 }}>
+            <label>Prénom</label>
+            <input value={createFirstName} onChange={(e) => setCreateFirstName(e.target.value)} disabled={!canCreateUsers || createLoading} />
+          </div>
+          <div className="field" style={{ margin: 0 }}>
+            <label>Nom</label>
+            <input value={createLastName} onChange={(e) => setCreateLastName(e.target.value)} disabled={!canCreateUsers || createLoading} />
+          </div>
+          <div className="field" style={{ margin: 0 }}>
+            <label>Mot de passe</label>
+            <input type="password" value={createPassword} onChange={(e) => setCreatePassword(e.target.value)} disabled={!canCreateUsers || createLoading} />
+          </div>
+          <div className="field" style={{ margin: 0 }}>
+            <label>Pseudo (optionnel)</label>
+            <input value={createPseudo} onChange={(e) => setCreatePseudo(e.target.value)} disabled={!canCreateUsers || createLoading} />
+          </div>
+          <div className="field" style={{ margin: 0 }}>
+            <label>Email (optionnel)</label>
+            <input type="email" value={createEmail} onChange={(e) => setCreateEmail(e.target.value)} disabled={!canCreateUsers || createLoading} />
+          </div>
+          <div className="field" style={{ margin: 0 }}>
+            <label>Description (optionnel)</label>
+            <input value={createDescription} onChange={(e) => setCreateDescription(e.target.value)} disabled={!canCreateUsers || createLoading} />
+          </div>
+          <div className="field" style={{ margin: 0 }}>
+            <label>Affiliation élève</label>
+            <select value={createAffiliation} onChange={(e) => setCreateAffiliation(e.target.value)} disabled={!canCreateUsers || createLoading || createRole !== 'eleve_novice'}>
+              <option value="both">N3 + Forêt comestible</option>
+              <option value="n3">N3 uniquement</option>
+              <option value="foret">Forêt comestible uniquement</option>
+            </select>
+          </div>
+        </div>
+        <div style={{ marginTop: 10 }}>
+          <button className="btn btn-primary btn-sm" onClick={createUser} disabled={!canCreateUsers || createLoading}>
+            {createLoading ? 'Création…' : `Créer ${canCreateUsers ? '' : '(PIN requis)'}`}
+          </button>
+        </div>
       </div>
 
       <div style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: 12, padding: 12, marginBottom: 16, opacity: canImport ? 1 : 0.65 }}>
