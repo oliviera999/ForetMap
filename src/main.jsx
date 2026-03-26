@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client';
 import './index.css';
 import { App } from './App.jsx';
 import { ErrorBoundary } from './components/ErrorBoundary.jsx';
+import { withAppBase } from './services/api';
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <ErrorBoundary>
@@ -30,7 +31,7 @@ if ('serviceWorker' in navigator) {
 
   navigator.serviceWorker.addEventListener('controllerchange', triggerReloadOnControllerChange);
 
-  navigator.serviceWorker.register('/sw.js')
+  navigator.serviceWorker.register(withAppBase('/sw.js'))
     .then(registration => {
       activateWaitingWorker(registration);
 

@@ -20,6 +20,7 @@ import { TutorialsView } from './components/tutorials-views';
 import { VisitView } from './components/visit-views';
 import { ProfilesAdminView } from './components/profiles-views';
 import { SettingsAdminView } from './components/settings-admin-views';
+import { CollectiveView } from './components/collective-view';
 
 const OAUTH_ERROR_MESSAGES = {
   oauth_not_configured: 'Connexion Google indisponible (configuration serveur incomplète).',
@@ -135,6 +136,9 @@ function App() {
     const allowedRole = roleSlug === 'prof' || roleSlug === 'admin';
     return allowedRole && hasPermissionInRole('tutorials.manage');
   }, [effectiveRoleContext.roleSlug, hasPermissionInRole]);
+  const canUseCollectiveView = useMemo(() => {
+    return effectiveIsTeacher && hasPermission('stats.read.all');
+  }, [effectiveIsTeacher, hasPermission]);
 
   useEffect(() => {
     const hashRaw = window.location.hash.startsWith('#') ? window.location.hash.slice(1) : '';
@@ -383,6 +387,9 @@ function App() {
   const canAccessStudentMapTasks = effectiveIsTeacher || studentAffiliation !== 'n3';
   const isPreviewStudentView = !!previewStudent;
   const canOpenStudentDialogs = !effectiveIsTeacher && !isPreviewStudentView;
+  const canOpenTeacherStatsFromBadge = effectiveIsTeacher
+    && publicSettings?.modules?.stats_enabled !== false
+    && hasPermission('stats.read.all');
   const canSwitchToStudentView = isTeacher && (effectiveRoleContext.roleSlug === 'prof' || effectiveRoleContext.roleSlug === 'admin');
   const canSwitchToTeacherView = isTeacher && effectiveRoleContext.roleSlug === 'admin';
 
@@ -577,10 +584,23 @@ function App() {
             </span>
           )}
           <button
+            type="button"
             className="user-badge"
-            onClick={() => canOpenStudentDialogs && setShowStats(true)}
-            style={{ cursor: canOpenStudentDialogs ? 'pointer' : 'default' }}
-            title={canOpenStudentDialogs ? 'Voir mes statistiques' : ''}
+            onClick={() => {
+              if (canOpenStudentDialogs) {
+                setShowStats(true);
+                return;
+              }
+              if (canOpenTeacherStatsFromBadge) {
+                setTab('stats');
+              }
+            }}
+            style={{ cursor: (canOpenStudentDialogs || canOpenTeacherStatsFromBadge) ? 'pointer' : 'default' }}
+            title={
+              canOpenStudentDialogs
+                ? 'Voir mes statistiques'
+                : (canOpenTeacherStatsFromBadge ? 'Ouvrir les statistiques élèves' : '')
+            }
           >
             <StudentAvatar student={currentUser} size={20} style={{ border: 'none' }} />
             <span className="user-badge-text">{currentUserLabel}</span>
@@ -684,6 +704,10 @@ function App() {
             {(
               hasPermissionInRole('admin.roles.manage')
               || hasPermissionInRole('admin.users.assign_roles')
+              || hasPermissionInRole('stats.export')
+              || hasPermissionInRole('students.import')
+              || hasPermissionInRole('students.delete')
+              || hasPermissionInRole('users.create')
             ) && (
               <button className={`top-tab ${tab === 'profiles' ? 'active' : ''}`} onClick={() => setTab('profiles')}>
                 🛡️ Profils & utilisateurs
@@ -692,6 +716,11 @@ function App() {
             {hasPermissionInRole('admin.settings.read') && (
               <button className={`top-tab ${tab === 'settings' ? 'active' : ''}`} onClick={() => setTab('settings')}>
                 ⚙️ Paramètres
+              </button>
+            )}
+            {canUseCollectiveView && (
+              <button className={`top-tab ${tab === 'collective' ? 'active' : ''}`} onClick={() => setTab('collective')}>
+                👥 Collectif
               </button>
             )}
             <button className={`top-tab ${tab === 'about' ? 'active' : ''}`} onClick={() => setTab('about')}>ℹ️ À propos</button>
@@ -705,6 +734,16 @@ function App() {
           {tab === 'audit'  && (hasPermission('audit.read') ? <AuditLog/> : <div className="empty"><p>Permission insuffisante</p></div>)}
           {publicSettings?.modules?.visit_enabled !== false && tab === 'visit'  && <VisitView student={currentUser} isTeacher availableTutorials={tutorials} initialMapId={activeMapId} onForceLogout={forceLogout} />}
           {tab === 'settings' && <SettingsAdminView/>}
+          {tab === 'collective' && canUseCollectiveView && (
+            <CollectiveView
+              tasks={tasks}
+              maps={maps}
+              taskProjects={taskProjects}
+              activeMapId={activeMapId}
+              onRefresh={fetchAll}
+              canManageSession={canUseCollectiveView}
+            />
+          )}
           {tab === 'about'  && <AboutView appVersion={appVersion}/>}
         </div>
       ) : (

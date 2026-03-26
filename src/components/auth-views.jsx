@@ -1,9 +1,9 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { api, saveStoredSession } from '../services/api';
+import { api, saveStoredSession, withAppBase } from '../services/api';
 
 function startGoogleAuth(mode) {
   const safeMode = mode === 'teacher' ? 'teacher' : 'student';
-  window.location.assign(`/api/auth/google/start?mode=${encodeURIComponent(safeMode)}`);
+  window.location.assign(withAppBase(`/api/auth/google/start?mode=${encodeURIComponent(safeMode)}`));
 }
 
 function PinModal({ onSuccess, onClose, uiSettings }) {

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { API, api, getAuthToken } from '../services/api';
+import { api } from '../services/api';
 import { statusBadge } from '../utils/badges';
 import { getDicebearAvatarUrl, getStudentAvatarUrl } from '../utils/avatar';
 import { StudentAvatar } from './student-avatar';
@@ -300,23 +300,6 @@ function TeacherStats() {
   const [error, setError] = useState('');
   const [search, setSearch] = useState('');
   const [toast, setToast] = useState(null);
-  const [confirmStudent, setConfirmStudent] = useState(null);
-  const [importFile, setImportFile] = useState(null);
-  const [importLoading, setImportLoading] = useState(false);
-  const [importReport, setImportReport] = useState(null);
-  const [dryRunImport, setDryRunImport] = useState(false);
-  const [authPerms, setAuthPerms] = useState([]);
-  const [authElevated, setAuthElevated] = useState(false);
-  const [authRoleSlug, setAuthRoleSlug] = useState('');
-  const [createRole, setCreateRole] = useState('eleve_novice');
-  const [createFirstName, setCreateFirstName] = useState('');
-  const [createLastName, setCreateLastName] = useState('');
-  const [createPassword, setCreatePassword] = useState('');
-  const [createPseudo, setCreatePseudo] = useState('');
-  const [createEmail, setCreateEmail] = useState('');
-  const [createDescription, setCreateDescription] = useState('');
-  const [createAffiliation, setCreateAffiliation] = useState('both');
-  const [createLoading, setCreateLoading] = useState(false);
 
   const load = useCallback(() => api('/api/stats/all').then((rows) => {
     setData(rows);
@@ -328,20 +311,6 @@ function TeacherStats() {
     setToast('Impossible de charger les statistiques.');
   }), []);
   useEffect(() => { load(); }, [load]);
-  useEffect(() => {
-    api('/api/auth/me')
-      .then((d) => {
-        const perms = Array.isArray(d?.auth?.permissions) ? d.auth.permissions : [];
-        setAuthPerms(perms);
-        setAuthElevated(!!d?.auth?.elevated);
-        setAuthRoleSlug(String(d?.auth?.roleSlug || '').toLowerCase());
-      })
-      .catch(() => {
-        setAuthPerms([]);
-        setAuthElevated(false);
-        setAuthRoleSlug('');
-      });
-  }, []);
 
   useEffect(() => {
     const onRealtime = (e) => {
@@ -350,73 +319,6 @@ function TeacherStats() {
     window.addEventListener('foretmap_realtime', onRealtime);
     return () => window.removeEventListener('foretmap_realtime', onRealtime);
   }, [load]);
-
-  const deleteStudent = async (s) => {
-    setConfirmStudent(s);
-  };
-
-  const confirmDelete = async () => {
-    const s = confirmStudent;
-    setConfirmStudent(null);
-    try {
-      await api(`/api/students/${s.id}`, 'DELETE');
-      setToast(`${s.first_name} ${s.last_name} supprimé`);
-      await load();
-    } catch (e) { setToast('Erreur : ' + e.message); }
-  };
-
-  const downloadStudentsTemplate = async (format) => {
-    try {
-      const token = getAuthToken();
-      const headers = new Headers();
-      if (token) headers.set('Authorization', 'Bearer ' + token);
-      const res = await fetch(`${API}/api/students/import/template?format=${encodeURIComponent(format)}`, { headers });
-      if (!res.ok) throw new Error('Téléchargement impossible');
-      const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = format === 'xlsx' ? 'foretmap-modele-eleves.xlsx' : 'foretmap-modele-eleves.csv';
-      link.click();
-      URL.revokeObjectURL(url);
-    } catch (e) {
-      setToast(e.message || 'Erreur lors du téléchargement du modèle');
-    }
-  };
-
-  const importStudents = async () => {
-    if (!importFile) {
-      setToast('Choisissez un fichier CSV ou XLSX');
-      return;
-    }
-    setImportLoading(true);
-    setImportReport(null);
-    try {
-      const base64 = await new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(String(reader.result || ''));
-        reader.onerror = () => reject(new Error('Lecture du fichier impossible'));
-        reader.readAsDataURL(importFile);
-      });
-      const result = await api('/api/students/import', 'POST', {
-        fileName: importFile.name,
-        fileDataBase64: base64,
-        dryRun: dryRunImport,
-      });
-      setImportReport(result.report || null);
-      if ((result.report?.totals?.created || 0) > 0) {
-        setToast(`${result.report.totals.created} élève(s) créé(s)`);
-      } else if (dryRunImport) {
-        setToast('Simulation terminée');
-      } else {
-        setToast('Import terminé');
-      }
-      await load();
-    } catch (e) {
-      setToast('Erreur import: ' + (e.message || 'inconnue'));
-    }
-    setImportLoading(false);
-  };
 
   if (!data) return <div className="loader" style={{ height: '60vh' }}><div className="loader-leaf">🌿</div><p>Chargement...</p></div>;
 
@@ -432,84 +334,11 @@ function TeacherStats() {
   const totalPending = data.reduce((s, d) => s + d.stats.pending, 0);
   const activeStudents = data.filter(d => d.stats.total > 0).length;
 
-  const canExport = authPerms.includes('stats.export') && authElevated;
-  const canImport = authPerms.includes('students.import') && authElevated;
-  const canDelete = authPerms.includes('students.delete') && authElevated;
-  const canCreateUsers = authPerms.includes('users.create') && authElevated;
-  const isAdmin = authRoleSlug === 'admin';
-
-  const createUser = async () => {
-    if (!createFirstName.trim() || !createLastName.trim() || !createPassword) {
-      setToast('Prénom, nom et mot de passe sont requis');
-      return;
-    }
-    if (createPseudo.trim() && !/^[A-Za-z0-9_.-]{3,30}$/.test(createPseudo.trim())) {
-      setToast('Pseudo invalide (3-30 caractères, lettres/chiffres/._-)');
-      return;
-    }
-    if (createEmail.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(createEmail.trim())) {
-      setToast('Email invalide');
-      return;
-    }
-    if (createDescription.trim().length > 300) {
-      setToast('Description trop longue (max 300 caractères)');
-      return;
-    }
-    if (createRole === 'admin' && !isAdmin) {
-      setToast('Seul un admin peut créer un admin');
-      return;
-    }
-    setCreateLoading(true);
-    try {
-      const result = await api('/api/rbac/users', 'POST', {
-        role_slug: createRole,
-        first_name: createFirstName.trim(),
-        last_name: createLastName.trim(),
-        password: createPassword,
-        pseudo: createPseudo.trim() || null,
-        email: createEmail.trim() || null,
-        description: createDescription.trim() || null,
-        affiliation: createAffiliation,
-      });
-      setToast(`Utilisateur créé : ${result.first_name} ${result.last_name} (${result.role_display_name || result.role_slug})`);
-      setCreateFirstName('');
-      setCreateLastName('');
-      setCreatePassword('');
-      setCreatePseudo('');
-      setCreateEmail('');
-      setCreateDescription('');
-      setCreateAffiliation('both');
-      if (!isAdmin && createRole === 'admin') setCreateRole('prof');
-      await load();
-    } catch (e) {
-      setToast(`Erreur création: ${e.message || 'inconnue'}`);
-    }
-    setCreateLoading(false);
-  };
-
   return (
     <div className="fade-in">
       {toast && <Toast msg={toast} onDone={() => setToast(null)} />}
-
-      {confirmStudent && (
-        <div className="modal-overlay" onClick={e => e.target === e.currentTarget && setConfirmStudent(null)}>
-          <div className="log-modal fade-in" style={{ paddingBottom: 'calc(20px + var(--safe-bottom))' }} onClick={e => e.stopPropagation()}>
-            <h3 style={{ marginBottom: 8 }}>Supprimer l'élève ?</h3>
-            <p style={{ fontSize: '.95rem', color: '#444', marginBottom: 6, lineHeight: 1.5 }}>
-              <strong>{confirmStudent.first_name} {confirmStudent.last_name}</strong>
-            </p>
-            <p style={{ fontSize: '.85rem', color: '#888', marginBottom: 20, lineHeight: 1.5 }}>
-              Ses assignations de tâches seront également supprimées.
-            </p>
-            <div style={{ display: 'flex', gap: 10 }}>
-              <button className="btn btn-danger" style={{ flex: 1 }} onClick={confirmDelete}>Supprimer</button>
-              <button className="btn btn-ghost" style={{ flex: 1 }} onClick={() => setConfirmStudent(null)}>Annuler</button>
-            </div>
-          </div>
-        </div>
-      )}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-        <h2 className="section-title">📊 Gestion des élèves</h2>
+        <h2 className="section-title">📊 Statistiques des élèves</h2>
       </div>
       <p className="section-sub">{data.length} élève{data.length > 1 ? 's' : ''} inscrits</p>
       {error && (
@@ -517,148 +346,6 @@ function TeacherStats() {
           ⚠️ {error}
         </div>
       )}
-
-      <div className="export-row">
-        <button className="btn btn-secondary btn-sm" disabled={!canExport} onClick={() => {
-          const token = getAuthToken();
-          const link = document.createElement('a');
-          link.href = API + '/api/stats/export';
-          const headers = new Headers();
-          if (token) headers.set('Authorization', 'Bearer ' + token);
-          fetch(API + '/api/stats/export', { headers })
-            .then(r => r.blob())
-            .then(blob => {
-              link.href = URL.createObjectURL(blob);
-              link.download = `foretmap-stats-${new Date().toISOString().slice(0, 10)}.csv`;
-              link.click();
-              URL.revokeObjectURL(link.href);
-            })
-            .catch(() => setToast('Erreur lors de l\'export'));
-        }}>
-          📥 Exporter CSV {canExport ? '' : '(PIN requis)'}
-        </button>
-      </div>
-
-      <div style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: 12, padding: 12, marginBottom: 16, opacity: canCreateUsers ? 1 : 0.65 }}>
-        <h3 style={{ margin: '0 0 8px', fontSize: '1rem', color: 'var(--forest)' }}>Création unitaire d&apos;utilisateur</h3>
-        <p style={{ margin: '0 0 10px', fontSize: '.85rem', color: '#6b7280' }}>
-          Créez un compte sans import. Action réservée aux sessions élevées (PIN).
-        </p>
-        <div style={{ display: 'grid', gap: 8, gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))' }}>
-          <div className="field" style={{ margin: 0 }}>
-            <label>Profil</label>
-            <select value={createRole} onChange={(e) => setCreateRole(e.target.value)} disabled={!canCreateUsers || createLoading}>
-              <option value="eleve_novice">Élève</option>
-              <option value="prof">Prof</option>
-              {isAdmin && <option value="admin">Admin</option>}
-            </select>
-          </div>
-          <div className="field" style={{ margin: 0 }}>
-            <label>Prénom</label>
-            <input value={createFirstName} onChange={(e) => setCreateFirstName(e.target.value)} disabled={!canCreateUsers || createLoading} />
-          </div>
-          <div className="field" style={{ margin: 0 }}>
-            <label>Nom</label>
-            <input value={createLastName} onChange={(e) => setCreateLastName(e.target.value)} disabled={!canCreateUsers || createLoading} />
-          </div>
-          <div className="field" style={{ margin: 0 }}>
-            <label>Mot de passe</label>
-            <input type="password" value={createPassword} onChange={(e) => setCreatePassword(e.target.value)} disabled={!canCreateUsers || createLoading} />
-          </div>
-          <div className="field" style={{ margin: 0 }}>
-            <label>Pseudo (optionnel)</label>
-            <input value={createPseudo} onChange={(e) => setCreatePseudo(e.target.value)} disabled={!canCreateUsers || createLoading} />
-          </div>
-          <div className="field" style={{ margin: 0 }}>
-            <label>Email (optionnel)</label>
-            <input type="email" value={createEmail} onChange={(e) => setCreateEmail(e.target.value)} disabled={!canCreateUsers || createLoading} />
-          </div>
-          <div className="field" style={{ margin: 0 }}>
-            <label>Description (optionnel)</label>
-            <input value={createDescription} onChange={(e) => setCreateDescription(e.target.value)} disabled={!canCreateUsers || createLoading} />
-          </div>
-          <div className="field" style={{ margin: 0 }}>
-            <label>Affiliation élève</label>
-            <select value={createAffiliation} onChange={(e) => setCreateAffiliation(e.target.value)} disabled={!canCreateUsers || createLoading || createRole !== 'eleve_novice'}>
-              <option value="both">N3 + Forêt comestible</option>
-              <option value="n3">N3 uniquement</option>
-              <option value="foret">Forêt comestible uniquement</option>
-            </select>
-          </div>
-        </div>
-        <div style={{ marginTop: 10 }}>
-          <button className="btn btn-primary btn-sm" onClick={createUser} disabled={!canCreateUsers || createLoading}>
-            {createLoading ? 'Création…' : `Créer ${canCreateUsers ? '' : '(PIN requis)'}`}
-          </button>
-        </div>
-      </div>
-
-      <div style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: 12, padding: 12, marginBottom: 16, opacity: canImport ? 1 : 0.65 }}>
-        <h3 style={{ margin: '0 0 8px', fontSize: '1rem', color: 'var(--forest)' }}>Import élèves (CSV / XLSX)</h3>
-        <p style={{ margin: '0 0 10px', fontSize: '.85rem', color: '#6b7280' }}>
-          Téléchargez un modèle vierge, complétez-le puis importez le fichier.
-        </p>
-        <p style={{ margin: '0 0 10px', fontSize: '.8rem', color: '#9a3412' }}>
-          Le modèle contient une ligne d&apos;exemple: pensez à la remplacer ou la supprimer avant l&apos;import.
-        </p>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 10 }}>
-          <button className="btn btn-ghost btn-sm" onClick={() => downloadStudentsTemplate('csv')}>
-            📄 Modèle CSV
-          </button>
-          <button className="btn btn-ghost btn-sm" onClick={() => downloadStudentsTemplate('xlsx')}>
-            📗 Modèle XLSX
-          </button>
-        </div>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
-          <input
-            type="file"
-            accept=".csv,.xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,text/csv"
-            onChange={e => {
-              setImportFile(e.target.files?.[0] || null);
-              setImportReport(null);
-            }}
-          />
-          <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: '.85rem', color: '#374151' }}>
-            <input
-              type="checkbox"
-              checked={dryRunImport}
-              onChange={e => setDryRunImport(e.target.checked)}
-            />
-            Simulation (sans création)
-          </label>
-          <button className="btn btn-primary btn-sm" onClick={importStudents} disabled={importLoading || !canImport}>
-            {importLoading ? 'Import…' : 'Importer'}
-          </button>
-        </div>
-        {importFile && (
-          <p style={{ margin: '8px 0 0', fontSize: '.8rem', color: '#6b7280' }}>
-            Fichier sélectionné: <strong>{importFile.name}</strong>
-          </p>
-        )}
-        {importReport && (
-          <div style={{ marginTop: 10, padding: 10, background: '#f8fafc', borderRadius: 10, border: '1px solid #e2e8f0' }}>
-            <div style={{ fontSize: '.85rem', color: '#1f2937', marginBottom: 4 }}>
-              Reçus: <strong>{importReport.totals?.received || 0}</strong> ·
-              Valides: <strong>{importReport.totals?.valid || 0}</strong> ·
-              Créés: <strong>{importReport.totals?.created || 0}</strong> ·
-              Déjà existants: <strong>{importReport.totals?.skipped_existing || 0}</strong> ·
-              Invalides: <strong>{importReport.totals?.skipped_invalid || 0}</strong>
-            </div>
-            {Array.isArray(importReport.errors) && importReport.errors.length > 0 && (
-              <div style={{ maxHeight: 120, overflow: 'auto', fontSize: '.8rem', color: '#991b1b' }}>
-                {importReport.errors.slice(0, 15).map((err, idx) => (
-                  <div key={`${err.row}-${err.field}-${idx}`}>
-                    Ligne {err.row} ({err.field}): {err.error}
-                  </div>
-                ))}
-                {importReport.errors.length > 15 && (
-                  <div>… {importReport.errors.length - 15} erreur(s) supplémentaire(s)</div>
-                )}
-              </div>
-            )}
-          </div>
-        )}
-      </div>
 
       <div className="stats-grid" style={{ gridTemplateColumns: 'repeat(3,1fr)', marginBottom: 20 }}>
         <div className="stat-card highlight">
@@ -723,13 +410,6 @@ function TeacherStats() {
                     </div>
                   </div>
                 </div>
-                <button className="btn btn-danger btn-sm"
-                  style={{ flexShrink: 0 }}
-                  disabled={!canDelete}
-                  onClick={() => deleteStudent(s)}
-                  title={`Supprimer ${s.first_name}`}>
-                  🗑️
-                </button>
               </div>
             );
           })
