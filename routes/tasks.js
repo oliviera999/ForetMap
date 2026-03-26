@@ -1,5 +1,6 @@
 const express = require('express');
 const jwt = require('jsonwebtoken');
+const XLSX = require('xlsx');
 const { v4: uuidv4 } = require('uuid');
 const { queryAll, queryOne, execute } = require('../database');
 const { requirePermission, JWT_SECRET } = require('../middleware/requireTeacher');
@@ -10,6 +11,244 @@ const { emitTasksChanged } = require('../lib/realtime');
 const { ensurePrimaryRole, buildAuthzPayload, verifyRolePin } = require('../lib/rbac');
 
 const router = express.Router();
+const MAX_IMPORT_FILE_BYTES = 8 * 1024 * 1024;
+const MAX_IMPORT_ROWS = 2000;
+const IMPORT_TEMPLATE_COLUMNS = [
+  'Type (project|task)',
+  'Carte (map_id)',
+  'Projet',
+  'Description projet',
+  'Tâche',
+  'Description tâche',
+  'Date limite (YYYY-MM-DD)',
+  'Élèves requis',
+  'Statut (available|in_progress|done|validated|proposed)',
+  'Récurrence (weekly|biweekly|monthly)',
+];
+
+const ALLOWED_IMPORT_TASK_STATUSES = new Set(['available', 'in_progress', 'done', 'validated', 'proposed']);
+const ALLOWED_IMPORT_TASK_RECURRENCES = new Set(['weekly', 'biweekly', 'monthly']);
+const IMPORT_HEADER_ALIASES = new Map([
+  ['type', 'entityType'],
+  ['entity_type', 'entityType'],
+  ['row_type', 'entityType'],
+  ['carte', 'mapId'],
+  ['map', 'mapId'],
+  ['map_id', 'mapId'],
+  ['projet', 'projectTitle'],
+  ['project', 'projectTitle'],
+  ['project_title', 'projectTitle'],
+  ['description_projet', 'projectDescription'],
+  ['project_description', 'projectDescription'],
+  ['tache', 'taskTitle'],
+  ['tâche', 'taskTitle'],
+  ['task', 'taskTitle'],
+  ['task_title', 'taskTitle'],
+  ['description_tache', 'taskDescription'],
+  ['description_tâche', 'taskDescription'],
+  ['task_description', 'taskDescription'],
+  ['date_limite', 'dueDate'],
+  ['due_date', 'dueDate'],
+  ['deadline', 'dueDate'],
+  ['eleves_requis', 'requiredStudents'],
+  ['élèves_requis', 'requiredStudents'],
+  ['required_students', 'requiredStudents'],
+  ['statut', 'status'],
+  ['status', 'status'],
+  ['recurrence', 'recurrence'],
+  ['récurrence', 'recurrence'],
+]);
+
+function asTrimmedString(value) {
+  if (value == null) return '';
+  return String(value).trim();
+}
+
+function normalizeOptionalString(value) {
+  const s = asTrimmedString(value);
+  return s ? s : null;
+}
+
+function normalizeImportHeader(value) {
+  return asTrimmedString(value)
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '');
+}
+
+function normalizeImportEntityType(value) {
+  const raw = asTrimmedString(value).toLowerCase();
+  if (!raw) return null;
+  if (['project', 'projet', 'projets', 'task_project'].includes(raw)) return 'project';
+  if (['task', 'tache', 'tâche', 'tasks', 'taches', 'tâches'].includes(raw)) return 'task';
+  return null;
+}
+
+function normalizeImportTaskStatus(value) {
+  const raw = asTrimmedString(value).toLowerCase();
+  if (!raw) return 'available';
+  if (['disponible'].includes(raw)) return 'available';
+  if (['en_cours', 'encours', 'en cours'].includes(raw)) return 'in_progress';
+  if (['terminee', 'terminée'].includes(raw)) return 'done';
+  if (['validee', 'validée'].includes(raw)) return 'validated';
+  if (['proposee', 'proposée'].includes(raw)) return 'proposed';
+  return ALLOWED_IMPORT_TASK_STATUSES.has(raw) ? raw : null;
+}
+
+function normalizeImportTaskRecurrence(value) {
+  const raw = asTrimmedString(value).toLowerCase();
+  if (!raw) return null;
+  if (['hebdo', 'hebdomadaire'].includes(raw)) return 'weekly';
+  if (['bihebdo', 'bi_hebdo', 'toutes_les_2_semaines'].includes(raw)) return 'biweekly';
+  if (['mensuelle', 'mensuel'].includes(raw)) return 'monthly';
+  return ALLOWED_IMPORT_TASK_RECURRENCES.has(raw) ? raw : null;
+}
+
+function normalizeImportRequiredStudents(value) {
+  const raw = asTrimmedString(value);
+  if (!raw) return 1;
+  const n = parseInt(raw, 10);
+  if (!Number.isFinite(n) || n < 1 || n > 50) return null;
+  return n;
+}
+
+function normalizeImportDueDate(value) {
+  const raw = asTrimmedString(value);
+  if (!raw) return null;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw;
+  const parsed = new Date(raw);
+  if (Number.isNaN(parsed.getTime())) return null;
+  return parsed.toISOString().slice(0, 10);
+}
+
+function parseWorkbookRowsFromBuffer(buffer) {
+  const wb = XLSX.read(buffer, { type: 'buffer', raw: false, cellDates: false });
+  const first = wb.SheetNames[0];
+  if (!first) return [];
+  const ws = wb.Sheets[first];
+  return XLSX.utils.sheet_to_json(ws, { defval: '', raw: false, blankrows: false });
+}
+
+function parseCsvLine(line, delimiter) {
+  const cells = [];
+  let current = '';
+  let inQuotes = false;
+  for (let i = 0; i < line.length; i += 1) {
+    const char = line[i];
+    if (char === '"') {
+      if (inQuotes && line[i + 1] === '"') {
+        current += '"';
+        i += 1;
+      } else {
+        inQuotes = !inQuotes;
+      }
+      continue;
+    }
+    if (!inQuotes && char === delimiter) {
+      cells.push(current);
+      current = '';
+      continue;
+    }
+    current += char;
+  }
+  cells.push(current);
+  return cells;
+}
+
+function parseCsvRowsFromBuffer(buffer) {
+  const text = buffer.toString('utf8').replace(/^\uFEFF/, '').replace(/\r/g, '');
+  const lines = text.split('\n').filter((line) => line.trim().length > 0);
+  if (lines.length < 2) return [];
+  const delimiter = (lines[0].split(';').length >= lines[0].split(',').length) ? ';' : ',';
+  const headers = parseCsvLine(lines[0], delimiter).map((h) => asTrimmedString(h));
+  const rows = [];
+  for (let i = 1; i < lines.length; i += 1) {
+    const cells = parseCsvLine(lines[i], delimiter);
+    const row = {};
+    headers.forEach((header, idx) => {
+      row[header] = idx < cells.length ? cells[idx] : '';
+    });
+    rows.push(row);
+  }
+  return rows;
+}
+
+function mapImportRow(row = {}) {
+  const mapped = {};
+  for (const [key, value] of Object.entries(row)) {
+    const normalized = normalizeImportHeader(key);
+    const target = IMPORT_HEADER_ALIASES.get(normalized);
+    if (!target) continue;
+    mapped[target] = value;
+  }
+  return mapped;
+}
+
+function buildImportPayload(row = {}) {
+  const mapped = mapImportRow(row);
+  return {
+    entityType: normalizeImportEntityType(mapped.entityType),
+    mapId: normalizeOptionalString(mapped.mapId),
+    projectTitle: normalizeOptionalString(mapped.projectTitle),
+    projectDescription: normalizeOptionalString(mapped.projectDescription),
+    taskTitle: normalizeOptionalString(mapped.taskTitle),
+    taskDescription: normalizeOptionalString(mapped.taskDescription),
+    dueDate: normalizeImportDueDate(mapped.dueDate),
+    requiredStudents: normalizeImportRequiredStudents(mapped.requiredStudents),
+    status: normalizeImportTaskStatus(mapped.status),
+    recurrence: normalizeImportTaskRecurrence(mapped.recurrence),
+  };
+}
+
+function csvEscape(value) {
+  const s = String(value ?? '');
+  return s.includes(';') || s.includes('"') || s.includes('\n')
+    ? `"${s.replace(/"/g, '""')}"`
+    : s;
+}
+
+function buildImportTemplateWorkbookRows() {
+  return [
+    {
+      [IMPORT_TEMPLATE_COLUMNS[0]]: 'project',
+      [IMPORT_TEMPLATE_COLUMNS[1]]: 'foret',
+      [IMPORT_TEMPLATE_COLUMNS[2]]: 'Semis printemps',
+      [IMPORT_TEMPLATE_COLUMNS[3]]: 'Planifier et suivre les semis de printemps.',
+      [IMPORT_TEMPLATE_COLUMNS[4]]: '',
+      [IMPORT_TEMPLATE_COLUMNS[5]]: '',
+      [IMPORT_TEMPLATE_COLUMNS[6]]: '',
+      [IMPORT_TEMPLATE_COLUMNS[7]]: '',
+      [IMPORT_TEMPLATE_COLUMNS[8]]: '',
+      [IMPORT_TEMPLATE_COLUMNS[9]]: '',
+    },
+    {
+      [IMPORT_TEMPLATE_COLUMNS[0]]: 'task',
+      [IMPORT_TEMPLATE_COLUMNS[1]]: 'foret',
+      [IMPORT_TEMPLATE_COLUMNS[2]]: 'Semis printemps',
+      [IMPORT_TEMPLATE_COLUMNS[3]]: '',
+      [IMPORT_TEMPLATE_COLUMNS[4]]: 'Préparer les godets',
+      [IMPORT_TEMPLATE_COLUMNS[5]]: 'Nettoyer puis remplir les godets de substrat.',
+      [IMPORT_TEMPLATE_COLUMNS[6]]: '2026-04-15',
+      [IMPORT_TEMPLATE_COLUMNS[7]]: '2',
+      [IMPORT_TEMPLATE_COLUMNS[8]]: 'available',
+      [IMPORT_TEMPLATE_COLUMNS[9]]: 'weekly',
+    },
+  ];
+}
+
+async function resolveImportRows(body = {}) {
+  const fileDataBase64 = asTrimmedString(body.fileDataBase64);
+  if (!fileDataBase64) throw new Error('Fichier requis');
+  const raw = fileDataBase64.includes(',') ? fileDataBase64.split(',')[1] : fileDataBase64;
+  const buffer = Buffer.from(raw, 'base64');
+  if (!buffer || buffer.length === 0) throw new Error('Fichier import vide');
+  if (buffer.length > MAX_IMPORT_FILE_BYTES) throw new Error('Fichier import trop volumineux (max 8 Mo)');
+  const fileName = asTrimmedString(body.fileName).toLowerCase();
+  if (fileName.endsWith('.csv')) return parseCsvRowsFromBuffer(buffer);
+  return parseWorkbookRowsFromBuffer(buffer);
+}
 
 function parseOptionalAuth(req) {
   try {
@@ -421,6 +660,285 @@ router.get('/:id', async (req, res) => {
     const task = await getTaskWithAssignments(req.params.id);
     if (!task) return res.status(404).json({ error: 'Tâche introuvable' });
     res.json(task);
+  } catch (e) {
+    logRouteError(e, req);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+router.get('/import/template', requirePermission('tasks.manage', { needsElevation: true }), async (req, res) => {
+  try {
+    const format = asTrimmedString(req.query?.format || 'csv').toLowerCase();
+    if (format === 'xlsx') {
+      const wb = XLSX.utils.book_new();
+      const ws = XLSX.utils.json_to_sheet(buildImportTemplateWorkbookRows(), { header: IMPORT_TEMPLATE_COLUMNS });
+      XLSX.utils.book_append_sheet(wb, ws, 'taches_projets');
+      const buffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      res.setHeader('Content-Disposition', 'attachment; filename="foretmap-modele-taches-projets.xlsx"');
+      return res.send(buffer);
+    }
+    if (format !== 'csv') {
+      return res.status(400).json({ error: 'Format invalide (csv ou xlsx)' });
+    }
+    const rows = buildImportTemplateWorkbookRows();
+    const BOM = '\uFEFF';
+    const headerLine = IMPORT_TEMPLATE_COLUMNS.map(csvEscape).join(';');
+    const csvRows = rows.map((row) => IMPORT_TEMPLATE_COLUMNS.map((col) => csvEscape(row[col])).join(';'));
+    const csv = `${BOM}${headerLine}\r\n${csvRows.join('\r\n')}\r\n`;
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', 'attachment; filename="foretmap-modele-taches-projets.csv"');
+    res.send(csv);
+  } catch (e) {
+    logRouteError(e, req);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+router.post('/import', requirePermission('tasks.manage', { needsElevation: true }), async (req, res) => {
+  try {
+    const dryRun = !!req.body?.dryRun;
+    const rawRows = await resolveImportRows(req.body || {});
+    if (!Array.isArray(rawRows) || rawRows.length === 0) {
+      return res.status(400).json({ error: 'Aucune ligne importable détectée' });
+    }
+    if (rawRows.length > MAX_IMPORT_ROWS) {
+      return res.status(400).json({ error: `Import limité à ${MAX_IMPORT_ROWS} lignes` });
+    }
+
+    const report = {
+      dryRun,
+      totals: {
+        received: rawRows.length,
+        valid: 0,
+        created_projects: 0,
+        created_tasks: 0,
+        skipped_existing: 0,
+        skipped_invalid: 0,
+      },
+      preview: [],
+      errors: [],
+    };
+
+    const mapRows = await queryAll('SELECT id FROM maps');
+    const knownMapIds = new Set(mapRows.map((m) => String(m.id)));
+    const existingProjects = await queryAll('SELECT id, map_id, title FROM task_projects');
+    const projectsByMapTitle = new Map();
+    for (const p of existingProjects) {
+      projectsByMapTitle.set(`${String(p.map_id)}|${String(p.title).toLowerCase()}`, p);
+    }
+    const existingTasks = await queryAll(
+      `SELECT t.id, t.title, t.map_id, t.project_id, tp.title AS project_title, tp.map_id AS project_map_id
+         FROM tasks t
+         LEFT JOIN task_projects tp ON tp.id = t.project_id`
+    );
+    const tasksByIdentity = new Set();
+    for (const t of existingTasks) {
+      const taskMap = t.project_map_id || t.map_id || '';
+      const projectTitle = t.project_title || '';
+      const identity = `${String(taskMap)}|${String(projectTitle).toLowerCase()}|${String(t.title).toLowerCase()}`;
+      tasksByIdentity.add(identity);
+    }
+
+    const projectRows = [];
+    const taskRows = [];
+    rawRows.forEach((row, idx) => {
+      const rowNumber = idx + 2;
+      const payload = buildImportPayload(row);
+      const errors = [];
+
+      if (!payload.entityType) {
+        errors.push({ row: rowNumber, field: 'type', error: 'Type invalide (project|task)' });
+      }
+      if (payload.entityType === 'project') {
+        if (!payload.mapId) errors.push({ row: rowNumber, field: 'map_id', error: 'Carte requise pour un projet' });
+        if (!payload.projectTitle) errors.push({ row: rowNumber, field: 'project_title', error: 'Nom du projet requis' });
+        if (payload.mapId && !knownMapIds.has(payload.mapId)) {
+          errors.push({ row: rowNumber, field: 'map_id', error: 'Carte introuvable' });
+        }
+      }
+      if (payload.entityType === 'task') {
+        if (!payload.taskTitle) errors.push({ row: rowNumber, field: 'task_title', error: 'Nom de tâche requis' });
+        if (payload.mapId && !knownMapIds.has(payload.mapId)) {
+          errors.push({ row: rowNumber, field: 'map_id', error: 'Carte introuvable' });
+        }
+        if (payload.requiredStudents == null) {
+          errors.push({ row: rowNumber, field: 'required_students', error: 'Élèves requis invalide (1-50)' });
+        }
+        if (!payload.status || !ALLOWED_IMPORT_TASK_STATUSES.has(payload.status)) {
+          errors.push({ row: rowNumber, field: 'status', error: 'Statut invalide' });
+        }
+        if (asTrimmedString(mapImportRow(row).recurrence) && !payload.recurrence) {
+          errors.push({ row: rowNumber, field: 'recurrence', error: 'Récurrence invalide (weekly|biweekly|monthly)' });
+        }
+        if (asTrimmedString(mapImportRow(row).dueDate) && !payload.dueDate) {
+          errors.push({ row: rowNumber, field: 'due_date', error: 'Date limite invalide' });
+        }
+      }
+
+      if (errors.length) {
+        report.totals.skipped_invalid += 1;
+        report.errors.push(...errors);
+        return;
+      }
+
+      if (payload.entityType === 'project') {
+        const key = `${payload.mapId}|${payload.projectTitle.toLowerCase()}`;
+        if (projectsByMapTitle.has(key) || projectRows.some((p) => p.identityKey === key)) {
+          report.totals.skipped_existing += 1;
+          report.errors.push({ row: rowNumber, field: 'project_title', error: 'Projet déjà existant (même carte + même nom)' });
+          return;
+        }
+        projectRows.push({
+          rowNumber,
+          identityKey: key,
+          mapId: payload.mapId,
+          title: payload.projectTitle,
+          description: payload.projectDescription,
+        });
+      } else {
+        taskRows.push({
+          rowNumber,
+          mapId: payload.mapId,
+          projectTitle: payload.projectTitle,
+          title: payload.taskTitle,
+          description: payload.taskDescription,
+          dueDate: payload.dueDate,
+          requiredStudents: payload.requiredStudents ?? 1,
+          status: payload.status || 'available',
+          recurrence: payload.recurrence || null,
+        });
+      }
+    });
+
+    const plannedProjectsByMapTitle = new Map(projectRows.map((p) => [p.identityKey, p]));
+    const taskRowsResolved = [];
+    const seenTaskKeys = new Set();
+    for (const row of taskRows) {
+      let resolvedProject = null;
+      if (row.projectTitle) {
+        if (row.mapId) {
+          const mapTitleKey = `${row.mapId}|${row.projectTitle.toLowerCase()}`;
+          resolvedProject = projectsByMapTitle.get(mapTitleKey) || plannedProjectsByMapTitle.get(mapTitleKey) || null;
+          if (!resolvedProject) {
+            report.totals.skipped_invalid += 1;
+            report.errors.push({ row: row.rowNumber, field: 'project_title', error: 'Projet introuvable pour cette carte' });
+            continue;
+          }
+        } else {
+          const projectCandidates = [
+            ...existingProjects.filter((p) => String(p.title).toLowerCase() === row.projectTitle.toLowerCase()),
+            ...projectRows.filter((p) => String(p.title).toLowerCase() === row.projectTitle.toLowerCase()),
+          ];
+          const uniqueCandidates = [...new Map(projectCandidates.map((p) => [p.id || p.identityKey, p])).values()];
+          if (uniqueCandidates.length !== 1) {
+            report.totals.skipped_invalid += 1;
+            report.errors.push({
+              row: row.rowNumber,
+              field: 'project_title',
+              error: uniqueCandidates.length === 0
+                ? 'Projet introuvable (précisez map_id)'
+                : 'Projet ambigu (plusieurs cartes, précisez map_id)',
+            });
+            continue;
+          }
+          resolvedProject = uniqueCandidates[0];
+        }
+      }
+
+      const resolvedMapId = row.mapId || resolvedProject?.map_id || resolvedProject?.mapId || null;
+      if (!resolvedMapId) {
+        report.totals.skipped_invalid += 1;
+        report.errors.push({ row: row.rowNumber, field: 'map_id', error: 'Carte requise (directement ou via projet)' });
+        continue;
+      }
+      const resolvedProjectTitle = resolvedProject?.title || row.projectTitle || '';
+      const taskIdentity = `${resolvedMapId}|${resolvedProjectTitle.toLowerCase()}|${row.title.toLowerCase()}`;
+      if (tasksByIdentity.has(taskIdentity) || seenTaskKeys.has(taskIdentity)) {
+        report.totals.skipped_existing += 1;
+        report.errors.push({
+          row: row.rowNumber,
+          field: 'task_title',
+          error: 'Tâche déjà existante (même carte + projet + titre)',
+        });
+        continue;
+      }
+      seenTaskKeys.add(taskIdentity);
+      taskRowsResolved.push({
+        ...row,
+        resolvedMapId,
+        resolvedProjectTitle,
+      });
+    }
+
+    const validTotal = projectRows.length + taskRowsResolved.length;
+    report.totals.valid = validTotal;
+    for (const item of projectRows.slice(0, 10)) {
+      report.preview.push({ row: item.rowNumber, type: 'project', map_id: item.mapId, title: item.title });
+    }
+    for (const item of taskRowsResolved.slice(0, 10 - report.preview.length)) {
+      report.preview.push({
+        row: item.rowNumber,
+        type: 'task',
+        map_id: item.resolvedMapId,
+        project_title: item.resolvedProjectTitle || null,
+        title: item.title,
+      });
+    }
+
+    if (dryRun || validTotal === 0) {
+      return res.json({ report });
+    }
+
+    const createdProjectsByMapTitle = new Map();
+    for (const project of projectRows) {
+      const id = uuidv4();
+      await execute(
+        'INSERT INTO task_projects (id, map_id, title, description, created_at) VALUES (?, ?, ?, ?, ?)',
+        [id, project.mapId, project.title, project.description || null, new Date().toISOString()]
+      );
+      createdProjectsByMapTitle.set(`${project.mapId}|${project.title.toLowerCase()}`, { id, map_id: project.mapId, title: project.title });
+      report.totals.created_projects += 1;
+    }
+
+    for (const task of taskRowsResolved) {
+      const projectKey = task.resolvedProjectTitle
+        ? `${task.resolvedMapId}|${task.resolvedProjectTitle.toLowerCase()}`
+        : null;
+      const existingProject = projectKey
+        ? (projectsByMapTitle.get(projectKey) || createdProjectsByMapTitle.get(projectKey) || null)
+        : null;
+      const id = uuidv4();
+      await execute(
+        'INSERT INTO tasks (id, title, description, map_id, project_id, zone_id, marker_id, due_date, required_students, status, recurrence, created_at) VALUES (?, ?, ?, ?, ?, NULL, NULL, ?, ?, ?, ?, ?)',
+        [
+          id,
+          task.title,
+          task.description || '',
+          task.resolvedMapId,
+          existingProject?.id || null,
+          task.dueDate || null,
+          task.requiredStudents || 1,
+          task.status || 'available',
+          task.recurrence || null,
+          new Date().toISOString(),
+        ]
+      );
+      report.totals.created_tasks += 1;
+    }
+
+    if (report.totals.created_projects + report.totals.created_tasks > 0) {
+      logAudit('tasks_projects_import', 'task', null, `Import ${report.totals.created_projects} projet(s) / ${report.totals.created_tasks} tâche(s)`, {
+        req,
+        payload: { report: report.totals },
+      });
+      emitTasksChanged({
+        reason: 'tasks_projects_import',
+        created_projects: report.totals.created_projects,
+        created_tasks: report.totals.created_tasks,
+      });
+    }
+    res.json({ report });
   } catch (e) {
     logRouteError(e, req);
     res.status(500).json({ error: e.message });
