@@ -942,9 +942,14 @@
       outline:none;
     }
     .plant-photo-grid {
-      display:grid;
-      grid-template-columns:repeat(auto-fill, minmax(120px, 1fr));
+      display:flex;
+      flex-wrap:nowrap;
       gap:8px;
+      overflow-x:auto;
+      overflow-y:hidden;
+      padding-bottom:2px;
+      -webkit-overflow-scrolling:touch;
+      scrollbar-width:thin;
     }
     .plant-photo-thumb {
       appearance:none;
@@ -956,7 +961,8 @@
       position:relative;
       cursor:pointer;
       min-height:44px;
-      aspect-ratio:1;
+      flex:0 0 140px;
+      aspect-ratio:4 / 3;
       transition:transform .12s var(--spring), box-shadow .2s, border-color .2s;
       box-shadow:0 1px 4px rgba(0,0,0,.06);
     }
