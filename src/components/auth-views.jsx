@@ -177,7 +177,7 @@ function PinModal({ onSuccess, onClose, uiSettings, isN3Affiliated = false }) {
                 onChange={e => { setEmail(e.target.value); setErr(''); }}
                 onKeyDown={e => e.key === 'Enter' && !loading && loginByEmail()}
                 placeholder={`${roleTerms.teacherShort}@exemple.com`}
-                autoComplete="off"
+                autoComplete="username"
                 autoFocus
               />
             </div>
@@ -190,7 +190,7 @@ function PinModal({ onSuccess, onClose, uiSettings, isN3Affiliated = false }) {
                 onChange={e => { setPassword(e.target.value); setErr(''); }}
                 onKeyDown={e => e.key === 'Enter' && !loading && loginByEmail()}
                 placeholder="••••"
-                autoComplete="new-password"
+                autoComplete="current-password"
               />
             </div>
             <button className="btn btn-primary btn-full" onClick={loginByEmail} disabled={loading}>
@@ -438,7 +438,7 @@ function AuthScreen({ onLogin, appVersion, onVisitGuest, uiSettings, isN3Affilia
               value={identifier}
               onChange={e => setIdentifier(e.target.value)}
               placeholder="momo_lyautey ou moi@exemple.com"
-              autoComplete="off"
+              autoComplete="username"
               autoFocus
               onKeyDown={onKey}
             />
@@ -454,7 +454,7 @@ function AuthScreen({ onLogin, appVersion, onVisitGuest, uiSettings, isN3Affilia
           </div>
         )}
         <div className="field"><label htmlFor={fieldIds.pass}>Mot de passe</label>
-          <input id={fieldIds.pass} type="password" value={pass} onChange={e => setPass(e.target.value)} placeholder="••••" onKeyDown={onKey} autoComplete="new-password" />
+          <input id={fieldIds.pass} type="password" value={pass} onChange={e => setPass(e.target.value)} placeholder="••••" onKeyDown={onKey} autoComplete={mode === 'login' ? 'current-password' : 'new-password'} />
         </div>
         {mode === 'register' && allowRegister && (
           <>

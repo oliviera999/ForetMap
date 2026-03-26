@@ -7,7 +7,7 @@ import { useDialogA11y } from '../hooks/useDialogA11y';
 
 function Toast({ msg, onDone }) {
   useEffect(() => { const t = setTimeout(onDone, 2400); return () => clearTimeout(t); }, []);
-  return <div className="toast">{msg}</div>;
+  return <div className="toast" role="status" aria-live="polite" aria-atomic="true">{msg}</div>;
 }
 
 function Lightbox({ src, caption, onClose }) {
@@ -276,7 +276,7 @@ function TaskFormModal({
         aria-label={editTask ? 'Modifier la tâche' : isProposal ? 'Proposer une tâche' : 'Nouvelle tâche'}
         tabIndex={-1}
       >
-        <button className="modal-close" onClick={onClose}>✕</button>
+        <button className="modal-close" aria-label="Fermer la fenêtre" onClick={onClose}>✕</button>
         <h3>{editTask ? 'Modifier la tâche' : isProposal ? 'Proposer une tâche' : 'Nouvelle tâche'}</h3>
         {err && <p style={{ color: var_alert, marginBottom: 12, fontSize: '.85rem' }}>{err}</p>}
         <div className="field"><label>Titre *</label><input value={form.title} onChange={set('title')} placeholder="Ex: Arroser les tomates" /></div>
@@ -442,7 +442,7 @@ function TaskProjectFormModal({ maps = [], activeMapId = 'foret', onClose, onSav
         aria-label="Nouveau projet"
         tabIndex={-1}
       >
-        <button className="modal-close" onClick={onClose}>✕</button>
+        <button className="modal-close" aria-label="Fermer la fenêtre" onClick={onClose}>✕</button>
         <h3>Nouveau projet</h3>
         {err && <p style={{ color: var_alert, marginBottom: 12, fontSize: '.85rem' }}>{err}</p>}
         <div className="field"><label>Titre *</label><input value={form.title} onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))} placeholder="Ex: Préparer la serre de printemps" /></div>
@@ -859,6 +859,7 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
         <LogModal task={logTask} student={student}
           onClose={() => setLogTask(null)}
           onDone={async () => { await onRefresh(); setToast('Rapport envoyé ✓'); }}
+          onForceLogout={onForceLogout}
         />
       )}
       {logsTask && <TaskLogsViewer task={logsTask} onClose={() => setLogsTask(null)} />}
@@ -1089,7 +1090,7 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
   );
 }
 
-function LogModal({ task, student, onClose, onDone }) {
+function LogModal({ task, student, onClose, onDone, onForceLogout }) {
   const dialogRef = useDialogA11y(onClose);
   const [comment, setComment] = useState('');
   const [imageData, setImageData] = useState(null);
@@ -1134,7 +1135,14 @@ function LogModal({ task, student, onClose, onDone }) {
       });
       onDone();
       onClose();
-    } catch (e) { setErr(e.message); setSaving(false); }
+    } catch (e) {
+      if (e instanceof AccountDeletedError) {
+        onForceLogout?.();
+        return;
+      }
+      setErr(e.message);
+      setSaving(false);
+    }
   };
 
   return (
@@ -1147,7 +1155,7 @@ function LogModal({ task, student, onClose, onDone }) {
         aria-label="Rapport de tâche"
         tabIndex={-1}
       >
-        <button className="modal-close" onClick={onClose}>✕</button>
+        <button className="modal-close" aria-label="Fermer la fenêtre" onClick={onClose}>✕</button>
         <h3>📋 Rapport de tâche</h3>
         <p style={{ fontSize: '.85rem', color: '#777', marginBottom: 16 }}>
           <strong>{task.title}</strong> — laisse un commentaire ou une photo avant de valider
@@ -1222,7 +1230,7 @@ function TaskLogsViewer({ task, onClose }) {
         aria-label={`Rapports de la tâche ${task.title}`}
         tabIndex={-1}
       >
-        <button className="modal-close" onClick={onClose}>✕</button>
+        <button className="modal-close" aria-label="Fermer la fenêtre" onClick={onClose}>✕</button>
         <h3>📋 Rapports — {task.title}</h3>
         {logs.length === 0
           ? <div className="empty"><div className="empty-icon">📭</div><p>Aucun rapport pour cette tâche</p></div>

@@ -1,0 +1,38 @@
+export const NOTIFICATION_LEVEL = {
+  CRITICAL: 'critical',
+  IMPORTANT: 'important',
+  INFO: 'info',
+};
+
+export const NOTIFICATION_CATEGORY = {
+  DEADLINES: 'deadlines',
+  VALIDATIONS: 'validations',
+  PROPOSALS: 'proposals',
+  OPERATIONS: 'operations',
+  SECURITY: 'security',
+};
+
+export const NOTIFICATION_PREFS_DEFAULTS = {
+  student: {
+    [NOTIFICATION_CATEGORY.DEADLINES]: true,
+    [NOTIFICATION_CATEGORY.OPERATIONS]: true,
+    [NOTIFICATION_CATEGORY.SECURITY]: true,
+  },
+  teacher: {
+    [NOTIFICATION_CATEGORY.VALIDATIONS]: true,
+    [NOTIFICATION_CATEGORY.PROPOSALS]: true,
+    [NOTIFICATION_CATEGORY.OPERATIONS]: true,
+  },
+  admin: {
+    [NOTIFICATION_CATEGORY.VALIDATIONS]: true,
+    [NOTIFICATION_CATEGORY.PROPOSALS]: true,
+    [NOTIFICATION_CATEGORY.OPERATIONS]: true,
+    [NOTIFICATION_CATEGORY.SECURITY]: true,
+  },
+};
+
+export const NOTIFICATION_LEVEL_LABELS = {
+  [NOTIFICATION_LEVEL.CRITICAL]: 'Critique',
+  [NOTIFICATION_LEVEL.IMPORTANT]: 'Important',
+  [NOTIFICATION_LEVEL.INFO]: 'Info',
+};
