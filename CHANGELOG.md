@@ -59,6 +59,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - **Navigation/auth** : ajout d’un CTA « Visiter sans connexion » dans l’écran d’authentification et intégration de l’onglet `Visite` dans les navigations élève/prof.
 
 ### Corrigé
+- **Vue “Collectif” (prof/admin)** : blocage préventif des actions refusées côté API (inscription sur tâche pleine/terminée/validée/proposée, retrait sur tâche terminée/validée), avec feedback explicite pour éviter les erreurs inutiles en séance.
 - **Accès stats (admin/prof)** : l’icône de profil (badge utilisateur en haut à droite) ouvre désormais la page `📊 Stats` en vue professeur/admin, au lieu de rester inactive.
 - **En-tête prof/admin (mobile)** : suppression du débordement horizontal en petite largeur (conteneur d’actions contraint et scroll interne) et réaffichage de l’avatar/logo utilisateur dans le badge stats, avec libellé nom fiable (plus de fallback intempestif sur « Utilisateur »).
 - **Connexion Google (UI)** : simplification du libellé du bouton de connexion pour n’afficher que `Continuer avec Google` (sans parenthèses de domaines) en mode élève et professeur.
