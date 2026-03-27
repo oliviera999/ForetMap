@@ -3,7 +3,7 @@ const test = require('node:test');
 const assert = require('node:assert');
 const request = require('supertest');
 const { app } = require('../server');
-const { initSchema } = require('../database');
+const { initSchema, execute } = require('../database');
 
 test.before(async () => {
   await initSchema();
@@ -37,6 +37,15 @@ async function teacherToken() {
 
 function auth(token) {
   return { Authorization: `Bearer ${token}` };
+}
+
+async function setAllowedReactionEmojis(raw) {
+  await execute(
+    `INSERT INTO app_settings (\`key\`, scope, value_json, updated_at)
+     VALUES (?, 'public', ?, NOW())
+     ON DUPLICATE KEY UPDATE value_json = VALUES(value_json), updated_at = NOW()`,
+    ['ui.reactions.allowed_emojis', JSON.stringify(String(raw || '').trim())]
+  );
 }
 
 async function createContextFixture(token) {
@@ -170,5 +179,50 @@ test('Commentaires contextuels: valide les contextes task/project/zone', async (
     .post('/api/context-comments')
     .set(auth(student.authToken))
     .send({ contextType: 'invalid', contextId: projectId, body: 'Commentaire invalide.' })
+    .expect(400);
+});
+
+test('Commentaires contextuels: réactions emoji toggle et agrégées', async () => {
+  const teacher = await teacherToken();
+  const author = await registerStudent('ComReactAuthor');
+  const reactor = await registerStudent('ComReactUser');
+  await setAllowedReactionEmojis('🔥 🤝');
+  const { taskId } = await createContextFixture(teacher);
+
+  const created = await request(app)
+    .post('/api/context-comments')
+    .set(auth(author.authToken))
+    .send({ contextType: 'task', contextId: taskId, body: 'Commentaire avec réactions.' })
+    .expect(201);
+
+  const reacted = await request(app)
+    .post(`/api/context-comments/${created.body.id}/reactions`)
+    .set(auth(reactor.authToken))
+    .send({ emoji: '🔥' })
+    .expect(200);
+  assert.strictEqual(reacted.body.reacted, true);
+
+  const listed = await request(app)
+    .get(`/api/context-comments?contextType=task&contextId=${encodeURIComponent(taskId)}`)
+    .set(auth(reactor.authToken))
+    .expect(200);
+  const item = listed.body.items.find((c) => c.id === created.body.id);
+  assert.ok(item);
+  const reaction = item.reactions.find((r) => r.emoji === '🔥');
+  assert.ok(reaction);
+  assert.strictEqual(Number(reaction.count), 1);
+  assert.strictEqual(!!reaction.reacted_by_me, true);
+
+  const unreacted = await request(app)
+    .post(`/api/context-comments/${created.body.id}/reactions`)
+    .set(auth(reactor.authToken))
+    .send({ emoji: '🔥' })
+    .expect(200);
+  assert.strictEqual(unreacted.body.reacted, false);
+
+  await request(app)
+    .post(`/api/context-comments/${created.body.id}/reactions`)
+    .set(auth(reactor.authToken))
+    .send({ emoji: '😡' })
     .expect(400);
 });

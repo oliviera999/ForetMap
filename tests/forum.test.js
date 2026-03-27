@@ -54,6 +54,15 @@ function auth(token) {
   return { Authorization: `Bearer ${token}` };
 }
 
+async function setAllowedReactionEmojis(raw) {
+  await execute(
+    `INSERT INTO app_settings (\`key\`, scope, value_json, updated_at)
+     VALUES (?, 'public', ?, NOW())
+     ON DUPLICATE KEY UPDATE value_json = VALUES(value_json), updated_at = NOW()`,
+    ['ui.reactions.allowed_emojis', JSON.stringify(String(raw || '').trim())]
+  );
+}
+
 test('Forum: refuse l’accès sans authentification', async () => {
   await request(app).get('/api/forum/threads').expect(401);
 });
@@ -182,4 +191,55 @@ test('Forum: signalement de message et prévention des doublons', async () => {
     .set(auth(reporter.authToken))
     .send({ reason: 'Second signalement identique.' })
     .expect(409);
+});
+
+test('Forum: réactions emoji toggle et agrégées sur les messages', async () => {
+  const author = await registerStudent('ReactForumAuthor');
+  const reactor = await registerStudent('ReactForumUser');
+  await setAllowedReactionEmojis('👍 🤝');
+
+  const thread = await request(app)
+    .post('/api/forum/threads')
+    .set(auth(author.authToken))
+    .send({ title: `Sujet réactions ${Date.now()}`, body: 'Post initial pour réactions.' })
+    .expect(201);
+  const threadId = thread.body.thread.id;
+
+  const reply = await request(app)
+    .post(`/api/forum/threads/${threadId}/posts`)
+    .set(auth(author.authToken))
+    .send({ body: 'Message à réagir.' })
+    .expect(201);
+  const postId = reply.body.id;
+
+  const reacted = await request(app)
+    .post(`/api/forum/posts/${postId}/reactions`)
+    .set(auth(reactor.authToken))
+    .send({ emoji: '👍' })
+    .expect(200);
+  assert.strictEqual(reacted.body.reacted, true);
+
+  const detailAfterReact = await request(app)
+    .get(`/api/forum/threads/${threadId}`)
+    .set(auth(reactor.authToken))
+    .expect(200);
+  const reactedPost = detailAfterReact.body.posts.find((p) => p.id === postId);
+  assert.ok(reactedPost);
+  const reaction = reactedPost.reactions.find((r) => r.emoji === '👍');
+  assert.ok(reaction);
+  assert.strictEqual(Number(reaction.count), 1);
+  assert.strictEqual(!!reaction.reacted_by_me, true);
+
+  const unreacted = await request(app)
+    .post(`/api/forum/posts/${postId}/reactions`)
+    .set(auth(reactor.authToken))
+    .send({ emoji: '👍' })
+    .expect(200);
+  assert.strictEqual(unreacted.body.reacted, false);
+
+  await request(app)
+    .post(`/api/forum/posts/${postId}/reactions`)
+    .set(auth(reactor.authToken))
+    .send({ emoji: '😡' })
+    .expect(400);
 });

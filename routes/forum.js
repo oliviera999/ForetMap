@@ -4,6 +4,7 @@ const { queryAll, queryOne, execute } = require('../database');
 const { requireAuth, requirePermission } = require('../middleware/requireTeacher');
 const { logRouteError } = require('../lib/routeLog');
 const { emitForumChanged } = require('../lib/realtime');
+const { getSettingValue } = require('../lib/settings');
 const { logAudit } = require('./audit');
 
 const router = express.Router();
@@ -18,6 +19,7 @@ const DEFAULT_PAGE_SIZE = 20;
 const MAX_PAGE_SIZE = 50;
 const THREAD_COOLDOWN_MS = 10_000;
 const POST_COOLDOWN_MS = 5_000;
+const DEFAULT_REACTIONS = ['👍', '❤️', '😂', '😮', '😢', '😡', '🔥', '👏'];
 
 const cooldownState = new Map();
 
@@ -38,6 +40,39 @@ function parsePage(req) {
   const pageSize = Math.min(MAX_PAGE_SIZE, parsePositiveInt(req.query?.page_size, DEFAULT_PAGE_SIZE));
   const offset = (page - 1) * pageSize;
   return { page, pageSize, offset };
+}
+
+function buildInClauseParams(values = []) {
+  if (!Array.isArray(values) || values.length === 0) {
+    return { clause: '(NULL)', params: [] };
+  }
+  return {
+    clause: `(${values.map(() => '?').join(',')})`,
+    params: values,
+  };
+}
+
+function parseReactionEmojiList(rawValue) {
+  const raw = String(rawValue || '').trim();
+  if (!raw) return [...DEFAULT_REACTIONS];
+  const tokens = raw
+    .replace(/,/g, ' ')
+    .split(/\s+/)
+    .map((item) => String(item || '').trim())
+    .filter(Boolean)
+    .filter((item) => item.length <= 16);
+  const unique = [...new Set(tokens)].slice(0, 24);
+  return unique.length > 0 ? unique : [...DEFAULT_REACTIONS];
+}
+
+async function getAllowedReactionSet() {
+  const configured = await getSettingValue('ui.reactions.allowed_emojis', DEFAULT_REACTIONS.join(' '));
+  return new Set(parseReactionEmojiList(configured));
+}
+
+function normalizeEmoji(value, allowedReactions) {
+  const emoji = String(value || '').trim();
+  return allowedReactions.has(emoji) ? emoji : '';
 }
 
 function getActor(auth) {
@@ -83,6 +118,30 @@ async function loadThreadThreadSafe(threadId) {
       LIMIT 1`,
     [threadId]
   );
+}
+
+async function loadForumPostReactions(postIds = [], actor = null) {
+  if (!Array.isArray(postIds) || postIds.length === 0) return new Map();
+  const inClause = buildInClauseParams(postIds);
+  const rows = await queryAll(
+    `SELECT r.post_id, r.emoji, COUNT(*) AS c,
+            SUM(CASE WHEN r.reactor_user_type = ? AND r.reactor_user_id = ? THEN 1 ELSE 0 END) AS mine
+       FROM forum_post_reactions r
+      WHERE r.post_id IN ${inClause.clause}
+      GROUP BY r.post_id, r.emoji
+      ORDER BY r.post_id ASC, MIN(r.created_at) ASC, r.emoji ASC`,
+    [actor?.userType || '', actor?.userId || '', ...inClause.params]
+  );
+  const map = new Map();
+  for (const row of rows) {
+    if (!map.has(row.post_id)) map.set(row.post_id, []);
+    map.get(row.post_id).push({
+      emoji: row.emoji,
+      count: Number(row.c || 0),
+      reacted_by_me: Number(row.mine || 0) > 0,
+    });
+  }
+  return map;
 }
 
 router.use(requireAuth);
@@ -173,6 +232,7 @@ router.post('/threads', async (req, res) => {
 
 router.get('/threads/:id', async (req, res) => {
   try {
+    const actor = getActor(req.auth);
     const { page, pageSize, offset } = parsePage(req);
     const thread = await loadThreadThreadSafe(req.params.id);
     if (!thread) return res.status(404).json({ error: 'Sujet introuvable' });
@@ -198,9 +258,17 @@ router.get('/threads/:id', async (req, res) => {
       ...p,
       body: Number(p.is_deleted) ? '' : p.body,
     }));
+    const reactionsByPost = await loadForumPostReactions(
+      sanitizedPosts.map((p) => p.id),
+      actor
+    );
+    const enrichedPosts = sanitizedPosts.map((p) => ({
+      ...p,
+      reactions: reactionsByPost.get(p.id) || [],
+    }));
     res.json({
       thread,
-      posts: sanitizedPosts,
+      posts: enrichedPosts,
       page,
       page_size: pageSize,
       total_posts: Number(countRow?.c || 0),
@@ -208,6 +276,61 @@ router.get('/threads/:id', async (req, res) => {
   } catch (e) {
     logRouteError(e, req);
     res.status(500).json({ error: e.message });
+  }
+});
+
+router.post('/posts/:id/reactions', async (req, res) => {
+  try {
+    const actor = getActor(req.auth);
+    if (!actor) return res.status(401).json({ error: 'Session invalide' });
+    const allowedReactions = await getAllowedReactionSet();
+    const emoji = normalizeEmoji(req.body?.emoji, allowedReactions);
+    if (!emoji) return res.status(400).json({ error: 'Emoji non supporté' });
+
+    const post = await queryOne(
+      'SELECT id, thread_id, is_deleted FROM forum_posts WHERE id = ? LIMIT 1',
+      [req.params.id]
+    );
+    if (!post) return res.status(404).json({ error: 'Message introuvable' });
+    if (Number(post.is_deleted)) return res.status(409).json({ error: 'Message supprimé' });
+
+    const existing = await queryOne(
+      `SELECT post_id
+         FROM forum_post_reactions
+        WHERE post_id = ? AND reactor_user_type = ? AND reactor_user_id = ? AND emoji = ?
+        LIMIT 1`,
+      [post.id, actor.userType, actor.userId, emoji]
+    );
+
+    let reacted = false;
+    if (existing) {
+      await execute(
+        `DELETE FROM forum_post_reactions
+          WHERE post_id = ? AND reactor_user_type = ? AND reactor_user_id = ? AND emoji = ?`,
+        [post.id, actor.userType, actor.userId, emoji]
+      );
+      reacted = false;
+    } else {
+      await execute(
+        `INSERT INTO forum_post_reactions
+          (post_id, reactor_user_type, reactor_user_id, emoji)
+         VALUES (?, ?, ?, ?)`,
+        [post.id, actor.userType, actor.userId, emoji]
+      );
+      reacted = true;
+    }
+
+    await logAudit('forum_post_reaction_toggle', 'forum_post', post.id, 'Réaction emoji message forum', {
+      req,
+      actorUserType: actor.userType,
+      actorUserId: actor.userId,
+      payload: { thread_id: post.thread_id, emoji, reacted },
+    });
+    emitForumChanged({ reason: 'post_reaction_changed', threadId: post.thread_id, postId: post.id, emoji });
+    return res.json({ ok: true, reacted, emoji });
+  } catch (e) {
+    logRouteError(e, req);
+    return res.status(500).json({ error: e.message });
   }
 });
 

@@ -139,3 +139,11 @@ export async function deleteContextComment(commentId) {
 export async function reportContextComment(commentId, reason) {
   return api(`/api/context-comments/${encodeURIComponent(commentId)}/report`, 'POST', { reason });
 }
+
+export async function toggleForumPostReaction(postId, emoji) {
+  return api(`/api/forum/posts/${encodeURIComponent(postId)}/reactions`, 'POST', { emoji });
+}
+
+export async function toggleContextCommentReaction(commentId, emoji) {
+  return api(`/api/context-comments/${encodeURIComponent(commentId)}/reactions`, 'POST', { emoji });
+}

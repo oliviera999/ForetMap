@@ -5,6 +5,7 @@ const { requireAuth } = require('../middleware/requireTeacher');
 const { logRouteError } = require('../lib/routeLog');
 const { logAudit } = require('./audit');
 const { emitContextCommentsChanged } = require('../lib/realtime');
+const { getSettingValue } = require('../lib/settings');
 
 const router = express.Router();
 
@@ -16,6 +17,7 @@ const MAX_COMMENT_LEN = 4000;
 const MIN_REPORT_REASON_LEN = 3;
 const MAX_REPORT_REASON_LEN = 500;
 const COMMENT_COOLDOWN_MS = 3_000;
+const DEFAULT_REACTIONS = ['👍', '❤️', '😂', '😮', '😢', '😡', '🔥', '👏'];
 
 const cooldownState = new Map();
 
@@ -41,6 +43,39 @@ function parsePage(req) {
   const pageSize = Math.min(MAX_PAGE_SIZE, parsePositiveInt(req.query?.page_size, DEFAULT_PAGE_SIZE));
   const offset = (page - 1) * pageSize;
   return { page, pageSize, offset };
+}
+
+function buildInClauseParams(values = []) {
+  if (!Array.isArray(values) || values.length === 0) {
+    return { clause: '(NULL)', params: [] };
+  }
+  return {
+    clause: `(${values.map(() => '?').join(',')})`,
+    params: values,
+  };
+}
+
+function parseReactionEmojiList(rawValue) {
+  const raw = String(rawValue || '').trim();
+  if (!raw) return [...DEFAULT_REACTIONS];
+  const tokens = raw
+    .replace(/,/g, ' ')
+    .split(/\s+/)
+    .map((item) => String(item || '').trim())
+    .filter(Boolean)
+    .filter((item) => item.length <= 16);
+  const unique = [...new Set(tokens)].slice(0, 24);
+  return unique.length > 0 ? unique : [...DEFAULT_REACTIONS];
+}
+
+async function getAllowedReactionSet() {
+  const configured = await getSettingValue('ui.reactions.allowed_emojis', DEFAULT_REACTIONS.join(' '));
+  return new Set(parseReactionEmojiList(configured));
+}
+
+function normalizeEmoji(value, allowedReactions) {
+  const emoji = String(value || '').trim();
+  return allowedReactions.has(emoji) ? emoji : '';
 }
 
 function getActor(auth) {
@@ -82,10 +117,35 @@ async function contextExists(contextType, contextId) {
   return false;
 }
 
+async function loadContextCommentReactions(commentIds = [], actor = null) {
+  if (!Array.isArray(commentIds) || commentIds.length === 0) return new Map();
+  const inClause = buildInClauseParams(commentIds);
+  const rows = await queryAll(
+    `SELECT r.comment_id, r.emoji, COUNT(*) AS c,
+            SUM(CASE WHEN r.reactor_user_type = ? AND r.reactor_user_id = ? THEN 1 ELSE 0 END) AS mine
+       FROM context_comment_reactions r
+      WHERE r.comment_id IN ${inClause.clause}
+      GROUP BY r.comment_id, r.emoji
+      ORDER BY r.comment_id ASC, MIN(r.created_at) ASC, r.emoji ASC`,
+    [actor?.userType || '', actor?.userId || '', ...inClause.params]
+  );
+  const map = new Map();
+  for (const row of rows) {
+    if (!map.has(row.comment_id)) map.set(row.comment_id, []);
+    map.get(row.comment_id).push({
+      emoji: row.emoji,
+      count: Number(row.c || 0),
+      reacted_by_me: Number(row.mine || 0) > 0,
+    });
+  }
+  return map;
+}
+
 router.use(requireAuth);
 
 router.get('/', async (req, res) => {
   try {
+    const actor = getActor(req.auth);
     const contextType = normalizeContextType(req.query?.contextType);
     const contextId = normalizeOptionalString(req.query?.contextId);
     if (!contextType) return res.status(400).json({ error: 'contextType invalide (task|project|zone)' });
@@ -120,7 +180,76 @@ router.get('/', async (req, res) => {
       ...row,
       body: Number(row.is_deleted) ? '' : row.body,
     }));
-    return res.json({ items, page, page_size: pageSize, total });
+    const reactionsByComment = await loadContextCommentReactions(items.map((item) => item.id), actor);
+    const enrichedItems = items.map((item) => ({
+      ...item,
+      reactions: reactionsByComment.get(item.id) || [],
+    }));
+    return res.json({ items: enrichedItems, page, page_size: pageSize, total });
+  } catch (e) {
+    logRouteError(e, req);
+    return res.status(500).json({ error: e.message });
+  }
+});
+
+router.post('/:id/reactions', async (req, res) => {
+  try {
+    const actor = getActor(req.auth);
+    if (!actor) return res.status(401).json({ error: 'Session invalide' });
+    const allowedReactions = await getAllowedReactionSet();
+    const emoji = normalizeEmoji(req.body?.emoji, allowedReactions);
+    if (!emoji) return res.status(400).json({ error: 'Emoji non supporté' });
+
+    const comment = await queryOne(
+      `SELECT id, context_type, context_id, is_deleted
+         FROM context_comments
+        WHERE id = ?
+        LIMIT 1`,
+      [req.params.id]
+    );
+    if (!comment) return res.status(404).json({ error: 'Commentaire introuvable' });
+    if (Number(comment.is_deleted)) return res.status(409).json({ error: 'Commentaire supprimé' });
+
+    const existing = await queryOne(
+      `SELECT comment_id
+         FROM context_comment_reactions
+        WHERE comment_id = ? AND reactor_user_type = ? AND reactor_user_id = ? AND emoji = ?
+        LIMIT 1`,
+      [comment.id, actor.userType, actor.userId, emoji]
+    );
+
+    let reacted = false;
+    if (existing) {
+      await execute(
+        `DELETE FROM context_comment_reactions
+          WHERE comment_id = ? AND reactor_user_type = ? AND reactor_user_id = ? AND emoji = ?`,
+        [comment.id, actor.userType, actor.userId, emoji]
+      );
+      reacted = false;
+    } else {
+      await execute(
+        `INSERT INTO context_comment_reactions
+          (comment_id, reactor_user_type, reactor_user_id, emoji)
+         VALUES (?, ?, ?, ?)`,
+        [comment.id, actor.userType, actor.userId, emoji]
+      );
+      reacted = true;
+    }
+
+    await logAudit('context_comment_reaction_toggle', 'context_comment', comment.id, 'Réaction emoji commentaire contextuel', {
+      req,
+      actorUserType: actor.userType,
+      actorUserId: actor.userId,
+      payload: { context_type: comment.context_type, context_id: comment.context_id, emoji, reacted },
+    });
+    emitContextCommentsChanged({
+      reason: 'comment_reaction_changed',
+      contextType: comment.context_type,
+      contextId: comment.context_id,
+      commentId: comment.id,
+      emoji,
+    });
+    return res.json({ ok: true, reacted, emoji });
   } catch (e) {
     logRouteError(e, req);
     return res.status(500).json({ error: e.message });
