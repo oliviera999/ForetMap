@@ -9,6 +9,7 @@ import { Tooltip } from './Tooltip';
 import { HelpPanel } from './HelpPanel';
 import { ContextComments } from './context-comments';
 import { HELP_PANELS, HELP_TOOLTIPS, resolveRoleText } from '../constants/help';
+import { lockBodyScroll } from '../utils/body-scroll-lock';
 
 function Toast({ msg, onDone }) {
   useEffect(() => { const t = setTimeout(onDone, 2400); return () => clearTimeout(t); }, []);
@@ -19,11 +20,14 @@ function Lightbox({ src, caption, onClose }) {
   const el = React.useMemo(() => document.createElement('div'), []);
   const dialogRef = useDialogA11y(onClose);
   useEffect(() => {
+    const releaseBodyScroll = lockBodyScroll();
     document.body.appendChild(el);
-    document.body.style.overflow = 'hidden';
     return () => {
-      document.body.removeChild(el);
-      document.body.style.overflow = '';
+      try {
+        if (document.body.contains(el)) document.body.removeChild(el);
+      } finally {
+        releaseBodyScroll();
+      }
     };
   }, [el]);
 
