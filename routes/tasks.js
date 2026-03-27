@@ -723,10 +723,20 @@ router.get('/', async (req, res) => {
       assignments = await queryAll(`SELECT * FROM task_assignments WHERE task_id IN (${ph})`, taskIds);
     } else if (taskIds.length && auth?.userType === 'student' && auth?.userId) {
       const ph = taskIds.map(() => '?').join(',');
-      assignments = await queryAll(
-        `SELECT * FROM task_assignments WHERE task_id IN (${ph}) AND student_id = ?`,
-        [...taskIds, auth.userId]
-      );
+      if (isVisitorRole(auth)) {
+        assignments = await queryAll(
+          `SELECT * FROM task_assignments WHERE task_id IN (${ph}) AND student_id = ?`,
+          [...taskIds, auth.userId]
+        );
+      } else {
+        assignments = await queryAll(
+          `SELECT id, task_id, student_first_name, student_last_name, assigned_at
+             FROM task_assignments
+            WHERE task_id IN (${ph})
+            ORDER BY assigned_at`,
+          taskIds
+        );
+      }
     }
     const assignmentsByTask = new Map();
     for (const a of assignments) {

@@ -815,10 +815,25 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
   const done = allFiltered.filter(t => t.status === 'done');
   const validated = allFiltered.filter(t => t.status === 'validated');
   const proposed = allFiltered.filter(t => t.status === 'proposed');
-  const showStudentFilteredResults = !isTeacher && !!filterStatus;
+  const hasStudentFilters = !isTeacher && (
+    !!filterText
+    || !!filterZone
+    || !!filterProject
+    || !!filterStatus
+    || filterMap !== 'active'
+  );
+  const showStudentFilteredResults = !isTeacher && hasStudentFilters;
   const availableNotMine = useMemo(
     () => available.filter((t) => !myTasks.some((m) => m.id === t.id)),
     [available, myTasks]
+  );
+  const inProgressNotMine = useMemo(
+    () => inProgress.filter((t) => !myTasks.some((m) => m.id === t.id)),
+    [inProgress, myTasks]
+  );
+  const doneNotMine = useMemo(
+    () => done.filter((t) => !myTasks.some((m) => m.id === t.id)),
+    [done, myTasks]
   );
   const recentlyValidatedForStudent = useMemo(
     () => allFiltered.filter((t) => t.status === 'validated' && t.assignments?.some(
@@ -1309,6 +1324,18 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
 
       {isTeacher ? (
         <>
+          {available.length > 0 && (
+            <div className="tasks-section">
+              <div className="tasks-section-title">À faire</div>
+              <div className={sectionListClass}>{available.map((t, idx) => <TaskCard key={t.id} t={t} index={idx} />)}</div>
+            </div>
+          )}
+          {inProgress.length > 0 && (
+            <div className="tasks-section">
+              <div className="tasks-section-title">En cours</div>
+              <div className={sectionListClass}>{inProgress.map((t, idx) => <TaskCard key={t.id} t={t} index={idx} />)}</div>
+            </div>
+          )}
           {proposed.length > 0 && (
             <div className="tasks-section">
               <div className="tasks-section-title">Propositions {roleTerms.studentPlural} ({proposed.length})</div>
@@ -1319,18 +1346,6 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
             <div className="tasks-section">
               <div className="tasks-section-title">En attente de validation ({done.length})</div>
               <div className={sectionListClass}>{done.map((t, idx) => <TaskCard key={t.id} t={t} index={idx} />)}</div>
-            </div>
-          )}
-          {inProgress.length > 0 && (
-            <div className="tasks-section">
-              <div className="tasks-section-title">En cours</div>
-              <div className={sectionListClass}>{inProgress.map((t, idx) => <TaskCard key={t.id} t={t} index={idx} />)}</div>
-            </div>
-          )}
-          {available.length > 0 && (
-            <div className="tasks-section">
-              <div className="tasks-section-title">À faire</div>
-              <div className={sectionListClass}>{available.map((t, idx) => <TaskCard key={t.id} t={t} index={idx} />)}</div>
             </div>
           )}
           {validated.length > 0 && (
@@ -1357,6 +1372,18 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
               <div className={sectionListClass}>{availableNotMine.map((t, idx) => <TaskCard key={t.id} t={t} index={idx} />)}</div>
             </div>
           )}
+              {inProgressNotMine.length > 0 && (
+              <div className="tasks-section">
+                <div className="tasks-section-title">En cours (déjà prises)</div>
+                <div className={sectionListClass}>{inProgressNotMine.map((t, idx) => <TaskCard key={t.id} t={t} index={idx} />)}</div>
+              </div>
+              )}
+              {doneNotMine.length > 0 && (
+              <div className="tasks-section">
+                <div className="tasks-section-title">En attente de validation</div>
+                <div className={sectionListClass}>{doneNotMine.map((t, idx) => <TaskCard key={t.id} t={t} index={idx} />)}</div>
+              </div>
+              )}
               {recentlyValidatedForStudent.length > 0 && (
               <div className="tasks-section">
                 <div className="tasks-section-title">Récemment validées ✓</div>
