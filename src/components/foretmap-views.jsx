@@ -477,7 +477,7 @@ function PlantManager({ plants, onRefresh, publicSettings = null }) {
   const [importing, setImporting] = useState(false);
   const [confirmReplaceAll, setConfirmReplaceAll] = useState(false);
   const [importReport, setImportReport] = useState(null);
-  const { isHelpEnabled, hasSeenSection, markSectionSeen } = useHelp({ publicSettings, isTeacher: true });
+  const { isHelpEnabled, hasSeenSection, markSectionSeen, trackPanelOpen, trackPanelDismiss } = useHelp({ publicSettings, isTeacher: true });
   const tooltipText = (entry) => resolveRoleText(entry, true);
 
   const groupOptions = [...new Set(
@@ -589,6 +589,8 @@ function PlantManager({ plants, onRefresh, publicSettings = null }) {
               isTeacher
               isPulsing={!hasSeenSection('plants')}
               onMarkSeen={markSectionSeen}
+              onOpen={trackPanelOpen}
+              onDismiss={trackPanelDismiss}
             />
           )}
           {!showAdd && !editId && (
@@ -932,7 +934,7 @@ function PlantViewer({ plants, zones, publicSettings = null }) {
   const [search, setSearch] = useState('');
   const [groupFilter, setGroupFilter] = useState('');
   const [expanded, setExpanded] = useState(null);
-  const { isHelpEnabled, hasSeenSection, markSectionSeen } = useHelp({ publicSettings, isTeacher: false });
+  const { isHelpEnabled, hasSeenSection, markSectionSeen, trackPanelOpen, trackPanelDismiss } = useHelp({ publicSettings, isTeacher: false });
 
   const groupOptions = [...new Set(
     plants
@@ -972,6 +974,8 @@ function PlantViewer({ plants, zones, publicSettings = null }) {
             isTeacher={false}
             isPulsing={!hasSeenSection('plants')}
             onMarkSeen={markSectionSeen}
+            onOpen={trackPanelOpen}
+            onDismiss={trackPanelDismiss}
           />
         )}
       </div>

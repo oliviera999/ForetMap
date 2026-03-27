@@ -51,6 +51,7 @@ describe('Auth', () => {
     assert.strictEqual(res.body.email, email);
     assert.strictEqual(res.body.description, description);
     assert.strictEqual(res.body.password_hash, undefined);
+    assert.strictEqual(res.body?.auth?.roleSlug, 'visiteur');
     assert.ok(res.body.id);
   });
 
@@ -255,6 +256,7 @@ describe('Auth', () => {
     const payload = decodeOAuthPayloadFromRedirect(res.headers.location);
     assert.strictEqual(payload?.type, 'student');
     assert.ok(payload?.student?.id);
+    assert.strictEqual(payload?.student?.auth?.roleSlug, 'visiteur');
     assert.strictEqual(String(payload?.student?.email || '').toLowerCase(), studentEmail.toLowerCase());
     const created = await queryOne("SELECT id, email FROM users WHERE user_type = 'student' AND LOWER(email)=LOWER(?) LIMIT 1", [studentEmail]);
     assert.ok(created?.id);

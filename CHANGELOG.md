@@ -6,6 +6,10 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 ## [Non publié]
 
 ### Ajouté
+- **Commentaires contextuels multi-espaces** : ajout d’un module complet de commentaires (`/api/context-comments`) pour les contextes tâche/projet/zone avec pagination, suppression modérée, signalement anti-doublon, audit et diffusion temps réel Socket.IO.
+- **Tables SQL de commentaires contextuels** : nouvelles tables `context_comments` et `context_comment_reports` avec index dédiés, suppression logique et contrainte FK de nettoyage des signalements.
+- **Contrôle de concurrence sessions collectives** : ajout d’un versionnement optimiste (`collective_sessions.version`) avec `expectedVersion` sur les écritures, plus opérations bulk tâches/élèves pour les animations de séance.
+- **RBAC rafraîchi + rôle visiteur système** : migration du catalogue de permissions/profils système (idempotente) et ajout du rôle `visiteur` par défaut pour durcir les parcours lecture seule.
 - **Aide contextuelle UI (collégiens + prof/admin)** : ajout d’un socle d’aide produit côté frontend avec tooltips enrichis (`Tooltip`), panneau contextuel `?` par section (`HelpPanel`) et registre centralisé des messages (`src/constants/help.js`) différenciés selon le rôle.
 - **Synchronisation sélective carte/visite** : ajout des endpoints `GET /api/visit/sync/options` et `POST /api/visit/sync` (prof, session élevée) avec import bidirectionnel ciblé des zones/repères entre carte principale et module visite.
 - **Progression de profil élève configurable** : nouveaux réglages `progression.student_role_min_done_eleve_avance` et `progression.student_role_min_done_eleve_chevronne` avec synchronisation automatique du rôle principal élève selon le nombre de tâches validées.

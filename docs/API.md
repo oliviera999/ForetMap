@@ -64,7 +64,9 @@ Connexion Socket.IO (transport **polling** actuellement forcé côté client) su
 | `tasks:changed` | Création / modification / suppression de tâche, assignation, désassignation, marquer fait, validation, suppression d’un log | `reason`, `taskId`, `mapId` |
 | `students:changed` | Inscription d’un élève, suppression d’un élève | `reason`, `studentId` |
 | `garden:changed` | Zones, photos de zone, biodiversité, marqueurs carte | `reason`, `zoneId`, `plantId`, `markerId`, `mapId`… |
+| `collective:changed` | Activation/reset/mise à jour/réconciliation d’une session collectif | `reason`, `contextType`, `contextId`, `sessionId`, `version` |
 | `forum:changed` | Création de sujet, réponse, suppression de message, verrouillage, signalement | `reason`, `threadId`, `postId` |
+| `context-comments:changed` | Création/suppression/signalement d’un commentaire contextuel | `reason`, `contextType`, `contextId`, `commentId` |
 
 ---
 
@@ -72,7 +74,7 @@ Connexion Socket.IO (transport **polling** actuellement forcé côté client) su
 
 | Méthode | URL | Body | Description |
 |--------|-----|------|-------------|
-| POST | `/api/auth/register` | `{ firstName, lastName, password, pseudo?, email?, description? }` | Créer un compte élève |
+| POST | `/api/auth/register` | `{ firstName, lastName, password, pseudo?, email?, description? }` | Créer un compte élève (profil RBAC par défaut : `visiteur`) |
 | POST | `/api/auth/login` | `{ identifier, password }` | Connexion élève (pseudo ou email) |
 | GET | `/api/auth/me` | — | Retourne le contexte d’auth courant (`role`, `permissions`, `elevated`) |
 | PATCH | `/api/auth/me/profile` | `{ pseudo?, email?, description?, affiliation?, avatarData?, removeAvatar?, currentPassword }` | Mettre à jour son profil utilisateur connecté (élève, prof, admin local) |
@@ -101,6 +103,50 @@ Toutes les routes RBAC exigent un token admin avec élévation PIN active.
 | PUT | `/api/rbac/profiles/:id/pin` | Changer le PIN d’un profil |
 | GET | `/api/rbac/users` | Liste utilisateurs et profil attribué |
 | PUT | `/api/rbac/users/:userType/:userId/role` | Attribuer le profil principal d’un utilisateur |
+
+### Droits paramétrables (catalogue)
+
+Ces droits sont assignables depuis la console **Profils & utilisateurs**.
+
+| Clé permission | Libellé | Description |
+|--------|-----|-------------|
+| `teacher.access` | Accès interface professeur | Permet d’ouvrir l’interface professeur |
+| `admin.roles.manage` | Gestion des profils RBAC | Créer/renommer profils, permissions et PIN |
+| `admin.users.assign_roles` | Attribution des profils | Attribuer/retraiter un profil aux utilisateurs |
+| `users.create` | Création unitaire utilisateurs | Créer un utilisateur unitaire (élève/prof/admin selon droits) |
+| `admin.settings.read` | Lecture paramètres admin | Consulter la console de réglages |
+| `admin.settings.write` | Édition paramètres admin | Modifier les réglages non secrets |
+| `admin.settings.secrets.write` | Actions admin critiques | Exécuter les actions critiques (restart, secrets) |
+| `stats.read.all` | Lecture stats globales | Consulter les stats de tous les élèves |
+| `stats.export` | Export stats | Exporter les stats élèves en CSV |
+| `students.import` | Import élèves | Importer des élèves via CSV/XLSX |
+| `students.delete` | Suppression élève | Supprimer un compte élève |
+| `tasks.manage` | Gestion tâches | Créer/éditer/supprimer les tâches |
+| `tasks.validate` | Validation tâches | Valider les tâches terminées |
+| `tasks.propose` | Proposition de tâches | Proposer de nouvelles tâches |
+| `tasks.assign_self` | Prise en charge tâche | S’assigner à une tâche |
+| `tasks.unassign_self` | Retrait de tâche | Se retirer d’une tâche |
+| `tasks.done_self` | Soumission de tâche | Marquer une tâche comme faite |
+| `zones.manage` | Gestion zones | Créer/éditer/supprimer zones et photos |
+| `map.manage_markers` | Gestion repères | Créer/éditer/supprimer repères |
+| `plants.manage` | Gestion biodiversité | Créer/éditer/supprimer/importer plantes |
+| `tutorials.manage` | Gestion tutoriels | Créer/éditer/supprimer tutoriels |
+| `visit.manage` | Gestion visite | Gérer la carte de visite publique |
+| `audit.read` | Lecture audit | Consulter le journal d’audit |
+| `observations.read.all` | Lecture observations globales | Consulter toutes les observations |
+
+### Profils système (droits par défaut)
+
+Les profils sont entièrement paramétrables ; ce tableau documente les **valeurs initiales** livrées par l’application.
+
+| Profil | Droits par défaut |
+|--------|-------------------|
+| `admin` | `teacher.access`, `admin.roles.manage` (PIN), `admin.users.assign_roles` (PIN), `users.create` (PIN), `admin.settings.read` (PIN), `admin.settings.write` (PIN), `admin.settings.secrets.write` (PIN), `stats.read.all`, `stats.export` (PIN), `students.import` (PIN), `students.delete` (PIN), `tasks.manage` (PIN), `tasks.validate` (PIN), `tasks.propose`, `tasks.assign_self`, `tasks.unassign_self`, `tasks.done_self`, `zones.manage` (PIN), `map.manage_markers` (PIN), `plants.manage` (PIN), `tutorials.manage` (PIN), `visit.manage` (PIN), `audit.read` (PIN), `observations.read.all` (PIN) |
+| `prof` | `teacher.access`, `stats.read.all`, `stats.export` (PIN), `students.import` (PIN), `students.delete` (PIN), `users.create` (PIN), `tasks.manage` (PIN), `tasks.validate` (PIN), `tasks.propose`, `tasks.assign_self`, `tasks.unassign_self`, `tasks.done_self`, `zones.manage` (PIN), `map.manage_markers` (PIN), `plants.manage` (PIN), `tutorials.manage` (PIN), `visit.manage` (PIN), `audit.read` (PIN), `observations.read.all` (PIN) |
+| `eleve_chevronne` | `tasks.propose` (PIN), `tasks.assign_self`, `tasks.unassign_self`, `tasks.done_self` |
+| `eleve_avance` | `tasks.propose`, `tasks.assign_self`, `tasks.unassign_self`, `tasks.done_self` |
+| `eleve_novice` | `tasks.assign_self`, `tasks.unassign_self`, `tasks.done_self` |
+| `visiteur` | Lecture seule (aucune permission d’action par défaut) |
 
 ---
 
@@ -255,9 +301,43 @@ Réponse:
 
 ---
 
+## Session collectif
+
+Routes réservées aux profils ayant `teacher.access` + `stats.read.all`.
+
+| Méthode | URL | Prof | Description |
+|--------|-----|------|-------------|
+| GET | `/api/collective/session?contextType=map|project&contextId=:id` | oui | Lire l’état de session collectif |
+| PUT | `/api/collective/session` | oui | Activer/désactiver une session de contexte |
+| PUT | `/api/collective/session/attendance` | oui | Marquer un élève présent/absent dans la session |
+| PUT | `/api/collective/session/tasks` | oui | Ajouter/retirer une tâche de la session |
+| PUT | `/api/collective/session/students` | oui | Ajouter/retirer un élève de la session |
+| PUT | `/api/collective/session/attendance/bulk` | oui | Marquer plusieurs élèves présents/absents (lot) |
+| PUT | `/api/collective/session/tasks/bulk` | oui | Ajouter/retirer plusieurs tâches de la session (lot) |
+| PUT | `/api/collective/session/students/bulk` | oui | Ajouter/retirer plusieurs élèves de la session (lot) |
+| POST | `/api/collective/session/reset` | oui | Réinitialiser la session (sélections + absences) |
+
+Contrat d’écriture (PUT/POST) :
+
+- `expectedVersion` (entier `>= 0`) est **obligatoire**.
+- Le serveur compare `expectedVersion` à `session.version`.
+- En cas d’écart, réponse `409`:
+  - `error: "Session collectif modifiée ailleurs"`
+  - `expected_version`, `current_version`
+  - `current` : état courant complet de la session.
+
+Contrats bulk (PUT `/bulk`) :
+
+- `studentIds` / `taskIds` : tableau d’identifiants (doublons ignorés, max 300 éléments traités).
+- `selected` (tasks/students) ou `absent` (attendance) : booléen d’action.
+- Réponse : état de session standard + objet `bulk` (`requested`, `applied`, `invalid`, et selon route `out_of_context` ou `not_selected`).
+
+---
+
 ## Forum global
 
 Toutes les routes forum exigent un utilisateur connecté (`Authorization: Bearer <token>`), élève ou prof.
+Le profil `visiteur` est refusé (`403`) pour éviter l’exposition d’identités d’autres utilisateurs.
 
 | Méthode | URL | Description |
 |--------|-----|-------------|
@@ -275,6 +355,33 @@ Contraintes principales :
 - Anti-abus V1 : cooldown par utilisateur sur création de sujet/réponse.
 - `409` sur réponse dans un sujet verrouillé.
 - `409` sur signalement dupliqué (même utilisateur, même message, signalement déjà ouvert).
+
+---
+
+## Commentaires contextuels
+
+Toutes les routes commentaires contextuels exigent un utilisateur connecté (`Authorization: Bearer <token>`), élève ou prof.
+
+Contexte supporté :
+
+- `contextType=task` (tâche)
+- `contextType=project` (projet de tâches)
+- `contextType=zone` (zone de la carte)
+
+| Méthode | URL | Description |
+|--------|-----|-------------|
+| GET | `/api/context-comments?contextType=task|project|zone&contextId=:id&page=1&page_size=20` | Liste paginée des commentaires d’un contexte |
+| POST | `/api/context-comments` | Créer un commentaire (`{ contextType, contextId, body }`) |
+| DELETE | `/api/context-comments/:id` | Supprimer un commentaire (auteur ou prof/admin) |
+| POST | `/api/context-comments/:id/report` | Signaler un commentaire (`{ reason }`) |
+
+Contraintes principales :
+
+- Validation serveur de `contextType` et de l’existence du contexte ciblé.
+- Validation longueur message/motif de signalement.
+- Anti-abus V1 : cooldown par utilisateur sur publication.
+- Suppression logique (`is_deleted`) ; le contenu est masqué côté lecture.
+- `409` sur signalement dupliqué (même utilisateur, même commentaire, signalement déjà ouvert).
 
 ---
 

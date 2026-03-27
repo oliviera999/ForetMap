@@ -273,6 +273,10 @@ function canReadAllAssignments(auth) {
   return perms.includes('tasks.manage') || perms.includes('tasks.validate') || perms.includes('stats.read.all');
 }
 
+function isVisitorRole(auth) {
+  return String(auth?.roleSlug || '').toLowerCase() === 'visiteur';
+}
+
 function sanitizeRequiredStudents(value) {
   const n = parseInt(value, 10);
   return Number.isFinite(n) && n >= 1 ? n : 1;
@@ -1315,6 +1319,10 @@ router.post('/:id/done', async (req, res) => {
 
 router.get('/:id/logs', async (req, res) => {
   try {
+    const auth = parseOptionalAuth(req);
+    if (isVisitorRole(auth)) {
+      return res.status(403).json({ error: 'Accès refusé aux journaux de tâche pour le profil visiteur' });
+    }
     const logs = await queryAll(
       'SELECT id, task_id, student_id, student_first_name, student_last_name, comment, image_path, created_at FROM task_logs WHERE task_id = ? ORDER BY created_at DESC',
       [req.params.id]

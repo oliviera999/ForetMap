@@ -7,6 +7,7 @@ import { useDialogA11y } from '../hooks/useDialogA11y';
 import { useHelp } from '../hooks/useHelp';
 import { Tooltip } from './Tooltip';
 import { HelpPanel } from './HelpPanel';
+import { ContextComments } from './context-comments';
 import { HELP_PANELS, HELP_TOOLTIPS, resolveRoleText } from '../constants/help';
 
 function Toast({ msg, onDone }) {
@@ -483,9 +484,20 @@ function proposalMetaFromDescription(description) {
   return { proposer, cleanedDescription };
 }
 
-function formatAssigneeName(assignee, student) {
+function formatAssigneeName(assignee, student, canViewIdentity = true) {
   const firstName = String(assignee?.student_first_name || '').trim();
   const lastName = String(assignee?.student_last_name || '').trim();
+  if (!canViewIdentity) {
+    const isCurrentStudent = !!student
+      && (
+        String(assignee?.student_id || '') === String(student?.id || '')
+        || (
+          firstName.toLowerCase() === String(student?.first_name || '').trim().toLowerCase()
+          && lastName.toLowerCase() === String(student?.last_name || '').trim().toLowerCase()
+        )
+      );
+    return { fullName: isCurrentStudent ? 'Toi' : 'Participant', isCurrentStudent };
+  }
   const fullName = `${firstName} ${lastName}`.trim() || 'Élève';
   const isCurrentStudent = !!student
     && firstName.toLowerCase() === String(student.first_name || '').trim().toLowerCase()
@@ -512,7 +524,7 @@ const TEACHER_STATUS_ACTIONS = [
   { value: 'proposed', label: 'Proposée', icon: '💡' },
 ];
 
-function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], tutorials = [], activeMapId = 'foret', isTeacher, student, onRefresh, onForceLogout, isN3Affiliated = false, publicSettings = null }) {
+function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], tutorials = [], activeMapId = 'foret', isTeacher, student, canSelfAssignTasks = true, canViewOtherUsersIdentity = true, onRefresh, onForceLogout, isN3Affiliated = false, publicSettings = null }) {
   const roleTerms = getRoleTerms(isN3Affiliated);
   const [showForm, setShowForm] = useState(false);
   const [showProjectForm, setShowProjectForm] = useState(false);
@@ -534,7 +546,7 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
   const [importing, setImporting] = useState(false);
   const [importReport, setImportReport] = useState(null);
   const confirmDialogRef = useDialogA11y(() => setConfirmTask(null));
-  const { isHelpEnabled, hasSeenSection, markSectionSeen } = useHelp({ publicSettings, isTeacher });
+  const { isHelpEnabled, hasSeenSection, markSectionSeen, trackPanelOpen, trackPanelDismiss } = useHelp({ publicSettings, isTeacher });
   const helpTasks = HELP_PANELS.tasks;
   const tooltipText = (entry) => resolveRoleText(entry, isTeacher);
 
@@ -729,7 +741,7 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
     const proposalMeta = proposalMetaFromDescription(t.description);
     const cardDescription = t.status === 'proposed' ? proposalMeta.cleanedDescription : (t.description || '');
     const assignees = Array.isArray(t.assignments) ? t.assignments : [];
-    const assigneeLabels = assignees.map((a) => formatAssigneeName(a, student));
+    const assigneeLabels = assignees.map((a) => formatAssigneeName(a, student, isTeacher || canViewOtherUsersIdentity));
     return (
       <div className={`task-card ${isMine ? 'mine' : ''} ${t.status === 'validated' ? 'done' : ''} ${t.status === 'proposed' ? 'proposed' : ''}`}>
         <div className="task-top">
@@ -765,7 +777,7 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
             {assigneeLabels.length > 0
               ? assigneeLabels.map((item, idx) => (
                 <span key={`${item.fullName}-${idx}`} className={`task-assignee-inline ${item.isCurrentStudent ? 'me' : ''}`}>
-                  {item.isCurrentStudent ? `${item.fullName} (toi)` : item.fullName}
+                  {item.isCurrentStudent && item.fullName.toLowerCase() !== 'toi' ? `${item.fullName} (toi)` : item.fullName}
                 </span>
               ))
               : <span className="task-assignee-inline empty">Personne pour le moment</span>}
@@ -775,10 +787,10 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
         {assignees.length > 0 && (
           <div className="assignees">
             {assignees.map((a, i) => {
-              const item = formatAssigneeName(a, student);
+              const item = formatAssigneeName(a, student, isTeacher || canViewOtherUsersIdentity);
               return (
                 <span key={`${a.student_first_name}-${a.student_last_name}-${i}`} className={`assignee-tag ${item.isCurrentStudent ? 'me' : ''}`}>
-                  {item.isCurrentStudent ? `${item.fullName} (toi)` : item.fullName}
+                  {item.isCurrentStudent && item.fullName.toLowerCase() !== 'toi' ? `${item.fullName} (toi)` : item.fullName}
                 </span>
               );
             })}
@@ -788,12 +800,12 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
           <div className="slots">{slots} place{slots > 1 ? 's' : ''} disponible{slots > 1 ? 's' : ''}</div>
         )}
         <div className="task-actions">
-          {!isTeacher && !isMine && slots > 0 && t.status !== 'validated' && (
+          {!isTeacher && canSelfAssignTasks && !isMine && slots > 0 && t.status !== 'validated' && (
             <button className="btn btn-primary btn-sm" disabled={loading[t.id + 'assign']} onClick={() => assign(t)}>
               {loading[t.id + 'assign'] ? '...' : '✋ Je m\'en occupe'}
             </button>
           )}
-          {!isTeacher && isMine && (t.status === 'in_progress' || t.status === 'available') && (
+          {!isTeacher && canSelfAssignTasks && isMine && (t.status === 'in_progress' || t.status === 'available') && (
             <>
               <button className="btn btn-secondary btn-sm" onClick={() => setLogTask(t)}>
                 ✅ Marquer terminée
@@ -847,6 +859,12 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
             </>
           )}
         </div>
+        <ContextComments
+          contextType="task"
+          contextId={t.id}
+          title="Commentaires de la tâche"
+          placeholder="Partager une info utile sur cette tâche..."
+        />
       </div>
     );
   };
@@ -923,6 +941,8 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
                 isTeacher={isTeacher}
                 isPulsing={!hasSeenSection('tasks')}
                 onMarkSeen={markSectionSeen}
+                onOpen={trackPanelOpen}
+                onDismiss={trackPanelDismiss}
               />
             )}
             <button className="btn btn-ghost btn-sm" onClick={() => setShowProjectForm(true)}>+ Projet</button>
@@ -939,13 +959,17 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
                 isTeacher={isTeacher}
                 isPulsing={!hasSeenSection('tasks')}
                 onMarkSeen={markSectionSeen}
+                onOpen={trackPanelOpen}
+                onDismiss={trackPanelDismiss}
               />
             )}
-            <button className="btn btn-ghost btn-sm" onClick={() => setShowProposalForm(true)}>+ Proposer</button>
+            {canSelfAssignTasks && (
+              <button className="btn btn-ghost btn-sm" onClick={() => setShowProposalForm(true)}>+ Proposer</button>
+            )}
           </div>
         )}
       </div>
-      <p className="section-sub">{isTeacher ? 'Gérer, valider et traiter les propositions' : 'Prends en charge une tâche ou propose-en une nouvelle'}</p>
+      <p className="section-sub">{isTeacher ? 'Gérer, valider et traiter les propositions' : (canSelfAssignTasks ? 'Prends en charge une tâche ou propose-en une nouvelle' : 'Consultation en lecture seule')}</p>
       {isTeacher && (
         <details className="plant-more" style={{ marginBottom: 10 }}>
           <summary>Import tâches/projets (CSV / XLSX)</summary>

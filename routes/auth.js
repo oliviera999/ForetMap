@@ -472,7 +472,7 @@ router.post('/register', async (req, res) => {
       }
       throw err;
     }
-    await ensurePrimaryRole('student', id, 'eleve_novice');
+    await ensurePrimaryRole('student', id, 'visiteur');
     const student = await queryOne("SELECT * FROM users WHERE id = ? AND user_type = 'student'", [id]);
     const session = await buildSessionPayload('student', id, false);
     const token = session ? signAuthToken(session.tokenPayload, false) : null;
@@ -737,7 +737,7 @@ router.get('/google/callback', async (req, res) => {
          VALUES (?, 'student', NULL, ?, NULL, ?, ?, ?, 'Compte Google', NULL, 'both', NULL, 'google', 1, ?, NOW(), NOW())`,
         [id, email, firstName, lastName, `${firstName} ${lastName}`.trim(), now]
       );
-      await ensurePrimaryRole('student', id, 'eleve_novice');
+      await ensurePrimaryRole('student', id, 'visiteur');
       emitStudentsChanged({ reason: 'register_google', studentId: id });
       student = await queryOne("SELECT * FROM users WHERE id = ? AND user_type = 'student'", [id]);
     } else {

@@ -9,6 +9,8 @@ function HelpPanel({
   isTeacher = false,
   isPulsing = false,
   onMarkSeen,
+  onOpen,
+  onDismiss,
 }) {
   const [open, setOpen] = useState(false);
   const dialogRef = useDialogA11y(() => setOpen(false));
@@ -30,7 +32,10 @@ function HelpPanel({
         type="button"
         className={`fm-help-btn ${isPulsing ? 'is-pulsing' : ''}`}
         aria-label={`Ouvrir l aide: ${title}`}
-        onClick={() => setOpen(true)}
+        onClick={() => {
+          onOpen?.(sectionId);
+          setOpen(true);
+        }}
       >
         ?
       </button>
@@ -61,6 +66,7 @@ function HelpPanel({
                 className="btn btn-secondary btn-sm"
                 onClick={() => {
                   onMarkSeen?.(sectionId);
+                  onDismiss?.(sectionId);
                   closePanel();
                 }}
               >

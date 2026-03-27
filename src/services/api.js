@@ -112,7 +112,30 @@ export async function api(path, method = 'GET', body) {
     }
     const ex = new Error(errBody.error || 'Erreur serveur');
     ex.status = res.status;
+    ex.body = errBody;
     throw ex;
   }
   return res.json();
+}
+
+export async function listContextComments({ contextType, contextId, page = 1, pageSize = 10 }) {
+  const qs = new URLSearchParams({
+    contextType: String(contextType || ''),
+    contextId: String(contextId || ''),
+    page: String(page),
+    page_size: String(pageSize),
+  });
+  return api(`/api/context-comments?${qs.toString()}`);
+}
+
+export async function createContextComment({ contextType, contextId, body }) {
+  return api('/api/context-comments', 'POST', { contextType, contextId, body });
+}
+
+export async function deleteContextComment(commentId) {
+  return api(`/api/context-comments/${encodeURIComponent(commentId)}`, 'DELETE');
+}
+
+export async function reportContextComment(commentId, reason) {
+  return api(`/api/context-comments/${encodeURIComponent(commentId)}/report`, 'POST', { reason });
 }

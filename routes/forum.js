@@ -54,6 +54,10 @@ function canModerateForum(auth) {
   return perms.includes('teacher.access');
 }
 
+function isVisitorRole(auth) {
+  return String(auth?.roleSlug || '').trim().toLowerCase() === 'visiteur';
+}
+
 function checkCooldown(actor, action, cooldownMs) {
   const key = `${action}:${actor.userType}:${actor.userId}`;
   const now = Date.now();
@@ -82,6 +86,12 @@ async function loadThreadThreadSafe(threadId) {
 }
 
 router.use(requireAuth);
+router.use((req, res, next) => {
+  if (isVisitorRole(req.auth)) {
+    return res.status(403).json({ error: 'Accès refusé au forum pour le profil visiteur' });
+  }
+  return next();
+});
 
 router.get('/threads', async (req, res) => {
   try {

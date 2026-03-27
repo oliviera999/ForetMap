@@ -189,6 +189,15 @@ function VisitSyncPanel({ isTeacher, mapId, onSynced, onForceLogout }) {
 }
 
 function VisitEditorPanel({ selected, selectedType, onSaved, onForceLogout, isTeacher, roleTerms }) {
+  const stripLeadingMarkerEmoji = useCallback((value) => {
+    const raw = String(value || '').trim();
+    for (const emoji of MARKER_EMOJIS) {
+      if (raw === emoji) return '';
+      if (raw.startsWith(`${emoji} `)) return raw.slice(emoji.length).trimStart();
+    }
+    return raw;
+  }, []);
+
   const [form, setForm] = useState({
     title: '',
     subtitle: '',
@@ -206,15 +215,20 @@ function VisitEditorPanel({ selected, selectedType, onSaved, onForceLogout, isTe
   const tooltipText = (entry) => resolveRoleText(entry, true);
 
   useEffect(() => {
+    const nextTitle = selectedType === 'zone' ? (selected?.name || '') : (selected?.label || '');
+    const trimmedTitle = String(nextTitle || '').trim();
+    const detectedZoneEmoji = MARKER_EMOJIS.find((emoji) => (
+      trimmedTitle === emoji || trimmedTitle.startsWith(`${emoji} `)
+    ));
     setForm({
-      title: selectedType === 'zone' ? (selected?.name || '') : (selected?.label || ''),
+      title: nextTitle,
       subtitle: selected?.visit_subtitle || '',
       short_description: selected?.visit_short_description || '',
       details_title: selected?.visit_details_title || 'Détails',
       details_text: selected?.visit_details_text || '',
       sort_order: Number(selected?.visit_sort_order || 0),
       is_active: Number(selected?.visit_is_active ?? 1) === 1,
-      emoji: selected?.emoji || '📍',
+      emoji: selectedType === 'zone' ? (detectedZoneEmoji || '📍') : (selected?.emoji || '📍'),
     });
     setMediaUrl('');
     setMediaCaption('');
@@ -287,22 +301,6 @@ function VisitEditorPanel({ selected, selectedType, onSaved, onForceLogout, isTe
         <label>{selectedType === 'zone' ? 'Titre de zone' : 'Titre du repère'}</label>
         <input value={form.title} onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))} />
       </div>
-      {selectedType === 'marker' && (
-        <div className="field">
-          <label>Emoji du repère</label>
-          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-            {MARKER_EMOJIS.map((emoji) => (
-              <button
-                key={emoji}
-                className={`emoji-btn ${form.emoji === emoji ? 'sel' : ''}`}
-                onClick={() => setForm((f) => ({ ...f, emoji }))}
-              >
-                {emoji}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
       <div className="field">
         <label>Sous-titre</label>
         <input value={form.subtitle} onChange={(e) => setForm((f) => ({ ...f, subtitle: e.target.value }))} />
@@ -338,6 +336,30 @@ function VisitEditorPanel({ selected, selectedType, onSaved, onForceLogout, isTe
             />
             {' '}Visible en visite
           </label>
+        </div>
+      </div>
+      <div className="field">
+        <label>{selectedType === 'zone' ? 'Liste d’emojis (insérer dans le titre de zone)' : 'Emoji du repère'}</label>
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+          {MARKER_EMOJIS.map((emoji) => (
+            <button
+              key={emoji}
+              className={`emoji-btn ${form.emoji === emoji ? 'sel' : ''}`}
+              onClick={() => {
+                if (selectedType === 'zone') {
+                  setForm((f) => ({
+                    ...f,
+                    emoji,
+                    title: `${emoji} ${stripLeadingMarkerEmoji(f.title)}`.trim(),
+                  }));
+                  return;
+                }
+                setForm((f) => ({ ...f, emoji }));
+              }}
+            >
+              {emoji}
+            </button>
+          ))}
         </div>
       </div>
       <button className="btn btn-primary btn-sm" disabled={saving} onClick={save}>
@@ -419,7 +441,7 @@ function VisitView({
   const [mode, setMode] = useState('view');
   const [drawPoints, setDrawPoints] = useState([]);
   const [creating, setCreating] = useState(false);
-  const { isHelpEnabled, hasSeenSection, markSectionSeen } = useHelp({ publicSettings, isTeacher });
+  const { isHelpEnabled, hasSeenSection, markSectionSeen, trackPanelOpen, trackPanelDismiss } = useHelp({ publicSettings, isTeacher });
 
   const currentMap = useMemo(() => maps.find((m) => m.id === mapId), [maps, mapId]);
 
@@ -575,6 +597,8 @@ function VisitView({
               isTeacher={isTeacher}
               isPulsing={!hasSeenSection('visit')}
               onMarkSeen={markSectionSeen}
+              onOpen={trackPanelOpen}
+              onDismiss={trackPanelDismiss}
             />
           )}
           {!student && onBackToAuth && (

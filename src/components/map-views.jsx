@@ -9,6 +9,7 @@ import { useDialogA11y } from '../hooks/useDialogA11y';
 import { useHelp } from '../hooks/useHelp';
 import { HelpPanel } from './HelpPanel';
 import { Tooltip } from './Tooltip';
+import { ContextComments } from './context-comments';
 import { HELP_PANELS, HELP_TOOLTIPS, resolveRoleText } from '../constants/help';
 
 function Toast({ msg, onDone }) {
@@ -82,6 +83,22 @@ function parseLivingBeings(value, fallback = '') {
   const cleaned = [...new Set(raw.map(v => String(v || '').trim()).filter(Boolean))];
   if (cleaned.length === 0 && fallback) return [String(fallback).trim()];
   return cleaned;
+}
+
+function detectLeadingMarkerEmoji(value) {
+  const raw = String(value || '').trim();
+  return MARKER_EMOJIS.find((emoji) => (
+    raw === emoji || raw.startsWith(`${emoji} `)
+  )) || null;
+}
+
+function stripLeadingMarkerEmoji(value) {
+  const raw = String(value || '').trim();
+  for (const emoji of MARKER_EMOJIS) {
+    if (raw === emoji) return '';
+    if (raw.startsWith(`${emoji} `)) return raw.slice(emoji.length).trimStart();
+  }
+  return raw;
 }
 
 function PhotoGallery({ zoneId, isTeacher }) {
@@ -263,10 +280,11 @@ function mergeTaskVisualStatus(current, next) {
   return (TASK_VISUAL_PRIORITY[next] || 0) > (TASK_VISUAL_PRIORITY[current] || 0) ? next : current;
 }
 
-function ZoneInfoModal({ zone, plants, tasks, isTeacher, student, onClose, onUpdate, onDelete, onEditPoints, onLinkTask, onUnlinkTask, onAssignTasks }) {
+function ZoneInfoModal({ zone, plants, tasks, isTeacher, student, canSelfAssignTasks = true, onClose, onUpdate, onDelete, onEditPoints, onLinkTask, onUnlinkTask, onAssignTasks }) {
   const dialogRef = useDialogA11y(onClose);
   const [tab, setTab] = useState('tasks');
-  const [zoneName, setZoneName] = useState(zone.name || '');
+  const [zoneName, setZoneName] = useState(stripLeadingMarkerEmoji(zone.name || ''));
+  const [zoneEmoji, setZoneEmoji] = useState(detectLeadingMarkerEmoji(zone.name || '') || '📍');
   const [plant, setPlant] = useState(zone.current_plant || '');
   const [livingBeings, setLivingBeings] = useState(parseLivingBeings(zone.living_beings_list || zone.living_beings, zone.current_plant));
   const [stage, setStage] = useState(zone.stage || 'empty');
@@ -300,13 +318,20 @@ function ZoneInfoModal({ zone, plants, tasks, isTeacher, student, onClose, onUpd
   }, [studentAssignableTasks]);
 
   const save = async () => {
-    if (!zoneName.trim()) {
+    const cleanName = stripLeadingMarkerEmoji(zoneName);
+    if (!cleanName) {
       setToast('Nom requis');
       return;
     }
     setSaving(true);
     try {
-      await onUpdate(zone.id, { name: zoneName, current_plant: plant, living_beings: livingBeings, stage, description: desc });
+      await onUpdate(zone.id, {
+        name: `${zoneEmoji} ${cleanName}`.trim(),
+        current_plant: plant,
+        living_beings: livingBeings,
+        stage,
+        description: desc,
+      });
       setToast('Sauvegardé ✓');
       setTab('info');
     } catch (e) { setToast('Erreur'); }
@@ -404,6 +429,12 @@ function ZoneInfoModal({ zone, plants, tasks, isTeacher, student, onClose, onUpd
                 Zone vide — aucune information pour l'instant.
               </p>
             )}
+            <ContextComments
+              contextType="zone"
+              contextId={zone.id}
+              title="Commentaires de la zone"
+              placeholder="Ajouter une observation sur cette zone..."
+            />
           </div>
         )}
 
@@ -453,6 +484,18 @@ function ZoneInfoModal({ zone, plants, tasks, isTeacher, student, onClose, onUpd
             <div className="field"><label>Description</label>
               <textarea value={desc} onChange={e => setDesc(e.target.value)} rows={3}
                 placeholder="Observations, conseils, notes sur cette zone..." />
+            </div>
+            <div className="field"><label>Emoji de zone</label>
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                {MARKER_EMOJIS.map((emoji) => (
+                  <button
+                    key={emoji}
+                    className={`emoji-btn ${zoneEmoji === emoji ? 'sel' : ''}`}
+                    onClick={() => setZoneEmoji(emoji)}>
+                    {emoji}
+                  </button>
+                ))}
+              </div>
             </div>
             <button className="btn btn-primary btn-full" onClick={save} disabled={saving}>
               {saving ? '...' : '💾 Sauvegarder'}
@@ -507,7 +550,9 @@ function ZoneInfoModal({ zone, plants, tasks, isTeacher, student, onClose, onUpd
               <>
                 <TaskEnrollmentLegend />
                 <p style={{ color: '#666', fontSize: '.84rem', marginBottom: 10 }}>
-                  Sélectionne une ou plusieurs tâches puis inscris-toi directement.
+                  {canSelfAssignTasks
+                    ? 'Sélectionne une ou plusieurs tâches puis inscris-toi directement.'
+                    : 'Profil visiteur : consultation en lecture seule.'}
                 </p>
                 <div style={{ display: 'grid', gap: 8 }}>
                   {linkedTasks.map((t) => {
@@ -530,9 +575,9 @@ function ZoneInfoModal({ zone, plants, tasks, isTeacher, student, onClose, onUpd
                         <input
                           type="checkbox"
                           checked={checked}
-                          disabled={!canAssign || assigning}
+                          disabled={!canSelfAssignTasks || !canAssign || assigning}
                           onChange={() => {
-                            if (!canAssign) return;
+                            if (!canSelfAssignTasks || !canAssign) return;
                             setSelectedTaskIds((prev) => (
                               prev.includes(t.id) ? prev.filter((id) => id !== t.id) : [...prev, t.id]
                             ));
@@ -552,7 +597,7 @@ function ZoneInfoModal({ zone, plants, tasks, isTeacher, student, onClose, onUpd
                 <button
                   className="btn btn-primary btn-full"
                   style={{ marginTop: 12 }}
-                  disabled={assigning || selectedTaskIds.length === 0}
+                  disabled={!canSelfAssignTasks || assigning || selectedTaskIds.length === 0}
                   onClick={async () => {
                     if (!onAssignTasks || selectedTaskIds.length === 0) return;
                     setAssigning(true);
@@ -579,13 +624,26 @@ function ZoneInfoModal({ zone, plants, tasks, isTeacher, student, onClose, onUpd
 
 function ZoneDrawModal({ points_pct, onClose, onSave, plants }) {
   const dialogRef = useDialogA11y(onClose);
-  const [form, setForm] = useState({ name: '', current_plant: '', living_beings: [], stage: 'empty', description: '', color: ZONE_COLORS[0] });
+  const [form, setForm] = useState({
+    name: '',
+    zone_emoji: '📍',
+    current_plant: '',
+    living_beings: [],
+    stage: 'empty',
+    description: '',
+    color: ZONE_COLORS[0],
+  });
   const [saving, setSaving] = useState(false);
   const set = k => e => setForm(f => ({ ...f, [k]: e.target.value }));
   const save = async () => {
-    if (!form.name.trim()) return;
+    const cleanName = stripLeadingMarkerEmoji(form.name);
+    if (!cleanName) return;
     setSaving(true);
-    try { await onSave({ ...form, points: points_pct }); onClose(); }
+    try {
+      const { zone_emoji, ...rest } = form;
+      await onSave({ ...rest, name: `${zone_emoji} ${cleanName}`.trim(), points: points_pct });
+      onClose();
+    }
     catch (e) { setSaving(false); }
   };
   return (
@@ -651,6 +709,18 @@ function ZoneDrawModal({ points_pct, onClose, onSave, plants }) {
             ))}
           </div>
         </div>
+        <div className="field"><label>Emoji de zone</label>
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+            {MARKER_EMOJIS.map((emoji) => (
+              <button
+                key={emoji}
+                className={`emoji-btn ${form.zone_emoji === emoji ? 'sel' : ''}`}
+                onClick={() => setForm((f) => ({ ...f, zone_emoji: emoji }))}>
+                {emoji}
+              </button>
+            ))}
+          </div>
+        </div>
         <button className="btn btn-primary btn-full" onClick={save} disabled={saving} style={{ marginTop: 4 }}>
           {saving ? '...' : '✅ Créer la zone'}
         </button>
@@ -659,7 +729,7 @@ function ZoneDrawModal({ points_pct, onClose, onSave, plants }) {
   );
 }
 
-function MarkerModal({ marker, plants, tasks, onClose, onSave, onDelete, onLinkTask, onUnlinkTask, onAssignTasks, isTeacher, student }) {
+function MarkerModal({ marker, plants, tasks, onClose, onSave, onDelete, onLinkTask, onUnlinkTask, onAssignTasks, isTeacher, student, canSelfAssignTasks = true }) {
   const dialogRef = useDialogA11y(onClose);
   const isNew = !marker.id;
   const [form, setForm] = useState({
@@ -800,7 +870,9 @@ function MarkerModal({ marker, plants, tasks, onClose, onSave, onDelete, onLinkT
                 <>
                   <TaskEnrollmentLegend />
                   <p style={{ color: '#666', fontSize: '.84rem', marginBottom: 10 }}>
-                    Tu peux t'inscrire à une ou plusieurs tâches liées à ce repère.
+                    {canSelfAssignTasks
+                      ? 'Tu peux t\'inscrire à une ou plusieurs tâches liées à ce repère.'
+                      : 'Profil visiteur : consultation en lecture seule.'}
                   </p>
                   <div style={{ display: 'grid', gap: 8 }}>
                     {linkedTasks.map((t) => {
@@ -823,9 +895,9 @@ function MarkerModal({ marker, plants, tasks, onClose, onSave, onDelete, onLinkT
                           <input
                             type="checkbox"
                             checked={checked}
-                            disabled={!canAssign || assigning}
+                            disabled={!canSelfAssignTasks || !canAssign || assigning}
                             onChange={() => {
-                              if (!canAssign) return;
+                              if (!canSelfAssignTasks || !canAssign) return;
                               setSelectedTaskIds((prev) => (
                                 prev.includes(t.id) ? prev.filter((id) => id !== t.id) : [...prev, t.id]
                               ));
@@ -845,7 +917,7 @@ function MarkerModal({ marker, plants, tasks, onClose, onSave, onDelete, onLinkT
                   <button
                     className="btn btn-primary btn-full"
                     style={{ marginTop: 12 }}
-                    disabled={assigning || selectedTaskIds.length === 0}
+                    disabled={!canSelfAssignTasks || assigning || selectedTaskIds.length === 0}
                     onClick={async () => {
                       if (!onAssignTasks || selectedTaskIds.length === 0) return;
                       setAssigning(true);
@@ -1163,7 +1235,7 @@ function useMapGestures({ mapImageSrc, activeMapId, mode, onRefresh }) {
   };
 }
 
-function MapView({ zones, markers, tasks = [], plants, maps = [], activeMapId = 'foret', onMapChange, isTeacher, student, onZoneUpdate, onRefresh, embedded = false, publicSettings = null }) {
+function MapView({ zones, markers, tasks = [], plants, maps = [], activeMapId = 'foret', onMapChange, isTeacher, student, canSelfAssignTasks = true, onZoneUpdate, onRefresh, embedded = false, publicSettings = null }) {
   const [mode, setMode] = useState('view');
   const [showLabels, setShowLabels] = useState(true);
   const [drawPoints, setDrawPoints] = useState([]);
@@ -1306,7 +1378,7 @@ function MapView({ zones, markers, tasks = [], plants, maps = [], activeMapId = 
   const deleteZone = async id => { await api(`/api/zones/${id}`, 'DELETE'); await onRefresh(); };
   const assignTasksToStudent = async (taskIds) => {
     const ids = [...new Set((taskIds || []).filter(Boolean))];
-    if (!ids.length || !student) {
+    if (!canSelfAssignTasks || !ids.length || !student) {
       return { assignedCount: 0, failedCount: 0, firstError: null };
     }
     let assignedCount = 0;
@@ -1342,6 +1414,8 @@ function MapView({ zones, markers, tasks = [], plants, maps = [], activeMapId = 
     const str = wp.map(p => `${p.cx},${p.cy}`).join(' ');
     const mx = wp.reduce((s, p) => s + p.cx, 0) / wp.length;
     const my = wp.reduce((s, p) => s + p.cy, 0) / wp.length;
+    const zoneEmoji = detectLeadingMarkerEmoji(z.name || '');
+    const zoneName = stripLeadingMarkerEmoji(z.name || '');
     const isEd = mode === 'edit-points' && editZone?.id === z.id;
     const zoneTaskVisual = zoneTaskVisualById.get(z.id);
     return (
@@ -1351,10 +1425,23 @@ function MapView({ zones, markers, tasks = [], plants, maps = [], activeMapId = 
           stroke={isEd ? '#52b788' : 'rgba(26,71,49,0.5)'}
           strokeWidth={(isEd ? 2.5 : 1.5) * inv} strokeDasharray={z.special ? `${5 * inv},${3 * inv}` : 'none'} />
         {showLabels && (
-          <text x={mx} y={my} textAnchor="middle" dominantBaseline="middle"
+          <text
+            x={mx}
+            y={my}
+            textAnchor="middle"
+            dominantBaseline="middle"
+            fontSize={Math.max(11, 16 * inv)}
+            fontFamily="Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif"
+            style={{ pointerEvents: 'none', userSelect: 'none' }}
+          >
+            {zoneEmoji || ''}
+          </text>
+        )}
+        {showLabels && (
+          <text x={mx} y={my + (zoneEmoji ? (12 * inv) : 0)} textAnchor="middle" dominantBaseline="middle"
             fontSize={Math.max(8, 12 * inv)} fontWeight="700" fontFamily="DM Sans,sans-serif"
             fill="#1a4731" stroke="rgba(255,255,255,0.8)" strokeWidth={3 * inv} paintOrder="stroke"
-            style={{ pointerEvents: 'none', userSelect: 'none' }}>{z.name}</text>
+            style={{ pointerEvents: 'none', userSelect: 'none' }}>{zoneName || z.name}</text>
         )}
         {zoneTaskVisual && (
           <circle
@@ -1409,7 +1496,7 @@ function MapView({ zones, markers, tasks = [], plants, maps = [], activeMapId = 
     : (isTeacher ? 'calc(100dvh - 56px)' : 'calc(100dvh - 56px - 72px)');
   const mapAspect = imgSize.w > 1 && imgSize.h > 1 ? `${imgSize.w} / ${imgSize.h}` : '16 / 10';
   const mobileInteractionsActive = mapInteractionEnabled || committed.s > 1.05;
-  const { isHelpEnabled, hasSeenSection, markSectionSeen } = useHelp({ publicSettings, isTeacher });
+  const { isHelpEnabled, hasSeenSection, markSectionSeen, trackPanelOpen, trackPanelDismiss } = useHelp({ publicSettings, isTeacher });
   const helpMap = HELP_PANELS.map;
   const tooltipText = (entry) => resolveRoleText(entry, isTeacher);
 
@@ -1418,7 +1505,7 @@ function MapView({ zones, markers, tasks = [], plants, maps = [], activeMapId = 
       {toast && <Toast msg={toast} onDone={() => setToast(null)} />}
 
       {selectedZone && (
-        <ZoneInfoModal zone={selectedZone} plants={plants} tasks={tasks} isTeacher={isTeacher} student={student}
+        <ZoneInfoModal zone={selectedZone} plants={plants} tasks={tasks} isTeacher={isTeacher} student={student} canSelfAssignTasks={canSelfAssignTasks}
           onClose={() => setSelectedZone(null)}
           onUpdate={async (id, data) => { await onZoneUpdate(id, data); setSelectedZone(null); await onRefresh(); }}
           onDelete={async id => { await deleteZone(id); setSelectedZone(null); }}
@@ -1428,7 +1515,7 @@ function MapView({ zones, markers, tasks = [], plants, maps = [], activeMapId = 
           onEditPoints={isTeacher ? z => startEditPoints(z) : null} />
       )}
       {selectedMarker && (
-        <MarkerModal marker={selectedMarker} plants={plants} tasks={tasks} isTeacher={isTeacher} student={student}
+        <MarkerModal marker={selectedMarker} plants={plants} tasks={tasks} isTeacher={isTeacher} student={student} canSelfAssignTasks={canSelfAssignTasks}
           onClose={() => setSelectedMarker(null)} onSave={saveMarker} onDelete={deleteMarker}
           onLinkTask={async (taskId) => linkTaskToMarker(taskId, selectedMarker.id)}
           onUnlinkTask={(t) => unlinkTaskFromMarker(t, selectedMarker.id)}
@@ -1553,6 +1640,8 @@ function MapView({ zones, markers, tasks = [], plants, maps = [], activeMapId = 
               isTeacher={isTeacher}
               isPulsing={!hasSeenSection('map')}
               onMarkSeen={markSectionSeen}
+              onOpen={trackPanelOpen}
+              onDismiss={trackPanelDismiss}
             />
           )}
         </div>

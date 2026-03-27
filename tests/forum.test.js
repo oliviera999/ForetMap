@@ -3,7 +3,7 @@ const test = require('node:test');
 const assert = require('node:assert');
 const request = require('supertest');
 const { app } = require('../server');
-const { initDatabase } = require('../database');
+const { initDatabase, queryOne, execute } = require('../database');
 
 test.before(async () => {
   await initDatabase();
@@ -22,6 +22,19 @@ async function registerStudent(prefix) {
     .expect(201);
   assert.ok(res.body?.id);
   assert.ok(res.body?.authToken);
+  const noviceRole = await queryOne("SELECT id FROM roles WHERE slug = 'eleve_novice' LIMIT 1");
+  assert.ok(noviceRole?.id);
+  await execute('UPDATE user_roles SET is_primary = 0 WHERE user_type = ? AND user_id = ?', ['student', res.body.id]);
+  await execute(
+    'INSERT INTO user_roles (user_type, user_id, role_id, is_primary) VALUES (?, ?, ?, 1) ON DUPLICATE KEY UPDATE is_primary = 1',
+    ['student', res.body.id, noviceRole.id]
+  );
+  const login = await request(app)
+    .post('/api/auth/login')
+    .send({ identifier: res.body.email, password: 'pass1234' })
+    .expect(200);
+  assert.ok(login.body?.authToken);
+  res.body.authToken = login.body.authToken;
   return res.body;
 }
 
@@ -94,6 +107,22 @@ test('Forum: un prof peut verrouiller un sujet', async () => {
     .set(auth(student.authToken))
     .send({ body: 'Réponse bloquée quand verrouillé.' })
     .expect(409);
+});
+
+test('Forum: un élève ne peut pas verrouiller un sujet', async () => {
+  const student = await registerStudent('NoLockForum');
+  const create = await request(app)
+    .post('/api/forum/threads')
+    .set(auth(student.authToken))
+    .send({ title: `Sujet no lock ${Date.now()}`, body: 'Message initial.' })
+    .expect(201);
+  const threadId = create.body.thread.id;
+
+  await request(app)
+    .patch(`/api/forum/threads/${threadId}/lock`)
+    .set(auth(student.authToken))
+    .send({ locked: true })
+    .expect(403);
 });
 
 test('Forum: suppression de message selon droits', async () => {

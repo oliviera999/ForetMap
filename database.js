@@ -75,6 +75,42 @@ async function execute(sql, params = []) {
   };
 }
 
+async function withTransaction(work) {
+  const conn = await pool.getConnection();
+  try {
+    await conn.beginTransaction();
+    const tx = {
+      queryAll: async (sql, params = []) => {
+        const [rows] = await conn.execute(sql, params);
+        return Array.isArray(rows) ? rows : [];
+      },
+      queryOne: async (sql, params = []) => {
+        const [rows] = await conn.execute(sql, params);
+        return Array.isArray(rows) ? rows[0] : undefined;
+      },
+      execute: async (sql, params = []) => {
+        const [result] = await conn.execute(sql, params);
+        return {
+          insertId: result.insertId,
+          affectedRows: result.affectedRows,
+        };
+      },
+    };
+    const result = await work(tx);
+    await conn.commit();
+    return result;
+  } catch (err) {
+    try {
+      await conn.rollback();
+    } catch (_) {
+      // Ignore rollback errors and propagate root cause.
+    }
+    throw err;
+  } finally {
+    conn.release();
+  }
+}
+
 /** Vérifie que la connexion MySQL fonctionne. */
 async function ping() {
   const conn = await pool.getConnection();
@@ -300,6 +336,7 @@ module.exports = {
   queryAll,
   queryOne,
   execute,
+  withTransaction,
   ping,
   initSchema,
   seedData,

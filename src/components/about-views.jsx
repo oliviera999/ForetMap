@@ -1,8 +1,10 @@
 import React from 'react';
 import { getRoleTerms } from '../utils/n3-terminology';
+import { useHelp } from '../hooks/useHelp';
 
-function AboutView({ appVersion, isN3Affiliated = false }) {
+function AboutView({ appVersion, isN3Affiliated = false, publicSettings = null, isTeacher = false }) {
   const roleTerms = getRoleTerms(isN3Affiliated);
+  const { resetHelp, metrics, resetHelpMetrics } = useHelp({ publicSettings, isTeacher });
   const docsLinks = [
     { label: 'CHANGELOG', href: '/CHANGELOG.md', desc: 'Historique des modifications publiées' },
     { label: 'README', href: '/README.md', desc: 'Présentation du projet et installation' },
@@ -49,6 +51,25 @@ function AboutView({ appVersion, isN3Affiliated = false }) {
             <strong>github.com/oliviera999/ForetMap</strong><br />
             <small>Code source complet du projet</small>
           </a>
+        </div>
+
+        <div className="about-card">
+          <h3>Aide contextuelle</h3>
+          <p>
+            Si les bulles d aide ont ete masquées, tu peux les reactiver ici.
+          </p>
+          <div className="about-meta">
+            <span className="about-chip">Ouvertures panneau aide: {Number(metrics?.panelOpenCount || 0)}</span>
+            <span className="about-chip">Masquages "Ne plus afficher": {Number(metrics?.panelDismissCount || 0)}</span>
+          </div>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 8 }}>
+            <button className="btn btn-secondary btn-sm" onClick={resetHelp}>
+              Reactiver toutes les aides
+            </button>
+            <button className="btn btn-ghost btn-sm" onClick={resetHelpMetrics}>
+              Reinitialiser les compteurs d aide
+            </button>
+          </div>
         </div>
       </div>
     </div>

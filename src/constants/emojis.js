@@ -11,14 +11,14 @@ export const EMOJI_CATEGORIES = {
   ],
 };
 
-export const MARKER_EMOJIS = [...new Set([
-  ...EMOJI_CATEGORIES.biodiversite,
-  ...EMOJI_CATEGORIES.techno,
-  ...EMOJI_CATEGORIES.ecole,
-  '🏠', '⚠️',
-])];
-
 export const PLANT_EMOJIS = [...new Set([
   ...EMOJI_CATEGORIES.biodiversite,
   '🍆', '🥔',
+])];
+
+export const MARKER_EMOJIS = [...new Set([
+  ...PLANT_EMOJIS,
+  ...EMOJI_CATEGORIES.techno,
+  ...EMOJI_CATEGORIES.ecole,
+  '🏠', '⚠️',
 ])];

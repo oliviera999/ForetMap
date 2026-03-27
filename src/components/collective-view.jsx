@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { api } from '../services/api';
 import { getRoleTerms } from '../utils/n3-terminology';
+import { ContextComments } from './context-comments';
 
 const MOBILE_BREAKPOINT = 768;
 
@@ -67,6 +68,8 @@ function CollectiveView({
   const [taskToAddId, setTaskToAddId] = useState('');
   const [studentToAddId, setStudentToAddId] = useState('');
   const [dragStudentId, setDragStudentId] = useState('');
+  const [bulkStudentIds, setBulkStudentIds] = useState([]);
+  const [bulkTaskIds, setBulkTaskIds] = useState([]);
   const [newTaskCandidates, setNewTaskCandidates] = useState([]);
   const [newStudentCandidates, setNewStudentCandidates] = useState([]);
   const [sessionState, setSessionState] = useState({
@@ -115,6 +118,8 @@ function CollectiveView({
   useEffect(() => {
     setNewTaskCandidates([]);
     setNewStudentCandidates([]);
+    setBulkStudentIds([]);
+    setBulkTaskIds([]);
     knownContextTaskIdsRef.current = new Set();
     knownStudentIdsRef.current = new Set();
     contextPromptPrimedRef.current = false;
@@ -173,6 +178,23 @@ function CollectiveView({
     }
   }, [canManageSession, contextId, contextType]);
 
+  const getExpectedVersion = useCallback(() => {
+    const version = Number(sessionState?.session?.version);
+    return Number.isInteger(version) && version >= 0 ? version : 0;
+  }, [sessionState]);
+
+  const handleSessionConflict = useCallback(async (err) => {
+    if (err?.status !== 409) return false;
+    const current = err?.body?.current;
+    if (current && current.session) {
+      setSessionState(current);
+    } else {
+      await loadSession();
+    }
+    setToast('Session modifiée ailleurs, état rechargé. Recommence l’action.');
+    return true;
+  }, [loadSession]);
+
   useEffect(() => {
     loadStudents();
   }, [loadStudents]);
@@ -186,6 +208,10 @@ function CollectiveView({
       const domain = e?.detail?.domain;
       if (domain === 'students') {
         loadStudents();
+        loadSession();
+        return;
+      }
+      if (domain === 'collective') {
         loadSession();
         return;
       }
@@ -210,6 +236,8 @@ function CollectiveView({
   const absentSet = useMemo(() => new Set(sessionState?.absent_student_ids || []), [sessionState]);
   const selectedTaskSet = useMemo(() => new Set(sessionState?.selected_task_ids || []), [sessionState]);
   const selectedStudentSet = useMemo(() => new Set(sessionState?.selected_student_ids || []), [sessionState]);
+  const bulkStudentSet = useMemo(() => new Set(bulkStudentIds), [bulkStudentIds]);
+  const bulkTaskSet = useMemo(() => new Set(bulkTaskIds), [bulkTaskIds]);
   const contextMapId = useMemo(() => {
     if (contextType === 'map') return contextId || activeMapId;
     const project = projectById.get(contextId);
@@ -261,6 +289,52 @@ function CollectiveView({
   const presentStudents = visibleSelectedStudents.filter((s) => !absentSet.has(s.id));
   const absentStudents = visibleSelectedStudents.filter((s) => absentSet.has(s.id));
   const selectedStudent = students.find((s) => s.id === selectedStudentId) || null;
+  const allVisibleStudentIds = useMemo(
+    () => visibleSelectedStudents.map((s) => s.id),
+    [visibleSelectedStudents]
+  );
+  const allContextTaskIds = useMemo(
+    () => contextTasks.map((t) => t.id),
+    [contextTasks]
+  );
+  const allSessionTaskIds = useMemo(
+    () => visibleTasks.map((t) => t.id),
+    [visibleTasks]
+  );
+
+  useEffect(() => {
+    const validIds = new Set(allVisibleStudentIds);
+    setBulkStudentIds((prev) => prev.filter((id) => validIds.has(id)));
+  }, [allVisibleStudentIds]);
+
+  useEffect(() => {
+    const validIds = new Set(allContextTaskIds);
+    setBulkTaskIds((prev) => prev.filter((id) => validIds.has(id)));
+  }, [allContextTaskIds]);
+
+  const toggleBulkStudent = useCallback((studentId) => {
+    if (!studentId) return;
+    setBulkStudentIds((prev) => (
+      prev.includes(studentId)
+        ? prev.filter((id) => id !== studentId)
+        : [...prev, studentId]
+    ));
+  }, []);
+
+  const toggleBulkTask = useCallback((taskId) => {
+    if (!taskId) return;
+    setBulkTaskIds((prev) => (
+      prev.includes(taskId)
+        ? prev.filter((id) => id !== taskId)
+        : [...prev, taskId]
+    ));
+  }, []);
+
+  const selectAllVisibleStudents = useCallback(() => setBulkStudentIds(allVisibleStudentIds), [allVisibleStudentIds]);
+  const clearBulkStudents = useCallback(() => setBulkStudentIds([]), []);
+  const selectAllContextTasks = useCallback(() => setBulkTaskIds(allContextTaskIds), [allContextTaskIds]);
+  const selectAllSessionTasks = useCallback(() => setBulkTaskIds(allSessionTaskIds), [allSessionTaskIds]);
+  const clearBulkTasks = useCallback(() => setBulkTaskIds([]), []);
 
   const toggleSessionActive = async () => {
     if (!canManageSession || !contextId) return;
@@ -270,10 +344,12 @@ function CollectiveView({
         contextType,
         contextId,
         isActive: !sessionState?.session?.is_active,
+        expectedVersion: getExpectedVersion(),
       });
       setSessionState(data);
       setToast(data?.session?.is_active ? 'Vue collectif activée' : 'Vue collectif désactivée');
     } catch (err) {
+      if (await handleSessionConflict(err)) return;
       setToast(`Erreur activation : ${err.message}`);
     } finally {
       setSaving(false);
@@ -284,10 +360,15 @@ function CollectiveView({
     if (!canManageSession || !contextId) return;
     setSaving(true);
     try {
-      const data = await api('/api/collective/session/reset', 'POST', { contextType, contextId });
+      const data = await api('/api/collective/session/reset', 'POST', {
+        contextType,
+        contextId,
+        expectedVersion: getExpectedVersion(),
+      });
       setSessionState(data);
       setToast('Session collectif réinitialisée');
     } catch (err) {
+      if (await handleSessionConflict(err)) return;
       setToast(`Erreur reset : ${err.message}`);
     } finally {
       setSaving(false);
@@ -303,10 +384,12 @@ function CollectiveView({
         contextId,
         studentId,
         absent,
+        expectedVersion: getExpectedVersion(),
       });
       setSessionState(data);
       setToast(absent ? `${roleTerms.studentSingular} masqué(e) (absent)` : `${roleTerms.studentSingular} réintégré(e)`);
     } catch (err) {
+      if (await handleSessionConflict(err)) return;
       setToast(`Erreur présence : ${err.message}`);
     } finally {
       setSaving(false);
@@ -322,10 +405,12 @@ function CollectiveView({
         contextId,
         taskId,
         selected,
+        expectedVersion: getExpectedVersion(),
       });
       setSessionState(data);
       setToast(selected ? 'Tâche ajoutée à la session' : 'Tâche retirée de la session');
     } catch (err) {
+      if (await handleSessionConflict(err)) return;
       setToast(`Erreur sélection tâche : ${err.message}`);
     } finally {
       setSaving(false);
@@ -341,14 +426,144 @@ function CollectiveView({
         contextId,
         studentId,
         selected,
+        expectedVersion: getExpectedVersion(),
       });
       setSessionState(data);
       setToast(selected ? `${roleTerms.studentSingular} ajouté(e) à la session` : `${roleTerms.studentSingular} retiré(e) de la session`);
     } catch (err) {
+      if (await handleSessionConflict(err)) return;
       setToast(`Erreur sélection ${roleTerms.studentSingular} : ${err.message}`);
     } finally {
       setSaving(false);
     }
+  };
+
+  const executeSequentialBulk = useCallback(async ({
+    ids,
+    endpoint,
+    buildBody,
+  }) => {
+    let expectedVersion = getExpectedVersion();
+    let nextState = null;
+    let applied = 0;
+    let failed = 0;
+    for (const id of ids) {
+      try {
+        nextState = await api(endpoint, 'PUT', {
+          contextType,
+          contextId,
+          ...buildBody(id),
+          expectedVersion,
+        });
+        expectedVersion = Number(nextState?.session?.version || expectedVersion);
+        applied += 1;
+      } catch (err) {
+        if (await handleSessionConflict(err)) {
+          return { conflicted: true, nextState, applied, failed };
+        }
+        failed += 1;
+      }
+    }
+    return { conflicted: false, nextState, applied, failed };
+  }, [contextId, contextType, getExpectedVersion, handleSessionConflict]);
+
+  const applyBulkChange = useCallback(async ({
+    ids,
+    bulkEndpoint,
+    bulkBody,
+    fallbackEndpoint,
+    fallbackBodyBuilder,
+    doneLabel,
+    clearSelection,
+  }) => {
+    if (!canManageSession || !contextId || ids.length === 0) return;
+    setSaving(true);
+    try {
+      let data = null;
+      let applied = 0;
+      let failed = 0;
+      let skipped = 0;
+      try {
+        data = await api(bulkEndpoint, 'PUT', {
+          contextType,
+          contextId,
+          ...bulkBody,
+          expectedVersion: getExpectedVersion(),
+        });
+        applied = Array.isArray(data?.bulk?.applied) ? data.bulk.applied.length : ids.length;
+        failed = Array.isArray(data?.bulk?.invalid) ? data.bulk.invalid.length : 0;
+        skipped = Array.isArray(data?.bulk?.not_selected) ? data.bulk.not_selected.length : 0;
+      } catch (err) {
+        const fallbackAllowed = (err?.status === 404 || err?.status === 405) && !err?.body?.error;
+        if (!fallbackAllowed) throw err;
+        const sequential = await executeSequentialBulk({
+          ids,
+          endpoint: fallbackEndpoint,
+          buildBody: fallbackBodyBuilder,
+        });
+        if (sequential.conflicted) return;
+        data = sequential.nextState;
+        applied = sequential.applied;
+        failed = sequential.failed;
+      }
+      if (data) setSessionState(data);
+      const parts = [`${applied} ${doneLabel}`];
+      if (skipped > 0) parts.push(`${skipped} ignoré(s)`);
+      if (failed > 0) parts.push(`${failed} échec(s)`);
+      setToast(parts.join(' - '));
+      clearSelection?.();
+    } catch (err) {
+      if (await handleSessionConflict(err)) return;
+      setToast(`Erreur action de masse : ${err.message}`);
+    } finally {
+      setSaving(false);
+    }
+  }, [
+    canManageSession,
+    contextId,
+    contextType,
+    executeSequentialBulk,
+    getExpectedVersion,
+    handleSessionConflict,
+  ]);
+
+  const bulkSetStudentsAbsent = async (absent) => {
+    const ids = bulkStudentIds.filter((id) => selectedStudentSet.has(id));
+    await applyBulkChange({
+      ids,
+      bulkEndpoint: '/api/collective/session/attendance/bulk',
+      bulkBody: { studentIds: ids, absent },
+      fallbackEndpoint: '/api/collective/session/attendance',
+      fallbackBodyBuilder: (studentId) => ({ studentId, absent }),
+      doneLabel: absent ? 'marqué(s) absent(s)' : 'réintégré(s)',
+      clearSelection: clearBulkStudents,
+    });
+  };
+
+  const bulkSetStudentsSelected = async (selected) => {
+    const ids = bulkStudentIds;
+    await applyBulkChange({
+      ids,
+      bulkEndpoint: '/api/collective/session/students/bulk',
+      bulkBody: { studentIds: ids, selected },
+      fallbackEndpoint: '/api/collective/session/students',
+      fallbackBodyBuilder: (studentId) => ({ studentId, selected }),
+      doneLabel: selected ? 'ajouté(s) à la session' : 'retiré(s) de la session',
+      clearSelection: clearBulkStudents,
+    });
+  };
+
+  const bulkSetTasksSelected = async (selected) => {
+    const ids = bulkTaskIds;
+    await applyBulkChange({
+      ids,
+      bulkEndpoint: '/api/collective/session/tasks/bulk',
+      bulkBody: { taskIds: ids, selected },
+      fallbackEndpoint: '/api/collective/session/tasks',
+      fallbackBodyBuilder: (taskId) => ({ taskId, selected }),
+      doneLabel: selected ? 'tâche(s) ajoutée(s)' : 'tâche(s) retirée(s)',
+      clearSelection: clearBulkTasks,
+    });
   };
 
   const assignStudentToTask = async (task, student) => {
@@ -460,18 +675,22 @@ function CollectiveView({
     setSaving(true);
     try {
       let nextState = null;
+      let expectedVersion = getExpectedVersion();
       for (const taskId of newTaskCandidates) {
         nextState = await api('/api/collective/session/tasks', 'PUT', {
           contextType,
           contextId,
           taskId,
           selected: true,
+          expectedVersion,
         });
+        expectedVersion = Number(nextState?.session?.version || expectedVersion);
       }
       if (nextState) setSessionState(nextState);
       setToast(`${newTaskCandidates.length} nouvelle(s) tâche(s) ajoutée(s) à la session`);
       setNewTaskCandidates([]);
     } catch (err) {
+      if (await handleSessionConflict(err)) return;
       setToast(`Erreur sélection tâche : ${err.message}`);
     } finally {
       setSaving(false);
@@ -483,18 +702,22 @@ function CollectiveView({
     setSaving(true);
     try {
       let nextState = null;
+      let expectedVersion = getExpectedVersion();
       for (const studentId of newStudentCandidates) {
         nextState = await api('/api/collective/session/students', 'PUT', {
           contextType,
           contextId,
           studentId,
           selected: true,
+          expectedVersion,
         });
+        expectedVersion = Number(nextState?.session?.version || expectedVersion);
       }
       if (nextState) setSessionState(nextState);
       setToast(`${newStudentCandidates.length} nouvel(le)(s) ${roleTerms.studentPlural} ajouté(e)(s) à la session`);
       setNewStudentCandidates([]);
     } catch (err) {
+      if (await handleSessionConflict(err)) return;
       setToast(`Erreur sélection ${roleTerms.studentSingular} : ${err.message}`);
     } finally {
       setSaving(false);
@@ -594,6 +817,60 @@ function CollectiveView({
         </div>
       ) : null}
 
+      {contextType === 'project' && contextId && (
+        <div className="collective-toolbar">
+          <ContextComments
+            contextType="project"
+            contextId={contextId}
+            title="Commentaires du projet"
+            placeholder="Partager une consigne pour ce projet..."
+          />
+        </div>
+      )}
+
+      <div className="collective-toolbar collective-bulk-bar" role="region" aria-label="Actions groupées">
+        <div className="collective-toolbar-group">
+          <label>{roleTerms.studentPlural.charAt(0).toUpperCase() + roleTerms.studentPlural.slice(1)} sélectionné(e)s : {bulkStudentIds.length}</label>
+          <div className="row collective-bulk-actions">
+            <button className="btn btn-ghost btn-sm" onClick={selectAllVisibleStudents} disabled={saving || allVisibleStudentIds.length === 0}>
+              Tout (filtre)
+            </button>
+            <button className="btn btn-ghost btn-sm" onClick={clearBulkStudents} disabled={saving || bulkStudentIds.length === 0 || !canManageSession}>
+              Aucun
+            </button>
+            <button className="btn btn-secondary btn-sm" onClick={() => bulkSetStudentsAbsent(true)} disabled={saving || bulkStudentIds.length === 0 || !canManageSession}>
+              Absent
+            </button>
+            <button className="btn btn-secondary btn-sm" onClick={() => bulkSetStudentsAbsent(false)} disabled={saving || bulkStudentIds.length === 0 || !canManageSession}>
+              Présent
+            </button>
+            <button className="btn btn-ghost btn-sm" onClick={() => bulkSetStudentsSelected(false)} disabled={saving || bulkStudentIds.length === 0 || !canManageSession}>
+              Retirer session
+            </button>
+          </div>
+        </div>
+        <div className="collective-toolbar-group">
+          <label>Tâches sélectionnées : {bulkTaskIds.length}</label>
+          <div className="row collective-bulk-actions">
+            <button className="btn btn-ghost btn-sm" onClick={selectAllContextTasks} disabled={saving || allContextTaskIds.length === 0 || !canManageSession}>
+              Tout contexte
+            </button>
+            <button className="btn btn-ghost btn-sm" onClick={selectAllSessionTasks} disabled={saving || allSessionTaskIds.length === 0 || !canManageSession}>
+              Tout session
+            </button>
+            <button className="btn btn-ghost btn-sm" onClick={clearBulkTasks} disabled={saving || bulkTaskIds.length === 0 || !canManageSession}>
+              Aucun
+            </button>
+            <button className="btn btn-secondary btn-sm" onClick={() => bulkSetTasksSelected(true)} disabled={saving || bulkTaskIds.length === 0 || !canManageSession}>
+              Ajouter session
+            </button>
+            <button className="btn btn-ghost btn-sm" onClick={() => bulkSetTasksSelected(false)} disabled={saving || bulkTaskIds.length === 0 || !canManageSession}>
+              Retirer session
+            </button>
+          </div>
+        </div>
+      </div>
+
       <div className="collective-grid">
         <section className="collective-panel">
           <h3>Carte</h3>
@@ -611,32 +888,46 @@ function CollectiveView({
 
         <section className="collective-panel">
           <div className="collective-panel-head">
-            <h3>Tâches ({visibleTasks.length})</h3>
+            <h3>Tâches du contexte ({contextTasks.length})</h3>
             {selectedStudent && (
               <span className="collective-selected">{roleTerms.studentSingular.charAt(0).toUpperCase() + roleTerms.studentSingular.slice(1)} sélectionné(e): {selectedStudent.first_name} {selectedStudent.last_name}</span>
             )}
           </div>
           <div className="collective-scroll">
             {loadingContextTasks && <p className="collective-muted">Chargement des tâches du contexte...</p>}
-            {visibleTasks.map((t) => {
+            {contextTasks.map((t) => {
               const apiCount = Number(t.assigned_count);
               const assigned = Number.isFinite(apiCount) && apiCount >= 0
                 ? apiCount
                 : (Array.isArray(t.assignments) ? t.assignments.length : 0);
               const slots = Math.max(0, Number(t.required_students || 1) - assigned);
               const isSessionActive = !!sessionState?.session?.is_active;
-              const canAssign = canAssignOnTask(t, isSessionActive);
+              const isInSession = selectedTaskSet.has(t.id);
+              const canAssign = isInSession && canAssignOnTask(t, isSessionActive);
               const canUnassign = canUnassignOnTask(t);
               return (
                 <article
                   key={t.id}
-                  className={`collective-task-card ${canAssign ? '' : 'blocked'}`}
+                  className={`collective-task-card ${canAssign ? '' : 'blocked'} ${isInSession ? '' : 'collective-task-card--out'}`}
                   onDragOver={(evt) => { if (canAssign) evt.preventDefault(); }}
                   onDrop={(evt) => { if (canAssign) onDropStudent(t, evt); }}
                 >
                   <div className="collective-task-top">
-                    <strong>{t.title}</strong>
-                    <span className="task-chip">{statusLabel(t.status)}</span>
+                    <label className="collective-checkline">
+                      <input
+                        type="checkbox"
+                        checked={bulkTaskSet.has(t.id)}
+                        onChange={() => toggleBulkTask(t.id)}
+                        aria-label={`Sélectionner la tâche ${t.title}`}
+                      />
+                      <strong>{t.title}</strong>
+                    </label>
+                    <div className="collective-task-top-right">
+                      <span className={`collective-status-dot ${isInSession ? 'on' : 'off'}`}>
+                        {isInSession ? 'Dans session' : 'Hors session'}
+                      </span>
+                      <span className="task-chip">{statusLabel(t.status)}</span>
+                    </div>
                   </div>
                   <p className="collective-task-meta">{assigned}/{t.required_students || 1} inscrits - {slots} place(s) restante(s)</p>
                   <div className="assignees">
@@ -656,7 +947,7 @@ function CollectiveView({
                   <div className="collective-task-actions">
                     <button
                       className="btn btn-secondary btn-sm"
-                      disabled={!selectedStudent || !canAssign || mutatingAssignments || saving}
+                      disabled={!selectedStudent || !canAssign || mutatingAssignments || saving || !isInSession}
                       onClick={() => assignStudentToTask(t, selectedStudent)}
                     >
                       Inscrire le/la {roleTerms.studentSingular} sélectionné(e)
@@ -664,14 +955,18 @@ function CollectiveView({
                     <span className="collective-drop-tip">
                       {canAssign ? `Dépose un(e) ${roleTerms.studentSingular} ici` : 'Inscription bloquée pour cette tâche'}
                     </span>
-                    <button className="btn btn-ghost btn-sm" disabled={saving || mutatingAssignments} onClick={() => setTaskSelected(t.id, false)}>
-                      Retirer de la session
+                    <button
+                      className="btn btn-ghost btn-sm"
+                      disabled={saving || mutatingAssignments}
+                      onClick={() => setTaskSelected(t.id, !isInSession)}
+                    >
+                      {isInSession ? 'Retirer de la session' : 'Ajouter à la session'}
                     </button>
                   </div>
                 </article>
               );
             })}
-            {visibleTasks.length === 0 && <div className="empty"><p>Aucune tâche dans ce contexte.</p></div>}
+            {contextTasks.length === 0 && <div className="empty"><p>Aucune tâche dans ce contexte.</p></div>}
           </div>
         </section>
 
@@ -701,10 +996,18 @@ function CollectiveView({
                       setDragStudentId(s.id);
                     }}
                   >
-                    <div className="collective-student-name">
-                      {s.first_name} {s.last_name}
-                      {s.pseudo ? ` (${s.pseudo})` : ''}
-                    </div>
+                    <label className="collective-checkline">
+                      <input
+                        type="checkbox"
+                        checked={bulkStudentSet.has(s.id)}
+                        onChange={() => toggleBulkStudent(s.id)}
+                        aria-label={`Sélectionner ${s.first_name} ${s.last_name}`}
+                      />
+                      <div className="collective-student-name">
+                        {s.first_name} {s.last_name}
+                        {s.pseudo ? ` (${s.pseudo})` : ''}
+                      </div>
+                    </label>
                     <div className="collective-student-actions">
                       <button className="btn btn-ghost btn-sm" onClick={() => setSelectedStudentId(s.id)}>Sélectionner</button>
                       <button className="btn btn-ghost btn-sm" onClick={() => setStudentAbsent(s.id, true)} disabled={saving}>Absent</button>
@@ -719,7 +1022,15 @@ function CollectiveView({
               <div className="collective-scroll collective-students collective-absent-list">
                 {absentStudents.map((s) => (
                   <div key={s.id} className="collective-student absent">
-                    <div className="collective-student-name">{s.first_name} {s.last_name}</div>
+                    <label className="collective-checkline">
+                      <input
+                        type="checkbox"
+                        checked={bulkStudentSet.has(s.id)}
+                        onChange={() => toggleBulkStudent(s.id)}
+                        aria-label={`Sélectionner ${s.first_name} ${s.last_name}`}
+                      />
+                      <div className="collective-student-name">{s.first_name} {s.last_name}</div>
+                    </label>
                     <div className="collective-student-actions">
                       <button className="btn btn-secondary btn-sm" onClick={() => setStudentAbsent(s.id, false)} disabled={saving}>
                         Réintégrer
