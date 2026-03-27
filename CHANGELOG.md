@@ -51,6 +51,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - **Tests visite** : nouveaux scénarios backend sur le contenu visite, la persistance anonyme via cookie signé et la persistance élève en base.
 
 ### Modifié
+- **Filtres de tâches (zones + repères)** : la liste de filtrage des localisations inclut désormais aussi les repères de carte (`📍`) en plus des zones, avec un filtrage robuste par type (`zone`/`marker`) pour éviter les collisions d’identifiants.
 - **Vue tâches (prof)** : ajout d’un bouton `⚡ Affectation rapide` sur chaque carte de tâche, avec état de chargement et messages contextuels pour expliquer pourquoi l’affectation est possible ou bloquée.
 - **Attribution directe des tâches (prof/admin)** : ajout d’une affectation rapide d’élève depuis les tuiles de tâches (sélection d’un élève cible puis clic sur la tuile) et d’une attribution optionnelle dès la création de tâche.
 - **Vue tâches (élève/prof)** : remplacement du libellé `Disponible` par `À faire`, exclusion des tâches `en cours` de la section `À faire` dès la première inscription, ajout d’une vue en tuiles animées (style tutoriels) et d’une bascule persistante `Tuiles/Liste`.

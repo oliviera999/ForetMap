@@ -484,8 +484,27 @@ function TaskProjectFormModal({ maps = [], activeMapId = 'foret', onClose, onSav
 
 function taskHasZone(t, zoneId) {
   if (!zoneId) return true;
-  if ((t.zone_ids || []).includes(zoneId)) return true;
-  return t.zone_id === zoneId;
+  const normalizedZoneId = String(zoneId || '').trim();
+  if (!normalizedZoneId) return true;
+  if ((t.zone_ids || []).some((id) => String(id || '').trim() === normalizedZoneId)) return true;
+  return String(t.zone_id || '').trim() === normalizedZoneId;
+}
+
+function taskHasMarker(t, markerId) {
+  if (!markerId) return true;
+  const normalizedMarkerId = String(markerId || '').trim();
+  if (!normalizedMarkerId) return true;
+  if ((t.marker_ids || []).some((id) => String(id || '').trim() === normalizedMarkerId)) return true;
+  return String(t.marker_id || '').trim() === normalizedMarkerId;
+}
+
+function taskHasLocation(t, locationFilterValue) {
+  if (!locationFilterValue) return true;
+  const [kind, rawId] = String(locationFilterValue).split(':');
+  if (!rawId) return taskHasZone(t, locationFilterValue);
+  if (kind === 'zone') return taskHasZone(t, rawId);
+  if (kind === 'marker') return taskHasMarker(t, rawId);
+  return true;
 }
 
 function proposalMetaFromDescription(description) {
@@ -538,6 +557,13 @@ const TEACHER_STATUS_ACTIONS = [
   { value: 'done', label: 'Terminée', icon: '✅' },
   { value: 'validated', label: 'Validée', icon: '✔️' },
   { value: 'proposed', label: 'Proposée', icon: '💡' },
+];
+const TASK_STATUS_FILTER_OPTIONS = [
+  { value: 'available', label: 'À faire' },
+  { value: 'in_progress', label: 'En cours' },
+  { value: 'done', label: 'Terminée' },
+  { value: 'validated', label: 'Validée' },
+  { value: 'proposed', label: 'Proposée' },
 ];
 
 function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], tutorials = [], activeMapId = 'foret', isTeacher, student, canSelfAssignTasks = true, canViewOtherUsersIdentity = true, onRefresh, onForceLogout, isN3Affiliated = false, publicSettings = null }) {
@@ -774,7 +800,7 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
     if (filterMap !== 'active' && filterMap !== 'all' && taskMapId !== filterMap && taskMapId != null) return false;
     if (filterText && !t.title.toLowerCase().includes(filterText.toLowerCase()) &&
       !(t.description || '').toLowerCase().includes(filterText.toLowerCase())) return false;
-    if (filterZone && !taskHasZone(t, filterZone)) return false;
+    if (filterZone && !taskHasLocation(t, filterZone)) return false;
     if (filterStatus && t.status !== filterStatus) return false;
     if (filterProject && t.project_id !== filterProject) return false;
     return true;
@@ -789,6 +815,7 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
   const done = allFiltered.filter(t => t.status === 'done');
   const validated = allFiltered.filter(t => t.status === 'validated');
   const proposed = allFiltered.filter(t => t.status === 'proposed');
+  const showStudentFilteredResults = !isTeacher && !!filterStatus;
   const availableNotMine = useMemo(
     () => available.filter((t) => !myTasks.some((m) => m.id === t.id)),
     [available, myTasks]
@@ -807,11 +834,15 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
   }).sort((a, b) => daysUntil(a.due_date) - daysUntil(b.due_date)) : [];
 
   const usedZoneIds = new Set();
+  const usedMarkerIds = new Set();
   for (const t of allFiltered) {
     (t.zone_ids || []).forEach((id) => usedZoneIds.add(id));
     if (t.zone_id) usedZoneIds.add(t.zone_id);
+    (t.marker_ids || []).forEach((id) => usedMarkerIds.add(id));
+    if (t.marker_id) usedMarkerIds.add(t.marker_id);
   }
   const usedZones = [...usedZoneIds];
+  const usedMarkers = [...usedMarkerIds];
   const sectionListClass = viewMode === 'tiles' ? 'tasks-grid' : 'tasks-list';
   const selectedTeacherStudent = useMemo(
     () => teacherStudents.find((s) => s.id === selectedTeacherStudentId) || null,
@@ -1221,7 +1252,13 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
           <option value="">Toutes les zones</option>
           {usedZones.map(zId => {
             const z = zones.find(zz => zz.id === zId);
-            return <option key={zId} value={zId}>{z ? z.name : zId}</option>;
+            return <option key={`zone:${zId}`} value={`zone:${zId}`}>🌿 {z ? z.name : zId}</option>;
+          })}
+          {usedMarkers.length > 0 && <option value="" disabled>-- Repères --</option>}
+          {usedMarkers.map((mId) => {
+            const marker = markers.find((mm) => mm.id === mId);
+            const markerLabel = marker ? `${marker.emoji ? `${marker.emoji} ` : '📍 '}${marker.label}` : `📍 ${mId}`;
+            return <option key={`marker:${mId}`} value={`marker:${mId}`}>{markerLabel}</option>;
           })}
         </select>
         <select value={filterProject} onChange={e => setFilterProject(e.target.value)}>
@@ -1236,16 +1273,12 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
               <option key={p.id} value={p.id}>{p.title}</option>
             ))}
         </select>
-        {isTeacher && (
-          <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)}>
-            <option value="">Tous les statuts</option>
-            <option value="available">À faire</option>
-            <option value="in_progress">En cours</option>
-            <option value="done">Terminée</option>
-            <option value="validated">Validée</option>
-            <option value="proposed">Proposée</option>
-          </select>
-        )}
+        <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)}>
+          <option value="">Tous les statuts</option>
+          {TASK_STATUS_FILTER_OPTIONS.map((opt) => (
+            <option key={opt.value} value={opt.value}>{opt.label}</option>
+          ))}
+        </select>
       </div>
 
       {!isTeacher && urgentTasks.length > 0 && (
@@ -1309,18 +1342,29 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
         </>
       ) : (
         <>
-          {availableNotMine.length > 0 && (
+          {showStudentFilteredResults ? (
+            <div className="tasks-section">
+              <div className="tasks-section-title">
+                Résultats filtrés ({allFiltered.length})
+              </div>
+              <div className={sectionListClass}>{allFiltered.map((t, idx) => <TaskCard key={t.id} t={t} index={idx} />)}</div>
+            </div>
+          ) : (
+            <>
+              {availableNotMine.length > 0 && (
             <div className="tasks-section">
               <div className="tasks-section-title">Tâches à faire</div>
               <div className={sectionListClass}>{availableNotMine.map((t, idx) => <TaskCard key={t.id} t={t} index={idx} />)}</div>
             </div>
           )}
-          {recentlyValidatedForStudent.length > 0 && (
+              {recentlyValidatedForStudent.length > 0 && (
               <div className="tasks-section">
                 <div className="tasks-section-title">Récemment validées ✓</div>
                 <div className={sectionListClass}>{recentlyValidatedForStudent.map((t, idx) => <TaskCard key={t.id} t={t} index={idx} />)}</div>
               </div>
-            )}
+              )}
+            </>
+          )}
         </>
       )}
 
