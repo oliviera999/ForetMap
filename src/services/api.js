@@ -19,6 +19,11 @@ export function withAppBase(path) {
 }
 const SESSION_KEY = 'foretmap_session';
 
+function dispatchSessionChanged() {
+  if (typeof window === 'undefined') return;
+  window.dispatchEvent(new CustomEvent('foretmap_session_changed'));
+}
+
 export class AccountDeletedError extends Error {
   constructor() {
     super('Compte supprimé');
@@ -79,6 +84,7 @@ export function saveStoredSession(next) {
   const current = getStoredSession() || {};
   const merged = { ...current, ...(next || {}) };
   localStorage.setItem(SESSION_KEY, JSON.stringify(merged));
+  dispatchSessionChanged();
 }
 
 export function clearStoredSession() {
@@ -87,11 +93,22 @@ export function clearStoredSession() {
   localStorage.removeItem('foretmap_auth_token');
   localStorage.removeItem('foretmap_teacher_token');
   localStorage.removeItem('foretmap_student');
+  dispatchSessionChanged();
 }
 
 export function getAuthClaims() {
   const token = getAuthToken();
   return token ? decodeJwtPayload(token) : null;
+}
+
+async function parseApiBody(res) {
+  if (!res || res.status === 204 || res.status === 205) return null;
+  const contentType = String(res.headers?.get('content-type') || '').toLowerCase();
+  if (contentType.includes('application/json')) {
+    return res.json().catch(() => null);
+  }
+  const text = await res.text().catch(() => '');
+  return text ? { raw: text } : null;
 }
 
 export async function api(path, method = 'GET', body) {
@@ -104,7 +121,7 @@ export async function api(path, method = 'GET', body) {
     body: body ? JSON.stringify(body) : undefined,
   });
   if (!res.ok) {
-    const errBody = await res.json().catch(() => ({}));
+    const errBody = (await parseApiBody(res)) || {};
     if (res.status === 401 && errBody.deleted) throw new AccountDeletedError();
     if (res.status === 401 && authToken && (errBody.error || '').toLowerCase().includes('token')) {
       clearStoredSession();
@@ -115,7 +132,7 @@ export async function api(path, method = 'GET', body) {
     ex.body = errBody;
     throw ex;
   }
-  return res.json();
+  return parseApiBody(res);
 }
 
 export async function listContextComments({ contextType, contextId, page = 1, pageSize = 10 }) {

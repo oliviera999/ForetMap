@@ -21,6 +21,7 @@ export function useForetmapRealtime({
   const gardenRtDebounceRef = useRef(null);
   const socketRef = useRef(null);
   const offlineTimerRef = useRef(null);
+  const subscribedMapIdRef = useRef(null);
   const activeMapIdRef = useRef(activeMapId);
   const fetchAllRef = useRef(fetchAll);
   const forceLogoutRef = useRef(forceLogout);
@@ -135,7 +136,9 @@ export function useForetmapRealtime({
     const subscribeCurrentMap = () => {
       const mapId = activeMapIdRef.current;
       if (!mapId) return;
+      if (subscribedMapIdRef.current === mapId) return;
       socket.emit('subscribe:map', { mapId });
+      subscribedMapIdRef.current = mapId;
     };
     const clearOfflineTimer = () => {
       if (offlineTimerRef.current) {
@@ -206,6 +209,7 @@ export function useForetmapRealtime({
 
     return () => {
       socketRef.current = null;
+      subscribedMapIdRef.current = null;
       clearOfflineTimer();
       socket.io.off('reconnect_attempt', onReconnectAttempt);
       socket.io.off('reconnect', onReconnect);
@@ -220,8 +224,14 @@ export function useForetmapRealtime({
       socket.off('forum:changed', onForumRealtime);
       socket.off('context-comments:changed', onContextCommentsRealtime);
       window.removeEventListener('online', onBrowserOnline);
-      if (tasksRtDebounceRef.current) clearTimeout(tasksRtDebounceRef.current);
-      if (gardenRtDebounceRef.current) clearTimeout(gardenRtDebounceRef.current);
+      if (tasksRtDebounceRef.current) {
+        clearTimeout(tasksRtDebounceRef.current);
+        tasksRtDebounceRef.current = null;
+      }
+      if (gardenRtDebounceRef.current) {
+        clearTimeout(gardenRtDebounceRef.current);
+        gardenRtDebounceRef.current = null;
+      }
       socket.disconnect();
       setRtStatus('off');
     };
@@ -231,7 +241,9 @@ export function useForetmapRealtime({
     activeMapIdRef.current = activeMapId;
     const socket = socketRef.current;
     if (!socket || !activeMapId) return;
+    if (subscribedMapIdRef.current === activeMapId) return;
     socket.emit('subscribe:map', { mapId: activeMapId });
+    subscribedMapIdRef.current = activeMapId;
   }, [activeMapId]);
 
   return rtStatus;

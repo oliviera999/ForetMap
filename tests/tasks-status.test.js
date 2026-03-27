@@ -1,17 +1,19 @@
 'use strict';
 
+require('./helpers/setup');
 require('dotenv').config();
 const { describe, it, before } = require('node:test');
 const assert = require('node:assert');
 const request = require('supertest');
 const { app } = require('../server');
-const { initSchema, queryOne, execute } = require('../database');
-const { v4: uuidv4 } = require('uuid');
+const { initSchema } = require('../database');
 
 let teacherToken;
 let taskId;
 let taskIdMulti;
+let taskIdTeacherFlow;
 let studentId;
+let studentToken;
 const firstName = `St${Date.now()}`;
 const lastName = 'Task';
 
@@ -25,6 +27,7 @@ before(async () => {
     .send({ firstName, lastName, password: 'pass123' })
     .expect(201);
   studentId = reg.body.id;
+  studentToken = reg.body.authToken;
   const taskRes = await request(app)
     .post('/api/tasks')
     .set('Authorization', `Bearer ${teacherToken}`)
@@ -38,12 +41,20 @@ before(async () => {
     .send({ title: 'Tâche test statut multi', required_students: 2 })
     .expect(201);
   taskIdMulti = taskResMulti.body.id;
+
+  const taskTeacherFlow = await request(app)
+    .post('/api/tasks')
+    .set('Authorization', `Bearer ${teacherToken}`)
+    .send({ title: 'Tâche flux enseignant', required_students: 2 })
+    .expect(201);
+  taskIdTeacherFlow = taskTeacherFlow.body.id;
 });
 
 describe('Recalcul statuts tâches', () => {
   it('assign met la tâche en in_progress quand required_students atteint', async () => {
     const res = await request(app)
       .post(`/api/tasks/${taskId}/assign`)
+      .set('Authorization', `Bearer ${studentToken}`)
       .send({ firstName, lastName, studentId })
       .expect(200);
     assert.strictEqual(res.body.status, 'in_progress');
@@ -52,6 +63,7 @@ describe('Recalcul statuts tâches', () => {
   it('assign met la tâche en in_progress dès la première assignation même si required_students > 1', async () => {
     const res = await request(app)
       .post(`/api/tasks/${taskIdMulti}/assign`)
+      .set('Authorization', `Bearer ${studentToken}`)
       .send({ firstName, lastName, studentId })
       .expect(200);
     assert.strictEqual(res.body.status, 'in_progress');
@@ -60,8 +72,25 @@ describe('Recalcul statuts tâches', () => {
   it('unassign remet la tâche en available', async () => {
     const res = await request(app)
       .post(`/api/tasks/${taskId}/unassign`)
+      .set('Authorization', `Bearer ${studentToken}`)
       .send({ firstName, lastName, studentId })
       .expect(200);
     assert.strictEqual(res.body.status, 'available');
+  });
+
+  it('assign refuse un studentId sans session élève associée', async () => {
+    await request(app)
+      .post(`/api/tasks/${taskId}/assign`)
+      .send({ firstName, lastName, studentId })
+      .expect(403);
+  });
+
+  it('assign autorise un prof à assigner par nom (flux atelier collectif)', async () => {
+    const res = await request(app)
+      .post(`/api/tasks/${taskIdTeacherFlow}/assign`)
+      .set('Authorization', `Bearer ${teacherToken}`)
+      .send({ firstName, lastName })
+      .expect(200);
+    assert.strictEqual(res.body.status, 'in_progress');
   });
 });

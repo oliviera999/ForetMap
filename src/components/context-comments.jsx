@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   api,
   createContextComment,
@@ -56,7 +56,7 @@ function ContextComments({
   const [body, setBody] = useState('');
   const [reportReasonById, setReportReasonById] = useState({});
   const [toast, setToast] = useState('');
-  const authClaims = useMemo(() => getAuthClaims(), []);
+  const [authClaims, setAuthClaims] = useState(() => getAuthClaims());
 
   const currentUserType = String(authClaims?.userType || '').toLowerCase();
   const currentUserId = String(authClaims?.canonicalUserId || authClaims?.userId || '');
@@ -95,6 +95,18 @@ function ContextComments({
     window.addEventListener('foretmap_realtime', onRealtime);
     return () => window.removeEventListener('foretmap_realtime', onRealtime);
   }, [contextId, contextType, isOpen, load, page]);
+
+  useEffect(() => {
+    const refreshAuth = () => setAuthClaims(getAuthClaims());
+    window.addEventListener('foretmap_session_changed', refreshAuth);
+    window.addEventListener('foretmap_teacher_expired', refreshAuth);
+    window.addEventListener('storage', refreshAuth);
+    return () => {
+      window.removeEventListener('foretmap_session_changed', refreshAuth);
+      window.removeEventListener('foretmap_teacher_expired', refreshAuth);
+      window.removeEventListener('storage', refreshAuth);
+    };
+  }, []);
 
   useEffect(() => {
     api('/api/settings/public')

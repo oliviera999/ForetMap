@@ -578,6 +578,7 @@ function CollectiveView({
       await api(`/api/tasks/${task.id}/assign`, 'POST', {
         firstName: student.first_name,
         lastName: student.last_name,
+        studentId: student.id,
       });
       await onRefresh?.();
       await loadContextTasks();
@@ -600,6 +601,7 @@ function CollectiveView({
       await api(`/api/tasks/${task.id}/unassign`, 'POST', {
         firstName: assignment.student_first_name,
         lastName: assignment.student_last_name,
+        studentId: assignment.student_id || null,
       });
       await onRefresh?.();
       await loadContextTasks();
