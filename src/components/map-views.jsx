@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { api } from '../services/api';
 import { ZONE_COLORS } from '../constants/garden';
-import { MARKER_EMOJIS } from '../constants/emojis';
+import { MARKER_EMOJIS, parseEmojiListSetting } from '../constants/emojis';
 import { stageBadge } from '../utils/badges';
 import { compressImage } from '../utils/image';
 import { useDialogA11y } from '../hooks/useDialogA11y';
@@ -85,16 +85,16 @@ function parseLivingBeings(value, fallback = '') {
   return cleaned;
 }
 
-function detectLeadingMarkerEmoji(value) {
+function detectLeadingMarkerEmoji(value, emojis = MARKER_EMOJIS) {
   const raw = String(value || '').trim();
-  return MARKER_EMOJIS.find((emoji) => (
+  return emojis.find((emoji) => (
     raw === emoji || raw.startsWith(`${emoji} `)
   )) || null;
 }
 
-function stripLeadingMarkerEmoji(value) {
+function stripLeadingMarkerEmoji(value, emojis = MARKER_EMOJIS) {
   const raw = String(value || '').trim();
-  for (const emoji of MARKER_EMOJIS) {
+  for (const emoji of emojis) {
     if (raw === emoji) return '';
     if (raw.startsWith(`${emoji} `)) return raw.slice(emoji.length).trimStart();
   }
@@ -285,11 +285,11 @@ function isTaskDetachedFromLocation(task) {
   return task.status === 'done' || task.status === 'validated';
 }
 
-function ZoneInfoModal({ zone, plants, tasks, isTeacher, student, canSelfAssignTasks = true, onClose, onUpdate, onDelete, onEditPoints, onLinkTask, onUnlinkTask, onAssignTasks }) {
+function ZoneInfoModal({ zone, plants, tasks, isTeacher, student, canSelfAssignTasks = true, markerEmojis = MARKER_EMOJIS, emojiParsingList = MARKER_EMOJIS, onClose, onUpdate, onDelete, onEditPoints, onLinkTask, onUnlinkTask, onAssignTasks }) {
   const dialogRef = useDialogA11y(onClose);
   const [tab, setTab] = useState('tasks');
-  const [zoneName, setZoneName] = useState(stripLeadingMarkerEmoji(zone.name || ''));
-  const [zoneEmoji, setZoneEmoji] = useState(detectLeadingMarkerEmoji(zone.name || '') || '📍');
+  const [zoneName, setZoneName] = useState(stripLeadingMarkerEmoji(zone.name || '', emojiParsingList));
+  const [zoneEmoji, setZoneEmoji] = useState(detectLeadingMarkerEmoji(zone.name || '', emojiParsingList) || markerEmojis[0] || '📍');
   const [plant, setPlant] = useState(zone.current_plant || '');
   const [livingBeings, setLivingBeings] = useState(parseLivingBeings(zone.living_beings_list || zone.living_beings, zone.current_plant));
   const [stage, setStage] = useState(zone.stage || 'empty');
@@ -325,7 +325,7 @@ function ZoneInfoModal({ zone, plants, tasks, isTeacher, student, canSelfAssignT
   }, [studentAssignableTasks]);
 
   const save = async () => {
-    const cleanName = stripLeadingMarkerEmoji(zoneName);
+    const cleanName = stripLeadingMarkerEmoji(zoneName, emojiParsingList);
     if (!cleanName) {
       setToast('Nom requis');
       return;
@@ -494,7 +494,7 @@ function ZoneInfoModal({ zone, plants, tasks, isTeacher, student, canSelfAssignT
             </div>
             <div className="field"><label>Emoji de zone</label>
               <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                {MARKER_EMOJIS.map((emoji) => (
+                {markerEmojis.map((emoji) => (
                   <button
                     key={emoji}
                     className={`emoji-btn ${zoneEmoji === emoji ? 'sel' : ''}`}
@@ -629,11 +629,11 @@ function ZoneInfoModal({ zone, plants, tasks, isTeacher, student, canSelfAssignT
   );
 }
 
-function ZoneDrawModal({ points_pct, onClose, onSave, plants }) {
+function ZoneDrawModal({ points_pct, onClose, onSave, plants, markerEmojis = MARKER_EMOJIS, emojiParsingList = MARKER_EMOJIS }) {
   const dialogRef = useDialogA11y(onClose);
   const [form, setForm] = useState({
     name: '',
-    zone_emoji: '📍',
+    zone_emoji: markerEmojis[0] || '📍',
     current_plant: '',
     living_beings: [],
     stage: 'empty',
@@ -643,7 +643,7 @@ function ZoneDrawModal({ points_pct, onClose, onSave, plants }) {
   const [saving, setSaving] = useState(false);
   const set = k => e => setForm(f => ({ ...f, [k]: e.target.value }));
   const save = async () => {
-    const cleanName = stripLeadingMarkerEmoji(form.name);
+    const cleanName = stripLeadingMarkerEmoji(form.name, emojiParsingList);
     if (!cleanName) return;
     setSaving(true);
     try {
@@ -718,7 +718,7 @@ function ZoneDrawModal({ points_pct, onClose, onSave, plants }) {
         </div>
         <div className="field"><label>Emoji de zone</label>
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-            {MARKER_EMOJIS.map((emoji) => (
+            {markerEmojis.map((emoji) => (
               <button
                 key={emoji}
                 className={`emoji-btn ${form.zone_emoji === emoji ? 'sel' : ''}`}
@@ -736,7 +736,7 @@ function ZoneDrawModal({ points_pct, onClose, onSave, plants }) {
   );
 }
 
-function MarkerModal({ marker, plants, tasks, onClose, onSave, onDelete, onLinkTask, onUnlinkTask, onAssignTasks, isTeacher, student, canSelfAssignTasks = true }) {
+function MarkerModal({ marker, plants, tasks, onClose, onSave, onDelete, onLinkTask, onUnlinkTask, onAssignTasks, isTeacher, student, canSelfAssignTasks = true, markerEmojis = MARKER_EMOJIS }) {
   const dialogRef = useDialogA11y(onClose);
   const isNew = !marker.id;
   const [form, setForm] = useState({
@@ -854,7 +854,7 @@ function MarkerModal({ marker, plants, tasks, onClose, onSave, onDelete, onLinkT
             )}
             <div className="field"><label>Emoji du repère</label>
               <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                {MARKER_EMOJIS.map((emoji) => (
+                {markerEmojis.map((emoji) => (
                   <button
                     key={emoji}
                     className={`emoji-btn ${form.emoji === emoji ? 'sel' : ''}`}
@@ -1262,6 +1262,19 @@ function MapView({ zones, markers, tasks = [], plants, maps = [], activeMapId = 
   const [pendingZone, setPendingZone] = useState(null);
   const [pendingMarker, setPendingMarker] = useState(null);
   const [toast, setToast] = useState(null);
+  const configuredLocationEmojis = String(
+    publicSettings?.ui?.map?.location_emojis
+    || publicSettings?.map?.location_emojis
+    || ''
+  );
+  const markerEmojis = useMemo(
+    () => parseEmojiListSetting(configuredLocationEmojis, MARKER_EMOJIS),
+    [configuredLocationEmojis]
+  );
+  const emojiParsingList = useMemo(
+    () => [...new Set([...markerEmojis, ...MARKER_EMOJIS])],
+    [markerEmojis]
+  );
   const activeMap = maps.find((m) => m.id === activeMapId);
   const mapImageCandidates = useMemo(() => {
     const base = activeMapId === 'n3'
@@ -1430,8 +1443,8 @@ function MapView({ zones, markers, tasks = [], plants, maps = [], activeMapId = 
     const str = wp.map(p => `${p.cx},${p.cy}`).join(' ');
     const mx = wp.reduce((s, p) => s + p.cx, 0) / wp.length;
     const my = wp.reduce((s, p) => s + p.cy, 0) / wp.length;
-    const zoneEmoji = detectLeadingMarkerEmoji(z.name || '');
-    const zoneName = stripLeadingMarkerEmoji(z.name || '');
+    const zoneEmoji = detectLeadingMarkerEmoji(z.name || '', emojiParsingList);
+    const zoneName = stripLeadingMarkerEmoji(z.name || '', emojiParsingList);
     const isEd = mode === 'edit-points' && editZone?.id === z.id;
     const zoneTaskVisual = zoneTaskVisualById.get(z.id);
     return (
@@ -1521,7 +1534,7 @@ function MapView({ zones, markers, tasks = [], plants, maps = [], activeMapId = 
       {toast && <Toast msg={toast} onDone={() => setToast(null)} />}
 
       {selectedZone && (
-        <ZoneInfoModal zone={selectedZone} plants={plants} tasks={tasks} isTeacher={isTeacher} student={student} canSelfAssignTasks={canSelfAssignTasks}
+        <ZoneInfoModal zone={selectedZone} plants={plants} tasks={tasks} isTeacher={isTeacher} student={student} canSelfAssignTasks={canSelfAssignTasks} markerEmojis={markerEmojis} emojiParsingList={emojiParsingList}
           onClose={() => setSelectedZone(null)}
           onUpdate={async (id, data) => { await onZoneUpdate(id, data); setSelectedZone(null); await onRefresh(); }}
           onDelete={async id => { await deleteZone(id); setSelectedZone(null); }}
@@ -1531,20 +1544,20 @@ function MapView({ zones, markers, tasks = [], plants, maps = [], activeMapId = 
           onEditPoints={isTeacher ? z => startEditPoints(z) : null} />
       )}
       {selectedMarker && (
-        <MarkerModal marker={selectedMarker} plants={plants} tasks={tasks} isTeacher={isTeacher} student={student} canSelfAssignTasks={canSelfAssignTasks}
+        <MarkerModal marker={selectedMarker} plants={plants} tasks={tasks} isTeacher={isTeacher} student={student} canSelfAssignTasks={canSelfAssignTasks} markerEmojis={markerEmojis}
           onClose={() => setSelectedMarker(null)} onSave={saveMarker} onDelete={deleteMarker}
           onLinkTask={async (taskId) => linkTaskToMarker(taskId, selectedMarker.id)}
           onUnlinkTask={(t) => unlinkTaskFromMarker(t, selectedMarker.id)}
           onAssignTasks={assignTasksToStudent} />
       )}
       {pendingZone && (
-        <ZoneDrawModal points_pct={pendingZone} plants={plants}
+        <ZoneDrawModal points_pct={pendingZone} plants={plants} markerEmojis={markerEmojis} emojiParsingList={emojiParsingList}
           onClose={() => setPendingZone(null)}
           onSave={async data => { await api('/api/zones', 'POST', { ...data, map_id: activeMapId }); setPendingZone(null); await onRefresh(); }} />
       )}
       {pendingMarker && (
-        <MarkerModal marker={{ x_pct: pendingMarker.xp, y_pct: pendingMarker.yp, label: '', note: '', emoji: '🌱', plant_name: '', map_id: activeMapId }}
-          plants={plants} isTeacher={isTeacher}
+        <MarkerModal marker={{ x_pct: pendingMarker.xp, y_pct: pendingMarker.yp, label: '', note: '', emoji: markerEmojis[0] || '🌱', plant_name: '', map_id: activeMapId }}
+          plants={plants} isTeacher={isTeacher} markerEmojis={markerEmojis}
           onClose={() => setPendingMarker(null)}
           onSave={async data => { await api('/api/map/markers', 'POST', { ...data, map_id: activeMapId }); setPendingMarker(null); await onRefresh(); }}
           onDelete={() => setPendingMarker(null)} />
