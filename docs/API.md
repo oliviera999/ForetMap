@@ -171,6 +171,10 @@ Réglages de progression élèves (scope enseignant/admin) :
 - `progression.student_role_min_done_eleve_chevronne`
 - Contrainte : le seuil `eleve_chevronne` doit être strictement supérieur à `eleve_avance`.
 
+Réglage public de réactions :
+- `ui.reactions.allowed_emojis` (chaîne, emojis séparés par espaces ou virgules).
+- Valeur par défaut : `👍 ❤️ 😂 😮 😢 😡 🔥 👏`.
+
 ---
 
 ## Zones
@@ -345,6 +349,7 @@ Le profil `visiteur` est refusé (`403`) pour éviter l’exposition d’identit
 | POST | `/api/forum/threads` | Créer un sujet + premier message (`{ title, body }`) |
 | GET | `/api/forum/threads/:id?page=1&page_size=50` | Détail d’un sujet + messages paginés |
 | POST | `/api/forum/threads/:id/posts` | Ajouter une réponse (`{ body }`) |
+| POST | `/api/forum/posts/:id/reactions` | Toggle d’une réaction emoji (`{ emoji }`) |
 | POST | `/api/forum/posts/:id/report` | Signaler un message (`{ reason }`) |
 | PATCH | `/api/forum/threads/:id/lock` | Verrouiller/déverrouiller un sujet (`{ locked }`, prof/admin) |
 | DELETE | `/api/forum/posts/:id` | Supprimer un message (auteur ou prof/admin) |
@@ -353,6 +358,9 @@ Contraintes principales :
 
 - Validation serveur des longueurs (titre/message/motif).
 - Anti-abus V1 : cooldown par utilisateur sur création de sujet/réponse.
+- Réactions emoji supportées : issues du réglage public `ui.reactions.allowed_emojis` (fallback défaut `👍 ❤️ 😂 😮 😢 😡 🔥 👏`).
+- `POST /api/forum/posts/:id/reactions` fonctionne en **toggle** (ajoute puis retire sur second clic).
+- `GET /api/forum/threads/:id` inclut `posts[].reactions` (agrégat par emoji + `reacted_by_me`).
 - `409` sur réponse dans un sujet verrouillé.
 - `409` sur signalement dupliqué (même utilisateur, même message, signalement déjà ouvert).
 
@@ -372,6 +380,7 @@ Contexte supporté :
 |--------|-----|-------------|
 | GET | `/api/context-comments?contextType=task|project|zone&contextId=:id&page=1&page_size=20` | Liste paginée des commentaires d’un contexte |
 | POST | `/api/context-comments` | Créer un commentaire (`{ contextType, contextId, body }`) |
+| POST | `/api/context-comments/:id/reactions` | Toggle d’une réaction emoji (`{ emoji }`) |
 | DELETE | `/api/context-comments/:id` | Supprimer un commentaire (auteur ou prof/admin) |
 | POST | `/api/context-comments/:id/report` | Signaler un commentaire (`{ reason }`) |
 
@@ -380,6 +389,9 @@ Contraintes principales :
 - Validation serveur de `contextType` et de l’existence du contexte ciblé.
 - Validation longueur message/motif de signalement.
 - Anti-abus V1 : cooldown par utilisateur sur publication.
+- Réactions emoji supportées : issues du réglage public `ui.reactions.allowed_emojis` (fallback défaut `👍 ❤️ 😂 😮 😢 😡 🔥 👏`).
+- `POST /api/context-comments/:id/reactions` fonctionne en **toggle**.
+- `GET /api/context-comments` inclut `items[].reactions` (agrégat par emoji + `reacted_by_me`).
 - Suppression logique (`is_deleted`) ; le contenu est masqué côté lecture.
 - `409` sur signalement dupliqué (même utilisateur, même commentaire, signalement déjà ouvert).
 

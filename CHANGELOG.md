@@ -51,6 +51,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - **Tests visite** : nouveaux scénarios backend sur le contenu visite, la persistance anonyme via cookie signé et la persistance élève en base.
 
 ### Modifié
+- **Réactions emoji configurables** : le set de réactions forum/commentaires contextuels est désormais piloté par le réglage public `ui.reactions.allowed_emojis` (console paramètres admin), avec fallback robuste sur le set par défaut.
 - **Accessibilité et compréhension des icônes** : harmonisation des boutons icône-only (header, carte, tâches, biodiversité, visite) avec `aria-label` explicites, infobulles cohérentes et activation pilotable via le nouveau réglage public `ui.modules.help_enabled`.
 - **Console paramètres admin** : réorganisation des paramètres par sections (auth, modules, progression, sécurité, exploitation), ajout d’une recherche multi-critères et affichage des contraintes/valeurs par champ pour accélérer l’administration.
 - **Temps réel Socket.IO** : retour au mode `websocket + polling` avec reprise de connexion renforcée (recovery serveur/client, fallback hors-ligne temporisé, réabonnement map) pour mieux tolérer les micro-coupures.

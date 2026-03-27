@@ -1,8 +1,22 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { api } from '../services/api';
+import { api, toggleForumPostReaction } from '../services/api';
 
 const THREAD_PAGE_SIZE = 20;
 const POST_PAGE_SIZE = 50;
+const DEFAULT_REACTION_EMOJIS = ['👍', '❤️', '😂', '😮', '😢', '😡', '🔥', '👏'];
+
+function parseReactionEmojiList(rawValue) {
+  const raw = String(rawValue || '').trim();
+  if (!raw) return [...DEFAULT_REACTION_EMOJIS];
+  const tokens = raw
+    .replace(/,/g, ' ')
+    .split(/\s+/)
+    .map((item) => String(item || '').trim())
+    .filter(Boolean)
+    .filter((item) => item.length <= 16);
+  const unique = [...new Set(tokens)].slice(0, 24);
+  return unique.length > 0 ? unique : [...DEFAULT_REACTION_EMOJIS];
+}
 
 function fmtDate(value) {
   if (!value) return '';
@@ -27,6 +41,7 @@ function ForumView({ authClaims }) {
   const [selectedThreadId, setSelectedThreadId] = useState('');
   const [threadDetail, setThreadDetail] = useState(null);
   const [posts, setPosts] = useState([]);
+  const [reactionEmojis, setReactionEmojis] = useState(DEFAULT_REACTION_EMOJIS);
   const [postsPage, setPostsPage] = useState(1);
   const [postsTotal, setPostsTotal] = useState(0);
   const [detailLoading, setDetailLoading] = useState(false);
@@ -88,6 +103,19 @@ function ForumView({ authClaims }) {
     if (!selectedThreadId) return;
     loadThreadDetail(selectedThreadId, 1);
   }, [loadThreadDetail, selectedThreadId]);
+
+  useEffect(() => {
+    api('/api/settings/public')
+      .then((d) => {
+        const configured = d?.settings?.ui?.reactions?.allowed_emojis
+          || d?.settings?.reactions?.allowed_emojis
+          || '';
+        setReactionEmojis(parseReactionEmojiList(configured));
+      })
+      .catch(() => {
+        // Réglage non bloquant : on garde le fallback local.
+      });
+  }, []);
 
   useEffect(() => {
     const onRealtime = (e) => {
@@ -170,6 +198,15 @@ function ForumView({ authClaims }) {
       setToast('Signalement envoyé');
     } catch (err) {
       setToast(`Signalement impossible : ${err.message}`);
+    }
+  };
+
+  const handleReactPost = async (postId, emoji) => {
+    try {
+      await toggleForumPostReaction(postId, emoji);
+      await loadThreadDetail(selectedThreadId, postsPage);
+    } catch (err) {
+      setToast(`Réaction impossible : ${err.message}`);
     }
   };
 
@@ -305,6 +342,27 @@ function ForumView({ authClaims }) {
                       <p className="forum-post-body">
                         {p.is_deleted ? '[message supprimé]' : p.body}
                       </p>
+                      {!p.is_deleted && (
+                        <div className="message-reactions-row">
+                          {reactionEmojis.map((emoji) => {
+                            const item = (p.reactions || []).find((r) => r.emoji === emoji);
+                            const count = Number(item?.count || 0);
+                            const mine = !!item?.reacted_by_me;
+                            return (
+                              <button
+                                key={`${p.id}-${emoji}`}
+                                type="button"
+                                className={`message-reaction-chip ${mine ? 'active' : ''}`}
+                                onClick={() => handleReactPost(p.id, emoji)}
+                                title={`Réagir avec ${emoji}`}
+                              >
+                                <span>{emoji}</span>
+                                {count > 0 && <span>{count}</span>}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
                       {!p.is_deleted && (
                         <div className="forum-post-actions">
                           {canDelete && (

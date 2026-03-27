@@ -785,12 +785,6 @@ function MarkerModal({ marker, plants, tasks, onClose, onSave, onDelete, onLinkT
 
         {isTeacher ? (
           <>
-            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 12 }}>
-              {MARKER_EMOJIS.map(e => (
-                <button key={e} className={`emoji-btn ${form.emoji === e ? 'sel' : ''}`}
-                  onClick={() => setForm(f => ({ ...f, emoji: e }))}>{e}</button>
-              ))}
-            </div>
             <div className="field"><label>Nom du repère *</label>
               <input value={form.label} onChange={set('label')} placeholder="Ex: Olivier n°10" />
             </div>
@@ -849,6 +843,18 @@ function MarkerModal({ marker, plants, tasks, onClose, onSave, onDelete, onLinkT
                 </div>
               </>
             )}
+            <div className="field"><label>Emoji du repère</label>
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                {MARKER_EMOJIS.map((emoji) => (
+                  <button
+                    key={emoji}
+                    className={`emoji-btn ${form.emoji === emoji ? 'sel' : ''}`}
+                    onClick={() => setForm((f) => ({ ...f, emoji }))}>
+                    {emoji}
+                  </button>
+                ))}
+              </div>
+            </div>
             <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
               <button className="btn btn-primary" style={{ flex: 1 }} onClick={save} disabled={saving}>
                 {saving ? '...' : (isNew ? '📍 Placer' : '💾 Sauver')}

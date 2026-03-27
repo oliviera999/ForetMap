@@ -1,7 +1,29 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { createContextComment, deleteContextComment, getAuthClaims, listContextComments, reportContextComment } from '../services/api';
+import {
+  api,
+  createContextComment,
+  deleteContextComment,
+  getAuthClaims,
+  listContextComments,
+  reportContextComment,
+  toggleContextCommentReaction,
+} from '../services/api';
 
 const PAGE_SIZE = 10;
+const DEFAULT_REACTION_EMOJIS = ['👍', '❤️', '😂', '😮', '😢', '😡', '🔥', '👏'];
+
+function parseReactionEmojiList(rawValue) {
+  const raw = String(rawValue || '').trim();
+  if (!raw) return [...DEFAULT_REACTION_EMOJIS];
+  const tokens = raw
+    .replace(/,/g, ' ')
+    .split(/\s+/)
+    .map((item) => String(item || '').trim())
+    .filter(Boolean)
+    .filter((item) => item.length <= 16);
+  const unique = [...new Set(tokens)].slice(0, 24);
+  return unique.length > 0 ? unique : [...DEFAULT_REACTION_EMOJIS];
+}
 
 function fmtDate(value) {
   if (!value) return '';
@@ -30,6 +52,7 @@ function ContextComments({
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [reactionEmojis, setReactionEmojis] = useState(DEFAULT_REACTION_EMOJIS);
   const [body, setBody] = useState('');
   const [reportReasonById, setReportReasonById] = useState({});
   const [toast, setToast] = useState('');
@@ -74,6 +97,19 @@ function ContextComments({
   }, [contextId, contextType, isOpen, load, page]);
 
   useEffect(() => {
+    api('/api/settings/public')
+      .then((d) => {
+        const configured = d?.settings?.ui?.reactions?.allowed_emojis
+          || d?.settings?.reactions?.allowed_emojis
+          || '';
+        setReactionEmojis(parseReactionEmojiList(configured));
+      })
+      .catch(() => {
+        // Réglage non bloquant : on garde le fallback local.
+      });
+  }, []);
+
+  useEffect(() => {
     if (!toast) return undefined;
     const t = setTimeout(() => setToast(''), 2400);
     return () => clearTimeout(t);
@@ -113,6 +149,15 @@ function ContextComments({
       setToast('Signalement envoyé');
     } catch (err) {
       setToast(`Signalement impossible : ${err.message}`);
+    }
+  };
+
+  const react = async (commentId, emoji) => {
+    try {
+      await toggleContextCommentReaction(commentId, emoji);
+      await load(page);
+    } catch (err) {
+      setToast(`Réaction impossible : ${err.message}`);
     }
   };
 
@@ -156,6 +201,27 @@ function ContextComments({
                   <p className="context-comment-body">
                     {item.is_deleted ? '[commentaire supprimé]' : item.body}
                   </p>
+                  {!item.is_deleted && (
+                    <div className="message-reactions-row">
+                      {reactionEmojis.map((emoji) => {
+                        const reaction = (item.reactions || []).find((r) => r.emoji === emoji);
+                        const count = Number(reaction?.count || 0);
+                        const mine = !!reaction?.reacted_by_me;
+                        return (
+                          <button
+                            key={`${item.id}-${emoji}`}
+                            type="button"
+                            className={`message-reaction-chip ${mine ? 'active' : ''}`}
+                            onClick={() => react(item.id, emoji)}
+                            title={`Réagir avec ${emoji}`}
+                          >
+                            <span>{emoji}</span>
+                            {count > 0 && <span>{count}</span>}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
                   {!item.is_deleted && (
                     <div className="context-comment-actions">
                       {canDelete && (
