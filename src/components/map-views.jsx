@@ -503,7 +503,16 @@ function ZoneInfoModal({ zone, plants, tasks, isTeacher, student, canSelfAssignT
                 placeholder="Observations, conseils, notes sur cette zone..." />
             </div>
             <div className="field"><label>Emoji de zone</label>
-              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+              <div style={{
+                display: 'flex',
+                gap: 6,
+                flexWrap: 'wrap',
+                maxHeight: 180,
+                overflowY: 'auto',
+                paddingRight: 2,
+                WebkitOverflowScrolling: 'touch',
+                touchAction: 'pan-y',
+              }}>
                 {markerEmojis.map((emoji) => (
                   <button
                     key={emoji}
@@ -727,7 +736,16 @@ function ZoneDrawModal({ points_pct, onClose, onSave, plants, markerEmojis = MAR
           </div>
         </div>
         <div className="field"><label>Emoji de zone</label>
-          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+          <div style={{
+            display: 'flex',
+            gap: 6,
+            flexWrap: 'wrap',
+            maxHeight: 180,
+            overflowY: 'auto',
+            paddingRight: 2,
+            WebkitOverflowScrolling: 'touch',
+            touchAction: 'pan-y',
+          }}>
             {markerEmojis.map((emoji) => (
               <button
                 key={emoji}
@@ -863,7 +881,16 @@ function MarkerModal({ marker, plants, tasks, onClose, onSave, onDelete, onLinkT
               </>
             )}
             <div className="field"><label>Emoji du repère</label>
-              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+              <div style={{
+                display: 'flex',
+                gap: 6,
+                flexWrap: 'wrap',
+                maxHeight: 180,
+                overflowY: 'auto',
+                paddingRight: 2,
+                WebkitOverflowScrolling: 'touch',
+                touchAction: 'pan-y',
+              }}>
                 {markerEmojis.map((emoji) => (
                   <button
                     key={emoji}
