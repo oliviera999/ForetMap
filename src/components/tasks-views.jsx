@@ -517,7 +517,7 @@ function getAvailableSlots(task) {
 }
 
 const TEACHER_STATUS_ACTIONS = [
-  { value: 'available', label: 'Disponible', icon: '🟢' },
+  { value: 'available', label: 'À faire', icon: '🟢' },
   { value: 'in_progress', label: 'En cours', icon: '🟡' },
   { value: 'done', label: 'Terminée', icon: '✅' },
   { value: 'validated', label: 'Validée', icon: '✔️' },
@@ -541,6 +541,14 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
   const [filterStatus, setFilterStatus] = useState('');
   const [filterMap, setFilterMap] = useState('active');
   const [filterProject, setFilterProject] = useState('');
+  const [viewMode, setViewMode] = useState(() => {
+    try {
+      const saved = localStorage.getItem('foretmap:tasks:viewMode');
+      return saved === 'list' ? 'list' : 'tiles';
+    } catch {
+      return 'tiles';
+    }
+  });
   const [importFile, setImportFile] = useState(null);
   const [importDryRun, setImportDryRun] = useState(false);
   const [importing, setImporting] = useState(false);
@@ -553,6 +561,13 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
   useEffect(() => {
     setFilterMap('active');
   }, [activeMapId]);
+  useEffect(() => {
+    try {
+      localStorage.setItem('foretmap:tasks:viewMode', viewMode);
+    } catch {
+      // Ignore localStorage errors (mode privé, permissions, etc.)
+    }
+  }, [viewMode]);
 
   const mapLabelById = (mapId) => {
     if (!mapId) return 'Globale';
@@ -706,7 +721,7 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
   const myTasks = allFiltered.filter(t => student && t.status !== 'validated' && t.assignments?.some(
     a => a.student_first_name === student.first_name && a.student_last_name === student.last_name
   ));
-  const available = allFiltered.filter(t => t.status === 'available' || (t.status === 'in_progress' && getAvailableSlots(t) > 0));
+  const available = allFiltered.filter(t => t.status === 'available');
   const inProgress = allFiltered.filter(t => t.status === 'in_progress');
   const done = allFiltered.filter(t => t.status === 'done');
   const validated = allFiltered.filter(t => t.status === 'validated');
@@ -734,8 +749,9 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
     if (t.zone_id) usedZoneIds.add(t.zone_id);
   }
   const usedZones = [...usedZoneIds];
+  const sectionListClass = viewMode === 'tiles' ? 'tasks-grid' : 'tasks-list';
 
-  const TaskCard = ({ t }) => {
+  const TaskCard = ({ t, index = 0 }) => {
     const isMine = myTasks.some(m => m.id === t.id);
     const slots = getAvailableSlots(t);
     const proposalMeta = proposalMetaFromDescription(t.description);
@@ -743,7 +759,10 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
     const assignees = Array.isArray(t.assignments) ? t.assignments : [];
     const assigneeLabels = assignees.map((a) => formatAssigneeName(a, student, isTeacher || canViewOtherUsersIdentity));
     return (
-      <div className={`task-card ${isMine ? 'mine' : ''} ${t.status === 'validated' ? 'done' : ''} ${t.status === 'proposed' ? 'proposed' : ''}`}>
+      <div
+        className={`task-card ${viewMode === 'tiles' ? 'task-card--tile' : ''} fade-in ${isMine ? 'mine' : ''} ${t.status === 'validated' ? 'done' : ''} ${t.status === 'proposed' ? 'proposed' : ''}`}
+        style={{ animationDelay: `${Math.min(index * 60, 360)}ms` }}
+      >
         <div className="task-top">
           <div className="task-title-row">
             {taskStatusIndicator(t.status, isN3Affiliated)}
@@ -797,7 +816,7 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
           </div>
         )}
         {slots > 0 && t.status !== 'validated' && (
-          <div className="slots">{slots} place{slots > 1 ? 's' : ''} disponible{slots > 1 ? 's' : ''}</div>
+          <div className="slots">{slots} place{slots > 1 ? 's' : ''} restante{slots > 1 ? 's' : ''}</div>
         )}
         <div className="task-actions">
           {!isTeacher && canSelfAssignTasks && !isMine && slots > 0 && t.status !== 'validated' && (
@@ -1040,6 +1059,22 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
       )}
 
       <div className="task-filters">
+        <div className="tasks-view-switch" role="group" aria-label="Mode d'affichage des tâches">
+          <button
+            className={`btn btn-sm ${viewMode === 'tiles' ? 'btn-primary' : 'btn-ghost'}`}
+            onClick={() => setViewMode('tiles')}
+            type="button"
+          >
+            🧩 Tuiles
+          </button>
+          <button
+            className={`btn btn-sm ${viewMode === 'list' ? 'btn-primary' : 'btn-ghost'}`}
+            onClick={() => setViewMode('list')}
+            type="button"
+          >
+            📄 Liste
+          </button>
+        </div>
         <select value={filterMap} onChange={e => setFilterMap(e.target.value)}>
           <option value="active">Carte active ({mapLabelById(activeMapId)})</option>
           <option value="all">Toutes cartes</option>
@@ -1069,7 +1104,7 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
         {isTeacher && (
           <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)}>
             <option value="">Tous les statuts</option>
-            <option value="available">Disponible</option>
+            <option value="available">À faire</option>
             <option value="in_progress">En cours</option>
             <option value="done">Terminée</option>
             <option value="validated">Validée</option>
@@ -1100,7 +1135,7 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
       {!isTeacher && myTasks.length > 0 && (
         <div className="tasks-section">
           <div className="tasks-section-title">Mes tâches</div>
-          <div>{myTasks.map(t => <TaskCard key={t.id} t={t} />)}</div>
+          <div className={sectionListClass}>{myTasks.map((t, idx) => <TaskCard key={t.id} t={t} index={idx} />)}</div>
         </div>
       )}
 
@@ -1109,31 +1144,31 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
           {proposed.length > 0 && (
             <div className="tasks-section">
               <div className="tasks-section-title">Propositions {roleTerms.studentPlural} ({proposed.length})</div>
-              <div>{proposed.map(t => <TaskCard key={t.id} t={t} />)}</div>
+              <div className={sectionListClass}>{proposed.map((t, idx) => <TaskCard key={t.id} t={t} index={idx} />)}</div>
             </div>
           )}
           {done.length > 0 && (
             <div className="tasks-section">
               <div className="tasks-section-title">En attente de validation ({done.length})</div>
-              <div>{done.map(t => <TaskCard key={t.id} t={t} />)}</div>
+              <div className={sectionListClass}>{done.map((t, idx) => <TaskCard key={t.id} t={t} index={idx} />)}</div>
             </div>
           )}
           {inProgress.length > 0 && (
             <div className="tasks-section">
               <div className="tasks-section-title">En cours</div>
-              <div>{inProgress.map(t => <TaskCard key={t.id} t={t} />)}</div>
+              <div className={sectionListClass}>{inProgress.map((t, idx) => <TaskCard key={t.id} t={t} index={idx} />)}</div>
             </div>
           )}
           {available.length > 0 && (
             <div className="tasks-section">
-              <div className="tasks-section-title">Disponibles</div>
-              <div>{available.map(t => <TaskCard key={t.id} t={t} />)}</div>
+              <div className="tasks-section-title">À faire</div>
+              <div className={sectionListClass}>{available.map((t, idx) => <TaskCard key={t.id} t={t} index={idx} />)}</div>
             </div>
           )}
           {validated.length > 0 && (
             <div className="tasks-section">
               <div className="tasks-section-title">Validées</div>
-              <div>{validated.map(t => <TaskCard key={t.id} t={t} />)}</div>
+              <div className={sectionListClass}>{validated.map((t, idx) => <TaskCard key={t.id} t={t} index={idx} />)}</div>
             </div>
           )}
         </>
@@ -1141,14 +1176,14 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
         <>
           {availableNotMine.length > 0 && (
             <div className="tasks-section">
-              <div className="tasks-section-title">Tâches disponibles</div>
-              <div>{availableNotMine.map(t => <TaskCard key={t.id} t={t} />)}</div>
+              <div className="tasks-section-title">Tâches à faire</div>
+              <div className={sectionListClass}>{availableNotMine.map((t, idx) => <TaskCard key={t.id} t={t} index={idx} />)}</div>
             </div>
           )}
           {recentlyValidatedForStudent.length > 0 && (
               <div className="tasks-section">
                 <div className="tasks-section-title">Récemment validées ✓</div>
-                <div>{recentlyValidatedForStudent.map(t => <TaskCard key={t.id} t={t} />)}</div>
+                <div className={sectionListClass}>{recentlyValidatedForStudent.map((t, idx) => <TaskCard key={t.id} t={t} index={idx} />)}</div>
               </div>
             )}
         </>
