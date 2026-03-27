@@ -1786,6 +1786,9 @@
   flex-wrap:wrap;
   gap:6px;
 }
+.message-reactions-row.compact {
+  gap:0;
+}
 .message-reaction-chip {
   border:1px solid rgba(0,0,0,.14);
   border-radius:999px;
@@ -1798,6 +1801,11 @@
   gap:5px;
   cursor:pointer;
   font-size:.82rem;
+}
+.message-reaction-chip--toggle {
+  min-width:34px;
+  justify-content:center;
+  padding-inline:9px;
 }
 .message-reaction-chip.active {
   background:#e9f8ee;

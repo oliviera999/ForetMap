@@ -60,14 +60,46 @@ test('CRUD /api/task-projects fonctionne (prof)', async () => {
   const updateRes = await request(app)
     .put(`/api/task-projects/${projectId}`)
     .set('Authorization', 'Bearer ' + teacherToken)
-    .send({ title: renamed })
+    .send({ title: renamed, status: 'on_hold' })
     .expect(200);
   assert.strictEqual(updateRes.body.title, renamed);
+  assert.strictEqual(updateRes.body.status, 'on_hold');
 
   await request(app)
     .delete(`/api/task-projects/${projectId}`)
     .set('Authorization', 'Bearer ' + teacherToken)
     .expect(200);
+});
+
+test('POST /api/tasks/:id/assign bloque l’inscription si le projet est en attente', async () => {
+  const projectRes = await request(app)
+    .post('/api/task-projects')
+    .set('Authorization', 'Bearer ' + teacherToken)
+    .send({ map_id: 'foret', title: `Projet en attente ${Date.now()}`, status: 'on_hold' })
+    .expect(201);
+  const projectId = projectRes.body.id;
+  assert.strictEqual(projectRes.body.status, 'on_hold');
+
+  const taskRes = await request(app)
+    .post('/api/tasks')
+    .set('Authorization', 'Bearer ' + teacherToken)
+    .send({
+      title: `Tâche sur projet en attente ${Date.now()}`,
+      map_id: 'foret',
+      required_students: 1,
+      project_id: projectId,
+    })
+    .expect(201);
+
+  await request(app)
+    .post(`/api/tasks/${taskRes.body.id}/assign`)
+    .set('Authorization', 'Bearer ' + studentData.authToken)
+    .send({
+      firstName: studentData.first_name,
+      lastName: studentData.last_name,
+      studentId: studentData.id,
+    })
+    .expect(400);
 });
 
 test('POST /api/tasks accepte project_id et GET /api/tasks?project_id filtre correctement', async () => {

@@ -22,11 +22,11 @@ const IMPORT_TEMPLATE_COLUMNS = [
   'Description tâche',
   'Date limite (YYYY-MM-DD)',
   'Élèves requis',
-  'Statut (available|in_progress|done|validated|proposed)',
+  'Statut (available|in_progress|done|validated|proposed|on_hold)',
   'Récurrence (weekly|biweekly|monthly)',
 ];
 
-const ALLOWED_TASK_STATUSES = new Set(['available', 'in_progress', 'done', 'validated', 'proposed']);
+const ALLOWED_TASK_STATUSES = new Set(['available', 'in_progress', 'done', 'validated', 'proposed', 'on_hold']);
 const ALLOWED_IMPORT_TASK_STATUSES = ALLOWED_TASK_STATUSES;
 const ALLOWED_IMPORT_TASK_RECURRENCES = new Set(['weekly', 'biweekly', 'monthly']);
 const IMPORT_HEADER_ALIASES = new Map([
@@ -100,6 +100,7 @@ function normalizeImportTaskStatus(value) {
   if (['terminee', 'terminée'].includes(raw)) return 'done';
   if (['validee', 'validée'].includes(raw)) return 'validated';
   if (['proposee', 'proposée'].includes(raw)) return 'proposed';
+  if (['en_attente', 'en attente', 'attente'].includes(raw)) return 'on_hold';
   return ALLOWED_IMPORT_TASK_STATUSES.has(raw) ? raw : null;
 }
 
@@ -336,7 +337,7 @@ async function getMarker(markerId) {
 async function getTaskProject(projectId) {
   if (!projectId) return null;
   return queryOne(
-    'SELECT id, map_id, title FROM task_projects WHERE id = ?',
+    'SELECT id, map_id, title, status FROM task_projects WHERE id = ?',
     [projectId]
   );
 }
@@ -591,7 +592,7 @@ async function validateTaskLocations(zoneIds, markerIds, explicitMapId) {
 async function getTaskWithAssignments(taskId) {
   const task = await queryOne(
     `SELECT t.*, z.name AS zone_name_legacy, mkr.label AS marker_label_legacy,
-            tp.map_id AS project_map_id, tp.title AS project_title
+            tp.map_id AS project_map_id, tp.title AS project_title, tp.status AS project_status
        FROM tasks t
        LEFT JOIN zones z ON t.zone_id = z.id
        LEFT JOIN map_markers mkr ON t.marker_id = mkr.id
@@ -727,7 +728,7 @@ router.get('/', async (req, res) => {
     const sqlBase = `
       SELECT t.*, z.name AS zone_name, z.map_id AS zone_map_id,
              mkr.label AS marker_label, mkr.map_id AS marker_map_id,
-             tp.map_id AS project_map_id, tp.title AS project_title,
+             tp.map_id AS project_map_id, tp.title AS project_title, tp.status AS project_status,
              m.id AS map_id_resolved_join, m.label AS map_label
         FROM tasks t
         LEFT JOIN zones z ON t.zone_id = z.id
@@ -1391,6 +1392,8 @@ router.post('/:id/assign', async (req, res) => {
     const task = await getTaskWithAssignments(req.params.id);
     if (!task) return res.status(404).json({ error: 'Tâche introuvable' });
     if (task.status === 'validated') return res.status(400).json({ error: 'Tâche déjà validée' });
+    if (task.status === 'on_hold') return res.status(400).json({ error: 'Tâche en attente : inscription indisponible' });
+    if (task.project_status === 'on_hold') return res.status(400).json({ error: 'Projet en attente : inscription indisponible' });
 
     const action = await resolveStudentActionContext(req, req.body || {}, 'tasks.assign_self');
     if (action.error) {
@@ -1585,7 +1588,9 @@ router.post('/:id/unassign', async (req, res) => {
     const remaining = remainingRow ? Number(remainingRow.c) : 0;
 
     let newStatus;
-    if (remaining === 0) {
+    if (String(task.status || '') === 'on_hold') {
+      newStatus = 'on_hold';
+    } else if (remaining === 0) {
       newStatus = 'available';
     } else if (task.status === 'done') {
       newStatus = 'done';

@@ -42,6 +42,7 @@ function ForumView({ authClaims }) {
   const [threadDetail, setThreadDetail] = useState(null);
   const [posts, setPosts] = useState([]);
   const [reactionEmojis, setReactionEmojis] = useState(DEFAULT_REACTION_EMOJIS);
+  const [expandedReactionsByPost, setExpandedReactionsByPost] = useState({});
   const [postsPage, setPostsPage] = useState(1);
   const [postsTotal, setPostsTotal] = useState(0);
   const [detailLoading, setDetailLoading] = useState(false);
@@ -101,6 +102,7 @@ function ForumView({ authClaims }) {
 
   useEffect(() => {
     if (!selectedThreadId) return;
+    setExpandedReactionsByPost({});
     loadThreadDetail(selectedThreadId, 1);
   }, [loadThreadDetail, selectedThreadId]);
 
@@ -212,6 +214,7 @@ function ForumView({ authClaims }) {
 
   const threadPages = Math.max(1, Math.ceil(threadsTotal / THREAD_PAGE_SIZE));
   const postPages = Math.max(1, Math.ceil(postsTotal / POST_PAGE_SIZE));
+  const firstReactionEmoji = reactionEmojis[0] || '👍';
 
   return (
     <div className="forum-view">
@@ -333,6 +336,7 @@ function ForumView({ authClaims }) {
                 {!detailLoading && posts.map((p) => {
                   const isOwner = p.author_user_type === currentUserType && p.author_user_id === currentUserId;
                   const canDelete = canModerate || isOwner;
+                  const reactionsExpanded = !!expandedReactionsByPost[p.id];
                   return (
                     <article key={p.id} className={`forum-post ${p.is_deleted ? 'is-deleted' : ''}`}>
                       <div className="forum-post-head">
@@ -343,24 +347,45 @@ function ForumView({ authClaims }) {
                         {p.is_deleted ? '[message supprimé]' : p.body}
                       </p>
                       {!p.is_deleted && (
-                        <div className="message-reactions-row">
-                          {reactionEmojis.map((emoji) => {
-                            const item = (p.reactions || []).find((r) => r.emoji === emoji);
-                            const count = Number(item?.count || 0);
-                            const mine = !!item?.reacted_by_me;
-                            return (
+                        <div className={`message-reactions-row ${reactionsExpanded ? 'expanded' : 'compact'}`}>
+                          {!reactionsExpanded ? (
+                            <button
+                              type="button"
+                              className="message-reaction-chip message-reaction-chip--toggle"
+                              onClick={() => setExpandedReactionsByPost((prev) => ({ ...prev, [p.id]: true }))}
+                              title="Afficher toutes les réactions"
+                            >
+                              <span>{firstReactionEmoji}</span>
+                            </button>
+                          ) : (
+                            <>
+                              {reactionEmojis.map((emoji) => {
+                                const item = (p.reactions || []).find((r) => r.emoji === emoji);
+                                const count = Number(item?.count || 0);
+                                const mine = !!item?.reacted_by_me;
+                                return (
+                                  <button
+                                    key={`${p.id}-${emoji}`}
+                                    type="button"
+                                    className={`message-reaction-chip ${mine ? 'active' : ''}`}
+                                    onClick={() => handleReactPost(p.id, emoji)}
+                                    title={`Réagir avec ${emoji}`}
+                                  >
+                                    <span>{emoji}</span>
+                                    {count > 0 && <span>{count}</span>}
+                                  </button>
+                                );
+                              })}
                               <button
-                                key={`${p.id}-${emoji}`}
                                 type="button"
-                                className={`message-reaction-chip ${mine ? 'active' : ''}`}
-                                onClick={() => handleReactPost(p.id, emoji)}
-                                title={`Réagir avec ${emoji}`}
+                                className="message-reaction-chip message-reaction-chip--toggle"
+                                onClick={() => setExpandedReactionsByPost((prev) => ({ ...prev, [p.id]: false }))}
+                                title="Réduire les réactions"
                               >
-                                <span>{emoji}</span>
-                                {count > 0 && <span>{count}</span>}
+                                <span>▾</span>
                               </button>
-                            );
-                          })}
+                            </>
+                          )}
                         </div>
                       )}
                       {!p.is_deleted && (

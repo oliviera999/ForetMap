@@ -103,6 +103,7 @@ CREATE TABLE IF NOT EXISTS task_projects (
   map_id VARCHAR(32) NOT NULL,
   title VARCHAR(255) NOT NULL,
   description TEXT DEFAULT NULL,
+  status VARCHAR(32) NOT NULL DEFAULT 'active',
   created_at VARCHAR(32) DEFAULT NULL,
   INDEX idx_task_projects_map_id (map_id),
   INDEX idx_task_projects_title (title),

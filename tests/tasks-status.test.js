@@ -12,6 +12,7 @@ let teacherToken;
 let taskId;
 let taskIdMulti;
 let taskIdTeacherFlow;
+let taskIdOnHold;
 let studentId;
 let studentToken;
 const firstName = `St${Date.now()}`;
@@ -48,6 +49,18 @@ before(async () => {
     .send({ title: 'Tâche flux enseignant', required_students: 2 })
     .expect(201);
   taskIdTeacherFlow = taskTeacherFlow.body.id;
+
+  const taskOnHold = await request(app)
+    .post('/api/tasks')
+    .set('Authorization', `Bearer ${teacherToken}`)
+    .send({ title: 'Tâche en attente', required_students: 1 })
+    .expect(201);
+  taskIdOnHold = taskOnHold.body.id;
+  await request(app)
+    .put(`/api/tasks/${taskIdOnHold}`)
+    .set('Authorization', `Bearer ${teacherToken}`)
+    .send({ status: 'on_hold' })
+    .expect(200);
 });
 
 describe('Recalcul statuts tâches', () => {
@@ -92,5 +105,13 @@ describe('Recalcul statuts tâches', () => {
       .send({ firstName, lastName })
       .expect(200);
     assert.strictEqual(res.body.status, 'in_progress');
+  });
+
+  it('assign refuse une tâche en attente', async () => {
+    await request(app)
+      .post(`/api/tasks/${taskIdOnHold}/assign`)
+      .set('Authorization', `Bearer ${studentToken}`)
+      .send({ firstName, lastName, studentId })
+      .expect(400);
   });
 });

@@ -304,6 +304,13 @@ Réponse:
 
 \* Un élève peut aussi modifier **sa propre proposition** (statut `proposed`) ; les champs sensibles (`status`, `project_id`, `tutorial_ids`, `recurrence`) restent réservés aux profils avec `tasks.manage`.
 
+Contraintes principales :
+
+- Statuts tâche supportés : `available`, `in_progress`, `done`, `validated`, `proposed`, `on_hold`.
+- Statuts projet supportés : `active`, `on_hold` (retourné dans `project_status` sur les payloads de tâche).
+- Si une tâche est `on_hold` **ou** si son projet est `on_hold`, `POST /api/tasks/:id/assign` renvoie `400` (inscription élève bloquée).
+- Les commentaires contextuels restent possibles sur les tâches/projets (`/api/context-comments`).
+
 ---
 
 ## Forum global
