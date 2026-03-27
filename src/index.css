@@ -30,11 +30,12 @@
     body {
       background:var(--cream); font-family:var(--font-sans);
       color:var(--forest); min-height:100vh;
-      overscroll-behavior:none;
+      overscroll-behavior-y:auto;
       -webkit-font-smoothing:antialiased;
       width:100%;
       max-width:100%;
       overflow-x:hidden;
+      overflow-y:auto;
     }
     h1,h2,h3 { font-family:'Playfair Display',serif; }
     #root { display:flex; flex-direction:column; min-height:100vh; min-height:100dvh; width:100%; max-width:100%; overflow-x:hidden; }
@@ -1947,6 +1948,9 @@
   overflow-x: hidden;
   touch-action: pan-y;
 }
+.settings-admin > * {
+  min-width: 0;
+}
 .settings-admin-grid {
   display: grid;
   gap: 12px;
@@ -1955,6 +1959,9 @@
 .settings-admin-maps-list {
   display: grid;
   gap: 10px;
+}
+.settings-admin-maps-list > * {
+  min-width: 0;
 }
 .settings-admin-map-row {
   display: grid;
@@ -1974,11 +1981,16 @@
 .settings-admin-map-tools > * {
   min-width: 0;
 }
-@media (max-width: 900px) {
+@media (max-width: 1023px) {
   .settings-admin-grid,
   .settings-admin-grid.settings-admin-grid--single-on-mobile,
   .settings-admin-map-row,
   .settings-admin-map-tools {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .settings-admin-map-row label {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
   }
 }

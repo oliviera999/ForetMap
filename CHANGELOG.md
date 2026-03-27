@@ -13,6 +13,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - **Maintenance BDD collectif** : ajout d’un script `db:collective:cleanup:audit` pour supprimer les tables `collective_*` et auditer la structure complète de la base à partir de `sql/schema_foretmap.sql`.
 - **Sélecteur d’emojis zone/repère** : suppression du plafond de 400 emojis dans `parseEmojiListSetting`, afin d’afficher la liste complète configurée dans les fenêtres de création/édition.
 - **Scroll mobile des sélecteurs d’emojis** : ajout d’un conteneur à défilement vertical tactile dans les modales zone/repère pour éviter le blocage du scroll quand la liste d’emojis est longue.
+- **Scroll mobile global + console Paramètres** : sécurisation du verrouillage de scroll `body` (lightbox) pour éviter les blocages persistants, et forçage de la vue `Paramètres admin` en colonne unique sur mobile/tablette avec débordements horizontaux neutralisés.
 
 ### Ajouté
 - **Commentaires contextuels multi-espaces** : ajout d’un module complet de commentaires (`/api/context-comments`) pour les contextes tâche/projet/zone avec pagination, suppression modérée, signalement anti-doublon, audit et diffusion temps réel Socket.IO.
