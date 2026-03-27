@@ -280,6 +280,11 @@ function mergeTaskVisualStatus(current, next) {
   return (TASK_VISUAL_PRIORITY[next] || 0) > (TASK_VISUAL_PRIORITY[current] || 0) ? next : current;
 }
 
+function isTaskDetachedFromLocation(task) {
+  if (!task) return false;
+  return task.status === 'done' || task.status === 'validated';
+}
+
 function ZoneInfoModal({ zone, plants, tasks, isTeacher, student, canSelfAssignTasks = true, onClose, onUpdate, onDelete, onEditPoints, onLinkTask, onUnlinkTask, onAssignTasks }) {
   const dialogRef = useDialogA11y(onClose);
   const [tab, setTab] = useState('tasks');
@@ -298,7 +303,9 @@ function ZoneInfoModal({ zone, plants, tasks, isTeacher, student, canSelfAssignT
   const displayStage = zone.special ? 'special' : zone.stage;
   const plantObj = plants.find(p => p.name === zone.current_plant);
   const taskMapId = (t) => t.map_id_resolved || t.map_id || t.zone_map_id || t.marker_map_id || null;
-  const linkedTasks = (tasks || []).filter((t) => taskLocationIds(t).zoneIds.includes(zone.id));
+  const linkedTasks = (tasks || []).filter((t) => (
+    taskLocationIds(t).zoneIds.includes(zone.id) && !isTaskDetachedFromLocation(t)
+  ));
   const studentAssignableTasks = linkedTasks.filter((t) => canStudentAssignTask(t, student));
   const assignableTasks = (tasks || []).filter((t) => {
     if (linkedTasks.some((lt) => lt.id === t.id)) return false;
@@ -745,7 +752,9 @@ function MarkerModal({ marker, plants, tasks, onClose, onSave, onDelete, onLinkT
   const set = k => e => setForm(f => ({ ...f, [k]: e.target.value }));
 
   const taskMapId = (t) => t.map_id_resolved || t.map_id || t.zone_map_id || t.marker_map_id || null;
-  const linkedTasks = (tasks || []).filter((t) => taskLocationIds(t).markerIds.includes(marker.id));
+  const linkedTasks = (tasks || []).filter((t) => (
+    taskLocationIds(t).markerIds.includes(marker.id) && !isTaskDetachedFromLocation(t)
+  ));
   const studentAssignableTasks = linkedTasks.filter((t) => canStudentAssignTask(t, student));
   const assignableTasks = (tasks || []).filter((t) => {
     if (linkedTasks.some((lt) => lt.id === t.id)) return false;
@@ -1291,6 +1300,7 @@ function MapView({ zones, markers, tasks = [], plants, maps = [], activeMapId = 
     const zoneMap = new Map();
     const markerMap = new Map();
     for (const t of tasks || []) {
+      if (isTaskDetachedFromLocation(t)) continue;
       const visual = taskVisualStatus(t.status);
       if (!visual) continue;
       const { zoneIds, markerIds } = taskLocationIds(t);

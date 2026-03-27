@@ -36,6 +36,7 @@ const DESKTOP_SPLIT_MIN_TASKS_PX = 420;
 const TAB_STORAGE_KEY = 'foretmap_active_tab';
 const KNOWN_TAB_VALUES = new Set([
   'map',
+  'maptasks',
   'tasks',
   'plants',
   'tuto',
@@ -535,7 +536,8 @@ function App() {
     const tasksWidth = availableForColumns * (1 / 2.25);
     return mapWidth >= DESKTOP_SPLIT_MIN_MAP_PX && tasksWidth >= DESKTOP_SPLIT_MIN_TASKS_PX;
   }, [viewportWidth]);
-  const useSplitMapTasks = false;
+  const isCombinedMapTasksTab = tab === 'maptasks';
+  const useSplitMapTasks = shouldUseDesktopSplit && isCombinedMapTasksTab && canAccessStudentMapTasks;
   const useWideMain = shouldUseDesktopSplit;
 
   const rtStatus = useForetmapRealtime({
@@ -556,10 +558,16 @@ function App() {
 
   useEffect(() => {
     if (effectiveIsTeacher) return;
-    if (!canAccessStudentMapTasks && (tab === 'map' || tab === 'tasks')) {
+    if (!canAccessStudentMapTasks && (tab === 'map' || tab === 'tasks' || tab === 'maptasks')) {
       setTab('plants');
     }
   }, [effectiveIsTeacher, canAccessStudentMapTasks, tab]);
+
+  useEffect(() => {
+    if (tab === 'maptasks' && !shouldUseDesktopSplit) {
+      setTab('map');
+    }
+  }, [shouldUseDesktopSplit, tab]);
 
   useEffect(() => {
     if (tab === 'tuto' && publicSettings?.modules?.tutorials_enabled === false) setTab('map');
@@ -992,6 +1000,11 @@ function App() {
       {effectiveIsTeacher ? (
         <div className={`main teacher-main ${useWideMain ? 'main--wide' : ''}`}>
           <div className="top-tabs">
+            {shouldUseDesktopSplit && (
+              <button className={`top-tab ${tab === 'maptasks' ? 'active' : ''}`} onClick={() => setTab('maptasks')}>
+                🗺️ Cartes & tâches {teacherPendingValidationCount > 0 && `(${teacherPendingValidationCount} à valider)`}
+              </button>
+            )}
             <button className={`top-tab ${tab === 'map' ? 'active' : ''}`} onClick={() => setTab('map')}>🗺️ Carte & Zones</button>
             <button className={`top-tab ${tab === 'tasks' ? 'active' : ''}`} onClick={() => setTab('tasks')}>
               ✅ Tâches {teacherPendingValidationCount > 0 && `(${teacherPendingValidationCount} à valider)`}
@@ -1000,11 +1013,12 @@ function App() {
             {publicSettings?.modules?.tutorials_enabled !== false && (
               <button className={`top-tab ${tab === 'tuto' ? 'active' : ''}`} onClick={() => setTab('tuto')}>📘 Tuto</button>
             )}
+            {canAccessForum && <button className={`top-tab ${tab === 'forum' ? 'active' : ''}`} onClick={() => setTab('forum')}>💬 Forum</button>}
             {publicSettings?.modules?.stats_enabled !== false && (
               <button className={`top-tab ${tab === 'stats' ? 'active' : ''}`} onClick={() => setTab('stats')}>📊 Stats</button>
             )}
             {publicSettings?.modules?.visit_enabled !== false && (
-              <button className={`top-tab ${tab === 'visit' ? 'active' : ''}`} onClick={() => setTab('visit')}>🧭 Visite</button>
+              <button className={`top-tab ${tab === 'visit' ? 'active' : ''}`} onClick={() => setTab('visit')}>🧭 Visites</button>
             )}
             {(
               hasPermissionInRole('admin.roles.manage')
@@ -1028,7 +1042,6 @@ function App() {
                 👥 Collectif
               </button>
             )}
-            {canAccessForum && <button className={`top-tab ${tab === 'forum' ? 'active' : ''}`} onClick={() => setTab('forum')}>💬 Forum</button>}
             <button className={`top-tab ${tab === 'audit' ? 'active' : ''}`} onClick={() => setTab('audit')}>📜 Audit</button>
             <button className={`top-tab ${tab === 'about' ? 'active' : ''}`} onClick={() => setTab('about')}>ℹ️ À propos</button>
           </div>
@@ -1039,6 +1052,48 @@ function App() {
             </div>
           ) : (
             <>
+              {useSplitMapTasks && (
+                <div className="desktop-split-view" role="region" aria-label="Vue carte et tâches">
+                  <section className="desktop-split-pane desktop-split-pane--map">
+                    <MapView
+                      zones={zones}
+                      markers={markers}
+                      tasks={tasks}
+                      plants={plants}
+                      maps={visibleMaps}
+                      activeMapId={activeMapId}
+                      onMapChange={setActiveMapId}
+                      isTeacher
+                      student={currentUser}
+                      onZoneUpdate={updateZone}
+                      onRefresh={fetchAll}
+                      publicSettings={publicSettings}
+                      embedded
+                    />
+                  </section>
+                  <section className="desktop-split-pane desktop-split-pane--tasks">
+                    <div className="desktop-split-scroll">
+                      <TasksView
+                        tasks={tasks}
+                        taskProjects={taskProjects}
+                        zones={zones}
+                        markers={markers}
+                        maps={maps}
+                        tutorials={tutorials}
+                        activeMapId={activeMapId}
+                        isTeacher
+                        student={currentUser}
+                        canSelfAssignTasks
+                        canViewOtherUsersIdentity
+                        onRefresh={fetchAll}
+                        onForceLogout={forceLogout}
+                        isN3Affiliated={isN3Affiliated}
+                        publicSettings={publicSettings}
+                      />
+                    </div>
+                  </section>
+                </div>
+              )}
               {!useSplitMapTasks && tab === 'map'    && <MapView zones={zones} markers={markers} tasks={tasks} plants={plants} maps={visibleMaps} activeMapId={activeMapId} onMapChange={setActiveMapId} isTeacher student={currentUser} canSelfAssignTasks onZoneUpdate={updateZone} onRefresh={fetchAll} publicSettings={publicSettings}/>}
               {!useSplitMapTasks && tab === 'tasks'  && <TasksView  tasks={tasks} taskProjects={taskProjects} zones={zones} markers={markers} maps={maps} tutorials={tutorials} activeMapId={activeMapId} isTeacher student={currentUser} canSelfAssignTasks canViewOtherUsersIdentity onRefresh={fetchAll} onForceLogout={forceLogout} isN3Affiliated={isN3Affiliated} publicSettings={publicSettings} />}
               {tab === 'plants' && <PlantManager plants={plants} onRefresh={fetchAll} publicSettings={publicSettings}/>}
@@ -1077,6 +1132,49 @@ function App() {
               </div>
             ) : (
               <>
+                {useSplitMapTasks && (
+                  <div className="desktop-split-view" role="region" aria-label="Vue carte et tâches">
+                    <section className="desktop-split-pane desktop-split-pane--map">
+                      <MapView
+                        zones={zones}
+                        markers={markers}
+                        tasks={tasks}
+                        plants={plants}
+                        maps={visibleMaps}
+                        activeMapId={activeMapId}
+                        onMapChange={setActiveMapId}
+                        isTeacher={false}
+                        student={studentForUi}
+                        canSelfAssignTasks={canSelfAssignTasks}
+                        onZoneUpdate={updateZone}
+                        onRefresh={fetchAll}
+                        publicSettings={publicSettings}
+                        embedded
+                      />
+                    </section>
+                    <section className="desktop-split-pane desktop-split-pane--tasks">
+                      <div className="desktop-split-scroll">
+                        <TasksView
+                          tasks={tasks}
+                          taskProjects={taskProjects}
+                          zones={zones}
+                          markers={markers}
+                          maps={maps}
+                          tutorials={tutorials}
+                          activeMapId={activeMapId}
+                          isTeacher={false}
+                          student={studentForUi}
+                          canSelfAssignTasks={canSelfAssignTasks}
+                          canViewOtherUsersIdentity={canViewOtherUsersIdentity}
+                          onRefresh={fetchAll}
+                          onForceLogout={forceLogout}
+                          isN3Affiliated={isN3Affiliated}
+                          publicSettings={publicSettings}
+                        />
+                      </div>
+                    </section>
+                  </div>
+                )}
                 {!useSplitMapTasks && tab === 'map'    && canAccessStudentMapTasks && <MapView zones={zones} markers={markers} tasks={tasks} plants={plants} maps={visibleMaps} activeMapId={activeMapId} onMapChange={setActiveMapId} isTeacher={false} student={studentForUi} canSelfAssignTasks={canSelfAssignTasks} onZoneUpdate={updateZone} onRefresh={fetchAll} publicSettings={publicSettings}/>}
                 {!useSplitMapTasks && tab === 'tasks'  && canAccessStudentMapTasks && <TasksView tasks={tasks} taskProjects={taskProjects} zones={zones} markers={markers} maps={maps} tutorials={tutorials} activeMapId={activeMapId} isTeacher={false} student={studentForUi} canSelfAssignTasks={canSelfAssignTasks} canViewOtherUsersIdentity={canViewOtherUsersIdentity} onRefresh={fetchAll} onForceLogout={forceLogout} isN3Affiliated={isN3Affiliated} publicSettings={publicSettings} />}
                 {tab === 'plants' && <PlantViewer plants={plants} zones={zones} publicSettings={publicSettings}/>}
@@ -1089,6 +1187,12 @@ function App() {
             )}
           </div>
           <nav className="bottom-nav">
+            {canAccessStudentMapTasks && shouldUseDesktopSplit && (
+              <button className={`nav-btn ${tab === 'maptasks' ? 'active' : ''}`} onClick={() => setTab('maptasks')}>
+                <span className="nav-icon">🗺️</span>
+                Cartes & tâches {studentActiveAssignedTasksCount > 0 && `(${studentActiveAssignedTasksCount})`}
+              </button>
+            )}
             {canAccessStudentMapTasks && (
               <button className={`nav-btn ${tab === 'map' ? 'active' : ''}`} onClick={() => setTab('map')}>
                 <span className="nav-icon">🗺️</span> Carte
