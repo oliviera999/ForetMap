@@ -1721,9 +1721,7 @@ function MapView({ zones, markers, tasks = [], plants, maps = [], activeMapId = 
             const markerPinSize = isCoarsePointer
               ? 'clamp(46px, 13vw, 54px)'
               : 'clamp(34px, 8vw, 38px)';
-            const markerEmojiSize = isCoarsePointer
-              ? 'clamp(1.3rem, 5.2vw, 1.6rem)'
-              : 'clamp(1rem, 4.1vw, 1.08rem)';
+            const markerEmojiSize = `${Math.max(11, 16 * inv)}px`;
             const markerHitPadding = isCoarsePointer ? 6 : 0;
             const markerStatusDotSize = isCoarsePointer ? 15 : 10;
             const markerStatusDotBorder = isCoarsePointer ? 2 : 1.5;

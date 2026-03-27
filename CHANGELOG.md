@@ -5,6 +5,9 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Supprimé
+- **Outil collectif retiré (frontend + backend)** : suppression complète de la vue `Collectif`, des endpoints `/api/collective/*`, de la diffusion temps réel `collective:changed`, des tables SQL associées (`collective_sessions*`), des migrations dédiées et des tests backend liés.
+
 ### Ajouté
 - **Commentaires contextuels multi-espaces** : ajout d’un module complet de commentaires (`/api/context-comments`) pour les contextes tâche/projet/zone avec pagination, suppression modérée, signalement anti-doublon, audit et diffusion temps réel Socket.IO.
 - **Tables SQL de commentaires contextuels** : nouvelles tables `context_comments` et `context_comment_reports` avec index dédiés, suppression logique et contrainte FK de nettoyage des signalements.

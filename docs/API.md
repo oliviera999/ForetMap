@@ -64,7 +64,6 @@ Connexion Socket.IO (transport **polling** actuellement forcé côté client) su
 | `tasks:changed` | Création / modification / suppression de tâche, assignation, désassignation, marquer fait, validation, suppression d’un log | `reason`, `taskId`, `mapId` |
 | `students:changed` | Inscription d’un élève, suppression d’un élève | `reason`, `studentId` |
 | `garden:changed` | Zones, photos de zone, biodiversité, marqueurs carte | `reason`, `zoneId`, `plantId`, `markerId`, `mapId`… |
-| `collective:changed` | Activation/reset/mise à jour/réconciliation d’une session collectif | `reason`, `contextType`, `contextId`, `sessionId`, `version` |
 | `forum:changed` | Création de sujet, réponse, suppression de message, verrouillage, signalement | `reason`, `threadId`, `postId` |
 | `context-comments:changed` | Création/suppression/signalement d’un commentaire contextuel | `reason`, `contextType`, `contextId`, `commentId` |
 
@@ -304,39 +303,6 @@ Réponse:
 | POST | `/api/tasks/:id/validate` | oui | Valider la tâche |
 
 \* Un élève peut aussi modifier **sa propre proposition** (statut `proposed`) ; les champs sensibles (`status`, `project_id`, `tutorial_ids`, `recurrence`) restent réservés aux profils avec `tasks.manage`.
-
----
-
-## Session collectif
-
-Routes réservées aux profils ayant `teacher.access` + `stats.read.all`.
-
-| Méthode | URL | Prof | Description |
-|--------|-----|------|-------------|
-| GET | `/api/collective/session?contextType=map|project&contextId=:id` | oui | Lire l’état de session collectif |
-| PUT | `/api/collective/session` | oui | Activer/désactiver une session de contexte |
-| PUT | `/api/collective/session/attendance` | oui | Marquer un élève présent/absent dans la session |
-| PUT | `/api/collective/session/tasks` | oui | Ajouter/retirer une tâche de la session |
-| PUT | `/api/collective/session/students` | oui | Ajouter/retirer un élève de la session |
-| PUT | `/api/collective/session/attendance/bulk` | oui | Marquer plusieurs élèves présents/absents (lot) |
-| PUT | `/api/collective/session/tasks/bulk` | oui | Ajouter/retirer plusieurs tâches de la session (lot) |
-| PUT | `/api/collective/session/students/bulk` | oui | Ajouter/retirer plusieurs élèves de la session (lot) |
-| POST | `/api/collective/session/reset` | oui | Réinitialiser la session (sélections + absences) |
-
-Contrat d’écriture (PUT/POST) :
-
-- `expectedVersion` (entier `>= 0`) est **obligatoire**.
-- Le serveur compare `expectedVersion` à `session.version`.
-- En cas d’écart, réponse `409`:
-  - `error: "Session collectif modifiée ailleurs"`
-  - `expected_version`, `current_version`
-  - `current` : état courant complet de la session.
-
-Contrats bulk (PUT `/bulk`) :
-
-- `studentIds` / `taskIds` : tableau d’identifiants (doublons ignorés, max 300 éléments traités).
-- `selected` (tasks/students) ou `absent` (attendance) : booléen d’action.
-- Réponse : état de session standard + objet `bulk` (`requested`, `applied`, `invalid`, et selon route `out_of_context` ou `not_selected`).
 
 ---
 
