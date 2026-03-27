@@ -104,12 +104,14 @@ function TaskFormModal({
   maps = [],
   taskProjects = [],
   tutorials = [],
+  students = [],
   activeMapId = 'foret',
   onClose,
   onSave,
   editTask,
   isDuplicate = false,
   isProposal = false,
+  enableInitialAssignment = false,
   roleTerms = null,
 }) {
   const dialogRef = useDialogA11y(onClose);
@@ -126,12 +128,14 @@ function TaskFormModal({
     project_id: editTask.project_id || '',
     due_date: editTask.due_date || '',
     required_students: editTask.required_students || 1,
-    recurrence: editTask.recurrence || ''
+    recurrence: editTask.recurrence || '',
+    assign_student_id: ''
   } : {
     title: '', description: '', map_id: initialMapId || '',
     zone_ids: [], marker_ids: [], tutorial_ids: [],
     project_id: '',
-    due_date: '', required_students: 1, recurrence: ''
+    due_date: '', required_students: 1, recurrence: '',
+    assign_student_id: ''
   });
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState('');
@@ -240,6 +244,7 @@ function TaskFormModal({
       due_date: form.due_date || null,
       required_students: form.required_students,
       recurrence: form.recurrence || null,
+      assign_student_id: form.assign_student_id || null,
     };
     if (!payload.map_id && (payload.zone_ids.length || payload.marker_ids.length)) {
       payload.map_id = mapFromLinks();
@@ -391,6 +396,17 @@ function TaskFormModal({
           </div>
           <div className="field"><label>Date limite</label><input type="date" value={form.due_date} onChange={set('due_date')} /></div>
         </div>
+        {enableInitialAssignment && !isProposal && !editTask && !isDuplicate && (
+          <div className="field">
+            <label>Attribuer dès la création (optionnel)</label>
+            <select value={form.assign_student_id} onChange={set('assign_student_id')}>
+              <option value="">Aucune attribution initiale</option>
+              {students.map((s) => (
+                <option key={s.id} value={s.id}>{`${s.first_name || ''} ${s.last_name || ''}`.trim()}</option>
+              ))}
+            </select>
+          </div>
+        )}
         {!isProposal && (
           <div className="row">
             <div className="field"><label>Récurrence</label>
@@ -553,6 +569,9 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
   const [importDryRun, setImportDryRun] = useState(false);
   const [importing, setImporting] = useState(false);
   const [importReport, setImportReport] = useState(null);
+  const [teacherStudents, setTeacherStudents] = useState([]);
+  const [selectedTeacherStudentId, setSelectedTeacherStudentId] = useState('');
+  const [loadingTeacherStudents, setLoadingTeacherStudents] = useState(false);
   const confirmDialogRef = useDialogA11y(() => setConfirmTask(null));
   const { isHelpEnabled, hasSeenSection, markSectionSeen, trackPanelOpen, trackPanelDismiss } = useHelp({ publicSettings, isTeacher });
   const helpTasks = HELP_PANELS.tasks;
@@ -568,6 +587,34 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
       // Ignore localStorage errors (mode privé, permissions, etc.)
     }
   }, [viewMode]);
+  useEffect(() => {
+    if (!isTeacher) return;
+    let cancelled = false;
+    const loadTeacherStudents = async () => {
+      setLoadingTeacherStudents(true);
+      try {
+        const rows = await api('/api/stats/all');
+        if (cancelled) return;
+        const list = Array.isArray(rows)
+          ? rows.slice().sort((a, b) => (
+            `${a?.first_name || ''} ${a?.last_name || ''}`.trim().localeCompare(
+              `${b?.first_name || ''} ${b?.last_name || ''}`.trim(),
+              'fr'
+            )
+          ))
+          : [];
+        setTeacherStudents(list);
+      } catch (e) {
+        if (!cancelled) setToast('Impossible de charger la liste des élèves : ' + e.message);
+      } finally {
+        if (!cancelled) setLoadingTeacherStudents(false);
+      }
+    };
+    loadTeacherStudents();
+    return () => {
+      cancelled = true;
+    };
+  }, [isTeacher]);
 
   const mapLabelById = (mapId) => {
     if (!mapId) return 'Globale';
@@ -632,8 +679,24 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
   };
 
   const saveTask = async form => {
-    if (editTask && !duplicateTask) await api(`/api/tasks/${editTask.id}`, 'PUT', form);
-    else await api('/api/tasks', 'POST', form);
+    const { assign_student_id: assignStudentId, ...taskPayload } = form || {};
+    if (editTask && !duplicateTask) {
+      await api(`/api/tasks/${editTask.id}`, 'PUT', taskPayload);
+      await onRefresh();
+      return;
+    }
+    const created = await api('/api/tasks', 'POST', taskPayload);
+    if (assignStudentId && created?.id) {
+      const assignee = teacherStudents.find((s) => s.id === assignStudentId);
+      if (assignee) {
+        await api(`/api/tasks/${created.id}/assign`, 'POST', {
+          firstName: assignee.first_name,
+          lastName: assignee.last_name,
+          studentId: assignee.id,
+        });
+        setToast(`Tâche créée et ${assignee.first_name} inscrit(e) ✓`);
+      }
+    }
     await onRefresh();
   };
 
@@ -750,6 +813,22 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
   }
   const usedZones = [...usedZoneIds];
   const sectionListClass = viewMode === 'tiles' ? 'tasks-grid' : 'tasks-list';
+  const selectedTeacherStudent = useMemo(
+    () => teacherStudents.find((s) => s.id === selectedTeacherStudentId) || null,
+    [teacherStudents, selectedTeacherStudentId]
+  );
+  const canTeacherAssignOnTask = (task) => {
+    if (!isTeacher || !selectedTeacherStudent) return false;
+    if (!task || task.status === 'validated' || task.status === 'done' || task.status === 'proposed') return false;
+    if (getAvailableSlots(task) <= 0) return false;
+    return !(task.assignments || []).some((a) => (
+      String(a.student_id || '') === String(selectedTeacherStudent.id || '')
+      || (
+        String(a.student_first_name || '').trim().toLowerCase() === String(selectedTeacherStudent.first_name || '').trim().toLowerCase()
+        && String(a.student_last_name || '').trim().toLowerCase() === String(selectedTeacherStudent.last_name || '').trim().toLowerCase()
+      )
+    ));
+  };
 
   const TaskCard = ({ t, index = 0 }) => {
     const isMine = myTasks.some(m => m.id === t.id);
@@ -758,10 +837,24 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
     const cardDescription = t.status === 'proposed' ? proposalMeta.cleanedDescription : (t.description || '');
     const assignees = Array.isArray(t.assignments) ? t.assignments : [];
     const assigneeLabels = assignees.map((a) => formatAssigneeName(a, student, isTeacher || canViewOtherUsersIdentity));
+    const canQuickAssign = canTeacherAssignOnTask(t);
     return (
       <div
         className={`task-card ${viewMode === 'tiles' ? 'task-card--tile' : ''} fade-in ${isMine ? 'mine' : ''} ${t.status === 'validated' ? 'done' : ''} ${t.status === 'proposed' ? 'proposed' : ''}`}
-        style={{ animationDelay: `${Math.min(index * 60, 360)}ms` }}
+        style={{ animationDelay: `${Math.min(index * 60, 360)}ms`, cursor: canQuickAssign ? 'pointer' : undefined }}
+        title={canQuickAssign ? `Cliquer pour inscrire ${selectedTeacherStudent.first_name} ${selectedTeacherStudent.last_name}` : ''}
+        onClick={(e) => {
+          if (!canQuickAssign) return;
+          if (e.target.closest('button, input, select, textarea, a, label')) return;
+          withLoad(`${t.id}assign_teacher_quick`, async () => {
+            await api(`/api/tasks/${t.id}/assign`, 'POST', {
+              firstName: selectedTeacherStudent.first_name,
+              lastName: selectedTeacherStudent.last_name,
+              studentId: selectedTeacherStudent.id,
+            });
+            setToast(`${selectedTeacherStudent.first_name} inscrit(e) à "${t.title}"`);
+          });
+        }}
       >
         <div className="task-top">
           <div className="task-title-row">
@@ -898,10 +991,12 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
           maps={maps}
           taskProjects={taskProjects}
           tutorials={tutorials}
+          students={teacherStudents}
           activeMapId={activeMapId}
           editTask={editTask || duplicateTask}
           isDuplicate={!!duplicateTask}
           isProposal={showProposalForm && !isTeacher}
+          enableInitialAssignment={isTeacher}
           roleTerms={roleTerms}
           onClose={() => { setShowForm(false); setEditTask(null); setDuplicateTask(null); setShowProposalForm(false); }}
           onSave={showProposalForm && !isTeacher ? proposeTask : saveTask}
@@ -966,6 +1061,18 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
             )}
             <button className="btn btn-ghost btn-sm" onClick={() => setShowProjectForm(true)}>+ Projet</button>
             <button className="btn btn-primary btn-sm" onClick={() => setShowForm(true)}>+ Nouvelle tâche</button>
+            <select
+              value={selectedTeacherStudentId}
+              onChange={(e) => setSelectedTeacherStudentId(e.target.value)}
+              disabled={loadingTeacherStudents}
+              style={{ minWidth: 220 }}
+              title="Élève cible pour attribution rapide"
+            >
+              <option value="">{loadingTeacherStudents ? 'Chargement élèves...' : 'Affectation rapide : choisir un élève'}</option>
+              {teacherStudents.map((s) => (
+                <option key={s.id} value={s.id}>{`${s.first_name || ''} ${s.last_name || ''}`.trim()}</option>
+              ))}
+            </select>
           </div>
         )}
         {!isTeacher && (
