@@ -829,6 +829,29 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
       )
     ));
   };
+  const quickAssignHint = (task) => {
+    if (!selectedTeacherStudent) return "Choisis d'abord un élève cible";
+    if (!task) return "Tâche indisponible";
+    if (task.status === 'proposed') return "Impossible d'affecter une tâche proposée";
+    if (task.status === 'done' || task.status === 'validated') return "Tâche déjà terminée";
+    if (getAvailableSlots(task) <= 0) return "Aucune place restante";
+    if ((task.assignments || []).some((a) => (
+      String(a.student_id || '') === String(selectedTeacherStudent.id || '')
+      || (
+        String(a.student_first_name || '').trim().toLowerCase() === String(selectedTeacherStudent.first_name || '').trim().toLowerCase()
+        && String(a.student_last_name || '').trim().toLowerCase() === String(selectedTeacherStudent.last_name || '').trim().toLowerCase()
+      )
+    ))) return "Élève déjà inscrit sur cette tâche";
+    return `Inscrire ${selectedTeacherStudent.first_name} ${selectedTeacherStudent.last_name}`;
+  };
+  const runTeacherQuickAssign = (task) => withLoad(`${task.id}assign_teacher_quick`, async () => {
+    await api(`/api/tasks/${task.id}/assign`, 'POST', {
+      firstName: selectedTeacherStudent.first_name,
+      lastName: selectedTeacherStudent.last_name,
+      studentId: selectedTeacherStudent.id,
+    });
+    setToast(`${selectedTeacherStudent.first_name} inscrit(e) à "${task.title}"`);
+  });
 
   const TaskCard = ({ t, index = 0 }) => {
     const isMine = myTasks.some(m => m.id === t.id);
@@ -838,22 +861,17 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
     const assignees = Array.isArray(t.assignments) ? t.assignments : [];
     const assigneeLabels = assignees.map((a) => formatAssigneeName(a, student, isTeacher || canViewOtherUsersIdentity));
     const canQuickAssign = canTeacherAssignOnTask(t);
+    const quickAssignBusy = !!loading[`${t.id}assign_teacher_quick`];
+    const quickAssignTitle = quickAssignHint(t);
     return (
       <div
         className={`task-card ${viewMode === 'tiles' ? 'task-card--tile' : ''} fade-in ${isMine ? 'mine' : ''} ${t.status === 'validated' ? 'done' : ''} ${t.status === 'proposed' ? 'proposed' : ''}`}
         style={{ animationDelay: `${Math.min(index * 60, 360)}ms`, cursor: canQuickAssign ? 'pointer' : undefined }}
-        title={canQuickAssign ? `Cliquer pour inscrire ${selectedTeacherStudent.first_name} ${selectedTeacherStudent.last_name}` : ''}
+        title={canQuickAssign ? quickAssignTitle : ''}
         onClick={(e) => {
           if (!canQuickAssign) return;
           if (e.target.closest('button, input, select, textarea, a, label')) return;
-          withLoad(`${t.id}assign_teacher_quick`, async () => {
-            await api(`/api/tasks/${t.id}/assign`, 'POST', {
-              firstName: selectedTeacherStudent.first_name,
-              lastName: selectedTeacherStudent.last_name,
-              studentId: selectedTeacherStudent.id,
-            });
-            setToast(`${selectedTeacherStudent.first_name} inscrit(e) à "${t.title}"`);
-          });
+          runTeacherQuickAssign(t);
         }}
       >
         <div className="task-top">
@@ -928,6 +946,16 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
                 {loading[t.id + 'unassign'] ? '...' : '↩️ Me retirer'}
               </button>
             </>
+          )}
+          {isTeacher && (
+            <button
+              className={`btn btn-sm ${canQuickAssign ? 'btn-primary' : 'btn-ghost'}`}
+              disabled={!canQuickAssign || quickAssignBusy}
+              onClick={() => runTeacherQuickAssign(t)}
+              title={quickAssignTitle}
+            >
+              {quickAssignBusy ? '...' : '⚡ Affectation rapide'}
+            </button>
           )}
           {isTeacher && (
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>

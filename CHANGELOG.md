@@ -51,6 +51,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - **Tests visite** : nouveaux scénarios backend sur le contenu visite, la persistance anonyme via cookie signé et la persistance élève en base.
 
 ### Modifié
+- **Vue tâches (prof)** : ajout d’un bouton `⚡ Affectation rapide` sur chaque carte de tâche, avec état de chargement et messages contextuels pour expliquer pourquoi l’affectation est possible ou bloquée.
 - **Attribution directe des tâches (prof/admin)** : ajout d’une affectation rapide d’élève depuis les tuiles de tâches (sélection d’un élève cible puis clic sur la tuile) et d’une attribution optionnelle dès la création de tâche.
 - **Vue tâches (élève/prof)** : remplacement du libellé `Disponible` par `À faire`, exclusion des tâches `en cours` de la section `À faire` dès la première inscription, ajout d’une vue en tuiles animées (style tutoriels) et d’une bascule persistante `Tuiles/Liste`.
 - **Emojis zones/repères configurables** : ajout du réglage public `ui.map.location_emojis` dans la console « Paramètres admin » ; les listes d’emojis utilisées en carte/visite (zones, repères et tâches liées au contexte) sont désormais pilotables dynamiquement, avec fallback robuste sur la liste par défaut.
@@ -86,6 +87,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - **Navigation/auth** : ajout d’un CTA « Visiter sans connexion » dans l’écran d’authentification et intégration de l’onglet `Visite` dans les navigations élève/prof.
 
 ### Corrigé
+- **Statuts tâches (API + notifications prof)** : normalisation robuste des statuts invalides/vides en `available` côté lecture/édition, et notifications “propositions élèves” enrichies pour n’alerter que lors de vrais changements de liste.
 - **Paramètres admin (mobile)** : rétablissement du scroll vertical et refonte responsive des blocs en colonne unique sur smartphone (sections paramètres, cartes/plans et actions système) pour éviter les blocages de navigation tactile.
 - **Durcissement anti-bugs full stack (tâches/auth/realtime)** : sécurisation des actions élève sur les tâches (`assign`/`done`/`unassign`) avec contrôle d’identité/session, uniformisation des erreurs 500 pour éviter les fuites de messages internes, rafraîchissement réactif des claims de session côté commentaires contextuels, robustesse accrue du client API sur réponses vides/non-JSON, et stabilisation des effets asynchrones carte/temps réel (photo gallery + subscriptions map).
 - **Ordre de navigation principal (prof)** : réorganisation des onglets en `Cartes & tâches`, `Carte`, `Tâches`, `Biodiversité`, `Tuto`, `Forum`, `Stats`, `Visites` pour aligner le parcours demandé.

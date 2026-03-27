@@ -26,7 +26,8 @@ const IMPORT_TEMPLATE_COLUMNS = [
   'Récurrence (weekly|biweekly|monthly)',
 ];
 
-const ALLOWED_IMPORT_TASK_STATUSES = new Set(['available', 'in_progress', 'done', 'validated', 'proposed']);
+const ALLOWED_TASK_STATUSES = new Set(['available', 'in_progress', 'done', 'validated', 'proposed']);
+const ALLOWED_IMPORT_TASK_STATUSES = ALLOWED_TASK_STATUSES;
 const ALLOWED_IMPORT_TASK_RECURRENCES = new Set(['weekly', 'biweekly', 'monthly']);
 const IMPORT_HEADER_ALIASES = new Map([
   ['type', 'entityType'],
@@ -100,6 +101,10 @@ function normalizeImportTaskStatus(value) {
   if (['validee', 'validée'].includes(raw)) return 'validated';
   if (['proposee', 'proposée'].includes(raw)) return 'proposed';
   return ALLOWED_IMPORT_TASK_STATUSES.has(raw) ? raw : null;
+}
+
+function normalizeTaskStatusForRead(value) {
+  return normalizeImportTaskStatus(value) || 'available';
 }
 
 function normalizeImportTaskRecurrence(value) {
@@ -558,6 +563,7 @@ async function getTaskWithAssignments(taskId) {
   const mm = await fetchMarkersForTasks([taskId]);
   const tm = await fetchTutorialsForTasks([taskId]);
   enrichTaskRow(task, zm.get(taskId), mm.get(taskId), tm.get(taskId));
+  task.status = normalizeTaskStatusForRead(task.status);
   if (!task.zone_name && task.zone_name_legacy) task.zone_name = task.zone_name_legacy;
   if (!task.marker_label && task.marker_label_legacy) task.marker_label = task.marker_label_legacy;
   delete task.zone_name_legacy;
@@ -744,6 +750,7 @@ router.get('/', async (req, res) => {
     const enriched = tasks.map((t) => {
       const row = { ...t };
       enrichTaskRow(row, zm.get(t.id), mm.get(t.id), tutorialsMap.get(t.id));
+      row.status = normalizeTaskStatusForRead(row.status);
       delete row.map_id_resolved_join;
       row.assignments = assignmentsByTask.get(t.id) || [];
       row.assigned_count = assignedCountByTask.get(t.id) || 0;
@@ -1245,6 +1252,10 @@ router.put('/:id', requirePermission('tasks.manage', { needsElevation: true }), 
     if (tutorialValidation.error) return res.status(400).json({ error: tutorialValidation.error });
 
     const reqStudents = required_students != null ? sanitizeRequiredStudents(required_students) : task.required_students;
+    const nextStatus = Object.prototype.hasOwnProperty.call(req.body, 'status')
+      ? normalizeImportTaskStatus(status)
+      : normalizeTaskStatusForRead(task.status);
+    if (!nextStatus) return res.status(400).json({ error: 'Statut invalide' });
     await execute(
       'UPDATE tasks SET title=?, description=?, map_id=?, project_id=?, zone_id=?, marker_id=?, due_date=?, required_students=?, status=?, recurrence=? WHERE id=?',
       [
@@ -1256,7 +1267,7 @@ router.put('/:id', requirePermission('tasks.manage', { needsElevation: true }), 
         nextMarkerIds[0] || null,
         due_date ?? task.due_date,
         reqStudents,
-        status ?? task.status,
+        nextStatus,
         recurrence !== undefined ? recurrence || null : task.recurrence || null,
         task.id,
       ]
