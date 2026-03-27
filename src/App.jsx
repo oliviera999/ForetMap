@@ -4,6 +4,7 @@ import { useForetmapRealtime } from './hooks/useForetmapRealtime';
 import { useNotificationCenter } from './hooks/useNotificationCenter';
 import { RT_PROF_TOOLTIPS } from './constants/realtime';
 import { NOTIFICATION_CATEGORY, NOTIFICATION_LEVEL } from './constants/notifications';
+import { HELP_TOOLTIPS, resolveRoleText } from './constants/help';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import {
   Toast,
@@ -25,6 +26,7 @@ import { SettingsAdminView } from './components/settings-admin-views';
 import { CollectiveView } from './components/collective-view';
 import { NotificationCenter } from './components/notifications-center';
 import { ForumView } from './components/forum-views';
+import { Tooltip } from './components/Tooltip';
 import { getRoleTerms, isN3OnlyAffiliation } from './utils/n3-terminology';
 import { useDialogA11y } from './hooks/useDialogA11y';
 
@@ -85,6 +87,7 @@ function App() {
       visit_enabled: true,
       stats_enabled: true,
       observations_enabled: true,
+      help_enabled: true,
     },
   }), []);
   const [student,    setStudent]    = useState(() => initialSession?.student || null);
@@ -140,6 +143,7 @@ function App() {
   }, [authClaims, roleViewMode]);
 
   const effectiveIsTeacher = effectiveRoleContext.effectiveIsTeacher;
+  const helpText = useCallback((entry) => resolveRoleText(entry, effectiveIsTeacher), [effectiveIsTeacher]);
 
   const hasPermission = useCallback((perm) => {
     return effectiveRoleContext.activePerms.includes(perm);
@@ -636,6 +640,7 @@ function App() {
               initialMapId={publicSettings?.map?.default_map_visit || activeMapId}
               onBackToAuth={() => setShowPublicVisit(false)}
               availableTutorials={[]}
+              publicSettings={publicSettings}
             />
           </div>
           <footer className="app-footer">Version {appVersion != null ? appVersion : '…'}</footer>
@@ -834,118 +839,123 @@ function App() {
             onClearRead={clearRead}
             onOpenPanel={trackOpenedPanel}
             onResetMetrics={resetMetrics}
+            helpText={helpText(HELP_TOOLTIPS.header.notifications)}
           />
-          <button
-            type="button"
-            className="user-badge"
-            onClick={() => {
-              if (canOpenUserDialogs) {
-                setShowStats(true);
-                return;
-              }
-              if (canOpenTeacherStatsFromBadge) {
-                setTab('stats');
-              }
-            }}
-            style={{ cursor: (canOpenUserDialogs || canOpenTeacherStatsFromBadge) ? 'pointer' : 'default' }}
-            title={
-              canOpenUserDialogs
-                ? 'Voir mes statistiques'
-                : (canOpenTeacherStatsFromBadge ? `Ouvrir les statistiques ${roleTerms.studentPlural}` : '')
-            }
-            aria-label={
-              canOpenUserDialogs
-                ? 'Voir mes statistiques'
-                : (canOpenTeacherStatsFromBadge ? `Ouvrir les statistiques ${roleTerms.studentPlural}` : 'Badge utilisateur')
-            }
-          >
-            <StudentAvatar student={currentUser} size={20} style={{ border: 'none' }} />
-            <span className="user-badge-text">{currentUserLabel}</span>
-          </button>
-          {canOpenUserDialogs && (
+          <Tooltip text={helpText(HELP_TOOLTIPS.header.userBadge)}>
             <button
-              className="lock-btn"
-              title="Modifier mon profil"
-              aria-label="Modifier mon profil"
-              onClick={() => setShowProfile(true)}
+              type="button"
+              className="user-badge"
+              onClick={() => {
+                if (canOpenUserDialogs) {
+                  setShowStats(true);
+                  return;
+                }
+                if (canOpenTeacherStatsFromBadge) {
+                  setTab('stats');
+                }
+              }}
+              style={{ cursor: (canOpenUserDialogs || canOpenTeacherStatsFromBadge) ? 'pointer' : 'default' }}
+              aria-label={
+                canOpenUserDialogs
+                  ? 'Voir mes statistiques'
+                  : (canOpenTeacherStatsFromBadge ? `Ouvrir les statistiques ${roleTerms.studentPlural}` : 'Badge utilisateur')
+              }
             >
-              ✏️
+              <StudentAvatar student={currentUser} size={20} style={{ border: 'none' }} />
+              <span className="user-badge-text">{currentUserLabel}</span>
             </button>
+          </Tooltip>
+          {canOpenUserDialogs && (
+            <Tooltip text={helpText(HELP_TOOLTIPS.header.profileEdit)}>
+              <button
+                className="lock-btn"
+                aria-label="Modifier mon profil"
+                onClick={() => setShowProfile(true)}
+              >
+                ✏️
+              </button>
+            </Tooltip>
           )}
           {isTeacher && (
             <>
               {roleViewMode !== 'native' && (
-                <button
-                  className="lock-btn"
-                  title="Revenir au rôle normal"
-                  aria-label="Revenir au rôle normal"
-                  onClick={() => {
-                    setRoleViewMode('native');
-                    setTab('map');
-                    setShowStats(false);
-                    setShowProfile(false);
-                  }}
-                >
-                  ↩️
-                </button>
+                <Tooltip text={helpText(HELP_TOOLTIPS.header.roleReset)}>
+                  <button
+                    className="lock-btn"
+                    aria-label="Revenir au rôle normal"
+                    onClick={() => {
+                      setRoleViewMode('native');
+                      setTab('map');
+                      setShowStats(false);
+                      setShowProfile(false);
+                    }}
+                  >
+                    ↩️
+                  </button>
+                </Tooltip>
               )}
               {roleViewMode !== 'student' && canSwitchToStudentView && (
-                <button
-                  className="lock-btn"
-                  title={`Passer en vue ${roleTerms.studentSingular}`}
-                  aria-label={`Passer en vue ${roleTerms.studentSingular}`}
-                  onClick={() => {
-                    setRoleViewMode('student');
-                    setTab('map');
-                    setShowStats(false);
-                    setShowProfile(false);
-                  }}
-                >
-                  🎓
-                </button>
+                <Tooltip text={helpText(HELP_TOOLTIPS.header.roleStudent)}>
+                  <button
+                    className="lock-btn"
+                    aria-label={`Passer en vue ${roleTerms.studentSingular}`}
+                    onClick={() => {
+                      setRoleViewMode('student');
+                      setTab('map');
+                      setShowStats(false);
+                      setShowProfile(false);
+                    }}
+                  >
+                    🎓
+                  </button>
+                </Tooltip>
               )}
               {roleViewMode !== 'teacher' && canSwitchToTeacherView && (
-                <button
-                  className="lock-btn"
-                  title={`Passer en vue ${roleTerms.teacherShort}`}
-                  aria-label={`Passer en vue ${roleTerms.teacherShort}`}
-                  onClick={() => {
-                    setRoleViewMode('teacher');
-                    setTab('map');
-                    setShowStats(false);
-                    setShowProfile(false);
-                  }}
-                >
-                  🧑‍🏫
-                </button>
+                <Tooltip text={helpText(HELP_TOOLTIPS.header.roleTeacher)}>
+                  <button
+                    className="lock-btn"
+                    aria-label={`Passer en vue ${roleTerms.teacherShort}`}
+                    onClick={() => {
+                      setRoleViewMode('teacher');
+                      setTab('map');
+                      setShowStats(false);
+                      setShowProfile(false);
+                    }}
+                  >
+                    🧑‍🏫
+                  </button>
+                </Tooltip>
               )}
             </>
           )}
-          <button
-            className={`lock-btn ${authClaims?.elevated ? 'active' : ''}`}
-            aria-label={authClaims?.elevated ? 'Désactiver les droits étendus' : 'Activer les droits étendus'}
-            title={authClaims?.elevated ? 'Désactiver les droits étendus' : 'Activer les droits étendus'}
-            onClick={() => {
-            if (authClaims?.elevated) {
-              localStorage.removeItem('foretmap_teacher_token');
-              const authToken = localStorage.getItem('foretmap_auth_token');
-              if (authToken) {
-                saveStoredSession({ token: authToken });
+          <Tooltip text={helpText(HELP_TOOLTIPS.header.elevatedMode)}>
+            <button
+              className={`lock-btn ${authClaims?.elevated ? 'active' : ''}`}
+              aria-label={authClaims?.elevated ? 'Désactiver les droits étendus' : 'Activer les droits étendus'}
+              onClick={() => {
+              if (authClaims?.elevated) {
+                localStorage.removeItem('foretmap_teacher_token');
+                const authToken = localStorage.getItem('foretmap_auth_token');
+                if (authToken) {
+                  saveStoredSession({ token: authToken });
+                }
+                const claims = getAuthClaims();
+                setAuthClaims(claims);
+                setToast('Droits étendus désactivés');
+              } else {
+                setShowPin(true);
               }
-              const claims = getAuthClaims();
-              setAuthClaims(claims);
-              setToast('Droits étendus désactivés');
-            } else {
-              setShowPin(true);
-            }
-          }}
-          >
-            {authClaims?.elevated ? <>🔓 <span className="lock-label">Élevé</span></> : '🔒'}
-          </button>
-          <button className="lock-btn" title="Déconnexion" aria-label="Déconnexion" onClick={() => {
-            clearStoredSession();
-            setStudent(null); setSessionUser(null); setIsTeacher(false); setAuthClaims(null);
-          }}>↩️</button>
+            }}
+            >
+              {authClaims?.elevated ? <>🔓 <span className="lock-label">Élevé</span></> : '🔒'}
+            </button>
+          </Tooltip>
+          <Tooltip text={helpText(HELP_TOOLTIPS.header.logout)}>
+            <button className="lock-btn" aria-label="Déconnexion" onClick={() => {
+              clearStoredSession();
+              setStudent(null); setSessionUser(null); setIsTeacher(false); setAuthClaims(null);
+            }}>↩️</button>
+          </Tooltip>
         </div>
       </header>
 
@@ -1022,6 +1032,7 @@ function App() {
                       student={currentUser}
                       onZoneUpdate={updateZone}
                       onRefresh={fetchAll}
+                      publicSettings={publicSettings}
                       embedded
                     />
                   </section>
@@ -1040,19 +1051,20 @@ function App() {
                         onRefresh={fetchAll}
                         onForceLogout={forceLogout}
                         isN3Affiliated={isN3Affiliated}
+                        publicSettings={publicSettings}
                       />
                     </div>
                   </section>
                 </div>
               )}
-              {!useSplitMapTasks && tab === 'map'    && <MapView zones={zones} markers={markers} tasks={tasks} plants={plants} maps={visibleMaps} activeMapId={activeMapId} onMapChange={setActiveMapId} isTeacher student={currentUser} onZoneUpdate={updateZone} onRefresh={fetchAll}/>}
-              {!useSplitMapTasks && tab === 'tasks'  && <TasksView  tasks={tasks} taskProjects={taskProjects} zones={zones} markers={markers} maps={maps} tutorials={tutorials} activeMapId={activeMapId} isTeacher student={currentUser} onRefresh={fetchAll} onForceLogout={forceLogout} isN3Affiliated={isN3Affiliated} />}
-              {tab === 'plants' && <PlantManager plants={plants} onRefresh={fetchAll}/>}
+              {!useSplitMapTasks && tab === 'map'    && <MapView zones={zones} markers={markers} tasks={tasks} plants={plants} maps={visibleMaps} activeMapId={activeMapId} onMapChange={setActiveMapId} isTeacher student={currentUser} onZoneUpdate={updateZone} onRefresh={fetchAll} publicSettings={publicSettings}/>}
+              {!useSplitMapTasks && tab === 'tasks'  && <TasksView  tasks={tasks} taskProjects={taskProjects} zones={zones} markers={markers} maps={maps} tutorials={tutorials} activeMapId={activeMapId} isTeacher student={currentUser} onRefresh={fetchAll} onForceLogout={forceLogout} isN3Affiliated={isN3Affiliated} publicSettings={publicSettings} />}
+              {tab === 'plants' && <PlantManager plants={plants} onRefresh={fetchAll} publicSettings={publicSettings}/>}
               {publicSettings?.modules?.tutorials_enabled !== false && tab === 'tuto'   && <TutorialsView tutorials={tutorials} isTeacher onRefresh={fetchAll} onForceLogout={forceLogout} />}
               {publicSettings?.modules?.stats_enabled !== false && tab === 'stats'  && (hasPermission('stats.read.all') ? <TeacherStats isN3Affiliated={isN3Affiliated} /> : <div className="empty"><p>Permission insuffisante</p></div>)}
               {tab === 'profiles' && <ProfilesAdminView isN3Affiliated={isN3Affiliated} />}
               {tab === 'audit'  && (hasPermission('audit.read') ? <AuditLog isN3Affiliated={isN3Affiliated} /> : <div className="empty"><p>Permission insuffisante</p></div>)}
-              {publicSettings?.modules?.visit_enabled !== false && tab === 'visit'  && <VisitView student={currentUser} isTeacher availableTutorials={tutorials} initialMapId={activeMapId} onForceLogout={forceLogout} isN3Affiliated={isN3Affiliated} />}
+              {publicSettings?.modules?.visit_enabled !== false && tab === 'visit'  && <VisitView student={currentUser} isTeacher availableTutorials={tutorials} initialMapId={activeMapId} onForceLogout={forceLogout} isN3Affiliated={isN3Affiliated} publicSettings={publicSettings} />}
               {tab === 'settings' && <SettingsAdminView isN3Affiliated={isN3Affiliated} />}
               {tab === 'collective' && (
                 canUseCollectiveView ? (
@@ -1098,6 +1110,7 @@ function App() {
                         student={studentForUi}
                         onZoneUpdate={updateZone}
                         onRefresh={fetchAll}
+                        publicSettings={publicSettings}
                         embedded
                       />
                     </section>
@@ -1115,18 +1128,19 @@ function App() {
                           student={studentForUi}
                           onRefresh={fetchAll}
                           onForceLogout={forceLogout}
-                        isN3Affiliated={isN3Affiliated}
+                          isN3Affiliated={isN3Affiliated}
+                          publicSettings={publicSettings}
                         />
                       </div>
                     </section>
                   </div>
                 )}
-                {!useSplitMapTasks && tab === 'map'    && canAccessStudentMapTasks && <MapView zones={zones} markers={markers} tasks={tasks} plants={plants} maps={visibleMaps} activeMapId={activeMapId} onMapChange={setActiveMapId} isTeacher={false} student={studentForUi} onZoneUpdate={updateZone} onRefresh={fetchAll}/>}
-                {!useSplitMapTasks && tab === 'tasks'  && canAccessStudentMapTasks && <TasksView tasks={tasks} taskProjects={taskProjects} zones={zones} markers={markers} maps={maps} tutorials={tutorials} activeMapId={activeMapId} isTeacher={false} student={studentForUi} onRefresh={fetchAll} onForceLogout={forceLogout} isN3Affiliated={isN3Affiliated} />}
-                {tab === 'plants' && <PlantViewer plants={plants} zones={zones}/>}
+                {!useSplitMapTasks && tab === 'map'    && canAccessStudentMapTasks && <MapView zones={zones} markers={markers} tasks={tasks} plants={plants} maps={visibleMaps} activeMapId={activeMapId} onMapChange={setActiveMapId} isTeacher={false} student={studentForUi} onZoneUpdate={updateZone} onRefresh={fetchAll} publicSettings={publicSettings}/>}
+                {!useSplitMapTasks && tab === 'tasks'  && canAccessStudentMapTasks && <TasksView tasks={tasks} taskProjects={taskProjects} zones={zones} markers={markers} maps={maps} tutorials={tutorials} activeMapId={activeMapId} isTeacher={false} student={studentForUi} onRefresh={fetchAll} onForceLogout={forceLogout} isN3Affiliated={isN3Affiliated} publicSettings={publicSettings} />}
+                {tab === 'plants' && <PlantViewer plants={plants} zones={zones} publicSettings={publicSettings}/>}
                 {publicSettings?.modules?.tutorials_enabled !== false && tab === 'tuto' && <TutorialsView tutorials={tutorials} isTeacher={false} onRefresh={fetchAll} onForceLogout={forceLogout} />}
                 {publicSettings?.modules?.observations_enabled !== false && tab === 'notebook' && <ObservationNotebook student={studentForUi} zones={zones} onForceLogout={forceLogout} />}
-                {publicSettings?.modules?.visit_enabled !== false && tab === 'visit' && <VisitView student={studentForUi} isTeacher={false} availableTutorials={tutorials} initialMapId={activeMapId} onForceLogout={forceLogout} isN3Affiliated={isN3Affiliated} />}
+                {publicSettings?.modules?.visit_enabled !== false && tab === 'visit' && <VisitView student={studentForUi} isTeacher={false} availableTutorials={tutorials} initialMapId={activeMapId} onForceLogout={forceLogout} isN3Affiliated={isN3Affiliated} publicSettings={publicSettings} />}
                 {tab === 'forum' && <ForumView authClaims={authClaims} />}
                 {tab === 'about' && <AboutView appVersion={appVersion} isN3Affiliated={isN3Affiliated} />}
               </>

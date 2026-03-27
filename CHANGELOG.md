@@ -6,6 +6,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 ## [Non publié]
 
 ### Ajouté
+- **Aide contextuelle UI (collégiens + prof/admin)** : ajout d’un socle d’aide produit côté frontend avec tooltips enrichis (`Tooltip`), panneau contextuel `?` par section (`HelpPanel`) et registre centralisé des messages (`src/constants/help.js`) différenciés selon le rôle.
 - **Synchronisation sélective carte/visite** : ajout des endpoints `GET /api/visit/sync/options` et `POST /api/visit/sync` (prof, session élevée) avec import bidirectionnel ciblé des zones/repères entre carte principale et module visite.
 - **Progression de profil élève configurable** : nouveaux réglages `progression.student_role_min_done_eleve_avance` et `progression.student_role_min_done_eleve_chevronne` avec synchronisation automatique du rôle principal élève selon le nombre de tâches validées.
 - **Import visuel sélectif dans l’UI visite** : nouveau panneau enseignant dans la vue visite pour choisir les éléments à importer (zones/repères), direction du flux et exécuter la synchronisation sans quitter l’interface.
@@ -46,6 +47,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - **Tests visite** : nouveaux scénarios backend sur le contenu visite, la persistance anonyme via cookie signé et la persistance élève en base.
 
 ### Modifié
+- **Accessibilité et compréhension des icônes** : harmonisation des boutons icône-only (header, carte, tâches, biodiversité, visite) avec `aria-label` explicites, infobulles cohérentes et activation pilotable via le nouveau réglage public `ui.modules.help_enabled`.
 - **Console paramètres admin** : réorganisation des paramètres par sections (auth, modules, progression, sécurité, exploitation), ajout d’une recherche multi-critères et affichage des contraintes/valeurs par champ pour accélérer l’administration.
 - **Temps réel Socket.IO** : retour au mode `websocket + polling` avec reprise de connexion renforcée (recovery serveur/client, fallback hors-ligne temporisé, réabonnement map) pour mieux tolérer les micro-coupures.
 - **Statistiques élève** : affichage des paliers de progression dynamiques (labels/seuils issus de la config) et exposition API de la progression (`thresholds`, `steps`, rôle courant).

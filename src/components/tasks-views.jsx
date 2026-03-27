@@ -4,6 +4,10 @@ import { api, API, getAuthToken, AccountDeletedError } from '../services/api';
 import { taskStatusIndicator, daysUntil, dueDateChip } from '../utils/badges';
 import { getRoleTerms } from '../utils/n3-terminology';
 import { useDialogA11y } from '../hooks/useDialogA11y';
+import { useHelp } from '../hooks/useHelp';
+import { Tooltip } from './Tooltip';
+import { HelpPanel } from './HelpPanel';
+import { HELP_PANELS, HELP_TOOLTIPS, resolveRoleText } from '../constants/help';
 
 function Toast({ msg, onDone }) {
   useEffect(() => { const t = setTimeout(onDone, 2400); return () => clearTimeout(t); }, []);
@@ -508,7 +512,7 @@ const TEACHER_STATUS_ACTIONS = [
   { value: 'proposed', label: 'Proposée', icon: '💡' },
 ];
 
-function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], tutorials = [], activeMapId = 'foret', isTeacher, student, onRefresh, onForceLogout, isN3Affiliated = false }) {
+function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], tutorials = [], activeMapId = 'foret', isTeacher, student, onRefresh, onForceLogout, isN3Affiliated = false, publicSettings = null }) {
   const roleTerms = getRoleTerms(isN3Affiliated);
   const [showForm, setShowForm] = useState(false);
   const [showProjectForm, setShowProjectForm] = useState(false);
@@ -530,6 +534,9 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
   const [importing, setImporting] = useState(false);
   const [importReport, setImportReport] = useState(null);
   const confirmDialogRef = useDialogA11y(() => setConfirmTask(null));
+  const { isHelpEnabled, hasSeenSection, markSectionSeen } = useHelp({ publicSettings, isTeacher });
+  const helpTasks = HELP_PANELS.tasks;
+  const tooltipText = (entry) => resolveRoleText(entry, isTeacher);
 
   useEffect(() => {
     setFilterMap('active');
@@ -822,15 +829,21 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
           )}
           {isTeacher && (
             <>
-              <button className="btn btn-ghost btn-sm" onClick={() => { setEditTask(t); setDuplicateTask(null); setShowForm(true); }}>✏️</button>
-              <button
-                className="btn btn-ghost btn-sm"
-                onClick={() => { setDuplicateTask(t); setEditTask(null); setShowForm(true); }}
-                title="Dupliquer cette tâche"
-              >
-                📄
-              </button>
-              <button className="btn btn-danger btn-sm" disabled={loading[t.id + 'del']} onClick={() => deleteTask(t)}>🗑️</button>
+              <Tooltip text={tooltipText(HELP_TOOLTIPS.tasks.edit)}>
+                <button className="btn btn-ghost btn-sm" aria-label="Modifier la tâche" onClick={() => { setEditTask(t); setDuplicateTask(null); setShowForm(true); }}>✏️</button>
+              </Tooltip>
+              <Tooltip text={tooltipText(HELP_TOOLTIPS.tasks.duplicate)}>
+                <button
+                  className="btn btn-ghost btn-sm"
+                  aria-label="Dupliquer la tâche"
+                  onClick={() => { setDuplicateTask(t); setEditTask(null); setShowForm(true); }}
+                >
+                  📄
+                </button>
+              </Tooltip>
+              <Tooltip text={tooltipText(HELP_TOOLTIPS.tasks.delete)}>
+                <button className="btn btn-danger btn-sm" aria-label="Supprimer la tâche" disabled={loading[t.id + 'del']} onClick={() => deleteTask(t)}>🗑️</button>
+              </Tooltip>
             </>
           )}
         </div>
@@ -901,12 +914,36 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
         <h2 className="section-title">✅ Tâches</h2>
         {isTeacher && (
-          <div style={{ display: 'flex', gap: 8 }}>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            {isHelpEnabled && (
+              <HelpPanel
+                sectionId="tasks"
+                title={helpTasks.title}
+                entries={helpTasks.items}
+                isTeacher={isTeacher}
+                isPulsing={!hasSeenSection('tasks')}
+                onMarkSeen={markSectionSeen}
+              />
+            )}
             <button className="btn btn-ghost btn-sm" onClick={() => setShowProjectForm(true)}>+ Projet</button>
             <button className="btn btn-primary btn-sm" onClick={() => setShowForm(true)}>+ Nouvelle tâche</button>
           </div>
         )}
-        {!isTeacher && <button className="btn btn-ghost btn-sm" onClick={() => setShowProposalForm(true)}>+ Proposer</button>}
+        {!isTeacher && (
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            {isHelpEnabled && (
+              <HelpPanel
+                sectionId="tasks"
+                title={helpTasks.title}
+                entries={helpTasks.items}
+                isTeacher={isTeacher}
+                isPulsing={!hasSeenSection('tasks')}
+                onMarkSeen={markSectionSeen}
+              />
+            )}
+            <button className="btn btn-ghost btn-sm" onClick={() => setShowProposalForm(true)}>+ Proposer</button>
+          </div>
+        )}
       </div>
       <p className="section-sub">{isTeacher ? 'Gérer, valider et traiter les propositions' : 'Prends en charge une tâche ou propose-en une nouvelle'}</p>
       {isTeacher && (

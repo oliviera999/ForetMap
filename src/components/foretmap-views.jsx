@@ -3,8 +3,12 @@ import { api, AccountDeletedError } from '../services/api';
 import { SPECIAL_EMOJI, SPECIAL_DESC, TREE_LEGEND, TREE_DOTS } from '../constants/garden';
 import { PLANT_EMOJIS } from '../constants/emojis';
 import { compressImage } from '../utils/image';
+import { useHelp } from '../hooks/useHelp';
 import { TaskFormModal, TasksView, LogModal, TaskLogsViewer } from './tasks-views';
 import { Lightbox, PhotoGallery, ZoneInfoModal, ZoneDrawModal, MarkerModal, MapView } from './map-views';
+import { Tooltip } from './Tooltip';
+import { HelpPanel } from './HelpPanel';
+import { HELP_PANELS, HELP_TOOLTIPS, resolveRoleText } from '../constants/help';
 
 // ── TOAST ──────────────────────────────────────────────────────────────────
 function Toast({ msg, onDone }) {
@@ -458,7 +462,7 @@ function PlantEditForm({ title, form, setForm, onSave, onCancel, saving, plantId
 }
 
 // ── PLANT MANAGER (teacher) ───────────────────────────────────────────────────
-function PlantManager({ plants, onRefresh }) {
+function PlantManager({ plants, onRefresh, publicSettings = null }) {
   const [editId,  setEditId]  = useState(null);
   const [form,    setForm]    = useState({ ...EMPTY_PLANT_FORM });
   const [showAdd, setShowAdd] = useState(false);
@@ -473,6 +477,8 @@ function PlantManager({ plants, onRefresh }) {
   const [importing, setImporting] = useState(false);
   const [confirmReplaceAll, setConfirmReplaceAll] = useState(false);
   const [importReport, setImportReport] = useState(null);
+  const { isHelpEnabled, hasSeenSection, markSectionSeen } = useHelp({ publicSettings, isTeacher: true });
+  const tooltipText = (entry) => resolveRoleText(entry, true);
 
   const groupOptions = [...new Set(
     plants
@@ -574,11 +580,23 @@ function PlantManager({ plants, onRefresh }) {
       {toast && <Toast msg={toast} onDone={() => setToast(null)}/>}
       <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:4}}>
         <h2 className="section-title">🌱 Base biodiversité</h2>
-        {!showAdd && !editId && (
-          <button className="btn btn-primary btn-sm" onClick={() => { setShowAdd(true); setForm({ ...EMPTY_PLANT_FORM }); }}>
-            + Ajouter
-          </button>
-        )}
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          {isHelpEnabled && (
+            <HelpPanel
+              sectionId="plants"
+              title={HELP_PANELS.plants.title}
+              entries={HELP_PANELS.plants.items}
+              isTeacher
+              isPulsing={!hasSeenSection('plants')}
+              onMarkSeen={markSectionSeen}
+            />
+          )}
+          {!showAdd && !editId && (
+            <button className="btn btn-primary btn-sm" onClick={() => { setShowAdd(true); setForm({ ...EMPTY_PLANT_FORM }); }}>
+              + Ajouter
+            </button>
+          )}
+        </div>
       </div>
       <p className="section-sub">
         {filteredPlants.length} / {plants.length} êtres vivants affichés
@@ -738,8 +756,12 @@ function PlantManager({ plants, onRefresh }) {
                   <PlantMetaSections plant={p}/>
                 </div>
                 <div className="plant-actions">
-                  <button className="btn btn-ghost btn-sm" onClick={() => startEdit(p)}>✏️</button>
-                  <button className="btn btn-danger btn-sm" onClick={() => del(p)}>🗑️</button>
+                  <Tooltip text={tooltipText(HELP_TOOLTIPS.plants.edit)}>
+                    <button className="btn btn-ghost btn-sm" aria-label="Modifier la fiche biodiversité" onClick={() => startEdit(p)}>✏️</button>
+                  </Tooltip>
+                  <Tooltip text={tooltipText(HELP_TOOLTIPS.plants.delete)}>
+                    <button className="btn btn-danger btn-sm" aria-label="Supprimer la fiche biodiversité" onClick={() => del(p)}>🗑️</button>
+                  </Tooltip>
                 </div>
               </div>
             )}
@@ -906,10 +928,11 @@ function ObservationNotebook({ student, zones, onForceLogout = null }) {
 }
 
 // ── PLANT VIEWER (student read-only) ──────────────────────────────────────────
-function PlantViewer({ plants, zones }) {
+function PlantViewer({ plants, zones, publicSettings = null }) {
   const [search, setSearch] = useState('');
   const [groupFilter, setGroupFilter] = useState('');
   const [expanded, setExpanded] = useState(null);
+  const { isHelpEnabled, hasSeenSection, markSectionSeen } = useHelp({ publicSettings, isTeacher: false });
 
   const groupOptions = [...new Set(
     plants
@@ -939,7 +962,19 @@ function PlantViewer({ plants, zones }) {
 
   return (
     <div className="fade-in">
-      <h2 className="section-title">🌱 Catalogue de biodiversité</h2>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+        <h2 className="section-title">🌱 Catalogue de biodiversité</h2>
+        {isHelpEnabled && (
+          <HelpPanel
+            sectionId="plants"
+            title={HELP_PANELS.plants.title}
+            entries={HELP_PANELS.plants.items}
+            isTeacher={false}
+            isPulsing={!hasSeenSection('plants')}
+            onMarkSeen={markSectionSeen}
+          />
+        )}
+      </div>
       <p className="section-sub">{plants.length} espèces dans la forêt</p>
 
       <div style={{display:'grid', gap:8, marginBottom:12}}>

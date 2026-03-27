@@ -5,6 +5,7 @@ import {
   NOTIFICATION_LEVEL,
   NOTIFICATION_LEVEL_LABELS,
 } from '../constants/notifications';
+import { Tooltip } from './Tooltip';
 
 const CATEGORY_LABELS = {
   [NOTIFICATION_CATEGORY.DEADLINES]: 'Échéances',
@@ -64,6 +65,7 @@ function NotificationCenter({
   onClearRead,
   onOpenPanel,
   onResetMetrics,
+  helpText = 'Notifications',
 }) {
   const [open, setOpen] = useState(false);
   const [portalNode, setPortalNode] = useState(null);
@@ -152,16 +154,17 @@ function NotificationCenter({
 
   return (
     <div className="notif-center">
-      <button
-        type="button"
-        className={`lock-btn notif-bell ${unreadCount > 0 ? 'has-unread' : ''}`}
-        aria-label={`Notifications (${unreadCount} non lues)`}
-        title="Notifications"
-        onClick={openClose}
-      >
-        🔔
-        {unreadCount > 0 && <span className="notif-badge">{unreadCount > 99 ? '99+' : unreadCount}</span>}
-      </button>
+      <Tooltip text={helpText}>
+        <button
+          type="button"
+          className={`lock-btn notif-bell ${unreadCount > 0 ? 'has-unread' : ''}`}
+          aria-label={`Notifications (${unreadCount} non lues)`}
+          onClick={openClose}
+        >
+          🔔
+          {unreadCount > 0 && <span className="notif-badge">{unreadCount > 99 ? '99+' : unreadCount}</span>}
+        </button>
+      </Tooltip>
       {portalNode && panel ? createPortal(panel, portalNode) : null}
     </div>
   );
