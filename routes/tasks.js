@@ -366,6 +366,47 @@ async function getTaskTutorialIds(taskId) {
   return rows.map((r) => Number(r.tutorial_id));
 }
 
+async function getTaskProposerStudentId(taskId) {
+  if (!taskId) return null;
+  const row = await queryOne(
+    `SELECT actor_user_id AS student_id
+       FROM audit_log
+      WHERE action = 'propose_task'
+        AND target_type = 'task'
+        AND target_id = ?
+        AND actor_user_type = 'student'
+        AND actor_user_id IS NOT NULL
+      ORDER BY id DESC
+      LIMIT 1`,
+    [taskId]
+  );
+  return row?.student_id ? String(row.student_id) : null;
+}
+
+async function fetchTaskProposerMap(taskIds) {
+  if (!taskIds.length) return new Map();
+  const placeholders = taskIds.map(() => '?').join(',');
+  const rows = await queryAll(
+    `SELECT target_id AS task_id, actor_user_id AS student_id
+       FROM audit_log
+      WHERE action = 'propose_task'
+        AND target_type = 'task'
+        AND actor_user_type = 'student'
+        AND actor_user_id IS NOT NULL
+        AND target_id IN (${placeholders})
+      ORDER BY id DESC`,
+    taskIds
+  );
+  const map = new Map();
+  for (const row of rows) {
+    if (!row?.task_id || !row?.student_id) continue;
+    if (!map.has(row.task_id)) {
+      map.set(row.task_id, String(row.student_id));
+    }
+  }
+  return map;
+}
+
 async function setTaskZones(taskId, zoneIds) {
   await execute('DELETE FROM task_zones WHERE task_id = ?', [taskId]);
   for (const zid of zoneIds) {
@@ -572,6 +613,7 @@ async function getTaskWithAssignments(taskId) {
   task.map_label = m ? m.label : null;
   task.assignments = await queryAll('SELECT * FROM task_assignments WHERE task_id = ? ORDER BY assigned_at', [taskId]);
   task.assigned_count = Array.isArray(task.assignments) ? task.assignments.length : 0;
+  task.proposed_by_student_id = await getTaskProposerStudentId(taskId);
   return task;
 }
 
@@ -717,6 +759,7 @@ router.get('/', async (req, res) => {
     const zm = await fetchZonesForTasks(taskIds);
     const mm = await fetchMarkersForTasks(taskIds);
     const tutorialsMap = await fetchTutorialsForTasks(taskIds);
+    const proposerByTask = await fetchTaskProposerMap(taskIds);
     let assignments = [];
     if (taskIds.length && canReadAllAssignments(auth)) {
       const ph = taskIds.map(() => '?').join(',');
@@ -764,6 +807,7 @@ router.get('/', async (req, res) => {
       delete row.map_id_resolved_join;
       row.assignments = assignmentsByTask.get(t.id) || [];
       row.assigned_count = assignedCountByTask.get(t.id) || 0;
+      row.proposed_by_student_id = proposerByTask.get(t.id) || null;
       return row;
     });
     const mapLabelIds = [...new Set(enriched.map((r) => r.map_id_resolved).filter(Boolean))];
@@ -1199,10 +1243,30 @@ router.post('/proposals', async (req, res) => {
   }
 });
 
-router.put('/:id', requirePermission('tasks.manage', { needsElevation: true }), async (req, res) => {
+router.put('/:id', async (req, res) => {
   try {
     const task = await queryOne('SELECT * FROM tasks WHERE id = ?', [req.params.id]);
     if (!task) return res.status(404).json({ error: 'Tâche introuvable' });
+    const auth = parseOptionalAuth(req);
+    const isTeacherAction = canManageTasks(auth);
+    const isStudentSession = auth?.userType === 'student' && !!auth?.userId;
+    const proposerStudentId = await getTaskProposerStudentId(task.id);
+    const isProposerAction = isStudentSession
+      && String(task.status || '') === 'proposed'
+      && !!proposerStudentId
+      && String(proposerStudentId) === String(auth.userId);
+
+    if (!isTeacherAction && !isProposerAction) {
+      return res.status(403).json({ error: 'Accès refusé' });
+    }
+
+    if (isProposerAction) {
+      const forbiddenForProposer = ['status', 'project_id', 'tutorial_ids', 'recurrence'];
+      const attempted = forbiddenForProposer.find((key) => Object.prototype.hasOwnProperty.call(req.body || {}, key));
+      if (attempted) {
+        return res.status(403).json({ error: 'Champ non modifiable sur une proposition élève' });
+      }
+    }
     const {
       title,
       description,
@@ -1246,14 +1310,14 @@ router.put('/:id', requirePermission('tasks.manage', { needsElevation: true }), 
 
     const loc = await validateTaskLocations(nextZoneIds, nextMarkerIds, explicitMap);
     if (loc.error) return res.status(400).json({ error: loc.error });
-    const nextProjectId = Object.prototype.hasOwnProperty.call(req.body, 'project_id')
+    const nextProjectId = isTeacherAction && Object.prototype.hasOwnProperty.call(req.body, 'project_id')
       ? normalizeOptionalId(project_id)
       : task.project_id || null;
     const projectValidation = await validateTaskProject(nextProjectId, loc.mapId);
     if (projectValidation.error) return res.status(400).json({ error: projectValidation.error });
 
     let nextTutorialIds;
-    if (Object.prototype.hasOwnProperty.call(req.body, 'tutorial_ids')) {
+    if (isTeacherAction && Object.prototype.hasOwnProperty.call(req.body, 'tutorial_ids')) {
       nextTutorialIds = normalizeTutorialIdArray(tutorial_ids);
     } else {
       nextTutorialIds = await getTaskTutorialIds(task.id);
@@ -1262,7 +1326,7 @@ router.put('/:id', requirePermission('tasks.manage', { needsElevation: true }), 
     if (tutorialValidation.error) return res.status(400).json({ error: tutorialValidation.error });
 
     const reqStudents = required_students != null ? sanitizeRequiredStudents(required_students) : task.required_students;
-    const nextStatus = Object.prototype.hasOwnProperty.call(req.body, 'status')
+    const nextStatus = isTeacherAction && Object.prototype.hasOwnProperty.call(req.body, 'status')
       ? normalizeImportTaskStatus(status)
       : normalizeTaskStatusForRead(task.status);
     if (!nextStatus) return res.status(400).json({ error: 'Statut invalide' });
@@ -1278,7 +1342,9 @@ router.put('/:id', requirePermission('tasks.manage', { needsElevation: true }), 
         due_date ?? task.due_date,
         reqStudents,
         nextStatus,
-        recurrence !== undefined ? recurrence || null : task.recurrence || null,
+        isTeacherAction
+          ? (recurrence !== undefined ? recurrence || null : task.recurrence || null)
+          : task.recurrence || null,
         task.id,
       ]
     );
@@ -1289,10 +1355,13 @@ router.put('/:id', requirePermission('tasks.manage', { needsElevation: true }), 
     const updated = await getTaskWithAssignments(task.id);
     logAudit('update_task', 'task', task.id, updated.title, {
       req,
+      actorUserType: isProposerAction ? 'student' : undefined,
+      actorUserId: isProposerAction ? String(auth.userId) : undefined,
       payload: {
         status: updated.status,
         required_students: updated.required_students,
         project_id: updated.project_id || null,
+        proposer_edit: isProposerAction,
       },
     });
     emitTasksChanged({ reason: 'update_task', taskId: task.id, projectId: projectValidation.projectId || null, mapId: resolveTaskMapId(updated) });

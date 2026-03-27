@@ -807,6 +807,12 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
   });
 
   const allFiltered = applyFilters(tasks);
+  const myProposals = allFiltered.filter((t) => (
+    !isTeacher
+    && t.status === 'proposed'
+    && student
+    && String(t.proposed_by_student_id || '') === String(student.id || '')
+  ));
   const myTasks = allFiltered.filter(t => student && t.status !== 'validated' && t.assignments?.some(
     a => a.student_first_name === student.first_name && a.student_last_name === student.last_name
   ));
@@ -901,6 +907,10 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
 
   const TaskCard = ({ t, index = 0 }) => {
     const isMine = myTasks.some(m => m.id === t.id);
+    const canEditOwnProposal = !isTeacher
+      && t.status === 'proposed'
+      && student
+      && String(t.proposed_by_student_id || '') === String(student.id || '');
     const slots = getAvailableSlots(t);
     const proposalMeta = proposalMetaFromDescription(t.description);
     const cardDescription = t.status === 'proposed' ? proposalMeta.cleanedDescription : (t.description || '');
@@ -1044,6 +1054,15 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
               </Tooltip>
             </>
           )}
+          {!isTeacher && canEditOwnProposal && (
+            <button
+              className="btn btn-ghost btn-sm"
+              aria-label="Modifier ma proposition"
+              onClick={() => { setEditTask(t); setDuplicateTask(null); setShowProposalForm(false); setShowForm(true); }}
+            >
+              ✏️ Modifier ma proposition
+            </button>
+          )}
         </div>
         <ContextComments
           contextType="task"
@@ -1069,7 +1088,7 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
           activeMapId={activeMapId}
           editTask={editTask || duplicateTask}
           isDuplicate={!!duplicateTask}
-          isProposal={showProposalForm && !isTeacher}
+          isProposal={(!isTeacher) && (showProposalForm || editTask?.status === 'proposed')}
           enableInitialAssignment={isTeacher}
           roleTerms={roleTerms}
           onClose={() => { setShowForm(false); setEditTask(null); setDuplicateTask(null); setShowProposalForm(false); }}
@@ -1372,6 +1391,12 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
               <div className={sectionListClass}>{availableNotMine.map((t, idx) => <TaskCard key={t.id} t={t} index={idx} />)}</div>
             </div>
           )}
+              {myProposals.length > 0 && (
+              <div className="tasks-section">
+                <div className="tasks-section-title">Mes propositions ({myProposals.length})</div>
+                <div className={sectionListClass}>{myProposals.map((t, idx) => <TaskCard key={t.id} t={t} index={idx} />)}</div>
+              </div>
+              )}
               {inProgressNotMine.length > 0 && (
               <div className="tasks-section">
                 <div className="tasks-section-title">En cours (déjà prises)</div>
