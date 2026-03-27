@@ -5,6 +5,7 @@
       --leaf:     #2d6a4f;
       --sage:     #52b788;
       --mint:     #b7e4c7;
+      --font-sans: 'DM Sans', 'Segoe UI Emoji', 'Apple Color Emoji', 'Noto Color Emoji', sans-serif;
       --cream:    #fefae0;
       --parchment:#f4e9d0;
       --soil:     #6b4226;
@@ -27,7 +28,7 @@
       overflow-x:hidden;
     }
     body {
-      background:var(--cream); font-family:'DM Sans',sans-serif;
+      background:var(--cream); font-family:var(--font-sans);
       color:var(--forest); min-height:100vh;
       overscroll-behavior:none;
       -webkit-font-smoothing:antialiased;
@@ -42,7 +43,7 @@
     /* Prevent iOS zoom on input */
     input, select, textarea {
       font-size:.95rem;
-      font-family:'DM Sans',sans-serif;
+      font-family:var(--font-sans);
     }
     @media (max-width:1023px), (hover:none), (pointer:coarse) {
       input, select, textarea { font-size:16px !important; }
@@ -74,7 +75,7 @@
       display:inline-flex; align-items:center; justify-content:center; gap:8px;
       padding:13px 20px; min-height:44px;
       border:none; border-radius:10px;
-      font-family:'DM Sans',sans-serif; font-size:1rem; font-weight:600;
+      font-family:var(--font-sans); font-size:1rem; font-weight:600;
       cursor:pointer;
       transition:transform .12s var(--spring), box-shadow .15s, background .15s, color .15s;
       -webkit-tap-highlight-color:transparent;
@@ -167,7 +168,7 @@
     .lock-btn {
       background:rgba(255,255,255,.12); border:none; color:white;
       border-radius:8px; padding:8px 10px;
-      cursor:pointer; font-size:.82rem; font-family:'DM Sans',sans-serif;
+      cursor:pointer; font-size:.82rem; font-family:var(--font-sans);
       display:flex; align-items:center; gap:5px;
       min-height:40px; min-width:40px;
       transition:background .15s, transform .1s var(--spring);
@@ -319,7 +320,7 @@
     .nav-btn {
       flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center;
       gap:3px; padding:10px 4px; border:none; background:transparent;
-      cursor:pointer; font-family:'DM Sans',sans-serif;
+      cursor:pointer; font-family:var(--font-sans);
       font-size:.68rem; color:#6d756f; min-height:56px;
       -webkit-tap-highlight-color:transparent;
       position:relative;
@@ -403,7 +404,7 @@
     .top-tab {
       flex:1; min-width:fit-content;
       padding:10px 12px; border:none; background:transparent; cursor:pointer;
-      border-radius:9px; font-family:'DM Sans',sans-serif; font-size:.82rem;
+      border-radius:9px; font-family:var(--font-sans); font-size:.82rem;
       font-weight:500; color:var(--soil); white-space:nowrap;
       transition:background .2s var(--ease-out), color .2s, transform .12s var(--spring);
       -webkit-tap-highlight-color:transparent;
@@ -748,7 +749,7 @@
     .auth-tabs { display:flex; background:var(--parchment); border-radius:10px; padding:3px; margin-bottom:20px; }
     .auth-tab {
       flex:1; padding:10px; border:none; background:transparent; border-radius:8px;
-      cursor:pointer; font-family:'DM Sans',sans-serif; font-size:.9rem; font-weight:500;
+      cursor:pointer; font-family:var(--font-sans); font-size:.9rem; font-weight:500;
       color:var(--soil); transition:background .2s var(--ease-out), color .2s, transform .1s var(--spring);
       -webkit-tap-highlight-color:transparent;
     }
@@ -784,7 +785,7 @@
       font-size:.78rem;
       font-weight:700;
       cursor:pointer;
-      font-family:'DM Sans',sans-serif;
+      font-family:var(--font-sans);
     }
     .map-gesture-toggle.is-on {
       background:#ecfdf3;
@@ -1178,7 +1179,7 @@
     }
     .task-filters input, .task-filters select {
       padding:9px 12px; border:1.5px solid var(--mint); border-radius:8px;
-      background:white; color:var(--forest); font-family:'DM Sans',sans-serif;
+      background:white; color:var(--forest); font-family:var(--font-sans);
       font-size:.85rem; outline:none; min-height:38px;
       transition:border-color .18s, box-shadow .18s;
     }
@@ -1385,7 +1386,7 @@
       cursor:pointer;
       padding:0;
       min-height:44px;
-      font-family:'DM Sans',sans-serif;
+      font-family:var(--font-sans);
     }
 
     @media (prefers-reduced-motion: reduce) {
@@ -1898,7 +1899,7 @@
   gap:4px;
   cursor:pointer;
   color:inherit;
-  font-family:'DM Sans',sans-serif;
+  font-family:var(--font-sans);
 }
 .forum-thread-item.active {
   border-color:var(--sage);
@@ -1994,7 +1995,7 @@
   gap:8px;
   padding:8px 10px;
   cursor:pointer;
-  font-family:'DM Sans',sans-serif;
+  font-family:var(--font-sans);
   color:#1e2b24;
 }
 .context-comments-body {

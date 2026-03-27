@@ -524,6 +524,8 @@ function App() {
   const canOpenTeacherStatsFromBadge = effectiveIsTeacher
     && publicSettings?.modules?.stats_enabled !== false
     && hasPermission('stats.read.all');
+  const canViewGeneralStats = publicSettings?.modules?.stats_enabled !== false
+    && hasPermission('stats.read.all');
   const canSwitchToStudentView = isTeacher && (effectiveRoleContext.roleSlug === 'prof' || effectiveRoleContext.roleSlug === 'admin');
   const canSwitchToTeacherView = isTeacher && effectiveRoleContext.roleSlug === 'admin';
   const shouldUseDesktopSplit = useMemo(() => {
@@ -572,11 +574,12 @@ function App() {
   useEffect(() => {
     if (tab === 'tuto' && publicSettings?.modules?.tutorials_enabled === false) setTab('map');
     if (tab === 'stats' && publicSettings?.modules?.stats_enabled === false) setTab('map');
+    if (tab === 'stats' && publicSettings?.modules?.stats_enabled !== false && !canViewGeneralStats) setTab('map');
     if (tab === 'visit' && publicSettings?.modules?.visit_enabled === false) setTab('map');
     if (tab === 'notebook' && publicSettings?.modules?.observations_enabled === false) setTab('map');
     if (tab === 'collective' && !canUseCollectiveView) setTab('map');
     if (tab === 'forum' && !canAccessForum) setTab('about');
-  }, [tab, publicSettings?.modules?.tutorials_enabled, publicSettings?.modules?.stats_enabled, publicSettings?.modules?.visit_enabled, publicSettings?.modules?.observations_enabled, canUseCollectiveView, canAccessForum]);
+  }, [tab, publicSettings?.modules?.tutorials_enabled, publicSettings?.modules?.stats_enabled, publicSettings?.modules?.visit_enabled, publicSettings?.modules?.observations_enabled, canUseCollectiveView, canAccessForum, canViewGeneralStats]);
 
   // Auto-refresh adaptatif (ralenti quand le push est actif, ralenti en arrière-plan).
   const pollingIntervalMs = useMemo(() => {
@@ -1179,6 +1182,7 @@ function App() {
                 {!useSplitMapTasks && tab === 'tasks'  && canAccessStudentMapTasks && <TasksView tasks={tasks} taskProjects={taskProjects} zones={zones} markers={markers} maps={maps} tutorials={tutorials} activeMapId={activeMapId} isTeacher={false} student={studentForUi} canSelfAssignTasks={canSelfAssignTasks} canViewOtherUsersIdentity={canViewOtherUsersIdentity} onRefresh={fetchAll} onForceLogout={forceLogout} isN3Affiliated={isN3Affiliated} publicSettings={publicSettings} />}
                 {tab === 'plants' && <PlantViewer plants={plants} zones={zones} publicSettings={publicSettings}/>}
                 {publicSettings?.modules?.tutorials_enabled !== false && tab === 'tuto' && <TutorialsView tutorials={tutorials} isTeacher={false} onRefresh={fetchAll} onForceLogout={forceLogout} />}
+                {tab === 'stats' && canViewGeneralStats && <TeacherStats isN3Affiliated={isN3Affiliated} />}
                 {publicSettings?.modules?.observations_enabled !== false && tab === 'notebook' && <ObservationNotebook student={studentForUi} zones={zones} onForceLogout={forceLogout} />}
                 {publicSettings?.modules?.visit_enabled !== false && tab === 'visit' && <VisitView student={studentForUi} isTeacher={false} availableTutorials={tutorials} initialMapId={activeMapId} onForceLogout={forceLogout} isN3Affiliated={isN3Affiliated} publicSettings={publicSettings} />}
                 {tab === 'forum' && canAccessForum && <ForumView authClaims={authClaims} />}
@@ -1210,6 +1214,11 @@ function App() {
             {publicSettings?.modules?.tutorials_enabled !== false && (
               <button className={`nav-btn ${tab === 'tuto' ? 'active' : ''}`} onClick={() => setTab('tuto')}>
                 <span className="nav-icon">📘</span> Tuto
+              </button>
+            )}
+            {canViewGeneralStats && (
+              <button className={`nav-btn ${tab === 'stats' ? 'active' : ''}`} onClick={() => setTab('stats')}>
+                <span className="nav-icon">📊</span> Stats
               </button>
             )}
             {publicSettings?.modules?.observations_enabled !== false && (
