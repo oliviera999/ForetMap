@@ -46,6 +46,20 @@ function makeStoreKey(prefix, roleKey) {
   return `foretmap_notifications_${prefix}_${roleKey}`;
 }
 
+function proposerNameFromTask(task) {
+  const direct = String(
+    task?.proposer
+    || task?.proposed_by
+    || task?.proposed_by_name
+    || task?.proposedBy
+    || ''
+  ).trim();
+  if (direct) return direct;
+  const description = String(task?.description || '');
+  const match = description.match(/(?:^|\n)Proposition élève:\s*(.+)\s*$/m);
+  return String(match?.[1] || '').trim();
+}
+
 export function useNotificationCenter({
   isTeacher,
   isAdmin,
@@ -73,7 +87,7 @@ export function useNotificationCenter({
     actions: 0,
   }));
   const lastSeenKeysRef = useRef({});
-  const lastTeacherProposalsSignatureRef = useRef('');
+  const lastTeacherProposedKeysRef = useRef(new Set());
   const firstMountRef = useRef(true);
 
   const bumpMetric = useCallback((field) => {
@@ -221,35 +235,31 @@ export function useNotificationCenter({
   useEffect(() => {
     if (!isTeacher) return;
     const proposedTasks = tasksForActiveMap.filter((task) => task.status === 'proposed');
-    const proposedCount = proposedTasks.length;
-    const proposedTitles = proposedTasks
-      .map((task) => String(task?.title || task?.name || '').trim())
-      .filter(Boolean);
-    const proposedSignature = proposedTasks
-      .map((task) => {
-        if (task?.id != null) return `id:${task.id}`;
-        if (task?.task_id != null) return `task_id:${task.task_id}`;
-        const title = String(task?.title || '').trim().toLowerCase();
-        return `title:${title}`;
-      })
-      .sort()
-      .join('|');
-    const lastSignature = lastTeacherProposalsSignatureRef.current;
-    if (proposedSignature === lastSignature) return;
-    lastTeacherProposalsSignatureRef.current = proposedSignature;
-    if (proposedCount > 0) {
-      const message = proposedCount === 1
-        ? `1 proposition de tâche à examiner : "${proposedTitles[0] || 'Sans titre'}".`
-        : `${proposedCount} proposition(s) de tâche à examiner. Exemples : ${proposedTitles.slice(0, 2).map((t) => `"${t}"`).join(', ')}${proposedTitles.length > 2 ? ', …' : ''}.`;
+    const currentKeys = new Set();
+    for (const task of proposedTasks) {
+      const taskKey = task?.id != null
+        ? `id:${task.id}`
+        : (task?.task_id != null
+          ? `task_id:${task.task_id}`
+          : `title:${String(task?.title || task?.name || '').trim().toLowerCase()}`);
+      currentKeys.add(taskKey);
+
+      if (lastTeacherProposedKeysRef.current.has(taskKey)) continue;
+
+      const taskTitle = String(task?.title || task?.name || '').trim() || 'Tâche sans titre';
+      const proposer = proposerNameFromTask(task);
       addNotification({
-        key: `teacher-proposed-${proposedCount}-${proposedSignature || 'none'}`,
+        key: `teacher-proposed-${taskKey}`,
         level: NOTIFICATION_LEVEL.IMPORTANT,
         category: NOTIFICATION_CATEGORY.PROPOSALS,
-        title: 'Propositions élèves',
-        message,
+        title: taskTitle,
+        message: proposer
+          ? `Nouvelle proposition de tâche de ${proposer}.`
+          : 'Nouvelle proposition de tâche à examiner.',
         action: { tab: 'tasks' },
       });
     }
+    lastTeacherProposedKeysRef.current = currentKeys;
   }, [addNotification, isTeacher, tasksForActiveMap]);
 
   // Règles de génération: élève

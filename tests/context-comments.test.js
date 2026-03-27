@@ -120,6 +120,39 @@ test('Commentaires contextuels: cycle création/lecture/suppression sur une tâc
   assert.strictEqual(deleted.body, '');
 });
 
+test('Commentaires contextuels: pagination triée du plus récent au plus ancien', async () => {
+  const teacher = await teacherToken();
+  const student = await registerStudent('ComOrder');
+  const { taskId } = await createContextFixture(teacher);
+
+  const createdIds = [];
+  for (let i = 1; i <= 12; i += 1) {
+    const created = await request(app)
+      .post('/api/context-comments')
+      .set(auth(student.authToken))
+      .send({ contextType: 'task', contextId: taskId, body: `Commentaire ordre ${i}` })
+      .expect(201);
+    createdIds.push(created.body.id);
+    await new Promise((resolve) => setTimeout(resolve, 20));
+  }
+
+  const firstPage = await request(app)
+    .get(`/api/context-comments?contextType=task&contextId=${encodeURIComponent(taskId)}&page=1&page_size=10`)
+    .set(auth(student.authToken))
+    .expect(200);
+  assert.strictEqual(firstPage.body.items.length, 10);
+  assert.strictEqual(firstPage.body.items[0].id, createdIds[11]);
+  assert.strictEqual(firstPage.body.items[9].id, createdIds[2]);
+
+  const secondPage = await request(app)
+    .get(`/api/context-comments?contextType=task&contextId=${encodeURIComponent(taskId)}&page=2&page_size=10`)
+    .set(auth(student.authToken))
+    .expect(200);
+  assert.strictEqual(secondPage.body.items.length, 2);
+  assert.strictEqual(secondPage.body.items[0].id, createdIds[1]);
+  assert.strictEqual(secondPage.body.items[1].id, createdIds[0]);
+});
+
 test('Commentaires contextuels: un autre élève ne peut pas supprimer un commentaire', async () => {
   const teacher = await teacherToken();
   const author = await registerStudent('ComAuthor');

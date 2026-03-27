@@ -172,7 +172,7 @@ router.get('/', async (req, res) => {
     LEFT JOIN users u ON u.id = c.author_user_id AND u.user_type = c.author_user_type
         WHERE c.context_type = ?
           AND c.context_id = ?
-        ORDER BY c.created_at ASC, c.id ASC
+        ORDER BY c.created_at DESC, c.id DESC
         LIMIT ? OFFSET ?`,
       [contextType, contextId, pageSize, offset]
     );
