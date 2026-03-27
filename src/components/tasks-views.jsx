@@ -581,6 +581,7 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
   const [filterText, setFilterText] = useState('');
   const [filterZone, setFilterZone] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
+  const [hasTouchedStatusFilter, setHasTouchedStatusFilter] = useState(false);
   const [filterMap, setFilterMap] = useState('active');
   const [filterProject, setFilterProject] = useState('');
   const [viewMode, setViewMode] = useState(() => {
@@ -596,7 +597,8 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
   const [importing, setImporting] = useState(false);
   const [importReport, setImportReport] = useState(null);
   const [teacherStudents, setTeacherStudents] = useState([]);
-  const [selectedTeacherStudentId, setSelectedTeacherStudentId] = useState('');
+  const [quickAssignTaskId, setQuickAssignTaskId] = useState(null);
+  const [quickAssignStudentId, setQuickAssignStudentId] = useState('');
   const [loadingTeacherStudents, setLoadingTeacherStudents] = useState(false);
   const confirmDialogRef = useDialogA11y(() => setConfirmTask(null));
   const { isHelpEnabled, hasSeenSection, markSectionSeen, trackPanelOpen, trackPanelDismiss } = useHelp({ publicSettings, isTeacher });
@@ -826,6 +828,7 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
     || !!filterZone
     || !!filterProject
     || !!filterStatus
+    || hasTouchedStatusFilter
     || filterMap !== 'active'
   );
   const showStudentFilteredResults = !isTeacher && hasStudentFilters;
@@ -865,44 +868,43 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
   const usedZones = [...usedZoneIds];
   const usedMarkers = [...usedMarkerIds];
   const sectionListClass = viewMode === 'tiles' ? 'tasks-grid' : 'tasks-list';
-  const selectedTeacherStudent = useMemo(
-    () => teacherStudents.find((s) => s.id === selectedTeacherStudentId) || null,
-    [teacherStudents, selectedTeacherStudentId]
-  );
-  const canTeacherAssignOnTask = (task) => {
-    if (!isTeacher || !selectedTeacherStudent) return false;
+  const canTeacherAssignOnTask = (task, targetStudent = null) => {
+    if (!isTeacher || !targetStudent) return false;
     if (!task || task.status === 'validated' || task.status === 'done' || task.status === 'proposed') return false;
     if (getAvailableSlots(task) <= 0) return false;
     return !(task.assignments || []).some((a) => (
-      String(a.student_id || '') === String(selectedTeacherStudent.id || '')
+      String(a.student_id || '') === String(targetStudent.id || '')
       || (
-        String(a.student_first_name || '').trim().toLowerCase() === String(selectedTeacherStudent.first_name || '').trim().toLowerCase()
-        && String(a.student_last_name || '').trim().toLowerCase() === String(selectedTeacherStudent.last_name || '').trim().toLowerCase()
+        String(a.student_first_name || '').trim().toLowerCase() === String(targetStudent.first_name || '').trim().toLowerCase()
+        && String(a.student_last_name || '').trim().toLowerCase() === String(targetStudent.last_name || '').trim().toLowerCase()
       )
     ));
   };
-  const quickAssignHint = (task) => {
-    if (!selectedTeacherStudent) return "Choisis d'abord un élève cible";
+  const quickAssignHint = (task, targetStudent = null) => {
+    if (!targetStudent) return "Choisis d'abord un élève cible";
     if (!task) return "Tâche indisponible";
     if (task.status === 'proposed') return "Impossible d'affecter une tâche proposée";
     if (task.status === 'done' || task.status === 'validated') return "Tâche déjà terminée";
     if (getAvailableSlots(task) <= 0) return "Aucune place restante";
     if ((task.assignments || []).some((a) => (
-      String(a.student_id || '') === String(selectedTeacherStudent.id || '')
+      String(a.student_id || '') === String(targetStudent.id || '')
       || (
-        String(a.student_first_name || '').trim().toLowerCase() === String(selectedTeacherStudent.first_name || '').trim().toLowerCase()
-        && String(a.student_last_name || '').trim().toLowerCase() === String(selectedTeacherStudent.last_name || '').trim().toLowerCase()
+        String(a.student_first_name || '').trim().toLowerCase() === String(targetStudent.first_name || '').trim().toLowerCase()
+        && String(a.student_last_name || '').trim().toLowerCase() === String(targetStudent.last_name || '').trim().toLowerCase()
       )
     ))) return "Élève déjà inscrit sur cette tâche";
-    return `Inscrire ${selectedTeacherStudent.first_name} ${selectedTeacherStudent.last_name}`;
+    return `Inscrire ${targetStudent.first_name} ${targetStudent.last_name}`;
   };
-  const runTeacherQuickAssign = (task) => withLoad(`${task.id}assign_teacher_quick`, async () => {
+  const runTeacherQuickAssign = (task, targetStudent) => withLoad(`${task.id}assign_teacher_quick`, async () => {
+    if (!targetStudent) return;
     await api(`/api/tasks/${task.id}/assign`, 'POST', {
-      firstName: selectedTeacherStudent.first_name,
-      lastName: selectedTeacherStudent.last_name,
-      studentId: selectedTeacherStudent.id,
+      firstName: targetStudent.first_name,
+      lastName: targetStudent.last_name,
+      studentId: targetStudent.id,
     });
-    setToast(`${selectedTeacherStudent.first_name} inscrit(e) à "${task.title}"`);
+    setToast(`${targetStudent.first_name} inscrit(e) à "${task.title}"`);
+    setQuickAssignTaskId(null);
+    setQuickAssignStudentId('');
   });
 
   const TaskCard = ({ t, index = 0 }) => {
@@ -915,20 +917,17 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
     const proposalMeta = proposalMetaFromDescription(t.description);
     const cardDescription = t.status === 'proposed' ? proposalMeta.cleanedDescription : (t.description || '');
     const assignees = Array.isArray(t.assignments) ? t.assignments : [];
-    const assigneeLabels = assignees.map((a) => formatAssigneeName(a, student, isTeacher || canViewOtherUsersIdentity));
-    const canQuickAssign = canTeacherAssignOnTask(t);
+    const isQuickAssignOpen = quickAssignTaskId === t.id;
+    const selectedQuickAssignStudent = isQuickAssignOpen
+      ? teacherStudents.find((s) => s.id === quickAssignStudentId) || null
+      : null;
+    const canQuickAssign = canTeacherAssignOnTask(t, selectedQuickAssignStudent);
     const quickAssignBusy = !!loading[`${t.id}assign_teacher_quick`];
-    const quickAssignTitle = quickAssignHint(t);
+    const quickAssignTitle = quickAssignHint(t, selectedQuickAssignStudent);
     return (
       <div
         className={`task-card ${viewMode === 'tiles' ? 'task-card--tile' : ''} fade-in ${isMine ? 'mine' : ''} ${t.status === 'validated' ? 'done' : ''} ${t.status === 'proposed' ? 'proposed' : ''}`}
-        style={{ animationDelay: `${Math.min(index * 60, 360)}ms`, cursor: canQuickAssign ? 'pointer' : undefined }}
-        title={canQuickAssign ? quickAssignTitle : ''}
-        onClick={(e) => {
-          if (!canQuickAssign) return;
-          if (e.target.closest('button, input, select, textarea, a, label')) return;
-          runTeacherQuickAssign(t);
-        }}
+        style={{ animationDelay: `${Math.min(index * 60, 360)}ms` }}
       >
         <div className="task-top">
           <div className="task-title-row">
@@ -937,7 +936,6 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
           </div>
         </div>
         <div className="task-meta">
-          <span className="task-chip">{taskEffectiveMapId(t) ? `🗺️ ${mapLabelById(taskEffectiveMapId(t))}` : '🌐 Globale'}</span>
           {(t.zones_linked || []).map((z) => (
             <span key={z.id} className="task-chip">🌿 {z.name}</span>
           ))}
@@ -956,18 +954,6 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
           {dueDateChip(t.due_date)}
           {!isTeacher && <span className="task-chip">👤 {t.required_students} {t.required_students > 1 ? roleTerms.studentPlural : roleTerms.studentSingular}</span>}
           {t.recurrence && <span className="task-chip">🔄 {t.recurrence === 'weekly' ? 'Hebdo' : t.recurrence === 'biweekly' ? 'Bi-hebdo' : t.recurrence === 'monthly' ? 'Mensuel' : t.recurrence}</span>}
-        </div>
-        <div className="task-assignees-overview">
-          <span className="task-assignees-title">👥 Inscrits</span>
-          <span className="task-assignees-list">
-            {assigneeLabels.length > 0
-              ? assigneeLabels.map((item, idx) => (
-                <span key={`${item.fullName}-${idx}`} className={`task-assignee-inline ${item.isCurrentStudent ? 'me' : ''}`}>
-                  {item.isCurrentStudent && item.fullName.toLowerCase() !== 'toi' ? `${item.fullName} (toi)` : item.fullName}
-                </span>
-              ))
-              : <span className="task-assignee-inline empty">Personne pour le moment</span>}
-          </span>
         </div>
         {cardDescription && <div className="task-desc">{cardDescription}</div>}
         {assignees.length > 0 && (
@@ -1005,13 +991,45 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
           )}
           {isTeacher && (
             <button
-              className={`btn btn-sm ${canQuickAssign ? 'btn-primary' : 'btn-ghost'}`}
-              disabled={!canQuickAssign || quickAssignBusy}
-              onClick={() => runTeacherQuickAssign(t)}
-              title={quickAssignTitle}
+              className={`btn btn-sm ${isQuickAssignOpen ? 'btn-primary' : 'btn-ghost'}`}
+              disabled={quickAssignBusy || loadingTeacherStudents || teacherStudents.length === 0}
+              onClick={() => {
+                if (isQuickAssignOpen) {
+                  setQuickAssignTaskId(null);
+                  setQuickAssignStudentId('');
+                  return;
+                }
+                setQuickAssignTaskId(t.id);
+                setQuickAssignStudentId('');
+              }}
+              title={teacherStudents.length === 0 ? 'Aucun élève disponible' : 'Afficher la liste des élèves'}
             >
               {quickAssignBusy ? '...' : '⚡ Affectation rapide'}
             </button>
+          )}
+          {isTeacher && isQuickAssignOpen && (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, width: '100%' }}>
+              <select
+                value={quickAssignStudentId}
+                onChange={(e) => setQuickAssignStudentId(e.target.value)}
+                disabled={loadingTeacherStudents || quickAssignBusy}
+                style={{ minWidth: 220, flex: 1 }}
+                title="Choisir un élève à inscrire"
+              >
+                <option value="">{loadingTeacherStudents ? 'Chargement élèves...' : 'Choisir un élève'}</option>
+                {teacherStudents.map((s) => (
+                  <option key={s.id} value={s.id}>{`${s.first_name || ''} ${s.last_name || ''}`.trim()}</option>
+                ))}
+              </select>
+              <button
+                className={`btn btn-sm ${canQuickAssign ? 'btn-primary' : 'btn-ghost'}`}
+                disabled={!canQuickAssign || quickAssignBusy}
+                onClick={() => runTeacherQuickAssign(t, selectedQuickAssignStudent)}
+                title={quickAssignTitle}
+              >
+                {quickAssignBusy ? '...' : 'Affecter'}
+              </button>
+            </div>
           )}
           {isTeacher && (
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
@@ -1154,18 +1172,6 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
             )}
             <button className="btn btn-ghost btn-sm" onClick={() => setShowProjectForm(true)}>+ Projet</button>
             <button className="btn btn-primary btn-sm" onClick={() => setShowForm(true)}>+ Nouvelle tâche</button>
-            <select
-              value={selectedTeacherStudentId}
-              onChange={(e) => setSelectedTeacherStudentId(e.target.value)}
-              disabled={loadingTeacherStudents}
-              style={{ minWidth: 220 }}
-              title="Élève cible pour attribution rapide"
-            >
-              <option value="">{loadingTeacherStudents ? 'Chargement élèves...' : 'Affectation rapide : choisir un élève'}</option>
-              {teacherStudents.map((s) => (
-                <option key={s.id} value={s.id}>{`${s.first_name || ''} ${s.last_name || ''}`.trim()}</option>
-              ))}
-            </select>
           </div>
         )}
         {!isTeacher && (
@@ -1307,7 +1313,13 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
               <option key={p.id} value={p.id}>{p.title}</option>
             ))}
         </select>
-        <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)}>
+        <select
+          value={filterStatus}
+          onChange={(e) => {
+            setFilterStatus(e.target.value);
+            setHasTouchedStatusFilter(true);
+          }}
+        >
           <option value="">Tous les statuts</option>
           {TASK_STATUS_FILTER_OPTIONS.map((opt) => (
             <option key={opt.value} value={opt.value}>{opt.label}</option>

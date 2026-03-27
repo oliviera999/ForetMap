@@ -22,7 +22,6 @@
 - Broadcast global peu ciblé.
 - Synchronisation incomplète après `tasks:changed` (projets de tâches pas toujours rafraîchis immédiatement).
 - Ambiguïté de l’indicateur temps réel côté prof.
-- Vue collectif pas assez recâblée aux signaux de mise à jour.
 
 ## Correctifs implémentés
 
@@ -41,7 +40,6 @@
 - Événements `foretmap_realtime` uniformisés (`tasks`, `students`, `garden`) pour synchronisation inter-vues.
 - Polling adaptatif dans `src/App.jsx` (ralenti si push live, ralenti en onglet caché).
 - Indicateur prof clarifié avec état `polling`.
-- Vue collectif recâblée aux événements realtime (`src/components/collective-view.jsx`).
 
 ## Validation
 

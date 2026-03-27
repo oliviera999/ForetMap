@@ -26,7 +26,6 @@ const observationsRouter  = require('./routes/observations');
 const auditRouter         = require('./routes/audit');
 const rbacRouter          = require('./routes/rbac');
 const settingsRouter      = require('./routes/settings');
-const collectiveRouter    = require('./routes/collective');
 const forumRouter         = require('./routes/forum');
 const contextCommentsRouter = require('./routes/context-comments');
 
@@ -206,7 +205,6 @@ app.use('/api/observations', observationsRouter);
 app.use('/api/audit', auditRouter);
 app.use('/api/rbac', rbacRouter);
 app.use('/api/settings', settingsRouter);
-app.use('/api/collective', collectiveRouter);
 app.use('/api/forum', forumRouter);
 app.use('/api/context-comments', contextCommentsRouter);
 

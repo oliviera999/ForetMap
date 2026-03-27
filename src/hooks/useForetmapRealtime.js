@@ -3,7 +3,7 @@ import { io } from 'socket.io-client';
 import { api, AccountDeletedError, API, withAppBase, getAuthToken } from '../services/api';
 
 /**
- * Connexion Socket.IO (tâches, jardin, élèves) + indicateur temps réel mode prof.
+ * Connexion Socket.IO (tâches, jardin, élèves, forum, commentaires) + indicateur temps réel mode prof.
  */
 export function useForetmapRealtime({
   enabled,
@@ -95,9 +95,6 @@ export function useForetmapRealtime({
   }, []);
   const onForumRealtime = useCallback(() => {
     window.dispatchEvent(new CustomEvent('foretmap_realtime', { detail: { domain: 'forum' } }));
-  }, []);
-  const onCollectiveRealtime = useCallback((payload = {}) => {
-    window.dispatchEvent(new CustomEvent('foretmap_realtime', { detail: { domain: 'collective', payload } }));
   }, []);
   const onContextCommentsRealtime = useCallback((payload = {}) => {
     window.dispatchEvent(new CustomEvent('foretmap_realtime', { detail: { domain: 'context_comments', payload } }));
@@ -201,7 +198,6 @@ export function useForetmapRealtime({
     socket.on('tasks:changed', scheduleTasksRefresh);
     socket.on('students:changed', onStudentsRealtime);
     socket.on('garden:changed', scheduleGardenRefresh);
-    socket.on('collective:changed', onCollectiveRealtime);
     socket.on('forum:changed', onForumRealtime);
     socket.on('context-comments:changed', onContextCommentsRealtime);
     window.addEventListener('online', onBrowserOnline);
@@ -220,7 +216,6 @@ export function useForetmapRealtime({
       socket.off('tasks:changed', scheduleTasksRefresh);
       socket.off('students:changed', onStudentsRealtime);
       socket.off('garden:changed', scheduleGardenRefresh);
-      socket.off('collective:changed', onCollectiveRealtime);
       socket.off('forum:changed', onForumRealtime);
       socket.off('context-comments:changed', onContextCommentsRealtime);
       window.removeEventListener('online', onBrowserOnline);
@@ -235,7 +230,7 @@ export function useForetmapRealtime({
       socket.disconnect();
       setRtStatus('off');
     };
-  }, [enabled, onCollectiveRealtime, onContextCommentsRealtime, onForumRealtime, onStudentsRealtime, scheduleGardenRefresh, scheduleTasksRefresh]);
+  }, [enabled, onContextCommentsRealtime, onForumRealtime, onStudentsRealtime, scheduleGardenRefresh, scheduleTasksRefresh]);
 
   useEffect(() => {
     activeMapIdRef.current = activeMapId;

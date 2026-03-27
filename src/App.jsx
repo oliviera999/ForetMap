@@ -23,7 +23,6 @@ import { TutorialsView } from './components/tutorials-views';
 import { VisitView } from './components/visit-views';
 import { ProfilesAdminView } from './components/profiles-views';
 import { SettingsAdminView } from './components/settings-admin-views';
-import { CollectiveView } from './components/collective-view';
 import { NotificationCenter } from './components/notifications-center';
 import { ForumView } from './components/forum-views';
 import { Tooltip } from './components/Tooltip';
@@ -43,7 +42,6 @@ const KNOWN_TAB_VALUES = new Set([
   'stats',
   'visit',
   'notebook',
-  'collective',
   'profiles',
   'settings',
   'forum',
@@ -183,9 +181,6 @@ function App() {
     const allowedRole = roleSlug === 'prof' || roleSlug === 'admin';
     return allowedRole && hasPermissionInRole('tutorials.manage');
   }, [effectiveRoleContext.roleSlug, hasPermissionInRole]);
-  const canUseCollectiveView = useMemo(() => {
-    return effectiveIsTeacher && hasPermission('stats.read.all');
-  }, [effectiveIsTeacher, hasPermission]);
 
   useEffect(() => {
     const hashRaw = window.location.hash.startsWith('#') ? window.location.hash.slice(1) : '';
@@ -577,9 +572,8 @@ function App() {
     if (tab === 'stats' && publicSettings?.modules?.stats_enabled !== false && !canViewGeneralStats) setTab('map');
     if (tab === 'visit' && publicSettings?.modules?.visit_enabled === false) setTab('map');
     if (tab === 'notebook' && publicSettings?.modules?.observations_enabled === false) setTab('map');
-    if (tab === 'collective' && !canUseCollectiveView) setTab('map');
     if (tab === 'forum' && !canAccessForum) setTab('about');
-  }, [tab, publicSettings?.modules?.tutorials_enabled, publicSettings?.modules?.stats_enabled, publicSettings?.modules?.visit_enabled, publicSettings?.modules?.observations_enabled, canUseCollectiveView, canAccessForum, canViewGeneralStats]);
+  }, [tab, publicSettings?.modules?.tutorials_enabled, publicSettings?.modules?.stats_enabled, publicSettings?.modules?.visit_enabled, publicSettings?.modules?.observations_enabled, canAccessForum, canViewGeneralStats]);
 
   // Auto-refresh adaptatif (ralenti quand le push est actif, ralenti en arrière-plan).
   const pollingIntervalMs = useMemo(() => {
@@ -1040,11 +1034,6 @@ function App() {
                 ⚙️ Paramètres
               </button>
             )}
-            {canUseCollectiveView && (
-              <button className={`top-tab ${tab === 'collective' ? 'active' : ''}`} onClick={() => setTab('collective')}>
-                👥 Collectif
-              </button>
-            )}
             <button className={`top-tab ${tab === 'audit' ? 'active' : ''}`} onClick={() => setTab('audit')}>📜 Audit</button>
             <button className={`top-tab ${tab === 'about' ? 'active' : ''}`} onClick={() => setTab('about')}>ℹ️ À propos</button>
           </div>
@@ -1106,20 +1095,6 @@ function App() {
               {tab === 'audit'  && (hasPermission('audit.read') ? <AuditLog isN3Affiliated={isN3Affiliated} /> : <div className="empty"><p>Permission insuffisante</p></div>)}
               {publicSettings?.modules?.visit_enabled !== false && tab === 'visit'  && <VisitView student={currentUser} isTeacher availableTutorials={tutorials} initialMapId={activeMapId} onForceLogout={forceLogout} isN3Affiliated={isN3Affiliated} publicSettings={publicSettings} />}
               {tab === 'settings' && <SettingsAdminView isN3Affiliated={isN3Affiliated} />}
-              {tab === 'collective' && (
-                canUseCollectiveView ? (
-                  <CollectiveView
-                    tasks={tasks}
-                    maps={maps}
-                    taskProjects={taskProjects}
-                    activeMapId={activeMapId}
-                    onRefresh={fetchAll}
-                    canManageSession={canUseCollectiveView}
-                    isWideLayout={shouldUseDesktopSplit}
-                    isN3Affiliated={isN3Affiliated}
-                  />
-                ) : <div className="empty"><p>Permission insuffisante</p></div>
-              )}
               {tab === 'forum' && canAccessForum && <ForumView authClaims={authClaims} />}
               {tab === 'about'  && <AboutView appVersion={appVersion} isN3Affiliated={isN3Affiliated} publicSettings={publicSettings} isTeacher={effectiveIsTeacher} />}
             </>

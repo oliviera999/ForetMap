@@ -408,7 +408,7 @@ function ForumView({ authClaims }) {
         </section>
       </div>
 
-      {toast && <div className="collective-toast">{toast}</div>}
+      {toast && <div className="app-inline-toast">{toast}</div>}
     </div>
   );
 }

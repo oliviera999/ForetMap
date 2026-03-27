@@ -269,7 +269,7 @@ function ContextComments({
         </div>
       )}
 
-      {toast && <div className="collective-toast">{toast}</div>}
+      {toast && <div className="app-inline-toast">{toast}</div>}
     </section>
   );
 }

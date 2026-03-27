@@ -14,7 +14,6 @@ const {
   emitTasksChanged,
   emitStudentsChanged,
   emitGardenChanged,
-  emitCollectiveChanged,
   emitForumChanged,
   emitContextCommentsChanged,
 } = require('../lib/realtime');
@@ -24,7 +23,7 @@ test('emitTasksChanged sans Socket.IO initialisé ne lève pas', () => {
   assert.doesNotThrow(() => emitTasksChanged({ reason: 'noop' }));
 });
 
-test('Socket.IO : réception de tasks / students / garden / collective / forum / context-comments', async () => {
+test('Socket.IO : réception de tasks / students / garden / forum / context-comments', async () => {
   const app = express();
   const server = http.createServer(app);
   initRealtime(server);
@@ -82,14 +81,6 @@ test('Socket.IO : réception de tasks / students / garden / collective / forum /
   emitGardenChanged({ reason: 'test_garden' });
   const msgGarden = await gardenPromise;
   assert.strictEqual(msgGarden.reason, 'test_garden');
-
-  const collectivePromise = once('collective:changed');
-  emitCollectiveChanged({ reason: 'test_collective', contextType: 'map', contextId: 'foret', version: 3 });
-  const msgCollective = await collectivePromise;
-  assert.strictEqual(msgCollective.reason, 'test_collective');
-  assert.strictEqual(msgCollective.contextType, 'map');
-  assert.strictEqual(msgCollective.contextId, 'foret');
-  assert.strictEqual(msgCollective.version, 3);
 
   const forumPromise = once('forum:changed');
   emitForumChanged({ reason: 'test_forum' });

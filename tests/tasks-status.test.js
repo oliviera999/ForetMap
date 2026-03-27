@@ -85,7 +85,7 @@ describe('Recalcul statuts tâches', () => {
       .expect(403);
   });
 
-  it('assign autorise un prof à assigner par nom (flux atelier collectif)', async () => {
+  it('assign autorise un prof à assigner par nom (flux atelier)', async () => {
     const res = await request(app)
       .post(`/api/tasks/${taskIdTeacherFlow}/assign`)
       .set('Authorization', `Bearer ${teacherToken}`)
