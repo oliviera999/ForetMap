@@ -33,6 +33,22 @@ import { useDialogA11y } from './hooks/useDialogA11y';
 const DESKTOP_SPLIT_MIN_WIDTH = 1024;
 const DESKTOP_SPLIT_MIN_MAP_PX = 620;
 const DESKTOP_SPLIT_MIN_TASKS_PX = 420;
+const TAB_STORAGE_KEY = 'foretmap_active_tab';
+const KNOWN_TAB_VALUES = new Set([
+  'map',
+  'tasks',
+  'plants',
+  'tuto',
+  'stats',
+  'visit',
+  'notebook',
+  'collective',
+  'profiles',
+  'settings',
+  'forum',
+  'audit',
+  'about',
+]);
 
 const OAUTH_ERROR_MESSAGES = {
   oauth_not_configured: 'Connexion Google indisponible (configuration serveur incomplète).',
@@ -59,6 +75,12 @@ function decodeBase64UrlJson(value) {
   const normalized = String(value || '').replace(/-/g, '+').replace(/_/g, '/');
   const padded = normalized + '='.repeat((4 - (normalized.length % 4)) % 4);
   return JSON.parse(window.atob(padded));
+}
+
+function readStoredTab() {
+  const raw = String(localStorage.getItem(TAB_STORAGE_KEY) || '').trim().toLowerCase();
+  if (!raw) return 'map';
+  return KNOWN_TAB_VALUES.has(raw) ? raw : 'map';
 }
 
 // ── APP ───────────────────────────────────────────────────────────────────────
@@ -100,7 +122,7 @@ function App() {
   const [showPublicVisit, setShowPublicVisit] = useState(false);
   const [showStats,  setShowStats]  = useState(false);
   const [showProfile,setShowProfile]= useState(false);
-  const [tab,        setTab]        = useState('map');
+  const [tab,        setTab]        = useState(() => readStoredTab());
   const [maps,       setMaps]       = useState(DEFAULT_MAPS);
   const [activeMapId, setActiveMapId] = useState(() => localStorage.getItem('foretmap_active_map') || 'foret');
   const [zones,      setZones]      = useState([]);
@@ -229,6 +251,10 @@ function App() {
   useEffect(() => {
     localStorage.setItem('foretmap_active_map', activeMapId);
   }, [activeMapId]);
+
+  useEffect(() => {
+    localStorage.setItem(TAB_STORAGE_KEY, tab);
+  }, [tab]);
 
   useEffect(() => {
     api('/api/version').then(d => setAppVersion(d.version)).catch(err => {
