@@ -294,7 +294,7 @@ Réponse:
 | GET | `/api/tasks` | non | Liste des tâches (avec assignments) |
 | GET | `/api/tasks/:id` | non | Détail tâche |
 | POST | `/api/tasks` | oui | Créer tâche |
-| PUT | `/api/tasks/:id` | oui | Modifier tâche |
+| PUT | `/api/tasks/:id` | oui\* | Modifier tâche |
 | DELETE | `/api/tasks/:id` | oui | Supprimer tâche |
 | POST | `/api/tasks/:id/assign` | non | S’assigner (élève) |
 | POST | `/api/tasks/:id/unassign` | non | Se désassigner |
@@ -302,6 +302,8 @@ Réponse:
 | GET | `/api/tasks/:id/logs` | non | Logs de la tâche |
 | GET | `/api/tasks/:id/logs/:logId/image` | non | Image d’un log (fichier disque) |
 | POST | `/api/tasks/:id/validate` | oui | Valider la tâche |
+
+\* Un élève peut aussi modifier **sa propre proposition** (statut `proposed`) ; les champs sensibles (`status`, `project_id`, `tutorial_ids`, `recurrence`) restent réservés aux profils avec `tasks.manage`.
 
 ---
 

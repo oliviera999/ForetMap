@@ -51,6 +51,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - **Tests visite** : nouveaux scénarios backend sur le contenu visite, la persistance anonyme via cookie signé et la persistance élève en base.
 
 ### Modifié
+- **Propositions de tâches (édition auteur)** : un élève peut désormais modifier sa propre proposition (`status = proposed`) depuis l’UI, avec contrôle API strict pour empêcher la modification des propositions d’autrui et des champs réservés au mode professeur.
 - **Visibilité des tâches côté élève** : la vue par défaut affiche désormais aussi les sections `En cours (déjà prises)` et `En attente de validation`, en plus des tâches disponibles et récemment validées.
 - **Filtrage des tâches élève** : l’état “Résultats filtrés” s’active maintenant dès qu’un filtre est appliqué (texte, zone/repère, projet, statut, carte), pour éviter les listes incomplètes.
 - **Filtres de tâches (zones + repères)** : la liste de filtrage des localisations inclut désormais aussi les repères de carte (`📍`) en plus des zones, avec un filtrage robuste par type (`zone`/`marker`) pour éviter les collisions d’identifiants.

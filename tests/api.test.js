@@ -356,6 +356,107 @@ test('Un élève peut proposer une tâche en statut proposed', async () => {
   assert.strictEqual(Number(res.body.required_students), 3);
 });
 
+test('Un élève peut modifier sa propre proposition', async () => {
+  const studentRes = await request(app)
+    .post('/api/auth/register')
+    .send({ firstName: 'Edit', lastName: 'Prop' + Date.now(), password: 'pwd1' })
+    .expect(201);
+  const { first_name, last_name, id: studentId, authToken } = studentRes.body;
+
+  const zones = await request(app).get('/api/zones').expect(200);
+  const zoneId = zones.body[0]?.id || 'pg';
+
+  const created = await request(app)
+    .post('/api/tasks/proposals')
+    .send({
+      title: `Proposition edit ${Date.now()}`,
+      description: 'Version initiale',
+      zone_id: zoneId,
+      required_students: 2,
+      firstName: first_name,
+      lastName: last_name,
+      studentId,
+    })
+    .expect(201);
+
+  const updated = await request(app)
+    .put(`/api/tasks/${created.body.id}`)
+    .set('Authorization', 'Bearer ' + authToken)
+    .send({
+      title: 'Proposition modifiée',
+      description: 'Description modifiée',
+      required_students: 4,
+    })
+    .expect(200);
+
+  assert.strictEqual(updated.body.title, 'Proposition modifiée');
+  assert.ok(String(updated.body.description || '').includes('Description modifiée'));
+  assert.strictEqual(Number(updated.body.required_students), 4);
+  assert.strictEqual(updated.body.status, 'proposed');
+  assert.strictEqual(String(updated.body.proposed_by_student_id || ''), String(studentId));
+});
+
+test("Un élève ne peut pas modifier la proposition d'un autre élève", async () => {
+  const proposerRes = await request(app)
+    .post('/api/auth/register')
+    .send({ firstName: 'Owner', lastName: 'Prop' + Date.now(), password: 'pwd1' })
+    .expect(201);
+  const otherRes = await request(app)
+    .post('/api/auth/register')
+    .send({ firstName: 'Other', lastName: 'Prop' + Date.now(), password: 'pwd1' })
+    .expect(201);
+
+  const zones = await request(app).get('/api/zones').expect(200);
+  const zoneId = zones.body[0]?.id || 'pg';
+
+  const created = await request(app)
+    .post('/api/tasks/proposals')
+    .send({
+      title: `Proposition owner ${Date.now()}`,
+      description: 'Ne doit pas être modifiée par un autre.',
+      zone_id: zoneId,
+      required_students: 1,
+      firstName: proposerRes.body.first_name,
+      lastName: proposerRes.body.last_name,
+      studentId: proposerRes.body.id,
+    })
+    .expect(201);
+
+  await request(app)
+    .put(`/api/tasks/${created.body.id}`)
+    .set('Authorization', 'Bearer ' + otherRes.body.authToken)
+    .send({ title: 'Tentative refusée' })
+    .expect(403);
+});
+
+test("Le proposeur ne peut pas changer le statut d'une proposition", async () => {
+  const studentRes = await request(app)
+    .post('/api/auth/register')
+    .send({ firstName: 'Status', lastName: 'Block' + Date.now(), password: 'pwd1' })
+    .expect(201);
+
+  const zones = await request(app).get('/api/zones').expect(200);
+  const zoneId = zones.body[0]?.id || 'pg';
+  const created = await request(app)
+    .post('/api/tasks/proposals')
+    .send({
+      title: `Proposition statut ${Date.now()}`,
+      description: 'Test blocage statut',
+      zone_id: zoneId,
+      required_students: 1,
+      firstName: studentRes.body.first_name,
+      lastName: studentRes.body.last_name,
+      studentId: studentRes.body.id,
+    })
+    .expect(201);
+
+  await request(app)
+    .put(`/api/tasks/${created.body.id}`)
+    .set('Authorization', 'Bearer ' + studentRes.body.authToken)
+    .send({ status: 'available' })
+    .expect(403);
+});
+
 test('Zones et tâches supportent le filtrage multi-cartes', async () => {
   const auth = await request(app)
     .post('/api/auth/teacher')

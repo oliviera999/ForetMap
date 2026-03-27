@@ -29,7 +29,7 @@ export const MARKER_EMOJIS = [...new Set([
   ...EMOJI_CATEGORIES.terrain,
 ])];
 
-export function parseEmojiListSetting(rawValue, fallback = MARKER_EMOJIS, maxItems = 120) {
+export function parseEmojiListSetting(rawValue, fallback = MARKER_EMOJIS, maxItems = 400) {
   const raw = String(rawValue || '').trim();
   if (!raw) return [...fallback];
   const tokens = raw
