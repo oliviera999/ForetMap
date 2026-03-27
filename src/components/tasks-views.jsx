@@ -561,6 +561,7 @@ const TEACHER_STATUS_ACTIONS = [
   { value: 'done', label: 'Terminée', icon: '✅' },
   { value: 'validated', label: 'Validée', icon: '✔️' },
   { value: 'proposed', label: 'Proposée', icon: '💡' },
+  { value: 'on_hold', label: 'En attente', icon: '⏸️' },
 ];
 const TASK_STATUS_FILTER_OPTIONS = [
   { value: 'available', label: 'À faire' },
@@ -568,6 +569,7 @@ const TASK_STATUS_FILTER_OPTIONS = [
   { value: 'done', label: 'Terminée' },
   { value: 'validated', label: 'Validée' },
   { value: 'proposed', label: 'Proposée' },
+  { value: 'on_hold', label: 'En attente' },
 ];
 
 function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], tutorials = [], activeMapId = 'foret', isTeacher, student, canSelfAssignTasks = true, canViewOtherUsersIdentity = true, onRefresh, onForceLogout, isN3Affiliated = false, publicSettings = null }) {
@@ -655,6 +657,11 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
   };
 
   const taskEffectiveMapId = (task) => task.map_id_resolved || task.map_id || task.zone_map_id || task.marker_map_id || null;
+  const taskEffectiveStatus = (task) => (
+    task?.status === 'on_hold' || task?.project_status === 'on_hold'
+      ? 'on_hold'
+      : (task?.status || 'available')
+  );
 
   const withLoad = async (id, fn) => {
     setLoading(l => ({ ...l, [id]: true }));
@@ -749,6 +756,11 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
     await onRefresh();
   };
 
+  const setProjectStatus = (project, nextStatus) => withLoad(`${project.id}project${nextStatus}`, async () => {
+    await api(`/api/task-projects/${project.id}`, 'PUT', { status: nextStatus });
+    setToast(`Projet "${project.title}" : ${nextStatus === 'on_hold' ? 'En attente' : 'Actif'}`);
+  });
+
   const downloadImportTemplate = async (format) => {
     try {
       const token = getAuthToken();
@@ -807,7 +819,7 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
     if (filterText && !t.title.toLowerCase().includes(filterText.toLowerCase()) &&
       !(t.description || '').toLowerCase().includes(filterText.toLowerCase())) return false;
     if (filterZone && !taskHasLocation(t, filterZone)) return false;
-    if (filterStatus && t.status !== filterStatus) return false;
+    if (filterStatus && taskEffectiveStatus(t) !== filterStatus) return false;
     if (filterProject && t.project_id !== filterProject) return false;
     return true;
   });
@@ -819,14 +831,15 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
     && student
     && String(t.proposed_by_student_id || '') === String(student.id || '')
   ));
-  const myTasks = allFiltered.filter(t => student && t.status !== 'validated' && t.assignments?.some(
+  const myTasks = allFiltered.filter(t => student && taskEffectiveStatus(t) !== 'validated' && t.assignments?.some(
     a => a.student_first_name === student.first_name && a.student_last_name === student.last_name
   ));
-  const available = allFiltered.filter(t => t.status === 'available');
-  const inProgress = allFiltered.filter(t => t.status === 'in_progress');
-  const done = allFiltered.filter(t => t.status === 'done');
-  const validated = allFiltered.filter(t => t.status === 'validated');
-  const proposed = allFiltered.filter(t => t.status === 'proposed');
+  const available = allFiltered.filter(t => taskEffectiveStatus(t) === 'available');
+  const inProgress = allFiltered.filter(t => taskEffectiveStatus(t) === 'in_progress');
+  const done = allFiltered.filter(t => taskEffectiveStatus(t) === 'done');
+  const validated = allFiltered.filter(t => taskEffectiveStatus(t) === 'validated');
+  const proposed = allFiltered.filter(t => taskEffectiveStatus(t) === 'proposed');
+  const onHold = allFiltered.filter(t => taskEffectiveStatus(t) === 'on_hold');
   const hasStudentFilters = !isTeacher && (
     !!filterText
     || !!filterZone
@@ -848,15 +861,20 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
     () => done.filter((t) => !myTasks.some((m) => m.id === t.id)),
     [done, myTasks]
   );
+  const onHoldNotMine = useMemo(
+    () => onHold.filter((t) => !myTasks.some((m) => m.id === t.id)),
+    [onHold, myTasks]
+  );
   const recentlyValidatedForStudent = useMemo(
-    () => allFiltered.filter((t) => t.status === 'validated' && t.assignments?.some(
+    () => allFiltered.filter((t) => taskEffectiveStatus(t) === 'validated' && t.assignments?.some(
       (a) => a.student_first_name === student?.first_name && a.student_last_name === student?.last_name
     )),
     [allFiltered, student?.first_name, student?.last_name]
   );
 
   const urgentTasks = !isTeacher ? allFiltered.filter(t => {
-    if (t.status === 'validated' || t.status === 'done') return false;
+    const effective = taskEffectiveStatus(t);
+    if (effective === 'validated' || effective === 'done' || effective === 'on_hold') return false;
     const d = daysUntil(t.due_date);
     return d !== null && d <= 3 && d >= -2;
   }).sort((a, b) => daysUntil(a.due_date) - daysUntil(b.due_date)) : [];
@@ -872,9 +890,17 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
   const usedZones = [...usedZoneIds];
   const usedMarkers = [...usedMarkerIds];
   const sectionListClass = viewMode === 'tiles' ? 'tasks-grid' : 'tasks-list';
+  const visibleProjects = taskProjects
+    .filter((p) => {
+      if (filterMap === 'all') return true;
+      if (filterMap === 'active') return p.map_id === activeMapId;
+      return p.map_id === filterMap;
+    })
+    .slice()
+    .sort((a, b) => String(a.title || '').localeCompare(String(b.title || ''), 'fr'));
   const canTeacherAssignOnTask = (task, targetStudent = null) => {
     if (!isTeacher || !targetStudent) return false;
-    if (!task || task.status === 'validated' || task.status === 'done' || task.status === 'proposed') return false;
+    if (!task || taskEffectiveStatus(task) === 'on_hold' || task.status === 'validated' || task.status === 'done' || task.status === 'proposed') return false;
     if (getAvailableSlots(task) <= 0) return false;
     return !(task.assignments || []).some((a) => (
       String(a.student_id || '') === String(targetStudent.id || '')
@@ -887,6 +913,7 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
   const quickAssignHint = (task, targetStudent = null) => {
     if (!targetStudent) return "Choisis d'abord un élève cible";
     if (!task) return "Tâche indisponible";
+    if (taskEffectiveStatus(task) === 'on_hold') return "Tâche ou projet en attente";
     if (task.status === 'proposed') return "Impossible d'affecter une tâche proposée";
     if (task.status === 'done' || task.status === 'validated') return "Tâche déjà terminée";
     if (getAvailableSlots(task) <= 0) return "Aucune place restante";
@@ -912,6 +939,7 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
   });
 
   const TaskCard = ({ t, index = 0 }) => {
+    const effectiveStatus = taskEffectiveStatus(t);
     const isMine = myTasks.some(m => m.id === t.id);
     const canEditOwnProposal = !isTeacher
       && t.status === 'proposed'
@@ -930,12 +958,12 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
     const quickAssignTitle = quickAssignHint(t, selectedQuickAssignStudent);
     return (
       <div
-        className={`task-card ${viewMode === 'tiles' ? 'task-card--tile' : ''} fade-in ${isMine ? 'mine' : ''} ${t.status === 'validated' ? 'done' : ''} ${t.status === 'proposed' ? 'proposed' : ''}`}
+        className={`task-card ${viewMode === 'tiles' ? 'task-card--tile' : ''} fade-in ${isMine ? 'mine' : ''} ${effectiveStatus === 'validated' ? 'done' : ''} ${effectiveStatus === 'proposed' ? 'proposed' : ''}`}
         style={{ animationDelay: `${Math.min(index * 60, 360)}ms` }}
       >
         <div className="task-top">
           <div className="task-title-row">
-            {taskStatusIndicator(t.status, isN3Affiliated)}
+            {taskStatusIndicator(effectiveStatus, isN3Affiliated)}
             <div className="task-title">{t.title}</div>
           </div>
         </div>
@@ -952,6 +980,7 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
             <span key={tu.id} className="task-chip">📘 {tu.title}</span>
           ))}
           {t.project_title && <span className="task-chip">📁 {t.project_title}</span>}
+          {t.project_title && t.project_status === 'on_hold' && <span className="task-chip">⏸️ Projet en attente</span>}
           {isTeacher && t.status === 'proposed' && proposalMeta.proposer && (
             <span className="task-chip proposal">🙋 Proposée par {proposalMeta.proposer}</span>
           )}
@@ -960,6 +989,13 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
           {t.recurrence && <span className="task-chip">🔄 {t.recurrence === 'weekly' ? 'Hebdo' : t.recurrence === 'biweekly' ? 'Bi-hebdo' : t.recurrence === 'monthly' ? 'Mensuel' : t.recurrence}</span>}
         </div>
         {cardDescription && <div className="task-desc">{cardDescription}</div>}
+        {effectiveStatus === 'on_hold' && (
+          <div className="task-desc" style={{ marginTop: 8, borderLeft: '3px solid #f59e0b', paddingLeft: 10 }}>
+            {isTeacher
+              ? 'Inscription élève temporairement bloquée (tâche ou projet en attente). Les commentaires restent ouverts.'
+              : 'Inscription temporairement fermée par l’équipe pédagogique. Tu peux quand même laisser un commentaire.'}
+          </div>
+        )}
         {assignees.length > 0 && (
           <div className="assignees">
             {assignees.map((a, i) => {
@@ -972,11 +1008,11 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
             })}
           </div>
         )}
-        {slots > 0 && t.status !== 'validated' && (
+        {slots > 0 && effectiveStatus !== 'validated' && (
           <div className="slots">{slots} place{slots > 1 ? 's' : ''} restante{slots > 1 ? 's' : ''}</div>
         )}
         <div className="task-actions">
-          {!isTeacher && canSelfAssignTasks && !isMine && slots > 0 && t.status !== 'validated' && (
+          {!isTeacher && canSelfAssignTasks && !isMine && slots > 0 && effectiveStatus !== 'validated' && effectiveStatus !== 'on_hold' && (
             <button className="btn btn-primary btn-sm" disabled={loading[t.id + 'assign']} onClick={() => assign(t)}>
               {loading[t.id + 'assign'] ? '...' : '✋ Je m\'en occupe'}
             </button>
@@ -996,7 +1032,7 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
           {isTeacher && (
             <button
               className={`btn btn-sm ${isQuickAssignOpen ? 'btn-primary' : 'btn-ghost'}`}
-              disabled={quickAssignBusy || loadingTeacherStudents || teacherStudents.length === 0}
+              disabled={quickAssignBusy || loadingTeacherStudents || teacherStudents.length === 0 || taskEffectiveStatus(t) === 'on_hold'}
               onClick={() => {
                 if (isQuickAssignOpen) {
                   setQuickAssignTaskId(null);
@@ -1006,7 +1042,9 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
                 setQuickAssignTaskId(t.id);
                 setQuickAssignStudentId('');
               }}
-              title={teacherStudents.length === 0 ? 'Aucun élève disponible' : 'Afficher la liste des élèves'}
+              title={taskEffectiveStatus(t) === 'on_hold'
+                ? "Affectation désactivée (en attente)"
+                : (teacherStudents.length === 0 ? 'Aucun élève disponible' : 'Afficher la liste des élèves')}
             >
               {quickAssignBusy ? '...' : '⚡ Affectation rapide'}
             </button>
@@ -1268,6 +1306,65 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
         </details>
       )}
 
+      {visibleProjects.length > 0 && (
+        <div className="tasks-section">
+          <div className="tasks-section-title">Projets ({visibleProjects.length})</div>
+          <div style={{ display: 'grid', gap: 8 }}>
+            {visibleProjects.map((p) => {
+              const projectTasksCount = tasks.filter((t) => String(t.project_id || '') === String(p.id || '')).length;
+              const projectStatus = p.status === 'on_hold' ? 'on_hold' : 'active';
+              const loadingActive = !!loading[`${p.id}projectactive`];
+              const loadingHold = !!loading[`${p.id}projecton_hold`];
+              return (
+                <div key={p.id} className="task-card" style={{ padding: 12 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                    <div>
+                      <div className="task-title" style={{ fontSize: '1rem' }}>📁 {p.title}</div>
+                      <div style={{ fontSize: '.82rem', color: '#666' }}>
+                        {p.map_label || mapLabelById(p.map_id)} · {projectTasksCount} tâche{projectTasksCount > 1 ? 's' : ''}
+                      </div>
+                      {p.status === 'on_hold' && (
+                        <div style={{ fontSize: '.82rem', color: '#92400e', marginTop: 4 }}>
+                          ⏸️ Projet en attente : inscriptions fermées, commentaires ouverts.
+                        </div>
+                      )}
+                    </div>
+                    {isTeacher ? (
+                      <div style={{ display: 'flex', gap: 6 }}>
+                        <button
+                          className={`btn btn-sm ${projectStatus === 'active' ? 'btn-primary' : 'btn-ghost'}`}
+                          disabled={projectStatus === 'active' || loadingActive}
+                          onClick={() => setProjectStatus(p, 'active')}
+                        >
+                          {loadingActive ? '...' : '✅ Actif'}
+                        </button>
+                        <button
+                          className={`btn btn-sm ${projectStatus === 'on_hold' ? 'btn-primary' : 'btn-ghost'}`}
+                          disabled={projectStatus === 'on_hold' || loadingHold}
+                          onClick={() => setProjectStatus(p, 'on_hold')}
+                        >
+                          {loadingHold ? '...' : '⏸️ En attente'}
+                        </button>
+                      </div>
+                    ) : (
+                      <span className="task-chip">{projectStatus === 'on_hold' ? '⏸️ En attente' : '✅ Actif'}</span>
+                    )}
+                  </div>
+                  <div style={{ marginTop: 8 }}>
+                    <ContextComments
+                      contextType="project"
+                      contextId={p.id}
+                      title="Commentaires du projet"
+                      placeholder="Partager une info utile sur ce projet..."
+                    />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       <div className="task-filters">
         <div className="tasks-view-switch" role="group" aria-label="Mode d'affichage des tâches">
           <button
@@ -1365,6 +1462,12 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
               <div className={sectionListClass}>{available.map((t, idx) => <TaskCard key={t.id} t={t} index={idx} />)}</div>
             </div>
           )}
+          {onHold.length > 0 && (
+            <div className="tasks-section">
+              <div className="tasks-section-title">En attente ({onHold.length})</div>
+              <div className={sectionListClass}>{onHold.map((t, idx) => <TaskCard key={t.id} t={t} index={idx} />)}</div>
+            </div>
+          )}
           {inProgress.length > 0 && (
             <div className="tasks-section">
               <div className="tasks-section-title">En cours</div>
@@ -1407,6 +1510,12 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
               <div className={sectionListClass}>{availableNotMine.map((t, idx) => <TaskCard key={t.id} t={t} index={idx} />)}</div>
             </div>
           )}
+              {onHoldNotMine.length > 0 && (
+              <div className="tasks-section">
+                <div className="tasks-section-title">En attente</div>
+                <div className={sectionListClass}>{onHoldNotMine.map((t, idx) => <TaskCard key={t.id} t={t} index={idx} />)}</div>
+              </div>
+              )}
               {myProposals.length > 0 && (
               <div className="tasks-section">
                 <div className="tasks-section-title">Mes propositions ({myProposals.length})</div>

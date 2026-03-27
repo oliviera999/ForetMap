@@ -53,6 +53,7 @@ function ContextComments({
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [reactionEmojis, setReactionEmojis] = useState(DEFAULT_REACTION_EMOJIS);
+  const [expandedReactionsByComment, setExpandedReactionsByComment] = useState({});
   const [body, setBody] = useState('');
   const [reportReasonById, setReportReasonById] = useState({});
   const [toast, setToast] = useState('');
@@ -80,6 +81,7 @@ function ContextComments({
 
   useEffect(() => {
     if (!isOpen) return;
+    setExpandedReactionsByComment({});
     load(1);
   }, [isOpen, contextType, contextId, load]);
 
@@ -174,6 +176,7 @@ function ContextComments({
   };
 
   if (!contextType || !contextId) return null;
+  const firstReactionEmoji = reactionEmojis[0] || '👍';
 
   return (
     <section className="context-comments">
@@ -204,6 +207,7 @@ function ContextComments({
             {items.map((item) => {
               const isOwner = item.author_user_type === currentUserType && item.author_user_id === currentUserId;
               const canDelete = isOwner || allowModeration;
+              const reactionsExpanded = !!expandedReactionsByComment[item.id];
               return (
                 <article key={item.id} className={`context-comment-item ${item.is_deleted ? 'is-deleted' : ''}`}>
                   <div className="context-comment-head">
@@ -214,24 +218,45 @@ function ContextComments({
                     {item.is_deleted ? '[commentaire supprimé]' : item.body}
                   </p>
                   {!item.is_deleted && (
-                    <div className="message-reactions-row">
-                      {reactionEmojis.map((emoji) => {
-                        const reaction = (item.reactions || []).find((r) => r.emoji === emoji);
-                        const count = Number(reaction?.count || 0);
-                        const mine = !!reaction?.reacted_by_me;
-                        return (
+                    <div className={`message-reactions-row ${reactionsExpanded ? 'expanded' : 'compact'}`}>
+                      {!reactionsExpanded ? (
+                        <button
+                          type="button"
+                          className="message-reaction-chip message-reaction-chip--toggle"
+                          onClick={() => setExpandedReactionsByComment((prev) => ({ ...prev, [item.id]: true }))}
+                          title="Afficher toutes les réactions"
+                        >
+                          <span>{firstReactionEmoji}</span>
+                        </button>
+                      ) : (
+                        <>
+                          {reactionEmojis.map((emoji) => {
+                            const reaction = (item.reactions || []).find((r) => r.emoji === emoji);
+                            const count = Number(reaction?.count || 0);
+                            const mine = !!reaction?.reacted_by_me;
+                            return (
+                              <button
+                                key={`${item.id}-${emoji}`}
+                                type="button"
+                                className={`message-reaction-chip ${mine ? 'active' : ''}`}
+                                onClick={() => react(item.id, emoji)}
+                                title={`Réagir avec ${emoji}`}
+                              >
+                                <span>{emoji}</span>
+                                {count > 0 && <span>{count}</span>}
+                              </button>
+                            );
+                          })}
                           <button
-                            key={`${item.id}-${emoji}`}
                             type="button"
-                            className={`message-reaction-chip ${mine ? 'active' : ''}`}
-                            onClick={() => react(item.id, emoji)}
-                            title={`Réagir avec ${emoji}`}
+                            className="message-reaction-chip message-reaction-chip--toggle"
+                            onClick={() => setExpandedReactionsByComment((prev) => ({ ...prev, [item.id]: false }))}
+                            title="Réduire les réactions"
                           >
-                            <span>{emoji}</span>
-                            {count > 0 && <span>{count}</span>}
+                            <span>▾</span>
                           </button>
-                        );
-                      })}
+                        </>
+                      )}
                     </div>
                   )}
                   {!item.is_deleted && (

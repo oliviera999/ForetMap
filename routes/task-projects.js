@@ -6,9 +6,17 @@ const { logRouteError } = require('../lib/routeLog');
 const { emitTasksChanged } = require('../lib/realtime');
 
 const router = express.Router();
+const ALLOWED_PROJECT_STATUSES = new Set(['active', 'on_hold']);
 
 function normalizeText(value) {
   return value == null ? '' : String(value).trim();
+}
+
+function normalizeProjectStatus(value, fallback = 'active') {
+  const raw = normalizeText(value).toLowerCase();
+  if (!raw) return fallback;
+  if (raw === 'en_attente' || raw === 'en attente' || raw === 'attente') return 'on_hold';
+  return ALLOWED_PROJECT_STATUSES.has(raw) ? raw : '';
 }
 
 async function ensureMapExists(mapId) {
@@ -43,15 +51,17 @@ router.post('/', requirePermission('tasks.manage', { needsElevation: true }), as
     const mapId = normalizeText(req.body.map_id);
     const title = normalizeText(req.body.title);
     const description = normalizeText(req.body.description) || null;
+    const status = normalizeProjectStatus(req.body.status, 'active');
     if (!mapId) return res.status(400).json({ error: 'Carte requise' });
     if (!title) return res.status(400).json({ error: 'Titre requis' });
+    if (!status) return res.status(400).json({ error: 'Statut projet invalide' });
     if (!(await ensureMapExists(mapId))) return res.status(400).json({ error: 'Carte introuvable' });
 
     const id = uuidv4();
     const createdAt = new Date().toISOString();
     await execute(
-      'INSERT INTO task_projects (id, map_id, title, description, created_at) VALUES (?, ?, ?, ?, ?)',
-      [id, mapId, title, description, createdAt]
+      'INSERT INTO task_projects (id, map_id, title, description, status, created_at) VALUES (?, ?, ?, ?, ?, ?)',
+      [id, mapId, title, description, status, createdAt]
     );
 
     const created = await queryOne(
@@ -77,15 +87,20 @@ router.put('/:id', requirePermission('tasks.manage', { needsElevation: true }), 
     const nextMapId = req.body.map_id !== undefined ? normalizeText(req.body.map_id) : existing.map_id;
     const nextTitle = req.body.title !== undefined ? normalizeText(req.body.title) : existing.title;
     const nextDescription = req.body.description !== undefined ? normalizeText(req.body.description) || null : existing.description;
+    const nextStatus = req.body.status !== undefined
+      ? normalizeProjectStatus(req.body.status, 'active')
+      : (existing.status || 'active');
 
     if (!nextMapId) return res.status(400).json({ error: 'Carte requise' });
     if (!nextTitle) return res.status(400).json({ error: 'Titre requis' });
+    if (!nextStatus) return res.status(400).json({ error: 'Statut projet invalide' });
     if (!(await ensureMapExists(nextMapId))) return res.status(400).json({ error: 'Carte introuvable' });
 
-    await execute('UPDATE task_projects SET map_id = ?, title = ?, description = ? WHERE id = ?', [
+    await execute('UPDATE task_projects SET map_id = ?, title = ?, description = ?, status = ? WHERE id = ?', [
       nextMapId,
       nextTitle,
       nextDescription,
+      nextStatus,
       req.params.id,
     ]);
     const updated = await queryOne(
