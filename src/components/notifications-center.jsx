@@ -129,7 +129,14 @@ function NotificationCenter({
                 </button>
               )}
               {item.action && (
-                <button type="button" className="btn btn-secondary btn-sm" onClick={() => onOpenAction?.(item)}>
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  onClick={() => {
+                    onOpenAction?.(item);
+                    setOpen(false);
+                  }}
+                >
                   Ouvrir
                 </button>
               )}
