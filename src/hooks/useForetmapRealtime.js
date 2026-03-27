@@ -95,6 +95,12 @@ export function useForetmapRealtime({
   const onForumRealtime = useCallback(() => {
     window.dispatchEvent(new CustomEvent('foretmap_realtime', { detail: { domain: 'forum' } }));
   }, []);
+  const onCollectiveRealtime = useCallback((payload = {}) => {
+    window.dispatchEvent(new CustomEvent('foretmap_realtime', { detail: { domain: 'collective', payload } }));
+  }, []);
+  const onContextCommentsRealtime = useCallback((payload = {}) => {
+    window.dispatchEvent(new CustomEvent('foretmap_realtime', { detail: { domain: 'context_comments', payload } }));
+  }, []);
 
   useEffect(() => {
     if (!enabled) {
@@ -192,7 +198,9 @@ export function useForetmapRealtime({
     socket.on('tasks:changed', scheduleTasksRefresh);
     socket.on('students:changed', onStudentsRealtime);
     socket.on('garden:changed', scheduleGardenRefresh);
+    socket.on('collective:changed', onCollectiveRealtime);
     socket.on('forum:changed', onForumRealtime);
+    socket.on('context-comments:changed', onContextCommentsRealtime);
     window.addEventListener('online', onBrowserOnline);
     if (socket.connected) setRtStatus('live');
 
@@ -208,14 +216,16 @@ export function useForetmapRealtime({
       socket.off('tasks:changed', scheduleTasksRefresh);
       socket.off('students:changed', onStudentsRealtime);
       socket.off('garden:changed', scheduleGardenRefresh);
+      socket.off('collective:changed', onCollectiveRealtime);
       socket.off('forum:changed', onForumRealtime);
+      socket.off('context-comments:changed', onContextCommentsRealtime);
       window.removeEventListener('online', onBrowserOnline);
       if (tasksRtDebounceRef.current) clearTimeout(tasksRtDebounceRef.current);
       if (gardenRtDebounceRef.current) clearTimeout(gardenRtDebounceRef.current);
       socket.disconnect();
       setRtStatus('off');
     };
-  }, [enabled, onForumRealtime, onStudentsRealtime, scheduleGardenRefresh, scheduleTasksRefresh]);
+  }, [enabled, onCollectiveRealtime, onContextCommentsRealtime, onForumRealtime, onStudentsRealtime, scheduleGardenRefresh, scheduleTasksRefresh]);
 
   useEffect(() => {
     activeMapIdRef.current = activeMapId;

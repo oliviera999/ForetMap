@@ -1,9 +1,10 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { api } from '../services/api';
 import { statusBadge } from '../utils/badges';
 import { getDicebearAvatarUrl, getStudentAvatarUrl } from '../utils/avatar';
 import { getRoleTerms } from '../utils/n3-terminology';
 import { StudentAvatar } from './student-avatar';
+import { compressImage } from '../utils/image';
 
 function Toast({ msg, onDone }) {
   useEffect(() => { const t = setTimeout(onDone, 2400); return () => clearTimeout(t); }, []);
@@ -58,7 +59,12 @@ function StudentStats({ student, isN3Affiliated = false }) {
           <StudentAvatar student={data} size={34} />
           <h2 className="section-title" style={{ marginBottom: 0 }}>📊 Mes statistiques</h2>
         </div>
-        <span style={{ background: 'var(--parchment)', borderRadius: 20, padding: '4px 12px', fontSize: '.8rem', fontWeight: 600, color: 'var(--soil)' }}>{currentRank.icon} {currentRank.label}</span>
+        <span
+          style={{ background: 'var(--parchment)', borderRadius: 20, padding: '4px 12px', fontSize: '.8rem', fontWeight: 600, color: 'var(--soil)' }}
+          title="Profil élève actuel"
+        >
+          Profil actuel : {currentRank.icon} {currentRank.label}
+        </span>
       </div>
       <p className="section-sub">Bonjour {data.first_name} ! Voici ton bilan dans la forêt.</p>
       {data.pseudo && <p className="section-sub" style={{ marginTop: 0 }}>Pseudo public : @{data.pseudo}</p>}
@@ -66,9 +72,11 @@ function StudentStats({ student, isN3Affiliated = false }) {
 
       <div className="rank-progress">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-          <span style={{ fontSize: '.82rem', fontWeight: 600, color: 'var(--forest)' }}>{currentRank.icon} {currentRank.label}</span>
-          {nextRank && <span style={{ fontSize: '.76rem', color: '#aaa' }}>Prochain : {nextRank.icon} {nextRank.label} ({nextRank.min - stats.done} tâche{nextRank.min - stats.done > 1 ? 's' : ''} restante{nextRank.min - stats.done > 1 ? 's' : ''})</span>}
-          {!nextRank && <span style={{ fontSize: '.76rem', color: currentRank.color, fontWeight: 600 }}>Rang maximum atteint !</span>}
+          <span style={{ fontSize: '.82rem', fontWeight: 600, color: 'var(--forest)' }}>
+            Profil actuel : {currentRank.icon} {currentRank.label}
+          </span>
+          {nextRank && <span style={{ fontSize: '.76rem', color: '#aaa' }}>Prochain profil : {nextRank.icon} {nextRank.label} ({nextRank.min - stats.done} tâche{nextRank.min - stats.done > 1 ? 's' : ''} restante{nextRank.min - stats.done > 1 ? 's' : ''})</span>}
+          {!nextRank && <span style={{ fontSize: '.76rem', color: currentRank.color, fontWeight: 600 }}>Profil maximum atteint !</span>}
         </div>
         <div className="rank-bar-bg">
           <div className="rank-bar-fill" style={{ width: `${progressPct}%` }} />
@@ -151,28 +159,42 @@ function StudentProfileEditor({ student, onUpdated, onClose, isN3Affiliated = fa
   const [removeAvatar, setRemoveAvatar] = useState(false);
   const [currentPassword, setCurrentPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [avatarProcessing, setAvatarProcessing] = useState(false);
   const [err, setErr] = useState('');
   const [okMsg, setOkMsg] = useState('');
+  const galleryInputRef = useRef(null);
+  const cameraInputRef = useRef(null);
 
-  const onAvatarSelected = (file) => {
+  const estimateDataUrlBytes = (dataUrl) => {
+    const payload = String(dataUrl || '').split(',')[1] || '';
+    if (!payload) return 0;
+    const padding = payload.endsWith('==') ? 2 : (payload.endsWith('=') ? 1 : 0);
+    return Math.floor((payload.length * 3) / 4) - padding;
+  };
+
+  const onAvatarSelected = async (file) => {
     if (!file) return;
-    const allowed = new Set(['image/png', 'image/jpeg', 'image/webp']);
-    if (!allowed.has(file.type)) {
-      setErr('Format image invalide (png/jpg/webp)');
+    if (!String(file.type || '').startsWith('image/')) {
+      setErr('Format image invalide (image requise)');
       return;
     }
-    if (file.size > 2 * 1024 * 1024) {
-      setErr('Image trop lourde (max 2 Mo)');
-      return;
-    }
-    const reader = new FileReader();
-    reader.onload = () => {
-      const dataUrl = String(reader.result || '');
-      setAvatarData(dataUrl);
-      setAvatarPreview(dataUrl);
+    setErr('');
+    setAvatarProcessing(true);
+    try {
+      // Uniformise les uploads (galerie/caméra) et limite la taille.
+      const compressed = await compressImage(file, 1200, 0.72);
+      if (estimateDataUrlBytes(compressed) > 2 * 1024 * 1024) {
+        setErr('Image trop lourde après compression (max 2 Mo)');
+        return;
+      }
+      setAvatarData(compressed);
+      setAvatarPreview(compressed);
       setRemoveAvatar(false);
-    };
-    reader.readAsDataURL(file);
+    } catch (e) {
+      setErr(e?.message || 'Image invalide');
+    } finally {
+      setAvatarProcessing(false);
+    }
   };
 
   const save = async () => {
@@ -237,13 +259,48 @@ function StudentProfileEditor({ student, onUpdated, onClose, isN3Affiliated = fa
             : <StudentAvatar student={student} size={52} style={{ border: '1px solid #ddd' }} />}
           <div className="profile-avatar-help">
             Par défaut, l&apos;avatar est généré automatiquement via DiceBear.
+            Tu peux aussi prendre une photo directement.
           </div>
         </div>
-        <input
-          type="file"
-          accept="image/png,image/jpeg,image/webp"
-          onChange={e => onAvatarSelected(e.target.files?.[0])}
-        />
+        <div className="profile-avatar-actions">
+          <button
+            type="button"
+            className="btn btn-secondary btn-sm"
+            onClick={() => {
+              if (galleryInputRef.current) galleryInputRef.current.value = '';
+              galleryInputRef.current?.click();
+            }}
+            disabled={loading || avatarProcessing}
+          >
+            📁 Choisir une photo
+          </button>
+          <button
+            type="button"
+            className="btn btn-secondary btn-sm"
+            onClick={() => {
+              if (cameraInputRef.current) cameraInputRef.current.value = '';
+              cameraInputRef.current?.click();
+            }}
+            disabled={loading || avatarProcessing}
+          >
+            📸 Prendre une photo
+          </button>
+          <input
+            ref={galleryInputRef}
+            type="file"
+            accept="image/*"
+            style={{ display: 'none' }}
+            onChange={(e) => onAvatarSelected(e.target.files?.[0])}
+          />
+          <input
+            ref={cameraInputRef}
+            type="file"
+            accept="image/*"
+            capture="environment"
+            style={{ display: 'none' }}
+            onChange={(e) => onAvatarSelected(e.target.files?.[0])}
+          />
+        </div>
         <div className="profile-avatar-actions">
           <button
             type="button"
@@ -252,11 +309,18 @@ function StudentProfileEditor({ student, onUpdated, onClose, isN3Affiliated = fa
               setAvatarData(null);
               setRemoveAvatar(true);
               setAvatarPreview(getDicebearAvatarUrl(student));
+              setErr('');
             }}
+            disabled={loading || avatarProcessing}
           >
             Utiliser l&apos;avatar DiceBear
           </button>
         </div>
+        {avatarProcessing && (
+          <div style={{ fontSize: '.82rem', color: '#4b5563', marginTop: 6 }}>
+            Traitement de la photo en cours...
+          </div>
+        )}
       </div>
 
       <div className="field">
@@ -305,7 +369,7 @@ function StudentProfileEditor({ student, onUpdated, onClose, isN3Affiliated = fa
       {err && <div className="auth-error">⚠️ {err}</div>}
       {okMsg && <div className="toast" style={{ position: 'static', marginTop: 4 }}>{okMsg}</div>}
       <div style={{ display: 'flex', gap: 10, marginTop: 10 }}>
-        <button className="btn btn-primary" onClick={save} disabled={loading} style={{ flex: 1 }}>
+        <button className="btn btn-primary" onClick={save} disabled={loading || avatarProcessing} style={{ flex: 1 }}>
           {loading ? 'Enregistrement…' : 'Enregistrer'}
         </button>
         <button className="btn btn-ghost" onClick={onClose} disabled={loading} style={{ flex: 1 }}>
@@ -401,30 +465,80 @@ function TeacherStats({ isN3Affiliated = false }) {
           </div>
           : filtered.map((s) => {
             const realRank = data.findIndex(d => d.id === s.id);
+            const completionRate = s.stats.total > 0
+              ? Math.round((s.stats.done / s.stats.total) * 100)
+              : 0;
             return (
               <div key={s.id} className="lb-row" style={{ gap: 8 }}>
                 <div className={`lb-rank ${rankClass(realRank)}`}>{rankIcon(realRank)}</div>
                 <StudentAvatar student={s} size={30} style={{ border: '1px solid #ddd' }} />
                 <div className="lb-name" style={{ flex: 1, minWidth: 0 }}>
                   <strong>{s.first_name} {s.last_name}</strong>
+                  {s.pseudo && (
+                    <div className="lb-pseudo" style={{ fontSize: '.72rem', color: '#4b5563', marginTop: 1 }}>
+                      @{s.pseudo}
+                    </div>
+                  )}
+                  {s.description && (
+                    <div
+                      className="lb-description"
+                      style={{
+                        fontSize: '.72rem',
+                        color: '#6b7280',
+                        marginTop: 2,
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        maxWidth: 220,
+                      }}
+                      title={s.description}
+                    >
+                      {s.description}
+                    </div>
+                  )}
+                  {s?.progression?.roleDisplayName && (
+                    <div className="lb-profile-badge-wrap" style={{ marginTop: 2 }}>
+                      <span className="lb-profile-badge" style={{
+                        display: 'inline-block',
+                        fontSize: '.7rem',
+                        fontWeight: 600,
+                        padding: '2px 8px',
+                        borderRadius: 999,
+                        background: '#ecfdf5',
+                        color: '#065f46',
+                        border: '1px solid #a7f3d0',
+                      }}
+                      >
+                        Profil : {s.progression.roleDisplayName}
+                      </span>
+                    </div>
+                  )}
                   <small>
                     {s.last_seen
                       ? `Vu le ${new Date(s.last_seen).toLocaleDateString('fr-FR')}`
                       : 'Jamais connecté'}
                   </small>
                 </div>
-                <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexShrink: 0 }}>
-                  <div className="lb-stat">
+                <div className="lb-stats" style={{ display: 'flex', gap: 10, alignItems: 'center', flexShrink: 0 }}>
+                  <div className="lb-stat lb-stat-done">
                     <div className="lb-stat-num" style={{ color: 'var(--sage)' }}>{s.stats.done}</div>
                     <div className="lb-stat-label">✅</div>
                   </div>
-                  <div className="lb-stat">
+                  <div className="lb-stat lb-stat-submitted">
+                    <div className="lb-stat-num" style={{ color: '#6366f1' }}>{s.stats.submitted}</div>
+                    <div className="lb-stat-label">📋</div>
+                  </div>
+                  <div className="lb-stat lb-stat-pending">
                     <div className="lb-stat-num" style={{ color: '#f59e0b' }}>{s.stats.pending}</div>
                     <div className="lb-stat-label">⏳</div>
                   </div>
-                  <div className="lb-stat">
+                  <div className="lb-stat lb-stat-total">
                     <div className="lb-stat-num">{s.stats.total}</div>
                     <div className="lb-stat-label">total</div>
+                  </div>
+                  <div className="lb-stat lb-stat-rate" title="Part des tâches validées sur le total des tâches prises">
+                    <div className="lb-stat-num" style={{ color: '#0f766e' }}>{completionRate}%</div>
+                    <div className="lb-stat-label">🎯</div>
                   </div>
                   <div style={{ width: 60, display: 'none' }} className="lb-bar-desktop">
                     <div className="lb-bar-bg">

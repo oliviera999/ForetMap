@@ -19,6 +19,7 @@ test('POST /api/auth/register crée un élève et renvoie 201', async () => {
   assert.ok(res.body.id);
   assert.strictEqual(res.body.first_name, 'Test');
   assert.strictEqual(res.body.password_hash, undefined);
+  assert.strictEqual(res.body?.auth?.roleSlug, 'visiteur');
 });
 
 test('POST /api/auth/login avec mauvais mot de passe renvoie 401', async () => {
@@ -159,6 +160,65 @@ test('POST /api/auth/teacher avec bon PIN renvoie 200 et un token', async () => 
     .send({ pin: process.env.TEACHER_PIN || '1234' })
     .expect(200);
   assert.ok(res.body.token);
+});
+
+test('Forum: le profil visiteur ne peut pas accéder aux sujets', async () => {
+  const visitorRes = await request(app)
+    .post('/api/auth/register')
+    .send({ firstName: 'Visit', lastName: `Forum${Date.now()}`, password: 'pass1234' })
+    .expect(201);
+  assert.strictEqual(visitorRes.body?.auth?.roleSlug, 'visiteur');
+
+  await request(app)
+    .get('/api/forum/threads')
+    .set('Authorization', `Bearer ${visitorRes.body.authToken}`)
+    .expect(403);
+});
+
+test('GET /api/tasks/:id/logs refuse le profil visiteur', async () => {
+  const auth = await request(app)
+    .post('/api/auth/teacher')
+    .send({ pin: process.env.TEACHER_PIN || '1234' })
+    .expect(200);
+  const teacherToken = auth.body.token;
+
+  const zones = await request(app).get('/api/zones').expect(200);
+  const zoneId = zones.body[0]?.id || 'pg';
+  const taskRes = await request(app)
+    .post('/api/tasks')
+    .set('Authorization', `Bearer ${teacherToken}`)
+    .send({ title: `Logs privés ${Date.now()}`, zone_id: zoneId, required_students: 1 })
+    .expect(201);
+  const taskId = taskRes.body.id;
+
+  const studentRes = await request(app)
+    .post('/api/auth/register')
+    .send({ firstName: 'Logs', lastName: `Auteur${Date.now()}`, password: 'pass1234' })
+    .expect(201);
+
+  await request(app)
+    .post(`/api/tasks/${taskId}/assign`)
+    .send({ firstName: studentRes.body.first_name, lastName: studentRes.body.last_name, studentId: studentRes.body.id })
+    .expect(200);
+  await request(app)
+    .post(`/api/tasks/${taskId}/done`)
+    .send({
+      firstName: studentRes.body.first_name,
+      lastName: studentRes.body.last_name,
+      studentId: studentRes.body.id,
+      comment: 'Rapport test visiteur',
+    })
+    .expect(200);
+
+  const visitorRes = await request(app)
+    .post('/api/auth/register')
+    .send({ firstName: 'Visit', lastName: `Logs${Date.now()}`, password: 'pass1234' })
+    .expect(201);
+
+  await request(app)
+    .get(`/api/tasks/${taskId}/logs`)
+    .set('Authorization', `Bearer ${visitorRes.body.authToken}`)
+    .expect(403);
 });
 
 test('GET /api/maps renvoie les cartes configurées', async () => {
