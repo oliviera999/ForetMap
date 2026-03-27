@@ -73,6 +73,7 @@ export function useNotificationCenter({
     actions: 0,
   }));
   const lastSeenKeysRef = useRef({});
+  const lastTeacherProposalsSignatureRef = useRef('');
   const firstMountRef = useRef(true);
 
   const bumpMetric = useCallback((field) => {
@@ -219,14 +220,33 @@ export function useNotificationCenter({
 
   useEffect(() => {
     if (!isTeacher) return;
-    const proposedCount = tasksForActiveMap.filter((task) => task.status === 'proposed').length;
+    const proposedTasks = tasksForActiveMap.filter((task) => task.status === 'proposed');
+    const proposedCount = proposedTasks.length;
+    const proposedTitles = proposedTasks
+      .map((task) => String(task?.title || task?.name || '').trim())
+      .filter(Boolean);
+    const proposedSignature = proposedTasks
+      .map((task) => {
+        if (task?.id != null) return `id:${task.id}`;
+        if (task?.task_id != null) return `task_id:${task.task_id}`;
+        const title = String(task?.title || '').trim().toLowerCase();
+        return `title:${title}`;
+      })
+      .sort()
+      .join('|');
+    const lastSignature = lastTeacherProposalsSignatureRef.current;
+    if (proposedSignature === lastSignature) return;
+    lastTeacherProposalsSignatureRef.current = proposedSignature;
     if (proposedCount > 0) {
+      const message = proposedCount === 1
+        ? `1 proposition de tâche à examiner : "${proposedTitles[0] || 'Sans titre'}".`
+        : `${proposedCount} proposition(s) de tâche à examiner. Exemples : ${proposedTitles.slice(0, 2).map((t) => `"${t}"`).join(', ')}${proposedTitles.length > 2 ? ', …' : ''}.`;
       addNotification({
-        key: `teacher-proposed-${proposedCount}`,
+        key: `teacher-proposed-${proposedCount}-${proposedSignature || 'none'}`,
         level: NOTIFICATION_LEVEL.IMPORTANT,
         category: NOTIFICATION_CATEGORY.PROPOSALS,
         title: 'Propositions élèves',
-        message: `${proposedCount} proposition(s) de tâche à examiner.`,
+        message,
         action: { tab: 'tasks' },
       });
     }
