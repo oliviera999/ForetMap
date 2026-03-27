@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { api, AccountDeletedError } from '../services/api';
-import { MARKER_EMOJIS } from '../constants/emojis';
+import { MARKER_EMOJIS, parseEmojiListSetting } from '../constants/emojis';
 import { getRoleTerms } from '../utils/n3-terminology';
 import { useHelp } from '../hooks/useHelp';
 import { HelpPanel } from './HelpPanel';
@@ -188,15 +188,15 @@ function VisitSyncPanel({ isTeacher, mapId, onSynced, onForceLogout }) {
   );
 }
 
-function VisitEditorPanel({ selected, selectedType, onSaved, onForceLogout, isTeacher, roleTerms }) {
+function VisitEditorPanel({ selected, selectedType, onSaved, onForceLogout, isTeacher, roleTerms, markerEmojis = MARKER_EMOJIS }) {
   const stripLeadingMarkerEmoji = useCallback((value) => {
     const raw = String(value || '').trim();
-    for (const emoji of MARKER_EMOJIS) {
+    for (const emoji of markerEmojis) {
       if (raw === emoji) return '';
       if (raw.startsWith(`${emoji} `)) return raw.slice(emoji.length).trimStart();
     }
     return raw;
-  }, []);
+  }, [markerEmojis]);
 
   const [form, setForm] = useState({
     title: '',
@@ -217,7 +217,7 @@ function VisitEditorPanel({ selected, selectedType, onSaved, onForceLogout, isTe
   useEffect(() => {
     const nextTitle = selectedType === 'zone' ? (selected?.name || '') : (selected?.label || '');
     const trimmedTitle = String(nextTitle || '').trim();
-    const detectedZoneEmoji = MARKER_EMOJIS.find((emoji) => (
+    const detectedZoneEmoji = markerEmojis.find((emoji) => (
       trimmedTitle === emoji || trimmedTitle.startsWith(`${emoji} `)
     ));
     setForm({
@@ -228,11 +228,11 @@ function VisitEditorPanel({ selected, selectedType, onSaved, onForceLogout, isTe
       details_text: selected?.visit_details_text || '',
       sort_order: Number(selected?.visit_sort_order || 0),
       is_active: Number(selected?.visit_is_active ?? 1) === 1,
-      emoji: selectedType === 'zone' ? (detectedZoneEmoji || '📍') : (selected?.emoji || '📍'),
+      emoji: selectedType === 'zone' ? (detectedZoneEmoji || markerEmojis[0] || '📍') : (selected?.emoji || markerEmojis[0] || '📍'),
     });
     setMediaUrl('');
     setMediaCaption('');
-  }, [selected, selectedType]);
+  }, [markerEmojis, selected, selectedType]);
 
   if (!isTeacher || !selected || !selectedType) return null;
 
@@ -341,7 +341,7 @@ function VisitEditorPanel({ selected, selectedType, onSaved, onForceLogout, isTe
       <div className="field">
         <label>{selectedType === 'zone' ? 'Liste d’emojis (insérer dans le titre de zone)' : 'Emoji du repère'}</label>
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-          {MARKER_EMOJIS.map((emoji) => (
+          {markerEmojis.map((emoji) => (
             <button
               key={emoji}
               className={`emoji-btn ${form.emoji === emoji ? 'sel' : ''}`}
@@ -420,6 +420,15 @@ function VisitView({
   isN3Affiliated = false,
   publicSettings = null,
 }) {
+  const configuredLocationEmojis = String(
+    publicSettings?.ui?.map?.location_emojis
+    || publicSettings?.map?.location_emojis
+    || ''
+  );
+  const markerEmojis = useMemo(
+    () => parseEmojiListSetting(configuredLocationEmojis, MARKER_EMOJIS),
+    [configuredLocationEmojis]
+  );
   const roleTerms = getRoleTerms(isN3Affiliated);
   const studentIdForProgress = useMemo(() => {
     if (isTeacher) return null;
@@ -546,7 +555,7 @@ function VisitView({
           x_pct: p.xp,
           y_pct: p.yp,
           label: label.trim(),
-          emoji: '📍',
+          emoji: markerEmojis[0] || '📍',
         });
         setMode('view');
         await loadData();
@@ -758,6 +767,7 @@ function VisitView({
                 onForceLogout={onForceLogout}
                 isTeacher={isTeacher}
                 roleTerms={roleTerms}
+                markerEmojis={markerEmojis}
               />
             </div>
           )}
