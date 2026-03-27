@@ -24,6 +24,7 @@ const KEY_META = {
   'ui.modules.visit_enabled': { label: 'Visite', section: 'modules', order: 20 },
   'ui.modules.stats_enabled': { label: 'Statistiques', section: 'modules', order: 30 },
   'ui.modules.observations_enabled': { label: 'Carnet observations', section: 'modules', order: 40 },
+  'ui.modules.help_enabled': { label: 'Aide contextuelle (tooltips + panneau ?)', section: 'modules', order: 45 },
   'ui.map.default_map_student': { section: 'modules', order: 50, dynamicLabel: 'defaultStudentMap' },
   'ui.map.default_map_teacher': { section: 'modules', order: 60, dynamicLabel: 'defaultTeacherMap' },
   'ui.map.default_map_visit': { label: 'Carte par défaut (visite publique)', section: 'modules', order: 70 },

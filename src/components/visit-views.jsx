@@ -2,6 +2,10 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { api, AccountDeletedError } from '../services/api';
 import { MARKER_EMOJIS } from '../constants/emojis';
 import { getRoleTerms } from '../utils/n3-terminology';
+import { useHelp } from '../hooks/useHelp';
+import { HelpPanel } from './HelpPanel';
+import { Tooltip } from './Tooltip';
+import { HELP_PANELS, HELP_TOOLTIPS, resolveRoleText } from '../constants/help';
 
 function parsePctPoints(raw) {
   try {
@@ -199,6 +203,7 @@ function VisitEditorPanel({ selected, selectedType, onSaved, onForceLogout, isTe
   const [mediaUrl, setMediaUrl] = useState('');
   const [mediaCaption, setMediaCaption] = useState('');
   const [mediaSaving, setMediaSaving] = useState(false);
+  const tooltipText = (entry) => resolveRoleText(entry, true);
 
   useEffect(() => {
     setForm({
@@ -372,7 +377,9 @@ function VisitEditorPanel({ selected, selectedType, onSaved, onForceLogout, isTe
           {(selected.visit_media || []).map((m) => (
             <div key={m.id} className="visit-media-row">
               <span>{m.caption || m.image_url}</span>
-              <button className="btn btn-danger btn-sm" onClick={() => deleteMedia(m.id)}>🗑️</button>
+              <Tooltip text={tooltipText(HELP_TOOLTIPS.visit.mediaDelete)}>
+                <button className="btn btn-danger btn-sm" aria-label="Supprimer la photo" onClick={() => deleteMedia(m.id)}>🗑️</button>
+              </Tooltip>
             </div>
           ))}
         </div>
@@ -389,6 +396,7 @@ function VisitView({
   availableTutorials = [],
   onBackToAuth,
   isN3Affiliated = false,
+  publicSettings = null,
 }) {
   const roleTerms = getRoleTerms(isN3Affiliated);
   const studentIdForProgress = useMemo(() => {
@@ -411,6 +419,7 @@ function VisitView({
   const [mode, setMode] = useState('view');
   const [drawPoints, setDrawPoints] = useState([]);
   const [creating, setCreating] = useState(false);
+  const { isHelpEnabled, hasSeenSection, markSectionSeen } = useHelp({ publicSettings, isTeacher });
 
   const currentMap = useMemo(() => maps.find((m) => m.id === mapId), [maps, mapId]);
 
@@ -557,9 +566,21 @@ function VisitView({
           <h2 className="section-title">🧭 Visite de la carte</h2>
           <p className="section-sub">Explore les zones et repères, puis marque ce que tu as déjà vu.</p>
         </div>
-        {!student && onBackToAuth && (
-          <button className="btn btn-ghost btn-sm" onClick={onBackToAuth}>↩ Retour connexion</button>
-        )}
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          {isHelpEnabled && (
+            <HelpPanel
+              sectionId="visit"
+              title={HELP_PANELS.visit.title}
+              entries={HELP_PANELS.visit.items}
+              isTeacher={isTeacher}
+              isPulsing={!hasSeenSection('visit')}
+              onMarkSeen={markSectionSeen}
+            />
+          )}
+          {!student && onBackToAuth && (
+            <button className="btn btn-ghost btn-sm" onClick={onBackToAuth}>↩ Retour connexion</button>
+          )}
+        </div>
       </div>
 
       <div className="visit-map-switch">

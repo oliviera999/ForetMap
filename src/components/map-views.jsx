@@ -6,6 +6,10 @@ import { MARKER_EMOJIS } from '../constants/emojis';
 import { stageBadge } from '../utils/badges';
 import { compressImage } from '../utils/image';
 import { useDialogA11y } from '../hooks/useDialogA11y';
+import { useHelp } from '../hooks/useHelp';
+import { HelpPanel } from './HelpPanel';
+import { Tooltip } from './Tooltip';
+import { HELP_PANELS, HELP_TOOLTIPS, resolveRoleText } from '../constants/help';
 
 function Toast({ msg, onDone }) {
   useEffect(() => { const t = setTimeout(onDone, 2400); return () => clearTimeout(t); }, []);
@@ -1159,7 +1163,7 @@ function useMapGestures({ mapImageSrc, activeMapId, mode, onRefresh }) {
   };
 }
 
-function MapView({ zones, markers, tasks = [], plants, maps = [], activeMapId = 'foret', onMapChange, isTeacher, student, onZoneUpdate, onRefresh, embedded = false }) {
+function MapView({ zones, markers, tasks = [], plants, maps = [], activeMapId = 'foret', onMapChange, isTeacher, student, onZoneUpdate, onRefresh, embedded = false, publicSettings = null }) {
   const [mode, setMode] = useState('view');
   const [showLabels, setShowLabels] = useState(true);
   const [drawPoints, setDrawPoints] = useState([]);
@@ -1405,6 +1409,9 @@ function MapView({ zones, markers, tasks = [], plants, maps = [], activeMapId = 
     : (isTeacher ? 'calc(100dvh - 56px)' : 'calc(100dvh - 56px - 72px)');
   const mapAspect = imgSize.w > 1 && imgSize.h > 1 ? `${imgSize.w} / ${imgSize.h}` : '16 / 10';
   const mobileInteractionsActive = mapInteractionEnabled || committed.s > 1.05;
+  const { isHelpEnabled, hasSeenSection, markSectionSeen } = useHelp({ publicSettings, isTeacher });
+  const helpMap = HELP_PANELS.map;
+  const tooltipText = (entry) => resolveRoleText(entry, isTeacher);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: mapColHeight, minHeight: embedded ? 520 : 380 }}>
@@ -1494,35 +1501,60 @@ function MapView({ zones, markers, tasks = [], plants, maps = [], activeMapId = 
 
         <div style={{ marginLeft: 'auto', display: 'flex', gap: 4, alignItems: 'center' }}>
           {isCoarsePointer && mode === 'view' && (
-            <button
-              className={`map-gesture-toggle ${mobileInteractionsActive ? 'is-on' : ''}`}
-              onClick={toggleMapInteraction}
-              title={mobileInteractionsActive ? 'Désactiver les gestes carte' : 'Activer les gestes carte'}>
-              {mobileInteractionsActive ? '🔓 Gestes' : '🔒 Gestes'}
-            </button>
+            <Tooltip text={tooltipText(HELP_TOOLTIPS.map.toggleGestures)}>
+              <button
+                className={`map-gesture-toggle ${mobileInteractionsActive ? 'is-on' : ''}`}
+                onClick={toggleMapInteraction}
+                aria-label={mobileInteractionsActive ? 'Désactiver les gestes carte' : 'Activer les gestes carte'}>
+                {mobileInteractionsActive ? '🔓 Gestes' : '🔒 Gestes'}
+              </button>
+            </Tooltip>
           )}
-          <button title={showLabels ? 'Masquer' : 'Afficher noms'}
-            onClick={() => setShowLabels(l => !l)}
-            style={{ background: showLabels ? 'var(--mint)' : 'transparent', border: '1.5px solid var(--mint)',
-              color: 'var(--forest)', borderRadius: 8, padding: '6px 10px', cursor: 'pointer', fontSize: '.9rem' }}>🏷️</button>
+          <Tooltip text={tooltipText(HELP_TOOLTIPS.map.toggleLabels)}>
+            <button
+              aria-label={showLabels ? 'Masquer les noms' : 'Afficher les noms'}
+              onClick={() => setShowLabels(l => !l)}
+              style={{ background: showLabels ? 'var(--mint)' : 'transparent', border: '1.5px solid var(--mint)',
+                color: 'var(--forest)', borderRadius: 8, padding: '6px 10px', cursor: 'pointer', fontSize: '.9rem' }}
+            >
+              🏷️
+            </button>
+          </Tooltip>
           <div style={{ display: 'flex', background: 'var(--parchment)', borderRadius: 10, padding: 3, gap: 2 }}>
-            {[['＋', 1.28], ['－', 0.78], ['⊡', 0]].map(([label, factor]) => (
-              <button key={label} onClick={() => {
-                if (factor === 0) { fitMap(); return; }
-                const c = containerRef.current; if (!c) return;
-                const r = c.getBoundingClientRect();
-                const mx = r.width / 2, my = r.height / 2;
-                const ns = factor > 1 ? Math.min(tx.current.s * factor, 6) : Math.max(tx.current.s * factor, 0.15);
-                tx.current.x = mx - (mx - tx.current.x) * (ns / tx.current.s);
-                tx.current.y = my - (my - tx.current.y) * (ns / tx.current.s);
-                tx.current.s = ns;
-                applyTransform();
-                commit();
-              }}
-              style={{ background: 'transparent', border: 'none', color: 'var(--soil)',
-                padding: '6px 10px', cursor: 'pointer', fontSize: '1rem', borderRadius: 7 }}>{label}</button>
+            {[
+              ['＋', 1.28, HELP_TOOLTIPS.map.zoomIn, 'Zoomer la carte'],
+              ['－', 0.78, HELP_TOOLTIPS.map.zoomOut, 'Dézoomer la carte'],
+              ['⊡', 0, HELP_TOOLTIPS.map.zoomReset, 'Recentrer la carte'],
+            ].map(([label, factor, helpEntry, ariaLabel]) => (
+              <Tooltip key={label} text={tooltipText(helpEntry)}>
+                <button onClick={() => {
+                  if (factor === 0) { fitMap(); return; }
+                  const c = containerRef.current; if (!c) return;
+                  const r = c.getBoundingClientRect();
+                  const mx = r.width / 2, my = r.height / 2;
+                  const ns = factor > 1 ? Math.min(tx.current.s * factor, 6) : Math.max(tx.current.s * factor, 0.15);
+                  tx.current.x = mx - (mx - tx.current.x) * (ns / tx.current.s);
+                  tx.current.y = my - (my - tx.current.y) * (ns / tx.current.s);
+                  tx.current.s = ns;
+                  applyTransform();
+                  commit();
+                }}
+                aria-label={ariaLabel}
+                style={{ background: 'transparent', border: 'none', color: 'var(--soil)',
+                  padding: '6px 10px', cursor: 'pointer', fontSize: '1rem', borderRadius: 7 }}>{label}</button>
+              </Tooltip>
             ))}
           </div>
+          {isHelpEnabled && (
+            <HelpPanel
+              sectionId="map"
+              title={helpMap.title}
+              entries={helpMap.items}
+              isTeacher={isTeacher}
+              isPulsing={!hasSeenSection('map')}
+              onMarkSeen={markSectionSeen}
+            />
+          )}
         </div>
       </div>
 
