@@ -21,6 +21,7 @@ uploads/
 logs/
 *.log
 npm-debug.log*
+ci-job-*-logs.zip
 
 # OS
 .DS_Store
