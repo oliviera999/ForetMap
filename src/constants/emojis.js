@@ -29,7 +29,7 @@ export const MARKER_EMOJIS = [...new Set([
   ...EMOJI_CATEGORIES.terrain,
 ])];
 
-export function parseEmojiListSetting(rawValue, fallback = MARKER_EMOJIS, maxItems = 400) {
+export function parseEmojiListSetting(rawValue, fallback = MARKER_EMOJIS) {
   const raw = String(rawValue || '').trim();
   if (!raw) return [...fallback];
   const tokens = raw
@@ -38,7 +38,7 @@ export function parseEmojiListSetting(rawValue, fallback = MARKER_EMOJIS, maxIte
     .map((item) => String(item || '').trim())
     .filter(Boolean)
     .filter((item) => item.length <= 16);
-  const unique = [...new Set(tokens)].slice(0, maxItems);
+  const unique = [...new Set(tokens)];
   return unique.length > 0 ? unique : [...fallback];
 }
 
