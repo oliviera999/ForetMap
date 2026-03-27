@@ -428,7 +428,7 @@ function SettingsAdminView({ isN3Affiliated = false }) {
   }
 
   return (
-    <div className="fade-in">
+    <div className="fade-in settings-admin">
       <h2 className="section-title">⚙️ Paramètres administrateur</h2>
       <p className="section-sub">Console centralisée pour l’accueil, les cartes/plans, la sécurité et l’exploitation.</p>
       {err && <div className="auth-error">⚠️ {err}</div>}
@@ -455,9 +455,9 @@ function SettingsAdminView({ isN3Affiliated = false }) {
         </div>
       </div>
 
-      <div style={{ display: 'grid', gap: 12, gridTemplateColumns: '1fr 1fr' }}>
+      <div className="settings-admin-grid">
         {filteredSettingSections.map((section) => (
-          <div key={section.id} style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: 12, padding: 12 }}>
+          <div key={section.id} style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: 12, padding: 12, minWidth: 0 }}>
             <h3 style={{ marginTop: 0 }}>{section.title}</h3>
             {section.rows.map((row) => renderSettingField(row))}
           </div>
@@ -471,10 +471,10 @@ function SettingsAdminView({ isN3Affiliated = false }) {
 
       <div style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: 12, padding: 12, marginTop: 12 }}>
         <h3 style={{ marginTop: 0 }}>Cartes & plans</h3>
-        <div style={{ display: 'grid', gap: 10 }}>
+        <div className="settings-admin-maps-list">
           {maps.map((m) => (
             <div key={m.id} style={{ border: '1px solid #e5e7eb', borderRadius: 10, padding: 10 }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 130px 130px auto', gap: 8, alignItems: 'center' }}>
+              <div className="settings-admin-map-row">
                 <div>
                   <div style={{ fontWeight: 700 }}>{m.label}</div>
                   <div style={{ fontSize: '.75rem', color: '#6b7280' }}>{m.id}</div>
@@ -507,7 +507,7 @@ function SettingsAdminView({ isN3Affiliated = false }) {
                   onBlur={(e) => saveMap(m.id, { map_image_url: e.target.value || '' })}
                 />
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 8, alignItems: 'center' }}>
+              <div className="settings-admin-map-tools">
                 <div className="field">
                   <label>Padding cadre (0-32 px)</label>
                   <input
@@ -536,8 +536,8 @@ function SettingsAdminView({ isN3Affiliated = false }) {
         </div>
       </div>
 
-      <div style={{ display: 'grid', gap: 12, gridTemplateColumns: '1fr 1fr', marginTop: 12 }}>
-        <div style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: 12, padding: 12 }}>
+      <div className="settings-admin-grid settings-admin-grid--single-on-mobile" style={{ marginTop: 12 }}>
+        <div style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: 12, padding: 12, minWidth: 0 }}>
           <h3 style={{ marginTop: 0 }}>Actions système</h3>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             <button className="btn btn-secondary btn-sm" onClick={fetchLogs}>Charger logs</button>

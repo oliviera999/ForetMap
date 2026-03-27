@@ -2225,3 +2225,45 @@
     margin-top: auto;
   }
 }
+
+/* ── SETTINGS ADMIN ── */
+.settings-admin {
+  width: 100%;
+  overflow-x: hidden;
+  touch-action: pan-y;
+}
+.settings-admin-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: 1fr 1fr;
+}
+.settings-admin-maps-list {
+  display: grid;
+  gap: 10px;
+}
+.settings-admin-map-row {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) 130px 130px auto;
+  gap: 8px;
+  align-items: center;
+}
+.settings-admin-map-row > * {
+  min-width: 0;
+}
+.settings-admin-map-tools {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+  align-items: center;
+}
+.settings-admin-map-tools > * {
+  min-width: 0;
+}
+@media (max-width: 900px) {
+  .settings-admin-grid,
+  .settings-admin-grid.settings-admin-grid--single-on-mobile,
+  .settings-admin-map-row,
+  .settings-admin-map-tools {
+    grid-template-columns: 1fr;
+  }
+}

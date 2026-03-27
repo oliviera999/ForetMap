@@ -85,6 +85,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - **Navigation/auth** : ajout d’un CTA « Visiter sans connexion » dans l’écran d’authentification et intégration de l’onglet `Visite` dans les navigations élève/prof.
 
 ### Corrigé
+- **Paramètres admin (mobile)** : rétablissement du scroll vertical et refonte responsive des blocs en colonne unique sur smartphone (sections paramètres, cartes/plans et actions système) pour éviter les blocages de navigation tactile.
 - **Durcissement anti-bugs full stack (tâches/auth/realtime)** : sécurisation des actions élève sur les tâches (`assign`/`done`/`unassign`) avec contrôle d’identité/session, uniformisation des erreurs 500 pour éviter les fuites de messages internes, rafraîchissement réactif des claims de session côté commentaires contextuels, robustesse accrue du client API sur réponses vides/non-JSON, et stabilisation des effets asynchrones carte/temps réel (photo gallery + subscriptions map).
 - **Ordre de navigation principal (prof)** : réorganisation des onglets en `Cartes & tâches`, `Carte`, `Tâches`, `Biodiversité`, `Tuto`, `Forum`, `Stats`, `Visites` pour aligner le parcours demandé.
 - **Onglets Carte/Tâches (desktop)** : suppression de la fusion automatique grand écran ; `Carte & Zones` affiche uniquement la carte et `Tâches` affiche uniquement les tâches, aligné sur le comportement smartphone.
