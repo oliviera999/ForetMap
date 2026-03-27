@@ -261,7 +261,9 @@ app.get('*', (req, res) => {
 // Gestion d'erreurs centralisée (pour les routes qui font next(err))
 app.use((err, req, res, next) => {
   logger.error({ err, path: req.path, method: req.method }, 'Erreur serveur');
-  res.status(err.status || 500).json({ error: err.message || 'Erreur serveur' });
+  const status = Number(err?.status) || 500;
+  const message = status >= 500 ? 'Erreur serveur' : (err?.message || 'Requête invalide');
+  res.status(status).json({ error: message });
 });
 
 // Ne pas utiliser process.env.IP — sur o2switch il contient l'IP publique du serveur,

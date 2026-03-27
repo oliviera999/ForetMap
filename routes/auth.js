@@ -327,6 +327,11 @@ function exposeAuth(auth) {
   };
 }
 
+function respondInternalError(res, req, err, message = 'Erreur serveur') {
+  logRouteError(err, req);
+  return res.status(500).json({ error: message });
+}
+
 router.get('/me', requireAuth, async (req, res) => {
   res.json({ auth: exposeAuth(req.auth) });
 });
@@ -423,8 +428,7 @@ router.patch('/me/profile', requireAuth, async (req, res) => {
     }
     res.json({ ...updated, password_hash: undefined });
   } catch (e) {
-    logRouteError(e, req);
-    res.status(500).json({ error: e.message });
+    respondInternalError(res, req, e);
   }
 });
 
@@ -492,8 +496,7 @@ router.post('/register', async (req, res) => {
       auth: session ? exposeAuth(session.tokenPayload) : null,
     });
   } catch (e) {
-    logRouteError(e, req);
-    res.status(500).json({ error: e.message });
+    respondInternalError(res, req, e);
   }
 });
 
@@ -589,8 +592,7 @@ router.post('/login', async (req, res) => {
       auth: session ? exposeAuth(session.tokenPayload) : null,
     });
   } catch (e) {
-    logRouteError(e, req);
-    res.status(500).json({ error: e.message });
+    respondInternalError(res, req, e);
   }
 });
 
@@ -797,8 +799,7 @@ router.post('/forgot-password', async (req, res) => {
     }
     res.json({ ok: true, message: 'Si un compte existe, un email de réinitialisation a été envoyé.' });
   } catch (e) {
-    logRouteError(e, req);
-    res.status(500).json({ error: e.message });
+    respondInternalError(res, req, e);
   }
 });
 
@@ -824,8 +825,7 @@ router.post('/reset-password', async (req, res) => {
     });
     res.json({ ok: true });
   } catch (e) {
-    logRouteError(e, req);
-    res.status(500).json({ error: e.message });
+    respondInternalError(res, req, e);
   }
 });
 
@@ -862,8 +862,7 @@ router.post('/teacher/forgot-password', async (req, res) => {
     }
     res.json({ ok: true, message: 'Si un compte existe, un email de réinitialisation a été envoyé.' });
   } catch (e) {
-    logRouteError(e, req);
-    res.status(500).json({ error: e.message });
+    respondInternalError(res, req, e);
   }
 });
 
@@ -890,8 +889,7 @@ router.post('/teacher/reset-password', async (req, res) => {
     });
     res.json({ ok: true });
   } catch (e) {
-    logRouteError(e, req);
-    res.status(500).json({ error: e.message });
+    respondInternalError(res, req, e);
   }
 });
 
@@ -921,8 +919,7 @@ router.post('/elevate', requireAuth, async (req, res) => {
     });
     res.json({ token, auth: exposeAuth(session.tokenPayload) });
   } catch (e) {
-    logRouteError(e, req);
-    res.status(500).json({ error: e.message });
+    respondInternalError(res, req, e);
   }
 });
 
@@ -958,8 +955,7 @@ router.post('/teacher', async (req, res) => {
     }
     return res.status(401).json({ error: 'Token requis avant élévation PIN' });
   } catch (e) {
-    logRouteError(e, req);
-    res.status(500).json({ error: e.message });
+    respondInternalError(res, req, e);
   }
 });
 

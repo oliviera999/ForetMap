@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { api } from '../services/api';
 import { ZONE_COLORS } from '../constants/garden';
@@ -109,16 +109,19 @@ function PhotoGallery({ zoneId, isTeacher }) {
   const [caption, setCaption] = useState('');
   const fileRef = useRef();
 
-  const load = async () => {
+  const load = useCallback(async () => {
     setLoading(true);
     try {
       const list = await api(`/api/zones/${zoneId}/photos`);
       setPhotos(list);
+    } catch (e) {
+      console.error('[ForetMap] chargement photos zone', e);
+    } finally {
       setLoading(false);
-    } catch (e) { console.error('[ForetMap] chargement photos zone', e); setLoading(false); }
-  };
+    }
+  }, [zoneId]);
 
-  useEffect(() => { load(); }, [zoneId]);
+  useEffect(() => { load(); }, [load]);
 
   const upload = async e => {
     const file = e.target.files[0];
@@ -129,14 +132,21 @@ function PhotoGallery({ zoneId, isTeacher }) {
       await api(`/api/zones/${zoneId}/photos`, 'POST', { image_data: img, caption });
       setCaption('');
       await load();
-    } catch (err) { alert(err.message); }
-    setUploading(false);
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      setUploading(false);
+    }
   };
 
   const del = async id => {
     if (!confirm('Supprimer cette photo ?')) return;
-    await api(`/api/zones/${zoneId}/photos/${id}`, 'DELETE');
-    await load();
+    try {
+      await api(`/api/zones/${zoneId}/photos/${id}`, 'DELETE');
+      await load();
+    } catch (err) {
+      alert(err.message || 'Suppression impossible');
+    }
   };
 
   return (

@@ -273,6 +273,12 @@ function canReadAllAssignments(auth) {
   return perms.includes('tasks.manage') || perms.includes('tasks.validate') || perms.includes('stats.read.all');
 }
 
+function canManageTasks(auth) {
+  const perms = Array.isArray(auth?.permissions) ? auth.permissions : [];
+  if (auth?.userType === 'teacher') return true;
+  return perms.includes('tasks.manage');
+}
+
 function isVisitorRole(auth) {
   return String(auth?.roleSlug || '').toLowerCase() === 'visiteur';
 }
@@ -579,6 +585,86 @@ async function ensureStudentPermission({ studentId, permissionKey, profilePin })
   return { ok: true, elevated: true };
 }
 
+function respondInternalError(res, req, err, message = 'Erreur serveur') {
+  logRouteError(err, req);
+  return res.status(500).json({ error: message });
+}
+
+function trimName(value) {
+  return String(value || '').trim();
+}
+
+async function resolveStudentActionContext(req, payload = {}, permissionKey) {
+  const auth = parseOptionalAuth(req);
+  const profilePin = payload?.profilePin;
+  const providedStudentId = normalizeOptionalId(payload?.studentId);
+  const providedFirstName = trimName(payload?.firstName);
+  const providedLastName = trimName(payload?.lastName);
+  const isTeacherAction = canManageTasks(auth);
+
+  const byId = async (studentId) => queryOne(
+    "SELECT id, first_name, last_name FROM users WHERE user_type = 'student' AND id = ? LIMIT 1",
+    [studentId]
+  );
+
+  const pickNames = (student) => ({
+    firstName: providedFirstName || trimName(student?.first_name),
+    lastName: providedLastName || trimName(student?.last_name),
+  });
+
+  if (providedStudentId) {
+    const student = await byId(providedStudentId);
+    if (!student) return { errorStatus: 401, error: 'Compte supprimé', deleted: true };
+    if (!isTeacherAction) {
+      if (!(auth?.userType === 'student' && String(auth?.userId || '') === String(providedStudentId))) {
+        return { errorStatus: 403, error: 'Session élève requise' };
+      }
+      const permission = await ensureStudentPermission({ studentId: providedStudentId, permissionKey, profilePin });
+      if (!permission.ok) return { errorStatus: 403, error: permission.error };
+    }
+    const names = pickNames(student);
+    if (!names.firstName || !names.lastName) return { errorStatus: 400, error: 'Nom requis' };
+    return {
+      auth,
+      studentId: String(providedStudentId),
+      firstName: names.firstName,
+      lastName: names.lastName,
+      actorUserType: isTeacherAction ? auth?.userType || null : 'student',
+      actorUserId: isTeacherAction ? auth?.userId || null : String(providedStudentId),
+    };
+  }
+
+  if (auth?.userType === 'student' && auth?.userId) {
+    const student = await byId(auth.userId);
+    if (!student) return { errorStatus: 401, error: 'Compte supprimé', deleted: true };
+    const permission = await ensureStudentPermission({ studentId: auth.userId, permissionKey, profilePin });
+    if (!permission.ok) return { errorStatus: 403, error: permission.error };
+    const names = pickNames(student);
+    if (!names.firstName || !names.lastName) return { errorStatus: 400, error: 'Nom requis' };
+    return {
+      auth,
+      studentId: String(auth.userId),
+      firstName: names.firstName,
+      lastName: names.lastName,
+      actorUserType: 'student',
+      actorUserId: String(auth.userId),
+    };
+  }
+
+  if (isTeacherAction && providedFirstName && providedLastName) {
+    return {
+      auth,
+      studentId: null,
+      firstName: providedFirstName,
+      lastName: providedLastName,
+      actorUserType: auth?.userType || null,
+      actorUserId: auth?.userId || null,
+    };
+  }
+
+  return { errorStatus: 400, error: 'Identifiant élève requis' };
+}
+
 router.get('/', async (req, res) => {
   try {
     const auth = parseOptionalAuth(req);
@@ -676,8 +762,7 @@ router.get('/', async (req, res) => {
     }
     res.json(enriched);
   } catch (e) {
-    logRouteError(e, req);
-    res.status(500).json({ error: e.message });
+    respondInternalError(res, req, e);
   }
 });
 
@@ -687,8 +772,7 @@ router.get('/:id', async (req, res) => {
     if (!task) return res.status(404).json({ error: 'Tâche introuvable' });
     res.json(task);
   } catch (e) {
-    logRouteError(e, req);
-    res.status(500).json({ error: e.message });
+    respondInternalError(res, req, e);
   }
 });
 
@@ -716,8 +800,7 @@ router.get('/import/template', requirePermission('tasks.manage', { needsElevatio
     res.setHeader('Content-Disposition', 'attachment; filename="foretmap-modele-taches-projets.csv"');
     res.send(csv);
   } catch (e) {
-    logRouteError(e, req);
-    res.status(500).json({ error: e.message });
+    respondInternalError(res, req, e);
   }
 });
 
@@ -966,8 +1049,7 @@ router.post('/import', requirePermission('tasks.manage', { needsElevation: true 
     }
     res.json({ report });
   } catch (e) {
-    logRouteError(e, req);
-    res.status(500).json({ error: e.message });
+    respondInternalError(res, req, e);
   }
 });
 
@@ -1020,8 +1102,7 @@ router.post('/', requirePermission('tasks.manage', { needsElevation: true }), as
     emitTasksChanged({ reason: 'create_task', taskId: id, projectId: projectValidation.projectId || null, mapId: projectValidation.mapId });
     res.status(201).json(task);
   } catch (e) {
-    logRouteError(e, req);
-    res.status(500).json({ error: e.message });
+    respondInternalError(res, req, e);
   }
 });
 
@@ -1097,8 +1178,7 @@ router.post('/proposals', async (req, res) => {
     emitTasksChanged({ reason: 'propose_task', taskId: id, mapId: resolveTaskMapId(task) });
     res.status(201).json(task);
   } catch (e) {
-    logRouteError(e, req);
-    res.status(500).json({ error: e.message });
+    respondInternalError(res, req, e);
   }
 });
 
@@ -1197,8 +1277,7 @@ router.put('/:id', requirePermission('tasks.manage', { needsElevation: true }), 
     emitTasksChanged({ reason: 'update_task', taskId: task.id, projectId: projectValidation.projectId || null, mapId: resolveTaskMapId(updated) });
     res.json(updated);
   } catch (e) {
-    logRouteError(e, req);
-    res.status(500).json({ error: e.message });
+    respondInternalError(res, req, e);
   }
 });
 
@@ -1213,8 +1292,7 @@ router.delete('/:id', requirePermission('tasks.manage', { needsElevation: true }
     emitTasksChanged({ reason: 'delete_task', taskId: req.params.id, mapId: resolveTaskMapId(task) });
     res.json({ success: true });
   } catch (e) {
-    logRouteError(e, req);
-    res.status(500).json({ error: e.message });
+    respondInternalError(res, req, e);
   }
 });
 
@@ -1224,20 +1302,19 @@ router.post('/:id/assign', async (req, res) => {
     if (!task) return res.status(404).json({ error: 'Tâche introuvable' });
     if (task.status === 'validated') return res.status(400).json({ error: 'Tâche déjà validée' });
 
-    const { firstName, lastName, studentId, profilePin } = req.body;
-    if (!firstName || !lastName) return res.status(400).json({ error: 'Nom requis' });
-
-    if (studentId) {
-      const exists = await queryOne("SELECT id FROM users WHERE user_type = 'student' AND id = ?", [studentId]);
-      if (!exists) return res.status(401).json({ error: 'Compte supprimé', deleted: true });
-      const permission = await ensureStudentPermission({ studentId, permissionKey: 'tasks.assign_self', profilePin });
-      if (!permission.ok) return res.status(403).json({ error: permission.error });
+    const action = await resolveStudentActionContext(req, req.body || {}, 'tasks.assign_self');
+    if (action.error) {
+      return res.status(action.errorStatus || 400).json({ error: action.error, ...(action.deleted ? { deleted: true } : {}) });
     }
 
     const already = task.assignments.find(
-      (a) =>
-        String(a.student_first_name).toLowerCase() === firstName.toLowerCase() &&
-        String(a.student_last_name).toLowerCase() === lastName.toLowerCase()
+      (a) => (
+        (action.studentId && a.student_id && String(a.student_id) === String(action.studentId))
+        || (
+          String(a.student_first_name || '').toLowerCase() === action.firstName.toLowerCase()
+          && String(a.student_last_name || '').toLowerCase() === action.lastName.toLowerCase()
+        )
+      )
     );
     if (already) return res.status(400).json({ error: 'Déjà assigné à cette tâche' });
 
@@ -1247,7 +1324,7 @@ router.post('/:id/assign', async (req, res) => {
 
     await execute(
       'INSERT INTO task_assignments (task_id, student_id, student_first_name, student_last_name, assigned_at) VALUES (?, ?, ?, ?, ?)',
-      [task.id, studentId || null, firstName, lastName, new Date().toISOString()]
+      [task.id, action.studentId || null, action.firstName, action.lastName, new Date().toISOString()]
     );
 
     const newCount = task.assignments.length + 1;
@@ -1255,17 +1332,16 @@ router.post('/:id/assign', async (req, res) => {
     await execute('UPDATE tasks SET status = ? WHERE id = ?', [newStatus, task.id]);
 
     const updated = await getTaskWithAssignments(task.id);
-    logAudit('assign_task', 'task', task.id, `${firstName} ${lastName}`, {
+    logAudit('assign_task', 'task', task.id, `${action.firstName} ${action.lastName}`, {
       req,
-      actorUserType: studentId ? 'student' : null,
-      actorUserId: studentId || null,
-      payload: { student_id: studentId || null, status: newStatus },
+      actorUserType: action.actorUserType,
+      actorUserId: action.actorUserId,
+      payload: { student_id: action.studentId || null, status: newStatus },
     });
     emitTasksChanged({ reason: 'assign', taskId: task.id, mapId: resolveTaskMapId(updated) });
     res.json(updated);
   } catch (e) {
-    logRouteError(e, req);
-    res.status(500).json({ error: e.message });
+    respondInternalError(res, req, e);
   }
 });
 
@@ -1274,19 +1350,16 @@ router.post('/:id/done', async (req, res) => {
     const task = await queryOne('SELECT * FROM tasks WHERE id = ?', [req.params.id]);
     if (!task) return res.status(404).json({ error: 'Tâche introuvable' });
 
-    const { comment, imageData, firstName, lastName, studentId, profilePin } = req.body || {};
-
-    if (studentId) {
-      const exists = await queryOne("SELECT id FROM users WHERE user_type = 'student' AND id = ?", [studentId]);
-      if (!exists) return res.status(401).json({ error: 'Compte supprimé', deleted: true });
-      const permission = await ensureStudentPermission({ studentId, permissionKey: 'tasks.done_self', profilePin });
-      if (!permission.ok) return res.status(403).json({ error: permission.error });
+    const { comment, imageData } = req.body || {};
+    const action = await resolveStudentActionContext(req, req.body || {}, 'tasks.done_self');
+    if (action.error) {
+      return res.status(action.errorStatus || 400).json({ error: action.error, ...(action.deleted ? { deleted: true } : {}) });
     }
 
     if (comment || imageData) {
       const result = await execute(
         'INSERT INTO task_logs (task_id, student_id, student_first_name, student_last_name, comment, image_path, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
-        [task.id, studentId || null, firstName || '', lastName || '', comment || '', null, new Date().toISOString()]
+        [task.id, action.studentId || null, action.firstName, action.lastName, comment || '', null, new Date().toISOString()]
       );
       const logId = result.insertId;
       if (imageData) {
@@ -1303,17 +1376,16 @@ router.post('/:id/done', async (req, res) => {
 
     await execute("UPDATE tasks SET status = 'done' WHERE id = ?", [task.id]);
     const updated = await getTaskWithAssignments(task.id);
-    logAudit('done_task', 'task', task.id, `${firstName || ''} ${lastName || ''}`.trim(), {
+    logAudit('done_task', 'task', task.id, `${action.firstName} ${action.lastName}`.trim(), {
       req,
-      actorUserType: studentId ? 'student' : null,
-      actorUserId: studentId || null,
-      payload: { student_id: studentId || null, with_comment: !!comment, with_image: !!imageData },
+      actorUserType: action.actorUserType,
+      actorUserId: action.actorUserId,
+      payload: { student_id: action.studentId || null, with_comment: !!comment, with_image: !!imageData },
     });
     emitTasksChanged({ reason: 'done', taskId: task.id, mapId: resolveTaskMapId(updated) });
     res.json(updated);
   } catch (e) {
-    logRouteError(e, req);
-    res.status(500).json({ error: e.message });
+    respondInternalError(res, req, e);
   }
 });
 
@@ -1336,8 +1408,7 @@ router.get('/:id/logs', async (req, res) => {
       }))
     );
   } catch (e) {
-    logRouteError(e, req);
-    res.status(500).json({ error: e.message });
+    respondInternalError(res, req, e);
   }
 });
 
@@ -1353,8 +1424,7 @@ router.get('/:id/logs/:logId/image', async (req, res) => {
     }
     res.status(404).json({ error: 'Aucune image' });
   } catch (e) {
-    logRouteError(e, req);
-    res.status(500).json({ error: e.message });
+    respondInternalError(res, req, e);
   }
 });
 
@@ -1377,8 +1447,7 @@ router.delete('/:id/logs/:logId', requirePermission('tasks.manage', { needsEleva
     emitTasksChanged({ reason: 'delete_log', taskId: req.params.id, mapId: resolveTaskMapId(taskForLog) });
     res.json({ success: true });
   } catch (e) {
-    logRouteError(e, req);
-    res.status(500).json({ error: e.message });
+    respondInternalError(res, req, e);
   }
 });
 
@@ -1392,12 +1461,11 @@ router.post('/:id/validate', requirePermission('tasks.validate', { needsElevatio
     emitTasksChanged({ reason: 'validate', taskId: task.id, mapId: resolveTaskMapId(updated) });
     res.json(updated);
   } catch (e) {
-    logRouteError(e, req);
-    res.status(500).json({ error: e.message });
+    respondInternalError(res, req, e);
   }
 });
 
-/** Même modèle que POST assign : l’élève envoie son nom (+ studentId pour compte supprimé) ; pas de JWT élève. */
+/** Même modèle que POST assign, avec identité élève vérifiée (session ou permission prof). */
 router.post('/:id/unassign', async (req, res) => {
   try {
     const task = await getTaskWithAssignments(req.params.id);
@@ -1406,25 +1474,20 @@ router.post('/:id/unassign', async (req, res) => {
       return res.status(400).json({ error: 'Impossible de quitter une tâche déjà terminée' });
     }
 
-    const { firstName, lastName, studentId, profilePin } = req.body;
-    if (!firstName || !lastName) return res.status(400).json({ error: 'Nom requis' });
-
-    if (studentId) {
-      const exists = await queryOne("SELECT id FROM users WHERE user_type = 'student' AND id = ?", [studentId]);
-      if (!exists) return res.status(401).json({ error: 'Compte supprimé', deleted: true });
-      const permission = await ensureStudentPermission({ studentId, permissionKey: 'tasks.unassign_self', profilePin });
-      if (!permission.ok) return res.status(403).json({ error: permission.error });
+    const action = await resolveStudentActionContext(req, req.body || {}, 'tasks.unassign_self');
+    if (action.error) {
+      return res.status(action.errorStatus || 400).json({ error: action.error, ...(action.deleted ? { deleted: true } : {}) });
     }
 
-    if (studentId) {
+    if (action.studentId) {
       await execute(
         'DELETE FROM task_assignments WHERE task_id = ? AND (student_id = ? OR (student_first_name = ? AND student_last_name = ?))',
-        [task.id, studentId, firstName, lastName]
+        [task.id, action.studentId, action.firstName, action.lastName]
       );
     } else {
       await execute(
         'DELETE FROM task_assignments WHERE task_id = ? AND student_first_name = ? AND student_last_name = ?',
-        [task.id, firstName, lastName]
+        [task.id, action.firstName, action.lastName]
       );
     }
 
@@ -1442,17 +1505,16 @@ router.post('/:id/unassign', async (req, res) => {
     await execute('UPDATE tasks SET status = ? WHERE id = ?', [newStatus, task.id]);
 
     const updated = await getTaskWithAssignments(task.id);
-    logAudit('unassign_task', 'task', task.id, `${firstName} ${lastName}`, {
+    logAudit('unassign_task', 'task', task.id, `${action.firstName} ${action.lastName}`, {
       req,
-      actorUserType: studentId ? 'student' : null,
-      actorUserId: studentId || null,
-      payload: { student_id: studentId || null, status: newStatus },
+      actorUserType: action.actorUserType,
+      actorUserId: action.actorUserId,
+      payload: { student_id: action.studentId || null, status: newStatus },
     });
     emitTasksChanged({ reason: 'unassign', taskId: task.id, mapId: resolveTaskMapId(updated) });
     res.json(updated);
   } catch (err) {
-    logRouteError(err, req, 'Erreur retrait assignation tâche');
-    res.status(500).json({ error: 'Erreur lors du retrait : ' + err.message });
+    respondInternalError(res, req, err, 'Erreur lors du retrait');
   }
 });
 
