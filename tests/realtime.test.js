@@ -9,14 +9,20 @@ const assert = require('node:assert');
 const http = require('http');
 const express = require('express');
 const { io: clientIo } = require('socket.io-client');
-const { initRealtime, emitTasksChanged, emitStudentsChanged, emitGardenChanged } = require('../lib/realtime');
+const {
+  initRealtime,
+  emitTasksChanged,
+  emitStudentsChanged,
+  emitGardenChanged,
+  emitForumChanged,
+} = require('../lib/realtime');
 const { signAuthToken } = require('../middleware/requireTeacher');
 
 test('emitTasksChanged sans Socket.IO initialisé ne lève pas', () => {
   assert.doesNotThrow(() => emitTasksChanged({ reason: 'noop' }));
 });
 
-test('Socket.IO : réception de tasks / students / garden', async () => {
+test('Socket.IO : réception de tasks / students / garden / forum', async () => {
   const app = express();
   const server = http.createServer(app);
   initRealtime(server);
@@ -35,7 +41,7 @@ test('Socket.IO : réception de tasks / students / garden', async () => {
   });
   const socket = clientIo(`http://127.0.0.1:${port}`, {
     path: '/socket.io',
-    transports: ['polling'],
+    transports: ['websocket'],
     timeout: 8000,
     auth: { token, mapId: 'foret' },
   });
@@ -75,6 +81,11 @@ test('Socket.IO : réception de tasks / students / garden', async () => {
   const msgGarden = await gardenPromise;
   assert.strictEqual(msgGarden.reason, 'test_garden');
 
+  const forumPromise = once('forum:changed');
+  emitForumChanged({ reason: 'test_forum' });
+  const msgForum = await forumPromise;
+  assert.strictEqual(msgForum.reason, 'test_forum');
+
   socket.close();
   await new Promise((resolve, reject) => {
     server.close((err) => (err ? reject(err) : resolve()));
@@ -94,7 +105,7 @@ test('Socket.IO : connexion refusée sans token', async () => {
 
   const socket = clientIo(`http://127.0.0.1:${port}`, {
     path: '/socket.io',
-    transports: ['polling'],
+    transports: ['websocket'],
     timeout: 4000,
   });
 
@@ -133,12 +144,12 @@ test('Socket.IO : émission ciblée par mapId', async () => {
 
   const socketForet = clientIo(`http://127.0.0.1:${port}`, {
     path: '/socket.io',
-    transports: ['polling'],
+    transports: ['websocket'],
     auth: { token, mapId: 'foret' },
   });
   const socketN3 = clientIo(`http://127.0.0.1:${port}`, {
     path: '/socket.io',
-    transports: ['polling'],
+    transports: ['websocket'],
     auth: { token, mapId: 'n3' },
   });
 

@@ -8,7 +8,7 @@ const { saveBase64ToDisk, getAbsolutePath } = require('../lib/uploads');
 const { logRouteError } = require('../lib/routeLog');
 const { logAudit } = require('./audit');
 const { emitTasksChanged } = require('../lib/realtime');
-const { ensurePrimaryRole, buildAuthzPayload, verifyRolePin } = require('../lib/rbac');
+const { ensurePrimaryRole, buildAuthzPayload, verifyRolePin, syncStudentPrimaryRoleFromProgress } = require('../lib/rbac');
 
 const router = express.Router();
 const MAX_IMPORT_FILE_BYTES = 8 * 1024 * 1024;
@@ -561,6 +561,7 @@ async function getTaskWithAssignments(taskId) {
 
 async function ensureStudentPermission({ studentId, permissionKey, profilePin }) {
   await ensurePrimaryRole('student', studentId, 'eleve_novice');
+  await syncStudentPrimaryRoleFromProgress(studentId);
   const base = await buildAuthzPayload('student', studentId, false);
   if (!base) return { ok: false, error: 'Profil introuvable' };
   if (base.permissions.includes(permissionKey)) return { ok: true, elevated: false };

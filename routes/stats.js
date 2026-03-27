@@ -2,14 +2,17 @@ const express = require('express');
 const { queryAll, queryOne } = require('../database');
 const { requireAuth, requirePermission } = require('../middleware/requireTeacher');
 const { logRouteError } = require('../lib/routeLog');
+const { getStudentProgressionConfig, syncStudentPrimaryRoleFromProgress } = require('../lib/rbac');
 
 const router = express.Router();
 
 async function userStats(userId) {
   const s = await queryOne('SELECT * FROM users WHERE id = ? LIMIT 1', [userId]);
   if (!s) return null;
+  const isStudent = String(s.user_type || '').toLowerCase() === 'student';
+  const progressionConfig = isStudent ? await getStudentProgressionConfig() : null;
   let assignments = [];
-  if (String(s.user_type || '').toLowerCase() === 'student') {
+  if (isStudent) {
     assignments = await queryAll(
       `SELECT ta.*, t.status, t.title, t.due_date, t.zone_id, z.name as zone_name
        FROM task_assignments ta
@@ -24,6 +27,16 @@ async function userStats(userId) {
   const pending = assignments.filter((a) => a.status === 'available' || a.status === 'in_progress').length;
   const submitted = assignments.filter((a) => a.status === 'done').length;
   const total = assignments.length;
+  let progression = null;
+  if (isStudent) {
+    const sync = await syncStudentPrimaryRoleFromProgress(s.id, done, progressionConfig);
+    progression = {
+      thresholds: sync.thresholds,
+      steps: sync.steps,
+      roleSlug: sync.currentRoleSlug,
+      roleDisplayName: sync.currentRoleDisplayName,
+    };
+  }
   return {
     id: s.id,
     user_type: s.user_type,
@@ -37,6 +50,7 @@ async function userStats(userId) {
     avatar_path: s.avatar_path,
     last_seen: s.last_seen,
     stats: { done, pending, submitted, total },
+    progression,
     assignments,
   };
 }
@@ -64,6 +78,7 @@ router.get('/me/:studentId', requireAuth, async (req, res) => {
 router.get('/all', requirePermission('stats.read.all'), async (req, res) => {
   try {
     const students = await queryAll("SELECT * FROM users WHERE user_type = 'student'");
+    const progressionConfig = await getStudentProgressionConfig();
     const result = await Promise.all(students.map(async (s) => {
       const assignments = await queryAll(
         `SELECT ta.*, t.status FROM task_assignments ta
@@ -71,6 +86,8 @@ router.get('/all', requirePermission('stats.read.all'), async (req, res) => {
          WHERE ta.student_id = ? OR (ta.student_first_name = ? AND ta.student_last_name = ?)`,
         [s.id, s.first_name, s.last_name]
       );
+      const done = assignments.filter(a => a.status === 'validated').length;
+      const sync = await syncStudentPrimaryRoleFromProgress(s.id, done, progressionConfig);
       return {
         id: s.id,
         first_name: s.first_name,
@@ -81,10 +98,14 @@ router.get('/all', requirePermission('stats.read.all'), async (req, res) => {
         last_seen: s.last_seen,
         stats: {
           total: assignments.length,
-          done: assignments.filter(a => a.status === 'validated').length,
+          done,
           pending: assignments.filter(a => a.status === 'available' || a.status === 'in_progress').length,
           submitted: assignments.filter(a => a.status === 'done').length,
-        }
+        },
+        progression: {
+          roleSlug: sync.currentRoleSlug,
+          roleDisplayName: sync.currentRoleDisplayName,
+        },
       };
     }));
     result.sort((a, b) => b.stats.done - a.stats.done);

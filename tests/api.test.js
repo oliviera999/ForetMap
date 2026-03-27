@@ -60,6 +60,91 @@ test('GET /api/stats/me/:studentId autorise le propriétaire même en userType l
   assert.ok(res.body.stats);
 });
 
+test('GET /api/stats/me/:studentId synchronise le profil élève selon les seuils configurés', async () => {
+  const teacher = await request(app)
+    .post('/api/auth/teacher')
+    .send({ pin: process.env.TEACHER_PIN || '1234' })
+    .expect(200);
+  const teacherToken = teacher.body.token;
+
+  await request(app)
+    .put('/api/settings/admin/progression.student_role_min_done_eleve_avance')
+    .set('Authorization', `Bearer ${teacherToken}`)
+    .send({ value: 1 })
+    .expect(200);
+  await request(app)
+    .put('/api/settings/admin/progression.student_role_min_done_eleve_chevronne')
+    .set('Authorization', `Bearer ${teacherToken}`)
+    .send({ value: 2 })
+    .expect(200);
+
+  const studentRes = await request(app)
+    .post('/api/auth/register')
+    .send({ firstName: 'Profil', lastName: `Sync${Date.now()}`, password: 'pass1234' })
+    .expect(201);
+  const { id: studentId, first_name: firstName, last_name: lastName } = studentRes.body;
+
+  const studentToken = signAuthToken({
+    userType: 'student',
+    userId: studentId,
+    roleId: null,
+    roleSlug: 'eleve_novice',
+    roleDisplayName: 'Élève novice',
+    permissions: [],
+    elevated: false,
+  }, false);
+
+  const zones = await request(app).get('/api/zones').expect(200);
+  const zoneId = zones.body[0]?.id || 'pg';
+  for (let i = 0; i < 2; i += 1) {
+    const task = await request(app)
+      .post('/api/tasks')
+      .set('Authorization', `Bearer ${teacherToken}`)
+      .send({ title: `Progression profil ${Date.now()}-${i}`, zone_id: zoneId, required_students: 1 })
+      .expect(201);
+    await request(app)
+      .post(`/api/tasks/${task.body.id}/assign`)
+      .send({ firstName, lastName, studentId })
+      .expect(200);
+    await request(app)
+      .post(`/api/tasks/${task.body.id}/done`)
+      .send({ firstName, lastName, studentId })
+      .expect(200);
+    await request(app)
+      .post(`/api/tasks/${task.body.id}/validate`)
+      .set('Authorization', `Bearer ${teacherToken}`)
+      .expect(200);
+  }
+
+  const stats = await request(app)
+    .get(`/api/stats/me/${studentId}`)
+    .set('Authorization', `Bearer ${studentToken}`)
+    .expect(200);
+  assert.strictEqual(stats.body?.progression?.roleSlug, 'eleve_chevronne');
+
+  const role = await queryOne(
+    `SELECT r.slug
+       FROM user_roles ur
+       INNER JOIN roles r ON r.id = ur.role_id
+      WHERE ur.user_type = 'student' AND ur.user_id = ? AND ur.is_primary = 1
+      LIMIT 1`,
+    [studentId]
+  );
+  assert.strictEqual(role?.slug, 'eleve_chevronne');
+
+  // Remise aux valeurs par défaut.
+  await request(app)
+    .put('/api/settings/admin/progression.student_role_min_done_eleve_avance')
+    .set('Authorization', `Bearer ${teacherToken}`)
+    .send({ value: 5 })
+    .expect(200);
+  await request(app)
+    .put('/api/settings/admin/progression.student_role_min_done_eleve_chevronne')
+    .set('Authorization', `Bearer ${teacherToken}`)
+    .send({ value: 10 })
+    .expect(200);
+});
+
 test('POST /api/auth/teacher avec mauvais PIN renvoie 401', async () => {
   const res = await request(app)
     .post('/api/auth/teacher')

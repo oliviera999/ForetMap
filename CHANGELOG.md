@@ -6,6 +6,9 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 ## [Non publié]
 
 ### Ajouté
+- **Synchronisation sélective carte/visite** : ajout des endpoints `GET /api/visit/sync/options` et `POST /api/visit/sync` (prof, session élevée) avec import bidirectionnel ciblé des zones/repères entre carte principale et module visite.
+- **Progression de profil élève configurable** : nouveaux réglages `progression.student_role_min_done_eleve_avance` et `progression.student_role_min_done_eleve_chevronne` avec synchronisation automatique du rôle principal élève selon le nombre de tâches validées.
+- **Import visuel sélectif dans l’UI visite** : nouveau panneau enseignant dans la vue visite pour choisir les éléments à importer (zones/repères), direction du flux et exécuter la synchronisation sans quitter l’interface.
 - **Forum global natif** : ajout d’un module forum complet (BDD `forum_threads/forum_posts/forum_reports`, routeur `routes/forum.js`, vue `src/components/forum-views.jsx`, onglet `Forum` élève/prof, événement temps réel `forum:changed`, tests backend `tests/forum.test.js` et documentation API associée).
 - **Édition du profil connecté (API unifiée)** : ajout de `PATCH /api/auth/me/profile` avec vérification du mot de passe actuel, validation/normalisation des champs (`pseudo`, `email`, `description`, `affiliation`), contrôles d’unicité et journalisation d’audit.
 - **Diagnostics problèmes site (MD + JSON)** : ajout des endpoints `GET /api/site-issues` et `GET /api/site-issues.json` pour exposer un inventaire centralisé des risques techniques potentiels (`docs/SITE_ISSUES.md`, `docs/SITE_ISSUES.json`).
@@ -43,6 +46,9 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - **Tests visite** : nouveaux scénarios backend sur le contenu visite, la persistance anonyme via cookie signé et la persistance élève en base.
 
 ### Modifié
+- **Console paramètres admin** : réorganisation des paramètres par sections (auth, modules, progression, sécurité, exploitation), ajout d’une recherche multi-critères et affichage des contraintes/valeurs par champ pour accélérer l’administration.
+- **Temps réel Socket.IO** : retour au mode `websocket + polling` avec reprise de connexion renforcée (recovery serveur/client, fallback hors-ligne temporisé, réabonnement map) pour mieux tolérer les micro-coupures.
+- **Statistiques élève** : affichage des paliers de progression dynamiques (labels/seuils issus de la config) et exposition API de la progression (`thresholds`, `steps`, rôle courant).
 - **Profil utilisateur (prof/admin)** : la modale `Mon profil` passe par l’API unifiée `/api/auth/me/profile` et prend en charge les comptes prof/admin (nom affiché robuste, mise à jour immédiate de la session locale).
 - **Badge utilisateur (en-tête)** : ouverture des modales stats/profil alignée sur l’utilisateur connecté (élève, prof ou admin) au lieu d’être limitée au parcours élève.
 - **Accessibilité des modales et formulaires** : ajout d’un hook partagé `useDialogA11y` (focus initial, piège de focus, fermeture `Escape`, retour focus) et application sur les modales clés (profil/stats, carte, tâches, lightbox), avec labels/`htmlFor`/`aria-*` renforcés.

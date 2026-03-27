@@ -120,6 +120,11 @@ Ces routes sont destinées à la console admin et exigent un token avec permissi
 | GET | `/api/settings/admin/system/oauth-debug` | Diagnostic runtime OAuth (sans secrets) |
 | POST | `/api/settings/admin/system/restart` | Redémarrage applicatif contrôlé |
 
+Réglages de progression élèves (scope enseignant/admin) :
+- `progression.student_role_min_done_eleve_avance`
+- `progression.student_role_min_done_eleve_chevronne`
+- Contrainte : le seuil `eleve_chevronne` doit être strictement supérieur à `eleve_avance`.
+
 ---
 
 ## Zones
@@ -146,6 +151,36 @@ Ces routes sont destinées à la console admin et exigent un token avec permissi
 | POST | `/api/map/markers` | oui | Créer repère |
 | PUT | `/api/map/markers/:id` | oui | Modifier repère |
 | DELETE | `/api/map/markers/:id` | oui | Supprimer repère |
+
+---
+
+## Visite guidée
+
+| Méthode | URL | Prof | Description |
+|--------|-----|------|-------------|
+| GET | `/api/visit/content?map_id=foret` | non | Contenus publics de visite (zones, repères, médias, tutoriels actifs) |
+| GET | `/api/visit/progress?student_id=:id` | non | Progression des cibles vues (élève connecté ou anonyme via cookie signé) |
+| POST | `/api/visit/seen` | non | Marquer/démarquer une cible vue (`{ target_type, target_id, seen, student_id? }`) |
+| GET | `/api/visit/stats` | oui | KPI de visite (sessions, complétion, breakdown élève/anonyme) |
+| POST | `/api/visit/zones` | oui | Créer une zone de visite |
+| PUT | `/api/visit/zones/:id` | oui | Modifier une zone de visite |
+| DELETE | `/api/visit/zones/:id` | oui | Supprimer une zone de visite |
+| POST | `/api/visit/markers` | oui | Créer un repère de visite |
+| PUT | `/api/visit/markers/:id` | oui | Modifier un repère de visite |
+| DELETE | `/api/visit/markers/:id` | oui | Supprimer un repère de visite |
+| POST | `/api/visit/media` | oui | Ajouter un média sur une cible de visite |
+| PUT | `/api/visit/media/:id` | oui | Modifier un média de visite |
+| DELETE | `/api/visit/media/:id` | oui | Supprimer un média de visite |
+| PUT | `/api/visit/tutorials` | oui | Définir la sélection des tutoriels affichés en visite |
+| GET | `/api/visit/sync/options?map_id=foret` | oui | Récupérer les zones/repères disponibles côté carte et côté visite pour import sélectif |
+| POST | `/api/visit/sync` | oui | Import sélectif bidirectionnel (`{ map_id, direction: "map_to_visit" \| "visit_to_map", zone_ids, marker_ids }`) |
+
+Contraintes importantes :
+
+- `direction=map_to_visit` : copie/synchronise les zones et repères de la carte vers la visite.
+- `direction=visit_to_map` : copie/synchronise les zones et repères de la visite vers la carte.
+- L’import est **sélectif** (listes `zone_ids` / `marker_ids`) et en **upsert** (pas de doublon si l’ID existe déjà).
+- Les routes de gestion (`/zones`, `/markers`, `/media`, `/tutorials`, `/sync/*`) exigent la permission prof `visit.manage` (session élevée).
 
 ---
 
@@ -249,6 +284,11 @@ Contraintes principales :
 |--------|-----|------|-------------|
 | GET | `/api/stats/me/:studentId` | non | Stats de l’utilisateur ciblé (propriétaire ou permission `stats.read.all`) ; pour prof/admin sans activités élève, compteurs à `0` |
 | GET | `/api/stats/all` | oui | Stats de tous les élèves (inclut `pseudo`, `description`, `avatar_path`, n’expose pas `email`) |
+
+`GET /api/stats/me/:studentId` renvoie aussi `progression` pour les élèves :
+- `progression.thresholds` : seuils actifs par profil (`eleve_novice`, `eleve_avance`, `eleve_chevronne`)
+- `progression.steps` : paliers affichables (min + label de profil)
+- `progression.roleSlug` / `progression.roleDisplayName` : profil principal actuel après synchronisation.
 
 ---
 

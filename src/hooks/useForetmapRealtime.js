@@ -20,10 +20,27 @@ export function useForetmapRealtime({
   const tasksRtDebounceRef = useRef(null);
   const gardenRtDebounceRef = useRef(null);
   const socketRef = useRef(null);
+  const offlineTimerRef = useRef(null);
+  const activeMapIdRef = useRef(activeMapId);
+  const fetchAllRef = useRef(fetchAll);
+  const forceLogoutRef = useRef(forceLogout);
+
+  useEffect(() => {
+    activeMapIdRef.current = activeMapId;
+  }, [activeMapId]);
+
+  useEffect(() => {
+    fetchAllRef.current = fetchAll;
+  }, [fetchAll]);
+
+  useEffect(() => {
+    forceLogoutRef.current = forceLogout;
+  }, [forceLogout]);
 
   const refreshTasksFromServer = useCallback(async () => {
     try {
-      const mapQuery = `map_id=${encodeURIComponent(activeMapId)}`;
+      const mapId = activeMapIdRef.current || 'foret';
+      const mapQuery = `map_id=${encodeURIComponent(mapId)}`;
       const [t, projects] = await Promise.all([
         api(`/api/tasks?${mapQuery}`),
         api(`/api/task-projects?${mapQuery}`).catch(() => []),
@@ -32,14 +49,15 @@ export function useForetmapRealtime({
       setTaskProjects(Array.isArray(projects) ? projects : []);
       window.dispatchEvent(new CustomEvent('foretmap_realtime', { detail: { domain: 'tasks' } }));
     } catch (e) {
-      if (e instanceof AccountDeletedError) forceLogout();
+      if (e instanceof AccountDeletedError) forceLogoutRef.current();
       else console.error('[ForetMap] rafraîchissement tâches (temps réel)', e);
     }
-  }, [activeMapId, forceLogout, setTaskProjects, setTasks]);
+  }, [setTaskProjects, setTasks]);
 
   const refreshGardenFromServer = useCallback(async () => {
     try {
-      const mapQuery = `map_id=${encodeURIComponent(activeMapId)}`;
+      const mapId = activeMapIdRef.current || 'foret';
+      const mapQuery = `map_id=${encodeURIComponent(mapId)}`;
       const [z, p, m] = await Promise.all([
         api(`/api/zones?${mapQuery}`),
         api('/api/plants'),
@@ -50,10 +68,10 @@ export function useForetmapRealtime({
       setMarkers(m);
       window.dispatchEvent(new CustomEvent('foretmap_realtime', { detail: { domain: 'garden' } }));
     } catch (e) {
-      if (e instanceof AccountDeletedError) forceLogout();
+      if (e instanceof AccountDeletedError) forceLogoutRef.current();
       else console.error('[ForetMap] rafraîchissement jardin (temps réel)', e);
     }
-  }, [activeMapId, forceLogout, setMarkers, setPlants, setZones]);
+  }, [setMarkers, setPlants, setZones]);
 
   const scheduleTasksRefresh = useCallback(() => {
     if (tasksRtDebounceRef.current) clearTimeout(tasksRtDebounceRef.current);
@@ -93,21 +111,76 @@ export function useForetmapRealtime({
       API && String(API).trim() ? new URL(API, window.location.href).origin : window.location.origin;
     const socket = io(origin, {
       path: withAppBase('/socket.io'),
-      auth: { token: authToken },
-      // Contournement temporaire: certains proxys de prod altèrent les trames WebSocket.
-      // On force le polling tant que l'infra n'est pas corrigée.
-      transports: ['polling'],
+      auth: { token: authToken, mapId: activeMapIdRef.current || undefined },
+      reconnection: true,
+      reconnectionAttempts: Infinity,
+      reconnectionDelay: 1000,
+      reconnectionDelayMax: 5000,
+      randomizationFactor: 0.3,
+      timeout: 20000,
+      // WebSocket prioritaire pour la réactivité; polling conservé en secours.
+      transports: ['websocket', 'polling'],
+      upgrade: true,
+      rememberUpgrade: true,
+      tryAllTransports: true,
     });
     socketRef.current = socket;
-    const onConnect = () => setRtStatus('live');
-    const onDisconnect = () => setRtStatus('offline');
+    const OFFLINE_GRACE_MS = 15000;
+    const subscribeCurrentMap = () => {
+      const mapId = activeMapIdRef.current;
+      if (!mapId) return;
+      socket.emit('subscribe:map', { mapId });
+    };
+    const clearOfflineTimer = () => {
+      if (offlineTimerRef.current) {
+        clearTimeout(offlineTimerRef.current);
+        offlineTimerRef.current = null;
+      }
+    };
+    const scheduleOfflineFallback = () => {
+      clearOfflineTimer();
+      offlineTimerRef.current = setTimeout(() => {
+        offlineTimerRef.current = null;
+        setRtStatus('offline');
+      }, OFFLINE_GRACE_MS);
+    };
+    const onConnect = () => {
+      clearOfflineTimer();
+      setRtStatus('live');
+      subscribeCurrentMap();
+    };
+    const onDisconnect = (reason) => {
+      if (reason === 'io client disconnect') {
+        clearOfflineTimer();
+        setRtStatus('off');
+        return;
+      }
+      setRtStatus('connecting');
+      scheduleOfflineFallback();
+    };
     const onConnectError = (err) => {
       console.warn('[ForetMap] Socket.IO connect_error', err?.message || err);
-      setRtStatus('offline');
+      setRtStatus('connecting');
+      scheduleOfflineFallback();
     };
-    const onReconnectAttempt = () => setRtStatus('connecting');
+    const onReconnectAttempt = () => {
+      clearOfflineTimer();
+      setRtStatus('connecting');
+    };
     const onReconnect = () => {
-      fetchAll();
+      clearOfflineTimer();
+      setRtStatus('live');
+      subscribeCurrentMap();
+      fetchAllRef.current();
+    };
+    const onReconnectFailed = () => {
+      scheduleOfflineFallback();
+    };
+    const onBrowserOnline = () => {
+      if (!socket.connected) {
+        setRtStatus('connecting');
+        socket.connect();
+      }
     };
 
     socket.on('connect', onConnect);
@@ -115,16 +188,20 @@ export function useForetmapRealtime({
     socket.on('connect_error', onConnectError);
     socket.io.on('reconnect_attempt', onReconnectAttempt);
     socket.io.on('reconnect', onReconnect);
+    socket.io.on('reconnect_failed', onReconnectFailed);
     socket.on('tasks:changed', scheduleTasksRefresh);
     socket.on('students:changed', onStudentsRealtime);
     socket.on('garden:changed', scheduleGardenRefresh);
     socket.on('forum:changed', onForumRealtime);
+    window.addEventListener('online', onBrowserOnline);
     if (socket.connected) setRtStatus('live');
 
     return () => {
       socketRef.current = null;
+      clearOfflineTimer();
       socket.io.off('reconnect_attempt', onReconnectAttempt);
       socket.io.off('reconnect', onReconnect);
+      socket.io.off('reconnect_failed', onReconnectFailed);
       socket.off('connect', onConnect);
       socket.off('disconnect', onDisconnect);
       socket.off('connect_error', onConnectError);
@@ -132,14 +209,16 @@ export function useForetmapRealtime({
       socket.off('students:changed', onStudentsRealtime);
       socket.off('garden:changed', scheduleGardenRefresh);
       socket.off('forum:changed', onForumRealtime);
+      window.removeEventListener('online', onBrowserOnline);
       if (tasksRtDebounceRef.current) clearTimeout(tasksRtDebounceRef.current);
       if (gardenRtDebounceRef.current) clearTimeout(gardenRtDebounceRef.current);
       socket.disconnect();
       setRtStatus('off');
     };
-  }, [enabled, fetchAll, onForumRealtime, onStudentsRealtime, scheduleGardenRefresh, scheduleTasksRefresh]);
+  }, [enabled, onForumRealtime, onStudentsRealtime, scheduleGardenRefresh, scheduleTasksRefresh]);
 
   useEffect(() => {
+    activeMapIdRef.current = activeMapId;
     const socket = socketRef.current;
     if (!socket || !activeMapId) return;
     socket.emit('subscribe:map', { mapId: activeMapId });

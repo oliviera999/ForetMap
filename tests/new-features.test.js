@@ -339,6 +339,137 @@ test('GET /api/visit/content expose les contenus visite et les tutos choisis', a
   assert.ok(visitRes.body.tutorials.some((t) => t.id === firstTutorial));
 });
 
+test('POST /api/visit/sync importe de manière sélective carte -> visite', async () => {
+  const zoneA = await request(app)
+    .post('/api/zones')
+    .set('Authorization', 'Bearer ' + teacherToken)
+    .send({
+      name: `Zone source visite A ${Date.now()}`,
+      map_id: 'foret',
+      points: [{ xp: 11, yp: 11 }, { xp: 19, yp: 11 }, { xp: 15, yp: 20 }],
+      stage: 'empty',
+    })
+    .expect(201);
+  const zoneB = await request(app)
+    .post('/api/zones')
+    .set('Authorization', 'Bearer ' + teacherToken)
+    .send({
+      name: `Zone source visite B ${Date.now()}`,
+      map_id: 'foret',
+      points: [{ xp: 21, yp: 21 }, { xp: 29, yp: 21 }, { xp: 25, yp: 30 }],
+      stage: 'empty',
+    })
+    .expect(201);
+
+  const markerA = await request(app)
+    .post('/api/map/markers')
+    .set('Authorization', 'Bearer ' + teacherToken)
+    .send({
+      map_id: 'foret',
+      x_pct: 41,
+      y_pct: 41,
+      label: `Repère source visite A ${Date.now()}`,
+      emoji: '📍',
+    })
+    .expect(201);
+  const markerB = await request(app)
+    .post('/api/map/markers')
+    .set('Authorization', 'Bearer ' + teacherToken)
+    .send({
+      map_id: 'foret',
+      x_pct: 45,
+      y_pct: 45,
+      label: `Repère source visite B ${Date.now()}`,
+      emoji: '📍',
+    })
+    .expect(201);
+
+  const syncRes = await request(app)
+    .post('/api/visit/sync')
+    .set('Authorization', 'Bearer ' + teacherToken)
+    .send({
+      map_id: 'foret',
+      direction: 'map_to_visit',
+      zone_ids: [zoneA.body.id],
+      marker_ids: [markerA.body.id],
+    })
+    .expect(200);
+  assert.strictEqual(syncRes.body.ok, true);
+  assert.strictEqual(syncRes.body.imported.zones, 1);
+  assert.strictEqual(syncRes.body.imported.markers, 1);
+
+  const visitRes = await request(app).get('/api/visit/content?map_id=foret').expect(200);
+  assert.ok(visitRes.body.zones.some((z) => z.id === zoneA.body.id));
+  assert.ok(!visitRes.body.zones.some((z) => z.id === zoneB.body.id));
+  assert.ok(visitRes.body.markers.some((m) => m.id === markerA.body.id));
+  assert.ok(!visitRes.body.markers.some((m) => m.id === markerB.body.id));
+});
+
+test('POST /api/visit/sync importe de manière sélective visite -> carte', async () => {
+  const visitZoneA = await request(app)
+    .post('/api/visit/zones')
+    .set('Authorization', 'Bearer ' + teacherToken)
+    .send({
+      map_id: 'foret',
+      name: `Zone source carte A ${Date.now()}`,
+      points: [{ xp: 61, yp: 61 }, { xp: 70, yp: 61 }, { xp: 66, yp: 69 }],
+    })
+    .expect(201);
+  const visitZoneB = await request(app)
+    .post('/api/visit/zones')
+    .set('Authorization', 'Bearer ' + teacherToken)
+    .send({
+      map_id: 'foret',
+      name: `Zone source carte B ${Date.now()}`,
+      points: [{ xp: 71, yp: 71 }, { xp: 79, yp: 71 }, { xp: 75, yp: 78 }],
+    })
+    .expect(201);
+
+  const visitMarkerA = await request(app)
+    .post('/api/visit/markers')
+    .set('Authorization', 'Bearer ' + teacherToken)
+    .send({
+      map_id: 'foret',
+      x_pct: 66,
+      y_pct: 66,
+      label: `Repère source carte A ${Date.now()}`,
+      emoji: '🧭',
+    })
+    .expect(201);
+  const visitMarkerB = await request(app)
+    .post('/api/visit/markers')
+    .set('Authorization', 'Bearer ' + teacherToken)
+    .send({
+      map_id: 'foret',
+      x_pct: 69,
+      y_pct: 69,
+      label: `Repère source carte B ${Date.now()}`,
+      emoji: '🧭',
+    })
+    .expect(201);
+
+  const syncRes = await request(app)
+    .post('/api/visit/sync')
+    .set('Authorization', 'Bearer ' + teacherToken)
+    .send({
+      map_id: 'foret',
+      direction: 'visit_to_map',
+      zone_ids: [visitZoneA.body.id],
+      marker_ids: [visitMarkerA.body.id],
+    })
+    .expect(200);
+  assert.strictEqual(syncRes.body.ok, true);
+  assert.strictEqual(syncRes.body.imported.zones, 1);
+  assert.strictEqual(syncRes.body.imported.markers, 1);
+
+  const zonesRes = await request(app).get('/api/zones?map_id=foret').expect(200);
+  const markersRes = await request(app).get('/api/map/markers?map_id=foret').expect(200);
+  assert.ok(zonesRes.body.some((z) => z.id === visitZoneA.body.id));
+  assert.ok(!zonesRes.body.some((z) => z.id === visitZoneB.body.id));
+  assert.ok(markersRes.body.some((m) => m.id === visitMarkerA.body.id));
+  assert.ok(!markersRes.body.some((m) => m.id === visitMarkerB.body.id));
+});
+
 test('Progression visite anonyme persiste via cookie signé', async () => {
   const zoneRes = await request(app)
     .post('/api/visit/zones')

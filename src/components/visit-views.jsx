@@ -34,6 +34,156 @@ function pointToPct(event, element) {
   };
 }
 
+function VisitSyncPanel({ isTeacher, mapId, onSynced, onForceLogout }) {
+  const [direction, setDirection] = useState('map_to_visit');
+  const [options, setOptions] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+  const [selectedZones, setSelectedZones] = useState([]);
+  const [selectedMarkers, setSelectedMarkers] = useState([]);
+
+  const sourceKey = direction === 'map_to_visit' ? 'map' : 'visit';
+  const sourceZones = options?.source?.[sourceKey]?.zones || [];
+  const sourceMarkers = options?.source?.[sourceKey]?.markers || [];
+
+  const loadOptions = useCallback(async () => {
+    if (!isTeacher) return;
+    setLoading(true);
+    try {
+      const res = await api(`/api/visit/sync/options?map_id=${encodeURIComponent(mapId)}`);
+      setOptions(res || null);
+    } catch (err) {
+      if (err instanceof AccountDeletedError) onForceLogout?.();
+      else alert(err.message || 'Erreur chargement synchronisation');
+      setOptions(null);
+    } finally {
+      setLoading(false);
+    }
+  }, [isTeacher, mapId, onForceLogout]);
+
+  useEffect(() => {
+    loadOptions();
+  }, [loadOptions]);
+
+  useEffect(() => {
+    setSelectedZones(sourceZones.map((z) => z.id));
+    setSelectedMarkers(sourceMarkers.map((m) => m.id));
+  }, [direction, options, sourceZones, sourceMarkers]);
+
+  const toggleSelection = (id, isZone) => {
+    const setter = isZone ? setSelectedZones : setSelectedMarkers;
+    setter((prev) => (prev.includes(id) ? prev.filter((v) => v !== id) : [...prev, id]));
+  };
+
+  const selectAll = () => {
+    setSelectedZones(sourceZones.map((z) => z.id));
+    setSelectedMarkers(sourceMarkers.map((m) => m.id));
+  };
+
+  const clearAll = () => {
+    setSelectedZones([]);
+    setSelectedMarkers([]);
+  };
+
+  const runSync = async () => {
+    if (!selectedZones.length && !selectedMarkers.length) {
+      alert('Sélectionne au moins une zone ou un repère.');
+      return;
+    }
+    setSyncing(true);
+    try {
+      const res = await api('/api/visit/sync', 'POST', {
+        map_id: mapId,
+        direction,
+        zone_ids: selectedZones,
+        marker_ids: selectedMarkers,
+      });
+      alert(`Synchronisation terminée : ${res?.imported?.zones || 0} zone(s), ${res?.imported?.markers || 0} repère(s).`);
+      await onSynced?.();
+      await loadOptions();
+    } catch (err) {
+      if (err instanceof AccountDeletedError) onForceLogout?.();
+      else alert(err.message || 'Erreur synchronisation');
+    } finally {
+      setSyncing(false);
+    }
+  };
+
+  if (!isTeacher) return null;
+
+  return (
+    <section className="visit-sync-card">
+      <h3>🔁 Import sélectif carte / visite</h3>
+      <p className="section-sub">Choisis le sens puis les éléments à importer (zones et/ou repères).</p>
+      <div className="visit-map-switch">
+        <button
+          className={`btn btn-sm ${direction === 'map_to_visit' ? 'btn-primary' : 'btn-ghost'}`}
+          onClick={() => setDirection('map_to_visit')}
+        >
+          Carte → Visite
+        </button>
+        <button
+          className={`btn btn-sm ${direction === 'visit_to_map' ? 'btn-primary' : 'btn-ghost'}`}
+          onClick={() => setDirection('visit_to_map')}
+        >
+          Visite → Carte
+        </button>
+        <button className="btn btn-ghost btn-sm" onClick={selectAll} disabled={loading || syncing}>
+          Tout cocher
+        </button>
+        <button className="btn btn-ghost btn-sm" onClick={clearAll} disabled={loading || syncing}>
+          Tout décocher
+        </button>
+      </div>
+      {loading ? (
+        <p className="section-sub">Chargement des éléments disponibles...</p>
+      ) : (
+        <div className="visit-sync-grid">
+          <div className="visit-sync-list">
+            <h4>Zones ({sourceZones.length})</h4>
+            {sourceZones.length === 0 ? (
+              <p className="section-sub">Aucune zone disponible.</p>
+            ) : (
+              sourceZones.map((z) => (
+                <label key={z.id} className="visit-sync-item">
+                  <input
+                    type="checkbox"
+                    checked={selectedZones.includes(z.id)}
+                    onChange={() => toggleSelection(z.id, true)}
+                    disabled={syncing}
+                  />
+                  {' '}{z.name || z.id}
+                </label>
+              ))
+            )}
+          </div>
+          <div className="visit-sync-list">
+            <h4>Repères ({sourceMarkers.length})</h4>
+            {sourceMarkers.length === 0 ? (
+              <p className="section-sub">Aucun repère disponible.</p>
+            ) : (
+              sourceMarkers.map((m) => (
+                <label key={m.id} className="visit-sync-item">
+                  <input
+                    type="checkbox"
+                    checked={selectedMarkers.includes(m.id)}
+                    onChange={() => toggleSelection(m.id, false)}
+                    disabled={syncing}
+                  />
+                  {' '}{m.label || m.id}
+                </label>
+              ))
+            )}
+          </div>
+        </div>
+      )}
+      <button className="btn btn-secondary btn-sm" disabled={loading || syncing} onClick={runSync}>
+        {syncing ? 'Synchronisation...' : 'Lancer l’import sélectionné'}
+      </button>
+    </section>
+  );
+}
+
 function VisitEditorPanel({ selected, selectedType, onSaved, onForceLogout, isTeacher, roleTerms }) {
   const [form, setForm] = useState({
     title: '',
@@ -448,6 +598,14 @@ function VisitView({
             </>
           )}
         </div>
+      )}
+      {isTeacher && (
+        <VisitSyncPanel
+          isTeacher={isTeacher}
+          mapId={mapId}
+          onSynced={loadData}
+          onForceLogout={onForceLogout}
+        />
       )}
 
       <div className="visit-grid">
