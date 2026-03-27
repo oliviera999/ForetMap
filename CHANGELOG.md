@@ -83,6 +83,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - **Navigation/auth** : ajout d’un CTA « Visiter sans connexion » dans l’écran d’authentification et intégration de l’onglet `Visite` dans les navigations élève/prof.
 
 ### Corrigé
+- **Onglets Carte/Tâches (desktop)** : suppression de la fusion automatique grand écran ; `Carte & Zones` affiche uniquement la carte et `Tâches` affiche uniquement les tâches, aligné sur le comportement smartphone.
 - **Persistance de l’onglet actif** : après un rafraîchissement de page, l’application conserve désormais l’onglet en cours via stockage local (`foretmap_active_tab`) au lieu de revenir systématiquement sur `Cartes`.
 - **Carte mobile (déplacement)** : les gestes carte sont de nouveau actifs par défaut en mode vue sur mobile, sans réverrouillage automatique après inactivité.
 - **Centre de notifications (clic)** : le panneau de notifications est désormais affiché en couche fixe sous l’en-tête, ce qui restaure l’ouverture/clic sur mobile et desktop quand le badge est visible.
