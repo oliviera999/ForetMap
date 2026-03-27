@@ -32,12 +32,19 @@ function StudentStats({ student, isN3Affiliated = false }) {
   );
 
   const { stats, assignments } = data;
-  const RANKS = [
-    { min: 0, label: '🪨 Nouveau', color: '#94a3b8' },
-    { min: 1, label: '🌱 Débutant', color: '#86efac' },
-    { min: 5, label: '🌿 Actif', color: '#52b788' },
-    { min: 10, label: '🏆 Expert', color: '#1a4731' },
-  ];
+  const RANKS = (Array.isArray(data?.progression?.steps) && data.progression.steps.length > 0
+    ? data.progression.steps
+    : [
+      { roleSlug: 'eleve_novice', min: 0, label: 'Élève novice' },
+      { roleSlug: 'eleve_avance', min: 5, label: 'Élève avancé' },
+      { roleSlug: 'eleve_chevronne', min: 10, label: 'Élève chevronné' },
+    ])
+    .map((step, i) => ({
+      ...step,
+      color: i === 0 ? '#94a3b8' : i === 1 ? '#52b788' : '#1a4731',
+      icon: i === 0 ? '🪨' : i === 1 ? '🌿' : '🏆',
+    }))
+    .sort((a, b) => a.min - b.min);
   const currentRank = [...RANKS].reverse().find(r => stats.done >= r.min) || RANKS[0];
   const nextRank = RANKS[RANKS.indexOf(currentRank) + 1];
   const progressPct = nextRank
@@ -51,7 +58,7 @@ function StudentStats({ student, isN3Affiliated = false }) {
           <StudentAvatar student={data} size={34} />
           <h2 className="section-title" style={{ marginBottom: 0 }}>📊 Mes statistiques</h2>
         </div>
-        <span style={{ background: 'var(--parchment)', borderRadius: 20, padding: '4px 12px', fontSize: '.8rem', fontWeight: 600, color: 'var(--soil)' }}>{currentRank.label}</span>
+        <span style={{ background: 'var(--parchment)', borderRadius: 20, padding: '4px 12px', fontSize: '.8rem', fontWeight: 600, color: 'var(--soil)' }}>{currentRank.icon} {currentRank.label}</span>
       </div>
       <p className="section-sub">Bonjour {data.first_name} ! Voici ton bilan dans la forêt.</p>
       {data.pseudo && <p className="section-sub" style={{ marginTop: 0 }}>Pseudo public : @{data.pseudo}</p>}
@@ -59,8 +66,8 @@ function StudentStats({ student, isN3Affiliated = false }) {
 
       <div className="rank-progress">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-          <span style={{ fontSize: '.82rem', fontWeight: 600, color: 'var(--forest)' }}>{currentRank.label}</span>
-          {nextRank && <span style={{ fontSize: '.76rem', color: '#aaa' }}>Prochain : {nextRank.label} ({nextRank.min - stats.done} tâche{nextRank.min - stats.done > 1 ? 's' : ''} restante{nextRank.min - stats.done > 1 ? 's' : ''})</span>}
+          <span style={{ fontSize: '.82rem', fontWeight: 600, color: 'var(--forest)' }}>{currentRank.icon} {currentRank.label}</span>
+          {nextRank && <span style={{ fontSize: '.76rem', color: '#aaa' }}>Prochain : {nextRank.icon} {nextRank.label} ({nextRank.min - stats.done} tâche{nextRank.min - stats.done > 1 ? 's' : ''} restante{nextRank.min - stats.done > 1 ? 's' : ''})</span>}
           {!nextRank && <span style={{ fontSize: '.76rem', color: currentRank.color, fontWeight: 600 }}>Rang maximum atteint !</span>}
         </div>
         <div className="rank-bar-bg">
@@ -68,7 +75,7 @@ function StudentStats({ student, isN3Affiliated = false }) {
         </div>
         <div className="rank-steps">
           {RANKS.map(r => (
-            <span key={r.min} className={stats.done >= r.min ? 'current' : ''}>{r.label.split(' ')[0]}</span>
+            <span key={`${r.roleSlug || r.label}-${r.min}`} className={stats.done >= r.min ? 'current' : ''}>{r.icon}</span>
           ))}
         </div>
       </div>

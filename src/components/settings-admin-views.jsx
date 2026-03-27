@@ -3,6 +3,95 @@ import { api } from '../services/api';
 import { compressImage } from '../utils/image';
 import { getRoleTerms } from '../utils/n3-terminology';
 
+const SECTION_DEFS = {
+  auth: { title: 'Accueil & authentification', order: 10 },
+  modules: { title: 'Modules UI', order: 20 },
+  progression: { title: 'Progression élèves', order: 25 },
+  security: { title: 'Sécurité', order: 30 },
+  operations: { title: 'Exploitation', order: 40 },
+  other: { title: 'Autres paramètres', order: 90 },
+};
+
+const KEY_META = {
+  'ui.auth.allow_register': { label: 'Afficher "Créer un compte"', section: 'auth', order: 10 },
+  'ui.auth.allow_google_student': { section: 'auth', order: 20, dynamicLabel: 'googleStudent' },
+  'ui.auth.allow_google_teacher': { section: 'auth', order: 30, dynamicLabel: 'googleTeacher' },
+  'ui.auth.allow_guest_visit': { label: 'Afficher "Visiter sans connexion"', section: 'auth', order: 40 },
+  'ui.auth.default_mode': { label: 'Mode auth par défaut', section: 'auth', order: 50 },
+  'ui.auth.welcome_message': { label: 'Message d’accueil', section: 'auth', order: 60, multiline: true },
+
+  'ui.modules.tutorials_enabled': { label: 'Tutoriels', section: 'modules', order: 10 },
+  'ui.modules.visit_enabled': { label: 'Visite', section: 'modules', order: 20 },
+  'ui.modules.stats_enabled': { label: 'Statistiques', section: 'modules', order: 30 },
+  'ui.modules.observations_enabled': { label: 'Carnet observations', section: 'modules', order: 40 },
+  'ui.map.default_map_student': { section: 'modules', order: 50, dynamicLabel: 'defaultStudentMap' },
+  'ui.map.default_map_teacher': { section: 'modules', order: 60, dynamicLabel: 'defaultTeacherMap' },
+  'ui.map.default_map_visit': { label: 'Carte par défaut (visite publique)', section: 'modules', order: 70 },
+  'progression.student_role_min_done_eleve_avance': { label: 'Seuil profil élève avancé (tâches validées)', section: 'progression', order: 10 },
+  'progression.student_role_min_done_eleve_chevronne': { label: 'Seuil profil élève chevronné (tâches validées)', section: 'progression', order: 20 },
+
+  'security.password_min_length': { label: 'Longueur min mot de passe', section: 'security', order: 10 },
+  'security.jwt_ttl_base_seconds': { label: 'Durée session standard (secondes)', section: 'security', order: 20 },
+  'security.jwt_ttl_elevated_seconds': { label: 'Durée session élevée (secondes)', section: 'security', order: 30 },
+  'security.allow_pin_elevation': { label: 'Autoriser l’élévation PIN', section: 'security', order: 40 },
+  'integration.google.enabled': { label: 'Autoriser OAuth Google côté serveur', section: 'security', order: 50 },
+
+  'system.maintenance_mode': { label: 'Activer le mode maintenance', section: 'operations', order: 10 },
+  'system.maintenance_message': { label: 'Message maintenance', section: 'operations', order: 20, multiline: true },
+  'ops.allow_remote_logs': { label: 'Autoriser consultation logs', section: 'operations', order: 30 },
+  'ops.allow_remote_restart': { label: 'Autoriser redémarrage distant', section: 'operations', order: 40 },
+};
+
+function humanizeKey(key) {
+  const raw = String(key || '').trim();
+  if (!raw) return '';
+  const last = raw.split('.').pop() || raw;
+  return last
+    .replace(/_/g, ' ')
+    .replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+function inferSectionFromKey(key) {
+  const normalized = String(key || '').toLowerCase();
+  if (normalized.startsWith('ui.auth.')) return 'auth';
+  if (normalized.startsWith('ui.modules.') || normalized.startsWith('ui.map.')) return 'modules';
+  if (normalized.startsWith('progression.')) return 'progression';
+  if (normalized.startsWith('security.') || normalized.startsWith('integration.')) return 'security';
+  if (normalized.startsWith('system.') || normalized.startsWith('ops.')) return 'operations';
+  return 'other';
+}
+
+function scopeLabel(scope) {
+  const s = String(scope || '').toLowerCase();
+  if (s === 'admin') return 'Admin';
+  if (s === 'teacher') return 'Enseignant';
+  return 'Public';
+}
+
+function typeLabel(type) {
+  const t = String(type || '').toLowerCase();
+  if (t === 'boolean') return 'booléen';
+  if (t === 'number') return 'numérique';
+  if (t === 'enum') return 'liste';
+  if (t === 'string') return 'texte';
+  return t || 'inconnu';
+}
+
+function buildConstraintHelp(row) {
+  const parts = [`Type: ${typeLabel(row?.type)}`];
+  const constraints = row?.constraints || {};
+  if (Number.isFinite(Number(constraints.min))) parts.push(`min ${Number(constraints.min)}`);
+  if (Number.isFinite(Number(constraints.max))) parts.push(`max ${Number(constraints.max)}`);
+  if (Number.isFinite(Number(constraints.maxLength))) parts.push(`max ${Number(constraints.maxLength)} caractères`);
+  if (Array.isArray(constraints.values) && constraints.values.length > 0) {
+    parts.push(`valeurs: ${constraints.values.map((v) => String(v)).join(', ')}`);
+  }
+  if (row?.default_value != null && row?.default_value !== '') {
+    parts.push(`défaut: ${String(row.default_value)}`);
+  }
+  return parts.join(' • ');
+}
+
 function SettingsAdminView({ isN3Affiliated = false }) {
   const roleTerms = getRoleTerms(isN3Affiliated);
   const [loading, setLoading] = useState(true);
@@ -13,6 +102,7 @@ function SettingsAdminView({ isN3Affiliated = false }) {
   const [oauthDebug, setOauthDebug] = useState(null);
   const [msg, setMsg] = useState('');
   const [err, setErr] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
   const mapFileRefs = useRef({});
 
   const settingByKey = useMemo(() => {
@@ -24,6 +114,215 @@ function SettingsAdminView({ isN3Affiliated = false }) {
   const get = (key, fallback) => {
     if (!settingByKey[key]) return fallback;
     return settingByKey[key].value;
+  };
+
+  const resolveSettingLabel = (key) => {
+    const meta = KEY_META[key];
+    if (!meta) return humanizeKey(key);
+    if (meta.dynamicLabel === 'googleStudent') return `Afficher "Google ${roleTerms.studentSingular}"`;
+    if (meta.dynamicLabel === 'googleTeacher') return `Afficher "Google ${roleTerms.teacherShort}"`;
+    if (meta.dynamicLabel === 'defaultStudentMap') return `Carte par défaut (${roleTerms.studentSingular})`;
+    if (meta.dynamicLabel === 'defaultTeacherMap') return `Carte par défaut (${roleTerms.teacherSingular})`;
+    return meta.label || humanizeKey(key);
+  };
+
+  const settingSections = useMemo(() => {
+    const rows = settings.map((row) => {
+      const meta = KEY_META[row.key] || {};
+      const sectionId = meta.section || inferSectionFromKey(row.key);
+      const sectionDef = SECTION_DEFS[sectionId] || SECTION_DEFS.other;
+      return {
+        ...row,
+        _sectionId: sectionId,
+        _sectionTitle: sectionDef.title,
+        _sectionOrder: sectionDef.order,
+        _fieldOrder: meta.order ?? 999,
+        _multiline: !!meta.multiline,
+      };
+    });
+    const grouped = new Map();
+    for (const row of rows) {
+      if (!grouped.has(row._sectionId)) {
+        grouped.set(row._sectionId, {
+          id: row._sectionId,
+          title: row._sectionTitle,
+          order: row._sectionOrder,
+          rows: [],
+        });
+      }
+      grouped.get(row._sectionId).rows.push(row);
+    }
+    const ordered = Array.from(grouped.values())
+      .sort((a, b) => a.order - b.order || a.title.localeCompare(b.title));
+    for (const section of ordered) {
+      section.rows.sort((a, b) => a._fieldOrder - b._fieldOrder || String(a.key).localeCompare(String(b.key)));
+    }
+    return ordered;
+  }, [settings]);
+
+  const filteredSettingSections = useMemo(() => {
+    const query = String(searchQuery || '').trim().toLowerCase();
+    if (!query) return settingSections;
+    return settingSections
+      .map((section) => {
+        const rows = section.rows.filter((row) => {
+          const label = resolveSettingLabel(row.key).toLowerCase();
+          const key = String(row.key || '').toLowerCase();
+          const scope = scopeLabel(row.scope).toLowerCase();
+          const help = buildConstraintHelp(row).toLowerCase();
+          return label.includes(query) || key.includes(query) || scope.includes(query) || help.includes(query);
+        });
+        return { ...section, rows };
+      })
+      .filter((section) => section.rows.length > 0);
+  }, [resolveSettingLabel, searchQuery, settingSections]);
+
+  const filteredCount = useMemo(() => {
+    let n = 0;
+    for (const section of filteredSettingSections) n += section.rows.length;
+    return n;
+  }, [filteredSettingSections]);
+
+  const renderSettingField = (row) => {
+    const key = String(row.key || '');
+    const value = get(key, row.default_value);
+    const disabled = savingKey === key;
+    const label = resolveSettingLabel(key);
+    const maxLength = row?.constraints?.maxLength;
+    const min = row?.constraints?.min;
+    const max = row?.constraints?.max;
+    const enumValues = Array.isArray(row?.constraints?.values) ? row.constraints.values : [];
+    const isMapDefault = key.startsWith('ui.map.default_map_');
+    const selectValues = isMapDefault
+      ? (maps || []).map((m) => m.id)
+      : enumValues;
+    const hasSelectValues = selectValues.length > 0;
+
+    if (row.type === 'boolean') {
+      return (
+        <div key={key} style={{ marginBottom: 8 }}>
+          <label style={{ display: 'block' }}>
+            <input
+              type="checkbox"
+              checked={!!value}
+              disabled={disabled}
+              onChange={(e) => saveSetting(key, e.target.checked)}
+            />
+            {' '}
+            {label}
+            <span style={{ marginLeft: 8, fontSize: '.74rem', color: '#6b7280' }}>
+              ({scopeLabel(row.scope)})
+            </span>
+          </label>
+          <div style={{ fontSize: '.74rem', color: '#6b7280', marginTop: 3 }}>
+            {buildConstraintHelp(row)}
+          </div>
+        </div>
+      );
+    }
+
+    if (row.type === 'enum' || hasSelectValues) {
+      const options = hasSelectValues ? selectValues : enumValues;
+      return (
+        <div key={key} className="field">
+          <label>
+            {label}
+            <span style={{ marginLeft: 8, fontSize: '.74rem', color: '#6b7280' }}>
+              ({scopeLabel(row.scope)})
+            </span>
+          </label>
+          <select
+            value={String(value ?? '')}
+            disabled={disabled}
+            onChange={(e) => saveSetting(key, e.target.value)}
+          >
+            {options.map((opt) => (
+              <option key={String(opt)} value={String(opt)}>
+                {isMapDefault
+                  ? ((maps || []).find((m) => m.id === String(opt))?.label || String(opt))
+                  : String(opt)}
+              </option>
+            ))}
+          </select>
+          <div style={{ fontSize: '.74rem', color: '#6b7280', marginTop: 3 }}>
+            {buildConstraintHelp(row)}
+          </div>
+        </div>
+      );
+    }
+
+    if (row.type === 'number') {
+      const fallback = Number.isFinite(Number(row.default_value)) ? Number(row.default_value) : 0;
+      return (
+        <div key={key} className="field">
+          <label>
+            {label}
+            <span style={{ marginLeft: 8, fontSize: '.74rem', color: '#6b7280' }}>
+              ({scopeLabel(row.scope)})
+            </span>
+          </label>
+          <input
+            type="number"
+            min={Number.isFinite(Number(min)) ? Number(min) : undefined}
+            max={Number.isFinite(Number(max)) ? Number(max) : undefined}
+            defaultValue={Number.isFinite(Number(value)) ? Number(value) : fallback}
+            disabled={disabled}
+            onBlur={(e) => {
+              const n = parseInt(e.target.value || String(fallback), 10);
+              saveSetting(key, Number.isFinite(n) ? n : fallback);
+            }}
+          />
+          <div style={{ fontSize: '.74rem', color: '#6b7280', marginTop: 3 }}>
+            {buildConstraintHelp(row)}
+          </div>
+        </div>
+      );
+    }
+
+    const stringValue = value == null ? '' : String(value);
+    if (row._multiline || (maxLength != null && maxLength > 100)) {
+      return (
+        <div key={key} className="field">
+          <label>
+            {label}
+            <span style={{ marginLeft: 8, fontSize: '.74rem', color: '#6b7280' }}>
+              ({scopeLabel(row.scope)})
+            </span>
+          </label>
+          <textarea
+            rows={2}
+            defaultValue={stringValue}
+            maxLength={Number.isFinite(Number(maxLength)) ? Number(maxLength) : undefined}
+            disabled={disabled}
+            onBlur={(e) => saveSetting(key, e.target.value || '')}
+          />
+          <div style={{ fontSize: '.74rem', color: '#6b7280', marginTop: 3 }}>
+            {buildConstraintHelp(row)}
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div key={key} className="field">
+        <label>
+          {label}
+          <span style={{ marginLeft: 8, fontSize: '.74rem', color: '#6b7280' }}>
+            ({scopeLabel(row.scope)})
+          </span>
+        </label>
+        <input
+          type="text"
+          defaultValue={stringValue}
+          maxLength={Number.isFinite(Number(maxLength)) ? Number(maxLength) : undefined}
+          disabled={disabled}
+          onBlur={(e) => saveSetting(key, e.target.value || '')}
+        />
+        <div style={{ fontSize: '.74rem', color: '#6b7280', marginTop: 3 }}>
+          {buildConstraintHelp(row)}
+        </div>
+      </div>
+    );
   };
 
   const load = async () => {
@@ -131,88 +430,41 @@ function SettingsAdminView({ isN3Affiliated = false }) {
       <p className="section-sub">Console centralisée pour l’accueil, les cartes/plans, la sécurité et l’exploitation.</p>
       {err && <div className="auth-error">⚠️ {err}</div>}
       {msg && <div className="auth-success">{msg}</div>}
-
-      <div style={{ display: 'grid', gap: 12, gridTemplateColumns: '1fr 1fr' }}>
-        <div style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: 12, padding: 12 }}>
-          <h3 style={{ marginTop: 0 }}>Accueil & authentification</h3>
-          {[
-            ['ui.auth.allow_register', 'Afficher "Créer un compte"'],
-            ['ui.auth.allow_google_student', `Afficher "Google ${roleTerms.studentSingular}"`],
-            ['ui.auth.allow_google_teacher', `Afficher "Google ${roleTerms.teacherShort}"`],
-            ['ui.auth.allow_guest_visit', 'Afficher "Visiter sans connexion"'],
-          ].map(([key, label]) => (
-            <label key={key} style={{ display: 'block', marginBottom: 8 }}>
-              <input
-                type="checkbox"
-                checked={!!get(key, true)}
-                disabled={savingKey === key}
-                onChange={(e) => saveSetting(key, e.target.checked)}
-              />
-              {' '}
-              {label}
-            </label>
-          ))}
-          <div className="field">
-            <label>Mode auth par défaut</label>
-            <select
-              value={get('ui.auth.default_mode', 'login')}
-              onChange={(e) => saveSetting('ui.auth.default_mode', e.target.value)}
-              disabled={savingKey === 'ui.auth.default_mode'}
-            >
-              <option value="login">Connexion</option>
-              <option value="register">Inscription</option>
-            </select>
-          </div>
-          <div className="field">
-            <label>Message d’accueil</label>
-            <textarea
-              rows={2}
-              defaultValue={get('ui.auth.welcome_message', '')}
-              placeholder="Message court sous le logo"
-              onBlur={(e) => saveSetting('ui.auth.welcome_message', e.target.value || '')}
-            />
-          </div>
+      <div style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: 12, padding: 12, marginBottom: 12 }}>
+        <div className="field" style={{ marginBottom: 8 }}>
+          <label>Recherche dans les paramètres</label>
+          <input
+            type="text"
+            value={searchQuery}
+            placeholder="Ex: maintenance, oauth, jwt, carte, public..."
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
         </div>
-
-        <div style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: 12, padding: 12 }}>
-          <h3 style={{ marginTop: 0 }}>Modules UI</h3>
-          {[
-            ['ui.modules.tutorials_enabled', 'Tutoriels'],
-            ['ui.modules.visit_enabled', 'Visite'],
-            ['ui.modules.stats_enabled', 'Statistiques'],
-            ['ui.modules.observations_enabled', 'Carnet observations'],
-          ].map(([key, label]) => (
-            <label key={key} style={{ display: 'block', marginBottom: 8 }}>
-              <input
-                type="checkbox"
-                checked={!!get(key, true)}
-                disabled={savingKey === key}
-                onChange={(e) => saveSetting(key, e.target.checked)}
-              />
-              {' '}
-              {label}
-            </label>
-          ))}
-          <div className="field">
-            <label>Carte par défaut ({roleTerms.studentSingular})</label>
-            <select value={get('ui.map.default_map_student', 'foret')} onChange={(e) => saveSetting('ui.map.default_map_student', e.target.value)}>
-              {maps.map((m) => <option key={m.id} value={m.id}>{m.label}</option>)}
-            </select>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}>
+          <div style={{ fontSize: '.82rem', color: '#6b7280' }}>
+            {filteredCount} paramètre(s) affiché(s) sur {settings.length}
           </div>
-          <div className="field">
-            <label>Carte par défaut ({roleTerms.teacherSingular})</label>
-            <select value={get('ui.map.default_map_teacher', 'foret')} onChange={(e) => saveSetting('ui.map.default_map_teacher', e.target.value)}>
-              {maps.map((m) => <option key={m.id} value={m.id}>{m.label}</option>)}
-            </select>
-          </div>
-          <div className="field">
-            <label>Carte par défaut (visite publique)</label>
-            <select value={get('ui.map.default_map_visit', 'foret')} onChange={(e) => saveSetting('ui.map.default_map_visit', e.target.value)}>
-              {maps.map((m) => <option key={m.id} value={m.id}>{m.label}</option>)}
-            </select>
-          </div>
+          {searchQuery && (
+            <button className="btn btn-secondary btn-sm" onClick={() => setSearchQuery('')}>
+              Réinitialiser le filtre
+            </button>
+          )}
         </div>
       </div>
+
+      <div style={{ display: 'grid', gap: 12, gridTemplateColumns: '1fr 1fr' }}>
+        {filteredSettingSections.map((section) => (
+          <div key={section.id} style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: 12, padding: 12 }}>
+            <h3 style={{ marginTop: 0 }}>{section.title}</h3>
+            {section.rows.map((row) => renderSettingField(row))}
+          </div>
+        ))}
+      </div>
+      {filteredCount === 0 && (
+        <div className="empty" style={{ marginTop: 12 }}>
+          <p>Aucun paramètre ne correspond au filtre saisi.</p>
+        </div>
+      )}
 
       <div style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: 12, padding: 12, marginTop: 12 }}>
         <h3 style={{ marginTop: 0 }}>Cartes & plans</h3>
@@ -283,57 +535,7 @@ function SettingsAdminView({ isN3Affiliated = false }) {
 
       <div style={{ display: 'grid', gap: 12, gridTemplateColumns: '1fr 1fr', marginTop: 12 }}>
         <div style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: 12, padding: 12 }}>
-          <h3 style={{ marginTop: 0 }}>Sécurité</h3>
-          <div className="field">
-            <label>Longueur min mot de passe</label>
-            <input
-              type="number"
-              min={4}
-              max={32}
-              value={get('security.password_min_length', 4)}
-              onChange={(e) => saveSetting('security.password_min_length', parseInt(e.target.value || '4', 10))}
-            />
-          </div>
-          <label style={{ display: 'block', marginBottom: 8 }}>
-            <input
-              type="checkbox"
-              checked={!!get('security.allow_pin_elevation', true)}
-              onChange={(e) => saveSetting('security.allow_pin_elevation', e.target.checked)}
-            />
-            {' '}
-            Autoriser l’élévation PIN
-          </label>
-          <label style={{ display: 'block', marginBottom: 8 }}>
-            <input
-              type="checkbox"
-              checked={!!get('integration.google.enabled', true)}
-              onChange={(e) => saveSetting('integration.google.enabled', e.target.checked)}
-            />
-            {' '}
-            Autoriser OAuth Google côté serveur
-          </label>
-        </div>
-
-        <div style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: 12, padding: 12 }}>
-          <h3 style={{ marginTop: 0 }}>Exploitation</h3>
-          <label style={{ display: 'block', marginBottom: 8 }}>
-            <input
-              type="checkbox"
-              checked={!!get('ops.allow_remote_logs', true)}
-              onChange={(e) => saveSetting('ops.allow_remote_logs', e.target.checked)}
-            />
-            {' '}
-            Autoriser consultation logs
-          </label>
-          <label style={{ display: 'block', marginBottom: 10 }}>
-            <input
-              type="checkbox"
-              checked={!!get('ops.allow_remote_restart', true)}
-              onChange={(e) => saveSetting('ops.allow_remote_restart', e.target.checked)}
-            />
-            {' '}
-            Autoriser redémarrage distant
-          </label>
+          <h3 style={{ marginTop: 0 }}>Actions système</h3>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             <button className="btn btn-secondary btn-sm" onClick={fetchLogs}>Charger logs</button>
             <button className="btn btn-secondary btn-sm" onClick={fetchOauthDebug}>Diagnostic OAuth</button>

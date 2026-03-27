@@ -1235,6 +1235,30 @@
       flex-wrap:wrap;
     }
     .visit-map-switch { display:flex; gap:6px; flex-wrap:wrap; }
+    .visit-sync-card {
+      background:white; border:1px solid var(--mint); border-radius:12px;
+      box-shadow:var(--shadow); padding:12px; display:grid; gap:10px;
+    }
+    .visit-sync-grid {
+      display:grid; grid-template-columns:1fr 1fr; gap:10px;
+    }
+    @media (max-width:860px) {
+      .visit-sync-grid { grid-template-columns:1fr; }
+    }
+    .visit-sync-list {
+      background:#f8fbf9; border:1px solid var(--mint); border-radius:10px;
+      padding:10px; max-height:220px; overflow:auto; display:grid; gap:6px;
+    }
+    .visit-sync-list h4 {
+      margin:0 0 4px 0;
+      color:var(--forest);
+      font-size:.9rem;
+    }
+    .visit-sync-item {
+      display:block;
+      font-size:.85rem;
+      color:#244437;
+    }
     .visit-grid {
       display:grid; grid-template-columns:1.35fr 1fr; gap:12px;
     }
