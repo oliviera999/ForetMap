@@ -2043,3 +2043,34 @@
     gap: 8px;
   }
 }
+
+/* ── PROFILES ADMIN ── */
+.profiles-admin {
+  width: 100%;
+  overflow-x: hidden;
+}
+.profiles-admin-grid {
+  grid-template-columns: 1fr 1fr;
+}
+.profiles-admin-perm-row {
+  grid-template-columns: 1fr auto auto;
+}
+.profiles-admin-user-row {
+  grid-template-columns: 1fr 180px;
+}
+.profiles-admin-create-grid {
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+.profiles-admin-delete-row {
+  grid-template-columns: 1fr auto;
+}
+
+@media (max-width: 1023px) {
+  .profiles-admin-grid,
+  .profiles-admin-perm-row,
+  .profiles-admin-user-row,
+  .profiles-admin-create-grid,
+  .profiles-admin-delete-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
