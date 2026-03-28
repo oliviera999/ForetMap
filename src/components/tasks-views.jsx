@@ -166,13 +166,14 @@ function TaskFormModal({
     start_date: editTask.start_date || '',
     due_date: editTask.due_date || '',
     required_students: editTask.required_students || 1,
+    completion_mode: getCompletionMode(editTask),
     recurrence: editTask.recurrence || '',
     assign_student_id: ''
   } : {
     title: '', description: '', map_id: initialMapId || '',
     zone_ids: [], marker_ids: [], tutorial_ids: [],
     project_id: '',
-    start_date: '', due_date: '', required_students: 1, recurrence: '',
+    start_date: '', due_date: '', required_students: 1, completion_mode: 'single_done', recurrence: '',
     assign_student_id: ''
   });
   const [saving, setSaving] = useState(false);
@@ -282,6 +283,7 @@ function TaskFormModal({
       start_date: form.start_date || null,
       due_date: form.due_date || null,
       required_students: form.required_students,
+      completion_mode: form.completion_mode || 'single_done',
       recurrence: form.recurrence || null,
       assign_student_id: form.assign_student_id || null,
     };
@@ -312,9 +314,19 @@ function TaskFormModal({
 
   const pickListStyle = {
     maxHeight: 168, overflowY: 'auto', border: '1px solid rgba(0,0,0,.08)', borderRadius: 10,
-    padding: '6px 8px', background: 'var(--parchment, #faf8f3)',
+    padding: '6px 8px', background: 'var(--parchment, #faf8f3)', textAlign: 'left',
   };
-  const pickRow = { display: 'flex', alignItems: 'center', gap: 10, minHeight: 44, cursor: 'pointer' };
+  const pickRow = {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+    gap: 10,
+    minHeight: 44,
+    width: '100%',
+    cursor: 'pointer',
+    textAlign: 'left',
+  };
+  const pickText = { fontSize: '.88rem', textAlign: 'left', flex: 1 };
 
   return (
     <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
@@ -358,7 +370,7 @@ function TaskFormModal({
                     checked={form.zone_ids.includes(String(z.id || '').trim())}
                     onChange={() => toggleZoneId(z.id)}
                   />
-                  <span style={{ fontSize: '.88rem' }}>{z.name}{z.current_plant ? ` — ${z.current_plant}` : ''}</span>
+                  <span style={pickText}>{z.name}{z.current_plant ? ` — ${z.current_plant}` : ''}</span>
                 </label>
               ))}
           </div>
@@ -374,7 +386,7 @@ function TaskFormModal({
                     checked={form.marker_ids.includes(String(m.id || '').trim())}
                     onChange={() => toggleMarkerId(m.id)}
                   />
-                  <span style={{ fontSize: '.88rem' }}>{m.emoji ? `${m.emoji} ` : ''}{m.label}</span>
+                  <span style={pickText}>{m.emoji ? `${m.emoji} ` : ''}{m.label}</span>
                 </label>
               ))}
           </div>
@@ -423,7 +435,7 @@ function TaskFormModal({
                       checked={normalizedTutorialIds.includes(Number.parseInt(t.id, 10))}
                       onChange={() => toggleTutorialId(t.id)}
                     />
-                    <span style={{ fontSize: '.88rem' }}>📘 {t.title}</span>
+                    <span style={pickText}>📘 {t.title}</span>
                   </label>
                 ))}
             </div>
@@ -445,6 +457,16 @@ function TaskFormModal({
                 <option key={s.id} value={s.id}>{`${s.first_name || ''} ${s.last_name || ''}`.trim()}</option>
               ))}
             </select>
+          </div>
+        )}
+        {!isProposal && (
+          <div className="row">
+            <div className="field"><label>Mode de validation</label>
+              <select value={form.completion_mode || 'single_done'} onChange={set('completion_mode')}>
+                <option value="single_done">Classique (un élève termine la tâche)</option>
+                <option value="all_assignees_done">Collectif (tous les assignés doivent terminer)</option>
+              </select>
+            </div>
           </div>
         )}
         {!isProposal && (
@@ -591,6 +613,21 @@ function getAvailableSlots(task) {
   return Math.max(0, required - getAssignedCount(task));
 }
 
+function getCompletionMode(task) {
+  return task?.completion_mode === 'all_assignees_done' ? 'all_assignees_done' : 'single_done';
+}
+
+function getAssigneesDoneCount(task) {
+  const fromApi = Number(task?.assignees_done_count);
+  if (Number.isFinite(fromApi) && fromApi >= 0) return fromApi;
+  if (!Array.isArray(task?.assignments)) return 0;
+  return task.assignments.reduce((count, assignment) => (assignment?.done_at ? count + 1 : count), 0);
+}
+
+function completionModeLabel(mode) {
+  return mode === 'all_assignees_done' ? 'Validation collective' : 'Validation classique';
+}
+
 const TEACHER_STATUS_ACTIONS = [
   { value: 'available', label: 'À faire', icon: '🔥' },
   { value: 'in_progress', label: 'En cours', icon: '⚙️' },
@@ -640,7 +677,7 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
   const [importReport, setImportReport] = useState(null);
   const [teacherStudents, setTeacherStudents] = useState([]);
   const [quickAssignTaskId, setQuickAssignTaskId] = useState(null);
-  const [quickAssignStudentId, setQuickAssignStudentId] = useState('');
+  const [quickAssignStudentIds, setQuickAssignStudentIds] = useState([]);
   const [loadingTeacherStudents, setLoadingTeacherStudents] = useState(false);
   const confirmDialogRef = useDialogA11y(() => setConfirmTask(null));
   const { isHelpEnabled, hasSeenSection, markSectionSeen, trackPanelOpen, trackPanelDismiss } = useHelp({ publicSettings, isTeacher });
@@ -863,22 +900,42 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
     return true;
   });
 
+  const visibleProjects = taskProjects
+    .filter((p) => {
+      if (filterMap === 'all') return true;
+      if (filterMap === 'active') return p.map_id === activeMapId;
+      return p.map_id === filterMap;
+    })
+    .slice()
+    .sort((a, b) => String(a.title || '').localeCompare(String(b.title || ''), 'fr'));
   const allFiltered = applyFilters(tasks);
+  const visibleProjectIds = useMemo(
+    () => new Set(visibleProjects.map((p) => String(p.id || ''))),
+    [visibleProjects]
+  );
+  const isTaskInVisibleProject = (task) => {
+    const projectId = String(task?.project_id || '');
+    return !!projectId && visibleProjectIds.has(projectId);
+  };
+  const regularFiltered = useMemo(
+    () => allFiltered.filter((t) => !isTaskInVisibleProject(t)),
+    [allFiltered, visibleProjectIds]
+  );
   const myProposals = allFiltered.filter((t) => (
     !isTeacher
     && t.status === 'proposed'
     && student
     && String(t.proposed_by_student_id || '') === String(student.id || '')
   ));
-  const myTasks = allFiltered.filter(t => student && taskEffectiveStatus(t) !== 'validated' && t.assignments?.some(
+  const myTasks = regularFiltered.filter(t => student && taskEffectiveStatus(t) !== 'validated' && t.assignments?.some(
     a => a.student_first_name === student.first_name && a.student_last_name === student.last_name
   ));
-  const available = allFiltered.filter(t => taskEffectiveStatus(t) === 'available');
-  const inProgress = allFiltered.filter(t => taskEffectiveStatus(t) === 'in_progress');
-  const done = allFiltered.filter(t => taskEffectiveStatus(t) === 'done');
-  const validated = allFiltered.filter(t => taskEffectiveStatus(t) === 'validated');
-  const proposed = allFiltered.filter(t => taskEffectiveStatus(t) === 'proposed');
-  const onHold = allFiltered.filter(t => taskEffectiveStatus(t) === 'on_hold');
+  const available = regularFiltered.filter(t => taskEffectiveStatus(t) === 'available');
+  const inProgress = regularFiltered.filter(t => taskEffectiveStatus(t) === 'in_progress');
+  const done = regularFiltered.filter(t => taskEffectiveStatus(t) === 'done');
+  const validated = regularFiltered.filter(t => taskEffectiveStatus(t) === 'validated');
+  const proposed = regularFiltered.filter(t => taskEffectiveStatus(t) === 'proposed');
+  const onHold = regularFiltered.filter(t => taskEffectiveStatus(t) === 'on_hold');
   const hasStudentFilters = !isTeacher && (
     !!filterText
     || !!filterZone
@@ -905,13 +962,13 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
     [onHold, myTasks]
   );
   const recentlyValidatedForStudent = useMemo(
-    () => allFiltered.filter((t) => taskEffectiveStatus(t) === 'validated' && t.assignments?.some(
+    () => regularFiltered.filter((t) => taskEffectiveStatus(t) === 'validated' && t.assignments?.some(
       (a) => a.student_first_name === student?.first_name && a.student_last_name === student?.last_name
     )),
-    [allFiltered, student?.first_name, student?.last_name]
+    [regularFiltered, student?.first_name, student?.last_name]
   );
 
-  const urgentTasks = !isTeacher ? allFiltered.filter(t => {
+  const urgentTasks = !isTeacher ? regularFiltered.filter(t => {
     const effective = taskEffectiveStatus(t);
     if (effective === 'validated' || effective === 'done' || effective === 'on_hold') return false;
     const d = daysUntil(t.due_date);
@@ -929,19 +986,9 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
   const usedZones = [...usedZoneIds];
   const usedMarkers = [...usedMarkerIds];
   const sectionListClass = viewMode === 'tiles' ? 'tasks-grid' : 'tasks-list';
-  const visibleProjects = taskProjects
-    .filter((p) => {
-      if (filterMap === 'all') return true;
-      if (filterMap === 'active') return p.map_id === activeMapId;
-      return p.map_id === filterMap;
-    })
-    .slice()
-    .sort((a, b) => String(a.title || '').localeCompare(String(b.title || ''), 'fr'));
-  const canTeacherAssignOnTask = (task, targetStudent = null) => {
-    if (!isTeacher || !targetStudent) return false;
-    if (!task || taskEffectiveStatus(task) === 'on_hold' || task.status === 'validated' || task.status === 'done' || task.status === 'proposed') return false;
-    if (getAvailableSlots(task) <= 0) return false;
-    return !(task.assignments || []).some((a) => (
+  const isStudentAlreadyAssignedToTask = (task, targetStudent = null) => {
+    if (!task || !targetStudent) return false;
+    return (task.assignments || []).some((a) => (
       String(a.student_id || '') === String(targetStudent.id || '')
       || (
         String(a.student_first_name || '').trim().toLowerCase() === String(targetStudent.first_name || '').trim().toLowerCase()
@@ -949,33 +996,142 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
       )
     ));
   };
-  const quickAssignHint = (task, targetStudent = null) => {
-    if (!targetStudent) return "Choisis d'abord un élève cible";
+  const canTeacherAssignOnTask = (task, targetStudents = []) => {
+    if (!isTeacher || !Array.isArray(targetStudents) || targetStudents.length === 0) return false;
+    if (!task || taskEffectiveStatus(task) === 'on_hold' || task.status === 'validated' || task.status === 'done' || task.status === 'proposed') return false;
+    if (getAvailableSlots(task) <= 0) return false;
+    return targetStudents.some((studentRow) => !isStudentAlreadyAssignedToTask(task, studentRow));
+  };
+  const quickAssignHint = (task, targetStudents = []) => {
+    if (!Array.isArray(targetStudents) || targetStudents.length === 0) return "Choisis au moins un élève";
     if (!task) return "Tâche indisponible";
     if (taskEffectiveStatus(task) === 'on_hold') return "Tâche ou projet en attente";
     if (task.status === 'proposed') return "Impossible d'affecter une tâche proposée";
     if (task.status === 'done' || task.status === 'validated') return "Tâche déjà terminée";
     if (getAvailableSlots(task) <= 0) return "Aucune place restante";
-    if ((task.assignments || []).some((a) => (
-      String(a.student_id || '') === String(targetStudent.id || '')
-      || (
-        String(a.student_first_name || '').trim().toLowerCase() === String(targetStudent.first_name || '').trim().toLowerCase()
-        && String(a.student_last_name || '').trim().toLowerCase() === String(targetStudent.last_name || '').trim().toLowerCase()
-      )
-    ))) return "Élève déjà inscrit sur cette tâche";
-    return `Inscrire ${targetStudent.first_name} ${targetStudent.last_name}`;
+    const assignable = targetStudents.filter((studentRow) => !isStudentAlreadyAssignedToTask(task, studentRow));
+    if (assignable.length === 0) return "Les élèves sélectionnés sont déjà inscrits";
+    const slots = getAvailableSlots(task);
+    const selectedCount = targetStudents.length;
+    if (assignable.length > slots) {
+      return `Seulement ${slots} place${slots > 1 ? 's' : ''} disponible${slots > 1 ? 's' : ''} pour ${selectedCount} sélection${selectedCount > 1 ? 's' : ''}`;
+    }
+    return `Affecter ${assignable.length} élève${assignable.length > 1 ? 's' : ''}`;
   };
-  const runTeacherQuickAssign = (task, targetStudent) => withLoad(`${task.id}assign_teacher_quick`, async () => {
-    if (!targetStudent) return;
-    await api(`/api/tasks/${task.id}/assign`, 'POST', {
-      firstName: targetStudent.first_name,
-      lastName: targetStudent.last_name,
-      studentId: targetStudent.id,
-    });
-    setToast(`${targetStudent.first_name} inscrit(e) à "${task.title}"`);
+  const runTeacherQuickAssign = (task, targetStudents) => withLoad(`${task.id}assign_teacher_quick`, async () => {
+    if (!Array.isArray(targetStudents) || targetStudents.length === 0) return;
+    const assignable = targetStudents.filter((studentRow) => !isStudentAlreadyAssignedToTask(task, studentRow));
+    let slotsRemaining = getAvailableSlots(task);
+    if (assignable.length === 0 || slotsRemaining <= 0) {
+      setToast('Aucune nouvelle affectation possible');
+      return;
+    }
+    let successCount = 0;
+    let failCount = 0;
+    let firstError = '';
+    for (const targetStudent of assignable) {
+      if (slotsRemaining <= 0) break;
+      try {
+        await api(`/api/tasks/${task.id}/assign`, 'POST', {
+          firstName: targetStudent.first_name,
+          lastName: targetStudent.last_name,
+          studentId: targetStudent.id,
+        });
+        successCount += 1;
+        slotsRemaining -= 1;
+      } catch (e) {
+        failCount += 1;
+        if (!firstError) firstError = e.message || 'Erreur inconnue';
+        if (String(e.message || '').toLowerCase().includes('plus de place')) break;
+      }
+    }
+    if (successCount > 0 && failCount > 0) {
+      setToast(`${successCount} élève${successCount > 1 ? 's' : ''} inscrit${successCount > 1 ? 's' : ''}, ${failCount} échec${failCount > 1 ? 's' : ''}`);
+    } else if (successCount > 0) {
+      setToast(`${successCount} élève${successCount > 1 ? 's' : ''} inscrit${successCount > 1 ? 's' : ''} à "${task.title}"`);
+    } else if (firstError) {
+      setToast(`Aucune affectation : ${firstError}`);
+    } else {
+      setToast('Aucune nouvelle affectation possible');
+    }
     setQuickAssignTaskId(null);
-    setQuickAssignStudentId('');
+    setQuickAssignStudentIds([]);
   });
+  const ProjectsSection = () => {
+    if (visibleProjects.length <= 0) return null;
+    return (
+      <div className="tasks-section">
+        <div className="tasks-section-title">📁 Projets ({visibleProjects.length})</div>
+        <div style={{ display: 'grid', gap: 8 }}>
+          {visibleProjects.map((p) => {
+            const projectTasks = allFiltered.filter((t) => String(t.project_id || '') === String(p.id || ''));
+            const projectTasksCount = projectTasks.length;
+            const projectStatus = p.status === 'on_hold' ? 'on_hold' : 'active';
+            const loadingActive = !!loading[`${p.id}projectactive`];
+            const loadingHold = !!loading[`${p.id}projecton_hold`];
+            return (
+              <div key={p.id} className="task-card" style={{ padding: 12 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                  <div>
+                    <div className="task-title" style={{ fontSize: '1rem' }}>📁 {p.title}</div>
+                    <div style={{ fontSize: '.82rem', color: '#666' }}>
+                      {p.map_label || mapLabelById(p.map_id)} · {projectTasksCount} tâche{projectTasksCount > 1 ? 's' : ''}
+                    </div>
+                    {p.status === 'on_hold' && (
+                      <div style={{ fontSize: '.82rem', color: '#92400e', marginTop: 4 }}>
+                        ⏸️ Projet en attente : inscriptions fermées, commentaires ouverts.
+                      </div>
+                    )}
+                  </div>
+                  {isTeacher ? (
+                    <div style={{ display: 'flex', gap: 6 }}>
+                      <button
+                        className={`btn btn-sm ${projectStatus === 'active' ? 'btn-primary' : 'btn-ghost'}`}
+                        disabled={projectStatus === 'active' || loadingActive}
+                        onClick={() => setProjectStatus(p, 'active')}
+                      >
+                        {loadingActive ? '...' : '✅ Actif'}
+                      </button>
+                      <button
+                        className={`btn btn-sm ${projectStatus === 'on_hold' ? 'btn-primary' : 'btn-ghost'}`}
+                        disabled={projectStatus === 'on_hold' || loadingHold}
+                        onClick={() => setProjectStatus(p, 'on_hold')}
+                      >
+                        {loadingHold ? '...' : '⏸️ En attente'}
+                      </button>
+                    </div>
+                  ) : (
+                    <span className="task-chip">{projectStatus === 'on_hold' ? '⏸️ En attente' : '✅ Actif'}</span>
+                  )}
+                </div>
+                <div style={{ marginTop: 8 }}>
+                  <ContextComments
+                    contextType="project"
+                    contextId={p.id}
+                    title="Commentaires du projet"
+                    placeholder="Partager une info utile sur ce projet..."
+                  />
+                </div>
+                <div style={{ marginTop: 10 }}>
+                  {projectTasksCount === 0 ? (
+                    <p style={{ fontSize: '.85rem', color: '#666', margin: 0 }}>
+                      Aucune tâche liée à ce projet avec les filtres actuels.
+                    </p>
+                  ) : (
+                    <div className={sectionListClass}>
+                      {projectTasks.map((t, idx) => (
+                        <TaskCard key={t.id} t={t} index={idx} />
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
 
   const TaskCard = ({ t, index = 0 }) => {
     const effectiveStatus = taskEffectiveStatus(t);
@@ -988,13 +1144,29 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
     const proposalMeta = proposalMetaFromDescription(t.description);
     const cardDescription = t.status === 'proposed' ? proposalMeta.cleanedDescription : (t.description || '');
     const assignees = Array.isArray(t.assignments) ? t.assignments : [];
+    const completionMode = getCompletionMode(t);
+    const isCollectiveCompletion = completionMode === 'all_assignees_done';
+    const doneCount = getAssigneesDoneCount(t);
+    const totalCount = getAssignedCount(t);
+    const mineAssignment = assignees.find((a) => (
+      student && (
+        String(a.student_id || '') === String(student.id || '')
+        || (
+          String(a.student_first_name || '').trim().toLowerCase() === String(student.first_name || '').trim().toLowerCase()
+          && String(a.student_last_name || '').trim().toLowerCase() === String(student.last_name || '').trim().toLowerCase()
+        )
+      )
+    )) || null;
+    const hasCompletedOwnAssignment = !!(isCollectiveCompletion && mineAssignment?.done_at);
     const isQuickAssignOpen = quickAssignTaskId === t.id;
-    const selectedQuickAssignStudent = isQuickAssignOpen
-      ? teacherStudents.find((s) => s.id === quickAssignStudentId) || null
-      : null;
-    const canQuickAssign = canTeacherAssignOnTask(t, selectedQuickAssignStudent);
+    const selectedQuickAssignStudents = isQuickAssignOpen
+      ? teacherStudents.filter((s) => quickAssignStudentIds.includes(s.id))
+      : [];
+    const quickAssignAssignableCount = selectedQuickAssignStudents.filter((studentRow) => !isStudentAlreadyAssignedToTask(t, studentRow)).length;
+    const quickAssignSlots = getAvailableSlots(t);
+    const canQuickAssign = canTeacherAssignOnTask(t, selectedQuickAssignStudents);
     const quickAssignBusy = !!loading[`${t.id}assign_teacher_quick`];
-    const quickAssignTitle = quickAssignHint(t, selectedQuickAssignStudent);
+    const quickAssignTitle = quickAssignHint(t, selectedQuickAssignStudents);
     return (
       <div
         className={`task-card ${viewMode === 'tiles' ? 'task-card--tile' : ''} fade-in ${isMine ? 'mine' : ''} ${effectiveStatus === 'validated' ? 'done' : ''} ${effectiveStatus === 'proposed' ? 'proposed' : ''}`}
@@ -1026,6 +1198,8 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
           )}
           {dueDateChip(t.due_date)}
           {!isTeacher && <span className="task-chip">👤 {t.required_students} {t.required_students > 1 ? roleTerms.studentPlural : roleTerms.studentSingular}</span>}
+          <span className="task-chip">🧩 {completionModeLabel(completionMode)}</span>
+          {isCollectiveCompletion && <span className="task-chip">✅ {doneCount}/{totalCount} terminé{totalCount > 1 ? 's' : ''}</span>}
           {t.recurrence && <span className="task-chip">🔄 {t.recurrence === 'weekly' ? 'Hebdo' : t.recurrence === 'biweekly' ? 'Bi-hebdo' : t.recurrence === 'monthly' ? 'Mensuel' : t.recurrence}</span>}
         </div>
         {cardDescription && <div className="task-desc">{cardDescription}</div>}
@@ -1043,6 +1217,7 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
               return (
                 <span key={`${a.student_first_name}-${a.student_last_name}-${i}`} className={`assignee-tag ${item.isCurrentStudent ? 'me' : ''}`}>
                   {item.isCurrentStudent && item.fullName.toLowerCase() !== 'toi' ? `${item.fullName} (toi)` : item.fullName}
+                  {isCollectiveCompletion ? (a.done_at ? ' ✓' : ' • en cours') : ''}
                 </span>
               );
             })}
@@ -1057,7 +1232,7 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
               {loading[t.id + 'assign'] ? '...' : '✋ Je m\'en occupe'}
             </button>
           )}
-          {!isTeacher && canSelfAssignTasks && isMine && (t.status === 'in_progress' || t.status === 'available') && (
+          {!isTeacher && canSelfAssignTasks && isMine && (t.status === 'in_progress' || t.status === 'available') && !hasCompletedOwnAssignment && (
             <>
               <button className="btn btn-secondary btn-sm" onClick={() => setLogTask(t)}>
                 ✅ Marquer terminée
@@ -1069,6 +1244,9 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
               </button>
             </>
           )}
+          {!isTeacher && hasCompletedOwnAssignment && (
+            <span className="task-chip">✅ Ta partie est déjà marquée terminée</span>
+          )}
           {isTeacher && (
             <button
               className={`btn btn-sm ${isQuickAssignOpen ? 'btn-primary' : 'btn-ghost'}`}
@@ -1076,11 +1254,11 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
               onClick={() => {
                 if (isQuickAssignOpen) {
                   setQuickAssignTaskId(null);
-                  setQuickAssignStudentId('');
+                  setQuickAssignStudentIds([]);
                   return;
                 }
                 setQuickAssignTaskId(t.id);
-                setQuickAssignStudentId('');
+                setQuickAssignStudentIds([]);
               }}
               title={taskEffectiveStatus(t) === 'on_hold'
                 ? "Affectation désactivée (en attente)"
@@ -1090,23 +1268,83 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
             </button>
           )}
           {isTeacher && isQuickAssignOpen && (
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, width: '100%' }}>
-              <select
-                value={quickAssignStudentId}
-                onChange={(e) => setQuickAssignStudentId(e.target.value)}
-                disabled={loadingTeacherStudents || quickAssignBusy}
-                style={{ minWidth: 220, flex: 1 }}
-                title="Choisir un élève à inscrire"
-              >
-                <option value="">{loadingTeacherStudents ? 'Chargement élèves...' : 'Choisir un élève'}</option>
-                {teacherStudents.map((s) => (
-                  <option key={s.id} value={s.id}>{`${s.first_name || ''} ${s.last_name || ''}`.trim()}</option>
-                ))}
-              </select>
+            <div style={{ display: 'grid', gap: 8, width: '100%' }}>
+              {loadingTeacherStudents ? (
+                <p style={{ margin: 0, fontSize: '.82rem', color: '#666' }}>Chargement élèves...</p>
+              ) : (
+                <>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}>
+                    <span style={{ fontSize: '.8rem', color: '#666' }}>
+                      {quickAssignStudentIds.length} sélectionné{quickAssignStudentIds.length > 1 ? 's' : ''}
+                    </span>
+                    <span style={{ fontSize: '.8rem', color: quickAssignAssignableCount > quickAssignSlots ? '#b45309' : '#666' }}>
+                      {quickAssignAssignableCount}/{quickAssignSlots} place{quickAssignSlots > 1 ? 's' : ''} utilisable{quickAssignSlots > 1 ? 's' : ''}
+                    </span>
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      <button
+                        type="button"
+                        className="btn btn-ghost btn-sm"
+                        disabled={quickAssignBusy}
+                        onClick={() => setQuickAssignStudentIds(teacherStudents.map((s) => s.id))}
+                      >
+                        Tout sélectionner
+                      </button>
+                      <button
+                        type="button"
+                        className="btn btn-ghost btn-sm"
+                        disabled={quickAssignBusy}
+                        onClick={() => setQuickAssignStudentIds([])}
+                      >
+                        Effacer
+                      </button>
+                    </div>
+                  </div>
+                  <div style={{
+                    maxHeight: 160,
+                    overflowY: 'auto',
+                    border: '1px solid rgba(0,0,0,.08)',
+                    borderRadius: 10,
+                    padding: '6px 8px',
+                    background: 'var(--parchment, #faf8f3)',
+                    textAlign: 'left',
+                  }}>
+                    {teacherStudents.map((s) => {
+                      const fullName = `${s.first_name || ''} ${s.last_name || ''}`.trim();
+                      const checked = quickAssignStudentIds.includes(s.id);
+                      return (
+                        <label key={s.id} style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'flex-start',
+                          gap: 10,
+                          minHeight: 44,
+                          width: '100%',
+                          cursor: 'pointer',
+                          textAlign: 'left',
+                        }}>
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            disabled={quickAssignBusy}
+                            onChange={() => {
+                              setQuickAssignStudentIds((ids) => (
+                                ids.includes(s.id)
+                                  ? ids.filter((id) => id !== s.id)
+                                  : [...ids, s.id]
+                              ));
+                            }}
+                          />
+                          <span style={{ fontSize: '.88rem', textAlign: 'left', flex: 1 }}>{fullName || 'Élève'}</span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                </>
+              )}
               <button
                 className={`btn btn-sm ${canQuickAssign ? 'btn-primary' : 'btn-ghost'}`}
-                disabled={!canQuickAssign || quickAssignBusy}
-                onClick={() => runTeacherQuickAssign(t, selectedQuickAssignStudent)}
+                disabled={!canQuickAssign || quickAssignBusy || loadingTeacherStudents}
+                onClick={() => runTeacherQuickAssign(t, selectedQuickAssignStudents)}
                 title={quickAssignTitle}
               >
                 {quickAssignBusy ? '...' : 'Affecter'}
@@ -1346,65 +1584,6 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
         </details>
       )}
 
-      {visibleProjects.length > 0 && (
-        <div className="tasks-section">
-          <div className="tasks-section-title">📁 Projets ({visibleProjects.length})</div>
-          <div style={{ display: 'grid', gap: 8 }}>
-            {visibleProjects.map((p) => {
-              const projectTasksCount = tasks.filter((t) => String(t.project_id || '') === String(p.id || '')).length;
-              const projectStatus = p.status === 'on_hold' ? 'on_hold' : 'active';
-              const loadingActive = !!loading[`${p.id}projectactive`];
-              const loadingHold = !!loading[`${p.id}projecton_hold`];
-              return (
-                <div key={p.id} className="task-card" style={{ padding: 12 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                    <div>
-                      <div className="task-title" style={{ fontSize: '1rem' }}>📁 {p.title}</div>
-                      <div style={{ fontSize: '.82rem', color: '#666' }}>
-                        {p.map_label || mapLabelById(p.map_id)} · {projectTasksCount} tâche{projectTasksCount > 1 ? 's' : ''}
-                      </div>
-                      {p.status === 'on_hold' && (
-                        <div style={{ fontSize: '.82rem', color: '#92400e', marginTop: 4 }}>
-                          ⏸️ Projet en attente : inscriptions fermées, commentaires ouverts.
-                        </div>
-                      )}
-                    </div>
-                    {isTeacher ? (
-                      <div style={{ display: 'flex', gap: 6 }}>
-                        <button
-                          className={`btn btn-sm ${projectStatus === 'active' ? 'btn-primary' : 'btn-ghost'}`}
-                          disabled={projectStatus === 'active' || loadingActive}
-                          onClick={() => setProjectStatus(p, 'active')}
-                        >
-                          {loadingActive ? '...' : '✅ Actif'}
-                        </button>
-                        <button
-                          className={`btn btn-sm ${projectStatus === 'on_hold' ? 'btn-primary' : 'btn-ghost'}`}
-                          disabled={projectStatus === 'on_hold' || loadingHold}
-                          onClick={() => setProjectStatus(p, 'on_hold')}
-                        >
-                          {loadingHold ? '...' : '⏸️ En attente'}
-                        </button>
-                      </div>
-                    ) : (
-                      <span className="task-chip">{projectStatus === 'on_hold' ? '⏸️ En attente' : '✅ Actif'}</span>
-                    )}
-                  </div>
-                  <div style={{ marginTop: 8 }}>
-                    <ContextComments
-                      contextType="project"
-                      contextId={p.id}
-                      title="Commentaires du projet"
-                      placeholder="Partager une info utile sur ce projet..."
-                    />
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
       <div className="task-filters">
         <div className="tasks-view-switch" role="group" aria-label="Mode d'affichage des tâches">
           <button
@@ -1508,6 +1687,7 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
               <div className={sectionListClass}>{inProgress.map((t, idx) => <TaskCard key={t.id} t={t} index={idx} />)}</div>
             </div>
           )}
+          <ProjectsSection />
           {proposed.length > 0 && (
             <div className="tasks-section">
               <div className="tasks-section-title">💡 Propositions {roleTerms.studentPlural} ({proposed.length})</div>
@@ -1536,12 +1716,15 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
       ) : (
         <>
           {showStudentFilteredResults ? (
-            <div className="tasks-section">
-              <div className="tasks-section-title">
-                🔎 Résultats filtrés ({allFiltered.length})
+            <>
+              <div className="tasks-section">
+                <div className="tasks-section-title">
+                  🔎 Résultats filtrés ({regularFiltered.length})
+                </div>
+                <div className={sectionListClass}>{regularFiltered.map((t, idx) => <TaskCard key={t.id} t={t} index={idx} />)}</div>
               </div>
-              <div className={sectionListClass}>{allFiltered.map((t, idx) => <TaskCard key={t.id} t={t} index={idx} />)}</div>
-            </div>
+              <ProjectsSection />
+            </>
           ) : (
             <>
               {availableNotMine.length > 0 && (
@@ -1562,6 +1745,7 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
                 <div className={sectionListClass}>{inProgressNotMine.map((t, idx) => <TaskCard key={t.id} t={t} index={idx} />)}</div>
               </div>
               )}
+              <ProjectsSection />
               {doneNotMine.length > 0 && (
               <div className="tasks-section">
                 <div className="tasks-section-title">⏳ En attente de validation</div>

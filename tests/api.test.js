@@ -273,6 +273,25 @@ test('Assign puis unassign met à jour le statut de la tâche', async () => {
   assert.strictEqual(afterUnassign.body.status, 'available');
 });
 
+test('POST /api/tasks/:id/validate refuse une tâche non terminée', async () => {
+  const auth = await request(app)
+    .post('/api/auth/teacher')
+    .send({ pin: process.env.TEACHER_PIN || '1234' });
+  const token = auth.body.token;
+
+  const createRes = await request(app)
+    .post('/api/tasks')
+    .set('Authorization', 'Bearer ' + token)
+    .send({ title: `Validation guard ${Date.now()}`, required_students: 1 })
+    .expect(201);
+  const taskId = createRes.body.id;
+
+  await request(app)
+    .post(`/api/tasks/${taskId}/validate`)
+    .set('Authorization', 'Bearer ' + token)
+    .expect(400);
+});
+
 test('GET /api/tasks côté élève expose assigned_count global', async () => {
   const auth = await request(app)
     .post('/api/auth/teacher')
@@ -454,6 +473,34 @@ test("Le proposeur ne peut pas changer le statut d'une proposition", async () =>
     .put(`/api/tasks/${created.body.id}`)
     .set('Authorization', 'Bearer ' + studentRes.body.authToken)
     .send({ status: 'available' })
+    .expect(403);
+});
+
+test("Le proposeur ne peut pas changer le mode de validation d'une proposition", async () => {
+  const studentRes = await request(app)
+    .post('/api/auth/register')
+    .send({ firstName: 'Mode', lastName: 'Block' + Date.now(), password: 'pwd1' })
+    .expect(201);
+
+  const zones = await request(app).get('/api/zones').expect(200);
+  const zoneId = zones.body[0]?.id || 'pg';
+  const created = await request(app)
+    .post('/api/tasks/proposals')
+    .send({
+      title: `Proposition mode ${Date.now()}`,
+      description: 'Test blocage completion_mode',
+      zone_id: zoneId,
+      required_students: 1,
+      firstName: studentRes.body.first_name,
+      lastName: studentRes.body.last_name,
+      studentId: studentRes.body.id,
+    })
+    .expect(201);
+
+  await request(app)
+    .put(`/api/tasks/${created.body.id}`)
+    .set('Authorization', 'Bearer ' + studentRes.body.authToken)
+    .send({ completion_mode: 'all_assignees_done' })
     .expect(403);
 });
 

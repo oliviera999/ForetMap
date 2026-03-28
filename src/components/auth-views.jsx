@@ -1,6 +1,7 @@
 import React, { useEffect, useId, useMemo, useState } from 'react';
 import { api, saveStoredSession, withAppBase } from '../services/api';
 import { getRoleTerms } from '../utils/n3-terminology';
+import { getContentText } from '../utils/content';
 
 function startGoogleAuth(mode) {
   const safeMode = mode === 'teacher' ? 'teacher' : 'student';
@@ -287,6 +288,11 @@ function AuthScreen({ onLogin, appVersion, onVisitGuest, uiSettings, isN3Affilia
   const allowGoogleStudent = uiSettings?.auth?.allow_google_student !== false;
   const allowGuestVisit = uiSettings?.auth?.allow_guest_visit !== false;
   const welcomeMessage = String(uiSettings?.auth?.welcome_message || '').trim();
+  const authTitle = getContentText(uiSettings, 'auth.title', 'ForêtMap');
+  const authSubtitle = getContentText(uiSettings, 'auth.subtitle', 'ForetMap — Le terrain d’apprentissage vivant du lycée');
+  const loginTabLabel = getContentText(uiSettings, 'auth.login_tab', 'Connexion');
+  const registerTabLabel = getContentText(uiSettings, 'auth.register_tab', 'Créer un compte');
+  const guestVisitLabel = getContentText(uiSettings, 'auth.guest_visit_cta', '🧭 Visiter sans connexion');
 
   const resetTokenFromUrl = useMemo(() => {
     const params = new URLSearchParams(window.location.search);
@@ -412,17 +418,16 @@ function AuthScreen({ onLogin, appVersion, onVisitGuest, uiSettings, isN3Affilia
     <div className="auth-wrap">
       <div className="auth-card fade-in">
         <div style={{ fontSize: '2.5rem', marginBottom: 10 }}>🌿</div>
-        <h1>ForêtMap</h1>
-        <p className="sub">Atelier forêt comestible — Lycée Lyautey</p>
-        {welcomeMessage && <p className="sub" style={{ marginTop: -4 }}>{welcomeMessage}</p>}
+        <h1>{authTitle}</h1>
+        {welcomeMessage && <p className="sub">{welcomeMessage}</p>}
 
         <div className="auth-tabs">
           <button className={`auth-tab ${mode === 'login' ? 'active' : ''}`} onClick={() => { setMode('login'); setErr(''); setInfo(''); }}>
-            Connexion
+            {loginTabLabel}
           </button>
           {allowRegister && (
             <button className={`auth-tab ${mode === 'register' ? 'active' : ''}`} onClick={() => { setMode('register'); setErr(''); setInfo(''); }}>
-              Créer un compte
+              {registerTabLabel}
             </button>
           )}
         </div>
@@ -546,9 +551,11 @@ function AuthScreen({ onLogin, appVersion, onVisitGuest, uiSettings, isN3Affilia
         )}
         {onVisitGuest && allowGuestVisit && (
           <button className="btn btn-ghost btn-full" onClick={onVisitGuest} style={{ marginTop: 8 }}>
-            🧭 Visiter sans connexion
+            {guestVisitLabel}
           </button>
         )}
+        <p className="auth-home-tagline">{authSubtitle}</p>
+        <p className="auth-home-credit">projet initialement produit Mohammed El Farrai</p>
         {appVersion != null && <p className="auth-version">Version {appVersion}</p>}
       </div>
     </div>

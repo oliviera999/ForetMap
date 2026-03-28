@@ -131,6 +131,72 @@ test('POST /api/tasks accepte project_id et GET /api/tasks?project_id filtre cor
   assert.ok(listRes.body.some((t) => t.id === taskRes.body.id));
 });
 
+test('POST/PUT /api/tasks persiste completion_mode', async () => {
+  const created = await request(app)
+    .post('/api/tasks')
+    .set('Authorization', 'Bearer ' + teacherToken)
+    .send({
+      title: `Mode validation ${Date.now()}`,
+      map_id: 'foret',
+      required_students: 2,
+      completion_mode: 'all_assignees_done',
+    })
+    .expect(201);
+
+  assert.strictEqual(created.body.completion_mode, 'all_assignees_done');
+
+  const updated = await request(app)
+    .put(`/api/tasks/${created.body.id}`)
+    .set('Authorization', 'Bearer ' + teacherToken)
+    .send({ completion_mode: 'single_done' })
+    .expect(200);
+  assert.strictEqual(updated.body.completion_mode, 'single_done');
+});
+
+test('mode all_assignees_done: /done est idempotent pour un même élève', async () => {
+  const taskRes = await request(app)
+    .post('/api/tasks')
+    .set('Authorization', 'Bearer ' + teacherToken)
+    .send({
+      title: `Idempotence done ${Date.now()}`,
+      required_students: 1,
+      completion_mode: 'all_assignees_done',
+    })
+    .expect(201);
+  const taskId = taskRes.body.id;
+
+  await request(app)
+    .post(`/api/tasks/${taskId}/assign`)
+    .send({
+      firstName: studentData.first_name,
+      lastName: studentData.last_name,
+      studentId: studentData.id,
+    })
+    .expect(200);
+
+  const firstDone = await request(app)
+    .post(`/api/tasks/${taskId}/done`)
+    .send({
+      firstName: studentData.first_name,
+      lastName: studentData.last_name,
+      studentId: studentData.id,
+    })
+    .expect(200);
+  assert.strictEqual(Number(firstDone.body.assignees_done_count), 1);
+  assert.strictEqual(firstDone.body.status, 'done');
+
+  const secondDone = await request(app)
+    .post(`/api/tasks/${taskId}/done`)
+    .send({
+      firstName: studentData.first_name,
+      lastName: studentData.last_name,
+      studentId: studentData.id,
+    })
+    .expect(200);
+  assert.strictEqual(Number(secondDone.body.assignees_done_count), 1);
+  assert.strictEqual(secondDone.body.status, 'done');
+});
+
 test('DELETE /api/task-projects conserve les tâches et remet project_id à NULL', async () => {
   const projectRes = await request(app)
     .post('/api/task-projects')
