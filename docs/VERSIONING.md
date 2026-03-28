@@ -17,6 +17,39 @@
 
 Pendant le développement, ajouter les changements notables sous **`[Non publié]`** dans `CHANGELOG.md`.
 
+## Shell PowerShell : éviter les échecs heredoc
+
+Dans cet environnement, le shell par défaut est **PowerShell**.  
+Les syntaxes Bash de type `<<'EOF'` (heredoc/heredity) peuvent échouer pendant les commits.
+
+Utiliser l'une des méthodes suivantes pour les messages multi-lignes :
+
+### Option A — Here-string PowerShell (recommandé)
+
+```powershell
+git add -A
+$msg = @'
+feat(scope): titre du commit
+
+Corps du message sur plusieurs lignes.
+'@
+git commit -m $msg
+```
+
+### Option B — Fichier temporaire de message
+
+```powershell
+git add -A
+$msgFile = Join-Path $env:TEMP "git-commit-msg.txt"
+@'
+feat(scope): titre du commit
+
+Corps du message sur plusieurs lignes.
+'@ | Set-Content -Path $msgFile -Encoding UTF8
+git commit -F $msgFile
+Remove-Item $msgFile -ErrorAction SilentlyContinue
+```
+
 ## Publier une release (recommandé : un seul commit)
 
 `npm version` seul ne commite **que** `package.json` ; pour garder **CHANGELOG + version dans le même commit** :

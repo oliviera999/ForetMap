@@ -79,6 +79,23 @@ Après toute tâche terminée et vérifiée, **toujours** exécuter ces étapes 
 
 Ne pas attendre : **chaque modification livrée = un commit poussé**.
 
+## PowerShell : commits multi-lignes sans heredoc Bash
+
+Si le shell est PowerShell, éviter `<<'EOF'` (syntaxe Bash) pour `git commit`.
+
+- Méthode recommandée :
+  ```powershell
+  git add -A
+  $msg = @'
+  type(scope): description — vX.Y.Z
+
+  Détails du commit...
+  '@
+  git commit -m $msg
+  git push
+  ```
+- Alternative robuste : écrire le message dans un fichier temporaire puis `git commit -F <fichier>`.
+
 ## Rappel pour l'IA
 
 - Toujours refléter les changements utilisateur dans `[Non publié]` du CHANGELOG quand c'est pertinent.

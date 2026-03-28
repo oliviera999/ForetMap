@@ -102,6 +102,39 @@ function normalizeTutorialIds(ids) {
   return [...unique];
 }
 
+function normalizeDateOnly(value) {
+  const raw = String(value || '').trim();
+  if (!raw) return null;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw;
+  const parsed = new Date(raw);
+  if (Number.isNaN(parsed.getTime())) return null;
+  return parsed.toISOString().slice(0, 10);
+}
+
+function currentLocalDateOnly() {
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = String(now.getMonth() + 1).padStart(2, '0');
+  const d = String(now.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
+function isBeforeTaskStartDate(task) {
+  const startDate = normalizeDateOnly(task?.start_date);
+  if (!startDate) return false;
+  return startDate > currentLocalDateOnly();
+}
+
+function startDateChip(startDate) {
+  const normalized = normalizeDateOnly(startDate);
+  if (!normalized) return null;
+  const parsed = new Date(`${normalized}T00:00:00`);
+  const label = Number.isNaN(parsed.getTime())
+    ? normalized
+    : parsed.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' });
+  return <span className="task-chip">🚦 Départ: {label}</span>;
+}
+
 function TaskFormModal({
   zones,
   markers = [],
@@ -130,6 +163,7 @@ function TaskFormModal({
     marker_ids: initialLocationIds(editTask, 'marker_ids', 'marker_id'),
     tutorial_ids: normalizeTutorialIds(initialLocationIds(editTask, 'tutorial_ids', 'tutorial_id')),
     project_id: editTask.project_id || '',
+    start_date: editTask.start_date || '',
     due_date: editTask.due_date || '',
     required_students: editTask.required_students || 1,
     recurrence: editTask.recurrence || '',
@@ -138,7 +172,7 @@ function TaskFormModal({
     title: '', description: '', map_id: initialMapId || '',
     zone_ids: [], marker_ids: [], tutorial_ids: [],
     project_id: '',
-    due_date: '', required_students: 1, recurrence: '',
+    start_date: '', due_date: '', required_students: 1, recurrence: '',
     assign_student_id: ''
   });
   const [saving, setSaving] = useState(false);
@@ -245,6 +279,7 @@ function TaskFormModal({
       marker_ids: [...new Set(form.marker_ids.map((id) => String(id || '').trim()).filter(Boolean))],
       tutorial_ids: normalizedTutorialIds,
       project_id: form.project_id || null,
+      start_date: form.start_date || null,
       due_date: form.due_date || null,
       required_students: form.required_students,
       recurrence: form.recurrence || null,
@@ -398,6 +433,7 @@ function TaskFormModal({
           <div className="field"><label>{terms.studentPlural.charAt(0).toUpperCase() + terms.studentPlural.slice(1)} requis</label>
             <input type="number" min="1" max="10" value={form.required_students} onChange={set('required_students')} />
           </div>
+          <div className="field"><label>Date de départ</label><input type="date" value={form.start_date} onChange={set('start_date')} /></div>
           <div className="field"><label>Date limite</label><input type="date" value={form.due_date} onChange={set('due_date')} /></div>
         </div>
         {enableInitialAssignment && !isProposal && !editTask && !isDuplicate && (
@@ -657,11 +693,14 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
   };
 
   const taskEffectiveMapId = (task) => task.map_id_resolved || task.map_id || task.zone_map_id || task.marker_map_id || null;
-  const taskEffectiveStatus = (task) => (
-    task?.status === 'on_hold' || task?.project_status === 'on_hold'
-      ? 'on_hold'
-      : (task?.status || 'available')
-  );
+  const taskEffectiveStatus = (task) => {
+    const baseStatus = task?.status || 'available';
+    if (baseStatus === 'done' || baseStatus === 'validated' || baseStatus === 'proposed') return baseStatus;
+    if (baseStatus === 'on_hold' || task?.project_status === 'on_hold' || task?.is_before_start_date || isBeforeTaskStartDate(task)) {
+      return 'on_hold';
+    }
+    return baseStatus;
+  };
 
   const withLoad = async (id, fn) => {
     setLoading(l => ({ ...l, [id]: true }));
@@ -981,6 +1020,7 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
           ))}
           {t.project_title && <span className="task-chip">📁 {t.project_title}</span>}
           {t.project_title && t.project_status === 'on_hold' && <span className="task-chip">⏸️ Projet en attente</span>}
+          {startDateChip(t.start_date)}
           {isTeacher && t.status === 'proposed' && proposalMeta.proposer && (
             <span className="task-chip proposal">🙋 Proposée par {proposalMeta.proposer}</span>
           )}

@@ -385,41 +385,58 @@ function App() {
 
   const fetchAll = useCallback(async () => {
     try {
+      const safeApi = async (request, fallbackValue) => {
+        try {
+          return await request();
+        } catch (err) {
+          if (err instanceof AccountDeletedError) throw err;
+          console.error(err);
+          return fallbackValue;
+        }
+      };
+
       const restrictedMapIds = (!effectiveIsTeacher && !showPublicVisit)
         ? allowedMapIdsFromAffiliation(student?.affiliation)
         : null;
-      const requestedMapId = (restrictedMapIds && !restrictedMapIds.includes(activeMapId))
-        ? restrictedMapIds[0]
-        : activeMapId;
-      const mapQuery = `map_id=${encodeURIComponent(requestedMapId)}`;
-      const tutorialsEndpoint = canManageTutorials
-        ? '/api/tutorials?include_inactive=1'
-        : '/api/tutorials';
-      const tasksEndpoint = `/api/tasks?${mapQuery}`;
-      const taskProjectsEndpoint = `/api/task-projects?${mapQuery}`;
-      const [mapsRes, z, t, taskProjectsRes, p, m, tu] = await Promise.all([
-        api('/api/maps').catch(() => DEFAULT_MAPS),
-        api(`/api/zones?${mapQuery}`),
-        api(tasksEndpoint),
-        api(taskProjectsEndpoint).catch(() => []),
-        api('/api/plants'),
-        api(`/api/map/markers?${mapQuery}`),
-        api(tutorialsEndpoint),
-      ]);
+
+      const mapsRes = await safeApi(() => api('/api/maps'), DEFAULT_MAPS);
       const safeMaps = Array.isArray(mapsRes) && mapsRes.length > 0 ? mapsRes : DEFAULT_MAPS;
       setMaps(safeMaps);
+
       const activeMaps = safeMaps.filter((mp) => mp.is_active !== false);
       const allowedMaps = activeMaps.length > 0 ? activeMaps : safeMaps;
       const affiliationAllowedMaps = restrictedMapIds
         ? allowedMaps.filter((mp) => restrictedMapIds.includes(mp.id))
         : allowedMaps;
       const visibleAllowedMaps = affiliationAllowedMaps.length > 0 ? affiliationAllowedMaps : allowedMaps;
-      if (!visibleAllowedMaps.some(mp => mp.id === activeMapId)) {
-        const defaultMap = showPublicVisit
-          ? publicSettings?.map?.default_map_visit
-          : (effectiveIsTeacher ? publicSettings?.map?.default_map_teacher : publicSettings?.map?.default_map_student);
-        const fallbackMap = visibleAllowedMaps.find((mp) => mp.id === defaultMap)?.id || visibleAllowedMaps[0]?.id || 'foret';
-        setActiveMapId(fallbackMap);
+      const requestedMapId = (restrictedMapIds && !restrictedMapIds.includes(activeMapId))
+        ? restrictedMapIds[0]
+        : activeMapId;
+      const defaultMap = showPublicVisit
+        ? publicSettings?.map?.default_map_visit
+        : (effectiveIsTeacher ? publicSettings?.map?.default_map_teacher : publicSettings?.map?.default_map_student);
+      const fallbackMap = visibleAllowedMaps.find((mp) => mp.id === defaultMap)?.id
+        || visibleAllowedMaps[0]?.id
+        || 'foret';
+      const resolvedMapId = visibleAllowedMaps.some((mp) => mp.id === requestedMapId)
+        ? requestedMapId
+        : fallbackMap;
+      const mapQuery = `map_id=${encodeURIComponent(resolvedMapId)}`;
+
+      const tutorialsEndpoint = canManageTutorials
+        ? '/api/tutorials?include_inactive=1'
+        : '/api/tutorials';
+      const [z, t, taskProjectsRes, p, m, tu] = await Promise.all([
+        safeApi(() => api(`/api/zones?${mapQuery}`), []),
+        safeApi(() => api(`/api/tasks?${mapQuery}`), []),
+        safeApi(() => api(`/api/task-projects?${mapQuery}`), []),
+        safeApi(() => api('/api/plants'), []),
+        safeApi(() => api(`/api/map/markers?${mapQuery}`), []),
+        safeApi(() => api(tutorialsEndpoint), []),
+      ]);
+
+      if (resolvedMapId !== activeMapId) {
+        setActiveMapId(resolvedMapId);
       }
       setZones(z); setTasks(t); setTaskProjects(Array.isArray(taskProjectsRes) ? taskProjectsRes : []);
       setPlants(p); setMarkers(m); setTutorials(tu);

@@ -18,6 +18,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ### Ajouté
 - **Projets de tâches + mise en pause** : ajout des routes et du schéma associés à la gestion des projets de tâches et au statut `on_hold`, avec migration SQL dédiée et tests backend mis à jour.
+- **Date de départ facultative des tâches** : ajout du champ `start_date` (UI + API + SQL) ; avant cette date, la tâche reste en attente et l’inscription élève est bloquée.
 - **Commentaires contextuels multi-espaces** : ajout d’un module complet de commentaires (`/api/context-comments`) pour les contextes tâche/projet/zone avec pagination, suppression modérée, signalement anti-doublon, audit et diffusion temps réel Socket.IO.
 - **Tables SQL de commentaires contextuels** : nouvelles tables `context_comments` et `context_comment_reports` avec index dédiés, suppression logique et contrainte FK de nettoyage des signalements.
 - **Contrôle de concurrence sessions collectives** : ajout d’un versionnement optimiste (`collective_sessions.version`) avec `expectedVersion` sur les écritures, plus opérations bulk tâches/élèves pour les animations de séance.
@@ -103,6 +104,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - **Navigation/auth** : ajout d’un CTA « Visiter sans connexion » dans l’écran d’authentification et intégration de l’onglet `Visite` dans les navigations élève/prof.
 
 ### Corrigé
+- **Chargement initial résilient (prod)** : l’écran n’est plus vidé si un endpoint API échoue (ex. `map_id` invalide) ; chaque ressource retombe sur une valeur de secours et la carte active est automatiquement reroutée vers une carte valide.
 - **Inscrits visibles pour les élèves** : `GET /api/tasks` renvoie de nouveau les participants d’une tâche pour les élèves non visiteurs (noms/prénoms), tout en conservant la restriction lecture seule pour le rôle visiteur.
 - **Statuts tâches (API + notifications prof)** : normalisation robuste des statuts invalides/vides en `available` côté lecture/édition, et notifications “propositions élèves” enrichies pour n’alerter que lors de vrais changements de liste.
 - **Paramètres admin (mobile)** : rétablissement du scroll vertical et refonte responsive des blocs en colonne unique sur smartphone (sections paramètres, cartes/plans et actions système) pour éviter les blocages de navigation tactile.

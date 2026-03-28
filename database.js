@@ -5,8 +5,8 @@ const path = require('path');
 const fs = require('fs');
 const logger = require('./lib/logger');
 
-/** Errnos MySQL souvent attendus lors de migrations idempotentes (table/colonne/index déjà présents). */
-const MYSQL_MIGRATION_EXPECTED_ERRNO = new Set([1050, 1060, 1061, 1091, 1826]);
+/** Errnos MySQL souvent attendus lors de migrations idempotentes (table/colonne/index déjà présents ou legacy absent). */
+const MYSQL_MIGRATION_EXPECTED_ERRNO = new Set([1050, 1060, 1061, 1091, 1146, 1826]);
 
 function migrationStmtSnippet(stmt) {
   const s = (stmt || '').replace(/\s+/g, ' ').trim();
@@ -135,6 +135,90 @@ function stripSqlComments(fragment) {
 }
 
 /**
+ * Découpe un script SQL en statements en ignorant les ';' à l'intérieur
+ * des chaînes (`'...'`, `"..."`, `` `...` ``) et des commentaires.
+ */
+function splitSqlStatements(sqlText) {
+  const statements = [];
+  let current = '';
+  let inSingle = false;
+  let inDouble = false;
+  let inBacktick = false;
+  let inLineComment = false;
+  let inBlockComment = false;
+
+  for (let i = 0; i < sqlText.length; i += 1) {
+    const ch = sqlText[i];
+    const next = i + 1 < sqlText.length ? sqlText[i + 1] : '';
+    const prev = i > 0 ? sqlText[i - 1] : '';
+
+    if (inLineComment) {
+      if (ch === '\n') {
+        inLineComment = false;
+        current += ch;
+      }
+      continue;
+    }
+
+    if (inBlockComment) {
+      if (ch === '*' && next === '/') {
+        inBlockComment = false;
+        i += 1;
+      }
+      continue;
+    }
+
+    if (!inSingle && !inDouble && !inBacktick) {
+      if (ch === '-' && next === '-' && (i === 0 || /\s/.test(prev))) {
+        inLineComment = true;
+        i += 1;
+        continue;
+      }
+      if (ch === '/' && next === '*') {
+        inBlockComment = true;
+        i += 1;
+        continue;
+      }
+      if (ch === ';') {
+        const stmt = stripSqlComments(current);
+        if (stmt) statements.push(stmt);
+        current = '';
+        continue;
+      }
+    }
+
+    current += ch;
+
+    if (!inDouble && !inBacktick && ch === "'") {
+      // MySQL autorise '' comme quote échappée.
+      if (inSingle && next === "'") {
+        current += next;
+        i += 1;
+        continue;
+      }
+      if (prev !== '\\') inSingle = !inSingle;
+      continue;
+    }
+    if (!inSingle && !inBacktick && ch === '"') {
+      if (prev !== '\\') inDouble = !inDouble;
+      continue;
+    }
+    if (!inSingle && !inDouble && ch === '`') {
+      if (inBacktick && next === '`') {
+        current += next;
+        i += 1;
+        continue;
+      }
+      inBacktick = !inBacktick;
+    }
+  }
+
+  const tail = stripSqlComments(current);
+  if (tail) statements.push(tail);
+  return statements;
+}
+
+/**
  * Initialise le schéma MySQL (tables) à partir de sql/schema_foretmap.sql.
  * Idempotent : peut être rappelé sans effet de bord si les tables existent déjà.
  * @throws si le fichier est introuvable ou si l'exécution SQL échoue
@@ -148,10 +232,7 @@ async function initSchema() {
     );
   }
   const sql = fs.readFileSync(schemaPath, 'utf8');
-  const statements = sql
-    .split(';')
-    .map(s => stripSqlComments(s))
-    .filter(s => s.length > 0);
+  const statements = splitSqlStatements(sql);
   const conn = await pool.getConnection();
   try {
     for (const stmt of statements) {
@@ -194,7 +275,7 @@ async function runMigrations(conn) {
   if (current < 0 && files.length > 0) {
     const first = files[0];
     const sql = fs.readFileSync(path.join(migrationsDir, first), 'utf8');
-    const statements = sql.split(';').map(s => stripSqlComments(s)).filter(s => s.length > 0);
+    const statements = splitSqlStatements(sql);
     for (const stmt of statements) {
       try {
         await conn.query(stmt);
@@ -210,7 +291,7 @@ async function runMigrations(conn) {
     const num = parseInt(file.slice(0, 3), 10);
     if (num <= current) continue;
     const sql = fs.readFileSync(path.join(migrationsDir, file), 'utf8');
-    const statements = sql.split(';').map(s => stripSqlComments(s)).filter(s => s.length > 0);
+    const statements = splitSqlStatements(sql);
     for (const stmt of statements) {
       try {
         await conn.query(stmt);

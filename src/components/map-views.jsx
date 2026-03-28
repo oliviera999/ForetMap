@@ -232,9 +232,38 @@ function taskOpenSlots(task) {
   return Math.max(0, required - assigned);
 }
 
+function normalizeDateOnly(value) {
+  const raw = String(value || '').trim();
+  if (!raw) return null;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw;
+  const parsed = new Date(raw);
+  if (Number.isNaN(parsed.getTime())) return null;
+  return parsed.toISOString().slice(0, 10);
+}
+
+function currentLocalDateOnly() {
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = String(now.getMonth() + 1).padStart(2, '0');
+  const d = String(now.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
+function taskEffectiveStatus(task) {
+  const baseStatus = task?.status || 'available';
+  if (baseStatus === 'done' || baseStatus === 'validated' || baseStatus === 'proposed') return baseStatus;
+  const startDate = normalizeDateOnly(task?.start_date);
+  const blockedByStartDate = !!startDate && startDate > currentLocalDateOnly();
+  if (baseStatus === 'on_hold' || task?.project_status === 'on_hold' || task?.is_before_start_date || blockedByStartDate) {
+    return 'on_hold';
+  }
+  return baseStatus;
+}
+
 function canStudentAssignTask(task, student) {
   if (!task || !student) return false;
-  if (task.status === 'validated' || task.status === 'done') return false;
+  const effectiveStatus = taskEffectiveStatus(task);
+  if (effectiveStatus === 'validated' || effectiveStatus === 'done' || effectiveStatus === 'on_hold') return false;
   if (isTaskAssignedToStudent(task, student)) return false;
   return taskOpenSlots(task) > 0;
 }
@@ -242,12 +271,16 @@ function canStudentAssignTask(task, student) {
 function taskEnrollmentMeta(task, student) {
   const isMine = isTaskAssignedToStudent(task, student);
   const slots = taskOpenSlots(task);
-  const isClosed = task?.status === 'validated' || task?.status === 'done';
+  const effectiveStatus = taskEffectiveStatus(task);
+  const isClosed = effectiveStatus === 'validated' || effectiveStatus === 'done';
   if (isMine) {
     return { tone: '#0f766e', bg: '#f0fdfa', border: '#99f6e4', dot: '●', label: 'Déjà prise par toi' };
   }
+  if (effectiveStatus === 'on_hold') {
+    return { tone: '#92400e', bg: '#fffbeb', border: '#fde68a', dot: '●', label: 'En attente' };
+  }
   if (isClosed) {
-    return { tone: '#92400e', bg: '#fffbeb', border: '#fde68a', dot: '●', label: task.status === 'done' ? 'Terminée (en attente)' : 'Validée' };
+    return { tone: '#92400e', bg: '#fffbeb', border: '#fde68a', dot: '●', label: effectiveStatus === 'done' ? 'Terminée (en attente)' : 'Validée' };
   }
   if (slots <= 0) {
     return { tone: '#991b1b', bg: '#fef2f2', border: '#fecaca', dot: '●', label: 'Complet' };
@@ -282,6 +315,7 @@ const TASK_VISUAL_LABEL = {
 };
 
 function taskVisualStatus(status) {
+  if (status === 'on_hold') return null;
   if (status === 'available') return 'todo';
   if (status === 'in_progress') return 'progress';
   if (status === 'done' || status === 'validated') return 'done';
@@ -1355,7 +1389,7 @@ function MapView({ zones, markers, tasks = [], plants, maps = [], activeMapId = 
     const markerMap = new Map();
     for (const t of tasks || []) {
       if (isTaskDetachedFromLocation(t)) continue;
-      const visual = taskVisualStatus(t.status);
+      const visual = taskVisualStatus(taskEffectiveStatus(t));
       if (!visual) continue;
       const { zoneIds, markerIds } = taskLocationIds(t);
       zoneIds.forEach((id) => {

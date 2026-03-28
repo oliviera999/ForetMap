@@ -149,7 +149,7 @@ router.get(
   requirePermission('admin.roles.manage', { needsElevation: true }),
   async (req, res) => {
     try {
-      const roles = await queryAll('SELECT id, slug, display_name, rank, is_system FROM roles ORDER BY rank DESC, id ASC');
+      const roles = await queryAll('SELECT id, slug, display_name, `rank` AS `rank`, is_system FROM roles ORDER BY `rank` DESC, id ASC');
       const perms = await queryAll('SELECT `key`, label, description FROM permissions ORDER BY `key` ASC');
       const rolePerms = await queryAll(
         'SELECT role_id, permission_key, requires_elevation FROM role_permissions ORDER BY role_id ASC, permission_key ASC'
@@ -179,8 +179,8 @@ router.post(
       const displayName = String(req.body?.display_name || '').trim();
       const rank = Number.isFinite(parseInt(req.body?.rank, 10)) ? parseInt(req.body.rank, 10) : 100;
       if (!slug || !displayName) return res.status(400).json({ error: 'slug et display_name requis' });
-      await execute('INSERT INTO roles (slug, display_name, rank, is_system) VALUES (?, ?, ?, 0)', [slug, displayName, rank]);
-      const role = await queryOne('SELECT id, slug, display_name, rank, is_system FROM roles WHERE slug = ? LIMIT 1', [slug]);
+      await execute('INSERT INTO roles (slug, display_name, `rank`, is_system) VALUES (?, ?, ?, 0)', [slug, displayName, rank]);
+      const role = await queryOne('SELECT id, slug, display_name, `rank` AS `rank`, is_system FROM roles WHERE slug = ? LIMIT 1', [slug]);
       logAudit('rbac_create_profile', 'role', role?.id || null, slug, { req });
       res.status(201).json(role);
     } catch (e) {
@@ -201,8 +201,8 @@ router.patch(
       const displayName = String(req.body?.display_name || '').trim();
       const rank = Number.isFinite(parseInt(req.body?.rank, 10)) ? parseInt(req.body.rank, 10) : null;
       if (!displayName) return res.status(400).json({ error: 'display_name requis' });
-      await execute('UPDATE roles SET display_name = ?, rank = COALESCE(?, rank), updated_at = NOW() WHERE id = ?', [displayName, rank, role.id]);
-      const updated = await queryOne('SELECT id, slug, display_name, rank, is_system FROM roles WHERE id = ?', [role.id]);
+      await execute('UPDATE roles SET display_name = ?, `rank` = COALESCE(?, `rank`), updated_at = NOW() WHERE id = ?', [displayName, rank, role.id]);
+      const updated = await queryOne('SELECT id, slug, display_name, `rank` AS `rank`, is_system FROM roles WHERE id = ?', [role.id]);
       logAudit('rbac_update_profile', 'role', role.id, updated?.slug || String(role.id), { req });
       res.json(updated);
     } catch (e) {

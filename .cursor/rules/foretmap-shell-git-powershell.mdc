@@ -1,0 +1,13 @@
+---
+description: Sécuriser les commits Git multi-lignes sous PowerShell
+alwaysApply: true
+---
+
+# Git multi-lignes sous PowerShell
+
+- En shell PowerShell, **ne jamais** utiliser heredoc Bash (`<<'EOF'`) pour `git commit`.
+- Si un message de commit multi-lignes est nécessaire, utiliser :
+  - **Here-string PowerShell** : `$msg = @' ... '@` puis `git commit -m $msg`
+  - ou **fichier de message** : `git commit -F <fichier-temp>`
+- En PowerShell, préférer `;` pour chaîner les commandes plutôt que `&&` si la compatibilité est incertaine.
+- Si une commande Git échoue pour une raison de syntaxe shell, relancer immédiatement avec l’alternative PowerShell (sans modifier le contenu fonctionnel du commit).

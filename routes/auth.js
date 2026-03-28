@@ -305,7 +305,7 @@ async function resolveLoginUserType(user) {
        FROM user_roles ur
        INNER JOIN roles r ON r.id = ur.role_id
       WHERE ur.user_id = ? AND ur.is_primary = 1
-      ORDER BY r.rank DESC, ur.assigned_at ASC
+      ORDER BY r.\`rank\` DESC, ur.assigned_at ASC
       LIMIT 1`,
     [user?.id]
   );

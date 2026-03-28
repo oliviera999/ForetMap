@@ -13,6 +13,7 @@ let taskId;
 let taskIdMulti;
 let taskIdTeacherFlow;
 let taskIdOnHold;
+let taskIdFutureStart;
 let studentId;
 let studentToken;
 const firstName = `St${Date.now()}`;
@@ -61,6 +62,16 @@ before(async () => {
     .set('Authorization', `Bearer ${teacherToken}`)
     .send({ status: 'on_hold' })
     .expect(200);
+
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  const tomorrowStr = tomorrow.toISOString().slice(0, 10);
+  const taskFutureStart = await request(app)
+    .post('/api/tasks')
+    .set('Authorization', `Bearer ${teacherToken}`)
+    .send({ title: 'Tâche date de départ future', required_students: 1, start_date: tomorrowStr })
+    .expect(201);
+  taskIdFutureStart = taskFutureStart.body.id;
 });
 
 describe('Recalcul statuts tâches', () => {
@@ -110,6 +121,14 @@ describe('Recalcul statuts tâches', () => {
   it('assign refuse une tâche en attente', async () => {
     await request(app)
       .post(`/api/tasks/${taskIdOnHold}/assign`)
+      .set('Authorization', `Bearer ${studentToken}`)
+      .send({ firstName, lastName, studentId })
+      .expect(400);
+  });
+
+  it('assign refuse une tâche dont la date de départ n\'est pas atteinte', async () => {
+    await request(app)
+      .post(`/api/tasks/${taskIdFutureStart}/assign`)
       .set('Authorization', `Bearer ${studentToken}`)
       .send({ firstName, lastName, studentId })
       .expect(400);

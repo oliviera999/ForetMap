@@ -20,6 +20,7 @@ const IMPORT_TEMPLATE_COLUMNS = [
   'Description projet',
   'Tâche',
   'Description tâche',
+  'Date de départ (YYYY-MM-DD)',
   'Date limite (YYYY-MM-DD)',
   'Élèves requis',
   'Statut (available|in_progress|done|validated|proposed|on_hold)',
@@ -48,6 +49,10 @@ const IMPORT_HEADER_ALIASES = new Map([
   ['description_tache', 'taskDescription'],
   ['description_tâche', 'taskDescription'],
   ['task_description', 'taskDescription'],
+  ['date_de_depart', 'startDate'],
+  ['date_debut', 'startDate'],
+  ['start_date', 'startDate'],
+  ['start', 'startDate'],
   ['date_limite', 'dueDate'],
   ['due_date', 'dueDate'],
   ['deadline', 'dueDate'],
@@ -134,6 +139,31 @@ function normalizeImportDueDate(value) {
   return parsed.toISOString().slice(0, 10);
 }
 
+function normalizeDateOnly(value) {
+  const raw = asTrimmedString(value);
+  if (!raw) return null;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw;
+  const parsed = new Date(raw);
+  if (Number.isNaN(parsed.getTime())) return null;
+  return parsed.toISOString().slice(0, 10);
+}
+
+function currentLocalDateOnly() {
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = String(now.getMonth() + 1).padStart(2, '0');
+  const d = String(now.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
+function isTaskBeforeStartDate(task) {
+  const status = normalizeTaskStatusForRead(task?.status);
+  if (status === 'done' || status === 'validated' || status === 'proposed') return false;
+  const startDate = normalizeDateOnly(task?.start_date);
+  if (!startDate) return false;
+  return startDate > currentLocalDateOnly();
+}
+
 function parseWorkbookRowsFromBuffer(buffer) {
   const wb = XLSX.read(buffer, { type: 'buffer', raw: false, cellDates: false });
   const first = wb.SheetNames[0];
@@ -206,6 +236,7 @@ function buildImportPayload(row = {}) {
     projectDescription: normalizeOptionalString(mapped.projectDescription),
     taskTitle: normalizeOptionalString(mapped.taskTitle),
     taskDescription: normalizeOptionalString(mapped.taskDescription),
+    startDate: normalizeDateOnly(mapped.startDate),
     dueDate: normalizeImportDueDate(mapped.dueDate),
     requiredStudents: normalizeImportRequiredStudents(mapped.requiredStudents),
     status: normalizeImportTaskStatus(mapped.status),
@@ -233,6 +264,7 @@ function buildImportTemplateWorkbookRows() {
       [IMPORT_TEMPLATE_COLUMNS[7]]: '',
       [IMPORT_TEMPLATE_COLUMNS[8]]: '',
       [IMPORT_TEMPLATE_COLUMNS[9]]: '',
+      [IMPORT_TEMPLATE_COLUMNS[10]]: '',
     },
     {
       [IMPORT_TEMPLATE_COLUMNS[0]]: 'task',
@@ -241,10 +273,11 @@ function buildImportTemplateWorkbookRows() {
       [IMPORT_TEMPLATE_COLUMNS[3]]: '',
       [IMPORT_TEMPLATE_COLUMNS[4]]: 'Préparer les godets',
       [IMPORT_TEMPLATE_COLUMNS[5]]: 'Nettoyer puis remplir les godets de substrat.',
-      [IMPORT_TEMPLATE_COLUMNS[6]]: '2026-04-15',
-      [IMPORT_TEMPLATE_COLUMNS[7]]: '2',
-      [IMPORT_TEMPLATE_COLUMNS[8]]: 'available',
-      [IMPORT_TEMPLATE_COLUMNS[9]]: 'weekly',
+      [IMPORT_TEMPLATE_COLUMNS[6]]: '2026-04-01',
+      [IMPORT_TEMPLATE_COLUMNS[7]]: '2026-04-15',
+      [IMPORT_TEMPLATE_COLUMNS[8]]: '2',
+      [IMPORT_TEMPLATE_COLUMNS[9]]: 'available',
+      [IMPORT_TEMPLATE_COLUMNS[10]]: 'weekly',
     },
   ];
 }
@@ -606,6 +639,7 @@ async function getTaskWithAssignments(taskId) {
   const tm = await fetchTutorialsForTasks([taskId]);
   enrichTaskRow(task, zm.get(taskId), mm.get(taskId), tm.get(taskId));
   task.status = normalizeTaskStatusForRead(task.status);
+  task.is_before_start_date = isTaskBeforeStartDate(task);
   if (!task.zone_name && task.zone_name_legacy) task.zone_name = task.zone_name_legacy;
   if (!task.marker_label && task.marker_label_legacy) task.marker_label = task.marker_label_legacy;
   delete task.zone_name_legacy;
@@ -805,6 +839,7 @@ router.get('/', async (req, res) => {
       const row = { ...t };
       enrichTaskRow(row, zm.get(t.id), mm.get(t.id), tutorialsMap.get(t.id));
       row.status = normalizeTaskStatusForRead(row.status);
+      row.is_before_start_date = isTaskBeforeStartDate(row);
       delete row.map_id_resolved_join;
       row.assignments = assignmentsByTask.get(t.id) || [];
       row.assigned_count = assignedCountByTask.get(t.id) || 0;
@@ -945,6 +980,9 @@ router.post('/import', requirePermission('tasks.manage', { needsElevation: true 
         if (asTrimmedString(mapImportRow(row).dueDate) && !payload.dueDate) {
           errors.push({ row: rowNumber, field: 'due_date', error: 'Date limite invalide' });
         }
+        if (asTrimmedString(mapImportRow(row).startDate) && !payload.startDate) {
+          errors.push({ row: rowNumber, field: 'start_date', error: 'Date de départ invalide' });
+        }
       }
 
       if (errors.length) {
@@ -974,6 +1012,7 @@ router.post('/import', requirePermission('tasks.manage', { needsElevation: true 
           projectTitle: payload.projectTitle,
           title: payload.taskTitle,
           description: payload.taskDescription,
+          startDate: payload.startDate,
           dueDate: payload.dueDate,
           requiredStudents: payload.requiredStudents ?? 1,
           status: payload.status || 'available',
@@ -1081,13 +1120,14 @@ router.post('/import', requirePermission('tasks.manage', { needsElevation: true 
         : null;
       const id = uuidv4();
       await execute(
-        'INSERT INTO tasks (id, title, description, map_id, project_id, zone_id, marker_id, due_date, required_students, status, recurrence, created_at) VALUES (?, ?, ?, ?, ?, NULL, NULL, ?, ?, ?, ?, ?)',
+        'INSERT INTO tasks (id, title, description, map_id, project_id, zone_id, marker_id, start_date, due_date, required_students, status, recurrence, created_at) VALUES (?, ?, ?, ?, ?, NULL, NULL, ?, ?, ?, ?, ?, ?)',
         [
           id,
           task.title,
           task.description || '',
           task.resolvedMapId,
           existingProject?.id || null,
+          task.startDate || null,
           task.dueDate || null,
           task.requiredStudents || 1,
           task.status || 'available',
@@ -1117,7 +1157,7 @@ router.post('/import', requirePermission('tasks.manage', { needsElevation: true 
 
 router.post('/', requirePermission('tasks.manage', { needsElevation: true }), async (req, res) => {
   try {
-    const { title, description, zone_id, marker_id, zone_ids, marker_ids, tutorial_ids, map_id, project_id, due_date, required_students, recurrence } = req.body;
+    const { title, description, zone_id, marker_id, zone_ids, marker_ids, tutorial_ids, map_id, project_id, start_date, due_date, required_students, recurrence } = req.body;
     if (!title) return res.status(400).json({ error: 'Titre requis' });
 
     let zIds = normalizeIdArray(zone_ids);
@@ -1137,7 +1177,7 @@ router.post('/', requirePermission('tasks.manage', { needsElevation: true }), as
     const reqStudents = sanitizeRequiredStudents(required_students);
     const id = uuidv4();
     await execute(
-      'INSERT INTO tasks (id, title, description, map_id, project_id, zone_id, marker_id, due_date, required_students, recurrence, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      'INSERT INTO tasks (id, title, description, map_id, project_id, zone_id, marker_id, start_date, due_date, required_students, recurrence, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
       [
         id,
         title,
@@ -1146,6 +1186,7 @@ router.post('/', requirePermission('tasks.manage', { needsElevation: true }), as
         projectValidation.projectId,
         zIds[0] || null,
         mIds[0] || null,
+        start_date || null,
         due_date || null,
         reqStudents,
         recurrence || null,
@@ -1178,6 +1219,7 @@ router.post('/proposals', async (req, res) => {
       zone_ids,
       marker_ids,
       map_id,
+      start_date,
       due_date,
       required_students,
       firstName,
@@ -1211,7 +1253,7 @@ router.post('/proposals', async (req, res) => {
       .filter(Boolean)
       .join('\n\n');
     await execute(
-      'INSERT INTO tasks (id, title, description, map_id, zone_id, marker_id, due_date, required_students, status, recurrence, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      'INSERT INTO tasks (id, title, description, map_id, zone_id, marker_id, start_date, due_date, required_students, status, recurrence, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
       [
         id,
         String(title).trim(),
@@ -1219,6 +1261,7 @@ router.post('/proposals', async (req, res) => {
         loc.mapId,
         zIds[0] || null,
         mIds[0] || null,
+        start_date || null,
         due_date || null,
         reqStudents,
         'proposed',
@@ -1277,6 +1320,7 @@ router.put('/:id', async (req, res) => {
       marker_ids,
       tutorial_ids,
       map_id,
+      start_date,
       due_date,
       required_students,
       status,
@@ -1332,7 +1376,7 @@ router.put('/:id', async (req, res) => {
       : normalizeTaskStatusForRead(task.status);
     if (!nextStatus) return res.status(400).json({ error: 'Statut invalide' });
     await execute(
-      'UPDATE tasks SET title=?, description=?, map_id=?, project_id=?, zone_id=?, marker_id=?, due_date=?, required_students=?, status=?, recurrence=? WHERE id=?',
+      'UPDATE tasks SET title=?, description=?, map_id=?, project_id=?, zone_id=?, marker_id=?, start_date=?, due_date=?, required_students=?, status=?, recurrence=? WHERE id=?',
       [
         title ?? task.title,
         description ?? task.description,
@@ -1340,6 +1384,7 @@ router.put('/:id', async (req, res) => {
         projectValidation.projectId,
         nextZoneIds[0] || null,
         nextMarkerIds[0] || null,
+        start_date ?? task.start_date,
         due_date ?? task.due_date,
         reqStudents,
         nextStatus,
@@ -1394,6 +1439,7 @@ router.post('/:id/assign', async (req, res) => {
     if (task.status === 'validated') return res.status(400).json({ error: 'Tâche déjà validée' });
     if (task.status === 'on_hold') return res.status(400).json({ error: 'Tâche en attente : inscription indisponible' });
     if (task.project_status === 'on_hold') return res.status(400).json({ error: 'Projet en attente : inscription indisponible' });
+    if (isTaskBeforeStartDate(task)) return res.status(400).json({ error: 'Date de départ non atteinte : inscription indisponible' });
 
     const action = await resolveStudentActionContext(req, req.body || {}, 'tasks.assign_self');
     if (action.error) {

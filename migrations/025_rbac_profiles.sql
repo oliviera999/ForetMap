@@ -4,7 +4,7 @@ CREATE TABLE IF NOT EXISTS roles (
   id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
   slug VARCHAR(64) NOT NULL,
   display_name VARCHAR(120) NOT NULL,
-  rank INT NOT NULL DEFAULT 0,
+  `rank` INT NOT NULL DEFAULT 0,
   is_system TINYINT(1) NOT NULL DEFAULT 1,
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -58,7 +58,7 @@ CREATE TABLE IF NOT EXISTS elevation_audit (
   CONSTRAINT fk_elevation_audit_role FOREIGN KEY (role_id) REFERENCES roles(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-INSERT IGNORE INTO roles (slug, display_name, rank, is_system) VALUES
+INSERT IGNORE INTO roles (slug, display_name, `rank`, is_system) VALUES
   ('admin', 'Admin', 500, 1),
   ('prof', 'Prof', 400, 1),
   ('eleve_chevronne', 'Élève chevronné', 300, 1),
