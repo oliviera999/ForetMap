@@ -31,6 +31,9 @@ function ProfilesAdminView({ isN3Affiliated = false }) {
   const [createDescription, setCreateDescription] = useState('');
   const [createAffiliation, setCreateAffiliation] = useState('both');
   const [createLoading, setCreateLoading] = useState(false);
+  const [roleEmoji, setRoleEmoji] = useState('');
+  const [roleMinDoneTasks, setRoleMinDoneTasks] = useState('');
+  const [roleDisplayOrder, setRoleDisplayOrder] = useState('');
 
   const load = async () => {
     setErr('');
@@ -91,17 +94,65 @@ function ProfilesAdminView({ isN3Affiliated = false }) {
     return students.filter((s) => `${s.first_name || ''} ${s.last_name || ''}`.toLowerCase().includes(needle));
   }, [students, searchStudent]);
 
-  const saveRoleName = async (role) => {
-    const displayName = window.prompt('Nouveau nom du profil', role.display_name || '');
+  useEffect(() => {
+    if (!selectedRole) {
+      setRoleEmoji('');
+      setRoleMinDoneTasks('');
+      setRoleDisplayOrder('');
+      return;
+    }
+    setRoleEmoji(String(selectedRole.emoji || ''));
+    setRoleMinDoneTasks(
+      selectedRole.min_done_tasks == null || Number.isNaN(Number(selectedRole.min_done_tasks))
+        ? ''
+        : String(Math.max(0, Math.floor(Number(selectedRole.min_done_tasks))))
+    );
+    setRoleDisplayOrder(
+      selectedRole.display_order == null || Number.isNaN(Number(selectedRole.display_order))
+        ? '0'
+        : String(Math.max(0, Math.floor(Number(selectedRole.display_order))))
+    );
+  }, [selectedRole]);
+
+  const saveRoleDetails = async (role) => {
+    const displayName = window.prompt('Nom du profil', role.display_name || '');
     if (!displayName || !displayName.trim()) return;
+    const emojiInput = window.prompt('Emoji du profil', (roleEmoji || role.emoji || '').trim());
+    if (emojiInput == null) return;
+    const minDoneInput = window.prompt(
+      'Niveau requis (nombre de tâches validées)',
+      roleMinDoneTasks || (role.min_done_tasks == null ? '' : String(role.min_done_tasks))
+    );
+    if (minDoneInput == null) return;
+    const displayOrderInput = window.prompt(
+      "Ordre d'affichage (entier >= 0, plus petit = plus haut)",
+      roleDisplayOrder || String(role.display_order ?? 0)
+    );
+    if (displayOrderInput == null) return;
+    const parsedMinDone = minDoneInput.trim() === '' ? null : parseInt(minDoneInput, 10);
+    const parsedDisplayOrder = parseInt(displayOrderInput, 10);
+    if (minDoneInput.trim() !== '' && (!Number.isFinite(parsedMinDone) || parsedMinDone < 0)) {
+      setErr('Niveau requis invalide (entier >= 0)');
+      return;
+    }
+    if (!Number.isFinite(parsedDisplayOrder) || parsedDisplayOrder < 0) {
+      setErr("Ordre d'affichage invalide (entier >= 0)");
+      return;
+    }
     setLoading(true);
     setErr('');
     try {
-      await api(`/api/rbac/profiles/${role.id}`, 'PATCH', { display_name: displayName.trim(), rank: role.rank });
-      setMsg('Nom du profil mis à jour');
+      await api(`/api/rbac/profiles/${role.id}`, 'PATCH', {
+        display_name: displayName.trim(),
+        rank: role.rank,
+        emoji: emojiInput.trim() || null,
+        min_done_tasks: parsedMinDone,
+        display_order: parsedDisplayOrder,
+      });
+      setMsg('Profil mis à jour');
       await load();
     } catch (e) {
-      setErr(e.message || 'Erreur mise à jour profil');
+      setErr(e.message || 'Erreur mise à jour du profil');
     }
     setLoading(false);
   };
@@ -111,10 +162,48 @@ function ProfilesAdminView({ isN3Affiliated = false }) {
     if (!slug || !slug.trim()) return;
     const displayName = window.prompt('Nom du profil', slug.trim());
     if (!displayName || !displayName.trim()) return;
+    const emojiInput = window.prompt("Emoji du profil (obligatoire pour un profil élève)", '');
+    if (emojiInput == null) return;
+    const minDoneInput = window.prompt(
+      'Niveau requis pour atteindre ce profil (nombre de tâches validées)',
+      ''
+    );
+    if (minDoneInput == null) return;
+    const displayOrderInput = window.prompt(
+      "Ordre d'affichage (entier >= 0, plus petit = plus haut)",
+      '100'
+    );
+    if (displayOrderInput == null) return;
+    const normalizedSlug = slug.trim().toLowerCase();
+    const parsedMinDone = minDoneInput.trim() === '' ? null : parseInt(minDoneInput, 10);
+    const parsedDisplayOrder = parseInt(displayOrderInput, 10);
+    if (normalizedSlug.startsWith('eleve_') && !emojiInput.trim()) {
+      setErr('Un profil élève doit avoir un emoji');
+      return;
+    }
+    if (normalizedSlug.startsWith('eleve_') && parsedMinDone == null) {
+      setErr('Un profil élève doit avoir un niveau requis');
+      return;
+    }
+    if (minDoneInput.trim() !== '' && (!Number.isFinite(parsedMinDone) || parsedMinDone < 0)) {
+      setErr('Niveau requis invalide (entier >= 0)');
+      return;
+    }
+    if (!Number.isFinite(parsedDisplayOrder) || parsedDisplayOrder < 0) {
+      setErr("Ordre d'affichage invalide (entier >= 0)");
+      return;
+    }
     setLoading(true);
     setErr('');
     try {
-      await api('/api/rbac/profiles', 'POST', { slug: slug.trim(), display_name: displayName.trim(), rank: 150 });
+      await api('/api/rbac/profiles', 'POST', {
+        slug: normalizedSlug,
+        display_name: displayName.trim(),
+        rank: 150,
+        emoji: emojiInput.trim() || null,
+        min_done_tasks: parsedMinDone,
+        display_order: parsedDisplayOrder,
+      });
       setMsg('Profil créé');
       await load();
     } catch (e) {
@@ -355,13 +444,19 @@ function ProfilesAdminView({ isN3Affiliated = false }) {
               {roles.map((r) => (
                 <div key={r.id} style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 8 }}>
                   <button className={`btn btn-sm ${Number(selectedRoleId) === Number(r.id) ? 'btn-primary' : 'btn-ghost'}`} onClick={() => setSelectedRoleId(r.id)}>
-                    {r.display_name}
+                    {(r.emoji ? `${r.emoji} ` : '') + r.display_name}
                   </button>
-                  <button className="btn btn-ghost btn-sm" onClick={() => saveRoleName(r)} disabled={loading}>Renommer</button>
+                  <button className="btn btn-ghost btn-sm" onClick={() => saveRoleDetails(r)} disabled={loading}>Modifier</button>
+                  <span style={{ fontSize: '.72rem', color: '#6b7280' }}>
+                    ordre {Number.isFinite(Number(r.display_order)) ? Number(r.display_order) : 0}
+                  </span>
                 </div>
               ))}
               {selectedRole && (
                 <div style={{ marginTop: 8 }}>
+                  <div style={{ fontSize: '.78rem', color: '#6b7280', marginBottom: 6 }}>
+                    Progression: emoji {selectedRole.emoji || '—'} · niveau requis {selectedRole.min_done_tasks ?? '—'} · ordre {selectedRole.display_order ?? 0}
+                  </div>
                   <div className="field">
                     <label>PIN du profil {selectedRole.display_name}</label>
                     <input type="password" value={pin} onChange={(e) => setPin(e.target.value)} placeholder="Nouveau PIN" />

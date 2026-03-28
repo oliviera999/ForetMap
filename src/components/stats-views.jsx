@@ -33,6 +33,11 @@ function StudentStats({ student, isN3Affiliated = false }) {
   );
 
   const { stats, assignments } = data;
+  const defaultIconBySlug = {
+    eleve_novice: '🪨',
+    eleve_avance: '🌿',
+    eleve_chevronne: '🏆',
+  };
   const RANKS = (Array.isArray(data?.progression?.steps) && data.progression.steps.length > 0
     ? data.progression.steps
     : [
@@ -43,7 +48,7 @@ function StudentStats({ student, isN3Affiliated = false }) {
     .map((step, i) => ({
       ...step,
       color: i === 0 ? '#94a3b8' : i === 1 ? '#52b788' : '#1a4731',
-      icon: i === 0 ? '🪨' : i === 1 ? '🌿' : '🏆',
+      icon: String(step.emoji || '').trim() || defaultIconBySlug[String(step.roleSlug || '').toLowerCase()] || '🌿',
     }))
     .sort((a, b) => a.min - b.min);
   const currentRank = [...RANKS].reverse().find(r => stats.done >= r.min) || RANKS[0];
@@ -509,7 +514,7 @@ function TeacherStats({ isN3Affiliated = false }) {
                         border: '1px solid #a7f3d0',
                       }}
                       >
-                        Profil : {s.progression.roleDisplayName}
+                        Profil : {s.progression.roleEmoji ? `${s.progression.roleEmoji} ` : ''}{s.progression.roleDisplayName}
                       </span>
                     </div>
                   )}

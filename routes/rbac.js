@@ -14,6 +14,7 @@ const MAX_DESCRIPTION_LEN = 300;
 const PSEUDO_RE = /^[A-Za-z0-9_.-]{3,30}$/;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const ALLOWED_STUDENT_AFFILIATIONS = new Set(['n3', 'foret', 'both']);
+const STUDENT_ROLE_SLUG_RE = /^eleve_/i;
 
 function normalizeOptionalString(value) {
   if (value == null) return null;
@@ -32,6 +33,19 @@ function normalizeStudentAffiliation(value) {
   const normalized = raw.toLowerCase();
   if (!ALLOWED_STUDENT_AFFILIATIONS.has(normalized)) return null;
   return normalized;
+}
+
+function normalizeRoleEmoji(value) {
+  const emoji = String(value || '').trim();
+  if (!emoji) return null;
+  return emoji.slice(0, 16);
+}
+
+function parseOptionalNonNegativeInt(value, fallback = null) {
+  if (value == null || value === '') return fallback;
+  const n = parseInt(value, 10);
+  if (!Number.isFinite(n) || n < 0) return NaN;
+  return n;
 }
 
 async function getPasswordMinLength() {
@@ -149,7 +163,9 @@ router.get(
   requirePermission('admin.roles.manage', { needsElevation: true }),
   async (req, res) => {
     try {
-      const roles = await queryAll('SELECT id, slug, display_name, `rank` AS `rank`, is_system FROM roles ORDER BY `rank` DESC, id ASC');
+      const rolesWithProgression = await queryAll(
+        'SELECT id, slug, display_name, emoji, min_done_tasks, display_order, `rank` AS `rank`, is_system FROM roles ORDER BY display_order ASC, `rank` DESC, id ASC'
+      );
       const perms = await queryAll('SELECT `key`, label, description FROM permissions ORDER BY `key` ASC');
       const rolePerms = await queryAll(
         'SELECT role_id, permission_key, requires_elevation FROM role_permissions ORDER BY role_id ASC, permission_key ASC'
@@ -162,7 +178,7 @@ router.get(
           requires_elevation: !!row.requires_elevation,
         });
       }
-      res.json(roles.map((r) => ({ ...r, permissions: map.get(r.id) || [] })).map((r) => ({ ...r, catalog: perms })));
+      res.json(rolesWithProgression.map((r) => ({ ...r, permissions: map.get(r.id) || [] })).map((r) => ({ ...r, catalog: perms })));
     } catch (e) {
       logRouteError(e, req);
       res.status(500).json({ error: e.message });
@@ -178,9 +194,23 @@ router.post(
       const slug = String(req.body?.slug || '').trim().toLowerCase().replace(/[^a-z0-9_]+/g, '_').replace(/^_+|_+$/g, '');
       const displayName = String(req.body?.display_name || '').trim();
       const rank = Number.isFinite(parseInt(req.body?.rank, 10)) ? parseInt(req.body.rank, 10) : 100;
+      const emoji = normalizeRoleEmoji(req.body?.emoji);
+      const minDoneTasks = parseOptionalNonNegativeInt(req.body?.min_done_tasks, null);
+      const displayOrder = parseOptionalNonNegativeInt(req.body?.display_order, 0);
       if (!slug || !displayName) return res.status(400).json({ error: 'slug et display_name requis' });
-      await execute('INSERT INTO roles (slug, display_name, `rank`, is_system) VALUES (?, ?, ?, 0)', [slug, displayName, rank]);
-      const role = await queryOne('SELECT id, slug, display_name, `rank` AS `rank`, is_system FROM roles WHERE slug = ? LIMIT 1', [slug]);
+      if (Number.isNaN(minDoneTasks)) return res.status(400).json({ error: 'min_done_tasks invalide (entier >= 0)' });
+      if (Number.isNaN(displayOrder)) return res.status(400).json({ error: 'display_order invalide (entier >= 0)' });
+      if (STUDENT_ROLE_SLUG_RE.test(slug) && (emoji == null || minDoneTasks == null)) {
+        return res.status(400).json({ error: 'Un profil élève doit définir emoji et min_done_tasks' });
+      }
+      await execute(
+        'INSERT INTO roles (slug, display_name, emoji, min_done_tasks, display_order, `rank`, is_system) VALUES (?, ?, ?, ?, ?, ?, 0)',
+        [slug, displayName, emoji, minDoneTasks, displayOrder ?? 0, rank]
+      );
+      const role = await queryOne(
+        'SELECT id, slug, display_name, emoji, min_done_tasks, display_order, `rank` AS `rank`, is_system FROM roles WHERE slug = ? LIMIT 1',
+        [slug]
+      );
       logAudit('rbac_create_profile', 'role', role?.id || null, slug, { req });
       res.status(201).json(role);
     } catch (e) {
@@ -198,11 +228,39 @@ router.patch(
     try {
       const role = await queryOne('SELECT id FROM roles WHERE id = ?', [req.params.id]);
       if (!role) return res.status(404).json({ error: 'Profil introuvable' });
-      const displayName = String(req.body?.display_name || '').trim();
-      const rank = Number.isFinite(parseInt(req.body?.rank, 10)) ? parseInt(req.body.rank, 10) : null;
+      const existing = await queryOne('SELECT slug, display_name, emoji, min_done_tasks, display_order, `rank` AS `rank` FROM roles WHERE id = ?', [role.id]);
+      const hasDisplayName = Object.prototype.hasOwnProperty.call(req.body || {}, 'display_name');
+      const hasRank = Object.prototype.hasOwnProperty.call(req.body || {}, 'rank');
+      const hasEmoji = Object.prototype.hasOwnProperty.call(req.body || {}, 'emoji');
+      const hasMinDoneTasks = Object.prototype.hasOwnProperty.call(req.body || {}, 'min_done_tasks');
+      const hasDisplayOrder = Object.prototype.hasOwnProperty.call(req.body || {}, 'display_order');
+      if (!hasDisplayName && !hasRank && !hasEmoji && !hasMinDoneTasks && !hasDisplayOrder) {
+        return res.status(400).json({ error: 'Aucun champ de profil fourni' });
+      }
+      const displayName = hasDisplayName ? String(req.body?.display_name || '').trim() : existing.display_name;
+      const rank = hasRank ? parseInt(req.body?.rank, 10) : existing.rank;
+      const emoji = hasEmoji ? normalizeRoleEmoji(req.body?.emoji) : existing.emoji;
+      const minDoneTasks = hasMinDoneTasks
+        ? parseOptionalNonNegativeInt(req.body?.min_done_tasks, null)
+        : existing.min_done_tasks;
+      const displayOrder = hasDisplayOrder
+        ? parseOptionalNonNegativeInt(req.body?.display_order, existing.display_order ?? 0)
+        : (existing.display_order ?? 0);
       if (!displayName) return res.status(400).json({ error: 'display_name requis' });
-      await execute('UPDATE roles SET display_name = ?, `rank` = COALESCE(?, `rank`), updated_at = NOW() WHERE id = ?', [displayName, rank, role.id]);
-      const updated = await queryOne('SELECT id, slug, display_name, `rank` AS `rank`, is_system FROM roles WHERE id = ?', [role.id]);
+      if (!Number.isFinite(rank)) return res.status(400).json({ error: 'rank invalide' });
+      if (Number.isNaN(minDoneTasks)) return res.status(400).json({ error: 'min_done_tasks invalide (entier >= 0)' });
+      if (Number.isNaN(displayOrder)) return res.status(400).json({ error: 'display_order invalide (entier >= 0)' });
+      if (STUDENT_ROLE_SLUG_RE.test(existing.slug) && (emoji == null || minDoneTasks == null)) {
+        return res.status(400).json({ error: 'Un profil élève doit définir emoji et min_done_tasks' });
+      }
+      await execute(
+        'UPDATE roles SET display_name = ?, emoji = ?, min_done_tasks = ?, display_order = ?, `rank` = ?, updated_at = NOW() WHERE id = ?',
+        [displayName, emoji, minDoneTasks, displayOrder, rank, role.id]
+      );
+      const updated = await queryOne(
+        'SELECT id, slug, display_name, emoji, min_done_tasks, display_order, `rank` AS `rank`, is_system FROM roles WHERE id = ?',
+        [role.id]
+      );
       logAudit('rbac_update_profile', 'role', role.id, updated?.slug || String(role.id), { req });
       res.json(updated);
     } catch (e) {
