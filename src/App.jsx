@@ -210,6 +210,7 @@ function App() {
             id: payload?.auth?.canonicalUserId || payload?.auth?.userId || null,
             userType: 'teacher',
             displayName: payload?.auth?.roleDisplayName || 'Utilisateur',
+            avatar_path: null,
           },
         });
         setSessionUser(getStoredSession()?.user || null);
@@ -397,6 +398,7 @@ function App() {
             userType: 'teacher',
             displayName: auth.roleDisplayName || prev?.displayName || 'Utilisateur',
             email: prev?.email || null,
+            avatar_path: prev?.avatar_path || null,
           }));
         }
       })
@@ -551,6 +553,7 @@ function App() {
       display_name: fallbackName,
       pseudo: null,
       email: sessionUser?.email || null,
+      avatar_path: sessionUser?.avatar_path || null,
       description: '',
       affiliation: 'both',
       auth: {
@@ -558,7 +561,7 @@ function App() {
         userType: authClaims?.userType || 'teacher',
       },
     };
-  }, [authClaims?.roleDisplayName, authClaims?.roleSlug, authClaims?.userType, canOpenUserDialogs, effectiveIsTeacher, profileTargetUserId, sessionUser?.displayName, sessionUser?.email, student]);
+  }, [authClaims?.roleDisplayName, authClaims?.roleSlug, authClaims?.userType, canOpenUserDialogs, effectiveIsTeacher, profileTargetUserId, sessionUser?.avatar_path, sessionUser?.displayName, sessionUser?.email, student]);
   const canOpenTeacherStatsFromBadge = effectiveIsTeacher
     && publicSettings?.modules?.stats_enabled !== false
     && hasPermission('stats.read.all');
@@ -645,6 +648,7 @@ function App() {
         userType: 'teacher',
         displayName: nextDisplayName,
         email: updatedUser?.email ?? prev?.email ?? null,
+        avatar_path: updatedUser?.avatar_path ?? prev?.avatar_path ?? null,
       };
       saveStoredSession({ user: next });
       return next;
@@ -734,6 +738,7 @@ function App() {
                 userType: 'teacher',
                 displayName: s?.display_name || s?.auth?.roleDisplayName || 'Utilisateur',
                 email: s?.email || null,
+                avatar_path: s?.avatar_path || null,
               });
             } else {
               updateStudentSession(s);
