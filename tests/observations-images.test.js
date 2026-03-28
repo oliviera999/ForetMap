@@ -16,13 +16,11 @@ test.before(async () => {
 });
 
 test('GET /api/observations/:id/image retourne le fichier image', async () => {
-  const studentId = `obs-student-${Date.now()}`;
-  await execute(
-    `INSERT INTO users
-      (id, user_type, legacy_user_id, email, pseudo, first_name, last_name, display_name, description, avatar_path, affiliation, password_hash, auth_provider, is_active, last_seen, created_at, updated_at)
-     VALUES (?, 'student', NULL, NULL, NULL, ?, ?, ?, NULL, NULL, 'both', ?, 'local', 1, ?, NOW(), NOW())`,
-    [studentId, 'Obs', 'Image', 'Obs Image', 'x', new Date().toISOString()]
-  );
+  const reg = await request(app)
+    .post('/api/auth/register')
+    .send({ firstName: 'Obs', lastName: `Image${Date.now()}`, password: 'pass1234' })
+    .expect(201);
+  const studentId = reg.body.id;
   const created = await execute(
     'INSERT INTO observation_logs (student_id, zone_id, content, image_path, created_at) VALUES (?, ?, ?, ?, ?)',
     [studentId, null, 'Observation image', null, new Date().toISOString()]
@@ -32,23 +30,27 @@ test('GET /api/observations/:id/image retourne le fichier image', async () => {
   saveBase64ToDisk(relativePath, SAMPLE_IMAGE_DATA);
   await execute('UPDATE observation_logs SET image_path = ? WHERE id = ?', [relativePath, obsId]);
 
-  const res = await request(app).get(`/api/observations/${obsId}/image`).expect(200);
+  const res = await request(app)
+    .get(`/api/observations/${obsId}/image`)
+    .set('Authorization', `Bearer ${reg.body.authToken}`)
+    .expect(200);
   assert.ok((res.headers['content-type'] || '').toLowerCase().includes('image'));
 });
 
 test('GET /api/observations/:id/image retourne 404 si fichier absent', async () => {
-  const studentId = `obs-missing-${Date.now()}`;
-  await execute(
-    `INSERT INTO users
-      (id, user_type, legacy_user_id, email, pseudo, first_name, last_name, display_name, description, avatar_path, affiliation, password_hash, auth_provider, is_active, last_seen, created_at, updated_at)
-     VALUES (?, 'student', NULL, NULL, NULL, ?, ?, ?, NULL, NULL, 'both', ?, 'local', 1, ?, NOW(), NOW())`,
-    [studentId, 'Obs', 'Missing', 'Obs Missing', 'x', new Date().toISOString()]
-  );
+  const reg = await request(app)
+    .post('/api/auth/register')
+    .send({ firstName: 'Obs', lastName: `Missing${Date.now()}`, password: 'pass1234' })
+    .expect(201);
+  const studentId = reg.body.id;
   const created = await execute(
     'INSERT INTO observation_logs (student_id, zone_id, content, image_path, created_at) VALUES (?, ?, ?, ?, ?)',
     [studentId, null, 'Observation missing', `observations/${studentId}_${Date.now()}_missing.jpg`, new Date().toISOString()]
   );
 
-  const res = await request(app).get(`/api/observations/${created.insertId}/image`).expect(404);
+  const res = await request(app)
+    .get(`/api/observations/${created.insertId}/image`)
+    .set('Authorization', `Bearer ${reg.body.authToken}`)
+    .expect(404);
   assert.ok((res.body.error || '').toLowerCase().includes('fichier'));
 });

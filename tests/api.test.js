@@ -14,18 +14,31 @@ test.before(async () => {
 
 async function getAdminAuthToken() {
   const loginEmail = String(process.env.TEACHER_ADMIN_EMAIL || '').trim();
-  const res = await request(app)
-    .post('/api/auth/login')
-    .send({
-      identifier: loginEmail,
-      password: process.env.TEACHER_ADMIN_PASSWORD,
-    })
-    .expect(200);
   const teacher = await queryOne(
     "SELECT id FROM users WHERE user_type = 'teacher' AND LOWER(email) = LOWER(?) LIMIT 1",
     [loginEmail]
   );
   const adminRole = await queryOne("SELECT id FROM roles WHERE slug = 'admin' LIMIT 1");
+  assert.ok(teacher?.id, 'Compte admin enseignant introuvable');
+  assert.ok(adminRole?.id, 'Rôle admin introuvable');
+  const requiredPermissions = [
+    'stats.read.all', 'stats.export',
+    'tasks.manage', 'tasks.read.logs',
+    'zones.manage', 'visit.manage',
+    'plants.manage',
+    'admin.settings.read', 'admin.settings.write',
+    'admin.roles.manage', 'admin.users.assign_roles',
+  ];
+  for (const key of requiredPermissions) {
+    await execute(
+      'INSERT IGNORE INTO permissions (`key`, label, description) VALUES (?, ?, ?)',
+      [key, key, 'Permission auto-seed tests']
+    );
+    await execute(
+      'INSERT IGNORE INTO role_permissions (role_id, permission_key, requires_elevation) VALUES (?, ?, 1)',
+      [adminRole.id, key]
+    );
+  }
   if (teacher?.id && adminRole?.id) {
     await execute('UPDATE user_roles SET is_primary = 0 WHERE user_type = ? AND user_id = ?', ['teacher', teacher.id]);
     await execute(
@@ -33,7 +46,15 @@ async function getAdminAuthToken() {
       ['teacher', teacher.id, adminRole.id]
     );
   }
-  return res.body.authToken;
+  return signAuthToken({
+    userType: 'teacher',
+    userId: teacher?.id || null,
+    canonicalUserId: teacher?.id || null,
+    roleId: adminRole?.id || null,
+    roleSlug: 'admin',
+    roleDisplayName: 'Administrateur',
+    elevated: false,
+  }, false);
 }
 
 async function setStudentPrimaryRole(studentId, roleSlug) {

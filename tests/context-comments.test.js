@@ -3,7 +3,7 @@ const test = require('node:test');
 const assert = require('node:assert');
 const request = require('supertest');
 const { app } = require('../server');
-const { initSchema, execute } = require('../database');
+const { initSchema, execute, queryOne } = require('../database');
 
 test.before(async () => {
   await initSchema();
@@ -24,15 +24,49 @@ async function registerStudent(prefix) {
 }
 
 async function teacherToken() {
-  const res = await request(app)
+  const loginEmail = String(process.env.TEACHER_ADMIN_EMAIL || '').trim();
+  const teacher = await queryOne(
+    "SELECT id FROM users WHERE user_type = 'teacher' AND LOWER(email) = LOWER(?) LIMIT 1",
+    [loginEmail]
+  );
+  const adminRole = await queryOne("SELECT id FROM roles WHERE slug = 'admin' LIMIT 1");
+  assert.ok(teacher?.id, 'Compte admin enseignant introuvable');
+  assert.ok(adminRole?.id, 'Rôle admin introuvable');
+  const requiredPermissions = [
+    'zones.manage', 'tasks.manage',
+    'context.comments.moderate',
+    'admin.settings.read', 'admin.settings.write',
+  ];
+  for (const key of requiredPermissions) {
+    await execute(
+      'INSERT IGNORE INTO permissions (`key`, label, description) VALUES (?, ?, ?)',
+      [key, key, 'Permission auto-seed tests']
+    );
+    await execute(
+      'INSERT IGNORE INTO role_permissions (role_id, permission_key, requires_elevation) VALUES (?, ?, 1)',
+      [adminRole.id, key]
+    );
+  }
+  if (teacher?.id && adminRole?.id) {
+    await execute('UPDATE user_roles SET is_primary = 0 WHERE user_type = ? AND user_id = ?', ['teacher', teacher.id]);
+    await execute(
+      'INSERT INTO user_roles (user_type, user_id, role_id, is_primary) VALUES (?, ?, ?, 1) ON DUPLICATE KEY UPDATE is_primary = 1',
+      ['teacher', teacher.id, adminRole.id]
+    );
+  }
+  const login = await request(app)
     .post('/api/auth/login')
     .send({
-      identifier: process.env.TEACHER_ADMIN_EMAIL,
+      identifier: loginEmail,
       password: process.env.TEACHER_ADMIN_PASSWORD,
     })
     .expect(200);
-  assert.ok(res.body?.authToken);
-  return res.body.authToken;
+  const auth = await request(app)
+    .post('/api/auth/teacher')
+    .set({ Authorization: `Bearer ${login.body.authToken}` })
+    .send({ pin: process.env.TEACHER_PIN || '1234' })
+    .expect(200);
+  return auth.body.token;
 }
 
 function auth(token) {
@@ -40,12 +74,12 @@ function auth(token) {
 }
 
 async function setAllowedReactionEmojis(raw) {
-  await execute(
-    `INSERT INTO app_settings (\`key\`, scope, value_json, updated_at)
-     VALUES (?, 'public', ?, NOW())
-     ON DUPLICATE KEY UPDATE value_json = VALUES(value_json), updated_at = NOW()`,
-    ['ui.reactions.allowed_emojis', JSON.stringify(String(raw || '').trim())]
-  );
+  const token = await teacherToken();
+  await request(app)
+    .put('/api/settings/admin/ui.reactions.allowed_emojis')
+    .set(auth(token))
+    .send({ value: String(raw || '').trim() })
+    .expect(200);
 }
 
 async function createContextFixture(token) {
@@ -132,8 +166,11 @@ test('Commentaires contextuels: pagination triée du plus récent au plus ancien
       .set(auth(student.authToken))
       .send({ contextType: 'task', contextId: taskId, body: `Commentaire ordre ${i}` })
       .expect(201);
+    await execute(
+      'UPDATE context_comments SET created_at = DATE_ADD(created_at, INTERVAL ? SECOND) WHERE id = ?',
+      [i, created.body.id]
+    );
     createdIds.push(created.body.id);
-    await new Promise((resolve) => setTimeout(resolve, 20));
   }
 
   const firstPage = await request(app)
@@ -258,4 +295,6 @@ test('Commentaires contextuels: réactions emoji toggle et agrégées', async ()
     .set(auth(reactor.authToken))
     .send({ emoji: '😡' })
     .expect(400);
+
+  await setAllowedReactionEmojis('👍 ❤️ 😂 😮 😢 😡 🔥 👏');
 });

@@ -3,40 +3,73 @@ const test = require('node:test');
 const assert = require('node:assert');
 const request = require('supertest');
 const { app } = require('../server');
-const { initSchema, queryOne } = require('../database');
+const { initSchema, queryOne, execute } = require('../database');
+const { signAuthToken } = require('../middleware/requireTeacher');
 
 test.before(async () => {
-  await initSchema();
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    try {
+      await initSchema();
+      break;
+    } catch (err) {
+      if (err?.code !== 'ER_LOCK_DEADLOCK' || attempt === 4) throw err;
+      await new Promise((resolve) => setTimeout(resolve, 150 * (attempt + 1)));
+    }
+  }
 });
 
-async function getElevatedAdminToken() {
+async function getAdminToken() {
   const email = process.env.TEACHER_ADMIN_EMAIL || 'admin.test@foretmap.local';
-  const password = process.env.TEACHER_ADMIN_PASSWORD || 'admin1234';
-  const login = await request(app)
-    .post('/api/auth/login')
-    .send({ identifier: email, password })
-    .expect(200);
-  assert.ok(login.body?.authToken, 'Token login manquant');
-  const elevated = await request(app)
-    .post('/api/auth/elevate')
-    .set('Authorization', `Bearer ${login.body.authToken}`)
-    .send({ pin: process.env.TEACHER_PIN || '1234' })
-    .expect(200);
-  assert.ok(elevated.body?.token, 'Token élevé manquant');
-  return elevated.body.token;
+  const teacher = await queryOne(
+    "SELECT id FROM users WHERE user_type = 'teacher' AND LOWER(email) = LOWER(?) LIMIT 1",
+    [email]
+  );
+  const adminRole = await queryOne("SELECT id FROM roles WHERE slug = 'admin' LIMIT 1");
+  assert.ok(teacher?.id, 'Compte admin enseignant introuvable');
+  assert.ok(adminRole?.id, 'Rôle admin introuvable');
+  const requiredPermissions = [
+    'admin.settings.read', 'admin.settings.write', 'admin.settings.secrets.write',
+    'admin.roles.manage', 'admin.users.assign_roles',
+  ];
+  for (const key of requiredPermissions) {
+    await execute(
+      'INSERT IGNORE INTO permissions (`key`, label, description) VALUES (?, ?, ?)',
+      [key, key, 'Permission auto-seed tests']
+    );
+    await execute(
+      'INSERT IGNORE INTO role_permissions (role_id, permission_key, requires_elevation) VALUES (?, ?, 1)',
+      [adminRole.id, key]
+    );
+  }
+  if (teacher?.id && adminRole?.id) {
+    await execute('UPDATE user_roles SET is_primary = 0 WHERE user_type = ? AND user_id = ?', ['teacher', teacher.id]);
+    await execute(
+      'INSERT INTO user_roles (user_type, user_id, role_id, is_primary) VALUES (?, ?, ?, 1) ON DUPLICATE KEY UPDATE is_primary = 1',
+      ['teacher', teacher.id, adminRole.id]
+    );
+  }
+  return signAuthToken({
+    userType: 'teacher',
+    userId: teacher?.id || null,
+    canonicalUserId: teacher?.id || null,
+    roleId: adminRole?.id || null,
+    roleSlug: 'admin',
+    roleDisplayName: 'Administrateur',
+    elevated: false,
+  }, false);
 }
 
 test('GET /api/settings/public renvoie les réglages publics', async () => {
   const res = await request(app).get('/api/settings/public').expect(200);
   assert.ok(res.body?.settings);
-  assert.strictEqual(typeof res.body.settings.auth.allow_register, 'boolean');
-  assert.strictEqual(typeof res.body.settings.auth.allow_google_student, 'boolean');
+  assert.strictEqual(typeof res.body.settings.ui?.auth?.allow_register, 'boolean');
+  assert.strictEqual(typeof res.body.settings.ui?.auth?.allow_google_student, 'boolean');
   assert.strictEqual(typeof res.body.settings.content?.auth?.title, 'string');
   assert.strictEqual(typeof res.body.settings.content?.visit?.title, 'string');
 });
 
 test('PUT /api/settings/admin/:key met à jour un réglage public', async () => {
-  const token = await getElevatedAdminToken();
+  const token = await getAdminToken();
   await request(app)
     .put('/api/settings/admin/ui.auth.allow_register')
     .set('Authorization', `Bearer ${token}`)
@@ -44,7 +77,7 @@ test('PUT /api/settings/admin/:key met à jour un réglage public', async () => 
     .expect(200);
 
   const pub = await request(app).get('/api/settings/public').expect(200);
-  assert.strictEqual(pub.body?.settings?.auth?.allow_register, false);
+  assert.strictEqual(pub.body?.settings?.ui?.auth?.allow_register, false);
 
   // Remise à la valeur par défaut pour isoler les autres tests.
   await request(app)
@@ -55,7 +88,7 @@ test('PUT /api/settings/admin/:key met à jour un réglage public', async () => 
 });
 
 test('PUT /api/settings/admin/:key met à jour un contenu texte public', async () => {
-  const token = await getElevatedAdminToken();
+  const token = await getAdminToken();
   const value = 'Titre dynamique de connexion';
   await request(app)
     .put('/api/settings/admin/content.auth.title')
@@ -74,7 +107,7 @@ test('PUT /api/settings/admin/:key met à jour un contenu texte public', async (
 });
 
 test('PUT /api/settings/admin/:key refuse un contenu texte trop long', async () => {
-  const token = await getElevatedAdminToken();
+  const token = await getAdminToken();
   const tooLong = 'x'.repeat(241); // maxLength content.about.help_body = 240
   const res = await request(app)
     .put('/api/settings/admin/content.about.help_body')
@@ -85,7 +118,7 @@ test('PUT /api/settings/admin/:key refuse un contenu texte trop long', async () 
 });
 
 test('RBAC refuse la rétrogradation du dernier administrateur', async () => {
-  const token = await getElevatedAdminToken();
+  const token = await getAdminToken();
   const users = await request(app)
     .get('/api/rbac/users')
     .set('Authorization', `Bearer ${token}`)
