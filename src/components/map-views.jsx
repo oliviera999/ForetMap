@@ -1813,7 +1813,7 @@ function MapView({ zones, markers, tasks = [], plants, maps = [], activeMapId = 
             const markerStatusDotSize = isCoarsePointer ? 15 : 10;
             const markerStatusDotBorder = isCoarsePointer ? 2 : 1.5;
             const markerStatusDotOffset = isCoarsePointer ? -2 : -1;
-            const markerLabelFontSize = isCoarsePointer ? '.75rem' : '.66rem';
+            const markerLabelFontSize = `${Math.max(8, 12 * inv)}px`;
             const openMarker = (e) => {
               e.stopPropagation();
               if (!moved.current) setSelectedMarker(m);
