@@ -357,6 +357,7 @@ function ZoneInfoModal({ zone, plants, tasks, isTeacher, student, canSelfAssignT
   const studentAssignableTasks = linkedTasks.filter((t) => canStudentAssignTask(t, student));
   const assignableTasks = (tasks || []).filter((t) => {
     if (linkedTasks.some((lt) => lt.id === t.id)) return false;
+    if (isTaskDetachedFromLocation(t)) return false;
     const mapId = taskMapId(t);
     return mapId === zone.map_id || mapId == null;
   });
@@ -824,6 +825,7 @@ function MarkerModal({ marker, plants, tasks, onClose, onSave, onDelete, onLinkT
   const studentAssignableTasks = linkedTasks.filter((t) => canStudentAssignTask(t, student));
   const assignableTasks = (tasks || []).filter((t) => {
     if (linkedTasks.some((lt) => lt.id === t.id)) return false;
+    if (isTaskDetachedFromLocation(t)) return false;
     const mapId = taskMapId(t);
     return mapId === marker.map_id || mapId == null;
   });
@@ -1838,11 +1840,12 @@ function MapView({ zones, markers, tasks = [], plants, maps = [], activeMapId = 
               </div>
               {showLabels && (
                 <div style={{ position: 'absolute', top: '100%', left: '50%', transform: 'translateX(-50%)',
-                  background: 'rgba(26,71,49,.9)', color: 'white', borderRadius: 5,
-                  padding: '2px 7px', fontSize: markerLabelFontSize, fontWeight: 700,
-                  whiteSpace: 'nowrap', marginTop: 3, maxWidth: isCoarsePointer ? 120 : 90,
+                  background: 'transparent', color: '#1a4731', borderRadius: 0,
+                  padding: 0, fontSize: markerLabelFontSize, fontWeight: 700,
+                  fontFamily: 'DM Sans,sans-serif',
+                  whiteSpace: 'nowrap', marginTop: 4, maxWidth: isCoarsePointer ? 128 : 96,
                   overflow: 'hidden', textOverflow: 'ellipsis', pointerEvents: 'none',
-                  boxShadow: '0 1px 5px rgba(0,0,0,.2)' }}>
+                  textShadow: '0 0 2px rgba(255,255,255,.95), 0 0 6px rgba(255,255,255,.85), 0 1px 0 rgba(255,255,255,.92)' }}>
                   {m.label}
                 </div>
               )}

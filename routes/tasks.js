@@ -351,6 +351,17 @@ function normalizeOptionalId(value) {
   return v || null;
 }
 
+function sameIdSet(a = [], b = []) {
+  if (a.length !== b.length) return false;
+  const left = new Set(a.map((id) => String(id || '').trim()).filter(Boolean));
+  const right = new Set(b.map((id) => String(id || '').trim()).filter(Boolean));
+  if (left.size !== right.size) return false;
+  for (const id of left) {
+    if (!right.has(id)) return false;
+  }
+  return true;
+}
+
 async function mapExists(mapId) {
   if (!mapId) return false;
   const row = await queryOne('SELECT id FROM maps WHERE id = ?', [mapId]);
@@ -1375,6 +1386,20 @@ router.put('/:id', async (req, res) => {
       ? normalizeImportTaskStatus(status)
       : normalizeTaskStatusForRead(task.status);
     if (!nextStatus) return res.status(400).json({ error: 'Statut invalide' });
+
+    const currentStatus = normalizeTaskStatusForRead(task.status);
+    const currentZoneIds = await getTaskZoneIds(task.id);
+    const currentMarkerIds = await getTaskMarkerIds(task.id);
+    const locationChanged = !sameIdSet(nextZoneIds, currentZoneIds) || !sameIdSet(nextMarkerIds, currentMarkerIds);
+
+    // Règle métier: une tâche validée ne doit pas être liée à des zones/repères.
+    if (nextStatus === 'validated') {
+      nextZoneIds = [];
+      nextMarkerIds = [];
+    } else if (currentStatus === 'validated' && locationChanged) {
+      return res.status(400).json({ error: 'Impossible de lier une tâche validée à des zones ou repères' });
+    }
+
     await execute(
       'UPDATE tasks SET title=?, description=?, map_id=?, project_id=?, zone_id=?, marker_id=?, start_date=?, due_date=?, required_students=?, status=?, recurrence=? WHERE id=?',
       [
