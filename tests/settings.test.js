@@ -31,6 +31,8 @@ test('GET /api/settings/public renvoie les réglages publics', async () => {
   assert.ok(res.body?.settings);
   assert.strictEqual(typeof res.body.settings.auth.allow_register, 'boolean');
   assert.strictEqual(typeof res.body.settings.auth.allow_google_student, 'boolean');
+  assert.strictEqual(typeof res.body.settings.content?.auth?.title, 'string');
+  assert.strictEqual(typeof res.body.settings.content?.visit?.title, 'string');
 });
 
 test('PUT /api/settings/admin/:key met à jour un réglage public', async () => {
@@ -50,6 +52,36 @@ test('PUT /api/settings/admin/:key met à jour un réglage public', async () => 
     .set('Authorization', `Bearer ${token}`)
     .send({ value: true })
     .expect(200);
+});
+
+test('PUT /api/settings/admin/:key met à jour un contenu texte public', async () => {
+  const token = await getElevatedAdminToken();
+  const value = 'Titre dynamique de connexion';
+  await request(app)
+    .put('/api/settings/admin/content.auth.title')
+    .set('Authorization', `Bearer ${token}`)
+    .send({ value })
+    .expect(200);
+
+  const pub = await request(app).get('/api/settings/public').expect(200);
+  assert.strictEqual(pub.body?.settings?.content?.auth?.title, value);
+
+  await request(app)
+    .put('/api/settings/admin/content.auth.title')
+    .set('Authorization', `Bearer ${token}`)
+    .send({ value: 'ForêtMap' })
+    .expect(200);
+});
+
+test('PUT /api/settings/admin/:key refuse un contenu texte trop long', async () => {
+  const token = await getElevatedAdminToken();
+  const tooLong = 'x'.repeat(241); // maxLength content.about.help_body = 240
+  const res = await request(app)
+    .put('/api/settings/admin/content.about.help_body')
+    .set('Authorization', `Bearer ${token}`)
+    .send({ value: tooLong })
+    .expect(400);
+  assert.match(String(res.body?.error || ''), /Texte trop long/i);
 });
 
 test('RBAC refuse la rétrogradation du dernier administrateur', async () => {

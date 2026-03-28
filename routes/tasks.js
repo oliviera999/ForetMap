@@ -28,6 +28,7 @@ const IMPORT_TEMPLATE_COLUMNS = [
 ];
 
 const ALLOWED_TASK_STATUSES = new Set(['available', 'in_progress', 'done', 'validated', 'proposed', 'on_hold']);
+const ALLOWED_TASK_COMPLETION_MODES = new Set(['single_done', 'all_assignees_done']);
 const ALLOWED_IMPORT_TASK_STATUSES = ALLOWED_TASK_STATUSES;
 const ALLOWED_IMPORT_TASK_RECURRENCES = new Set(['weekly', 'biweekly', 'monthly']);
 const IMPORT_HEADER_ALIASES = new Map([
@@ -111,6 +112,73 @@ function normalizeImportTaskStatus(value) {
 
 function normalizeTaskStatusForRead(value) {
   return normalizeImportTaskStatus(value) || 'available';
+}
+
+function normalizeTaskCompletionMode(value) {
+  const raw = asTrimmedString(value).toLowerCase();
+  if (!raw) return 'single_done';
+  return ALLOWED_TASK_COMPLETION_MODES.has(raw) ? raw : null;
+}
+
+function countDoneAssignments(assignments = []) {
+  if (!Array.isArray(assignments)) return 0;
+  return assignments.reduce((count, assignment) => {
+    if (assignment?.done_at) return count + 1;
+    return count;
+  }, 0);
+}
+
+function computeTaskStatusFromProgress({ currentStatus, completionMode, assignedCount, doneCount }) {
+  if (currentStatus === 'validated' || currentStatus === 'proposed' || currentStatus === 'on_hold') {
+    return currentStatus;
+  }
+  if (completionMode === 'all_assignees_done') {
+    if (assignedCount <= 0) return 'available';
+    if (doneCount >= assignedCount) return 'done';
+    return 'in_progress';
+  }
+  if (currentStatus === 'done') return 'done';
+  if (assignedCount <= 0) return 'available';
+  return 'in_progress';
+}
+
+async function fetchTaskAssignmentProgress(taskId) {
+  const progress = await queryOne(
+    `SELECT COUNT(*) AS assigned_count,
+            SUM(CASE WHEN done_at IS NOT NULL THEN 1 ELSE 0 END) AS done_count
+       FROM task_assignments
+      WHERE task_id = ?`,
+    [taskId]
+  );
+  return {
+    assignedCount: Number(progress?.assigned_count) || 0,
+    doneCount: Number(progress?.done_count) || 0,
+  };
+}
+
+async function recalculateTaskStatus(taskLike) {
+  const task = typeof taskLike === 'string'
+    ? await queryOne('SELECT id, status, completion_mode FROM tasks WHERE id = ?', [taskLike])
+    : taskLike;
+  if (!task || !task.id) return null;
+  const currentStatus = normalizeTaskStatusForRead(task.status);
+  const completionMode = normalizeTaskCompletionMode(task.completion_mode) || 'single_done';
+  const progress = await fetchTaskAssignmentProgress(task.id);
+  const nextStatus = computeTaskStatusFromProgress({
+    currentStatus,
+    completionMode,
+    assignedCount: progress.assignedCount,
+    doneCount: progress.doneCount,
+  });
+  if (nextStatus !== currentStatus) {
+    await execute('UPDATE tasks SET status = ? WHERE id = ?', [nextStatus, task.id]);
+  }
+  return {
+    status: nextStatus,
+    completionMode,
+    assignedCount: progress.assignedCount,
+    doneCount: progress.doneCount,
+  };
 }
 
 function normalizeImportTaskRecurrence(value) {
@@ -650,6 +718,7 @@ async function getTaskWithAssignments(taskId) {
   const tm = await fetchTutorialsForTasks([taskId]);
   enrichTaskRow(task, zm.get(taskId), mm.get(taskId), tm.get(taskId));
   task.status = normalizeTaskStatusForRead(task.status);
+  task.completion_mode = normalizeTaskCompletionMode(task.completion_mode) || 'single_done';
   task.is_before_start_date = isTaskBeforeStartDate(task);
   if (!task.zone_name && task.zone_name_legacy) task.zone_name = task.zone_name_legacy;
   if (!task.marker_label && task.marker_label_legacy) task.marker_label = task.marker_label_legacy;
@@ -659,6 +728,8 @@ async function getTaskWithAssignments(taskId) {
   task.map_label = m ? m.label : null;
   task.assignments = await queryAll('SELECT * FROM task_assignments WHERE task_id = ? ORDER BY assigned_at', [taskId]);
   task.assigned_count = Array.isArray(task.assignments) ? task.assignments.length : 0;
+  task.assignees_total_count = task.assigned_count;
+  task.assignees_done_count = countDoneAssignments(task.assignments);
   task.proposed_by_student_id = await getTaskProposerStudentId(taskId);
   return task;
 }
@@ -819,7 +890,7 @@ router.get('/', async (req, res) => {
         );
       } else {
         assignments = await queryAll(
-          `SELECT id, task_id, student_first_name, student_last_name, assigned_at
+          `SELECT id, task_id, student_first_name, student_last_name, done_at, assigned_at
              FROM task_assignments
             WHERE task_id IN (${ph})
             ORDER BY assigned_at`,
@@ -833,10 +904,13 @@ router.get('/', async (req, res) => {
       assignmentsByTask.get(a.task_id).push(a);
     }
     const assignedCountByTask = new Map();
+    const doneCountByTask = new Map();
     if (taskIds.length) {
       const ph = taskIds.map(() => '?').join(',');
       const countRows = await queryAll(
-        `SELECT task_id, COUNT(*) AS assigned_count
+        `SELECT task_id,
+                COUNT(*) AS assigned_count,
+                SUM(CASE WHEN done_at IS NOT NULL THEN 1 ELSE 0 END) AS done_count
            FROM task_assignments
           WHERE task_id IN (${ph})
           GROUP BY task_id`,
@@ -844,16 +918,20 @@ router.get('/', async (req, res) => {
       );
       for (const row of countRows) {
         assignedCountByTask.set(row.task_id, Number(row.assigned_count) || 0);
+        doneCountByTask.set(row.task_id, Number(row.done_count) || 0);
       }
     }
     const enriched = tasks.map((t) => {
       const row = { ...t };
       enrichTaskRow(row, zm.get(t.id), mm.get(t.id), tutorialsMap.get(t.id));
       row.status = normalizeTaskStatusForRead(row.status);
+      row.completion_mode = normalizeTaskCompletionMode(row.completion_mode) || 'single_done';
       row.is_before_start_date = isTaskBeforeStartDate(row);
       delete row.map_id_resolved_join;
       row.assignments = assignmentsByTask.get(t.id) || [];
       row.assigned_count = assignedCountByTask.get(t.id) || 0;
+      row.assignees_total_count = row.assigned_count;
+      row.assignees_done_count = doneCountByTask.get(t.id) || 0;
       row.proposed_by_student_id = proposerByTask.get(t.id) || null;
       return row;
     });
@@ -1168,7 +1246,22 @@ router.post('/import', requirePermission('tasks.manage', { needsElevation: true 
 
 router.post('/', requirePermission('tasks.manage', { needsElevation: true }), async (req, res) => {
   try {
-    const { title, description, zone_id, marker_id, zone_ids, marker_ids, tutorial_ids, map_id, project_id, start_date, due_date, required_students, recurrence } = req.body;
+    const {
+      title,
+      description,
+      zone_id,
+      marker_id,
+      zone_ids,
+      marker_ids,
+      tutorial_ids,
+      map_id,
+      project_id,
+      start_date,
+      due_date,
+      required_students,
+      recurrence,
+      completion_mode,
+    } = req.body;
     if (!title) return res.status(400).json({ error: 'Titre requis' });
 
     let zIds = normalizeIdArray(zone_ids);
@@ -1186,9 +1279,11 @@ router.post('/', requirePermission('tasks.manage', { needsElevation: true }), as
     if (tutorialValidation.error) return res.status(400).json({ error: tutorialValidation.error });
 
     const reqStudents = sanitizeRequiredStudents(required_students);
+    const completionMode = normalizeTaskCompletionMode(completion_mode);
+    if (!completionMode) return res.status(400).json({ error: 'Mode de validation invalide' });
     const id = uuidv4();
     await execute(
-      'INSERT INTO tasks (id, title, description, map_id, project_id, zone_id, marker_id, start_date, due_date, required_students, recurrence, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      'INSERT INTO tasks (id, title, description, map_id, project_id, zone_id, marker_id, start_date, due_date, required_students, completion_mode, recurrence, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
       [
         id,
         title,
@@ -1200,6 +1295,7 @@ router.post('/', requirePermission('tasks.manage', { needsElevation: true }), as
         start_date || null,
         due_date || null,
         reqStudents,
+        completionMode,
         recurrence || null,
         new Date().toISOString(),
       ]
@@ -1316,7 +1412,7 @@ router.put('/:id', async (req, res) => {
     }
 
     if (isProposerAction) {
-      const forbiddenForProposer = ['status', 'project_id', 'tutorial_ids', 'recurrence'];
+      const forbiddenForProposer = ['status', 'project_id', 'tutorial_ids', 'recurrence', 'completion_mode'];
       const attempted = forbiddenForProposer.find((key) => Object.prototype.hasOwnProperty.call(req.body || {}, key));
       if (attempted) {
         return res.status(403).json({ error: 'Champ non modifiable sur une proposition élève' });
@@ -1337,6 +1433,7 @@ router.put('/:id', async (req, res) => {
       status,
       recurrence,
       project_id,
+      completion_mode,
     } = req.body;
 
     let nextZoneIds;
@@ -1382,10 +1479,14 @@ router.put('/:id', async (req, res) => {
     if (tutorialValidation.error) return res.status(400).json({ error: tutorialValidation.error });
 
     const reqStudents = required_students != null ? sanitizeRequiredStudents(required_students) : task.required_students;
-    const nextStatus = isTeacherAction && Object.prototype.hasOwnProperty.call(req.body, 'status')
+    let nextStatus = isTeacherAction && Object.prototype.hasOwnProperty.call(req.body, 'status')
       ? normalizeImportTaskStatus(status)
       : normalizeTaskStatusForRead(task.status);
     if (!nextStatus) return res.status(400).json({ error: 'Statut invalide' });
+    const nextCompletionMode = isTeacherAction && Object.prototype.hasOwnProperty.call(req.body, 'completion_mode')
+      ? normalizeTaskCompletionMode(completion_mode)
+      : (normalizeTaskCompletionMode(task.completion_mode) || 'single_done');
+    if (!nextCompletionMode) return res.status(400).json({ error: 'Mode de validation invalide' });
 
     const currentStatus = normalizeTaskStatusForRead(task.status);
     const currentZoneIds = await getTaskZoneIds(task.id);
@@ -1401,7 +1502,7 @@ router.put('/:id', async (req, res) => {
     }
 
     await execute(
-      'UPDATE tasks SET title=?, description=?, map_id=?, project_id=?, zone_id=?, marker_id=?, start_date=?, due_date=?, required_students=?, status=?, recurrence=? WHERE id=?',
+      'UPDATE tasks SET title=?, description=?, map_id=?, project_id=?, zone_id=?, marker_id=?, start_date=?, due_date=?, required_students=?, status=?, completion_mode=?, recurrence=? WHERE id=?',
       [
         title ?? task.title,
         description ?? task.description,
@@ -1413,12 +1514,23 @@ router.put('/:id', async (req, res) => {
         due_date ?? task.due_date,
         reqStudents,
         nextStatus,
+        nextCompletionMode,
         isTeacherAction
           ? (recurrence !== undefined ? recurrence || null : task.recurrence || null)
           : task.recurrence || null,
         task.id,
       ]
     );
+    if (isTeacherAction
+      && Object.prototype.hasOwnProperty.call(req.body, 'completion_mode')
+      && !Object.prototype.hasOwnProperty.call(req.body, 'status')) {
+      const recalculated = await recalculateTaskStatus({
+        id: task.id,
+        status: nextStatus,
+        completion_mode: nextCompletionMode,
+      });
+      nextStatus = recalculated?.status || nextStatus;
+    }
     await setTaskZones(task.id, nextZoneIds);
     await setTaskMarkers(task.id, nextMarkerIds);
     await setTaskTutorials(task.id, nextTutorialIds);
@@ -1430,6 +1542,7 @@ router.put('/:id', async (req, res) => {
       actorUserId: isProposerAction ? String(auth.userId) : undefined,
       payload: {
         status: updated.status,
+        completion_mode: updated.completion_mode,
         required_students: updated.required_students,
         project_id: updated.project_id || null,
         proposer_edit: isProposerAction,
@@ -1491,9 +1604,8 @@ router.post('/:id/assign', async (req, res) => {
       [task.id, action.studentId || null, action.firstName, action.lastName, new Date().toISOString()]
     );
 
-    const newCount = task.assignments.length + 1;
-    const newStatus = newCount > 0 ? 'in_progress' : 'available';
-    await execute('UPDATE tasks SET status = ? WHERE id = ?', [newStatus, task.id]);
+    const recalculated = await recalculateTaskStatus(task);
+    const newStatus = recalculated?.status || normalizeTaskStatusForRead(task.status);
 
     const updated = await getTaskWithAssignments(task.id);
     logAudit('assign_task', 'task', task.id, `${action.firstName} ${action.lastName}`, {
@@ -1513,11 +1625,36 @@ router.post('/:id/done', async (req, res) => {
   try {
     const task = await queryOne('SELECT * FROM tasks WHERE id = ?', [req.params.id]);
     if (!task) return res.status(404).json({ error: 'Tâche introuvable' });
+    const completionMode = normalizeTaskCompletionMode(task.completion_mode) || 'single_done';
 
     const { comment, imageData } = req.body || {};
     const action = await resolveStudentActionContext(req, req.body || {}, 'tasks.done_self');
     if (action.error) {
       return res.status(action.errorStatus || 400).json({ error: action.error, ...(action.deleted ? { deleted: true } : {}) });
+    }
+
+    const assignment = action.studentId
+      ? await queryOne(
+        `SELECT id, done_at
+           FROM task_assignments
+          WHERE task_id = ?
+            AND (student_id = ? OR (student_first_name = ? AND student_last_name = ?))
+          ORDER BY assigned_at DESC
+          LIMIT 1`,
+        [task.id, action.studentId, action.firstName, action.lastName]
+      )
+      : await queryOne(
+        `SELECT id, done_at
+           FROM task_assignments
+          WHERE task_id = ?
+            AND student_first_name = ?
+            AND student_last_name = ?
+          ORDER BY assigned_at DESC
+          LIMIT 1`,
+        [task.id, action.firstName, action.lastName]
+      );
+    if (!assignment) {
+      return res.status(400).json({ error: 'Tu dois être inscrit à cette tâche avant de la terminer' });
     }
 
     if (comment || imageData) {
@@ -1538,13 +1675,32 @@ router.post('/:id/done', async (req, res) => {
       }
     }
 
-    await execute("UPDATE tasks SET status = 'done' WHERE id = ?", [task.id]);
+    if (completionMode === 'all_assignees_done') {
+      if (!assignment.done_at) {
+        await execute(
+          'UPDATE task_assignments SET done_at = ? WHERE id = ?',
+          [new Date().toISOString(), assignment.id]
+        );
+      }
+      await recalculateTaskStatus({
+        id: task.id,
+        status: task.status,
+        completion_mode: completionMode,
+      });
+    } else {
+      await execute("UPDATE tasks SET status = 'done' WHERE id = ?", [task.id]);
+    }
     const updated = await getTaskWithAssignments(task.id);
     logAudit('done_task', 'task', task.id, `${action.firstName} ${action.lastName}`.trim(), {
       req,
       actorUserType: action.actorUserType,
       actorUserId: action.actorUserId,
-      payload: { student_id: action.studentId || null, with_comment: !!comment, with_image: !!imageData },
+      payload: {
+        student_id: action.studentId || null,
+        with_comment: !!comment,
+        with_image: !!imageData,
+        completion_mode: completionMode,
+      },
     });
     emitTasksChanged({ reason: 'done', taskId: task.id, mapId: resolveTaskMapId(updated) });
     res.json(updated);
@@ -1619,6 +1775,9 @@ router.post('/:id/validate', requirePermission('tasks.validate', { needsElevatio
   try {
     const task = await queryOne('SELECT * FROM tasks WHERE id = ?', [req.params.id]);
     if (!task) return res.status(404).json({ error: 'Tâche introuvable' });
+    if (normalizeTaskStatusForRead(task.status) !== 'done') {
+      return res.status(400).json({ error: "La tâche doit être terminée avant validation" });
+    }
     await execute("UPDATE tasks SET status = 'validated' WHERE id = ?", [req.params.id]);
     logAudit('validate_task', 'task', req.params.id, task.title, { req });
     const updated = await getTaskWithAssignments(task.id);
@@ -1654,21 +1813,8 @@ router.post('/:id/unassign', async (req, res) => {
         [task.id, action.firstName, action.lastName]
       );
     }
-
-    const remainingRow = await queryOne('SELECT COUNT(*) AS c FROM task_assignments WHERE task_id = ?', [task.id]);
-    const remaining = remainingRow ? Number(remainingRow.c) : 0;
-
-    let newStatus;
-    if (String(task.status || '') === 'on_hold') {
-      newStatus = 'on_hold';
-    } else if (remaining === 0) {
-      newStatus = 'available';
-    } else if (task.status === 'done') {
-      newStatus = 'done';
-    } else {
-      newStatus = 'in_progress';
-    }
-    await execute('UPDATE tasks SET status = ? WHERE id = ?', [newStatus, task.id]);
+    const recalculated = await recalculateTaskStatus(task);
+    const newStatus = recalculated?.status || normalizeTaskStatusForRead(task.status);
 
     const updated = await getTaskWithAssignments(task.id);
     logAudit('unassign_task', 'task', task.id, `${action.firstName} ${action.lastName}`, {

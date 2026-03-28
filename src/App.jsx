@@ -27,6 +27,7 @@ import { NotificationCenter } from './components/notifications-center';
 import { ForumView } from './components/forum-views';
 import { Tooltip } from './components/Tooltip';
 import { getRoleTerms, isN3OnlyAffiliation } from './utils/n3-terminology';
+import { getContentText } from './utils/content';
 import { useDialogA11y } from './hooks/useDialogA11y';
 
 const DESKTOP_SPLIT_MIN_WIDTH = 1024;
@@ -523,6 +524,10 @@ function App() {
   const studentAffiliation = (studentForUi?.affiliation || 'both').toLowerCase();
   const isN3Affiliated = isN3OnlyAffiliation(studentAffiliation);
   const roleTerms = getRoleTerms(isN3Affiliated);
+  const appLoaderText = getContentText(publicSettings, 'app.loader', 'Chargement de la forêt...');
+  const appServerDownNotice = getContentText(publicSettings, 'app.server_down_notice', 'Serveur indisponible. Nouvel essai automatique toutes les 2 minutes.');
+  const appRetryNow = getContentText(publicSettings, 'app.retry_now', 'Réessayer maintenant');
+  const appFooterVersionPrefix = getContentText(publicSettings, 'app.footer_version_prefix', 'Version');
   const canAccessStudentMapTasks = true;
   const isVisitor = effectiveRoleContext.roleSlug === 'visiteur';
   const canAccessForum = !isVisitor;
@@ -716,7 +721,7 @@ function App() {
               publicSettings={publicSettings}
             />
           </div>
-          <footer className="app-footer">Version {appVersion != null ? appVersion : '…'}</footer>
+          <footer className="app-footer">{appFooterVersionPrefix} {appVersion != null ? appVersion : '…'}</footer>
         </div>
       ) : (
         <AuthScreen
@@ -763,10 +768,10 @@ function App() {
           margin:'8px 12px 0', padding:'10px 14px', borderRadius:12,
           background:'#fef3c7', border:'1px solid #f59e0b', color:'#78350f', fontSize:'.9rem'
         }}>
-          <strong>Serveur indisponible.</strong> Nouvel essai automatique toutes les 2 minutes.
+          {appServerDownNotice}
           <button type="button" className="btn btn-sm" style={{marginLeft:10, verticalAlign:'middle'}}
             onClick={() => { failCountRef.current = 0; setRefreshMs(30000); setServerDown(false); fetchAll(); }}>
-            Réessayer maintenant
+            {appRetryNow}
           </button>
         </div>
       )}
@@ -1078,7 +1083,7 @@ function App() {
           {loading ? (
             <div className="loader" style={{ height: '60vh' }}>
               <div className="loader-leaf">🌿</div>
-              <p>Chargement de la forêt...</p>
+              <p>{appLoaderText}</p>
             </div>
           ) : (
             <>
@@ -1144,7 +1149,7 @@ function App() {
             {loading ? (
               <div className="loader" style={{ height: '60vh' }}>
                 <div className="loader-leaf">🌿</div>
-                <p>Chargement de la forêt...</p>
+                <p>{appLoaderText}</p>
               </div>
             ) : (
               <>
@@ -1255,7 +1260,7 @@ function App() {
           </nav>
         </>
       )}
-      <footer className="app-footer">Version {appVersion != null ? appVersion : '…'}</footer>
+      <footer className="app-footer">{appFooterVersionPrefix} {appVersion != null ? appVersion : '…'}</footer>
     </div>
   );
 }

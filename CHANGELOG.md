@@ -9,6 +9,9 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - **Outil collectif retiré (frontend + backend)** : suppression complète de la vue `Collectif`, des endpoints `/api/collective/*`, de la diffusion temps réel `collective:changed`, des tables SQL associées (`collective_sessions*`), des migrations dédiées et des tests backend liés.
 
 ### Modifié
+- **Tâches (mode de validation)** : ajout du mode `completion_mode` (`single_done`/`all_assignees_done`) dans l’API et l’UI, avec recalcul de statut selon la progression réelle des assignés (`assignees_done_count` / `assignees_total_count`) et garde-fou sur `POST /api/tasks/:id/validate` (validation uniquement si la tâche est déjà `done`).
+- **Affectation rapide professeur** : la vue tâches permet désormais une sélection multiple d’élèves pour l’affectation rapide sur une tâche, avec feedback sur le nombre de places disponibles et les affectations partielles.
+- **Contenus texte éditables** : extension des réglages `content.*` pour personnaliser les textes Accueil/Auth, Visite, À propos et messages globaux (loader, indisponibilité serveur, préfixe version), avec fallback frontend local.
 - **Tuiles tâches (titres de catégories)** : ajout d’un emoji préfixe sur tous les titres de sections (`Projets`, `Mes tâches`, `Propositions`, `En attente`, `Validées`, `Résultats filtrés`, etc.) pour harmoniser la lecture visuelle avec les statuts.
 - **Build frontend (rafraîchissement local)** : régénération des bundles versionnés dans `dist/` via les workflows `build` et `deploy:prepare:fast` pour forcer la prise en compte des derniers assets côté déploiement.
 - **Paramètres admin + profils (UX)** : l’API settings admin renvoie désormais la liste des profils de progression (hors `prof/admin`) affichée dans la section progression, et la vue `Profils & utilisateurs` adopte une mise en page responsive dédiée pour éviter les débordements sur écrans moyens/petits.
@@ -23,6 +26,8 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - **Scroll mobile global + console Paramètres** : sécurisation du verrouillage de scroll `body` (lightbox) pour éviter les blocages persistants, et forçage de la vue `Paramètres admin` en colonne unique sur mobile/tablette avec débordements horizontaux neutralisés.
 
 ### Ajouté
+- **Migration SQL tâches (mode collectif)** : nouvelle migration `040_task_completion_mode_and_assignment_done.sql` pour ajouter `tasks.completion_mode` et `task_assignments.done_at`, alignée avec le schéma principal.
+- **Utilitaire frontend `content`** : ajout de `src/utils/content.js` pour lire de façon robuste les clés `content.*` et appliquer un fallback texte propre.
 - **Carte (verrou repères)** : ajout d’un bouton `🔒/🔓 Repères` pour les profils autorisés afin de verrouiller/déverrouiller explicitement le déplacement des repères sur la carte.
 - **Projets de tâches + mise en pause** : ajout des routes et du schéma associés à la gestion des projets de tâches et au statut `on_hold`, avec migration SQL dédiée et tests backend mis à jour.
 - **Date de départ facultative des tâches** : ajout du champ `start_date` (UI + API + SQL) ; avant cette date, la tâche reste en attente et l’inscription élève est bloquée.

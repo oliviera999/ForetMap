@@ -6,6 +6,7 @@ import { useHelp } from '../hooks/useHelp';
 import { HelpPanel } from './HelpPanel';
 import { Tooltip } from './Tooltip';
 import { HELP_PANELS, HELP_TOOLTIPS, resolveRoleText } from '../constants/help';
+import { getContentText } from '../utils/content';
 
 function parsePctPoints(raw) {
   try {
@@ -435,6 +436,11 @@ function VisitView({
     [configuredLocationEmojis]
   );
   const roleTerms = getRoleTerms(isN3Affiliated);
+  const visitTitle = getContentText(publicSettings, 'visit.title', '🧭 Visite de la carte');
+  const visitSubtitle = getContentText(publicSettings, 'visit.subtitle', 'Explore les zones et repères, puis marque ce que tu as déjà vu.');
+  const visitEmptySelection = getContentText(publicSettings, 'visit.empty_selection', 'Sélectionne une zone ou un repère pour afficher les détails.');
+  const visitTutorialsTitle = getContentText(publicSettings, 'visit.tutorials_title', '📘 Tutoriels de la visite');
+  const visitTutorialsEmpty = getContentText(publicSettings, 'visit.tutorials_empty', 'Aucun tutoriel sélectionné pour le moment.');
   const studentIdForProgress = useMemo(() => {
     if (isTeacher) return null;
     if (!student?.id) return null;
@@ -814,8 +820,8 @@ function VisitView({
     <div className="visit-view fade-in">
       <div className="visit-header-row">
         <div>
-          <h2 className="section-title">🧭 Visite de la carte</h2>
-          <p className="section-sub">Explore les zones et repères, puis marque ce que tu as déjà vu.</p>
+          <h2 className="section-title">{visitTitle}</h2>
+          <p className="section-sub">{visitSubtitle}</p>
         </div>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
           {isHelpEnabled && (
@@ -1010,7 +1016,7 @@ function VisitView({
           {!selected ? (
             <div className="empty">
               <div className="empty-icon">👆</div>
-              <p>Sélectionne une zone ou un repère pour afficher les détails.</p>
+              <p>{visitEmptySelection}</p>
             </div>
           ) : (
             <div>
@@ -1051,7 +1057,7 @@ function VisitView({
       </div>
 
       <section className="visit-tutorials">
-        <h3>📘 Tutoriels de la visite</h3>
+        <h3>{visitTutorialsTitle}</h3>
         {isTeacher && (
           <div className="visit-tutorial-picker">
             <p>Choisir les tutoriels affichés en visite (indépendamment des zones/repères) :</p>
@@ -1079,7 +1085,7 @@ function VisitView({
           </div>
         )}
         {(content.tutorials || []).length === 0 ? (
-          <p className="section-sub">Aucun tutoriel sélectionné pour le moment.</p>
+          <p className="section-sub">{visitTutorialsEmpty}</p>
         ) : (
           <div className="tuto-grid">
             {content.tutorials.map((t) => (

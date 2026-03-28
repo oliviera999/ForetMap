@@ -174,6 +174,14 @@ Réglage public de réactions :
 - `ui.reactions.allowed_emojis` (chaîne, emojis séparés par espaces ou virgules).
 - Valeur par défaut : `👍 ❤️ 😂 😮 😢 😡 🔥 👏`.
 
+Contenus éditables du site (micro-CMS texte brut) :
+- Namespace `content.*` dans les réglages publics, éditable via `PUT /api/settings/admin/:key`.
+- Objectif : modifier des textes UI sans redéploiement (accueil/auth, visite, à-propos, messages globaux).
+- Format : texte brut uniquement (pas de HTML/Markdown côté API).
+- Validation serveur : contraintes `maxLength` par clé ; si dépassé, la route renvoie `400`.
+- Fallback frontend : en cas de valeur vide/absente, l’UI conserve un texte de secours local.
+- Exemples de clés : `content.auth.title`, `content.visit.subtitle`, `content.about.help_body`, `content.app.loader`.
+
 ---
 
 ## Zones
@@ -302,15 +310,22 @@ Réponse:
 | GET | `/api/tasks/:id/logs/:logId/image` | non | Image d’un log (fichier disque) |
 | POST | `/api/tasks/:id/validate` | oui | Valider la tâche |
 
-\* Un élève peut aussi modifier **sa propre proposition** (statut `proposed`) ; les champs sensibles (`status`, `project_id`, `tutorial_ids`, `recurrence`) restent réservés aux profils avec `tasks.manage`.
+\* Un élève peut aussi modifier **sa propre proposition** (statut `proposed`) ; les champs sensibles (`status`, `project_id`, `tutorial_ids`, `recurrence`, `completion_mode`) restent réservés aux profils avec `tasks.manage`.
 
 Contraintes principales :
 
 - Statuts tâche supportés : `available`, `in_progress`, `done`, `validated`, `proposed`, `on_hold`.
+- Modes de validation supportés (`completion_mode`) : `single_done` (défaut), `all_assignees_done`.
 - Statuts projet supportés : `active`, `on_hold` (retourné dans `project_status` sur les payloads de tâche).
 - Champ optionnel `start_date` (`YYYY-MM-DD`) sur les tâches ; tant que la date n’est pas atteinte, la tâche est considérée en attente (`is_before_start_date: true` dans les payloads).
 - Si une tâche est `on_hold` **ou** si son projet est `on_hold`, `POST /api/tasks/:id/assign` renvoie `400` (inscription élève bloquée).
 - Si `start_date` est dans le futur, `POST /api/tasks/:id/assign` renvoie aussi `400` (inscription élève bloquée jusqu’à la date de départ).
+- `POST /api/tasks` et `PUT /api/tasks/:id` acceptent `completion_mode` pour les profils autorisés.
+- Les payloads tâche exposent `completion_mode`, `assignees_total_count` et `assignees_done_count`.
+- `POST /api/tasks/:id/done` :
+  - en `single_done`, la tâche passe en `done` dès la déclaration de fin ;
+  - en `all_assignees_done`, chaque assigné valide individuellement, puis la tâche passe en `done` uniquement quand tous les assignés ont terminé.
+- `POST /api/tasks/:id/validate` exige que la tâche soit déjà `done` (sinon `400`).
 - Les commentaires contextuels restent possibles sur les tâches/projets (`/api/context-comments`).
 
 ---

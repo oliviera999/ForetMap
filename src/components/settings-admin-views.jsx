@@ -6,6 +6,7 @@ import { getRoleTerms } from '../utils/n3-terminology';
 const SECTION_DEFS = {
   auth: { title: 'Accueil & authentification', order: 10 },
   modules: { title: 'Modules UI', order: 20 },
+  content: { title: 'Contenus du site', order: 22 },
   progression: { title: 'Progression élèves', order: 25 },
   security: { title: 'Sécurité', order: 30 },
   operations: { title: 'Exploitation', order: 40 },
@@ -19,6 +20,30 @@ const KEY_META = {
   'ui.auth.allow_guest_visit': { label: 'Afficher "Visiter sans connexion"', section: 'auth', order: 40 },
   'ui.auth.default_mode': { label: 'Mode auth par défaut', section: 'auth', order: 50 },
   'ui.auth.welcome_message': { label: 'Message d’accueil', section: 'auth', order: 60, multiline: true },
+  'content.auth.title': { label: 'Titre écran de connexion', section: 'content', order: 10 },
+  'content.auth.subtitle': { label: 'Sous-titre écran de connexion', section: 'content', order: 20, multiline: true },
+  'content.auth.login_tab': { label: 'Texte onglet connexion', section: 'content', order: 30 },
+  'content.auth.register_tab': { label: 'Texte onglet création de compte', section: 'content', order: 40 },
+  'content.auth.guest_visit_cta': { label: 'Bouton visite sans connexion', section: 'content', order: 50 },
+  'content.app.loader': { label: 'Message global de chargement', section: 'content', order: 60 },
+  'content.app.server_down_notice': { label: 'Message serveur indisponible', section: 'content', order: 70, multiline: true },
+  'content.app.retry_now': { label: 'Bouton réessayer', section: 'content', order: 80 },
+  'content.app.footer_version_prefix': { label: 'Préfixe version footer', section: 'content', order: 90 },
+  'content.visit.title': { label: 'Titre page visite', section: 'content', order: 100 },
+  'content.visit.subtitle': { label: 'Sous-titre page visite', section: 'content', order: 110, multiline: true },
+  'content.visit.empty_selection': { label: 'Texte zone non sélectionnée', section: 'content', order: 120, multiline: true },
+  'content.visit.tutorials_title': { label: 'Titre bloc tutoriels visite', section: 'content', order: 130 },
+  'content.visit.tutorials_empty': { label: 'Texte tutoriels vides', section: 'content', order: 140, multiline: true },
+  'content.about.title': { label: 'Titre page à propos', section: 'content', order: 150 },
+  'content.about.subtitle': { label: 'Sous-titre page à propos', section: 'content', order: 160, multiline: true },
+  'content.about.purpose_title': { label: 'Titre carte objet de l’application', section: 'content', order: 170 },
+  'content.about.purpose_body': { label: 'Texte objet de l’application', section: 'content', order: 180, multiline: true },
+  'content.about.docs_title': { label: 'Titre carte documentation', section: 'content', order: 190 },
+  'content.about.repo_title': { label: 'Titre carte dépôt GitHub', section: 'content', order: 200 },
+  'content.about.help_title': { label: 'Titre carte aide contextuelle', section: 'content', order: 210 },
+  'content.about.help_body': { label: 'Texte aide contextuelle', section: 'content', order: 220, multiline: true },
+  'content.about.help_reenable_cta': { label: 'Bouton réactiver aides', section: 'content', order: 230 },
+  'content.about.help_reset_metrics_cta': { label: 'Bouton reset compteurs aide', section: 'content', order: 240 },
 
   'ui.modules.tutorials_enabled': { label: 'Tutoriels', section: 'modules', order: 10 },
   'ui.modules.visit_enabled': { label: 'Visite', section: 'modules', order: 20 },
@@ -57,6 +82,7 @@ function humanizeKey(key) {
 function inferSectionFromKey(key) {
   const normalized = String(key || '').toLowerCase();
   if (normalized.startsWith('ui.auth.')) return 'auth';
+  if (normalized.startsWith('content.')) return 'content';
   if (normalized.startsWith('ui.modules.') || normalized.startsWith('ui.map.')) return 'modules';
   if (normalized.startsWith('progression.')) return 'progression';
   if (normalized.startsWith('security.') || normalized.startsWith('integration.')) return 'security';

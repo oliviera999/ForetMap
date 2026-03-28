@@ -16,8 +16,12 @@ let taskIdOnHold;
 let taskIdFutureStart;
 let studentId;
 let studentToken;
+let studentTwoId;
+let studentTwoToken;
 const firstName = `St${Date.now()}`;
 const lastName = 'Task';
+const secondFirstName = `St2${Date.now()}`;
+const secondLastName = 'Task';
 
 before(async () => {
   await initSchema();
@@ -30,6 +34,12 @@ before(async () => {
     .expect(201);
   studentId = reg.body.id;
   studentToken = reg.body.authToken;
+  const regTwo = await request(app)
+    .post('/api/auth/register')
+    .send({ firstName: secondFirstName, lastName: secondLastName, password: 'pass123' })
+    .expect(201);
+  studentTwoId = regTwo.body.id;
+  studentTwoToken = regTwo.body.authToken;
   const taskRes = await request(app)
     .post('/api/tasks')
     .set('Authorization', `Bearer ${teacherToken}`)
@@ -132,5 +142,86 @@ describe('Recalcul statuts tâches', () => {
       .set('Authorization', `Bearer ${studentToken}`)
       .send({ firstName, lastName, studentId })
       .expect(400);
+  });
+
+  it('mode all_assignees_done: la tâche passe à done uniquement quand tous les assignés ont terminé', async () => {
+    const collectiveTask = await request(app)
+      .post('/api/tasks')
+      .set('Authorization', `Bearer ${teacherToken}`)
+      .send({
+        title: `Tâche collective ${Date.now()}`,
+        required_students: 2,
+        completion_mode: 'all_assignees_done',
+      })
+      .expect(201);
+    const collectiveTaskId = collectiveTask.body.id;
+
+    await request(app)
+      .post(`/api/tasks/${collectiveTaskId}/assign`)
+      .set('Authorization', `Bearer ${studentToken}`)
+      .send({ firstName, lastName, studentId })
+      .expect(200);
+    await request(app)
+      .post(`/api/tasks/${collectiveTaskId}/assign`)
+      .set('Authorization', `Bearer ${studentTwoToken}`)
+      .send({ firstName: secondFirstName, lastName: secondLastName, studentId: studentTwoId })
+      .expect(200);
+
+    const afterFirstDone = await request(app)
+      .post(`/api/tasks/${collectiveTaskId}/done`)
+      .set('Authorization', `Bearer ${studentToken}`)
+      .send({ firstName, lastName, studentId })
+      .expect(200);
+    assert.strictEqual(afterFirstDone.body.status, 'in_progress');
+    assert.strictEqual(Number(afterFirstDone.body.assignees_done_count), 1);
+    assert.strictEqual(Number(afterFirstDone.body.assignees_total_count), 2);
+
+    const afterSecondDone = await request(app)
+      .post(`/api/tasks/${collectiveTaskId}/done`)
+      .set('Authorization', `Bearer ${studentTwoToken}`)
+      .send({ firstName: secondFirstName, lastName: secondLastName, studentId: studentTwoId })
+      .expect(200);
+    assert.strictEqual(afterSecondDone.body.status, 'done');
+    assert.strictEqual(Number(afterSecondDone.body.assignees_done_count), 2);
+    assert.strictEqual(Number(afterSecondDone.body.assignees_total_count), 2);
+  });
+
+  it('mode all_assignees_done: retirer un assigné non terminé peut clôturer la tâche', async () => {
+    const collectiveTask = await request(app)
+      .post('/api/tasks')
+      .set('Authorization', `Bearer ${teacherToken}`)
+      .send({
+        title: `Tâche collective unassign ${Date.now()}`,
+        required_students: 2,
+        completion_mode: 'all_assignees_done',
+      })
+      .expect(201);
+    const collectiveTaskId = collectiveTask.body.id;
+
+    await request(app)
+      .post(`/api/tasks/${collectiveTaskId}/assign`)
+      .set('Authorization', `Bearer ${studentToken}`)
+      .send({ firstName, lastName, studentId })
+      .expect(200);
+    await request(app)
+      .post(`/api/tasks/${collectiveTaskId}/assign`)
+      .set('Authorization', `Bearer ${studentTwoToken}`)
+      .send({ firstName: secondFirstName, lastName: secondLastName, studentId: studentTwoId })
+      .expect(200);
+
+    await request(app)
+      .post(`/api/tasks/${collectiveTaskId}/done`)
+      .set('Authorization', `Bearer ${studentToken}`)
+      .send({ firstName, lastName, studentId })
+      .expect(200);
+
+    const afterUnassign = await request(app)
+      .post(`/api/tasks/${collectiveTaskId}/unassign`)
+      .set('Authorization', `Bearer ${teacherToken}`)
+      .send({ firstName: secondFirstName, lastName: secondLastName, studentId: studentTwoId })
+      .expect(200);
+    assert.strictEqual(afterUnassign.body.status, 'done');
+    assert.strictEqual(Number(afterUnassign.body.assignees_done_count), 1);
+    assert.strictEqual(Number(afterUnassign.body.assignees_total_count), 1);
   });
 });
