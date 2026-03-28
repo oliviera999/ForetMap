@@ -1339,6 +1339,7 @@ function MapView({ zones, markers, tasks = [], plants, maps = [], activeMapId = 
   const [pendingZone, setPendingZone] = useState(null);
   const [pendingMarker, setPendingMarker] = useState(null);
   const [toast, setToast] = useState(null);
+  const [markerPositionUnlocked, setMarkerPositionUnlocked] = useState(false);
   const configuredLocationEmojis = String(
     publicSettings?.ui?.map?.location_emojis
     || publicSettings?.map?.location_emojis
@@ -1417,6 +1418,7 @@ function MapView({ zones, markers, tasks = [], plants, maps = [], activeMapId = 
     setSelectedMarker(null);
     setPendingZone(null);
     setPendingMarker(null);
+    setMarkerPositionUnlocked(false);
   }, [activeMapId]);
 
   const onMapClick = e => {
@@ -1602,6 +1604,7 @@ function MapView({ zones, markers, tasks = [], plants, maps = [], activeMapId = 
     : (isTeacher ? 'calc(100dvh - 56px)' : 'calc(100dvh - 56px - 72px)');
   const mapAspect = imgSize.w > 1 && imgSize.h > 1 ? `${imgSize.w} / ${imgSize.h}` : '16 / 10';
   const mobileInteractionsActive = mapInteractionEnabled || committed.s > 1.05;
+  const canManageMarkerPositions = !!isTeacher;
   const { isHelpEnabled, hasSeenSection, markSectionSeen, trackPanelOpen, trackPanelDismiss } = useHelp({ publicSettings, isTeacher });
   const helpMap = HELP_PANELS.map;
   const tooltipText = (entry) => resolveRoleText(entry, isTeacher);
@@ -1693,6 +1696,16 @@ function MapView({ zones, markers, tasks = [], plants, maps = [], activeMapId = 
         )}
 
         <div style={{ marginLeft: 'auto', display: 'flex', gap: 4, alignItems: 'center' }}>
+          {canManageMarkerPositions && (
+            <button
+              aria-label={markerPositionUnlocked ? 'Verrouiller la position des repères' : 'Déverrouiller la position des repères'}
+              onClick={() => setMarkerPositionUnlocked((prev) => !prev)}
+              style={{ background: markerPositionUnlocked ? '#ecfdf3' : 'transparent', border: '1.5px solid var(--mint)',
+                color: markerPositionUnlocked ? '#166534' : 'var(--forest)', borderRadius: 8, padding: '6px 10px',
+                cursor: 'pointer', fontSize: '.78rem', fontWeight: 700, minHeight: 36 }}>
+              {markerPositionUnlocked ? '🔓 Repères' : '🔒 Repères'}
+            </button>
+          )}
           {isCoarsePointer && mode === 'view' && (
             <Tooltip text={tooltipText(HELP_TOOLTIPS.map.toggleGestures)}>
               <button
@@ -1801,7 +1814,7 @@ function MapView({ zones, markers, tasks = [], plants, maps = [], activeMapId = 
             return (
             <button key={m.id} className="map-bubble" type="button"
               style={{ position: 'absolute', left: m.x_pct + '%', top: m.y_pct + '%',
-                transform: 'translate(-50%,-50%)', zIndex: 10, cursor: isTeacher ? 'grab' : 'pointer',
+                transform: 'translate(-50%,-50%)', zIndex: 10, cursor: isTeacher && markerPositionUnlocked ? 'grab' : 'pointer',
                 border: 'none', background: 'transparent', padding: markerHitPadding }}
               aria-label={markerAriaLabel}
               title={markerAriaLabel}
@@ -1812,7 +1825,7 @@ function MapView({ zones, markers, tasks = [], plants, maps = [], activeMapId = 
                   openMarker(e);
                 }
               }}
-              onPointerDown={isTeacher ? e => {
+              onPointerDown={isTeacher && markerPositionUnlocked ? e => {
                 e.stopPropagation();
                 beginMarkerDrag(m.id, e.currentTarget, e.pointerId);
               } : undefined}
