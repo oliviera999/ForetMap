@@ -36,10 +36,8 @@ export function parseEmojiListSetting(rawValue, fallback = MARKER_EMOJIS) {
     .replace(/,/g, ' ')
     .split(/\s+/)
     .map((item) => String(item || '').trim())
-    .filter(Boolean)
-    .filter((item) => item.length <= 16);
-  const unique = [...new Set(tokens)];
-  return unique.length > 0 ? unique : [...fallback];
+    .filter(Boolean);
+  return [...new Set([...fallback, ...tokens])];
 }
 
 export const MARKER_EMOJIS_DEFAULT_SETTING = MARKER_EMOJIS.join(' ');
