@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { api, AccountDeletedError } from '../services/api';
 import { MARKER_EMOJIS, parseEmojiListSetting } from '../constants/emojis';
 import { getRoleTerms } from '../utils/n3-terminology';
@@ -26,11 +26,16 @@ function itemSeenKey(type, id) {
   return `${type}:${id}`;
 }
 
-function pointToPct(event, element) {
+function pointToPct(event, element, transform = { x: 0, y: 0, s: 1 }) {
   const rect = element.getBoundingClientRect();
   if (!rect.width || !rect.height) return null;
-  const xp = ((event.clientX - rect.left) / rect.width) * 100;
-  const yp = ((event.clientY - rect.top) / rect.height) * 100;
+  const scale = Number(transform?.s) > 0 ? Number(transform.s) : 1;
+  const offsetX = Number(transform?.x) || 0;
+  const offsetY = Number(transform?.y) || 0;
+  const localX = (event.clientX - rect.left - offsetX) / scale;
+  const localY = (event.clientY - rect.top - offsetY) / scale;
+  const xp = (localX / rect.width) * 100;
+  const yp = (localY / rect.height) * 100;
   if (!Number.isFinite(xp) || !Number.isFinite(yp)) return null;
   return {
     xp: Math.max(0, Math.min(100, Number(xp.toFixed(2)))),
@@ -450,9 +455,82 @@ function VisitView({
   const [mode, setMode] = useState('view');
   const [drawPoints, setDrawPoints] = useState([]);
   const [creating, setCreating] = useState(false);
+  const stageRef = useRef(null);
+  const dragRef = useRef({
+    active: false,
+    moved: false,
+    pointerId: null,
+    startClientX: 0,
+    startClientY: 0,
+    baseX: 0,
+    baseY: 0,
+  });
+  const skipClickRef = useRef(false);
+  const pinchRef = useRef({
+    active: false,
+    dist: 0,
+    startScale: 1,
+    startX: 0,
+    startY: 0,
+    midX: 0,
+    midY: 0,
+  });
+  const [mapTransform, setMapTransform] = useState({ x: 0, y: 0, s: 1 });
   const { isHelpEnabled, hasSeenSection, markSectionSeen, trackPanelOpen, trackPanelDismiss } = useHelp({ publicSettings, isTeacher });
 
   const currentMap = useMemo(() => maps.find((m) => m.id === mapId), [maps, mapId]);
+  const canPanAndZoom = mode === 'view';
+
+  const clampTransform = useCallback((next, rectLike = null) => {
+    const stage = stageRef.current;
+    const rect = rectLike || (stage ? stage.getBoundingClientRect() : null);
+    const safeScale = Math.max(1, Math.min(6, Number(next?.s) || 1));
+    if (!rect || !rect.width || !rect.height || safeScale <= 1) {
+      return { x: 0, y: 0, s: safeScale };
+    }
+    const minX = rect.width * (1 - safeScale);
+    const minY = rect.height * (1 - safeScale);
+    const x = Math.min(0, Math.max(minX, Number(next?.x) || 0));
+    const y = Math.min(0, Math.max(minY, Number(next?.y) || 0));
+    return { x, y, s: safeScale };
+  }, []);
+
+  const zoomAroundClientPoint = useCallback((clientX, clientY, factor) => {
+    const stage = stageRef.current;
+    if (!stage) return;
+    const rect = stage.getBoundingClientRect();
+    if (!rect.width || !rect.height) return;
+    setMapTransform((prev) => {
+      const nextScale = Math.max(1, Math.min(6, prev.s * factor));
+      const px = clientX - rect.left;
+      const py = clientY - rect.top;
+      const next = {
+        s: nextScale,
+        x: px - (px - prev.x) * (nextScale / prev.s),
+        y: py - (py - prev.y) * (nextScale / prev.s),
+      };
+      return clampTransform(next, rect);
+    });
+  }, [clampTransform]);
+
+  const zoomFromCenter = useCallback((factor) => {
+    const stage = stageRef.current;
+    if (!stage) return;
+    const rect = stage.getBoundingClientRect();
+    const centerX = rect.left + (rect.width / 2);
+    const centerY = rect.top + (rect.height / 2);
+    zoomAroundClientPoint(centerX, centerY, factor);
+  }, [zoomAroundClientPoint]);
+
+  const resetMapTransform = useCallback(() => {
+    setMapTransform({ x: 0, y: 0, s: 1 });
+  }, []);
+
+  const consumeSkipClick = useCallback(() => {
+    if (!skipClickRef.current) return false;
+    skipClickRef.current = false;
+    return true;
+  }, []);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -486,6 +564,22 @@ function VisitView({
   useEffect(() => {
     loadData();
   }, [loadData]);
+
+  useEffect(() => {
+    resetMapTransform();
+    skipClickRef.current = false;
+    dragRef.current.active = false;
+    dragRef.current.moved = false;
+  }, [mapId, resetMapTransform]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+    const onResize = () => {
+      setMapTransform((prev) => clampTransform(prev));
+    };
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, [clampTransform]);
 
   const onToggleSeen = async () => {
     if (!selected || !selectedType) return;
@@ -535,9 +629,10 @@ function VisitView({
   };
 
   const onMapClick = async (event) => {
+    if (consumeSkipClick()) return;
     if (!isTeacher || mode === 'view') return;
     const stage = event.currentTarget;
-    const p = pointToPct(event, stage);
+    const p = pointToPct(event, stage, mapTransform);
     if (!p) return;
 
     if (mode === 'draw-zone') {
@@ -566,6 +661,120 @@ function VisitView({
         setCreating(false);
       }
     }
+  };
+
+  const onStagePointerDown = (event) => {
+    if (!canPanAndZoom) return;
+    if (event.target.closest('.visit-map-controls') || event.target.closest('.visit-zone-poly') || event.target.closest('.visit-marker-btn')) return;
+    const stage = stageRef.current;
+    if (!stage) return;
+    dragRef.current = {
+      active: true,
+      moved: false,
+      pointerId: event.pointerId,
+      startClientX: event.clientX,
+      startClientY: event.clientY,
+      baseX: mapTransform.x,
+      baseY: mapTransform.y,
+    };
+    try { stage.setPointerCapture(event.pointerId); } catch (_) {}
+  };
+
+  const onStagePointerMove = (event) => {
+    const drag = dragRef.current;
+    if (!drag.active || !canPanAndZoom) return;
+    const stage = stageRef.current;
+    if (!stage) return;
+    const rect = stage.getBoundingClientRect();
+    const dx = event.clientX - drag.startClientX;
+    const dy = event.clientY - drag.startClientY;
+    const hasMoved = Math.hypot(dx, dy) > 4;
+    if (hasMoved) {
+      drag.moved = true;
+      skipClickRef.current = true;
+    }
+    const next = clampTransform({ x: drag.baseX + dx, y: drag.baseY + dy, s: mapTransform.s }, rect);
+    setMapTransform(next);
+    if (drag.moved) event.preventDefault();
+  };
+
+  const onStagePointerUp = (event) => {
+    const drag = dragRef.current;
+    if (!drag.active) return;
+    const stage = stageRef.current;
+    if (stage && drag.pointerId != null) {
+      try { stage.releasePointerCapture(drag.pointerId); } catch (_) {}
+    }
+    dragRef.current = {
+      active: false,
+      moved: drag.moved,
+      pointerId: null,
+      startClientX: 0,
+      startClientY: 0,
+      baseX: 0,
+      baseY: 0,
+    };
+    if (drag.moved) {
+      setTimeout(() => {
+        skipClickRef.current = false;
+      }, 0);
+    }
+    if (pinchRef.current.active) {
+      pinchRef.current.active = false;
+    }
+    if (event && drag.moved) event.preventDefault();
+  };
+
+  const onStageWheel = (event) => {
+    if (!canPanAndZoom) return;
+    event.preventDefault();
+    const factor = event.deltaY > 0 ? 0.88 : 1.14;
+    zoomAroundClientPoint(event.clientX, event.clientY, factor);
+  };
+
+  const onStageTouchStart = (event) => {
+    if (!canPanAndZoom) return;
+    if (event.touches.length !== 2) return;
+    const stage = stageRef.current;
+    if (!stage) return;
+    const t0 = event.touches[0];
+    const t1 = event.touches[1];
+    const rect = stage.getBoundingClientRect();
+    pinchRef.current = {
+      active: true,
+      dist: Math.hypot(t0.clientX - t1.clientX, t0.clientY - t1.clientY),
+      startScale: mapTransform.s,
+      startX: mapTransform.x,
+      startY: mapTransform.y,
+      midX: ((t0.clientX + t1.clientX) / 2) - rect.left,
+      midY: ((t0.clientY + t1.clientY) / 2) - rect.top,
+    };
+    dragRef.current.active = false;
+    skipClickRef.current = true;
+    event.preventDefault();
+  };
+
+  const onStageTouchMove = (event) => {
+    if (!canPanAndZoom) return;
+    if (!pinchRef.current.active || event.touches.length !== 2) return;
+    const stage = stageRef.current;
+    if (!stage) return;
+    const t0 = event.touches[0];
+    const t1 = event.touches[1];
+    const dist = Math.hypot(t0.clientX - t1.clientX, t0.clientY - t1.clientY);
+    const rect = stage.getBoundingClientRect();
+    const nextScale = Math.max(1, Math.min(6, pinchRef.current.startScale * (dist / Math.max(1, pinchRef.current.dist))));
+    const next = clampTransform({
+      s: nextScale,
+      x: pinchRef.current.midX - (pinchRef.current.midX - pinchRef.current.startX) * (nextScale / pinchRef.current.startScale),
+      y: pinchRef.current.midY - (pinchRef.current.midY - pinchRef.current.startY) * (nextScale / pinchRef.current.startScale),
+    }, rect);
+    setMapTransform(next);
+    event.preventDefault();
+  };
+
+  const onStageTouchEnd = () => {
+    if (pinchRef.current.active) pinchRef.current.active = false;
   };
 
   const saveTutorialSelection = async () => {
@@ -665,68 +874,124 @@ function VisitView({
       <div className="visit-grid">
         <div className="visit-map-card">
           <div
+            ref={stageRef}
             className="visit-map-stage"
             onClick={onMapClick}
-            style={{ cursor: isTeacher && mode !== 'view' ? 'crosshair' : 'default' }}
+            onPointerDown={onStagePointerDown}
+            onPointerMove={onStagePointerMove}
+            onPointerUp={onStagePointerUp}
+            onPointerCancel={onStagePointerUp}
+            onPointerLeave={onStagePointerUp}
+            onWheel={onStageWheel}
+            onTouchStart={onStageTouchStart}
+            onTouchMove={onStageTouchMove}
+            onTouchEnd={onStageTouchEnd}
+            style={{
+              cursor: isTeacher && mode !== 'view' ? 'crosshair' : (canPanAndZoom ? 'grab' : 'default'),
+              touchAction: canPanAndZoom ? 'none' : 'auto',
+            }}
           >
-            <img
-              src={currentMap?.map_image_url || '/map.png'}
-              alt={`Plan ${currentMap?.label || 'Forêt'}`}
-              className="visit-map-img"
-            />
+            <div
+              className="visit-map-world"
+              style={{ transform: `translate(${mapTransform.x}px, ${mapTransform.y}px) scale(${mapTransform.s})` }}
+            >
+              <img
+                src={currentMap?.map_image_url || '/map.png'}
+                alt={`Plan ${currentMap?.label || 'Forêt'}`}
+                className="visit-map-img"
+              />
 
-            <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="visit-map-zones">
-              {(content.zones || []).map((z) => {
-                const points = parsePctPoints(z.points);
-                if (points.length < 3) return null;
-                const p = points.map((pt) => `${pt.xp},${pt.yp}`).join(' ');
-                const isSeen = seen.has(itemSeenKey('zone', z.id));
+              <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="visit-map-zones">
+                {(content.zones || []).map((z) => {
+                  const points = parsePctPoints(z.points);
+                  if (points.length < 3) return null;
+                  const p = points.map((pt) => `${pt.xp},${pt.yp}`).join(' ');
+                  const isSeen = seen.has(itemSeenKey('zone', z.id));
+                  return (
+                    <polygon
+                      key={z.id}
+                      points={p}
+                      className={`visit-zone-poly ${isSeen ? 'is-seen' : 'is-unseen'}`}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        if (consumeSkipClick()) return;
+                        setSelected(z);
+                        setSelectedType('zone');
+                      }}
+                    />
+                  );
+                })}
+                {mode === 'draw-zone' && drawPoints.length >= 1 && (
+                  <>
+                    <polyline
+                      points={drawPoints.map((pt) => `${pt.xp},${pt.yp}`).join(' ')}
+                      fill="none"
+                      stroke="#166534"
+                      strokeWidth="0.35"
+                      strokeDasharray="0.8 0.4"
+                    />
+                    {drawPoints.map((pt, idx) => (
+                      <circle key={`draw-${idx}`} cx={pt.xp} cy={pt.yp} r="0.7" fill="#166534" />
+                    ))}
+                  </>
+                )}
+              </svg>
+
+              {(content.markers || []).map((m) => {
+                const isSeen = seen.has(itemSeenKey('marker', m.id));
                 return (
-                  <polygon
-                    key={z.id}
-                    points={p}
-                    className={`visit-zone-poly ${isSeen ? 'is-seen' : 'is-unseen'}`}
-                    onClick={() => {
-                      setSelected(z);
-                      setSelectedType('zone');
+                  <button
+                    key={m.id}
+                    className="visit-marker-btn"
+                    style={{ left: `${m.x_pct}%`, top: `${m.y_pct}%` }}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      if (consumeSkipClick()) return;
+                      setSelected(m);
+                      setSelectedType('marker');
                     }}
-                  />
+                  >
+                    <span className="visit-marker-emoji">{m.emoji || '📍'}</span>
+                    <span className={`visit-marker-indicator ${isSeen ? 'is-seen' : 'is-unseen'}`} />
+                  </button>
                 );
               })}
-              {mode === 'draw-zone' && drawPoints.length >= 1 && (
-                <>
-                  <polyline
-                    points={drawPoints.map((pt) => `${pt.xp},${pt.yp}`).join(' ')}
-                    fill="none"
-                    stroke="#166534"
-                    strokeWidth="0.35"
-                    strokeDasharray="0.8 0.4"
-                  />
-                  {drawPoints.map((pt, idx) => (
-                    <circle key={`draw-${idx}`} cx={pt.xp} cy={pt.yp} r="0.7" fill="#166534" />
-                  ))}
-                </>
-              )}
-            </svg>
-
-            {(content.markers || []).map((m) => {
-              const isSeen = seen.has(itemSeenKey('marker', m.id));
-              return (
-                <button
-                  key={m.id}
-                  className="visit-marker-btn"
-                  style={{ left: `${m.x_pct}%`, top: `${m.y_pct}%` }}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setSelected(m);
-                    setSelectedType('marker');
-                  }}
-                >
-                  <span className="visit-marker-emoji">{m.emoji || '📍'}</span>
-                  <span className={`visit-marker-indicator ${isSeen ? 'is-seen' : 'is-unseen'}`} />
-                </button>
-              );
-            })}
+            </div>
+            <div className="visit-map-controls">
+              <button
+                type="button"
+                className="visit-map-ctrl"
+                aria-label="Zoomer la carte de visite"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  zoomFromCenter(1.2);
+                }}
+              >
+                ＋
+              </button>
+              <button
+                type="button"
+                className="visit-map-ctrl"
+                aria-label="Dézoomer la carte de visite"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  zoomFromCenter(0.84);
+                }}
+              >
+                －
+              </button>
+              <button
+                type="button"
+                className="visit-map-ctrl"
+                aria-label="Recentrer la carte de visite"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  resetMapTransform();
+                }}
+              >
+                ⊡
+              </button>
+            </div>
           </div>
         </div>
 
