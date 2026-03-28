@@ -1502,12 +1502,6 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
               <div className={sectionListClass}>{available.map((t, idx) => <TaskCard key={t.id} t={t} index={idx} />)}</div>
             </div>
           )}
-          {onHold.length > 0 && (
-            <div className="tasks-section">
-              <div className="tasks-section-title">En attente ({onHold.length})</div>
-              <div className={sectionListClass}>{onHold.map((t, idx) => <TaskCard key={t.id} t={t} index={idx} />)}</div>
-            </div>
-          )}
           {inProgress.length > 0 && (
             <div className="tasks-section">
               <div className="tasks-section-title">En cours</div>
@@ -1524,6 +1518,12 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
             <div className="tasks-section">
               <div className="tasks-section-title">En attente de validation ({done.length})</div>
               <div className={sectionListClass}>{done.map((t, idx) => <TaskCard key={t.id} t={t} index={idx} />)}</div>
+            </div>
+          )}
+          {onHold.length > 0 && (
+            <div className="tasks-section">
+              <div className="tasks-section-title">En attente ({onHold.length})</div>
+              <div className={sectionListClass}>{onHold.map((t, idx) => <TaskCard key={t.id} t={t} index={idx} />)}</div>
             </div>
           )}
           {validated.length > 0 && (
@@ -1550,12 +1550,6 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
               <div className={sectionListClass}>{availableNotMine.map((t, idx) => <TaskCard key={t.id} t={t} index={idx} />)}</div>
             </div>
           )}
-              {onHoldNotMine.length > 0 && (
-              <div className="tasks-section">
-                <div className="tasks-section-title">En attente</div>
-                <div className={sectionListClass}>{onHoldNotMine.map((t, idx) => <TaskCard key={t.id} t={t} index={idx} />)}</div>
-              </div>
-              )}
               {myProposals.length > 0 && (
               <div className="tasks-section">
                 <div className="tasks-section-title">Mes propositions ({myProposals.length})</div>
@@ -1572,6 +1566,12 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
               <div className="tasks-section">
                 <div className="tasks-section-title">En attente de validation</div>
                 <div className={sectionListClass}>{doneNotMine.map((t, idx) => <TaskCard key={t.id} t={t} index={idx} />)}</div>
+              </div>
+              )}
+              {onHoldNotMine.length > 0 && (
+              <div className="tasks-section">
+                <div className="tasks-section-title">En attente</div>
+                <div className={sectionListClass}>{onHoldNotMine.map((t, idx) => <TaskCard key={t.id} t={t} index={idx} />)}</div>
               </div>
               )}
               {recentlyValidatedForStudent.length > 0 && (

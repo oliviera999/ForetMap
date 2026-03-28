@@ -105,6 +105,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - **Navigation/auth** : ajout d’un CTA « Visiter sans connexion » dans l’écran d’authentification et intégration de l’onglet `Visite` dans les navigations élève/prof.
 
 ### Corrigé
+- **Carte (cohérence labels zones/repères)** : le texte des repères adopte maintenant le même style visuel que les zones (typographie, contraste et lisibilité), en supprimant le badge sombre qui créait un rendu différent.
 - **Paramètres cartes réellement appliqués** : la carte par défaut est maintenant réappliquée lors du chargement des réglages publics et lors des changements de contexte (élève/prof/visite), et les cartes inactives (`is_active = false`) sont exclues des sélecteurs utilisateur (visite + tâches) pour respecter la configuration admin.
 - **Chargement initial résilient (prod)** : l’écran n’est plus vidé si un endpoint API échoue (ex. `map_id` invalide) ; chaque ressource retombe sur une valeur de secours et la carte active est automatiquement reroutée vers une carte valide.
 - **Inscrits visibles pour les élèves** : `GET /api/tasks` renvoie de nouveau les participants d’une tâche pour les élèves non visiteurs (noms/prénoms), tout en conservant la restriction lecture seule pour le rôle visiteur.
