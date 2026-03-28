@@ -592,8 +592,8 @@ function getAvailableSlots(task) {
 }
 
 const TEACHER_STATUS_ACTIONS = [
-  { value: 'available', label: 'À faire', icon: '🟢' },
-  { value: 'in_progress', label: 'En cours', icon: '🟡' },
+  { value: 'available', label: 'À faire', icon: '🔥' },
+  { value: 'in_progress', label: 'En cours', icon: '⚙️' },
   { value: 'done', label: 'Terminée', icon: '✅' },
   { value: 'validated', label: 'Validée', icon: '✔️' },
   { value: 'proposed', label: 'Proposée', icon: '💡' },
@@ -1498,13 +1498,13 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
         <>
           {available.length > 0 && (
             <div className="tasks-section">
-              <div className="tasks-section-title">À faire</div>
+              <div className="tasks-section-title">🔥 À faire</div>
               <div className={sectionListClass}>{available.map((t, idx) => <TaskCard key={t.id} t={t} index={idx} />)}</div>
             </div>
           )}
           {inProgress.length > 0 && (
             <div className="tasks-section">
-              <div className="tasks-section-title">En cours</div>
+              <div className="tasks-section-title">⚙️ En cours</div>
               <div className={sectionListClass}>{inProgress.map((t, idx) => <TaskCard key={t.id} t={t} index={idx} />)}</div>
             </div>
           )}
@@ -1546,7 +1546,7 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
             <>
               {availableNotMine.length > 0 && (
             <div className="tasks-section">
-              <div className="tasks-section-title">Tâches à faire</div>
+              <div className="tasks-section-title">🔥 Tâches à faire</div>
               <div className={sectionListClass}>{availableNotMine.map((t, idx) => <TaskCard key={t.id} t={t} index={idx} />)}</div>
             </div>
           )}
@@ -1558,7 +1558,7 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
               )}
               {inProgressNotMine.length > 0 && (
               <div className="tasks-section">
-                <div className="tasks-section-title">En cours (déjà prises)</div>
+                <div className="tasks-section-title">⚙️ En cours (déjà prises)</div>
                 <div className={sectionListClass}>{inProgressNotMine.map((t, idx) => <TaskCard key={t.id} t={t} index={idx} />)}</div>
               </div>
               )}
