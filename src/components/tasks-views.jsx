@@ -312,22 +312,6 @@ function TaskFormModal({
     return searchableTutorials.filter((t) => String(t.title || '').toLowerCase().includes(q));
   }, [searchableTutorials, tutorialSearch]);
 
-  const pickListStyle = {
-    maxHeight: 168, overflowY: 'auto', border: '1px solid rgba(0,0,0,.08)', borderRadius: 10,
-    padding: '6px 8px', background: 'var(--parchment, #faf8f3)', textAlign: 'left',
-  };
-  const pickRow = {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'flex-start',
-    gap: 10,
-    minHeight: 44,
-    width: '100%',
-    cursor: 'pointer',
-    textAlign: 'left',
-  };
-  const pickText = { fontSize: '.88rem', textAlign: 'left', flex: 1 };
-
   return (
     <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
       <div
@@ -360,33 +344,35 @@ function TaskFormModal({
           </div>
         )}
         <div className="field"><label>Zones (plusieurs possibles)</label>
-          <div style={pickListStyle}>
+          <div className="task-form-pick-list">
             {selectableZones.length === 0
-              ? <p style={{ fontSize: '.82rem', color: '#888', margin: 8 }}>Aucune zone pour cette carte.</p>
+              ? <p className="task-form-pick-empty">Aucune zone pour cette carte.</p>
               : selectableZones.map(z => (
-                <label key={z.id} style={pickRow}>
+                <label key={z.id} className="task-form-pick-item">
                   <input
                     type="checkbox"
+                    className="task-form-pick-checkbox"
                     checked={form.zone_ids.includes(String(z.id || '').trim())}
                     onChange={() => toggleZoneId(z.id)}
                   />
-                  <span style={pickText}>{z.name}{z.current_plant ? ` — ${z.current_plant}` : ''}</span>
+                  <span className="task-form-pick-text">{z.name}{z.current_plant ? ` — ${z.current_plant}` : ''}</span>
                 </label>
               ))}
           </div>
         </div>
         <div className="field"><label>Repères (plusieurs possibles)</label>
-          <div style={pickListStyle}>
+          <div className="task-form-pick-list">
             {selectableMarkers.length === 0
-              ? <p style={{ fontSize: '.82rem', color: '#888', margin: 8 }}>Aucun repère pour cette carte.</p>
+              ? <p className="task-form-pick-empty">Aucun repère pour cette carte.</p>
               : selectableMarkers.map(m => (
-                <label key={m.id} style={pickRow}>
+                <label key={m.id} className="task-form-pick-item">
                   <input
                     type="checkbox"
+                    className="task-form-pick-checkbox"
                     checked={form.marker_ids.includes(String(m.id || '').trim())}
                     onChange={() => toggleMarkerId(m.id)}
                   />
-                  <span style={pickText}>{m.emoji ? `${m.emoji} ` : ''}{m.label}</span>
+                  <span className="task-form-pick-text">{m.emoji ? `${m.emoji} ` : ''}{m.label}</span>
                 </label>
               ))}
           </div>
@@ -423,19 +409,20 @@ function TaskFormModal({
                 </div>
               </div>
             )}
-            <div style={pickListStyle}>
+            <div className="task-form-pick-list">
               {tutorials.length === 0
-                ? <p style={{ fontSize: '.82rem', color: '#888', margin: 8 }}>Aucun tutoriel disponible.</p>
+                ? <p className="task-form-pick-empty">Aucun tutoriel disponible.</p>
                 : filteredTutorials.length === 0
-                  ? <p style={{ fontSize: '.82rem', color: '#888', margin: 8 }}>Aucun tutoriel trouvé.</p>
+                  ? <p className="task-form-pick-empty">Aucun tutoriel trouvé.</p>
                   : filteredTutorials.map(t => (
-                  <label key={t.id} style={pickRow}>
+                  <label key={t.id} className="task-form-pick-item">
                     <input
                       type="checkbox"
+                      className="task-form-pick-checkbox"
                       checked={normalizedTutorialIds.includes(Number.parseInt(t.id, 10))}
                       onChange={() => toggleTutorialId(t.id)}
                     />
-                    <span style={pickText}>📘 {t.title}</span>
+                    <span className="task-form-pick-text">📘 {t.title}</span>
                   </label>
                 ))}
             </div>

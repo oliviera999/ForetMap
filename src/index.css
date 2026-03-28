@@ -765,17 +765,9 @@
       background:#ecfdf3; color:#166534; border-radius:8px;
       padding:10px 14px; font-size:.85rem; margin-bottom:12px;
     }
-    .auth-home-tagline {
-      margin-top:16px;
-      margin-bottom:4px;
-      text-align:center;
-      color:var(--leaf);
-      font-size:.82rem;
-      font-weight:600;
-      line-height:1.35;
-    }
     .auth-home-credit {
-      margin:0;
+      margin-top:16px;
+      margin-bottom:0;
       text-align:center;
       color:#9aa69f;
       font-size:.68rem;
@@ -787,6 +779,75 @@
     .row { display:flex; gap:10px; }
     .row .field { flex:1; }
     @media(max-width:440px) { .row { flex-direction:column; gap:0; } }
+
+    /* ── TASK FORM PICK LISTS (zones / repères / tutoriels) ── */
+    .task-form-pick-list {
+      max-height:168px;
+      overflow-y:auto;
+      border:1px solid rgba(0,0,0,.08);
+      border-radius:10px;
+      padding:6px 8px;
+      background:var(--parchment, #faf8f3);
+      display:grid;
+      grid-template-columns:1fr;
+      gap:2px 12px;
+      text-align:left;
+      align-content:start;
+    }
+    .task-form-pick-item {
+      display:flex;
+      align-items:flex-start;
+      justify-content:flex-start;
+      gap:10px;
+      min-height:44px;
+      width:100%;
+      cursor:pointer;
+      text-align:left;
+      margin:0;
+      padding:6px 2px;
+      text-transform:none;
+      letter-spacing:normal;
+      font-weight:400;
+      color:var(--forest);
+      font-size:.88rem;
+      line-height:1.25;
+    }
+    .task-form-pick-checkbox {
+      margin:2px 0 0;
+      flex-shrink:0;
+    }
+    .task-form-pick-text {
+      flex:1;
+      text-align:left;
+      text-transform:none;
+      letter-spacing:normal;
+      color:var(--forest);
+      font-size:.88rem;
+      font-weight:500;
+      line-height:1.3;
+      white-space:normal;
+      overflow-wrap:anywhere;
+    }
+    .task-form-pick-empty {
+      font-size:.82rem;
+      color:#888;
+      margin:8px;
+      grid-column:1 / -1;
+      text-align:left;
+      text-transform:none;
+      letter-spacing:normal;
+      font-weight:400;
+    }
+    @media (min-width:700px) {
+      .task-form-pick-list {
+        grid-template-columns:repeat(2, minmax(0, 1fr));
+      }
+    }
+    @media (min-width:1080px) {
+      .task-form-pick-list {
+        grid-template-columns:repeat(3, minmax(0, 1fr));
+      }
+    }
 
     /* ── MAP BUBBLE ── */
     .map-bubble > div:first-child { transition:transform .15s var(--spring); }

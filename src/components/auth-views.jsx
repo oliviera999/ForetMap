@@ -1,5 +1,5 @@
 import React, { useEffect, useId, useMemo, useState } from 'react';
-import { api, saveStoredSession, withAppBase } from '../services/api';
+import { api, getStoredSession, saveStoredSession, withAppBase } from '../services/api';
 import { getRoleTerms } from '../utils/n3-terminology';
 import { getContentText } from '../utils/content';
 
@@ -47,12 +47,15 @@ function PinModal({ onSuccess, onClose, uiSettings, isN3Affiliated = false }) {
       }
       localStorage.setItem('foretmap_auth_token', data.token);
       localStorage.setItem('foretmap_teacher_token', data.token);
+      const currentUser = getStoredSession()?.user || null;
       saveStoredSession({
         token: data.token,
         user: {
           id: data?.auth?.canonicalUserId || data?.auth?.userId || null,
           userType: 'teacher',
-          displayName: data?.auth?.roleDisplayName || 'Utilisateur',
+          displayName: currentUser?.displayName || data?.auth?.roleDisplayName || 'Utilisateur',
+          email: currentUser?.email || null,
+          avatar_path: currentUser?.avatar_path || null,
         },
       });
       onSuccess();
@@ -89,7 +92,8 @@ function PinModal({ onSuccess, onClose, uiSettings, isN3Affiliated = false }) {
           id: data?.auth?.canonicalUserId || data?.auth?.userId || null,
           userType: 'teacher',
           displayName: data?.auth?.roleDisplayName || email.trim(),
-          email: email.trim(),
+          email: data?.email || email.trim(),
+          avatar_path: data?.avatar_path || null,
         },
       });
       onSuccess();
@@ -373,6 +377,7 @@ function AuthScreen({ onLogin, appVersion, onVisitGuest, uiSettings, isN3Affilia
           userType,
           displayName: student?.display_name || student?.pseudo || `${student?.first_name || ''} ${student?.last_name || ''}`.trim() || (isTeacher ? roleTerms.teacherSingular : roleTerms.studentSingular),
           email: student?.email || null,
+          avatar_path: student?.avatar_path || null,
         },
         student: isTeacher ? null : student,
       });
@@ -419,7 +424,8 @@ function AuthScreen({ onLogin, appVersion, onVisitGuest, uiSettings, isN3Affilia
       <div className="auth-card fade-in">
         <div style={{ fontSize: '2.5rem', marginBottom: 10 }}>🌿</div>
         <h1>{authTitle}</h1>
-        {welcomeMessage && <p className="sub">{welcomeMessage}</p>}
+        <p className="sub">{authSubtitle}</p>
+        {welcomeMessage && <p className="sub" style={{ marginTop: -4 }}>{welcomeMessage}</p>}
 
         <div className="auth-tabs">
           <button className={`auth-tab ${mode === 'login' ? 'active' : ''}`} onClick={() => { setMode('login'); setErr(''); setInfo(''); }}>
@@ -554,7 +560,6 @@ function AuthScreen({ onLogin, appVersion, onVisitGuest, uiSettings, isN3Affilia
             {guestVisitLabel}
           </button>
         )}
-        <p className="auth-home-tagline">{authSubtitle}</p>
         <p className="auth-home-credit">projet initialement produit Mohammed El Farrai</p>
         {appVersion != null && <p className="auth-version">Version {appVersion}</p>}
       </div>
