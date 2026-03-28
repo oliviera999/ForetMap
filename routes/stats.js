@@ -88,6 +88,7 @@ router.get('/all', requirePermission('stats.read.all'), async (req, res) => {
       );
       const done = assignments.filter(a => a.status === 'validated').length;
       const sync = await syncStudentPrimaryRoleFromProgress(s.id, done, progressionConfig);
+      const currentStep = (sync.steps || []).find((step) => String(step.roleSlug) === String(sync.currentRoleSlug));
       return {
         id: s.id,
         first_name: s.first_name,
@@ -105,6 +106,7 @@ router.get('/all', requirePermission('stats.read.all'), async (req, res) => {
         progression: {
           roleSlug: sync.currentRoleSlug,
           roleDisplayName: sync.currentRoleDisplayName,
+          roleEmoji: currentStep?.emoji || null,
         },
       };
     }));

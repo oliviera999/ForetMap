@@ -96,8 +96,8 @@ Toutes les routes RBAC exigent un token admin avec élévation PIN active.
 | Méthode | URL | Description |
 |--------|-----|-------------|
 | GET | `/api/rbac/profiles` | Liste des profils + permissions |
-| POST | `/api/rbac/profiles` | Créer un profil |
-| PATCH | `/api/rbac/profiles/:id` | Renommer/ajuster rang d’un profil |
+| POST | `/api/rbac/profiles` | Créer un profil (`slug`, `display_name`, `rank`, `display_order`, `emoji?`, `min_done_tasks?`) |
+| PATCH | `/api/rbac/profiles/:id` | Modifier un profil (`display_name`, `rank`, `display_order`, `emoji`, `min_done_tasks`) |
 | PUT | `/api/rbac/profiles/:id/permissions` | Remplacer les permissions d’un profil |
 | PUT | `/api/rbac/profiles/:id/pin` | Changer le PIN d’un profil |
 | GET | `/api/rbac/users` | Liste utilisateurs et profil attribué |
@@ -165,10 +165,9 @@ Ces routes sont destinées à la console admin et exigent un token avec permissi
 | GET | `/api/settings/admin/system/oauth-debug` | Diagnostic runtime OAuth (sans secrets) |
 | POST | `/api/settings/admin/system/restart` | Redémarrage applicatif contrôlé |
 
-Réglages de progression élèves (scope enseignant/admin) :
-- `progression.student_role_min_done_eleve_avance`
-- `progression.student_role_min_done_eleve_chevronne`
-- Contrainte : le seuil `eleve_chevronne` doit être strictement supérieur à `eleve_avance`.
+Progression élèves :
+- pilotée directement par les profils `eleve_*` via `roles.min_done_tasks`, `roles.emoji` et `roles.display_order`.
+- les anciens réglages `progression.student_role_min_done_*` ne sont plus utilisés.
 
 Réglage public de réactions :
 - `ui.reactions.allowed_emojis` (chaîne, emojis séparés par espaces ou virgules).
@@ -394,11 +393,11 @@ Contraintes principales :
 | Méthode | URL | Prof | Description |
 |--------|-----|------|-------------|
 | GET | `/api/stats/me/:studentId` | non | Stats de l’utilisateur ciblé (propriétaire ou permission `stats.read.all`) ; pour prof/admin sans activités élève, compteurs à `0` |
-| GET | `/api/stats/all` | oui | Stats de tous les élèves (inclut `pseudo`, `description`, `avatar_path`, n’expose pas `email`) |
+| GET | `/api/stats/all` | oui | Stats de tous les élèves (inclut `pseudo`, `description`, `avatar_path`, `progression.roleEmoji`, n’expose pas `email`) |
 
 `GET /api/stats/me/:studentId` renvoie aussi `progression` pour les élèves :
-- `progression.thresholds` : seuils actifs par profil (`eleve_novice`, `eleve_avance`, `eleve_chevronne`)
-- `progression.steps` : paliers affichables (min + label de profil)
+- `progression.thresholds` : seuils actifs par profil (clés dynamiques selon les profils `eleve_*`)
+- `progression.steps` : paliers affichables (min + label + emoji + ordre d’affichage)
 - `progression.roleSlug` / `progression.roleDisplayName` : profil principal actuel après synchronisation.
 
 ---

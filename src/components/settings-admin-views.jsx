@@ -55,9 +55,6 @@ const KEY_META = {
   'ui.map.default_map_student': { section: 'modules', order: 50, dynamicLabel: 'defaultStudentMap' },
   'ui.map.default_map_teacher': { section: 'modules', order: 60, dynamicLabel: 'defaultTeacherMap' },
   'ui.map.default_map_visit': { label: 'Carte par défaut (visite publique)', section: 'modules', order: 70 },
-  'progression.student_role_min_done_eleve_avance': { label: 'Seuil profil élève avancé (tâches validées)', section: 'progression', order: 10 },
-  'progression.student_role_min_done_eleve_chevronne': { label: 'Seuil profil élève chevronné (tâches validées)', section: 'progression', order: 20 },
-
   'security.password_min_length': { label: 'Longueur min mot de passe', section: 'security', order: 10 },
   'security.jwt_ttl_base_seconds': { label: 'Durée session standard (secondes)', section: 'security', order: 20 },
   'security.jwt_ttl_elevated_seconds': { label: 'Durée session élevée (secondes)', section: 'security', order: 30 },
@@ -126,7 +123,6 @@ function SettingsAdminView({ isN3Affiliated = false }) {
   const [loading, setLoading] = useState(true);
   const [savingKey, setSavingKey] = useState('');
   const [settings, setSettings] = useState([]);
-  const [progressionRoles, setProgressionRoles] = useState([]);
   const [maps, setMaps] = useState([]);
   const [logs, setLogs] = useState([]);
   const [oauthDebug, setOauthDebug] = useState(null);
@@ -361,7 +357,6 @@ function SettingsAdminView({ isN3Affiliated = false }) {
     try {
       const data = await api('/api/settings/admin');
       setSettings(Array.isArray(data?.settings) ? data.settings : []);
-      setProgressionRoles(Array.isArray(data?.progressionRoles) ? data.progressionRoles : []);
       setMaps(Array.isArray(data?.maps) ? data.maps : []);
     } catch (e) {
       setErr(e.message || 'Impossible de charger les paramètres');
@@ -487,18 +482,6 @@ function SettingsAdminView({ isN3Affiliated = false }) {
         {filteredSettingSections.map((section) => (
           <div key={section.id} style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: 12, padding: 12, minWidth: 0 }}>
             <h3 style={{ marginTop: 0 }}>{section.title}</h3>
-            {section.id === 'progression' && (
-              <div style={{ marginBottom: 10, padding: 10, borderRadius: 10, background: '#f8fafc', border: '1px solid #e2e8f0' }}>
-                <div style={{ fontSize: '.85rem', fontWeight: 600, color: '#1f2937', marginBottom: 6 }}>
-                  Profils affichés pour la progression {roleTerms.studentPlural}
-                </div>
-                <div style={{ fontSize: '.8rem', color: '#475569' }}>
-                  {progressionRoles.length > 0
-                    ? progressionRoles.map((role) => role.display_name || role.slug).join(' • ')
-                    : 'Aucun profil disponible (hors prof/admin).'}
-                </div>
-              </div>
-            )}
             {section.rows.map((row) => renderSettingField(row))}
           </div>
         ))}

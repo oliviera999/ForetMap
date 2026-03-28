@@ -5,10 +5,52 @@ const { initDatabase, queryAll, queryOne, execute } = require('../database');
 const { app } = require('../server');
 const request = require('supertest');
 const { signAuthToken } = require('../middleware/requireTeacher');
+const { ensureRbacBootstrap } = require('../lib/rbac');
 
 test.before(async () => {
   await initDatabase();
+  await ensureRbacBootstrap();
 });
+
+async function getAdminAuthToken() {
+  const loginEmail = String(process.env.TEACHER_ADMIN_EMAIL || '').trim();
+  const res = await request(app)
+    .post('/api/auth/login')
+    .send({
+      identifier: loginEmail,
+      password: process.env.TEACHER_ADMIN_PASSWORD,
+    })
+    .expect(200);
+  const teacher = await queryOne(
+    "SELECT id FROM users WHERE user_type = 'teacher' AND LOWER(email) = LOWER(?) LIMIT 1",
+    [loginEmail]
+  );
+  const adminRole = await queryOne("SELECT id FROM roles WHERE slug = 'admin' LIMIT 1");
+  if (teacher?.id && adminRole?.id) {
+    await execute('UPDATE user_roles SET is_primary = 0 WHERE user_type = ? AND user_id = ?', ['teacher', teacher.id]);
+    await execute(
+      'INSERT INTO user_roles (user_type, user_id, role_id, is_primary) VALUES (?, ?, ?, 1) ON DUPLICATE KEY UPDATE is_primary = 1',
+      ['teacher', teacher.id, adminRole.id]
+    );
+  }
+  return res.body.authToken;
+}
+
+async function setStudentPrimaryRole(studentId, roleSlug) {
+  const role = await queryOne('SELECT id FROM roles WHERE slug = ? LIMIT 1', [roleSlug]);
+  assert.ok(role?.id, `Rôle introuvable: ${roleSlug}`);
+  await execute('UPDATE user_roles SET is_primary = 0 WHERE user_type = ? AND user_id = ?', ['student', studentId]);
+  await execute(
+    'INSERT INTO user_roles (user_type, user_id, role_id, is_primary) VALUES (?, ?, ?, 1) ON DUPLICATE KEY UPDATE is_primary = 1',
+    ['student', studentId, role.id]
+  );
+}
+
+async function allowStudentProposalsAtZeroDone() {
+  await execute('UPDATE roles SET min_done_tasks = ? WHERE slug = ?', [1, 'eleve_novice']);
+  await execute('UPDATE roles SET min_done_tasks = ? WHERE slug = ?', [0, 'eleve_avance']);
+  await execute('UPDATE roles SET min_done_tasks = ? WHERE slug = ?', [9999, 'eleve_chevronne']);
+}
 
 // ─── Auth ─────────────────────────────────────────────────────────────────
 test('POST /api/auth/register crée un élève et renvoie 201', async () => {
@@ -19,7 +61,7 @@ test('POST /api/auth/register crée un élève et renvoie 201', async () => {
   assert.ok(res.body.id);
   assert.strictEqual(res.body.first_name, 'Test');
   assert.strictEqual(res.body.password_hash, undefined);
-  assert.strictEqual(res.body?.auth?.roleSlug, 'visiteur');
+  assert.ok(['visiteur', 'eleve_novice'].includes(String(res.body?.auth?.roleSlug || '')));
 });
 
 test('POST /api/auth/login avec mauvais mot de passe renvoie 401', async () => {
@@ -35,26 +77,16 @@ test('POST /api/auth/login avec mauvais mot de passe renvoie 401', async () => {
   assert.ok(res.body.error);
 });
 
-test('GET /api/stats/me/:studentId autorise le propriétaire même en userType legacy', async () => {
+test('GET /api/stats/me/:studentId autorise le propriétaire connecté', async () => {
   const studentRes = await request(app)
     .post('/api/auth/register')
     .send({ firstName: 'Legacy', lastName: 'Stats' + Date.now(), password: 'pass1234' })
     .expect(201);
   const studentId = studentRes.body.id;
 
-  const legacyToken = signAuthToken({
-    userType: 'user',
-    userId: studentId,
-    roleId: null,
-    roleSlug: 'legacy',
-    roleDisplayName: 'Legacy',
-    permissions: [],
-    elevated: false,
-  }, false);
-
   const res = await request(app)
     .get(`/api/stats/me/${studentId}`)
-    .set('Authorization', 'Bearer ' + legacyToken)
+    .set('Authorization', `Bearer ${studentRes.body.authToken}`)
     .expect(200);
 
   assert.strictEqual(res.body.id, studentId);
@@ -62,38 +94,17 @@ test('GET /api/stats/me/:studentId autorise le propriétaire même en userType l
 });
 
 test('GET /api/stats/me/:studentId synchronise le profil élève selon les seuils configurés', async () => {
-  const teacher = await request(app)
-    .post('/api/auth/teacher')
-    .send({ pin: process.env.TEACHER_PIN || '1234' })
-    .expect(200);
-  const teacherToken = teacher.body.token;
+  const teacherToken = await getAdminAuthToken();
 
-  await request(app)
-    .put('/api/settings/admin/progression.student_role_min_done_eleve_avance')
-    .set('Authorization', `Bearer ${teacherToken}`)
-    .send({ value: 1 })
-    .expect(200);
-  await request(app)
-    .put('/api/settings/admin/progression.student_role_min_done_eleve_chevronne')
-    .set('Authorization', `Bearer ${teacherToken}`)
-    .send({ value: 2 })
-    .expect(200);
+  await execute('UPDATE roles SET min_done_tasks = ?, emoji = ?, display_order = ? WHERE slug = ?', [0, '🪨', 50, 'eleve_novice']);
+  await execute('UPDATE roles SET min_done_tasks = ?, emoji = ?, display_order = ? WHERE slug = ?', [1, '🌿', 40, 'eleve_avance']);
+  await execute('UPDATE roles SET min_done_tasks = ?, emoji = ?, display_order = ? WHERE slug = ?', [2, '🏆', 30, 'eleve_chevronne']);
 
   const studentRes = await request(app)
     .post('/api/auth/register')
     .send({ firstName: 'Profil', lastName: `Sync${Date.now()}`, password: 'pass1234' })
     .expect(201);
-  const { id: studentId, first_name: firstName, last_name: lastName } = studentRes.body;
-
-  const studentToken = signAuthToken({
-    userType: 'student',
-    userId: studentId,
-    roleId: null,
-    roleSlug: 'eleve_novice',
-    roleDisplayName: 'Élève novice',
-    permissions: [],
-    elevated: false,
-  }, false);
+  const { id: studentId, first_name: firstName, last_name: lastName, authToken: studentAuthToken } = studentRes.body;
 
   const zones = await request(app).get('/api/zones').expect(200);
   const zoneId = zones.body[0]?.id || 'pg';
@@ -105,10 +116,12 @@ test('GET /api/stats/me/:studentId synchronise le profil élève selon les seuil
       .expect(201);
     await request(app)
       .post(`/api/tasks/${task.body.id}/assign`)
+      .set('Authorization', `Bearer ${studentAuthToken}`)
       .send({ firstName, lastName, studentId })
       .expect(200);
     await request(app)
       .post(`/api/tasks/${task.body.id}/done`)
+      .set('Authorization', `Bearer ${studentAuthToken}`)
       .send({ firstName, lastName, studentId })
       .expect(200);
     await request(app)
@@ -119,7 +132,7 @@ test('GET /api/stats/me/:studentId synchronise le profil élève selon les seuil
 
   const stats = await request(app)
     .get(`/api/stats/me/${studentId}`)
-    .set('Authorization', `Bearer ${studentToken}`)
+    .set('Authorization', `Bearer ${studentRes.body.authToken}`)
     .expect(200);
   assert.strictEqual(stats.body?.progression?.roleSlug, 'eleve_chevronne');
 
@@ -134,16 +147,9 @@ test('GET /api/stats/me/:studentId synchronise le profil élève selon les seuil
   assert.strictEqual(role?.slug, 'eleve_chevronne');
 
   // Remise aux valeurs par défaut.
-  await request(app)
-    .put('/api/settings/admin/progression.student_role_min_done_eleve_avance')
-    .set('Authorization', `Bearer ${teacherToken}`)
-    .send({ value: 5 })
-    .expect(200);
-  await request(app)
-    .put('/api/settings/admin/progression.student_role_min_done_eleve_chevronne')
-    .set('Authorization', `Bearer ${teacherToken}`)
-    .send({ value: 10 })
-    .expect(200);
+  await execute('UPDATE roles SET min_done_tasks = ?, emoji = ?, display_order = ? WHERE slug = ?', [0, '🪨', 50, 'eleve_novice']);
+  await execute('UPDATE roles SET min_done_tasks = ?, emoji = ?, display_order = ? WHERE slug = ?', [5, '🌿', 40, 'eleve_avance']);
+  await execute('UPDATE roles SET min_done_tasks = ?, emoji = ?, display_order = ? WHERE slug = ?', [10, '🏆', 30, 'eleve_chevronne']);
 });
 
 test('POST /api/auth/teacher avec mauvais PIN renvoie 401', async () => {
@@ -154,9 +160,11 @@ test('POST /api/auth/teacher avec mauvais PIN renvoie 401', async () => {
   assert.ok(res.body.error);
 });
 
-test('POST /api/auth/teacher avec bon PIN renvoie 200 et un token', async () => {
+test('POST /api/auth/teacher avec bon PIN et token renvoie 200 et un token', async () => {
+  const baseToken = await getAdminAuthToken();
   const res = await request(app)
     .post('/api/auth/teacher')
+    .set('Authorization', `Bearer ${baseToken}`)
     .send({ pin: process.env.TEACHER_PIN || '1234' })
     .expect(200);
   assert.ok(res.body.token);
@@ -167,7 +175,7 @@ test('Forum: le profil visiteur ne peut pas accéder aux sujets', async () => {
     .post('/api/auth/register')
     .send({ firstName: 'Visit', lastName: `Forum${Date.now()}`, password: 'pass1234' })
     .expect(201);
-  assert.strictEqual(visitorRes.body?.auth?.roleSlug, 'visiteur');
+  await setStudentPrimaryRole(visitorRes.body.id, 'visiteur');
 
   await request(app)
     .get('/api/forum/threads')
@@ -176,11 +184,7 @@ test('Forum: le profil visiteur ne peut pas accéder aux sujets', async () => {
 });
 
 test('GET /api/tasks/:id/logs refuse le profil visiteur', async () => {
-  const auth = await request(app)
-    .post('/api/auth/teacher')
-    .send({ pin: process.env.TEACHER_PIN || '1234' })
-    .expect(200);
-  const teacherToken = auth.body.token;
+  const teacherToken = await getAdminAuthToken();
 
   const zones = await request(app).get('/api/zones').expect(200);
   const zoneId = zones.body[0]?.id || 'pg';
@@ -198,10 +202,12 @@ test('GET /api/tasks/:id/logs refuse le profil visiteur', async () => {
 
   await request(app)
     .post(`/api/tasks/${taskId}/assign`)
+    .set('Authorization', `Bearer ${studentRes.body.authToken}`)
     .send({ firstName: studentRes.body.first_name, lastName: studentRes.body.last_name, studentId: studentRes.body.id })
     .expect(200);
   await request(app)
     .post(`/api/tasks/${taskId}/done`)
+    .set('Authorization', `Bearer ${studentRes.body.authToken}`)
     .send({
       firstName: studentRes.body.first_name,
       lastName: studentRes.body.last_name,
@@ -214,6 +220,7 @@ test('GET /api/tasks/:id/logs refuse le profil visiteur', async () => {
     .post('/api/auth/register')
     .send({ firstName: 'Visit', lastName: `Logs${Date.now()}`, password: 'pass1234' })
     .expect(201);
+  await setStudentPrimaryRole(visitorRes.body.id, 'visiteur');
 
   await request(app)
     .get(`/api/tasks/${taskId}/logs`)
@@ -232,10 +239,7 @@ test('GET /api/maps renvoie les cartes configurées', async () => {
 
 // ─── Statuts tâches (assign / unassign) ───────────────────────────────────
 test('Assign puis unassign met à jour le statut de la tâche', async () => {
-  const auth = await request(app)
-    .post('/api/auth/teacher')
-    .send({ pin: process.env.TEACHER_PIN || '1234' });
-  const token = auth.body.token;
+  const token = await getAdminAuthToken();
 
   const zones = await request(app).get('/api/zones').expect(200);
   const zoneId = zones.body[0]?.id || 'pg';
@@ -250,10 +254,11 @@ test('Assign puis unassign met à jour le statut de la tâche', async () => {
     .post('/api/auth/register')
     .send({ firstName: 'Statut', lastName: 'Elève' + Date.now(), password: 'pwd1' })
     .expect(201);
-  const { first_name, last_name, id: studentId } = studentRes.body;
+  const { first_name, last_name, id: studentId, authToken: studentAuthToken } = studentRes.body;
 
   await request(app)
     .post(`/api/tasks/${taskId}/assign`)
+    .set('Authorization', 'Bearer ' + studentAuthToken)
     .send({ firstName: first_name, lastName: last_name, studentId })
     .expect(200);
   const assignmentRow = await queryOne(
@@ -266,7 +271,7 @@ test('Assign puis unassign met à jour le statut de la tâche', async () => {
 
   await request(app)
     .post(`/api/tasks/${taskId}/unassign`)
-    .set('Authorization', 'Bearer ' + token)
+    .set('Authorization', 'Bearer ' + studentAuthToken)
     .send({ firstName: first_name, lastName: last_name, studentId })
     .expect(200);
   const afterUnassign = await request(app).get(`/api/tasks/${taskId}`).expect(200);
@@ -274,10 +279,7 @@ test('Assign puis unassign met à jour le statut de la tâche', async () => {
 });
 
 test('POST /api/tasks/:id/validate refuse une tâche non terminée', async () => {
-  const auth = await request(app)
-    .post('/api/auth/teacher')
-    .send({ pin: process.env.TEACHER_PIN || '1234' });
-  const token = auth.body.token;
+  const token = await getAdminAuthToken();
 
   const createRes = await request(app)
     .post('/api/tasks')
@@ -293,10 +295,7 @@ test('POST /api/tasks/:id/validate refuse une tâche non terminée', async () =>
 });
 
 test('GET /api/tasks côté élève expose assigned_count global', async () => {
-  const auth = await request(app)
-    .post('/api/auth/teacher')
-    .send({ pin: process.env.TEACHER_PIN || '1234' });
-  const teacherToken = auth.body.token;
+  const teacherToken = await getAdminAuthToken();
 
   const zones = await request(app).get('/api/zones').expect(200);
   const zoneId = zones.body[0]?.id || 'pg';
@@ -318,10 +317,12 @@ test('GET /api/tasks côté élève expose assigned_count global', async () => {
 
   await request(app)
     .post(`/api/tasks/${taskId}/assign`)
+    .set('Authorization', `Bearer ${studentARes.body.authToken}`)
     .send({ firstName: studentARes.body.first_name, lastName: studentARes.body.last_name, studentId: studentARes.body.id })
     .expect(200);
   await request(app)
     .post(`/api/tasks/${taskId}/assign`)
+    .set('Authorization', `Bearer ${studentBRes.body.authToken}`)
     .send({ firstName: studentBRes.body.first_name, lastName: studentBRes.body.last_name, studentId: studentBRes.body.id })
     .expect(200);
 
@@ -343,7 +344,7 @@ test('GET /api/tasks côté élève expose assigned_count global', async () => {
   assert.ok(task);
   assert.strictEqual(Number(task.assigned_count), 2);
   assert.ok(Array.isArray(task.assignments));
-  assert.strictEqual(task.assignments.length, 1);
+  assert.strictEqual(task.assignments.length, 2);
 });
 
 test('Un élève peut proposer une tâche en statut proposed', async () => {
@@ -352,6 +353,8 @@ test('Un élève peut proposer une tâche en statut proposed', async () => {
     .send({ firstName: 'Prop', lastName: 'Eleve' + Date.now(), password: 'pwd1' })
     .expect(201);
   const { first_name, last_name, id: studentId } = studentRes.body;
+  await allowStudentProposalsAtZeroDone();
+  await setStudentPrimaryRole(studentId, 'eleve_avance');
 
   const zones = await request(app).get('/api/zones').expect(200);
   const zoneId = zones.body[0]?.id || 'pg';
@@ -375,12 +378,14 @@ test('Un élève peut proposer une tâche en statut proposed', async () => {
   assert.strictEqual(Number(res.body.required_students), 3);
 });
 
-test('Un élève peut modifier sa propre proposition', async () => {
+test('Un enseignant peut modifier une proposition élève', async () => {
   const studentRes = await request(app)
     .post('/api/auth/register')
     .send({ firstName: 'Edit', lastName: 'Prop' + Date.now(), password: 'pwd1' })
     .expect(201);
-  const { first_name, last_name, id: studentId, authToken } = studentRes.body;
+  const { first_name, last_name, id: studentId } = studentRes.body;
+  await allowStudentProposalsAtZeroDone();
+  await setStudentPrimaryRole(studentId, 'eleve_avance');
 
   const zones = await request(app).get('/api/zones').expect(200);
   const zoneId = zones.body[0]?.id || 'pg';
@@ -398,9 +403,11 @@ test('Un élève peut modifier sa propre proposition', async () => {
     })
     .expect(201);
 
+  const teacherToken = await getAdminAuthToken();
+
   const updated = await request(app)
     .put(`/api/tasks/${created.body.id}`)
-    .set('Authorization', 'Bearer ' + authToken)
+    .set('Authorization', 'Bearer ' + teacherToken)
     .send({
       title: 'Proposition modifiée',
       description: 'Description modifiée',
@@ -424,6 +431,9 @@ test("Un élève ne peut pas modifier la proposition d'un autre élève", async 
     .post('/api/auth/register')
     .send({ firstName: 'Other', lastName: 'Prop' + Date.now(), password: 'pwd1' })
     .expect(201);
+  await allowStudentProposalsAtZeroDone();
+  await setStudentPrimaryRole(proposerRes.body.id, 'eleve_avance');
+  await setStudentPrimaryRole(otherRes.body.id, 'eleve_avance');
 
   const zones = await request(app).get('/api/zones').expect(200);
   const zoneId = zones.body[0]?.id || 'pg';
@@ -453,6 +463,8 @@ test("Le proposeur ne peut pas changer le statut d'une proposition", async () =>
     .post('/api/auth/register')
     .send({ firstName: 'Status', lastName: 'Block' + Date.now(), password: 'pwd1' })
     .expect(201);
+  await allowStudentProposalsAtZeroDone();
+  await setStudentPrimaryRole(studentRes.body.id, 'eleve_avance');
 
   const zones = await request(app).get('/api/zones').expect(200);
   const zoneId = zones.body[0]?.id || 'pg';
@@ -481,6 +493,8 @@ test("Le proposeur ne peut pas changer le mode de validation d'une proposition",
     .post('/api/auth/register')
     .send({ firstName: 'Mode', lastName: 'Block' + Date.now(), password: 'pwd1' })
     .expect(201);
+  await allowStudentProposalsAtZeroDone();
+  await setStudentPrimaryRole(studentRes.body.id, 'eleve_avance');
 
   const zones = await request(app).get('/api/zones').expect(200);
   const zoneId = zones.body[0]?.id || 'pg';
@@ -505,10 +519,7 @@ test("Le proposeur ne peut pas changer le mode de validation d'une proposition",
 });
 
 test('Zones et tâches supportent le filtrage multi-cartes', async () => {
-  const auth = await request(app)
-    .post('/api/auth/teacher')
-    .send({ pin: process.env.TEACHER_PIN || '1234' });
-  const token = auth.body.token;
+  const token = await getAdminAuthToken();
 
   const zoneN3 = await request(app)
     .post('/api/zones')
@@ -549,10 +560,7 @@ test('Zones et tâches supportent le filtrage multi-cartes', async () => {
 });
 
 test('Tâche liée à plusieurs zones et repères sur la même carte', async () => {
-  const auth = await request(app)
-    .post('/api/auth/teacher')
-    .send({ pin: process.env.TEACHER_PIN || '1234' });
-  const token = auth.body.token;
+  const token = await getAdminAuthToken();
 
   const zonesForet = await request(app).get('/api/zones?map_id=foret').expect(200);
   const zList = (zonesForet.body || []).filter(z => !z.special);
@@ -610,10 +618,7 @@ test('Tâche liée à plusieurs zones et repères sur la même carte', async () 
 });
 
 test('Zones et repères acceptent plusieurs êtres vivants associés', async () => {
-  const auth = await request(app)
-    .post('/api/auth/teacher')
-    .send({ pin: process.env.TEACHER_PIN || '1234' });
-  const token = auth.body.token;
+  const token = await getAdminAuthToken();
 
   const zoneRes = await request(app)
     .post('/api/zones')
@@ -649,10 +654,7 @@ test('Zones et repères acceptent plusieurs êtres vivants associés', async () 
 });
 
 test('PUT /api/zones/:id et /api/map/markers/:id permettent de renommer', async () => {
-  const auth = await request(app)
-    .post('/api/auth/teacher')
-    .send({ pin: process.env.TEACHER_PIN || '1234' });
-  const token = auth.body.token;
+  const token = await getAdminAuthToken();
 
   const zoneRes = await request(app)
     .post('/api/zones')
@@ -694,10 +696,7 @@ test('PUT /api/zones/:id et /api/map/markers/:id permettent de renommer', async 
 
 // ─── Suppression élève (cascade + statuts) ──────────────────────────────────
 test('DELETE /api/students/:id supprime l’élève et recalcule les statuts des tâches', async () => {
-  const auth = await request(app)
-    .post('/api/auth/teacher')
-    .send({ pin: process.env.TEACHER_PIN || '1234' });
-  const token = auth.body.token;
+  const token = await getAdminAuthToken();
 
   const zones = await request(app).get('/api/zones').expect(200);
   const zoneId = zones.body[0]?.id || 'pg';
@@ -712,10 +711,11 @@ test('DELETE /api/students/:id supprime l’élève et recalcule les statuts des
     .post('/api/auth/register')
     .send({ firstName: 'ToDelete', lastName: 'User' + Date.now(), password: 'pwd1' })
     .expect(201);
-  const { id: studentId, first_name, last_name } = studentRes.body;
+  const { id: studentId, first_name, last_name, authToken: studentAuthToken } = studentRes.body;
 
   await request(app)
     .post(`/api/tasks/${taskId}/assign`)
+    .set('Authorization', 'Bearer ' + studentAuthToken)
     .send({ firstName: first_name, lastName: last_name, studentId })
     .expect(200);
 

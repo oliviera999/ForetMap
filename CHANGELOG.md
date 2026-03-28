@@ -9,6 +9,8 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - **Outil collectif retiré (frontend + backend)** : suppression complète de la vue `Collectif`, des endpoints `/api/collective/*`, de la diffusion temps réel `collective:changed`, des tables SQL associées (`collective_sessions*`), des migrations dédiées et des tests backend liés.
 
 ### Modifié
+- **Profils élèves (RBAC progression)** : la création/édition des profils supporte désormais `emoji`, `min_done_tasks` (niveau requis) et `display_order` (ordre d’affichage), avec synchronisation de la progression élève basée sur les attributs des rôles plutôt que sur `app_settings`.
+- **Paramètres admin (progression)** : suppression des anciens réglages `progression.student_role_min_done_*` et de leur affichage UI, désormais remplacés par la configuration directe des profils.
 - **Tâches (mode de validation)** : ajout du mode `completion_mode` (`single_done`/`all_assignees_done`) dans l’API et l’UI, avec recalcul de statut selon la progression réelle des assignés (`assignees_done_count` / `assignees_total_count`) et garde-fou sur `POST /api/tasks/:id/validate` (validation uniquement si la tâche est déjà `done`).
 - **Affectation rapide professeur** : la vue tâches permet désormais une sélection multiple d’élèves pour l’affectation rapide sur une tâche, avec feedback sur le nombre de places disponibles et les affectations partielles.
 - **Contenus texte éditables** : extension des réglages `content.*` pour personnaliser les textes Accueil/Auth, Visite, À propos et messages globaux (loader, indisponibilité serveur, préfixe version), avec fallback frontend local.
@@ -27,6 +29,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - **Scroll mobile global + console Paramètres** : sécurisation du verrouillage de scroll `body` (lightbox) pour éviter les blocages persistants, et forçage de la vue `Paramètres admin` en colonne unique sur mobile/tablette avec débordements horizontaux neutralisés.
 
 ### Ajouté
+- **Migration rôles progression** : ajout de `migrations/041_roles_progression_fields.sql` pour introduire `roles.emoji`, `roles.min_done_tasks` et `roles.display_order` avec initialisation des rôles système.
 - **Migration SQL tâches (mode collectif)** : nouvelle migration `040_task_completion_mode_and_assignment_done.sql` pour ajouter `tasks.completion_mode` et `task_assignments.done_at`, alignée avec le schéma principal.
 - **Utilitaire frontend `content`** : ajout de `src/utils/content.js` pour lire de façon robuste les clés `content.*` et appliquer un fallback texte propre.
 - **Carte (verrou repères)** : ajout d’un bouton `🔒/🔓 Repères` pour les profils autorisés afin de verrouiller/déverrouiller explicitement le déplacement des repères sur la carte.
