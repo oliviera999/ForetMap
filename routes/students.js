@@ -60,6 +60,7 @@ const IMPORT_HEADER_ALIASES = new Map([
   ['description', 'description'],
   ['description_optionnel', 'description'],
   ['affiliation', 'affiliation'],
+  ['affiliation_n3_foret_both', 'affiliation'],
   ['espace', 'affiliation'],
   ['mon_espace', 'affiliation'],
   ['zone', 'affiliation'],

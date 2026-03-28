@@ -75,10 +75,10 @@ async function requireAuth(req, res, next) {
 
 function hasPermission(auth, permissionKey, needsElevation) {
   if (!auth) return false;
-  const perms = Array.isArray(auth.permissions) ? auth.permissions : [];
-  if (!perms.includes(permissionKey)) return false;
   const roleSlug = String(auth.roleSlug || '').toLowerCase();
   const hasNativePrivilegedRole = roleSlug === 'admin' || roleSlug === 'prof';
+  const perms = Array.isArray(auth.permissions) ? auth.permissions : [];
+  if (!perms.includes(permissionKey)) return false;
   if (needsElevation && !auth.elevated && !hasNativePrivilegedRole) return false;
   return true;
 }

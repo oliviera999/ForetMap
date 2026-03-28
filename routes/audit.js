@@ -9,10 +9,10 @@ const router = express.Router();
 // Consulter l'historique (prof uniquement)
 router.get('/', requirePermission('audit.read', { needsElevation: true }), async (req, res) => {
   try {
-    const limit = Math.min(parseInt(req.query.limit, 10) || 50, 200);
+    const limit = Math.max(1, Math.min(parseInt(req.query.limit, 10) || 50, 200));
     const rows = await queryAll(
-      'SELECT * FROM audit_log ORDER BY id DESC LIMIT ?',
-      [limit]
+      `SELECT * FROM audit_log ORDER BY id DESC LIMIT ${limit}`,
+      []
     );
     res.json(rows);
   } catch (e) {

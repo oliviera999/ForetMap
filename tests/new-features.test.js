@@ -1,24 +1,80 @@
 require('./helpers/setup');
 const test = require('node:test');
 const assert = require('node:assert');
-const { initSchema, execute } = require('../database');
+const { initSchema, execute, queryOne } = require('../database');
 const { app } = require('../server');
 const request = require('supertest');
 
 let teacherToken;
 let studentData;
 
-test.before(async () => {
-  await initSchema();
+async function refreshAdminTeacherToken() {
+  const loginEmail = String(process.env.TEACHER_ADMIN_EMAIL || '').trim();
+  const teacher = await queryOne(
+    "SELECT id FROM users WHERE user_type = 'teacher' AND LOWER(email) = LOWER(?) LIMIT 1",
+    [loginEmail]
+  );
+  const adminRole = await queryOne("SELECT id FROM roles WHERE slug = 'admin' LIMIT 1");
+  assert.ok(teacher?.id, 'Compte admin enseignant introuvable');
+  assert.ok(adminRole?.id, 'Rôle admin introuvable');
+  const requiredPermissions = [
+    'stats.read.all', 'stats.export',
+    'tasks.manage', 'tasks.read.logs',
+    'zones.manage', 'visit.manage',
+    'admin.settings.read', 'admin.settings.write',
+  ];
+  for (const key of requiredPermissions) {
+    await execute(
+      'INSERT IGNORE INTO permissions (`key`, label, description) VALUES (?, ?, ?)',
+      [key, key, 'Permission auto-seed tests']
+    );
+    await execute(
+      'INSERT IGNORE INTO role_permissions (role_id, permission_key, requires_elevation) VALUES (?, ?, 1)',
+      [adminRole.id, key]
+    );
+  }
+  if (teacher?.id && adminRole?.id) {
+    await execute('UPDATE user_roles SET is_primary = 0 WHERE user_type = ? AND user_id = ?', ['teacher', teacher.id]);
+    await execute(
+      'INSERT INTO user_roles (user_type, user_id, role_id, is_primary) VALUES (?, ?, ?, 1) ON DUPLICATE KEY UPDATE is_primary = 1',
+      ['teacher', teacher.id, adminRole.id]
+    );
+  }
+  const login = await request(app)
+    .post('/api/auth/login')
+    .send({
+      identifier: loginEmail,
+      password: process.env.TEACHER_ADMIN_PASSWORD,
+    })
+    .expect(200);
   const auth = await request(app)
     .post('/api/auth/teacher')
-    .send({ pin: process.env.TEACHER_PIN || '1234' });
-  teacherToken = auth.body.token;
+    .set({ Authorization: `Bearer ${login.body.authToken}` })
+    .send({ pin: process.env.TEACHER_PIN || '1234' })
+    .expect(200);
+  return auth.body.token;
+}
+
+test.before(async () => {
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    try {
+      await initSchema();
+      break;
+    } catch (err) {
+      if (err?.code !== 'ER_LOCK_DEADLOCK' || attempt === 4) throw err;
+      await new Promise((resolve) => setTimeout(resolve, 150 * (attempt + 1)));
+    }
+  }
+  teacherToken = await refreshAdminTeacherToken();
 
   const reg = await request(app)
     .post('/api/auth/register')
     .send({ firstName: 'Feature', lastName: 'Test' + Date.now(), password: 'pwd123' });
   studentData = reg.body;
+});
+
+test.beforeEach(async () => {
+  teacherToken = await refreshAdminTeacherToken();
 });
 
 // ─── Export CSV ──────────────────────────────────────────────────────────────
@@ -167,6 +223,7 @@ test('mode all_assignees_done: /done est idempotent pour un même élève', asyn
 
   await request(app)
     .post(`/api/tasks/${taskId}/assign`)
+    .set('Authorization', 'Bearer ' + studentData.authToken)
     .send({
       firstName: studentData.first_name,
       lastName: studentData.last_name,
@@ -176,6 +233,7 @@ test('mode all_assignees_done: /done est idempotent pour un même élève', asyn
 
   const firstDone = await request(app)
     .post(`/api/tasks/${taskId}/done`)
+    .set('Authorization', 'Bearer ' + studentData.authToken)
     .send({
       firstName: studentData.first_name,
       lastName: studentData.last_name,
@@ -187,6 +245,7 @@ test('mode all_assignees_done: /done est idempotent pour un même élève', asyn
 
   const secondDone = await request(app)
     .post(`/api/tasks/${taskId}/done`)
+    .set('Authorization', 'Bearer ' + studentData.authToken)
     .send({
       firstName: studentData.first_name,
       lastName: studentData.last_name,
@@ -240,13 +299,18 @@ test('DELETE /api/tasks/:id/logs/:logId supprime un log', async () => {
 
   await request(app)
     .post(`/api/tasks/${taskId}/assign`)
+    .set('Authorization', 'Bearer ' + studentData.authToken)
     .send({ firstName: studentData.first_name, lastName: studentData.last_name, studentId: studentData.id });
 
   await request(app)
     .post(`/api/tasks/${taskId}/done`)
+    .set('Authorization', 'Bearer ' + studentData.authToken)
     .send({ comment: 'Test commentaire', firstName: studentData.first_name, lastName: studentData.last_name, studentId: studentData.id });
 
-  const logsRes = await request(app).get(`/api/tasks/${taskId}/logs`).expect(200);
+  const logsRes = await request(app)
+    .get(`/api/tasks/${taskId}/logs`)
+    .set('Authorization', 'Bearer ' + teacherToken)
+    .expect(200);
   assert.ok(logsRes.body.length > 0);
   const logId = logsRes.body[0].id;
 
@@ -255,7 +319,10 @@ test('DELETE /api/tasks/:id/logs/:logId supprime un log', async () => {
     .set('Authorization', 'Bearer ' + teacherToken)
     .expect(200);
 
-  const afterRes = await request(app).get(`/api/tasks/${taskId}/logs`).expect(200);
+  const afterRes = await request(app)
+    .get(`/api/tasks/${taskId}/logs`)
+    .set('Authorization', 'Bearer ' + teacherToken)
+    .expect(200);
   assert.ok(!afterRes.body.find(l => l.id === logId));
 });
 
@@ -276,6 +343,7 @@ test('GET /api/audit sans token renvoie 401', async () => {
 test('POST /api/observations crée une observation', async () => {
   const res = await request(app)
     .post('/api/observations')
+    .set('Authorization', 'Bearer ' + studentData.authToken)
     .send({ studentId: studentData.id, content: 'Les tomates poussent bien', zone_id: null })
     .expect(201);
   assert.ok(res.body.id);
@@ -285,6 +353,7 @@ test('POST /api/observations crée une observation', async () => {
 test('GET /api/observations/student/:id retourne les observations', async () => {
   const res = await request(app)
     .get(`/api/observations/student/${studentData.id}`)
+    .set('Authorization', 'Bearer ' + studentData.authToken)
     .expect(200);
   assert.ok(Array.isArray(res.body));
   assert.ok(res.body.length > 0);
@@ -293,11 +362,13 @@ test('GET /api/observations/student/:id retourne les observations', async () => 
 test('DELETE /api/observations/:id supprime une observation', async () => {
   const obs = await request(app)
     .post('/api/observations')
+    .set('Authorization', 'Bearer ' + studentData.authToken)
     .send({ studentId: studentData.id, content: 'À supprimer' })
     .expect(201);
 
   await request(app)
     .delete(`/api/observations/${obs.body.id}`)
+    .set('Authorization', 'Bearer ' + studentData.authToken)
     .expect(200);
 });
 
