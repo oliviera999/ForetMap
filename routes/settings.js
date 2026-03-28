@@ -80,12 +80,19 @@ router.get(
   requirePermission('admin.settings.read', { needsElevation: true }),
   async (req, res) => {
     try {
-      const [settingsRows, maps] = await Promise.all([
+      const [settingsRows, maps, progressionRoles] = await Promise.all([
         listAdminSettings(),
         listMaps(),
+        queryAll(
+          `SELECT id, slug, display_name, \`rank\` AS \`rank\`, is_system
+             FROM roles
+            WHERE LOWER(slug) NOT IN ('prof', 'admin')
+            ORDER BY \`rank\` DESC, id ASC`
+        ),
       ]);
       res.json({
         settings: settingsRows,
+        progressionRoles: Array.isArray(progressionRoles) ? progressionRoles : [],
         maps: maps.map((row) => ({
           ...row,
           map_image_url: normalizeMapImageUrl(row.id, row.map_image_url),
