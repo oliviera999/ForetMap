@@ -29,14 +29,22 @@ function step(label, args, env) {
 }
 
 function main() {
+  const args = process.argv.slice(2);
+  const isFast = args.includes('--fast');
   const baseEnv = { ...process.env };
   const testEnv = { ...baseEnv, DB_NAME: 'foretmap_test' };
 
-  console.log('Demarrage smoke local (check + build + tests isoles)...');
+  console.log(
+    isFast
+      ? 'Demarrage smoke local rapide (check + tests isoles)...'
+      : 'Demarrage smoke local (check + build + tests isoles)...'
+  );
   step('Check environnement local', ['scripts/check-local-env.js'], baseEnv);
-  step('Build production local', ['scripts/build-safe.js'], baseEnv);
+  if (!isFast) {
+    step('Build production local', ['scripts/build-safe.js'], baseEnv);
+  }
   step('Tests backend locaux isoles', ['scripts/test-local-isolated.js'], testEnv);
-  console.log('\nSmoke local termine avec succes.');
+  console.log(isFast ? '\nSmoke local rapide termine avec succes.' : '\nSmoke local termine avec succes.');
 }
 
 main();

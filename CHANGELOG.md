@@ -13,6 +13,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - **Paramètres admin (progression)** : suppression des anciens réglages `progression.student_role_min_done_*` et de leur affichage UI, désormais remplacés par la configuration directe des profils.
 - **Validation locale backend** : le script `test:local` exécute maintenant les suites de tests fichier par fichier avec réinitialisation BDD entre chaque fichier, pour éliminer les flakiness dues à l’état partagé (RBAC/permissions/sessions) et fiabiliser la passe complète.
 - **Pipeline local unifié** : ajout d’une passe `smoke:local` qui enchaîne contrôle d’environnement, build et tests backend isolés pour valider rapidement l’état du projet avant livraison.
+- **Smoke local paramétrable** : le script `local-smoke.js` accepte désormais `--fast` pour ignorer l’étape build tout en conservant les contrôles d’environnement et les tests backend isolés.
 - **Tâches (mode de validation)** : ajout du mode `completion_mode` (`single_done`/`all_assignees_done`) dans l’API et l’UI, avec recalcul de statut selon la progression réelle des assignés (`assignees_done_count` / `assignees_total_count`) et garde-fou sur `POST /api/tasks/:id/validate` (validation uniquement si la tâche est déjà `done`).
 - **Affectation rapide professeur** : la vue tâches permet désormais une sélection multiple d’élèves pour l’affectation rapide sur une tâche, avec feedback sur le nombre de places disponibles et les affectations partielles.
 - **Contenus texte éditables** : extension des réglages `content.*` pour personnaliser les textes Accueil/Auth, Visite, À propos et messages globaux (loader, indisponibilité serveur, préfixe version), avec fallback frontend local.
@@ -33,6 +34,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 ### Ajouté
 - **Runner de tests isolés** : ajout de `scripts/test-local-isolated.js` pour orchestrer `db:init` + `node --test` sur chaque fichier `tests/*.test.js`, avec arrêt immédiat au premier échec.
 - **Script smoke local** : ajout de `scripts/local-smoke.js` et de la commande `npm run smoke:local` pour exécuter un contrôle CI local reproductible en une seule commande.
+- **Commande smoke rapide** : ajout de `npm run smoke:local:fast` pour les itérations locales fréquentes sans build frontend.
 - **Migration rôles progression** : ajout de `migrations/041_roles_progression_fields.sql` pour introduire `roles.emoji`, `roles.min_done_tasks` et `roles.display_order` avec initialisation des rôles système.
 - **Migration SQL tâches (mode collectif)** : nouvelle migration `040_task_completion_mode_and_assignment_done.sql` pour ajouter `tasks.completion_mode` et `task_assignments.done_at`, alignée avec le schéma principal.
 - **Utilitaire frontend `content`** : ajout de `src/utils/content.js` pour lire de façon robuste les clés `content.*` et appliquer un fallback texte propre.
