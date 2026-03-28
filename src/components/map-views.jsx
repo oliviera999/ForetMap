@@ -1508,6 +1508,13 @@ function MapView({ zones, markers, tasks = [], plants, maps = [], activeMapId = 
     await onRefresh();
     return { assignedCount, failedCount, firstError };
   };
+  const toggleMarkerPositionLock = () => {
+    setMarkerPositionUnlocked((prev) => {
+      const next = !prev;
+      setToast(next ? 'Déplacement des repères activé' : 'Déplacement des repères verrouillé');
+      return next;
+    });
+  };
 
   const { s: cs } = committed;
   const { w: iw, h: ih } = imgSize;
@@ -1699,7 +1706,7 @@ function MapView({ zones, markers, tasks = [], plants, maps = [], activeMapId = 
           {canManageMarkerPositions && (
             <button
               aria-label={markerPositionUnlocked ? 'Verrouiller la position des repères' : 'Déverrouiller la position des repères'}
-              onClick={() => setMarkerPositionUnlocked((prev) => !prev)}
+              onClick={toggleMarkerPositionLock}
               style={{ background: markerPositionUnlocked ? '#ecfdf3' : 'transparent', border: '1.5px solid var(--mint)',
                 color: markerPositionUnlocked ? '#166534' : 'var(--forest)', borderRadius: 8, padding: '6px 10px',
                 cursor: 'pointer', fontSize: '.78rem', fontWeight: 700, minHeight: 36 }}>

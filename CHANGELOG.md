@@ -9,6 +9,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - **Outil collectif retiré (frontend + backend)** : suppression complète de la vue `Collectif`, des endpoints `/api/collective/*`, de la diffusion temps réel `collective:changed`, des tables SQL associées (`collective_sessions*`), des migrations dédiées et des tests backend liés.
 
 ### Modifié
+- **Carte (verrou repères UX)** : ajout d’un toast utilisateur lors de l’activation/désactivation du verrou de déplacement des repères pour confirmer immédiatement l’état courant.
 - **Barre de réactions compacte** : dans le forum et les commentaires contextuels, la barre de réactions affiche désormais uniquement le premier emoji en mode compact, puis se déplie au clic pour proposer toute la palette configurée.
 - **Hygiène dépôt** : ajout d’une règle `.gitignore` pour exclure les archives locales de logs CI `ci-job-*-logs.zip`.
 - **Maintenance BDD collectif** : ajout d’un script `db:collective:cleanup:audit` pour supprimer les tables `collective_*` et auditer la structure complète de la base à partir de `sql/schema_foretmap.sql`.
