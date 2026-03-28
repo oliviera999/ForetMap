@@ -9,6 +9,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - **Outil collectif retiré (frontend + backend)** : suppression complète de la vue `Collectif`, des endpoints `/api/collective/*`, de la diffusion temps réel `collective:changed`, des tables SQL associées (`collective_sessions*`), des migrations dédiées et des tests backend liés.
 
 ### Modifié
+- **Tuiles tâches (titres de catégories)** : ajout d’un emoji préfixe sur tous les titres de sections (`Projets`, `Mes tâches`, `Propositions`, `En attente`, `Validées`, `Résultats filtrés`, etc.) pour harmoniser la lecture visuelle avec les statuts.
 - **Build frontend (rafraîchissement local)** : régénération des bundles versionnés dans `dist/` via les workflows `build` et `deploy:prepare:fast` pour forcer la prise en compte des derniers assets côté déploiement.
 - **Paramètres admin + profils (UX)** : l’API settings admin renvoie désormais la liste des profils de progression (hors `prof/admin`) affichée dans la section progression, et la vue `Profils & utilisateurs` adopte une mise en page responsive dédiée pour éviter les débordements sur écrans moyens/petits.
 - **Statuts des tâches (icônes UI)** : remplacement des pastilles de statut `À faire` / `En cours` par les emojis `🔥` et `⚙️` dans les boutons d’action des tuiles, avec le même préfixe emoji ajouté aux titres de sections correspondants.
