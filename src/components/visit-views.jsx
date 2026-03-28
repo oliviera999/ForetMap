@@ -478,6 +478,11 @@ function VisitView({
   const [mapTransform, setMapTransform] = useState({ x: 0, y: 0, s: 1 });
   const { isHelpEnabled, hasSeenSection, markSectionSeen, trackPanelOpen, trackPanelDismiss } = useHelp({ publicSettings, isTeacher });
 
+  useEffect(() => {
+    const next = String(initialMapId || 'foret').trim() || 'foret';
+    setMapId((prev) => (prev === next ? prev : next));
+  }, [initialMapId]);
+
   const currentMap = useMemo(() => maps.find((m) => m.id === mapId), [maps, mapId]);
   const canPanAndZoom = mode === 'view';
 
@@ -542,7 +547,13 @@ function VisitView({
           ? `/api/visit/progress?student_id=${encodeURIComponent(studentIdForProgress)}`
           : '/api/visit/progress'),
       ]);
-      setMaps(Array.isArray(mapsRes) ? mapsRes : []);
+      const fetchedMaps = Array.isArray(mapsRes) ? mapsRes : [];
+      const activeMaps = fetchedMaps.filter((m) => m?.is_active !== false);
+      const visibleMaps = activeMaps.length > 0 ? activeMaps : fetchedMaps;
+      setMaps(visibleMaps);
+      if (visibleMaps.length > 0 && !visibleMaps.some((m) => m.id === mapId)) {
+        setMapId(visibleMaps[0].id);
+      }
       setContent(visitRes || { zones: [], markers: [], tutorials: [] });
       setTutorialSelection((visitRes?.tutorials || []).map((t) => t.id));
       const nextSeen = new Set((progressRes?.seen || []).map((r) => itemSeenKey(r.target_type, r.target_id)));
