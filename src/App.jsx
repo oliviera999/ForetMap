@@ -139,6 +139,7 @@ function App() {
   const [authClaims, setAuthClaims] = useState(() => getAuthClaims());
   const [roleViewMode, setRoleViewMode] = useState('native'); // native | student | teacher
   const [publicSettings, setPublicSettings] = useState(DEFAULT_PUBLIC_SETTINGS);
+  const [publicSettingsReady, setPublicSettingsReady] = useState(false);
   const [viewportWidth, setViewportWidth] = useState(() => window.innerWidth || 0);
   const [isTabVisible, setIsTabVisible] = useState(() => document.visibilityState !== 'hidden');
   const failCountRef = useRef(0);
@@ -265,8 +266,28 @@ function App() {
       })
       .catch(() => {
         // Réglages publics non bloquants.
+      })
+      .finally(() => {
+        setPublicSettingsReady(true);
       });
   }, []);
+
+  useEffect(() => {
+    if (!publicSettingsReady) return;
+    const defaultMap = showPublicVisit
+      ? publicSettings?.map?.default_map_visit
+      : (effectiveIsTeacher ? publicSettings?.map?.default_map_teacher : publicSettings?.map?.default_map_student);
+    const nextMapId = String(defaultMap || '').trim();
+    if (!nextMapId) return;
+    setActiveMapId((prev) => (prev === nextMapId ? prev : nextMapId));
+  }, [
+    effectiveIsTeacher,
+    publicSettings?.map?.default_map_student,
+    publicSettings?.map?.default_map_teacher,
+    publicSettings?.map?.default_map_visit,
+    publicSettingsReady,
+    showPublicVisit,
+  ]);
 
   useEffect(() => {
     try {
@@ -1087,7 +1108,7 @@ function App() {
                         taskProjects={taskProjects}
                         zones={zones}
                         markers={markers}
-                        maps={maps}
+                        maps={visibleMaps}
                         tutorials={tutorials}
                         activeMapId={activeMapId}
                         isTeacher
@@ -1104,7 +1125,7 @@ function App() {
                 </div>
               )}
               {!useSplitMapTasks && tab === 'map'    && <MapView zones={zones} markers={markers} tasks={tasks} plants={plants} maps={visibleMaps} activeMapId={activeMapId} onMapChange={setActiveMapId} isTeacher student={currentUser} canSelfAssignTasks onZoneUpdate={updateZone} onRefresh={fetchAll} publicSettings={publicSettings}/>}
-              {!useSplitMapTasks && tab === 'tasks'  && <TasksView  tasks={tasks} taskProjects={taskProjects} zones={zones} markers={markers} maps={maps} tutorials={tutorials} activeMapId={activeMapId} isTeacher student={currentUser} canSelfAssignTasks canViewOtherUsersIdentity onRefresh={fetchAll} onForceLogout={forceLogout} isN3Affiliated={isN3Affiliated} publicSettings={publicSettings} />}
+              {!useSplitMapTasks && tab === 'tasks'  && <TasksView  tasks={tasks} taskProjects={taskProjects} zones={zones} markers={markers} maps={visibleMaps} tutorials={tutorials} activeMapId={activeMapId} isTeacher student={currentUser} canSelfAssignTasks canViewOtherUsersIdentity onRefresh={fetchAll} onForceLogout={forceLogout} isN3Affiliated={isN3Affiliated} publicSettings={publicSettings} />}
               {tab === 'plants' && <PlantManager plants={plants} onRefresh={fetchAll} publicSettings={publicSettings}/>}
               {publicSettings?.modules?.tutorials_enabled !== false && tab === 'tuto'   && <TutorialsView tutorials={tutorials} isTeacher onRefresh={fetchAll} onForceLogout={forceLogout} />}
               {publicSettings?.modules?.stats_enabled !== false && tab === 'stats'  && (hasPermission('stats.read.all') ? <TeacherStats isN3Affiliated={isN3Affiliated} /> : <div className="empty"><p>Permission insuffisante</p></div>)}
@@ -1154,7 +1175,7 @@ function App() {
                           taskProjects={taskProjects}
                           zones={zones}
                           markers={markers}
-                          maps={maps}
+                          maps={visibleMaps}
                           tutorials={tutorials}
                           activeMapId={activeMapId}
                           isTeacher={false}
@@ -1171,7 +1192,7 @@ function App() {
                   </div>
                 )}
                 {!useSplitMapTasks && tab === 'map'    && canAccessStudentMapTasks && <MapView zones={zones} markers={markers} tasks={tasks} plants={plants} maps={visibleMaps} activeMapId={activeMapId} onMapChange={setActiveMapId} isTeacher={false} student={studentForUi} canSelfAssignTasks={canSelfAssignTasks} onZoneUpdate={updateZone} onRefresh={fetchAll} publicSettings={publicSettings}/>}
-                {!useSplitMapTasks && tab === 'tasks'  && canAccessStudentMapTasks && <TasksView tasks={tasks} taskProjects={taskProjects} zones={zones} markers={markers} maps={maps} tutorials={tutorials} activeMapId={activeMapId} isTeacher={false} student={studentForUi} canSelfAssignTasks={canSelfAssignTasks} canViewOtherUsersIdentity={canViewOtherUsersIdentity} onRefresh={fetchAll} onForceLogout={forceLogout} isN3Affiliated={isN3Affiliated} publicSettings={publicSettings} />}
+                {!useSplitMapTasks && tab === 'tasks'  && canAccessStudentMapTasks && <TasksView tasks={tasks} taskProjects={taskProjects} zones={zones} markers={markers} maps={visibleMaps} tutorials={tutorials} activeMapId={activeMapId} isTeacher={false} student={studentForUi} canSelfAssignTasks={canSelfAssignTasks} canViewOtherUsersIdentity={canViewOtherUsersIdentity} onRefresh={fetchAll} onForceLogout={forceLogout} isN3Affiliated={isN3Affiliated} publicSettings={publicSettings} />}
                 {tab === 'plants' && <PlantViewer plants={plants} zones={zones} publicSettings={publicSettings}/>}
                 {publicSettings?.modules?.tutorials_enabled !== false && tab === 'tuto' && <TutorialsView tutorials={tutorials} isTeacher={false} onRefresh={fetchAll} onForceLogout={forceLogout} />}
                 {tab === 'stats' && canViewGeneralStats && <TeacherStats isN3Affiliated={isN3Affiliated} />}
