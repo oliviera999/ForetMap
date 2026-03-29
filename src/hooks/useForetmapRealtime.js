@@ -79,7 +79,7 @@ export function useForetmapRealtime({
     tasksRtDebounceRef.current = setTimeout(() => {
       tasksRtDebounceRef.current = null;
       refreshTasksFromServer();
-    }, 200);
+    }, 500);
   }, [refreshTasksFromServer]);
 
   const scheduleGardenRefresh = useCallback(() => {
@@ -87,7 +87,7 @@ export function useForetmapRealtime({
     gardenRtDebounceRef.current = setTimeout(() => {
       gardenRtDebounceRef.current = null;
       refreshGardenFromServer();
-    }, 200);
+    }, 500);
   }, [refreshGardenFromServer]);
 
   const onStudentsRealtime = useCallback(() => {
