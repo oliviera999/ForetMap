@@ -11,6 +11,7 @@ const { initRealtime } = require('./lib/realtime');
 const { tailLogLines, getBufferedLineCount, getMaxLines } = require('./lib/logBuffer');
 const { checkCriticalAdminAccount } = require('./lib/rbac');
 
+const rateLimit     = require('express-rate-limit');
 const authRouter    = require('./routes/auth');
 const zonesRouter   = require('./routes/zones');
 const mapsRouter    = require('./routes/maps');
@@ -67,6 +68,30 @@ const corsOpts = process.env.NODE_ENV === 'production' && process.env.FRONTEND_O
   ? { origin: process.env.FRONTEND_ORIGIN }
   : {};
 app.use(cors(corsOpts));
+
+// Limiteur général : 300 requêtes / minute par IP (protège contre les abus sans gêner un usage normal)
+const generalLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 300,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Trop de requêtes, réessayez dans une minute.' },
+});
+
+// Limiteur strict pour les endpoints d'authentification : 20 tentatives / 15 min par IP
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Trop de tentatives de connexion, réessayez dans 15 minutes.' },
+});
+
+app.use('/api/', generalLimiter);
+app.use('/api/auth/login', authLimiter);
+app.use('/api/auth/register', authLimiter);
+app.use('/api/auth/reset-password', authLimiter);
+
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use((req, res, next) => {
