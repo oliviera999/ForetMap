@@ -38,8 +38,10 @@
       overflow-y:auto;
     }
     h1,h2,h3 { font-family:'Playfair Display',serif; }
-    #root { display:flex; flex-direction:column; min-height:100vh; min-height:100dvh; width:100%; max-width:100%; overflow-x:hidden; }
-    #app { display:flex; flex-direction:column; min-height:100vh; min-height:100dvh; width:100%; max-width:100%; overflow-x:hidden; }
+    /* min-width:0 sur la chaîne flex : évite qu’un enfant (grille, texte long) impose une largeur
+       minimale au document et déclenche un scroll horizontal sur mobile. */
+    #root { display:flex; flex-direction:column; min-height:100vh; min-height:100dvh; width:100%; max-width:100%; min-width:0; overflow-x:hidden; }
+    #app { display:flex; flex-direction:column; min-height:100vh; min-height:100dvh; width:100%; max-width:100%; min-width:0; overflow-x:hidden; }
 
     /* Prevent iOS zoom on input */
     input, select, textarea {
@@ -109,6 +111,8 @@
       position:sticky; top:0; z-index:100;
       gap:8px;
       overflow:hidden;
+      min-width:0;
+      max-width:100%;
     }
     header .logo {
       display:flex; align-items:center; gap:8px; font-family:'Playfair Display',serif; font-size:1.1rem;
@@ -360,11 +364,13 @@
       padding:8px 16px; margin-top:auto;
       border-top:1px solid rgba(183,228,199,.4);
       background:rgba(254,250,224,.5);
+      min-width:0;
+      max-width:100%;
     }
 
     /* ── MAIN ── */
-    .main { flex:1; padding:16px; padding-bottom:calc(var(--bottom-nav-height) + var(--safe-bottom) + 16px); max-width:900px; margin:0 auto; width:100%; }
-    .teacher-main { padding:16px; padding-bottom:24px; max-width:900px; margin:0 auto; width:100%; }
+    .main { flex:1; min-width:0; padding:16px; padding-bottom:calc(var(--bottom-nav-height) + var(--safe-bottom) + 16px); max-width:900px; margin:0 auto; width:100%; }
+    .teacher-main { min-width:0; padding:16px; padding-bottom:24px; max-width:900px; margin:0 auto; width:100%; }
     .desktop-split-view {
       display:grid;
       grid-template-columns:1.25fr 1fr;
@@ -734,6 +740,8 @@
     /* ── AUTH SCREEN ── */
     .auth-wrap {
       min-height:100vh; min-height:100dvh;
+      min-width:0;
+      max-width:100%;
       display:flex; align-items:center; justify-content:center;
       background:radial-gradient(ellipse at 30% 70%, #d8f3dc 0%, var(--cream) 60%);
       padding:20px; padding-top:max(20px, var(--safe-top));
@@ -1685,6 +1693,23 @@
     max-height:none;
     overflow:visible;
   }
+  /* Forum : la colonne liste imposait min 280px → dépassement sur petits écrans */
+  .forum-grid {
+    grid-template-columns:minmax(0, 1fr);
+  }
+  html {
+    overflow-x:clip;
+  }
+  body {
+    overflow-x:clip;
+    overscroll-behavior-x:none;
+  }
+  #root, #app {
+    overflow-x:clip;
+  }
+  .main, .teacher-main {
+    overflow-wrap:break-word;
+  }
 }
 
 /* ── FORUM GLOBAL ── */
@@ -1789,6 +1814,8 @@
   border-radius:8px;
   padding:8px 10px;
   min-height:36px;
+  min-width:0;
+  width:100%;
 }
 .forum-pager {
   display:flex;
