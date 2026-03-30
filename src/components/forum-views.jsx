@@ -32,7 +32,7 @@ function isModerator(authClaims) {
   return perms.includes('teacher.access');
 }
 
-function ForumView({ authClaims }) {
+function ForumView({ authClaims, canParticipateForum = true }) {
   const [threads, setThreads] = useState([]);
   const [threadsPage, setThreadsPage] = useState(1);
   const [threadsTotal, setThreadsTotal] = useState(0);
@@ -54,6 +54,7 @@ function ForumView({ authClaims }) {
   const [toast, setToast] = useState('');
 
   const canModerate = useMemo(() => isModerator(authClaims), [authClaims]);
+  const canUseForumActions = canParticipateForum || canModerate;
   const currentUserType = String(authClaims?.userType || '').toLowerCase();
   const currentUserId = String(authClaims?.canonicalUserId || authClaims?.userId || '');
 
@@ -218,33 +219,41 @@ function ForumView({ authClaims }) {
 
   return (
     <div className="forum-view">
-      <section className="forum-panel">
-        <h3>Nouveau sujet</h3>
-        <form className="forum-form" onSubmit={handleCreateThread}>
-          <div className="field">
-            <label htmlFor="forum-thread-title">Titre</label>
-            <input
-              id="forum-thread-title"
-              value={newTitle}
-              onChange={(e) => setNewTitle(e.target.value)}
-              maxLength={180}
-              required
-            />
-          </div>
-          <div className="field">
-            <label htmlFor="forum-thread-body">Message</label>
-            <textarea
-              id="forum-thread-body"
-              value={newBody}
-              onChange={(e) => setNewBody(e.target.value)}
-              rows={4}
-              maxLength={4000}
-              required
-            />
-          </div>
-          <button type="submit" className="btn btn-primary btn-sm">Publier le sujet</button>
-        </form>
-      </section>
+      {canUseForumActions ? (
+        <section className="forum-panel">
+          <h3>Nouveau sujet</h3>
+          <form className="forum-form" onSubmit={handleCreateThread}>
+            <div className="field">
+              <label htmlFor="forum-thread-title">Titre</label>
+              <input
+                id="forum-thread-title"
+                value={newTitle}
+                onChange={(e) => setNewTitle(e.target.value)}
+                maxLength={180}
+                required
+              />
+            </div>
+            <div className="field">
+              <label htmlFor="forum-thread-body">Message</label>
+              <textarea
+                id="forum-thread-body"
+                value={newBody}
+                onChange={(e) => setNewBody(e.target.value)}
+                rows={4}
+                maxLength={4000}
+                required
+              />
+            </div>
+            <button type="submit" className="btn btn-primary btn-sm">Publier le sujet</button>
+          </form>
+        </section>
+      ) : (
+        <section className="forum-panel" style={{ background: '#f8fafc', border: '1px solid #e2e8f0' }}>
+          <p className="forum-muted" style={{ margin: 0, lineHeight: 1.5 }}>
+            Tu consultes le forum en <strong>lecture seule</strong>. La participation (nouveaux sujets, réponses, réactions, signalements) n’est pas activée sur ton compte — contacte un n3boss si besoin.
+          </p>
+        </section>
+      )}
 
       <div className="forum-grid">
         <section className="forum-panel">
@@ -335,7 +344,7 @@ function ForumView({ authClaims }) {
                 {detailLoading && <p className="forum-muted">Chargement…</p>}
                 {!detailLoading && posts.map((p) => {
                   const isOwner = p.author_user_type === currentUserType && p.author_user_id === currentUserId;
-                  const canDelete = canModerate || isOwner;
+                  const canDelete = canModerate || (canUseForumActions && isOwner);
                   const reactionsExpanded = !!expandedReactionsByPost[p.id];
                   return (
                     <article key={p.id} className={`forum-post ${p.is_deleted ? 'is-deleted' : ''}`}>
@@ -346,7 +355,7 @@ function ForumView({ authClaims }) {
                       <p className="forum-post-body">
                         {p.is_deleted ? '[message supprimé]' : p.body}
                       </p>
-                      {!p.is_deleted && (
+                      {!p.is_deleted && (canUseForumActions ? (
                         <div className={`message-reactions-row ${reactionsExpanded ? 'expanded' : 'compact'}`}>
                           {!reactionsExpanded ? (
                             <button
@@ -387,8 +396,19 @@ function ForumView({ authClaims }) {
                             </>
                           )}
                         </div>
-                      )}
-                      {!p.is_deleted && (
+                      ) : (
+                        (p.reactions || []).some((r) => Number(r.count) > 0) && (
+                          <div className="message-reactions-row compact" style={{ opacity: 0.85 }}>
+                            {(p.reactions || []).filter((r) => Number(r.count) > 0).map((r) => (
+                              <span key={`${p.id}-${r.emoji}`} className="message-reaction-chip" style={{ cursor: 'default' }}>
+                                <span>{r.emoji}</span>
+                                <span>{r.count}</span>
+                              </span>
+                            ))}
+                          </div>
+                        )
+                      ))}
+                      {!p.is_deleted && canUseForumActions && (
                         <div className="forum-post-actions">
                           {canDelete && (
                             <button type="button" className="btn btn-ghost btn-sm" onClick={() => handleDeletePost(p.id)}>
@@ -411,23 +431,25 @@ function ForumView({ authClaims }) {
                 })}
               </div>
 
-              <form className="forum-form forum-reply-form" onSubmit={handleReply}>
-                <div className="field">
-                  <label htmlFor="forum-reply">Répondre</label>
-                  <textarea
-                    id="forum-reply"
-                    value={replyBody}
-                    onChange={(e) => setReplyBody(e.target.value)}
-                    rows={3}
-                    maxLength={4000}
-                    required
-                    disabled={!!threadDetail.is_locked}
-                  />
-                </div>
-                <button type="submit" className="btn btn-primary btn-sm" disabled={!!threadDetail.is_locked}>
-                  Envoyer
-                </button>
-              </form>
+              {canUseForumActions && (
+                <form className="forum-form forum-reply-form" onSubmit={handleReply}>
+                  <div className="field">
+                    <label htmlFor="forum-reply">Répondre</label>
+                    <textarea
+                      id="forum-reply"
+                      value={replyBody}
+                      onChange={(e) => setReplyBody(e.target.value)}
+                      rows={3}
+                      maxLength={4000}
+                      required
+                      disabled={!!threadDetail.is_locked}
+                    />
+                  </div>
+                  <button type="submit" className="btn btn-primary btn-sm" disabled={!!threadDetail.is_locked}>
+                    Envoyer
+                  </button>
+                </form>
+              )}
             </>
           )}
         </section>
