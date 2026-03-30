@@ -107,16 +107,20 @@
       background:var(--forest); color:white;
       padding:0 16px; padding-top:var(--safe-top);
       height:calc(56px + var(--safe-top));
+      max-height:calc(56px + var(--safe-top));
       display:flex; align-items:center; justify-content:space-between;
+      flex-wrap:nowrap;
       position:sticky; top:0; z-index:100;
       gap:8px;
       overflow:hidden;
       min-width:0;
       max-width:100%;
+      box-sizing:border-box;
     }
     header .logo {
       display:flex; align-items:center; gap:8px; font-family:'Playfair Display',serif; font-size:1.1rem;
       min-width:0; flex-shrink:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+      flex-wrap:nowrap;
     }
     .app-header-logo {
       flex-shrink:0;
@@ -129,7 +133,9 @@
     .logo-title { min-width:0; overflow:hidden; text-overflow:ellipsis; }
     .header-right {
       display:flex; align-items:center; gap:6px;
+      flex-wrap:nowrap;
       min-width:0; max-width:70%;
+      max-height:100%;
       overflow-x:auto; overflow-y:hidden;
       -webkit-overflow-scrolling:touch; scrollbar-width:none;
     }
@@ -1114,6 +1120,35 @@
       flex-shrink:0;
     }
     @media (max-width:1023px), (pointer:coarse) {
+      /* En-tête : une seule ligne, hauteur fixe (évite tout agrandissement parasite sur mobile). */
+      header .lock-btn {
+        min-height:36px;
+        min-width:36px;
+        padding:6px 8px;
+        font-size:0.78rem;
+      }
+      header .user-badge {
+        min-height:36px;
+        padding:3px 8px;
+        font-size:0.76rem;
+      }
+      header .app-version-badge {
+        min-height:26px;
+        padding:2px 6px;
+      }
+      header .realtime-prof-wrap {
+        min-height:28px;
+      }
+      /* N3BOSS : avec la carte, bandeau d’onglets + barre d’outils carte = zone « haute » très épaisse ;
+         on compresse les onglets uniquement lorsque la vue carte est montée (:has). */
+      .teacher-main:has(.map-view-root) .top-tabs {
+        padding:2px;
+        margin-bottom:8px;
+      }
+      .teacher-main:has(.map-view-root) .top-tab {
+        padding:6px 9px;
+        font-size:0.76rem;
+      }
       /* Barre d’outils carte : plus compacte que le défaut inline (7px / min 50px),
          pour libérer de la hauteur utile — uniquement sur l’écran carte. */
       .map-view-toolbar {
@@ -1123,25 +1158,25 @@
         -webkit-overflow-scrolling:touch;
         scrollbar-width:none;
         align-items:center;
-        padding:4px 8px !important;
-        min-height:40px !important;
-        gap:4px !important;
+        padding:3px 6px !important;
+        min-height:34px !important;
+        gap:3px !important;
       }
       .map-view-toolbar::-webkit-scrollbar { display:none; }
       .map-view-toolbar button:not(.fm-help-btn) {
-        padding:5px 8px !important;
-        font-size:0.76rem !important;
-        min-height:34px;
+        padding:4px 7px !important;
+        font-size:0.72rem !important;
+        min-height:30px;
       }
       .map-view-toolbar .map-gesture-toggle {
-        padding:4px 8px !important;
-        min-height:34px !important;
-        font-size:0.72rem !important;
+        padding:3px 7px !important;
+        min-height:30px !important;
+        font-size:0.68rem !important;
       }
       .map-view-toolbar .btn-sm {
-        padding:5px 8px !important;
-        min-height:34px !important;
-        font-size:0.74rem !important;
+        padding:4px 7px !important;
+        min-height:30px !important;
+        font-size:0.7rem !important;
       }
     }
 
