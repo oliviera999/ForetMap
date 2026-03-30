@@ -16,6 +16,32 @@ function Toast({ msg, onDone }) {
   return <div className="toast" role="status" aria-live="polite" aria-atomic="true">{msg}</div>;
 }
 
+function taskLogCommentDraftKey(taskId) {
+  return `foretmap:taskLogCommentDraft:${String(taskId ?? '')}`;
+}
+
+function readTaskLogCommentDraft(taskId) {
+  if (typeof window === 'undefined') return '';
+  try {
+    return String(sessionStorage.getItem(taskLogCommentDraftKey(taskId)) || '');
+  } catch {
+    return '';
+  }
+}
+
+function writeTaskLogCommentDraft(taskId, text) {
+  if (typeof window === 'undefined') return;
+  if (taskId == null || taskId === '') return;
+  try {
+    const key = taskLogCommentDraftKey(taskId);
+    const v = String(text || '');
+    if (v.trim()) sessionStorage.setItem(key, v);
+    else sessionStorage.removeItem(key);
+  } catch {
+    // ignore
+  }
+}
+
 function Lightbox({ src, caption, onClose }) {
   const el = React.useMemo(() => document.createElement('div'), []);
   const dialogRef = useDialogA11y(onClose);
@@ -1770,12 +1796,26 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
 
 function LogModal({ task, student, onClose, onDone, onForceLogout }) {
   const dialogRef = useDialogA11y(onClose);
-  const [comment, setComment] = useState('');
+  const [comment, setComment] = useState(() => readTaskLogCommentDraft(task?.id));
   const [imageData, setImageData] = useState(null);
   const [preview, setPreview] = useState(null);
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState('');
   const inputRef = useRef();
+
+  useEffect(() => {
+    setComment(readTaskLogCommentDraft(task?.id));
+  }, [task?.id]);
+
+  useEffect(() => {
+    const id = task?.id;
+    if (id == null || id === '') return undefined;
+    const t = setTimeout(() => writeTaskLogCommentDraft(id, comment), 200);
+    return () => {
+      clearTimeout(t);
+      writeTaskLogCommentDraft(id, comment);
+    };
+  }, [comment, task?.id]);
 
   const handleFile = e => {
     const file = e.target.files[0];
@@ -1811,6 +1851,7 @@ function LogModal({ task, student, onClose, onDone, onForceLogout }) {
         firstName: student.first_name, lastName: student.last_name,
         studentId: student.id
       });
+      writeTaskLogCommentDraft(task.id, '');
       onDone();
       onClose();
     } catch (e) {

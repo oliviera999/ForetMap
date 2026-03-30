@@ -12,6 +12,33 @@ import {
 const PAGE_SIZE = 10;
 const DEFAULT_REACTION_EMOJIS = ['👍', '❤️', '😂', '😮', '😢', '😡', '🔥', '👏'];
 
+/** Brouillon commentaire : survit au remontage des tuiles tâche (rafraîchissement liste / changement de section). */
+function contextCommentDraftKey(contextType, contextId) {
+  return `foretmap:contextCommentDraft:${String(contextType || '')}:${String(contextId ?? '')}`;
+}
+
+function readContextCommentDraft(contextType, contextId) {
+  if (typeof window === 'undefined') return '';
+  try {
+    return String(sessionStorage.getItem(contextCommentDraftKey(contextType, contextId)) || '');
+  } catch {
+    return '';
+  }
+}
+
+function writeContextCommentDraft(contextType, contextId, text) {
+  if (typeof window === 'undefined') return;
+  if (!contextType || contextId == null || contextId === '') return;
+  try {
+    const key = contextCommentDraftKey(contextType, contextId);
+    const v = String(text || '');
+    if (v.trim()) sessionStorage.setItem(key, v);
+    else sessionStorage.removeItem(key);
+  } catch {
+    // quota / mode privé : ignorer
+  }
+}
+
 function parseReactionEmojiList(rawValue) {
   const raw = String(rawValue || '').trim();
   if (!raw) return [...DEFAULT_REACTION_EMOJIS];
@@ -46,7 +73,6 @@ function ContextComments({
   placeholder = 'Ajouter un commentaire...',
   defaultOpen = false,
 }) {
-  const [isOpen, setIsOpen] = useState(defaultOpen);
   const [items, setItems] = useState([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
@@ -54,7 +80,7 @@ function ContextComments({
   const [submitting, setSubmitting] = useState(false);
   const [reactionEmojis, setReactionEmojis] = useState(DEFAULT_REACTION_EMOJIS);
   const [expandedReactionsByComment, setExpandedReactionsByComment] = useState({});
-  const [body, setBody] = useState('');
+  const [body, setBody] = useState(() => readContextCommentDraft(contextType, contextId));
   const [reportReasonById, setReportReasonById] = useState({});
   const [toast, setToast] = useState('');
   const [authClaims, setAuthClaims] = useState(() => getAuthClaims());
@@ -78,6 +104,26 @@ function ContextComments({
       setLoading(false);
     }
   }, [contextId, contextType]);
+
+  const [isOpen, setIsOpen] = useState(() => (
+    defaultOpen || !!String(readContextCommentDraft(contextType, contextId) || '').trim()
+  ));
+
+  useEffect(() => {
+    const draft = readContextCommentDraft(contextType, contextId);
+    setBody(draft);
+    setIsOpen(defaultOpen || !!String(draft || '').trim());
+  }, [contextType, contextId, defaultOpen]);
+
+  useEffect(() => {
+    const t = setTimeout(() => {
+      writeContextCommentDraft(contextType, contextId, body);
+    }, 200);
+    return () => {
+      clearTimeout(t);
+      writeContextCommentDraft(contextType, contextId, body);
+    };
+  }, [body, contextType, contextId]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -136,6 +182,7 @@ function ContextComments({
     try {
       await createContextComment({ contextType, contextId, body });
       setBody('');
+      writeContextCommentDraft(contextType, contextId, '');
       setToast('Commentaire publié');
       await load(1);
     } catch (err) {
