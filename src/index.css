@@ -2303,6 +2303,12 @@
   overflow-x: hidden;
   touch-action: pan-y;
 }
+/* Le pan-y du conteneur ne doit pas gêner le collage / édition dans les champs (mobile, certains navigateurs). */
+.settings-admin .field input,
+.settings-admin .field select,
+.settings-admin .field textarea {
+  touch-action: auto;
+}
 .settings-admin > * {
   min-width: 0;
 }
