@@ -52,7 +52,7 @@ jobs:
       - name: Start app server for e2e
         run: |
           npm run db:init
-          nohup npm start > /tmp/foretmap-server.log 2>&1 &
+          nohup npm run start:e2e > /tmp/foretmap-server.log 2>&1 &
 
       - name: Wait for app health
         run: |

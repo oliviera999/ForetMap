@@ -20,7 +20,7 @@ test('temps réel: création prof visible côté élève sans reload manuel', as
   await enableTeacherMode(page);
   await openTeacherTasksTab(page);
   await page.getByRole('button', { name: /\+ Nouvelle tâche/ }).click();
-  await page.getByLabel('Titre *').fill(taskTitle);
+  await page.getByPlaceholder('Ex: Arroser les tomates').fill(taskTitle);
   await page.getByRole('button', { name: 'Créer la tâche' }).click();
 
   const studentTaskCard = studentPage.locator('.task-card', { hasText: taskTitle }).first();

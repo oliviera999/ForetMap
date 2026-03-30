@@ -120,6 +120,69 @@ npm run test:e2e
 
 Vous pouvez cibler une autre URL avec `E2E_BASE_URL`.
 
+## 5ter. Tests de montée en charge (Artillery)
+
+Le scénario de charge est défini dans `load/artillery.yml` et cible par défaut `http://127.0.0.1:3000`.
+
+Pré-requis :
+- serveur API lancé (`npm run dev` ou `npm run start`) ;
+- base MySQL accessible (si vous testez `/api/health/db`, `/api/zones`, `/api/plants`).
+
+Exécution standard (profil normal, génère `load/reports/normal-<timestamp>.json` et met à jour `load/report.json`) :
+
+```bash
+npm run test:load
+```
+
+Profils disponibles :
+
+```bash
+npm run test:load:light
+npm run test:load:normal
+npm run test:load:stress
+```
+
+Exécution automatisée des 3 profils (light -> normal -> stress) :
+
+```bash
+npm run test:load:all
+```
+
+Génération d'un résumé Markdown du dernier run (`load/report-summary.md`) :
+
+```bash
+npm run test:load:report
+```
+
+Utilisation d'une URL différente :
+
+```bash
+BASE_URL=http://localhost:3000 npm run test:load
+```
+
+Bypass du rate limit pour un run de charge contrôlé :
+- côté serveur : définir `LOAD_TEST_SECRET` ;
+- côté client (Artillery) : utiliser la même valeur `LOAD_TEST_SECRET`.
+
+Exemple :
+
+```bash
+LOAD_TEST_SECRET=mon_secret_long npm run dev
+```
+
+Dans un second terminal :
+
+```bash
+LOAD_TEST_SECRET=mon_secret_long npm run test:load
+```
+
+Sans `LOAD_TEST_SECRET`, aucun bypass n'est actif et le limiteur `/api/*` peut renvoyer des `429` pendant les paliers élevés.
+
+Après `npm run test:load:all`, vous obtenez aussi :
+- `load/reports/light-summary.md`
+- `load/reports/normal-summary.md`
+- `load/reports/stress-summary.md`
+
 ## 6. Vérifier l’environnement local
 
 ```bash

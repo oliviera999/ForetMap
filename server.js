@@ -1,3 +1,8 @@
+/** E2E Playwright : sous Windows, l’env peut ne pas atteindre `node` ; le flag CLI est propagé par `npm run`. */
+if (process.argv.includes('--foretmap-e2e-no-rate-limit')) {
+  process.env.E2E_DISABLE_RATE_LIMIT = '1';
+}
+
 const express = require('express');
 const http    = require('http');
 const fs      = require('fs');
@@ -73,11 +78,22 @@ function isTestEnv() {
   return String(process.env.NODE_ENV || '').trim().toLowerCase() === 'test';
 }
 
+function isLoadTestBypass(req) {
+  const expected = String(process.env.LOAD_TEST_SECRET || '').trim();
+  if (!expected) return false;
+  const provided = String(req.get('x-foretmap-load-test') || '').trim();
+  return provided.length > 0 && provided === expected;
+}
+
+function shouldSkipRateLimit(req) {
+  return isTestEnv() || isLoadTestBypass(req) || String(process.env.E2E_DISABLE_RATE_LIMIT || '').trim() === '1';
+}
+
 // Limiteur général : 300 requêtes / minute par IP (protège contre les abus sans gêner un usage normal)
 const generalLimiter = rateLimit({
   windowMs: 60 * 1000,
   max: 300,
-  skip: () => isTestEnv(),
+  skip: (req) => shouldSkipRateLimit(req),
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: 'Trop de requêtes, réessayez dans une minute.' },
@@ -87,7 +103,7 @@ const generalLimiter = rateLimit({
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 20,
-  skip: () => isTestEnv(),
+  skip: (req) => shouldSkipRateLimit(req),
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: 'Trop de tentatives de connexion, réessayez dans 15 minutes.' },

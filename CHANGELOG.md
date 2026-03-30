@@ -7,8 +7,14 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ### Ajouté
 - **Paramètres admin** : réglages publics `ui.map.emoji_label_center_gap` (6–32, défaut 14), `ui.map.overlay_emoji_size_percent` et `ui.map.overlay_label_size_percent` (70–150 %, défaut 100) pour l’espacement emoji/libellé et l’échelle du texte sur la carte (zones SVG + repères) ; section « Modules UI » de la page Réglages ; utilitaire `resolveMapOverlayTypography` côté client.
+- **Tests de charge** : ajout d’un scénario Artillery `load/artillery.yml` (phases warmup/ramp-up/plateau/cool-down, mix de lectures `/api/health`, `/api/health/db`, `/api/version`, `/api/zones`, `/api/plants`) et des scripts `npm run test:load` / `npm run test:load:report`.
+- **Tests de charge (automatisation)** : 3 profils prêts à l’emploi (`light`, `normal`, `stress`) avec lanceurs npm dédiés (`test:load:*`), exécution enchaînée `test:load:all`, archivage horodaté des rapports JSON dans `load/reports/` et génération de résumés Markdown par profil.
 
 ### Corrigé
+- **Tests e2e (Playwright)** : bypass du rate limiting fiable en local Windows via le script **`npm run start:e2e`** (`node server.js --foretmap-e2e-no-rate-limit`) — la variable d’environnement seule ne parvenait pas toujours au process Node ; config Playwright enchaîne `db:init` puis `start:e2e` ; CI alignée (`nohup npm run start:e2e`).
+- **Tests e2e** : `playwright.config.js` charge `.env` pour aligner **`TEACHER_PIN`** avec le serveur ; fixture **`enableTeacherMode`** utilise `E2E_ELEVATION_PIN` puis `TEACHER_PIN`.
+- **Tests e2e** : `tasks-full-cycle.spec.js` — clic sur le bouton prof **`✔️ Validée`** et assertion sur le toast **`Statut mis à jour : Validée`** (libellés UI actuels).
+- **Accessibilité / e2e** : modale « Rapport de tâche » — liaison **`label` / `textarea`** (`useId`) pour le champ commentaire.
 - **Tests** : `tasks-status.test.js` — après inscription, promotion explicite du rôle primaire **`eleve_novice`** (le profil **visiteur** par défaut ne dispose pas de `tasks.assign_self` / `tasks.done_self`, ce qui provoquait des **403** sur les scénarios `all_assignees_done`).
 - **Commentaires contextuels** : le profil **visiteur** n’a plus accès aux routes `/api/context-comments` (**403**, y compris lecture), aligné sur le forum.
 - **Tests e2e (Playwright)** : fixture d’inscription (labels en mode strict, sélection **Mon espace**, champs mot de passe) ; déconnexion via le bouton **Déconnexion** ; assertions de navigation alignées sur les libellés d’onglets actuels (ex. **🗺️ Carte** en `exact`, Biodiversité / Tuto / À propos).
@@ -18,6 +24,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ### Modifié
 - **Carte** : espacement emoji ↔ libellé des **repères** aligné sur celui des **zones** (même écart entre centres, `14×inv`, et mêmes tailles de police partagées) ; mise en page en colonne et zone tactile min. 48×48 conservée sur mobile.
+- **Rate limiting API** : bypass optionnel et ciblé pour les campagnes de charge via header `X-ForetMap-Load-Test` quand `LOAD_TEST_SECRET` est défini côté serveur ; comportement inchangé par défaut.
 - **Carte** : emojis des zones et des repères, pastilles de statut des tâches et libellés légèrement agrandis pour une meilleure lisibilité.
 - **Build** : régénération des bundles `dist/` (Vite production).
 - **Mobile (écran carte)** : barre d’outils (plans, modes, zoom) plus compacte pour réduire la hauteur perdue par rapport aux autres onglets ; le bouton d’aide « ? » conserve une taille tactile adaptée.

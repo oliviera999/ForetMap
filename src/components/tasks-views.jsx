@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useId } from 'react';
 import { createPortal } from 'react-dom';
 import { api, API, getAuthToken, AccountDeletedError } from '../services/api';
 import { taskStatusIndicator, daysUntil, dueDateChip } from '../utils/badges';
@@ -1828,6 +1828,7 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
 
 function LogModal({ task, student, onClose, onDone, onForceLogout }) {
   const dialogRef = useDialogA11y(onClose);
+  const commentFieldId = useId();
   const [comment, setComment] = useState(() => readTaskLogCommentDraft(task?.id));
   const [imageData, setImageData] = useState(null);
   const [preview, setPreview] = useState(null);
@@ -1914,8 +1915,8 @@ function LogModal({ task, student, onClose, onDone, onForceLogout }) {
         {err && <p style={{ color: 'var(--alert)', fontSize: '.82rem', marginBottom: 8 }}>{err}</p>}
 
         <div className="field">
-          <label>Commentaire (optionnel)</label>
-          <textarea value={comment} onChange={e => setComment(e.target.value)} rows={3}
+          <label htmlFor={commentFieldId}>Commentaire (optionnel)</label>
+          <textarea id={commentFieldId} value={comment} onChange={e => setComment(e.target.value)} rows={3}
             placeholder="Comment ça s'est passé ? Des observations sur l'être vivant ?" />
         </div>
 

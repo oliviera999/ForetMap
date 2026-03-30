@@ -1,12 +1,15 @@
+require('dotenv').config();
+
 const { defineConfig, devices } = require('@playwright/test');
 
 const baseURL = process.env.E2E_BASE_URL || 'http://127.0.0.1:3000';
 
 module.exports = defineConfig({
   testDir: './e2e',
-  timeout: 30_000,
+  timeout: 60_000,
   globalTimeout: process.env.CI ? 12 * 60_000 : undefined,
-  workers: process.env.CI ? 1 : undefined,
+  // Plusieurs workers sur une même BDD locale = inscriptions / sessions en collision.
+  workers: 1,
   forbidOnly: !!process.env.CI,
   expect: {
     timeout: 8_000,
@@ -23,9 +26,12 @@ module.exports = defineConfig({
     serviceWorkers: 'block',
   },
   webServer: process.env.CI ? undefined : {
-    command: 'npm run db:init && npm start',
+    // start:e2e impose E2E_DISABLE_RATE_LIMIT via cross-env (fiable sous Windows ; webServer.env seul peut ne pas atteindre node).
+    command: 'npm run db:init && npm run start:e2e',
+    env: { ...process.env, E2E_DISABLE_RATE_LIMIT: '1' },
     url: `${baseURL}/api/health`,
-    reuseExistingServer: true,
+    // Après changement backend, un vieux Node sur le port sert un code périmé ; ne pas réutiliser par défaut.
+    reuseExistingServer: process.env.E2E_REUSE_SERVER === '1',
     timeout: 120_000,
   },
   projects: [

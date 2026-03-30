@@ -1,6 +1,6 @@
 {
   "name": "foretmap",
-  "version": "1.23.2",
+  "version": "1.23.4",
   "description": "Application de gestion de la forêt comestible - Lycée Lyautey",
   "main": "server.js",
   "dependencies": {
@@ -21,6 +21,7 @@
   },
   "scripts": {
     "start": "node server.js",
+    "start:e2e": "node server.js --foretmap-e2e-no-rate-limit",
     "dev": "nodemon server.js",
     "dev:client": "vite",
     "debug": "node --inspect server.js",
@@ -53,7 +54,13 @@
     "release:major": "npm version major -m \"chore(release): v%s\"",
     "test": "node --test --test-force-exit \"tests/*.test.js\"",
     "test:local": "cross-env DB_NAME=foretmap_test node scripts/test-local-isolated.js",
-    "test:e2e": "npx playwright test",
+    "test:load": "node scripts/run-load-test.js normal",
+    "test:load:light": "node scripts/run-load-test.js light",
+    "test:load:normal": "node scripts/run-load-test.js normal",
+    "test:load:stress": "node scripts/run-load-test.js stress",
+    "test:load:all": "node scripts/run-load-scenarios.js",
+    "test:load:report": "node scripts/render-load-report.js",
+    "test:e2e": "node scripts/e2e-kill-listen-port.js && npx playwright test",
     "test:e2e:headed": "npx playwright test --headed",
     "docker:up": "docker compose up -d || docker-compose up -d",
     "docker:down": "docker compose down || docker-compose down",
@@ -74,6 +81,7 @@
   "devDependencies": {
     "@playwright/test": "^1.58.2",
     "@vitejs/plugin-react": "^4.2.1",
+    "artillery": "^2.0.30",
     "cross-env": "^7.0.3",
     "nodemon": "^3.0.2",
     "react": "^18.2.0",

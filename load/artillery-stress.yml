@@ -1,0 +1,49 @@
+config:
+  target: "http://127.0.0.1:3000"
+  http:
+    timeout: 20
+  defaults:
+    headers:
+      Accept: application/json
+      X-ForetMap-Load-Test: "{{ $processEnvironment.LOAD_TEST_SECRET }}"
+  phases:
+    - duration: 20
+      arrivalRate: 3
+      name: warmup
+    - duration: 60
+      arrivalRate: 3
+      rampTo: 25
+      name: ramp-up
+    - duration: 120
+      arrivalRate: 25
+      name: plateau
+    - duration: 30
+      arrivalRate: 25
+      rampTo: 5
+      name: cool-down
+
+scenarios:
+  - name: lecture_legere
+    weight: 50
+    flow:
+      - get:
+          url: /api/health
+      - get:
+          url: /api/version
+      - think: 1
+
+  - name: lecture_bdd
+    weight: 35
+    flow:
+      - get:
+          url: /api/health/db
+      - get:
+          url: /api/zones
+      - think: 1
+
+  - name: lecture_biodiversite
+    weight: 15
+    flow:
+      - get:
+          url: /api/plants
+      - think: 1

@@ -1,5 +1,5 @@
 const { test, expect } = require('@playwright/test');
-const { loginAsNewStudent, enableTeacherMode } = require('./fixtures/auth.fixture');
+const { loginAsNewStudent, enableTeacherMode, openFirstZoneModalFromMap } = require('./fixtures/auth.fixture');
 
 function tinyPngBuffer() {
   return Buffer.from(
@@ -13,13 +13,13 @@ test('parcours photos zone: upload puis suppression', async ({ page }) => {
   await enableTeacherMode(page);
 
   await page.getByRole('button', { name: /Carte & Zones/ }).click();
-  await expect(page.getByAltText('Plan du jardin')).toBeVisible();
+  await expect(page.locator('img[alt^="Plan "]').first()).toBeVisible();
 
   const zoneCount = await page.locator('.map-zone-hit').count();
   test.skip(zoneCount === 0, 'Aucune zone exploitable pour test photo');
 
-  await page.locator('.map-zone-hit').first().click();
-  await page.getByRole('button', { name: /📷 Photos/ }).click();
+  await openFirstZoneModalFromMap(page);
+  await page.getByRole('button', { name: '📷 Photos', exact: true }).click();
 
   const caption = page.getByPlaceholder('Légende (optionnel)');
   await caption.fill('Photo e2e');
