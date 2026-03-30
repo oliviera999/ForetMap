@@ -5,6 +5,9 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Modifié
+- **PWA / mobile** : icônes d’application (`pwa-icon-192.png`, `pwa-icon-512.png`, `pwa-maskable-512.png`, `apple-touch-icon`) et `favicon-n3.png` régénérées avec le logo **n³ en blanc** sur fond `#1a4731` ; script `npm run icons:pwa` (`scripts/generate-pwa-icons-n3-white.js`, dépendance dev `sharp`) ; cache service worker `foretmap-offline-v6`.
+
 ### Ajouté
 - **Paramètres admin** : réglage `tasks.student_max_active_assignments` (0–99, défaut 0 = illimité) — nombre maximal de tâches **actives** (non validées, toutes cartes) auxquelles un n3beur peut **s’auto-inscrire** ; section « Tâches & inscriptions n3beurs » dans l’UI admin.
 - **API** : garde sur `POST /api/tasks/:id/assign` pour l’auto-inscription (`code: TASK_ENROLLMENT_LIMIT` si dépassement) ; `GET /api/auth/me` enrichi avec `taskEnrollment` pour les n3beurs (`maxActiveAssignments`, `currentActiveAssignments`, `atLimit`).
