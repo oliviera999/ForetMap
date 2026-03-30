@@ -7,6 +7,7 @@ const SECTION_DEFS = {
   auth: { title: 'Accueil & authentification', order: 10 },
   modules: { title: 'Modules UI', order: 20 },
   content: { title: 'Contenus du site', order: 22 },
+  tasks: { title: 'Tâches & inscriptions n3beurs', order: 23 },
   progression: { title: 'Progression n3beurs', order: 25 },
   security: { title: 'Sécurité', order: 30 },
   operations: { title: 'Exploitation', order: 40 },
@@ -57,6 +58,11 @@ const KEY_META = {
   'ui.map.default_map_student': { section: 'modules', order: 50, dynamicLabel: 'defaultStudentMap' },
   'ui.map.default_map_teacher': { section: 'modules', order: 60, dynamicLabel: 'defaultTeacherMap' },
   'ui.map.default_map_visit': { label: 'Carte par défaut (visite publique)', section: 'modules', order: 70 },
+  'tasks.student_max_active_assignments': {
+    label: 'Plafond d’inscriptions (tâches non validées par n3boss, toutes cartes ; 0 = illimité). Les affectations par un n3boss ne sont pas plafonnées.',
+    section: 'tasks',
+    order: 10,
+  },
   'rbac.progression_by_validated_tasks': {
     label: 'Montée de niveau auto. selon les tâches validées',
     section: 'progression',
@@ -88,6 +94,7 @@ function inferSectionFromKey(key) {
   if (normalized.startsWith('ui.auth.')) return 'auth';
   if (normalized.startsWith('content.')) return 'content';
   if (normalized.startsWith('ui.modules.') || normalized.startsWith('ui.map.')) return 'modules';
+  if (normalized.startsWith('tasks.')) return 'tasks';
   if (normalized.startsWith('progression.') || normalized.startsWith('rbac.')) return 'progression';
   if (normalized.startsWith('security.') || normalized.startsWith('integration.')) return 'security';
   if (normalized.startsWith('system.') || normalized.startsWith('ops.')) return 'operations';
