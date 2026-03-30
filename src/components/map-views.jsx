@@ -1652,7 +1652,7 @@ function MapView({ zones, markers, tasks = [], plants, maps = [], activeMapId = 
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 12px',
         background: 'white', borderBottom: '1.5px solid var(--mint)', flexShrink: 0, flexWrap: 'wrap', minHeight: 50 }}>
-        {maps.length > 0 && (
+        {maps.length > 1 && (
           <div style={{ display: 'flex', gap: 3, background: 'var(--parchment)', borderRadius: 10, padding: 3 }}>
             {maps.map((mp) => (
               <button key={mp.id}
