@@ -349,3 +349,14 @@ test('Commentaires contextuels: réactions emoji toggle et agrégées', async ()
 
   await setAllowedReactionEmojis('👍 ❤️ 😂 😮 😢 😡 🔥 👏');
 });
+
+
+test('Commentaires contextuels: le profil visiteur est refusé', async () => {
+  const visitor = await registerVisitorStudent('CtxVisitBlk');
+  const teacher = await teacherToken();
+  const { taskId } = await createContextFixture(teacher);
+  await request(app)
+    .get(`/api/context-comments?contextType=task&contextId=${encodeURIComponent(taskId)}`)
+    .set(auth(visitor.authToken))
+    .expect(403);
+});

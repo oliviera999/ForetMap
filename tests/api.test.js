@@ -67,14 +67,6 @@ async function setStudentPrimaryRole(studentId, roleSlug) {
   );
 }
 
-async function loginStudentToken(email, password) {
-  const login = await request(app)
-    .post('/api/auth/login')
-    .send({ identifier: email, password })
-    .expect(200);
-  return login.body.authToken;
-}
-
 async function allowStudentProposalsAtZeroDone() {
   await execute('UPDATE roles SET min_done_tasks = ? WHERE slug = ?', [1, 'eleve_novice']);
   await execute('UPDATE roles SET min_done_tasks = ? WHERE slug = ?', [0, 'eleve_avance']);

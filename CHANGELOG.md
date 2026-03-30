@@ -14,6 +14,11 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - **Outil collectif retiré (frontend + backend)** : suppression complète de la vue `Collectif`, des endpoints `/api/collective/*`, de la diffusion temps réel `collective:changed`, des tables SQL associées (`collective_sessions*`), des migrations dédiées et des tests backend liés.
 
 ### Modifié
+- **Build frontend** : régénération des bundles dans `dist/` (build Vite production) pour le déploiement avec les sources courantes.
+- **Profil visiteur (observateur)** : pas de progression RBAC automatique depuis les tâches validées ; blocage API des actions et contenus exposant les données d’autres utilisateurs (commentaires de contexte, carnet d’observations en écriture, propositions de tâches) ; filtrage des affectations sur le détail d’une tâche.
+- **Auth élève** : `POST /api/auth/register` respecte le réglage `ui.auth.allow_register` (403 si désactivé, aligné sur l’UI admin).
+- **RBAC** : amorçage sans second rôle primaire pour les élèves déjà profilés (ex. visiteur après inscription) ; réparation des doublons `is_primary` au bootstrap ; PIN des profils en bcrypt (compatibilité lecture des anciens hash SHA-256).
+- **Tâches** : le contexte JWT est réhydraté depuis la BDD sur les routes concernées (`parseOptionalAuth`) pour que le rôle effectif suive les changements en base sans exiger une reconnexion.
 - **Formulaire tâche (emplacement)** : les sélections multiples **zones** et **repères** sont regroupées dans une seule liste défilante, avec séparateurs visuels lorsque les deux types sont présents.
 - **Tâches (libellés mode de validation)** : l’ancien libellé « classique » est remplacé par **individuel** / **Validation individuelle** (chip et liste déroulante), en parallèle de **collectif** / **Validation collective**.
 - **Avatar en-tête après changement de photo** : URL des fichiers `/uploads/` préfixée avec `withAppBase` (déploiement sous-dossier) ; `StudentAvatar` réagit à `avatar_path` et remonte l’`<img>` si le chemin change ; session élève / `getStoredSession` conservent et propagent `avatar_path` (y compris fusion avec l’état précédent et champ `user`).
