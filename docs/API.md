@@ -55,14 +55,14 @@ Connexion Socket.IO (transport **polling** actuellement forcé côté client) su
 - **Rôle** : notifier les clients qu’une ressource a changé ; les données à jour restent à charger via les routes REST (`GET /api/tasks`, etc.).
 - **Auth socket** : token JWT requis (transmis dans le handshake Socket.IO).
 - **Rooms** : souscription de domaine (`tasks`, `students`, `garden`) + souscription carte via `subscribe:map` (payload `{ mapId }`).
-- **Client** : le frontend se connecte pour élève/prof authentifié ; en cas d’échec, le rafraîchissement périodique reste actif (cadence adaptative).
+- **Client** : le frontend se connecte pour n3beur/n3boss authentifié ; en cas d’échec, le rafraîchissement périodique reste actif (cadence adaptative).
 
 Événements émis par le serveur (payload JSON, toujours avec un champ `ts` — horodatage) :
 
 | Événement | Quand | Champs utiles (exemples) |
 |-----------|--------|---------------------------|
 | `tasks:changed` | Création / modification / suppression de tâche, assignation, désassignation, marquer fait, validation, suppression d’un log | `reason`, `taskId`, `mapId` |
-| `students:changed` | Inscription d’un élève, suppression d’un élève | `reason`, `studentId` |
+| `students:changed` | Inscription d’un n3beur, suppression d’un n3beur | `reason`, `studentId` |
 | `garden:changed` | Zones, photos de zone, biodiversité, marqueurs carte | `reason`, `zoneId`, `plantId`, `markerId`, `mapId`… |
 | `forum:changed` | Création de sujet, réponse, suppression de message, verrouillage, signalement | `reason`, `threadId`, `postId` |
 | `context-comments:changed` | Création/suppression/signalement d’un commentaire contextuel | `reason`, `contextType`, `contextId`, `commentId` |
@@ -73,19 +73,19 @@ Connexion Socket.IO (transport **polling** actuellement forcé côté client) su
 
 | Méthode | URL | Body | Description |
 |--------|-----|------|-------------|
-| POST | `/api/auth/register` | `{ firstName, lastName, password, pseudo?, email?, description? }` | Créer un compte élève (profil RBAC par défaut : `visiteur`) |
-| POST | `/api/auth/login` | `{ identifier, password }` | Connexion élève (pseudo ou email) |
+| POST | `/api/auth/register` | `{ firstName, lastName, password, pseudo?, email?, description? }` | Créer un compte n3beur (profil RBAC par défaut : `visiteur`) |
+| POST | `/api/auth/login` | `{ identifier, password }` | Connexion n3beur (pseudo ou email) |
 | GET | `/api/auth/me` | — | Retourne le contexte d’auth courant (`role`, `permissions`, `elevated`) |
-| PATCH | `/api/auth/me/profile` | `{ pseudo?, email?, description?, affiliation?, avatarData?, removeAvatar?, currentPassword }` | Mettre à jour son profil utilisateur connecté (élève, prof, admin local) |
+| PATCH | `/api/auth/me/profile` | `{ pseudo?, email?, description?, affiliation?, avatarData?, removeAvatar?, currentPassword }` | Mettre à jour son profil utilisateur connecté (n3beur, n3boss, admin local) |
 | POST | `/api/auth/elevate` | `{ pin }` | Élévation de session via PIN du profil |
-| POST | `/api/auth/forgot-password` | `{ email }` | Déclencher un email de réinitialisation élève (réponse neutre) |
-| POST | `/api/auth/reset-password` | `{ token, password }` | Réinitialiser le mot de passe élève |
+| POST | `/api/auth/forgot-password` | `{ email }` | Déclencher un email de réinitialisation n3beur (réponse neutre) |
+| POST | `/api/auth/reset-password` | `{ token, password }` | Réinitialiser le mot de passe n3beur |
 | POST | `/api/auth/teacher` | `{ pin }` | Compatibilité historique : élévation PIN (ou mode secours admin) |
-| POST | `/api/auth/teacher/login` | `{ email, password }` | Connexion prof email/mot de passe → `{ token }` (JWT) |
-| POST | `/api/auth/teacher/forgot-password` | `{ email }` | Déclencher un email de réinitialisation prof (réponse neutre) |
-| POST | `/api/auth/teacher/reset-password` | `{ token, password }` | Réinitialiser le mot de passe prof |
+| POST | `/api/auth/teacher/login` | `{ email, password }` | Connexion n3boss email/mot de passe → `{ token }` (JWT) |
+| POST | `/api/auth/teacher/forgot-password` | `{ email }` | Déclencher un email de réinitialisation n3boss (réponse neutre) |
+| POST | `/api/auth/teacher/reset-password` | `{ token, password }` | Réinitialiser le mot de passe n3boss |
 
-Routes protégées « prof » : header `Authorization: Bearer <token>`.
+Routes protégées « n3boss » : header `Authorization: Bearer <token>`.
 
 ---
 
@@ -95,7 +95,8 @@ Toutes les routes RBAC exigent un token admin avec élévation PIN active.
 
 | Méthode | URL | Description |
 |--------|-----|-------------|
-| GET | `/api/rbac/profiles` | Liste des profils + permissions |
+| GET | `/api/rbac/profiles` | Objet `{ roles, progressionByValidatedTasksEnabled }` : liste des profils (chacun avec `permissions` + `catalog` des clés), et indicateur du réglage global de progression automatique |
+| PATCH | `/api/rbac/progression-by-validated-tasks` | Activer ou désactiver la montée de niveau automatique des profils élèves selon les tâches validées (`{ enabled: boolean }`, même permission que la gestion des profils, élévation PIN si requise) |
 | POST | `/api/rbac/profiles` | Créer un profil (`slug`, `display_name`, `rank`, `display_order`, `emoji?`, `min_done_tasks?`) |
 | PATCH | `/api/rbac/profiles/:id` | Modifier un profil (`display_name`, `rank`, `display_order`, `emoji`, `min_done_tasks`) |
 | PUT | `/api/rbac/profiles/:id/permissions` | Remplacer les permissions d’un profil |
@@ -109,17 +110,17 @@ Ces droits sont assignables depuis la console **Profils & utilisateurs**.
 
 | Clé permission | Libellé | Description |
 |--------|-----|-------------|
-| `teacher.access` | Accès interface professeur | Permet d’ouvrir l’interface professeur |
+| `teacher.access` | Accès interface n3boss | Permet d’ouvrir l’interface n3boss |
 | `admin.roles.manage` | Gestion des profils RBAC | Créer/renommer profils, permissions et PIN |
 | `admin.users.assign_roles` | Attribution des profils | Attribuer/retraiter un profil aux utilisateurs |
-| `users.create` | Création unitaire utilisateurs | Créer un utilisateur unitaire (élève/prof/admin selon droits) |
+| `users.create` | Création unitaire utilisateurs | Créer un utilisateur unitaire (n3beur/n3boss/admin selon droits) |
 | `admin.settings.read` | Lecture paramètres admin | Consulter la console de réglages |
 | `admin.settings.write` | Édition paramètres admin | Modifier les réglages non secrets |
 | `admin.settings.secrets.write` | Actions admin critiques | Exécuter les actions critiques (restart, secrets) |
-| `stats.read.all` | Lecture stats globales | Consulter les stats de tous les élèves |
-| `stats.export` | Export stats | Exporter les stats élèves en CSV |
-| `students.import` | Import élèves | Importer des élèves via CSV/XLSX |
-| `students.delete` | Suppression élève | Supprimer un compte élève |
+| `stats.read.all` | Lecture stats globales | Consulter les stats de tous les n3beurs |
+| `stats.export` | Export stats | Exporter les stats n3beurs en CSV |
+| `students.import` | Import n3beurs | Importer des n3beurs via CSV/XLSX |
+| `students.delete` | Suppression n3beur | Supprimer un compte n3beur |
 | `tasks.manage` | Gestion tâches | Créer/éditer/supprimer les tâches |
 | `tasks.validate` | Validation tâches | Valider les tâches terminées |
 | `tasks.propose` | Proposition de tâches | Proposer de nouvelles tâches |
@@ -165,7 +166,7 @@ Ces routes sont destinées à la console admin et exigent un token avec permissi
 | GET | `/api/settings/admin/system/oauth-debug` | Diagnostic runtime OAuth (sans secrets) |
 | POST | `/api/settings/admin/system/restart` | Redémarrage applicatif contrôlé |
 
-Progression élèves :
+Progression n3beurs :
 - pilotée directement par les profils `eleve_*` via `roles.min_done_tasks`, `roles.emoji` et `roles.display_order`.
 - les anciens réglages `progression.student_role_min_done_*` ne sont plus utilisés.
 
@@ -185,7 +186,7 @@ Contenus éditables du site (micro-CMS texte brut) :
 
 ## Zones
 
-| Méthode | URL | Prof | Description |
+| Méthode | URL | n3boss | Description |
 |--------|-----|------|-------------|
 | GET | `/api/zones` | non | Liste des zones |
 | GET | `/api/zones/:id` | non | Détail zone |
@@ -201,7 +202,7 @@ Contenus éditables du site (micro-CMS texte brut) :
 
 ## Carte (marqueurs)
 
-| Méthode | URL | Prof | Description |
+| Méthode | URL | n3boss | Description |
 |--------|-----|------|-------------|
 | GET | `/api/map/markers` | non | Liste des repères |
 | POST | `/api/map/markers` | oui | Créer repère |
@@ -212,12 +213,12 @@ Contenus éditables du site (micro-CMS texte brut) :
 
 ## Visite guidée
 
-| Méthode | URL | Prof | Description |
+| Méthode | URL | n3boss | Description |
 |--------|-----|------|-------------|
 | GET | `/api/visit/content?map_id=foret` | non | Contenus publics de visite (zones, repères, médias, tutoriels actifs) |
-| GET | `/api/visit/progress?student_id=:id` | non | Progression des cibles vues (élève connecté ou anonyme via cookie signé) |
+| GET | `/api/visit/progress?student_id=:id` | non | Progression des cibles vues (n3beur connecté ou anonyme via cookie signé) |
 | POST | `/api/visit/seen` | non | Marquer/démarquer une cible vue (`{ target_type, target_id, seen, student_id? }`) |
-| GET | `/api/visit/stats` | oui | KPI de visite (sessions, complétion, breakdown élève/anonyme) |
+| GET | `/api/visit/stats` | oui | KPI de visite (sessions, complétion, breakdown n3beur/anonyme) |
 | POST | `/api/visit/zones` | oui | Créer une zone de visite |
 | PUT | `/api/visit/zones/:id` | oui | Modifier une zone de visite |
 | DELETE | `/api/visit/zones/:id` | oui | Supprimer une zone de visite |
@@ -236,13 +237,13 @@ Contraintes importantes :
 - `direction=map_to_visit` : copie/synchronise les zones et repères de la carte vers la visite.
 - `direction=visit_to_map` : copie/synchronise les zones et repères de la visite vers la carte.
 - L’import est **sélectif** (listes `zone_ids` / `marker_ids`) et en **upsert** (pas de doublon si l’ID existe déjà).
-- Les routes de gestion (`/zones`, `/markers`, `/media`, `/tutorials`, `/sync/*`) exigent la permission prof `visit.manage` (session élevée).
+- Les routes de gestion (`/zones`, `/markers`, `/media`, `/tutorials`, `/sync/*`) exigent la permission n3boss `visit.manage` (session élevée).
 
 ---
 
 ## Biodiversité (`/api/plants`)
 
-| Méthode | URL | Prof | Description |
+| Méthode | URL | n3boss | Description |
 |--------|-----|------|-------------|
 | GET | `/api/plants` | non | Liste des entrées biodiversité |
 | POST | `/api/plants` | oui | Créer une entrée biodiversité |
@@ -261,14 +262,14 @@ Contraintes importantes :
 `POST /api/plants` et `PUT /api/plants/:id` acceptent ces mêmes champs en JSON. Les champs texte vides
 des métadonnées biodiversité sont normalisés en `null`.
 
-`POST /api/plants/:id/photo-upload` (prof):
+`POST /api/plants/:id/photo-upload` (n3boss):
 
 - Body: `{ field, imageData }`
 - `field` doit être l'un des champs photo (`photo`, `photo_species`, `photo_leaf`, `photo_flower`, `photo_fruit`, `photo_harvest_part`)
 - `imageData` doit être une Data URL image (png/jpg/webp/gif/bmp/avif)
 - Réponse: `{ field, url, plant }`
 
-`POST /api/plants/import` (prof):
+`POST /api/plants/import` (n3boss):
 
 - Body (source fichier):
   - `{ sourceType: "file", strategy, dryRun, fileName, fileDataBase64 }`
@@ -295,21 +296,21 @@ Réponse:
 
 ## Tâches
 
-| Méthode | URL | Prof | Description |
+| Méthode | URL | n3boss | Description |
 |--------|-----|------|-------------|
 | GET | `/api/tasks` | non | Liste des tâches (avec assignments) |
 | GET | `/api/tasks/:id` | non | Détail tâche |
 | POST | `/api/tasks` | oui | Créer tâche |
 | PUT | `/api/tasks/:id` | oui\* | Modifier tâche |
 | DELETE | `/api/tasks/:id` | oui | Supprimer tâche |
-| POST | `/api/tasks/:id/assign` | non | S’assigner (élève) |
+| POST | `/api/tasks/:id/assign` | non | S’assigner (n3beur) |
 | POST | `/api/tasks/:id/unassign` | non | Se désassigner |
 | POST | `/api/tasks/:id/done` | non | Marquer comme fait (commentaire/image) |
 | GET | `/api/tasks/:id/logs` | non | Logs de la tâche |
 | GET | `/api/tasks/:id/logs/:logId/image` | non | Image d’un log (fichier disque) |
 | POST | `/api/tasks/:id/validate` | oui | Valider la tâche |
 
-\* Un élève peut aussi modifier **sa propre proposition** (statut `proposed`) ; les champs sensibles (`status`, `project_id`, `tutorial_ids`, `recurrence`, `completion_mode`) restent réservés aux profils avec `tasks.manage`.
+\* Un n3beur peut aussi modifier **sa propre proposition** (statut `proposed`, préfixe de description `Proposition n3beur:`) ; les champs sensibles (`status`, `project_id`, `tutorial_ids`, `recurrence`, `completion_mode`) restent réservés aux profils avec `tasks.manage`.
 
 Contraintes principales :
 
@@ -317,8 +318,8 @@ Contraintes principales :
 - Modes de validation supportés (`completion_mode`) : `single_done` (défaut), `all_assignees_done`.
 - Statuts projet supportés : `active`, `on_hold` (retourné dans `project_status` sur les payloads de tâche).
 - Champ optionnel `start_date` (`YYYY-MM-DD`) sur les tâches ; tant que la date n’est pas atteinte, la tâche est considérée en attente (`is_before_start_date: true` dans les payloads).
-- Si une tâche est `on_hold` **ou** si son projet est `on_hold`, `POST /api/tasks/:id/assign` renvoie `400` (inscription élève bloquée).
-- Si `start_date` est dans le futur, `POST /api/tasks/:id/assign` renvoie aussi `400` (inscription élève bloquée jusqu’à la date de départ).
+- Si une tâche est `on_hold` **ou** si son projet est `on_hold`, `POST /api/tasks/:id/assign` renvoie `400` (inscription n3beur bloquée).
+- Si `start_date` est dans le futur, `POST /api/tasks/:id/assign` renvoie aussi `400` (inscription n3beur bloquée jusqu’à la date de départ).
 - `POST /api/tasks` et `PUT /api/tasks/:id` acceptent `completion_mode` pour les profils autorisés.
 - Les payloads tâche exposent `completion_mode`, `assignees_total_count` et `assignees_done_count`.
 - `POST /api/tasks/:id/done` :
@@ -331,7 +332,7 @@ Contraintes principales :
 
 ## Forum global
 
-Toutes les routes forum exigent un utilisateur connecté (`Authorization: Bearer <token>`), élève ou prof.
+Toutes les routes forum exigent un utilisateur connecté (`Authorization: Bearer <token>`), n3beur ou n3boss.
 Le profil `visiteur` est refusé (`403`) pour éviter l’exposition d’identités d’autres utilisateurs.
 Si le réglage public `ui.modules.forum_enabled` est à `false`, toutes les routes forum renvoient `503` avec `{ error: 'Forum désactivé' }` (après authentification réussie).
 
@@ -343,8 +344,8 @@ Si le réglage public `ui.modules.forum_enabled` est à `false`, toutes les rout
 | POST | `/api/forum/threads/:id/posts` | Ajouter une réponse (`{ body }`) |
 | POST | `/api/forum/posts/:id/reactions` | Toggle d’une réaction emoji (`{ emoji }`) |
 | POST | `/api/forum/posts/:id/report` | Signaler un message (`{ reason }`) |
-| PATCH | `/api/forum/threads/:id/lock` | Verrouiller/déverrouiller un sujet (`{ locked }`, prof/admin) |
-| DELETE | `/api/forum/posts/:id` | Supprimer un message (auteur ou prof/admin) |
+| PATCH | `/api/forum/threads/:id/lock` | Verrouiller/déverrouiller un sujet (`{ locked }`, n3boss/admin) |
+| DELETE | `/api/forum/posts/:id` | Supprimer un message (auteur ou n3boss/admin) |
 
 Contraintes principales :
 
@@ -360,7 +361,7 @@ Contraintes principales :
 
 ## Commentaires contextuels
 
-Toutes les routes commentaires contextuels exigent un utilisateur connecté (`Authorization: Bearer <token>`), élève ou prof.
+Toutes les routes commentaires contextuels exigent un utilisateur connecté (`Authorization: Bearer <token>`), n3beur ou n3boss.
 Si le réglage public `ui.modules.context_comments_enabled` est à `false`, toutes les routes `/api/context-comments` renvoient `503` avec `{ error: 'Commentaires de contexte désactivés' }` (après authentification réussie).
 
 Contexte supporté :
@@ -374,7 +375,7 @@ Contexte supporté :
 | GET | `/api/context-comments?contextType=task|project|zone&contextId=:id&page=1&page_size=20` | Liste paginée des commentaires d’un contexte |
 | POST | `/api/context-comments` | Créer un commentaire (`{ contextType, contextId, body }`) |
 | POST | `/api/context-comments/:id/reactions` | Toggle d’une réaction emoji (`{ emoji }`) |
-| DELETE | `/api/context-comments/:id` | Supprimer un commentaire (auteur ou prof/admin) |
+| DELETE | `/api/context-comments/:id` | Supprimer un commentaire (auteur ou n3boss/admin) |
 | POST | `/api/context-comments/:id/report` | Signaler un commentaire (`{ reason }`) |
 
 Contraintes principales :
@@ -392,25 +393,25 @@ Contraintes principales :
 
 ## Stats
 
-| Méthode | URL | Prof | Description |
+| Méthode | URL | n3boss | Description |
 |--------|-----|------|-------------|
-| GET | `/api/stats/me/:studentId` | non | Stats de l’utilisateur ciblé (propriétaire ou permission `stats.read.all`) ; pour prof/admin sans activités élève, compteurs à `0` |
-| GET | `/api/stats/all` | oui | Stats de tous les élèves (inclut `pseudo`, `description`, `avatar_path`, `progression.roleEmoji`, n’expose pas `email`) |
+| GET | `/api/stats/me/:studentId` | non | Stats de l’utilisateur ciblé (propriétaire ou permission `stats.read.all`) ; pour n3boss/admin sans activités n3beur, compteurs à `0` |
+| GET | `/api/stats/all` | oui | Stats de tous les n3beurs (inclut `pseudo`, `description`, `avatar_path`, `progression.roleEmoji`, n’expose pas `email`) |
 
-`GET /api/stats/me/:studentId` renvoie aussi `progression` pour les élèves :
+`GET /api/stats/me/:studentId` renvoie aussi `progression` pour les n3beurs :
 - `progression.thresholds` : seuils actifs par profil (clés dynamiques selon les profils `eleve_*`)
 - `progression.steps` : paliers affichables (min + label + emoji + ordre d’affichage)
 - `progression.roleSlug` / `progression.roleDisplayName` : profil principal actuel après synchronisation.
 
 ---
 
-## Élèves
+## n3beurs (comptes `student`)
 
-| Méthode | URL | Prof | Description |
+| Méthode | URL | n3boss | Description |
 |--------|-----|------|-------------|
 | POST | `/api/students/register` | non | Rafraîchir last_seen (`{ studentId }`) |
 | PATCH | `/api/students/:id/profile` | non | Mettre à jour son profil (`{ pseudo?, email?, description?, avatarData?, removeAvatar?, currentPassword }`) |
-| DELETE | `/api/students/:id` | oui | Supprimer un élève (cascade) |
+| DELETE | `/api/students/:id` | oui | Supprimer un n3beur (cascade) |
 
 `avatarData` doit être une data URL image (`png`, `jpg/jpeg`, `webp`). Les fichiers sont stockés sous `uploads/students/...` et exposés via `/uploads/...`.
 
@@ -422,7 +423,7 @@ Contraintes principales :
 - **403** : Accès refusé.
 - **404** : Ressource introuvable.
 - **409** : Conflit (ex. compte déjà existant).
-- **503** : Mode prof non configuré (`TEACHER_PIN` ou `JWT_SECRET` manquant en production).
+- **503** : Mode n3boss non configuré (`TEACHER_PIN` ou `JWT_SECRET` manquant en production).
 
 ---
 

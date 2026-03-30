@@ -175,6 +175,79 @@ test('GET /api/stats/me/:studentId synchronise le profil élève selon les seuil
   await execute('UPDATE roles SET min_done_tasks = ?, emoji = ?, display_order = ? WHERE slug = ?', [10, '🏆', 30, 'eleve_chevronne']);
 });
 
+test('GET /api/rbac/profiles renvoie roles et progressionByValidatedTasksEnabled', async () => {
+  const token = await getAdminAuthToken();
+  const res = await request(app)
+    .get('/api/rbac/profiles')
+    .set('Authorization', `Bearer ${token}`)
+    .expect(200);
+  assert.ok(Array.isArray(res.body.roles));
+  assert.strictEqual(typeof res.body.progressionByValidatedTasksEnabled, 'boolean');
+});
+
+test('GET /api/stats/me/:studentId ne promeut pas le profil si la progression auto est désactivée', async () => {
+  const teacherToken = await getAdminAuthToken();
+  await setSetting('rbac.progression_by_validated_tasks', false, {});
+  try {
+    await execute('UPDATE roles SET min_done_tasks = ?, emoji = ?, display_order = ? WHERE slug = ?', [0, '🪨', 50, 'eleve_novice']);
+    await execute('UPDATE roles SET min_done_tasks = ?, emoji = ?, display_order = ? WHERE slug = ?', [1, '🌿', 40, 'eleve_avance']);
+    await execute('UPDATE roles SET min_done_tasks = ?, emoji = ?, display_order = ? WHERE slug = ?', [2, '🏆', 30, 'eleve_chevronne']);
+
+    const studentRes = await request(app)
+      .post('/api/auth/register')
+      .send({ firstName: 'NoAuto', lastName: `Prog${Date.now()}`, password: 'pass1234' })
+      .expect(201);
+    const { id: studentId, first_name: firstName, last_name: lastName, authToken: studentAuthToken } = studentRes.body;
+    await setStudentPrimaryRole(studentId, 'eleve_novice');
+
+    const zones = await request(app).get('/api/zones').expect(200);
+    const zoneId = zones.body[0]?.id || 'pg';
+    for (let i = 0; i < 2; i += 1) {
+      const task = await request(app)
+        .post('/api/tasks')
+        .set('Authorization', `Bearer ${teacherToken}`)
+        .send({ title: `No auto prog ${Date.now()}-${i}`, zone_id: zoneId, required_students: 1 })
+        .expect(201);
+      await request(app)
+        .post(`/api/tasks/${task.body.id}/assign`)
+        .set('Authorization', `Bearer ${studentAuthToken}`)
+        .send({ firstName, lastName, studentId })
+        .expect(200);
+      await request(app)
+        .post(`/api/tasks/${task.body.id}/done`)
+        .set('Authorization', `Bearer ${studentAuthToken}`)
+        .send({ firstName, lastName, studentId })
+        .expect(200);
+      await request(app)
+        .post(`/api/tasks/${task.body.id}/validate`)
+        .set('Authorization', `Bearer ${teacherToken}`)
+        .expect(200);
+    }
+
+    const stats = await request(app)
+      .get(`/api/stats/me/${studentId}`)
+      .set('Authorization', `Bearer ${studentAuthToken}`)
+      .expect(200);
+    assert.strictEqual(stats.body?.progression?.autoProgressionEnabled, false);
+    assert.strictEqual(stats.body?.progression?.roleSlug, 'eleve_novice');
+
+    const role = await queryOne(
+      `SELECT r.slug
+         FROM user_roles ur
+         INNER JOIN roles r ON r.id = ur.role_id
+        WHERE ur.user_type = 'student' AND ur.user_id = ? AND ur.is_primary = 1
+        LIMIT 1`,
+      [studentId]
+    );
+    assert.strictEqual(role?.slug, 'eleve_novice');
+  } finally {
+    await setSetting('rbac.progression_by_validated_tasks', true, {});
+    await execute('UPDATE roles SET min_done_tasks = ?, emoji = ?, display_order = ? WHERE slug = ?', [0, '🪨', 50, 'eleve_novice']);
+    await execute('UPDATE roles SET min_done_tasks = ?, emoji = ?, display_order = ? WHERE slug = ?', [5, '🌿', 40, 'eleve_avance']);
+    await execute('UPDATE roles SET min_done_tasks = ?, emoji = ?, display_order = ? WHERE slug = ?', [10, '🏆', 30, 'eleve_chevronne']);
+  }
+});
+
 test('POST /api/auth/teacher avec mauvais PIN renvoie 401', async () => {
   const res = await request(app)
     .post('/api/auth/teacher')
@@ -392,7 +465,7 @@ test('Un élève peut proposer une tâche en statut proposed', async () => {
     .expect(201);
 
   assert.strictEqual(res.body.status, 'proposed');
-  assert.ok(String(res.body.description || '').includes('Proposition élève:'));
+  assert.ok(String(res.body.description || '').includes('Proposition n3beur:'));
   assert.strictEqual(res.body.zone_id, zoneId);
   assert.strictEqual(Number(res.body.required_students), 3);
 });

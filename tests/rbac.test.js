@@ -66,8 +66,9 @@ test('RBAC admin: lecture profils et utilisateurs', async () => {
     .get('/api/rbac/profiles')
     .set('Authorization', `Bearer ${token}`)
     .expect(200);
-  assert.ok(Array.isArray(profiles.body));
-  assert.ok(profiles.body.some((r) => r.slug === 'admin'));
+  assert.ok(Array.isArray(profiles.body.roles));
+  assert.ok(profiles.body.roles.some((r) => r.slug === 'admin'));
+  assert.strictEqual(typeof profiles.body.progressionByValidatedTasksEnabled, 'boolean');
 
   const users = await request(app)
     .get('/api/rbac/users')

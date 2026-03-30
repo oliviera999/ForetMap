@@ -5,11 +5,18 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Ajouté
+- **Profils & utilisateurs (colonne Permissions)** : bloc « Progression par tâches validées » — case à cocher pour activer ou désactiver la montée de niveau automatique des profils élèves (réglage `rbac.progression_by_validated_tasks`, aussi éditable dans Paramètres admin) ; pour chaque profil `eleve_*`, champ numérique + bouton pour fixer le nombre de tâches validées requises (`min_done_tasks`) sans repasser par « Modifier ».
+- **API** : `GET /api/rbac/profiles` renvoie `{ roles, progressionByValidatedTasksEnabled }` ; `PATCH /api/rbac/progression-by-validated-tasks` avec `{ enabled: boolean }` ; les réponses stats exposent `progression.autoProgressionEnabled`.
+- **Vue statistiques élève** : bandeau explicite lorsque la progression automatique est désactivée (paliers affichés à titre indicatif).
+
 ### Modifié
+- **Terminologie interface** : libellés visibles « élève(s) / prof(esseur)(s) / enseignant » remplacés par **n3beur(s)** et **n3boss** partout dans l’UI, les messages d’erreur API affichés côté client, le RBAC par défaut (`lib/rbac.js`), les modèles d’import (tâches : colonne « n3beurs requis » ; utilisateurs : fichiers `foretmap-modele-n3beurs.*`), le préfixe de description des propositions (`Proposition n3beur:`), la doc `docs/API.md`, et la migration `042_ui_terminology_n3beur_n3boss.sql` (rôles, permissions, rétro-migration des descriptions de tâches). `getRoleTerms()` renvoie désormais toujours cette terminologie (plus de variante selon l’affiliation). Compatibilité : parsing `Proposition élève:` ou `Proposition n3beur:` ; import utilisateurs accepte toujours `eleve` / `prof` dans les CSV.
 - **Profils & utilisateurs** : boutons Monter / Descendre (↑ ↓) à côté de chaque profil pour réordonner la liste sans repasser par la boîte « Modifier » ; les `display_order` sont recalculés (0, 1, 2, …) pour refléter le nouvel ordre ; les listes d’attribution suivent le même ordre.
 - **Vue élève / vue prof (aperçu)** : bandeau explicite sous l’en-tête lorsque l’enseignant ou l’admin bascule en mode aperçu, pour que le changement de navigation (onglets du haut ↔ barre du bas) et la nature « simulation d’interface » soient visibles immédiatement.
 
 ### Corrigé
+- **Tests (RBAC)** : assertions sur `GET /api/rbac/profiles` alignées sur la réponse `{ roles, progressionByValidatedTasksEnabled }`.
 - **Tests backend (tâches / forum)** : promotion explicite en `eleve_novice` pour les scénarios d’affectation, de capacité et de suppression d’élève ; jeton admin des tests enrichi de `tasks.validate` ; le test « forum visiteur » force `ui.modules.forum_enabled` pour éviter les courses avec les autres fichiers de suite.
 - **Carte (layout laptop / desktop)** : la hauteur du bloc carte ne repose plus sur des calculs en `100dvh` déconnectés des onglets professeur et des marges ; chaîne flex (`#app` → `teacher-main` / `main` → contenu) avec `min-height: 0` ; vue scindée carte/tâches en colonnes étirées et liste des tâches en flex avec défilement interne ; zone de gestes carte avec `min-height: 0` pour un cadrage correct de l'image.
 - **Modales mobile (feuilles)** : `modal-overlay` + panneaux `.modal` / `.log-modal` / prévisualisation tutoriel alignés sur le viewport dynamique (`100dvh`) et les encoches (`safe-area`), pour éviter que le haut ou le bas soit masqué par les barres système.

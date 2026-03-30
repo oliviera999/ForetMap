@@ -4,7 +4,7 @@ const { v4: uuidv4 } = require('uuid');
 const { queryAll, queryOne, execute } = require('../database');
 const { requirePermission } = require('../middleware/requireTeacher');
 const { setPrimaryRole } = require('../lib/rbac');
-const { getSettingValue } = require('../lib/settings');
+const { getSettingValue, setSetting } = require('../lib/settings');
 const { emitStudentsChanged } = require('../lib/realtime');
 const { logRouteError } = require('../lib/routeLog');
 const { logAudit } = require('./audit');
@@ -105,7 +105,7 @@ router.post(
           "SELECT id FROM users WHERE user_type = 'student' AND LOWER(first_name)=LOWER(?) AND LOWER(last_name)=LOWER(?) LIMIT 1",
           [firstName, lastName]
         );
-        if (existingByName) return res.status(409).json({ error: 'Un élève avec ce nom existe déjà' });
+        if (existingByName) return res.status(409).json({ error: 'Un n3beur avec ce nom existe déjà' });
       }
       if (pseudo) {
         const existingPseudo = await queryOne('SELECT id FROM users WHERE LOWER(pseudo)=LOWER(?) LIMIT 1', [pseudo]);
@@ -178,10 +178,42 @@ router.get(
           requires_elevation: !!row.requires_elevation,
         });
       }
-      res.json(rolesWithProgression.map((r) => ({ ...r, permissions: map.get(r.id) || [] })).map((r) => ({ ...r, catalog: perms })));
+      const rolesPayload = rolesWithProgression
+        .map((r) => ({ ...r, permissions: map.get(r.id) || [] }))
+        .map((r) => ({ ...r, catalog: perms }));
+      const progressionByValidatedTasksEnabled = await getSettingValue('rbac.progression_by_validated_tasks', true);
+      res.json({
+        roles: rolesPayload,
+        progressionByValidatedTasksEnabled: !!progressionByValidatedTasksEnabled,
+      });
     } catch (e) {
       logRouteError(e, req);
       res.status(500).json({ error: e.message });
+    }
+  }
+);
+
+router.patch(
+  '/progression-by-validated-tasks',
+  requirePermission('admin.roles.manage', { needsElevation: true }),
+  async (req, res) => {
+    try {
+      const raw = req.body?.enabled;
+      if (typeof raw !== 'boolean') {
+        return res.status(400).json({ error: 'Champ « enabled » booléen requis' });
+      }
+      const updated = await setSetting('rbac.progression_by_validated_tasks', raw, {
+        userType: req.auth?.userType,
+        userId: req.auth?.userId,
+      });
+      logAudit('rbac_progression_by_tasks', 'setting', null, 'rbac.progression_by_validated_tasks', {
+        req,
+        payload: { enabled: updated },
+      });
+      res.json({ ok: true, progressionByValidatedTasksEnabled: updated });
+    } catch (e) {
+      logRouteError(e, req);
+      res.status(400).json({ error: e.message });
     }
   }
 );
@@ -201,7 +233,7 @@ router.post(
       if (Number.isNaN(minDoneTasks)) return res.status(400).json({ error: 'min_done_tasks invalide (entier >= 0)' });
       if (Number.isNaN(displayOrder)) return res.status(400).json({ error: 'display_order invalide (entier >= 0)' });
       if (STUDENT_ROLE_SLUG_RE.test(slug) && (emoji == null || minDoneTasks == null)) {
-        return res.status(400).json({ error: 'Un profil élève doit définir emoji et min_done_tasks' });
+        return res.status(400).json({ error: 'Un profil n3beur doit définir emoji et min_done_tasks' });
       }
       await execute(
         'INSERT INTO roles (slug, display_name, emoji, min_done_tasks, display_order, `rank`, is_system) VALUES (?, ?, ?, ?, ?, ?, 0)',
@@ -251,7 +283,7 @@ router.patch(
       if (Number.isNaN(minDoneTasks)) return res.status(400).json({ error: 'min_done_tasks invalide (entier >= 0)' });
       if (Number.isNaN(displayOrder)) return res.status(400).json({ error: 'display_order invalide (entier >= 0)' });
       if (STUDENT_ROLE_SLUG_RE.test(existing.slug) && (emoji == null || minDoneTasks == null)) {
-        return res.status(400).json({ error: 'Un profil élève doit définir emoji et min_done_tasks' });
+        return res.status(400).json({ error: 'Un profil n3beur doit définir emoji et min_done_tasks' });
       }
       await execute(
         'UPDATE roles SET display_name = ?, emoji = ?, min_done_tasks = ?, display_order = ?, `rank` = ?, updated_at = NOW() WHERE id = ?',

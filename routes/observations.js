@@ -83,7 +83,7 @@ router.post('/', requireAuth, async (req, res) => {
       ? String(studentId || '').trim()
       : String(auth?.userType === 'student' ? auth.userId : '').trim();
     if (!resolvedStudentId || !content?.trim()) {
-      return res.status(400).json({ error: 'Contenu et identifiant élève requis' });
+      return res.status(400).json({ error: 'Contenu et identifiant n3beur requis' });
     }
     const student = await queryOne("SELECT id FROM users WHERE user_type = 'student' AND id = ?", [resolvedStudentId]);
     if (!student) return res.status(401).json({ error: 'Compte supprimé', deleted: true });

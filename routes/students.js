@@ -93,8 +93,8 @@ function normalizeImportUserType(value) {
   const raw = normalizeOptionalString(value);
   if (!raw) return 'student';
   const normalized = raw.toLowerCase();
-  if (['eleve', 'élève', 'student', 'students'].includes(normalized)) return 'student';
-  if (['prof', 'professeur', 'teacher', 'teachers'].includes(normalized)) return 'teacher';
+  if (['eleve', 'élève', 'n3beur', 'n3beurs', 'student', 'students'].includes(normalized)) return 'student';
+  if (['prof', 'professeur', 'n3boss', 'teacher', 'teachers'].includes(normalized)) return 'teacher';
   return null;
 }
 
@@ -197,7 +197,7 @@ function buildImportStudentPayload(row = {}) {
 function validateImportStudentPayload(payload, rowNumber) {
   const errors = [];
   if (!payload.userType || !ALLOWED_IMPORT_USER_TYPES.has(payload.userType)) {
-    errors.push({ row: rowNumber, field: 'userType', error: "Rôle invalide (élève/prof)" });
+    errors.push({ row: rowNumber, field: 'userType', error: "Rôle invalide (n3beur/n3boss)" });
   }
   if (!payload.firstName) errors.push({ row: rowNumber, field: 'firstName', error: 'Prénom requis' });
   if (!payload.lastName) errors.push({ row: rowNumber, field: 'lastName', error: 'Nom requis' });
@@ -260,10 +260,10 @@ router.get('/import/template', requirePermission('students.import', { needsEleva
     if (format === 'xlsx') {
       const wb = XLSX.utils.book_new();
       const ws = XLSX.utils.json_to_sheet(buildTemplateWorkbookRows(), { header: TEMPLATE_COLUMNS });
-      XLSX.utils.book_append_sheet(wb, ws, 'eleves');
+      XLSX.utils.book_append_sheet(wb, ws, 'n3beurs');
       const buffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
       res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-      res.setHeader('Content-Disposition', 'attachment; filename="foretmap-modele-eleves.xlsx"');
+      res.setHeader('Content-Disposition', 'attachment; filename="foretmap-modele-n3beurs.xlsx"');
       return res.send(buffer);
     }
     if (format !== 'csv') {
@@ -284,7 +284,7 @@ router.get('/import/template', requirePermission('students.import', { needsEleva
     ].map(csvEscape).join(';');
     const csv = `${BOM}${line}\r\n${sampleRow}\r\n`;
     res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-    res.setHeader('Content-Disposition', 'attachment; filename="foretmap-modele-eleves.csv"');
+    res.setHeader('Content-Disposition', 'attachment; filename="foretmap-modele-n3beurs.csv"');
     res.send(csv);
   } catch (e) {
     logRouteError(e, req);
@@ -402,7 +402,7 @@ router.post('/import', requirePermission('students.import', { needsElevation: tr
     }
 
     if (report.totals.created > 0) {
-      logAudit('students_import', 'student', null, `Import de ${report.totals.created} élève(s)`, {
+      logAudit('students_import', 'student', null, `Import de ${report.totals.created} n3beur(s)`, {
         req,
         payload: { report: report.totals },
       });
@@ -435,7 +435,7 @@ router.patch('/:id/profile', async (req, res) => {
     if (!body.currentPassword) return res.status(400).json({ error: 'Mot de passe actuel requis' });
 
     const student = await queryOne("SELECT * FROM users WHERE id = ? AND user_type = 'student'", [req.params.id]);
-    if (!student) return res.status(404).json({ error: 'Élève introuvable' });
+    if (!student) return res.status(404).json({ error: 'n3beur introuvable' });
     if (!student.password_hash) return res.status(401).json({ error: 'Ce compte n\'a pas de mot de passe. Contactez le prof.' });
 
     const passwordOk = await bcrypt.compare(String(body.currentPassword), student.password_hash);
@@ -538,7 +538,7 @@ router.patch('/:id/profile', async (req, res) => {
 router.delete('/:id', requirePermission('students.delete', { needsElevation: true }), async (req, res) => {
   try {
     const s = await queryOne("SELECT * FROM users WHERE id = ? AND user_type = 'student'", [req.params.id]);
-    if (!s) return res.status(404).json({ error: 'Élève introuvable' });
+    if (!s) return res.status(404).json({ error: 'n3beur introuvable' });
 
     const affectedRows = await queryAll(
       'SELECT DISTINCT task_id FROM task_assignments WHERE student_id = ? OR (student_first_name = ? AND student_last_name = ?)',

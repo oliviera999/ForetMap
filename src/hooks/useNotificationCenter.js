@@ -56,7 +56,7 @@ function proposerNameFromTask(task) {
   ).trim();
   if (direct) return direct;
   const description = String(task?.description || '');
-  const match = description.match(/(?:^|\n)Proposition élève:\s*(.+)\s*$/m);
+  const match = description.match(/(?:^|\n)Proposition (?:élève|n3beur):\s*(.+)\s*$/m);
   return String(match?.[1] || '').trim();
 }
 
@@ -217,7 +217,7 @@ export function useNotificationCenter({
     setMetrics({ created: 0, opened: 0, actions: 0 });
   }, []);
 
-  // Règles de génération: prof
+  // Règles de génération: n3boss
   useEffect(() => {
     if (!isTeacher) return;
     if (teacherPendingValidationCount > 0) {
@@ -262,7 +262,7 @@ export function useNotificationCenter({
     lastTeacherProposedKeysRef.current = currentKeys;
   }, [addNotification, isTeacher, tasksForActiveMap]);
 
-  // Règles de génération: élève
+  // Règles de génération: n3beur
   useEffect(() => {
     if (isTeacher || !student) return;
     const first = String(student.first_name || '').trim().toLowerCase();
@@ -354,7 +354,7 @@ export function useNotificationCenter({
         level: NOTIFICATION_LEVEL.INFO,
         category: NOTIFICATION_CATEGORY.SECURITY,
         title: 'OAuth Google désactivé',
-        message: 'La connexion Google est coupée pour élèves et professeurs.',
+        message: 'La connexion Google est coupée pour n3beurs et n3boss.',
         action: { tab: 'settings' },
       });
     }

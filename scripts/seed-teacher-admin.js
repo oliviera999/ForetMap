@@ -13,7 +13,7 @@ function normalizeEmail(value) {
 async function main() {
   const email = normalizeEmail(process.env.TEACHER_ADMIN_EMAIL);
   const password = process.env.TEACHER_ADMIN_PASSWORD ? String(process.env.TEACHER_ADMIN_PASSWORD) : '';
-  const displayName = (process.env.TEACHER_ADMIN_DISPLAY_NAME || 'Professeur').trim() || 'Professeur';
+  const displayName = (process.env.TEACHER_ADMIN_DISPLAY_NAME || 'n3boss').trim() || 'n3boss';
 
   if (!email || !password) {
     throw new Error('TEACHER_ADMIN_EMAIL et TEACHER_ADMIN_PASSWORD sont requis.');

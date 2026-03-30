@@ -215,8 +215,8 @@ describe('Auth', () => {
       .get('/api/rbac/profiles')
       .set('Authorization', `Bearer ${res.body.authToken}`)
       .expect(200);
-    assert.ok(Array.isArray(profiles.body));
-    assert.ok(profiles.body.some((r) => r.slug === 'admin'));
+    assert.ok(Array.isArray(profiles.body.roles));
+    assert.ok(profiles.body.roles.some((r) => r.slug === 'admin'));
   });
 
   it('GET /api/auth/google/start redirige vers Google avec state', async () => {
