@@ -1110,6 +1110,16 @@ function useMapGestures({ mapImageSrc, activeMapId, mode, onRefresh }) {
     });
   };
 
+  /** Ajuste la carte au conteneur sans forcer un re-render si rien n’a changé (évite le gel mobile quand la barre d’adresse redimensionne la vue en boucle). */
+  const commitFitLayout = (x, y, s) => {
+    tx.current = { x, y, s };
+    applyTransform();
+    setCommitted((prev) => {
+      if (Math.abs(prev.x - x) < 0.5 && Math.abs(prev.y - y) < 0.5 && Math.abs(prev.s - s) < 1e-4) return prev;
+      return { x, y, s };
+    });
+  };
+
   const enableMapInteraction = () => {
     setMapInteractionEnabled(true);
   };
@@ -1160,14 +1170,24 @@ function useMapGestures({ mapImageSrc, activeMapId, mode, onRefresh }) {
       const s = Math.min(cw / w, ch / h, 1);
       const x = (cw - w * s) / 2;
       const y = (ch - h * s) / 2;
-      tx.current = { x, y, s };
-      applyTransform();
-      setCommitted({ x, y, s });
+      commitFitLayout(x, y, s);
     };
     runFit();
-    const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(() => runFit()) : null;
+    let resizeDebounce = null;
+    const ro = typeof ResizeObserver !== 'undefined'
+      ? new ResizeObserver(() => {
+          if (resizeDebounce != null) clearTimeout(resizeDebounce);
+          resizeDebounce = window.setTimeout(() => {
+            resizeDebounce = null;
+            runFit();
+          }, 120);
+        })
+      : null;
     if (ro) ro.observe(c);
-    return () => { if (ro) ro.disconnect(); };
+    return () => {
+      if (resizeDebounce != null) clearTimeout(resizeDebounce);
+      if (ro) ro.disconnect();
+    };
   }, [imgSize]);
 
   const toImagePct = (clientX, clientY) => {
@@ -1320,9 +1340,7 @@ function useMapGestures({ mapImageSrc, activeMapId, mode, onRefresh }) {
     const s = Math.min(cw / w, ch / h, 1);
     const x = (cw - w * s) / 2;
     const y = (ch - h * s) / 2;
-    tx.current = { x, y, s };
-    applyTransform();
-    setCommitted({ x, y, s });
+    commitFitLayout(x, y, s);
   };
 
   const beginMarkerDrag = (id, target, pointerId) => {
