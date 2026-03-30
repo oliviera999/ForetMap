@@ -450,7 +450,7 @@ function TaskFormModal({
           <div className="row">
             <div className="field"><label>Mode de validation</label>
               <select value={form.completion_mode || 'single_done'} onChange={set('completion_mode')}>
-                <option value="single_done">Classique (un élève termine la tâche)</option>
+                <option value="single_done">Individuel (un élève termine la tâche)</option>
                 <option value="all_assignees_done">Collectif (tous les assignés doivent terminer)</option>
               </select>
             </div>
@@ -612,7 +612,7 @@ function getAssigneesDoneCount(task) {
 }
 
 function completionModeLabel(mode) {
-  return mode === 'all_assignees_done' ? 'Validation collective' : 'Validation classique';
+  return mode === 'all_assignees_done' ? 'Validation collective' : 'Validation individuelle';
 }
 
 const TEACHER_STATUS_ACTIONS = [
