@@ -588,7 +588,7 @@
     .legend-dot { width:12px; height:12px; border-radius:3px; flex-shrink:0; }
     .map-bubble-pin { position:relative; }
     .map-bubble {
-      border-radius:999px;
+      border-radius:10px;
     }
     .map-task-status-dot {
       position:absolute; top:-1px; right:-1px;
@@ -1770,13 +1770,13 @@
     }
     .visit-marker-btn {
       position:absolute; transform:translate(-50%,-50%);
-      width:36px; height:36px; border-radius:999px;
-      border:2px solid var(--forest);
-      background:white; cursor:pointer;
+      min-width:36px; min-height:36px; padding:0;
+      border:none; border-radius:0;
+      background:transparent; cursor:pointer;
       display:flex; align-items:center; justify-content:center;
-      box-shadow:0 2px 10px rgba(0,0,0,.22);
+      font-family:Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif;
     }
-    .visit-marker-emoji { font-size:1.08rem; line-height:1; }
+    .visit-marker-emoji { font-size:1.25rem; line-height:1; }
     .visit-marker-indicator {
       position:absolute; top:-2px; right:-2px; width:10px; height:10px; border-radius:50%;
       border:1.5px solid white;
