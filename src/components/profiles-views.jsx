@@ -88,6 +88,46 @@ function ProfilesAdminView({ isN3Affiliated = false }) {
   const isAdmin = authRoleSlug === 'admin';
   const canManageStudents = canExport || canImport || canDelete || canCreateUsers;
   const canDeleteUi = canDelete && canReadAllStats;
+
+  /** Même tri que GET /api/rbac/profiles (affichage cohérent avec la progression élève côté serveur). */
+  const sortedRoles = useMemo(() => {
+    const copy = [...roles];
+    copy.sort((a, b) => {
+      const ao = Number(a.display_order) || 0;
+      const bo = Number(b.display_order) || 0;
+      if (ao !== bo) return ao - bo;
+      const ar = Number(a.rank) || 0;
+      const br = Number(b.rank) || 0;
+      if (ar !== br) return br - ar;
+      return Number(a.id) - Number(b.id);
+    });
+    return copy;
+  }, [roles]);
+
+  const reorderRole = async (roleId, direction) => {
+    const idx = sortedRoles.findIndex((r) => Number(r.id) === Number(roleId));
+    if (idx < 0) return;
+    const newIdx = idx + direction;
+    if (newIdx < 0 || newIdx >= sortedRoles.length) return;
+    const arr = [...sortedRoles];
+    [arr[idx], arr[newIdx]] = [arr[newIdx], arr[idx]];
+    const nextOrders = arr.map((r, i) => ({ id: r.id, display_order: i }));
+    setLoading(true);
+    setErr('');
+    try {
+      for (const { id, display_order } of nextOrders) {
+        const prev = sortedRoles.find((x) => Number(x.id) === Number(id));
+        if (Number(prev?.display_order) === display_order) continue;
+        await api(`/api/rbac/profiles/${id}`, 'PATCH', { display_order });
+      }
+      setMsg('Ordre des profils mis à jour');
+      await load();
+    } catch (e) {
+      setErr(e.message || 'Erreur lors du changement d’ordre');
+    }
+    setLoading(false);
+  };
+
   const filteredStudents = useMemo(() => {
     const needle = searchStudent.trim().toLowerCase();
     if (!needle) return students;
@@ -438,11 +478,38 @@ function ProfilesAdminView({ isN3Affiliated = false }) {
           <div className="profiles-admin-grid">
             <div style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: 12, padding: 12 }}>
               <h3 style={{ marginTop: 0 }}>Profils</h3>
+              <p style={{ margin: '0 0 10px', fontSize: '.8rem', color: '#6b7280', lineHeight: 1.45 }}>
+                Utilisez ↑ ↓ pour définir l’ordre d’affichage (liste ci-dessous, menus d’attribution et progression élève alignés sur cet ordre).
+              </p>
               <button className="btn btn-secondary btn-sm" onClick={createRoleProfile} disabled={loading} style={{ marginBottom: 10 }}>
                 + Créer un profil
               </button>
-              {roles.map((r) => (
-                <div key={r.id} style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 8 }}>
+              {sortedRoles.map((r, idx) => (
+                <div key={r.id} style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 8, flexWrap: 'wrap' }}>
+                  <div style={{ display: 'inline-flex', flexDirection: 'column', gap: 2 }}>
+                    <button
+                      type="button"
+                      className="btn btn-ghost btn-sm"
+                      style={{ minHeight: 28, padding: '2px 8px', lineHeight: 1.1 }}
+                      aria-label={`Monter « ${r.display_name} » dans la liste`}
+                      title="Monter"
+                      disabled={loading || idx === 0}
+                      onClick={() => reorderRole(r.id, -1)}
+                    >
+                      ↑
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-ghost btn-sm"
+                      style={{ minHeight: 28, padding: '2px 8px', lineHeight: 1.1 }}
+                      aria-label={`Descendre « ${r.display_name} » dans la liste`}
+                      title="Descendre"
+                      disabled={loading || idx === sortedRoles.length - 1}
+                      onClick={() => reorderRole(r.id, 1)}
+                    >
+                      ↓
+                    </button>
+                  </div>
                   <button className={`btn btn-sm ${Number(selectedRoleId) === Number(r.id) ? 'btn-primary' : 'btn-ghost'}`} onClick={() => setSelectedRoleId(r.id)}>
                     {(r.emoji ? `${r.emoji} ` : '') + r.display_name}
                   </button>
@@ -499,7 +566,7 @@ function ProfilesAdminView({ isN3Affiliated = false }) {
                   </div>
                   <select value={u.role_id || ''} onChange={(e) => assignRole(u.user_type, u.id, parseInt(e.target.value, 10))} disabled={loading}>
                     <option value="">Aucun profil</option>
-                    {roles.map((r) => <option key={r.id} value={r.id}>{r.display_name}</option>)}
+                    {sortedRoles.map((r) => <option key={r.id} value={r.id}>{r.display_name}</option>)}
                   </select>
                 </div>
               ))}

@@ -6,6 +6,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 ## [Non publié]
 
 ### Modifié
+- **Profils & utilisateurs** : boutons Monter / Descendre (↑ ↓) à côté de chaque profil pour réordonner la liste sans repasser par la boîte « Modifier » ; les `display_order` sont recalculés (0, 1, 2, …) pour refléter le nouvel ordre ; les listes d’attribution suivent le même ordre.
 - **Vue élève / vue prof (aperçu)** : bandeau explicite sous l’en-tête lorsque l’enseignant ou l’admin bascule en mode aperçu, pour que le changement de navigation (onglets du haut ↔ barre du bas) et la nature « simulation d’interface » soient visibles immédiatement.
 
 ### Corrigé
