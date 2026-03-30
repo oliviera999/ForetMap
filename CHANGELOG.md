@@ -9,6 +9,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - **Outil collectif retiré (frontend + backend)** : suppression complète de la vue `Collectif`, des endpoints `/api/collective/*`, de la diffusion temps réel `collective:changed`, des tables SQL associées (`collective_sessions*`), des migrations dédiées et des tests backend liés.
 
 ### Modifié
+- **Modale profil / statistiques perso** : en-tête fixe avec bouton ✕ (comme les autres feuilles modales) et corps défilant — la croix reste visible en haut à droite pendant le scroll.
 - **Mobile (débordement horizontal)** : chaîne flex avec `min-width: 0` sur `#root`, `#app`, en-tête, zones principales et pied de page ; `overflow-x: clip` + `overscroll-behavior-x: none` sous 1024px ; grille forum en une colonne sur petit écran ; champ réponse forum avec `min-width: 0` pour respecter la largeur utile.
 - **Profils & utilisateurs (mobile)** : suppression des `gridTemplateColumns` inline qui surchargeaient le CSS — la page repasse bien en une colonne sur viewport ≤ 1023px (grilles profils/permissions, attribution, création, suppression).
 - **Profils élèves (RBAC progression)** : la création/édition des profils supporte désormais `emoji`, `min_done_tasks` (niveau requis) et `display_order` (ordre d’affichage), avec synchronisation de la progression élève basée sur les attributs des rôles plutôt que sur `app_settings`.
