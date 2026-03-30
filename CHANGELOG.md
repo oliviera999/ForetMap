@@ -14,6 +14,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - **Outil collectif retiré (frontend + backend)** : suppression complète de la vue `Collectif`, des endpoints `/api/collective/*`, de la diffusion temps réel `collective:changed`, des tables SQL associées (`collective_sessions*`), des migrations dédiées et des tests backend liés.
 
 ### Modifié
+- **Identité visuelle (logo n³)** : ajout de la source officielle `public/app-logo-n3.png`, régénération des icônes PWA (`pwa-icon-*`, `pwa-maskable-*`) et du `favicon-n3.png`, affichage du logo dans l'en-tête (version claire par filtre sur fond vert) et sur l'écran d'authentification ; raccourcis du manifeste alignés sur `pwa-icon-192.png` ; cache service worker passé en `v5`.
 - **Build frontend** : régénération des bundles dans `dist/` (build Vite production) pour le déploiement avec les sources courantes.
 - **Profil visiteur (observateur)** : pas de progression RBAC automatique depuis les tâches validées ; blocage API des actions et contenus exposant les données d’autres utilisateurs (commentaires de contexte, carnet d’observations en écriture, propositions de tâches) ; filtrage des affectations sur le détail d’une tâche.
 - **Auth élève** : `POST /api/auth/register` respecte le réglage `ui.auth.allow_register` (403 si désactivé, aligné sur l’UI admin).

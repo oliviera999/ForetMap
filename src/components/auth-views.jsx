@@ -422,7 +422,14 @@ function AuthScreen({ onLogin, appVersion, onVisitGuest, uiSettings, isN3Affilia
   return (
     <div className="auth-wrap">
       <div className="auth-card fade-in">
-        <div style={{ fontSize: '2.5rem', marginBottom: 10 }}>🌿</div>
+        <img
+          className="auth-brand-logo"
+          src={withAppBase('/app-logo-n3.png')}
+          alt=""
+          width={72}
+          height={72}
+          decoding="async"
+        />
         <h1>{authTitle}</h1>
         <p className="sub">{authSubtitle}</p>
         {welcomeMessage && <p className="sub" style={{ marginTop: -4 }}>{welcomeMessage}</p>}
