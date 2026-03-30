@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { api, AccountDeletedError, getAuthClaims, getStoredSession, saveStoredSession, clearStoredSession } from './services/api';
+import { api, AccountDeletedError, getAuthClaims, getStoredSession, saveStoredSession, clearStoredSession, withAppBase } from './services/api';
 import { useForetmapRealtime } from './hooks/useForetmapRealtime';
 import { useNotificationCenter } from './hooks/useNotificationCenter';
 import { RT_PROF_TOOLTIPS } from './constants/realtime';
@@ -1025,7 +1025,15 @@ function App() {
 
       <header>
         <div className="logo">
-          <span>🌿</span> ForêtMap
+          <img
+            className="app-header-logo"
+            src={withAppBase('/app-logo-n3.png')}
+            alt=""
+            width={28}
+            height={28}
+            decoding="async"
+          />
+          <span className="logo-title">ForêtMap</span>
         </div>
         <div className="header-right">
           {!isStandaloneMode && deferredInstallPrompt && (

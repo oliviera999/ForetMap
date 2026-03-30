@@ -118,7 +118,15 @@
       display:flex; align-items:center; gap:8px; font-family:'Playfair Display',serif; font-size:1.1rem;
       min-width:0; flex-shrink:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
     }
-    header .logo span { font-size:1.3rem; }
+    .app-header-logo {
+      flex-shrink:0;
+      width:28px;
+      height:28px;
+      object-fit:contain;
+      filter:brightness(0) invert(1);
+      opacity:.95;
+    }
+    .logo-title { min-width:0; overflow:hidden; text-overflow:ellipsis; }
     .header-right {
       display:flex; align-items:center; gap:6px;
       min-width:0; max-width:70%;
@@ -813,6 +821,13 @@
       padding:32px 24px; max-width:420px; width:100%;
       box-shadow:var(--shadow), 0 0 0 1px rgba(45,106,79,.06);
       animation:popIn .4s var(--spring);
+    }
+    .auth-brand-logo {
+      display:block;
+      width:72px;
+      height:auto;
+      margin:0 auto 10px;
+      object-fit:contain;
     }
     @media(max-width:400px) { .auth-card { padding:24px 18px; border-radius:16px; } }
     .auth-card h1 { font-size:clamp(1.45rem, 1.25rem + .8vw, 1.8rem); color:var(--forest); margin-bottom:4px; }

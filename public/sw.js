@@ -1,9 +1,10 @@
-const CACHE_NAME = 'foretmap-offline-v4';
+const CACHE_NAME = 'foretmap-offline-v5';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
   '/offline.html',
   '/manifest.json',
+  '/app-logo-n3.png',
   '/icon.svg',
   '/favicon-n3.png',
   '/favicon.ico',
