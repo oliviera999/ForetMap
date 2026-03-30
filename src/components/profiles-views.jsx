@@ -435,7 +435,7 @@ function ProfilesAdminView({ isN3Affiliated = false }) {
 
       {canManageProfiles && (
         <>
-          <div className="profiles-admin-grid" style={{ display: 'grid', gap: 12, gridTemplateColumns: '1fr 1fr' }}>
+          <div className="profiles-admin-grid">
             <div style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: 12, padding: 12 }}>
               <h3 style={{ marginTop: 0 }}>Profils</h3>
               <button className="btn btn-secondary btn-sm" onClick={createRoleProfile} disabled={loading} style={{ marginBottom: 10 }}>
@@ -472,7 +472,7 @@ function ProfilesAdminView({ isN3Affiliated = false }) {
               {selectedRole && catalog.map((perm) => {
                 const current = (selectedRole.permissions || []).find((p) => p.key === perm.key);
                 return (
-                  <div className="profiles-admin-perm-row" key={perm.key} style={{ display: 'grid', gridTemplateColumns: '1fr auto auto', gap: 8, alignItems: 'center', marginBottom: 6 }}>
+                  <div className="profiles-admin-perm-row" key={perm.key}>
                     <div>
                       <div style={{ fontSize: '.86rem', fontWeight: 600 }}>{perm.label}</div>
                       <div style={{ fontSize: '.75rem', color: '#6b7280' }}>{perm.key}</div>
@@ -493,7 +493,7 @@ function ProfilesAdminView({ isN3Affiliated = false }) {
             <h3 style={{ marginTop: 0 }}>Attribution des profils</h3>
             <div style={{ maxHeight: 360, overflow: 'auto' }}>
               {users.map((u) => (
-                <div className="profiles-admin-user-row" key={`${u.user_type}-${u.id}`} style={{ display: 'grid', gridTemplateColumns: '1fr 180px', gap: 8, alignItems: 'center', marginBottom: 8 }}>
+                <div className="profiles-admin-user-row" key={`${u.user_type}-${u.id}`}>
                   <div>
                     <strong>{u.display_name}</strong> <span style={{ color: '#6b7280' }}>({u.user_type})</span>
                   </div>
@@ -521,7 +521,7 @@ function ProfilesAdminView({ isN3Affiliated = false }) {
             <p style={{ margin: '0 0 10px', fontSize: '.85rem', color: '#6b7280' }}>
               Créez un compte sans import. Action réservée aux sessions élevées (PIN).
             </p>
-            <div className="profiles-admin-create-grid" style={{ display: 'grid', gap: 8, gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))' }}>
+            <div className="profiles-admin-create-grid">
               <div className="field" style={{ margin: 0 }}>
                 <label>Profil</label>
                 <select value={createRole} onChange={(e) => setCreateRole(e.target.value)} disabled={!canCreateUsers || createLoading}>
@@ -655,7 +655,7 @@ function ProfilesAdminView({ isN3Affiliated = false }) {
                 </p>
               ) : (
                 filteredStudents.map((s) => (
-                  <div className="profiles-admin-delete-row" key={s.id} style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 8, alignItems: 'center', marginBottom: 8 }}>
+                  <div className="profiles-admin-delete-row" key={s.id}>
                     <div>
                       <strong>{s.first_name} {s.last_name}</strong>
                       <div style={{ fontSize: '.78rem', color: '#6b7280' }}>
