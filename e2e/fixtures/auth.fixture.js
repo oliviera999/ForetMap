@@ -6,11 +6,12 @@ async function loginAsNewStudent(page) {
 
   await page.goto('/');
   await page.getByRole('button', { name: 'Créer un compte' }).click();
-  await page.getByLabel('Prénom').waitFor({ state: 'visible' });
-  await page.getByLabel('Prénom').fill(firstName);
-  await page.getByLabel('Nom').fill(lastName);
-  await page.getByLabel('Mot de passe').fill(password);
-  await page.getByLabel('Confirmer le mot de passe').fill(password);
+  await page.getByLabel('Prénom', { exact: true }).waitFor({ state: 'visible' });
+  await page.getByLabel('Prénom', { exact: true }).fill(firstName);
+  await page.getByLabel('Nom', { exact: true }).fill(lastName);
+  await page.getByLabel('Mot de passe', { exact: true }).fill(password);
+  await page.getByLabel('Mon espace', { exact: true }).selectOption({ label: 'N3 + Forêt comestible' });
+  await page.getByLabel('Confirmer le mot de passe', { exact: true }).fill(password);
   await page.getByRole('button', { name: 'Créer le compte' }).click();
 
   await page.locator('header').waitFor({ state: 'visible' });
@@ -28,13 +29,14 @@ async function registerStudentWithProfile(page) {
 
   await page.goto('/');
   await page.getByRole('button', { name: 'Créer un compte' }).click();
-  await page.getByLabel('Prénom').waitFor({ state: 'visible' });
-  await page.getByLabel('Prénom').fill(firstName);
-  await page.getByLabel('Nom').fill(lastName);
-  await page.getByLabel('Mot de passe').fill(password);
+  await page.getByLabel('Prénom', { exact: true }).waitFor({ state: 'visible' });
+  await page.getByLabel('Prénom', { exact: true }).fill(firstName);
+  await page.getByLabel('Nom', { exact: true }).fill(lastName);
+  await page.getByLabel('Mot de passe', { exact: true }).fill(password);
+  await page.getByLabel('Mon espace', { exact: true }).selectOption({ label: 'N3 + Forêt comestible' });
   await page.getByLabel('Pseudo (optionnel)').fill(pseudo);
   await page.getByLabel('Email (optionnel)').fill(email);
-  await page.getByLabel('Confirmer le mot de passe').fill(password);
+  await page.getByLabel('Confirmer le mot de passe', { exact: true }).fill(password);
   await page.getByRole('button', { name: 'Créer le compte' }).click();
   await page.locator('header').waitFor({ state: 'visible' });
   await page.waitForLoadState('networkidle');
@@ -42,8 +44,8 @@ async function registerStudentWithProfile(page) {
 }
 
 async function logoutToAuth(page) {
-  await page.getByRole('button', { name: '↩️' }).click();
-  await page.getByRole('button', { name: 'Connexion' }).waitFor({ state: 'visible' });
+  await page.getByRole('button', { name: /Déconnexion/ }).click();
+  await page.getByRole('button', { name: 'Connexion', exact: true }).waitFor({ state: 'visible' });
 }
 
 async function loginByIdentifier(page, identifier, password) {

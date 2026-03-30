@@ -382,8 +382,10 @@ Contraintes principales :
 
 ## Commentaires contextuels
 
-Toutes les routes commentaires contextuels exigent un utilisateur connecté (`Authorization: Bearer <token>`), n3beur ou n3boss.
+Toutes les routes commentaires contextuels exigent un utilisateur connecté (`Authorization: Bearer <token>`), **n3beur** (profil autre que **visiteur**) ou **n3boss**.
 Si le réglage public `ui.modules.context_comments_enabled` est à `false`, toutes les routes `/api/context-comments` renvoient `503` avec `{ error: 'Commentaires de contexte désactivés' }` (après authentification réussie).
+
+**Profil visiteur** : toutes les routes `/api/context-comments` renvoient **`403`** (pas d’accès, y compris en lecture), avec un message du type « Accès refusé aux commentaires de contexte pour le profil visiteur » — comportement aligné sur le forum pour ce profil.
 
 **Publication par compte n3beur** : la colonne `users.context_comment_participate` (défaut `1`) pilote si le compte peut créer des commentaires, réagir, signaler et supprimer les siens. Si `0`, le n3beur reste autorisé en **lecture** sur `GET /api/context-comments` ; `POST`, `DELETE` et réactions sont refusés avec **`403`** et `code: "CONTEXT_COMMENT_READ_ONLY"`. Les n3boss ne sont pas soumis à ce filtre.
 

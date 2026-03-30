@@ -5,14 +5,14 @@ test('parcours élève: inscription puis navigation principale', async ({ page }
   await loginAsNewStudent(page);
 
   await expect(page.locator('header')).toBeVisible();
-  await expect(page.getByRole('button', { name: /Carte/ })).toBeVisible();
+  await expect(page.getByRole('button', { name: '🗺️ Carte', exact: true })).toBeVisible();
 
-  await page.getByRole('button', { name: /^Biodiversité$/ }).click();
+  await page.getByRole('button', { name: /Biodiversité/ }).click();
   await expect(page.getByText('Catalogue de biodiversité')).toBeVisible();
 
-  await page.getByRole('button', { name: /^Tuto$/ }).click();
+  await page.getByRole('button', { name: /Tuto/ }).click();
   await expect(page.getByText('Guides pratiques consultables et téléchargeables')).toBeVisible();
 
-  await page.getByRole('button', { name: /^À propos$/ }).click();
+  await page.getByRole('button', { name: /À propos/ }).click();
   await expect(page.getByText('Informations du projet ForetMap')).toBeVisible();
 });

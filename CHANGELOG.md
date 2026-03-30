@@ -9,6 +9,9 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - **Paramètres admin** : réglages publics `ui.map.emoji_label_center_gap` (6–32, défaut 14), `ui.map.overlay_emoji_size_percent` et `ui.map.overlay_label_size_percent` (70–150 %, défaut 100) pour l’espacement emoji/libellé et l’échelle du texte sur la carte (zones SVG + repères) ; section « Modules UI » de la page Réglages ; utilitaire `resolveMapOverlayTypography` côté client.
 
 ### Corrigé
+- **Commentaires contextuels** : le profil **visiteur** n’a plus accès aux routes `/api/context-comments` (**403**, y compris lecture), aligné sur le forum.
+- **Tests e2e (Playwright)** : fixture d’inscription (labels en mode strict, sélection **Mon espace**, champs mot de passe) ; déconnexion via le bouton **Déconnexion** ; assertions de navigation alignées sur les libellés d’onglets actuels (ex. **🗺️ Carte** en `exact`, Biodiversité / Tuto / À propos).
+- **Tests backend** : le script `npm test` passe **`--test-force-exit`** à Node pour éviter que le processus reste actif après la fin de la suite.
 - **Mobile** : interface figée ou très lente sur la carte — le `ResizeObserver` recalculait le cadrage à chaque variation de hauteur de vue (barre d’adresse, clavier) et déclenchait des re-renders React en rafale via `setCommitted` ; recalcul du fit **différé (120 ms)** et mise à jour d’état **uniquement si la pose change** réellement.
 - **Réseau** : les appels `fetch` de l’API client passent par un **délai d’attente 40 s** (`AbortController`) pour qu’un chargement bloqué ne reste pas indéfiniment sur l’écran « Chargement… ».
 
