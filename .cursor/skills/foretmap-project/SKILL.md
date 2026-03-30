@@ -27,7 +27,7 @@ description: Donne le contexte du projet ForetMap (forêt comestible, Lycée Lya
 - **Backend :** Node.js, Express, MySQL (mysql2, pool). Fichiers : `server.js` (montage des routeurs), `database.js` (pool, schéma, seed), `routes/` (dont `task-projects`, `tutorials`, `settings`, `rbac`, `forum`), `middleware/requireTeacher.js` (JWT). Auth élèves : bcrypt, session en localStorage. Auth prof : PIN vérifié côté serveur, JWT.
 - **Frontend :** React 18 + Vite. Entrée dans `index.vite.html`, bootstrap dans `src/main.jsx`, application modulaire dans `src/` (composants/hooks/services), build servi depuis `dist/` en production.
 - **Utilitaires :** `lib/logger.js` (Pino), `lib/env.js`, `lib/uploads.js`, `lib/routeLog.js`, `lib/helpers.js`.
-- **Tests :** backend avec `node --test` + supertest dans `tests/`, et e2e Playwright dans `e2e/` (`npm run test:e2e`).
+- **Tests :** backend avec `node --test` + supertest dans `tests/` ; e2e Playwright dans `e2e/` via **`npm run test:e2e`** (serveur **`npm run start:e2e`**, bypass rate limit). Détail : skill **foretmap-e2e**.
 
 ## Points d'attention
 
