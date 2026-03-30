@@ -34,6 +34,7 @@ const DESKTOP_SPLIT_MIN_WIDTH = 1024;
 const DESKTOP_SPLIT_MIN_MAP_PX = 620;
 const DESKTOP_SPLIT_MIN_TASKS_PX = 420;
 const TAB_STORAGE_KEY = 'foretmap_active_tab';
+const IOS_INSTALL_HINT_DISMISSED_KEY = 'foretmap_ios_install_hint_dismissed';
 const KNOWN_TAB_VALUES = new Set([
   'map',
   'maptasks',
@@ -81,6 +82,11 @@ function readStoredTab() {
   const raw = String(localStorage.getItem(TAB_STORAGE_KEY) || '').trim().toLowerCase();
   if (!raw) return 'map';
   return KNOWN_TAB_VALUES.has(raw) ? raw : 'map';
+}
+
+function detectIosDevice() {
+  const ua = String(window.navigator.userAgent || '').toLowerCase();
+  return ua.includes('iphone') || ua.includes('ipad') || ua.includes('ipod');
 }
 
 // ── APP ───────────────────────────────────────────────────────────────────────
@@ -149,7 +155,15 @@ function App() {
   const [publicSettingsReady, setPublicSettingsReady] = useState(false);
   const [viewportWidth, setViewportWidth] = useState(() => window.innerWidth || 0);
   const [isTabVisible, setIsTabVisible] = useState(() => document.visibilityState !== 'hidden');
+  const [deferredInstallPrompt, setDeferredInstallPrompt] = useState(null);
+  const [showIosInstallHint, setShowIosInstallHint] = useState(false);
+  const [isStandaloneMode, setIsStandaloneMode] = useState(() => {
+    const displayStandalone = window.matchMedia && window.matchMedia('(display-mode: standalone)').matches;
+    const iosStandalone = window.navigator.standalone === true;
+    return displayStandalone || iosStandalone;
+  });
   const failCountRef = useRef(0);
+  const isIosDevice = useMemo(() => detectIosDevice(), []);
 
   const effectiveRoleContext = useMemo(() => {
     const roleSlug = String(authClaims?.roleSlug || '').toLowerCase();
@@ -322,6 +336,70 @@ function App() {
       }
     } catch (_) {}
   }, []);
+
+  useEffect(() => {
+    const displayModeQuery = window.matchMedia ? window.matchMedia('(display-mode: standalone)') : null;
+    const updateStandaloneState = () => {
+      const displayStandalone = displayModeQuery ? displayModeQuery.matches : false;
+      const iosStandalone = window.navigator.standalone === true;
+      setIsStandaloneMode(displayStandalone || iosStandalone);
+    };
+    updateStandaloneState();
+    if (!displayModeQuery) return undefined;
+    if (typeof displayModeQuery.addEventListener === 'function') {
+      displayModeQuery.addEventListener('change', updateStandaloneState);
+      return () => displayModeQuery.removeEventListener('change', updateStandaloneState);
+    }
+    if (typeof displayModeQuery.addListener === 'function') {
+      displayModeQuery.addListener(updateStandaloneState);
+      return () => displayModeQuery.removeListener(updateStandaloneState);
+    }
+    return undefined;
+  }, []);
+
+  useEffect(() => {
+    const onBeforeInstallPrompt = (event) => {
+      event.preventDefault();
+      setDeferredInstallPrompt(event);
+    };
+    const onAppInstalled = () => {
+      setDeferredInstallPrompt(null);
+      setShowIosInstallHint(false);
+      setToast('Application installée sur cet appareil.');
+    };
+    window.addEventListener('beforeinstallprompt', onBeforeInstallPrompt);
+    window.addEventListener('appinstalled', onAppInstalled);
+    return () => {
+      window.removeEventListener('beforeinstallprompt', onBeforeInstallPrompt);
+      window.removeEventListener('appinstalled', onAppInstalled);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!isIosDevice || isStandaloneMode) {
+      setShowIosInstallHint(false);
+      return;
+    }
+    const dismissed = localStorage.getItem(IOS_INSTALL_HINT_DISMISSED_KEY) === '1';
+    setShowIosInstallHint(!dismissed);
+  }, [isIosDevice, isStandaloneMode]);
+
+  const handleInstallClick = useCallback(async () => {
+    if (!deferredInstallPrompt) return;
+    try {
+      await deferredInstallPrompt.prompt();
+      const result = await deferredInstallPrompt.userChoice;
+      if (result?.outcome === 'accepted') {
+        setToast('Installation en cours...');
+      } else {
+        setToast('Installation annulée.');
+      }
+    } catch (_) {
+      setToast('Installation impossible sur ce navigateur.');
+    } finally {
+      setDeferredInstallPrompt(null);
+    }
+  }, [deferredInstallPrompt]);
 
   // Called from anywhere when a 401-deleted is detected
   const forceLogout = useCallback(() => {
@@ -807,6 +885,21 @@ function App() {
 
   return (
     <div id="app">
+      {showIosInstallHint && !deferredInstallPrompt && !isStandaloneMode && (
+        <div className="fade-in install-ios-banner" role="status" aria-live="polite">
+          <span>Pour installer ForetMap sur iPhone/iPad: ouvrir Safari, puis Partager, puis Ajouter a l'ecran d'accueil.</span>
+          <button
+            type="button"
+            className="btn btn-ghost btn-sm"
+            onClick={() => {
+              localStorage.setItem(IOS_INSTALL_HINT_DISMISSED_KEY, '1');
+              setShowIosInstallHint(false);
+            }}
+          >
+            Masquer
+          </button>
+        </div>
+      )}
       {serverDown && (
         <div className="fade-in" role="alert" style={{
           margin:'8px 12px 0', padding:'10px 14px', borderRadius:12,
@@ -935,6 +1028,17 @@ function App() {
           <span>🌿</span> ForêtMap
         </div>
         <div className="header-right">
+          {!isStandaloneMode && deferredInstallPrompt && (
+            <button
+              type="button"
+              className="lock-btn install-btn"
+              aria-label="Installer l'application"
+              title="Installer l'application"
+              onClick={handleInstallClick}
+            >
+              ⬇️ <span className="lock-label">Installer</span>
+            </button>
+          )}
           {isTeacher && (
             <span
               className="app-version-badge"

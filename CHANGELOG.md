@@ -44,6 +44,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - **Scroll mobile global + console Paramètres** : sécurisation du verrouillage de scroll `body` (lightbox) pour éviter les blocages persistants, et forçage de la vue `Paramètres admin` en colonne unique sur mobile/tablette avec débordements horizontaux neutralisés.
 
 ### Ajouté
+- **PWA mobile installable (Android + iOS)** : finalisation du manifeste avec icônes PNG (`192/512` + `maskable`) et captures d'écran, ajout d'un bouton d'installation contextuel (événement `beforeinstallprompt`) dans l'en-tête, aide iOS "Ajouter à l'écran d'accueil", et synchronisation du cache service worker avec les nouveaux assets.
 - **Réglages modules** : interrupteurs publics `ui.modules.forum_enabled` et `ui.modules.context_comments_enabled` (page Paramètres admin), refus API `503` quand désactivés, masquage onglet forum et blocs commentaires contexte côté UI.
 - **Réglages publics (frontend)** : fusion après `GET /api/settings/public` des branches `ui.modules`, `ui.map` et `ui.auth` vers les objets `modules`, `map` et `auth` déjà consommés par l’app, pour appliquer les valeurs serveur après chargement.
 - **Runner de tests isolés** : ajout de `scripts/test-local-isolated.js` pour orchestrer `db:init` + `node --test` sur chaque fichier `tests/*.test.js`, avec arrêt immédiat au premier échec.
