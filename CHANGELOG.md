@@ -5,6 +5,9 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé
+- **Tâches (commentaires)** : le texte en cours de saisie dans les commentaires de tâche (et le volet qui se refermait) n’est plus perdu lorsque la liste des tâches se rafraîchit (polling ou temps réel) et que la carte est recréée ; le brouillon est conservé dans `sessionStorage` jusqu’à publication. Même principe pour le commentaire optionnel de la fenêtre « Rapport de tâche ».
+
 ### Supprimé
 - **Outil collectif retiré (frontend + backend)** : suppression complète de la vue `Collectif`, des endpoints `/api/collective/*`, de la diffusion temps réel `collective:changed`, des tables SQL associées (`collective_sessions*`), des migrations dédiées et des tests backend liés.
 
