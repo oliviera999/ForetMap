@@ -333,7 +333,8 @@ function isTaskDetachedFromLocation(task) {
   return task.status === 'done' || task.status === 'validated';
 }
 
-function ZoneInfoModal({ zone, plants, tasks, isTeacher, student, canSelfAssignTasks = true, markerEmojis = MARKER_EMOJIS, emojiParsingList = MARKER_EMOJIS, contextCommentsEnabled = true, onClose, onUpdate, onDelete, onEditPoints, onLinkTask, onUnlinkTask, onAssignTasks }) {
+function ZoneInfoModal({ zone, plants, tasks, isTeacher, student, canSelfAssignTasks = true, canEnrollOnTasks, markerEmojis = MARKER_EMOJIS, emojiParsingList = MARKER_EMOJIS, contextCommentsEnabled = true, onClose, onUpdate, onDelete, onEditPoints, onLinkTask, onUnlinkTask, onAssignTasks }) {
+  const canEnroll = canEnrollOnTasks !== undefined ? canEnrollOnTasks : canSelfAssignTasks;
   const dialogRef = useDialogA11y(onClose);
   const [tab, setTab] = useState('tasks');
   const [zoneName, setZoneName] = useState(stripLeadingMarkerEmoji(zone.name || '', emojiParsingList));
@@ -621,6 +622,13 @@ function ZoneInfoModal({ zone, plants, tasks, isTeacher, student, canSelfAssignT
                     ? 'Sélectionne une ou plusieurs tâches puis inscris-toi directement.'
                     : 'Profil visiteur : consultation en lecture seule.'}
                 </p>
+                {canSelfAssignTasks && Number(student?.taskEnrollment?.maxActiveAssignments) > 0 && (
+                  <p style={{ fontSize: '.78rem', color: student?.taskEnrollment?.atLimit ? '#92400e' : '#166534', marginBottom: 10, lineHeight: 1.45 }}>
+                    {student.taskEnrollment?.atLimit
+                      ? `Limite atteinte (${student.taskEnrollment.currentActiveAssignments}/${student.taskEnrollment.maxActiveAssignments} tâches actives). Retire-toi d’une tâche ou attends une validation.`
+                      : `Tâches actives : ${student.taskEnrollment.currentActiveAssignments}/${student.taskEnrollment.maxActiveAssignments} (non validées, toutes cartes).`}
+                  </p>
+                )}
                 <div style={{ display: 'grid', gap: 8 }}>
                   {linkedTasks.map((t) => {
                     const canAssign = canStudentAssignTask(t, student);
@@ -642,9 +650,9 @@ function ZoneInfoModal({ zone, plants, tasks, isTeacher, student, canSelfAssignT
                         <input
                           type="checkbox"
                           checked={checked}
-                          disabled={!canSelfAssignTasks || !canAssign || assigning}
+                          disabled={!canEnroll || !canAssign || assigning}
                           onChange={() => {
-                            if (!canSelfAssignTasks || !canAssign) return;
+                            if (!canEnroll || !canAssign) return;
                             setSelectedTaskIds((prev) => (
                               prev.includes(t.id) ? prev.filter((id) => id !== t.id) : [...prev, t.id]
                             ));
@@ -664,7 +672,7 @@ function ZoneInfoModal({ zone, plants, tasks, isTeacher, student, canSelfAssignT
                 <button
                   className="btn btn-primary btn-full"
                   style={{ marginTop: 12 }}
-                  disabled={!canSelfAssignTasks || assigning || selectedTaskIds.length === 0}
+                  disabled={!canEnroll || assigning || selectedTaskIds.length === 0}
                   onClick={async () => {
                     if (!onAssignTasks || selectedTaskIds.length === 0) return;
                     setAssigning(true);
@@ -805,7 +813,8 @@ function ZoneDrawModal({ points_pct, onClose, onSave, plants, markerEmojis = MAR
   );
 }
 
-function MarkerModal({ marker, plants, tasks, onClose, onSave, onDelete, onLinkTask, onUnlinkTask, onAssignTasks, isTeacher, student, canSelfAssignTasks = true, markerEmojis = MARKER_EMOJIS }) {
+function MarkerModal({ marker, plants, tasks, onClose, onSave, onDelete, onLinkTask, onUnlinkTask, onAssignTasks, isTeacher, student, canSelfAssignTasks = true, canEnrollOnTasks, markerEmojis = MARKER_EMOJIS }) {
+  const canEnroll = canEnrollOnTasks !== undefined ? canEnrollOnTasks : canSelfAssignTasks;
   const dialogRef = useDialogA11y(onClose);
   const isNew = !marker.id;
   const [form, setForm] = useState({
@@ -968,6 +977,13 @@ function MarkerModal({ marker, plants, tasks, onClose, onSave, onDelete, onLinkT
                       ? 'Tu peux t\'inscrire à une ou plusieurs tâches liées à ce repère.'
                       : 'Profil visiteur : consultation en lecture seule.'}
                   </p>
+                  {canSelfAssignTasks && Number(student?.taskEnrollment?.maxActiveAssignments) > 0 && (
+                    <p style={{ fontSize: '.78rem', color: student?.taskEnrollment?.atLimit ? '#92400e' : '#166534', marginBottom: 10, lineHeight: 1.45 }}>
+                      {student.taskEnrollment?.atLimit
+                        ? `Limite atteinte (${student.taskEnrollment.currentActiveAssignments}/${student.taskEnrollment.maxActiveAssignments} tâches actives). Retire-toi d’une tâche ou attends une validation.`
+                        : `Tâches actives : ${student.taskEnrollment.currentActiveAssignments}/${student.taskEnrollment.maxActiveAssignments} (non validées, toutes cartes).`}
+                    </p>
+                  )}
                   <div style={{ display: 'grid', gap: 8 }}>
                     {linkedTasks.map((t) => {
                       const canAssign = canStudentAssignTask(t, student);
@@ -989,9 +1005,9 @@ function MarkerModal({ marker, plants, tasks, onClose, onSave, onDelete, onLinkT
                           <input
                             type="checkbox"
                             checked={checked}
-                            disabled={!canSelfAssignTasks || !canAssign || assigning}
+                            disabled={!canEnroll || !canAssign || assigning}
                             onChange={() => {
-                              if (!canSelfAssignTasks || !canAssign) return;
+                              if (!canEnroll || !canAssign) return;
                               setSelectedTaskIds((prev) => (
                                 prev.includes(t.id) ? prev.filter((id) => id !== t.id) : [...prev, t.id]
                               ));
@@ -1011,7 +1027,7 @@ function MarkerModal({ marker, plants, tasks, onClose, onSave, onDelete, onLinkT
                   <button
                     className="btn btn-primary btn-full"
                     style={{ marginTop: 12 }}
-                    disabled={!canSelfAssignTasks || assigning || selectedTaskIds.length === 0}
+                    disabled={!canEnroll || assigning || selectedTaskIds.length === 0}
                     onClick={async () => {
                       if (!onAssignTasks || selectedTaskIds.length === 0) return;
                       setAssigning(true);
@@ -1329,7 +1345,8 @@ function useMapGestures({ mapImageSrc, activeMapId, mode, onRefresh }) {
   };
 }
 
-function MapView({ zones, markers, tasks = [], plants, maps = [], activeMapId = 'foret', onMapChange, isTeacher, student, canSelfAssignTasks = true, onZoneUpdate, onRefresh, embedded = false, publicSettings = null }) {
+function MapView({ zones, markers, tasks = [], plants, maps = [], activeMapId = 'foret', onMapChange, isTeacher, student, canSelfAssignTasks = true, canEnrollOnTasks, onZoneUpdate, onRefresh, embedded = false, publicSettings = null }) {
+  const canEnrollNewTasks = canEnrollOnTasks !== undefined ? canEnrollOnTasks : canSelfAssignTasks;
   const [mode, setMode] = useState('view');
   const [showLabels, setShowLabels] = useState(true);
   const [drawPoints, setDrawPoints] = useState([]);
@@ -1489,7 +1506,7 @@ function MapView({ zones, markers, tasks = [], plants, maps = [], activeMapId = 
   const deleteZone = async id => { await api(`/api/zones/${id}`, 'DELETE'); await onRefresh(); };
   const assignTasksToStudent = async (taskIds) => {
     const ids = [...new Set((taskIds || []).filter(Boolean))];
-    if (!canSelfAssignTasks || !ids.length || !student) {
+    if (!canEnrollNewTasks || !ids.length || !student) {
       return { assignedCount: 0, failedCount: 0, firstError: null };
     }
     let assignedCount = 0;
@@ -1621,7 +1638,7 @@ function MapView({ zones, markers, tasks = [], plants, maps = [], activeMapId = 
       {toast && <Toast msg={toast} onDone={() => setToast(null)} />}
 
       {selectedZone && (
-        <ZoneInfoModal zone={selectedZone} plants={plants} tasks={tasks} isTeacher={isTeacher} student={student} canSelfAssignTasks={canSelfAssignTasks} markerEmojis={markerEmojis} emojiParsingList={emojiParsingList} contextCommentsEnabled={contextCommentsEnabled}
+        <ZoneInfoModal zone={selectedZone} plants={plants} tasks={tasks} isTeacher={isTeacher} student={student} canSelfAssignTasks={canSelfAssignTasks} canEnrollOnTasks={canEnrollNewTasks} markerEmojis={markerEmojis} emojiParsingList={emojiParsingList} contextCommentsEnabled={contextCommentsEnabled}
           onClose={() => setSelectedZone(null)}
           onUpdate={async (id, data) => { await onZoneUpdate(id, data); setSelectedZone(null); await onRefresh(); }}
           onDelete={async id => { await deleteZone(id); setSelectedZone(null); }}
@@ -1631,7 +1648,7 @@ function MapView({ zones, markers, tasks = [], plants, maps = [], activeMapId = 
           onEditPoints={isTeacher ? z => startEditPoints(z) : null} />
       )}
       {selectedMarker && (
-        <MarkerModal marker={selectedMarker} plants={plants} tasks={tasks} isTeacher={isTeacher} student={student} canSelfAssignTasks={canSelfAssignTasks} markerEmojis={markerEmojis}
+        <MarkerModal marker={selectedMarker} plants={plants} tasks={tasks} isTeacher={isTeacher} student={student} canSelfAssignTasks={canSelfAssignTasks} canEnrollOnTasks={canEnrollNewTasks} markerEmojis={markerEmojis}
           onClose={() => setSelectedMarker(null)} onSave={saveMarker} onDelete={deleteMarker}
           onLinkTask={async (taskId) => linkTaskToMarker(taskId, selectedMarker.id)}
           onUnlinkTask={(t) => unlinkTaskFromMarker(t, selectedMarker.id)}

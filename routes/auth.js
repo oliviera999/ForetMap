@@ -16,6 +16,7 @@ const {
   verifyRolePin,
 } = require('../lib/rbac');
 const { getSettingValue } = require('../lib/settings');
+const { countStudentActiveTaskAssignments } = require('../lib/studentTaskEnrollment');
 const { logAudit, logSecurityEvent } = require('./audit');
 const {
   ensureCanonicalUserByAuth,
@@ -333,7 +334,24 @@ function respondInternalError(res, req, err, message = 'Erreur serveur') {
 }
 
 router.get('/me', requireAuth, async (req, res) => {
-  res.json({ auth: exposeAuth(req.auth) });
+  const auth = exposeAuth(req.auth);
+  const body = { auth };
+  if (req.auth?.userType === 'student' && req.auth?.userId) {
+    const u = await queryOne(
+      "SELECT first_name, last_name FROM users WHERE id = ? AND user_type = 'student' LIMIT 1",
+      [req.auth.userId]
+    );
+    if (u) {
+      const maxActive = await getSettingValue('tasks.student_max_active_assignments', 0);
+      const current = await countStudentActiveTaskAssignments(req.auth.userId, u.first_name, u.last_name);
+      body.taskEnrollment = {
+        maxActiveAssignments: maxActive,
+        currentActiveAssignments: current,
+        atLimit: maxActive > 0 && current >= maxActive,
+      };
+    }
+  }
+  res.json(body);
 });
 
 router.patch('/me/profile', requireAuth, async (req, res) => {

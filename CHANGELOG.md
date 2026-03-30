@@ -5,6 +5,11 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Ajouté
+- **Paramètres admin** : réglage `tasks.student_max_active_assignments` (0–99, défaut 0 = illimité) — nombre maximal de tâches **actives** (non validées, toutes cartes) auxquelles un n3beur peut **s’auto-inscrire** ; section « Tâches & inscriptions n3beurs » dans l’UI admin.
+- **API** : garde sur `POST /api/tasks/:id/assign` pour l’auto-inscription (`code: TASK_ENROLLMENT_LIMIT` si dépassement) ; `GET /api/auth/me` enrichi avec `taskEnrollment` pour les n3beurs (`maxActiveAssignments`, `currentActiveAssignments`, `atLimit`).
+- **UI n3beur** : désactivation des seuls contrôles d’**inscription** à la limite ; **proposition de tâche** et **retrait** restent disponibles ; bandeaux explicites (liste tâches, modales zone/repère) ; sur la carte, les pastilles « places disponibles » restent fidèles à la tâche (la limite personnelle est portée par `canEnrollOnTasks`, pas par `canStudentAssignTask`).
+
 ### Modifié
 - **Sélecteur de carte** : le bandeau de choix de plan (carte principale et visite) n’apparaît que lorsqu’au moins deux cartes sont disponibles ; masqué quand une seule carte reste visible (cartes désactivées en admin ou restriction de profil / affiliation).
 - **Carte & visite** : les repères s’affichent comme les zones (emoji seul, sans disque blanc bordé de vert) sur la carte principale et sur la carte de visite ; zone de touche minimale conservée pour le mobile.

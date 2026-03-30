@@ -670,7 +670,8 @@ const TASK_STATUS_FILTER_OPTIONS = [
   { value: 'on_hold', label: 'En attente' },
 ];
 
-function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], tutorials = [], activeMapId = 'foret', isTeacher, student, canSelfAssignTasks = true, canViewOtherUsersIdentity = true, onRefresh, onForceLogout, isN3Affiliated = false, publicSettings = null }) {
+function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], tutorials = [], activeMapId = 'foret', isTeacher, student, canSelfAssignTasks = true, canEnrollOnTasks, canViewOtherUsersIdentity = true, onRefresh, onForceLogout, isN3Affiliated = false, publicSettings = null }) {
+  const canEnrollNewTask = canEnrollOnTasks !== undefined ? canEnrollOnTasks : canSelfAssignTasks;
   const roleTerms = getRoleTerms(isN3Affiliated);
   const [showForm, setShowForm] = useState(false);
   const [showProjectForm, setShowProjectForm] = useState(false);
@@ -1255,7 +1256,7 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
           <div className="slots">{slots} place{slots > 1 ? 's' : ''} restante{slots > 1 ? 's' : ''}</div>
         )}
         <div className="task-actions">
-          {!isTeacher && canSelfAssignTasks && !isMine && slots > 0 && effectiveStatus !== 'validated' && effectiveStatus !== 'on_hold' && (
+          {!isTeacher && canEnrollNewTask && !isMine && slots > 0 && effectiveStatus !== 'validated' && effectiveStatus !== 'on_hold' && (
             <button className="btn btn-primary btn-sm" disabled={loading[t.id + 'assign']} onClick={() => assign(t)}>
               {loading[t.id + 'assign'] ? '...' : '✋ Je m\'en occupe'}
             </button>
@@ -1545,6 +1546,24 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
         )}
       </div>
       <p className="section-sub">{isTeacher ? 'Gérer, valider et traiter les propositions' : (canSelfAssignTasks ? 'Prends en charge une tâche ou propose-en une nouvelle' : 'Consultation en lecture seule')}</p>
+      {!isTeacher && student && Number(student.taskEnrollment?.maxActiveAssignments) > 0 && (
+        <p
+          className="section-sub"
+          style={{
+            marginTop: 6,
+            padding: '8px 12px',
+            borderRadius: 10,
+            background: student.taskEnrollment?.atLimit ? '#fef3c7' : '#f0fdf4',
+            color: student.taskEnrollment?.atLimit ? '#92400e' : '#166534',
+            fontSize: '.88rem',
+            lineHeight: 1.45,
+          }}
+        >
+          {student.taskEnrollment?.atLimit
+            ? `Limite d’inscriptions atteinte : ${student.taskEnrollment.currentActiveAssignments}/${student.taskEnrollment.maxActiveAssignments} tâche(s) active(s) (non validées). Retire-toi d’une tâche ou attends une validation.`
+            : `Inscriptions : ${student.taskEnrollment.currentActiveAssignments}/${student.taskEnrollment.maxActiveAssignments} tâche(s) active(s) (non validées par un n3boss, toutes cartes).`}
+        </p>
+      )}
       {isTeacher && (
         <details className="plant-more" style={{ marginBottom: 10 }}>
           <summary>Import tâches/projets (CSV / XLSX)</summary>

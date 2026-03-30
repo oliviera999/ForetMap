@@ -377,6 +377,59 @@ test('Assign puis unassign met à jour le statut de la tâche', async () => {
   assert.strictEqual(afterUnassign.body.status, 'available');
 });
 
+test('Plafond auto-inscription n3beur : TASK_ENROLLMENT_LIMIT et GET /api/auth/me', async () => {
+  try {
+    await setSetting('tasks.student_max_active_assignments', 1, {});
+
+    const teacherToken = await getAdminAuthToken();
+    const zones = await request(app).get('/api/zones').expect(200);
+    const zoneId = zones.body[0]?.id || 'pg';
+
+    const t1 = await request(app)
+      .post('/api/tasks')
+      .set('Authorization', `Bearer ${teacherToken}`)
+      .send({ title: `Limite A ${Date.now()}`, zone_id: zoneId, required_students: 1 })
+      .expect(201);
+    const t2 = await request(app)
+      .post('/api/tasks')
+      .set('Authorization', `Bearer ${teacherToken}`)
+      .send({ title: `Limite B ${Date.now()}`, zone_id: zoneId, required_students: 1 })
+      .expect(201);
+
+    const studentRes = await request(app)
+      .post('/api/auth/register')
+      .send({ firstName: 'Limite', lastName: `N3b${Date.now()}`, password: 'pwd1' })
+      .expect(201);
+    const { first_name, last_name, id: studentId, authToken } = studentRes.body;
+    await setStudentPrimaryRole(studentId, 'eleve_novice');
+
+    await request(app)
+      .post(`/api/tasks/${t1.body.id}/assign`)
+      .set('Authorization', `Bearer ${authToken}`)
+      .send({ firstName: first_name, lastName: last_name, studentId })
+      .expect(200);
+
+    const meRes = await request(app)
+      .get('/api/auth/me')
+      .set('Authorization', `Bearer ${authToken}`)
+      .expect(200);
+    assert.strictEqual(meRes.body.taskEnrollment?.maxActiveAssignments, 1);
+    assert.strictEqual(meRes.body.taskEnrollment?.currentActiveAssignments, 1);
+    assert.strictEqual(meRes.body.taskEnrollment?.atLimit, true);
+
+    const over = await request(app)
+      .post(`/api/tasks/${t2.body.id}/assign`)
+      .set('Authorization', `Bearer ${authToken}`)
+      .send({ firstName: first_name, lastName: last_name, studentId })
+      .expect(400);
+    assert.strictEqual(over.body.code, 'TASK_ENROLLMENT_LIMIT');
+    assert.strictEqual(over.body.maxActiveAssignments, 1);
+    assert.strictEqual(over.body.currentActiveAssignments, 1);
+  } finally {
+    await setSetting('tasks.student_max_active_assignments', 0, {});
+  }
+});
+
 test('POST /api/tasks/:id/validate refuse une tâche non terminée', async () => {
   const token = await getAdminAuthToken();
 

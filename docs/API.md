@@ -75,7 +75,7 @@ Connexion Socket.IO (transport **polling** actuellement forcé côté client) su
 |--------|-----|------|-------------|
 | POST | `/api/auth/register` | `{ firstName, lastName, password, pseudo?, email?, description? }` | Créer un compte n3beur (profil RBAC par défaut : `visiteur`) |
 | POST | `/api/auth/login` | `{ identifier, password }` | Connexion n3beur (pseudo ou email) |
-| GET | `/api/auth/me` | — | Retourne le contexte d’auth courant (`role`, `permissions`, `elevated`) |
+| GET | `/api/auth/me` | — | Retourne le contexte d’auth courant (`auth` : `userType`, permissions, élévation, etc.) |
 | PATCH | `/api/auth/me/profile` | `{ pseudo?, email?, description?, affiliation?, avatarData?, removeAvatar?, currentPassword }` | Mettre à jour son profil utilisateur connecté (n3beur, n3boss, admin local) |
 | POST | `/api/auth/elevate` | `{ pin }` | Élévation de session via PIN du profil |
 | POST | `/api/auth/forgot-password` | `{ email }` | Déclencher un email de réinitialisation n3beur (réponse neutre) |
@@ -86,6 +86,12 @@ Connexion Socket.IO (transport **polling** actuellement forcé côté client) su
 | POST | `/api/auth/teacher/reset-password` | `{ token, password }` | Réinitialiser le mot de passe n3boss |
 
 Routes protégées « n3boss » : header `Authorization: Bearer <token>`.
+
+**`GET /api/auth/me`** — pour un compte **n3beur** authentifié (`auth.userType === 'student'`), la réponse peut inclure **`taskEnrollment`** (plafond d’auto-inscriptions actives) :
+
+- `maxActiveAssignments` : valeur du réglage `tasks.student_max_active_assignments` (entier 0–99, `0` = pas de limite).
+- `currentActiveAssignments` : nombre d’assignations sur des tâches dont le statut n’est pas `validated` (toutes cartes).
+- `atLimit` : `true` si `maxActiveAssignments > 0` et `currentActiveAssignments >= maxActiveAssignments`.
 
 ---
 
@@ -169,6 +175,9 @@ Ces routes sont destinées à la console admin et exigent un token avec permissi
 Progression n3beurs :
 - pilotée directement par les profils `eleve_*` via `roles.min_done_tasks`, `roles.emoji` et `roles.display_order`.
 - les anciens réglages `progression.student_role_min_done_*` ne sont plus utilisés.
+
+Tâches / inscriptions n3beurs :
+- `tasks.student_max_active_assignments` (entier 0–99, défaut `0`) : plafond du nombre de tâches **actives** (assignations dont la tâche associée n’est pas en statut `validated`) auxquelles un n3beur peut **s’auto-inscrire** via `POST /api/tasks/:id/assign`. `0` = pas de limite. Les affectations effectuées par un n3boss ne sont pas soumises à ce plafond.
 
 Réglage public de réactions :
 - `ui.reactions.allowed_emojis` (chaîne, emojis séparés par espaces ou virgules).
@@ -320,6 +329,7 @@ Contraintes principales :
 - Champ optionnel `start_date` (`YYYY-MM-DD`) sur les tâches ; tant que la date n’est pas atteinte, la tâche est considérée en attente (`is_before_start_date: true` dans les payloads).
 - Si une tâche est `on_hold` **ou** si son projet est `on_hold`, `POST /api/tasks/:id/assign` renvoie `400` (inscription n3beur bloquée).
 - Si `start_date` est dans le futur, `POST /api/tasks/:id/assign` renvoie aussi `400` (inscription n3beur bloquée jusqu’à la date de départ).
+- Si le réglage `tasks.student_max_active_assignments` est strictement positif et que l’action est une **auto-inscription n3beur**, le serveur compte les assignations actives (tâches non `validated`) : au-delà de la limite, réponse **`400`** avec `code: "TASK_ENROLLMENT_LIMIT"`, `maxActiveAssignments`, `currentActiveAssignments` et un message d’erreur explicite.
 - `POST /api/tasks` et `PUT /api/tasks/:id` acceptent `completion_mode` pour les profils autorisés.
 - Les payloads tâche exposent `completion_mode`, `assignees_total_count` et `assignees_done_count`.
 - `POST /api/tasks/:id/done` :
