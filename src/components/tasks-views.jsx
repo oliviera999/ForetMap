@@ -670,7 +670,7 @@ const TASK_STATUS_FILTER_OPTIONS = [
   { value: 'on_hold', label: 'En attente' },
 ];
 
-function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], tutorials = [], activeMapId = 'foret', isTeacher, student, canSelfAssignTasks = true, canEnrollOnTasks, canViewOtherUsersIdentity = true, onRefresh, onForceLogout, isN3Affiliated = false, publicSettings = null }) {
+function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], tutorials = [], activeMapId = 'foret', isTeacher, student, canSelfAssignTasks = true, canEnrollOnTasks, canParticipateContextComments = true, canViewOtherUsersIdentity = true, onRefresh, onForceLogout, isN3Affiliated = false, publicSettings = null }) {
   const canEnrollNewTask = canEnrollOnTasks !== undefined ? canEnrollOnTasks : canSelfAssignTasks;
   const roleTerms = getRoleTerms(isN3Affiliated);
   const [showForm, setShowForm] = useState(false);
@@ -1437,6 +1437,7 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
             contextId={t.id}
             title="Commentaires de la tâche"
             placeholder="Partager une info utile sur cette tâche..."
+            canParticipateContextComments={canParticipateContextComments}
           />
         )}
       </div>

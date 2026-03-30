@@ -93,6 +93,7 @@ Routes protégées « n3boss » : header `Authorization: Bearer <token>`.
 - `currentActiveAssignments` : nombre d’assignations sur des tâches dont le statut n’est pas `validated` (toutes cartes).
 - `atLimit` : `true` si `maxActiveAssignments > 0` et `currentActiveAssignments >= maxActiveAssignments`.
 - `forumParticipate` : `true` si le compte n3beur peut **participer** au forum (publier, répondre, réagir, signaler, supprimer ses messages) ; `false` = accès **lecture seule** sur les routes forum autorisées (voir ci-dessous). Absent pour les n3boss.
+- `contextCommentParticipate` : `true` si le compte peut **publier** des commentaires contextuels (tâches, projets, zones), réagir, signaler et supprimer les siens ; `false` = **lecture seule** sur `GET /api/context-comments`. Absent pour les n3boss.
 
 ---
 
@@ -111,6 +112,7 @@ Toutes les routes RBAC exigent un token admin avec élévation PIN active.
 | GET | `/api/rbac/users` | Liste utilisateurs et profil attribué |
 | PUT | `/api/rbac/users/:userType/:userId/role` | Attribuer le profil principal d’un utilisateur |
 | PATCH | `/api/rbac/users/student/:userId/forum-participate` | Activer ou désactiver la **participation forum** pour un n3beur (`{ forum_participate: boolean }`, élévation PIN si requise par la permission) |
+| PATCH | `/api/rbac/users/student/:userId/context-comment-participate` | Activer ou désactiver la **publication de commentaires contextuels** pour un n3beur (`{ context_comment_participate: boolean }`, même permission / élévation) |
 
 ### Droits paramétrables (catalogue)
 
@@ -377,6 +379,8 @@ Contraintes principales :
 
 Toutes les routes commentaires contextuels exigent un utilisateur connecté (`Authorization: Bearer <token>`), n3beur ou n3boss.
 Si le réglage public `ui.modules.context_comments_enabled` est à `false`, toutes les routes `/api/context-comments` renvoient `503` avec `{ error: 'Commentaires de contexte désactivés' }` (après authentification réussie).
+
+**Publication par compte n3beur** : la colonne `users.context_comment_participate` (défaut `1`) pilote si le compte peut créer des commentaires, réagir, signaler et supprimer les siens. Si `0`, le n3beur reste autorisé en **lecture** sur `GET /api/context-comments` ; `POST`, `DELETE` et réactions sont refusés avec **`403`** et `code: "CONTEXT_COMMENT_READ_ONLY"`. Les n3boss ne sont pas soumis à ce filtre.
 
 Contexte supporté :
 

@@ -403,6 +403,21 @@ function ProfilesAdminView({ isN3Affiliated = false }) {
     setLoading(false);
   };
 
+  const setStudentContextCommentParticipate = async (userId, contextCommentParticipate) => {
+    setLoading(true);
+    setErr('');
+    try {
+      await api(`/api/rbac/users/student/${encodeURIComponent(userId)}/context-comment-participate`, 'PATCH', { context_comment_participate: contextCommentParticipate });
+      setUsers((prev) => prev.map((u) => (
+        u.user_type === 'student' && u.id === userId ? { ...u, context_comment_participate: contextCommentParticipate } : u
+      )));
+      setMsg(contextCommentParticipate ? 'Commentaires contextuels autorisés pour ce compte.' : 'Commentaires contextuels en lecture seule pour ce compte.');
+    } catch (e) {
+      setErr(e.message || 'Erreur réglage commentaires');
+    }
+    setLoading(false);
+  };
+
   const createUser = async () => {
     if (!createFirstName.trim() || !createLastName.trim() || !createPassword) {
       setErr('Prénom, nom et mot de passe sont requis');
@@ -789,7 +804,7 @@ function ProfilesAdminView({ isN3Affiliated = false }) {
           <div style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: 12, padding: 12, marginTop: 12 }}>
             <h3 style={{ marginTop: 0 }}>Attribution des profils</h3>
             <p style={{ margin: '0 0 10px', fontSize: '.78rem', color: '#64748b', lineHeight: 1.45 }}>
-              Pour les n3beurs (hors profil visiteur), la case « Participer au forum » impose la session élevée (PIN) comme pour l’attribution de profil. Décochée : consultation des sujets et messages uniquement.
+              Pour les n3beurs (hors profil visiteur), les cases forum et commentaires imposent la session élevée (PIN) comme pour l’attribution de profil. Décochées : lecture seule sur le forum ou sur les commentaires des tâches / projets / zones.
             </p>
             <div style={{ maxHeight: 360, overflow: 'auto' }}>
               {users.map((u) => (
@@ -802,15 +817,26 @@ function ProfilesAdminView({ isN3Affiliated = false }) {
                     {sortedRoles.map((r) => <option key={r.id} value={r.id}>{r.display_name}</option>)}
                   </select>
                   {u.user_type === 'student' && String(u.role_slug || '').toLowerCase() !== 'visiteur' && (
-                    <label style={{ fontSize: '.78rem', display: 'inline-flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap', color: '#374151' }}>
-                      <input
-                        type="checkbox"
-                        checked={u.forum_participate !== false}
-                        onChange={(e) => setStudentForumParticipate(u.id, e.target.checked)}
-                        disabled={loading || !authElevated}
-                      />
-                      Participer au forum
-                    </label>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px 14px', alignItems: 'center' }}>
+                      <label style={{ fontSize: '.78rem', display: 'inline-flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap', color: '#374151' }}>
+                        <input
+                          type="checkbox"
+                          checked={u.forum_participate !== false}
+                          onChange={(e) => setStudentForumParticipate(u.id, e.target.checked)}
+                          disabled={loading || !authElevated}
+                        />
+                        Forum
+                      </label>
+                      <label style={{ fontSize: '.78rem', display: 'inline-flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap', color: '#374151' }}>
+                        <input
+                          type="checkbox"
+                          checked={u.context_comment_participate !== false}
+                          onChange={(e) => setStudentContextCommentParticipate(u.id, e.target.checked)}
+                          disabled={loading || !authElevated}
+                        />
+                        Commentaires (tâches, zones…)
+                      </label>
+                    </div>
                   )}
                 </div>
               ))}

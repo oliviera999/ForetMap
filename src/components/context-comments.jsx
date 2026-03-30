@@ -72,6 +72,7 @@ function ContextComments({
   title = 'Commentaires',
   placeholder = 'Ajouter un commentaire...',
   defaultOpen = false,
+  canParticipateContextComments = true,
 }) {
   const [items, setItems] = useState([]);
   const [total, setTotal] = useState(0);
@@ -234,26 +235,32 @@ function ContextComments({
 
       {isOpen && (
         <div className="context-comments-body">
-          <form className="context-comments-form" onSubmit={submit}>
-            <textarea
-              value={body}
-              onChange={(e) => setBody(e.target.value)}
-              rows={2}
-              maxLength={4000}
-              placeholder={placeholder}
-              required
-            />
-            <button type="submit" className="btn btn-secondary btn-sm" disabled={submitting}>
-              {submitting ? 'Envoi...' : 'Publier'}
-            </button>
-          </form>
+          {canUseCommentActions ? (
+            <form className="context-comments-form" onSubmit={submit}>
+              <textarea
+                value={body}
+                onChange={(e) => setBody(e.target.value)}
+                rows={2}
+                maxLength={4000}
+                placeholder={placeholder}
+                required
+              />
+              <button type="submit" className="btn btn-secondary btn-sm" disabled={submitting}>
+                {submitting ? 'Envoi...' : 'Publier'}
+              </button>
+            </form>
+          ) : (
+            <p className="forum-muted" style={{ margin: '0 0 10px', lineHeight: 1.5, fontSize: '.85rem' }}>
+              Lecture seule : tu peux consulter les commentaires ; la publication n’est pas activée sur ton compte.
+            </p>
+          )}
 
           <div className="context-comments-list">
             {loading && <p className="forum-muted">Chargement…</p>}
             {!loading && items.length === 0 && <p className="forum-muted">Aucun commentaire pour l’instant.</p>}
             {items.map((item) => {
               const isOwner = item.author_user_type === currentUserType && item.author_user_id === currentUserId;
-              const canDelete = isOwner || allowModeration;
+              const canDelete = allowModeration || (canUseCommentActions && isOwner);
               const reactionsExpanded = !!expandedReactionsByComment[item.id];
               return (
                 <article key={item.id} className={`context-comment-item ${item.is_deleted ? 'is-deleted' : ''}`}>
@@ -264,7 +271,7 @@ function ContextComments({
                   <p className="context-comment-body">
                     {item.is_deleted ? '[commentaire supprimé]' : item.body}
                   </p>
-                  {!item.is_deleted && (
+                  {!item.is_deleted && (canUseCommentActions ? (
                     <div className={`message-reactions-row ${reactionsExpanded ? 'expanded' : 'compact'}`}>
                       {!reactionsExpanded ? (
                         <button
@@ -305,8 +312,19 @@ function ContextComments({
                         </>
                       )}
                     </div>
-                  )}
-                  {!item.is_deleted && (
+                  ) : (
+                    (item.reactions || []).some((r) => Number(r.count) > 0) && (
+                      <div className="message-reactions-row compact" style={{ opacity: 0.85 }}>
+                        {(item.reactions || []).filter((r) => Number(r.count) > 0).map((r) => (
+                          <span key={`${item.id}-${r.emoji}`} className="message-reaction-chip" style={{ cursor: 'default' }}>
+                            <span>{r.emoji}</span>
+                            <span>{r.count}</span>
+                          </span>
+                        ))}
+                      </div>
+                    )
+                  ))}
+                  {!item.is_deleted && canUseCommentActions && (
                     <div className="context-comment-actions">
                       {canDelete && (
                         <button type="button" className="btn btn-ghost btn-sm" onClick={() => remove(item.id)}>

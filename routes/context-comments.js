@@ -92,6 +92,28 @@ function canModerateComments(auth) {
   return perms.includes('teacher.access');
 }
 
+/** n3boss : toujours ; n3beur : selon users.context_comment_participate */
+async function userContextCommentParticipationAllowed(auth) {
+  if (!auth) return false;
+  if (String(auth.userType || '').toLowerCase() !== 'student') return true;
+  const row = await queryOne(
+    'SELECT context_comment_participate FROM users WHERE id = ? AND user_type = ? LIMIT 1',
+    [auth.userId, 'student']
+  );
+  if (!row) return true;
+  return Number(row.context_comment_participate) !== 0;
+}
+
+async function requireContextCommentParticipation(req, res) {
+  const ok = await userContextCommentParticipationAllowed(req.auth);
+  if (ok) return true;
+  res.status(403).json({
+    error: 'Commentaires en lecture seule : la publication n’est pas activée pour ton compte.',
+    code: 'CONTEXT_COMMENT_READ_ONLY',
+  });
+  return false;
+}
+
 function checkCooldown(actor, action, cooldownMs) {
   if (process.env.NODE_ENV === 'test') return true;
   const key = `${action}:${actor.userType}:${actor.userId}`;
@@ -207,6 +229,7 @@ router.get('/', async (req, res) => {
 
 router.post('/:id/reactions', async (req, res) => {
   try {
+    if (!(await requireContextCommentParticipation(req, res))) return;
     const actor = getActor(req.auth);
     if (!actor) return res.status(401).json({ error: 'Session invalide' });
     const allowedReactions = await getAllowedReactionSet();
@@ -271,6 +294,7 @@ router.post('/:id/reactions', async (req, res) => {
 
 router.post('/', async (req, res) => {
   try {
+    if (!(await requireContextCommentParticipation(req, res))) return;
     const actor = getActor(req.auth);
     if (!actor) return res.status(401).json({ error: 'Session invalide' });
     const contextType = normalizeContextType(req.body?.contextType);
@@ -325,6 +349,7 @@ router.post('/', async (req, res) => {
 
 router.delete('/:id', async (req, res) => {
   try {
+    if (!(await requireContextCommentParticipation(req, res))) return;
     const actor = getActor(req.auth);
     if (!actor) return res.status(401).json({ error: 'Session invalide' });
     const comment = await queryOne(
@@ -370,6 +395,7 @@ router.delete('/:id', async (req, res) => {
 
 router.post('/:id/report', async (req, res) => {
   try {
+    if (!(await requireContextCommentParticipation(req, res))) return;
     const actor = getActor(req.auth);
     if (!actor) return res.status(401).json({ error: 'Session invalide' });
     const reason = normalizeOptionalString(req.body?.reason);
