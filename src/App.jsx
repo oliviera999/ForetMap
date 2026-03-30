@@ -109,6 +109,9 @@ function App() {
       default_map_student: 'foret',
       default_map_teacher: 'foret',
       default_map_visit: 'foret',
+      emoji_label_center_gap: 14,
+      overlay_emoji_size_percent: 100,
+      overlay_label_size_percent: 100,
     },
     modules: {
       tutorials_enabled: true,

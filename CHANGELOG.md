@@ -5,6 +5,9 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Ajouté
+- **Paramètres admin** : réglages publics `ui.map.emoji_label_center_gap` (6–32, défaut 14), `ui.map.overlay_emoji_size_percent` et `ui.map.overlay_label_size_percent` (70–150 %, défaut 100) pour l’espacement emoji/libellé et l’échelle du texte sur la carte (zones SVG + repères) ; section « Modules UI » de la page Réglages ; utilitaire `resolveMapOverlayTypography` côté client.
+
 ### Corrigé
 - **Mobile** : interface figée ou très lente sur la carte — le `ResizeObserver` recalculait le cadrage à chaque variation de hauteur de vue (barre d’adresse, clavier) et déclenchait des re-renders React en rafale via `setCommitted` ; recalcul du fit **différé (120 ms)** et mise à jour d’état **uniquement si la pose change** réellement.
 - **Réseau** : les appels `fetch` de l’API client passent par un **délai d’attente 40 s** (`AbortController`) pour qu’un chargement bloqué ne reste pas indéfiniment sur l’écran « Chargement… ».
