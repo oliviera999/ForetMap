@@ -1201,6 +1201,25 @@ function App() {
         </div>
       </header>
 
+      {isTeacher && roleViewMode === 'student' && (
+        <div className="role-preview-banner fade-in" role="status">
+          <span className="role-preview-banner__icon" aria-hidden>🎓</span>
+          <div className="role-preview-banner__text">
+            <strong>Vue élève (aperçu)</strong>
+            <span>Navigation en bas et écrans « élève » (pas d’onglets professeur en haut). Votre session garde les mêmes droits enseignant côté serveur.</span>
+          </div>
+        </div>
+      )}
+      {isTeacher && roleViewMode === 'teacher' && (
+        <div className="role-preview-banner role-preview-banner--teacher fade-in" role="status">
+          <span className="role-preview-banner__icon" aria-hidden>🧑‍🏫</span>
+          <div className="role-preview-banner__text">
+            <strong>Vue professeur (aperçu)</strong>
+            <span>Interface sans les contrôles admin les plus visibles. Les permissions réelles de votre compte s’appliquent toujours aux actions.</span>
+          </div>
+        </div>
+      )}
+
       {effectiveIsTeacher ? (
         <div className={`main teacher-main ${useWideMain ? 'main--wide' : ''}`}>
           <div className="top-tabs">

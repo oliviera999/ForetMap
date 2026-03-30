@@ -5,6 +5,9 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Modifié
+- **Vue élève / vue prof (aperçu)** : bandeau explicite sous l’en-tête lorsque l’enseignant ou l’admin bascule en mode aperçu, pour que le changement de navigation (onglets du haut ↔ barre du bas) et la nature « simulation d’interface » soient visibles immédiatement.
+
 ### Corrigé
 - **Carte (layout laptop / desktop)** : la hauteur du bloc carte ne repose plus sur des calculs en `100dvh` déconnectés des onglets professeur et des marges ; chaîne flex (`#app` → `teacher-main` / `main` → contenu) avec `min-height: 0` ; vue scindée carte/tâches en colonnes étirées et liste des tâches en flex avec défilement interne ; zone de gestes carte avec `min-height: 0` pour un cadrage correct de l'image.
 - **Modales mobile (feuilles)** : `modal-overlay` + panneaux `.modal` / `.log-modal` / prévisualisation tutoriel alignés sur le viewport dynamique (`100dvh`) et les encoches (`safe-area`), pour éviter que le haut ou le bas soit masqué par les barres système.
