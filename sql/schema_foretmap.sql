@@ -324,6 +324,7 @@ CREATE TABLE IF NOT EXISTS users (
   avatar_path VARCHAR(512) DEFAULT NULL,
   affiliation VARCHAR(16) DEFAULT 'both',
   forum_participate TINYINT(1) NOT NULL DEFAULT 1,
+  context_comment_participate TINYINT(1) NOT NULL DEFAULT 1,
   password_hash VARCHAR(255) DEFAULT NULL,
   auth_provider VARCHAR(32) NOT NULL DEFAULT 'local',
   is_active TINYINT(1) NOT NULL DEFAULT 1,

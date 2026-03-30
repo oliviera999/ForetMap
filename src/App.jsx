@@ -518,13 +518,18 @@ function App() {
             avatar_path: prev?.avatar_path || null,
           }));
         }
-        if (auth.userType === 'student' && (d.taskEnrollment != null || typeof d.forumParticipate === 'boolean')) {
+        if (auth.userType === 'student' && (
+          d.taskEnrollment != null
+          || typeof d.forumParticipate === 'boolean'
+          || typeof d.contextCommentParticipate === 'boolean'
+        )) {
           setStudent((prev) => {
             if (!prev || String(prev.id) !== String(auth.userId)) return prev;
             return {
               ...prev,
               ...(d.taskEnrollment != null ? { taskEnrollment: d.taskEnrollment } : {}),
               ...(typeof d.forumParticipate === 'boolean' ? { forumParticipate: d.forumParticipate } : {}),
+              ...(typeof d.contextCommentParticipate === 'boolean' ? { contextCommentParticipate: d.contextCommentParticipate } : {}),
             };
           });
         }
@@ -598,12 +603,13 @@ function App() {
           api('/api/auth/me')
             .then((d) => {
               if (studentRef.current?.id !== sid) return;
-              if (!d?.taskEnrollment && typeof d?.forumParticipate !== 'boolean') return;
+              if (!d?.taskEnrollment && typeof d?.forumParticipate !== 'boolean' && typeof d?.contextCommentParticipate !== 'boolean') return;
               setStudent((prev) => {
                 if (!prev || prev.id !== sid) return prev;
                 const next = { ...prev };
                 if (d.taskEnrollment) next.taskEnrollment = d.taskEnrollment;
                 if (typeof d.forumParticipate === 'boolean') next.forumParticipate = d.forumParticipate;
+                if (typeof d.contextCommentParticipate === 'boolean') next.contextCommentParticipate = d.contextCommentParticipate;
                 return next;
               });
             })
@@ -685,6 +691,15 @@ function App() {
     if (!s) return true;
     if (typeof s.forumParticipate === 'boolean') return s.forumParticipate;
     if (s.forum_participate != null) return Number(s.forum_participate) !== 0;
+    return true;
+  }, [effectiveIsTeacher, studentForUi]);
+
+  const canParticipateContextComments = useMemo(() => {
+    if (effectiveIsTeacher) return true;
+    const s = studentForUi;
+    if (!s) return true;
+    if (typeof s.contextCommentParticipate === 'boolean') return s.contextCommentParticipate;
+    if (s.context_comment_participate != null) return Number(s.context_comment_participate) !== 0;
     return true;
   }, [effectiveIsTeacher, studentForUi]);
   const canSelfAssignTasks = !isVisitor;
@@ -1322,6 +1337,7 @@ function App() {
                       onMapChange={setActiveMapId}
                       isTeacher
                       student={currentUser}
+                      canParticipateContextComments={canParticipateContextComments}
                       onZoneUpdate={updateZone}
                       onRefresh={fetchAll}
                       publicSettings={publicSettings}
@@ -1341,6 +1357,7 @@ function App() {
                         isTeacher
                         student={currentUser}
                         canSelfAssignTasks
+                        canParticipateContextComments={canParticipateContextComments}
                         canViewOtherUsersIdentity
                         onRefresh={fetchAll}
                         onForceLogout={forceLogout}
@@ -1351,8 +1368,8 @@ function App() {
                   </section>
                 </div>
               )}
-              {!useSplitMapTasks && tab === 'map'    && <MapView zones={zones} markers={markers} tasks={tasks} plants={plants} maps={visibleMaps} activeMapId={activeMapId} onMapChange={setActiveMapId} isTeacher student={currentUser} canSelfAssignTasks onZoneUpdate={updateZone} onRefresh={fetchAll} publicSettings={publicSettings}/>}
-              {!useSplitMapTasks && tab === 'tasks'  && <TasksView  tasks={tasks} taskProjects={taskProjects} zones={zones} markers={markers} maps={visibleMaps} tutorials={tutorials} activeMapId={activeMapId} isTeacher student={currentUser} canSelfAssignTasks canViewOtherUsersIdentity onRefresh={fetchAll} onForceLogout={forceLogout} isN3Affiliated={isN3Affiliated} publicSettings={publicSettings} />}
+              {!useSplitMapTasks && tab === 'map'    && <MapView zones={zones} markers={markers} tasks={tasks} plants={plants} maps={visibleMaps} activeMapId={activeMapId} onMapChange={setActiveMapId} isTeacher student={currentUser} canSelfAssignTasks canParticipateContextComments={canParticipateContextComments} onZoneUpdate={updateZone} onRefresh={fetchAll} publicSettings={publicSettings}/>}
+              {!useSplitMapTasks && tab === 'tasks'  && <TasksView  tasks={tasks} taskProjects={taskProjects} zones={zones} markers={markers} maps={visibleMaps} tutorials={tutorials} activeMapId={activeMapId} isTeacher student={currentUser} canSelfAssignTasks canParticipateContextComments={canParticipateContextComments} canViewOtherUsersIdentity onRefresh={fetchAll} onForceLogout={forceLogout} isN3Affiliated={isN3Affiliated} publicSettings={publicSettings} />}
               {tab === 'plants' && <PlantManager plants={plants} onRefresh={fetchAll} publicSettings={publicSettings}/>}
               {publicSettings?.modules?.tutorials_enabled !== false && tab === 'tuto'   && <TutorialsView tutorials={tutorials} isTeacher onRefresh={fetchAll} onForceLogout={forceLogout} />}
               {publicSettings?.modules?.stats_enabled !== false && tab === 'stats'  && (hasPermission('stats.read.all') ? <TeacherStats isN3Affiliated={isN3Affiliated} /> : <div className="empty"><p>Permission insuffisante</p></div>)}
@@ -1390,6 +1407,7 @@ function App() {
                         student={studentForUi}
                         canSelfAssignTasks={canSelfAssignTasks}
                         canEnrollOnTasks={canSelfAssignMoreTasks}
+                        canParticipateContextComments={canParticipateContextComments}
                         onZoneUpdate={updateZone}
                         onRefresh={fetchAll}
                         publicSettings={publicSettings}
@@ -1410,6 +1428,7 @@ function App() {
                           student={studentForUi}
                           canSelfAssignTasks={canSelfAssignTasks}
                           canEnrollOnTasks={canSelfAssignMoreTasks}
+                          canParticipateContextComments={canParticipateContextComments}
                           canViewOtherUsersIdentity={canViewOtherUsersIdentity}
                           onRefresh={fetchAll}
                           onForceLogout={forceLogout}
@@ -1420,8 +1439,8 @@ function App() {
                     </section>
                   </div>
                 )}
-                {!useSplitMapTasks && tab === 'map'    && canAccessStudentMapTasks && <MapView zones={zones} markers={markers} tasks={tasks} plants={plants} maps={visibleMaps} activeMapId={activeMapId} onMapChange={setActiveMapId} isTeacher={false} student={studentForUi} canSelfAssignTasks={canSelfAssignTasks} canEnrollOnTasks={canSelfAssignMoreTasks} onZoneUpdate={updateZone} onRefresh={fetchAll} publicSettings={publicSettings}/>}
-                {!useSplitMapTasks && tab === 'tasks'  && canAccessStudentMapTasks && <TasksView tasks={tasks} taskProjects={taskProjects} zones={zones} markers={markers} maps={visibleMaps} tutorials={tutorials} activeMapId={activeMapId} isTeacher={false} student={studentForUi} canSelfAssignTasks={canSelfAssignTasks} canEnrollOnTasks={canSelfAssignMoreTasks} canViewOtherUsersIdentity={canViewOtherUsersIdentity} onRefresh={fetchAll} onForceLogout={forceLogout} isN3Affiliated={isN3Affiliated} publicSettings={publicSettings} />}
+                {!useSplitMapTasks && tab === 'map'    && canAccessStudentMapTasks && <MapView zones={zones} markers={markers} tasks={tasks} plants={plants} maps={visibleMaps} activeMapId={activeMapId} onMapChange={setActiveMapId} isTeacher={false} student={studentForUi} canSelfAssignTasks={canSelfAssignTasks} canEnrollOnTasks={canSelfAssignMoreTasks} canParticipateContextComments={canParticipateContextComments} onZoneUpdate={updateZone} onRefresh={fetchAll} publicSettings={publicSettings}/>}
+                {!useSplitMapTasks && tab === 'tasks'  && canAccessStudentMapTasks && <TasksView tasks={tasks} taskProjects={taskProjects} zones={zones} markers={markers} maps={visibleMaps} tutorials={tutorials} activeMapId={activeMapId} isTeacher={false} student={studentForUi} canSelfAssignTasks={canSelfAssignTasks} canEnrollOnTasks={canSelfAssignMoreTasks} canParticipateContextComments={canParticipateContextComments} canViewOtherUsersIdentity={canViewOtherUsersIdentity} onRefresh={fetchAll} onForceLogout={forceLogout} isN3Affiliated={isN3Affiliated} publicSettings={publicSettings} />}
                 {tab === 'plants' && <PlantViewer plants={plants} zones={zones} publicSettings={publicSettings}/>}
                 {publicSettings?.modules?.tutorials_enabled !== false && tab === 'tuto' && <TutorialsView tutorials={tutorials} isTeacher={false} onRefresh={fetchAll} onForceLogout={forceLogout} />}
                 {tab === 'stats' && canViewGeneralStats && <TeacherStats isN3Affiliated={isN3Affiliated} />}

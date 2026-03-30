@@ -360,3 +360,51 @@ test('Commentaires contextuels: le profil visiteur est refusé', async () => {
     .set(auth(visitor.authToken))
     .expect(403);
 });
+
+test('Commentaires contextuels: compte en lecture seule (GET OK, POST/réactions/signalement 403)', async () => {
+  const teacher = await teacherToken();
+  const author = await registerStudent('ComRoAuthor');
+  const readOnly = await registerStudent('ComReadOnly');
+  const { taskId } = await createContextFixture(teacher);
+
+  await execute('UPDATE users SET context_comment_participate = 0 WHERE id = ? AND user_type = ?', [readOnly.id, 'student']);
+
+  const created = await request(app)
+    .post('/api/context-comments')
+    .set(auth(author.authToken))
+    .send({ contextType: 'task', contextId: taskId, body: 'Commentaire visible en lecture seule.' })
+    .expect(201);
+
+  const list = await request(app)
+    .get(`/api/context-comments?contextType=task&contextId=${encodeURIComponent(taskId)}`)
+    .set(auth(readOnly.authToken))
+    .expect(200);
+  assert.ok(list.body.items.some((item) => item.id === created.body.id));
+
+  const deniedPost = await request(app)
+    .post('/api/context-comments')
+    .set(auth(readOnly.authToken))
+    .send({ contextType: 'task', contextId: taskId, body: 'Interdit.' })
+    .expect(403);
+  assert.strictEqual(deniedPost.body?.code, 'CONTEXT_COMMENT_READ_ONLY');
+
+  const deniedReact = await request(app)
+    .post(`/api/context-comments/${created.body.id}/reactions`)
+    .set(auth(readOnly.authToken))
+    .send({ emoji: '👍' })
+    .expect(403);
+  assert.strictEqual(deniedReact.body?.code, 'CONTEXT_COMMENT_READ_ONLY');
+
+  const deniedReport = await request(app)
+    .post(`/api/context-comments/${created.body.id}/report`)
+    .set(auth(readOnly.authToken))
+    .send({ reason: 'Test lecture seule.' })
+    .expect(403);
+  assert.strictEqual(deniedReport.body?.code, 'CONTEXT_COMMENT_READ_ONLY');
+
+  const deniedDelete = await request(app)
+    .delete(`/api/context-comments/${created.body.id}`)
+    .set(auth(readOnly.authToken))
+    .expect(403);
+  assert.strictEqual(deniedDelete.body?.code, 'CONTEXT_COMMENT_READ_ONLY');
+});

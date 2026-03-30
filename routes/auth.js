@@ -338,7 +338,10 @@ router.get('/me', requireAuth, async (req, res) => {
   const body = { auth };
   if (req.auth?.userType === 'student' && req.auth?.userId) {
     const u = await queryOne(
-      "SELECT first_name, last_name, COALESCE(forum_participate, 1) AS forum_participate FROM users WHERE id = ? AND user_type = 'student' LIMIT 1",
+      `SELECT first_name, last_name,
+              COALESCE(forum_participate, 1) AS forum_participate,
+              COALESCE(context_comment_participate, 1) AS context_comment_participate
+         FROM users WHERE id = ? AND user_type = 'student' LIMIT 1`,
       [req.auth.userId]
     );
     if (u) {
@@ -350,6 +353,7 @@ router.get('/me', requireAuth, async (req, res) => {
         atLimit: maxActive > 0 && current >= maxActive,
       };
       body.forumParticipate = Number(u.forum_participate) !== 0;
+      body.contextCommentParticipate = Number(u.context_comment_participate) !== 0;
     }
   }
   res.json(body);

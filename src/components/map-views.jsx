@@ -333,7 +333,7 @@ function isTaskDetachedFromLocation(task) {
   return task.status === 'done' || task.status === 'validated';
 }
 
-function ZoneInfoModal({ zone, plants, tasks, isTeacher, student, canSelfAssignTasks = true, canEnrollOnTasks, markerEmojis = MARKER_EMOJIS, emojiParsingList = MARKER_EMOJIS, contextCommentsEnabled = true, onClose, onUpdate, onDelete, onEditPoints, onLinkTask, onUnlinkTask, onAssignTasks }) {
+function ZoneInfoModal({ zone, plants, tasks, isTeacher, student, canSelfAssignTasks = true, canEnrollOnTasks, markerEmojis = MARKER_EMOJIS, emojiParsingList = MARKER_EMOJIS, contextCommentsEnabled = true, canParticipateContextComments = true, onClose, onUpdate, onDelete, onEditPoints, onLinkTask, onUnlinkTask, onAssignTasks }) {
   const canEnroll = canEnrollOnTasks !== undefined ? canEnrollOnTasks : canSelfAssignTasks;
   const dialogRef = useDialogA11y(onClose);
   const [tab, setTab] = useState('tasks');
@@ -492,6 +492,7 @@ function ZoneInfoModal({ zone, plants, tasks, isTeacher, student, canSelfAssignT
                 contextId={zone.id}
                 title="Commentaires de la zone"
                 placeholder="Ajouter une observation sur cette zone..."
+                canParticipateContextComments={canParticipateContextComments}
               />
             )}
           </div>
@@ -1150,14 +1151,23 @@ function useMapGestures({ mapImageSrc, activeMapId, mode, onRefresh }) {
 
   useEffect(() => {
     const c = containerRef.current;
-    if (!c || imgSizeRef.current.w <= 1) return;
-    const { w, h } = imgSizeRef.current;
-    const s = Math.min(c.clientWidth / w, c.clientHeight / h, 1);
-    const x = (c.clientWidth - w * s) / 2;
-    const y = (c.clientHeight - h * s) / 2;
-    tx.current = { x, y, s };
-    applyTransform();
-    setCommitted({ x, y, s });
+    if (!c) return;
+    const runFit = () => {
+      if (imgSizeRef.current.w <= 1) return;
+      const { w, h } = imgSizeRef.current;
+      const cw = Math.max(1, c.clientWidth);
+      const ch = Math.max(1, c.clientHeight);
+      const s = Math.min(cw / w, ch / h, 1);
+      const x = (cw - w * s) / 2;
+      const y = (ch - h * s) / 2;
+      tx.current = { x, y, s };
+      applyTransform();
+      setCommitted({ x, y, s });
+    };
+    runFit();
+    const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(() => runFit()) : null;
+    if (ro) ro.observe(c);
+    return () => { if (ro) ro.disconnect(); };
   }, [imgSize]);
 
   const toImagePct = (clientX, clientY) => {
@@ -1304,9 +1314,12 @@ function useMapGestures({ mapImageSrc, activeMapId, mode, onRefresh }) {
     const c = containerRef.current;
     if (!c) return;
     const { w, h } = imgSizeRef.current;
-    const s = Math.min(c.clientWidth / w, c.clientHeight / h, 1);
-    const x = (c.clientWidth - w * s) / 2;
-    const y = (c.clientHeight - h * s) / 2;
+    if (w <= 1 || h <= 1) return;
+    const cw = Math.max(1, c.clientWidth);
+    const ch = Math.max(1, c.clientHeight);
+    const s = Math.min(cw / w, ch / h, 1);
+    const x = (cw - w * s) / 2;
+    const y = (ch - h * s) / 2;
     tx.current = { x, y, s };
     applyTransform();
     setCommitted({ x, y, s });
@@ -1638,7 +1651,7 @@ function MapView({ zones, markers, tasks = [], plants, maps = [], activeMapId = 
       {toast && <Toast msg={toast} onDone={() => setToast(null)} />}
 
       {selectedZone && (
-        <ZoneInfoModal zone={selectedZone} plants={plants} tasks={tasks} isTeacher={isTeacher} student={student} canSelfAssignTasks={canSelfAssignTasks} canEnrollOnTasks={canEnrollNewTasks} markerEmojis={markerEmojis} emojiParsingList={emojiParsingList} contextCommentsEnabled={contextCommentsEnabled}
+        <ZoneInfoModal zone={selectedZone} plants={plants} tasks={tasks} isTeacher={isTeacher} student={student} canSelfAssignTasks={canSelfAssignTasks} canEnrollOnTasks={canEnrollNewTasks} markerEmojis={markerEmojis} emojiParsingList={emojiParsingList} contextCommentsEnabled={contextCommentsEnabled} canParticipateContextComments={canParticipateContextComments}
           onClose={() => setSelectedZone(null)}
           onUpdate={async (id, data) => { await onZoneUpdate(id, data); setSelectedZone(null); await onRefresh(); }}
           onDelete={async id => { await deleteZone(id); setSelectedZone(null); }}
@@ -1667,8 +1680,8 @@ function MapView({ zones, markers, tasks = [], plants, maps = [], activeMapId = 
           onDelete={() => setPendingMarker(null)} />
       )}
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 12px',
-        background: 'white', borderBottom: '1.5px solid var(--mint)', flexShrink: 0, flexWrap: 'wrap', minHeight: 50 }}>
+      <div className="map-view-toolbar" style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 12px',
+        background: 'white', borderBottom: '1.5px solid var(--mint)', flexShrink: 0, minHeight: 50 }}>
         {maps.length > 1 && (
           <div style={{ display: 'flex', gap: 3, background: 'var(--parchment)', borderRadius: 10, padding: 3 }}>
             {maps.map((mp) => (
