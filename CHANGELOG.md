@@ -6,6 +6,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 ## [Non publié]
 
 ### Modifié
+- **Sélecteur de carte** : le bandeau de choix de plan (carte principale et visite) n’apparaît que lorsqu’au moins deux cartes sont disponibles ; masqué quand une seule carte reste visible (cartes désactivées en admin ou restriction de profil / affiliation).
 - **Carte & visite** : les repères s’affichent comme les zones (emoji seul, sans disque blanc bordé de vert) sur la carte principale et sur la carte de visite ; zone de touche minimale conservée pour le mobile.
 - **Build frontend** : régénération des bundles dans `dist/` (Vite production).
 

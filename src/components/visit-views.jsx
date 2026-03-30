@@ -842,17 +842,19 @@ function VisitView({
         </div>
       </div>
 
-      <div className="visit-map-switch">
-        {maps.map((m) => (
-          <button
-            key={m.id}
-            className={`btn btn-sm ${mapId === m.id ? 'btn-primary' : 'btn-ghost'}`}
-            onClick={() => setMapId(m.id)}
-          >
-            {m.label}
-          </button>
-        ))}
-      </div>
+      {maps.length > 1 && (
+        <div className="visit-map-switch">
+          {maps.map((m) => (
+            <button
+              key={m.id}
+              className={`btn btn-sm ${mapId === m.id ? 'btn-primary' : 'btn-ghost'}`}
+              onClick={() => setMapId(m.id)}
+            >
+              {m.label}
+            </button>
+          ))}
+        </div>
+      )}
       {isTeacher && (
         <div className="visit-map-switch">
           <button className={`btn btn-sm ${mode === 'view' ? 'btn-primary' : 'btn-ghost'}`} onClick={() => { setMode('view'); setDrawPoints([]); }}>
