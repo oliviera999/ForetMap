@@ -187,6 +187,11 @@ Réglage public de réactions :
 - `ui.reactions.allowed_emojis` (chaîne, emojis séparés par espaces ou virgules).
 - Valeur par défaut : `👍 ❤️ 😂 😮 😢 😡 🔥 👏`.
 
+Affichage carte (zones SVG + repères sur l’onglet Carte), réglages publics `ui.map.*` :
+- `emoji_label_center_gap` (entier 6–32, défaut `14`) : distance entre les **centres** de l’emoji et du libellé, multipliée par `inv` (inverse du zoom), identique pour zones et repères.
+- `overlay_emoji_size_percent` (entier 70–150, défaut `100`) : échelle des emojis zones et repères.
+- `overlay_label_size_percent` (entier 70–150, défaut `100`) : échelle des noms affichés sous les repères (et sous les emojis des zones).
+
 Contenus éditables du site (micro-CMS texte brut) :
 - Namespace `content.*` dans les réglages publics, éditable via `PUT /api/settings/admin/:key`.
 - Objectif : modifier des textes UI sans redéploiement (accueil/auth, visite, à-propos, messages globaux).

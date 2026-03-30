@@ -68,6 +68,33 @@ test('GET /api/settings/public renvoie les réglages publics', async () => {
   assert.strictEqual(typeof res.body.settings.ui?.modules?.context_comments_enabled, 'boolean');
   assert.strictEqual(typeof res.body.settings.content?.auth?.title, 'string');
   assert.strictEqual(typeof res.body.settings.content?.visit?.title, 'string');
+  const uiMap = res.body.settings.ui?.map;
+  assert.ok(uiMap);
+  assert.strictEqual(uiMap.emoji_label_center_gap, 14);
+  assert.strictEqual(uiMap.overlay_emoji_size_percent, 100);
+  assert.strictEqual(uiMap.overlay_label_size_percent, 100);
+});
+
+test('PUT ui.map.emoji_label_center_gap valide et refuse hors plage', async () => {
+  const token = await getAdminToken();
+  await request(app)
+    .put('/api/settings/admin/ui.map.emoji_label_center_gap')
+    .set('Authorization', `Bearer ${token}`)
+    .send({ value: 20 })
+    .expect(200);
+  const pub = await request(app).get('/api/settings/public').expect(200);
+  assert.strictEqual(pub.body?.settings?.ui?.map?.emoji_label_center_gap, 20);
+  const bad = await request(app)
+    .put('/api/settings/admin/ui.map.emoji_label_center_gap')
+    .set('Authorization', `Bearer ${token}`)
+    .send({ value: 2 })
+    .expect(400);
+  assert.match(String(bad.body?.error || ''), /trop petite|min/i);
+  await request(app)
+    .put('/api/settings/admin/ui.map.emoji_label_center_gap')
+    .set('Authorization', `Bearer ${token}`)
+    .send({ value: 14 })
+    .expect(200);
 });
 
 test('PUT /api/settings/admin/:key met à jour un réglage public', async () => {

@@ -12,6 +12,7 @@ import { Tooltip } from './Tooltip';
 import { ContextComments } from './context-comments';
 import { HELP_PANELS, HELP_TOOLTIPS, resolveRoleText } from '../constants/help';
 import { lockBodyScroll } from '../utils/body-scroll-lock';
+import { resolveMapOverlayTypography } from '../utils/mapOverlayTypography';
 
 function Toast({ msg, onDone }) {
   useEffect(() => { const t = setTimeout(onDone, 2400); return () => clearTimeout(t); }, []);
@@ -1570,12 +1571,14 @@ function MapView({ zones, markers, tasks = [], plants, maps = [], activeMapId = 
   const { s: cs } = committed;
   const { w: iw, h: ih } = imgSize;
   const inv = 1 / cs;
-  /** Même écart centre emoji ↔ centre libellé que le SVG des zones (`y = my + gap`). */
-  const mapEmojiLabelCenterGap = 14 * inv;
-  const mapEmojiFontPx = Math.max(13, 19 * inv);
-  const mapLabelFontPx = Math.max(10, 14 * inv);
-  /** Colonne HTML : marge entre le bas de la ligne emoji et le haut du libellé pour retrouver l’écart des zones. */
-  const markerLabelMarginTop = mapEmojiLabelCenterGap - mapEmojiFontPx / 2 - mapLabelFontPx / 2;
+  const mapSettings =
+    publicSettings?.map && typeof publicSettings.map === 'object' ? publicSettings.map : null;
+  const {
+    mapEmojiLabelCenterGap,
+    mapEmojiFontPx,
+    mapLabelFontPx,
+    markerLabelMarginTop,
+  } = resolveMapOverlayTypography(mapSettings, inv);
 
   const toWorld = p => ({ cx: (p.xp / 100) * iw, cy: (p.yp / 100) * ih });
 

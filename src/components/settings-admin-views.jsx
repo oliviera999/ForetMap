@@ -58,6 +58,21 @@ const KEY_META = {
   'ui.map.default_map_student': { section: 'modules', order: 50, dynamicLabel: 'defaultStudentMap' },
   'ui.map.default_map_teacher': { section: 'modules', order: 60, dynamicLabel: 'defaultTeacherMap' },
   'ui.map.default_map_visit': { label: 'Carte par défaut (visite publique)', section: 'modules', order: 70 },
+  'ui.map.emoji_label_center_gap': {
+    label: 'Carte — écart emoji / nom (coefficient × inv ; zones + repères, 14 = défaut)',
+    section: 'modules',
+    order: 71,
+  },
+  'ui.map.overlay_emoji_size_percent': {
+    label: 'Carte — taille des emojis zones & repères (%)',
+    section: 'modules',
+    order: 72,
+  },
+  'ui.map.overlay_label_size_percent': {
+    label: 'Carte — taille des noms sous les repères (%)',
+    section: 'modules',
+    order: 73,
+  },
   'tasks.student_max_active_assignments': {
     label: 'Plafond d’inscriptions (tâches non validées par n3boss, toutes cartes ; 0 = illimité). Les affectations par un n3boss ne sont pas plafonnées.',
     section: 'tasks',
