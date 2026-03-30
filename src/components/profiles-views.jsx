@@ -89,6 +89,14 @@ function ProfilesAdminView({ isN3Affiliated = false }) {
     () => roles.find((r) => Number(r.id) === Number(selectedRoleId)) || null,
     [roles, selectedRoleId]
   );
+  const isSelectedStudentProfile = useMemo(
+    () => !!selectedRole && /^eleve_/i.test(String(selectedRole.slug || '')),
+    [selectedRole]
+  );
+  const tasksProposeEntry = useMemo(() => {
+    if (!selectedRole) return null;
+    return (selectedRole.permissions || []).find((p) => p.key === 'tasks.propose') || null;
+  }, [selectedRole]);
   const canManageProfiles = authPerms.includes('admin.roles.manage') || authPerms.includes('admin.users.assign_roles');
   const canExport = authPerms.includes('stats.export') && authElevated;
   const canImport = authPerms.includes('students.import') && authElevated;
@@ -695,7 +703,53 @@ function ProfilesAdminView({ isN3Affiliated = false }) {
                       </div>
                     )}
                   </div>
-                  {catalog.map((perm) => {
+                  {isSelectedStudentProfile && (
+                      <div
+                        className="profiles-admin-propose-block"
+                        style={{
+                          border: '1px solid #d8f3dc',
+                          background: '#f1fcf4',
+                          borderRadius: 10,
+                          padding: 12,
+                          marginBottom: 14,
+                        }}
+                      >
+                        <div style={{ fontSize: '.88rem', fontWeight: 700, color: '#1b4332', marginBottom: 8 }}>
+                          Proposition de tâches
+                        </div>
+                        <label style={{ display: 'flex', alignItems: 'flex-start', gap: 10, fontSize: '.84rem', cursor: loading ? 'default' : 'pointer', marginBottom: 8 }}>
+                          <input
+                            type="checkbox"
+                            checked={!!tasksProposeEntry}
+                            onChange={(e) => togglePermission('tasks.propose', e.target.checked)}
+                            disabled={loading}
+                            style={{ marginTop: 3 }}
+                          />
+                          <span>
+                            Autoriser les {roleTerms.studentPlural} de ce profil à proposer de nouvelles tâches (statut « proposée », validation par un {roleTerms.teacherShort}).
+                          </span>
+                        </label>
+                        <label style={{ display: 'flex', alignItems: 'flex-start', gap: 10, fontSize: '.8rem', color: '#374151', cursor: loading || !tasksProposeEntry ? 'default' : 'pointer' }}>
+                          <input
+                            type="checkbox"
+                            checked={!!tasksProposeEntry?.requires_elevation}
+                            onChange={(e) => togglePermissionElevation('tasks.propose', e.target.checked)}
+                            disabled={!tasksProposeEntry || loading}
+                            style={{ marginTop: 2 }}
+                          />
+                          <span>Exiger le PIN du profil pour accéder à la proposition (élévation).</span>
+                        </label>
+                        <p style={{ fontSize: '.72rem', color: '#64748b', margin: '10px 0 0', lineHeight: 1.45 }}>
+                          Correspond à la permission <code style={{ fontSize: '.7rem' }}>tasks.propose</code> (retirée de la liste ci-dessous pour éviter le doublon).
+                        </p>
+                      </div>
+                  )}
+                  {catalog
+                    .filter(
+                      (perm) =>
+                        !(isSelectedStudentProfile && perm.key === 'tasks.propose')
+                    )
+                    .map((perm) => {
                     const current = (selectedRole.permissions || []).find((p) => p.key === perm.key);
                     return (
                       <div className="profiles-admin-perm-row" key={perm.key}>
