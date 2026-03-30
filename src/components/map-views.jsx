@@ -420,7 +420,7 @@ function ZoneInfoModal({ zone, plants, tasks, isTeacher, student, canSelfAssignT
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
           <span style={{ fontSize: '1.8rem' }}>
             {zone.special
-              ? (zone.id.includes('ruche') ? '🐝' : zone.id.includes('mare') ? '💧' : zone.id.includes('butte') ? '🌸' : '🏛️')
+              ? (String(zone.id || '').includes('ruche') ? '🐝' : String(zone.id || '').includes('mare') ? '💧' : String(zone.id || '').includes('butte') ? '🌸' : '🏛️')
               : (plantObj?.emoji || (zone.current_plant ? '🌱' : '🪨'))
             }
           </span>
@@ -1377,7 +1377,7 @@ function useMapGestures({ mapImageSrc, activeMapId, mode, onRefresh }) {
   };
 }
 
-function MapView({ zones, markers, tasks = [], plants, maps = [], activeMapId = 'foret', onMapChange, isTeacher, student, canSelfAssignTasks = true, canEnrollOnTasks, onZoneUpdate, onRefresh, embedded = false, publicSettings = null }) {
+function MapView({ zones, markers, tasks = [], plants, maps = [], activeMapId = 'foret', onMapChange, isTeacher, student, canSelfAssignTasks = true, canEnrollOnTasks, canParticipateContextComments = true, onZoneUpdate, onRefresh, embedded = false, publicSettings = null }) {
   const canEnrollNewTasks = canEnrollOnTasks !== undefined ? canEnrollOnTasks : canSelfAssignTasks;
   const [mode, setMode] = useState('view');
   const [showLabels, setShowLabels] = useState(true);

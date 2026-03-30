@@ -13,6 +13,8 @@ const {
   ensureRbacBootstrap,
   buildAuthzPayload,
   ensurePrimaryRole,
+  getPrimaryRoleForUser,
+  setPrimaryRole,
   verifyRolePin,
 } = require('../lib/rbac');
 const { getSettingValue } = require('../lib/settings');
@@ -589,6 +591,13 @@ router.post('/login', async (req, res) => {
     const userType = await resolveLoginUserType(account);
     const preferredRole = userType === 'teacher' || userType === 'user' ? 'prof' : 'eleve_novice';
     await ensurePrimaryRole(userType, account.id, preferredRole);
+    if (userType === 'student') {
+      const primary = await getPrimaryRoleForUser('student', account.id);
+      if (primary && String(primary.slug || '').toLowerCase() === 'visiteur') {
+        const noviceRole = await queryOne("SELECT id FROM roles WHERE slug = 'eleve_novice' LIMIT 1");
+        if (noviceRole?.id) await setPrimaryRole('student', account.id, noviceRole.id);
+      }
+    }
     await execute('UPDATE users SET last_seen = ?, updated_at = NOW() WHERE id = ?', [new Date().toISOString(), account.id]);
     let session = await buildSessionPayload(userType, account.id, false);
     if (!session && userType !== 'teacher') {

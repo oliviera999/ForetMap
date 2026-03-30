@@ -4,9 +4,9 @@ const { loginAsNewStudent } = require('./fixtures/auth.fixture');
 test('mode prof: code PIN invalide affiche une erreur', async ({ page }) => {
   await loginAsNewStudent(page);
 
-  await page.locator('button.lock-btn').first().click();
-  await page.locator('.pin-input').fill('9999');
-  await page.getByRole('button', { name: 'Entrer' }).click();
+  await page.getByRole('button', { name: 'Activer les droits étendus' }).click();
+  await page.locator('.pin-card .pin-input').fill('9999');
+  await page.locator('.pin-card').getByRole('button', { name: 'Entrer', exact: true }).click();
 
-  await expect(page.getByText('Code incorrect')).toBeVisible();
+  await expect(page.getByText(/PIN incorrect|Code incorrect/)).toBeVisible();
 });

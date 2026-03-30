@@ -45,6 +45,15 @@ Nécessite la variable d’environnement **`DEPLOY_SECRET`** et le header **`X-D
 
 Le tampon est dimensionné par **`LOG_BUFFER_MAX_LINES`** (défaut 2000, plafond 5000). Les logs antérieurs au démarrage du process ne sont pas disponibles ici (voir aussi les logs du panel hébergeur / stdout).
 
+### En-tête optionnel de test de charge (rate limit)
+
+Pour les environnements de test (local/staging), le rate limiter global et auth peut être contourné si les deux conditions suivantes sont réunies :
+
+1. la variable d'environnement `LOAD_TEST_SECRET` est définie côté serveur ;
+2. la requête envoie le header `X-ForetMap-Load-Test: <meme_secret>`.
+
+Sans `LOAD_TEST_SECRET`, le comportement reste inchangé : le rate limiting s'applique normalement à toutes les requêtes.
+
 ---
 
 ## Temps réel (Socket.IO)
@@ -77,7 +86,7 @@ Connexion Socket.IO (transport **polling** actuellement forcé côté client) su
 | POST | `/api/auth/login` | `{ identifier, password }` | Connexion n3beur (pseudo ou email) |
 | GET | `/api/auth/me` | — | Retourne le contexte d’auth courant (`auth` : `userType`, permissions, élévation, etc.) |
 | PATCH | `/api/auth/me/profile` | `{ pseudo?, email?, description?, affiliation?, avatarData?, removeAvatar?, currentPassword }` | Mettre à jour son profil utilisateur connecté (n3beur, n3boss, admin local) |
-| POST | `/api/auth/elevate` | `{ pin }` | Élévation de session via PIN du profil |
+| POST | `/api/auth/elevate` | `{ pin }` | Élévation de session via PIN du profil ; pour un **n3beur** (`userType: student`), le JWT élevé inclut aussi les permissions effectives du rôle **`prof`** (atelier / mode n3boss temporaire), en plus du rôle primaire inchangé côté identité |
 | POST | `/api/auth/forgot-password` | `{ email }` | Déclencher un email de réinitialisation n3beur (réponse neutre) |
 | POST | `/api/auth/reset-password` | `{ token, password }` | Réinitialiser le mot de passe n3beur |
 | POST | `/api/auth/teacher` | `{ pin }` | Compatibilité historique : élévation PIN (ou mode secours admin) |

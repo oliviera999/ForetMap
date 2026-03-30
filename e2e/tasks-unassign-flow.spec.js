@@ -15,7 +15,7 @@ test('élève peut se retirer d’une tâche prise en charge', async ({ page }) 
   await openTeacherTasksTab(page);
 
   await page.getByRole('button', { name: /\+ Nouvelle tâche/ }).click();
-  await page.getByLabel('Titre *').fill(taskTitle);
+  await page.getByPlaceholder('Ex: Arroser les tomates').fill(taskTitle);
   await page.getByRole('button', { name: 'Créer la tâche' }).click();
   await expect(page.locator('.task-card', { hasText: taskTitle }).first()).toBeVisible();
 
@@ -23,7 +23,7 @@ test('élève peut se retirer d’une tâche prise en charge', async ({ page }) 
   await openStudentTasksTab(page);
 
   const studentTaskCard = page.locator('.task-card', { hasText: taskTitle }).first();
-  await studentTaskCard.getByRole('button', { name: /Je m'en occupe/ }).click();
+  await studentTaskCard.getByRole('button', { name: /Je m['\u2019]en occupe/ }).click();
   await expect(studentTaskCard.getByRole('button', { name: /Me retirer/ })).toBeVisible();
 
   await studentTaskCard.getByRole('button', { name: /Me retirer/ }).click();

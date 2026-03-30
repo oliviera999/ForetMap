@@ -434,8 +434,13 @@ function App() {
     studentRef.current = merged;
     setStudent(merged);
     localStorage.setItem('foretmap_student', JSON.stringify(merged));
+    const sessionToken = getStoredSession()?.token || null;
+    const nextToken =
+      (typeof merged.authToken === 'string' && merged.authToken.trim() !== '')
+        ? merged.authToken
+        : sessionToken;
     saveStoredSession({
-      token: getStoredSession()?.token || merged.authToken || null,
+      token: nextToken,
       user: {
         id: merged.auth?.canonicalUserId || merged.id || null,
         userType: 'student',
@@ -1234,12 +1239,37 @@ function App() {
               onClick={() => {
               if (authClaims?.elevated) {
                 localStorage.removeItem('foretmap_teacher_token');
-                const authToken = localStorage.getItem('foretmap_auth_token');
-                if (authToken) {
-                  saveStoredSession({ token: authToken });
+                let storedStudent = null;
+                try {
+                  const raw = localStorage.getItem('foretmap_student');
+                  if (raw) storedStudent = JSON.parse(raw);
+                } catch (_) {
+                  storedStudent = null;
+                }
+                const baseStudentToken = storedStudent && typeof storedStudent.authToken === 'string'
+                  ? storedStudent.authToken
+                  : null;
+                if (baseStudentToken) {
+                  localStorage.setItem('foretmap_auth_token', baseStudentToken);
+                  saveStoredSession({
+                    token: baseStudentToken,
+                    user: {
+                      id: storedStudent.auth?.canonicalUserId || storedStudent.id || null,
+                      userType: 'student',
+                      displayName: storedStudent.pseudo || `${storedStudent.first_name || ''} ${storedStudent.last_name || ''}`.trim() || 'Utilisateur',
+                      email: storedStudent.email || null,
+                      avatar_path: storedStudent.avatar_path ?? storedStudent.avatarPath ?? null,
+                    },
+                    student: storedStudent,
+                  });
+                  updateStudentSession(storedStudent);
+                } else {
+                  const authToken = localStorage.getItem('foretmap_auth_token');
+                  if (authToken) saveStoredSession({ token: authToken });
                 }
                 const claims = getAuthClaims();
                 setAuthClaims(claims);
+                setIsTeacher(Array.isArray(claims?.permissions) && claims.permissions.includes('teacher.access'));
                 setToast('Droits étendus désactivés');
               } else {
                 setShowPin(true);
