@@ -1139,19 +1139,18 @@
       header .realtime-prof-wrap {
         min-height:28px;
       }
-      /* N3BOSS : avec la carte, bandeau d’onglets + barre d’outils carte = zone « haute » très épaisse ;
-         on compresse les onglets uniquement lorsque la vue carte est montée (:has). */
-      .teacher-main:has(.map-view-root) .top-tabs {
+      /* N3BOSS : onglets compacts en permanence sur mobile/coarse pour éviter les sauts de hauteur entre écrans. */
+      .teacher-main .top-tabs {
         padding:2px;
         margin-bottom:8px;
       }
-      .teacher-main:has(.map-view-root) .top-tab {
+      .teacher-main .top-tab {
         padding:6px 9px;
         font-size:0.76rem;
       }
       /* Barre d’outils carte : plus compacte que le défaut inline (7px / min 50px),
          pour libérer de la hauteur utile — uniquement sur l’écran carte. */
-      .map-view-toolbar {
+      .teacher-main.teacher-main--map-visible .map-view-toolbar {
         flex-wrap:nowrap;
         overflow-x:auto;
         overflow-y:hidden;
@@ -1162,18 +1161,18 @@
         min-height:34px !important;
         gap:3px !important;
       }
-      .map-view-toolbar::-webkit-scrollbar { display:none; }
-      .map-view-toolbar button:not(.fm-help-btn) {
+      .teacher-main.teacher-main--map-visible .map-view-toolbar::-webkit-scrollbar { display:none; }
+      .teacher-main.teacher-main--map-visible .map-view-toolbar button:not(.fm-help-btn) {
         padding:4px 7px !important;
         font-size:0.72rem !important;
         min-height:30px;
       }
-      .map-view-toolbar .map-gesture-toggle {
+      .teacher-main.teacher-main--map-visible .map-view-toolbar .map-gesture-toggle {
         padding:3px 7px !important;
         min-height:30px !important;
         font-size:0.68rem !important;
       }
-      .map-view-toolbar .btn-sm {
+      .teacher-main.teacher-main--map-visible .map-view-toolbar .btn-sm {
         padding:4px 7px !important;
         min-height:30px !important;
         font-size:0.7rem !important;
