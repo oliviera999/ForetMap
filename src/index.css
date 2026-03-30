@@ -414,6 +414,7 @@
       max-width:900px;
       margin:0 auto;
       width:100%;
+      overflow:hidden;
     }
     .main > * {
       flex:1;
@@ -434,6 +435,7 @@
       max-width:900px;
       margin:0 auto;
       width:100%;
+      overflow:hidden;
     }
     .teacher-main > .top-tabs {
       flex-shrink:0;
@@ -453,12 +455,12 @@
       flex-direction:column;
       overflow:hidden;
     }
+    /* Ligne unique en 1fr : la grille ne prend plus la hauteur cumulée des tâches (défilement dans la colonne). */
     .desktop-split-view {
       overflow:hidden;
-    }
-    .desktop-split-view {
       display:grid;
       grid-template-columns:1.25fr 1fr;
+      grid-template-rows:minmax(0, 1fr);
       gap:16px;
       align-items:stretch;
       min-height:0;
