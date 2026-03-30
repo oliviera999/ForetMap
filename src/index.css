@@ -2127,18 +2127,34 @@
   overflow-x: hidden;
 }
 .profiles-admin-grid {
+  display: grid;
+  gap: 12px;
   grid-template-columns: 1fr 1fr;
 }
 .profiles-admin-perm-row {
+  display: grid;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 6px;
   grid-template-columns: 1fr auto auto;
 }
 .profiles-admin-user-row {
+  display: grid;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 8px;
   grid-template-columns: 1fr 180px;
 }
 .profiles-admin-create-grid {
+  display: grid;
+  gap: 8px;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
 }
 .profiles-admin-delete-row {
+  display: grid;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 8px;
   grid-template-columns: 1fr auto;
 }
 
