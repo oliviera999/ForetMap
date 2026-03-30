@@ -91,6 +91,15 @@ if (fs.existsSync(serviceWorkerPath)) {
     res.sendFile(serviceWorkerPath);
   });
 }
+
+const manifestPath = path.join(staticRoot, 'manifest.json');
+if (fs.existsSync(manifestPath)) {
+  app.get('/manifest.json', (req, res) => {
+    res.setHeader('Content-Type', 'application/manifest+json');
+    res.setHeader('Cache-Control', 'public, max-age=86400');
+    res.sendFile(manifestPath);
+  });
+}
 app.use(express.static(staticRoot, serveDist ? { index: false } : undefined));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 app.use('/tutos', express.static(path.join(__dirname, 'tutos')));
