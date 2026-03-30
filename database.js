@@ -42,7 +42,7 @@ const pool = mysql.createPool({
   database: process.env.DB_NAME,
   waitForConnections: true,
   connectionLimit: 30,
-  queueLimit: 200,
+  queueLimit: String(process.env.NODE_ENV || '').trim().toLowerCase() === 'test' ? 0 : 200,
   charset: 'utf8mb4',
 });
 
