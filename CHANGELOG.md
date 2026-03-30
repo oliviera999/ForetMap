@@ -21,6 +21,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - **Vue élève / vue prof (aperçu)** : bandeau explicite sous l’en-tête lorsque l’enseignant ou l’admin bascule en mode aperçu, pour que le changement de navigation (onglets du haut ↔ barre du bas) et la nature « simulation d’interface » soient visibles immédiatement.
 
 ### Corrigé
+- **Vue scindée (desktop) / ascenseur** : la grille carte+tâches utilise une ligne `minmax(0, 1fr)` pour ne plus étirer la page à la hauteur totale des tâches ; `overflow: hidden` sur `.main` et `.teacher-main` pour confiner le défilement aux zones prévues (liste des tâches, vues longues).
 - **Tests (RBAC)** : assertions sur `GET /api/rbac/profiles` alignées sur la réponse `{ roles, progressionByValidatedTasksEnabled }`.
 - **Tests backend (tâches / forum)** : promotion explicite en `eleve_novice` pour les scénarios d’affectation, de capacité et de suppression d’élève ; jeton admin des tests enrichi de `tasks.validate` ; le test « forum visiteur » force `ui.modules.forum_enabled` pour éviter les courses avec les autres fichiers de suite.
 - **Carte (layout laptop / desktop)** : la hauteur du bloc carte ne repose plus sur des calculs en `100dvh` déconnectés des onglets professeur et des marges ; chaîne flex (`#app` → `teacher-main` / `main` → contenu) avec `min-height: 0` ; vue scindée carte/tâches en colonnes étirées et liste des tâches en flex avec défilement interne ; zone de gestes carte avec `min-height: 0` pour un cadrage correct de l'image.
