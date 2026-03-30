@@ -132,6 +132,64 @@ function buildConstraintHelp(row) {
   return parts.join(' • ');
 }
 
+/** Champs texte pilotés par l’état : collage (Ctrl+V / presse-papiers) fiable + resync après chargement serveur. */
+function AdminTextSettingField({
+  rowKey,
+  label,
+  row,
+  serverValue,
+  disabled,
+  onSave,
+}) {
+  const multiline = row._multiline || (row?.constraints?.maxLength != null && row.constraints.maxLength > 100);
+  const maxLength = row?.constraints?.maxLength;
+  const maxLenProp = Number.isFinite(Number(maxLength)) ? Number(maxLength) : undefined;
+  const synced = serverValue == null ? '' : String(serverValue);
+  const [draft, setDraft] = useState(synced);
+  useEffect(() => {
+    setDraft(synced);
+  }, [rowKey, synced]);
+
+  const commit = () => {
+    const next = draft || '';
+    if (next === synced) return;
+    onSave(rowKey, next);
+  };
+
+  return (
+    <div className="field">
+      <label>
+        {label}
+        <span style={{ marginLeft: 8, fontSize: '.74rem', color: '#6b7280' }}>
+          ({scopeLabel(row.scope)})
+        </span>
+      </label>
+      {multiline ? (
+        <textarea
+          rows={2}
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onBlur={commit}
+          maxLength={maxLenProp}
+          disabled={disabled}
+        />
+      ) : (
+        <input
+          type="text"
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onBlur={commit}
+          maxLength={maxLenProp}
+          disabled={disabled}
+        />
+      )}
+      <div style={{ fontSize: '.74rem', color: '#6b7280', marginTop: 3 }}>
+        {buildConstraintHelp(row)}
+      </div>
+    </div>
+  );
+}
+
 function SettingsAdminView({ isN3Affiliated = false }) {
   const roleTerms = getRoleTerms(isN3Affiliated);
   const [loading, setLoading] = useState(true);
@@ -320,48 +378,16 @@ function SettingsAdminView({ isN3Affiliated = false }) {
     }
 
     const stringValue = value == null ? '' : String(value);
-    if (row._multiline || (maxLength != null && maxLength > 100)) {
-      return (
-        <div key={key} className="field">
-          <label>
-            {label}
-            <span style={{ marginLeft: 8, fontSize: '.74rem', color: '#6b7280' }}>
-              ({scopeLabel(row.scope)})
-            </span>
-          </label>
-          <textarea
-            rows={2}
-            defaultValue={stringValue}
-            maxLength={Number.isFinite(Number(maxLength)) ? Number(maxLength) : undefined}
-            disabled={disabled}
-            onBlur={(e) => saveSetting(key, e.target.value || '')}
-          />
-          <div style={{ fontSize: '.74rem', color: '#6b7280', marginTop: 3 }}>
-            {buildConstraintHelp(row)}
-          </div>
-        </div>
-      );
-    }
-
     return (
-      <div key={key} className="field">
-        <label>
-          {label}
-          <span style={{ marginLeft: 8, fontSize: '.74rem', color: '#6b7280' }}>
-            ({scopeLabel(row.scope)})
-          </span>
-        </label>
-        <input
-          type="text"
-          defaultValue={stringValue}
-          maxLength={Number.isFinite(Number(maxLength)) ? Number(maxLength) : undefined}
-          disabled={disabled}
-          onBlur={(e) => saveSetting(key, e.target.value || '')}
-        />
-        <div style={{ fontSize: '.74rem', color: '#6b7280', marginTop: 3 }}>
-          {buildConstraintHelp(row)}
-        </div>
-      </div>
+      <AdminTextSettingField
+        key={key}
+        rowKey={key}
+        label={label}
+        row={row}
+        serverValue={stringValue}
+        disabled={disabled}
+        onSave={saveSetting}
+      />
     );
   };
 
@@ -390,8 +416,9 @@ function SettingsAdminView({ isN3Affiliated = false }) {
       setMsg(okMsg);
     } catch (e) {
       setErr(e.message || 'Échec enregistrement');
+    } finally {
+      setSavingKey('');
     }
-    setSavingKey('');
   };
 
   const saveMap = async (mapId, patch, okMsg = 'Carte mise à jour') => {
