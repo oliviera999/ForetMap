@@ -509,6 +509,39 @@
     .top-tab.active { background:var(--forest); color:white; font-weight:700; }
     .top-tab:active { transform:scale(.95); }
 
+    /* ── APERÇU RÔLES (basculer vue élève / vue prof) ── */
+    .role-preview-banner {
+      display:flex;
+      align-items:flex-start;
+      gap:10px;
+      margin:0 12px 0;
+      padding:10px 14px;
+      border-radius:12px;
+      border:1px solid rgba(245, 158, 11, .45);
+      background:rgba(255, 251, 235, .96);
+      color:#78350f;
+      font-size:.82rem;
+      line-height:1.35;
+      flex-shrink:0;
+    }
+    .role-preview-banner--teacher {
+      border-color:rgba(59, 130, 246, .38);
+      background:rgba(239, 246, 255, .96);
+      color:#1e3a8a;
+    }
+    .role-preview-banner__icon {
+      flex-shrink:0;
+      font-size:1.15rem;
+      line-height:1.2;
+    }
+    .role-preview-banner__text {
+      min-width:0;
+      display:flex;
+      flex-direction:column;
+      gap:2px;
+    }
+    .role-preview-banner__text strong { font-size:.86rem; }
+
     /* ── SECTION TITLES ── */
     .section-title { font-size:clamp(1.15rem, 1rem + .55vw, 1.3rem); color:var(--forest); margin-bottom:4px; }
     .section-sub { font-size:.85rem; color:#aaa; margin-bottom:16px; }
