@@ -93,6 +93,28 @@ function isVisitorRole(auth) {
   return String(auth?.roleSlug || '').trim().toLowerCase() === 'visiteur';
 }
 
+/** n3boss / comptes non élèves : toujours participatif ; n3beur : selon users.forum_participate */
+async function userForumParticipationAllowed(auth) {
+  if (!auth) return false;
+  if (String(auth.userType || '').toLowerCase() !== 'student') return true;
+  const row = await queryOne(
+    'SELECT forum_participate FROM users WHERE id = ? AND user_type = ? LIMIT 1',
+    [auth.userId, 'student']
+  );
+  if (!row) return true;
+  return Number(row.forum_participate) !== 0;
+}
+
+async function requireForumParticipation(req, res) {
+  const ok = await userForumParticipationAllowed(req.auth);
+  if (ok) return true;
+  res.status(403).json({
+    error: 'Forum en lecture seule : la participation n’est pas activée pour ton compte.',
+    code: 'FORUM_READ_ONLY',
+  });
+  return false;
+}
+
 function checkCooldown(actor, action, cooldownMs) {
   if (process.env.NODE_ENV === 'test') return true;
   const key = `${action}:${actor.userType}:${actor.userId}`;
@@ -199,6 +221,7 @@ router.get('/threads', async (req, res) => {
 
 router.post('/threads', async (req, res) => {
   try {
+    if (!(await requireForumParticipation(req, res))) return;
     const actor = getActor(req.auth);
     if (!actor) return res.status(401).json({ error: 'Session invalide' });
     const title = normalizeOptionalString(req.body?.title);
@@ -296,6 +319,7 @@ router.get('/threads/:id', async (req, res) => {
 
 router.post('/posts/:id/reactions', async (req, res) => {
   try {
+    if (!(await requireForumParticipation(req, res))) return;
     const actor = getActor(req.auth);
     if (!actor) return res.status(401).json({ error: 'Session invalide' });
     const allowedReactions = await getAllowedReactionSet();
@@ -351,6 +375,7 @@ router.post('/posts/:id/reactions', async (req, res) => {
 
 router.post('/threads/:id/posts', async (req, res) => {
   try {
+    if (!(await requireForumParticipation(req, res))) return;
     const actor = getActor(req.auth);
     if (!actor) return res.status(401).json({ error: 'Session invalide' });
     const body = normalizeOptionalString(req.body?.body);
@@ -404,6 +429,7 @@ router.post('/threads/:id/posts', async (req, res) => {
 
 router.post('/posts/:id/report', async (req, res) => {
   try {
+    if (!(await requireForumParticipation(req, res))) return;
     const actor = getActor(req.auth);
     if (!actor) return res.status(401).json({ error: 'Session invalide' });
     const reason = normalizeOptionalString(req.body?.reason);
@@ -470,6 +496,7 @@ router.patch('/threads/:id/lock', requirePermission('teacher.access'), async (re
 
 router.delete('/posts/:id', async (req, res) => {
   try {
+    if (!(await requireForumParticipation(req, res))) return;
     const actor = getActor(req.auth);
     if (!actor) return res.status(401).json({ error: 'Session invalide' });
     const post = await queryOne(

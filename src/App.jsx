@@ -518,10 +518,14 @@ function App() {
             avatar_path: prev?.avatar_path || null,
           }));
         }
-        if (auth.userType === 'student' && d.taskEnrollment != null) {
+        if (auth.userType === 'student' && (d.taskEnrollment != null || typeof d.forumParticipate === 'boolean')) {
           setStudent((prev) => {
             if (!prev || String(prev.id) !== String(auth.userId)) return prev;
-            return { ...prev, taskEnrollment: d.taskEnrollment };
+            return {
+              ...prev,
+              ...(d.taskEnrollment != null ? { taskEnrollment: d.taskEnrollment } : {}),
+              ...(typeof d.forumParticipate === 'boolean' ? { forumParticipate: d.forumParticipate } : {}),
+            };
           });
         }
       })
@@ -593,9 +597,15 @@ function App() {
           const sid = sess.id;
           api('/api/auth/me')
             .then((d) => {
-              if (d?.taskEnrollment && studentRef.current?.id === sid) {
-                setStudent((prev) => (prev && prev.id === sid ? { ...prev, taskEnrollment: d.taskEnrollment } : prev));
-              }
+              if (studentRef.current?.id !== sid) return;
+              if (!d?.taskEnrollment && typeof d?.forumParticipate !== 'boolean') return;
+              setStudent((prev) => {
+                if (!prev || prev.id !== sid) return prev;
+                const next = { ...prev };
+                if (d.taskEnrollment) next.taskEnrollment = d.taskEnrollment;
+                if (typeof d.forumParticipate === 'boolean') next.forumParticipate = d.forumParticipate;
+                return next;
+              });
             })
             .catch(() => {});
         }
@@ -669,6 +679,14 @@ function App() {
   const canAccessStudentMapTasks = true;
   const isVisitor = effectiveRoleContext.roleSlug === 'visiteur';
   const canAccessForum = !isVisitor && publicSettings?.modules?.forum_enabled !== false;
+  const canParticipateForum = useMemo(() => {
+    if (effectiveIsTeacher) return true;
+    const s = studentForUi;
+    if (!s) return true;
+    if (typeof s.forumParticipate === 'boolean') return s.forumParticipate;
+    if (s.forum_participate != null) return Number(s.forum_participate) !== 0;
+    return true;
+  }, [effectiveIsTeacher, studentForUi]);
   const canSelfAssignTasks = !isVisitor;
   const canSelfAssignMoreTasks =
     canSelfAssignTasks && !studentForUi?.preview_mode && !studentForUi?.taskEnrollment?.atLimit;
@@ -1342,7 +1360,7 @@ function App() {
               {tab === 'audit'  && (hasPermission('audit.read') ? <AuditLog isN3Affiliated={isN3Affiliated} /> : <div className="empty"><p>Permission insuffisante</p></div>)}
               {publicSettings?.modules?.visit_enabled !== false && tab === 'visit'  && <VisitView student={currentUser} isTeacher availableTutorials={tutorials} initialMapId={activeMapId} onForceLogout={forceLogout} isN3Affiliated={isN3Affiliated} publicSettings={publicSettings} />}
               {tab === 'settings' && <SettingsAdminView isN3Affiliated={isN3Affiliated} />}
-              {tab === 'forum' && canAccessForum && <ForumView authClaims={authClaims} />}
+              {tab === 'forum' && canAccessForum && <ForumView authClaims={authClaims} canParticipateForum />}
               {tab === 'about'  && <AboutView appVersion={appVersion} isN3Affiliated={isN3Affiliated} publicSettings={publicSettings} isTeacher={effectiveIsTeacher} />}
             </>
           )}
@@ -1409,7 +1427,7 @@ function App() {
                 {tab === 'stats' && canViewGeneralStats && <TeacherStats isN3Affiliated={isN3Affiliated} />}
                 {publicSettings?.modules?.observations_enabled !== false && tab === 'notebook' && <ObservationNotebook student={studentForUi} zones={zones} onForceLogout={forceLogout} />}
                 {publicSettings?.modules?.visit_enabled !== false && tab === 'visit' && <VisitView student={studentForUi} isTeacher={false} availableTutorials={tutorials} initialMapId={activeMapId} onForceLogout={forceLogout} isN3Affiliated={isN3Affiliated} publicSettings={publicSettings} />}
-                {tab === 'forum' && canAccessForum && <ForumView authClaims={authClaims} />}
+                {tab === 'forum' && canAccessForum && <ForumView authClaims={authClaims} canParticipateForum={canParticipateForum} />}
                 {tab === 'about' && <AboutView appVersion={appVersion} isN3Affiliated={isN3Affiliated} publicSettings={publicSettings} isTeacher={false} />}
               </>
             )}

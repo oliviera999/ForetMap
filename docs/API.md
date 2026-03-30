@@ -92,6 +92,7 @@ Routes protégées « n3boss » : header `Authorization: Bearer <token>`.
 - `maxActiveAssignments` : valeur du réglage `tasks.student_max_active_assignments` (entier 0–99, `0` = pas de limite).
 - `currentActiveAssignments` : nombre d’assignations sur des tâches dont le statut n’est pas `validated` (toutes cartes).
 - `atLimit` : `true` si `maxActiveAssignments > 0` et `currentActiveAssignments >= maxActiveAssignments`.
+- `forumParticipate` : `true` si le compte n3beur peut **participer** au forum (publier, répondre, réagir, signaler, supprimer ses messages) ; `false` = accès **lecture seule** sur les routes forum autorisées (voir ci-dessous). Absent pour les n3boss.
 
 ---
 
@@ -109,6 +110,7 @@ Toutes les routes RBAC exigent un token admin avec élévation PIN active.
 | PUT | `/api/rbac/profiles/:id/pin` | Changer le PIN d’un profil |
 | GET | `/api/rbac/users` | Liste utilisateurs et profil attribué |
 | PUT | `/api/rbac/users/:userType/:userId/role` | Attribuer le profil principal d’un utilisateur |
+| PATCH | `/api/rbac/users/student/:userId/forum-participate` | Activer ou désactiver la **participation forum** pour un n3beur (`{ forum_participate: boolean }`, élévation PIN si requise par la permission) |
 
 ### Droits paramétrables (catalogue)
 
@@ -345,6 +347,8 @@ Contraintes principales :
 Toutes les routes forum exigent un utilisateur connecté (`Authorization: Bearer <token>`), n3beur ou n3boss.
 Le profil `visiteur` est refusé (`403`) pour éviter l’exposition d’identités d’autres utilisateurs.
 Si le réglage public `ui.modules.forum_enabled` est à `false`, toutes les routes forum renvoient `503` avec `{ error: 'Forum désactivé' }` (après authentification réussie).
+
+**Participation par compte n3beur** : la colonne `users.forum_participate` (défaut `1`) pilote si le compte peut agir sur le forum. Si `0`, le n3beur reste autorisé en **lecture** sur `GET /api/forum/threads` et `GET /api/forum/threads/:id` ; les routes `POST` (sujet, réponse, réaction, signalement) et `DELETE` sur un message sont refusées avec **`403`** et `code: "FORUM_READ_ONLY"`. Les n3boss (`user_type` enseignant) ne sont pas soumis à ce filtre.
 
 | Méthode | URL | Description |
 |--------|-----|-------------|

@@ -18,6 +18,7 @@ async function registerStudent(prefix) {
       lastName: `Forum${stamp}`,
       email: `${prefix.toLowerCase()}_${stamp}@example.com`,
       password: 'pass1234',
+      affiliation: 'both',
     })
     .expect(201);
   assert.ok(res.body?.id);
@@ -283,4 +284,22 @@ test('Forum: réactions emoji toggle et agrégées sur les messages', async () =
     .expect(400);
 
   await setAllowedReactionEmojis('👍 ❤️ 😂 😮 😢 😡 🔥 👏');
+});
+
+test('Forum: n3beur sans participation — lecture OK, création sujet 403', async () => {
+  const student = await registerStudent('ForumReadOnly');
+  await execute('UPDATE users SET forum_participate = 0 WHERE id = ? AND user_type = ?', [student.id, 'student']);
+  const login = await request(app)
+    .post('/api/auth/login')
+    .send({ identifier: student.email, password: 'pass1234' })
+    .expect(200);
+  const token = login.body.authToken;
+  await request(app).get('/api/forum/threads').set(auth(token)).expect(200);
+  const res = await request(app)
+    .post('/api/forum/threads')
+    .set(auth(token))
+    .send({ title: `Lecture seule ${Date.now()}`, body: 'Ne doit pas être accepté.' })
+    .expect(403);
+  assert.strictEqual(res.body.code, 'FORUM_READ_ONLY');
+  await execute('UPDATE users SET forum_participate = 1 WHERE id = ? AND user_type = ?', [student.id, 'student']);
 });

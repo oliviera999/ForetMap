@@ -361,7 +361,8 @@ router.get(
       const users = await queryAll(
         `SELECT u.id, u.user_type,
                 COALESCE(NULLIF(u.display_name, ''), NULLIF(CONCAT(COALESCE(u.first_name, ''), ' ', COALESCE(u.last_name, '')), ''), u.email, u.pseudo, u.id) AS display_name,
-                u.email, ur.role_id, r.slug AS role_slug, r.display_name AS role_display_name
+                u.email, ur.role_id, r.slug AS role_slug, r.display_name AS role_display_name,
+                COALESCE(u.forum_participate, 1) AS forum_participate
            FROM users u
       LEFT JOIN user_roles ur ON ur.user_type = u.user_type AND ur.user_id = u.id AND ur.is_primary = 1
       LEFT JOIN roles r ON r.id = ur.role_id
@@ -376,6 +377,7 @@ router.get(
           role_id: u.role_id,
           role_slug: u.role_slug,
           role_display_name: u.role_display_name,
+          forum_participate: u.user_type === 'student' ? Number(u.forum_participate) !== 0 : true,
         }))
       );
     } catch (e) {
@@ -433,6 +435,37 @@ router.put(
         payload: { user_type: resolvedUserType, user_id: resolvedLegacyUserId, role_id: roleId },
       });
       res.json({ ok: true });
+    } catch (e) {
+      logRouteError(e, req);
+      res.status(500).json({ error: e.message });
+    }
+  }
+);
+
+router.patch(
+  '/users/:userType/:userId/forum-participate',
+  requirePermission('admin.users.assign_roles', { needsElevation: true }),
+  async (req, res) => {
+    try {
+      const userType = String(req.params.userType || '').trim();
+      if (userType !== 'student') {
+        return res.status(400).json({ error: 'Réservé aux comptes n3beur (student)' });
+      }
+      const userId = String(req.params.userId || '').trim();
+      if (!userId) return res.status(400).json({ error: 'userId requis' });
+      const v = req.body?.forum_participate;
+      if (typeof v !== 'boolean') {
+        return res.status(400).json({ error: 'forum_participate (booléen) requis' });
+      }
+      const user = await queryOne("SELECT id FROM users WHERE id = ? AND user_type = 'student' LIMIT 1", [userId]);
+      if (!user) return res.status(404).json({ error: 'Utilisateur introuvable' });
+      await execute('UPDATE users SET forum_participate = ? WHERE id = ? AND user_type = ?', [v ? 1 : 0, userId, 'student']);
+      logAudit('rbac_forum_participate', 'user', userId, v ? 'forum_participate_on' : 'forum_participate_off', {
+        req,
+        payload: { user_type: 'student', forum_participate: v },
+      });
+      emitStudentsChanged({ reason: 'forum_participate_updated', studentId: userId });
+      res.json({ ok: true, forum_participate: v });
     } catch (e) {
       logRouteError(e, req);
       res.status(500).json({ error: e.message });

@@ -388,6 +388,21 @@ function ProfilesAdminView({ isN3Affiliated = false }) {
     setLoading(false);
   };
 
+  const setStudentForumParticipate = async (userId, forumParticipate) => {
+    setLoading(true);
+    setErr('');
+    try {
+      await api(`/api/rbac/users/student/${encodeURIComponent(userId)}/forum-participate`, 'PATCH', { forum_participate: forumParticipate });
+      setUsers((prev) => prev.map((u) => (
+        u.user_type === 'student' && u.id === userId ? { ...u, forum_participate: forumParticipate } : u
+      )));
+      setMsg(forumParticipate ? 'Participation au forum activée pour ce compte.' : 'Forum en lecture seule pour ce compte.');
+    } catch (e) {
+      setErr(e.message || 'Erreur réglage forum');
+    }
+    setLoading(false);
+  };
+
   const createUser = async () => {
     if (!createFirstName.trim() || !createLastName.trim() || !createPassword) {
       setErr('Prénom, nom et mot de passe sont requis');
@@ -773,16 +788,30 @@ function ProfilesAdminView({ isN3Affiliated = false }) {
 
           <div style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: 12, padding: 12, marginTop: 12 }}>
             <h3 style={{ marginTop: 0 }}>Attribution des profils</h3>
+            <p style={{ margin: '0 0 10px', fontSize: '.78rem', color: '#64748b', lineHeight: 1.45 }}>
+              Pour les n3beurs (hors profil visiteur), la case « Participer au forum » impose la session élevée (PIN) comme pour l’attribution de profil. Décochée : consultation des sujets et messages uniquement.
+            </p>
             <div style={{ maxHeight: 360, overflow: 'auto' }}>
               {users.map((u) => (
-                <div className="profiles-admin-user-row" key={`${u.user_type}-${u.id}`}>
-                  <div>
+                <div className="profiles-admin-user-row" key={`${u.user_type}-${u.id}`} style={{ flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
+                  <div style={{ flex: '1 1 180px', minWidth: 0 }}>
                     <strong>{u.display_name}</strong> <span style={{ color: '#6b7280' }}>({u.user_type})</span>
                   </div>
                   <select value={u.role_id || ''} onChange={(e) => assignRole(u.user_type, u.id, parseInt(e.target.value, 10))} disabled={loading}>
                     <option value="">Aucun profil</option>
                     {sortedRoles.map((r) => <option key={r.id} value={r.id}>{r.display_name}</option>)}
                   </select>
+                  {u.user_type === 'student' && String(u.role_slug || '').toLowerCase() !== 'visiteur' && (
+                    <label style={{ fontSize: '.78rem', display: 'inline-flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap', color: '#374151' }}>
+                      <input
+                        type="checkbox"
+                        checked={u.forum_participate !== false}
+                        onChange={(e) => setStudentForumParticipate(u.id, e.target.checked)}
+                        disabled={loading || !authElevated}
+                      />
+                      Participer au forum
+                    </label>
+                  )}
                 </div>
               ))}
             </div>
