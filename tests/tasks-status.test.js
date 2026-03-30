@@ -24,6 +24,16 @@ const lastName = 'Task';
 const secondFirstName = `St2${Date.now()}`;
 const secondLastName = 'Task';
 
+async function setStudentPrimaryRole(userId, roleSlug) {
+  const role = await queryOne('SELECT id FROM roles WHERE slug = ? LIMIT 1', [roleSlug]);
+  assert.ok(role?.id, `Rôle introuvable: ${roleSlug}`);
+  await execute('UPDATE user_roles SET is_primary = 0 WHERE user_type = ? AND user_id = ?', ['student', userId]);
+  await execute(
+    'INSERT INTO user_roles (user_type, user_id, role_id, is_primary) VALUES (?, ?, ?, 1) ON DUPLICATE KEY UPDATE is_primary = 1',
+    ['student', userId, role.id]
+  );
+}
+
 before(async () => {
   await initSchema();
   const loginEmail = String(process.env.TEACHER_ADMIN_EMAIL || '').trim();
@@ -56,12 +66,14 @@ before(async () => {
     .expect(201);
   studentId = reg.body.id;
   studentToken = reg.body.authToken;
+  await setStudentPrimaryRole(studentId, 'eleve_novice');
   const regTwo = await request(app)
     .post('/api/auth/register')
     .send({ firstName: secondFirstName, lastName: secondLastName, password: 'pass123' })
     .expect(201);
   studentTwoId = regTwo.body.id;
   studentTwoToken = regTwo.body.authToken;
+  await setStudentPrimaryRole(studentTwoId, 'eleve_novice');
   const taskRes = await request(app)
     .post('/api/tasks')
     .set('Authorization', `Bearer ${teacherToken}`)
