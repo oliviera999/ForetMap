@@ -709,7 +709,36 @@
       -webkit-tap-highlight-color:transparent;
     }
     .modal-close:active { background:rgba(0,0,0,.12); transform:scale(.88); }
-    .log-modal--with-close { padding-top:56px; }
+    /* Modales stats / profil : en-tête fixe + corps défilant (la croix ne disparaît plus au scroll) */
+    .log-modal.log-modal--with-close {
+      display:flex;
+      flex-direction:column;
+      overflow:hidden;
+      padding:12px 12px 0;
+    }
+    .log-modal.log-modal--with-close .log-modal__head {
+      flex-shrink:0;
+      display:flex;
+      justify-content:flex-end;
+      align-items:center;
+      min-height:40px;
+      padding:0 4px 8px;
+    }
+    .log-modal.log-modal--with-close .modal-close {
+      position:static;
+      top:auto;
+      right:auto;
+      flex-shrink:0;
+    }
+    .log-modal.log-modal--with-close .log-modal__scroll {
+      flex:1;
+      min-height:0;
+      overflow-y:auto;
+      overflow-x:hidden;
+      -webkit-overflow-scrolling:touch;
+      padding:0 8px 20px;
+      padding-bottom:calc(20px + var(--safe-bottom));
+    }
 
     /* ── PIN MODAL ── */
     .pin-overlay {

@@ -829,18 +829,22 @@ function App() {
             aria-label="Statistiques utilisateur"
             tabIndex={-1}
           >
-            <button
-              type="button"
-              className="modal-close"
-              aria-label="Fermer la fenêtre des statistiques"
-              onClick={(e) => {
-                e.stopPropagation();
-                setShowStats(false);
-              }}
-            >
-              ✕
-            </button>
-            <StudentStats student={{ id: profileTargetUserId }} isN3Affiliated={isN3Affiliated} />
+            <div className="log-modal__head">
+              <button
+                type="button"
+                className="modal-close"
+                aria-label="Fermer la fenêtre des statistiques"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowStats(false);
+                }}
+              >
+                ✕
+              </button>
+            </div>
+            <div className="log-modal__scroll">
+              <StudentStats student={{ id: profileTargetUserId }} isN3Affiliated={isN3Affiliated} />
+            </div>
           </div>
         </div>
       )}
@@ -856,29 +860,33 @@ function App() {
             aria-label="Profil utilisateur"
             tabIndex={-1}
           >
-            <button
-              type="button"
-              className="modal-close"
-              aria-label="Fermer la fenêtre du profil"
-              onClick={(e) => {
-                e.stopPropagation();
-                setShowProfile(false);
-              }}
-            >
-              ✕
-            </button>
-            <StudentProfileEditor
-              student={profileTargetUser}
-              onUpdated={(updated) => {
-                if (effectiveIsTeacher) {
-                  updateTeacherSession(updated);
-                  return;
-                }
-                updateStudentSession(updated);
-              }}
-              onClose={() => setShowProfile(false)}
-              isN3Affiliated={isN3Affiliated}
-            />
+            <div className="log-modal__head">
+              <button
+                type="button"
+                className="modal-close"
+                aria-label="Fermer la fenêtre du profil"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowProfile(false);
+                }}
+              >
+                ✕
+              </button>
+            </div>
+            <div className="log-modal__scroll">
+              <StudentProfileEditor
+                student={profileTargetUser}
+                onUpdated={(updated) => {
+                  if (effectiveIsTeacher) {
+                    updateTeacherSession(updated);
+                    return;
+                  }
+                  updateStudentSession(updated);
+                }}
+                onClose={() => setShowProfile(false)}
+                isN3Affiliated={isN3Affiliated}
+              />
+            </div>
           </div>
         </div>
       )}
