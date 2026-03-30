@@ -333,7 +333,7 @@ function isTaskDetachedFromLocation(task) {
   return task.status === 'done' || task.status === 'validated';
 }
 
-function ZoneInfoModal({ zone, plants, tasks, isTeacher, student, canSelfAssignTasks = true, markerEmojis = MARKER_EMOJIS, emojiParsingList = MARKER_EMOJIS, onClose, onUpdate, onDelete, onEditPoints, onLinkTask, onUnlinkTask, onAssignTasks }) {
+function ZoneInfoModal({ zone, plants, tasks, isTeacher, student, canSelfAssignTasks = true, markerEmojis = MARKER_EMOJIS, emojiParsingList = MARKER_EMOJIS, contextCommentsEnabled = true, onClose, onUpdate, onDelete, onEditPoints, onLinkTask, onUnlinkTask, onAssignTasks }) {
   const dialogRef = useDialogA11y(onClose);
   const [tab, setTab] = useState('tasks');
   const [zoneName, setZoneName] = useState(stripLeadingMarkerEmoji(zone.name || '', emojiParsingList));
@@ -485,12 +485,14 @@ function ZoneInfoModal({ zone, plants, tasks, isTeacher, student, canSelfAssignT
                 Zone vide — aucune information pour l'instant.
               </p>
             )}
-            <ContextComments
-              contextType="zone"
-              contextId={zone.id}
-              title="Commentaires de la zone"
-              placeholder="Ajouter une observation sur cette zone..."
-            />
+            {contextCommentsEnabled && (
+              <ContextComments
+                contextType="zone"
+                contextId={zone.id}
+                title="Commentaires de la zone"
+                placeholder="Ajouter une observation sur cette zone..."
+              />
+            )}
           </div>
         )}
 
@@ -1349,6 +1351,7 @@ function MapView({ zones, markers, tasks = [], plants, maps = [], activeMapId = 
     () => parseEmojiListSetting(configuredLocationEmojis, MARKER_EMOJIS),
     [configuredLocationEmojis]
   );
+  const contextCommentsEnabled = publicSettings?.modules?.context_comments_enabled !== false;
   const emojiParsingList = useMemo(
     () => [...new Set([...markerEmojis, ...MARKER_EMOJIS])],
     [markerEmojis]
@@ -1621,7 +1624,7 @@ function MapView({ zones, markers, tasks = [], plants, maps = [], activeMapId = 
       {toast && <Toast msg={toast} onDone={() => setToast(null)} />}
 
       {selectedZone && (
-        <ZoneInfoModal zone={selectedZone} plants={plants} tasks={tasks} isTeacher={isTeacher} student={student} canSelfAssignTasks={canSelfAssignTasks} markerEmojis={markerEmojis} emojiParsingList={emojiParsingList}
+        <ZoneInfoModal zone={selectedZone} plants={plants} tasks={tasks} isTeacher={isTeacher} student={student} canSelfAssignTasks={canSelfAssignTasks} markerEmojis={markerEmojis} emojiParsingList={emojiParsingList} contextCommentsEnabled={contextCommentsEnabled}
           onClose={() => setSelectedZone(null)}
           onUpdate={async (id, data) => { await onZoneUpdate(id, data); setSelectedZone(null); await onRefresh(); }}
           onDelete={async id => { await deleteZone(id); setSelectedZone(null); }}

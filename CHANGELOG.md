@@ -9,6 +9,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - **Outil collectif retiré (frontend + backend)** : suppression complète de la vue `Collectif`, des endpoints `/api/collective/*`, de la diffusion temps réel `collective:changed`, des tables SQL associées (`collective_sessions*`), des migrations dédiées et des tests backend liés.
 
 ### Modifié
+- **Avatar en-tête après changement de photo** : URL des fichiers `/uploads/` préfixée avec `withAppBase` (déploiement sous-dossier) ; `StudentAvatar` réagit à `avatar_path` et remonte l’`<img>` si le chemin change ; session élève / `getStoredSession` conservent et propagent `avatar_path` (y compris fusion avec l’état précédent et champ `user`).
 - **Modale profil / statistiques perso** : en-tête fixe avec bouton ✕ (comme les autres feuilles modales) et corps défilant — la croix reste visible en haut à droite pendant le scroll.
 - **Mobile (débordement horizontal)** : chaîne flex avec `min-width: 0` sur `#root`, `#app`, en-tête, zones principales et pied de page ; `overflow-x: clip` + `overscroll-behavior-x: none` sous 1024px ; grille forum en une colonne sur petit écran ; champ réponse forum avec `min-width: 0` pour respecter la largeur utile.
 - **Profils & utilisateurs (mobile)** : suppression des `gridTemplateColumns` inline qui surchargeaient le CSS — la page repasse bien en une colonne sur viewport ≤ 1023px (grilles profils/permissions, attribution, création, suppression).
@@ -37,6 +38,8 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - **Scroll mobile global + console Paramètres** : sécurisation du verrouillage de scroll `body` (lightbox) pour éviter les blocages persistants, et forçage de la vue `Paramètres admin` en colonne unique sur mobile/tablette avec débordements horizontaux neutralisés.
 
 ### Ajouté
+- **Réglages modules** : interrupteurs publics `ui.modules.forum_enabled` et `ui.modules.context_comments_enabled` (page Paramètres admin), refus API `503` quand désactivés, masquage onglet forum et blocs commentaires contexte côté UI.
+- **Réglages publics (frontend)** : fusion après `GET /api/settings/public` des branches `ui.modules`, `ui.map` et `ui.auth` vers les objets `modules`, `map` et `auth` déjà consommés par l’app, pour appliquer les valeurs serveur après chargement.
 - **Runner de tests isolés** : ajout de `scripts/test-local-isolated.js` pour orchestrer `db:init` + `node --test` sur chaque fichier `tests/*.test.js`, avec arrêt immédiat au premier échec.
 - **Script smoke local** : ajout de `scripts/local-smoke.js` et de la commande `npm run smoke:local` pour exécuter un contrôle CI local reproductible en une seule commande.
 - **Commande smoke rapide** : ajout de `npm run smoke:local:fast` pour les itérations locales fréquentes sans build frontend.

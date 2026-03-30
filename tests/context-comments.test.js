@@ -120,6 +120,27 @@ test('Commentaires contextuels: refuse l’accès sans authentification', async 
   await request(app).get('/api/context-comments?contextType=task&contextId=t1').expect(401);
 });
 
+test('Commentaires contextuels: module désactivé renvoie 503', async () => {
+  const teacher = await teacherToken();
+  const { taskId } = await createContextFixture(teacher);
+  await request(app)
+    .put('/api/settings/admin/ui.modules.context_comments_enabled')
+    .set(auth(teacher))
+    .send({ value: false })
+    .expect(200);
+  const student = await registerStudent('CtxOff');
+  const res = await request(app)
+    .get(`/api/context-comments?contextType=task&contextId=${encodeURIComponent(taskId)}`)
+    .set(auth(student.authToken))
+    .expect(503);
+  assert.match(String(res.body?.error || ''), /désactivé/i);
+  await request(app)
+    .put('/api/settings/admin/ui.modules.context_comments_enabled')
+    .set(auth(teacher))
+    .send({ value: true })
+    .expect(200);
+});
+
 test('Commentaires contextuels: cycle création/lecture/suppression sur une tâche', async () => {
   const teacher = await teacherToken();
   const student = await registerStudent('ComTask');

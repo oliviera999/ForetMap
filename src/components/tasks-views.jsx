@@ -668,6 +668,7 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
   const [loadingTeacherStudents, setLoadingTeacherStudents] = useState(false);
   const confirmDialogRef = useDialogA11y(() => setConfirmTask(null));
   const { isHelpEnabled, hasSeenSection, markSectionSeen, trackPanelOpen, trackPanelDismiss } = useHelp({ publicSettings, isTeacher });
+  const contextCommentsEnabled = publicSettings?.modules?.context_comments_enabled !== false;
   const helpTasks = HELP_PANELS.tasks;
   const tooltipText = (entry) => resolveRoleText(entry, isTeacher);
 
@@ -1092,12 +1093,14 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
                   )}
                 </div>
                 <div style={{ marginTop: 8 }}>
-                  <ContextComments
-                    contextType="project"
-                    contextId={p.id}
-                    title="Commentaires du projet"
-                    placeholder="Partager une info utile sur ce projet..."
-                  />
+                  {contextCommentsEnabled && (
+                    <ContextComments
+                      contextType="project"
+                      contextId={p.id}
+                      title="Commentaires du projet"
+                      placeholder="Partager une info utile sur ce projet..."
+                    />
+                  )}
                 </div>
                 <div style={{ marginTop: 10 }}>
                   {projectTasksCount === 0 ? (
@@ -1389,12 +1392,14 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
             </button>
           )}
         </div>
-        <ContextComments
-          contextType="task"
-          contextId={t.id}
-          title="Commentaires de la tâche"
-          placeholder="Partager une info utile sur cette tâche..."
-        />
+        {contextCommentsEnabled && (
+          <ContextComments
+            contextType="task"
+            contextId={t.id}
+            title="Commentaires de la tâche"
+            placeholder="Partager une info utile sur cette tâche..."
+          />
+        )}
       </div>
     );
   };
