@@ -5,6 +5,9 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Modifié
+- **Documentation & outillage dev** : mise à jour de `docs/LOCAL_DEV.md`, `docs/API.md`, `README.md`, skill **foretmap-e2e**, règles **foretmap-conventions** / **foretmap-backend** (démarrage e2e `start:e2e`, flag `--foretmap-e2e-no-rate-limit`, `E2E_REUSE_SERVER`, `TEACHER_PIN` via dotenv Playwright) ; **`test:e2e:headed`** aligné sur la libération du port comme **`test:e2e`**.
+
 ### Ajouté
 - **Paramètres admin** : réglages publics `ui.map.emoji_label_center_gap` (6–32, défaut 14), `ui.map.overlay_emoji_size_percent` et `ui.map.overlay_label_size_percent` (70–150 %, défaut 100) pour l’espacement emoji/libellé et l’échelle du texte sur la carte (zones SVG + repères) ; section « Modules UI » de la page Réglages ; utilitaire `resolveMapOverlayTypography` côté client.
 - **Tests de charge** : ajout d’un scénario Artillery `load/artillery.yml` (phases warmup/ramp-up/plateau/cool-down, mix de lectures `/api/health`, `/api/health/db`, `/api/version`, `/api/zones`, `/api/plants`) et des scripts `npm run test:load` / `npm run test:load:report`.
