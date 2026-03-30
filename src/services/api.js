@@ -112,15 +112,25 @@ async function parseApiBody(res) {
   return text ? { raw: text } : null;
 }
 
+const API_FETCH_TIMEOUT_MS = 40000;
+
 export async function api(path, method = 'GET', body) {
   const headers = { 'Content-Type': 'application/json' };
   const authToken = getAuthToken();
   if (authToken) headers.Authorization = 'Bearer ' + authToken;
-  const res = await fetch(withAppBase(path), {
-    method,
-    headers,
-    body: body ? JSON.stringify(body) : undefined,
-  });
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), API_FETCH_TIMEOUT_MS);
+  let res;
+  try {
+    res = await fetch(withAppBase(path), {
+      method,
+      headers,
+      body: body ? JSON.stringify(body) : undefined,
+      signal: controller.signal,
+    });
+  } finally {
+    clearTimeout(timeoutId);
+  }
   if (!res.ok) {
     const errBody = (await parseApiBody(res)) || {};
     if (res.status === 401 && errBody.deleted) throw new AccountDeletedError();
