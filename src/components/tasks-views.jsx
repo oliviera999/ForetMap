@@ -488,7 +488,7 @@ function TaskFormModal({
           <div className="row">
             <div className="field"><label>Mode de validation</label>
               <select value={form.completion_mode || 'single_done'} onChange={set('completion_mode')}>
-                <option value="single_done">Individuel (un élève termine la tâche)</option>
+                <option value="single_done">Individuel (un n3beur termine la tâche)</option>
                 <option value="all_assignees_done">Collectif (tous les assignés doivent terminer)</option>
               </select>
             </div>
@@ -597,10 +597,10 @@ function taskHasLocation(t, locationFilterValue) {
 function proposalMetaFromDescription(description) {
   const raw = String(description || '');
   if (!raw) return { proposer: '', cleanedDescription: '' };
-  const match = raw.match(/(?:^|\n)Proposition élève:\s*(.+)\s*$/m);
+  const match = raw.match(/(?:^|\n)Proposition (?:élève|n3beur):\s*(.+)\s*$/m);
   const proposer = match?.[1]?.trim() || '';
   const cleanedDescription = raw
-    .replace(/(?:^|\n)Proposition élève:\s*.+\s*$/m, '')
+    .replace(/(?:^|\n)Proposition (?:élève|n3beur):\s*.+\s*$/m, '')
     .replace(/\n{3,}/g, '\n\n')
     .trim();
   return { proposer, cleanedDescription };
@@ -620,7 +620,7 @@ function formatAssigneeName(assignee, student, canViewIdentity = true) {
       );
     return { fullName: isCurrentStudent ? 'Toi' : 'Participant', isCurrentStudent };
   }
-  const fullName = `${firstName} ${lastName}`.trim() || 'Élève';
+  const fullName = `${firstName} ${lastName}`.trim() || 'n3beur';
   const isCurrentStudent = !!student
     && firstName.toLowerCase() === String(student.first_name || '').trim().toLowerCase()
     && lastName.toLowerCase() === String(student.last_name || '').trim().toLowerCase();
@@ -738,7 +738,7 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
           : [];
         setTeacherStudents(list);
       } catch (e) {
-        if (!cancelled) setToast('Impossible de charger la liste des élèves : ' + e.message);
+        if (!cancelled) setToast('Impossible de charger la liste des n3beurs : ' + e.message);
       } finally {
         if (!cancelled) setLoadingTeacherStudents(false);
       }
@@ -1029,20 +1029,20 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
     return targetStudents.some((studentRow) => !isStudentAlreadyAssignedToTask(task, studentRow));
   };
   const quickAssignHint = (task, targetStudents = []) => {
-    if (!Array.isArray(targetStudents) || targetStudents.length === 0) return "Choisis au moins un élève";
+    if (!Array.isArray(targetStudents) || targetStudents.length === 0) return "Choisis au moins un n3beur";
     if (!task) return "Tâche indisponible";
     if (taskEffectiveStatus(task) === 'on_hold') return "Tâche ou projet en attente";
     if (task.status === 'proposed') return "Impossible d'affecter une tâche proposée";
     if (task.status === 'done' || task.status === 'validated') return "Tâche déjà terminée";
     if (getAvailableSlots(task) <= 0) return "Aucune place restante";
     const assignable = targetStudents.filter((studentRow) => !isStudentAlreadyAssignedToTask(task, studentRow));
-    if (assignable.length === 0) return "Les élèves sélectionnés sont déjà inscrits";
+    if (assignable.length === 0) return "Les n3beurs sélectionnés sont déjà inscrits";
     const slots = getAvailableSlots(task);
     const selectedCount = targetStudents.length;
     if (assignable.length > slots) {
       return `Seulement ${slots} place${slots > 1 ? 's' : ''} disponible${slots > 1 ? 's' : ''} pour ${selectedCount} sélection${selectedCount > 1 ? 's' : ''}`;
     }
-    return `Affecter ${assignable.length} élève${assignable.length > 1 ? 's' : ''}`;
+    return `Affecter ${assignable.length} n3beur${assignable.length > 1 ? 's' : ''}`;
   };
   const runTeacherQuickAssign = (task, targetStudents) => withLoad(`${task.id}assign_teacher_quick`, async () => {
     if (!Array.isArray(targetStudents) || targetStudents.length === 0) return;
@@ -1072,9 +1072,9 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
       }
     }
     if (successCount > 0 && failCount > 0) {
-      setToast(`${successCount} élève${successCount > 1 ? 's' : ''} inscrit${successCount > 1 ? 's' : ''}, ${failCount} échec${failCount > 1 ? 's' : ''}`);
+      setToast(`${successCount} n3beur${successCount > 1 ? 's' : ''} inscrit${successCount > 1 ? 's' : ''}, ${failCount} échec${failCount > 1 ? 's' : ''}`);
     } else if (successCount > 0) {
-      setToast(`${successCount} élève${successCount > 1 ? 's' : ''} inscrit${successCount > 1 ? 's' : ''} à "${task.title}"`);
+      setToast(`${successCount} n3beur${successCount > 1 ? 's' : ''} inscrit${successCount > 1 ? 's' : ''} à "${task.title}"`);
     } else if (firstError) {
       setToast(`Aucune affectation : ${firstError}`);
     } else {
@@ -1234,7 +1234,7 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
         {effectiveStatus === 'on_hold' && (
           <div className="task-desc" style={{ marginTop: 8, borderLeft: '3px solid #f59e0b', paddingLeft: 10 }}>
             {isTeacher
-              ? 'Inscription élève temporairement bloquée (tâche ou projet en attente). Les commentaires restent ouverts.'
+              ? 'Inscription n3beur temporairement bloquée (tâche ou projet en attente). Les commentaires restent ouverts.'
               : 'Inscription temporairement fermée par l’équipe pédagogique. Tu peux quand même laisser un commentaire.'}
           </div>
         )}
@@ -1290,7 +1290,7 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
               }}
               title={taskEffectiveStatus(t) === 'on_hold'
                 ? "Affectation désactivée (en attente)"
-                : (teacherStudents.length === 0 ? 'Aucun élève disponible' : 'Afficher la liste des élèves')}
+                : (teacherStudents.length === 0 ? 'Aucun n3beur disponible' : 'Afficher la liste des n3beurs')}
             >
               {quickAssignBusy ? '...' : '⚡ Affectation rapide'}
             </button>
@@ -1298,7 +1298,7 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
           {isTeacher && isQuickAssignOpen && (
             <div style={{ display: 'grid', gap: 8, width: '100%' }}>
               {loadingTeacherStudents ? (
-                <p style={{ margin: 0, fontSize: '.82rem', color: '#666' }}>Chargement élèves...</p>
+                <p style={{ margin: 0, fontSize: '.82rem', color: '#666' }}>Chargement n3beurs...</p>
               ) : (
                 <>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}>
@@ -1362,7 +1362,7 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
                               ));
                             }}
                           />
-                          <span style={{ fontSize: '.88rem', textAlign: 'left', flex: 1 }}>{fullName || 'Élève'}</span>
+                          <span style={{ fontSize: '.88rem', textAlign: 'left', flex: 1 }}>{fullName || 'n3beur'}</span>
                         </label>
                       );
                     })}

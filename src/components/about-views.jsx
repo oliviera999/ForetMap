@@ -7,7 +7,7 @@ function AboutView({ appVersion, publicSettings = null, isTeacher = false }) {
   const aboutTitle = getContentText(publicSettings, 'about.title', 'ℹ️ À propos');
   const aboutSubtitle = getContentText(publicSettings, 'about.subtitle', 'Informations du projet ForetMap');
   const aboutPurposeTitle = getContentText(publicSettings, 'about.purpose_title', "Objet de l'application");
-  const aboutPurposeBody = getContentText(publicSettings, 'about.purpose_body', 'ForetMap aide les élèves et les enseignants du Lycée Lyautey à organiser les activités de la forêt comestible: suivi des zones, de la biodiversité, des tâches et des observations.');
+  const aboutPurposeBody = getContentText(publicSettings, 'about.purpose_body', 'ForetMap aide les n3beurs et les n3boss du Lycée Lyautey à organiser les activités de la forêt comestible: suivi des zones, de la biodiversité, des tâches et des observations.');
   const aboutDocsTitle = getContentText(publicSettings, 'about.docs_title', 'Documentation');
   const aboutRepoTitle = getContentText(publicSettings, 'about.repo_title', 'Dépôt GitHub');
   const aboutHelpTitle = getContentText(publicSettings, 'about.help_title', 'Aide contextuelle');

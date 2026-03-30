@@ -19,7 +19,7 @@ function StudentStats({ student, isN3Affiliated = false }) {
   useEffect(() => {
     setError('');
     api(`/api/stats/me/${student.id}`).then(setData).catch(err => {
-      console.error('[ForetMap] stats élève', err);
+      console.error('[ForetMap] stats n3beur', err);
       setError(err?.message || 'Impossible de charger vos statistiques.');
     });
   }, [student.id]);
@@ -41,9 +41,9 @@ function StudentStats({ student, isN3Affiliated = false }) {
   const RANKS = (Array.isArray(data?.progression?.steps) && data.progression.steps.length > 0
     ? data.progression.steps
     : [
-      { roleSlug: 'eleve_novice', min: 0, label: 'Élève novice' },
-      { roleSlug: 'eleve_avance', min: 5, label: 'Élève avancé' },
-      { roleSlug: 'eleve_chevronne', min: 10, label: 'Élève chevronné' },
+      { roleSlug: 'eleve_novice', min: 0, label: 'n3beur novice' },
+      { roleSlug: 'eleve_avance', min: 5, label: 'n3beur avancé' },
+      { roleSlug: 'eleve_chevronne', min: 10, label: 'n3beur chevronné' },
     ])
     .map((step, i) => ({
       ...step,
@@ -57,6 +57,8 @@ function StudentStats({ student, isN3Affiliated = false }) {
     ? Math.min(100, ((stats.done - currentRank.min) / (nextRank.min - currentRank.min)) * 100)
     : 100;
 
+  const autoProgressionEnabled = data?.progression?.autoProgressionEnabled !== false;
+
   return (
     <div className="fade-in">
       <div className="stats-title-row">
@@ -66,7 +68,7 @@ function StudentStats({ student, isN3Affiliated = false }) {
         </div>
         <span
           style={{ background: 'var(--parchment)', borderRadius: 20, padding: '4px 12px', fontSize: '.8rem', fontWeight: 600, color: 'var(--soil)' }}
-          title="Profil élève actuel"
+          title="Palier n3beur actuel"
         >
           Profil actuel : {currentRank.icon} {currentRank.label}
         </span>
@@ -74,6 +76,22 @@ function StudentStats({ student, isN3Affiliated = false }) {
       <p className="section-sub">Bonjour {data.first_name} ! Voici ton bilan dans la forêt.</p>
       {data.pseudo && <p className="section-sub" style={{ marginTop: 0 }}>Pseudo public : @{data.pseudo}</p>}
       {data.description && <p className="section-sub" style={{ marginTop: 0 }}>{data.description}</p>}
+      {!autoProgressionEnabled && (
+        <p
+          className="section-sub"
+          style={{
+            marginTop: 10,
+            padding: '10px 12px',
+            background: '#fef9c3',
+            borderRadius: 10,
+            color: '#713f12',
+            fontSize: '.88rem',
+            lineHeight: 1.45,
+          }}
+        >
+          La montée de niveau automatique est désactivée : le profil affiché correspond à l’attribution manuelle. La barre de paliers ci-dessous est indicative (objectifs de tâches validées).
+        </p>
+      )}
 
       <div className="rank-progress">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>

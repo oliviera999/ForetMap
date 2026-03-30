@@ -7,7 +7,7 @@ const SECTION_DEFS = {
   auth: { title: 'Accueil & authentification', order: 10 },
   modules: { title: 'Modules UI', order: 20 },
   content: { title: 'Contenus du site', order: 22 },
-  progression: { title: 'Progression élèves', order: 25 },
+  progression: { title: 'Progression n3beurs', order: 25 },
   security: { title: 'Sécurité', order: 30 },
   operations: { title: 'Exploitation', order: 40 },
   other: { title: 'Autres paramètres', order: 90 },
@@ -57,6 +57,11 @@ const KEY_META = {
   'ui.map.default_map_student': { section: 'modules', order: 50, dynamicLabel: 'defaultStudentMap' },
   'ui.map.default_map_teacher': { section: 'modules', order: 60, dynamicLabel: 'defaultTeacherMap' },
   'ui.map.default_map_visit': { label: 'Carte par défaut (visite publique)', section: 'modules', order: 70 },
+  'rbac.progression_by_validated_tasks': {
+    label: 'Montée de niveau auto. selon les tâches validées',
+    section: 'progression',
+    order: 5,
+  },
   'security.password_min_length': { label: 'Longueur min mot de passe', section: 'security', order: 10 },
   'security.jwt_ttl_base_seconds': { label: 'Durée session standard (secondes)', section: 'security', order: 20 },
   'security.jwt_ttl_elevated_seconds': { label: 'Durée session élevée (secondes)', section: 'security', order: 30 },
@@ -83,7 +88,7 @@ function inferSectionFromKey(key) {
   if (normalized.startsWith('ui.auth.')) return 'auth';
   if (normalized.startsWith('content.')) return 'content';
   if (normalized.startsWith('ui.modules.') || normalized.startsWith('ui.map.')) return 'modules';
-  if (normalized.startsWith('progression.')) return 'progression';
+  if (normalized.startsWith('progression.') || normalized.startsWith('rbac.')) return 'progression';
   if (normalized.startsWith('security.') || normalized.startsWith('integration.')) return 'security';
   if (normalized.startsWith('system.') || normalized.startsWith('ops.')) return 'operations';
   return 'other';
@@ -92,7 +97,7 @@ function inferSectionFromKey(key) {
 function scopeLabel(scope) {
   const s = String(scope || '').toLowerCase();
   if (s === 'admin') return 'Admin';
-  if (s === 'teacher') return 'Enseignant';
+  if (s === 'teacher') return 'n3boss';
   return 'Public';
 }
 

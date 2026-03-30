@@ -3,7 +3,7 @@ import { io } from 'socket.io-client';
 import { api, AccountDeletedError, API, withAppBase, getAuthToken } from '../services/api';
 
 /**
- * Connexion Socket.IO (tâches, jardin, élèves, forum, commentaires) + indicateur temps réel mode prof.
+ * Connexion Socket.IO (tâches, jardin, n3beurs, forum, commentaires) + indicateur temps réel mode n3boss.
  */
 export function useForetmapRealtime({
   enabled,

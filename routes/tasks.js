@@ -22,7 +22,7 @@ const IMPORT_TEMPLATE_COLUMNS = [
   'Description tâche',
   'Date de départ (YYYY-MM-DD)',
   'Date limite (YYYY-MM-DD)',
-  'Élèves requis',
+  'n3beurs requis',
   'Statut (available|in_progress|done|validated|proposed|on_hold)',
   'Récurrence (weekly|biweekly|monthly)',
 ];
@@ -62,8 +62,8 @@ const IMPORT_HEADER_ALIASES = new Map([
   ['due_date', 'dueDate'],
   ['deadline', 'dueDate'],
   ['eleves_requis', 'requiredStudents'],
-  ['eleves_requis', 'requiredStudents'],
   ['élèves_requis', 'requiredStudents'],
+  ['n3beurs_requis', 'requiredStudents'],
   ['required_students', 'requiredStudents'],
   ['statut', 'status'],
   ['statut_available_in_progress_done_validated_proposed_on_hold', 'status'],
@@ -790,7 +790,7 @@ async function resolveStudentActionContext(req, payload = {}, permissionKey) {
     if (!student) return { errorStatus: 401, error: 'Compte supprimé', deleted: true };
     if (!isTeacherAction) {
       if (!(auth?.userType === 'student' && String(auth?.userId || '') === String(providedStudentId))) {
-        return { errorStatus: 403, error: 'Session élève requise' };
+        return { errorStatus: 403, error: 'Session n3beur requise' };
       }
       const permission = await ensureStudentPermission({ studentId: providedStudentId, permissionKey, profilePin });
       if (!permission.ok) return { errorStatus: 403, error: permission.error };
@@ -835,7 +835,7 @@ async function resolveStudentActionContext(req, payload = {}, permissionKey) {
     };
   }
 
-  return { errorStatus: 400, error: 'Identifiant élève requis' };
+  return { errorStatus: 400, error: 'Identifiant n3beur requis' };
 }
 
 router.get('/', async (req, res) => {
@@ -1074,7 +1074,7 @@ router.post('/import', requirePermission('tasks.manage', { needsElevation: true 
           errors.push({ row: rowNumber, field: 'map_id', error: 'Carte introuvable' });
         }
         if (payload.requiredStudents == null) {
-          errors.push({ row: rowNumber, field: 'required_students', error: 'Élèves requis invalide (1-50)' });
+          errors.push({ row: rowNumber, field: 'required_students', error: 'n3beurs requis invalide (1-50)' });
         }
         if (!payload.status || !ALLOWED_IMPORT_TASK_STATUSES.has(payload.status)) {
           errors.push({ row: rowNumber, field: 'status', error: 'Statut invalide' });
@@ -1352,7 +1352,7 @@ router.post('/proposals', async (req, res) => {
     } = req.body || {};
     if (!title || !String(title).trim()) return res.status(400).json({ error: 'Titre requis' });
     if (!firstName || !lastName) return res.status(400).json({ error: 'Nom requis' });
-    if (!studentId) return res.status(400).json({ error: 'Identifiant élève requis' });
+    if (!studentId) return res.status(400).json({ error: 'Identifiant n3beur requis' });
 
     const authProposal = await parseOptionalAuth(req);
     if (authProposal?.userType === 'student' && isVisitorRole(authProposal)) {
@@ -1377,7 +1377,7 @@ router.post('/proposals', async (req, res) => {
     const id = uuidv4();
     const proposer = `${String(firstName).trim()} ${String(lastName).trim()}`.trim();
     const baseDescription = description ? String(description).trim() : '';
-    const finalDescription = [baseDescription, proposer ? `Proposition élève: ${proposer}` : '']
+    const finalDescription = [baseDescription, proposer ? `Proposition n3beur: ${proposer}` : '']
       .filter(Boolean)
       .join('\n\n');
     await execute(
@@ -1436,7 +1436,7 @@ router.put('/:id', async (req, res) => {
       const forbiddenForProposer = ['status', 'project_id', 'tutorial_ids', 'recurrence', 'completion_mode'];
       const attempted = forbiddenForProposer.find((key) => Object.prototype.hasOwnProperty.call(req.body || {}, key));
       if (attempted) {
-        return res.status(403).json({ error: 'Champ non modifiable sur une proposition élève' });
+        return res.status(403).json({ error: 'Champ non modifiable sur une proposition n3beur' });
       }
     }
     const {
@@ -1809,7 +1809,7 @@ router.post('/:id/validate', requirePermission('tasks.validate', { needsElevatio
   }
 });
 
-/** Même modèle que POST assign, avec identité élève vérifiée (session ou permission prof). */
+/** Même modèle que POST assign, avec identité n3beur vérifiée (session ou permission n3boss). */
 router.post('/:id/unassign', async (req, res) => {
   try {
     const task = await getTaskWithAssignments(req.params.id);

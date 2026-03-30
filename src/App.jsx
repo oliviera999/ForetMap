@@ -60,8 +60,8 @@ const OAUTH_ERROR_MESSAGES = {
   oauth_invalid_token: 'Connexion Google impossible (token invalide).',
   oauth_claims_invalid: 'Connexion Google refusée (compte non vérifié).',
   oauth_email_not_allowed: 'Adresse Google non autorisée pour ForetMap.',
-  oauth_teacher_inactive: 'Compte enseignant inactif.',
-  oauth_teacher_no_role: 'Aucun rôle enseignant attribué à ce compte.',
+  oauth_teacher_inactive: 'Compte n3boss inactif.',
+  oauth_teacher_no_role: 'Aucun rôle n3boss attribué à ce compte.',
   oauth_server_error: 'Erreur serveur pendant la connexion Google.',
 };
 
@@ -455,9 +455,9 @@ function App() {
         forceLogout();
         return;
       }
-      console.error('[ForetMap] validation session élève', err);
+      console.error('[ForetMap] validation session n3beur', err);
       setSessionValidationError(true);
-      setToast('Connexion instable: session élève non vérifiée.');
+      setToast('Connexion instable: session n3beur non vérifiée.');
     }
   }, [forceLogout, updateStudentSession]);
 
@@ -478,7 +478,7 @@ function App() {
   }, [validateStudentSession]);
 
   useEffect(() => {
-    const onExpired = () => { setIsTeacher(false); setAuthClaims(null); setSessionUser(null); setToast('Session enseignant expirée.'); };
+    const onExpired = () => { setIsTeacher(false); setAuthClaims(null); setSessionUser(null); setToast('Session n3boss expirée.'); };
     window.addEventListener('foretmap_teacher_expired', onExpired);
     return () => window.removeEventListener('foretmap_teacher_expired', onExpired);
   }, []);
@@ -922,7 +922,7 @@ function App() {
           margin:'8px 12px 0', padding:'10px 14px', borderRadius:12,
           background:'#eff6ff', border:'1px solid #93c5fd', color:'#1e3a8a', fontSize:'.9rem'
         }}>
-          <strong>Session élève non vérifiée.</strong> Les informations affichées peuvent être périmées.
+          <strong>Session n3beur non vérifiée.</strong> Les informations affichées peuvent être périmées.
           <button
             type="button"
             className="btn btn-sm"
@@ -1205,8 +1205,8 @@ function App() {
         <div className="role-preview-banner fade-in" role="status">
           <span className="role-preview-banner__icon" aria-hidden>🎓</span>
           <div className="role-preview-banner__text">
-            <strong>Vue élève (aperçu)</strong>
-            <span>Navigation en bas et écrans « élève » (pas d’onglets professeur en haut). Votre session garde les mêmes droits enseignant côté serveur.</span>
+            <strong>Vue n3beur (aperçu)</strong>
+            <span>Navigation en bas et écrans « n3beur » (pas d’onglets n3boss en haut). Votre session garde les mêmes droits n3boss côté serveur.</span>
           </div>
         </div>
       )}
@@ -1214,7 +1214,7 @@ function App() {
         <div className="role-preview-banner role-preview-banner--teacher fade-in" role="status">
           <span className="role-preview-banner__icon" aria-hidden>🧑‍🏫</span>
           <div className="role-preview-banner__text">
-            <strong>Vue professeur (aperçu)</strong>
+            <strong>Vue n3boss (aperçu)</strong>
             <span>Interface sans les contrôles admin les plus visibles. Les permissions réelles de votre compte s’appliquent toujours aux actions.</span>
           </div>
         </div>

@@ -62,7 +62,7 @@ test('GET /api/tasks/import/template retourne un modèle CSV', async () => {
 test('POST /api/tasks/import dryRun valide un CSV mixte', async () => {
   const unique = Date.now();
   const csv = [
-    'Type (project|task);Carte (map_id);Projet;Description projet;Tâche;Description tâche;Date limite (YYYY-MM-DD);Élèves requis;Statut (available|in_progress|done|validated|proposed);Récurrence (weekly|biweekly|monthly)',
+    'Type (project|task);Carte (map_id);Projet;Description projet;Tâche;Description tâche;Date limite (YYYY-MM-DD);n3beurs requis;Statut (available|in_progress|done|validated|proposed);Récurrence (weekly|biweekly|monthly)',
     `project;foret;Projet Import ${unique};Description projet;;;;;;;`,
     `task;foret;Projet Import ${unique};;Tâche Import ${unique};Description tâche;2026-05-01;2;available;weekly`,
     'task;foret;;; ;Description invalide;2026-05-01;2;available;weekly',
@@ -94,7 +94,7 @@ test('POST /api/tasks/import crée un projet et sa tâche', async () => {
   const projectTitle = `Projet Réel ${unique}`;
   const taskTitle = `Tâche Réelle ${unique}`;
   const csv = [
-    'Type (project|task);Carte (map_id);Projet;Description projet;Tâche;Description tâche;Date limite (YYYY-MM-DD);Élèves requis;Statut (available|in_progress|done|validated|proposed);Récurrence (weekly|biweekly|monthly)',
+    'Type (project|task);Carte (map_id);Projet;Description projet;Tâche;Description tâche;Date limite (YYYY-MM-DD);n3beurs requis;Statut (available|in_progress|done|validated|proposed);Récurrence (weekly|biweekly|monthly)',
     `project;foret;${projectTitle};Description réelle;;;;;;;`,
     `task;foret;${projectTitle};;${taskTitle};Description tâche réelle;2026-05-07;3;available;biweekly`,
   ].join('\n');

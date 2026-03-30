@@ -509,7 +509,7 @@ router.get('/progress', async (req, res) => {
     const studentId = String(req.query.student_id || '').trim();
     if (studentId) {
       const student = await queryOne("SELECT id FROM users WHERE user_type = 'student' AND id = ? LIMIT 1", [studentId]);
-      if (!student) return res.status(404).json({ error: 'Élève introuvable' });
+      if (!student) return res.status(404).json({ error: 'n3beur introuvable' });
       const rows = await queryAll(
         `SELECT target_type, target_id
          FROM visit_seen_students
@@ -556,7 +556,7 @@ router.post('/seen', async (req, res) => {
 
     if (studentId) {
       const student = await queryOne("SELECT id FROM users WHERE user_type = 'student' AND id = ? LIMIT 1", [studentId]);
-      if (!student) return res.status(404).json({ error: 'Élève introuvable' });
+      if (!student) return res.status(404).json({ error: 'n3beur introuvable' });
       if (seen) {
         await execute(
           `INSERT INTO visit_seen_students (student_id, target_type, target_id, seen_at, updated_at)

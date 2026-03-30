@@ -1,4 +1,4 @@
-/** Infobulles indicateur temps réel (mode prof) */
+/** Infobulles indicateur temps réel (mode n3boss) */
 export const RT_PROF_TOOLTIPS = {
   live: 'Temps réel actif — les listes se mettent à jour tout de suite.',
   polling: 'Synchronisation par rafraîchissement automatique (mode secours).',

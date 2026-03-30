@@ -1,13 +1,5 @@
-const DEFAULT_TERMS = {
-  studentSingular: 'élève',
-  studentPlural: 'élèves',
-  teacherSingular: 'professeur',
-  teacherPlural: 'professeurs',
-  teacherShort: 'prof',
-  teacherShortPlural: 'profs',
-};
-
-const N3_TERMS = {
+/** Libellés visibles pour les rôles (terminologie unifiée n3beur / n3boss). */
+const ROLE_UI_TERMS = {
   studentSingular: 'n3beur',
   studentPlural: 'n3beurs',
   teacherSingular: 'n3boss',
@@ -20,6 +12,7 @@ export function isN3OnlyAffiliation(affiliation) {
   return String(affiliation || '').toLowerCase() === 'n3';
 }
 
-export function getRoleTerms(isN3Affiliated) {
-  return isN3Affiliated ? N3_TERMS : DEFAULT_TERMS;
+/** @param {boolean} [_isN3Affiliated] conservé pour compatibilité des appels ; ignoré. */
+export function getRoleTerms(_isN3Affiliated) {
+  return ROLE_UI_TERMS;
 }

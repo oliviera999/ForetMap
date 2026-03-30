@@ -252,7 +252,7 @@ async function ensureTeacherSeedFromEnv() {
   seedTeacherChecked = true;
   const email = normalizeEmail(process.env.TEACHER_ADMIN_EMAIL);
   const password = normalizeOptionalString(process.env.TEACHER_ADMIN_PASSWORD);
-  const displayName = normalizeOptionalString(process.env.TEACHER_ADMIN_DISPLAY_NAME) || 'Professeur';
+  const displayName = normalizeOptionalString(process.env.TEACHER_ADMIN_DISPLAY_NAME) || 'n3boss';
   if (!email || !password || password.length < PASSWORD_RESET_MIN_LEN) return;
 
   const existing = await queryOne(
@@ -787,9 +787,9 @@ router.post('/forgot-password', async (req, res) => {
       const token = await createPasswordResetToken('student', student.id);
       await sendPasswordResetEmail({
         to: student.email,
-        displayName: `${student.first_name || ''} ${student.last_name || ''}`.trim() || 'Élève',
+        displayName: `${student.first_name || ''} ${student.last_name || ''}`.trim() || 'n3beur',
         resetUrl: makeResetUrl('student', token),
-        roleLabel: 'élève',
+        roleLabel: 'n3beur',
       });
       await logSecurityEvent('auth.password_reset.request.student', {
         req,
@@ -850,9 +850,9 @@ router.post('/teacher/forgot-password', async (req, res) => {
       const token = await createPasswordResetToken('teacher', teacher.id);
       await sendPasswordResetEmail({
         to: teacher.email,
-        displayName: 'Professeur',
+        displayName: 'n3boss',
         resetUrl: makeResetUrl('teacher', token),
-        roleLabel: 'professeur',
+        roleLabel: 'n3boss',
       });
       await logSecurityEvent('auth.password_reset.request.teacher', {
         req,

@@ -34,6 +34,7 @@ function ProfilesAdminView({ isN3Affiliated = false }) {
   const [roleEmoji, setRoleEmoji] = useState('');
   const [roleMinDoneTasks, setRoleMinDoneTasks] = useState('');
   const [roleDisplayOrder, setRoleDisplayOrder] = useState('');
+  const [progressionByTasksEnabled, setProgressionByTasksEnabled] = useState(true);
 
   const load = async () => {
     setErr('');
@@ -49,11 +50,20 @@ function ProfilesAdminView({ isN3Affiliated = false }) {
     const canLoadStudents = perms.includes('stats.read.all');
 
     if (canManageProfiles) {
-      const [profileRows, userRows] = await Promise.all([
+      const [profilePayload, userRows] = await Promise.all([
         api('/api/rbac/profiles'),
         api('/api/rbac/users'),
       ]);
-      const normalized = Array.isArray(profileRows) ? profileRows : [];
+      const normalized = Array.isArray(profilePayload)
+        ? profilePayload
+        : Array.isArray(profilePayload?.roles)
+          ? profilePayload.roles
+          : [];
+      if (profilePayload && typeof profilePayload === 'object' && !Array.isArray(profilePayload)) {
+        setProgressionByTasksEnabled(profilePayload.progressionByValidatedTasksEnabled !== false);
+      } else {
+        setProgressionByTasksEnabled(true);
+      }
       setRoles(normalized.map((r) => ({ ...r, permissions: Array.isArray(r.permissions) ? r.permissions : [] })));
       setCatalog(normalized[0]?.catalog || []);
       setUsers(Array.isArray(userRows) ? userRows : []);
@@ -89,7 +99,7 @@ function ProfilesAdminView({ isN3Affiliated = false }) {
   const canManageStudents = canExport || canImport || canDelete || canCreateUsers;
   const canDeleteUi = canDelete && canReadAllStats;
 
-  /** Même tri que GET /api/rbac/profiles (affichage cohérent avec la progression élève côté serveur). */
+  /** Même tri que GET /api/rbac/profiles (affichage cohérent avec la progression n3beur côté serveur). */
   const sortedRoles = useMemo(() => {
     const copy = [...roles];
     copy.sort((a, b) => {
@@ -197,12 +207,48 @@ function ProfilesAdminView({ isN3Affiliated = false }) {
     setLoading(false);
   };
 
+  const toggleProgressionByValidatedTasks = async (enabled) => {
+    setLoading(true);
+    setErr('');
+    try {
+      await api('/api/rbac/progression-by-validated-tasks', 'PATCH', { enabled: !!enabled });
+      setProgressionByTasksEnabled(!!enabled);
+      setMsg(
+        enabled
+          ? 'Montée de niveau automatique selon les tâches validées : activée.'
+          : 'Montée de niveau automatique : désactivée. Les profils affichés restent ceux attribués manuellement.'
+      );
+    } catch (e) {
+      setErr(e.message || 'Erreur lors de l’enregistrement du réglage');
+    }
+    setLoading(false);
+  };
+
+  const saveStudentMinDoneThreshold = async () => {
+    if (!selectedRole || !/^eleve_/i.test(String(selectedRole.slug || ''))) return;
+    const parsed = roleMinDoneTasks.trim() === '' ? NaN : parseInt(roleMinDoneTasks, 10);
+    if (!Number.isFinite(parsed) || parsed < 0) {
+      setErr('Seuil invalide : indiquez un entier ≥ 0');
+      return;
+    }
+    setLoading(true);
+    setErr('');
+    try {
+      await api(`/api/rbac/profiles/${selectedRole.id}`, 'PATCH', { min_done_tasks: parsed });
+      setMsg('Nombre de tâches validées requis pour ce niveau enregistré');
+      await load();
+    } catch (e) {
+      setErr(e.message || 'Erreur enregistrement du seuil');
+    }
+    setLoading(false);
+  };
+
   const createRoleProfile = async () => {
     const slug = window.prompt('Slug du nouveau profil (ex: eleve_mentor)', '');
     if (!slug || !slug.trim()) return;
     const displayName = window.prompt('Nom du profil', slug.trim());
     if (!displayName || !displayName.trim()) return;
-    const emojiInput = window.prompt("Emoji du profil (obligatoire pour un profil élève)", '');
+    const emojiInput = window.prompt("Emoji du profil (obligatoire pour un profil n3beur)", '');
     if (emojiInput == null) return;
     const minDoneInput = window.prompt(
       'Niveau requis pour atteindre ce profil (nombre de tâches validées)',
@@ -218,11 +264,11 @@ function ProfilesAdminView({ isN3Affiliated = false }) {
     const parsedMinDone = minDoneInput.trim() === '' ? null : parseInt(minDoneInput, 10);
     const parsedDisplayOrder = parseInt(displayOrderInput, 10);
     if (normalizedSlug.startsWith('eleve_') && !emojiInput.trim()) {
-      setErr('Un profil élève doit avoir un emoji');
+      setErr('Un profil n3beur doit avoir un emoji');
       return;
     }
     if (normalizedSlug.startsWith('eleve_') && parsedMinDone == null) {
-      setErr('Un profil élève doit avoir un niveau requis');
+      setErr('Un profil n3beur doit avoir un niveau requis');
       return;
     }
     if (minDoneInput.trim() !== '' && (!Number.isFinite(parsedMinDone) || parsedMinDone < 0)) {
@@ -373,7 +419,7 @@ function ProfilesAdminView({ isN3Affiliated = false }) {
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = format === 'xlsx' ? 'foretmap-modele-eleves.xlsx' : 'foretmap-modele-eleves.csv';
+      link.download = format === 'xlsx' ? 'foretmap-modele-n3beurs.xlsx' : 'foretmap-modele-n3beurs.csv';
       link.click();
       URL.revokeObjectURL(url);
     } catch (e) {
@@ -479,7 +525,7 @@ function ProfilesAdminView({ isN3Affiliated = false }) {
             <div style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: 12, padding: 12 }}>
               <h3 style={{ marginTop: 0 }}>Profils</h3>
               <p style={{ margin: '0 0 10px', fontSize: '.8rem', color: '#6b7280', lineHeight: 1.45 }}>
-                Utilisez ↑ ↓ pour définir l’ordre d’affichage (liste ci-dessous, menus d’attribution et progression élève alignés sur cet ordre).
+                Utilisez ↑ ↓ pour définir l’ordre d’affichage (liste ci-dessous, menus d’attribution et progression n3beur alignés sur cet ordre).
               </p>
               <button className="btn btn-secondary btn-sm" onClick={createRoleProfile} disabled={loading} style={{ marginBottom: 10 }}>
                 + Créer un profil
@@ -536,23 +582,81 @@ function ProfilesAdminView({ isN3Affiliated = false }) {
             <div style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: 12, padding: 12 }}>
               <h3 style={{ marginTop: 0 }}>Permissions</h3>
               {!selectedRole && <p style={{ margin: 0 }}>Sélectionnez un profil.</p>}
-              {selectedRole && catalog.map((perm) => {
-                const current = (selectedRole.permissions || []).find((p) => p.key === perm.key);
-                return (
-                  <div className="profiles-admin-perm-row" key={perm.key}>
-                    <div>
-                      <div style={{ fontSize: '.86rem', fontWeight: 600 }}>{perm.label}</div>
-                      <div style={{ fontSize: '.75rem', color: '#6b7280' }}>{perm.key}</div>
+              {selectedRole && (
+                <>
+                  <div
+                    className="profiles-admin-progression-block"
+                    style={{
+                      border: '1px solid #e0e7ff',
+                      background: '#f8fafc',
+                      borderRadius: 10,
+                      padding: 12,
+                      marginBottom: 14,
+                    }}
+                  >
+                    <div style={{ fontSize: '.88rem', fontWeight: 700, color: '#1e3a5f', marginBottom: 8 }}>
+                      Progression par tâches validées
                     </div>
-                    <label style={{ fontSize: '.8rem' }}>
-                      <input type="checkbox" checked={!!current} onChange={(e) => togglePermission(perm.key, e.target.checked)} disabled={loading} /> Actif
+                    <label style={{ display: 'flex', alignItems: 'flex-start', gap: 10, fontSize: '.84rem', cursor: loading ? 'default' : 'pointer', marginBottom: 8 }}>
+                      <input
+                        type="checkbox"
+                        checked={progressionByTasksEnabled}
+                        onChange={(e) => toggleProgressionByValidatedTasks(e.target.checked)}
+                        disabled={loading}
+                        style={{ marginTop: 3 }}
+                      />
+                      <span>
+                        Activer la montée de niveau automatique : le profil {roleTerms.studentSingular} suit le nombre de tâches validées selon les seuils définis pour chaque palier.
+                      </span>
                     </label>
-                    <label style={{ fontSize: '.8rem' }}>
-                      <input type="checkbox" checked={!!current?.requires_elevation} onChange={(e) => togglePermissionElevation(perm.key, e.target.checked)} disabled={!current || loading} /> PIN
-                    </label>
+                    <p style={{ fontSize: '.76rem', color: '#64748b', margin: '0 0 10px', lineHeight: 1.45 }}>
+                      Si cette option est désactivée, aucun changement automatique de profil ne s’applique : utilisez la section « Attribution des profils » pour les niveaux.
+                    </p>
+                    {/^eleve_/i.test(String(selectedRole.slug || '')) && (
+                      <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: 10 }}>
+                        <div style={{ fontSize: '.8rem', fontWeight: 600, color: '#334155', marginBottom: 6 }}>
+                          Seuil pour « {selectedRole.display_name} »
+                        </div>
+                        <label style={{ fontSize: '.76rem', color: '#64748b', display: 'block', marginBottom: 6 }}>
+                          Nombre de tâches validées requises pour atteindre ce niveau (palier suivant = seuil supérieur ou égal).
+                        </label>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
+                          <input
+                            type="number"
+                            min={0}
+                            step={1}
+                            value={roleMinDoneTasks}
+                            onChange={(e) => setRoleMinDoneTasks(e.target.value)}
+                            disabled={loading}
+                            style={{ width: 110, padding: '6px 8px', borderRadius: 8, border: '1px solid #cbd5e1' }}
+                            aria-label={`Tâches validées requises pour ${selectedRole.display_name}`}
+                          />
+                          <button type="button" className="btn btn-secondary btn-sm" onClick={saveStudentMinDoneThreshold} disabled={loading}>
+                            Enregistrer le seuil
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   </div>
-                );
-              })}
+                  {catalog.map((perm) => {
+                    const current = (selectedRole.permissions || []).find((p) => p.key === perm.key);
+                    return (
+                      <div className="profiles-admin-perm-row" key={perm.key}>
+                        <div>
+                          <div style={{ fontSize: '.86rem', fontWeight: 600 }}>{perm.label}</div>
+                          <div style={{ fontSize: '.75rem', color: '#6b7280' }}>{perm.key}</div>
+                        </div>
+                        <label style={{ fontSize: '.8rem' }}>
+                          <input type="checkbox" checked={!!current} onChange={(e) => togglePermission(perm.key, e.target.checked)} disabled={loading} /> Actif
+                        </label>
+                        <label style={{ fontSize: '.8rem' }}>
+                          <input type="checkbox" checked={!!current?.requires_elevation} onChange={(e) => togglePermissionElevation(perm.key, e.target.checked)} disabled={!current || loading} /> PIN
+                        </label>
+                      </div>
+                    );
+                  })}
+                </>
+              )}
             </div>
           </div>
 

@@ -8,14 +8,14 @@ const HELP_TOOLTIPS = {
   header: {
     userBadge: {
       text: 'Voir ta progression et tes statistiques.',
-      textTeacher: 'Ouvrir les statistiques des eleves.',
+      textTeacher: 'Ouvrir les statistiques des n3beurs.',
     },
     profileEdit: { text: 'Modifier ton profil.' },
     roleReset: { textTeacher: 'Revenir au role normal.' },
-    roleStudent: { textTeacher: 'Afficher l app comme un eleve.' },
-    roleTeacher: { textTeacher: 'Afficher l app comme un prof.' },
+    roleStudent: { textTeacher: 'Afficher l app comme un n3beur.' },
+    roleTeacher: { textTeacher: 'Afficher l app comme un n3boss.' },
     elevatedMode: {
-      text: 'Mode prof avec plus de droits.',
+      text: 'Mode n3boss avec plus de droits.',
       textTeacher: 'Activer ou couper les droits etendus.',
     },
     logout: { text: 'Se deconnecter de ForetMap.' },
@@ -56,7 +56,7 @@ const HELP_PANELS = {
         text: 'Si la page bouge, active les gestes carte avec le bouton cadenas.',
       },
       {
-        textTeacher: 'En mode prof, tu peux ajouter des zones et des reperes.',
+        textTeacher: 'En mode n3boss, tu peux ajouter des zones et des reperes.',
       },
     ],
   },
@@ -70,7 +70,7 @@ const HELP_PANELS = {
         text: 'Quand tu as fini, envoie un rapport avec un commentaire ou une photo.',
       },
       {
-        textTeacher: 'En mode prof, valide les taches terminees et gere les statuts.',
+        textTeacher: 'En mode n3boss, valide les taches terminees et gere les statuts.',
       },
       {
         textTeacher: 'Tu peux modifier, dupliquer ou supprimer une tache.',
@@ -87,7 +87,7 @@ const HELP_PANELS = {
         text: 'Ouvre une fiche pour voir ses infos utiles.',
       },
       {
-        textTeacher: 'En mode prof, ajoute et mets a jour les fiches biodiversite.',
+        textTeacher: 'En mode n3boss, ajoute et mets a jour les fiches biodiversite.',
       },
     ],
   },
@@ -101,7 +101,7 @@ const HELP_PANELS = {
         text: 'Marque ce que tu as deja vu pour suivre ta progression.',
       },
       {
-        textTeacher: 'En mode prof, tu peux modifier le contenu de visite.',
+        textTeacher: 'En mode n3boss, tu peux modifier le contenu de visite.',
       },
       {
         textTeacher: 'Tu peux aussi choisir les tutoriels visibles pendant la visite.',

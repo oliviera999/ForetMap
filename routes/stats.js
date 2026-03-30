@@ -35,6 +35,7 @@ async function userStats(userId) {
       steps: sync.steps,
       roleSlug: sync.currentRoleSlug,
       roleDisplayName: sync.currentRoleDisplayName,
+      autoProgressionEnabled: sync.autoProgressionEnabled !== false,
     };
   }
   return {
@@ -107,6 +108,7 @@ router.get('/all', requirePermission('stats.read.all'), async (req, res) => {
           roleSlug: sync.currentRoleSlug,
           roleDisplayName: sync.currentRoleDisplayName,
           roleEmoji: currentStep?.emoji || null,
+          autoProgressionEnabled: sync.autoProgressionEnabled !== false,
         },
       };
     }));
@@ -118,7 +120,7 @@ router.get('/all', requirePermission('stats.read.all'), async (req, res) => {
   }
 });
 
-// Export CSV des stats élèves (prof uniquement)
+// Export CSV des stats n3beurs (n3boss uniquement)
 router.get('/export', requirePermission('stats.export', { needsElevation: true }), async (req, res) => {
   try {
     const students = await queryAll("SELECT * FROM users WHERE user_type = 'student'");
