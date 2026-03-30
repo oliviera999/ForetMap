@@ -1596,7 +1596,7 @@ function MapView({ zones, markers, tasks = [], plants, maps = [], activeMapId = 
             y={my}
             textAnchor="middle"
             dominantBaseline="middle"
-            fontSize={Math.max(11, 16 * inv)}
+            fontSize={Math.max(13, 19 * inv)}
             fontFamily="Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif"
             style={{ pointerEvents: 'none', userSelect: 'none' }}
           >
@@ -1604,17 +1604,17 @@ function MapView({ zones, markers, tasks = [], plants, maps = [], activeMapId = 
           </text>
         )}
         {showLabels && (
-          <text x={mx} y={my + (zoneEmoji ? (12 * inv) : 0)} textAnchor="middle" dominantBaseline="middle"
-            fontSize={Math.max(8, 12 * inv)} fontWeight="700" fontFamily="DM Sans,sans-serif"
+          <text x={mx} y={my + (zoneEmoji ? (14 * inv) : 0)} textAnchor="middle" dominantBaseline="middle"
+            fontSize={Math.max(10, 14 * inv)} fontWeight="700" fontFamily="DM Sans,sans-serif"
             fill="#1a4731" stroke="rgba(255,255,255,0.8)" strokeWidth={3 * inv} paintOrder="stroke"
             style={{ pointerEvents: 'none', userSelect: 'none' }}>{zoneName || z.name}</text>
         )}
         {zoneTaskVisual && (
           <circle
             className={`map-task-status map-task-status--${zoneTaskVisual}`}
-            cx={mx + (14 * inv)}
-            cy={my - (11 * inv)}
-            r={Math.max(4, 6 * inv)}
+            cx={mx + (16 * inv)}
+            cy={my - (12 * inv)}
+            r={Math.max(5, 7 * inv)}
             style={{ pointerEvents: 'none' }}>
             <title>{TASK_VISUAL_LABEL[zoneTaskVisual]}</title>
           </circle>
@@ -1854,14 +1854,14 @@ function MapView({ zones, markers, tasks = [], plants, maps = [], activeMapId = 
             const markerTaskLabel = markerTaskVisual ? TASK_VISUAL_LABEL[markerTaskVisual] : '';
             const markerAriaLabel = [m.label || 'Repère', markerTaskLabel].filter(Boolean).join(' — ');
             const markerPinSize = isCoarsePointer
-              ? 'clamp(46px, 13vw, 54px)'
-              : 'clamp(34px, 8vw, 38px)';
-            const markerEmojiSize = `${Math.max(11, 16 * inv)}px`;
+              ? 'clamp(50px, 14vw, 60px)'
+              : 'clamp(38px, 9vw, 44px)';
+            const markerEmojiSize = `${Math.max(13, 19 * inv)}px`;
             const markerHitPadding = isCoarsePointer ? 6 : 0;
-            const markerStatusDotSize = isCoarsePointer ? 15 : 10;
+            const markerStatusDotSize = isCoarsePointer ? 17 : 12;
             const markerStatusDotBorder = isCoarsePointer ? 2 : 1.5;
             const markerStatusDotOffset = isCoarsePointer ? -2 : -1;
-            const markerLabelFontSize = `${Math.max(8, 12 * inv)}px`;
+            const markerLabelFontSize = `${Math.max(10, 14 * inv)}px`;
             const openMarker = (e) => {
               e.stopPropagation();
               if (!moved.current) setSelectedMarker(m);

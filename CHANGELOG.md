@@ -10,6 +10,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - **Réseau** : les appels `fetch` de l’API client passent par un **délai d’attente 40 s** (`AbortController`) pour qu’un chargement bloqué ne reste pas indéfiniment sur l’écran « Chargement… ».
 
 ### Modifié
+- **Carte** : emojis des zones et des repères, pastilles de statut des tâches et libellés légèrement agrandis pour une meilleure lisibilité.
 - **Build** : régénération des bundles `dist/` (Vite production).
 - **Mobile (écran carte)** : barre d’outils (plans, modes, zoom) plus compacte pour réduire la hauteur perdue par rapport aux autres onglets ; le bouton d’aide « ? » conserve une taille tactile adaptée.
 - **Cartes & tâches (vue split)** : le plan est aligné en haut de la colonne carte (plus de centrage vertical) pour rester sous la barre d’outils lorsque la liste des tâches impose une grande hauteur.
