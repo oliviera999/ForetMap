@@ -26,7 +26,7 @@ module.exports = defineConfig({
     serviceWorkers: 'block',
   },
   webServer: process.env.CI ? undefined : {
-    // start:e2e impose E2E_DISABLE_RATE_LIMIT via cross-env (fiable sous Windows ; webServer.env seul peut ne pas atteindre node).
+    // start:e2e = node server.js --foretmap-e2e-no-rate-limit (bypass fiable du rate limit, y compris sous Windows).
     command: 'npm run db:init && npm run start:e2e',
     env: { ...process.env, E2E_DISABLE_RATE_LIMIT: '1' },
     url: `${baseURL}/api/health`,

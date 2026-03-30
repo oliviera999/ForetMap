@@ -348,4 +348,6 @@ Des tests UI de non-régression (parcours élève/prof) sont disponibles dans `e
 npm run test:e2e
 ```
 
-Par défaut, ils ciblent `http://127.0.0.1:3000`. Vous pouvez surcharger avec `E2E_BASE_URL`.
+La commande libère le port d’écoute (souvent **3000**), puis Playwright démarre **`npm run start:e2e`** (serveur avec **`--foretmap-e2e-no-rate-limit`** pour éviter les **429** sur l’API). Détails : **[docs/LOCAL_DEV.md](docs/LOCAL_DEV.md)** (§ 5bis).
+
+Par défaut, ils ciblent `http://127.0.0.1:3000`. Vous pouvez surcharger avec **`E2E_BASE_URL`**.

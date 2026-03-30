@@ -23,22 +23,49 @@ npm run test:e2e
 npm run test:e2e:headed
 ```
 
+Les deux enchaînent **`node scripts/e2e-kill-listen-port.js`** (hors CI) pour libérer le port d’écoute (souvent **3000**) avant Playwright, puis lancent la suite. Cela évite de réutiliser par erreur un **vieux `node server.js`** sans le mode e2e.
+
+## Démarrage du serveur (local, hors CI)
+
+- **`playwright.config.js`** charge **`.env`** (`require('dotenv').config()`) pour que **`TEACHER_PIN`** (et le reste) soient alignés avec le serveur lors des tests qui élèvent le mode prof (PIN saisi = `E2E_ELEVATION_PIN` ou `TEACHER_PIN` ou `1234` par défaut dans la fixture).
+- Hors CI, Playwright démarre **`npm run db:init && npm run start:e2e`**.
+- **`npm run start:e2e`** exécute **`node server.js --foretmap-e2e-no-rate-limit`**, ce qui positionne **`E2E_DISABLE_RATE_LIMIT=1`** au démarrage. Sur Windows, seule la variable d’environnement (sans ce flag) peut **ne pas** atteindre le process Node : le flag CLI est la source de vérité pour le bypass du **rate limiting** (`429` « Trop de requêtes » sur l’inscription ou les formulaires).
+- **`webServer.env`** du config Playwright redonde encore **`E2E_DISABLE_RATE_LIMIT=1`** ; le flag CLI reste indispensable pour la fiabilité.
+
+### Réutiliser un serveur déjà lancé
+
+- Variable **`E2E_REUSE_SERVER=1`** : Playwright ne redémarre pas le serveur si **`baseURL/api/health`** répond.
+- Le serveur réutilisé **doit** être lancé avec **`npm run start:e2e`** (ou équivalent avec le flag **`--foretmap-e2e-no-rate-limit`**) et un **`dist/`** à jour si vous servez la prod locale, sinon les tests peuvent échouer ou subir le rate limit.
+
+### À éviter
+
+- Lancer **`npx playwright test …`** seul alors qu’un **`npm start`** classique occupe déjà le port : Playwright peut réutiliser ce process (**sans** bypass) → **429** ou code obsolète.
+- Préférer **`npm run test:e2e`** pour la suite complète locale.
+
 ## Fichiers clés
 
 | Fichier/Dossier | Rôle |
 |-----------------|------|
 | `e2e/` | Scénarios Playwright (auth, tâches, photos, temps réel, cas PIN invalide) |
-| `e2e/fixtures/` | Helpers et données partagées pour les specs |
-| `playwright.config.js` | Configuration d'exécution (projets, retries, timeouts, base URL) |
-| `package.json` | Scripts `test:e2e` et `test:e2e:headed` |
+| `e2e/fixtures/auth.fixture.js` | Inscription, login, mode prof (`enableTeacherMode` / `disableTeacherMode`), onglets tâches |
+| `scripts/e2e-kill-listen-port.js` | Libère le port HTTP (Windows : `taskkill` via `netstat`) avant les runs |
+| `playwright.config.js` | Workers, timeouts, `webServer`, `serviceWorkers: 'block'`, dotenv |
+| `package.json` | `test:e2e`, `test:e2e:headed`, **`start:e2e`** |
+| `server.js` | Traitement du flag **`--foretmap-e2e-no-rate-limit`** en tout début de fichier |
 
 ## Conventions de rédaction
 
 - Écrire des scénarios orientés comportement utilisateur (actions + résultat visible).
-- Préférer des sélecteurs robustes et stables (rôle/texte contrôlé) pour limiter la fragilité.
+- Préférer des sélecteurs robustes : **`getByRole`**, **`getByLabel`** (labels correctement liés aux champs dans le JSX : `htmlFor` / `id`), texte stable.
+- Libellés prof pour les statuts tâche : boutons du type **`✔️ Validée`**, toasts du type **`Statut mis à jour : Validée`** (pas de bouton « Valider » générique si l’UI a changé).
+- Apostrophe dans « Je m'en occupe » : prévoir **`/Je m['\u2019]en occupe/`** (ASCII ou typographique).
 - Garder les tests indépendants : chaque spec prépare ses prérequis.
 - Couvrir en priorité les flux critiques avant les cas rares.
-- En cas de flaky test, corriger la synchronisation (attentes explicites) avant d'augmenter brutalement les timeouts.
+- En cas de flaky test, corriger la synchronisation (attentes explicites) avant d’augmenter brutalement les timeouts.
+
+## CI
+
+- Le workflow GitHub démarre le serveur avec **`npm run start:e2e`** en arrière-plan, puis **`npm run test:e2e`** avec **`E2E_BASE_URL`** et les variables BDD de test. Pas de **`webServer`** Playwright en CI (`CI=true`).
 
 ## Priorités (alignées EVOLUTION)
 
@@ -48,6 +75,8 @@ npm run test:e2e:headed
 
 ## Voir aussi
 
+- Développement local : [docs/LOCAL_DEV.md](docs/LOCAL_DEV.md) (§ tests Playwright)
+- Rate limit / charge : [docs/API.md](docs/API.md) (en-tête load test + mode e2e)
 - Feuille de route : [docs/EVOLUTION.md](docs/EVOLUTION.md) (backlog § 2.1, séquence §§ 3-4)
 - Skill backend tests : `.cursor/skills/foretmap-tests/SKILL.md`
 - Règle frontend : `.cursor/rules/foretmap-frontend.mdc`

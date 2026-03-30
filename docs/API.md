@@ -54,6 +54,15 @@ Pour les environnements de test (local/staging), le rate limiter global et auth 
 
 Sans `LOAD_TEST_SECRET`, le comportement reste inchangé : le rate limiting s'applique normalement à toutes les requêtes.
 
+### Mode Playwright / e2e (rate limit)
+
+Pour les campagnes **Playwright** et un serveur de dev dédié aux e2e, le rate limiting global et auth peut être désactivé si **l’une** des conditions suivantes est remplie côté process Node du serveur :
+
+1. variable d’environnement **`E2E_DISABLE_RATE_LIMIT=1`** (peut être insuffisante seule sur certains environnements Windows selon la chaîne `npm`) ;
+2. **recommandé** : démarrage avec l’argument **`--foretmap-e2e-no-rate-limit`** (script npm **`npm run start:e2e`**), qui force en interne le même bypass.
+
+Réservé aux environnements de **développement / CI** ; ne pas utiliser en production.
+
 ---
 
 ## Temps réel (Socket.IO)

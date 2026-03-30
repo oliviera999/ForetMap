@@ -1,6 +1,6 @@
 {
   "name": "foretmap",
-  "version": "1.23.4",
+  "version": "1.23.5",
   "description": "Application de gestion de la forêt comestible - Lycée Lyautey",
   "main": "server.js",
   "dependencies": {
@@ -61,7 +61,7 @@
     "test:load:all": "node scripts/run-load-scenarios.js",
     "test:load:report": "node scripts/render-load-report.js",
     "test:e2e": "node scripts/e2e-kill-listen-port.js && npx playwright test",
-    "test:e2e:headed": "npx playwright test --headed",
+    "test:e2e:headed": "node scripts/e2e-kill-listen-port.js && npx playwright test --headed",
     "docker:up": "docker compose up -d || docker-compose up -d",
     "docker:down": "docker compose down || docker-compose down",
     "local:setup": "npm run docker:up && npm install --include=dev && node scripts/wait-mysql-ready.js && npm run db:init && npm run check:local",

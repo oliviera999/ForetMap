@@ -110,15 +110,27 @@ Le script force `DB_NAME=foretmap_test` ; le schéma est (re)créé par les fich
 
 ## 5bis. Tests UI smoke (Playwright)
 
-Playwright démarre automatiquement le serveur local (hors CI) et réutilise un serveur existant si déjà lancé.
-Il faut simplement MySQL accessible et les navigateurs Playwright installés:
+Prérequis : MySQL accessible (même base que le dev local, schéma à jour), navigateurs Playwright :
 
 ```bash
 npx playwright install
 npm run test:e2e
 ```
 
-Vous pouvez cibler une autre URL avec `E2E_BASE_URL`.
+La commande **`npm run test:e2e`** enchaîne :
+
+1. **`scripts/e2e-kill-listen-port.js`** (hors CI) : libère le port **3000** (ou `PORT` / `E2E_KILL_PORT`) pour éviter un vieux Node qui écoute encore sans le mode e2e.
+2. **Playwright** : hors CI, **`webServer`** exécute **`npm run db:init && npm run start:e2e`**.  
+   - **`npm run start:e2e`** = **`node server.js --foretmap-e2e-no-rate-limit`** : désactive le **rate limiting** (sinon inscription / formulaires peuvent renvoyer **« Trop de requêtes »**). Sur Windows, ce **flag CLI** est plus fiable que la seule variable **`E2E_DISABLE_RATE_LIMIT`**.
+3. Le fichier **`playwright.config.js`** charge **`.env`** : le PIN prof des tests suit **`TEACHER_PIN`** (surcharge possible avec **`E2E_ELEVATION_PIN`**).
+
+**Réutiliser un serveur déjà démarré** : définir **`E2E_REUSE_SERVER=1`**. Le process sur le port doit alors être lancé avec **`npm run start:e2e`** (ou équivalent avec **`--foretmap-e2e-no-rate-limit`**) et, si vous servez le build prod, un **`dist/`** à jour.
+
+**Ne pas** lancer seulement **`npx playwright test …`** si un **`npm start`** « normal » occupe déjà le port : Playwright peut réutiliser ce serveur **sans** bypass → échecs **429** ou code périmé.
+
+**CI** : le workflow démarre le serveur avec **`npm run start:e2e`**, puis exécute **`npm run test:e2e`** avec **`E2E_BASE_URL`** (pas de **`webServer`** Playwright quand **`CI=true`**).
+
+Vous pouvez cibler une autre URL avec **`E2E_BASE_URL`**.
 
 ## 5ter. Tests de montée en charge (Artillery)
 
