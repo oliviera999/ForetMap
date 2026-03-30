@@ -1837,10 +1837,13 @@ function MapView({ zones, markers, tasks = [], plants, maps = [], activeMapId = 
                 beginMarkerDrag(m.id, e.currentTarget, e.pointerId);
               } : undefined}
               onPointerUp={e => e.stopPropagation()}>
-              <div className="map-bubble-pin" style={{ background: 'white', border: '2.5px solid var(--forest)',
-                borderRadius: '50%', width: markerPinSize, height: markerPinSize,
+              <div className="map-bubble-pin" style={{
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: markerEmojiSize, boxShadow: '0 2px 10px rgba(0,0,0,.22)' }}>
+                minWidth: markerPinSize, minHeight: markerPinSize,
+                background: 'transparent', border: 'none', borderRadius: 0,
+                fontSize: markerEmojiSize,
+                fontFamily: 'Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif',
+                lineHeight: 1 }}>
                 {m.emoji}
                 {markerTaskVisual && (
                   <span

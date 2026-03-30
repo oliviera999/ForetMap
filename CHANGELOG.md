@@ -5,6 +5,10 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Modifié
+- **Carte & visite** : les repères s’affichent comme les zones (emoji seul, sans disque blanc bordé de vert) sur la carte principale et sur la carte de visite ; zone de touche minimale conservée pour le mobile.
+- **Build frontend** : régénération des bundles dans `dist/` (Vite production).
+
 ### Ajouté
 - **Profils & utilisateurs (colonne Permissions)** : bloc « Progression par tâches validées » — case à cocher pour activer ou désactiver la montée de niveau automatique des profils élèves (réglage `rbac.progression_by_validated_tasks`, aussi éditable dans Paramètres admin) ; pour chaque profil `eleve_*`, champ numérique + bouton pour fixer le nombre de tâches validées requises (`min_done_tasks`) sans repasser par « Modifier ».
 - **API** : `GET /api/rbac/profiles` renvoie `{ roles, progressionByValidatedTasksEnabled }` ; `PATCH /api/rbac/progression-by-validated-tasks` avec `{ enabled: boolean }` ; les réponses stats exposent `progression.autoProgressionEnabled`.
