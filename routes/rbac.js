@@ -3,7 +3,7 @@ const bcrypt = require('bcryptjs');
 const { v4: uuidv4 } = require('uuid');
 const { queryAll, queryOne, execute } = require('../database');
 const { requirePermission } = require('../middleware/requireTeacher');
-const { hashPin, setPrimaryRole } = require('../lib/rbac');
+const { setPrimaryRole } = require('../lib/rbac');
 const { getSettingValue } = require('../lib/settings');
 const { emitStudentsChanged } = require('../lib/realtime');
 const { logRouteError } = require('../lib/routeLog');
@@ -307,9 +307,10 @@ router.put(
       if (!role) return res.status(404).json({ error: 'Profil introuvable' });
       const pin = String(req.body?.pin || '').trim();
       if (!/^\d{4,12}$/.test(pin)) return res.status(400).json({ error: 'PIN invalide (4 à 12 chiffres)' });
+      const pinHash = await bcrypt.hash(pin, 10);
       await execute(
         'INSERT INTO role_pin_secrets (role_id, pin_hash) VALUES (?, ?) ON DUPLICATE KEY UPDATE pin_hash = VALUES(pin_hash), updated_at = NOW()',
-        [role.id, hashPin(pin)]
+        [role.id, pinHash]
       );
       logAudit('rbac_update_profile_pin', 'role', role.id, 'PIN mis à jour', { req });
       res.json({ ok: true });

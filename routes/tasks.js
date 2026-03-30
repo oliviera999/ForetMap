@@ -3,7 +3,7 @@ const jwt = require('jsonwebtoken');
 const XLSX = require('xlsx');
 const { v4: uuidv4 } = require('uuid');
 const { queryAll, queryOne, execute } = require('../database');
-const { requirePermission, JWT_SECRET } = require('../middleware/requireTeacher');
+const { requirePermission, JWT_SECRET, hydrateAuthFromTokenClaims } = require('../middleware/requireTeacher');
 const { saveBase64ToDisk, getAbsolutePath } = require('../lib/uploads');
 const { logRouteError } = require('../lib/routeLog');
 const { logAudit } = require('./audit');
@@ -369,13 +369,14 @@ async function resolveImportRows(body = {}) {
   return parseWorkbookRowsFromBuffer(buffer);
 }
 
-function parseOptionalAuth(req) {
+async function parseOptionalAuth(req) {
   try {
     if (!JWT_SECRET) return null;
     const auth = req.headers.authorization;
     const token = auth && auth.startsWith('Bearer ') ? auth.slice(7) : null;
     if (!token) return null;
-    return jwt.verify(token, JWT_SECRET);
+    const claims = jwt.verify(token, JWT_SECRET);
+    return await hydrateAuthFromTokenClaims(claims);
   } catch (_) {
     return null;
   }
@@ -767,7 +768,7 @@ function trimName(value) {
 }
 
 async function resolveStudentActionContext(req, payload = {}, permissionKey) {
-  const auth = parseOptionalAuth(req);
+  const auth = await parseOptionalAuth(req);
   const profilePin = payload?.profilePin;
   const providedStudentId = normalizeOptionalId(payload?.studentId);
   const providedFirstName = trimName(payload?.firstName);
@@ -839,7 +840,7 @@ async function resolveStudentActionContext(req, payload = {}, permissionKey) {
 
 router.get('/', async (req, res) => {
   try {
-    const auth = parseOptionalAuth(req);
+    const auth = await parseOptionalAuth(req);
     const mapId = req.query.map_id ? String(req.query.map_id).trim() : '';
     const projectId = req.query.project_id ? String(req.query.project_id).trim() : '';
     if (mapId && !(await mapExists(mapId))) {
@@ -963,6 +964,14 @@ router.get('/:id', async (req, res) => {
   try {
     const task = await getTaskWithAssignments(req.params.id);
     if (!task) return res.status(404).json({ error: 'Tâche introuvable' });
+    const authOne = await parseOptionalAuth(req);
+    if (authOne?.userType === 'student' && isVisitorRole(authOne)) {
+      const mine = (task.assignments || []).filter((a) => String(a.student_id || '') === String(authOne.userId));
+      task.assignments = mine;
+      if (task.proposed_by_student_id && String(task.proposed_by_student_id) !== String(authOne.userId)) {
+        task.proposed_by_student_id = null;
+      }
+    }
     res.json(task);
   } catch (e) {
     respondInternalError(res, req, e);
@@ -1345,6 +1354,11 @@ router.post('/proposals', async (req, res) => {
     if (!firstName || !lastName) return res.status(400).json({ error: 'Nom requis' });
     if (!studentId) return res.status(400).json({ error: 'Identifiant élève requis' });
 
+    const authProposal = await parseOptionalAuth(req);
+    if (authProposal?.userType === 'student' && isVisitorRole(authProposal)) {
+      return res.status(403).json({ error: 'Le profil visiteur ne permet pas cette action.' });
+    }
+
     const student = await queryOne("SELECT id FROM users WHERE user_type = 'student' AND id = ?", [studentId]);
     if (!student) return res.status(401).json({ error: 'Compte supprimé', deleted: true });
     const permission = await ensureStudentPermission({ studentId, permissionKey: 'tasks.propose', profilePin });
@@ -1405,7 +1419,7 @@ router.put('/:id', async (req, res) => {
   try {
     const task = await queryOne('SELECT * FROM tasks WHERE id = ?', [req.params.id]);
     if (!task) return res.status(404).json({ error: 'Tâche introuvable' });
-    const auth = parseOptionalAuth(req);
+    const auth = await parseOptionalAuth(req);
     const isTeacherAction = canManageTasks(auth);
     const isStudentSession = auth?.userType === 'student' && !!auth?.userId;
     const proposerStudentId = await getTaskProposerStudentId(task.id);
@@ -1718,7 +1732,7 @@ router.post('/:id/done', async (req, res) => {
 
 router.get('/:id/logs', async (req, res) => {
   try {
-    const auth = parseOptionalAuth(req);
+    const auth = await parseOptionalAuth(req);
     if (isVisitorRole(auth)) {
       return res.status(403).json({ error: 'Accès refusé aux journaux de tâche pour le profil visiteur' });
     }

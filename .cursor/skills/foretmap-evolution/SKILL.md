@@ -19,7 +19,7 @@ description: S'appuie sur les recommandations d'évolution du projet ForetMap (a
 ## Checklist avant toute évolution
 
 1. **Lire** `docs/EVOLUTION.md` (section concernée) pour connaître le contexte et la solution proposée.
-2. **Vérifier l'ordre** suggéré (§ 5 du document) — respecter les dépendances entre étapes.
+2. **Vérifier l'ordre** suggéré (sections "Prochaine séquence recommandée" et "Ordre suggéré des actions") — respecter les dépendances entre étapes.
 3. **Identifier les fichiers impactés** à l'aide du tableau ci-dessous.
 4. **Tester le comportement actuel** avant de modifier (lancer `npm test` ou vérifier manuellement).
 5. **Implémenter par petites étapes** : un commit par changement logique, pas de big-bang.
@@ -32,9 +32,9 @@ Toutes les recommandations détaillées sont dans **docs/EVOLUTION.md** (à la r
 
 ## Priorités (résumé)
 
-1. **Haute — Sécurité :** Auth côté serveur pour les actions « prof » (middleware JWT + vérification PIN côté serveur). Supprimer le PIN du frontend. Restreindre CORS en production.
-2. **Moyenne :** Renforcer la non-régression UI automatisée et l’intégration CI e2e.
-3. **Basse :** Maintenance continue des scripts/docs post-bascule image.
+1. **Haute — Tests UI non-régression :** stabiliser et étendre les scénarios Playwright (`e2e/`) sur les parcours critiques, puis couvrir progressivement les cas limites.
+2. **Moyenne — Maintenance disk-only :** garder scripts et documentation alignés sur la suppression du legacy base64.
+3. **Basse — Nettoyage frontend optionnel :** poursuivre le nettoyage de façade historique si utile, sans impact métier.
 
 ## État d'avancement
 
@@ -46,10 +46,12 @@ Toutes les recommandations détaillées sont dans **docs/EVOLUTION.md** (à la r
 | Script `dev` avec nodemon | Fait |
 | Logger Pino + trace erreurs | Fait |
 | Tests backend (auth, statuts, suppression) | Fait (base) |
-| Supprimer PIN du frontend | Fait |
-| Images sur disque (au lieu de base64) | Fait |
+| Tests Playwright + exécution e2e en CI | Fait (base + scénarios étendus) |
+| Suppression du PIN côté frontend (auth serveur) | Fait |
+| Images sur disque (au lieu de base64) + retrait fallback base64 | Fait |
 | Migration frontend Vite | Fait |
 | Migrations de schéma versionnées | Fait |
+| Projets de tâches (`/api/task-projects`) | Fait (V1 minimale) |
 
 ## Fichiers à modifier selon le sujet
 
@@ -57,12 +59,14 @@ Toutes les recommandations détaillées sont dans **docs/EVOLUTION.md** (à la r
 |-------|----------|
 | Auth / PIN / CORS | `server.js`, `middleware/requireTeacher.js`, `routes/auth.js`, `src/components/auth-views.jsx` |
 | Images | `routes/zones.js`, `routes/tasks.js`, `database.js` (schéma), `lib/uploads.js` |
-| Tests | `tests/`, `tests/helpers/setup.js`, `package.json` |
+| Projets de tâches | `routes/task-projects.js`, `routes/tasks.js`, `database.js`, `migrations/` |
+| Tests backend | `tests/`, `tests/helpers/setup.js`, `package.json` |
+| Tests e2e / CI | `e2e/`, `playwright.config.js`, `.github/workflows/` |
 | Migration Vite | `src/`, `vite.config.js`, `package.json`, `index.vite.html` |
 | Schéma / migrations | `database.js`, `sql/schema_foretmap.sql`, `migrations/` |
 | Config | `package.json`, `.env.example`, `docker-compose.yml` |
 
-Lire systématiquement le fichier `docs/EVOLUTION.md` à la racine du projet avant d'implémenter une évolution pour respecter le plan et l'ordre suggéré.
+Lire systématiquement `docs/EVOLUTION.md` avant d'implémenter une évolution, avec priorité sur le backlog § 2 puis la séquence §§ 3-4.
 
 ## Voir aussi
 

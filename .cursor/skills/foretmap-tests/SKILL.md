@@ -30,6 +30,8 @@ description: Guide l'écriture et l'exécution des tests backend ForetMap. À ut
 ```bash
 npm test              # lance tous les tests dans tests/
 npm run test:local    # idem avec DB_NAME=foretmap_test (cross-env)
+npm run test:e2e      # lance les scénarios UI Playwright
+npm run test:e2e:headed # idem avec navigateur visible
 ```
 
 ## Structure existante
@@ -54,7 +56,7 @@ tests/
 - Chaque test est indépendant : créer ses propres données (pas de dépendance inter-tests).
 - Utiliser `supertest` pour les tests de routes : `request(app).get('/api/...').expect(200)`.
 
-## Priorités de tests (voir docs/EVOLUTION.md § 2.3)
+## Priorités de tests backend (voir docs/EVOLUTION.md, stabilité continue)
 
 1. **Auth** : register, login, rejet mot de passe incorrect, teacher login.
 2. **Statuts de tâches** : recalcul après assign / unassign / suppression élève.
@@ -62,7 +64,14 @@ tests/
 4. **Routes CRUD** : zones, plantes, tâches (créer, modifier, supprimer).
 5. **Middleware** : `requireTeacher` (token valide, absent, expiré).
 
+## Priorités de tests UI e2e (voir docs/EVOLUTION.md § 2.1)
+
+- Conserver les scénarios Playwright stables sur les parcours élève/prof critiques.
+- Ajouter progressivement des cas limites (erreurs API, interruptions réseau, concurrence d'actions).
+- Vérifier l'exécution CI des tests e2e avec les mêmes hypothèses que local (`playwright.config.js` + `e2e/`).
+
 ## Voir aussi
 
 - Règle backend : `.cursor/rules/foretmap-backend.mdc`
-- Feuille de route : [docs/EVOLUTION.md](docs/EVOLUTION.md) § 2.3
+- Skill e2e : `.cursor/skills/foretmap-e2e/SKILL.md`
+- Feuille de route : [docs/EVOLUTION.md](docs/EVOLUTION.md) § 2.1 (tests UI) et § 3-4 (séquence)

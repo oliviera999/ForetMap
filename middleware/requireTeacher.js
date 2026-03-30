@@ -109,6 +109,7 @@ const requireTeacherElevated = requirePermission('teacher.access', { needsElevat
 
 module.exports = {
   JWT_SECRET,
+  hydrateAuthFromTokenClaims,
   authenticate,
   requireAuth,
   requirePermission,

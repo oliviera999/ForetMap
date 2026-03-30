@@ -434,6 +434,8 @@ router.patch('/me/profile', requireAuth, async (req, res) => {
 
 router.post('/register', async (req, res) => {
   try {
+    const allowReg = await getSettingValue('ui.auth.allow_register', true);
+    if (!allowReg) return res.status(403).json({ error: 'La création de compte est désactivée.' });
     const { firstName, lastName, password } = req.body;
     const pseudo = normalizeOptionalString(req.body?.pseudo);
     const email = normalizeEmail(req.body?.email ?? req.body?.mail);
