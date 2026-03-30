@@ -11,6 +11,7 @@ const bcrypt = require('bcryptjs');
 const { app } = require('../server');
 const authRouter = require('../routes/auth');
 const { initSchema, execute, queryOne } = require('../database');
+const { setSetting } = require('../lib/settings');
 
 before(async () => {
   process.env.SMTP_JSON_TRANSPORT = 'true';
@@ -69,6 +70,27 @@ describe('Auth', () => {
       .send({ firstName, lastName, password: 'other' })
       .expect(409);
     assert.ok(res.body.error);
+  });
+
+  it('POST /api/auth/register renvoie 403 si la création de compte est désactivée', async () => {
+    await setSetting('ui.auth.allow_register', false, {});
+    try {
+      const u = `NoReg${Date.now()}`;
+      const res = await request(app)
+        .post('/api/auth/register')
+        .send({
+          firstName: u,
+          lastName: 'User',
+          password: 'password123',
+          pseudo: `noreg_${Date.now()}`,
+          email: `noreg_${Date.now()}@example.com`,
+          description: 'test',
+        })
+        .expect(403);
+      assert.ok(String(res.body?.error || '').length > 0);
+    } finally {
+      await setSetting('ui.auth.allow_register', true, {});
+    }
   });
 
   it('POST /api/auth/login accepte identifier=pseudo', async () => {
