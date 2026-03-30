@@ -401,16 +401,73 @@
     }
 
     /* ── MAIN ── */
-    .main { flex:1; min-width:0; padding:16px; padding-bottom:calc(var(--bottom-nav-height) + var(--safe-bottom) + 16px); max-width:900px; margin:0 auto; width:100%; }
-    .teacher-main { min-width:0; padding:16px; padding-bottom:24px; max-width:900px; margin:0 auto; width:100%; }
+    /* Chaîne flex : #app → main/teacher-main → contenu (flex:1; min-height:0) pour que la carte
+       remplisse l'espace sous l'en-tête / onglets sans 100dvh + défilement parasite sur laptop. */
+    .main {
+      flex:1;
+      min-width:0;
+      min-height:0;
+      display:flex;
+      flex-direction:column;
+      padding:16px;
+      padding-bottom:calc(var(--bottom-nav-height) + var(--safe-bottom) + 16px);
+      max-width:900px;
+      margin:0 auto;
+      width:100%;
+    }
+    .main > * {
+      flex:1;
+      min-height:0;
+      min-width:0;
+    }
+    .main > *:not(.map-view-root):not(.desktop-split-view) {
+      overflow-y:auto;
+    }
+    .teacher-main {
+      flex:1;
+      min-width:0;
+      min-height:0;
+      display:flex;
+      flex-direction:column;
+      padding:16px;
+      padding-bottom:24px;
+      max-width:900px;
+      margin:0 auto;
+      width:100%;
+    }
+    .teacher-main > .top-tabs {
+      flex-shrink:0;
+    }
+    .teacher-main > *:not(.top-tabs) {
+      flex:1;
+      min-height:0;
+      min-width:0;
+    }
+    .teacher-main > *:not(.top-tabs):not(.map-view-root):not(.desktop-split-view) {
+      overflow-y:auto;
+    }
+    .map-view-root {
+      flex:1;
+      min-height:0;
+      display:flex;
+      flex-direction:column;
+      overflow:hidden;
+    }
+    .desktop-split-view {
+      overflow:hidden;
+    }
     .desktop-split-view {
       display:grid;
       grid-template-columns:1.25fr 1fr;
       gap:16px;
-      align-items:start;
+      align-items:stretch;
+      min-height:0;
     }
     .desktop-split-pane {
       min-width:0;
+      min-height:0;
+      display:flex;
+      flex-direction:column;
     }
     .desktop-split-pane--tasks {
       background:#fff;
@@ -420,7 +477,8 @@
       padding:12px;
     }
     .desktop-split-scroll {
-      max-height:min(82dvh, 980px);
+      flex:1;
+      min-height:0;
       overflow:auto;
       padding-right:2px;
     }

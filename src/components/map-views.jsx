@@ -1609,9 +1609,6 @@ function MapView({ zones, markers, tasks = [], plants, maps = [], activeMapId = 
   };
 
   const cursor = mode === 'view' ? 'grab' : mode === 'draw-zone' ? 'crosshair' : mode === 'edit-points' ? 'default' : 'cell';
-  const mapColHeight = embedded
-    ? 'min(78dvh, 920px)'
-    : (isTeacher ? 'calc(100dvh - 56px)' : 'calc(100dvh - 56px - 72px)');
   const mapAspect = imgSize.w > 1 && imgSize.h > 1 ? `${imgSize.w} / ${imgSize.h}` : '16 / 10';
   const mobileInteractionsActive = mapInteractionEnabled || committed.s > 1.05;
   const canManageMarkerPositions = !!isTeacher;
@@ -1620,7 +1617,7 @@ function MapView({ zones, markers, tasks = [], plants, maps = [], activeMapId = 
   const tooltipText = (entry) => resolveRoleText(entry, isTeacher);
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: mapColHeight, minHeight: embedded ? 520 : 380 }}>
+    <div className="map-view-root" style={{ minHeight: embedded ? 320 : 380 }}>
       {toast && <Toast msg={toast} onDone={() => setToast(null)} />}
 
       {selectedZone && (
@@ -1776,7 +1773,7 @@ function MapView({ zones, markers, tasks = [], plants, maps = [], activeMapId = 
         </div>
       </div>
 
-      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: mapFramePaddingPx }}>
+      <div style={{ flex: 1, minHeight: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: mapFramePaddingPx }}>
         <div ref={containerRef}
           style={{ width: '100%', maxWidth: '100%', maxHeight: '100%', aspectRatio: mapAspect,
             overflow: 'hidden', position: 'relative', background: '#eef2ee',
