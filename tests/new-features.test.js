@@ -8,6 +8,16 @@ const request = require('supertest');
 let teacherToken;
 let studentData;
 
+async function setStudentPrimaryRole(studentId, roleSlug) {
+  const role = await queryOne('SELECT id FROM roles WHERE slug = ? LIMIT 1', [roleSlug]);
+  assert.ok(role?.id, `Rôle introuvable: ${roleSlug}`);
+  await execute('UPDATE user_roles SET is_primary = 0 WHERE user_type = ? AND user_id = ?', ['student', studentId]);
+  await execute(
+    'INSERT INTO user_roles (user_type, user_id, role_id, is_primary) VALUES (?, ?, ?, 1) ON DUPLICATE KEY UPDATE is_primary = 1',
+    ['student', studentId, role.id]
+  );
+}
+
 async function refreshAdminTeacherToken() {
   const loginEmail = String(process.env.TEACHER_ADMIN_EMAIL || '').trim();
   const teacher = await queryOne(
@@ -69,8 +79,10 @@ test.before(async () => {
 
   const reg = await request(app)
     .post('/api/auth/register')
-    .send({ firstName: 'Feature', lastName: 'Test' + Date.now(), password: 'pwd123' });
+    .send({ firstName: 'Feature', lastName: 'Test' + Date.now(), password: 'pwd123' })
+    .expect(201);
   studentData = reg.body;
+  await setStudentPrimaryRole(studentData.id, 'eleve_novice');
 });
 
 test.beforeEach(async () => {
