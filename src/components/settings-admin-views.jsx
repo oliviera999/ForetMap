@@ -120,9 +120,16 @@ function typeLabel(type) {
 function buildConstraintHelp(row) {
   const parts = [`Type: ${typeLabel(row?.type)}`];
   const constraints = row?.constraints || {};
-  if (Number.isFinite(Number(constraints.min))) parts.push(`min ${Number(constraints.min)}`);
-  if (Number.isFinite(Number(constraints.max))) parts.push(`max ${Number(constraints.max)}`);
-  if (Number.isFinite(Number(constraints.maxLength))) parts.push(`max ${Number(constraints.maxLength)} caractères`);
+  // Ne pas utiliser Number(null) === 0 : les contraintes absentes arrivent en null depuis l’API.
+  if (constraints.min != null && Number.isFinite(Number(constraints.min))) {
+    parts.push(`min ${Number(constraints.min)}`);
+  }
+  if (constraints.max != null && Number.isFinite(Number(constraints.max))) {
+    parts.push(`max ${Number(constraints.max)}`);
+  }
+  if (constraints.maxLength != null && Number.isFinite(Number(constraints.maxLength))) {
+    parts.push(`max ${Number(constraints.maxLength)} caractères`);
+  }
   if (Array.isArray(constraints.values) && constraints.values.length > 0) {
     parts.push(`valeurs: ${constraints.values.map((v) => String(v)).join(', ')}`);
   }
@@ -143,7 +150,8 @@ function AdminTextSettingField({
 }) {
   const multiline = row._multiline || (row?.constraints?.maxLength != null && row.constraints.maxLength > 100);
   const maxLength = row?.constraints?.maxLength;
-  const maxLenProp = Number.isFinite(Number(maxLength)) ? Number(maxLength) : undefined;
+  const maxLenN = maxLength == null ? NaN : Number(maxLength);
+  const maxLenProp = Number.isFinite(maxLenN) && maxLenN > 0 ? maxLenN : undefined;
   const synced = serverValue == null ? '' : String(serverValue);
   const [draft, setDraft] = useState(synced);
   useEffect(() => {
