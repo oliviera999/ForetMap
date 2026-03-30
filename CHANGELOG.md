@@ -6,6 +6,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 ## [Non publié]
 
 ### Corrigé
+- **Formulaire tâche (zones / repères / tutoriels)** : les cases à cocher des listes à sélection multiple ne héritent plus des styles `.field input` (`width: 100%`, padding) — la case redevient compacte à gauche et le libellé s’affiche correctement à sa droite (y compris la liste des tutoriels associés).
 - **Tâches (commentaires)** : le texte en cours de saisie dans les commentaires de tâche (et le volet qui se refermait) n’est plus perdu lorsque la liste des tâches se rafraîchit (polling ou temps réel) et que la carte est recréée ; le brouillon est conservé dans `sessionStorage` jusqu’à publication. Même principe pour le commentaire optionnel de la fenêtre « Rapport de tâche ».
 
 ### Supprimé
