@@ -1114,6 +1114,8 @@
       flex-shrink:0;
     }
     @media (max-width:1023px), (pointer:coarse) {
+      /* Barre d’outils carte : plus compacte que le défaut inline (7px / min 50px),
+         pour libérer de la hauteur utile — uniquement sur l’écran carte. */
       .map-view-toolbar {
         flex-wrap:nowrap;
         overflow-x:auto;
@@ -1121,9 +1123,26 @@
         -webkit-overflow-scrolling:touch;
         scrollbar-width:none;
         align-items:center;
-        min-height:48px;
+        padding:4px 8px !important;
+        min-height:40px !important;
+        gap:4px !important;
       }
       .map-view-toolbar::-webkit-scrollbar { display:none; }
+      .map-view-toolbar button:not(.fm-help-btn) {
+        padding:5px 8px !important;
+        font-size:0.76rem !important;
+        min-height:34px;
+      }
+      .map-view-toolbar .map-gesture-toggle {
+        padding:4px 8px !important;
+        min-height:34px !important;
+        font-size:0.72rem !important;
+      }
+      .map-view-toolbar .btn-sm {
+        padding:5px 8px !important;
+        min-height:34px !important;
+        font-size:0.74rem !important;
+      }
     }
 
     /* ── EMPTY STATE ── */
