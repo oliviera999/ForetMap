@@ -10,6 +10,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - **Réseau** : les appels `fetch` de l’API client passent par un **délai d’attente 40 s** (`AbortController`) pour qu’un chargement bloqué ne reste pas indéfiniment sur l’écran « Chargement… ».
 
 ### Modifié
+- **Build** : régénération des bundles `dist/` (Vite production).
 - **Mobile (écran carte)** : barre d’outils (plans, modes, zoom) plus compacte pour réduire la hauteur perdue par rapport aux autres onglets ; le bouton d’aide « ? » conserve une taille tactile adaptée.
 - **Cartes & tâches (vue split)** : le plan est aligné en haut de la colonne carte (plus de centrage vertical) pour rester sous la barre d’outils lorsque la liste des tâches impose une grande hauteur.
 - **PWA / mobile** : icônes d’application (`pwa-icon-192.png`, `pwa-icon-512.png`, `pwa-maskable-512.png`, `apple-touch-icon`) et `favicon-n3.png` régénérées avec le logo **n³ en blanc** sur fond `#1a4731` ; script `npm run icons:pwa` (`scripts/generate-pwa-icons-n3-white.js`, dépendance dev `sharp`) ; cache service worker `foretmap-offline-v6`.
