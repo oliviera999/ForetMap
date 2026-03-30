@@ -69,10 +69,15 @@ const corsOpts = process.env.NODE_ENV === 'production' && process.env.FRONTEND_O
   : {};
 app.use(cors(corsOpts));
 
+function isTestEnv() {
+  return String(process.env.NODE_ENV || '').trim().toLowerCase() === 'test';
+}
+
 // Limiteur général : 300 requêtes / minute par IP (protège contre les abus sans gêner un usage normal)
 const generalLimiter = rateLimit({
   windowMs: 60 * 1000,
   max: 300,
+  skip: () => isTestEnv(),
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: 'Trop de requêtes, réessayez dans une minute.' },
@@ -82,6 +87,7 @@ const generalLimiter = rateLimit({
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 20,
+  skip: () => isTestEnv(),
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: 'Trop de tentatives de connexion, réessayez dans 15 minutes.' },
