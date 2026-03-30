@@ -2,6 +2,7 @@ require('./helpers/setup');
 const test = require('node:test');
 const assert = require('node:assert');
 const { initDatabase, queryAll, queryOne, execute } = require('../database');
+const { setSetting } = require('../lib/settings');
 const { app } = require('../server');
 const request = require('supertest');
 const { signAuthToken } = require('../middleware/requireTeacher');
@@ -23,7 +24,7 @@ async function getAdminAuthToken() {
   assert.ok(adminRole?.id, 'Rôle admin introuvable');
   const requiredPermissions = [
     'stats.read.all', 'stats.export',
-    'tasks.manage', 'tasks.read.logs',
+    'tasks.manage', 'tasks.read.logs', 'tasks.validate',
     'zones.manage', 'visit.manage',
     'plants.manage',
     'admin.settings.read', 'admin.settings.write',
@@ -193,6 +194,7 @@ test('POST /api/auth/teacher avec bon PIN et token renvoie 200 et un token', asy
 });
 
 test('Forum: le profil visiteur ne peut pas accéder aux sujets', async () => {
+  await setSetting('ui.modules.forum_enabled', true, {});
   const visitorRes = await request(app)
     .post('/api/auth/register')
     .send({ firstName: 'Visit', lastName: `Forum${Date.now()}`, password: 'pass1234' })
@@ -278,6 +280,7 @@ test('Assign puis unassign met à jour le statut de la tâche', async () => {
     .send({ firstName: 'Statut', lastName: 'Elève' + Date.now(), password: 'pwd1' })
     .expect(201);
   const { first_name, last_name, id: studentId, authToken: studentAuthToken } = studentRes.body;
+  await setStudentPrimaryRole(studentId, 'eleve_novice');
 
   await request(app)
     .post(`/api/tasks/${taskId}/assign`)
@@ -338,6 +341,9 @@ test('GET /api/tasks côté élève expose assigned_count global', async () => {
     .send({ firstName: 'CapB', lastName: 'Eleve' + Date.now(), password: 'pwd1' })
     .expect(201);
 
+  await setStudentPrimaryRole(studentARes.body.id, 'eleve_novice');
+  await setStudentPrimaryRole(studentBRes.body.id, 'eleve_novice');
+
   await request(app)
     .post(`/api/tasks/${taskId}/assign`)
     .set('Authorization', `Bearer ${studentARes.body.authToken}`)
@@ -349,19 +355,9 @@ test('GET /api/tasks côté élève expose assigned_count global', async () => {
     .send({ firstName: studentBRes.body.first_name, lastName: studentBRes.body.last_name, studentId: studentBRes.body.id })
     .expect(200);
 
-  const studentAToken = signAuthToken({
-    userType: 'student',
-    userId: studentARes.body.id,
-    roleId: null,
-    roleSlug: 'eleve_novice',
-    roleDisplayName: 'Élève',
-    permissions: [],
-    elevated: false,
-  }, false);
-
   const listRes = await request(app)
     .get('/api/tasks?map_id=foret')
-    .set('Authorization', 'Bearer ' + studentAToken)
+    .set('Authorization', `Bearer ${studentARes.body.authToken}`)
     .expect(200);
   const task = listRes.body.find((t) => t.id === taskId);
   assert.ok(task);
@@ -735,6 +731,7 @@ test('DELETE /api/students/:id supprime l’élève et recalcule les statuts des
     .send({ firstName: 'ToDelete', lastName: 'User' + Date.now(), password: 'pwd1' })
     .expect(201);
   const { id: studentId, first_name, last_name, authToken: studentAuthToken } = studentRes.body;
+  await setStudentPrimaryRole(studentId, 'eleve_novice');
 
   await request(app)
     .post(`/api/tasks/${taskId}/assign`)
