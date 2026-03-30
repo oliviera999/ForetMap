@@ -1,0 +1,50 @@
+{
+  "name": "ForêtMap – Lycée Lyautey",
+  "short_name": "ForêtMap",
+  "description": "Gestion et cartographie de la forêt comestible du Lycée Lyautey",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#f0f4f0",
+  "theme_color": "#1a4731",
+  "lang": "fr",
+  "categories": ["education", "utilities"],
+  "icons": [
+    {
+      "src": "/favicon-n3.png",
+      "sizes": "64x64",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ],
+  "screenshots": [],
+  "shortcuts": [
+    {
+      "name": "Carte",
+      "short_name": "Carte",
+      "description": "Ouvrir la carte de la forêt",
+      "url": "/?view=map",
+      "icons": [{ "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml" }]
+    },
+    {
+      "name": "Mes tâches",
+      "short_name": "Tâches",
+      "description": "Voir mes tâches en cours",
+      "url": "/?view=tasks",
+      "icons": [{ "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml" }]
+    }
+  ]
+}

@@ -1,7 +1,11 @@
-const CACHE_NAME = 'foretmap-offline-v2';
+const CACHE_NAME = 'foretmap-offline-v3';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
+  '/offline.html',
+  '/manifest.json',
+  '/icon.svg',
+  '/favicon-n3.png',
   '/map.png',
   '/maps/map-foret.svg',
   '/maps/map-n3.svg',
@@ -43,10 +47,8 @@ self.addEventListener('fetch', event => {
   if (!event.request.url.startsWith('http://') && !event.request.url.startsWith('https://')) return;
   const url = new URL(event.request.url);
 
-  // HTML en network-first pour récupérer les dernières versions quand en ligne.
-  if (
-    (url.pathname === '/' || url.pathname === '/index.html')
-  ) {
+  // HTML en network-first ; fallback vers /offline.html si hors-ligne
+  if (url.pathname === '/' || url.pathname === '/index.html') {
     event.respondWith(
       fetch(event.request)
         .then(response => {
@@ -54,12 +56,12 @@ self.addEventListener('fetch', event => {
           caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
           return response;
         })
-        .catch(() => caches.match(event.request))
+        .catch(() => caches.match(event.request).then(r => r || caches.match('/offline.html')))
     );
     return;
   }
 
-  // Stratégie network-first pour les API cachées
+  // Stratégie network-first pour les API cachées ; fallback silencieux
   if (API_CACHE_URLS.some(p => url.pathname === p)) {
     event.respondWith(
       fetch(event.request)
@@ -74,10 +76,7 @@ self.addEventListener('fetch', event => {
   }
 
   // Stratégie network-first pour JS/CSS afin d'éviter de servir des bundles obsolètes.
-  if ((
-    url.pathname.endsWith('.css') ||
-    url.pathname.endsWith('.js')
-  )) {
+  if (url.pathname.endsWith('.css') || url.pathname.endsWith('.js')) {
     event.respondWith(
       fetch(event.request)
         .then(response => {
@@ -86,6 +85,30 @@ self.addEventListener('fetch', event => {
           return response;
         })
         .catch(() => caches.match(event.request))
+    );
+    return;
+  }
+
+  // Cache-first pour les assets statiques (images, fonts, icônes)
+  if (
+    url.pathname.endsWith('.png') ||
+    url.pathname.endsWith('.jpg') ||
+    url.pathname.endsWith('.jpeg') ||
+    url.pathname.endsWith('.svg') ||
+    url.pathname.endsWith('.ico') ||
+    url.pathname.endsWith('.webp') ||
+    url.pathname.endsWith('.woff2') ||
+    url.pathname.endsWith('.woff')
+  ) {
+    event.respondWith(
+      caches.match(event.request).then(cached => {
+        if (cached) return cached;
+        return fetch(event.request).then(response => {
+          const clone = response.clone();
+          caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
+          return response;
+        });
+      })
     );
     return;
   }
