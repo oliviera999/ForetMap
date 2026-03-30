@@ -67,6 +67,14 @@ async function setStudentPrimaryRole(studentId, roleSlug) {
   );
 }
 
+async function loginStudentToken(email, password) {
+  const login = await request(app)
+    .post('/api/auth/login')
+    .send({ identifier: email, password })
+    .expect(200);
+  return login.body.authToken;
+}
+
 async function allowStudentProposalsAtZeroDone() {
   await execute('UPDATE roles SET min_done_tasks = ? WHERE slug = ?', [1, 'eleve_novice']);
   await execute('UPDATE roles SET min_done_tasks = ? WHERE slug = ?', [0, 'eleve_avance']);
@@ -126,6 +134,7 @@ test('GET /api/stats/me/:studentId synchronise le profil élève selon les seuil
     .send({ firstName: 'Profil', lastName: `Sync${Date.now()}`, password: 'pass1234' })
     .expect(201);
   const { id: studentId, first_name: firstName, last_name: lastName, authToken: studentAuthToken } = studentRes.body;
+  await setStudentPrimaryRole(studentId, 'eleve_novice');
 
   const zones = await request(app).get('/api/zones').expect(200);
   const zoneId = zones.body[0]?.id || 'pg';
@@ -220,6 +229,7 @@ test('GET /api/tasks/:id/logs refuse le profil visiteur', async () => {
     .post('/api/auth/register')
     .send({ firstName: 'Logs', lastName: `Auteur${Date.now()}`, password: 'pass1234' })
     .expect(201);
+  await setStudentPrimaryRole(studentRes.body.id, 'eleve_novice');
 
   await request(app)
     .post(`/api/tasks/${taskId}/assign`)

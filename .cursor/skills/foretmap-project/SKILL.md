@@ -24,10 +24,10 @@ description: Donne le contexte du projet ForetMap (forêt comestible, Lycée Lya
 
 ## Stack
 
-- **Backend :** Node.js, Express, MySQL (mysql2, pool). Fichiers : `server.js` (montage des routeurs), `database.js` (pool, schéma, seed), `routes/` (zones, plants, tasks, auth, stats, students, map, observations, audit), `middleware/requireTeacher.js` (JWT). Auth élèves : bcrypt, session en localStorage. Auth prof : PIN vérifié côté serveur, JWT.
-- **Frontend :** React 18 (UMD) + Babel standalone, tout dans `public/index.html`. Pas de build actif (Vite configuré mais stub uniquement dans `src/main.jsx`). Thème « forêt » (couleurs CSS, mobile-first).
+- **Backend :** Node.js, Express, MySQL (mysql2, pool). Fichiers : `server.js` (montage des routeurs), `database.js` (pool, schéma, seed), `routes/` (dont `task-projects`, `tutorials`, `settings`, `rbac`, `forum`), `middleware/requireTeacher.js` (JWT). Auth élèves : bcrypt, session en localStorage. Auth prof : PIN vérifié côté serveur, JWT.
+- **Frontend :** React 18 + Vite. Entrée dans `index.vite.html`, bootstrap dans `src/main.jsx`, application modulaire dans `src/` (composants/hooks/services), build servi depuis `dist/` en production.
 - **Utilitaires :** `lib/logger.js` (Pino), `lib/env.js`, `lib/uploads.js`, `lib/routeLog.js`, `lib/helpers.js`.
-- **Tests :** `node --test` + supertest, dans `tests/` (auth, api, tasks-status, students-delete).
+- **Tests :** backend avec `node --test` + supertest dans `tests/`, et e2e Playwright dans `e2e/` (`npm run test:e2e`).
 
 ## Points d'attention
 
@@ -49,8 +49,11 @@ description: Donne le contexte du projet ForetMap (forêt comestible, Lycée Lya
 | `lib/routeLog.js` | `logRouteError` pour tracer les erreurs 500 |
 | `lib/env.js` | Validation des variables d'environnement |
 | `lib/uploads.js` | Gestion des fichiers uploadés |
-| `public/index.html` | App React complète (carte, zones, tâches, auth, mode prof via API) |
+| `index.vite.html` | Point d'entrée HTML de l'application Vite |
+| `src/main.jsx` | Bootstrap React et montage de l'app |
+| `src/components/`, `src/hooks/`, `src/services/` | Modules UI, logique locale et accès API |
 | `tests/` | Tests backend (auth, API, statuts tâches, suppression élève) |
+| `e2e/` | Tests UI Playwright (smoke et scénarios complets élève/prof) |
 
 ## Voir aussi
 

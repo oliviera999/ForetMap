@@ -20,6 +20,36 @@ async function registerStudent(prefix) {
       password: 'pass1234',
     })
     .expect(201);
+  assert.ok(res.body?.id);
+  assert.ok(res.body?.authToken);
+  const noviceRole = await queryOne("SELECT id FROM roles WHERE slug = 'eleve_novice' LIMIT 1");
+  assert.ok(noviceRole?.id);
+  await execute('UPDATE user_roles SET is_primary = 0 WHERE user_type = ? AND user_id = ?', ['student', res.body.id]);
+  await execute(
+    'INSERT INTO user_roles (user_type, user_id, role_id, is_primary) VALUES (?, ?, ?, 1) ON DUPLICATE KEY UPDATE is_primary = 1',
+    ['student', res.body.id, noviceRole.id]
+  );
+  const login = await request(app)
+    .post('/api/auth/login')
+    .send({ identifier: res.body.email, password: 'pass1234' })
+    .expect(200);
+  assert.ok(login.body?.authToken);
+  res.body.authToken = login.body.authToken;
+  return res.body;
+}
+
+async function registerVisitorStudent(prefix) {
+  const stamp = `${Date.now()}_${Math.floor(Math.random() * 10000)}`;
+  const res = await request(app)
+    .post('/api/auth/register')
+    .send({
+      firstName: prefix,
+      lastName: `Ctx${stamp}`,
+      email: `${prefix.toLowerCase()}_${stamp}@example.com`,
+      password: 'pass1234',
+    })
+    .expect(201);
+  assert.strictEqual(String(res.body?.auth?.roleSlug || '').toLowerCase(), 'visiteur');
   return res.body;
 }
 
