@@ -1,6 +1,6 @@
 {
   "name": "foretmap",
-  "version": "1.23.0",
+  "version": "1.23.1",
   "description": "Application de gestion de la forêt comestible - Lycée Lyautey",
   "main": "server.js",
   "dependencies": {
@@ -51,7 +51,7 @@
     "release:patch": "npm version patch -m \"chore(release): v%s\"",
     "release:minor": "npm version minor -m \"chore(release): v%s\"",
     "release:major": "npm version major -m \"chore(release): v%s\"",
-    "test": "node --test \"tests/*.test.js\"",
+    "test": "node --test --test-force-exit \"tests/*.test.js\"",
     "test:local": "cross-env DB_NAME=foretmap_test node scripts/test-local-isolated.js",
     "test:e2e": "npx playwright test",
     "test:e2e:headed": "npx playwright test --headed",

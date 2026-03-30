@@ -92,6 +92,10 @@ function canModerateComments(auth) {
   return perms.includes('teacher.access');
 }
 
+function isVisitorRole(auth) {
+  return String(auth?.roleSlug || '').trim().toLowerCase() === 'visiteur';
+}
+
 /** n3boss : toujours ; n3beur : selon users.context_comment_participate */
 async function userContextCommentParticipationAllowed(auth) {
   if (!auth) return false;
@@ -174,6 +178,12 @@ router.use(async (req, res, next) => {
     logRouteError(e, req);
     return next(e);
   }
+});
+router.use((req, res, next) => {
+  if (isVisitorRole(req.auth)) {
+    return res.status(403).json({ error: 'Accès refusé aux commentaires de contexte pour le profil visiteur' });
+  }
+  return next();
 });
 
 router.get('/', async (req, res) => {
