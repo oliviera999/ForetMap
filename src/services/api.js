@@ -74,6 +74,7 @@ export function getStoredSession() {
       userType: 'student',
       displayName: student.pseudo || `${student.first_name || ''} ${student.last_name || ''}`.trim() || 'Utilisateur',
       email: student.email || null,
+      avatar_path: student.avatar_path ?? student.avatarPath ?? null,
     } : null,
     student: student || null,
   };

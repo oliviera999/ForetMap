@@ -110,9 +110,15 @@ function App() {
       stats_enabled: true,
       observations_enabled: true,
       help_enabled: true,
+      forum_enabled: true,
+      context_comments_enabled: true,
     },
   }), []);
   const [student,    setStudent]    = useState(() => initialSession?.student || null);
+  const studentRef = useRef(initialSession?.student || null);
+  useEffect(() => {
+    studentRef.current = student;
+  }, [student]);
   const [sessionUser, setSessionUser] = useState(() => initialSession?.user || null);
   const [isTeacher,  setIsTeacher]  = useState(() => {
     const claims = getAuthClaims();
@@ -232,6 +238,7 @@ function App() {
             userType: 'student',
             displayName: nextStudent?.pseudo || `${nextStudent?.first_name || ''} ${nextStudent?.last_name || ''}`.trim() || 'Utilisateur',
             email: nextStudent?.email || null,
+            avatar_path: nextStudent?.avatar_path ?? nextStudent?.avatarPath ?? null,
           },
           student: nextStudent,
         });
@@ -264,7 +271,23 @@ function App() {
   useEffect(() => {
     api('/api/settings/public')
       .then((d) => {
-        if (d?.settings) setPublicSettings((prev) => ({ ...prev, ...d.settings }));
+        if (!d?.settings) return;
+        setPublicSettings((prev) => {
+          const next = { ...prev, ...d.settings };
+          const ui = d.settings.ui;
+          if (ui && typeof ui === 'object') {
+            if (ui.modules && typeof ui.modules === 'object') {
+              next.modules = { ...prev.modules, ...ui.modules };
+            }
+            if (ui.map && typeof ui.map === 'object') {
+              next.map = { ...prev.map, ...ui.map };
+            }
+            if (ui.auth && typeof ui.auth === 'object') {
+              next.auth = { ...prev.auth, ...ui.auth };
+            }
+          }
+          return next;
+        });
       })
       .catch(() => {
         // Réglages publics non bloquants.
@@ -312,18 +335,34 @@ function App() {
   }, []);
 
   const updateStudentSession = useCallback((nextStudent) => {
-    setStudent(nextStudent);
     setSessionValidationError(false);
-    localStorage.setItem('foretmap_student', JSON.stringify(nextStudent));
+    if (!nextStudent || typeof nextStudent !== 'object') {
+      studentRef.current = nextStudent;
+      setStudent(nextStudent);
+      return;
+    }
+    const prev = studentRef.current;
+    const base = prev && typeof prev === 'object' ? prev : {};
+    const avatarPath = nextStudent.avatar_path ?? nextStudent.avatarPath ?? base.avatar_path ?? null;
+    const merged = {
+      ...base,
+      ...nextStudent,
+      avatar_path: avatarPath,
+      auth: nextStudent.auth ?? base.auth,
+    };
+    studentRef.current = merged;
+    setStudent(merged);
+    localStorage.setItem('foretmap_student', JSON.stringify(merged));
     saveStoredSession({
-      token: getStoredSession()?.token || nextStudent?.authToken || null,
+      token: getStoredSession()?.token || merged.authToken || null,
       user: {
-        id: nextStudent?.auth?.canonicalUserId || nextStudent?.id || null,
+        id: merged.auth?.canonicalUserId || merged.id || null,
         userType: 'student',
-        displayName: nextStudent?.pseudo || `${nextStudent?.first_name || ''} ${nextStudent?.last_name || ''}`.trim() || 'Utilisateur',
-        email: nextStudent?.email || null,
+        displayName: merged.pseudo || `${merged.first_name || ''} ${merged.last_name || ''}`.trim() || 'Utilisateur',
+        email: merged.email || null,
+        avatar_path: avatarPath,
       },
-      student: nextStudent,
+      student: merged,
     });
     setSessionUser(getStoredSession()?.user || null);
   }, []);
@@ -532,7 +571,7 @@ function App() {
   const appFooterVersionPrefix = getContentText(publicSettings, 'app.footer_version_prefix', 'Version');
   const canAccessStudentMapTasks = true;
   const isVisitor = effectiveRoleContext.roleSlug === 'visiteur';
-  const canAccessForum = !isVisitor;
+  const canAccessForum = !isVisitor && publicSettings?.modules?.forum_enabled !== false;
   const canSelfAssignTasks = !isVisitor;
   const canViewOtherUsersIdentity = !isVisitor;
   const isPreviewStudentView = !!previewStudent;
@@ -619,7 +658,7 @@ function App() {
     if (tab === 'visit' && publicSettings?.modules?.visit_enabled === false) setTab('map');
     if (tab === 'notebook' && publicSettings?.modules?.observations_enabled === false) setTab('map');
     if (tab === 'forum' && !canAccessForum) setTab('about');
-  }, [tab, publicSettings?.modules?.tutorials_enabled, publicSettings?.modules?.stats_enabled, publicSettings?.modules?.visit_enabled, publicSettings?.modules?.observations_enabled, canAccessForum, canViewGeneralStats]);
+  }, [tab, publicSettings?.modules?.tutorials_enabled, publicSettings?.modules?.stats_enabled, publicSettings?.modules?.visit_enabled, publicSettings?.modules?.observations_enabled, publicSettings?.modules?.forum_enabled, canAccessForum, canViewGeneralStats]);
 
   // Auto-refresh adaptatif (ralenti quand le push est actif, ralenti en arrière-plan).
   const pollingIntervalMs = useMemo(() => {
@@ -648,7 +687,7 @@ function App() {
         userType: 'teacher',
         displayName: nextDisplayName,
         email: updatedUser?.email ?? prev?.email ?? null,
-        avatar_path: updatedUser?.avatar_path ?? prev?.avatar_path ?? null,
+        avatar_path: updatedUser?.avatar_path ?? updatedUser?.avatarPath ?? prev?.avatar_path ?? null,
       };
       saveStoredSession({ user: next });
       return next;

@@ -143,6 +143,16 @@ async function loadContextCommentReactions(commentIds = [], actor = null) {
 }
 
 router.use(requireAuth);
+router.use(async (req, res, next) => {
+  try {
+    const on = await getSettingValue('ui.modules.context_comments_enabled', true);
+    if (!on) return res.status(503).json({ error: 'Commentaires de contexte désactivés' });
+    return next();
+  } catch (e) {
+    logRouteError(e, req);
+    return next(e);
+  }
+});
 
 router.get('/', async (req, res) => {
   try {

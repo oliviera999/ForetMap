@@ -333,6 +333,7 @@ Contraintes principales :
 
 Toutes les routes forum exigent un utilisateur connecté (`Authorization: Bearer <token>`), élève ou prof.
 Le profil `visiteur` est refusé (`403`) pour éviter l’exposition d’identités d’autres utilisateurs.
+Si le réglage public `ui.modules.forum_enabled` est à `false`, toutes les routes forum renvoient `503` avec `{ error: 'Forum désactivé' }` (après authentification réussie).
 
 | Méthode | URL | Description |
 |--------|-----|-------------|
@@ -360,6 +361,7 @@ Contraintes principales :
 ## Commentaires contextuels
 
 Toutes les routes commentaires contextuels exigent un utilisateur connecté (`Authorization: Bearer <token>`), élève ou prof.
+Si le réglage public `ui.modules.context_comments_enabled` est à `false`, toutes les routes `/api/context-comments` renvoient `503` avec `{ error: 'Commentaires de contexte désactivés' }` (après authentification réussie).
 
 Contexte supporté :
 

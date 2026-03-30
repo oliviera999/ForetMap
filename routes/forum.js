@@ -146,6 +146,16 @@ async function loadForumPostReactions(postIds = [], actor = null) {
 }
 
 router.use(requireAuth);
+router.use(async (req, res, next) => {
+  try {
+    const on = await getSettingValue('ui.modules.forum_enabled', true);
+    if (!on) return res.status(503).json({ error: 'Forum désactivé' });
+    return next();
+  } catch (e) {
+    logRouteError(e, req);
+    return next(e);
+  }
+});
 router.use((req, res, next) => {
   if (isVisitorRole(req.auth)) {
     return res.status(403).json({ error: 'Accès refusé au forum pour le profil visiteur' });

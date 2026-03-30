@@ -86,6 +86,26 @@ test('Forum: refuse l’accès sans authentification', async () => {
   await request(app).get('/api/forum/threads').expect(401);
 });
 
+test('Forum: module désactivé renvoie 503', async () => {
+  const token = await teacherToken();
+  await request(app)
+    .put('/api/settings/admin/ui.modules.forum_enabled')
+    .set(auth(token))
+    .send({ value: false })
+    .expect(200);
+  const student = await registerStudent('ForumOff');
+  const res = await request(app)
+    .get('/api/forum/threads')
+    .set(auth(student.authToken))
+    .expect(503);
+  assert.match(String(res.body?.error || ''), /désactivé/i);
+  await request(app)
+    .put('/api/settings/admin/ui.modules.forum_enabled')
+    .set(auth(token))
+    .send({ value: true })
+    .expect(200);
+});
+
 test('Forum: un élève peut créer un sujet et répondre', async () => {
   const student = await registerStudent('EleveForum');
   const create = await request(app)
