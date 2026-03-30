@@ -761,6 +761,7 @@ function App() {
   const isCombinedMapTasksTab = tab === 'maptasks';
   const useSplitMapTasks = shouldUseDesktopSplit && isCombinedMapTasksTab && canAccessStudentMapTasks;
   const useWideMain = shouldUseDesktopSplit;
+  const teacherMapChromeVisible = !loading && (useSplitMapTasks || (!useSplitMapTasks && tab === 'map'));
 
   const rtStatus = useForetmapRealtime({
     enabled: !!(student || effectiveIsTeacher),
@@ -1308,7 +1309,7 @@ function App() {
       )}
 
       {effectiveIsTeacher ? (
-        <div className={`main teacher-main ${useWideMain ? 'main--wide' : ''}`}>
+        <div className={`main teacher-main ${useWideMain ? 'main--wide' : ''} ${teacherMapChromeVisible ? 'teacher-main--map-visible' : ''}`}>
           <div className="top-tabs">
             {shouldUseDesktopSplit && (
               <button className={`top-tab ${tab === 'maptasks' ? 'active' : ''}`} onClick={() => setTab('maptasks')}>
