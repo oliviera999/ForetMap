@@ -243,6 +243,28 @@ function ProfilesAdminView({ isN3Affiliated = false }) {
     setLoading(false);
   };
 
+  const saveProfileEmoji = async () => {
+    if (!selectedRole) return;
+    const trimmed = String(roleEmoji || '').trim();
+    const slug = String(selectedRole.slug || '');
+    if (/^eleve_/i.test(slug) && !trimmed) {
+      setErr(`Un profil ${roleTerms.studentSingular} doit avoir un emoji`);
+      return;
+    }
+    setLoading(true);
+    setErr('');
+    try {
+      await api(`/api/rbac/profiles/${selectedRole.id}`, 'PATCH', {
+        emoji: trimmed || null,
+      });
+      setMsg('Emoji du profil enregistré');
+      await load();
+    } catch (e) {
+      setErr(e.message || 'Erreur enregistrement de l’emoji');
+    }
+    setLoading(false);
+  };
+
   const createRoleProfile = async () => {
     const slug = window.prompt('Slug du nouveau profil (ex: eleve_mentor)', '');
     if (!slug || !slug.trim()) return;
@@ -569,6 +591,41 @@ function ProfilesAdminView({ isN3Affiliated = false }) {
                 <div style={{ marginTop: 8 }}>
                   <div style={{ fontSize: '.78rem', color: '#6b7280', marginBottom: 6 }}>
                     Progression: emoji {selectedRole.emoji || '—'} · niveau requis {selectedRole.min_done_tasks ?? '—'} · ordre {selectedRole.display_order ?? 0}
+                  </div>
+                  <div className="field" style={{ marginBottom: 10 }}>
+                    <label htmlFor="profile-emoji-input">Emoji du profil</label>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
+                      <input
+                        id="profile-emoji-input"
+                        type="text"
+                        value={roleEmoji}
+                        onChange={(e) => setRoleEmoji(e.target.value)}
+                        maxLength={16}
+                        disabled={loading}
+                        placeholder="ex. 🌿"
+                        autoComplete="off"
+                        style={{
+                          width: 120,
+                          padding: '6px 8px',
+                          borderRadius: 8,
+                          border: '1px solid #cbd5e1',
+                          fontSize: '1.2rem',
+                          lineHeight: 1.2,
+                        }}
+                        aria-label={`Emoji pour le profil ${selectedRole.display_name}`}
+                      />
+                      <span style={{ fontSize: '1.5rem', lineHeight: 1 }} title="Aperçu" aria-hidden>
+                        {roleEmoji.trim() || '—'}
+                      </span>
+                      <button type="button" className="btn btn-secondary btn-sm" onClick={saveProfileEmoji} disabled={loading}>
+                        Enregistrer l’emoji
+                      </button>
+                    </div>
+                    <p style={{ fontSize: '.72rem', color: '#6b7280', margin: '6px 0 0', lineHeight: 1.4 }}>
+                      {/^eleve_/i.test(String(selectedRole.slug || ''))
+                        ? `Obligatoire pour un profil ${roleTerms.studentSingular} (max. 16 caractères).`
+                        : 'Optionnel pour les autres profils (max. 16 caractères).'}
+                    </p>
                   </div>
                   <div className="field">
                     <label>PIN du profil {selectedRole.display_name}</label>
