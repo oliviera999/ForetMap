@@ -1570,6 +1570,12 @@ function MapView({ zones, markers, tasks = [], plants, maps = [], activeMapId = 
   const { s: cs } = committed;
   const { w: iw, h: ih } = imgSize;
   const inv = 1 / cs;
+  /** Même écart centre emoji ↔ centre libellé que le SVG des zones (`y = my + gap`). */
+  const mapEmojiLabelCenterGap = 14 * inv;
+  const mapEmojiFontPx = Math.max(13, 19 * inv);
+  const mapLabelFontPx = Math.max(10, 14 * inv);
+  /** Colonne HTML : marge entre le bas de la ligne emoji et le haut du libellé pour retrouver l’écart des zones. */
+  const markerLabelMarginTop = mapEmojiLabelCenterGap - mapEmojiFontPx / 2 - mapLabelFontPx / 2;
 
   const toWorld = p => ({ cx: (p.xp / 100) * iw, cy: (p.yp / 100) * ih });
 
@@ -1596,7 +1602,7 @@ function MapView({ zones, markers, tasks = [], plants, maps = [], activeMapId = 
             y={my}
             textAnchor="middle"
             dominantBaseline="middle"
-            fontSize={Math.max(13, 19 * inv)}
+            fontSize={mapEmojiFontPx}
             fontFamily="Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif"
             style={{ pointerEvents: 'none', userSelect: 'none' }}
           >
@@ -1604,8 +1610,8 @@ function MapView({ zones, markers, tasks = [], plants, maps = [], activeMapId = 
           </text>
         )}
         {showLabels && (
-          <text x={mx} y={my + (zoneEmoji ? (14 * inv) : 0)} textAnchor="middle" dominantBaseline="middle"
-            fontSize={Math.max(10, 14 * inv)} fontWeight="700" fontFamily="DM Sans,sans-serif"
+          <text x={mx} y={my + (zoneEmoji ? mapEmojiLabelCenterGap : 0)} textAnchor="middle" dominantBaseline="middle"
+            fontSize={mapLabelFontPx} fontWeight="700" fontFamily="DM Sans,sans-serif"
             fill="#1a4731" stroke="rgba(255,255,255,0.8)" strokeWidth={3 * inv} paintOrder="stroke"
             style={{ pointerEvents: 'none', userSelect: 'none' }}>{zoneName || z.name}</text>
         )}
@@ -1853,15 +1859,11 @@ function MapView({ zones, markers, tasks = [], plants, maps = [], activeMapId = 
             const markerTaskVisual = markerTaskVisualById.get(m.id);
             const markerTaskLabel = markerTaskVisual ? TASK_VISUAL_LABEL[markerTaskVisual] : '';
             const markerAriaLabel = [m.label || 'Repère', markerTaskLabel].filter(Boolean).join(' — ');
-            const markerPinSize = isCoarsePointer
-              ? 'clamp(50px, 14vw, 60px)'
-              : 'clamp(38px, 9vw, 44px)';
-            const markerEmojiSize = `${Math.max(13, 19 * inv)}px`;
-            const markerHitPadding = isCoarsePointer ? 6 : 0;
+            const markerEmojiSize = `${mapEmojiFontPx}px`;
+            const markerLabelFontSize = `${mapLabelFontPx}px`;
             const markerStatusDotSize = isCoarsePointer ? 17 : 12;
             const markerStatusDotBorder = isCoarsePointer ? 2 : 1.5;
             const markerStatusDotOffset = isCoarsePointer ? -2 : -1;
-            const markerLabelFontSize = `${Math.max(10, 14 * inv)}px`;
             const openMarker = (e) => {
               e.stopPropagation();
               if (!moved.current) setSelectedMarker(m);
@@ -1870,7 +1872,13 @@ function MapView({ zones, markers, tasks = [], plants, maps = [], activeMapId = 
             <button key={m.id} className="map-bubble" type="button"
               style={{ position: 'absolute', left: m.x_pct + '%', top: m.y_pct + '%',
                 transform: 'translate(-50%,-50%)', zIndex: 10, cursor: isTeacher && markerPositionUnlocked ? 'grab' : 'pointer',
-                border: 'none', background: 'transparent', padding: markerHitPadding }}
+                border: 'none', background: 'transparent',
+                display: 'flex', flexDirection: 'column', alignItems: 'center',
+                justifyContent: isCoarsePointer ? 'center' : 'flex-start',
+                minWidth: isCoarsePointer ? 48 : undefined,
+                minHeight: isCoarsePointer ? 48 : undefined,
+                padding: isCoarsePointer ? 6 : 0,
+                boxSizing: 'border-box' }}
               aria-label={markerAriaLabel}
               title={markerAriaLabel}
               onClick={openMarker}
@@ -1887,7 +1895,7 @@ function MapView({ zones, markers, tasks = [], plants, maps = [], activeMapId = 
               onPointerUp={e => e.stopPropagation()}>
               <div className="map-bubble-pin" style={{
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                minWidth: markerPinSize, minHeight: markerPinSize,
+                flexShrink: 0,
                 background: 'transparent', border: 'none', borderRadius: 0,
                 fontSize: markerEmojiSize,
                 fontFamily: 'Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif',
@@ -1910,12 +1918,16 @@ function MapView({ zones, markers, tasks = [], plants, maps = [], activeMapId = 
                 )}
               </div>
               {showLabels && (
-                <div style={{ position: 'absolute', top: '100%', left: '50%', transform: 'translateX(-50%)',
+                <div style={{
+                  flexShrink: 0,
+                  marginTop: markerLabelMarginTop,
                   background: 'transparent', color: '#1a4731', borderRadius: 0,
                   padding: 0, fontSize: markerLabelFontSize, fontWeight: 700,
                   fontFamily: 'DM Sans,sans-serif',
-                  whiteSpace: 'nowrap', marginTop: 4, maxWidth: isCoarsePointer ? 128 : 96,
+                  lineHeight: 1,
+                  whiteSpace: 'nowrap', maxWidth: isCoarsePointer ? 128 : 96,
                   overflow: 'hidden', textOverflow: 'ellipsis', pointerEvents: 'none',
+                  textAlign: 'center',
                   textShadow: '0 0 2px rgba(255,255,255,.95), 0 0 6px rgba(255,255,255,.85), 0 1px 0 rgba(255,255,255,.92)' }}>
                   {m.label}
                 </div>
