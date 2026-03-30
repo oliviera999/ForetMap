@@ -301,6 +301,26 @@
       color:#881337;
       font-size:.9rem;
     }
+    .install-ios-banner {
+      margin:8px 12px 0;
+      padding:10px 14px;
+      border-radius:12px;
+      background:#ecfdf5;
+      border:1px solid #86efac;
+      color:#14532d;
+      font-size:.86rem;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+    }
+    .install-btn {
+      background:rgba(134, 239, 172, .24);
+      border:1px solid rgba(255,255,255,.28);
+    }
+    .install-btn:hover {
+      background:rgba(134, 239, 172, .36);
+    }
     @media(max-width:380px) {
       .lock-btn .lock-label { display:none; }
       .user-badge { max-width:108px; font-size:.72rem; }
@@ -311,6 +331,10 @@
       .header-right { max-width:62%; }
       .app-version-badge__status { display:none; }
       .user-badge { max-width:132px; }
+      .install-ios-banner {
+        flex-direction:column;
+        align-items:flex-start;
+      }
     }
 
     /* ── BOTTOM NAV ── */

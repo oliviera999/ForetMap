@@ -1,4 +1,4 @@
-const CACHE_NAME = 'foretmap-offline-v3';
+const CACHE_NAME = 'foretmap-offline-v4';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
@@ -6,6 +6,12 @@ const STATIC_ASSETS = [
   '/manifest.json',
   '/icon.svg',
   '/favicon-n3.png',
+  '/favicon.ico',
+  '/pwa-icon-192.png',
+  '/pwa-icon-512.png',
+  '/pwa-maskable-512.png',
+  '/pwa-screenshot-mobile.png',
+  '/pwa-screenshot-wide.png',
   '/map.png',
   '/maps/map-foret.svg',
   '/maps/map-n3.svg',
