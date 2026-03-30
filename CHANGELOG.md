@@ -12,6 +12,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - **Outil collectif retiré (frontend + backend)** : suppression complète de la vue `Collectif`, des endpoints `/api/collective/*`, de la diffusion temps réel `collective:changed`, des tables SQL associées (`collective_sessions*`), des migrations dédiées et des tests backend liés.
 
 ### Modifié
+- **Formulaire tâche (emplacement)** : les sélections multiples **zones** et **repères** sont regroupées dans une seule liste défilante, avec séparateurs visuels lorsque les deux types sont présents.
 - **Tâches (libellés mode de validation)** : l’ancien libellé « classique » est remplacé par **individuel** / **Validation individuelle** (chip et liste déroulante), en parallèle de **collectif** / **Validation collective**.
 - **Avatar en-tête après changement de photo** : URL des fichiers `/uploads/` préfixée avec `withAppBase` (déploiement sous-dossier) ; `StudentAvatar` réagit à `avatar_path` et remonte l’`<img>` si le chemin change ; session élève / `getStoredSession` conservent et propagent `avatar_path` (y compris fusion avec l’état précédent et champ `user`).
 - **Modale profil / statistiques perso** : en-tête fixe avec bouton ✕ (comme les autres feuilles modales) et corps défilant — la croix reste visible en haut à droite pendant le scroll.

@@ -369,38 +369,50 @@ function TaskFormModal({
             </select>
           </div>
         )}
-        <div className="field"><label>Zones (plusieurs possibles)</label>
+        <div className="field"><label>Zones et repères (plusieurs possibles)</label>
           <div className="task-form-pick-list">
-            {selectableZones.length === 0
-              ? <p className="task-form-pick-empty">Aucune zone pour cette carte.</p>
-              : selectableZones.map(z => (
-                <label key={z.id} className="task-form-pick-item">
-                  <input
-                    type="checkbox"
-                    className="task-form-pick-checkbox"
-                    checked={form.zone_ids.includes(String(z.id || '').trim())}
-                    onChange={() => toggleZoneId(z.id)}
-                  />
-                  <span className="task-form-pick-text">{z.name}{z.current_plant ? ` — ${z.current_plant}` : ''}</span>
-                </label>
-              ))}
-          </div>
-        </div>
-        <div className="field"><label>Repères (plusieurs possibles)</label>
-          <div className="task-form-pick-list">
-            {selectableMarkers.length === 0
-              ? <p className="task-form-pick-empty">Aucun repère pour cette carte.</p>
-              : selectableMarkers.map(m => (
-                <label key={m.id} className="task-form-pick-item">
-                  <input
-                    type="checkbox"
-                    className="task-form-pick-checkbox"
-                    checked={form.marker_ids.includes(String(m.id || '').trim())}
-                    onChange={() => toggleMarkerId(m.id)}
-                  />
-                  <span className="task-form-pick-text">{m.emoji ? `${m.emoji} ` : ''}{m.label}</span>
-                </label>
-              ))}
+            {selectableZones.length === 0 && selectableMarkers.length === 0 ? (
+              <p className="task-form-pick-empty">Aucune zone ni repère pour cette carte.</p>
+            ) : (
+              <>
+                {selectableZones.length > 0 && (
+                  <>
+                    {selectableMarkers.length > 0 && (
+                      <div className="task-form-pick-subheading" aria-hidden="true">Zones</div>
+                    )}
+                    {selectableZones.map((z) => (
+                      <label key={z.id} className="task-form-pick-item">
+                        <input
+                          type="checkbox"
+                          className="task-form-pick-checkbox"
+                          checked={form.zone_ids.includes(String(z.id || '').trim())}
+                          onChange={() => toggleZoneId(z.id)}
+                        />
+                        <span className="task-form-pick-text">🌿 {z.name}{z.current_plant ? ` — ${z.current_plant}` : ''}</span>
+                      </label>
+                    ))}
+                  </>
+                )}
+                {selectableMarkers.length > 0 && (
+                  <>
+                    {selectableZones.length > 0 && (
+                      <div className="task-form-pick-subheading" aria-hidden="true">Repères</div>
+                    )}
+                    {selectableMarkers.map((m) => (
+                      <label key={m.id} className="task-form-pick-item">
+                        <input
+                          type="checkbox"
+                          className="task-form-pick-checkbox"
+                          checked={form.marker_ids.includes(String(m.id || '').trim())}
+                          onChange={() => toggleMarkerId(m.id)}
+                        />
+                        <span className="task-form-pick-text">{m.emoji ? `${m.emoji} ` : '📍 '}{m.label}</span>
+                      </label>
+                    ))}
+                  </>
+                )}
+              </>
+            )}
           </div>
         </div>
         {!isProposal && (
