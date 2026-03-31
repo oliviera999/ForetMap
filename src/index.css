@@ -536,7 +536,7 @@
       align-items:stretch;
       box-sizing:border-box;
       padding:var(--top-tabs-pad-y);
-      margin-bottom:16px;
+      margin-bottom:clamp(8px, 2.4vw, 16px);
       min-height:calc(var(--top-tabs-row-inner-h) + 2 * var(--top-tabs-pad-y));
       max-height:calc(var(--top-tabs-row-inner-h) + 2 * var(--top-tabs-pad-y));
       overflow-x:auto; overflow-y:hidden;
@@ -1201,10 +1201,6 @@
       }
       header .realtime-prof-wrap {
         min-height:28px;
-      }
-      /* Barre d’onglets n3boss : hauteur unifiée via :root (clamp), pas de surcharge par écran ici. */
-      .teacher-main .top-tabs {
-        margin-bottom:clamp(8px, 2.4vw, 16px);
       }
       /* Barre d’outils carte : plus compacte que le défaut inline (7px / min 50px),
          pour libérer de la hauteur utile — uniquement sur l’écran carte. */
