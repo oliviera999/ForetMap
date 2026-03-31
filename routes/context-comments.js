@@ -96,13 +96,17 @@ function isVisitorRole(auth) {
   return String(auth?.roleSlug || '').trim().toLowerCase() === 'visiteur';
 }
 
-/** n3boss : toujours ; n3beur : selon users.context_comment_participate */
+/** n3boss : toujours ; n3beur : selon le profil principal (roles.context_comment_participate) */
 async function userContextCommentParticipationAllowed(auth) {
   if (!auth) return false;
   if (String(auth.userType || '').toLowerCase() !== 'student') return true;
   const row = await queryOne(
-    'SELECT context_comment_participate FROM users WHERE id = ? AND user_type = ? LIMIT 1',
-    [auth.userId, 'student']
+    `SELECT COALESCE(r.context_comment_participate, 1) AS context_comment_participate
+       FROM users u
+  LEFT JOIN user_roles ur ON ur.user_id = u.id AND ur.user_type = 'student' AND ur.is_primary = 1
+  LEFT JOIN roles r ON r.id = ur.role_id
+      WHERE u.id = ? AND u.user_type = 'student' LIMIT 1`,
+    [auth.userId]
   );
   if (!row) return true;
   return Number(row.context_comment_participate) !== 0;
@@ -112,7 +116,7 @@ async function requireContextCommentParticipation(req, res) {
   const ok = await userContextCommentParticipationAllowed(req.auth);
   if (ok) return true;
   res.status(403).json({
-    error: 'Commentaires en lecture seule : la publication n’est pas activée pour ton compte.',
+    error: 'Commentaires en lecture seule : la publication n’est pas activée pour ton profil.',
     code: 'CONTEXT_COMMENT_READ_ONLY',
   });
   return false;

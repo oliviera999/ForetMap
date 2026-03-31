@@ -6,6 +6,16 @@ const { requirePermission } = require('../middleware/requireTeacher');
 const { setPrimaryRole } = require('../lib/rbac');
 const { getSettingValue, setSetting } = require('../lib/settings');
 const { emitStudentsChanged } = require('../lib/realtime');
+
+async function emitStudentsWithPrimaryRole(roleId) {
+  const rows = await queryAll(
+    `SELECT user_id FROM user_roles WHERE role_id = ? AND user_type = 'student' AND is_primary = 1`,
+    [roleId]
+  );
+  for (const row of rows) {
+    emitStudentsChanged({ reason: 'role_forum_context_participation', studentId: row.user_id });
+  }
+}
 const { logRouteError } = require('../lib/routeLog');
 const { logAudit } = require('./audit');
 
@@ -164,7 +174,7 @@ router.get(
   async (req, res) => {
     try {
       const rolesWithProgression = await queryAll(
-        'SELECT id, slug, display_name, emoji, min_done_tasks, display_order, `rank` AS `rank`, is_system FROM roles ORDER BY display_order ASC, `rank` DESC, id ASC'
+        'SELECT id, slug, display_name, emoji, min_done_tasks, display_order, `rank` AS `rank`, is_system, forum_participate, context_comment_participate FROM roles ORDER BY display_order ASC, `rank` DESC, id ASC'
       );
       const perms = await queryAll('SELECT `key`, label, description FROM permissions ORDER BY `key` ASC');
       const rolePerms = await queryAll(
@@ -240,7 +250,7 @@ router.post(
         [slug, displayName, emoji, minDoneTasks, displayOrder ?? 0, rank]
       );
       const role = await queryOne(
-        'SELECT id, slug, display_name, emoji, min_done_tasks, display_order, `rank` AS `rank`, is_system FROM roles WHERE slug = ? LIMIT 1',
+        'SELECT id, slug, display_name, emoji, min_done_tasks, display_order, `rank` AS `rank`, is_system, forum_participate, context_comment_participate FROM roles WHERE slug = ? LIMIT 1',
         [slug]
       );
       logAudit('rbac_create_profile', 'role', role?.id || null, slug, { req });
@@ -260,14 +270,26 @@ router.patch(
     try {
       const role = await queryOne('SELECT id FROM roles WHERE id = ?', [req.params.id]);
       if (!role) return res.status(404).json({ error: 'Profil introuvable' });
-      const existing = await queryOne('SELECT slug, display_name, emoji, min_done_tasks, display_order, `rank` AS `rank` FROM roles WHERE id = ?', [role.id]);
+      const existing = await queryOne(
+        'SELECT slug, display_name, emoji, min_done_tasks, display_order, `rank` AS `rank`, forum_participate, context_comment_participate FROM roles WHERE id = ?',
+        [role.id]
+      );
       const hasDisplayName = Object.prototype.hasOwnProperty.call(req.body || {}, 'display_name');
       const hasRank = Object.prototype.hasOwnProperty.call(req.body || {}, 'rank');
       const hasEmoji = Object.prototype.hasOwnProperty.call(req.body || {}, 'emoji');
       const hasMinDoneTasks = Object.prototype.hasOwnProperty.call(req.body || {}, 'min_done_tasks');
       const hasDisplayOrder = Object.prototype.hasOwnProperty.call(req.body || {}, 'display_order');
-      if (!hasDisplayName && !hasRank && !hasEmoji && !hasMinDoneTasks && !hasDisplayOrder) {
+      const hasForumParticipate = Object.prototype.hasOwnProperty.call(req.body || {}, 'forum_participate');
+      const hasContextCommentParticipate = Object.prototype.hasOwnProperty.call(req.body || {}, 'context_comment_participate');
+      const isStudentRole = STUDENT_ROLE_SLUG_RE.test(existing.slug);
+      if (
+        !hasDisplayName && !hasRank && !hasEmoji && !hasMinDoneTasks && !hasDisplayOrder
+        && !(isStudentRole && (hasForumParticipate || hasContextCommentParticipate))
+      ) {
         return res.status(400).json({ error: 'Aucun champ de profil fourni' });
+      }
+      if ((hasForumParticipate || hasContextCommentParticipate) && !isStudentRole) {
+        return res.status(400).json({ error: 'Forum et commentaires contextuels ne s’appliquent qu’aux profils n3beur (slug eleve_*)' });
       }
       const displayName = hasDisplayName ? String(req.body?.display_name || '').trim() : existing.display_name;
       const rank = hasRank ? parseInt(req.body?.rank, 10) : existing.rank;
@@ -278,6 +300,14 @@ router.patch(
       const displayOrder = hasDisplayOrder
         ? parseOptionalNonNegativeInt(req.body?.display_order, existing.display_order ?? 0)
         : (existing.display_order ?? 0);
+      let forumParticipate = Number(existing.forum_participate) !== 0 ? 1 : 0;
+      let contextCommentParticipate = Number(existing.context_comment_participate) !== 0 ? 1 : 0;
+      if (hasForumParticipate) {
+        forumParticipate = req.body.forum_participate ? 1 : 0;
+      }
+      if (hasContextCommentParticipate) {
+        contextCommentParticipate = req.body.context_comment_participate ? 1 : 0;
+      }
       if (!displayName) return res.status(400).json({ error: 'display_name requis' });
       if (!Number.isFinite(rank)) return res.status(400).json({ error: 'rank invalide' });
       if (Number.isNaN(minDoneTasks)) return res.status(400).json({ error: 'min_done_tasks invalide (entier >= 0)' });
@@ -286,14 +316,17 @@ router.patch(
         return res.status(400).json({ error: 'Un profil n3beur doit définir emoji et min_done_tasks' });
       }
       await execute(
-        'UPDATE roles SET display_name = ?, emoji = ?, min_done_tasks = ?, display_order = ?, `rank` = ?, updated_at = NOW() WHERE id = ?',
-        [displayName, emoji, minDoneTasks, displayOrder, rank, role.id]
+        'UPDATE roles SET display_name = ?, emoji = ?, min_done_tasks = ?, display_order = ?, `rank` = ?, forum_participate = ?, context_comment_participate = ?, updated_at = NOW() WHERE id = ?',
+        [displayName, emoji, minDoneTasks, displayOrder, rank, forumParticipate, contextCommentParticipate, role.id]
       );
       const updated = await queryOne(
-        'SELECT id, slug, display_name, emoji, min_done_tasks, display_order, `rank` AS `rank`, is_system FROM roles WHERE id = ?',
+        'SELECT id, slug, display_name, emoji, min_done_tasks, display_order, `rank` AS `rank`, is_system, forum_participate, context_comment_participate FROM roles WHERE id = ?',
         [role.id]
       );
       logAudit('rbac_update_profile', 'role', role.id, updated?.slug || String(role.id), { req });
+      if (isStudentRole && (hasForumParticipate || hasContextCommentParticipate)) {
+        await emitStudentsWithPrimaryRole(role.id);
+      }
       res.json(updated);
     } catch (e) {
       logRouteError(e, req);
@@ -362,8 +395,8 @@ router.get(
         `SELECT u.id, u.user_type,
                 COALESCE(NULLIF(u.display_name, ''), NULLIF(CONCAT(COALESCE(u.first_name, ''), ' ', COALESCE(u.last_name, '')), ''), u.email, u.pseudo, u.id) AS display_name,
                 u.email, ur.role_id, r.slug AS role_slug, r.display_name AS role_display_name,
-                COALESCE(u.forum_participate, 1) AS forum_participate,
-                COALESCE(u.context_comment_participate, 1) AS context_comment_participate
+                COALESCE(r.forum_participate, 1) AS forum_participate,
+                COALESCE(r.context_comment_participate, 1) AS context_comment_participate
            FROM users u
       LEFT JOIN user_roles ur ON ur.user_type = u.user_type AND ur.user_id = u.id AND ur.is_primary = 1
       LEFT JOIN roles r ON r.id = ur.role_id
@@ -437,68 +470,6 @@ router.put(
         payload: { user_type: resolvedUserType, user_id: resolvedLegacyUserId, role_id: roleId },
       });
       res.json({ ok: true });
-    } catch (e) {
-      logRouteError(e, req);
-      res.status(500).json({ error: e.message });
-    }
-  }
-);
-
-router.patch(
-  '/users/:userType/:userId/forum-participate',
-  requirePermission('admin.users.assign_roles', { needsElevation: true }),
-  async (req, res) => {
-    try {
-      const userType = String(req.params.userType || '').trim();
-      if (userType !== 'student') {
-        return res.status(400).json({ error: 'Réservé aux comptes n3beur (student)' });
-      }
-      const userId = String(req.params.userId || '').trim();
-      if (!userId) return res.status(400).json({ error: 'userId requis' });
-      const v = req.body?.forum_participate;
-      if (typeof v !== 'boolean') {
-        return res.status(400).json({ error: 'forum_participate (booléen) requis' });
-      }
-      const user = await queryOne("SELECT id FROM users WHERE id = ? AND user_type = 'student' LIMIT 1", [userId]);
-      if (!user) return res.status(404).json({ error: 'Utilisateur introuvable' });
-      await execute('UPDATE users SET forum_participate = ? WHERE id = ? AND user_type = ?', [v ? 1 : 0, userId, 'student']);
-      logAudit('rbac_forum_participate', 'user', userId, v ? 'forum_participate_on' : 'forum_participate_off', {
-        req,
-        payload: { user_type: 'student', forum_participate: v },
-      });
-      emitStudentsChanged({ reason: 'forum_participate_updated', studentId: userId });
-      res.json({ ok: true, forum_participate: v });
-    } catch (e) {
-      logRouteError(e, req);
-      res.status(500).json({ error: e.message });
-    }
-  }
-);
-
-router.patch(
-  '/users/:userType/:userId/context-comment-participate',
-  requirePermission('admin.users.assign_roles', { needsElevation: true }),
-  async (req, res) => {
-    try {
-      const userType = String(req.params.userType || '').trim();
-      if (userType !== 'student') {
-        return res.status(400).json({ error: 'Réservé aux comptes n3beur (student)' });
-      }
-      const userId = String(req.params.userId || '').trim();
-      if (!userId) return res.status(400).json({ error: 'userId requis' });
-      const v = req.body?.context_comment_participate;
-      if (typeof v !== 'boolean') {
-        return res.status(400).json({ error: 'context_comment_participate (booléen) requis' });
-      }
-      const user = await queryOne("SELECT id FROM users WHERE id = ? AND user_type = 'student' LIMIT 1", [userId]);
-      if (!user) return res.status(404).json({ error: 'Utilisateur introuvable' });
-      await execute('UPDATE users SET context_comment_participate = ? WHERE id = ? AND user_type = ?', [v ? 1 : 0, userId, 'student']);
-      logAudit('rbac_context_comment_participate', 'user', userId, v ? 'context_comment_participate_on' : 'context_comment_participate_off', {
-        req,
-        payload: { user_type: 'student', context_comment_participate: v },
-      });
-      emitStudentsChanged({ reason: 'context_comment_participate_updated', studentId: userId });
-      res.json({ ok: true, context_comment_participate: v });
     } catch (e) {
       logRouteError(e, req);
       res.status(500).json({ error: e.message });

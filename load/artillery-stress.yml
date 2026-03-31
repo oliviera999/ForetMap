@@ -7,19 +7,19 @@ config:
       Accept: application/json
       X-ForetMap-Load-Test: "{{ $processEnvironment.LOAD_TEST_SECRET }}"
   phases:
-    - duration: 20
-      arrivalRate: 3
-      name: warmup
-    - duration: 60
-      arrivalRate: 3
-      rampTo: 25
-      name: ramp-up
-    - duration: 120
-      arrivalRate: 25
-      name: plateau
     - duration: 30
-      arrivalRate: 25
-      rampTo: 5
+      arrivalRate: 8
+      name: warmup
+    - duration: 90
+      arrivalRate: 8
+      rampTo: 40
+      name: ramp-up
+    - duration: 240
+      arrivalRate: 40
+      name: plateau
+    - duration: 60
+      arrivalRate: 40
+      rampTo: 10
       name: cool-down
 
 scenarios:
@@ -28,22 +28,39 @@ scenarios:
     flow:
       - get:
           url: /api/health
+      - think: 2
       - get:
           url: /api/version
-      - think: 1
+      - think: 2
+      - get:
+          url: /api/health
+      - think: 2
 
   - name: lecture_bdd
     weight: 35
     flow:
       - get:
           url: /api/health/db
+      - think: 2
       - get:
           url: /api/zones
-      - think: 1
+      - think: 2
+      - get:
+          url: /api/plants
+      - think: 2
+      - get:
+          url: /api/zones
+      - think: 2
 
   - name: lecture_biodiversite
     weight: 15
     flow:
       - get:
           url: /api/plants
-      - think: 1
+      - think: 2
+      - get:
+          url: /api/zones
+      - think: 2
+      - get:
+          url: /api/plants
+      - think: 2

@@ -388,30 +388,38 @@ function ProfilesAdminView({ isN3Affiliated = false }) {
     setLoading(false);
   };
 
-  const setStudentForumParticipate = async (userId, forumParticipate) => {
+  const setRoleForumParticipate = async (roleId, forumParticipate) => {
     setLoading(true);
     setErr('');
     try {
-      await api(`/api/rbac/users/student/${encodeURIComponent(userId)}/forum-participate`, 'PATCH', { forum_participate: forumParticipate });
-      setUsers((prev) => prev.map((u) => (
-        u.user_type === 'student' && u.id === userId ? { ...u, forum_participate: forumParticipate } : u
+      await api(`/api/rbac/profiles/${roleId}`, 'PATCH', { forum_participate: forumParticipate });
+      setRoles((prev) => prev.map((r) => (
+        Number(r.id) === Number(roleId) ? { ...r, forum_participate: forumParticipate ? 1 : 0 } : r
       )));
-      setMsg(forumParticipate ? 'Participation au forum activée pour ce compte.' : 'Forum en lecture seule pour ce compte.');
+      setUsers((prev) => prev.map((u) => {
+        if (u.user_type !== 'student' || Number(u.role_id) !== Number(roleId)) return u;
+        return { ...u, forum_participate: forumParticipate };
+      }));
+      setMsg(forumParticipate ? 'Participation au forum activée pour ce profil.' : 'Forum en lecture seule pour ce profil.');
     } catch (e) {
       setErr(e.message || 'Erreur réglage forum');
     }
     setLoading(false);
   };
 
-  const setStudentContextCommentParticipate = async (userId, contextCommentParticipate) => {
+  const setRoleContextCommentParticipate = async (roleId, contextCommentParticipate) => {
     setLoading(true);
     setErr('');
     try {
-      await api(`/api/rbac/users/student/${encodeURIComponent(userId)}/context-comment-participate`, 'PATCH', { context_comment_participate: contextCommentParticipate });
-      setUsers((prev) => prev.map((u) => (
-        u.user_type === 'student' && u.id === userId ? { ...u, context_comment_participate: contextCommentParticipate } : u
+      await api(`/api/rbac/profiles/${roleId}`, 'PATCH', { context_comment_participate: contextCommentParticipate });
+      setRoles((prev) => prev.map((r) => (
+        Number(r.id) === Number(roleId) ? { ...r, context_comment_participate: contextCommentParticipate ? 1 : 0 } : r
       )));
-      setMsg(contextCommentParticipate ? 'Commentaires contextuels autorisés pour ce compte.' : 'Commentaires contextuels en lecture seule pour ce compte.');
+      setUsers((prev) => prev.map((u) => {
+        if (u.user_type !== 'student' || Number(u.role_id) !== Number(roleId)) return u;
+        return { ...u, context_comment_participate: contextCommentParticipate };
+      }));
+      setMsg(contextCommentParticipate ? 'Commentaires contextuels autorisés pour ce profil.' : 'Commentaires contextuels en lecture seule pour ce profil.');
     } catch (e) {
       setErr(e.message || 'Erreur réglage commentaires');
     }
@@ -774,6 +782,48 @@ function ProfilesAdminView({ isN3Affiliated = false }) {
                         </p>
                       </div>
                   )}
+                  {isSelectedStudentProfile && (
+                    <div
+                      style={{
+                        border: '1px solid #e0e7ff',
+                        background: '#f8fafc',
+                        borderRadius: 10,
+                        padding: 12,
+                        marginBottom: 14,
+                      }}
+                    >
+                      <div style={{ fontSize: '.88rem', fontWeight: 700, color: '#1e3a5f', marginBottom: 8 }}>
+                        Forum et commentaires (tâches, zones…)
+                      </div>
+                      <label style={{ display: 'flex', alignItems: 'flex-start', gap: 10, fontSize: '.84rem', cursor: loading || !authElevated ? 'default' : 'pointer', marginBottom: 8 }}>
+                        <input
+                          type="checkbox"
+                          checked={Number(selectedRole.forum_participate) !== 0}
+                          onChange={(e) => setRoleForumParticipate(selectedRole.id, e.target.checked)}
+                          disabled={loading || !authElevated}
+                          style={{ marginTop: 3 }}
+                        />
+                        <span>
+                          Permettre la <strong>participation au forum</strong> (publier, répondre, réagir, etc.) pour les {roleTerms.studentPlural} de ce profil ; décoché = lecture seule.
+                        </span>
+                      </label>
+                      <label style={{ display: 'flex', alignItems: 'flex-start', gap: 10, fontSize: '.84rem', cursor: loading || !authElevated ? 'default' : 'pointer', marginBottom: 0 }}>
+                        <input
+                          type="checkbox"
+                          checked={Number(selectedRole.context_comment_participate) !== 0}
+                          onChange={(e) => setRoleContextCommentParticipate(selectedRole.id, e.target.checked)}
+                          disabled={loading || !authElevated}
+                          style={{ marginTop: 3 }}
+                        />
+                        <span>
+                          Permettre les <strong>commentaires contextuels</strong> sur les tâches, projets et zones ; décoché = lecture seule sur ces fils (le forum reste régi par la case ci-dessus).
+                        </span>
+                      </label>
+                      <p style={{ fontSize: '.72rem', color: '#64748b', margin: '10px 0 0', lineHeight: 1.45 }}>
+                        Réglages communs à tous les comptes ayant ce profil principal. Le profil visiteur reste sans accès forum / commentaires de contexte.
+                      </p>
+                    </div>
+                  )}
                   {catalog
                     .filter(
                       (perm) =>
@@ -804,7 +854,7 @@ function ProfilesAdminView({ isN3Affiliated = false }) {
           <div style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: 12, padding: 12, marginTop: 12 }}>
             <h3 style={{ marginTop: 0 }}>Attribution des profils</h3>
             <p style={{ margin: '0 0 10px', fontSize: '.78rem', color: '#64748b', lineHeight: 1.45 }}>
-              Pour les n3beurs (hors profil visiteur), les cases forum et commentaires imposent la session élevée (PIN) comme pour l’attribution de profil. Décochées : lecture seule sur le forum ou sur les commentaires des tâches / projets / zones.
+              Choisir le profil principal définit notamment forum et commentaires contextuels (réglés par profil dans la colonne de gauche, section Permissions). L’attribution peut exiger une session élevée (PIN) selon les droits du compte administrateur.
             </p>
             <div style={{ maxHeight: 360, overflow: 'auto' }}>
               {users.map((u) => (
@@ -816,28 +866,6 @@ function ProfilesAdminView({ isN3Affiliated = false }) {
                     <option value="">Aucun profil</option>
                     {sortedRoles.map((r) => <option key={r.id} value={r.id}>{r.display_name}</option>)}
                   </select>
-                  {u.user_type === 'student' && String(u.role_slug || '').toLowerCase() !== 'visiteur' && (
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px 14px', alignItems: 'center' }}>
-                      <label style={{ fontSize: '.78rem', display: 'inline-flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap', color: '#374151' }}>
-                        <input
-                          type="checkbox"
-                          checked={u.forum_participate !== false}
-                          onChange={(e) => setStudentForumParticipate(u.id, e.target.checked)}
-                          disabled={loading || !authElevated}
-                        />
-                        Forum
-                      </label>
-                      <label style={{ fontSize: '.78rem', display: 'inline-flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap', color: '#374151' }}>
-                        <input
-                          type="checkbox"
-                          checked={u.context_comment_participate !== false}
-                          onChange={(e) => setStudentContextCommentParticipate(u.id, e.target.checked)}
-                          disabled={loading || !authElevated}
-                        />
-                        Commentaires (tâches, zones…)
-                      </label>
-                    </div>
-                  )}
                 </div>
               ))}
             </div>

@@ -1,6 +1,6 @@
 {
   "name": "foretmap",
-  "version": "1.23.7",
+  "version": "1.23.8",
   "description": "Application de gestion de la forêt comestible - Lycée Lyautey",
   "main": "server.js",
   "dependencies": {
@@ -29,6 +29,8 @@
     "db:init": "node -e \"require('dotenv').config(); const { initSchema, seedData } = require('./database'); (async () => { await initSchema(); await seedData(); console.log('DB init OK'); process.exit(0); })()\"",
     "db:migrate": "node -e \"require('dotenv').config(); const { initSchema } = require('./database'); (async () => { await initSchema(); console.log('Migrations OK'); process.exit(0); })()\"",
     "db:seed:teacher": "node scripts/seed-teacher-admin.js",
+    "db:import:dump": "node scripts/import-foretmap-dump.js",
+    "db:reset:role-pins:local": "node scripts/reset-local-role-pins-from-env.js",
     "db:admin:audit": "node scripts/ensure-admin-and-audit-db.js --login oliviera9",
     "db:admin:audit:dry": "node scripts/ensure-admin-and-audit-db.js --login oliviera9 --dry-run",
     "db:admin:audit:fix-orphans": "node scripts/ensure-admin-and-audit-db.js --login oliviera9 --fix-orphans",
@@ -52,7 +54,7 @@
     "release:patch": "npm version patch -m \"chore(release): v%s\"",
     "release:minor": "npm version minor -m \"chore(release): v%s\"",
     "release:major": "npm version major -m \"chore(release): v%s\"",
-    "test": "node --test --test-force-exit \"tests/*.test.js\"",
+    "test": "node --test --test-concurrency=1 --test-force-exit \"tests/*.test.js\"",
     "test:local": "cross-env DB_NAME=foretmap_test node scripts/test-local-isolated.js",
     "test:load": "node scripts/run-load-test.js normal",
     "test:load:light": "node scripts/run-load-test.js light",
@@ -62,6 +64,7 @@
     "test:load:report": "node scripts/render-load-report.js",
     "test:e2e": "node scripts/e2e-kill-listen-port.js && npx playwright test",
     "test:e2e:headed": "node scripts/e2e-kill-listen-port.js && npx playwright test --headed",
+    "test:snapshot": "cross-env FORETMAP_SNAPSHOT_TESTS=1 node --test --test-force-exit tests/snapshot-db.test.js",
     "docker:up": "docker compose up -d || docker-compose up -d",
     "docker:down": "docker compose down || docker-compose down",
     "local:setup": "npm run docker:up && npm install --include=dev && node scripts/wait-mysql-ready.js && npm run db:init && npm run check:local",

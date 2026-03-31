@@ -362,12 +362,26 @@ test('Commentaires contextuels: le profil visiteur est refusé', async () => {
 });
 
 test('Commentaires contextuels: compte en lecture seule (GET OK, POST/réactions/signalement 403)', async () => {
+  let ctxRoRole = await queryOne("SELECT id FROM roles WHERE slug = 'eleve_ctx_ro_test' LIMIT 1");
+  if (!ctxRoRole?.id) {
+    await execute(
+      `INSERT INTO roles (slug, display_name, emoji, min_done_tasks, display_order, \`rank\`, is_system, forum_participate, context_comment_participate)
+       VALUES ('eleve_ctx_ro_test', 'Test commentaires lecture seule', '🧪', 0, 9990, 1, 0, 1, 0)`
+    );
+    ctxRoRole = await queryOne("SELECT id FROM roles WHERE slug = 'eleve_ctx_ro_test' LIMIT 1");
+  }
+  assert.ok(ctxRoRole?.id);
   const teacher = await teacherToken();
   const author = await registerStudent('ComRoAuthor');
   const readOnly = await registerStudent('ComReadOnly');
   const { taskId } = await createContextFixture(teacher);
 
-  await execute('UPDATE users SET context_comment_participate = 0 WHERE id = ? AND user_type = ?', [readOnly.id, 'student']);
+  await execute('UPDATE user_roles SET is_primary = 0 WHERE user_type = ? AND user_id = ?', ['student', readOnly.id]);
+  await execute(
+    `INSERT INTO user_roles (user_type, user_id, role_id, is_primary) VALUES ('student', ?, ?, 1)
+     ON DUPLICATE KEY UPDATE is_primary = 1`,
+    [readOnly.id, ctxRoRole.id]
+  );
 
   const created = await request(app)
     .post('/api/context-comments')

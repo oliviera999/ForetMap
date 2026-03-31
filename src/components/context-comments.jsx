@@ -89,6 +89,7 @@ function ContextComments({
   const currentUserType = String(authClaims?.userType || '').toLowerCase();
   const currentUserId = String(authClaims?.canonicalUserId || authClaims?.userId || '');
   const allowModeration = canModerate(authClaims);
+  const canUseCommentActions = canParticipateContextComments;
   const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
   const load = useCallback(async (nextPage = 1) => {

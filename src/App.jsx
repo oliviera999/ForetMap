@@ -762,6 +762,7 @@ function App() {
   const useSplitMapTasks = shouldUseDesktopSplit && isCombinedMapTasksTab && canAccessStudentMapTasks;
   const useWideMain = shouldUseDesktopSplit;
   const teacherMapChromeVisible = !loading && (useSplitMapTasks || (!useSplitMapTasks && tab === 'map'));
+  const studentMapPageChromeVisible = !loading && (useSplitMapTasks || (!useSplitMapTasks && tab === 'map'));
 
   const rtStatus = useForetmapRealtime({
     enabled: !!(student || effectiveIsTeacher),
@@ -1418,7 +1419,7 @@ function App() {
         </div>
       ) : (
         <>
-          <div className={`main ${useWideMain ? 'main--wide' : ''}`}>
+          <div className={`main ${useWideMain ? 'main--wide' : ''} ${studentMapPageChromeVisible ? 'main--map-visible' : ''}`}>
             {loading ? (
               <div className="loader" style={{ height: '60vh' }}>
                 <div className="loader-leaf">🌿</div>

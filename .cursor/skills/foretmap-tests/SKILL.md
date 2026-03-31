@@ -30,6 +30,7 @@ description: Guide l'écriture et l'exécution des tests backend ForetMap. À ut
 ```bash
 npm test              # lance tous les tests dans tests/
 npm run test:local    # idem avec DB_NAME=foretmap_test (cross-env)
+npm run test:snapshot # tests "snapshot" contre la DB courante (FORETMAP_SNAPSHOT_TESTS=1)
 npm run test:e2e      # lance les scénarios UI Playwright
 npm run test:e2e:headed # idem avec navigateur visible
 ```
@@ -55,6 +56,7 @@ tests/
 - Nommer les tests en français, décrivant le comportement attendu.
 - Chaque test est indépendant : créer ses propres données (pas de dépendance inter-tests).
 - Utiliser `supertest` pour les tests de routes : `request(app).get('/api/...').expect(200)`.
+- Les tests snapshot (`tests/snapshot-db.test.js`) ne doivent pas appeler `initSchema()` : ils valident une base déjà importée.
 
 ## Priorités de tests backend (voir docs/EVOLUTION.md, stabilité continue)
 

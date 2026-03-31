@@ -323,8 +323,6 @@ CREATE TABLE IF NOT EXISTS users (
   description TEXT DEFAULT NULL,
   avatar_path VARCHAR(512) DEFAULT NULL,
   affiliation VARCHAR(16) DEFAULT 'both',
-  forum_participate TINYINT(1) NOT NULL DEFAULT 1,
-  context_comment_participate TINYINT(1) NOT NULL DEFAULT 1,
   password_hash VARCHAR(255) DEFAULT NULL,
   auth_provider VARCHAR(32) NOT NULL DEFAULT 'local',
   is_active TINYINT(1) NOT NULL DEFAULT 1,
@@ -363,6 +361,8 @@ CREATE TABLE IF NOT EXISTS roles (
   display_order INT NOT NULL DEFAULT 0,
   `rank` INT NOT NULL DEFAULT 0,
   is_system TINYINT(1) NOT NULL DEFAULT 1,
+  forum_participate TINYINT(1) NOT NULL DEFAULT 1,
+  context_comment_participate TINYINT(1) NOT NULL DEFAULT 1,
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   UNIQUE KEY uq_roles_slug (slug)

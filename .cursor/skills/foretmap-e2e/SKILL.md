@@ -28,6 +28,7 @@ Les deux enchaînent **`node scripts/e2e-kill-listen-port.js`** (hors CI) pour l
 ## Démarrage du serveur (local, hors CI)
 
 - **`playwright.config.js`** charge **`.env`** (`require('dotenv').config()`) pour que **`TEACHER_PIN`** (et le reste) soient alignés avec le serveur lors des tests qui élèvent le mode prof (PIN saisi = `E2E_ELEVATION_PIN` ou `TEACHER_PIN` ou `1234` par défaut dans la fixture).
+- Après import d'un dump de prod, vérifier la cohérence entre `.env` (`TEACHER_PIN`) et la table `role_pin_secrets` : sinon l'élévation prof échoue malgré un PIN "correct" côté fichier.
 - Hors CI, Playwright démarre **`npm run db:init && npm run start:e2e`**.
 - **`npm run start:e2e`** exécute **`node server.js --foretmap-e2e-no-rate-limit`**, ce qui positionne **`E2E_DISABLE_RATE_LIMIT=1`** au démarrage. Sur Windows, seule la variable d’environnement (sans ce flag) peut **ne pas** atteindre le process Node : le flag CLI est la source de vérité pour le bypass du **rate limiting** (`429` « Trop de requêtes » sur l’inscription ou les formulaires).
 - **`webServer.env`** du config Playwright redonde encore **`E2E_DISABLE_RATE_LIMIT=1`** ; le flag CLI reste indispensable pour la fiabilité.
