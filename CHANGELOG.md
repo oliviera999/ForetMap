@@ -12,6 +12,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - **Carte** : création/édition de **zones** et **repères** — champ pour coller ou taper un emoji personnalisé (la grille de suggestions reste disponible) ; **API repères** : troncature de l’emoji à 16 caractères (alignement `map_markers.emoji`).
 
 ### Modifié
+- **Build / déploiement** : régénération des artefacts `dist/` (bundles Vite) et synchronisation de `package-lock.json`.
 - **Carte / zones** : détection et retrait du préfixe emoji en tête de nom étendus aux emojis hors liste prédéfinie (affichage, édition, nom enregistré).
 - **Visite (édition)** : titres de zone — même logique de détection de préfixe emoji que sur la carte.
 - **Documentation API** : `docs/API.md` — zones (`name` avec préfixe emoji) et repères (`emoji` tronqué à 16 caractères).
