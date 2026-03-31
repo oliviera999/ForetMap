@@ -235,20 +235,18 @@ export function useNotificationCenter({
   useEffect(() => {
     if (!isTeacher) return;
     const proposedTasks = tasksForActiveMap.filter((task) => task.status === 'proposed');
-    const currentKeys = new Set();
     for (const task of proposedTasks) {
       const taskKey = task?.id != null
         ? `id:${task.id}`
         : (task?.task_id != null
           ? `task_id:${task.task_id}`
           : `title:${String(task?.title || task?.name || '').trim().toLowerCase()}`);
-      currentKeys.add(taskKey);
 
       if (lastTeacherProposedKeysRef.current.has(taskKey)) continue;
 
       const taskTitle = String(task?.title || task?.name || '').trim() || 'Tâche sans titre';
       const proposer = proposerNameFromTask(task);
-      addNotification({
+      const added = addNotification({
         key: `teacher-proposed-${taskKey}`,
         level: NOTIFICATION_LEVEL.IMPORTANT,
         category: NOTIFICATION_CATEGORY.PROPOSALS,
@@ -258,8 +256,10 @@ export function useNotificationCenter({
           : 'Nouvelle proposition de tâche à examiner.',
         action: { tab: 'tasks' },
       });
+      // Ne jamais remplacer le ref par la liste courante : un rafraîchissement vide
+      // réinitialisait le set et refaisait une notif pour les mêmes propositions.
+      if (added) lastTeacherProposedKeysRef.current.add(taskKey);
     }
-    lastTeacherProposedKeysRef.current = currentKeys;
   }, [addNotification, isTeacher, tasksForActiveMap]);
 
   // Règles de génération: n3beur
