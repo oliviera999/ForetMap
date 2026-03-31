@@ -6,6 +6,8 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 ## [Non publié]
 
 ### Ajouté
+- **Tâches récurrentes** : job quotidien (`lib/recurringTasks.js`) après init BDD — duplication automatique des tâches **validées** avec `recurrence` (weekly / biweekly / monthly) lorsque `due_date` est passée (fuseau `FORETMAP_RECURRENCE_TZ`, défaut Europe/Paris) ; clone en `available` sans assignations, copie zones / repères / tutoriels, nouvelles dates décalées (`start_date` absent → repli sur la date de `created_at`) ; idempotence `tasks.recurrence_spawned_for_due_date` ; `parent_task_id` vers la source ; audit `recurring_task_spawn` ; temps réel. Désactivation : `FORETMAP_DISABLE_RECURRING_TASK_JOB=1` ou `NODE_ENV=test`. Script `npm run tasks:spawn-recurring`. Migration **`046_task_recurrence_spawn_marker.sql`**.
+
 - **RBAC** : duplication d’un profil — `POST /api/rbac/profiles/:id/duplicate` (slug et nom affiché distincts ; copie des permissions, seuils, ordre et flags forum / commentaires contextuels ; **PIN non copié**) ; bouton **Dupliquer** dans **Profils & utilisateurs** (permission `admin.roles.manage`).
 - **Carte** : création/édition de **zones** et **repères** — champ pour coller ou taper un emoji personnalisé (la grille de suggestions reste disponible) ; **API repères** : troncature de l’emoji à 16 caractères (alignement `map_markers.emoji`).
 

@@ -15,6 +15,7 @@ Il a été mis à jour pour refléter l’état réel du dépôt (mars 2026), pu
 - **Backend découpé en routeurs** : `routes/auth`, `zones`, `tasks`, `plants`, `stats`, `students`, `map`, `observations`, `audit`.
 - **Frontend migré vers Vite + React modulaire** : source dans `src/`, build `dist/`, entrée `index.vite.html`.
 - **Tests backend en place** (node:test + supertest) : auth, statuts tâches, suppression élève, temps réel, nouvelles fonctionnalités.
+- **Tâches récurrentes (job serveur)** : après validation et échéance passée, duplication automatique des tâches avec `recurrence` (voir `lib/recurringTasks.js`, migration `046`, script `npm run tasks:spawn-recurring`).
 - **Migrations versionnées** : table `schema_version`, dossier `migrations/` (001+).
 - **Images sur disque (source unique)** : `uploads/` + `image_path` côté API/frontend.
 - **Retrait legacy base64 réalisé** : fallback `image_data` retiré du code et migration SQL de suppression des colonnes legacy ajoutée (`migrations/006_drop_legacy_image_data.sql`).

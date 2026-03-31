@@ -133,6 +133,8 @@ Documentation détaillée et templates:
 | `SMTP_USER` / `SMTP_PASS` | Identifiants SMTP (si requis par le fournisseur) |
 | `SMTP_FROM` | Expéditeur des emails (ex. `ForetMap <no-reply@exemple.com>`) |
 | `SMTP_JSON_TRANSPORT` | Optionnel (dev/test) : active un transport JSON sans envoi réel |
+| `FORETMAP_RECURRENCE_TZ` | Optionnel : fuseau IANA pour la date du jour du job tâches récurrentes (défaut `Europe/Paris`). |
+| `FORETMAP_DISABLE_RECURRING_TASK_JOB` | Optionnel : `1` pour ne pas planifier le job de duplication des tâches récurrentes (hors `NODE_ENV=test` qui le désactive déjà). |
 | `LOG_LEVEL` | Optionnel : niveau Pino (`debug`, `info`, …). Voir section *Débogage* ci‑dessus. |
 
 **Obligatoires au démarrage** : `DB_HOST`, `DB_USER`, `DB_PASS`, `DB_NAME`. Si l’une manque, le serveur refuse de démarrer.  
