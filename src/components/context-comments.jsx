@@ -107,6 +107,17 @@ function ContextComments({
     }
   }, [contextId, contextType]);
 
+  /** Même section repliée : le badge doit afficher le bon total (l’API renvoie total avec page_size minimal). */
+  const refreshTotal = useCallback(async () => {
+    if (!contextType || !contextId) return;
+    try {
+      const data = await listContextComments({ contextType, contextId, page: 1, pageSize: 1 });
+      setTotal(Number(data?.total || 0));
+    } catch {
+      // Silencieux : pas de toast pour un compteur en arrière-plan
+    }
+  }, [contextId, contextType]);
+
   const [isOpen, setIsOpen] = useState(() => (
     defaultOpen || !!String(readContextCommentDraft(contextType, contextId) || '').trim()
   ));
@@ -134,17 +145,26 @@ function ContextComments({
   }, [isOpen, contextType, contextId, load]);
 
   useEffect(() => {
-    if (!isOpen || !contextType || !contextId) return undefined;
+    if (!contextType || contextId == null || contextId === '') return;
+    refreshTotal();
+  }, [contextType, contextId, refreshTotal]);
+
+  useEffect(() => {
+    if (!contextType || contextId == null || contextId === '') return undefined;
+    const sameContext = (payload) =>
+      String(payload?.contextType || '') === String(contextType || '')
+      && String(payload?.contextId ?? '') === String(contextId ?? '');
     const onRealtime = (e) => {
       const detail = e?.detail || {};
       if (detail.domain !== 'context_comments') return;
       const payload = detail.payload || {};
-      if (payload.contextType !== contextType || payload.contextId !== contextId) return;
-      load(page);
+      if (!sameContext(payload)) return;
+      refreshTotal();
+      if (isOpen) load(page);
     };
     window.addEventListener('foretmap_realtime', onRealtime);
     return () => window.removeEventListener('foretmap_realtime', onRealtime);
-  }, [contextId, contextType, isOpen, load, page]);
+  }, [contextId, contextType, isOpen, load, page, refreshTotal]);
 
   useEffect(() => {
     const refreshAuth = () => setAuthClaims(getAuthClaims());
