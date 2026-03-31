@@ -263,6 +263,83 @@ router.post(
   }
 );
 
+router.post(
+  '/profiles/:id/duplicate',
+  requirePermission('admin.roles.manage', { needsElevation: true }),
+  async (req, res) => {
+    try {
+      const sourceId = parseInt(req.params.id, 10);
+      if (!Number.isFinite(sourceId) || sourceId <= 0) {
+        return res.status(400).json({ error: 'id de profil invalide' });
+      }
+      const source = await queryOne(
+        `SELECT id, slug, display_name, emoji, min_done_tasks, display_order, \`rank\` AS \`rank\`,
+                COALESCE(forum_participate, 1) AS forum_participate,
+                COALESCE(context_comment_participate, 1) AS context_comment_participate
+           FROM roles WHERE id = ?`,
+        [sourceId]
+      );
+      if (!source) return res.status(404).json({ error: 'Profil introuvable' });
+
+      const slug = String(req.body?.slug || '')
+        .trim()
+        .toLowerCase()
+        .replace(/[^a-z0-9_]+/g, '_')
+        .replace(/^_+|_+$/g, '');
+      const displayNameRaw = req.body?.display_name;
+      const displayName =
+        displayNameRaw != null && String(displayNameRaw).trim()
+          ? String(displayNameRaw).trim()
+          : `${source.display_name} (copie)`;
+      const rank = Number.isFinite(parseInt(source.rank, 10)) ? parseInt(source.rank, 10) : 100;
+      const emoji = normalizeRoleEmoji(source.emoji);
+      const minDoneTasks = parseOptionalNonNegativeInt(source.min_done_tasks, null);
+      const displayOrder = parseOptionalNonNegativeInt(source.display_order, 0);
+      const forumParticipate = Number(source.forum_participate) !== 0 ? 1 : 0;
+      const contextCommentParticipate = Number(source.context_comment_participate) !== 0 ? 1 : 0;
+
+      if (!slug || !displayName) return res.status(400).json({ error: 'slug requis ; display_name ne peut pas être vide' });
+      if (Number.isNaN(minDoneTasks)) return res.status(400).json({ error: 'min_done_tasks source invalide' });
+      if (Number.isNaN(displayOrder)) return res.status(400).json({ error: 'display_order source invalide' });
+      if (STUDENT_ROLE_SLUG_RE.test(slug) && (emoji == null || minDoneTasks == null)) {
+        return res.status(400).json({ error: 'Un profil n3beur doit définir emoji et min_done_tasks (source incompatible ou slug eleve_* sans données)' });
+      }
+
+      await execute(
+        `INSERT INTO roles (slug, display_name, emoji, min_done_tasks, display_order, \`rank\`, is_system, forum_participate, context_comment_participate)
+         VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?)`,
+        [slug, displayName, emoji, minDoneTasks, displayOrder ?? 0, rank, forumParticipate, contextCommentParticipate]
+      );
+      const newRole = await queryOne(
+        'SELECT id, slug, display_name, emoji, min_done_tasks, display_order, `rank` AS `rank`, is_system, forum_participate, context_comment_participate FROM roles WHERE slug = ? LIMIT 1',
+        [slug]
+      );
+      if (!newRole?.id) {
+        return res.status(500).json({ error: 'Profil dupliqué introuvable après insertion' });
+      }
+
+      const sourcePerms = await queryAll(
+        'SELECT permission_key, requires_elevation FROM role_permissions WHERE role_id = ? ORDER BY permission_key ASC',
+        [sourceId]
+      );
+      for (const row of sourcePerms) {
+        const p = await queryOne('SELECT `key` FROM permissions WHERE `key` = ? LIMIT 1', [row.permission_key]);
+        if (!p) continue;
+        await execute(
+          'INSERT INTO role_permissions (role_id, permission_key, requires_elevation) VALUES (?, ?, ?)',
+          [newRole.id, row.permission_key, row.requires_elevation ? 1 : 0]
+        );
+      }
+      logAudit('rbac_duplicate_profile', 'role', newRole.id, `from=${sourceId} slug=${slug}`, { req });
+      res.status(201).json(newRole);
+    } catch (e) {
+      logRouteError(e, req);
+      if (e && (e.errno === 1062 || e.code === 'ER_DUP_ENTRY')) return res.status(409).json({ error: 'Slug déjà utilisé' });
+      res.status(500).json({ error: e.message });
+    }
+  }
+);
+
 router.patch(
   '/profiles/:id',
   requirePermission('admin.roles.manage', { needsElevation: true }),
