@@ -69,6 +69,37 @@ npm run db:migrate:images
 
 Après la migration SQL finale (`migrations/006_drop_legacy_image_data.sql`), ces commandes deviennent des no-op (colonnes legacy absentes).
 
+### Import d'un dump SQL distant (copie de production)
+
+Le script d'import local remet d'abord la base cible a zero, puis importe le dump :
+
+```bash
+npm run db:import:dump -- --file "C:\Users\olivi\Downloads\oliviera_foretmap.sql"
+npm run db:migrate
+```
+
+Vous pouvez aussi passer le chemin via variable d'environnement :
+
+```bash
+set FORETMAP_DUMP_PATH=C:\Users\olivi\Downloads\oliviera_foretmap.sql
+npm run db:import:dump
+npm run db:migrate
+```
+
+Important :
+- Le dump contient des donnees reelles (PII : noms, emails, historique). Ne pas le versionner dans Git.
+- Le script cible `DB_NAME` courant (par defaut `foretmap_local`) et execute un `DROP DATABASE` + `CREATE DATABASE`.
+- Le dump peut ecraser les secrets de PIN en base (`role_pin_secrets`). Le `TEACHER_PIN` de `.env` peut alors ne plus correspondre.
+
+Apres import, deux options :
+- Option A : utiliser les credentials/PIN reels deja presents dans le dump (sans les copier dans le depot).
+- Option B : realigner le local sur `.env` pour les tests/dev avec :
+
+```bash
+npm run db:reset:role-pins:local
+npm run db:seed:teacher
+```
+
 ## 4. Lancer l’application
 
 ### Option A — Développement (recommandé : Express + Vite)
@@ -107,6 +138,20 @@ npm run test:local
 ```
 
 Le script force `DB_NAME=foretmap_test` ; le schéma est (re)créé par les fichiers de test.
+
+## 5ter. Tests etendus sur snapshot importe (optionnel)
+
+Pour valider rapidement une copie de base distante deja importee dans `foretmap_local`, utilisez :
+
+```bash
+npm run test:snapshot
+```
+
+Le test `tests/snapshot-db.test.js` est actif uniquement avec `FORETMAP_SNAPSHOT_TESTS=1` (deja active par le script `test:snapshot`) et verifie :
+- `/api/health` et `/api/health/db` ;
+- la presence de donnees sur `/api/zones`, `/api/plants`, `/api/tasks`.
+
+Remarque : `npm run test:local` reste le mode CI/local standard avec reset sur `foretmap_test`.
 
 ## 5bis. Tests UI smoke (Playwright)
 
@@ -153,6 +198,11 @@ npm run test:load:light
 npm run test:load:normal
 npm run test:load:stress
 ```
+
+Repères (ordre de grandeur) :
+- `light` : montée jusqu'à ~8 utilisateurs virtuels/s, sessions plus longues (navigation + pauses).
+- `normal` : montée jusqu'à ~20 utilisateurs virtuels/s, palier prolongé pour charge soutenue.
+- `stress` : montée jusqu'à ~40 utilisateurs virtuels/s, palier long pour pousser la concurrence.
 
 Exécution automatisée des 3 profils (light -> normal -> stress) :
 

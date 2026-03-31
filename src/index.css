@@ -42,6 +42,24 @@
        minimale au document et déclenche un scroll horizontal sur mobile. */
     #root { display:flex; flex-direction:column; min-height:100vh; min-height:100dvh; width:100%; max-width:100%; min-width:0; overflow-x:hidden; }
     #app { display:flex; flex-direction:column; min-height:100vh; min-height:100dvh; width:100%; max-width:100%; min-width:0; overflow-x:hidden; }
+    /* Vue carte seule : pas d'ascenseur sur la fenêtre (tout le shell tient dans le viewport). */
+    html:has(.map-view-root--solo),
+    body:has(.map-view-root--solo) {
+      height:100dvh;
+      overflow-y:hidden;
+    }
+    #root:has(.map-view-root--solo) {
+      height:100%;
+      max-height:100dvh;
+      min-height:0;
+      overflow:hidden;
+    }
+    #app:has(.map-view-root--solo) {
+      flex:1;
+      min-height:0;
+      max-height:100dvh;
+      overflow:hidden;
+    }
 
     /* Prevent iOS zoom on input */
     input, select, textarea {
@@ -1119,6 +1137,40 @@
     .map-view-toolbar > * {
       flex-shrink:0;
     }
+    /* Carte (vue seule ou split) : barre d'outils compacte sur tous les viewports (comme mobile) pour gagner de la hauteur. */
+    .main.main--map-visible .map-view-toolbar,
+    .teacher-main.teacher-main--map-visible .map-view-toolbar {
+      flex-wrap:nowrap;
+      overflow-x:auto;
+      overflow-y:hidden;
+      -webkit-overflow-scrolling:touch;
+      scrollbar-width:none;
+      align-items:center;
+      padding:3px 6px !important;
+      min-height:34px !important;
+      gap:3px !important;
+    }
+    .main.main--map-visible .map-view-toolbar::-webkit-scrollbar,
+    .teacher-main.teacher-main--map-visible .map-view-toolbar::-webkit-scrollbar { display:none; }
+    .main.main--map-visible .map-view-toolbar button:not(.fm-help-btn),
+    .teacher-main.teacher-main--map-visible .map-view-toolbar button:not(.fm-help-btn) {
+      padding:4px 7px !important;
+      font-size:0.72rem !important;
+      min-height:30px;
+    }
+    .main.main--map-visible .map-view-toolbar .map-gesture-toggle,
+    .teacher-main.teacher-main--map-visible .map-view-toolbar .map-gesture-toggle {
+      padding:3px 7px !important;
+      min-height:30px !important;
+      font-size:0.68rem !important;
+    }
+    .main.main--map-visible .map-view-toolbar .btn-sm,
+    .teacher-main.teacher-main--map-visible .map-view-toolbar .btn-sm {
+      padding:4px 7px !important;
+      min-height:30px !important;
+      font-size:0.7rem !important;
+    }
+
     @media (max-width:1023px), (pointer:coarse) {
       /* En-tête : une seule ligne, hauteur fixe (évite tout agrandissement parasite sur mobile). */
       header .lock-btn {
@@ -1150,33 +1202,6 @@
       }
       /* Barre d’outils carte : plus compacte que le défaut inline (7px / min 50px),
          pour libérer de la hauteur utile — uniquement sur l’écran carte. */
-      .teacher-main.teacher-main--map-visible .map-view-toolbar {
-        flex-wrap:nowrap;
-        overflow-x:auto;
-        overflow-y:hidden;
-        -webkit-overflow-scrolling:touch;
-        scrollbar-width:none;
-        align-items:center;
-        padding:3px 6px !important;
-        min-height:34px !important;
-        gap:3px !important;
-      }
-      .teacher-main.teacher-main--map-visible .map-view-toolbar::-webkit-scrollbar { display:none; }
-      .teacher-main.teacher-main--map-visible .map-view-toolbar button:not(.fm-help-btn) {
-        padding:4px 7px !important;
-        font-size:0.72rem !important;
-        min-height:30px;
-      }
-      .teacher-main.teacher-main--map-visible .map-view-toolbar .map-gesture-toggle {
-        padding:3px 7px !important;
-        min-height:30px !important;
-        font-size:0.68rem !important;
-      }
-      .teacher-main.teacher-main--map-visible .map-view-toolbar .btn-sm {
-        padding:4px 7px !important;
-        min-height:30px !important;
-        font-size:0.7rem !important;
-      }
     }
 
     /* ── EMPTY STATE ── */

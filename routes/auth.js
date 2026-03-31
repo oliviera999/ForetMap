@@ -340,10 +340,13 @@ router.get('/me', requireAuth, async (req, res) => {
   const body = { auth };
   if (req.auth?.userType === 'student' && req.auth?.userId) {
     const u = await queryOne(
-      `SELECT first_name, last_name,
-              COALESCE(forum_participate, 1) AS forum_participate,
-              COALESCE(context_comment_participate, 1) AS context_comment_participate
-         FROM users WHERE id = ? AND user_type = 'student' LIMIT 1`,
+      `SELECT u.first_name, u.last_name,
+              COALESCE(r.forum_participate, 1) AS forum_participate,
+              COALESCE(r.context_comment_participate, 1) AS context_comment_participate
+         FROM users u
+    LEFT JOIN user_roles ur ON ur.user_id = u.id AND ur.user_type = 'student' AND ur.is_primary = 1
+    LEFT JOIN roles r ON r.id = ur.role_id
+        WHERE u.id = ? AND u.user_type = 'student' LIMIT 1`,
       [req.auth.userId]
     );
     if (u) {

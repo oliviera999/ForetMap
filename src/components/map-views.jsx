@@ -1674,7 +1674,7 @@ function MapView({ zones, markers, tasks = [], plants, maps = [], activeMapId = 
   const tooltipText = (entry) => resolveRoleText(entry, isTeacher);
 
   return (
-    <div className="map-view-root" style={{ minHeight: embedded ? 320 : 380 }}>
+    <div className={`map-view-root ${embedded ? 'map-view-root--embedded' : 'map-view-root--solo'}`}>
       {toast && <Toast msg={toast} onDone={() => setToast(null)} />}
 
       {selectedZone && (
@@ -1832,9 +1832,22 @@ function MapView({ zones, markers, tasks = [], plants, maps = [], activeMapId = 
 
       <div style={{ flex: 1, minHeight: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: mapFramePaddingPx }}>
         <div ref={containerRef}
-          style={{ width: '100%', maxWidth: '100%', maxHeight: '100%', aspectRatio: mapAspect,
-            overflow: 'hidden', position: 'relative', background: '#eef2ee',
-            cursor, touchAction, userSelect: 'none', WebkitUserSelect: 'none' }}
+          style={{
+            boxSizing: 'border-box',
+            maxWidth: '100%',
+            maxHeight: '100%',
+            width: 'auto',
+            height: 'auto',
+            minWidth: 0,
+            aspectRatio: mapAspect,
+            overflow: 'hidden',
+            position: 'relative',
+            background: '#eef2ee',
+            cursor,
+            touchAction,
+            userSelect: 'none',
+            WebkitUserSelect: 'none',
+          }}
           onClick={onMapClick}>
 
           <div ref={worldRef}

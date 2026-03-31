@@ -1,4 +1,4 @@
-import React, { useEffect, useId, useMemo, useState } from 'react';
+import React, { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { api, getStoredSession, saveStoredSession, withAppBase } from '../services/api';
 import { getRoleTerms } from '../utils/n3-terminology';
 import { getContentText } from '../utils/content';
@@ -288,6 +288,8 @@ function AuthScreen({ onLogin, appVersion, onVisitGuest, uiSettings, isN3Affilia
   const [info, setInfo] = useState('');
   const [err, setErr] = useState('');
   const [loading, setLoading] = useState(false);
+  /** Évite de réappliquer `default_mode` serveur après un clic utilisateur (sinon re-render = élément détaché côté e2e). */
+  const userChoseAuthTabRef = useRef(false);
   const allowRegister = uiSettings?.auth?.allow_register !== false;
   const allowGoogleStudent = uiSettings?.auth?.allow_google_student !== false;
   const allowGuestVisit = uiSettings?.auth?.allow_guest_visit !== false;
@@ -315,11 +317,12 @@ function AuthScreen({ onLogin, appVersion, onVisitGuest, uiSettings, isN3Affilia
   }, [resetTokenFromUrl]);
 
   useEffect(() => {
-    const def = uiSettings?.auth?.default_mode === 'register' ? 'register' : 'login';
-    if (!allowRegister && def === 'register') {
+    if (!allowRegister) {
       setMode('login');
       return;
     }
+    if (userChoseAuthTabRef.current) return;
+    const def = uiSettings?.auth?.default_mode === 'register' ? 'register' : 'login';
     setMode(def);
   }, [uiSettings?.auth?.default_mode, allowRegister]);
 
@@ -435,11 +438,11 @@ function AuthScreen({ onLogin, appVersion, onVisitGuest, uiSettings, isN3Affilia
         {welcomeMessage && <p className="sub" style={{ marginTop: -4 }}>{welcomeMessage}</p>}
 
         <div className="auth-tabs">
-          <button className={`auth-tab ${mode === 'login' ? 'active' : ''}`} onClick={() => { setMode('login'); setErr(''); setInfo(''); }}>
+          <button className={`auth-tab ${mode === 'login' ? 'active' : ''}`} onClick={() => { userChoseAuthTabRef.current = true; setMode('login'); setErr(''); setInfo(''); }}>
             {loginTabLabel}
           </button>
           {allowRegister && (
-            <button className={`auth-tab ${mode === 'register' ? 'active' : ''}`} onClick={() => { setMode('register'); setErr(''); setInfo(''); }}>
+            <button className={`auth-tab ${mode === 'register' ? 'active' : ''}`} onClick={() => { userChoseAuthTabRef.current = true; setMode('register'); setErr(''); setInfo(''); }}>
               {registerTabLabel}
             </button>
           )}

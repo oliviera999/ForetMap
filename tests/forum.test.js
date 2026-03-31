@@ -287,8 +287,22 @@ test('Forum: réactions emoji toggle et agrégées sur les messages', async () =
 });
 
 test('Forum: n3beur sans participation — lecture OK, création sujet 403', async () => {
+  let forumRoRole = await queryOne("SELECT id FROM roles WHERE slug = 'eleve_forum_ro_test' LIMIT 1");
+  if (!forumRoRole?.id) {
+    await execute(
+      `INSERT INTO roles (slug, display_name, emoji, min_done_tasks, display_order, \`rank\`, is_system, forum_participate, context_comment_participate)
+       VALUES ('eleve_forum_ro_test', 'Test forum lecture seule', '🧪', 0, 9989, 1, 0, 0, 1)`
+    );
+    forumRoRole = await queryOne("SELECT id FROM roles WHERE slug = 'eleve_forum_ro_test' LIMIT 1");
+  }
+  assert.ok(forumRoRole?.id);
   const student = await registerStudent('ForumReadOnly');
-  await execute('UPDATE users SET forum_participate = 0 WHERE id = ? AND user_type = ?', [student.id, 'student']);
+  await execute('UPDATE user_roles SET is_primary = 0 WHERE user_type = ? AND user_id = ?', ['student', student.id]);
+  await execute(
+    `INSERT INTO user_roles (user_type, user_id, role_id, is_primary) VALUES ('student', ?, ?, 1)
+     ON DUPLICATE KEY UPDATE is_primary = 1`,
+    [student.id, forumRoRole.id]
+  );
   const login = await request(app)
     .post('/api/auth/login')
     .send({ identifier: student.email, password: 'pass1234' })
@@ -301,5 +315,4 @@ test('Forum: n3beur sans participation — lecture OK, création sujet 403', asy
     .send({ title: `Lecture seule ${Date.now()}`, body: 'Ne doit pas être accepté.' })
     .expect(403);
   assert.strictEqual(res.body.code, 'FORUM_READ_ONLY');
-  await execute('UPDATE users SET forum_participate = 1 WHERE id = ? AND user_type = ?', [student.id, 'student']);
 });

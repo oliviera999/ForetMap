@@ -93,13 +93,17 @@ function isVisitorRole(auth) {
   return String(auth?.roleSlug || '').trim().toLowerCase() === 'visiteur';
 }
 
-/** n3boss / comptes non élèves : toujours participatif ; n3beur : selon users.forum_participate */
+/** n3boss / comptes non élèves : toujours participatif ; n3beur : selon le profil principal (roles.forum_participate) */
 async function userForumParticipationAllowed(auth) {
   if (!auth) return false;
   if (String(auth.userType || '').toLowerCase() !== 'student') return true;
   const row = await queryOne(
-    'SELECT forum_participate FROM users WHERE id = ? AND user_type = ? LIMIT 1',
-    [auth.userId, 'student']
+    `SELECT COALESCE(r.forum_participate, 1) AS forum_participate
+       FROM users u
+  LEFT JOIN user_roles ur ON ur.user_id = u.id AND ur.user_type = 'student' AND ur.is_primary = 1
+  LEFT JOIN roles r ON r.id = ur.role_id
+      WHERE u.id = ? AND u.user_type = 'student' LIMIT 1`,
+    [auth.userId]
   );
   if (!row) return true;
   return Number(row.forum_participate) !== 0;
@@ -109,7 +113,7 @@ async function requireForumParticipation(req, res) {
   const ok = await userForumParticipationAllowed(req.auth);
   if (ok) return true;
   res.status(403).json({
-    error: 'Forum en lecture seule : la participation n’est pas activée pour ton compte.',
+    error: 'Forum en lecture seule : la participation n’est pas activée pour ton profil.',
     code: 'FORUM_READ_ONLY',
   });
   return false;

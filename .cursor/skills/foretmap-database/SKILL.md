@@ -65,6 +65,15 @@ description: Centralise les conventions BDD ForetMap (schéma MySQL, migrations,
 | `DB_NAME` | — | Nom de la base |
 | `TEST_DB_NAME` | — | Nom BDD de test (surcharge `DB_NAME` dans les tests) |
 
+## Import d'un dump SQL distant (copie prod -> local)
+
+- Utiliser `npm run db:import:dump -- --file "<chemin dump.sql>"`.
+- Le script reconstruit d'abord `DB_NAME` (`DROP DATABASE` + `CREATE DATABASE`) puis importe le SQL en multi-statements.
+- Enchaîner avec `npm run db:migrate` pour rattraper les migrations éventuelles absentes du dump.
+- **Ne jamais versionner** le dump (données réelles / PII).
+- Après import, le PIN effectif est stocké dans `role_pin_secrets` : `TEACHER_PIN` seul ne suffit pas.
+- Pour réaligner le local sur `.env`, utiliser `npm run db:reset:role-pins:local` (puis `npm run db:seed:teacher` si besoin d'un compte prof connu).
+
 ## Voir aussi
 
 - Règle backend : `.cursor/rules/foretmap-backend.mdc`
