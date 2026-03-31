@@ -12,6 +12,7 @@ const Layer   = require('express/lib/router/layer');
 const { initDatabase, ping: dbPing } = require('./database');
 const { validateEnv } = require('./lib/env');
 const logger = require('./lib/logger');
+const { runRecurringTaskSpawnJob } = require('./lib/recurringTasks');
 const { initRealtime } = require('./lib/realtime');
 const { tailLogLines, getBufferedLineCount, getMaxLines } = require('./lib/logBuffer');
 const { checkCriticalAdminAccount } = require('./lib/rbac');
@@ -340,6 +341,24 @@ process.on('unhandledRejection', (reason) => {
 
 // ── Fonction de démarrage — appelable depuis app.js (Passenger) ou directement ──
 let booted = false;
+const RECURRING_TASK_JOB_MS = 24 * 60 * 60 * 1000;
+
+function scheduleRecurringTaskSpawn() {
+  if (String(process.env.NODE_ENV || '').trim().toLowerCase() === 'test') return;
+  if (String(process.env.FORETMAP_DISABLE_RECURRING_TASK_JOB || '').trim() === '1') {
+    logger.info('Job tâches récurrentes désactivé (FORETMAP_DISABLE_RECURRING_TASK_JOB=1)');
+    return;
+  }
+  const jitter = 45000 + Math.floor(Math.random() * 120000);
+  setTimeout(() => {
+    runRecurringTaskSpawnJob().catch((err) => logger.warn({ err }, 'Job tâches récurrentes'));
+  }, jitter);
+  setInterval(() => {
+    runRecurringTaskSpawnJob().catch((err) => logger.warn({ err }, 'Job tâches récurrentes'));
+  }, RECURRING_TASK_JOB_MS);
+  logger.info({ jitterMs: jitter }, 'Planification job tâches récurrentes (quotidien)');
+}
+
 function boot() {
   if (booted) return;
   booted = true;
@@ -380,6 +399,7 @@ function boot() {
     .then(() => {
       fs.appendFileSync(diagPath, 'initDatabase: OK\n');
       logger.info('BDD initialisée');
+      scheduleRecurringTaskSpawn();
       checkCriticalAdminAccount()
         .then((state) => {
           if (state?.ok) {

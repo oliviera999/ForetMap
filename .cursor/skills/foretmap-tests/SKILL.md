@@ -45,7 +45,8 @@ tests/
 ├── api.test.js            # routes CRUD principales
 ├── tasks-status.test.js   # recalcul statuts tâches (assign/unassign/done)
 ├── students-delete.test.js # cascade suppression élève
-└── new-features.test.js   # tests de nouvelles fonctionnalités
+├── new-features.test.js   # tests de nouvelles fonctionnalités
+└── recurring-tasks-spawn.test.js # job duplication tâches récurrentes validées
 ```
 
 ## Conventions
