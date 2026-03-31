@@ -453,6 +453,19 @@ CREATE TABLE IF NOT EXISTS audit_log (
   INDEX idx_audit_action (action, id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- observation_logs (carnet d'observation élève, hors tâches)
+CREATE TABLE IF NOT EXISTS observation_logs (
+  id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  student_id VARCHAR(64) NOT NULL,
+  zone_id VARCHAR(64) DEFAULT NULL,
+  content TEXT NOT NULL,
+  image_path VARCHAR(512) DEFAULT NULL,
+  created_at VARCHAR(32) DEFAULT NULL,
+  INDEX idx_observation_logs_student (student_id),
+  CONSTRAINT fk_observation_logs_student FOREIGN KEY (student_id) REFERENCES users(id) ON DELETE CASCADE,
+  CONSTRAINT fk_observation_logs_zone FOREIGN KEY (zone_id) REFERENCES zones(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- task_logs (commentaires / images de réalisation d'une tâche)
 -- image_path : chemin relatif vers uploads/ (source unique des images)
 CREATE TABLE IF NOT EXISTS task_logs (

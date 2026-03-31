@@ -11,7 +11,6 @@ const { signAuthToken } = require('../middleware/requireTeacher');
 
 let teacherToken;
 let studentId;
-let studentToken;
 let taskId;
 const firstName = `Del${Date.now()}`;
 const lastName = 'Student';
@@ -47,7 +46,6 @@ before(async () => {
     .send({ firstName, lastName, password: 'pass123' })
     .expect(201);
   studentId = reg.body.id;
-  studentToken = reg.body.authToken;
   const taskRes = await request(app)
     .post('/api/tasks')
     .set('Authorization', `Bearer ${teacherToken}`)
@@ -56,7 +54,7 @@ before(async () => {
   taskId = taskRes.body.id;
   await request(app)
     .post(`/api/tasks/${taskId}/assign`)
-    .set('Authorization', `Bearer ${studentToken}`)
+    .set('Authorization', `Bearer ${teacherToken}`)
     .send({ firstName, lastName, studentId })
     .expect(200);
 });

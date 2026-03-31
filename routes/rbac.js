@@ -3,7 +3,7 @@ const bcrypt = require('bcryptjs');
 const { v4: uuidv4 } = require('uuid');
 const { queryAll, queryOne, execute } = require('../database');
 const { requirePermission } = require('../middleware/requireTeacher');
-const { setPrimaryRole } = require('../lib/rbac');
+const { setPrimaryRole, getPrimaryRoleForUser } = require('../lib/rbac');
 const { getSettingValue, setSetting } = require('../lib/settings');
 const { emitStudentsChanged } = require('../lib/realtime');
 
@@ -519,14 +519,7 @@ router.put(
         resolvedLegacyUserId = user.id;
       }
 
-      const currentRole = await queryOne(
-        `SELECT r.slug
-           FROM user_roles ur
-           INNER JOIN roles r ON r.id = ur.role_id
-          WHERE ur.user_type = ? AND ur.user_id = ? AND ur.is_primary = 1
-          LIMIT 1`,
-        [resolvedUserType, resolvedLegacyUserId]
-      );
+      const currentRole = await getPrimaryRoleForUser(resolvedUserType, resolvedLegacyUserId);
       const nextRole = await queryOne('SELECT slug FROM roles WHERE id = ? LIMIT 1', [roleId]);
       const leavingAdmin = currentRole?.slug === 'admin' && nextRole?.slug !== 'admin';
       if (leavingAdmin) {
@@ -534,7 +527,7 @@ router.put(
           `SELECT COUNT(*) AS c
              FROM user_roles ur
              INNER JOIN roles r ON r.id = ur.role_id
-            WHERE ur.is_primary = 1 AND r.slug = 'admin'`
+            WHERE ur.is_primary = 1 AND ur.user_type = 'teacher' AND r.slug = 'admin'`
         );
         const adminCount = Number(adminCountRow?.c || 0);
         if (adminCount <= 1) {
