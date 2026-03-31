@@ -6,6 +6,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 ## [Non publié]
 
 ### Modifié
+- **RBAC / forum / commentaires contextuels** : la participation au forum et aux commentaires de contexte (tâches, projets, zones) est réglée par **profil** (`roles.forum_participate`, `roles.context_comment_participate`, défaut activé) et non plus par compte utilisateur. `GET /api/auth/me`, les gardes API et `GET /api/rbac/users` suivent le **profil principal** du n3beur ; `PATCH /api/rbac/profiles/:id` accepte `forum_participate` et `context_comment_participate` (booléens) pour les profils dont le slug commence par `eleve_` ; suppression de `PATCH /api/rbac/users/student/:id/forum-participate` et `.../context-comment-participate`. UI **Profils & utilisateurs** : cases dans la section Permissions du profil n3beur sélectionné (permission `admin.roles.manage` + PIN). Migration **`045_participation_forum_comments_on_roles.sql`** : agrégation par rôle (MIN des anciennes valeurs utilisateur), puis suppression des colonnes sur `users`.
 - **Documentation & outillage dev** : mise à jour de `docs/LOCAL_DEV.md`, `docs/API.md`, `README.md`, skills **foretmap-e2e** et **foretmap-project** (pointeur e2e), règles **foretmap-conventions** / **foretmap-backend** (démarrage e2e `start:e2e`, flag `--foretmap-e2e-no-rate-limit`, `E2E_REUSE_SERVER`, `TEACHER_PIN` via dotenv Playwright) ; **`test:e2e:headed`** aligné sur la libération du port comme **`test:e2e`**.
 
 ### Ajouté
@@ -15,6 +16,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - **Tests de charge (réalisme utilisateur)** : profils `light`, `normal` et `stress` renforcés avec davantage d’utilisateurs simultanés, phases plus longues et sessions plus réalistes (enchaînements multi-pages + pauses `think`).
 
 ### Corrigé
+- **Carte (vue seule, laptop)** : conteneur du plan dimensionné en « contain » (`max-width` / `max-height: 100%`, `width` / `height: auto`, `aspect-ratio`) pour éviter un cadre gris trop grand et le débordement bas ; barre d’outils compacte sur desktop (classes `main--map-visible` / `teacher-main--map-visible`) ; `html`, `body`, `#root` et `#app` bornés au viewport lorsque la carte seule est affichée (`.map-view-root--solo`) pour supprimer l’ascenseur vertical de page.
 - **Commentaires contextuels (UI)** : ouverture du panneau « Commentaires » (tâches / zones / projets) — la variable `canUseCommentActions` n’était plus définie, ce qui provoquait une erreur au rendu ; rétabli en l’alignant sur `canParticipateContextComments`.
 - **Tests e2e (Playwright)** : bypass du rate limiting fiable en local Windows via le script **`npm run start:e2e`** (`node server.js --foretmap-e2e-no-rate-limit`) — la variable d’environnement seule ne parvenait pas toujours au process Node ; config Playwright enchaîne `db:init` puis `start:e2e` ; CI alignée (`nohup npm run start:e2e`).
 - **Tests e2e** : `playwright.config.js` charge `.env` pour aligner **`TEACHER_PIN`** avec le serveur ; fixture **`enableTeacherMode`** utilise `E2E_ELEVATION_PIN` puis `TEACHER_PIN`.
