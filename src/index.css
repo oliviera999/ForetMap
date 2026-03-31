@@ -20,6 +20,11 @@
       --ease-out: cubic-bezier(.22,1,.36,1);
       --bottom-nav-height: 72px;
       --bottom-nav-height-desktop: 62px;
+      /* Barre d’onglets n3boss (parchemin) : une seule hauteur sur tous les écrans et tous les onglets (carte, tâches, etc.). */
+      --top-tabs-pad-y: clamp(3px, 0.55vw, 5px);
+      --top-tabs-row-inner-h: clamp(40px, 2.4vw + 34px, 46px);
+      --top-tabs-font: clamp(0.74rem, 0.68rem + 0.22vw, 0.82rem);
+      --top-tabs-pad-x: clamp(9px, 1.6vw, 14px);
     }
 
     html {
@@ -42,25 +47,6 @@
        minimale au document et déclenche un scroll horizontal sur mobile. */
     #root { display:flex; flex-direction:column; min-height:100vh; min-height:100dvh; width:100%; max-width:100%; min-width:0; overflow-x:hidden; }
     #app { display:flex; flex-direction:column; min-height:100vh; min-height:100dvh; width:100%; max-width:100%; min-width:0; overflow-x:hidden; }
-    /* Vue carte seule : pas d'ascenseur sur la fenêtre (tout le shell tient dans le viewport). */
-    html:has(.map-view-root--solo),
-    body:has(.map-view-root--solo) {
-      height:100dvh;
-      overflow-y:hidden;
-    }
-    #root:has(.map-view-root--solo) {
-      height:100%;
-      max-height:100dvh;
-      min-height:0;
-      overflow:hidden;
-    }
-    #app:has(.map-view-root--solo) {
-      flex:1;
-      min-height:0;
-      max-height:100dvh;
-      overflow:hidden;
-    }
-
     /* Prevent iOS zoom on input */
     input, select, textarea {
       font-size:.95rem;
@@ -546,19 +532,27 @@
     /* ── TOP TABS (teacher) ── */
     .top-tabs {
       display:flex; background:var(--parchment); border-radius:12px;
-      padding:4px; margin-bottom:16px;
-      overflow-x:auto; -webkit-overflow-scrolling:touch; scrollbar-width:none;
+      flex-wrap:nowrap;
+      align-items:stretch;
+      box-sizing:border-box;
+      padding:var(--top-tabs-pad-y);
+      margin-bottom:16px;
+      min-height:calc(var(--top-tabs-row-inner-h) + 2 * var(--top-tabs-pad-y));
+      max-height:calc(var(--top-tabs-row-inner-h) + 2 * var(--top-tabs-pad-y));
+      overflow-x:auto; overflow-y:hidden;
+      -webkit-overflow-scrolling:touch; scrollbar-width:none;
     }
     .top-tabs::-webkit-scrollbar { display:none; }
     .top-tab {
-      flex:1; min-width:fit-content;
-      padding:10px 12px; border:none; background:transparent; cursor:pointer;
-      border-radius:9px; font-family:var(--font-sans); font-size:.82rem;
-      font-weight:500; color:var(--soil); white-space:nowrap;
+      flex:1; min-width:fit-content; align-self:stretch;
+      display:inline-flex; align-items:center; justify-content:center;
+      padding:0 var(--top-tabs-pad-x); border:none; background:transparent; cursor:pointer;
+      border-radius:9px; font-family:var(--font-sans); font-size:var(--top-tabs-font);
+      font-weight:500; line-height:1.2; color:var(--soil); white-space:nowrap;
       transition:background .2s var(--ease-out), color .2s, transform .12s var(--spring);
       -webkit-tap-highlight-color:transparent;
     }
-    .top-tab.active { background:var(--forest); color:white; font-weight:700; }
+    .top-tab.active { background:var(--forest); color:white; font-weight:700; line-height:1.2; }
     .top-tab:active { transform:scale(.95); }
 
     /* ── APERÇU RÔLES (basculer vue n3beur / vue n3boss) ── */
@@ -1208,14 +1202,9 @@
       header .realtime-prof-wrap {
         min-height:28px;
       }
-      /* N3BOSS : onglets compacts en permanence sur mobile/coarse pour éviter les sauts de hauteur entre écrans. */
+      /* Barre d’onglets n3boss : hauteur unifiée via :root (clamp), pas de surcharge par écran ici. */
       .teacher-main .top-tabs {
-        padding:2px;
-        margin-bottom:8px;
-      }
-      .teacher-main .top-tab {
-        padding:6px 9px;
-        font-size:0.76rem;
+        margin-bottom:clamp(8px, 2.4vw, 16px);
       }
       /* Barre d’outils carte : plus compacte que le défaut inline (7px / min 50px),
          pour libérer de la hauteur utile — uniquement sur l’écran carte. */
@@ -1281,10 +1270,6 @@
       }
       .nav-btn .nav-icon { font-size:1.2rem; }
       .nav-btn::after { bottom:4px; }
-      .top-tab {
-        padding:8px 10px;
-        font-size:.78rem;
-      }
       .field label { font-size:.74rem; }
       .field input, .field select, .field textarea {
         padding:10px 12px;

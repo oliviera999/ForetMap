@@ -1885,10 +1885,9 @@ function MapView({ zones, markers, tasks = [], plants, maps = [], activeMapId = 
         <div ref={containerRef}
           style={{
             boxSizing: 'border-box',
+            width: '100%',
             maxWidth: '100%',
             maxHeight: '100%',
-            width: 'auto',
-            height: 'auto',
             minWidth: 0,
             aspectRatio: mapAspect,
             overflow: 'hidden',
