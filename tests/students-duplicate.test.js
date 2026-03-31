@@ -91,7 +91,7 @@ test('POST /api/students/:id/duplicate crée un compte avec le même rôle prima
 
 test('POST /api/students/:id/duplicate sans token renvoie 401', async () => {
   const res = await request(app)
-    .post('/api/students/000')
+    .post('/api/students/00000000-0000-4000-8000-000000000000/duplicate')
     .send({ first_name: 'A', last_name: 'B', password: 'pass1234' })
     .expect(401);
   assert.ok(res.body.error);

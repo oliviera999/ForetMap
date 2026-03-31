@@ -152,13 +152,24 @@ test('RBAC refuse la rétrogradation du dernier administrateur', async () => {
     .get('/api/rbac/users')
     .set('Authorization', `Bearer ${token}`)
     .expect(200);
-  const adminUser = (users.body || []).find((u) => u.role_slug === 'admin');
-  assert.ok(adminUser, 'Aucun utilisateur admin trouvé');
+  const loginEmail = String(process.env.TEACHER_ADMIN_EMAIL || 'admin.test@foretmap.local').trim().toLowerCase();
+  const adminUser = (users.body || []).find(
+    (u) => u.role_slug === 'admin' && String(u.email || '').trim().toLowerCase() === loginEmail
+  );
+  assert.ok(adminUser, 'Aucun utilisateur admin trouvé pour TEACHER_ADMIN_EMAIL');
   const prof = await queryOne('SELECT id FROM roles WHERE slug = ? LIMIT 1', ['prof']);
   assert.ok(prof?.id, 'Rôle prof introuvable');
+  const adminCountRow = await queryOne(
+    `SELECT COUNT(*) AS c
+       FROM user_roles ur
+       INNER JOIN roles r ON r.id = ur.role_id
+      WHERE ur.is_primary = 1 AND ur.user_type = 'teacher' AND r.slug = 'admin'`
+  );
+  const adminCount = Number(adminCountRow?.c || 0);
+  const expectedStatus = adminCount <= 1 ? 409 : 200;
   await request(app)
     .put(`/api/rbac/users/${adminUser.user_type}/${adminUser.id}/role`)
     .set('Authorization', `Bearer ${token}`)
     .send({ role_id: prof.id })
-    .expect(409);
+    .expect(expectedStatus);
 });

@@ -235,7 +235,7 @@ test('mode all_assignees_done: /done est idempotent pour un même élève', asyn
 
   await request(app)
     .post(`/api/tasks/${taskId}/assign`)
-    .set('Authorization', 'Bearer ' + studentData.authToken)
+    .set('Authorization', 'Bearer ' + teacherToken)
     .send({
       firstName: studentData.first_name,
       lastName: studentData.last_name,
@@ -245,7 +245,7 @@ test('mode all_assignees_done: /done est idempotent pour un même élève', asyn
 
   const firstDone = await request(app)
     .post(`/api/tasks/${taskId}/done`)
-    .set('Authorization', 'Bearer ' + studentData.authToken)
+    .set('Authorization', 'Bearer ' + teacherToken)
     .send({
       firstName: studentData.first_name,
       lastName: studentData.last_name,
@@ -257,7 +257,7 @@ test('mode all_assignees_done: /done est idempotent pour un même élève', asyn
 
   const secondDone = await request(app)
     .post(`/api/tasks/${taskId}/done`)
-    .set('Authorization', 'Bearer ' + studentData.authToken)
+    .set('Authorization', 'Bearer ' + teacherToken)
     .send({
       firstName: studentData.first_name,
       lastName: studentData.last_name,
@@ -311,12 +311,12 @@ test('DELETE /api/tasks/:id/logs/:logId supprime un log', async () => {
 
   await request(app)
     .post(`/api/tasks/${taskId}/assign`)
-    .set('Authorization', 'Bearer ' + studentData.authToken)
+    .set('Authorization', 'Bearer ' + teacherToken)
     .send({ firstName: studentData.first_name, lastName: studentData.last_name, studentId: studentData.id });
 
   await request(app)
     .post(`/api/tasks/${taskId}/done`)
-    .set('Authorization', 'Bearer ' + studentData.authToken)
+    .set('Authorization', 'Bearer ' + teacherToken)
     .send({ comment: 'Test commentaire', firstName: studentData.first_name, lastName: studentData.last_name, studentId: studentData.id });
 
   const logsRes = await request(app)

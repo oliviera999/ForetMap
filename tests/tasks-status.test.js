@@ -8,6 +8,7 @@ const request = require('supertest');
 const { app } = require('../server');
 const { initSchema, queryOne, execute } = require('../database');
 const { signAuthToken } = require('../middleware/requireTeacher');
+const { ensureRbacBootstrap } = require('../lib/rbac');
 
 let teacherToken;
 let taskId;
@@ -36,6 +37,7 @@ async function setStudentPrimaryRole(userId, roleSlug) {
 
 before(async () => {
   await initSchema();
+  await ensureRbacBootstrap();
   const loginEmail = String(process.env.TEACHER_ADMIN_EMAIL || '').trim();
   const teacher = await queryOne(
     "SELECT id FROM users WHERE user_type = 'teacher' AND LOWER(email) = LOWER(?) LIMIT 1",
@@ -122,7 +124,7 @@ describe('Recalcul statuts tâches', () => {
   it('assign met la tâche en in_progress quand required_students atteint', async () => {
     const res = await request(app)
       .post(`/api/tasks/${taskId}/assign`)
-      .set('Authorization', `Bearer ${studentToken}`)
+      .set('Authorization', `Bearer ${teacherToken}`)
       .send({ firstName, lastName, studentId })
       .expect(200);
     assert.strictEqual(res.body.status, 'in_progress');
@@ -131,7 +133,7 @@ describe('Recalcul statuts tâches', () => {
   it('assign met la tâche en in_progress dès la première assignation même si required_students > 1', async () => {
     const res = await request(app)
       .post(`/api/tasks/${taskIdMulti}/assign`)
-      .set('Authorization', `Bearer ${studentToken}`)
+      .set('Authorization', `Bearer ${teacherToken}`)
       .send({ firstName, lastName, studentId })
       .expect(200);
     assert.strictEqual(res.body.status, 'in_progress');
@@ -140,7 +142,7 @@ describe('Recalcul statuts tâches', () => {
   it('unassign remet la tâche en available', async () => {
     const res = await request(app)
       .post(`/api/tasks/${taskId}/unassign`)
-      .set('Authorization', `Bearer ${studentToken}`)
+      .set('Authorization', `Bearer ${teacherToken}`)
       .send({ firstName, lastName, studentId })
       .expect(200);
     assert.strictEqual(res.body.status, 'available');
@@ -165,7 +167,7 @@ describe('Recalcul statuts tâches', () => {
   it('assign refuse une tâche en attente', async () => {
     await request(app)
       .post(`/api/tasks/${taskIdOnHold}/assign`)
-      .set('Authorization', `Bearer ${studentToken}`)
+      .set('Authorization', `Bearer ${teacherToken}`)
       .send({ firstName, lastName, studentId })
       .expect(400);
   });
@@ -173,7 +175,7 @@ describe('Recalcul statuts tâches', () => {
   it('assign refuse une tâche dont la date de départ n\'est pas atteinte', async () => {
     await request(app)
       .post(`/api/tasks/${taskIdFutureStart}/assign`)
-      .set('Authorization', `Bearer ${studentToken}`)
+      .set('Authorization', `Bearer ${teacherToken}`)
       .send({ firstName, lastName, studentId })
       .expect(400);
   });
@@ -192,18 +194,18 @@ describe('Recalcul statuts tâches', () => {
 
     await request(app)
       .post(`/api/tasks/${collectiveTaskId}/assign`)
-      .set('Authorization', `Bearer ${studentToken}`)
+      .set('Authorization', `Bearer ${teacherToken}`)
       .send({ firstName, lastName, studentId })
       .expect(200);
     await request(app)
       .post(`/api/tasks/${collectiveTaskId}/assign`)
-      .set('Authorization', `Bearer ${studentTwoToken}`)
+      .set('Authorization', `Bearer ${teacherToken}`)
       .send({ firstName: secondFirstName, lastName: secondLastName, studentId: studentTwoId })
       .expect(200);
 
     const afterFirstDone = await request(app)
       .post(`/api/tasks/${collectiveTaskId}/done`)
-      .set('Authorization', `Bearer ${studentToken}`)
+      .set('Authorization', `Bearer ${teacherToken}`)
       .send({ firstName, lastName, studentId })
       .expect(200);
     assert.strictEqual(afterFirstDone.body.status, 'in_progress');
@@ -212,7 +214,7 @@ describe('Recalcul statuts tâches', () => {
 
     const afterSecondDone = await request(app)
       .post(`/api/tasks/${collectiveTaskId}/done`)
-      .set('Authorization', `Bearer ${studentTwoToken}`)
+      .set('Authorization', `Bearer ${teacherToken}`)
       .send({ firstName: secondFirstName, lastName: secondLastName, studentId: studentTwoId })
       .expect(200);
     assert.strictEqual(afterSecondDone.body.status, 'done');
@@ -234,18 +236,18 @@ describe('Recalcul statuts tâches', () => {
 
     await request(app)
       .post(`/api/tasks/${collectiveTaskId}/assign`)
-      .set('Authorization', `Bearer ${studentToken}`)
+      .set('Authorization', `Bearer ${teacherToken}`)
       .send({ firstName, lastName, studentId })
       .expect(200);
     await request(app)
       .post(`/api/tasks/${collectiveTaskId}/assign`)
-      .set('Authorization', `Bearer ${studentTwoToken}`)
+      .set('Authorization', `Bearer ${teacherToken}`)
       .send({ firstName: secondFirstName, lastName: secondLastName, studentId: studentTwoId })
       .expect(200);
 
     await request(app)
       .post(`/api/tasks/${collectiveTaskId}/done`)
-      .set('Authorization', `Bearer ${studentToken}`)
+      .set('Authorization', `Bearer ${teacherToken}`)
       .send({ firstName, lastName, studentId })
       .expect(200);
 

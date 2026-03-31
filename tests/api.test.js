@@ -139,12 +139,12 @@ test('GET /api/stats/me/:studentId synchronise le profil élève selon les seuil
       .expect(201);
     await request(app)
       .post(`/api/tasks/${task.body.id}/assign`)
-      .set('Authorization', `Bearer ${studentAuthToken}`)
+      .set('Authorization', `Bearer ${teacherToken}`)
       .send({ firstName, lastName, studentId })
       .expect(200);
     await request(app)
       .post(`/api/tasks/${task.body.id}/done`)
-      .set('Authorization', `Bearer ${studentAuthToken}`)
+      .set('Authorization', `Bearer ${teacherToken}`)
       .send({ firstName, lastName, studentId })
       .expect(200);
     await request(app)
@@ -210,12 +210,12 @@ test('GET /api/stats/me/:studentId ne promeut pas le profil si la progression au
         .expect(201);
       await request(app)
         .post(`/api/tasks/${task.body.id}/assign`)
-        .set('Authorization', `Bearer ${studentAuthToken}`)
+        .set('Authorization', `Bearer ${teacherToken}`)
         .send({ firstName, lastName, studentId })
         .expect(200);
       await request(app)
         .post(`/api/tasks/${task.body.id}/done`)
-        .set('Authorization', `Bearer ${studentAuthToken}`)
+        .set('Authorization', `Bearer ${teacherToken}`)
         .send({ firstName, lastName, studentId })
         .expect(200);
       await request(app)
@@ -300,12 +300,12 @@ test('GET /api/tasks/:id/logs refuse le profil visiteur', async () => {
 
   await request(app)
     .post(`/api/tasks/${taskId}/assign`)
-    .set('Authorization', `Bearer ${studentRes.body.authToken}`)
+    .set('Authorization', `Bearer ${teacherToken}`)
     .send({ firstName: studentRes.body.first_name, lastName: studentRes.body.last_name, studentId: studentRes.body.id })
     .expect(200);
   await request(app)
     .post(`/api/tasks/${taskId}/done`)
-    .set('Authorization', `Bearer ${studentRes.body.authToken}`)
+    .set('Authorization', `Bearer ${teacherToken}`)
     .send({
       firstName: studentRes.body.first_name,
       lastName: studentRes.body.last_name,
@@ -352,12 +352,12 @@ test('Assign puis unassign met à jour le statut de la tâche', async () => {
     .post('/api/auth/register')
     .send({ firstName: 'Statut', lastName: 'Elève' + Date.now(), password: 'pwd1' })
     .expect(201);
-  const { first_name, last_name, id: studentId, authToken: studentAuthToken } = studentRes.body;
+  const { first_name, last_name, id: studentId } = studentRes.body;
   await setStudentPrimaryRole(studentId, 'eleve_novice');
 
   await request(app)
     .post(`/api/tasks/${taskId}/assign`)
-    .set('Authorization', 'Bearer ' + studentAuthToken)
+    .set('Authorization', 'Bearer ' + token)
     .send({ firstName: first_name, lastName: last_name, studentId })
     .expect(200);
   const assignmentRow = await queryOne(
@@ -370,7 +370,7 @@ test('Assign puis unassign met à jour le statut de la tâche', async () => {
 
   await request(app)
     .post(`/api/tasks/${taskId}/unassign`)
-    .set('Authorization', 'Bearer ' + studentAuthToken)
+    .set('Authorization', 'Bearer ' + token)
     .send({ firstName: first_name, lastName: last_name, studentId })
     .expect(200);
   const afterUnassign = await request(app).get(`/api/tasks/${taskId}`).expect(200);
@@ -396,12 +396,18 @@ test('Plafond auto-inscription n3beur : TASK_ENROLLMENT_LIMIT et GET /api/auth/m
       .send({ title: `Limite B ${Date.now()}`, zone_id: zoneId, required_students: 1 })
       .expect(201);
 
+    const enrollEmail = `enroll_${Date.now()}@foretmap.test`;
     const studentRes = await request(app)
       .post('/api/auth/register')
-      .send({ firstName: 'Limite', lastName: `N3b${Date.now()}`, password: 'pwd1' })
+      .send({ firstName: 'Limite', lastName: `N3b${Date.now()}`, password: 'pwd1', email: enrollEmail })
       .expect(201);
-    const { first_name, last_name, id: studentId, authToken } = studentRes.body;
+    const { first_name, last_name, id: studentId } = studentRes.body;
     await setStudentPrimaryRole(studentId, 'eleve_novice');
+    const loginRes = await request(app)
+      .post('/api/auth/login')
+      .send({ identifier: enrollEmail, password: 'pwd1' })
+      .expect(200);
+    const authToken = loginRes.body.authToken;
 
     await request(app)
       .post(`/api/tasks/${t1.body.id}/assign`)
@@ -472,12 +478,12 @@ test('GET /api/tasks côté élève expose assigned_count global', async () => {
 
   await request(app)
     .post(`/api/tasks/${taskId}/assign`)
-    .set('Authorization', `Bearer ${studentARes.body.authToken}`)
+    .set('Authorization', `Bearer ${teacherToken}`)
     .send({ firstName: studentARes.body.first_name, lastName: studentARes.body.last_name, studentId: studentARes.body.id })
     .expect(200);
   await request(app)
     .post(`/api/tasks/${taskId}/assign`)
-    .set('Authorization', `Bearer ${studentBRes.body.authToken}`)
+    .set('Authorization', `Bearer ${teacherToken}`)
     .send({ firstName: studentBRes.body.first_name, lastName: studentBRes.body.last_name, studentId: studentBRes.body.id })
     .expect(200);
 
@@ -856,12 +862,12 @@ test('DELETE /api/students/:id supprime l’élève et recalcule les statuts des
     .post('/api/auth/register')
     .send({ firstName: 'ToDelete', lastName: 'User' + Date.now(), password: 'pwd1' })
     .expect(201);
-  const { id: studentId, first_name, last_name, authToken: studentAuthToken } = studentRes.body;
+  const { id: studentId, first_name, last_name } = studentRes.body;
   await setStudentPrimaryRole(studentId, 'eleve_novice');
 
   await request(app)
     .post(`/api/tasks/${taskId}/assign`)
-    .set('Authorization', 'Bearer ' + studentAuthToken)
+    .set('Authorization', 'Bearer ' + token)
     .send({ firstName: first_name, lastName: last_name, studentId })
     .expect(200);
 
