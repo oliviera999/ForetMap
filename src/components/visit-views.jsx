@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { api, AccountDeletedError } from '../services/api';
-import { MARKER_EMOJIS, parseEmojiListSetting } from '../constants/emojis';
+import { MARKER_EMOJIS, parseEmojiListSetting, detectLeadingMarkerEmoji, stripLeadingMarkerEmoji } from '../constants/emojis';
 import { getRoleTerms } from '../utils/n3-terminology';
 import { useHelp } from '../hooks/useHelp';
 import { HelpPanel } from './HelpPanel';
@@ -195,15 +195,6 @@ function VisitSyncPanel({ isTeacher, mapId, onSynced, onForceLogout }) {
 }
 
 function VisitEditorPanel({ selected, selectedType, onSaved, onForceLogout, isTeacher, roleTerms, markerEmojis = MARKER_EMOJIS }) {
-  const stripLeadingMarkerEmoji = useCallback((value) => {
-    const raw = String(value || '').trim();
-    for (const emoji of markerEmojis) {
-      if (raw === emoji) return '';
-      if (raw.startsWith(`${emoji} `)) return raw.slice(emoji.length).trimStart();
-    }
-    return raw;
-  }, [markerEmojis]);
-
   const [form, setForm] = useState({
     title: '',
     subtitle: '',
@@ -223,9 +214,7 @@ function VisitEditorPanel({ selected, selectedType, onSaved, onForceLogout, isTe
   useEffect(() => {
     const nextTitle = selectedType === 'zone' ? (selected?.name || '') : (selected?.label || '');
     const trimmedTitle = String(nextTitle || '').trim();
-    const detectedZoneEmoji = markerEmojis.find((emoji) => (
-      trimmedTitle === emoji || trimmedTitle.startsWith(`${emoji} `)
-    ));
+    const detectedZoneEmoji = detectLeadingMarkerEmoji(trimmedTitle, markerEmojis);
     setForm({
       title: nextTitle,
       subtitle: selected?.visit_subtitle || '',
@@ -356,7 +345,7 @@ function VisitEditorPanel({ selected, selectedType, onSaved, onForceLogout, isTe
                   setForm((f) => ({
                     ...f,
                     emoji,
-                    title: `${emoji} ${stripLeadingMarkerEmoji(f.title)}`.trim(),
+                    title: `${emoji} ${stripLeadingMarkerEmoji(f.title, markerEmojis)}`.trim(),
                   }));
                   return;
                 }

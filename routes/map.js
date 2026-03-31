@@ -43,6 +43,13 @@ function withLivingBeings(marker) {
   };
 }
 
+/** Colonne `map_markers.emoji` : VARCHAR(16). */
+function normalizeMarkerEmoji(value, fallback = '🌱') {
+  const s = String(value ?? '').trim();
+  if (!s) return fallback;
+  return s.slice(0, 16);
+}
+
 router.get('/markers', async (req, res) => {
   try {
     const mapId = req.query.map_id ? String(req.query.map_id).trim() : '';
@@ -71,7 +78,7 @@ router.post('/markers', requirePermission('map.manage_markers', { needsElevation
     const id = uuidv4();
     await execute(
       'INSERT INTO map_markers (id, map_id, x_pct, y_pct, label, plant_name, living_beings, note, emoji, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-      [id, mapId, x_pct, y_pct, label.trim(), nextPlantName, serializeLivingBeings(nextLiving, nextPlantName), note || '', emoji || '🌱', new Date().toISOString()]
+      [id, mapId, x_pct, y_pct, label.trim(), nextPlantName, serializeLivingBeings(nextLiving, nextPlantName), note || '', normalizeMarkerEmoji(emoji), new Date().toISOString()]
     );
     const row = await queryOne('SELECT * FROM map_markers WHERE id = ?', [id]);
     emitGardenChanged({ reason: 'create_marker', markerId: id, mapId });
@@ -110,7 +117,7 @@ router.put('/markers/:id', requirePermission('map.manage_markers', { needsElevat
         nextPlantName,
         serializeLivingBeings(nextLiving, nextPlantName),
         note ?? m.note,
-        emoji ?? m.emoji,
+        emoji !== undefined ? normalizeMarkerEmoji(emoji, m.emoji) : m.emoji,
         m.id,
       ]
     );
