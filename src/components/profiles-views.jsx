@@ -15,14 +15,6 @@ function ProfilesAdminView({ isN3Affiliated = false }) {
   const [loading, setLoading] = useState(false);
   const [searchStudent, setSearchStudent] = useState('');
   const [confirmStudent, setConfirmStudent] = useState(null);
-  const [duplicateStudent, setDuplicateStudent] = useState(null);
-  const [dupFirstName, setDupFirstName] = useState('');
-  const [dupLastName, setDupLastName] = useState('');
-  const [dupPassword, setDupPassword] = useState('');
-  const [dupPseudo, setDupPseudo] = useState('');
-  const [dupEmail, setDupEmail] = useState('');
-  const [dupCopyAvatar, setDupCopyAvatar] = useState(true);
-  const [dupLoading, setDupLoading] = useState(false);
   const [importFile, setImportFile] = useState(null);
   const [importLoading, setImportLoading] = useState(false);
   const [importReport, setImportReport] = useState(null);
@@ -115,7 +107,6 @@ function ProfilesAdminView({ isN3Affiliated = false }) {
   const isAdmin = authRoleSlug === 'admin';
   const canManageStudents = canExport || canImport || canDelete || canCreateUsers;
   const canDeleteUi = canDelete && canReadAllStats;
-  const canDuplicateUi = canCreateUsers && canReadAllStats;
 
   /** Même tri que GET /api/rbac/profiles (affichage cohérent avec la progression n3beur côté serveur). */
   const sortedRoles = useMemo(() => {
@@ -334,6 +325,33 @@ function ProfilesAdminView({ isN3Affiliated = false }) {
       await load();
     } catch (e) {
       setErr(e.message || 'Erreur création profil');
+    }
+    setLoading(false);
+  };
+
+  const duplicateRoleProfile = async (role) => {
+    if (!role?.id) return;
+    const suggestedSlug = `${String(role.slug || 'profil').replace(/[^a-z0-9_]+/gi, '_')}_copie`;
+    const slugInput = window.prompt('Slug du nouveau profil (unique)', suggestedSlug);
+    if (!slugInput || !slugInput.trim()) return;
+    const displayNameInput = window.prompt(
+      'Nom affiché du nouveau profil',
+      `${role.display_name || slugInput.trim()} (copie)`
+    );
+    if (!displayNameInput || !displayNameInput.trim()) return;
+    const normalizedSlug = slugInput.trim().toLowerCase();
+    setLoading(true);
+    setErr('');
+    try {
+      const created = await api(`/api/rbac/profiles/${role.id}/duplicate`, 'POST', {
+        slug: normalizedSlug,
+        display_name: displayNameInput.trim(),
+      });
+      setMsg(`Profil dupliqué : ${created.display_name || normalizedSlug}`);
+      await load();
+      if (created?.id != null) setSelectedRoleId(created.id);
+    } catch (e) {
+      setErr(e.message || 'Erreur duplication du profil');
     }
     setLoading(false);
   };
@@ -572,51 +590,6 @@ function ProfilesAdminView({ isN3Affiliated = false }) {
     }
   };
 
-  const openDuplicateModal = (s) => {
-    setErr('');
-    setDuplicateStudent(s);
-    setDupFirstName(String(s.first_name || '').trim());
-    setDupLastName(`${String(s.last_name || '').trim()} (copie)`.trim());
-    setDupPassword('');
-    setDupPseudo('');
-    setDupEmail('');
-    setDupCopyAvatar(true);
-  };
-
-  const submitDuplicate = async () => {
-    if (!duplicateStudent) return;
-    if (!dupFirstName.trim() || !dupLastName.trim() || !dupPassword) {
-      setErr('Prénom, nom et mot de passe du nouveau compte sont requis');
-      return;
-    }
-    if (dupPseudo.trim() && !/^[A-Za-z0-9_.-]{3,30}$/.test(dupPseudo.trim())) {
-      setErr('Pseudo invalide (3-30 caractères, lettres/chiffres/._-)');
-      return;
-    }
-    if (dupEmail.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(dupEmail.trim())) {
-      setErr('Email invalide');
-      return;
-    }
-    setDupLoading(true);
-    setErr('');
-    try {
-      await api(`/api/students/${duplicateStudent.id}/duplicate`, 'POST', {
-        first_name: dupFirstName.trim(),
-        last_name: dupLastName.trim(),
-        password: dupPassword,
-        pseudo: dupPseudo.trim() || null,
-        email: dupEmail.trim() || null,
-        copy_avatar: dupCopyAvatar,
-      });
-      setMsg(`Compte dupliqué à partir de ${duplicateStudent.first_name} ${duplicateStudent.last_name} : ${dupFirstName.trim()} ${dupLastName.trim()}`);
-      setDuplicateStudent(null);
-      await load();
-    } catch (e) {
-      setErr(e.message || 'Erreur lors de la duplication');
-    }
-    setDupLoading(false);
-  };
-
   return (
     <div className="fade-in profiles-admin">
       <h2 className="section-title">🛡️ Profils & utilisateurs</h2>
@@ -637,53 +610,6 @@ function ProfilesAdminView({ isN3Affiliated = false }) {
             <div style={{ display: 'flex', gap: 10 }}>
               <button className="btn btn-danger" style={{ flex: 1 }} onClick={confirmDelete}>Supprimer</button>
               <button className="btn btn-ghost" style={{ flex: 1 }} onClick={() => setConfirmStudent(null)}>Annuler</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {duplicateStudent && (
-        <div className="modal-overlay" onClick={(e) => e.target === e.currentTarget && !dupLoading && setDuplicateStudent(null)}>
-          <div className="log-modal fade-in" style={{ paddingBottom: 'calc(20px + var(--safe-bottom))', maxWidth: 420 }} onClick={(e) => e.stopPropagation()}>
-            <h3 style={{ marginBottom: 8 }}>Dupliquer le compte</h3>
-            <p style={{ fontSize: '.85rem', color: '#64748b', marginBottom: 14, lineHeight: 1.45 }}>
-              Source : <strong>{duplicateStudent.first_name} {duplicateStudent.last_name}</strong>
-              {' '}· le profil principal (RBAC), l’affiliation et la description sont repris. Les tâches et stats ne sont pas copiés. Définissez un nouveau mot de passe.
-            </p>
-            <div className="field" style={{ marginBottom: 10 }}>
-              <label htmlFor="dup-first">Prénom (nouveau compte)</label>
-              <input id="dup-first" value={dupFirstName} onChange={(e) => setDupFirstName(e.target.value)} disabled={dupLoading} autoComplete="off" />
-            </div>
-            <div className="field" style={{ marginBottom: 10 }}>
-              <label htmlFor="dup-last">Nom (nouveau compte)</label>
-              <input id="dup-last" value={dupLastName} onChange={(e) => setDupLastName(e.target.value)} disabled={dupLoading} autoComplete="off" />
-            </div>
-            <div className="field" style={{ marginBottom: 10 }}>
-              <label htmlFor="dup-pass">Mot de passe (nouveau compte)</label>
-              <input id="dup-pass" type="password" value={dupPassword} onChange={(e) => setDupPassword(e.target.value)} disabled={dupLoading} autoComplete="new-password" />
-            </div>
-            <div className="field" style={{ marginBottom: 10 }}>
-              <label htmlFor="dup-pseudo">Pseudo (optionnel)</label>
-              <input id="dup-pseudo" value={dupPseudo} onChange={(e) => setDupPseudo(e.target.value)} disabled={dupLoading} autoComplete="off" />
-            </div>
-            <div className="field" style={{ marginBottom: 10 }}>
-              <label htmlFor="dup-email">Email (optionnel)</label>
-              <input id="dup-email" type="email" value={dupEmail} onChange={(e) => setDupEmail(e.target.value)} disabled={dupLoading} autoComplete="off" />
-            </div>
-            <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '.85rem', marginBottom: 16, cursor: dupLoading ? 'default' : 'pointer' }}>
-              <input
-                type="checkbox"
-                checked={dupCopyAvatar}
-                onChange={(e) => setDupCopyAvatar(e.target.checked)}
-                disabled={dupLoading}
-              />
-              Copier la photo de profil (fichier distinct)
-            </label>
-            <div style={{ display: 'flex', gap: 10 }}>
-              <button className="btn btn-primary" style={{ flex: 1 }} onClick={submitDuplicate} disabled={dupLoading || !canDuplicateUi}>
-                {dupLoading ? 'Duplication…' : 'Créer la copie'}
-              </button>
-              <button className="btn btn-ghost" style={{ flex: 1 }} disabled={dupLoading} onClick={() => setDuplicateStudent(null)}>Annuler</button>
             </div>
           </div>
         </div>
@@ -730,6 +656,17 @@ function ProfilesAdminView({ isN3Affiliated = false }) {
                     {(r.emoji ? `${r.emoji} ` : '') + r.display_name}
                   </button>
                   <button className="btn btn-ghost btn-sm" onClick={() => saveRoleDetails(r)} disabled={loading}>Modifier</button>
+                  {canEditRoleDefinition && (
+                    <button
+                      type="button"
+                      className="btn btn-ghost btn-sm"
+                      onClick={() => duplicateRoleProfile(r)}
+                      disabled={loading}
+                      title="Copier permissions et réglages vers un nouveau profil (slug et nom distincts ; PIN non copié)"
+                    >
+                      Dupliquer
+                    </button>
+                  )}
                   <span style={{ fontSize: '.72rem', color: '#6b7280' }}>
                     ordre {Number.isFinite(Number(r.display_order)) ? Number(r.display_order) : 0}
                   </span>
@@ -1105,8 +1042,8 @@ function ProfilesAdminView({ isN3Affiliated = false }) {
           </div>
 
           {canReadAllStats && (
-            <div style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: 12, padding: 12, marginTop: 12, opacity: (canDeleteUi || canDuplicateUi) ? 1 : 0.65 }}>
-            <h3 style={{ marginTop: 0 }}>Dupliquer / supprimer des {roleTerms.studentPlural}</h3>
+            <div style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: 12, padding: 12, marginTop: 12, opacity: canDeleteUi ? 1 : 0.65 }}>
+            <h3 style={{ marginTop: 0 }}>Suppression de {roleTerms.studentPlural}</h3>
             <div className="field" style={{ marginBottom: 10 }}>
               <input
                 value={searchStudent}
@@ -1129,14 +1066,9 @@ function ProfilesAdminView({ isN3Affiliated = false }) {
                         {s.stats?.done || 0} validée(s) · {s.stats?.pending || 0} en cours
                       </div>
                     </div>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, justifyContent: 'flex-end' }}>
-                      <button type="button" className="btn btn-secondary btn-sm" disabled={!canDuplicateUi} onClick={() => openDuplicateModal(s)}>
-                        📋 Dupliquer
-                      </button>
-                      <button type="button" className="btn btn-danger btn-sm" disabled={!canDeleteUi} onClick={() => setConfirmStudent(s)}>
-                        🗑️ Supprimer
-                      </button>
-                    </div>
+                    <button className="btn btn-danger btn-sm" disabled={!canDeleteUi} onClick={() => setConfirmStudent(s)}>
+                      🗑️ Supprimer
+                    </button>
                   </div>
                 ))
               )}

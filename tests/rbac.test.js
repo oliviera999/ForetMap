@@ -3,7 +3,7 @@ const test = require('node:test');
 const assert = require('node:assert');
 const request = require('supertest');
 const { app } = require('../server');
-const { initSchema, queryOne, execute } = require('../database');
+const { initSchema, queryOne, queryAll, execute } = require('../database');
 
 test.before(async () => {
   for (let attempt = 0; attempt < 5; attempt += 1) {
@@ -117,4 +117,28 @@ test('RBAC admin: attribution de rôle via identifiant canonique user', async ()
     .send({ role_id: role.id })
     .expect(200);
   assert.strictEqual(assign.body.ok, true);
+});
+
+test('RBAC admin: duplication de profil (permissions copiées, PIN non copié)', async () => {
+  const token = await getAdminToken();
+  const profRole = await queryOne('SELECT id FROM roles WHERE slug = ? LIMIT 1', ['prof']);
+  assert.ok(profRole?.id);
+  const beforePerms = await queryAll('SELECT permission_key, requires_elevation FROM role_permissions WHERE role_id = ?', [
+    profRole.id,
+  ]);
+  const dupSlug = `rbac_dup_test_${Date.now()}`;
+  const res = await request(app)
+    .post(`/api/rbac/profiles/${profRole.id}/duplicate`)
+    .set('Authorization', `Bearer ${token}`)
+    .send({ slug: dupSlug, display_name: 'Prof copie test' })
+    .expect(201);
+  assert.strictEqual(res.body.slug, dupSlug);
+  assert.strictEqual(res.body.display_name, 'Prof copie test');
+  const afterPerms = await queryAll('SELECT permission_key, requires_elevation FROM role_permissions WHERE role_id = ?', [
+    res.body.id,
+  ]);
+  assert.strictEqual(afterPerms.length, beforePerms.length);
+  const pinRow = await queryOne('SELECT role_id FROM role_pin_secrets WHERE role_id = ? LIMIT 1', [res.body.id]);
+  assert.ok(!pinRow, 'le PIN du profil source ne doit pas être copié');
+  await execute('DELETE FROM roles WHERE id = ?', [res.body.id]);
 });

@@ -6,7 +6,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 ## [Non publié]
 
 ### Ajouté
-- **Profils & utilisateurs** : duplication d’un **compte n3beur** (`POST /api/students/:id/duplicate`, permission `users.create`) — reprend le profil RBAC principal, l’affiliation, la description et optionnellement la photo (fichier copié) ; prénom, nom et mot de passe neufs obligatoires ; bouton **Dupliquer** dans la liste à côté de la suppression. Documentation : `docs/API.md`.
+- **RBAC** : duplication d’un profil — `POST /api/rbac/profiles/:id/duplicate` (slug et nom affiché distincts ; copie des permissions, seuils, ordre et flags forum / commentaires contextuels ; **PIN non copié**) ; bouton **Dupliquer** dans **Profils & utilisateurs** (permission `admin.roles.manage`).
 - **Carte** : création/édition de **zones** et **repères** — champ pour coller ou taper un emoji personnalisé (la grille de suggestions reste disponible) ; **API repères** : troncature de l’emoji à 16 caractères (alignement `map_markers.emoji`).
 
 ### Modifié

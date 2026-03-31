@@ -80,7 +80,7 @@ Connexion Socket.IO (transport **polling** actuellement forcé côté client) su
 | Événement | Quand | Champs utiles (exemples) |
 |-----------|--------|---------------------------|
 | `tasks:changed` | Création / modification / suppression de tâche, assignation, désassignation, marquer fait, validation, suppression d’un log | `reason`, `taskId`, `mapId` |
-| `students:changed` | Inscription d’un n3beur, suppression, duplication, mise à jour de profil, etc. | `reason`, `studentId` |
+| `students:changed` | Inscription d’un n3beur, suppression d’un n3beur | `reason`, `studentId` |
 | `garden:changed` | Zones, photos de zone, biodiversité, marqueurs carte | `reason`, `zoneId`, `plantId`, `markerId`, `mapId`… |
 | `forum:changed` | Création de sujet, réponse, suppression de message, verrouillage, signalement | `reason`, `threadId`, `postId` |
 | `context-comments:changed` | Création/suppression/signalement d’un commentaire contextuel | `reason`, `contextType`, `contextId`, `commentId` |
@@ -124,6 +124,7 @@ Toutes les routes RBAC exigent un token admin avec élévation PIN active.
 | GET | `/api/rbac/profiles` | Objet `{ roles, progressionByValidatedTasksEnabled }` : liste des profils (chacun avec `permissions`, `catalog`, et pour chaque ligne `roles` : `forum_participate` / `context_comment_participate` lorsque présents en base), et indicateur du réglage global de progression automatique |
 | PATCH | `/api/rbac/progression-by-validated-tasks` | Activer ou désactiver la montée de niveau automatique des profils élèves selon les tâches validées (`{ enabled: boolean }`, même permission que la gestion des profils, élévation PIN si requise) |
 | POST | `/api/rbac/profiles` | Créer un profil (`slug`, `display_name`, `rank`, `display_order`, `emoji?`, `min_done_tasks?`) |
+| POST | `/api/rbac/profiles/:id/duplicate` | Dupliquer un profil : copie `rank`, `emoji`, `min_done_tasks`, `display_order`, `forum_participate`, `context_comment_participate` et toutes les entrées de permissions ; le **PIN** du profil source n’est **pas** copié (à définir sur le nouveau profil via `PUT .../pin`). Corps JSON : `slug` (obligatoire, unique), `display_name` (optionnel ; défaut : nom affiché du source suivi de « (copie) ») |
 | PATCH | `/api/rbac/profiles/:id` | Modifier un profil (`display_name`, `rank`, `display_order`, `emoji`, `min_done_tasks`) ; pour un profil dont le `slug` commence par `eleve_`, on peut aussi envoyer `forum_participate` et/ou `context_comment_participate` (booléens) — participation forum et commentaires contextuels pour **tous** les n3beurs ayant ce profil principal |
 | PUT | `/api/rbac/profiles/:id/permissions` | Remplacer les permissions d’un profil |
 | PUT | `/api/rbac/profiles/:id/pin` | Changer le PIN d’un profil |
@@ -455,7 +456,6 @@ Contraintes principales :
 | Méthode | URL | n3boss | Description |
 |--------|-----|------|-------------|
 | POST | `/api/students/register` | non | Rafraîchir last_seen (`{ studentId }`) |
-| POST | `/api/students/:id/duplicate` | oui | Dupliquer un compte n3beur : crée un nouvel utilisateur avec le même **profil RBAC principal**, la même **affiliation** et la même **description** ; **exige** `first_name`, `last_name`, `password` (longueur min. alignée sur `security.password_min_length`) ; `pseudo`, `email` optionnels ; `copy_avatar` (bool, défaut `true`) copie le fichier avatar sous un nouveau chemin. **Permission** : `users.create` (PIN / session élevée si requis par le rôle). Ne copie pas les tâches ni les stats. |
 | PATCH | `/api/students/:id/profile` | non | Mettre à jour son profil (`{ pseudo?, email?, description?, avatarData?, removeAvatar?, currentPassword }`) |
 | DELETE | `/api/students/:id` | oui | Supprimer un n3beur (cascade) |
 
