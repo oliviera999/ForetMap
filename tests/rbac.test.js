@@ -143,6 +143,14 @@ test('RBAC: PATCH forum/commentaires pour palier perso. (rank < 400) ; refus sur
   assert.strictEqual(Number(patchOk.body.forum_participate), 0);
   assert.strictEqual(Number(patchOk.body.context_comment_participate), 1);
 
+  const patchCamel = await request(app)
+    .patch(`/api/rbac/profiles/${created.body.id}`)
+    .set('Authorization', `Bearer ${token}`)
+    .send({ forumParticipate: 1, contextCommentParticipate: 0 })
+    .expect(200);
+  assert.strictEqual(Number(patchCamel.body.forum_participate), 1);
+  assert.strictEqual(Number(patchCamel.body.context_comment_participate), 0);
+
   const profRole = await queryOne('SELECT id FROM roles WHERE slug = ? LIMIT 1', ['prof']);
   assert.ok(profRole?.id);
   await request(app)

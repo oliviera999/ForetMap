@@ -125,7 +125,8 @@ export async function api(path, method = 'GET', body) {
     res = await fetch(withAppBase(path), {
       method,
       headers,
-      body: body ? JSON.stringify(body) : undefined,
+      // Ne pas utiliser `body ? …` : `0` ou `false` seraient omis à tort ; `{}` reste un corps JSON valide.
+      body: body !== undefined && body !== null ? JSON.stringify(body) : undefined,
       signal: controller.signal,
     });
   } finally {
