@@ -89,10 +89,15 @@ function ProfilesAdminView({ isN3Affiliated = false }) {
     () => roles.find((r) => Number(r.id) === Number(selectedRoleId)) || null,
     [roles, selectedRoleId]
   );
-  const isSelectedStudentProfile = useMemo(
-    () => !!selectedRole && /^eleve_/i.test(String(selectedRole.slug || '')),
-    [selectedRole]
-  );
+  /** Paliers n3beur : slug eleve_* ou profil perso. avec rang strictement inférieur à 400 (n3boss) ; exclus admin, n3boss, visiteur. */
+  const isN3beurTierConfigurableProfile = useMemo(() => {
+    if (!selectedRole) return false;
+    const slug = String(selectedRole.slug || '').trim().toLowerCase();
+    if (slug === 'admin' || slug === 'prof' || slug === 'visiteur') return false;
+    if (/^eleve_/i.test(String(selectedRole.slug || ''))) return true;
+    const r = Number(selectedRole.rank);
+    return Number.isFinite(r) && r < 400;
+  }, [selectedRole]);
   const tasksProposeEntry = useMemo(() => {
     if (!selectedRole) return null;
     return (selectedRole.permissions || []).find((p) => p.key === 'tasks.propose') || null;
@@ -234,7 +239,13 @@ function ProfilesAdminView({ isN3Affiliated = false }) {
   };
 
   const saveStudentMinDoneThreshold = async () => {
-    if (!selectedRole || !/^eleve_/i.test(String(selectedRole.slug || ''))) return;
+    if (!selectedRole) return;
+    const s = String(selectedRole.slug || '').trim().toLowerCase();
+    if (s === 'admin' || s === 'prof' || s === 'visiteur') return;
+    if (!/^eleve_/i.test(String(selectedRole.slug || ''))) {
+      const r = Number(selectedRole.rank);
+      if (!Number.isFinite(r) || r >= 400) return;
+    }
     const parsed = roleMinDoneTasks.trim() === '' ? NaN : parseInt(roleMinDoneTasks, 10);
     if (!Number.isFinite(parsed) || parsed < 0) {
       setErr('Seuil invalide : indiquez un entier ≥ 0');
@@ -313,7 +324,7 @@ function ProfilesAdminView({ isN3Affiliated = false }) {
     setLoading(true);
     setErr('');
     try {
-      await api('/api/rbac/profiles', 'POST', {
+      const created = await api('/api/rbac/profiles', 'POST', {
         slug: normalizedSlug,
         display_name: displayName.trim(),
         rank: 150,
@@ -323,6 +334,7 @@ function ProfilesAdminView({ isN3Affiliated = false }) {
       });
       setMsg('Profil créé');
       await load();
+      if (created?.id != null) setSelectedRoleId(created.id);
     } catch (e) {
       setErr(e.message || 'Erreur création profil');
     }
@@ -754,7 +766,7 @@ function ProfilesAdminView({ isN3Affiliated = false }) {
                     <p style={{ fontSize: '.76rem', color: '#64748b', margin: '0 0 10px', lineHeight: 1.45 }}>
                       Si cette option est désactivée, aucun changement automatique de profil ne s’applique : utilisez la section « Attribution des profils » pour les niveaux.
                     </p>
-                    {/^eleve_/i.test(String(selectedRole.slug || '')) && (
+                    {isN3beurTierConfigurableProfile && (
                       <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: 10 }}>
                         <div style={{ fontSize: '.8rem', fontWeight: 600, color: '#334155', marginBottom: 6 }}>
                           Seuil pour « {selectedRole.display_name} »
@@ -780,7 +792,7 @@ function ProfilesAdminView({ isN3Affiliated = false }) {
                       </div>
                     )}
                   </div>
-                  {isSelectedStudentProfile && (
+                  {isN3beurTierConfigurableProfile && (
                       <div
                         className="profiles-admin-propose-block"
                         style={{
@@ -821,7 +833,7 @@ function ProfilesAdminView({ isN3Affiliated = false }) {
                         </p>
                       </div>
                   )}
-                  {isSelectedStudentProfile && (
+                  {isN3beurTierConfigurableProfile && (
                     <div
                       style={{
                         border: '1px solid #e0e7ff',
@@ -866,7 +878,7 @@ function ProfilesAdminView({ isN3Affiliated = false }) {
                   {catalog
                     .filter(
                       (perm) =>
-                        !(isSelectedStudentProfile && perm.key === 'tasks.propose')
+                        !(isN3beurTierConfigurableProfile && perm.key === 'tasks.propose')
                     )
                     .map((perm) => {
                     const current = (selectedRole.permissions || []).find((p) => p.key === perm.key);
