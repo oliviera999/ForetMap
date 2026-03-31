@@ -119,6 +119,41 @@ test('RBAC admin: attribution de rôle via identifiant canonique user', async ()
   assert.strictEqual(assign.body.ok, true);
 });
 
+test('RBAC: PATCH forum/commentaires pour palier perso. (rank < 400) ; refus sur profil n3boss', async () => {
+  const token = await getAdminToken();
+  const slug = `palier_rbac_api_${Date.now()}`;
+  const created = await request(app)
+    .post('/api/rbac/profiles')
+    .set('Authorization', `Bearer ${token}`)
+    .send({
+      slug,
+      display_name: 'Palier test API',
+      rank: 150,
+      emoji: '🧪',
+      min_done_tasks: 3,
+      display_order: 9900,
+    })
+    .expect(201);
+
+  const patchOk = await request(app)
+    .patch(`/api/rbac/profiles/${created.body.id}`)
+    .set('Authorization', `Bearer ${token}`)
+    .send({ forum_participate: false, context_comment_participate: true })
+    .expect(200);
+  assert.strictEqual(Number(patchOk.body.forum_participate), 0);
+  assert.strictEqual(Number(patchOk.body.context_comment_participate), 1);
+
+  const profRole = await queryOne('SELECT id FROM roles WHERE slug = ? LIMIT 1', ['prof']);
+  assert.ok(profRole?.id);
+  await request(app)
+    .patch(`/api/rbac/profiles/${profRole.id}`)
+    .set('Authorization', `Bearer ${token}`)
+    .send({ forum_participate: false })
+    .expect(400);
+
+  await execute('DELETE FROM roles WHERE id = ?', [created.body.id]);
+});
+
 test('RBAC admin: duplication de profil (permissions copiées, PIN non copié)', async () => {
   const token = await getAdminToken();
   const profRole = await queryOne('SELECT id FROM roles WHERE slug = ? LIMIT 1', ['prof']);

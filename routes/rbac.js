@@ -25,6 +25,18 @@ const PSEUDO_RE = /^[A-Za-z0-9_.-]{3,30}$/;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const ALLOWED_STUDENT_AFFILIATIONS = new Set(['n3', 'foret', 'both']);
 const STUDENT_ROLE_SLUG_RE = /^eleve_/i;
+/** Profils pour lesquels on règle seuils / tasks.propose / forum côté n3beur (hors admin, n3boss, visiteur). */
+function isStaffRoleSlug(slug) {
+  const s = String(slug || '').trim().toLowerCase();
+  return s === 'admin' || s === 'prof' || s === 'visiteur';
+}
+/** Slug eleve_* ou palier personnalisé (rang strictement inférieur à celui du profil n3boss, 400) : mêmes réglages que les paliers seedés. */
+function canConfigureStudentTierForumContext(slug, rank) {
+  if (isStaffRoleSlug(slug)) return false;
+  if (STUDENT_ROLE_SLUG_RE.test(slug)) return true;
+  const r = Number(rank);
+  return Number.isFinite(r) && r < 400;
+}
 
 function normalizeOptionalString(value) {
   if (value == null) return null;
@@ -359,14 +371,23 @@ router.patch(
       const hasForumParticipate = Object.prototype.hasOwnProperty.call(req.body || {}, 'forum_participate');
       const hasContextCommentParticipate = Object.prototype.hasOwnProperty.call(req.body || {}, 'context_comment_participate');
       const isStudentRole = STUDENT_ROLE_SLUG_RE.test(existing.slug);
-      if (
-        !hasDisplayName && !hasRank && !hasEmoji && !hasMinDoneTasks && !hasDisplayOrder
-        && !(isStudentRole && (hasForumParticipate || hasContextCommentParticipate))
-      ) {
+      const canForumContext = canConfigureStudentTierForumContext(existing.slug, existing.rank);
+      const hasAnyPatchField =
+        hasDisplayName
+        || hasRank
+        || hasEmoji
+        || hasMinDoneTasks
+        || hasDisplayOrder
+        || hasForumParticipate
+        || hasContextCommentParticipate;
+      if (!hasAnyPatchField) {
         return res.status(400).json({ error: 'Aucun champ de profil fourni' });
       }
-      if ((hasForumParticipate || hasContextCommentParticipate) && !isStudentRole) {
-        return res.status(400).json({ error: 'Forum et commentaires contextuels ne s’appliquent qu’aux profils n3beur (slug eleve_*)' });
+      if ((hasForumParticipate || hasContextCommentParticipate) && !canForumContext) {
+        return res.status(400).json({
+          error:
+            'Forum et commentaires contextuels ne s’appliquent qu’aux profils n3beur (slug eleve_* ou palier avec rang inférieur à celui du n3boss)',
+        });
       }
       const displayName = hasDisplayName ? String(req.body?.display_name || '').trim() : existing.display_name;
       const rank = hasRank ? parseInt(req.body?.rank, 10) : existing.rank;
@@ -401,7 +422,7 @@ router.patch(
         [role.id]
       );
       logAudit('rbac_update_profile', 'role', role.id, updated?.slug || String(role.id), { req });
-      if (isStudentRole && (hasForumParticipate || hasContextCommentParticipate)) {
+      if (canForumContext && (hasForumParticipate || hasContextCommentParticipate)) {
         await emitStudentsWithPrimaryRole(role.id);
       }
       res.json(updated);
