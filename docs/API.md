@@ -80,7 +80,7 @@ Connexion Socket.IO (transport **polling** actuellement forcé côté client) su
 | Événement | Quand | Champs utiles (exemples) |
 |-----------|--------|---------------------------|
 | `tasks:changed` | Création / modification / suppression de tâche, assignation, désassignation, marquer fait, validation, suppression d’un log | `reason`, `taskId`, `mapId` |
-| `students:changed` | Inscription d’un n3beur, suppression d’un n3beur | `reason`, `studentId` |
+| `students:changed` | Inscription d’un n3beur, suppression, duplication, mise à jour de profil, etc. | `reason`, `studentId` |
 | `garden:changed` | Zones, photos de zone, biodiversité, marqueurs carte | `reason`, `zoneId`, `plantId`, `markerId`, `mapId`… |
 | `forum:changed` | Création de sujet, réponse, suppression de message, verrouillage, signalement | `reason`, `threadId`, `postId` |
 | `context-comments:changed` | Création/suppression/signalement d’un commentaire contextuel | `reason`, `contextType`, `contextId`, `commentId` |
@@ -455,6 +455,7 @@ Contraintes principales :
 | Méthode | URL | n3boss | Description |
 |--------|-----|------|-------------|
 | POST | `/api/students/register` | non | Rafraîchir last_seen (`{ studentId }`) |
+| POST | `/api/students/:id/duplicate` | oui | Dupliquer un compte n3beur : crée un nouvel utilisateur avec le même **profil RBAC principal**, la même **affiliation** et la même **description** ; **exige** `first_name`, `last_name`, `password` (longueur min. alignée sur `security.password_min_length`) ; `pseudo`, `email` optionnels ; `copy_avatar` (bool, défaut `true`) copie le fichier avatar sous un nouveau chemin. **Permission** : `users.create` (PIN / session élevée si requis par le rôle). Ne copie pas les tâches ni les stats. |
 | PATCH | `/api/students/:id/profile` | non | Mettre à jour son profil (`{ pseudo?, email?, description?, avatarData?, removeAvatar?, currentPassword }`) |
 | DELETE | `/api/students/:id` | oui | Supprimer un n3beur (cascade) |
 

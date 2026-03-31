@@ -1,4 +1,6 @@
 const express = require('express');
+const fs = require('fs');
+const path = require('path');
 const bcrypt = require('bcryptjs');
 const { v4: uuidv4 } = require('uuid');
 const XLSX = require('xlsx');
@@ -7,8 +9,10 @@ const { requirePermission } = require('../middleware/requireTeacher');
 const { logRouteError } = require('../lib/routeLog');
 const { logAudit } = require('./audit');
 const { emitStudentsChanged, emitTasksChanged } = require('../lib/realtime');
-const { saveBase64ToDisk, deleteFile } = require('../lib/uploads');
-const { ensurePrimaryRole } = require('../lib/rbac');
+const { saveBase64ToDisk, deleteFile, getAbsolutePath, ensureDir } = require('../lib/uploads');
+const { ensurePrimaryRole, getPrimaryRoleForUser, setPrimaryRole } = require('../lib/rbac');
+const { getSettingValue } = require('../lib/settings');
+const logger = require('../lib/logger');
 
 const router = express.Router();
 const MAX_DESCRIPTION_LEN = 300;
@@ -423,6 +427,125 @@ router.post('/register', async (req, res) => {
     if (!s) return res.status(401).json({ error: 'Compte supprimé', deleted: true });
     await execute("UPDATE users SET last_seen = ? WHERE id = ? AND user_type = 'student'", [new Date().toISOString(), studentId]);
     res.json({ ...s, password_hash: undefined });
+  } catch (e) {
+    logRouteError(e, req);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+async function getPasswordMinLength() {
+  const n = await getSettingValue('security.password_min_length', 4);
+  const parsed = parseInt(n, 10);
+  if (!Number.isFinite(parsed)) return 4;
+  return Math.min(Math.max(parsed, 4), 32);
+}
+
+router.post('/:id/duplicate', requirePermission('users.create', { needsElevation: true }), async (req, res) => {
+  try {
+    const sourceId = req.params.id;
+    const source = await queryOne("SELECT * FROM users WHERE id = ? AND user_type = 'student'", [sourceId]);
+    if (!source) return res.status(404).json({ error: 'n3beur introuvable' });
+
+    const body = req.body || {};
+    const firstName = normalizeOptionalString(body.first_name);
+    const lastName = normalizeOptionalString(body.last_name);
+    const password = String(body.password || '');
+    const pseudo = hasOwn(body, 'pseudo') ? normalizeOptionalString(body.pseudo) : null;
+    const email = hasOwn(body, 'email') || hasOwn(body, 'mail')
+      ? normalizeOptionalString(body.email ?? body.mail)
+      : null;
+    const copyAvatar = body.copy_avatar !== false;
+
+    if (!firstName || !lastName) {
+      return res.status(400).json({ error: 'Prénom et nom du nouveau compte requis' });
+    }
+    const minPasswordLen = await getPasswordMinLength();
+    if (!password || password.length < minPasswordLen) {
+      return res.status(400).json({ error: `Mot de passe trop court (min ${minPasswordLen} caractères)` });
+    }
+    if (pseudo != null && !PSEUDO_RE.test(pseudo)) {
+      return res.status(400).json({ error: 'Pseudo invalide (3-30 caractères, lettres/chiffres/._-)' });
+    }
+    if (email != null && !EMAIL_RE.test(email)) {
+      return res.status(400).json({ error: 'Email invalide' });
+    }
+
+    const existingByName = await queryOne(
+      "SELECT id FROM users WHERE user_type = 'student' AND LOWER(first_name)=LOWER(?) AND LOWER(last_name)=LOWER(?) LIMIT 1",
+      [firstName, lastName]
+    );
+    if (existingByName) return res.status(409).json({ error: 'Un n3beur avec ce nom existe déjà' });
+    if (pseudo) {
+      const existingPseudo = await queryOne('SELECT id FROM users WHERE LOWER(pseudo)=LOWER(?) LIMIT 1', [pseudo]);
+      if (existingPseudo) return res.status(409).json({ error: 'Ce pseudo est déjà utilisé' });
+    }
+    if (email) {
+      const existingEmail = await queryOne('SELECT id FROM users WHERE LOWER(email)=LOWER(?) LIMIT 1', [email]);
+      if (existingEmail) return res.status(409).json({ error: 'Cet email est déjà utilisé' });
+    }
+
+    const primary = await getPrimaryRoleForUser('student', source.id);
+    let roleId = primary?.id;
+    if (!roleId) {
+      const novice = await queryOne("SELECT id FROM roles WHERE slug = 'eleve_novice' LIMIT 1");
+      roleId = novice?.id;
+    }
+    if (!roleId) return res.status(500).json({ error: 'Profil RBAC introuvable' });
+
+    const affiliation = normalizeStudentAffiliation(source.affiliation) || 'both';
+    const description = normalizeOptionalString(source.description);
+
+    const newId = uuidv4();
+    const hash = await bcrypt.hash(password, 10);
+    const now = new Date().toISOString();
+    let avatarPath = null;
+
+    if (copyAvatar && source.avatar_path) {
+      try {
+        const srcAbs = getAbsolutePath(source.avatar_path);
+        if (fs.existsSync(srcAbs)) {
+          const ext = path.extname(source.avatar_path) || '.jpg';
+          const relativePath = `students/${newId}/avatar-${Date.now()}${ext}`;
+          const destAbs = getAbsolutePath(relativePath);
+          ensureDir(path.dirname(destAbs));
+          fs.copyFileSync(srcAbs, destAbs);
+          avatarPath = relativePath;
+        }
+      } catch (err) {
+        logger.warn({ err, sourceId, newId }, 'Duplication avatar élève ignorée');
+      }
+    }
+
+    try {
+      await execute(
+        `INSERT INTO users
+          (id, user_type, legacy_user_id, email, pseudo, first_name, last_name, display_name, description, avatar_path, affiliation, password_hash, auth_provider, is_active, last_seen, created_at, updated_at)
+         VALUES (?, 'student', NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'local', 1, ?, NOW(), NOW())`,
+        [newId, email, pseudo, firstName, lastName, `${firstName} ${lastName}`.trim(), description, avatarPath, affiliation, hash, now]
+      );
+    } catch (err) {
+      if (err && (err.errno === 1062 || err.code === 'ER_DUP_ENTRY')) {
+        return res.status(409).json({ error: 'Pseudo, email ou identité déjà utilisé(e)' });
+      }
+      throw err;
+    }
+
+    await setPrimaryRole('student', newId, roleId);
+
+    const created = await queryOne("SELECT * FROM users WHERE id = ? AND user_type = 'student'", [newId]);
+    const roleRow = await queryOne('SELECT slug, display_name FROM roles WHERE id = ? LIMIT 1', [roleId]);
+    logAudit('duplicate_student', 'student', newId, `${firstName} ${lastName}`, {
+      req,
+      payload: { source_student_id: sourceId, role_slug: roleRow?.slug },
+    });
+    emitStudentsChanged({ reason: 'duplicate_student', studentId: newId });
+    res.status(201).json({
+      ...created,
+      password_hash: undefined,
+      role_slug: roleRow?.slug,
+      role_display_name: roleRow?.display_name,
+      source_student_id: sourceId,
+    });
   } catch (e) {
     logRouteError(e, req);
     res.status(500).json({ error: e.message });
