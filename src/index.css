@@ -1137,9 +1137,11 @@
     .map-view-toolbar > * {
       flex-shrink:0;
     }
-    /* Carte (vue seule ou split) : barre d'outils compacte sur tous les viewports (comme mobile) pour gagner de la hauteur. */
+    /* Carte (vue seule ou split) : barre d'outils compacte sur tous les viewports (comme mobile) pour gagner de la hauteur.
+       `.map-view-root--solo` en plus de `main--map-visible` : évite un retour au wrap si la classe sur `main` manque un instant. */
     .main.main--map-visible .map-view-toolbar,
-    .teacher-main.teacher-main--map-visible .map-view-toolbar {
+    .teacher-main.teacher-main--map-visible .map-view-toolbar,
+    .map-view-root--solo .map-view-toolbar {
       flex-wrap:nowrap;
       overflow-x:auto;
       overflow-y:hidden;
@@ -1151,24 +1153,39 @@
       gap:3px !important;
     }
     .main.main--map-visible .map-view-toolbar::-webkit-scrollbar,
-    .teacher-main.teacher-main--map-visible .map-view-toolbar::-webkit-scrollbar { display:none; }
+    .teacher-main.teacher-main--map-visible .map-view-toolbar::-webkit-scrollbar,
+    .map-view-root--solo .map-view-toolbar::-webkit-scrollbar { display:none; }
     .main.main--map-visible .map-view-toolbar button:not(.fm-help-btn),
-    .teacher-main.teacher-main--map-visible .map-view-toolbar button:not(.fm-help-btn) {
+    .teacher-main.teacher-main--map-visible .map-view-toolbar button:not(.fm-help-btn),
+    .map-view-root--solo .map-view-toolbar button:not(.fm-help-btn) {
       padding:4px 7px !important;
       font-size:0.72rem !important;
       min-height:30px;
     }
     .main.main--map-visible .map-view-toolbar .map-gesture-toggle,
-    .teacher-main.teacher-main--map-visible .map-view-toolbar .map-gesture-toggle {
+    .teacher-main.teacher-main--map-visible .map-view-toolbar .map-gesture-toggle,
+    .map-view-root--solo .map-view-toolbar .map-gesture-toggle {
       padding:3px 7px !important;
       min-height:30px !important;
       font-size:0.68rem !important;
     }
     .main.main--map-visible .map-view-toolbar .btn-sm,
-    .teacher-main.teacher-main--map-visible .map-view-toolbar .btn-sm {
+    .teacher-main.teacher-main--map-visible .map-view-toolbar .btn-sm,
+    .map-view-root--solo .map-view-toolbar .btn-sm {
       padding:4px 7px !important;
       min-height:30px !important;
       font-size:0.7rem !important;
+    }
+    /* Le « ? » était exclu de la compaction (48px) : en portrait il impose une barre plus haute que sur les autres onglets. */
+    .main.main--map-visible .map-view-toolbar .fm-help-btn,
+    .teacher-main.teacher-main--map-visible .map-view-toolbar .fm-help-btn,
+    .map-view-root--solo .map-view-toolbar .fm-help-btn {
+      min-width:36px;
+      min-height:36px;
+      width:36px;
+      height:36px;
+      font-size:0.88rem;
+      box-shadow:0 1px 10px rgba(26,71,49,.14);
     }
 
     @media (max-width:1023px), (pointer:coarse) {
