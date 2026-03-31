@@ -25,6 +25,19 @@ const PSEUDO_RE = /^[A-Za-z0-9_.-]{3,30}$/;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const ALLOWED_STUDENT_AFFILIATIONS = new Set(['n3', 'foret', 'both']);
 const STUDENT_ROLE_SLUG_RE = /^eleve_/i;
+
+/** Clés reconnues pour PATCH /profiles/:id (snake + alias camel pour forum / commentaires). */
+const PROFILE_PATCH_KEYS = new Set([
+  'display_name',
+  'rank',
+  'emoji',
+  'min_done_tasks',
+  'display_order',
+  'forum_participate',
+  'forumParticipate',
+  'context_comment_participate',
+  'contextCommentParticipate',
+]);
 /** Profils pour lesquels on règle seuils / tasks.propose / forum côté n3beur (hors admin, n3boss, visiteur). */
 function isStaffRoleSlug(slug) {
   const s = String(slug || '').trim().toLowerCase();
@@ -363,23 +376,21 @@ router.patch(
         'SELECT slug, display_name, emoji, min_done_tasks, display_order, `rank` AS `rank`, COALESCE(forum_participate, 1) AS forum_participate, COALESCE(context_comment_participate, 1) AS context_comment_participate FROM roles WHERE id = ?',
         [role.id]
       );
-      const hasDisplayName = Object.prototype.hasOwnProperty.call(req.body || {}, 'display_name');
-      const hasRank = Object.prototype.hasOwnProperty.call(req.body || {}, 'rank');
-      const hasEmoji = Object.prototype.hasOwnProperty.call(req.body || {}, 'emoji');
-      const hasMinDoneTasks = Object.prototype.hasOwnProperty.call(req.body || {}, 'min_done_tasks');
-      const hasDisplayOrder = Object.prototype.hasOwnProperty.call(req.body || {}, 'display_order');
-      const hasForumParticipate = Object.prototype.hasOwnProperty.call(req.body || {}, 'forum_participate');
-      const hasContextCommentParticipate = Object.prototype.hasOwnProperty.call(req.body || {}, 'context_comment_participate');
+      const b = req.body != null && typeof req.body === 'object' && !Array.isArray(req.body) ? req.body : {};
+      const hasAnyPatchField = Object.keys(b).some((k) => PROFILE_PATCH_KEYS.has(k));
+      const hasDisplayName = Object.prototype.hasOwnProperty.call(b, 'display_name');
+      const hasRank = Object.prototype.hasOwnProperty.call(b, 'rank');
+      const hasEmoji = Object.prototype.hasOwnProperty.call(b, 'emoji');
+      const hasMinDoneTasks = Object.prototype.hasOwnProperty.call(b, 'min_done_tasks');
+      const hasDisplayOrder = Object.prototype.hasOwnProperty.call(b, 'display_order');
+      const hasForumParticipate =
+        Object.prototype.hasOwnProperty.call(b, 'forum_participate')
+        || Object.prototype.hasOwnProperty.call(b, 'forumParticipate');
+      const hasContextCommentParticipate =
+        Object.prototype.hasOwnProperty.call(b, 'context_comment_participate')
+        || Object.prototype.hasOwnProperty.call(b, 'contextCommentParticipate');
       const isStudentRole = STUDENT_ROLE_SLUG_RE.test(existing.slug);
       const canForumContext = canConfigureStudentTierForumContext(existing.slug, existing.rank);
-      const hasAnyPatchField =
-        hasDisplayName
-        || hasRank
-        || hasEmoji
-        || hasMinDoneTasks
-        || hasDisplayOrder
-        || hasForumParticipate
-        || hasContextCommentParticipate;
       if (!hasAnyPatchField) {
         return res.status(400).json({ error: 'Aucun champ de profil fourni' });
       }
@@ -389,22 +400,26 @@ router.patch(
             'Forum et commentaires contextuels ne s’appliquent qu’aux profils n3beur (slug eleve_* ou palier avec rang inférieur à celui du n3boss)',
         });
       }
-      const displayName = hasDisplayName ? String(req.body?.display_name || '').trim() : existing.display_name;
-      const rank = hasRank ? parseInt(req.body?.rank, 10) : existing.rank;
-      const emoji = hasEmoji ? normalizeRoleEmoji(req.body?.emoji) : existing.emoji;
+      const displayName = hasDisplayName ? String(b.display_name || '').trim() : existing.display_name;
+      const rank = hasRank ? parseInt(b.rank, 10) : existing.rank;
+      const emoji = hasEmoji ? normalizeRoleEmoji(b.emoji) : existing.emoji;
       const minDoneTasks = hasMinDoneTasks
-        ? parseOptionalNonNegativeInt(req.body?.min_done_tasks, null)
+        ? parseOptionalNonNegativeInt(b.min_done_tasks, null)
         : existing.min_done_tasks;
       const displayOrder = hasDisplayOrder
-        ? parseOptionalNonNegativeInt(req.body?.display_order, existing.display_order ?? 0)
+        ? parseOptionalNonNegativeInt(b.display_order, existing.display_order ?? 0)
         : (existing.display_order ?? 0);
       let forumParticipate = Number(existing.forum_participate) !== 0 ? 1 : 0;
       let contextCommentParticipate = Number(existing.context_comment_participate) !== 0 ? 1 : 0;
       if (hasForumParticipate) {
-        forumParticipate = req.body.forum_participate ? 1 : 0;
+        const v = Object.prototype.hasOwnProperty.call(b, 'forum_participate') ? b.forum_participate : b.forumParticipate;
+        forumParticipate = v ? 1 : 0;
       }
       if (hasContextCommentParticipate) {
-        contextCommentParticipate = req.body.context_comment_participate ? 1 : 0;
+        const v = Object.prototype.hasOwnProperty.call(b, 'context_comment_participate')
+          ? b.context_comment_participate
+          : b.contextCommentParticipate;
+        contextCommentParticipate = v ? 1 : 0;
       }
       if (!displayName) return res.status(400).json({ error: 'display_name requis' });
       if (!Number.isFinite(rank)) return res.status(400).json({ error: 'rank invalide' });

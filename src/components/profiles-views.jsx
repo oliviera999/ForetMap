@@ -140,6 +140,7 @@ function ProfilesAdminView({ isN3Affiliated = false }) {
     setErr('');
     try {
       for (const { id, display_order } of nextOrders) {
+        if (id == null || display_order === undefined) continue;
         const prev = sortedRoles.find((x) => Number(x.id) === Number(id));
         if (Number(prev?.display_order) === display_order) continue;
         await api(`/api/rbac/profiles/${id}`, 'PATCH', { display_order });
@@ -432,7 +433,7 @@ function ProfilesAdminView({ isN3Affiliated = false }) {
     setLoading(true);
     setErr('');
     try {
-      await api(`/api/rbac/profiles/${roleId}`, 'PATCH', { forum_participate: forumParticipate });
+      await api(`/api/rbac/profiles/${roleId}`, 'PATCH', { forum_participate: forumParticipate ? 1 : 0 });
       setRoles((prev) => prev.map((r) => (
         Number(r.id) === Number(roleId) ? { ...r, forum_participate: forumParticipate ? 1 : 0 } : r
       )));
@@ -451,7 +452,9 @@ function ProfilesAdminView({ isN3Affiliated = false }) {
     setLoading(true);
     setErr('');
     try {
-      await api(`/api/rbac/profiles/${roleId}`, 'PATCH', { context_comment_participate: contextCommentParticipate });
+      await api(`/api/rbac/profiles/${roleId}`, 'PATCH', {
+        context_comment_participate: contextCommentParticipate ? 1 : 0,
+      });
       setRoles((prev) => prev.map((r) => (
         Number(r.id) === Number(roleId) ? { ...r, context_comment_participate: contextCommentParticipate ? 1 : 0 } : r
       )));
