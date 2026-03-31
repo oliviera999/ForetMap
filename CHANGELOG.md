@@ -5,7 +5,13 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Ajouté
+- **Carte** : création/édition de **zones** et **repères** — champ pour coller ou taper un emoji personnalisé (la grille de suggestions reste disponible) ; **API repères** : troncature de l’emoji à 16 caractères (alignement `map_markers.emoji`).
+
 ### Modifié
+- **Carte / zones** : détection et retrait du préfixe emoji en tête de nom étendus aux emojis hors liste prédéfinie (affichage, édition, nom enregistré).
+- **Visite (édition)** : titres de zone — même logique de détection de préfixe emoji que sur la carte.
+- **Documentation API** : `docs/API.md` — zones (`name` avec préfixe emoji) et repères (`emoji` tronqué à 16 caractères).
 - **RBAC / forum / commentaires contextuels** : la participation au forum et aux commentaires de contexte (tâches, projets, zones) est réglée par **profil** (`roles.forum_participate`, `roles.context_comment_participate`, défaut activé) et non plus par compte utilisateur. `GET /api/auth/me`, les gardes API et `GET /api/rbac/users` suivent le **profil principal** du n3beur ; `PATCH /api/rbac/profiles/:id` accepte `forum_participate` et `context_comment_participate` (booléens) pour les profils dont le slug commence par `eleve_` ; suppression de `PATCH /api/rbac/users/student/:id/forum-participate` et `.../context-comment-participate`. UI **Profils & utilisateurs** : cases dans la section Permissions du profil n3beur sélectionné (permission `admin.roles.manage` + PIN). Migration **`045_participation_forum_comments_on_roles.sql`** : agrégation par rôle (MIN des anciennes valeurs utilisateur), puis suppression des colonnes sur `users`.
 - **Documentation API** : `docs/API.md` — sections forum, commentaires contextuels et tableau RBAC alignés sur le modèle par profil ; retrait des routes `PATCH` par utilisateur.
 - **RBAC / PATCH profil** : lecture des flags avec `COALESCE(..., 1)` ; **Profils (UI)** : cases forum / commentaires contextuels désactivées sans la permission `admin.roles.manage`.

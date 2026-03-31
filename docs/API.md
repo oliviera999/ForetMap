@@ -232,6 +232,8 @@ Contenus éditables du site (micro-CMS texte brut) :
 | POST | `/api/zones/:id/photos` | oui | Ajouter photo (`image_data` base64, `caption`) |
 | DELETE | `/api/zones/:id/photos/:pid` | oui | Supprimer photo |
 
+- Le champ `name` peut commencer par un **emoji de zone** : préfixe (séquence emoji) suivi d’un **espace** puis le libellé ; l’UI carte accepte tout pictogramme collé ou choisi dans la grille.
+
 ---
 
 ## Carte (marqueurs)
@@ -242,6 +244,8 @@ Contenus éditables du site (micro-CMS texte brut) :
 | POST | `/api/map/markers` | oui | Créer repère |
 | PUT | `/api/map/markers/:id` | oui | Modifier repère |
 | DELETE | `/api/map/markers/:id` | oui | Supprimer repère |
+
+- Corps JSON : notamment `emoji` (pictogramme du repère). Valeur **tronquée à 16 caractères** côté serveur si besoin (colonne `map_markers.emoji`).
 
 ---
 

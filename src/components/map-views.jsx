@@ -2,7 +2,15 @@ import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import { createPortal } from 'react-dom';
 import { api } from '../services/api';
 import { ZONE_COLORS } from '../constants/garden';
-import { MARKER_EMOJIS, parseEmojiListSetting } from '../constants/emojis';
+import {
+  MARKER_EMOJIS,
+  MAP_MARKER_EMOJI_MAX_CHARS,
+  ZONE_NAME_PREFIX_EMOJI_MAX_CHARS,
+  parseEmojiListSetting,
+  detectLeadingMarkerEmoji,
+  stripLeadingMarkerEmoji,
+  clampEmojiInput,
+} from '../constants/emojis';
 import { stageBadge } from '../utils/badges';
 import { compressImage } from '../utils/image';
 import { useDialogA11y } from '../hooks/useDialogA11y';
@@ -88,22 +96,6 @@ function parseLivingBeings(value, fallback = '') {
   const cleaned = [...new Set(raw.map(v => String(v || '').trim()).filter(Boolean))];
   if (cleaned.length === 0 && fallback) return [String(fallback).trim()];
   return cleaned;
-}
-
-function detectLeadingMarkerEmoji(value, emojis = MARKER_EMOJIS) {
-  const raw = String(value || '').trim();
-  return emojis.find((emoji) => (
-    raw === emoji || raw.startsWith(`${emoji} `)
-  )) || null;
-}
-
-function stripLeadingMarkerEmoji(value, emojis = MARKER_EMOJIS) {
-  const raw = String(value || '').trim();
-  for (const emoji of emojis) {
-    if (raw === emoji) return '';
-    if (raw.startsWith(`${emoji} `)) return raw.slice(emoji.length).trimStart();
-  }
-  return raw;
 }
 
 function PhotoGallery({ zoneId, isTeacher }) {
@@ -206,6 +198,26 @@ function PhotoGallery({ zoneId, isTeacher }) {
         </div>
       )}
     </div>
+  );
+}
+
+function ZoneOrMarkerEmojiField({ id, value, onChange, maxLen, gridLabel = 'Ou choisir dans la liste :' }) {
+  return (
+    <>
+      <input
+        id={id}
+        type="text"
+        inputMode="text"
+        autoComplete="off"
+        spellCheck={false}
+        maxLength={maxLen}
+        placeholder="Colle ou tape un emoji…"
+        value={value}
+        onChange={(e) => onChange(clampEmojiInput(e.target.value, maxLen))}
+        style={{ fontSize: '1.2rem', width: '100%', maxWidth: 140 }}
+      />
+      <div style={{ fontSize: '.78rem', color: '#777', margin: '8px 0 6px' }}>{gridLabel}</div>
+    </>
   );
 }
 
@@ -381,10 +393,14 @@ function ZoneInfoModal({ zone, plants, tasks, isTeacher, student, canSelfAssignT
       setToast('Nom requis');
       return;
     }
+    const prefixEmoji = clampEmojiInput(
+      (zoneEmoji || '').trim() || markerEmojis[0] || '📍',
+      ZONE_NAME_PREFIX_EMOJI_MAX_CHARS,
+    );
     setSaving(true);
     try {
       await onUpdate(zone.id, {
-        name: `${zoneEmoji} ${cleanName}`.trim(),
+        name: `${prefixEmoji} ${cleanName}`.trim(),
         current_plant: plant,
         living_beings: livingBeings,
         stage,
@@ -546,7 +562,13 @@ function ZoneInfoModal({ zone, plants, tasks, isTeacher, student, canSelfAssignT
               <textarea value={desc} onChange={e => setDesc(e.target.value)} rows={3}
                 placeholder="Observations, conseils, notes sur cette zone..." />
             </div>
-            <div className="field"><label>Emoji de zone</label>
+            <div className="field"><label htmlFor="zone-edit-emoji-custom">Emoji de zone</label>
+              <ZoneOrMarkerEmojiField
+                id="zone-edit-emoji-custom"
+                value={zoneEmoji}
+                onChange={setZoneEmoji}
+                maxLen={ZONE_NAME_PREFIX_EMOJI_MAX_CHARS}
+              />
               <div style={{
                 display: 'flex',
                 gap: 6,
@@ -559,6 +581,7 @@ function ZoneInfoModal({ zone, plants, tasks, isTeacher, student, canSelfAssignT
               }}>
                 {markerEmojis.map((emoji) => (
                   <button
+                    type="button"
                     key={emoji}
                     className={`emoji-btn ${zoneEmoji === emoji ? 'sel' : ''}`}
                     onClick={() => setZoneEmoji(emoji)}>
@@ -715,10 +738,14 @@ function ZoneDrawModal({ points_pct, onClose, onSave, plants, markerEmojis = MAR
   const save = async () => {
     const cleanName = stripLeadingMarkerEmoji(form.name, emojiParsingList);
     if (!cleanName) return;
+    const prefixEmoji = clampEmojiInput(
+      (form.zone_emoji || '').trim() || markerEmojis[0] || '📍',
+      ZONE_NAME_PREFIX_EMOJI_MAX_CHARS,
+    );
     setSaving(true);
     try {
       const { zone_emoji, ...rest } = form;
-      await onSave({ ...rest, name: `${zone_emoji} ${cleanName}`.trim(), points: points_pct });
+      await onSave({ ...rest, name: `${prefixEmoji} ${cleanName}`.trim(), points: points_pct });
       onClose();
     }
     catch (e) { setSaving(false); }
@@ -786,7 +813,13 @@ function ZoneDrawModal({ points_pct, onClose, onSave, plants, markerEmojis = MAR
             ))}
           </div>
         </div>
-        <div className="field"><label>Emoji de zone</label>
+        <div className="field"><label htmlFor="zone-draw-emoji-custom">Emoji de zone</label>
+          <ZoneOrMarkerEmojiField
+            id="zone-draw-emoji-custom"
+            value={form.zone_emoji}
+            onChange={(v) => setForm((f) => ({ ...f, zone_emoji: v }))}
+            maxLen={ZONE_NAME_PREFIX_EMOJI_MAX_CHARS}
+          />
           <div style={{
             display: 'flex',
             gap: 6,
@@ -799,6 +832,7 @@ function ZoneDrawModal({ points_pct, onClose, onSave, plants, markerEmojis = MAR
           }}>
             {markerEmojis.map((emoji) => (
               <button
+                type="button"
                 key={emoji}
                 className={`emoji-btn ${form.zone_emoji === emoji ? 'sel' : ''}`}
                 onClick={() => setForm((f) => ({ ...f, zone_emoji: emoji }))}>
@@ -851,7 +885,17 @@ function MarkerModal({ marker, plants, tasks, onClose, onSave, onDelete, onLinkT
     if (!form.label.trim()) return;
     setSaving(true);
     const living = parseLivingBeings(form.living_beings, form.plant_name);
-    const payload = { ...marker, ...form, living_beings: living, plant_name: form.plant_name || living[0] || '' };
+    const emojiVal = clampEmojiInput(
+      (form.emoji || '').trim() || '🌱',
+      MAP_MARKER_EMOJI_MAX_CHARS,
+    );
+    const payload = {
+      ...marker,
+      ...form,
+      emoji: emojiVal,
+      living_beings: living,
+      plant_name: form.plant_name || living[0] || '',
+    };
     try { await onSave(payload); onClose(); }
     catch (e) { setSaving(false); }
   };
@@ -933,7 +977,13 @@ function MarkerModal({ marker, plants, tasks, onClose, onSave, onDelete, onLinkT
                 </div>
               </>
             )}
-            <div className="field"><label>Emoji du repère</label>
+            <div className="field"><label htmlFor="marker-emoji-custom">Emoji du repère</label>
+              <ZoneOrMarkerEmojiField
+                id="marker-emoji-custom"
+                value={form.emoji}
+                onChange={(v) => setForm((f) => ({ ...f, emoji: v }))}
+                maxLen={MAP_MARKER_EMOJI_MAX_CHARS}
+              />
               <div style={{
                 display: 'flex',
                 gap: 6,
@@ -946,6 +996,7 @@ function MarkerModal({ marker, plants, tasks, onClose, onSave, onDelete, onLinkT
               }}>
                 {markerEmojis.map((emoji) => (
                   <button
+                    type="button"
                     key={emoji}
                     className={`emoji-btn ${form.emoji === emoji ? 'sel' : ''}`}
                     onClick={() => setForm((f) => ({ ...f, emoji }))}>
