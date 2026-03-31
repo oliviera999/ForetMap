@@ -110,8 +110,8 @@ Routes protégées « n3boss » : header `Authorization: Bearer <token>`.
 - `maxActiveAssignments` : valeur du réglage `tasks.student_max_active_assignments` (entier 0–99, `0` = pas de limite).
 - `currentActiveAssignments` : nombre d’assignations sur des tâches dont le statut n’est pas `validated` (toutes cartes).
 - `atLimit` : `true` si `maxActiveAssignments > 0` et `currentActiveAssignments >= maxActiveAssignments`.
-- `forumParticipate` : `true` si le compte n3beur peut **participer** au forum (publier, répondre, réagir, signaler, supprimer ses messages) ; `false` = accès **lecture seule** sur les routes forum autorisées (voir ci-dessous). Absent pour les n3boss.
-- `contextCommentParticipate` : `true` si le compte peut **publier** des commentaires contextuels (tâches, projets, zones), réagir, signaler et supprimer les siens ; `false` = **lecture seule** sur `GET /api/context-comments`. Absent pour les n3boss.
+- `forumParticipate` : `true` si le profil principal du n3beur (`roles.forum_participate`) autorise la **participation** au forum ; `false` = accès **lecture seule** sur les routes forum autorisées (voir ci-dessous). Absent pour les n3boss.
+- `contextCommentParticipate` : `true` si le profil principal (`roles.context_comment_participate`) autorise la **publication** sur les commentaires contextuels (tâches, projets, zones), réagir, signaler et supprimer les siens ; `false` = **lecture seule** sur `GET /api/context-comments`. Absent pour les n3boss.
 
 ---
 
@@ -121,16 +121,14 @@ Toutes les routes RBAC exigent un token admin avec élévation PIN active.
 
 | Méthode | URL | Description |
 |--------|-----|-------------|
-| GET | `/api/rbac/profiles` | Objet `{ roles, progressionByValidatedTasksEnabled }` : liste des profils (chacun avec `permissions` + `catalog` des clés), et indicateur du réglage global de progression automatique |
+| GET | `/api/rbac/profiles` | Objet `{ roles, progressionByValidatedTasksEnabled }` : liste des profils (chacun avec `permissions`, `catalog`, et pour chaque ligne `roles` : `forum_participate` / `context_comment_participate` lorsque présents en base), et indicateur du réglage global de progression automatique |
 | PATCH | `/api/rbac/progression-by-validated-tasks` | Activer ou désactiver la montée de niveau automatique des profils élèves selon les tâches validées (`{ enabled: boolean }`, même permission que la gestion des profils, élévation PIN si requise) |
 | POST | `/api/rbac/profiles` | Créer un profil (`slug`, `display_name`, `rank`, `display_order`, `emoji?`, `min_done_tasks?`) |
-| PATCH | `/api/rbac/profiles/:id` | Modifier un profil (`display_name`, `rank`, `display_order`, `emoji`, `min_done_tasks`) |
+| PATCH | `/api/rbac/profiles/:id` | Modifier un profil (`display_name`, `rank`, `display_order`, `emoji`, `min_done_tasks`) ; pour un profil dont le `slug` commence par `eleve_`, on peut aussi envoyer `forum_participate` et/ou `context_comment_participate` (booléens) — participation forum et commentaires contextuels pour **tous** les n3beurs ayant ce profil principal |
 | PUT | `/api/rbac/profiles/:id/permissions` | Remplacer les permissions d’un profil |
 | PUT | `/api/rbac/profiles/:id/pin` | Changer le PIN d’un profil |
-| GET | `/api/rbac/users` | Liste utilisateurs et profil attribué |
+| GET | `/api/rbac/users` | Liste utilisateurs et profil attribué ; pour les n3beurs, `forum_participate` et `context_comment_participate` reflètent le **profil principal** (`roles`) |
 | PUT | `/api/rbac/users/:userType/:userId/role` | Attribuer le profil principal d’un utilisateur |
-| PATCH | `/api/rbac/users/student/:userId/forum-participate` | Activer ou désactiver la **participation forum** pour un n3beur (`{ forum_participate: boolean }`, élévation PIN si requise par la permission) |
-| PATCH | `/api/rbac/users/student/:userId/context-comment-participate` | Activer ou désactiver la **publication de commentaires contextuels** pour un n3beur (`{ context_comment_participate: boolean }`, même permission / élévation) |
 
 ### Droits paramétrables (catalogue)
 
@@ -373,7 +371,7 @@ Toutes les routes forum exigent un utilisateur connecté (`Authorization: Bearer
 Le profil `visiteur` est refusé (`403`) pour éviter l’exposition d’identités d’autres utilisateurs.
 Si le réglage public `ui.modules.forum_enabled` est à `false`, toutes les routes forum renvoient `503` avec `{ error: 'Forum désactivé' }` (après authentification réussie).
 
-**Participation par compte n3beur** : la colonne `users.forum_participate` (défaut `1`) pilote si le compte peut agir sur le forum. Si `0`, le n3beur reste autorisé en **lecture** sur `GET /api/forum/threads` et `GET /api/forum/threads/:id` ; les routes `POST` (sujet, réponse, réaction, signalement) et `DELETE` sur un message sont refusées avec **`403`** et `code: "FORUM_READ_ONLY"`. Les n3boss (`user_type` enseignant) ne sont pas soumis à ce filtre.
+**Participation par profil n3beur** : la colonne `roles.forum_participate` (défaut `1`) sur le **profil principal** pilote si le n3beur peut agir sur le forum. Si `0`, le n3beur reste autorisé en **lecture** sur `GET /api/forum/threads` et `GET /api/forum/threads/:id` ; les routes `POST` (sujet, réponse, réaction, signalement) et `DELETE` sur un message sont refusées avec **`403`** et `code: "FORUM_READ_ONLY"`. Les n3boss (`user_type` enseignant) ne sont pas soumis à ce filtre.
 
 | Méthode | URL | Description |
 |--------|-----|-------------|
@@ -405,7 +403,7 @@ Si le réglage public `ui.modules.context_comments_enabled` est à `false`, tout
 
 **Profil visiteur** : toutes les routes `/api/context-comments` renvoient **`403`** (pas d’accès, y compris en lecture), avec un message du type « Accès refusé aux commentaires de contexte pour le profil visiteur » — comportement aligné sur le forum pour ce profil.
 
-**Publication par compte n3beur** : la colonne `users.context_comment_participate` (défaut `1`) pilote si le compte peut créer des commentaires, réagir, signaler et supprimer les siens. Si `0`, le n3beur reste autorisé en **lecture** sur `GET /api/context-comments` ; `POST`, `DELETE` et réactions sont refusés avec **`403`** et `code: "CONTEXT_COMMENT_READ_ONLY"`. Les n3boss ne sont pas soumis à ce filtre.
+**Publication par profil n3beur** : la colonne `roles.context_comment_participate` (défaut `1`) sur le **profil principal** pilote si le n3beur peut créer des commentaires, réagir, signaler et supprimer les siens. Si `0`, le n3beur reste autorisé en **lecture** sur `GET /api/context-comments` ; `POST`, `DELETE` et réactions sont refusés avec **`403`** et `code: "CONTEXT_COMMENT_READ_ONLY"`. Les n3boss ne sont pas soumis à ce filtre.
 
 Contexte supporté :
 

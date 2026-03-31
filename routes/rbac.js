@@ -271,7 +271,7 @@ router.patch(
       const role = await queryOne('SELECT id FROM roles WHERE id = ?', [req.params.id]);
       if (!role) return res.status(404).json({ error: 'Profil introuvable' });
       const existing = await queryOne(
-        'SELECT slug, display_name, emoji, min_done_tasks, display_order, `rank` AS `rank`, forum_participate, context_comment_participate FROM roles WHERE id = ?',
+        'SELECT slug, display_name, emoji, min_done_tasks, display_order, `rank` AS `rank`, COALESCE(forum_participate, 1) AS forum_participate, COALESCE(context_comment_participate, 1) AS context_comment_participate FROM roles WHERE id = ?',
         [role.id]
       );
       const hasDisplayName = Object.prototype.hasOwnProperty.call(req.body || {}, 'display_name');
