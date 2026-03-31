@@ -98,6 +98,7 @@ function ProfilesAdminView({ isN3Affiliated = false }) {
     return (selectedRole.permissions || []).find((p) => p.key === 'tasks.propose') || null;
   }, [selectedRole]);
   const canManageProfiles = authPerms.includes('admin.roles.manage') || authPerms.includes('admin.users.assign_roles');
+  const canEditRoleDefinition = authPerms.includes('admin.roles.manage');
   const canExport = authPerms.includes('stats.export') && authElevated;
   const canImport = authPerms.includes('students.import') && authElevated;
   const canDelete = authPerms.includes('students.delete') && authElevated;
@@ -795,24 +796,24 @@ function ProfilesAdminView({ isN3Affiliated = false }) {
                       <div style={{ fontSize: '.88rem', fontWeight: 700, color: '#1e3a5f', marginBottom: 8 }}>
                         Forum et commentaires (tâches, zones…)
                       </div>
-                      <label style={{ display: 'flex', alignItems: 'flex-start', gap: 10, fontSize: '.84rem', cursor: loading || !authElevated ? 'default' : 'pointer', marginBottom: 8 }}>
+                      <label style={{ display: 'flex', alignItems: 'flex-start', gap: 10, fontSize: '.84rem', cursor: loading || !authElevated || !canEditRoleDefinition ? 'default' : 'pointer', marginBottom: 8 }}>
                         <input
                           type="checkbox"
                           checked={Number(selectedRole.forum_participate) !== 0}
                           onChange={(e) => setRoleForumParticipate(selectedRole.id, e.target.checked)}
-                          disabled={loading || !authElevated}
+                          disabled={loading || !authElevated || !canEditRoleDefinition}
                           style={{ marginTop: 3 }}
                         />
                         <span>
                           Permettre la <strong>participation au forum</strong> (publier, répondre, réagir, etc.) pour les {roleTerms.studentPlural} de ce profil ; décoché = lecture seule.
                         </span>
                       </label>
-                      <label style={{ display: 'flex', alignItems: 'flex-start', gap: 10, fontSize: '.84rem', cursor: loading || !authElevated ? 'default' : 'pointer', marginBottom: 0 }}>
+                      <label style={{ display: 'flex', alignItems: 'flex-start', gap: 10, fontSize: '.84rem', cursor: loading || !authElevated || !canEditRoleDefinition ? 'default' : 'pointer', marginBottom: 0 }}>
                         <input
                           type="checkbox"
                           checked={Number(selectedRole.context_comment_participate) !== 0}
                           onChange={(e) => setRoleContextCommentParticipate(selectedRole.id, e.target.checked)}
-                          disabled={loading || !authElevated}
+                          disabled={loading || !authElevated || !canEditRoleDefinition}
                           style={{ marginTop: 3 }}
                         />
                         <span>
