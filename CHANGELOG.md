@@ -6,7 +6,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 ## [Non publié]
 
 ### Ajouté
-- **Diagnostic PUT tâches (prod)** : logs Pino structurés `foretmap_agent_debug` sur `PUT /api/tasks/:id` (entrée, avant/après UPDATE, erreur) ; en production plus d’appel HTTP vers localhost ; variable optionnelle **`FORETMAP_DEBUG_INGEST_URL`** (`.env.example`) ; côté client, **`console.warn`** en échec de sauvegarde pour inspection F12. Artefacts **`dist/`** régénérés.
+- **Diagnostic PUT tâches (prod)** : chaque trace **`agentDebugTaskPut`** est aussi poussée dans le **tampon mémoire** (`appendForcedLogLine` dans **`lib/logBuffer.js`**) — visible via **`GET /api/admin/logs`** (header **`X-Deploy-Secret`**, variable **`DEPLOY_SECRET`**) même si **`LOG_LEVEL=error`** ou stdout absent sur l’hébergeur ; Pino en **`warn`**. Variable **`FORETMAP_DEBUG_TASK_PUT_CLIENT=1`** : JSON 500 avec **`debugDetail`** / **`debugCode`** pour les profs **`tasks.manage`** ; l’API client concatène le détail dans le message d’erreur. **`FORETMAP_DEBUG_INGEST_URL`**, **`console.warn`** côté formulaire tâches. Artefacts **`dist/`** régénérés (voir version courante).
 
 ### Modifié
 - **Chargement des données (carte, tâches, etc.)** : `fetchAll` lit un instantané via ref (plus de recréation à chaque rendu) ; le rafraîchissement automatique est **debouncé** (250 ms) quand carte, réglages publics, rôle ou affiliation changent — moins d’appels API en rafale au démarrage ou après sync des réglages.

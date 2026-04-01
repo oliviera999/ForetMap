@@ -139,7 +139,11 @@ export async function api(path, method = 'GET', body) {
       clearStoredSession();
       window.dispatchEvent(new CustomEvent('foretmap_teacher_expired'));
     }
-    const ex = new Error(errBody.error || 'Erreur serveur');
+    let errMsg = errBody.error || 'Erreur serveur';
+    if (errBody.debugDetail && typeof errBody.debugDetail === 'string') {
+      errMsg = `${errMsg} — ${errBody.debugDetail}`;
+    }
+    const ex = new Error(errMsg);
     ex.status = res.status;
     ex.body = errBody;
     throw ex;
