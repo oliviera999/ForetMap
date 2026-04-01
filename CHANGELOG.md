@@ -6,6 +6,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 ## [Non publié]
 
 ### Modifié
+- **UI / modales Profils & utilisateurs** : édition compte et confirmation suppression — **`modal-overlay--centered`** + **`log-modal--dialog`** (`index.css`) : panneau centré, coins arrondis, ombre, animation **`popIn`** (plus de feuille collée en bas à gauche sur grand écran).
 - **Cartes & tâches (vue scindée)** : la zone carte est alignée en haut sous la barre d’outils (`padding-top` supprimé, `align-items: flex-start`) pour supprimer l’espace entre la barre d’édition et l’image.
 - **Profils & utilisateurs / édition compte** : erreurs (ex. **élévation PIN**, 403) visibles **dans la modale** (auparavant masquées sous le calque `z-index: 200`) ; `<form noValidate>` + bouton **submit** ; repli **`user_type`** depuis la ligne liste ; **`load()`** après succès isolé. Préremplissage : fusion liste + GET détail, clés insensibles à la casse, `encodeURIComponent`, `jsonTextField` côté API.
 - **Notifications (UI)** : le panneau du centre de notifications se ferme au **clic à l’extérieur** (hors panneau et hors bouton cloche) et via un bouton **×** en haut à droite du panneau.
