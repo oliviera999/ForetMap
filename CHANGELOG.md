@@ -5,6 +5,9 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Ajouté
+- **Diagnostic PUT tâches (prod)** : logs Pino structurés `foretmap_agent_debug` sur `PUT /api/tasks/:id` (entrée, avant/après UPDATE, erreur) ; en production plus d’appel HTTP vers localhost ; variable optionnelle **`FORETMAP_DEBUG_INGEST_URL`** (`.env.example`) ; côté client, **`console.warn`** en échec de sauvegarde pour inspection F12. Artefacts **`dist/`** régénérés.
+
 ### Modifié
 - **Chargement des données (carte, tâches, etc.)** : `fetchAll` lit un instantané via ref (plus de recréation à chaque rendu) ; le rafraîchissement automatique est **debouncé** (250 ms) quand carte, réglages publics, rôle ou affiliation changent — moins d’appels API en rafale au démarrage ou après sync des réglages.
 - **MCP Cursor (`foretmap-diagnostics`)** : chargement de **`.env`** à la racine dans **`scripts/mcp-foretmap-diagnostics.mjs`** (sans écraser l’OS) ; **`.cursor/mcp.json`** ne fixe plus **`FORETMAP_DEPLOY_SECRET`** via `${env:…}` (évitait un secret vide qui bloquait `dotenv`). Doc **`docs/MCP_FORETMAP_CURSOR.md`**, **`README.md`**, **`docs/EXPLOITATION.md`**.
