@@ -32,6 +32,18 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Initialize test database
+        run: npm run db:init
+        env:
+          NODE_ENV: test
+          DB_HOST: 127.0.0.1
+          DB_PORT: 3306
+          DB_NAME: foretmap_test
+          DB_USER: root
+          DB_PASS: ''
+          TEACHER_PIN: '1234'
+          JWT_SECRET: 'ci-test-secret-not-for-production'
+
       - name: Run tests
         run: node --test --test-concurrency=1 --test-force-exit tests/*.test.js
         env:
@@ -52,7 +64,6 @@ jobs:
 
       - name: Start app server for e2e
         run: |
-          npm run db:init
           nohup npm run start:e2e > /tmp/foretmap-server.log 2>&1 &
         env:
           NODE_ENV: test
