@@ -56,6 +56,8 @@ Sans `LOAD_TEST_SECRET`, le comportement reste inchangé : le rate limiting s'ap
 
 Le plafond global sur **`/api/*`** (hors bypass ci-dessus) est de **900 requêtes par minute par adresse IP** par défaut, configurable avec **`FORETMAP_API_RATE_LIMIT_PER_MIN`** (entier entre 60 et 20000). Objectif : limiter les abus tout en évitant des **429** lorsque plusieurs utilisateurs ou onglets passent par la **même IP publique** (ex. Wi‑Fi établissement).
 
+Pour valider ce comportement en local (plusieurs utilisateurs virtuels, **une seule IP source** côté serveur, rate limit **actif**), utiliser le profil Artillery **`10vu`** : fichier `load/artillery-10vu.yml`, commande **`npm run test:load:10vu`** (voir aussi `docs/LOCAL_DEV.md`).
+
 ### Mode Playwright / e2e (rate limit)
 
 Pour les campagnes **Playwright** et un serveur de dev dédié aux e2e, le rate limiting global et auth peut être désactivé si **l’une** des conditions suivantes est remplie côté process Node du serveur :
