@@ -6,6 +6,8 @@
  * - GET /api/health (app up)
  * - GET /api/health/db (BDD up)
  * - GET /api/version (optionnel, mais recommandé)
+ * - GET /api/admin/diagnostics (optionnel) si **DEPLOY_SECRET** ou **FORETMAP_DEPLOY_CHECK_SECRET**
+ *   est défini dans l’environnement : vérifie que la route admin déployée répond (200 + body.ok).
  *
  * Usage:
  *   node scripts/post-deploy-check.js --base-url https://foretmap.olution.info
@@ -33,7 +35,7 @@ function parseArgs(argv) {
   };
 }
 
-function requestJsonWithTimeout(urlString, timeoutMs) {
+function requestJsonWithTimeout(urlString, timeoutMs, extraHeaders = {}) {
   return new Promise((resolve, reject) => {
     const url = new URL(urlString);
     const client = url.protocol === 'https:' ? https : http;
@@ -48,6 +50,7 @@ function requestJsonWithTimeout(urlString, timeoutMs) {
         headers: {
           Accept: 'application/json',
           'User-Agent': CHECK_USER_AGENT,
+          ...extraHeaders,
         },
       },
       (res) => {
@@ -96,10 +99,10 @@ function parseRetryAfterMs(rawValue) {
   return 0;
 }
 
-async function requestJsonWithRetry(urlString, timeoutMs, maxAttempts = 3) {
+async function requestJsonWithRetry(urlString, timeoutMs, maxAttempts = 3, extraHeaders = {}) {
   let last = null;
   for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
-    const out = await requestJsonWithTimeout(urlString, timeoutMs);
+    const out = await requestJsonWithTimeout(urlString, timeoutMs, extraHeaders);
     last = out;
     if (out.status !== 429 || attempt >= maxAttempts) return out;
     const retryAfterHeader = out.headers && (out.headers['retry-after'] || out.headers['Retry-After']);
@@ -171,6 +174,39 @@ async function main() {
     await checkEndpoint(baseUrl, '/api/health/db', timeoutMs, true),
     await checkEndpoint(baseUrl, '/api/version', timeoutMs, false),
   ];
+
+  const diagSecret = String(
+    process.env.FORETMAP_DEPLOY_CHECK_SECRET || process.env.DEPLOY_SECRET || ''
+  ).trim();
+  if (diagSecret) {
+    const path = '/api/admin/diagnostics';
+    const full = new URL(path, baseUrl).toString();
+    try {
+      const res = await requestJsonWithRetry(full, timeoutMs, 3, {
+        'X-Deploy-Secret': diagSecret,
+      });
+      const pass = Boolean(res.ok && res.body && res.body.ok === true);
+      const label = pass ? 'OK' : 'FAIL';
+      console.log(`${label} ${path} (avec secret local) -> HTTP ${res.status}`);
+      checks.push({
+        path,
+        required: false,
+        pass,
+        status: res.status,
+        body: res.body,
+      });
+    } catch (err) {
+      console.log(`FAIL ${path} (avec secret local) -> ${err.name || 'Error'}: ${err.message || err}`);
+      checks.push({
+        path,
+        required: false,
+        pass: false,
+        status: 0,
+        body: { error: err.message || String(err) },
+      });
+    }
+  }
+
   if (imageCheckPath) {
     checks.push(await checkImageEndpoint(baseUrl, imageCheckPath, timeoutMs));
   }

@@ -6,11 +6,8 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 ## [Non publié]
 
 ### Ajouté
-- **Cursor / MCP projet** : **`.cursor/mcp.json`** (serveur `foretmap-diagnostics`, secret via **`${env:FORETMAP_DEPLOY_SECRET}`**) ; guide **`docs/MCP_FORETMAP_CURSOR.md`** (Windows, check post-déploiement) ; **`README.md`**, **`.env.example`**, **`docs/EXPLOITATION.md`**.
-- **post-deploy-check** : si **`DEPLOY_SECRET`** ou **`FORETMAP_DEPLOY_CHECK_SECRET`** est défini, contrôle optionnel **`GET /api/admin/diagnostics`** ; test **`post-deploy-check-script.test.js`**.
-
-### Ajouté (lot précédent)
-- **Diagnostic prod / Cursor MCP** : `GET /api/admin/diagnostics` (secret `DEPLOY_SECRET`) — instantané JSON (version, uptime, mémoire, latence ping MySQL, état du tampon de logs) ; serveur MCP stdio **`scripts/mcp-foretmap-diagnostics.mjs`** avec outils `foretmap_public_health`, `foretmap_diagnostics`, `foretmap_tail_logs` ; script npm **`npm run mcp:diag`** ; devDependencies **`@modelcontextprotocol/sdk`**, **`zod`** ; **`docs/API.md`** ; tests **`api.test.js`**.
+- **Diagnostic prod / Cursor MCP** : `GET /api/admin/diagnostics` ; serveur **`scripts/mcp-foretmap-diagnostics.mjs`** (`foretmap_public_health`, `foretmap_diagnostics`, `foretmap_tail_logs`) ; **`.cursor/mcp.json`** (secret **`${env:FORETMAP_DEPLOY_SECRET}`**) ; **`npm run mcp:diag`** ; devDependencies **`@modelcontextprotocol/sdk`**, **`zod`** ; guides **`docs/MCP_FORETMAP_CURSOR.md`**, **`README.md`**, **`docs/API.md`**, **`docs/EXPLOITATION.md`**, **`.env.example`**.
+- **post-deploy-check** : si **`DEPLOY_SECRET`** ou **`FORETMAP_DEPLOY_CHECK_SECRET`** est défini, contrôle optionnel **`/api/admin/diagnostics`** ; tests **`api.test.js`**, **`post-deploy-check-script.test.js`**.
 
 ### Corrigé
 - **Tâches proposées / commentaires contextuels** : `POST /api/tasks/proposals` aligné sur le schéma courant (`project_id`, `completion_mode` explicite) pour éviter des échecs SQL sur certaines bases ; lecture du proposeur via `audit_log` encapsulée — en cas d’erreur, la liste des tâches reste servie sans bloquer tout l’onglet ; middleware commentaires : en cas d’échec des réglages/BDD, réponse JSON explicite (`503`, code `CONTEXT_COMMENTS_UNAVAILABLE`) au lieu du handler global « Erreur serveur » sans détail.

@@ -48,7 +48,7 @@ L’app est servie sur **http://localhost:3000** (ou le port défini par `proces
 ### Environnement local complet (Docker + tests avant déploiement)
 
 Guide pas à pas : **[docs/LOCAL_DEV.md](docs/LOCAL_DEV.md)** — MariaDB 11.4 (Docker `mariadb:11.4.10`), `env.local.example` → `.env`, `npm run db:init`, `npm run dev`, `npm run test:local` (base `foretmap_test` séparée).  
-Exploitation prod : **[docs/EXPLOITATION.md](docs/EXPLOITATION.md)** (check post-déploiement, lock o2switch, bascule images).
+Exploitation prod : **[docs/EXPLOITATION.md](docs/EXPLOITATION.md)** (check post-déploiement, lock o2switch, bascule images). Diagnostic à distance depuis Cursor (MCP) : **[docs/MCP_FORETMAP_CURSOR.md](docs/MCP_FORETMAP_CURSOR.md)** (fichier **`.cursor/mcp.json`**, variable **`FORETMAP_DEPLOY_SECRET`**).
 Déploiement entièrement automatisé (push -> cron -> mise à jour): voir la section dédiée dans `docs/EXPLOITATION.md`.
 Le script auto-deploy bloque volontairement un pull si `src/` change sans artefacts `dist/` mis à jour (build local requis avant push).
 
