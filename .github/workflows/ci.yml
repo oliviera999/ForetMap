@@ -33,7 +33,7 @@ jobs:
         run: npm ci
 
       - name: Run tests
-        run: npm test
+        run: node --test --test-concurrency=1 --test-force-exit tests/*.test.js
         env:
           NODE_ENV: test
           DB_HOST: 127.0.0.1
@@ -42,6 +42,7 @@ jobs:
           DB_USER: root
           DB_PASS: ''
           TEACHER_PIN: '1234'
+          JWT_SECRET: 'ci-test-secret-not-for-production'
 
       - name: Build frontend (Vite)
         run: npm run build
@@ -53,6 +54,15 @@ jobs:
         run: |
           npm run db:init
           nohup npm run start:e2e > /tmp/foretmap-server.log 2>&1 &
+        env:
+          NODE_ENV: test
+          DB_HOST: 127.0.0.1
+          DB_PORT: 3306
+          DB_NAME: foretmap_test
+          DB_USER: root
+          DB_PASS: ''
+          TEACHER_PIN: '1234'
+          JWT_SECRET: 'ci-test-secret-not-for-production'
 
       - name: Wait for app health
         run: |
@@ -74,6 +84,7 @@ jobs:
           DB_USER: root
           DB_PASS: ''
           TEACHER_PIN: '1234'
+          JWT_SECRET: 'ci-test-secret-not-for-production'
 
       - name: Dump server log on failure
         if: failure()
