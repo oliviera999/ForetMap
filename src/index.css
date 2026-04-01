@@ -663,35 +663,33 @@
       min-width:0;
       min-height:0;
     }
+    /* Pas de container-type:size ici : avec flex/grid, 100cqh peut valoir 0 → largeur calculée nulle et carte invisible. */
     .map-view-canvas-slot {
       flex:1;
       min-width:0;
       min-height:0;
       width:100%;
-      container-type:size;
-      container-name:foretmap-map;
       display:flex;
-      align-items:center;
+      flex-direction:column;
+      align-items:stretch;
       justify-content:center;
       box-sizing:border-box;
+      overflow:hidden;
     }
+    /* Cadre = ratio du plan, contenu dans la hauteur utile du slot (pourcentages / aspect-ratio, pas cqw/cqh). */
     .map-view-canvas {
       box-sizing:border-box;
       position:relative;
       overflow:hidden;
       background:#eef2ee;
       border-radius:10px;
-      width:min(100cqw, calc(100cqh * var(--fm-map-w, 16) / var(--fm-map-h, 10)));
+      width:100%;
       max-width:100%;
-      max-height:100cqh;
+      max-height:100%;
       aspect-ratio:var(--fm-map-w, 16) / var(--fm-map-h, 10);
-    }
-    @supports not (width:1cqw) {
-      .map-view-canvas {
-        width:100%;
-        max-height:100%;
-        aspect-ratio:var(--fm-map-w, 16) / var(--fm-map-h, 10);
-      }
+      height:auto;
+      flex-shrink:1;
+      align-self:center;
     }
     .desktop-split-pane--map {
       min-width:0;
