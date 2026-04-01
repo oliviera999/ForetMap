@@ -92,6 +92,14 @@ function normalizeStudentAffiliation(value) {
   return normalized;
 }
 
+/** Valeurs texte BDD → chaînes JSON stables (évite Buffer / types exotiques mysql2 côté client). */
+function jsonTextField(v) {
+  if (v == null) return null;
+  if (Buffer.isBuffer(v)) return v.toString('utf8');
+  const s = String(v);
+  return s.length ? s : null;
+}
+
 /** Résout teacher/student (ou alias user → type réel) pour les routes RBAC sur un compte. */
 async function resolveRbacSubjectForMutation(userTypeParam, userIdParam) {
   const rawType = String(userTypeParam || '').trim();
@@ -622,12 +630,12 @@ router.get(
           id: u.id,
           user_type: u.user_type,
           display_name: u.display_name,
-          first_name: u.first_name ?? null,
-          last_name: u.last_name ?? null,
-          pseudo: u.pseudo ?? null,
-          email: u.email,
-          description: u.description ?? null,
-          affiliation: u.user_type === 'student' ? (u.affiliation ?? 'both') : null,
+          first_name: jsonTextField(u.first_name),
+          last_name: jsonTextField(u.last_name),
+          pseudo: jsonTextField(u.pseudo),
+          email: jsonTextField(u.email),
+          description: jsonTextField(u.description),
+          affiliation: u.user_type === 'student' ? (jsonTextField(u.affiliation) || 'both') : null,
           role_id: u.role_id,
           role_slug: u.role_slug,
           role_display_name: u.role_display_name,
@@ -669,12 +677,12 @@ router.get(
         id: u.id,
         user_type: u.user_type,
         display_name: displayName,
-        first_name: u.first_name ?? null,
-        last_name: u.last_name ?? null,
-        pseudo: u.pseudo ?? null,
-        email: u.email,
-        description: u.description ?? null,
-        affiliation: resolvedUserType === 'student' ? (u.affiliation ?? 'both') : null,
+        first_name: jsonTextField(u.first_name),
+        last_name: jsonTextField(u.last_name),
+        pseudo: jsonTextField(u.pseudo),
+        email: jsonTextField(u.email),
+        description: jsonTextField(u.description),
+        affiliation: resolvedUserType === 'student' ? (jsonTextField(u.affiliation) || 'both') : null,
         role_id: rj?.role_id ?? null,
         role_slug: rj?.role_slug ?? null,
         role_display_name: rj?.role_display_name ?? null,

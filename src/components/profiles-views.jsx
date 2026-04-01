@@ -4,18 +4,94 @@ import { getRoleTerms } from '../utils/n3-terminology';
 
 const EDIT_EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+/** Lit un champ utilisateur quelle que soit la casse des clés (snake_case / camelCase) ou Buffer éventuel. */
+function pickUserField(obj, ...logicalNames) {
+  if (!obj || typeof obj !== 'object') return undefined;
+  const wanted = new Set(
+    logicalNames.flatMap((n) => {
+      const s = String(n);
+      return [s.toLowerCase(), s.toLowerCase().replace(/_/g, '')];
+    })
+  );
+  for (const k of Object.keys(obj)) {
+    const keyNorm = k.toLowerCase().replace(/_/g, '');
+    if (wanted.has(keyNorm)) return obj[k];
+  }
+  return undefined;
+}
+
+function toUiString(v) {
+  if (v == null) return '';
+  if (typeof Buffer !== 'undefined' && Buffer.isBuffer(v)) return v.toString('utf8');
+  return String(v);
+}
+
+/** Fusionne la ligne liste et la fiche détail en objet stable pour le formulaire. */
+function mergeRbacUserRowsForEdit(listRow, detailRow) {
+  const pick = (o, ...names) => {
+    if (!o) return undefined;
+    for (const n of names) {
+      const v = pickUserField(o, n);
+      if (v !== undefined && v !== null && toUiString(v).trim() !== '') return v;
+    }
+    return undefined;
+  };
+  const pickLoose = (o, ...names) => {
+    if (!o) return undefined;
+    for (const n of names) {
+      const v = pickUserField(o, n);
+      if (v !== undefined && v !== null) return v;
+    }
+    return undefined;
+  };
+  const a = listRow && typeof listRow === 'object' ? listRow : {};
+  const b = detailRow && typeof detailRow === 'object' && !detailRow.raw ? detailRow : {};
+  const idRaw = pickUserField(b, 'id') ?? pickUserField(a, 'id');
+  const id = idRaw != null ? toUiString(idRaw).trim() : '';
+  const user_type = String(
+    pick(b, 'user_type', 'userType') ?? pick(a, 'user_type', 'userType') ?? ''
+  ).toLowerCase();
+  const displayRaw = pickLoose(b, 'display_name', 'displayName') ?? pickLoose(a, 'display_name', 'displayName');
+  return {
+    id,
+    user_type,
+    display_name: displayRaw != null ? toUiString(displayRaw).trim() : '',
+    first_name: pick(b, 'first_name', 'firstName') ?? pick(a, 'first_name', 'firstName'),
+    last_name: pick(b, 'last_name', 'lastName') ?? pick(a, 'last_name', 'lastName'),
+    pseudo: pick(b, 'pseudo') ?? pick(a, 'pseudo'),
+    email: pick(b, 'email') ?? pick(a, 'email'),
+    description: pickLoose(b, 'description') ?? pickLoose(a, 'description'),
+    affiliation: pick(b, 'affiliation') ?? pick(a, 'affiliation'),
+    role_id: pickUserField(b, 'role_id', 'roleId') ?? pickUserField(a, 'role_id', 'roleId'),
+    role_slug: pickUserField(b, 'role_slug', 'roleSlug') ?? pickUserField(a, 'role_slug', 'roleSlug'),
+    role_display_name:
+      pickUserField(b, 'role_display_name', 'roleDisplayName')
+      ?? pickUserField(a, 'role_display_name', 'roleDisplayName'),
+    forum_participate: pickUserField(b, 'forum_participate', 'forumParticipate')
+      ?? pickUserField(a, 'forum_participate', 'forumParticipate'),
+    context_comment_participate:
+      pickUserField(b, 'context_comment_participate', 'contextCommentParticipate')
+      ?? pickUserField(a, 'context_comment_participate', 'contextCommentParticipate'),
+  };
+}
+
+function isLikelyApiUserPayload(x) {
+  return x && typeof x === 'object' && !Array.isArray(x) && x.raw == null && x.id != null;
+}
+
 /** Préremplit le formulaire d’édition à partir de la fiche API (prénom/nom manquants → display_name ou identifiant email). */
 function buildUserEditInitialFields(u) {
-  let firstName = String(u.first_name ?? '').trim();
-  let lastName = String(u.last_name ?? '').trim();
-  const pseudo = String(u.pseudo ?? '').trim();
-  const email = String(u.email ?? '').trim();
-  const description = u.description != null ? String(u.description) : '';
-  let affiliation = String(u.affiliation || 'both').toLowerCase();
+  let firstName = toUiString(pickUserField(u, 'first_name', 'firstName')).trim();
+  let lastName = toUiString(pickUserField(u, 'last_name', 'lastName')).trim();
+  const pseudo = toUiString(pickUserField(u, 'pseudo')).trim();
+  const email = toUiString(pickUserField(u, 'email')).trim();
+  const descRaw = pickUserField(u, 'description');
+  const description = descRaw != null ? toUiString(descRaw) : '';
+  let affiliation = toUiString(pickUserField(u, 'affiliation') ?? 'both').toLowerCase();
   if (!['both', 'n3', 'foret'].includes(affiliation)) affiliation = 'both';
 
   if (!firstName && !lastName) {
-    const dn = String(u.display_name ?? '').trim();
+    const dn = toUiString(pickUserField(u, 'display_name', 'displayName')).trim();
     if (dn && !EDIT_EMAIL_RE.test(dn)) {
       const parts = dn.split(/\s+/).filter(Boolean);
       if (parts.length >= 1) firstName = parts[0];
@@ -531,10 +607,30 @@ function ProfilesAdminView({ isN3Affiliated = false }) {
     setEditPassword('');
     setEditModalOpen(true);
     setEditUserLoadState('loading');
+    const ut = String(u.user_type ?? pickUserField(u, 'user_type', 'userType') ?? '').toLowerCase();
+    const uid = encodeURIComponent(String(u.id ?? pickUserField(u, 'id') ?? ''));
+    if (!ut || !uid || uid === 'undefined' || uid === 'null') {
+      setEditModalOpen(false);
+      setEditUserLoadState('idle');
+      setErr('Données utilisateur incomplètes (type ou identifiant manquant).');
+      return;
+    }
     try {
-      const fresh = await api(`/api/rbac/users/${u.user_type}/${u.id}`);
-      const s = buildUserEditInitialFields(fresh);
-      setEditingUser(fresh);
+      let detail = null;
+      try {
+        detail = await api(`/api/rbac/users/${ut}/${uid}`);
+      } catch (fetchErr) {
+        detail = null;
+      }
+      const merged = mergeRbacUserRowsForEdit(u, isLikelyApiUserPayload(detail) ? detail : null);
+      if (!merged.id) {
+        setEditModalOpen(false);
+        setEditUserLoadState('idle');
+        setErr('Impossible de charger la fiche utilisateur.');
+        return;
+      }
+      const s = buildUserEditInitialFields(merged);
+      setEditingUser(merged);
       setEditFirstName(s.firstName);
       setEditLastName(s.lastName);
       setEditPseudo(s.pseudo);
@@ -591,7 +687,11 @@ function ProfilesAdminView({ isN3Affiliated = false }) {
       if (editPassword.trim()) {
         payload.password = editPassword;
       }
-      await api(`/api/rbac/users/${editingUser.user_type}/${editingUser.id}`, 'PATCH', payload);
+      await api(
+        `/api/rbac/users/${String(editingUser.user_type || '').toLowerCase()}/${encodeURIComponent(String(editingUser.id))}`,
+        'PATCH',
+        payload
+      );
       setMsg(`Compte mis à jour : ${editFirstName.trim()} ${editLastName.trim()}`);
       closeEditUser();
       await load();
