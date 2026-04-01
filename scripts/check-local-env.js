@@ -2,7 +2,7 @@
 /**
  * Vérifications rapides pour l'environnement local (voir docs/LOCAL_DEV.md).
  * Usage : node scripts/check-local-env.js
- * Nécessite : Node, .env (copié depuis env.local.example), MySQL accessible (docker compose up).
+ * Nécessite : Node, .env (copié depuis env.local.example), MariaDB/MySQL accessible (docker compose up).
  */
 const fs = require('fs');
 const path = require('path');
