@@ -35,6 +35,8 @@ const DESKTOP_SPLIT_MIN_WIDTH = 1024;
 const DESKTOP_SPLIT_MIN_MAP_PX = 620;
 const DESKTOP_SPLIT_MIN_TASKS_PX = 420;
 const TAB_STORAGE_KEY = 'foretmap_active_tab';
+/** Regroupe les rafraîchissements auto quand plusieurs états changent à la suite (réglages, carte, session). */
+const FETCH_ALL_AUTO_DEBOUNCE_MS = 250;
 const IOS_INSTALL_HINT_DISMISSED_KEY = 'foretmap_ios_install_hint_dismissed';
 const KNOWN_TAB_VALUES = new Set([
   'map',
@@ -131,6 +133,8 @@ function App() {
   }, [student]);
   /** Pendant les modales de la vue Tâches : pas de rafraîchissement données (évite la perte du clavier virtuel mobile). */
   const pauseDataRefreshForTaskOverlaysRef = useRef(false);
+  /** Instantané des paramètres lus par fetchAll (évite de recréer fetchAll à chaque rendu). */
+  const fetchAllContextRef = useRef({});
   const [sessionUser, setSessionUser] = useState(() => initialSession?.user || null);
   const [isTeacher,  setIsTeacher]  = useState(() => {
     const claims = getAuthClaims();
@@ -569,7 +573,30 @@ function App() {
       });
   }, [mergeAuthMeResponse]);
 
+  fetchAllContextRef.current = {
+    activeMapId,
+    effectiveIsTeacher,
+    showPublicVisit,
+    studentAffiliation: student?.affiliation,
+    canManageTutorials,
+    defaultMapStudent: publicSettings?.map?.default_map_student,
+    defaultMapTeacher: publicSettings?.map?.default_map_teacher,
+    defaultMapVisit: publicSettings?.map?.default_map_visit,
+  };
+
   const fetchAll = useCallback(async () => {
+    const snap = fetchAllContextRef.current;
+    const {
+      activeMapId: mapIdState,
+      effectiveIsTeacher: isTeacherSnap,
+      showPublicVisit: visitSnap,
+      studentAffiliation,
+      canManageTutorials: canTutorialsSnap,
+      defaultMapStudent,
+      defaultMapTeacher,
+      defaultMapVisit,
+    } = snap;
+
     try {
       const safeApi = async (request, fallbackValue) => {
         try {
@@ -581,8 +608,8 @@ function App() {
         }
       };
 
-      const restrictedMapIds = (!effectiveIsTeacher && !showPublicVisit)
-        ? allowedMapIdsFromAffiliation(student?.affiliation)
+      const restrictedMapIds = (!isTeacherSnap && !visitSnap)
+        ? allowedMapIdsFromAffiliation(studentAffiliation)
         : null;
 
       const mapsRes = await safeApi(() => api('/api/maps'), DEFAULT_MAPS);
@@ -595,12 +622,12 @@ function App() {
         ? allowedMaps.filter((mp) => restrictedMapIds.includes(mp.id))
         : allowedMaps;
       const visibleAllowedMaps = affiliationAllowedMaps.length > 0 ? affiliationAllowedMaps : allowedMaps;
-      const requestedMapId = (restrictedMapIds && !restrictedMapIds.includes(activeMapId))
+      const requestedMapId = (restrictedMapIds && !restrictedMapIds.includes(mapIdState))
         ? restrictedMapIds[0]
-        : activeMapId;
-      const defaultMap = showPublicVisit
-        ? publicSettings?.map?.default_map_visit
-        : (effectiveIsTeacher ? publicSettings?.map?.default_map_teacher : publicSettings?.map?.default_map_student);
+        : mapIdState;
+      const defaultMap = visitSnap
+        ? defaultMapVisit
+        : (isTeacherSnap ? defaultMapTeacher : defaultMapStudent);
       const fallbackMap = visibleAllowedMaps.find((mp) => mp.id === defaultMap)?.id
         || visibleAllowedMaps[0]?.id
         || 'foret';
@@ -609,7 +636,7 @@ function App() {
         : fallbackMap;
       const mapQuery = `map_id=${encodeURIComponent(resolvedMapId)}`;
 
-      const tutorialsEndpoint = canManageTutorials
+      const tutorialsEndpoint = canTutorialsSnap
         ? '/api/tutorials?include_inactive=1'
         : '/api/tutorials';
       const [z, t, taskProjectsRes, p, m, tu] = await Promise.all([
@@ -621,12 +648,12 @@ function App() {
         safeApi(() => api(tutorialsEndpoint), []),
       ]);
 
-      if (resolvedMapId !== activeMapId) {
+      if (resolvedMapId !== mapIdState) {
         setActiveMapId(resolvedMapId);
       }
       setZones(z); setTasks(t); setTaskProjects(Array.isArray(taskProjectsRes) ? taskProjectsRes : []);
       setPlants(p); setMarkers(m); setTutorials(tu);
-      if (!effectiveIsTeacher) {
+      if (!isTeacherSnap) {
         const sess = studentRef.current;
         if (sess?.id && !sess.preview_mode) {
           const sid = sess.id;
@@ -662,7 +689,7 @@ function App() {
       }
     }
     setLoading(false);
-  }, [activeMapId, DEFAULT_MAPS, canManageTutorials, effectiveIsTeacher, forceLogout, mergeAuthMeResponse, publicSettings?.map?.default_map_student, publicSettings?.map?.default_map_teacher, publicSettings?.map?.default_map_visit, showPublicVisit, student?.affiliation]);
+  }, [DEFAULT_MAPS, forceLogout, mergeAuthMeResponse]);
 
   const tasksForActiveMap = useMemo(() => (
     tasks.filter((t) => {
@@ -802,7 +829,27 @@ function App() {
   const teacherSyncStatus = effectiveIsTeacher ? (rtStatus === 'off' ? 'polling' : rtStatus) : rtStatus;
   const isAdmin = effectiveRoleContext.roleSlug === 'admin';
 
-  useEffect(() => { fetchAll(); }, [fetchAll]);
+  useEffect(() => {
+    let cancelled = false;
+    const id = window.setTimeout(() => {
+      if (!cancelled) void fetchAll();
+    }, FETCH_ALL_AUTO_DEBOUNCE_MS);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(id);
+    };
+  }, [
+    activeMapId,
+    publicSettingsReady,
+    effectiveIsTeacher,
+    showPublicVisit,
+    canManageTutorials,
+    student?.affiliation,
+    publicSettings?.map?.default_map_student,
+    publicSettings?.map?.default_map_teacher,
+    publicSettings?.map?.default_map_visit,
+    fetchAll,
+  ]);
 
   useEffect(() => {
     if (effectiveIsTeacher) return;
