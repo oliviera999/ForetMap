@@ -5,6 +5,9 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Ajouté
+- **Exploitation** : script **`scripts/prod-admin-tail.js`** + **`npm run prod:admin-tail`** — diagnostics + tampon logs prod avec **User-Agent** dédié et pause anti-**429** ; doc **`docs/EXPLOITATION.md`**, skill **foretmap-observability**.
+
 ### Modifié
 - **Documentation & skills** : nouveau skill **`.cursor/skills/foretmap-observability/SKILL.md`** ; mises à jour **foretmap-project**, **foretmap-evolution**, **foretmap-tests** ; **`docs/EXPLOITATION.md`** (bloc diagnostic à distance).
 
