@@ -57,7 +57,7 @@ const pool = mysql.createPool({
 
 // Empêche les erreurs de connexion idle de devenir des uncaughtException
 pool.on('error', (err) => {
-  logger.error({ err }, 'Erreur pool MySQL (connexion perdue)');
+  logger.error({ err, msg: 'mysql_pool_connection_error' }, 'Erreur pool MySQL (connexion perdue)');
 });
 
 /** Exécute une requête et retourne les lignes (tableau). */

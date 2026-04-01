@@ -1057,5 +1057,22 @@ test('GET /api/admin/diagnostics avec bon secret → 200', async () => {
   assert.ok(typeof res.body.uptimeSeconds === 'number');
   assert.ok(res.body.database && typeof res.body.database.ok === 'boolean');
   assert.ok(res.body.logBuffer && typeof res.body.logBuffer.linesCount === 'number');
+  assert.ok(res.body.metrics && typeof res.body.metrics.httpRequests === 'number');
+  assert.ok(typeof res.body.metrics.http5xx === 'number');
+  assert.ok(Array.isArray(res.body.metrics.recentHttp5xx));
   process.env.DEPLOY_SECRET = prev;
+});
+
+test('Réponses API exposent X-Request-Id', async () => {
+  const res = await request(app).get('/api/maps').expect(200);
+  const rid = res.headers['x-request-id'];
+  assert.ok(rid && String(rid).length >= 8);
+});
+
+test('X-Request-Id client accepté si format sûr', async () => {
+  const res = await request(app)
+    .get('/api/maps')
+    .set('X-Request-Id', 'client-req-id-abc123')
+    .expect(200);
+  assert.strictEqual(res.headers['x-request-id'], 'client-req-id-abc123');
 });
