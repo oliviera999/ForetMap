@@ -5,6 +5,9 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Modifié
+- **Build / déploiement** : **`npm run build`** relancé (Vite production) ; contenu de **`dist/`** identique au dépôt **v1.27.6**. Côté hébergeur, **`NODE_ENV=development`** n’affecte que le process Node (logs, comportement Express) ; les fichiers **`dist/`** restent une build frontend optimisée.
+
 ### Ajouté
 - **Diagnostic PUT tâches (prod)** : chaque trace **`agentDebugTaskPut`** est aussi poussée dans le **tampon mémoire** (`appendForcedLogLine` dans **`lib/logBuffer.js`**) — visible via **`GET /api/admin/logs`** (header **`X-Deploy-Secret`**, variable **`DEPLOY_SECRET`**) même si **`LOG_LEVEL=error`** ou stdout absent sur l’hébergeur ; Pino en **`warn`**. Variable **`FORETMAP_DEBUG_TASK_PUT_CLIENT=1`** : JSON 500 avec **`debugDetail`** / **`debugCode`** pour les profs **`tasks.manage`** ; l’API client concatène le détail dans le message d’erreur. **`FORETMAP_DEBUG_INGEST_URL`**, **`console.warn`** côté formulaire tâches. Artefacts **`dist/`** régénérés (voir version courante).
 
