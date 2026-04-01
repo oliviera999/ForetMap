@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import {
   NOTIFICATION_CATEGORY,
@@ -69,8 +69,11 @@ function NotificationCenter({
 }) {
   const [open, setOpen] = useState(false);
   const [portalNode, setPortalNode] = useState(null);
+  const bellRef = useRef(null);
+  const panelRef = useRef(null);
   const categories = useMemo(() => preferenceCategoriesForRole(roleKey), [roleKey]);
   const openClose = () => setOpen((prev) => !prev);
+  const closePanel = () => setOpen(false);
 
   useEffect(() => {
     const node = document.createElement('div');
@@ -86,10 +89,38 @@ function NotificationCenter({
     onOpenPanel?.();
   }, [onOpenPanel, open]);
 
+  useEffect(() => {
+    if (!open) return undefined;
+    const onPointerDown = (event) => {
+      const t = event.target;
+      if (panelRef.current?.contains(t)) return;
+      if (bellRef.current?.contains(t)) return;
+      setOpen(false);
+    };
+    document.addEventListener('pointerdown', onPointerDown);
+    return () => document.removeEventListener('pointerdown', onPointerDown);
+  }, [open]);
+
   const panel = open ? (
-    <div className="notif-panel fade-in" role="dialog" aria-modal="false" aria-label="Centre de notifications">
+    <div
+      ref={panelRef}
+      className="notif-panel fade-in"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Centre de notifications"
+    >
       <div className="notif-panel-head">
-        <strong>Notifications</strong>
+        <div className="notif-panel-head-top">
+          <strong>Notifications</strong>
+          <button
+            type="button"
+            className="notif-panel-close"
+            aria-label="Fermer le centre de notifications"
+            onClick={closePanel}
+          >
+            ×
+          </button>
+        </div>
         <div className="notif-panel-actions">
           <button type="button" className="btn btn-ghost btn-sm" onClick={onMarkAllRead}>Tout lu</button>
           <button type="button" className="btn btn-ghost btn-sm" onClick={onClearRead}>Nettoyer lues</button>
@@ -134,7 +165,7 @@ function NotificationCenter({
                   className="btn btn-secondary btn-sm"
                   onClick={() => {
                     onOpenAction?.(item);
-                    setOpen(false);
+                    closePanel();
                   }}
                 >
                   Ouvrir
@@ -160,12 +191,13 @@ function NotificationCenter({
   ) : null;
 
   return (
-    <div className="notif-center">
+    <div className="notif-center" ref={bellRef}>
       <Tooltip text={helpText}>
         <button
           type="button"
           className={`lock-btn notif-bell ${unreadCount > 0 ? 'has-unread' : ''}`}
           aria-label={`Notifications (${unreadCount} non lues)`}
+          aria-expanded={open}
           onClick={openClose}
         >
           🔔
