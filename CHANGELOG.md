@@ -5,6 +5,9 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé
+- **Modales (création / édition de tâches, etc.)** : pendant la saisie, le panneau ne remonte plus tout seul en haut — `useDialogA11y` ne réappliquait le focus sur le premier élément qu’à l’ouverture ; auparavant, une fonction `onClose` inline recréée à chaque rendu parent relançait l’effet (rafraîchissement liste, temps réel, etc.).
+
 ### Modifié
 - **API / rate limiting** : plafond global **`/api/*`** porté à **900 requêtes / minute / IP** par défaut (au lieu de 300) pour limiter les **429** lorsque plusieurs utilisateurs ou onglets partagent la même adresse publique (Wi‑Fi) ; réglage **`FORETMAP_API_RATE_LIMIT_PER_MIN`** (60–20000) ; limiteurs **express-rate-limit v8** avec l’option **`limit`** ; log de la valeur effective en **`debug`** au démarrage. Documentation **`docs/API.md`**, **`.env.example`**.
 - **Dev local & CI** : remplacement de MySQL 8 par **MariaDB 11.4.10** (`docker-compose.yml`, volume `foretmap_mariadb_data`, service `mariadb`, healthcheck `healthcheck.sh`) ; port publié paramétrable **`FORETMAP_DB_PUBLISH_PORT`** (défaut 3306, lu depuis `.env` à la racine) ; GitHub Actions (`.github/workflows/ci.yml`) aligné sur la même image ; documentation `docs/LOCAL_DEV.md`, `README.md`, `env.local.example`. Passage depuis l’ancien conteneur MySQL : `docker compose down -v` puis `up -d` (données binaires non réutilisables).

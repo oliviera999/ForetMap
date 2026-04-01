@@ -11,6 +11,11 @@ const FOCUSABLE_SELECTOR = [
 
 function useDialogA11y(onClose) {
   const dialogRef = useRef(null);
+  // Ne pas mettre onClose dans les deps de l'effet ci-dessous : les parents passent souvent
+  // une fonction inline, donc chaque re-render réexécutait le focus initial (1er focusable)
+  // et faisait remonter le défilement des modales longues pendant la saisie.
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
 
   useEffect(() => {
     const dialog = dialogRef.current;
@@ -26,7 +31,7 @@ function useDialogA11y(onClose) {
     const onKeyDown = (e) => {
       if (e.key === 'Escape') {
         e.preventDefault();
-        onClose?.();
+        onCloseRef.current?.();
         return;
       }
       if (e.key !== 'Tab') return;
@@ -53,7 +58,7 @@ function useDialogA11y(onClose) {
         previousActive.focus();
       }
     };
-  }, [onClose]);
+  }, []);
 
   return dialogRef;
 }
