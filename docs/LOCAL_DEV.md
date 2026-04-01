@@ -1,13 +1,13 @@
 # Développement local complet (avant déploiement)
 
-Environnement aligné sur la CI : **MySQL 8**, deux bases (`foretmap_local` pour l’app, `foretmap_test` pour les tests). **N’utilisez pas** les identifiants o2switch ici.
+Environnement aligné sur la CI : **MariaDB 11.4** (image Docker `mariadb:11.4.10`), deux bases (`foretmap_local` pour l’app, `foretmap_test` pour les tests). **N’utilisez pas** les identifiants o2switch ici.
 
 ## Prérequis
 
 - Node.js 18 ou 20
 - [Docker Desktop](https://www.docker.com/products/docker-desktop/) (Windows / macOS / Linux)
 
-## 1. Démarrer MySQL
+## 1. Démarrer MariaDB (Docker)
 
 À la racine du projet :
 
@@ -22,7 +22,9 @@ Attendre que le conteneur soit **healthy** (10–40 s la première fois). Vérif
 docker compose ps
 ```
 
-**Port 3306 déjà utilisé** (MySQL local, XAMPP, etc.) : dans `docker-compose.yml`, remplacez `3306:3306` par `3307:3306`, puis dans `.env` mettez `DB_PORT=3307`. Recréez le conteneur si besoin : `docker compose down -v` puis `docker compose up -d` (le `-v` supprime le volume : perte des données du conteneur).
+**Port 3306 déjà utilisé** (autre MariaDB/MySQL, XAMPP, etc.) : dans `docker-compose.yml`, remplacez `3306:3306` par `3307:3306`, puis dans `.env` mettez `DB_PORT=3307`. Recréez le conteneur si besoin : `docker compose down -v` puis `docker compose up -d` (le `-v` supprime le volume : perte des données du conteneur).
+
+**Ancien conteneur MySQL 8 (volume `foretmap_mysql_data`)** : après passage à MariaDB, exécutez `docker compose down -v` puis `docker compose up -d` pour repartir sur le volume `foretmap_mariadb_data` (les données binaires MySQL 8 ne sont pas réutilisables telles quelles par MariaDB 11).
 
 ## 2. Configuration
 
@@ -30,7 +32,7 @@ docker compose ps
 cp env.local.example .env
 ```
 
-Le mot de passe root Docker est **`foretmap_local_root`** (déjà cohérent avec `env.local.example`). Ajustez `DB_PORT` si vous avez changé le mapping de port.
+Le mot de passe root du conteneur MariaDB est **`foretmap_local_root`** (déjà cohérent avec `env.local.example`). Ajustez `DB_PORT` si vous avez changé le mapping de port.
 
 ## 3. Dépendances et base de données
 
@@ -48,9 +50,9 @@ npm run local:setup
 ```
 
 Cette commande enchaîne :
-- démarrage Docker MySQL,
+- démarrage Docker (MariaDB),
 - installation des dépendances (incluant dev),
-- attente active de disponibilité MySQL,
+- attente active de disponibilité du serveur MariaDB,
 - initialisation BDD,
 - vérification locale (`check:local`).
 
@@ -262,7 +264,7 @@ curl http://localhost:3000/api/health
 curl http://localhost:3000/api/health/db
 ```
 
-## 8. Arrêter MySQL
+## 8. Arrêter MariaDB (Docker)
 
 ```bash
 npm run docker:down

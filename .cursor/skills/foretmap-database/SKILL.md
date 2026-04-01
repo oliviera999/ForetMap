@@ -21,7 +21,7 @@ description: Centralise les conventions BDD ForetMap (schéma MySQL, migrations,
 
 | Composant | Fichier | Rôle |
 |-----------|---------|------|
-| Pool MySQL | `database.js` | `mysql2/promise`, pool configuré via `.env` |
+| Pool SQL | `database.js` | `mysql2/promise` (protocole MySQL, compatible MariaDB), pool via `.env` |
 | Fonctions d'accès | `database.js` | `queryAll(sql, params)`, `queryOne(sql, params)`, `execute(sql, params)` |
 | Helpers métier | `lib/helpers.js` | `getTaskWithAssignments(taskId)`, `studentStats(studentId)` |
 | Schéma DDL | `sql/schema_foretmap.sql` | Tables, index, contraintes |

@@ -47,7 +47,7 @@ L’app est servie sur **http://localhost:3000** (ou le port défini par `proces
 
 ### Environnement local complet (Docker + tests avant déploiement)
 
-Guide pas à pas : **[docs/LOCAL_DEV.md](docs/LOCAL_DEV.md)** — MySQL 8 via Docker, `env.local.example` → `.env`, `npm run db:init`, `npm run dev`, `npm run test:local` (base `foretmap_test` séparée).  
+Guide pas à pas : **[docs/LOCAL_DEV.md](docs/LOCAL_DEV.md)** — MariaDB 11.4 (Docker `mariadb:11.4.10`), `env.local.example` → `.env`, `npm run db:init`, `npm run dev`, `npm run test:local` (base `foretmap_test` séparée).  
 Exploitation prod : **[docs/EXPLOITATION.md](docs/EXPLOITATION.md)** (check post-déploiement, lock o2switch, bascule images).
 Déploiement entièrement automatisé (push -> cron -> mise à jour): voir la section dédiée dans `docs/EXPLOITATION.md`.
 Le script auto-deploy bloque volontairement un pull si `src/` change sans artefacts `dist/` mis à jour (build local requis avant push).
@@ -291,7 +291,7 @@ Référence : [FAQ o2switch – Node.js](https://faq.o2switch.fr/cpanel/logiciel
 ForetMap/
 ├── server.js          # Serveur Express, routes API async (zones, plants, tasks, auth, stats…)
 ├── database.js        # Pool MySQL (mysql2), helpers queryAll/queryOne/execute, init + seed
-├── docker-compose.yml # MySQL 8 local (dev / tests)
+├── docker-compose.yml # MariaDB 11.4 local (dev / tests)
 ├── docker/mysql-init/ # Création des bases foretmap_local + foretmap_test
 ├── sql/
 │   └── schema_foretmap.sql   # DDL MySQL (InnoDB, utf8mb4)
