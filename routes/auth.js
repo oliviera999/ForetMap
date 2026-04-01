@@ -18,7 +18,10 @@ const {
   verifyRolePin,
 } = require('../lib/rbac');
 const { getSettingValue } = require('../lib/settings');
-const { countStudentActiveTaskAssignments } = require('../lib/studentTaskEnrollment');
+const {
+  countStudentActiveTaskAssignments,
+  getEffectiveMaxActiveTaskAssignments,
+} = require('../lib/studentTaskEnrollment');
 const { logAudit, logSecurityEvent } = require('./audit');
 const {
   ensureCanonicalUserByAuth,
@@ -296,6 +299,7 @@ async function buildSessionPayload(userType, userId, elevated = false) {
       roleDisplayName: authz.roleDisplayName,
       permissions: authz.permissions,
       elevated,
+      nativePrivileged: !!authz.nativePrivileged,
     },
     authz,
   };
@@ -327,6 +331,7 @@ function exposeAuth(auth) {
     roleDisplayName: auth.roleDisplayName,
     permissions: auth.permissions,
     elevated: !!auth.elevated,
+    nativePrivileged: !!auth.nativePrivileged,
   };
 }
 
@@ -350,7 +355,7 @@ router.get('/me', requireAuth, async (req, res) => {
       [req.auth.userId]
     );
     if (u) {
-      const maxActive = await getSettingValue('tasks.student_max_active_assignments', 0);
+      const maxActive = await getEffectiveMaxActiveTaskAssignments(req.auth.userId);
       const current = await countStudentActiveTaskAssignments(req.auth.userId, u.first_name, u.last_name);
       body.taskEnrollment = {
         maxActiveAssignments: maxActive,

@@ -93,7 +93,7 @@ Connexion Socket.IO (transport **polling** actuellement forcé côté client) su
 |--------|-----|------|-------------|
 | POST | `/api/auth/register` | `{ firstName, lastName, password, pseudo?, email?, description? }` | Créer un compte n3beur (profil RBAC par défaut : `visiteur`) |
 | POST | `/api/auth/login` | `{ identifier, password }` | Connexion n3beur (pseudo ou email) |
-| GET | `/api/auth/me` | — | Retourne le contexte d’auth courant (`auth` : `userType`, permissions, élévation, etc.) |
+| GET | `/api/auth/me` | — | Retourne le contexte d’auth courant (`auth` : `userType`, permissions, `elevated`, `nativePrivileged`, etc.) ; **`nativePrivileged`** : `true` pour les slugs système `admin`/`prof` et pour un **enseignant** dont le profil principal a le rang du n3boss (≥ 400) et la permission `teacher.access` (ex. **duplicata** du profil n3boss), ce qui aligne le comportement « sans PIN » sur celui du slug `prof` |
 | PATCH | `/api/auth/me/profile` | `{ pseudo?, email?, description?, affiliation?, avatarData?, removeAvatar?, currentPassword }` | Mettre à jour son profil utilisateur connecté (n3beur, n3boss, admin local) |
 | POST | `/api/auth/elevate` | `{ pin }` | Élévation de session via PIN du profil ; pour un **n3beur** (`userType: student`), le JWT élevé inclut aussi les permissions effectives du rôle **`prof`** (atelier / mode n3boss temporaire), en plus du rôle primaire inchangé côté identité |
 | POST | `/api/auth/forgot-password` | `{ email }` | Déclencher un email de réinitialisation n3beur (réponse neutre) |
@@ -107,7 +107,7 @@ Routes protégées « n3boss » : header `Authorization: Bearer <token>`.
 
 **`GET /api/auth/me`** — pour un compte **n3beur** authentifié (`auth.userType === 'student'`), la réponse peut inclure **`taskEnrollment`** (plafond d’auto-inscriptions actives) :
 
-- `maxActiveAssignments` : valeur du réglage `tasks.student_max_active_assignments` (entier 0–99, `0` = pas de limite).
+- `maxActiveAssignments` : plafond effectif (entier 0–99, `0` = pas de limite) : si le profil principal du n3beur a une valeur `roles.max_concurrent_tasks` non `NULL`, elle s’applique ; sinon le réglage global `tasks.student_max_active_assignments` est utilisé.
 - `currentActiveAssignments` : nombre d’assignations sur des tâches dont le statut n’est pas `validated` (toutes cartes).
 - `atLimit` : `true` si `maxActiveAssignments > 0` et `currentActiveAssignments >= maxActiveAssignments`.
 - `forumParticipate` : `true` si le profil principal du n3beur (`roles.forum_participate`) autorise la **participation** au forum ; `false` = accès **lecture seule** sur les routes forum autorisées (voir ci-dessous). Absent pour les n3boss.
@@ -117,15 +117,15 @@ Routes protégées « n3boss » : header `Authorization: Bearer <token>`.
 
 ## RBAC (admin)
 
-Toutes les routes RBAC exigent un token admin avec élévation PIN active.
+Les routes RBAC exigent les permissions indiquées ; l’**élévation PIN** n’est pas requise pour les comptes **admin**/**prof** natifs ni pour les enseignants **`nativePrivileged`** (voir `GET /api/auth/me`).
 
 | Méthode | URL | Description |
 |--------|-----|-------------|
-| GET | `/api/rbac/profiles` | Objet `{ roles, progressionByValidatedTasksEnabled }` : liste des profils (chacun avec `permissions`, `catalog`, et pour chaque ligne `roles` : `forum_participate` / `context_comment_participate` lorsque présents en base), et indicateur du réglage global de progression automatique |
+| GET | `/api/rbac/profiles` | Objet `{ roles, progressionByValidatedTasksEnabled }` : liste des profils (chacun avec `permissions`, `catalog`, et pour chaque ligne `roles` : `forum_participate` / `context_comment_participate` / `max_concurrent_tasks` lorsque présents en base), et indicateur du réglage global de progression automatique |
 | PATCH | `/api/rbac/progression-by-validated-tasks` | Activer ou désactiver la montée de niveau automatique des profils élèves selon les tâches validées (`{ enabled: boolean }`, même permission que la gestion des profils, élévation PIN si requise) |
-| POST | `/api/rbac/profiles` | Créer un profil (`slug`, `display_name`, `rank`, `display_order`, `emoji?`, `min_done_tasks?`) |
-| POST | `/api/rbac/profiles/:id/duplicate` | Dupliquer un profil : copie `rank`, `emoji`, `min_done_tasks`, `display_order`, `forum_participate`, `context_comment_participate` et toutes les entrées de permissions ; le **PIN** du profil source n’est **pas** copié (à définir sur le nouveau profil via `PUT .../pin`). Corps JSON : `slug` (obligatoire, unique), `display_name` (optionnel ; défaut : nom affiché du source suivi de « (copie) ») |
-| PATCH | `/api/rbac/profiles/:id` | Modifier un profil (`display_name`, `rank`, `display_order`, `emoji`, `min_done_tasks`) ; pour un **palier n3beur** (slug `eleve_*`, ou autre slug avec `rank` strictement inférieur à celui du profil n3boss — 400 —, hors `admin`, `prof`, `visiteur`), on peut aussi envoyer `forum_participate` et/ou `context_comment_participate` (booléens ou 0/1) — alias acceptés : `forumParticipate`, `contextCommentParticipate` — participation forum et commentaires contextuels pour **tous** les n3beurs ayant ce profil principal |
+| POST | `/api/rbac/profiles` | Créer un profil (`slug`, `display_name`, `rank`, `display_order`, `emoji?`, `min_done_tasks?`, `max_concurrent_tasks?`) — `max_concurrent_tasks` réservé aux mêmes profils n3beur que pour le PATCH (voir ci-dessous) |
+| POST | `/api/rbac/profiles/:id/duplicate` | Dupliquer un profil : copie `rank`, `emoji`, `min_done_tasks`, `display_order`, `forum_participate`, `context_comment_participate`, `max_concurrent_tasks` et toutes les entrées de permissions ; le **PIN** du profil source n’est **pas** copié (à définir sur le nouveau profil via `PUT .../pin`). Corps JSON : `slug` (obligatoire, unique), `display_name` (optionnel ; défaut : nom affiché du source suivi de « (copie) ») |
+| PATCH | `/api/rbac/profiles/:id` | Modifier un profil (`display_name`, `rank`, `display_order`, `emoji`, `min_done_tasks`) ; pour un **palier n3beur** (slug `eleve_*`, ou autre slug avec `rank` strictement inférieur à celui du profil n3boss — 400 —, hors `admin`, `prof`, `visiteur`), on peut aussi envoyer `forum_participate` et/ou `context_comment_participate` (booléens ou 0/1) — alias acceptés : `forumParticipate`, `contextCommentParticipate` — participation forum et commentaires contextuels pour **tous** les n3beurs ayant ce profil principal ; même périmètre pour **`max_concurrent_tasks`** (alias `maxConcurrentTasks`) : entier 0–99 (`0` = pas de limite pour ce profil), ou `null` / chaîne vide pour **hériter** du réglage global `tasks.student_max_active_assignments` |
 | PUT | `/api/rbac/profiles/:id/permissions` | Remplacer les permissions d’un profil |
 | PUT | `/api/rbac/profiles/:id/pin` | Changer le PIN d’un profil |
 | GET | `/api/rbac/users` | Liste utilisateurs et profil attribué ; pour les n3beurs, `forum_participate` et `context_comment_participate` reflètent le **profil principal** (`roles`) |
@@ -198,7 +198,7 @@ Progression n3beurs :
 - les anciens réglages `progression.student_role_min_done_*` ne sont plus utilisés.
 
 Tâches / inscriptions n3beurs :
-- `tasks.student_max_active_assignments` (entier 0–99, défaut `0`) : plafond du nombre de tâches **actives** (assignations dont la tâche associée n’est pas en statut `validated`) auxquelles un n3beur peut **s’auto-inscrire** via `POST /api/tasks/:id/assign`. `0` = pas de limite. Les affectations effectuées par un n3boss ne sont pas soumises à ce plafond.
+- `tasks.student_max_active_assignments` (entier 0–99, défaut `0`) : plafond **par défaut** du nombre de tâches **actives** (assignations dont la tâche associée n’est pas en statut `validated`) auxquelles un n3beur peut **s’auto-inscrire** via `POST /api/tasks/:id/assign`. `0` = pas de limite par défaut. Si le profil principal a `roles.max_concurrent_tasks` non `NULL`, cette valeur remplace le réglage global pour les utilisateurs de ce profil (`0` sur le profil = pas de limite pour eux). Les affectations effectuées par un n3boss ne sont pas soumises à ce plafond.
 
 Réglage public de réactions :
 - `ui.reactions.allowed_emojis` (chaîne, emojis séparés par espaces ou virgules).
@@ -359,7 +359,7 @@ Contraintes principales :
 - Champ optionnel `start_date` (`YYYY-MM-DD`) sur les tâches ; tant que la date n’est pas atteinte, la tâche est considérée en attente (`is_before_start_date: true` dans les payloads).
 - Si une tâche est `on_hold` **ou** si son projet est `on_hold`, `POST /api/tasks/:id/assign` renvoie `400` (inscription n3beur bloquée).
 - Si `start_date` est dans le futur, `POST /api/tasks/:id/assign` renvoie aussi `400` (inscription n3beur bloquée jusqu’à la date de départ).
-- Si le réglage `tasks.student_max_active_assignments` est strictement positif et que l’action est une **auto-inscription n3beur**, le serveur compte les assignations actives (tâches non `validated`) : au-delà de la limite, réponse **`400`** avec `code: "TASK_ENROLLMENT_LIMIT"`, `maxActiveAssignments`, `currentActiveAssignments` et un message d’erreur explicite.
+- Si le **plafond effectif** (profil `roles.max_concurrent_tasks` si défini, sinon réglage `tasks.student_max_active_assignments`) est strictement positif et que l’action est une **auto-inscription n3beur**, le serveur compte les assignations actives (tâches non `validated`) : au-delà de la limite, réponse **`400`** avec `code: "TASK_ENROLLMENT_LIMIT"`, `maxActiveAssignments`, `currentActiveAssignments` et un message d’erreur explicite.
 - `POST /api/tasks` et `PUT /api/tasks/:id` acceptent `completion_mode` pour les profils autorisés.
 - Les payloads tâche exposent `completion_mode`, `assignees_total_count` et `assignees_done_count`.
 - `POST /api/tasks/:id/done` :

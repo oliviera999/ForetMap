@@ -185,3 +185,42 @@ test('RBAC admin: duplication de profil (permissions copiées, PIN non copié)',
   assert.ok(!pinRow, 'le PIN du profil source ne doit pas être copié');
   await execute('DELETE FROM roles WHERE id = ?', [res.body.id]);
 });
+
+test('RBAC: profil n3boss dupliqué — enseignant traité comme palier staff (permissions sans élévation)', async () => {
+  const { buildAuthzPayload } = require('../lib/rbac');
+  const token = await getAdminToken();
+  const profRole = await queryOne('SELECT id FROM roles WHERE slug = ? LIMIT 1', ['prof']);
+  assert.ok(profRole?.id);
+  const dupSlug = `rbac_dup_staff_native_${Date.now()}`;
+  const dup = await request(app)
+    .post(`/api/rbac/profiles/${profRole.id}/duplicate`)
+    .set('Authorization', `Bearer ${token}`)
+    .send({ slug: dupSlug, display_name: 'Copie n3boss test native' })
+    .expect(201);
+  const teacher = await queryOne(
+    "SELECT id FROM users WHERE user_type = 'teacher' AND LOWER(email) = LOWER(?) LIMIT 1",
+    [String(process.env.TEACHER_ADMIN_EMAIL || '').trim()]
+  );
+  assert.ok(teacher?.id);
+  await execute('UPDATE user_roles SET is_primary = 0 WHERE user_type = ? AND user_id = ?', ['teacher', teacher.id]);
+  await execute(
+    'INSERT INTO user_roles (user_type, user_id, role_id, is_primary) VALUES (?, ?, ?, 1) ON DUPLICATE KEY UPDATE is_primary = 1',
+    ['teacher', teacher.id, dup.body.id]
+  );
+  try {
+    const payload = await buildAuthzPayload('teacher', teacher.id, false);
+    assert.strictEqual(String(payload.roleSlug), dupSlug);
+    assert.strictEqual(payload.nativePrivileged, true);
+    assert.ok(payload.permissions.includes('students.import'), 'import élèves exige élévation sur prof sans bypass staff');
+  } finally {
+    await execute('UPDATE user_roles SET is_primary = 0 WHERE user_type = ? AND user_id = ?', ['teacher', teacher.id]);
+    const adminRole = await queryOne("SELECT id FROM roles WHERE slug = 'admin' LIMIT 1");
+    if (adminRole?.id) {
+      await execute(
+        'INSERT INTO user_roles (user_type, user_id, role_id, is_primary) VALUES (?, ?, ?, 1) ON DUPLICATE KEY UPDATE is_primary = 1',
+        ['teacher', teacher.id, adminRole.id]
+      );
+    }
+    await execute('DELETE FROM roles WHERE id = ?', [dup.body.id]);
+  }
+});

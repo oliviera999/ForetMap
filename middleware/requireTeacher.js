@@ -38,6 +38,7 @@ async function hydrateAuthFromTokenClaims(claims) {
     permissions: authz.permissions,
     elevatedPermissions: authz.elevatedPermissions,
     elevated,
+    nativePrivileged: !!authz.nativePrivileged,
   };
 }
 
@@ -76,10 +77,11 @@ async function requireAuth(req, res, next) {
 function hasPermission(auth, permissionKey, needsElevation) {
   if (!auth) return false;
   const roleSlug = String(auth.roleSlug || '').toLowerCase();
-  const hasNativePrivilegedRole = roleSlug === 'admin' || roleSlug === 'prof';
+  const nativePrivileged =
+    !!auth.nativePrivileged || roleSlug === 'admin' || roleSlug === 'prof';
   const perms = Array.isArray(auth.permissions) ? auth.permissions : [];
   if (!perms.includes(permissionKey)) return false;
-  if (needsElevation && !auth.elevated && !hasNativePrivilegedRole) return false;
+  if (needsElevation && !auth.elevated && !nativePrivileged) return false;
   return true;
 }
 
