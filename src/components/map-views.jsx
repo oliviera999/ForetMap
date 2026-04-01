@@ -1717,7 +1717,8 @@ function MapView({ zones, markers, tasks = [], plants, maps = [], activeMapId = 
   };
 
   const cursor = mode === 'view' ? 'grab' : mode === 'draw-zone' ? 'crosshair' : mode === 'edit-points' ? 'default' : 'cell';
-  const mapAspect = imgSize.w > 1 && imgSize.h > 1 ? `${imgSize.w} / ${imgSize.h}` : '16 / 10';
+  const arW = Math.max(imgSize.w > 1 ? imgSize.w : 16, 1);
+  const arH = Math.max(imgSize.h > 1 ? imgSize.h : 10, 1);
   const mobileInteractionsActive = mapInteractionEnabled || committed.s > 1.05;
   const canManageMarkerPositions = !!isTeacher;
   const { isHelpEnabled, hasSeenSection, markSectionSeen, trackPanelOpen, trackPanelDismiss } = useHelp({ publicSettings, isTeacher });
@@ -1881,39 +1882,40 @@ function MapView({ zones, markers, tasks = [], plants, maps = [], activeMapId = 
         </div>
       </div>
 
-      <div style={{
-        flex: 1,
-        minHeight: 0,
-        display: 'flex',
-        alignItems: embedded ? 'flex-start' : 'center',
-        justifyContent: 'center',
-        ...(embedded
-          ? {
-              paddingTop: 0,
-              paddingLeft: mapFramePaddingPx,
-              paddingRight: mapFramePaddingPx,
-              paddingBottom: mapFramePaddingPx,
-            }
-          : { padding: mapFramePaddingPx }),
-      }}
+      <div
+        className="map-view-canvas-outer"
+        style={{
+          flex: 1,
+          minHeight: 0,
+          minWidth: 0,
+          display: 'flex',
+          flexDirection: 'column',
+          boxSizing: 'border-box',
+          ...(embedded
+            ? {
+                paddingTop: 0,
+                paddingLeft: mapFramePaddingPx,
+                paddingRight: mapFramePaddingPx,
+                paddingBottom: mapFramePaddingPx,
+              }
+            : { padding: mapFramePaddingPx }),
+        }}
       >
-        <div ref={containerRef}
-          style={{
-            boxSizing: 'border-box',
-            width: '100%',
-            maxWidth: '100%',
-            maxHeight: '100%',
-            minWidth: 0,
-            aspectRatio: mapAspect,
-            overflow: 'hidden',
-            position: 'relative',
-            background: '#eef2ee',
-            cursor,
-            touchAction,
-            userSelect: 'none',
-            WebkitUserSelect: 'none',
-          }}
-          onClick={onMapClick}>
+        <div
+          className="map-view-canvas-slot"
+          style={{ ['--fm-map-w']: arW, ['--fm-map-h']: arH }}
+        >
+          <div
+            ref={containerRef}
+            className="map-view-canvas"
+            style={{
+              cursor,
+              touchAction,
+              userSelect: 'none',
+              WebkitUserSelect: 'none',
+            }}
+            onClick={onMapClick}
+          >
 
           <div ref={worldRef}
             style={{ position: 'absolute', left: 0, top: 0, width: iw, height: ih,
@@ -2052,6 +2054,7 @@ function MapView({ zones, markers, tasks = [], plants, maps = [], activeMapId = 
               ✋ Gestes carte actifs
             </div>
           )}
+        </div>
         </div>
       </div>
     </div>
