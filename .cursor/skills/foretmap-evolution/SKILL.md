@@ -45,6 +45,7 @@ Toutes les recommandations détaillées sont dans **docs/EVOLUTION.md** (à la r
 | Découpage backend en `routes/` | Fait |
 | Script `dev` avec nodemon | Fait |
 | Logger Pino + trace erreurs | Fait |
+| Observabilité (`X-Request-Id`, HTTP log, diagnostics `metrics`, MCP) | Fait |
 | Tests backend (auth, statuts, suppression) | Fait (base) |
 | Tests Playwright + exécution e2e en CI | Fait (base + scénarios étendus) |
 | Suppression du PIN côté frontend (auth serveur) | Fait |

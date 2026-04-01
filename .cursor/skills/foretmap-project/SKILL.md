@@ -14,6 +14,7 @@ description: Donne le contexte du projet ForetMap (forêt comestible, Lycée Lya
 ## Quand ne pas l'utiliser
 
 - Refactoring majeur, évolution d'architecture ou de sécurité : préférer le skill **foretmap-evolution**.
+- Logs, diagnostics prod, MCP, `X-Request-Id` : préférer le skill **foretmap-observability**.
 - Mise à jour du versionnage ou release : préférer le skill **foretmap-versioning**.
 - Modifications de schéma ou de migrations BDD : préférer le skill **foretmap-database**.
 
@@ -26,7 +27,7 @@ description: Donne le contexte du projet ForetMap (forêt comestible, Lycée Lya
 
 - **Backend :** Node.js, Express, MySQL (mysql2, pool). Fichiers : `server.js` (montage des routeurs), `database.js` (pool, schéma, seed), `routes/` (dont `task-projects`, `tutorials`, `settings`, `rbac`, `forum`), `middleware/requireTeacher.js` (JWT). Auth élèves : bcrypt, session en localStorage. Auth prof : PIN vérifié côté serveur, JWT.
 - **Frontend :** React 18 + Vite. Entrée dans `index.vite.html`, bootstrap dans `src/main.jsx`, application modulaire dans `src/` (composants/hooks/services), build servi depuis `dist/` en production.
-- **Utilitaires :** `lib/logger.js` (Pino), `lib/env.js`, `lib/uploads.js`, `lib/routeLog.js`, `lib/helpers.js`.
+- **Utilitaires :** `lib/logger.js` (Pino, `redact`), `lib/env.js`, `lib/uploads.js`, `lib/routeLog.js` (`logRouteError`, `requestId`), `lib/requestId.js`, `lib/httpRequestLog.js` (`FORETMAP_HTTP_LOG`), `lib/logMetrics.js` (métriques diagnostics), `lib/helpers.js`.
 - **Tests :** backend avec `node --test` + supertest dans `tests/` ; e2e Playwright dans `e2e/` via **`npm run test:e2e`** (serveur **`npm run start:e2e`**, bypass rate limit). Détail : skill **foretmap-e2e**.
 
 ## Points d'attention
@@ -44,9 +45,12 @@ description: Donne le contexte du projet ForetMap (forêt comestible, Lycée Lya
 | `database.js` | Pool MySQL, `initDatabase()`, schéma, seed |
 | `routes/*.js` | Routeurs (zones, plants, tasks, auth, stats, students, map, observations, audit) |
 | `middleware/requireTeacher.js` | Middleware JWT pour les routes professeur |
-| `lib/logger.js` | Logger Pino (utiliser à la place de console) |
+| `lib/logger.js` | Logger Pino (`redact` sensibles) |
 | `lib/helpers.js` | Fonctions métier partagées (`getTaskWithAssignments`, `studentStats`) |
-| `lib/routeLog.js` | `logRouteError` pour tracer les erreurs 500 |
+| `lib/routeLog.js` | `logRouteError` (erreurs 500 + `requestId`) |
+| `lib/requestId.js` | En-tête `X-Request-Id` |
+| `lib/httpRequestLog.js` | Logs fin de requête HTTP (`FORETMAP_HTTP_LOG`) |
+| `lib/logMetrics.js` | Métriques pour `/api/admin/diagnostics` |
 | `lib/env.js` | Validation des variables d'environnement |
 | `lib/uploads.js` | Gestion des fichiers uploadés |
 | `index.vite.html` | Point d'entrée HTML de l'application Vite |
@@ -58,4 +62,5 @@ description: Donne le contexte du projet ForetMap (forêt comestible, Lycée Lya
 ## Voir aussi
 
 - Règles Cursor : `.cursor/rules/foretmap-conventions.mdc`, `foretmap-backend.mdc`, `foretmap-frontend.mdc`
+- Observabilité / MCP : skill **foretmap-observability**, `docs/MCP_FORETMAP_CURSOR.md`
 - Feuille de route : [docs/EVOLUTION.md](docs/EVOLUTION.md)
