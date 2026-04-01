@@ -1903,7 +1903,7 @@ function MapView({ zones, markers, tasks = [], plants, maps = [], activeMapId = 
       >
         <div
           className="map-view-canvas-slot"
-          style={{ ['--fm-map-w']: arW, ['--fm-map-h']: arH }}
+          style={{ ['--fm-map-w']: String(arW), ['--fm-map-h']: String(arH) }}
         >
           <div
             ref={containerRef}
