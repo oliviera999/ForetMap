@@ -39,6 +39,8 @@ Si l’interpolation `${env:FORETMAP_DEPLOY_SECRET}` ne fonctionne pas chez vous
 
 Après configuration : *Cursor Settings → MCP* : vérifier que **`foretmap-diagnostics`** est actif ; en cas de doute, redémarrer Cursor.
 
+Les réponses HTTP exposent **`X-Request-Id`** : pour une erreur signalée par un utilisateur, demandez l’ID affiché dans les outils dev du navigateur et corrélez-le avec **`GET /api/admin/logs`** ou les champs `recentHttp5xx` de **`foretmap_diagnostics`**.
+
 ## Check post-déploiement avec la route admin
 
 Si **`DEPLOY_SECRET`** ou **`FORETMAP_DEPLOY_CHECK_SECRET`** est défini dans l’environnement lorsque vous lancez le script, **`npm run deploy:check`** vérifie aussi **`GET /api/admin/diagnostics`** (header `X-Deploy-Secret`). Utile juste après une mise en prod pour confirmer que le nouveau code est bien déployé.

@@ -16,6 +16,9 @@ const { runRecurringTaskSpawnJob } = require('./lib/recurringTasks');
 const { initRealtime } = require('./lib/realtime');
 const { tailLogLines, getBufferedLineCount, getMaxLines } = require('./lib/logBuffer');
 const { checkCriticalAdminAccount } = require('./lib/rbac');
+const { assignRequestId } = require('./lib/requestId');
+const { createHttpRequestLogMiddleware } = require('./lib/httpRequestLog');
+const logMetrics = require('./lib/logMetrics');
 
 const rateLimit     = require('express-rate-limit');
 const authRouter    = require('./routes/auth');
@@ -74,6 +77,7 @@ const corsOpts = process.env.NODE_ENV === 'production' && process.env.FRONTEND_O
   ? { origin: process.env.FRONTEND_ORIGIN }
   : {};
 app.use(cors(corsOpts));
+app.use(assignRequestId);
 
 function isTestEnv() {
   return String(process.env.NODE_ENV || '').trim().toLowerCase() === 'test';
@@ -88,6 +92,53 @@ function isLoadTestBypass(req) {
 
 function shouldSkipRateLimit(req) {
   return isTestEnv() || isLoadTestBypass(req) || String(process.env.E2E_DISABLE_RATE_LIMIT || '').trim() === '1';
+}
+
+function parseRateLimitLogSample() {
+  const raw = String(process.env.FORETMAP_RATE_LIMIT_LOG_SAMPLE || '0.01').trim();
+  const n = parseFloat(raw);
+  if (Number.isFinite(n) && n >= 0 && n <= 1) return n;
+  return 0.01;
+}
+
+/** Préfixe d’IP pour logs (pas d’adresse complète). */
+function truncateClientIp(ip) {
+  const s = String(ip || '').trim();
+  if (!s) return null;
+  if (s.includes('.')) {
+    const parts = s.split('.');
+    if (parts.length >= 2) return `${parts[0]}.${parts[1]}.*`;
+    return 'ipv4';
+  }
+  if (s.includes(':')) {
+    const parts = s.split(':').filter(Boolean);
+    if (parts.length >= 3) return `${parts.slice(0, 3).join(':')}::`;
+    return 'ipv6';
+  }
+  return '?';
+}
+
+const rateLimitLogSample = parseRateLimitLogSample();
+
+function createRateLimitHandler(messageBody) {
+  return (req, res, _next, options) => {
+    if (rateLimitLogSample > 0 && Math.random() < rateLimitLogSample) {
+      logMetrics.recordRateLimit429Sample();
+      logger.warn(
+        {
+          requestId: req.requestId,
+          path: req.path,
+          method: req.method,
+          clientIpTruncated: truncateClientIp(req.ip),
+          msg: 'rate_limit_429_sample',
+        },
+        '429 rate limit (echantillon)'
+      );
+    }
+    const status = options && typeof options.statusCode === 'number' ? options.statusCode : 429;
+    res.status(status);
+    res.json(messageBody);
+  };
 }
 
 /** Plafond /api/* par IP et fenêtre 1 min (SPA + plusieurs onglets derrière la même IP publique). */
@@ -114,6 +165,7 @@ const generalLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: 'Trop de requêtes, réessayez dans une minute.' },
+  handler: createRateLimitHandler({ error: 'Trop de requêtes, réessayez dans une minute.' }),
 });
 
 // Limiteur strict pour les endpoints d'authentification : 20 tentatives / 15 min par IP
@@ -124,6 +176,7 @@ const authLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: 'Trop de tentatives de connexion, réessayez dans 15 minutes.' },
+  handler: createRateLimitHandler({ error: 'Trop de tentatives de connexion, réessayez dans 15 minutes.' }),
 });
 
 app.use('/api/', generalLimiter);
@@ -139,6 +192,8 @@ app.use((req, res, next) => {
   res.setHeader('Content-Security-Policy', "img-src 'self' https: data: blob:;");
   next();
 });
+
+app.use(createHttpRequestLogMiddleware());
 
 const distDir = path.join(__dirname, 'dist');
 const distSpaIndex = fs.existsSync(path.join(distDir, 'index.vite.html'))
@@ -262,6 +317,7 @@ app.get('/api/admin/diagnostics', async (req, res) => {
       linesCount: getBufferedLineCount(),
       maxLines: getMaxLines(),
     },
+    metrics: logMetrics.getMetrics(),
   });
 });
 
@@ -358,7 +414,7 @@ app.get('*', (req, res) => {
   res.sendFile(indexPath, (err) => {
     if (err) {
       logger.error(
-        { err, path: req.path, resolvedPath: indexPath, code: err.code },
+        { err, path: req.path, resolvedPath: indexPath, code: err.code, requestId: req.requestId },
         'Envoi index.html en échec'
       );
       if (!res.headersSent) res.status(500).json({ error: 'Erreur serveur' });
@@ -368,7 +424,10 @@ app.get('*', (req, res) => {
 
 // Gestion d'erreurs centralisée (pour les routes qui font next(err))
 app.use((err, req, res, next) => {
-  logger.error({ err, path: req.path, method: req.method }, 'Erreur serveur');
+  logger.error(
+    { err, path: req.path, method: req.method, requestId: req.requestId },
+    'Erreur serveur'
+  );
   const status = Number(err?.status) || 500;
   const message = status >= 500 ? 'Erreur serveur' : (err?.message || 'Requête invalide');
   res.status(status).json({ error: message });

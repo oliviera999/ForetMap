@@ -16,6 +16,16 @@ Réponses JSON. En cas d’erreur : `{ "error": "message" }` avec statut HTTP ad
 
 ---
 
+## Observabilité (logs / corrélation)
+
+- **Réponse** : toutes les requêtes reçoivent un en-tête **`X-Request-Id`** (UUID ou valeur client si format sûr, 8–128 caractères `[a-zA-Z0-9._-]`). À utiliser pour relier une erreur côté client aux lignes Pino / au tampon admin.
+- **Variables** :
+  - **`FORETMAP_HTTP_LOG`** : `off` (défaut hors prod et en `NODE_ENV=test`), `minimal` (défaut **production** : log `warn` des **5xx** et des requêtes lentes), `full` (une ligne `info`/`warn` par requête `/api/*` suivie — peut saturer le tampon).
+  - **`FORETMAP_HTTP_SLOW_MS`** : seuil « lent » en ms pour le mode `minimal` (défaut **8000**).
+  - **`FORETMAP_RATE_LIMIT_LOG_SAMPLE`** : probabilité **0–1** de journaliser un **429** rate limit (défaut **0.01**), avec **IP tronquée** (pas d’adresse complète dans les logs).
+
+---
+
 ## Diagnostic public (site)
 
 Ces endpoints exposent un inventaire des problèmes techniques potentiels déjà identifiés.
@@ -42,7 +52,7 @@ Nécessite la variable d’environnement **`DEPLOY_SECRET`** et le header **`X-D
 |--------|-----|-------------|
 | POST | `/api/admin/restart` | Redémarre le processus Node (body JSON `{ "secret" }` ou header) |
 | GET | `/api/admin/logs` | Dernières lignes des logs applicatifs (Pino) depuis un **tampon mémoire** (`?lines=200` par défaut, max 5000). Réponse JSON : `entries` (tableau de chaînes), `bufferLines`, `bufferMax`. |
-| GET | `/api/admin/diagnostics` | **Instantané d’exploitation** (sans secrets dans la réponse) : `ts`, `version`, `nodeEnv`, `nodeVersion`, `uptimeSeconds`, `memory` (`rssMb`, `heapUsedMb`, `heapTotalMb`), `database` (`ok`, `latencyMs` ou erreur), `logBuffer` (`linesCount`, `maxLines`). Utile pour la supervision et les outils MCP locaux. |
+| GET | `/api/admin/diagnostics` | **Instantané d’exploitation** (sans secrets dans la réponse) : champs ci-dessus + **`metrics`** (`httpRequests`, `http5xx`, `http4xx`, `httpSlow`, `routeErrors`, `rateLimit429Samples`, `recentHttp5xx` : derniers 5xx avec `requestId`, `method`, `path`, `statusCode`, `at`). |
 
 Le tampon est dimensionné par **`LOG_BUFFER_MAX_LINES`** (défaut 2000, plafond 5000). Les logs antérieurs au démarrage du process ne sont pas disponibles ici (voir aussi les logs du panel hébergeur / stdout).
 

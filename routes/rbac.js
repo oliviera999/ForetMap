@@ -431,6 +431,7 @@ router.post(
         [slug]
       );
       if (!newRole?.id) {
+        logRouteError(new Error('Profil dupliqué introuvable après insertion'), req);
         return res.status(500).json({ error: 'Profil dupliqué introuvable après insertion' });
       }
 

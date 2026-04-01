@@ -490,7 +490,10 @@ router.post('/:id/duplicate', requirePermission('users.create', { needsElevation
       const novice = await queryOne("SELECT id FROM roles WHERE slug = 'eleve_novice' LIMIT 1");
       roleId = novice?.id;
     }
-    if (!roleId) return res.status(500).json({ error: 'Profil RBAC introuvable' });
+    if (!roleId) {
+      logRouteError(new Error('Profil RBAC introuvable (eleve_novice)'), req);
+      return res.status(500).json({ error: 'Profil RBAC introuvable' });
+    }
 
     const affiliation = normalizeStudentAffiliation(source.affiliation) || 'both';
     const description = normalizeOptionalString(source.description);

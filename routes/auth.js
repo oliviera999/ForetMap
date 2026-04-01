@@ -7,6 +7,7 @@ const { v4: uuidv4 } = require('uuid');
 const { queryOne, execute } = require('../database');
 const { JWT_SECRET, requireAuth, signAuthToken, parseBearerToken } = require('../middleware/requireTeacher');
 const { logRouteError } = require('../lib/routeLog');
+const logger = require('../lib/logger');
 const { emitStudentsChanged } = require('../lib/realtime');
 const { sendPasswordResetEmail } = require('../lib/mailer');
 const {
@@ -574,6 +575,10 @@ router.post('/login', async (req, res) => {
         reason: 'account_not_found',
         payload: { identifier },
       });
+      logger.warn(
+        { requestId: req.requestId, event: 'auth_login_failure', reason: 'account_not_found' },
+        'Échec connexion (compte introuvable)'
+      );
       return res.status(401).json({ error: 'Compte introuvable' });
     }
     if (!account.password_hash) {
@@ -586,6 +591,10 @@ router.post('/login', async (req, res) => {
         result: 'failure',
         reason: 'password_not_set',
       });
+      logger.warn(
+        { requestId: req.requestId, event: 'auth_login_failure', reason: 'password_not_set', userType: account.user_type },
+        'Échec connexion (mot de passe non défini)'
+      );
       return res.status(401).json({ error: 'Ce compte n\'a pas de mot de passe. Contactez le prof.' });
     }
 
@@ -599,6 +608,10 @@ router.post('/login', async (req, res) => {
         result: 'failure',
         reason: 'account_inactive',
       });
+      logger.warn(
+        { requestId: req.requestId, event: 'auth_login_failure', reason: 'account_inactive', userType: account.user_type },
+        'Échec connexion (compte inactif)'
+      );
       return res.status(401).json({ error: 'Compte inactif' });
     }
 
@@ -613,6 +626,10 @@ router.post('/login', async (req, res) => {
         result: 'failure',
         reason: 'password_invalid',
       });
+      logger.warn(
+        { requestId: req.requestId, event: 'auth_login_failure', reason: 'password_invalid', userType: account.user_type },
+        'Échec connexion (mot de passe incorrect)'
+      );
       return res.status(401).json({ error: 'Mot de passe incorrect' });
     }
 
@@ -968,7 +985,13 @@ router.post('/elevate', requireAuth, async (req, res) => {
       'INSERT INTO elevation_audit (user_type, user_id, role_id, success, reason) VALUES (?, ?, ?, ?, ?)',
       [req.auth.userType, req.auth.userId, req.auth.roleId, ok ? 1 : 0, ok ? 'ok' : 'pin_invalid']
     );
-    if (!ok) return res.status(401).json({ error: 'PIN incorrect' });
+    if (!ok) {
+      logger.warn(
+        { requestId: req.requestId, event: 'auth_elevate_failure', reason: 'pin_invalid', userType: req.auth.userType },
+        'Élévation PIN refusée'
+      );
+      return res.status(401).json({ error: 'PIN incorrect' });
+    }
 
     const session = await buildSessionPayload(req.auth.userType, req.auth.userId, true);
     if (!session) return res.status(403).json({ error: 'Aucun profil attribué' });
@@ -1000,10 +1023,20 @@ router.post('/teacher', async (req, res) => {
       try {
         claims = jwt.verify(tokenIn, JWT_SECRET);
       } catch (_) {
+        logger.warn(
+          { requestId: req.requestId, event: 'auth_teacher_legacy_token_invalid' },
+          'Token JWT invalide (endpoint teacher legacy)'
+        );
         return res.status(401).json({ error: 'Token invalide ou expiré' });
       }
       const ok = await verifyRolePin(claims.roleId, pin);
-      if (!ok) return res.status(401).json({ error: 'PIN incorrect' });
+      if (!ok) {
+        logger.warn(
+          { requestId: req.requestId, event: 'auth_teacher_legacy_pin_invalid', userType: claims.userType },
+          'PIN incorrect (endpoint teacher legacy)'
+        );
+        return res.status(401).json({ error: 'PIN incorrect' });
+      }
       const session = await buildSessionPayload(claims.userType, claims.userId, true);
       if (!session) return res.status(403).json({ error: 'Aucun profil attribué' });
       const token = signAuthToken(session.tokenPayload, true);
