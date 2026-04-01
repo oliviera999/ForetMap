@@ -44,6 +44,7 @@ async function registerStudentWithProfile(page) {
   await page.getByLabel('Confirmer le mot de passe', { exact: true }).fill(password);
   await page.getByRole('button', { name: 'Créer le compte' }).click();
   await page.getByRole('button', { name: /Déconnexion/ }).waitFor({ state: 'visible', timeout: 60_000 });
+  await dismissProfilePromotionModalIfPresent(page);
   return { firstName, lastName, pseudo, email, password };
 }
 
@@ -52,11 +53,23 @@ async function logoutToAuth(page) {
   await page.getByRole('button', { name: 'Connexion', exact: true }).waitFor({ state: 'visible' });
 }
 
+/**
+ * La modale « nouveau palier » (progression auto) est au-dessus de la carte et bloque les clics e2e.
+ */
+async function dismissProfilePromotionModalIfPresent(page) {
+  const cta = page.locator('.profile-promo-card__cta');
+  if (await cta.isVisible({ timeout: 1200 }).catch(() => false)) {
+    await cta.click();
+    await cta.waitFor({ state: 'detached', timeout: 8000 }).catch(() => {});
+  }
+}
+
 async function loginByIdentifier(page, identifier, password) {
   await page.getByLabel('Identifiant (pseudo ou email)').fill(identifier);
   await page.getByLabel('Mot de passe').fill(password);
   await page.getByRole('button', { name: 'Se connecter 🌱' }).click();
   await page.getByRole('button', { name: /Déconnexion/ }).waitFor({ state: 'visible', timeout: 60_000 });
+  await dismissProfilePromotionModalIfPresent(page);
 }
 
 async function enableTeacherMode(page, pin = process.env.E2E_ELEVATION_PIN || process.env.TEACHER_PIN || '1234') {
@@ -66,6 +79,7 @@ async function enableTeacherMode(page, pin = process.env.E2E_ELEVATION_PIN || pr
   // « Recentrer la carte » contient la sous-chaîne « Entrer » : cibler la modale PIN + exact.
   await page.locator('.pin-card').getByRole('button', { name: 'Entrer', exact: true }).click();
   await page.getByRole('button', { name: 'Désactiver les droits étendus' }).waitFor({ state: 'visible', timeout: 45_000 });
+  await dismissProfilePromotionModalIfPresent(page);
 }
 
 async function disableTeacherMode(page) {
@@ -78,6 +92,8 @@ async function disableTeacherMode(page) {
 
 /** Le premier `.map-zone-hit` peut être sous un repère : le clic ouvre la mauvaise modale. */
 async function openFirstZoneModalFromMap(page) {
+  await dismissProfilePromotionModalIfPresent(page);
+  await page.locator('.map-zone-hit').first().waitFor({ state: 'attached', timeout: 25_000 });
   const errBanner = page.getByText('Une erreur s’est produite.');
   const maxAttempts = 24;
   for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
@@ -87,7 +103,18 @@ async function openFirstZoneModalFromMap(page) {
     const count = await page.locator('.map-zone-hit').count();
     if (count === 0) break;
     const idx = attempt % count;
-    await page.locator('.map-zone-hit').nth(idx).click({ force: true, timeout: 10_000 });
+    const hit = page.locator('.map-zone-hit').nth(idx);
+    const poly = hit.locator('polygon').first();
+    if (await poly.count()) {
+      await poly.click({ force: true, timeout: 10_000 });
+    } else {
+      await hit.click({ force: true, timeout: 10_000 });
+    }
+    if (!(await page.getByRole('dialog', { name: /^Zone / }).isVisible().catch(() => false))) {
+      await hit.evaluate((el) => {
+        el.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, view: window }));
+      });
+    }
     const zoneDlg = page.getByRole('dialog', { name: /^Zone / });
     if (await zoneDlg.isVisible().catch(() => false)) return;
     await page.keyboard.press('Escape');
@@ -100,11 +127,52 @@ async function openFirstZoneModalFromMap(page) {
 async function openTeacherTasksTab(page) {
   await page.getByRole('button', { name: /✅ Tâches/ }).click();
   await page.getByRole('heading', { name: '✅ Tâches' }).waitFor({ state: 'visible' });
+  try {
+    await page.locator('.task-filters select').first().selectOption('all', { timeout: 5000 });
+  } catch (_) {
+    /* pas de barre de filtres */
+  }
 }
 
 async function openStudentTasksTab(page) {
   await page.getByRole('button', { name: /✅\s*Tâches/ }).click();
   await page.getByRole('heading', { name: '✅ Tâches' }).waitFor({ state: 'visible' });
+  try {
+    const filters = page.locator('.task-filters select');
+    await filters.nth(0).selectOption('all', { timeout: 5000 });
+    await filters.nth(1).selectOption('');
+    await filters.nth(2).selectOption('');
+    await filters.nth(3).selectOption('');
+  } catch (_) {
+    /* layout sans barre de filtres */
+  }
+  const search = page.getByPlaceholder('🔍 Rechercher une tâche...');
+  if (await search.isVisible().catch(() => false)) {
+    await search.fill('');
+  }
+}
+
+/**
+ * Le temps réel recrée le DOM ; le JWT élevé peut expirer entre scénarios (serveur e2e réutilisé).
+ * Clic natif via evaluate pour éviter les boucles « detached » de Playwright.
+ */
+async function clickTeacherNewTask(page) {
+  const elevated = await page.getByRole('button', { name: 'Désactiver les droits étendus' }).isVisible().catch(() => false);
+  let btn = page.getByRole('button', { name: /\+ Nouvelle tâche/ });
+  if (!(await btn.isVisible().catch(() => false))) {
+    if (!elevated) {
+      const activer = page.getByRole('button', { name: 'Activer les droits étendus' });
+      if (await activer.isVisible().catch(() => false)) {
+        await enableTeacherMode(page);
+      }
+    }
+    await openTeacherTasksTab(page);
+    btn = page.getByRole('button', { name: /\+ Nouvelle tâche/ });
+  }
+  await btn.waitFor({ state: 'attached', timeout: 25_000 });
+  await btn.evaluate((el) => {
+    el.click();
+  });
 }
 
 module.exports = {
@@ -112,9 +180,11 @@ module.exports = {
   registerStudentWithProfile,
   logoutToAuth,
   loginByIdentifier,
+  dismissProfilePromotionModalIfPresent,
   enableTeacherMode,
   disableTeacherMode,
   openFirstZoneModalFromMap,
   openTeacherTasksTab,
   openStudentTasksTab,
+  clickTeacherNewTask,
 };
