@@ -8,6 +8,20 @@ import {
 const MAX_ITEMS = 80;
 const KEEP_MS = 7 * 24 * 60 * 60 * 1000;
 const DEDUP_COOLDOWN_MS = 10 * 60 * 1000;
+/** Préfixe clé notif « proposition n3boss » — dédup forte (pas seulement le cooldown 10 min). */
+const TEACHER_PROPOSED_NOTIF_PREFIX = 'teacher-proposed-';
+
+function proposalSuffixFromTeacherNotifKey(key) {
+  const s = String(key || '');
+  if (!s.startsWith(TEACHER_PROPOSED_NOTIF_PREFIX)) return null;
+  return s.slice(TEACHER_PROPOSED_NOTIF_PREFIX.length);
+}
+
+function stableProposedTaskKey(task) {
+  if (task?.id != null && task.id !== '') return `id:${String(task.id)}`;
+  if (task?.task_id != null && task.task_id !== '') return `task_id:${String(task.task_id)}`;
+  return `title:${String(task?.title || task?.name || '').trim().toLowerCase()}`;
+}
 
 function nowIso() {
   return new Date().toISOString();
@@ -112,11 +126,16 @@ export function useNotificationCenter({
       const ts = Date.parse(item?.createdAt || '');
       return Number.isFinite(ts) && ts >= cutoff;
     }).slice(0, MAX_ITEMS);
+    const restoredProposedKeys = new Set();
     setItems(sanitized);
     for (const item of sanitized) {
       if (!item?.key) continue;
       lastSeenKeysRef.current[item.key] = Date.parse(item.createdAt || '') || Date.now();
+      const propSuffix = proposalSuffixFromTeacherNotifKey(item.key);
+      if (propSuffix) restoredProposedKeys.add(propSuffix);
     }
+    // Remontage React / nouvel onglet : retrouver les propositions déjà notifiées (le ref seul ne suffit pas).
+    lastTeacherProposedKeysRef.current = restoredProposedKeys;
   }, [notificationsStorageKey]);
 
   useEffect(() => {
@@ -143,6 +162,8 @@ export function useNotificationCenter({
     const dedupKey = String(key || `${level}:${title}:${message}`);
     const nowTs = Date.now();
     const lastTs = lastSeenKeysRef.current[dedupKey] || 0;
+    // Une proposition ne doit pas repasser après expiration du cooldown si la tâche est encore « proposée ».
+    if (!force && dedupKey.startsWith(TEACHER_PROPOSED_NOTIF_PREFIX) && lastTs > 0) return false;
     if (!force && nowTs - lastTs < DEDUP_COOLDOWN_MS) return false;
     lastSeenKeysRef.current[dedupKey] = nowTs;
     const item = {
@@ -183,6 +204,12 @@ export function useNotificationCenter({
 
   const removeNotification = useCallback((id) => {
     setItems((prev) => {
+      const victim = prev.find((item) => item.id === id);
+      if (victim?.key) {
+        const suffix = proposalSuffixFromTeacherNotifKey(victim.key);
+        if (suffix) lastTeacherProposedKeysRef.current.delete(suffix);
+        delete lastSeenKeysRef.current[victim.key];
+      }
       const next = prev.filter((item) => item.id !== id);
       persistItems(next);
       return next;
@@ -236,18 +263,14 @@ export function useNotificationCenter({
     if (!isTeacher) return;
     const proposedTasks = tasksForActiveMap.filter((task) => task.status === 'proposed');
     for (const task of proposedTasks) {
-      const taskKey = task?.id != null
-        ? `id:${task.id}`
-        : (task?.task_id != null
-          ? `task_id:${task.task_id}`
-          : `title:${String(task?.title || task?.name || '').trim().toLowerCase()}`);
+      const taskKey = stableProposedTaskKey(task);
 
       if (lastTeacherProposedKeysRef.current.has(taskKey)) continue;
 
       const taskTitle = String(task?.title || task?.name || '').trim() || 'Tâche sans titre';
       const proposer = proposerNameFromTask(task);
       const added = addNotification({
-        key: `teacher-proposed-${taskKey}`,
+        key: `${TEACHER_PROPOSED_NOTIF_PREFIX}${taskKey}`,
         level: NOTIFICATION_LEVEL.IMPORTANT,
         category: NOTIFICATION_CATEGORY.PROPOSALS,
         title: taskTitle,
