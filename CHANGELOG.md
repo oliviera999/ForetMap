@@ -8,9 +8,11 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 ### Modifié
 - **Formulaire tâche (édition / duplication)** : le sélecteur **Projet** inclut **toujours** le projet déjà lié à la tâche (y compris **en attente**), même s’il était absent de la liste filtrée par carte ou non chargé dans **`taskProjects`** — évite d’envoyer par erreur **`project_id: null`** au **PUT** (cause d’incohérences / erreurs côté API).
 - **Build / déploiement** : **`npm run build`** relancé (Vite production) ; contenu de **`dist/`** identique au dépôt **v1.27.6**. Côté hébergeur, **`NODE_ENV=development`** n’affecte que le process Node (logs, comportement Express) ; les fichiers **`dist/`** restent une build frontend optimisée.
+- **Socket.IO** : les erreurs moteur **« Session ID unknown »** (session obsolète / reconnexion) sont loguées en **`debug`** au lieu de **`warn`**, pour garder le tampon admin et les alertes exploitables.
+- **PUT /api/tasks/:id** : conservation de **`FORETMAP_DEBUG_TASK_PUT_CLIENT=1`** (JSON 500 **`debugDetail`** / **`debugCode`** pour les profs **`tasks.manage`**) ; retrait de l’instrumentation **`agentDebugTaskPut`**, du tampon forcé associé et du **`console.warn`** côté formulaire (diagnostic formulaire stabilisé en v1.27.8).
 
-### Ajouté
-- **Diagnostic PUT tâches (prod)** : chaque trace **`agentDebugTaskPut`** est aussi poussée dans le **tampon mémoire** (`appendForcedLogLine` dans **`lib/logBuffer.js`**) — visible via **`GET /api/admin/logs`** (header **`X-Deploy-Secret`**, variable **`DEPLOY_SECRET`**) même si **`LOG_LEVEL=error`** ou stdout absent sur l’hébergeur ; Pino en **`warn`**. Variable **`FORETMAP_DEBUG_TASK_PUT_CLIENT=1`** : JSON 500 avec **`debugDetail`** / **`debugCode`** pour les profs **`tasks.manage`** ; l’API client concatène le détail dans le message d’erreur. **`FORETMAP_DEBUG_INGEST_URL`**, **`console.warn`** côté formulaire tâches. Artefacts **`dist/`** régénérés (voir version courante).
+### Retiré
+- **`FORETMAP_DEBUG_INGEST_URL`** et l’envoi HTTP local d’événements agent depuis **`routes/tasks.js`** (plus utilisés).
 
 ### Modifié
 - **Chargement des données (carte, tâches, etc.)** : `fetchAll` lit un instantané via ref (plus de recréation à chaque rendu) ; le rafraîchissement automatique est **debouncé** (250 ms) quand carte, réglages publics, rôle ou affiliation changent — moins d’appels API en rafale au démarrage ou après sync des réglages.
