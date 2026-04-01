@@ -6,7 +6,7 @@ const { getStudentProgressionConfig, syncStudentPrimaryRoleFromProgress } = requ
 
 const router = express.Router();
 
-async function userStats(userId) {
+async function userStats(userId, options = {}) {
   const s = await queryOne('SELECT * FROM users WHERE id = ? LIMIT 1', [userId]);
   if (!s) return null;
   const isStudent = String(s.user_type || '').toLowerCase() === 'student';
@@ -29,7 +29,9 @@ async function userStats(userId) {
   const total = assignments.length;
   let progression = null;
   if (isStudent) {
-    const sync = await syncStudentPrimaryRoleFromProgress(s.id, done, progressionConfig);
+    const sync = await syncStudentPrimaryRoleFromProgress(s.id, done, progressionConfig, {
+      recordPromotionNotice: !!options.recordPromotionNotice,
+    });
     progression = {
       thresholds: sync.thresholds,
       steps: sync.steps,
@@ -67,7 +69,8 @@ router.get('/me/:studentId', requireAuth, async (req, res) => {
     if (!canReadAll && !isOwner) {
       return res.status(403).json({ error: 'Accès refusé à ces statistiques' });
     }
-    const data = await userStats(askedStudentId);
+    const recordPromotionNotice = isOwner && String(auth?.userType || '').toLowerCase() === 'student';
+    const data = await userStats(askedStudentId, { recordPromotionNotice });
     if (!data) return res.status(404).json({ error: 'Utilisateur introuvable' });
     res.json(data);
   } catch (e) {

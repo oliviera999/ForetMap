@@ -29,6 +29,7 @@ import { Tooltip } from './components/Tooltip';
 import { getRoleTerms, isN3OnlyAffiliation } from './utils/n3-terminology';
 import { getContentText } from './utils/content';
 import { useDialogA11y } from './hooks/useDialogA11y';
+import { AutoProfilePromotionModal } from './components/AutoProfilePromotionModal.jsx';
 
 const DESKTOP_SPLIT_MIN_WIDTH = 1024;
 const DESKTOP_SPLIT_MIN_MAP_PX = 620;
@@ -148,6 +149,7 @@ function App() {
   const [markers,    setMarkers]    = useState([]);
   const [loading,    setLoading]    = useState(true);
   const [toast,      setToast]      = useState(null);
+  const [profilePromotion, setProfilePromotion] = useState(null);
   const [sessionValidationError, setSessionValidationError] = useState(false);
   const [appVersion, setAppVersion] = useState(null);
   const [refreshMs,  setRefreshMs]  = useState(30000);
@@ -413,6 +415,7 @@ function App() {
     setIsTeacher(false);
     setAuthClaims(null);
     setSessionValidationError(false);
+    setProfilePromotion(null);
     setToast('Votre compte a été supprimé par un responsable.');
   }, []);
 
@@ -452,6 +455,48 @@ function App() {
       student: merged,
     });
     setSessionUser(getStoredSession()?.user || null);
+  }, []);
+
+  const mergeAuthMeResponse = useCallback((d, opts = {}) => {
+    const { studentIdForMatch } = opts;
+    if (!d || typeof d !== 'object' || !d.auth) return;
+    const { auth } = d;
+    if (typeof d.refreshedToken === 'string' && d.refreshedToken.trim() !== '') {
+      const sess = getStoredSession() || {};
+      saveStoredSession({ ...sess, token: d.refreshedToken.trim() });
+    }
+    const claims = getAuthClaims();
+    setAuthClaims(claims);
+    setIsTeacher(Array.isArray(claims?.permissions) && claims.permissions.includes('teacher.access'));
+    if (auth.userType === 'teacher') {
+      setSessionUser((prev) => ({
+        id: auth.canonicalUserId || prev?.id || null,
+        userType: 'teacher',
+        displayName: auth.roleDisplayName || prev?.displayName || 'Utilisateur',
+        email: prev?.email || null,
+        avatar_path: prev?.avatar_path || null,
+      }));
+    }
+    if (d.autoProfilePromotion && auth.userType === 'student') {
+      if (!studentIdForMatch || String(auth.userId) === String(studentIdForMatch)) {
+        setProfilePromotion(d.autoProfilePromotion);
+      }
+    }
+    if (auth.userType === 'student' && (
+      d.taskEnrollment != null
+      || typeof d.forumParticipate === 'boolean'
+      || typeof d.contextCommentParticipate === 'boolean'
+    )) {
+      setStudent((prev) => {
+        if (!prev || String(prev.id) !== String(auth.userId)) return prev;
+        return {
+          ...prev,
+          ...(d.taskEnrollment != null ? { taskEnrollment: d.taskEnrollment } : {}),
+          ...(typeof d.forumParticipate === 'boolean' ? { forumParticipate: d.forumParticipate } : {}),
+          ...(typeof d.contextCommentParticipate === 'boolean' ? { contextCommentParticipate: d.contextCommentParticipate } : {}),
+        };
+      });
+    }
   }, []);
 
   const validateStudentSession = useCallback(async (savedStudent) => {
@@ -513,40 +558,12 @@ function App() {
     if (!session?.token) return;
     api('/api/auth/me')
       .then((d) => {
-        const auth = d?.auth || null;
-        if (!auth) return;
-        const claims = getAuthClaims();
-        setAuthClaims(claims);
-        setIsTeacher(Array.isArray(claims?.permissions) && claims.permissions.includes('teacher.access'));
-        if (auth.userType === 'teacher') {
-          setSessionUser((prev) => ({
-            id: auth.canonicalUserId || prev?.id || null,
-            userType: 'teacher',
-            displayName: auth.roleDisplayName || prev?.displayName || 'Utilisateur',
-            email: prev?.email || null,
-            avatar_path: prev?.avatar_path || null,
-          }));
-        }
-        if (auth.userType === 'student' && (
-          d.taskEnrollment != null
-          || typeof d.forumParticipate === 'boolean'
-          || typeof d.contextCommentParticipate === 'boolean'
-        )) {
-          setStudent((prev) => {
-            if (!prev || String(prev.id) !== String(auth.userId)) return prev;
-            return {
-              ...prev,
-              ...(d.taskEnrollment != null ? { taskEnrollment: d.taskEnrollment } : {}),
-              ...(typeof d.forumParticipate === 'boolean' ? { forumParticipate: d.forumParticipate } : {}),
-              ...(typeof d.contextCommentParticipate === 'boolean' ? { contextCommentParticipate: d.contextCommentParticipate } : {}),
-            };
-          });
-        }
+        mergeAuthMeResponse(d);
       })
       .catch(() => {
         // Session absente/invalide: on laisse les états locaux existants.
       });
-  }, []);
+  }, [mergeAuthMeResponse]);
 
   const fetchAll = useCallback(async () => {
     try {
@@ -612,15 +629,13 @@ function App() {
           api('/api/auth/me')
             .then((d) => {
               if (studentRef.current?.id !== sid) return;
-              if (!d?.taskEnrollment && typeof d?.forumParticipate !== 'boolean' && typeof d?.contextCommentParticipate !== 'boolean') return;
-              setStudent((prev) => {
-                if (!prev || prev.id !== sid) return prev;
-                const next = { ...prev };
-                if (d.taskEnrollment) next.taskEnrollment = d.taskEnrollment;
-                if (typeof d.forumParticipate === 'boolean') next.forumParticipate = d.forumParticipate;
-                if (typeof d.contextCommentParticipate === 'boolean') next.contextCommentParticipate = d.contextCommentParticipate;
-                return next;
-              });
+              const hasSideEffects = d?.taskEnrollment != null
+                || typeof d?.forumParticipate === 'boolean'
+                || typeof d?.contextCommentParticipate === 'boolean'
+                || typeof d?.refreshedToken === 'string'
+                || d?.autoProfilePromotion;
+              if (!hasSideEffects) return;
+              mergeAuthMeResponse(d, { studentIdForMatch: sid });
             })
             .catch(() => {});
         }
@@ -643,7 +658,7 @@ function App() {
       }
     }
     setLoading(false);
-  }, [activeMapId, DEFAULT_MAPS, canManageTutorials, effectiveIsTeacher, forceLogout, publicSettings?.map?.default_map_student, publicSettings?.map?.default_map_teacher, publicSettings?.map?.default_map_visit, showPublicVisit, student?.affiliation]);
+  }, [activeMapId, DEFAULT_MAPS, canManageTutorials, effectiveIsTeacher, forceLogout, mergeAuthMeResponse, publicSettings?.map?.default_map_student, publicSettings?.map?.default_map_teacher, publicSettings?.map?.default_map_visit, showPublicVisit, student?.affiliation]);
 
   const tasksForActiveMap = useMemo(() => (
     tasks.filter((t) => {
@@ -1001,6 +1016,13 @@ function App() {
         </div>
       )}
       {toast && <Toast msg={toast} onDone={() => setToast(null)}/>}
+      {profilePromotion && !effectiveIsTeacher && studentForUi && !studentForUi.preview_mode && (
+        <AutoProfilePromotionModal
+          data={profilePromotion}
+          roleTerms={roleTerms}
+          onClose={() => setProfilePromotion(null)}
+        />
+      )}
       {showPin && <PinModal
         onSuccess={() => {
           const claims = getAuthClaims();

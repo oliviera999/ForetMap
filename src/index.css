@@ -1032,6 +1032,104 @@
     .pin-error { color:var(--alert); font-size:.85rem; margin-bottom:10px; animation:shake .3s ease; }
     @keyframes shake { 0%,100%{transform:none} 25%{transform:translateX(-6px)} 75%{transform:translateX(6px)} }
 
+    /* ── Promotion profil auto (progression tâches) ── */
+    .profile-promo-overlay {
+      z-index: 280;
+      background: rgba(15, 42, 28, 0.45);
+      backdrop-filter: blur(4px);
+    }
+    .profile-promo-card {
+      position: relative;
+      max-width: 420px;
+      width: calc(100vw - 32px);
+      border-radius: 22px;
+      overflow: hidden;
+      box-shadow: 0 24px 48px rgba(20, 60, 40, 0.35), 0 0 0 1px rgba(255, 255, 255, 0.12);
+      animation: popIn 0.32s var(--spring) forwards;
+    }
+    .profile-promo-card__glow {
+      position: absolute;
+      inset: -40%;
+      background: conic-gradient(from 120deg, #7ccf9a, #52b788, #2d6a4f, #95d5b2, #7ccf9a);
+      opacity: 0.35;
+      filter: blur(48px);
+      pointer-events: none;
+    }
+    .profile-promo-card__inner {
+      position: relative;
+      z-index: 1;
+      padding: 26px 24px 22px;
+      background: linear-gradient(165deg, #f8fff9 0%, #eef8f1 55%, #e2f0e8 100%);
+      color: var(--forest);
+    }
+    .profile-promo-card__kicker {
+      margin: 0 0 6px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--sage);
+    }
+    .profile-promo-card__title {
+      margin: 0 0 12px;
+      font-size: clamp(1.5rem, 1.2rem + 1.2vw, 1.85rem);
+      line-height: 1.15;
+      color: var(--forest);
+    }
+    .profile-promo-card__lead {
+      margin: 0 0 16px;
+      font-size: 0.95rem;
+      line-height: 1.45;
+      color: #2f4a3c;
+    }
+    .profile-promo-card__highlights {
+      margin: 0 0 14px;
+      padding: 12px 14px;
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.72);
+      border: 1px solid rgba(45, 106, 79, 0.12);
+    }
+    .profile-promo-card__highlights-title {
+      margin: 0 0 8px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--forest);
+    }
+    .profile-promo-card__highlights ul {
+      margin: 0;
+      padding-left: 1.1rem;
+      font-size: 0.88rem;
+      line-height: 1.5;
+      color: #3d5c4d;
+    }
+    .profile-promo-card__highlights li {
+      margin-bottom: 4px;
+    }
+    .profile-promo-card__hint {
+      margin: 0 0 16px;
+      font-size: 0.78rem;
+      line-height: 1.4;
+      color: #6b7f72;
+    }
+    .profile-promo-card__cta {
+      width: 100%;
+      min-height: 48px;
+      font-weight: 700;
+      font-size: 1rem;
+      border-radius: 14px;
+      background: linear-gradient(135deg, var(--forest), #1b4332);
+      color: #fff;
+      border: none;
+      box-shadow: 0 8px 20px rgba(27, 67, 50, 0.28);
+    }
+    .profile-promo-card__cta:hover {
+      filter: brightness(1.05);
+    }
+    .profile-promo-card__cta:focus-visible {
+      outline: 3px solid rgba(82, 183, 136, 0.55);
+      outline-offset: 2px;
+    }
+
     /* ── AUTH SCREEN ── */
     .auth-wrap {
       min-height:100vh; min-height:100dvh;

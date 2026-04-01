@@ -748,7 +748,7 @@ async function getTaskWithAssignments(taskId) {
 
 async function ensureStudentPermission({ studentId, permissionKey, profilePin }) {
   await ensurePrimaryRole('student', studentId, 'eleve_novice');
-  await syncStudentPrimaryRoleFromProgress(studentId);
+  await syncStudentPrimaryRoleFromProgress(studentId, null, null, { recordPromotionNotice: true });
   const base = await buildAuthzPayload('student', studentId, false);
   if (!base) return { ok: false, error: 'Profil introuvable' };
   if (base.permissions.includes(permissionKey)) return { ok: true, elevated: false };
