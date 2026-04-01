@@ -6,6 +6,7 @@ const { queryAll, queryOne, execute } = require('../database');
 const { requirePermission, JWT_SECRET, hydrateAuthFromTokenClaims } = require('../middleware/requireTeacher');
 const { saveBase64ToDisk, getAbsolutePath } = require('../lib/uploads');
 const { logRouteError } = require('../lib/routeLog');
+const { appendForcedLogLine } = require('../lib/logBuffer');
 const logger = require('../lib/logger');
 const { logAudit } = require('./audit');
 const { emitTasksChanged } = require('../lib/realtime');
@@ -773,16 +774,26 @@ async function ensureStudentPermission({ studentId, permissionKey, profilePin })
   return { ok: true, elevated: true };
 }
 
-function respondInternalError(res, req, err, message = 'Erreur serveur') {
+function respondInternalError(res, req, err, message = 'Erreur serveur', opts = {}) {
   logRouteError(err, req);
-  return res.status(500).json({ error: message });
+  const body = { error: message };
+  if (opts.exposeDetail && err) {
+    body.debugDetail = String(err.message || '');
+    if (err.code != null) body.debugCode = String(err.code);
+  }
+  return res.status(500).json(body);
 }
 
-/** Debug diagnostic : visible dans les logs Pino (prod). En local, envoi optionnel vers l’ingest Cursor si configuré. */
+/** Debug diagnostic : tampon admin/logs + Pino. En local, envoi optionnel vers l’ingest Cursor si configuré. */
 function agentDebugTaskPut(payload) {
   const body = { sessionId: '770265', ...payload, timestamp: Date.now() };
   try {
-    logger.info({ agentDebugTaskPut: true, ...payload }, 'foretmap_agent_debug PUT /api/tasks/:id');
+    appendForcedLogLine({ agentDebugTaskPut: true, ...payload });
+  } catch (_) {
+    /* ignore */
+  }
+  try {
+    logger.warn({ agentDebugTaskPut: true, ...payload }, 'foretmap_agent_debug PUT /api/tasks/:id');
   } catch (_) {
     /* ignore */
   }
@@ -1665,7 +1676,16 @@ router.put('/:id', async (req, res) => {
       },
     });
     // #endregion
-    respondInternalError(res, req, e);
+    let exposeDetail = false;
+    try {
+      const authCatch = await parseOptionalAuth(req);
+      exposeDetail =
+        String(process.env.FORETMAP_DEBUG_TASK_PUT_CLIENT || '').trim() === '1' &&
+        canManageTasks(authCatch);
+    } catch (_) {
+      /* ignore */
+    }
+    return respondInternalError(res, req, e, 'Erreur serveur', { exposeDetail });
   }
 });
 
