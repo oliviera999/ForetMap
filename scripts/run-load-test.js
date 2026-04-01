@@ -12,10 +12,12 @@ const profileToScenarioFile = {
   light: path.join('load', 'artillery-light.yml'),
   normal: path.join('load', 'artillery.yml'),
   stress: path.join('load', 'artillery-stress.yml'),
+  /** ~10 VU, pas de bypass rate limit (même IP que tous les clients Artillery). */
+  '10vu': path.join('load', 'artillery-10vu.yml'),
 };
 
 if (!profileToScenarioFile[profile]) {
-  console.error(`Profil inconnu: "${profile}". Profils supportés: light, normal, stress.`);
+  console.error(`Profil inconnu: "${profile}". Profils supportés: light, normal, stress, 10vu.`);
   process.exit(1);
 }
 

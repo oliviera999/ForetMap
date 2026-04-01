@@ -1,0 +1,67 @@
+# Scénario « ~10 utilisateurs virtuels » derrière une même IP (Artillery).
+# Aucun en-tête X-ForetMap-Load-Test : le rate limiting Express s’applique comme en prod / classe (Wi‑Fi).
+# maxVusers: 10 plafonne les VU concurrents par phase.
+config:
+  target: "http://127.0.0.1:3000"
+  http:
+    timeout: 20
+  defaults:
+    headers:
+      Accept: application/json
+  phases:
+    - duration: 20
+      arrivalRate: 1
+      rampTo: 2
+      name: ramp-up
+      maxVusers: 10
+    - duration: 120
+      arrivalRate: 2
+      name: plateau_10vu
+      maxVusers: 10
+    - duration: 20
+      arrivalRate: 1
+      name: cool-down
+      maxVusers: 10
+
+scenarios:
+  - name: lecture_legere
+    weight: 50
+    flow:
+      - get:
+          url: /api/health
+      - think: 3
+      - get:
+          url: /api/version
+      - think: 4
+      - get:
+          url: /api/health
+      - think: 3
+
+  - name: lecture_bdd
+    weight: 35
+    flow:
+      - get:
+          url: /api/health/db
+      - think: 3
+      - get:
+          url: /api/zones
+      - think: 4
+      - get:
+          url: /api/plants
+      - think: 3
+      - get:
+          url: /api/zones
+      - think: 3
+
+  - name: lecture_biodiversite
+    weight: 15
+    flow:
+      - get:
+          url: /api/plants
+      - think: 4
+      - get:
+          url: /api/zones
+      - think: 4
+      - get:
+          url: /api/plants
+      - think: 3

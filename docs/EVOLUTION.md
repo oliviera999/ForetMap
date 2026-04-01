@@ -25,6 +25,7 @@ Il a été mis à jour pour refléter l’état réel du dépôt (mars 2026), pu
 - **Tests UI smoke Playwright** : infrastructure e2e ajoutée (`playwright.config.js`, `e2e/`) pour couvrir les parcours critiques élève/prof.
 - **CI enrichie avec e2e** : le workflow CI exécute désormais les tests Playwright smoke après build et démarrage applicatif.
 - **Modularisation frontend avancée** : extraction des vues `stats`, `audit`, `about` hors de `foretmap-views.jsx` vers des modules dédiés.
+- **Charge « classe / Wi‑Fi » (validation technique)** : scénario Artillery **`load/artillery-10vu.yml`** avec au plus **10 utilisateurs virtuels** concurrents, **sans** bypass du rate limit (même IP pour tous les clients de la campagne) — commande **`npm run test:load:10vu`**. Permet d’observer **429** et latences sous le plafond **`/api/*`** réel ; documenté dans **`docs/LOCAL_DEV.md`** et **`docs/API.md`**.
 
 ## 1.2 Partiellement réalisé / restant
 
@@ -35,7 +36,7 @@ Il a été mis à jour pour refléter l’état réel du dépôt (mars 2026), pu
   - parcours critiques scripts/images déjà renforcés (`post-deploy-check`, images tâches/zones/observations en mode disque).
   - checklist de vérifications UI manuelles post-modularisation ajoutée dans `docs/EXPLOITATION.md` + tests UI Playwright (smoke + cycles complets) + exécution e2e en CI.
   - **Avancement récent** : ajout des flux complets tâche (création -> prise -> soumission -> validation), photo zone (upload/suppression), retrait d’une tâche par élève et cas PIN invalide.
-  - **Reste à faire** : élargir progressivement vers des cas limites métiers rares (multi-élèves concurrents, interruptions réseau réelles).
+  - **Reste à faire** : élargir progressivement vers des cas limites métiers rares (multi-élèves concurrents côté **UI** e2e, interruptions réseau réelles). Côté **API / une IP**, le profil **`test:load:10vu`** couvre déjà une approximation « ~10 utilisateurs » avec rate limiting actif.
 
 ## 1.3 Fonctionnalité livrée — Projets de tâches (V1 minimale)
 

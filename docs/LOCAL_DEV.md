@@ -242,6 +242,14 @@ LOAD_TEST_SECRET=mon_secret_long npm run test:load
 
 Sans `LOAD_TEST_SECRET`, aucun bypass n'est actif et le limiteur `/api/*` peut renvoyer des `429` pendant les paliers élevés.
 
+**Profil `10vu` (~10 utilisateurs / une IP, rate limit réel)** : scénario `load/artillery-10vu.yml` — pas d’en-tête `X-ForetMap-Load-Test`, phases avec `maxVusers: 10`, lectures API type navigation (health, version, zones, plants) et pauses « think ». Utile pour estimer **429** et latences quand toute la classe partage la même IP (Wi‑Fi). Démarrer le serveur normalement (`npm start` ou `npm run dev`, **sans** `LOAD_TEST_SECRET` si vous voulez mesurer le plafond applicatif tel quel), puis :
+
+```bash
+npm run test:load:10vu
+```
+
+Rapport JSON : même mécanisme que les autres profils (`load/reports/…`, copie vers `load/report.json`). Résumé Markdown : `npm run test:load:report load/report.json load/reports/10vu-summary.md`.
+
 Après `npm run test:load:all`, vous obtenez aussi :
 - `load/reports/light-summary.md`
 - `load/reports/normal-summary.md`
