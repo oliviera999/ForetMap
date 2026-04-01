@@ -629,6 +629,13 @@ function ProfilesAdminView({ isN3Affiliated = false }) {
         setErr('Impossible de charger la fiche utilisateur.');
         return;
       }
+      merged.user_type = String(merged.user_type || ut).toLowerCase();
+      if (!merged.user_type || !['student', 'teacher'].includes(merged.user_type)) {
+        setEditModalOpen(false);
+        setEditUserLoadState('idle');
+        setErr('Type de compte inconnu — impossible d’ouvrir l’édition.');
+        return;
+      }
       const s = buildUserEditInitialFields(merged);
       setEditingUser(merged);
       setEditFirstName(s.firstName);
@@ -694,7 +701,11 @@ function ProfilesAdminView({ isN3Affiliated = false }) {
       );
       setMsg(`Compte mis à jour : ${editFirstName.trim()} ${editLastName.trim()}`);
       closeEditUser();
-      await load();
+      try {
+        await load();
+      } catch (loadErr) {
+        setErr(loadErr?.message || 'Liste non rafraîchie — rechargez la page si besoin.');
+      }
     } catch (e) {
       setErr(e.message || 'Erreur lors de la mise à jour du compte');
     }
@@ -883,7 +894,9 @@ function ProfilesAdminView({ isN3Affiliated = false }) {
     <div className="fade-in profiles-admin">
       <h2 className="section-title">🛡️ Profils & utilisateurs</h2>
       <p className="section-sub">Gestion des profils, des comptes et des opérations {roleTerms.studentPlural} (création, import, export, suppression).</p>
-      {err && <div className="auth-error">⚠️ {err}</div>}
+      {err && !(editModalOpen && editUserLoadState === 'ready') && (
+        <div className="auth-error">⚠️ {err}</div>
+      )}
       {msg && <div className="auth-success">{msg}</div>}
 
       {editModalOpen && (
@@ -899,7 +912,20 @@ function ProfilesAdminView({ isN3Affiliated = false }) {
                   <strong>{editingUser.display_name}</strong>
                   <span style={{ color: '#94a3b8' }}> ({editingUser.user_type})</span>
                 </p>
-                <div className="profiles-admin-create-grid" style={{ display: 'grid', gap: 10 }}>
+                {err && (
+                  <div className="auth-error" style={{ marginBottom: 12 }} role="alert">
+                    ⚠️ {err}
+                  </div>
+                )}
+                <form
+                  className="profiles-admin-create-grid"
+                  style={{ display: 'grid', gap: 10 }}
+                  noValidate
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    saveEditUser();
+                  }}
+                >
                   <div className="field" style={{ margin: 0 }}>
                     <label htmlFor="edit-user-first">Prénom (obligatoire)</label>
                     <input
@@ -908,8 +934,6 @@ function ProfilesAdminView({ isN3Affiliated = false }) {
                       onChange={(e) => setEditFirstName(e.target.value)}
                       disabled={editLoading}
                       autoComplete="off"
-                      required
-                      minLength={1}
                     />
                   </div>
                   <div className="field" style={{ margin: 0 }}>
@@ -920,8 +944,6 @@ function ProfilesAdminView({ isN3Affiliated = false }) {
                       onChange={(e) => setEditLastName(e.target.value)}
                       disabled={editLoading}
                       autoComplete="off"
-                      required
-                      minLength={1}
                     />
                   </div>
                   <div className="field" style={{ margin: 0 }}>
@@ -973,15 +995,15 @@ function ProfilesAdminView({ isN3Affiliated = false }) {
                     <label htmlFor="edit-user-pw">Nouveau mot de passe (laisser vide pour ne pas changer)</label>
                     <input id="edit-user-pw" type="password" value={editPassword} onChange={(e) => setEditPassword(e.target.value)} disabled={editLoading} autoComplete="new-password" />
                   </div>
-                </div>
-                <div style={{ display: 'flex', gap: 10, marginTop: 16 }}>
-                  <button type="button" className="btn btn-primary" style={{ flex: 1 }} onClick={saveEditUser} disabled={editLoading}>
-                    {editLoading ? 'Enregistrement…' : 'Enregistrer'}
-                  </button>
-                  <button type="button" className="btn btn-ghost" style={{ flex: 1 }} onClick={closeEditUser} disabled={editLoading}>
-                    Annuler
-                  </button>
-                </div>
+                  <div style={{ display: 'flex', gap: 10, marginTop: 6, gridColumn: '1 / -1' }}>
+                    <button type="submit" className="btn btn-primary" style={{ flex: 1 }} disabled={editLoading}>
+                      {editLoading ? 'Enregistrement…' : 'Enregistrer'}
+                    </button>
+                    <button type="button" className="btn btn-ghost" style={{ flex: 1 }} onClick={closeEditUser} disabled={editLoading}>
+                      Annuler
+                    </button>
+                  </div>
+                </form>
               </>
             )}
             {editUserLoadState === 'loading' && (
