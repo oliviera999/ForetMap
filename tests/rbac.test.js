@@ -76,6 +76,47 @@ test('RBAC admin: lecture profils et utilisateurs', async () => {
     .expect(200);
   assert.ok(Array.isArray(users.body));
   assert.ok(users.body.some((u) => u.user_type === 'teacher' || u.user_type === 'student'));
+  const sample = users.body.find((u) => u.user_type === 'student');
+  if (sample) {
+    assert.ok(Object.prototype.hasOwnProperty.call(sample, 'first_name'));
+    assert.ok(Object.prototype.hasOwnProperty.call(sample, 'last_name'));
+  }
+});
+
+test('RBAC admin: PATCH compte utilisateur (n3beur)', async () => {
+  const token = await getAdminToken();
+  const student = await queryOne(
+    "SELECT id, first_name, last_name FROM users WHERE user_type = 'student' LIMIT 1"
+  );
+  assert.ok(student?.id, 'Au moins un n3beur en base pour ce test');
+  const prevFirst = student.first_name;
+  const prevLast = student.last_name;
+  const newFirst = `Tmp${Date.now()}`.slice(0, 24);
+  const res = await request(app)
+    .patch(`/api/rbac/users/student/${student.id}`)
+    .set('Authorization', `Bearer ${token}`)
+    .send({
+      first_name: newFirst,
+      last_name: prevLast,
+      pseudo: null,
+      email: null,
+      description: null,
+      affiliation: 'both',
+    })
+    .expect(200);
+  assert.strictEqual(res.body.first_name, newFirst);
+  await execute(
+    'UPDATE users SET first_name = ?, last_name = ? WHERE id = ? AND user_type = ?',
+    [prevFirst, prevLast, student.id, 'student']
+  );
+  await execute(
+    'UPDATE task_assignments SET student_first_name = ?, student_last_name = ? WHERE student_id = ?',
+    [prevFirst, prevLast, student.id]
+  );
+  await execute(
+    'UPDATE task_logs SET student_first_name = ?, student_last_name = ? WHERE student_id = ?',
+    [prevFirst, prevLast, student.id]
+  );
 });
 
 test('RBAC admin: mise à jour PIN profil', async () => {

@@ -37,6 +37,15 @@ function ProfilesAdminView({ isN3Affiliated = false }) {
   const [roleDisplayOrder, setRoleDisplayOrder] = useState('');
   const [roleMaxConcurrentTasks, setRoleMaxConcurrentTasks] = useState('');
   const [progressionByTasksEnabled, setProgressionByTasksEnabled] = useState(true);
+  const [editingUser, setEditingUser] = useState(null);
+  const [editFirstName, setEditFirstName] = useState('');
+  const [editLastName, setEditLastName] = useState('');
+  const [editPseudo, setEditPseudo] = useState('');
+  const [editEmail, setEditEmail] = useState('');
+  const [editDescription, setEditDescription] = useState('');
+  const [editAffiliation, setEditAffiliation] = useState('both');
+  const [editPassword, setEditPassword] = useState('');
+  const [editLoading, setEditLoading] = useState(false);
 
   const load = async () => {
     setErr('');
@@ -483,6 +492,70 @@ function ProfilesAdminView({ isN3Affiliated = false }) {
     setLoading(false);
   };
 
+  const openEditUser = (u) => {
+    setErr('');
+    setEditingUser(u);
+    setEditFirstName(String(u.first_name || '').trim());
+    setEditLastName(String(u.last_name || '').trim());
+    setEditPseudo(String(u.pseudo || '').trim());
+    setEditEmail(String(u.email || '').trim());
+    setEditDescription(String(u.description || '').trim());
+    setEditAffiliation(String(u.affiliation || 'both').toLowerCase());
+    setEditPassword('');
+  };
+
+  const closeEditUser = () => {
+    setEditingUser(null);
+    setEditPassword('');
+    setEditLoading(false);
+  };
+
+  const saveEditUser = async () => {
+    if (!editingUser) return;
+    if (!editFirstName.trim() || !editLastName.trim()) {
+      setErr('Prénom et nom sont requis');
+      return;
+    }
+    if (editPseudo.trim() && !/^[A-Za-z0-9_.-]{3,30}$/.test(editPseudo.trim())) {
+      setErr('Pseudo invalide (3-30 caractères, lettres/chiffres/._-)');
+      return;
+    }
+    if (editEmail.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(editEmail.trim())) {
+      setErr('Email invalide');
+      return;
+    }
+    if (editDescription.trim().length > 300) {
+      setErr('Description trop longue (max 300 caractères)');
+      return;
+    }
+    setEditLoading(true);
+    setErr('');
+    try {
+      const payload = {
+        first_name: editFirstName.trim(),
+        last_name: editLastName.trim(),
+        pseudo: editPseudo.trim() || null,
+        email: editEmail.trim() || null,
+        description: editDescription.trim() || null,
+      };
+      if (editingUser.user_type === 'student') {
+        payload.affiliation = editAffiliation;
+      }
+      if (editPassword.trim()) {
+        payload.password = editPassword;
+      }
+      await api(`/api/rbac/users/${editingUser.user_type}/${editingUser.id}`, 'PATCH', payload);
+      setMsg(`Compte mis à jour : ${editFirstName.trim()} ${editLastName.trim()}`);
+      closeEditUser();
+      await load();
+    } catch (e) {
+      setErr(e.message || 'Erreur lors de la mise à jour du compte');
+    }
+    setEditLoading(false);
+  };
+
+  const canEditUserRow = (u) => isAdmin || String(u.role_slug || '').toLowerCase() !== 'admin';
+
   const setRoleForumParticipate = async (roleId, forumParticipate) => {
     setLoading(true);
     setErr('');
@@ -665,6 +738,62 @@ function ProfilesAdminView({ isN3Affiliated = false }) {
       <p className="section-sub">Gestion des profils, des comptes et des opérations {roleTerms.studentPlural} (création, import, export, suppression).</p>
       {err && <div className="auth-error">⚠️ {err}</div>}
       {msg && <div className="auth-success">{msg}</div>}
+
+      {editingUser && (
+        <div className="modal-overlay" onClick={(e) => e.target === e.currentTarget && !editLoading && closeEditUser()}>
+          <div className="log-modal fade-in" style={{ paddingBottom: 'calc(20px + var(--safe-bottom))', maxWidth: 440 }} onClick={(e) => e.stopPropagation()}>
+            <h3 style={{ marginBottom: 8 }}>Modifier le compte</h3>
+            <p style={{ fontSize: '.82rem', color: '#64748b', marginBottom: 12, lineHeight: 1.45 }}>
+              <strong>{editingUser.display_name}</strong>
+              <span style={{ color: '#94a3b8' }}> ({editingUser.user_type})</span>
+            </p>
+            <div className="profiles-admin-create-grid" style={{ display: 'grid', gap: 10 }}>
+              <div className="field" style={{ margin: 0 }}>
+                <label htmlFor="edit-user-first">Prénom</label>
+                <input id="edit-user-first" value={editFirstName} onChange={(e) => setEditFirstName(e.target.value)} disabled={editLoading} autoComplete="off" />
+              </div>
+              <div className="field" style={{ margin: 0 }}>
+                <label htmlFor="edit-user-last">Nom</label>
+                <input id="edit-user-last" value={editLastName} onChange={(e) => setEditLastName(e.target.value)} disabled={editLoading} autoComplete="off" />
+              </div>
+              <div className="field" style={{ margin: 0 }}>
+                <label htmlFor="edit-user-pseudo">Pseudo (optionnel)</label>
+                <input id="edit-user-pseudo" value={editPseudo} onChange={(e) => setEditPseudo(e.target.value)} disabled={editLoading} autoComplete="off" />
+              </div>
+              <div className="field" style={{ margin: 0 }}>
+                <label htmlFor="edit-user-email">Email (optionnel)</label>
+                <input id="edit-user-email" type="email" value={editEmail} onChange={(e) => setEditEmail(e.target.value)} disabled={editLoading} autoComplete="off" />
+              </div>
+              <div className="field" style={{ margin: 0 }}>
+                <label htmlFor="edit-user-desc">Description (optionnel)</label>
+                <input id="edit-user-desc" value={editDescription} onChange={(e) => setEditDescription(e.target.value)} disabled={editLoading} maxLength={300} autoComplete="off" />
+              </div>
+              {editingUser.user_type === 'student' && (
+                <div className="field" style={{ margin: 0 }}>
+                  <label htmlFor="edit-user-aff">Affiliation</label>
+                  <select id="edit-user-aff" value={editAffiliation} onChange={(e) => setEditAffiliation(e.target.value)} disabled={editLoading}>
+                    <option value="both">N3 + Forêt comestible</option>
+                    <option value="n3">N3 uniquement</option>
+                    <option value="foret">Forêt comestible uniquement</option>
+                  </select>
+                </div>
+              )}
+              <div className="field" style={{ margin: 0 }}>
+                <label htmlFor="edit-user-pw">Nouveau mot de passe (laisser vide pour ne pas changer)</label>
+                <input id="edit-user-pw" type="password" value={editPassword} onChange={(e) => setEditPassword(e.target.value)} disabled={editLoading} autoComplete="new-password" />
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: 10, marginTop: 16 }}>
+              <button type="button" className="btn btn-primary" style={{ flex: 1 }} onClick={saveEditUser} disabled={editLoading}>
+                {editLoading ? 'Enregistrement…' : 'Enregistrer'}
+              </button>
+              <button type="button" className="btn btn-ghost" style={{ flex: 1 }} onClick={closeEditUser} disabled={editLoading}>
+                Annuler
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {confirmStudent && (
         <div className="modal-overlay" onClick={(e) => e.target === e.currentTarget && setConfirmStudent(null)}>
@@ -1001,7 +1130,7 @@ function ProfilesAdminView({ isN3Affiliated = false }) {
           <div style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: 12, padding: 12, marginTop: 12 }}>
             <h3 style={{ marginTop: 0 }}>Attribution des profils</h3>
             <p style={{ margin: '0 0 10px', fontSize: '.78rem', color: '#64748b', lineHeight: 1.45 }}>
-              Choisir le profil principal définit notamment forum et commentaires contextuels (réglés par profil dans la colonne de gauche, section Permissions). L’attribution peut exiger une session élevée (PIN) selon les droits du compte administrateur.
+              Choisir le profil principal définit notamment forum et commentaires contextuels (réglés par profil dans la colonne de gauche, section Permissions). L’attribution peut exiger une session élevée (PIN) selon les droits du compte administrateur. Utilisez « Modifier » pour changer prénom, nom, pseudo, email, description, affiliation ou mot de passe.
             </p>
             <div style={{ maxHeight: 360, overflow: 'auto' }}>
               {users.map((u) => (
@@ -1013,6 +1142,15 @@ function ProfilesAdminView({ isN3Affiliated = false }) {
                     <option value="">Aucun profil</option>
                     {sortedRoles.map((r) => <option key={r.id} value={r.id}>{r.display_name}</option>)}
                   </select>
+                  <button
+                    type="button"
+                    className="btn btn-secondary btn-sm"
+                    onClick={() => openEditUser(u)}
+                    disabled={loading || !canEditUserRow(u)}
+                    title={!canEditUserRow(u) ? 'Seul un administrateur peut modifier un autre administrateur' : 'Modifier ce compte'}
+                  >
+                    Modifier
+                  </button>
                 </div>
               ))}
             </div>
