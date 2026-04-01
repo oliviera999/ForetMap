@@ -328,7 +328,31 @@ function TaskFormModal({
 
   const selectableZones = zones.filter(z => !z.special && (!form.map_id || z.map_id === form.map_id));
   const selectableMarkers = markers.filter(m => !form.map_id || m.map_id === form.map_id);
-  const selectableProjects = taskProjects.filter((p) => !form.map_id || p.map_id === form.map_id);
+  /** Inclut le projet déjà lié même s’il est hors filtre carte / absent de la liste chargée (évite d’envoyer project_id null par erreur). */
+  const selectableProjects = useMemo(() => {
+    const byMap = taskProjects.filter((p) => !form.map_id || p.map_id === form.map_id);
+    if (isProposal || !editTask?.project_id) return byMap;
+    const pid = String(editTask.project_id).trim();
+    if (!pid) return byMap;
+    if (byMap.some((p) => String(p.id) === pid)) return byMap;
+    const found = taskProjects.find((p) => String(p.id) === pid);
+    if (found) return [found, ...byMap];
+    const stub = {
+      id: pid,
+      title: editTask.project_title || 'Projet lié',
+      map_id: editTask.project_map_id || '',
+      status: editTask.project_status,
+    };
+    return [stub, ...byMap];
+  }, [
+    taskProjects,
+    form.map_id,
+    editTask?.project_id,
+    editTask?.project_title,
+    editTask?.project_map_id,
+    editTask?.project_status,
+    isProposal,
+  ]);
   const normalizedTutorialIds = useMemo(
     () => normalizeTutorialIds(form.tutorial_ids),
     [form.tutorial_ids]
