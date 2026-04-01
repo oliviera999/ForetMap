@@ -51,7 +51,7 @@ Nécessite la variable d’environnement **`DEPLOY_SECRET`** et le header **`X-D
 | Méthode | URL | Description |
 |--------|-----|-------------|
 | POST | `/api/admin/restart` | Redémarre le processus Node (body JSON `{ "secret" }` ou header) |
-| GET | `/api/admin/logs` | Dernières lignes des logs applicatifs (Pino) depuis un **tampon mémoire** (`?lines=200` par défaut, max 5000). Réponse JSON : `entries` (tableau de chaînes), `bufferLines`, `bufferMax`. |
+| GET | `/api/admin/logs` | Dernières lignes des logs applicatifs (Pino) depuis un **tampon mémoire** (`?lines=200` par défaut, max 5000). Réponse JSON : `entries` (tableau de chaînes), `bufferLines`, `bufferMax`. En local, **`npm run prod:admin-tail`** (avec `DEPLOY_SECRET` dans `.env`) enchaîne diagnostics + logs avec **User-Agent** dédié et pause pour limiter les **429**. |
 | GET | `/api/admin/diagnostics` | **Instantané d’exploitation** (sans secrets dans la réponse) : champs ci-dessus + **`metrics`** (`httpRequests`, `http5xx`, `http4xx`, `httpSlow`, `routeErrors`, `rateLimit429Samples`, `recentHttp5xx` : derniers 5xx avec `requestId`, `method`, `path`, `statusCode`, `at`). |
 
 Le tampon est dimensionné par **`LOG_BUFFER_MAX_LINES`** (défaut 2000, plafond 5000). Les logs antérieurs au démarrage du process ne sont pas disponibles ici (voir aussi les logs du panel hébergeur / stdout).

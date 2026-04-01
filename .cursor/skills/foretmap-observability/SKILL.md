@@ -29,6 +29,14 @@ npm run deploy:check:prod
 
 Avec `DEPLOY_SECRET` (ou `FORETMAP_DEPLOY_CHECK_SECRET`) dans l’environnement : le script vérifie aussi `GET /api/admin/diagnostics`.
 
+Tampon Pino + résumé parsé (comptage niveaux, échantillon erreurs) sans enchaîner les requêtes trop vite :
+
+```bash
+npm run prod:admin-tail
+```
+
+(Nécessite le même secret que sur le serveur dans `.env` local — ne pas commiter.)
+
 ## Corrélation support
 
 Demander aux utilisateurs l’en-tête **`X-Request-Id`** (outils réseau du navigateur) et croiser avec `GET /api/admin/logs` ou le champ `metrics.recentHttp5xx` des diagnostics.
