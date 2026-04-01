@@ -46,6 +46,25 @@ test('requestJsonWithTimeout lit une réponse JSON locale', async () => {
   }
 });
 
+test('requestJsonWithTimeout transmet des en-têtes supplémentaires', async () => {
+  const server = http.createServer((req, res) => {
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ deploySecret: req.headers['x-deploy-secret'] || '' }));
+  });
+
+  await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+  const port = server.address().port;
+  try {
+    const out = await requestJsonWithTimeout(`http://127.0.0.1:${port}/api/admin/diagnostics`, 3000, {
+      'X-Deploy-Secret': 'check-secret',
+    });
+    assert.strictEqual(out.status, 200);
+    assert.strictEqual(out.body.deploySecret, 'check-secret');
+  } finally {
+    await new Promise((resolve) => server.close(resolve));
+  }
+});
+
 test('requestJsonWithTimeout envoie un User-Agent explicite', async () => {
   const server = http.createServer((req, res) => {
     res.writeHead(200, { 'Content-Type': 'application/json' });
