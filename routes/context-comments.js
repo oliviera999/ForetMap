@@ -180,7 +180,13 @@ router.use(async (req, res, next) => {
     return next();
   } catch (e) {
     logRouteError(e, req);
-    return next(e);
+    // Ne pas passer par next(e) : le handler global masque le détail derrière « Erreur serveur ».
+    if (res.headersSent) return;
+    return res.status(503).json({
+      error:
+        'Commentaires temporairement indisponibles (impossible de lire les réglages ou la base). Réessaie dans un instant.',
+      code: 'CONTEXT_COMMENTS_UNAVAILABLE',
+    });
   }
 });
 router.use((req, res, next) => {

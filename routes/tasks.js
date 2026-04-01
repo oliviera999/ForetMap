@@ -6,6 +6,7 @@ const { queryAll, queryOne, execute } = require('../database');
 const { requirePermission, JWT_SECRET, hydrateAuthFromTokenClaims } = require('../middleware/requireTeacher');
 const { saveBase64ToDisk, getAbsolutePath } = require('../lib/uploads');
 const { logRouteError } = require('../lib/routeLog');
+const logger = require('../lib/logger');
 const { logAudit } = require('./audit');
 const { emitTasksChanged } = require('../lib/realtime');
 const { ensurePrimaryRole, buildAuthzPayload, verifyRolePin, syncStudentPrimaryRoleFromProgress } = require('../lib/rbac');
@@ -493,43 +494,53 @@ async function getTaskTutorialIds(taskId) {
 
 async function getTaskProposerStudentId(taskId) {
   if (!taskId) return null;
-  const row = await queryOne(
-    `SELECT actor_user_id AS student_id
-       FROM audit_log
-      WHERE action = 'propose_task'
-        AND target_type = 'task'
-        AND target_id = ?
-        AND actor_user_type = 'student'
-        AND actor_user_id IS NOT NULL
-      ORDER BY id DESC
-      LIMIT 1`,
-    [taskId]
-  );
-  return row?.student_id ? String(row.student_id) : null;
+  try {
+    const row = await queryOne(
+      `SELECT actor_user_id AS student_id
+         FROM audit_log
+        WHERE action = 'propose_task'
+          AND target_type = 'task'
+          AND target_id = ?
+          AND actor_user_type = 'student'
+          AND actor_user_id IS NOT NULL
+        ORDER BY id DESC
+        LIMIT 1`,
+      [taskId]
+    );
+    return row?.student_id ? String(row.student_id) : null;
+  } catch (err) {
+    logger.warn({ err, taskId }, 'Lecture proposeur (audit_log) en échec — poursuite sans métadonnée');
+    return null;
+  }
 }
 
 async function fetchTaskProposerMap(taskIds) {
   if (!taskIds.length) return new Map();
-  const placeholders = taskIds.map(() => '?').join(',');
-  const rows = await queryAll(
-    `SELECT target_id AS task_id, actor_user_id AS student_id
-       FROM audit_log
-      WHERE action = 'propose_task'
-        AND target_type = 'task'
-        AND actor_user_type = 'student'
-        AND actor_user_id IS NOT NULL
-        AND target_id IN (${placeholders})
-      ORDER BY id DESC`,
-    taskIds
-  );
-  const map = new Map();
-  for (const row of rows) {
-    if (!row?.task_id || !row?.student_id) continue;
-    if (!map.has(row.task_id)) {
-      map.set(row.task_id, String(row.student_id));
+  try {
+    const placeholders = taskIds.map(() => '?').join(',');
+    const rows = await queryAll(
+      `SELECT target_id AS task_id, actor_user_id AS student_id
+         FROM audit_log
+        WHERE action = 'propose_task'
+          AND target_type = 'task'
+          AND actor_user_type = 'student'
+          AND actor_user_id IS NOT NULL
+          AND target_id IN (${placeholders})
+        ORDER BY id DESC`,
+      taskIds
+    );
+    const map = new Map();
+    for (const row of rows) {
+      if (!row?.task_id || !row?.student_id) continue;
+      if (!map.has(row.task_id)) {
+        map.set(row.task_id, String(row.student_id));
+      }
     }
+    return map;
+  } catch (err) {
+    logger.warn({ err, taskCount: taskIds.length }, 'Liste proposeurs (audit_log) en échec — tâches renvoyées sans proposed_by');
+    return new Map();
   }
-  return map;
 }
 
 async function setTaskZones(taskId, zoneIds) {
@@ -1385,7 +1396,10 @@ router.post('/proposals', async (req, res) => {
       .filter(Boolean)
       .join('\n\n');
     await execute(
-      'INSERT INTO tasks (id, title, description, map_id, zone_id, marker_id, start_date, due_date, required_students, status, recurrence, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      `INSERT INTO tasks (
+        id, title, description, map_id, project_id, zone_id, marker_id,
+        start_date, due_date, required_students, completion_mode, status, recurrence, created_at
+      ) VALUES (?, ?, ?, ?, NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         id,
         String(title).trim(),
@@ -1396,6 +1410,7 @@ router.post('/proposals', async (req, res) => {
         start_date || null,
         due_date || null,
         reqStudents,
+        'single_done',
         'proposed',
         null,
         new Date().toISOString(),
