@@ -6,6 +6,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 ## [Non publié]
 
 ### Modifié
+- **Chargement des données (carte, tâches, etc.)** : `fetchAll` lit un instantané via ref (plus de recréation à chaque rendu) ; le rafraîchissement automatique est **debouncé** (250 ms) quand carte, réglages publics, rôle ou affiliation changent — moins d’appels API en rafale au démarrage ou après sync des réglages.
 - **MCP Cursor (`foretmap-diagnostics`)** : chargement de **`.env`** à la racine dans **`scripts/mcp-foretmap-diagnostics.mjs`** (sans écraser l’OS) ; **`.cursor/mcp.json`** ne fixe plus **`FORETMAP_DEPLOY_SECRET`** via `${env:…}` (évitait un secret vide qui bloquait `dotenv`). Doc **`docs/MCP_FORETMAP_CURSOR.md`**, **`README.md`**, **`docs/EXPLOITATION.md`**.
 
 ### Ajouté
