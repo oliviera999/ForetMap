@@ -900,8 +900,8 @@ function ProfilesAdminView({ isN3Affiliated = false }) {
       {msg && <div className="auth-success">{msg}</div>}
 
       {editModalOpen && (
-        <div className="modal-overlay" onClick={(e) => e.target === e.currentTarget && !editLoading && editUserLoadState !== 'loading' && closeEditUser()}>
-          <div className="log-modal fade-in" style={{ paddingBottom: 'calc(20px + var(--safe-bottom))', maxWidth: 440 }} onClick={(e) => e.stopPropagation()}>
+        <div className="modal-overlay modal-overlay--centered" onClick={(e) => e.target === e.currentTarget && !editLoading && editUserLoadState !== 'loading' && closeEditUser()}>
+          <div className="log-modal log-modal--dialog fade-in" style={{ paddingBottom: 'calc(20px + var(--safe-bottom))' }} onClick={(e) => e.stopPropagation()}>
             <h3 style={{ marginBottom: 8 }}>Modifier le compte</h3>
             {editUserLoadState === 'loading' && (
               <p style={{ margin: '12px 0', fontSize: '.9rem', color: '#64748b' }}>Chargement des données du compte…</p>
@@ -1018,8 +1018,8 @@ function ProfilesAdminView({ isN3Affiliated = false }) {
       )}
 
       {confirmStudent && (
-        <div className="modal-overlay" onClick={(e) => e.target === e.currentTarget && setConfirmStudent(null)}>
-          <div className="log-modal fade-in" style={{ paddingBottom: 'calc(20px + var(--safe-bottom))' }} onClick={(e) => e.stopPropagation()}>
+        <div className="modal-overlay modal-overlay--centered" onClick={(e) => e.target === e.currentTarget && setConfirmStudent(null)}>
+          <div className="log-modal log-modal--dialog fade-in" style={{ paddingBottom: 'calc(20px + var(--safe-bottom))' }} onClick={(e) => e.stopPropagation()}>
             <h3 style={{ marginBottom: 8 }}>Supprimer le/la {roleTerms.studentSingular} ?</h3>
             <p style={{ fontSize: '.95rem', color: '#444', marginBottom: 6, lineHeight: 1.5 }}>
               <strong>{confirmStudent.first_name} {confirmStudent.last_name}</strong>
