@@ -6,6 +6,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 ## [Non publié]
 
 ### Modifié
+- **Profils & utilisateurs / édition compte** : préremplissage des champs fiabilisé — fusion **liste + GET détail** si la fiche seule est incomplète ou si la requête détail échoue ; lecture des champs **insensible à la casse** (snake_case / camelCase) ; **encodeURIComponent** sur l’identifiant dans l’URL ; normalisation **Buffer → chaîne** côté client. API **`GET /api/rbac/users`** et **`GET …/:userType/:userId`** : champs texte sérialisés en chaînes JSON explicites (`jsonTextField`).
 - **Notifications (UI)** : le panneau du centre de notifications se ferme au **clic à l’extérieur** (hors panneau et hors bouton cloche) et via un bouton **×** en haut à droite du panneau.
 - **Profils & utilisateurs / édition compte** : ouverture avec **`GET /api/rbac/users/:userType/:userId`** ; champs préremplis avec les valeurs serveur ; si `first_name`/`last_name` sont absents, complément à partir de `display_name` ou de la partie locale de l’email. Prénom et nom obligatoires à l’enregistrement ; indicateur de chargement dans la modale. Documentation **`docs/API.md`** ; test **`rbac.test.js`**.
 
