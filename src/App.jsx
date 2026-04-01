@@ -129,6 +129,8 @@ function App() {
   useEffect(() => {
     studentRef.current = student;
   }, [student]);
+  /** Pendant les modales de la vue Tâches : pas de rafraîchissement données (évite la perte du clavier virtuel mobile). */
+  const pauseDataRefreshForTaskOverlaysRef = useRef(false);
   const [sessionUser, setSessionUser] = useState(() => initialSession?.user || null);
   const [isTeacher,  setIsTeacher]  = useState(() => {
     const claims = getAuthClaims();
@@ -766,6 +768,10 @@ function App() {
     && hasPermission('stats.read.all');
   const canSwitchToStudentView = isTeacher && (effectiveRoleContext.roleSlug === 'prof' || effectiveRoleContext.roleSlug === 'admin');
   const canSwitchToTeacherView = isTeacher && effectiveRoleContext.roleSlug === 'admin';
+  const onTaskFormOverlayOpenChange = useCallback((open) => {
+    pauseDataRefreshForTaskOverlaysRef.current = !!open;
+  }, []);
+
   const shouldUseDesktopSplit = useMemo(() => {
     if (viewportWidth < DESKTOP_SPLIT_MIN_WIDTH) return false;
     const pagePadding = 32;
@@ -791,6 +797,7 @@ function App() {
     setZones,
     setPlants,
     setMarkers,
+    pauseDataRefreshRef: pauseDataRefreshForTaskOverlaysRef,
   });
   const teacherSyncStatus = effectiveIsTeacher ? (rtStatus === 'off' ? 'polling' : rtStatus) : rtStatus;
   const isAdmin = effectiveRoleContext.roleSlug === 'admin';
@@ -826,7 +833,10 @@ function App() {
   }, [isTabVisible, refreshMs, rtStatus]);
 
   useEffect(() => {
-    const id = setInterval(fetchAll, pollingIntervalMs);
+    const id = setInterval(() => {
+      if (pauseDataRefreshForTaskOverlaysRef.current) return;
+      fetchAll();
+    }, pollingIntervalMs);
     return () => clearInterval(id);
   }, [fetchAll, pollingIntervalMs]);
 
@@ -1422,13 +1432,14 @@ function App() {
                         onForceLogout={forceLogout}
                         isN3Affiliated={isN3Affiliated}
                         publicSettings={publicSettings}
+                        onTaskFormOverlayOpenChange={onTaskFormOverlayOpenChange}
                       />
                     </div>
                   </section>
                 </div>
               )}
               {!useSplitMapTasks && tab === 'map'    && <MapView zones={zones} markers={markers} tasks={tasks} plants={plants} maps={visibleMaps} activeMapId={activeMapId} onMapChange={setActiveMapId} isTeacher student={currentUser} canSelfAssignTasks canParticipateContextComments={canParticipateContextComments} onZoneUpdate={updateZone} onRefresh={fetchAll} publicSettings={publicSettings}/>}
-              {!useSplitMapTasks && tab === 'tasks'  && <TasksView  tasks={tasks} taskProjects={taskProjects} zones={zones} markers={markers} maps={visibleMaps} tutorials={tutorials} activeMapId={activeMapId} isTeacher student={currentUser} canSelfAssignTasks canParticipateContextComments={canParticipateContextComments} canViewOtherUsersIdentity onRefresh={fetchAll} onForceLogout={forceLogout} isN3Affiliated={isN3Affiliated} publicSettings={publicSettings} />}
+              {!useSplitMapTasks && tab === 'tasks'  && <TasksView  tasks={tasks} taskProjects={taskProjects} zones={zones} markers={markers} maps={visibleMaps} tutorials={tutorials} activeMapId={activeMapId} isTeacher student={currentUser} canSelfAssignTasks canParticipateContextComments={canParticipateContextComments} canViewOtherUsersIdentity onRefresh={fetchAll} onForceLogout={forceLogout} isN3Affiliated={isN3Affiliated} publicSettings={publicSettings} onTaskFormOverlayOpenChange={onTaskFormOverlayOpenChange} />}
               {tab === 'plants' && <PlantManager plants={plants} onRefresh={fetchAll} publicSettings={publicSettings}/>}
               {publicSettings?.modules?.tutorials_enabled !== false && tab === 'tuto'   && <TutorialsView tutorials={tutorials} isTeacher onRefresh={fetchAll} onForceLogout={forceLogout} />}
               {publicSettings?.modules?.stats_enabled !== false && tab === 'stats'  && (hasPermission('stats.read.all') ? <TeacherStats isN3Affiliated={isN3Affiliated} /> : <div className="empty"><p>Permission insuffisante</p></div>)}
@@ -1493,13 +1504,14 @@ function App() {
                           onForceLogout={forceLogout}
                           isN3Affiliated={isN3Affiliated}
                           publicSettings={publicSettings}
+                          onTaskFormOverlayOpenChange={onTaskFormOverlayOpenChange}
                         />
                       </div>
                     </section>
                   </div>
                 )}
                 {!useSplitMapTasks && tab === 'map'    && canAccessStudentMapTasks && <MapView zones={zones} markers={markers} tasks={tasks} plants={plants} maps={visibleMaps} activeMapId={activeMapId} onMapChange={setActiveMapId} isTeacher={false} student={studentForUi} canSelfAssignTasks={canSelfAssignTasks} canEnrollOnTasks={canSelfAssignMoreTasks} canParticipateContextComments={canParticipateContextComments} onZoneUpdate={updateZone} onRefresh={fetchAll} publicSettings={publicSettings}/>}
-                {!useSplitMapTasks && tab === 'tasks'  && canAccessStudentMapTasks && <TasksView tasks={tasks} taskProjects={taskProjects} zones={zones} markers={markers} maps={visibleMaps} tutorials={tutorials} activeMapId={activeMapId} isTeacher={false} student={studentForUi} canSelfAssignTasks={canSelfAssignTasks} canEnrollOnTasks={canSelfAssignMoreTasks} canParticipateContextComments={canParticipateContextComments} canViewOtherUsersIdentity={canViewOtherUsersIdentity} onRefresh={fetchAll} onForceLogout={forceLogout} isN3Affiliated={isN3Affiliated} publicSettings={publicSettings} />}
+                {!useSplitMapTasks && tab === 'tasks'  && canAccessStudentMapTasks && <TasksView tasks={tasks} taskProjects={taskProjects} zones={zones} markers={markers} maps={visibleMaps} tutorials={tutorials} activeMapId={activeMapId} isTeacher={false} student={studentForUi} canSelfAssignTasks={canSelfAssignTasks} canEnrollOnTasks={canSelfAssignMoreTasks} canParticipateContextComments={canParticipateContextComments} canViewOtherUsersIdentity={canViewOtherUsersIdentity} onRefresh={fetchAll} onForceLogout={forceLogout} isN3Affiliated={isN3Affiliated} publicSettings={publicSettings} onTaskFormOverlayOpenChange={onTaskFormOverlayOpenChange} />}
                 {tab === 'plants' && <PlantViewer plants={plants} zones={zones} publicSettings={publicSettings}/>}
                 {publicSettings?.modules?.tutorials_enabled !== false && tab === 'tuto' && <TutorialsView tutorials={tutorials} isTeacher={false} onRefresh={fetchAll} onForceLogout={forceLogout} />}
                 {tab === 'stats' && canViewGeneralStats && <TeacherStats isN3Affiliated={isN3Affiliated} />}

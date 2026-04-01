@@ -15,6 +15,8 @@ export function useForetmapRealtime({
   setZones,
   setPlants,
   setMarkers,
+  /** Quand vrai : pas de `setTasks` / jardin via temps réel (modale formulaire ouverte — clavier mobile). */
+  pauseDataRefreshRef = null,
 }) {
   const [rtStatus, setRtStatus] = useState('off');
   const tasksRtDebounceRef = useRef(null);
@@ -39,6 +41,7 @@ export function useForetmapRealtime({
   }, [forceLogout]);
 
   const refreshTasksFromServer = useCallback(async () => {
+    if (pauseDataRefreshRef?.current) return;
     try {
       const mapId = activeMapIdRef.current || 'foret';
       const mapQuery = `map_id=${encodeURIComponent(mapId)}`;
@@ -53,9 +56,10 @@ export function useForetmapRealtime({
       if (e instanceof AccountDeletedError) forceLogoutRef.current();
       else console.error('[ForetMap] rafraîchissement tâches (temps réel)', e);
     }
-  }, [setTaskProjects, setTasks]);
+  }, [pauseDataRefreshRef, setTaskProjects, setTasks]);
 
   const refreshGardenFromServer = useCallback(async () => {
+    if (pauseDataRefreshRef?.current) return;
     try {
       const mapId = activeMapIdRef.current || 'foret';
       const mapQuery = `map_id=${encodeURIComponent(mapId)}`;
@@ -72,7 +76,7 @@ export function useForetmapRealtime({
       if (e instanceof AccountDeletedError) forceLogoutRef.current();
       else console.error('[ForetMap] rafraîchissement jardin (temps réel)', e);
     }
-  }, [setMarkers, setPlants, setZones]);
+  }, [pauseDataRefreshRef, setMarkers, setPlants, setZones]);
 
   const scheduleTasksRefresh = useCallback(() => {
     if (tasksRtDebounceRef.current) clearTimeout(tasksRtDebounceRef.current);
