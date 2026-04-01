@@ -11,6 +11,7 @@ const { logAudit } = require('./audit');
 const { emitStudentsChanged, emitTasksChanged } = require('../lib/realtime');
 const { saveBase64ToDisk, deleteFile, getAbsolutePath, ensureDir } = require('../lib/uploads');
 const { ensurePrimaryRole, getPrimaryRoleForUser, setPrimaryRole } = require('../lib/rbac');
+const { deleteStudentById } = require('../lib/studentDeletion');
 const { getSettingValue } = require('../lib/settings');
 const logger = require('../lib/logger');
 
@@ -663,49 +664,18 @@ router.patch('/:id/profile', async (req, res) => {
 
 router.delete('/:id', requirePermission('students.delete', { needsElevation: true }), async (req, res) => {
   try {
-    const s = await queryOne("SELECT * FROM users WHERE id = ? AND user_type = 'student'", [req.params.id]);
-    if (!s) return res.status(404).json({ error: 'n3beur introuvable' });
-
-    const affectedRows = await queryAll(
-      'SELECT DISTINCT task_id FROM task_assignments WHERE student_id = ? OR (student_first_name = ? AND student_last_name = ?)',
-      [s.id, s.first_name, s.last_name]
-    );
-    const affectedTasks = affectedRows.map(r => r.task_id);
-
-    await execute(
-      'DELETE FROM task_assignments WHERE student_id = ? OR (student_first_name = ? AND student_last_name = ?)',
-      [s.id, s.first_name, s.last_name]
-    );
-    await execute(
-      'DELETE FROM task_logs WHERE student_id = ? OR (student_first_name = ? AND student_last_name = ?)',
-      [s.id, s.first_name, s.last_name]
-    );
-
-    for (const taskId of affectedTasks) {
-      const task = await queryOne('SELECT * FROM tasks WHERE id = ?', [taskId]);
-      if (!task) continue;
-      if (task.status === 'validated') continue;
-
-      const remainingRow = await queryOne('SELECT COUNT(*) AS c FROM task_assignments WHERE task_id = ?', [taskId]);
-      const remaining = remainingRow ? Number(remainingRow.c) : 0;
-
-      let newStatus;
-      if (remaining === 0) {
-        newStatus = 'available';
-      } else if (remaining >= task.required_students) {
-        newStatus = task.status === 'done' ? 'done' : 'in_progress';
-      } else {
-        newStatus = 'available';
+    const result = await deleteStudentById(req.params.id);
+    if (!result.ok) {
+      if (result.reason === 'not_found' || result.reason === 'missing_id') {
+        return res.status(404).json({ error: 'n3beur introuvable' });
       }
-      await execute('UPDATE tasks SET status = ? WHERE id = ?', [newStatus, taskId]);
+      return res.status(400).json({ error: 'Suppression impossible' });
     }
-
-    await execute("DELETE FROM users WHERE id = ? AND user_type = 'student'", [req.params.id]);
-    logAudit('delete_student', 'student', req.params.id, `${s.first_name} ${s.last_name}`, {
+    logAudit('delete_student', 'student', result.studentId, result.displayName, {
       req,
-      payload: { affected_tasks: affectedTasks.length },
+      payload: { affected_tasks: result.affectedTaskIds.length },
     });
-    emitStudentsChanged({ reason: 'delete_student', studentId: req.params.id });
+    emitStudentsChanged({ reason: 'delete_student', studentId: result.studentId });
     emitTasksChanged({ reason: 'delete_student_assignments' });
     res.json({ success: true });
   } catch (e) {

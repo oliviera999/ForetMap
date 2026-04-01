@@ -181,6 +181,20 @@ Si **`NODE_ENV=production`** dans l’environnement du serveur (souvent via **`.
 
 Vous pouvez cibler une autre URL avec **`E2E_BASE_URL`**.
 
+### Nettoyage comptes e2e et clones de tâches récurrentes
+
+Les scénarios créent des élèves reconnaissables (**prénom `E2E…`**, **email `e2e%@example.com`**, **pseudo `e2e%`**). Le job serveur duplique les tâches validées avec récurrence en conservant **`parent_task_id`**.
+
+| Commande | Effet |
+|----------|--------|
+| **`npm run db:cleanup:dev:dry`** | Affiche ce qui serait supprimé (aucune écriture). |
+| **`npm run db:cleanup:dev`** | Supprime ces élèves avec la même logique que **`DELETE /api/students/:id`** (assignations, statuts de tâches, forum, commentaires contextuels, RBAC, tokens, avatar disque), puis supprime les tâches dont **`parent_task_id`** est non nul (clones de récurrence). |
+
+Options supplémentaires (passer après `--`) :
+
+- **`--no-recurring-spawns`** : ne pas supprimer les tâches avec **`parent_task_id`**.
+- **`--include-node-test-students`** : supprime aussi les comptes résiduels des tests Node (**nom `Task` + prénom `St` + chiffres**, **nom `Student` + prénom `Del` + chiffres**) — **réservé à une base de dev**.
+
 ## 5ter. Tests de montée en charge (Artillery)
 
 Le scénario de charge est défini dans `load/artillery.yml` et cible par défaut `http://127.0.0.1:3000`.
