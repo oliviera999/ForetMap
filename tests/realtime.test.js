@@ -8,6 +8,7 @@ const { test } = require('node:test');
 const assert = require('node:assert');
 const http = require('http');
 const express = require('express');
+const jwt = require('jsonwebtoken');
 const { io: clientIo } = require('socket.io-client');
 const {
   initRealtime,
@@ -17,7 +18,7 @@ const {
   emitForumChanged,
   emitContextCommentsChanged,
 } = require('../lib/realtime');
-const { signAuthToken } = require('../middleware/requireTeacher');
+const { signAuthToken, JWT_SECRET } = require('../middleware/requireTeacher');
 
 test('emitTasksChanged sans Socket.IO initialisé ne lève pas', () => {
   assert.doesNotThrow(() => emitTasksChanged({ reason: 'noop' }));
@@ -130,6 +131,202 @@ test('Socket.IO : connexion refusée sans token', async () => {
   });
 
   socket.close();
+  await new Promise((resolve, reject) => {
+    server.close((err) => (err ? reject(err) : resolve()));
+  });
+});
+
+test('Socket.IO : connexion refusée avec JWT invalide', async () => {
+  const app = express();
+  const server = http.createServer(app);
+  initRealtime(server);
+
+  await new Promise((resolve, reject) => {
+    server.once('error', reject);
+    server.listen(0, '127.0.0.1', resolve);
+  });
+  const { port } = server.address();
+
+  const socket = clientIo(`http://127.0.0.1:${port}`, {
+    path: '/socket.io',
+    transports: ['websocket'],
+    timeout: 4000,
+    auth: { token: 'not.a.valid.jwt', mapId: 'foret' },
+  });
+
+  await new Promise((resolve, reject) => {
+    const to = setTimeout(() => reject(new Error('timeout connect_error attendu (JWT invalide)')), 5000);
+    socket.once('connect', () => {
+      clearTimeout(to);
+      reject(new Error('la connexion avec JWT invalide ne devrait pas aboutir'));
+    });
+    socket.once('connect_error', () => {
+      clearTimeout(to);
+      resolve();
+    });
+  });
+
+  socket.close();
+  await new Promise((resolve, reject) => {
+    server.close((err) => (err ? reject(err) : resolve()));
+  });
+});
+
+test('Socket.IO : connexion refusée avec JWT expiré', async () => {
+  const app = express();
+  const server = http.createServer(app);
+  initRealtime(server);
+
+  await new Promise((resolve, reject) => {
+    server.once('error', reject);
+    server.listen(0, '127.0.0.1', resolve);
+  });
+  const { port } = server.address();
+
+  const expiredToken = jwt.sign(
+    {
+      userType: 'teacher',
+      userId: 'expired-user',
+      roleSlug: 'prof',
+      exp: Math.floor(Date.now() / 1000) - 120,
+    },
+    JWT_SECRET
+  );
+
+  const socket = clientIo(`http://127.0.0.1:${port}`, {
+    path: '/socket.io',
+    transports: ['websocket'],
+    timeout: 4000,
+    auth: { token: expiredToken, mapId: 'foret' },
+  });
+
+  await new Promise((resolve, reject) => {
+    const to = setTimeout(() => reject(new Error('timeout connect_error attendu (JWT expiré)')), 5000);
+    socket.once('connect', () => {
+      clearTimeout(to);
+      reject(new Error('la connexion avec JWT expiré ne devrait pas aboutir'));
+    });
+    socket.once('connect_error', () => {
+      clearTimeout(to);
+      resolve();
+    });
+  });
+
+  socket.close();
+  await new Promise((resolve, reject) => {
+    server.close((err) => (err ? reject(err) : resolve()));
+  });
+});
+
+test('Socket.IO : subscribe:map quitte l’ancienne salle map', async () => {
+  const app = express();
+  const server = http.createServer(app);
+  initRealtime(server);
+  await new Promise((resolve, reject) => {
+    server.once('error', reject);
+    server.listen(0, '127.0.0.1', resolve);
+  });
+  const { port } = server.address();
+  const token = signAuthToken({
+    userType: 'teacher',
+    userId: 'sub-map-test',
+    roleSlug: 'prof',
+    permissions: ['teacher.access'],
+  });
+
+  const socket = clientIo(`http://127.0.0.1:${port}`, {
+    path: '/socket.io',
+    transports: ['websocket'],
+    auth: { token, mapId: 'foret' },
+  });
+
+  await new Promise((resolve, reject) => {
+    const to = setTimeout(() => reject(new Error('timeout connexion')), 8000);
+    socket.once('connect', () => { clearTimeout(to); resolve(); });
+    socket.once('connect_error', (err) => { clearTimeout(to); reject(err); });
+  });
+
+  socket.emit('subscribe:map', { mapId: 'n3' });
+  await new Promise((resolve) => setTimeout(resolve, 150));
+
+  const received = [];
+  socket.on('tasks:changed', (msg) => received.push(msg));
+
+  emitTasksChanged({ reason: 'foret_apres_switch', taskId: 't-f', mapId: 'foret' });
+  await new Promise((resolve) => setTimeout(resolve, 200));
+  assert.strictEqual(
+    received.some((m) => m.mapId === 'foret'),
+    false,
+    'ne doit plus recevoir les événements map:foret après subscribe:map vers n3'
+  );
+
+  socket.removeAllListeners('tasks:changed');
+  const n3Msg = await new Promise((resolve, reject) => {
+    const to = setTimeout(() => reject(new Error('timeout événement map n3')), 5000);
+    socket.once('tasks:changed', (msg) => {
+      clearTimeout(to);
+      resolve(msg);
+    });
+    emitTasksChanged({ reason: 'sur_n3', taskId: 't-n3', mapId: 'n3' });
+  });
+  assert.strictEqual(n3Msg.reason, 'sur_n3');
+  assert.strictEqual(n3Msg.mapId, 'n3');
+
+  socket.close();
+  await new Promise((resolve, reject) => {
+    server.close((err) => (err ? reject(err) : resolve()));
+  });
+});
+
+test('Socket.IO : emitTasksChanged sans mapId atteint domain:tasks (toutes les cartes)', async () => {
+  const app = express();
+  const server = http.createServer(app);
+  initRealtime(server);
+  await new Promise((resolve, reject) => {
+    server.once('error', reject);
+    server.listen(0, '127.0.0.1', resolve);
+  });
+  const { port } = server.address();
+  const token = signAuthToken({
+    userType: 'teacher',
+    userId: 'domain-broadcast',
+    roleSlug: 'prof',
+    permissions: ['teacher.access'],
+  });
+
+  const socketForet = clientIo(`http://127.0.0.1:${port}`, {
+    path: '/socket.io',
+    transports: ['websocket'],
+    auth: { token, mapId: 'foret' },
+  });
+  const socketN3 = clientIo(`http://127.0.0.1:${port}`, {
+    path: '/socket.io',
+    transports: ['websocket'],
+    auth: { token, mapId: 'autre-carte' },
+  });
+
+  await Promise.all([
+    new Promise((resolve, reject) => {
+      const to = setTimeout(() => reject(new Error('timeout socketForet')), 8000);
+      socketForet.once('connect', () => { clearTimeout(to); resolve(); });
+      socketForet.once('connect_error', (err) => { clearTimeout(to); reject(err); });
+    }),
+    new Promise((resolve, reject) => {
+      const to = setTimeout(() => reject(new Error('timeout socketN3')), 8000);
+      socketN3.once('connect', () => { clearTimeout(to); resolve(); });
+      socketN3.once('connect_error', (err) => { clearTimeout(to); reject(err); });
+    }),
+  ]);
+
+  const pForet = new Promise((resolve) => socketForet.once('tasks:changed', resolve));
+  const pN3 = new Promise((resolve) => socketN3.once('tasks:changed', resolve));
+  emitTasksChanged({ reason: 'domain_broadcast_test' });
+  const [msgA, msgB] = await Promise.all([pForet, pN3]);
+  assert.strictEqual(msgA.reason, 'domain_broadcast_test');
+  assert.strictEqual(msgB.reason, 'domain_broadcast_test');
+
+  socketForet.close();
+  socketN3.close();
   await new Promise((resolve, reject) => {
     server.close((err) => (err ? reject(err) : resolve()));
   });

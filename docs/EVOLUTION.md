@@ -26,6 +26,7 @@ Il a été mis à jour pour refléter l’état réel du dépôt (mars 2026), pu
 - **CI enrichie avec e2e** : le workflow CI exécute désormais les tests Playwright smoke après build et démarrage applicatif.
 - **Modularisation frontend avancée** : extraction des vues `stats`, `audit`, `about` hors de `foretmap-views.jsx` vers des modules dédiés.
 - **Charge « classe / Wi‑Fi » (validation technique)** : scénario Artillery **`load/artillery-10vu.yml`** avec au plus **10 utilisateurs virtuels** concurrents, **sans** bypass du rate limit (même IP pour tous les clients de la campagne) — commande **`npm run test:load:10vu`**. Permet d’observer **429** et latences sous le plafond **`/api/*`** réel ; documenté dans **`docs/LOCAL_DEV.md`** et **`docs/API.md`**.
+- **Temps réel Socket.IO** : tests étendus dans **`tests/realtime.test.js`** (JWT invalide / expiré, changement de carte via **`subscribe:map`**, `tasks:changed` sans `mapId` vers **`domain:tasks`**) ; paragraphe **Robustesse** dans **`docs/API.md`** (section Temps réel).
 
 ## 1.2 Partiellement réalisé / restant
 
