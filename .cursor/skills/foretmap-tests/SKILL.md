@@ -35,6 +35,10 @@ npm run test:e2e      # lance les scénarios UI Playwright
 npm run test:e2e:headed # idem avec navigateur visible
 ```
 
+## Débogage / logs
+
+Les réponses API exposent **`X-Request-Id`** : l’inclure dans les rapports de bug. Les erreurs 500 journalisées via **`logRouteError`** contiennent cet id. Voir skill **foretmap-observability** et `docs/API.md` (Observabilité).
+
 ## Structure existante
 
 ```
