@@ -1079,7 +1079,22 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
   const saveTask = async form => {
     const { assign_student_id: assignStudentId, ...taskPayload } = form || {};
     if (editTask && !duplicateTask) {
-      await api(`/api/tasks/${editTask.id}`, 'PUT', taskPayload);
+      try {
+        await api(`/api/tasks/${editTask.id}`, 'PUT', taskPayload);
+      } catch (e) {
+        // #region agent log
+        if (typeof console !== 'undefined' && console.warn) {
+          console.warn('[foretmap_agent_debug] PUT tâche échoué', {
+            taskId: String(editTask.id),
+            taskStatus: String(editTask.status ?? ''),
+            httpStatus: e?.status,
+            errMessage: String(e?.message || ''),
+            errBody: e?.body,
+          });
+        }
+        // #endregion
+        throw e;
+      }
       await onRefresh();
       return;
     }

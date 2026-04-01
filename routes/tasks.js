@@ -778,6 +778,26 @@ function respondInternalError(res, req, err, message = 'Erreur serveur') {
   return res.status(500).json({ error: message });
 }
 
+/** Debug diagnostic : visible dans les logs Pino (prod). En local, envoi optionnel vers l’ingest Cursor si configuré. */
+function agentDebugTaskPut(payload) {
+  const body = { sessionId: '770265', ...payload, timestamp: Date.now() };
+  try {
+    logger.info({ agentDebugTaskPut: true, ...payload }, 'foretmap_agent_debug PUT /api/tasks/:id');
+  } catch (_) {
+    /* ignore */
+  }
+  const customIngest = String(process.env.FORETMAP_DEBUG_INGEST_URL || '').trim();
+  const tryLocalIngest = process.env.NODE_ENV !== 'production';
+  const url = customIngest || (tryLocalIngest ? 'http://127.0.0.1:7785/ingest/01351649-d018-49d0-8c90-f8ef34535caf' : '');
+  if (url) {
+    fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '770265' },
+      body: JSON.stringify(body),
+    }).catch(() => {});
+  }
+}
+
 function trimName(value) {
   return String(value || '').trim();
 }
@@ -1476,6 +1496,22 @@ router.put('/:id', async (req, res) => {
       completion_mode,
     } = req.body;
 
+    // #region agent log
+    agentDebugTaskPut({
+      location: 'routes/tasks.js:put:afterBody',
+      message: 'PUT task body snapshot',
+      hypothesisId: 'H3',
+      data: {
+        taskId: String(task.id),
+        dbStatus: String(task.status ?? ''),
+        isTeacherAction: !!isTeacherAction,
+        bodyKeys: Object.keys(req.body || {}),
+        hasStatusKey: Object.prototype.hasOwnProperty.call(req.body || {}, 'status'),
+        hasCompletionModeKey: Object.prototype.hasOwnProperty.call(req.body || {}, 'completion_mode'),
+      },
+    });
+    // #endregion
+
     let nextZoneIds;
     if (Object.prototype.hasOwnProperty.call(req.body, 'zone_ids')) {
       nextZoneIds = normalizeIdArray(zone_ids);
@@ -1541,6 +1577,24 @@ router.put('/:id', async (req, res) => {
       return res.status(400).json({ error: 'Impossible de lier une tâche validée à des zones ou repères' });
     }
 
+    // #region agent log
+    agentDebugTaskPut({
+      location: 'routes/tasks.js:put:beforeUpdate',
+      message: 'PUT task before UPDATE',
+      hypothesisId: 'H1-H4',
+      data: {
+        taskId: String(task.id),
+        nextStatus,
+        nextCompletionMode,
+        mapId: projectValidation.mapId,
+        projectId: projectValidation.projectId,
+        zc: nextZoneIds.length,
+        mc: nextMarkerIds.length,
+        tc: nextTutorialIds.length,
+      },
+    });
+    // #endregion
+
     await execute(
       'UPDATE tasks SET title=?, description=?, map_id=?, project_id=?, zone_id=?, marker_id=?, start_date=?, due_date=?, required_students=?, status=?, completion_mode=?, recurrence=? WHERE id=?',
       [
@@ -1571,6 +1625,14 @@ router.put('/:id', async (req, res) => {
       });
       nextStatus = recalculated?.status || nextStatus;
     }
+    // #region agent log
+    agentDebugTaskPut({
+      location: 'routes/tasks.js:put:afterUpdate',
+      message: 'PUT task after UPDATE before junction tables',
+      hypothesisId: 'H2',
+      data: { taskId: String(task.id), nextStatusAfterRecalc: String(nextStatus) },
+    });
+    // #endregion
     await setTaskZones(task.id, nextZoneIds);
     await setTaskMarkers(task.id, nextMarkerIds);
     await setTaskTutorials(task.id, nextTutorialIds);
@@ -1591,6 +1653,18 @@ router.put('/:id', async (req, res) => {
     emitTasksChanged({ reason: 'update_task', taskId: task.id, projectId: projectValidation.projectId || null, mapId: resolveTaskMapId(updated) });
     res.json(updated);
   } catch (e) {
+    // #region agent log
+    agentDebugTaskPut({
+      location: 'routes/tasks.js:put:catch',
+      message: 'PUT task error',
+      hypothesisId: 'H1-H5',
+      data: {
+        taskId: String(req.params.id || ''),
+        errMsg: String(e && e.message),
+        errCode: e && e.code != null ? String(e.code) : '',
+      },
+    });
+    // #endregion
     respondInternalError(res, req, e);
   }
 });
