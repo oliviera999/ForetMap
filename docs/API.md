@@ -79,6 +79,13 @@ Connexion Socket.IO (transport **polling** actuellement forcé côté client) su
 - **Rooms** : souscription de domaine (`tasks`, `students`, `garden`) + souscription carte via `subscribe:map` (payload `{ mapId }`).
 - **Client** : le frontend se connecte pour n3beur/n3boss authentifié ; en cas d’échec, le rafraîchissement périodique reste actif (cadence adaptative).
 
+**Robustesse (comportement attendu)** :
+
+- **JWT** : connexion refusée si token absent, invalide ou expiré (`connect_error` côté client).
+- **Tâches par carte** : la plupart des `tasks:changed` métier incluent un `mapId` ; seuls les clients dans la salle **`map:<mapId>`** (handshake `auth.mapId` et/ou événement **`subscribe:map`**) reçoivent l’événement. Sans souscription à la bonne carte, l’utilisateur s’appuie sur le **polling** REST (voir hook temps réel / `App.jsx`).
+- **Diffusion domaine** : certains cas (ex. import bulk) émettent `tasks:changed` **sans** `mapId` → cible la salle **`domain:tasks`** (tous les sockets authentifiés abonnés à ce domaine).
+- **Tests d’intégration** (sans navigateur) : [`tests/realtime.test.js`](../tests/realtime.test.js) — auth, filtrage par carte, `subscribe:map`, repli `domain:tasks`.
+
 Événements émis par le serveur (payload JSON, toujours avec un champ `ts` — horodatage) :
 
 | Événement | Quand | Champs utiles (exemples) |
