@@ -37,6 +37,8 @@ const PROFILE_PATCH_KEYS = new Set([
   'forumParticipate',
   'context_comment_participate',
   'contextCommentParticipate',
+  'max_concurrent_tasks',
+  'maxConcurrentTasks',
 ]);
 /** Profils pour lesquels on règle seuils / tasks.propose / forum côté n3beur (hors admin, n3boss, visiteur). */
 function isStaffRoleSlug(slug) {
@@ -80,6 +82,15 @@ function parseOptionalNonNegativeInt(value, fallback = null) {
   if (value == null || value === '') return fallback;
   const n = parseInt(value, 10);
   if (!Number.isFinite(n) || n < 0) return NaN;
+  return n;
+}
+
+/** null ou chaîne vide = hériter du réglage global ; 0–99 = plafond (0 = illimité pour ce profil). */
+function parseOptionalMaxConcurrentTasks(value) {
+  if (value === undefined) return undefined;
+  if (value === null || value === '') return null;
+  const n = parseInt(value, 10);
+  if (!Number.isFinite(n) || n < 0 || n > 99) return NaN;
   return n;
 }
 
@@ -199,7 +210,7 @@ router.get(
   async (req, res) => {
     try {
       const rolesWithProgression = await queryAll(
-        'SELECT id, slug, display_name, emoji, min_done_tasks, display_order, `rank` AS `rank`, is_system, forum_participate, context_comment_participate FROM roles ORDER BY display_order ASC, `rank` DESC, id ASC'
+        'SELECT id, slug, display_name, emoji, min_done_tasks, display_order, `rank` AS `rank`, is_system, forum_participate, context_comment_participate, max_concurrent_tasks FROM roles ORDER BY display_order ASC, `rank` DESC, id ASC'
       );
       const perms = await queryAll('SELECT `key`, label, description FROM permissions ORDER BY `key` ASC');
       const rolePerms = await queryAll(
@@ -264,6 +275,24 @@ router.post(
       const emoji = normalizeRoleEmoji(req.body?.emoji);
       const minDoneTasks = parseOptionalNonNegativeInt(req.body?.min_done_tasks, null);
       const displayOrder = parseOptionalNonNegativeInt(req.body?.display_order, 0);
+      let maxConcurrentTasks = null;
+      if (Object.prototype.hasOwnProperty.call(req.body || {}, 'max_concurrent_tasks')
+        || Object.prototype.hasOwnProperty.call(req.body || {}, 'maxConcurrentTasks')) {
+        if (!canConfigureStudentTierForumContext(slug, rank)) {
+          return res.status(400).json({
+            error:
+              'max_concurrent_tasks : réservé aux profils n3beur (slug eleve_* ou rang strictement inférieur à celui du n3boss, hors admin, prof, visiteur)',
+          });
+        }
+        const rawMct = Object.prototype.hasOwnProperty.call(req.body || {}, 'max_concurrent_tasks')
+          ? req.body.max_concurrent_tasks
+          : req.body.maxConcurrentTasks;
+        const parsed = rawMct === undefined ? null : parseOptionalMaxConcurrentTasks(rawMct);
+        if (Number.isNaN(parsed)) {
+          return res.status(400).json({ error: 'max_concurrent_tasks invalide (0–99, vide ou null pour hériter du réglage global)' });
+        }
+        maxConcurrentTasks = parsed;
+      }
       if (!slug || !displayName) return res.status(400).json({ error: 'slug et display_name requis' });
       if (Number.isNaN(minDoneTasks)) return res.status(400).json({ error: 'min_done_tasks invalide (entier >= 0)' });
       if (Number.isNaN(displayOrder)) return res.status(400).json({ error: 'display_order invalide (entier >= 0)' });
@@ -271,11 +300,11 @@ router.post(
         return res.status(400).json({ error: 'Un profil n3beur doit définir emoji et min_done_tasks' });
       }
       await execute(
-        'INSERT INTO roles (slug, display_name, emoji, min_done_tasks, display_order, `rank`, is_system) VALUES (?, ?, ?, ?, ?, ?, 0)',
-        [slug, displayName, emoji, minDoneTasks, displayOrder ?? 0, rank]
+        'INSERT INTO roles (slug, display_name, emoji, min_done_tasks, display_order, `rank`, is_system, max_concurrent_tasks) VALUES (?, ?, ?, ?, ?, ?, 0, ?)',
+        [slug, displayName, emoji, minDoneTasks, displayOrder ?? 0, rank, maxConcurrentTasks]
       );
       const role = await queryOne(
-        'SELECT id, slug, display_name, emoji, min_done_tasks, display_order, `rank` AS `rank`, is_system, forum_participate, context_comment_participate FROM roles WHERE slug = ? LIMIT 1',
+        'SELECT id, slug, display_name, emoji, min_done_tasks, display_order, `rank` AS `rank`, is_system, forum_participate, context_comment_participate, max_concurrent_tasks FROM roles WHERE slug = ? LIMIT 1',
         [slug]
       );
       logAudit('rbac_create_profile', 'role', role?.id || null, slug, { req });
@@ -300,7 +329,8 @@ router.post(
       const source = await queryOne(
         `SELECT id, slug, display_name, emoji, min_done_tasks, display_order, \`rank\` AS \`rank\`,
                 COALESCE(forum_participate, 1) AS forum_participate,
-                COALESCE(context_comment_participate, 1) AS context_comment_participate
+                COALESCE(context_comment_participate, 1) AS context_comment_participate,
+                max_concurrent_tasks
            FROM roles WHERE id = ?`,
         [sourceId]
       );
@@ -322,6 +352,10 @@ router.post(
       const displayOrder = parseOptionalNonNegativeInt(source.display_order, 0);
       const forumParticipate = Number(source.forum_participate) !== 0 ? 1 : 0;
       const contextCommentParticipate = Number(source.context_comment_participate) !== 0 ? 1 : 0;
+      const maxConcurrentTasks =
+        source.max_concurrent_tasks != null && source.max_concurrent_tasks !== ''
+          ? source.max_concurrent_tasks
+          : null;
 
       if (!slug || !displayName) return res.status(400).json({ error: 'slug requis ; display_name ne peut pas être vide' });
       if (Number.isNaN(minDoneTasks)) return res.status(400).json({ error: 'min_done_tasks source invalide' });
@@ -331,12 +365,12 @@ router.post(
       }
 
       await execute(
-        `INSERT INTO roles (slug, display_name, emoji, min_done_tasks, display_order, \`rank\`, is_system, forum_participate, context_comment_participate)
-         VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?)`,
-        [slug, displayName, emoji, minDoneTasks, displayOrder ?? 0, rank, forumParticipate, contextCommentParticipate]
+        `INSERT INTO roles (slug, display_name, emoji, min_done_tasks, display_order, \`rank\`, is_system, forum_participate, context_comment_participate, max_concurrent_tasks)
+         VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?, ?)`,
+        [slug, displayName, emoji, minDoneTasks, displayOrder ?? 0, rank, forumParticipate, contextCommentParticipate, maxConcurrentTasks]
       );
       const newRole = await queryOne(
-        'SELECT id, slug, display_name, emoji, min_done_tasks, display_order, `rank` AS `rank`, is_system, forum_participate, context_comment_participate FROM roles WHERE slug = ? LIMIT 1',
+        'SELECT id, slug, display_name, emoji, min_done_tasks, display_order, `rank` AS `rank`, is_system, forum_participate, context_comment_participate, max_concurrent_tasks FROM roles WHERE slug = ? LIMIT 1',
         [slug]
       );
       if (!newRole?.id) {
@@ -373,7 +407,7 @@ router.patch(
       const role = await queryOne('SELECT id FROM roles WHERE id = ?', [req.params.id]);
       if (!role) return res.status(404).json({ error: 'Profil introuvable' });
       const existing = await queryOne(
-        'SELECT slug, display_name, emoji, min_done_tasks, display_order, `rank` AS `rank`, COALESCE(forum_participate, 1) AS forum_participate, COALESCE(context_comment_participate, 1) AS context_comment_participate FROM roles WHERE id = ?',
+        'SELECT slug, display_name, emoji, min_done_tasks, display_order, `rank` AS `rank`, COALESCE(forum_participate, 1) AS forum_participate, COALESCE(context_comment_participate, 1) AS context_comment_participate, max_concurrent_tasks FROM roles WHERE id = ?',
         [role.id]
       );
       const b = req.body != null && typeof req.body === 'object' && !Array.isArray(req.body) ? req.body : {};
@@ -389,7 +423,9 @@ router.patch(
       const hasContextCommentParticipate =
         Object.prototype.hasOwnProperty.call(b, 'context_comment_participate')
         || Object.prototype.hasOwnProperty.call(b, 'contextCommentParticipate');
-      const isStudentRole = STUDENT_ROLE_SLUG_RE.test(existing.slug);
+      const hasMaxConcurrentTasks =
+        Object.prototype.hasOwnProperty.call(b, 'max_concurrent_tasks')
+        || Object.prototype.hasOwnProperty.call(b, 'maxConcurrentTasks');
       const canForumContext = canConfigureStudentTierForumContext(existing.slug, existing.rank);
       if (!hasAnyPatchField) {
         return res.status(400).json({ error: 'Aucun champ de profil fourni' });
@@ -398,6 +434,12 @@ router.patch(
         return res.status(400).json({
           error:
             'Forum et commentaires contextuels ne s’appliquent qu’aux profils n3beur (slug eleve_* ou palier avec rang inférieur à celui du n3boss)',
+        });
+      }
+      if (hasMaxConcurrentTasks && !canForumContext) {
+        return res.status(400).json({
+          error:
+            'Le plafond d’inscriptions aux tâches ne s’applique qu’aux profils n3beur (slug eleve_* ou palier avec rang inférieur à celui du n3boss)',
         });
       }
       const displayName = hasDisplayName ? String(b.display_name || '').trim() : existing.display_name;
@@ -421,6 +463,16 @@ router.patch(
           : b.contextCommentParticipate;
         contextCommentParticipate = v ? 1 : 0;
       }
+      let maxConcurrentTasksVal = existing.max_concurrent_tasks;
+      if (hasMaxConcurrentTasks) {
+        const rawMct = Object.prototype.hasOwnProperty.call(b, 'max_concurrent_tasks')
+          ? b.max_concurrent_tasks
+          : b.maxConcurrentTasks;
+        maxConcurrentTasksVal = parseOptionalMaxConcurrentTasks(rawMct);
+        if (Number.isNaN(maxConcurrentTasksVal)) {
+          return res.status(400).json({ error: 'max_concurrent_tasks invalide (0–99, vide ou null pour hériter du réglage global)' });
+        }
+      }
       if (!displayName) return res.status(400).json({ error: 'display_name requis' });
       if (!Number.isFinite(rank)) return res.status(400).json({ error: 'rank invalide' });
       if (Number.isNaN(minDoneTasks)) return res.status(400).json({ error: 'min_done_tasks invalide (entier >= 0)' });
@@ -429,11 +481,11 @@ router.patch(
         return res.status(400).json({ error: 'Un profil n3beur doit définir emoji et min_done_tasks' });
       }
       await execute(
-        'UPDATE roles SET display_name = ?, emoji = ?, min_done_tasks = ?, display_order = ?, `rank` = ?, forum_participate = ?, context_comment_participate = ?, updated_at = NOW() WHERE id = ?',
-        [displayName, emoji, minDoneTasks, displayOrder, rank, forumParticipate, contextCommentParticipate, role.id]
+        'UPDATE roles SET display_name = ?, emoji = ?, min_done_tasks = ?, display_order = ?, `rank` = ?, forum_participate = ?, context_comment_participate = ?, max_concurrent_tasks = ?, updated_at = NOW() WHERE id = ?',
+        [displayName, emoji, minDoneTasks, displayOrder, rank, forumParticipate, contextCommentParticipate, maxConcurrentTasksVal, role.id]
       );
       const updated = await queryOne(
-        'SELECT id, slug, display_name, emoji, min_done_tasks, display_order, `rank` AS `rank`, is_system, forum_participate, context_comment_participate FROM roles WHERE id = ?',
+        'SELECT id, slug, display_name, emoji, min_done_tasks, display_order, `rank` AS `rank`, is_system, forum_participate, context_comment_participate, max_concurrent_tasks FROM roles WHERE id = ?',
         [role.id]
       );
       logAudit('rbac_update_profile', 'role', role.id, updated?.slug || String(role.id), { req });

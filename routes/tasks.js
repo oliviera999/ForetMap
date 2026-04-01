@@ -9,8 +9,10 @@ const { logRouteError } = require('../lib/routeLog');
 const { logAudit } = require('./audit');
 const { emitTasksChanged } = require('../lib/realtime');
 const { ensurePrimaryRole, buildAuthzPayload, verifyRolePin, syncStudentPrimaryRoleFromProgress } = require('../lib/rbac');
-const { getSettingValue } = require('../lib/settings');
-const { countStudentActiveTaskAssignments } = require('../lib/studentTaskEnrollment');
+const {
+  countStudentActiveTaskAssignments,
+  getEffectiveMaxActiveTaskAssignments,
+} = require('../lib/studentTaskEnrollment');
 
 const router = express.Router();
 const MAX_IMPORT_FILE_BYTES = 8 * 1024 * 1024;
@@ -1618,21 +1620,23 @@ router.post('/:id/assign', async (req, res) => {
     );
     if (already) return res.status(400).json({ error: 'Déjà assigné à cette tâche' });
 
-    const maxActive = await getSettingValue('tasks.student_max_active_assignments', 0);
-    if (maxActive > 0 && action.actorUserType === 'student' && action.studentId) {
-      const current = await countStudentActiveTaskAssignments(
-        action.studentId,
-        action.firstName,
-        action.lastName
-      );
-      if (current >= maxActive) {
-        return res.status(400).json({
-          error:
-            `Limite atteinte : tu as déjà ${maxActive} tâche(s) active(s) (non validées par un n3boss). Retire-toi d’une tâche ou attends une validation.`,
-          code: 'TASK_ENROLLMENT_LIMIT',
-          maxActiveAssignments: maxActive,
-          currentActiveAssignments: current,
-        });
+    if (action.actorUserType === 'student' && action.studentId) {
+      const maxActive = await getEffectiveMaxActiveTaskAssignments(action.studentId);
+      if (maxActive > 0) {
+        const current = await countStudentActiveTaskAssignments(
+          action.studentId,
+          action.firstName,
+          action.lastName
+        );
+        if (current >= maxActive) {
+          return res.status(400).json({
+            error:
+              `Limite atteinte : tu as déjà ${maxActive} tâche(s) active(s) (non validées par un n3boss). Retire-toi d’une tâche ou attends une validation.`,
+            code: 'TASK_ENROLLMENT_LIMIT',
+            maxActiveAssignments: maxActive,
+            currentActiveAssignments: current,
+          });
+        }
       }
     }
 

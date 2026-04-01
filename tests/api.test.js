@@ -1,7 +1,7 @@
 require('./helpers/setup');
 const test = require('node:test');
 const assert = require('node:assert');
-const { initDatabase, queryAll, queryOne, execute } = require('../database');
+const { initDatabase, initSchema, queryAll, queryOne, execute } = require('../database');
 const { setSetting } = require('../lib/settings');
 const { app } = require('../server');
 const request = require('supertest');
@@ -9,6 +9,7 @@ const { signAuthToken } = require('../middleware/requireTeacher');
 const { ensureRbacBootstrap } = require('../lib/rbac');
 
 test.before(async () => {
+  await initSchema();
   await initDatabase();
   await ensureRbacBootstrap();
 });
@@ -432,6 +433,122 @@ test('Plafond auto-inscription n3beur : TASK_ENROLLMENT_LIMIT et GET /api/auth/m
     assert.strictEqual(over.body.maxActiveAssignments, 1);
     assert.strictEqual(over.body.currentActiveAssignments, 1);
   } finally {
+    await setSetting('tasks.student_max_active_assignments', 0, {});
+  }
+});
+
+test('Plafond auto-inscription : le profil RBAC (max_concurrent_tasks) prime sur le réglage global', async () => {
+  const noviceRole = await queryOne("SELECT id FROM roles WHERE slug = 'eleve_novice' LIMIT 1");
+  assert.ok(noviceRole?.id);
+  try {
+    await setSetting('tasks.student_max_active_assignments', 5, {});
+    await execute('UPDATE roles SET max_concurrent_tasks = 1 WHERE id = ?', [noviceRole.id]);
+
+    const teacherToken = await getAdminAuthToken();
+    const zones = await request(app).get('/api/zones').expect(200);
+    const zoneId = zones.body[0]?.id || 'pg';
+
+    const t1 = await request(app)
+      .post('/api/tasks')
+      .set('Authorization', `Bearer ${teacherToken}`)
+      .send({ title: `Limite profil A ${Date.now()}`, zone_id: zoneId, required_students: 1 })
+      .expect(201);
+    const t2 = await request(app)
+      .post('/api/tasks')
+      .set('Authorization', `Bearer ${teacherToken}`)
+      .send({ title: `Limite profil B ${Date.now()}`, zone_id: zoneId, required_students: 1 })
+      .expect(201);
+
+    const enrollEmail = `enroll_role_${Date.now()}@foretmap.test`;
+    const studentRes = await request(app)
+      .post('/api/auth/register')
+      .send({ firstName: 'Limite', lastName: `Profil${Date.now()}`, password: 'pwd1', email: enrollEmail })
+      .expect(201);
+    const { first_name, last_name, id: studentId } = studentRes.body;
+    await setStudentPrimaryRole(studentId, 'eleve_novice');
+    const loginRes = await request(app)
+      .post('/api/auth/login')
+      .send({ identifier: enrollEmail, password: 'pwd1' })
+      .expect(200);
+    const authToken = loginRes.body.authToken;
+
+    await request(app)
+      .post(`/api/tasks/${t1.body.id}/assign`)
+      .set('Authorization', `Bearer ${authToken}`)
+      .send({ firstName: first_name, lastName: last_name, studentId })
+      .expect(200);
+
+    const meRes = await request(app)
+      .get('/api/auth/me')
+      .set('Authorization', `Bearer ${authToken}`)
+      .expect(200);
+    assert.strictEqual(meRes.body.taskEnrollment?.maxActiveAssignments, 1);
+    assert.strictEqual(meRes.body.taskEnrollment?.atLimit, true);
+
+    const over = await request(app)
+      .post(`/api/tasks/${t2.body.id}/assign`)
+      .set('Authorization', `Bearer ${authToken}`)
+      .send({ firstName: first_name, lastName: last_name, studentId })
+      .expect(400);
+    assert.strictEqual(over.body.code, 'TASK_ENROLLMENT_LIMIT');
+    assert.strictEqual(over.body.maxActiveAssignments, 1);
+  } finally {
+    await execute('UPDATE roles SET max_concurrent_tasks = NULL WHERE id = ?', [noviceRole.id]);
+    await setSetting('tasks.student_max_active_assignments', 0, {});
+  }
+});
+
+test('max_concurrent_tasks = 0 sur le profil : pas de limite même si le réglage global est actif', async () => {
+  const noviceRole = await queryOne("SELECT id FROM roles WHERE slug = 'eleve_novice' LIMIT 1");
+  assert.ok(noviceRole?.id);
+  try {
+    await setSetting('tasks.student_max_active_assignments', 2, {});
+    await execute('UPDATE roles SET max_concurrent_tasks = 0 WHERE id = ?', [noviceRole.id]);
+
+    const teacherToken = await getAdminAuthToken();
+    const zones = await request(app).get('/api/zones').expect(200);
+    const zoneId = zones.body[0]?.id || 'pg';
+    const titles = [`S1 ${Date.now()}`, `S2 ${Date.now()}`, `S3 ${Date.now()}`];
+    const tasks = [];
+    for (const title of titles) {
+      const tr = await request(app)
+        .post('/api/tasks')
+        .set('Authorization', `Bearer ${teacherToken}`)
+        .send({ title, zone_id: zoneId, required_students: 1 })
+        .expect(201);
+      tasks.push(tr.body);
+    }
+
+    const enrollEmail = `enroll_unlim_${Date.now()}@foretmap.test`;
+    const studentRes = await request(app)
+      .post('/api/auth/register')
+      .send({ firstName: 'Sans', lastName: `Limite${Date.now()}`, password: 'pwd1', email: enrollEmail })
+      .expect(201);
+    const { first_name, last_name, id: studentId } = studentRes.body;
+    await setStudentPrimaryRole(studentId, 'eleve_novice');
+    const loginRes = await request(app)
+      .post('/api/auth/login')
+      .send({ identifier: enrollEmail, password: 'pwd1' })
+      .expect(200);
+    const authToken = loginRes.body.authToken;
+
+    for (const t of tasks) {
+      await request(app)
+        .post(`/api/tasks/${t.id}/assign`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({ firstName: first_name, lastName: last_name, studentId })
+        .expect(200);
+    }
+
+    const meRes = await request(app)
+      .get('/api/auth/me')
+      .set('Authorization', `Bearer ${authToken}`)
+      .expect(200);
+    assert.strictEqual(meRes.body.taskEnrollment?.maxActiveAssignments, 0);
+    assert.strictEqual(meRes.body.taskEnrollment?.atLimit, false);
+    assert.strictEqual(meRes.body.taskEnrollment?.currentActiveAssignments, 3);
+  } finally {
+    await execute('UPDATE roles SET max_concurrent_tasks = NULL WHERE id = ?', [noviceRole.id]);
     await setSetting('tasks.student_max_active_assignments', 0, {});
   }
 });
