@@ -13,6 +13,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - **Carte** : création/édition de **zones** et **repères** — champ pour coller ou taper un emoji personnalisé (la grille de suggestions reste disponible) ; **API repères** : troncature de l’emoji à 16 caractères (alignement `map_markers.emoji`).
 
 ### Modifié
+- **RBAC** : création et duplication de profil refusent les **slugs réservés** (`admin`, `prof`, `visiteur`, `eleve_novice`, `eleve_avance`, `eleve_chevronne`) avec message explicite — le slug technique doit rester distinct du profil système ; le **nom affiché** peut toujours être libre (ex. « Admin » avec le slug `admin_delegue`). Prompts **Profils & utilisateurs** et `docs/API.md` alignés ; test **`rbac.test.js`**.
 - **Build / déploiement** : régénération des artefacts `dist/` (bundles Vite) et synchronisation de `package-lock.json`.
 - **Carte / zones** : détection et retrait du préfixe emoji en tête de nom étendus aux emojis hors liste prédéfinie (affichage, édition, nom enregistré).
 - **Visite (édition)** : titres de zone — même logique de détection de préfixe emoji que sur la carte.

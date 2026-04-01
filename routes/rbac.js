@@ -26,6 +26,26 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const ALLOWED_STUDENT_AFFILIATIONS = new Set(['n3', 'foret', 'both']);
 const STUDENT_ROLE_SLUG_RE = /^eleve_/i;
 
+/** Slugs réservés aux profils système : interdits pour création / duplication personnalisées. */
+const RESERVED_ROLE_SLUGS = new Set([
+  'admin',
+  'prof',
+  'visiteur',
+  'eleve_novice',
+  'eleve_avance',
+  'eleve_chevronne',
+]);
+
+function reservedRoleSlugError(slug) {
+  const s = String(slug || '').trim().toLowerCase();
+  if (!RESERVED_ROLE_SLUGS.has(s)) return null;
+  return (
+    'Ce slug est réservé au système (admin, n3boss, visiteur ou palier n3beur d’origine). '
+    + 'Choisissez un identifiant technique unique, par ex. n3boss_lycee ou prof_delegue. '
+    + 'Le nom affiché peut librement être « Admin » ou « n3boss » ; seul le slug technique doit être distinct.'
+  );
+}
+
 /** Clés reconnues pour PATCH /profiles/:id (snake + alias camel pour forum / commentaires). */
 const PROFILE_PATCH_KEYS = new Set([
   'display_name',
@@ -294,6 +314,8 @@ router.post(
         maxConcurrentTasks = parsed;
       }
       if (!slug || !displayName) return res.status(400).json({ error: 'slug et display_name requis' });
+      const reservedCreate = reservedRoleSlugError(slug);
+      if (reservedCreate) return res.status(400).json({ error: reservedCreate });
       if (Number.isNaN(minDoneTasks)) return res.status(400).json({ error: 'min_done_tasks invalide (entier >= 0)' });
       if (Number.isNaN(displayOrder)) return res.status(400).json({ error: 'display_order invalide (entier >= 0)' });
       if (STUDENT_ROLE_SLUG_RE.test(slug) && (emoji == null || minDoneTasks == null)) {
@@ -358,6 +380,8 @@ router.post(
           : null;
 
       if (!slug || !displayName) return res.status(400).json({ error: 'slug requis ; display_name ne peut pas être vide' });
+      const reservedDup = reservedRoleSlugError(slug);
+      if (reservedDup) return res.status(400).json({ error: reservedDup });
       if (Number.isNaN(minDoneTasks)) return res.status(400).json({ error: 'min_done_tasks source invalide' });
       if (Number.isNaN(displayOrder)) return res.status(400).json({ error: 'display_order source invalide' });
       if (STUDENT_ROLE_SLUG_RE.test(slug) && (emoji == null || minDoneTasks == null)) {

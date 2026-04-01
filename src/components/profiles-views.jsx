@@ -335,7 +335,10 @@ function ProfilesAdminView({ isN3Affiliated = false }) {
   };
 
   const createRoleProfile = async () => {
-    const slug = window.prompt('Slug du nouveau profil (ex: eleve_mentor)', '');
+    const slug = window.prompt(
+      'Slug technique du profil (ex. eleve_mentor, n3boss_lycee). Réservés et interdits : admin, prof, visiteur, eleve_novice, eleve_avance, eleve_chevronne. Le nom affiché peut être « Admin » ou « n3boss » avec un autre slug.',
+      ''
+    );
     if (!slug || !slug.trim()) return;
     const displayName = window.prompt('Nom du profil', slug.trim());
     if (!displayName || !displayName.trim()) return;
@@ -393,7 +396,10 @@ function ProfilesAdminView({ isN3Affiliated = false }) {
   const duplicateRoleProfile = async (role) => {
     if (!role?.id) return;
     const suggestedSlug = `${String(role.slug || 'profil').replace(/[^a-z0-9_]+/gi, '_')}_copie`;
-    const slugInput = window.prompt('Slug du nouveau profil (unique)', suggestedSlug);
+    const slugInput = window.prompt(
+      'Slug technique (unique). Ne pas utiliser : admin, prof, visiteur, eleve_novice, eleve_avance, eleve_chevronne — préférez ex. prof_copie_lycee. Le nom affiché est demandé ensuite.',
+      suggestedSlug
+    );
     if (!slugInput || !slugInput.trim()) return;
     const displayNameInput = window.prompt(
       'Nom affiché du nouveau profil',
