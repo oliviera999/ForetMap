@@ -6,6 +6,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 ## [Non publié]
 
 ### Modifié
+- **Cartes & tâches (vue scindée)** : la zone carte est alignée en haut sous la barre d’outils (`padding-top` supprimé, `align-items: flex-start`) pour supprimer l’espace entre la barre d’édition et l’image.
 - **Profils & utilisateurs / édition compte** : erreurs (ex. **élévation PIN**, 403) visibles **dans la modale** (auparavant masquées sous le calque `z-index: 200`) ; `<form noValidate>` + bouton **submit** ; repli **`user_type`** depuis la ligne liste ; **`load()`** après succès isolé. Préremplissage : fusion liste + GET détail, clés insensibles à la casse, `encodeURIComponent`, `jsonTextField` côté API.
 - **Notifications (UI)** : le panneau du centre de notifications se ferme au **clic à l’extérieur** (hors panneau et hors bouton cloche) et via un bouton **×** en haut à droite du panneau.
 - **Profils & utilisateurs / édition compte** : ouverture avec **`GET /api/rbac/users/:userType/:userId`** ; champs préremplis avec les valeurs serveur ; si `first_name`/`last_name` sont absents, complément à partir de `display_name` ou de la partie locale de l’email. Prénom et nom obligatoires à l’enregistrement ; indicateur de chargement dans la modale. Documentation **`docs/API.md`** ; test **`rbac.test.js`**.

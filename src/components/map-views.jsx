@@ -1881,7 +1881,22 @@ function MapView({ zones, markers, tasks = [], plants, maps = [], activeMapId = 
         </div>
       </div>
 
-      <div style={{ flex: 1, minHeight: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: mapFramePaddingPx }}>
+      <div style={{
+        flex: 1,
+        minHeight: 0,
+        display: 'flex',
+        alignItems: embedded ? 'flex-start' : 'center',
+        justifyContent: 'center',
+        ...(embedded
+          ? {
+              paddingTop: 0,
+              paddingLeft: mapFramePaddingPx,
+              paddingRight: mapFramePaddingPx,
+              paddingBottom: mapFramePaddingPx,
+            }
+          : { padding: mapFramePaddingPx }),
+      }}
+      >
         <div ref={containerRef}
           style={{
             boxSizing: 'border-box',
