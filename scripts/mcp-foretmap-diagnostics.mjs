@@ -1,11 +1,18 @@
 #!/usr/bin/env node
 /**
  * Serveur MCP stdio pour diagnostiquer ForetMap à distance depuis Cursor.
- * Configurez FORETMAP_BASE_URL et un secret deploy (FORETMAP_DEPLOY_SECRET recommandé ; sinon DEPLOY_SECRET / FORETMAP_DEPLOY_CHECK_SECRET) dans les env du serveur MCP (pas dans le chat).
+ * Charge `.env` à la racine du dépôt (sans écraser les variables déjà définies par l’OS / Cursor).
+ * Secret : FORETMAP_DEPLOY_SECRET, DEPLOY_SECRET ou FORETMAP_DEPLOY_CHECK_SECRET (pas dans le chat).
  */
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
+import dotenv from 'dotenv';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { z } from 'zod';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+dotenv.config({ path: join(__dirname, '..', '.env') });
 
 function baseUrl() {
   const raw = (process.env.FORETMAP_BASE_URL || 'https://foretmap.olution.info').trim();
