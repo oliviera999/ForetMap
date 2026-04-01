@@ -7,6 +7,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ### Modifié
 - **Notifications (UI)** : le panneau du centre de notifications se ferme au **clic à l’extérieur** (hors panneau et hors bouton cloche) et via un bouton **×** en haut à droite du panneau.
+- **Profils & utilisateurs / édition compte** : ouverture avec **`GET /api/rbac/users/:userType/:userId`** ; champs préremplis avec les valeurs serveur ; si `first_name`/`last_name` sont absents, complément à partir de `display_name` ou de la partie locale de l’email. Prénom et nom obligatoires à l’enregistrement ; indicateur de chargement dans la modale. Documentation **`docs/API.md`** ; test **`rbac.test.js`**.
 
 ### Ajouté
 - **Profils & utilisateurs** : modification d’un **compte quelconque** (n3beur ou enseignant) depuis la section « Attribution des profils » — bouton **Modifier** (prénom, nom, pseudo, email, description, affiliation n3beur, mot de passe optionnel). API **`PATCH /api/rbac/users/:userType/:userId`** (permission `admin.users.assign_roles`, même élévation PIN que l’attribution de profils) ; un compte au profil principal **admin** n’est modifiable que par un acteur **admin**. **`GET /api/rbac/users`** enrichi (`first_name`, `last_name`, `pseudo`, `description`, `affiliation`). Renommage n3beur : synchronisation des noms dans **`task_assignments`** et **`task_logs`**. Documentation **`docs/API.md`** ; test **`rbac.test.js`**.
