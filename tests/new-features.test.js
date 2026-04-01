@@ -128,13 +128,64 @@ test('CRUD /api/task-projects fonctionne (prof)', async () => {
   const updateRes = await request(app)
     .put(`/api/task-projects/${projectId}`)
     .set('Authorization', 'Bearer ' + teacherToken)
-    .send({ title: renamed, status: 'on_hold' })
+    .send({ title: renamed, status: 'on_hold', description: 'Description mise à jour' })
     .expect(200);
   assert.strictEqual(updateRes.body.title, renamed);
   assert.strictEqual(updateRes.body.status, 'on_hold');
+  assert.strictEqual(updateRes.body.description, 'Description mise à jour');
+  assert.ok(Array.isArray(updateRes.body.zone_ids));
+  assert.ok(Array.isArray(updateRes.body.tutorial_ids));
 
   await request(app)
     .delete(`/api/task-projects/${projectId}`)
+    .set('Authorization', 'Bearer ' + teacherToken)
+    .expect(200);
+});
+
+test('POST/PUT /api/task-projects : zones, repères et tutoriels associés', async () => {
+  const zoneRow = await queryOne("SELECT id FROM zones WHERE map_id = 'foret' LIMIT 1");
+  const markerRow = await queryOne("SELECT id FROM map_markers WHERE map_id = 'foret' LIMIT 1");
+  const tutoRow = await queryOne('SELECT id FROM tutorials WHERE is_active = 1 LIMIT 1');
+  assert.ok(zoneRow?.id, 'Zone foret requise');
+  assert.ok(tutoRow?.id, 'Tutoriel actif requis');
+
+  const title = `Projet liens ${Date.now()}`;
+  const body = {
+    map_id: 'foret',
+    title,
+    description: 'Projet avec lieux et ressources',
+    zone_ids: [zoneRow.id],
+    tutorial_ids: [Number(tutoRow.id)],
+  };
+  if (markerRow?.id) body.marker_ids = [markerRow.id];
+
+  const createRes = await request(app)
+    .post('/api/task-projects')
+    .set('Authorization', 'Bearer ' + teacherToken)
+    .send(body)
+    .expect(201);
+  assert.strictEqual(createRes.body.description, 'Projet avec lieux et ressources');
+  assert.ok((createRes.body.zone_ids || []).includes(zoneRow.id));
+  assert.ok((createRes.body.tutorial_ids || []).map(Number).includes(Number(tutoRow.id)));
+  assert.ok((createRes.body.zones_linked || []).some((z) => z.id === zoneRow.id));
+  assert.ok((createRes.body.tutorials_linked || []).some((t) => Number(t.id) === Number(tutoRow.id)));
+  if (markerRow?.id) {
+    assert.ok((createRes.body.marker_ids || []).includes(markerRow.id));
+    assert.ok((createRes.body.markers_linked || []).some((m) => m.id === markerRow.id));
+  }
+
+  const clearBody = { zone_ids: [], marker_ids: [], tutorial_ids: [], title };
+  const clearRes = await request(app)
+    .put(`/api/task-projects/${createRes.body.id}`)
+    .set('Authorization', 'Bearer ' + teacherToken)
+    .send(clearBody)
+    .expect(200);
+  assert.strictEqual((clearRes.body.zone_ids || []).length, 0);
+  assert.strictEqual((clearRes.body.marker_ids || []).length, 0);
+  assert.strictEqual((clearRes.body.tutorial_ids || []).length, 0);
+
+  await request(app)
+    .delete(`/api/task-projects/${createRes.body.id}`)
     .set('Authorization', 'Bearer ' + teacherToken)
     .expect(200);
 });

@@ -396,6 +396,31 @@ Contraintes principales :
 
 ---
 
+## Projets de tâches (`/api/task-projects`)
+
+Regroupe plusieurs tâches sous un même projet (carte, titre, description, statut). Les liaisons **zones / repères / tutoriels** décrivent où et avec quelles ressources pédagogiques le projet s’inscrit sur la carte.
+
+| Méthode | URL | n3boss | Description |
+|--------|-----|--------|-------------|
+| GET | `/api/task-projects` | non | Liste des projets (`?map_id=` optionnel pour filtrer par carte) |
+| POST | `/api/task-projects` | oui (`tasks.manage` + élévation) | Créer un projet |
+| PUT | `/api/task-projects/:id` | oui | Modifier un projet |
+| DELETE | `/api/task-projects/:id` | oui | Supprimer le projet (`project_id` des tâches liées repassent à `NULL`) |
+
+**Corps JSON (création / mise à jour)** — champs usuels :
+
+- `map_id` (obligatoire à la création), `title`, `description` (texte libre, optionnel),
+- `status` : `active` (défaut) ou `on_hold` (inscriptions n3beurs fermées pour les tâches du projet, comme aujourd’hui),
+- `zone_ids` : tableau d’identifiants de **zones** (`zones.id`) — toutes doivent appartenir à `map_id` du projet,
+- `marker_ids` : tableau d’identifiants de **repères** (`map_markers.id`) — même carte,
+- `tutorial_ids` : tableau d’identifiants numériques de **tutoriels** actifs (`tutorials.id`).
+
+À la **mise à jour**, si `zone_ids`, `marker_ids` ou `tutorial_ids` sont absents du corps, les liaisons existantes sont conservées ; s’ils sont présents (y compris tableaux vides), ils remplacent la liste correspondante.
+
+**Réponse** : chaque projet inclut `zone_ids`, `marker_ids`, `tutorial_ids` et les tableaux enrichis `zones_linked`, `markers_linked`, `tutorials_linked` (même forme que sur les payloads de tâches), ainsi que `map_label`.
+
+---
+
 ## Forum global
 
 Toutes les routes forum exigent un utilisateur connecté (`Authorization: Bearer <token>`), n3beur ou n3boss.
