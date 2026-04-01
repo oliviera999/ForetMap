@@ -3,7 +3,7 @@
  * Lecture distante du tampon Pino + instantané diagnostics (prod ou staging).
  * Évite les 429 : User-Agent dédié + pause entre requêtes (cf. rate limit /api/*).
  *
- * Prérequis : DEPLOY_SECRET ou FORETMAP_DEPLOY_CHECK_SECRET dans .env (non versionné).
+ * Prérequis : DEPLOY_SECRET, FORETMAP_DEPLOY_CHECK_SECRET ou FORETMAP_DEPLOY_SECRET dans .env (non versionné).
  *
  * Usage :
  *   node scripts/prod-admin-tail.js
@@ -13,9 +13,10 @@
 
 require('dotenv').config();
 const https = require('https');
+const { deploySecretFromEnv } = require('./lib/deploy-secret-from-env');
 
 const BASE = String(process.env.FORETMAP_PROD_BASE_URL || 'https://foretmap.olution.info').replace(/\/$/, '');
-const SECRET = String(process.env.DEPLOY_SECRET || process.env.FORETMAP_DEPLOY_CHECK_SECRET || '').trim();
+const SECRET = deploySecretFromEnv();
 const UA = 'ForetMap-ProdAdminTail/1.0';
 const LINES = Math.min(5000, Math.max(50, parseInt(process.env.FORETMAP_ADMIN_LOG_LINES || '250', 10)));
 const PAUSE_MS = Math.max(0, parseInt(process.env.FORETMAP_ADMIN_TAIL_PAUSE_MS || '300', 10));
@@ -91,7 +92,7 @@ function summarizePinoLines(entries) {
 async function main() {
   if (!SECRET) {
     console.error(
-      'DEPLOY_SECRET ou FORETMAP_DEPLOY_CHECK_SECRET manquant dans .env — impossible de lire /api/admin/logs sur la prod.'
+      'Secret deploy manquant (.env) : DEPLOY_SECRET, FORETMAP_DEPLOY_CHECK_SECRET ou FORETMAP_DEPLOY_SECRET — impossible de lire /api/admin/logs sur la prod.'
     );
     console.error('Ajoutez la même valeur que sur le serveur (sans commiter .env), ou utilisez les outils MCP documentés dans docs/MCP_FORETMAP_CURSOR.md.');
     process.exit(1);

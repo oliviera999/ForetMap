@@ -23,19 +23,33 @@ description: Observabilité ForetMap (Pino, X-Request-Id, logs HTTP, métriques 
 
 ## Checks rapides (local → prod)
 
+Secret dans `.env` non versionné : **`DEPLOY_SECRET`**, **`FORETMAP_DEPLOY_CHECK_SECRET`** ou **`FORETMAP_DEPLOY_SECRET`** (même valeur que sur le serveur). **`FORETMAP_PROD_BASE_URL`** pour cibler une autre instance.
+
 ```bash
 npm run deploy:check:prod
 ```
 
-Avec `DEPLOY_SECRET` (ou `FORETMAP_DEPLOY_CHECK_SECRET`) dans l’environnement : le script vérifie aussi `GET /api/admin/diagnostics`.
+Avec l’un des secrets ci-dessus : le script appelle aussi `GET /api/admin/diagnostics`.
 
-Tampon Pino + résumé parsé (comptage niveaux, échantillon erreurs) sans enchaîner les requêtes trop vite :
+JSON complet diagnostics (métriques, `recentHttp5xx`, etc.) :
+
+```bash
+npm run prod:admin-diagnostics
+```
+
+Tampon Pino + résumé parsé (comptage niveaux, échantillon erreurs), **User-Agent** dédié + pause anti-429 :
 
 ```bash
 npm run prod:admin-tail
 ```
 
-(Nécessite le même secret que sur le serveur dans `.env` local — ne pas commiter.)
+Tout enchaîner (check puis tail) :
+
+```bash
+npm run prod:remote-debug
+```
+
+Helper partagé : `scripts/lib/deploy-secret-from-env.js`.
 
 ## Corrélation support
 

@@ -6,8 +6,8 @@
  * - GET /api/health (app up)
  * - GET /api/health/db (BDD up)
  * - GET /api/version (optionnel, mais recommandé)
- * - GET /api/admin/diagnostics (optionnel) si **DEPLOY_SECRET** ou **FORETMAP_DEPLOY_CHECK_SECRET**
- *   est défini dans l’environnement : vérifie que la route admin déployée répond (200 + body.ok).
+ * - GET /api/admin/diagnostics (optionnel) si **DEPLOY_SECRET**, **FORETMAP_DEPLOY_CHECK_SECRET** ou
+ *   **FORETMAP_DEPLOY_SECRET** est défini : vérifie que la route admin déployée répond (200 + body.ok).
  *
  * Usage:
  *   node scripts/post-deploy-check.js --base-url https://foretmap.olution.info
@@ -18,6 +18,7 @@
 const { URL } = require('url');
 const http = require('http');
 const https = require('https');
+const { deploySecretFromEnv } = require('./lib/deploy-secret-from-env');
 const CHECK_USER_AGENT = 'ForetMap-DeployCheck/1.0';
 
 function parseArgs(argv) {
@@ -175,9 +176,7 @@ async function main() {
     await checkEndpoint(baseUrl, '/api/version', timeoutMs, false),
   ];
 
-  const diagSecret = String(
-    process.env.FORETMAP_DEPLOY_CHECK_SECRET || process.env.DEPLOY_SECRET || ''
-  ).trim();
+  const diagSecret = deploySecretFromEnv();
   if (diagSecret) {
     const path = '/api/admin/diagnostics';
     const full = new URL(path, baseUrl).toString();

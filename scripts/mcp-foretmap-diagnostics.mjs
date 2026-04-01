@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Serveur MCP stdio pour diagnostiquer ForetMap à distance depuis Cursor.
- * Configurez FORETMAP_BASE_URL et FORETMAP_DEPLOY_SECRET dans les env du serveur MCP (pas dans le chat).
+ * Configurez FORETMAP_BASE_URL et un secret deploy (FORETMAP_DEPLOY_SECRET recommandé ; sinon DEPLOY_SECRET / FORETMAP_DEPLOY_CHECK_SECRET) dans les env du serveur MCP (pas dans le chat).
  */
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
@@ -32,10 +32,15 @@ async function fetchText(url, init = {}) {
 }
 
 function requireSecret() {
-  const s = String(process.env.FORETMAP_DEPLOY_SECRET || '').trim();
+  const s = String(
+    process.env.FORETMAP_DEPLOY_SECRET ||
+      process.env.DEPLOY_SECRET ||
+      process.env.FORETMAP_DEPLOY_CHECK_SECRET ||
+      ''
+  ).trim();
   if (!s) {
     throw new Error(
-      'FORETMAP_DEPLOY_SECRET manquant : ajoutez-le aux variables d’environnement du serveur MCP Cursor.'
+      'Secret deploy manquant pour MCP : FORETMAP_DEPLOY_SECRET (recommandé), ou DEPLOY_SECRET / FORETMAP_DEPLOY_CHECK_SECRET dans l’environnement du serveur MCP.'
     );
   }
   return s;
