@@ -171,6 +171,8 @@ La commande **`npm run test:e2e`** enchaîne :
    - **`npm run start:e2e`** = **`node server.js --foretmap-e2e-no-rate-limit`** : désactive le **rate limiting** (sinon inscription / formulaires peuvent renvoyer **« Trop de requêtes »**). Sur Windows, ce **flag CLI** est plus fiable que la seule variable **`E2E_DISABLE_RATE_LIMIT`**.
 3. Le fichier **`playwright.config.js`** charge **`.env`** : le PIN prof des tests suit **`TEACHER_PIN`** (surcharge possible avec **`E2E_ELEVATION_PIN`**).
 
+Si **`NODE_ENV=production`** dans l’environnement du serveur (souvent via **`.env`**), Express sert le bundle **`dist/`** : après une modification du frontend, exécuter **`npm run build`** avant **`npm run test:e2e`**, sinon les tests peuvent tourner sur un **JavaScript périmé** (ex. élévation PIN / temps réel).
+
 **Réutiliser un serveur déjà démarré** : définir **`E2E_REUSE_SERVER=1`**. Le process sur le port doit alors être lancé avec **`npm run start:e2e`** (ou équivalent avec **`--foretmap-e2e-no-rate-limit`**) et, si vous servez le build prod, un **`dist/`** à jour.
 
 **Ne pas** lancer seulement **`npx playwright test …`** si un **`npm start`** « normal » occupe déjà le port : Playwright peut réutiliser ce serveur **sans** bypass → échecs **429** ou code périmé.

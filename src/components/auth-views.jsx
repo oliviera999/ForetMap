@@ -1,5 +1,5 @@
 import React, { useEffect, useId, useMemo, useRef, useState } from 'react';
-import { api, getStoredSession, saveStoredSession, withAppBase } from '../services/api';
+import { api, getAuthToken, getStoredSession, saveStoredSession, withAppBase } from '../services/api';
 import { getRoleTerms } from '../utils/n3-terminology';
 import { getContentText } from '../utils/content';
 
@@ -33,7 +33,7 @@ function PinModal({ onSuccess, onClose, uiSettings, isN3Affiliated = false }) {
 
   const checkPin = async () => {
     if (!pin.trim()) return setErr('Code requis');
-    const currentToken = localStorage.getItem('foretmap_auth_token') || localStorage.getItem('foretmap_teacher_token');
+    const currentToken = getAuthToken();
     if (!currentToken) return setErr('Connectez-vous d’abord avant d’entrer un PIN');
     setInfo('');
     setErr('');
