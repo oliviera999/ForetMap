@@ -6,6 +6,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 ## [Non publié]
 
 ### Ajouté
+- **Projets de tâches** : édition complète côté prof (titre, description, carte, statut, zones, repères, tutoriels) ; tables **`project_zones`**, **`project_markers`**, **`project_tutorials`** ; API **`GET/POST/PUT /api/task-projects`** enrichie (`zone_ids`, `marker_ids`, `tutorial_ids`, `zones_linked`, `markers_linked`, `tutorials_linked`) ; migration **`049_project_zones_markers_tutorials.sql`** ; doc **`docs/API.md`** ; tests **`new-features.test.js`**.
 - **Exploitation** : script **`scripts/prod-admin-tail.js`** + **`npm run prod:admin-tail`** — diagnostics + tampon logs prod avec **User-Agent** dédié et pause anti-**429** ; doc **`docs/EXPLOITATION.md`**, skill **foretmap-observability**.
 
 ### Modifié
