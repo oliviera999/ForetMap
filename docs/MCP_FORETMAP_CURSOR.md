@@ -9,21 +9,20 @@ Cette approche permet à l’assistant dans **Cursor** d’interroger la prod (o
 
 ## Fichier projet (recommandé)
 
-Le dépôt contient **`.cursor/mcp.json`** : serveur **`foretmap-diagnostics`**, URL prod par défaut, secret lu depuis **`FORETMAP_DEPLOY_SECRET`** (interpolation Cursor `${env:…}`). Si ce nom n’est pas défini, le serveur MCP tente **`DEPLOY_SECRET`** puis **`FORETMAP_DEPLOY_CHECK_SECRET`** (pratique si seul le `.env` du dépôt est chargé côté processus).
+Le dépôt contient **`.cursor/mcp.json`** : serveur **`foretmap-diagnostics`**, URL prod par défaut dans `env.FORETMAP_BASE_URL`.
 
-### Windows — définir le secret une fois pour toutes
+Au démarrage, le script **`scripts/mcp-foretmap-diagnostics.mjs`** charge le fichier **`.env` à la racine du workspace** (via `dotenv`, sans écraser les variables déjà posées par le système). Y définir au moins une de :
 
-PowerShell (session courante) :
+- **`FORETMAP_DEPLOY_SECRET`** (recommandé pour distinguer MCP des autres usages), ou  
+- **`DEPLOY_SECRET`**, ou **`FORETMAP_DEPLOY_CHECK_SECRET`**  
 
-```powershell
-$env:FORETMAP_DEPLOY_SECRET = "votre_secret_deploy"
-```
+(même valeur que **`DEPLOY_SECRET`** sur le serveur). Ne pas commiter `.env`.
 
-Pour le rendre persistant (nouvelles sessions / Cursor) : *Paramètres Windows → Système → À propos → Paramètres système avancés → Variables d’environnement* → variable utilisateur **`FORETMAP_DEPLOY_SECRET`**.
+### Option : secret uniquement dans l’OS (sans `.env`)
 
-Puis **redémarrer Cursor** pour que le serveur MCP voie la variable.
+Variable utilisateur Windows **`FORETMAP_DEPLOY_SECRET`** (ou **`DEPLOY_SECRET`**) : elle est lue **avant** le chargement `.env` et n’est pas écrasée par `dotenv`. Puis **redémarrer Cursor** après changement.
 
-Si l’interpolation `${env:FORETMAP_DEPLOY_SECRET}` ne fonctionne pas chez vous, dupliquez la entrée dans **`%USERPROFILE%\.cursor\mcp.json`** (fichier utilisateur, non versionné) en mettant le secret uniquement dans ce fichier.
+Si besoin d’une config MCP hors dépôt : **`%USERPROFILE%\.cursor\mcp.json`** (fichier utilisateur, non versionné).
 
 ### Autre URL que la prod
 

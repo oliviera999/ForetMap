@@ -5,6 +5,9 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Modifié
+- **MCP Cursor (`foretmap-diagnostics`)** : chargement de **`.env`** à la racine dans **`scripts/mcp-foretmap-diagnostics.mjs`** (sans écraser l’OS) ; **`.cursor/mcp.json`** ne fixe plus **`FORETMAP_DEPLOY_SECRET`** via `${env:…}` (évitait un secret vide qui bloquait `dotenv`). Doc **`docs/MCP_FORETMAP_CURSOR.md`**, **`README.md`**, **`docs/EXPLOITATION.md`**.
+
 ### Ajouté
 - **Nettoyage dev** : module **`lib/studentDeletion.js`** (suppression élève en transaction : assignations, logs de tâche, recalcul statuts, forum, commentaires contextuels, **`user_roles`**, tokens reset, **`elevation_audit`**, fichier avatar) ; **`DELETE /api/students/:id`** s’appuie dessus. Script **`scripts/cleanup-dev-data.js`** avec **`npm run db:cleanup:dev:dry`** / **`npm run db:cleanup:dev`** (élèves e2e par défaut, option **`--no-recurring-spawns`**, **`--include-node-test-students`**) ; doc **`docs/LOCAL_DEV.md`**.
 - **Debug prod à distance** : résolution unifiée du secret (**`DEPLOY_SECRET`**, **`FORETMAP_DEPLOY_CHECK_SECRET`**, **`FORETMAP_DEPLOY_SECRET`**) via **`scripts/lib/deploy-secret-from-env.js`** ; **`npm run prod:admin-diagnostics`** (JSON complet **`/api/admin/diagnostics`**) ; **`npm run prod:remote-debug`** (post-deploy-check puis admin-tail). MCP **`foretmap-diagnostics`** : fallback sur **`DEPLOY_SECRET`** / **`FORETMAP_DEPLOY_CHECK_SECRET`**. Doc **`docs/EXPLOITATION.md`**, **`docs/API.md`**, **`docs/MCP_FORETMAP_CURSOR.md`**, **`.env.example`**, skill **foretmap-observability**.

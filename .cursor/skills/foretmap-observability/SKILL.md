@@ -8,7 +8,7 @@ description: Observabilité ForetMap (Pino, X-Request-Id, logs HTTP, métriques 
 ## Références
 
 - **API / variables** : [docs/API.md](docs/API.md) section *Observabilité* ; [docs/EXPLOITATION.md](docs/EXPLOITATION.md) (check post-déploiement, secret pour diagnostics).
-- **MCP Cursor** (accès outils `foretmap_*` sans coller le secret dans le chat) : [docs/MCP_FORETMAP_CURSOR.md](docs/MCP_FORETMAP_CURSOR.md).
+- **MCP Cursor** (accès outils `foretmap_*` sans coller le secret dans le chat) : [docs/MCP_FORETMAP_CURSOR.md](docs/MCP_FORETMAP_CURSOR.md) — le processus **`foretmap-diagnostics`** charge **`.env`** à la racine du dépôt.
 - **Évolutions externes** (Sentry, OpenTelemetry) : [docs/EVOLUTION.md](docs/EVOLUTION.md).
 
 ## Modules backend
