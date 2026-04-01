@@ -2,6 +2,37 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { API, api, getAuthToken } from '../services/api';
 import { getRoleTerms } from '../utils/n3-terminology';
 
+const EDIT_EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+/** Préremplit le formulaire d’édition à partir de la fiche API (prénom/nom manquants → display_name ou identifiant email). */
+function buildUserEditInitialFields(u) {
+  let firstName = String(u.first_name ?? '').trim();
+  let lastName = String(u.last_name ?? '').trim();
+  const pseudo = String(u.pseudo ?? '').trim();
+  const email = String(u.email ?? '').trim();
+  const description = u.description != null ? String(u.description) : '';
+  let affiliation = String(u.affiliation || 'both').toLowerCase();
+  if (!['both', 'n3', 'foret'].includes(affiliation)) affiliation = 'both';
+
+  if (!firstName && !lastName) {
+    const dn = String(u.display_name ?? '').trim();
+    if (dn && !EDIT_EMAIL_RE.test(dn)) {
+      const parts = dn.split(/\s+/).filter(Boolean);
+      if (parts.length >= 1) firstName = parts[0];
+      if (parts.length >= 2) lastName = parts.slice(1).join(' ');
+    } else if (dn && EDIT_EMAIL_RE.test(dn)) {
+      const at = dn.indexOf('@');
+      const local = at > 0 ? dn.slice(0, at) : dn;
+      const rawTokens = local.replace(/[._-]+/g, ' ').split(/\s+/).filter(Boolean);
+      const tokens = rawTokens.map((t) => (t ? t.charAt(0).toUpperCase() + t.slice(1).toLowerCase() : '')).filter(Boolean);
+      if (tokens.length >= 1) firstName = tokens[0];
+      if (tokens.length >= 2) lastName = tokens.slice(1).join(' ');
+    }
+  }
+
+  return { firstName, lastName, pseudo, email, description, affiliation };
+}
+
 function ProfilesAdminView({ isN3Affiliated = false }) {
   const roleTerms = getRoleTerms(isN3Affiliated);
   const [roles, setRoles] = useState([]);
@@ -46,6 +77,8 @@ function ProfilesAdminView({ isN3Affiliated = false }) {
   const [editAffiliation, setEditAffiliation] = useState('both');
   const [editPassword, setEditPassword] = useState('');
   const [editLoading, setEditLoading] = useState(false);
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [editUserLoadState, setEditUserLoadState] = useState('idle');
 
   const load = async () => {
     setErr('');
@@ -492,20 +525,34 @@ function ProfilesAdminView({ isN3Affiliated = false }) {
     setLoading(false);
   };
 
-  const openEditUser = (u) => {
+  const openEditUser = async (u) => {
     setErr('');
-    setEditingUser(u);
-    setEditFirstName(String(u.first_name || '').trim());
-    setEditLastName(String(u.last_name || '').trim());
-    setEditPseudo(String(u.pseudo || '').trim());
-    setEditEmail(String(u.email || '').trim());
-    setEditDescription(String(u.description || '').trim());
-    setEditAffiliation(String(u.affiliation || 'both').toLowerCase());
+    setEditingUser(null);
     setEditPassword('');
+    setEditModalOpen(true);
+    setEditUserLoadState('loading');
+    try {
+      const fresh = await api(`/api/rbac/users/${u.user_type}/${u.id}`);
+      const s = buildUserEditInitialFields(fresh);
+      setEditingUser(fresh);
+      setEditFirstName(s.firstName);
+      setEditLastName(s.lastName);
+      setEditPseudo(s.pseudo);
+      setEditEmail(s.email);
+      setEditDescription(s.description);
+      setEditAffiliation(s.affiliation);
+      setEditUserLoadState('ready');
+    } catch (e) {
+      setEditModalOpen(false);
+      setEditUserLoadState('idle');
+      setErr(e.message || 'Impossible de charger le compte');
+    }
   };
 
   const closeEditUser = () => {
+    setEditModalOpen(false);
     setEditingUser(null);
+    setEditUserLoadState('idle');
     setEditPassword('');
     setEditLoading(false);
   };
@@ -739,58 +786,111 @@ function ProfilesAdminView({ isN3Affiliated = false }) {
       {err && <div className="auth-error">⚠️ {err}</div>}
       {msg && <div className="auth-success">{msg}</div>}
 
-      {editingUser && (
-        <div className="modal-overlay" onClick={(e) => e.target === e.currentTarget && !editLoading && closeEditUser()}>
+      {editModalOpen && (
+        <div className="modal-overlay" onClick={(e) => e.target === e.currentTarget && !editLoading && editUserLoadState !== 'loading' && closeEditUser()}>
           <div className="log-modal fade-in" style={{ paddingBottom: 'calc(20px + var(--safe-bottom))', maxWidth: 440 }} onClick={(e) => e.stopPropagation()}>
             <h3 style={{ marginBottom: 8 }}>Modifier le compte</h3>
-            <p style={{ fontSize: '.82rem', color: '#64748b', marginBottom: 12, lineHeight: 1.45 }}>
-              <strong>{editingUser.display_name}</strong>
-              <span style={{ color: '#94a3b8' }}> ({editingUser.user_type})</span>
-            </p>
-            <div className="profiles-admin-create-grid" style={{ display: 'grid', gap: 10 }}>
-              <div className="field" style={{ margin: 0 }}>
-                <label htmlFor="edit-user-first">Prénom</label>
-                <input id="edit-user-first" value={editFirstName} onChange={(e) => setEditFirstName(e.target.value)} disabled={editLoading} autoComplete="off" />
-              </div>
-              <div className="field" style={{ margin: 0 }}>
-                <label htmlFor="edit-user-last">Nom</label>
-                <input id="edit-user-last" value={editLastName} onChange={(e) => setEditLastName(e.target.value)} disabled={editLoading} autoComplete="off" />
-              </div>
-              <div className="field" style={{ margin: 0 }}>
-                <label htmlFor="edit-user-pseudo">Pseudo (optionnel)</label>
-                <input id="edit-user-pseudo" value={editPseudo} onChange={(e) => setEditPseudo(e.target.value)} disabled={editLoading} autoComplete="off" />
-              </div>
-              <div className="field" style={{ margin: 0 }}>
-                <label htmlFor="edit-user-email">Email (optionnel)</label>
-                <input id="edit-user-email" type="email" value={editEmail} onChange={(e) => setEditEmail(e.target.value)} disabled={editLoading} autoComplete="off" />
-              </div>
-              <div className="field" style={{ margin: 0 }}>
-                <label htmlFor="edit-user-desc">Description (optionnel)</label>
-                <input id="edit-user-desc" value={editDescription} onChange={(e) => setEditDescription(e.target.value)} disabled={editLoading} maxLength={300} autoComplete="off" />
-              </div>
-              {editingUser.user_type === 'student' && (
-                <div className="field" style={{ margin: 0 }}>
-                  <label htmlFor="edit-user-aff">Affiliation</label>
-                  <select id="edit-user-aff" value={editAffiliation} onChange={(e) => setEditAffiliation(e.target.value)} disabled={editLoading}>
-                    <option value="both">N3 + Forêt comestible</option>
-                    <option value="n3">N3 uniquement</option>
-                    <option value="foret">Forêt comestible uniquement</option>
-                  </select>
+            {editUserLoadState === 'loading' && (
+              <p style={{ margin: '12px 0', fontSize: '.9rem', color: '#64748b' }}>Chargement des données du compte…</p>
+            )}
+            {editUserLoadState === 'ready' && editingUser && (
+              <>
+                <p style={{ fontSize: '.82rem', color: '#64748b', marginBottom: 12, lineHeight: 1.45 }}>
+                  <strong>{editingUser.display_name}</strong>
+                  <span style={{ color: '#94a3b8' }}> ({editingUser.user_type})</span>
+                </p>
+                <div className="profiles-admin-create-grid" style={{ display: 'grid', gap: 10 }}>
+                  <div className="field" style={{ margin: 0 }}>
+                    <label htmlFor="edit-user-first">Prénom (obligatoire)</label>
+                    <input
+                      id="edit-user-first"
+                      value={editFirstName}
+                      onChange={(e) => setEditFirstName(e.target.value)}
+                      disabled={editLoading}
+                      autoComplete="off"
+                      required
+                      minLength={1}
+                    />
+                  </div>
+                  <div className="field" style={{ margin: 0 }}>
+                    <label htmlFor="edit-user-last">Nom (obligatoire)</label>
+                    <input
+                      id="edit-user-last"
+                      value={editLastName}
+                      onChange={(e) => setEditLastName(e.target.value)}
+                      disabled={editLoading}
+                      autoComplete="off"
+                      required
+                      minLength={1}
+                    />
+                  </div>
+                  <div className="field" style={{ margin: 0 }}>
+                    <label htmlFor="edit-user-pseudo">Pseudo</label>
+                    <input
+                      id="edit-user-pseudo"
+                      value={editPseudo}
+                      onChange={(e) => setEditPseudo(e.target.value)}
+                      disabled={editLoading}
+                      autoComplete="off"
+                      placeholder={editPseudo ? undefined : 'Aucun pseudo en base'}
+                    />
+                  </div>
+                  <div className="field" style={{ margin: 0 }}>
+                    <label htmlFor="edit-user-email">Email</label>
+                    <input
+                      id="edit-user-email"
+                      type="email"
+                      value={editEmail}
+                      onChange={(e) => setEditEmail(e.target.value)}
+                      disabled={editLoading}
+                      autoComplete="off"
+                      placeholder={editEmail ? undefined : 'Aucun email en base'}
+                    />
+                  </div>
+                  <div className="field" style={{ margin: 0 }}>
+                    <label htmlFor="edit-user-desc">Description</label>
+                    <input
+                      id="edit-user-desc"
+                      value={editDescription}
+                      onChange={(e) => setEditDescription(e.target.value)}
+                      disabled={editLoading}
+                      maxLength={300}
+                      autoComplete="off"
+                      placeholder={editDescription ? undefined : 'Aucune description en base'}
+                    />
+                  </div>
+                  {editingUser.user_type === 'student' && (
+                    <div className="field" style={{ margin: 0 }}>
+                      <label htmlFor="edit-user-aff">Affiliation</label>
+                      <select id="edit-user-aff" value={editAffiliation} onChange={(e) => setEditAffiliation(e.target.value)} disabled={editLoading}>
+                        <option value="both">N3 + Forêt comestible</option>
+                        <option value="n3">N3 uniquement</option>
+                        <option value="foret">Forêt comestible uniquement</option>
+                      </select>
+                    </div>
+                  )}
+                  <div className="field" style={{ margin: 0 }}>
+                    <label htmlFor="edit-user-pw">Nouveau mot de passe (laisser vide pour ne pas changer)</label>
+                    <input id="edit-user-pw" type="password" value={editPassword} onChange={(e) => setEditPassword(e.target.value)} disabled={editLoading} autoComplete="new-password" />
+                  </div>
                 </div>
-              )}
-              <div className="field" style={{ margin: 0 }}>
-                <label htmlFor="edit-user-pw">Nouveau mot de passe (laisser vide pour ne pas changer)</label>
-                <input id="edit-user-pw" type="password" value={editPassword} onChange={(e) => setEditPassword(e.target.value)} disabled={editLoading} autoComplete="new-password" />
+                <div style={{ display: 'flex', gap: 10, marginTop: 16 }}>
+                  <button type="button" className="btn btn-primary" style={{ flex: 1 }} onClick={saveEditUser} disabled={editLoading}>
+                    {editLoading ? 'Enregistrement…' : 'Enregistrer'}
+                  </button>
+                  <button type="button" className="btn btn-ghost" style={{ flex: 1 }} onClick={closeEditUser} disabled={editLoading}>
+                    Annuler
+                  </button>
+                </div>
+              </>
+            )}
+            {editUserLoadState === 'loading' && (
+              <div style={{ marginTop: 16 }}>
+                <button type="button" className="btn btn-ghost" style={{ width: '100%' }} onClick={closeEditUser}>
+                  Annuler
+                </button>
               </div>
-            </div>
-            <div style={{ display: 'flex', gap: 10, marginTop: 16 }}>
-              <button type="button" className="btn btn-primary" style={{ flex: 1 }} onClick={saveEditUser} disabled={editLoading}>
-                {editLoading ? 'Enregistrement…' : 'Enregistrer'}
-              </button>
-              <button type="button" className="btn btn-ghost" style={{ flex: 1 }} onClick={closeEditUser} disabled={editLoading}>
-                Annuler
-              </button>
-            </div>
+            )}
           </div>
         </div>
       )}
@@ -1146,7 +1246,7 @@ function ProfilesAdminView({ isN3Affiliated = false }) {
                     type="button"
                     className="btn btn-secondary btn-sm"
                     onClick={() => openEditUser(u)}
-                    disabled={loading || !canEditUserRow(u)}
+                    disabled={loading || editUserLoadState === 'loading' || !canEditUserRow(u)}
                     title={!canEditUserRow(u) ? 'Seul un administrateur peut modifier un autre administrateur' : 'Modifier ce compte'}
                   >
                     Modifier

@@ -642,6 +642,53 @@ router.get(
   }
 );
 
+router.get(
+  '/users/:userType/:userId',
+  requirePermission('admin.users.assign_roles', { needsElevation: true }),
+  async (req, res) => {
+    try {
+      const resolved = await resolveRbacSubjectForMutation(req.params.userType, req.params.userId);
+      if (!resolved.ok) return res.status(resolved.status).json({ error: resolved.error });
+      const { user: u, resolvedUserType, resolvedUserId } = resolved;
+      const rj = await queryOne(
+        `SELECT ur.role_id, r.slug AS role_slug, r.display_name AS role_display_name,
+                COALESCE(r.forum_participate, 1) AS forum_participate,
+                COALESCE(r.context_comment_participate, 1) AS context_comment_participate
+           FROM user_roles ur
+           LEFT JOIN roles r ON r.id = ur.role_id
+          WHERE ur.user_type = ? AND ur.user_id = ? AND ur.is_primary = 1 LIMIT 1`,
+        [resolvedUserType, resolvedUserId]
+      );
+      const displayName =
+        (u.display_name && String(u.display_name).trim())
+        || `${u.first_name || ''} ${u.last_name || ''}`.trim()
+        || u.email
+        || u.pseudo
+        || u.id;
+      res.json({
+        id: u.id,
+        user_type: u.user_type,
+        display_name: displayName,
+        first_name: u.first_name ?? null,
+        last_name: u.last_name ?? null,
+        pseudo: u.pseudo ?? null,
+        email: u.email,
+        description: u.description ?? null,
+        affiliation: resolvedUserType === 'student' ? (u.affiliation ?? 'both') : null,
+        role_id: rj?.role_id ?? null,
+        role_slug: rj?.role_slug ?? null,
+        role_display_name: rj?.role_display_name ?? null,
+        forum_participate: resolvedUserType === 'student' ? Number(rj?.forum_participate) !== 0 : true,
+        context_comment_participate:
+          resolvedUserType === 'student' ? Number(rj?.context_comment_participate) !== 0 : true,
+      });
+    } catch (e) {
+      logRouteError(e, req);
+      res.status(500).json({ error: e.message });
+    }
+  }
+);
+
 router.patch(
   '/users/:userType/:userId',
   requirePermission('admin.users.assign_roles', { needsElevation: true }),

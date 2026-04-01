@@ -119,6 +119,22 @@ test('RBAC admin: PATCH compte utilisateur (n3beur)', async () => {
   );
 });
 
+test('RBAC admin: GET un utilisateur pour édition', async () => {
+  const token = await getAdminToken();
+  const student = await queryOne(
+    "SELECT id, user_type FROM users WHERE user_type = 'student' LIMIT 1"
+  );
+  assert.ok(student?.id);
+  const res = await request(app)
+    .get(`/api/rbac/users/student/${student.id}`)
+    .set('Authorization', `Bearer ${token}`)
+    .expect(200);
+  assert.strictEqual(res.body.id, student.id);
+  assert.strictEqual(res.body.user_type, 'student');
+  assert.ok(Object.prototype.hasOwnProperty.call(res.body, 'first_name'));
+  assert.ok(Object.prototype.hasOwnProperty.call(res.body, 'pseudo'));
+});
+
 test('RBAC admin: mise à jour PIN profil', async () => {
   const token = await getAdminToken();
   const defaultPin = process.env.TEACHER_PIN || '1234';
