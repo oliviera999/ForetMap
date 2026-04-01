@@ -5,6 +5,9 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Modifié
+- **Notifications (UI)** : le panneau du centre de notifications se ferme au **clic à l’extérieur** (hors panneau et hors bouton cloche) et via un bouton **×** en haut à droite du panneau.
+
 ### Ajouté
 - **Profils & utilisateurs** : modification d’un **compte quelconque** (n3beur ou enseignant) depuis la section « Attribution des profils » — bouton **Modifier** (prénom, nom, pseudo, email, description, affiliation n3beur, mot de passe optionnel). API **`PATCH /api/rbac/users/:userType/:userId`** (permission `admin.users.assign_roles`, même élévation PIN que l’attribution de profils) ; un compte au profil principal **admin** n’est modifiable que par un acteur **admin**. **`GET /api/rbac/users`** enrichi (`first_name`, `last_name`, `pseudo`, `description`, `affiliation`). Renommage n3beur : synchronisation des noms dans **`task_assignments`** et **`task_logs`**. Documentation **`docs/API.md`** ; test **`rbac.test.js`**.
 - **RBAC / inscriptions tâches** : plafond d’inscriptions **simultanées** configurable par **profil n3beur** (`roles.max_concurrent_tasks`, migration **`047_roles_max_concurrent_tasks.sql`**) — seules les tâches **non validées** comptent ; `NULL` = utiliser le réglage global `tasks.student_max_active_assignments` ; `0` = pas de limite pour ce profil ; `POST /api/tasks/:id/assign` et `GET /api/auth/me` utilisent le plafond effectif. Édition dans **Profils & utilisateurs** (même périmètre que forum / seuils paliers). Documentation **`docs/API.md`** ; tests **`api.test.js`**.
