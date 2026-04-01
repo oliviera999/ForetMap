@@ -74,7 +74,7 @@ const KEY_META = {
     order: 73,
   },
   'tasks.student_max_active_assignments': {
-    label: 'Plafond d’inscriptions (tâches non validées par n3boss, toutes cartes ; 0 = illimité). Les affectations par un n3boss ne sont pas plafonnées.',
+    label: 'Plafond par défaut d’inscriptions (tâches non validées par n3boss, toutes cartes ; 0 = illimité). Surclassé par le plafond défini sur chaque profil n3beur dans Profils & utilisateurs lorsqu’il est renseigné. Les affectations par un n3boss ne sont pas plafonnées.',
     section: 'tasks',
     order: 10,
   },
