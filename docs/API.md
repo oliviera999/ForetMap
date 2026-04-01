@@ -54,6 +54,8 @@ Pour les environnements de test (local/staging), le rate limiter global et auth 
 
 Sans `LOAD_TEST_SECRET`, le comportement reste inchangé : le rate limiting s'applique normalement à toutes les requêtes.
 
+Le plafond global sur **`/api/*`** (hors bypass ci-dessus) est de **900 requêtes par minute par adresse IP** par défaut, configurable avec **`FORETMAP_API_RATE_LIMIT_PER_MIN`** (entier entre 60 et 20000). Objectif : limiter les abus tout en évitant des **429** lorsque plusieurs utilisateurs ou onglets passent par la **même IP publique** (ex. Wi‑Fi établissement).
+
 ### Mode Playwright / e2e (rate limit)
 
 Pour les campagnes **Playwright** et un serveur de dev dédié aux e2e, le rate limiting global et auth peut être désactivé si **l’une** des conditions suivantes est remplie côté process Node du serveur :

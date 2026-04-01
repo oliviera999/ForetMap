@@ -90,10 +90,26 @@ function shouldSkipRateLimit(req) {
   return isTestEnv() || isLoadTestBypass(req) || String(process.env.E2E_DISABLE_RATE_LIMIT || '').trim() === '1';
 }
 
-// Limiteur général : 300 requêtes / minute par IP (protège contre les abus sans gêner un usage normal)
+/** Plafond /api/* par IP et fenêtre 1 min (SPA + plusieurs onglets derrière la même IP publique). */
+function parseGeneralApiRateLimitMax() {
+  const raw = String(process.env.FORETMAP_API_RATE_LIMIT_PER_MIN || '').trim();
+  const fallback = 900;
+  if (!raw) return fallback;
+  const n = parseInt(raw, 10);
+  if (!Number.isFinite(n) || n < 60 || n > 20000) {
+    logger.warn({ raw }, 'FORETMAP_API_RATE_LIMIT_PER_MIN invalide — repli 900');
+    return fallback;
+  }
+  return n;
+}
+
+const generalApiRateLimitMax = parseGeneralApiRateLimitMax();
+logger.debug({ apiRateLimitPerMin: generalApiRateLimitMax }, 'Limiteur général /api/* (fenêtre 1 min / IP)');
+
+// Limiteur général : défaut 900 req/min/IP (FORETMAP_API_RATE_LIMIT_PER_MIN) — option express-rate-limit v8 : `limit`
 const generalLimiter = rateLimit({
   windowMs: 60 * 1000,
-  max: 300,
+  limit: generalApiRateLimitMax,
   skip: (req) => shouldSkipRateLimit(req),
   standardHeaders: true,
   legacyHeaders: false,
@@ -103,7 +119,7 @@ const generalLimiter = rateLimit({
 // Limiteur strict pour les endpoints d'authentification : 20 tentatives / 15 min par IP
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 20,
+  limit: 20,
   skip: (req) => shouldSkipRateLimit(req),
   standardHeaders: true,
   legacyHeaders: false,
@@ -111,6 +127,7 @@ const authLimiter = rateLimit({
 });
 
 app.use('/api/', generalLimiter);
+
 app.use('/api/auth/login', authLimiter);
 app.use('/api/auth/register', authLimiter);
 app.use('/api/auth/reset-password', authLimiter);
