@@ -21,6 +21,7 @@ function ProfilesAdminView({ isN3Affiliated = false }) {
   const [dryRunImport, setDryRunImport] = useState(false);
   const [authPerms, setAuthPerms] = useState([]);
   const [authElevated, setAuthElevated] = useState(false);
+  const [authNativePrivileged, setAuthNativePrivileged] = useState(false);
   const [authRoleSlug, setAuthRoleSlug] = useState('');
   const [createRole, setCreateRole] = useState('eleve_novice');
   const [createFirstName, setCreateFirstName] = useState('');
@@ -34,6 +35,7 @@ function ProfilesAdminView({ isN3Affiliated = false }) {
   const [roleEmoji, setRoleEmoji] = useState('');
   const [roleMinDoneTasks, setRoleMinDoneTasks] = useState('');
   const [roleDisplayOrder, setRoleDisplayOrder] = useState('');
+  const [roleMaxConcurrentTasks, setRoleMaxConcurrentTasks] = useState('');
   const [progressionByTasksEnabled, setProgressionByTasksEnabled] = useState(true);
 
   const load = async () => {
@@ -41,9 +43,11 @@ function ProfilesAdminView({ isN3Affiliated = false }) {
     const auth = await api('/api/auth/me').catch(() => null);
     const perms = Array.isArray(auth?.auth?.permissions) ? auth.auth.permissions : [];
     const elevated = !!auth?.auth?.elevated;
+    const nativePrivileged = !!auth?.auth?.nativePrivileged;
     const roleSlug = String(auth?.auth?.roleSlug || '').toLowerCase();
     setAuthPerms(perms);
     setAuthElevated(elevated);
+    setAuthNativePrivileged(nativePrivileged);
     setAuthRoleSlug(roleSlug);
 
     const canManageProfiles = perms.includes('admin.roles.manage') || perms.includes('admin.users.assign_roles');
@@ -104,10 +108,11 @@ function ProfilesAdminView({ isN3Affiliated = false }) {
   }, [selectedRole]);
   const canManageProfiles = authPerms.includes('admin.roles.manage') || authPerms.includes('admin.users.assign_roles');
   const canEditRoleDefinition = authPerms.includes('admin.roles.manage');
-  const canExport = authPerms.includes('stats.export') && authElevated;
-  const canImport = authPerms.includes('students.import') && authElevated;
-  const canDelete = authPerms.includes('students.delete') && authElevated;
-  const canCreateUsers = authPerms.includes('users.create') && authElevated;
+  const effectiveElevated = authElevated || authNativePrivileged;
+  const canExport = authPerms.includes('stats.export') && effectiveElevated;
+  const canImport = authPerms.includes('students.import') && effectiveElevated;
+  const canDelete = authPerms.includes('students.delete') && effectiveElevated;
+  const canCreateUsers = authPerms.includes('users.create') && effectiveElevated;
   const canReadAllStats = authPerms.includes('stats.read.all');
   const isAdmin = authRoleSlug === 'admin';
   const canManageStudents = canExport || canImport || canDelete || canCreateUsers;
@@ -164,6 +169,7 @@ function ProfilesAdminView({ isN3Affiliated = false }) {
       setRoleEmoji('');
       setRoleMinDoneTasks('');
       setRoleDisplayOrder('');
+      setRoleMaxConcurrentTasks('');
       return;
     }
     setRoleEmoji(String(selectedRole.emoji || ''));
@@ -176,6 +182,11 @@ function ProfilesAdminView({ isN3Affiliated = false }) {
       selectedRole.display_order == null || Number.isNaN(Number(selectedRole.display_order))
         ? '0'
         : String(Math.max(0, Math.floor(Number(selectedRole.display_order))))
+    );
+    setRoleMaxConcurrentTasks(
+      selectedRole.max_concurrent_tasks == null || selectedRole.max_concurrent_tasks === ''
+        ? ''
+        : String(Math.max(0, Math.floor(Number(selectedRole.max_concurrent_tasks))))
     );
   }, [selectedRole]);
 
@@ -235,6 +246,43 @@ function ProfilesAdminView({ isN3Affiliated = false }) {
       );
     } catch (e) {
       setErr(e.message || 'Erreur lors de l’enregistrement du réglage');
+    }
+    setLoading(false);
+  };
+
+  const saveMaxConcurrentTasks = async () => {
+    if (!selectedRole) return;
+    const raw = String(roleMaxConcurrentTasks || '').trim();
+    if (raw === '') {
+      setLoading(true);
+      setErr('');
+      try {
+        await api(`/api/rbac/profiles/${selectedRole.id}`, 'PATCH', { max_concurrent_tasks: null });
+        setMsg('Plafond d’inscriptions : héritage du réglage global (Paramètres n3boss) enregistré');
+        await load();
+      } catch (e) {
+        setErr(e.message || 'Erreur enregistrement du plafond');
+      }
+      setLoading(false);
+      return;
+    }
+    const n = parseInt(raw, 10);
+    if (!Number.isFinite(n) || n < 0 || n > 99) {
+      setErr('Plafond invalide : entier entre 0 et 99 (0 = pas de limite pour ce profil), ou champ vide pour hériter du réglage global');
+      return;
+    }
+    setLoading(true);
+    setErr('');
+    try {
+      await api(`/api/rbac/profiles/${selectedRole.id}`, 'PATCH', { max_concurrent_tasks: n });
+      setMsg(
+        n === 0
+          ? 'Pas de limite d’inscriptions pour ce profil (0) : enregistré.'
+          : `Plafond d’inscriptions simultanées : ${n} tâche(s) non validée(s) — enregistré.`
+      );
+      await load();
+    } catch (e) {
+      setErr(e.message || 'Erreur enregistrement du plafond');
     }
     setLoading(false);
   };
@@ -876,6 +924,45 @@ function ProfilesAdminView({ isN3Affiliated = false }) {
                       <p style={{ fontSize: '.72rem', color: '#64748b', margin: '10px 0 0', lineHeight: 1.45 }}>
                         Réglages communs à tous les comptes ayant ce profil principal. Le profil visiteur reste sans accès forum / commentaires de contexte.
                       </p>
+                    </div>
+                  )}
+                  {isN3beurTierConfigurableProfile && (
+                    <div
+                      style={{
+                        border: '1px solid #fde68a',
+                        background: '#fffbeb',
+                        borderRadius: 10,
+                        padding: 12,
+                        marginBottom: 14,
+                      }}
+                    >
+                      <div style={{ fontSize: '.88rem', fontWeight: 700, color: '#92400e', marginBottom: 8 }}>
+                        Inscriptions simultanées aux tâches
+                      </div>
+                      <p style={{ fontSize: '.76rem', color: '#78350f', margin: '0 0 10px', lineHeight: 1.45 }}>
+                        Nombre maximum de tâches <strong>non validées</strong> auxquelles un {roleTerms.studentSingular} peut s’inscrire en même temps (toutes cartes).
+                        Une tâche <strong>validée</strong> par un {roleTerms.teacherShort} ne compte plus : le compteur se libère.
+                        Champ vide = utiliser le plafond défini dans <strong>Paramètres n3boss</strong> (
+                        <code style={{ fontSize: '.72rem' }}>tasks.student_max_active_assignments</code>
+                        ). <strong>0</strong> = pas de limite pour ce profil (même si le réglage global est actif).
+                      </p>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
+                        <input
+                          type="number"
+                          min={0}
+                          max={99}
+                          step={1}
+                          value={roleMaxConcurrentTasks}
+                          onChange={(e) => setRoleMaxConcurrentTasks(e.target.value)}
+                          disabled={loading}
+                          placeholder="Hériter du réglage global"
+                          style={{ width: 200, padding: '6px 8px', borderRadius: 8, border: '1px solid #d97706' }}
+                          aria-label={`Plafond d'inscriptions simultanées pour ${selectedRole.display_name}`}
+                        />
+                        <button type="button" className="btn btn-secondary btn-sm" onClick={saveMaxConcurrentTasks} disabled={loading}>
+                          Enregistrer le plafond
+                        </button>
+                      </div>
                     </div>
                   )}
                   {catalog

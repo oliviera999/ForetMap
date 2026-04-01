@@ -203,9 +203,10 @@ function App() {
 
   const canManageTutorials = useMemo(() => {
     const roleSlug = effectiveRoleContext.roleSlug;
-    const allowedRole = roleSlug === 'prof' || roleSlug === 'admin';
+    const nativePrivileged = !!authClaims?.nativePrivileged;
+    const allowedRole = roleSlug === 'prof' || roleSlug === 'admin' || nativePrivileged;
     return allowedRole && hasPermissionInRole('tutorials.manage');
-  }, [effectiveRoleContext.roleSlug, hasPermissionInRole]);
+  }, [effectiveRoleContext.roleSlug, hasPermissionInRole, authClaims?.nativePrivileged]);
 
   useEffect(() => {
     const hashRaw = window.location.hash.startsWith('#') ? window.location.hash.slice(1) : '';
