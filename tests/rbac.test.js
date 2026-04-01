@@ -186,6 +186,18 @@ test('RBAC admin: duplication de profil (permissions copiées, PIN non copié)',
   await execute('DELETE FROM roles WHERE id = ?', [res.body.id]);
 });
 
+test('RBAC: duplication refuse un slug réservé (ex. admin)', async () => {
+  const token = await getAdminToken();
+  const profRole = await queryOne('SELECT id FROM roles WHERE slug = ? LIMIT 1', ['prof']);
+  assert.ok(profRole?.id);
+  const res = await request(app)
+    .post(`/api/rbac/profiles/${profRole.id}/duplicate`)
+    .set('Authorization', `Bearer ${token}`)
+    .send({ slug: 'admin', display_name: 'Tentative' })
+    .expect(400);
+  assert.ok(String(res.body?.error || '').includes('réservé'), res.body?.error);
+});
+
 test('RBAC: profil n3boss dupliqué — enseignant traité comme palier staff (permissions sans élévation)', async () => {
   const { buildAuthzPayload } = require('../lib/rbac');
   const token = await getAdminToken();
