@@ -176,12 +176,17 @@ function TaskFormModal({
   isProposal = false,
   enableInitialAssignment = false,
   roleTerms = null,
+  /** Ouvre une nouvelle tâche avec ce projet déjà choisi (ex. projet en attente). */
+  defaultProjectId = null,
 }) {
   const dialogRef = useDialogA11y(onClose);
   const terms = roleTerms || getRoleTerms(false);
+  const defaultProjectForNew = !editTask && !isProposal && defaultProjectId
+    ? taskProjects.find((p) => String(p.id || '').trim() === String(defaultProjectId || '').trim())
+    : null;
   const initialMapId = editTask
     ? (editTask.map_id_resolved || editTask.map_id || editTask.zone_map_id || editTask.marker_map_id || null)
-    : activeMapId;
+    : (defaultProjectForNew?.map_id || activeMapId);
   const [form, setForm] = useState(editTask ? {
     title: isDuplicate ? `${editTask.title} (copie)` : editTask.title, description: editTask.description || '',
     map_id: initialMapId || '',
@@ -198,7 +203,7 @@ function TaskFormModal({
   } : {
     title: '', description: '', map_id: initialMapId || '',
     zone_ids: [], marker_ids: [], tutorial_ids: [],
-    project_id: '',
+    project_id: defaultProjectForNew ? String(defaultProjectForNew.id) : '',
     start_date: '', due_date: '', required_students: 1, completion_mode: 'single_done', recurrence: '',
     assign_student_id: ''
   });
@@ -365,7 +370,11 @@ function TaskFormModal({
           <div className="field"><label>Projet (optionnel)</label>
             <select value={form.project_id} onChange={set('project_id')}>
               <option value="">Aucun projet</option>
-              {selectableProjects.map((p) => <option key={p.id} value={p.id}>📁 {p.title}</option>)}
+              {selectableProjects.map((p) => (
+                <option key={p.id} value={p.id}>
+                  📁 {p.title}{p.status === 'on_hold' ? ' (en attente)' : ''}
+                </option>
+              ))}
             </select>
           </div>
         )}
@@ -705,6 +714,8 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
   const [quickAssignTaskId, setQuickAssignTaskId] = useState(null);
   const [quickAssignStudentIds, setQuickAssignStudentIds] = useState([]);
   const [loadingTeacherStudents, setLoadingTeacherStudents] = useState(false);
+  /** Préremplit le sélecteur « Projet » à l’ouverture de « Nouvelle tâche » (y compris projet en attente). */
+  const [newTaskDefaultProjectId, setNewTaskDefaultProjectId] = useState(null);
   const confirmDialogRef = useDialogA11y(() => setConfirmTask(null));
   const { isHelpEnabled, hasSeenSection, markSectionSeen, trackPanelOpen, trackPanelDismiss } = useHelp({ publicSettings, isTeacher });
   const contextCommentsEnabled = publicSettings?.modules?.context_comments_enabled !== false;
@@ -1106,12 +1117,28 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
                     </div>
                     {p.status === 'on_hold' && (
                       <div style={{ fontSize: '.82rem', color: '#92400e', marginTop: 4 }}>
-                        ⏸️ Projet en attente : inscriptions fermées, commentaires ouverts.
+                        {isTeacher
+                          ? '⏸️ Projet en attente : inscriptions élèves fermées, commentaires ouverts. Tu peux continuer à ajouter des tâches au projet ; elles resteront en attente d’inscription tant que le projet n’est pas réactivé.'
+                          : '⏸️ Projet en attente : inscriptions fermées, commentaires ouverts.'}
                       </div>
                     )}
                   </div>
                   {isTeacher ? (
-                    <div style={{ display: 'flex', gap: 6 }}>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, justifyContent: 'flex-end' }}>
+                      <button
+                        type="button"
+                        className="btn btn-ghost btn-sm"
+                        onClick={() => {
+                          setNewTaskDefaultProjectId(String(p.id));
+                          setEditTask(null);
+                          setDuplicateTask(null);
+                          setShowProposalForm(false);
+                          setShowForm(true);
+                        }}
+                        title="Créer une tâche liée à ce projet (y compris si le projet est en attente)"
+                      >
+                        + Tâche
+                      </button>
                       <button
                         className={`btn btn-sm ${projectStatus === 'active' ? 'btn-primary' : 'btn-ghost'}`}
                         disabled={projectStatus === 'active' || loadingActive}
@@ -1405,13 +1432,13 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
           {isTeacher && (
             <>
               <Tooltip text={tooltipText(HELP_TOOLTIPS.tasks.edit)}>
-                <button className="btn btn-ghost btn-sm" aria-label="Modifier la tâche" onClick={() => { setEditTask(t); setDuplicateTask(null); setShowForm(true); }}>✏️</button>
+                <button className="btn btn-ghost btn-sm" aria-label="Modifier la tâche" onClick={() => { setNewTaskDefaultProjectId(null); setEditTask(t); setDuplicateTask(null); setShowForm(true); }}>✏️</button>
               </Tooltip>
               <Tooltip text={tooltipText(HELP_TOOLTIPS.tasks.duplicate)}>
                 <button
                   className="btn btn-ghost btn-sm"
                   aria-label="Dupliquer la tâche"
-                  onClick={() => { setDuplicateTask(t); setEditTask(null); setShowForm(true); }}
+                  onClick={() => { setNewTaskDefaultProjectId(null); setDuplicateTask(t); setEditTask(null); setShowForm(true); }}
                 >
                   📄
                 </button>
@@ -1425,7 +1452,7 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
             <button
               className="btn btn-ghost btn-sm"
               aria-label="Modifier ma proposition"
-              onClick={() => { setEditTask(t); setDuplicateTask(null); setShowProposalForm(false); setShowForm(true); }}
+              onClick={() => { setNewTaskDefaultProjectId(null); setEditTask(t); setDuplicateTask(null); setShowProposalForm(false); setShowForm(true); }}
             >
               ✏️ Modifier ma proposition
             </button>
@@ -1461,7 +1488,14 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
           isProposal={(!isTeacher) && (showProposalForm || editTask?.status === 'proposed')}
           enableInitialAssignment={isTeacher}
           roleTerms={roleTerms}
-          onClose={() => { setShowForm(false); setEditTask(null); setDuplicateTask(null); setShowProposalForm(false); }}
+          defaultProjectId={!editTask && !duplicateTask ? newTaskDefaultProjectId : null}
+          onClose={() => {
+            setShowForm(false);
+            setEditTask(null);
+            setDuplicateTask(null);
+            setShowProposalForm(false);
+            setNewTaskDefaultProjectId(null);
+          }}
           onSave={showProposalForm && !isTeacher ? proposeTask : saveTask}
         />
       )}
@@ -1523,7 +1557,18 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
               />
             )}
             <button className="btn btn-ghost btn-sm" onClick={() => setShowProjectForm(true)}>+ Projet</button>
-            <button className="btn btn-primary btn-sm" onClick={() => setShowForm(true)}>+ Nouvelle tâche</button>
+            <button
+              type="button"
+              className="btn btn-primary btn-sm"
+              onClick={() => {
+                setNewTaskDefaultProjectId(null);
+                setEditTask(null);
+                setDuplicateTask(null);
+                setShowForm(true);
+              }}
+            >
+              + Nouvelle tâche
+            </button>
           </div>
         )}
         {!isTeacher && (
@@ -1541,7 +1586,7 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
               />
             )}
             {canSelfAssignTasks && (
-              <button className="btn btn-ghost btn-sm" onClick={() => setShowProposalForm(true)}>+ Proposer</button>
+              <button type="button" className="btn btn-ghost btn-sm" onClick={() => { setNewTaskDefaultProjectId(null); setShowProposalForm(true); }}>+ Proposer</button>
             )}
           </div>
         )}
@@ -1680,7 +1725,9 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
               return p.map_id === filterMap;
             })
             .map((p) => (
-              <option key={p.id} value={p.id}>{p.title}</option>
+              <option key={p.id} value={p.id}>
+                {p.title}{p.status === 'on_hold' ? ' (en attente)' : ''}
+              </option>
             ))}
         </select>
         <select
