@@ -220,6 +220,51 @@ app.get('/api/admin/logs', (req, res) => {
   });
 });
 
+// Instantané d’exploitation (secret requis) : version, uptime, mémoire, latence BDD, tampon logs — pour diag à distance / MCP
+app.get('/api/admin/diagnostics', async (req, res) => {
+  const secret = req.headers['x-deploy-secret'];
+  if (!process.env.DEPLOY_SECRET || secret !== process.env.DEPLOY_SECRET) {
+    return res.status(403).json({ error: 'Secret invalide ou DEPLOY_SECRET non configuré' });
+  }
+  const mem = process.memoryUsage();
+  const toMb = (n) => Math.round((n / 1024 / 1024) * 100) / 100;
+  let database = { ok: false };
+  const t0 = performance.now();
+  try {
+    await dbPing();
+    database = { ok: true, latencyMs: Math.round((performance.now() - t0) * 100) / 100 };
+  } catch (err) {
+    logger.warn({ err }, 'Diagnostics admin : ping BDD en échec');
+    database = { ok: false, error: 'Database unavailable' };
+  }
+  let pkgVersion = startupVersion;
+  try {
+    const pkgPath = path.join(__dirname, 'package.json');
+    const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
+    if (typeof pkg?.version === 'string') pkgVersion = pkg.version;
+  } catch (_) {
+    /* repli startupVersion */
+  }
+  res.type('application/json').json({
+    ok: true,
+    ts: new Date().toISOString(),
+    version: pkgVersion,
+    nodeEnv: process.env.NODE_ENV || null,
+    nodeVersion: process.version,
+    uptimeSeconds: Math.floor(process.uptime()),
+    memory: {
+      rssMb: toMb(mem.rss),
+      heapUsedMb: toMb(mem.heapUsed),
+      heapTotalMb: toMb(mem.heapTotal),
+    },
+    database,
+    logBuffer: {
+      linesCount: getBufferedLineCount(),
+      maxLines: getMaxLines(),
+    },
+  });
+});
+
 // Diagnostic OAuth (sans secrets) : vérifie les URLs réellement résolues au runtime.
 app.get('/api/admin/oauth-debug', (req, res) => {
   const secret = req.headers['x-deploy-secret'];

@@ -5,6 +5,9 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Ajouté
+- **Diagnostic prod / Cursor MCP** : `GET /api/admin/diagnostics` (secret `DEPLOY_SECRET`) — instantané JSON (version, uptime, mémoire, latence ping MySQL, état du tampon de logs) ; serveur MCP stdio **`scripts/mcp-foretmap-diagnostics.mjs`** avec outils `foretmap_public_health`, `foretmap_diagnostics`, `foretmap_tail_logs` ; script npm **`npm run mcp:diag`** ; devDependencies **`@modelcontextprotocol/sdk`**, **`zod`** ; guide **`docs/MCP_FORETMAP_CURSOR.md`** ; **`docs/API.md`**, **`docs/EXPLOITATION.md`** ; tests **`api.test.js`**.
+
 ### Corrigé
 - **Auth / élévation PIN** : la modale PIN utilise **`getAuthToken()`** (alignée sur **`foretmap_session`**) au lieu de lire uniquement les clés **`foretmap_auth_token`** / **`foretmap_teacher_token`**, ce qui supprime le faux message **« Connectez-vous d’abord avant d’entrer un PIN »** lorsque le jeton provient surtout de la session ou d’un **`refreshedToken`** ; **`mergeAuthMeResponse`** met à jour **`foretmap_auth_token`** quand l’API renvoie **`refreshedToken`**. Documentation **`docs/LOCAL_DEV.md`** (e2e + **`dist/`** si prod). Artefacts **`dist/`** régénérés.
 - **Modales (création / édition de tâches, etc.)** : pendant la saisie, le panneau ne remonte plus tout seul en haut — `useDialogA11y` ne réappliquait le focus sur le premier élément qu’à l’ouverture ; auparavant, une fonction `onClose` inline recréée à chaque rendu parent relançait l’effet (rafraîchissement liste, temps réel, etc.).
