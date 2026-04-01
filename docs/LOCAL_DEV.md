@@ -22,7 +22,7 @@ Attendre que le conteneur soit **healthy** (10–40 s la première fois). Vérif
 docker compose ps
 ```
 
-**Port 3306 déjà utilisé** (autre MariaDB/MySQL, XAMPP, etc.) : dans `docker-compose.yml`, remplacez `3306:3306` par `3307:3306`, puis dans `.env` mettez `DB_PORT=3307`. Recréez le conteneur si besoin : `docker compose down -v` puis `docker compose up -d` (le `-v` supprime le volume : perte des données du conteneur).
+**Port 3306 déjà utilisé** (autre MariaDB/MySQL, XAMPP, etc.) : dans `.env` (racine du projet, lu par Docker Compose et par Node), définissez **`FORETMAP_DB_PUBLISH_PORT=3307`** et **`DB_PORT=3307`**, puis `docker compose up -d` (le mapping hôte devient `3307→3306` dans le conteneur). Recréez le conteneur si besoin : `docker compose down -v` puis `docker compose up -d` (le `-v` supprime le volume : perte des données du conteneur). Alternative ponctuelle sous PowerShell : `$env:FORETMAP_DB_PUBLISH_PORT='3307'; $env:DB_PORT='3307'; docker compose up -d`.
 
 **Ancien conteneur MySQL 8 (volume `foretmap_mysql_data`)** : après passage à MariaDB, exécutez `docker compose down -v` puis `docker compose up -d` pour repartir sur le volume `foretmap_mariadb_data` (les données binaires MySQL 8 ne sont pas réutilisables telles quelles par MariaDB 11).
 

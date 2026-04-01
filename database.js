@@ -22,6 +22,15 @@ function logMigrationStmtError(err, stmt, migrationFile) {
     );
     return true;
   }
+  // Schéma initial (schema_foretmap.sql) peut déjà intégrer des objets d’anciennes migrations : FK/index dupliqués (errno 121 dans le message, code 1005).
+  const msg = String(err.sqlMessage || err.message || '');
+  if (num === 1005 && /\b121\b|Duplicate key on write/i.test(msg)) {
+    logger.debug(
+      { err, migrationFile, stmt: migrationStmtSnippet(stmt) },
+      'Étape migration ignorée (contrainte ou index déjà présent)'
+    );
+    return true;
+  }
   logger.warn(
     { err, migrationFile, stmt: migrationStmtSnippet(stmt) },
     'Échec étape migration SQL'
