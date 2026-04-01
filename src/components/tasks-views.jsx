@@ -679,7 +679,7 @@ const TASK_STATUS_FILTER_OPTIONS = [
   { value: 'on_hold', label: 'En attente' },
 ];
 
-function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], tutorials = [], activeMapId = 'foret', isTeacher, student, canSelfAssignTasks = true, canEnrollOnTasks, canParticipateContextComments = true, canViewOtherUsersIdentity = true, onRefresh, onForceLogout, isN3Affiliated = false, publicSettings = null }) {
+function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], tutorials = [], activeMapId = 'foret', isTeacher, student, canSelfAssignTasks = true, canEnrollOnTasks, canParticipateContextComments = true, canViewOtherUsersIdentity = true, onRefresh, onForceLogout, isN3Affiliated = false, publicSettings = null, onTaskFormOverlayOpenChange = null }) {
   const canEnrollNewTask = canEnrollOnTasks !== undefined ? canEnrollOnTasks : canSelfAssignTasks;
   const roleTerms = getRoleTerms(isN3Affiliated);
   const [showForm, setShowForm] = useState(false);
@@ -760,6 +760,35 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
       cancelled = true;
     };
   }, [isTeacher]);
+
+  useEffect(() => {
+    if (!onTaskFormOverlayOpenChange) return;
+    const open = !!(
+      showForm
+      || editTask
+      || duplicateTask
+      || showProposalForm
+      || showProjectForm
+      || confirmTask
+      || logTask
+      || logsTask
+    );
+    onTaskFormOverlayOpenChange(open);
+  }, [
+    showForm,
+    editTask,
+    duplicateTask,
+    showProposalForm,
+    showProjectForm,
+    confirmTask,
+    logTask,
+    logsTask,
+    onTaskFormOverlayOpenChange,
+  ]);
+
+  useEffect(() => () => {
+    onTaskFormOverlayOpenChange?.(false);
+  }, [onTaskFormOverlayOpenChange]);
 
   const mapLabelById = (mapId) => {
     if (!mapId) return 'Globale';
