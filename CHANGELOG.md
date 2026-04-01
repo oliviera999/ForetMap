@@ -6,6 +6,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 ## [Non publié]
 
 ### Corrigé
+- **Auth / élévation PIN** : la modale PIN utilise **`getAuthToken()`** (alignée sur **`foretmap_session`**) au lieu de lire uniquement les clés **`foretmap_auth_token`** / **`foretmap_teacher_token`**, ce qui supprime le faux message **« Connectez-vous d’abord avant d’entrer un PIN »** lorsque le jeton provient surtout de la session ou d’un **`refreshedToken`** ; **`mergeAuthMeResponse`** met à jour **`foretmap_auth_token`** quand l’API renvoie **`refreshedToken`**. Documentation **`docs/LOCAL_DEV.md`** (e2e + **`dist/`** si prod). Artefacts **`dist/`** régénérés.
 - **Modales (création / édition de tâches, etc.)** : pendant la saisie, le panneau ne remonte plus tout seul en haut — `useDialogA11y` ne réappliquait le focus sur le premier élément qu’à l’ouverture ; auparavant, une fonction `onClose` inline recréée à chaque rendu parent relançait l’effet (rafraîchissement liste, temps réel, etc.).
 
 ### Modifié

@@ -462,8 +462,10 @@ function App() {
     if (!d || typeof d !== 'object' || !d.auth) return;
     const { auth } = d;
     if (typeof d.refreshedToken === 'string' && d.refreshedToken.trim() !== '') {
+      const trimmed = d.refreshedToken.trim();
+      localStorage.setItem('foretmap_auth_token', trimmed);
       const sess = getStoredSession() || {};
-      saveStoredSession({ ...sess, token: d.refreshedToken.trim() });
+      saveStoredSession({ ...sess, token: trimmed });
     }
     const claims = getAuthClaims();
     setAuthClaims(claims);
