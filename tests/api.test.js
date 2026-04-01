@@ -1036,3 +1036,26 @@ test('GET /api/admin/logs avec bon secret → 200', async () => {
   assert.ok(typeof res.body.bufferMax === 'number');
   process.env.DEPLOY_SECRET = prev;
 });
+
+test('GET /api/admin/diagnostics sans DEPLOY_SECRET → 403', async () => {
+  const prev = process.env.DEPLOY_SECRET;
+  delete process.env.DEPLOY_SECRET;
+  const res = await request(app).get('/api/admin/diagnostics').expect(403);
+  assert.ok(res.body.error);
+  process.env.DEPLOY_SECRET = prev;
+});
+
+test('GET /api/admin/diagnostics avec bon secret → 200', async () => {
+  const prev = process.env.DEPLOY_SECRET;
+  process.env.DEPLOY_SECRET = 'secret-diag-test';
+  const res = await request(app)
+    .get('/api/admin/diagnostics')
+    .set('X-Deploy-Secret', 'secret-diag-test')
+    .expect(200);
+  assert.strictEqual(res.body.ok, true);
+  assert.ok(typeof res.body.version === 'string');
+  assert.ok(typeof res.body.uptimeSeconds === 'number');
+  assert.ok(res.body.database && typeof res.body.database.ok === 'boolean');
+  assert.ok(res.body.logBuffer && typeof res.body.logBuffer.linesCount === 'number');
+  process.env.DEPLOY_SECRET = prev;
+});

@@ -1,6 +1,6 @@
 {
   "name": "foretmap",
-  "version": "1.26.11",
+  "version": "1.26.12",
   "description": "Application de gestion de la forêt comestible - Lycée Lyautey",
   "main": "server.js",
   "dependencies": {
@@ -81,9 +81,11 @@
     "deploy:prepare:runtime:fast": "powershell -ExecutionPolicy Bypass -File scripts/prepare-runtime-deploy.ps1 -SkipInstall -SkipBuild",
     "deploy:check": "node scripts/post-deploy-check.js",
     "deploy:check:prod": "node scripts/post-deploy-check.js --base-url https://foretmap.olution.info",
-    "tasks:spawn-recurring": "node scripts/spawn-recurring-tasks.js"
+    "tasks:spawn-recurring": "node scripts/spawn-recurring-tasks.js",
+    "mcp:diag": "node scripts/mcp-foretmap-diagnostics.mjs"
   },
   "devDependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
     "@playwright/test": "^1.58.2",
     "@vitejs/plugin-react": "^4.2.1",
     "artillery": "^2.0.30",
@@ -94,6 +96,7 @@
     "sharp": "^0.34.5",
     "socket.io-client": "^4.8.1",
     "supertest": "^6.3.4",
-    "vite": "^5.0.10"
+    "vite": "^5.0.10",
+    "zod": "^4.3.6"
   }
 }
