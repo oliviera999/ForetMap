@@ -5,13 +5,14 @@ const crypto = require('crypto');
 const { OAuth2Client } = require('google-auth-library');
 const { v4: uuidv4 } = require('uuid');
 const { queryOne, execute } = require('../database');
-const { JWT_SECRET, requireAuth, signAuthToken } = require('../middleware/requireTeacher');
+const { JWT_SECRET, requireAuth, signAuthToken, parseBearerToken } = require('../middleware/requireTeacher');
 const { logRouteError } = require('../lib/routeLog');
 const { emitStudentsChanged } = require('../lib/realtime');
 const { sendPasswordResetEmail } = require('../lib/mailer');
 const {
   ensureRbacBootstrap,
   buildAuthzPayload,
+  consumePendingAutoProfilePromotion,
   ensurePrimaryRole,
   getPrimaryRoleForUser,
   setPrimaryRole,
@@ -341,9 +342,28 @@ function respondInternalError(res, req, err, message = 'Erreur serveur') {
 }
 
 router.get('/me', requireAuth, async (req, res) => {
-  const auth = exposeAuth(req.auth);
-  const body = { auth };
+  const body = { auth: exposeAuth(req.auth) };
+  try {
+    const tokenIn = parseBearerToken(req);
+    if (tokenIn && req.auth) {
+      const claims = jwt.verify(tokenIn, JWT_SECRET);
+      if (
+        String(claims.roleId) !== String(req.auth.roleId)
+        || String(claims.roleSlug || '').toLowerCase() !== String(req.auth.roleSlug || '').toLowerCase()
+      ) {
+        const session = await buildSessionPayload(req.auth.userType, req.auth.userId, !!claims.elevated);
+        if (session) {
+          body.refreshedToken = signAuthToken(session.tokenPayload, !!claims.elevated);
+          body.auth = exposeAuth(session.tokenPayload);
+        }
+      }
+    }
+  } catch (_) {
+    /* Jeton déjà validé par requireAuth ; ignorer les écarts de décodage marginaux */
+  }
   if (req.auth?.userType === 'student' && req.auth?.userId) {
+    const promo = consumePendingAutoProfilePromotion(req.auth.userId);
+    if (promo) body.autoProfilePromotion = promo;
     const u = await queryOne(
       `SELECT u.first_name, u.last_name,
               COALESCE(r.forum_participate, 1) AS forum_participate,
