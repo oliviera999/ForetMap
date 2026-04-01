@@ -9,7 +9,7 @@ Cette approche permet à l’assistant dans **Cursor** d’interroger la prod (o
 
 ## Fichier projet (recommandé)
 
-Le dépôt contient **`.cursor/mcp.json`** : serveur **`foretmap-diagnostics`**, URL prod par défaut, secret lu depuis la variable d’environnement **`FORETMAP_DEPLOY_SECRET`** (interpolation Cursor `${env:…}`).
+Le dépôt contient **`.cursor/mcp.json`** : serveur **`foretmap-diagnostics`**, URL prod par défaut, secret lu depuis **`FORETMAP_DEPLOY_SECRET`** (interpolation Cursor `${env:…}`). Si ce nom n’est pas défini, le serveur MCP tente **`DEPLOY_SECRET`** puis **`FORETMAP_DEPLOY_CHECK_SECRET`** (pratique si seul le `.env` du dépôt est chargé côté processus).
 
 ### Windows — définir le secret une fois pour toutes
 
