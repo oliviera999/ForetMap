@@ -27,6 +27,7 @@ Il a été mis à jour pour refléter l’état réel du dépôt (mars 2026), pu
 - **Modularisation frontend avancée** : extraction des vues `stats`, `audit`, `about` hors de `foretmap-views.jsx` vers des modules dédiés.
 - **Charge « classe / Wi‑Fi » (validation technique)** : scénario Artillery **`load/artillery-10vu.yml`** avec au plus **10 utilisateurs virtuels** concurrents, **sans** bypass du rate limit (même IP pour tous les clients de la campagne) — commande **`npm run test:load:10vu`**. Permet d’observer **429** et latences sous le plafond **`/api/*`** réel ; documenté dans **`docs/LOCAL_DEV.md`** et **`docs/API.md`**.
 - **Temps réel Socket.IO** : tests étendus dans **`tests/realtime.test.js`** (JWT invalide / expiré, changement de carte via **`subscribe:map`**, `tasks:changed` sans `mapId` vers **`domain:tasks`**) ; paragraphe **Robustesse** dans **`docs/API.md`** (section Temps réel).
+- **Prise de contrôle admin (impersonation)** : permission RBAC **`admin.impersonate`** (profil **admin** par défaut) ; **`POST /api/auth/admin/impersonate`** / **`POST /api/auth/admin/impersonate/stop`** ; JWT avec identité cible et acteur conservé ; UI **Profils & utilisateurs** (« Voir comme cet utilisateur ») et bandeau de retour ; journal d’audit **`auth_impersonate_start`** / **`auth_impersonate_stop`**. Référence API : **`docs/API.md`**.
 
 ## 1.2 Partiellement réalisé / restant
 

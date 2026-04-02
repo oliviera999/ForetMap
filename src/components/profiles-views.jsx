@@ -1,6 +1,10 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { API, api, getAuthToken } from '../services/api';
 import { getRoleTerms } from '../utils/n3-terminology';
+import { useHelp } from '../hooks/useHelp';
+import { HelpPanel } from './HelpPanel';
+import { HELP_PANELS, HELP_TOOLTIPS, resolveRoleText } from '../constants/help';
+import { Tooltip } from './Tooltip';
 
 const EDIT_EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -109,8 +113,13 @@ function buildUserEditInitialFields(u) {
   return { firstName, lastName, pseudo, email, description, affiliation };
 }
 
-function ProfilesAdminView({ isN3Affiliated = false, onImpersonationApplied }) {
+function ProfilesAdminView({ isN3Affiliated = false, onImpersonationApplied, publicSettings }) {
   const roleTerms = getRoleTerms(isN3Affiliated);
+  const { isHelpEnabled, hasSeenSection, markSectionSeen, trackPanelOpen, trackPanelDismiss } = useHelp({
+    publicSettings,
+    isTeacher: true,
+  });
+  const helpProfiles = HELP_PANELS.profiles;
   const [roles, setRoles] = useState([]);
   const [catalog, setCatalog] = useState([]);
   const [users, setUsers] = useState([]);
@@ -921,7 +930,21 @@ function ProfilesAdminView({ isN3Affiliated = false, onImpersonationApplied }) {
 
   return (
     <div className="fade-in profiles-admin">
-      <h2 className="section-title">🛡️ Profils & utilisateurs</h2>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, flexWrap: 'wrap' }}>
+        <h2 className="section-title" style={{ marginBottom: 0 }}>🛡️ Profils & utilisateurs</h2>
+        {isHelpEnabled && (
+          <HelpPanel
+            sectionId="profiles"
+            title={helpProfiles.title}
+            entries={helpProfiles.items}
+            isTeacher
+            isPulsing={!hasSeenSection('profiles')}
+            onMarkSeen={markSectionSeen}
+            onOpen={trackPanelOpen}
+            onDismiss={trackPanelDismiss}
+          />
+        )}
+      </div>
       <p className="section-sub">Gestion des profils, des comptes et des opérations {roleTerms.studentPlural} (création, import, export, suppression).</p>
       {err && !(editModalOpen && editUserLoadState === 'ready') && (
         <div className="auth-error">⚠️ {err}</div>
@@ -1026,14 +1049,16 @@ function ProfilesAdminView({ isN3Affiliated = false, onImpersonationApplied }) {
                   </div>
                   {authPerms.includes('admin.impersonate') && (
                     <div style={{ gridColumn: '1 / -1', marginTop: 4 }}>
-                      <button
-                        type="button"
-                        className="btn btn-secondary"
-                        disabled={editLoading || impersonateLoading}
-                        onClick={() => { startImpersonation(); }}
-                      >
-                        {impersonateLoading ? 'Connexion…' : 'Voir comme cet utilisateur'}
-                      </button>
+                      <Tooltip text={resolveRoleText(HELP_TOOLTIPS.profiles.impersonateUser, true)}>
+                        <button
+                          type="button"
+                          className="btn btn-secondary"
+                          disabled={editLoading || impersonateLoading}
+                          onClick={() => { startImpersonation(); }}
+                        >
+                          {impersonateLoading ? 'Connexion…' : 'Voir comme cet utilisateur'}
+                        </button>
+                      </Tooltip>
                       <p style={{ fontSize: '.72rem', color: '#64748b', margin: '8px 0 0', lineHeight: 1.45 }}>
                         L’interface reflète le compte choisi (support ou diagnostic). Utilisez le bandeau orange en haut de l’écran pour retrouver votre session administrateur.
                       </p>
