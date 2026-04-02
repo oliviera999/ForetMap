@@ -175,7 +175,7 @@ Ces droits sont assignables depuis la console **Profils & utilisateurs**.
 | `students.import` | Import n3beurs | Importer des n3beurs via CSV/XLSX |
 | `students.delete` | Suppression n3beur | Supprimer un compte n3beur |
 | `tasks.manage` | Gestion tâches | Créer/éditer/supprimer les tâches |
-| `tasks.validate` | Validation tâches | Valider les tâches terminées |
+| `tasks.validate` | Validation tâches | Valider une tâche (tous statuts sauf déjà validée) |
 | `tasks.propose` | Proposition de tâches | Proposer de nouvelles tâches |
 | `tasks.assign_self` | Prise en charge tâche | S’assigner à une tâche |
 | `tasks.unassign_self` | Retrait de tâche | Se retirer d’une tâche |
@@ -373,7 +373,7 @@ Réponse:
 | POST | `/api/tasks/:id/done` | non | Marquer comme fait (commentaire/image) |
 | GET | `/api/tasks/:id/logs` | non | Logs de la tâche |
 | GET | `/api/tasks/:id/logs/:logId/image` | non | Image d’un log (fichier disque) |
-| POST | `/api/tasks/:id/validate` | oui | Valider la tâche |
+| POST | `/api/tasks/:id/validate` | oui | Valider la tâche (depuis n’importe quel statut sauf `validated`) |
 
 \* Un n3beur peut aussi modifier **sa propre proposition** (statut `proposed`, préfixe de description `Proposition n3beur:`) ; les champs sensibles (`status`, `project_id`, `tutorial_ids`, `recurrence`, `completion_mode`) restent réservés aux profils avec `tasks.manage`.
 
@@ -391,7 +391,7 @@ Contraintes principales :
 - `POST /api/tasks/:id/done` :
   - en `single_done`, la tâche passe en `done` dès la déclaration de fin ;
   - en `all_assignees_done`, chaque assigné valide individuellement, puis la tâche passe en `done` uniquement quand tous les assignés ont terminé.
-- `POST /api/tasks/:id/validate` exige que la tâche soit déjà `done` (sinon `400`).
+- `POST /api/tasks/:id/validate` : possible sans que la tâche soit `done` ; **400** uniquement si elle est déjà `validated`. Les liaisons **zones / repères** sont retirées, comme pour un passage à `validated` via `PUT`.
 - Les commentaires contextuels restent possibles sur les tâches/projets (`/api/context-comments`).
 
 ---

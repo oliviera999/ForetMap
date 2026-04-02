@@ -1849,9 +1849,14 @@ router.post('/:id/validate', requirePermission('tasks.validate', { needsElevatio
   try {
     const task = await queryOne('SELECT * FROM tasks WHERE id = ?', [req.params.id]);
     if (!task) return res.status(404).json({ error: 'Tâche introuvable' });
-    if (normalizeTaskStatusForRead(task.status) !== 'done') {
-      return res.status(400).json({ error: "La tâche doit être terminée avant validation" });
+    const currentStatus = normalizeTaskStatusForRead(task.status);
+    if (currentStatus === 'validated') {
+      return res.status(400).json({ error: 'Tâche déjà validée' });
     }
+    // Comme PUT avec statut validated : une tâche validée ne reste pas liée à des zones/repères.
+    await setTaskZones(task.id, []);
+    await setTaskMarkers(task.id, []);
+    await syncLegacyLocationColumns(task.id, [], []);
     await execute("UPDATE tasks SET status = 'validated' WHERE id = ?", [req.params.id]);
     logAudit('validate_task', 'task', req.params.id, task.title, { req });
     const updated = await getTaskWithAssignments(task.id);

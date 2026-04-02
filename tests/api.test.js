@@ -553,15 +553,21 @@ test('max_concurrent_tasks = 0 sur le profil : pas de limite même si le réglag
   }
 });
 
-test('POST /api/tasks/:id/validate refuse une tâche non terminée', async () => {
+test('POST /api/tasks/:id/validate accepte une validation directe sans passage par done', async () => {
   const token = await getAdminAuthToken();
 
   const createRes = await request(app)
     .post('/api/tasks')
     .set('Authorization', 'Bearer ' + token)
-    .send({ title: `Validation guard ${Date.now()}`, required_students: 1 })
+    .send({ title: `Validation directe ${Date.now()}`, required_students: 1 })
     .expect(201);
   const taskId = createRes.body.id;
+
+  const validated = await request(app)
+    .post(`/api/tasks/${taskId}/validate`)
+    .set('Authorization', 'Bearer ' + token)
+    .expect(200);
+  assert.strictEqual(validated.body.status, 'validated');
 
   await request(app)
     .post(`/api/tasks/${taskId}/validate`)
