@@ -1122,6 +1122,29 @@ function MarkerModal({ marker, plants, tasks, onClose, onSave, onDelete, onLinkT
   );
 }
 
+function clampEditZonePct(p) {
+  return {
+    xp: Math.min(100, Math.max(0, Number(p.xp) || 0)),
+    yp: Math.min(100, Math.max(0, Number(p.yp) || 0)),
+  };
+}
+
+function clampEditPts(pts) {
+  return (pts || []).map(clampEditZonePct);
+}
+
+function cloneEditPts(pts) {
+  return pts.map((p) => ({ xp: p.xp, yp: p.yp }));
+}
+
+function editPtsSnapshotEqual(a, b) {
+  if (!a || !b || a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i += 1) {
+    if (a[i].xp !== b[i].xp || a[i].yp !== b[i].yp) return false;
+  }
+  return true;
+}
+
 function useMapGestures({ mapImageSrc, activeMapId, mode, onRefresh }) {
   const containerRef = useRef(null);
   const worldRef = useRef(null);
@@ -1436,7 +1459,10 @@ function MapView({ zones, markers, tasks = [], plants, maps = [], activeMapId = 
   const [editZone, setEditZone] = useState(null);
   const [editPoints, setEditPoints] = useState([]);
   const [draggingPtIdx, setDraggingPtIdx] = useState(-1);
+  const [editCanUndo, setEditCanUndo] = useState(false);
   const editZoneTranslateLastRef = useRef(null);
+  const editPointsHistoryRef = useRef([]);
+  const editPointsRef = useRef([]);
   const [selectedZone, setSelectedZone] = useState(null);
   const [selectedMarker, setSelectedMarker] = useState(null);
   const [pendingZone, setPendingZone] = useState(null);
@@ -1524,11 +1550,17 @@ function MapView({ zones, markers, tasks = [], plants, maps = [], activeMapId = 
     setPendingMarker(null);
     setMarkerPositionUnlocked(false);
     editZoneTranslateLastRef.current = null;
+    editPointsHistoryRef.current = [];
+    setEditCanUndo(false);
   }, [activeMapId]);
 
   useEffect(() => {
     if (mode !== 'edit-points') editZoneTranslateLastRef.current = null;
   }, [mode]);
+
+  useEffect(() => {
+    editPointsRef.current = editPoints;
+  }, [editPoints]);
 
   const onMapClick = e => {
     if (moved.current) return;
@@ -1543,15 +1575,67 @@ function MapView({ zones, markers, tasks = [], plants, maps = [], activeMapId = 
   const undoPoint = () => setDrawPoints(pts => pts.slice(0, -1));
   const cancelDraw = () => { setDrawPoints([]); setMode('view'); };
 
-  const startEditPoints = z => {
+  const recordEditHistoryAfterGesture = useCallback(() => {
+    if (mode !== 'edit-points') return;
+    const cur = clampEditPts(cloneEditPts(editPointsRef.current));
+    const h = editPointsHistoryRef.current;
+    const last = h[h.length - 1];
+    if (last && editPtsSnapshotEqual(last, cur)) return;
+    h.push(cur);
+    while (h.length > 30) h.shift();
+    setEditCanUndo(h.length > 1);
+  }, [mode]);
+
+  const scheduleRecordEditHistory = useCallback(() => {
+    window.setTimeout(() => { recordEditHistoryAfterGesture(); }, 0);
+  }, [recordEditHistoryAfterGesture]);
+
+  const undoEditPoints = useCallback(() => {
+    const h = editPointsHistoryRef.current;
+    if (h.length <= 1) return;
+    h.pop();
+    const prev = h[h.length - 1];
+    setEditPoints(cloneEditPts(prev));
+    setEditCanUndo(h.length > 1);
+  }, []);
+
+  useEffect(() => {
+    if (mode !== 'edit-points') return undefined;
+    const onKey = (e) => {
+      if (!(e.ctrlKey || e.metaKey) || e.key.toLowerCase() !== 'z' || e.shiftKey) return;
+      const t = e.target;
+      if (t.closest && t.closest('input, textarea, select, [contenteditable="true"]')) return;
+      e.preventDefault();
+      undoEditPoints();
+    };
+    window.addEventListener('keydown', onKey, true);
+    return () => window.removeEventListener('keydown', onKey, true);
+  }, [mode, undoEditPoints]);
+
+  const discardEditPointsSession = useCallback(() => {
+    setEditZone(null);
+    setEditPoints([]);
+    editPointsHistoryRef.current = [];
+    setEditCanUndo(false);
+    editZoneTranslateLastRef.current = null;
+  }, []);
+
+  const startEditPoints = (z) => {
     let pts; try { pts = z.points ? JSON.parse(z.points) : []; } catch (e) { pts = []; }
-    setEditZone(z); setEditPoints(pts); setMode('edit-points'); setSelectedZone(null);
+    const clamped = clampEditPts(pts);
+    editPointsHistoryRef.current = [cloneEditPts(clamped)];
+    setEditCanUndo(false);
+    setEditZone(z);
+    setEditPoints(clamped);
+    setMode('edit-points');
+    setSelectedZone(null);
   };
   const saveEditPoints = async () => {
     if (!editZone) return;
     await api(`/api/zones/${editZone.id}`, 'PUT', { points: editPoints });
     await onRefresh();
-    setEditZone(null); setEditPoints([]); setMode('view');
+    discardEditPointsSession();
+    setMode('view');
     setToast('Contour sauvegardé ✓');
   };
 
@@ -1690,6 +1774,7 @@ function MapView({ zones, markers, tasks = [], plants, maps = [], activeMapId = 
   };
 
   const endEditZoneTranslate = (e) => {
+    scheduleRecordEditHistory();
     editZoneTranslateLastRef.current = null;
     if (e?.currentTarget?.hasPointerCapture?.(e.pointerId)) {
       try { e.currentTarget.releasePointerCapture(e.pointerId); } catch (_) {}
@@ -1725,7 +1810,7 @@ function MapView({ zones, markers, tasks = [], plants, maps = [], activeMapId = 
             const dx = p2.xp - last.xp;
             const dy = p2.yp - last.yp;
             editZoneTranslateLastRef.current = p2;
-            setEditPoints((pts) => pts.map((pt) => ({ xp: pt.xp + dx, yp: pt.yp + dy })));
+            setEditPoints((pts) => clampEditPts(pts.map((pt) => ({ xp: pt.xp + dx, yp: pt.yp + dy }))));
             e.preventDefault();
           }}
           onPointerUp={endEditZoneTranslate}
@@ -1737,8 +1822,15 @@ function MapView({ zones, markers, tasks = [], plants, maps = [], activeMapId = 
             fill={draggingPtIdx === i ? '#1a4731' : 'white'} stroke="#1a4731" strokeWidth={2 * inv}
             style={{ cursor: 'grab', touchAction: 'none' }}
             onPointerDown={e => { e.stopPropagation(); setDraggingPtIdx(i); e.currentTarget.setPointerCapture(e.pointerId); }}
-            onPointerMove={e => { if (draggingPtIdx === i) { const p2 = toImagePct(e.clientX, e.clientY); if (p2) setEditPoints(pts => pts.map((pt, j) => j === i ? p2 : pt)); } }}
-            onPointerUp={e => { e.stopPropagation(); setDraggingPtIdx(-1); }} />
+            onPointerMove={e => { if (draggingPtIdx === i) { const p2 = toImagePct(e.clientX, e.clientY); if (p2) setEditPoints((pts) => pts.map((pt, j) => (j === i ? clampEditZonePct(p2) : pt))); } }}
+            onPointerUp={(e) => {
+              e.stopPropagation();
+              scheduleRecordEditHistory();
+              setDraggingPtIdx(-1);
+              if (e.currentTarget.hasPointerCapture?.(e.pointerId)) {
+                try { e.currentTarget.releasePointerCapture(e.pointerId); } catch (_) {}
+              }
+            }} />
         ))}
       </g>
     );
@@ -1828,7 +1920,7 @@ function MapView({ zones, markers, tasks = [], plants, maps = [], activeMapId = 
                 border: 'none', borderRadius: 8, padding: '7px 11px', cursor: 'pointer',
                 fontFamily: 'DM Sans,sans-serif', fontSize: '.82rem', fontWeight: 600,
                 transition: 'all .15s', whiteSpace: 'nowrap' }}
-              onClick={() => { setMode(p => p === m && m !== 'view' ? 'view' : m); if (m === 'view') { setDrawPoints([]); setEditZone(null); setEditPoints([]); } }}>
+              onClick={() => { setMode(p => p === m && m !== 'view' ? 'view' : m); if (m === 'view') { setDrawPoints([]); discardEditPointsSession(); } }}>
               {label}
             </button>
           ))}
@@ -1847,8 +1939,9 @@ function MapView({ zones, markers, tasks = [], plants, maps = [], activeMapId = 
               background: '#f0fdf4', padding: '5px 10px', borderRadius: 8, border: '1px solid var(--mint)' }}>
               ✏️ {editZone?.name}
             </span>
+            <button type="button" className="btn btn-ghost btn-sm" disabled={!editCanUndo} onClick={undoEditPoints} title="Annuler la dernière modification (Ctrl+Z ou Cmd+Z)">↩ Annuler</button>
             <button className="btn btn-primary btn-sm" onClick={saveEditPoints}>💾 Sauver</button>
-            <button className="btn btn-ghost btn-sm" onClick={() => { setMode('view'); setEditZone(null); setEditPoints([]); }}>✕</button>
+            <button className="btn btn-ghost btn-sm" onClick={() => { setMode('view'); discardEditPointsSession(); }}>✕</button>
           </div>
         )}
 
@@ -2076,7 +2169,7 @@ function MapView({ zones, markers, tasks = [], plants, maps = [], activeMapId = 
               background: 'rgba(82,183,136,.92)', color: 'white', borderRadius: 22,
               padding: '9px 20px', fontSize: '.82rem', fontWeight: 600,
               pointerEvents: 'none', whiteSpace: 'nowrap', zIndex: 20 }}>
-              ✋ Glisse un point ou l&apos;intérieur de la zone pour déplacer
+              ✋ Glisse un point ou l&apos;intérieur · limites carte · Ctrl+Z annule
             </div>
           )}
           {prefersPageScroll && (
