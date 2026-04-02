@@ -1464,9 +1464,11 @@ function App() {
             </span>
           </div>
           <div className="impersonation-banner-actions">
-            <button type="button" className="btn btn-primary btn-sm" onClick={() => { stopAdminImpersonation(); }}>
-              Revenir à mon compte admin
-            </button>
+            <Tooltip text={helpText(HELP_TOOLTIPS.header.impersonationStop)}>
+              <button type="button" className="btn btn-primary btn-sm" onClick={() => { stopAdminImpersonation(); }}>
+                Revenir à mon compte admin
+              </button>
+            </Tooltip>
           </div>
         </div>
       )}
@@ -1593,6 +1595,7 @@ function App() {
               {tab === 'profiles' && (
                 <ProfilesAdminView
                   isN3Affiliated={isN3Affiliated}
+                  publicSettings={publicSettings}
                   onImpersonationApplied={handleAdminImpersonationApplied}
                 />
               )}

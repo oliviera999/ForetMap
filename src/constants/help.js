@@ -20,6 +20,12 @@ const HELP_TOOLTIPS = {
     },
     logout: { text: 'Se deconnecter de ForetMap.' },
     notifications: { text: 'Nouvelles infos et rappels importants.' },
+    impersonationStop: {
+      text:
+        'Quitte la prise de contrôle : tu retrouves ton compte administrateur et tes droits (diagnostic ou support terminé).',
+      textTeacher:
+        'Quitte la prise de contrôle : tu retrouves ton compte administrateur et tes droits. À utiliser quand le diagnostic ou le support est terminé.',
+    },
   },
   map: {
     toggleGestures: { text: 'Activer ou bloquer les gestes sur la carte.' },
@@ -39,6 +45,12 @@ const HELP_TOOLTIPS = {
   },
   visit: {
     mediaDelete: { textTeacher: 'Supprimer cette photo.' },
+  },
+  profiles: {
+    impersonateUser: {
+      textTeacher:
+        'Ouvre une session réelle comme cet utilisateur (identité effective côté serveur). Un bandeau orange permet ensuite de revenir au compte admin. Réservé aux comptes avec la permission admin.impersonate.',
+    },
   },
 };
 
@@ -105,6 +117,19 @@ const HELP_PANELS = {
       },
       {
         textTeacher: 'Tu peux aussi choisir les tutoriels visibles pendant la visite.',
+      },
+    ],
+  },
+  profiles: {
+    title: 'Aide profils et utilisateurs',
+    items: [
+      {
+        textTeacher:
+          'Gère les profils RBAC (permissions, PIN, forum, commentaires contextuels) et attribue un profil principal à chaque compte.',
+      },
+      {
+        textTeacher:
+          'Prise de contrôle : depuis « Modifier » un compte, « Voir comme cet utilisateur » reproduit l’expérience réelle de ce n3beur ou n3boss ; utilise le bandeau pour revenir à ton compte admin.',
       },
     ],
   },
