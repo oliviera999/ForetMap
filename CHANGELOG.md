@@ -9,6 +9,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - **Prise de contrôle admin** : permission RBAC **`admin.impersonate`** (profil **admin** par défaut) ; **`POST /api/auth/admin/impersonate`** et **`POST /api/auth/admin/impersonate/stop`** ; JWT avec identité cible + acteur ; UI **Profils & utilisateurs** (« Voir comme cet utilisateur ») et bandeau **Revenir à mon compte admin**. Doc **`docs/API.md`** ; test **`api.test.js`**.
 
 ### Modifié
+- **Build** : **`dist/`** régénéré (Vite) pour livrer l’UI prise de contrôle admin en production.
 - **Validation des tâches** : `POST /api/tasks/:id/validate` accepte une validation **directe** pour les profils avec `tasks.validate` (tous statuts sauf déjà `validated`), sans exiger le passage par `done` ; les liaisons zones/repères sont retirées comme pour un passage à `validated` via `PUT`. Doc **`docs/API.md`** ; test **`api.test.js`**.
 - **Carte (mode prof)** : en **édition des points** d’une zone, **glisser l’intérieur du polygone** translate tout le contour (en plus du déplacement point par point) ; indication d’aide mise à jour.
 - **Formulaire tâche (édition / duplication)** : le sélecteur **Projet** inclut **toujours** le projet déjà lié à la tâche (y compris **en attente**), même s’il était absent de la liste filtrée par carte ou non chargé dans **`taskProjects`** — évite d’envoyer par erreur **`project_id: null`** au **PUT** (cause d’incohérences / erreurs côté API).
