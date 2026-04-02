@@ -1436,6 +1436,7 @@ function MapView({ zones, markers, tasks = [], plants, maps = [], activeMapId = 
   const [editZone, setEditZone] = useState(null);
   const [editPoints, setEditPoints] = useState([]);
   const [draggingPtIdx, setDraggingPtIdx] = useState(-1);
+  const editZoneTranslateLastRef = useRef(null);
   const [selectedZone, setSelectedZone] = useState(null);
   const [selectedMarker, setSelectedMarker] = useState(null);
   const [pendingZone, setPendingZone] = useState(null);
@@ -1522,7 +1523,12 @@ function MapView({ zones, markers, tasks = [], plants, maps = [], activeMapId = 
     setPendingZone(null);
     setPendingMarker(null);
     setMarkerPositionUnlocked(false);
+    editZoneTranslateLastRef.current = null;
   }, [activeMapId]);
+
+  useEffect(() => {
+    if (mode !== 'edit-points') editZoneTranslateLastRef.current = null;
+  }, [mode]);
 
   const onMapClick = e => {
     if (moved.current) return;
@@ -1683,6 +1689,13 @@ function MapView({ zones, markers, tasks = [], plants, maps = [], activeMapId = 
     );
   };
 
+  const endEditZoneTranslate = (e) => {
+    editZoneTranslateLastRef.current = null;
+    if (e?.currentTarget?.hasPointerCapture?.(e.pointerId)) {
+      try { e.currentTarget.releasePointerCapture(e.pointerId); } catch (_) {}
+    }
+  };
+
   const renderEditPts = () => {
     if (mode !== 'edit-points' || !editPoints.length) return null;
     const wp = editPoints.map(toWorld);
@@ -1690,11 +1703,39 @@ function MapView({ zones, markers, tasks = [], plants, maps = [], activeMapId = 
     const r = Math.max(5, 8 * inv);
     return (
       <g>
-        <polygon points={str} fill="rgba(82,183,136,0.2)" stroke="#52b788" strokeWidth={2 * inv} />
+        <polygon
+          className="edit-zone-translate"
+          points={str}
+          fill="rgba(82,183,136,0.2)"
+          stroke="#52b788"
+          strokeWidth={2 * inv}
+          style={{ cursor: 'move', touchAction: 'none' }}
+          onPointerDown={(e) => {
+            e.stopPropagation();
+            const p0 = toImagePct(e.clientX, e.clientY);
+            if (!p0) return;
+            editZoneTranslateLastRef.current = p0;
+            try { e.currentTarget.setPointerCapture(e.pointerId); } catch (_) {}
+          }}
+          onPointerMove={(e) => {
+            const last = editZoneTranslateLastRef.current;
+            if (!last) return;
+            const p2 = toImagePct(e.clientX, e.clientY);
+            if (!p2) return;
+            const dx = p2.xp - last.xp;
+            const dy = p2.yp - last.yp;
+            editZoneTranslateLastRef.current = p2;
+            setEditPoints((pts) => pts.map((pt) => ({ xp: pt.xp + dx, yp: pt.yp + dy })));
+            e.preventDefault();
+          }}
+          onPointerUp={endEditZoneTranslate}
+          onPointerCancel={endEditZoneTranslate}
+          onLostPointerCapture={() => { editZoneTranslateLastRef.current = null; }}
+        />
         {wp.map((p, i) => (
           <circle key={i} className="edit-pt" cx={p.cx} cy={p.cy} r={r}
             fill={draggingPtIdx === i ? '#1a4731' : 'white'} stroke="#1a4731" strokeWidth={2 * inv}
-            style={{ cursor: 'grab' }}
+            style={{ cursor: 'grab', touchAction: 'none' }}
             onPointerDown={e => { e.stopPropagation(); setDraggingPtIdx(i); e.currentTarget.setPointerCapture(e.pointerId); }}
             onPointerMove={e => { if (draggingPtIdx === i) { const p2 = toImagePct(e.clientX, e.clientY); if (p2) setEditPoints(pts => pts.map((pt, j) => j === i ? p2 : pt)); } }}
             onPointerUp={e => { e.stopPropagation(); setDraggingPtIdx(-1); }} />
@@ -2035,7 +2076,7 @@ function MapView({ zones, markers, tasks = [], plants, maps = [], activeMapId = 
               background: 'rgba(82,183,136,.92)', color: 'white', borderRadius: 22,
               padding: '9px 20px', fontSize: '.82rem', fontWeight: 600,
               pointerEvents: 'none', whiteSpace: 'nowrap', zIndex: 20 }}>
-              ✋ Glisse les points pour modifier
+              ✋ Glisse un point ou l&apos;intérieur de la zone pour déplacer
             </div>
           )}
           {prefersPageScroll && (
