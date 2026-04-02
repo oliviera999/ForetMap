@@ -6,6 +6,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 ## [Non publié]
 
 ### Modifié
+- **Carte (mode prof)** : en **édition des points** d’une zone, **glisser l’intérieur du polygone** translate tout le contour (en plus du déplacement point par point) ; indication d’aide mise à jour.
 - **Formulaire tâche (édition / duplication)** : le sélecteur **Projet** inclut **toujours** le projet déjà lié à la tâche (y compris **en attente**), même s’il était absent de la liste filtrée par carte ou non chargé dans **`taskProjects`** — évite d’envoyer par erreur **`project_id: null`** au **PUT** (cause d’incohérences / erreurs côté API).
 - **Build / déploiement** : **`npm run build`** relancé (Vite production) ; contenu de **`dist/`** identique au dépôt **v1.27.6**. Côté hébergeur, **`NODE_ENV=development`** n’affecte que le process Node (logs, comportement Express) ; les fichiers **`dist/`** restent une build frontend optimisée.
 - **Socket.IO** : les erreurs moteur **« Session ID unknown »** (session obsolète / reconnexion) sont loguées en **`debug`** au lieu de **`warn`**, pour garder le tampon admin et les alertes exploitables.
