@@ -463,6 +463,86 @@ function App() {
     setSessionUser(getStoredSession()?.user || null);
   }, []);
 
+  const handleAdminImpersonationApplied = useCallback((data) => {
+    if (!data?.authToken) return;
+    const token = String(data.authToken).trim();
+    localStorage.setItem('foretmap_auth_token', token);
+    localStorage.setItem('foretmap_teacher_token', token);
+    const auth = data.auth;
+    if (auth?.userType === 'student' && data.profile) {
+      updateStudentSession({
+        ...data.profile,
+        authToken: token,
+        auth,
+      });
+    } else {
+      localStorage.removeItem('foretmap_student');
+      const p = data.profile || {};
+      const displayName = [p.first_name, p.last_name].filter(Boolean).join(' ').trim()
+        || p.display_name
+        || p.email
+        || auth?.roleDisplayName
+        || 'Utilisateur';
+      saveStoredSession({
+        token,
+        user: {
+          id: auth?.canonicalUserId || auth?.userId,
+          userType: 'teacher',
+          displayName,
+          email: p.email || null,
+          avatar_path: p.avatar_path || null,
+        },
+        student: null,
+      });
+      setStudent(null);
+      studentRef.current = null;
+    }
+    const nextClaims = getAuthClaims();
+    setAuthClaims(nextClaims);
+    setIsTeacher(Array.isArray(nextClaims?.permissions) && nextClaims.permissions.includes('teacher.access'));
+    setSessionUser(getStoredSession()?.user || null);
+    setRoleViewMode('native');
+    setTab('map');
+    setShowStats(false);
+    setShowProfile(false);
+    setToast('Prise de contrôle : vous voyez l’application comme l’utilisateur sélectionné.');
+  }, [updateStudentSession]);
+
+  const stopAdminImpersonation = useCallback(async () => {
+    try {
+      const data = await api('/api/auth/admin/impersonate/stop', 'POST');
+      if (!data?.authToken) {
+        setToast('Réponse serveur invalide');
+        return;
+      }
+      const token = String(data.authToken).trim();
+      localStorage.setItem('foretmap_auth_token', token);
+      localStorage.setItem('foretmap_teacher_token', token);
+      localStorage.removeItem('foretmap_student');
+      saveStoredSession({
+        token,
+        user: {
+          id: data.auth?.canonicalUserId || data.auth?.userId,
+          userType: 'teacher',
+          displayName: data.auth?.roleDisplayName || 'Utilisateur',
+          email: null,
+          avatar_path: null,
+        },
+        student: null,
+      });
+      setStudent(null);
+      studentRef.current = null;
+      setAuthClaims(getAuthClaims());
+      setIsTeacher(true);
+      setSessionUser(getStoredSession()?.user || null);
+      setRoleViewMode('native');
+      setTab('map');
+      setToast('Vous êtes reconnecté avec votre compte administrateur.');
+    } catch (e) {
+      setToast(e.message || 'Impossible de quitter la prise de contrôle');
+    }
+  }, []);
+
   const mergeAuthMeResponse = useCallback((d, opts = {}) => {
     const { studentIdForMatch } = opts;
     if (!d || typeof d !== 'object' || !d.auth) return;
@@ -1371,6 +1451,26 @@ function App() {
         </div>
       </header>
 
+      {authClaims?.impersonating && (
+        <div className="role-preview-banner role-preview-banner--impersonation fade-in" role="status">
+          <span className="role-preview-banner__icon" aria-hidden>👤</span>
+          <div className="role-preview-banner__text" style={{ flex: '1 1 200px' }}>
+            <strong>Prise de contrôle (admin)</strong>
+            <span>
+              Vous agissez en tant que{' '}
+              <strong>{String(authClaims?.roleDisplayName || 'utilisateur').trim()}</strong>
+              {authClaims?.userType === 'student' ? ' (n3beur)' : authClaims?.userType === 'teacher' ? ' (n3boss)' : ''}.
+              Les actions sont enregistrées pour ce compte.
+            </span>
+          </div>
+          <div className="impersonation-banner-actions">
+            <button type="button" className="btn btn-primary btn-sm" onClick={() => { stopAdminImpersonation(); }}>
+              Revenir à mon compte admin
+            </button>
+          </div>
+        </div>
+      )}
+
       {isTeacher && roleViewMode === 'student' && (
         <div className="role-preview-banner fade-in" role="status">
           <span className="role-preview-banner__icon" aria-hidden>🎓</span>
@@ -1490,7 +1590,12 @@ function App() {
               {tab === 'plants' && <PlantManager plants={plants} onRefresh={fetchAll} publicSettings={publicSettings}/>}
               {publicSettings?.modules?.tutorials_enabled !== false && tab === 'tuto'   && <TutorialsView tutorials={tutorials} isTeacher onRefresh={fetchAll} onForceLogout={forceLogout} />}
               {publicSettings?.modules?.stats_enabled !== false && tab === 'stats'  && (hasPermission('stats.read.all') ? <TeacherStats isN3Affiliated={isN3Affiliated} /> : <div className="empty"><p>Permission insuffisante</p></div>)}
-              {tab === 'profiles' && <ProfilesAdminView isN3Affiliated={isN3Affiliated} />}
+              {tab === 'profiles' && (
+                <ProfilesAdminView
+                  isN3Affiliated={isN3Affiliated}
+                  onImpersonationApplied={handleAdminImpersonationApplied}
+                />
+              )}
               {tab === 'audit'  && (hasPermission('audit.read') ? <AuditLog isN3Affiliated={isN3Affiliated} /> : <div className="empty"><p>Permission insuffisante</p></div>)}
               {publicSettings?.modules?.visit_enabled !== false && tab === 'visit'  && <VisitView student={currentUser} isTeacher availableTutorials={tutorials} initialMapId={activeMapId} onForceLogout={forceLogout} isN3Affiliated={isN3Affiliated} publicSettings={publicSettings} />}
               {tab === 'settings' && <SettingsAdminView isN3Affiliated={isN3Affiliated} />}

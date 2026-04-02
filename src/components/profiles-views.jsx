@@ -109,7 +109,7 @@ function buildUserEditInitialFields(u) {
   return { firstName, lastName, pseudo, email, description, affiliation };
 }
 
-function ProfilesAdminView({ isN3Affiliated = false }) {
+function ProfilesAdminView({ isN3Affiliated = false, onImpersonationApplied }) {
   const roleTerms = getRoleTerms(isN3Affiliated);
   const [roles, setRoles] = useState([]);
   const [catalog, setCatalog] = useState([]);
@@ -155,6 +155,7 @@ function ProfilesAdminView({ isN3Affiliated = false }) {
   const [editLoading, setEditLoading] = useState(false);
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [editUserLoadState, setEditUserLoadState] = useState('idle');
+  const [impersonateLoading, setImpersonateLoading] = useState(false);
 
   const load = async () => {
     setErr('');
@@ -660,6 +661,34 @@ function ProfilesAdminView({ isN3Affiliated = false }) {
     setEditLoading(false);
   };
 
+  const startImpersonation = async () => {
+    if (!editingUser) return;
+    setImpersonateLoading(true);
+    setErr('');
+    try {
+      const ut = String(editingUser.user_type || '').toLowerCase();
+      const uid = editingUser.id ?? pickUserField(editingUser, 'id');
+      const data = await api('/api/auth/admin/impersonate', 'POST', {
+        userType: ut,
+        userId: uid,
+      });
+      if (!data?.authToken) {
+        setErr('Réponse serveur invalide');
+        return;
+      }
+      closeEditUser();
+      if (typeof onImpersonationApplied === 'function') {
+        onImpersonationApplied(data);
+      } else {
+        window.location.reload();
+      }
+    } catch (e) {
+      setErr(e.message || 'Prise de contrôle impossible');
+    } finally {
+      setImpersonateLoading(false);
+    }
+  };
+
   const saveEditUser = async () => {
     if (!editingUser) return;
     if (!editFirstName.trim() || !editLastName.trim()) {
@@ -995,6 +1024,21 @@ function ProfilesAdminView({ isN3Affiliated = false }) {
                     <label htmlFor="edit-user-pw">Nouveau mot de passe (laisser vide pour ne pas changer)</label>
                     <input id="edit-user-pw" type="password" value={editPassword} onChange={(e) => setEditPassword(e.target.value)} disabled={editLoading} autoComplete="new-password" />
                   </div>
+                  {authPerms.includes('admin.impersonate') && (
+                    <div style={{ gridColumn: '1 / -1', marginTop: 4 }}>
+                      <button
+                        type="button"
+                        className="btn btn-secondary"
+                        disabled={editLoading || impersonateLoading}
+                        onClick={() => { startImpersonation(); }}
+                      >
+                        {impersonateLoading ? 'Connexion…' : 'Voir comme cet utilisateur'}
+                      </button>
+                      <p style={{ fontSize: '.72rem', color: '#64748b', margin: '8px 0 0', lineHeight: 1.45 }}>
+                        L’interface reflète le compte choisi (support ou diagnostic). Utilisez le bandeau orange en haut de l’écran pour retrouver votre session administrateur.
+                      </p>
+                    </div>
+                  )}
                   <div style={{ display: 'flex', gap: 10, marginTop: 6, gridColumn: '1 / -1' }}>
                     <button type="submit" className="btn btn-primary" style={{ flex: 1 }} disabled={editLoading}>
                       {editLoading ? 'Enregistrement…' : 'Enregistrer'}

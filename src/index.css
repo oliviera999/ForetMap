@@ -602,6 +602,18 @@
       background:rgba(239, 246, 255, .96);
       color:#1e3a8a;
     }
+    .role-preview-banner--impersonation {
+      border-color:rgba(234, 88, 12, .5);
+      background:rgba(255, 247, 237, .98);
+      color:#9a3412;
+      flex-wrap:wrap;
+    }
+    .role-preview-banner--impersonation .impersonation-banner-actions {
+      margin-left:auto;
+      display:flex;
+      gap:8px;
+      flex-shrink:0;
+    }
     .role-preview-banner__icon {
       flex-shrink:0;
       font-size:1.15rem;

@@ -5,7 +5,14 @@ const crypto = require('crypto');
 const { OAuth2Client } = require('google-auth-library');
 const { v4: uuidv4 } = require('uuid');
 const { queryOne, execute } = require('../database');
-const { JWT_SECRET, requireAuth, signAuthToken, parseBearerToken } = require('../middleware/requireTeacher');
+const {
+  JWT_SECRET,
+  requireAuth,
+  signAuthToken,
+  parseBearerToken,
+  requirePermission,
+  hydrateAuthFromTokenClaims,
+} = require('../middleware/requireTeacher');
 const { logRouteError } = require('../lib/routeLog');
 const logger = require('../lib/logger');
 const { emitStudentsChanged } = require('../lib/realtime');
@@ -324,7 +331,10 @@ async function resolveLoginUserType(user) {
 }
 
 function exposeAuth(auth) {
-  return {
+  if (!auth || auth.userType == null || auth.userId == null) {
+    return {};
+  }
+  const base = {
     userType: auth.userType,
     userId: auth.userId,
     canonicalUserId: auth.canonicalUserId || null,
@@ -335,6 +345,15 @@ function exposeAuth(auth) {
     elevated: !!auth.elevated,
     nativePrivileged: !!auth.nativePrivileged,
   };
+  if (auth.impersonating && auth.impersonatedBy) {
+    base.impersonating = true;
+    base.impersonatedBy = {
+      userType: auth.impersonatedBy.userType,
+      userId: auth.impersonatedBy.userId,
+      canonicalUserId: auth.impersonatedBy.canonicalUserId || null,
+    };
+  }
+  return base;
 }
 
 function respondInternalError(res, req, err, message = 'Erreur serveur') {
@@ -354,8 +373,19 @@ router.get('/me', requireAuth, async (req, res) => {
       ) {
         const session = await buildSessionPayload(req.auth.userType, req.auth.userId, !!claims.elevated);
         if (session) {
-          body.refreshedToken = signAuthToken(session.tokenPayload, !!claims.elevated);
-          body.auth = exposeAuth(session.tokenPayload);
+          const tp = { ...session.tokenPayload };
+          if (claims.impersonating && claims.actorUserType && claims.actorUserId != null) {
+            tp.impersonating = true;
+            tp.actorUserType = claims.actorUserType;
+            tp.actorUserId = claims.actorUserId;
+            tp.actorCanonicalUserId = claims.actorCanonicalUserId || null;
+          }
+          body.refreshedToken = signAuthToken(tp, !!claims.elevated);
+          body.auth = exposeAuth({
+            ...tp,
+            impersonating: req.auth.impersonating,
+            impersonatedBy: req.auth.impersonatedBy,
+          });
         }
       }
     }
@@ -1049,6 +1079,119 @@ router.post('/teacher', async (req, res) => {
       return res.json({ token, auth: exposeAuth(session.tokenPayload) });
     }
     return res.status(401).json({ error: 'Token requis avant élévation PIN' });
+  } catch (e) {
+    respondInternalError(res, req, e);
+  }
+});
+
+router.post('/admin/impersonate', requirePermission('admin.impersonate'), async (req, res) => {
+  try {
+    const targetUserType = normalizeOptionalString(req.body?.userType)?.toLowerCase();
+    const rawId = req.body?.userId;
+    const targetUserId = rawId == null ? '' : String(rawId).trim();
+    if (!['student', 'teacher'].includes(targetUserType)) {
+      return res.status(400).json({ error: 'Type utilisateur invalide (student ou teacher)' });
+    }
+    if (!targetUserId) {
+      return res.status(400).json({ error: 'Identifiant utilisateur requis' });
+    }
+    if (String(req.auth.userType) === targetUserType && String(req.auth.userId) === String(targetUserId)) {
+      return res.status(400).json({ error: 'Impossible de prendre le contrôle de votre propre compte' });
+    }
+    const account = await queryOne(
+      'SELECT * FROM users WHERE id = ? AND user_type = ? LIMIT 1',
+      [targetUserId, targetUserType]
+    );
+    if (!account) return res.status(404).json({ error: 'Utilisateur introuvable' });
+
+    const tokenIn = parseBearerToken(req);
+    if (!tokenIn) return res.status(401).json({ error: 'Token requis' });
+    let claims;
+    try {
+      claims = jwt.verify(tokenIn, JWT_SECRET);
+    } catch (_) {
+      return res.status(401).json({ error: 'Token invalide ou expiré' });
+    }
+    if (claims.impersonating) {
+      return res.status(400).json({ error: 'Quittez d’abord la prise de contrôle en cours' });
+    }
+    const elevated = !!claims.elevated;
+    const session = await buildSessionPayload(targetUserType, targetUserId, elevated);
+    if (!session) return res.status(403).json({ error: 'Aucun profil attribué pour ce compte' });
+
+    const actorCanonical = await ensureCanonicalUserByAuth({ userType: req.auth.userType, userId: req.auth.userId });
+    const tokenPayload = {
+      ...session.tokenPayload,
+      impersonating: true,
+      actorUserType: req.auth.userType,
+      actorUserId: req.auth.userId,
+      actorCanonicalUserId: actorCanonical || null,
+    };
+    const token = signAuthToken(tokenPayload, elevated);
+    let hydrated;
+    try {
+      hydrated = await hydrateAuthFromTokenClaims(jwt.verify(token, JWT_SECRET));
+    } catch (err) {
+      logRouteError(err, req);
+      return res.status(500).json({ error: 'Erreur lors de l’émission du jeton' });
+    }
+    if (!hydrated) return res.status(500).json({ error: 'Session impersonation invalide' });
+
+    await logAudit('auth_impersonate_start', 'auth', req.auth.userId, `Prise de contrôle ${targetUserType}#${targetUserId}`, {
+      req,
+      actorUserType: req.auth.userType,
+      actorUserId: req.auth.userId,
+      payload: { target_user_type: targetUserType, target_user_id: targetUserId },
+    });
+
+    const { password_hash, ...profile } = account;
+    res.json({
+      authToken: token,
+      auth: exposeAuth(hydrated),
+      profile,
+    });
+  } catch (e) {
+    respondInternalError(res, req, e);
+  }
+});
+
+router.post('/admin/impersonate/stop', requireAuth, async (req, res) => {
+  try {
+    if (!req.auth?.impersonating || !req.auth?.impersonatedBy) {
+      return res.status(400).json({ error: 'Aucune prise de contrôle en cours' });
+    }
+    const tokenIn = parseBearerToken(req);
+    if (!tokenIn) return res.status(401).json({ error: 'Token requis' });
+    let claims;
+    try {
+      claims = jwt.verify(tokenIn, JWT_SECRET);
+    } catch (_) {
+      return res.status(401).json({ error: 'Token invalide ou expiré' });
+    }
+    const actor = req.auth.impersonatedBy;
+    const actorAuthz = await buildAuthzPayload(actor.userType, actor.userId, false);
+    if (!actorAuthz || !actorAuthz.permissions?.includes('admin.impersonate')) {
+      return res.status(403).json({ error: 'Permission de reprise refusée' });
+    }
+    const session = await buildSessionPayload(actor.userType, actor.userId, !!claims.elevated);
+    if (!session) return res.status(403).json({ error: 'Session administrateur introuvable' });
+    const token = signAuthToken(session.tokenPayload, !!claims.elevated);
+    let hydrated;
+    try {
+      hydrated = await hydrateAuthFromTokenClaims(jwt.verify(token, JWT_SECRET));
+    } catch (err) {
+      logRouteError(err, req);
+      return res.status(500).json({ error: 'Erreur lors de l’émission du jeton' });
+    }
+
+    await logAudit('auth_impersonate_stop', 'auth', actor.userId, 'Fin prise de contrôle compte', {
+      req,
+      actorUserType: actor.userType,
+      actorUserId: actor.userId,
+      payload: { target_user_type: req.auth.userType, target_user_id: req.auth.userId },
+    });
+
+    res.json({ authToken: token, auth: exposeAuth(hydrated) });
   } catch (e) {
     respondInternalError(res, req, e);
   }

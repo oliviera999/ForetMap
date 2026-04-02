@@ -115,7 +115,7 @@ Connexion Socket.IO (transport **polling** actuellement forcé côté client) su
 |--------|-----|------|-------------|
 | POST | `/api/auth/register` | `{ firstName, lastName, password, pseudo?, email?, description? }` | Créer un compte n3beur (profil RBAC par défaut : `visiteur`) |
 | POST | `/api/auth/login` | `{ identifier, password }` | Connexion n3beur (pseudo ou email) |
-| GET | `/api/auth/me` | — | Retourne le contexte d’auth courant (`auth` : `userType`, permissions, `elevated`, `nativePrivileged`, etc.) ; **`nativePrivileged`** : `true` pour les slugs système `admin`/`prof` et pour un **enseignant** dont le profil principal a le rang du n3boss (≥ 400) et la permission `teacher.access` (ex. **duplicata** du profil n3boss), ce qui aligne le comportement « sans PIN » sur celui du slug `prof`. Peut inclure **`refreshedToken`** (JWT) si le profil RBAC effectif en base ne correspond plus au jeton (ex. progression auto après tâches validées) ; le client doit remplacer le jeton stocké. Pour un **n3beur**, peut inclure une seule fois **`autoProfilePromotion`** après une montée de palier automatique (voir détail ci-dessous). |
+| GET | `/api/auth/me` | — | Retourne le contexte d’auth courant (`auth` : `userType`, permissions, `elevated`, `nativePrivileged`, etc.) ; **`nativePrivileged`** : `true` pour les slugs système `admin`/`prof` et pour un **enseignant** dont le profil principal a le rang du n3boss (≥ 400) et la permission `teacher.access` (ex. **duplicata** du profil n3boss), ce qui aligne le comportement « sans PIN » sur celui du slug `prof`. En **prise de contrôle admin**, `auth` inclut **`impersonating`: true** et **`impersonatedBy`** (`userType`, `userId`, `canonicalUserId` du compte administrateur réel). Peut inclure **`refreshedToken`** (JWT) si le profil RBAC effectif en base ne correspond plus au jeton (ex. progression auto après tâches validées) ; le client doit remplacer le jeton stocké ; le jeton régénéré **conserve** les champs d’impersonation si la session était en prise de contrôle. Pour un **n3beur**, peut inclure une seule fois **`autoProfilePromotion`** après une montée de palier automatique (voir détail ci-dessous). |
 | PATCH | `/api/auth/me/profile` | `{ pseudo?, email?, description?, affiliation?, avatarData?, removeAvatar?, currentPassword }` | Mettre à jour son profil utilisateur connecté (n3beur, n3boss, admin local) |
 | POST | `/api/auth/elevate` | `{ pin }` | Élévation de session via PIN du profil ; pour un **n3beur** (`userType: student`), le JWT élevé inclut aussi les permissions effectives du rôle **`prof`** (atelier / mode n3boss temporaire), en plus du rôle primaire inchangé côté identité |
 | POST | `/api/auth/forgot-password` | `{ email }` | Déclencher un email de réinitialisation n3beur (réponse neutre) |
@@ -124,6 +124,8 @@ Connexion Socket.IO (transport **polling** actuellement forcé côté client) su
 | POST | `/api/auth/teacher/login` | `{ email, password }` | Connexion n3boss email/mot de passe → `{ token }` (JWT) |
 | POST | `/api/auth/teacher/forgot-password` | `{ email }` | Déclencher un email de réinitialisation n3boss (réponse neutre) |
 | POST | `/api/auth/teacher/reset-password` | `{ token, password }` | Réinitialiser le mot de passe n3boss |
+| POST | `/api/auth/admin/impersonate` | `{ userType: 'student' \| 'teacher', userId }` | **Admin** avec permission **`admin.impersonate`** : émet un JWT dont l’identité effective est le compte cible ; le jeton contient l’acteur (`impersonating`, `actorUserType`, `actorUserId`, `actorCanonicalUserId`). **`userId`** : chaîne (ex. UUID n3beur, identifiant enseignant). Réponse : **`authToken`**, **`auth`** (exposé), **`profile`** (ligne `users` sans `password_hash`). Impossible si une prise de contrôle est déjà active ou si la cible est soi-même. |
+| POST | `/api/auth/admin/impersonate/stop` | — | Met fin à la prise de contrôle : nouveau **`authToken`** / **`auth`** pour le compte administrateur identifié dans le jeton (acteur). Requiert un jeton en mode impersonation. |
 
 Routes protégées « n3boss » : header `Authorization: Bearer <token>`.
 
@@ -166,6 +168,7 @@ Ces droits sont assignables depuis la console **Profils & utilisateurs**.
 | `teacher.access` | Accès interface n3boss | Permet d’ouvrir l’interface n3boss |
 | `admin.roles.manage` | Gestion des profils RBAC | Créer/renommer profils, permissions et PIN |
 | `admin.users.assign_roles` | Attribution des profils | Attribuer/retraiter un profil aux utilisateurs ; modifier les données de compte via `PATCH /api/rbac/users/...` |
+| `admin.impersonate` | Prise de contrôle utilisateur | Se connecter en tant qu’un autre compte `student` ou `teacher` (`POST /api/auth/admin/impersonate`) |
 | `users.create` | Création unitaire utilisateurs | Créer un utilisateur unitaire (n3beur/n3boss/admin selon droits) |
 | `admin.settings.read` | Lecture paramètres admin | Consulter la console de réglages |
 | `admin.settings.write` | Édition paramètres admin | Modifier les réglages non secrets |
