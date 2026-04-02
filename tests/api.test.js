@@ -100,6 +100,44 @@ test('POST /api/auth/login avec mauvais mot de passe renvoie 401', async () => {
   assert.ok(res.body.error);
 });
 
+test('POST /api/auth/admin/impersonate puis stop restaure l’admin', async () => {
+  const adminToken = await getAdminAuthToken();
+  const reg = await request(app)
+    .post('/api/auth/register')
+    .send({ firstName: 'Imp', lastName: 'Ctrl' + Date.now(), password: 'pass1234' })
+    .expect(201);
+  const studentId = reg.body.id;
+  const imp = await request(app)
+    .post('/api/auth/admin/impersonate')
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ userType: 'student', userId: studentId })
+    .expect(200);
+  assert.ok(imp.body.authToken);
+  assert.strictEqual(imp.body.auth.userType, 'student');
+  assert.strictEqual(imp.body.auth.impersonating, true);
+  assert.ok(imp.body.auth.impersonatedBy);
+  assert.strictEqual(imp.body.profile.id, studentId);
+
+  const meStudent = await request(app)
+    .get('/api/auth/me')
+    .set('Authorization', `Bearer ${imp.body.authToken}`)
+    .expect(200);
+  assert.strictEqual(meStudent.body.auth.userType, 'student');
+  assert.strictEqual(meStudent.body.auth.impersonating, true);
+
+  const stop = await request(app)
+    .post('/api/auth/admin/impersonate/stop')
+    .set('Authorization', `Bearer ${imp.body.authToken}`)
+    .expect(200);
+  assert.ok(stop.body.authToken);
+  const meAdmin = await request(app)
+    .get('/api/auth/me')
+    .set('Authorization', `Bearer ${stop.body.authToken}`)
+    .expect(200);
+  assert.strictEqual(meAdmin.body.auth.userType, 'teacher');
+  assert.ok(!meAdmin.body.auth.impersonating);
+});
+
 test('GET /api/stats/me/:studentId autorise le propriétaire connecté', async () => {
   const studentRes = await request(app)
     .post('/api/auth/register')

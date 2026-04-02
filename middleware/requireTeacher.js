@@ -24,8 +24,33 @@ function parseBearerToken(req) {
 }
 
 async function hydrateAuthFromTokenClaims(claims) {
-  if (!claims || !claims.userType || !claims.userId) return null;
+  if (!claims || !claims.userType || claims.userId == null) return null;
   const elevated = !!claims.elevated;
+  if (claims.impersonating && claims.actorUserType && claims.actorUserId != null) {
+    const actorAuthz = await buildAuthzPayload(claims.actorUserType, claims.actorUserId, false);
+    const actorPerms = Array.isArray(actorAuthz?.permissions) ? actorAuthz.permissions : [];
+    if (!actorAuthz || !actorPerms.includes('admin.impersonate')) return null;
+    const authz = await buildAuthzPayload(claims.userType, claims.userId, elevated);
+    if (!authz) return null;
+    return {
+      userType: claims.userType,
+      userId: claims.userId,
+      canonicalUserId: claims.canonicalUserId || null,
+      roleId: authz.roleId,
+      roleSlug: authz.roleSlug,
+      roleDisplayName: authz.roleDisplayName,
+      permissions: authz.permissions,
+      elevatedPermissions: authz.elevatedPermissions,
+      elevated,
+      nativePrivileged: !!authz.nativePrivileged,
+      impersonating: true,
+      impersonatedBy: {
+        userType: claims.actorUserType,
+        userId: claims.actorUserId,
+        canonicalUserId: claims.actorCanonicalUserId || null,
+      },
+    };
+  }
   const authz = await buildAuthzPayload(claims.userType, claims.userId, elevated);
   if (!authz) return null;
   return {
