@@ -15,6 +15,7 @@ const { validateEnv } = require('./lib/env');
 const logger = require('./lib/logger');
 const { runRecurringTaskSpawnJob } = require('./lib/recurringTasks');
 const { initRealtime } = require('./lib/realtime');
+const { getRuntimeProcessSnapshot } = require('./lib/runtimeDiagnostics');
 const { tailLogLines, getBufferedLineCount, getMaxLines } = require('./lib/logBuffer');
 const { checkCriticalAdminAccount } = require('./lib/rbac');
 const { assignRequestId } = require('./lib/requestId');
@@ -320,6 +321,8 @@ app.get('/api/admin/diagnostics', async (req, res) => {
       maxLines: getMaxLines(),
     },
     metrics: logMetrics.getMetrics(),
+    // Processus courant uniquement ; le nombre d’instances Passenger/PM2 se lit au panneau hébergeur.
+    runtimeProcess: getRuntimeProcessSnapshot(),
   });
 });
 

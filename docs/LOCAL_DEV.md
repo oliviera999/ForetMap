@@ -266,6 +266,19 @@ npm run test:load:10vu
 
 Rapport JSON : même mécanisme que les autres profils (`load/reports/…`, copie vers `load/report.json`). Résumé Markdown : `npm run test:load:report load/report.json load/reports/10vu-summary.md`.
 
+**Smoke Socket.IO (polling, comme en prod)** : plusieurs clients **`socket.io-client`** en parallèle pour estimer le trafic **`/socket.io`** (long-poll + pings) et, en option, un **burst REST** `GET /api/tasks` par client après connexion (simule le refetch après notification temps réel).
+
+Prérequis : serveur lancé ; un **JWT** valide (copie depuis le stockage session navigateur après connexion enseignant ou n3beur, ou outil équivalent).
+
+```bash
+set FORETMAP_SOCKETIO_LOAD_JWT=eyJhbGciOi...
+npm run test:load:socketio-smoke
+```
+
+Variables utiles : `FORETMAP_SOCKETIO_LOAD_CLIENTS` (défaut 5), `FORETMAP_SOCKETIO_LOAD_DURATION_MS` (défaut 30000), `FORETMAP_SOCKETIO_LOAD_MAP_ID` (défaut `foret`), `FORETMAP_SOCKETIO_PATH` (défaut `/socket.io`), `BASE_URL` / `FORETMAP_SOCKETIO_LOAD_BASE_URL`. Pour enchaîner un **GET /api/tasks** par client après connexion : `set FORETMAP_SOCKETIO_LOAD_REST_BURST=1`.
+
+Voir aussi **`docs/EXPLOITATION.md`** (section temps réel / Passenger) et **`docs/EVOLUTION.md`** (critères de décision hébergement).
+
 Après `npm run test:load:all`, vous obtenez aussi :
 - `load/reports/light-summary.md`
 - `load/reports/normal-summary.md`
