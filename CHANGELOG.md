@@ -6,6 +6,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 ## [Non publié]
 
 ### Modifié
+- **Socket.IO (serveur)** : **`allowUpgrades: false`** ; ordre des transports **`polling`** puis **`websocket`** ; **`pingInterval` 20 s** (légèrement plus réactif pour détecter une ligne morte) et **`pingTimeout` 60 s** conservé (stabilité mobile / proxy). Fichier **`lib/realtime.js`** ; doc **`docs/API.md`**.
 - **Auth JWT** : défauts registre **`security.jwt_ttl_base_seconds`** et **`security.jwt_ttl_elevated_seconds`** à **5 400 s (1 h 30)** (modifiables dans **Réglages > Sécurité**) ; émission toujours pilotée par ces clés avec cache réglages 15 s et **`signAuthToken`** async. Les entrées déjà présentes dans **`app_settings`** conservent leur valeur jusqu’à modification manuelle. Doc **`docs/API.md`** ; test **`settings.test.js`**.
 - **UI — Cartes & tâches** (split desktop) : carte visuellement **sous** la barre d’outils (Nav / Repère / etc., sans centrage vertical du plan dans la colonne) ; **moins d’espace** entre onglets n3boss et zone split ; colonne carte en **`position: sticky`** avec hauteur max. utile pour rester visible lors d’un défilement de la page ; **défilement des tâches** confiné à la colonne droite (`overscroll-behavior`). Classes **`main--maptasks-split`** (`src/App.jsx`, `src/index.css`).
 - **Documentation** : déploiement o2switch — versions Node **18 / 20 / 22** documentées (prod **22**).

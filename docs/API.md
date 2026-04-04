@@ -85,6 +85,7 @@ Réservé aux environnements de **développement / CI** ; ne pas utiliser en pro
 
 Connexion Socket.IO en transport **polling uniquement** côté client (compatibilité proxy TLS / mutualisé ; pas de WebSocket) sur le **même hôte** que l’API, chemin `/socket.io`.
 
+- **Serveur (Engine.IO)** : transports **`polling`** puis **`websocket`** (WS pour tests / outils) ; **`allowUpgrades: false`** (pas d’upgrade polling→WS, aligné navigateurs prod) ; **`pingInterval` 20 s** / **`pingTimeout` 60 s** (heartbeat un peu plus fréquent, tolérance réseau mobile et proxy).
 - **CORS** : en production, même règle que l’API (`FRONTEND_ORIGIN` si défini).
 - **Rôle** : notifier les clients qu’une ressource a changé ; les données à jour restent à charger via les routes REST (`GET /api/tasks`, etc.).
 - **Auth socket** : token JWT requis (transmis dans le handshake Socket.IO).
