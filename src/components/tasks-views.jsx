@@ -935,6 +935,21 @@ const TASK_STATUS_FILTER_OPTIONS = [
   { value: 'on_hold', label: 'En attente' },
 ];
 
+function taskEffectiveStatus(task) {
+  const baseStatus = task?.status || 'available';
+  if (baseStatus === 'done' || baseStatus === 'validated' || baseStatus === 'proposed') return baseStatus;
+  if (baseStatus === 'on_hold' || task?.project_status === 'on_hold' || task?.is_before_start_date || isBeforeTaskStartDate(task)) {
+    return 'on_hold';
+  }
+  return baseStatus;
+}
+
+function mapLabelFromMaps(mapId, maps) {
+  if (!mapId) return 'Globale';
+  const map = maps.find((m) => m.id === mapId);
+  return map ? map.label : mapId;
+}
+
 function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], tutorials = [], activeMapId = 'foret', isTeacher, student, canSelfAssignTasks = true, canEnrollOnTasks, canParticipateContextComments = true, canViewOtherUsersIdentity = true, onRefresh, onForceLogout, isN3Affiliated = false, publicSettings = null, onTaskFormOverlayOpenChange = null }) {
   const canEnrollNewTask = canEnrollOnTasks !== undefined ? canEnrollOnTasks : canSelfAssignTasks;
   const roleTerms = getRoleTerms(isN3Affiliated);
@@ -1071,14 +1086,6 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
   };
 
   const taskEffectiveMapId = (task) => task.map_id_resolved || task.map_id || task.zone_map_id || task.marker_map_id || null;
-  const taskEffectiveStatus = (task) => {
-    const baseStatus = task?.status || 'available';
-    if (baseStatus === 'done' || baseStatus === 'validated' || baseStatus === 'proposed') return baseStatus;
-    if (baseStatus === 'on_hold' || task?.project_status === 'on_hold' || task?.is_before_start_date || isBeforeTaskStartDate(task)) {
-      return 'on_hold';
-    }
-    return baseStatus;
-  };
 
   const withLoad = async (id, fn) => {
     setLoading(l => ({ ...l, [id]: true }));
@@ -1439,423 +1446,41 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
     setQuickAssignTaskId(null);
     setQuickAssignStudentIds([]);
   });
-  const ProjectsSection = () => {
-    if (visibleProjects.length <= 0) return null;
-    return (
-      <div className="tasks-section">
-        <div className="tasks-section-title">📁 Projets ({visibleProjects.length})</div>
-        <div style={{ display: 'grid', gap: 8 }}>
-          {visibleProjects.map((p) => {
-            const projectTasks = allFiltered.filter((t) => String(t.project_id || '') === String(p.id || ''));
-            const projectTasksCount = projectTasks.length;
-            const projectStatus = p.status === 'on_hold' ? 'on_hold' : 'active';
-            const loadingActive = !!loading[`${p.id}projectactive`];
-            const loadingHold = !!loading[`${p.id}projecton_hold`];
-            return (
-              <div key={p.id} className="task-card" style={{ padding: 12 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                  <div>
-                    <div className="task-title" style={{ fontSize: '1rem' }}>📁 {p.title}</div>
-                    <div className="task-meta" style={{ marginTop: 6 }}>
-                      {(p.zones_linked || []).map((z) => (
-                        <span key={z.id} className="task-chip">🌿 {z.name}</span>
-                      ))}
-                      {(p.markers_linked || []).map((m) => (
-                        <span key={m.id} className="task-chip">📍 {m.label}</span>
-                      ))}
-                      {(p.tutorials_linked || []).map((tu) => (
-                        <span key={tu.id} className="task-chip">📘 {tu.title}</span>
-                      ))}
-                    </div>
-                    <div style={{ fontSize: '.82rem', color: '#666' }}>
-                      {p.map_label || mapLabelById(p.map_id)} · {projectTasksCount} tâche{projectTasksCount > 1 ? 's' : ''}
-                    </div>
-                    {!!(p.description || '').trim() && (
-                      <div className="task-desc" style={{ marginTop: 8 }}>{String(p.description).trim()}</div>
-                    )}
-                    {p.status === 'on_hold' && (
-                      <div style={{ fontSize: '.82rem', color: '#92400e', marginTop: 4 }}>
-                        {isTeacher
-                          ? '⏸️ Projet en attente : inscriptions élèves fermées, commentaires ouverts. Tu peux continuer à ajouter des tâches au projet ; elles resteront en attente d’inscription tant que le projet n’est pas réactivé.'
-                          : '⏸️ Projet en attente : inscriptions fermées, commentaires ouverts.'}
-                      </div>
-                    )}
-                  </div>
-                  {isTeacher ? (
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, justifyContent: 'flex-end' }}>
-                      <button
-                        type="button"
-                        className="btn btn-ghost btn-sm"
-                        onClick={() => {
-                          setEditProject(p);
-                          setShowProjectForm(true);
-                        }}
-                        title="Modifier titre, description, carte, zones, repères et tutoriels"
-                      >
-                        ✏️ Modifier
-                      </button>
-                      <button
-                        type="button"
-                        className="btn btn-ghost btn-sm"
-                        onClick={() => {
-                          setNewTaskDefaultProjectId(String(p.id));
-                          setEditTask(null);
-                          setDuplicateTask(null);
-                          setShowProposalForm(false);
-                          setShowForm(true);
-                        }}
-                        title="Créer une tâche liée à ce projet (y compris si le projet est en attente)"
-                      >
-                        + Tâche
-                      </button>
-                      <button
-                        className={`btn btn-sm ${projectStatus === 'active' ? 'btn-primary' : 'btn-ghost'}`}
-                        disabled={projectStatus === 'active' || loadingActive}
-                        onClick={() => setProjectStatus(p, 'active')}
-                      >
-                        {loadingActive ? '...' : '✅ Actif'}
-                      </button>
-                      <button
-                        className={`btn btn-sm ${projectStatus === 'on_hold' ? 'btn-primary' : 'btn-ghost'}`}
-                        disabled={projectStatus === 'on_hold' || loadingHold}
-                        onClick={() => setProjectStatus(p, 'on_hold')}
-                      >
-                        {loadingHold ? '...' : '⏸️ En attente'}
-                      </button>
-                    </div>
-                  ) : (
-                    <span className="task-chip">{projectStatus === 'on_hold' ? '⏸️ En attente' : '✅ Actif'}</span>
-                  )}
-                </div>
-                <div style={{ marginTop: 8 }}>
-                  {contextCommentsEnabled && (
-                    <ContextComments
-                      contextType="project"
-                      contextId={p.id}
-                      title="Commentaires du projet"
-                      placeholder="Partager une info utile sur ce projet..."
-                    />
-                  )}
-                </div>
-                <div style={{ marginTop: 10 }}>
-                  {projectTasksCount === 0 ? (
-                    <p style={{ fontSize: '.85rem', color: '#666', margin: 0 }}>
-                      Aucune tâche liée à ce projet avec les filtres actuels.
-                    </p>
-                  ) : (
-                    <div className={sectionListClass}>
-                      {projectTasks.map((t, idx) => (
-                        <TaskCard key={t.id} t={t} index={idx} />
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-    );
-  };
-
-  const TaskCard = ({ t, index = 0 }) => {
-    const effectiveStatus = taskEffectiveStatus(t);
-    const isMine = !!(student && isStudentAssignedToTask(t, student));
-    const canEditOwnProposal = !isTeacher
-      && t.status === 'proposed'
-      && student
-      && String(t.proposed_by_student_id || '') === String(student.id || '');
-    const slots = getAvailableSlots(t);
-    const proposalMeta = proposalMetaFromDescription(t.description);
-    const cardDescription = t.status === 'proposed' ? proposalMeta.cleanedDescription : (t.description || '');
-    const assignees = Array.isArray(t.assignments) ? t.assignments : [];
-    const completionMode = getCompletionMode(t);
-    const isCollectiveCompletion = completionMode === 'all_assignees_done';
-    const doneCount = getAssigneesDoneCount(t);
-    const totalCount = getAssignedCount(t);
-    const mineAssignment = assignees.find((a) => (
-      student && (
-        String(a.student_id || '') === String(student.id || '')
-        || (
-          String(a.student_first_name || '').trim().toLowerCase() === String(student.first_name || '').trim().toLowerCase()
-          && String(a.student_last_name || '').trim().toLowerCase() === String(student.last_name || '').trim().toLowerCase()
-        )
-      )
-    )) || null;
-    const hasCompletedOwnAssignment = !!(isCollectiveCompletion && mineAssignment?.done_at);
-    const isQuickAssignOpen = quickAssignTaskId === t.id;
-    const quickAssignDelta = isQuickAssignOpen ? teacherQuickAssignDelta(t, quickAssignStudentIds) : { toAdd: [], toRemove: [] };
-    const quickAssignSlotsAfterRemovals = isQuickAssignOpen
-      ? getAvailableSlots(t) + quickAssignDelta.toRemove.length
-      : getAvailableSlots(t);
-    const canQuickAssign = isQuickAssignOpen && teacherQuickAssignCanApply(t, quickAssignStudentIds);
-    const quickAssignBusy = !!loading[`${t.id}assign_teacher_quick`];
-    const quickAssignTitle = isQuickAssignOpen ? quickAssignHint(t, quickAssignStudentIds) : '';
-    return (
-      <div
-        className={`task-card ${viewMode === 'tiles' ? 'task-card--tile' : ''} fade-in ${isMine ? 'mine' : ''} ${effectiveStatus === 'validated' ? 'done' : ''} ${effectiveStatus === 'proposed' ? 'proposed' : ''}`}
-        style={{ animationDelay: `${Math.min(index * 60, 360)}ms` }}
-      >
-        <div className="task-top">
-          <div className="task-title-row">
-            {taskStatusIndicator(effectiveStatus, isN3Affiliated)}
-            <div className="task-title">{t.title}</div>
-          </div>
-        </div>
-        <div className="task-meta">
-          {(t.zones_linked || []).map((z) => (
-            <span key={z.id} className="task-chip">🌿 {z.name}</span>
-          ))}
-          {!((t.zones_linked || []).length) && t.zone_name && <span className="task-chip">🌿 {t.zone_name}</span>}
-          {(t.markers_linked || []).map((m) => (
-            <span key={m.id} className="task-chip">📍 {m.label}</span>
-          ))}
-          {!((t.markers_linked || []).length) && t.marker_label && <span className="task-chip">📍 {t.marker_label}</span>}
-          {(t.tutorials_linked || []).map((tu) => (
-            <span key={tu.id} className="task-chip">📘 {tu.title}</span>
-          ))}
-          {t.project_title && <span className="task-chip">📁 {t.project_title}</span>}
-          {t.project_title && t.project_status === 'on_hold' && <span className="task-chip">⏸️ Projet en attente</span>}
-          {startDateChip(t.start_date)}
-          {isTeacher && t.status === 'proposed' && proposalMeta.proposer && (
-            <span className="task-chip proposal">🙋 Proposée par {proposalMeta.proposer}</span>
-          )}
-          {dueDateChip(t.due_date)}
-          {!isTeacher && <span className="task-chip">👤 {t.required_students} {t.required_students > 1 ? roleTerms.studentPlural : roleTerms.studentSingular}</span>}
-          <span className="task-chip">🧩 {completionModeLabel(completionMode)}</span>
-          {isCollectiveCompletion && <span className="task-chip">✅ {doneCount}/{totalCount} terminé{totalCount > 1 ? 's' : ''}</span>}
-          {t.recurrence && <span className="task-chip">🔄 {t.recurrence === 'weekly' ? 'Hebdo' : t.recurrence === 'biweekly' ? 'Bi-hebdo' : t.recurrence === 'monthly' ? 'Mensuel' : t.recurrence}</span>}
-        </div>
-        {cardDescription && <div className="task-desc">{cardDescription}</div>}
-        {effectiveStatus === 'on_hold' && (
-          <div className="task-desc" style={{ marginTop: 8, borderLeft: '3px solid #f59e0b', paddingLeft: 10 }}>
-            {isTeacher
-              ? 'Inscription n3beur temporairement bloquée (tâche ou projet en attente). Les commentaires restent ouverts.'
-              : 'Inscription temporairement fermée par l’équipe pédagogique. Tu peux quand même laisser un commentaire.'}
-          </div>
-        )}
-        {assignees.length > 0 && (
-          <div className="assignees">
-            {assignees.map((a, i) => {
-              const item = formatAssigneeName(a, student, isTeacher || canViewOtherUsersIdentity);
-              return (
-                <span key={`${a.student_first_name}-${a.student_last_name}-${i}`} className={`assignee-tag ${item.isCurrentStudent ? 'me' : ''}`}>
-                  {item.isCurrentStudent && item.fullName.toLowerCase() !== 'toi' ? `${item.fullName} (toi)` : item.fullName}
-                  {isCollectiveCompletion ? (a.done_at ? ' ✓' : ' • en cours') : ''}
-                </span>
-              );
-            })}
-          </div>
-        )}
-        {slots > 0 && effectiveStatus !== 'validated' && (
-          <div className="slots">{slots} place{slots > 1 ? 's' : ''} restante{slots > 1 ? 's' : ''}</div>
-        )}
-        <div className="task-actions">
-          {!isTeacher && canEnrollNewTask && !isMine && slots > 0 && effectiveStatus !== 'validated' && effectiveStatus !== 'on_hold' && (
-            <button className="btn btn-primary btn-sm" disabled={loading[t.id + 'assign']} onClick={() => assign(t)}>
-              {loading[t.id + 'assign'] ? '...' : '✋ Je m\'en occupe'}
-            </button>
-          )}
-          {!isTeacher && canSelfAssignTasks && isMine && t.status !== 'done' && t.status !== 'validated' && !hasCompletedOwnAssignment && (
-            <>
-              <button className="btn btn-secondary btn-sm" onClick={() => setLogTask(t)}>
-                ✅ Marquer terminée
-              </button>
-              <button className="btn btn-ghost btn-sm" disabled={loading[t.id + 'unassign']}
-                onClick={() => unassign(t)}
-                title="Me retirer de cette tâche">
-                {loading[t.id + 'unassign'] ? '...' : '↩️ Me retirer'}
-              </button>
-            </>
-          )}
-          {!isTeacher && hasCompletedOwnAssignment && (
-            <span className="task-chip">✅ Ta partie est déjà marquée terminée</span>
-          )}
-          {isTeacher && (
-            <button
-              className={`btn btn-sm ${isQuickAssignOpen ? 'btn-primary' : 'btn-ghost'}`}
-              disabled={quickAssignBusy || loadingTeacherStudents || teacherStudents.length === 0 || taskEffectiveStatus(t) === 'on_hold'}
-              onClick={() => {
-                if (isQuickAssignOpen) {
-                  quickAssignUserEditedRef.current = false;
-                  setQuickAssignTaskId(null);
-                  setQuickAssignStudentIds([]);
-                  return;
-                }
-                quickAssignUserEditedRef.current = false;
-                setQuickAssignTaskId(t.id);
-                setQuickAssignStudentIds(
-                  teacherStudents
-                    .filter((s) => isStudentAlreadyAssignedToTask(t, s))
-                    .map((s) => toQuickAssignStudentId(s.id))
-                );
-              }}
-              title={taskEffectiveStatus(t) === 'on_hold'
-                ? "Affectation désactivée (en attente)"
-                : (teacherStudents.length === 0 ? 'Aucun n3beur disponible' : 'Afficher la liste des n3beurs')}
-            >
-              {quickAssignBusy ? '...' : '⚡ Affectation rapide'}
-            </button>
-          )}
-          {isTeacher && isQuickAssignOpen && (
-            <div style={{ display: 'grid', gap: 8, width: '100%' }}>
-              {loadingTeacherStudents ? (
-                <p style={{ margin: 0, fontSize: '.82rem', color: '#666' }}>Chargement n3beurs...</p>
-              ) : (
-                <>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}>
-                    <span style={{ fontSize: '.8rem', color: '#666' }}>
-                      {quickAssignStudentIds.length} coché{quickAssignStudentIds.length > 1 ? 's' : ''}
-                      {quickAssignDelta.toRemove.length > 0 || quickAssignDelta.toAdd.length > 0
-                        ? ` · ${quickAssignDelta.toRemove.length > 0 ? `−${quickAssignDelta.toRemove.length}` : ''}${quickAssignDelta.toRemove.length > 0 && quickAssignDelta.toAdd.length > 0 ? ' ' : ''}${quickAssignDelta.toAdd.length > 0 ? `+${quickAssignDelta.toAdd.length}` : ''}`
-                        : ''}
-                    </span>
-                    <span style={{ fontSize: '.8rem', color: quickAssignDelta.toAdd.length > quickAssignSlotsAfterRemovals ? '#b45309' : '#666' }}>
-                      {quickAssignDelta.toAdd.length > 0
-                        ? `${quickAssignDelta.toAdd.length}/${quickAssignSlotsAfterRemovals} place${quickAssignSlotsAfterRemovals > 1 ? 's' : ''} pour les ajouts`
-                        : `${getAvailableSlots(t)} place${getAvailableSlots(t) > 1 ? 's' : ''} libre${getAvailableSlots(t) > 1 ? 's' : ''}`}
-                    </span>
-                    <div style={{ display: 'flex', gap: 8 }}>
-                      <button
-                        type="button"
-                        className="btn btn-ghost btn-sm"
-                        disabled={quickAssignBusy}
-                        onClick={() => {
-                          quickAssignUserEditedRef.current = true;
-                          setQuickAssignStudentIds(teacherStudents.map((s) => toQuickAssignStudentId(s.id)));
-                        }}
-                      >
-                        Tout sélectionner
-                      </button>
-                      <button
-                        type="button"
-                        className="btn btn-ghost btn-sm"
-                        disabled={quickAssignBusy}
-                        onClick={() => {
-                          quickAssignUserEditedRef.current = true;
-                          setQuickAssignStudentIds([]);
-                        }}
-                      >
-                        Effacer
-                      </button>
-                    </div>
-                  </div>
-                  <div style={{
-                    maxHeight: 160,
-                    overflowY: 'auto',
-                    border: '1px solid rgba(0,0,0,.08)',
-                    borderRadius: 10,
-                    padding: '6px 8px',
-                    background: 'var(--parchment, #faf8f3)',
-                    textAlign: 'left',
-                  }}>
-                    {teacherStudents.map((s) => {
-                      const fullName = `${s.first_name || ''} ${s.last_name || ''}`.trim();
-                      const sid = toQuickAssignStudentId(s.id);
-                      const checked = quickAssignStudentIds.includes(sid);
-                      return (
-                        <label key={sid} style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'flex-start',
-                          gap: 10,
-                          minHeight: 44,
-                          width: '100%',
-                          cursor: 'pointer',
-                          textAlign: 'left',
-                        }}>
-                          <input
-                            type="checkbox"
-                            checked={checked}
-                            disabled={quickAssignBusy}
-                            onChange={() => {
-                              quickAssignUserEditedRef.current = true;
-                              setQuickAssignStudentIds((ids) => (
-                                ids.includes(sid)
-                                  ? ids.filter((id) => toQuickAssignStudentId(id) !== sid)
-                                  : [...ids, sid]
-                              ));
-                            }}
-                          />
-                          <span style={{ fontSize: '.88rem', textAlign: 'left', flex: 1 }}>{fullName || 'n3beur'}</span>
-                        </label>
-                      );
-                    })}
-                  </div>
-                </>
-              )}
-              <button
-                className={`btn btn-sm ${canQuickAssign ? 'btn-primary' : 'btn-ghost'}`}
-                disabled={!canQuickAssign || quickAssignBusy || loadingTeacherStudents}
-                onClick={() => runTeacherQuickAssign(t, quickAssignStudentIds)}
-                title={quickAssignTitle}
-              >
-                {quickAssignBusy ? '...' : 'Appliquer'}
-              </button>
-            </div>
-          )}
-          {isTeacher && (
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-              {TEACHER_STATUS_ACTIONS.map((opt) => {
-                const isCurrent = t.status === opt.value;
-                const isBusy = !!loading[`${t.id}status${opt.value}`];
-                return (
-                  <button
-                    key={opt.value}
-                    className={`btn btn-sm ${isCurrent ? 'btn-primary' : 'btn-ghost'}`}
-                    disabled={isCurrent || isBusy}
-                    onClick={() => setTaskStatus(t, opt.value)}
-                    title={isCurrent ? `Statut actuel: ${opt.label}` : `Passer en ${opt.label.toLowerCase()}`}
-                  >
-                    {isBusy ? '...' : `${opt.icon} ${opt.label}`}
-                  </button>
-                );
-              })}
-            </div>
-          )}
-          {isTeacher && (t.status === 'done' || t.status === 'validated') && (
-            <button className="btn btn-ghost btn-sm" onClick={() => setLogsTask(t)}>📋 Rapports</button>
-          )}
-          {isTeacher && (
-            <>
-              <Tooltip text={tooltipText(HELP_TOOLTIPS.tasks.edit)}>
-                <button className="btn btn-ghost btn-sm" aria-label="Modifier la tâche" onClick={() => { setNewTaskDefaultProjectId(null); setEditTask(t); setDuplicateTask(null); setShowForm(true); }}>✏️</button>
-              </Tooltip>
-              <Tooltip text={tooltipText(HELP_TOOLTIPS.tasks.duplicate)}>
-                <button
-                  className="btn btn-ghost btn-sm"
-                  aria-label="Dupliquer la tâche"
-                  onClick={() => { setNewTaskDefaultProjectId(null); setDuplicateTask(t); setEditTask(null); setShowForm(true); }}
-                >
-                  📄
-                </button>
-              </Tooltip>
-              <Tooltip text={tooltipText(HELP_TOOLTIPS.tasks.delete)}>
-                <button className="btn btn-danger btn-sm" aria-label="Supprimer la tâche" disabled={loading[t.id + 'del']} onClick={() => deleteTask(t)}>🗑️</button>
-              </Tooltip>
-            </>
-          )}
-          {!isTeacher && canEditOwnProposal && (
-            <button
-              className="btn btn-ghost btn-sm"
-              aria-label="Modifier ma proposition"
-              onClick={() => { setNewTaskDefaultProjectId(null); setEditTask(t); setDuplicateTask(null); setShowProposalForm(false); setShowForm(true); }}
-            >
-              ✏️ Modifier ma proposition
-            </button>
-          )}
-        </div>
-        {contextCommentsEnabled && (
-          <ContextComments
-            contextType="task"
-            contextId={t.id}
-            title="Commentaires de la tâche"
-            placeholder="Partager une info utile sur cette tâche..."
-            canParticipateContextComments={canParticipateContextComments}
-          />
-        )}
-      </div>
-    );
+  const taskTileProps = {
+    viewMode,
+    isN3Affiliated,
+    student,
+    isTeacher,
+    canViewOtherUsersIdentity,
+    canEnrollNewTask,
+    canSelfAssignTasks,
+    canParticipateContextComments,
+    contextCommentsEnabled,
+    roleTerms,
+    loading,
+    quickAssignTaskId,
+    quickAssignStudentIds,
+    teacherStudents,
+    loadingTeacherStudents,
+    quickAssignUserEditedRef,
+    teacherQuickAssignDelta,
+    teacherQuickAssignCanApply,
+    quickAssignHint,
+    assign,
+    unassign,
+    setLogTask,
+    setLogsTask,
+    setTaskStatus,
+    deleteTask,
+    setEditTask,
+    setDuplicateTask,
+    setShowForm,
+    setShowProposalForm,
+    setNewTaskDefaultProjectId,
+    setQuickAssignTaskId,
+    setQuickAssignStudentIds,
+    runTeacherQuickAssign,
+    tooltipText,
   };
 
   return (
@@ -2163,7 +1788,7 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
       {!isTeacher && myTasks.length > 0 && (
         <div className="tasks-section">
           <div className="tasks-section-title">🧩 Mes tâches</div>
-          <div className={sectionListClass}>{myTasks.map((t, idx) => <TaskCard key={t.id} t={t} index={idx} />)}</div>
+          <div className={sectionListClass}>{myTasks.map((t, idx) => <TaskTileCard key={t.id} {...taskTileProps} t={t} index={idx} />)}</div>
         </div>
       )}
 
@@ -2172,38 +1797,56 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
           {available.length > 0 && (
             <div className="tasks-section">
               <div className="tasks-section-title">🔥 À faire</div>
-              <div className={sectionListClass}>{available.map((t, idx) => <TaskCard key={t.id} t={t} index={idx} />)}</div>
+              <div className={sectionListClass}>{available.map((t, idx) => <TaskTileCard key={t.id} {...taskTileProps} t={t} index={idx} />)}</div>
             </div>
           )}
           {inProgress.length > 0 && (
             <div className="tasks-section">
               <div className="tasks-section-title">⚙️ En cours</div>
-              <div className={sectionListClass}>{inProgress.map((t, idx) => <TaskCard key={t.id} t={t} index={idx} />)}</div>
+              <div className={sectionListClass}>{inProgress.map((t, idx) => <TaskTileCard key={t.id} {...taskTileProps} t={t} index={idx} />)}</div>
             </div>
           )}
-          <ProjectsSection />
+          <TaskProjectsBlock
+            visibleProjects={visibleProjects}
+            allFiltered={allFiltered}
+            sectionListClass={sectionListClass}
+            isTeacher={isTeacher}
+            maps={maps}
+            contextCommentsEnabled={contextCommentsEnabled}
+            canParticipateContextComments={canParticipateContextComments}
+            setEditProject={setEditProject}
+            setShowProjectForm={setShowProjectForm}
+            setNewTaskDefaultProjectId={setNewTaskDefaultProjectId}
+            setEditTask={setEditTask}
+            setDuplicateTask={setDuplicateTask}
+            setShowForm={setShowForm}
+            setShowProposalForm={setShowProposalForm}
+            setProjectStatus={setProjectStatus}
+            loading={loading}
+            taskTileProps={taskTileProps}
+          />
           {proposed.length > 0 && (
             <div className="tasks-section">
               <div className="tasks-section-title">💡 Propositions {roleTerms.studentPlural} ({proposed.length})</div>
-              <div className={sectionListClass}>{proposed.map((t, idx) => <TaskCard key={t.id} t={t} index={idx} />)}</div>
+              <div className={sectionListClass}>{proposed.map((t, idx) => <TaskTileCard key={t.id} {...taskTileProps} t={t} index={idx} />)}</div>
             </div>
           )}
           {done.length > 0 && (
             <div className="tasks-section">
               <div className="tasks-section-title">⏳ En attente de validation ({done.length})</div>
-              <div className={sectionListClass}>{done.map((t, idx) => <TaskCard key={t.id} t={t} index={idx} />)}</div>
+              <div className={sectionListClass}>{done.map((t, idx) => <TaskTileCard key={t.id} {...taskTileProps} t={t} index={idx} />)}</div>
             </div>
           )}
           {onHold.length > 0 && (
             <div className="tasks-section">
               <div className="tasks-section-title">⏸️ En attente ({onHold.length})</div>
-              <div className={sectionListClass}>{onHold.map((t, idx) => <TaskCard key={t.id} t={t} index={idx} />)}</div>
+              <div className={sectionListClass}>{onHold.map((t, idx) => <TaskTileCard key={t.id} {...taskTileProps} t={t} index={idx} />)}</div>
             </div>
           )}
           {validated.length > 0 && (
             <div className="tasks-section">
               <div className="tasks-section-title">✅ Validées</div>
-              <div className={sectionListClass}>{validated.map((t, idx) => <TaskCard key={t.id} t={t} index={idx} />)}</div>
+              <div className={sectionListClass}>{validated.map((t, idx) => <TaskTileCard key={t.id} {...taskTileProps} t={t} index={idx} />)}</div>
             </div>
           )}
         </>
@@ -2215,47 +1858,83 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
                 <div className="tasks-section-title">
                   🔎 Résultats filtrés ({regularFiltered.length})
                 </div>
-                <div className={sectionListClass}>{regularFiltered.map((t, idx) => <TaskCard key={t.id} t={t} index={idx} />)}</div>
+                <div className={sectionListClass}>{regularFiltered.map((t, idx) => <TaskTileCard key={t.id} {...taskTileProps} t={t} index={idx} />)}</div>
               </div>
-              <ProjectsSection />
+              <TaskProjectsBlock
+            visibleProjects={visibleProjects}
+            allFiltered={allFiltered}
+            sectionListClass={sectionListClass}
+            isTeacher={isTeacher}
+            maps={maps}
+            contextCommentsEnabled={contextCommentsEnabled}
+            canParticipateContextComments={canParticipateContextComments}
+            setEditProject={setEditProject}
+            setShowProjectForm={setShowProjectForm}
+            setNewTaskDefaultProjectId={setNewTaskDefaultProjectId}
+            setEditTask={setEditTask}
+            setDuplicateTask={setDuplicateTask}
+            setShowForm={setShowForm}
+            setShowProposalForm={setShowProposalForm}
+            setProjectStatus={setProjectStatus}
+            loading={loading}
+            taskTileProps={taskTileProps}
+          />
             </>
           ) : (
             <>
               {availableNotMine.length > 0 && (
             <div className="tasks-section">
               <div className="tasks-section-title">🔥 Tâches à faire</div>
-              <div className={sectionListClass}>{availableNotMine.map((t, idx) => <TaskCard key={t.id} t={t} index={idx} />)}</div>
+              <div className={sectionListClass}>{availableNotMine.map((t, idx) => <TaskTileCard key={t.id} {...taskTileProps} t={t} index={idx} />)}</div>
             </div>
           )}
               {myProposals.length > 0 && (
               <div className="tasks-section">
                 <div className="tasks-section-title">💡 Mes propositions ({myProposals.length})</div>
-                <div className={sectionListClass}>{myProposals.map((t, idx) => <TaskCard key={t.id} t={t} index={idx} />)}</div>
+                <div className={sectionListClass}>{myProposals.map((t, idx) => <TaskTileCard key={t.id} {...taskTileProps} t={t} index={idx} />)}</div>
               </div>
               )}
               {inProgressNotMine.length > 0 && (
               <div className="tasks-section">
                 <div className="tasks-section-title">⚙️ En cours (déjà prises)</div>
-                <div className={sectionListClass}>{inProgressNotMine.map((t, idx) => <TaskCard key={t.id} t={t} index={idx} />)}</div>
+                <div className={sectionListClass}>{inProgressNotMine.map((t, idx) => <TaskTileCard key={t.id} {...taskTileProps} t={t} index={idx} />)}</div>
               </div>
               )}
-              <ProjectsSection />
+              <TaskProjectsBlock
+            visibleProjects={visibleProjects}
+            allFiltered={allFiltered}
+            sectionListClass={sectionListClass}
+            isTeacher={isTeacher}
+            maps={maps}
+            contextCommentsEnabled={contextCommentsEnabled}
+            canParticipateContextComments={canParticipateContextComments}
+            setEditProject={setEditProject}
+            setShowProjectForm={setShowProjectForm}
+            setNewTaskDefaultProjectId={setNewTaskDefaultProjectId}
+            setEditTask={setEditTask}
+            setDuplicateTask={setDuplicateTask}
+            setShowForm={setShowForm}
+            setShowProposalForm={setShowProposalForm}
+            setProjectStatus={setProjectStatus}
+            loading={loading}
+            taskTileProps={taskTileProps}
+          />
               {doneNotMine.length > 0 && (
               <div className="tasks-section">
                 <div className="tasks-section-title">⏳ En attente de validation</div>
-                <div className={sectionListClass}>{doneNotMine.map((t, idx) => <TaskCard key={t.id} t={t} index={idx} />)}</div>
+                <div className={sectionListClass}>{doneNotMine.map((t, idx) => <TaskTileCard key={t.id} {...taskTileProps} t={t} index={idx} />)}</div>
               </div>
               )}
               {onHoldNotMine.length > 0 && (
               <div className="tasks-section">
                 <div className="tasks-section-title">⏸️ En attente</div>
-                <div className={sectionListClass}>{onHoldNotMine.map((t, idx) => <TaskCard key={t.id} t={t} index={idx} />)}</div>
+                <div className={sectionListClass}>{onHoldNotMine.map((t, idx) => <TaskTileCard key={t.id} {...taskTileProps} t={t} index={idx} />)}</div>
               </div>
               )}
               {recentlyValidatedForStudent.length > 0 && (
               <div className="tasks-section">
                 <div className="tasks-section-title">✅ Récemment validées</div>
-                <div className={sectionListClass}>{recentlyValidatedForStudent.map((t, idx) => <TaskCard key={t.id} t={t} index={idx} />)}</div>
+                <div className={sectionListClass}>{recentlyValidatedForStudent.map((t, idx) => <TaskTileCard key={t.id} {...taskTileProps} t={t} index={idx} />)}</div>
               </div>
               )}
             </>
@@ -2452,5 +2131,482 @@ function TaskLogsViewer({ task, onClose }) {
     </div>
   );
 }
+
+function TaskTileCard({
+  t,
+  index = 0,
+  viewMode,
+  isN3Affiliated,
+  student,
+  isTeacher,
+  canViewOtherUsersIdentity,
+  canEnrollNewTask,
+  canSelfAssignTasks,
+  canParticipateContextComments,
+  contextCommentsEnabled,
+  roleTerms,
+  loading,
+  quickAssignTaskId,
+  quickAssignStudentIds,
+  teacherStudents,
+  loadingTeacherStudents,
+  quickAssignUserEditedRef,
+  teacherQuickAssignDelta,
+  teacherQuickAssignCanApply,
+  quickAssignHint,
+  assign,
+  unassign,
+  setLogTask,
+  setLogsTask,
+  setTaskStatus,
+  deleteTask,
+  setEditTask,
+  setDuplicateTask,
+  setShowForm,
+  setShowProposalForm,
+  setNewTaskDefaultProjectId,
+  setQuickAssignTaskId,
+  setQuickAssignStudentIds,
+  runTeacherQuickAssign,
+  tooltipText,
+}) {
+
+    const effectiveStatus = taskEffectiveStatus(t);
+    const isMine = !!(student && isStudentAssignedToTask(t, student));
+    const canEditOwnProposal = !isTeacher
+      && t.status === 'proposed'
+      && student
+      && String(t.proposed_by_student_id || '') === String(student.id || '');
+    const slots = getAvailableSlots(t);
+    const proposalMeta = proposalMetaFromDescription(t.description);
+    const cardDescription = t.status === 'proposed' ? proposalMeta.cleanedDescription : (t.description || '');
+    const assignees = Array.isArray(t.assignments) ? t.assignments : [];
+    const completionMode = getCompletionMode(t);
+    const isCollectiveCompletion = completionMode === 'all_assignees_done';
+    const doneCount = getAssigneesDoneCount(t);
+    const totalCount = getAssignedCount(t);
+    const mineAssignment = assignees.find((a) => (
+      student && (
+        String(a.student_id || '') === String(student.id || '')
+        || (
+          String(a.student_first_name || '').trim().toLowerCase() === String(student.first_name || '').trim().toLowerCase()
+          && String(a.student_last_name || '').trim().toLowerCase() === String(student.last_name || '').trim().toLowerCase()
+        )
+      )
+    )) || null;
+    const hasCompletedOwnAssignment = !!(isCollectiveCompletion && mineAssignment?.done_at);
+    const isQuickAssignOpen = quickAssignTaskId === t.id;
+    const quickAssignDelta = isQuickAssignOpen ? teacherQuickAssignDelta(t, quickAssignStudentIds) : { toAdd: [], toRemove: [] };
+    const quickAssignSlotsAfterRemovals = isQuickAssignOpen
+      ? getAvailableSlots(t) + quickAssignDelta.toRemove.length
+      : getAvailableSlots(t);
+    const canQuickAssign = isQuickAssignOpen && teacherQuickAssignCanApply(t, quickAssignStudentIds);
+    const quickAssignBusy = !!loading[`${t.id}assign_teacher_quick`];
+    const quickAssignTitle = isQuickAssignOpen ? quickAssignHint(t, quickAssignStudentIds) : '';
+    return (
+      <div
+        className={`task-card ${viewMode === 'tiles' ? 'task-card--tile' : ''} fade-in ${isMine ? 'mine' : ''} ${effectiveStatus === 'validated' ? 'done' : ''} ${effectiveStatus === 'proposed' ? 'proposed' : ''}`}
+        style={{ animationDelay: `${Math.min(index * 60, 360)}ms` }}
+      >
+        <div className="task-top">
+          <div className="task-title-row">
+            {taskStatusIndicator(effectiveStatus, isN3Affiliated)}
+            <div className="task-title">{t.title}</div>
+          </div>
+        </div>
+        <div className="task-meta">
+          {(t.zones_linked || []).map((z) => (
+            <span key={z.id} className="task-chip">🌿 {z.name}</span>
+          ))}
+          {!((t.zones_linked || []).length) && t.zone_name && <span className="task-chip">🌿 {t.zone_name}</span>}
+          {(t.markers_linked || []).map((m) => (
+            <span key={m.id} className="task-chip">📍 {m.label}</span>
+          ))}
+          {!((t.markers_linked || []).length) && t.marker_label && <span className="task-chip">📍 {t.marker_label}</span>}
+          {(t.tutorials_linked || []).map((tu) => (
+            <span key={tu.id} className="task-chip">📘 {tu.title}</span>
+          ))}
+          {t.project_title && <span className="task-chip">📁 {t.project_title}</span>}
+          {t.project_title && t.project_status === 'on_hold' && <span className="task-chip">⏸️ Projet en attente</span>}
+          {startDateChip(t.start_date)}
+          {isTeacher && t.status === 'proposed' && proposalMeta.proposer && (
+            <span className="task-chip proposal">🙋 Proposée par {proposalMeta.proposer}</span>
+          )}
+          {dueDateChip(t.due_date)}
+          {!isTeacher && <span className="task-chip">👤 {t.required_students} {t.required_students > 1 ? roleTerms.studentPlural : roleTerms.studentSingular}</span>}
+          <span className="task-chip">🧩 {completionModeLabel(completionMode)}</span>
+          {isCollectiveCompletion && <span className="task-chip">✅ {doneCount}/{totalCount} terminé{totalCount > 1 ? 's' : ''}</span>}
+          {t.recurrence && <span className="task-chip">🔄 {t.recurrence === 'weekly' ? 'Hebdo' : t.recurrence === 'biweekly' ? 'Bi-hebdo' : t.recurrence === 'monthly' ? 'Mensuel' : t.recurrence}</span>}
+        </div>
+        {cardDescription && <div className="task-desc">{cardDescription}</div>}
+        {effectiveStatus === 'on_hold' && (
+          <div className="task-desc" style={{ marginTop: 8, borderLeft: '3px solid #f59e0b', paddingLeft: 10 }}>
+            {isTeacher
+              ? 'Inscription n3beur temporairement bloquée (tâche ou projet en attente). Les commentaires restent ouverts.'
+              : 'Inscription temporairement fermée par l’équipe pédagogique. Tu peux quand même laisser un commentaire.'}
+          </div>
+        )}
+        {assignees.length > 0 && (
+          <div className="assignees">
+            {assignees.map((a, i) => {
+              const item = formatAssigneeName(a, student, isTeacher || canViewOtherUsersIdentity);
+              return (
+                <span key={`${a.student_first_name}-${a.student_last_name}-${i}`} className={`assignee-tag ${item.isCurrentStudent ? 'me' : ''}`}>
+                  {item.isCurrentStudent && item.fullName.toLowerCase() !== 'toi' ? `${item.fullName} (toi)` : item.fullName}
+                  {isCollectiveCompletion ? (a.done_at ? ' ✓' : ' • en cours') : ''}
+                </span>
+              );
+            })}
+          </div>
+        )}
+        {slots > 0 && effectiveStatus !== 'validated' && (
+          <div className="slots">{slots} place{slots > 1 ? 's' : ''} restante{slots > 1 ? 's' : ''}</div>
+        )}
+        <div className="task-actions">
+          {!isTeacher && canEnrollNewTask && !isMine && slots > 0 && effectiveStatus !== 'validated' && effectiveStatus !== 'on_hold' && (
+            <button className="btn btn-primary btn-sm" disabled={loading[t.id + 'assign']} onClick={() => assign(t)}>
+              {loading[t.id + 'assign'] ? '...' : '✋ Je m\'en occupe'}
+            </button>
+          )}
+          {!isTeacher && canSelfAssignTasks && isMine && t.status !== 'done' && t.status !== 'validated' && !hasCompletedOwnAssignment && (
+            <>
+              <button className="btn btn-secondary btn-sm" onClick={() => setLogTask(t)}>
+                ✅ Marquer terminée
+              </button>
+              <button className="btn btn-ghost btn-sm" disabled={loading[t.id + 'unassign']}
+                onClick={() => unassign(t)}
+                title="Me retirer de cette tâche">
+                {loading[t.id + 'unassign'] ? '...' : '↩️ Me retirer'}
+              </button>
+            </>
+          )}
+          {!isTeacher && hasCompletedOwnAssignment && (
+            <span className="task-chip">✅ Ta partie est déjà marquée terminée</span>
+          )}
+          {isTeacher && (
+            <button
+              className={`btn btn-sm ${isQuickAssignOpen ? 'btn-primary' : 'btn-ghost'}`}
+              disabled={quickAssignBusy || loadingTeacherStudents || teacherStudents.length === 0 || taskEffectiveStatus(t) === 'on_hold'}
+              onClick={() => {
+                if (isQuickAssignOpen) {
+                  quickAssignUserEditedRef.current = false;
+                  setQuickAssignTaskId(null);
+                  setQuickAssignStudentIds([]);
+                  return;
+                }
+                quickAssignUserEditedRef.current = false;
+                setQuickAssignTaskId(t.id);
+                setQuickAssignStudentIds(
+                  teacherStudents
+                    .filter((s) => isStudentAlreadyAssignedToTask(t, s))
+                    .map((s) => toQuickAssignStudentId(s.id))
+                );
+              }}
+              title={taskEffectiveStatus(t) === 'on_hold'
+                ? "Affectation désactivée (en attente)"
+                : (teacherStudents.length === 0 ? 'Aucun n3beur disponible' : 'Afficher la liste des n3beurs')}
+            >
+              {quickAssignBusy ? '...' : '⚡ Affectation rapide'}
+            </button>
+          )}
+          {isTeacher && isQuickAssignOpen && (
+            <div style={{ display: 'grid', gap: 8, width: '100%' }}>
+              {loadingTeacherStudents ? (
+                <p style={{ margin: 0, fontSize: '.82rem', color: '#666' }}>Chargement n3beurs...</p>
+              ) : (
+                <>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}>
+                    <span style={{ fontSize: '.8rem', color: '#666' }}>
+                      {quickAssignStudentIds.length} coché{quickAssignStudentIds.length > 1 ? 's' : ''}
+                      {quickAssignDelta.toRemove.length > 0 || quickAssignDelta.toAdd.length > 0
+                        ? ` · ${quickAssignDelta.toRemove.length > 0 ? `−${quickAssignDelta.toRemove.length}` : ''}${quickAssignDelta.toRemove.length > 0 && quickAssignDelta.toAdd.length > 0 ? ' ' : ''}${quickAssignDelta.toAdd.length > 0 ? `+${quickAssignDelta.toAdd.length}` : ''}`
+                        : ''}
+                    </span>
+                    <span style={{ fontSize: '.8rem', color: quickAssignDelta.toAdd.length > quickAssignSlotsAfterRemovals ? '#b45309' : '#666' }}>
+                      {quickAssignDelta.toAdd.length > 0
+                        ? `${quickAssignDelta.toAdd.length}/${quickAssignSlotsAfterRemovals} place${quickAssignSlotsAfterRemovals > 1 ? 's' : ''} pour les ajouts`
+                        : `${getAvailableSlots(t)} place${getAvailableSlots(t) > 1 ? 's' : ''} libre${getAvailableSlots(t) > 1 ? 's' : ''}`}
+                    </span>
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      <button
+                        type="button"
+                        className="btn btn-ghost btn-sm"
+                        disabled={quickAssignBusy}
+                        onClick={() => {
+                          quickAssignUserEditedRef.current = true;
+                          setQuickAssignStudentIds(teacherStudents.map((s) => toQuickAssignStudentId(s.id)));
+                        }}
+                      >
+                        Tout sélectionner
+                      </button>
+                      <button
+                        type="button"
+                        className="btn btn-ghost btn-sm"
+                        disabled={quickAssignBusy}
+                        onClick={() => {
+                          quickAssignUserEditedRef.current = true;
+                          setQuickAssignStudentIds([]);
+                        }}
+                      >
+                        Effacer
+                      </button>
+                    </div>
+                  </div>
+                  <div style={{
+                    maxHeight: 160,
+                    overflowY: 'auto',
+                    border: '1px solid rgba(0,0,0,.08)',
+                    borderRadius: 10,
+                    padding: '6px 8px',
+                    background: 'var(--parchment, #faf8f3)',
+                    textAlign: 'left',
+                  }}>
+                    {teacherStudents.map((s) => {
+                      const fullName = `${s.first_name || ''} ${s.last_name || ''}`.trim();
+                      const sid = toQuickAssignStudentId(s.id);
+                      const checked = quickAssignStudentIds.includes(sid);
+                      return (
+                        <label key={sid} style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'flex-start',
+                          gap: 10,
+                          minHeight: 44,
+                          width: '100%',
+                          cursor: 'pointer',
+                          textAlign: 'left',
+                        }}>
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            disabled={quickAssignBusy}
+                            onChange={() => {
+                              quickAssignUserEditedRef.current = true;
+                              setQuickAssignStudentIds((ids) => (
+                                ids.includes(sid)
+                                  ? ids.filter((id) => toQuickAssignStudentId(id) !== sid)
+                                  : [...ids, sid]
+                              ));
+                            }}
+                          />
+                          <span style={{ fontSize: '.88rem', textAlign: 'left', flex: 1 }}>{fullName || 'n3beur'}</span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                </>
+              )}
+              <button
+                className={`btn btn-sm ${canQuickAssign ? 'btn-primary' : 'btn-ghost'}`}
+                disabled={!canQuickAssign || quickAssignBusy || loadingTeacherStudents}
+                onClick={() => runTeacherQuickAssign(t, quickAssignStudentIds)}
+                title={quickAssignTitle}
+              >
+                {quickAssignBusy ? '...' : 'Appliquer'}
+              </button>
+            </div>
+          )}
+          {isTeacher && (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+              {TEACHER_STATUS_ACTIONS.map((opt) => {
+                const isCurrent = t.status === opt.value;
+                const isBusy = !!loading[`${t.id}status${opt.value}`];
+                return (
+                  <button
+                    key={opt.value}
+                    className={`btn btn-sm ${isCurrent ? 'btn-primary' : 'btn-ghost'}`}
+                    disabled={isCurrent || isBusy}
+                    onClick={() => setTaskStatus(t, opt.value)}
+                    title={isCurrent ? `Statut actuel: ${opt.label}` : `Passer en ${opt.label.toLowerCase()}`}
+                  >
+                    {isBusy ? '...' : `${opt.icon} ${opt.label}`}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+          {isTeacher && (t.status === 'done' || t.status === 'validated') && (
+            <button className="btn btn-ghost btn-sm" onClick={() => setLogsTask(t)}>📋 Rapports</button>
+          )}
+          {isTeacher && (
+            <>
+              <Tooltip text={tooltipText(HELP_TOOLTIPS.tasks.edit)}>
+                <button className="btn btn-ghost btn-sm" aria-label="Modifier la tâche" onClick={() => { setNewTaskDefaultProjectId(null); setEditTask(t); setDuplicateTask(null); setShowForm(true); }}>✏️</button>
+              </Tooltip>
+              <Tooltip text={tooltipText(HELP_TOOLTIPS.tasks.duplicate)}>
+                <button
+                  className="btn btn-ghost btn-sm"
+                  aria-label="Dupliquer la tâche"
+                  onClick={() => { setNewTaskDefaultProjectId(null); setDuplicateTask(t); setEditTask(null); setShowForm(true); }}
+                >
+                  📄
+                </button>
+              </Tooltip>
+              <Tooltip text={tooltipText(HELP_TOOLTIPS.tasks.delete)}>
+                <button className="btn btn-danger btn-sm" aria-label="Supprimer la tâche" disabled={loading[t.id + 'del']} onClick={() => deleteTask(t)}>🗑️</button>
+              </Tooltip>
+            </>
+          )}
+          {!isTeacher && canEditOwnProposal && (
+            <button
+              className="btn btn-ghost btn-sm"
+              aria-label="Modifier ma proposition"
+              onClick={() => { setNewTaskDefaultProjectId(null); setEditTask(t); setDuplicateTask(null); setShowProposalForm(false); setShowForm(true); }}
+            >
+              ✏️ Modifier ma proposition
+            </button>
+          )}
+        </div>
+        {contextCommentsEnabled && (
+          <ContextComments
+            contextType="task"
+            contextId={t.id}
+            title="Commentaires de la tâche"
+            placeholder="Partager une info utile sur cette tâche..."
+            canParticipateContextComments={canParticipateContextComments}
+          />
+        )}
+      </div>
+    );
+}
+
+function TaskProjectsBlock({
+  visibleProjects,
+  allFiltered,
+  sectionListClass,
+  isTeacher,
+  maps,
+  contextCommentsEnabled,
+  canParticipateContextComments,
+  setEditProject,
+  setShowProjectForm,
+  setNewTaskDefaultProjectId,
+  setEditTask,
+  setDuplicateTask,
+  setShowForm,
+  setShowProposalForm,
+  setProjectStatus,
+  loading,
+  taskTileProps,
+}) {
+if (visibleProjects.length <= 0) return null;
+    return (
+      <div className="tasks-section">
+        <div className="tasks-section-title">📁 Projets ({visibleProjects.length})</div>
+        <div style={{ display: 'grid', gap: 8 }}>
+          {visibleProjects.map((p) => {
+            const projectTasks = allFiltered.filter((t) => String(t.project_id || '') === String(p.id || ''));
+            const projectTasksCount = projectTasks.length;
+            const projectStatus = p.status === 'on_hold' ? 'on_hold' : 'active';
+            const loadingActive = !!loading[`${p.id}projectactive`];
+            const loadingHold = !!loading[`${p.id}projecton_hold`];
+            return (
+              <div key={p.id} className="task-card" style={{ padding: 12 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                  <div>
+                    <div className="task-title" style={{ fontSize: '1rem' }}>📁 {p.title}</div>
+                    <div className="task-meta" style={{ marginTop: 6 }}>
+                      {(p.zones_linked || []).map((z) => (
+                        <span key={z.id} className="task-chip">🌿 {z.name}</span>
+                      ))}
+                      {(p.markers_linked || []).map((m) => (
+                        <span key={m.id} className="task-chip">📍 {m.label}</span>
+                      ))}
+                      {(p.tutorials_linked || []).map((tu) => (
+                        <span key={tu.id} className="task-chip">📘 {tu.title}</span>
+                      ))}
+                    </div>
+                    <div style={{ fontSize: '.82rem', color: '#666' }}>
+                      {p.map_label || mapLabelFromMaps(p.map_id, maps)} · {projectTasksCount} tâche{projectTasksCount > 1 ? 's' : ''}
+                    </div>
+                    {!!(p.description || '').trim() && (
+                      <div className="task-desc" style={{ marginTop: 8 }}>{String(p.description).trim()}</div>
+                    )}
+                    {p.status === 'on_hold' && (
+                      <div style={{ fontSize: '.82rem', color: '#92400e', marginTop: 4 }}>
+                        {isTeacher
+                          ? '⏸️ Projet en attente : inscriptions élèves fermées, commentaires ouverts. Tu peux continuer à ajouter des tâches au projet ; elles resteront en attente d’inscription tant que le projet n’est pas réactivé.'
+                          : '⏸️ Projet en attente : inscriptions fermées, commentaires ouverts.'}
+                      </div>
+                    )}
+                  </div>
+                  {isTeacher ? (
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, justifyContent: 'flex-end' }}>
+                      <button
+                        type="button"
+                        className="btn btn-ghost btn-sm"
+                        onClick={() => {
+                          setEditProject(p);
+                          setShowProjectForm(true);
+                        }}
+                        title="Modifier titre, description, carte, zones, repères et tutoriels"
+                      >
+                        ✏️ Modifier
+                      </button>
+                      <button
+                        type="button"
+                        className="btn btn-ghost btn-sm"
+                        onClick={() => {
+                          setNewTaskDefaultProjectId(String(p.id));
+                          setEditTask(null);
+                          setDuplicateTask(null);
+                          setShowProposalForm(false);
+                          setShowForm(true);
+                        }}
+                        title="Créer une tâche liée à ce projet (y compris si le projet est en attente)"
+                      >
+                        + Tâche
+                      </button>
+                      <button
+                        className={`btn btn-sm ${projectStatus === 'active' ? 'btn-primary' : 'btn-ghost'}`}
+                        disabled={projectStatus === 'active' || loadingActive}
+                        onClick={() => setProjectStatus(p, 'active')}
+                      >
+                        {loadingActive ? '...' : '✅ Actif'}
+                      </button>
+                      <button
+                        className={`btn btn-sm ${projectStatus === 'on_hold' ? 'btn-primary' : 'btn-ghost'}`}
+                        disabled={projectStatus === 'on_hold' || loadingHold}
+                        onClick={() => setProjectStatus(p, 'on_hold')}
+                      >
+                        {loadingHold ? '...' : '⏸️ En attente'}
+                      </button>
+                    </div>
+                  ) : (
+                    <span className="task-chip">{projectStatus === 'on_hold' ? '⏸️ En attente' : '✅ Actif'}</span>
+                  )}
+                </div>
+                <div style={{ marginTop: 8 }}>
+                  {contextCommentsEnabled && (
+                    <ContextComments
+                      canParticipateContextComments={canParticipateContextComments}
+                      contextType="project"
+                      contextId={p.id}
+                      title="Commentaires du projet"
+                      placeholder="Partager une info utile sur ce projet..."
+                    />
+                  )}
+                </div>
+                <div style={{ marginTop: 10 }}>
+                  {projectTasksCount === 0 ? (
+                    <p style={{ fontSize: '.85rem', color: '#666', margin: 0 }}>
+                      Aucune tâche liée à ce projet avec les filtres actuels.
+                    </p>
+                  ) : (
+                    <div className={sectionListClass}>
+                      {projectTasks.map((t, idx) => (
+                        <TaskTileCard key={t.id} {...taskTileProps} t={t} index={idx} />
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+}
+
 
 export { TaskFormModal, TasksView, LogModal, TaskLogsViewer };
