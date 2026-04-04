@@ -5,6 +5,9 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé
+- **Résilience prod (503 / Socket.IO)** : les **`GET`** via **`api()`** réessayent jusqu’à 4 fois (502/503/504 ou échec réseau `TypeError`) avec backoff — limite les rafales d’erreurs quand l’hébergeur ou le proxy est fugacement indisponible. **Socket.IO client** : option Engine.IO **`upgrade: false`** en complément du transport **polling** seul (`useForetmapRealtime.js`) pour éviter toute tentative WebSocket résiduelle (**reserved bits**). Doc **`docs/API.md`**.
+
 ### Modifié
 - **Socket.IO (serveur)** : **`allowUpgrades: false`** ; ordre des transports **`polling`** puis **`websocket`** ; **`pingInterval` 20 s** (légèrement plus réactif pour détecter une ligne morte) et **`pingTimeout` 60 s** conservé (stabilité mobile / proxy). Fichier **`lib/realtime.js`** ; doc **`docs/API.md`**.
 - **Auth JWT** : défauts registre **`security.jwt_ttl_base_seconds`** et **`security.jwt_ttl_elevated_seconds`** à **5 400 s (1 h 30)** (modifiables dans **Réglages > Sécurité**) ; émission toujours pilotée par ces clés avec cache réglages 15 s et **`signAuthToken`** async. Les entrées déjà présentes dans **`app_settings`** conservent leur valeur jusqu’à modification manuelle. Doc **`docs/API.md`** ; test **`settings.test.js`**.

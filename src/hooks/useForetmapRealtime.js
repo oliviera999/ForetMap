@@ -133,6 +133,8 @@ export function useForetmapRealtime({
       // Polling HTTP uniquement : certains reverse-proxy / hébergeurs renvoient des trames WS
       // invalides (ex. « reserved bits » RSV2/RSV3) ; le long-polling reste fiable pour notifier + refetch REST.
       transports: ['polling'],
+      // Interdit toute tentative d’upgrade WS côté moteur (double garde avec transports ci-dessus).
+      upgrade: false,
     });
     socketRef.current = socket;
     const OFFLINE_GRACE_MS = 15000;
