@@ -676,7 +676,20 @@ router.delete('/:id', requirePermission('students.delete', { needsElevation: tru
       payload: { affected_tasks: result.affectedTaskIds.length },
     });
     emitStudentsChanged({ reason: 'delete_student', studentId: result.studentId });
-    emitTasksChanged({ reason: 'delete_student_assignments' });
+    if (result.affectedTaskIds && result.affectedTaskIds.length > 0) {
+      const mapIds = Array.isArray(result.affectedMapIds) ? result.affectedMapIds : [];
+      if (mapIds.length > 0) {
+        for (const mapId of mapIds) {
+          emitTasksChanged({
+            reason: 'delete_student_assignments',
+            studentId: result.studentId,
+            mapId,
+          });
+        }
+      } else {
+        emitTasksChanged({ reason: 'delete_student_assignments', studentId: result.studentId });
+      }
+    }
     res.json({ success: true });
   } catch (e) {
     logRouteError(e, req);
