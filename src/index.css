@@ -708,6 +708,44 @@
       min-height:0;
       overflow:hidden;
     }
+
+    /* Vue « Cartes & tâches » : carte sous la barre d’outils (Nav / Repère), colonne tâches seule à défiler ; sticky si le document défile. */
+    .main--maptasks-split .desktop-split-view {
+      gap:8px;
+    }
+    .teacher-main.main--maptasks-split > .top-tabs {
+      margin-bottom:clamp(4px, 1.2vw, 8px);
+    }
+    .main--maptasks-split .map-view-root--embedded .map-view-canvas-slot {
+      justify-content:flex-start;
+    }
+    .main--maptasks-split .desktop-split-pane--tasks {
+      overflow:hidden;
+    }
+    .main--maptasks-split .desktop-split-scroll {
+      flex:1 1 0%;
+      min-height:0;
+      overscroll-behavior:contain;
+      -webkit-overflow-scrolling:touch;
+    }
+    @media (min-width:1024px) {
+      .main.main--maptasks-split:not(.teacher-main) {
+        --fm-maptasks-sticky-top:calc(56px + var(--safe-top));
+        --fm-maptasks-map-max-h:calc(100dvh - 56px - var(--safe-top) - var(--bottom-nav-height) - var(--safe-bottom) - 32px);
+      }
+      .teacher-main.main--maptasks-split {
+        --fm-maptasks-teacher-tabs-h:calc(var(--top-tabs-row-inner-h) + 2 * var(--top-tabs-pad-y) + clamp(4px, 1.2vw, 8px));
+        --fm-maptasks-sticky-top:calc(56px + var(--safe-top));
+        --fm-maptasks-map-max-h:calc(100dvh - 56px - var(--safe-top) - var(--fm-maptasks-teacher-tabs-h) - 32px - 24px);
+      }
+      .main--maptasks-split .desktop-split-pane--map {
+        position:sticky;
+        align-self:start;
+        top:var(--fm-maptasks-sticky-top);
+        max-height:var(--fm-maptasks-map-max-h);
+        z-index:1;
+      }
+    }
     .map-legend { display:flex; gap:10px; flex-wrap:wrap; margin-top:10px; }
     .legend-item { display:flex; align-items:center; gap:6px; font-size:.78rem; color:#666; }
     .legend-dot { width:12px; height:12px; border-radius:3px; flex-shrink:0; }
