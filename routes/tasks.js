@@ -941,11 +941,14 @@ router.get('/', async (req, res) => {
     const whereSql = where.length ? `WHERE ${where.join(' AND ')}` : '';
     const tasks = await queryAll(`${sqlBase} ${whereSql} ORDER BY t.due_date ASC`, params);
     const taskIds = tasks.map((t) => t.id);
+    const proposedTaskIds = tasks
+      .filter((t) => normalizeTaskStatusForRead(t?.status) === 'proposed')
+      .map((t) => t.id);
     const [zm, mm, tutorialsMap, proposerByTask, assignments, countRows] = await Promise.all([
       fetchZonesForTasks(taskIds),
       fetchMarkersForTasks(taskIds),
       fetchTutorialsForTasks(taskIds),
-      fetchTaskProposerMap(taskIds),
+      fetchTaskProposerMap(proposedTaskIds),
       fetchTaskListAssignments(auth, taskIds),
       fetchTaskAssignmentAggregates(taskIds),
     ]);

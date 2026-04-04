@@ -4,6 +4,7 @@ const { queryAll, queryOne, execute } = require('../database');
 const { requirePermission } = require('../middleware/requireTeacher');
 const { logRouteError } = require('../lib/routeLog');
 const { logAudit } = require('./audit');
+const { invalidateMapsListCache } = require('./maps');
 const { tailLogLines, getBufferedLineCount, getMaxLines } = require('../lib/logBuffer');
 const { saveBase64ToDisk, deleteFile } = require('../lib/uploads');
 const {
@@ -164,6 +165,7 @@ router.put(
         );
       }
       const updated = await getMapById(map.id);
+      invalidateMapsListCache();
       await logAudit('settings_map_update', 'map', map.id, 'Carte mise à jour', {
         req,
         payload: {
@@ -204,6 +206,7 @@ router.post(
       if (oldUrl.startsWith('/uploads/maps/')) {
         deleteFile(oldUrl.replace('/uploads/', ''));
       }
+      invalidateMapsListCache();
       await logAudit('settings_map_image_update', 'map', map.id, 'Image de plan changée', {
         req,
         payload: { map_id: map.id, map_image_url: nextUrl },

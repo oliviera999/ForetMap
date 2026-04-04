@@ -7,8 +7,10 @@ const { requirePermission } = require('../middleware/requireTeacher');
 const { logRouteError } = require('../lib/routeLog');
 const { emitGardenChanged } = require('../lib/realtime');
 const { saveBase64ToDisk, deleteFile } = require('../lib/uploads');
+const { getNamedMemoryTtlCache } = require('../lib/memoryTtlCache');
 
 const router = express.Router();
+const plantsListCache = getNamedMemoryTtlCache('plants:list:v1', { ttlMs: 20000, maxEntries: 5 });
 const PHOTO_FIELDS = [
   'photo',
   'photo_species',
@@ -56,6 +58,10 @@ function hasOwn(obj, key) {
 function asTrimmedString(value) {
   if (value == null) return '';
   return String(value).trim();
+}
+
+function invalidatePlantsListCache() {
+  plantsListCache.delete('all');
 }
 
 function asOptionalText(value) {
@@ -408,6 +414,7 @@ router.post('/:id/photo-upload', requirePermission('plants.manage', { needsEleva
 
     await execute(`UPDATE plants SET ${field} = ? WHERE id = ?`, [publicUrl, plant.id]);
     const updated = await queryOne('SELECT * FROM plants WHERE id = ?', [plant.id]);
+    invalidatePlantsListCache();
     emitGardenChanged({ reason: 'update_plant_photo', plantId: plant.id });
     res.json({ field, url: publicUrl, plant: updated });
   } catch (e) {
@@ -507,6 +514,7 @@ router.post('/import', requirePermission('plants.manage', { needsElevation: true
       conn.release();
     }
 
+    invalidatePlantsListCache();
     emitGardenChanged({ reason: 'import_plants' });
     res.json({ report });
   } catch (e) {
@@ -517,7 +525,10 @@ router.post('/import', requirePermission('plants.manage', { needsElevation: true
 
 router.get('/', async (req, res) => {
   try {
+    const cached = plantsListCache.get('all');
+    if (cached) return res.json(cached);
     const rows = await queryAll('SELECT * FROM plants ORDER BY name');
+    plantsListCache.set('all', rows);
     res.json(rows);
   } catch (e) {
     logRouteError(e, req);
@@ -538,6 +549,7 @@ router.post('/', requirePermission('plants.manage', { needsElevation: true }), a
       values
     );
     const plant = await queryOne('SELECT * FROM plants WHERE id = ?', [result.insertId]);
+    invalidatePlantsListCache();
     emitGardenChanged({ reason: 'create_plant', plantId: result.insertId });
     res.status(201).json(plant);
   } catch (e) {
@@ -561,6 +573,7 @@ router.put('/:id', requirePermission('plants.manage', { needsElevation: true }),
       values
     );
     const updated = await queryOne('SELECT * FROM plants WHERE id = ?', [plant.id]);
+    invalidatePlantsListCache();
     emitGardenChanged({ reason: 'update_plant', plantId: plant.id });
     res.json(updated);
   } catch (e) {
@@ -574,6 +587,7 @@ router.delete('/:id', requirePermission('plants.manage', { needsElevation: true 
     const plant = await queryOne('SELECT * FROM plants WHERE id = ?', [req.params.id]);
     if (!plant) return res.status(404).json({ error: 'Plante introuvable' });
     await execute('DELETE FROM plants WHERE id = ?', [req.params.id]);
+    invalidatePlantsListCache();
     emitGardenChanged({ reason: 'delete_plant', plantId: req.params.id });
     res.json({ success: true });
   } catch (e) {
