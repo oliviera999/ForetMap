@@ -220,18 +220,19 @@ function TaskFormModal({
     required_students: editTask.required_students || 1,
     completion_mode: getCompletionMode(editTask),
     recurrence: editTask.recurrence || '',
-    assign_student_id: ''
+    assign_student_ids: []
   } : {
     title: '', description: '', map_id: initialMapId || '',
     zone_ids: [], marker_ids: [], tutorial_ids: [], referent_user_ids: [],
     project_id: defaultProjectForNew ? String(defaultProjectForNew.id) : '',
     start_date: '', due_date: '', required_students: 1, completion_mode: 'single_done', recurrence: '',
-    assign_student_id: ''
+    assign_student_ids: []
   });
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState('');
   const [tutorialSearch, setTutorialSearch] = useState('');
   const [referentSearch, setReferentSearch] = useState('');
+  const [assignInitialSearch, setAssignInitialSearch] = useState('');
 
   const set = k => e => {
     const value = e.target.value;
@@ -325,6 +326,19 @@ function TaskFormModal({
     });
   };
 
+  const toggleAssignStudentId = (studentId) => {
+    const id = String(studentId || '').trim();
+    if (!id) return;
+    setForm((f) => {
+      const cur = [...new Set((f.assign_student_ids || []).map((x) => String(x || '').trim()).filter(Boolean))];
+      const has = cur.includes(id);
+      return {
+        ...f,
+        assign_student_ids: has ? cur.filter((x) => x !== id) : [...cur, id],
+      };
+    });
+  };
+
   const submit = async () => {
     if (!form.title.trim()) return setErr('Le titre est requis');
     const mapFromLinks = () => {
@@ -353,7 +367,7 @@ function TaskFormModal({
       required_students: form.required_students,
       completion_mode: form.completion_mode || 'single_done',
       recurrence: form.recurrence || null,
-      assign_student_id: form.assign_student_id || null,
+      assign_student_ids: [...new Set((form.assign_student_ids || []).map((id) => String(id || '').trim()).filter(Boolean))],
     };
     if (!payload.map_id && (payload.zone_ids.length || payload.marker_ids.length)) {
       payload.map_id = mapFromLinks();
@@ -426,6 +440,26 @@ function TaskFormModal({
     () => [...new Set((form.referent_user_ids || []).map((id) => String(id || '').trim()).filter(Boolean))].length,
     [form.referent_user_ids]
   );
+  const normalizedAssignStudentIds = useMemo(
+    () => [...new Set((form.assign_student_ids || []).map((id) => String(id || '').trim()).filter(Boolean))],
+    [form.assign_student_ids]
+  );
+  const searchableStudentsForAssign = useMemo(
+    () => [...students].sort((a, b) => {
+      const na = `${a.first_name || ''} ${a.last_name || ''}`.trim().toLocaleLowerCase('fr');
+      const nb = `${b.first_name || ''} ${b.last_name || ''}`.trim().toLocaleLowerCase('fr');
+      return na.localeCompare(nb, 'fr');
+    }),
+    [students]
+  );
+  const filteredStudentsForAssign = useMemo(() => {
+    const q = assignInitialSearch.trim().toLowerCase();
+    if (!q) return searchableStudentsForAssign;
+    return searchableStudentsForAssign.filter((s) => {
+      const label = `${s.first_name || ''} ${s.last_name || ''}`.trim().toLowerCase();
+      return label.includes(q);
+    });
+  }, [searchableStudentsForAssign, assignInitialSearch]);
 
   return (
     <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
@@ -655,12 +689,54 @@ function TaskFormModal({
         {enableInitialAssignment && !isProposal && !editTask && !isDuplicate && (
           <div className="field">
             <label>Attribuer dès la création (optionnel)</label>
-            <select value={form.assign_student_id} onChange={set('assign_student_id')}>
-              <option value="">Aucune attribution initiale</option>
-              {students.map((s) => (
-                <option key={s.id} value={s.id}>{`${s.first_name || ''} ${s.last_name || ''}`.trim()}</option>
-              ))}
-            </select>
+            <p style={{ fontSize: '.8rem', color: '#555', margin: '0 0 8px', lineHeight: 1.45 }}>
+              Tu peux inscrire plusieurs {terms.studentPlural} dès la création. Si besoin, le nombre de places requis est relevé automatiquement pour correspondre à ta sélection.
+            </p>
+            {students.length > 0 && (
+              <div style={{ display: 'grid', gap: 8, marginBottom: 8 }}>
+                <input
+                  value={assignInitialSearch}
+                  onChange={(e) => setAssignInitialSearch(e.target.value)}
+                  placeholder={`🔍 Filtrer les ${terms.studentPlural}…`}
+                />
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}>
+                  <span style={{ fontSize: '.8rem', color: '#666' }}>
+                    {normalizedAssignStudentIds.length} sélectionné{normalizedAssignStudentIds.length > 1 ? 's' : ''}
+                  </span>
+                  <button
+                    type="button"
+                    className="btn btn-ghost btn-sm"
+                    onClick={() => setForm((f) => ({ ...f, assign_student_ids: [] }))}
+                  >
+                    Effacer la sélection
+                  </button>
+                </div>
+              </div>
+            )}
+            <div className="task-form-pick-list">
+              {students.length === 0 ? (
+                <p className="task-form-pick-empty">Aucun compte {terms.studentSingular} chargé (liste stats).</p>
+              ) : filteredStudentsForAssign.length === 0 ? (
+                <p className="task-form-pick-empty">Aucun résultat pour ce filtre.</p>
+              ) : (
+                filteredStudentsForAssign.map((s) => {
+                  const sid = String(s.id || '').trim();
+                  return (
+                    <label key={sid} className="task-form-pick-item">
+                      <input
+                        type="checkbox"
+                        className="task-form-pick-checkbox"
+                        checked={normalizedAssignStudentIds.includes(sid)}
+                        onChange={() => toggleAssignStudentId(sid)}
+                      />
+                      <span className="task-form-pick-text">
+                        👤 {`${s.first_name || ''} ${s.last_name || ''}`.trim()}
+                      </span>
+                    </label>
+                  );
+                })
+              )}
+            </div>
           </div>
         )}
         {!isProposal && (
@@ -1306,22 +1382,40 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
   };
 
   const saveTask = async form => {
-    const { assign_student_id: assignStudentId, ...taskPayload } = form || {};
+    const { assign_student_ids: rawAssignIds = [], ...taskPayload } = form || {};
+    const assignStudentIds = [...new Set((rawAssignIds || []).map((id) => String(id || '').trim()).filter(Boolean))];
+    const minPlaces = assignStudentIds.length;
+    if (minPlaces > 0) {
+      const cur = Math.max(1, Number.parseInt(taskPayload.required_students, 10) || 1);
+      taskPayload.required_students = Math.max(cur, minPlaces);
+    }
     if (editTask && !duplicateTask) {
       await api(`/api/tasks/${editTask.id}`, 'PUT', taskPayload);
       await onRefresh();
       return;
     }
     const created = await api('/api/tasks', 'POST', taskPayload);
-    if (assignStudentId && created?.id) {
-      const assignee = teacherStudents.find((s) => s.id === assignStudentId);
-      if (assignee) {
+    if (assignStudentIds.length > 0 && created?.id) {
+      let ok = 0;
+      for (const sid of assignStudentIds) {
+        const assignee = teacherStudents.find((s) => String(s.id) === String(sid));
+        if (!assignee) continue;
         await api(`/api/tasks/${created.id}/assign`, 'POST', {
           firstName: assignee.first_name,
           lastName: assignee.last_name,
           studentId: assignee.id,
         });
-        setToast(`Tâche créée et ${assignee.first_name} inscrit(e) ✓`);
+        ok += 1;
+      }
+      if (ok === 0) {
+        setToast('Tâche créée (attribution initiale impossible : comptes introuvables dans la liste chargée)');
+      } else if (ok === 1) {
+        const one = teacherStudents.find((s) => String(s.id) === String(assignStudentIds[0]));
+        setToast(`Tâche créée et ${one?.first_name || 'élève'} inscrit(e) ✓`);
+      } else if (ok < assignStudentIds.length) {
+        setToast(`Tâche créée : ${ok} inscription(s) sur ${assignStudentIds.length} (certains comptes introuvables dans la liste chargée)`);
+      } else {
+        setToast(`Tâche créée et ${ok} inscrits ✓`);
       }
     }
     await onRefresh();
