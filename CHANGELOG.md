@@ -6,6 +6,9 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 ## [Non publié]
 
 ### Modifié
+- **En-tête (mobile / tactile)** : le bouton d’installation PWA n’affiche plus le libellé **Installer** (icône seule) pour éviter le débordement et alléger la barre ; **`aria-label`** et **`title`** conservés pour l’accessibilité (`src/index.css`).
+
+### Modifié
 - **Build / déploiement** : régénération des artefacts **`dist/`** (Vite production) après validation locale des tests.
 
 ### Corrigé
