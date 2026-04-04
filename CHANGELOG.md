@@ -6,6 +6,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 ## [Non publié]
 
 ### Modifié
+- **Temps réel (sans WebSocket)** : **`tasks:changed`** ciblé par **`mapId`** après **suppression d’élève** (cartes des tâches impactées) et après **import CSV projets/tâches** (une émission par carte touchée) — moins de refetch REST sur les cartes non concernées. Refetch client **débouncé** : **~220 ms** tâches, **~400 ms** jardin (`useForetmapRealtime.js`). **`lib/studentDeletion.js`** expose **`affectedMapIds`** ; doc **`docs/API.md`**.
 - **Vue Tâches (prof) — création** : l’attribution initiale peut cibler **plusieurs** n3beurs (cases à cocher, filtre par nom) ; le champ **places requis** est relevé au minimum au nombre d’inscrits choisis pour éviter l’erreur « plus de place » (`src/components/tasks-views.jsx`).
 
 ### Ajouté

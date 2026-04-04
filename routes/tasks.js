@@ -1360,6 +1360,7 @@ router.post('/import', requirePermission('tasks.manage', { needsElevation: true 
       return res.json({ report });
     }
 
+    const importMapIds = new Set();
     const createdProjectsByMapTitle = new Map();
     for (const project of projectRows) {
       const id = uuidv4();
@@ -1369,6 +1370,9 @@ router.post('/import', requirePermission('tasks.manage', { needsElevation: true 
       );
       createdProjectsByMapTitle.set(`${project.mapId}|${project.title.toLowerCase()}`, { id, map_id: project.mapId, title: project.title });
       report.totals.created_projects += 1;
+      if (project.mapId != null && String(project.mapId).trim()) {
+        importMapIds.add(String(project.mapId).trim());
+      }
     }
 
     for (const task of taskRowsResolved) {
@@ -1396,6 +1400,9 @@ router.post('/import', requirePermission('tasks.manage', { needsElevation: true 
         ]
       );
       report.totals.created_tasks += 1;
+      if (task.resolvedMapId != null && String(task.resolvedMapId).trim()) {
+        importMapIds.add(String(task.resolvedMapId).trim());
+      }
     }
 
     if (report.totals.created_projects + report.totals.created_tasks > 0) {
@@ -1403,11 +1410,18 @@ router.post('/import', requirePermission('tasks.manage', { needsElevation: true 
         req,
         payload: { report: report.totals },
       });
-      emitTasksChanged({
+      const payloadBase = {
         reason: 'tasks_projects_import',
         created_projects: report.totals.created_projects,
         created_tasks: report.totals.created_tasks,
-      });
+      };
+      if (importMapIds.size > 0) {
+        for (const mapId of importMapIds) {
+          emitTasksChanged({ ...payloadBase, mapId });
+        }
+      } else {
+        emitTasksChanged(payloadBase);
+      }
     }
     res.json({ report });
   } catch (e) {

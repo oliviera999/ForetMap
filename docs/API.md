@@ -92,7 +92,7 @@ Connexion Socket.IO en transport **polling uniquement** côté client (compatibi
 - **Client (Engine.IO)** : **`transports: ['polling']`** et **`upgrade: false`** pour interdire toute tentative WebSocket (évite des erreurs **« reserved bits »** si un proxy renvoie du trafic non conforme sur le chemin WS).
 - **Serveur (Engine.IO)** : transports **`polling`** puis **`websocket`** (WS pour tests / outils) ; **`allowUpgrades: false`** (pas d’upgrade polling→WS, aligné navigateurs prod) ; **`pingInterval` 20 s** / **`pingTimeout` 60 s** (heartbeat un peu plus fréquent, tolérance réseau mobile et proxy).
 - **CORS** : en production, même règle que l’API (`FRONTEND_ORIGIN` si défini).
-- **Rôle** : notifier les clients qu’une ressource a changé ; les données à jour restent à charger via les routes REST (`GET /api/tasks`, etc.).
+- **Rôle** : notifier les clients qu’une ressource a changé ; les données à jour restent à charger via les routes REST (`GET /api/tasks`, etc.). Côté client, refetch **débouncé** : ~**220 ms** pour les tâches, ~**400 ms** pour le jardin (zones / plantes / repères) — compromis fraîcheur vs rafales HTTP.
 - **Auth socket** : token JWT requis (transmis dans le handshake Socket.IO).
 - **Rooms** : souscription de domaine (`tasks`, `students`, `garden`) + souscription carte via `subscribe:map` (payload `{ mapId }`).
 - **Client** : le frontend se connecte pour n3beur/n3boss authentifié ; en cas d’échec, le rafraîchissement périodique reste actif (cadence adaptative).
@@ -101,7 +101,7 @@ Connexion Socket.IO en transport **polling uniquement** côté client (compatibi
 
 - **JWT** : connexion refusée si token absent, invalide ou expiré (`connect_error` côté client).
 - **Tâches par carte** : la plupart des `tasks:changed` métier incluent un `mapId` ; seuls les clients dans la salle **`map:<mapId>`** (handshake `auth.mapId` et/ou événement **`subscribe:map`**) reçoivent l’événement. Sans souscription à la bonne carte, l’utilisateur s’appuie sur le **polling** REST (voir hook temps réel / `App.jsx`).
-- **Diffusion domaine** : certains cas (ex. import bulk) émettent `tasks:changed` **sans** `mapId` → cible la salle **`domain:tasks`** (tous les sockets authentifiés abonnés à ce domaine).
+- **Diffusion domaine** : certains cas rares émettent `tasks:changed` **sans** `mapId` → cible la salle **`domain:tasks`** (tous les sockets authentifiés abonnés à ce domaine). L’**import CSV projets/tâches** et la **suppression d’élève** (tâches impactées) émettent en priorité **une émission par `mapId`** concerné pour limiter les refetch inutiles sur les autres cartes.
 - **Tests d’intégration** (sans navigateur) : [`tests/realtime.test.js`](../tests/realtime.test.js) — auth, filtrage par carte, `subscribe:map`, repli `domain:tasks`.
 - **Smoke charge locale** (plusieurs clients polling + option burst REST) : **`npm run test:load:socketio-smoke`** — voir **`docs/LOCAL_DEV.md`**.
 

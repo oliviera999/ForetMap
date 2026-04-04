@@ -2,6 +2,11 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { io } from 'socket.io-client';
 import { api, AccountDeletedError, API, withAppBase, getAuthToken } from '../services/api';
 
+/** Après notification Socket.IO : tâches = refetch léger côté API (priorité fraîcheur). */
+const TASKS_RT_DEBOUNCE_MS = 220;
+/** Jardin = zones + plantes + repères (plus coûteux) : léger délai supplémentaire pour absorber les rafales. */
+const GARDEN_RT_DEBOUNCE_MS = 400;
+
 /**
  * Connexion Socket.IO (tâches, jardin, n3beurs, forum, commentaires) + indicateur temps réel mode n3boss.
  */
@@ -87,7 +92,7 @@ export function useForetmapRealtime({
     tasksRtDebounceRef.current = setTimeout(() => {
       tasksRtDebounceRef.current = null;
       refreshTasksFromServer();
-    }, 500);
+    }, TASKS_RT_DEBOUNCE_MS);
   }, [refreshTasksFromServer]);
 
   const scheduleGardenRefresh = useCallback(() => {
@@ -95,7 +100,7 @@ export function useForetmapRealtime({
     gardenRtDebounceRef.current = setTimeout(() => {
       gardenRtDebounceRef.current = null;
       refreshGardenFromServer();
-    }, 500);
+    }, GARDEN_RT_DEBOUNCE_MS);
   }, [refreshGardenFromServer]);
 
   const onStudentsRealtime = useCallback(() => {

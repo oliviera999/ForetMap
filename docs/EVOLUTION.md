@@ -70,7 +70,7 @@ Objectif : **stabilité** avec utilisateurs simultanés et **délai de rafraîch
 
 | Situation | Piste recommandée |
 |-----------|-------------------|
-| **Une instance Node** sur le mutualisé, symptômes rares | **Option B** : conserver l’existant ; surveiller **`GET /api/admin/diagnostics`** (`runtimeProcess`, métriques HTTP), logs Socket.IO (`socket_io_engine_connection_error`, déconnexions anormales) ; **`npm run test:load:10vu`** et **`npm run test:load:socketio-smoke`** en local/préprod. |
+| **Une instance Node** sur le mutualisé, symptômes rares | **Option B** : conserver l’existant ; surveiller **`GET /api/admin/diagnostics`** (`runtimeProcess`, métriques HTTP), logs Socket.IO (`socket_io_engine_connection_error`, déconnexions anormales) ; **`npm run test:load:10vu`** et **`npm run test:load:socketio-smoke`** en local/préprod. Quick wins déjà côté code : émissions **`tasks:changed` par `mapId`** (suppression élève, import CSV) et débounce refetch tâches/jardin côté client. |
 | **Plusieurs instances Node** sans Redis | **Option A/D** : sans **`@socket.io/redis-adapter`** (ou équivalent), les événements ne traversent pas les processus — soit **réduire à une instance** si l’hébergeur le permet, soit **VPS + Redis** pour adapter multi-instance. |
 | **Saturation HTTP / latence** liée au **long-polling** (nombreuses connexions simultanées) | **Option C** : hébergement ou frontal avec **WebSocket** correctement terminé ; réactiver WS côté client/serveur **derrière un drapeau** après validation. |
 | **Proxy WS irréparable** sur le mutualisé | **Option E** ou maintien du **polling** documenté ; services managés uniquement si le coût / la dépendance externe sont acceptés. |
