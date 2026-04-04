@@ -1,9 +1,8 @@
 const jwt = require('jsonwebtoken');
 const { ensureRbacBootstrap, buildAuthzPayload } = require('../lib/rbac');
+const { getAuthJwtTtls } = require('../lib/settings');
 
 const JWT_SECRET = process.env.JWT_SECRET || (process.env.NODE_ENV === 'production' ? null : 'dev-secret-change-in-production');
-const ELEVATION_TTL_SECONDS = 60 * 60 * 6;
-const BASE_TTL_SECONDS = 60 * 60 * 24;
 
 function requireJwtConfigured(res) {
   if (!JWT_SECRET) {
@@ -13,8 +12,9 @@ function requireJwtConfigured(res) {
   return true;
 }
 
-function signAuthToken(payload, elevated = false) {
-  const ttl = elevated ? ELEVATION_TTL_SECONDS : BASE_TTL_SECONDS;
+async function signAuthToken(payload, elevated = false) {
+  const ttls = await getAuthJwtTtls();
+  const ttl = elevated ? ttls.elevatedSeconds : ttls.baseSeconds;
   return jwt.sign(payload, JWT_SECRET, { expiresIn: ttl });
 }
 

@@ -25,7 +25,7 @@ async function refreshAdminTeacherToken() {
       ['teacher', teacher.id, adminRole.id]
     );
   }
-  return signAuthToken({
+  return await signAuthToken({
     userType: 'teacher',
     userId: teacher?.id || null,
     canonicalUserId: teacher?.id || null,

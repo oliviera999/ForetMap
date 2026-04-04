@@ -33,7 +33,7 @@ test.before(async () => {
       ['teacher', teacher.id, adminRole.id]
     );
   }
-  teacherToken = signAuthToken({
+  teacherToken = await signAuthToken({
     userType: 'teacher',
     userId: teacher?.id || null,
     canonicalUserId: teacher?.id || null,

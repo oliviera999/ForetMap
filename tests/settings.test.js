@@ -1,6 +1,7 @@
 require('./helpers/setup');
 const test = require('node:test');
 const assert = require('node:assert');
+const jwt = require('jsonwebtoken');
 const request = require('supertest');
 const { app } = require('../server');
 const { initSchema, queryOne, execute } = require('../database');
@@ -48,7 +49,7 @@ async function getAdminToken() {
       ['teacher', teacher.id, adminRole.id]
     );
   }
-  return signAuthToken({
+  return await signAuthToken({
     userType: 'teacher',
     userId: teacher?.id || null,
     canonicalUserId: teacher?.id || null,
@@ -144,6 +145,36 @@ test('PUT /api/settings/admin/:key refuse un contenu texte trop long', async () 
     .send({ value: tooLong })
     .expect(400);
   assert.match(String(res.body?.error || ''), /Texte trop long/i);
+});
+
+test('security.jwt_ttl_base_seconds pilote la durée du JWT à l’émission', async () => {
+  const token = await getAdminToken();
+  await request(app)
+    .put('/api/settings/admin/security.jwt_ttl_base_seconds')
+    .set('Authorization', `Bearer ${token}`)
+    .send({ value: 3600 })
+    .expect(200);
+  const issued = await signAuthToken(
+    {
+      userType: 'teacher',
+      userId: 'ttl-test-user',
+      canonicalUserId: 'ttl-test-user',
+      roleId: 1,
+      roleSlug: 'prof',
+      roleDisplayName: 'Test',
+      elevated: false,
+    },
+    false
+  );
+  const dec = jwt.decode(issued);
+  assert.ok(dec?.iat && dec?.exp, 'JWT décodable avec iat/exp');
+  const span = dec.exp - dec.iat;
+  assert.ok(span >= 3580 && span <= 3620, `TTL attendu ~3600 s, obtenu ${span}`);
+  await request(app)
+    .put('/api/settings/admin/security.jwt_ttl_base_seconds')
+    .set('Authorization', `Bearer ${token}`)
+    .send({ value: 86400 })
+    .expect(200);
 });
 
 test('RBAC refuse la rétrogradation du dernier administrateur', async () => {

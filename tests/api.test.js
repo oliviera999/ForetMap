@@ -48,15 +48,18 @@ async function getAdminAuthToken() {
       ['teacher', teacher.id, adminRole.id]
     );
   }
-  return signAuthToken({
-    userType: 'teacher',
-    userId: teacher?.id || null,
-    canonicalUserId: teacher?.id || null,
-    roleId: adminRole?.id || null,
-    roleSlug: 'admin',
-    roleDisplayName: 'Administrateur',
-    elevated: false,
-  }, false);
+  return await signAuthToken(
+    {
+      userType: 'teacher',
+      userId: teacher?.id || null,
+      canonicalUserId: teacher?.id || null,
+      roleId: adminRole?.id || null,
+      roleSlug: 'admin',
+      roleDisplayName: 'Administrateur',
+      elevated: false,
+    },
+    false
+  );
 }
 
 async function setStudentPrimaryRole(studentId, roleSlug) {
