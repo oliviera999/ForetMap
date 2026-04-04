@@ -5,6 +5,9 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Modifié
+- **Build / déploiement** : régénération des artefacts **`dist/`** (Vite production) après validation locale des tests.
+
 ### Corrigé
 - **Vue Tâches** : `TaskCard` et la section **Projets** étaient définis **à l’intérieur** de `TasksView`, ce qui recréait un **nouveau type de composant** à chaque rendu après `onRefresh` / mise à jour des tâches — React **démontait et remontait** toutes les cartes et chaque `ContextComments` relançait ses effets (**`GET` commentaires**, **`GET /api/settings/public`**, etc.), d’où une **rafale de requêtes** après un simple clic. Extraction en **`TaskTileCard`** et **`TaskProjectsBlock`** au niveau module + objet **`taskTileProps`** (`src/components/tasks-views.jsx`).
 
