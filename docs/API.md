@@ -101,7 +101,7 @@ Connexion Socket.IO en transport **polling uniquement** côté client (compatibi
 
 - **JWT** : connexion refusée si token absent, invalide ou expiré (`connect_error` côté client).
 - **Tâches par carte** : la plupart des `tasks:changed` métier incluent un `mapId` ; seuls les clients dans la salle **`map:<mapId>`** (handshake `auth.mapId` et/ou événement **`subscribe:map`**) reçoivent l’événement. Sans souscription à la bonne carte, l’utilisateur s’appuie sur le **polling** REST (voir hook temps réel / `App.jsx`).
-- **Diffusion domaine** : certains cas rares émettent `tasks:changed` **sans** `mapId` → cible la salle **`domain:tasks`** (tous les sockets authentifiés abonnés à ce domaine). L’**import CSV projets/tâches** et la **suppression d’élève** (tâches impactées) émettent en priorité **une émission par `mapId`** concerné pour limiter les refetch inutiles sur les autres cartes.
+- **Diffusion domaine** : certains cas rares émettent `tasks:changed` **sans** `mapId` → cible la salle **`domain:tasks`** (tous les sockets authentifiés abonnés à ce domaine). L’**import CSV projets/tâches**, la **suppression d’élève** (tâches impactées) et les **CRUD tutoriels** (tâches liées) émettent en priorité **une émission par `mapId`** concerné ; sans liaison tâche, **une seule** émission domaine (comportement inchangé pour les tutoriels sans lien).
 - **Tests d’intégration** (sans navigateur) : [`tests/realtime.test.js`](../tests/realtime.test.js) — auth, filtrage par carte, `subscribe:map`, repli `domain:tasks`.
 - **Smoke charge locale** (plusieurs clients polling + option burst REST) : **`npm run test:load:socketio-smoke`** — voir **`docs/LOCAL_DEV.md`**.
 
@@ -111,7 +111,7 @@ Connexion Socket.IO en transport **polling uniquement** côté client (compatibi
 |-----------|--------|---------------------------|
 | `tasks:changed` | Création / modification / suppression de tâche, assignation, désassignation, marquer fait, validation, suppression d’un log | `reason`, `taskId`, `mapId` |
 | `students:changed` | Inscription d’un n3beur, suppression d’un n3beur | `reason`, `studentId` |
-| `garden:changed` | Zones, photos de zone, biodiversité, marqueurs carte | `reason`, `zoneId`, `plantId`, `markerId`, `mapId`… |
+| `garden:changed` | Zones, photos de zone, biodiversité, marqueurs carte | `reason`, `zoneId`, `plantId`, `markerId`, `mapId`… — côté client, pour certaines raisons (**zone** / **repère** sans toucher au catalogue plantes), le refetch peut **omettre** `GET /api/plants` et ne relire que **zones + repères** de la carte active (voir `useForetmapRealtime.js`) ; si plusieurs événements arrivent dans la fenêtre de debounce, **un seul** événement « plantes requises » suffit à déclencher le refetch complet. |
 | `forum:changed` | Création de sujet, réponse, suppression de message, verrouillage, signalement | `reason`, `threadId`, `postId` |
 | `context-comments:changed` | Création/suppression/signalement d’un commentaire contextuel | `reason`, `contextType`, `contextId`, `commentId` |
 
