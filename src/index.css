@@ -1434,6 +1434,8 @@
         padding:6px 8px;
         font-size:0.78rem;
       }
+      /* PWA : libellé « Installer » masqué (icône + aria-label / title suffisent, gain de place). */
+      header .install-btn .lock-label { display: none; }
       header .user-badge {
         min-height:36px;
         padding:3px 8px;
