@@ -210,7 +210,7 @@ router.delete('/:id/photos/:pid', requirePermission('zones.manage', { needsEleva
 
 router.post('/', requirePermission('zones.manage', { needsElevation: true }), async (req, res) => {
   try {
-    const { name, points, color, current_plant, living_beings, stage, map_id } = req.body;
+    const { name, points, color, current_plant, living_beings, stage, map_id, description } = req.body;
     if (!name?.trim()) return res.status(400).json({ error: 'Nom requis' });
     if (!points || points.length < 3) return res.status(400).json({ error: 'Au moins 3 points requis' });
     const mapId = String(map_id || 'foret').trim();
@@ -218,10 +218,11 @@ router.post('/', requirePermission('zones.manage', { needsElevation: true }), as
     if (!(await mapExists(mapId))) return res.status(400).json({ error: 'Carte introuvable' });
     const nextLiving = normalizeLivingBeings(living_beings, current_plant);
     const nextCurrentPlant = (current_plant || nextLiving[0] || '').trim();
+    const desc = description !== undefined && description !== null ? String(description) : '';
     const id = 'zone-' + uuidv4().slice(0, 8);
     await execute(
-      'INSERT INTO zones (id, map_id, name, x, y, width, height, current_plant, living_beings, stage, special, points, color) VALUES (?, ?, ?, 0, 0, 0, 0, ?, ?, ?, 0, ?, ?)',
-      [id, mapId, name.trim(), nextCurrentPlant, serializeLivingBeings(nextLiving, nextCurrentPlant), stage || 'empty', JSON.stringify(points), color || '#86efac80']
+      'INSERT INTO zones (id, map_id, name, x, y, width, height, current_plant, living_beings, stage, special, points, color, description) VALUES (?, ?, ?, 0, 0, 0, 0, ?, ?, ?, 0, ?, ?, ?)',
+      [id, mapId, name.trim(), nextCurrentPlant, serializeLivingBeings(nextLiving, nextCurrentPlant), stage || 'empty', JSON.stringify(points), color || '#86efac80', desc]
     );
     const zone = await queryOne('SELECT * FROM zones WHERE id = ?', [id]);
     emitGardenChanged({ reason: 'create_zone', zoneId: id, mapId });

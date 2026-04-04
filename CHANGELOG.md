@@ -6,6 +6,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 ## [Non publié]
 
 ### Ajouté
+- **Carte (mode prof)** : **dupliquer** une zone depuis la modale (**📋 Copie**) — même carte, contour décalé (~2,5 %), nom suffixé **« (copie) »**, plantes / état / description / couleur repris ; pas de photos ni tâches liées. **`POST /api/zones`** accepte **`description`** à la création ; doc **`docs/API.md`** ; test **`api.test.js`**.
 - **Prise de contrôle admin** : permission RBAC **`admin.impersonate`** (profil **admin** par défaut) ; **`POST /api/auth/admin/impersonate`** et **`POST /api/auth/admin/impersonate/stop`** ; JWT avec identité cible + acteur ; UI **Profils & utilisateurs** (« Voir comme cet utilisateur ») et bandeau **Revenir à mon compte admin**. Doc **`docs/API.md`** ; test **`api.test.js`**.
 
 ### Modifié
