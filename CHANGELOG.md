@@ -5,6 +5,9 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Modifié
+- **Documentation** : déploiement o2switch — versions Node **18 / 20 / 22** documentées (prod **22**).
+
 ### Ajouté
 - **Réglages admin / tâches récurrentes** : nouvelle clé `tasks.recurring_automation_enabled` (défaut `true`) pour activer/désactiver globalement la duplication automatique du job quotidien (pratique pendant les vacances) sans supprimer la récurrence des tâches. Le mode manuel `npm run tasks:spawn-recurring` (`force`) reste disponible pour le rattrapage.
 
