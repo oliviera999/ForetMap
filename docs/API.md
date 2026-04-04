@@ -83,7 +83,7 @@ Réservé aux environnements de **développement / CI** ; ne pas utiliser en pro
 
 ## Temps réel (Socket.IO)
 
-Connexion Socket.IO (transport **polling** actuellement forcé côté client) sur le **même hôte** que l’API, chemin `/socket.io`.
+Connexion Socket.IO en transport **polling uniquement** côté client (compatibilité proxy TLS / mutualisé ; pas de WebSocket) sur le **même hôte** que l’API, chemin `/socket.io`.
 
 - **CORS** : en production, même règle que l’API (`FRONTEND_ORIGIN` si défini).
 - **Rôle** : notifier les clients qu’une ressource a changé ; les données à jour restent à charger via les routes REST (`GET /api/tasks`, etc.).

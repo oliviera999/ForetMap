@@ -130,11 +130,9 @@ export function useForetmapRealtime({
       reconnectionDelayMax: 5000,
       randomizationFactor: 0.3,
       timeout: 20000,
-      // WebSocket prioritaire pour la réactivité; polling conservé en secours.
-      transports: ['websocket', 'polling'],
-      upgrade: true,
-      rememberUpgrade: true,
-      tryAllTransports: true,
+      // Polling HTTP uniquement : certains reverse-proxy / hébergeurs renvoient des trames WS
+      // invalides (ex. « reserved bits » RSV2/RSV3) ; le long-polling reste fiable pour notifier + refetch REST.
+      transports: ['polling'],
     });
     socketRef.current = socket;
     const OFFLINE_GRACE_MS = 15000;
