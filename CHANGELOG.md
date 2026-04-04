@@ -5,6 +5,9 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé
+- **Vue Tâches** : `TaskCard` et la section **Projets** étaient définis **à l’intérieur** de `TasksView`, ce qui recréait un **nouveau type de composant** à chaque rendu après `onRefresh` / mise à jour des tâches — React **démontait et remontait** toutes les cartes et chaque `ContextComments` relançait ses effets (**`GET` commentaires**, **`GET /api/settings/public`**, etc.), d’où une **rafale de requêtes** après un simple clic. Extraction en **`TaskTileCard`** et **`TaskProjectsBlock`** au niveau module + objet **`taskTileProps`** (`src/components/tasks-views.jsx`).
+
 ### Modifié
 - **UI — Visite sans connexion** : sur grand écran (≥ 1024 px), la zone principale n’est plus plafonnée à 900 px, marges latérales fluides, grille carte / panneau latéral plus large à gauche, étage carte en hauteur flexible (min. ~70 dvh) au lieu du seul ratio 16/10 — meilleure utilisation de l’espace. Classes **`main--guest-visit`**, **`visit-view--guest-public`** (`src/App.jsx`, `src/components/visit-views.jsx`, `src/index.css`).
 
