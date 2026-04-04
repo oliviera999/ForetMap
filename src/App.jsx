@@ -1076,7 +1076,7 @@ function App() {
       {toast && <Toast msg={toast} onDone={() => setToast(null)}/>}
       {showPublicVisit ? (
         <div id="app">
-          <div className="main" style={{ paddingBottom: 20 }}>
+          <div className="main main--guest-visit">
             <VisitView
               student={null}
               isTeacher={false}

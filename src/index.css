@@ -487,6 +487,10 @@
     .main > *:not(.map-view-root):not(.desktop-split-view) {
       overflow-y:auto;
     }
+    /* Visite sans connexion : pas de barre d’onglets basse — padding bas allégé (le reste inchangé). */
+    .main.main--guest-visit {
+      padding-bottom:max(20px, calc(var(--safe-bottom) + 8px));
+    }
     .teacher-main {
       flex:1;
       min-width:0;
@@ -553,6 +557,12 @@
       .teacher-main.main--wide {
         max-width:none;
         width:100%;
+      }
+      .main.main--guest-visit {
+        max-width:none;
+        width:100%;
+        padding-left:clamp(12px, 2.5vw, 36px);
+        padding-right:clamp(12px, 2.5vw, 36px);
       }
     }
 
@@ -2229,6 +2239,38 @@
     .visit-tutorial-picker-list {
       display:grid; gap:6px; margin:8px 0;
       max-height:180px; overflow:auto;
+    }
+
+    /* Visite publique (sans compte) : pleine largeur et carte plus haute sur grand écran */
+    @media (min-width:1024px) {
+      .visit-view.visit-view--guest-public {
+        display:flex;
+        flex-direction:column;
+        gap:14px;
+        min-height:0;
+      }
+      .visit-view.visit-view--guest-public .visit-header-row,
+      .visit-view.visit-view--guest-public .visit-map-switch,
+      .visit-view.visit-view--guest-public .visit-tutorials {
+        flex:0 0 auto;
+      }
+      .visit-view.visit-view--guest-public .visit-grid {
+        flex:1 1 auto;
+        min-height:0;
+        grid-template-columns:minmax(0, 2.25fr) minmax(280px, 400px);
+        gap:16px;
+        align-items:stretch;
+      }
+      .visit-view.visit-view--guest-public .visit-map-card {
+        min-height:0;
+        display:flex;
+        flex-direction:column;
+      }
+      .visit-view.visit-view--guest-public .visit-map-stage {
+        flex:1 1 auto;
+        min-height:min(70dvh, 880px);
+        aspect-ratio:unset;
+      }
     }
 
 .app-inline-toast {
