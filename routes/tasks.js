@@ -487,6 +487,20 @@ async function getTaskMarkerIds(taskId) {
   return rows.map((r) => r.marker_id);
 }
 
+/** Récurrences pour lesquelles on conserve un snapshot zones/repères à la validation (job récurrence). */
+const RECURRENCE_WITH_TEMPLATE_LOCS = new Set(['weekly', 'biweekly', 'monthly']);
+
+async function persistRecurringTemplateLocations(taskId, recurrenceRaw, zoneIds, markerIds) {
+  const r = String(recurrenceRaw || '').trim().toLowerCase();
+  if (!r || !RECURRENCE_WITH_TEMPLATE_LOCS.has(r)) return;
+  const z = Array.isArray(zoneIds) ? zoneIds : [];
+  const m = Array.isArray(markerIds) ? markerIds : [];
+  await execute(
+    'UPDATE tasks SET recurrence_template_zone_ids = ?, recurrence_template_marker_ids = ? WHERE id = ?',
+    [JSON.stringify(z), JSON.stringify(m), taskId]
+  );
+}
+
 async function getTaskTutorialIds(taskId) {
   const rows = await queryAll('SELECT tutorial_id FROM task_tutorials WHERE task_id = ? ORDER BY tutorial_id', [taskId]);
   return rows.map((r) => Number(r.tutorial_id));
@@ -1554,6 +1568,14 @@ router.put('/:id', async (req, res) => {
 
     // Règle métier: une tâche validée ne doit pas être liée à des zones/repères.
     if (nextStatus === 'validated') {
+      if (currentStatus !== 'validated') {
+        await persistRecurringTemplateLocations(
+          task.id,
+          task.recurrence,
+          currentZoneIds,
+          currentMarkerIds
+        );
+      }
       nextZoneIds = [];
       nextMarkerIds = [];
     } else if (currentStatus === 'validated' && locationChanged) {
@@ -1867,6 +1889,9 @@ router.post('/:id/validate', requirePermission('tasks.validate', { needsElevatio
     if (currentStatus === 'validated') {
       return res.status(400).json({ error: 'Tâche déjà validée' });
     }
+    const zonesBeforeValidate = await getTaskZoneIds(task.id);
+    const markersBeforeValidate = await getTaskMarkerIds(task.id);
+    await persistRecurringTemplateLocations(task.id, task.recurrence, zonesBeforeValidate, markersBeforeValidate);
     // Comme PUT avec statut validated : une tâche validée ne reste pas liée à des zones/repères.
     await setTaskZones(task.id, []);
     await setTaskMarkers(task.id, []);
