@@ -796,6 +796,8 @@ function VisitView({
     }
   };
 
+  const isGuestPublicVisit = !student && typeof onBackToAuth === 'function';
+
   if (loading) {
     return (
       <div className="loader">
@@ -806,7 +808,7 @@ function VisitView({
   }
 
   return (
-    <div className="visit-view fade-in">
+    <div className={`visit-view fade-in${isGuestPublicVisit ? ' visit-view--guest-public' : ''}`}>
       <div className="visit-header-row">
         <div>
           <h2 className="section-title">{visitTitle}</h2>
