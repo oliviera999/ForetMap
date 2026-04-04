@@ -9,6 +9,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - **UI — Visite sans connexion** : sur grand écran (≥ 1024 px), la zone principale n’est plus plafonnée à 900 px, marges latérales fluides, grille carte / panneau latéral plus large à gauche, étage carte en hauteur flexible (min. ~70 dvh) au lieu du seul ratio 16/10 — meilleure utilisation de l’espace. Classes **`main--guest-visit`**, **`visit-view--guest-public`** (`src/App.jsx`, `src/components/visit-views.jsx`, `src/index.css`).
 
 ### Corrigé
+- **Vue Tâches** : correction d’un **commit erroné** qui dupliquait une grande portion de `tasks-views.jsx` ; rétablissement du fichier unique avec **hooks** regroupés en tête du composant et helpers **`isStudentAlreadyAssignedToTask` / `toQuickAssignStudentId`** en module pour l’**affectation rapide** (pré-cochage fiable).
 - **Résilience prod (503 / Socket.IO)** : les **`GET`** via **`api()`** réessayent jusqu’à 4 fois (502/503/504 ou échec réseau `TypeError`) avec backoff — limite les rafales d’erreurs quand l’hébergeur ou le proxy est fugacement indisponible. **Socket.IO client** : option Engine.IO **`upgrade: false`** en complément du transport **polling** seul (`useForetmapRealtime.js`) pour éviter toute tentative WebSocket résiduelle (**reserved bits**). Doc **`docs/API.md`**.
 
 ### Modifié
