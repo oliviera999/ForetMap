@@ -130,7 +130,7 @@ Connexion Socket.IO (transport **polling** actuellement forcé côté client) su
 
 Routes protégées « n3boss » : header `Authorization: Bearer <token>`.
 
-**Durées de vie des JWT** : configurables par les réglages admin (portée enseignant) **`security.jwt_ttl_base_seconds`** (session standard, défaut 86 400 s) et **`security.jwt_ttl_elevated_seconds`** (session après élévation PIN, défaut 21 600 s) ; plages min/max imposées par le serveur. S’appliquent à toutes les émissions de jeton (connexion, élévation, OAuth, rafraîchissement `refreshedToken`, impersonation).
+**Durées de vie des JWT** : configurables par les réglages admin (portée enseignant) **`security.jwt_ttl_base_seconds`** (session standard, défaut **5 400** s = 1 h 30) et **`security.jwt_ttl_elevated_seconds`** (session après élévation PIN, défaut **5 400** s) ; plages min/max imposées par le serveur. S’appliquent à toutes les émissions de jeton (connexion, élévation, OAuth, rafraîchissement `refreshedToken`, impersonation).
 
 **`GET /api/auth/me`** — pour un compte **n3beur** authentifié (`auth.userType === 'student'`), la réponse peut inclure **`taskEnrollment`** (plafond d’auto-inscriptions actives) :
 

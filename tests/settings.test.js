@@ -173,7 +173,7 @@ test('security.jwt_ttl_base_seconds pilote la durée du JWT à l’émission', a
   await request(app)
     .put('/api/settings/admin/security.jwt_ttl_base_seconds')
     .set('Authorization', `Bearer ${token}`)
-    .send({ value: 86400 })
+    .send({ value: 5400 })
     .expect(200);
 });
 
