@@ -7,6 +7,7 @@ const express = require('express');
 const http    = require('http');
 const fs      = require('fs');
 const cors    = require('cors');
+const compression = require('compression');
 const path    = require('path');
 const Layer   = require('express/lib/router/layer');
 const { initDatabase, ping: dbPing } = require('./database');
@@ -77,6 +78,7 @@ const corsOpts = process.env.NODE_ENV === 'production' && process.env.FRONTEND_O
   ? { origin: process.env.FRONTEND_ORIGIN }
   : {};
 app.use(cors(corsOpts));
+app.use(compression());
 app.use(assignRequestId);
 
 function isTestEnv() {
@@ -144,11 +146,11 @@ function createRateLimitHandler(messageBody) {
 /** Plafond /api/* par IP et fenêtre 1 min (SPA + plusieurs onglets derrière la même IP publique). */
 function parseGeneralApiRateLimitMax() {
   const raw = String(process.env.FORETMAP_API_RATE_LIMIT_PER_MIN || '').trim();
-  const fallback = 900;
+  const fallback = 1200;
   if (!raw) return fallback;
   const n = parseInt(raw, 10);
   if (!Number.isFinite(n) || n < 60 || n > 20000) {
-    logger.warn({ raw }, 'FORETMAP_API_RATE_LIMIT_PER_MIN invalide — repli 900');
+    logger.warn({ raw }, 'FORETMAP_API_RATE_LIMIT_PER_MIN invalide — repli 1200');
     return fallback;
   }
   return n;
@@ -157,7 +159,7 @@ function parseGeneralApiRateLimitMax() {
 const generalApiRateLimitMax = parseGeneralApiRateLimitMax();
 logger.debug({ apiRateLimitPerMin: generalApiRateLimitMax }, 'Limiteur général /api/* (fenêtre 1 min / IP)');
 
-// Limiteur général : défaut 900 req/min/IP (FORETMAP_API_RATE_LIMIT_PER_MIN) — option express-rate-limit v8 : `limit`
+// Limiteur général : défaut 1200 req/min/IP (FORETMAP_API_RATE_LIMIT_PER_MIN) — option express-rate-limit v8 : `limit`
 const generalLimiter = rateLimit({
   windowMs: 60 * 1000,
   limit: generalApiRateLimitMax,

@@ -176,6 +176,7 @@ function App() {
     return displayStandalone || iosStandalone;
   });
   const failCountRef = useRef(0);
+  const fetchAllInFlightRef = useRef(false);
   const isIosDevice = useMemo(() => detectIosDevice(), []);
 
   const effectiveRoleContext = useMemo(() => {
@@ -667,6 +668,8 @@ function App() {
   };
 
   const fetchAll = useCallback(async () => {
+    if (fetchAllInFlightRef.current) return;
+    fetchAllInFlightRef.current = true;
     const snap = fetchAllContextRef.current;
     const {
       activeMapId: mapIdState,
@@ -769,8 +772,10 @@ function App() {
           }
         }
       }
+    } finally {
+      fetchAllInFlightRef.current = false;
+      setLoading(false);
     }
-    setLoading(false);
   }, [DEFAULT_MAPS, forceLogout, mergeAuthMeResponse]);
 
   const tasksForActiveMap = useMemo(() => (
@@ -962,12 +967,13 @@ function App() {
   }, [isTabVisible, refreshMs, rtStatus]);
 
   useEffect(() => {
+    if (rtStatus === 'live') return undefined;
     const id = setInterval(() => {
       if (pauseDataRefreshForTaskOverlaysRef.current) return;
       fetchAll();
     }, pollingIntervalMs);
     return () => clearInterval(id);
-  }, [fetchAll, pollingIntervalMs]);
+  }, [fetchAll, pollingIntervalMs, rtStatus]);
 
   const updateZone = async (id, data) => {
     await api(`/api/zones/${id}`, 'PUT', data);
