@@ -159,10 +159,10 @@ function parseGeneralApiRateLimitMax() {
 const generalApiRateLimitMax = parseGeneralApiRateLimitMax();
 logger.debug({ apiRateLimitPerMin: generalApiRateLimitMax }, 'Limiteur général /api/* (fenêtre 1 min / IP)');
 
-// Limiteur général : défaut 1200 req/min/IP (FORETMAP_API_RATE_LIMIT_PER_MIN) — option express-rate-limit v8 : `limit`
+// Limiteur général : défaut 1200 req/min/IP (FORETMAP_API_RATE_LIMIT_PER_MIN) — express-rate-limit 6.x : `max`
 const generalLimiter = rateLimit({
   windowMs: 60 * 1000,
-  limit: generalApiRateLimitMax,
+  max: generalApiRateLimitMax,
   skip: (req) => shouldSkipRateLimit(req),
   standardHeaders: true,
   legacyHeaders: false,
@@ -173,7 +173,7 @@ const generalLimiter = rateLimit({
 // Limiteur strict pour les endpoints d'authentification : 20 tentatives / 15 min par IP
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  limit: 20,
+  max: 20,
   skip: (req) => shouldSkipRateLimit(req),
   standardHeaders: true,
   legacyHeaders: false,
