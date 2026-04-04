@@ -49,6 +49,10 @@ export function useForetmapRealtime({
         api(`/api/tasks?${mapQuery}`),
         api(`/api/task-projects?${mapQuery}`).catch(() => []),
       ]);
+      if (!Array.isArray(t)) {
+        console.warn('[ForetMap] rafraîchissement tâches (temps réel) : réponse inattendue', typeof t);
+        return;
+      }
       setTasks(t);
       setTaskProjects(Array.isArray(projects) ? projects : []);
       window.dispatchEvent(new CustomEvent('foretmap_realtime', { detail: { domain: 'tasks' } }));

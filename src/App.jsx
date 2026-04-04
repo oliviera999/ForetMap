@@ -176,7 +176,9 @@ function App() {
     return displayStandalone || iosStandalone;
   });
   const failCountRef = useRef(0);
-  const fetchAllInFlightRef = useRef(false);
+  /** Promesse du chargement global en cours ; les appels suivants s’y accrochent et peuvent demander une nouvelle passe. */
+  const fetchAllRunPromiseRef = useRef(null);
+  const fetchAllPendingRef = useRef(false);
   const isIosDevice = useMemo(() => detectIosDevice(), []);
 
   const effectiveRoleContext = useMemo(() => {
@@ -667,115 +669,131 @@ function App() {
     defaultMapVisit: publicSettings?.map?.default_map_visit,
   };
 
-  const fetchAll = useCallback(async () => {
-    if (fetchAllInFlightRef.current) return;
-    fetchAllInFlightRef.current = true;
-    const snap = fetchAllContextRef.current;
-    const {
-      activeMapId: mapIdState,
-      effectiveIsTeacher: isTeacherSnap,
-      showPublicVisit: visitSnap,
-      studentAffiliation,
-      canManageTutorials: canTutorialsSnap,
-      defaultMapStudent,
-      defaultMapTeacher,
-      defaultMapVisit,
-    } = snap;
-
-    try {
-      const safeApi = async (request, fallbackValue) => {
-        try {
-          return await request();
-        } catch (err) {
-          if (err instanceof AccountDeletedError) throw err;
-          console.error(err);
-          return fallbackValue;
-        }
-      };
-
-      const restrictedMapIds = (!isTeacherSnap && !visitSnap)
-        ? allowedMapIdsFromAffiliation(studentAffiliation)
-        : null;
-
-      const mapsRes = await safeApi(() => api('/api/maps'), DEFAULT_MAPS);
-      const safeMaps = Array.isArray(mapsRes) && mapsRes.length > 0 ? mapsRes : DEFAULT_MAPS;
-      setMaps(safeMaps);
-
-      const activeMaps = safeMaps.filter((mp) => mp.is_active !== false);
-      const allowedMaps = activeMaps.length > 0 ? activeMaps : safeMaps;
-      const affiliationAllowedMaps = restrictedMapIds
-        ? allowedMaps.filter((mp) => restrictedMapIds.includes(mp.id))
-        : allowedMaps;
-      const visibleAllowedMaps = affiliationAllowedMaps.length > 0 ? affiliationAllowedMaps : allowedMaps;
-      const requestedMapId = (restrictedMapIds && !restrictedMapIds.includes(mapIdState))
-        ? restrictedMapIds[0]
-        : mapIdState;
-      const defaultMap = visitSnap
-        ? defaultMapVisit
-        : (isTeacherSnap ? defaultMapTeacher : defaultMapStudent);
-      const fallbackMap = visibleAllowedMaps.find((mp) => mp.id === defaultMap)?.id
-        || visibleAllowedMaps[0]?.id
-        || 'foret';
-      const resolvedMapId = visibleAllowedMaps.some((mp) => mp.id === requestedMapId)
-        ? requestedMapId
-        : fallbackMap;
-      const mapQuery = `map_id=${encodeURIComponent(resolvedMapId)}`;
-
-      const tutorialsEndpoint = canTutorialsSnap
-        ? '/api/tutorials?include_inactive=1'
-        : '/api/tutorials';
-      const [z, t, taskProjectsRes, p, m, tu] = await Promise.all([
-        safeApi(() => api(`/api/zones?${mapQuery}`), []),
-        safeApi(() => api(`/api/tasks?${mapQuery}`), []),
-        safeApi(() => api(`/api/task-projects?${mapQuery}`), []),
-        safeApi(() => api('/api/plants'), []),
-        safeApi(() => api(`/api/map/markers?${mapQuery}`), []),
-        safeApi(() => api(tutorialsEndpoint), []),
-      ]);
-
-      if (resolvedMapId !== mapIdState) {
-        setActiveMapId(resolvedMapId);
-      }
-      setZones(z); setTasks(t); setTaskProjects(Array.isArray(taskProjectsRes) ? taskProjectsRes : []);
-      setPlants(p); setMarkers(m); setTutorials(tu);
-      if (!isTeacherSnap) {
-        const sess = studentRef.current;
-        if (sess?.id && !sess.preview_mode) {
-          const sid = sess.id;
-          api('/api/auth/me')
-            .then((d) => {
-              if (studentRef.current?.id !== sid) return;
-              const hasSideEffects = d?.taskEnrollment != null
-                || typeof d?.forumParticipate === 'boolean'
-                || typeof d?.contextCommentParticipate === 'boolean'
-                || typeof d?.refreshedToken === 'string'
-                || d?.autoProfilePromotion;
-              if (!hasSideEffects) return;
-              mergeAuthMeResponse(d, { studentIdForMatch: sid });
-            })
-            .catch(() => {});
-        }
-      }
-      failCountRef.current = 0;
-      setRefreshMs(DATA_REFRESH_INTERVAL_MS);
-      setServerDown(false);
-    } catch(e) {
-      if (e instanceof AccountDeletedError) forceLogout();
-      else {
-        console.error(e);
-        const isServerSide = e.status == null || e.status >= 500;
-        if (isServerSide) {
-          failCountRef.current += 1;
-          if (failCountRef.current >= 3) {
-            setServerDown(true);
-            setRefreshMs(120000);
-          }
-        }
-      }
-    } finally {
-      fetchAllInFlightRef.current = false;
-      setLoading(false);
+  const fetchAll = useCallback(() => {
+    if (fetchAllRunPromiseRef.current) {
+      fetchAllPendingRef.current = true;
+      return fetchAllRunPromiseRef.current;
     }
+    const job = (async () => {
+      try {
+        // Tant qu’une action (ex. changement de statut) a demandé un rafraîchissement pendant la passe en cours, on relit le ref à jour.
+        while (true) {
+          fetchAllPendingRef.current = false;
+          const snap = fetchAllContextRef.current;
+          const {
+            activeMapId: mapIdState,
+            effectiveIsTeacher: isTeacherSnap,
+            showPublicVisit: visitSnap,
+            studentAffiliation,
+            canManageTutorials: canTutorialsSnap,
+            defaultMapStudent,
+            defaultMapTeacher,
+            defaultMapVisit,
+          } = snap;
+
+          try {
+            const safeApi = async (request, fallbackValue) => {
+              try {
+                return await request();
+              } catch (err) {
+                if (err instanceof AccountDeletedError) throw err;
+                console.error(err);
+                return fallbackValue;
+              }
+            };
+
+            const restrictedMapIds = (!isTeacherSnap && !visitSnap)
+              ? allowedMapIdsFromAffiliation(studentAffiliation)
+              : null;
+
+            const mapsRes = await safeApi(() => api('/api/maps'), DEFAULT_MAPS);
+            const safeMaps = Array.isArray(mapsRes) && mapsRes.length > 0 ? mapsRes : DEFAULT_MAPS;
+            setMaps(safeMaps);
+
+            const activeMaps = safeMaps.filter((mp) => mp.is_active !== false);
+            const allowedMaps = activeMaps.length > 0 ? activeMaps : safeMaps;
+            const affiliationAllowedMaps = restrictedMapIds
+              ? allowedMaps.filter((mp) => restrictedMapIds.includes(mp.id))
+              : allowedMaps;
+            const visibleAllowedMaps = affiliationAllowedMaps.length > 0 ? affiliationAllowedMaps : allowedMaps;
+            const requestedMapId = (restrictedMapIds && !restrictedMapIds.includes(mapIdState))
+              ? restrictedMapIds[0]
+              : mapIdState;
+            const defaultMap = visitSnap
+              ? defaultMapVisit
+              : (isTeacherSnap ? defaultMapTeacher : defaultMapStudent);
+            const fallbackMap = visibleAllowedMaps.find((mp) => mp.id === defaultMap)?.id
+              || visibleAllowedMaps[0]?.id
+              || 'foret';
+            const resolvedMapId = visibleAllowedMaps.some((mp) => mp.id === requestedMapId)
+              ? requestedMapId
+              : fallbackMap;
+            const mapQuery = `map_id=${encodeURIComponent(resolvedMapId)}`;
+
+            const tutorialsEndpoint = canTutorialsSnap
+              ? '/api/tutorials?include_inactive=1'
+              : '/api/tutorials';
+            const [z, t, taskProjectsRes, p, m, tu] = await Promise.all([
+              safeApi(() => api(`/api/zones?${mapQuery}`), []),
+              safeApi(() => api(`/api/tasks?${mapQuery}`), []),
+              safeApi(() => api(`/api/task-projects?${mapQuery}`), []),
+              safeApi(() => api('/api/plants'), []),
+              safeApi(() => api(`/api/map/markers?${mapQuery}`), []),
+              safeApi(() => api(tutorialsEndpoint), []),
+            ]);
+
+            if (resolvedMapId !== mapIdState) {
+              setActiveMapId(resolvedMapId);
+            }
+            setZones(z);
+            if (Array.isArray(t)) setTasks(t);
+            else console.warn('[ForetMap] GET /api/tasks : réponse non tableau, état tâches inchangé');
+            setTaskProjects(Array.isArray(taskProjectsRes) ? taskProjectsRes : []);
+            setPlants(p); setMarkers(m); setTutorials(tu);
+            if (!isTeacherSnap) {
+              const sess = studentRef.current;
+              if (sess?.id && !sess.preview_mode) {
+                const sid = sess.id;
+                api('/api/auth/me')
+                  .then((d) => {
+                    if (studentRef.current?.id !== sid) return;
+                    const hasSideEffects = d?.taskEnrollment != null
+                      || typeof d?.forumParticipate === 'boolean'
+                      || typeof d?.contextCommentParticipate === 'boolean'
+                      || typeof d?.refreshedToken === 'string'
+                      || d?.autoProfilePromotion;
+                    if (!hasSideEffects) return;
+                    mergeAuthMeResponse(d, { studentIdForMatch: sid });
+                  })
+                  .catch(() => {});
+              }
+            }
+            failCountRef.current = 0;
+            setRefreshMs(DATA_REFRESH_INTERVAL_MS);
+            setServerDown(false);
+          } catch (e) {
+            if (e instanceof AccountDeletedError) forceLogout();
+            else {
+              console.error(e);
+              const isServerSide = e.status == null || e.status >= 500;
+              if (isServerSide) {
+                failCountRef.current += 1;
+                if (failCountRef.current >= 3) {
+                  setServerDown(true);
+                  setRefreshMs(120000);
+                }
+              }
+            }
+          }
+          if (!fetchAllPendingRef.current) break;
+        }
+      } finally {
+        fetchAllRunPromiseRef.current = null;
+        setLoading(false);
+      }
+    })();
+    fetchAllRunPromiseRef.current = job;
+    return job;
   }, [DEFAULT_MAPS, forceLogout, mergeAuthMeResponse]);
 
   const tasksForActiveMap = useMemo(() => (
