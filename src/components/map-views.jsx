@@ -21,6 +21,7 @@ import { ContextComments } from './context-comments';
 import { HELP_PANELS, HELP_TOOLTIPS, resolveRoleText } from '../constants/help';
 import { lockBodyScroll } from '../utils/body-scroll-lock';
 import { resolveMapOverlayTypography } from '../utils/mapOverlayTypography';
+import { isStudentAssignedToTask } from '../utils/task-assignments';
 
 function Toast({ msg, onDone }) {
   useEffect(() => { const t = setTimeout(onDone, 2400); return () => clearTimeout(t); }, []);
@@ -229,16 +230,6 @@ function taskLocationIds(t) {
   return { zoneIds, markerIds };
 }
 
-function isTaskAssignedToStudent(task, student) {
-  if (!task || !student) return false;
-  const first = String(student.first_name || '').toLowerCase();
-  const last = String(student.last_name || '').toLowerCase();
-  return (task.assignments || []).some((a) => (
-    String(a.student_first_name || '').toLowerCase() === first &&
-    String(a.student_last_name || '').toLowerCase() === last
-  ));
-}
-
 function taskOpenSlots(task) {
   const required = Number(task?.required_students || 1);
   const assigned = Array.isArray(task?.assignments) ? task.assignments.length : 0;
@@ -277,12 +268,12 @@ function canStudentAssignTask(task, student) {
   if (!task || !student) return false;
   const effectiveStatus = taskEffectiveStatus(task);
   if (effectiveStatus === 'validated' || effectiveStatus === 'done' || effectiveStatus === 'on_hold') return false;
-  if (isTaskAssignedToStudent(task, student)) return false;
+  if (isStudentAssignedToTask(task, student)) return false;
   return taskOpenSlots(task) > 0;
 }
 
 function taskEnrollmentMeta(task, student) {
-  const isMine = isTaskAssignedToStudent(task, student);
+  const isMine = isStudentAssignedToTask(task, student);
   const slots = taskOpenSlots(task);
   const effectiveStatus = taskEffectiveStatus(task);
   const isClosed = effectiveStatus === 'validated' || effectiveStatus === 'done';
@@ -678,7 +669,7 @@ function ZoneInfoModal({ zone, plants, tasks, isTeacher, student, canSelfAssignT
                 <div style={{ display: 'grid', gap: 8 }}>
                   {linkedTasks.map((t) => {
                     const canAssign = canStudentAssignTask(t, student);
-                    const isMine = isTaskAssignedToStudent(t, student);
+                    const isMine = isStudentAssignedToTask(t, student);
                     const meta = taskEnrollmentMeta(t, student);
                     const checked = selectedTaskIds.includes(t.id);
                     return (
@@ -1061,7 +1052,7 @@ function MarkerModal({ marker, plants, tasks, onClose, onSave, onDelete, onLinkT
                   <div style={{ display: 'grid', gap: 8 }}>
                     {linkedTasks.map((t) => {
                       const canAssign = canStudentAssignTask(t, student);
-                      const isMine = isTaskAssignedToStudent(t, student);
+                      const isMine = isStudentAssignedToTask(t, student);
                       const meta = taskEnrollmentMeta(t, student);
                       const checked = selectedTaskIds.includes(t.id);
                       return (
