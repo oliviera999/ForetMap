@@ -1311,40 +1311,78 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
       )
     ));
   };
-  const canTeacherAssignOnTask = (task, targetStudents = []) => {
-    if (!isTeacher || !Array.isArray(targetStudents) || targetStudents.length === 0) return false;
-    if (!task || taskEffectiveStatus(task) === 'on_hold' || task.status === 'validated' || task.status === 'done' || task.status === 'proposed') return false;
-    if (getAvailableSlots(task) <= 0) return false;
-    return targetStudents.some((studentRow) => !isStudentAlreadyAssignedToTask(task, studentRow));
+  /** Inscriptions à ajouter / retirer (liste n3beurs chargée pour le prof) pour l’affectation rapide. */
+  const teacherQuickAssignDelta = (task, selectedIds) => {
+    const idSet = new Set((selectedIds || []).map(String));
+    const toAdd = teacherStudents.filter(
+      (s) => idSet.has(String(s.id)) && !isStudentAlreadyAssignedToTask(task, s)
+    );
+    const toRemove = teacherStudents.filter(
+      (s) => !idSet.has(String(s.id)) && isStudentAlreadyAssignedToTask(task, s)
+    );
+    return { toAdd, toRemove };
   };
-  const quickAssignHint = (task, targetStudents = []) => {
-    if (!Array.isArray(targetStudents) || targetStudents.length === 0) return "Choisis au moins un n3beur";
+  const teacherQuickAssignCanApply = (task, selectedIds) => {
+    if (!isTeacher || !task) return false;
+    const { toAdd, toRemove } = teacherQuickAssignDelta(task, selectedIds);
+    if (toAdd.length === 0 && toRemove.length === 0) return false;
+    if (taskEffectiveStatus(task) === 'on_hold') return false;
+    if (toRemove.length > 0 && (task.status === 'done' || task.status === 'validated')) return false;
+    if (toAdd.length > 0) {
+      if (task.status === 'proposed' || task.status === 'done' || task.status === 'validated') return false;
+      const slotsAfterRemovals = getAvailableSlots(task) + toRemove.length;
+      if (toAdd.length > slotsAfterRemovals) return false;
+    }
+    return true;
+  };
+  const quickAssignHint = (task, selectedIds) => {
     if (!task) return "Tâche indisponible";
     if (taskEffectiveStatus(task) === 'on_hold') return "Tâche ou projet en attente";
-    if (task.status === 'proposed') return "Impossible d'affecter une tâche proposée";
-    if (task.status === 'done' || task.status === 'validated') return "Tâche déjà terminée";
-    if (getAvailableSlots(task) <= 0) return "Aucune place restante";
-    const assignable = targetStudents.filter((studentRow) => !isStudentAlreadyAssignedToTask(task, studentRow));
-    if (assignable.length === 0) return "Les n3beurs sélectionnés sont déjà inscrits";
-    const slots = getAvailableSlots(task);
-    const selectedCount = targetStudents.length;
-    if (assignable.length > slots) {
-      return `Seulement ${slots} place${slots > 1 ? 's' : ''} disponible${slots > 1 ? 's' : ''} pour ${selectedCount} sélection${selectedCount > 1 ? 's' : ''}`;
+    const { toAdd, toRemove } = teacherQuickAssignDelta(task, selectedIds);
+    if (toAdd.length === 0 && toRemove.length === 0) return "Coche ou décoche des n3beurs pour modifier les inscriptions";
+    if (toRemove.length > 0 && (task.status === 'done' || task.status === 'validated')) {
+      return "Impossible de retirer des inscrits sur une tâche terminée ou validée";
     }
-    return `Affecter ${assignable.length} n3beur${assignable.length > 1 ? 's' : ''}`;
+    if (toAdd.length > 0) {
+      if (task.status === 'proposed') return "Impossible d’inscrire sur une tâche proposée";
+      if (task.status === 'done' || task.status === 'validated') return "Tâche déjà terminée";
+      const slotsAfterRemovals = getAvailableSlots(task) + toRemove.length;
+      if (toAdd.length > slotsAfterRemovals) {
+        return `Pas assez de places (max. ${slotsAfterRemovals} après retrait${toRemove.length > 1 ? 's' : ''})`;
+      }
+    }
+    const parts = [];
+    if (toRemove.length > 0) parts.push(`Retirer ${toRemove.length} n3beur${toRemove.length > 1 ? 's' : ''}`);
+    if (toAdd.length > 0) parts.push(`Inscrire ${toAdd.length} n3beur${toAdd.length > 1 ? 's' : ''}`);
+    return parts.join(' · ');
   };
-  const runTeacherQuickAssign = (task, targetStudents) => withLoad(`${task.id}assign_teacher_quick`, async () => {
-    if (!Array.isArray(targetStudents) || targetStudents.length === 0) return;
-    const assignable = targetStudents.filter((studentRow) => !isStudentAlreadyAssignedToTask(task, studentRow));
-    let slotsRemaining = getAvailableSlots(task);
-    if (assignable.length === 0 || slotsRemaining <= 0) {
-      setToast('Aucune nouvelle affectation possible');
+  const runTeacherQuickAssign = (task, selectedIds) => withLoad(`${task.id}assign_teacher_quick`, async () => {
+    const { toAdd, toRemove } = teacherQuickAssignDelta(task, selectedIds);
+    if (toAdd.length === 0 && toRemove.length === 0) {
+      setToast('Aucun changement');
       return;
     }
-    let successCount = 0;
-    let failCount = 0;
-    let firstError = '';
-    for (const targetStudent of assignable) {
+    let removeOk = 0;
+    let removeFail = 0;
+    let firstRemoveError = '';
+    for (const targetStudent of toRemove) {
+      try {
+        await api(`/api/tasks/${task.id}/unassign`, 'POST', {
+          firstName: targetStudent.first_name,
+          lastName: targetStudent.last_name,
+          studentId: targetStudent.id,
+        });
+        removeOk += 1;
+      } catch (e) {
+        removeFail += 1;
+        if (!firstRemoveError) firstRemoveError = e.message || 'Erreur inconnue';
+      }
+    }
+    let slotsRemaining = getAvailableSlots(task) + removeOk;
+    let addOk = 0;
+    let addFail = 0;
+    let firstAddError = '';
+    for (const targetStudent of toAdd) {
       if (slotsRemaining <= 0) break;
       try {
         await api(`/api/tasks/${task.id}/assign`, 'POST', {
@@ -1352,22 +1390,28 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
           lastName: targetStudent.last_name,
           studentId: targetStudent.id,
         });
-        successCount += 1;
+        addOk += 1;
         slotsRemaining -= 1;
       } catch (e) {
-        failCount += 1;
-        if (!firstError) firstError = e.message || 'Erreur inconnue';
+        addFail += 1;
+        if (!firstAddError) firstAddError = e.message || 'Erreur inconnue';
         if (String(e.message || '').toLowerCase().includes('plus de place')) break;
       }
     }
-    if (successCount > 0 && failCount > 0) {
-      setToast(`${successCount} n3beur${successCount > 1 ? 's' : ''} inscrit${successCount > 1 ? 's' : ''}, ${failCount} échec${failCount > 1 ? 's' : ''}`);
-    } else if (successCount > 0) {
-      setToast(`${successCount} n3beur${successCount > 1 ? 's' : ''} inscrit${successCount > 1 ? 's' : ''} à "${task.title}"`);
-    } else if (firstError) {
-      setToast(`Aucune affectation : ${firstError}`);
+    const bits = [];
+    if (removeOk > 0) bits.push(`${removeOk} retrait${removeOk > 1 ? 's' : ''}`);
+    if (addOk > 0) bits.push(`${addOk} inscription${addOk > 1 ? 's' : ''}`);
+    const errBits = [];
+    if (removeFail > 0) errBits.push(`${removeFail} retrait${removeFail > 1 ? 's' : ''}`);
+    if (addFail > 0) errBits.push(`${addFail} inscription${addFail > 1 ? 's' : ''}`);
+    if (bits.length > 0 && errBits.length > 0) {
+      setToast(`${bits.join(', ')} — échec : ${errBits.join(', ')}${firstRemoveError || firstAddError ? ` (${firstRemoveError || firstAddError})` : ''}`);
+    } else if (bits.length > 0) {
+      setToast(`${bits.join(', ')} sur « ${task.title} »`);
+    } else if (firstRemoveError || firstAddError) {
+      setToast(`Aucune mise à jour : ${firstRemoveError || firstAddError}`);
     } else {
-      setToast('Aucune nouvelle affectation possible');
+      setToast('Aucun changement appliqué');
     }
     setQuickAssignTaskId(null);
     setQuickAssignStudentIds([]);
@@ -1517,14 +1561,13 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
     )) || null;
     const hasCompletedOwnAssignment = !!(isCollectiveCompletion && mineAssignment?.done_at);
     const isQuickAssignOpen = quickAssignTaskId === t.id;
-    const selectedQuickAssignStudents = isQuickAssignOpen
-      ? teacherStudents.filter((s) => quickAssignStudentIds.includes(s.id))
-      : [];
-    const quickAssignAssignableCount = selectedQuickAssignStudents.filter((studentRow) => !isStudentAlreadyAssignedToTask(t, studentRow)).length;
-    const quickAssignSlots = getAvailableSlots(t);
-    const canQuickAssign = canTeacherAssignOnTask(t, selectedQuickAssignStudents);
+    const quickAssignDelta = isQuickAssignOpen ? teacherQuickAssignDelta(t, quickAssignStudentIds) : { toAdd: [], toRemove: [] };
+    const quickAssignSlotsAfterRemovals = isQuickAssignOpen
+      ? getAvailableSlots(t) + quickAssignDelta.toRemove.length
+      : getAvailableSlots(t);
+    const canQuickAssign = isQuickAssignOpen && teacherQuickAssignCanApply(t, quickAssignStudentIds);
     const quickAssignBusy = !!loading[`${t.id}assign_teacher_quick`];
-    const quickAssignTitle = quickAssignHint(t, selectedQuickAssignStudents);
+    const quickAssignTitle = isQuickAssignOpen ? quickAssignHint(t, quickAssignStudentIds) : '';
     return (
       <div
         className={`task-card ${viewMode === 'tiles' ? 'task-card--tile' : ''} fade-in ${isMine ? 'mine' : ''} ${effectiveStatus === 'validated' ? 'done' : ''} ${effectiveStatus === 'proposed' ? 'proposed' : ''}`}
@@ -1616,7 +1659,11 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
                   return;
                 }
                 setQuickAssignTaskId(t.id);
-                setQuickAssignStudentIds([]);
+                setQuickAssignStudentIds(
+                  teacherStudents
+                    .filter((s) => isStudentAlreadyAssignedToTask(t, s))
+                    .map((s) => s.id)
+                );
               }}
               title={taskEffectiveStatus(t) === 'on_hold'
                 ? "Affectation désactivée (en attente)"
@@ -1633,10 +1680,15 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
                 <>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}>
                     <span style={{ fontSize: '.8rem', color: '#666' }}>
-                      {quickAssignStudentIds.length} sélectionné{quickAssignStudentIds.length > 1 ? 's' : ''}
+                      {quickAssignStudentIds.length} coché{quickAssignStudentIds.length > 1 ? 's' : ''}
+                      {quickAssignDelta.toRemove.length > 0 || quickAssignDelta.toAdd.length > 0
+                        ? ` · ${quickAssignDelta.toRemove.length > 0 ? `−${quickAssignDelta.toRemove.length}` : ''}${quickAssignDelta.toRemove.length > 0 && quickAssignDelta.toAdd.length > 0 ? ' ' : ''}${quickAssignDelta.toAdd.length > 0 ? `+${quickAssignDelta.toAdd.length}` : ''}`
+                        : ''}
                     </span>
-                    <span style={{ fontSize: '.8rem', color: quickAssignAssignableCount > quickAssignSlots ? '#b45309' : '#666' }}>
-                      {quickAssignAssignableCount}/{quickAssignSlots} place{quickAssignSlots > 1 ? 's' : ''} utilisable{quickAssignSlots > 1 ? 's' : ''}
+                    <span style={{ fontSize: '.8rem', color: quickAssignDelta.toAdd.length > quickAssignSlotsAfterRemovals ? '#b45309' : '#666' }}>
+                      {quickAssignDelta.toAdd.length > 0
+                        ? `${quickAssignDelta.toAdd.length}/${quickAssignSlotsAfterRemovals} place${quickAssignSlotsAfterRemovals > 1 ? 's' : ''} pour les ajouts`
+                        : `${getAvailableSlots(t)} place${getAvailableSlots(t) > 1 ? 's' : ''} libre${getAvailableSlots(t) > 1 ? 's' : ''}`}
                     </span>
                     <div style={{ display: 'flex', gap: 8 }}>
                       <button
@@ -1702,10 +1754,10 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
               <button
                 className={`btn btn-sm ${canQuickAssign ? 'btn-primary' : 'btn-ghost'}`}
                 disabled={!canQuickAssign || quickAssignBusy || loadingTeacherStudents}
-                onClick={() => runTeacherQuickAssign(t, selectedQuickAssignStudents)}
+                onClick={() => runTeacherQuickAssign(t, quickAssignStudentIds)}
                 title={quickAssignTitle}
               >
-                {quickAssignBusy ? '...' : 'Affecter'}
+                {quickAssignBusy ? '...' : 'Appliquer'}
               </button>
             </div>
           )}
