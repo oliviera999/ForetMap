@@ -10,6 +10,7 @@ import { HelpPanel } from './HelpPanel';
 import { ContextComments } from './context-comments';
 import { HELP_PANELS, HELP_TOOLTIPS, resolveRoleText } from '../constants/help';
 import { lockBodyScroll } from '../utils/body-scroll-lock';
+import { isStudentAssignedToTask } from '../utils/task-assignments';
 
 function Toast({ msg, onDone }) {
   useEffect(() => { const t = setTimeout(onDone, 2400); return () => clearTimeout(t); }, []);
@@ -1239,8 +1240,10 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
     && student
     && String(t.proposed_by_student_id || '') === String(student.id || '')
   ));
-  const myTasks = regularFiltered.filter(t => student && taskEffectiveStatus(t) !== 'validated' && t.assignments?.some(
-    a => a.student_first_name === student.first_name && a.student_last_name === student.last_name
+  const myTasks = regularFiltered.filter((t) => (
+    student
+    && taskEffectiveStatus(t) !== 'validated'
+    && isStudentAssignedToTask(t, student)
   ));
   const available = regularFiltered.filter(t => taskEffectiveStatus(t) === 'available');
   const inProgress = regularFiltered.filter(t => taskEffectiveStatus(t) === 'in_progress');
@@ -1274,10 +1277,10 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
     [onHold, myTasks]
   );
   const recentlyValidatedForStudent = useMemo(
-    () => regularFiltered.filter((t) => taskEffectiveStatus(t) === 'validated' && t.assignments?.some(
-      (a) => a.student_first_name === student?.first_name && a.student_last_name === student?.last_name
+    () => regularFiltered.filter((t) => (
+      taskEffectiveStatus(t) === 'validated' && student && isStudentAssignedToTask(t, student)
     )),
-    [regularFiltered, student?.first_name, student?.last_name]
+    [regularFiltered, student]
   );
 
   const urgentTasks = !isTeacher ? regularFiltered.filter(t => {
@@ -1490,7 +1493,7 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
 
   const TaskCard = ({ t, index = 0 }) => {
     const effectiveStatus = taskEffectiveStatus(t);
-    const isMine = myTasks.some(m => m.id === t.id);
+    const isMine = !!(student && isStudentAssignedToTask(t, student));
     const canEditOwnProposal = !isTeacher
       && t.status === 'proposed'
       && student
@@ -1587,7 +1590,7 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
               {loading[t.id + 'assign'] ? '...' : '✋ Je m\'en occupe'}
             </button>
           )}
-          {!isTeacher && canSelfAssignTasks && isMine && (t.status === 'in_progress' || t.status === 'available') && !hasCompletedOwnAssignment && (
+          {!isTeacher && canSelfAssignTasks && isMine && t.status !== 'done' && t.status !== 'validated' && !hasCompletedOwnAssignment && (
             <>
               <button className="btn btn-secondary btn-sm" onClick={() => setLogTask(t)}>
                 ✅ Marquer terminée
