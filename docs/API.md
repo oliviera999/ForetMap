@@ -130,6 +130,8 @@ Connexion Socket.IO (transport **polling** actuellement forcé côté client) su
 
 Routes protégées « n3boss » : header `Authorization: Bearer <token>`.
 
+**Durées de vie des JWT** : configurables par les réglages admin (portée enseignant) **`security.jwt_ttl_base_seconds`** (session standard, défaut 86 400 s) et **`security.jwt_ttl_elevated_seconds`** (session après élévation PIN, défaut 21 600 s) ; plages min/max imposées par le serveur. S’appliquent à toutes les émissions de jeton (connexion, élévation, OAuth, rafraîchissement `refreshedToken`, impersonation).
+
 **`GET /api/auth/me`** — pour un compte **n3beur** authentifié (`auth.userType === 'student'`), la réponse peut inclure **`taskEnrollment`** (plafond d’auto-inscriptions actives) :
 
 - `maxActiveAssignments` : plafond effectif (entier 0–99, `0` = pas de limite) : si le profil principal du n3beur a une valeur `roles.max_concurrent_tasks` non `NULL`, elle s’applique ; sinon le réglage global `tasks.student_max_active_assignments` est utilisé.
@@ -229,6 +231,7 @@ Progression n3beurs :
 
 Tâches / inscriptions n3beurs :
 - `tasks.student_max_active_assignments` (entier 0–99, défaut `0`) : plafond **par défaut** du nombre de tâches **actives** (assignations dont la tâche associée n’est pas en statut `validated`) auxquelles un n3beur peut **s’auto-inscrire** via `POST /api/tasks/:id/assign`. `0` = pas de limite par défaut. Si le profil principal a `roles.max_concurrent_tasks` non `NULL`, cette valeur remplace le réglage global pour les utilisateurs de ce profil (`0` sur le profil = pas de limite pour eux). Les affectations effectuées par un n3boss ne sont pas soumises à ce plafond.
+- `tasks.recurring_automation_enabled` (booléen, défaut `true`) : active/désactive la duplication **automatique** des tâches récurrentes par le job quotidien (`lib/recurringTasks.js`). Utile pour suspendre la création de clones pendant les vacances. Le mode manuel `npm run tasks:spawn-recurring` (force) reste disponible pour le rattrapage.
 
 Réglage public de réactions :
 - `ui.reactions.allowed_emojis` (chaîne, emojis séparés par espaces ou virgules).

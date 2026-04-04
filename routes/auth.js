@@ -380,7 +380,7 @@ router.get('/me', requireAuth, async (req, res) => {
             tp.actorUserId = claims.actorUserId;
             tp.actorCanonicalUserId = claims.actorCanonicalUserId || null;
           }
-          body.refreshedToken = signAuthToken(tp, !!claims.elevated);
+          body.refreshedToken = await signAuthToken(tp, !!claims.elevated);
           body.auth = exposeAuth({
             ...tp,
             impersonating: req.auth.impersonating,
@@ -565,7 +565,7 @@ router.post('/register', async (req, res) => {
     await ensurePrimaryRole('student', id, 'visiteur');
     const student = await queryOne("SELECT * FROM users WHERE id = ? AND user_type = 'student'", [id]);
     const session = await buildSessionPayload('student', id, false);
-    const token = session ? signAuthToken(session.tokenPayload, false) : null;
+    const token = session ? await signAuthToken(session.tokenPayload, false) : null;
     await logSecurityEvent('auth.register.student', {
       req,
       actorUserType: 'student',
@@ -684,7 +684,7 @@ router.post('/login', async (req, res) => {
     if (!session) {
       return res.status(403).json({ error: 'Aucun profil attribué' });
     }
-    const token = session ? signAuthToken(session.tokenPayload, false) : null;
+    const token = session ? await signAuthToken(session.tokenPayload, false) : null;
     await logSecurityEvent('auth.login', {
       req,
       actorUserType: session.tokenPayload.userType,
@@ -817,7 +817,7 @@ router.get('/google/callback', async (req, res) => {
       if (!session) {
         return res.redirect(buildOAuthFrontendErrorRedirect(cfg.frontendOrigin, 'oauth_teacher_no_role', mode));
       }
-      const token = signAuthToken(session.tokenPayload, false);
+      const token = await signAuthToken(session.tokenPayload, false);
       await logSecurityEvent('auth.login.teacher.oauth_google', {
         req,
         actorUserType: 'teacher',
@@ -857,7 +857,7 @@ router.get('/google/callback', async (req, res) => {
     }
 
     const session = await buildSessionPayload('student', student.id, false);
-    const token = session ? signAuthToken(session.tokenPayload, false) : null;
+    const token = session ? await signAuthToken(session.tokenPayload, false) : null;
     await logSecurityEvent('auth.login.student.oauth_google', {
       req,
       actorUserType: 'student',
@@ -1025,7 +1025,7 @@ router.post('/elevate', requireAuth, async (req, res) => {
 
     const session = await buildSessionPayload(req.auth.userType, req.auth.userId, true);
     if (!session) return res.status(403).json({ error: 'Aucun profil attribué' });
-    const token = signAuthToken(session.tokenPayload, true);
+    const token = await signAuthToken(session.tokenPayload, true);
     await logAudit('auth_elevate', 'auth', req.auth.userId, `Élévation ${req.auth.userType}`, {
       req,
       actorUserType: req.auth.userType,
@@ -1069,7 +1069,7 @@ router.post('/teacher', async (req, res) => {
       }
       const session = await buildSessionPayload(claims.userType, claims.userId, true);
       if (!session) return res.status(403).json({ error: 'Aucun profil attribué' });
-      const token = signAuthToken(session.tokenPayload, true);
+      const token = await signAuthToken(session.tokenPayload, true);
       await logAudit('auth_teacher_legacy_elevate', 'auth', claims.userId, `Élévation via endpoint legacy (${claims.userType})`, {
         req,
         actorUserType: claims.userType,
@@ -1127,7 +1127,7 @@ router.post('/admin/impersonate', requirePermission('admin.impersonate'), async 
       actorUserId: req.auth.userId,
       actorCanonicalUserId: actorCanonical || null,
     };
-    const token = signAuthToken(tokenPayload, elevated);
+    const token = await signAuthToken(tokenPayload, elevated);
     let hydrated;
     try {
       hydrated = await hydrateAuthFromTokenClaims(jwt.verify(token, JWT_SECRET));
@@ -1175,7 +1175,7 @@ router.post('/admin/impersonate/stop', requireAuth, async (req, res) => {
     }
     const session = await buildSessionPayload(actor.userType, actor.userId, !!claims.elevated);
     if (!session) return res.status(403).json({ error: 'Session administrateur introuvable' });
-    const token = signAuthToken(session.tokenPayload, !!claims.elevated);
+    const token = await signAuthToken(session.tokenPayload, !!claims.elevated);
     let hydrated;
     try {
       hydrated = await hydrateAuthFromTokenClaims(jwt.verify(token, JWT_SECRET));

@@ -1,5 +1,7 @@
 'use strict';
 
+require('./helpers/setup');
+
 /**
  * Vérifie que le module temps réel diffuse bien les événements Socket.IO
  * (sans passer par l’app Express complète).
@@ -36,7 +38,7 @@ test('Socket.IO : réception de tasks / students / garden / forum / context-comm
 
   const { port } = server.address();
 
-  const token = signAuthToken({
+  const token = await signAuthToken({
     userType: 'teacher',
     roleSlug: 'prof',
     permissions: ['teacher.access'],
@@ -227,7 +229,7 @@ test('Socket.IO : subscribe:map quitte l’ancienne salle map', async () => {
     server.listen(0, '127.0.0.1', resolve);
   });
   const { port } = server.address();
-  const token = signAuthToken({
+  const token = await signAuthToken({
     userType: 'teacher',
     userId: 'sub-map-test',
     roleSlug: 'prof',
@@ -287,7 +289,7 @@ test('Socket.IO : emitTasksChanged sans mapId atteint domain:tasks (toutes les c
     server.listen(0, '127.0.0.1', resolve);
   });
   const { port } = server.address();
-  const token = signAuthToken({
+  const token = await signAuthToken({
     userType: 'teacher',
     userId: 'domain-broadcast',
     roleSlug: 'prof',
@@ -341,7 +343,7 @@ test('Socket.IO : émission ciblée par mapId', async () => {
     server.listen(0, '127.0.0.1', resolve);
   });
   const { port } = server.address();
-  const token = signAuthToken({
+  const token = await signAuthToken({
     userType: 'teacher',
     roleSlug: 'prof',
     permissions: ['teacher.access'],

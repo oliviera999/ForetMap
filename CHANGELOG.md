@@ -6,6 +6,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 ## [Non publié]
 
 ### Modifié
+- **Auth JWT** : les durées de session sont lues depuis les réglages admin **`security.jwt_ttl_base_seconds`** et **`security.jwt_ttl_elevated_seconds`** (cache réglages 15 s) au lieu de constantes figées ; `signAuthToken` est **asynchrone**. Doc **`docs/API.md`** ; test **`settings.test.js`**.
 - **UI — Cartes & tâches** (split desktop) : carte visuellement **sous** la barre d’outils (Nav / Repère / etc., sans centrage vertical du plan dans la colonne) ; **moins d’espace** entre onglets n3boss et zone split ; colonne carte en **`position: sticky`** avec hauteur max. utile pour rester visible lors d’un défilement de la page ; **défilement des tâches** confiné à la colonne droite (`overscroll-behavior`). Classes **`main--maptasks-split`** (`src/App.jsx`, `src/index.css`).
 - **Documentation** : déploiement o2switch — versions Node **18 / 20 / 22** documentées (prod **22**).
 
