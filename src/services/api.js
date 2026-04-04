@@ -114,25 +114,63 @@ async function parseApiBody(res) {
 
 const API_FETCH_TIMEOUT_MS = 40000;
 
+/** Réponses « passerelle / origine temporairement indisponible » — réessai GET idempotent côté client. */
+const TRANSIENT_HTTP_STATUSES = new Set([502, 503, 504]);
+
+function transientGetRetryDelayMs(attemptIndex) {
+  const bases = [400, 1200, 2800];
+  const base = bases[Math.min(attemptIndex, bases.length - 1)];
+  return base + Math.floor(Math.random() * 250);
+}
+
+function sleepMs(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function isIdempotentGet(method, body) {
+  return String(method || 'GET').toUpperCase() === 'GET' && (body === undefined || body === null);
+}
+
 export async function api(path, method = 'GET', body) {
   const headers = { 'Content-Type': 'application/json' };
   const authToken = getAuthToken();
   if (authToken) headers.Authorization = 'Bearer ' + authToken;
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), API_FETCH_TIMEOUT_MS);
-  let res;
-  try {
-    res = await fetch(withAppBase(path), {
-      method,
-      headers,
-      // Ne pas utiliser `body ? …` : `0` ou `false` seraient omis à tort ; `{}` reste un corps JSON valide.
-      body: body !== undefined && body !== null ? JSON.stringify(body) : undefined,
-      signal: controller.signal,
-    });
-  } finally {
-    clearTimeout(timeoutId);
-  }
-  if (!res.ok) {
+  const allowTransientRetry = isIdempotentGet(method, body);
+  const maxAttempts = allowTransientRetry ? 4 : 1;
+
+  for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), API_FETCH_TIMEOUT_MS);
+    let res;
+    try {
+      res = await fetch(withAppBase(path), {
+        method,
+        headers,
+        // Ne pas utiliser `body ? …` : `0` ou `false` seraient omis à tort ; `{}` reste un corps JSON valide.
+        body: body !== undefined && body !== null ? JSON.stringify(body) : undefined,
+        signal: controller.signal,
+      });
+    } catch (err) {
+      clearTimeout(timeoutId);
+      const isAbort = err && err.name === 'AbortError';
+      if (allowTransientRetry && !isAbort && err instanceof TypeError && attempt < maxAttempts - 1) {
+        await sleepMs(transientGetRetryDelayMs(attempt));
+        continue;
+      }
+      throw err;
+    } finally {
+      clearTimeout(timeoutId);
+    }
+
+    if (res.ok) {
+      return parseApiBody(res);
+    }
+
+    if (allowTransientRetry && TRANSIENT_HTTP_STATUSES.has(res.status) && attempt < maxAttempts - 1) {
+      await sleepMs(transientGetRetryDelayMs(attempt));
+      continue;
+    }
+
     const errBody = (await parseApiBody(res)) || {};
     if (res.status === 401 && errBody.deleted) throw new AccountDeletedError();
     if (res.status === 401 && authToken && (errBody.error || '').toLowerCase().includes('token')) {
@@ -149,7 +187,8 @@ export async function api(path, method = 'GET', body) {
     if (res.status === 429) ex.rateLimited = true;
     throw ex;
   }
-  return parseApiBody(res);
+
+  throw new Error('Erreur serveur');
 }
 
 export async function listContextComments({ contextType, contextId, page = 1, pageSize = 10 }) {

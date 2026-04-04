@@ -66,6 +66,10 @@ Pour les environnements de test (local/staging), le rate limiter global et auth 
 
 Sans `LOAD_TEST_SECRET`, le comportement reste inchangé : le rate limiting s'applique normalement à toutes les requêtes.
 
+### Client HTTP (SPA)
+
+Les requêtes **`GET`** sans corps émises par **`api()`** (`src/services/api.js`) réessayent automatiquement jusqu’à **4** tentatives (backoff avec jitter) en cas de réponse **502**, **503**, **504** ou d’échec réseau typique (`TypeError`, ex. *Failed to fetch*), afin d’absorber de courtes indisponibilités proxy / hébergeur. Les autres méthodes HTTP et les réponses **429** ne sont pas réessayées automatiquement.
+
 Le plafond global sur **`/api/*`** (hors bypass ci-dessus) est de **1200 requêtes par minute par adresse IP** par défaut, configurable avec **`FORETMAP_API_RATE_LIMIT_PER_MIN`** (entier entre 60 et 20000). Objectif : limiter les abus tout en évitant des **429** lorsque plusieurs utilisateurs ou onglets passent par la **même IP publique** (ex. Wi‑Fi établissement).
 
 Pour valider ce comportement en local (plusieurs utilisateurs virtuels, **une seule IP source** côté serveur, rate limit **actif**), utiliser le profil Artillery **`10vu`** : fichier `load/artillery-10vu.yml`, commande **`npm run test:load:10vu`** (voir aussi `docs/LOCAL_DEV.md`).
@@ -85,6 +89,7 @@ Réservé aux environnements de **développement / CI** ; ne pas utiliser en pro
 
 Connexion Socket.IO en transport **polling uniquement** côté client (compatibilité proxy TLS / mutualisé ; pas de WebSocket) sur le **même hôte** que l’API, chemin `/socket.io`.
 
+- **Client (Engine.IO)** : **`transports: ['polling']`** et **`upgrade: false`** pour interdire toute tentative WebSocket (évite des erreurs **« reserved bits »** si un proxy renvoie du trafic non conforme sur le chemin WS).
 - **Serveur (Engine.IO)** : transports **`polling`** puis **`websocket`** (WS pour tests / outils) ; **`allowUpgrades: false`** (pas d’upgrade polling→WS, aligné navigateurs prod) ; **`pingInterval` 20 s** / **`pingTimeout` 60 s** (heartbeat un peu plus fréquent, tolérance réseau mobile et proxy).
 - **CORS** : en production, même règle que l’API (`FRONTEND_ORIGIN` si défini).
 - **Rôle** : notifier les clients qu’une ressource a changé ; les données à jour restent à charger via les routes REST (`GET /api/tasks`, etc.).
