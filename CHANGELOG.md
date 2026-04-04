@@ -5,6 +5,9 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Ajouté
+- **Tâches — référents** : liaison N-N `task_referents` ; champs API `referent_user_ids` / `referents_linked` ; `GET /api/tasks/referent-candidates` (profil avec `tasks.manage`) ; formulaire et affichage carte tâche (« En cas de questions… ») ; copie sur duplication récurrente (`lib/recurringTasks.js`). Migration **`052_task_referents.sql`**, schéma **`sql/schema_foretmap.sql`**.
+
 ### Modifié
 - **En-tête (mobile / tactile)** : le bouton d’installation PWA n’affiche plus le libellé **Installer** (icône seule) pour éviter le débordement et alléger la barre ; **`aria-label`** et **`title`** conservés pour l’accessibilité (`src/index.css`).
 

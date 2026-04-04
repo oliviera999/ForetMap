@@ -378,6 +378,7 @@ Réponse:
 | Méthode | URL | n3boss | Description |
 |--------|-----|------|-------------|
 | GET | `/api/tasks` | non | Liste des tâches (avec assignments) |
+| GET | `/api/tasks/referent-candidates` | oui (`tasks.manage` + élévation, sauf profils **admin** / **prof** natifs) | Liste des utilisateurs **actifs** (enseignants puis n3beurs) pour le sélecteur « référents » en création/édition de tâche |
 | GET | `/api/tasks/:id` | non | Détail tâche |
 | POST | `/api/tasks` | oui | Créer tâche |
 | PUT | `/api/tasks/:id` | oui\* | Modifier tâche |
@@ -389,7 +390,7 @@ Réponse:
 | GET | `/api/tasks/:id/logs/:logId/image` | non | Image d’un log (fichier disque) |
 | POST | `/api/tasks/:id/validate` | oui | Valider la tâche (depuis n’importe quel statut sauf `validated`) |
 
-\* Un n3beur peut aussi modifier **sa propre proposition** (statut `proposed`, préfixe de description `Proposition n3beur:`) ; les champs sensibles (`status`, `project_id`, `tutorial_ids`, `recurrence`, `completion_mode`) restent réservés aux profils avec `tasks.manage`.
+\* Un n3beur peut aussi modifier **sa propre proposition** (statut `proposed`, préfixe de description `Proposition n3beur:`) ; les champs sensibles (`status`, `project_id`, `tutorial_ids`, `referent_user_ids`, `recurrence`, `completion_mode`) restent réservés aux profils avec `tasks.manage`.
 
 Contraintes principales :
 
@@ -401,6 +402,7 @@ Contraintes principales :
 - Si `start_date` est dans le futur, `POST /api/tasks/:id/assign` renvoie aussi `400` (inscription n3beur bloquée jusqu’à la date de départ).
 - Si le **plafond effectif** (profil `roles.max_concurrent_tasks` si défini, sinon réglage `tasks.student_max_active_assignments`) est strictement positif et que l’action est une **auto-inscription n3beur**, le serveur compte les assignations actives (tâches non `validated`) : au-delà de la limite, réponse **`400`** avec `code: "TASK_ENROLLMENT_LIMIT"`, `maxActiveAssignments`, `currentActiveAssignments` et un message d’erreur explicite.
 - `POST /api/tasks` et `PUT /api/tasks/:id` acceptent `completion_mode` pour les profils autorisés.
+- **Référents** : `referent_user_ids` (tableau d’UUID utilisateurs, max **15**) — uniquement comptes **actifs** `teacher` ou `student`. Les réponses incluent `referent_user_ids` et `referents_linked` (`id`, `user_type`, `label` affichable, `role_slug` du profil RBAC primaire si présent). Pas d’adresse e-mail dans ces objets. Les clones **récurrents** héritent des mêmes référents que la tâche source.
 - Les payloads tâche exposent `completion_mode`, `assignees_total_count` et `assignees_done_count`.
 - `POST /api/tasks/:id/done` :
   - en `single_done`, la tâche passe en `done` dès la déclaration de fin ;

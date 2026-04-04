@@ -162,12 +162,29 @@ function startDateChip(startDate) {
   return <span className="task-chip">🚦 Départ: {label}</span>;
 }
 
+function referentCandidateLabel(c) {
+  const dn = String(c?.display_name || '').trim();
+  if (dn) return dn;
+  return `${String(c?.first_name || '').trim()} ${String(c?.last_name || '').trim()}`.trim() || String(c?.id || '');
+}
+
+function referentRoleHint(c, terms) {
+  const slug = String(c?.primary_role_slug || '').toLowerCase();
+  if (c?.user_type === 'teacher') {
+    if (slug === 'admin') return 'Admin';
+    if (slug === 'prof') return terms?.teacherSingular ? terms.teacherSingular : 'n3boss';
+    return 'Équipe';
+  }
+  return terms?.studentSingular ? terms.studentSingular : 'n3beur';
+}
+
 function TaskFormModal({
   zones,
   markers = [],
   maps = [],
   taskProjects = [],
   tutorials = [],
+  referentCandidates = [],
   students = [],
   activeMapId = 'foret',
   onClose,
@@ -194,6 +211,9 @@ function TaskFormModal({
     zone_ids: initialLocationIds(editTask, 'zone_ids', 'zone_id'),
     marker_ids: initialLocationIds(editTask, 'marker_ids', 'marker_id'),
     tutorial_ids: normalizeTutorialIds(initialLocationIds(editTask, 'tutorial_ids', 'tutorial_id')),
+    referent_user_ids: editTask && Array.isArray(editTask.referent_user_ids)
+      ? [...new Set(editTask.referent_user_ids.map((id) => String(id || '').trim()).filter(Boolean))]
+      : [],
     project_id: editTask.project_id || '',
     start_date: editTask.start_date || '',
     due_date: editTask.due_date || '',
@@ -203,7 +223,7 @@ function TaskFormModal({
     assign_student_id: ''
   } : {
     title: '', description: '', map_id: initialMapId || '',
-    zone_ids: [], marker_ids: [], tutorial_ids: [],
+    zone_ids: [], marker_ids: [], tutorial_ids: [], referent_user_ids: [],
     project_id: defaultProjectForNew ? String(defaultProjectForNew.id) : '',
     start_date: '', due_date: '', required_students: 1, completion_mode: 'single_done', recurrence: '',
     assign_student_id: ''
@@ -211,6 +231,7 @@ function TaskFormModal({
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState('');
   const [tutorialSearch, setTutorialSearch] = useState('');
+  const [referentSearch, setReferentSearch] = useState('');
 
   const set = k => e => {
     const value = e.target.value;
@@ -291,6 +312,19 @@ function TaskFormModal({
     });
   };
 
+  const toggleReferentUserId = (userId) => {
+    const id = String(userId || '').trim();
+    if (!id) return;
+    setForm((f) => {
+      const cur = [...(f.referent_user_ids || [])];
+      const has = cur.includes(id);
+      return {
+        ...f,
+        referent_user_ids: has ? cur.filter((x) => x !== id) : [...cur, id],
+      };
+    });
+  };
+
   const submit = async () => {
     if (!form.title.trim()) return setErr('Le titre est requis');
     const mapFromLinks = () => {
@@ -304,6 +338,7 @@ function TaskFormModal({
       }
       return form.map_id || null;
     };
+    const normalizedReferentIds = [...new Set((form.referent_user_ids || []).map((id) => String(id || '').trim()).filter(Boolean))];
     const payload = {
       title: form.title.trim(),
       description: form.description || '',
@@ -311,6 +346,7 @@ function TaskFormModal({
       zone_ids: [...new Set(form.zone_ids.map((id) => String(id || '').trim()).filter(Boolean))],
       marker_ids: [...new Set(form.marker_ids.map((id) => String(id || '').trim()).filter(Boolean))],
       tutorial_ids: normalizedTutorialIds,
+      referent_user_ids: normalizedReferentIds,
       project_id: form.project_id || null,
       start_date: form.start_date || null,
       due_date: form.due_date || null,
@@ -367,6 +403,29 @@ function TaskFormModal({
     if (!q) return searchableTutorials;
     return searchableTutorials.filter((t) => String(t.title || '').toLowerCase().includes(q));
   }, [searchableTutorials, tutorialSearch]);
+
+  const teacherReferentCandidates = useMemo(
+    () => referentCandidates.filter((c) => c.user_type === 'teacher'),
+    [referentCandidates]
+  );
+  const studentReferentCandidates = useMemo(
+    () => referentCandidates.filter((c) => c.user_type === 'student'),
+    [referentCandidates]
+  );
+  const filteredTeacherReferents = useMemo(() => {
+    const q = referentSearch.trim().toLowerCase();
+    if (!q) return teacherReferentCandidates;
+    return teacherReferentCandidates.filter((c) => referentCandidateLabel(c).toLowerCase().includes(q));
+  }, [teacherReferentCandidates, referentSearch]);
+  const filteredStudentReferents = useMemo(() => {
+    const q = referentSearch.trim().toLowerCase();
+    if (!q) return studentReferentCandidates;
+    return studentReferentCandidates.filter((c) => referentCandidateLabel(c).toLowerCase().includes(q));
+  }, [studentReferentCandidates, referentSearch]);
+  const selectedReferentCount = useMemo(
+    () => [...new Set((form.referent_user_ids || []).map((id) => String(id || '').trim()).filter(Boolean))].length,
+    [form.referent_user_ids]
+  );
 
   return (
     <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
@@ -497,6 +556,92 @@ function TaskFormModal({
                     <span className="task-form-pick-text">📘 {t.title}</span>
                   </label>
                 ))}
+            </div>
+          </div>
+        )}
+        {!isProposal && (
+          <div className="field">
+            <label>Référents (optionnel)</label>
+            <p style={{ fontSize: '.8rem', color: '#555', margin: '0 0 8px', lineHeight: 1.45 }}>
+              Ces personnes sont indiquées sur la fiche tâche ; les {terms.studentPlural} peuvent s&apos;y adresser en cas de questions.
+            </p>
+            {referentCandidates.length > 0 && (
+              <div style={{ display: 'grid', gap: 8, marginBottom: 8 }}>
+                <input
+                  value={referentSearch}
+                  onChange={(e) => setReferentSearch(e.target.value)}
+                  placeholder="🔍 Filtrer par nom…"
+                />
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}>
+                  <span style={{ fontSize: '.8rem', color: '#666' }}>
+                    {selectedReferentCount} sélectionné{selectedReferentCount > 1 ? 's' : ''}
+                  </span>
+                  <button
+                    type="button"
+                    className="btn btn-ghost btn-sm"
+                    onClick={() => setForm((f) => ({ ...f, referent_user_ids: [] }))}
+                  >
+                    Effacer les référents
+                  </button>
+                </div>
+              </div>
+            )}
+            <div className="task-form-pick-list">
+              {referentCandidates.length === 0 ? (
+                <p className="task-form-pick-empty">Chargement de la liste des utilisateurs ou aucun compte actif.</p>
+              ) : (
+                <>
+                  {filteredTeacherReferents.length > 0 && (
+                    <>
+                      <div className="task-form-pick-subheading" aria-hidden="true">Équipe pédagogique</div>
+                      {filteredTeacherReferents.map((c) => {
+                        const cid = String(c.id || '').trim();
+                        return (
+                          <label key={cid} className="task-form-pick-item">
+                            <input
+                              type="checkbox"
+                              className="task-form-pick-checkbox"
+                              checked={(form.referent_user_ids || []).includes(cid)}
+                              onChange={() => toggleReferentUserId(cid)}
+                            />
+                            <span className="task-form-pick-text">
+                              👤 {referentCandidateLabel(c)}
+                              <span style={{ opacity: 0.75, fontSize: '.78rem' }}> — {referentRoleHint(c, terms)}</span>
+                            </span>
+                          </label>
+                        );
+                      })}
+                    </>
+                  )}
+                  {filteredStudentReferents.length > 0 && (
+                    <>
+                      <div className="task-form-pick-subheading" aria-hidden="true">
+                        {terms.studentPlural.charAt(0).toUpperCase() + terms.studentPlural.slice(1)}
+                      </div>
+                      {filteredStudentReferents.map((c) => {
+                        const cid = String(c.id || '').trim();
+                        return (
+                          <label key={cid} className="task-form-pick-item">
+                            <input
+                              type="checkbox"
+                              className="task-form-pick-checkbox"
+                              checked={(form.referent_user_ids || []).includes(cid)}
+                              onChange={() => toggleReferentUserId(cid)}
+                            />
+                            <span className="task-form-pick-text">
+                              👤 {referentCandidateLabel(c)}
+                              <span style={{ opacity: 0.75, fontSize: '.78rem' }}> — {referentRoleHint(c, terms)}</span>
+                            </span>
+                          </label>
+                        );
+                      })}
+                    </>
+                  )}
+                  {filteredTeacherReferents.length === 0 && filteredStudentReferents.length === 0 && (
+                    <p className="task-form-pick-empty">Aucun résultat pour ce filtre.</p>
+                  )}
+                </>
+              )}
             </div>
           </div>
         )}
@@ -983,6 +1128,7 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
   const [importing, setImporting] = useState(false);
   const [importReport, setImportReport] = useState(null);
   const [teacherStudents, setTeacherStudents] = useState([]);
+  const [referentCandidates, setReferentCandidates] = useState([]);
   const [quickAssignTaskId, setQuickAssignTaskId] = useState(null);
   const [quickAssignStudentIds, setQuickAssignStudentIds] = useState([]);
   const [loadingTeacherStudents, setLoadingTeacherStudents] = useState(false);
@@ -1030,6 +1176,24 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
       }
     };
     loadTeacherStudents();
+    return () => {
+      cancelled = true;
+    };
+  }, [isTeacher]);
+
+  useEffect(() => {
+    if (!isTeacher) return;
+    let cancelled = false;
+    const loadReferents = async () => {
+      try {
+        const rows = await api('/api/tasks/referent-candidates');
+        if (cancelled) return;
+        setReferentCandidates(Array.isArray(rows) ? rows : []);
+      } catch {
+        if (!cancelled) setReferentCandidates([]);
+      }
+    };
+    loadReferents();
     return () => {
       cancelled = true;
     };
@@ -1164,8 +1328,9 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
   };
 
   const proposeTask = async form => {
+    const { referent_user_ids: _referentDrop, ...taskFields } = form || {};
     await api('/api/tasks/proposals', 'POST', {
-      ...form,
+      ...taskFields,
       firstName: student.first_name,
       lastName: student.last_name,
       studentId: student.id,
@@ -1493,6 +1658,7 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
           maps={maps}
           taskProjects={taskProjects}
           tutorials={tutorials}
+          referentCandidates={referentCandidates}
           students={teacherStudents}
           activeMapId={activeMapId}
           editTask={editTask || duplicateTask}
@@ -2239,6 +2405,21 @@ function TaskTileCard({
           {t.recurrence && <span className="task-chip">🔄 {t.recurrence === 'weekly' ? 'Hebdo' : t.recurrence === 'biweekly' ? 'Bi-hebdo' : t.recurrence === 'monthly' ? 'Mensuel' : t.recurrence}</span>}
         </div>
         {cardDescription && <div className="task-desc">{cardDescription}</div>}
+        {(t.referents_linked || []).length > 0 && (
+          <div
+            className="task-desc"
+            style={{ marginTop: 8, borderLeft: '3px solid var(--leaf, #22c55e)', paddingLeft: 10, lineHeight: 1.5 }}
+          >
+            <strong>En cas de questions</strong>, s&apos;adresser à{' '}
+            {(t.referents_linked || []).map((ref, i) => (
+              <React.Fragment key={ref.id}>
+                {i > 0 ? ', ' : ''}
+                <span title={ref.role_slug ? String(ref.role_slug) : undefined}>{ref.label}</span>
+              </React.Fragment>
+            ))}
+            .
+          </div>
+        )}
         {effectiveStatus === 'on_hold' && (
           <div className="task-desc" style={{ marginTop: 8, borderLeft: '3px solid #f59e0b', paddingLeft: 10 }}>
             {isTeacher
