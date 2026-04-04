@@ -1125,6 +1125,12 @@ test('GET /api/admin/diagnostics avec bon secret → 200', async () => {
   assert.ok(typeof res.body.metrics.http429 === 'number');
   assert.ok(Array.isArray(res.body.metrics.recentHttp5xx));
   assert.ok(Array.isArray(res.body.metrics.recentHttp429));
+  assert.ok(res.body.runtimeProcess && typeof res.body.runtimeProcess.pid === 'number');
+  assert.ok(res.body.runtimeProcess.cluster && typeof res.body.runtimeProcess.cluster.isWorker === 'boolean');
+  assert.ok(
+    res.body.runtimeProcess.cluster.workerId === null || typeof res.body.runtimeProcess.cluster.workerId === 'number'
+  );
+  assert.ok(res.body.runtimeProcess.envHints && typeof res.body.runtimeProcess.envHints === 'object');
   process.env.DEPLOY_SECRET = prev;
 });
 

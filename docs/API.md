@@ -53,7 +53,7 @@ Nécessite la variable d’environnement **`DEPLOY_SECRET`** et le header **`X-D
 |--------|-----|-------------|
 | POST | `/api/admin/restart` | Redémarre le processus Node (body JSON `{ "secret" }` ou header) |
 | GET | `/api/admin/logs` | Dernières lignes des logs applicatifs (Pino) depuis un **tampon mémoire** (`?lines=200` par défaut, max 5000). Réponse JSON : `entries` (tableau de chaînes), `bufferLines`, `bufferMax`. En local : secret dans `.env` via **`DEPLOY_SECRET`**, **`FORETMAP_DEPLOY_CHECK_SECRET`** ou **`FORETMAP_DEPLOY_SECRET`** (même valeur que la prod). Scripts : **`npm run prod:admin-tail`** (résumé + tampon), **`npm run prod:admin-diagnostics`** (JSON complet diagnostics), **`npm run prod:remote-debug`** (check post-déploiement puis tail). **User-Agent** dédiés + pause pour limiter les **429**. |
-| GET | `/api/admin/diagnostics` | **Instantané d’exploitation** (sans secrets dans la réponse) : champs ci-dessus + **`metrics`** (`httpRequests`, `http5xx`, `http4xx`, **`http429`** : compteur exact des réponses 429, `httpSlow`, `routeErrors`, `rateLimit429Samples` : échantillon logs rate limit global, **`recentHttp5xx`**, **`recentHttp429`** : derniers 429 avec `requestId`, `method`, `path`, `at`). |
+| GET | `/api/admin/diagnostics` | **Instantané d’exploitation** (sans secrets dans la réponse) : champs ci-dessus + **`metrics`** (`httpRequests`, `http5xx`, `http4xx`, **`http429`** : compteur exact des réponses 429, `httpSlow`, `routeErrors`, `rateLimit429Samples` : échantillon logs rate limit global, **`recentHttp5xx`**, **`recentHttp429`** : derniers 429 avec `requestId`, `method`, `path`, `at`) + **`runtimeProcess`** (`pid`, `cluster.isWorker` / `cluster.workerId`, `envHints.nodeAppInstance`, `envHints.passengerAppEnv`) : décrit **le processus qui répond** ; le nombre d’instances Passenger/PM2 se lit au **panneau hébergeur** (voir **`docs/EXPLOITATION.md`**, temps réel). |
 
 Le tampon est dimensionné par **`LOG_BUFFER_MAX_LINES`** (défaut 2000, plafond 5000). Les logs antérieurs au démarrage du process ne sont pas disponibles ici (voir aussi les logs du panel hébergeur / stdout).
 
@@ -103,6 +103,7 @@ Connexion Socket.IO en transport **polling uniquement** côté client (compatibi
 - **Tâches par carte** : la plupart des `tasks:changed` métier incluent un `mapId` ; seuls les clients dans la salle **`map:<mapId>`** (handshake `auth.mapId` et/ou événement **`subscribe:map`**) reçoivent l’événement. Sans souscription à la bonne carte, l’utilisateur s’appuie sur le **polling** REST (voir hook temps réel / `App.jsx`).
 - **Diffusion domaine** : certains cas (ex. import bulk) émettent `tasks:changed` **sans** `mapId` → cible la salle **`domain:tasks`** (tous les sockets authentifiés abonnés à ce domaine).
 - **Tests d’intégration** (sans navigateur) : [`tests/realtime.test.js`](../tests/realtime.test.js) — auth, filtrage par carte, `subscribe:map`, repli `domain:tasks`.
+- **Smoke charge locale** (plusieurs clients polling + option burst REST) : **`npm run test:load:socketio-smoke`** — voir **`docs/LOCAL_DEV.md`**.
 
 Événements émis par le serveur (payload JSON, toujours avec un champ `ts` — horodatage) :
 

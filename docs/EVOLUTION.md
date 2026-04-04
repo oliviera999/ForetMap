@@ -27,6 +27,7 @@ Il a été mis à jour pour refléter l’état réel du dépôt (mars 2026), pu
 - **Modularisation frontend avancée** : extraction des vues `stats`, `audit`, `about` hors de `foretmap-views.jsx` vers des modules dédiés.
 - **Charge « classe / Wi‑Fi » (validation technique)** : scénario Artillery **`load/artillery-10vu.yml`** avec au plus **10 utilisateurs virtuels** concurrents, **sans** bypass du rate limit (même IP pour tous les clients de la campagne) — commande **`npm run test:load:10vu`**. Permet d’observer **429** et latences sous le plafond **`/api/*`** réel ; documenté dans **`docs/LOCAL_DEV.md`** et **`docs/API.md`**.
 - **Temps réel Socket.IO** : tests étendus dans **`tests/realtime.test.js`** (JWT invalide / expiré, changement de carte via **`subscribe:map`**, `tasks:changed` sans `mapId` vers **`domain:tasks`**) ; paragraphe **Robustesse** dans **`docs/API.md`** (section Temps réel).
+- **Exploitation temps réel / hébergeur** : **`GET /api/admin/diagnostics`** inclut **`runtimeProcess`** (`pid`, cluster, indices d’environnement) ; guide **`docs/EXPLOITATION.md`** (Passenger / instances) ; smoke charge **`npm run test:load:socketio-smoke`** ; critères de décision hébergement en **§ 1.4** ci-dessous.
 - **Prise de contrôle admin (impersonation)** : permission RBAC **`admin.impersonate`** (profil **admin** par défaut) ; **`POST /api/auth/admin/impersonate`** / **`POST /api/auth/admin/impersonate/stop`** ; JWT avec identité cible et acteur conservé ; UI **Profils & utilisateurs** (« Voir comme cet utilisateur ») et bandeau de retour ; journal d’audit **`auth_impersonate_start`** / **`auth_impersonate_stop`**. Référence API : **`docs/API.md`**.
 
 ## 1.2 Partiellement réalisé / restant
@@ -62,6 +63,19 @@ Il a été mis à jour pour refléter l’état réel du dépôt (mars 2026), pu
 5. Lien projet ↔ tutoriels/ressources pédagogiques pour guider un parcours complet.
 
 ---
+
+## 1.4 Temps réel et hébergement — critères de décision (o2switch / charge)
+
+Objectif : **stabilité** avec utilisateurs simultanés et **délai de rafraîchissement** acceptable. Le canal Socket.IO actuel est un **signal** ; la donnée à jour passe par **refetch REST** (debounce côté client).
+
+| Situation | Piste recommandée |
+|-----------|-------------------|
+| **Une instance Node** sur le mutualisé, symptômes rares | **Option B** : conserver l’existant ; surveiller **`GET /api/admin/diagnostics`** (`runtimeProcess`, métriques HTTP), logs Socket.IO (`socket_io_engine_connection_error`, déconnexions anormales) ; **`npm run test:load:10vu`** et **`npm run test:load:socketio-smoke`** en local/préprod. |
+| **Plusieurs instances Node** sans Redis | **Option A/D** : sans **`@socket.io/redis-adapter`** (ou équivalent), les événements ne traversent pas les processus — soit **réduire à une instance** si l’hébergeur le permet, soit **VPS + Redis** pour adapter multi-instance. |
+| **Saturation HTTP / latence** liée au **long-polling** (nombreuses connexions simultanées) | **Option C** : hébergement ou frontal avec **WebSocket** correctement terminé ; réactiver WS côté client/serveur **derrière un drapeau** après validation. |
+| **Proxy WS irréparable** sur le mutualisé | **Option E** ou maintien du **polling** documenté ; services managés uniquement si le coût / la dépendance externe sont acceptés. |
+
+Références : **`docs/EXPLOITATION.md`** (temps réel / Passenger), **`docs/LOCAL_DEV.md`** (charge Artillery + smoke Socket.IO), **`docs/API.md`** (section Temps réel).
 
 ## 2. Backlog restant priorisé
 

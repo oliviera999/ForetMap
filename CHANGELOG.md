@@ -6,6 +6,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 ## [Non publié]
 
 ### Ajouté
+- **Temps réel / exploitation** : champ **`runtimeProcess`** dans **`GET /api/admin/diagnostics`** (`pid`, cluster Node, indices `NODE_APP_INSTANCE` / `PASSENGER_APP_ENV`) ; guide **Passenger / instances** dans **`docs/EXPLOITATION.md`** ; smoke charge Socket.IO polling **`npm run test:load:socketio-smoke`** (`scripts/load-socketio-polling-smoke.js`) ; critères de décision hébergement en **`docs/EVOLUTION.md`** (§ 1.4). Module **`lib/runtimeDiagnostics.js`** ; doc **`docs/API.md`**, **`docs/LOCAL_DEV.md`**.
 - **Tâches — référents** : liaison N-N `task_referents` ; champs API `referent_user_ids` / `referents_linked` ; `GET /api/tasks/referent-candidates` (profil avec `tasks.manage`) ; formulaire et affichage carte tâche (« En cas de questions… ») ; copie sur duplication récurrente (`lib/recurringTasks.js`). Migration **`052_task_referents.sql`**, schéma **`sql/schema_foretmap.sql`**.
 
 ### Modifié
