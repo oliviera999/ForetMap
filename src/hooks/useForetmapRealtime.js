@@ -8,6 +8,27 @@ const TASKS_RT_DEBOUNCE_MS = 220;
 const GARDEN_RT_DEBOUNCE_MS = 400;
 
 /**
+ * Raisons `garden:changed` où la liste globale `/api/plants` ne change pas : on ne refetch que zones + repères de la carte active.
+ * (Exclut `delete_zone`, imports, sync visite, mutations plantes — voir émissions serveur.)
+ */
+const GARDEN_REASONS_OMIT_PLANTS = new Set([
+  'update_zone',
+  'add_zone_photo',
+  'delete_zone_photo',
+  'create_zone',
+  'create_marker',
+  'update_marker',
+  'delete_marker',
+]);
+
+function gardenChangedPayloadNeedsPlants(payload) {
+  if (payload == null || typeof payload !== 'object') return true;
+  const r = payload.reason;
+  if (r == null || r === '') return true;
+  return !GARDEN_REASONS_OMIT_PLANTS.has(String(r));
+}
+
+/**
  * Connexion Socket.IO (tâches, jardin, n3beurs, forum, commentaires) + indicateur temps réel mode n3boss.
  */
 export function useForetmapRealtime({
@@ -26,6 +47,8 @@ export function useForetmapRealtime({
   const [rtStatus, setRtStatus] = useState('off');
   const tasksRtDebounceRef = useRef(null);
   const gardenRtDebounceRef = useRef(null);
+  /** Pendant la fenêtre de debounce jardin : true si au moins un événement exige un refetch plantes. */
+  const gardenRtPlantsPendingRef = useRef(false);
   const socketRef = useRef(null);
   const offlineTimerRef = useRef(null);
   const subscribedMapIdRef = useRef(null);
@@ -67,20 +90,32 @@ export function useForetmapRealtime({
     }
   }, [pauseDataRefreshRef, setTaskProjects, setTasks]);
 
-  const refreshGardenFromServer = useCallback(async () => {
+  const refreshGardenFromServer = useCallback(async (options = {}) => {
     if (pauseDataRefreshRef?.current) return;
+    const includePlants = options.includePlants !== false;
     try {
       const mapId = activeMapIdRef.current || 'foret';
       const mapQuery = `map_id=${encodeURIComponent(mapId)}`;
-      const [z, p, m] = await Promise.all([
-        api(`/api/zones?${mapQuery}`),
-        api('/api/plants'),
-        api(`/api/map/markers?${mapQuery}`),
-      ]);
-      setZones(z);
-      setPlants(p);
-      setMarkers(m);
-      window.dispatchEvent(new CustomEvent('foretmap_realtime', { detail: { domain: 'garden' } }));
+      if (includePlants) {
+        const [z, p, m] = await Promise.all([
+          api(`/api/zones?${mapQuery}`),
+          api('/api/plants'),
+          api(`/api/map/markers?${mapQuery}`),
+        ]);
+        setZones(z);
+        setPlants(p);
+        setMarkers(m);
+      } else {
+        const [z, m] = await Promise.all([
+          api(`/api/zones?${mapQuery}`),
+          api(`/api/map/markers?${mapQuery}`),
+        ]);
+        setZones(z);
+        setMarkers(m);
+      }
+      window.dispatchEvent(
+        new CustomEvent('foretmap_realtime', { detail: { domain: 'garden', includePlants } })
+      );
     } catch (e) {
       if (e instanceof AccountDeletedError) forceLogoutRef.current();
       else console.error('[ForetMap] rafraîchissement jardin (temps réel)', e);
@@ -95,13 +130,20 @@ export function useForetmapRealtime({
     }, TASKS_RT_DEBOUNCE_MS);
   }, [refreshTasksFromServer]);
 
-  const scheduleGardenRefresh = useCallback(() => {
-    if (gardenRtDebounceRef.current) clearTimeout(gardenRtDebounceRef.current);
-    gardenRtDebounceRef.current = setTimeout(() => {
-      gardenRtDebounceRef.current = null;
-      refreshGardenFromServer();
-    }, GARDEN_RT_DEBOUNCE_MS);
-  }, [refreshGardenFromServer]);
+  const scheduleGardenRefresh = useCallback(
+    (payload) => {
+      gardenRtPlantsPendingRef.current =
+        gardenRtPlantsPendingRef.current || gardenChangedPayloadNeedsPlants(payload);
+      if (gardenRtDebounceRef.current) clearTimeout(gardenRtDebounceRef.current);
+      gardenRtDebounceRef.current = setTimeout(() => {
+        gardenRtDebounceRef.current = null;
+        const includePlants = gardenRtPlantsPendingRef.current;
+        gardenRtPlantsPendingRef.current = false;
+        refreshGardenFromServer({ includePlants });
+      }, GARDEN_RT_DEBOUNCE_MS);
+    },
+    [refreshGardenFromServer]
+  );
 
   const onStudentsRealtime = useCallback(() => {
     window.dispatchEvent(new CustomEvent('foretmap_realtime', { detail: { domain: 'students' } }));

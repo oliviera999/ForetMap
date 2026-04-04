@@ -23,6 +23,33 @@ function normalizeString(value) {
   return String(value).trim();
 }
 
+/** Cartes concernées par les tâches liées à un tutoriel (temps réel ciblé). */
+async function mapIdsLinkedToTutorial(tutorialId) {
+  const tid = Number(tutorialId);
+  if (!Number.isFinite(tid)) return [];
+  const rows = await queryAll(
+    `SELECT DISTINCT t.map_id AS map_id FROM task_tutorials tt
+     INNER JOIN tasks t ON t.id = tt.task_id
+     WHERE tt.tutorial_id = ?
+       AND t.map_id IS NOT NULL
+       AND TRIM(COALESCE(t.map_id, '')) <> ''`,
+    [tid]
+  );
+  return [...new Set(rows.map((r) => String(r.map_id).trim()).filter(Boolean))];
+}
+
+async function emitTutorialTasksChanged(reason, tutorialId) {
+  const mapIds = await mapIdsLinkedToTutorial(tutorialId);
+  const base = { reason, tutorialId };
+  if (mapIds.length > 0) {
+    for (const mapId of mapIds) {
+      emitTasksChanged({ ...base, mapId });
+    }
+  } else {
+    emitTasksChanged(base);
+  }
+}
+
 function isValidHttpUrl(value) {
   if (!value) return false;
   try {
@@ -252,7 +279,7 @@ router.post('/', requirePermission('tutorials.manage', { needsElevation: true })
       [title, slug, type, summary || null, htmlContent, sourceUrl, sourceFilePath, sortOrder, now, now]
     );
     const created = await queryOne('SELECT * FROM tutorials WHERE id = ?', [result.insertId]);
-    emitTasksChanged({ reason: 'tutorial_create', tutorialId: result.insertId });
+    await emitTutorialTasksChanged('tutorial_create', result.insertId);
     res.status(201).json(toPublicTutorialRow({ ...created, linked_tasks_count: 0 }));
   } catch (err) {
     logRouteError(err, req, 'Création tutoriel en échec');
@@ -313,7 +340,7 @@ router.put('/:id', requirePermission('tutorials.manage', { needsElevation: true 
     );
     const updated = await queryOne('SELECT * FROM tutorials WHERE id = ?', [req.params.id]);
     const linked = await queryOne('SELECT COUNT(*) AS c FROM task_tutorials WHERE tutorial_id = ?', [req.params.id]);
-    emitTasksChanged({ reason: 'tutorial_update', tutorialId: Number(req.params.id) });
+    await emitTutorialTasksChanged('tutorial_update', Number(req.params.id));
     res.json(toPublicTutorialRow({ ...updated, linked_tasks_count: linked?.c || 0 }));
   } catch (err) {
     logRouteError(err, req, 'Mise à jour tutoriel en échec');
@@ -327,7 +354,7 @@ router.delete('/:id', requirePermission('tutorials.manage', { needsElevation: tr
     const existing = await queryOne('SELECT id FROM tutorials WHERE id = ?', [req.params.id]);
     if (!existing) return res.status(404).json({ error: 'Tutoriel introuvable' });
     await execute('UPDATE tutorials SET is_active = 0, updated_at = ? WHERE id = ?', [new Date().toISOString(), req.params.id]);
-    emitTasksChanged({ reason: 'tutorial_delete', tutorialId: Number(req.params.id) });
+    await emitTutorialTasksChanged('tutorial_delete', Number(req.params.id));
     res.json({ success: true });
   } catch (err) {
     logRouteError(err, req, 'Suppression tutoriel en échec');
