@@ -137,6 +137,8 @@ Documentation détaillée et templates:
 | `FORETMAP_DISABLE_RECURRING_TASK_JOB` | Optionnel : `1` pour ne pas planifier le job de duplication des tâches récurrentes (hors `NODE_ENV=test` qui le désactive déjà). |
 | `LOG_LEVEL` | Optionnel : niveau Pino (`debug`, `info`, …). Voir section *Débogage* ci‑dessus. |
 
+Le réglage GUI admin `tasks.recurring_automation_enabled` permet de suspendre globalement la création automatique des tâches récurrentes (ex. vacances) sans couper le timer serveur. Pour couper complètement la planification, utiliser `FORETMAP_DISABLE_RECURRING_TASK_JOB=1`.
+
 **Obligatoires au démarrage** : `DB_HOST`, `DB_USER`, `DB_PASS`, `DB_NAME`. Si l’une manque, le serveur refuse de démarrer.  
 **En production** : `JWT_SECRET` est requis pour l’authentification JWT. `TEACHER_PIN` est uniquement un secours de compatibilité.  
 **Recommandé en production** : définir `FRONTEND_ORIGIN` (CORS restreint), `DEPLOY_SECRET` (activer les endpoints admin protégés), ainsi que la configuration SMTP pour le flux « mot de passe oublié ».
@@ -165,7 +167,7 @@ Le script vide les tables MySQL puis recopie toutes les données (zones, biodive
 
 ## Déploiement o2switch (foretmap.olution.info)
 
-1. **Créer l’application Node.js** dans cPanel : **Setup Node.js App** — choisir la version Node (18 ou 20). **Le répertoire de l’application** doit contenir `server.js`, le dossier **`public/`** (assets + `sw.js` + page d’aide `deploy-help.html`) et, après build, le dossier **`dist/`** avec l’entrée SPA Vite (`index.vite.html`). En production (`NODE_ENV=production`), l’UI est servie depuis **`dist/`**.
+1. **Créer l’application Node.js** dans cPanel : **Setup Node.js App** — choisir la version Node proposée par l’hébergeur (**18**, **20** ou **22** ; la prod foretmap utilise **22**). **Le répertoire de l’application** doit contenir `server.js`, le dossier **`public/`** (assets + `sw.js` + page d’aide `deploy-help.html`) et, après build, le dossier **`dist/`** avec l’entrée SPA Vite (`index.vite.html`). En production (`NODE_ENV=production`), l’UI est servie depuis **`dist/`**.
 
 2. **Variables d’environnement** dans l’interface de l’app Node (obligatoires pour l’API) :  
    `DB_HOST=localhost`, `DB_NAME=oliviera_foretmap`, `DB_USER=oliviera_foretmap`, `DB_PASS=...`, `NODE_ENV=production`.  
