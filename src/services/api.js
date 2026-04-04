@@ -146,6 +146,7 @@ export async function api(path, method = 'GET', body) {
     const ex = new Error(errMsg);
     ex.status = res.status;
     ex.body = errBody;
+    if (res.status === 429) ex.rateLimited = true;
     throw ex;
   }
   return parseApiBody(res);

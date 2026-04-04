@@ -543,6 +543,46 @@ async function fetchTaskProposerMap(taskIds) {
   }
 }
 
+/** Assignations pour GET /api/tasks (liste), selon le rôle. */
+async function fetchTaskListAssignments(auth, taskIds) {
+  if (!taskIds.length) return [];
+  if (canReadAllAssignments(auth)) {
+    const ph = taskIds.map(() => '?').join(',');
+    return queryAll(`SELECT * FROM task_assignments WHERE task_id IN (${ph})`, taskIds);
+  }
+  if (auth?.userType === 'student' && auth?.userId) {
+    const ph = taskIds.map(() => '?').join(',');
+    if (isVisitorRole(auth)) {
+      return queryAll(
+        `SELECT * FROM task_assignments WHERE task_id IN (${ph}) AND student_id = ?`,
+        [...taskIds, auth.userId]
+      );
+    }
+    return queryAll(
+      `SELECT id, task_id, student_first_name, student_last_name, done_at, assigned_at
+         FROM task_assignments
+        WHERE task_id IN (${ph})
+        ORDER BY assigned_at`,
+      taskIds
+    );
+  }
+  return [];
+}
+
+async function fetchTaskAssignmentAggregates(taskIds) {
+  if (!taskIds.length) return [];
+  const ph = taskIds.map(() => '?').join(',');
+  return queryAll(
+    `SELECT task_id,
+            COUNT(*) AS assigned_count,
+            SUM(CASE WHEN done_at IS NOT NULL THEN 1 ELSE 0 END) AS done_count
+       FROM task_assignments
+      WHERE task_id IN (${ph})
+      GROUP BY task_id`,
+    taskIds
+  );
+}
+
 async function setTaskZones(taskId, zoneIds) {
   await execute('DELETE FROM task_zones WHERE task_id = ?', [taskId]);
   for (const zid of zoneIds) {
@@ -901,31 +941,14 @@ router.get('/', async (req, res) => {
     const whereSql = where.length ? `WHERE ${where.join(' AND ')}` : '';
     const tasks = await queryAll(`${sqlBase} ${whereSql} ORDER BY t.due_date ASC`, params);
     const taskIds = tasks.map((t) => t.id);
-    const zm = await fetchZonesForTasks(taskIds);
-    const mm = await fetchMarkersForTasks(taskIds);
-    const tutorialsMap = await fetchTutorialsForTasks(taskIds);
-    const proposerByTask = await fetchTaskProposerMap(taskIds);
-    let assignments = [];
-    if (taskIds.length && canReadAllAssignments(auth)) {
-      const ph = taskIds.map(() => '?').join(',');
-      assignments = await queryAll(`SELECT * FROM task_assignments WHERE task_id IN (${ph})`, taskIds);
-    } else if (taskIds.length && auth?.userType === 'student' && auth?.userId) {
-      const ph = taskIds.map(() => '?').join(',');
-      if (isVisitorRole(auth)) {
-        assignments = await queryAll(
-          `SELECT * FROM task_assignments WHERE task_id IN (${ph}) AND student_id = ?`,
-          [...taskIds, auth.userId]
-        );
-      } else {
-        assignments = await queryAll(
-          `SELECT id, task_id, student_first_name, student_last_name, done_at, assigned_at
-             FROM task_assignments
-            WHERE task_id IN (${ph})
-            ORDER BY assigned_at`,
-          taskIds
-        );
-      }
-    }
+    const [zm, mm, tutorialsMap, proposerByTask, assignments, countRows] = await Promise.all([
+      fetchZonesForTasks(taskIds),
+      fetchMarkersForTasks(taskIds),
+      fetchTutorialsForTasks(taskIds),
+      fetchTaskProposerMap(taskIds),
+      fetchTaskListAssignments(auth, taskIds),
+      fetchTaskAssignmentAggregates(taskIds),
+    ]);
     const assignmentsByTask = new Map();
     for (const a of assignments) {
       if (!assignmentsByTask.has(a.task_id)) assignmentsByTask.set(a.task_id, []);
@@ -933,21 +956,9 @@ router.get('/', async (req, res) => {
     }
     const assignedCountByTask = new Map();
     const doneCountByTask = new Map();
-    if (taskIds.length) {
-      const ph = taskIds.map(() => '?').join(',');
-      const countRows = await queryAll(
-        `SELECT task_id,
-                COUNT(*) AS assigned_count,
-                SUM(CASE WHEN done_at IS NOT NULL THEN 1 ELSE 0 END) AS done_count
-           FROM task_assignments
-          WHERE task_id IN (${ph})
-          GROUP BY task_id`,
-        taskIds
-      );
-      for (const row of countRows) {
-        assignedCountByTask.set(row.task_id, Number(row.assigned_count) || 0);
-        doneCountByTask.set(row.task_id, Number(row.done_count) || 0);
-      }
+    for (const row of countRows) {
+      assignedCountByTask.set(row.task_id, Number(row.assigned_count) || 0);
+      doneCountByTask.set(row.task_id, Number(row.done_count) || 0);
     }
     const enriched = tasks.map((t) => {
       const row = { ...t };

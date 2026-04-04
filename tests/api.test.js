@@ -1119,7 +1119,9 @@ test('GET /api/admin/diagnostics avec bon secret → 200', async () => {
   assert.ok(res.body.logBuffer && typeof res.body.logBuffer.linesCount === 'number');
   assert.ok(res.body.metrics && typeof res.body.metrics.httpRequests === 'number');
   assert.ok(typeof res.body.metrics.http5xx === 'number');
+  assert.ok(typeof res.body.metrics.http429 === 'number');
   assert.ok(Array.isArray(res.body.metrics.recentHttp5xx));
+  assert.ok(Array.isArray(res.body.metrics.recentHttp429));
   process.env.DEPLOY_SECRET = prev;
 });
 

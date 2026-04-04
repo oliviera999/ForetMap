@@ -23,6 +23,7 @@ Réponses JSON. En cas d’erreur : `{ "error": "message" }` avec statut HTTP ad
   - **`FORETMAP_HTTP_LOG`** : `off` (défaut hors prod et en `NODE_ENV=test`), `minimal` (défaut **production** : log `warn` des **5xx** et des requêtes lentes), `full` (une ligne `info`/`warn` par requête `/api/*` suivie — peut saturer le tampon).
   - **`FORETMAP_HTTP_SLOW_MS`** : seuil « lent » en ms pour le mode `minimal` (défaut **8000**).
   - **`FORETMAP_RATE_LIMIT_LOG_SAMPLE`** : probabilité **0–1** de journaliser un **429** rate limit (défaut **0.01**), avec **IP tronquée** (pas d’adresse complète dans les logs).
+  - **`FORETMAP_DB_CONNECTION_LIMIT`** : taille du pool **mysql2** côté app (1–100, défaut **30**) ; à caler sur **`max_connections`** et la charge réelle de l’hébergeur.
 
 ---
 
@@ -52,7 +53,7 @@ Nécessite la variable d’environnement **`DEPLOY_SECRET`** et le header **`X-D
 |--------|-----|-------------|
 | POST | `/api/admin/restart` | Redémarre le processus Node (body JSON `{ "secret" }` ou header) |
 | GET | `/api/admin/logs` | Dernières lignes des logs applicatifs (Pino) depuis un **tampon mémoire** (`?lines=200` par défaut, max 5000). Réponse JSON : `entries` (tableau de chaînes), `bufferLines`, `bufferMax`. En local : secret dans `.env` via **`DEPLOY_SECRET`**, **`FORETMAP_DEPLOY_CHECK_SECRET`** ou **`FORETMAP_DEPLOY_SECRET`** (même valeur que la prod). Scripts : **`npm run prod:admin-tail`** (résumé + tampon), **`npm run prod:admin-diagnostics`** (JSON complet diagnostics), **`npm run prod:remote-debug`** (check post-déploiement puis tail). **User-Agent** dédiés + pause pour limiter les **429**. |
-| GET | `/api/admin/diagnostics` | **Instantané d’exploitation** (sans secrets dans la réponse) : champs ci-dessus + **`metrics`** (`httpRequests`, `http5xx`, `http4xx`, `httpSlow`, `routeErrors`, `rateLimit429Samples`, `recentHttp5xx` : derniers 5xx avec `requestId`, `method`, `path`, `statusCode`, `at`). |
+| GET | `/api/admin/diagnostics` | **Instantané d’exploitation** (sans secrets dans la réponse) : champs ci-dessus + **`metrics`** (`httpRequests`, `http5xx`, `http4xx`, **`http429`** : compteur exact des réponses 429, `httpSlow`, `routeErrors`, `rateLimit429Samples` : échantillon logs rate limit global, **`recentHttp5xx`**, **`recentHttp429`** : derniers 429 avec `requestId`, `method`, `path`, `at`). |
 
 Le tampon est dimensionné par **`LOG_BUFFER_MAX_LINES`** (défaut 2000, plafond 5000). Les logs antérieurs au démarrage du process ne sont pas disponibles ici (voir aussi les logs du panel hébergeur / stdout).
 
