@@ -18,6 +18,7 @@ const {
 const router = express.Router();
 const MAX_IMPORT_FILE_BYTES = 8 * 1024 * 1024;
 const MAX_IMPORT_ROWS = 2000;
+const MAX_TASK_REFERENTS = 15;
 const IMPORT_TEMPLATE_COLUMNS = [
   'Type (project|task)',
   'Carte (map_id)',
@@ -618,6 +619,69 @@ async function setTaskTutorials(taskId, tutorialIds) {
   }
 }
 
+async function setTaskReferents(taskId, userIds) {
+  await execute('DELETE FROM task_referents WHERE task_id = ?', [taskId]);
+  for (const uid of userIds) {
+    await execute('INSERT INTO task_referents (task_id, user_id) VALUES (?, ?)', [taskId, uid]);
+  }
+}
+
+function referentPublicLabel(row) {
+  const dn = String(row?.display_name || '').trim();
+  if (dn) return dn;
+  const fn = String(row?.first_name || '').trim();
+  const ln = String(row?.last_name || '').trim();
+  const full = `${fn} ${ln}`.trim();
+  return full || String(row?.uid || row?.id || '').trim() || 'Utilisateur';
+}
+
+async function validateReferentUserIds(userIds) {
+  if (!userIds.length) return { userIds };
+  if (userIds.length > MAX_TASK_REFERENTS) {
+    return { error: `Au plus ${MAX_TASK_REFERENTS} référents par tâche` };
+  }
+  const placeholders = userIds.map(() => '?').join(',');
+  const rows = await queryAll(
+    `SELECT id, user_type FROM users
+      WHERE id IN (${placeholders}) AND is_active = 1 AND user_type IN ('teacher','student')`,
+    userIds
+  );
+  const existing = new Map(rows.map((r) => [String(r.id), r.user_type]));
+  for (const uid of userIds) {
+    if (!existing.has(String(uid))) return { error: 'Référent introuvable ou compte inactif' };
+  }
+  return { userIds };
+}
+
+async function fetchReferentsForTasks(taskIds) {
+  if (!taskIds.length) return new Map();
+  const ph = taskIds.map(() => '?').join(',');
+  const rows = await queryAll(
+    `SELECT tr.task_id, u.id AS uid, u.user_type, u.first_name, u.last_name, u.display_name, r.slug AS role_slug
+       FROM task_referents tr
+       INNER JOIN users u ON u.id = tr.user_id AND u.is_active = 1
+       LEFT JOIN user_roles ur ON ur.user_id = u.id AND ur.user_type = u.user_type AND ur.is_primary = 1
+       LEFT JOIN roles r ON r.id = ur.role_id
+      WHERE tr.task_id IN (${ph})
+      ORDER BY tr.task_id,
+               COALESCE(NULLIF(TRIM(u.display_name), ''), CONCAT(COALESCE(u.first_name, ''), ' ', COALESCE(u.last_name, '')))`,
+    taskIds
+  );
+  const m = new Map();
+  for (const r of rows) {
+    if (!m.has(r.task_id)) m.set(r.task_id, []);
+    m.get(r.task_id).push({
+      id: String(r.uid),
+      user_type: r.user_type,
+      first_name: r.first_name,
+      last_name: r.last_name,
+      display_name: r.display_name,
+      role_slug: r.role_slug || null,
+    });
+  }
+  return m;
+}
+
 async function validateTutorialIds(tutorialIds) {
   if (!tutorialIds.length) return { tutorialIds };
   const placeholders = tutorialIds.map(() => '?').join(',');
@@ -704,10 +768,11 @@ async function fetchTutorialsForTasks(taskIds) {
   return m;
 }
 
-function enrichTaskRow(task, zonesLinked, markersLinked, tutorialsLinked) {
+function enrichTaskRow(task, zonesLinked, markersLinked, tutorialsLinked, referentsLinked) {
   const zl = zonesLinked || [];
   const ml = markersLinked || [];
   const tl = tutorialsLinked || [];
+  const rl = referentsLinked || [];
   const prevZoneName = task.zone_name;
   const prevMarkerLabel = task.marker_label;
   task.zone_ids = zl.map((z) => z.id);
@@ -722,6 +787,13 @@ function enrichTaskRow(task, zonesLinked, markersLinked, tutorialsLinked) {
     type: x.type,
     source_url: x.source_url || null,
     source_file_path: x.source_file_path || null,
+  }));
+  task.referent_user_ids = rl.map((x) => String(x.id));
+  task.referents_linked = rl.map((x) => ({
+    id: String(x.id),
+    user_type: x.user_type,
+    label: referentPublicLabel(x),
+    role_slug: x.role_slug || null,
   }));
   const mapsFromLinks = [
     ...new Set([...zl.map((z) => z.map_id), ...ml.map((x) => x.map_id)].filter(Boolean)),
@@ -793,7 +865,8 @@ async function getTaskWithAssignments(taskId) {
   const zm = await fetchZonesForTasks([taskId]);
   const mm = await fetchMarkersForTasks([taskId]);
   const tm = await fetchTutorialsForTasks([taskId]);
-  enrichTaskRow(task, zm.get(taskId), mm.get(taskId), tm.get(taskId));
+  const rm = await fetchReferentsForTasks([taskId]);
+  enrichTaskRow(task, zm.get(taskId), mm.get(taskId), tm.get(taskId), rm.get(taskId));
   task.status = normalizeTaskStatusForRead(task.status);
   task.completion_mode = normalizeTaskCompletionMode(task.completion_mode) || 'single_done';
   task.is_before_start_date = isTaskBeforeStartDate(task);
@@ -958,10 +1031,11 @@ router.get('/', async (req, res) => {
     const proposedTaskIds = tasks
       .filter((t) => normalizeTaskStatusForRead(t?.status) === 'proposed')
       .map((t) => t.id);
-    const [zm, mm, tutorialsMap, proposerByTask, assignments, countRows] = await Promise.all([
+    const [zm, mm, tutorialsMap, referentsMap, proposerByTask, assignments, countRows] = await Promise.all([
       fetchZonesForTasks(taskIds),
       fetchMarkersForTasks(taskIds),
       fetchTutorialsForTasks(taskIds),
+      fetchReferentsForTasks(taskIds),
       fetchTaskProposerMap(proposedTaskIds),
       fetchTaskListAssignments(auth, taskIds),
       fetchTaskAssignmentAggregates(taskIds),
@@ -979,7 +1053,7 @@ router.get('/', async (req, res) => {
     }
     const enriched = tasks.map((t) => {
       const row = { ...t };
-      enrichTaskRow(row, zm.get(t.id), mm.get(t.id), tutorialsMap.get(t.id));
+      enrichTaskRow(row, zm.get(t.id), mm.get(t.id), tutorialsMap.get(t.id), referentsMap.get(t.id));
       row.status = normalizeTaskStatusForRead(row.status);
       row.completion_mode = normalizeTaskCompletionMode(row.completion_mode) || 'single_done';
       row.is_before_start_date = isTaskBeforeStartDate(row);
@@ -1003,6 +1077,39 @@ router.get('/', async (req, res) => {
       }
     }
     res.json(enriched);
+  } catch (e) {
+    respondInternalError(res, req, e);
+  }
+});
+
+router.get('/referent-candidates', requirePermission('tasks.manage', { needsElevation: true }), async (req, res) => {
+  try {
+    const rows = await queryAll(
+      `SELECT u.id, u.user_type, u.first_name, u.last_name, u.display_name, r.slug AS primary_role_slug
+         FROM users u
+         LEFT JOIN user_roles ur ON ur.user_id = u.id AND ur.user_type = u.user_type AND ur.is_primary = 1
+         LEFT JOIN roles r ON r.id = ur.role_id
+        WHERE u.is_active = 1 AND u.user_type IN ('teacher', 'student')`
+    );
+    function teacherTier(slug) {
+      const s = String(slug || '').toLowerCase();
+      if (s === 'admin') return 0;
+      if (s === 'prof') return 1;
+      return 2;
+    }
+    function labelForSort(row) {
+      return referentPublicLabel({ ...row, uid: row.id });
+    }
+    const teachers = rows.filter((r) => r.user_type === 'teacher');
+    const students = rows.filter((r) => r.user_type === 'student');
+    teachers.sort((a, b) => {
+      const ta = teacherTier(a.primary_role_slug);
+      const tb = teacherTier(b.primary_role_slug);
+      if (ta !== tb) return ta - tb;
+      return labelForSort(a).localeCompare(labelForSort(b), 'fr', { sensitivity: 'base' });
+    });
+    students.sort((a, b) => labelForSort(a).localeCompare(labelForSort(b), 'fr', { sensitivity: 'base' }));
+    res.json([...teachers, ...students]);
   } catch (e) {
     respondInternalError(res, req, e);
   }
@@ -1318,6 +1425,7 @@ router.post('/', requirePermission('tasks.manage', { needsElevation: true }), as
       zone_ids,
       marker_ids,
       tutorial_ids,
+      referent_user_ids,
       map_id,
       project_id,
       start_date,
@@ -1341,6 +1449,9 @@ router.post('/', requirePermission('tasks.manage', { needsElevation: true }), as
     const tutorialIds = normalizeTutorialIdArray(tutorial_ids);
     const tutorialValidation = await validateTutorialIds(tutorialIds);
     if (tutorialValidation.error) return res.status(400).json({ error: tutorialValidation.error });
+    const referentIds = normalizeIdArray(referent_user_ids);
+    const referentValidation = await validateReferentUserIds(referentIds);
+    if (referentValidation.error) return res.status(400).json({ error: referentValidation.error });
 
     const reqStudents = sanitizeRequiredStudents(required_students);
     const completionMode = normalizeTaskCompletionMode(completion_mode);
@@ -1367,6 +1478,7 @@ router.post('/', requirePermission('tasks.manage', { needsElevation: true }), as
     await setTaskZones(id, zIds);
     await setTaskMarkers(id, mIds);
     await setTaskTutorials(id, tutorialIds);
+    await setTaskReferents(id, referentValidation.userIds);
     await syncLegacyLocationColumns(id, zIds, mIds);
     const task = await getTaskWithAssignments(id);
     logAudit('create_task', 'task', id, title, {
@@ -1452,6 +1564,7 @@ router.post('/proposals', async (req, res) => {
     await setTaskZones(id, zIds);
     await setTaskMarkers(id, mIds);
     await setTaskTutorials(id, []);
+    await setTaskReferents(id, []);
     await syncLegacyLocationColumns(id, zIds, mIds);
     const task = await getTaskWithAssignments(id);
     logAudit('propose_task', 'task', id, `${String(title).trim()} (${proposer})`, {
@@ -1485,7 +1598,7 @@ router.put('/:id', async (req, res) => {
     }
 
     if (isProposerAction) {
-      const forbiddenForProposer = ['status', 'project_id', 'tutorial_ids', 'recurrence', 'completion_mode'];
+      const forbiddenForProposer = ['status', 'project_id', 'tutorial_ids', 'referent_user_ids', 'recurrence', 'completion_mode'];
       const attempted = forbiddenForProposer.find((key) => Object.prototype.hasOwnProperty.call(req.body || {}, key));
       if (attempted) {
         return res.status(403).json({ error: 'Champ non modifiable sur une proposition n3beur' });
@@ -1499,6 +1612,7 @@ router.put('/:id', async (req, res) => {
       zone_ids,
       marker_ids,
       tutorial_ids,
+      referent_user_ids,
       map_id,
       start_date,
       due_date,
@@ -1550,6 +1664,16 @@ router.put('/:id', async (req, res) => {
     }
     const tutorialValidation = await validateTutorialIds(nextTutorialIds);
     if (tutorialValidation.error) return res.status(400).json({ error: tutorialValidation.error });
+
+    let nextReferentIds;
+    if (isTeacherAction && Object.prototype.hasOwnProperty.call(req.body, 'referent_user_ids')) {
+      nextReferentIds = normalizeIdArray(referent_user_ids);
+    } else {
+      const refRows = await queryAll('SELECT user_id FROM task_referents WHERE task_id = ? ORDER BY user_id', [task.id]);
+      nextReferentIds = refRows.map((r) => String(r.user_id));
+    }
+    const referentValidation = await validateReferentUserIds(nextReferentIds);
+    if (referentValidation.error) return res.status(400).json({ error: referentValidation.error });
 
     const reqStudents = required_students != null ? sanitizeRequiredStudents(required_students) : task.required_students;
     let nextStatus = isTeacherAction && Object.prototype.hasOwnProperty.call(req.body, 'status')
@@ -1615,6 +1739,7 @@ router.put('/:id', async (req, res) => {
     await setTaskZones(task.id, nextZoneIds);
     await setTaskMarkers(task.id, nextMarkerIds);
     await setTaskTutorials(task.id, nextTutorialIds);
+    await setTaskReferents(task.id, referentValidation.userIds);
     await syncLegacyLocationColumns(task.id, nextZoneIds, nextMarkerIds);
     const updated = await getTaskWithAssignments(task.id);
     logAudit('update_task', 'task', task.id, updated.title, {
