@@ -2241,7 +2241,7 @@ function LogModal({ task, student, onClose, onDone, onForceLogout }) {
         studentId: student.id
       });
       writeTaskLogCommentDraft(task.id, '');
-      onDone();
+      await onDone?.();
       onClose();
     } catch (e) {
       if (e instanceof AccountDeletedError) {
