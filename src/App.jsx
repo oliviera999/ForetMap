@@ -37,6 +37,8 @@ const DESKTOP_SPLIT_MIN_TASKS_PX = 420;
 const TAB_STORAGE_KEY = 'foretmap_active_tab';
 /** Regroupe les rafraîchissements auto quand plusieurs états changent à la suite (réglages, carte, session). */
 const FETCH_ALL_AUTO_DEBOUNCE_MS = 250;
+/** Intervalle de polling par défaut (rafraîchissement complet) — réduit la pression BDD vs 30 s. */
+const DATA_REFRESH_INTERVAL_MS = 45000;
 const IOS_INSTALL_HINT_DISMISSED_KEY = 'foretmap_ios_install_hint_dismissed';
 const KNOWN_TAB_VALUES = new Set([
   'map',
@@ -158,7 +160,7 @@ function App() {
   const [profilePromotion, setProfilePromotion] = useState(null);
   const [sessionValidationError, setSessionValidationError] = useState(false);
   const [appVersion, setAppVersion] = useState(null);
-  const [refreshMs,  setRefreshMs]  = useState(30000);
+  const [refreshMs,  setRefreshMs]  = useState(DATA_REFRESH_INTERVAL_MS);
   const [serverDown, setServerDown] = useState(false);
   const [authClaims, setAuthClaims] = useState(() => getAuthClaims());
   const [roleViewMode, setRoleViewMode] = useState('native'); // native | student | teacher
@@ -752,7 +754,7 @@ function App() {
         }
       }
       failCountRef.current = 0;
-      setRefreshMs(30000);
+      setRefreshMs(DATA_REFRESH_INTERVAL_MS);
       setServerDown(false);
     } catch(e) {
       if (e instanceof AccountDeletedError) forceLogout();
@@ -1125,7 +1127,7 @@ function App() {
         }}>
           {appServerDownNotice}
           <button type="button" className="btn btn-sm" style={{marginLeft:10, verticalAlign:'middle'}}
-            onClick={() => { failCountRef.current = 0; setRefreshMs(30000); setServerDown(false); fetchAll(); }}>
+            onClick={() => { failCountRef.current = 0; setRefreshMs(DATA_REFRESH_INTERVAL_MS); setServerDown(false); fetchAll(); }}>
             {appRetryNow}
           </button>
         </div>

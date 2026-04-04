@@ -43,6 +43,15 @@ function safePort(raw, fallback) {
   return Number.isFinite(n) && n >= 1 && n <= 65535 ? n : fallback;
 }
 
+function parseDbConnectionLimit() {
+  const raw = String(process.env.FORETMAP_DB_CONNECTION_LIMIT || '').trim();
+  if (!raw) return 30;
+  const n = parseInt(raw, 10);
+  if (Number.isFinite(n) && n >= 1 && n <= 100) return n;
+  logger.warn({ raw }, 'FORETMAP_DB_CONNECTION_LIMIT invalide — repli 30');
+  return 30;
+}
+
 const pool = mysql.createPool({
   host: process.env.DB_HOST || 'localhost',
   port: safePort(process.env.DB_PORT, 3306),
@@ -50,7 +59,7 @@ const pool = mysql.createPool({
   password: process.env.DB_PASS,
   database: process.env.DB_NAME,
   waitForConnections: true,
-  connectionLimit: 30,
+  connectionLimit: parseDbConnectionLimit(),
   queueLimit: String(process.env.NODE_ENV || '').trim().toLowerCase() === 'test' ? 0 : 200,
   charset: 'utf8mb4',
 });

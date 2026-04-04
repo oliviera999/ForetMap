@@ -5,6 +5,9 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Modifié
+- **Charge / observabilité** : métriques admin **`http429`** et tampon **`recentHttp429`** (`lib/logMetrics.js`) pour distinguer rate limit et erreurs serveur ; **`GET /api/tasks`** (liste) exécute en parallèle les requêtes SQL indépendantes (zones, repères, tutoriels, proposeurs, assignations, agrégats) ; pool MySQL configurable via **`FORETMAP_DB_CONNECTION_LIMIT`** (`database.js`, **`.env.example`**) ; rafraîchissement automatique client par défaut **45 s** au lieu de 30 s (`src/App.jsx`) ; réponses **429** marquées **`rateLimited`** sur l’erreur `api()` (`src/services/api.js`). Doc **`docs/API.md`**, **`docs/EXPLOITATION.md`**, skill **foretmap-observability** ; test **`api.test.js`**.
+
 ### Ajouté
 - **Carte (mode prof)** : **dupliquer** une zone depuis la modale (**📋 Copie**) — même carte, contour décalé (~2,5 %), nom suffixé **« (copie) »**, plantes / état / description / couleur repris ; pas de photos ni tâches liées. **`POST /api/zones`** accepte **`description`** à la création ; doc **`docs/API.md`** ; test **`api.test.js`**.
 - **Prise de contrôle admin** : permission RBAC **`admin.impersonate`** (profil **admin** par défaut) ; **`POST /api/auth/admin/impersonate`** et **`POST /api/auth/admin/impersonate/stop`** ; JWT avec identité cible + acteur ; UI **Profils & utilisateurs** (« Voir comme cet utilisateur ») et bandeau **Revenir à mon compte admin**. Doc **`docs/API.md`** ; test **`api.test.js`**.

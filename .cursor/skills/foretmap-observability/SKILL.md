@@ -18,7 +18,7 @@ description: Observabilité ForetMap (Pino, X-Request-Id, logs HTTP, métriques 
 | `lib/logger.js` | Pino + `redact` (tokens, mots de passe) |
 | `lib/requestId.js` | `X-Request-Id` sur chaque réponse |
 | `lib/httpRequestLog.js` | Fin de requête ; `FORETMAP_HTTP_LOG`, `FORETMAP_HTTP_SLOW_MS` |
-| `lib/logMetrics.js` | Compteurs + `recentHttp5xx` pour `/api/admin/diagnostics` |
+| `lib/logMetrics.js` | Compteurs + `recentHttp5xx`, `http429` + `recentHttp429` pour `/api/admin/diagnostics` |
 | `lib/routeLog.js` | `logRouteError` (+ `requestId`, incrément métriques) |
 
 ## Checks rapides (local → prod)
@@ -31,7 +31,7 @@ npm run deploy:check:prod
 
 Avec l’un des secrets ci-dessus : le script appelle aussi `GET /api/admin/diagnostics`.
 
-JSON complet diagnostics (métriques, `recentHttp5xx`, etc.) :
+JSON complet diagnostics (métriques, `recentHttp5xx`, `http429` / `recentHttp429`, etc.) :
 
 ```bash
 npm run prod:admin-diagnostics
@@ -53,4 +53,4 @@ Helper partagé : `scripts/lib/deploy-secret-from-env.js`.
 
 ## Corrélation support
 
-Demander aux utilisateurs l’en-tête **`X-Request-Id`** (outils réseau du navigateur) et croiser avec `GET /api/admin/logs` ou le champ `metrics.recentHttp5xx` des diagnostics.
+Demander aux utilisateurs l’en-tête **`X-Request-Id`** (outils réseau du navigateur) et croiser avec `GET /api/admin/logs` ou les champs `metrics.recentHttp5xx` / `metrics.recentHttp429` des diagnostics (429 = surcharge / rate limit, 5xx = erreur serveur ou BDD).
