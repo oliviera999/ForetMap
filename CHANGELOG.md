@@ -5,7 +5,11 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Ajouté
+- **Réglages admin / tâches récurrentes** : nouvelle clé `tasks.recurring_automation_enabled` (défaut `true`) pour activer/désactiver globalement la duplication automatique du job quotidien (pratique pendant les vacances) sans supprimer la récurrence des tâches. Le mode manuel `npm run tasks:spawn-recurring` (`force`) reste disponible pour le rattrapage.
+
 ### Corrigé
+- **Passenger / hébergement mutualisé** : l’application ne démarrait plus (« Web application could not be started ») si l’hébergeur fournit une version de Node antérieure à 18 : **`google-auth-library`** est repassé en branche 9.x (compatible Node ≥ 14) et **`express-rate-limit`** en 6.x avec l’option **`max`** (équivalent à l’ancien plafond **`limit`** de la v8). Après mise à jour du dépôt, redéployer sur le serveur (**`npm install`** côté hébergement ou nouveau bundle) puis redémarrer l’app Node.
 - **Vue Tâches** : après un changement de statut (ou envoi du rapport « terminée »), le rafraîchissement n’était parfois pas exécuté si un chargement global était déjà en cours (`fetchAll` ignorait les appels suivants) — liste vide jusqu’au rechargement manuel. Les demandes sont maintenant **mises en file** : même promesse pour les appels concurrents et **nouvelle passe** si une action a demandé un sync pendant la précédente. Garde sur **`GET /api/tasks`** (temps réel et chargement global) si la réponse n’est pas un tableau. **`LogModal`** attend la fin de **`onRefresh`** avant fermeture (`src/App.jsx`, `src/hooks/useForetmapRealtime.js`, `src/components/tasks-views.jsx`).
 
 ### Modifié
