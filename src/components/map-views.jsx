@@ -346,7 +346,7 @@ function isTaskDetachedFromLocation(task) {
   return task.status === 'done' || task.status === 'validated';
 }
 
-function ZoneInfoModal({ zone, plants, tasks, isTeacher, student, canSelfAssignTasks = true, canEnrollOnTasks, markerEmojis = MARKER_EMOJIS, emojiParsingList = MARKER_EMOJIS, contextCommentsEnabled = true, canParticipateContextComments = true, onClose, onUpdate, onDelete, onEditPoints, onLinkTask, onUnlinkTask, onAssignTasks }) {
+function ZoneInfoModal({ zone, plants, tasks, isTeacher, student, canSelfAssignTasks = true, canEnrollOnTasks, markerEmojis = MARKER_EMOJIS, emojiParsingList = MARKER_EMOJIS, contextCommentsEnabled = true, canParticipateContextComments = true, onClose, onUpdate, onDelete, onDuplicate, onEditPoints, onLinkTask, onUnlinkTask, onAssignTasks }) {
   const canEnroll = canEnrollOnTasks !== undefined ? canEnrollOnTasks : canSelfAssignTasks;
   const dialogRef = useDialogA11y(onClose);
   const [tab, setTab] = useState('tasks');
@@ -360,6 +360,7 @@ function ZoneInfoModal({ zone, plants, tasks, isTeacher, student, canSelfAssignT
   const [selectedTaskIds, setSelectedTaskIds] = useState([]);
   const [assigning, setAssigning] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [duplicating, setDuplicating] = useState(false);
   const [toast, setToast] = useState(null);
 
   const displayStage = zone.special ? 'special' : zone.stage;
@@ -445,10 +446,30 @@ function ZoneInfoModal({ zone, plants, tasks, isTeacher, student, canSelfAssignT
             <div style={{ marginTop: 3 }}>{stageBadge(displayStage)}</div>
           </div>
           {isTeacher && !zone.special && (
-            <button className="btn btn-danger btn-sm"
-              onClick={() => { if (confirm(`Supprimer "${zone.name}" ?`)) { onDelete(zone.id); onClose(); } }}>
-              🗑️
-            </button>
+            <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+              {onDuplicate && (
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  disabled={duplicating}
+                  title="Créer une copie sur la même carte (contour légèrement décalé)"
+                  onClick={async () => {
+                    setDuplicating(true);
+                    try {
+                      await onDuplicate(zone);
+                    } catch (_) {
+                      setToast('Duplication impossible');
+                    }
+                    setDuplicating(false);
+                  }}>
+                  {duplicating ? '…' : '📋 Copie'}
+                </button>
+              )}
+              <button type="button" className="btn btn-danger btn-sm"
+                onClick={() => { if (confirm(`Supprimer "${zone.name}" ?`)) { onDelete(zone.id); onClose(); } }}>
+                🗑️
+              </button>
+            </div>
           )}
         </div>
 
@@ -1145,6 +1166,15 @@ function editPtsSnapshotEqual(a, b) {
   return true;
 }
 
+/** Décale le polygone (%) pour une copie visible à côté de l’original. */
+function offsetDuplicateZonePoints(pts, dx = 2.5, dy = 2.5) {
+  if (!Array.isArray(pts) || pts.length < 3) return null;
+  return pts.map((p) => clampEditZonePct({
+    xp: (Number(p.xp) || 0) + dx,
+    yp: (Number(p.yp) || 0) + dy,
+  }));
+}
+
 function useMapGestures({ mapImageSrc, activeMapId, mode, onRefresh }) {
   const containerRef = useRef(null);
   const worldRef = useRef(null);
@@ -1677,6 +1707,27 @@ function MapView({ zones, markers, tasks = [], plants, maps = [], activeMapId = 
   };
   const deleteMarker = async id => { await api(`/api/map/markers/${id}`, 'DELETE'); await onRefresh(); };
   const deleteZone = async id => { await api(`/api/zones/${id}`, 'DELETE'); await onRefresh(); };
+  const duplicateZone = async (z) => {
+    let pts;
+    try { pts = z.points ? JSON.parse(z.points) : []; } catch (e) { pts = []; }
+    if (!pts || pts.length < 3) throw new Error('Contour invalide');
+    const shifted = offsetDuplicateZonePoints(pts);
+    if (!shifted) throw new Error('Contour invalide');
+    const living = parseLivingBeings(z.living_beings_list || z.living_beings, z.current_plant);
+    const created = await api('/api/zones', 'POST', {
+      name: `${z.name || 'Zone'} (copie)`,
+      points: shifted,
+      color: z.color || '#86efac80',
+      current_plant: z.current_plant || '',
+      living_beings: living,
+      stage: z.stage || 'empty',
+      map_id: z.map_id || activeMapId,
+      description: z.description || '',
+    });
+    await onRefresh();
+    setSelectedZone(created);
+    setToast('Zone dupliquée ✓');
+  };
   const assignTasksToStudent = async (taskIds) => {
     const ids = [...new Set((taskIds || []).filter(Boolean))];
     if (!canEnrollNewTasks || !ids.length || !student) {
@@ -1867,6 +1918,7 @@ function MapView({ zones, markers, tasks = [], plants, maps = [], activeMapId = 
           onClose={() => setSelectedZone(null)}
           onUpdate={async (id, data) => { await onZoneUpdate(id, data); setSelectedZone(null); await onRefresh(); }}
           onDelete={async id => { await deleteZone(id); setSelectedZone(null); }}
+          onDuplicate={isTeacher ? duplicateZone : undefined}
           onLinkTask={async (taskId) => linkTaskToZone(taskId, selectedZone.id)}
           onUnlinkTask={(t) => unlinkTaskFromZone(t, selectedZone.id)}
           onAssignTasks={assignTasksToStudent}

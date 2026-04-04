@@ -263,6 +263,7 @@ Contenus éditables du site (micro-CMS texte brut) :
 | DELETE | `/api/zones/:id/photos/:pid` | oui | Supprimer photo |
 
 - Le champ `name` peut commencer par un **emoji de zone** : préfixe (séquence emoji) suivi d’un **espace** puis le libellé ; l’UI carte accepte tout pictogramme collé ou choisi dans la grille.
+- **`POST /api/zones`** : corps JSON `name`, `points` (≥ 3 sommets `{ xp, yp }` en pourcentage de l’image), `map_id` ; optionnellement `color`, `current_plant`, `living_beings`, `stage`, **`description`** (texte, chaîne vide si absent).
 
 ---
 

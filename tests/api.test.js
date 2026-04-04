@@ -830,6 +830,22 @@ test("Le proposeur ne peut pas changer le mode de validation d'une proposition",
     .expect(403);
 });
 
+test('POST /api/zones : description optionnelle à la création', async () => {
+  const token = await getAdminAuthToken();
+  const res = await request(app)
+    .post('/api/zones')
+    .set('Authorization', 'Bearer ' + token)
+    .send({
+      name: `Zone desc ${Date.now()}`,
+      map_id: 'foret',
+      points: [{ xp: 10, yp: 10 }, { xp: 20, yp: 10 }, { xp: 15, yp: 20 }],
+      stage: 'empty',
+      description: 'Copie / note initiale',
+    })
+    .expect(201);
+  assert.strictEqual(res.body.description, 'Copie / note initiale');
+});
+
 test('Zones et tâches supportent le filtrage multi-cartes', async () => {
   const token = await getAdminAuthToken();
 
