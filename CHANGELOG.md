@@ -5,6 +5,9 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Ajouté
+- **Documentation** : rapport d’audit de stabilité serveur ([docs/SERVER_STABILITY_AUDIT.md](docs/SERVER_STABILITY_AUDIT.md)) — synthèse des contrôles prod (`deploy:check:prod`, `prod:admin-tail`), tests de charge locaux (10vu, smoke Socket.IO), comportements critiques au boot / exceptions / rate limit / multi-instance.
+
 ### Modifié
 - **Temps réel — tutoriels** : création / mise à jour / désactivation d’un tutoriel émet **`tasks:changed` par `mapId`** des tâches liées (`task_tutorials`) ; sinon repli domaine (`routes/tutorials.js`).
 - **Temps réel — jardin (client)** : sur **`garden:changed`**, refetch **zones + repères** seuls (sans **`GET /api/plants`**) pour les raisons **zone / repère** documentées ; debounce cumulatif : un événement « plantes » dans la fenêtre déclenche le refetch complet (`useForetmapRealtime.js`). Doc **`docs/API.md`**.
