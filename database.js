@@ -52,6 +52,13 @@ function parseDbConnectionLimit() {
   return 30;
 }
 
+/** Indique que `initDatabase()` a réussi au moins une fois (cycle de vie applicatif). */
+let applicationDatabaseReady = false;
+
+function isApplicationDatabaseReady() {
+  return applicationDatabaseReady;
+}
+
 const pool = mysql.createPool({
   host: process.env.DB_HOST || 'localhost',
   port: safePort(process.env.DB_PORT, 3306),
@@ -428,6 +435,13 @@ async function seedData() {
  */
 async function initDatabase() {
   await ping();
+  applicationDatabaseReady = true;
+}
+
+/** Ferme le pool (arrêt gracieux). À n’appeler qu’au shutdown du processus. */
+async function endPool() {
+  applicationDatabaseReady = false;
+  await pool.end();
 }
 
 module.exports = {
@@ -440,4 +454,6 @@ module.exports = {
   initSchema,
   seedData,
   initDatabase,
+  isApplicationDatabaseReady,
+  endPool,
 };

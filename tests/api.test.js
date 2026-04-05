@@ -14,6 +14,13 @@ test.before(async () => {
   await ensureRbacBootstrap();
 });
 
+test('GET /api/ready après init BDD → 200', async () => {
+  const res = await request(app).get('/api/ready').expect(200);
+  assert.strictEqual(res.body.ok, true);
+  assert.strictEqual(res.body.ready, true);
+  assert.strictEqual(res.body.database, true);
+});
+
 async function getAdminAuthToken() {
   const loginEmail = String(process.env.TEACHER_ADMIN_EMAIL || '').trim();
   const teacher = await queryOne(

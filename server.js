@@ -10,11 +10,11 @@ const cors    = require('cors');
 const compression = require('compression');
 const path    = require('path');
 const Layer   = require('express/lib/router/layer');
-const { initDatabase, ping: dbPing } = require('./database');
+const { initDatabase, ping: dbPing, isApplicationDatabaseReady, endPool } = require('./database');
 const { validateEnv } = require('./lib/env');
 const logger = require('./lib/logger');
 const { runRecurringTaskSpawnJob } = require('./lib/recurringTasks');
-const { initRealtime } = require('./lib/realtime');
+const { initRealtime, shutdownRealtime } = require('./lib/realtime');
 const { getRuntimeProcessSnapshot } = require('./lib/runtimeDiagnostics');
 const { tailLogLines, getBufferedLineCount, getMaxLines } = require('./lib/logBuffer');
 const { checkCriticalAdminAccount } = require('./lib/rbac');
@@ -236,6 +236,32 @@ app.get('/api/health/db', async (req, res) => {
   }
 });
 
+/**
+ * Prêt à recevoir le trafic métier : init BDD terminée + ping courant OK.
+ * 503 pendant le boot ou si MySQL est indisponible (sonde type load balancer / orchestrateur).
+ */
+app.get('/api/ready', async (req, res) => {
+  if (!isApplicationDatabaseReady()) {
+    return res.status(503).type('application/json').json({
+      ok: false,
+      ready: false,
+      error: 'Service non prêt — initialisation base de données incomplète',
+    });
+  }
+  try {
+    await dbPing();
+    return res.type('application/json').status(200).json({ ok: true, ready: true, database: true });
+  } catch (err) {
+    logger.warn({ err }, 'Readiness : ping BDD en échec');
+    return res.status(503).type('application/json').json({
+      ok: false,
+      ready: false,
+      database: false,
+      error: 'Database unavailable',
+    });
+  }
+});
+
 // Version de l'app (pied de page frontend)
 const startupVersion = require(path.join(__dirname, 'package.json')).version;
 app.get('/api/version', (req, res) => {
@@ -256,8 +282,8 @@ app.post('/api/admin/restart', (req, res) => {
   if (!process.env.DEPLOY_SECRET || secret !== process.env.DEPLOY_SECRET) {
     return res.status(403).json({ error: 'Secret invalide' });
   }
-  res.json({ ok: true, message: 'Redémarrage dans 1s' });
-  setTimeout(() => process.exit(0), 1000);
+  res.json({ ok: true, message: 'Redémarrage gracieux' });
+  setTimeout(() => gracefulShutdown('restart'), 300);
 });
 
 // Dernières lignes de log Pino (tampon mémoire) — même secret que /api/admin/restart ; uniquement en HTTPS en prod
@@ -443,17 +469,93 @@ app.use((err, req, res, next) => {
 // On écoute sur 0.0.0.0 (toutes interfaces) pour que Passenger puisse se connecter.
 const port = process.env.PORT || process.env.ALWAYSDATA_HTTPD_PORT || 3000;
 
+/** Référence serveur HTTP (null tant que `startServer()` n’a pas été appelé — ex. tests supertest). */
+let httpServer = null;
+let recurringJobFirstTimeoutId = null;
+let recurringJobIntervalId = null;
+let shutdownHandlersRegistered = false;
+let shutdownInProgress = false;
+
+function parseShutdownTimeoutMs() {
+  const raw = String(process.env.FORETMAP_SHUTDOWN_TIMEOUT_MS || '').trim();
+  const n = parseInt(raw, 10);
+  if (Number.isFinite(n) && n >= 3000 && n <= 120000) return n;
+  return 12000;
+}
+
+const SHUTDOWN_TIMEOUT_MS = parseShutdownTimeoutMs();
+
+function cancelRecurringTaskSpawn() {
+  if (recurringJobFirstTimeoutId != null) {
+    clearTimeout(recurringJobFirstTimeoutId);
+    recurringJobFirstTimeoutId = null;
+  }
+  if (recurringJobIntervalId != null) {
+    clearInterval(recurringJobIntervalId);
+    recurringJobIntervalId = null;
+  }
+}
+
+function registerGracefulShutdownHandlersOnce() {
+  if (shutdownHandlersRegistered) return;
+  shutdownHandlersRegistered = true;
+  process.once('SIGTERM', () => gracefulShutdown('SIGTERM'));
+  process.once('SIGINT', () => gracefulShutdown('SIGINT'));
+}
+
+function gracefulShutdown(reason) {
+  if (shutdownInProgress) return;
+  shutdownInProgress = true;
+  const signal = typeof reason === 'string' ? reason : 'shutdown';
+  logger.info({ signal, msg: 'graceful_shutdown_start' }, 'Arrêt gracieux');
+
+  const forceTimer = setTimeout(() => {
+    logger.error({ msg: 'graceful_shutdown_timeout' }, 'Timeout arrêt gracieux');
+    process.exit(1);
+  }, SHUTDOWN_TIMEOUT_MS);
+  if (typeof forceTimer.unref === 'function') forceTimer.unref();
+
+  cancelRecurringTaskSpawn();
+
+  shutdownRealtime()
+    .catch((err) => logger.warn({ err }, 'Fermeture Socket.IO'))
+    .then(
+      () =>
+        new Promise((resolve) => {
+          if (!httpServer) {
+            resolve();
+            return;
+          }
+          httpServer.close((err) => {
+            if (err) logger.warn({ err }, 'server.close');
+            resolve();
+          });
+        })
+    )
+    .then(() => {
+      if (httpServer != null) return endPool();
+      return Promise.resolve();
+    })
+    .catch((err) => logger.warn({ err }, 'Fermeture pool MySQL'))
+    .finally(() => {
+      clearTimeout(forceTimer);
+      logger.info({ signal, msg: 'graceful_shutdown_end' }, 'Process terminé après arrêt gracieux');
+      process.exit(0);
+    });
+}
+
 function startServer() {
-  const server = http.createServer(app);
-  initRealtime(server);
-  server.listen(port, '0.0.0.0', () => {
+  httpServer = http.createServer(app);
+  initRealtime(httpServer);
+  httpServer.listen(port, '0.0.0.0', () => {
     logger.info(`ForêtMap lancé sur port ${port}`);
+    registerGracefulShutdownHandlersOnce();
   });
-  server.on('error', (err) => {
+  httpServer.on('error', (err) => {
     logger.error({ err }, 'Impossible de démarrer le serveur HTTP');
     process.exit(1);
   });
-  return server;
+  return httpServer;
 }
 
 process.on('uncaughtException', (err) => {
@@ -476,10 +578,11 @@ function scheduleRecurringTaskSpawn() {
     return;
   }
   const jitter = 45000 + Math.floor(Math.random() * 120000);
-  setTimeout(() => {
+  recurringJobFirstTimeoutId = setTimeout(() => {
+    recurringJobFirstTimeoutId = null;
     runRecurringTaskSpawnJob().catch((err) => logger.warn({ err }, 'Job tâches récurrentes'));
   }, jitter);
-  setInterval(() => {
+  recurringJobIntervalId = setInterval(() => {
     runRecurringTaskSpawnJob().catch((err) => logger.warn({ err }, 'Job tâches récurrentes'));
   }, RECURRING_TASK_JOB_MS);
   logger.info({ jitterMs: jitter }, 'Planification job tâches récurrentes (quotidien)');
