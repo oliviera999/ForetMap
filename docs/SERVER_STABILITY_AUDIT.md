@@ -6,7 +6,7 @@ Document de synthèse (exécution le **2026-04-05**). Complète les guides [EXPL
 
 | Contrôle | Résultat |
 |----------|----------|
-| `npm run deploy:check:prod` | OK — `GET /api/health`, `/api/health/db`, `/api/version` en 200 |
+| `npm run deploy:check:prod` | OK — `GET /api/health`, `/api/health/db`, `/api/ready`, `/api/version` en 200 (le script inclut désormais la readiness) |
 | `npm run prod:admin-tail` (secret deploy présent en local) | OK — diagnostics 200 ; instantané au moment du test : version **1.28.29**, BDD **ok** (~0,42 ms), mémoire RSS ~126 Mo, métriques HTTP à zéro (process récent, uptime ~13 s) |
 
 En cas de **429** sur les scripts admin, respecter la pause documentée dans [EXPLOITATION.md](EXPLOITATION.md).
@@ -32,9 +32,10 @@ Environnement machine d’audit : **MySQL local indisponible** (`ECONNREFUSED 12
 | Sujet | Fichier / zone | Comportement |
 |-------|----------------|--------------|
 | Health sans BDD | `server.js` (`/api/health`, `/health`) | Répond **200** même si la BDD est cassée. |
-| Échec `initDatabase()` au boot | `server.js` (`boot`) | Le **serveur HTTP démarre** ; erreur loguée ; routes BDD en erreur. Risque UX : SPA + health OK alors que l’API métier échoue. |
+| Readiness | `server.js` (`GET /api/ready`) | **503** tant que `initDatabase()` n’a pas réussi ou si le ping MySQL échoue ; **200** lorsque l’app est réellement prête pour le trafic métier. |
+| Échec `initDatabase()` au boot | `server.js` (`boot`) | Le **serveur HTTP démarre** ; erreur loguée ; routes BDD en erreur. **`/api/ready`** reste **503** tant que l’init n’a pas réussi. |
 | Exceptions non gérées | `server.js` | `uncaughtException` / `unhandledRejection` → log **fatal** puis `process.exit(1)` (~50 ms) : **fail-fast**, pas d’état zombie. |
-| Redémarrage distant | `POST /api/admin/restart` | `process.exit(0)` après 1 s — **pas** d’arrêt gracieux explicite (pool MySQL / `server.close`). |
+| Redémarrage distant | `POST /api/admin/restart` | **Arrêt gracieux** : fermeture Socket.IO, `server.close()`, `pool.end()` ; timeout configurable **`FORETMAP_SHUTDOWN_TIMEOUT_MS`** (défaut 12 s). |
 | Promesses async routes | `installAsyncErrorForwarding()` dans `server.js` | Réjections de handlers async routées vers le middleware d’erreur Express. |
 | Pool MySQL | `database.js` | `pool.on('error', …)` pour éviter les **uncaughtException** sur connexions idle perdues ; `FORETMAP_DB_CONNECTION_LIMIT`, `queueLimit`. |
 | Rate limiting | `server.js` | `express-rate-limit` **en mémoire par processus** ; avec **plusieurs instances** Node derrière un LB, le plafond **n’est pas global** (cf. [EVOLUTION.md](EVOLUTION.md) § 1.4). |

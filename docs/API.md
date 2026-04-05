@@ -12,6 +12,7 @@ Réponses JSON. En cas d’erreur : `{ "error": "message" }` avec statut HTTP ad
 |--------|-----|-------------|
 | GET | `/api/health` | Santé sans BDD |
 | GET | `/api/health/db` | Ping MySQL : `200` si OK, `503` si base indisponible |
+| GET | `/api/ready` | **Readiness** : `200` si l’init BDD a réussi **et** un ping MySQL actuel OK ; `503` pendant le boot, si l’init a échoué ou si MySQL ne répond pas (sonde LB / orchestrateur) |
 | GET | `/health` | Alias |
 
 ---

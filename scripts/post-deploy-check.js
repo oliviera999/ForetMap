@@ -5,6 +5,7 @@
  * Contrôles:
  * - GET /api/health (app up)
  * - GET /api/health/db (BDD up)
+ * - GET /api/ready (init BDD terminée + ping OK — sonde orchestrateur)
  * - GET /api/version (optionnel, mais recommandé)
  * - GET /api/admin/diagnostics (optionnel) si **DEPLOY_SECRET**, **FORETMAP_DEPLOY_CHECK_SECRET** ou
  *   **FORETMAP_DEPLOY_SECRET** est défini : vérifie que la route admin déployée répond (200 + body.ok).
@@ -173,6 +174,7 @@ async function main() {
   const checks = [
     await checkEndpoint(baseUrl, '/api/health', timeoutMs, true),
     await checkEndpoint(baseUrl, '/api/health/db', timeoutMs, true),
+    await checkEndpoint(baseUrl, '/api/ready', timeoutMs, true),
     await checkEndpoint(baseUrl, '/api/version', timeoutMs, false),
   ];
 

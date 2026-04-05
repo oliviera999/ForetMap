@@ -135,6 +135,7 @@ Documentation détaillée et templates:
 | `SMTP_JSON_TRANSPORT` | Optionnel (dev/test) : active un transport JSON sans envoi réel |
 | `FORETMAP_RECURRENCE_TZ` | Optionnel : fuseau IANA pour la date du jour du job tâches récurrentes (défaut `Europe/Paris`). |
 | `FORETMAP_DISABLE_RECURRING_TASK_JOB` | Optionnel : `1` pour ne pas planifier le job de duplication des tâches récurrentes (hors `NODE_ENV=test` qui le désactive déjà). |
+| `FORETMAP_SHUTDOWN_TIMEOUT_MS` | Optionnel : délai max (ms) avant `exit 1` si l’arrêt gracieux (`SIGTERM` / `SIGINT` / redémarrage admin) bloque ; entre **3000** et **120000**, défaut **12000**. |
 | `LOG_LEVEL` | Optionnel : niveau Pino (`debug`, `info`, …). Voir section *Débogage* ci‑dessus. |
 
 Le réglage GUI admin `tasks.recurring_automation_enabled` permet de suspendre globalement la création automatique des tâches récurrentes (ex. vacances) sans couper le timer serveur. Pour couper complètement la planification, utiliser `FORETMAP_DISABLE_RECURRING_TASK_JOB=1`.
