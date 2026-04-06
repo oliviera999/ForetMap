@@ -5,6 +5,10 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Modifié
+- **Réglages admin (UI)** : entrée **`KEY_META`** pour **`tasks.recurring_automation_enabled`** (libellé explicite vacances / job quotidien / rattrapage `tasks:spawn-recurring`) dans l’écran réglages prof (`settings-admin-views.jsx`).
+- **Dépôt** : `.gitignore` — `.profillocal`, `tmp-*.txt`, nouveaux rapports Artillery horodatés sous `load/reports/` (fichiers déjà suivis inchangés).
+
 ### Ajouté
 - **Stabilité serveur** : `GET /api/ready` (readiness : init BDD réussie + ping MySQL) ; arrêt gracieux sur `SIGTERM` / `SIGINT` et sur `POST /api/admin/restart` (fermeture Socket.IO, `server.close()`, `pool.end()`, timeout `FORETMAP_SHUTDOWN_TIMEOUT_MS`) ; `shutdownRealtime()` (`lib/realtime.js`), `endPool` / `isApplicationDatabaseReady` (`database.js`). `deploy:check` inclut `/api/ready`.
 - **Documentation** : rapport d’audit de stabilité serveur ([docs/SERVER_STABILITY_AUDIT.md](docs/SERVER_STABILITY_AUDIT.md)) — synthèse des contrôles prod (`deploy:check:prod`, `prod:admin-tail`), tests de charge locaux (10vu, smoke Socket.IO), comportements critiques au boot / exceptions / rate limit / multi-instance.

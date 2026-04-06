@@ -28,9 +28,14 @@ ci-job-*-logs.zip
 .DS_Store
 Thumbs.db
 
-# IDE
+# IDE / outillage local
 .idea/
 .vscode/
+.profillocal
+tmp-*.txt
+
+# Rapports Artillery horodatés (runs locaux ; les rapports déjà suivis le restent)
+load/reports/*T*-*.json
 *.swp
 *.swo
 *~
