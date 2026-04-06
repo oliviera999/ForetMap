@@ -5,6 +5,9 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Ajouté
+- **Tâches** : champ **`danger_level`** (`safe` | `dangerous` | `very_dangerous`) en BDD, API et formulaire création/édition (y compris proposition n3beur) ; recopié sur les clones récurrents. Migration **`053_task_danger_level.sql`**.
+
 ### Modifié
 - **Réglages admin (UI)** : entrée **`KEY_META`** pour **`tasks.recurring_automation_enabled`** (libellé explicite vacances / job quotidien / rattrapage `tasks:spawn-recurring`) dans l’écran réglages prof (`settings-admin-views.jsx`).
 - **Dépôt** : `.gitignore` — `.profillocal`, `tmp-*.txt`, nouveaux rapports Artillery horodatés sous `load/reports/` (fichiers déjà suivis inchangés).

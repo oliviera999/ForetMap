@@ -35,6 +35,7 @@ const IMPORT_TEMPLATE_COLUMNS = [
 
 const ALLOWED_TASK_STATUSES = new Set(['available', 'in_progress', 'done', 'validated', 'proposed', 'on_hold']);
 const ALLOWED_TASK_COMPLETION_MODES = new Set(['single_done', 'all_assignees_done']);
+const ALLOWED_TASK_DANGER_LEVELS = new Set(['safe', 'dangerous', 'very_dangerous']);
 const ALLOWED_IMPORT_TASK_STATUSES = ALLOWED_TASK_STATUSES;
 const ALLOWED_IMPORT_TASK_RECURRENCES = new Set(['weekly', 'biweekly', 'monthly']);
 const IMPORT_HEADER_ALIASES = new Map([
@@ -131,6 +132,12 @@ function normalizeTaskCompletionMode(value) {
   const raw = asTrimmedString(value).toLowerCase();
   if (!raw) return 'single_done';
   return ALLOWED_TASK_COMPLETION_MODES.has(raw) ? raw : null;
+}
+
+function normalizeTaskDangerLevel(value) {
+  const raw = asTrimmedString(value).toLowerCase();
+  if (!raw) return 'safe';
+  return ALLOWED_TASK_DANGER_LEVELS.has(raw) ? raw : null;
 }
 
 function countDoneAssignments(assignments = []) {
@@ -869,6 +876,7 @@ async function getTaskWithAssignments(taskId) {
   enrichTaskRow(task, zm.get(taskId), mm.get(taskId), tm.get(taskId), rm.get(taskId));
   task.status = normalizeTaskStatusForRead(task.status);
   task.completion_mode = normalizeTaskCompletionMode(task.completion_mode) || 'single_done';
+  task.danger_level = normalizeTaskDangerLevel(task.danger_level) || 'safe';
   task.is_before_start_date = isTaskBeforeStartDate(task);
   if (!task.zone_name && task.zone_name_legacy) task.zone_name = task.zone_name_legacy;
   if (!task.marker_label && task.marker_label_legacy) task.marker_label = task.marker_label_legacy;
@@ -1056,6 +1064,7 @@ router.get('/', async (req, res) => {
       enrichTaskRow(row, zm.get(t.id), mm.get(t.id), tutorialsMap.get(t.id), referentsMap.get(t.id));
       row.status = normalizeTaskStatusForRead(row.status);
       row.completion_mode = normalizeTaskCompletionMode(row.completion_mode) || 'single_done';
+      row.danger_level = normalizeTaskDangerLevel(row.danger_level) || 'safe';
       row.is_before_start_date = isTaskBeforeStartDate(row);
       delete row.map_id_resolved_join;
       row.assignments = assignmentsByTask.get(t.id) || [];
@@ -1384,7 +1393,7 @@ router.post('/import', requirePermission('tasks.manage', { needsElevation: true 
         : null;
       const id = uuidv4();
       await execute(
-        'INSERT INTO tasks (id, title, description, map_id, project_id, zone_id, marker_id, start_date, due_date, required_students, status, recurrence, created_at) VALUES (?, ?, ?, ?, ?, NULL, NULL, ?, ?, ?, ?, ?, ?)',
+        'INSERT INTO tasks (id, title, description, map_id, project_id, zone_id, marker_id, start_date, due_date, required_students, status, recurrence, danger_level, created_at) VALUES (?, ?, ?, ?, ?, NULL, NULL, ?, ?, ?, ?, ?, ?, ?)',
         [
           id,
           task.title,
@@ -1396,6 +1405,7 @@ router.post('/import', requirePermission('tasks.manage', { needsElevation: true 
           task.requiredStudents || 1,
           task.status || 'available',
           task.recurrence || null,
+          'safe',
           new Date().toISOString(),
         ]
       );
@@ -1447,6 +1457,7 @@ router.post('/', requirePermission('tasks.manage', { needsElevation: true }), as
       required_students,
       recurrence,
       completion_mode,
+      danger_level,
     } = req.body;
     if (!title) return res.status(400).json({ error: 'Titre requis' });
 
@@ -1470,9 +1481,11 @@ router.post('/', requirePermission('tasks.manage', { needsElevation: true }), as
     const reqStudents = sanitizeRequiredStudents(required_students);
     const completionMode = normalizeTaskCompletionMode(completion_mode);
     if (!completionMode) return res.status(400).json({ error: 'Mode de validation invalide' });
+    const dangerLevelNorm = normalizeTaskDangerLevel(danger_level);
+    if (dangerLevelNorm === null) return res.status(400).json({ error: 'Niveau de danger invalide' });
     const id = uuidv4();
     await execute(
-      'INSERT INTO tasks (id, title, description, map_id, project_id, zone_id, marker_id, start_date, due_date, required_students, completion_mode, recurrence, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      'INSERT INTO tasks (id, title, description, map_id, project_id, zone_id, marker_id, start_date, due_date, required_students, completion_mode, danger_level, recurrence, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
       [
         id,
         title,
@@ -1485,6 +1498,7 @@ router.post('/', requirePermission('tasks.manage', { needsElevation: true }), as
         due_date || null,
         reqStudents,
         completionMode,
+        dangerLevelNorm,
         recurrence || null,
         new Date().toISOString(),
       ]
@@ -1523,6 +1537,7 @@ router.post('/proposals', async (req, res) => {
       lastName,
       studentId,
       profilePin,
+      danger_level,
     } = req.body || {};
     if (!title || !String(title).trim()) return res.status(400).json({ error: 'Titre requis' });
     if (!firstName || !lastName) return res.status(400).json({ error: 'Nom requis' });
@@ -1547,6 +1562,8 @@ router.post('/proposals', async (req, res) => {
     const loc = await validateTaskLocations(zIds, mIds, explicitMap);
     if (loc.error) return res.status(400).json({ error: loc.error });
     const reqStudents = sanitizeRequiredStudents(required_students);
+    const proposalDangerLevel = normalizeTaskDangerLevel(danger_level);
+    if (proposalDangerLevel === null) return res.status(400).json({ error: 'Niveau de danger invalide' });
 
     const id = uuidv4();
     const proposer = `${String(firstName).trim()} ${String(lastName).trim()}`.trim();
@@ -1557,8 +1574,8 @@ router.post('/proposals', async (req, res) => {
     await execute(
       `INSERT INTO tasks (
         id, title, description, map_id, project_id, zone_id, marker_id,
-        start_date, due_date, required_students, completion_mode, status, recurrence, created_at
-      ) VALUES (?, ?, ?, ?, NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        start_date, due_date, required_students, completion_mode, danger_level, status, recurrence, created_at
+      ) VALUES (?, ?, ?, ?, NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         id,
         String(title).trim(),
@@ -1570,6 +1587,7 @@ router.post('/proposals', async (req, res) => {
         due_date || null,
         reqStudents,
         'single_done',
+        proposalDangerLevel,
         'proposed',
         null,
         new Date().toISOString(),
@@ -1635,6 +1653,7 @@ router.put('/:id', async (req, res) => {
       recurrence,
       project_id,
       completion_mode,
+      danger_level,
     } = req.body;
 
     let nextZoneIds;
@@ -1699,6 +1718,14 @@ router.put('/:id', async (req, res) => {
       : (normalizeTaskCompletionMode(task.completion_mode) || 'single_done');
     if (!nextCompletionMode) return res.status(400).json({ error: 'Mode de validation invalide' });
 
+    let nextDangerLevel;
+    if (Object.prototype.hasOwnProperty.call(req.body, 'danger_level')) {
+      nextDangerLevel = normalizeTaskDangerLevel(danger_level);
+      if (nextDangerLevel === null) return res.status(400).json({ error: 'Niveau de danger invalide' });
+    } else {
+      nextDangerLevel = normalizeTaskDangerLevel(task.danger_level) || 'safe';
+    }
+
     const currentStatus = normalizeTaskStatusForRead(task.status);
     const currentZoneIds = await getTaskZoneIds(task.id);
     const currentMarkerIds = await getTaskMarkerIds(task.id);
@@ -1721,7 +1748,7 @@ router.put('/:id', async (req, res) => {
     }
 
     await execute(
-      'UPDATE tasks SET title=?, description=?, map_id=?, project_id=?, zone_id=?, marker_id=?, start_date=?, due_date=?, required_students=?, status=?, completion_mode=?, recurrence=? WHERE id=?',
+      'UPDATE tasks SET title=?, description=?, map_id=?, project_id=?, zone_id=?, marker_id=?, start_date=?, due_date=?, required_students=?, status=?, completion_mode=?, danger_level=?, recurrence=? WHERE id=?',
       [
         title ?? task.title,
         description ?? task.description,
@@ -1734,6 +1761,7 @@ router.put('/:id', async (req, res) => {
         reqStudents,
         nextStatus,
         nextCompletionMode,
+        nextDangerLevel,
         isTeacherAction
           ? (recurrence !== undefined ? recurrence || null : task.recurrence || null)
           : task.recurrence || null,

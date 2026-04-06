@@ -623,6 +623,34 @@ test('POST /api/tasks/:id/validate accepte une validation directe sans passage p
     .expect(400);
 });
 
+test('POST et PUT /api/tasks — danger_level persistant', async () => {
+  const token = await getAdminAuthToken();
+
+  const createRes = await request(app)
+    .post('/api/tasks')
+    .set('Authorization', 'Bearer ' + token)
+    .send({ title: `Danger ${Date.now()}`, required_students: 1, danger_level: 'dangerous' })
+    .expect(201);
+  assert.strictEqual(createRes.body.danger_level, 'dangerous');
+  const taskId = createRes.body.id;
+
+  const getOne = await request(app).get(`/api/tasks/${taskId}`).expect(200);
+  assert.strictEqual(getOne.body.danger_level, 'dangerous');
+
+  const putRes = await request(app)
+    .put(`/api/tasks/${taskId}`)
+    .set('Authorization', 'Bearer ' + token)
+    .send({ danger_level: 'very_dangerous' })
+    .expect(200);
+  assert.strictEqual(putRes.body.danger_level, 'very_dangerous');
+
+  await request(app)
+    .post('/api/tasks')
+    .set('Authorization', 'Bearer ' + token)
+    .send({ title: `Bad danger ${Date.now()}`, danger_level: 'nope' })
+    .expect(400);
+});
+
 test('GET /api/tasks côté élève expose assigned_count global', async () => {
   const teacherToken = await getAdminAuthToken();
 
