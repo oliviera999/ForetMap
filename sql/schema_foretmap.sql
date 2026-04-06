@@ -124,6 +124,7 @@ CREATE TABLE IF NOT EXISTS tasks (
   required_students INT UNSIGNED DEFAULT 1,
   completion_mode VARCHAR(32) NOT NULL DEFAULT 'single_done',
   danger_level VARCHAR(32) NOT NULL DEFAULT 'safe',
+  difficulty_level VARCHAR(32) NOT NULL DEFAULT 'easy',
   status VARCHAR(32) DEFAULT 'available',
   created_at VARCHAR(32) DEFAULT NULL,
   INDEX idx_tasks_map_id (map_id),
