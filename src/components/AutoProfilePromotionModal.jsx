@@ -65,7 +65,7 @@ export function AutoProfilePromotionModal({ data, roleTerms, onClose }) {
             </div>
           ) : null}
           <p className="profile-promo-card__hint">
-            Tu retrouveras le détail des droits dans l’aide ou avec un {roleTerms?.teacherSingular || 'n3boss'} si besoin.
+            Le détail des droits est dans l’aide — ou demande un coup de main côté {roleTerms?.teacherSingular || 'n3boss'} si tu bloques.
           </p>
           <button
             ref={closeBtnRef}

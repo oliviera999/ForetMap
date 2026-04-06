@@ -601,7 +601,7 @@ function TaskFormModal({
           <div className="field">
             <label>Référents (optionnel)</label>
             <p style={{ fontSize: '.8rem', color: '#555', margin: '0 0 8px', lineHeight: 1.45 }}>
-              Ces personnes sont indiquées sur la fiche tâche ; les {terms.studentPlural} peuvent s&apos;y adresser en cas de questions.
+              Elles figurent sur la fiche : les {terms.studentPlural} savent vers qui se tourner en cas de question.
             </p>
             {referentCandidates.length > 0 && (
               <div style={{ display: 'grid', gap: 8, marginBottom: 8 }}>
@@ -1144,7 +1144,7 @@ function completionModeLabel(mode) {
   return mode === 'all_assignees_done' ? 'Validation collective' : 'Validation individuelle';
 }
 
-/** Aligné sur l’API (student_id + noms) pour l’affectation rapide prof. */
+/** Aligné sur l’API (student_id + noms) pour l’affectation rapide côté n3boss. */
 function isStudentAlreadyAssignedToTask(task, targetStudent = null) {
   if (!task || !targetStudent) return false;
   return (task.assignments || []).some((a) => (
@@ -1267,7 +1267,7 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
           : [];
         setTeacherStudents(list);
       } catch (e) {
-        if (!cancelled) setToast('Impossible de charger la liste des n3beurs : ' + e.message);
+        if (!cancelled) setToast('Impossible de charger la liste des n3beurs pour l’instant : ' + e.message);
       } finally {
         if (!cancelled) setLoadingTeacherStudents(false);
       }
@@ -1353,7 +1353,7 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
     try { await fn(); await onRefresh(); }
     catch (e) {
       if (e instanceof AccountDeletedError) onForceLogout();
-      else setToast('Erreur : ' + e.message);
+      else setToast('Oups : ' + e.message);
     }
     setLoading(l => ({ ...l, [id]: false }));
   };
@@ -1362,19 +1362,19 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
     await api(`/api/tasks/${t.id}/assign`, 'POST', {
       firstName: student.first_name, lastName: student.last_name, studentId: student.id
     });
-    setToast('Tâche prise en charge ! ✓');
+    setToast('C’est noté, tu t’en occupes — merci ! 🌱');
   });
 
   const unassign = t => {
     setConfirmTask({
       task: t,
-      label: `Te retirer de "${t.title}" ?`,
+      label: `Tu lâches la main sur « ${t.title} » ?`,
       action: async () => {
         await withLoad(t.id + 'unassign', async () => {
           await api(`/api/tasks/${t.id}/unassign`, 'POST', {
             firstName: student.first_name, lastName: student.last_name, studentId: student.id
           });
-          setToast('Tu t\'es retiré de la tâche.');
+          setToast('OK, place libérée pour quelqu’un d’autre — merci d’avoir prévenu.');
         });
       }
     });
@@ -1386,7 +1386,7 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
     } else {
       await api(`/api/tasks/${task.id}`, 'PUT', { status: nextStatus });
     }
-    setToast(`Statut mis à jour : ${TEACHER_STATUS_ACTIONS.find((s) => s.value === nextStatus)?.label || nextStatus}`);
+    setToast(`C’est noté : statut « ${TEACHER_STATUS_ACTIONS.find((s) => s.value === nextStatus)?.label || nextStatus} ».`);
   });
 
   const deleteTask = t => {
@@ -1396,7 +1396,7 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
       action: async () => {
         await withLoad(t.id + 'del', async () => {
           await api(`/api/tasks/${t.id}`, 'DELETE');
-          setToast('Tâche supprimée');
+          setToast('Tâche supprimée — c’est nettoyé.');
         });
       }
     });
@@ -1429,14 +1429,14 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
         ok += 1;
       }
       if (ok === 0) {
-        setToast('Tâche créée (attribution initiale impossible : comptes introuvables dans la liste chargée)');
+        setToast('Tâche créée — impossible d’inscrire tout de suite (comptes introuvables dans la liste chargée).');
       } else if (ok === 1) {
         const one = teacherStudents.find((s) => String(s.id) === String(assignStudentIds[0]));
-        setToast(`Tâche créée et ${one?.first_name || 'élève'} inscrit(e) ✓`);
+        setToast(`Tâche créée et ${one?.first_name || 'n3beur'} inscrit(e) ✓`);
       } else if (ok < assignStudentIds.length) {
-        setToast(`Tâche créée : ${ok} inscription(s) sur ${assignStudentIds.length} (certains comptes introuvables dans la liste chargée)`);
+        setToast(`Tâche créée : ${ok} inscription(s) sur ${assignStudentIds.length} — certains comptes manquaient dans la liste.`);
       } else {
-        setToast(`Tâche créée et ${ok} inscrits ✓`);
+        setToast(`Tâche créée : ${ok} n3beur(s) inscrit(s) — bien joué ! ✓`);
       }
     }
     await onRefresh();
@@ -1450,24 +1450,24 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
       lastName: student.last_name,
       studentId: student.id,
     });
-    setToast(`Proposition envoyée au ${roleTerms.teacherSingular} ✓`);
+    setToast('Envoyé ! Les n3boss peuvent consulter ta proposition. ✓');
     await onRefresh();
   };
 
   const saveProject = async (form) => {
     if (editProject?.id) {
       await api(`/api/task-projects/${editProject.id}`, 'PUT', form);
-      setToast('Projet mis à jour ✓');
+      setToast('Projet mis à jour — tout est à jour ✓');
     } else {
       await api('/api/task-projects', 'POST', form);
-      setToast('Projet créé ✓');
+      setToast('Nouveau projet dans la boîte — bienvenue à lui ✓');
     }
     await onRefresh();
   };
 
   const setProjectStatus = (project, nextStatus) => withLoad(`${project.id}project${nextStatus}`, async () => {
     await api(`/api/task-projects/${project.id}`, 'PUT', { status: nextStatus });
-    setToast(`Projet "${project.title}" : ${nextStatus === 'on_hold' ? 'En attente' : 'Actif'}`);
+    setToast(`Projet « ${project.title} » : ${nextStatus === 'on_hold' ? 'en pause (inscriptions fermées)' : 'de retour en action'}.`);
   });
 
   const downloadImportTemplate = async (format) => {
@@ -1487,13 +1487,13 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
       link.click();
       URL.revokeObjectURL(url);
     } catch (e) {
-      setToast('Erreur modèle : ' + (e.message || 'inconnue'));
+      setToast('Zut, le modèle ne part pas : ' + (e.message || 'inconnue'));
     }
   };
 
   const runImportTasksProjects = async () => {
     if (!importFile) {
-      setToast('Choisis un fichier CSV ou XLSX.');
+      setToast('Choisis d’abord un fichier CSV ou XLSX, stp.');
       return;
     }
     setImporting(true);
@@ -1507,15 +1507,15 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
       });
       setImportReport(result?.report || null);
       if (importDryRun) {
-        setToast('Simulation import terminée ✓');
+        setToast('Simulation terminée — regarde le rapport ci-dessous ✓');
       } else {
         const createdProjects = Number(result?.report?.totals?.created_projects || 0);
         const createdTasks = Number(result?.report?.totals?.created_tasks || 0);
-        setToast(`Import terminé : ${createdProjects} projet(s), ${createdTasks} tâche(s)`);
+        setToast(`Import OK : ${createdProjects} projet(s), ${createdTasks} tâche(s) — la forêt grossit !`);
         await onRefresh();
       }
     } catch (e) {
-      setToast('Erreur import : ' + (e.message || 'inconnue'));
+      setToast('Import bloqué : ' + (e.message || 'inconnue'));
     } finally {
       setImporting(false);
     }
@@ -1621,7 +1621,7 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
   const usedZones = [...usedZoneIds];
   const usedMarkers = [...usedMarkerIds];
   const sectionListClass = viewMode === 'tiles' ? 'tasks-grid' : 'tasks-list';
-  /** Inscriptions à ajouter / retirer (liste n3beurs chargée pour le prof) pour l’affectation rapide. */
+  /** Inscriptions à ajouter / retirer (liste n3beurs chargée côté n3boss) pour l’affectation rapide. */
   const teacherQuickAssignDelta = (task, selectedIds) => {
     const idSet = new Set((selectedIds || []).map(String));
     const toAdd = teacherStudents.filter(
@@ -1646,16 +1646,16 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
     return true;
   };
   const quickAssignHint = (task, selectedIds) => {
-    if (!task) return "Tâche indisponible";
-    if (taskEffectiveStatus(task) === 'on_hold') return "Tâche ou projet en attente";
+    if (!task) return "Cette tâche n’est pas dispo ici";
+    if (taskEffectiveStatus(task) === 'on_hold') return "Patience : tâche ou projet en pause";
     const { toAdd, toRemove } = teacherQuickAssignDelta(task, selectedIds);
-    if (toAdd.length === 0 && toRemove.length === 0) return "Coche ou décoche des n3beurs pour modifier les inscriptions";
+    if (toAdd.length === 0 && toRemove.length === 0) return "Coche ou décoche des n3beurs pour ajuster l’équipe sur la mission";
     if (toRemove.length > 0 && (task.status === 'done' || task.status === 'validated')) {
-      return "Impossible de retirer des inscrits sur une tâche terminée ou validée";
+      return "Mission déjà bouclée : on ne retire plus les inscrits";
     }
     if (toAdd.length > 0) {
-      if (task.status === 'proposed') return "Impossible d’inscrire sur une tâche proposée";
-      if (task.status === 'done' || task.status === 'validated') return "Tâche déjà terminée";
+      if (task.status === 'proposed') return "Idée encore en discussion : inscriptions pas encore ouvertes";
+      if (task.status === 'done' || task.status === 'validated') return "C’est déjà plié pour celle-ci";
       const slotsAfterRemovals = getAvailableSlots(task) + toRemove.length;
       if (toAdd.length > slotsAfterRemovals) {
         return `Pas assez de places (max. ${slotsAfterRemovals} après retrait${toRemove.length > 1 ? 's' : ''})`;
@@ -1669,7 +1669,7 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
   const runTeacherQuickAssign = (task, selectedIds) => withLoad(`${task.id}assign_teacher_quick`, async () => {
     const { toAdd, toRemove } = teacherQuickAssignDelta(task, selectedIds);
     if (toAdd.length === 0 && toRemove.length === 0) {
-      setToast('Aucun changement');
+      setToast('Rien à faire : tout était déjà comme prévu.');
       return;
     }
     let removeOk = 0;
@@ -1721,7 +1721,7 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
     } else if (firstRemoveError || firstAddError) {
       setToast(`Aucune mise à jour : ${firstRemoveError || firstAddError}`);
     } else {
-      setToast('Aucun changement appliqué');
+      setToast('Aucun changement appliqué — déjà à jour.');
     }
     setQuickAssignTaskId(null);
     setQuickAssignStudentIds([]);
@@ -1807,7 +1807,7 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
       {logTask && (
         <LogModal task={logTask} student={student}
           onClose={() => setLogTask(null)}
-          onDone={async () => { await onRefresh(); setToast('Rapport envoyé ✓'); }}
+          onDone={async () => { await onRefresh(); setToast('Merci pour le retour — ça aide toute l’équipe ✓'); }}
           onForceLogout={onForceLogout}
         />
       )}
@@ -1894,7 +1894,7 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
           </div>
         )}
       </div>
-      <p className="section-sub">{isTeacher ? 'Gérer, valider et traiter les propositions' : (canSelfAssignTasks ? 'Prends en charge une tâche ou propose-en une nouvelle' : 'Consultation en lecture seule')}</p>
+      <p className="section-sub">{isTeacher ? 'Piloter les missions, valider les retours et traiter les idées du terrain' : (canSelfAssignTasks ? 'Choisis une mission pour la forêt — ou propose la tienne, tout le monde peut la lire' : 'Tu consultes la liste en lecture seule')}</p>
       {!isTeacher && student && Number(student.taskEnrollment?.maxActiveAssignments) > 0 && (
         <p
           className="section-sub"
@@ -1909,8 +1909,8 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
           }}
         >
           {student.taskEnrollment?.atLimit
-            ? `Limite d’inscriptions atteinte : ${student.taskEnrollment.currentActiveAssignments}/${student.taskEnrollment.maxActiveAssignments} tâche(s) active(s) (non validées). Retire-toi d’une tâche ou attends une validation.`
-            : `Inscriptions : ${student.taskEnrollment.currentActiveAssignments}/${student.taskEnrollment.maxActiveAssignments} tâche(s) active(s) (non validées par un n3boss, toutes cartes).`}
+            ? `Tu es déjà sur le paquet max de missions en cours (${student.taskEnrollment.currentActiveAssignments}/${student.taskEnrollment.maxActiveAssignments}, pas encore validées) : libère une place ou attends qu’une mission soit cochée côté n3boss.`
+            : `Missions actives pour toi : ${student.taskEnrollment.currentActiveAssignments}/${student.taskEnrollment.maxActiveAssignments} (en attente de validation n3boss, toutes cartes).`}
         </p>
       )}
       {isTeacher && (
@@ -2224,7 +2224,7 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
       )}
 
       {allFiltered.length === 0 && (
-        <div className="empty"><div className="empty-icon">🌿</div><p>Aucune tâche pour le moment</p></div>
+        <div className="empty"><div className="empty-icon">🌿</div><p>Rien à faire ici pour l’instant — reviens plus tard ou change tes filtres.</p></div>
       )}
     </div>
   );
@@ -2369,9 +2369,9 @@ function TaskLogsViewer({ task, onClose }) {
   const deleteLog = async (logId) => {
     try {
       await api(`/api/tasks/${task.id}/logs/${logId}`, 'DELETE');
-      setToast('Rapport supprimé');
+      setToast('Rapport retiré — c’est noté.');
       loadLogs();
-    } catch (e) { setToast('Erreur : ' + e.message); }
+    } catch (e) { setToast('Oups : ' + e.message); }
   };
 
   return (
@@ -2389,7 +2389,7 @@ function TaskLogsViewer({ task, onClose }) {
         <button className="modal-close" aria-label="Fermer la fenêtre" onClick={onClose}>✕</button>
         <h3>📋 Rapports — {task.title}</h3>
         {logs.length === 0
-          ? <div className="empty"><div className="empty-icon">📭</div><p>Aucun rapport pour cette tâche</p></div>
+          ? <div className="empty"><div className="empty-icon">📭</div><p>Pas encore de retour sur cette mission — à toi d’ouvrir le bal !</p></div>
           : logs.map(l => (
             <div key={l.id} className="log-entry fade-in">
               <div className="log-entry-header">
@@ -2821,8 +2821,8 @@ if (visibleProjects.length <= 0) return null;
                     {p.status === 'on_hold' && (
                       <div style={{ fontSize: '.82rem', color: '#92400e', marginTop: 4 }}>
                         {isTeacher
-                          ? '⏸️ Projet en attente : inscriptions élèves fermées, commentaires ouverts. Tu peux continuer à ajouter des tâches au projet ; elles resteront en attente d’inscription tant que le projet n’est pas réactivé.'
-                          : '⏸️ Projet en attente : inscriptions fermées, commentaires ouverts.'}
+                          ? '⏸️ Projet en pause : plus de nouvelles inscriptions n3beurs pour l’instant, les commentaires restent ouverts. Tu peux quand même ajouter des tâches ; elles attendront une réouverture des inscriptions avec le projet.'
+                          : '⏸️ Projet en pause : inscriptions fermées pour l’instant, les commentaires restent ouverts.'}
                       </div>
                     )}
                   </div>

@@ -1,5 +1,5 @@
 /**
- * Détecte si l'élève courant est assigné à la tâche (id élève ou prénom+nom, casse / espaces ignorés).
+ * Détecte si le compte n3beur courant est assigné à la tâche (id ou prénom+nom, casse / espaces ignorés).
  * Aligné sur la logique d'affichage des assignés et sur l'API (assign / unassign).
  */
 export function isStudentAssignedToTask(task, student) {

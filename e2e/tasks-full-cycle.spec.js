@@ -46,5 +46,5 @@ test('cycle complet tâche: création prof -> prise élève -> soumission -> val
   await teacherPendingCard.getByRole('button', { name: '✔️ Validée' }).click();
 
   await expect(page.locator('.task-card', { hasText: taskTitle }).first()).toBeVisible();
-  await expect(page.getByText('Statut mis à jour : Validée')).toBeVisible();
+  await expect(page.getByText('C’est noté : statut « Validée ».')).toBeVisible();
 });

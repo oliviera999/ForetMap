@@ -522,7 +522,7 @@ function SettingsAdminView({ isN3Affiliated = false }) {
   return (
     <div className="fade-in settings-admin">
       <h2 className="section-title">⚙️ Paramètres administrateur</h2>
-      <p className="section-sub">Console centralisée pour l’accueil, les cartes/plans, la sécurité et l’exploitation.</p>
+      <p className="section-sub">Tout ce qui fait tourner l’app proprement : accueil, cartes, sécurité, exploitation.</p>
       {err && <div className="auth-error">⚠️ {err}</div>}
       {msg && <div className="auth-success">{msg}</div>}
       <div style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: 12, padding: 12, marginBottom: 12 }}>

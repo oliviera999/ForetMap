@@ -31,5 +31,5 @@ test('élève peut se retirer d’une tâche prise en charge', async ({ page }) 
   await studentTaskCardAfter.getByRole('button', { name: /retirer/i }).click();
   await page.getByRole('button', { name: 'Confirmer' }).click();
 
-  await expect(page.getByText("Tu t'es retiré de la tâche.")).toBeVisible();
+  await expect(page.getByText('OK, place libérée pour quelqu’un d’autre — merci d’avoir prévenu.')).toBeVisible();
 });

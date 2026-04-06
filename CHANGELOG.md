@@ -5,6 +5,9 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Modifié
+- **UI (textes)** : ton plus chaleureux et coopératif (tutoiement, toasts, sous-titres, aide intégrée) ; vocabulaire **n3beur / n3boss** conservé, formulations type **élève / professeur** retirées de l’interface (hors regex de compatibilité pour d’anciennes propositions). Fichiers principaux : `tasks-views.jsx`, `auth-views.jsx`, `App.jsx`, `constants/help.js`, `AutoProfilePromotionModal.jsx`, `stats-views.jsx`, `foretmap-views.jsx`, `profiles-views.jsx`, `settings-admin-views.jsx` ; e2e `tasks-unassign-flow`, `tasks-full-cycle` alignés sur les nouveaux toasts.
+
 ### Ajouté
 - **Tâches** : champ **`difficulty_level`** (`easy` | `medium` | `hard` | `very_hard`) en BDD, API et menu création/édition (y compris proposition n3beur) ; recopié sur les clones récurrents. Migration **`054_task_difficulty_level.sql`**.
 - **Tâches** : champ **`danger_level`** (`safe` | `dangerous` | `very_dangerous`) en BDD, API et formulaire création/édition (y compris proposition n3beur) ; recopié sur les clones récurrents. Migration **`053_task_danger_level.sql`**.

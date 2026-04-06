@@ -7,49 +7,49 @@ function resolveRoleText(entry, isTeacher) {
 const HELP_TOOLTIPS = {
   header: {
     userBadge: {
-      text: 'Voir ta progression et tes statistiques.',
-      textTeacher: 'Ouvrir les statistiques des n3beurs.',
+      text: 'Voir ta progression et tes stats — petit bilan perso.',
+      textTeacher: 'Voir où en sont les n3beurs (stats collectives).',
     },
-    profileEdit: { text: 'Modifier ton profil.' },
-    roleReset: { textTeacher: 'Revenir au role normal.' },
-    roleStudent: { textTeacher: 'Afficher l app comme un n3beur.' },
-    roleTeacher: { textTeacher: 'Afficher l app comme un n3boss.' },
+    profileEdit: { text: 'Ajuster ton profil (pseudo, avatar, etc.).' },
+    roleReset: { textTeacher: 'Revenir à ton affichage habituel.' },
+    roleStudent: { textTeacher: 'Voir l’app comme un n3beur (aperçu).' },
+    roleTeacher: { textTeacher: 'Voir l’app comme un n3boss (aperçu).' },
     elevatedMode: {
-      text: 'Mode n3boss avec plus de droits.',
-      textTeacher: 'Activer ou couper les droits etendus.',
+      text: 'Mode n3boss : plus de boutons utiles pour la coordination.',
+      textTeacher: 'Activer ou couper les droits étendus (PIN).',
     },
-    logout: { text: 'Se deconnecter de ForetMap.' },
-    notifications: { text: 'Nouvelles infos et rappels importants.' },
+    logout: { text: 'Quitter ForetMap proprement.' },
+    notifications: { text: 'Nouvelles infos, rappels et petites alertes utiles.' },
     impersonationStop: {
       text:
-        'Quitte la prise de contrôle : tu retrouves ton compte administrateur et tes droits (diagnostic ou support terminé).',
+        'Fin de la prise de contrôle : tu retrouves ton compte admin et tes droits (diagnostic ou support terminé).',
       textTeacher:
-        'Quitte la prise de contrôle : tu retrouves ton compte administrateur et tes droits. À utiliser quand le diagnostic ou le support est terminé.',
+        'Fin de la prise de contrôle : tu retrouves ton compte admin. À utiliser quand le diagnostic ou le support est terminé.',
     },
   },
   map: {
-    toggleGestures: { text: 'Activer ou bloquer les gestes sur la carte.' },
-    toggleLabels: { text: 'Afficher ou masquer les noms.' },
-    zoomIn: { text: 'Zoomer la carte.' },
-    zoomOut: { text: 'Dezoomer la carte.' },
-    zoomReset: { text: 'Revenir a la vue complete.' },
+    toggleGestures: { text: 'Autoriser ou figer les gestes sur la carte (pratique si ça bouge trop).' },
+    toggleLabels: { text: 'Afficher ou masquer les noms sur la carte.' },
+    zoomIn: { text: 'Zoomer pour voir le détail.' },
+    zoomOut: { text: 'Dézoomer pour voir plus large.' },
+    zoomReset: { text: 'Revenir à la vue complète d’un coup.' },
   },
   tasks: {
-    edit: { textTeacher: 'Modifier cette tache.' },
-    duplicate: { textTeacher: 'Creer une copie de cette tache.' },
-    delete: { textTeacher: 'Supprimer definitivement cette tache.' },
+    edit: { textTeacher: 'Modifier cette tâche.' },
+    duplicate: { textTeacher: 'Dupliquer cette tâche (copie rapide).' },
+    delete: { textTeacher: 'Supprimer définitivement cette tâche.' },
   },
   plants: {
-    edit: { textTeacher: 'Modifier cette fiche biodiversite.' },
-    delete: { textTeacher: 'Supprimer cette fiche biodiversite.' },
+    edit: { textTeacher: 'Modifier cette fiche biodiversité.' },
+    delete: { textTeacher: 'Supprimer cette fiche biodiversité.' },
   },
   visit: {
-    mediaDelete: { textTeacher: 'Supprimer cette photo.' },
+    mediaDelete: { textTeacher: 'Retirer cette photo de la visite.' },
   },
   profiles: {
     impersonateUser: {
       textTeacher:
-        'Ouvre une session réelle comme cet utilisateur (identité effective côté serveur). Un bandeau orange permet ensuite de revenir au compte admin. Réservé aux comptes avec la permission admin.impersonate.',
+        'Ouvre une session réelle comme cet utilisateur (identité effective côté serveur). Un bandeau orange permet de revenir au compte admin. Réservé à la permission admin.impersonate.',
     },
   },
 };
@@ -59,47 +59,47 @@ const HELP_PANELS = {
     title: 'Aide carte',
     items: [
       {
-        text: 'Appuie sur une zone ou un repere pour voir ses details.',
+        text: 'Appuie sur une zone ou un repère pour ouvrir sa fiche.',
       },
       {
-        text: 'Utilise + et - pour zoomer, puis ⊡ pour recentrer.',
+        text: 'Utilise + et − pour zoomer, puis ⊡ pour recentrer.',
       },
       {
-        text: 'Si la page bouge, active les gestes carte avec le bouton cadenas.',
+        text: 'Si la page bouge trop, verrouille les gestes avec le bouton cadenas.',
       },
       {
-        textTeacher: 'En mode n3boss, tu peux ajouter des zones et des reperes.',
+        textTeacher: 'En mode n3boss, tu peux ajouter des zones et des repères.',
       },
     ],
   },
   tasks: {
-    title: 'Aide taches',
+    title: 'Aide tâches',
     items: [
       {
-        text: 'Lis bien la consigne avant de prendre une tache.',
+        text: 'Lis la consigne, puis prends la mission si tu veux t’en charger.',
       },
       {
-        text: 'Quand tu as fini, envoie un rapport avec un commentaire ou une photo.',
+        text: 'Quand c’est fait, envoie un rapport : un mot, une photo, tout aide l’équipe.',
       },
       {
-        textTeacher: 'En mode n3boss, valide les taches terminees et gere les statuts.',
+        textTeacher: 'En mode n3boss, tu coches les retours et tu fais avancer les statuts.',
       },
       {
-        textTeacher: 'Tu peux modifier, dupliquer ou supprimer une tache.',
+        textTeacher: 'Tu peux modifier, dupliquer ou supprimer une tâche.',
       },
     ],
   },
   plants: {
-    title: 'Aide biodiversite',
+    title: 'Aide biodiversité',
     items: [
       {
-        text: 'Cherche un etre vivant par nom ou par groupe.',
+        text: 'Cherche un être vivant par nom ou par groupe.',
       },
       {
-        text: 'Ouvre une fiche pour voir ses infos utiles.',
+        text: 'Ouvre une fiche pour les infos utiles sur le terrain.',
       },
       {
-        textTeacher: 'En mode n3boss, ajoute et mets a jour les fiches biodiversite.',
+        textTeacher: 'En mode n3boss, tu enrichis et mets à jour les fiches.',
       },
     ],
   },
@@ -107,29 +107,29 @@ const HELP_PANELS = {
     title: 'Aide visite',
     items: [
       {
-        text: 'Clique une zone ou un repere pour afficher sa fiche.',
+        text: 'Clique une zone ou un repère pour afficher sa fiche.',
       },
       {
-        text: 'Marque ce que tu as deja vu pour suivre ta progression.',
+        text: 'Coche ce que tu as déjà vu : ta progression s’en souvient.',
       },
       {
         textTeacher: 'En mode n3boss, tu peux modifier le contenu de visite.',
       },
       {
-        textTeacher: 'Tu peux aussi choisir les tutoriels visibles pendant la visite.',
+        textTeacher: 'Tu choisis aussi quels tutoriels sont visibles pendant la visite.',
       },
     ],
   },
   profiles: {
-    title: 'Aide profils et utilisateurs',
+    title: 'Aide profils et comptes',
     items: [
       {
         textTeacher:
-          'Gère les profils RBAC (permissions, PIN, forum, commentaires contextuels) et attribue un profil principal à chaque compte.',
+          'Gère les profils RBAC (permissions, PIN, forum, commentaires contextuels) et rattache un profil principal à chaque compte.',
       },
       {
         textTeacher:
-          'Prise de contrôle : depuis « Modifier » un compte, « Voir comme cet utilisateur » reproduit l’expérience réelle de ce n3beur ou n3boss ; utilise le bandeau pour revenir à ton compte admin.',
+          'Prise de contrôle : depuis « Modifier » un compte, « Voir comme cet utilisateur » reproduit l’expérience réelle de ce n3beur ou n3boss ; le bandeau te ramène à ton compte admin.',
       },
     ],
   },
