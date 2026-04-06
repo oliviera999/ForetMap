@@ -398,8 +398,8 @@ Contraintes principales :
 
 - Statuts tâche supportés : `available`, `in_progress`, `done`, `validated`, `proposed`, `on_hold`.
 - Modes de validation supportés (`completion_mode`) : `single_done` (défaut), `all_assignees_done`.
-- Niveaux de danger (`danger_level`) : `safe` (défaut, sans danger), `dangerous`, `very_dangerous`. Présent sur les réponses liste/détail ; `POST /api/tasks`, `PUT /api/tasks/:id` et `POST /api/tasks/proposals` acceptent ce champ (valeur invalide → **400**). Les n3beurs peuvent le modifier sur **leur** proposition (`proposed`) comme les autres champs non réservés au prof.
-- Niveaux de difficulté (`difficulty_level`) : `easy` (défaut, facile), `medium`, `hard`, `very_hard`. Mêmes routes et règles que `danger_level` (réponses liste/détail, **400** si valeur invalide, modifiable par le proposant sur une proposition `proposed`). Les clones **récurrents** reprennent la difficulté de la tâche source.
+- Niveaux de danger (`danger_level`) : optionnel ; valeurs `safe`, `dangerous`, `very_dangerous`. Si non renseigné, le champ vaut **`null`** en réponse (pas de niveau implicite). `POST /api/tasks`, `PUT /api/tasks/:id` et `POST /api/tasks/proposals` : champ omis, chaîne vide ou **`null`** → enregistrement **`null`** ; valeur invalide → **400**. Les n3beurs peuvent le modifier sur **leur** proposition (`proposed`) comme les autres champs non réservés au prof.
+- Niveaux de difficulté (`difficulty_level`) : optionnel ; valeurs `easy`, `medium`, `hard`, `very_hard`. Mêmes règles que `danger_level` (`null` si non renseigné). Les clones **récurrents** reprennent les niveaux de la tâche source (y compris **`null`**).
 - Statuts projet supportés : `active`, `on_hold` (retourné dans `project_status` sur les payloads de tâche).
 - Champ optionnel `start_date` (`YYYY-MM-DD`) sur les tâches ; tant que la date n’est pas atteinte, la tâche est considérée en attente (`is_before_start_date: true` dans les payloads).
 - Si une tâche est `on_hold` **ou** si son projet est `on_hold`, `POST /api/tasks/:id/assign` renvoie `400` (inscription n3beur bloquée).

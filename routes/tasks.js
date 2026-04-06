@@ -135,15 +135,35 @@ function normalizeTaskCompletionMode(value) {
   return ALLOWED_TASK_COMPLETION_MODES.has(raw) ? raw : null;
 }
 
-function normalizeTaskDangerLevel(value) {
+/** Entrée client : absent / vide / null → non renseigné (null SQL) ; valeur invalide → { error }. */
+function parseTaskDangerLevelFromClient(value) {
+  if (value === undefined || value === null) return { level: null };
   const raw = asTrimmedString(value).toLowerCase();
-  if (!raw) return 'safe';
+  if (!raw) return { level: null };
+  if (ALLOWED_TASK_DANGER_LEVELS.has(raw)) return { level: raw };
+  return { error: 'Niveau de danger invalide' };
+}
+
+function parseTaskDifficultyLevelFromClient(value) {
+  if (value === undefined || value === null) return { level: null };
+  const raw = asTrimmedString(value).toLowerCase();
+  if (!raw) return { level: null };
+  if (ALLOWED_TASK_DIFFICULTY_LEVELS.has(raw)) return { level: raw };
+  return { error: 'Niveau de difficulté invalide' };
+}
+
+/** Valeur BDD → clé API ou null (jamais de défaut implicite). */
+function taskDangerLevelForResponse(value) {
+  if (value == null) return null;
+  const raw = asTrimmedString(value).toLowerCase();
+  if (!raw) return null;
   return ALLOWED_TASK_DANGER_LEVELS.has(raw) ? raw : null;
 }
 
-function normalizeTaskDifficultyLevel(value) {
+function taskDifficultyLevelForResponse(value) {
+  if (value == null) return null;
   const raw = asTrimmedString(value).toLowerCase();
-  if (!raw) return 'easy';
+  if (!raw) return null;
   return ALLOWED_TASK_DIFFICULTY_LEVELS.has(raw) ? raw : null;
 }
 
@@ -883,8 +903,8 @@ async function getTaskWithAssignments(taskId) {
   enrichTaskRow(task, zm.get(taskId), mm.get(taskId), tm.get(taskId), rm.get(taskId));
   task.status = normalizeTaskStatusForRead(task.status);
   task.completion_mode = normalizeTaskCompletionMode(task.completion_mode) || 'single_done';
-  task.danger_level = normalizeTaskDangerLevel(task.danger_level) || 'safe';
-  task.difficulty_level = normalizeTaskDifficultyLevel(task.difficulty_level) || 'easy';
+  task.danger_level = taskDangerLevelForResponse(task.danger_level);
+  task.difficulty_level = taskDifficultyLevelForResponse(task.difficulty_level);
   task.is_before_start_date = isTaskBeforeStartDate(task);
   if (!task.zone_name && task.zone_name_legacy) task.zone_name = task.zone_name_legacy;
   if (!task.marker_label && task.marker_label_legacy) task.marker_label = task.marker_label_legacy;
@@ -1072,8 +1092,8 @@ router.get('/', async (req, res) => {
       enrichTaskRow(row, zm.get(t.id), mm.get(t.id), tutorialsMap.get(t.id), referentsMap.get(t.id));
       row.status = normalizeTaskStatusForRead(row.status);
       row.completion_mode = normalizeTaskCompletionMode(row.completion_mode) || 'single_done';
-      row.danger_level = normalizeTaskDangerLevel(row.danger_level) || 'safe';
-      row.difficulty_level = normalizeTaskDifficultyLevel(row.difficulty_level) || 'easy';
+      row.danger_level = taskDangerLevelForResponse(row.danger_level);
+      row.difficulty_level = taskDifficultyLevelForResponse(row.difficulty_level);
       row.is_before_start_date = isTaskBeforeStartDate(row);
       delete row.map_id_resolved_join;
       row.assignments = assignmentsByTask.get(t.id) || [];
@@ -1414,8 +1434,8 @@ router.post('/import', requirePermission('tasks.manage', { needsElevation: true 
           task.requiredStudents || 1,
           task.status || 'available',
           task.recurrence || null,
-          'safe',
-          'easy',
+          null,
+          null,
           new Date().toISOString(),
         ]
       );
@@ -1492,10 +1512,10 @@ router.post('/', requirePermission('tasks.manage', { needsElevation: true }), as
     const reqStudents = sanitizeRequiredStudents(required_students);
     const completionMode = normalizeTaskCompletionMode(completion_mode);
     if (!completionMode) return res.status(400).json({ error: 'Mode de validation invalide' });
-    const dangerLevelNorm = normalizeTaskDangerLevel(danger_level);
-    if (dangerLevelNorm === null) return res.status(400).json({ error: 'Niveau de danger invalide' });
-    const difficultyLevelNorm = normalizeTaskDifficultyLevel(difficulty_level);
-    if (difficultyLevelNorm === null) return res.status(400).json({ error: 'Niveau de difficulté invalide' });
+    const parsedDanger = parseTaskDangerLevelFromClient(danger_level);
+    if (parsedDanger.error) return res.status(400).json({ error: parsedDanger.error });
+    const parsedDifficulty = parseTaskDifficultyLevelFromClient(difficulty_level);
+    if (parsedDifficulty.error) return res.status(400).json({ error: parsedDifficulty.error });
     const id = uuidv4();
     await execute(
       'INSERT INTO tasks (id, title, description, map_id, project_id, zone_id, marker_id, start_date, due_date, required_students, completion_mode, danger_level, difficulty_level, recurrence, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
@@ -1511,8 +1531,8 @@ router.post('/', requirePermission('tasks.manage', { needsElevation: true }), as
         due_date || null,
         reqStudents,
         completionMode,
-        dangerLevelNorm,
-        difficultyLevelNorm,
+        parsedDanger.level,
+        parsedDifficulty.level,
         recurrence || null,
         new Date().toISOString(),
       ]
@@ -1577,10 +1597,10 @@ router.post('/proposals', async (req, res) => {
     const loc = await validateTaskLocations(zIds, mIds, explicitMap);
     if (loc.error) return res.status(400).json({ error: loc.error });
     const reqStudents = sanitizeRequiredStudents(required_students);
-    const proposalDangerLevel = normalizeTaskDangerLevel(danger_level);
-    if (proposalDangerLevel === null) return res.status(400).json({ error: 'Niveau de danger invalide' });
-    const proposalDifficultyLevel = normalizeTaskDifficultyLevel(difficulty_level);
-    if (proposalDifficultyLevel === null) return res.status(400).json({ error: 'Niveau de difficulté invalide' });
+    const proposalDangerParsed = parseTaskDangerLevelFromClient(danger_level);
+    if (proposalDangerParsed.error) return res.status(400).json({ error: proposalDangerParsed.error });
+    const proposalDifficultyParsed = parseTaskDifficultyLevelFromClient(difficulty_level);
+    if (proposalDifficultyParsed.error) return res.status(400).json({ error: proposalDifficultyParsed.error });
 
     const id = uuidv4();
     const proposer = `${String(firstName).trim()} ${String(lastName).trim()}`.trim();
@@ -1604,8 +1624,8 @@ router.post('/proposals', async (req, res) => {
         due_date || null,
         reqStudents,
         'single_done',
-        proposalDangerLevel,
-        proposalDifficultyLevel,
+        proposalDangerParsed.level,
+        proposalDifficultyParsed.level,
         'proposed',
         null,
         new Date().toISOString(),
@@ -1739,18 +1759,20 @@ router.put('/:id', async (req, res) => {
 
     let nextDangerLevel;
     if (Object.prototype.hasOwnProperty.call(req.body, 'danger_level')) {
-      nextDangerLevel = normalizeTaskDangerLevel(danger_level);
-      if (nextDangerLevel === null) return res.status(400).json({ error: 'Niveau de danger invalide' });
+      const p = parseTaskDangerLevelFromClient(danger_level);
+      if (p.error) return res.status(400).json({ error: p.error });
+      nextDangerLevel = p.level;
     } else {
-      nextDangerLevel = normalizeTaskDangerLevel(task.danger_level) || 'safe';
+      nextDangerLevel = task.danger_level;
     }
 
     let nextDifficultyLevel;
     if (Object.prototype.hasOwnProperty.call(req.body, 'difficulty_level')) {
-      nextDifficultyLevel = normalizeTaskDifficultyLevel(difficulty_level);
-      if (nextDifficultyLevel === null) return res.status(400).json({ error: 'Niveau de difficulté invalide' });
+      const p = parseTaskDifficultyLevelFromClient(difficulty_level);
+      if (p.error) return res.status(400).json({ error: p.error });
+      nextDifficultyLevel = p.level;
     } else {
-      nextDifficultyLevel = normalizeTaskDifficultyLevel(task.difficulty_level) || 'easy';
+      nextDifficultyLevel = task.difficulty_level;
     }
 
     const currentStatus = normalizeTaskStatusForRead(task.status);

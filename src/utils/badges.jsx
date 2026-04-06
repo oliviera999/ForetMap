@@ -74,18 +74,22 @@ export function dueDateChip(date) {
   );
 }
 
-const TASK_DIFFICULTY_LEVELS = ['easy', 'medium', 'hard', 'very_hard'];
-const TASK_DANGER_LEVELS = ['safe', 'dangerous', 'very_dangerous'];
+const TASK_DIFFICULTY_LEVELS = new Set(['easy', 'medium', 'hard', 'very_hard']);
+const TASK_DANGER_LEVELS = new Set(['safe', 'dangerous', 'very_dangerous']);
 
-/** Valeurs alignées sur l’API (`routes/tasks.js`). */
-export function normalizeTaskDifficultyLevel(value) {
-  const raw = String(value || '').trim().toLowerCase();
-  return TASK_DIFFICULTY_LEVELS.includes(raw) ? raw : 'easy';
+/** Niveau renseigné explicitement (sinon null — pas d’affichage). */
+export function getDefinedTaskDifficultyLevel(task) {
+  const v = task?.difficulty_level;
+  if (v == null) return null;
+  const raw = String(v).trim().toLowerCase();
+  return TASK_DIFFICULTY_LEVELS.has(raw) ? raw : null;
 }
 
-export function normalizeTaskDangerLevel(value) {
-  const raw = String(value || '').trim().toLowerCase();
-  return TASK_DANGER_LEVELS.includes(raw) ? raw : 'safe';
+export function getDefinedTaskDangerLevel(task) {
+  const v = task?.danger_level;
+  if (v == null) return null;
+  const raw = String(v).trim().toLowerCase();
+  return TASK_DANGER_LEVELS.has(raw) ? raw : null;
 }
 
 const TASK_DIFFICULTY_DISPLAY = {
@@ -103,27 +107,32 @@ const TASK_DANGER_DISPLAY = {
 
 /** Tâche à traiter avec les référents avant toute action (difficulté élevée ou risque). */
 export function taskRequiresReferentBriefingBeforeStart(task) {
-  const d = normalizeTaskDifficultyLevel(task?.difficulty_level);
-  const g = normalizeTaskDangerLevel(task?.danger_level);
+  const d = getDefinedTaskDifficultyLevel(task);
+  const g = getDefinedTaskDangerLevel(task);
   return d === 'hard' || d === 'very_hard' || g === 'dangerous' || g === 'very_dangerous';
 }
 
-/** Pastilles difficulté + danger, même style que zone / mode de validation. */
+/** Pastilles difficulté et/ou danger uniquement si renseignés côté fiche tâche. */
 export function TaskDifficultyAndRiskChips({ task }) {
-  const d = normalizeTaskDifficultyLevel(task?.difficulty_level);
-  const g = normalizeTaskDangerLevel(task?.danger_level);
-  const diff = TASK_DIFFICULTY_DISPLAY[d];
-  const risk = TASK_DANGER_DISPLAY[g];
+  const d = getDefinedTaskDifficultyLevel(task);
+  const g = getDefinedTaskDangerLevel(task);
+  const diff = d ? TASK_DIFFICULTY_DISPLAY[d] : null;
+  const risk = g ? TASK_DANGER_DISPLAY[g] : null;
   const riskExtraClass = g === 'very_dangerous' ? ' urgent' : '';
   const riskStyle = g === 'dangerous' ? { background: '#fffbeb', color: '#b45309' } : undefined;
+  if (!diff && !risk) return null;
   return (
     <>
-      <span className="task-chip" title={diff.title}>
-        {diff.emoji} {diff.label}
-      </span>
-      <span className={`task-chip${riskExtraClass}`} title={risk.title} style={riskStyle}>
-        {risk.emoji} {risk.label}
-      </span>
+      {diff ? (
+        <span className="task-chip" title={diff.title}>
+          {diff.emoji} {diff.label}
+        </span>
+      ) : null}
+      {risk ? (
+        <span className={`task-chip${riskExtraClass}`} title={risk.title} style={riskStyle}>
+          {risk.emoji} {risk.label}
+        </span>
+      ) : null}
     </>
   );
 }
