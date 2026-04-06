@@ -78,6 +78,11 @@ const KEY_META = {
     section: 'tasks',
     order: 10,
   },
+  'tasks.recurring_automation_enabled': {
+    label: 'Duplication automatique des tâches récurrentes (job quotidien). Désactiver pendant les vacances pour bloquer la création auto ; le rattrapage manuel via `npm run tasks:spawn-recurring` reste possible.',
+    section: 'tasks',
+    order: 20,
+  },
   'rbac.progression_by_validated_tasks': {
     label: 'Montée de niveau auto. selon les tâches validées',
     section: 'progression',
