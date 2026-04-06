@@ -1539,7 +1539,7 @@ function App() {
               <button className={`top-tab ${tab === 'stats' ? 'active' : ''}`} onClick={() => setTab('stats')}>📊 Stats</button>
             )}
             {publicSettings?.modules?.visit_enabled !== false && (
-              <button className={`top-tab ${tab === 'visit' ? 'active' : ''}`} onClick={() => setTab('visit')}>🧭 Visites</button>
+              <button className={`top-tab ${tab === 'visit' ? 'active' : ''}`} onClick={() => setTab('visit')}>🧭 Visite</button>
             )}
             {(
               hasPermissionInRole('admin.roles.manage')

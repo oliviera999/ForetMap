@@ -430,13 +430,6 @@ function VisitView({
   const visitEmptySelection = getContentText(publicSettings, 'visit.empty_selection', 'Sélectionne une zone ou un repère pour afficher les détails.');
   const visitTutorialsTitle = getContentText(publicSettings, 'visit.tutorials_title', '📘 Tutoriels de la visite');
   const visitTutorialsEmpty = getContentText(publicSettings, 'visit.tutorials_empty', 'Aucun tutoriel sélectionné pour le moment.');
-  const studentIdForProgress = useMemo(() => {
-    if (isTeacher) return null;
-    if (!student?.id) return null;
-    if (student?.preview_mode) return null;
-    const id = String(student.id).trim();
-    return id || null;
-  }, [isTeacher, student?.id, student?.preview_mode]);
   const [mapId, setMapId] = useState(initialMapId || 'foret');
   const [maps, setMaps] = useState([]);
   const [content, setContent] = useState({ zones: [], markers: [], tutorials: [] });
@@ -538,9 +531,7 @@ function VisitView({
       const [mapsRes, visitRes, progressRes] = await Promise.all([
         api('/api/maps').catch(() => []),
         api(`/api/visit/content?map_id=${encodeURIComponent(mapId)}`),
-        api(studentIdForProgress
-          ? `/api/visit/progress?student_id=${encodeURIComponent(studentIdForProgress)}`
-          : '/api/visit/progress'),
+        api('/api/visit/progress'),
       ]);
       const fetchedMaps = Array.isArray(mapsRes) ? mapsRes : [];
       const activeMaps = fetchedMaps.filter((m) => m?.is_active !== false);
@@ -553,23 +544,31 @@ function VisitView({
       setTutorialSelection((visitRes?.tutorials || []).map((t) => t.id));
       const nextSeen = new Set((progressRes?.seen || []).map((r) => itemSeenKey(r.target_type, r.target_id)));
       setSeen(nextSeen);
-      if (selected?.id) {
-        const nextFromZone = (visitRes?.zones || []).find((z) => z.id === selected.id);
-        const nextFromMarker = (visitRes?.markers || []).find((m) => m.id === selected.id);
-        setSelected(nextFromZone || nextFromMarker || null);
-        if (!nextFromZone && !nextFromMarker) setSelectedType(null);
-      }
     } catch (err) {
       if (err instanceof AccountDeletedError) onForceLogout?.();
       else alert(err.message || 'Erreur chargement visite');
     } finally {
       setLoading(false);
     }
-  }, [mapId, onForceLogout, selected?.id, studentIdForProgress]);
+  }, [mapId, onForceLogout]);
 
   useEffect(() => {
     loadData();
   }, [loadData]);
+
+  useEffect(() => {
+    if (loading) return;
+    const sid = selected?.id;
+    const st = selectedType;
+    if (!sid || !st) return;
+    const list = st === 'zone' ? (content.zones || []) : (content.markers || []);
+    const next = list.find((x) => x.id === sid);
+    if (next) setSelected(next);
+    else {
+      setSelected(null);
+      setSelectedType(null);
+    }
+  }, [content, loading, selected?.id, selectedType]);
 
   useEffect(() => {
     resetMapTransform();
@@ -590,23 +589,29 @@ function VisitView({
   const onToggleSeen = async () => {
     if (!selected || !selectedType) return;
     const key = itemSeenKey(selectedType, selected.id);
-    const next = !seen.has(key);
-    const optimistic = new Set(seen);
-    if (next) optimistic.add(key);
-    else optimistic.delete(key);
-    setSeen(optimistic);
+    const wasSeen = seen.has(key);
+    setSeen((prev) => {
+      const optimistic = new Set(prev);
+      if (wasSeen) optimistic.delete(key);
+      else optimistic.add(key);
+      return optimistic;
+    });
     setSavingSeen(true);
     try {
       await api('/api/visit/seen', 'POST', {
         target_type: selectedType,
         target_id: selected.id,
-        seen: next,
-        student_id: studentIdForProgress,
+        seen: !wasSeen,
       });
     } catch (err) {
       if (err instanceof AccountDeletedError) onForceLogout?.();
       else alert(err.message || 'Erreur mise à jour');
-      setSeen(seen);
+      setSeen((prev) => {
+        const revert = new Set(prev);
+        if (wasSeen) revert.add(key);
+        else revert.delete(key);
+        return revert;
+      });
     } finally {
       setSavingSeen(false);
     }
@@ -786,7 +791,7 @@ function VisitView({
   const saveTutorialSelection = async () => {
     setSavingTutorials(true);
     try {
-      await api('/api/visit/tutorials', 'PUT', { tutorial_ids: tutorialSelection });
+      await api('/api/visit/tutorials', 'PUT', { map_id: mapId, tutorial_ids: tutorialSelection });
       await loadData();
     } catch (err) {
       if (err instanceof AccountDeletedError) onForceLogout?.();

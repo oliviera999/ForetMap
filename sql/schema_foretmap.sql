@@ -633,14 +633,17 @@ CREATE TABLE IF NOT EXISTS visit_media (
   INDEX idx_visit_media_sort (sort_order, id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- visite : sélection de tutoriels affichés sous la carte
+-- visite : sélection de tutoriels affichés sous la carte (par plan map_id)
 CREATE TABLE IF NOT EXISTS visit_tutorials (
-  tutorial_id INT UNSIGNED NOT NULL PRIMARY KEY,
+  map_id VARCHAR(32) NOT NULL,
+  tutorial_id INT UNSIGNED NOT NULL,
   is_active TINYINT(1) NOT NULL DEFAULT 1,
   sort_order INT UNSIGNED DEFAULT 0,
   updated_at VARCHAR(32) DEFAULT NULL,
-  INDEX idx_visit_tutorials_active_sort (is_active, sort_order),
-  CONSTRAINT fk_visit_tutorials_tutorial FOREIGN KEY (tutorial_id) REFERENCES tutorials(id) ON DELETE CASCADE
+  PRIMARY KEY (map_id, tutorial_id),
+  INDEX idx_visit_tutorials_active_sort (map_id, is_active, sort_order),
+  CONSTRAINT fk_visit_tutorials_tutorial FOREIGN KEY (tutorial_id) REFERENCES tutorials(id) ON DELETE CASCADE,
+  CONSTRAINT fk_visit_tutorials_map FOREIGN KEY (map_id) REFERENCES maps(id) ON DELETE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- visite : progression vue/non-vu pour élèves connectés

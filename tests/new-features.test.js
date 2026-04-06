@@ -743,10 +743,13 @@ test('Progression visite élève connecté persiste en BDD', async () => {
   const markerId = markerRes.body.id;
   assert.ok(markerId);
 
+  const studentToken = studentData.authToken;
+  assert.ok(studentToken);
+
   await request(app)
     .post('/api/visit/seen')
+    .set('Authorization', `Bearer ${studentToken}`)
     .send({
-      student_id: studentData.id,
       target_type: 'marker',
       target_id: markerId,
       seen: true,
@@ -754,11 +757,84 @@ test('Progression visite élève connecté persiste en BDD', async () => {
     .expect(200);
 
   const progress = await request(app)
-    .get(`/api/visit/progress?student_id=${encodeURIComponent(studentData.id)}`)
+    .get('/api/visit/progress')
+    .set('Authorization', `Bearer ${studentToken}`)
     .expect(200);
 
   assert.strictEqual(progress.body.mode, 'student');
   assert.ok(progress.body.seen.some((item) => item.target_type === 'marker' && item.target_id === markerId));
+});
+
+test('GET /api/visit/progress?student_id refuse sans jeton élève', async () => {
+  await request(app)
+    .get(`/api/visit/progress?student_id=${encodeURIComponent(studentData.id)}`)
+    .expect(401);
+});
+
+test('GET /api/visit/progress?student_id refuse si le jeton est un autre élève', async () => {
+  const other = await request(app)
+    .post('/api/auth/register')
+    .send({ firstName: 'Prog', lastName: `X${Date.now()}`, password: 'pwd123', affiliation: 'n3' })
+    .expect(201);
+  await setStudentPrimaryRole(other.body.id, 'eleve_novice');
+  await request(app)
+    .get(`/api/visit/progress?student_id=${encodeURIComponent(studentData.id)}`)
+    .set('Authorization', `Bearer ${other.body.authToken}`)
+    .expect(403);
+});
+
+test('POST /api/visit/seen avec student_id refuse sans authentification', async () => {
+  const markerRes = await request(app)
+    .post('/api/visit/markers')
+    .set('Authorization', 'Bearer ' + teacherToken)
+    .send({
+      map_id: 'foret',
+      x_pct: 36,
+      y_pct: 36,
+      label: `Repère IDOR ${Date.now()}`,
+      emoji: '📍',
+    })
+    .expect(201);
+  await request(app)
+    .post('/api/visit/seen')
+    .send({
+      student_id: studentData.id,
+      target_type: 'marker',
+      target_id: markerRes.body.id,
+      seen: true,
+    })
+    .expect(401);
+});
+
+test('POST /api/visit/seen refuse student_id différent du compte authentifié', async () => {
+  const other = await request(app)
+    .post('/api/auth/register')
+    .send({ firstName: 'Other', lastName: `V${Date.now()}`, password: 'pwd123', affiliation: 'n3' })
+    .expect(201);
+  await setStudentPrimaryRole(other.body.id, 'eleve_novice');
+
+  const markerRes = await request(app)
+    .post('/api/visit/markers')
+    .set('Authorization', 'Bearer ' + teacherToken)
+    .send({
+      map_id: 'foret',
+      x_pct: 37,
+      y_pct: 37,
+      label: `Repère mismatch ${Date.now()}`,
+      emoji: '📍',
+    })
+    .expect(201);
+
+  await request(app)
+    .post('/api/visit/seen')
+    .set('Authorization', `Bearer ${other.body.authToken}`)
+    .send({
+      student_id: studentData.id,
+      target_type: 'marker',
+      target_id: markerRes.body.id,
+      seen: true,
+    })
+    .expect(403);
 });
 
 test('GET /api/visit/stats sans token renvoie 401', async () => {
