@@ -73,3 +73,57 @@ export function dueDateChip(date) {
     <span className={`task-chip ${d <= 1 ? 'urgent' : ''}`}>📅 {label}</span>
   );
 }
+
+const TASK_DIFFICULTY_LEVELS = ['easy', 'medium', 'hard', 'very_hard'];
+const TASK_DANGER_LEVELS = ['safe', 'dangerous', 'very_dangerous'];
+
+/** Valeurs alignées sur l’API (`routes/tasks.js`). */
+export function normalizeTaskDifficultyLevel(value) {
+  const raw = String(value || '').trim().toLowerCase();
+  return TASK_DIFFICULTY_LEVELS.includes(raw) ? raw : 'easy';
+}
+
+export function normalizeTaskDangerLevel(value) {
+  const raw = String(value || '').trim().toLowerCase();
+  return TASK_DANGER_LEVELS.includes(raw) ? raw : 'safe';
+}
+
+const TASK_DIFFICULTY_DISPLAY = {
+  easy: { emoji: '🌱', label: 'Facile', title: 'Difficulté : facile' },
+  medium: { emoji: '🪜', label: 'Moyen', title: 'Difficulté : moyenne' },
+  hard: { emoji: '🧗', label: 'Compliqué', title: 'Difficulté : compliquée' },
+  very_hard: { emoji: '⛰️', label: 'Super compliqué', title: 'Difficulté : très élevée' },
+};
+
+const TASK_DANGER_DISPLAY = {
+  safe: { emoji: '🛡️', label: 'Sans danger', title: 'Danger : sans danger' },
+  dangerous: { emoji: '⚠️', label: 'Dangereux', title: 'Danger : dangereux — précautions requises' },
+  very_dangerous: { emoji: '🚨', label: 'Très dangereux', title: 'Danger : très dangereux — accord adulte requis' },
+};
+
+/** Tâche à traiter avec les référents avant toute action (difficulté élevée ou risque). */
+export function taskRequiresReferentBriefingBeforeStart(task) {
+  const d = normalizeTaskDifficultyLevel(task?.difficulty_level);
+  const g = normalizeTaskDangerLevel(task?.danger_level);
+  return d === 'hard' || d === 'very_hard' || g === 'dangerous' || g === 'very_dangerous';
+}
+
+/** Pastilles difficulté + danger, même style que zone / mode de validation. */
+export function TaskDifficultyAndRiskChips({ task }) {
+  const d = normalizeTaskDifficultyLevel(task?.difficulty_level);
+  const g = normalizeTaskDangerLevel(task?.danger_level);
+  const diff = TASK_DIFFICULTY_DISPLAY[d];
+  const risk = TASK_DANGER_DISPLAY[g];
+  const riskExtraClass = g === 'very_dangerous' ? ' urgent' : '';
+  const riskStyle = g === 'dangerous' ? { background: '#fffbeb', color: '#b45309' } : undefined;
+  return (
+    <>
+      <span className="task-chip" title={diff.title}>
+        {diff.emoji} {diff.label}
+      </span>
+      <span className={`task-chip${riskExtraClass}`} title={risk.title} style={riskStyle}>
+        {risk.emoji} {risk.label}
+      </span>
+    </>
+  );
+}

@@ -6,6 +6,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 ## [Non publié]
 
 ### Modifié
+- **Tâches (UI)** : pastilles **difficulté** et **danger** visibles sur chaque carte tâche (liste Tâches et inscription depuis zone/repère sur la carte), avec émojis ; si la tâche est **compliquée / super compliquée** ou **dangereuse / très dangereuse**, le bloc référents demande de **se référer aux référents avant de commencer** ; si aucun référent n’est renseigné, un rappel vers l’équipe pédagogique s’affiche (`badges.jsx`, `tasks-views.jsx`, `map-views.jsx`).
 - **Build** : régénération des artefacts **`dist/`** (Vite production) pour alignement avec les sources courantes.
 - **Vue Tâches** : les puces **zone** sur les cartes (liste élève/prof, cartes projet) et les libellés de zone dans le formulaire / le filtre n’affichent plus le préfixe 🌿 — le nom de zone porte déjà son émoji (`tasks-views.jsx`).
 - **UI (textes)** : ton plus chaleureux et coopératif (tutoiement, toasts, sous-titres, aide intégrée) ; vocabulaire **n3beur / n3boss** conservé, formulations type **élève / professeur** retirées de l’interface (hors regex de compatibilité pour d’anciennes propositions). Fichiers principaux : `tasks-views.jsx`, `auth-views.jsx`, `App.jsx`, `constants/help.js`, `AutoProfilePromotionModal.jsx`, `stats-views.jsx`, `foretmap-views.jsx`, `profiles-views.jsx`, `settings-admin-views.jsx` ; e2e `tasks-unassign-flow`, `tasks-full-cycle` alignés sur les nouveaux toasts.

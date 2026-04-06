@@ -11,7 +11,7 @@ import {
   stripLeadingMarkerEmoji,
   clampEmojiInput,
 } from '../constants/emojis';
-import { stageBadge } from '../utils/badges';
+import { stageBadge, TaskDifficultyAndRiskChips } from '../utils/badges';
 import { compressImage } from '../utils/image';
 import { useDialogA11y } from '../hooks/useDialogA11y';
 import { useHelp } from '../hooks/useHelp';
@@ -700,6 +700,7 @@ function ZoneInfoModal({ zone, plants, tasks, isTeacher, student, canSelfAssignT
                             <span className="task-chip" style={{ color: meta.tone, borderColor: meta.border, background: meta.bg }}>
                               <span style={{ marginRight: 4, opacity: .8 }}>{meta.dot}</span>{meta.label}
                             </span>
+                            <TaskDifficultyAndRiskChips task={t} />
                           </div>
                         </div>
                       </label>
@@ -1083,6 +1084,7 @@ function MarkerModal({ marker, plants, tasks, onClose, onSave, onDelete, onLinkT
                               <span className="task-chip" style={{ color: meta.tone, borderColor: meta.border, background: meta.bg }}>
                                 <span style={{ marginRight: 4, opacity: .8 }}>{meta.dot}</span>{meta.label}
                               </span>
+                              <TaskDifficultyAndRiskChips task={t} />
                             </div>
                           </div>
                         </label>
