@@ -219,13 +219,14 @@ function TaskFormModal({
     due_date: editTask.due_date || '',
     required_students: editTask.required_students || 1,
     completion_mode: getCompletionMode(editTask),
+    danger_level: editTask.danger_level || 'safe',
     recurrence: editTask.recurrence || '',
     assign_student_ids: []
   } : {
     title: '', description: '', map_id: initialMapId || '',
     zone_ids: [], marker_ids: [], tutorial_ids: [], referent_user_ids: [],
     project_id: defaultProjectForNew ? String(defaultProjectForNew.id) : '',
-    start_date: '', due_date: '', required_students: 1, completion_mode: 'single_done', recurrence: '',
+    start_date: '', due_date: '', required_students: 1, completion_mode: 'single_done', danger_level: 'safe', recurrence: '',
     assign_student_ids: []
   });
   const [saving, setSaving] = useState(false);
@@ -366,6 +367,7 @@ function TaskFormModal({
       due_date: form.due_date || null,
       required_students: form.required_students,
       completion_mode: form.completion_mode || 'single_done',
+      danger_level: form.danger_level || 'safe',
       recurrence: form.recurrence || null,
       assign_student_ids: [...new Set((form.assign_student_ids || []).map((id) => String(id || '').trim()).filter(Boolean))],
     };
@@ -739,6 +741,15 @@ function TaskFormModal({
             </div>
           </div>
         )}
+        <div className="row">
+          <div className="field"><label>Niveau de danger</label>
+            <select value={form.danger_level || 'safe'} onChange={set('danger_level')}>
+              <option value="safe">Sans danger</option>
+              <option value="dangerous">Dangereux</option>
+              <option value="very_dangerous">Très dangereux</option>
+            </select>
+          </div>
+        </div>
         {!isProposal && (
           <div className="row">
             <div className="field"><label>Mode de validation</label>
