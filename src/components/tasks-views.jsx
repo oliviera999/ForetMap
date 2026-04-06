@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo, useId } from 'react';
 import { createPortal } from 'react-dom';
 import { api, API, getAuthToken, AccountDeletedError } from '../services/api';
-import { taskStatusIndicator, daysUntil, dueDateChip } from '../utils/badges';
+import { taskStatusIndicator, daysUntil, dueDateChip, TaskDifficultyAndRiskChips, taskRequiresReferentBriefingBeforeStart } from '../utils/badges';
 import { getRoleTerms } from '../utils/n3-terminology';
 import { useDialogA11y } from '../hooks/useDialogA11y';
 import { useHelp } from '../hooks/useHelp';
@@ -2484,6 +2484,8 @@ function TaskTileCard({
     const canQuickAssign = isQuickAssignOpen && teacherQuickAssignCanApply(t, quickAssignStudentIds);
     const quickAssignBusy = !!loading[`${t.id}assign_teacher_quick`];
     const quickAssignTitle = isQuickAssignOpen ? quickAssignHint(t, quickAssignStudentIds) : '';
+    const referentBriefing = taskRequiresReferentBriefingBeforeStart(t);
+    const referentsLinked = t.referents_linked || [];
     return (
       <div
         className={`task-card ${viewMode === 'tiles' ? 'task-card--tile' : ''} fade-in ${isMine ? 'mine' : ''} ${effectiveStatus === 'validated' ? 'done' : ''} ${effectiveStatus === 'proposed' ? 'proposed' : ''}`}
@@ -2516,23 +2518,47 @@ function TaskTileCard({
           {dueDateChip(t.due_date)}
           {!isTeacher && <span className="task-chip">👤 {t.required_students} {t.required_students > 1 ? roleTerms.studentPlural : roleTerms.studentSingular}</span>}
           <span className="task-chip">🧩 {completionModeLabel(completionMode)}</span>
+          <TaskDifficultyAndRiskChips task={t} />
           {isCollectiveCompletion && <span className="task-chip">✅ {doneCount}/{totalCount} terminé{totalCount > 1 ? 's' : ''}</span>}
           {t.recurrence && <span className="task-chip">🔄 {t.recurrence === 'weekly' ? 'Hebdo' : t.recurrence === 'biweekly' ? 'Bi-hebdo' : t.recurrence === 'monthly' ? 'Mensuel' : t.recurrence}</span>}
         </div>
         {cardDescription && <div className="task-desc">{cardDescription}</div>}
-        {(t.referents_linked || []).length > 0 && (
+        {referentsLinked.length > 0 && (
           <div
             className="task-desc"
             style={{ marginTop: 8, borderLeft: '3px solid var(--leaf, #22c55e)', paddingLeft: 10, lineHeight: 1.5 }}
           >
-            <strong>En cas de questions</strong>, s&apos;adresser à{' '}
-            {(t.referents_linked || []).map((ref, i) => (
+            {referentBriefing ? (
+              <>
+                <strong>Avant de commencer</strong>, se référer aux référents :{' '}
+              </>
+            ) : (
+              <>
+                <strong>En cas de questions</strong>, s&apos;adresser à{' '}
+              </>
+            )}
+            {referentsLinked.map((ref, i) => (
               <React.Fragment key={ref.id}>
                 {i > 0 ? ', ' : ''}
                 <span title={ref.role_slug ? String(ref.role_slug) : undefined}>{ref.label}</span>
               </React.Fragment>
             ))}
             .
+          </div>
+        )}
+        {referentsLinked.length === 0 && referentBriefing && (
+          <div
+            className="task-desc"
+            style={{
+              marginTop: 8,
+              borderLeft: '3px solid #dc2626',
+              paddingLeft: 10,
+              lineHeight: 1.5,
+              color: '#7f1d1d',
+            }}
+          >
+            <strong>Avant de commencer</strong> : cette tâche est indiquée comme compliquée ou dangereuse.
+            Demande l&apos;accord et les consignes à l&apos;équipe pédagogique (aucun référent n&apos;est renseigné sur cette fiche).
           </div>
         )}
         {effectiveStatus === 'on_hold' && (
