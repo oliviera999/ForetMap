@@ -219,15 +219,15 @@ function TaskFormModal({
     due_date: editTask.due_date || '',
     required_students: editTask.required_students || 1,
     completion_mode: getCompletionMode(editTask),
-    danger_level: editTask.danger_level || 'safe',
-    difficulty_level: editTask.difficulty_level || 'easy',
+    danger_level: editTask.danger_level != null && editTask.danger_level !== '' ? editTask.danger_level : '',
+    difficulty_level: editTask.difficulty_level != null && editTask.difficulty_level !== '' ? editTask.difficulty_level : '',
     recurrence: editTask.recurrence || '',
     assign_student_ids: []
   } : {
     title: '', description: '', map_id: initialMapId || '',
     zone_ids: [], marker_ids: [], tutorial_ids: [], referent_user_ids: [],
     project_id: defaultProjectForNew ? String(defaultProjectForNew.id) : '',
-    start_date: '', due_date: '', required_students: 1, completion_mode: 'single_done', danger_level: 'safe', difficulty_level: 'easy', recurrence: '',
+    start_date: '', due_date: '', required_students: 1, completion_mode: 'single_done', danger_level: '', difficulty_level: '', recurrence: '',
     assign_student_ids: []
   });
   const [saving, setSaving] = useState(false);
@@ -368,8 +368,8 @@ function TaskFormModal({
       due_date: form.due_date || null,
       required_students: form.required_students,
       completion_mode: form.completion_mode || 'single_done',
-      danger_level: form.danger_level || 'safe',
-      difficulty_level: form.difficulty_level || 'easy',
+      danger_level: form.danger_level ? form.danger_level : null,
+      difficulty_level: form.difficulty_level ? form.difficulty_level : null,
       recurrence: form.recurrence || null,
       assign_student_ids: [...new Set((form.assign_student_ids || []).map((id) => String(id || '').trim()).filter(Boolean))],
     };
@@ -745,14 +745,16 @@ function TaskFormModal({
         )}
         <div className="row">
           <div className="field"><label>Niveau de danger</label>
-            <select value={form.danger_level || 'safe'} onChange={set('danger_level')}>
+            <select value={form.danger_level || ''} onChange={set('danger_level')}>
+              <option value="">Non renseigné</option>
               <option value="safe">Sans danger</option>
               <option value="dangerous">Dangereux</option>
               <option value="very_dangerous">Très dangereux</option>
             </select>
           </div>
           <div className="field"><label>Niveau de difficulté</label>
-            <select value={form.difficulty_level || 'easy'} onChange={set('difficulty_level')}>
+            <select value={form.difficulty_level || ''} onChange={set('difficulty_level')}>
+              <option value="">Non renseigné</option>
               <option value="easy">Facile</option>
               <option value="medium">Moyen</option>
               <option value="hard">Compliqué</option>
