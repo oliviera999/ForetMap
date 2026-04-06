@@ -5,6 +5,19 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Sécurité
+- **Visite** : progression « compte élève » pour **`GET /api/visit/progress`** et **`POST /api/visit/seen`** liée au **jeton JWT élève** (fermeture IDOR sur `student_id` arbitraire). **`routes/visit.js`**, **`src/components/visit-views.jsx`**, tests **`tests/new-features.test.js`**, **`docs/API.md`**.
+
+### Modifié
+- **Visite — tutoriels** : table **`visit_tutorials`** indexée par **`map_id`** (migration **`056_visit_tutorials_per_map.sql`**, schéma **`sql/schema_foretmap.sql`**) ; **`PUT /api/visit/tutorials`** avec **`map_id`** (défaut `foret`) remplace la sélection pour ce plan uniquement ; **`GET /api/visit/content`** filtre tutoriels et **médias** par plan. **`routes/visit.js`**, **`src/components/visit-views.jsx`**.
+- **Visite (client)** : plus de rechargement complet à chaque changement de sélection ; rollback optimiste vu / non vu fiable. **`visit-views.jsx`**.
+- **UI** : onglet desktop **Visite** (aligné sur la navigation mobile). **`App.jsx`**.
+- **Build** : régénération **`dist/`** après évolutions visite.
+
+### Ajouté
+- **Tests e2e** : visite sans compte et onglet visite connecté. **`e2e/visit-mode.spec.js`**.
+- **Exploitation** : variable **`VISIT_COOKIE_SECRET`** documentée dans **`.env.example`** ; précisions cookie anonyme et prévisualisation prof dans **`docs/API.md`**.
+
 ### Modifié
 - **Tâches — danger / difficulté** : niveaux **optionnels** (`null` en API/BDD si non renseignés) — plus de défaut implicite « facile / sans danger ». Pastilles sur les cartes et sur la carte **uniquement** si un niveau a été choisi ; formulaire : option « Non renseigné » ; consigne référents « avant de commencer » inchangée lorsque niveaux explicites l’exigent. Migration **`055_task_danger_difficulty_optional.sql`** (colonnes nullable, **réinitialisation** des niveaux déjà stockés — à re-saisir si besoin). Import et clones récurrents alignés (`routes/tasks.js`, `lib/recurringTasks.js`, `tasks-views.jsx`, `badges.jsx`, `map-views.jsx`). **`docs/API.md`**.
 - **Build** : régénération des artefacts **`dist/`** (Vite production) pour alignement avec les sources courantes.

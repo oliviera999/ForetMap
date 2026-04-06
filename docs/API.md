@@ -296,9 +296,9 @@ Contenus éditables du site (micro-CMS texte brut) :
 
 | Méthode | URL | n3boss | Description |
 |--------|-----|------|-------------|
-| GET | `/api/visit/content?map_id=foret` | non | Contenus publics de visite (zones, repères, médias, tutoriels actifs) |
-| GET | `/api/visit/progress?student_id=:id` | non | Progression des cibles vues (n3beur connecté ou anonyme via cookie signé) |
-| POST | `/api/visit/seen` | non | Marquer/démarquer une cible vue (`{ target_type, target_id, seen, student_id? }`) |
+| GET | `/api/visit/content?map_id=foret` | non | Contenus publics de visite (zones, repères, médias du plan, tutoriels actifs **pour ce plan**) |
+| GET | `/api/visit/progress` | non | Progression des cibles vues : mode **student** si `Authorization: Bearer` = jeton **élève** (l’identité est tirée du jeton ; le paramètre `student_id` est refusé sauf s’il correspond au même compte) ; sinon mode **anonymous** via cookie signé `anon_visit_token` (pas de `student_id` en query) |
+| POST | `/api/visit/seen` | non | Marquer/démarquer une cible vue (`{ target_type, target_id, seen }`). Avec jeton **élève**, la progression est enregistrée pour ce compte uniquement (le corps ne doit pas contenir `student_id`, ou il doit être identique au compte du jeton). Sans jeton élève, enregistrement **anonyme** (cookie) ; tout `student_id` dans le corps sans jeton élève valide → **401** |
 | GET | `/api/visit/stats` | oui | KPI de visite (sessions, complétion, breakdown n3beur/anonyme) |
 | POST | `/api/visit/zones` | oui | Créer une zone de visite |
 | PUT | `/api/visit/zones/:id` | oui | Modifier une zone de visite |
@@ -309,7 +309,7 @@ Contenus éditables du site (micro-CMS texte brut) :
 | POST | `/api/visit/media` | oui | Ajouter un média sur une cible de visite |
 | PUT | `/api/visit/media/:id` | oui | Modifier un média de visite |
 | DELETE | `/api/visit/media/:id` | oui | Supprimer un média de visite |
-| PUT | `/api/visit/tutorials` | oui | Définir la sélection des tutoriels affichés en visite |
+| PUT | `/api/visit/tutorials` | oui | Définir la sélection des tutoriels affichés en visite pour un plan : `{ map_id?, tutorial_ids }` (`map_id` défaut `foret`) — remplace uniquement les entrées de `visit_tutorials` pour cette carte |
 | GET | `/api/visit/sync/options?map_id=foret` | oui | Récupérer les zones/repères disponibles côté carte et côté visite pour import sélectif |
 | POST | `/api/visit/sync` | oui | Import sélectif bidirectionnel (`{ map_id, direction: "map_to_visit" \| "visit_to_map", zone_ids, marker_ids }`) |
 
@@ -319,6 +319,8 @@ Contraintes importantes :
 - `direction=visit_to_map` : copie/synchronise les zones et repères de la visite vers la carte.
 - L’import est **sélectif** (listes `zone_ids` / `marker_ids`) et en **upsert** (pas de doublon si l’ID existe déjà).
 - Les routes de gestion (`/zones`, `/markers`, `/media`, `/tutorials`, `/sync/*`) exigent la permission n3boss `visit.manage` (session élevée).
+- **Cookie visite anonyme** : variable optionnelle `VISIT_COOKIE_SECRET` (sinon repli sur `JWT_SECRET`, puis secret de dev hors production) — voir `.env.example`.
+- **Prévisualisation prof** : en session « aperçu élève », le client n’envoie pas de jeton élève pour la visite ; la progression suit le parcours **anonyme** (cookie), pas le compte réel de l’élève prévisualisé.
 
 ---
 

@@ -2,7 +2,7 @@ const express = require('express');
 const crypto = require('crypto');
 const { v4: uuidv4 } = require('uuid');
 const { queryAll, queryOne, execute } = require('../database');
-const { requirePermission, JWT_SECRET } = require('../middleware/requireTeacher');
+const { requirePermission, JWT_SECRET, authenticate } = require('../middleware/requireTeacher');
 const { logRouteError } = require('../lib/routeLog');
 const { emitGardenChanged } = require('../lib/realtime');
 
@@ -280,9 +280,12 @@ router.get('/content', async (req, res) => {
     );
 
     const media = await queryAll(
-      `SELECT id, target_type, target_id, image_url, caption, sort_order
-       FROM visit_media
-       ORDER BY sort_order ASC, id ASC`
+      `SELECT vm.id, vm.target_type, vm.target_id, vm.image_url, vm.caption, vm.sort_order
+       FROM visit_media vm
+       WHERE (vm.target_type = 'zone' AND vm.target_id IN (SELECT id FROM visit_zones WHERE map_id = ?))
+          OR (vm.target_type = 'marker' AND vm.target_id IN (SELECT id FROM visit_markers WHERE map_id = ?))
+       ORDER BY vm.sort_order ASC, vm.id ASC`,
+      [mapId, mapId]
     );
 
     const mediaByTarget = media.reduce((acc, row) => {
@@ -298,8 +301,9 @@ router.get('/content', async (req, res) => {
          vt.sort_order
        FROM visit_tutorials vt
        JOIN tutorials t ON t.id = vt.tutorial_id
-       WHERE vt.is_active = 1 AND t.is_active = 1
-       ORDER BY vt.sort_order ASC, t.sort_order ASC, t.title ASC`
+       WHERE vt.map_id = ? AND vt.is_active = 1 AND t.is_active = 1
+       ORDER BY vt.sort_order ASC, t.sort_order ASC, t.title ASC`,
+      [mapId]
     );
 
     const payload = {
@@ -504,22 +508,32 @@ router.post('/sync', requirePermission('visit.manage', { needsElevation: true })
   }
 });
 
-router.get('/progress', async (req, res) => {
+router.get('/progress', authenticate, async (req, res) => {
   try {
-    const studentId = String(req.query.student_id || '').trim();
-    if (studentId) {
-      const student = await queryOne("SELECT id FROM users WHERE user_type = 'student' AND id = ? LIMIT 1", [studentId]);
-      if (!student) return res.status(404).json({ error: 'n3beur introuvable' });
+    const auth = req.auth;
+    const queryStudentId = String(req.query.student_id || '').trim();
+
+    if (auth && auth.userType === 'student') {
+      const sid = String(auth.userId);
+      if (queryStudentId && queryStudentId !== sid) {
+        return res.status(403).json({ error: 'Accès refusé à la progression d’un autre compte.' });
+      }
+      const student = await queryOne("SELECT id FROM users WHERE user_type = 'student' AND id = ? LIMIT 1", [sid]);
+      if (!student) return res.status(403).json({ error: 'Compte élève invalide' });
       const rows = await queryAll(
         `SELECT target_type, target_id
          FROM visit_seen_students
          WHERE student_id = ?`,
-        [studentId]
+        [sid]
       );
       return res.json({
         mode: 'student',
         seen: rows.map((r) => ({ target_type: r.target_type, target_id: r.target_id })),
       });
+    }
+
+    if (queryStudentId) {
+      return res.status(401).json({ error: 'Connexion requise pour consulter la progression sur un compte.' });
     }
 
     await cleanupAnonymousSeen();
@@ -541,12 +555,13 @@ router.get('/progress', async (req, res) => {
   }
 });
 
-router.post('/seen', async (req, res) => {
+router.post('/seen', authenticate, async (req, res) => {
   try {
     const targetType = sanitizeTargetType(req.body.target_type);
     const targetId = sanitizeTargetId(req.body.target_id);
     const seen = req.body.seen !== false;
-    const studentId = String(req.body.student_id || '').trim();
+    const bodyStudentId = String(req.body.student_id || '').trim();
+    const auth = req.auth;
     if (!targetType || !targetId) {
       return res.status(400).json({ error: 'Cible de visite invalide' });
     }
@@ -554,24 +569,32 @@ router.post('/seen', async (req, res) => {
       return res.status(404).json({ error: 'Cible de visite introuvable' });
     }
 
-    if (studentId) {
-      const student = await queryOne("SELECT id FROM users WHERE user_type = 'student' AND id = ? LIMIT 1", [studentId]);
-      if (!student) return res.status(404).json({ error: 'n3beur introuvable' });
+    if (auth && auth.userType === 'student') {
+      const sid = String(auth.userId);
+      if (bodyStudentId && bodyStudentId !== sid) {
+        return res.status(403).json({ error: 'Tu ne peux pas modifier la progression d’un autre compte.' });
+      }
+      const student = await queryOne("SELECT id FROM users WHERE user_type = 'student' AND id = ? LIMIT 1", [sid]);
+      if (!student) return res.status(403).json({ error: 'Compte élève invalide' });
       if (seen) {
         await execute(
           `INSERT INTO visit_seen_students (student_id, target_type, target_id, seen_at, updated_at)
            VALUES (?, ?, ?, UTC_TIMESTAMP(), UTC_TIMESTAMP())
            ON DUPLICATE KEY UPDATE updated_at = VALUES(updated_at)`,
-          [studentId, targetType, targetId]
+          [sid, targetType, targetId]
         );
       } else {
         await execute(
           `DELETE FROM visit_seen_students
            WHERE student_id = ? AND target_type = ? AND target_id = ?`,
-          [studentId, targetType, targetId]
+          [sid, targetType, targetId]
         );
       }
       return res.json({ ok: true, mode: 'student' });
+    }
+
+    if (bodyStudentId) {
+      return res.status(401).json({ error: 'Connexion requise pour enregistrer la progression sur un compte.' });
     }
 
     await cleanupAnonymousSeen();
@@ -873,22 +896,28 @@ router.delete('/media/:id', requirePermission('visit.manage', { needsElevation: 
 
 router.put('/tutorials', requirePermission('visit.manage', { needsElevation: true }), async (req, res) => {
   try {
+    const mapId = String(req.body.map_id || 'foret').trim();
+    if (!mapId) return res.status(400).json({ error: 'map_id requis' });
+    if (!(await mapExists(mapId))) return res.status(400).json({ error: 'Carte introuvable' });
     const ids = Array.isArray(req.body.tutorial_ids) ? req.body.tutorial_ids : [];
     const uniqueIds = [...new Set(ids.map((v) => Number(v)).filter((n) => Number.isFinite(n) && n > 0))];
-    await execute('DELETE FROM visit_tutorials');
+    await execute('DELETE FROM visit_tutorials WHERE map_id = ?', [mapId]);
     let order = 0;
     for (const id of uniqueIds) {
       const exists = await queryOne('SELECT id FROM tutorials WHERE id = ? LIMIT 1', [id]);
       if (!exists) continue;
       await execute(
-        `INSERT INTO visit_tutorials (tutorial_id, is_active, sort_order, updated_at)
-         VALUES (?, 1, ?, ?)
+        `INSERT INTO visit_tutorials (map_id, tutorial_id, is_active, sort_order, updated_at)
+         VALUES (?, ?, 1, ?, ?)
          ON DUPLICATE KEY UPDATE is_active = 1, sort_order = VALUES(sort_order), updated_at = VALUES(updated_at)`,
-        [id, order, nowIso()]
+        [mapId, id, order, nowIso()]
       );
       order += 1;
     }
-    const rows = await queryAll('SELECT * FROM visit_tutorials ORDER BY sort_order ASC, tutorial_id ASC');
+    const rows = await queryAll(
+      'SELECT * FROM visit_tutorials WHERE map_id = ? ORDER BY sort_order ASC, tutorial_id ASC',
+      [mapId]
+    );
     res.json(rows);
   } catch (err) {
     logRouteError(err, req);
