@@ -34,14 +34,14 @@ function PinModal({ onSuccess, onClose, uiSettings, isN3Affiliated = false }) {
   const checkPin = async () => {
     if (!pin.trim()) return setErr('Code requis');
     const currentToken = getAuthToken();
-    if (!currentToken) return setErr('Connectez-vous d’abord avant d’entrer un PIN');
+    if (!currentToken) return setErr('Connecte-toi d’abord avant d’entrer ton code');
     setInfo('');
     setErr('');
     setLoading(true);
     try {
       const data = await api('/api/auth/elevate', 'POST', { pin: pin.trim() });
       if (!data || !data.token) {
-        setErr('Réponse serveur invalide');
+        setErr('Réponse inattendue du serveur');
         setLoading(false);
         return;
       }
@@ -74,13 +74,13 @@ function PinModal({ onSuccess, onClose, uiSettings, isN3Affiliated = false }) {
     try {
       const data = await api('/api/auth/login', 'POST', { identifier: email.trim(), password });
       if (!data || !data.authToken) {
-        setErr('Réponse serveur invalide');
+        setErr('Réponse inattendue du serveur');
         setLoading(false);
         return;
       }
       const perms = Array.isArray(data?.auth?.permissions) ? data.auth.permissions : [];
       if (!perms.includes('teacher.access')) {
-        setErr(`Ce compte ne possède pas les droits ${roleTerms.teacherSingular}.`);
+        setErr(`Ce compte n’a pas les accès ${roleTerms.teacherSingular}.`);
         setLoading(false);
         return;
       }
@@ -127,7 +127,7 @@ function PinModal({ onSuccess, onClose, uiSettings, isN3Affiliated = false }) {
         token: resetToken.trim(),
         password: newPassword,
       });
-      setInfo(`Mot de passe ${roleTerms.teacherSingular} réinitialisé. Vous pouvez vous connecter.`);
+      setInfo(`Mot de passe ${roleTerms.teacherSingular} réinitialisé — tu peux te connecter.`);
       setResetToken('');
       setNewPassword('');
     } catch (e) {
@@ -141,7 +141,7 @@ function PinModal({ onSuccess, onClose, uiSettings, isN3Affiliated = false }) {
       <div className="pin-card fade-in">
         <div style={{ fontSize: '2rem', marginBottom: 8 }}>🔒</div>
         <h3>Mode {roleTerms.teacherSingular}</h3>
-        <p>Utilisez le PIN ou un compte {roleTerms.teacherShort} email/mot de passe.</p>
+        <p>Utilise ton code ou un compte {roleTerms.teacherShort} (e-mail + mot de passe).</p>
         <div className="auth-tabs" style={{ marginBottom: 12 }}>
           <button
             className={`auth-tab ${authMode === 'pin' ? 'active' : ''}`}
@@ -344,7 +344,7 @@ function AuthScreen({ onLogin, appVersion, onVisitGuest, uiSettings, isN3Affilia
       return setErr('Description trop longue (max 300 caractères)');
     }
     if (mode === 'register' && !affiliation) {
-      return setErr('Choisissez votre espace (N3, Forêt comestible ou les deux)');
+      return setErr('Choisis ton espace (N3, Forêt comestible ou les deux)');
     }
     if (mode === 'register' && !['n3', 'foret', 'both'].includes(affiliation)) {
       return setErr('Choix d’espace invalide');
@@ -412,7 +412,7 @@ function AuthScreen({ onLogin, appVersion, onVisitGuest, uiSettings, isN3Affilia
     try {
       const endpoint = forgotRole === 'teacher' ? '/api/auth/teacher/reset-password' : '/api/auth/reset-password';
       await api(endpoint, 'POST', { token: resetToken.trim(), password: resetPass });
-      setInfo('Mot de passe réinitialisé. Vous pouvez vous connecter.');
+      setInfo('Mot de passe réinitialisé — tu peux te connecter.');
       setResetPass('');
     } catch (e) {
       setErr(e.message || 'Réinitialisation impossible');

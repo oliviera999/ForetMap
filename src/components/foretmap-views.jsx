@@ -601,7 +601,7 @@ function PlantManager({ plants, onRefresh, publicSettings = null }) {
         </div>
       </div>
       <p className="section-sub">
-        {filteredPlants.length} / {plants.length} êtres vivants affichés
+        {filteredPlants.length} / {plants.length} êtres vivants à l’écran — fouille la biodiversité !
       </p>
 
       <div style={{display:'grid', gap:8, marginBottom:12}}>
@@ -1011,7 +1011,7 @@ function PlantViewer({ plants, zones, publicSettings = null }) {
       </div>
 
       {filtered.length === 0
-        ? <div className="empty"><div className="empty-icon">🌿</div><p>Aucun être vivant trouvé</p></div>
+        ? <div className="empty"><div className="empty-icon">🌿</div><p>Aucun être vivant ne colle à ta recherche — essaie un autre mot.</p></div>
         : <div className="biodiv-grid">
           {filtered.map(p => {
             const pZones = zonesForPlant(p);

@@ -20,7 +20,7 @@ function StudentStats({ student, isN3Affiliated = false }) {
     setError('');
     api(`/api/stats/me/${student.id}`).then(setData).catch(err => {
       console.error('[ForetMap] stats n3beur', err);
-      setError(err?.message || 'Impossible de charger vos statistiques.');
+      setError(err?.message || 'Impossible de charger tes stats pour l’instant.');
     });
   }, [student.id]);
 
@@ -73,7 +73,7 @@ function StudentStats({ student, isN3Affiliated = false }) {
           Profil actuel : {currentRank.icon} {currentRank.label}
         </span>
       </div>
-      <p className="section-sub">Bonjour {data.first_name} ! Voici ton bilan dans la forêt.</p>
+      <p className="section-sub">Salut {data.first_name} ! Voici ton bilan terrain — merci pour ce que tu fais pousser.</p>
       {data.pseudo && <p className="section-sub" style={{ marginTop: 0 }}>Pseudo public : @{data.pseudo}</p>}
       {data.description && <p className="section-sub" style={{ marginTop: 0 }}>{data.description}</p>}
       {!autoProgressionEnabled && (
@@ -89,7 +89,7 @@ function StudentStats({ student, isN3Affiliated = false }) {
             lineHeight: 1.45,
           }}
         >
-          La montée de niveau automatique est désactivée : le profil affiché correspond à l’attribution manuelle. La barre de paliers ci-dessous est indicative (objectifs de tâches validées).
+          La montée de palier auto est coupée : ton badge affiché suit un réglage manuel. La barre ci-dessous reste un repère (objectifs de tâches validées).
         </p>
       )}
 
@@ -449,7 +449,7 @@ function TeacherStats({ isN3Affiliated = false }) {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
         <h2 className="section-title">📊 Statistiques des {roleTerms.studentPlural}</h2>
       </div>
-      <p className="section-sub">{data.length} {data.length > 1 ? roleTerms.studentPlural : roleTerms.studentSingular} inscrit{data.length > 1 ? 's' : ''}</p>
+      <p className="section-sub">{data.length} {data.length > 1 ? roleTerms.studentPlural : roleTerms.studentSingular} dans les stats collectives</p>
       {error && (
         <div className="auth-error" style={{ marginBottom: 10 }}>
           ⚠️ {error}
@@ -484,7 +484,7 @@ function TeacherStats({ isN3Affiliated = false }) {
         {filtered.length === 0
           ? <div className="empty" style={{ padding: 32 }}>
             <div className="empty-icon">👤</div>
-            <p>{search ? `Aucun(e) ${roleTerms.studentSingular} trouvé(e)` : `Aucun(e) ${roleTerms.studentSingular} inscrit(e)`}</p>
+            <p>{search ? `Aucun ${roleTerms.studentSingular} ne correspond à ta recherche` : `Aucun ${roleTerms.studentSingular} dans le classement pour l’instant`}</p>
           </div>
           : filtered.map((s) => {
             const realRank = data.findIndex(d => d.id === s.id);

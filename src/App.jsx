@@ -1131,7 +1131,7 @@ function App() {
     <div id="app">
       {showIosInstallHint && !deferredInstallPrompt && !isStandaloneMode && (
         <div className="fade-in install-ios-banner" role="status" aria-live="polite">
-          <span>Pour installer ForetMap sur iPhone/iPad: ouvrir Safari, puis Partager, puis Ajouter a l'ecran d'accueil.</span>
+          <span>Pour installer ForetMap sur iPhone ou iPad : ouvre Safari, touche Partager, puis « Sur l’écran d’accueil ».</span>
           <button
             type="button"
             className="btn btn-ghost btn-sm"
@@ -1166,7 +1166,7 @@ function App() {
           margin:'8px 12px 0', padding:'10px 14px', borderRadius:12,
           background:'#eff6ff', border:'1px solid #93c5fd', color:'#1e3a8a', fontSize:'.9rem'
         }}>
-          <strong>Session n3beur non vérifiée.</strong> Les informations affichées peuvent être périmées.
+          <strong>Session pas encore recollée au serveur.</strong> Les infos peuvent être un peu vieilles — un clic pour rafraîchir.
           <button
             type="button"
             className="btn btn-sm"
@@ -1194,7 +1194,7 @@ function App() {
           setAuthClaims(claims);
           setIsTeacher(Array.isArray(claims?.permissions) && claims.permissions.includes('teacher.access'));
           setShowPin(false);
-          setToast(claims?.elevated ? 'Droits étendus activés 🔓' : 'Session mise à jour');
+          setToast(claims?.elevated ? 'Droits étendus activés — c’est bon 🔓' : 'Session mise à jour, tout roule');
         }}
         onClose={() => setShowPin(false)}
         uiSettings={publicSettings}
@@ -1459,7 +1459,7 @@ function App() {
                 const claims = getAuthClaims();
                 setAuthClaims(claims);
                 setIsTeacher(Array.isArray(claims?.permissions) && claims.permissions.includes('teacher.access'));
-                setToast('Droits étendus désactivés');
+                setToast('Droits étendus coupés — mode léger');
               } else {
                 setShowPin(true);
               }
@@ -1483,7 +1483,7 @@ function App() {
           <div className="role-preview-banner__text" style={{ flex: '1 1 200px' }}>
             <strong>Prise de contrôle (admin)</strong>
             <span>
-              Vous agissez en tant que{' '}
+              Tu navigues avec l’identité de{' '}
               <strong>{String(authClaims?.roleDisplayName || 'utilisateur').trim()}</strong>
               {authClaims?.userType === 'student' ? ' (n3beur)' : authClaims?.userType === 'teacher' ? ' (n3boss)' : ''}.
               Les actions sont enregistrées pour ce compte.
@@ -1504,7 +1504,7 @@ function App() {
           <span className="role-preview-banner__icon" aria-hidden>🎓</span>
           <div className="role-preview-banner__text">
             <strong>Vue n3beur (aperçu)</strong>
-            <span>Navigation en bas et écrans « n3beur » (pas d’onglets n3boss en haut). Votre session garde les mêmes droits n3boss côté serveur.</span>
+            <span>Navigation en bas, écrans comme un n3beur (sans les onglets n3boss du haut). Tes vrais droits n3boss restent actifs côté serveur.</span>
           </div>
         </div>
       )}
@@ -1513,7 +1513,7 @@ function App() {
           <span className="role-preview-banner__icon" aria-hidden>🧑‍🏫</span>
           <div className="role-preview-banner__text">
             <strong>Vue n3boss (aperçu)</strong>
-            <span>Interface sans les contrôles admin les plus visibles. Les permissions réelles de votre compte s’appliquent toujours aux actions.</span>
+            <span>Interface un peu épurée (moins de boutons admin visibles). Tes permissions réelles s’appliquent toujours quand tu agis.</span>
           </div>
         </div>
       )}
@@ -1617,7 +1617,7 @@ function App() {
               {!useSplitMapTasks && tab === 'tasks'  && <TasksView  tasks={tasks} taskProjects={taskProjects} zones={zones} markers={markers} maps={visibleMaps} tutorials={tutorials} activeMapId={activeMapId} isTeacher student={currentUser} canSelfAssignTasks canParticipateContextComments={canParticipateContextComments} canViewOtherUsersIdentity onRefresh={fetchAll} onForceLogout={forceLogout} isN3Affiliated={isN3Affiliated} publicSettings={publicSettings} onTaskFormOverlayOpenChange={onTaskFormOverlayOpenChange} />}
               {tab === 'plants' && <PlantManager plants={plants} onRefresh={fetchAll} publicSettings={publicSettings}/>}
               {publicSettings?.modules?.tutorials_enabled !== false && tab === 'tuto'   && <TutorialsView tutorials={tutorials} isTeacher onRefresh={fetchAll} onForceLogout={forceLogout} />}
-              {publicSettings?.modules?.stats_enabled !== false && tab === 'stats'  && (hasPermission('stats.read.all') ? <TeacherStats isN3Affiliated={isN3Affiliated} /> : <div className="empty"><p>Permission insuffisante</p></div>)}
+              {publicSettings?.modules?.stats_enabled !== false && tab === 'stats'  && (hasPermission('stats.read.all') ? <TeacherStats isN3Affiliated={isN3Affiliated} /> : <div className="empty"><p>Pas l’accès stats ici — demande un coup de main côté n3boss si besoin.</p></div>)}
               {tab === 'profiles' && (
                 <ProfilesAdminView
                   isN3Affiliated={isN3Affiliated}
@@ -1625,7 +1625,7 @@ function App() {
                   onImpersonationApplied={handleAdminImpersonationApplied}
                 />
               )}
-              {tab === 'audit'  && (hasPermission('audit.read') ? <AuditLog isN3Affiliated={isN3Affiliated} /> : <div className="empty"><p>Permission insuffisante</p></div>)}
+              {tab === 'audit'  && (hasPermission('audit.read') ? <AuditLog isN3Affiliated={isN3Affiliated} /> : <div className="empty"><p>Journal d’audit réservé — il te manque un droit pour l’ouvrir.</p></div>)}
               {publicSettings?.modules?.visit_enabled !== false && tab === 'visit'  && <VisitView student={currentUser} isTeacher availableTutorials={tutorials} initialMapId={activeMapId} onForceLogout={forceLogout} isN3Affiliated={isN3Affiliated} publicSettings={publicSettings} />}
               {tab === 'settings' && <SettingsAdminView isN3Affiliated={isN3Affiliated} />}
               {tab === 'forum' && canAccessForum && <ForumView authClaims={authClaims} canParticipateForum />}

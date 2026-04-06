@@ -1060,7 +1060,7 @@ function ProfilesAdminView({ isN3Affiliated = false, onImpersonationApplied, pub
                         </button>
                       </Tooltip>
                       <p style={{ fontSize: '.72rem', color: '#64748b', margin: '8px 0 0', lineHeight: 1.45 }}>
-                        L’interface reflète le compte choisi (support ou diagnostic). Utilisez le bandeau orange en haut de l’écran pour retrouver votre session administrateur.
+                        L’interface reflète le compte choisi (support ou diagnostic). Utilise le bandeau orange en haut pour retrouver ta session administrateur.
                       </p>
                     </div>
                   )}
@@ -1212,7 +1212,7 @@ function ProfilesAdminView({ isN3Affiliated = false, onImpersonationApplied, pub
 
             <div style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: 12, padding: 12 }}>
               <h3 style={{ marginTop: 0 }}>Permissions</h3>
-              {!selectedRole && <p style={{ margin: 0 }}>Sélectionnez un profil.</p>}
+              {!selectedRole && <p style={{ margin: 0 }}>Choisis un profil dans la liste.</p>}
               {selectedRole && (
                 <>
                   <div
