@@ -399,14 +399,15 @@ Contraintes principales :
 - Statuts tâche supportés : `available`, `in_progress`, `done`, `validated`, `proposed`, `on_hold`.
 - Modes de validation supportés (`completion_mode`) : `single_done` (défaut), `all_assignees_done`.
 - Niveaux de danger (`danger_level`) : `safe` (défaut, sans danger), `dangerous`, `very_dangerous`. Présent sur les réponses liste/détail ; `POST /api/tasks`, `PUT /api/tasks/:id` et `POST /api/tasks/proposals` acceptent ce champ (valeur invalide → **400**). Les n3beurs peuvent le modifier sur **leur** proposition (`proposed`) comme les autres champs non réservés au prof.
+- Niveaux de difficulté (`difficulty_level`) : `easy` (défaut, facile), `medium`, `hard`, `very_hard`. Mêmes routes et règles que `danger_level` (réponses liste/détail, **400** si valeur invalide, modifiable par le proposant sur une proposition `proposed`). Les clones **récurrents** reprennent la difficulté de la tâche source.
 - Statuts projet supportés : `active`, `on_hold` (retourné dans `project_status` sur les payloads de tâche).
 - Champ optionnel `start_date` (`YYYY-MM-DD`) sur les tâches ; tant que la date n’est pas atteinte, la tâche est considérée en attente (`is_before_start_date: true` dans les payloads).
 - Si une tâche est `on_hold` **ou** si son projet est `on_hold`, `POST /api/tasks/:id/assign` renvoie `400` (inscription n3beur bloquée).
 - Si `start_date` est dans le futur, `POST /api/tasks/:id/assign` renvoie aussi `400` (inscription n3beur bloquée jusqu’à la date de départ).
 - Si le **plafond effectif** (profil `roles.max_concurrent_tasks` si défini, sinon réglage `tasks.student_max_active_assignments`) est strictement positif et que l’action est une **auto-inscription n3beur**, le serveur compte les assignations actives (tâches non `validated`) : au-delà de la limite, réponse **`400`** avec `code: "TASK_ENROLLMENT_LIMIT"`, `maxActiveAssignments`, `currentActiveAssignments` et un message d’erreur explicite.
-- `POST /api/tasks` et `PUT /api/tasks/:id` acceptent `completion_mode` pour les profils autorisés, et `danger_level` (prof + proposition n3beur sur les champs autorisés).
+- `POST /api/tasks` et `PUT /api/tasks/:id` acceptent `completion_mode` pour les profils autorisés, et `danger_level` / `difficulty_level` (prof + proposition n3beur sur les champs autorisés).
 - **Référents** : `referent_user_ids` (tableau d’UUID utilisateurs, max **15**) — uniquement comptes **actifs** `teacher` ou `student`. Les réponses incluent `referent_user_ids` et `referents_linked` (`id`, `user_type`, `label` affichable, `role_slug` du profil RBAC primaire si présent). Pas d’adresse e-mail dans ces objets. Les clones **récurrents** héritent des mêmes référents que la tâche source.
-- Les payloads tâche exposent `completion_mode`, `danger_level`, `assignees_total_count` et `assignees_done_count`.
+- Les payloads tâche exposent `completion_mode`, `danger_level`, `difficulty_level`, `assignees_total_count` et `assignees_done_count`.
 - `POST /api/tasks/:id/done` :
   - en `single_done`, la tâche passe en `done` dès la déclaration de fin ;
   - en `all_assignees_done`, chaque assigné valide individuellement, puis la tâche passe en `done` uniquement quand tous les assignés ont terminé.

@@ -36,6 +36,7 @@ const IMPORT_TEMPLATE_COLUMNS = [
 const ALLOWED_TASK_STATUSES = new Set(['available', 'in_progress', 'done', 'validated', 'proposed', 'on_hold']);
 const ALLOWED_TASK_COMPLETION_MODES = new Set(['single_done', 'all_assignees_done']);
 const ALLOWED_TASK_DANGER_LEVELS = new Set(['safe', 'dangerous', 'very_dangerous']);
+const ALLOWED_TASK_DIFFICULTY_LEVELS = new Set(['easy', 'medium', 'hard', 'very_hard']);
 const ALLOWED_IMPORT_TASK_STATUSES = ALLOWED_TASK_STATUSES;
 const ALLOWED_IMPORT_TASK_RECURRENCES = new Set(['weekly', 'biweekly', 'monthly']);
 const IMPORT_HEADER_ALIASES = new Map([
@@ -138,6 +139,12 @@ function normalizeTaskDangerLevel(value) {
   const raw = asTrimmedString(value).toLowerCase();
   if (!raw) return 'safe';
   return ALLOWED_TASK_DANGER_LEVELS.has(raw) ? raw : null;
+}
+
+function normalizeTaskDifficultyLevel(value) {
+  const raw = asTrimmedString(value).toLowerCase();
+  if (!raw) return 'easy';
+  return ALLOWED_TASK_DIFFICULTY_LEVELS.has(raw) ? raw : null;
 }
 
 function countDoneAssignments(assignments = []) {
@@ -877,6 +884,7 @@ async function getTaskWithAssignments(taskId) {
   task.status = normalizeTaskStatusForRead(task.status);
   task.completion_mode = normalizeTaskCompletionMode(task.completion_mode) || 'single_done';
   task.danger_level = normalizeTaskDangerLevel(task.danger_level) || 'safe';
+  task.difficulty_level = normalizeTaskDifficultyLevel(task.difficulty_level) || 'easy';
   task.is_before_start_date = isTaskBeforeStartDate(task);
   if (!task.zone_name && task.zone_name_legacy) task.zone_name = task.zone_name_legacy;
   if (!task.marker_label && task.marker_label_legacy) task.marker_label = task.marker_label_legacy;
@@ -1065,6 +1073,7 @@ router.get('/', async (req, res) => {
       row.status = normalizeTaskStatusForRead(row.status);
       row.completion_mode = normalizeTaskCompletionMode(row.completion_mode) || 'single_done';
       row.danger_level = normalizeTaskDangerLevel(row.danger_level) || 'safe';
+      row.difficulty_level = normalizeTaskDifficultyLevel(row.difficulty_level) || 'easy';
       row.is_before_start_date = isTaskBeforeStartDate(row);
       delete row.map_id_resolved_join;
       row.assignments = assignmentsByTask.get(t.id) || [];
@@ -1393,7 +1402,7 @@ router.post('/import', requirePermission('tasks.manage', { needsElevation: true 
         : null;
       const id = uuidv4();
       await execute(
-        'INSERT INTO tasks (id, title, description, map_id, project_id, zone_id, marker_id, start_date, due_date, required_students, status, recurrence, danger_level, created_at) VALUES (?, ?, ?, ?, ?, NULL, NULL, ?, ?, ?, ?, ?, ?, ?)',
+        'INSERT INTO tasks (id, title, description, map_id, project_id, zone_id, marker_id, start_date, due_date, required_students, status, recurrence, danger_level, difficulty_level, created_at) VALUES (?, ?, ?, ?, ?, NULL, NULL, ?, ?, ?, ?, ?, ?, ?, ?)',
         [
           id,
           task.title,
@@ -1406,6 +1415,7 @@ router.post('/import', requirePermission('tasks.manage', { needsElevation: true 
           task.status || 'available',
           task.recurrence || null,
           'safe',
+          'easy',
           new Date().toISOString(),
         ]
       );
@@ -1458,6 +1468,7 @@ router.post('/', requirePermission('tasks.manage', { needsElevation: true }), as
       recurrence,
       completion_mode,
       danger_level,
+      difficulty_level,
     } = req.body;
     if (!title) return res.status(400).json({ error: 'Titre requis' });
 
@@ -1483,9 +1494,11 @@ router.post('/', requirePermission('tasks.manage', { needsElevation: true }), as
     if (!completionMode) return res.status(400).json({ error: 'Mode de validation invalide' });
     const dangerLevelNorm = normalizeTaskDangerLevel(danger_level);
     if (dangerLevelNorm === null) return res.status(400).json({ error: 'Niveau de danger invalide' });
+    const difficultyLevelNorm = normalizeTaskDifficultyLevel(difficulty_level);
+    if (difficultyLevelNorm === null) return res.status(400).json({ error: 'Niveau de difficulté invalide' });
     const id = uuidv4();
     await execute(
-      'INSERT INTO tasks (id, title, description, map_id, project_id, zone_id, marker_id, start_date, due_date, required_students, completion_mode, danger_level, recurrence, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      'INSERT INTO tasks (id, title, description, map_id, project_id, zone_id, marker_id, start_date, due_date, required_students, completion_mode, danger_level, difficulty_level, recurrence, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
       [
         id,
         title,
@@ -1499,6 +1512,7 @@ router.post('/', requirePermission('tasks.manage', { needsElevation: true }), as
         reqStudents,
         completionMode,
         dangerLevelNorm,
+        difficultyLevelNorm,
         recurrence || null,
         new Date().toISOString(),
       ]
@@ -1538,6 +1552,7 @@ router.post('/proposals', async (req, res) => {
       studentId,
       profilePin,
       danger_level,
+      difficulty_level,
     } = req.body || {};
     if (!title || !String(title).trim()) return res.status(400).json({ error: 'Titre requis' });
     if (!firstName || !lastName) return res.status(400).json({ error: 'Nom requis' });
@@ -1564,6 +1579,8 @@ router.post('/proposals', async (req, res) => {
     const reqStudents = sanitizeRequiredStudents(required_students);
     const proposalDangerLevel = normalizeTaskDangerLevel(danger_level);
     if (proposalDangerLevel === null) return res.status(400).json({ error: 'Niveau de danger invalide' });
+    const proposalDifficultyLevel = normalizeTaskDifficultyLevel(difficulty_level);
+    if (proposalDifficultyLevel === null) return res.status(400).json({ error: 'Niveau de difficulté invalide' });
 
     const id = uuidv4();
     const proposer = `${String(firstName).trim()} ${String(lastName).trim()}`.trim();
@@ -1574,8 +1591,8 @@ router.post('/proposals', async (req, res) => {
     await execute(
       `INSERT INTO tasks (
         id, title, description, map_id, project_id, zone_id, marker_id,
-        start_date, due_date, required_students, completion_mode, danger_level, status, recurrence, created_at
-      ) VALUES (?, ?, ?, ?, NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        start_date, due_date, required_students, completion_mode, danger_level, difficulty_level, status, recurrence, created_at
+      ) VALUES (?, ?, ?, ?, NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         id,
         String(title).trim(),
@@ -1588,6 +1605,7 @@ router.post('/proposals', async (req, res) => {
         reqStudents,
         'single_done',
         proposalDangerLevel,
+        proposalDifficultyLevel,
         'proposed',
         null,
         new Date().toISOString(),
@@ -1654,6 +1672,7 @@ router.put('/:id', async (req, res) => {
       project_id,
       completion_mode,
       danger_level,
+      difficulty_level,
     } = req.body;
 
     let nextZoneIds;
@@ -1726,6 +1745,14 @@ router.put('/:id', async (req, res) => {
       nextDangerLevel = normalizeTaskDangerLevel(task.danger_level) || 'safe';
     }
 
+    let nextDifficultyLevel;
+    if (Object.prototype.hasOwnProperty.call(req.body, 'difficulty_level')) {
+      nextDifficultyLevel = normalizeTaskDifficultyLevel(difficulty_level);
+      if (nextDifficultyLevel === null) return res.status(400).json({ error: 'Niveau de difficulté invalide' });
+    } else {
+      nextDifficultyLevel = normalizeTaskDifficultyLevel(task.difficulty_level) || 'easy';
+    }
+
     const currentStatus = normalizeTaskStatusForRead(task.status);
     const currentZoneIds = await getTaskZoneIds(task.id);
     const currentMarkerIds = await getTaskMarkerIds(task.id);
@@ -1748,7 +1775,7 @@ router.put('/:id', async (req, res) => {
     }
 
     await execute(
-      'UPDATE tasks SET title=?, description=?, map_id=?, project_id=?, zone_id=?, marker_id=?, start_date=?, due_date=?, required_students=?, status=?, completion_mode=?, danger_level=?, recurrence=? WHERE id=?',
+      'UPDATE tasks SET title=?, description=?, map_id=?, project_id=?, zone_id=?, marker_id=?, start_date=?, due_date=?, required_students=?, status=?, completion_mode=?, danger_level=?, difficulty_level=?, recurrence=? WHERE id=?',
       [
         title ?? task.title,
         description ?? task.description,
@@ -1762,6 +1789,7 @@ router.put('/:id', async (req, res) => {
         nextStatus,
         nextCompletionMode,
         nextDangerLevel,
+        nextDifficultyLevel,
         isTeacherAction
           ? (recurrence !== undefined ? recurrence || null : task.recurrence || null)
           : task.recurrence || null,

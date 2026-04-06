@@ -651,6 +651,34 @@ test('POST et PUT /api/tasks — danger_level persistant', async () => {
     .expect(400);
 });
 
+test('POST et PUT /api/tasks — difficulty_level persistant', async () => {
+  const token = await getAdminAuthToken();
+
+  const createRes = await request(app)
+    .post('/api/tasks')
+    .set('Authorization', 'Bearer ' + token)
+    .send({ title: `Difficulté ${Date.now()}`, required_students: 1, difficulty_level: 'hard' })
+    .expect(201);
+  assert.strictEqual(createRes.body.difficulty_level, 'hard');
+  const taskId = createRes.body.id;
+
+  const getOne = await request(app).get(`/api/tasks/${taskId}`).expect(200);
+  assert.strictEqual(getOne.body.difficulty_level, 'hard');
+
+  const putRes = await request(app)
+    .put(`/api/tasks/${taskId}`)
+    .set('Authorization', 'Bearer ' + token)
+    .send({ difficulty_level: 'very_hard' })
+    .expect(200);
+  assert.strictEqual(putRes.body.difficulty_level, 'very_hard');
+
+  await request(app)
+    .post('/api/tasks')
+    .set('Authorization', 'Bearer ' + token)
+    .send({ title: `Bad difficulty ${Date.now()}`, difficulty_level: 'nope' })
+    .expect(400);
+});
+
 test('GET /api/tasks côté élève expose assigned_count global', async () => {
   const teacherToken = await getAdminAuthToken();
 
