@@ -519,7 +519,7 @@ function TaskFormModal({
                           checked={form.zone_ids.includes(String(z.id || '').trim())}
                           onChange={() => toggleZoneId(z.id)}
                         />
-                        <span className="task-form-pick-text">🌿 {z.name}{z.current_plant ? ` — ${z.current_plant}` : ''}</span>
+                        <span className="task-form-pick-text">{z.name}{z.current_plant ? ` — ${z.current_plant}` : ''}</span>
                       </label>
                     ))}
                   </>
@@ -976,7 +976,7 @@ function TaskProjectFormModal({
                           checked={form.zone_ids.includes(String(z.id || '').trim())}
                           onChange={() => toggleZoneId(z.id)}
                         />
-                        <span className="task-form-pick-text">🌿 {z.name}{z.current_plant ? ` — ${z.current_plant}` : ''}</span>
+                        <span className="task-form-pick-text">{z.name}{z.current_plant ? ` — ${z.current_plant}` : ''}</span>
                       </label>
                     ))}
                   </>
@@ -2010,7 +2010,7 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
           <option value="">Toutes les zones</option>
           {usedZones.map(zId => {
             const z = zones.find(zz => zz.id === zId);
-            return <option key={`zone:${zId}`} value={`zone:${zId}`}>🌿 {z ? z.name : zId}</option>;
+            return <option key={`zone:${zId}`} value={`zone:${zId}`}>{z ? z.name : zId}</option>;
           })}
           {usedMarkers.length > 0 && <option value="" disabled>-- Repères --</option>}
           {usedMarkers.map((mId) => {
@@ -2497,9 +2497,9 @@ function TaskTileCard({
         </div>
         <div className="task-meta">
           {(t.zones_linked || []).map((z) => (
-            <span key={z.id} className="task-chip">🌿 {z.name}</span>
+            <span key={z.id} className="task-chip">{z.name}</span>
           ))}
-          {!((t.zones_linked || []).length) && t.zone_name && <span className="task-chip">🌿 {t.zone_name}</span>}
+          {!((t.zones_linked || []).length) && t.zone_name && <span className="task-chip">{t.zone_name}</span>}
           {(t.markers_linked || []).map((m) => (
             <span key={m.id} className="task-chip">📍 {m.label}</span>
           ))}
@@ -2803,7 +2803,7 @@ if (visibleProjects.length <= 0) return null;
                     <div className="task-title" style={{ fontSize: '1rem' }}>📁 {p.title}</div>
                     <div className="task-meta" style={{ marginTop: 6 }}>
                       {(p.zones_linked || []).map((z) => (
-                        <span key={z.id} className="task-chip">🌿 {z.name}</span>
+                        <span key={z.id} className="task-chip">{z.name}</span>
                       ))}
                       {(p.markers_linked || []).map((m) => (
                         <span key={m.id} className="task-chip">📍 {m.label}</span>
