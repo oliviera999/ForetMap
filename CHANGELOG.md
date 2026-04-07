@@ -5,6 +5,9 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé
+- **Migration `056_visit_tutorials_per_map.sql`** : échec **`DROP PRIMARY KEY`** sur MySQL/MariaDB (errno 150 / 1025) lorsque la FK **`fk_visit_tutorials_tutorial`** est encore présente — la migration retire désormais les FK (**`fk_visit_tutorials_tutorial`**, puis **`fk_visit_tutorials_map`** si elle existe), recrée la clé primaire **`(map_id, tutorial_id)`**, puis réapplique les deux contraintes. La ligne **`DROP FOREIGN KEY fk_visit_tutorials_map`** peut être ignorée (1091) sur les bases sans cette FK. **`docs/EXPLOITATION.md`** (dépannage déploiement).
+
 ### Sécurité
 - **Visite** : progression « compte élève » pour **`GET /api/visit/progress`** et **`POST /api/visit/seen`** liée au **jeton JWT élève** (fermeture IDOR sur `student_id` arbitraire). **`routes/visit.js`**, **`src/components/visit-views.jsx`**, tests **`tests/new-features.test.js`**, **`docs/API.md`**.
 
