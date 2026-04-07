@@ -716,6 +716,13 @@ test('POST et PUT /api/tasks — danger_level persistant', async () => {
     .expect(200);
   assert.strictEqual(putRes.body.danger_level, 'very_dangerous');
 
+  const putPotential = await request(app)
+    .put(`/api/tasks/${taskId}`)
+    .set('Authorization', 'Bearer ' + token)
+    .send({ danger_level: 'potential_danger' })
+    .expect(200);
+  assert.strictEqual(putPotential.body.danger_level, 'potential_danger');
+
   await request(app)
     .post('/api/tasks')
     .set('Authorization', 'Bearer ' + token)

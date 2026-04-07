@@ -35,7 +35,7 @@ const IMPORT_TEMPLATE_COLUMNS = [
 
 const ALLOWED_TASK_STATUSES = new Set(['available', 'in_progress', 'done', 'validated', 'proposed', 'on_hold']);
 const ALLOWED_TASK_COMPLETION_MODES = new Set(['single_done', 'all_assignees_done']);
-const ALLOWED_TASK_DANGER_LEVELS = new Set(['safe', 'dangerous', 'very_dangerous']);
+const ALLOWED_TASK_DANGER_LEVELS = new Set(['safe', 'potential_danger', 'dangerous', 'very_dangerous']);
 const ALLOWED_TASK_DIFFICULTY_LEVELS = new Set(['easy', 'medium', 'hard', 'very_hard']);
 const ALLOWED_IMPORT_TASK_STATUSES = ALLOWED_TASK_STATUSES;
 const ALLOWED_IMPORT_TASK_RECURRENCES = new Set(['weekly', 'biweekly', 'monthly']);
