@@ -21,6 +21,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - **Build** : régénération **`dist/`** après évolutions visite.
 
 ### Ajouté
+- **Charge** : rapport synthétique d’essai de charge (10 VU) — **`load/reports/10vu-summary.md`**.
 - **Tests e2e** : visite sans compte et onglet visite connecté. **`e2e/visit-mode.spec.js`**.
 - **Exploitation** : variable **`VISIT_COOKIE_SECRET`** documentée dans **`.env.example`** ; précisions cookie anonyme et prévisualisation prof dans **`docs/API.md`**.
 
