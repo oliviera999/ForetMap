@@ -7,6 +7,7 @@ import { HelpPanel } from './HelpPanel';
 import { Tooltip } from './Tooltip';
 import { HELP_PANELS, HELP_TOOLTIPS, resolveRoleText } from '../constants/help';
 import { getContentText } from '../utils/content';
+import { resolveMapOverlayTypography } from '../utils/mapOverlayTypography';
 
 function parsePctPoints(raw) {
   try {
@@ -498,6 +499,22 @@ function VisitView({
   const [visitMapFit, setVisitMapFit] = useState({ offsetX: 0, offsetY: 0, width: 0, height: 0 });
   const canPanAndZoom = mode === 'view';
 
+  /** Tailles emoji / libellé zone en unités SVG (viewBox 0–100), alignées sur `resolveMapOverlayTypography` + largeur calque carte. */
+  const visitZoneSvgTypography = useMemo(() => {
+    const mapSettings =
+      publicSettings?.map && typeof publicSettings.map === 'object' ? publicSettings.map : null;
+    const fw = visitMapFit.width > 0 ? visitMapFit.width : 360;
+    const uPerPx = 100 / Math.max(1, fw);
+    const inv = 1 / Math.max(mapTransform.s, 0.12);
+    const t = resolveMapOverlayTypography(mapSettings, inv);
+    return {
+      emojiU: t.mapEmojiFontPx * uPerPx,
+      labelU: t.mapLabelFontPx * uPerPx,
+      gapU: t.mapEmojiLabelCenterGap * uPerPx,
+      strokeU: Math.max(0.06, 3 * inv * uPerPx),
+    };
+  }, [publicSettings, visitMapFit.width, mapTransform.s]);
+
   const clampTransform = useCallback((next, rectLike = null) => {
     const stage = stageRef.current;
     const rect = rectLike || (stage ? stage.getBoundingClientRect() : null);
@@ -720,7 +737,7 @@ function VisitView({
 
   const onStagePointerDown = (event) => {
     if (!canPanAndZoom) return;
-    if (event.target.closest('.visit-map-controls') || event.target.closest('.visit-zone-poly') || event.target.closest('.visit-marker-btn')) return;
+    if (event.target.closest('.visit-map-controls') || event.target.closest('.visit-zone-hit') || event.target.closest('.visit-marker-btn')) return;
     const stage = stageRef.current;
     if (!stage) return;
     dragRef.current = {
@@ -985,18 +1002,59 @@ function VisitView({
                     if (points.length < 3) return null;
                     const p = points.map((pt) => `${pt.xp},${pt.yp}`).join(' ');
                     const isSeen = seen.has(itemSeenKey('zone', z.id));
+                    const mx = points.reduce((s, pt) => s + pt.xp, 0) / points.length;
+                    const my = points.reduce((s, pt) => s + pt.yp, 0) / points.length;
+                    const zoneEmoji = detectLeadingMarkerEmoji(z.name || '', markerEmojis);
+                    const zoneName = stripLeadingMarkerEmoji(z.name || '', markerEmojis);
+                    const { emojiU, labelU, gapU, strokeU } = visitZoneSvgTypography;
                     return (
-                      <polygon
+                      <g
                         key={z.id}
-                        points={p}
-                        className={`visit-zone-poly ${isSeen ? 'is-seen' : 'is-unseen'}`}
+                        className="visit-zone-hit"
+                        style={{ cursor: 'pointer' }}
                         onClick={(event) => {
                           event.stopPropagation();
                           if (consumeSkipClick()) return;
                           setSelected(z);
                           setSelectedType('zone');
                         }}
-                      />
+                      >
+                        <polygon
+                          points={p}
+                          className={`visit-zone-poly ${isSeen ? 'is-seen' : 'is-unseen'}`}
+                        />
+                        {zoneEmoji ? (
+                          <text
+                            x={mx}
+                            y={my}
+                            textAnchor="middle"
+                            dominantBaseline="middle"
+                            fontSize={emojiU}
+                            fontFamily="Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif"
+                            className="visit-zone-label visit-zone-label--emoji"
+                          >
+                            {zoneEmoji}
+                          </text>
+                        ) : null}
+                        {(zoneName || z.name) ? (
+                          <text
+                            x={mx}
+                            y={my + (zoneEmoji ? gapU : 0)}
+                            textAnchor="middle"
+                            dominantBaseline="middle"
+                            fontSize={labelU}
+                            fontWeight="700"
+                            fontFamily="DM Sans, sans-serif"
+                            fill="#1a4731"
+                            stroke="rgba(255,255,255,0.88)"
+                            strokeWidth={strokeU}
+                            paintOrder="stroke"
+                            className="visit-zone-label visit-zone-label--title"
+                          >
+                            {zoneName || z.name}
+                          </text>
+                        ) : null}
+                      </g>
                     );
                   })}
                   {mode === 'draw-zone' && drawPoints.length >= 1 && (

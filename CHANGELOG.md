@@ -9,6 +9,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - **Tâches — danger** : niveau intermédiaire **`potential_danger`** (« Danger potentiel ») entre sans danger et dangereux — validation API, formulaire prof/proposition, pastilles (`badges.jsx`), clones récurrents. **`docs/API.md`**.
 
 ### Corrigé
+- **Visite — icônes / titres de zones** : la carte visite n’affichait que les polygones, sans l’émoji ni le libellé dérivés du nom (comme sur la carte tâches). Affichage au **centroïde** via SVG (`detectLeadingMarkerEmoji` / `stripLeadingMarkerEmoji`, liste `location_emojis`), tailles pilotées par **`resolveMapOverlayTypography`** et largeur du calque carte ; groupe **`.visit-zone-hit`** pour clic et pour ne pas démarrer le pan sur le libellé. **`src/components/visit-views.jsx`**, **`src/index.css`**, **`dist/`**.
 - **Visite — alignement carte** : zones et repères en pourcentages étaient calés sur toute la scène (ratio 16:10 + `object-fit: contain`) alors que le fond ne remplissait pas ce rectangle — décalage et étirement visibles par rapport à la carte tâches. Un calque **`.visit-map-fit-layer`** reprend le rectangle « contain » (comme la logique de la carte principale) ; image en `object-fit: fill` dans ce cadre, SVG et repères ancrés dessus ; clics dessin zone / repère convertis avec le même repère. **`src/components/visit-views.jsx`**, **`src/index.css`**, **`dist/`**.
 
 ### Modifié

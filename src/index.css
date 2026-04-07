@@ -2133,6 +2133,11 @@
       width:100%;
       height:100%;
     }
+    .visit-zone-hit { pointer-events:all; }
+    .visit-zone-label {
+      pointer-events:none;
+      user-select:none;
+    }
     .visit-zone-poly {
       fill:rgba(22,163,74,.18);
       stroke:rgba(26,71,49,.52);
