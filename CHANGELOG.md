@@ -5,6 +5,9 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Modifié
+- **Inscriptions tâches (plafond)** : pour une tâche en validation collective (`completion_mode` `all_assignees_done`), dès qu’un n3beur a marqué sa part (`POST …/done`, `task_assignments.done_at`), cette inscription ne compte plus dans `currentActiveAssignments` / limite `tasks.student_max_active_assignments` (et `roles.max_concurrent_tasks`), ce qui permet de s’inscrire à une autre tâche sans attendre les autres inscrits ni la validation n3boss. **`lib/studentTaskEnrollment.js`**, **`docs/API.md`**, test **`tests/api.test.js`**.
+
 ### Corrigé
 - **Migration `056_visit_tutorials_per_map.sql`** : échec **`DROP PRIMARY KEY`** sur MySQL/MariaDB (errno 150 / 1025) lorsque la FK **`fk_visit_tutorials_tutorial`** est encore présente — la migration retire désormais les FK (**`fk_visit_tutorials_tutorial`**, puis **`fk_visit_tutorials_map`** si elle existe), recrée la clé primaire **`(map_id, tutorial_id)`**, puis réapplique les deux contraintes. La ligne **`DROP FOREIGN KEY fk_visit_tutorials_map`** peut être ignorée (1091) sur les bases sans cette FK. **`docs/EXPLOITATION.md`** (dépannage déploiement).
 

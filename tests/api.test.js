@@ -485,6 +485,78 @@ test('Plafond auto-inscription n3beur : TASK_ENROLLMENT_LIMIT et GET /api/auth/m
   }
 });
 
+test('Plafond auto-inscription : tâche all_assignees_done avec partie individuelle terminée ne compte plus', async () => {
+  try {
+    await setSetting('tasks.student_max_active_assignments', 1, {});
+    const teacherToken = await getAdminAuthToken();
+    const zones = await request(app).get('/api/zones').expect(200);
+    const zoneId = zones.body[0]?.id || 'pg';
+
+    const collective = await request(app)
+      .post('/api/tasks')
+      .set('Authorization', `Bearer ${teacherToken}`)
+      .send({
+        title: `Coll limite ${Date.now()}`,
+        zone_id: zoneId,
+        required_students: 3,
+        completion_mode: 'all_assignees_done',
+      })
+      .expect(201);
+    const tOther = await request(app)
+      .post('/api/tasks')
+      .set('Authorization', `Bearer ${teacherToken}`)
+      .send({ title: `Autre limite coll ${Date.now()}`, zone_id: zoneId, required_students: 1 })
+      .expect(201);
+
+    const enrollEmail = `enroll_coll_${Date.now()}@foretmap.test`;
+    const studentRes = await request(app)
+      .post('/api/auth/register')
+      .send({ firstName: 'Coll', lastName: `N3b${Date.now()}`, password: 'pwd1', email: enrollEmail })
+      .expect(201);
+    const { first_name, last_name, id: studentId } = studentRes.body;
+    await setStudentPrimaryRole(studentId, 'eleve_novice');
+    const loginRes = await request(app)
+      .post('/api/auth/login')
+      .send({ identifier: enrollEmail, password: 'pwd1' })
+      .expect(200);
+    const authToken = loginRes.body.authToken;
+
+    await request(app)
+      .post(`/api/tasks/${collective.body.id}/assign`)
+      .set('Authorization', `Bearer ${authToken}`)
+      .send({ firstName: first_name, lastName: last_name, studentId })
+      .expect(200);
+
+    const meBeforeDone = await request(app)
+      .get('/api/auth/me')
+      .set('Authorization', `Bearer ${authToken}`)
+      .expect(200);
+    assert.strictEqual(meBeforeDone.body.taskEnrollment?.currentActiveAssignments, 1);
+    assert.strictEqual(meBeforeDone.body.taskEnrollment?.atLimit, true);
+
+    await request(app)
+      .post(`/api/tasks/${collective.body.id}/done`)
+      .set('Authorization', `Bearer ${authToken}`)
+      .send({ firstName: first_name, lastName: last_name, studentId })
+      .expect(200);
+
+    const meAfterDone = await request(app)
+      .get('/api/auth/me')
+      .set('Authorization', `Bearer ${authToken}`)
+      .expect(200);
+    assert.strictEqual(meAfterDone.body.taskEnrollment?.currentActiveAssignments, 0);
+    assert.strictEqual(meAfterDone.body.taskEnrollment?.atLimit, false);
+
+    await request(app)
+      .post(`/api/tasks/${tOther.body.id}/assign`)
+      .set('Authorization', `Bearer ${authToken}`)
+      .send({ firstName: first_name, lastName: last_name, studentId })
+      .expect(200);
+  } finally {
+    await setSetting('tasks.student_max_active_assignments', 0, {});
+  }
+});
+
 test('Plafond auto-inscription : le profil RBAC (max_concurrent_tasks) prime sur le réglage global', async () => {
   const noviceRole = await queryOne("SELECT id FROM roles WHERE slug = 'eleve_novice' LIMIT 1");
   assert.ok(noviceRole?.id);
