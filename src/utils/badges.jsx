@@ -75,7 +75,7 @@ export function dueDateChip(date) {
 }
 
 const TASK_DIFFICULTY_LEVELS = new Set(['easy', 'medium', 'hard', 'very_hard']);
-const TASK_DANGER_LEVELS = new Set(['safe', 'dangerous', 'very_dangerous']);
+const TASK_DANGER_LEVELS = new Set(['safe', 'potential_danger', 'dangerous', 'very_dangerous']);
 
 /** Niveau renseigné explicitement (sinon null — pas d’affichage). */
 export function getDefinedTaskDifficultyLevel(task) {
@@ -101,6 +101,11 @@ const TASK_DIFFICULTY_DISPLAY = {
 
 const TASK_DANGER_DISPLAY = {
   safe: { emoji: '🛡️', label: 'Sans danger', title: 'Danger : sans danger' },
+  potential_danger: {
+    emoji: '🔸',
+    label: 'Danger potentiel',
+    title: 'Danger : potentiel — vigilance recommandée',
+  },
   dangerous: { emoji: '⚠️', label: 'Dangereux', title: 'Danger : dangereux — précautions requises' },
   very_dangerous: { emoji: '🚨', label: 'Très dangereux', title: 'Danger : très dangereux — accord adulte requis' },
 };
@@ -119,7 +124,12 @@ export function TaskDifficultyAndRiskChips({ task }) {
   const diff = d ? TASK_DIFFICULTY_DISPLAY[d] : null;
   const risk = g ? TASK_DANGER_DISPLAY[g] : null;
   const riskExtraClass = g === 'very_dangerous' ? ' urgent' : '';
-  const riskStyle = g === 'dangerous' ? { background: '#fffbeb', color: '#b45309' } : undefined;
+  const riskStyle =
+    g === 'potential_danger'
+      ? { background: '#ecfeff', color: '#0e7490' }
+      : g === 'dangerous'
+        ? { background: '#fffbeb', color: '#b45309' }
+        : undefined;
   if (!diff && !risk) return null;
   return (
     <>

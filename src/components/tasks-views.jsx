@@ -748,6 +748,7 @@ function TaskFormModal({
             <select value={form.danger_level || ''} onChange={set('danger_level')}>
               <option value="">Non renseigné</option>
               <option value="safe">Sans danger</option>
+              <option value="potential_danger">Danger potentiel</option>
               <option value="dangerous">Dangereux</option>
               <option value="very_dangerous">Très dangereux</option>
             </select>

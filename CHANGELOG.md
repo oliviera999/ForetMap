@@ -5,6 +5,9 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Ajouté
+- **Tâches — danger** : niveau intermédiaire **`potential_danger`** (« Danger potentiel ») entre sans danger et dangereux — validation API, formulaire prof/proposition, pastilles (`badges.jsx`), clones récurrents. **`docs/API.md`**.
+
 ### Corrigé
 - **Visite — alignement carte** : zones et repères en pourcentages étaient calés sur toute la scène (ratio 16:10 + `object-fit: contain`) alors que le fond ne remplissait pas ce rectangle — décalage et étirement visibles par rapport à la carte tâches. Un calque **`.visit-map-fit-layer`** reprend le rectangle « contain » (comme la logique de la carte principale) ; image en `object-fit: fill` dans ce cadre, SVG et repères ancrés dessus ; clics dessin zone / repère convertis avec le même repère. **`src/components/visit-views.jsx`**, **`src/index.css`**, **`dist/`**.
 
