@@ -2114,12 +2114,24 @@
       transform-origin:0 0;
       will-change:transform;
     }
-    .visit-map-img {
-      width:100%; height:100%; object-fit:contain; display:block;
-      user-select:none; pointer-events:none;
+    /* Calque aligné sur le rectangle réel de l’image (comme MapView), pas sur toute la scène 16:10 — évite décalage/distorsion des % avec object-fit:contain. */
+    .visit-map-fit-layer {
+      position:absolute;
+      box-sizing:border-box;
     }
-    .visit-map-zones {
-      position:absolute; inset:0; width:100%; height:100%;
+    .visit-map-fit-layer .visit-map-img {
+      width:100%;
+      height:100%;
+      object-fit:fill;
+      display:block;
+      user-select:none;
+      pointer-events:none;
+    }
+    .visit-map-fit-layer .visit-map-zones {
+      position:absolute;
+      inset:0;
+      width:100%;
+      height:100%;
     }
     .visit-zone-poly {
       fill:rgba(22,163,74,.18);

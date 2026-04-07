@@ -27,16 +27,36 @@ function itemSeenKey(type, id) {
   return `${type}:${id}`;
 }
 
-function pointToPct(event, element, transform = { x: 0, y: 0, s: 1 }) {
-  const rect = element.getBoundingClientRect();
+/** Rectangle (px, espace « monde » carte visite) où l’image est réellement dessinée après object-fit: contain — aligné sur MapView. */
+function computeVisitMapFitRect(nw, nh, cw, ch) {
+  const boxW = Math.max(1, cw);
+  const boxH = Math.max(1, ch);
+  if (!nw || !nh) {
+    return { offsetX: 0, offsetY: 0, width: boxW, height: boxH };
+  }
+  const scale = Math.min(boxW / nw, boxH / nh);
+  const width = nw * scale;
+  const height = nh * scale;
+  const offsetX = (boxW - width) / 2;
+  const offsetY = (boxH - height) / 2;
+  return { offsetX, offsetY, width, height };
+}
+
+function pointToPct(event, stageEl, transform = { x: 0, y: 0, s: 1 }, fit = null) {
+  const rect = stageEl.getBoundingClientRect();
   if (!rect.width || !rect.height) return null;
   const scale = Number(transform?.s) > 0 ? Number(transform.s) : 1;
-  const offsetX = Number(transform?.x) || 0;
-  const offsetY = Number(transform?.y) || 0;
-  const localX = (event.clientX - rect.left - offsetX) / scale;
-  const localY = (event.clientY - rect.top - offsetY) / scale;
-  const xp = (localX / rect.width) * 100;
-  const yp = (localY / rect.height) * 100;
+  const tx = Number(transform?.x) || 0;
+  const ty = Number(transform?.y) || 0;
+  const u = (event.clientX - rect.left - tx) / scale;
+  const v = (event.clientY - rect.top - ty) / scale;
+  /* u,v sont en px dans le repère du « monde » (même largeur/hauteur que la scène, avant scale écran). */
+  const fw = fit && fit.width > 0 ? fit.width : rect.width;
+  const fh = fit && fit.height > 0 ? fit.height : rect.height;
+  const fox = fit && fit.width > 0 ? fit.offsetX : 0;
+  const foy = fit && fit.height > 0 ? fit.offsetY : 0;
+  const xp = ((u - fox) / fw) * 100;
+  const yp = ((v - foy) / fh) * 100;
   if (!Number.isFinite(xp) || !Number.isFinite(yp)) return null;
   return {
     xp: Math.max(0, Math.min(100, Number(xp.toFixed(2)))),
@@ -472,6 +492,10 @@ function VisitView({
   }, [initialMapId]);
 
   const currentMap = useMemo(() => maps.find((m) => m.id === mapId), [maps, mapId]);
+  const visitMapImageSrc = currentMap?.map_image_url || '/map.png';
+  const imgRef = useRef(null);
+  const [visitImgNatural, setVisitImgNatural] = useState({ w: 0, h: 0 });
+  const [visitMapFit, setVisitMapFit] = useState({ offsetX: 0, offsetY: 0, width: 0, height: 0 });
   const canPanAndZoom = mode === 'view';
 
   const clampTransform = useCallback((next, rectLike = null) => {
@@ -578,6 +602,26 @@ function VisitView({
   }, [mapId, resetMapTransform]);
 
   useEffect(() => {
+    setVisitImgNatural({ w: 0, h: 0 });
+  }, [visitMapImageSrc]);
+
+  useEffect(() => {
+    const stage = stageRef.current;
+    if (!stage || typeof ResizeObserver === 'undefined') return undefined;
+    const run = () => {
+      const cw = Math.max(1, stage.clientWidth);
+      const ch = Math.max(1, stage.clientHeight);
+      const nw = visitImgNatural.w;
+      const nh = visitImgNatural.h;
+      setVisitMapFit(computeVisitMapFitRect(nw, nh, cw, ch));
+    };
+    run();
+    const ro = new ResizeObserver(() => run());
+    ro.observe(stage);
+    return () => ro.disconnect();
+  }, [visitImgNatural.w, visitImgNatural.h, mapId]);
+
+  useEffect(() => {
     if (typeof window === 'undefined') return undefined;
     const onResize = () => {
       setMapTransform((prev) => clampTransform(prev));
@@ -643,7 +687,7 @@ function VisitView({
     if (consumeSkipClick()) return;
     if (!isTeacher || mode === 'view') return;
     const stage = event.currentTarget;
-    const p = pointToPct(event, stage, mapTransform);
+    const p = pointToPct(event, stage, mapTransform, visitMapFit);
     if (!p) return;
 
     if (mode === 'draw-zone') {
@@ -910,67 +954,88 @@ function VisitView({
               className="visit-map-world"
               style={{ transform: `translate(${mapTransform.x}px, ${mapTransform.y}px) scale(${mapTransform.s})` }}
             >
-              <img
-                src={currentMap?.map_image_url || '/map.png'}
-                alt={`Plan ${currentMap?.label || 'Forêt'}`}
-                className="visit-map-img"
-              />
+              <div
+                className="visit-map-fit-layer"
+                style={
+                  visitMapFit.width > 0 && visitMapFit.height > 0
+                    ? {
+                        left: visitMapFit.offsetX,
+                        top: visitMapFit.offsetY,
+                        width: visitMapFit.width,
+                        height: visitMapFit.height,
+                      }
+                    : { left: 0, top: 0, width: '100%', height: '100%' }
+                }
+              >
+                <img
+                  ref={imgRef}
+                  src={visitMapImageSrc}
+                  alt={`Plan ${currentMap?.label || 'Forêt'}`}
+                  className="visit-map-img"
+                  onLoad={(e) => {
+                    const el = e.currentTarget;
+                    setVisitImgNatural({ w: el.naturalWidth || 0, h: el.naturalHeight || 0 });
+                  }}
+                  onError={() => setVisitImgNatural({ w: 0, h: 0 })}
+                />
 
-              <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="visit-map-zones">
-                {(content.zones || []).map((z) => {
-                  const points = parsePctPoints(z.points);
-                  if (points.length < 3) return null;
-                  const p = points.map((pt) => `${pt.xp},${pt.yp}`).join(' ');
-                  const isSeen = seen.has(itemSeenKey('zone', z.id));
+                <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="visit-map-zones">
+                  {(content.zones || []).map((z) => {
+                    const points = parsePctPoints(z.points);
+                    if (points.length < 3) return null;
+                    const p = points.map((pt) => `${pt.xp},${pt.yp}`).join(' ');
+                    const isSeen = seen.has(itemSeenKey('zone', z.id));
+                    return (
+                      <polygon
+                        key={z.id}
+                        points={p}
+                        className={`visit-zone-poly ${isSeen ? 'is-seen' : 'is-unseen'}`}
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          if (consumeSkipClick()) return;
+                          setSelected(z);
+                          setSelectedType('zone');
+                        }}
+                      />
+                    );
+                  })}
+                  {mode === 'draw-zone' && drawPoints.length >= 1 && (
+                    <>
+                      <polyline
+                        points={drawPoints.map((pt) => `${pt.xp},${pt.yp}`).join(' ')}
+                        fill="none"
+                        stroke="#166534"
+                        strokeWidth="0.35"
+                        strokeDasharray="0.8 0.4"
+                      />
+                      {drawPoints.map((pt, idx) => (
+                        <circle key={`draw-${idx}`} cx={pt.xp} cy={pt.yp} r="0.7" fill="#166534" />
+                      ))}
+                    </>
+                  )}
+                </svg>
+
+                {(content.markers || []).map((m) => {
+                  const isSeen = seen.has(itemSeenKey('marker', m.id));
                   return (
-                    <polygon
-                      key={z.id}
-                      points={p}
-                      className={`visit-zone-poly ${isSeen ? 'is-seen' : 'is-unseen'}`}
+                    <button
+                      key={m.id}
+                      type="button"
+                      className="visit-marker-btn"
+                      style={{ left: `${m.x_pct}%`, top: `${m.y_pct}%` }}
                       onClick={(event) => {
                         event.stopPropagation();
                         if (consumeSkipClick()) return;
-                        setSelected(z);
-                        setSelectedType('zone');
+                        setSelected(m);
+                        setSelectedType('marker');
                       }}
-                    />
+                    >
+                      <span className="visit-marker-emoji">{m.emoji || '📍'}</span>
+                      <span className={`visit-marker-indicator ${isSeen ? 'is-seen' : 'is-unseen'}`} />
+                    </button>
                   );
                 })}
-                {mode === 'draw-zone' && drawPoints.length >= 1 && (
-                  <>
-                    <polyline
-                      points={drawPoints.map((pt) => `${pt.xp},${pt.yp}`).join(' ')}
-                      fill="none"
-                      stroke="#166534"
-                      strokeWidth="0.35"
-                      strokeDasharray="0.8 0.4"
-                    />
-                    {drawPoints.map((pt, idx) => (
-                      <circle key={`draw-${idx}`} cx={pt.xp} cy={pt.yp} r="0.7" fill="#166534" />
-                    ))}
-                  </>
-                )}
-              </svg>
-
-              {(content.markers || []).map((m) => {
-                const isSeen = seen.has(itemSeenKey('marker', m.id));
-                return (
-                  <button
-                    key={m.id}
-                    className="visit-marker-btn"
-                    style={{ left: `${m.x_pct}%`, top: `${m.y_pct}%` }}
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      if (consumeSkipClick()) return;
-                      setSelected(m);
-                      setSelectedType('marker');
-                    }}
-                  >
-                    <span className="visit-marker-emoji">{m.emoji || '📍'}</span>
-                    <span className={`visit-marker-indicator ${isSeen ? 'is-seen' : 'is-unseen'}`} />
-                  </button>
-                );
-              })}
+              </div>
             </div>
             <div className="visit-map-controls">
               <button
