@@ -8,6 +8,7 @@ import { Tooltip } from './Tooltip';
 import { HELP_PANELS, HELP_TOOLTIPS, resolveRoleText } from '../constants/help';
 import { getContentText } from '../utils/content';
 import { resolveMapOverlayTypography } from '../utils/mapOverlayTypography';
+import { TutorialReadAcknowledgeButton, fetchTutorialReadIds } from './TutorialReadAcknowledge';
 
 function parsePctPoints(raw) {
   try {
@@ -461,6 +462,7 @@ function VisitView({
   const [savingSeen, setSavingSeen] = useState(false);
   const [tutorialSelection, setTutorialSelection] = useState([]);
   const [savingTutorials, setSavingTutorials] = useState(false);
+  const [tutorialReadIds, setTutorialReadIds] = useState(() => new Set());
   const [mode, setMode] = useState('view');
   const [drawPoints, setDrawPoints] = useState([]);
   const [creating, setCreating] = useState(false);
@@ -491,6 +493,25 @@ function VisitView({
     const next = String(initialMapId || 'foret').trim() || 'foret';
     setMapId((prev) => (prev === next ? prev : next));
   }, [initialMapId]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const load = async () => {
+      const ids = await fetchTutorialReadIds();
+      if (!cancelled) setTutorialReadIds(new Set(ids));
+    };
+    load();
+    if (typeof window !== 'undefined') {
+      window.addEventListener('foretmap_session_changed', load);
+      return () => {
+        cancelled = true;
+        window.removeEventListener('foretmap_session_changed', load);
+      };
+    }
+    return () => {
+      cancelled = true;
+    };
+  }, [content.tutorials]);
 
   const currentMap = useMemo(() => maps.find((m) => m.id === mapId), [maps, mapId]);
   const visitMapImageSrc = currentMap?.map_image_url || '/map.png';
@@ -1217,12 +1238,28 @@ function VisitView({
                 </div>
                 {t.summary && <p>{t.summary}</p>}
                 <div className="task-actions">
-                  <button className="btn btn-ghost btn-sm" onClick={() => window.open(`/api/tutorials/${t.id}/view`, '_blank', 'noopener,noreferrer')}>
+                  <button
+                    className="btn btn-ghost btn-sm"
+                    onClick={() => {
+                      const href =
+                        t.type === 'link' && t.source_url
+                          ? t.source_url
+                          : `/api/tutorials/${t.id}/view`;
+                      window.open(href, '_blank', 'noopener,noreferrer');
+                    }}
+                  >
                     👁️ Lire
                   </button>
                   <button className="btn btn-primary btn-sm" onClick={() => window.open(`/api/tutorials/${t.id}/download/pdf`, '_blank', 'noopener,noreferrer')}>
                     ⬇️ PDF
                   </button>
+                  <TutorialReadAcknowledgeButton
+                    tutorialId={t.id}
+                    tutorialTitle={t.title}
+                    isRead={tutorialReadIds.has(Number(t.id))}
+                    onAcknowledged={(id) => setTutorialReadIds((prev) => new Set([...prev, id]))}
+                    onForceLogout={onForceLogout}
+                  />
                 </div>
               </article>
             ))}

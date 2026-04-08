@@ -12,6 +12,8 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - **UI — Carte (split Cartes & tâches)** : la barre d’outils reprend la **même largeur que le canvas** via **`--fm-map-canvas-w`** (suppression de la surcharge `width: 100%` sur **`.map-view-toolbar`**). Défilement horizontal des boutons inchangé en mode compact (**`main--map-visible`**). **`index.css`**, **`dist/`**.
 
 ### Corrigé
+- **Tutoriels (type lien)** : l’aperçu modal et l’iframe utilisent désormais **`source_url`** (les liens n’ont pas de **`source_file_path`**). En **visite**, le bouton **Lire** ouvre l’URL externe au lieu de **`/api/tutorials/:id/view`** (inadapté sans contenu HTML). **`tutorials-views.jsx`**, **`visit-views.jsx`**.
+
 - **Tutoriels — aperçu modal** : l’iframe d’aperçu autorise désormais **`allow-scripts`** dans le `sandbox`, pour que les fiches HTML qui révèlent le contenu au scroll (classes **`.reveal`** + **IntersectionObserver**, ex. fiches *punk* sous **`tutos/`**) s’affichent comme dans un onglet ; sans script, seuls l’en-tête et le pied de page restaient visibles. **`tutorials-views.jsx`**.
 
 - **Tâches (élève)** : libellé du sous-titre missions — « commences la **mission** » (et non « question »). **`tasks-views.jsx`**.
