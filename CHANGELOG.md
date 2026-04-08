@@ -6,6 +6,8 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 ## [Non publié]
 
 ### Ajouté
+- **Visite** : indicateur de **progression sur la carte** (X / Y zones et repères marqués « vus », barre et pourcentage) — calcul limité à la **carte affichée** et aux polygones réellement visibles ; message discret si la carte est vide. **`visit-views.jsx`**, **`index.css`**, build **`dist/`**.
+
 - **Commentaires de contexte** : indicateur discret des **messages non lus** (pastille verte + léger fond sur l’en-tête replié, infobulle et libellé accessible) — basé sur le dernier commentaire consulté (stockage local par utilisateur) et le temps réel. **`context-comments.jsx`**, **`index.css`**, build **`dist/`**.
 
 - **Tâches — biodiversité** : association d’**êtres vivants** (noms du catalogue), comme pour les zones et repères — colonne **`living_beings`**, migration **`061_tasks_living_beings.sql`**, API **`living_beings`** / réponse **`living_beings_list`** (`POST/PUT` tâche, propositions, clones récurrents). Formulaire tâche (multi-sélection) et pastilles sur les cartes tâche ; utilitaire partagé **`src/utils/livingBeings.js`**. **`routes/tasks.js`**, **`lib/recurringTasks.js`**, **`tasks-views.jsx`**, **`App.jsx`**, **`map-views.jsx`**, **`sql/schema_foretmap.sql`**, **`docs/API.md`**, **`tests/api.test.js`**, build **`dist/`**.
