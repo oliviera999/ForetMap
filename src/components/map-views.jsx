@@ -1261,8 +1261,18 @@ function useMapGestures({ mapImageSrc, activeMapId, mode, onRefresh, embedded = 
     const c = containerRef.current;
     if (!c) return;
 
+    const syncToolbarWidth = (cw) => {
+      const root = c.closest('.map-view-root');
+      if (!root) return;
+      if (cw > 0) root.style.setProperty('--fm-map-canvas-w', `${cw}px`);
+      else root.style.removeProperty('--fm-map-canvas-w');
+    };
+
     const measureAndFit = () => {
-      if (imgSizeRef.current.w <= 1) return;
+      if (imgSizeRef.current.w <= 1) {
+        syncToolbarWidth(0);
+        return;
+      }
       const { w: iw, h: ih } = imgSizeRef.current;
       const outer = mapLayoutOuterRef?.current;
 
@@ -1273,6 +1283,7 @@ function useMapGestures({ mapImageSrc, activeMapId, mode, onRefresh, embedded = 
         const x = (cw - iw * s) / 2;
         const y = (ch - ih * s) / 2;
         commitFitLayout(x, y, s);
+        syncToolbarWidth(cw);
         return;
       }
 
@@ -1312,6 +1323,7 @@ function useMapGestures({ mapImageSrc, activeMapId, mode, onRefresh, embedded = 
       const x = (cw - iw * s) / 2;
       const y = (ch - ih * s) / 2;
       commitFitLayout(x, y, s);
+      syncToolbarWidth(cw);
     };
 
     measureAndFit();
@@ -1344,6 +1356,8 @@ function useMapGestures({ mapImageSrc, activeMapId, mode, onRefresh, embedded = 
       if (vv) vv.removeEventListener('resize', schedule);
       c.style.width = '';
       c.style.height = '';
+      const root = c.closest('.map-view-root');
+      if (root) root.style.removeProperty('--fm-map-canvas-w');
     };
   }, [imgSize, embedded, mapLayoutOuterRef]);
 

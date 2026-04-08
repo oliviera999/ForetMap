@@ -10,6 +10,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ### Modifié
 - **Build** : régénération **`dist/`** (empreintes Vite) et synchronisation **`package-lock.json`** après installation locale.
+- **Carte & Zones** : la barre **`.map-view-toolbar`** prend la même largeur que **`.map-view-canvas`** (variable **`--fm-map-canvas-w`** mise à jour avec le dimensionnement contain). **`src/components/map-views.jsx`**, **`src/index.css`**, build **`dist/`**.
 - **Carte & Zones** : le cadre de la carte épouse la taille du plan (contain dans la largeur du contenu et la hauteur visible jusqu’au bas de la zone principale / viewport), sans bande grise autour ; la vue solo ne force plus une colonne flex vide sous la carte, ce qui évite le défilement vertical sur laptop lorsque le plan tient dans l’écran. **`src/components/map-views.jsx`**, **`src/index.css`**, build **`dist/`**.
 
 ### Ajouté
