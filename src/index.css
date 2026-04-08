@@ -2322,7 +2322,7 @@
       display:flex; justify-content:space-between; align-items:flex-start; gap:10px;
       flex-wrap:wrap;
     }
-    .visit-map-switch { display:flex; gap:6px; flex-wrap:wrap; }
+    .visit-map-switch { display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
     .visit-sync-card {
       background:white; border:1px solid var(--mint); border-radius:12px;
       box-shadow:var(--shadow); padding:12px; display:grid; gap:10px;
@@ -2414,13 +2414,13 @@
     }
     .visit-marker-btn {
       position:absolute; transform:translate(-50%,-50%);
-      min-width:36px; min-height:36px; padding:0;
+      min-width:44px; min-height:44px; padding:2px;
       border:none; border-radius:0;
       background:transparent; cursor:pointer;
       display:flex; align-items:center; justify-content:center;
       font-family:Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif;
     }
-    .visit-marker-emoji { font-size:1.25rem; line-height:1; }
+    .visit-marker-emoji { font-size:1.35rem; line-height:1.15; }
     .visit-marker-indicator {
       position:absolute; top:-2px; right:-2px; width:10px; height:10px; border-radius:50%;
       border:1.5px solid white;

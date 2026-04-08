@@ -43,6 +43,70 @@ function withLivingBeings(marker) {
   };
 }
 
+function hasVisitMarkerContentPatch(body) {
+  if (!body || typeof body !== 'object') return false;
+  return ['visit_subtitle', 'visit_short_description', 'visit_details_title', 'visit_details_text']
+    .some((k) => body[k] !== undefined);
+}
+
+async function upsertVisitMarkerEditorial(reqBody, markerRow) {
+  const existing = await queryOne(
+    'SELECT subtitle, short_description, details_title, details_text FROM visit_markers WHERE id = ? LIMIT 1',
+    [markerRow.id],
+  );
+  const subtitle = reqBody.visit_subtitle !== undefined
+    ? String(reqBody.visit_subtitle || '').trim()
+    : String(existing?.subtitle || '');
+  const shortDescription = reqBody.visit_short_description !== undefined
+    ? String(reqBody.visit_short_description || '').trim()
+    : String(existing?.short_description || '');
+  const detailsTitle = reqBody.visit_details_title !== undefined
+    ? (String(reqBody.visit_details_title || 'Détails').trim() || 'Détails')
+    : (String(existing?.details_title || 'Détails').trim() || 'Détails');
+  const detailsText = reqBody.visit_details_text !== undefined
+    ? String(reqBody.visit_details_text || '').trim()
+    : String(existing?.details_text || '');
+  const now = new Date().toISOString();
+  await execute(
+    `INSERT INTO visit_markers
+      (id, map_id, x_pct, y_pct, label, emoji, subtitle, short_description, details_title, details_text, is_active, sort_order, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 0, ?, ?)
+     ON DUPLICATE KEY UPDATE
+       map_id = VALUES(map_id),
+       x_pct = VALUES(x_pct),
+       y_pct = VALUES(y_pct),
+       label = VALUES(label),
+       emoji = VALUES(emoji),
+       subtitle = VALUES(subtitle),
+       short_description = VALUES(short_description),
+       details_title = VALUES(details_title),
+       details_text = VALUES(details_text),
+       updated_at = VALUES(updated_at)`,
+    [
+      markerRow.id,
+      markerRow.map_id,
+      markerRow.x_pct,
+      markerRow.y_pct,
+      markerRow.label,
+      normalizeMarkerEmoji(markerRow.emoji),
+      subtitle,
+      shortDescription,
+      detailsTitle,
+      detailsText,
+      now,
+      now,
+    ],
+  );
+}
+
+const MARKERS_LIST_SQL = `SELECT m.*,
+  vm.subtitle AS visit_subtitle,
+  vm.short_description AS visit_short_description,
+  vm.details_title AS visit_details_title,
+  vm.details_text AS visit_details_text
+FROM map_markers m
+LEFT JOIN visit_markers vm ON vm.id = m.id`;
+
 /** Colonne `map_markers.emoji` : VARCHAR(16). */
 function normalizeMarkerEmoji(value, fallback = '🌱') {
   const s = String(value ?? '').trim();
@@ -57,8 +121,8 @@ router.get('/markers', async (req, res) => {
       return res.status(400).json({ error: 'Carte introuvable' });
     }
     const rows = mapId
-      ? await queryAll('SELECT * FROM map_markers WHERE map_id = ? ORDER BY created_at', [mapId])
-      : await queryAll('SELECT * FROM map_markers ORDER BY created_at');
+      ? await queryAll(`${MARKERS_LIST_SQL} WHERE m.map_id = ? ORDER BY m.created_at`, [mapId])
+      : await queryAll(`${MARKERS_LIST_SQL} ORDER BY m.created_at`);
     res.json(rows.map(withLivingBeings));
   } catch (e) {
     logRouteError(e, req);
@@ -80,7 +144,11 @@ router.post('/markers', requirePermission('map.manage_markers', { needsElevation
       'INSERT INTO map_markers (id, map_id, x_pct, y_pct, label, plant_name, living_beings, note, emoji, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
       [id, mapId, x_pct, y_pct, label.trim(), nextPlantName, serializeLivingBeings(nextLiving, nextPlantName), note || '', normalizeMarkerEmoji(emoji), new Date().toISOString()]
     );
-    const row = await queryOne('SELECT * FROM map_markers WHERE id = ?', [id]);
+    let row = await queryOne(`${MARKERS_LIST_SQL} WHERE m.id = ?`, [id]);
+    if (hasVisitMarkerContentPatch(req.body)) {
+      await upsertVisitMarkerEditorial(req.body, row);
+      row = await queryOne(`${MARKERS_LIST_SQL} WHERE m.id = ?`, [id]);
+    }
     emitGardenChanged({ reason: 'create_marker', markerId: id, mapId });
     res.status(201).json(withLivingBeings(row));
   } catch (e) {
@@ -121,7 +189,11 @@ router.put('/markers/:id', requirePermission('map.manage_markers', { needsElevat
         m.id,
       ]
     );
-    const updated = await queryOne('SELECT * FROM map_markers WHERE id = ?', [m.id]);
+    let updated = await queryOne(`${MARKERS_LIST_SQL} WHERE m.id = ?`, [m.id]);
+    if (hasVisitMarkerContentPatch(req.body)) {
+      await upsertVisitMarkerEditorial(req.body, updated);
+      updated = await queryOne(`${MARKERS_LIST_SQL} WHERE m.id = ?`, [m.id]);
+    }
     emitGardenChanged({ reason: 'update_marker', markerId: m.id, mapId: updated.map_id });
     res.json(withLivingBeings(updated));
   } catch (e) {

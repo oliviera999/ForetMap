@@ -45,6 +45,67 @@ function withLivingBeings(zone) {
   };
 }
 
+/** Champs éditoriaux visite (tables `visit_zones`, même `id` que `zones` après sync carte → visite). */
+function hasVisitZoneContentPatch(body) {
+  if (!body || typeof body !== 'object') return false;
+  return ['visit_subtitle', 'visit_short_description', 'visit_details_title', 'visit_details_text']
+    .some((k) => body[k] !== undefined);
+}
+
+async function upsertVisitZoneEditorial(reqBody, zoneRow) {
+  const existing = await queryOne(
+    'SELECT subtitle, short_description, details_title, details_text FROM visit_zones WHERE id = ? LIMIT 1',
+    [zoneRow.id],
+  );
+  const subtitle = reqBody.visit_subtitle !== undefined
+    ? String(reqBody.visit_subtitle || '').trim()
+    : String(existing?.subtitle || '');
+  const shortDescription = reqBody.visit_short_description !== undefined
+    ? String(reqBody.visit_short_description || '').trim()
+    : String(existing?.short_description || '');
+  const detailsTitle = reqBody.visit_details_title !== undefined
+    ? (String(reqBody.visit_details_title || 'Détails').trim() || 'Détails')
+    : (String(existing?.details_title || 'Détails').trim() || 'Détails');
+  const detailsText = reqBody.visit_details_text !== undefined
+    ? String(reqBody.visit_details_text || '').trim()
+    : String(existing?.details_text || '');
+  const now = new Date().toISOString();
+  await execute(
+    `INSERT INTO visit_zones
+      (id, map_id, name, points, subtitle, short_description, details_title, details_text, is_active, sort_order, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, 0, ?, ?)
+     ON DUPLICATE KEY UPDATE
+       map_id = VALUES(map_id),
+       name = VALUES(name),
+       points = VALUES(points),
+       subtitle = VALUES(subtitle),
+       short_description = VALUES(short_description),
+       details_title = VALUES(details_title),
+       details_text = VALUES(details_text),
+       updated_at = VALUES(updated_at)`,
+    [
+      zoneRow.id,
+      zoneRow.map_id,
+      zoneRow.name,
+      zoneRow.points,
+      subtitle,
+      shortDescription,
+      detailsTitle,
+      detailsText,
+      now,
+      now,
+    ],
+  );
+}
+
+const ZONES_LIST_SQL = `SELECT z.*,
+  vz.subtitle AS visit_subtitle,
+  vz.short_description AS visit_short_description,
+  vz.details_title AS visit_details_title,
+  vz.details_text AS visit_details_text
+FROM zones z
+LEFT JOIN visit_zones vz ON vz.id = z.id`;
+
 router.get('/', async (req, res) => {
   try {
     const mapId = req.query.map_id ? String(req.query.map_id).trim() : '';
@@ -52,8 +113,8 @@ router.get('/', async (req, res) => {
       return res.status(400).json({ error: 'Carte introuvable' });
     }
     const zones = mapId
-      ? await queryAll('SELECT * FROM zones WHERE map_id = ?', [mapId])
-      : await queryAll('SELECT * FROM zones');
+      ? await queryAll(`${ZONES_LIST_SQL} WHERE z.map_id = ?`, [mapId])
+      : await queryAll(ZONES_LIST_SQL);
     const history = await queryAll('SELECT * FROM zone_history ORDER BY harvested_at DESC');
     const result  = zones.map(z => ({
       ...withLivingBeings(z),
@@ -69,7 +130,7 @@ router.get('/', async (req, res) => {
 
 router.get('/:id', async (req, res) => {
   try {
-    const zone = await queryOne('SELECT * FROM zones WHERE id = ?', [req.params.id]);
+    const zone = await queryOne(`${ZONES_LIST_SQL} WHERE z.id = ?`, [req.params.id]);
     if (!zone) return res.status(404).json({ error: 'Zone introuvable' });
     const history = await queryAll(
       'SELECT * FROM zone_history WHERE zone_id = ? ORDER BY harvested_at DESC',
@@ -121,10 +182,14 @@ router.put('/:id', requirePermission('zones.manage', { needsElevation: true }), 
         zone.id
       ]
     );
-    const updated = await queryOne('SELECT * FROM zones WHERE id = ?', [zone.id]);
+    const updated = await queryOne(`${ZONES_LIST_SQL} WHERE z.id = ?`, [zone.id]);
     const history = await queryAll('SELECT * FROM zone_history WHERE zone_id=? ORDER BY harvested_at DESC', [zone.id]);
-    emitGardenChanged({ reason: 'update_zone', zoneId: zone.id, mapId: updated.map_id });
-    res.json({ ...withLivingBeings(updated), special: !!updated.special, history });
+    if (hasVisitZoneContentPatch(req.body)) {
+      await upsertVisitZoneEditorial(req.body, updated);
+    }
+    const updatedWithVisit = await queryOne(`${ZONES_LIST_SQL} WHERE z.id = ?`, [zone.id]);
+    emitGardenChanged({ reason: 'update_zone', zoneId: zone.id, mapId: updatedWithVisit.map_id });
+    res.json({ ...withLivingBeings(updatedWithVisit), special: !!updatedWithVisit.special, history });
   } catch (e) {
     logRouteError(e, req);
     res.status(500).json({ error: e.message });

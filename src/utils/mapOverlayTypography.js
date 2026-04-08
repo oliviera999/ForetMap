@@ -1,5 +1,7 @@
 /** Constantes par défaut (zones SVG + repères HTML, `inv = 1/scale`). */
-const DEFAULT_GAP = 14;
+const DEFAULT_GAP = 16;
+/** Marge minimale entre le bas visuel de l’emoji et le haut du libellé (px), une fois les demi-hauteurs retirées. */
+const MIN_CENTER_GAP_EXTRA_PX = 4;
 const BASE_EMOJI_MIN = 13;
 const BASE_EMOJI_INV = 19;
 const BASE_LABEL_MIN = 10;
@@ -24,7 +26,6 @@ export function resolveMapOverlayTypography(mapSettings, inv) {
   const lbPct = Number.isFinite(lbPctRaw)
     ? Math.min(150, Math.max(70, Math.round(lbPctRaw))) / 100
     : 1;
-  const mapEmojiLabelCenterGap = gap * inv;
   const mapEmojiFontPx = Math.max(
     8,
     Math.round(BASE_EMOJI_MIN * emPct),
@@ -35,6 +36,9 @@ export function resolveMapOverlayTypography(mapSettings, inv) {
     Math.round(BASE_LABEL_MIN * lbPct),
     Math.round(BASE_LABEL_INV * inv * lbPct)
   );
+  const minCenterGapPx =
+    mapEmojiFontPx / 2 + mapLabelFontPx / 2 + MIN_CENTER_GAP_EXTRA_PX;
+  const mapEmojiLabelCenterGap = Math.max(gap * inv, minCenterGapPx);
   const markerLabelMarginTop = mapEmojiLabelCenterGap - mapEmojiFontPx / 2 - mapLabelFontPx / 2;
   return {
     mapEmojiLabelCenterGap,
