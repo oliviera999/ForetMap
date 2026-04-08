@@ -1297,6 +1297,18 @@ function useMapGestures({ mapImageSrc, activeMapId, mode, onRefresh, embedded = 
       let availH;
       if (embedded) {
         availH = Math.max(1, outer.clientHeight - padT - padB);
+        /* Premiers layouts / flex+grid : clientHeight peut rester quasi nul ; reprendre la logique vue solo. */
+        const EMBEDDED_H_FLOOR = 96;
+        if (availH < EMBEDDED_H_FLOOR) {
+          const vh = window.visualViewport?.height ?? window.innerHeight;
+          const oRect = outer.getBoundingClientRect();
+          const mainEl = outer.closest('.main, .teacher-main');
+          const mRect = mainEl?.getBoundingClientRect();
+          const bottomLimit = mRect ? Math.min(mRect.bottom, vh) : vh;
+          const maxOuterBoxH = Math.max(0, bottomLimit - oRect.top - 2);
+          const fromViewport = Math.max(1, Math.floor(maxOuterBoxH - padT - padB));
+          availH = Math.max(availH, fromViewport);
+        }
       } else {
         const vh = window.visualViewport?.height ?? window.innerHeight;
         const oRect = outer.getBoundingClientRect();

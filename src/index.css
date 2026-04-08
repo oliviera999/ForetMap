@@ -744,6 +744,20 @@
     .main--maptasks-split .map-view-root--embedded .map-view-canvas-slot {
       justify-content:flex-start;
     }
+    /* Split bureau uniquement (cf. App.jsx) : toolbar pleine largeur colonne ; pas de coupure via --fm-map-canvas-w. */
+    .main--maptasks-split .map-view-root--embedded .map-view-toolbar {
+      width:100%;
+      max-width:100%;
+    }
+    /* Si toolbar + carte dépassent max-height du volet, défilement interne au lieu de rogner. */
+    .main--maptasks-split .map-view-root--embedded {
+      overflow-x:hidden;
+      overflow-y:auto;
+      -webkit-overflow-scrolling:touch;
+    }
+    .main--maptasks-split .map-view-root--embedded .map-view-canvas-outer {
+      min-height:clamp(120px, 28dvh, 240px);
+    }
     .main--maptasks-split .desktop-split-pane--tasks {
       overflow:hidden;
     }
@@ -2340,39 +2354,6 @@
   .desktop-split-scroll {
     max-height:none;
     overflow:visible;
-  }
-  /* « Cartes & tâches » : la carte reste visible en haut, seules les tâches défilent (pas le document entier). */
-  .main--maptasks-split .desktop-split-view {
-    grid-template-rows:auto minmax(0, 1fr);
-    align-content:stretch;
-    min-height:0;
-  }
-  /* Pas de hauteur min=max sur tout le volet : ça comprime toolbar + carte dans une boîte trop basse.
-     Plafond seulement ; la toolbar reste en largeur plein volet (sinon width: --fm-map-canvas-w la tronque horizontalement). */
-  .main--maptasks-split .desktop-split-pane--map {
-    max-height:min(60dvh, 600px);
-    min-height:0;
-  }
-  .main--maptasks-split .map-view-root--embedded .map-view-toolbar {
-    width:100%;
-    max-width:100%;
-  }
-  /* Évite le repli à clientHeight ≈ 0 du canvas embedded (mesure dans map-views.jsx) sans figer la hauteur du volet entier. */
-  .main--maptasks-split .map-view-root--embedded .map-view-canvas-outer {
-    min-height:clamp(140px, 40dvh, 260px);
-  }
-  .main--maptasks-split .desktop-split-pane--tasks {
-    min-height:0;
-    display:flex;
-    flex-direction:column;
-  }
-  .main--maptasks-split .desktop-split-scroll {
-    flex:1 1 0%;
-    min-height:0;
-    max-height:none;
-    overflow:auto;
-    overscroll-behavior:contain;
-    -webkit-overflow-scrolling:touch;
   }
   /* Forum : la colonne liste imposait min 280px → dépassement sur petits écrans */
   .forum-grid {
