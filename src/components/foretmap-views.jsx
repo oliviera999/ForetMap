@@ -120,8 +120,6 @@ const PLANT_META_SECTIONS = [
     items: [
       { key: 'habitat', label: 'Habitat' },
       { key: 'agroecosystem_category', label: "Catégorie de l'agrosystème" },
-      { key: 'ecosystem_role', label: "Rôle dans l'écosystème" },
-      { key: 'human_utility', label: "Utilité pour l'être humain" },
       { key: 'harvest_part', label: 'Partie à récolter' },
       { key: 'planting_recommendations', label: 'Recommandations de plantation' },
       { key: 'preferred_nutrients', label: 'Nutriments préférés' },
@@ -248,6 +246,29 @@ function PlantSummaryBadges({ plant }) {
       {chips.slice(0, 3).map(chip => (
         <span key={chip} className="plant-badge">{chip}</span>
       ))}
+    </div>
+  );
+}
+
+/** Rôle écologique et utilité humaine, affichés à la suite de la description (hors blocs repliables). */
+function PlantEcosystemHumanLead({ plant }) {
+  const role = normalizedPlantValue(plant.ecosystem_role);
+  const utility = normalizedPlantValue(plant.human_utility);
+  if (!role && !utility) return null;
+  return (
+    <div className="plant-ecology-lead">
+      {role && (
+        <div className="plant-meta-item">
+          <div className="plant-meta-label">Rôle dans l'écosystème</div>
+          <div className="plant-meta-value">{role}</div>
+        </div>
+      )}
+      {utility && (
+        <div className="plant-meta-item">
+          <div className="plant-meta-label">Utilité pour l'être humain</div>
+          <div className="plant-meta-value">{utility}</div>
+        </div>
+      )}
     </div>
   );
 }
@@ -764,6 +785,7 @@ function PlantManager({ plants, onRefresh, publicSettings = null }) {
 
                 <div className="biodiv-card-body">
                   <p className="plant-row-desc">{p.description || <em style={{color:'#bbb'}}>Pas de description</em>}</p>
+                  <PlantEcosystemHumanLead plant={p} />
                   <div className="task-meta">
                     {normalizedPlantValue(p.habitat) && <span className="task-chip">🏡 {p.habitat}</span>}
                     {normalizedPlantValue(p.agroecosystem_category) && <span className="task-chip">🌍 {p.agroecosystem_category}</span>}
@@ -1038,19 +1060,23 @@ function PlantViewer({ plants, zones, publicSettings = null }) {
                     </div>
                   </div>
                 </button>
-                {!isExpanded && p.description && (
-                  <p className="plant-row-desc">{p.description}</p>
+                {!isExpanded && (
+                  <>
+                    {p.description && <p className="plant-row-desc">{p.description}</p>}
+                    <PlantEcosystemHumanLead plant={p} />
+                  </>
                 )}
                 {isExpanded && (
                   <div className="fade-in biodiv-card-body" style={{marginTop:10}}>
+                    {p.description && (
+                      <p className="plant-row-desc" style={{ marginBottom: 8 }}>{p.description}</p>
+                    )}
+                    <PlantEcosystemHumanLead plant={p} />
                     <div className="task-meta">
                       {normalizedPlantValue(p.habitat) && <span className="task-chip">🏡 {p.habitat}</span>}
                       {normalizedPlantValue(p.agroecosystem_category) && <span className="task-chip">🌍 {p.agroecosystem_category}</span>}
                     </div>
                     <PlantSummaryBadges plant={p}/>
-                    {p.description && (
-                      <p style={{fontSize:'.88rem', color:'#555', lineHeight:1.6, marginBottom:8}}>{p.description}</p>
-                    )}
                     <PlantMetaSections plant={p}/>
                     {pZones.length > 0 ? (
                       <div>

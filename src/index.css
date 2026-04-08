@@ -1613,6 +1613,13 @@
       background:var(--parchment); color:var(--soil);
       border-radius:999px; padding:4px 9px; font-size:.73rem; font-weight:600;
     }
+    .plant-ecology-lead {
+      margin-top:6px;
+      margin-bottom:6px;
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+    }
     .plant-more { margin-top:8px; border:1px solid rgba(183,228,199,.7); border-radius:10px; background:#fbfefc; overflow:hidden; }
     .plant-more > summary {
       list-style:none; cursor:pointer; padding:9px 10px;
