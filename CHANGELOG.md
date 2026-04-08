@@ -21,6 +21,8 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - **Biodiversité** : filtres avancés (sous-groupes 1 et 2, habitat, catégorie d’agrosystème), recherche texte élargie (habitat, origine géographique, partie à récolter) ; côté élève, filtre **présence sur la carte** et compteur **X / Y** ; module **`src/utils/plantFilters.js`**, **`foretmap-views.jsx`**, build **`dist/`** ; e2e navigation élève ouvre **Filtres avancés**.
 
 ### Modifié
+- **Build** : régénération des artefacts **`dist/`** (bundle Vite production aligné sur les sources courantes).
+
 - **Tutoriels (liste)** : chaque carte affiche les **zones** et **repères** liés en puces individuelles (`task-chip`), comme les lieux sur les tuiles tâches, au lieu d’un seul compteur agrégé. **`tutorials-views.jsx`**.
 
 - **Biodiversité (élève)** : pastilles **Zones et repères** (📍 zone, 📌 repère) quand l’être vivant est lié sur la carte ; le filtre **présent dans au moins une zone** utilise toute la liste **`living_beings_list`**, pas seulement l’être vivant principal. **`plantFilters.js`**, **`foretmap-views.jsx`**, **`App.jsx`**, build **`dist/`**.
