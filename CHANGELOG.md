@@ -11,6 +11,8 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - **Tests** : scénario statistiques visite — enregistrement progression élève avec **`Authorization: Bearer`** (`authToken` à l’inscription), cohérent avec **`POST /api/visit/seen`** sans `student_id` anonyme pour un compte élève. **`tests/new-features.test.js`**.
 
 ### Modifié
+- **Build** : régénération locale **`dist/`** (empreinte bundle JS Vite). **`dist/`**.
+
 - **Tâches (élève)** : sous-titre de la section missions — formulation raccourcie et précision sur l’inscription (au moment où l’élève commence « pour de vrai »). **`tasks-views.jsx`**.
 
 - **Biodiversité** : après la brève description, affichage direct des champs **Rôle dans l'écosystème** et **Utilité pour l'être humain** (catalogue élève replié ou déplié, gestion prof) ; ces champs ne sont plus dupliqués dans le bloc repliable **Écologie et usages**. **`foretmap-views.jsx`**, **`index.css`**, build **`dist/`**.
