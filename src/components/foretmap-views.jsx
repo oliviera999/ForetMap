@@ -232,12 +232,23 @@ function getSourceLabel(value) {
   }
 }
 
+/** Grand groupe catalogue type « Végétal (Chlorobiontes) » — nutrition souvent redondante (autotrophe). */
+function isVegetalCatalogEntry(plant) {
+  const g1 = (normalizedPlantValue(plant.group_1) || '').toLowerCase();
+  return g1.includes('végétal');
+}
+
 function PlantSummaryBadges({ plant }) {
   const chips = [];
   const nutrition = normalizedPlantValue(plant.nutrition);
+  const preferredNutrients = normalizedPlantValue(plant.preferred_nutrients);
   const temp = normalizedPlantValue(plant.ideal_temperature_c);
   const ph = normalizedPlantValue(plant.optimal_ph);
-  if (nutrition) chips.push(`🍽️ ${nutrition}`);
+  if (isVegetalCatalogEntry(plant)) {
+    if (preferredNutrients) chips.push(`🍽️ ${preferredNutrients}`);
+  } else if (nutrition) {
+    chips.push(`🍽️ ${nutrition}`);
+  }
   if (temp) chips.push(`🌡️ ${temp}°C`);
   if (ph) chips.push(`🧪 pH ${ph}`);
   if (chips.length === 0) return null;

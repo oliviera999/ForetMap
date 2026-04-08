@@ -15,6 +15,8 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - **Tests** : scénario statistiques visite — enregistrement progression élève avec **`Authorization: Bearer`** (`authToken` à l’inscription), cohérent avec **`POST /api/visit/seen`** sans `student_id` anonyme pour un compte élève. **`tests/new-features.test.js`**.
 
 ### Modifié
+- **Biodiversité** : sur la pastille 🍽️ des fiches **végétales** (grand groupe contenant « Végétal »), affichage des **nutriments préférés** plutôt que le libellé **Nutrition** (souvent identique, ex. autotrophe). Les animaux et autres groupes conservent la pastille **Nutrition**. **`foretmap-views.jsx`**, build **`dist/`**.
+
 - **Build** : régénération locale **`dist/`** (empreinte bundle JS Vite). **`dist/`**.
 
 - **Tâches (élève)** : sous-titre de la section missions — formulation raccourcie et précision sur l’inscription (au moment où l’élève commence « pour de vrai »). **`tasks-views.jsx`**.
