@@ -147,6 +147,56 @@ async function ping() {
 }
 
 /**
+ * Retire les commentaires de ligne `--` jusqu'à la fin de ligne, sans couper
+ * les URLs ou textes qui contiennent `--` à l'intérieur de chaînes SQL ('...').
+ * Même règle de détection que splitSqlStatements : `--` seulement si le caractère
+ * précédent est un blanc (ou début de fragment).
+ */
+function stripSqlLineCommentsRespectingStrings(s) {
+  let out = '';
+  let inSingle = false;
+  let inDouble = false;
+  let inBacktick = false;
+  for (let i = 0; i < s.length; i += 1) {
+    const ch = s[i];
+    const next = i + 1 < s.length ? s[i + 1] : '';
+    const prev = i > 0 ? s[i - 1] : '';
+
+    if (!inDouble && !inBacktick && ch === "'") {
+      if (inSingle && next === "'") {
+        out += "''";
+        i += 1;
+        continue;
+      }
+      if (prev !== '\\') inSingle = !inSingle;
+      out += ch;
+      continue;
+    }
+    if (!inSingle && !inBacktick && ch === '"') {
+      if (prev !== '\\') inDouble = !inDouble;
+      out += ch;
+      continue;
+    }
+    if (!inSingle && !inDouble && ch === '`') {
+      inBacktick = !inBacktick;
+      out += ch;
+      continue;
+    }
+
+    if (!inSingle && !inDouble && !inBacktick && ch === '-' && next === '-' && (i === 0 || /\s/.test(prev))) {
+      i += 1;
+      while (i + 1 < s.length && s[i + 1] !== '\n' && s[i + 1] !== '\r') {
+        i += 1;
+      }
+      continue;
+    }
+
+    out += ch;
+  }
+  return out;
+}
+
+/**
  * Retire les commentaires SQL (-- ligne et /* bloc *\/) d'un fragment SQL
  * pour éviter que des lignes de commentaire en tête de statement ne fassent
  * filtrer le vrai SQL qui suit.
@@ -154,8 +204,7 @@ async function ping() {
 function stripSqlComments(fragment) {
   // Retire les commentaires de bloc /* ... */ (non greedy)
   let s = fragment.replace(/\/\*[\s\S]*?\*\//g, '');
-  // Retire les commentaires de ligne -- jusqu'à la fin de ligne
-  s = s.replace(/--[^\r\n]*/g, '');
+  s = stripSqlLineCommentsRespectingStrings(s);
   return s.trim();
 }
 
