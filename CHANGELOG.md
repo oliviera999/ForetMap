@@ -24,6 +24,8 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - **UI — Carte (split Cartes & tâches)** : la barre d’outils reprend la **même largeur que le canvas** via **`--fm-map-canvas-w`** (suppression de la surcharge `width: 100%` sur **`.map-view-toolbar`**). Défilement horizontal des boutons inchangé en mode compact (**`main--map-visible`**). **`index.css`**, **`dist/`**.
 
 ### Corrigé
+- **Visite & carte — libellés zones** : l’emoji et le titre au centroïde se chevauchaient souvent (écart entre centres trop faible par rapport aux tailles de police). **`resolveMapOverlayTypography`** impose désormais un **écart minimal entre centres** (demi-hauteurs + marge) et un **défaut d’espacement** un peu plus généreux ; même logique sur la **carte principale** et l’**onglet Visite**. Repères visite : zone tactile **44×44 px**, emoji légèrement plus lisible ; barre de bascule cartes / modes un peu plus aérée. **`mapOverlayTypography.js`**, **`index.css`**, build **`dist/`**.
+
 - **Carte — fiche zone / repère (Info)** : les puces **Êtres vivants** affichaient toujours 🌱 ; chaque nom est désormais associé à l’emoji du catalogue plantes (repli 🌱 si inconnu). **`map-views.jsx`**, build **`dist/`**.
 
 - **Navigation « retour » (navigateur / Android)** : avec une modale ou un panneau ouvert, le premier retour ferme la surcouche au lieu de quitter l’écran (ex. **visite sans connexion** qui renvoyait à la connexion). Historique **`history.pushState`** / pile centralisée (**`src/utils/overlayHistory.js`**, hook **`useOverlayHistoryBack`**), entrée dédiée à l’ouverture de la visite invité (**`App.jsx`**), désélection zone/repère en visite publique (**`visit-views.jsx`**), modales aide / notifications / tâches / carte / tutoriels / profil, etc.

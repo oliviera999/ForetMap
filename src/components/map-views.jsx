@@ -402,6 +402,10 @@ function ZoneInfoModal({ zone, plants, tasks, tutorials = [], isTeacher, student
   );
   const [stage, setStage] = useState(zone.stage || 'empty');
   const [desc, setDesc] = useState(zone.description || '');
+  const [visitSubtitle, setVisitSubtitle] = useState(zone.visit_subtitle || '');
+  const [visitShortDesc, setVisitShortDesc] = useState(zone.visit_short_description || '');
+  const [visitDetailsTitle, setVisitDetailsTitle] = useState(zone.visit_details_title || 'Détails');
+  const [visitDetailsText, setVisitDetailsText] = useState(zone.visit_details_text || '');
   const [linkTaskId, setLinkTaskId] = useState('');
   const [linkTutorialId, setLinkTutorialId] = useState('');
   const [selectedTaskIds, setSelectedTaskIds] = useState([]);
@@ -448,6 +452,18 @@ function ZoneInfoModal({ zone, plants, tasks, tutorials = [], isTeacher, student
   }, [showTutorialsTab, tab]);
 
   useEffect(() => {
+    setZoneName(stripLeadingMarkerEmoji(zone.name || '', emojiParsingList));
+    setZoneEmoji(detectLeadingMarkerEmoji(zone.name || '', emojiParsingList) || markerEmojis[0] || '📍');
+    setLivingBeings(orderedLivingBeingsForForm(zone.living_beings_list || zone.living_beings, zone.current_plant));
+    setStage(zone.stage || 'empty');
+    setDesc(zone.description || '');
+    setVisitSubtitle(zone.visit_subtitle || '');
+    setVisitShortDesc(zone.visit_short_description || '');
+    setVisitDetailsTitle(zone.visit_details_title || 'Détails');
+    setVisitDetailsText(zone.visit_details_text || '');
+  }, [zone.id, zone.name, zone.living_beings, zone.living_beings_list, zone.current_plant, zone.stage, zone.description, zone.visit_subtitle, zone.visit_short_description, zone.visit_details_title, zone.visit_details_text, emojiParsingList, markerEmojis]);
+
+  useEffect(() => {
     setSelectedTaskIds((prev) => prev.filter((id) => studentAssignableTasks.some((t) => t.id === id)));
   }, [studentAssignableTasks]);
 
@@ -469,6 +485,10 @@ function ZoneInfoModal({ zone, plants, tasks, tutorials = [], isTeacher, student
         living_beings: livingBeings,
         stage,
         description: desc,
+        visit_subtitle: visitSubtitle,
+        visit_short_description: visitShortDesc,
+        visit_details_title: visitDetailsTitle,
+        visit_details_text: visitDetailsText,
       });
       setToast('Sauvegardé ✓');
       setTab('info');
@@ -575,6 +595,20 @@ function ZoneInfoModal({ zone, plants, tasks, tutorials = [], isTeacher, student
                 </div>
               );
             })()}
+            {(zone.visit_subtitle || zone.visit_short_description || zone.visit_details_text) && (
+              <div style={{ marginBottom: 12 }}>
+                {zone.visit_subtitle && <p className="visit-subtitle" style={{ margin: '0 0 8px' }}>{zone.visit_subtitle}</p>}
+                {zone.visit_short_description && (
+                  <p style={{ margin: '0 0 8px', fontSize: '.88rem', color: '#333', lineHeight: 1.55 }}>{zone.visit_short_description}</p>
+                )}
+                {zone.visit_details_text && (
+                  <details className="visit-details" style={{ marginTop: 8 }}>
+                    <summary>{zone.visit_details_title || 'Détails'}</summary>
+                    <p style={{ margin: '8px 0 0', fontSize: '.86rem', lineHeight: 1.55 }}>{zone.visit_details_text}</p>
+                  </details>
+                )}
+              </div>
+            )}
             {zone.description && (
               <div style={{ background: '#f0fdf4', borderRadius: 10, padding: '10px 14px', marginBottom: 12,
                 border: '1px solid var(--mint)', fontSize: '.88rem', color: '#333', lineHeight: 1.6 }}>
@@ -593,7 +627,8 @@ function ZoneInfoModal({ zone, plants, tasks, tutorials = [], isTeacher, student
             )}
             {!zone.special
               && orderedLivingBeingsForForm(zone.living_beings_list || zone.living_beings, zone.current_plant).length === 0
-              && !zone.description && zone.history?.length === 0 && (
+              && !zone.description && zone.history?.length === 0
+              && !zone.visit_subtitle && !zone.visit_short_description && !zone.visit_details_text && (
               <p style={{ color: '#bbb', fontSize: '.85rem', fontStyle: 'italic', textAlign: 'center', padding: '20px 0' }}>
                 Zone vide — aucune information pour l'instant.
               </p>
@@ -650,6 +685,21 @@ function ZoneInfoModal({ zone, plants, tasks, tutorials = [], isTeacher, student
             <div className="field"><label>Description</label>
               <textarea value={desc} onChange={e => setDesc(e.target.value)} rows={3}
                 placeholder="Observations, conseils, notes sur cette zone..." />
+            </div>
+            <p style={{ fontSize: '.78rem', color: '#64748b', margin: '0 0 10px', lineHeight: 1.45 }}>
+              Textes ci-dessous : même contenu qu’en mode visite (sous-titre, accroche, bloc dépliable).
+            </p>
+            <div className="field"><label>Sous-titre (visite)</label>
+              <input value={visitSubtitle} onChange={(e) => setVisitSubtitle(e.target.value)} placeholder="Optionnel" />
+            </div>
+            <div className="field"><label>Description courte (visite)</label>
+              <textarea value={visitShortDesc} onChange={(e) => setVisitShortDesc(e.target.value)} rows={2} placeholder="Texte d’accroche sous le titre" />
+            </div>
+            <div className="field"><label>Titre du bloc dépliable (visite)</label>
+              <input value={visitDetailsTitle} onChange={(e) => setVisitDetailsTitle(e.target.value)} placeholder="Détails" />
+            </div>
+            <div className="field"><label>Détails dépliables (visite)</label>
+              <textarea value={visitDetailsText} onChange={(e) => setVisitDetailsText(e.target.value)} rows={4} placeholder="Contenu du panneau repliable" />
             </div>
             <div className="field"><label htmlFor="zone-edit-emoji-custom">Emoji de zone</label>
               <ZoneOrMarkerEmojiField
@@ -1042,7 +1092,12 @@ function MarkerModal({ marker, plants, tasks, tutorials = [], onClose, onSave, o
   const [form, setForm] = useState({
     label: marker.label || '',
     living_beings: orderedLivingBeingsForForm(marker.living_beings_list || marker.living_beings, marker.plant_name),
-    note: marker.note || '', emoji: marker.emoji || '🌱',
+    note: marker.note || '',
+    emoji: marker.emoji || '🌱',
+    visit_subtitle: marker.visit_subtitle || '',
+    visit_short_description: marker.visit_short_description || '',
+    visit_details_title: marker.visit_details_title || 'Détails',
+    visit_details_text: marker.visit_details_text || '',
   });
   const [saving, setSaving] = useState(false);
   const [linkTaskId, setLinkTaskId] = useState('');
@@ -1077,6 +1132,31 @@ function MarkerModal({ marker, plants, tasks, tutorials = [], onClose, onSave, o
     setSelectedTaskIds((prev) => prev.filter((id) => studentAssignableTasks.some((t) => t.id === id)));
   }, [studentAssignableTasks]);
 
+  useEffect(() => {
+    setForm({
+      label: marker.label || '',
+      living_beings: orderedLivingBeingsForForm(marker.living_beings_list || marker.living_beings, marker.plant_name),
+      note: marker.note || '',
+      emoji: marker.emoji || '🌱',
+      visit_subtitle: marker.visit_subtitle || '',
+      visit_short_description: marker.visit_short_description || '',
+      visit_details_title: marker.visit_details_title || 'Détails',
+      visit_details_text: marker.visit_details_text || '',
+    });
+  }, [
+    marker.id,
+    marker.label,
+    marker.note,
+    marker.emoji,
+    marker.plant_name,
+    marker.living_beings,
+    marker.living_beings_list,
+    marker.visit_subtitle,
+    marker.visit_short_description,
+    marker.visit_details_title,
+    marker.visit_details_text,
+  ]);
+
   const save = async () => {
     if (!form.label.trim()) return;
     setSaving(true);
@@ -1091,6 +1171,10 @@ function MarkerModal({ marker, plants, tasks, tutorials = [], onClose, onSave, o
       emoji: emojiVal,
       living_beings: living,
       plant_name: living[0] || '',
+      visit_subtitle: form.visit_subtitle,
+      visit_short_description: form.visit_short_description,
+      visit_details_title: form.visit_details_title,
+      visit_details_text: form.visit_details_text,
     };
     try { await onSave(payload); onClose(); }
     catch (e) { setSaving(false); }
@@ -1139,6 +1223,39 @@ function MarkerModal({ marker, plants, tasks, tutorials = [], onClose, onSave, o
             <div className="field"><label>Note</label>
               <textarea value={form.note} onChange={set('note')} rows={3}
                 placeholder="Observations, entretien..." />
+            </div>
+            <p style={{ fontSize: '.78rem', color: '#64748b', margin: '0 0 10px', lineHeight: 1.45 }}>
+              Textes ci-dessous : même contenu qu’en mode visite (sous-titre, accroche, bloc dépliable).
+            </p>
+            <div className="field"><label>Sous-titre (visite)</label>
+              <input
+                value={form.visit_subtitle}
+                onChange={set('visit_subtitle')}
+                placeholder="Optionnel"
+              />
+            </div>
+            <div className="field"><label>Description courte (visite)</label>
+              <textarea
+                value={form.visit_short_description}
+                onChange={set('visit_short_description')}
+                rows={2}
+                placeholder="Texte d’accroche sous le titre"
+              />
+            </div>
+            <div className="field"><label>Titre du bloc dépliable (visite)</label>
+              <input
+                value={form.visit_details_title}
+                onChange={set('visit_details_title')}
+                placeholder="Détails"
+              />
+            </div>
+            <div className="field"><label>Détails dépliables (visite)</label>
+              <textarea
+                value={form.visit_details_text}
+                onChange={set('visit_details_text')}
+                rows={4}
+                placeholder="Contenu du panneau repliable"
+              />
             </div>
             {!!marker.id && (
               <>
