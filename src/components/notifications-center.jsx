@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { useOverlayHistoryBack } from '../hooks/useOverlayHistoryBack';
 import {
   NOTIFICATION_CATEGORY,
   NOTIFICATION_LEVEL,
@@ -68,6 +69,7 @@ function NotificationCenter({
   helpText = 'Notifications',
 }) {
   const [open, setOpen] = useState(false);
+  useOverlayHistoryBack(open, () => setOpen(false));
   const [portalNode, setPortalNode] = useState(null);
   const bellRef = useRef(null);
   const panelRef = useRef(null);

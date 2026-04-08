@@ -1,10 +1,12 @@
 import React, { useEffect, useRef } from 'react';
+import { useOverlayHistoryBack } from '../hooks/useOverlayHistoryBack';
 
 /**
  * Célébration courte après une montée de palier automatique (progression par tâches validées).
  */
 export function AutoProfilePromotionModal({ data, roleTerms, onClose }) {
   const closeBtnRef = useRef(null);
+  useOverlayHistoryBack(!!data, onClose);
 
   useEffect(() => {
     closeBtnRef.current?.focus();
