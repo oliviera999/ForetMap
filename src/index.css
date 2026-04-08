@@ -2782,6 +2782,29 @@
   cursor:pointer;
   font-family:var(--font-sans);
   color:#1e2b24;
+  border-radius:10px;
+}
+.context-comments-toggle--unread {
+  background:rgba(45, 90, 69, 0.06);
+}
+.context-comments-toggle-label {
+  display:flex;
+  align-items:center;
+  gap:8px;
+  min-width:0;
+  text-align:left;
+}
+.context-comments-unread-dot {
+  width:7px;
+  height:7px;
+  border-radius:50%;
+  flex-shrink:0;
+  background:var(--forest, #2d5a45);
+  opacity:0.75;
+  box-shadow:0 0 0 1.5px rgba(255, 255, 255, 0.95);
+}
+.context-comments-count {
+  font-variant-numeric:tabular-nums;
 }
 .context-comments-body {
   border-top:1px solid rgba(0,0,0,.06);
