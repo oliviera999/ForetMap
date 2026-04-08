@@ -9,6 +9,12 @@ import { Lightbox, PhotoGallery, ZoneInfoModal, ZoneDrawModal, MarkerModal, MapV
 import { Tooltip } from './Tooltip';
 import { HelpPanel } from './HelpPanel';
 import { HELP_PANELS, HELP_TOOLTIPS, resolveRoleText } from '../constants/help';
+import {
+  ZONE_PRESENCE_FILTER,
+  distinctPlantFieldValues,
+  filterPlantsByTaxonomy,
+  plantMatchesAllFilters,
+} from '../utils/plantFilters';
 
 // ── TOAST ──────────────────────────────────────────────────────────────────
 function Toast({ msg, onDone }) {
@@ -493,6 +499,177 @@ function PlantEditForm({ title, form, setForm, onSave, onCancel, saving, plantId
   );
 }
 
+// ── FILTRES CATALOGUE BIODIVERSITÉ (élève + prof) ─────────────────────────────
+function PlantCatalogFilterPanel({
+  plants,
+  showZonePresence = false,
+  searchPlaceholder = '🔍 Rechercher dans la biodiversité...',
+  search,
+  setSearch,
+  group1,
+  setGroup1,
+  group2,
+  setGroup2,
+  group3,
+  setGroup3,
+  habitat,
+  setHabitat,
+  agro,
+  setAgro,
+  zonePresence,
+  setZonePresence,
+}) {
+  const subsetAfterG1 = useMemo(
+    () => filterPlantsByTaxonomy(plants, { group1 }),
+    [plants, group1],
+  );
+  const subsetAfterG2 = useMemo(
+    () => filterPlantsByTaxonomy(plants, { group1, group2 }),
+    [plants, group1, group2],
+  );
+  const subsetTaxonomy = useMemo(
+    () => filterPlantsByTaxonomy(plants, { group1, group2, group3 }),
+    [plants, group1, group2, group3],
+  );
+
+  const group1Options = useMemo(() => distinctPlantFieldValues(plants, 'group_1'), [plants]);
+  const group2Options = useMemo(() => distinctPlantFieldValues(subsetAfterG1, 'group_2'), [subsetAfterG1]);
+  const group3Options = useMemo(() => distinctPlantFieldValues(subsetAfterG2, 'group_3'), [subsetAfterG2]);
+  const habitatOptions = useMemo(() => distinctPlantFieldValues(subsetTaxonomy, 'habitat'), [subsetTaxonomy]);
+  const agroOptions = useMemo(
+    () => distinctPlantFieldValues(subsetTaxonomy, 'agroecosystem_category'),
+    [subsetTaxonomy],
+  );
+
+  useEffect(() => {
+    if (habitat && !habitatOptions.includes(habitat)) setHabitat('');
+  }, [habitat, habitatOptions, setHabitat]);
+
+  useEffect(() => {
+    if (agro && !agroOptions.includes(agro)) setAgro('');
+  }, [agro, agroOptions, setAgro]);
+
+  const resetAllFilters = () => {
+    setGroup1('');
+    setGroup2('');
+    setGroup3('');
+    setHabitat('');
+    setAgro('');
+    setSearch('');
+    if (showZonePresence && setZonePresence) setZonePresence(ZONE_PRESENCE_FILTER.ALL);
+  };
+
+  const selectStyle = { background: 'white' };
+
+  return (
+    <div style={{ display: 'grid', gap: 8, marginBottom: 12 }}>
+      <div className="field" style={{ marginBottom: 0 }}>
+        <label>Grand groupe</label>
+        <select
+          value={group1}
+          onChange={(e) => {
+            setGroup1(e.target.value);
+            setGroup2('');
+            setGroup3('');
+          }}
+          style={selectStyle}
+        >
+          <option value="">Tous les groupes</option>
+          {group1Options.map((g) => (
+            <option key={g} value={g}>
+              {g}
+            </option>
+          ))}
+        </select>
+      </div>
+      <div className="field" style={{ marginBottom: 0 }}>
+        <input
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder={searchPlaceholder}
+          style={selectStyle}
+        />
+      </div>
+
+      <details className="plant-more">
+        <summary>Filtres avancés</summary>
+        <div style={{ display: 'grid', gap: 8, marginTop: 10 }}>
+          <div className="plant-form-grid">
+            <div className="field" style={{ marginBottom: 0 }}>
+              <label>Sous-groupe 1</label>
+              <select
+                value={group2}
+                onChange={(e) => {
+                  setGroup2(e.target.value);
+                  setGroup3('');
+                }}
+                style={selectStyle}
+              >
+                <option value="">Tous</option>
+                {group2Options.map((g) => (
+                  <option key={g} value={g}>
+                    {g}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="field" style={{ marginBottom: 0 }}>
+              <label>Sous-groupe 2</label>
+              <select value={group3} onChange={(e) => setGroup3(e.target.value)} style={selectStyle}>
+                <option value="">Tous</option>
+                {group3Options.map((g) => (
+                  <option key={g} value={g}>
+                    {g}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="field" style={{ marginBottom: 0 }}>
+              <label>Habitat</label>
+              <select value={habitat} onChange={(e) => setHabitat(e.target.value)} style={selectStyle}>
+                <option value="">Tous</option>
+                {habitatOptions.map((h) => (
+                  <option key={h} value={h}>
+                    {h}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="field" style={{ marginBottom: 0 }}>
+              <label>Catégorie d&apos;agrosystème</label>
+              <select value={agro} onChange={(e) => setAgro(e.target.value)} style={selectStyle}>
+                <option value="">Toutes</option>
+                {agroOptions.map((a) => (
+                  <option key={a} value={a}>
+                    {a}
+                  </option>
+                ))}
+              </select>
+            </div>
+            {showZonePresence && setZonePresence && (
+              <div className="field" style={{ marginBottom: 0 }}>
+                <label>Présence sur la carte</label>
+                <select
+                  value={zonePresence}
+                  onChange={(e) => setZonePresence(e.target.value)}
+                  style={selectStyle}
+                >
+                  <option value={ZONE_PRESENCE_FILTER.ALL}>Toutes les fiches</option>
+                  <option value={ZONE_PRESENCE_FILTER.IN_MAP}>Présent dans au moins une zone</option>
+                  <option value={ZONE_PRESENCE_FILTER.NOT_IN_MAP}>Sans zone associée</option>
+                </select>
+              </div>
+            )}
+          </div>
+          <button type="button" className="btn btn-ghost btn-sm" onClick={resetAllFilters}>
+            Réinitialiser les filtres
+          </button>
+        </div>
+      </details>
+    </div>
+  );
+}
+
 // ── PLANT MANAGER (teacher) ───────────────────────────────────────────────────
 function PlantManager({ plants, onRefresh, publicSettings = null }) {
   const [editId,  setEditId]  = useState(null);
@@ -500,8 +677,12 @@ function PlantManager({ plants, onRefresh, publicSettings = null }) {
   const [showAdd, setShowAdd] = useState(false);
   const [saving,  setSaving]  = useState(false);
   const [toast,   setToast]   = useState(null);
-  const [search,  setSearch]  = useState('');
-  const [groupFilter, setGroupFilter] = useState('');
+  const [search, setSearch] = useState('');
+  const [group1, setGroup1] = useState('');
+  const [group2, setGroup2] = useState('');
+  const [group3, setGroup3] = useState('');
+  const [habitatFilter, setHabitatFilter] = useState('');
+  const [agroFilter, setAgroFilter] = useState('');
   const [importSource, setImportSource] = useState('file');
   const [importStrategy, setImportStrategy] = useState('upsert_name');
   const [importFile, setImportFile] = useState(null);
@@ -512,28 +693,30 @@ function PlantManager({ plants, onRefresh, publicSettings = null }) {
   const { isHelpEnabled, hasSeenSection, markSectionSeen, trackPanelOpen, trackPanelDismiss } = useHelp({ publicSettings, isTeacher: true });
   const tooltipText = (entry) => resolveRoleText(entry, true);
 
-  const groupOptions = [...new Set(
-    plants
-      .map(p => normalizedPlantValue(p.group_1))
-      .filter(Boolean)
-  )].sort((a, b) => a.localeCompare(b, 'fr', { sensitivity: 'base' }));
+  const structured = useMemo(
+    () => ({
+      group1,
+      group2,
+      group3,
+      habitat: habitatFilter,
+      agroecosystemCategory: agroFilter,
+    }),
+    [group1, group2, group3, habitatFilter, agroFilter],
+  );
 
-  const filteredPlants = plants.filter((p) => {
-    const matchesGroup = !groupFilter || normalizedPlantValue(p.group_1) === groupFilter;
-    if (!matchesGroup) return false;
+  const queryTrimmedLower = search.trim().toLowerCase();
 
-    const query = search.trim().toLowerCase();
-    if (!query) return true;
-
-    return (
-      normalizedPlantValue(p.name).toLowerCase().includes(query) ||
-      normalizedPlantValue(p.description).toLowerCase().includes(query) ||
-      normalizedPlantValue(p.scientific_name).toLowerCase().includes(query) ||
-      normalizedPlantValue(p.group_1).toLowerCase().includes(query) ||
-      normalizedPlantValue(p.group_2).toLowerCase().includes(query) ||
-      normalizedPlantValue(p.group_3).toLowerCase().includes(query)
-    );
-  });
+  const filteredPlants = useMemo(
+    () =>
+      plants.filter((p) =>
+        plantMatchesAllFilters(
+          p,
+          { structured, queryTrimmedLower, zonePresence: ZONE_PRESENCE_FILTER.ALL },
+          null,
+        ),
+      ),
+    [plants, structured, queryTrimmedLower],
+  );
 
   const startEdit = p => {
     setEditId(p.id);
@@ -636,23 +819,21 @@ function PlantManager({ plants, onRefresh, publicSettings = null }) {
         {filteredPlants.length} / {plants.length} êtres vivants à l’écran — fouille la biodiversité !
       </p>
 
-      <div style={{display:'grid', gap:8, marginBottom:12}}>
-        <div className="field" style={{marginBottom:0}}>
-          <label>Grand groupe</label>
-          <select value={groupFilter} onChange={e => setGroupFilter(e.target.value)} style={{background:'white'}}>
-            <option value="">Tous les groupes</option>
-            {groupOptions.map(group => <option key={group} value={group}>{group}</option>)}
-          </select>
-        </div>
-        <div className="field" style={{marginBottom:0}}>
-          <input
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            placeholder="🔍 Rechercher dans la biodiversité..."
-            style={{background:'white'}}
-          />
-        </div>
-      </div>
+      <PlantCatalogFilterPanel
+        plants={plants}
+        search={search}
+        setSearch={setSearch}
+        group1={group1}
+        setGroup1={setGroup1}
+        group2={group2}
+        setGroup2={setGroup2}
+        group3={group3}
+        setGroup3={setGroup3}
+        habitat={habitatFilter}
+        setHabitat={setHabitatFilter}
+        agro={agroFilter}
+        setAgro={setAgroFilter}
+      />
 
       <details className="plant-more" style={{ marginBottom: 10 }}>
         <summary>Import biodiversité (CSV, Excel, Google Sheet)</summary>
@@ -980,34 +1161,39 @@ function ObservationNotebook({ student, zones, onForceLogout = null }) {
 // ── PLANT VIEWER (student read-only) ──────────────────────────────────────────
 function PlantViewer({ plants, zones, publicSettings = null }) {
   const [search, setSearch] = useState('');
-  const [groupFilter, setGroupFilter] = useState('');
+  const [group1, setGroup1] = useState('');
+  const [group2, setGroup2] = useState('');
+  const [group3, setGroup3] = useState('');
+  const [habitatFilter, setHabitatFilter] = useState('');
+  const [agroFilter, setAgroFilter] = useState('');
+  const [zonePresence, setZonePresence] = useState(ZONE_PRESENCE_FILTER.ALL);
   const { isHelpEnabled, hasSeenSection, markSectionSeen, trackPanelOpen, trackPanelDismiss } = useHelp({ publicSettings, isTeacher: false });
 
-  const groupOptions = [...new Set(
-    plants
-      .map(p => normalizedPlantValue(p.group_1))
-      .filter(Boolean)
-  )].sort((a, b) => a.localeCompare(b, 'fr', { sensitivity: 'base' }));
+  const structured = useMemo(
+    () => ({
+      group1,
+      group2,
+      group3,
+      habitat: habitatFilter,
+      agroecosystemCategory: agroFilter,
+    }),
+    [group1, group2, group3, habitatFilter, agroFilter],
+  );
 
-  const filtered = plants.filter(p => {
-    const matchesGroup = !groupFilter || normalizedPlantValue(p.group_1) === groupFilter;
-    if (!matchesGroup) return false;
+  const queryTrimmedLower = search.trim().toLowerCase();
 
-    const query = search.trim().toLowerCase();
-    if (!query) return true;
+  const filtered = useMemo(
+    () =>
+      plants.filter((p) =>
+        plantMatchesAllFilters(p, { structured, queryTrimmedLower, zonePresence }, zones),
+      ),
+    [plants, structured, queryTrimmedLower, zonePresence, zones],
+  );
 
-    return (
-      normalizedPlantValue(p.name).toLowerCase().includes(query) ||
-      normalizedPlantValue(p.description).toLowerCase().includes(query) ||
-      normalizedPlantValue(p.scientific_name).toLowerCase().includes(query) ||
-      normalizedPlantValue(p.habitat).toLowerCase().includes(query) ||
-      normalizedPlantValue(p.group_1).toLowerCase().includes(query) ||
-      normalizedPlantValue(p.group_2).toLowerCase().includes(query) ||
-      normalizedPlantValue(p.group_3).toLowerCase().includes(query)
-    );
-  });
-
-  const zonesForPlant = p => zones.filter(z => z.current_plant === p.name);
+  const zonesForPlant = (p) => {
+    const n = normalizedPlantValue(p.name);
+    return zones.filter((z) => normalizedPlantValue(z.current_plant) === n);
+  };
 
   return (
     <div className="fade-in">
@@ -1026,21 +1212,29 @@ function PlantViewer({ plants, zones, publicSettings = null }) {
           />
         )}
       </div>
-      <p className="section-sub">{plants.length} espèces dans la forêt</p>
+      <p className="section-sub">
+        {filtered.length} / {plants.length} êtres vivants à l&apos;écran — affine avec les filtres
+      </p>
 
-      <div style={{display:'grid', gap:8, marginBottom:12}}>
-        <div className="field" style={{marginBottom:0}}>
-          <label>Grand groupe</label>
-          <select value={groupFilter} onChange={e => setGroupFilter(e.target.value)} style={{background:'white'}}>
-            <option value="">Tous les groupes</option>
-            {groupOptions.map(group => <option key={group} value={group}>{group}</option>)}
-          </select>
-        </div>
-        <div className="field" style={{marginBottom:0}}>
-          <input value={search} onChange={e => setSearch(e.target.value)}
-            placeholder="🔍 Chercher un être vivant..." style={{background:'white'}}/>
-        </div>
-      </div>
+      <PlantCatalogFilterPanel
+        plants={plants}
+        showZonePresence
+        searchPlaceholder="🔍 Chercher un être vivant..."
+        search={search}
+        setSearch={setSearch}
+        group1={group1}
+        setGroup1={setGroup1}
+        group2={group2}
+        setGroup2={setGroup2}
+        group3={group3}
+        setGroup3={setGroup3}
+        habitat={habitatFilter}
+        setHabitat={setHabitatFilter}
+        agro={agroFilter}
+        setAgro={setAgroFilter}
+        zonePresence={zonePresence}
+        setZonePresence={setZonePresence}
+      />
 
       {filtered.length === 0
         ? <div className="empty"><div className="empty-icon">🌿</div><p>Aucun être vivant ne colle à ta recherche — essaie un autre mot.</p></div>
