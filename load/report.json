@@ -1,276 +1,51 @@
 {
   "aggregate": {
     "counters": {
-      "vusers.created_by_name.lecture_bdd": 396,
-      "vusers.created": 1125,
-      "http.requests": 1125,
-      "plugins.metrics-by-endpoint./api/health/db.errors.ECONNREFUSED": 396,
-      "errors.ECONNREFUSED": 1125,
-      "vusers.failed": 1125,
-      "vusers.created_by_name.lecture_legere": 565,
-      "plugins.metrics-by-endpoint./api/health.errors.ECONNREFUSED": 565,
-      "vusers.created_by_name.lecture_biodiversite": 164,
-      "plugins.metrics-by-endpoint./api/plants.errors.ECONNREFUSED": 164
+      "vusers.created_by_name.lecture_legere": 6837,
+      "vusers.created": 13500,
+      "http.requests": 13500,
+      "plugins.metrics-by-endpoint./api/health.errors.ECONNREFUSED": 6837,
+      "errors.ECONNREFUSED": 13500,
+      "vusers.failed": 13500,
+      "vusers.created_by_name.lecture_bdd": 4662,
+      "plugins.metrics-by-endpoint./api/health/db.errors.ECONNREFUSED": 4662,
+      "vusers.created_by_name.lecture_biodiversite": 2001,
+      "plugins.metrics-by-endpoint./api/plants.errors.ECONNREFUSED": 2001
     },
     "rates": {
-      "http.request_rate": 2
+      "http.request_rate": 16
     },
-    "firstCounterAt": 1775636684574,
-    "lastCounterAt": 1775636864374,
-    "firstMetricAt": 1775636684574,
-    "lastMetricAt": 1775636864374,
-    "period": 1775636860000,
+    "firstCounterAt": 1774908076300,
+    "lastCounterAt": 1774908497273,
+    "firstMetricAt": 1774908076300,
+    "lastMetricAt": 1774908497273,
+    "period": 1774908490000,
     "summaries": {},
     "histograms": {}
   },
   "intermediate": [
     {
       "counters": {
-        "vusers.created_by_name.lecture_bdd": 5,
-        "vusers.created": 12,
-        "http.requests": 12,
-        "plugins.metrics-by-endpoint./api/health/db.errors.ECONNREFUSED": 5,
-        "errors.ECONNREFUSED": 12,
-        "vusers.failed": 12,
-        "vusers.created_by_name.lecture_legere": 5,
-        "plugins.metrics-by-endpoint./api/health.errors.ECONNREFUSED": 5,
+        "vusers.created_by_name.lecture_legere": 14,
+        "vusers.created": 32,
+        "http.requests": 32,
+        "plugins.metrics-by-endpoint./api/health.errors.ECONNREFUSED": 14,
+        "errors.ECONNREFUSED": 32,
+        "vusers.failed": 32,
+        "vusers.created_by_name.lecture_bdd": 16,
+        "plugins.metrics-by-endpoint./api/health/db.errors.ECONNREFUSED": 16,
         "vusers.created_by_name.lecture_biodiversite": 2,
         "plugins.metrics-by-endpoint./api/plants.errors.ECONNREFUSED": 2
       },
       "rates": {
-        "http.request_rate": 2
-      },
-      "http.request_rate": null,
-      "firstCounterAt": 1775636684574,
-      "lastCounterAt": 1775636689636,
-      "firstMetricAt": 1775636684574,
-      "lastMetricAt": 1775636689636,
-      "period": "1775636680000",
-      "summaries": {},
-      "histograms": {}
-    },
-    {
-      "counters": {
-        "vusers.created_by_name.lecture_bdd": 5,
-        "vusers.created": 20,
-        "http.requests": 20,
-        "plugins.metrics-by-endpoint./api/health/db.errors.ECONNREFUSED": 5,
-        "errors.ECONNREFUSED": 20,
-        "vusers.failed": 20,
-        "vusers.created_by_name.lecture_legere": 13,
-        "plugins.metrics-by-endpoint./api/health.errors.ECONNREFUSED": 13,
-        "vusers.created_by_name.lecture_biodiversite": 2,
-        "plugins.metrics-by-endpoint./api/plants.errors.ECONNREFUSED": 2
-      },
-      "rates": {
-        "http.request_rate": 2
-      },
-      "http.request_rate": null,
-      "firstCounterAt": 1775636690573,
-      "lastCounterAt": 1775636699636,
-      "firstMetricAt": 1775636690573,
-      "lastMetricAt": 1775636699636,
-      "period": "1775636690000",
-      "summaries": {},
-      "histograms": {}
-    },
-    {
-      "counters": {
-        "vusers.created_by_name.lecture_bdd": 11,
-        "vusers.created": 22,
-        "http.requests": 22,
-        "plugins.metrics-by-endpoint./api/health/db.errors.ECONNREFUSED": 11,
-        "errors.ECONNREFUSED": 22,
-        "vusers.failed": 22,
-        "vusers.created_by_name.lecture_legere": 9,
-        "plugins.metrics-by-endpoint./api/health.errors.ECONNREFUSED": 9,
-        "vusers.created_by_name.lecture_biodiversite": 2,
-        "plugins.metrics-by-endpoint./api/plants.errors.ECONNREFUSED": 2
-      },
-      "rates": {
-        "http.request_rate": 4
-      },
-      "http.request_rate": null,
-      "firstCounterAt": 1775636700573,
-      "lastCounterAt": 1775636709757,
-      "firstMetricAt": 1775636700573,
-      "lastMetricAt": 1775636709757,
-      "period": "1775636700000",
-      "summaries": {},
-      "histograms": {}
-    },
-    {
-      "counters": {
-        "vusers.created_by_name.lecture_bdd": 12,
-        "vusers.created": 36,
-        "http.requests": 36,
-        "plugins.metrics-by-endpoint./api/health/db.errors.ECONNREFUSED": 12,
-        "errors.ECONNREFUSED": 36,
-        "vusers.failed": 36,
-        "vusers.created_by_name.lecture_legere": 16,
-        "plugins.metrics-by-endpoint./api/health.errors.ECONNREFUSED": 16,
-        "vusers.created_by_name.lecture_biodiversite": 8,
-        "plugins.metrics-by-endpoint./api/plants.errors.ECONNREFUSED": 8
-      },
-      "rates": {
-        "http.request_rate": 4
-      },
-      "http.request_rate": null,
-      "firstCounterAt": 1775636710644,
-      "lastCounterAt": 1775636719964,
-      "firstMetricAt": 1775636710644,
-      "lastMetricAt": 1775636719964,
-      "period": "1775636710000",
-      "summaries": {},
-      "histograms": {}
-    },
-    {
-      "counters": {
-        "vusers.created_by_name.lecture_legere": 25,
-        "vusers.created": 49,
-        "http.requests": 49,
-        "plugins.metrics-by-endpoint./api/health.errors.ECONNREFUSED": 25,
-        "errors.ECONNREFUSED": 49,
-        "vusers.failed": 49,
-        "vusers.created_by_name.lecture_biodiversite": 10,
-        "plugins.metrics-by-endpoint./api/plants.errors.ECONNREFUSED": 10,
-        "vusers.created_by_name.lecture_bdd": 14,
-        "plugins.metrics-by-endpoint./api/health/db.errors.ECONNREFUSED": 14
-      },
-      "rates": {
-        "http.request_rate": 7
-      },
-      "http.request_rate": null,
-      "firstCounterAt": 1775636720743,
-      "lastCounterAt": 1775636729964,
-      "firstMetricAt": 1775636720743,
-      "lastMetricAt": 1775636729964,
-      "period": "1775636720000",
-      "summaries": {},
-      "histograms": {}
-    },
-    {
-      "counters": {
-        "vusers.created_by_name.lecture_legere": 27,
-        "vusers.created": 63,
-        "http.requests": 63,
-        "plugins.metrics-by-endpoint./api/health.errors.ECONNREFUSED": 27,
-        "errors.ECONNREFUSED": 63,
-        "vusers.failed": 63,
-        "vusers.created_by_name.lecture_biodiversite": 9,
-        "plugins.metrics-by-endpoint./api/plants.errors.ECONNREFUSED": 9,
-        "vusers.created_by_name.lecture_bdd": 27,
-        "plugins.metrics-by-endpoint./api/health/db.errors.ECONNREFUSED": 27
-      },
-      "rates": {
-        "http.request_rate": 7
-      },
-      "http.request_rate": null,
-      "firstCounterAt": 1775636730071,
-      "lastCounterAt": 1775636739943,
-      "firstMetricAt": 1775636730071,
-      "lastMetricAt": 1775636739943,
-      "period": "1775636730000",
-      "summaries": {},
-      "histograms": {}
-    },
-    {
-      "counters": {
-        "vusers.created_by_name.lecture_biodiversite": 13,
-        "vusers.created": 79,
-        "http.requests": 79,
-        "plugins.metrics-by-endpoint./api/plants.errors.ECONNREFUSED": 13,
-        "errors.ECONNREFUSED": 79,
-        "vusers.failed": 79,
-        "vusers.created_by_name.lecture_legere": 42,
-        "plugins.metrics-by-endpoint./api/health.errors.ECONNREFUSED": 42,
-        "vusers.created_by_name.lecture_bdd": 24,
-        "plugins.metrics-by-endpoint./api/health/db.errors.ECONNREFUSED": 24
-      },
-      "rates": {
         "http.request_rate": 8
       },
       "http.request_rate": null,
-      "firstCounterAt": 1775636740020,
-      "lastCounterAt": 1775636749973,
-      "firstMetricAt": 1775636740020,
-      "lastMetricAt": 1775636749973,
-      "period": "1775636740000",
-      "summaries": {},
-      "histograms": {}
-    },
-    {
-      "counters": {
-        "vusers.created_by_name.lecture_legere": 41,
-        "vusers.created": 80,
-        "http.requests": 80,
-        "plugins.metrics-by-endpoint./api/health.errors.ECONNREFUSED": 41,
-        "errors.ECONNREFUSED": 80,
-        "vusers.failed": 80,
-        "vusers.created_by_name.lecture_bdd": 33,
-        "plugins.metrics-by-endpoint./api/health/db.errors.ECONNREFUSED": 33,
-        "vusers.created_by_name.lecture_biodiversite": 6,
-        "plugins.metrics-by-endpoint./api/plants.errors.ECONNREFUSED": 6
-      },
-      "rates": {
-        "http.request_rate": 8
-      },
-      "http.request_rate": null,
-      "firstCounterAt": 1775636750035,
-      "lastCounterAt": 1775636759974,
-      "firstMetricAt": 1775636750035,
-      "lastMetricAt": 1775636759974,
-      "period": "1775636750000",
-      "summaries": {},
-      "histograms": {}
-    },
-    {
-      "counters": {
-        "vusers.created_by_name.lecture_legere": 45,
-        "vusers.created": 80,
-        "http.requests": 80,
-        "plugins.metrics-by-endpoint./api/health.errors.ECONNREFUSED": 45,
-        "errors.ECONNREFUSED": 80,
-        "vusers.failed": 80,
-        "vusers.created_by_name.lecture_bdd": 27,
-        "plugins.metrics-by-endpoint./api/health/db.errors.ECONNREFUSED": 27,
-        "vusers.created_by_name.lecture_biodiversite": 8,
-        "plugins.metrics-by-endpoint./api/plants.errors.ECONNREFUSED": 8
-      },
-      "rates": {
-        "http.request_rate": 8
-      },
-      "http.request_rate": null,
-      "firstCounterAt": 1775636760035,
-      "lastCounterAt": 1775636769973,
-      "firstMetricAt": 1775636760035,
-      "lastMetricAt": 1775636769973,
-      "period": "1775636760000",
-      "summaries": {},
-      "histograms": {}
-    },
-    {
-      "counters": {
-        "vusers.created_by_name.lecture_biodiversite": 12,
-        "vusers.created": 80,
-        "http.requests": 80,
-        "plugins.metrics-by-endpoint./api/plants.errors.ECONNREFUSED": 12,
-        "errors.ECONNREFUSED": 80,
-        "vusers.failed": 80,
-        "vusers.created_by_name.lecture_legere": 47,
-        "plugins.metrics-by-endpoint./api/health.errors.ECONNREFUSED": 47,
-        "vusers.created_by_name.lecture_bdd": 21,
-        "plugins.metrics-by-endpoint./api/health/db.errors.ECONNREFUSED": 21
-      },
-      "rates": {
-        "http.request_rate": 8
-      },
-      "http.request_rate": null,
-      "firstCounterAt": 1775636770035,
-      "lastCounterAt": 1775636779973,
-      "firstMetricAt": 1775636770035,
-      "lastMetricAt": 1775636779973,
-      "period": "1775636770000",
+      "firstCounterAt": 1774908076300,
+      "lastCounterAt": 1774908079741,
+      "firstMetricAt": 1774908076300,
+      "lastMetricAt": 1774908079741,
+      "period": "1774908070000",
       "summaries": {},
       "histograms": {}
     },
@@ -282,220 +57,1045 @@
         "plugins.metrics-by-endpoint./api/health/db.errors.ECONNREFUSED": 28,
         "errors.ECONNREFUSED": 80,
         "vusers.failed": 80,
-        "vusers.created_by_name.lecture_biodiversite": 13,
-        "plugins.metrics-by-endpoint./api/plants.errors.ECONNREFUSED": 13,
-        "vusers.created_by_name.lecture_legere": 39,
-        "plugins.metrics-by-endpoint./api/health.errors.ECONNREFUSED": 39
-      },
-      "rates": {
-        "http.request_rate": 8
-      },
-      "http.request_rate": null,
-      "firstCounterAt": 1775636780035,
-      "lastCounterAt": 1775636789973,
-      "firstMetricAt": 1775636780035,
-      "lastMetricAt": 1775636789973,
-      "period": "1775636780000",
-      "summaries": {},
-      "histograms": {}
-    },
-    {
-      "counters": {
-        "vusers.created_by_name.lecture_legere": 42,
-        "vusers.created": 80,
-        "http.requests": 80,
-        "plugins.metrics-by-endpoint./api/health.errors.ECONNREFUSED": 42,
-        "errors.ECONNREFUSED": 80,
-        "vusers.failed": 80,
-        "vusers.created_by_name.lecture_bdd": 26,
-        "plugins.metrics-by-endpoint./api/health/db.errors.ECONNREFUSED": 26,
-        "vusers.created_by_name.lecture_biodiversite": 12,
-        "plugins.metrics-by-endpoint./api/plants.errors.ECONNREFUSED": 12
-      },
-      "rates": {
-        "http.request_rate": 8
-      },
-      "http.request_rate": null,
-      "firstCounterAt": 1775636790035,
-      "lastCounterAt": 1775636799973,
-      "firstMetricAt": 1775636790035,
-      "lastMetricAt": 1775636799973,
-      "period": "1775636790000",
-      "summaries": {},
-      "histograms": {}
-    },
-    {
-      "counters": {
-        "vusers.created_by_name.lecture_bdd": 39,
-        "vusers.created": 80,
-        "http.requests": 80,
-        "plugins.metrics-by-endpoint./api/health/db.errors.ECONNREFUSED": 39,
-        "errors.ECONNREFUSED": 80,
-        "vusers.failed": 80,
-        "vusers.created_by_name.lecture_legere": 31,
-        "plugins.metrics-by-endpoint./api/health.errors.ECONNREFUSED": 31,
-        "vusers.created_by_name.lecture_biodiversite": 10,
-        "plugins.metrics-by-endpoint./api/plants.errors.ECONNREFUSED": 10
-      },
-      "rates": {
-        "http.request_rate": 8
-      },
-      "http.request_rate": null,
-      "firstCounterAt": 1775636800034,
-      "lastCounterAt": 1775636809973,
-      "firstMetricAt": 1775636800034,
-      "lastMetricAt": 1775636809973,
-      "period": "1775636800000",
-      "summaries": {},
-      "histograms": {}
-    },
-    {
-      "counters": {
-        "vusers.created_by_name.lecture_biodiversite": 10,
-        "vusers.created": 80,
-        "http.requests": 80,
-        "plugins.metrics-by-endpoint./api/plants.errors.ECONNREFUSED": 10,
-        "errors.ECONNREFUSED": 80,
-        "vusers.failed": 80,
-        "vusers.created_by_name.lecture_legere": 43,
-        "plugins.metrics-by-endpoint./api/health.errors.ECONNREFUSED": 43,
-        "vusers.created_by_name.lecture_bdd": 27,
-        "plugins.metrics-by-endpoint./api/health/db.errors.ECONNREFUSED": 27
-      },
-      "rates": {
-        "http.request_rate": 8
-      },
-      "http.request_rate": null,
-      "firstCounterAt": 1775636810034,
-      "lastCounterAt": 1775636819973,
-      "firstMetricAt": 1775636810034,
-      "lastMetricAt": 1775636819973,
-      "period": "1775636810000",
-      "summaries": {},
-      "histograms": {}
-    },
-    {
-      "counters": {
-        "vusers.created_by_name.lecture_bdd": 23,
-        "vusers.created": 80,
-        "http.requests": 80,
-        "plugins.metrics-by-endpoint./api/health/db.errors.ECONNREFUSED": 23,
-        "errors.ECONNREFUSED": 80,
-        "vusers.failed": 80,
         "vusers.created_by_name.lecture_biodiversite": 15,
         "plugins.metrics-by-endpoint./api/plants.errors.ECONNREFUSED": 15,
+        "vusers.created_by_name.lecture_legere": 37,
+        "plugins.metrics-by-endpoint./api/health.errors.ECONNREFUSED": 37
+      },
+      "rates": {
+        "http.request_rate": 8
+      },
+      "http.request_rate": null,
+      "firstCounterAt": 1774908080297,
+      "lastCounterAt": 1774908089740,
+      "firstMetricAt": 1774908080297,
+      "lastMetricAt": 1774908089740,
+      "period": "1774908080000",
+      "summaries": {},
+      "histograms": {}
+    },
+    {
+      "counters": {
+        "vusers.created_by_name.lecture_legere": 37,
+        "vusers.created": 80,
+        "http.requests": 80,
+        "plugins.metrics-by-endpoint./api/health.errors.ECONNREFUSED": 37,
+        "errors.ECONNREFUSED": 80,
+        "vusers.failed": 80,
+        "vusers.created_by_name.lecture_bdd": 32,
+        "plugins.metrics-by-endpoint./api/health/db.errors.ECONNREFUSED": 32,
+        "vusers.created_by_name.lecture_biodiversite": 11,
+        "plugins.metrics-by-endpoint./api/plants.errors.ECONNREFUSED": 11
+      },
+      "rates": {
+        "http.request_rate": 8
+      },
+      "http.request_rate": null,
+      "firstCounterAt": 1774908090297,
+      "lastCounterAt": 1774908099740,
+      "firstMetricAt": 1774908090297,
+      "lastMetricAt": 1774908099740,
+      "period": "1774908090000",
+      "summaries": {},
+      "histograms": {}
+    },
+    {
+      "counters": {
+        "vusers.created_by_name.lecture_biodiversite": 16,
+        "vusers.created": 82,
+        "http.requests": 82,
+        "plugins.metrics-by-endpoint./api/plants.errors.ECONNREFUSED": 16,
+        "errors.ECONNREFUSED": 82,
+        "vusers.failed": 82,
+        "vusers.created_by_name.lecture_bdd": 24,
+        "plugins.metrics-by-endpoint./api/health/db.errors.ECONNREFUSED": 24,
         "vusers.created_by_name.lecture_legere": 42,
         "plugins.metrics-by-endpoint./api/health.errors.ECONNREFUSED": 42
       },
       "rates": {
-        "http.request_rate": 8
+        "http.request_rate": 10
       },
       "http.request_rate": null,
-      "firstCounterAt": 1775636820034,
-      "lastCounterAt": 1775636829973,
-      "firstMetricAt": 1775636820034,
-      "lastMetricAt": 1775636829973,
-      "period": "1775636820000",
+      "firstCounterAt": 1774908100297,
+      "lastCounterAt": 1774908109855,
+      "firstMetricAt": 1774908100297,
+      "lastMetricAt": 1774908109855,
+      "period": "1774908100000",
       "summaries": {},
       "histograms": {}
     },
     {
       "counters": {
-        "vusers.created_by_name.lecture_bdd": 32,
-        "vusers.created": 77,
-        "http.requests": 77,
-        "plugins.metrics-by-endpoint./api/health/db.errors.ECONNREFUSED": 32,
-        "errors.ECONNREFUSED": 77,
-        "vusers.failed": 77,
-        "vusers.created_by_name.lecture_legere": 38,
-        "plugins.metrics-by-endpoint./api/health.errors.ECONNREFUSED": 38,
-        "vusers.created_by_name.lecture_biodiversite": 7,
-        "plugins.metrics-by-endpoint./api/plants.errors.ECONNREFUSED": 7
+        "vusers.created_by_name.lecture_legere": 61,
+        "vusers.created": 107,
+        "http.requests": 107,
+        "plugins.metrics-by-endpoint./api/health.errors.ECONNREFUSED": 61,
+        "errors.ECONNREFUSED": 107,
+        "vusers.failed": 107,
+        "vusers.created_by_name.lecture_bdd": 36,
+        "plugins.metrics-by-endpoint./api/health/db.errors.ECONNREFUSED": 36,
+        "vusers.created_by_name.lecture_biodiversite": 10,
+        "plugins.metrics-by-endpoint./api/plants.errors.ECONNREFUSED": 10
       },
       "rates": {
-        "http.request_rate": 8
+        "http.request_rate": 12
       },
       "http.request_rate": null,
-      "firstCounterAt": 1775636830034,
-      "lastCounterAt": 1775636839411,
-      "firstMetricAt": 1775636830034,
-      "lastMetricAt": 1775636839411,
-      "period": "1775636830000",
+      "firstCounterAt": 1774908110358,
+      "lastCounterAt": 1774908119937,
+      "firstMetricAt": 1774908110358,
+      "lastMetricAt": 1774908119937,
+      "period": "1774908110000",
       "summaries": {},
       "histograms": {}
     },
     {
       "counters": {
-        "vusers.created_by_name.lecture_biodiversite": 15,
-        "vusers.created": 64,
-        "http.requests": 64,
-        "plugins.metrics-by-endpoint./api/plants.errors.ECONNREFUSED": 15,
-        "errors.ECONNREFUSED": 64,
-        "vusers.failed": 64,
-        "vusers.created_by_name.lecture_legere": 28,
-        "plugins.metrics-by-endpoint./api/health.errors.ECONNREFUSED": 28,
-        "vusers.created_by_name.lecture_bdd": 21,
-        "plugins.metrics-by-endpoint./api/health/db.errors.ECONNREFUSED": 21
+        "vusers.created_by_name.lecture_legere": 91,
+        "vusers.created": 145,
+        "http.requests": 145,
+        "plugins.metrics-by-endpoint./api/health.errors.ECONNREFUSED": 91,
+        "errors.ECONNREFUSED": 145,
+        "vusers.failed": 145,
+        "vusers.created_by_name.lecture_bdd": 36,
+        "plugins.metrics-by-endpoint./api/health/db.errors.ECONNREFUSED": 36,
+        "vusers.created_by_name.lecture_biodiversite": 18,
+        "plugins.metrics-by-endpoint./api/plants.errors.ECONNREFUSED": 18
       },
       "rates": {
-        "http.request_rate": 7
+        "http.request_rate": 15
       },
       "http.request_rate": null,
-      "firstCounterAt": 1775636840030,
-      "lastCounterAt": 1775636849446,
-      "firstMetricAt": 1775636840030,
-      "lastMetricAt": 1775636849446,
-      "period": "1775636840000",
+      "firstCounterAt": 1774908120027,
+      "lastCounterAt": 1774908129986,
+      "firstMetricAt": 1774908120027,
+      "lastMetricAt": 1774908129986,
+      "period": "1774908120000",
       "summaries": {},
       "histograms": {}
     },
     {
       "counters": {
-        "vusers.created_by_name.lecture_biodiversite": 7,
-        "vusers.created": 46,
-        "http.requests": 46,
-        "plugins.metrics-by-endpoint./api/plants.errors.ECONNREFUSED": 7,
-        "errors.ECONNREFUSED": 46,
-        "vusers.failed": 46,
-        "vusers.created_by_name.lecture_legere": 26,
-        "plugins.metrics-by-endpoint./api/health.errors.ECONNREFUSED": 26,
-        "vusers.created_by_name.lecture_bdd": 13,
-        "plugins.metrics-by-endpoint./api/health/db.errors.ECONNREFUSED": 13
+        "vusers.created_by_name.lecture_biodiversite": 33,
+        "vusers.created": 180,
+        "http.requests": 180,
+        "plugins.metrics-by-endpoint./api/plants.errors.ECONNREFUSED": 33,
+        "errors.ECONNREFUSED": 180,
+        "vusers.failed": 180,
+        "vusers.created_by_name.lecture_legere": 77,
+        "plugins.metrics-by-endpoint./api/health.errors.ECONNREFUSED": 77,
+        "vusers.created_by_name.lecture_bdd": 70,
+        "plugins.metrics-by-endpoint./api/health/db.errors.ECONNREFUSED": 70
       },
       "rates": {
-        "http.request_rate": 5
+        "http.request_rate": 19
       },
       "http.request_rate": null,
-      "firstCounterAt": 1775636850126,
-      "lastCounterAt": 1775636859392,
-      "firstMetricAt": 1775636850126,
-      "lastMetricAt": 1775636859392,
-      "period": "1775636850000",
+      "firstCounterAt": 1774908130077,
+      "lastCounterAt": 1774908139978,
+      "firstMetricAt": 1774908130077,
+      "lastMetricAt": 1774908139978,
+      "period": "1774908130000",
       "summaries": {},
       "histograms": {}
     },
     {
       "counters": {
-        "vusers.created_by_name.lecture_bdd": 8,
-        "vusers.created": 17,
-        "http.requests": 17,
-        "plugins.metrics-by-endpoint./api/health/db.errors.ECONNREFUSED": 8,
-        "errors.ECONNREFUSED": 17,
-        "vusers.failed": 17,
-        "vusers.created_by_name.lecture_legere": 6,
-        "plugins.metrics-by-endpoint./api/health.errors.ECONNREFUSED": 6,
-        "vusers.created_by_name.lecture_biodiversite": 3,
-        "plugins.metrics-by-endpoint./api/plants.errors.ECONNREFUSED": 3
+        "vusers.created_by_name.lecture_legere": 112,
+        "vusers.created": 217,
+        "http.requests": 217,
+        "plugins.metrics-by-endpoint./api/health.errors.ECONNREFUSED": 112,
+        "errors.ECONNREFUSED": 217,
+        "vusers.failed": 217,
+        "vusers.created_by_name.lecture_biodiversite": 32,
+        "plugins.metrics-by-endpoint./api/plants.errors.ECONNREFUSED": 32,
+        "vusers.created_by_name.lecture_bdd": 73,
+        "plugins.metrics-by-endpoint./api/health/db.errors.ECONNREFUSED": 73
       },
       "rates": {
-        "http.request_rate": 5
+        "http.request_rate": 22
       },
       "http.request_rate": null,
-      "firstCounterAt": 1775636860242,
-      "lastCounterAt": 1775636864374,
-      "firstMetricAt": 1775636860242,
-      "lastMetricAt": 1775636864374,
-      "period": "1775636860000",
+      "firstCounterAt": 1774908140037,
+      "lastCounterAt": 1774908149938,
+      "firstMetricAt": 1774908140037,
+      "lastMetricAt": 1774908149938,
+      "period": "1774908140000",
+      "summaries": {},
+      "histograms": {}
+    },
+    {
+      "counters": {
+        "vusers.created_by_name.lecture_bdd": 87,
+        "vusers.created": 255,
+        "http.requests": 255,
+        "plugins.metrics-by-endpoint./api/health/db.errors.ECONNREFUSED": 87,
+        "errors.ECONNREFUSED": 255,
+        "vusers.failed": 255,
+        "vusers.created_by_name.lecture_legere": 133,
+        "plugins.metrics-by-endpoint./api/health.errors.ECONNREFUSED": 133,
+        "vusers.created_by_name.lecture_biodiversite": 35,
+        "plugins.metrics-by-endpoint./api/plants.errors.ECONNREFUSED": 35
+      },
+      "rates": {
+        "http.request_rate": 26
+      },
+      "http.request_rate": null,
+      "firstCounterAt": 1774908150046,
+      "lastCounterAt": 1774908159997,
+      "firstMetricAt": 1774908150046,
+      "lastMetricAt": 1774908159997,
+      "period": "1774908150000",
+      "summaries": {},
+      "histograms": {}
+    },
+    {
+      "counters": {
+        "vusers.created_by_name.lecture_legere": 131,
+        "vusers.created": 284,
+        "http.requests": 284,
+        "plugins.metrics-by-endpoint./api/health.errors.ECONNREFUSED": 131,
+        "errors.ECONNREFUSED": 284,
+        "vusers.failed": 284,
+        "vusers.created_by_name.lecture_bdd": 103,
+        "plugins.metrics-by-endpoint./api/health/db.errors.ECONNREFUSED": 103,
+        "vusers.created_by_name.lecture_biodiversite": 50,
+        "plugins.metrics-by-endpoint./api/plants.errors.ECONNREFUSED": 50
+      },
+      "rates": {
+        "http.request_rate": 29
+      },
+      "http.request_rate": null,
+      "firstCounterAt": 1774908160104,
+      "lastCounterAt": 1774908169971,
+      "firstMetricAt": 1774908160104,
+      "lastMetricAt": 1774908169971,
+      "period": "1774908160000",
+      "summaries": {},
+      "histograms": {}
+    },
+    {
+      "counters": {
+        "vusers.created_by_name.lecture_biodiversite": 54,
+        "vusers.created": 323,
+        "http.requests": 323,
+        "plugins.metrics-by-endpoint./api/plants.errors.ECONNREFUSED": 54,
+        "errors.ECONNREFUSED": 323,
+        "vusers.failed": 323,
+        "vusers.created_by_name.lecture_bdd": 106,
+        "plugins.metrics-by-endpoint./api/health/db.errors.ECONNREFUSED": 106,
+        "vusers.created_by_name.lecture_legere": 163,
+        "plugins.metrics-by-endpoint./api/health.errors.ECONNREFUSED": 163
+      },
+      "rates": {
+        "http.request_rate": 33
+      },
+      "http.request_rate": null,
+      "firstCounterAt": 1774908170017,
+      "lastCounterAt": 1774908179961,
+      "firstMetricAt": 1774908170017,
+      "lastMetricAt": 1774908179961,
+      "period": "1774908170000",
+      "summaries": {},
+      "histograms": {}
+    },
+    {
+      "counters": {
+        "vusers.created_by_name.lecture_bdd": 117,
+        "vusers.created": 359,
+        "http.requests": 359,
+        "plugins.metrics-by-endpoint./api/health/db.errors.ECONNREFUSED": 117,
+        "errors.ECONNREFUSED": 359,
+        "vusers.failed": 359,
+        "vusers.created_by_name.lecture_biodiversite": 56,
+        "plugins.metrics-by-endpoint./api/plants.errors.ECONNREFUSED": 56,
+        "vusers.created_by_name.lecture_legere": 186,
+        "plugins.metrics-by-endpoint./api/health.errors.ECONNREFUSED": 186
+      },
+      "rates": {
+        "http.request_rate": 36
+      },
+      "http.request_rate": null,
+      "firstCounterAt": 1774908180021,
+      "lastCounterAt": 1774908189991,
+      "firstMetricAt": 1774908180021,
+      "lastMetricAt": 1774908189991,
+      "period": "1774908180000",
+      "summaries": {},
+      "histograms": {}
+    },
+    {
+      "counters": {
+        "vusers.created_by_name.lecture_legere": 213,
+        "vusers.created": 393,
+        "http.requests": 393,
+        "plugins.metrics-by-endpoint./api/health.errors.ECONNREFUSED": 213,
+        "errors.ECONNREFUSED": 393,
+        "vusers.failed": 393,
+        "vusers.created_by_name.lecture_biodiversite": 59,
+        "plugins.metrics-by-endpoint./api/plants.errors.ECONNREFUSED": 59,
+        "vusers.created_by_name.lecture_bdd": 121,
+        "plugins.metrics-by-endpoint./api/health/db.errors.ECONNREFUSED": 121
+      },
+      "rates": {
+        "http.request_rate": 40
+      },
+      "http.request_rate": null,
+      "firstCounterAt": 1774908190004,
+      "lastCounterAt": 1774908199999,
+      "firstMetricAt": 1774908190004,
+      "lastMetricAt": 1774908199999,
+      "period": "1774908190000",
+      "summaries": {},
+      "histograms": {}
+    },
+    {
+      "counters": {
+        "vusers.created_by_name.lecture_legere": 196,
+        "vusers.created": 400,
+        "http.requests": 400,
+        "plugins.metrics-by-endpoint./api/health.errors.ECONNREFUSED": 196,
+        "errors.ECONNREFUSED": 400,
+        "vusers.failed": 400,
+        "vusers.created_by_name.lecture_biodiversite": 68,
+        "plugins.metrics-by-endpoint./api/plants.errors.ECONNREFUSED": 68,
+        "vusers.created_by_name.lecture_bdd": 136,
+        "plugins.metrics-by-endpoint./api/health/db.errors.ECONNREFUSED": 136
+      },
+      "rates": {
+        "http.request_rate": 40
+      },
+      "http.request_rate": null,
+      "firstCounterAt": 1774908200039,
+      "lastCounterAt": 1774908209999,
+      "firstMetricAt": 1774908200039,
+      "lastMetricAt": 1774908209999,
+      "period": "1774908200000",
+      "summaries": {},
+      "histograms": {}
+    },
+    {
+      "counters": {
+        "vusers.created_by_name.lecture_legere": 195,
+        "vusers.created": 400,
+        "http.requests": 400,
+        "plugins.metrics-by-endpoint./api/health.errors.ECONNREFUSED": 195,
+        "errors.ECONNREFUSED": 400,
+        "vusers.failed": 400,
+        "vusers.created_by_name.lecture_bdd": 144,
+        "plugins.metrics-by-endpoint./api/health/db.errors.ECONNREFUSED": 144,
+        "vusers.created_by_name.lecture_biodiversite": 61,
+        "plugins.metrics-by-endpoint./api/plants.errors.ECONNREFUSED": 61
+      },
+      "rates": {
+        "http.request_rate": 40
+      },
+      "http.request_rate": null,
+      "firstCounterAt": 1774908210039,
+      "lastCounterAt": 1774908219999,
+      "firstMetricAt": 1774908210039,
+      "lastMetricAt": 1774908219999,
+      "period": "1774908210000",
+      "summaries": {},
+      "histograms": {}
+    },
+    {
+      "counters": {
+        "vusers.created_by_name.lecture_legere": 194,
+        "vusers.created": 400,
+        "http.requests": 400,
+        "plugins.metrics-by-endpoint./api/health.errors.ECONNREFUSED": 194,
+        "errors.ECONNREFUSED": 400,
+        "vusers.failed": 400,
+        "vusers.created_by_name.lecture_bdd": 153,
+        "plugins.metrics-by-endpoint./api/health/db.errors.ECONNREFUSED": 153,
+        "vusers.created_by_name.lecture_biodiversite": 53,
+        "plugins.metrics-by-endpoint./api/plants.errors.ECONNREFUSED": 53
+      },
+      "rates": {
+        "http.request_rate": 40
+      },
+      "http.request_rate": null,
+      "firstCounterAt": 1774908220039,
+      "lastCounterAt": 1774908229999,
+      "firstMetricAt": 1774908220039,
+      "lastMetricAt": 1774908229999,
+      "period": "1774908220000",
+      "summaries": {},
+      "histograms": {}
+    },
+    {
+      "counters": {
+        "vusers.created_by_name.lecture_legere": 188,
+        "vusers.created": 400,
+        "http.requests": 400,
+        "plugins.metrics-by-endpoint./api/health.errors.ECONNREFUSED": 188,
+        "errors.ECONNREFUSED": 400,
+        "vusers.failed": 400,
+        "vusers.created_by_name.lecture_bdd": 162,
+        "plugins.metrics-by-endpoint./api/health/db.errors.ECONNREFUSED": 162,
+        "vusers.created_by_name.lecture_biodiversite": 50,
+        "plugins.metrics-by-endpoint./api/plants.errors.ECONNREFUSED": 50
+      },
+      "rates": {
+        "http.request_rate": 40
+      },
+      "http.request_rate": null,
+      "firstCounterAt": 1774908230039,
+      "lastCounterAt": 1774908239999,
+      "firstMetricAt": 1774908230039,
+      "lastMetricAt": 1774908239999,
+      "period": "1774908230000",
+      "summaries": {},
+      "histograms": {}
+    },
+    {
+      "counters": {
+        "vusers.created_by_name.lecture_legere": 204,
+        "vusers.created": 400,
+        "http.requests": 400,
+        "plugins.metrics-by-endpoint./api/health.errors.ECONNREFUSED": 204,
+        "errors.ECONNREFUSED": 400,
+        "vusers.failed": 400,
+        "vusers.created_by_name.lecture_bdd": 135,
+        "plugins.metrics-by-endpoint./api/health/db.errors.ECONNREFUSED": 135,
+        "vusers.created_by_name.lecture_biodiversite": 61,
+        "plugins.metrics-by-endpoint./api/plants.errors.ECONNREFUSED": 61
+      },
+      "rates": {
+        "http.request_rate": 40
+      },
+      "http.request_rate": null,
+      "firstCounterAt": 1774908240039,
+      "lastCounterAt": 1774908249999,
+      "firstMetricAt": 1774908240039,
+      "lastMetricAt": 1774908249999,
+      "period": "1774908240000",
+      "summaries": {},
+      "histograms": {}
+    },
+    {
+      "counters": {
+        "vusers.created_by_name.lecture_bdd": 151,
+        "vusers.created": 400,
+        "http.requests": 400,
+        "plugins.metrics-by-endpoint./api/health/db.errors.ECONNREFUSED": 151,
+        "errors.ECONNREFUSED": 400,
+        "vusers.failed": 400,
+        "vusers.created_by_name.lecture_legere": 199,
+        "plugins.metrics-by-endpoint./api/health.errors.ECONNREFUSED": 199,
+        "vusers.created_by_name.lecture_biodiversite": 50,
+        "plugins.metrics-by-endpoint./api/plants.errors.ECONNREFUSED": 50
+      },
+      "rates": {
+        "http.request_rate": 40
+      },
+      "http.request_rate": null,
+      "firstCounterAt": 1774908250039,
+      "lastCounterAt": 1774908259999,
+      "firstMetricAt": 1774908250039,
+      "lastMetricAt": 1774908259999,
+      "period": "1774908250000",
+      "summaries": {},
+      "histograms": {}
+    },
+    {
+      "counters": {
+        "vusers.created_by_name.lecture_legere": 207,
+        "vusers.created": 400,
+        "http.requests": 400,
+        "plugins.metrics-by-endpoint./api/health.errors.ECONNREFUSED": 207,
+        "errors.ECONNREFUSED": 400,
+        "vusers.failed": 400,
+        "vusers.created_by_name.lecture_bdd": 136,
+        "plugins.metrics-by-endpoint./api/health/db.errors.ECONNREFUSED": 136,
+        "vusers.created_by_name.lecture_biodiversite": 57,
+        "plugins.metrics-by-endpoint./api/plants.errors.ECONNREFUSED": 57
+      },
+      "rates": {
+        "http.request_rate": 40
+      },
+      "http.request_rate": null,
+      "firstCounterAt": 1774908260039,
+      "lastCounterAt": 1774908269999,
+      "firstMetricAt": 1774908260039,
+      "lastMetricAt": 1774908269999,
+      "period": "1774908260000",
+      "summaries": {},
+      "histograms": {}
+    },
+    {
+      "counters": {
+        "vusers.created_by_name.lecture_legere": 215,
+        "vusers.created": 400,
+        "http.requests": 400,
+        "plugins.metrics-by-endpoint./api/health.errors.ECONNREFUSED": 215,
+        "errors.ECONNREFUSED": 400,
+        "vusers.failed": 400,
+        "vusers.created_by_name.lecture_bdd": 132,
+        "plugins.metrics-by-endpoint./api/health/db.errors.ECONNREFUSED": 132,
+        "vusers.created_by_name.lecture_biodiversite": 53,
+        "plugins.metrics-by-endpoint./api/plants.errors.ECONNREFUSED": 53
+      },
+      "rates": {
+        "http.request_rate": 40
+      },
+      "http.request_rate": null,
+      "firstCounterAt": 1774908270039,
+      "lastCounterAt": 1774908279999,
+      "firstMetricAt": 1774908270039,
+      "lastMetricAt": 1774908279999,
+      "period": "1774908270000",
+      "summaries": {},
+      "histograms": {}
+    },
+    {
+      "counters": {
+        "vusers.created_by_name.lecture_legere": 194,
+        "vusers.created": 400,
+        "http.requests": 400,
+        "plugins.metrics-by-endpoint./api/health.errors.ECONNREFUSED": 194,
+        "errors.ECONNREFUSED": 400,
+        "vusers.failed": 400,
+        "vusers.created_by_name.lecture_bdd": 150,
+        "plugins.metrics-by-endpoint./api/health/db.errors.ECONNREFUSED": 150,
+        "vusers.created_by_name.lecture_biodiversite": 56,
+        "plugins.metrics-by-endpoint./api/plants.errors.ECONNREFUSED": 56
+      },
+      "rates": {
+        "http.request_rate": 40
+      },
+      "http.request_rate": null,
+      "firstCounterAt": 1774908280039,
+      "lastCounterAt": 1774908289999,
+      "firstMetricAt": 1774908280039,
+      "lastMetricAt": 1774908289999,
+      "period": "1774908280000",
+      "summaries": {},
+      "histograms": {}
+    },
+    {
+      "counters": {
+        "vusers.created_by_name.lecture_legere": 201,
+        "vusers.created": 400,
+        "http.requests": 400,
+        "plugins.metrics-by-endpoint./api/health.errors.ECONNREFUSED": 201,
+        "errors.ECONNREFUSED": 400,
+        "vusers.failed": 400,
+        "vusers.created_by_name.lecture_biodiversite": 66,
+        "plugins.metrics-by-endpoint./api/plants.errors.ECONNREFUSED": 66,
+        "vusers.created_by_name.lecture_bdd": 133,
+        "plugins.metrics-by-endpoint./api/health/db.errors.ECONNREFUSED": 133
+      },
+      "rates": {
+        "http.request_rate": 40
+      },
+      "http.request_rate": null,
+      "firstCounterAt": 1774908290039,
+      "lastCounterAt": 1774908299999,
+      "firstMetricAt": 1774908290039,
+      "lastMetricAt": 1774908299999,
+      "period": "1774908290000",
+      "summaries": {},
+      "histograms": {}
+    },
+    {
+      "counters": {
+        "vusers.created_by_name.lecture_biodiversite": 59,
+        "vusers.created": 400,
+        "http.requests": 400,
+        "plugins.metrics-by-endpoint./api/plants.errors.ECONNREFUSED": 59,
+        "errors.ECONNREFUSED": 400,
+        "vusers.failed": 400,
+        "vusers.created_by_name.lecture_legere": 203,
+        "plugins.metrics-by-endpoint./api/health.errors.ECONNREFUSED": 203,
+        "vusers.created_by_name.lecture_bdd": 138,
+        "plugins.metrics-by-endpoint./api/health/db.errors.ECONNREFUSED": 138
+      },
+      "rates": {
+        "http.request_rate": 40
+      },
+      "http.request_rate": null,
+      "firstCounterAt": 1774908300039,
+      "lastCounterAt": 1774908309999,
+      "firstMetricAt": 1774908300039,
+      "lastMetricAt": 1774908309999,
+      "period": "1774908300000",
+      "summaries": {},
+      "histograms": {}
+    },
+    {
+      "counters": {
+        "vusers.created_by_name.lecture_bdd": 145,
+        "vusers.created": 400,
+        "http.requests": 400,
+        "plugins.metrics-by-endpoint./api/health/db.errors.ECONNREFUSED": 145,
+        "errors.ECONNREFUSED": 400,
+        "vusers.failed": 400,
+        "vusers.created_by_name.lecture_legere": 201,
+        "plugins.metrics-by-endpoint./api/health.errors.ECONNREFUSED": 201,
+        "vusers.created_by_name.lecture_biodiversite": 54,
+        "plugins.metrics-by-endpoint./api/plants.errors.ECONNREFUSED": 54
+      },
+      "rates": {
+        "http.request_rate": 40
+      },
+      "http.request_rate": null,
+      "firstCounterAt": 1774908310039,
+      "lastCounterAt": 1774908319999,
+      "firstMetricAt": 1774908310039,
+      "lastMetricAt": 1774908319999,
+      "period": "1774908310000",
+      "summaries": {},
+      "histograms": {}
+    },
+    {
+      "counters": {
+        "vusers.created_by_name.lecture_legere": 197,
+        "vusers.created": 400,
+        "http.requests": 400,
+        "plugins.metrics-by-endpoint./api/health.errors.ECONNREFUSED": 197,
+        "errors.ECONNREFUSED": 400,
+        "vusers.failed": 400,
+        "vusers.created_by_name.lecture_bdd": 143,
+        "plugins.metrics-by-endpoint./api/health/db.errors.ECONNREFUSED": 143,
+        "vusers.created_by_name.lecture_biodiversite": 60,
+        "plugins.metrics-by-endpoint./api/plants.errors.ECONNREFUSED": 60
+      },
+      "rates": {
+        "http.request_rate": 40
+      },
+      "http.request_rate": null,
+      "firstCounterAt": 1774908320039,
+      "lastCounterAt": 1774908329999,
+      "firstMetricAt": 1774908320039,
+      "lastMetricAt": 1774908329999,
+      "period": "1774908320000",
+      "summaries": {},
+      "histograms": {}
+    },
+    {
+      "counters": {
+        "vusers.created_by_name.lecture_bdd": 118,
+        "vusers.created": 400,
+        "http.requests": 400,
+        "plugins.metrics-by-endpoint./api/health/db.errors.ECONNREFUSED": 118,
+        "errors.ECONNREFUSED": 400,
+        "vusers.failed": 400,
+        "vusers.created_by_name.lecture_biodiversite": 73,
+        "plugins.metrics-by-endpoint./api/plants.errors.ECONNREFUSED": 73,
+        "vusers.created_by_name.lecture_legere": 209,
+        "plugins.metrics-by-endpoint./api/health.errors.ECONNREFUSED": 209
+      },
+      "rates": {
+        "http.request_rate": 40
+      },
+      "http.request_rate": null,
+      "firstCounterAt": 1774908330039,
+      "lastCounterAt": 1774908339999,
+      "firstMetricAt": 1774908330039,
+      "lastMetricAt": 1774908339999,
+      "period": "1774908330000",
+      "summaries": {},
+      "histograms": {}
+    },
+    {
+      "counters": {
+        "vusers.created_by_name.lecture_biodiversite": 60,
+        "vusers.created": 400,
+        "http.requests": 400,
+        "plugins.metrics-by-endpoint./api/plants.errors.ECONNREFUSED": 60,
+        "errors.ECONNREFUSED": 400,
+        "vusers.failed": 400,
+        "vusers.created_by_name.lecture_bdd": 141,
+        "plugins.metrics-by-endpoint./api/health/db.errors.ECONNREFUSED": 141,
+        "vusers.created_by_name.lecture_legere": 199,
+        "plugins.metrics-by-endpoint./api/health.errors.ECONNREFUSED": 199
+      },
+      "rates": {
+        "http.request_rate": 40
+      },
+      "http.request_rate": null,
+      "firstCounterAt": 1774908340039,
+      "lastCounterAt": 1774908349999,
+      "firstMetricAt": 1774908340039,
+      "lastMetricAt": 1774908349999,
+      "period": "1774908340000",
+      "summaries": {},
+      "histograms": {}
+    },
+    {
+      "counters": {
+        "vusers.created_by_name.lecture_legere": 193,
+        "vusers.created": 400,
+        "http.requests": 400,
+        "plugins.metrics-by-endpoint./api/health.errors.ECONNREFUSED": 193,
+        "errors.ECONNREFUSED": 400,
+        "vusers.failed": 400,
+        "vusers.created_by_name.lecture_biodiversite": 54,
+        "plugins.metrics-by-endpoint./api/plants.errors.ECONNREFUSED": 54,
+        "vusers.created_by_name.lecture_bdd": 153,
+        "plugins.metrics-by-endpoint./api/health/db.errors.ECONNREFUSED": 153
+      },
+      "rates": {
+        "http.request_rate": 40
+      },
+      "http.request_rate": null,
+      "firstCounterAt": 1774908350039,
+      "lastCounterAt": 1774908359999,
+      "firstMetricAt": 1774908350039,
+      "lastMetricAt": 1774908359999,
+      "period": "1774908350000",
+      "summaries": {},
+      "histograms": {}
+    },
+    {
+      "counters": {
+        "vusers.created_by_name.lecture_legere": 211,
+        "vusers.created": 400,
+        "http.requests": 400,
+        "plugins.metrics-by-endpoint./api/health.errors.ECONNREFUSED": 211,
+        "errors.ECONNREFUSED": 400,
+        "vusers.failed": 400,
+        "vusers.created_by_name.lecture_biodiversite": 58,
+        "plugins.metrics-by-endpoint./api/plants.errors.ECONNREFUSED": 58,
+        "vusers.created_by_name.lecture_bdd": 131,
+        "plugins.metrics-by-endpoint./api/health/db.errors.ECONNREFUSED": 131
+      },
+      "rates": {
+        "http.request_rate": 40
+      },
+      "http.request_rate": null,
+      "firstCounterAt": 1774908360039,
+      "lastCounterAt": 1774908369999,
+      "firstMetricAt": 1774908360039,
+      "lastMetricAt": 1774908369999,
+      "period": "1774908360000",
+      "summaries": {},
+      "histograms": {}
+    },
+    {
+      "counters": {
+        "vusers.created_by_name.lecture_legere": 191,
+        "vusers.created": 400,
+        "http.requests": 400,
+        "plugins.metrics-by-endpoint./api/health.errors.ECONNREFUSED": 191,
+        "errors.ECONNREFUSED": 400,
+        "vusers.failed": 400,
+        "vusers.created_by_name.lecture_biodiversite": 64,
+        "plugins.metrics-by-endpoint./api/plants.errors.ECONNREFUSED": 64,
+        "vusers.created_by_name.lecture_bdd": 145,
+        "plugins.metrics-by-endpoint./api/health/db.errors.ECONNREFUSED": 145
+      },
+      "rates": {
+        "http.request_rate": 40
+      },
+      "http.request_rate": null,
+      "firstCounterAt": 1774908370039,
+      "lastCounterAt": 1774908379998,
+      "firstMetricAt": 1774908370039,
+      "lastMetricAt": 1774908379998,
+      "period": "1774908370000",
+      "summaries": {},
+      "histograms": {}
+    },
+    {
+      "counters": {
+        "vusers.created_by_name.lecture_biodiversite": 65,
+        "vusers.created": 400,
+        "http.requests": 400,
+        "plugins.metrics-by-endpoint./api/plants.errors.ECONNREFUSED": 65,
+        "errors.ECONNREFUSED": 400,
+        "vusers.failed": 400,
+        "vusers.created_by_name.lecture_bdd": 145,
+        "plugins.metrics-by-endpoint./api/health/db.errors.ECONNREFUSED": 145,
+        "vusers.created_by_name.lecture_legere": 190,
+        "plugins.metrics-by-endpoint./api/health.errors.ECONNREFUSED": 190
+      },
+      "rates": {
+        "http.request_rate": 40
+      },
+      "http.request_rate": null,
+      "firstCounterAt": 1774908380038,
+      "lastCounterAt": 1774908389998,
+      "firstMetricAt": 1774908380038,
+      "lastMetricAt": 1774908389998,
+      "period": "1774908380000",
+      "summaries": {},
+      "histograms": {}
+    },
+    {
+      "counters": {
+        "vusers.created_by_name.lecture_legere": 191,
+        "vusers.created": 400,
+        "http.requests": 400,
+        "plugins.metrics-by-endpoint./api/health.errors.ECONNREFUSED": 191,
+        "errors.ECONNREFUSED": 400,
+        "vusers.failed": 400,
+        "vusers.created_by_name.lecture_bdd": 150,
+        "plugins.metrics-by-endpoint./api/health/db.errors.ECONNREFUSED": 150,
+        "vusers.created_by_name.lecture_biodiversite": 59,
+        "plugins.metrics-by-endpoint./api/plants.errors.ECONNREFUSED": 59
+      },
+      "rates": {
+        "http.request_rate": 40
+      },
+      "http.request_rate": null,
+      "firstCounterAt": 1774908390038,
+      "lastCounterAt": 1774908399998,
+      "firstMetricAt": 1774908390038,
+      "lastMetricAt": 1774908399998,
+      "period": "1774908390000",
+      "summaries": {},
+      "histograms": {}
+    },
+    {
+      "counters": {
+        "vusers.created_by_name.lecture_legere": 209,
+        "vusers.created": 400,
+        "http.requests": 400,
+        "plugins.metrics-by-endpoint./api/health.errors.ECONNREFUSED": 209,
+        "errors.ECONNREFUSED": 400,
+        "vusers.failed": 400,
+        "vusers.created_by_name.lecture_biodiversite": 68,
+        "plugins.metrics-by-endpoint./api/plants.errors.ECONNREFUSED": 68,
+        "vusers.created_by_name.lecture_bdd": 123,
+        "plugins.metrics-by-endpoint./api/health/db.errors.ECONNREFUSED": 123
+      },
+      "rates": {
+        "http.request_rate": 40
+      },
+      "http.request_rate": null,
+      "firstCounterAt": 1774908400038,
+      "lastCounterAt": 1774908409998,
+      "firstMetricAt": 1774908400038,
+      "lastMetricAt": 1774908409998,
+      "period": "1774908400000",
+      "summaries": {},
+      "histograms": {}
+    },
+    {
+      "counters": {
+        "vusers.created_by_name.lecture_biodiversite": 50,
+        "vusers.created": 400,
+        "http.requests": 400,
+        "plugins.metrics-by-endpoint./api/plants.errors.ECONNREFUSED": 50,
+        "errors.ECONNREFUSED": 400,
+        "vusers.failed": 400,
+        "vusers.created_by_name.lecture_legere": 212,
+        "plugins.metrics-by-endpoint./api/health.errors.ECONNREFUSED": 212,
+        "vusers.created_by_name.lecture_bdd": 138,
+        "plugins.metrics-by-endpoint./api/health/db.errors.ECONNREFUSED": 138
+      },
+      "rates": {
+        "http.request_rate": 40
+      },
+      "http.request_rate": null,
+      "firstCounterAt": 1774908410038,
+      "lastCounterAt": 1774908419998,
+      "firstMetricAt": 1774908410038,
+      "lastMetricAt": 1774908419998,
+      "period": "1774908410000",
+      "summaries": {},
+      "histograms": {}
+    },
+    {
+      "counters": {
+        "vusers.created_by_name.lecture_bdd": 132,
+        "vusers.created": 400,
+        "http.requests": 400,
+        "plugins.metrics-by-endpoint./api/health/db.errors.ECONNREFUSED": 132,
+        "errors.ECONNREFUSED": 400,
+        "vusers.failed": 400,
+        "vusers.created_by_name.lecture_legere": 206,
+        "plugins.metrics-by-endpoint./api/health.errors.ECONNREFUSED": 206,
+        "vusers.created_by_name.lecture_biodiversite": 62,
+        "plugins.metrics-by-endpoint./api/plants.errors.ECONNREFUSED": 62
+      },
+      "rates": {
+        "http.request_rate": 40
+      },
+      "http.request_rate": null,
+      "firstCounterAt": 1774908420038,
+      "lastCounterAt": 1774908429999,
+      "firstMetricAt": 1774908420038,
+      "lastMetricAt": 1774908429999,
+      "period": "1774908420000",
+      "summaries": {},
+      "histograms": {}
+    },
+    {
+      "counters": {
+        "vusers.created_by_name.lecture_legere": 217,
+        "vusers.created": 393,
+        "http.requests": 393,
+        "plugins.metrics-by-endpoint./api/health.errors.ECONNREFUSED": 217,
+        "errors.ECONNREFUSED": 393,
+        "vusers.failed": 393,
+        "vusers.created_by_name.lecture_bdd": 121,
+        "plugins.metrics-by-endpoint./api/health/db.errors.ECONNREFUSED": 121,
+        "vusers.created_by_name.lecture_biodiversite": 55,
+        "plugins.metrics-by-endpoint./api/plants.errors.ECONNREFUSED": 55
+      },
+      "rates": {
+        "http.request_rate": 40
+      },
+      "http.request_rate": null,
+      "firstCounterAt": 1774908430038,
+      "lastCounterAt": 1774908439892,
+      "firstMetricAt": 1774908430038,
+      "lastMetricAt": 1774908439892,
+      "period": "1774908430000",
+      "summaries": {},
+      "histograms": {}
+    },
+    {
+      "counters": {
+        "vusers.created_by_name.lecture_biodiversite": 54,
+        "vusers.created": 357,
+        "http.requests": 357,
+        "plugins.metrics-by-endpoint./api/plants.errors.ECONNREFUSED": 54,
+        "errors.ECONNREFUSED": 357,
+        "vusers.failed": 357,
+        "vusers.created_by_name.lecture_bdd": 110,
+        "plugins.metrics-by-endpoint./api/health/db.errors.ECONNREFUSED": 110,
+        "vusers.created_by_name.lecture_legere": 193,
+        "plugins.metrics-by-endpoint./api/health.errors.ECONNREFUSED": 193
+      },
+      "rates": {
+        "http.request_rate": 36
+      },
+      "http.request_rate": null,
+      "firstCounterAt": 1774908440000,
+      "lastCounterAt": 1774908449988,
+      "firstMetricAt": 1774908440000,
+      "lastMetricAt": 1774908449988,
+      "period": "1774908440000",
+      "summaries": {},
+      "histograms": {}
+    },
+    {
+      "counters": {
+        "vusers.created_by_name.lecture_bdd": 106,
+        "vusers.created": 301,
+        "http.requests": 301,
+        "plugins.metrics-by-endpoint./api/health/db.errors.ECONNREFUSED": 106,
+        "errors.ECONNREFUSED": 301,
+        "vusers.failed": 301,
+        "vusers.created_by_name.lecture_legere": 156,
+        "plugins.metrics-by-endpoint./api/health.errors.ECONNREFUSED": 156,
+        "vusers.created_by_name.lecture_biodiversite": 39,
+        "plugins.metrics-by-endpoint./api/plants.errors.ECONNREFUSED": 39
+      },
+      "rates": {
+        "http.request_rate": 31
+      },
+      "http.request_rate": null,
+      "firstCounterAt": 1774908450002,
+      "lastCounterAt": 1774908459912,
+      "firstMetricAt": 1774908450002,
+      "lastMetricAt": 1774908459912,
+      "period": "1774908450000",
+      "summaries": {},
+      "histograms": {}
+    },
+    {
+      "counters": {
+        "vusers.created_by_name.lecture_legere": 138,
+        "vusers.created": 257,
+        "http.requests": 257,
+        "plugins.metrics-by-endpoint./api/health.errors.ECONNREFUSED": 138,
+        "errors.ECONNREFUSED": 257,
+        "vusers.failed": 257,
+        "vusers.created_by_name.lecture_biodiversite": 42,
+        "plugins.metrics-by-endpoint./api/plants.errors.ECONNREFUSED": 42,
+        "vusers.created_by_name.lecture_bdd": 77,
+        "plugins.metrics-by-endpoint./api/health/db.errors.ECONNREFUSED": 77
+      },
+      "rates": {
+        "http.request_rate": 27
+      },
+      "http.request_rate": null,
+      "firstCounterAt": 1774908460005,
+      "lastCounterAt": 1774908469941,
+      "firstMetricAt": 1774908460005,
+      "lastMetricAt": 1774908469941,
+      "period": "1774908460000",
+      "summaries": {},
+      "histograms": {}
+    },
+    {
+      "counters": {
+        "vusers.created_by_name.lecture_legere": 108,
+        "vusers.created": 209,
+        "http.requests": 209,
+        "plugins.metrics-by-endpoint./api/health.errors.ECONNREFUSED": 108,
+        "errors.ECONNREFUSED": 209,
+        "vusers.failed": 209,
+        "vusers.created_by_name.lecture_bdd": 74,
+        "plugins.metrics-by-endpoint./api/health/db.errors.ECONNREFUSED": 74,
+        "vusers.created_by_name.lecture_biodiversite": 27,
+        "plugins.metrics-by-endpoint./api/plants.errors.ECONNREFUSED": 27
+      },
+      "rates": {
+        "http.request_rate": 21
+      },
+      "http.request_rate": null,
+      "firstCounterAt": 1774908470002,
+      "lastCounterAt": 1774908479996,
+      "firstMetricAt": 1774908470002,
+      "lastMetricAt": 1774908479996,
+      "period": "1774908470000",
+      "summaries": {},
+      "histograms": {}
+    },
+    {
+      "counters": {
+        "vusers.created_by_name.lecture_legere": 74,
+        "vusers.created": 158,
+        "http.requests": 158,
+        "plugins.metrics-by-endpoint./api/health.errors.ECONNREFUSED": 74,
+        "errors.ECONNREFUSED": 158,
+        "vusers.failed": 158,
+        "vusers.created_by_name.lecture_bdd": 65,
+        "plugins.metrics-by-endpoint./api/health/db.errors.ECONNREFUSED": 65,
+        "vusers.created_by_name.lecture_biodiversite": 19,
+        "plugins.metrics-by-endpoint./api/plants.errors.ECONNREFUSED": 19
+      },
+      "rates": {
+        "http.request_rate": 16
+      },
+      "http.request_rate": null,
+      "firstCounterAt": 1774908480026,
+      "lastCounterAt": 1774908489979,
+      "firstMetricAt": 1774908480026,
+      "lastMetricAt": 1774908489979,
+      "period": "1774908480000",
+      "summaries": {},
+      "histograms": {}
+    },
+    {
+      "counters": {
+        "vusers.created_by_name.lecture_legere": 49,
+        "vusers.created": 88,
+        "http.requests": 88,
+        "plugins.metrics-by-endpoint./api/health.errors.ECONNREFUSED": 49,
+        "errors.ECONNREFUSED": 88,
+        "vusers.failed": 88,
+        "vusers.created_by_name.lecture_biodiversite": 13,
+        "plugins.metrics-by-endpoint./api/plants.errors.ECONNREFUSED": 13,
+        "vusers.created_by_name.lecture_bdd": 26,
+        "plugins.metrics-by-endpoint./api/health/db.errors.ECONNREFUSED": 26
+      },
+      "rates": {
+        "http.request_rate": 14
+      },
+      "http.request_rate": null,
+      "firstCounterAt": 1774908490072,
+      "lastCounterAt": 1774908497273,
+      "firstMetricAt": 1774908490072,
+      "lastMetricAt": 1774908497273,
+      "period": "1774908490000",
       "summaries": {},
       "histograms": {}
     }
