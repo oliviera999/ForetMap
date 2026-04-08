@@ -42,6 +42,8 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - **UI — Carte (split Cartes & tâches)** : la barre d’outils reprend la **même largeur que le canvas** via **`--fm-map-canvas-w`** (suppression de la surcharge `width: 100%` sur **`.map-view-toolbar`**). Défilement horizontal des boutons inchangé en mode compact (**`main--map-visible`**). **`index.css`**, **`dist/`**.
 
 ### Corrigé
+- **Migration 062** : URL Commons de la **Piéride du chou** — le nom de fichier contenait **`--`**, interprété comme **commentaire SQL** par MariaDB (requête tronquée, `ER_PARSE_ERROR`). Remplacement par **`%2D%2D`** dans le chemin **`Special:FilePath`** (même fichier côté Wikimedia). **`migrations/062_plants_nonvegetal_photo_filepath.sql`**.
+
 - **Carte — fiche zone / repère** : un clic sur une zone ou un repère ne bascule plus vers l’onglet Tâches en vue carte seule (la modale s’affichait masquée). La synchro du filtre lieu du panneau Tâches reste active uniquement en **vue scindée** ; sur carte seule, un bouton dans la modale ouvre l’onglet Tâches filtré. **`App.jsx`**, **`map-views.jsx`**.
 
 - **Visite & carte — libellés zones** : l’emoji et le titre au centroïde se chevauchaient souvent (écart entre centres trop faible par rapport aux tailles de police). **`resolveMapOverlayTypography`** impose désormais un **écart minimal entre centres** (demi-hauteurs + marge) et un **défaut d’espacement** un peu plus généreux ; même logique sur la **carte principale** et l’**onglet Visite**. Repères visite : zone tactile **44×44 px**, emoji légèrement plus lisible ; barre de bascule cartes / modes un peu plus aérée. **`mapOverlayTypography.js`**, **`index.css`**, build **`dist/`**.

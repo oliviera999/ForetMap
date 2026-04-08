@@ -108,9 +108,10 @@ UPDATE plants SET
   photo_species = 'https://commons.wikimedia.org/wiki/Special:FilePath/Argiope_bruennichi.jpg'
 WHERE name = 'Argiope' AND scientific_name = 'Argiope bruennichi';
 
+-- %2D%2D = double tiret dans le nom Commons (évite que MariaDB interprète "--" comme commentaire SQL).
 UPDATE plants SET
-  photo = 'https://commons.wikimedia.org/wiki/Special:FilePath/2016.07.07.-01-Felde--Grosser_Kohlweissling.jpg',
-  photo_species = 'https://commons.wikimedia.org/wiki/Special:FilePath/2016.07.07.-01-Felde--Grosser_Kohlweissling.jpg'
+  photo = 'https://commons.wikimedia.org/wiki/Special:FilePath/2016.07.07.-01-Felde%2D%2DGrosser_Kohlweissling.jpg',
+  photo_species = 'https://commons.wikimedia.org/wiki/Special:FilePath/2016.07.07.-01-Felde%2D%2DGrosser_Kohlweissling.jpg'
 WHERE name = 'Piéride du chou' AND scientific_name = 'Pieris brassicae';
 
 UPDATE plants SET
