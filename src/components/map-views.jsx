@@ -1168,7 +1168,7 @@ function offsetDuplicateZonePoints(pts, dx = 2.5, dy = 2.5) {
   }));
 }
 
-function useMapGestures({ mapImageSrc, activeMapId, mode, onRefresh }) {
+function useMapGestures({ mapImageSrc, activeMapId, mode, onRefresh, embedded = false, mapLayoutOuterRef = null }) {
   const containerRef = useRef(null);
   const worldRef = useRef(null);
   const imgRef = useRef(null);
@@ -1260,33 +1260,92 @@ function useMapGestures({ mapImageSrc, activeMapId, mode, onRefresh }) {
   useEffect(() => {
     const c = containerRef.current;
     if (!c) return;
-    const runFit = () => {
+
+    const measureAndFit = () => {
       if (imgSizeRef.current.w <= 1) return;
-      const { w, h } = imgSizeRef.current;
-      const cw = Math.max(1, c.clientWidth);
-      const ch = Math.max(1, c.clientHeight);
-      const s = Math.min(cw / w, ch / h, 1);
-      const x = (cw - w * s) / 2;
-      const y = (ch - h * s) / 2;
+      const { w: iw, h: ih } = imgSizeRef.current;
+      const outer = mapLayoutOuterRef?.current;
+
+      if (!outer) {
+        const cw = Math.max(1, c.clientWidth);
+        const ch = Math.max(1, c.clientHeight);
+        const s = Math.min(cw / iw, ch / ih, 1);
+        const x = (cw - iw * s) / 2;
+        const y = (ch - ih * s) / 2;
+        commitFitLayout(x, y, s);
+        return;
+      }
+
+      const st = getComputedStyle(outer);
+      const padL = parseFloat(st.paddingLeft) || 0;
+      const padR = parseFloat(st.paddingRight) || 0;
+      const padT = parseFloat(st.paddingTop) || 0;
+      const padB = parseFloat(st.paddingBottom) || 0;
+      const availW = Math.max(1, outer.clientWidth - padL - padR);
+
+      let availH;
+      if (embedded) {
+        availH = Math.max(1, outer.clientHeight - padT - padB);
+      } else {
+        const vh = window.visualViewport?.height ?? window.innerHeight;
+        const oRect = outer.getBoundingClientRect();
+        const main = outer.closest('.main, .teacher-main');
+        const mRect = main?.getBoundingClientRect();
+        const bottomLimit = mRect ? Math.min(mRect.bottom, vh) : vh;
+        const maxOuterBoxH = Math.max(0, bottomLimit - oRect.top - 2);
+        availH = Math.max(1, Math.floor(maxOuterBoxH - padT - padB));
+      }
+
+      let cw = availW;
+      let ch = (cw * ih) / iw;
+      if (ch > availH) {
+        ch = availH;
+        cw = (ch * iw) / ih;
+      }
+      cw = Math.max(1, cw);
+      ch = Math.max(1, ch);
+
+      c.style.width = `${cw}px`;
+      c.style.height = `${ch}px`;
+
+      const s = Math.min(cw / iw, ch / ih, 1);
+      const x = (cw - iw * s) / 2;
+      const y = (ch - ih * s) / 2;
       commitFitLayout(x, y, s);
     };
-    runFit();
+
+    measureAndFit();
     let resizeDebounce = null;
+    const schedule = () => {
+      if (resizeDebounce != null) clearTimeout(resizeDebounce);
+      resizeDebounce = window.setTimeout(() => {
+        resizeDebounce = null;
+        measureAndFit();
+      }, 120);
+    };
+
     const ro = typeof ResizeObserver !== 'undefined'
-      ? new ResizeObserver(() => {
-          if (resizeDebounce != null) clearTimeout(resizeDebounce);
-          resizeDebounce = window.setTimeout(() => {
-            resizeDebounce = null;
-            runFit();
-          }, 120);
-        })
+      ? new ResizeObserver(schedule)
       : null;
-    if (ro) ro.observe(c);
+    if (ro) {
+      ro.observe(c);
+      const outerEl = mapLayoutOuterRef?.current;
+      if (outerEl) ro.observe(outerEl);
+    }
+
+    window.addEventListener('resize', schedule);
+    const vv = window.visualViewport;
+    if (vv) vv.addEventListener('resize', schedule);
+
     return () => {
       if (resizeDebounce != null) clearTimeout(resizeDebounce);
       if (ro) ro.disconnect();
+      window.removeEventListener('resize', schedule);
+      if (vv) vv.removeEventListener('resize', schedule);
+      c.style.width = '';
+      c.style.height = '';
     };
-  }, [imgSize]);
+  }, [imgSize, embedded, mapLayoutOuterRef]);
 
   const toImagePct = (clientX, clientY) => {
     const c = containerRef.current;
@@ -1521,6 +1580,7 @@ function MapView({ zones, markers, tasks = [], plants, maps = [], activeMapId = 
     if (Number.isFinite(custom) && custom >= 0) return Math.min(custom, 32);
     return activeMapId === 'n3' ? 14 : 8;
   }, [activeMap?.frame_padding_px, activeMapId]);
+  const mapLayoutOuterRef = useRef(null);
   const {
     containerRef,
     worldRef,
@@ -1539,7 +1599,7 @@ function MapView({ zones, markers, tasks = [], plants, maps = [], activeMapId = 
     toggleMapInteraction,
     prefersPageScroll,
     touchAction,
-  } = useMapGestures({ mapImageSrc, activeMapId, mode, onRefresh });
+  } = useMapGestures({ mapImageSrc, activeMapId, mode, onRefresh, embedded, mapLayoutOuterRef });
   const { zoneTaskVisualById, markerTaskVisualById } = useMemo(() => {
     const zoneMap = new Map();
     const markerMap = new Map();
@@ -1894,8 +1954,6 @@ function MapView({ zones, markers, tasks = [], plants, maps = [], activeMapId = 
   };
 
   const cursor = mode === 'view' ? 'grab' : mode === 'draw-zone' ? 'crosshair' : mode === 'edit-points' ? 'default' : 'cell';
-  const arW = Math.max(imgSize.w > 1 ? imgSize.w : 16, 1);
-  const arH = Math.max(imgSize.h > 1 ? imgSize.h : 10, 1);
   const mobileInteractionsActive = mapInteractionEnabled || committed.s > 1.05;
   const canManageMarkerPositions = !!isTeacher;
   const { isHelpEnabled, hasSeenSection, markSectionSeen, trackPanelOpen, trackPanelDismiss } = useHelp({ publicSettings, isTeacher });
@@ -2062,9 +2120,9 @@ function MapView({ zones, markers, tasks = [], plants, maps = [], activeMapId = 
       </div>
 
       <div
+        ref={mapLayoutOuterRef}
         className="map-view-canvas-outer"
         style={{
-          flex: 1,
           minHeight: 0,
           minWidth: 0,
           display: 'flex',
@@ -2080,10 +2138,7 @@ function MapView({ zones, markers, tasks = [], plants, maps = [], activeMapId = 
             : { padding: mapFramePaddingPx }),
         }}
       >
-        <div
-          className="map-view-canvas-slot"
-          style={{ ['--fm-map-w']: String(arW), ['--fm-map-h']: String(arH) }}
-        >
+        <div className="map-view-canvas-slot">
           <div
             ref={containerRef}
             className="map-view-canvas"
