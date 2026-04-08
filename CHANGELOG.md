@@ -10,7 +10,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 - **Biodiversité** : bloc **Sur la carte** — mini-plan (par carte concernée) avec surcouche **violette** des zones et repères liés à l’espèce (même logique visuelle que les tutoriels sur la carte) ; affiché **uniquement** si la fiche est liée à au moins une zone ou un repère. Catalogue élève et base prof. **`foretmap-views.jsx`**, **`App.jsx`**, **`index.css`**, build **`dist/`**.
 
-- **Biodiversité — photos** : miniatures pour liens Commons **catégorie** (API Wikimedia) et pages **File:** via **`Special:FilePath`** ; migration **`060_plants_nonvegetal_photo_filepath.sql`** (tasks **`061_tasks_living_beings.sql`** — correction du doublon de préfixe `060`) remplit **`photo`** / **`photo_species`** pour les fiches animales et bactériennes du catalogue (fichiers Commons validés). **`foretmap-views.jsx`**, **`docs/AUDIT_PHOTOS_BIODIVERSITE.md`**.
+- **Biodiversité — photos** : miniatures pour liens Commons **catégorie** (API Wikimedia) et pages **File:** via **`Special:FilePath`** ; migration **`062_plants_nonvegetal_photo_filepath.sql`** remplit **`photo`** / **`photo_species`** pour les fiches animales et bactériennes du catalogue (fichiers Commons validés). **`foretmap-views.jsx`**, **`docs/AUDIT_PHOTOS_BIODIVERSITE.md`**.
 
 - **Carte — textes visite (zones & repères)** : sous-titre, description courte et bloc dépliable (comme en mode visite) affichés dans les fiches **Info** / modale repère ; éditables par le prof dans **Modifier** (zone) ou le formulaire repère. API : **`GET /api/zones`**, **`GET /api/zones/:id`**, **`GET /api/map/markers`** enrichis (`visit_*`) ; **`PUT /api/zones/:id`** et **`POST`/`PUT` repères** acceptent ces champs et upsert **`visit_zones`** / **`visit_markers`**. **`routes/zones.js`**, **`routes/map.js`**, **`map-views.jsx`**, **`docs/API.md`**.
 
@@ -27,6 +27,8 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - **Biodiversité** : filtres avancés (sous-groupes 1 et 2, habitat, catégorie d’agrosystème), recherche texte élargie (habitat, origine géographique, partie à récolter) ; côté élève, filtre **présence sur la carte** et compteur **X / Y** ; module **`src/utils/plantFilters.js`**, **`foretmap-views.jsx`**, build **`dist/`** ; e2e navigation élève ouvre **Filtres avancés**.
 
 ### Modifié
+- **Migrations** : fichier photos faune/bactéries Commons renommé **`060_plants_nonvegetal_photo_filepath.sql`** → **`062_plants_nonvegetal_photo_filepath.sql`** (convention discutée côté audit photos ; **`061_tasks_living_beings.sql`** reste le numéro suivant **`059_tutorial_zones_markers.sql`**, ordre d’application : 061 puis 062).
+
 - **Biodiversité** : les pastilles **🏡** / **🌍** avec le seul libellé **Potager** (insensible à la casse) sont masquées — information redondante souvent identique sur toutes les fiches. Le filtre **présence sur la carte** inclut désormais les **repères** (libellés : lieu sur la carte / zone ou repère). **`plantFilters.js`**, **`foretmap-views.jsx`**.
 
 - **Build** : régénération des artefacts **`dist/`** (bundle Vite production aligné sur les sources courantes).

@@ -45,7 +45,7 @@ flowchart LR
 - **Edition**: `POST|PUT|DELETE /api/plants` (protégé `requireTeacher`).
 - **Validation**: contrôle d'URL dans `routes/plants.js` (`validateHttpsPhotoLinks`) sur champs `photo*`.
 - **Stockage**: champs `photo`, `photo_species`, `photo_leaf`, `photo_flower`, `photo_fruit`, `photo_harvest_part` en `TEXT` MySQL.
-- **Affichage**: `PlantMetaSections` (`foretmap-views.jsx`) : miniatures pour URLs **directes** (extension image, `Special:FilePath`, `/uploads/…`), pour pages **`/wiki/File:…`** (conversion en `Special:FilePath`), et pour URLs **`/wiki/Category:…`** via l’**API Commons** (`generator=categorymembers`, premier fichier image). Données seed : migration **`060_plants_nonvegetal_photo_filepath.sql`** (liens `Special:FilePath` pour faune / bactéries du jeu Excel).
+- **Affichage**: `PlantMetaSections` (`foretmap-views.jsx`) : miniatures pour URLs **directes** (extension image, `Special:FilePath`, `/uploads/…`), pour pages **`/wiki/File:…`** (conversion en `Special:FilePath`), et pour URLs **`/wiki/Category:…`** via l’**API Commons** (`generator=categorymembers`, premier fichier image). Données seed : migration **`062_plants_nonvegetal_photo_filepath.sql`** (liens `Special:FilePath` pour faune / bactéries du jeu Excel).
 
 Conclusion: ce flux est "URL-only". Il ne charge ni n'écrit de fichiers image côté serveur (sauf upload prof vers `/uploads/`).
 
