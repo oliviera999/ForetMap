@@ -2033,6 +2033,173 @@
       margin-top:10px;
       background:#fff;
     }
+    button.task-chip.tuto-linked-tasks-pill {
+      cursor:pointer;
+      font:inherit;
+      border:none;
+      text-align:left;
+    }
+    button.task-chip.tuto-linked-tasks-pill:hover {
+      filter:brightness(0.97);
+    }
+    .tuto-linked-tasks-modal {
+      width:min(520px, 96vw);
+      max-height:calc(100dvh - var(--safe-top) - var(--safe-bottom));
+      display:flex;
+      flex-direction:column;
+    }
+    .tuto-linked-tasks-subtitle {
+      margin:6px 0 12px;
+      font-size:0.9rem;
+      color:#4c5b52;
+      line-height:1.4;
+    }
+    .tuto-linked-tasks-loading,
+    .tuto-linked-tasks-empty {
+      margin:12px 0;
+      color:#5f6b60;
+    }
+    .tuto-linked-tasks-error {
+      margin:12px 0;
+      color:#b91c1c;
+    }
+    .tuto-linked-tasks-list {
+      list-style:none;
+      margin:0;
+      padding:0;
+      overflow:auto;
+      flex:1;
+      min-height:0;
+      border:1px solid rgba(0,0,0,.08);
+      border-radius:10px;
+      background:rgba(255,255,255,.65);
+    }
+    .tuto-linked-tasks-row {
+      padding:12px 14px;
+      border-bottom:1px solid rgba(0,0,0,.06);
+    }
+    .tuto-linked-tasks-row:last-child {
+      border-bottom:none;
+    }
+    .tuto-linked-tasks-row-title {
+      font-weight:600;
+      font-size:0.95rem;
+      color:#2d3b2d;
+      margin-bottom:8px;
+    }
+    .tuto-linked-tasks-row-meta {
+      display:flex;
+      flex-wrap:wrap;
+      gap:6px;
+      align-items:center;
+    }
+    .tuto-reorder-modal {
+      width:min(520px, 96vw);
+      max-height:calc(100vh - var(--safe-top) - var(--safe-bottom));
+      max-height:calc(100dvh - var(--safe-top) - var(--safe-bottom));
+      display:flex;
+      flex-direction:column;
+    }
+    .tuto-reorder-hint {
+      margin:8px 0 12px;
+      font-size:0.9rem;
+      line-height:1.45;
+      color:#4c5b52;
+    }
+    .tuto-reorder-list {
+      list-style:none;
+      margin:0 0 14px;
+      padding:0;
+      overflow:auto;
+      flex:1;
+      min-height:0;
+      border:1px solid rgba(0,0,0,.08);
+      border-radius:10px;
+      background:rgba(255,255,255,.6);
+    }
+    .tuto-reorder-row {
+      display:flex;
+      align-items:center;
+      gap:10px;
+      padding:10px 12px;
+      border-bottom:1px solid rgba(0,0,0,.06);
+      cursor:grab;
+      touch-action:none;
+    }
+    .tuto-reorder-row:last-child {
+      border-bottom:none;
+    }
+    .tuto-reorder-row:active {
+      cursor:grabbing;
+    }
+    .tuto-reorder-row.archived {
+      opacity:0.85;
+    }
+    .tuto-reorder-grip {
+      flex-shrink:0;
+      color:#8a9a8e;
+      font-size:0.85rem;
+      letter-spacing:-0.05em;
+      user-select:none;
+    }
+    .tuto-reorder-row-title {
+      flex:1;
+      min-width:0;
+      font-weight:600;
+      font-size:0.95rem;
+      color:#2d3b2d;
+    }
+    .tuto-reorder-actions {
+      flex-shrink:0;
+      display:flex;
+      gap:4px;
+    }
+    .tuto-reorder-footer {
+      display:flex;
+      flex-wrap:wrap;
+      gap:8px;
+      margin-top:4px;
+    }
+    .tuto-read-ack-modal {
+      width:min(440px, 94vw);
+    }
+    .tuto-read-ack-intro {
+      margin:12px 0 14px;
+      line-height:1.45;
+      color:#3d4a3d;
+    }
+    .tuto-read-ack-check {
+      display:flex;
+      align-items:flex-start;
+      gap:10px;
+      cursor:pointer;
+      font-size:0.95rem;
+      line-height:1.4;
+      margin-bottom:12px;
+    }
+    .tuto-read-ack-check input {
+      margin-top:3px;
+      flex-shrink:0;
+      min-width:18px;
+      min-height:18px;
+    }
+    .tuto-read-ack-error {
+      color:#b91c1c;
+      font-size:0.9rem;
+      margin:0 0 10px;
+    }
+    .tuto-read-ack-actions {
+      display:flex;
+      justify-content:flex-end;
+      gap:8px;
+      flex-wrap:wrap;
+      margin-top:8px;
+    }
+    .tuto-read-badge {
+      background:rgba(34,197,94,.12);
+      border-color:rgba(34,197,94,.35);
+      color:#166534;
+    }
 
     /* ── BIODIVERSITE ── */
     .biodiv-grid {

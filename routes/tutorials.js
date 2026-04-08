@@ -2,8 +2,8 @@ const express = require('express');
 const fs = require('fs');
 const path = require('path');
 const PDFDocument = require('pdfkit');
-const { queryAll, queryOne, execute } = require('../database');
-const { authenticate, requirePermission } = require('../middleware/requireTeacher');
+const { queryAll, queryOne, execute, withTransaction } = require('../database');
+const { authenticate, requirePermission, requireAuth } = require('../middleware/requireTeacher');
 const { logRouteError } = require('../lib/routeLog');
 const { emitTasksChanged } = require('../lib/realtime');
 
@@ -23,17 +23,128 @@ function normalizeString(value) {
   return String(value).trim();
 }
 
-/** Cartes concernées par les tâches liées à un tutoriel (temps réel ciblé). */
+function normalizeIdArray(value) {
+  if (!Array.isArray(value)) return [];
+  return [...new Set(value.map((x) => (x != null ? String(x).trim() : '')).filter(Boolean))];
+}
+
+async function validateTutorialLocations(zoneIds, markerIds) {
+  const z = normalizeIdArray(zoneIds);
+  const m = normalizeIdArray(markerIds);
+  const mapIds = new Set();
+  for (const zid of z) {
+    const row = await queryOne('SELECT id, map_id FROM zones WHERE id = ? LIMIT 1', [zid]);
+    if (!row) return { error: 'Zone introuvable' };
+    mapIds.add(row.map_id);
+  }
+  for (const mid of m) {
+    const row = await queryOne('SELECT id, map_id FROM map_markers WHERE id = ? LIMIT 1', [mid]);
+    if (!row) return { error: 'Repère introuvable' };
+    mapIds.add(row.map_id);
+  }
+  const uniqueMaps = [...mapIds].filter(Boolean);
+  if (uniqueMaps.length > 1) {
+    return { error: 'Les zones et repères choisis doivent appartenir à la même carte' };
+  }
+  return { zoneIds: z, markerIds: m };
+}
+
+async function getTutorialZoneIds(tutorialId) {
+  const rows = await queryAll('SELECT zone_id FROM tutorial_zones WHERE tutorial_id = ? ORDER BY zone_id', [
+    tutorialId,
+  ]);
+  return rows.map((r) => String(r.zone_id).trim()).filter(Boolean);
+}
+
+async function getTutorialMarkerIds(tutorialId) {
+  const rows = await queryAll('SELECT marker_id FROM tutorial_markers WHERE tutorial_id = ? ORDER BY marker_id', [
+    tutorialId,
+  ]);
+  return rows.map((r) => String(r.marker_id).trim()).filter(Boolean);
+}
+
+async function replaceTutorialZonesMarkers(tutorialId, zoneIds, markerIds) {
+  const tid = Number(tutorialId);
+  if (!Number.isFinite(tid) || tid <= 0) return;
+  const z = normalizeIdArray(zoneIds);
+  const m = normalizeIdArray(markerIds);
+  await execute('DELETE FROM tutorial_zones WHERE tutorial_id = ?', [tid]);
+  await execute('DELETE FROM tutorial_markers WHERE tutorial_id = ?', [tid]);
+  for (const zid of z) {
+    await execute('INSERT INTO tutorial_zones (tutorial_id, zone_id) VALUES (?, ?)', [tid, zid]);
+  }
+  for (const mid of m) {
+    await execute('INSERT INTO tutorial_markers (tutorial_id, marker_id) VALUES (?, ?)', [tid, mid]);
+  }
+}
+
+async function fetchZonesForTutorials(tutorialIds) {
+  const ids = [...new Set(tutorialIds.map((n) => Number(n)).filter((n) => Number.isFinite(n) && n > 0))];
+  if (!ids.length) return new Map();
+  const ph = ids.map(() => '?').join(',');
+  const rows = await queryAll(
+    `SELECT tz.tutorial_id, z.id AS zone_id, z.name AS zone_name, z.map_id
+       FROM tutorial_zones tz
+       INNER JOIN zones z ON z.id = tz.zone_id
+      WHERE tz.tutorial_id IN (${ph})
+      ORDER BY z.name`,
+    ids
+  );
+  const map = new Map();
+  for (const r of rows) {
+    const tid = Number(r.tutorial_id);
+    if (!map.has(tid)) map.set(tid, []);
+    map.get(tid).push({ id: r.zone_id, name: r.zone_name, map_id: r.map_id });
+  }
+  return map;
+}
+
+async function fetchMarkersForTutorials(tutorialIds) {
+  const ids = [...new Set(tutorialIds.map((n) => Number(n)).filter((n) => Number.isFinite(n) && n > 0))];
+  if (!ids.length) return new Map();
+  const ph = ids.map(() => '?').join(',');
+  const rows = await queryAll(
+    `SELECT tm.tutorial_id, m.id AS marker_id, m.label AS marker_label, m.map_id
+       FROM tutorial_markers tm
+       INNER JOIN map_markers m ON m.id = tm.marker_id
+      WHERE tm.tutorial_id IN (${ph})
+      ORDER BY m.label`,
+    ids
+  );
+  const map = new Map();
+  for (const r of rows) {
+    const tid = Number(r.tutorial_id);
+    if (!map.has(tid)) map.set(tid, []);
+    map.get(tid).push({ id: r.marker_id, label: r.marker_label, map_id: r.map_id });
+  }
+  return map;
+}
+
+/** Cartes concernées par le tutoriel (tâches liées + zones/repères directs). Temps réel ciblé. */
 async function mapIdsLinkedToTutorial(tutorialId) {
   const tid = Number(tutorialId);
   if (!Number.isFinite(tid)) return [];
   const rows = await queryAll(
-    `SELECT DISTINCT t.map_id AS map_id FROM task_tutorials tt
-     INNER JOIN tasks t ON t.id = tt.task_id
-     WHERE tt.tutorial_id = ?
-       AND t.map_id IS NOT NULL
-       AND TRIM(COALESCE(t.map_id, '')) <> ''`,
-    [tid]
+    `SELECT DISTINCT x.map_id AS map_id FROM (
+       SELECT t.map_id AS map_id FROM task_tutorials tt
+       INNER JOIN tasks t ON t.id = tt.task_id
+       WHERE tt.tutorial_id = ?
+         AND t.map_id IS NOT NULL
+         AND TRIM(COALESCE(t.map_id, '')) <> ''
+       UNION
+       SELECT z.map_id FROM tutorial_zones tzu
+       INNER JOIN zones z ON z.id = tzu.zone_id
+       WHERE tzu.tutorial_id = ?
+         AND z.map_id IS NOT NULL
+         AND TRIM(COALESCE(z.map_id, '')) <> ''
+       UNION
+       SELECT mk.map_id FROM tutorial_markers tzm
+       INNER JOIN map_markers mk ON mk.id = tzm.marker_id
+       WHERE tzm.tutorial_id = ?
+         AND mk.map_id IS NOT NULL
+         AND TRIM(COALESCE(mk.map_id, '')) <> ''
+     ) x`,
+    [tid, tid, tid]
   );
   return [...new Set(rows.map((r) => String(r.map_id).trim()).filter(Boolean))];
 }
@@ -173,7 +284,9 @@ async function loadTutorialHtml(tutorial) {
   return null;
 }
 
-function toPublicTutorialRow(row) {
+function toPublicTutorialRow(row, zonesLinked = [], markersLinked = []) {
+  const zl = zonesLinked || [];
+  const ml = markersLinked || [];
   return {
     id: row.id,
     title: row.title,
@@ -187,6 +300,10 @@ function toPublicTutorialRow(row) {
     created_at: row.created_at || null,
     updated_at: row.updated_at || null,
     linked_tasks_count: Number(row.linked_tasks_count) || 0,
+    zone_ids: zl.map((z) => z.id),
+    marker_ids: ml.map((x) => x.id),
+    zones_linked: zl.map((z) => ({ id: z.id, name: z.name, map_id: z.map_id })),
+    markers_linked: ml.map((x) => ({ id: x.id, label: x.label, map_id: x.map_id })),
   };
 }
 
@@ -206,9 +323,68 @@ router.get('/', async (req, res) => {
          GROUP BY t.id
          ORDER BY t.sort_order ASC, t.title ASC`
     );
-    res.json(rows.map(toPublicTutorialRow));
+    const tids = rows.map((r) => Number(r.id)).filter((n) => Number.isFinite(n) && n > 0);
+    const zMap = await fetchZonesForTutorials(tids);
+    const mMap = await fetchMarkersForTutorials(tids);
+    res.json(
+      rows.map((r) => {
+        const id = Number(r.id);
+        return toPublicTutorialRow(r, zMap.get(id) || [], mMap.get(id) || []);
+      })
+    );
   } catch (err) {
     logRouteError(err, req, 'Liste tutoriels en échec');
+    res.status(500).json({ error: 'Erreur serveur' });
+  }
+});
+
+/** Identifiants des tutoriels que l’utilisateur connecté a marqués comme lus (engagement). */
+router.get('/me/read-ids', requireAuth, async (req, res) => {
+  try {
+    const userId = req.auth.userId;
+    if (userId == null || userId === '') {
+      return res.status(403).json({ error: 'Profil utilisateur invalide' });
+    }
+    const rows = await queryAll(
+      'SELECT tutorial_id FROM user_tutorial_reads WHERE user_id = ? ORDER BY tutorial_id ASC',
+      [String(userId)]
+    );
+    res.json({ tutorial_ids: rows.map((r) => Number(r.tutorial_id)).filter((n) => Number.isFinite(n)) });
+  } catch (err) {
+    logRouteError(err, req, 'Liste tutoriels lus en échec');
+    res.status(500).json({ error: 'Erreur serveur' });
+  }
+});
+
+/**
+ * Enregistre l’engagement « j’ai lu et compris » pour un tutoriel actif.
+ * Corps JSON : { "confirm": true } (obligatoire).
+ */
+router.post('/:id/acknowledge-read', requireAuth, async (req, res) => {
+  try {
+    if (!req.body || req.body.confirm !== true) {
+      return res.status(400).json({ error: 'Confirmation explicite requise (confirm: true)' });
+    }
+    const userId = req.auth.userId;
+    if (userId == null || userId === '') {
+      return res.status(403).json({ error: 'Profil utilisateur invalide' });
+    }
+    const tid = Number(req.params.id);
+    if (!Number.isFinite(tid) || tid <= 0) {
+      return res.status(400).json({ error: 'Identifiant de tutoriel invalide' });
+    }
+    const tutorial = await queryOne('SELECT id FROM tutorials WHERE id = ? AND is_active = 1', [tid]);
+    if (!tutorial) return res.status(404).json({ error: 'Tutoriel introuvable' });
+    const now = new Date().toISOString();
+    await execute(
+      `INSERT INTO user_tutorial_reads (user_id, tutorial_id, acknowledged_at)
+       VALUES (?, ?, ?)
+       ON DUPLICATE KEY UPDATE acknowledged_at = VALUES(acknowledged_at)`,
+      [String(userId), tid, now]
+    );
+    res.json({ success: true, tutorial_id: tid, acknowledged_at: now });
+  } catch (err) {
+    logRouteError(err, req, 'Accusé lecture tutoriel en échec');
     res.status(500).json({ error: 'Erreur serveur' });
   }
 });
@@ -232,7 +408,10 @@ router.get('/:id', async (req, res) => {
     if (!row || (!includeInactive && Number(row.is_active) !== 1)) {
       return res.status(404).json({ error: 'Tutoriel introuvable' });
     }
-    const out = toPublicTutorialRow(row);
+    const tid = Number(row.id);
+    const zMap = await fetchZonesForTutorials([tid]);
+    const mMap = await fetchMarkersForTutorials([tid]);
+    const out = toPublicTutorialRow(row, zMap.get(tid) || [], mMap.get(tid) || []);
     if (includeContent) out.html_content = row.html_content || null;
     res.json(out);
   } catch (err) {
@@ -278,14 +457,88 @@ router.post('/', requirePermission('tutorials.manage', { needsElevation: true })
        VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?)`,
       [title, slug, type, summary || null, htmlContent, sourceUrl, sourceFilePath, sortOrder, now, now]
     );
-    const created = await queryOne('SELECT * FROM tutorials WHERE id = ?', [result.insertId]);
-    await emitTutorialTasksChanged('tutorial_create', result.insertId);
-    res.status(201).json(toPublicTutorialRow({ ...created, linked_tasks_count: 0 }));
+    const createdId = result.insertId;
+    let zIds = [];
+    let mIds = [];
+    if (Object.prototype.hasOwnProperty.call(req.body, 'zone_ids')) {
+      zIds = normalizeIdArray(req.body.zone_ids);
+    }
+    if (Object.prototype.hasOwnProperty.call(req.body, 'marker_ids')) {
+      mIds = normalizeIdArray(req.body.marker_ids);
+    }
+    if (
+      Object.prototype.hasOwnProperty.call(req.body, 'zone_ids')
+      || Object.prototype.hasOwnProperty.call(req.body, 'marker_ids')
+    ) {
+      const loc = await validateTutorialLocations(zIds, mIds);
+      if (loc.error) return res.status(400).json({ error: loc.error });
+      await replaceTutorialZonesMarkers(createdId, loc.zoneIds, loc.markerIds);
+    }
+    const created = await queryOne('SELECT * FROM tutorials WHERE id = ?', [createdId]);
+    const zMap = await fetchZonesForTutorials([createdId]);
+    const mMap = await fetchMarkersForTutorials([createdId]);
+    await emitTutorialTasksChanged('tutorial_create', createdId);
+    res.status(201).json(
+      toPublicTutorialRow({ ...created, linked_tasks_count: 0 }, zMap.get(createdId) || [], mMap.get(createdId) || [])
+    );
   } catch (err) {
     logRouteError(err, req, 'Création tutoriel en échec');
     res.status(500).json({ error: 'Erreur serveur' });
   }
 });
+
+router.put(
+  '/reorder',
+  requirePermission('tutorials.manage', { needsElevation: true }),
+  async (req, res) => {
+    try {
+      if (!canManageTutorials(req)) return res.status(403).json({ error: 'Permission insuffisante' });
+      const rawIds = Array.isArray(req.body.tutorial_ids) ? req.body.tutorial_ids : [];
+      const seen = new Set();
+      const normalized = [];
+      for (const v of rawIds) {
+        const n = Number(v);
+        if (!Number.isFinite(n) || n <= 0) {
+          return res.status(400).json({ error: 'Identifiants de tutoriels invalides' });
+        }
+        if (seen.has(n)) {
+          return res.status(400).json({ error: 'Chaque tutoriel ne doit apparaître qu’une fois' });
+        }
+        seen.add(n);
+        normalized.push(n);
+      }
+
+      const allRows = await queryAll('SELECT id FROM tutorials');
+      const allIds = new Set(allRows.map((r) => Number(r.id)));
+      if (normalized.length !== allIds.size) {
+        return res.status(400).json({
+          error: 'La liste doit contenir tous les tutoriels exactement une fois',
+        });
+      }
+      for (const id of normalized) {
+        if (!allIds.has(id)) {
+          return res.status(400).json({ error: 'Tutoriel inconnu' });
+        }
+      }
+
+      const now = new Date().toISOString();
+      await withTransaction(async (tx) => {
+        for (let i = 0; i < normalized.length; i += 1) {
+          await tx.execute('UPDATE tutorials SET sort_order = ?, updated_at = ? WHERE id = ?', [
+            i,
+            now,
+            normalized[i],
+          ]);
+        }
+      });
+
+      res.json({ success: true });
+    } catch (err) {
+      logRouteError(err, req, 'Réordonnancement tutoriels en échec');
+      res.status(500).json({ error: 'Erreur serveur' });
+    }
+  }
+);
 
 router.put('/:id', requirePermission('tutorials.manage', { needsElevation: true }), async (req, res) => {
   try {
@@ -318,6 +571,23 @@ router.put('/:id', requirePermission('tutorials.manage', { needsElevation: true 
     if (req.body.slug !== undefined || req.body.title !== undefined) {
       nextSlug = await uniqueSlug(slugify(req.body.slug || nextTitle), existing.id);
     }
+
+    const existingId = Number(existing.id);
+    let nextZoneIds;
+    if (Object.prototype.hasOwnProperty.call(req.body, 'zone_ids')) {
+      nextZoneIds = normalizeIdArray(req.body.zone_ids);
+    } else {
+      nextZoneIds = await getTutorialZoneIds(existingId);
+    }
+    let nextMarkerIds;
+    if (Object.prototype.hasOwnProperty.call(req.body, 'marker_ids')) {
+      nextMarkerIds = normalizeIdArray(req.body.marker_ids);
+    } else {
+      nextMarkerIds = await getTutorialMarkerIds(existingId);
+    }
+    const loc = await validateTutorialLocations(nextZoneIds, nextMarkerIds);
+    if (loc.error) return res.status(400).json({ error: loc.error });
+
     const now = new Date().toISOString();
     await execute(
       `UPDATE tutorials
@@ -338,10 +608,15 @@ router.put('/:id', requirePermission('tutorials.manage', { needsElevation: true 
         req.params.id,
       ]
     );
+    await replaceTutorialZonesMarkers(existingId, loc.zoneIds, loc.markerIds);
     const updated = await queryOne('SELECT * FROM tutorials WHERE id = ?', [req.params.id]);
     const linked = await queryOne('SELECT COUNT(*) AS c FROM task_tutorials WHERE tutorial_id = ?', [req.params.id]);
-    await emitTutorialTasksChanged('tutorial_update', Number(req.params.id));
-    res.json(toPublicTutorialRow({ ...updated, linked_tasks_count: linked?.c || 0 }));
+    const zMap = await fetchZonesForTutorials([existingId]);
+    const mMap = await fetchMarkersForTutorials([existingId]);
+    await emitTutorialTasksChanged('tutorial_update', existingId);
+    res.json(
+      toPublicTutorialRow({ ...updated, linked_tasks_count: linked?.c || 0 }, zMap.get(existingId) || [], mMap.get(existingId) || [])
+    );
   } catch (err) {
     logRouteError(err, req, 'Mise à jour tutoriel en échec');
     res.status(500).json({ error: 'Erreur serveur' });
