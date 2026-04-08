@@ -120,10 +120,13 @@ function initialForm() {
     source_file_path: '',
     sort_order: 0,
     is_active: true,
+    map_id: '',
+    zone_ids: [],
+    marker_ids: [],
   };
 }
 
-function TutorialsView({ tutorials, isTeacher, onRefresh, onForceLogout }) {
+function TutorialsView({ tutorials, isTeacher, onRefresh, onForceLogout, zones = [], markers = [], maps = [], activeMapId = 'foret' }) {
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -287,13 +290,40 @@ function TutorialsView({ tutorials, isTeacher, onRefresh, onForceLogout }) {
   };
 
   const beginCreate = () => {
-    setForm(initialForm());
+    setForm({ ...initialForm(), map_id: activeMapId || '' });
     setShowEditor(true);
+  };
+
+  const toggleZoneId = (zoneId) => {
+    const id = String(zoneId || '').trim();
+    if (!id) return;
+    setForm((f) => {
+      const cur = [...new Set((f.zone_ids || []).map(String))];
+      const has = cur.includes(id);
+      return { ...f, zone_ids: has ? cur.filter((x) => x !== id) : [...cur, id] };
+    });
+  };
+
+  const toggleMarkerId = (markerId) => {
+    const id = String(markerId || '').trim();
+    if (!id) return;
+    setForm((f) => {
+      const cur = [...new Set((f.marker_ids || []).map(String))];
+      const has = cur.includes(id);
+      return { ...f, marker_ids: has ? cur.filter((x) => x !== id) : [...cur, id] };
+    });
   };
 
   const beginEdit = async (row) => {
     try {
       const detail = await api(`/api/tutorials/${row.id}?include_content=1&include_inactive=1`);
+      const zids = (detail.zone_ids || []).map((id) => String(id || '').trim()).filter(Boolean);
+      const mids = (detail.marker_ids || []).map((id) => String(id || '').trim()).filter(Boolean);
+      const inferMap =
+        (detail.zones_linked && detail.zones_linked[0]?.map_id)
+        || (detail.markers_linked && detail.markers_linked[0]?.map_id)
+        || activeMapId
+        || '';
       setForm({
         id: detail.id,
         title: detail.title || '',
@@ -304,6 +334,9 @@ function TutorialsView({ tutorials, isTeacher, onRefresh, onForceLogout }) {
         source_file_path: detail.source_file_path || '',
         sort_order: detail.sort_order || 0,
         is_active: detail.is_active !== false,
+        map_id: inferMap,
+        zone_ids: zids,
+        marker_ids: mids,
       });
       setShowEditor(true);
     } catch (e) {
@@ -329,6 +362,8 @@ function TutorialsView({ tutorials, isTeacher, onRefresh, onForceLogout }) {
       source_file_path: form.source_file_path || null,
       sort_order: Number(form.sort_order) || 0,
       is_active: !!form.is_active,
+      zone_ids: [...new Set((form.zone_ids || []).map((id) => String(id || '').trim()).filter(Boolean))],
+      marker_ids: [...new Set((form.marker_ids || []).map((id) => String(id || '').trim()).filter(Boolean))],
     };
     try {
       if (form.id) await api(`/api/tutorials/${form.id}`, 'PUT', payload);
@@ -346,6 +381,9 @@ function TutorialsView({ tutorials, isTeacher, onRefresh, onForceLogout }) {
       setSaving(false);
     }
   };
+
+  const selectableZones = zones.filter((z) => !z.special && (!form.map_id || z.map_id === form.map_id));
+  const selectableMarkers = markers.filter((m) => !form.map_id || m.map_id === form.map_id);
 
   const archiveTutorial = async (row) => {
     if (!confirm(`Archiver "${row.title}" ?`)) return;
@@ -483,6 +521,80 @@ function TutorialsView({ tutorials, isTeacher, onRefresh, onForceLogout }) {
               <input type="number" min="0" value={form.sort_order} onChange={set('sort_order')} />
             </div>
           </div>
+          <div className="field">
+            <label>Carte (filtre zones / repères)</label>
+            <select
+              value={form.map_id || ''}
+              onChange={(e) => {
+                const next = e.target.value;
+                setForm((f) => ({
+                  ...f,
+                  map_id: next,
+                  zone_ids: (f.zone_ids || []).filter((zid) => {
+                    const z = zones.find((zz) => String(zz.id) === String(zid));
+                    return z && (!next || z.map_id === next);
+                  }),
+                  marker_ids: (f.marker_ids || []).filter((mid) => {
+                    const mk = markers.find((mm) => String(mm.id) === String(mid));
+                    return mk && (!next || mk.map_id === next);
+                  }),
+                }));
+              }}>
+              <option value="">Toutes les cartes</option>
+              {maps.map((mp) => (
+                <option key={mp.id} value={mp.id}>{mp.label}</option>
+              ))}
+            </select>
+            <p style={{ fontSize: '.78rem', color: '#666', margin: '6px 0 0', lineHeight: 1.4 }}>
+              Lieux choisis : pastille violette sur la carte et détail dans la fiche zone ou repère.
+            </p>
+          </div>
+          <div className="field"><label>Zones et repères sur la carte (optionnel)</label>
+            <div className="task-form-pick-list">
+              {selectableZones.length === 0 && selectableMarkers.length === 0 ? (
+                <p className="task-form-pick-empty">Aucune zone ni repère pour ce filtre.</p>
+              ) : (
+                <>
+                  {selectableZones.length > 0 && (
+                    <>
+                      {selectableMarkers.length > 0 && (
+                        <div className="task-form-pick-subheading" aria-hidden="true">Zones</div>
+                      )}
+                      {selectableZones.map((z) => (
+                        <label key={z.id} className="task-form-pick-item">
+                          <input
+                            type="checkbox"
+                            className="task-form-pick-checkbox"
+                            checked={(form.zone_ids || []).map(String).includes(String(z.id))}
+                            onChange={() => toggleZoneId(z.id)}
+                          />
+                          <span className="task-form-pick-text">{z.name}{z.current_plant ? ` — ${z.current_plant}` : ''}</span>
+                        </label>
+                      ))}
+                    </>
+                  )}
+                  {selectableMarkers.length > 0 && (
+                    <>
+                      {selectableZones.length > 0 && (
+                        <div className="task-form-pick-subheading" aria-hidden="true">Repères</div>
+                      )}
+                      {selectableMarkers.map((m) => (
+                        <label key={m.id} className="task-form-pick-item">
+                          <input
+                            type="checkbox"
+                            className="task-form-pick-checkbox"
+                            checked={(form.marker_ids || []).map(String).includes(String(m.id))}
+                            onChange={() => toggleMarkerId(m.id)}
+                          />
+                          <span className="task-form-pick-text">{m.emoji} {m.label}</span>
+                        </label>
+                      ))}
+                    </>
+                  )}
+                </>
+              )}
+            </div>
+          </div>
           {form.id && (
             <div className="field">
               <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -545,7 +657,7 @@ function TutorialsView({ tutorials, isTeacher, onRefresh, onForceLogout }) {
                   {!t.is_active ? ' · ARCHIVÉ' : ''}
                 </span>
               </div>
-              <div className="task-meta">
+              <div className="task-meta" style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                 {(Number(t.linked_tasks_count) || 0) > 0 ? (
                   <button
                     type="button"
@@ -557,6 +669,11 @@ function TutorialsView({ tutorials, isTeacher, onRefresh, onForceLogout }) {
                   </button>
                 ) : (
                   <span className="task-chip">🔗 0 tâche(s) liée(s)</span>
+                )}
+                {((t.zones_linked?.length || 0) + (t.markers_linked?.length || 0)) > 0 && (
+                  <span className="task-chip" title="Lieux liés sur la carte (pastille violette)">
+                    📍 {(t.zones_linked?.length || 0) + (t.markers_linked?.length || 0)} lieu(x) carte
+                  </span>
                 )}
               </div>
               <div className="task-actions">
