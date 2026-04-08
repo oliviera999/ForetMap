@@ -5,6 +5,9 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Modifié
+- **Carte & Zones** : le cadre de la carte épouse la taille du plan (contain dans la largeur du contenu et la hauteur visible jusqu’au bas de la zone principale / viewport), sans bande grise autour ; la vue solo ne force plus une colonne flex vide sous la carte, ce qui évite le défilement vertical sur laptop lorsque le plan tient dans l’écran. **`src/components/map-views.jsx`**, **`src/index.css`**, build **`dist/`**.
+
 ### Ajouté
 - **Tâches — photo illustrative** : image optionnelle à la création/modification (smartphone / galerie), champ **`imageData`** et retrait **`remove_task_image`** ; **`GET /api/tasks/:id/image`** ; colonne **`tasks.image_path`** (migration **`057_tasks_image_path.sql`**) ; formulaire et tuiles dans **`tasks-views.jsx`**, styles **`index.css`**, build **`dist/`** ; tests **`tests/tasks-image.test.js`**. **`docs/API.md`**.
 - **Tâches — danger** : niveau intermédiaire **`potential_danger`** (« Danger potentiel ») entre sans danger et dangereux — validation API, formulaire prof/proposition, pastilles (`badges.jsx`), clones récurrents. **`docs/API.md`**.

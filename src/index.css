@@ -679,38 +679,46 @@
     /* ── MAP WRAP ── */
     .map-wrap { background:white; border-radius:var(--radius); padding:12px; box-shadow:var(--shadow); overflow:hidden; }
 
-    /* Carte interactive : cadre = taille du plan (ratio intrinsèque), occupe le max sans déborder (vue seule + vue scindée). */
+    /* Carte interactive : taille du cadre fixée en JS (contain dans la hauteur visible) ; vue solo = shrink-wrap, sans bandes grises. */
     .map-view-canvas-outer {
-      flex:1;
+      flex:0 0 auto;
       min-width:0;
+      min-height:0;
+    }
+    .map-view-root--embedded .map-view-canvas-outer {
+      flex:1;
       min-height:0;
     }
     /* Pas de container-type:size ici : avec flex/grid, 100cqh peut valoir 0 → largeur calculée nulle et carte invisible. */
     .map-view-canvas-slot {
-      flex:1;
+      flex:0 0 auto;
       min-width:0;
       min-height:0;
       width:100%;
       display:flex;
       flex-direction:column;
-      align-items:stretch;
+      align-items:center;
       justify-content:center;
       box-sizing:border-box;
+      overflow:visible;
+    }
+    .map-view-root--embedded .map-view-canvas-slot {
+      flex:1;
+      min-height:0;
+      justify-content:center;
       overflow:hidden;
     }
-    /* Cadre = ratio du plan, contenu dans la hauteur utile du slot (pourcentages / aspect-ratio, pas cqw/cqh). */
+    /* Cadre : dimensions en px (contain) ; pas d’aspect-ratio CSS pour éviter bandes autour du plan. */
     .map-view-canvas {
       box-sizing:border-box;
       position:relative;
       overflow:hidden;
-      background:#eef2ee;
+      background:transparent;
       border-radius:10px;
-      width:100%;
+      width:auto;
       max-width:100%;
-      max-height:100%;
-      aspect-ratio:var(--fm-map-w, 16) / var(--fm-map-h, 10);
       height:auto;
-      flex-shrink:1;
+      flex-shrink:0;
       align-self:center;
     }
     .desktop-split-pane--map {
