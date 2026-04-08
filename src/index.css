@@ -762,11 +762,6 @@
     .main--maptasks-split .map-view-root--embedded .map-view-canvas-slot {
       justify-content:flex-start;
     }
-    /* Split bureau uniquement (cf. App.jsx) : toolbar pleine largeur colonne ; pas de coupure via --fm-map-canvas-w. */
-    .main--maptasks-split .map-view-root--embedded .map-view-toolbar {
-      width:100%;
-      max-width:100%;
-    }
     /* Si toolbar + carte dépassent max-height du volet, défilement interne au lieu de rogner. */
     .main--maptasks-split .map-view-root--embedded {
       overflow-x:hidden;
