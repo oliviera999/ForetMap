@@ -5,10 +5,15 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Ajouté
+- **Biodiversité** : filtres avancés (sous-groupes 1 et 2, habitat, catégorie d’agrosystème), recherche texte élargie (habitat, origine géographique, partie à récolter) ; côté élève, filtre **présence sur la carte** et compteur **X / Y** ; module **`src/utils/plantFilters.js`**, **`foretmap-views.jsx`**, build **`dist/`** ; e2e navigation élève ouvre **Filtres avancés**.
+
 ### Modifié
 - **UI — Carte (split Cartes & tâches)** : la barre d’outils reprend la **même largeur que le canvas** via **`--fm-map-canvas-w`** (suppression de la surcharge `width: 100%` sur **`.map-view-toolbar`**). Défilement horizontal des boutons inchangé en mode compact (**`main--map-visible`**). **`index.css`**, **`dist/`**.
 
 ### Corrigé
+- **Tutoriels — aperçu modal** : l’iframe d’aperçu autorise désormais **`allow-scripts`** dans le `sandbox`, pour que les fiches HTML qui révèlent le contenu au scroll (classes **`.reveal`** + **IntersectionObserver**, ex. fiches *punk* sous **`tutos/`**) s’affichent comme dans un onglet ; sans script, seuls l’en-tête et le pied de page restaient visibles. **`tutorials-views.jsx`**.
+
 - **Tâches (élève)** : libellé du sous-titre missions — « commences la **mission** » (et non « question »). **`tasks-views.jsx`**.
 
 - **UI — Cartes & tâches** : **`#app`** n’était pas borné en hauteur, la grille prenait la hauteur des tâches et tout défilait sur **`body`** (carte qui disparaît). Avec le split actif, **`#app:has(.main--maptasks-split)`** est calé au viewport (**`100dvh`**) et **`overflow: hidden`** ; **`main`/`teacher-main`** en split **`flex: 1 1 0%`** + **`min-height: 0`** ; **`header`** / **`app-footer`** en **`flex-shrink: 0`**. Le scroll reste dans **`.desktop-split-scroll`**. **`index.css`**, **`dist/`**.
