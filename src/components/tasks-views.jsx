@@ -1164,6 +1164,38 @@ function taskHasLocation(t, locationFilterValue) {
   return true;
 }
 
+function tutorialPickerLocationIds(tu) {
+  if (!tu) return { zoneIds: [], markerIds: [] };
+  const zoneIds = [...new Set((tu.zone_ids || []).map((id) => String(id || '').trim()).filter(Boolean))];
+  const markerIds = [...new Set((tu.marker_ids || []).map((id) => String(id || '').trim()).filter(Boolean))];
+  return { zoneIds, markerIds };
+}
+
+function tutorialPickerHasLocation(tu, locationFilterValue) {
+  if (!locationFilterValue) return true;
+  const [kind, rawId] = String(locationFilterValue).split(':');
+  const { zoneIds: zl, markerIds: ml } = tutorialPickerLocationIds(tu);
+  if (!rawId) return zl.includes(String(locationFilterValue).trim());
+  if (kind === 'zone') return zl.includes(String(rawId).trim());
+  if (kind === 'marker') return ml.includes(String(rawId).trim());
+  return true;
+}
+
+function tutorialPickerLinkedToSameMap(tu, mapId) {
+  if (!mapId) return true;
+  const zl = tu.zones_linked || [];
+  const ml = tu.markers_linked || [];
+  if (zl.length === 0 && ml.length === 0) return true;
+  return [...zl, ...ml].every((x) => x.map_id === mapId);
+}
+
+function tutorialPickerOpenHref(tu) {
+  if (!tu) return '';
+  if (tu.type === 'link' && tu.source_url) return String(tu.source_url).trim();
+  if (tu.type === 'html') return `/api/tutorials/${tu.id}/view`;
+  return (tu.source_file_path && String(tu.source_file_path).trim()) || `/api/tutorials/${tu.id}/view`;
+}
+
 function proposalMetaFromDescription(description) {
   const raw = String(description || '');
   if (!raw) return { proposer: '', cleanedDescription: '' };
@@ -1271,7 +1303,7 @@ function mapLabelFromMaps(mapId, maps) {
   return map ? map.label : mapId;
 }
 
-function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], tutorials = [], activeMapId = 'foret', isTeacher, student, canSelfAssignTasks = true, canEnrollOnTasks, canParticipateContextComments = true, canViewOtherUsersIdentity = true, onRefresh, onForceLogout, isN3Affiliated = false, publicSettings = null, onTaskFormOverlayOpenChange = null }) {
+function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], tutorials = [], activeMapId = 'foret', isTeacher, student, canSelfAssignTasks = true, canEnrollOnTasks, canParticipateContextComments = true, canViewOtherUsersIdentity = true, onRefresh, onForceLogout, isN3Affiliated = false, publicSettings = null, onTaskFormOverlayOpenChange = null, mapLocationFocus = null, onMapLocationFocusChange = null }) {
   const canEnrollNewTask = canEnrollOnTasks !== undefined ? canEnrollOnTasks : canSelfAssignTasks;
   const roleTerms = getRoleTerms(isN3Affiliated);
   const [showForm, setShowForm] = useState(false);
@@ -1315,8 +1347,16 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
   const confirmDialogRef = useDialogA11y(() => setConfirmTask(null));
   const { isHelpEnabled, hasSeenSection, markSectionSeen, trackPanelOpen, trackPanelDismiss } = useHelp({ publicSettings, isTeacher });
   const contextCommentsEnabled = publicSettings?.modules?.context_comments_enabled !== false;
+  const tutorialsModuleEnabled = publicSettings?.modules?.tutorials_enabled !== false;
   const helpTasks = HELP_PANELS.tasks;
   const tooltipText = (entry) => resolveRoleText(entry, isTeacher);
+  const [quickTutoLinkId, setQuickTutoLinkId] = useState('');
+
+  const mapLocationFocusKey = mapLocationFocus ? `${mapLocationFocus.kind}:${mapLocationFocus.id}` : '';
+  useEffect(() => {
+    if (!mapLocationFocusKey) return;
+    setFilterZone(mapLocationFocusKey);
+  }, [mapLocationFocusKey]);
 
   useEffect(() => {
     setFilterMap('active');
@@ -1426,6 +1466,13 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
   };
 
   const taskEffectiveMapId = (task) => task.map_id_resolved || task.map_id || task.zone_map_id || task.marker_map_id || null;
+
+  const tasksForLocationPicker = useMemo(() => tasks.filter((t) => {
+    const taskMapId = taskEffectiveMapId(t);
+    if (filterMap === 'active' && taskMapId !== activeMapId && taskMapId != null) return false;
+    if (filterMap !== 'active' && filterMap !== 'all' && taskMapId !== filterMap && taskMapId != null) return false;
+    return true;
+  }), [tasks, filterMap, activeMapId]);
 
   const withLoad = async (id, fn) => {
     setLoading(l => ({ ...l, [id]: true }));
@@ -1691,14 +1738,61 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
 
   const usedZoneIds = new Set();
   const usedMarkerIds = new Set();
-  for (const t of allFiltered) {
+  for (const t of tasksForLocationPicker) {
     (t.zone_ids || []).forEach((id) => usedZoneIds.add(id));
     if (t.zone_id) usedZoneIds.add(t.zone_id);
     (t.marker_ids || []).forEach((id) => usedMarkerIds.add(id));
     if (t.marker_id) usedMarkerIds.add(t.marker_id);
   }
+  if (tutorialsModuleEnabled) {
+    for (const tu of tutorials || []) {
+      if (!isTeacher && tu.is_active === false) continue;
+      for (const zid of tu.zone_ids || []) {
+        const z = zones.find((zz) => String(zz.id) === String(zid));
+        if (!z) continue;
+        if (filterMap === 'active' && z.map_id !== activeMapId) continue;
+        if (filterMap !== 'active' && filterMap !== 'all' && z.map_id !== filterMap) continue;
+        usedZoneIds.add(zid);
+      }
+      for (const mid of tu.marker_ids || []) {
+        const m = markers.find((mm) => String(mm.id) === String(mid));
+        if (!m) continue;
+        if (filterMap === 'active' && m.map_id !== activeMapId) continue;
+        if (filterMap !== 'active' && filterMap !== 'all' && m.map_id !== filterMap) continue;
+        usedMarkerIds.add(mid);
+      }
+    }
+  }
   const usedZones = [...usedZoneIds];
   const usedMarkers = [...usedMarkerIds];
+
+  const focusMapIdForTutorials = useMemo(() => {
+    if (!filterZone || !tutorialsModuleEnabled) return null;
+    const [kind, rawId] = String(filterZone).split(':');
+    if (kind === 'zone' && rawId) {
+      return zones.find((z) => String(z.id) === String(rawId))?.map_id ?? null;
+    }
+    if (kind === 'marker' && rawId) {
+      return markers.find((m) => String(m.id) === String(rawId))?.map_id ?? null;
+    }
+    return zones.find((z) => String(z.id) === String(filterZone))?.map_id ?? null;
+  }, [filterZone, zones, markers, tutorialsModuleEnabled]);
+
+  const linkedTutorialsAtFocus = useMemo(() => {
+    if (!filterZone || !tutorialsModuleEnabled) return [];
+    const all = (tutorials || []).filter((tu) => tutorialPickerHasLocation(tu, filterZone));
+    if (isTeacher) return all;
+    return all.filter((tu) => tu.is_active !== false);
+  }, [filterZone, tutorials, tutorialsModuleEnabled, isTeacher]);
+
+  const assignableTutorialsAtFocus = useMemo(() => {
+    if (!filterZone || !isTeacher || !tutorialsModuleEnabled || !focusMapIdForTutorials) return [];
+    return (tutorials || []).filter((tu) => (
+      tu.is_active !== false
+      && !tutorialPickerHasLocation(tu, filterZone)
+      && tutorialPickerLinkedToSameMap(tu, focusMapIdForTutorials)
+    ));
+  }, [filterZone, tutorials, isTeacher, tutorialsModuleEnabled, focusMapIdForTutorials]);
   const sectionListClass = viewMode === 'tiles' ? 'tasks-grid' : 'tasks-list';
   /** Inscriptions à ajouter / retirer (liste n3beurs chargée côté n3boss) pour l’affectation rapide. */
   const teacherQuickAssignDelta = (task, selectedIds) => {

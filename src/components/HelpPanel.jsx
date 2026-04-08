@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { useDialogA11y } from '../hooks/useDialogA11y';
+import { useOverlayHistoryBack } from '../hooks/useOverlayHistoryBack';
 import { resolveRoleText } from '../constants/help';
 
 function HelpPanel({
@@ -14,6 +15,7 @@ function HelpPanel({
 }) {
   const [open, setOpen] = useState(false);
   const dialogRef = useDialogA11y(() => setOpen(false));
+  useOverlayHistoryBack(open, () => setOpen(false));
 
   const visibleEntries = useMemo(() => {
     return (entries || [])

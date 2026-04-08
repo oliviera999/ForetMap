@@ -29,6 +29,8 @@ import { Tooltip } from './components/Tooltip';
 import { getRoleTerms, isN3OnlyAffiliation } from './utils/n3-terminology';
 import { getContentText } from './utils/content';
 import { useDialogA11y } from './hooks/useDialogA11y';
+import { useOverlayHistoryBack } from './hooks/useOverlayHistoryBack';
+import { abandonAllOverlays, pushOverlayClose } from './utils/overlayHistory';
 import { AutoProfilePromotionModal } from './components/AutoProfilePromotionModal.jsx';
 
 const DESKTOP_SPLIT_MIN_WIDTH = 1024;
@@ -147,6 +149,8 @@ function App() {
   const [showStats,  setShowStats]  = useState(false);
   const [showProfile,setShowProfile]= useState(false);
   const [tab,        setTab]        = useState(() => readStoredTab());
+  /** Synchronise le filtre lieu de l’onglet tâches avec la zone/repère ouvert(e) sur la carte. */
+  const [tasksLocationFocus, setTasksLocationFocus] = useState(null);
   const [maps,       setMaps]       = useState(DEFAULT_MAPS);
   const [activeMapId, setActiveMapId] = useState(() => localStorage.getItem('foretmap_active_map') || 'foret');
   const [zones,      setZones]      = useState([]);
@@ -843,6 +847,13 @@ function App() {
   const appRetryNow = getContentText(publicSettings, 'app.retry_now', 'Réessayer maintenant');
   const appFooterVersionPrefix = getContentText(publicSettings, 'app.footer_version_prefix', 'Version');
   const canAccessStudentMapTasks = true;
+  const handleMapLocationTasksFocus = useCallback((focus) => {
+    setTasksLocationFocus(focus);
+    if (!focus) return;
+    if (tab === 'map' && (effectiveIsTeacher || canAccessStudentMapTasks)) {
+      setTab('tasks');
+    }
+  }, [tab, effectiveIsTeacher, canAccessStudentMapTasks]);
   const isVisitor = effectiveRoleContext.roleSlug === 'visiteur';
   const canAccessForum = !isVisitor && publicSettings?.modules?.forum_enabled !== false;
   const canParticipateForum = useMemo(() => {
@@ -904,6 +915,9 @@ function App() {
     pauseDataRefreshForTaskOverlaysRef.current = !!open;
   }, []);
 
+  useOverlayHistoryBack(showStats && canOpenUserDialogs, () => setShowStats(false));
+  useOverlayHistoryBack(showProfile && canOpenUserDialogs && !!profileTargetUser, () => setShowProfile(false));
+
   const shouldUseDesktopSplit = useMemo(() => {
     if (viewportWidth < DESKTOP_SPLIT_MIN_WIDTH) return false;
     const pagePadding = 32;
@@ -918,6 +932,9 @@ function App() {
   const useSplitMapTasks = shouldUseDesktopSplit && isCombinedMapTasksTab && canAccessStudentMapTasks;
   const useWideMain = shouldUseDesktopSplit;
   const mapChromeCompactVisible = !loading && (useSplitMapTasks || (!useSplitMapTasks && tab === 'map'));
+  const tutorialsModuleEnabled = publicSettings?.modules?.tutorials_enabled !== false;
+  const tasksTabLabel = tutorialsModuleEnabled ? '✅ Tâches et tuto' : '✅ Tâches';
+  const mapTasksSplitLabel = tutorialsModuleEnabled ? '🗺️ Cartes, tâches et tuto' : '🗺️ Cartes & tâches';
 
   const rtStatus = useForetmapRealtime({
     enabled: !!(student || effectiveIsTeacher),
@@ -1081,7 +1098,10 @@ function App() {
               student={null}
               isTeacher={false}
               initialMapId={publicSettings?.map?.default_map_visit || activeMapId}
-              onBackToAuth={() => setShowPublicVisit(false)}
+              onBackToAuth={() => {
+                abandonAllOverlays();
+                setShowPublicVisit(false);
+              }}
               availableTutorials={[]}
               publicSettings={publicSettings}
             />
@@ -1110,7 +1130,10 @@ function App() {
           }}
           appVersion={appVersion}
           uiSettings={publicSettings}
-          onVisitGuest={() => setShowPublicVisit(true)}
+          onVisitGuest={() => {
+            pushOverlayClose(() => setShowPublicVisit(false));
+            setShowPublicVisit(true);
+          }}
           isN3Affiliated={isN3Affiliated}
         />
       )}
@@ -1523,12 +1546,12 @@ function App() {
           <div className="top-tabs">
             {shouldUseDesktopSplit && (
               <button className={`top-tab ${tab === 'maptasks' ? 'active' : ''}`} onClick={() => setTab('maptasks')}>
-                🗺️ Cartes & tâches {teacherPendingValidationCount > 0 && `(${teacherPendingValidationCount} à valider)`}
+                {mapTasksSplitLabel}{teacherPendingValidationCount > 0 && ` (${teacherPendingValidationCount} à valider)`}
               </button>
             )}
             <button className={`top-tab ${tab === 'map' ? 'active' : ''}`} onClick={() => setTab('map')}>🗺️ Carte & Zones</button>
             <button className={`top-tab ${tab === 'tasks' ? 'active' : ''}`} onClick={() => setTab('tasks')}>
-              ✅ Tâches {teacherPendingValidationCount > 0 && `(${teacherPendingValidationCount} à valider)`}
+              {tasksTabLabel}{teacherPendingValidationCount > 0 && ` (${teacherPendingValidationCount} à valider)`}
             </button>
             <button className={`top-tab ${tab === 'plants' ? 'active' : ''}`} onClick={() => setTab('plants')}>🌱 Biodiversité</button>
             {publicSettings?.modules?.tutorials_enabled !== false && (
@@ -1569,7 +1592,7 @@ function App() {
           ) : (
             <>
               {useSplitMapTasks && (
-                <div className="desktop-split-view" role="region" aria-label="Vue carte et tâches">
+                <div className="desktop-split-view" role="region" aria-label={tutorialsModuleEnabled ? 'Vue carte, tâches et tutoriels' : 'Vue carte et tâches'}>
                   <section className="desktop-split-pane desktop-split-pane--map">
                     <MapView
                       zones={zones}
@@ -1587,6 +1610,7 @@ function App() {
                       onRefresh={fetchAll}
                       publicSettings={publicSettings}
                       embedded
+                      onLocationTasksFocus={handleMapLocationTasksFocus}
                     />
                   </section>
                   <section className="desktop-split-pane desktop-split-pane--tasks">
@@ -1609,13 +1633,15 @@ function App() {
                         isN3Affiliated={isN3Affiliated}
                         publicSettings={publicSettings}
                         onTaskFormOverlayOpenChange={onTaskFormOverlayOpenChange}
+                        mapLocationFocus={tasksLocationFocus}
+                        onMapLocationFocusChange={setTasksLocationFocus}
                       />
                     </div>
                   </section>
                 </div>
               )}
-              {!useSplitMapTasks && tab === 'map'    && <MapView zones={zones} markers={markers} tasks={tasks} tutorials={tutorials} plants={plants} maps={visibleMaps} activeMapId={activeMapId} onMapChange={setActiveMapId} isTeacher student={currentUser} canSelfAssignTasks canParticipateContextComments={canParticipateContextComments} onZoneUpdate={updateZone} onRefresh={fetchAll} publicSettings={publicSettings}/>}
-              {!useSplitMapTasks && tab === 'tasks'  && <TasksView  tasks={tasks} taskProjects={taskProjects} zones={zones} markers={markers} maps={visibleMaps} tutorials={tutorials} activeMapId={activeMapId} isTeacher student={currentUser} canSelfAssignTasks canParticipateContextComments={canParticipateContextComments} canViewOtherUsersIdentity onRefresh={fetchAll} onForceLogout={forceLogout} isN3Affiliated={isN3Affiliated} publicSettings={publicSettings} onTaskFormOverlayOpenChange={onTaskFormOverlayOpenChange} />}
+              {!useSplitMapTasks && tab === 'map'    && <MapView zones={zones} markers={markers} tasks={tasks} tutorials={tutorials} plants={plants} maps={visibleMaps} activeMapId={activeMapId} onMapChange={setActiveMapId} isTeacher student={currentUser} canSelfAssignTasks canParticipateContextComments={canParticipateContextComments} onZoneUpdate={updateZone} onRefresh={fetchAll} publicSettings={publicSettings} onLocationTasksFocus={handleMapLocationTasksFocus}/>}
+              {!useSplitMapTasks && tab === 'tasks'  && <TasksView  tasks={tasks} taskProjects={taskProjects} zones={zones} markers={markers} maps={visibleMaps} tutorials={tutorials} activeMapId={activeMapId} isTeacher student={currentUser} canSelfAssignTasks canParticipateContextComments={canParticipateContextComments} canViewOtherUsersIdentity onRefresh={fetchAll} onForceLogout={forceLogout} isN3Affiliated={isN3Affiliated} publicSettings={publicSettings} onTaskFormOverlayOpenChange={onTaskFormOverlayOpenChange} mapLocationFocus={tasksLocationFocus} onMapLocationFocusChange={setTasksLocationFocus} />}
               {tab === 'plants' && <PlantManager plants={plants} onRefresh={fetchAll} publicSettings={publicSettings}/>}
               {publicSettings?.modules?.tutorials_enabled !== false && tab === 'tuto'   && <TutorialsView tutorials={tutorials} zones={zones} markers={markers} maps={visibleMaps} activeMapId={activeMapId} isTeacher onRefresh={fetchAll} onForceLogout={forceLogout} />}
               {publicSettings?.modules?.stats_enabled !== false && tab === 'stats'  && (hasPermission('stats.read.all') ? <TeacherStats isN3Affiliated={isN3Affiliated} /> : <div className="empty"><p>Pas l’accès stats ici — demande un coup de main côté n3boss si besoin.</p></div>)}
@@ -1645,7 +1671,7 @@ function App() {
             ) : (
               <>
                 {useSplitMapTasks && (
-                  <div className="desktop-split-view" role="region" aria-label="Vue carte et tâches">
+                  <div className="desktop-split-view" role="region" aria-label={tutorialsModuleEnabled ? 'Vue carte, tâches et tutoriels' : 'Vue carte et tâches'}>
                     <section className="desktop-split-pane desktop-split-pane--map">
                       <MapView
                         zones={zones}
@@ -1665,6 +1691,7 @@ function App() {
                         onRefresh={fetchAll}
                         publicSettings={publicSettings}
                         embedded
+                        onLocationTasksFocus={handleMapLocationTasksFocus}
                       />
                     </section>
                     <section className="desktop-split-pane desktop-split-pane--tasks">
@@ -1688,13 +1715,15 @@ function App() {
                           isN3Affiliated={isN3Affiliated}
                           publicSettings={publicSettings}
                           onTaskFormOverlayOpenChange={onTaskFormOverlayOpenChange}
+                          mapLocationFocus={tasksLocationFocus}
+                          onMapLocationFocusChange={setTasksLocationFocus}
                         />
                       </div>
                     </section>
                   </div>
                 )}
-                {!useSplitMapTasks && tab === 'map'    && canAccessStudentMapTasks && <MapView zones={zones} markers={markers} tasks={tasks} tutorials={tutorials} plants={plants} maps={visibleMaps} activeMapId={activeMapId} onMapChange={setActiveMapId} isTeacher={false} student={studentForUi} canSelfAssignTasks={canSelfAssignTasks} canEnrollOnTasks={canSelfAssignMoreTasks} canParticipateContextComments={canParticipateContextComments} onZoneUpdate={updateZone} onRefresh={fetchAll} publicSettings={publicSettings}/>}
-                {!useSplitMapTasks && tab === 'tasks'  && canAccessStudentMapTasks && <TasksView tasks={tasks} taskProjects={taskProjects} zones={zones} markers={markers} maps={visibleMaps} tutorials={tutorials} activeMapId={activeMapId} isTeacher={false} student={studentForUi} canSelfAssignTasks={canSelfAssignTasks} canEnrollOnTasks={canSelfAssignMoreTasks} canParticipateContextComments={canParticipateContextComments} canViewOtherUsersIdentity={canViewOtherUsersIdentity} onRefresh={fetchAll} onForceLogout={forceLogout} isN3Affiliated={isN3Affiliated} publicSettings={publicSettings} onTaskFormOverlayOpenChange={onTaskFormOverlayOpenChange} />}
+                {!useSplitMapTasks && tab === 'map'    && canAccessStudentMapTasks && <MapView zones={zones} markers={markers} tasks={tasks} tutorials={tutorials} plants={plants} maps={visibleMaps} activeMapId={activeMapId} onMapChange={setActiveMapId} isTeacher={false} student={studentForUi} canSelfAssignTasks={canSelfAssignTasks} canEnrollOnTasks={canSelfAssignMoreTasks} canParticipateContextComments={canParticipateContextComments} onZoneUpdate={updateZone} onRefresh={fetchAll} publicSettings={publicSettings} onLocationTasksFocus={handleMapLocationTasksFocus}/>}
+                {!useSplitMapTasks && tab === 'tasks'  && canAccessStudentMapTasks && <TasksView tasks={tasks} taskProjects={taskProjects} zones={zones} markers={markers} maps={visibleMaps} tutorials={tutorials} activeMapId={activeMapId} isTeacher={false} student={studentForUi} canSelfAssignTasks={canSelfAssignTasks} canEnrollOnTasks={canSelfAssignMoreTasks} canParticipateContextComments={canParticipateContextComments} canViewOtherUsersIdentity={canViewOtherUsersIdentity} onRefresh={fetchAll} onForceLogout={forceLogout} isN3Affiliated={isN3Affiliated} publicSettings={publicSettings} onTaskFormOverlayOpenChange={onTaskFormOverlayOpenChange} mapLocationFocus={tasksLocationFocus} onMapLocationFocusChange={setTasksLocationFocus} />}
                 {tab === 'plants' && <PlantViewer plants={plants} zones={zones} publicSettings={publicSettings}/>}
                 {publicSettings?.modules?.tutorials_enabled !== false && tab === 'tuto' && <TutorialsView tutorials={tutorials} zones={zones} markers={markers} maps={visibleMaps} activeMapId={activeMapId} isTeacher={false} onRefresh={fetchAll} onForceLogout={forceLogout} />}
                 {tab === 'stats' && canViewGeneralStats && <TeacherStats isN3Affiliated={isN3Affiliated} />}
@@ -1709,7 +1738,7 @@ function App() {
             {canAccessStudentMapTasks && shouldUseDesktopSplit && (
               <button className={`nav-btn ${tab === 'maptasks' ? 'active' : ''}`} onClick={() => setTab('maptasks')}>
                 <span className="nav-icon">🗺️</span>
-                Cartes & tâches {studentActiveAssignedTasksCount > 0 && `(${studentActiveAssignedTasksCount})`}
+                {tutorialsModuleEnabled ? 'Cartes & tâches · tuto' : 'Cartes & tâches'}{studentActiveAssignedTasksCount > 0 && ` (${studentActiveAssignedTasksCount})`}
               </button>
             )}
             {canAccessStudentMapTasks && (
@@ -1720,7 +1749,7 @@ function App() {
             {canAccessStudentMapTasks && (
               <button className={`nav-btn ${tab === 'tasks' ? 'active' : ''}`} onClick={() => setTab('tasks')}>
                 <span className="nav-icon">✅</span>
-                Tâches {studentActiveAssignedTasksCount > 0 && `(${studentActiveAssignedTasksCount})`}
+                {tutorialsModuleEnabled ? 'Tâches · tuto' : 'Tâches'}{studentActiveAssignedTasksCount > 0 && ` (${studentActiveAssignedTasksCount})`}
               </button>
             )}
             <button className={`nav-btn ${tab === 'plants' ? 'active' : ''}`} onClick={() => setTab('plants')}>

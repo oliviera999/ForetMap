@@ -122,6 +122,12 @@ function nextLivingBeingsFromMultiSelect(prevOrdered, selectedNames, plants) {
   return [...kept, ...added];
 }
 
+/** Emoji catalogue plantes pour un nom d’être vivant (fiches Info zone/repère). */
+function livingBeingEmoji(plants, name) {
+  const p = (plants || []).find((x) => x.name === name);
+  return p?.emoji || '🌱';
+}
+
 function PhotoGallery({ zoneId, isTeacher }) {
   const [photos, setPhotos] = useState([]);
   const [big, setBig] = useState(null);
@@ -559,7 +565,7 @@ function ZoneInfoModal({ zone, plants, tasks, tutorials = [], isTeacher, student
                         key={name}
                         className="task-chip"
                         style={i === 0 ? { fontWeight: 700, border: '1px solid var(--forest)' } : undefined}>
-                        🌱 {name}
+                        {livingBeingEmoji(plants, name)} {name}
                       </span>
                     ))}
                   </div>
@@ -1378,7 +1384,7 @@ function MarkerModal({ marker, plants, tasks, tutorials = [], onClose, onSave, o
                     key={name}
                     className="task-chip"
                     style={i === 0 ? { fontWeight: 700, border: '1px solid var(--forest)' } : undefined}>
-                    🌱 {name}
+                    {livingBeingEmoji(plants, name)} {name}
                   </span>
                 ))}
               </div>
@@ -1817,7 +1823,7 @@ function useMapGestures({ mapImageSrc, activeMapId, mode, onRefresh, embedded = 
   };
 }
 
-function MapView({ zones, markers, tasks = [], tutorials = [], plants, maps = [], activeMapId = 'foret', onMapChange, isTeacher, student, canSelfAssignTasks = true, canEnrollOnTasks, canParticipateContextComments = true, onZoneUpdate, onRefresh, embedded = false, publicSettings = null }) {
+function MapView({ zones, markers, tasks = [], tutorials = [], plants, maps = [], activeMapId = 'foret', onMapChange, isTeacher, student, canSelfAssignTasks = true, canEnrollOnTasks, canParticipateContextComments = true, onZoneUpdate, onRefresh, embedded = false, publicSettings = null, onLocationTasksFocus = null }) {
   const canEnrollNewTasks = canEnrollOnTasks !== undefined ? canEnrollOnTasks : canSelfAssignTasks;
   const [mode, setMode] = useState('view');
   const [showLabels, setShowLabels] = useState(true);
@@ -1923,6 +1929,15 @@ function MapView({ zones, markers, tasks = [], tutorials = [], plants, maps = []
     }
     return { zoneTutorialCountById: zoneMap, markerTutorialCountById: markerMap };
   }, [tutorials, zones, markers, activeMapId]);
+
+  useEffect(() => {
+    if (!onLocationTasksFocus) return;
+    if (selectedZone) {
+      onLocationTasksFocus({ kind: 'zone', id: String(selectedZone.id) });
+    } else if (selectedMarker) {
+      onLocationTasksFocus({ kind: 'marker', id: String(selectedMarker.id) });
+    }
+  }, [selectedZone, selectedMarker, onLocationTasksFocus]);
 
   useEffect(() => {
     setMapImageIdx(0);

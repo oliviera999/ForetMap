@@ -22,6 +22,10 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - **UI — Carte (split Cartes & tâches)** : la barre d’outils reprend la **même largeur que le canvas** via **`--fm-map-canvas-w`** (suppression de la surcharge `width: 100%` sur **`.map-view-toolbar`**). Défilement horizontal des boutons inchangé en mode compact (**`main--map-visible`**). **`index.css`**, **`dist/`**.
 
 ### Corrigé
+- **Carte — fiche zone / repère (Info)** : les puces **Êtres vivants** affichaient toujours 🌱 ; chaque nom est désormais associé à l’emoji du catalogue plantes (repli 🌱 si inconnu). **`map-views.jsx`**, build **`dist/`**.
+
+- **Navigation « retour » (navigateur / Android)** : avec une modale ou un panneau ouvert, le premier retour ferme la surcouche au lieu de quitter l’écran (ex. **visite sans connexion** qui renvoyait à la connexion). Historique **`history.pushState`** / pile centralisée (**`src/utils/overlayHistory.js`**, hook **`useOverlayHistoryBack`**), entrée dédiée à l’ouverture de la visite invité (**`App.jsx`**), désélection zone/repère en visite publique (**`visit-views.jsx`**), modales aide / notifications / tâches / carte / tutoriels / profil, etc.
+
 - **Tutoriels — aperçu modal (mobile)** : l’overlay **`modal-overlay--tuto-preview`** aligne la feuille en **haut** du viewport (au lieu du bas) avec marges sûres, coins arrondis complets et animation **`popIn`** ; l’iframe garde une hauteur minimale raisonnable (**`min(55vh, 380px)`**). **`tutorials-views.jsx`**, **`index.css`**.
 
 - **Tutoriels** : **`GET /api/tutorials/:id/linked-tasks`** — un seul handler (suppression du doublon de route). **`routes/tutorials.js`**.
