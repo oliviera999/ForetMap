@@ -194,7 +194,7 @@ function PhotoGallery({ zoneId, isTeacher }) {
             onClick={() => fileRef.current.click()}>
             {uploading ? 'Envoi...' : '📷 Ajouter une photo'}
           </button>
-          <input ref={fileRef} type="file" accept="image/*" capture="environment"
+          <input ref={fileRef} type="file" accept="image/*"
             style={{ display: 'none' }} onChange={upload} />
         </div>
       )}

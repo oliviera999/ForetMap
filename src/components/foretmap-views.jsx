@@ -893,7 +893,7 @@ function ObservationNotebook({ student, zones, onForceLogout = null }) {
               <div className="img-upload-area" onClick={() => fileRef.current.click()}>
                 <div style={{fontSize:'1.5rem', marginBottom:4}}>📷</div>
                 <div style={{fontSize:'.82rem', color:'#888'}}>Ajouter une photo</div>
-                <input ref={fileRef} type="file" accept="image/*" capture="environment" onChange={handleFile}/>
+                <input ref={fileRef} type="file" accept="image/*" onChange={handleFile}/>
               </div>
             ) : (
               <div className="img-preview-wrap">
