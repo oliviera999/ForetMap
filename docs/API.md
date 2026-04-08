@@ -384,6 +384,7 @@ Réponse:
 | GET | `/api/tasks` | non | Liste des tâches (avec assignments) |
 | GET | `/api/tasks/referent-candidates` | oui (`tasks.manage` + élévation, sauf profils **admin** / **prof** natifs) | Liste des utilisateurs **actifs** (enseignants puis n3beurs) pour le sélecteur « référents » en création/édition de tâche |
 | GET | `/api/tasks/:id` | non | Détail tâche |
+| GET | `/api/tasks/:id/image` | non | Fichier image illustrative de la tâche (si `image_url` renvoyé dans les payloads JSON) |
 | POST | `/api/tasks` | oui | Créer tâche |
 | PUT | `/api/tasks/:id` | oui\* | Modifier tâche |
 | DELETE | `/api/tasks/:id` | oui | Supprimer tâche |
@@ -395,6 +396,12 @@ Réponse:
 | POST | `/api/tasks/:id/validate` | oui | Valider la tâche (depuis n’importe quel statut sauf `validated`) |
 
 \* Un n3beur peut aussi modifier **sa propre proposition** (statut `proposed`, préfixe de description `Proposition n3beur:`) ; les champs sensibles (`status`, `project_id`, `tutorial_ids`, `referent_user_ids`, `recurrence`, `completion_mode`) restent réservés aux profils avec `tasks.manage`.
+
+**Photo illustrative (fiche tâche)** — `POST /api/tasks`, `POST /api/tasks/proposals`, `PUT /api/tasks/:id` :
+
+- Corps JSON optionnel : `imageData` (data URL ou base64, **JPEG**, **PNG** ou **WebP**). Taille décodée max **4 Mo** ; signature binaire contrôlée côté serveur.
+- `PUT` : `remove_task_image: true` supprime l’image existante (fichier disque + colonne).
+- Les listes et le détail exposent `image_url` (`/api/tasks/:id/image`) lorsqu’une image est enregistrée ; le chemin interne `image_path` n’est pas renvoyé.
 
 Contraintes principales :
 
