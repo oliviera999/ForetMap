@@ -390,7 +390,7 @@ function isTaskDetachedFromLocation(task) {
   return task.status === 'done' || task.status === 'validated';
 }
 
-function ZoneInfoModal({ zone, plants, tasks, tutorials = [], isTeacher, student, canSelfAssignTasks = true, canEnrollOnTasks, markerEmojis = MARKER_EMOJIS, emojiParsingList = MARKER_EMOJIS, contextCommentsEnabled = true, canParticipateContextComments = true, onClose, onUpdate, onDelete, onDuplicate, onEditPoints, onLinkTask, onUnlinkTask, onAssignTasks, onLinkTutorial, onUnlinkTutorial }) {
+function ZoneInfoModal({ zone, plants, tasks, tutorials = [], isTeacher, student, canSelfAssignTasks = true, canEnrollOnTasks, markerEmojis = MARKER_EMOJIS, emojiParsingList = MARKER_EMOJIS, contextCommentsEnabled = true, canParticipateContextComments = true, onClose, onUpdate, onDelete, onDuplicate, onEditPoints, onLinkTask, onUnlinkTask, onAssignTasks, onLinkTutorial, onUnlinkTutorial, onNavigateToTasksForLocation = null }) {
   const canEnroll = canEnrollOnTasks !== undefined ? canEnrollOnTasks : canSelfAssignTasks;
   const dialogRef = useDialogA11y(onClose);
   useOverlayHistoryBack(true, onClose);
@@ -568,6 +568,23 @@ function ZoneInfoModal({ zone, plants, tasks, tutorials = [], isTeacher, student
             </button>
           ))}
         </div>
+
+        {onNavigateToTasksForLocation && (
+          <div style={{ marginBottom: 12 }}>
+            <button
+              type="button"
+              className="btn btn-secondary btn-full"
+              onClick={() => {
+                onNavigateToTasksForLocation({ kind: 'zone', id: String(zone.id) });
+                onClose();
+              }}>
+              ✅ Ouvrir l’onglet Tâches filtré sur cette zone
+            </button>
+            <p style={{ fontSize: '.74rem', color: '#64748b', margin: '6px 0 0', lineHeight: 1.4 }}>
+              Affiche les tâches et tutoriels rattachés à ce lieu dans la liste des tâches.
+            </p>
+          </div>
+        )}
 
         {tab === 'info' && (
           <div className="fade-in">
@@ -884,6 +901,9 @@ function ZoneInfoModal({ zone, plants, tasks, tutorials = [], isTeacher, student
                   <option key={tu.id} value={String(tu.id)}>{tu.title}</option>
                 ))}
               </select>
+              <p style={{ fontSize: '.74rem', color: '#64748b', margin: '6px 0 0', lineHeight: 1.4 }}>
+                Tu peux lier plusieurs tutoriels en répétant l’opération pour chaque fiche.
+              </p>
             </div>
             <button
               type="button"
@@ -1084,7 +1104,7 @@ function ZoneDrawModal({ points_pct, onClose, onSave, plants, markerEmojis = MAR
   );
 }
 
-function MarkerModal({ marker, plants, tasks, tutorials = [], onClose, onSave, onDelete, onLinkTask, onUnlinkTask, onLinkTutorial, onUnlinkTutorial, onAssignTasks, isTeacher, student, canSelfAssignTasks = true, canEnrollOnTasks, markerEmojis = MARKER_EMOJIS }) {
+function MarkerModal({ marker, plants, tasks, tutorials = [], onClose, onSave, onDelete, onLinkTask, onUnlinkTask, onLinkTutorial, onUnlinkTutorial, onAssignTasks, isTeacher, student, canSelfAssignTasks = true, canEnrollOnTasks, markerEmojis = MARKER_EMOJIS, onNavigateToTasksForLocation = null }) {
   const canEnroll = canEnrollOnTasks !== undefined ? canEnrollOnTasks : canSelfAssignTasks;
   const dialogRef = useDialogA11y(onClose);
   useOverlayHistoryBack(true, onClose);
@@ -1197,6 +1217,23 @@ function MarkerModal({ marker, plants, tasks, tutorials = [], onClose, onSave, o
           <h3 style={{ margin: 0 }}>{isNew ? 'Nouveau repère' : form.label}</h3>
         </div>
 
+        {onNavigateToTasksForLocation && marker.id && (
+          <div style={{ marginBottom: 12 }}>
+            <button
+              type="button"
+              className="btn btn-secondary btn-full"
+              onClick={() => {
+                onNavigateToTasksForLocation({ kind: 'marker', id: String(marker.id) });
+                onClose();
+              }}>
+              ✅ Ouvrir l’onglet Tâches filtré sur ce repère
+            </button>
+            <p style={{ fontSize: '.74rem', color: '#64748b', margin: '6px 0 0', lineHeight: 1.4 }}>
+              Affiche les tâches et tutoriels rattachés à ce lieu dans la liste des tâches.
+            </p>
+          </div>
+        )}
+
         {isTeacher ? (
           <>
             <div className="field"><label>Nom du repère *</label>
@@ -1308,6 +1345,9 @@ function MarkerModal({ marker, plants, tasks, tutorials = [], onClose, onSave, o
                       <option key={tu.id} value={String(tu.id)}>{tu.title}</option>
                     ))}
                   </select>
+                  <p style={{ fontSize: '.74rem', color: '#64748b', margin: '6px 0 0', lineHeight: 1.4 }}>
+                    Tu peux lier plusieurs tutoriels en répétant l’opération pour chaque fiche.
+                  </p>
                 </div>
                 <button
                   type="button"
@@ -1954,7 +1994,7 @@ function useMapGestures({ mapImageSrc, activeMapId, mode, onRefresh, embedded = 
   };
 }
 
-function MapView({ zones, markers, tasks = [], tutorials = [], plants, maps = [], activeMapId = 'foret', onMapChange, isTeacher, student, canSelfAssignTasks = true, canEnrollOnTasks, canParticipateContextComments = true, onZoneUpdate, onRefresh, embedded = false, publicSettings = null, onLocationTasksFocus = null }) {
+function MapView({ zones, markers, tasks = [], tutorials = [], plants, maps = [], activeMapId = 'foret', onMapChange, isTeacher, student, canSelfAssignTasks = true, canEnrollOnTasks, canParticipateContextComments = true, onZoneUpdate, onRefresh, embedded = false, publicSettings = null, onLocationTasksFocus = null, onNavigateToTasksForLocation = null }) {
   const canEnrollNewTasks = canEnrollOnTasks !== undefined ? canEnrollOnTasks : canSelfAssignTasks;
   const [mode, setMode] = useState('view');
   const [showLabels, setShowLabels] = useState(true);
@@ -2062,13 +2102,13 @@ function MapView({ zones, markers, tasks = [], tutorials = [], plants, maps = []
   }, [tutorials, zones, markers, activeMapId]);
 
   useEffect(() => {
-    if (!onLocationTasksFocus) return;
+    if (!embedded || !onLocationTasksFocus) return;
     if (selectedZone) {
       onLocationTasksFocus({ kind: 'zone', id: String(selectedZone.id) });
     } else if (selectedMarker) {
       onLocationTasksFocus({ kind: 'marker', id: String(selectedMarker.id) });
     }
-  }, [selectedZone, selectedMarker, onLocationTasksFocus]);
+  }, [embedded, selectedZone, selectedMarker, onLocationTasksFocus]);
 
   useEffect(() => {
     setMapImageIdx(0);
@@ -2466,7 +2506,8 @@ function MapView({ zones, markers, tasks = [], tutorials = [], plants, maps = []
           onAssignTasks={assignTasksToStudent}
           onLinkTutorial={async (tutorialId) => linkTutorialToZone(tutorialId, selectedZone.id)}
           onUnlinkTutorial={(tu) => unlinkTutorialFromZone(tu, selectedZone.id)}
-          onEditPoints={isTeacher ? z => startEditPoints(z) : null} />
+          onEditPoints={isTeacher ? z => startEditPoints(z) : null}
+          onNavigateToTasksForLocation={onNavigateToTasksForLocation} />
       )}
       {selectedMarker && (
         <MarkerModal marker={selectedMarker} plants={plants} tasks={tasks} tutorials={tutorials} isTeacher={isTeacher} student={student} canSelfAssignTasks={canSelfAssignTasks} canEnrollOnTasks={canEnrollNewTasks} markerEmojis={markerEmojis}
@@ -2475,7 +2516,8 @@ function MapView({ zones, markers, tasks = [], tutorials = [], plants, maps = []
           onUnlinkTask={(t) => unlinkTaskFromMarker(t, selectedMarker.id)}
           onLinkTutorial={async (tutorialId) => linkTutorialToMarker(tutorialId, selectedMarker.id)}
           onUnlinkTutorial={(tu) => unlinkTutorialFromMarker(tu, selectedMarker.id)}
-          onAssignTasks={assignTasksToStudent} />
+          onAssignTasks={assignTasksToStudent}
+          onNavigateToTasksForLocation={onNavigateToTasksForLocation} />
       )}
       {pendingZone && (
         <ZoneDrawModal points_pct={pendingZone} plants={plants} markerEmojis={markerEmojis} emojiParsingList={emojiParsingList}
