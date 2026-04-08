@@ -39,6 +39,40 @@ function writeContextCommentDraft(contextType, contextId, text) {
   }
 }
 
+/** Dernier commentaire « lu » pour ce contexte (persisté, par utilisateur). */
+function contextCommentReadCursorKey(userType, userId, contextType, contextId) {
+  return `foretmap:contextCommentReadCursor:${String(userType || '')}:${String(userId || '')}:${String(contextType || '')}:${String(contextId ?? '')}`;
+}
+
+function readContextCommentReadCursor(userType, userId, contextType, contextId) {
+  if (typeof window === 'undefined') return null;
+  if (!userType || !userId || !contextType || contextId == null || contextId === '') return null;
+  try {
+    const raw = localStorage.getItem(contextCommentReadCursorKey(userType, userId, contextType, contextId));
+    if (!raw) return null;
+    const o = JSON.parse(raw);
+    const newestId = Number(o?.newestId);
+    if (!Number.isFinite(newestId) || newestId < 0) return null;
+    return { newestId };
+  } catch {
+    return null;
+  }
+}
+
+function writeContextCommentReadCursor(userType, userId, contextType, contextId, newestId) {
+  if (typeof window === 'undefined') return;
+  if (!userType || !userId || !contextType || contextId == null || contextId === '') return;
+  try {
+    const n = Math.max(0, Math.floor(Number(newestId) || 0));
+    localStorage.setItem(
+      contextCommentReadCursorKey(userType, userId, contextType, contextId),
+      JSON.stringify({ newestId: n })
+    );
+  } catch {
+    // quota / mode privé : ignorer
+  }
+}
+
 function parseReactionEmojiList(rawValue) {
   const raw = String(rawValue || '').trim();
   if (!raw) return [...DEFAULT_REACTION_EMOJIS];
@@ -85,6 +119,10 @@ function ContextComments({
   const [reportReasonById, setReportReasonById] = useState({});
   const [toast, setToast] = useState('');
   const [authClaims, setAuthClaims] = useState(() => getAuthClaims());
+  const [hasUnreadComments, setHasUnreadComments] = useState(false);
+  const [isOpen, setIsOpen] = useState(() => (
+    defaultOpen || !!String(readContextCommentDraft(contextType, contextId) || '').trim()
+  ));
 
   const currentUserType = String(authClaims?.userType || '').toLowerCase();
   const currentUserId = String(authClaims?.canonicalUserId || authClaims?.userId || '');
@@ -97,15 +135,21 @@ function ContextComments({
     setLoading(true);
     try {
       const data = await listContextComments({ contextType, contextId, page: nextPage, pageSize: PAGE_SIZE });
-      setItems(Array.isArray(data?.items) ? data.items : []);
+      const list = Array.isArray(data?.items) ? data.items : [];
+      setItems(list);
       setTotal(Number(data?.total || 0));
       setPage(Number(data?.page || nextPage));
+      if (nextPage === 1 && isOpen && currentUserType && currentUserId) {
+        const newestId = list[0]?.id != null ? Number(list[0].id) : 0;
+        writeContextCommentReadCursor(currentUserType, currentUserId, contextType, contextId, newestId);
+        setHasUnreadComments(false);
+      }
     } catch (err) {
       setToast(`Chargement impossible : ${err.message}`);
     } finally {
       setLoading(false);
     }
-  }, [contextId, contextType]);
+  }, [contextId, contextType, currentUserId, currentUserType, isOpen]);
 
   /** Même section repliée : le badge doit afficher le bon total (l’API renvoie total avec page_size minimal). */
   const refreshTotal = useCallback(async () => {
@@ -113,20 +157,27 @@ function ContextComments({
     try {
       const data = await listContextComments({ contextType, contextId, page: 1, pageSize: 1 });
       setTotal(Number(data?.total || 0));
+      const newestId = data?.items?.[0]?.id != null ? Number(data.items[0].id) : 0;
+      const cursor = readContextCommentReadCursor(currentUserType, currentUserId, contextType, contextId);
+      setHasUnreadComments((prev) => {
+        if (cursor && newestId > cursor.newestId) return true;
+        if (cursor && newestId <= cursor.newestId) return false;
+        return prev;
+      });
     } catch {
       // Silencieux : pas de toast pour un compteur en arrière-plan
     }
-  }, [contextId, contextType]);
-
-  const [isOpen, setIsOpen] = useState(() => (
-    defaultOpen || !!String(readContextCommentDraft(contextType, contextId) || '').trim()
-  ));
+  }, [contextId, contextType, currentUserId, currentUserType]);
 
   useEffect(() => {
     const draft = readContextCommentDraft(contextType, contextId);
     setBody(draft);
     setIsOpen(defaultOpen || !!String(draft || '').trim());
   }, [contextType, contextId, defaultOpen]);
+
+  useEffect(() => {
+    setHasUnreadComments(false);
+  }, [contextType, contextId]);
 
   useEffect(() => {
     const t = setTimeout(() => {
@@ -159,6 +210,7 @@ function ContextComments({
       if (detail.domain !== 'context_comments') return;
       const payload = detail.payload || {};
       if (!sameContext(payload)) return;
+      if (!isOpen) setHasUnreadComments(true);
       refreshTotal();
       if (isOpen) load(page);
     };
@@ -247,11 +299,27 @@ function ContextComments({
   if (!contextType || !contextId) return null;
   const firstReactionEmoji = reactionEmojis[0] || '👍';
 
+  const toggleUnreadTitle = hasUnreadComments ? 'Nouveaux commentaires non lus' : undefined;
+  const toggleAria = hasUnreadComments
+    ? `${title}, ${total} commentaire${total === 1 ? '' : 's'}, nouveaux messages non lus`
+    : undefined;
+
   return (
     <section className="context-comments">
-      <button type="button" className="context-comments-toggle" onClick={() => setIsOpen((prev) => !prev)}>
-        <span>{isOpen ? '▾' : '▸'} {title}</span>
-        <span>{total}</span>
+      <button
+        type="button"
+        className={`context-comments-toggle${hasUnreadComments ? ' context-comments-toggle--unread' : ''}`}
+        onClick={() => setIsOpen((prev) => !prev)}
+        title={toggleUnreadTitle}
+        aria-label={toggleAria}
+      >
+        <span className="context-comments-toggle-label">
+          {hasUnreadComments && (
+            <span className="context-comments-unread-dot" aria-hidden="true" title={toggleUnreadTitle} />
+          )}
+          <span>{isOpen ? '▾' : '▸'} {title}</span>
+        </span>
+        <span className="context-comments-count">{total}</span>
       </button>
 
       {isOpen && (

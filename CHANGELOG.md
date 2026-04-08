@@ -6,6 +6,8 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 ## [Non publié]
 
 ### Ajouté
+- **Commentaires de contexte** : indicateur discret des **messages non lus** (pastille verte + léger fond sur l’en-tête replié, infobulle et libellé accessible) — basé sur le dernier commentaire consulté (stockage local par utilisateur) et le temps réel. **`context-comments.jsx`**, **`index.css`**, build **`dist/`**.
+
 - **Tâches — biodiversité** : association d’**êtres vivants** (noms du catalogue), comme pour les zones et repères — colonne **`living_beings`**, migration **`061_tasks_living_beings.sql`**, API **`living_beings`** / réponse **`living_beings_list`** (`POST/PUT` tâche, propositions, clones récurrents). Formulaire tâche (multi-sélection) et pastilles sur les cartes tâche ; utilitaire partagé **`src/utils/livingBeings.js`**. **`routes/tasks.js`**, **`lib/recurringTasks.js`**, **`tasks-views.jsx`**, **`App.jsx`**, **`map-views.jsx`**, **`sql/schema_foretmap.sql`**, **`docs/API.md`**, **`tests/api.test.js`**, build **`dist/`**.
 
 - **Biodiversité** : bloc **Sur la carte** — mini-plan (par carte concernée) avec surcouche **violette** des zones et repères liés à l’espèce (même logique visuelle que les tutoriels sur la carte) ; affiché **uniquement** si la fiche est liée à au moins une zone ou un repère. Catalogue élève et base prof. **`foretmap-views.jsx`**, **`App.jsx`**, **`index.css`**, build **`dist/`**.
