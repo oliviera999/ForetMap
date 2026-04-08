@@ -14,6 +14,8 @@ import {
   distinctPlantFieldValues,
   filterPlantsByTaxonomy,
   plantMatchesAllFilters,
+  plantLinkedToMapMarker,
+  plantLinkedToMapZone,
 } from '../utils/plantFilters';
 
 // ── TOAST ──────────────────────────────────────────────────────────────────
@@ -1159,7 +1161,7 @@ function ObservationNotebook({ student, zones, onForceLogout = null }) {
 }
 
 // ── PLANT VIEWER (student read-only) ──────────────────────────────────────────
-function PlantViewer({ plants, zones, publicSettings = null }) {
+function PlantViewer({ plants, zones, markers = [], publicSettings = null }) {
   const [search, setSearch] = useState('');
   const [group1, setGroup1] = useState('');
   const [group2, setGroup2] = useState('');
@@ -1190,10 +1192,8 @@ function PlantViewer({ plants, zones, publicSettings = null }) {
     [plants, structured, queryTrimmedLower, zonePresence, zones],
   );
 
-  const zonesForPlant = (p) => {
-    const n = normalizedPlantValue(p.name);
-    return zones.filter((z) => normalizedPlantValue(z.current_plant) === n);
-  };
+  const zonesForPlant = (p) => zones.filter((z) => plantLinkedToMapZone(p, z));
+  const markersForPlant = (p) => markers.filter((m) => plantLinkedToMapMarker(p, m));
 
   return (
     <div className="fade-in">
@@ -1241,6 +1241,8 @@ function PlantViewer({ plants, zones, publicSettings = null }) {
         : <div className="biodiv-grid">
           {filtered.map(p => {
             const pZones = zonesForPlant(p);
+            const pMarkers = markersForPlant(p);
+            const hasMapLink = pZones.length > 0 || pMarkers.length > 0;
             return (
               <article key={p.id} className="biodiv-card fade-in">
                 <div className="biodiv-card-head">
@@ -1267,15 +1269,20 @@ function PlantViewer({ plants, zones, publicSettings = null }) {
                   </div>
                   <PlantSummaryBadges plant={p} />
                   <PlantMetaSections plant={p} />
-                  {pZones.length > 0 ? (
+                  {hasMapLink ? (
                     <div>
-                      <div style={{ fontSize: '.74rem', fontWeight: 700, color: '#aaa', textTransform: 'uppercase', marginBottom: 4 }}>Zones associées</div>
+                      <div style={{ fontSize: '.74rem', fontWeight: 700, color: '#aaa', textTransform: 'uppercase', marginBottom: 4 }}>Zones et repères</div>
                       <div className="plant-zones">
-                        {pZones.map(z => <span key={z.id} className="plant-zone-chip">📍 {z.name}</span>)}
+                        {pZones.map((z) => (
+                          <span key={`zone-${z.id}`} className="plant-zone-chip">📍 {z.name}</span>
+                        ))}
+                        {pMarkers.map((m) => (
+                          <span key={`marker-${m.id}`} className="plant-zone-chip">📌 {m.label?.trim() ? m.label : 'Repère'}</span>
+                        ))}
                       </div>
                     </div>
                   ) : (
-                    <p style={{ fontSize: '.82rem', color: '#bbb', fontStyle: 'italic' }}>Pas encore associé à une zone</p>
+                    <p style={{ fontSize: '.82rem', color: '#bbb', fontStyle: 'italic' }}>Pas encore associé à une zone ni à un repère</p>
                   )}
                 </div>
               </article>

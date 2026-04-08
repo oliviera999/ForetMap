@@ -21,6 +21,8 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - **Biodiversité** : filtres avancés (sous-groupes 1 et 2, habitat, catégorie d’agrosystème), recherche texte élargie (habitat, origine géographique, partie à récolter) ; côté élève, filtre **présence sur la carte** et compteur **X / Y** ; module **`src/utils/plantFilters.js`**, **`foretmap-views.jsx`**, build **`dist/`** ; e2e navigation élève ouvre **Filtres avancés**.
 
 ### Modifié
+- **Biodiversité (élève)** : pastilles **Zones et repères** (📍 zone, 📌 repère) quand l’être vivant est lié sur la carte ; le filtre **présent dans au moins une zone** utilise toute la liste **`living_beings_list`**, pas seulement l’être vivant principal. **`plantFilters.js`**, **`foretmap-views.jsx`**, **`App.jsx`**, build **`dist/`**.
+
 - **Carte (zones & repères)** : fusion des champs **être vivant principal** et **autres associés** en un seul sélecteur multiple **Êtres vivants**, avec ordre stable (le premier reste l’être vivant « principal » côté API : **`current_plant`** / **`plant_name`**, historique des cultures). Aide contextuelle Ctrl/Cmd + clic. **`map-views.jsx`**, build **`dist/`**.
 
 - **UI — Carte (split Cartes & tâches)** : la barre d’outils reprend la **même largeur que le canvas** via **`--fm-map-canvas-w`** (suppression de la surcharge `width: 100%` sur **`.map-view-toolbar`**). Défilement horizontal des boutons inchangé en mode compact (**`main--map-visible`**). **`index.css`**, **`dist/`**.

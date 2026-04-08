@@ -9,12 +9,52 @@ function nv(value) {
   return s;
 }
 
-/** Présence sur la carte (zones.current_plant === plant.name). */
+/** Présence sur la carte (zone : `living_beings_list` ou `current_plant`). */
 export const ZONE_PRESENCE_FILTER = {
   ALL: '',
   IN_MAP: 'in_map',
   NOT_IN_MAP: 'not_in_map',
 };
+
+/** Noms d’êtres vivants rattachés à une zone (API `living_beings_list` + primaire). */
+export function mapZoneLivingNames(zone) {
+  const names = new Set();
+  if (Array.isArray(zone?.living_beings_list)) {
+    for (const x of zone.living_beings_list) {
+      const v = nv(x);
+      if (v) names.add(v);
+    }
+  }
+  const cp = nv(zone?.current_plant);
+  if (cp) names.add(cp);
+  return names;
+}
+
+/** Noms d’êtres vivants rattachés à un repère (API `living_beings_list` + `plant_name`). */
+export function mapMarkerLivingNames(marker) {
+  const names = new Set();
+  if (Array.isArray(marker?.living_beings_list)) {
+    for (const x of marker.living_beings_list) {
+      const v = nv(x);
+      if (v) names.add(v);
+    }
+  }
+  const pn = nv(marker?.plant_name);
+  if (pn) names.add(pn);
+  return names;
+}
+
+export function plantLinkedToMapZone(plant, zone) {
+  const name = nv(plant?.name);
+  if (!name) return false;
+  return mapZoneLivingNames(zone).has(name);
+}
+
+export function plantLinkedToMapMarker(plant, marker) {
+  const name = nv(plant?.name);
+  if (!name) return false;
+  return mapMarkerLivingNames(marker).has(name);
+}
 
 /**
  * Sous-ensemble après application des filtres taxonomiques seuls (pour options en cascade).
@@ -67,8 +107,7 @@ export function plantTextMatchesQuery(plant, queryTrimmedLower) {
 
 export function plantMatchesZonePresence(plant, zones, presence) {
   if (!presence) return true;
-  const name = nv(plant.name);
-  const has = Array.isArray(zones) && zones.some((z) => nv(z.current_plant) === name);
+  const has = Array.isArray(zones) && zones.some((z) => plantLinkedToMapZone(plant, z));
   if (presence === ZONE_PRESENCE_FILTER.IN_MAP) return has;
   if (presence === ZONE_PRESENCE_FILTER.NOT_IN_MAP) return !has;
   return true;
