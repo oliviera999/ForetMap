@@ -4,7 +4,7 @@ const XLSX = require('xlsx');
 const { v4: uuidv4 } = require('uuid');
 const { queryAll, queryOne, execute } = require('../database');
 const { requirePermission, JWT_SECRET, hydrateAuthFromTokenClaims } = require('../middleware/requireTeacher');
-const { saveBase64ToDisk, getAbsolutePath } = require('../lib/uploads');
+const { saveBase64ToDisk, getAbsolutePath, deleteFile, writeBufferToDisk } = require('../lib/uploads');
 const { logRouteError } = require('../lib/routeLog');
 const logger = require('../lib/logger');
 const { logAudit } = require('./audit');
@@ -165,6 +165,47 @@ function taskDifficultyLevelForResponse(value) {
   const raw = asTrimmedString(value).toLowerCase();
   if (!raw) return null;
   return ALLOWED_TASK_DIFFICULTY_LEVELS.has(raw) ? raw : null;
+}
+
+const MAX_TASK_IMAGE_BYTES = 4 * 1024 * 1024;
+
+function taskImageExtensionFromBuffer(buf) {
+  if (!buf || buf.length < 12) return null;
+  if (buf.length >= 2 && buf[0] === 0xff && buf[1] === 0xd8) return 'jpg';
+  if (buf.length >= 8 && buf[0] === 0x89 && buf[1] === 0x50 && buf[2] === 0x4e && buf[3] === 0x47) return 'png';
+  if (buf.toString('ascii', 0, 4) === 'RIFF' && buf.toString('ascii', 8, 12) === 'WEBP') return 'webp';
+  return null;
+}
+
+/** Décode une data URL / base64 image tâche ; vérifie taille et signature (JPEG, PNG, WebP). */
+function decodeTaskImageBuffer(imageData) {
+  if (imageData == null) return { error: 'Image requise' };
+  const str = String(imageData);
+  const raw = str.includes(',') ? str.split(',')[1] : str;
+  if (!raw || !String(raw).trim()) return { error: 'Image requise' };
+  let buf;
+  try {
+    buf = Buffer.from(raw, 'base64');
+  } catch (_) {
+    return { error: 'Image invalide' };
+  }
+  if (!buf.length) return { error: 'Image invalide' };
+  if (buf.length > MAX_TASK_IMAGE_BYTES) {
+    return { error: 'Image trop volumineuse (max 4 Mo après décodage)' };
+  }
+  const ext = taskImageExtensionFromBuffer(buf);
+  if (!ext) return { error: 'Format image non supporté (JPEG, PNG ou WebP)' };
+  return { buffer: buf, ext };
+}
+
+function attachTaskImagePublicFields(task) {
+  if (!task || task.id == null) return;
+  if (task.image_path) {
+    task.image_url = `/api/tasks/${task.id}/image`;
+  } else {
+    task.image_url = null;
+  }
+  delete task.image_path;
 }
 
 function countDoneAssignments(assignments = []) {
@@ -917,6 +958,7 @@ async function getTaskWithAssignments(taskId) {
   task.assignees_total_count = task.assigned_count;
   task.assignees_done_count = countDoneAssignments(task.assignments);
   task.proposed_by_student_id = await getTaskProposerStudentId(taskId);
+  attachTaskImagePublicFields(task);
   return task;
 }
 
@@ -1101,6 +1143,7 @@ router.get('/', async (req, res) => {
       row.assignees_total_count = row.assigned_count;
       row.assignees_done_count = doneCountByTask.get(t.id) || 0;
       row.proposed_by_student_id = proposerByTask.get(t.id) || null;
+      attachTaskImagePublicFields(row);
       return row;
     });
     const mapLabelIds = [...new Set(enriched.map((r) => r.map_id_resolved).filter(Boolean))];
@@ -1148,6 +1191,19 @@ router.get('/referent-candidates', requirePermission('tasks.manage', { needsElev
     });
     students.sort((a, b) => labelForSort(a).localeCompare(labelForSort(b), 'fr', { sensitivity: 'base' }));
     res.json([...teachers, ...students]);
+  } catch (e) {
+    respondInternalError(res, req, e);
+  }
+});
+
+router.get('/:id/image', async (req, res) => {
+  try {
+    const row = await queryOne('SELECT image_path FROM tasks WHERE id = ?', [req.params.id]);
+    if (!row?.image_path) return res.status(404).json({ error: 'Aucune image' });
+    const absolutePath = getAbsolutePath(row.image_path);
+    return res.sendFile(absolutePath, (err) => {
+      if (err && !res.headersSent) res.status(404).json({ error: 'Fichier introuvable' });
+    });
   } catch (e) {
     respondInternalError(res, req, e);
   }
@@ -1489,8 +1545,15 @@ router.post('/', requirePermission('tasks.manage', { needsElevation: true }), as
       completion_mode,
       danger_level,
       difficulty_level,
+      imageData,
     } = req.body;
     if (!title) return res.status(400).json({ error: 'Titre requis' });
+
+    let decodedTaskImage = null;
+    if (Object.prototype.hasOwnProperty.call(req.body || {}, 'imageData') && imageData != null && String(imageData).trim()) {
+      decodedTaskImage = decodeTaskImageBuffer(imageData);
+      if (decodedTaskImage.error) return res.status(400).json({ error: decodedTaskImage.error });
+    }
 
     let zIds = normalizeIdArray(zone_ids);
     let mIds = normalizeIdArray(marker_ids);
@@ -1542,6 +1605,21 @@ router.post('/', requirePermission('tasks.manage', { needsElevation: true }), as
     await setTaskTutorials(id, tutorialIds);
     await setTaskReferents(id, referentValidation.userIds);
     await syncLegacyLocationColumns(id, zIds, mIds);
+    if (decodedTaskImage) {
+      const rel = `tasks/${id}.${decodedTaskImage.ext}`;
+      try {
+        writeBufferToDisk(rel, decodedTaskImage.buffer);
+        await execute('UPDATE tasks SET image_path = ? WHERE id = ?', [rel, id]);
+      } catch (imgErr) {
+        try {
+          deleteFile(rel);
+        } catch (_) {
+          /* ignore */
+        }
+        await execute('DELETE FROM tasks WHERE id = ?', [id]);
+        throw imgErr;
+      }
+    }
     const task = await getTaskWithAssignments(id);
     logAudit('create_task', 'task', id, title, {
       req,
@@ -1602,6 +1680,13 @@ router.post('/proposals', async (req, res) => {
     const proposalDifficultyParsed = parseTaskDifficultyLevelFromClient(difficulty_level);
     if (proposalDifficultyParsed.error) return res.status(400).json({ error: proposalDifficultyParsed.error });
 
+    let proposalDecodedImage = null;
+    const bodyProposal = req.body || {};
+    if (Object.prototype.hasOwnProperty.call(bodyProposal, 'imageData') && bodyProposal.imageData != null && String(bodyProposal.imageData).trim()) {
+      proposalDecodedImage = decodeTaskImageBuffer(bodyProposal.imageData);
+      if (proposalDecodedImage.error) return res.status(400).json({ error: proposalDecodedImage.error });
+    }
+
     const id = uuidv4();
     const proposer = `${String(firstName).trim()} ${String(lastName).trim()}`.trim();
     const baseDescription = description ? String(description).trim() : '';
@@ -1636,6 +1721,21 @@ router.post('/proposals', async (req, res) => {
     await setTaskTutorials(id, []);
     await setTaskReferents(id, []);
     await syncLegacyLocationColumns(id, zIds, mIds);
+    if (proposalDecodedImage) {
+      const rel = `tasks/${id}.${proposalDecodedImage.ext}`;
+      try {
+        writeBufferToDisk(rel, proposalDecodedImage.buffer);
+        await execute('UPDATE tasks SET image_path = ? WHERE id = ?', [rel, id]);
+      } catch (imgErr) {
+        try {
+          deleteFile(rel);
+        } catch (_) {
+          /* ignore */
+        }
+        await execute('DELETE FROM tasks WHERE id = ?', [id]);
+        throw imgErr;
+      }
+    }
     const task = await getTaskWithAssignments(id);
     logAudit('propose_task', 'task', id, `${String(title).trim()} (${proposer})`, {
       req,
@@ -1833,6 +1933,32 @@ router.put('/:id', async (req, res) => {
     await setTaskTutorials(task.id, nextTutorialIds);
     await setTaskReferents(task.id, referentValidation.userIds);
     await syncLegacyLocationColumns(task.id, nextZoneIds, nextMarkerIds);
+
+    const bodyPut = req.body || {};
+    if (Object.prototype.hasOwnProperty.call(bodyPut, 'imageData') && bodyPut.imageData != null && String(bodyPut.imageData).trim()) {
+      const dec = decodeTaskImageBuffer(bodyPut.imageData);
+      if (dec.error) return res.status(400).json({ error: dec.error });
+      const oldPath = task.image_path || null;
+      const rel = `tasks/${task.id}.${dec.ext}`;
+      try {
+        writeBufferToDisk(rel, dec.buffer);
+        await execute('UPDATE tasks SET image_path = ? WHERE id = ?', [rel, task.id]);
+        if (oldPath && oldPath !== rel) deleteFile(oldPath);
+      } catch (imgErr) {
+        try {
+          deleteFile(rel);
+        } catch (_) {
+          /* ignore */
+        }
+        return respondInternalError(res, req, imgErr);
+      }
+    } else if (Object.prototype.hasOwnProperty.call(bodyPut, 'remove_task_image') && bodyPut.remove_task_image === true) {
+      if (task.image_path) {
+        deleteFile(task.image_path);
+        await execute('UPDATE tasks SET image_path = NULL WHERE id = ?', [task.id]);
+      }
+    }
+
     const updated = await getTaskWithAssignments(task.id);
     logAudit('update_task', 'task', task.id, updated.title, {
       req,
@@ -1866,6 +1992,7 @@ router.delete('/:id', requirePermission('tasks.manage', { needsElevation: true }
   try {
     const task = await queryOne('SELECT * FROM tasks WHERE id = ?', [req.params.id]);
     if (!task) return res.status(404).json({ error: 'Tâche introuvable' });
+    if (task.image_path) deleteFile(task.image_path);
     await execute('DELETE FROM task_logs WHERE task_id = ?', [req.params.id]);
     await execute('DELETE FROM task_assignments WHERE task_id = ?', [req.params.id]);
     await execute('DELETE FROM tasks WHERE id = ?', [req.params.id]);

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo, useId } from 'react';
 import { createPortal } from 'react-dom';
-import { api, API, getAuthToken, AccountDeletedError } from '../services/api';
+import { api, API, getAuthToken, AccountDeletedError, withAppBase } from '../services/api';
+import { compressImage } from '../utils/image';
 import { taskStatusIndicator, daysUntil, dueDateChip, TaskDifficultyAndRiskChips, taskRequiresReferentBriefingBeforeStart } from '../utils/badges';
 import { getRoleTerms } from '../utils/n3-terminology';
 import { useDialogA11y } from '../hooks/useDialogA11y';
@@ -230,6 +231,13 @@ function TaskFormModal({
     start_date: '', due_date: '', required_students: 1, completion_mode: 'single_done', danger_level: '', difficulty_level: '', recurrence: '',
     assign_student_ids: []
   });
+  const [taskImageData, setTaskImageData] = useState(null);
+  const [taskImagePreview, setTaskImagePreview] = useState(() => (
+    editTask && !isDuplicate && editTask.image_url ? withAppBase(editTask.image_url) : null
+  ));
+  const [taskImageRemoved, setTaskImageRemoved] = useState(false);
+  const [taskImageBusy, setTaskImageBusy] = useState(false);
+  const taskImageInputRef = useRef(null);
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState('');
   const [tutorialSearch, setTutorialSearch] = useState('');
@@ -341,6 +349,43 @@ function TaskFormModal({
     });
   };
 
+  const hadInitialTaskImage = !!(editTask && !isDuplicate && editTask.image_url);
+
+  const clearTaskImage = () => {
+    setTaskImageData(null);
+    setTaskImagePreview(null);
+    setTaskImageRemoved(hadInitialTaskImage);
+    if (taskImageInputRef.current) taskImageInputRef.current.value = '';
+  };
+
+  const onTaskImageFile = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!String(file.type || '').startsWith('image/')) {
+      setErr('Format image invalide (image requise)');
+      return;
+    }
+    setErr('');
+    setTaskImageBusy(true);
+    try {
+      const compressed = await compressImage(file, 1600, 0.82);
+      const payload = String(compressed || '').split(',')[1] || '';
+      const padding = payload.endsWith('==') ? 2 : (payload.endsWith('=') ? 1 : 0);
+      const approxBytes = Math.floor((payload.length * 3) / 4) - padding;
+      if (approxBytes > 3 * 1024 * 1024) {
+        setErr('Image trop lourde après compression (max 3 Mo)');
+        return;
+      }
+      setTaskImageData(compressed);
+      setTaskImagePreview(compressed);
+      setTaskImageRemoved(false);
+    } catch (errImg) {
+      setErr(errImg?.message || 'Image invalide');
+    } finally {
+      setTaskImageBusy(false);
+    }
+  };
+
   const submit = async () => {
     if (!form.title.trim()) return setErr('Le titre est requis');
     const mapFromLinks = () => {
@@ -376,6 +421,8 @@ function TaskFormModal({
     if (!payload.map_id && (payload.zone_ids.length || payload.marker_ids.length)) {
       payload.map_id = mapFromLinks();
     }
+    if (taskImageData) payload.imageData = taskImageData;
+    else if (editTask && !isDuplicate && taskImageRemoved) payload.remove_task_image = true;
     setSaving(true);
     try { await onSave(payload); onClose(); }
     catch (e) { setErr(e.message); setSaving(false); }
@@ -480,6 +527,36 @@ function TaskFormModal({
         {err && <p style={{ color: var_alert, marginBottom: 12, fontSize: '.85rem' }}>{err}</p>}
         <div className="field"><label>Titre *</label><input value={form.title} onChange={set('title')} placeholder="Ex: Arroser les tomates" /></div>
         <div className="field"><label>Description</label><textarea value={form.description} onChange={set('description')} rows={2} placeholder="Instructions détaillées..." /></div>
+        <div className="field">
+          <label>Photo illustrative (optionnel)</label>
+          <p style={{ fontSize: '.8rem', color: '#555', margin: '0 0 8px', lineHeight: 1.45 }}>
+            Depuis la galerie ou l’appareil photo : lieu, outil, plante… (JPEG/PNG/WebP, compressée à l’envoi)
+          </p>
+          {!taskImagePreview ? (
+            <div
+              className={`img-upload-area${taskImageBusy ? ' is-busy' : ''}`}
+              onClick={() => !taskImageBusy && taskImageInputRef.current?.click()}
+              style={taskImageBusy ? { opacity: 0.7, pointerEvents: 'none' } : undefined}
+            >
+              <div style={{ fontSize: '2rem', marginBottom: 6 }}>📷</div>
+              <div style={{ fontSize: '.85rem', color: '#888' }}>
+                {taskImageBusy ? 'Traitement…' : 'Toucher pour choisir ou prendre une photo'}
+              </div>
+              <input
+                ref={taskImageInputRef}
+                type="file"
+                accept="image/*"
+                capture="environment"
+                onChange={onTaskImageFile}
+              />
+            </div>
+          ) : (
+            <div className="img-preview-wrap">
+              <img src={taskImagePreview} className="img-preview" alt="Aperçu photo tâche" />
+              <button type="button" className="img-remove" onClick={clearTaskImage} aria-label="Retirer la photo">✕</button>
+            </div>
+          )}
+        </div>
         <div className="row">
           <div className="field"><label>Carte</label>
             <select value={form.map_id} onChange={set('map_id')}>
@@ -2454,6 +2531,7 @@ function TaskTileCard({
   runTeacherQuickAssign,
   tooltipText,
 }) {
+    const [coverLightbox, setCoverLightbox] = useState(null);
 
     const effectiveStatus = taskEffectiveStatus(t);
     const isMine = !!(student && isStudentAssignedToTask(t, student));
@@ -2489,11 +2567,13 @@ function TaskTileCard({
     const quickAssignTitle = isQuickAssignOpen ? quickAssignHint(t, quickAssignStudentIds) : '';
     const referentBriefing = taskRequiresReferentBriefingBeforeStart(t);
     const referentsLinked = t.referents_linked || [];
+    const coverSrc = t.image_url ? withAppBase(t.image_url) : null;
     return (
       <div
         className={`task-card ${viewMode === 'tiles' ? 'task-card--tile' : ''} fade-in ${isMine ? 'mine' : ''} ${effectiveStatus === 'validated' ? 'done' : ''} ${effectiveStatus === 'proposed' ? 'proposed' : ''}`}
         style={{ animationDelay: `${Math.min(index * 60, 360)}ms` }}
       >
+        {coverLightbox && <Lightbox src={coverLightbox} caption="" onClose={() => setCoverLightbox(null)} />}
         <div className="task-top">
           <div className="task-title-row">
             {taskStatusIndicator(effectiveStatus, isN3Affiliated)}
@@ -2525,6 +2605,16 @@ function TaskTileCard({
           {isCollectiveCompletion && <span className="task-chip">✅ {doneCount}/{totalCount} terminé{totalCount > 1 ? 's' : ''}</span>}
           {t.recurrence && <span className="task-chip">🔄 {t.recurrence === 'weekly' ? 'Hebdo' : t.recurrence === 'biweekly' ? 'Bi-hebdo' : t.recurrence === 'monthly' ? 'Mensuel' : t.recurrence}</span>}
         </div>
+        {coverSrc && (
+          <button
+            type="button"
+            className="task-card-cover-btn"
+            onClick={() => setCoverLightbox(coverSrc)}
+            aria-label="Agrandir la photo de la tâche"
+          >
+            <img src={coverSrc} className="task-card-cover" alt="" />
+          </button>
+        )}
         {cardDescription && <div className="task-desc">{cardDescription}</div>}
         {referentsLinked.length > 0 && (
           <div

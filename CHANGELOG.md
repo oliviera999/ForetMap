@@ -6,6 +6,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 ## [Non publié]
 
 ### Ajouté
+- **Tâches — photo illustrative** : image optionnelle à la création/modification (smartphone / galerie), champ **`imageData`** et retrait **`remove_task_image`** ; **`GET /api/tasks/:id/image`** ; colonne **`tasks.image_path`** (migration **`057_tasks_image_path.sql`**) ; formulaire et tuiles dans **`tasks-views.jsx`**, styles **`index.css`**, build **`dist/`** ; tests **`tests/tasks-image.test.js`**. **`docs/API.md`**.
 - **Tâches — danger** : niveau intermédiaire **`potential_danger`** (« Danger potentiel ») entre sans danger et dangereux — validation API, formulaire prof/proposition, pastilles (`badges.jsx`), clones récurrents. **`docs/API.md`**.
 
 ### Corrigé
