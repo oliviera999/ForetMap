@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { api, AccountDeletedError } from '../services/api';
 import { SPECIAL_EMOJI, SPECIAL_DESC, TREE_LEGEND, TREE_DOTS } from '../constants/garden';
 import { PLANT_EMOJIS } from '../constants/emojis';
@@ -166,6 +166,11 @@ function normalizedPlantValue(value) {
   return s;
 }
 
+/** Libellé « Potager » souvent identique sur toutes les fiches — masqué en pastille (pas le lien carte). */
+function isGenericPotagerLabel(value) {
+  return normalizedPlantValue(value).toLowerCase() === 'potager';
+}
+
 function extractPlantForm(plant = {}) {
   const form = { ...EMPTY_PLANT_FORM };
   Object.keys(form).forEach((k) => {
@@ -228,6 +233,62 @@ function isLikelyDirectImageUrl(value) {
   } catch {
     return false;
   }
+}
+
+/** Page fichier Commons /wiki/File:… → URL affichable en miniature (redirige vers le binaire). */
+function parseCommonsFilePageFromUrl(value) {
+  if (!isHttpLink(value)) return null;
+  try {
+    const url = new URL(value);
+    if (!/^(?:www\.)?commons\.wikimedia\.org$/i.test(url.hostname)) return null;
+    const m = url.pathname.match(/^\/wiki\/File:(.+)$/i);
+    if (!m) return null;
+    return m[1];
+  } catch {
+    return null;
+  }
+}
+
+function commonsFilePageToDisplaySrc(value) {
+  const fileTitle = parseCommonsFilePageFromUrl(value);
+  if (!fileTitle) return null;
+  return `https://commons.wikimedia.org/wiki/Special:FilePath/${fileTitle}`;
+}
+
+function parseCommonsCategoryFromUrl(value) {
+  if (!isHttpLink(value)) return null;
+  try {
+    const url = new URL(value);
+    if (!/^(?:www\.)?commons\.wikimedia\.org$/i.test(url.hostname)) return null;
+    const m = url.pathname.match(/^\/wiki\/(Category:.+)$/i);
+    if (!m) return null;
+    return decodeURIComponent(m[1]);
+  } catch {
+    return null;
+  }
+}
+
+async function fetchCommonsCategoryPreview(urlValue) {
+  const categoryTitle = parseCommonsCategoryFromUrl(urlValue);
+  if (!categoryTitle) return null;
+  const endpoint = new URL('https://commons.wikimedia.org/w/api.php');
+  endpoint.searchParams.set('action', 'query');
+  endpoint.searchParams.set('format', 'json');
+  endpoint.searchParams.set('origin', '*');
+  endpoint.searchParams.set('generator', 'categorymembers');
+  endpoint.searchParams.set('gcmtype', 'file');
+  endpoint.searchParams.set('gcmtitle', categoryTitle);
+  endpoint.searchParams.set('gcmlimit', '1');
+  endpoint.searchParams.set('prop', 'imageinfo');
+  endpoint.searchParams.set('iiprop', 'url');
+  endpoint.searchParams.set('iiurlwidth', '1200');
+  const res = await fetch(endpoint.toString());
+  if (!res.ok) return null;
+  const data = await res.json();
+  const pages = data?.query?.pages ? Object.values(data.query.pages) : [];
+  const first = pages[0];
+  const info = first?.imageinfo?.[0];
+  return info?.thumburl || info?.url || null;
 }
 
 function getSourceLabel(value) {
@@ -294,6 +355,44 @@ function PlantEcosystemHumanLead({ plant }) {
 
 function PlantMetaSections({ plant }) {
   const [bigPhoto, setBigPhoto] = useState(null);
+  const [commonsPreviewByUrl, setCommonsPreviewByUrl] = useState({});
+
+  const plantPhotoLinks = useMemo(() => {
+    const links = [];
+    for (const section of PLANT_META_SECTIONS) {
+      for (const item of section.items) {
+        if (!PHOTO_FIELD_KEYS.has(item.key)) continue;
+        const entries = parseLinkCandidates(plant[item.key]).filter(
+          (entry) => isHttpLink(entry) || isLocalUploadsPath(entry)
+        );
+        for (const entry of entries) links.push(entry);
+      }
+    }
+    return Array.from(new Set(links));
+  }, [plant]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const categoryLinks = plantPhotoLinks.filter((entry) => !!parseCommonsCategoryFromUrl(entry));
+    const missing = categoryLinks.filter(
+      (entry) => !Object.prototype.hasOwnProperty.call(commonsPreviewByUrl, entry)
+    );
+    if (missing.length === 0) return () => { cancelled = true; };
+    (async () => {
+      const resolved = {};
+      for (const link of missing) {
+        try {
+          resolved[link] = await fetchCommonsCategoryPreview(link);
+        } catch {
+          resolved[link] = null;
+        }
+      }
+      if (!cancelled) {
+        setCommonsPreviewByUrl((prev) => ({ ...prev, ...resolved }));
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [plantPhotoLinks, commonsPreviewByUrl]);
 
   const renderPhotoLinks = (item, entries) => (
     <div className="plant-photo-grid">
@@ -332,10 +431,33 @@ function PlantMetaSections({ plant }) {
                         const photoEntries = entries.filter((entry) => isHttpLink(entry) || isLocalUploadsPath(entry));
 
                         if (PHOTO_FIELD_KEYS.has(item.key) && photoEntries.length > 0) {
-                          const imageEntries = photoEntries
+                          const directImageEntries = photoEntries
                             .filter(isLikelyDirectImageUrl)
                             .map((entry) => ({ src: entry, source: entry }));
-                          const pageEntries = photoEntries.filter((entry) => !isLikelyDirectImageUrl(entry));
+                          const commonsFileEntries = photoEntries
+                            .map((entry) => {
+                              const src = commonsFilePageToDisplaySrc(entry);
+                              return src ? { src, source: entry } : null;
+                            })
+                            .filter(Boolean);
+                          const commonsCategoryImageEntries = photoEntries
+                            .filter((entry) => !!parseCommonsCategoryFromUrl(entry))
+                            .map((entry) => ({
+                              src: commonsPreviewByUrl[entry],
+                              source: entry,
+                            }))
+                            .filter((entry) => !!entry.src);
+                          const imageEntries = [
+                            ...directImageEntries,
+                            ...commonsFileEntries,
+                            ...commonsCategoryImageEntries,
+                          ];
+                          const pageEntries = photoEntries.filter((entry) => {
+                            if (isLikelyDirectImageUrl(entry)) return false;
+                            if (commonsFilePageToDisplaySrc(entry)) return false;
+                            if (parseCommonsCategoryFromUrl(entry) && commonsPreviewByUrl[entry]) return false;
+                            return true;
+                          });
                           return (
                             <>
                               {imageEntries.length > 0 && renderPhotoLinks(item, imageEntries)}
@@ -657,8 +779,8 @@ function PlantCatalogFilterPanel({
                   style={selectStyle}
                 >
                   <option value={ZONE_PRESENCE_FILTER.ALL}>Toutes les fiches</option>
-                  <option value={ZONE_PRESENCE_FILTER.IN_MAP}>Présent dans au moins une zone</option>
-                  <option value={ZONE_PRESENCE_FILTER.NOT_IN_MAP}>Sans zone associée</option>
+                  <option value={ZONE_PRESENCE_FILTER.IN_MAP}>Lié à au moins une zone ou un repère</option>
+                  <option value={ZONE_PRESENCE_FILTER.NOT_IN_MAP}>Sans lieu sur la carte</option>
                 </select>
               </div>
             )}
@@ -673,7 +795,7 @@ function PlantCatalogFilterPanel({
 }
 
 // ── PLANT MANAGER (teacher) ───────────────────────────────────────────────────
-function PlantManager({ plants, onRefresh, publicSettings = null }) {
+function PlantManager({ plants, onRefresh, publicSettings = null, zones = [], markers = [], maps = [] }) {
   const [editId,  setEditId]  = useState(null);
   const [form,    setForm]    = useState({ ...EMPTY_PLANT_FORM });
   const [showAdd, setShowAdd] = useState(false);
@@ -714,11 +836,15 @@ function PlantManager({ plants, onRefresh, publicSettings = null }) {
         plantMatchesAllFilters(
           p,
           { structured, queryTrimmedLower, zonePresence: ZONE_PRESENCE_FILTER.ALL },
-          null,
+          zones,
+          markers,
         ),
       ),
-    [plants, structured, queryTrimmedLower],
+    [plants, structured, queryTrimmedLower, zones, markers],
   );
+
+  const zonesForPlant = (p) => zones.filter((z) => plantLinkedToMapZone(p, z));
+  const markersForPlant = (p) => markers.filter((m) => plantLinkedToMapMarker(p, m));
 
   const startEdit = p => {
     setEditId(p.id);
@@ -948,7 +1074,11 @@ function PlantManager({ plants, onRefresh, publicSettings = null }) {
       )}
 
       <div className="biodiv-grid">
-        {filteredPlants.map(p => (
+        {filteredPlants.map(p => {
+          const pZones = zonesForPlant(p);
+          const pMarkers = markersForPlant(p);
+          const hasMapLink = pZones.length > 0 || pMarkers.length > 0;
+          return (
           <div key={p.id}>
             {editId === p.id ? (
               <div className="biodiv-card biodiv-card-edit fade-in">
@@ -981,11 +1111,32 @@ function PlantManager({ plants, onRefresh, publicSettings = null }) {
                   <p className="plant-row-desc">{p.description || <em style={{color:'#bbb'}}>Pas de description</em>}</p>
                   <PlantEcosystemHumanLead plant={p} />
                   <div className="task-meta">
-                    {normalizedPlantValue(p.habitat) && <span className="task-chip">🏡 {p.habitat}</span>}
-                    {normalizedPlantValue(p.agroecosystem_category) && <span className="task-chip">🌍 {p.agroecosystem_category}</span>}
+                    {normalizedPlantValue(p.habitat) && !isGenericPotagerLabel(p.habitat) && (
+                      <span className="task-chip">🏡 {p.habitat}</span>
+                    )}
+                    {normalizedPlantValue(p.agroecosystem_category) && !isGenericPotagerLabel(p.agroecosystem_category) && (
+                      <span className="task-chip">🌍 {p.agroecosystem_category}</span>
+                    )}
                   </div>
                   <PlantSummaryBadges plant={p}/>
                   <PlantMetaSections plant={p}/>
+                  {hasMapLink ? (
+                    <div>
+                      <div style={{ fontSize: '.74rem', fontWeight: 700, color: '#aaa', textTransform: 'uppercase', marginBottom: 4 }}>Sur la carte</div>
+                      <PlantLocationPreviewMaps maps={maps} zones={pZones} markers={pMarkers} />
+                      <div style={{ fontSize: '.74rem', fontWeight: 700, color: '#aaa', textTransform: 'uppercase', margin: '10px 0 4px' }}>Zones et repères</div>
+                      <div className="plant-zones">
+                        {pZones.map((z) => (
+                          <span key={`zone-${z.id}`} className="plant-zone-chip">📍 {z.name}</span>
+                        ))}
+                        {pMarkers.map((m) => (
+                          <span key={`marker-${m.id}`} className="plant-zone-chip">📌 {m.label?.trim() ? m.label : 'Repère'}</span>
+                        ))}
+                      </div>
+                    </div>
+                  ) : (
+                    <p style={{ fontSize: '.82rem', color: '#bbb', fontStyle: 'italic' }}>Pas encore associé à une zone ni à un repère sur la carte</p>
+                  )}
                 </div>
 
                 <div className="task-actions">
@@ -999,7 +1150,8 @@ function PlantManager({ plants, onRefresh, publicSettings = null }) {
               </article>
             )}
           </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
@@ -1160,8 +1312,188 @@ function ObservationNotebook({ student, zones, onForceLogout = null }) {
   );
 }
 
+// ── Mini-cartes emplacement (zones / repères) sur les fiches biodiversité ─────
+function parseZonePointsJson(raw) {
+  try {
+    const points = JSON.parse(raw || '[]');
+    if (!Array.isArray(points)) return [];
+    return points
+      .map((p) => ({ xp: Number(p?.xp), yp: Number(p?.yp) }))
+      .filter((p) => Number.isFinite(p.xp) && Number.isFinite(p.yp));
+  } catch (_) {
+    return [];
+  }
+}
+
+function computeBiodivMapFitRect(nw, nh, cw, ch) {
+  const boxW = Math.max(1, cw);
+  const boxH = Math.max(1, ch);
+  if (!nw || !nh) {
+    return { offsetX: 0, offsetY: 0, width: boxW, height: boxH };
+  }
+  const scale = Math.min(boxW / nw, boxH / nh);
+  const width = nw * scale;
+  const height = nh * scale;
+  const offsetX = (boxW - width) / 2;
+  const offsetY = (boxH - height) / 2;
+  return { offsetX, offsetY, width, height };
+}
+
+function groupPlantLocationsByMap(zoneList, markerList) {
+  const map = new Map();
+  const ensure = (mapId) => {
+    const id = mapId && String(mapId).trim() ? String(mapId).trim() : 'foret';
+    if (!map.has(id)) map.set(id, { zones: [], markers: [] });
+    return id;
+  };
+  for (const z of zoneList || []) {
+    const id = ensure(z.map_id);
+    map.get(id).zones.push(z);
+  }
+  for (const m of markerList || []) {
+    const id = ensure(m.map_id);
+    map.get(id).markers.push(m);
+  }
+  return map;
+}
+
+function BiodivLocationMapBlock({ mapId, maps, zones, markers }) {
+  const activeMap = maps.find((m) => m.id === mapId);
+  const candidates = useMemo(() => {
+    const base =
+      mapId === 'n3'
+        ? ['/maps/plan%20n3.jpg', '/maps/map-n3.svg', '/map.png']
+        : ['/map.png', '/maps/map-foret.svg'];
+    const first = activeMap?.map_image_url ? [activeMap.map_image_url] : [];
+    return [...new Set([...first, ...base])];
+  }, [activeMap?.map_image_url, mapId]);
+
+  const [ci, setCi] = useState(0);
+  useEffect(() => {
+    setCi(0);
+  }, [mapId, activeMap?.map_image_url]);
+
+  const drawableZones = useMemo(
+    () => (zones || []).filter((z) => parseZonePointsJson(z.points).length >= 3),
+    [zones],
+  );
+  const drawableMarkers = useMemo(
+    () =>
+      (markers || []).filter((mk) => {
+        const x = Number(mk.x_pct);
+        const y = Number(mk.y_pct);
+        return Number.isFinite(x) && Number.isFinite(y);
+      }),
+    [markers],
+  );
+
+  if (drawableZones.length === 0 && drawableMarkers.length === 0) return null;
+
+  const src = candidates[Math.min(ci, candidates.length - 1)];
+
+  const onImgError = useCallback(() => {
+    setCi((c) => (c < candidates.length - 1 ? c + 1 : c));
+  }, [candidates.length]);
+
+  const [imgNatural, setImgNatural] = useState({ w: 0, h: 0 });
+  const stageRef = useRef(null);
+  const [stageBox, setStageBox] = useState({ w: 0, h: 0 });
+
+  useEffect(() => {
+    const el = stageRef.current;
+    if (!el || typeof ResizeObserver === 'undefined') return undefined;
+    const ro = new ResizeObserver(() => {
+      const r = el.getBoundingClientRect();
+      setStageBox({ w: r.width, h: r.height });
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  const fit = useMemo(
+    () => computeBiodivMapFitRect(imgNatural.w, imgNatural.h, stageBox.w, stageBox.h),
+    [imgNatural.w, imgNatural.h, stageBox.w, stageBox.h],
+  );
+
+  const label = activeMap?.label || mapId;
+
+  return (
+    <div className="biodiv-location-map-wrap">
+      <div className="biodiv-location-map-label">{label}</div>
+      <div
+        ref={stageRef}
+        className="biodiv-location-map-stage"
+        role="img"
+        aria-label={`Aperçu des emplacements sur le plan ${label}`}
+      >
+        <div
+          className="biodiv-location-map-fit-layer"
+          style={
+            fit.width > 0 && fit.height > 0
+              ? { left: fit.offsetX, top: fit.offsetY, width: fit.width, height: fit.height }
+              : { left: 0, top: 0, width: '100%', height: '100%' }
+          }
+        >
+          <img
+            src={src}
+            alt=""
+            className="biodiv-location-map-img"
+            onLoad={(e) => {
+              const el = e.currentTarget;
+              setImgNatural({ w: el.naturalWidth || 0, h: el.naturalHeight || 0 });
+            }}
+            onError={onImgError}
+          />
+          <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="biodiv-location-map-svg" aria-hidden="true">
+            {drawableZones.map((z) => {
+              const pts = parseZonePointsJson(z.points);
+              const p = pts.map((pt) => `${pt.xp},${pt.yp}`).join(' ');
+              return (
+                <polygon
+                  key={z.id}
+                  points={p}
+                  fill="rgba(99,102,241,0.22)"
+                  stroke="#6366f1"
+                  strokeWidth="0.45"
+                />
+              );
+            })}
+            {drawableMarkers.map((m) => (
+              <circle
+                key={m.id}
+                className="biodiv-location-marker-dot"
+                cx={Number(m.x_pct)}
+                cy={Number(m.y_pct)}
+                r={2.4}
+              />
+            ))}
+          </svg>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function PlantLocationPreviewMaps({ maps, zones, markers }) {
+  const groups = useMemo(() => [...groupPlantLocationsByMap(zones, markers).entries()], [zones, markers]);
+  if (groups.length === 0) return null;
+  return (
+    <div className="biodiv-location-maps">
+      {groups.map(([mid, data]) => (
+        <BiodivLocationMapBlock
+          key={mid}
+          mapId={mid}
+          maps={maps}
+          zones={data.zones}
+          markers={data.markers}
+        />
+      ))}
+    </div>
+  );
+}
+
 // ── PLANT VIEWER (student read-only) ──────────────────────────────────────────
-function PlantViewer({ plants, zones, markers = [], publicSettings = null }) {
+function PlantViewer({ plants, zones, markers = [], maps = [], publicSettings = null }) {
   const [search, setSearch] = useState('');
   const [group1, setGroup1] = useState('');
   const [group2, setGroup2] = useState('');
@@ -1187,9 +1519,9 @@ function PlantViewer({ plants, zones, markers = [], publicSettings = null }) {
   const filtered = useMemo(
     () =>
       plants.filter((p) =>
-        plantMatchesAllFilters(p, { structured, queryTrimmedLower, zonePresence }, zones),
+        plantMatchesAllFilters(p, { structured, queryTrimmedLower, zonePresence }, zones, markers),
       ),
-    [plants, structured, queryTrimmedLower, zonePresence, zones],
+    [plants, structured, queryTrimmedLower, zonePresence, zones, markers],
   );
 
   const zonesForPlant = (p) => zones.filter((z) => plantLinkedToMapZone(p, z));
@@ -1264,14 +1596,20 @@ function PlantViewer({ plants, zones, markers = [], publicSettings = null }) {
                   <p className="plant-row-desc">{p.description || <em style={{ color: '#bbb' }}>Pas de description</em>}</p>
                   <PlantEcosystemHumanLead plant={p} />
                   <div className="task-meta">
-                    {normalizedPlantValue(p.habitat) && <span className="task-chip">🏡 {p.habitat}</span>}
-                    {normalizedPlantValue(p.agroecosystem_category) && <span className="task-chip">🌍 {p.agroecosystem_category}</span>}
+                    {normalizedPlantValue(p.habitat) && !isGenericPotagerLabel(p.habitat) && (
+                      <span className="task-chip">🏡 {p.habitat}</span>
+                    )}
+                    {normalizedPlantValue(p.agroecosystem_category) && !isGenericPotagerLabel(p.agroecosystem_category) && (
+                      <span className="task-chip">🌍 {p.agroecosystem_category}</span>
+                    )}
                   </div>
                   <PlantSummaryBadges plant={p} />
                   <PlantMetaSections plant={p} />
                   {hasMapLink ? (
                     <div>
-                      <div style={{ fontSize: '.74rem', fontWeight: 700, color: '#aaa', textTransform: 'uppercase', marginBottom: 4 }}>Zones et repères</div>
+                      <div style={{ fontSize: '.74rem', fontWeight: 700, color: '#aaa', textTransform: 'uppercase', marginBottom: 4 }}>Sur la carte</div>
+                      <PlantLocationPreviewMaps maps={maps} zones={pZones} markers={pMarkers} />
+                      <div style={{ fontSize: '.74rem', fontWeight: 700, color: '#aaa', textTransform: 'uppercase', margin: '10px 0 4px' }}>Zones et repères</div>
                       <div className="plant-zones">
                         {pZones.map((z) => (
                           <span key={`zone-${z.id}`} className="plant-zone-chip">📍 {z.name}</span>
@@ -1282,7 +1620,7 @@ function PlantViewer({ plants, zones, markers = [], publicSettings = null }) {
                       </div>
                     </div>
                   ) : (
-                    <p style={{ fontSize: '.82rem', color: '#bbb', fontStyle: 'italic' }}>Pas encore associé à une zone ni à un repère</p>
+                    <p style={{ fontSize: '.82rem', color: '#bbb', fontStyle: 'italic' }}>Pas encore associé à une zone ni à un repère sur la carte</p>
                   )}
                 </div>
               </article>

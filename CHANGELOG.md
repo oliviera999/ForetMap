@@ -6,6 +6,8 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 ## [Non publié]
 
 ### Ajouté
+- **Biodiversité** : bloc **Sur la carte** — mini-plan (par carte concernée) avec surcouche **violette** des zones et repères liés à l’espèce (même logique visuelle que les tutoriels sur la carte) ; affiché **uniquement** si la fiche est liée à au moins une zone ou un repère. Catalogue élève et base prof. **`foretmap-views.jsx`**, **`App.jsx`**, **`index.css`**, build **`dist/`**.
+
 - **Carte — textes visite (zones & repères)** : sous-titre, description courte et bloc dépliable (comme en mode visite) affichés dans les fiches **Info** / modale repère ; éditables par le prof dans **Modifier** (zone) ou le formulaire repère. API : **`GET /api/zones`**, **`GET /api/zones/:id`**, **`GET /api/map/markers`** enrichis (`visit_*`) ; **`PUT /api/zones/:id`** et **`POST`/`PUT` repères** acceptent ces champs et upsert **`visit_zones`** / **`visit_markers`**. **`routes/zones.js`**, **`routes/map.js`**, **`map-views.jsx`**, **`docs/API.md`**.
 
 - **Tâches & tutoriels par lieu** : en vue **Cartes & tâches** (split), un clic sur une **zone** ou un **repère** met à jour le filtre lieu du panneau Tâches ; en **carte seule**, la **modale** reste ouverte et un bouton **Ouvrir l’onglet Tâches filtré** y propose d’aller sur la liste filtrée. L’onglet s’intitule **Tâches et tuto** lorsque le module tutoriels est actif ; bloc **Tutoriels pour ce lieu** (liste, **Consulter** côté élève ; **Lier** / **Délier** côté prof). Le sélecteur de lieu inclut aussi les zones/repères qui n’ont que des tutoriels. **`App.jsx`**, **`map-views.jsx`**, **`tasks-views.jsx`**.
@@ -21,6 +23,8 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - **Biodiversité** : filtres avancés (sous-groupes 1 et 2, habitat, catégorie d’agrosystème), recherche texte élargie (habitat, origine géographique, partie à récolter) ; côté élève, filtre **présence sur la carte** et compteur **X / Y** ; module **`src/utils/plantFilters.js`**, **`foretmap-views.jsx`**, build **`dist/`** ; e2e navigation élève ouvre **Filtres avancés**.
 
 ### Modifié
+- **Biodiversité** : les pastilles **🏡** / **🌍** avec le seul libellé **Potager** (insensible à la casse) sont masquées — information redondante souvent identique sur toutes les fiches. Le filtre **présence sur la carte** inclut désormais les **repères** (libellés : lieu sur la carte / zone ou repère). **`plantFilters.js`**, **`foretmap-views.jsx`**.
+
 - **Build** : régénération des artefacts **`dist/`** (bundle Vite production aligné sur les sources courantes).
 
 - **Tutoriels (liste)** : chaque carte affiche les **zones** et **repères** liés en puces individuelles (`task-chip`), comme les lieux sur les tuiles tâches, au lieu d’un seul compteur agrégé. **`tutorials-views.jsx`**.

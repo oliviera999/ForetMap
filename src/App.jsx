@@ -1627,6 +1627,7 @@ function App() {
                         markers={markers}
                         maps={visibleMaps}
                         tutorials={tutorials}
+                        plants={plants}
                         activeMapId={activeMapId}
                         isTeacher
                         student={currentUser}
@@ -1646,8 +1647,17 @@ function App() {
                 </div>
               )}
               {!useSplitMapTasks && tab === 'map'    && <MapView zones={zones} markers={markers} tasks={tasks} tutorials={tutorials} plants={plants} maps={visibleMaps} activeMapId={activeMapId} onMapChange={setActiveMapId} isTeacher student={currentUser} canSelfAssignTasks canParticipateContextComments={canParticipateContextComments} onZoneUpdate={updateZone} onRefresh={fetchAll} publicSettings={publicSettings} onLocationTasksFocus={handleMapLocationTasksFocus} onNavigateToTasksForLocation={(effectiveIsTeacher || canAccessStudentMapTasks) ? navigateToTasksForLocation : undefined}/>}
-              {!useSplitMapTasks && tab === 'tasks'  && <TasksView  tasks={tasks} taskProjects={taskProjects} zones={zones} markers={markers} maps={visibleMaps} tutorials={tutorials} activeMapId={activeMapId} isTeacher student={currentUser} canSelfAssignTasks canParticipateContextComments={canParticipateContextComments} canViewOtherUsersIdentity onRefresh={fetchAll} onForceLogout={forceLogout} isN3Affiliated={isN3Affiliated} publicSettings={publicSettings} onTaskFormOverlayOpenChange={onTaskFormOverlayOpenChange} mapLocationFocus={tasksLocationFocus} onMapLocationFocusChange={setTasksLocationFocus} />}
-              {tab === 'plants' && <PlantManager plants={plants} onRefresh={fetchAll} publicSettings={publicSettings}/>}
+              {!useSplitMapTasks && tab === 'tasks'  && <TasksView  tasks={tasks} taskProjects={taskProjects} zones={zones} markers={markers} maps={visibleMaps} tutorials={tutorials} plants={plants} activeMapId={activeMapId} isTeacher student={currentUser} canSelfAssignTasks canParticipateContextComments={canParticipateContextComments} canViewOtherUsersIdentity onRefresh={fetchAll} onForceLogout={forceLogout} isN3Affiliated={isN3Affiliated} publicSettings={publicSettings} onTaskFormOverlayOpenChange={onTaskFormOverlayOpenChange} mapLocationFocus={tasksLocationFocus} onMapLocationFocusChange={setTasksLocationFocus} />}
+              {tab === 'plants' && (
+                <PlantManager
+                  plants={plants}
+                  onRefresh={fetchAll}
+                  publicSettings={publicSettings}
+                  zones={zones}
+                  markers={markers}
+                  maps={visibleMaps}
+                />
+              )}
               {publicSettings?.modules?.tutorials_enabled !== false && tab === 'tuto'   && <TutorialsView tutorials={tutorials} zones={zones} markers={markers} maps={visibleMaps} activeMapId={activeMapId} isTeacher onRefresh={fetchAll} onForceLogout={forceLogout} />}
               {publicSettings?.modules?.stats_enabled !== false && tab === 'stats'  && (hasPermission('stats.read.all') ? <TeacherStats isN3Affiliated={isN3Affiliated} /> : <div className="empty"><p>Pas l’accès stats ici — demande un coup de main côté n3boss si besoin.</p></div>)}
               {tab === 'profiles' && (
@@ -1708,6 +1718,7 @@ function App() {
                           markers={markers}
                           maps={visibleMaps}
                           tutorials={tutorials}
+                          plants={plants}
                           activeMapId={activeMapId}
                           isTeacher={false}
                           student={studentForUi}
@@ -1728,8 +1739,16 @@ function App() {
                   </div>
                 )}
                 {!useSplitMapTasks && tab === 'map'    && canAccessStudentMapTasks && <MapView zones={zones} markers={markers} tasks={tasks} tutorials={tutorials} plants={plants} maps={visibleMaps} activeMapId={activeMapId} onMapChange={setActiveMapId} isTeacher={false} student={studentForUi} canSelfAssignTasks={canSelfAssignTasks} canEnrollOnTasks={canSelfAssignMoreTasks} canParticipateContextComments={canParticipateContextComments} onZoneUpdate={updateZone} onRefresh={fetchAll} publicSettings={publicSettings} onLocationTasksFocus={handleMapLocationTasksFocus} onNavigateToTasksForLocation={navigateToTasksForLocation}/>}
-                {!useSplitMapTasks && tab === 'tasks'  && canAccessStudentMapTasks && <TasksView tasks={tasks} taskProjects={taskProjects} zones={zones} markers={markers} maps={visibleMaps} tutorials={tutorials} activeMapId={activeMapId} isTeacher={false} student={studentForUi} canSelfAssignTasks={canSelfAssignTasks} canEnrollOnTasks={canSelfAssignMoreTasks} canParticipateContextComments={canParticipateContextComments} canViewOtherUsersIdentity={canViewOtherUsersIdentity} onRefresh={fetchAll} onForceLogout={forceLogout} isN3Affiliated={isN3Affiliated} publicSettings={publicSettings} onTaskFormOverlayOpenChange={onTaskFormOverlayOpenChange} mapLocationFocus={tasksLocationFocus} onMapLocationFocusChange={setTasksLocationFocus} />}
-                {tab === 'plants' && <PlantViewer plants={plants} zones={zones} markers={markers} publicSettings={publicSettings}/>}
+                {!useSplitMapTasks && tab === 'tasks'  && canAccessStudentMapTasks && <TasksView tasks={tasks} taskProjects={taskProjects} zones={zones} markers={markers} maps={visibleMaps} tutorials={tutorials} plants={plants} activeMapId={activeMapId} isTeacher={false} student={studentForUi} canSelfAssignTasks={canSelfAssignTasks} canEnrollOnTasks={canSelfAssignMoreTasks} canParticipateContextComments={canParticipateContextComments} canViewOtherUsersIdentity={canViewOtherUsersIdentity} onRefresh={fetchAll} onForceLogout={forceLogout} isN3Affiliated={isN3Affiliated} publicSettings={publicSettings} onTaskFormOverlayOpenChange={onTaskFormOverlayOpenChange} mapLocationFocus={tasksLocationFocus} onMapLocationFocusChange={setTasksLocationFocus} />}
+                {tab === 'plants' && (
+                  <PlantViewer
+                    plants={plants}
+                    zones={zones}
+                    markers={markers}
+                    maps={visibleMaps}
+                    publicSettings={publicSettings}
+                  />
+                )}
                 {publicSettings?.modules?.tutorials_enabled !== false && tab === 'tuto' && <TutorialsView tutorials={tutorials} zones={zones} markers={markers} maps={visibleMaps} activeMapId={activeMapId} isTeacher={false} onRefresh={fetchAll} onForceLogout={forceLogout} />}
                 {tab === 'stats' && canViewGeneralStats && <TeacherStats isN3Affiliated={isN3Affiliated} />}
                 {publicSettings?.modules?.observations_enabled !== false && tab === 'notebook' && <ObservationNotebook student={studentForUi} zones={zones} onForceLogout={forceLogout} />}

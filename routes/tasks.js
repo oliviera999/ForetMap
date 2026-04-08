@@ -167,6 +167,37 @@ function taskDifficultyLevelForResponse(value) {
   return ALLOWED_TASK_DIFFICULTY_LEVELS.has(raw) ? raw : null;
 }
 
+/** Liste de noms d’êtres vivants (catalogue biodiversité), comme zones/repères. */
+function normalizeTaskLivingBeingsInput(input, fallback = '') {
+  const base = Array.isArray(input)
+    ? input
+    : typeof input === 'string' && input.trim()
+      ? (() => {
+        try {
+          const parsed = JSON.parse(input);
+          if (Array.isArray(parsed)) return parsed;
+        } catch (_) {
+          /* ignore */
+        }
+        return input.split(',');
+      })()
+      : [];
+  const cleaned = [...new Set(base.map((v) => String(v || '').trim()).filter(Boolean))];
+  if (cleaned.length === 0 && fallback && String(fallback).trim()) return [String(fallback).trim()];
+  return cleaned;
+}
+
+function serializeTaskLivingBeingsForDb(input) {
+  const arr = normalizeTaskLivingBeingsInput(input, '');
+  return arr.length ? JSON.stringify(arr) : null;
+}
+
+function attachTaskLivingBeingsApiFields(task) {
+  if (!task) return;
+  task.living_beings_list = normalizeTaskLivingBeingsInput(task.living_beings, '');
+  delete task.living_beings;
+}
+
 const MAX_TASK_IMAGE_BYTES = 4 * 1024 * 1024;
 
 function taskImageExtensionFromBuffer(buf) {
@@ -975,6 +1006,7 @@ async function getTaskWithAssignments(taskId) {
   task.assignees_total_count = task.assigned_count;
   task.assignees_done_count = countDoneAssignments(task.assignments);
   task.proposed_by_student_id = await getTaskProposerStudentId(taskId);
+  attachTaskLivingBeingsApiFields(task);
   attachTaskImagePublicFields(task);
   return task;
 }
@@ -1161,6 +1193,7 @@ router.get('/', async (req, res) => {
       row.assignees_total_count = row.assigned_count;
       row.assignees_done_count = doneCountByTask.get(t.id) || 0;
       row.proposed_by_student_id = proposerByTask.get(t.id) || null;
+      attachTaskLivingBeingsApiFields(row);
       attachTaskImagePublicFields(row);
       return row;
     });
@@ -1563,6 +1596,7 @@ router.post('/', requirePermission('tasks.manage', { needsElevation: true }), as
       completion_mode,
       danger_level,
       difficulty_level,
+      living_beings,
       imageData,
     } = req.body;
     if (!title) return res.status(400).json({ error: 'Titre requis' });
@@ -1597,9 +1631,12 @@ router.post('/', requirePermission('tasks.manage', { needsElevation: true }), as
     if (parsedDanger.error) return res.status(400).json({ error: parsedDanger.error });
     const parsedDifficulty = parseTaskDifficultyLevelFromClient(difficulty_level);
     if (parsedDifficulty.error) return res.status(400).json({ error: parsedDifficulty.error });
+    const livingDb = Object.prototype.hasOwnProperty.call(req.body || {}, 'living_beings')
+      ? serializeTaskLivingBeingsForDb(living_beings)
+      : null;
     const id = uuidv4();
     await execute(
-      'INSERT INTO tasks (id, title, description, map_id, project_id, zone_id, marker_id, start_date, due_date, required_students, completion_mode, danger_level, difficulty_level, recurrence, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      'INSERT INTO tasks (id, title, description, map_id, project_id, zone_id, marker_id, start_date, due_date, required_students, completion_mode, danger_level, difficulty_level, living_beings, recurrence, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
       [
         id,
         title,
@@ -1614,6 +1651,7 @@ router.post('/', requirePermission('tasks.manage', { needsElevation: true }), as
         completionMode,
         parsedDanger.level,
         parsedDifficulty.level,
+        livingDb,
         recurrence || null,
         new Date().toISOString(),
       ]
@@ -1669,6 +1707,7 @@ router.post('/proposals', async (req, res) => {
       profilePin,
       danger_level,
       difficulty_level,
+      living_beings,
     } = req.body || {};
     if (!title || !String(title).trim()) return res.status(400).json({ error: 'Titre requis' });
     if (!firstName || !lastName) return res.status(400).json({ error: 'Nom requis' });
@@ -1711,11 +1750,14 @@ router.post('/proposals', async (req, res) => {
     const finalDescription = [baseDescription, proposer ? `Proposition n3beur: ${proposer}` : '']
       .filter(Boolean)
       .join('\n\n');
+    const proposalLivingDb = Object.prototype.hasOwnProperty.call(req.body || {}, 'living_beings')
+      ? serializeTaskLivingBeingsForDb(living_beings)
+      : null;
     await execute(
       `INSERT INTO tasks (
         id, title, description, map_id, project_id, zone_id, marker_id,
-        start_date, due_date, required_students, completion_mode, danger_level, difficulty_level, status, recurrence, created_at
-      ) VALUES (?, ?, ?, ?, NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        start_date, due_date, required_students, completion_mode, danger_level, difficulty_level, living_beings, status, recurrence, created_at
+      ) VALUES (?, ?, ?, ?, NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         id,
         String(title).trim(),
@@ -1729,6 +1771,7 @@ router.post('/proposals', async (req, res) => {
         'single_done',
         proposalDangerParsed.level,
         proposalDifficultyParsed.level,
+        proposalLivingDb,
         'proposed',
         null,
         new Date().toISOString(),
@@ -1811,6 +1854,7 @@ router.put('/:id', async (req, res) => {
       completion_mode,
       danger_level,
       difficulty_level,
+      living_beings,
     } = req.body;
 
     let nextZoneIds;
@@ -1893,6 +1937,11 @@ router.put('/:id', async (req, res) => {
       nextDifficultyLevel = task.difficulty_level;
     }
 
+    let nextLivingDb = task.living_beings;
+    if (Object.prototype.hasOwnProperty.call(req.body, 'living_beings')) {
+      nextLivingDb = serializeTaskLivingBeingsForDb(living_beings);
+    }
+
     const currentStatus = normalizeTaskStatusForRead(task.status);
     const currentZoneIds = await getTaskZoneIds(task.id);
     const currentMarkerIds = await getTaskMarkerIds(task.id);
@@ -1915,7 +1964,7 @@ router.put('/:id', async (req, res) => {
     }
 
     await execute(
-      'UPDATE tasks SET title=?, description=?, map_id=?, project_id=?, zone_id=?, marker_id=?, start_date=?, due_date=?, required_students=?, status=?, completion_mode=?, danger_level=?, difficulty_level=?, recurrence=? WHERE id=?',
+      'UPDATE tasks SET title=?, description=?, map_id=?, project_id=?, zone_id=?, marker_id=?, start_date=?, due_date=?, required_students=?, status=?, completion_mode=?, danger_level=?, difficulty_level=?, living_beings=?, recurrence=? WHERE id=?',
       [
         title ?? task.title,
         description ?? task.description,
@@ -1930,6 +1979,7 @@ router.put('/:id', async (req, res) => {
         nextCompletionMode,
         nextDangerLevel,
         nextDifficultyLevel,
+        nextLivingDb,
         isTeacherAction
           ? (recurrence !== undefined ? recurrence || null : task.recurrence || null)
           : task.recurrence || null,

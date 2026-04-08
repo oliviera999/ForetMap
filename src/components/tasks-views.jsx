@@ -13,6 +13,12 @@ import { ContextComments } from './context-comments';
 import { HELP_PANELS, HELP_TOOLTIPS, resolveRoleText } from '../constants/help';
 import { lockBodyScroll } from '../utils/body-scroll-lock';
 import { isStudentAssignedToTask } from '../utils/task-assignments';
+import { orderedLivingBeingsForForm, nextLivingBeingsFromMultiSelect } from '../utils/livingBeings';
+
+function taskLivingBeingEmoji(plants, name) {
+  const p = (plants || []).find((x) => x.name === name);
+  return p?.emoji || '🌱';
+}
 
 function Toast({ msg, onDone }) {
   useEffect(() => { const t = setTimeout(onDone, 2400); return () => clearTimeout(t); }, []);
@@ -187,6 +193,7 @@ function TaskFormModal({
   maps = [],
   taskProjects = [],
   tutorials = [],
+  plants = [],
   referentCandidates = [],
   students = [],
   activeMapId = 'foret',
@@ -226,10 +233,11 @@ function TaskFormModal({
     danger_level: editTask.danger_level != null && editTask.danger_level !== '' ? editTask.danger_level : '',
     difficulty_level: editTask.difficulty_level != null && editTask.difficulty_level !== '' ? editTask.difficulty_level : '',
     recurrence: editTask.recurrence || '',
+    living_beings: orderedLivingBeingsForForm(editTask.living_beings_list || editTask.living_beings, ''),
     assign_student_ids: []
   } : {
     title: '', description: '', map_id: initialMapId || '',
-    zone_ids: [], marker_ids: [], tutorial_ids: [], referent_user_ids: [],
+    zone_ids: [], marker_ids: [], tutorial_ids: [], referent_user_ids: [], living_beings: [],
     project_id: defaultProjectForNew ? String(defaultProjectForNew.id) : '',
     start_date: '', due_date: '', required_students: 1, completion_mode: 'single_done', danger_level: '', difficulty_level: '', recurrence: '',
     assign_student_ids: []
@@ -419,6 +427,7 @@ function TaskFormModal({
       danger_level: form.danger_level ? form.danger_level : null,
       difficulty_level: form.difficulty_level ? form.difficulty_level : null,
       recurrence: form.recurrence || null,
+      living_beings: [...new Set((form.living_beings || []).map((n) => String(n || '').trim()).filter(Boolean))],
       assign_student_ids: [...new Set((form.assign_student_ids || []).map((id) => String(id || '').trim()).filter(Boolean))],
     };
     if (!payload.map_id && (payload.zone_ids.length || payload.marker_ids.length)) {
@@ -624,6 +633,32 @@ function TaskFormModal({
               </>
             )}
           </div>
+        </div>
+        <div className="field">
+          <label>Êtres vivants (biodiversité)</label>
+          <p style={{ fontSize: '.74rem', color: '#64748b', margin: '0 0 6px', lineHeight: 1.4 }}>
+            Optionnel — comme pour les zones et les repères. Ctrl / Cmd + clic pour en choisir plusieurs.
+          </p>
+          {plants.length === 0 ? (
+            <p className="task-form-pick-empty">Catalogue biodiversité indisponible ici.</p>
+          ) : (
+            <select
+              multiple
+              size={Math.min(8, Math.max(4, plants.length + 1))}
+              value={form.living_beings}
+              onChange={(e) => {
+                const picked = Array.from(e.target.selectedOptions).map((opt) => opt.value);
+                setForm((f) => ({
+                  ...f,
+                  living_beings: nextLivingBeingsFromMultiSelect(f.living_beings, picked, plants),
+                }));
+              }}
+            >
+              {plants.map((p) => (
+                <option key={p.id} value={p.name}>{p.emoji} {p.name}</option>
+              ))}
+            </select>
+          )}
         </div>
         {!isProposal && (
           <div className="field"><label>Tutoriels associés (optionnel)</label>
@@ -1307,7 +1342,7 @@ function mapLabelFromMaps(mapId, maps) {
   return map ? map.label : mapId;
 }
 
-function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], tutorials = [], activeMapId = 'foret', isTeacher, student, canSelfAssignTasks = true, canEnrollOnTasks, canParticipateContextComments = true, canViewOtherUsersIdentity = true, onRefresh, onForceLogout, isN3Affiliated = false, publicSettings = null, onTaskFormOverlayOpenChange = null, mapLocationFocus = null, onMapLocationFocusChange = null }) {
+function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], tutorials = [], plants = [], activeMapId = 'foret', isTeacher, student, canSelfAssignTasks = true, canEnrollOnTasks, canParticipateContextComments = true, canViewOtherUsersIdentity = true, onRefresh, onForceLogout, isN3Affiliated = false, publicSettings = null, onTaskFormOverlayOpenChange = null, mapLocationFocus = null, onMapLocationFocusChange = null }) {
   const canEnrollNewTask = canEnrollOnTasks !== undefined ? canEnrollOnTasks : canSelfAssignTasks;
   const roleTerms = getRoleTerms(isN3Affiliated);
   const [showForm, setShowForm] = useState(false);
@@ -1940,6 +1975,7 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
     viewMode,
     isN3Affiliated,
     student,
+    plants,
     isTeacher,
     canViewOtherUsersIdentity,
     canEnrollNewTask,
@@ -1984,6 +2020,7 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
           maps={maps}
           taskProjects={taskProjects}
           tutorials={tutorials}
+          plants={plants}
           referentCandidates={referentCandidates}
           students={teacherStudents}
           activeMapId={activeMapId}
@@ -2756,6 +2793,7 @@ function TaskTileCard({
   viewMode,
   isN3Affiliated,
   student,
+  plants = [],
   isTeacher,
   canViewOtherUsersIdentity,
   canEnrollNewTask,
@@ -2846,6 +2884,11 @@ function TaskTileCard({
             <span key={m.id} className="task-chip">📍 {m.label}</span>
           ))}
           {!((t.markers_linked || []).length) && t.marker_label && <span className="task-chip">📍 {t.marker_label}</span>}
+          {(Array.isArray(t.living_beings_list) ? t.living_beings_list : []).map((name) => (
+            <span key={`lb-${t.id}-${name}`} className="task-chip">
+              {taskLivingBeingEmoji(plants, name)} {name}
+            </span>
+          ))}
           {(t.tutorials_linked || []).map((tu) => (
             <span key={tu.id} className="task-chip">📘 {tu.title}</span>
           ))}

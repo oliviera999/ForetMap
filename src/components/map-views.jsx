@@ -23,6 +23,7 @@ import { HELP_PANELS, HELP_TOOLTIPS, resolveRoleText } from '../constants/help';
 import { lockBodyScroll } from '../utils/body-scroll-lock';
 import { resolveMapOverlayTypography } from '../utils/mapOverlayTypography';
 import { isStudentAssignedToTask } from '../utils/task-assignments';
+import { parseLivingBeings, orderedLivingBeingsForForm, nextLivingBeingsFromMultiSelect } from '../utils/livingBeings';
 
 function Toast({ msg, onDone }) {
   useEffect(() => { const t = setTimeout(onDone, 2400); return () => clearTimeout(t); }, []);
@@ -81,45 +82,6 @@ function Lightbox({ src, caption, onClose }) {
   );
 
   return createPortal(content, el);
-}
-
-function parseLivingBeings(value, fallback = '') {
-  const raw = Array.isArray(value) ? value : (() => {
-    if (!value) return [];
-    if (typeof value === 'string') {
-      try {
-        const parsed = JSON.parse(value);
-        if (Array.isArray(parsed)) return parsed;
-      } catch (_) {}
-      return value.split(',');
-    }
-    return [];
-  })();
-  const cleaned = [...new Set(raw.map(v => String(v || '').trim()).filter(Boolean))];
-  if (cleaned.length === 0 && fallback) return [String(fallback).trim()];
-  return cleaned;
-}
-
-/** Met l’être vivant « principal » en tête (aligné sur current_plant / plant_name côté API). */
-function orderedLivingBeingsForForm(value, primary) {
-  const list = parseLivingBeings(value, primary);
-  const p = primary != null && String(primary).trim() ? String(primary).trim() : '';
-  if (!p) return list;
-  const rest = list.filter((n) => n !== p);
-  return [p, ...rest];
-}
-
-/**
- * Préserve l’ordre des sélections quand l’utilisateur coche/décoche (Ctrl/Cmd + clic).
- * Les nouveaux noms sont ajoutés dans l’ordre du catalogue `plants`.
- */
-function nextLivingBeingsFromMultiSelect(prevOrdered, selectedNames, plants) {
-  const selectedSet = new Set(selectedNames);
-  const kept = prevOrdered.filter((name) => selectedSet.has(name));
-  const added = plants
-    .map((p) => p.name)
-    .filter((name) => selectedSet.has(name) && !kept.includes(name));
-  return [...kept, ...added];
 }
 
 /** Emoji catalogue plantes pour un nom d’être vivant (fiches Info zone/repère). */

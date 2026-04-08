@@ -1119,6 +1119,31 @@ test('Tâche liée à plusieurs zones et repères sur la même carte', async () 
     .expect(400);
 });
 
+test('Les tâches acceptent des êtres vivants (biodiversité) associés', async () => {
+  const token = await getAdminAuthToken();
+  const created = await request(app)
+    .post('/api/tasks')
+    .set('Authorization', 'Bearer ' + token)
+    .send({
+      title: `Tâche biodiv ${Date.now()}`,
+      map_id: 'foret',
+      required_students: 1,
+      living_beings: ['Menthe', 'Tomate'],
+    })
+    .expect(201);
+  assert.ok(Array.isArray(created.body.living_beings_list));
+  assert.ok(created.body.living_beings_list.includes('Menthe'));
+  assert.ok(created.body.living_beings_list.includes('Tomate'));
+  assert.strictEqual(created.body.living_beings, undefined);
+
+  const updated = await request(app)
+    .put(`/api/tasks/${created.body.id}`)
+    .set('Authorization', 'Bearer ' + token)
+    .send({ living_beings: ['Basilic'] })
+    .expect(200);
+  assert.deepStrictEqual(updated.body.living_beings_list, ['Basilic']);
+});
+
 test('Zones et repères acceptent plusieurs êtres vivants associés', async () => {
   const token = await getAdminAuthToken();
 
