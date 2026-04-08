@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 import { api, AccountDeletedError } from '../services/api';
 import { MARKER_EMOJIS, parseEmojiListSetting, detectLeadingMarkerEmoji, stripLeadingMarkerEmoji } from '../constants/emojis';
 import { getRoleTerms } from '../utils/n3-terminology';
@@ -507,6 +507,27 @@ function VisitView({
   }, []);
   useOverlayHistoryBack(isGuestPublicVisit && !!selected, clearGuestSelection);
 
+  const visitProgressLabelId = useId();
+
+  /** Zones affichées sur le plan (polygone valide) + repères : aligné sur ce que l’utilisateur peut parcourir sur la carte courante. */
+  const visitCartographyProgress = useMemo(() => {
+    const zones = content.zones || [];
+    const markers = content.markers || [];
+    let total = 0;
+    let seenCount = 0;
+    for (const z of zones) {
+      if (parsePctPoints(z.points).length < 3) continue;
+      total += 1;
+      if (seen.has(itemSeenKey('zone', z.id))) seenCount += 1;
+    }
+    for (const m of markers) {
+      total += 1;
+      if (seen.has(itemSeenKey('marker', m.id))) seenCount += 1;
+    }
+    const pct = total > 0 ? Math.min(100, Math.round((seenCount / total) * 100)) : 0;
+    return { total, seenCount, pct };
+  }, [content.zones, content.markers, seen]);
+
   useEffect(() => {
     const next = String(initialMapId || 'foret').trim() || 'foret';
     setMapId((prev) => (prev === next ? prev : next));
@@ -949,6 +970,46 @@ function VisitView({
           ))}
         </div>
       )}
+
+      {visitCartographyProgress.total > 0 ? (
+        <div className="visit-progress">
+          <div className="visit-progress-head">
+            <span id={visitProgressLabelId} className="visit-progress-label">
+              Progression sur cette carte :{' '}
+              <strong>
+                {visitCartographyProgress.seenCount} / {visitCartographyProgress.total}
+              </strong>
+              {' '}
+              <span className="visit-progress-hint">
+                (zones et repères marqués « vus »)
+              </span>
+            </span>
+            <span className="visit-progress-pct" aria-hidden="true">
+              {visitCartographyProgress.pct} %
+            </span>
+          </div>
+          <div
+            className="visit-progress-track"
+            role="progressbar"
+            aria-valuemin={0}
+            aria-valuemax={visitCartographyProgress.total}
+            aria-valuenow={visitCartographyProgress.seenCount}
+            aria-labelledby={visitProgressLabelId}
+          >
+            <div
+              className="visit-progress-fill"
+              style={{ width: `${visitCartographyProgress.pct}%` }}
+            />
+          </div>
+        </div>
+      ) : (
+        <p className="visit-progress-empty section-sub">
+          {maps.length > 1
+            ? 'Aucune zone ni repère sur cette carte. Choisis une autre carte ci-dessus si besoin.'
+            : 'Aucune zone ni repère sur cette carte pour l’instant.'}
+        </p>
+      )}
+
       {isTeacher && (
         <div className="visit-map-switch">
           <button className={`btn btn-sm ${mode === 'view' ? 'btn-primary' : 'btn-ghost'}`} onClick={() => { setMode('view'); setDrawPoints([]); }}>

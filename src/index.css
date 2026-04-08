@@ -2383,6 +2383,51 @@
       flex-wrap:wrap;
     }
     .visit-map-switch { display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+    .visit-progress {
+      background:#f4faf6;
+      border:1px solid var(--mint);
+      border-radius:12px;
+      padding:10px 12px;
+      display:grid;
+      gap:8px;
+    }
+    .visit-progress-head {
+      display:flex;
+      justify-content:space-between;
+      align-items:baseline;
+      gap:10px;
+      flex-wrap:wrap;
+    }
+    .visit-progress-label {
+      font-size:.88rem;
+      color:#2d4a3e;
+      line-height:1.35;
+    }
+    .visit-progress-label strong { color:var(--forest); }
+    .visit-progress-hint {
+      font-size:.78rem;
+      color:#5b655f;
+      font-weight:500;
+    }
+    .visit-progress-pct {
+      font-size:.85rem;
+      font-weight:700;
+      color:var(--forest);
+      white-space:nowrap;
+    }
+    .visit-progress-track {
+      height:10px;
+      border-radius:999px;
+      background:rgba(26,71,49,.12);
+      overflow:hidden;
+    }
+    .visit-progress-fill {
+      height:100%;
+      border-radius:999px;
+      background:linear-gradient(90deg, var(--leaf), var(--forest));
+      transition:width .28s ease;
+    }
+    .visit-progress-empty { margin:0; }
     .visit-sync-card {
       background:white; border:1px solid var(--mint); border-radius:12px;
       box-shadow:var(--shadow); padding:12px; display:grid; gap:10px;
