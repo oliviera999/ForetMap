@@ -2067,6 +2067,17 @@
         min-height:min(55vh, 380px);
       }
     }
+    button.task-chip.living-being-catalog-chip {
+      cursor:pointer;
+      font:inherit;
+      text-align:center;
+      min-height:44px;
+      padding:6px 12px;
+      box-sizing:border-box;
+    }
+    button.task-chip.living-being-catalog-chip:hover {
+      filter:brightness(0.97);
+    }
     button.task-chip.tuto-linked-tasks-pill {
       cursor:pointer;
       font:inherit;

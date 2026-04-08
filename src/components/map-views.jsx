@@ -90,6 +90,156 @@ function livingBeingEmoji(plants, name) {
   return p?.emoji || '🌱';
 }
 
+function livingBeingCatalogText(value) {
+  const t = String(value ?? '').trim();
+  return t.length ? t : null;
+}
+
+/** Liste d’êtres vivants cliquable + extrait catalogue (description, rôle, utilité). */
+function LivingBeingsCatalogPanel({ plants, names, showHeading = true }) {
+  const list = names || [];
+  const listKey = useMemo(() => list.join('\u0001'), [list]);
+  const [selectedName, setSelectedName] = useState(() => list[0] || null);
+
+  useEffect(() => {
+    if (!list.length) {
+      setSelectedName(null);
+      return;
+    }
+    setSelectedName((prev) => (prev && list.includes(prev) ? prev : list[0]));
+  }, [listKey]);
+
+  if (!list.length) return null;
+
+  const selectedPlant = selectedName ? (plants || []).find((p) => p.name === selectedName) : null;
+  const desc = selectedPlant ? livingBeingCatalogText(selectedPlant.description) : null;
+  const role = selectedPlant ? livingBeingCatalogText(selectedPlant.ecosystem_role) : null;
+  const utility = selectedPlant ? livingBeingCatalogText(selectedPlant.human_utility) : null;
+
+  const labelStyle = {
+    fontSize: '.72rem',
+    fontWeight: 700,
+    color: '#64748b',
+    textTransform: 'uppercase',
+    marginBottom: 4,
+    marginTop: 10,
+  };
+
+  return (
+    <div style={{
+      background: 'var(--parchment)',
+      borderRadius: 10,
+      padding: '10px 14px',
+      marginBottom: 12,
+      border: '1px solid rgba(0,0,0,.06)',
+    }}>
+      {showHeading && (
+        <div style={{
+          fontSize: '.78rem',
+          fontWeight: 700,
+          color: '#64748b',
+          marginBottom: 8,
+          textTransform: 'uppercase',
+        }}>
+          Êtres vivants
+        </div>
+      )}
+      <p style={{ fontSize: '.72rem', color: '#64748b', margin: '0 0 8px', lineHeight: 1.45 }}>
+        Touche ou clique un nom pour afficher la fiche du catalogue (description, rôle, utilité).
+      </p>
+      <div
+        style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}
+        role="group"
+        aria-label="Sélection d’un être vivant pour la fiche catalogue"
+      >
+        {list.map((name, i) => {
+          const isSel = selectedName === name;
+          const isPrimary = i === 0;
+          return (
+            <button
+              type="button"
+              key={name}
+              className="task-chip living-being-catalog-chip"
+              aria-pressed={isSel}
+              title={isPrimary ? 'Être vivant principal (carte et fiches)' : undefined}
+              onClick={() => setSelectedName(name)}
+              style={{
+                fontWeight: isPrimary ? 700 : 500,
+                border: isSel
+                  ? '2px solid var(--forest)'
+                  : isPrimary
+                    ? '1px solid var(--forest)'
+                    : '1px solid rgba(0,0,0,.12)',
+                cursor: 'pointer',
+                fontFamily: 'inherit',
+                background: isSel ? 'rgba(26, 71, 49, 0.08)' : undefined,
+              }}
+            >
+              {livingBeingEmoji(plants, name)} {name}
+            </button>
+          );
+        })}
+      </div>
+      {selectedName && (
+        <div
+          style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid rgba(0,0,0,.08)' }}
+          role="region"
+          aria-live="polite"
+          aria-label={`Fiche catalogue : ${selectedName}`}
+        >
+          {!selectedPlant ? (
+            <p style={{ fontSize: '.83rem', color: '#92400e', margin: 0, lineHeight: 1.5 }}>
+              Aucune fiche catalogue ne correspond à « {selectedName} ». Un professeur peut mettre à jour la base biodiversité.
+            </p>
+          ) : (
+            <>
+              <div>
+                <div style={{ ...labelStyle, marginTop: 0 }}>Description</div>
+                <p style={{
+                  fontSize: '.83rem',
+                  color: desc ? '#555' : '#94a3b8',
+                  lineHeight: 1.5,
+                  margin: 0,
+                  whiteSpace: 'pre-wrap',
+                  fontStyle: desc ? 'normal' : 'italic',
+                }}>
+                  {desc || 'Non renseigné'}
+                </p>
+              </div>
+              <div>
+                <div style={labelStyle}>Rôle dans l&apos;écosystème</div>
+                <p style={{
+                  fontSize: '.83rem',
+                  color: role ? '#555' : '#94a3b8',
+                  lineHeight: 1.5,
+                  margin: 0,
+                  whiteSpace: 'pre-wrap',
+                  fontStyle: role ? 'normal' : 'italic',
+                }}>
+                  {role || 'Non renseigné'}
+                </p>
+              </div>
+              <div>
+                <div style={labelStyle}>Utilité pour l&apos;être humain</div>
+                <p style={{
+                  fontSize: '.83rem',
+                  color: utility ? '#555' : '#94a3b8',
+                  lineHeight: 1.5,
+                  margin: 0,
+                  whiteSpace: 'pre-wrap',
+                  fontStyle: utility ? 'normal' : 'italic',
+                }}>
+                  {utility || 'Non renseigné'}
+                </p>
+              </div>
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function PhotoGallery({ zoneId, isTeacher }) {
   const [photos, setPhotos] = useState([]);
   const [big, setBig] = useState(null);
@@ -553,26 +703,7 @@ function ZoneInfoModal({ zone, plants, tasks, tutorials = [], isTeacher, student
             {!zone.special && (() => {
               const names = orderedLivingBeingsForForm(zone.living_beings_list || zone.living_beings, zone.current_plant);
               if (names.length === 0) return null;
-              const primary = names[0];
-              const primaryPlant = plants.find((p) => p.name === primary);
-              return (
-                <div style={{ background: 'var(--parchment)', borderRadius: 10, padding: '10px 14px', marginBottom: 12, border: '1px solid rgba(0,0,0,.06)' }}>
-                  <div style={{ fontSize: '.78rem', fontWeight: 700, color: '#64748b', marginBottom: 8, textTransform: 'uppercase' }}>Êtres vivants</div>
-                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
-                    {names.map((name, i) => (
-                      <span
-                        key={name}
-                        className="task-chip"
-                        style={i === 0 ? { fontWeight: 700, border: '1px solid var(--forest)' } : undefined}>
-                        {livingBeingEmoji(plants, name)} {name}
-                      </span>
-                    ))}
-                  </div>
-                  {primaryPlant?.description && (
-                    <p style={{ fontSize: '.83rem', color: '#555', lineHeight: 1.5, margin: '10px 0 0' }}>{primaryPlant.description}</p>
-                  )}
-                </div>
-              );
+              return <LivingBeingsCatalogPanel plants={plants} names={names} />;
             })()}
             {(zone.visit_subtitle || zone.visit_short_description || zone.visit_details_text) && (
               <div style={{ marginBottom: 12 }}>
@@ -654,6 +785,9 @@ function ZoneInfoModal({ zone, plants, tasks, tutorials = [], isTeacher, student
                 {plants.map(p => <option key={p.id} value={p.name}>{p.emoji} {p.name}</option>)}
               </select>
             </div>
+            {livingBeings.length > 0 && (
+              <LivingBeingsCatalogPanel plants={plants} names={livingBeings} showHeading={false} />
+            )}
             <div className="field"><label>État</label>
               <select value={stage} onChange={e => setStage(e.target.value)}>
                 <option value="empty">Vide</option>
@@ -1219,6 +1353,9 @@ function MarkerModal({ marker, plants, tasks, tutorials = [], onClose, onSave, o
                 {plants.map(p => <option key={p.id} value={p.name}>{p.emoji} {p.name}</option>)}
               </select>
             </div>
+            {form.living_beings.length > 0 && (
+              <LivingBeingsCatalogPanel plants={plants} names={form.living_beings} showHeading={false} />
+            )}
             <div className="field"><label>Note</label>
               <textarea value={form.note} onChange={set('note')} rows={3}
                 placeholder="Observations, entretien..." />
@@ -1511,16 +1648,7 @@ function MarkerModal({ marker, plants, tasks, tutorials = [], onClose, onSave, o
               )}
             </div>
             {form.living_beings.length > 0 && (
-              <div style={{ marginBottom: 12, display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
-                {form.living_beings.map((name, i) => (
-                  <span
-                    key={name}
-                    className="task-chip"
-                    style={i === 0 ? { fontWeight: 700, border: '1px solid var(--forest)' } : undefined}>
-                    {livingBeingEmoji(plants, name)} {name}
-                  </span>
-                ))}
-              </div>
+              <LivingBeingsCatalogPanel plants={plants} names={form.living_beings} />
             )}
             {form.note
               ? <p style={{ fontSize: '.9rem', color: '#444', lineHeight: 1.6 }}>{form.note}</p>
