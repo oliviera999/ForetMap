@@ -675,11 +675,16 @@ function TutorialsView({ tutorials, isTeacher, onRefresh, onForceLogout, zones =
                 ) : (
                   <span className="task-chip">🔗 0 tâche(s) liée(s)</span>
                 )}
-                {((t.zones_linked?.length || 0) + (t.markers_linked?.length || 0)) > 0 && (
-                  <span className="task-chip" title="Lieux liés sur la carte (pastille violette)">
-                    📍 {(t.zones_linked?.length || 0) + (t.markers_linked?.length || 0)} lieu(x) carte
+                {(t.zones_linked || []).map((z) => (
+                  <span key={`z-${z.id}`} className="task-chip" title="Zone sur la carte">
+                    {z.name}
                   </span>
-                )}
+                ))}
+                {(t.markers_linked || []).map((m) => (
+                  <span key={`m-${m.id}`} className="task-chip" title="Repère sur la carte">
+                    📍 {m.label}
+                  </span>
+                ))}
               </div>
               <div className="task-actions">
                 {t.is_active && (
