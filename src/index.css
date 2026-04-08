@@ -840,6 +840,21 @@
       animation:none;
       opacity:1;
     }
+    /* Pastille tutoriel(s) sur zone (carte) */
+    .map-tutorial-zone-dot {
+      fill:#6366f1;
+      stroke:#fff;
+      stroke-width:1.5px;
+      filter:drop-shadow(0 0 4px rgba(99,102,241,.4));
+    }
+    /* Pastille tutoriel(s) sur repère */
+    .map-tutorial-marker-dot {
+      position:absolute;
+      border-radius:50%;
+      background:#6366f1;
+      border:1.5px solid #fff;
+      box-shadow:0 1px 4px rgba(0,0,0,.18);
+    }
     @keyframes mapStatusFadeRed {
       0%, 100% { opacity:1; }
       50% { opacity:.42; }
