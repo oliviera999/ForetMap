@@ -50,7 +50,7 @@ function TutorialPreviewModal({ tutorial, onClose }) {
     '';
   const canEmbed = !!source;
   return (
-    <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
+    <div className="modal-overlay modal-overlay--tuto-preview" onClick={e => e.target === e.currentTarget && onClose()}>
       <div className="log-modal fade-in tuto-preview-modal">
         <button className="modal-close" onClick={onClose}>✕</button>
         <h3>📘 {tutorial.title}</h3>

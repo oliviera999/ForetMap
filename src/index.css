@@ -2048,6 +2048,25 @@
       margin-top:10px;
       background:#fff;
     }
+    /* Mobile : la feuille par défaut est alignée en bas (flex-end) — l’aperçu tutoriel paraissait trop bas. */
+    @media (max-width:768px) {
+      .modal-overlay.modal-overlay--tuto-preview {
+        align-items:flex-start;
+        justify-content:center;
+        padding:max(10px, var(--safe-top)) 12px max(12px, var(--safe-bottom));
+      }
+      .modal-overlay.modal-overlay--tuto-preview .log-modal.tuto-preview-modal {
+        border-radius:16px;
+        width:100%;
+        max-width:min(980px, 96vw);
+        max-height:calc(100vh - var(--safe-top) - var(--safe-bottom) - 22px);
+        max-height:calc(100dvh - var(--safe-top) - var(--safe-bottom) - 22px);
+        animation:popIn .28s var(--spring) forwards;
+      }
+      .modal-overlay.modal-overlay--tuto-preview .tuto-preview-frame {
+        min-height:min(55vh, 380px);
+      }
+    }
     button.task-chip.tuto-linked-tasks-pill {
       cursor:pointer;
       font:inherit;
