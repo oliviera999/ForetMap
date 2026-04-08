@@ -2439,7 +2439,7 @@
     .visit-map-fit-layer .visit-map-img {
       width:100%;
       height:100%;
-      object-fit:fill;
+      object-fit:contain;
       display:block;
       user-select:none;
       pointer-events:none;
@@ -2478,9 +2478,14 @@
       border:none; border-radius:0;
       background:transparent; cursor:pointer;
       display:flex; align-items:center; justify-content:center;
+      flex-shrink:0;
       font-family:Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif;
     }
-    .visit-marker-emoji { font-size:1.35rem; line-height:1.15; }
+    .visit-marker-emoji {
+      font-size:1.35rem;
+      line-height:1;
+      flex-shrink:0;
+    }
     .visit-marker-indicator {
       position:absolute; top:-2px; right:-2px; width:10px; height:10px; border-radius:50%;
       border:1.5px solid white;
