@@ -1974,7 +1974,7 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
           </div>
         )}
       </div>
-      <p className="section-sub">{isTeacher ? 'Piloter les missions, valider les retours et traiter les idées du terrain' : (canSelfAssignTasks ? "Choisis une mission ou propose la tienne, tout le monde peut la lire. Il faut t'inscrire seulement au moment où tu commences la question pour de vrai." : 'Tu consultes la liste en lecture seule')}</p>
+      <p className="section-sub">{isTeacher ? 'Piloter les missions, valider les retours et traiter les idées du terrain' : (canSelfAssignTasks ? "Choisis une mission ou propose la tienne, tout le monde peut la lire. Il faut t'inscrire seulement au moment où tu commences la mission pour de vrai." : 'Tu consultes la liste en lecture seule')}</p>
       {!isTeacher && student && Number(student.taskEnrollment?.maxActiveAssignments) > 0 && (
         <p
           className="section-sub"
