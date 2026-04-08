@@ -30,6 +30,17 @@ function itemSeenKey(type, id) {
   return `${type}:${id}`;
 }
 
+/**
+ * Compense l’étirement anisotrope du SVG (viewBox carré + preserveAspectRatio="none" sur un rectangle carte) :
+ * sans cela, les <text> et emojis paraissent tassés sur l’axe Y dès que largeur ≠ hauteur du calque.
+ */
+function visitZoneSvgTextUniformYTransform(cx, cy, fitW, fitH) {
+  if (!(fitW > 0 && fitH > 0)) return undefined;
+  const r = fitW / fitH;
+  if (Math.abs(r - 1) < 0.0005) return undefined;
+  return `translate(${cx},${cy}) scale(1,${r}) translate(${-cx},${-cy})`;
+}
+
 /** Rectangle (px, espace « monde » carte visite) où l’image est réellement dessinée après object-fit: contain — aligné sur MapView. */
 function computeVisitMapFitRect(nw, nh, cw, ch) {
   const boxW = Math.max(1, cw);
@@ -1033,6 +1044,11 @@ function VisitView({
                     const zoneEmoji = detectLeadingMarkerEmoji(z.name || '', markerEmojis);
                     const zoneName = stripLeadingMarkerEmoji(z.name || '', markerEmojis);
                     const { emojiU, labelU, gapU, strokeU } = visitZoneSvgTypography;
+                    const fw = visitMapFit.width;
+                    const fh = visitMapFit.height;
+                    const titleY = my + (zoneEmoji ? gapU : 0);
+                    const emojiUniform = visitZoneSvgTextUniformYTransform(mx, my, fw, fh);
+                    const titleUniform = visitZoneSvgTextUniformYTransform(mx, titleY, fw, fh);
                     return (
                       <g
                         key={z.id}
@@ -1050,35 +1066,39 @@ function VisitView({
                           className={`visit-zone-poly ${isSeen ? 'is-seen' : 'is-unseen'}`}
                         />
                         {zoneEmoji ? (
-                          <text
-                            x={mx}
-                            y={my}
-                            textAnchor="middle"
-                            dominantBaseline="middle"
-                            fontSize={emojiU}
-                            fontFamily="Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif"
-                            className="visit-zone-label visit-zone-label--emoji"
-                          >
-                            {zoneEmoji}
-                          </text>
+                          <g transform={emojiUniform}>
+                            <text
+                              x={mx}
+                              y={my}
+                              textAnchor="middle"
+                              dominantBaseline="middle"
+                              fontSize={emojiU}
+                              fontFamily="Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif"
+                              className="visit-zone-label visit-zone-label--emoji"
+                            >
+                              {zoneEmoji}
+                            </text>
+                          </g>
                         ) : null}
                         {(zoneName || z.name) ? (
-                          <text
-                            x={mx}
-                            y={my + (zoneEmoji ? gapU : 0)}
-                            textAnchor="middle"
-                            dominantBaseline="middle"
-                            fontSize={labelU}
-                            fontWeight="700"
-                            fontFamily="DM Sans, sans-serif"
-                            fill="#1a4731"
-                            stroke="rgba(255,255,255,0.88)"
-                            strokeWidth={strokeU}
-                            paintOrder="stroke"
-                            className="visit-zone-label visit-zone-label--title"
-                          >
-                            {zoneName || z.name}
-                          </text>
+                          <g transform={titleUniform}>
+                            <text
+                              x={mx}
+                              y={titleY}
+                              textAnchor="middle"
+                              dominantBaseline="middle"
+                              fontSize={labelU}
+                              fontWeight="700"
+                              fontFamily="DM Sans, sans-serif"
+                              fill="#1a4731"
+                              stroke="rgba(255,255,255,0.88)"
+                              strokeWidth={strokeU}
+                              paintOrder="stroke"
+                              className="visit-zone-label visit-zone-label--title"
+                            >
+                              {zoneName || z.name}
+                            </text>
+                          </g>
                         ) : null}
                       </g>
                     );

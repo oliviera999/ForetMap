@@ -29,6 +29,8 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - **Biodiversité** : filtres avancés (sous-groupes 1 et 2, habitat, catégorie d’agrosystème), recherche texte élargie (habitat, origine géographique, partie à récolter) ; côté élève, filtre **présence sur la carte** et compteur **X / Y** ; module **`src/utils/plantFilters.js`**, **`foretmap-views.jsx`**, build **`dist/`** ; e2e navigation élève ouvre **Filtres avancés**.
 
 ### Modifié
+- **Visite — carte** : libellés et emojis des **zones** ne sont plus **tassés verticalement** : le SVG utilise un viewBox carré avec `preserveAspectRatio="none"` sur un rectangle carte, ce qui écrasait le texte ; **compensation d’échelle Y** sur les `<text>`, image du plan en **`object-fit: contain`** (aligné sur le commentaire / MapView), repères : emoji moins contraint par le flex. **`visit-views.jsx`**, **`index.css`**, build **`dist/`**.
+
 - **Carte — fiches zone & repère** : les **êtres vivants** associés sont des **pastilles cliquables** qui affichent la fiche catalogue (**description**, **rôle dans l’écosystème**, **utilité pour l’être humain**) ; rappel tactile sous le libellé du champ. Même panneau **aperçu catalogue** sous les listes multi en **édition prof** (zone et repère). **`map-views.jsx`**, **`index.css`**, build **`dist/`**.
 
 - **Session / tâches** : après validation du **PIN** (droits étendus), incrément d’un compteur dédié qui déclenche **`fetchAll`** (évite un `useEffect` sur `authClaims` qui pouvait sur-réagir) — liste tâches alignée avec le JWT élevé. **`App.jsx`**, build **`dist/`**.
