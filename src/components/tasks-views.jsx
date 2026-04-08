@@ -546,7 +546,6 @@ function TaskFormModal({
                 ref={taskImageInputRef}
                 type="file"
                 accept="image/*"
-                capture="environment"
                 onChange={onTaskImageFile}
               />
             </div>
@@ -2411,7 +2410,7 @@ function LogModal({ task, student, onClose, onDone, onForceLogout }) {
             <div className="img-upload-area" onClick={() => inputRef.current.click()}>
               <div style={{ fontSize: '2rem', marginBottom: 6 }}>📷</div>
               <div style={{ fontSize: '.85rem', color: '#888' }}>Touche pour prendre ou choisir une photo</div>
-              <input ref={inputRef} type="file" accept="image/*" capture="environment" onChange={handleFile} />
+              <input ref={inputRef} type="file" accept="image/*" onChange={handleFile} />
             </div>
           ) : (
             <div className="img-preview-wrap">
