@@ -4,6 +4,7 @@ export function compressImage(file, maxPx = 1200, quality = 0.75) {
     const reader = new FileReader();
     reader.onload = (ev) => {
       const img = new Image();
+      img.onerror = () => rej(new Error('Impossible de lire cette image (format non pris en charge par le navigateur)'));
       img.onload = () => {
         let w = img.width;
         let h = img.height;

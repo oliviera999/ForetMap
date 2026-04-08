@@ -1848,6 +1848,7 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
       {toast && <Toast msg={toast} onDone={() => setToast(null)} />}
       {(showForm || editTask || duplicateTask || showProposalForm) && (
         <TaskFormModal
+          key={editTask?.id || duplicateTask?.id || (showProposalForm ? 'proposal' : 'new')}
           zones={zones}
           markers={markers}
           maps={maps}

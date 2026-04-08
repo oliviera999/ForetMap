@@ -51,7 +51,9 @@ describe('Tâches — image illustrative', () => {
       })
       .expect(201);
     assert.ok(res.body.image_url);
-    assert.ok(String(res.body.image_url).includes('/image'));
+    assert.ok(
+      String(res.body.image_url).includes('/uploads/tasks/') || String(res.body.image_url).includes('/image')
+    );
     assert.strictEqual(res.body.image_path, undefined);
 
     const img = await request(app).get(res.body.image_url).buffer(true).expect(200);

@@ -6,6 +6,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 ## [Non publié]
 
 ### Corrigé
+- **Tâches — affichage des photos** : **`image_url`** utilise désormais **`/uploads/tasks/…`** (fichiers statiques) au lieu de **`/api/tasks/:id/image`**, pour éviter les vignettes cassées (limiteur **`/api/*`**, réponse JSON d’erreur au lieu d’image). Dev : proxy Vite **`/uploads`** vers le serveur Node. Alias SQL **`task_cover_image_path`**, **clé** sur **`TaskFormModal`**, message si le navigateur ne décode pas l’image (ex. HEIC). **`routes/tasks.js`**, **`vite.config.js`**, **`tasks-views.jsx`**, **`src/utils/image.js`**, **`docs/API.md`**, **`tests/tasks-image.test.js`**.
 - **Tests** : scénario statistiques visite — enregistrement progression élève avec **`Authorization: Bearer`** (`authToken` à l’inscription), cohérent avec **`POST /api/visit/seen`** sans `student_id` anonyme pour un compte élève. **`tests/new-features.test.js`**.
 
 ### Modifié
