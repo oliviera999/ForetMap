@@ -14,6 +14,7 @@ import {
 import { stageBadge, TaskDifficultyAndRiskChips } from '../utils/badges';
 import { compressImage } from '../utils/image';
 import { useDialogA11y } from '../hooks/useDialogA11y';
+import { useOverlayHistoryBack } from '../hooks/useOverlayHistoryBack';
 import { useHelp } from '../hooks/useHelp';
 import { HelpPanel } from './HelpPanel';
 import { Tooltip } from './Tooltip';
@@ -97,6 +98,28 @@ function parseLivingBeings(value, fallback = '') {
   const cleaned = [...new Set(raw.map(v => String(v || '').trim()).filter(Boolean))];
   if (cleaned.length === 0 && fallback) return [String(fallback).trim()];
   return cleaned;
+}
+
+/** Met l’être vivant « principal » en tête (aligné sur current_plant / plant_name côté API). */
+function orderedLivingBeingsForForm(value, primary) {
+  const list = parseLivingBeings(value, primary);
+  const p = primary != null && String(primary).trim() ? String(primary).trim() : '';
+  if (!p) return list;
+  const rest = list.filter((n) => n !== p);
+  return [p, ...rest];
+}
+
+/**
+ * Préserve l’ordre des sélections quand l’utilisateur coche/décoche (Ctrl/Cmd + clic).
+ * Les nouveaux noms sont ajoutés dans l’ordre du catalogue `plants`.
+ */
+function nextLivingBeingsFromMultiSelect(prevOrdered, selectedNames, plants) {
+  const selectedSet = new Set(selectedNames);
+  const kept = prevOrdered.filter((name) => selectedSet.has(name));
+  const added = plants
+    .map((p) => p.name)
+    .filter((name) => selectedSet.has(name) && !kept.includes(name));
+  return [...kept, ...added];
 }
 
 function PhotoGallery({ zoneId, isTeacher }) {
@@ -364,11 +387,13 @@ function isTaskDetachedFromLocation(task) {
 function ZoneInfoModal({ zone, plants, tasks, tutorials = [], isTeacher, student, canSelfAssignTasks = true, canEnrollOnTasks, markerEmojis = MARKER_EMOJIS, emojiParsingList = MARKER_EMOJIS, contextCommentsEnabled = true, canParticipateContextComments = true, onClose, onUpdate, onDelete, onDuplicate, onEditPoints, onLinkTask, onUnlinkTask, onAssignTasks, onLinkTutorial, onUnlinkTutorial }) {
   const canEnroll = canEnrollOnTasks !== undefined ? canEnrollOnTasks : canSelfAssignTasks;
   const dialogRef = useDialogA11y(onClose);
+  useOverlayHistoryBack(true, onClose);
   const [tab, setTab] = useState('tasks');
   const [zoneName, setZoneName] = useState(stripLeadingMarkerEmoji(zone.name || '', emojiParsingList));
   const [zoneEmoji, setZoneEmoji] = useState(detectLeadingMarkerEmoji(zone.name || '', emojiParsingList) || markerEmojis[0] || '📍');
-  const [plant, setPlant] = useState(zone.current_plant || '');
-  const [livingBeings, setLivingBeings] = useState(parseLivingBeings(zone.living_beings_list || zone.living_beings, zone.current_plant));
+  const [livingBeings, setLivingBeings] = useState(
+    () => orderedLivingBeingsForForm(zone.living_beings_list || zone.living_beings, zone.current_plant),
+  );
   const [stage, setStage] = useState(zone.stage || 'empty');
   const [desc, setDesc] = useState(zone.description || '');
   const [linkTaskId, setLinkTaskId] = useState('');
@@ -434,7 +459,7 @@ function ZoneInfoModal({ zone, plants, tasks, tutorials = [], isTeacher, student
     try {
       await onUpdate(zone.id, {
         name: `${prefixEmoji} ${cleanName}`.trim(),
-        current_plant: plant,
+        current_plant: livingBeings[0] || '',
         living_beings: livingBeings,
         stage,
         description: desc,
@@ -520,22 +545,30 @@ function ZoneInfoModal({ zone, plants, tasks, tutorials = [], isTeacher, student
 
         {tab === 'info' && (
           <div className="fade-in">
-            {!zone.special && zone.current_plant && (
-              <div style={{ background: 'var(--parchment)', borderRadius: 10, padding: '10px 14px', marginBottom: 12 }}>
-                <div style={{ fontWeight: 700, color: 'var(--forest)', marginBottom: 3 }}>{zone.current_plant}</div>
-                {plantObj?.description && <p style={{ fontSize: '.83rem', color: '#555', lineHeight: 1.5, margin: 0 }}>{plantObj.description}</p>}
-              </div>
-            )}
-            {parseLivingBeings(zone.living_beings_list || zone.living_beings, zone.current_plant).length > 0 && (
-              <div style={{ background: '#f8fafc', borderRadius: 10, padding: '10px 14px', marginBottom: 12, border: '1px solid #dbeafe' }}>
-                <div style={{ fontSize: '.78rem', fontWeight: 700, color: '#64748b', marginBottom: 6, textTransform: 'uppercase' }}>Êtres vivants associés</div>
-                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                  {parseLivingBeings(zone.living_beings_list || zone.living_beings, zone.current_plant).map((name) => (
-                    <span key={name} className="task-chip">🌱 {name}</span>
-                  ))}
+            {!zone.special && (() => {
+              const names = orderedLivingBeingsForForm(zone.living_beings_list || zone.living_beings, zone.current_plant);
+              if (names.length === 0) return null;
+              const primary = names[0];
+              const primaryPlant = plants.find((p) => p.name === primary);
+              return (
+                <div style={{ background: 'var(--parchment)', borderRadius: 10, padding: '10px 14px', marginBottom: 12, border: '1px solid rgba(0,0,0,.06)' }}>
+                  <div style={{ fontSize: '.78rem', fontWeight: 700, color: '#64748b', marginBottom: 8, textTransform: 'uppercase' }}>Êtres vivants</div>
+                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+                    {names.map((name, i) => (
+                      <span
+                        key={name}
+                        className="task-chip"
+                        style={i === 0 ? { fontWeight: 700, border: '1px solid var(--forest)' } : undefined}>
+                        🌱 {name}
+                      </span>
+                    ))}
+                  </div>
+                  {primaryPlant?.description && (
+                    <p style={{ fontSize: '.83rem', color: '#555', lineHeight: 1.5, margin: '10px 0 0' }}>{primaryPlant.description}</p>
+                  )}
                 </div>
-              </div>
-            )}
+              );
+            })()}
             {zone.description && (
               <div style={{ background: '#f0fdf4', borderRadius: 10, padding: '10px 14px', marginBottom: 12,
                 border: '1px solid var(--mint)', fontSize: '.88rem', color: '#333', lineHeight: 1.6 }}>
@@ -552,7 +585,9 @@ function ZoneInfoModal({ zone, plants, tasks, tutorials = [], isTeacher, student
                 ))}
               </div>
             )}
-            {!zone.special && !zone.current_plant && !zone.description && zone.history?.length === 0 && (
+            {!zone.special
+              && orderedLivingBeingsForForm(zone.living_beings_list || zone.living_beings, zone.current_plant).length === 0
+              && !zone.description && zone.history?.length === 0 && (
               <p style={{ color: '#bbb', fontSize: '.85rem', fontStyle: 'italic', textAlign: 'center', padding: '20px 0' }}>
                 Zone vide — aucune information pour l'instant.
               </p>
@@ -580,27 +615,21 @@ function ZoneInfoModal({ zone, plants, tasks, tutorials = [], isTeacher, student
             <div className="field"><label>Nom de la zone *</label>
               <input value={zoneName} onChange={e => setZoneName(e.target.value)} placeholder="Ex: Potager Est" />
             </div>
-            <div className="field"><label>Être vivant actuel</label>
-              <select value={plant} onChange={e => {
-                setPlant(e.target.value);
-                setLivingBeings((prev) => {
-                  const list = parseLivingBeings(prev, e.target.value);
-                  return e.target.value ? [...new Set([e.target.value, ...list])] : list;
-                });
-                if (e.target.value && stage === 'empty') setStage('growing');
-                if (!e.target.value) setStage('empty');
-              }}>
-                <option value="">— Vide —</option>
-                {plants.map(p => <option key={p.id} value={p.name}>{p.emoji} {p.name}</option>)}
-              </select>
-            </div>
-            <div className="field"><label>Autres êtres vivants associés</label>
+            <div className="field"><label>Êtres vivants</label>
+              <p style={{ fontSize: '.76rem', color: '#64748b', margin: '0 0 8px', lineHeight: 1.45 }}>
+                Maintenez Ctrl (Windows) ou Cmd (Mac) pour en choisir plusieurs. Le premier de la liste sert d’être vivant principal
+                (affichage sur la carte, fiche, historique des cultures lors d’un changement).
+              </p>
               <select
                 multiple
+                size={Math.min(10, Math.max(4, plants.length + 1))}
                 value={livingBeings}
-                onChange={e => {
-                  const list = Array.from(e.target.selectedOptions).map(opt => opt.value);
-                  setLivingBeings([...new Set([...(plant ? [plant] : []), ...list])]);
+                onChange={(e) => {
+                  const picked = Array.from(e.target.selectedOptions).map((opt) => opt.value);
+                  const next = nextLivingBeingsFromMultiSelect(livingBeings, picked, plants);
+                  setLivingBeings(next);
+                  if (next.length === 0) setStage('empty');
+                  else if (stage === 'empty') setStage('growing');
                 }}>
                 {plants.map(p => <option key={p.id} value={p.name}>{p.emoji} {p.name}</option>)}
               </select>
@@ -870,10 +899,10 @@ function ZoneInfoModal({ zone, plants, tasks, tutorials = [], isTeacher, student
 
 function ZoneDrawModal({ points_pct, onClose, onSave, plants, markerEmojis = MARKER_EMOJIS, emojiParsingList = MARKER_EMOJIS }) {
   const dialogRef = useDialogA11y(onClose);
+  useOverlayHistoryBack(true, onClose);
   const [form, setForm] = useState({
     name: '',
     zone_emoji: markerEmojis[0] || '📍',
-    current_plant: '',
     living_beings: [],
     stage: 'empty',
     description: '',
@@ -890,8 +919,15 @@ function ZoneDrawModal({ points_pct, onClose, onSave, plants, markerEmojis = MAR
     );
     setSaving(true);
     try {
-      const { zone_emoji, ...rest } = form;
-      await onSave({ ...rest, name: `${prefixEmoji} ${cleanName}`.trim(), points: points_pct });
+      const { zone_emoji, living_beings, ...rest } = form;
+      const living = living_beings || [];
+      await onSave({
+        ...rest,
+        name: `${prefixEmoji} ${cleanName}`.trim(),
+        points: points_pct,
+        current_plant: living[0] || '',
+        living_beings: living,
+      });
       onClose();
     }
     catch (e) { setSaving(false); }
@@ -913,16 +949,24 @@ function ZoneDrawModal({ points_pct, onClose, onSave, plants, markerEmojis = MAR
           <input value={form.name} onChange={set('name')} placeholder="Ex: Potager Est" autoFocus />
         </div>
         <div className="row">
-          <div className="field"><label>Être vivant</label>
-            <select value={form.current_plant} onChange={e => {
-              const value = e.target.value;
-              setForm((f) => ({
-                ...f,
-                current_plant: value,
-                living_beings: value ? [...new Set([value, ...f.living_beings])] : f.living_beings,
-              }));
-            }}>
-              <option value="">— Vide —</option>
+          <div className="field" style={{ flex: 1, minWidth: 0 }}><label>Êtres vivants</label>
+            <p style={{ fontSize: '.74rem', color: '#64748b', margin: '0 0 6px', lineHeight: 1.4 }}>
+              Ctrl / Cmd + clic pour plusieurs. Le premier détermine l’être vivant principal.
+            </p>
+            <select
+              multiple
+              size={Math.min(8, Math.max(4, plants.length + 1))}
+              value={form.living_beings}
+              onChange={(e) => {
+                const picked = Array.from(e.target.selectedOptions).map((opt) => opt.value);
+                setForm((f) => {
+                  const next = nextLivingBeingsFromMultiSelect(f.living_beings, picked, plants);
+                  let stage = f.stage;
+                  if (next.length === 0) stage = 'empty';
+                  else if (f.stage === 'empty') stage = 'growing';
+                  return { ...f, living_beings: next, stage };
+                });
+              }}>
               {plants.map(p => <option key={p.id} value={p.name}>{p.emoji} {p.name}</option>)}
             </select>
           </div>
@@ -933,17 +977,6 @@ function ZoneDrawModal({ points_pct, onClose, onSave, plants, markerEmojis = MAR
               <option value="ready">Prêt à récolter</option>
             </select>
           </div>
-        </div>
-        <div className="field"><label>Êtres vivants associés</label>
-          <select
-            multiple
-            value={form.living_beings}
-            onChange={e => {
-              const list = Array.from(e.target.selectedOptions).map(opt => opt.value);
-              setForm((f) => ({ ...f, living_beings: [...new Set([...(f.current_plant ? [f.current_plant] : []), ...list])] }));
-            }}>
-            {plants.map(p => <option key={p.id} value={p.name}>{p.emoji} {p.name}</option>)}
-          </select>
         </div>
         <div className="field"><label>Description</label>
           <textarea value={form.description} onChange={set('description')} rows={2}
@@ -998,10 +1031,11 @@ function ZoneDrawModal({ points_pct, onClose, onSave, plants, markerEmojis = MAR
 function MarkerModal({ marker, plants, tasks, tutorials = [], onClose, onSave, onDelete, onLinkTask, onUnlinkTask, onLinkTutorial, onUnlinkTutorial, onAssignTasks, isTeacher, student, canSelfAssignTasks = true, canEnrollOnTasks, markerEmojis = MARKER_EMOJIS }) {
   const canEnroll = canEnrollOnTasks !== undefined ? canEnrollOnTasks : canSelfAssignTasks;
   const dialogRef = useDialogA11y(onClose);
+  useOverlayHistoryBack(true, onClose);
   const isNew = !marker.id;
   const [form, setForm] = useState({
-    label: marker.label || '', plant_name: marker.plant_name || '',
-    living_beings: parseLivingBeings(marker.living_beings_list || marker.living_beings, marker.plant_name),
+    label: marker.label || '',
+    living_beings: orderedLivingBeingsForForm(marker.living_beings_list || marker.living_beings, marker.plant_name),
     note: marker.note || '', emoji: marker.emoji || '🌱',
   });
   const [saving, setSaving] = useState(false);
@@ -1040,7 +1074,7 @@ function MarkerModal({ marker, plants, tasks, tutorials = [], onClose, onSave, o
   const save = async () => {
     if (!form.label.trim()) return;
     setSaving(true);
-    const living = parseLivingBeings(form.living_beings, form.plant_name);
+    const living = form.living_beings;
     const emojiVal = clampEmojiInput(
       (form.emoji || '').trim() || '🌱',
       MAP_MARKER_EMOJI_MAX_CHARS,
@@ -1050,7 +1084,7 @@ function MarkerModal({ marker, plants, tasks, tutorials = [], onClose, onSave, o
       ...form,
       emoji: emojiVal,
       living_beings: living,
-      plant_name: form.plant_name || living[0] || '',
+      plant_name: living[0] || '',
     };
     try { await onSave(payload); onClose(); }
     catch (e) { setSaving(false); }
@@ -1078,26 +1112,20 @@ function MarkerModal({ marker, plants, tasks, tutorials = [], onClose, onSave, o
             <div className="field"><label>Nom du repère *</label>
               <input value={form.label} onChange={set('label')} placeholder="Ex: Olivier n°10" />
             </div>
-            <div className="field"><label>Être vivant associé</label>
-              <select value={form.plant_name} onChange={e => {
-                const value = e.target.value;
-                setForm(f => ({
-                  ...f,
-                  plant_name: value,
-                  living_beings: value ? [...new Set([value, ...parseLivingBeings(f.living_beings, value)])] : parseLivingBeings(f.living_beings, ''),
-                }));
-              }}>
-                <option value="">— Aucune —</option>
-                {plants.map(p => <option key={p.id} value={p.name}>{p.emoji} {p.name}</option>)}
-              </select>
-            </div>
-            <div className="field"><label>Autres êtres vivants associés</label>
+            <div className="field"><label>Êtres vivants</label>
+              <p style={{ fontSize: '.76rem', color: '#64748b', margin: '0 0 8px', lineHeight: 1.45 }}>
+                Ctrl / Cmd + clic pour plusieurs. Le premier de la liste est l’être vivant principal du repère.
+              </p>
               <select
                 multiple
+                size={Math.min(10, Math.max(4, plants.length + 1))}
                 value={form.living_beings}
-                onChange={e => {
-                  const list = Array.from(e.target.selectedOptions).map(opt => opt.value);
-                  setForm(f => ({ ...f, living_beings: [...new Set([...(f.plant_name ? [f.plant_name] : []), ...list])] }));
+                onChange={(e) => {
+                  const picked = Array.from(e.target.selectedOptions).map((opt) => opt.value);
+                  setForm((f) => ({
+                    ...f,
+                    living_beings: nextLivingBeingsFromMultiSelect(f.living_beings, picked, plants),
+                  }));
                 }}>
                 {plants.map(p => <option key={p.id} value={p.name}>{p.emoji} {p.name}</option>)}
               </select>
@@ -1343,22 +1371,22 @@ function MarkerModal({ marker, plants, tasks, tutorials = [], onClose, onSave, o
                 </div>
               )}
             </div>
-            {form.plant_name && (
-              <div style={{ background: 'var(--parchment)', borderRadius: 10, padding: '10px 14px', marginBottom: 12 }}>
-                <div style={{ fontWeight: 700, color: 'var(--forest)' }}>{form.plant_name}</div>
+            {form.living_beings.length > 0 && (
+              <div style={{ marginBottom: 12, display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+                {form.living_beings.map((name, i) => (
+                  <span
+                    key={name}
+                    className="task-chip"
+                    style={i === 0 ? { fontWeight: 700, border: '1px solid var(--forest)' } : undefined}>
+                    🌱 {name}
+                  </span>
+                ))}
               </div>
             )}
             {form.note
               ? <p style={{ fontSize: '.9rem', color: '#444', lineHeight: 1.6 }}>{form.note}</p>
               : <p style={{ fontSize: '.85rem', color: '#aaa', fontStyle: 'italic' }}>Aucune note.</p>
             }
-            {parseLivingBeings(form.living_beings, form.plant_name).length > 0 && (
-              <div style={{ marginTop: 10, display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                {parseLivingBeings(form.living_beings, form.plant_name).map((name) => (
-                  <span key={name} className="task-chip">🌱 {name}</span>
-                ))}
-              </div>
-            )}
           </div>
         )}
       </div>
@@ -2072,12 +2100,12 @@ function MapView({ zones, markers, tasks = [], tutorials = [], plants, maps = []
     if (!pts || pts.length < 3) throw new Error('Contour invalide');
     const shifted = offsetDuplicateZonePoints(pts);
     if (!shifted) throw new Error('Contour invalide');
-    const living = parseLivingBeings(z.living_beings_list || z.living_beings, z.current_plant);
+    const living = orderedLivingBeingsForForm(z.living_beings_list || z.living_beings, z.current_plant);
     const created = await api('/api/zones', 'POST', {
       name: `${z.name || 'Zone'} (copie)`,
       points: shifted,
       color: z.color || '#86efac80',
-      current_plant: z.current_plant || '',
+      current_plant: living[0] || '',
       living_beings: living,
       stage: z.stage || 'empty',
       map_id: z.map_id || activeMapId,
