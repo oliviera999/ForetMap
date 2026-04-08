@@ -2340,9 +2340,11 @@
     align-content:stretch;
     min-height:0;
   }
+  /* Hauteur explicite : sans cela, la ligne « auto » du grid replie le flex (toolbar seule) et
+     .map-view-canvas-outer reste à clientHeight ≈ 0 → carte invisible (mesure embedded dans map-views.jsx). */
   .main--maptasks-split .desktop-split-pane--map {
-    min-height:0;
-    max-height:min(52dvh, 520px);
+    min-height:max(220px, min(52dvh, 520px));
+    max-height:max(220px, min(52dvh, 520px));
   }
   .main--maptasks-split .desktop-split-pane--tasks {
     min-height:0;
