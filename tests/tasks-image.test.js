@@ -64,8 +64,8 @@ describe('Tâches — image illustrative', () => {
   it('PUT remove_task_image supprime image_path', async () => {
     const taskId = `task-rm-img-${Date.now()}`;
     await execute(
-      `INSERT INTO tasks (id, title, description, image_path, map_id, project_id, zone_id, marker_id, start_date, due_date, required_students, completion_mode, danger_level, difficulty_level, status, recurrence, created_at)
-       VALUES (?, ?, ?, ?, NULL, NULL, NULL, NULL, NULL, NULL, 1, 'single_done', NULL, NULL, 'available', NULL, ?)`,
+      `INSERT INTO tasks (id, title, description, image_path, map_id, project_id, zone_id, marker_id, start_date, due_date, required_students, completion_mode, danger_level, difficulty_level, importance_level, status, recurrence, created_at)
+       VALUES (?, ?, ?, ?, NULL, NULL, NULL, NULL, NULL, NULL, 1, 'single_done', NULL, NULL, NULL, 'available', NULL, ?)`,
       [taskId, 'Sans image bientôt', '', `tasks/${taskId}.jpg`, new Date().toISOString()]
     );
 

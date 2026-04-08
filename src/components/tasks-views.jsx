@@ -20,6 +20,32 @@ function taskLivingBeingEmoji(plants, name) {
   return p?.emoji || '🌱';
 }
 
+const TASK_IMPORTANCE_SORT_WEIGHT = {
+  not_important: 1,
+  low: 2,
+  medium: 3,
+  high: 4,
+  absolute: 5,
+};
+
+/** Même logique que GET /api/tasks : importance explicite d’abord (poids décroissant), puis sans importance, puis date limite. */
+function compareTasksByImportanceThenDueDate(a, b) {
+  const rawA = String(a?.importance_level || '').trim().toLowerCase();
+  const rawB = String(b?.importance_level || '').trim().toLowerCase();
+  const tierA = rawA && TASK_IMPORTANCE_SORT_WEIGHT[rawA] != null ? 0 : 1;
+  const tierB = rawB && TASK_IMPORTANCE_SORT_WEIGHT[rawB] != null ? 0 : 1;
+  if (tierA !== tierB) return tierA - tierB;
+  if (tierA === 0) {
+    const wA = TASK_IMPORTANCE_SORT_WEIGHT[rawA] || 0;
+    const wB = TASK_IMPORTANCE_SORT_WEIGHT[rawB] || 0;
+    if (wA !== wB) return wB - wA;
+  }
+  const da = String(a?.due_date || '');
+  const db = String(b?.due_date || '');
+  if (da !== db) return da.localeCompare(db);
+  return String(a?.id || '').localeCompare(String(b?.id || ''));
+}
+
 function Toast({ msg, onDone }) {
   useEffect(() => { const t = setTimeout(onDone, 2400); return () => clearTimeout(t); }, []);
   return <div className="toast" role="status" aria-live="polite" aria-atomic="true">{msg}</div>;
@@ -232,6 +258,7 @@ function TaskFormModal({
     completion_mode: getCompletionMode(editTask),
     danger_level: editTask.danger_level != null && editTask.danger_level !== '' ? editTask.danger_level : '',
     difficulty_level: editTask.difficulty_level != null && editTask.difficulty_level !== '' ? editTask.difficulty_level : '',
+    importance_level: editTask.importance_level != null && editTask.importance_level !== '' ? editTask.importance_level : '',
     recurrence: editTask.recurrence || '',
     living_beings: orderedLivingBeingsForForm(editTask.living_beings_list || editTask.living_beings, ''),
     assign_student_ids: []
@@ -239,7 +266,7 @@ function TaskFormModal({
     title: '', description: '', map_id: initialMapId || '',
     zone_ids: [], marker_ids: [], tutorial_ids: [], referent_user_ids: [], living_beings: [],
     project_id: defaultProjectForNew ? String(defaultProjectForNew.id) : '',
-    start_date: '', due_date: '', required_students: 1, completion_mode: 'single_done', danger_level: '', difficulty_level: '', recurrence: '',
+    start_date: '', due_date: '', required_students: 1, completion_mode: 'single_done', danger_level: '', difficulty_level: '', importance_level: '', recurrence: '',
     assign_student_ids: []
   });
   const [taskImageData, setTaskImageData] = useState(null);
@@ -426,6 +453,7 @@ function TaskFormModal({
       completion_mode: form.completion_mode || 'single_done',
       danger_level: form.danger_level ? form.danger_level : null,
       difficulty_level: form.difficulty_level ? form.difficulty_level : null,
+      importance_level: form.importance_level ? form.importance_level : null,
       recurrence: form.recurrence || null,
       living_beings: [...new Set((form.living_beings || []).map((n) => String(n || '').trim()).filter(Boolean))],
       assign_student_ids: [...new Set((form.assign_student_ids || []).map((id) => String(id || '').trim()).filter(Boolean))],
@@ -874,6 +902,16 @@ function TaskFormModal({
               <option value="medium">Moyen</option>
               <option value="hard">Compliqué</option>
               <option value="very_hard">Super compliqué</option>
+            </select>
+          </div>
+          <div className="field"><label>Degré d&apos;importance</label>
+            <select value={form.importance_level || ''} onChange={set('importance_level')}>
+              <option value="">Non renseigné</option>
+              <option value="not_important">Pas important</option>
+              <option value="low">Peu important</option>
+              <option value="medium">Modéré</option>
+              <option value="high">Important</option>
+              <option value="absolute">Priorité absolue</option>
             </select>
           </div>
         </div>
@@ -1806,7 +1844,7 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
     if (effective === 'validated' || effective === 'done' || effective === 'on_hold') return false;
     const d = daysUntil(t.due_date);
     return d !== null && d <= 3 && d >= -2;
-  }).sort((a, b) => daysUntil(a.due_date) - daysUntil(b.due_date)) : [];
+  }).sort(compareTasksByImportanceThenDueDate) : [];
 
   const usedZoneIds = new Set();
   const usedMarkerIds = new Set();

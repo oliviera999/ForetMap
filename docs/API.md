@@ -405,7 +405,7 @@ Réponse:
 
 | Méthode | URL | n3boss | Description |
 |--------|-----|------|-------------|
-| GET | `/api/tasks` | non | Liste des tâches (avec assignments) |
+| GET | `/api/tasks` | non | Liste des tâches (avec assignments) ; tri par **degré d’importance** puis date limite (voir ci-dessous) |
 | GET | `/api/tasks/referent-candidates` | oui (`tasks.manage` + élévation, sauf profils **admin** / **prof** natifs) | Liste des utilisateurs **actifs** (enseignants puis n3beurs) pour le sélecteur « référents » en création/édition de tâche |
 | GET | `/api/tasks/:id` | non | Détail tâche |
 | GET | `/api/tasks/:id/image` | non | Fichier image illustrative (fallback) ; en pratique `image_url` pointe vers **`/uploads/tasks/…`** (fichier statique, même origine) |
@@ -433,15 +433,17 @@ Contraintes principales :
 - Modes de validation supportés (`completion_mode`) : `single_done` (défaut), `all_assignees_done`.
 - Niveaux de danger (`danger_level`) : optionnel ; valeurs `safe`, `potential_danger`, `dangerous`, `very_dangerous`. Si non renseigné, le champ vaut **`null`** en réponse (pas de niveau implicite). `POST /api/tasks`, `PUT /api/tasks/:id` et `POST /api/tasks/proposals` : champ omis, chaîne vide ou **`null`** → enregistrement **`null`** ; valeur invalide → **400**. Les n3beurs peuvent le modifier sur **leur** proposition (`proposed`) comme les autres champs non réservés au prof.
 - Niveaux de difficulté (`difficulty_level`) : optionnel ; valeurs `easy`, `medium`, `hard`, `very_hard`. Mêmes règles que `danger_level` (`null` si non renseigné). Les clones **récurrents** reprennent les niveaux de la tâche source (y compris **`null`**).
+- Degré d’importance (`importance_level`) : optionnel ; valeurs `not_important`, `low`, `medium`, `high`, `absolute`. Si non renseigné, **`null`** en réponse. `POST /api/tasks`, `PUT /api/tasks/:id` et `POST /api/tasks/proposals` : champ omis, chaîne vide ou **`null`** → enregistrement **`null`** ; valeur invalide → **400**. Les clones **récurrents** reprennent le même degré que la tâche source (y compris **`null`**).
+- **Tri `GET /api/tasks`** : d’abord les tâches avec un `importance_level` explicite, par priorité décroissante (`absolute` → `not_important`), puis par `due_date` croissante ; ensuite les tâches sans importance (`null`), par `due_date` croissante.
 - Statuts projet supportés : `active`, `on_hold` (retourné dans `project_status` sur les payloads de tâche).
 - Champ optionnel `start_date` (`YYYY-MM-DD`) sur les tâches ; tant que la date n’est pas atteinte, la tâche est considérée en attente (`is_before_start_date: true` dans les payloads).
 - Si une tâche est `on_hold` **ou** si son projet est `on_hold`, `POST /api/tasks/:id/assign` renvoie `400` (inscription n3beur bloquée).
 - Si `start_date` est dans le futur, `POST /api/tasks/:id/assign` renvoie aussi `400` (inscription n3beur bloquée jusqu’à la date de départ).
 - Si le **plafond effectif** (profil `roles.max_concurrent_tasks` si défini, sinon réglage `tasks.student_max_active_assignments`) est strictement positif et que l’action est une **auto-inscription n3beur**, le serveur compte les assignations actives (tâches non `validated`, en excluant pour `all_assignees_done` les lignes où le n3beur a déjà `done_at`) : au-delà de la limite, réponse **`400`** avec `code: "TASK_ENROLLMENT_LIMIT"`, `maxActiveAssignments`, `currentActiveAssignments` et un message d’erreur explicite.
-- `POST /api/tasks` et `PUT /api/tasks/:id` acceptent `completion_mode` pour les profils autorisés, et `danger_level` / `difficulty_level` (prof + proposition n3beur sur les champs autorisés).
+- `POST /api/tasks` et `PUT /api/tasks/:id` acceptent `completion_mode` pour les profils autorisés, et `danger_level` / `difficulty_level` / `importance_level` (prof + proposition n3beur sur les champs autorisés).
 - **Référents** : `referent_user_ids` (tableau d’UUID utilisateurs, max **15**) — uniquement comptes **actifs** `teacher` ou `student`. Les réponses incluent `referent_user_ids` et `referents_linked` (`id`, `user_type`, `label` affichable, `role_slug` du profil RBAC primaire si présent). Pas d’adresse e-mail dans ces objets. Les clones **récurrents** héritent des mêmes référents que la tâche source.
 - **Biodiversité** : `living_beings` (tableau de **noms** d’espèces, comme sur les zones et repères) — optionnel sur `POST /api/tasks`, `PUT /api/tasks/:id` et `POST /api/tasks/proposals`. Les réponses exposent `living_beings_list` (tableau de chaînes) ; la colonne brute `living_beings` (JSON en base) n’est pas renvoyée. Tableau vide ou omission côté écriture : enregistrement **`null`**. Les clones **récurrents** reprennent la même liste que la tâche source.
-- Les payloads tâche exposent `completion_mode`, `danger_level`, `difficulty_level`, `assignees_total_count` et `assignees_done_count`.
+- Les payloads tâche exposent `completion_mode`, `danger_level`, `difficulty_level`, `importance_level`, `assignees_total_count` et `assignees_done_count`.
 - `POST /api/tasks/:id/done` :
   - en `single_done`, la tâche passe en `done` dès la déclaration de fin ;
   - en `all_assignees_done`, chaque assigné valide individuellement, puis la tâche passe en `done` uniquement quand tous les assignés ont terminé.

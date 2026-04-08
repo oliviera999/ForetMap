@@ -126,6 +126,7 @@ CREATE TABLE IF NOT EXISTS tasks (
   completion_mode VARCHAR(32) NOT NULL DEFAULT 'single_done',
   danger_level VARCHAR(32) DEFAULT NULL,
   difficulty_level VARCHAR(32) DEFAULT NULL,
+  importance_level VARCHAR(32) DEFAULT NULL,
   living_beings TEXT DEFAULT NULL,
   status VARCHAR(32) DEFAULT 'available',
   created_at VARCHAR(32) DEFAULT NULL,
