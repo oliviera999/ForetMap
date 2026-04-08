@@ -6,6 +6,10 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 ## [Non publié]
 
 ### Ajouté
+- **Tutoriels** : pour tout utilisateur connecté, bouton **Marquer comme lu** avec modal d’engagement (« lu et compris ») et case à cocher obligatoire ; table **`user_tutorial_reads`**, API **`GET /api/tutorials/me/read-ids`** et **`POST /api/tutorials/:id/acknowledge-read`** (`confirm: true`), migration **`058_user_tutorial_reads.sql`**, composant **`TutorialReadAcknowledge.jsx`**, styles **`index.css`**, doc **`docs/API.md`**, tests **`tests/tutorials.test.js`**.
+
+- **Tutoriels (prof/admin)** : bouton **⇅ Ordre** — liste réordonnancable (glisser-déposer, flèches ↑↓) et **`PUT /api/tutorials/reorder`** (`tutorial_ids` = tous les tutoriels, une fois chacun). Affichage de la grille trié par **`sort_order`**. **`tutorials-views.jsx`**, **`routes/tutorials.js`**, **`index.css`**, **`docs/API.md`**, **`tests/tutorials.test.js`**.
+
 - **Biodiversité** : filtres avancés (sous-groupes 1 et 2, habitat, catégorie d’agrosystème), recherche texte élargie (habitat, origine géographique, partie à récolter) ; côté élève, filtre **présence sur la carte** et compteur **X / Y** ; module **`src/utils/plantFilters.js`**, **`foretmap-views.jsx`**, build **`dist/`** ; e2e navigation élève ouvre **Filtres avancés**.
 
 ### Modifié

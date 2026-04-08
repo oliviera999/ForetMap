@@ -27,6 +27,20 @@ function downloadUrl(url) {
   a.remove();
 }
 
+const LINKED_TASK_STATUS_LABELS = {
+  available: 'À faire',
+  in_progress: 'En cours',
+  done: 'Terminée',
+  validated: 'Validée',
+  proposed: 'Proposée',
+  on_hold: 'En attente',
+};
+
+function linkedTaskStatusLabel(status) {
+  const s = String(status || '').toLowerCase();
+  return LINKED_TASK_STATUS_LABELS[s] || status || '—';
+}
+
 function TutorialPreviewModal({ tutorial, onClose }) {
   if (!tutorial) return null;
   const source =
@@ -51,6 +65,44 @@ function TutorialPreviewModal({ tutorial, onClose }) {
           <div className="empty" style={{ padding: 18 }}>
             <p>Aperçu non disponible pour ce tutoriel.</p>
           </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function TutorialLinkedTasksModal({ state, onClose }) {
+  if (!state?.tutorial) return null;
+  const { tutorial, loading, error, tasks } = state;
+  return (
+    <div className="modal-overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
+      <div className="log-modal fade-in tuto-linked-tasks-modal" role="dialog" aria-labelledby="tuto-linked-tasks-title" aria-modal="true">
+        <button type="button" className="modal-close" onClick={onClose} aria-label="Fermer">✕</button>
+        <h3 id="tuto-linked-tasks-title">Tâches liées</h3>
+        <p className="tuto-linked-tasks-subtitle">« {tutorial.title} »</p>
+        {loading ? (
+          <p className="tuto-linked-tasks-loading">Chargement…</p>
+        ) : error ? (
+          <p className="tuto-linked-tasks-error">{error}</p>
+        ) : !tasks?.length ? (
+          <p className="tuto-linked-tasks-empty">Aucune tâche liée.</p>
+        ) : (
+          <ul className="tuto-linked-tasks-list">
+            {tasks.map((task) => (
+              <li key={task.id} className="tuto-linked-tasks-row">
+                <div className="tuto-linked-tasks-row-title">{task.title}</div>
+                <div className="tuto-linked-tasks-row-meta">
+                  <span className="task-chip">{linkedTaskStatusLabel(task.status)}</span>
+                  {task.map_label ? (
+                    <span className="task-chip" title={task.map_id || ''}>🗺️ {task.map_label}</span>
+                  ) : null}
+                  {task.location_hint ? (
+                    <span className="task-chip" title="Lieu">📍 {task.location_hint}</span>
+                  ) : null}
+                </div>
+              </li>
+            ))}
+          </ul>
         )}
       </div>
     </div>
@@ -84,6 +136,34 @@ function TutorialsView({ tutorials, isTeacher, onRefresh, onForceLogout }) {
   const [reorderDraft, setReorderDraft] = useState([]);
   const [reorderSaving, setReorderSaving] = useState(false);
   const [tutorialReadIds, setTutorialReadIds] = useState(() => new Set());
+  const [linkedTasksModal, setLinkedTasksModal] = useState(null);
+
+  const closeLinkedTasks = useCallback(() => setLinkedTasksModal(null), []);
+
+  const openLinkedTasks = useCallback(
+    async (t) => {
+      const count = Number(t.linked_tasks_count) || 0;
+      if (count <= 0) return;
+      setLinkedTasksModal({ tutorial: t, loading: true, error: null, tasks: [] });
+      const q = isTeacher && !t.is_active ? '?include_inactive=1' : '';
+      try {
+        const res = await api(`/api/tutorials/${t.id}/linked-tasks${q}`);
+        setLinkedTasksModal((prev) =>
+          prev?.tutorial?.id === t.id
+            ? { ...prev, loading: false, tasks: Array.isArray(res?.tasks) ? res.tasks : [], error: null }
+            : prev
+        );
+      } catch (e) {
+        if (e instanceof AccountDeletedError) onForceLogout?.();
+        setLinkedTasksModal((prev) =>
+          prev?.tutorial?.id === t.id
+            ? { ...prev, loading: false, tasks: [], error: e.message || 'Erreur' }
+            : prev
+        );
+      }
+    },
+    [isTeacher, onForceLogout]
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -297,6 +377,7 @@ function TutorialsView({ tutorials, isTeacher, onRefresh, onForceLogout }) {
   return (
     <div className="fade-in">
       {preview && <TutorialPreviewModal tutorial={preview} onClose={() => setPreview(null)} />}
+      {linkedTasksModal && <TutorialLinkedTasksModal state={linkedTasksModal} onClose={closeLinkedTasks} />}
       {showReorder && (
         <div className="modal-overlay" onClick={(e) => e.target === e.currentTarget && !reorderSaving && closeReorder()}>
           <div className="log-modal fade-in tuto-reorder-modal" role="dialog" aria-labelledby="tuto-reorder-title">
@@ -465,7 +546,18 @@ function TutorialsView({ tutorials, isTeacher, onRefresh, onForceLogout }) {
                 </span>
               </div>
               <div className="task-meta">
-                <span className="task-chip">🔗 {t.linked_tasks_count || 0} tâche(s) liée(s)</span>
+                {(Number(t.linked_tasks_count) || 0) > 0 ? (
+                  <button
+                    type="button"
+                    className="task-chip tuto-linked-tasks-pill"
+                    onClick={() => openLinkedTasks(t)}
+                    title="Afficher les tâches liées à ce tutoriel"
+                  >
+                    🔗 {t.linked_tasks_count} tâche(s) liée(s)
+                  </button>
+                ) : (
+                  <span className="task-chip">🔗 0 tâche(s) liée(s)</span>
+                )}
               </div>
               <div className="task-actions">
                 {t.is_active && (
