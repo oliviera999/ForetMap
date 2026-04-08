@@ -1,5 +1,22 @@
-import React, { useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { api, AccountDeletedError } from '../services/api';
+import { TutorialReadAcknowledgeButton, fetchTutorialReadIds } from './TutorialReadAcknowledge';
+
+function sortTutorialsByOrder(list) {
+  return [...list].sort(
+    (a, b) =>
+      (Number(a.sort_order) || 0) - (Number(b.sort_order) || 0) ||
+      String(a.title || '').localeCompare(String(b.title || ''), 'fr')
+  );
+}
+
+function moveIndex(arr, from, to) {
+  if (from === to || from < 0 || to < 0 || from >= arr.length || to >= arr.length) return arr;
+  const next = [...arr];
+  const [item] = next.splice(from, 1);
+  next.splice(to, 0, item);
+  return next;
+}
 
 function downloadUrl(url) {
   const a = document.createElement('a');
@@ -12,8 +29,12 @@ function downloadUrl(url) {
 
 function TutorialPreviewModal({ tutorial, onClose }) {
   if (!tutorial) return null;
-  const canEmbed = !!tutorial.preview_url || !!tutorial.source_file_path;
-  const source = tutorial.preview_url || tutorial.source_file_path || '';
+  const source =
+    (tutorial.preview_url && String(tutorial.preview_url).trim()) ||
+    tutorial.source_file_path ||
+    (tutorial.type === 'link' ? String(tutorial.source_url || '').trim() : '') ||
+    '';
+  const canEmbed = !!source;
   return (
     <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
       <div className="log-modal fade-in tuto-preview-modal">
@@ -59,12 +80,35 @@ function TutorialsView({ tutorials, isTeacher, onRefresh, onForceLogout }) {
   const [form, setForm] = useState(initialForm());
   const [saving, setSaving] = useState(false);
   const [preview, setPreview] = useState(null);
+  const [showReorder, setShowReorder] = useState(false);
+  const [reorderDraft, setReorderDraft] = useState([]);
+  const [reorderSaving, setReorderSaving] = useState(false);
+  const [tutorialReadIds, setTutorialReadIds] = useState(() => new Set());
+
+  useEffect(() => {
+    let cancelled = false;
+    const load = async () => {
+      const ids = await fetchTutorialReadIds();
+      if (!cancelled) setTutorialReadIds(new Set(ids));
+    };
+    load();
+    if (typeof window !== 'undefined') {
+      window.addEventListener('foretmap_session_changed', load);
+      return () => {
+        cancelled = true;
+        window.removeEventListener('foretmap_session_changed', load);
+      };
+    }
+    return () => {
+      cancelled = true;
+    };
+  }, [tutorials]);
 
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
-    return tutorials.filter((t) => {
+    const arr = tutorials.filter((t) => {
       if (typeFilter !== 'all' && t.type !== typeFilter) return false;
       if (statusFilter === 'active' && !t.is_active) return false;
       if (statusFilter === 'archived' && t.is_active) return false;
@@ -74,10 +118,70 @@ function TutorialsView({ tutorials, isTeacher, onRefresh, onForceLogout }) {
         String(t.summary || '').toLowerCase().includes(q)
       );
     });
+    return sortTutorialsByOrder(arr);
   }, [tutorials, search, typeFilter, statusFilter]);
 
+  const openReorder = useCallback(() => {
+    setReorderDraft(sortTutorialsByOrder(tutorials));
+    setShowReorder(true);
+  }, [tutorials]);
+
+  const closeReorder = () => {
+    setShowReorder(false);
+    setReorderDraft([]);
+  };
+
+  const onReorderDragStart = (e, index) => {
+    e.dataTransfer.setData('text/plain', String(index));
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
+  const onReorderDragOver = (e) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+  };
+
+  const onReorderDrop = (e, dropIndex) => {
+    e.preventDefault();
+    const from = Number(e.dataTransfer.getData('text/plain'));
+    if (!Number.isFinite(from)) return;
+    setReorderDraft((list) => moveIndex(list, from, dropIndex));
+  };
+
+  const moveReorderRow = (from, delta) => {
+    const to = from + delta;
+    setReorderDraft((list) => moveIndex(list, from, to));
+  };
+
+  const saveReorder = async () => {
+    if (reorderDraft.length === 0) return;
+    setReorderSaving(true);
+    try {
+      await api('/api/tutorials/reorder', 'PUT', {
+        tutorial_ids: reorderDraft.map((t) => t.id),
+      });
+      await onRefresh?.();
+      setToast('Ordre des tutoriels enregistré ✓');
+      setTimeout(() => setToast(''), 2500);
+      closeReorder();
+    } catch (e) {
+      if (e instanceof AccountDeletedError) onForceLogout?.();
+      setToast('Erreur : ' + e.message);
+      setTimeout(() => setToast(''), 3500);
+    } finally {
+      setReorderSaving(false);
+    }
+  };
+
   const openPreview = (t) => {
-    const preview_url = t.type === 'html' ? `/api/tutorials/${t.id}/view` : (t.source_file_path || '');
+    let preview_url = '';
+    if (t.type === 'html') {
+      preview_url = `/api/tutorials/${t.id}/view`;
+    } else if (t.type === 'link') {
+      preview_url = String(t.source_url || '').trim();
+    } else {
+      preview_url = t.source_file_path || '';
+    }
     setPreview({ ...t, preview_url });
   };
 
@@ -193,12 +297,68 @@ function TutorialsView({ tutorials, isTeacher, onRefresh, onForceLogout }) {
   return (
     <div className="fade-in">
       {preview && <TutorialPreviewModal tutorial={preview} onClose={() => setPreview(null)} />}
+      {showReorder && (
+        <div className="modal-overlay" onClick={(e) => e.target === e.currentTarget && !reorderSaving && closeReorder()}>
+          <div className="log-modal fade-in tuto-reorder-modal" role="dialog" aria-labelledby="tuto-reorder-title">
+            <button type="button" className="modal-close" disabled={reorderSaving} onClick={closeReorder}>✕</button>
+            <h3 id="tuto-reorder-title">Ordre d’affichage des tutoriels</h3>
+            <p className="tuto-reorder-hint">
+              Glissez-déposez une ligne ou utilisez les flèches. Cet ordre est celui de la liste des tutoriels (élèves et profs) et correspond au champ « Ordre » de chaque fiche.
+            </p>
+            <ul className="tuto-reorder-list">
+              {reorderDraft.map((t, index) => (
+                <li
+                  key={t.id}
+                  className={`tuto-reorder-row ${!t.is_active ? 'archived' : ''}`}
+                  draggable={!reorderSaving}
+                  onDragStart={(e) => onReorderDragStart(e, index)}
+                  onDragOver={onReorderDragOver}
+                  onDrop={(e) => onReorderDrop(e, index)}
+                >
+                  <span className="tuto-reorder-grip" title="Glisser pour déplacer" aria-hidden>⋮⋮</span>
+                  <span className="tuto-reorder-row-title">{t.title}</span>
+                  {!t.is_active && <span className="task-chip archived">Archivé</span>}
+                  <span className="tuto-reorder-actions">
+                    <button
+                      type="button"
+                      className="btn btn-ghost btn-sm"
+                      disabled={reorderSaving || index === 0}
+                      onClick={() => moveReorderRow(index, -1)}
+                      aria-label="Monter"
+                    >↑</button>
+                    <button
+                      type="button"
+                      className="btn btn-ghost btn-sm"
+                      disabled={reorderSaving || index >= reorderDraft.length - 1}
+                      onClick={() => moveReorderRow(index, 1)}
+                      aria-label="Descendre"
+                    >↓</button>
+                  </span>
+                </li>
+              ))}
+            </ul>
+            <div className="tuto-reorder-footer">
+              <button type="button" className="btn btn-primary btn-sm" disabled={reorderSaving} onClick={saveReorder}>
+                {reorderSaving ? 'Enregistrement…' : '💾 Enregistrer l’ordre'}
+              </button>
+              <button type="button" className="btn btn-ghost btn-sm" disabled={reorderSaving} onClick={closeReorder}>Annuler</button>
+            </div>
+          </div>
+        </div>
+      )}
       {toast && <div className="toast">{toast}</div>}
 
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4, flexWrap: 'wrap', gap: 8 }}>
         <h2 className="section-title">📘 Tutoriels</h2>
         {isTeacher && (
-          <button className="btn btn-primary btn-sm" onClick={beginCreate}>+ Ajouter</button>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            {tutorials.length > 0 && (
+              <button type="button" className="btn btn-ghost btn-sm" onClick={openReorder}>
+                ⇅ Ordre
+              </button>
+            )}
+            <button type="button" className="btn btn-primary btn-sm" onClick={beginCreate}>+ Ajouter</button>
+          </div>
         )}
       </div>
       <p className="section-sub">Guides pratiques consultables et téléchargeables</p>
@@ -314,6 +474,13 @@ function TutorialsView({ tutorials, isTeacher, onRefresh, onForceLogout }) {
                     <button className="btn btn-ghost btn-sm" onClick={() => openSource(t)}>🌐 Ouvrir</button>
                     <button className="btn btn-ghost btn-sm" onClick={() => downloadUrl(`/api/tutorials/${t.id}/download/html`)}>⬇️ HTML</button>
                     <button className="btn btn-primary btn-sm" onClick={() => downloadUrl(`/api/tutorials/${t.id}/download/pdf`)}>⬇️ PDF</button>
+                    <TutorialReadAcknowledgeButton
+                      tutorialId={t.id}
+                      tutorialTitle={t.title}
+                      isRead={tutorialReadIds.has(Number(t.id))}
+                      onAcknowledged={(id) => setTutorialReadIds((prev) => new Set([...prev, id]))}
+                      onForceLogout={onForceLogout}
+                    />
                   </>
                 )}
                 {isTeacher && (
