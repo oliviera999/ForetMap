@@ -24,7 +24,7 @@ function TutorialPreviewModal({ tutorial, onClose }) {
             title={`Preview ${tutorial.title}`}
             src={source}
             className="tuto-preview-frame"
-            sandbox="allow-same-origin allow-popups allow-forms"
+            sandbox="allow-same-origin allow-scripts allow-popups allow-forms"
           />
         ) : (
           <div className="empty" style={{ padding: 18 }}>
