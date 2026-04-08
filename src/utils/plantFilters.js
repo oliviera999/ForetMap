@@ -105,17 +105,20 @@ export function plantTextMatchesQuery(plant, queryTrimmedLower) {
   return fields.some((field) => nv(field).toLowerCase().includes(queryTrimmedLower));
 }
 
-export function plantMatchesZonePresence(plant, zones, presence) {
+export function plantMatchesZonePresence(plant, zones, markers, presence) {
   if (!presence) return true;
-  const has = Array.isArray(zones) && zones.some((z) => plantLinkedToMapZone(plant, z));
+  const zl = Array.isArray(zones) ? zones : [];
+  const ml = Array.isArray(markers) ? markers : [];
+  const has =
+    zl.some((z) => plantLinkedToMapZone(plant, z)) || ml.some((m) => plantLinkedToMapMarker(plant, m));
   if (presence === ZONE_PRESENCE_FILTER.IN_MAP) return has;
   if (presence === ZONE_PRESENCE_FILTER.NOT_IN_MAP) return !has;
   return true;
 }
 
-export function plantMatchesAllFilters(plant, { structured, queryTrimmedLower, zonePresence }, zones) {
+export function plantMatchesAllFilters(plant, { structured, queryTrimmedLower, zonePresence }, zones, markers) {
   if (!plantMatchesStructuredFilters(plant, structured)) return false;
   if (!plantTextMatchesQuery(plant, queryTrimmedLower)) return false;
-  if (!plantMatchesZonePresence(plant, zones, zonePresence)) return false;
+  if (!plantMatchesZonePresence(plant, zones, markers, zonePresence)) return false;
   return true;
 }
