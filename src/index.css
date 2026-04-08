@@ -2340,11 +2340,19 @@
     align-content:stretch;
     min-height:0;
   }
-  /* Hauteur explicite : sans cela, la ligne « auto » du grid replie le flex (toolbar seule) et
-     .map-view-canvas-outer reste à clientHeight ≈ 0 → carte invisible (mesure embedded dans map-views.jsx). */
+  /* Pas de hauteur min=max sur tout le volet : ça comprime toolbar + carte dans une boîte trop basse.
+     Plafond seulement ; la toolbar reste en largeur plein volet (sinon width: --fm-map-canvas-w la tronque horizontalement). */
   .main--maptasks-split .desktop-split-pane--map {
-    min-height:max(220px, min(52dvh, 520px));
-    max-height:max(220px, min(52dvh, 520px));
+    max-height:min(60dvh, 600px);
+    min-height:0;
+  }
+  .main--maptasks-split .map-view-root--embedded .map-view-toolbar {
+    width:100%;
+    max-width:100%;
+  }
+  /* Évite le repli à clientHeight ≈ 0 du canvas embedded (mesure dans map-views.jsx) sans figer la hauteur du volet entier. */
+  .main--maptasks-split .map-view-root--embedded .map-view-canvas-outer {
+    min-height:clamp(140px, 40dvh, 260px);
   }
   .main--maptasks-split .desktop-split-pane--tasks {
     min-height:0;
