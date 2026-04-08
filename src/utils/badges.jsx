@@ -76,6 +76,7 @@ export function dueDateChip(date) {
 
 const TASK_DIFFICULTY_LEVELS = new Set(['easy', 'medium', 'hard', 'very_hard']);
 const TASK_DANGER_LEVELS = new Set(['safe', 'potential_danger', 'dangerous', 'very_dangerous']);
+const TASK_IMPORTANCE_LEVELS = new Set(['not_important', 'low', 'medium', 'high', 'absolute']);
 
 /** Niveau renseigné explicitement (sinon null — pas d’affichage). */
 export function getDefinedTaskDifficultyLevel(task) {
@@ -92,11 +93,26 @@ export function getDefinedTaskDangerLevel(task) {
   return TASK_DANGER_LEVELS.has(raw) ? raw : null;
 }
 
+export function getDefinedTaskImportanceLevel(task) {
+  const v = task?.importance_level;
+  if (v == null) return null;
+  const raw = String(v).trim().toLowerCase();
+  return TASK_IMPORTANCE_LEVELS.has(raw) ? raw : null;
+}
+
 const TASK_DIFFICULTY_DISPLAY = {
   easy: { emoji: '🌱', label: 'Facile', title: 'Difficulté : facile' },
   medium: { emoji: '🪜', label: 'Moyen', title: 'Difficulté : moyenne' },
   hard: { emoji: '🧗', label: 'Compliqué', title: 'Difficulté : compliquée' },
   very_hard: { emoji: '⛰️', label: 'Super compliqué', title: 'Difficulté : très élevée' },
+};
+
+const TASK_IMPORTANCE_DISPLAY = {
+  not_important: { emoji: '○', label: 'Pas important', title: 'Importance : pas important' },
+  low: { emoji: '◔', label: 'Peu important', title: 'Importance : peu important' },
+  medium: { emoji: '◕', label: 'Modéré', title: 'Importance : modéré' },
+  high: { emoji: '⏫', label: 'Important', title: 'Importance : important' },
+  absolute: { emoji: '🎯', label: 'Priorité absolue', title: 'Importance : priorité absolue' },
 };
 
 const TASK_DANGER_DISPLAY = {
@@ -117,10 +133,12 @@ export function taskRequiresReferentBriefingBeforeStart(task) {
   return d === 'hard' || d === 'very_hard' || g === 'dangerous' || g === 'very_dangerous';
 }
 
-/** Pastilles difficulté et/ou danger uniquement si renseignés côté fiche tâche. */
+/** Pastilles importance, difficulté et/ou danger uniquement si renseignés côté fiche tâche. */
 export function TaskDifficultyAndRiskChips({ task }) {
+  const i = getDefinedTaskImportanceLevel(task);
   const d = getDefinedTaskDifficultyLevel(task);
   const g = getDefinedTaskDangerLevel(task);
+  const imp = i ? TASK_IMPORTANCE_DISPLAY[i] : null;
   const diff = d ? TASK_DIFFICULTY_DISPLAY[d] : null;
   const risk = g ? TASK_DANGER_DISPLAY[g] : null;
   const riskExtraClass = g === 'very_dangerous' ? ' urgent' : '';
@@ -130,9 +148,15 @@ export function TaskDifficultyAndRiskChips({ task }) {
       : g === 'dangerous'
         ? { background: '#fffbeb', color: '#b45309' }
         : undefined;
-  if (!diff && !risk) return null;
+  const impExtraClass = i === 'absolute' || i === 'high' ? ' urgent' : '';
+  if (!imp && !diff && !risk) return null;
   return (
     <>
+      {imp ? (
+        <span className={`task-chip${impExtraClass}`} title={imp.title}>
+          {imp.emoji} {imp.label}
+        </span>
+      ) : null}
       {diff ? (
         <span className="task-chip" title={diff.title}>
           {diff.emoji} {diff.label}

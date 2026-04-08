@@ -31,12 +31,14 @@ const IMPORT_TEMPLATE_COLUMNS = [
   'n3beurs requis',
   'Statut (available|in_progress|done|validated|proposed|on_hold)',
   'Récurrence (weekly|biweekly|monthly)',
+  'Importance (not_important|low|medium|high|absolute)',
 ];
 
 const ALLOWED_TASK_STATUSES = new Set(['available', 'in_progress', 'done', 'validated', 'proposed', 'on_hold']);
 const ALLOWED_TASK_COMPLETION_MODES = new Set(['single_done', 'all_assignees_done']);
 const ALLOWED_TASK_DANGER_LEVELS = new Set(['safe', 'potential_danger', 'dangerous', 'very_dangerous']);
 const ALLOWED_TASK_DIFFICULTY_LEVELS = new Set(['easy', 'medium', 'hard', 'very_hard']);
+const ALLOWED_TASK_IMPORTANCE_LEVELS = new Set(['not_important', 'low', 'medium', 'high', 'absolute']);
 const ALLOWED_IMPORT_TASK_STATUSES = ALLOWED_TASK_STATUSES;
 const ALLOWED_IMPORT_TASK_RECURRENCES = new Set(['weekly', 'biweekly', 'monthly']);
 const IMPORT_HEADER_ALIASES = new Map([
@@ -79,6 +81,10 @@ const IMPORT_HEADER_ALIASES = new Map([
   ['recurrence', 'recurrence'],
   ['recurrence_weekly_biweekly_monthly', 'recurrence'],
   ['récurrence', 'recurrence'],
+  ['importance', 'importanceLevel'],
+  ['importance_level', 'importanceLevel'],
+  ['degre_importance', 'importanceLevel'],
+  ['degre_dimportance', 'importanceLevel'],
 ]);
 
 function asTrimmedString(value) {
@@ -152,6 +158,14 @@ function parseTaskDifficultyLevelFromClient(value) {
   return { error: 'Niveau de difficulté invalide' };
 }
 
+function parseTaskImportanceLevelFromClient(value) {
+  if (value === undefined || value === null) return { level: null };
+  const raw = asTrimmedString(value).toLowerCase();
+  if (!raw) return { level: null };
+  if (ALLOWED_TASK_IMPORTANCE_LEVELS.has(raw)) return { level: raw };
+  return { error: "Degré d'importance invalide" };
+}
+
 /** Valeur BDD → clé API ou null (jamais de défaut implicite). */
 function taskDangerLevelForResponse(value) {
   if (value == null) return null;
@@ -165,6 +179,13 @@ function taskDifficultyLevelForResponse(value) {
   const raw = asTrimmedString(value).toLowerCase();
   if (!raw) return null;
   return ALLOWED_TASK_DIFFICULTY_LEVELS.has(raw) ? raw : null;
+}
+
+function taskImportanceLevelForResponse(value) {
+  if (value == null) return null;
+  const raw = asTrimmedString(value).toLowerCase();
+  if (!raw) return null;
+  return ALLOWED_TASK_IMPORTANCE_LEVELS.has(raw) ? raw : null;
 }
 
 /** Liste de noms d’êtres vivants (catalogue biodiversité), comme zones/repères. */
@@ -444,6 +465,7 @@ function buildImportPayload(row = {}) {
     requiredStudents: normalizeImportRequiredStudents(mapped.requiredStudents),
     status: normalizeImportTaskStatus(mapped.status),
     recurrence: normalizeImportTaskRecurrence(mapped.recurrence),
+    importanceLevel: normalizeOptionalString(mapped.importanceLevel)?.toLowerCase() || null,
   };
 }
 
@@ -468,6 +490,7 @@ function buildImportTemplateWorkbookRows() {
       [IMPORT_TEMPLATE_COLUMNS[8]]: '',
       [IMPORT_TEMPLATE_COLUMNS[9]]: '',
       [IMPORT_TEMPLATE_COLUMNS[10]]: '',
+      [IMPORT_TEMPLATE_COLUMNS[11]]: '',
     },
     {
       [IMPORT_TEMPLATE_COLUMNS[0]]: 'task',
@@ -481,6 +504,7 @@ function buildImportTemplateWorkbookRows() {
       [IMPORT_TEMPLATE_COLUMNS[8]]: '2',
       [IMPORT_TEMPLATE_COLUMNS[9]]: 'available',
       [IMPORT_TEMPLATE_COLUMNS[10]]: 'weekly',
+      [IMPORT_TEMPLATE_COLUMNS[11]]: 'high',
     },
   ];
 }
@@ -994,6 +1018,7 @@ async function getTaskWithAssignments(taskId) {
   task.completion_mode = normalizeTaskCompletionMode(task.completion_mode) || 'single_done';
   task.danger_level = taskDangerLevelForResponse(task.danger_level);
   task.difficulty_level = taskDifficultyLevelForResponse(task.difficulty_level);
+  task.importance_level = taskImportanceLevelForResponse(task.importance_level);
   task.is_before_start_date = isTaskBeforeStartDate(task);
   if (!task.zone_name && task.zone_name_legacy) task.zone_name = task.zone_name_legacy;
   if (!task.marker_label && task.marker_label_legacy) task.marker_label = task.marker_label_legacy;
@@ -1154,7 +1179,18 @@ router.get('/', async (req, res) => {
       params.push(projectId);
     }
     const whereSql = where.length ? `WHERE ${where.join(' AND ')}` : '';
-    const tasks = await queryAll(`${sqlBase} ${whereSql} ORDER BY t.due_date ASC`, params);
+    const orderSql = `ORDER BY
+      CASE WHEN COALESCE(NULLIF(TRIM(t.importance_level), ''), '') = '' THEN 1 ELSE 0 END ASC,
+      CASE LOWER(TRIM(t.importance_level))
+        WHEN 'absolute' THEN 5
+        WHEN 'high' THEN 4
+        WHEN 'medium' THEN 3
+        WHEN 'low' THEN 2
+        WHEN 'not_important' THEN 1
+        ELSE 0
+      END DESC,
+      t.due_date ASC`;
+    const tasks = await queryAll(`${sqlBase} ${whereSql} ${orderSql}`, params);
     const taskIds = tasks.map((t) => t.id);
     const proposedTaskIds = tasks
       .filter((t) => normalizeTaskStatusForRead(t?.status) === 'proposed')
@@ -1186,6 +1222,7 @@ router.get('/', async (req, res) => {
       row.completion_mode = normalizeTaskCompletionMode(row.completion_mode) || 'single_done';
       row.danger_level = taskDangerLevelForResponse(row.danger_level);
       row.difficulty_level = taskDifficultyLevelForResponse(row.difficulty_level);
+      row.importance_level = taskImportanceLevelForResponse(row.importance_level);
       row.is_before_start_date = isTaskBeforeStartDate(row);
       delete row.map_id_resolved_join;
       row.assignments = assignmentsByTask.get(t.id) || [];
@@ -1388,6 +1425,10 @@ router.post('/import', requirePermission('tasks.manage', { needsElevation: true 
         if (asTrimmedString(mapImportRow(row).startDate) && !payload.startDate) {
           errors.push({ row: rowNumber, field: 'start_date', error: 'Date de départ invalide' });
         }
+        if (payload.importanceLevel) {
+          const ip = parseTaskImportanceLevelFromClient(payload.importanceLevel);
+          if (ip.error) errors.push({ row: rowNumber, field: 'importance_level', error: ip.error });
+        }
       }
 
       if (errors.length) {
@@ -1422,6 +1463,7 @@ router.post('/import', requirePermission('tasks.manage', { needsElevation: true 
           requiredStudents: payload.requiredStudents ?? 1,
           status: payload.status || 'available',
           recurrence: payload.recurrence || null,
+          importanceLevel: parseTaskImportanceLevelFromClient(payload.importanceLevel).level,
         });
       }
     });
@@ -1529,7 +1571,7 @@ router.post('/import', requirePermission('tasks.manage', { needsElevation: true 
         : null;
       const id = uuidv4();
       await execute(
-        'INSERT INTO tasks (id, title, description, map_id, project_id, zone_id, marker_id, start_date, due_date, required_students, status, recurrence, danger_level, difficulty_level, created_at) VALUES (?, ?, ?, ?, ?, NULL, NULL, ?, ?, ?, ?, ?, ?, ?, ?)',
+        'INSERT INTO tasks (id, title, description, map_id, project_id, zone_id, marker_id, start_date, due_date, required_students, status, recurrence, danger_level, difficulty_level, importance_level, created_at) VALUES (?, ?, ?, ?, ?, NULL, NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
         [
           id,
           task.title,
@@ -1543,6 +1585,7 @@ router.post('/import', requirePermission('tasks.manage', { needsElevation: true 
           task.recurrence || null,
           null,
           null,
+          task.importanceLevel ?? null,
           new Date().toISOString(),
         ]
       );
@@ -1596,6 +1639,7 @@ router.post('/', requirePermission('tasks.manage', { needsElevation: true }), as
       completion_mode,
       danger_level,
       difficulty_level,
+      importance_level,
       living_beings,
       imageData,
     } = req.body;
@@ -1631,12 +1675,14 @@ router.post('/', requirePermission('tasks.manage', { needsElevation: true }), as
     if (parsedDanger.error) return res.status(400).json({ error: parsedDanger.error });
     const parsedDifficulty = parseTaskDifficultyLevelFromClient(difficulty_level);
     if (parsedDifficulty.error) return res.status(400).json({ error: parsedDifficulty.error });
+    const parsedImportance = parseTaskImportanceLevelFromClient(importance_level);
+    if (parsedImportance.error) return res.status(400).json({ error: parsedImportance.error });
     const livingDb = Object.prototype.hasOwnProperty.call(req.body || {}, 'living_beings')
       ? serializeTaskLivingBeingsForDb(living_beings)
       : null;
     const id = uuidv4();
     await execute(
-      'INSERT INTO tasks (id, title, description, map_id, project_id, zone_id, marker_id, start_date, due_date, required_students, completion_mode, danger_level, difficulty_level, living_beings, recurrence, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      'INSERT INTO tasks (id, title, description, map_id, project_id, zone_id, marker_id, start_date, due_date, required_students, completion_mode, danger_level, difficulty_level, importance_level, living_beings, recurrence, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
       [
         id,
         title,
@@ -1651,6 +1697,7 @@ router.post('/', requirePermission('tasks.manage', { needsElevation: true }), as
         completionMode,
         parsedDanger.level,
         parsedDifficulty.level,
+        parsedImportance.level,
         livingDb,
         recurrence || null,
         new Date().toISOString(),
@@ -1707,6 +1754,7 @@ router.post('/proposals', async (req, res) => {
       profilePin,
       danger_level,
       difficulty_level,
+      importance_level,
       living_beings,
     } = req.body || {};
     if (!title || !String(title).trim()) return res.status(400).json({ error: 'Titre requis' });
@@ -1736,6 +1784,8 @@ router.post('/proposals', async (req, res) => {
     if (proposalDangerParsed.error) return res.status(400).json({ error: proposalDangerParsed.error });
     const proposalDifficultyParsed = parseTaskDifficultyLevelFromClient(difficulty_level);
     if (proposalDifficultyParsed.error) return res.status(400).json({ error: proposalDifficultyParsed.error });
+    const proposalImportanceParsed = parseTaskImportanceLevelFromClient(importance_level);
+    if (proposalImportanceParsed.error) return res.status(400).json({ error: proposalImportanceParsed.error });
 
     let proposalDecodedImage = null;
     const bodyProposal = req.body || {};
@@ -1756,8 +1806,8 @@ router.post('/proposals', async (req, res) => {
     await execute(
       `INSERT INTO tasks (
         id, title, description, map_id, project_id, zone_id, marker_id,
-        start_date, due_date, required_students, completion_mode, danger_level, difficulty_level, living_beings, status, recurrence, created_at
-      ) VALUES (?, ?, ?, ?, NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        start_date, due_date, required_students, completion_mode, danger_level, difficulty_level, importance_level, living_beings, status, recurrence, created_at
+      ) VALUES (?, ?, ?, ?, NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         id,
         String(title).trim(),
@@ -1771,6 +1821,7 @@ router.post('/proposals', async (req, res) => {
         'single_done',
         proposalDangerParsed.level,
         proposalDifficultyParsed.level,
+        proposalImportanceParsed.level,
         proposalLivingDb,
         'proposed',
         null,
@@ -1854,6 +1905,7 @@ router.put('/:id', async (req, res) => {
       completion_mode,
       danger_level,
       difficulty_level,
+      importance_level,
       living_beings,
     } = req.body;
 
@@ -1937,6 +1989,15 @@ router.put('/:id', async (req, res) => {
       nextDifficultyLevel = task.difficulty_level;
     }
 
+    let nextImportanceLevel;
+    if (Object.prototype.hasOwnProperty.call(req.body, 'importance_level')) {
+      const p = parseTaskImportanceLevelFromClient(importance_level);
+      if (p.error) return res.status(400).json({ error: p.error });
+      nextImportanceLevel = p.level;
+    } else {
+      nextImportanceLevel = task.importance_level;
+    }
+
     let nextLivingDb = task.living_beings;
     if (Object.prototype.hasOwnProperty.call(req.body, 'living_beings')) {
       nextLivingDb = serializeTaskLivingBeingsForDb(living_beings);
@@ -1964,7 +2025,7 @@ router.put('/:id', async (req, res) => {
     }
 
     await execute(
-      'UPDATE tasks SET title=?, description=?, map_id=?, project_id=?, zone_id=?, marker_id=?, start_date=?, due_date=?, required_students=?, status=?, completion_mode=?, danger_level=?, difficulty_level=?, living_beings=?, recurrence=? WHERE id=?',
+      'UPDATE tasks SET title=?, description=?, map_id=?, project_id=?, zone_id=?, marker_id=?, start_date=?, due_date=?, required_students=?, status=?, completion_mode=?, danger_level=?, difficulty_level=?, importance_level=?, living_beings=?, recurrence=? WHERE id=?',
       [
         title ?? task.title,
         description ?? task.description,
@@ -1979,6 +2040,7 @@ router.put('/:id', async (req, res) => {
         nextCompletionMode,
         nextDangerLevel,
         nextDifficultyLevel,
+        nextImportanceLevel,
         nextLivingDb,
         isTeacherAction
           ? (recurrence !== undefined ? recurrence || null : task.recurrence || null)
