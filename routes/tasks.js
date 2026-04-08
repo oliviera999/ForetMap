@@ -198,14 +198,30 @@ function decodeTaskImageBuffer(imageData) {
   return { buffer: buf, ext };
 }
 
+/** Chemin relatif uploads/ sûr pour exposition publique (fichier sous tasks/). */
+function isSafePublicTaskImageRelativePath(rel) {
+  const s = rel != null ? String(rel).trim() : '';
+  if (!s || s.includes('..') || s.includes('\\')) return false;
+  if (!s.startsWith('tasks/')) return false;
+  const rest = s.slice('tasks/'.length);
+  // id tâche (uuid, import, etc.) + extension image connue
+  return /^[a-zA-Z0-9_-]+\.(jpe?g|png|webp)$/i.test(rest);
+}
+
 function attachTaskImagePublicFields(task) {
   if (!task || task.id == null) return;
-  if (task.image_path) {
-    task.image_url = `/api/tasks/${task.id}/image`;
+  const raw = task.task_cover_image_path ?? task.image_path;
+  const rel = raw != null ? String(raw).trim() : '';
+  if (rel && isSafePublicTaskImageRelativePath(rel)) {
+    // Même origine que les avatars / photos zones : pas de passage par /api/* (rate limit, JSON d’erreur).
+    task.image_url = `/uploads/${rel}`;
+  } else if (rel) {
+    task.image_url = `/api/tasks/${encodeURIComponent(task.id)}/image`;
   } else {
     task.image_url = null;
   }
   delete task.image_path;
+  delete task.task_cover_image_path;
 }
 
 function countDoneAssignments(assignments = []) {
@@ -928,7 +944,8 @@ async function validateTaskLocations(zoneIds, markerIds, explicitMapId) {
 async function getTaskWithAssignments(taskId) {
   const task = await queryOne(
     `SELECT t.*, z.name AS zone_name_legacy, mkr.label AS marker_label_legacy,
-            tp.map_id AS project_map_id, tp.title AS project_title, tp.status AS project_status
+            tp.map_id AS project_map_id, tp.title AS project_title, tp.status AS project_status,
+            t.image_path AS task_cover_image_path
        FROM tasks t
        LEFT JOIN zones z ON t.zone_id = z.id
        LEFT JOIN map_markers mkr ON t.marker_id = mkr.id
@@ -1078,7 +1095,8 @@ router.get('/', async (req, res) => {
       SELECT t.*, z.name AS zone_name, z.map_id AS zone_map_id,
              mkr.label AS marker_label, mkr.map_id AS marker_map_id,
              tp.map_id AS project_map_id, tp.title AS project_title, tp.status AS project_status,
-             m.id AS map_id_resolved_join, m.label AS map_label
+             m.id AS map_id_resolved_join, m.label AS map_label,
+             t.image_path AS task_cover_image_path
         FROM tasks t
         LEFT JOIN zones z ON t.zone_id = z.id
         LEFT JOIN map_markers mkr ON t.marker_id = mkr.id
