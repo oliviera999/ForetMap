@@ -970,7 +970,6 @@ function ObservationNotebook({ student, zones, onForceLogout = null }) {
 function PlantViewer({ plants, zones, publicSettings = null }) {
   const [search, setSearch] = useState('');
   const [groupFilter, setGroupFilter] = useState('');
-  const [expanded, setExpanded] = useState(null);
   const { isHelpEnabled, hasSeenSection, markSectionSeen, trackPanelOpen, trackPanelDismiss } = useHelp({ publicSettings, isTeacher: false });
 
   const groupOptions = [...new Set(
@@ -1037,59 +1036,43 @@ function PlantViewer({ plants, zones, publicSettings = null }) {
         : <div className="biodiv-grid">
           {filtered.map(p => {
             const pZones = zonesForPlant(p);
-            const isExpanded = expanded === p.id;
             return (
-              <article key={p.id} className={`biodiv-card ${isExpanded ? 'expanded' : ''}`}>
-                <button
-                  type="button"
-                  className="biodiv-toggle"
-                  onClick={() => setExpanded(isExpanded ? null : p.id)}>
-                  <div className="biodiv-card-head">
-                    <div className="biodiv-card-title-wrap">
-                      <span className="biodiv-emoji">{p.emoji}</span>
-                      <div className="biodiv-card-title-content">
-                        <h3>{p.name}</h3>
-                        <p className="plant-scientific">
-                          {normalizedPlantValue(p.scientific_name) || 'Nom scientifique non renseigne'}
-                        </p>
-                      </div>
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      {normalizedPlantValue(p.group_1) && <span className="task-chip">{p.group_1}</span>}
-                      <span style={{fontSize:'.9rem', color:'#ccc'}}>{isExpanded ? '▲' : '▼'}</span>
+              <article key={p.id} className="biodiv-card fade-in">
+                <div className="biodiv-card-head">
+                  <div className="biodiv-card-title-wrap">
+                    <span className="biodiv-emoji">{p.emoji}</span>
+                    <div className="biodiv-card-title-content">
+                      <h3>{p.name}</h3>
+                      <p className="plant-scientific">
+                        {normalizedPlantValue(p.scientific_name) || 'Nom scientifique non renseigne'}
+                      </p>
                     </div>
                   </div>
-                </button>
-                {!isExpanded && (
-                  <>
-                    {p.description && <p className="plant-row-desc">{p.description}</p>}
-                    <PlantEcosystemHumanLead plant={p} />
-                  </>
-                )}
-                {isExpanded && (
-                  <div className="fade-in biodiv-card-body" style={{marginTop:10}}>
-                    {p.description && (
-                      <p className="plant-row-desc" style={{ marginBottom: 8 }}>{p.description}</p>
-                    )}
-                    <PlantEcosystemHumanLead plant={p} />
-                    <div className="task-meta">
-                      {normalizedPlantValue(p.habitat) && <span className="task-chip">🏡 {p.habitat}</span>}
-                      {normalizedPlantValue(p.agroecosystem_category) && <span className="task-chip">🌍 {p.agroecosystem_category}</span>}
-                    </div>
-                    <PlantSummaryBadges plant={p}/>
-                    <PlantMetaSections plant={p}/>
-                    {pZones.length > 0 ? (
-                      <div>
-                        <div style={{fontSize:'.74rem', fontWeight:700, color:'#aaa', textTransform:'uppercase', marginBottom:4}}>Zones associées</div>
-                        <div className="plant-zones">
-                          {pZones.map(z => <span key={z.id} className="plant-zone-chip">📍 {z.name}</span>)}
-                        </div>
-                      </div>
-                    ) : (
-                      <p style={{fontSize:'.82rem', color:'#bbb', fontStyle:'italic'}}>Pas encore associé à une zone</p>
-                    )}
+                  {normalizedPlantValue(p.group_1) && (
+                    <span className="task-chip">{p.group_1}</span>
+                  )}
+                </div>
+
+                <div className="biodiv-card-body">
+                  <p className="plant-row-desc">{p.description || <em style={{ color: '#bbb' }}>Pas de description</em>}</p>
+                  <PlantEcosystemHumanLead plant={p} />
+                  <div className="task-meta">
+                    {normalizedPlantValue(p.habitat) && <span className="task-chip">🏡 {p.habitat}</span>}
+                    {normalizedPlantValue(p.agroecosystem_category) && <span className="task-chip">🌍 {p.agroecosystem_category}</span>}
                   </div>
-                )}
+                  <PlantSummaryBadges plant={p} />
+                  <PlantMetaSections plant={p} />
+                  {pZones.length > 0 ? (
+                    <div>
+                      <div style={{ fontSize: '.74rem', fontWeight: 700, color: '#aaa', textTransform: 'uppercase', marginBottom: 4 }}>Zones associées</div>
+                      <div className="plant-zones">
+                        {pZones.map(z => <span key={z.id} className="plant-zone-chip">📍 {z.name}</span>)}
+                      </div>
+                    </div>
+                  ) : (
+                    <p style={{ fontSize: '.82rem', color: '#bbb', fontStyle: 'italic' }}>Pas encore associé à une zone</p>
+                  )}
+                </div>
               </article>
             );
           })}
