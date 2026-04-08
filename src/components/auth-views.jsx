@@ -1,5 +1,6 @@
 import React, { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { api, getAuthToken, getStoredSession, saveStoredSession, withAppBase } from '../services/api';
+import { useOverlayHistoryBack } from '../hooks/useOverlayHistoryBack';
 import { getRoleTerms } from '../utils/n3-terminology';
 import { getContentText } from '../utils/content';
 
@@ -9,6 +10,7 @@ function startGoogleAuth(mode) {
 }
 
 function PinModal({ onSuccess, onClose, uiSettings, isN3Affiliated = false }) {
+  useOverlayHistoryBack(true, onClose);
   const roleTerms = getRoleTerms(isN3Affiliated);
   const fieldIdPrefix = useId();
   const fieldIds = {

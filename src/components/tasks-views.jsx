@@ -5,6 +5,7 @@ import { compressImage } from '../utils/image';
 import { taskStatusIndicator, daysUntil, dueDateChip, TaskDifficultyAndRiskChips, taskRequiresReferentBriefingBeforeStart } from '../utils/badges';
 import { getRoleTerms } from '../utils/n3-terminology';
 import { useDialogA11y } from '../hooks/useDialogA11y';
+import { useOverlayHistoryBack } from '../hooks/useOverlayHistoryBack';
 import { useHelp } from '../hooks/useHelp';
 import { Tooltip } from './Tooltip';
 import { HelpPanel } from './HelpPanel';
@@ -47,6 +48,7 @@ function writeTaskLogCommentDraft(taskId, text) {
 function Lightbox({ src, caption, onClose }) {
   const el = React.useMemo(() => document.createElement('div'), []);
   const dialogRef = useDialogA11y(onClose);
+  useOverlayHistoryBack(true, onClose);
   useEffect(() => {
     const releaseBodyScroll = lockBodyScroll();
     document.body.appendChild(el);
@@ -199,6 +201,7 @@ function TaskFormModal({
   defaultProjectId = null,
 }) {
   const dialogRef = useDialogA11y(onClose);
+  useOverlayHistoryBack(true, onClose);
   const terms = roleTerms || getRoleTerms(false);
   const defaultProjectForNew = !editTask && !isProposal && defaultProjectId
     ? taskProjects.find((p) => String(p.id || '').trim() === String(defaultProjectId || '').trim())
@@ -880,6 +883,7 @@ function TaskProjectFormModal({
   onSave,
 }) {
   const dialogRef = useDialogA11y(onClose);
+  useOverlayHistoryBack(true, onClose);
   const defaultMapId = activeMapId || maps[0]?.id || 'foret';
   const [tutorialSearch, setTutorialSearch] = useState('');
   const [form, setForm] = useState({
@@ -1345,6 +1349,7 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
   /** Préremplit le sélecteur « Projet » à l’ouverture de « Nouvelle tâche » (y compris projet en attente). */
   const [newTaskDefaultProjectId, setNewTaskDefaultProjectId] = useState(null);
   const confirmDialogRef = useDialogA11y(() => setConfirmTask(null));
+  useOverlayHistoryBack(!!confirmTask, () => setConfirmTask(null));
   const { isHelpEnabled, hasSeenSection, markSectionSeen, trackPanelOpen, trackPanelDismiss } = useHelp({ publicSettings, isTeacher });
   const contextCommentsEnabled = publicSettings?.modules?.context_comments_enabled !== false;
   const tutorialsModuleEnabled = publicSettings?.modules?.tutorials_enabled !== false;
@@ -1483,6 +1488,38 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
     }
     setLoading(l => ({ ...l, [id]: false }));
   };
+
+  const linkTutorialAtFocus = (tutorialId) => withLoad(`tuto-link-${tutorialId}`, async () => {
+    const tu = (tutorials || []).find((x) => Number(x.id) === Number(tutorialId));
+    if (!tu || !filterZone) return;
+    const { zoneIds: zi, markerIds: mi } = tutorialPickerLocationIds(tu);
+    const [kind, rawId] = String(filterZone).split(':');
+    let zoneIds = [...zi];
+    let markerIds = [...mi];
+    if (kind === 'zone' && rawId) {
+      zoneIds = [...new Set([...zi.map(String), String(rawId).trim()])];
+    } else if (kind === 'marker' && rawId) {
+      markerIds = [...new Set([...mi.map(String), String(rawId).trim()])];
+    }
+    await api(`/api/tutorials/${tutorialId}`, 'PUT', { zone_ids: zoneIds, marker_ids: markerIds });
+    setQuickTutoLinkId('');
+    setToast('Tutoriel lié à ce lieu ✓');
+  });
+
+  const unlinkTutorialAtFocus = (tuRow) => withLoad(`tuto-unlink-${tuRow.id}`, async () => {
+    if (!filterZone) return;
+    const { zoneIds: zi, markerIds: mi } = tutorialPickerLocationIds(tuRow);
+    const [kind, rawId] = String(filterZone).split(':');
+    let zoneIds = [...zi];
+    let markerIds = [...mi];
+    if (kind === 'zone' && rawId) {
+      zoneIds = zi.filter((id) => String(id) !== String(rawId));
+    } else if (kind === 'marker' && rawId) {
+      markerIds = mi.filter((id) => String(id) !== String(rawId));
+    }
+    await api(`/api/tutorials/${tuRow.id}`, 'PUT', { zone_ids: zoneIds, marker_ids: markerIds });
+    setToast('Tutoriel dissocié de ce lieu ✓');
+  });
 
   const assign = t => withLoad(t.id + 'assign', async () => {
     await api(`/api/tasks/${t.id}/assign`, 'POST', {
@@ -1770,13 +1807,13 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
     if (!filterZone || !tutorialsModuleEnabled) return null;
     const [kind, rawId] = String(filterZone).split(':');
     if (kind === 'zone' && rawId) {
-      return zones.find((z) => String(z.id) === String(rawId))?.map_id ?? null;
+      return zones.find((z) => String(z.id) === String(rawId))?.map_id ?? activeMapId;
     }
     if (kind === 'marker' && rawId) {
-      return markers.find((m) => String(m.id) === String(rawId))?.map_id ?? null;
+      return markers.find((m) => String(m.id) === String(rawId))?.map_id ?? activeMapId;
     }
-    return zones.find((z) => String(z.id) === String(filterZone))?.map_id ?? null;
-  }, [filterZone, zones, markers, tutorialsModuleEnabled]);
+    return zones.find((z) => String(z.id) === String(filterZone))?.map_id ?? activeMapId;
+  }, [filterZone, zones, markers, tutorialsModuleEnabled, activeMapId]);
 
   const linkedTutorialsAtFocus = useMemo(() => {
     if (!filterZone || !tutorialsModuleEnabled) return [];
@@ -2180,7 +2217,29 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
         </select>
         <input value={filterText} onChange={e => setFilterText(e.target.value)}
           placeholder="🔍 Rechercher une tâche..." />
-        <select value={filterZone} onChange={e => setFilterZone(e.target.value)}>
+        <select
+          value={filterZone}
+          onChange={(e) => {
+            const v = e.target.value;
+            setFilterZone(v);
+            if (!v) {
+              onMapLocationFocusChange?.(null);
+            } else {
+              const colon = v.indexOf(':');
+              if (colon > 0) {
+                const k = v.slice(0, colon);
+                const idPart = v.slice(colon + 1);
+                if ((k === 'zone' || k === 'marker') && idPart) {
+                  onMapLocationFocusChange?.({ kind: k, id: idPart });
+                } else {
+                  onMapLocationFocusChange?.(null);
+                }
+              } else {
+                onMapLocationFocusChange?.(null);
+              }
+            }
+          }}
+        >
           <option value="">Toutes les zones</option>
           {usedZones.map(zId => {
             const z = zones.find(zz => zz.id === zId);
@@ -2220,6 +2279,108 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
           ))}
         </select>
       </div>
+
+      {filterZone && tutorialsModuleEnabled && (
+        <div className="tasks-section" style={{ marginTop: 14, marginBottom: 8 }}>
+          <div className="tasks-section-title">📘 Tutoriels pour ce lieu</div>
+          {isTeacher && (
+            <>
+              <div style={{ marginTop: 8 }}>
+                {linkedTutorialsAtFocus.length === 0 ? (
+                  <p style={{ color: '#999', fontSize: '.85rem', margin: 0 }}>Aucun tutoriel lié à ce lieu.</p>
+                ) : (
+                  linkedTutorialsAtFocus.map((tu) => (
+                    <div key={tu.id} className="history-item" style={{ alignItems: 'center' }}>
+                      <span>{tu.title}{tu.is_active === false ? ' (archivé)' : ''}</span>
+                      <button
+                        type="button"
+                        className="btn btn-ghost btn-sm"
+                        disabled={!!loading[`tuto-unlink-${tu.id}`]}
+                        onClick={() => unlinkTutorialAtFocus(tu)}
+                      >
+                        Délier
+                      </button>
+                    </div>
+                  ))
+                )}
+              </div>
+              <div className="field" style={{ marginTop: 12 }}>
+                <label htmlFor="tasks-view-tuto-link">Lier un tutoriel existant</label>
+                <select
+                  id="tasks-view-tuto-link"
+                  value={quickTutoLinkId}
+                  onChange={(e) => setQuickTutoLinkId(e.target.value)}
+                >
+                  <option value="">— Choisir un tutoriel —</option>
+                  {assignableTutorialsAtFocus.map((tu) => (
+                    <option key={tu.id} value={String(tu.id)}>{tu.title}</option>
+                  ))}
+                </select>
+              </div>
+              <button
+                type="button"
+                className="btn btn-primary btn-sm"
+                style={{ marginTop: 8 }}
+                disabled={!quickTutoLinkId || !!loading[`tuto-link-${quickTutoLinkId}`]}
+                onClick={() => linkTutorialAtFocus(quickTutoLinkId)}
+              >
+                🔗 Lier le tutoriel
+              </button>
+            </>
+          )}
+          {!isTeacher && (
+            <div style={{ marginTop: 8, display: 'grid', gap: 12 }}>
+              {linkedTutorialsAtFocus.length === 0 ? (
+                <p style={{ color: '#999', fontSize: '.85rem', margin: 0 }}>Aucun tutoriel lié à ce lieu.</p>
+              ) : (
+                linkedTutorialsAtFocus.map((tu) => {
+                  const href = tutorialPickerOpenHref(tu);
+                  const [fk, fid] = String(filterZone).split(':');
+                  const otherZones = (tu.zones_linked || []).filter((z) => !(fk === 'zone' && String(z.id) === String(fid)));
+                  const otherMarkers = (tu.markers_linked || []).filter((mk) => !(fk === 'marker' && String(mk.id) === String(fid)));
+                  return (
+                    <div
+                      key={tu.id}
+                      style={{
+                        border: '1px solid rgba(0,0,0,.08)',
+                        borderRadius: 10,
+                        padding: '12px 14px',
+                        background: 'var(--parchment)',
+                      }}
+                    >
+                      <div style={{ fontWeight: 700, color: 'var(--forest)' }}>{tu.title}</div>
+                      {tu.summary && (
+                        <p style={{ margin: '8px 0 0', fontSize: '.82rem', color: '#555', lineHeight: 1.45 }}>{tu.summary}</p>
+                      )}
+                      {otherZones.length > 0 && (
+                        <p style={{ margin: '10px 0 0', fontSize: '.76rem', color: '#64748b' }}>
+                          <strong>Autres zones</strong> : {otherZones.map((z) => z.name).join(', ')}
+                        </p>
+                      )}
+                      {otherMarkers.length > 0 && (
+                        <p style={{ margin: '6px 0 0', fontSize: '.76rem', color: '#64748b' }}>
+                          <strong>Repères</strong> : {otherMarkers.map((m) => `${m.emoji ? `${m.emoji} ` : ''}${m.label}`).join(', ')}
+                        </p>
+                      )}
+                      {href ? (
+                        <a
+                          className="btn btn-primary btn-sm"
+                          href={href}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          style={{ marginTop: 10, display: 'inline-block', textDecoration: 'none' }}
+                        >
+                          📖 Consulter
+                        </a>
+                      ) : null}
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          )}
+        </div>
+      )}
 
       {!isTeacher && urgentTasks.length > 0 && (
         <div className="urgency-banner">
@@ -2406,6 +2567,7 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
 
 function LogModal({ task, student, onClose, onDone, onForceLogout }) {
   const dialogRef = useDialogA11y(onClose);
+  useOverlayHistoryBack(true, onClose);
   const commentFieldId = useId();
   const [comment, setComment] = useState(() => readTaskLogCommentDraft(task?.id));
   const [imageData, setImageData] = useState(null);
@@ -2527,6 +2689,7 @@ function LogModal({ task, student, onClose, onDone, onForceLogout }) {
 
 function TaskLogsViewer({ task, onClose }) {
   const dialogRef = useDialogA11y(onClose);
+  useOverlayHistoryBack(true, onClose);
   const [logs, setLogs] = useState([]);
   const [big, setBig] = useState(null);
   const [toast, setToast] = useState(null);

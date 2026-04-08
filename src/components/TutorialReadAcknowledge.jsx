@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { api, AccountDeletedError, getAuthToken } from '../services/api';
+import { useOverlayHistoryBack } from '../hooks/useOverlayHistoryBack';
 
 /**
  * Bouton + modal pour marquer un tutoriel comme lu après confirmation explicite.
@@ -12,6 +13,10 @@ export function TutorialReadAcknowledgeButton({ tutorialId, tutorialTitle, isRea
   const [error, setError] = useState('');
 
   const hasToken = typeof getAuthToken === 'function' && !!getAuthToken();
+
+  useOverlayHistoryBack(modalOpen, () => {
+    if (!saving) setModalOpen(false);
+  });
 
   useEffect(() => {
     if (!modalOpen) {

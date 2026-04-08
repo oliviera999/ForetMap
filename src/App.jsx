@@ -1546,12 +1546,12 @@ function App() {
           <div className="top-tabs">
             {shouldUseDesktopSplit && (
               <button className={`top-tab ${tab === 'maptasks' ? 'active' : ''}`} onClick={() => setTab('maptasks')}>
-                {mapTasksSplitLabel}{teacherPendingValidationCount > 0 && ` (${teacherPendingValidationCount} à valider)`}
+                {mapTasksSplitLabel}{teacherPendingValidationCount > 0 ? ` (${teacherPendingValidationCount} à valider)` : ''}
               </button>
             )}
             <button className={`top-tab ${tab === 'map' ? 'active' : ''}`} onClick={() => setTab('map')}>🗺️ Carte & Zones</button>
             <button className={`top-tab ${tab === 'tasks' ? 'active' : ''}`} onClick={() => setTab('tasks')}>
-              {tasksTabLabel}{teacherPendingValidationCount > 0 && ` (${teacherPendingValidationCount} à valider)`}
+              {tasksTabLabel}{teacherPendingValidationCount > 0 ? ` (${teacherPendingValidationCount} à valider)` : ''}
             </button>
             <button className={`top-tab ${tab === 'plants' ? 'active' : ''}`} onClick={() => setTab('plants')}>🌱 Biodiversité</button>
             {publicSettings?.modules?.tutorials_enabled !== false && (
