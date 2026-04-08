@@ -230,6 +230,30 @@ function taskLocationIds(t) {
   return { zoneIds, markerIds };
 }
 
+/** IDs zones/repères liés à un tutoriel (API). */
+function tutorialLocationIds(tu) {
+  if (!tu) return { zoneIds: [], markerIds: [] };
+  const zoneIds = [...new Set((tu.zone_ids || []).map((id) => String(id || '').trim()).filter(Boolean))];
+  const markerIds = [...new Set((tu.marker_ids || []).map((id) => String(id || '').trim()).filter(Boolean))];
+  return { zoneIds, markerIds };
+}
+
+/** Tutoriel sans lieu ou entièrement sur la carte `mapId` (évite mélange de cartes). */
+function tutorialLinkedToSameMap(tu, mapId) {
+  if (!mapId) return true;
+  const zl = tu.zones_linked || [];
+  const ml = tu.markers_linked || [];
+  if (zl.length === 0 && ml.length === 0) return true;
+  return [...zl, ...ml].every((x) => x.map_id === mapId);
+}
+
+function tutorialOpenHref(tu) {
+  if (!tu) return '';
+  if (tu.type === 'link' && tu.source_url) return String(tu.source_url).trim();
+  if (tu.type === 'html') return `/api/tutorials/${tu.id}/view`;
+  return (tu.source_file_path && String(tu.source_file_path).trim()) || `/api/tutorials/${tu.id}/view`;
+}
+
 function taskOpenSlots(task) {
   const required = Number(task?.required_students || 1);
   const assigned = Array.isArray(task?.assignments) ? task.assignments.length : 0;
@@ -337,7 +361,7 @@ function isTaskDetachedFromLocation(task) {
   return task.status === 'done' || task.status === 'validated';
 }
 
-function ZoneInfoModal({ zone, plants, tasks, isTeacher, student, canSelfAssignTasks = true, canEnrollOnTasks, markerEmojis = MARKER_EMOJIS, emojiParsingList = MARKER_EMOJIS, contextCommentsEnabled = true, canParticipateContextComments = true, onClose, onUpdate, onDelete, onDuplicate, onEditPoints, onLinkTask, onUnlinkTask, onAssignTasks }) {
+function ZoneInfoModal({ zone, plants, tasks, tutorials = [], isTeacher, student, canSelfAssignTasks = true, canEnrollOnTasks, markerEmojis = MARKER_EMOJIS, emojiParsingList = MARKER_EMOJIS, contextCommentsEnabled = true, canParticipateContextComments = true, onClose, onUpdate, onDelete, onDuplicate, onEditPoints, onLinkTask, onUnlinkTask, onAssignTasks, onLinkTutorial, onUnlinkTutorial }) {
   const canEnroll = canEnrollOnTasks !== undefined ? canEnrollOnTasks : canSelfAssignTasks;
   const dialogRef = useDialogA11y(onClose);
   const [tab, setTab] = useState('tasks');
@@ -348,6 +372,7 @@ function ZoneInfoModal({ zone, plants, tasks, isTeacher, student, canSelfAssignT
   const [stage, setStage] = useState(zone.stage || 'empty');
   const [desc, setDesc] = useState(zone.description || '');
   const [linkTaskId, setLinkTaskId] = useState('');
+  const [linkTutorialId, setLinkTutorialId] = useState('');
   const [selectedTaskIds, setSelectedTaskIds] = useState([]);
   const [assigning, setAssigning] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -368,12 +393,28 @@ function ZoneInfoModal({ zone, plants, tasks, isTeacher, student, canSelfAssignT
     return mapId === zone.map_id || mapId == null;
   });
   const showTasksTab = isTeacher || (!!student && linkedTasks.length > 0);
+  const linkedTutorialsAll = (tutorials || []).filter((tu) => tutorialLocationIds(tu).zoneIds.includes(zone.id));
+  const linkedTutorialsVisible = isTeacher
+    ? linkedTutorialsAll
+    : linkedTutorialsAll.filter((tu) => tu.is_active !== false);
+  const showTutorialsTab = isTeacher || linkedTutorialsVisible.length > 0;
+  const assignableTutorials = (tutorials || []).filter((tu) => (
+    tu.is_active !== false
+    && !tutorialLocationIds(tu).zoneIds.includes(zone.id)
+    && tutorialLinkedToSameMap(tu, zone.map_id)
+  ));
 
   useEffect(() => {
     if (!showTasksTab && tab === 'tasks') {
       setTab('info');
     }
   }, [showTasksTab, tab]);
+
+  useEffect(() => {
+    if (!showTutorialsTab && tab === 'tutorials') {
+      setTab('info');
+    }
+  }, [showTutorialsTab, tab]);
 
   useEffect(() => {
     setSelectedTaskIds((prev) => prev.filter((id) => studentAssignableTasks.some((t) => t.id === id)));
@@ -406,6 +447,7 @@ function ZoneInfoModal({ zone, plants, tasks, isTeacher, student, canSelfAssignT
 
   const TABS = [
     ...(showTasksTab ? [{ id: 'tasks', label: '✅ Tâches' }] : []),
+    ...(showTutorialsTab ? [{ id: 'tutorials', label: '📘 Tutoriels' }] : []),
     { id: 'info', label: 'ℹ️ Info' },
     { id: 'photos', label: '📷 Photos' },
     ...(isTeacher && !zone.special ? [{ id: 'edit', label: '✏️ Modifier' }] : []),
@@ -730,6 +772,97 @@ function ZoneInfoModal({ zone, plants, tasks, isTeacher, student, canSelfAssignT
             )}
           </div>
         )}
+        {tab === 'tutorials' && isTeacher && (
+          <div className="fade-in">
+            <div style={{ marginTop: 12 }}>
+              {linkedTutorialsAll.length === 0 ? (
+                <p style={{ color: '#999', fontSize: '.85rem' }}>Aucun tutoriel lié à cette zone.</p>
+              ) : linkedTutorialsAll.map((tu) => (
+                <div key={tu.id} className="history-item" style={{ alignItems: 'center' }}>
+                  <span>{tu.title}{tu.is_active === false ? ' (archivé)' : ''}</span>
+                  <button
+                    type="button"
+                    className="btn btn-ghost btn-sm"
+                    onClick={async () => {
+                      await onUnlinkTutorial?.(tu);
+                      setToast('Tutoriel dissocié');
+                    }}>
+                    Délier
+                  </button>
+                </div>
+              ))}
+            </div>
+            <div className="field" style={{ marginTop: 14 }}><label>Lier un tutoriel à cette zone</label>
+              <select value={linkTutorialId} onChange={(e) => setLinkTutorialId(e.target.value)}>
+                <option value="">— Choisir un tutoriel —</option>
+                {assignableTutorials.map((tu) => (
+                  <option key={tu.id} value={String(tu.id)}>{tu.title}</option>
+                ))}
+              </select>
+            </div>
+            <button
+              type="button"
+              className="btn btn-primary btn-full"
+              disabled={!linkTutorialId}
+              onClick={async () => {
+                await onLinkTutorial?.(linkTutorialId);
+                setLinkTutorialId('');
+                setToast('Tutoriel lié à la zone ✓');
+              }}>
+              🔗 Lier le tutoriel
+            </button>
+          </div>
+        )}
+        {tab === 'tutorials' && !isTeacher && (
+          <div className="fade-in">
+            {linkedTutorialsVisible.length === 0 ? (
+              <p style={{ color: '#999', fontSize: '.85rem' }}>Aucun tutoriel lié à cette zone.</p>
+            ) : (
+              <div style={{ display: 'grid', gap: 12 }}>
+                {linkedTutorialsVisible.map((tu) => {
+                  const href = tutorialOpenHref(tu);
+                  const otherZones = (tu.zones_linked || []).filter((z) => z.id !== zone.id);
+                  const markers = tu.markers_linked || [];
+                  return (
+                    <div
+                      key={tu.id}
+                      style={{
+                        border: '1px solid rgba(0,0,0,.08)',
+                        borderRadius: 10,
+                        padding: '12px 14px',
+                        background: 'var(--parchment)',
+                      }}>
+                      <div style={{ fontWeight: 700, color: 'var(--forest)' }}>{tu.title}</div>
+                      {tu.summary && (
+                        <p style={{ margin: '8px 0 0', fontSize: '.82rem', color: '#555', lineHeight: 1.45 }}>{tu.summary}</p>
+                      )}
+                      {otherZones.length > 0 && (
+                        <p style={{ margin: '10px 0 0', fontSize: '.76rem', color: '#64748b' }}>
+                          <strong>Autres zones</strong> : {otherZones.map((z) => z.name).join(', ')}
+                        </p>
+                      )}
+                      {markers.length > 0 && (
+                        <p style={{ margin: '6px 0 0', fontSize: '.76rem', color: '#64748b' }}>
+                          <strong>Repères</strong> : {markers.map((m) => m.label).join(', ')}
+                        </p>
+                      )}
+                      {href ? (
+                        <a
+                          className="btn btn-primary btn-sm"
+                          href={href}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          style={{ marginTop: 10, display: 'inline-block', textDecoration: 'none' }}>
+                          📖 Consulter
+                        </a>
+                      ) : null}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -862,7 +995,7 @@ function ZoneDrawModal({ points_pct, onClose, onSave, plants, markerEmojis = MAR
   );
 }
 
-function MarkerModal({ marker, plants, tasks, onClose, onSave, onDelete, onLinkTask, onUnlinkTask, onAssignTasks, isTeacher, student, canSelfAssignTasks = true, canEnrollOnTasks, markerEmojis = MARKER_EMOJIS }) {
+function MarkerModal({ marker, plants, tasks, tutorials = [], onClose, onSave, onDelete, onLinkTask, onUnlinkTask, onLinkTutorial, onUnlinkTutorial, onAssignTasks, isTeacher, student, canSelfAssignTasks = true, canEnrollOnTasks, markerEmojis = MARKER_EMOJIS }) {
   const canEnroll = canEnrollOnTasks !== undefined ? canEnrollOnTasks : canSelfAssignTasks;
   const dialogRef = useDialogA11y(onClose);
   const isNew = !marker.id;
@@ -873,6 +1006,7 @@ function MarkerModal({ marker, plants, tasks, onClose, onSave, onDelete, onLinkT
   });
   const [saving, setSaving] = useState(false);
   const [linkTaskId, setLinkTaskId] = useState('');
+  const [linkTutorialId, setLinkTutorialId] = useState('');
   const [selectedTaskIds, setSelectedTaskIds] = useState([]);
   const [assigning, setAssigning] = useState(false);
   const [toast, setToast] = useState(null);
@@ -889,6 +1023,15 @@ function MarkerModal({ marker, plants, tasks, onClose, onSave, onDelete, onLinkT
     const mapId = taskMapId(t);
     return mapId === marker.map_id || mapId == null;
   });
+  const linkedTutorialsAll = (tutorials || []).filter((tu) => tutorialLocationIds(tu).markerIds.includes(marker.id));
+  const linkedTutorialsVisible = isTeacher
+    ? linkedTutorialsAll
+    : linkedTutorialsAll.filter((tu) => tu.is_active !== false);
+  const assignableTutorials = (tutorials || []).filter((tu) => (
+    tu.is_active !== false
+    && !tutorialLocationIds(tu).markerIds.includes(marker.id)
+    && tutorialLinkedToSameMap(tu, marker.map_id)
+  ));
 
   useEffect(() => {
     setSelectedTaskIds((prev) => prev.filter((id) => studentAssignableTasks.some((t) => t.id === id)));
@@ -988,6 +1131,44 @@ function MarkerModal({ marker, plants, tasks, onClose, onSave, onDelete, onLinkT
                     </div>
                   ))}
                 </div>
+                <h4 style={{ margin: '18px 0 8px', fontSize: '.95rem' }}>📘 Tutoriels liés</h4>
+                <div style={{ marginTop: 6 }}>
+                  {linkedTutorialsAll.length === 0 ? (
+                    <p style={{ color: '#999', fontSize: '.85rem' }}>Aucun tutoriel lié à ce repère.</p>
+                  ) : linkedTutorialsAll.map((tu) => (
+                    <div key={tu.id} className="history-item" style={{ alignItems: 'center' }}>
+                      <span>{tu.title}{tu.is_active === false ? ' (archivé)' : ''}</span>
+                      <button
+                        type="button"
+                        className="btn btn-ghost btn-sm"
+                        onClick={async () => {
+                          await onUnlinkTutorial?.(tu);
+                          setToast('Tutoriel dissocié');
+                        }}>
+                        Délier
+                      </button>
+                    </div>
+                  ))}
+                </div>
+                <div className="field" style={{ marginTop: 12 }}><label>Lier un tutoriel à ce repère</label>
+                  <select value={linkTutorialId} onChange={(e) => setLinkTutorialId(e.target.value)}>
+                    <option value="">— Choisir un tutoriel —</option>
+                    {assignableTutorials.map((tu) => (
+                      <option key={tu.id} value={String(tu.id)}>{tu.title}</option>
+                    ))}
+                  </select>
+                </div>
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-full"
+                  disabled={!linkTutorialId}
+                  onClick={async () => {
+                    await onLinkTutorial?.(linkTutorialId);
+                    setLinkTutorialId('');
+                    setToast('Tutoriel lié au repère ✓');
+                  }}>
+                  🔗 Lier le tutoriel
+                </button>
               </>
             )}
             <div className="field"><label htmlFor="marker-emoji-custom">Emoji du repère</label>
@@ -1111,6 +1292,55 @@ function MarkerModal({ marker, plants, tasks, onClose, onSave, onDelete, onLinkT
                     {assigning ? 'Inscription...' : `✋ M'inscrire à ${selectedTaskIds.length || '...'} tâche(s)`}
                   </button>
                 </>
+              )}
+            </div>
+            <div style={{ marginTop: 18 }}>
+              <h4 style={{ margin: '0 0 8px', fontSize: '.95rem' }}>📘 Tutoriels liés</h4>
+              {linkedTutorialsVisible.length === 0 ? (
+                <p style={{ color: '#999', fontSize: '.85rem' }}>Aucun tutoriel lié à ce repère.</p>
+              ) : (
+                <div style={{ display: 'grid', gap: 10 }}>
+                  {linkedTutorialsVisible.map((tu) => {
+                    const href = tutorialOpenHref(tu);
+                    const zones = tu.zones_linked || [];
+                    const otherMarkers = (tu.markers_linked || []).filter((mk) => mk.id !== marker.id);
+                    return (
+                      <div
+                        key={tu.id}
+                        style={{
+                          border: '1px solid rgba(0,0,0,.08)',
+                          borderRadius: 10,
+                          padding: '10px 12px',
+                          background: 'var(--parchment)',
+                        }}>
+                        <div style={{ fontWeight: 700, color: 'var(--forest)', fontSize: '.9rem' }}>{tu.title}</div>
+                        {tu.summary && (
+                          <p style={{ margin: '6px 0 0', fontSize: '.8rem', color: '#555', lineHeight: 1.45 }}>{tu.summary}</p>
+                        )}
+                        {zones.length > 0 && (
+                          <p style={{ margin: '8px 0 0', fontSize: '.74rem', color: '#64748b' }}>
+                            <strong>Zones</strong> : {zones.map((z) => z.name).join(', ')}
+                          </p>
+                        )}
+                        {otherMarkers.length > 0 && (
+                          <p style={{ margin: '4px 0 0', fontSize: '.74rem', color: '#64748b' }}>
+                            <strong>Autres repères</strong> : {otherMarkers.map((m) => m.label).join(', ')}
+                          </p>
+                        )}
+                        {href ? (
+                          <a
+                            className="btn btn-primary btn-sm"
+                            href={href}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            style={{ marginTop: 8, display: 'inline-block', textDecoration: 'none' }}>
+                            📖 Consulter
+                          </a>
+                        ) : null}
+                      </div>
+                    );
+                  })}
+                </div>
               )}
             </div>
             {form.plant_name && (
@@ -1559,7 +1789,7 @@ function useMapGestures({ mapImageSrc, activeMapId, mode, onRefresh, embedded = 
   };
 }
 
-function MapView({ zones, markers, tasks = [], plants, maps = [], activeMapId = 'foret', onMapChange, isTeacher, student, canSelfAssignTasks = true, canEnrollOnTasks, canParticipateContextComments = true, onZoneUpdate, onRefresh, embedded = false, publicSettings = null }) {
+function MapView({ zones, markers, tasks = [], tutorials = [], plants, maps = [], activeMapId = 'foret', onMapChange, isTeacher, student, canSelfAssignTasks = true, canEnrollOnTasks, canParticipateContextComments = true, onZoneUpdate, onRefresh, embedded = false, publicSettings = null }) {
   const canEnrollNewTasks = canEnrollOnTasks !== undefined ? canEnrollOnTasks : canSelfAssignTasks;
   const [mode, setMode] = useState('view');
   const [showLabels, setShowLabels] = useState(true);
@@ -1643,6 +1873,28 @@ function MapView({ zones, markers, tasks = [], plants, maps = [], activeMapId = 
     }
     return { zoneTaskVisualById: zoneMap, markerTaskVisualById: markerMap };
   }, [tasks]);
+
+  const { zoneTutorialCountById, markerTutorialCountById } = useMemo(() => {
+    const zoneMap = new Map();
+    const markerMap = new Map();
+    for (const tu of tutorials || []) {
+      if (tu.is_active === false) continue;
+      const { zoneIds, markerIds } = tutorialLocationIds(tu);
+      for (const zid of zoneIds) {
+        const z = zones.find((zz) => String(zz.id) === String(zid));
+        if (z && z.map_id === activeMapId) {
+          zoneMap.set(zid, (zoneMap.get(zid) || 0) + 1);
+        }
+      }
+      for (const mid of markerIds) {
+        const mk = markers.find((mm) => String(mm.id) === String(mid));
+        if (mk && mk.map_id === activeMapId) {
+          markerMap.set(mid, (markerMap.get(mid) || 0) + 1);
+        }
+      }
+    }
+    return { zoneTutorialCountById: zoneMap, markerTutorialCountById: markerMap };
+  }, [tutorials, zones, markers, activeMapId]);
 
   useEffect(() => {
     setMapImageIdx(0);
@@ -1784,6 +2036,34 @@ function MapView({ zones, markers, tasks = [], plants, maps = [], activeMapId = 
     await api(`/api/tasks/${task.id}`, 'PUT', payload);
     await onRefresh();
   };
+  const linkTutorialToZone = async (tutorialId, zoneId) => {
+    const tu = (tutorials || []).find((x) => Number(x.id) === Number(tutorialId));
+    if (!tu) return;
+    const { zoneIds: zi, markerIds: mi } = tutorialLocationIds(tu);
+    const zoneIds = [...new Set([...(zi || []), zoneId])];
+    await api(`/api/tutorials/${tutorialId}`, 'PUT', { zone_ids: zoneIds, marker_ids: mi });
+    await onRefresh();
+  };
+  const unlinkTutorialFromZone = async (tutorial, zoneId) => {
+    const { zoneIds: zi, markerIds: mi } = tutorialLocationIds(tutorial);
+    const zoneIds = zi.filter((id) => String(id) !== String(zoneId));
+    await api(`/api/tutorials/${tutorial.id}`, 'PUT', { zone_ids: zoneIds, marker_ids: mi });
+    await onRefresh();
+  };
+  const linkTutorialToMarker = async (tutorialId, markerId) => {
+    const tu = (tutorials || []).find((x) => Number(x.id) === Number(tutorialId));
+    if (!tu) return;
+    const { zoneIds: zi, markerIds: mi } = tutorialLocationIds(tu);
+    const markerIds = [...new Set([...(mi || []), markerId])];
+    await api(`/api/tutorials/${tutorialId}`, 'PUT', { zone_ids: zi, marker_ids: markerIds });
+    await onRefresh();
+  };
+  const unlinkTutorialFromMarker = async (tutorial, markerId) => {
+    const { zoneIds: zi, markerIds: mi } = tutorialLocationIds(tutorial);
+    const markerIds = mi.filter((id) => String(id) !== String(markerId));
+    await api(`/api/tutorials/${tutorial.id}`, 'PUT', { zone_ids: zi, marker_ids: markerIds });
+    await onRefresh();
+  };
   const deleteMarker = async id => { await api(`/api/map/markers/${id}`, 'DELETE'); await onRefresh(); };
   const deleteZone = async id => { await api(`/api/zones/${id}`, 'DELETE'); await onRefresh(); };
   const duplicateZone = async (z) => {
@@ -1864,6 +2144,7 @@ function MapView({ zones, markers, tasks = [], plants, maps = [], activeMapId = 
     const zoneName = stripLeadingMarkerEmoji(z.name || '', emojiParsingList);
     const isEd = mode === 'edit-points' && editZone?.id === z.id;
     const zoneTaskVisual = zoneTaskVisualById.get(z.id);
+    const zoneTutorialCount = zoneTutorialCountById.get(z.id) || 0;
     return (
       <g key={z.id} className={mode === 'view' ? 'map-zone-hit' : ''} style={{ cursor: mode === 'view' ? 'pointer' : 'default' }}
         onClick={e => { if (mode === 'view' && !moved.current) { e.stopPropagation(); setSelectedZone(z); } }}>
@@ -1897,6 +2178,16 @@ function MapView({ zones, markers, tasks = [], plants, maps = [], activeMapId = 
             r={Math.max(5, 7 * inv)}
             style={{ pointerEvents: 'none' }}>
             <title>{TASK_VISUAL_LABEL[zoneTaskVisual]}</title>
+          </circle>
+        )}
+        {zoneTutorialCount > 0 && (
+          <circle
+            className="map-tutorial-zone-dot"
+            cx={mx - (16 * inv)}
+            cy={my - (12 * inv)}
+            r={Math.max(4, 6 * inv)}
+            style={{ pointerEvents: 'none' }}>
+            <title>{zoneTutorialCount === 1 ? '1 tutoriel lié' : `${zoneTutorialCount} tutoriels liés`}</title>
           </circle>
         )}
       </g>
@@ -1991,7 +2282,7 @@ function MapView({ zones, markers, tasks = [], plants, maps = [], activeMapId = 
       {toast && <Toast msg={toast} onDone={() => setToast(null)} />}
 
       {selectedZone && (
-        <ZoneInfoModal zone={selectedZone} plants={plants} tasks={tasks} isTeacher={isTeacher} student={student} canSelfAssignTasks={canSelfAssignTasks} canEnrollOnTasks={canEnrollNewTasks} markerEmojis={markerEmojis} emojiParsingList={emojiParsingList} contextCommentsEnabled={contextCommentsEnabled} canParticipateContextComments={canParticipateContextComments}
+        <ZoneInfoModal zone={selectedZone} plants={plants} tasks={tasks} tutorials={tutorials} isTeacher={isTeacher} student={student} canSelfAssignTasks={canSelfAssignTasks} canEnrollOnTasks={canEnrollNewTasks} markerEmojis={markerEmojis} emojiParsingList={emojiParsingList} contextCommentsEnabled={contextCommentsEnabled} canParticipateContextComments={canParticipateContextComments}
           onClose={() => setSelectedZone(null)}
           onUpdate={async (id, data) => { await onZoneUpdate(id, data); setSelectedZone(null); await onRefresh(); }}
           onDelete={async id => { await deleteZone(id); setSelectedZone(null); }}
@@ -1999,13 +2290,17 @@ function MapView({ zones, markers, tasks = [], plants, maps = [], activeMapId = 
           onLinkTask={async (taskId) => linkTaskToZone(taskId, selectedZone.id)}
           onUnlinkTask={(t) => unlinkTaskFromZone(t, selectedZone.id)}
           onAssignTasks={assignTasksToStudent}
+          onLinkTutorial={async (tutorialId) => linkTutorialToZone(tutorialId, selectedZone.id)}
+          onUnlinkTutorial={(tu) => unlinkTutorialFromZone(tu, selectedZone.id)}
           onEditPoints={isTeacher ? z => startEditPoints(z) : null} />
       )}
       {selectedMarker && (
-        <MarkerModal marker={selectedMarker} plants={plants} tasks={tasks} isTeacher={isTeacher} student={student} canSelfAssignTasks={canSelfAssignTasks} canEnrollOnTasks={canEnrollNewTasks} markerEmojis={markerEmojis}
+        <MarkerModal marker={selectedMarker} plants={plants} tasks={tasks} tutorials={tutorials} isTeacher={isTeacher} student={student} canSelfAssignTasks={canSelfAssignTasks} canEnrollOnTasks={canEnrollNewTasks} markerEmojis={markerEmojis}
           onClose={() => setSelectedMarker(null)} onSave={saveMarker} onDelete={deleteMarker}
           onLinkTask={async (taskId) => linkTaskToMarker(taskId, selectedMarker.id)}
           onUnlinkTask={(t) => unlinkTaskFromMarker(t, selectedMarker.id)}
+          onLinkTutorial={async (tutorialId) => linkTutorialToMarker(tutorialId, selectedMarker.id)}
+          onUnlinkTutorial={(tu) => unlinkTutorialFromMarker(tu, selectedMarker.id)}
           onAssignTasks={assignTasksToStudent} />
       )}
       {pendingZone && (
@@ -2201,7 +2496,11 @@ function MapView({ zones, markers, tasks = [], plants, maps = [], activeMapId = 
           {markers.map((m) => {
             const markerTaskVisual = markerTaskVisualById.get(m.id);
             const markerTaskLabel = markerTaskVisual ? TASK_VISUAL_LABEL[markerTaskVisual] : '';
-            const markerAriaLabel = [m.label || 'Repère', markerTaskLabel].filter(Boolean).join(' — ');
+            const markerTutorialCount = markerTutorialCountById.get(m.id) || 0;
+            const markerTutorialLabel = markerTutorialCount === 0
+              ? ''
+              : (markerTutorialCount === 1 ? '1 tutoriel lié' : `${markerTutorialCount} tutoriels liés`);
+            const markerAriaLabel = [m.label || 'Repère', markerTaskLabel, markerTutorialLabel].filter(Boolean).join(' — ');
             const markerEmojiSize = `${mapEmojiFontPx}px`;
             const markerLabelFontSize = `${mapLabelFontPx}px`;
             const markerStatusDotSize = isCoarsePointer ? 17 : 12;
@@ -2256,6 +2555,23 @@ function MapView({ zones, markers, tasks = [], plants, maps = [], activeMapId = 
                       borderWidth: markerStatusDotBorder,
                       top: markerStatusDotOffset,
                       right: markerStatusDotOffset,
+                    }}
+                  />
+                )}
+                {markerTutorialCount > 0 && (
+                  <span
+                    className="map-tutorial-marker-dot"
+                    role="img"
+                    aria-label={markerTutorialLabel}
+                    title={markerTutorialLabel}
+                    style={{
+                      width: Math.max(8, markerStatusDotSize - 3),
+                      height: Math.max(8, markerStatusDotSize - 3),
+                      borderWidth: markerStatusDotBorder,
+                      bottom: markerStatusDotOffset,
+                      left: markerStatusDotOffset,
+                      right: 'auto',
+                      top: 'auto',
                     }}
                   />
                 )}
