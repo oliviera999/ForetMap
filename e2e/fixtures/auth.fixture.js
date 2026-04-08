@@ -124,32 +124,45 @@ async function openFirstZoneModalFromMap(page) {
   throw new Error('Aucune modale zone ouverte depuis la carte');
 }
 
-async function openTeacherTasksTab(page) {
-  await page.getByRole('button', { name: /✅ Tâches/ }).click();
-  await page.getByRole('heading', { name: '✅ Tâches' }).waitFor({ state: 'visible' });
-  try {
-    await page.locator('.task-filters select').first().selectOption('all', { timeout: 5000 });
-  } catch (_) {
-    /* pas de barre de filtres */
-  }
-}
-
-async function openStudentTasksTab(page) {
-  await page.getByRole('button', { name: /✅\s*Tâches/ }).click();
-  await page.getByRole('heading', { name: '✅ Tâches' }).waitFor({ state: 'visible' });
+/** Réinitialise les filtres liste tâches (évite les listes vides e2e après vue élève + filtres carte/statut). */
+async function resetTaskFiltersInTasksView(page) {
   try {
     const filters = page.locator('.task-filters select');
+    const n = await filters.count();
+    if (n === 0) return;
     await filters.nth(0).selectOption('all', { timeout: 5000 });
-    await filters.nth(1).selectOption('');
-    await filters.nth(2).selectOption('');
-    await filters.nth(3).selectOption('');
+    if (n > 1) await filters.nth(1).selectOption('');
+    if (n > 2) await filters.nth(2).selectOption('');
+    if (n > 3) await filters.nth(3).selectOption('');
   } catch (_) {
-    /* layout sans barre de filtres */
+    /* pas de barre de filtres */
   }
   const search = page.getByPlaceholder('🔍 Rechercher une tâche...');
   if (await search.isVisible().catch(() => false)) {
     await search.fill('');
   }
+}
+
+/**
+ * Onglet Tâches : `.top-tab` prof (libellé commence par ✅ Tâches…) ou `.nav-btn` élève (icône ✅ dans `span.nav-icon`, pas « Cartes, tâches… »).
+ */
+function tasksTabButton(page) {
+  return page
+    .locator('.top-tab')
+    .filter({ hasText: /✅\s*Tâches/ })
+    .or(page.locator('.nav-btn').filter({ has: page.locator('span.nav-icon', { hasText: '✅' }) }));
+}
+
+async function openTeacherTasksTab(page) {
+  await tasksTabButton(page).first().click();
+  await page.getByRole('heading', { name: '✅ Tâches' }).waitFor({ state: 'visible' });
+  await resetTaskFiltersInTasksView(page);
+}
+
+async function openStudentTasksTab(page) {
+  await tasksTabButton(page).first().click();
+  await page.getByRole('heading', { name: '✅ Tâches' }).waitFor({ state: 'visible' });
+  await resetTaskFiltersInTasksView(page);
 }
 
 /**

@@ -183,6 +183,8 @@ function App() {
   /** Promesse du chargement global en cours ; les appels suivants s’y accrochent et peuvent demander une nouvelle passe. */
   const fetchAllRunPromiseRef = useRef(null);
   const fetchAllPendingRef = useRef(false);
+  /** Incrémenté après succès modale PIN / login prof : déclenche un `fetchAll` sans s’accrocher à chaque changement de `authClaims`. */
+  const [pinSuccessFetchAllTick, setPinSuccessFetchAllTick] = useState(0);
   const isIosDevice = useMemo(() => detectIosDevice(), []);
 
   const effectiveRoleContext = useMemo(() => {
@@ -800,6 +802,11 @@ function App() {
     return job;
   }, [DEFAULT_MAPS, forceLogout, mergeAuthMeResponse]);
 
+  useEffect(() => {
+    if (pinSuccessFetchAllTick === 0) return;
+    void fetchAll();
+  }, [pinSuccessFetchAllTick, fetchAll]);
+
   const tasksForActiveMap = useMemo(() => (
     tasks.filter((t) => {
       const effectiveMapId = t.map_id_resolved || t.map_id || t.zone_map_id || t.marker_map_id || null;
@@ -1219,6 +1226,7 @@ function App() {
       {showPin && <PinModal
         onSuccess={() => {
           const claims = getAuthClaims();
+          setPinSuccessFetchAllTick((n) => n + 1);
           setAuthClaims(claims);
           setIsTeacher(Array.isArray(claims?.permissions) && claims.permissions.includes('teacher.access'));
           setShowPin(false);

@@ -38,11 +38,16 @@ test('cycle complet tâche: création prof -> prise élève -> soumission -> val
   await page.getByLabel('Commentaire (optionnel)').fill('Rapport e2e complet');
   await page.getByRole('button', { name: /Marquer comme terminée/ }).click();
 
+  const tasksAfterElevate = page.waitForResponse(
+    (r) => r.url().includes('/api/tasks') && r.request().method() === 'GET' && r.status() === 200,
+    { timeout: 25_000 },
+  );
   await enableTeacherMode(page);
+  await tasksAfterElevate.catch(() => {});
   await openTeacherTasksTab(page);
 
   const teacherPendingCard = page.locator('.task-card', { hasText: taskTitle }).first();
-  await expect(teacherPendingCard).toBeVisible();
+  await expect(teacherPendingCard).toBeVisible({ timeout: 30_000 });
   await teacherPendingCard.getByRole('button', { name: '✔️ Validée' }).click();
 
   await expect(page.locator('.task-card', { hasText: taskTitle }).first()).toBeVisible();
