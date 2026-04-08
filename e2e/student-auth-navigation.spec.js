@@ -9,6 +9,8 @@ test('parcours élève: inscription puis navigation principale', async ({ page }
 
   await page.getByRole('button', { name: /Biodiversité/ }).click();
   await expect(page.getByText('Catalogue de biodiversité')).toBeVisible();
+  await page.locator('summary:has-text("Filtres avancés")').click();
+  await expect(page.getByRole('button', { name: 'Réinitialiser les filtres' })).toBeVisible();
 
   await page.getByRole('button', { name: /Tuto/ }).click();
   await expect(page.getByText('Guides pratiques consultables et téléchargeables')).toBeVisible();
