@@ -328,14 +328,14 @@ Contraintes importantes :
 
 | Méthode | URL | n3boss | Description |
 |--------|-----|------|-------------|
-| GET | `/api/tutorials` | non | Liste des tutoriels **actifs**, triés par `sort_order` puis titre |
+| GET | `/api/tutorials` | non | Liste des tutoriels **actifs**, triés par `sort_order` puis titre ; chaque entrée inclut `zone_ids`, `marker_ids`, `zones_linked`, `markers_linked` (carte principale), `linked_tasks_count` |
 | GET | `/api/tutorials?include_inactive=1` | oui (`tutorials.manage`, prof/admin) | Liste incluant les tutoriels archivés (`is_active = 0`) |
-| GET | `/api/tutorials/:id` | non | Détail (actif seulement pour le public) ; query `include_inactive=1`, `include_content=1` pour la gestion |
+| GET | `/api/tutorials/:id` | non | Détail (actif seulement pour le public) ; query `include_inactive=1`, `include_content=1` pour la gestion ; mêmes champs de liaison carte que la liste |
 | GET | `/api/tutorials/me/read-ids` | JWT obligatoire | `{ "tutorial_ids": number[] }` — tutoriels que l’utilisateur connecté a **marqués comme lus** (engagement explicite) |
 | POST | `/api/tutorials/:id/acknowledge-read` | JWT obligatoire | Corps **`{ "confirm": true }`** (obligatoire, sinon `400`). Accusé de lecture pour le tutoriel **actif** `:id` ; `200` : `{ "success", "tutorial_id", "acknowledged_at" }` ; `404` si absent ou inactif |
 | GET | `/api/tutorials/:id/linked-tasks` | non | Tâches liées (`task_tutorials`) : `{ "tasks": [ … ] }` avec `id`, `title`, `status`, `map_id`, `map_label`, `location_hint` ; `?include_inactive=1` pour tutoriel archivé (gestionnaires) |
-| POST | `/api/tutorials` | oui | Création (`title`, `type`, `summary`, contenu selon le type, `sort_order`, etc.) |
-| PUT | `/api/tutorials/:id` | oui | Mise à jour (dont `sort_order`, `is_active`) |
+| POST | `/api/tutorials` | oui | Création (`title`, `type`, `summary`, contenu selon le type, `sort_order`, etc.) ; optionnel : `zone_ids`, `marker_ids` (identifiants zones/repères — **tous sur la même carte**) |
+| PUT | `/api/tutorials/:id` | oui | Mise à jour (dont `sort_order`, `is_active`, `zone_ids`, `marker_ids`) |
 | PUT | `/api/tutorials/reorder` | oui | Réordonnancement global : corps `{ tutorial_ids: number[] }` — doit lister **tous** les IDs de la table `tutorials` **exactement une fois**, dans l’ordre souhaité (positions 0, 1, 2…) |
 | DELETE | `/api/tutorials/:id` | oui | Archive (passe `is_active` à 0) |
 | GET | `/api/tutorials/:id/view` | non | Prévisualisation HTML (actifs) |

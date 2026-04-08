@@ -161,6 +161,54 @@ async function emitTutorialTasksChanged(reason, tutorialId) {
   }
 }
 
+/** Zones liées (N-N) pour résoudre la carte des tâches — aligné sur `routes/tasks.js`. */
+async function fetchZonesForLinkedTasks(taskIds) {
+  if (!taskIds.length) return new Map();
+  const ph = taskIds.map(() => '?').join(',');
+  const rows = await queryAll(
+    `SELECT tz.task_id, z.id AS zone_id, z.name AS zone_name, z.map_id
+       FROM task_zones tz
+       INNER JOIN zones z ON z.id = tz.zone_id
+      WHERE tz.task_id IN (${ph})
+      ORDER BY z.name`,
+    taskIds
+  );
+  const m = new Map();
+  for (const r of rows) {
+    if (!m.has(r.task_id)) m.set(r.task_id, []);
+    m.get(r.task_id).push({ id: r.zone_id, name: r.zone_name, map_id: r.map_id });
+  }
+  return m;
+}
+
+async function fetchMarkersForLinkedTasks(taskIds) {
+  if (!taskIds.length) return new Map();
+  const ph = taskIds.map(() => '?').join(',');
+  const rows = await queryAll(
+    `SELECT tm.task_id, m.id AS marker_id, m.label AS marker_label, m.map_id
+       FROM task_markers tm
+       INNER JOIN map_markers m ON m.id = tm.marker_id
+      WHERE tm.task_id IN (${ph})
+      ORDER BY m.label`,
+    taskIds
+  );
+  const m = new Map();
+  for (const r of rows) {
+    if (!m.has(r.task_id)) m.set(r.task_id, []);
+    m.get(r.task_id).push({ id: r.marker_id, label: r.marker_label, map_id: r.map_id });
+  }
+  return m;
+}
+
+function resolveLinkedTaskMapId(taskRow, zl, ml) {
+  const mapsFromLinks = [
+    ...new Set([...zl.map((z) => z.map_id), ...ml.map((x) => x.map_id)].filter(Boolean)),
+  ];
+  if (mapsFromLinks.length === 1) return mapsFromLinks[0];
+  if (mapsFromLinks.length === 0) return taskRow.map_id || null;
+  return mapsFromLinks[0];
+}
+
 function isValidHttpUrl(value) {
   if (!value) return false;
   try {
@@ -385,6 +433,76 @@ router.post('/:id/acknowledge-read', requireAuth, async (req, res) => {
     res.json({ success: true, tutorial_id: tid, acknowledged_at: now });
   } catch (err) {
     logRouteError(err, req, 'Accusé lecture tutoriel en échec');
+    res.status(500).json({ error: 'Erreur serveur' });
+  }
+});
+
+function buildLinkedTaskLocationHint(zoneName, markerLabel) {
+  const z = zoneName ? String(zoneName).trim() : '';
+  const m = markerLabel ? String(markerLabel).trim() : '';
+  if (z && m) return `${z} · ${m}`;
+  if (z) return z;
+  if (m) return m;
+  return '';
+}
+
+/**
+ * Tâches associées au tutoriel (`task_tutorials`), avec carte et indice de lieu.
+ * Query : `include_inactive=1` pour un tutoriel archivé (gestionnaires uniquement).
+ */
+router.get('/:id/linked-tasks', async (req, res) => {
+  try {
+    const tid = Number(req.params.id);
+    if (!Number.isFinite(tid) || tid <= 0) {
+      return res.status(400).json({ error: 'Identifiant de tutoriel invalide' });
+    }
+    const includeInactive = String(req.query.include_inactive || '') === '1' && canManageTutorials(req);
+    const tutorial = await queryOne(
+      includeInactive ? 'SELECT id FROM tutorials WHERE id = ?' : 'SELECT id FROM tutorials WHERE id = ? AND is_active = 1',
+      [tid]
+    );
+    if (!tutorial) return res.status(404).json({ error: 'Tutoriel introuvable' });
+
+    const taskRows = await queryAll(
+      `SELECT t.id, t.title, t.status, t.map_id
+         FROM task_tutorials tt
+         INNER JOIN tasks t ON t.id = tt.task_id
+        WHERE tt.tutorial_id = ?
+        ORDER BY t.title ASC`,
+      [tid]
+    );
+    const taskIds = taskRows.map((r) => r.id);
+    const [zm, mm] = await Promise.all([fetchZonesForLinkedTasks(taskIds), fetchMarkersForLinkedTasks(taskIds)]);
+
+    const items = taskRows.map((t) => {
+      const zl = zm.get(t.id) || [];
+      const ml = mm.get(t.id) || [];
+      const map_id = resolveLinkedTaskMapId(t, zl, ml);
+      const zoneFirst = zl[0]?.name || null;
+      const markerFirst = ml[0]?.label || null;
+      return {
+        id: t.id,
+        title: t.title,
+        status: t.status,
+        map_id,
+        location_hint: zoneFirst || markerFirst || null,
+      };
+    });
+
+    const mapIds = [...new Set(items.map((i) => i.map_id).filter(Boolean))];
+    let labelByMap = {};
+    if (mapIds.length) {
+      const ph = mapIds.map(() => '?').join(',');
+      const mrows = await queryAll(`SELECT id, label FROM maps WHERE id IN (${ph})`, mapIds);
+      labelByMap = Object.fromEntries(mrows.map((r) => [r.id, r.label]));
+    }
+    const linkedTasks = items.map((i) => ({
+      ...i,
+      map_label: i.map_id && labelByMap[i.map_id] ? labelByMap[i.map_id] : null,
+    }));
+    res.json({ tasks: linkedTasks });
+  } catch (err) {
+    logRouteError(err, req, 'Tâches liées au tutoriel en échec');
     res.status(500).json({ error: 'Erreur serveur' });
   }
 });

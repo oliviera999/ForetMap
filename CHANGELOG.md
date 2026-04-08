@@ -6,6 +6,8 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 ## [Non publié]
 
 ### Ajouté
+- **Tutoriels & carte** : liaison optionnelle aux **zones** et **repères** de la carte principale (`tutorial_zones`, `tutorial_markers`, migration **`059_tutorial_zones_markers.sql`**, schéma **`sql/schema_foretmap.sql`**). L’API liste et détail exposent `zone_ids`, `marker_ids`, `zones_linked`, `markers_linked` ; **`POST/PUT /api/tutorials`** acceptent ces tableaux (même contrainte qu’une tâche : une seule carte pour tous les lieux). Pastille **violette** sur la carte (zones et repères), onglet **Tutoriels** dans la fiche zone et liste tutoriels côté repère (prof : lier/délier ; élève : détail des autres lieux + lien **Consulter**). Éditeur onglet **Tuto** : filtres par carte et cases à cocher. Temps réel : **`mapIdsLinkedToTutorial`** inclut les cartes des lieux directs. **`routes/tutorials.js`**, **`map-views.jsx`**, **`tutorials-views.jsx`**, **`App.jsx`**, **`index.css`**, **`docs/API.md`**.
+
 - **Tutoriels** : pour tout utilisateur connecté, bouton **Marquer comme lu** avec modal d’engagement (« lu et compris ») et case à cocher obligatoire ; table **`user_tutorial_reads`**, API **`GET /api/tutorials/me/read-ids`** et **`POST /api/tutorials/:id/acknowledge-read`** (`confirm: true`), migration **`058_user_tutorial_reads.sql`**, composant **`TutorialReadAcknowledge.jsx`**, styles **`index.css`**, doc **`docs/API.md`**, tests **`tests/tutorials.test.js`**.
 
 - **Tutoriels (prof/admin)** : bouton **⇅ Ordre** — liste réordonnancable (glisser-déposer, flèches ↑↓) et **`PUT /api/tutorials/reorder`** (`tutorial_ids` = tous les tutoriels, une fois chacun). Affichage de la grille trié par **`sort_order`**. **`tutorials-views.jsx`**, **`routes/tutorials.js`**, **`index.css`**, **`docs/API.md`**, **`tests/tutorials.test.js`**.
@@ -16,6 +18,8 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - **UI — Carte (split Cartes & tâches)** : la barre d’outils reprend la **même largeur que le canvas** via **`--fm-map-canvas-w`** (suppression de la surcharge `width: 100%` sur **`.map-view-toolbar`**). Défilement horizontal des boutons inchangé en mode compact (**`main--map-visible`**). **`index.css`**, **`dist/`**.
 
 ### Corrigé
+- **Tutoriels** : **`GET /api/tutorials/:id/linked-tasks`** — un seul handler (suppression du doublon de route). **`routes/tutorials.js`**.
+
 - **Tutoriels (type lien)** : l’aperçu modal et l’iframe utilisent désormais **`source_url`** (les liens n’ont pas de **`source_file_path`**). En **visite**, le bouton **Lire** ouvre l’URL externe au lieu de **`/api/tutorials/:id/view`** (inadapté sans contenu HTML). **`tutorials-views.jsx`**, **`visit-views.jsx`**.
 
 - **Tutoriels — aperçu modal** : l’iframe d’aperçu autorise désormais **`allow-scripts`** dans le `sandbox`, pour que les fiches HTML qui révèlent le contenu au scroll (classes **`.reveal`** + **IntersectionObserver**, ex. fiches *punk* sous **`tutos/`**) s’affichent comme dans un onglet ; sans script, seuls l’en-tête et le pied de page restaient visibles. **`tutorials-views.jsx`**.
