@@ -6,7 +6,11 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 ## [Non publié]
 
 ### Ajouté
+- **Tâches — biodiversité** : association d’**êtres vivants** (noms du catalogue), comme pour les zones et repères — colonne **`living_beings`**, migration **`061_tasks_living_beings.sql`**, API **`living_beings`** / réponse **`living_beings_list`** (`POST/PUT` tâche, propositions, clones récurrents). Formulaire tâche (multi-sélection) et pastilles sur les cartes tâche ; utilitaire partagé **`src/utils/livingBeings.js`**. **`routes/tasks.js`**, **`lib/recurringTasks.js`**, **`tasks-views.jsx`**, **`App.jsx`**, **`map-views.jsx`**, **`sql/schema_foretmap.sql`**, **`docs/API.md`**, **`tests/api.test.js`**, build **`dist/`**.
+
 - **Biodiversité** : bloc **Sur la carte** — mini-plan (par carte concernée) avec surcouche **violette** des zones et repères liés à l’espèce (même logique visuelle que les tutoriels sur la carte) ; affiché **uniquement** si la fiche est liée à au moins une zone ou un repère. Catalogue élève et base prof. **`foretmap-views.jsx`**, **`App.jsx`**, **`index.css`**, build **`dist/`**.
+
+- **Biodiversité — photos** : miniatures pour liens Commons **catégorie** (API Wikimedia) et pages **File:** via **`Special:FilePath`** ; migration **`060_plants_nonvegetal_photo_filepath.sql`** (tasks **`061_tasks_living_beings.sql`** — correction du doublon de préfixe `060`) remplit **`photo`** / **`photo_species`** pour les fiches animales et bactériennes du catalogue (fichiers Commons validés). **`foretmap-views.jsx`**, **`docs/AUDIT_PHOTOS_BIODIVERSITE.md`**.
 
 - **Carte — textes visite (zones & repères)** : sous-titre, description courte et bloc dépliable (comme en mode visite) affichés dans les fiches **Info** / modale repère ; éditables par le prof dans **Modifier** (zone) ou le formulaire repère. API : **`GET /api/zones`**, **`GET /api/zones/:id`**, **`GET /api/map/markers`** enrichis (`visit_*`) ; **`PUT /api/zones/:id`** et **`POST`/`PUT` repères** acceptent ces champs et upsert **`visit_zones`** / **`visit_markers`**. **`routes/zones.js`**, **`routes/map.js`**, **`map-views.jsx`**, **`docs/API.md`**.
 
