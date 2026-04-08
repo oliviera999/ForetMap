@@ -6,6 +6,8 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 ## [Non publié]
 
 ### Corrigé
+- **UI — Cartes & tâches** : **`#app`** n’était pas borné en hauteur, la grille prenait la hauteur des tâches et tout défilait sur **`body`** (carte qui disparaît). Avec le split actif, **`#app:has(.main--maptasks-split)`** est calé au viewport (**`100dvh`**) et **`overflow: hidden`** ; **`main`/`teacher-main`** en split **`flex: 1 1 0%`** + **`min-height: 0`** ; **`header`** / **`app-footer`** en **`flex-shrink: 0`**. Le scroll reste dans **`.desktop-split-scroll`**. **`index.css`**, **`dist/`**.
+
 - **Biodiversité (élève)** : les fiches s’affichent comme en mode prof — contenu complet visible sans clic sur un chevron (pills habitat / agroécosystème, badges, sections métadonnées, zones associées). **`foretmap-views.jsx`**, build **`dist/`**.
 
 - **Mobile — import photo** : retrait de **`capture="environment"`** sur les champs **`input type="file"`** image (photos de zone sur la carte, observation plante, photo illustrative de tâche, photo du journal « marquer terminée ») afin que le smartphone propose **galerie / fichiers** et pas seulement l’APN. L’avatar sur l’écran statistiques garde deux actions séparées (galerie / appareil photo). **`map-views.jsx`**, **`foretmap-views.jsx`**, **`tasks-views.jsx`**.
