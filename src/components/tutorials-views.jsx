@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { api, AccountDeletedError } from '../services/api';
+import { useOverlayHistoryBack } from '../hooks/useOverlayHistoryBack';
 import { TutorialReadAcknowledgeButton, fetchTutorialReadIds } from './TutorialReadAcknowledge';
 
 function sortTutorialsByOrder(list) {
@@ -42,6 +43,7 @@ function linkedTaskStatusLabel(status) {
 }
 
 function TutorialPreviewModal({ tutorial, onClose }) {
+  useOverlayHistoryBack(!!tutorial, onClose);
   if (!tutorial) return null;
   const source =
     (tutorial.preview_url && String(tutorial.preview_url).trim()) ||
@@ -72,6 +74,7 @@ function TutorialPreviewModal({ tutorial, onClose }) {
 }
 
 function TutorialLinkedTasksModal({ state, onClose }) {
+  useOverlayHistoryBack(!!state?.tutorial, onClose);
   if (!state?.tutorial) return null;
   const { tutorial, loading, error, tasks } = state;
   return (
@@ -213,6 +216,8 @@ function TutorialsView({ tutorials, isTeacher, onRefresh, onForceLogout, zones =
     setShowReorder(false);
     setReorderDraft([]);
   };
+
+  useOverlayHistoryBack(showReorder, closeReorder);
 
   const onReorderDragStart = (e, index) => {
     e.dataTransfer.setData('text/plain', String(index));

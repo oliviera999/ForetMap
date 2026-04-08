@@ -9,6 +9,7 @@ import { HELP_PANELS, HELP_TOOLTIPS, resolveRoleText } from '../constants/help';
 import { getContentText } from '../utils/content';
 import { resolveMapOverlayTypography } from '../utils/mapOverlayTypography';
 import { TutorialReadAcknowledgeButton, fetchTutorialReadIds } from './TutorialReadAcknowledge';
+import { useOverlayHistoryBack } from '../hooks/useOverlayHistoryBack';
 
 function parsePctPoints(raw) {
   try {
@@ -488,6 +489,12 @@ function VisitView({
   });
   const [mapTransform, setMapTransform] = useState({ x: 0, y: 0, s: 1 });
   const { isHelpEnabled, hasSeenSection, markSectionSeen, trackPanelOpen, trackPanelDismiss } = useHelp({ publicSettings, isTeacher });
+  const isGuestPublicVisit = !student && typeof onBackToAuth === 'function';
+  const clearGuestSelection = useCallback(() => {
+    setSelected(null);
+    setSelectedType(null);
+  }, []);
+  useOverlayHistoryBack(isGuestPublicVisit && !!selected, clearGuestSelection);
 
   useEffect(() => {
     const next = String(initialMapId || 'foret').trim() || 'foret';
@@ -882,8 +889,6 @@ function VisitView({
       setSavingTutorials(false);
     }
   };
-
-  const isGuestPublicVisit = !student && typeof onBackToAuth === 'function';
 
   if (loading) {
     return (
