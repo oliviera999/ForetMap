@@ -2319,6 +2319,29 @@
     max-height:none;
     overflow:visible;
   }
+  /* « Cartes & tâches » : la carte reste visible en haut, seules les tâches défilent (pas le document entier). */
+  .main--maptasks-split .desktop-split-view {
+    grid-template-rows:auto minmax(0, 1fr);
+    align-content:stretch;
+    min-height:0;
+  }
+  .main--maptasks-split .desktop-split-pane--map {
+    min-height:0;
+    max-height:min(52dvh, 520px);
+  }
+  .main--maptasks-split .desktop-split-pane--tasks {
+    min-height:0;
+    display:flex;
+    flex-direction:column;
+  }
+  .main--maptasks-split .desktop-split-scroll {
+    flex:1 1 0%;
+    min-height:0;
+    max-height:none;
+    overflow:auto;
+    overscroll-behavior:contain;
+    -webkit-overflow-scrolling:touch;
+  }
   /* Forum : la colonne liste imposait min 280px → dépassement sur petits écrans */
   .forum-grid {
     grid-template-columns:minmax(0, 1fr);
