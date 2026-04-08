@@ -1363,6 +1363,20 @@ function MarkerModal({ marker, plants, tasks, tutorials = [], onClose, onSave, o
           </>
         ) : (
           <div>
+            {(marker.visit_subtitle || marker.visit_short_description || marker.visit_details_text) && (
+              <div style={{ marginBottom: 14 }}>
+                {marker.visit_subtitle && <p className="visit-subtitle" style={{ margin: '0 0 8px' }}>{marker.visit_subtitle}</p>}
+                {marker.visit_short_description && (
+                  <p style={{ margin: '0 0 8px', fontSize: '.88rem', color: '#333', lineHeight: 1.55 }}>{marker.visit_short_description}</p>
+                )}
+                {marker.visit_details_text && (
+                  <details className="visit-details">
+                    <summary>{marker.visit_details_title || 'Détails'}</summary>
+                    <p style={{ margin: '8px 0 0', fontSize: '.86rem', lineHeight: 1.55 }}>{marker.visit_details_text}</p>
+                  </details>
+                )}
+              </div>
+            )}
             <div style={{ marginTop: 14 }}>
               <h4 style={{ margin: '0 0 8px', fontSize: '.95rem' }}>✅ Tâches liées</h4>
               {linkedTasks.length === 0 ? (
