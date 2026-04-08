@@ -907,14 +907,18 @@ test('GET /api/visit/stats calcule correctement sessions, complétion et visites
     .post('/api/auth/register')
     .send({ firstName: 'Stats', lastName: `Visit${Date.now()}`, password: 'pwd123' })
     .expect(201);
+  const studentToken = studentReg.body.authToken;
+  assert.ok(studentToken, 'authToken élève après inscription');
 
   await request(app)
     .post('/api/visit/seen')
-    .send({ student_id: studentReg.body.id, target_type: 'zone', target_id: zoneRes.body.id, seen: true })
+    .set('Authorization', 'Bearer ' + studentToken)
+    .send({ target_type: 'zone', target_id: zoneRes.body.id, seen: true })
     .expect(200);
   await request(app)
     .post('/api/visit/seen')
-    .send({ student_id: studentReg.body.id, target_type: 'marker', target_id: markerRes.body.id, seen: true })
+    .set('Authorization', 'Bearer ' + studentToken)
+    .send({ target_type: 'marker', target_id: markerRes.body.id, seen: true })
     .expect(200);
 
   const anonAgent = request.agent(app);
