@@ -20,6 +20,8 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - **UI — Carte (split Cartes & tâches)** : la barre d’outils reprend la **même largeur que le canvas** via **`--fm-map-canvas-w`** (suppression de la surcharge `width: 100%` sur **`.map-view-toolbar`**). Défilement horizontal des boutons inchangé en mode compact (**`main--map-visible`**). **`index.css`**, **`dist/`**.
 
 ### Corrigé
+- **Tutoriels — aperçu modal (mobile)** : l’overlay **`modal-overlay--tuto-preview`** aligne la feuille en **haut** du viewport (au lieu du bas) avec marges sûres, coins arrondis complets et animation **`popIn`** ; l’iframe garde une hauteur minimale raisonnable (**`min(55vh, 380px)`**). **`tutorials-views.jsx`**, **`index.css`**.
+
 - **Tutoriels** : **`GET /api/tutorials/:id/linked-tasks`** — un seul handler (suppression du doublon de route). **`routes/tutorials.js`**.
 
 - **Tutoriels (type lien)** : l’aperçu modal et l’iframe utilisent désormais **`source_url`** (les liens n’ont pas de **`source_file_path`**). En **visite**, le bouton **Lire** ouvre l’URL externe au lieu de **`/api/tutorials/:id/view`** (inadapté sans contenu HTML). **`tutorials-views.jsx`**, **`visit-views.jsx`**.
