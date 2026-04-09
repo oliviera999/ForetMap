@@ -229,7 +229,8 @@ function SettingsAdminView({ isN3Affiliated = false }) {
   const [msg, setMsg] = useState('');
   const [err, setErr] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
-  const mapFileRefs = useRef({});
+  const mapGalleryFileRefs = useRef({});
+  const mapCameraFileRefs = useRef({});
 
   const settingByKey = useMemo(() => {
     const out = {};
@@ -610,16 +611,53 @@ function SettingsAdminView({ isN3Affiliated = false }) {
                     onBlur={(e) => saveMap(m.id, { frame_padding_px: e.target.value === '' ? null : parseInt(e.target.value || '0', 10) })}
                   />
                 </div>
-                <div>
-                  <button className="btn btn-secondary btn-sm" onClick={() => mapFileRefs.current[m.id]?.click()} disabled={savingKey === `map-image:${m.id}`}>
-                    {savingKey === `map-image:${m.id}` ? 'Upload...' : 'Uploader une image'}
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                  <button
+                    type="button"
+                    className="btn btn-secondary btn-sm"
+                    onClick={() => {
+                      const el = mapGalleryFileRefs.current[m.id];
+                      if (el) el.value = '';
+                      el?.click();
+                    }}
+                    disabled={savingKey === `map-image:${m.id}`}
+                  >
+                    {savingKey === `map-image:${m.id}` ? 'Envoi…' : '📁 Galerie'}
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-secondary btn-sm"
+                    onClick={() => {
+                      const el = mapCameraFileRefs.current[m.id];
+                      if (el) el.value = '';
+                      el?.click();
+                    }}
+                    disabled={savingKey === `map-image:${m.id}`}
+                  >
+                    {savingKey === `map-image:${m.id}` ? 'Envoi…' : '📸 Appareil photo'}
                   </button>
                   <input
-                    ref={(el) => { mapFileRefs.current[m.id] = el; }}
+                    ref={(el) => { mapGalleryFileRefs.current[m.id] = el; }}
                     type="file"
                     accept="image/*"
                     style={{ display: 'none' }}
-                    onChange={(e) => uploadMapImage(m.id, e.target.files?.[0])}
+                    onChange={(e) => {
+                      const f = e.target.files?.[0];
+                      e.target.value = '';
+                      uploadMapImage(m.id, f);
+                    }}
+                  />
+                  <input
+                    ref={(el) => { mapCameraFileRefs.current[m.id] = el; }}
+                    type="file"
+                    accept="image/*"
+                    capture="environment"
+                    style={{ display: 'none' }}
+                    onChange={(e) => {
+                      const f = e.target.files?.[0];
+                      e.target.value = '';
+                      uploadMapImage(m.id, f);
+                    }}
                   />
                 </div>
               </div>

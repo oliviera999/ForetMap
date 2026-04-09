@@ -1626,6 +1626,13 @@
     }
     .img-upload-area:active { background:#f0fdf4; border-color:var(--sage); transform:scale(.98); }
     .img-upload-area input { display:none; }
+    /* Zone visuelle sans clic global : boutons galerie / appareil photo */
+    .img-upload-area.img-upload-area--split { cursor: default; }
+    .img-upload-area.img-upload-area--split:active {
+      transform: none;
+      background: var(--cream);
+      border-color: var(--mint);
+    }
     .img-preview { width:100%; max-height:220px; object-fit:cover; border-radius:10px; margin-top:10px; }
     .img-preview-wrap { position:relative; }
     .img-remove {

@@ -275,7 +275,8 @@ function TaskFormModal({
   ));
   const [taskImageRemoved, setTaskImageRemoved] = useState(false);
   const [taskImageBusy, setTaskImageBusy] = useState(false);
-  const taskImageInputRef = useRef(null);
+  const taskImageGalleryInputRef = useRef(null);
+  const taskImageCameraInputRef = useRef(null);
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState('');
   const [tutorialSearch, setTutorialSearch] = useState('');
@@ -393,11 +394,13 @@ function TaskFormModal({
     setTaskImageData(null);
     setTaskImagePreview(null);
     setTaskImageRemoved(hadInitialTaskImage);
-    if (taskImageInputRef.current) taskImageInputRef.current.value = '';
+    if (taskImageGalleryInputRef.current) taskImageGalleryInputRef.current.value = '';
+    if (taskImageCameraInputRef.current) taskImageCameraInputRef.current.value = '';
   };
 
   const onTaskImageFile = async (e) => {
     const file = e.target.files?.[0];
+    e.target.value = '';
     if (!file) return;
     if (!String(file.type || '').startsWith('image/')) {
       setErr('Format image invalide (image requise)');
@@ -574,18 +577,52 @@ function TaskFormModal({
           </p>
           {!taskImagePreview ? (
             <div
-              className={`img-upload-area${taskImageBusy ? ' is-busy' : ''}`}
-              onClick={() => !taskImageBusy && taskImageInputRef.current?.click()}
+              className={`img-upload-area img-upload-area--split${taskImageBusy ? ' is-busy' : ''}`}
+              role="group"
+              aria-label="Photo illustrative : galerie ou appareil photo"
               style={taskImageBusy ? { opacity: 0.7, pointerEvents: 'none' } : undefined}
             >
               <div style={{ fontSize: '2rem', marginBottom: 6 }}>📷</div>
-              <div style={{ fontSize: '.85rem', color: '#888' }}>
-                {taskImageBusy ? 'Traitement…' : 'Toucher pour choisir ou prendre une photo'}
+              <div style={{ fontSize: '.85rem', color: '#888', marginBottom: 10 }}>
+                {taskImageBusy ? 'Traitement…' : 'Galerie ou appareil photo'}
+              </div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, justifyContent: 'center' }}>
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  disabled={taskImageBusy}
+                  onClick={() => {
+                    if (taskImageBusy) return;
+                    if (taskImageGalleryInputRef.current) taskImageGalleryInputRef.current.value = '';
+                    taskImageGalleryInputRef.current?.click();
+                  }}
+                >
+                  📁 Choisir une photo
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  disabled={taskImageBusy}
+                  onClick={() => {
+                    if (taskImageBusy) return;
+                    if (taskImageCameraInputRef.current) taskImageCameraInputRef.current.value = '';
+                    taskImageCameraInputRef.current?.click();
+                  }}
+                >
+                  📸 Prendre une photo
+                </button>
               </div>
               <input
-                ref={taskImageInputRef}
+                ref={taskImageGalleryInputRef}
                 type="file"
                 accept="image/*"
+                onChange={onTaskImageFile}
+              />
+              <input
+                ref={taskImageCameraInputRef}
+                type="file"
+                accept="image/*"
+                capture="environment"
                 onChange={onTaskImageFile}
               />
             </div>
@@ -2673,7 +2710,8 @@ function LogModal({ task, student, onClose, onDone, onForceLogout }) {
   const [preview, setPreview] = useState(null);
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState('');
-  const inputRef = useRef();
+  const galleryInputRef = useRef(null);
+  const cameraInputRef = useRef(null);
 
   useEffect(() => {
     setComment(readTaskLogCommentDraft(task?.id));
@@ -2691,6 +2729,7 @@ function LogModal({ task, student, onClose, onDone, onForceLogout }) {
 
   const handleFile = e => {
     const file = e.target.files[0];
+    e.target.value = '';
     if (!file) return;
     if (file.size > 15 * 1024 * 1024) return setErr('Image trop lourde (max 15MB)');
 
@@ -2762,10 +2801,33 @@ function LogModal({ task, student, onClose, onDone, onForceLogout }) {
         <div className="field">
           <label>Photo (optionnel)</label>
           {!preview ? (
-            <div className="img-upload-area" onClick={() => inputRef.current.click()}>
+            <div className="img-upload-area img-upload-area--split" role="group" aria-label="Photo du rapport : galerie ou appareil photo">
               <div style={{ fontSize: '2rem', marginBottom: 6 }}>📷</div>
-              <div style={{ fontSize: '.85rem', color: '#888' }}>Touche pour prendre ou choisir une photo</div>
-              <input ref={inputRef} type="file" accept="image/*" onChange={handleFile} />
+              <div style={{ fontSize: '.85rem', color: '#888', marginBottom: 10 }}>Galerie ou appareil photo</div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, justifyContent: 'center' }}>
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  onClick={() => {
+                    if (galleryInputRef.current) galleryInputRef.current.value = '';
+                    galleryInputRef.current?.click();
+                  }}
+                >
+                  📁 Choisir une photo
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  onClick={() => {
+                    if (cameraInputRef.current) cameraInputRef.current.value = '';
+                    cameraInputRef.current?.click();
+                  }}
+                >
+                  📸 Prendre une photo
+                </button>
+              </div>
+              <input ref={galleryInputRef} type="file" accept="image/*" onChange={handleFile} />
+              <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" onChange={handleFile} />
             </div>
           ) : (
             <div className="img-preview-wrap">
