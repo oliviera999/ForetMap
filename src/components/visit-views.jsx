@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
-import { api, AccountDeletedError } from '../services/api';
+import { api, AccountDeletedError, withAppBase } from '../services/api';
+import { compressImage } from '../utils/image';
 import { MARKER_EMOJIS, parseEmojiListSetting, detectLeadingMarkerEmoji, stripLeadingMarkerEmoji } from '../constants/emojis';
 import { getRoleTerms } from '../utils/n3-terminology';
 import { useHelp } from '../hooks/useHelp';
@@ -28,6 +29,12 @@ function parsePctPoints(raw) {
 
 function itemSeenKey(type, id) {
   return `${type}:${id}`;
+}
+
+function visitMediaImgSrc(m) {
+  const u = m?.image_url;
+  if (!u) return '';
+  return withAppBase(u);
 }
 
 /**
@@ -243,6 +250,8 @@ function VisitEditorPanel({ selected, selectedType, onSaved, onForceLogout, isTe
   const [mediaUrl, setMediaUrl] = useState('');
   const [mediaCaption, setMediaCaption] = useState('');
   const [mediaSaving, setMediaSaving] = useState(false);
+  const [mediaUploading, setMediaUploading] = useState(false);
+  const mediaFileRef = useRef(null);
   const tooltipText = (entry) => resolveRoleText(entry, true);
 
   useEffect(() => {
@@ -309,6 +318,33 @@ function VisitEditorPanel({ selected, selectedType, onSaved, onForceLogout, isTe
       else alert(err.message || 'Erreur ajout photo');
     } finally {
       setMediaSaving(false);
+    }
+  };
+
+  const addMediaFromFile = async (e) => {
+    const file = e.target.files?.[0];
+    if (e.target) e.target.value = '';
+    if (!file) return;
+    if (!String(file.type || '').startsWith('image/')) {
+      alert('Format image invalide (image requise)');
+      return;
+    }
+    setMediaUploading(true);
+    try {
+      const image_data = await compressImage(file);
+      await api('/api/visit/media', 'POST', {
+        target_type: selectedType,
+        target_id: selected.id,
+        image_data,
+        caption: mediaCaption.trim(),
+      });
+      setMediaCaption('');
+      await onSaved?.();
+    } catch (err) {
+      if (err instanceof AccountDeletedError) onForceLogout?.();
+      else alert(err.message || 'Erreur envoi photo');
+    } finally {
+      setMediaUploading(false);
     }
   };
 
@@ -413,21 +449,43 @@ function VisitEditorPanel({ selected, selectedType, onSaved, onForceLogout, isTe
 
       <div className="visit-media-editor">
         <h5>🖼️ Photos</h5>
+        <p style={{ fontSize: '.76rem', color: '#64748b', margin: '0 0 10px', lineHeight: 1.45 }}>
+          Envoi d’image (comme sur la carte) ou lien URL (ex. Wikimedia, fichier déjà sur le serveur).
+        </p>
         <div className="field">
-          <label>URL image</label>
-          <input value={mediaUrl} onChange={(e) => setMediaUrl(e.target.value)} placeholder="/uploads/..." />
-        </div>
-        <div className="field">
-          <label>Légende</label>
+          <label>Légende (optionnel)</label>
           <input value={mediaCaption} onChange={(e) => setMediaCaption(e.target.value)} />
         </div>
+        <input ref={mediaFileRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={addMediaFromFile} />
+        <button
+          type="button"
+          className="btn btn-secondary btn-sm btn-full"
+          style={{ marginBottom: 10 }}
+          disabled={mediaUploading}
+          onClick={() => mediaFileRef.current?.click()}
+        >
+          {mediaUploading ? 'Envoi...' : '📷 Ajouter une photo (fichier)'}
+        </button>
+        <div className="field">
+          <label>URL image</label>
+          <input value={mediaUrl} onChange={(e) => setMediaUrl(e.target.value)} placeholder="https://… ou /uploads/…" />
+        </div>
         <button className="btn btn-secondary btn-sm" disabled={mediaSaving || !mediaUrl.trim()} onClick={addMedia}>
-          {mediaSaving ? 'Ajout...' : '+ Ajouter photo'}
+          {mediaSaving ? 'Ajout...' : '+ Ajouter depuis URL'}
         </button>
         <div className="visit-media-list">
           {(selected.visit_media || []).map((m) => (
-            <div key={m.id} className="visit-media-row">
-              <span>{m.caption || m.image_url}</span>
+            <div key={m.id} className="visit-media-row" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              {m.image_url ? (
+                <img
+                  src={visitMediaImgSrc(m)}
+                  alt=""
+                  style={{ width: 44, height: 44, objectFit: 'cover', borderRadius: 6, flexShrink: 0 }}
+                />
+              ) : null}
+              <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                {m.caption || m.image_url || `#${m.id}`}
+              </span>
               <Tooltip text={tooltipText(HELP_TOOLTIPS.visit.mediaDelete)}>
                 <button className="btn btn-danger btn-sm" aria-label="Supprimer la photo" onClick={() => deleteMedia(m.id)}>🗑️</button>
               </Tooltip>
@@ -1261,7 +1319,7 @@ function VisitView({
                 <div className="visit-media-gallery">
                   {selected.visit_media.map((m) => (
                     <figure key={m.id}>
-                      <img src={m.image_url} alt={m.caption || ''} />
+                      <img src={visitMediaImgSrc(m)} alt={m.caption || ''} />
                       {m.caption && <figcaption>{m.caption}</figcaption>}
                     </figure>
                   ))}
