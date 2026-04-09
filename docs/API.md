@@ -146,7 +146,7 @@ Routes protégées « n3boss » : header `Authorization: Bearer <token>`.
 - `currentActiveAssignments` : nombre d’assignations sur des tâches dont le statut n’est pas `validated` (toutes cartes) ; **exception** : pour une tâche en `completion_mode` **`all_assignees_done`**, l’assignation du n3beur n’est plus comptée dès que **`done_at`** est renseigné sur sa ligne `task_assignments` (part individuelle terminée, sans attendre les autres ni la validation n3boss de la tâche).
 - `atLimit` : `true` si `maxActiveAssignments > 0` et `currentActiveAssignments >= maxActiveAssignments`.
 - `forumParticipate` : `true` si le profil principal du n3beur (`roles.forum_participate`) autorise la **participation** au forum ; `false` = accès **lecture seule** sur les routes forum autorisées (voir ci-dessous). Absent pour les n3boss.
-- `contextCommentParticipate` : `true` si le profil principal (`roles.context_comment_participate`) autorise la **publication** sur les commentaires contextuels (tâches, projets, zones), réagir, signaler et supprimer les siens ; `false` = **lecture seule** sur `GET /api/context-comments`. Absent pour les n3boss.
+- `contextCommentParticipate` : `true` si le profil principal (`roles.context_comment_participate`) autorise la **publication** sur les commentaires contextuels (tâches, projets, zones, repères), réagir, signaler et supprimer les siens ; `false` = **lecture seule** sur `GET /api/context-comments`. Absent pour les n3boss.
 - **`refreshedToken`** (chaîne) : présent si le JWT doit être régénéré pour refléter le profil courant en base (sans changer l’état « élevé » / PIN du jeton) ; à enregistrer comme `Authorization: Bearer` pour les appels suivants.
 - **`autoProfilePromotion`** (objet, **consommé** à la première réponse qui l’inclut) : affichage côté client après progression automatique par tâches validées. Champs : `kind` (`progression`), `roleSlug`, `roleDisplayName`, `roleEmoji` (optionnel), `validatedTaskCount` (nombre de tâches validées pris en compte pour la sync), `highlights` (tableau de courtes phrases décrivant les droits sans PIN, forum / commentaires contextuels, plafond d’inscriptions actives le cas échéant).
 
@@ -289,6 +289,10 @@ Contenus éditables du site (micro-CMS texte brut) :
 | POST | `/api/map/markers` | oui | Créer repère |
 | PUT | `/api/map/markers/:id` | oui | Modifier repère |
 | DELETE | `/api/map/markers/:id` | oui | Supprimer repère |
+| GET | `/api/map/markers/:id/photos` | non | Liste des photos du repère (méta + `image_url`) |
+| GET | `/api/map/markers/:id/photos/:pid/data` | non | Fichier image (disque) |
+| POST | `/api/map/markers/:id/photos` | oui | Ajouter photo (`image_data` base64, `caption`) — même principe que les zones |
+| DELETE | `/api/map/markers/:id/photos/:pid` | oui | Supprimer photo |
 
 - Corps JSON : notamment `emoji` (pictogramme du repère). Valeur **tronquée à 16 caractères** côté serveur si besoin (colonne `map_markers.emoji`).
 - **`GET /api/map/markers`** : chaque repère inclut en plus (si une ligne existe dans `visit_markers` avec le même `id`) : **`visit_subtitle`**, **`visit_short_description`**, **`visit_details_title`**, **`visit_details_text`** (sinon `null`).
@@ -525,10 +529,11 @@ Contexte supporté :
 - `contextType=task` (tâche)
 - `contextType=project` (projet de tâches)
 - `contextType=zone` (zone de la carte)
+- `contextType=marker` (repère `map_markers`)
 
 | Méthode | URL | Description |
 |--------|-----|-------------|
-| GET | `/api/context-comments?contextType=task|project|zone&contextId=:id&page=1&page_size=20` | Liste paginée des commentaires d’un contexte |
+| GET | `/api/context-comments?contextType=task|project|zone|marker&contextId=:id&page=1&page_size=20` | Liste paginée des commentaires d’un contexte |
 | POST | `/api/context-comments` | Créer un commentaire (`{ contextType, contextId, body }`) |
 | POST | `/api/context-comments/:id/reactions` | Toggle d’une réaction emoji (`{ emoji }`) |
 | DELETE | `/api/context-comments/:id` | Supprimer un commentaire (auteur ou n3boss/admin) |

@@ -9,7 +9,7 @@ const { getSettingValue } = require('../lib/settings');
 
 const router = express.Router();
 
-const ALLOWED_CONTEXT_TYPES = new Set(['task', 'project', 'zone']);
+const ALLOWED_CONTEXT_TYPES = new Set(['task', 'project', 'zone', 'marker']);
 const DEFAULT_PAGE_SIZE = 20;
 const MAX_PAGE_SIZE = 50;
 const MIN_COMMENT_LEN = 2;
@@ -145,6 +145,10 @@ async function contextExists(contextType, contextId) {
     const row = await queryOne('SELECT id FROM zones WHERE id = ? LIMIT 1', [contextId]);
     return !!row;
   }
+  if (contextType === 'marker') {
+    const row = await queryOne('SELECT id FROM map_markers WHERE id = ? LIMIT 1', [contextId]);
+    return !!row;
+  }
   return false;
 }
 
@@ -201,7 +205,7 @@ router.get('/', async (req, res) => {
     const actor = getActor(req.auth);
     const contextType = normalizeContextType(req.query?.contextType);
     const contextId = normalizeOptionalString(req.query?.contextId);
-    if (!contextType) return res.status(400).json({ error: 'contextType invalide (task|project|zone)' });
+    if (!contextType) return res.status(400).json({ error: 'contextType invalide (task|project|zone|marker)' });
     if (!contextId) return res.status(400).json({ error: 'contextId requis' });
     if (!(await contextExists(contextType, contextId))) {
       return res.status(404).json({ error: 'Contexte introuvable' });
@@ -320,7 +324,7 @@ router.post('/', async (req, res) => {
     const contextType = normalizeContextType(req.body?.contextType);
     const contextId = normalizeOptionalString(req.body?.contextId);
     const body = normalizeOptionalString(req.body?.body);
-    if (!contextType) return res.status(400).json({ error: 'contextType invalide (task|project|zone)' });
+    if (!contextType) return res.status(400).json({ error: 'contextType invalide (task|project|zone|marker)' });
     if (!contextId) return res.status(400).json({ error: 'contextId requis' });
     if (!body || body.length < MIN_COMMENT_LEN || body.length > MAX_COMMENT_LEN) {
       return res.status(400).json({ error: `Message invalide (${MIN_COMMENT_LEN}-${MAX_COMMENT_LEN} caractères)` });

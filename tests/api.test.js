@@ -1221,6 +1221,46 @@ test('PUT /api/zones/:id et /api/map/markers/:id permettent de renommer', async 
   assert.strictEqual(markerUpdate.body.label, 'Repère renommé API');
 });
 
+const TINY_JPEG_MARKER_PHOTO =
+  '/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAP//////////////////////////////////////////////////////////////////////////////////////2wBDAf//////////////////////////////////////////////////////////////////////////////////////wAARCABAAEADASIAAhEBAxEB/8QAFwABAQEBAAAAAAAAAAAAAAAAAAIDBP/EABQQAQAAAAAAAAAAAAAAAAAAAAD/2gAMAwEAAhADEAAAf//EABQRAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQEAAQUCf//EABQRAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQMBAT8Bf//EABQRAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQIBAT8Bf//EABQQAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQEABj8Cf//Z';
+
+test('Photos repère : POST liste GET data DELETE', async () => {
+  const token = await getAdminAuthToken();
+  const markerRes = await request(app)
+    .post('/api/map/markers')
+    .set('Authorization', 'Bearer ' + token)
+    .send({
+      map_id: 'foret',
+      x_pct: 51,
+      y_pct: 52,
+      label: `Repère photos ${Date.now()}`,
+      emoji: '📍',
+    })
+    .expect(201);
+  const mid = markerRes.body.id;
+
+  const postRes = await request(app)
+    .post(`/api/map/markers/${mid}/photos`)
+    .set('Authorization', 'Bearer ' + token)
+    .send({ image_data: `data:image/jpeg;base64,${TINY_JPEG_MARKER_PHOTO}`, caption: 'test' })
+    .expect(201);
+  const pid = postRes.body.id;
+  assert.ok(pid);
+
+  const list = await request(app).get(`/api/map/markers/${mid}/photos`).expect(200);
+  assert.ok(Array.isArray(list.body));
+  assert.ok(list.body.some((p) => p.id === pid));
+
+  await request(app).get(`/api/map/markers/${mid}/photos/${pid}/data`).expect(200);
+
+  await request(app)
+    .delete(`/api/map/markers/${mid}/photos/${pid}`)
+    .set('Authorization', 'Bearer ' + token)
+    .expect(200);
+
+  await request(app).delete(`/api/map/markers/${mid}`).set('Authorization', 'Bearer ' + token).expect(200);
+});
+
 // ─── Suppression élève (cascade + statuts) ──────────────────────────────────
 test('DELETE /api/students/:id supprime l’élève et recalcule les statuts des tâches', async () => {
   const token = await getAdminAuthToken();
