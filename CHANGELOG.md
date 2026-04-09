@@ -37,6 +37,8 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - **Biodiversité** : filtres avancés (sous-groupes 1 et 2, habitat, catégorie d’agrosystème), recherche texte élargie (habitat, origine géographique, partie à récolter) ; côté élève, filtre **présence sur la carte** et compteur **X / Y** ; module **`src/utils/plantFilters.js`**, **`foretmap-views.jsx`**, build **`dist/`** ; e2e navigation élève ouvre **Filtres avancés**.
 
 ### Modifié
+- **Build** : régénération locale des artefacts **`dist/`** (nouveaux hash Vite JS/CSS).
+
 - **Mobile (tactile)** : ajout de photos avec **choix explicite galerie / appareil photo** (`capture="environment"` sur l’entrée caméra) — formulaire tâche (photo illustrative), rapport « Marquer terminée », carnet d’observations, upload photos fiche biodiversité, galerie zone (prof), image de plan (admin). **`tasks-views.jsx`**, **`foretmap-views.jsx`**, **`map-views.jsx`**, **`settings-admin-views.jsx`**, **`index.css`**.
 
 - **Visite — carte** : libellés et emojis des **zones** ne sont plus **tassés verticalement** : le SVG utilise un viewBox carré avec `preserveAspectRatio="none"` sur un rectangle carte, ce qui écrasait le texte ; **compensation d’échelle Y** sur les `<text>`, image du plan en **`object-fit: contain`** (aligné sur le commentaire / MapView), repères : emoji moins contraint par le flex. **`visit-views.jsx`**, **`index.css`**, build **`dist/`**.
