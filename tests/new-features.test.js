@@ -571,6 +571,58 @@ test('GET /api/visit/content expose les contenus visite et les tutos choisis', a
   assert.ok(visitRes.body.tutorials.some((t) => t.id === firstTutorial));
 });
 
+/** JPEG 1×1 px minimal (valide) pour upload base64. */
+const TINY_JPEG_B64 =
+  '/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAP//////////////////////////////////////////////////////////////////////////////////////2wBDAf//////////////////////////////////////////////////////////////////////////////////////wAARCABAAEADASIAAhEBAxEB/8QAFwABAQEBAAAAAAAAAAAAAAAAAAIDBP/EABQQAQAAAAAAAAAAAAAAAAAAAAD/2gAMAwEAAhADEAAAf//EABQRAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQEAAQUCf//EABQRAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQMBAT8Bf//EABQRAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQIBAT8Bf//EABQQAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQEABj8Cf//Z';
+
+test('POST /api/visit/media avec image_data, GET /data et contenu public', async () => {
+  const markerRes = await request(app)
+    .post('/api/visit/markers')
+    .set('Authorization', 'Bearer ' + teacherToken)
+    .send({
+      map_id: 'foret',
+      x_pct: 42,
+      y_pct: 43,
+      label: `Repère media upload ${Date.now()}`,
+      emoji: '📷',
+    })
+    .expect(201);
+
+  const postRes = await request(app)
+    .post('/api/visit/media')
+    .set('Authorization', 'Bearer ' + teacherToken)
+    .send({
+      target_type: 'marker',
+      target_id: markerRes.body.id,
+      image_data: `data:image/jpeg;base64,${TINY_JPEG_B64}`,
+      caption: 'upload test',
+    })
+    .expect(201);
+
+  assert.ok(String(postRes.body.image_url || '').includes(`/api/visit/media/${postRes.body.id}/data`));
+  assert.ok(!postRes.body.image_path);
+
+  await request(app).get(`/api/visit/media/${postRes.body.id}/data`).expect(200);
+
+  const contentRes = await request(app).get('/api/visit/content?map_id=foret').expect(200);
+  const m = contentRes.body.markers.find((x) => x.id === markerRes.body.id);
+  assert.ok(m);
+  const media = (m.visit_media || []).find((x) => x.id === postRes.body.id);
+  assert.ok(media);
+  assert.ok(String(media.image_url || '').includes('/api/visit/media/'));
+
+  await request(app)
+    .delete(`/api/visit/media/${postRes.body.id}`)
+    .set('Authorization', 'Bearer ' + teacherToken)
+    .expect(200);
+  await request(app).get(`/api/visit/media/${postRes.body.id}/data`).expect(404);
+
+  await request(app)
+    .delete(`/api/visit/markers/${markerRes.body.id}`)
+    .set('Authorization', 'Bearer ' + teacherToken)
+    .expect(200);
+});
+
 test('POST /api/visit/sync importe de manière sélective carte -> visite', async () => {
   const zoneA = await request(app)
     .post('/api/zones')

@@ -5,6 +5,7 @@ const { queryAll, queryOne, execute } = require('../database');
 const { requirePermission, JWT_SECRET, authenticate } = require('../middleware/requireTeacher');
 const { logRouteError } = require('../lib/routeLog');
 const { emitGardenChanged } = require('../lib/realtime');
+const { saveBase64ToDisk, getAbsolutePath, deleteFile } = require('../lib/uploads');
 
 const router = express.Router();
 
@@ -82,6 +83,30 @@ function sanitizeTargetType(value) {
 function sanitizeTargetId(value) {
   const id = String(value || '').trim();
   return id || null;
+}
+
+/** URL affichée côté client : fichier local ou lien externe. */
+function visitMediaPublicImageUrl(row) {
+  if (!row) return '';
+  if (row.image_path) return `/api/visit/media/${row.id}/data`;
+  return String(row.image_url || '').trim();
+}
+
+/** Réponse API / contenu public : pas d’exposition de `image_path`. */
+function serializeVisitMedia(row) {
+  if (!row) return row;
+  const { image_path: _p, ...rest } = row;
+  return { ...rest, image_url: visitMediaPublicImageUrl(row) };
+}
+
+async function deleteVisitMediaFilesForTarget(targetType, targetId) {
+  const rows = await queryAll(
+    'SELECT image_path FROM visit_media WHERE target_type = ? AND target_id = ?',
+    [targetType, targetId]
+  );
+  for (const r of rows) {
+    if (r.image_path) deleteFile(r.image_path);
+  }
 }
 
 async function mapExists(mapId) {
@@ -280,7 +305,7 @@ router.get('/content', async (req, res) => {
     );
 
     const media = await queryAll(
-      `SELECT vm.id, vm.target_type, vm.target_id, vm.image_url, vm.caption, vm.sort_order
+      `SELECT vm.id, vm.target_type, vm.target_id, vm.image_url, vm.image_path, vm.caption, vm.sort_order
        FROM visit_media vm
        WHERE (vm.target_type = 'zone' AND vm.target_id IN (SELECT id FROM visit_zones WHERE map_id = ?))
           OR (vm.target_type = 'marker' AND vm.target_id IN (SELECT id FROM visit_markers WHERE map_id = ?))
@@ -291,7 +316,7 @@ router.get('/content', async (req, res) => {
     const mediaByTarget = media.reduce((acc, row) => {
       const key = `${row.target_type}:${row.target_id}`;
       if (!acc[key]) acc[key] = [];
-      acc[key].push(row);
+      acc[key].push(serializeVisitMedia(row));
       return acc;
     }, {});
 
@@ -710,6 +735,7 @@ router.delete('/zones/:id', requirePermission('visit.manage', { needsElevation: 
   try {
     const zoneId = String(req.params.id || '').trim();
     if (!zoneId) return res.status(400).json({ error: 'Zone invalide' });
+    await deleteVisitMediaFilesForTarget('zone', zoneId);
     await execute('DELETE FROM visit_zones WHERE id = ?', [zoneId]);
     await execute(`DELETE FROM visit_media WHERE target_type = 'zone' AND target_id = ?`, [zoneId]);
     await execute(`DELETE FROM visit_seen_students WHERE target_type = 'zone' AND target_id = ?`, [zoneId]);
@@ -816,6 +842,7 @@ router.delete('/markers/:id', requirePermission('visit.manage', { needsElevation
   try {
     const markerId = String(req.params.id || '').trim();
     if (!markerId) return res.status(400).json({ error: 'Repère invalide' });
+    await deleteVisitMediaFilesForTarget('marker', markerId);
     await execute('DELETE FROM visit_markers WHERE id = ?', [markerId]);
     await execute(`DELETE FROM visit_media WHERE target_type = 'marker' AND target_id = ?`, [markerId]);
     await execute(`DELETE FROM visit_seen_students WHERE target_type = 'marker' AND target_id = ?`, [markerId]);
@@ -827,15 +854,35 @@ router.delete('/markers/:id', requirePermission('visit.manage', { needsElevation
   }
 });
 
+router.get('/media/:id/data', async (req, res) => {
+  try {
+    const mediaId = Number(req.params.id);
+    if (!Number.isFinite(mediaId) || mediaId <= 0) return res.status(400).json({ error: 'Photo invalide' });
+    const row = await queryOne('SELECT image_path FROM visit_media WHERE id = ? LIMIT 1', [mediaId]);
+    if (!row?.image_path) return res.status(404).json({ error: 'Image introuvable' });
+    const absolutePath = getAbsolutePath(row.image_path);
+    return res.sendFile(absolutePath, (err) => {
+      if (err && !res.headersSent) res.status(404).json({ error: 'Fichier introuvable' });
+    });
+  } catch (err) {
+    logRouteError(err, req);
+    res.status(500).json({ error: 'Erreur serveur' });
+  }
+});
+
 router.post('/media', requirePermission('visit.manage', { needsElevation: true }), async (req, res) => {
+  let insertedId = null;
   try {
     const targetType = sanitizeTargetType(req.body.target_type);
     const targetId = sanitizeTargetId(req.body.target_id);
+    const imageDataRaw = req.body.image_data;
+    const imageData =
+      imageDataRaw !== undefined && imageDataRaw !== null ? String(imageDataRaw).trim() : '';
     const imageUrl = String(req.body.image_url || '').trim();
     const caption = String(req.body.caption || '').trim();
     const sortOrder = Number.isFinite(Number(req.body.sort_order)) ? Math.max(0, Number(req.body.sort_order)) : 0;
-    if (!targetType || !targetId || !imageUrl) {
-      return res.status(400).json({ error: 'Photo de visite invalide' });
+    if (!targetType || !targetId || (!imageUrl && !imageData)) {
+      return res.status(400).json({ error: 'Photo de visite invalide (image_url ou image_data requis)' });
     }
     if (targetType === 'zone') {
       const zone = await queryOne('SELECT id FROM visit_zones WHERE id = ? LIMIT 1', [targetId]);
@@ -845,13 +892,37 @@ router.post('/media', requirePermission('visit.manage', { needsElevation: true }
       if (!marker) return res.status(404).json({ error: 'Repère de visite introuvable' });
     }
     const now = nowIso();
-    const result = await execute(
-      `INSERT INTO visit_media (target_type, target_id, image_url, caption, sort_order, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      [targetType, targetId, imageUrl, caption, sortOrder, now, now]
-    );
-    const row = await queryOne('SELECT * FROM visit_media WHERE id = ?', [result.insertId]);
-    res.status(201).json(row);
+    if (imageData) {
+      const result = await execute(
+        `INSERT INTO visit_media (target_type, target_id, image_url, image_path, caption, sort_order, created_at, updated_at)
+         VALUES (?, ?, NULL, NULL, ?, ?, ?, ?)`,
+        [targetType, targetId, caption, sortOrder, now, now]
+      );
+      insertedId = result.insertId;
+      const relativePath = `visit_media/${insertedId}.jpg`;
+      try {
+        saveBase64ToDisk(relativePath, imageData);
+      } catch (fileErr) {
+        await execute('DELETE FROM visit_media WHERE id = ?', [insertedId]);
+        logRouteError(fileErr, req);
+        return res.status(400).json({ error: 'Image invalide ou trop volumineuse' });
+      }
+      const publicUrl = `/api/visit/media/${insertedId}/data`;
+      await execute('UPDATE visit_media SET image_path = ?, image_url = ? WHERE id = ?', [
+        relativePath,
+        publicUrl,
+        insertedId,
+      ]);
+    } else {
+      const result = await execute(
+        `INSERT INTO visit_media (target_type, target_id, image_url, image_path, caption, sort_order, created_at, updated_at)
+         VALUES (?, ?, ?, NULL, ?, ?, ?, ?)`,
+        [targetType, targetId, imageUrl, caption, sortOrder, now, now]
+      );
+      insertedId = result.insertId;
+    }
+    const row = await queryOne('SELECT * FROM visit_media WHERE id = ?', [insertedId]);
+    res.status(201).json(serializeVisitMedia(row));
   } catch (err) {
     logRouteError(err, req);
     res.status(500).json({ error: 'Erreur serveur' });
@@ -864,18 +935,53 @@ router.put('/media/:id', requirePermission('visit.manage', { needsElevation: tru
     if (!Number.isFinite(mediaId) || mediaId <= 0) return res.status(400).json({ error: 'Photo invalide' });
     const exists = await queryOne('SELECT * FROM visit_media WHERE id = ? LIMIT 1', [mediaId]);
     if (!exists) return res.status(404).json({ error: 'Photo introuvable' });
-    const imageUrl = String(req.body.image_url ?? exists.image_url).trim();
-    if (!imageUrl) return res.status(400).json({ error: 'image_url requis' });
     const caption = String(req.body.caption ?? exists.caption ?? '').trim();
-    const sortOrder = Number.isFinite(Number(req.body.sort_order)) ? Math.max(0, Number(req.body.sort_order)) : Number(exists.sort_order || 0);
-    await execute(
-      `UPDATE visit_media
-       SET image_url = ?, caption = ?, sort_order = ?, updated_at = ?
-       WHERE id = ?`,
-      [imageUrl, caption, sortOrder, nowIso(), mediaId]
-    );
+    const sortOrder = Number.isFinite(Number(req.body.sort_order))
+      ? Math.max(0, Number(req.body.sort_order))
+      : Number(exists.sort_order || 0);
+    const now = nowIso();
+    const imageDataRaw = req.body.image_data;
+    const imageData =
+      imageDataRaw !== undefined && imageDataRaw !== null ? String(imageDataRaw).trim() : '';
+
+    if (imageData) {
+      if (exists.image_path) deleteFile(exists.image_path);
+      const relativePath = `visit_media/${mediaId}.jpg`;
+      try {
+        saveBase64ToDisk(relativePath, imageData);
+      } catch (fileErr) {
+        logRouteError(fileErr, req);
+        return res.status(400).json({ error: 'Image invalide ou trop volumineuse' });
+      }
+      const publicUrl = `/api/visit/media/${mediaId}/data`;
+      await execute(
+        `UPDATE visit_media
+         SET image_path = ?, image_url = ?, caption = ?, sort_order = ?, updated_at = ?
+         WHERE id = ?`,
+        [relativePath, publicUrl, caption, sortOrder, now, mediaId]
+      );
+    } else if (Object.prototype.hasOwnProperty.call(req.body, 'image_url')) {
+      const imageUrl = String(req.body.image_url || '').trim();
+      if (!imageUrl) return res.status(400).json({ error: 'image_url requis' });
+      if (exists.image_path) deleteFile(exists.image_path);
+      await execute(
+        `UPDATE visit_media
+         SET image_path = NULL, image_url = ?, caption = ?, sort_order = ?, updated_at = ?
+         WHERE id = ?`,
+        [imageUrl, caption, sortOrder, now, mediaId]
+      );
+    } else {
+      const hasDisplay =
+        (exists.image_path && String(exists.image_path).trim()) ||
+        (exists.image_url && String(exists.image_url).trim());
+      if (!hasDisplay) return res.status(400).json({ error: 'Photo invalide' });
+      await execute(
+        `UPDATE visit_media SET caption = ?, sort_order = ?, updated_at = ? WHERE id = ?`,
+        [caption, sortOrder, now, mediaId]
+      );
+    }
     const row = await queryOne('SELECT * FROM visit_media WHERE id = ?', [mediaId]);
-    res.json(row);
+    res.json(serializeVisitMedia(row));
   } catch (err) {
     logRouteError(err, req);
     res.status(500).json({ error: 'Erreur serveur' });
@@ -886,6 +992,8 @@ router.delete('/media/:id', requirePermission('visit.manage', { needsElevation: 
   try {
     const mediaId = Number(req.params.id);
     if (!Number.isFinite(mediaId) || mediaId <= 0) return res.status(400).json({ error: 'Photo invalide' });
+    const row = await queryOne('SELECT image_path FROM visit_media WHERE id = ? LIMIT 1', [mediaId]);
+    if (row?.image_path) deleteFile(row.image_path);
     await execute('DELETE FROM visit_media WHERE id = ?', [mediaId]);
     res.json({ ok: true });
   } catch (err) {

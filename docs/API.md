@@ -310,6 +310,7 @@ Contenus éditables du site (micro-CMS texte brut) :
 | POST | `/api/visit/markers` | oui | Créer un repère de visite |
 | PUT | `/api/visit/markers/:id` | oui | Modifier un repère de visite |
 | DELETE | `/api/visit/markers/:id` | oui | Supprimer un repère de visite |
+| GET | `/api/visit/media/:id/data` | non | Fichier image pour un média visite stocké sur disque (`image_path`) |
 | POST | `/api/visit/media` | oui | Ajouter un média sur une cible de visite |
 | PUT | `/api/visit/media/:id` | oui | Modifier un média de visite |
 | DELETE | `/api/visit/media/:id` | oui | Supprimer un média de visite |
@@ -325,6 +326,7 @@ Contraintes importantes :
 - Les routes de gestion (`/zones`, `/markers`, `/media`, `/tutorials`, `/sync/*`) exigent la permission n3boss `visit.manage` (session élevée).
 - **Cookie visite anonyme** : variable optionnelle `VISIT_COOKIE_SECRET` (sinon repli sur `JWT_SECRET`, puis secret de dev hors production) — voir `.env.example`.
 - **Prévisualisation prof** : en session « aperçu élève », le client n’envoie pas de jeton élève pour la visite ; la progression suit le parcours **anonyme** (cookie), pas le compte réel de l’élève prévisualisé.
+- **Médias photos** : **`POST /api/visit/media`** accepte soit **`image_url`** (lien HTTPS ou chemin servi par l’app, ex. `/uploads/…`), soit **`image_data`** (JPEG base64 ou data URL, même principe que `POST /api/zones/:id/photos`). Les fichiers envoyés via `image_data` sont enregistrés sous `uploads/visit_media/{id}.jpg` ; la réponse et **`GET /api/visit/content`** exposent alors **`image_url`** = `/api/visit/media/:id/data`. **`PUT /api/visit/media/:id`** : avec **`image_data`**, remplace l’image locale ; avec **`image_url`** explicite, passe en média « URL uniquement » (fichier local précédent supprimé) ; sans les deux, met à jour **`caption`** / **`sort_order`** uniquement.
 
 ---
 
