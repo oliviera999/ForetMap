@@ -6,6 +6,8 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 ## [Non publié]
 
 ### Ajouté
+- **Carte — repères alignés sur les zones** : modale repère avec **onglets** (Tâches, Tutoriels, Info, Photos, Modifier), **commentaires de contexte** (`contextType=marker`), **photos carte** (`marker_photos`, API miroir des zones), **duplication** et bouton **Ajuster la position** (déverrouillage déplacement). Migration **`065_marker_photos.sql`**, **`routes/map.js`**, **`routes/context-comments.js`**, **`map-views.jsx`**, **`docs/API.md`**, **`tests/api.test.js`**, **`tests/context-comments.test.js`**.
+
 - **Visite — photos** : upload **JPEG** (base64 / data URL, compression côté client comme les zones) via **`POST /api/visit/media`** (`image_data`) pour zones et repères de visite ; fichier sous **`uploads/visit_media/{id}.jpg`** ; lecture publique **`GET /api/visit/media/:id/data`** ; suppression des fichiers à la **suppression** du média ou de la zone/repère visite. Colonne **`image_path`**, migration **`064_visit_media_image_path.sql`**. Éditeur visite : bouton **Ajouter une photo (fichier)** + miniatures avec **`withAppBase`**. **`routes/visit.js`**, **`visit-views.jsx`**, **`sql/schema_foretmap.sql`**, **`docs/API.md`**, **`tests/new-features.test.js`**.
 
 - **Tâches collectives (n3boss)** : sur une tâche en validation collective (`all_assignees_done`), chaque **nom d’assigné en cours** est un bouton cliquable : confirmation puis **`POST /api/tasks/:id/done`** avec `studentId` (ou prénom/nom) pour marquer **manuellement** la part de cet élève comme terminée (équivalent à son « Marquer terminée »). **`tasks-views.jsx`**, **`index.css`**, **`docs/API.md`**.

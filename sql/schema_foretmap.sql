@@ -585,6 +585,17 @@ CREATE TABLE IF NOT EXISTS map_markers (
   INDEX idx_map_markers_created (created_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- marker_photos (photos par repère carte)
+CREATE TABLE IF NOT EXISTS marker_photos (
+  id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  marker_id VARCHAR(64) NOT NULL,
+  image_path VARCHAR(512) DEFAULT NULL,
+  caption VARCHAR(512) DEFAULT '',
+  uploaded_at VARCHAR(32) DEFAULT NULL,
+  INDEX idx_marker_photos_marker_id (marker_id),
+  CONSTRAINT fk_marker_photos_marker FOREIGN KEY (marker_id) REFERENCES map_markers(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- visite : contenus éditoriaux par zone (publics)
 CREATE TABLE IF NOT EXISTS visit_zones (
   id VARCHAR(64) NOT NULL PRIMARY KEY,

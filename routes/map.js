@@ -4,6 +4,7 @@ const { queryAll, queryOne, execute } = require('../database');
 const { requirePermission } = require('../middleware/requireTeacher');
 const { logRouteError } = require('../lib/routeLog');
 const { emitGardenChanged } = require('../lib/realtime');
+const { saveBase64ToDisk, getAbsolutePath, deleteFile } = require('../lib/uploads');
 
 const router = express.Router();
 
@@ -114,6 +115,89 @@ function normalizeMarkerEmoji(value, fallback = '🌱') {
   return s.slice(0, 16);
 }
 
+router.get('/markers/:id/photos/:pid/data', async (req, res) => {
+  try {
+    const markerId = String(req.params.id || '').trim();
+    const p = await queryOne(
+      'SELECT mp.image_path FROM marker_photos mp WHERE mp.id=? AND mp.marker_id=?',
+      [req.params.pid, markerId]
+    );
+    if (!p) return res.status(404).json({ error: 'Photo introuvable' });
+    if (p.image_path) {
+      const absolutePath = getAbsolutePath(p.image_path);
+      return res.sendFile(absolutePath, (err) => {
+        if (err && !res.headersSent) res.status(404).json({ error: 'Fichier introuvable' });
+      });
+    }
+    return res.status(404).json({ error: 'Aucune image' });
+  } catch (e) {
+    logRouteError(e, req);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+router.get('/markers/:id/photos', async (req, res) => {
+  try {
+    const markerId = String(req.params.id || '').trim();
+    const photos = await queryAll(
+      'SELECT id, marker_id, caption, uploaded_at, image_path FROM marker_photos WHERE marker_id=? ORDER BY uploaded_at DESC',
+      [markerId]
+    );
+    res.json(
+      photos.map((p) => ({
+        ...p,
+        image_url: p.image_path ? `/api/map/markers/${markerId}/photos/${p.id}/data` : null,
+      }))
+    );
+  } catch (e) {
+    logRouteError(e, req);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+router.post('/markers/:id/photos', requirePermission('map.manage_markers', { needsElevation: true }), async (req, res) => {
+  let photoId = null;
+  try {
+    const m = await queryOne('SELECT * FROM map_markers WHERE id=?', [req.params.id]);
+    if (!m) return res.status(404).json({ error: 'Repère introuvable' });
+    const { image_data, caption } = req.body;
+    if (!image_data) return res.status(400).json({ error: 'Image requise' });
+    const result = await execute(
+      'INSERT INTO marker_photos (marker_id, image_path, caption, uploaded_at) VALUES (?, ?, ?, ?)',
+      [req.params.id, null, caption || '', new Date().toISOString()]
+    );
+    photoId = result.insertId;
+    const relativePath = `markers/${req.params.id}/${photoId}.jpg`;
+    try {
+      saveBase64ToDisk(relativePath, image_data);
+    } catch (fileErr) {
+      await execute('DELETE FROM marker_photos WHERE id = ?', [photoId]);
+      throw fileErr;
+    }
+    await execute('UPDATE marker_photos SET image_path = ? WHERE id = ?', [relativePath, photoId]);
+    const photo = await queryOne('SELECT id, marker_id, caption, uploaded_at FROM marker_photos WHERE id=?', [photoId]);
+    emitGardenChanged({ reason: 'add_marker_photo', markerId: req.params.id, mapId: m.map_id });
+    res.status(201).json(photo);
+  } catch (e) {
+    logRouteError(e, req);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+router.delete('/markers/:id/photos/:pid', requirePermission('map.manage_markers', { needsElevation: true }), async (req, res) => {
+  try {
+    const m = await queryOne('SELECT map_id FROM map_markers WHERE id = ?', [req.params.id]);
+    const p = await queryOne('SELECT image_path FROM marker_photos WHERE id=? AND marker_id=?', [req.params.pid, req.params.id]);
+    if (p && p.image_path) deleteFile(p.image_path);
+    await execute('DELETE FROM marker_photos WHERE id=? AND marker_id=?', [req.params.pid, req.params.id]);
+    emitGardenChanged({ reason: 'delete_marker_photo', markerId: req.params.id, mapId: m?.map_id || null });
+    res.json({ success: true });
+  } catch (e) {
+    logRouteError(e, req);
+    res.status(500).json({ error: e.message });
+  }
+});
+
 router.get('/markers', async (req, res) => {
   try {
     const mapId = req.query.map_id ? String(req.query.map_id).trim() : '';
@@ -206,6 +290,11 @@ router.delete('/markers/:id', requirePermission('map.manage_markers', { needsEle
   try {
     const m = await queryOne('SELECT * FROM map_markers WHERE id = ?', [req.params.id]);
     if (!m) return res.status(404).json({ error: 'Repère introuvable' });
+    const photos = await queryAll('SELECT image_path FROM marker_photos WHERE marker_id = ?', [req.params.id]);
+    for (const p of photos) {
+      if (p && p.image_path) deleteFile(p.image_path);
+    }
+    await execute('DELETE FROM marker_photos WHERE marker_id = ?', [req.params.id]);
     await execute('DELETE FROM map_markers WHERE id = ?', [req.params.id]);
     emitGardenChanged({ reason: 'delete_marker', markerId: req.params.id, mapId: m.map_id });
     res.json({ success: true });

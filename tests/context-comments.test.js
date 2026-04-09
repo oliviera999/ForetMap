@@ -63,7 +63,7 @@ async function teacherToken() {
   assert.ok(teacher?.id, 'Compte admin enseignant introuvable');
   assert.ok(adminRole?.id, 'Rôle admin introuvable');
   const requiredPermissions = [
-    'zones.manage', 'tasks.manage',
+    'zones.manage', 'tasks.manage', 'map.manage_markers',
     'context.comments.moderate',
     'admin.settings.read', 'admin.settings.write',
   ];
@@ -284,7 +284,7 @@ test('Commentaires contextuels: signalement et prévention des doublons', async 
     .expect(409);
 });
 
-test('Commentaires contextuels: valide les contextes task/project/zone', async () => {
+test('Commentaires contextuels: valide les contextes task/project/zone/marker', async () => {
   const teacher = await teacherToken();
   const student = await registerStudent('ComCtx');
   const { projectId } = await createContextFixture(teacher);
@@ -295,6 +295,24 @@ test('Commentaires contextuels: valide les contextes task/project/zone', async (
     .send({ contextType: 'project', contextId: projectId, body: 'Commentaire projet.' })
     .expect(201);
   assert.strictEqual(created.body.context_type, 'project');
+
+  const markerRes = await request(app)
+    .post('/api/map/markers')
+    .set(auth(teacher))
+    .send({
+      map_id: 'foret',
+      x_pct: 48,
+      y_pct: 49,
+      label: `Repère ctx marker ${Date.now()}`,
+      emoji: '📍',
+    })
+    .expect(201);
+  const markerCreated = await request(app)
+    .post('/api/context-comments')
+    .set(auth(student.authToken))
+    .send({ contextType: 'marker', contextId: markerRes.body.id, body: 'Commentaire sur repère carte.' })
+    .expect(201);
+  assert.strictEqual(markerCreated.body.context_type, 'marker');
 
   await request(app)
     .post('/api/context-comments')
