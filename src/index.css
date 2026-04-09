@@ -1015,6 +1015,22 @@
     .assignees { margin-bottom:8px; display:flex; gap:6px; flex-wrap:wrap; }
     .assignee-tag { background:var(--mint); color:var(--forest); border-radius:6px; padding:3px 9px; font-size:.76rem; font-weight:500; }
     .assignee-tag.me { font-weight:700; border:1px solid #86efac; }
+    /* Tâche collective (n3boss) : marquer la part d’un assigné via POST /done */
+    button.assignee-tag.assignee-tag--teacher-mark {
+      font: inherit;
+      text-align: inherit;
+      border: 1px dashed rgba(26, 71, 49, 0.35);
+      cursor: pointer;
+      min-height: 44px;
+    }
+    button.assignee-tag.assignee-tag--teacher-mark:hover:not(:disabled) {
+      background: #a8e6c4;
+      border-color: var(--leaf);
+    }
+    button.assignee-tag.assignee-tag--teacher-mark:disabled {
+      opacity: 0.65;
+      cursor: wait;
+    }
     .slots { font-size:.82rem; color:#aaa; margin-bottom:6px; }
 
     /* ── STATUS BADGES ── */

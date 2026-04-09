@@ -6,6 +6,8 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 ## [Non publié]
 
 ### Ajouté
+- **Tâches collectives (n3boss)** : sur une tâche en validation collective (`all_assignees_done`), chaque **nom d’assigné en cours** est un bouton cliquable : confirmation puis **`POST /api/tasks/:id/done`** avec `studentId` (ou prénom/nom) pour marquer **manuellement** la part de cet élève comme terminée (équivalent à son « Marquer terminée »). **`tasks-views.jsx`**, **`index.css`**, **`docs/API.md`**.
+
 - **Tâches — importance** : degré d’importance optionnel (`importance_level` : `not_important` → `absolute`), défaut **`null`** ; tri **`GET /api/tasks`** (importance explicite d’abord, puis date limite ; tâches sans degré ensuite) ; formulaire, pastilles **`badges.jsx`**, bandeau urgent aligné ; import CSV/XLSX (colonne modèle) ; clones récurrents. Migration **`063_tasks_importance_level.sql`**, **`sql/schema_foretmap.sql`**, **`routes/tasks.js`**, **`lib/recurringTasks.js`**, **`tasks-views.jsx`**, **`docs/API.md`**, **`tests/tasks-importance.test.js`**, **`tests/tasks-image.test.js`**.
 
 - **Visite** : indicateur de **progression sur la carte** (X / Y zones et repères marqués « vus », barre et pourcentage) — calcul limité à la **carte affichée** et aux polygones réellement visibles ; message discret si la carte est vide. **`visit-views.jsx`**, **`index.css`**, build **`dist/`**.
