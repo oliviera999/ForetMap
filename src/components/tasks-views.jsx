@@ -1562,6 +1562,29 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
     setLoading(l => ({ ...l, [id]: false }));
   };
 
+  /** Marque `done_at` pour un assigné (tâche en mode collectif) — `POST /api/tasks/:id/done` côté n3boss. */
+  const teacherMarkCollectiveAssignmentDone = (task, assignment) => {
+    const who = `${assignment?.student_first_name || ''} ${assignment?.student_last_name || ''}`.trim() || 'cet élève';
+    if (!window.confirm(`Marquer la part de ${who} comme terminée pour la tâche « ${task?.title || ''} » ?`)) return;
+    const aid = assignment?.id != null
+      ? String(assignment.id)
+      : `${String(assignment?.student_first_name || '')}-${String(assignment?.student_last_name || '')}-${String(assignment?.student_id || '')}`;
+    void withLoad(`${task.id}_teacher_collective_done_${aid}`, async () => {
+      const body = assignment.student_id
+        ? { studentId: String(assignment.student_id) }
+        : {
+            firstName: String(assignment.student_first_name || '').trim(),
+            lastName: String(assignment.student_last_name || '').trim(),
+          };
+      if (!body.studentId && (!body.firstName || !body.lastName)) {
+        setToast('Impossible de marquer cette inscription : identité incomplète.');
+        return;
+      }
+      await api(`/api/tasks/${task.id}/done`, 'POST', body);
+      setToast(who !== 'cet élève' ? `Part de ${who} marquée terminée ✓` : 'Part marquée terminée ✓');
+    });
+  };
+
   const linkTutorialAtFocus = (tutorialId) => withLoad(`tuto-link-${tutorialId}`, async () => {
     const tu = (tutorials || []).find((x) => Number(x.id) === Number(tutorialId));
     if (!tu || !filterZone) return;
@@ -2044,6 +2067,7 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
     setQuickAssignTaskId,
     setQuickAssignStudentIds,
     runTeacherQuickAssign,
+    teacherMarkCollectiveAssignmentDone,
     tooltipText,
   };
 
@@ -2862,6 +2886,7 @@ function TaskTileCard({
   setQuickAssignTaskId,
   setQuickAssignStudentIds,
   runTeacherQuickAssign,
+  teacherMarkCollectiveAssignmentDone,
   tooltipText,
 }) {
     const [coverLightbox, setCoverLightbox] = useState(null);
@@ -3003,10 +3028,30 @@ function TaskTileCard({
           <div className="assignees">
             {assignees.map((a, i) => {
               const item = formatAssigneeName(a, student, isTeacher || canViewOtherUsersIdentity);
+              const label = item.isCurrentStudent && item.fullName.toLowerCase() !== 'toi'
+                ? `${item.fullName} (toi)`
+                : item.fullName;
+              const suffix = isCollectiveCompletion ? (a.done_at ? ' ✓' : ' • en cours') : '';
+              const loadAid = a.id != null ? String(a.id) : `${i}`;
+              const collectiveBusy = !!loading[`${t.id}_teacher_collective_done_${loadAid}`];
+              const canTeacherMarkThisPart = isTeacher && isCollectiveCompletion && !a.done_at && effectiveStatus !== 'validated';
+              if (canTeacherMarkThisPart && typeof teacherMarkCollectiveAssignmentDone === 'function') {
+                return (
+                  <button
+                    key={a.id != null ? `a-${a.id}` : `${a.student_first_name}-${a.student_last_name}-${i}`}
+                    type="button"
+                    className={`assignee-tag assignee-tag--teacher-mark ${item.isCurrentStudent ? 'me' : ''}`}
+                    disabled={collectiveBusy}
+                    title="Marquer manuellement la part de cet élève comme terminée (équivalent à « Marquer terminée » côté n3beur)"
+                    onClick={() => teacherMarkCollectiveAssignmentDone(t, a)}
+                  >
+                    {label}{suffix}
+                  </button>
+                );
+              }
               return (
-                <span key={`${a.student_first_name}-${a.student_last_name}-${i}`} className={`assignee-tag ${item.isCurrentStudent ? 'me' : ''}`}>
-                  {item.isCurrentStudent && item.fullName.toLowerCase() !== 'toi' ? `${item.fullName} (toi)` : item.fullName}
-                  {isCollectiveCompletion ? (a.done_at ? ' ✓' : ' • en cours') : ''}
+                <span key={a.id != null ? `a-${a.id}` : `${a.student_first_name}-${a.student_last_name}-${i}`} className={`assignee-tag ${item.isCurrentStudent ? 'me' : ''}`}>
+                  {label}{suffix}
                 </span>
               );
             })}
