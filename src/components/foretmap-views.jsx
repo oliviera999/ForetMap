@@ -591,12 +591,27 @@ function PlantEditForm({ title, form, setForm, onSave, onCancel, saving, plantId
               onChange={set(field.key)}
               placeholder="https://.../image.jpg ou /uploads/..."
             />
-            <div style={{ display: 'flex', gap: 8, marginTop: 6 }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 6 }}>
               <label className="btn btn-ghost btn-sm" style={{ cursor: 'pointer' }}>
-                {uploadingField === field.key ? 'Upload...' : '📤 Charger un fichier'}
+                {uploadingField === field.key ? 'Envoi…' : '📁 Galerie'}
                 <input
                   type="file"
                   accept="image/*"
+                  style={{ display: 'none' }}
+                  disabled={saving || uploadingField === field.key}
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    e.target.value = '';
+                    uploadPhoto(field.key, file);
+                  }}
+                />
+              </label>
+              <label className="btn btn-ghost btn-sm" style={{ cursor: 'pointer' }}>
+                {uploadingField === field.key ? 'Envoi…' : '📸 Appareil photo'}
+                <input
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
                   style={{ display: 'none' }}
                   disabled={saving || uploadingField === field.key}
                   onChange={(e) => {
@@ -1169,7 +1184,8 @@ function ObservationNotebook({ student, zones, onForceLogout = null }) {
   const [preview, setPreview] = useState(null);
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState(null);
-  const fileRef = useRef();
+  const galleryFileRef = useRef(null);
+  const cameraFileRef = useRef(null);
 
   const load = async () => {
     setLoadError('');
@@ -1192,6 +1208,7 @@ function ObservationNotebook({ student, zones, onForceLogout = null }) {
 
   const handleFile = e => {
     const file = e.target.files[0];
+    e.target.value = '';
     if (!file) return;
     compressImage(file).then(d => { setImageData(d); setPreview(d); }).catch(() => {});
   };
@@ -1258,10 +1275,33 @@ function ObservationNotebook({ student, zones, onForceLogout = null }) {
           </div>
           <div className="field"><label>Photo (optionnel)</label>
             {!preview ? (
-              <div className="img-upload-area" onClick={() => fileRef.current.click()}>
+              <div className="img-upload-area img-upload-area--split" role="group" aria-label="Photo d'observation : galerie ou appareil photo">
                 <div style={{fontSize:'1.5rem', marginBottom:4}}>📷</div>
-                <div style={{fontSize:'.82rem', color:'#888'}}>Ajouter une photo</div>
-                <input ref={fileRef} type="file" accept="image/*" onChange={handleFile}/>
+                <div style={{fontSize:'.82rem', color:'#888', marginBottom: 10}}>Galerie ou appareil photo</div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, justifyContent: 'center' }}>
+                  <button
+                    type="button"
+                    className="btn btn-secondary btn-sm"
+                    onClick={() => {
+                      if (galleryFileRef.current) galleryFileRef.current.value = '';
+                      galleryFileRef.current?.click();
+                    }}
+                  >
+                    📁 Choisir une photo
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-secondary btn-sm"
+                    onClick={() => {
+                      if (cameraFileRef.current) cameraFileRef.current.value = '';
+                      cameraFileRef.current?.click();
+                    }}
+                  >
+                    📸 Prendre une photo
+                  </button>
+                </div>
+                <input ref={galleryFileRef} type="file" accept="image/*" onChange={handleFile} />
+                <input ref={cameraFileRef} type="file" accept="image/*" capture="environment" onChange={handleFile} />
               </div>
             ) : (
               <div className="img-preview-wrap">

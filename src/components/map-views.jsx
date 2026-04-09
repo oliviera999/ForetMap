@@ -246,7 +246,8 @@ function PhotoGallery({ zoneId, isTeacher }) {
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [caption, setCaption] = useState('');
-  const fileRef = useRef();
+  const galleryFileRef = useRef(null);
+  const cameraFileRef = useRef(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -264,6 +265,7 @@ function PhotoGallery({ zoneId, isTeacher }) {
 
   const upload = async e => {
     const file = e.target.files[0];
+    e.target.value = '';
     if (!file) return;
     setUploading(true);
     try {
@@ -331,12 +333,34 @@ function PhotoGallery({ zoneId, isTeacher }) {
           <input value={caption} onChange={e => setCaption(e.target.value)}
             placeholder="Légende (optionnel)" style={{ fontSize: '16px', width: '100%', marginBottom: 6,
               padding: '8px 12px', border: '1.5px solid var(--mint)', borderRadius: 8, background: 'var(--cream)' }} />
-          <button className="btn btn-secondary btn-sm btn-full" disabled={uploading}
-            onClick={() => fileRef.current.click()}>
-            {uploading ? 'Envoi...' : '📷 Ajouter une photo'}
-          </button>
-          <input ref={fileRef} type="file" accept="image/*"
-            style={{ display: 'none' }} onChange={upload} />
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+            <button
+              type="button"
+              className="btn btn-secondary btn-sm"
+              style={{ flex: '1 1 140px' }}
+              disabled={uploading}
+              onClick={() => {
+                if (galleryFileRef.current) galleryFileRef.current.value = '';
+                galleryFileRef.current?.click();
+              }}
+            >
+              {uploading ? 'Envoi...' : '📁 Galerie'}
+            </button>
+            <button
+              type="button"
+              className="btn btn-secondary btn-sm"
+              style={{ flex: '1 1 140px' }}
+              disabled={uploading}
+              onClick={() => {
+                if (cameraFileRef.current) cameraFileRef.current.value = '';
+                cameraFileRef.current?.click();
+              }}
+            >
+              {uploading ? 'Envoi...' : '📸 Appareil photo'}
+            </button>
+          </div>
+          <input ref={galleryFileRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={upload} />
+          <input ref={cameraFileRef} type="file" accept="image/*" capture="environment" style={{ display: 'none' }} onChange={upload} />
         </div>
       )}
     </div>
