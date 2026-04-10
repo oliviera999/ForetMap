@@ -8,6 +8,15 @@ const path = require('path');
 const { spawnSync, execSync } = require('child_process');
 
 const rootDir = path.resolve(__dirname, '..');
+
+/** Playwright n’est pas nécessaire au bundle prod ; son postinstall (Chromium/Wasm) peut faire planter `npm ci` sur mutualisé (OOM). */
+function envForNpmBundle() {
+  return {
+    ...process.env,
+    PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: process.env.PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD || '1',
+  };
+}
+
 const argv = new Set(process.argv.slice(2));
 const skipInstall = argv.has('--skip-install');
 const skipBuild = argv.has('--skip-build');
@@ -137,7 +146,8 @@ if (!skipInstall || !skipBuild || !skipPrune) {
 
 if (!skipInstall) {
   console.log('==> Installation dépendances complètes (build local)');
-  if (!runCommand('npm', ['ci', '--include=dev'])) {
+  console.log('    (PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1 — pas de navigateurs e2e, adapté hébergement limité)');
+  if (!runCommand('npm', ['ci', '--include=dev'], { env: envForNpmBundle() })) {
     fail('Échec npm ci --include=dev');
   }
 } else {
@@ -146,7 +156,7 @@ if (!skipInstall) {
 
 if (!skipBuild) {
   console.log('==> Build frontend');
-  if (!runCommand('npm', ['run', 'build'])) {
+  if (!runCommand('npm', ['run', 'build'], { env: envForNpmBundle() })) {
     fail('Échec npm run build');
   }
 } else {
@@ -155,7 +165,7 @@ if (!skipBuild) {
 
 if (!skipPrune) {
   console.log('==> Prune vers dépendances production');
-  if (!runCommand('npm', ['prune', '--omit=dev'])) {
+  if (!runCommand('npm', ['prune', '--omit=dev'], { env: envForNpmBundle() })) {
     fail('Échec npm prune --omit=dev');
   }
 } else {
