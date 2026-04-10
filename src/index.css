@@ -2567,6 +2567,41 @@
       background:#16a34a;
       animation:none;
     }
+    .visit-map-mascot {
+      position:absolute;
+      z-index:4;
+      width:0;
+      height:0;
+      pointer-events:none;
+      transition:left .55s cubic-bezier(0.25, 0.8, 0.25, 1),
+        top .55s cubic-bezier(0.25, 0.8, 0.25, 1);
+    }
+    .visit-map-mascot--reduced-motion {
+      transition:none;
+    }
+    .visit-map-mascot-inner {
+      position:absolute;
+      left:0;
+      top:0;
+      transform-origin:50% 100%;
+    }
+    .visit-map-mascot-sprite {
+      display:inline-block;
+      font-size:clamp(1.45rem, 3.8vw, 1.95rem);
+      line-height:1;
+      filter:drop-shadow(0 2px 5px rgba(0,0,0,.28));
+      user-select:none;
+    }
+    .visit-map-mascot-sprite--bob {
+      animation:visitMapMascotBob .36s ease-in-out infinite alternate;
+    }
+    .visit-map-mascot--reduced-motion .visit-map-mascot-sprite--bob {
+      animation:none;
+    }
+    @keyframes visitMapMascotBob {
+      from { transform:translateY(0); }
+      to { transform:translateY(-5px); }
+    }
     .visit-map-controls {
       position:absolute;
       right:8px;

@@ -43,3 +43,20 @@ test('visite connectée : scène carte, image chargée et contrôles zoom', asyn
   await expect(controls.getByRole('button', { name: 'Dézoomer la carte de visite', exact: true })).toBeVisible();
   await expect(controls.getByRole('button', { name: 'Recentrer la carte de visite', exact: true })).toBeVisible();
 });
+
+test('visite connectée : mascotte visible si au moins une zone ou un repère sur le plan', async ({ page }) => {
+  await loginAsNewStudent(page);
+
+  await page.getByRole('button', { name: /^🧭 Visite$/ }).click();
+  await expect(page.locator('.visit-view')).toBeVisible({ timeout: 30_000 });
+
+  const stage = page.locator('.visit-map-stage');
+  await expect(stage).toBeVisible({ timeout: 30_000 });
+  await expect(stage.locator('img.visit-map-img')).toBeVisible({ timeout: 15_000 });
+
+  const zoneCount = await stage.locator('.visit-zone-hit').count();
+  const markerCount = await stage.locator('.visit-marker-btn').count();
+  if (zoneCount + markerCount > 0) {
+    await expect(stage.locator('.visit-map-mascot')).toBeVisible({ timeout: 15_000 });
+  }
+});
