@@ -6,7 +6,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 ## [Non publié]
 
 ### Modifié
-- **Documentation déploiement** : précision que le **ZIP runtime est optionnel** ; le dossier `deploy/runtime/foretmap-runtime-*` peut être **uploadé décompressé** (`rsync`, SFTP, etc.). **`docs/LOCAL_DEV.md`**, **`docs/EXPLOITATION.md`** ; messages de fin de **`scripts/prepare-runtime-deploy.js`**.
+- **Documentation déploiement** : précision que le **ZIP runtime est optionnel** ; le dossier `deploy/runtime/foretmap-runtime-*` peut être **uploadé décompressé** (`rsync`, SFTP, etc.). **`docs/LOCAL_DEV.md`**, **`docs/EXPLOITATION.md`**, **`README.md`** ; règle **`.cursor/rules/foretmap-conventions.mdc`** ; messages de fin **`scripts/prepare-runtime-deploy.js`** et **`prepare-runtime-deploy.ps1`**.
 
 ### Corrigé
 - **Déploiement runtime** : `npm run deploy:prepare:runtime` (et `:fast`) s’appuient sur **`node scripts/prepare-runtime-deploy.js`** au lieu d’invoquer **PowerShell** depuis `sh` (évite l’erreur `powershell: commande introuvable` sous Linux / CI). Archivage : **`zip`**, sinon **`tar -a`**, sinon **Compress-Archive** sous Windows. Scripts optionnels **`deploy:prepare:runtime:ps`** / **`:fast:ps`** pour l’ancien `prepare-runtime-deploy.ps1` (robocopy). Documentation **`docs/LOCAL_DEV.md`**, **`docs/EXPLOITATION.md`**.
