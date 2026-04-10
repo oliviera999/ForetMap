@@ -6,8 +6,10 @@ const { queryAll, queryOne, execute, withTransaction } = require('../database');
 const { authenticate, requirePermission, requireAuth } = require('../middleware/requireTeacher');
 const { logRouteError } = require('../lib/routeLog');
 const { emitTasksChanged } = require('../lib/realtime');
+const { saveBase64ToDisk, deleteFile } = require('../lib/uploads');
 
 const router = express.Router();
+const MAX_TUTORIAL_COVER_BYTES = 5 * 1024 * 1024;
 const ROOT_DIR = path.resolve(__dirname, '..');
 const TUTORIAL_MANAGER_ROLES = new Set(['prof', 'admin']);
 router.use(authenticate);
@@ -21,6 +23,70 @@ function canManageTutorials(req) {
 function normalizeString(value) {
   if (value == null) return '';
   return String(value).trim();
+}
+
+function detectImageExtensionFromDataUrl(dataUrl) {
+  const m = /^data:image\/(png|jpe?g|webp|gif|bmp|avif);base64,/i.exec(dataUrl || '');
+  if (!m) return null;
+  const ext = String(m[1]).toLowerCase();
+  return ext === 'jpeg' ? 'jpg' : ext;
+}
+
+function extractUploadsRelativePath(value) {
+  const raw = normalizeString(value);
+  if (!raw) return null;
+  if (raw.startsWith('/uploads/')) return raw.slice('/uploads/'.length);
+  try {
+    const u = new URL(raw);
+    if (u.pathname.startsWith('/uploads/')) return u.pathname.slice('/uploads/'.length);
+  } catch {
+    return null;
+  }
+  return null;
+}
+
+function isLocalUploadsPath(value) {
+  return /^\/uploads\/[^?#\s]+/i.test(normalizeString(value));
+}
+
+function isDirectImagePath(value) {
+  const raw = normalizeString(value);
+  return /\.(avif|bmp|gif|jpe?g|png|svg|webp)(?:$|\?)/i.test(raw);
+}
+
+function isDevLocalhostHttp(url) {
+  if (!url || url.protocol !== 'http:') return false;
+  return /^(localhost|127\.0\.0\.1)$/i.test(url.hostname);
+}
+
+function isDirectImageUrl(url) {
+  const pathLower = (url?.pathname || '').toLowerCase();
+  if (/\.(avif|bmp|gif|jpe?g|png|svg|webp)$/.test(pathLower)) return true;
+  if (/\/wiki\/special:filepath\//.test(pathLower)) return true;
+  return false;
+}
+
+/** Erreur texte ou null si la valeur est vide ou valide. */
+function validateTutorialCoverImageUrl(value) {
+  const raw = normalizeString(value);
+  if (!raw) return null;
+  if (isLocalUploadsPath(raw)) {
+    if (!isDirectImagePath(raw)) return 'cover_image_url : chemin local invalide (extension image requise)';
+    return null;
+  }
+  let url;
+  try {
+    url = new URL(raw);
+  } catch {
+    return 'cover_image_url : URL invalide';
+  }
+  if (url.protocol !== 'https:' && !isDevLocalhostHttp(url)) {
+    return 'cover_image_url : seules les URLs HTTPS (ou localhost en dev) sont autorisées';
+  }
+  if (!isDirectImageUrl(url)) {
+    return 'cover_image_url : URL d\'image directe requise (.jpg/.png/... ou /wiki/Special:FilePath/...)';
+  }
+  return null;
 }
 
 function normalizeIdArray(value) {
@@ -341,6 +407,7 @@ function toPublicTutorialRow(row, zonesLinked = [], markersLinked = []) {
     slug: row.slug,
     type: row.type,
     summary: row.summary || '',
+    cover_image_url: row.cover_image_url || null,
     source_url: row.source_url || null,
     source_file_path: row.source_file_path || null,
     is_active: Number(row.is_active) === 1,
@@ -544,6 +611,12 @@ router.post('/', requirePermission('tutorials.manage', { needsElevation: true })
     const title = normalizeString(req.body.title);
     const type = normalizeString(req.body.type || 'html').toLowerCase();
     const summary = normalizeString(req.body.summary);
+    let coverImageUrl = null;
+    if (Object.prototype.hasOwnProperty.call(req.body, 'cover_image_url')) {
+      coverImageUrl = normalizeString(req.body.cover_image_url) || null;
+      const coverErr = validateTutorialCoverImageUrl(coverImageUrl || '');
+      if (coverErr) return res.status(400).json({ error: coverErr });
+    }
     const htmlContent = req.body.html_content != null ? String(req.body.html_content) : null;
     const sourceUrl = normalizeString(req.body.source_url) || null;
     const sourceFilePath = normalizeString(req.body.source_file_path) || null;
@@ -571,9 +644,9 @@ router.post('/', requirePermission('tutorials.manage', { needsElevation: true })
     const now = new Date().toISOString();
     const result = await execute(
       `INSERT INTO tutorials
-        (title, slug, type, summary, html_content, source_url, source_file_path, is_active, sort_order, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?)`,
-      [title, slug, type, summary || null, htmlContent, sourceUrl, sourceFilePath, sortOrder, now, now]
+        (title, slug, type, summary, cover_image_url, html_content, source_url, source_file_path, is_active, sort_order, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?)`,
+      [title, slug, type, summary || null, coverImageUrl, htmlContent, sourceUrl, sourceFilePath, sortOrder, now, now]
     );
     const createdId = result.insertId;
     let zIds = [];
@@ -604,6 +677,63 @@ router.post('/', requirePermission('tutorials.manage', { needsElevation: true })
     res.status(500).json({ error: 'Erreur serveur' });
   }
 });
+
+router.post(
+  '/:id/cover-photo-upload',
+  requirePermission('tutorials.manage', { needsElevation: true }),
+  async (req, res) => {
+    try {
+      if (!canManageTutorials(req)) return res.status(403).json({ error: 'Permission insuffisante' });
+      const tid = Number(req.params.id);
+      if (!Number.isFinite(tid) || tid <= 0) {
+        return res.status(400).json({ error: 'Identifiant de tutoriel invalide' });
+      }
+      const tutorial = await queryOne('SELECT * FROM tutorials WHERE id = ?', [tid]);
+      if (!tutorial) return res.status(404).json({ error: 'Tutoriel introuvable' });
+
+      const imageData = normalizeString(req.body?.imageData);
+      if (!imageData) return res.status(400).json({ error: 'Image requise' });
+
+      const ext = detectImageExtensionFromDataUrl(imageData);
+      if (!ext) {
+        return res.status(400).json({ error: 'Format image invalide (png/jpg/webp/gif/bmp/avif)' });
+      }
+      const base64Payload = imageData.includes(',') ? imageData.split(',')[1] : imageData;
+      const bytes = Buffer.byteLength(base64Payload, 'base64');
+      if (bytes > MAX_TUTORIAL_COVER_BYTES) {
+        return res.status(400).json({ error: 'Image trop lourde (max 5 Mo)' });
+      }
+
+      const relativePath = `tutorials/${tid}/cover-${Date.now()}.${ext}`;
+      saveBase64ToDisk(relativePath, imageData);
+      const publicUrl = `/uploads/${relativePath}`;
+
+      const previousRelativePath = extractUploadsRelativePath(tutorial.cover_image_url);
+      if (previousRelativePath && previousRelativePath !== relativePath) {
+        deleteFile(previousRelativePath);
+      }
+
+      const now = new Date().toISOString();
+      await execute('UPDATE tutorials SET cover_image_url = ?, updated_at = ? WHERE id = ?', [publicUrl, now, tid]);
+      const updated = await queryOne('SELECT * FROM tutorials WHERE id = ?', [tid]);
+      const linked = await queryOne('SELECT COUNT(*) AS c FROM task_tutorials WHERE tutorial_id = ?', [tid]);
+      const zMap = await fetchZonesForTutorials([tid]);
+      const mMap = await fetchMarkersForTutorials([tid]);
+      await emitTutorialTasksChanged('tutorial_update', tid);
+      res.json({
+        url: publicUrl,
+        tutorial: toPublicTutorialRow(
+          { ...updated, linked_tasks_count: linked?.c || 0 },
+          zMap.get(tid) || [],
+          mMap.get(tid) || []
+        ),
+      });
+    } catch (err) {
+      logRouteError(err, req, 'Upload couverture tutoriel en échec');
+      res.status(500).json({ error: 'Erreur serveur' });
+    }
+  }
+);
 
 router.put(
   '/reorder',
@@ -667,6 +797,12 @@ router.put('/:id', requirePermission('tutorials.manage', { needsElevation: true 
     const nextTitle = req.body.title != null ? normalizeString(req.body.title) : existing.title;
     const nextType = req.body.type != null ? normalizeString(req.body.type).toLowerCase() : existing.type;
     const nextSummary = req.body.summary != null ? normalizeString(req.body.summary) : (existing.summary || '');
+    let nextCoverImageUrl = existing.cover_image_url || null;
+    if (Object.prototype.hasOwnProperty.call(req.body, 'cover_image_url')) {
+      nextCoverImageUrl = normalizeString(req.body.cover_image_url) || null;
+      const coverErr = validateTutorialCoverImageUrl(nextCoverImageUrl || '');
+      if (coverErr) return res.status(400).json({ error: coverErr });
+    }
     const nextHtml = req.body.html_content !== undefined ? (req.body.html_content != null ? String(req.body.html_content) : null) : existing.html_content;
     const nextSourceUrl = req.body.source_url !== undefined ? (normalizeString(req.body.source_url) || null) : existing.source_url;
     const nextSourceFilePath = req.body.source_file_path !== undefined ? (normalizeString(req.body.source_file_path) || null) : existing.source_file_path;
@@ -706,10 +842,17 @@ router.put('/:id', requirePermission('tutorials.manage', { needsElevation: true 
     const loc = await validateTutorialLocations(nextZoneIds, nextMarkerIds);
     if (loc.error) return res.status(400).json({ error: loc.error });
 
+    const prevCoverNorm = normalizeString(existing.cover_image_url);
+    const nextCoverNorm = normalizeString(nextCoverImageUrl);
+    if (prevCoverNorm && prevCoverNorm !== nextCoverNorm) {
+      const rel = extractUploadsRelativePath(existing.cover_image_url);
+      if (rel) deleteFile(rel);
+    }
+
     const now = new Date().toISOString();
     await execute(
       `UPDATE tutorials
-          SET title = ?, slug = ?, type = ?, summary = ?, html_content = ?, source_url = ?, source_file_path = ?,
+          SET title = ?, slug = ?, type = ?, summary = ?, cover_image_url = ?, html_content = ?, source_url = ?, source_file_path = ?,
               is_active = ?, sort_order = ?, updated_at = ?
         WHERE id = ?`,
       [
@@ -717,6 +860,7 @@ router.put('/:id', requirePermission('tutorials.manage', { needsElevation: true 
         nextSlug,
         nextType,
         nextSummary || null,
+        nextCoverImageUrl,
         nextHtml,
         nextSourceUrl,
         nextSourceFilePath,

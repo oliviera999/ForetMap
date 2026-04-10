@@ -2027,6 +2027,17 @@
       transform:translateY(0);
       transition:transform .18s var(--spring), box-shadow .2s var(--ease-out), border-color .2s var(--ease-out);
     }
+    .tuto-card-cover,
+    .tuto-editor-cover-preview {
+      display:block;
+      width:100%;
+      max-height:168px;
+      object-fit:cover;
+      border-radius:10px;
+      margin:0 0 10px;
+      border:1px solid rgba(0,0,0,.06);
+    }
+    .tuto-editor-cover-preview { max-height:140px; margin-top:8px; }
     .tuto-card:hover {
       transform:translateY(-2px);
       border-color:var(--sage);

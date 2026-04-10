@@ -246,9 +246,9 @@ Réglage public de réactions :
 - Valeur par défaut : `👍 ❤️ 😂 😮 😢 😡 🔥 👏`.
 
 Affichage carte (zones SVG + repères sur l’onglet Carte), réglages publics `ui.map.*` :
-- `emoji_label_center_gap` (entier 6–32, défaut `14`) : distance entre les **centres** de l’emoji et du libellé des **repères**, multipliée par `inv` (inverse du zoom).
-- `overlay_emoji_size_percent` (entier 70–150, défaut `100`) : échelle des emojis des **repères** sur la carte.
-- `overlay_label_size_percent` (entier 70–150, défaut `100`) : échelle du **nom des zones** (centroïde) et du libellé sous les repères.
+- `emoji_label_center_gap` (entier 6–32, défaut `14`) : distance entre les **centres** de l’emoji et du libellé, multipliée par `inv` (inverse du zoom), identique pour zones et repères.
+- `overlay_emoji_size_percent` (entier 70–150, défaut `100`) : échelle des emojis zones et repères.
+- `overlay_label_size_percent` (entier 70–150, défaut `100`) : échelle des noms affichés sous les repères (et sous les emojis des zones).
 
 Contenus éditables du site (micro-CMS texte brut) :
 - Namespace `content.*` dans les réglages publics, éditable via `PUT /api/settings/admin/:key`.
@@ -274,7 +274,7 @@ Contenus éditables du site (micro-CMS texte brut) :
 | POST | `/api/zones/:id/photos` | oui | Ajouter photo (`image_data` base64, `caption`) |
 | DELETE | `/api/zones/:id/photos/:pid` | oui | Supprimer photo |
 
-- Le champ `name` est le **libellé texte** de la zone (sans préfixe emoji imposé par l’UI). D’éventuels anciens noms avec emoji en tête restent acceptés en lecture ; l’affichage carte et les formulaires **retirent** ce préfixe pour le libellé et l’enregistrement ne le réintroduit pas.
+- Le champ `name` peut commencer par un **emoji de zone** : préfixe (séquence emoji) suivi d’un **espace** puis le libellé ; l’UI carte permet de choisir l’emoji dans une grille ou de coller un pictogramme.
 - **`POST /api/zones`** : corps JSON `name`, `points` (≥ 3 sommets `{ xp, yp }` en pourcentage de l’image), `map_id` ; optionnellement `color`, **`living_beings`** (tableau de noms du catalogue, ordre conservé), `current_plant` (colonne legacy, ignorée en persistance si `living_beings` est non vide — alors `current_plant` est stocké vide), `stage`, **`description`** (texte, chaîne vide si absent).
 - **`GET /api/zones`** et **`GET /api/zones/:id`** : chaque zone expose **`living_beings_list`** (tableau dérivé de `living_beings` JSON, ordre conservé). La colonne brute `living_beings` n’est pas renvoyée. **`current_plant`** reste en réponse pour compatibilité mais est vide dès qu’au moins un être vivant est listé dans `living_beings_list`.
 - **`PUT /api/zones/:id`** : si le corps contient au moins une des clés **`visit_subtitle`**, **`visit_short_description`**, **`visit_details_title`**, **`visit_details_text`**, une ligne **`visit_zones`** est créée ou mise à jour pour ce même `id` (textes visite alignés sur le mode visite), sans modifier `is_active` / `sort_order` d’une ligne déjà présente.

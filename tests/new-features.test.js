@@ -575,6 +575,33 @@ test('GET /api/visit/content expose les contenus visite et les tutos choisis', a
 const TINY_JPEG_B64 =
   '/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAP//////////////////////////////////////////////////////////////////////////////////////2wBDAf//////////////////////////////////////////////////////////////////////////////////////wAARCABAAEADASIAAhEBAxEB/8QAFwABAQEBAAAAAAAAAAAAAAAAAAIDBP/EABQQAQAAAAAAAAAAAAAAAAAAAAD/2gAMAwEAAhADEAAAf//EABQRAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQEAAQUCf//EABQRAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQMBAT8Bf//EABQRAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQIBAT8Bf//EABQQAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQEABj8Cf//Z';
 
+test('POST /api/tutorials/:id/cover-photo-upload enregistre cover_image_url', async () => {
+  const createRes = await request(app)
+    .post('/api/tutorials')
+    .set('Authorization', 'Bearer ' + teacherToken)
+    .send({
+      title: `Tuto couverture ${Date.now()}`,
+      type: 'html',
+      html_content: '<p>contenu minimal</p>',
+      summary: 'résumé test couverture',
+    })
+    .expect(201);
+  const tid = createRes.body.id;
+  assert.ok(tid);
+
+  const up = await request(app)
+    .post(`/api/tutorials/${tid}/cover-photo-upload`)
+    .set('Authorization', 'Bearer ' + teacherToken)
+    .send({ imageData: `data:image/jpeg;base64,${TINY_JPEG_B64}` })
+    .expect(200);
+  assert.ok(String(up.body.url || '').includes('/uploads/tutorials/'));
+  assert.ok(up.body.tutorial?.cover_image_url);
+
+  const list = await request(app).get('/api/tutorials').expect(200);
+  const row = list.body.find((t) => Number(t.id) === Number(tid));
+  assert.ok(row?.cover_image_url);
+});
+
 test('POST /api/visit/media avec image_data, GET /data et contenu public', async () => {
   const markerRes = await request(app)
     .post('/api/visit/markers')

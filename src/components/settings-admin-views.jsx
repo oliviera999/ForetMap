@@ -52,7 +52,7 @@ const KEY_META = {
   'ui.modules.observations_enabled': { label: 'Carnet observations', section: 'modules', order: 40 },
   'ui.modules.help_enabled': { label: 'Aide contextuelle (tooltips + panneau ?)', section: 'modules', order: 45 },
   'ui.modules.forum_enabled': { label: 'Forum', section: 'modules', order: 46 },
-  'ui.modules.context_comments_enabled': { label: 'Commentaires de contexte (zones / tâches / projets)', section: 'modules', order: 47 },
+  'ui.modules.context_comments_enabled': { label: 'Commentaires de contexte (zones, tâches, projets, biodiversité, tutoriels)', section: 'modules', order: 47 },
   'ui.reactions.allowed_emojis': { label: 'Emojis de réaction (séparés par espaces)', section: 'modules', order: 48 },
   'ui.map.location_emojis': { label: 'Emojis zones/repères/tâches (séparés par espaces)', section: 'modules', order: 49, multiline: true },
   'ui.map.default_map_student': { section: 'modules', order: 50, dynamicLabel: 'defaultStudentMap' },

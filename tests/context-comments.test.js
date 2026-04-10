@@ -284,7 +284,7 @@ test('Commentaires contextuels: signalement et prévention des doublons', async 
     .expect(409);
 });
 
-test('Commentaires contextuels: valide les contextes task/project/zone/marker', async () => {
+test('Commentaires contextuels: valide les contextes task/project/zone/marker/plant/tutorial', async () => {
   const teacher = await teacherToken();
   const student = await registerStudent('ComCtx');
   const { projectId } = await createContextFixture(teacher);
@@ -313,6 +313,32 @@ test('Commentaires contextuels: valide les contextes task/project/zone/marker', 
     .send({ contextType: 'marker', contextId: markerRes.body.id, body: 'Commentaire sur repère carte.' })
     .expect(201);
   assert.strictEqual(markerCreated.body.context_type, 'marker');
+
+  const stamp = Date.now();
+  const plantIns = await execute(
+    'INSERT INTO plants (name, emoji, description) VALUES (?, ?, ?)',
+    [`Ctx plant ${stamp}`, '🌿', 'Test commentaires']
+  );
+  const plantId = String(plantIns.insertId);
+  const plantCreated = await request(app)
+    .post('/api/context-comments')
+    .set(auth(student.authToken))
+    .send({ contextType: 'plant', contextId: plantId, body: 'Commentaire sur fiche biodiversité.' })
+    .expect(201);
+  assert.strictEqual(plantCreated.body.context_type, 'plant');
+
+  const slug = `ctx-tuto-${stamp}`;
+  const tutoIns = await execute(
+    'INSERT INTO tutorials (title, slug, type, summary, sort_order, is_active) VALUES (?, ?, ?, ?, 0, 1)',
+    [`Tuto ctx ${stamp}`, slug, 'html', 'Résumé test']
+  );
+  const tutorialId = String(tutoIns.insertId);
+  const tutorialCreated = await request(app)
+    .post('/api/context-comments')
+    .set(auth(student.authToken))
+    .send({ contextType: 'tutorial', contextId: tutorialId, body: 'Commentaire sur tutoriel.' })
+    .expect(201);
+  assert.strictEqual(tutorialCreated.body.context_type, 'tutorial');
 
   await request(app)
     .post('/api/context-comments')
