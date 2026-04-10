@@ -18,6 +18,36 @@ const VisitMapMascotLottie = lazy(() => import('./VisitMapMascotLottie.jsx'));
 
 const VISIT_MAP_MASCOT_MOVE_MS = 560;
 
+/** Décalage vertical (%, vers le bas) sous le repère « entrée N3 » au début de la visite. */
+const VISIT_MASCOT_BELOW_N3_ENTRANCE_YP = 5.5;
+
+/**
+ * Repère visite « entrée N3 » (libellés possibles côté contenu).
+ * Ex. « Entrée N3 », « 📍 Entrée N3 », « n3 entrée », « Portail N3 ».
+ */
+const VISIT_N3_ENTRANCE_LABEL_RE =
+  /entr[ée]e.*n3|n3.*entr[ée]e|entr[ée]e\s*\(?\s*n3|portail.*n3|acc[èe]s.*n3/i;
+
+function findVisitN3EntranceMarker(markers) {
+  if (!Array.isArray(markers)) return null;
+  return markers.find((mk) => VISIT_N3_ENTRANCE_LABEL_RE.test(String(mk.label || '').trim())) || null;
+}
+
+function computeVisitMascotStartPct(mapId, markers) {
+  if (mapId === 'n3') {
+    const m = findVisitN3EntranceMarker(markers);
+    if (m && Number.isFinite(Number(m.x_pct)) && Number.isFinite(Number(m.y_pct))) {
+      const xp = Math.max(0, Math.min(100, Number(m.x_pct)));
+      const yp = Math.max(
+        0,
+        Math.min(100, Number(m.y_pct) + VISIT_MASCOT_BELOW_N3_ENTRANCE_YP)
+      );
+      return { xp, yp };
+    }
+  }
+  return { xp: 50, yp: 50 };
+}
+
 function itemSeenKey(type, id) {
   return `${type}:${id}`;
 }
@@ -534,6 +564,7 @@ function VisitView({
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
   const visitMapMascotPctRef = useRef({ xp: 50, yp: 50 });
   const visitMapMascotMoveTimeoutRef = useRef(null);
+  const visitMascotStartPlacedForMapRef = useRef(null);
   const { isHelpEnabled, hasSeenSection, markSectionSeen, trackPanelOpen, trackPanelDismiss } = useHelp({ publicSettings, isTeacher });
   const isGuestPublicVisit = !student && typeof onBackToAuth === 'function';
   const clearGuestSelection = useCallback(() => {
@@ -675,8 +706,12 @@ function VisitView({
       if (visibleMaps.length > 0 && !visibleMaps.some((m) => m.id === mapId)) {
         setMapId(visibleMaps[0].id);
       }
-      setContent(visitRes || { zones: [], markers: [], tutorials: [] });
-      setTutorialSelection((visitRes?.tutorials || []).map((t) => t.id));
+      const visitPayload =
+        visitRes && typeof visitRes === 'object'
+          ? { ...visitRes, map_id: visitRes.map_id ?? mapId }
+          : { zones: [], markers: [], tutorials: [], map_id: mapId };
+      setContent(visitPayload);
+      setTutorialSelection((visitPayload.tutorials || []).map((t) => t.id));
       const nextSeen = new Set((progressRes?.seen || []).map((r) => itemSeenKey(r.target_type, r.target_id)));
       setSeen(nextSeen);
     } catch (err) {
@@ -716,10 +751,27 @@ function VisitView({
       clearTimeout(visitMapMascotMoveTimeoutRef.current);
       visitMapMascotMoveTimeoutRef.current = null;
     }
-    visitMapMascotPctRef.current = { xp: 50, yp: 50 };
-    setVisitMapMascotPct({ xp: 50, yp: 50 });
     setVisitMapMascotWalking(false);
   }, [mapId, resetMapTransform]);
+
+  useLayoutEffect(() => {
+    visitMascotStartPlacedForMapRef.current = null;
+  }, [mapId]);
+
+  useLayoutEffect(() => {
+    if (loading) return;
+    if (content.map_id != null && String(content.map_id) !== String(mapId)) return;
+    if (visitMascotStartPlacedForMapRef.current === mapId) return;
+    visitMascotStartPlacedForMapRef.current = mapId;
+    if (visitMapMascotMoveTimeoutRef.current) {
+      clearTimeout(visitMapMascotMoveTimeoutRef.current);
+      visitMapMascotMoveTimeoutRef.current = null;
+    }
+    setVisitMapMascotWalking(false);
+    const start = computeVisitMascotStartPct(mapId, content.markers || []);
+    visitMapMascotPctRef.current = start;
+    setVisitMapMascotPct(start);
+  }, [mapId, loading, content.map_id, content.markers]);
 
   useEffect(() => {
     visitMapMascotPctRef.current = visitMapMascotPct;

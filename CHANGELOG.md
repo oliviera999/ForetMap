@@ -6,6 +6,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 ## [Non publié]
 
 ### Modifié
+- **Visite — mascotte (plan N3)** : position **initiale** sous le repère **entrée N3** (même abscisse, ordonnée légèrement plus basse) lorsque le libellé du repère correspond ; les autres cartes restent centrées (50 % / 50 %). Garde **`content.map_id`** pour ne pas appliquer la position avec des données d’une autre carte ; **`map_id`** est fusionné dans le payload visite au chargement.
 - **Visite — mascotte** : personnage **rétro-moderne** (gros yeux blancs + pupilles + reflet type jeu vidéo, bouche simple, casquette pixel-sage, corps arrondi) ; **pas alternés** sur un segment Lottie dédié (frames 1–30) ; **idle** sur la frame 0 (jambes neutres) ; orientation vers la cible inchangée côté carte (`scaleX`). Fichier généré par **`scripts/build-visit-mascot-lottie.mjs`** (`npm run lottie:visit-mascot`). Lecteur : **`playSegments`** en marche, **`goToAndStop(0)`** à l’arrêt.
 - **Visite — mascotte Lottie** : chargement **paresseux** (`React.lazy` + `Suspense`) du composant et de **`lottie-web`** ; chunk dédié chargé seulement lorsque la mascotte est affichée (carte avec contenu, mode navigation), allégeant le bundle principal.
 
