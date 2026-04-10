@@ -2596,8 +2596,8 @@
       transform-origin:50% 100%;
     }
     .visit-map-mascot-lottie {
-      width:clamp(52px, 11vw, 68px);
-      height:clamp(58px, 12vw, 75px);
+      width:clamp(54px, 11.5vw, 72px);
+      height:clamp(62px, 13vw, 84px);
       pointer-events:none;
       user-select:none;
       filter:drop-shadow(0 2px 6px rgba(26,71,49,.35));
