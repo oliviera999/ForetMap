@@ -10,6 +10,7 @@ import { HELP_PANELS, HELP_TOOLTIPS, resolveRoleText } from '../constants/help';
 import { getContentText } from '../utils/content';
 import { resolveMapOverlayTypography } from '../utils/mapOverlayTypography';
 import { TutorialReadAcknowledgeButton, fetchTutorialReadIds } from './TutorialReadAcknowledge';
+import { ContextComments } from './context-comments';
 import { useOverlayHistoryBack } from '../hooks/useOverlayHistoryBack';
 import { computeMapImageContainRect } from '../utils/mapImageFit';
 import { parseVisitZonePoints as parsePctPoints, visitZoneCentroidPct } from '../utils/visitMapGeometry.js';
@@ -514,7 +515,9 @@ function VisitView({
   onBackToAuth,
   isN3Affiliated = false,
   publicSettings = null,
+  canParticipateContextComments = true,
 }) {
+  const contextCommentsEnabled = publicSettings?.modules?.context_comments_enabled !== false;
   const configuredLocationEmojis = String(
     publicSettings?.ui?.map?.location_emojis
     || publicSettings?.map?.location_emojis
@@ -1659,6 +1662,15 @@ function VisitView({
                     onForceLogout={onForceLogout}
                   />
                 </div>
+                {contextCommentsEnabled && student?.id && (
+                  <ContextComments
+                    contextType="tutorial"
+                    contextId={String(t.id)}
+                    title="Commentaires sur ce tutoriel"
+                    placeholder="Question ou retour sur ce tutoriel…"
+                    canParticipateContextComments={canParticipateContextComments}
+                  />
+                )}
               </article>
             ))}
           </div>

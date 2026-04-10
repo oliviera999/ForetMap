@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { api, AccountDeletedError } from '../services/api';
 import { useOverlayHistoryBack } from '../hooks/useOverlayHistoryBack';
 import { TutorialReadAcknowledgeButton, fetchTutorialReadIds } from './TutorialReadAcknowledge';
+import { ContextComments } from './context-comments';
 import { orderedLivingBeingsForForm, formatLivingBeingsListLine } from '../utils/livingBeings';
 
 function tutorialZonePickLabel(z) {
@@ -137,7 +138,19 @@ function initialForm() {
   };
 }
 
-function TutorialsView({ tutorials, isTeacher, onRefresh, onForceLogout, zones = [], markers = [], maps = [], activeMapId = 'foret' }) {
+function TutorialsView({
+  tutorials,
+  isTeacher,
+  onRefresh,
+  onForceLogout,
+  zones = [],
+  markers = [],
+  maps = [],
+  activeMapId = 'foret',
+  publicSettings = null,
+  canParticipateContextComments = true,
+}) {
+  const contextCommentsEnabled = publicSettings?.modules?.context_comments_enabled !== false;
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -721,6 +734,15 @@ function TutorialsView({ tutorials, isTeacher, onRefresh, onForceLogout, zones =
                   </>
                 )}
               </div>
+              {contextCommentsEnabled && (
+                <ContextComments
+                  contextType="tutorial"
+                  contextId={String(t.id)}
+                  title="Commentaires sur ce tutoriel"
+                  placeholder="Question ou retour sur ce tutoriel…"
+                  canParticipateContextComments={canParticipateContextComments}
+                />
+              )}
             </article>
           ))}
         </div>
