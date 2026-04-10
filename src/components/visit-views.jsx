@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import React, { lazy, Suspense, useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { api, AccountDeletedError, withAppBase } from '../services/api';
 import { compressImage } from '../utils/image';
 import { MARKER_EMOJIS, parseEmojiListSetting, stripLeadingMarkerEmoji } from '../constants/emojis';
@@ -13,7 +13,8 @@ import { TutorialReadAcknowledgeButton, fetchTutorialReadIds } from './TutorialR
 import { useOverlayHistoryBack } from '../hooks/useOverlayHistoryBack';
 import { computeMapImageContainRect } from '../utils/mapImageFit';
 import { parseVisitZonePoints as parsePctPoints, visitZoneCentroidPct } from '../utils/visitMapGeometry.js';
-import { VisitMapMascotLottie } from './VisitMapMascotLottie.jsx';
+
+const VisitMapMascotLottie = lazy(() => import('./VisitMapMascotLottie.jsx'));
 
 const VISIT_MAP_MASCOT_MOVE_MS = 560;
 
@@ -1297,10 +1298,16 @@ function VisitView({
                       className="visit-map-mascot-inner"
                       style={{ transform: `translate(-50%, -100%) scaleX(${visitMapMascotFaceRight ? 1 : -1})` }}
                     >
-                      <VisitMapMascotLottie
-                        walking={visitMapMascotWalking}
-                        prefersReducedMotion={prefersReducedMotion}
-                      />
+                      <Suspense
+                        fallback={
+                          <div className="visit-map-mascot-lottie visit-map-mascot-lottie--fallback" aria-hidden="true" />
+                        }
+                      >
+                        <VisitMapMascotLottie
+                          walking={visitMapMascotWalking}
+                          prefersReducedMotion={prefersReducedMotion}
+                        />
+                      </Suspense>
                     </div>
                   </div>
                 ) : null}

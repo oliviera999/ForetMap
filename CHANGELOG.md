@@ -5,8 +5,11 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Modifié
+- **Visite — mascotte Lottie** : chargement **paresseux** (`React.lazy` + `Suspense`) du composant et de **`lottie-web`** ; chunk dédié chargé seulement lorsque la mascotte est affichée (carte avec contenu, mode navigation), allégeant le bundle principal.
+
 ### Ajouté
-- **Visite — mascotte sur le plan** : petit guide (🌱) en mode navigation ; au clic sur une **zone** ou un **repère**, déplacement animé vers le point cible (centroïde zone) ; respect de `prefers-reduced-motion` ; masqué si la carte n’a aucune zone ni repère ni en modes dessin prof. Utilitaire partagé **`src/utils/visitMapGeometry.js`** ; tests **`tests/visit-map-geometry.test.js`** ; e2e **`e2e/visit-mode.spec.js`** (mascotte si contenu cartographique présent).
+- **Visite — mascotte sur le plan** : personnage **Lottie** (JSON **`src/assets/lottie/visit-mascot.json`**, couleurs alignées sur le thème forêt / crème / sage / sol) rendu avec **`lottie-web`** et **`VisitMapMascotLottie.jsx`** ; vitesse d’animation plus élevée pendant le déplacement ; au clic sur une **zone** ou un **repère**, translation vers le centroïde ou le repère ; `prefers-reduced-motion` fige la première image ; masquée si la carte est vide ou en modes dessin prof. Utilitaire **`src/utils/visitMapGeometry.js`** ; tests **`tests/visit-map-geometry.test.js`** ; e2e **`e2e/visit-mode.spec.js`**.
 
 ### Corrigé
 - **Visite — carte** : pas de dessin de zone ni de placement de repère tant que les dimensions naturelles du plan ne sont pas connues (évite des % erronés si clic avant `onLoad`) ; prise en charge des **images en cache** via `useLayoutEffect` ; changement de **carte** (`map_id`) réinitialise mode navigation et points en cours. Utilitaire **`computeMapImageContainRect`** ([`src/utils/mapImageFit.js`](src/utils/mapImageFit.js)). Doc interne [`docs/VISIT_MAP_GEOMETRY.md`](docs/VISIT_MAP_GEOMETRY.md). Tests e2e : scène `.visit-map-stage`, `img.visit-map-img`, contrôles zoom (`exact: true` pour éviter la collision « Zoomer » / « Dézoomer »).

@@ -6,7 +6,7 @@ import visitMascotAnim from '../assets/lottie/visit-mascot.json';
  * Mascotte visite (Lottie) — couleurs alignées sur le thème forêt / crème / sage.
  * Vitesse d’animation selon marche / idle ; figée sur la première image si reduced motion.
  */
-export function VisitMapMascotLottie({ walking, prefersReducedMotion }) {
+function VisitMapMascotLottie({ walking, prefersReducedMotion }) {
   const containerRef = useRef(null);
   const animRef = useRef(null);
 
@@ -45,3 +45,6 @@ export function VisitMapMascotLottie({ walking, prefersReducedMotion }) {
 
   return <div className="visit-map-mascot-lottie" ref={containerRef} aria-hidden="true" />;
 }
+
+export default VisitMapMascotLottie;
+export { VisitMapMascotLottie };
