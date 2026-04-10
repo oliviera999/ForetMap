@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { api, AccountDeletedError, withAppBase } from '../services/api';
 import { compressImage } from '../utils/image';
-import { MARKER_EMOJIS, parseEmojiListSetting, detectLeadingMarkerEmoji, stripLeadingMarkerEmoji } from '../constants/emojis';
+import { MARKER_EMOJIS, parseEmojiListSetting, stripLeadingMarkerEmoji } from '../constants/emojis';
 import { getRoleTerms } from '../utils/n3-terminology';
 import { useHelp } from '../hooks/useHelp';
 import { HelpPanel } from './HelpPanel';
@@ -229,9 +229,11 @@ function VisitEditorPanel({ selected, selectedType, onSaved, onForceLogout, isTe
   const tooltipText = (entry) => resolveRoleText(entry, true);
 
   useEffect(() => {
-    const nextTitle = selectedType === 'zone' ? (selected?.name || '') : (selected?.label || '');
-    const trimmedTitle = String(nextTitle || '').trim();
-    const detectedZoneEmoji = detectLeadingMarkerEmoji(trimmedTitle, markerEmojis);
+    const rawTitle = selectedType === 'zone' ? (selected?.name || '') : (selected?.label || '');
+    const nextTitle =
+      selectedType === 'zone'
+        ? stripLeadingMarkerEmoji(String(rawTitle || '').trim(), markerEmojis) || String(rawTitle || '').trim()
+        : String(rawTitle || '');
     setForm({
       title: nextTitle,
       subtitle: selected?.visit_subtitle || '',
@@ -240,7 +242,7 @@ function VisitEditorPanel({ selected, selectedType, onSaved, onForceLogout, isTe
       details_text: selected?.visit_details_text || '',
       sort_order: Number(selected?.visit_sort_order || 0),
       is_active: Number(selected?.visit_is_active ?? 1) === 1,
-      emoji: selectedType === 'zone' ? (detectedZoneEmoji || markerEmojis[0] || '📍') : (selected?.emoji || markerEmojis[0] || '📍'),
+      emoji: selectedType === 'zone' ? (markerEmojis[0] || '📍') : (selected?.emoji || markerEmojis[0] || '📍'),
     });
     setMediaUrl('');
     setMediaCaption('');
@@ -377,30 +379,23 @@ function VisitEditorPanel({ selected, selectedType, onSaved, onForceLogout, isTe
           </label>
         </div>
       </div>
-      <div className="field">
-        <label>{selectedType === 'zone' ? 'Liste d’emojis (insérer dans le titre de zone)' : 'Emoji du repère'}</label>
-        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-          {markerEmojis.map((emoji) => (
-            <button
-              key={emoji}
-              className={`emoji-btn ${form.emoji === emoji ? 'sel' : ''}`}
-              onClick={() => {
-                if (selectedType === 'zone') {
-                  setForm((f) => ({
-                    ...f,
-                    emoji,
-                    title: `${emoji} ${stripLeadingMarkerEmoji(f.title, markerEmojis)}`.trim(),
-                  }));
-                  return;
-                }
-                setForm((f) => ({ ...f, emoji }));
-              }}
-            >
-              {emoji}
-            </button>
-          ))}
+      {selectedType !== 'zone' ? (
+        <div className="field">
+          <label>Emoji du repère</label>
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+            {markerEmojis.map((emoji) => (
+              <button
+                key={emoji}
+                type="button"
+                className={`emoji-btn ${form.emoji === emoji ? 'sel' : ''}`}
+                onClick={() => setForm((f) => ({ ...f, emoji }))}
+              >
+                {emoji}
+              </button>
+            ))}
+          </div>
         </div>
-      </div>
+      ) : null}
       <button className="btn btn-primary btn-sm" disabled={saving} onClick={save}>
         {saving ? 'Enregistrement...' : '💾 Sauver'}
       </button>
@@ -598,7 +593,7 @@ function VisitView({
   const visitMapImageReady = visitImgNatural.w > 0 && visitImgNatural.h > 0;
   const canPanAndZoom = mode === 'view';
 
-  /** Tailles emoji / libellé zone en unités SVG (viewBox 0–100), alignées sur `resolveMapOverlayTypography` + largeur calque carte. */
+  /** Taille libellé zone en unités SVG (viewBox 0–100), alignée sur `resolveMapOverlayTypography` + largeur calque carte. */
   const visitZoneSvgTypography = useMemo(() => {
     const mapSettings =
       publicSettings?.map && typeof publicSettings.map === 'object' ? publicSettings.map : null;
@@ -607,9 +602,7 @@ function VisitView({
     const inv = 1 / Math.max(mapTransform.s, 0.12);
     const t = resolveMapOverlayTypography(mapSettings, inv);
     return {
-      emojiU: t.mapEmojiFontPx * uPerPx,
       labelU: t.mapLabelFontPx * uPerPx,
-      gapU: t.mapEmojiLabelCenterGap * uPerPx,
       strokeU: Math.max(0.06, 3 * inv * uPerPx),
     };
   }, [publicSettings, visitMapFit.width, mapTransform.s]);
@@ -1228,13 +1221,11 @@ function VisitView({
                     const isSeen = seen.has(itemSeenKey('zone', z.id));
                     const mx = points.reduce((s, pt) => s + pt.xp, 0) / points.length;
                     const my = points.reduce((s, pt) => s + pt.yp, 0) / points.length;
-                    const zoneEmoji = detectLeadingMarkerEmoji(z.name || '', markerEmojis);
                     const zoneName = stripLeadingMarkerEmoji(z.name || '', markerEmojis);
-                    const { emojiU, labelU, gapU, strokeU } = visitZoneSvgTypography;
+                    const { labelU, strokeU } = visitZoneSvgTypography;
                     const fw = visitMapFit.width;
                     const fh = visitMapFit.height;
-                    const titleY = my + (zoneEmoji ? gapU : 0);
-                    const emojiUniform = visitZoneSvgTextUniformYTransform(mx, my, fw, fh);
+                    const titleY = my;
                     const titleUniform = visitZoneSvgTextUniformYTransform(mx, titleY, fw, fh);
                     return (
                       <g
@@ -1256,21 +1247,6 @@ function VisitView({
                           points={p}
                           className={`visit-zone-poly ${isSeen ? 'is-seen' : 'is-unseen'}`}
                         />
-                        {zoneEmoji ? (
-                          <g transform={emojiUniform}>
-                            <text
-                              x={mx}
-                              y={my}
-                              textAnchor="middle"
-                              dominantBaseline="middle"
-                              fontSize={emojiU}
-                              fontFamily="Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif"
-                              className="visit-zone-label visit-zone-label--emoji"
-                            >
-                              {zoneEmoji}
-                            </text>
-                          </g>
-                        ) : null}
                         {(zoneName || z.name) ? (
                           <g transform={titleUniform}>
                             <text
