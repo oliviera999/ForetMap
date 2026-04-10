@@ -2595,22 +2595,17 @@
       top:0;
       transform-origin:50% 100%;
     }
-    .visit-map-mascot-sprite {
-      display:inline-block;
-      font-size:clamp(1.45rem, 3.8vw, 1.95rem);
-      line-height:1;
-      filter:drop-shadow(0 2px 5px rgba(0,0,0,.28));
+    .visit-map-mascot-lottie {
+      width:clamp(52px, 11vw, 68px);
+      height:clamp(58px, 12vw, 75px);
+      pointer-events:none;
       user-select:none;
+      filter:drop-shadow(0 2px 6px rgba(26,71,49,.35));
     }
-    .visit-map-mascot-sprite--bob {
-      animation:visitMapMascotBob .36s ease-in-out infinite alternate;
-    }
-    .visit-map-mascot--reduced-motion .visit-map-mascot-sprite--bob {
-      animation:none;
-    }
-    @keyframes visitMapMascotBob {
-      from { transform:translateY(0); }
-      to { transform:translateY(-5px); }
+    .visit-map-mascot-lottie svg {
+      display:block;
+      width:100% !important;
+      height:100% !important;
     }
     .visit-map-controls {
       position:absolute;
