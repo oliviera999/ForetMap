@@ -311,16 +311,18 @@ Les données persistent dans le volume Docker jusqu’à `docker compose down -v
 
 ## 9. Préparer un bundle de déploiement complet (sans npm serveur)
 
-Pour produire en local un package prêt à être extrait en production (avec `dist/` et `node_modules` prod):
+Pour produire en local un package prêt à être extrait en production (avec `dist/` et `node_modules` prod). Le script npm appelle **`node scripts/prepare-runtime-deploy.js`** (Linux / macOS / Windows, sans dépendre de `powershell` dans le shell).
 
 ```bash
 npm run deploy:prepare:runtime
 ```
 
-Version rapide (si `dist/` et `node_modules` sont déjà à jour):
+Version rapide (si `dist/` et `node_modules` sont déjà à jour) :
 
 ```bash
 npm run deploy:prepare:runtime:fast
 ```
 
-Le ZIP est créé dans `deploy/` sous la forme `foretmap-runtime-YYYYMMDD-HHMMSS.zip`.
+Sur Windows uniquement, variante historique **robocopy** : `npm run deploy:prepare:runtime:ps` (ou `:fast:ps`).
+
+Le ZIP est créé dans `deploy/` sous la forme `foretmap-runtime-YYYYMMDD-HHMMSS.zip` (outil **`zip`**, sinon **`tar -a`**, sinon **PowerShell** sous Windows). Si aucun n’est disponible, le dossier staging reste utilisable pour zipper à la main.

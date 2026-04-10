@@ -6,6 +6,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 ## [Non publié]
 
 ### Corrigé
+- **Déploiement runtime** : `npm run deploy:prepare:runtime` (et `:fast`) s’appuient sur **`node scripts/prepare-runtime-deploy.js`** au lieu d’invoquer **PowerShell** depuis `sh` (évite l’erreur `powershell: commande introuvable` sous Linux / CI). Archivage : **`zip`**, sinon **`tar -a`**, sinon **Compress-Archive** sous Windows. Scripts optionnels **`deploy:prepare:runtime:ps`** / **`:fast:ps`** pour l’ancien `prepare-runtime-deploy.ps1` (robocopy). Documentation **`docs/LOCAL_DEV.md`**, **`docs/EXPLOITATION.md`**.
 - **Visite — mascotte** : affichage dès qu’il existe au moins une **zone** ou un **repère** dans le contenu chargé, pas uniquement lorsque le décompte « parcourable » (polygones valides à ≥ 3 points) est &gt; 0 — évite une mascotte absente si des zones sont mal géométrisées. Chargement visite : ignore les réponses **obsolètes** après changement de carte ; payload visite rejeté s’il s’agit d’un **tableau** (spread JSON invalide).
 
 ### Modifié

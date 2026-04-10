@@ -1,3 +1,7 @@
+# Variante Windows (robocopy). Par défaut, les scripts npm utilisent
+# `scripts/prepare-runtime-deploy.js` (Linux / macOS / Windows sans PowerShell obligatoire).
+# Équivalent npm : `npm run deploy:prepare:runtime:ps` ou `:fast:ps`.
+
 param(
   [switch]$SkipInstall,
   [switch]$SkipBuild,
