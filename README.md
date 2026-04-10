@@ -205,18 +205,20 @@ Le script vide les tables MySQL puis recopie toutes les données (zones, biodive
 
 Cette variante évite les pannes observées côté hébergeur (`vite` absent, lock panel pendant `npm install`).
 
-1. En local (Windows):
+1. En local (Linux / macOS / Windows — script **Node**, voir [docs/LOCAL_DEV.md](docs/LOCAL_DEV.md)) :
    ```bash
    npm run deploy:prepare:runtime
    ```
-   Cette commande:
+   Cette commande :
    - installe les dépendances (dev),
    - build le frontend,
    - prune en dépendances production,
-   - génère un bundle complet `deploy/foretmap-runtime-*.zip` (code + `dist/` + `node_modules` prod).
+   - remplit le dossier de staging `deploy/runtime/foretmap-runtime-*` (code + `dist/` + `node_modules` prod),
+   - tente en plus de produire `deploy/foretmap-runtime-*.zip` (**optionnel** ; pratique pour un seul fichier à uploader).
 
-2. Sur le serveur:
-   - extraire le ZIP dans le dossier de l'app (celui avec `server.js`),
+2. Sur le serveur :
+   - **soit** synchroniser le contenu du dossier `deploy/runtime/foretmap-runtime-*` vers le dossier de l'app (celui avec `server.js`) — `rsync`, SFTP récursif, etc. ;
+   - **soit** extraire le ZIP dans ce dossier si tu l'as généré ;
    - **sans** lancer `npm install`,
    - redémarrer l'application Node.js.
 
@@ -225,12 +227,12 @@ Cette variante évite les pannes observées côté hébergeur (`vite` absent, lo
    npm run deploy:check:prod
    ```
 
-> Le bundle runtime est spécifique à l'OS cible. Préparer le ZIP sur un environnement compatible avec le serveur d'hébergement.
+> Le bundle runtime est spécifique à l'OS cible. Le préparer sur un environnement compatible avec le serveur d'hébergement (dossier ou ZIP).
 
 ### Workflow conseillé (résumé)
 
 - **Si auto-deploy cron est actif sur le serveur**: build local + `dist/` à jour, commit/push, attendre le run cron, puis vérifier avec `npm run deploy:check:prod`.
-- **Si l'hébergement est instable avec npm côté serveur**: utiliser `npm run deploy:prepare:runtime`, extraire le ZIP sur le serveur, redémarrer, puis `npm run deploy:check:prod`.
+- **Si l'hébergement est instable avec npm côté serveur** : utiliser `npm run deploy:prepare:runtime`, uploader le dossier `deploy/runtime/foretmap-runtime-*` **ou** extraire le ZIP sur le serveur, redémarrer, puis `npm run deploy:check:prod`.
 - En cas de `429` ponctuel au check post-déploiement, relancer la vérification après quelques secondes puis confirmer `GET /api/version`.
 
 ### Incident temps réel Socket.IO (WebSocket)

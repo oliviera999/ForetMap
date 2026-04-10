@@ -142,11 +142,11 @@ try {
 
   Write-Host ""
   Write-Host "Bundle runtime prêt."
-  Write-Host "- Dossier: $stageDir"
-  Write-Host "- ZIP: $zipPath"
+  Write-Host "- Dossier (source de vérité, uploadable tel quel): $stageDir"
+  Write-Host "- ZIP (optionnel): $zipPath"
   Write-Host ""
   Write-Host "Déploiement serveur:"
-  Write-Host "1) Upload/extraction du ZIP dans le dossier de l'app."
+  Write-Host "1) Uploader le dossier ci-dessus (rsync / SFTP) ou extraire le ZIP."
   Write-Host "2) Redémarrer l'application Node.js."
   Write-Host "3) Vérifier avec: npm run deploy:check:prod"
 }
