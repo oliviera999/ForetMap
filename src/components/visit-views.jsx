@@ -12,21 +12,9 @@ import { resolveMapOverlayTypography } from '../utils/mapOverlayTypography';
 import { TutorialReadAcknowledgeButton, fetchTutorialReadIds } from './TutorialReadAcknowledge';
 import { useOverlayHistoryBack } from '../hooks/useOverlayHistoryBack';
 import { computeMapImageContainRect } from '../utils/mapImageFit';
+import { parseVisitZonePoints as parsePctPoints, visitZoneCentroidPct } from '../utils/visitMapGeometry.js';
 
-function parsePctPoints(raw) {
-  try {
-    const points = JSON.parse(raw || '[]');
-    if (!Array.isArray(points)) return [];
-    return points
-      .map((p) => ({
-        xp: Number(p?.xp),
-        yp: Number(p?.yp),
-      }))
-      .filter((p) => Number.isFinite(p.xp) && Number.isFinite(p.yp));
-  } catch (_) {
-    return [];
-  }
-}
+const VISIT_MAP_MASCOT_MOVE_MS = 560;
 
 function itemSeenKey(type, id) {
   return `${type}:${id}`;
@@ -543,6 +531,12 @@ function VisitView({
     midY: 0,
   });
   const [mapTransform, setMapTransform] = useState({ x: 0, y: 0, s: 1 });
+  const [visitMapMascotPct, setVisitMapMascotPct] = useState({ xp: 50, yp: 50 });
+  const [visitMapMascotFaceRight, setVisitMapMascotFaceRight] = useState(true);
+  const [visitMapMascotWalking, setVisitMapMascotWalking] = useState(false);
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
+  const visitMapMascotPctRef = useRef({ xp: 50, yp: 50 });
+  const visitMapMascotMoveTimeoutRef = useRef(null);
   const { isHelpEnabled, hasSeenSection, markSectionSeen, trackPanelOpen, trackPanelDismiss } = useHelp({ publicSettings, isTeacher });
   const isGuestPublicVisit = !student && typeof onBackToAuth === 'function';
   const clearGuestSelection = useCallback(() => {
@@ -723,7 +717,64 @@ function VisitView({
     dragRef.current.moved = false;
     setDrawPoints([]);
     setMode('view');
+    if (visitMapMascotMoveTimeoutRef.current) {
+      clearTimeout(visitMapMascotMoveTimeoutRef.current);
+      visitMapMascotMoveTimeoutRef.current = null;
+    }
+    visitMapMascotPctRef.current = { xp: 50, yp: 50 };
+    setVisitMapMascotPct({ xp: 50, yp: 50 });
+    setVisitMapMascotWalking(false);
   }, [mapId, resetMapTransform]);
+
+  useEffect(() => {
+    visitMapMascotPctRef.current = visitMapMascotPct;
+  }, [visitMapMascotPct]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+    const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const apply = () => setPrefersReducedMotion(!!mq.matches);
+    apply();
+    mq.addEventListener('change', apply);
+    return () => mq.removeEventListener('change', apply);
+  }, []);
+
+  useEffect(() => () => {
+    if (visitMapMascotMoveTimeoutRef.current) clearTimeout(visitMapMascotMoveTimeoutRef.current);
+  }, []);
+
+  const moveVisitMapMascotTo = useCallback(
+    (xp, yp) => {
+      if (!Number.isFinite(xp) || !Number.isFinite(yp)) return;
+      const nx = Math.max(0, Math.min(100, xp));
+      const ny = Math.max(0, Math.min(100, yp));
+      const prev = visitMapMascotPctRef.current;
+      const dist = Math.hypot(nx - prev.xp, ny - prev.yp);
+      if (dist < 0.08) return;
+
+      const dx = nx - prev.xp;
+      if (Math.abs(dx) > 0.12) setVisitMapMascotFaceRight(dx > 0);
+
+      if (visitMapMascotMoveTimeoutRef.current) {
+        clearTimeout(visitMapMascotMoveTimeoutRef.current);
+        visitMapMascotMoveTimeoutRef.current = null;
+      }
+
+      if (prefersReducedMotion) {
+        setVisitMapMascotWalking(false);
+      } else {
+        setVisitMapMascotWalking(true);
+        visitMapMascotMoveTimeoutRef.current = window.setTimeout(() => {
+          setVisitMapMascotWalking(false);
+          visitMapMascotMoveTimeoutRef.current = null;
+        }, VISIT_MAP_MASCOT_MOVE_MS);
+      }
+
+      visitMapMascotPctRef.current = { xp: nx, yp: ny };
+      setVisitMapMascotPct({ xp: nx, yp: ny });
+    },
+    [prefersReducedMotion]
+  );
 
   /** Dimensions naturelles : synchro cache (complete) + reset si pas encore décodé (évite % faux avant onLoad). */
   useLayoutEffect(() => {
@@ -1193,6 +1244,10 @@ function VisitView({
                         onClick={(event) => {
                           event.stopPropagation();
                           if (consumeSkipClick()) return;
+                          if (mode === 'view') {
+                            const c = visitZoneCentroidPct(z);
+                            if (c) moveVisitMapMascotTo(c.xp, c.yp);
+                          }
                           setSelected(z);
                           setSelectedType('zone');
                         }}
@@ -1255,6 +1310,25 @@ function VisitView({
                   )}
                 </svg>
 
+                {mode === 'view' && visitCartographyProgress.total > 0 ? (
+                  <div
+                    className={`visit-map-mascot${visitMapMascotWalking ? ' visit-map-mascot--walking' : ''}${prefersReducedMotion ? ' visit-map-mascot--reduced-motion' : ''}`}
+                    style={{ left: `${visitMapMascotPct.xp}%`, top: `${visitMapMascotPct.yp}%` }}
+                    aria-hidden="true"
+                  >
+                    <span
+                      className="visit-map-mascot-inner"
+                      style={{ transform: `translate(-50%, -100%) scaleX(${visitMapMascotFaceRight ? 1 : -1})` }}
+                    >
+                      <span
+                        className={`visit-map-mascot-sprite${visitMapMascotWalking ? ' visit-map-mascot-sprite--bob' : ''}`}
+                      >
+                        🌱
+                      </span>
+                    </span>
+                  </div>
+                ) : null}
+
                 {(content.markers || []).map((m) => {
                   const isSeen = seen.has(itemSeenKey('marker', m.id));
                   return (
@@ -1266,6 +1340,9 @@ function VisitView({
                       onClick={(event) => {
                         event.stopPropagation();
                         if (consumeSkipClick()) return;
+                        if (mode === 'view') {
+                          moveVisitMapMascotTo(Number(m.x_pct), Number(m.y_pct));
+                        }
                         setSelected(m);
                         setSelectedType('marker');
                       }}

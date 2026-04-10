@@ -5,6 +5,9 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Ajouté
+- **Visite — mascotte sur le plan** : petit guide (🌱) en mode navigation ; au clic sur une **zone** ou un **repère**, déplacement animé vers le point cible (centroïde zone) ; respect de `prefers-reduced-motion` ; masqué si la carte n’a aucune zone ni repère ni en modes dessin prof. Utilitaire partagé **`src/utils/visitMapGeometry.js`** ; tests **`tests/visit-map-geometry.test.js`** ; e2e **`e2e/visit-mode.spec.js`** (mascotte si contenu cartographique présent).
+
 ### Corrigé
 - **Visite — carte** : pas de dessin de zone ni de placement de repère tant que les dimensions naturelles du plan ne sont pas connues (évite des % erronés si clic avant `onLoad`) ; prise en charge des **images en cache** via `useLayoutEffect` ; changement de **carte** (`map_id`) réinitialise mode navigation et points en cours. Utilitaire **`computeMapImageContainRect`** ([`src/utils/mapImageFit.js`](src/utils/mapImageFit.js)). Doc interne [`docs/VISIT_MAP_GEOMETRY.md`](docs/VISIT_MAP_GEOMETRY.md). Tests e2e : scène `.visit-map-stage`, `img.visit-map-img`, contrôles zoom (`exact: true` pour éviter la collision « Zoomer » / « Dézoomer »).
 
