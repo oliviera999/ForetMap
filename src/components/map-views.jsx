@@ -5,9 +5,7 @@ import { ZONE_COLORS } from '../constants/garden';
 import {
   MARKER_EMOJIS,
   MAP_MARKER_EMOJI_MAX_CHARS,
-  ZONE_NAME_PREFIX_EMOJI_MAX_CHARS,
   parseEmojiListSetting,
-  detectLeadingMarkerEmoji,
   stripLeadingMarkerEmoji,
   clampEmojiInput,
 } from '../constants/emojis';
@@ -535,7 +533,6 @@ function ZoneInfoModal({ zone, plants, tasks, tutorials = [], isTeacher, student
   useOverlayHistoryBack(true, onClose);
   const [tab, setTab] = useState('tasks');
   const [zoneName, setZoneName] = useState(stripLeadingMarkerEmoji(zone.name || '', emojiParsingList));
-  const [zoneEmoji, setZoneEmoji] = useState(detectLeadingMarkerEmoji(zone.name || '', emojiParsingList) || markerEmojis[0] || '📍');
   const [livingBeings, setLivingBeings] = useState(
     () => orderedLivingBeingsForForm(zone.living_beings_list || zone.living_beings, zone.current_plant),
   );
@@ -554,8 +551,9 @@ function ZoneInfoModal({ zone, plants, tasks, tutorials = [], isTeacher, student
   const [toast, setToast] = useState(null);
 
   const displayStage = zone.special ? 'special' : zone.stage;
-  const zoneLivingNames = orderedLivingBeingsForForm(zone.living_beings_list || zone.living_beings, zone.current_plant);
-  const plantObj = plants.find((p) => p.name === zoneLivingNames[0]);
+  const zoneTitleDisplay = zone.special
+    ? (zone.name || '')
+    : (stripLeadingMarkerEmoji(zone.name || '', emojiParsingList) || zone.name || '');
   const taskMapId = (t) => t.map_id_resolved || t.map_id || t.zone_map_id || t.marker_map_id || null;
   const linkedTasks = (tasks || []).filter((t) => (
     taskLocationIds(t).zoneIds.includes(zone.id) && !isTaskDetachedFromLocation(t)
@@ -593,7 +591,6 @@ function ZoneInfoModal({ zone, plants, tasks, tutorials = [], isTeacher, student
 
   useEffect(() => {
     setZoneName(stripLeadingMarkerEmoji(zone.name || '', emojiParsingList));
-    setZoneEmoji(detectLeadingMarkerEmoji(zone.name || '', emojiParsingList) || markerEmojis[0] || '📍');
     setLivingBeings(orderedLivingBeingsForForm(zone.living_beings_list || zone.living_beings, zone.current_plant));
     setStage(zone.stage || 'empty');
     setDesc(zone.description || '');
@@ -613,14 +610,10 @@ function ZoneInfoModal({ zone, plants, tasks, tutorials = [], isTeacher, student
       setToast('Nom requis');
       return;
     }
-    const prefixEmoji = clampEmojiInput(
-      (zoneEmoji || '').trim() || markerEmojis[0] || '📍',
-      ZONE_NAME_PREFIX_EMOJI_MAX_CHARS,
-    );
     setSaving(true);
     try {
       await onUpdate(zone.id, {
-        name: `${prefixEmoji} ${cleanName}`.trim(),
+        name: cleanName.trim(),
         current_plant: '',
         living_beings: livingBeings,
         stage,
@@ -652,21 +645,20 @@ function ZoneInfoModal({ zone, plants, tasks, tutorials = [], isTeacher, student
         style={{ paddingTop: 16 }}
         role="dialog"
         aria-modal="true"
-        aria-label={`Zone ${zone.name}`}
+        aria-label={`Zone ${zoneTitleDisplay}`}
         tabIndex={-1}
       >
         {toast && <Toast msg={toast} onDone={() => setToast(null)} />}
         <button className="modal-close" onClick={onClose}>✕</button>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
-          <span style={{ fontSize: '1.8rem' }}>
-            {zone.special
-              ? (String(zone.id || '').includes('ruche') ? '🐝' : String(zone.id || '').includes('mare') ? '💧' : String(zone.id || '').includes('butte') ? '🌸' : '🏛️')
-              : (plantObj?.emoji || (zoneLivingNames.length ? '🌱' : '🪨'))
-            }
-          </span>
+          {zone.special ? (
+            <span style={{ fontSize: '1.8rem' }} aria-hidden="true">
+              {String(zone.id || '').includes('ruche') ? '🐝' : String(zone.id || '').includes('mare') ? '💧' : String(zone.id || '').includes('butte') ? '🌸' : '🏛️'}
+            </span>
+          ) : null}
           <div style={{ flex: 1, minWidth: 0 }}>
-            <h3 style={{ margin: 0, fontSize: '1.1rem' }}>{zone.name}</h3>
+            <h3 style={{ margin: 0, fontSize: '1.1rem' }}>{zoneTitleDisplay}</h3>
             <div style={{ marginTop: 3 }}>{stageBadge(displayStage)}</div>
           </div>
           {isTeacher && !zone.special && (
@@ -841,34 +833,6 @@ function ZoneInfoModal({ zone, plants, tasks, tutorials = [], isTeacher, student
             </div>
             <div className="field"><label>Détails dépliables (visite)</label>
               <textarea value={visitDetailsText} onChange={(e) => setVisitDetailsText(e.target.value)} rows={4} placeholder="Contenu du panneau repliable" />
-            </div>
-            <div className="field"><label htmlFor="zone-edit-emoji-custom">Emoji de zone</label>
-              <ZoneOrMarkerEmojiField
-                id="zone-edit-emoji-custom"
-                value={zoneEmoji}
-                onChange={setZoneEmoji}
-                maxLen={ZONE_NAME_PREFIX_EMOJI_MAX_CHARS}
-              />
-              <div style={{
-                display: 'flex',
-                gap: 6,
-                flexWrap: 'wrap',
-                maxHeight: 180,
-                overflowY: 'auto',
-                paddingRight: 2,
-                WebkitOverflowScrolling: 'touch',
-                touchAction: 'pan-y',
-              }}>
-                {markerEmojis.map((emoji) => (
-                  <button
-                    type="button"
-                    key={emoji}
-                    className={`emoji-btn ${zoneEmoji === emoji ? 'sel' : ''}`}
-                    onClick={() => setZoneEmoji(emoji)}>
-                    {emoji}
-                  </button>
-                ))}
-              </div>
             </div>
             <button className="btn btn-primary btn-full" onClick={save} disabled={saving}>
               {saving ? '...' : '💾 Sauvegarder'}
@@ -1102,7 +1066,6 @@ function ZoneDrawModal({ points_pct, onClose, onSave, plants, markerEmojis = MAR
   useOverlayHistoryBack(true, onClose);
   const [form, setForm] = useState({
     name: '',
-    zone_emoji: markerEmojis[0] || '📍',
     living_beings: [],
     stage: 'empty',
     description: '',
@@ -1113,17 +1076,13 @@ function ZoneDrawModal({ points_pct, onClose, onSave, plants, markerEmojis = MAR
   const save = async () => {
     const cleanName = stripLeadingMarkerEmoji(form.name, emojiParsingList);
     if (!cleanName) return;
-    const prefixEmoji = clampEmojiInput(
-      (form.zone_emoji || '').trim() || markerEmojis[0] || '📍',
-      ZONE_NAME_PREFIX_EMOJI_MAX_CHARS,
-    );
     setSaving(true);
     try {
-      const { zone_emoji, living_beings, ...rest } = form;
+      const { living_beings, ...rest } = form;
       const living = living_beings || [];
       await onSave({
         ...rest,
-        name: `${prefixEmoji} ${cleanName}`.trim(),
+        name: cleanName.trim(),
         points: points_pct,
         current_plant: '',
         living_beings: living,
@@ -1189,34 +1148,6 @@ function ZoneDrawModal({ points_pct, onClose, onSave, plants, markerEmojis = MAR
                 style={{ width: 30, height: 30, borderRadius: 8, background: c, cursor: 'pointer',
                   border: form.color === c ? '3px solid #1a4731' : '2px solid #ddd',
                   transition: 'transform .1s', transform: form.color === c ? 'scale(1.15)' : 'none' }} />
-            ))}
-          </div>
-        </div>
-        <div className="field"><label htmlFor="zone-draw-emoji-custom">Emoji de zone</label>
-          <ZoneOrMarkerEmojiField
-            id="zone-draw-emoji-custom"
-            value={form.zone_emoji}
-            onChange={(v) => setForm((f) => ({ ...f, zone_emoji: v }))}
-            maxLen={ZONE_NAME_PREFIX_EMOJI_MAX_CHARS}
-          />
-          <div style={{
-            display: 'flex',
-            gap: 6,
-            flexWrap: 'wrap',
-            maxHeight: 180,
-            overflowY: 'auto',
-            paddingRight: 2,
-            WebkitOverflowScrolling: 'touch',
-            touchAction: 'pan-y',
-          }}>
-            {markerEmojis.map((emoji) => (
-              <button
-                type="button"
-                key={emoji}
-                className={`emoji-btn ${form.zone_emoji === emoji ? 'sel' : ''}`}
-                onClick={() => setForm((f) => ({ ...f, zone_emoji: emoji }))}>
-                {emoji}
-              </button>
             ))}
           </div>
         </div>
@@ -2118,14 +2049,9 @@ function useMapGestures({ mapImageSrc, activeMapId, mode, onRefresh, embedded = 
         availH = Math.max(1, Math.floor(maxOuterBoxH - padT - padB));
       }
 
-      let cw = availW;
-      let ch = (cw * ih) / iw;
-      if (ch > availH) {
-        ch = availH;
-        cw = (ch * iw) / ih;
-      }
-      cw = Math.max(1, cw);
-      ch = Math.max(1, ch);
+      /* Cadre = toute la zone disponible ; le « contain » de l’image reste assuré par s, x, y sur le monde (zoom mobile / plans larges ex. N3). */
+      const cw = Math.max(1, availW);
+      const ch = Math.max(1, availH);
 
       c.style.width = `${cw}px`;
       c.style.height = `${ch}px`;
@@ -2657,8 +2583,9 @@ function MapView({ zones, markers, tasks = [], tutorials = [], plants, maps = []
     const shifted = offsetDuplicateZonePoints(pts);
     if (!shifted) throw new Error('Contour invalide');
     const living = orderedLivingBeingsForForm(z.living_beings_list || z.living_beings, z.current_plant);
+    const baseZoneName = stripLeadingMarkerEmoji(z.name || '', emojiParsingList) || z.name || 'Zone';
     const created = await api('/api/zones', 'POST', {
-      name: `${z.name || 'Zone'} (copie)`,
+      name: `${baseZoneName} (copie)`,
       points: shifted,
       color: z.color || '#86efac80',
       current_plant: '',
@@ -2736,7 +2663,6 @@ function MapView({ zones, markers, tasks = [], tutorials = [], plants, maps = []
   const mapSettings =
     publicSettings?.map && typeof publicSettings.map === 'object' ? publicSettings.map : null;
   const {
-    mapEmojiLabelCenterGap,
     mapEmojiFontPx,
     mapLabelFontPx,
     markerLabelMarginTop,
@@ -2751,7 +2677,6 @@ function MapView({ zones, markers, tasks = [], tutorials = [], plants, maps = []
     const str = wp.map(p => `${p.cx},${p.cy}`).join(' ');
     const mx = wp.reduce((s, p) => s + p.cx, 0) / wp.length;
     const my = wp.reduce((s, p) => s + p.cy, 0) / wp.length;
-    const zoneEmoji = detectLeadingMarkerEmoji(z.name || '', emojiParsingList);
     const zoneName = stripLeadingMarkerEmoji(z.name || '', emojiParsingList);
     const isEd = mode === 'edit-points' && editZone?.id === z.id;
     const zoneTaskVisual = zoneTaskVisualById.get(z.id);
@@ -2763,20 +2688,7 @@ function MapView({ zones, markers, tasks = [], tutorials = [], plants, maps = []
           stroke={isEd ? '#52b788' : 'rgba(26,71,49,0.5)'}
           strokeWidth={(isEd ? 2.5 : 1.5) * inv} strokeDasharray={z.special ? `${5 * inv},${3 * inv}` : 'none'} />
         {showLabels && (
-          <text
-            x={mx}
-            y={my}
-            textAnchor="middle"
-            dominantBaseline="middle"
-            fontSize={mapEmojiFontPx}
-            fontFamily="Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif"
-            style={{ pointerEvents: 'none', userSelect: 'none' }}
-          >
-            {zoneEmoji || ''}
-          </text>
-        )}
-        {showLabels && (
-          <text x={mx} y={my + (zoneEmoji ? mapEmojiLabelCenterGap : 0)} textAnchor="middle" dominantBaseline="middle"
+          <text x={mx} y={my} textAnchor="middle" dominantBaseline="middle"
             fontSize={mapLabelFontPx} fontWeight="700" fontFamily="DM Sans,sans-serif"
             fill="#1a4731" stroke="rgba(255,255,255,0.8)" strokeWidth={3 * inv} paintOrder="stroke"
             style={{ pointerEvents: 'none', userSelect: 'none' }}>{zoneName || z.name}</text>

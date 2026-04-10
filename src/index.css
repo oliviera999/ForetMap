@@ -698,10 +698,14 @@
     /* ── MAP WRAP ── */
     .map-wrap { background:white; border-radius:var(--radius); padding:12px; box-shadow:var(--shadow); overflow:hidden; }
 
-    /* Carte interactive : taille du cadre fixée en JS (contain dans la hauteur visible) ; vue solo = shrink-wrap, sans bandes grises. */
+    /* Carte interactive : taille du cadre fixée en JS (zone utile pleine largeur/hauteur ; cadrage image via transform). */
     .map-view-canvas-outer {
       flex:0 0 auto;
       min-width:0;
+      min-height:0;
+    }
+    .map-view-root--solo .map-view-canvas-outer {
+      flex:1;
       min-height:0;
     }
     .map-view-root--embedded .map-view-canvas-outer {
@@ -720,6 +724,12 @@
       justify-content:center;
       box-sizing:border-box;
       overflow:visible;
+    }
+    .map-view-root--solo .map-view-canvas-slot {
+      flex:1;
+      min-height:0;
+      justify-content:flex-start;
+      overflow:hidden;
     }
     .map-view-root--embedded .map-view-canvas-slot {
       flex:1;
