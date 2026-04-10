@@ -277,6 +277,7 @@ router.get('/content', async (req, res) => {
     const zones = await queryAll(
       `SELECT
          z.id, z.map_id, z.name, z.points,
+         zm.description AS description,
          z.subtitle AS visit_subtitle,
          z.short_description AS visit_short_description,
          z.details_title AS visit_details_title,
@@ -284,6 +285,7 @@ router.get('/content', async (req, res) => {
          z.is_active AS visit_is_active,
          z.sort_order AS visit_sort_order
        FROM visit_zones z
+       LEFT JOIN zones zm ON zm.id = z.id AND zm.map_id = z.map_id
        WHERE z.map_id = ?
        ORDER BY z.sort_order ASC, z.name ASC`,
       [mapId]
@@ -292,6 +294,7 @@ router.get('/content', async (req, res) => {
     const markers = await queryAll(
       `SELECT
          m.id, m.map_id, m.x_pct, m.y_pct, m.label, m.emoji,
+         mm.note AS note,
          m.subtitle AS visit_subtitle,
          m.short_description AS visit_short_description,
          m.details_title AS visit_details_title,
@@ -299,6 +302,7 @@ router.get('/content', async (req, res) => {
          m.is_active AS visit_is_active,
          m.sort_order AS visit_sort_order
        FROM visit_markers m
+       LEFT JOIN map_markers mm ON mm.id = m.id AND mm.map_id = m.map_id
        WHERE m.map_id = ?
        ORDER BY m.sort_order ASC, m.label ASC`,
       [mapId]

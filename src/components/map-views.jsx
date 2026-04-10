@@ -732,6 +732,12 @@ function ZoneInfoModal({ zone, plants, tasks, tutorials = [], isTeacher, student
               if (names.length === 0) return null;
               return <LivingBeingsCatalogPanel plants={plants} names={names} />;
             })()}
+            {zone.description && (
+              <div style={{ background: '#f0fdf4', borderRadius: 10, padding: '10px 14px', marginBottom: 12,
+                border: '1px solid var(--mint)', fontSize: '.88rem', color: '#333', lineHeight: 1.6 }}>
+                {zone.description}
+              </div>
+            )}
             {(zone.visit_subtitle || zone.visit_short_description || zone.visit_details_text) && (
               <div style={{ marginBottom: 12 }}>
                 {zone.visit_subtitle && <p className="visit-subtitle" style={{ margin: '0 0 8px' }}>{zone.visit_subtitle}</p>}
@@ -744,12 +750,6 @@ function ZoneInfoModal({ zone, plants, tasks, tutorials = [], isTeacher, student
                     <p style={{ margin: '8px 0 0', fontSize: '.86rem', lineHeight: 1.55 }}>{zone.visit_details_text}</p>
                   </details>
                 )}
-              </div>
-            )}
-            {zone.description && (
-              <div style={{ background: '#f0fdf4', borderRadius: 10, padding: '10px 14px', marginBottom: 12,
-                border: '1px solid var(--mint)', fontSize: '.88rem', color: '#333', lineHeight: 1.6 }}>
-                {zone.description}
               </div>
             )}
             {zone.history?.length > 0 && (
@@ -1801,6 +1801,12 @@ function MarkerModal({
               if (names.length === 0) return null;
               return <LivingBeingsCatalogPanel plants={plants} names={names} />;
             })()}
+            {marker.note && (
+              <div style={{ background: '#f0fdf4', borderRadius: 10, padding: '10px 14px', marginBottom: 12,
+                border: '1px solid var(--mint)', fontSize: '.88rem', color: '#333', lineHeight: 1.6 }}>
+                {marker.note}
+              </div>
+            )}
             {(marker.visit_subtitle || marker.visit_short_description || marker.visit_details_text) && (
               <div style={{ marginBottom: 12 }}>
                 {marker.visit_subtitle && <p className="visit-subtitle" style={{ margin: '0 0 8px' }}>{marker.visit_subtitle}</p>}
@@ -1813,12 +1819,6 @@ function MarkerModal({
                     <p style={{ margin: '8px 0 0', fontSize: '.86rem', lineHeight: 1.55 }}>{marker.visit_details_text}</p>
                   </details>
                 )}
-              </div>
-            )}
-            {marker.note && (
-              <div style={{ background: '#f0fdf4', borderRadius: 10, padding: '10px 14px', marginBottom: 12,
-                border: '1px solid var(--mint)', fontSize: '.88rem', color: '#333', lineHeight: 1.6 }}>
-                {marker.note}
               </div>
             )}
             {orderedLivingBeingsForForm(marker.living_beings_list || marker.living_beings, marker.plant_name).length === 0
