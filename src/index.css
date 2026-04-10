@@ -2607,6 +2607,9 @@
       width:100% !important;
       height:100% !important;
     }
+    .visit-map-mascot-lottie--fallback {
+      visibility:hidden;
+    }
     .visit-map-controls {
       position:absolute;
       right:8px;
