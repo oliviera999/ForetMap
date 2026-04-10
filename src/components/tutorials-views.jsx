@@ -2,13 +2,15 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { api, AccountDeletedError } from '../services/api';
 import { useOverlayHistoryBack } from '../hooks/useOverlayHistoryBack';
 import { TutorialReadAcknowledgeButton, fetchTutorialReadIds } from './TutorialReadAcknowledge';
+import { MARKER_EMOJIS, stripLeadingMarkerEmoji } from '../constants/emojis';
 import { orderedLivingBeingsForForm, formatLivingBeingsListLine } from '../utils/livingBeings';
 
 function tutorialZonePickLabel(z) {
+  const baseName = stripLeadingMarkerEmoji(z.name || '', MARKER_EMOJIS) || z.name || '';
   const line = formatLivingBeingsListLine(
     orderedLivingBeingsForForm(z.living_beings_list || z.living_beings, z.current_plant),
   );
-  return line ? `${z.name} — ${line}` : z.name;
+  return line ? `${baseName} — ${line}` : baseName;
 }
 
 function sortTutorialsByOrder(list) {
