@@ -14,13 +14,15 @@ import { HELP_PANELS, HELP_TOOLTIPS, resolveRoleText } from '../constants/help';
 import { lockBodyScroll } from '../utils/body-scroll-lock';
 import { armNativeFilePickerGuard, disarmNativeFilePickerGuard } from '../utils/overlayHistory';
 import { isStudentAssignedToTask } from '../utils/task-assignments';
+import { MARKER_EMOJIS, stripLeadingMarkerEmoji } from '../constants/emojis';
 import { orderedLivingBeingsForForm, nextLivingBeingsFromMultiSelect, formatLivingBeingsListLine } from '../utils/livingBeings';
 
 function zonePickDisplayName(z) {
+  const baseName = stripLeadingMarkerEmoji(z.name || '', MARKER_EMOJIS) || z.name || '';
   const line = formatLivingBeingsListLine(
     orderedLivingBeingsForForm(z.living_beings_list || z.living_beings, z.current_plant),
   );
-  return line ? `${z.name} — ${line}` : z.name;
+  return line ? `${baseName} — ${line}` : baseName;
 }
 
 function taskLivingBeingEmoji(plants, name) {
