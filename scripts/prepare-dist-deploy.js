@@ -7,6 +7,13 @@ const rootDir = path.resolve(__dirname, '..');
 const skipInstall = process.argv.includes('--skip-install');
 const viteBinPath = path.join(rootDir, 'node_modules', 'vite', 'bin', 'vite.js');
 
+function envForNpmBundle() {
+  return {
+    ...process.env,
+    PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: process.env.PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD || '1',
+  };
+}
+
 function runCommand(cmd, args, options = {}) {
   const commandLine = [cmd, ...args].join(' ');
   try {
@@ -47,9 +54,10 @@ if (!commandExists('npm')) {
 
 if (!skipInstall) {
   console.log('==> Installation des dépendances (npm ci --include=dev)');
-  if (!runCommand('npm', ['ci', '--include=dev'])) {
+  console.log('    (PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1 — pas de navigateurs e2e)');
+  if (!runCommand('npm', ['ci', '--include=dev'], { env: envForNpmBundle() })) {
     console.warn('npm ci a échoué (lockfile potentiellement désynchronisé). Bascule sur npm install --include=dev...');
-    if (!runCommand('npm', ['install', '--include=dev'])) {
+    if (!runCommand('npm', ['install', '--include=dev'], { env: envForNpmBundle() })) {
       fail("Échec installation dépendances (npm ci puis npm install).");
     }
   }
@@ -57,14 +65,14 @@ if (!skipInstall) {
   console.log('==> Installation sautée (--skip-install)');
   if (!fs.existsSync(viteBinPath)) {
     console.warn("Vite absent (devDependencies non installées). Installation automatique via npm install --include=dev...");
-    if (!runCommand('npm', ['install', '--include=dev'])) {
+    if (!runCommand('npm', ['install', '--include=dev'], { env: envForNpmBundle() })) {
       fail("Échec installation des dépendances dev requises pour le build.");
     }
   }
 }
 
 console.log('==> Build frontend (npm run build)');
-if (!runCommand('npm', ['run', 'build'])) {
+if (!runCommand('npm', ['run', 'build'], { env: envForNpmBundle() })) {
   fail("Échec du build frontend (npm run build).");
 }
 

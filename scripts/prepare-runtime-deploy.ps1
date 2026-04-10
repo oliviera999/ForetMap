@@ -50,6 +50,12 @@ if (-not (Test-CommandAvailable "robocopy")) {
 
 Push-Location $projectRoot
 try {
+  # Évite le postinstall @playwright/browser-chromium (OOM sur mutualisé CloudLinux).
+  if (-not $env:PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD) {
+    $env:PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD = "1"
+  }
+  Write-Host "==> PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=$($env:PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD) (navigateurs e2e non requis pour ce bundle)"
+
   if (-not $SkipInstall) {
     Invoke-Step -Label "Installation dépendances complètes (build local)" -Command "npm ci --include=dev"
   } else {
