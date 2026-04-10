@@ -225,12 +225,12 @@ console.log('');
 console.log('Bundle runtime prêt.');
 console.log(`- Dossier: ${stageDir}`);
 if (zipped) {
-  console.log(`- ZIP: ${zipPath}`);
+  console.log(`- ZIP (optionnel): ${zipPath}`);
 } else {
-  console.log('- ZIP: (non généré — voir message ci-dessus ; tu peux zipper manuellement le dossier staging)');
+  console.log('- ZIP: non généré (voir message ci-dessus) — tu peux uploader le dossier tel quel ou zipper à la main.');
 }
 console.log('');
 console.log('Déploiement serveur:');
-console.log('1) Upload / extraction du ZIP (ou du dossier) dans le dossier de l’app.');
+console.log('1) Uploader le dossier ci-dessus tel quel (rsync / SFTP), ou extraire le ZIP si tu l’as produit.');
 console.log('2) Redémarrer l’application Node.js.');
 console.log('3) Vérifier avec: npm run deploy:check:prod');

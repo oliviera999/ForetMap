@@ -325,4 +325,6 @@ npm run deploy:prepare:runtime:fast
 
 Sur Windows uniquement, variante historique **robocopy** : `npm run deploy:prepare:runtime:ps` (ou `:fast:ps`).
 
-Le ZIP est créé dans `deploy/` sous la forme `foretmap-runtime-YYYYMMDD-HHMMSS.zip` (outil **`zip`**, sinon **`tar -a`**, sinon **PowerShell** sous Windows). Si aucun n’est disponible, le dossier staging reste utilisable pour zipper à la main.
+Le script produit d’abord un **dossier de staging** : `deploy/runtime/foretmap-runtime-YYYYMMDD-HHMMSS/` (même contenu que ce qui irait en prod : sources, `dist/`, `node_modules` après prune). Tu peux **uploader ce dossier tel quel** (`rsync`, SFTP récursif, etc.) vers le répertoire de l’app sur le serveur — **le ZIP est optionnel** ; il sert surtout à un seul fichier à transférer ou à archiver une livraison.
+
+Si les outils le permettent, un **ZIP** est aussi créé dans `deploy/` : `foretmap-runtime-YYYYMMDD-HHMMSS.zip` (commande **`zip`**, sinon **`tar -a`**, sinon **PowerShell** sous Windows). Si aucune archive n’est générée, le dossier `deploy/runtime/…` reste la source de vérité pour un envoi manuel ou une compression locale.
