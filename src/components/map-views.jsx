@@ -15,6 +15,7 @@ import { stageBadge, TaskDifficultyAndRiskChips } from '../utils/badges';
 import { compressImage } from '../utils/image';
 import { useDialogA11y } from '../hooks/useDialogA11y';
 import { useOverlayHistoryBack } from '../hooks/useOverlayHistoryBack';
+import { armNativeFilePickerGuard, disarmNativeFilePickerGuard } from '../utils/overlayHistory';
 import { useHelp } from '../hooks/useHelp';
 import { HelpPanel } from './HelpPanel';
 import { Tooltip } from './Tooltip';
@@ -263,6 +264,7 @@ function PhotoGallery({ zoneId, markerId, isTeacher }) {
   useEffect(() => { load(); }, [load]);
 
   const upload = async e => {
+    disarmNativeFilePickerGuard();
     const file = e.target.files[0];
     e.target.value = '';
     if (!file) return;
@@ -340,6 +342,7 @@ function PhotoGallery({ zoneId, markerId, isTeacher }) {
               disabled={uploading}
               onClick={() => {
                 if (galleryFileRef.current) galleryFileRef.current.value = '';
+                armNativeFilePickerGuard();
                 galleryFileRef.current?.click();
               }}
             >
@@ -352,6 +355,7 @@ function PhotoGallery({ zoneId, markerId, isTeacher }) {
               disabled={uploading}
               onClick={() => {
                 if (cameraFileRef.current) cameraFileRef.current.value = '';
+                armNativeFilePickerGuard();
                 cameraFileRef.current?.click();
               }}
             >
