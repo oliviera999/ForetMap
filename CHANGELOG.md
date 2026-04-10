@@ -7,8 +7,6 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ### Corrigé
 - **Carte / tâches** : les **tutoriels** rattachés uniquement aux **missions** (sans lien direct zone/repère) et la **biodiversité** portée par les tâches (`living_beings_list`) apparaissent désormais sur la **carte** (pastilles tutoriels), dans les **modales zone et repère** (Info + Tutoriels), dans la section **« Tutoriels pour ce lieu »** de l’onglet Tâches (avec indication « via mission » côté prof pour le déliage lieu), et les comparaisons zone/repère utilisent des **IDs normalisés** (chaîne) pour éviter les ratés de correspondance.
-
-### Corrigé
 - **Dépôt** : suppression des fichiers temporaires **`tmp-debug-ctx.js`** et **`tmp-test-ctx-one.js`** (ajoutés par erreur).
 - **Déploiement (prepare runtime / dist)** : pendant `npm ci`, `npm run build` et `npm prune`, définition de **`PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1`** pour ignorer le postinstall **@playwright/browser-chromium** (Wasm / mémoire), source d’**OOM** sur hébergement mutualisé alors que le bundle prod n’exécute pas les e2e. **`scripts/prepare-runtime-deploy.js`**, **`scripts/prepare-dist-deploy.js`**, **`prepare-runtime-deploy.ps1`** ; note **`docs/EXPLOITATION.md`**.
 - **Déploiement runtime** : `npm run deploy:prepare:runtime` (et `:fast`) s’appuient sur **`node scripts/prepare-runtime-deploy.js`** au lieu d’invoquer **PowerShell** depuis `sh` (évite l’erreur `powershell: commande introuvable` sous Linux / CI). Archivage : **`zip`**, sinon **`tar -a`**, sinon **Compress-Archive** sous Windows. Scripts optionnels **`deploy:prepare:runtime:ps`** / **`:fast:ps`** pour l’ancien `prepare-runtime-deploy.ps1` (robocopy). Documentation **`docs/LOCAL_DEV.md`**, **`docs/EXPLOITATION.md`**.

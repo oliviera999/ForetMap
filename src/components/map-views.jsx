@@ -530,6 +530,73 @@ function isTaskDetachedFromLocation(task) {
   return task.status === 'done' || task.status === 'validated';
 }
 
+/** Tutoriels référencés par une tâche (`tutorials_linked` ou `tutorial_ids` + catalogue). */
+function taskLinkedTutorialRefs(task, tutorialsCatalog = []) {
+  if (!task) return [];
+  const linked = task.tutorials_linked;
+  if (Array.isArray(linked) && linked.length) return linked;
+  const ids = task.tutorial_ids;
+  if (!Array.isArray(ids) || !ids.length) return [];
+  const out = [];
+  for (const raw of ids) {
+    const tu = tutorialsCatalog.find((x) => Number(x.id) === Number(raw));
+    if (tu) out.push(tu);
+  }
+  return out;
+}
+
+function dedupeTutorialsById(list) {
+  const seen = new Set();
+  const out = [];
+  for (const tu of list || []) {
+    if (!tu || tu.id == null) continue;
+    const k = String(tu.id);
+    if (seen.has(k)) continue;
+    seen.add(k);
+    out.push(tu);
+  }
+  return out;
+}
+
+/** Tutoriels référencés par des tâches sur ce lieu (dédoublonnés). */
+function tutorialsFromTasksAtLocation(kind, locationId, tasks, tutorialsCatalog) {
+  const locZone = kind === 'zone';
+  const refs = [];
+  for (const t of tasks || []) {
+    if (isTaskDetachedFromLocation(t)) continue;
+    const { zoneIds, markerIds } = taskLocationIds(t);
+    const at = locZone
+      ? zoneIds.some((id) => String(id) === String(locationId))
+      : markerIds.some((id) => String(id) === String(locationId));
+    if (!at) continue;
+    refs.push(...taskLinkedTutorialRefs(t, tutorialsCatalog));
+  }
+  return dedupeTutorialsById(refs);
+}
+
+/** Noms d’êtres vivants portés par les tâches à ce lieu (ordre d’apparition, sans doublon). */
+function livingBeingNamesFromTasksAtLocation(kind, locationId, tasks) {
+  const locZone = kind === 'zone';
+  const names = [];
+  const seen = new Set();
+  for (const t of tasks || []) {
+    if (isTaskDetachedFromLocation(t)) continue;
+    const { zoneIds, markerIds } = taskLocationIds(t);
+    const at = locZone
+      ? zoneIds.some((id) => String(id) === String(locationId))
+      : markerIds.some((id) => String(id) === String(locationId));
+    if (!at) continue;
+    const list = Array.isArray(t.living_beings_list) ? t.living_beings_list : [];
+    for (const raw of list) {
+      const s = String(raw || '').trim();
+      if (!s || seen.has(s)) continue;
+      seen.add(s);
+      names.push(s);
+    }
+  }
+  return names;
+}
+
 function ZoneInfoModal({ zone, plants, tasks, tutorials = [], isTeacher, student, canSelfAssignTasks = true, canEnrollOnTasks, markerEmojis = MARKER_EMOJIS, emojiParsingList = MARKER_EMOJIS, contextCommentsEnabled = true, canParticipateContextComments = true, onClose, onUpdate, onDelete, onDuplicate, onEditPoints, onLinkTask, onUnlinkTask, onAssignTasks, onLinkTutorial, onUnlinkTutorial, onNavigateToTasksForLocation = null }) {
   const canEnroll = canEnrollOnTasks !== undefined ? canEnrollOnTasks : canSelfAssignTasks;
   const dialogRef = useDialogA11y(onClose);
@@ -564,7 +631,7 @@ function ZoneInfoModal({ zone, plants, tasks, tutorials = [], isTeacher, student
     : (stripLeadingMarkerEmoji(zone.name || '', emojiParsingList) || zone.name || '');
   const taskMapId = (t) => t.map_id_resolved || t.map_id || t.zone_map_id || t.marker_map_id || null;
   const linkedTasks = (tasks || []).filter((t) => (
-    taskLocationIds(t).zoneIds.includes(zone.id) && !isTaskDetachedFromLocation(t)
+    taskLocationIds(t).zoneIds.some((id) => String(id) === String(zone.id)) && !isTaskDetachedFromLocation(t)
   ));
   const studentAssignableTasks = linkedTasks.filter((t) => canStudentAssignTask(t, student));
   const assignableTasks = (tasks || []).filter((t) => {
@@ -574,14 +641,23 @@ function ZoneInfoModal({ zone, plants, tasks, tutorials = [], isTeacher, student
     return mapId === zone.map_id || mapId == null;
   });
   const showTasksTab = isTeacher || (!!student && linkedTasks.length > 0);
-  const linkedTutorialsAll = (tutorials || []).filter((tu) => tutorialLocationIds(tu).zoneIds.includes(zone.id));
+  const linkedTutorialsDirect = (tutorials || []).filter((tu) => (
+    tutorialLocationIds(tu).zoneIds.some((id) => String(id) === String(zone.id))
+  ));
+  const tutorialsFromTasksHere = tutorialsFromTasksAtLocation('zone', zone.id, tasks, tutorials);
+  const linkedTutorialsAll = dedupeTutorialsById([...linkedTutorialsDirect, ...tutorialsFromTasksHere]);
+  const tutorialsOnlyViaTasks = tutorialsFromTasksHere.filter(
+    (tu) => !linkedTutorialsDirect.some((d) => String(d.id) === String(tu.id)),
+  );
   const linkedTutorialsVisible = isTeacher
     ? linkedTutorialsAll
     : linkedTutorialsAll.filter((tu) => tu.is_active !== false);
   const showTutorialsTab = isTeacher || linkedTutorialsVisible.length > 0;
+  const livingBeingsFromTasksHere = livingBeingNamesFromTasksAtLocation('zone', zone.id, tasks);
+  const livingBeingsOnlyOnTasks = livingBeingsFromTasksHere.filter((n) => !zoneLivingNames.includes(n));
   const assignableTutorials = (tutorials || []).filter((tu) => (
     tu.is_active !== false
-    && !tutorialLocationIds(tu).zoneIds.includes(zone.id)
+    && !tutorialLocationIds(tu).zoneIds.some((id) => String(id) === String(zone.id))
     && tutorialLinkedToSameMap(tu, zone.map_id)
   ));
 
@@ -738,6 +814,12 @@ function ZoneInfoModal({ zone, plants, tasks, tutorials = [], isTeacher, student
               if (names.length === 0) return null;
               return <LivingBeingsCatalogPanel plants={plants} names={names} />;
             })()}
+            {!zone.special && livingBeingsOnlyOnTasks.length > 0 && (
+              <div style={{ marginTop: zoneLivingNames.length ? 14 : 0 }}>
+                <h4 style={{ margin: '0 0 8px', fontSize: '.88rem', color: 'var(--forest)' }}>Également dans les missions</h4>
+                <LivingBeingsCatalogPanel plants={plants} names={livingBeingsOnlyOnTasks} showHeading={false} />
+              </div>
+            )}
             {zone.description && (
               <div style={{ background: '#f0fdf4', borderRadius: 10, padding: '10px 14px', marginBottom: 12,
                 border: '1px solid var(--mint)', fontSize: '.88rem', color: '#333', lineHeight: 1.6 }}>
@@ -770,6 +852,7 @@ function ZoneInfoModal({ zone, plants, tasks, tutorials = [], isTeacher, student
             )}
             {!zone.special
               && orderedLivingBeingsForForm(zone.living_beings_list || zone.living_beings, zone.current_plant).length === 0
+              && livingBeingsOnlyOnTasks.length === 0
               && !zone.description && zone.history?.length === 0
               && !zone.visit_subtitle && !zone.visit_short_description && !zone.visit_details_text && (
               <p style={{ color: '#bbb', fontSize: '.85rem', fontStyle: 'italic', textAlign: 'center', padding: '20px 0' }}>
@@ -1006,22 +1089,38 @@ function ZoneInfoModal({ zone, plants, tasks, tutorials = [], isTeacher, student
         {tab === 'tutorials' && isTeacher && (
           <div className="fade-in">
             <div style={{ marginTop: 12 }}>
-              {linkedTutorialsAll.length === 0 ? (
+              {linkedTutorialsDirect.length === 0 && tutorialsOnlyViaTasks.length === 0 ? (
                 <p style={{ color: '#999', fontSize: '.85rem' }}>Aucun tutoriel lié à cette zone.</p>
-              ) : linkedTutorialsAll.map((tu) => (
-                <div key={tu.id} className="history-item" style={{ alignItems: 'center' }}>
-                  <span>{tu.title}{tu.is_active === false ? ' (archivé)' : ''}</span>
-                  <button
-                    type="button"
-                    className="btn btn-ghost btn-sm"
-                    onClick={async () => {
-                      await onUnlinkTutorial?.(tu);
-                      setToast('Tutoriel dissocié');
-                    }}>
-                    Délier
-                  </button>
-                </div>
-              ))}
+              ) : (
+                <>
+                  {linkedTutorialsDirect.length === 0 ? null : linkedTutorialsDirect.map((tu) => (
+                    <div key={tu.id} className="history-item" style={{ alignItems: 'center' }}>
+                      <span>{tu.title}{tu.is_active === false ? ' (archivé)' : ''}</span>
+                      <button
+                        type="button"
+                        className="btn btn-ghost btn-sm"
+                        onClick={async () => {
+                          await onUnlinkTutorial?.(tu);
+                          setToast('Tutoriel dissocié');
+                        }}>
+                        Délier
+                      </button>
+                    </div>
+                  ))}
+                  {tutorialsOnlyViaTasks.length > 0 && (
+                    <div style={{ marginTop: linkedTutorialsDirect.length ? 16 : 0 }}>
+                      <p style={{ fontSize: '.78rem', color: '#64748b', margin: '0 0 8px', lineHeight: 1.45 }}>
+                        Rattachés aux missions sur ce lieu (pour les retirer, modifie la tâche concernée).
+                      </p>
+                      {tutorialsOnlyViaTasks.map((tu) => (
+                        <div key={`task-tu-${tu.id}`} className="history-item" style={{ alignItems: 'center' }}>
+                          <span>{tu.title}{tu.is_active === false ? ' (archivé)' : ''}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </>
+              )}
             </div>
             <div className="field" style={{ marginTop: 14 }}><label>Lier un tutoriel à cette zone</label>
               <select value={linkTutorialId} onChange={(e) => setLinkTutorialId(e.target.value)}>
@@ -1284,7 +1383,7 @@ function MarkerModal({
 
   const taskMapId = (t) => t.map_id_resolved || t.map_id || t.zone_map_id || t.marker_map_id || null;
   const linkedTasks = (tasks || []).filter((t) => (
-    taskLocationIds(t).markerIds.includes(marker.id) && !isTaskDetachedFromLocation(t)
+    taskLocationIds(t).markerIds.some((id) => String(id) === String(marker.id)) && !isTaskDetachedFromLocation(t)
   ));
   const studentAssignableTasks = linkedTasks.filter((t) => canStudentAssignTask(t, student));
   const assignableTasks = (tasks || []).filter((t) => {
@@ -1293,13 +1392,23 @@ function MarkerModal({
     const mapId = taskMapId(t);
     return mapId === marker.map_id || mapId == null;
   });
-  const linkedTutorialsAll = (tutorials || []).filter((tu) => tutorialLocationIds(tu).markerIds.includes(marker.id));
+  const linkedTutorialsDirect = (tutorials || []).filter((tu) => (
+    tutorialLocationIds(tu).markerIds.some((id) => String(id) === String(marker.id))
+  ));
+  const tutorialsFromTasksHere = tutorialsFromTasksAtLocation('marker', marker.id, tasks, tutorials);
+  const linkedTutorialsAll = dedupeTutorialsById([...linkedTutorialsDirect, ...tutorialsFromTasksHere]);
+  const tutorialsOnlyViaTasks = tutorialsFromTasksHere.filter(
+    (tu) => !linkedTutorialsDirect.some((d) => String(d.id) === String(tu.id)),
+  );
   const linkedTutorialsVisible = isTeacher
     ? linkedTutorialsAll
     : linkedTutorialsAll.filter((tu) => tu.is_active !== false);
+  const markerLivingNamesOrdered = orderedLivingBeingsForForm(marker.living_beings_list || marker.living_beings, marker.plant_name);
+  const livingBeingsFromTasksHere = livingBeingNamesFromTasksAtLocation('marker', marker.id, tasks);
+  const livingBeingsOnlyOnTasks = livingBeingsFromTasksHere.filter((n) => !markerLivingNamesOrdered.includes(n));
   const assignableTutorials = (tutorials || []).filter((tu) => (
     tu.is_active !== false
-    && !tutorialLocationIds(tu).markerIds.includes(marker.id)
+    && !tutorialLocationIds(tu).markerIds.some((id) => String(id) === String(marker.id))
     && tutorialLinkedToSameMap(tu, marker.map_id)
   ));
 
@@ -1709,22 +1818,38 @@ function MarkerModal({
         {tab === 'tutorials' && isTeacher && (
           <div className="fade-in">
             <div style={{ marginTop: 12 }}>
-              {linkedTutorialsAll.length === 0 ? (
+              {linkedTutorialsDirect.length === 0 && tutorialsOnlyViaTasks.length === 0 ? (
                 <p style={{ color: '#999', fontSize: '.85rem' }}>Aucun tutoriel lié à ce repère.</p>
-              ) : linkedTutorialsAll.map((tu) => (
-                <div key={tu.id} className="history-item" style={{ alignItems: 'center' }}>
-                  <span>{tu.title}{tu.is_active === false ? ' (archivé)' : ''}</span>
-                  <button
-                    type="button"
-                    className="btn btn-ghost btn-sm"
-                    onClick={async () => {
-                      await onUnlinkTutorial?.(tu);
-                      setToast('Tutoriel dissocié');
-                    }}>
-                    Délier
-                  </button>
-                </div>
-              ))}
+              ) : (
+                <>
+                  {linkedTutorialsDirect.length === 0 ? null : linkedTutorialsDirect.map((tu) => (
+                    <div key={tu.id} className="history-item" style={{ alignItems: 'center' }}>
+                      <span>{tu.title}{tu.is_active === false ? ' (archivé)' : ''}</span>
+                      <button
+                        type="button"
+                        className="btn btn-ghost btn-sm"
+                        onClick={async () => {
+                          await onUnlinkTutorial?.(tu);
+                          setToast('Tutoriel dissocié');
+                        }}>
+                        Délier
+                      </button>
+                    </div>
+                  ))}
+                  {tutorialsOnlyViaTasks.length > 0 && (
+                    <div style={{ marginTop: linkedTutorialsDirect.length ? 16 : 0 }}>
+                      <p style={{ fontSize: '.78rem', color: '#64748b', margin: '0 0 8px', lineHeight: 1.45 }}>
+                        Rattachés aux missions sur ce lieu (pour les retirer, modifie la tâche concernée).
+                      </p>
+                      {tutorialsOnlyViaTasks.map((tu) => (
+                        <div key={`task-tu-${tu.id}`} className="history-item" style={{ alignItems: 'center' }}>
+                          <span>{tu.title}{tu.is_active === false ? ' (archivé)' : ''}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </>
+              )}
             </div>
             <div className="field" style={{ marginTop: 14 }}><label>Lier un tutoriel à ce repère</label>
               <select value={linkTutorialId} onChange={(e) => setLinkTutorialId(e.target.value)}>
@@ -1807,6 +1932,12 @@ function MarkerModal({
               if (names.length === 0) return null;
               return <LivingBeingsCatalogPanel plants={plants} names={names} />;
             })()}
+            {livingBeingsOnlyOnTasks.length > 0 && (
+              <div style={{ marginTop: markerLivingNamesOrdered.length ? 14 : 0 }}>
+                <h4 style={{ margin: '0 0 8px', fontSize: '.88rem', color: 'var(--forest)' }}>Également dans les missions</h4>
+                <LivingBeingsCatalogPanel plants={plants} names={livingBeingsOnlyOnTasks} showHeading={false} />
+              </div>
+            )}
             {marker.note && (
               <div style={{ background: '#f0fdf4', borderRadius: 10, padding: '10px 14px', marginBottom: 12,
                 border: '1px solid var(--mint)', fontSize: '.88rem', color: '#333', lineHeight: 1.6 }}>
@@ -1828,6 +1959,7 @@ function MarkerModal({
               </div>
             )}
             {orderedLivingBeingsForForm(marker.living_beings_list || marker.living_beings, marker.plant_name).length === 0
+              && livingBeingsOnlyOnTasks.length === 0
               && !marker.note
               && !marker.visit_subtitle && !marker.visit_short_description && !marker.visit_details_text && (
               <p style={{ color: '#bbb', fontSize: '.85rem', fontStyle: 'italic', textAlign: 'center', padding: '20px 0' }}>
@@ -2509,24 +2641,54 @@ function MapView({ zones, markers, tasks = [], tutorials = [], plants, maps = []
   const { zoneTutorialCountById, markerTutorialCountById } = useMemo(() => {
     const zoneMap = new Map();
     const markerMap = new Map();
+    const bumpZone = (zidRaw, delta = 1) => {
+      const z = zones.find((zz) => String(zz.id) === String(zidRaw));
+      if (!z || z.map_id !== activeMapId) return;
+      const key = z.id;
+      zoneMap.set(key, (zoneMap.get(key) || 0) + delta);
+    };
+    const bumpMarker = (midRaw, delta = 1) => {
+      const mk = markers.find((mm) => String(mm.id) === String(midRaw));
+      if (!mk || mk.map_id !== activeMapId) return;
+      const key = mk.id;
+      markerMap.set(key, (markerMap.get(key) || 0) + delta);
+    };
     for (const tu of tutorials || []) {
       if (tu.is_active === false) continue;
       const { zoneIds, markerIds } = tutorialLocationIds(tu);
-      for (const zid of zoneIds) {
-        const z = zones.find((zz) => String(zz.id) === String(zid));
-        if (z && z.map_id === activeMapId) {
-          zoneMap.set(zid, (zoneMap.get(zid) || 0) + 1);
+      for (const zid of zoneIds) bumpZone(zid, 1);
+      for (const mid of markerIds) bumpMarker(mid, 1);
+    }
+    const pairSeen = new Set();
+    for (const t of tasks || []) {
+      if (isTaskDetachedFromLocation(t)) continue;
+      const tuRefs = taskLinkedTutorialRefs(t, tutorials || []);
+      if (!tuRefs.length) continue;
+      const { zoneIds: tZones, markerIds: tMarkers } = taskLocationIds(t);
+      for (const tu of tuRefs) {
+        if (tu.is_active === false) continue;
+        const direct = tutorialLocationIds(tu);
+        const directZoneStr = new Set(direct.zoneIds.map((x) => String(x)));
+        const directMarkerStr = new Set(direct.markerIds.map((x) => String(x)));
+        const tid = String(tu.id);
+        for (const zid of tZones) {
+          if (directZoneStr.has(String(zid))) continue;
+          const k = `z:${String(zid)}:tu:${tid}`;
+          if (pairSeen.has(k)) continue;
+          pairSeen.add(k);
+          bumpZone(zid, 1);
         }
-      }
-      for (const mid of markerIds) {
-        const mk = markers.find((mm) => String(mm.id) === String(mid));
-        if (mk && mk.map_id === activeMapId) {
-          markerMap.set(mid, (markerMap.get(mid) || 0) + 1);
+        for (const mid of tMarkers) {
+          if (directMarkerStr.has(String(mid))) continue;
+          const k = `m:${String(mid)}:tu:${tid}`;
+          if (pairSeen.has(k)) continue;
+          pairSeen.add(k);
+          bumpMarker(mid, 1);
         }
       }
     }
     return { zoneTutorialCountById: zoneMap, markerTutorialCountById: markerMap };
-  }, [tutorials, zones, markers, activeMapId]);
+  }, [tutorials, zones, markers, activeMapId, tasks]);
 
   useEffect(() => {
     if (!embedded || !onLocationTasksFocus) return;

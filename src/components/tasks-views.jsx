@@ -1322,6 +1322,45 @@ function tutorialPickerOpenHref(tu) {
   return (tu.source_file_path && String(tu.source_file_path).trim()) || `/api/tutorials/${tu.id}/view`;
 }
 
+function dedupeTutorialsByIdForTasks(list) {
+  const seen = new Set();
+  const out = [];
+  for (const tu of list || []) {
+    if (!tu || tu.id == null) continue;
+    const k = String(tu.id);
+    if (seen.has(k)) continue;
+    seen.add(k);
+    out.push(tu);
+  }
+  return out;
+}
+
+/** Tutoriels référencés par une tâche (tutorials_linked ou tutorial_ids + catalogue). */
+function taskLinkedTutorialRefsForPicker(task, tutorialsCatalog = []) {
+  if (!task) return [];
+  const linked = task.tutorials_linked;
+  if (Array.isArray(linked) && linked.length) return linked;
+  const ids = task.tutorial_ids;
+  if (!Array.isArray(ids) || !ids.length) return [];
+  const out = [];
+  for (const raw of ids) {
+    const tu = tutorialsCatalog.find((x) => Number(x.id) === Number(raw));
+    if (tu) out.push(tu);
+  }
+  return out;
+}
+
+function tutorialRefsFromTasksAtLocationFilter(filterZone, tasks, tutorialsCatalog) {
+  if (!filterZone) return [];
+  const refs = [];
+  for (const t of tasks || []) {
+    if (t.status === 'done' || t.status === 'validated') continue;
+    if (!taskHasLocation(t, filterZone)) continue;
+    refs.push(...taskLinkedTutorialRefsForPicker(t, tutorialsCatalog));
+  }
+  return dedupeTutorialsByIdForTasks(refs);
+}
+
 function proposalMetaFromDescription(description) {
   const raw = String(description || '');
   if (!raw) return { proposer: '', cleanedDescription: '' };
@@ -1962,10 +2001,12 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
 
   const linkedTutorialsAtFocus = useMemo(() => {
     if (!filterZone || !tutorialsModuleEnabled) return [];
-    const all = (tutorials || []).filter((tu) => tutorialPickerHasLocation(tu, filterZone));
-    if (isTeacher) return all;
-    return all.filter((tu) => tu.is_active !== false);
-  }, [filterZone, tutorials, tutorialsModuleEnabled, isTeacher]);
+    const fromLocation = (tutorials || []).filter((tu) => tutorialPickerHasLocation(tu, filterZone));
+    const fromTasks = tutorialRefsFromTasksAtLocationFilter(filterZone, tasks, tutorials || []);
+    const merged = dedupeTutorialsByIdForTasks([...fromLocation, ...fromTasks]);
+    if (isTeacher) return merged;
+    return merged.filter((tu) => tu.is_active !== false);
+  }, [filterZone, tutorials, tutorialsModuleEnabled, isTeacher, tasks]);
 
   const assignableTutorialsAtFocus = useMemo(() => {
     if (!filterZone || !isTeacher || !tutorialsModuleEnabled || !focusMapIdForTutorials) return [];
@@ -2440,14 +2481,18 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
                   linkedTutorialsAtFocus.map((tu) => (
                     <div key={tu.id} className="history-item" style={{ alignItems: 'center' }}>
                       <span>{tu.title}{tu.is_active === false ? ' (archivé)' : ''}</span>
-                      <button
-                        type="button"
-                        className="btn btn-ghost btn-sm"
-                        disabled={!!loading[`tuto-unlink-${tu.id}`]}
-                        onClick={() => unlinkTutorialAtFocus(tu)}
-                      >
-                        Délier
-                      </button>
+                      {tutorialPickerHasLocation(tu, filterZone) ? (
+                        <button
+                          type="button"
+                          className="btn btn-ghost btn-sm"
+                          disabled={!!loading[`tuto-unlink-${tu.id}`]}
+                          onClick={() => unlinkTutorialAtFocus(tu)}
+                        >
+                          Délier
+                        </button>
+                      ) : (
+                        <span style={{ fontSize: '.72rem', color: '#64748b', flexShrink: 0 }}>via mission</span>
+                      )}
                     </div>
                   ))
                 )}
