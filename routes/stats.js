@@ -6,6 +6,38 @@ const { getStudentProgressionConfig, syncStudentPrimaryRoleFromProgress } = requ
 
 const router = express.Router();
 
+/** Concurrence max pour agrégations « un SELECT par élève » (évite ER_CON_COUNT_ERROR ; > séquentiel pour l’UI prof). */
+const STATS_STUDENT_AGG_CONCURRENCY = (() => {
+  const raw = String(process.env.FORETMAP_STATS_STUDENT_AGG_CONCURRENCY || '').trim();
+  const n = raw ? parseInt(raw, 10) : 8;
+  if (!Number.isFinite(n) || n < 1) return 8;
+  return Math.min(24, n);
+})();
+
+/**
+ * Exécute `mapper` sur chaque élément avec au plus `limit` appels simultanés.
+ * @template T,R
+ * @param {T[]} items
+ * @param {number} limit
+ * @param {(item: T, index: number) => Promise<R>} mapper
+ * @returns {Promise<R[]>}
+ */
+async function mapWithConcurrency(items, limit, mapper) {
+  if (!items.length) return [];
+  const results = new Array(items.length);
+  let next = 0;
+  const cap = Math.max(1, Math.min(limit, items.length));
+  async function worker() {
+    for (;;) {
+      const i = next++;
+      if (i >= items.length) return;
+      results[i] = await mapper(items[i], i);
+    }
+  }
+  await Promise.all(Array.from({ length: cap }, () => worker()));
+  return results;
+}
+
 async function userStats(userId, options = {}) {
   const s = await queryOne('SELECT * FROM users WHERE id = ? LIMIT 1', [userId]);
   if (!s) return null;
@@ -83,7 +115,7 @@ router.get('/all', requirePermission('stats.read.all'), async (req, res) => {
   try {
     const students = await queryAll("SELECT * FROM users WHERE user_type = 'student'");
     const progressionConfig = await getStudentProgressionConfig();
-    const result = await Promise.all(students.map(async (s) => {
+    const result = await mapWithConcurrency(students, STATS_STUDENT_AGG_CONCURRENCY, async (s) => {
       const assignments = await queryAll(
         `SELECT ta.*, t.status FROM task_assignments ta
          JOIN tasks t ON ta.task_id = t.id
@@ -114,7 +146,7 @@ router.get('/all', requirePermission('stats.read.all'), async (req, res) => {
           autoProgressionEnabled: sync.autoProgressionEnabled !== false,
         },
       };
-    }));
+    });
     result.sort((a, b) => b.stats.done - a.stats.done);
     res.json(result);
   } catch (e) {
@@ -127,7 +159,7 @@ router.get('/all', requirePermission('stats.read.all'), async (req, res) => {
 router.get('/export', requirePermission('stats.export', { needsElevation: true }), async (req, res) => {
   try {
     const students = await queryAll("SELECT * FROM users WHERE user_type = 'student'");
-    const result = await Promise.all(students.map(async (s) => {
+    const result = await mapWithConcurrency(students, STATS_STUDENT_AGG_CONCURRENCY, async (s) => {
       const assignments = await queryAll(
         `SELECT ta.*, t.status FROM task_assignments ta
          JOIN tasks t ON ta.task_id = t.id
@@ -143,7 +175,7 @@ router.get('/export', requirePermission('stats.export', { needsElevation: true }
         submitted: assignments.filter(a => a.status === 'done').length,
         total: assignments.length,
       };
-    }));
+    });
     result.sort((a, b) => b.validated - a.validated);
 
     const headers = ['Prénom', 'Nom', 'Validées', 'En cours', 'En attente', 'Total', 'Dernière connexion'];

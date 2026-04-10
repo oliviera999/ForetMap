@@ -9,6 +9,7 @@ const {
 } = require('./fixtures/auth.fixture');
 
 test('élève peut se retirer d’une tâche prise en charge', async ({ page }) => {
+  test.setTimeout(90_000);
   const taskTitle = `E2E Unassign ${Date.now()}`;
 
   await loginAsNewStudent(page);

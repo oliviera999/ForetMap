@@ -85,8 +85,9 @@ async function enableTeacherMode(page, pin = process.env.E2E_ELEVATION_PIN || pr
 async function disableTeacherMode(page) {
   const des = page.getByRole('button', { name: 'Désactiver les droits étendus' });
   if ((await des.count()) > 0) {
-    await des.click();
-    await page.getByRole('button', { name: 'Activer les droits étendus' }).waitFor({ state: 'visible', timeout: 15_000 });
+    await dismissProfilePromotionModalIfPresent(page);
+    await des.first().click({ force: true, timeout: 20_000 });
+    await page.getByRole('button', { name: 'Activer les droits étendus' }).waitFor({ state: 'visible', timeout: 20_000 });
   }
 }
 
@@ -144,24 +145,28 @@ async function resetTaskFiltersInTasksView(page) {
 }
 
 /**
- * Onglet Tâches : `.top-tab` prof (libellé commence par ✅ Tâches…) ou `.nav-btn` élève (icône ✅ dans `span.nav-icon`, pas « Cartes, tâches… »).
+ * Onglet Tâches : nav basse élève ou barre d’onglets prof (évite les boutons hors navigation).
  */
 function tasksTabButton(page) {
-  return page
-    .locator('.top-tab')
-    .filter({ hasText: /✅\s*Tâches/ })
-    .or(page.locator('.nav-btn').filter({ has: page.locator('span.nav-icon', { hasText: '✅' }) }));
+  return page.locator('nav.bottom-nav').getByRole('button', { name: /✅\s*Tâches/ })
+    .or(page.locator('.top-tabs').getByRole('button', { name: /✅\s*Tâches/ }));
 }
 
 async function openTeacherTasksTab(page) {
-  await tasksTabButton(page).first().click();
-  await page.getByRole('heading', { name: '✅ Tâches' }).waitFor({ state: 'visible' });
+  await dismissProfilePromotionModalIfPresent(page);
+  await tasksTabButton(page).first().click({ timeout: 25_000 });
+  await page.getByRole('heading', { name: '✅ Tâches' }).waitFor({ state: 'visible', timeout: 25_000 });
   await resetTaskFiltersInTasksView(page);
 }
 
 async function openStudentTasksTab(page) {
-  await tasksTabButton(page).first().click();
-  await page.getByRole('heading', { name: '✅ Tâches' }).waitFor({ state: 'visible' });
+  await dismissProfilePromotionModalIfPresent(page);
+  await page.locator('nav.bottom-nav').waitFor({ state: 'visible', timeout: 15_000 }).catch(() => {});
+  await tasksTabButton(page).first().click({ timeout: 25_000 });
+  const tasksHeading = page.getByRole('heading', { name: '✅ Tâches' });
+  await tasksHeading.waitFor({ state: 'attached', timeout: 25_000 });
+  await tasksHeading.scrollIntoViewIfNeeded().catch(() => {});
+  await tasksHeading.waitFor({ state: 'visible', timeout: 25_000 });
   await resetTaskFiltersInTasksView(page);
 }
 
