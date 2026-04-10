@@ -8,7 +8,48 @@ let stack = [];
 let ignorePopCount = 0;
 let listening = false;
 
+/**
+ * Sur mobile, l’ouverture de la caméra / du sélecteur fichier peut provoquer un ou plusieurs
+ * `popstate` au retour dans la page ; sans garde, la pile des surcouches appelle `onClose`
+ * et la modale se ferme avant l’événement `change` de l’input file.
+ */
+let nativePickerGuard = { active: false, budget: 0, timeoutId: null };
+
+function clearNativePickerTimeout() {
+  if (nativePickerGuard.timeoutId != null) {
+    clearTimeout(nativePickerGuard.timeoutId);
+    nativePickerGuard.timeoutId = null;
+  }
+}
+
+/** À appeler après fermeture du sélecteur (change sur l’input, ou file manquant). */
+export function disarmNativeFilePickerGuard() {
+  nativePickerGuard.active = false;
+  nativePickerGuard.budget = 0;
+  clearNativePickerTimeout();
+}
+
+/**
+ * À appeler juste avant `input.click()` sur un file picker (galerie / APN).
+ * Ignore jusqu’à 2 `popstate` tant que la garde est active, puis désarme au focus fenêtre ou timeout.
+ */
+export function armNativeFilePickerGuard() {
+  if (typeof window === 'undefined') return;
+  disarmNativeFilePickerGuard();
+  nativePickerGuard.active = true;
+  nativePickerGuard.budget = 2;
+  const onFocus = () => {
+    window.setTimeout(() => disarmNativeFilePickerGuard(), 350);
+  };
+  window.addEventListener('focus', onFocus, { once: true });
+  nativePickerGuard.timeoutId = window.setTimeout(() => disarmNativeFilePickerGuard(), 15000);
+}
+
 function onPopState() {
+  if (nativePickerGuard.active && nativePickerGuard.budget > 0) {
+    nativePickerGuard.budget -= 1;
+    return;
+  }
   if (ignorePopCount > 0) {
     ignorePopCount -= 1;
     return;

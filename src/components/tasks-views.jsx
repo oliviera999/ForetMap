@@ -12,6 +12,7 @@ import { HelpPanel } from './HelpPanel';
 import { ContextComments } from './context-comments';
 import { HELP_PANELS, HELP_TOOLTIPS, resolveRoleText } from '../constants/help';
 import { lockBodyScroll } from '../utils/body-scroll-lock';
+import { armNativeFilePickerGuard, disarmNativeFilePickerGuard } from '../utils/overlayHistory';
 import { isStudentAssignedToTask } from '../utils/task-assignments';
 import { orderedLivingBeingsForForm, nextLivingBeingsFromMultiSelect, formatLivingBeingsListLine } from '../utils/livingBeings';
 
@@ -406,6 +407,7 @@ function TaskFormModal({
   };
 
   const onTaskImageFile = async (e) => {
+    disarmNativeFilePickerGuard();
     const file = e.target.files?.[0];
     e.target.value = '';
     if (!file) return;
@@ -601,6 +603,7 @@ function TaskFormModal({
                   onClick={() => {
                     if (taskImageBusy) return;
                     if (taskImageGalleryInputRef.current) taskImageGalleryInputRef.current.value = '';
+                    armNativeFilePickerGuard();
                     taskImageGalleryInputRef.current?.click();
                   }}
                 >
@@ -613,6 +616,7 @@ function TaskFormModal({
                   onClick={() => {
                     if (taskImageBusy) return;
                     if (taskImageCameraInputRef.current) taskImageCameraInputRef.current.value = '';
+                    armNativeFilePickerGuard();
                     taskImageCameraInputRef.current?.click();
                   }}
                 >
@@ -2735,6 +2739,7 @@ function LogModal({ task, student, onClose, onDone, onForceLogout }) {
   }, [comment, task?.id]);
 
   const handleFile = async (e) => {
+    disarmNativeFilePickerGuard();
     const file = e.target.files?.[0];
     e.target.value = '';
     if (!file) return;
@@ -2808,6 +2813,7 @@ function LogModal({ task, student, onClose, onDone, onForceLogout }) {
                   className="btn btn-secondary btn-sm"
                   onClick={() => {
                     if (galleryInputRef.current) galleryInputRef.current.value = '';
+                    armNativeFilePickerGuard();
                     galleryInputRef.current?.click();
                   }}
                 >
@@ -2818,6 +2824,7 @@ function LogModal({ task, student, onClose, onDone, onForceLogout }) {
                   className="btn btn-secondary btn-sm"
                   onClick={() => {
                     if (cameraInputRef.current) cameraInputRef.current.value = '';
+                    armNativeFilePickerGuard();
                     cameraInputRef.current?.click();
                   }}
                 >
