@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { api, AccountDeletedError, withAppBase } from '../services/api';
 import { compressImage } from '../utils/image';
 import { MARKER_EMOJIS, parseEmojiListSetting, detectLeadingMarkerEmoji, stripLeadingMarkerEmoji } from '../constants/emojis';
@@ -11,6 +11,7 @@ import { getContentText } from '../utils/content';
 import { resolveMapOverlayTypography } from '../utils/mapOverlayTypography';
 import { TutorialReadAcknowledgeButton, fetchTutorialReadIds } from './TutorialReadAcknowledge';
 import { useOverlayHistoryBack } from '../hooks/useOverlayHistoryBack';
+import { computeMapImageContainRect } from '../utils/mapImageFit';
 
 function parsePctPoints(raw) {
   try {
@@ -46,21 +47,6 @@ function visitZoneSvgTextUniformYTransform(cx, cy, fitW, fitH) {
   const r = fitW / fitH;
   if (Math.abs(r - 1) < 0.0005) return undefined;
   return `translate(${cx},${cy}) scale(1,${r}) translate(${-cx},${-cy})`;
-}
-
-/** Rectangle (px, espace « monde » carte visite) où l’image est réellement dessinée après object-fit: contain — aligné sur MapView. */
-function computeVisitMapFitRect(nw, nh, cw, ch) {
-  const boxW = Math.max(1, cw);
-  const boxH = Math.max(1, ch);
-  if (!nw || !nh) {
-    return { offsetX: 0, offsetY: 0, width: boxW, height: boxH };
-  }
-  const scale = Math.min(boxW / nw, boxH / nh);
-  const width = nw * scale;
-  const height = nh * scale;
-  const offsetX = (boxW - width) / 2;
-  const offsetY = (boxH - height) / 2;
-  return { offsetX, offsetY, width, height };
 }
 
 function pointToPct(event, stageEl, transform = { x: 0, y: 0, s: 1 }, fit = null) {
@@ -615,6 +601,7 @@ function VisitView({
   const imgRef = useRef(null);
   const [visitImgNatural, setVisitImgNatural] = useState({ w: 0, h: 0 });
   const [visitMapFit, setVisitMapFit] = useState({ offsetX: 0, offsetY: 0, width: 0, height: 0 });
+  const visitMapImageReady = visitImgNatural.w > 0 && visitImgNatural.h > 0;
   const canPanAndZoom = mode === 'view';
 
   /** Tailles emoji / libellé zone en unités SVG (viewBox 0–100), alignées sur `resolveMapOverlayTypography` + largeur calque carte. */
@@ -734,10 +721,19 @@ function VisitView({
     skipClickRef.current = false;
     dragRef.current.active = false;
     dragRef.current.moved = false;
+    setDrawPoints([]);
+    setMode('view');
   }, [mapId, resetMapTransform]);
 
-  useEffect(() => {
-    setVisitImgNatural({ w: 0, h: 0 });
+  /** Dimensions naturelles : synchro cache (complete) + reset si pas encore décodé (évite % faux avant onLoad). */
+  useLayoutEffect(() => {
+    const el = imgRef.current;
+    if (!el) return;
+    if (el.complete && el.naturalWidth > 0 && el.naturalHeight > 0) {
+      setVisitImgNatural({ w: el.naturalWidth, h: el.naturalHeight });
+    } else {
+      setVisitImgNatural({ w: 0, h: 0 });
+    }
   }, [visitMapImageSrc]);
 
   useEffect(() => {
@@ -748,7 +744,7 @@ function VisitView({
       const ch = Math.max(1, stage.clientHeight);
       const nw = visitImgNatural.w;
       const nh = visitImgNatural.h;
-      setVisitMapFit(computeVisitMapFitRect(nw, nh, cw, ch));
+      setVisitMapFit(computeMapImageContainRect(nw, nh, cw, ch));
     };
     run();
     const ro = new ResizeObserver(() => run());
@@ -797,7 +793,7 @@ function VisitView({
   };
 
   const createZoneFromPoints = async () => {
-    if (drawPoints.length < 3) return;
+    if (!visitMapImageReady || drawPoints.length < 3) return;
     const name = prompt('Titre de la zone de visite ?');
     if (!name || !name.trim()) return;
     setCreating(true);
@@ -821,6 +817,7 @@ function VisitView({
   const onMapClick = async (event) => {
     if (consumeSkipClick()) return;
     if (!isTeacher || mode === 'view') return;
+    if (!visitMapImageReady) return;
     const stage = event.currentTarget;
     const p = pointToPct(event, stage, mapTransform, visitMapFit);
     if (!p) return;
@@ -1068,15 +1065,32 @@ function VisitView({
         </p>
       )}
 
+      {isTeacher && !visitMapImageReady && !loading && (
+        <p className="section-sub visit-map-image-hint" style={{ margin: '0 0 8px' }}>
+          Chargement du plan… Les outils zone et repère sont disponibles une fois l’image affichée (coordonnées précises).
+        </p>
+      )}
       {isTeacher && (
         <div className="visit-map-switch">
           <button className={`btn btn-sm ${mode === 'view' ? 'btn-primary' : 'btn-ghost'}`} onClick={() => { setMode('view'); setDrawPoints([]); }}>
             🖐️ Navigation
           </button>
-          <button className={`btn btn-sm ${mode === 'draw-zone' ? 'btn-primary' : 'btn-ghost'}`} onClick={() => setMode('draw-zone')}>
+          <button
+            type="button"
+            className={`btn btn-sm ${mode === 'draw-zone' ? 'btn-primary' : 'btn-ghost'}`}
+            disabled={!visitMapImageReady}
+            title={!visitMapImageReady ? 'Disponible dès que le plan est chargé.' : undefined}
+            onClick={() => setMode('draw-zone')}
+          >
             🖊️ Zone visite
           </button>
-          <button className={`btn btn-sm ${mode === 'add-marker' ? 'btn-primary' : 'btn-ghost'}`} onClick={() => setMode('add-marker')}>
+          <button
+            type="button"
+            className={`btn btn-sm ${mode === 'add-marker' ? 'btn-primary' : 'btn-ghost'}`}
+            disabled={!visitMapImageReady}
+            title={!visitMapImageReady ? 'Disponible dès que le plan est chargé.' : undefined}
+            onClick={() => setMode('add-marker')}
+          >
             📍 Repère visite
           </button>
           {mode === 'draw-zone' && (
@@ -1119,7 +1133,10 @@ function VisitView({
             onTouchMove={onStageTouchMove}
             onTouchEnd={onStageTouchEnd}
             style={{
-              cursor: isTeacher && mode !== 'view' ? 'crosshair' : (canPanAndZoom ? 'grab' : 'default'),
+              cursor:
+                isTeacher && mode !== 'view' && !visitMapImageReady ? 'wait'
+                  : isTeacher && mode !== 'view' ? 'crosshair'
+                    : (canPanAndZoom ? 'grab' : 'default'),
               touchAction: canPanAndZoom ? 'none' : 'auto',
             }}
           >
@@ -1307,6 +1324,36 @@ function VisitView({
           ) : (
             <div>
               <h3>{selectedType === 'zone' ? selected.name : selected.label}</h3>
+              {selectedType === 'zone' && selected.description && (
+                <div
+                  style={{
+                    background: '#f0fdf4',
+                    borderRadius: 10,
+                    padding: '10px 14px',
+                    marginBottom: 12,
+                    border: '1px solid var(--mint)',
+                    fontSize: '.88rem',
+                    color: '#333',
+                    lineHeight: 1.6,
+                  }}>
+                  {selected.description}
+                </div>
+              )}
+              {selectedType === 'marker' && selected.note && (
+                <div
+                  style={{
+                    background: '#f0fdf4',
+                    borderRadius: 10,
+                    padding: '10px 14px',
+                    marginBottom: 12,
+                    border: '1px solid var(--mint)',
+                    fontSize: '.88rem',
+                    color: '#333',
+                    lineHeight: 1.6,
+                  }}>
+                  {selected.note}
+                </div>
+              )}
               {selected.visit_subtitle && <p className="visit-subtitle">{selected.visit_subtitle}</p>}
               {selected.visit_short_description && <p>{selected.visit_short_description}</p>}
               {selected.visit_details_text && (
