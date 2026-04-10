@@ -152,24 +152,20 @@ function LivingBeingsCatalogPanel({ plants, names, showHeading = true }) {
         role="group"
         aria-label="Sélection d’un être vivant pour la fiche catalogue"
       >
-        {list.map((name, i) => {
+        {list.map((name) => {
           const isSel = selectedName === name;
-          const isPrimary = i === 0;
           return (
             <button
               type="button"
               key={name}
               className="task-chip living-being-catalog-chip"
               aria-pressed={isSel}
-              title={isPrimary ? 'Être vivant principal (carte et fiches)' : undefined}
               onClick={() => setSelectedName(name)}
               style={{
-                fontWeight: isPrimary ? 700 : 500,
+                fontWeight: 500,
                 border: isSel
                   ? '2px solid var(--forest)'
-                  : isPrimary
-                    ? '1px solid var(--forest)'
-                    : '1px solid rgba(0,0,0,.12)',
+                  : '1px solid rgba(0,0,0,.12)',
                 cursor: 'pointer',
                 fontFamily: 'inherit',
                 background: isSel ? 'rgba(26, 71, 49, 0.08)' : undefined,
@@ -554,7 +550,8 @@ function ZoneInfoModal({ zone, plants, tasks, tutorials = [], isTeacher, student
   const [toast, setToast] = useState(null);
 
   const displayStage = zone.special ? 'special' : zone.stage;
-  const plantObj = plants.find(p => p.name === zone.current_plant);
+  const zoneLivingNames = orderedLivingBeingsForForm(zone.living_beings_list || zone.living_beings, zone.current_plant);
+  const plantObj = plants.find((p) => p.name === zoneLivingNames[0]);
   const taskMapId = (t) => t.map_id_resolved || t.map_id || t.zone_map_id || t.marker_map_id || null;
   const linkedTasks = (tasks || []).filter((t) => (
     taskLocationIds(t).zoneIds.includes(zone.id) && !isTaskDetachedFromLocation(t)
@@ -620,7 +617,7 @@ function ZoneInfoModal({ zone, plants, tasks, tutorials = [], isTeacher, student
     try {
       await onUpdate(zone.id, {
         name: `${prefixEmoji} ${cleanName}`.trim(),
-        current_plant: livingBeings[0] || '',
+        current_plant: '',
         living_beings: livingBeings,
         stage,
         description: desc,
@@ -661,7 +658,7 @@ function ZoneInfoModal({ zone, plants, tasks, tutorials = [], isTeacher, student
           <span style={{ fontSize: '1.8rem' }}>
             {zone.special
               ? (String(zone.id || '').includes('ruche') ? '🐝' : String(zone.id || '').includes('mare') ? '💧' : String(zone.id || '').includes('butte') ? '🌸' : '🏛️')
-              : (plantObj?.emoji || (zone.current_plant ? '🌱' : '🪨'))
+              : (plantObj?.emoji || (zoneLivingNames.length ? '🌱' : '🪨'))
             }
           </span>
           <div style={{ flex: 1, minWidth: 0 }}>
@@ -795,8 +792,8 @@ function ZoneInfoModal({ zone, plants, tasks, tutorials = [], isTeacher, student
             </div>
             <div className="field"><label>Êtres vivants</label>
               <p style={{ fontSize: '.76rem', color: '#64748b', margin: '0 0 8px', lineHeight: 1.45 }}>
-                Maintenez Ctrl (Windows) ou Cmd (Mac) pour en choisir plusieurs. Le premier de la liste sert d’être vivant principal
-                (affichage sur la carte, fiche, historique des cultures lors d’un changement).
+                Maintenez Ctrl (Windows) ou Cmd (Mac) pour en choisir plusieurs. L’ordre de la liste est conservé pour l’affichage.
+                Retirer un être vivant de la liste peut l’enregistrer dans l’historique des cultures.
               </p>
               <select
                 multiple
@@ -1124,7 +1121,7 @@ function ZoneDrawModal({ points_pct, onClose, onSave, plants, markerEmojis = MAR
         ...rest,
         name: `${prefixEmoji} ${cleanName}`.trim(),
         points: points_pct,
-        current_plant: living[0] || '',
+        current_plant: '',
         living_beings: living,
       });
       onClose();
@@ -1150,7 +1147,7 @@ function ZoneDrawModal({ points_pct, onClose, onSave, plants, markerEmojis = MAR
         <div className="row">
           <div className="field" style={{ flex: 1, minWidth: 0 }}><label>Êtres vivants</label>
             <p style={{ fontSize: '.74rem', color: '#64748b', margin: '0 0 6px', lineHeight: 1.4 }}>
-              Ctrl / Cmd + clic pour plusieurs. Le premier détermine l’être vivant principal.
+              Ctrl / Cmd + clic pour plusieurs ; l’ordre choisi est conservé.
             </p>
             <select
               multiple
@@ -1350,7 +1347,7 @@ function MarkerModal({
       ...form,
       emoji: emojiVal,
       living_beings: living,
-      plant_name: living[0] || '',
+      plant_name: '',
       visit_subtitle: form.visit_subtitle,
       visit_short_description: form.visit_short_description,
       visit_details_title: form.visit_details_title,
@@ -1415,7 +1412,7 @@ function MarkerModal({
               </div>
               <div className="field"><label>Êtres vivants</label>
                 <p style={{ fontSize: '.76rem', color: '#64748b', margin: '0 0 8px', lineHeight: 1.45 }}>
-                  Ctrl / Cmd + clic pour plusieurs. Le premier de la liste est l’être vivant principal du repère.
+                  Ctrl / Cmd + clic pour plusieurs ; l’ordre choisi est conservé.
                 </p>
                 <select
                   multiple
@@ -1851,7 +1848,7 @@ function MarkerModal({
             </div>
             <div className="field"><label>Êtres vivants</label>
               <p style={{ fontSize: '.76rem', color: '#64748b', margin: '0 0 8px', lineHeight: 1.45 }}>
-                Ctrl / Cmd + clic pour plusieurs. Le premier de la liste est l’être vivant principal du repère.
+                Ctrl / Cmd + clic pour plusieurs ; l’ordre choisi est conservé.
               </p>
               <select
                 multiple
@@ -2660,7 +2657,7 @@ function MapView({ zones, markers, tasks = [], tutorials = [], plants, maps = []
       name: `${z.name || 'Zone'} (copie)`,
       points: shifted,
       color: z.color || '#86efac80',
-      current_plant: living[0] || '',
+      current_plant: '',
       living_beings: living,
       stage: z.stage || 'empty',
       map_id: z.map_id || activeMapId,
@@ -2683,7 +2680,7 @@ function MapView({ zones, markers, tasks = [], tutorials = [], plants, maps = []
       x_pct: nx,
       y_pct: ny,
       label: `${baseLabel} (copie)`,
-      plant_name: living[0] || '',
+      plant_name: '',
       living_beings: living,
       note: m.note || '',
       emoji: m.emoji || '🌱',

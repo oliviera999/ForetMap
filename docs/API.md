@@ -275,9 +275,10 @@ Contenus éditables du site (micro-CMS texte brut) :
 | DELETE | `/api/zones/:id/photos/:pid` | oui | Supprimer photo |
 
 - Le champ `name` peut commencer par un **emoji de zone** : préfixe (séquence emoji) suivi d’un **espace** puis le libellé ; l’UI carte accepte tout pictogramme collé ou choisi dans la grille.
-- **`POST /api/zones`** : corps JSON `name`, `points` (≥ 3 sommets `{ xp, yp }` en pourcentage de l’image), `map_id` ; optionnellement `color`, `current_plant`, `living_beings`, `stage`, **`description`** (texte, chaîne vide si absent).
-- **`GET /api/zones`** et **`GET /api/zones/:id`** : chaque zone inclut en plus (si une ligne existe dans `visit_zones` avec le même `id`, ex. après sync carte → visite) : **`visit_subtitle`**, **`visit_short_description`**, **`visit_details_title`**, **`visit_details_text`** (sinon `null`).
+- **`POST /api/zones`** : corps JSON `name`, `points` (≥ 3 sommets `{ xp, yp }` en pourcentage de l’image), `map_id` ; optionnellement `color`, **`living_beings`** (tableau de noms du catalogue, ordre conservé), `current_plant` (colonne legacy, ignorée en persistance si `living_beings` est non vide — alors `current_plant` est stocké vide), `stage`, **`description`** (texte, chaîne vide si absent).
+- **`GET /api/zones`** et **`GET /api/zones/:id`** : chaque zone expose **`living_beings_list`** (tableau dérivé de `living_beings` JSON, ordre conservé). La colonne brute `living_beings` n’est pas renvoyée. **`current_plant`** reste en réponse pour compatibilité mais est vide dès qu’au moins un être vivant est listé dans `living_beings_list`.
 - **`PUT /api/zones/:id`** : si le corps contient au moins une des clés **`visit_subtitle`**, **`visit_short_description`**, **`visit_details_title`**, **`visit_details_text`**, une ligne **`visit_zones`** est créée ou mise à jour pour ce même `id` (textes visite alignés sur le mode visite), sans modifier `is_active` / `sort_order` d’une ligne déjà présente.
+- **Historique cultures** (`zone_history`) : si le corps contient **`living_beings`**, une ligne est ajoutée lorsque l’ancienne valeur de **`current_plant`** en base était non vide et **n’apparaît plus** dans la nouvelle liste (être vivant retiré). Si seul **`current_plant`** est modifié dans le corps (sans `living_beings`), le comportement historique reste aligné sur le changement explicite de ce champ.
 
 ---
 
@@ -294,8 +295,8 @@ Contenus éditables du site (micro-CMS texte brut) :
 | POST | `/api/map/markers/:id/photos` | oui | Ajouter photo (`image_data` base64, `caption`) — même principe que les zones |
 | DELETE | `/api/map/markers/:id/photos/:pid` | oui | Supprimer photo |
 
-- Corps JSON : notamment `emoji` (pictogramme du repère). Valeur **tronquée à 16 caractères** côté serveur si besoin (colonne `map_markers.emoji`).
-- **`GET /api/map/markers`** : chaque repère inclut en plus (si une ligne existe dans `visit_markers` avec le même `id`) : **`visit_subtitle`**, **`visit_short_description`**, **`visit_details_title`**, **`visit_details_text`** (sinon `null`).
+- Corps JSON : notamment `emoji` (pictogramme du repère). Valeur **tronquée à 16 caractères** côté serveur si besoin (colonne `map_markers.emoji`). **`living_beings`** : tableau de noms (ordre conservé) ; **`plant_name`** est une colonne legacy laissée **vide** dès que la liste est non vide (comme **`current_plant`** pour les zones).
+- **`GET /api/map/markers`** : chaque repère inclut **`living_beings_list`** (même principe que les zones ; **`plant_name`** vide si la liste est non vide) et, si une ligne existe dans `visit_markers` avec le même `id`, **`visit_subtitle`**, **`visit_short_description`**, **`visit_details_title`**, **`visit_details_text`** (sinon `null` pour ces champs visite).
 - **`POST`** / **`PUT /api/map/markers/:id`** : si le corps contient au moins une des clés **`visit_subtitle`**, **`visit_short_description`**, **`visit_details_title`**, **`visit_details_text`**, une ligne **`visit_markers`** est créée ou mise à jour pour ce même `id`, sans modifier `is_active` / `sort_order` d’une ligne déjà présente.
 
 ---

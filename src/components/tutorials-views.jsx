@@ -2,6 +2,14 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { api, AccountDeletedError } from '../services/api';
 import { useOverlayHistoryBack } from '../hooks/useOverlayHistoryBack';
 import { TutorialReadAcknowledgeButton, fetchTutorialReadIds } from './TutorialReadAcknowledge';
+import { orderedLivingBeingsForForm, formatLivingBeingsListLine } from '../utils/livingBeings';
+
+function tutorialZonePickLabel(z) {
+  const line = formatLivingBeingsListLine(
+    orderedLivingBeingsForForm(z.living_beings_list || z.living_beings, z.current_plant),
+  );
+  return line ? `${z.name} — ${line}` : z.name;
+}
 
 function sortTutorialsByOrder(list) {
   return [...list].sort(
@@ -573,7 +581,7 @@ function TutorialsView({ tutorials, isTeacher, onRefresh, onForceLogout, zones =
                             checked={(form.zone_ids || []).map(String).includes(String(z.id))}
                             onChange={() => toggleZoneId(z.id)}
                           />
-                          <span className="task-form-pick-text">{z.name}{z.current_plant ? ` — ${z.current_plant}` : ''}</span>
+                          <span className="task-form-pick-text">{tutorialZonePickLabel(z)}</span>
                         </label>
                       ))}
                     </>

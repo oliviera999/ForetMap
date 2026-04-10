@@ -222,7 +222,7 @@ router.post('/markers', requirePermission('map.manage_markers', { needsElevation
     if (!(await mapExists(mapId))) return res.status(400).json({ error: 'Carte introuvable' });
     if (!label?.trim()) return res.status(400).json({ error: 'Label requis' });
     const nextLiving = normalizeLivingBeings(living_beings, plant_name);
-    const nextPlantName = (plant_name || nextLiving[0] || '').trim();
+    const nextPlantName = nextLiving.length > 0 ? '' : String(plant_name || '').trim();
     const id = uuidv4();
     await execute(
       'INSERT INTO map_markers (id, map_id, x_pct, y_pct, label, plant_name, living_beings, note, emoji, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
@@ -255,10 +255,14 @@ router.put('/markers/:id', requirePermission('map.manage_markers', { needsElevat
       if (!(await mapExists(mapId))) return res.status(400).json({ error: 'Carte introuvable' });
     }
     const existingLiving = normalizeLivingBeings(m.living_beings, m.plant_name);
-    const nextLiving = living_beings !== undefined ? normalizeLivingBeings(living_beings, plant_name ?? m.plant_name) : existingLiving;
-    const nextPlantName = plant_name !== undefined
-      ? (plant_name || nextLiving[0] || '')
-      : (nextLiving[0] || m.plant_name || '');
+    const nextLiving = living_beings !== undefined
+      ? normalizeLivingBeings(living_beings, '')
+      : existingLiving;
+    const nextPlantName = nextLiving.length > 0
+      ? ''
+      : (plant_name !== undefined
+        ? String(plant_name || '').trim()
+        : String(m.plant_name || '').trim());
     await execute(
       'UPDATE map_markers SET map_id=?, x_pct=?, y_pct=?, label=?, plant_name=?, living_beings=?, note=?, emoji=? WHERE id=?',
       [
