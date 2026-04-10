@@ -13,6 +13,7 @@ import { TutorialReadAcknowledgeButton, fetchTutorialReadIds } from './TutorialR
 import { useOverlayHistoryBack } from '../hooks/useOverlayHistoryBack';
 import { computeMapImageContainRect } from '../utils/mapImageFit';
 import { parseVisitZonePoints as parsePctPoints, visitZoneCentroidPct } from '../utils/visitMapGeometry.js';
+import { VisitMapMascotLottie } from './VisitMapMascotLottie.jsx';
 
 const VISIT_MAP_MASCOT_MOVE_MS = 560;
 
@@ -1292,16 +1293,15 @@ function VisitView({
                     style={{ left: `${visitMapMascotPct.xp}%`, top: `${visitMapMascotPct.yp}%` }}
                     aria-hidden="true"
                   >
-                    <span
+                    <div
                       className="visit-map-mascot-inner"
                       style={{ transform: `translate(-50%, -100%) scaleX(${visitMapMascotFaceRight ? 1 : -1})` }}
                     >
-                      <span
-                        className={`visit-map-mascot-sprite${visitMapMascotWalking ? ' visit-map-mascot-sprite--bob' : ''}`}
-                      >
-                        🌱
-                      </span>
-                    </span>
+                      <VisitMapMascotLottie
+                        walking={visitMapMascotWalking}
+                        prefersReducedMotion={prefersReducedMotion}
+                      />
+                    </div>
                   </div>
                 ) : null}
 
