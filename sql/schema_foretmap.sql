@@ -168,6 +168,7 @@ CREATE TABLE IF NOT EXISTS tutorials (
   slug VARCHAR(190) NOT NULL,
   type VARCHAR(16) NOT NULL DEFAULT 'html',
   summary TEXT DEFAULT NULL,
+  cover_image_url VARCHAR(512) DEFAULT NULL,
   html_content LONGTEXT DEFAULT NULL,
   source_url TEXT DEFAULT NULL,
   source_file_path VARCHAR(512) DEFAULT NULL,

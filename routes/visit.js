@@ -326,7 +326,7 @@ router.get('/content', async (req, res) => {
 
     const tutorials = await queryAll(
       `SELECT
-         t.id, t.title, t.slug, t.type, t.summary, t.source_url, t.source_file_path,
+         t.id, t.title, t.slug, t.type, t.summary, t.cover_image_url, t.source_url, t.source_file_path,
          vt.sort_order
        FROM visit_tutorials vt
        JOIN tutorials t ON t.id = vt.tutorial_id

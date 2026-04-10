@@ -1,7 +1,7 @@
 import React, { lazy, Suspense, useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { api, AccountDeletedError, withAppBase } from '../services/api';
 import { compressImage } from '../utils/image';
-import { MARKER_EMOJIS, parseEmojiListSetting, stripLeadingMarkerEmoji } from '../constants/emojis';
+import { MARKER_EMOJIS, parseEmojiListSetting, detectLeadingMarkerEmoji, stripLeadingMarkerEmoji } from '../constants/emojis';
 import { getRoleTerms } from '../utils/n3-terminology';
 import { useHelp } from '../hooks/useHelp';
 import { HelpPanel } from './HelpPanel';
@@ -13,6 +13,7 @@ import { TutorialReadAcknowledgeButton, fetchTutorialReadIds } from './TutorialR
 import { useOverlayHistoryBack } from '../hooks/useOverlayHistoryBack';
 import { computeMapImageContainRect } from '../utils/mapImageFit';
 import { parseVisitZonePoints as parsePctPoints, visitZoneCentroidPct } from '../utils/visitMapGeometry.js';
+import { wheelZoomScaleFactor } from '../utils/mapWheelZoom';
 
 const VisitMapMascotLottie = lazy(() => import('./VisitMapMascotLottie.jsx'));
 
@@ -261,11 +262,9 @@ function VisitEditorPanel({ selected, selectedType, onSaved, onForceLogout, isTe
   const tooltipText = (entry) => resolveRoleText(entry, true);
 
   useEffect(() => {
-    const rawTitle = selectedType === 'zone' ? (selected?.name || '') : (selected?.label || '');
-    const nextTitle =
-      selectedType === 'zone'
-        ? stripLeadingMarkerEmoji(String(rawTitle || '').trim(), markerEmojis) || String(rawTitle || '').trim()
-        : String(rawTitle || '');
+    const nextTitle = selectedType === 'zone' ? (selected?.name || '') : (selected?.label || '');
+    const trimmedTitle = String(nextTitle || '').trim();
+    const detectedZoneEmoji = detectLeadingMarkerEmoji(trimmedTitle, markerEmojis);
     setForm({
       title: nextTitle,
       subtitle: selected?.visit_subtitle || '',
@@ -274,7 +273,7 @@ function VisitEditorPanel({ selected, selectedType, onSaved, onForceLogout, isTe
       details_text: selected?.visit_details_text || '',
       sort_order: Number(selected?.visit_sort_order || 0),
       is_active: Number(selected?.visit_is_active ?? 1) === 1,
-      emoji: selectedType === 'zone' ? (markerEmojis[0] || '📍') : (selected?.emoji || markerEmojis[0] || '📍'),
+      emoji: selectedType === 'zone' ? (detectedZoneEmoji || markerEmojis[0] || '📍') : (selected?.emoji || markerEmojis[0] || '📍'),
     });
     setMediaUrl('');
     setMediaCaption('');
@@ -411,23 +410,31 @@ function VisitEditorPanel({ selected, selectedType, onSaved, onForceLogout, isTe
           </label>
         </div>
       </div>
-      {selectedType !== 'zone' ? (
-        <div className="field">
-          <label>Emoji du repère</label>
-          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-            {markerEmojis.map((emoji) => (
-              <button
-                key={emoji}
-                type="button"
-                className={`emoji-btn ${form.emoji === emoji ? 'sel' : ''}`}
-                onClick={() => setForm((f) => ({ ...f, emoji }))}
-              >
-                {emoji}
-              </button>
-            ))}
-          </div>
+      <div className="field">
+        <label>{selectedType === 'zone' ? 'Liste d’emojis (insérer dans le titre de zone)' : 'Emoji du repère'}</label>
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+          {markerEmojis.map((emoji) => (
+            <button
+              key={emoji}
+              type="button"
+              className={`emoji-btn ${form.emoji === emoji ? 'sel' : ''}`}
+              onClick={() => {
+                if (selectedType === 'zone') {
+                  setForm((f) => ({
+                    ...f,
+                    emoji,
+                    title: `${emoji} ${stripLeadingMarkerEmoji(f.title, markerEmojis)}`.trim(),
+                  }));
+                  return;
+                }
+                setForm((f) => ({ ...f, emoji }));
+              }}
+            >
+              {emoji}
+            </button>
+          ))}
         </div>
-      ) : null}
+      </div>
       <button className="btn btn-primary btn-sm" disabled={saving} onClick={save}>
         {saving ? 'Enregistrement...' : '💾 Sauver'}
       </button>
@@ -561,6 +568,9 @@ function VisitView({
     midY: 0,
   });
   const [mapTransform, setMapTransform] = useState({ x: 0, y: 0, s: 1 });
+  const mapTransformRef = useRef(mapTransform);
+  mapTransformRef.current = mapTransform;
+  const visitZoomAnimRafRef = useRef(null);
   const [visitMapMascotPct, setVisitMapMascotPct] = useState({ xp: 50, yp: 50 });
   const [visitMapMascotFaceRight, setVisitMapMascotFaceRight] = useState(true);
   const [visitMapMascotWalking, setVisitMapMascotWalking] = useState(false);
@@ -636,7 +646,7 @@ function VisitView({
   const visitMapImageReady = visitImgNatural.w > 0 && visitImgNatural.h > 0;
   const canPanAndZoom = mode === 'view';
 
-  /** Taille libellé zone en unités SVG (viewBox 0–100), alignée sur `resolveMapOverlayTypography` + largeur calque carte. */
+  /** Tailles emoji / libellé zone en unités SVG (viewBox 0–100), alignées sur `resolveMapOverlayTypography` + largeur calque carte. */
   const visitZoneSvgTypography = useMemo(() => {
     const mapSettings =
       publicSettings?.map && typeof publicSettings.map === 'object' ? publicSettings.map : null;
@@ -645,7 +655,9 @@ function VisitView({
     const inv = 1 / Math.max(mapTransform.s, 0.12);
     const t = resolveMapOverlayTypography(mapSettings, inv);
     return {
+      emojiU: t.mapEmojiFontPx * uPerPx,
       labelU: t.mapLabelFontPx * uPerPx,
+      gapU: t.mapEmojiLabelCenterGap * uPerPx,
       strokeU: Math.max(0.06, 3 * inv * uPerPx),
     };
   }, [publicSettings, visitMapFit.width, mapTransform.s]);
@@ -662,6 +674,13 @@ function VisitView({
     const x = Math.min(0, Math.max(minX, Number(next?.x) || 0));
     const y = Math.min(0, Math.max(minY, Number(next?.y) || 0));
     return { x, y, s: safeScale };
+  }, []);
+
+  const cancelVisitZoomAnim = useCallback(() => {
+    if (visitZoomAnimRafRef.current != null) {
+      cancelAnimationFrame(visitZoomAnimRafRef.current);
+      visitZoomAnimRafRef.current = null;
+    }
   }, []);
 
   const zoomAroundClientPoint = useCallback((clientX, clientY, factor) => {
@@ -682,18 +701,59 @@ function VisitView({
     });
   }, [clampTransform]);
 
-  const zoomFromCenter = useCallback((factor) => {
+  /** Boutons +/− : interpolation courte ; molette : `wheelZoomScaleFactor`. */
+  const zoomFromCenterAnimated = useCallback((factor) => {
     const stage = stageRef.current;
     if (!stage) return;
     const rect = stage.getBoundingClientRect();
-    const centerX = rect.left + (rect.width / 2);
-    const centerY = rect.top + (rect.height / 2);
-    zoomAroundClientPoint(centerX, centerY, factor);
-  }, [zoomAroundClientPoint]);
+    if (!rect.width || !rect.height) return;
+    cancelVisitZoomAnim();
+    const px = rect.width / 2;
+    const py = rect.height / 2;
+    const start = { ...mapTransformRef.current };
+    const nextScale = Math.max(1, Math.min(6, start.s * factor));
+    const target = clampTransform({
+      s: nextScale,
+      x: px - (px - start.x) * (nextScale / start.s),
+      y: py - (py - start.y) * (nextScale / start.s),
+    }, rect);
+
+    if (prefersReducedMotion) {
+      setMapTransform(target);
+      return;
+    }
+
+    const duration = 200;
+    const fromS = start.s;
+    const fromX = start.x;
+    const fromY = start.y;
+    const toS = target.s;
+    const t0 = performance.now();
+    const easeOutCubic = (u) => 1 - (1 - u) ** 3;
+    const step = (now) => {
+      const t = Math.min(1, (now - t0) / duration);
+      const u = easeOutCubic(t);
+      const curS = fromS + (toS - fromS) * u;
+      const cur = clampTransform({
+        s: curS,
+        x: px - (px - fromX) * (curS / fromS),
+        y: py - (py - fromY) * (curS / fromS),
+      }, rect);
+      setMapTransform(cur);
+      if (t < 1) {
+        visitZoomAnimRafRef.current = requestAnimationFrame(step);
+      } else {
+        visitZoomAnimRafRef.current = null;
+        setMapTransform(target);
+      }
+    };
+    visitZoomAnimRafRef.current = requestAnimationFrame(step);
+  }, [clampTransform, prefersReducedMotion, cancelVisitZoomAnim]);
 
   const resetMapTransform = useCallback(() => {
+    cancelVisitZoomAnim();
     setMapTransform({ x: 0, y: 0, s: 1 });
-  }, []);
+  }, [cancelVisitZoomAnim]);
 
   const consumeSkipClick = useCallback(() => {
     if (!skipClickRef.current) return false;
@@ -800,8 +860,9 @@ function VisitView({
   }, []);
 
   useEffect(() => () => {
+    cancelVisitZoomAnim();
     if (visitMapMascotMoveTimeoutRef.current) clearTimeout(visitMapMascotMoveTimeoutRef.current);
-  }, []);
+  }, [cancelVisitZoomAnim]);
 
   const moveVisitMapMascotTo = useCallback(
     (xp, yp) => {
@@ -963,6 +1024,7 @@ function VisitView({
 
   const onStagePointerDown = (event) => {
     if (!canPanAndZoom) return;
+    cancelVisitZoomAnim();
     if (event.target.closest('.visit-map-controls') || event.target.closest('.visit-zone-hit') || event.target.closest('.visit-marker-btn')) return;
     const stage = stageRef.current;
     if (!stage) return;
@@ -1026,12 +1088,15 @@ function VisitView({
   const onStageWheel = (event) => {
     if (!canPanAndZoom) return;
     event.preventDefault();
-    const factor = event.deltaY > 0 ? 0.88 : 1.14;
+    cancelVisitZoomAnim();
+    const stage = stageRef.current;
+    const factor = wheelZoomScaleFactor(event, { containerClientHeight: stage?.clientHeight });
     zoomAroundClientPoint(event.clientX, event.clientY, factor);
   };
 
   const onStageTouchStart = (event) => {
     if (!canPanAndZoom) return;
+    cancelVisitZoomAnim();
     if (event.touches.length !== 2) return;
     const stage = stageRef.current;
     if (!stage) return;
@@ -1288,12 +1353,14 @@ function VisitView({
                     const isSeen = seen.has(itemSeenKey('zone', z.id));
                     const mx = points.reduce((s, pt) => s + pt.xp, 0) / points.length;
                     const my = points.reduce((s, pt) => s + pt.yp, 0) / points.length;
-                    const zoneName = stripLeadingMarkerEmoji(z.name || '', markerEmojis);
-                    const { labelU, strokeU } = visitZoneSvgTypography;
+                    const zoneEmoji = detectLeadingMarkerEmoji(z.name || '', markerEmojis);
+                    const zoneLabel = stripLeadingMarkerEmoji(z.name || '', markerEmojis);
+                    const { emojiU, labelU, gapU, strokeU } = visitZoneSvgTypography;
                     const fw = visitMapFit.width;
                     const fh = visitMapFit.height;
                     const titleY = my;
                     const titleUniform = visitZoneSvgTextUniformYTransform(mx, titleY, fw, fh);
+                    const showZoneLabel = Boolean(String(zoneLabel || '').trim() || z.name);
                     return (
                       <g
                         key={z.id}
@@ -1314,24 +1381,39 @@ function VisitView({
                           points={p}
                           className={`visit-zone-poly ${isSeen ? 'is-seen' : 'is-unseen'}`}
                         />
-                        {(zoneName || z.name) ? (
+                        {(zoneEmoji || showZoneLabel) ? (
                           <g transform={titleUniform}>
-                            <text
-                              x={mx}
-                              y={titleY}
-                              textAnchor="middle"
-                              dominantBaseline="middle"
-                              fontSize={labelU}
-                              fontWeight="700"
-                              fontFamily="DM Sans, sans-serif"
-                              fill="#1a4731"
-                              stroke="rgba(255,255,255,0.88)"
-                              strokeWidth={strokeU}
-                              paintOrder="stroke"
-                              className="visit-zone-label visit-zone-label--title"
-                            >
-                              {zoneName || z.name}
-                            </text>
+                            {zoneEmoji ? (
+                              <text
+                                x={mx}
+                                y={titleY}
+                                textAnchor="middle"
+                                dominantBaseline="middle"
+                                fontSize={emojiU}
+                                fontFamily="Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif"
+                                className="visit-zone-label visit-zone-label--emoji"
+                              >
+                                {zoneEmoji}
+                              </text>
+                            ) : null}
+                            {showZoneLabel ? (
+                              <text
+                                x={mx}
+                                y={titleY + (zoneEmoji ? gapU : 0)}
+                                textAnchor="middle"
+                                dominantBaseline="middle"
+                                fontSize={labelU}
+                                fontWeight="700"
+                                fontFamily="DM Sans, sans-serif"
+                                fill="#1a4731"
+                                stroke="rgba(255,255,255,0.88)"
+                                strokeWidth={strokeU}
+                                paintOrder="stroke"
+                                className="visit-zone-label visit-zone-label--title"
+                              >
+                                {zoneLabel || z.name}
+                              </text>
+                            ) : null}
                           </g>
                         ) : null}
                       </g>
@@ -1409,7 +1491,7 @@ function VisitView({
                 aria-label="Zoomer la carte de visite"
                 onClick={(event) => {
                   event.stopPropagation();
-                  zoomFromCenter(1.2);
+                  zoomFromCenterAnimated(1.2);
                 }}
               >
                 ＋
@@ -1420,7 +1502,7 @@ function VisitView({
                 aria-label="Dézoomer la carte de visite"
                 onClick={(event) => {
                   event.stopPropagation();
-                  zoomFromCenter(0.84);
+                  zoomFromCenterAnimated(0.84);
                 }}
               >
                 －

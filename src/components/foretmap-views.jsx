@@ -506,7 +506,7 @@ function PlantMetaSections({ plant }) {
 }
 
 // ── PLANT EDIT FORM (outside PlantManager to avoid remount on every keystroke) ──
-function PlantEditForm({ title, form, setForm, onSave, onCancel, saving, plantId, onToast }) {
+function PlantEditForm({ title, form, setForm, onSave, onCancel, saving, plantId, onToast, onEnsurePlantId = null }) {
   const set = k => e => setForm(f => ({...f, [k]: e.target.value}));
   const [uploadingField, setUploadingField] = useState('');
 
@@ -521,14 +521,18 @@ function PlantEditForm({ title, form, setForm, onSave, onCancel, saving, plantId
 
   const uploadPhoto = async (field, file) => {
     if (!file) return;
-    if (!plantId) {
+    let targetId = plantId;
+    if (!targetId && typeof onEnsurePlantId === 'function') {
+      targetId = await onEnsurePlantId();
+      if (!targetId) return;
+    } else if (!targetId) {
       onToast?.('Crée d\'abord la fiche, puis ajoute les photos.');
       return;
     }
     setUploadingField(field);
     try {
       const imageData = await compressImage(file, 1600, 0.82);
-      const result = await api(`/api/plants/${plantId}/photo-upload`, 'POST', { field, imageData });
+      const result = await api(`/api/plants/${targetId}/photo-upload`, 'POST', { field, imageData });
       setForm((prev) => ({ ...prev, [field]: result?.url || prev[field] }));
       onToast?.('Photo importée ✓');
     } catch (e) {
@@ -1085,6 +1089,26 @@ function PlantManager({ plants, onRefresh, publicSettings = null, zones = [], ma
           onSave={save} onCancel={cancelEdit} saving={saving}
           plantId={null}
           onToast={setToast}
+          onEnsurePlantId={async () => {
+            if (!form.name.trim()) {
+              setToast('Indique un nom pour la fiche avant d\'importer une photo.');
+              return null;
+            }
+            setSaving(true);
+            try {
+              const plant = await api('/api/plants', 'POST', form);
+              await onRefresh();
+              setEditId(plant.id);
+              setShowAdd(false);
+              setForm(extractPlantForm(plant));
+              return Number(plant.id);
+            } catch (e) {
+              setToast('Erreur : ' + (e.message || String(e)));
+              return null;
+            } finally {
+              setSaving(false);
+            }
+          }}
         />
       )}
 

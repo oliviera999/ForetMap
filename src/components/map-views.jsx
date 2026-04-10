@@ -5,7 +5,9 @@ import { ZONE_COLORS } from '../constants/garden';
 import {
   MARKER_EMOJIS,
   MAP_MARKER_EMOJI_MAX_CHARS,
+  ZONE_NAME_PREFIX_EMOJI_MAX_CHARS,
   parseEmojiListSetting,
+  detectLeadingMarkerEmoji,
   stripLeadingMarkerEmoji,
   clampEmojiInput,
 } from '../constants/emojis';
@@ -23,6 +25,7 @@ import { lockBodyScroll } from '../utils/body-scroll-lock';
 import { resolveMapOverlayTypography } from '../utils/mapOverlayTypography';
 import { isStudentAssignedToTask } from '../utils/task-assignments';
 import { parseLivingBeings, orderedLivingBeingsForForm, nextLivingBeingsFromMultiSelect } from '../utils/livingBeings';
+import { wheelZoomScaleFactor } from '../utils/mapWheelZoom';
 
 function Toast({ msg, onDone }) {
   useEffect(() => { const t = setTimeout(onDone, 2400); return () => clearTimeout(t); }, []);
@@ -533,6 +536,9 @@ function ZoneInfoModal({ zone, plants, tasks, tutorials = [], isTeacher, student
   useOverlayHistoryBack(true, onClose);
   const [tab, setTab] = useState('tasks');
   const [zoneName, setZoneName] = useState(stripLeadingMarkerEmoji(zone.name || '', emojiParsingList));
+  const [zoneEmoji, setZoneEmoji] = useState(
+    () => detectLeadingMarkerEmoji(zone.name || '', emojiParsingList) || markerEmojis[0] || '📍',
+  );
   const [livingBeings, setLivingBeings] = useState(
     () => orderedLivingBeingsForForm(zone.living_beings_list || zone.living_beings, zone.current_plant),
   );
@@ -551,6 +557,8 @@ function ZoneInfoModal({ zone, plants, tasks, tutorials = [], isTeacher, student
   const [toast, setToast] = useState(null);
 
   const displayStage = zone.special ? 'special' : zone.stage;
+  const zoneLivingNames = orderedLivingBeingsForForm(zone.living_beings_list || zone.living_beings, zone.current_plant);
+  const plantObj = plants.find((p) => p.name === zoneLivingNames[0]);
   const zoneTitleDisplay = zone.special
     ? (zone.name || '')
     : (stripLeadingMarkerEmoji(zone.name || '', emojiParsingList) || zone.name || '');
@@ -591,6 +599,7 @@ function ZoneInfoModal({ zone, plants, tasks, tutorials = [], isTeacher, student
 
   useEffect(() => {
     setZoneName(stripLeadingMarkerEmoji(zone.name || '', emojiParsingList));
+    setZoneEmoji(detectLeadingMarkerEmoji(zone.name || '', emojiParsingList) || markerEmojis[0] || '📍');
     setLivingBeings(orderedLivingBeingsForForm(zone.living_beings_list || zone.living_beings, zone.current_plant));
     setStage(zone.stage || 'empty');
     setDesc(zone.description || '');
@@ -610,10 +619,14 @@ function ZoneInfoModal({ zone, plants, tasks, tutorials = [], isTeacher, student
       setToast('Nom requis');
       return;
     }
+    const prefixEmoji = clampEmojiInput(
+      (zoneEmoji || '').trim() || markerEmojis[0] || '📍',
+      ZONE_NAME_PREFIX_EMOJI_MAX_CHARS,
+    );
     setSaving(true);
     try {
       await onUpdate(zone.id, {
-        name: cleanName.trim(),
+        name: `${prefixEmoji} ${cleanName}`.trim(),
         current_plant: '',
         living_beings: livingBeings,
         stage,
@@ -652,13 +665,13 @@ function ZoneInfoModal({ zone, plants, tasks, tutorials = [], isTeacher, student
         <button className="modal-close" onClick={onClose}>✕</button>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
-          {zone.special ? (
-            <span style={{ fontSize: '1.8rem' }} aria-hidden="true">
-              {String(zone.id || '').includes('ruche') ? '🐝' : String(zone.id || '').includes('mare') ? '💧' : String(zone.id || '').includes('butte') ? '🌸' : '🏛️'}
-            </span>
-          ) : null}
+          <span style={{ fontSize: '1.8rem' }} aria-hidden="true">
+            {zone.special
+              ? (String(zone.id || '').includes('ruche') ? '🐝' : String(zone.id || '').includes('mare') ? '💧' : String(zone.id || '').includes('butte') ? '🌸' : '🏛️')
+              : (plantObj?.emoji || (zoneLivingNames.length ? '🌱' : '🪨'))}
+          </span>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <h3 style={{ margin: 0, fontSize: '1.1rem' }}>{zoneTitleDisplay}</h3>
+            <h3 style={{ margin: 0, fontSize: '1.1rem' }}>{zone.name}</h3>
             <div style={{ marginTop: 3 }}>{stageBadge(displayStage)}</div>
           </div>
           {isTeacher && !zone.special && (
@@ -833,6 +846,34 @@ function ZoneInfoModal({ zone, plants, tasks, tutorials = [], isTeacher, student
             </div>
             <div className="field"><label>Détails dépliables (visite)</label>
               <textarea value={visitDetailsText} onChange={(e) => setVisitDetailsText(e.target.value)} rows={4} placeholder="Contenu du panneau repliable" />
+            </div>
+            <div className="field"><label htmlFor="zone-edit-emoji-custom">Emoji de zone</label>
+              <ZoneOrMarkerEmojiField
+                id="zone-edit-emoji-custom"
+                value={zoneEmoji}
+                onChange={setZoneEmoji}
+                maxLen={ZONE_NAME_PREFIX_EMOJI_MAX_CHARS}
+              />
+              <div style={{
+                display: 'flex',
+                gap: 6,
+                flexWrap: 'wrap',
+                maxHeight: 180,
+                overflowY: 'auto',
+                paddingRight: 2,
+                WebkitOverflowScrolling: 'touch',
+                touchAction: 'pan-y',
+              }}>
+                {markerEmojis.map((emoji) => (
+                  <button
+                    type="button"
+                    key={emoji}
+                    className={`emoji-btn ${zoneEmoji === emoji ? 'sel' : ''}`}
+                    onClick={() => setZoneEmoji(emoji)}>
+                    {emoji}
+                  </button>
+                ))}
+              </div>
             </div>
             <button className="btn btn-primary btn-full" onClick={save} disabled={saving}>
               {saving ? '...' : '💾 Sauvegarder'}
@@ -1066,6 +1107,7 @@ function ZoneDrawModal({ points_pct, onClose, onSave, plants, markerEmojis = MAR
   useOverlayHistoryBack(true, onClose);
   const [form, setForm] = useState({
     name: '',
+    zone_emoji: markerEmojis[0] || '📍',
     living_beings: [],
     stage: 'empty',
     description: '',
@@ -1076,13 +1118,17 @@ function ZoneDrawModal({ points_pct, onClose, onSave, plants, markerEmojis = MAR
   const save = async () => {
     const cleanName = stripLeadingMarkerEmoji(form.name, emojiParsingList);
     if (!cleanName) return;
+    const prefixEmoji = clampEmojiInput(
+      (form.zone_emoji || '').trim() || markerEmojis[0] || '📍',
+      ZONE_NAME_PREFIX_EMOJI_MAX_CHARS,
+    );
     setSaving(true);
     try {
-      const { living_beings, ...rest } = form;
+      const { zone_emoji, living_beings, ...rest } = form;
       const living = living_beings || [];
       await onSave({
         ...rest,
-        name: cleanName.trim(),
+        name: `${prefixEmoji} ${cleanName}`.trim(),
         points: points_pct,
         current_plant: '',
         living_beings: living,
@@ -1148,6 +1194,34 @@ function ZoneDrawModal({ points_pct, onClose, onSave, plants, markerEmojis = MAR
                 style={{ width: 30, height: 30, borderRadius: 8, background: c, cursor: 'pointer',
                   border: form.color === c ? '3px solid #1a4731' : '2px solid #ddd',
                   transition: 'transform .1s', transform: form.color === c ? 'scale(1.15)' : 'none' }} />
+            ))}
+          </div>
+        </div>
+        <div className="field"><label htmlFor="zone-draw-emoji-custom">Emoji de zone</label>
+          <ZoneOrMarkerEmojiField
+            id="zone-draw-emoji-custom"
+            value={form.zone_emoji}
+            onChange={(v) => setForm((f) => ({ ...f, zone_emoji: v }))}
+            maxLen={ZONE_NAME_PREFIX_EMOJI_MAX_CHARS}
+          />
+          <div style={{
+            display: 'flex',
+            gap: 6,
+            flexWrap: 'wrap',
+            maxHeight: 180,
+            overflowY: 'auto',
+            paddingRight: 2,
+            WebkitOverflowScrolling: 'touch',
+            touchAction: 'pan-y',
+          }}>
+            {markerEmojis.map((emoji) => (
+              <button
+                type="button"
+                key={emoji}
+                className={`emoji-btn ${form.zone_emoji === emoji ? 'sel' : ''}`}
+                onClick={() => setForm((f) => ({ ...f, zone_emoji: emoji }))}>
+                {emoji}
+              </button>
             ))}
           </div>
         </div>
@@ -1910,6 +1984,8 @@ function useMapGestures({ mapImageSrc, activeMapId, mode, onRefresh, embedded = 
   const isPanning = useRef(false);
   const panStart = useRef({ x: 0, y: 0 });
   const pinching = useRef(false);
+  const zoomAnimRafRef = useRef(null);
+  const reducedMotionRef = useRef(false);
   const rafId = useRef(null);
   const commitRef = useRef(null);
   const draggingMarkerRef = useRef(null);
@@ -1946,6 +2022,60 @@ function useMapGestures({ mapImageSrc, activeMapId, mode, onRefresh, embedded = 
       if (Math.abs(prev.x - x) < 0.5 && Math.abs(prev.y - y) < 0.5 && Math.abs(prev.s - s) < 1e-4) return prev;
       return { x, y, s };
     });
+  };
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return undefined;
+    const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const apply = () => {
+      reducedMotionRef.current = !!mq.matches;
+    };
+    apply();
+    mq.addEventListener('change', apply);
+    return () => mq.removeEventListener('change', apply);
+  }, []);
+
+  const cancelToolbarZoomAnim = () => {
+    if (zoomAnimRafRef.current != null) {
+      cancelAnimationFrame(zoomAnimRafRef.current);
+      zoomAnimRafRef.current = null;
+    }
+  };
+
+  /** Zoom boutons +/− : interpolation courte : même cible que l’ancien saut, sans effet « par paliers ». */
+  const animateZoomTowardScale = (targetS, pivotLocalX, pivotLocalY) => {
+    cancelToolbarZoomAnim();
+    const start = { ...tx.current };
+    const clampedTarget = Math.min(Math.max(targetS, 0.15), 6);
+    if (!Number.isFinite(clampedTarget) || Math.abs(clampedTarget - start.s) < 1e-6) return;
+    const duration = reducedMotionRef.current ? 0 : 200;
+    const easeOutCubic = (u) => 1 - (1 - u) ** 3;
+    if (duration <= 0) {
+      const ns = clampedTarget;
+      tx.current.x = pivotLocalX - (pivotLocalX - start.x) * (ns / start.s);
+      tx.current.y = pivotLocalY - (pivotLocalY - start.y) * (ns / start.s);
+      tx.current.s = ns;
+      applyTransform();
+      commit();
+      return;
+    }
+    const t0 = performance.now();
+    const step = (now) => {
+      const t = Math.min(1, (now - t0) / duration);
+      const u = easeOutCubic(t);
+      const curS = start.s + (clampedTarget - start.s) * u;
+      tx.current.x = pivotLocalX - (pivotLocalX - start.x) * (curS / start.s);
+      tx.current.y = pivotLocalY - (pivotLocalY - start.y) * (curS / start.s);
+      tx.current.s = curS;
+      applyTransform();
+      if (t < 1) {
+        zoomAnimRafRef.current = requestAnimationFrame(step);
+      } else {
+        zoomAnimRafRef.current = null;
+        commit();
+      }
+    };
+    zoomAnimRafRef.current = requestAnimationFrame(step);
   };
 
   const enableMapInteraction = () => {
@@ -2113,6 +2243,7 @@ function useMapGestures({ mapImageSrc, activeMapId, mode, onRefresh, embedded = 
 
     const onPD = (e) => {
       if (e.target.closest('.edit-pt') || e.target.closest('.map-bubble')) return;
+      cancelToolbarZoomAnim();
       moved.current = false;
       if (mode !== 'view') return;
       const touchLike = e.pointerType === 'touch' || e.pointerType === 'pen';
@@ -2166,10 +2297,11 @@ function useMapGestures({ mapImageSrc, activeMapId, mode, onRefresh, embedded = 
 
     const onWH = (e) => {
       e.preventDefault();
+      cancelToolbarZoomAnim();
       const r = el.getBoundingClientRect();
       const mx = e.clientX - r.left;
       const my = e.clientY - r.top;
-      const d = e.deltaY > 0 ? 0.85 : 1.18;
+      const d = wheelZoomScaleFactor(e, { containerClientHeight: el.clientHeight });
       const ns = Math.min(Math.max(tx.current.s * d, 0.15), 6);
       tx.current.x = mx - (mx - tx.current.x) * (ns / tx.current.s);
       tx.current.y = my - (my - tx.current.y) * (ns / tx.current.s);
@@ -2182,6 +2314,7 @@ function useMapGestures({ mapImageSrc, activeMapId, mode, onRefresh, embedded = 
     const touchRef2 = {};
     const onTS = (e) => {
       if (e.touches.length !== 2) return;
+      cancelToolbarZoomAnim();
       isPanning.current = false;
       pinching.current = true;
       const t0 = e.touches[0];
@@ -2227,6 +2360,7 @@ function useMapGestures({ mapImageSrc, activeMapId, mode, onRefresh, embedded = 
     el.addEventListener('touchend', onTE, { passive: true });
 
     return () => {
+      cancelToolbarZoomAnim();
       el.removeEventListener('pointerdown', onPD);
       el.removeEventListener('pointermove', onPM);
       el.removeEventListener('pointerup', onPU);
@@ -2239,6 +2373,7 @@ function useMapGestures({ mapImageSrc, activeMapId, mode, onRefresh, embedded = 
   }, [enableMapInteraction, isCoarsePointer, mapInteractionEnabled, mode, onRefresh]);
 
   const fitMap = () => {
+    cancelToolbarZoomAnim();
     const c = containerRef.current;
     if (!c) return;
     const { w, h } = imgSizeRef.current;
@@ -2281,6 +2416,7 @@ function useMapGestures({ mapImageSrc, activeMapId, mode, onRefresh, embedded = 
     toggleMapInteraction,
     prefersPageScroll,
     touchAction,
+    animateZoomTowardScale,
   };
 }
 
@@ -2350,6 +2486,7 @@ function MapView({ zones, markers, tasks = [], tutorials = [], plants, maps = []
     toggleMapInteraction,
     prefersPageScroll,
     touchAction,
+    animateZoomTowardScale,
   } = useMapGestures({ mapImageSrc, activeMapId, mode, onRefresh, embedded, mapLayoutOuterRef });
   const { zoneTaskVisualById, markerTaskVisualById } = useMemo(() => {
     const zoneMap = new Map();
@@ -2583,9 +2720,8 @@ function MapView({ zones, markers, tasks = [], tutorials = [], plants, maps = []
     const shifted = offsetDuplicateZonePoints(pts);
     if (!shifted) throw new Error('Contour invalide');
     const living = orderedLivingBeingsForForm(z.living_beings_list || z.living_beings, z.current_plant);
-    const baseZoneName = stripLeadingMarkerEmoji(z.name || '', emojiParsingList) || z.name || 'Zone';
     const created = await api('/api/zones', 'POST', {
-      name: `${baseZoneName} (copie)`,
+      name: `${z.name || 'Zone'} (copie)`,
       points: shifted,
       color: z.color || '#86efac80',
       current_plant: '',
@@ -2663,6 +2799,7 @@ function MapView({ zones, markers, tasks = [], tutorials = [], plants, maps = []
   const mapSettings =
     publicSettings?.map && typeof publicSettings.map === 'object' ? publicSettings.map : null;
   const {
+    mapEmojiLabelCenterGap,
     mapEmojiFontPx,
     mapLabelFontPx,
     markerLabelMarginTop,
@@ -2677,6 +2814,7 @@ function MapView({ zones, markers, tasks = [], tutorials = [], plants, maps = []
     const str = wp.map(p => `${p.cx},${p.cy}`).join(' ');
     const mx = wp.reduce((s, p) => s + p.cx, 0) / wp.length;
     const my = wp.reduce((s, p) => s + p.cy, 0) / wp.length;
+    const zoneEmoji = detectLeadingMarkerEmoji(z.name || '', emojiParsingList);
     const zoneName = stripLeadingMarkerEmoji(z.name || '', emojiParsingList);
     const isEd = mode === 'edit-points' && editZone?.id === z.id;
     const zoneTaskVisual = zoneTaskVisualById.get(z.id);
@@ -2688,7 +2826,20 @@ function MapView({ zones, markers, tasks = [], tutorials = [], plants, maps = []
           stroke={isEd ? '#52b788' : 'rgba(26,71,49,0.5)'}
           strokeWidth={(isEd ? 2.5 : 1.5) * inv} strokeDasharray={z.special ? `${5 * inv},${3 * inv}` : 'none'} />
         {showLabels && (
-          <text x={mx} y={my} textAnchor="middle" dominantBaseline="middle"
+          <text
+            x={mx}
+            y={my}
+            textAnchor="middle"
+            dominantBaseline="middle"
+            fontSize={mapEmojiFontPx}
+            fontFamily="Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif"
+            style={{ pointerEvents: 'none', userSelect: 'none' }}
+          >
+            {zoneEmoji || ''}
+          </text>
+        )}
+        {showLabels && (
+          <text x={mx} y={my + (zoneEmoji ? mapEmojiLabelCenterGap : 0)} textAnchor="middle" dominantBaseline="middle"
             fontSize={mapLabelFontPx} fontWeight="700" fontFamily="DM Sans,sans-serif"
             fill="#1a4731" stroke="rgba(255,255,255,0.8)" strokeWidth={3 * inv} paintOrder="stroke"
             style={{ pointerEvents: 'none', userSelect: 'none' }}>{zoneName || z.name}</text>
@@ -2957,14 +3108,10 @@ function MapView({ zones, markers, tasks = [], tutorials = [], plants, maps = []
                 <button onClick={() => {
                   if (factor === 0) { fitMap(); return; }
                   const c = containerRef.current; if (!c) return;
-                  const r = c.getBoundingClientRect();
-                  const mx = r.width / 2, my = r.height / 2;
+                  const mx = c.clientWidth / 2;
+                  const my = c.clientHeight / 2;
                   const ns = factor > 1 ? Math.min(tx.current.s * factor, 6) : Math.max(tx.current.s * factor, 0.15);
-                  tx.current.x = mx - (mx - tx.current.x) * (ns / tx.current.s);
-                  tx.current.y = my - (my - tx.current.y) * (ns / tx.current.s);
-                  tx.current.s = ns;
-                  applyTransform();
-                  commit();
+                  animateZoomTowardScale(ns, mx, my);
                 }}
                 aria-label={ariaLabel}
                 style={{ background: 'transparent', border: 'none', color: 'var(--soil)',
