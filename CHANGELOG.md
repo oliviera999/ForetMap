@@ -23,6 +23,8 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 - **Modales + caméra (mobile)** : au retour de l’APN ou du sélecteur fichier, un **`popstate`** pouvait être traité comme « retour » par **`overlayHistory`** et fermer la modale (**formulaire tâche**, **rapport terminée**) avant l’événement **`change`** de l’input — la tâche ne s’enregistrait pas. Garde **`armNativeFilePickerGuard`** / **`disarmNativeFilePickerGuard`** dans **`src/utils/overlayHistory.js`** ; appels depuis **`tasks-views.jsx`** (photo illustrative + rapport) et **`map-views.jsx`** (upload photos zone/repère).
 
+- **Modales tâche + caméra (suite)** : désactivation de **`useOverlayHistoryBack`** sur le **formulaire tâche** et le **rapport « terminée »** — le couple **`pushState` + retour caméra** laissait l’historique et la pile désynchronisés (fermeture, perte du brouillon, parfois rechargement perçu). Garde fichier inchangée pour les autres surcouches ; timeout de garde fichier porté à **10 s**, budget **12** `popstate` sans désarmement prématuré au **`focus`** fenêtre.
+
 ### Modifié
 - **Carte & visite — zones** : plus d’**emoji d’en-tête** sur les zones (carte prof, mode visite) ; seul le **nom** (sans préfixe emoji) est affiché au centroïde. Création / édition / duplication : plus de champ ni de préfixe emoji dans le nom ; l’éditeur visite n’insère plus d’emoji dans le titre de zone. En-tête de fiche zone (hors zones spéciales) sans pictogramme catalogue. Listes **tâches / tutoriels** : libellé zone sans préfixe emoji résiduel. **`map-views.jsx`**, **`visit-views.jsx`**, **`tasks-views.jsx`**, **`tutorials-views.jsx`**, **`docs/API.md`**.
 

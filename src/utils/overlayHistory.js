@@ -13,12 +13,12 @@ let listening = false;
  * `popstate` au retour dans la page ; sans garde, la pile des surcouches appelle `onClose`
  * et la modale se ferme avant l’événement `change` de l’input file.
  */
-let nativePickerGuard = { active: false, budget: 0, timeoutId: null };
+let nativePickerGuard = { active: false, budget: 0, fallbackId: null };
 
-function clearNativePickerTimeout() {
-  if (nativePickerGuard.timeoutId != null) {
-    clearTimeout(nativePickerGuard.timeoutId);
-    nativePickerGuard.timeoutId = null;
+function clearNativePickerTimers() {
+  if (nativePickerGuard.fallbackId != null) {
+    clearTimeout(nativePickerGuard.fallbackId);
+    nativePickerGuard.fallbackId = null;
   }
 }
 
@@ -26,23 +26,21 @@ function clearNativePickerTimeout() {
 export function disarmNativeFilePickerGuard() {
   nativePickerGuard.active = false;
   nativePickerGuard.budget = 0;
-  clearNativePickerTimeout();
+  clearNativePickerTimers();
 }
 
 /**
  * À appeler juste avant `input.click()` sur un file picker (galerie / APN).
- * Ignore jusqu’à 2 `popstate` tant que la garde est active, puis désarme au focus fenêtre ou timeout.
+ * Ignore plusieurs `popstate` (souvent >2 sur Android au retour caméra). Ne pas désarmer sur
+ * `window` `focus` : il peut arriver avant `change` et laissait passer les `popstate` suivants.
+ * Désarme après `change` (voir `disarmNativeFilePickerGuard`) ou au timeout (annulation / lenteur).
  */
 export function armNativeFilePickerGuard() {
   if (typeof window === 'undefined') return;
   disarmNativeFilePickerGuard();
   nativePickerGuard.active = true;
-  nativePickerGuard.budget = 2;
-  const onFocus = () => {
-    window.setTimeout(() => disarmNativeFilePickerGuard(), 350);
-  };
-  window.addEventListener('focus', onFocus, { once: true });
-  nativePickerGuard.timeoutId = window.setTimeout(() => disarmNativeFilePickerGuard(), 15000);
+  nativePickerGuard.budget = 12;
+  nativePickerGuard.fallbackId = window.setTimeout(() => disarmNativeFilePickerGuard(), 10000);
 }
 
 function onPopState() {

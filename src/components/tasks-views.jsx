@@ -244,7 +244,8 @@ function TaskFormModal({
   defaultProjectId = null,
 }) {
   const dialogRef = useDialogA11y(onClose);
-  useOverlayHistoryBack(true, onClose);
+  // Pas de useOverlayHistoryBack ici : le retour caméra / fichier déclenche des popstate qui
+  // dépilent l’entrée history de la surcouche et ferment la modale avant le `change` de l’input.
   const terms = roleTerms || getRoleTerms(false);
   const defaultProjectForNew = !editTask && !isProposal && defaultProjectId
     ? taskProjects.find((p) => String(p.id || '').trim() === String(defaultProjectId || '').trim())
@@ -2716,7 +2717,7 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
 
 function LogModal({ task, student, onClose, onDone, onForceLogout }) {
   const dialogRef = useDialogA11y(onClose);
-  useOverlayHistoryBack(true, onClose);
+  // Pas de useOverlayHistoryBack : même conflit popstate / caméra native que le formulaire tâche.
   const commentFieldId = useId();
   const [comment, setComment] = useState(() => readTaskLogCommentDraft(task?.id));
   const [imageData, setImageData] = useState(null);
