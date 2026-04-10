@@ -5,6 +5,12 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé
+- **Visite — carte** : pas de dessin de zone ni de placement de repère tant que les dimensions naturelles du plan ne sont pas connues (évite des % erronés si clic avant `onLoad`) ; prise en charge des **images en cache** via `useLayoutEffect` ; changement de **carte** (`map_id`) réinitialise mode navigation et points en cours. Utilitaire **`computeMapImageContainRect`** ([`src/utils/mapImageFit.js`](src/utils/mapImageFit.js)). Doc interne [`docs/VISIT_MAP_GEOMETRY.md`](docs/VISIT_MAP_GEOMETRY.md). Tests e2e : scène `.visit-map-stage`, `img.visit-map-img`, contrôles zoom (`exact: true` pour éviter la collision « Zoomer » / « Dézoomer »).
+
+### Modifié
+- **Carte & visite — ordre des textes** : dans les fiches **Info** (zone et repère), la **description carte** (`zones.description` / note repère) s’affiche **avant** les textes spécifiques **mode visite** (sous-titre, accroche, détails). **`GET /api/visit/content`** expose désormais **`description`** et **`note`** (jointure carte) pour le panneau latéral visite. **`map-views.jsx`**, **`visit-views.jsx`**, **`routes/visit.js`**, **`docs/API.md`**.
+
 ### Ajouté
 - **Carte — repères alignés sur les zones** : modale repère avec **onglets** (Tâches, Tutoriels, Info, Photos, Modifier), **commentaires de contexte** (`contextType=marker`), **photos carte** (`marker_photos`, API miroir des zones), **duplication** et bouton **Ajuster la position** (déverrouillage déplacement). Migration **`065_marker_photos.sql`**, **`routes/map.js`**, **`routes/context-comments.js`**, **`map-views.jsx`**, **`docs/API.md`**, **`tests/api.test.js`**, **`tests/context-comments.test.js`**.
 

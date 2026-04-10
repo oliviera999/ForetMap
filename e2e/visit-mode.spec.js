@@ -22,3 +22,24 @@ test('visite connectée : onglet Visite affiche la vue visite', async ({ page })
   await expect(page.locator('.visit-view')).toBeVisible({ timeout: 30_000 });
   await expect(page.locator('.visit-view--guest-public')).toHaveCount(0);
 });
+
+test('visite connectée : scène carte, image chargée et contrôles zoom', async ({ page }) => {
+  await loginAsNewStudent(page);
+
+  await page.getByRole('button', { name: /^🧭 Visite$/ }).click();
+  await expect(page.locator('.visit-view')).toBeVisible({ timeout: 30_000 });
+
+  const stage = page.locator('.visit-map-stage');
+  await expect(stage).toBeVisible({ timeout: 30_000 });
+  const box = await stage.boundingBox();
+  expect(box && box.width > 20 && box.height > 20).toBeTruthy();
+
+  const mapImg = stage.locator('img.visit-map-img');
+  await expect(mapImg).toBeVisible({ timeout: 15_000 });
+  await expect(mapImg).toHaveAttribute('src', /./);
+
+  const controls = stage.locator('.visit-map-controls');
+  await expect(controls.getByRole('button', { name: 'Zoomer la carte de visite', exact: true })).toBeVisible();
+  await expect(controls.getByRole('button', { name: 'Dézoomer la carte de visite', exact: true })).toBeVisible();
+  await expect(controls.getByRole('button', { name: 'Recentrer la carte de visite', exact: true })).toBeVisible();
+});
