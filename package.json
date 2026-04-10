@@ -1,6 +1,6 @@
 {
   "name": "foretmap",
-  "version": "1.36.10",
+  "version": "1.36.11",
   "description": "Application de gestion de la forêt comestible - Lycée Lyautey",
   "main": "server.js",
   "engines": {
@@ -87,8 +87,10 @@
     "preview": "vite preview",
     "deploy:prepare": "node scripts/prepare-dist-deploy.js",
     "deploy:prepare:fast": "node scripts/prepare-dist-deploy.js --skip-install",
-    "deploy:prepare:runtime": "powershell -ExecutionPolicy Bypass -File scripts/prepare-runtime-deploy.ps1",
-    "deploy:prepare:runtime:fast": "powershell -ExecutionPolicy Bypass -File scripts/prepare-runtime-deploy.ps1 -SkipInstall -SkipBuild",
+    "deploy:prepare:runtime": "node scripts/prepare-runtime-deploy.js",
+    "deploy:prepare:runtime:fast": "node scripts/prepare-runtime-deploy.js --skip-install --skip-build",
+    "deploy:prepare:runtime:ps": "powershell -ExecutionPolicy Bypass -File scripts/prepare-runtime-deploy.ps1",
+    "deploy:prepare:runtime:fast:ps": "powershell -ExecutionPolicy Bypass -File scripts/prepare-runtime-deploy.ps1 -SkipInstall -SkipBuild",
     "deploy:check": "node scripts/post-deploy-check.js",
     "deploy:check:prod": "node scripts/post-deploy-check.js --base-url https://foretmap.olution.info",
     "tasks:spawn-recurring": "node scripts/spawn-recurring-tasks.js",
