@@ -146,7 +146,7 @@ Routes protégées « n3boss » : header `Authorization: Bearer <token>`.
 - `currentActiveAssignments` : nombre d’assignations sur des tâches dont le statut n’est pas `validated` (toutes cartes) ; **exception** : pour une tâche en `completion_mode` **`all_assignees_done`**, l’assignation du n3beur n’est plus comptée dès que **`done_at`** est renseigné sur sa ligne `task_assignments` (part individuelle terminée, sans attendre les autres ni la validation n3boss de la tâche).
 - `atLimit` : `true` si `maxActiveAssignments > 0` et `currentActiveAssignments >= maxActiveAssignments`.
 - `forumParticipate` : `true` si le profil principal du n3beur (`roles.forum_participate`) autorise la **participation** au forum ; `false` = accès **lecture seule** sur les routes forum autorisées (voir ci-dessous). Absent pour les n3boss.
-- `contextCommentParticipate` : `true` si le profil principal (`roles.context_comment_participate`) autorise la **publication** sur les commentaires contextuels (tâches, projets, zones, repères), réagir, signaler et supprimer les siens ; `false` = **lecture seule** sur `GET /api/context-comments`. Absent pour les n3boss.
+- `contextCommentParticipate` : `true` si le profil principal (`roles.context_comment_participate`) autorise la **publication** sur les commentaires contextuels (tâches, projets, zones, repères, biodiversité, tutoriels), réagir, signaler et supprimer les siens ; `false` = **lecture seule** sur `GET /api/context-comments`. Absent pour les n3boss.
 - **`refreshedToken`** (chaîne) : présent si le JWT doit être régénéré pour refléter le profil courant en base (sans changer l’état « élevé » / PIN du jeton) ; à enregistrer comme `Authorization: Bearer` pour les appels suivants.
 - **`autoProfilePromotion`** (objet, **consommé** à la première réponse qui l’inclut) : affichage côté client après progression automatique par tâches validées. Champs : `kind` (`progression`), `roleSlug`, `roleDisplayName`, `roleEmoji` (optionnel), `validatedTaskCount` (nombre de tâches validées pris en compte pour la sync), `highlights` (tableau de courtes phrases décrivant les droits sans PIN, forum / commentaires contextuels, plafond d’inscriptions actives le cas échéant).
 
@@ -457,7 +457,7 @@ Contraintes principales :
   - en `all_assignees_done`, chaque assigné valide individuellement, puis la tâche passe en `done` uniquement quand tous les assignés ont terminé.
   - **N3boss** : avec en-tête `Authorization: Bearer <token>` enseignant, le corps peut cibler un assigné via `studentId` (UUID n3beur) ou couple `firstName` / `lastName` (comme pour l’affectation) : cela enregistre `done_at` sur **son** inscription pour une tâche en `all_assignees_done` (validation manuelle de la part d’un élève), sans commentaire ni image obligatoires. Même logique que lorsque l’élève appelle la route pour lui-même.
 - `POST /api/tasks/:id/validate` : possible sans que la tâche soit `done` ; **400** uniquement si elle est déjà `validated`. Les liaisons **zones / repères** sont retirées, comme pour un passage à `validated` via `PUT`. Pour une tâche avec récurrence `weekly`, `biweekly` ou `monthly`, un **snapshot** des identifiants de zones et de repères est enregistré au moment de la **première** transition vers `validated` (`recurrence_template_zone_ids` et `recurrence_template_marker_ids`, texte JSON côté BDD) afin que le job de duplication des tâches récurrentes recrée les clones avec la même localisation. Même logique lors d’un passage à `validated` via `PUT` lorsque le statut précédent n’était pas déjà `validated`. Les payloads JSON de tâche peuvent exposer ces champs.
-- Les commentaires contextuels restent possibles sur les tâches/projets (`/api/context-comments`).
+- Les commentaires contextuels restent possibles sur les tâches, projets, zones, repères, fiches biodiversité et tutoriels (`/api/context-comments`).
 
 ---
 
@@ -532,10 +532,12 @@ Contexte supporté :
 - `contextType=project` (projet de tâches)
 - `contextType=zone` (zone de la carte)
 - `contextType=marker` (repère `map_markers`)
+- `contextType=plant` (fiche catalogue biodiversité / table `plants`, `contextId` = identifiant numérique)
+- `contextType=tutorial` (tutoriel / table `tutorials`, `contextId` = identifiant numérique)
 
 | Méthode | URL | Description |
 |--------|-----|-------------|
-| GET | `/api/context-comments?contextType=task|project|zone|marker&contextId=:id&page=1&page_size=20` | Liste paginée des commentaires d’un contexte |
+| GET | `/api/context-comments?contextType=task|project|zone|marker|plant|tutorial&contextId=:id&page=1&page_size=20` | Liste paginée des commentaires d’un contexte |
 | POST | `/api/context-comments` | Créer un commentaire (`{ contextType, contextId, body }`) |
 | POST | `/api/context-comments/:id/reactions` | Toggle d’une réaction emoji (`{ emoji }`) |
 | DELETE | `/api/context-comments/:id` | Supprimer un commentaire (auteur ou n3boss/admin) |

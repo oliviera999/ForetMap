@@ -8,6 +8,7 @@ import { TaskFormModal, TasksView, LogModal, TaskLogsViewer } from './tasks-view
 import { Lightbox, PhotoGallery, ZoneInfoModal, ZoneDrawModal, MarkerModal, MapView } from './map-views';
 import { Tooltip } from './Tooltip';
 import { HelpPanel } from './HelpPanel';
+import { ContextComments } from './context-comments';
 import { HELP_PANELS, HELP_TOOLTIPS, resolveRoleText } from '../constants/help';
 import {
   ZONE_PRESENCE_FILTER,
@@ -814,7 +815,8 @@ function PlantCatalogFilterPanel({
 }
 
 // ── PLANT MANAGER (teacher) ───────────────────────────────────────────────────
-function PlantManager({ plants, onRefresh, publicSettings = null, zones = [], markers = [], maps = [] }) {
+function PlantManager({ plants, onRefresh, publicSettings = null, zones = [], markers = [], maps = [], canParticipateContextComments = true }) {
+  const contextCommentsEnabled = publicSettings?.modules?.context_comments_enabled !== false;
   const [editId,  setEditId]  = useState(null);
   const [form,    setForm]    = useState({ ...EMPTY_PLANT_FORM });
   const [showAdd, setShowAdd] = useState(false);
@@ -1177,6 +1179,16 @@ function PlantManager({ plants, onRefresh, publicSettings = null, zones = [], ma
                     <p style={{ fontSize: '.82rem', color: '#bbb', fontStyle: 'italic' }}>Pas encore associé à une zone ni à un repère sur la carte</p>
                   )}
                 </div>
+
+                {contextCommentsEnabled && (
+                  <ContextComments
+                    contextType="plant"
+                    contextId={String(p.id)}
+                    title="Commentaires sur cette fiche"
+                    placeholder="Remarque ou question sur cet être vivant…"
+                    canParticipateContextComments={canParticipateContextComments}
+                  />
+                )}
 
                 <div className="task-actions">
                   <Tooltip text={tooltipText(HELP_TOOLTIPS.plants.edit)}>
@@ -1557,7 +1569,8 @@ function PlantLocationPreviewMaps({ maps, zones, markers }) {
 }
 
 // ── PLANT VIEWER (student read-only) ──────────────────────────────────────────
-function PlantViewer({ plants, zones, markers = [], maps = [], publicSettings = null }) {
+function PlantViewer({ plants, zones, markers = [], maps = [], publicSettings = null, canParticipateContextComments = true }) {
+  const contextCommentsEnabled = publicSettings?.modules?.context_comments_enabled !== false;
   const [search, setSearch] = useState('');
   const [group1, setGroup1] = useState('');
   const [group2, setGroup2] = useState('');
@@ -1685,6 +1698,15 @@ function PlantViewer({ plants, zones, markers = [], maps = [], publicSettings = 
                     </div>
                   ) : (
                     <p style={{ fontSize: '.82rem', color: '#bbb', fontStyle: 'italic' }}>Pas encore associé à une zone ni à un repère sur la carte</p>
+                  )}
+                  {contextCommentsEnabled && (
+                    <ContextComments
+                      contextType="plant"
+                      contextId={String(p.id)}
+                      title="Commentaires sur cette fiche"
+                      placeholder="Remarque ou question sur cet être vivant…"
+                      canParticipateContextComments={canParticipateContextComments}
+                    />
                   )}
                 </div>
               </article>
