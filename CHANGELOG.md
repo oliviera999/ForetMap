@@ -66,6 +66,8 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - **UI — Carte (split Cartes & tâches)** : la barre d’outils reprend la **même largeur que le canvas** via **`--fm-map-canvas-w`** (suppression de la surcharge `width: 100%` sur **`.map-view-toolbar`**). Défilement horizontal des boutons inchangé en mode compact (**`main--map-visible`**). **`index.css`**, **`dist/`**.
 
 ### Corrigé
+- **Tâches — photos (smartphone)** : la **photo illustrative** refusait les fichiers sans type MIME ou en **`application/octet-stream`** (fréquent après capture caméra) ; le modal **Marquer terminée** ne gérait pas l’échec de décodage (**`Image`** sans **`onerror`**), d’où envoi sans image. Détection **`isLikelyImageFile`**, même pipeline **`compressImage`** que le formulaire tâche, **`FileReader.onerror`**. **`src/utils/image.js`**, **`tasks-views.jsx`**.
+
 - **Migration 062** : URL Commons de la **Piéride du chou** — le nom de fichier contenait **`--`**, interprété comme **commentaire SQL** par MariaDB (requête tronquée, `ER_PARSE_ERROR`). Remplacement par **`%2D%2D`** dans le chemin **`Special:FilePath`** (même fichier côté Wikimedia). **`migrations/062_plants_nonvegetal_photo_filepath.sql`**.
 
 - **Carte — fiche zone / repère** : un clic sur une zone ou un repère ne bascule plus vers l’onglet Tâches en vue carte seule (la modale s’affichait masquée). La synchro du filtre lieu du panneau Tâches reste active uniquement en **vue scindée** ; sur carte seule, un bouton dans la modale ouvre l’onglet Tâches filtré. **`App.jsx`**, **`map-views.jsx`**.

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo, useId } from 'react';
 import { createPortal } from 'react-dom';
 import { api, API, getAuthToken, AccountDeletedError, withAppBase } from '../services/api';
-import { compressImage } from '../utils/image';
+import { compressImage, isLikelyImageFile } from '../utils/image';
 import { taskStatusIndicator, daysUntil, dueDateChip, TaskDifficultyAndRiskChips, taskRequiresReferentBriefingBeforeStart } from '../utils/badges';
 import { getRoleTerms } from '../utils/n3-terminology';
 import { useDialogA11y } from '../hooks/useDialogA11y';
@@ -402,7 +402,7 @@ function TaskFormModal({
     const file = e.target.files?.[0];
     e.target.value = '';
     if (!file) return;
-    if (!String(file.type || '').startsWith('image/')) {
+    if (!isLikelyImageFile(file)) {
       setErr('Format image invalide (image requise)');
       return;
     }
@@ -2727,31 +2727,22 @@ function LogModal({ task, student, onClose, onDone, onForceLogout }) {
     };
   }, [comment, task?.id]);
 
-  const handleFile = e => {
-    const file = e.target.files[0];
+  const handleFile = async (e) => {
+    const file = e.target.files?.[0];
     e.target.value = '';
     if (!file) return;
-    if (file.size > 15 * 1024 * 1024) return setErr('Image trop lourde (max 15MB)');
-
-    const reader = new FileReader();
-    reader.onload = ev => {
-      const img = new Image();
-      img.onload = () => {
-        const MAX = 1200;
-        let w = img.width, h = img.height;
-        if (w > MAX) { h = Math.round(h * MAX / w); w = MAX; }
-        else if (h > MAX) { w = Math.round(w * MAX / h); h = MAX; }
-        const canvas = document.createElement('canvas');
-        canvas.width = w; canvas.height = h;
-        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-        const compressed = canvas.toDataURL('image/jpeg', 0.72);
-        setImageData(compressed);
-        setPreview(compressed);
-        setErr('');
-      };
-      img.src = ev.target.result;
-    };
-    reader.readAsDataURL(file);
+    if (!isLikelyImageFile(file)) {
+      setErr('Format image invalide (image requise)');
+      return;
+    }
+    setErr('');
+    try {
+      const compressed = await compressImage(file, 1200, 0.72);
+      setImageData(compressed);
+      setPreview(compressed);
+    } catch (errImg) {
+      setErr(errImg?.message || 'Image invalide');
+    }
   };
 
   const submit = async () => {
