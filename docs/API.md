@@ -324,6 +324,7 @@ Contenus éditables du site (micro-CMS texte brut) :
 
 Contraintes importantes :
 
+- **`GET /api/visit/content`** : chaque zone renvoyée inclut **`description`** (texte de la table **`zones`**, jointure sur le même `id`) ; chaque repère inclut **`note`** (table **`map_markers`**, même principe). Ces champs sont **`null`** s’il n’y a pas de ligne carte correspondante ou si le texte est vide.
 - `direction=map_to_visit` : copie/synchronise les zones et repères de la carte vers la visite.
 - `direction=visit_to_map` : copie/synchronise les zones et repères de la visite vers la carte.
 - L’import est **sélectif** (listes `zone_ids` / `marker_ids`) et en **upsert** (pas de doublon si l’ID existe déjà).
