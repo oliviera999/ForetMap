@@ -524,6 +524,9 @@ function VisitView({
   const visitTutorialsTitle = getContentText(publicSettings, 'visit.tutorials_title', '📘 Tutoriels de la visite');
   const visitTutorialsEmpty = getContentText(publicSettings, 'visit.tutorials_empty', 'Aucun tutoriel sélectionné pour le moment.');
   const [mapId, setMapId] = useState(initialMapId || 'foret');
+  /** Dernière carte affichée : évite d’appliquer une réponse `/api/visit/content` obsolète après changement de `map_id`. */
+  const visitLoadMapIdLiveRef = useRef(mapId);
+  visitLoadMapIdLiveRef.current = mapId;
   const [maps, setMaps] = useState([]);
   const [content, setContent] = useState({ zones: [], markers: [], tutorials: [] });
   const [selected, setSelected] = useState(null);
@@ -593,6 +596,13 @@ function VisitView({
     const pct = total > 0 ? Math.min(100, Math.round((seenCount / total) * 100)) : 0;
     return { total, seenCount, pct };
   }, [content.zones, content.markers, seen]);
+
+  /** Mascotte : afficher dès qu’il existe des zones/repères côté contenu, pas seulement si le total « parcourable » > 0 (polygones valides). */
+  const showVisitMapMascot =
+    mode === 'view' &&
+    (visitCartographyProgress.total > 0 ||
+      (Array.isArray(content.zones) && content.zones.length > 0) ||
+      (Array.isArray(content.markers) && content.markers.length > 0));
 
   useEffect(() => {
     const next = String(initialMapId || 'foret').trim() || 'foret';
@@ -692,24 +702,27 @@ function VisitView({
   }, []);
 
   const loadData = useCallback(async () => {
+    const requestedMapId = String(mapId).trim();
     setLoading(true);
     try {
       const [mapsRes, visitRes, progressRes] = await Promise.all([
         api('/api/maps').catch(() => []),
-        api(`/api/visit/content?map_id=${encodeURIComponent(mapId)}`),
+        api(`/api/visit/content?map_id=${encodeURIComponent(requestedMapId)}`),
         api('/api/visit/progress'),
       ]);
+      if (requestedMapId !== String(visitLoadMapIdLiveRef.current).trim()) return;
+
       const fetchedMaps = Array.isArray(mapsRes) ? mapsRes : [];
       const activeMaps = fetchedMaps.filter((m) => m?.is_active !== false);
       const visibleMaps = activeMaps.length > 0 ? activeMaps : fetchedMaps;
       setMaps(visibleMaps);
-      if (visibleMaps.length > 0 && !visibleMaps.some((m) => m.id === mapId)) {
+      if (visibleMaps.length > 0 && !visibleMaps.some((m) => m.id === requestedMapId)) {
         setMapId(visibleMaps[0].id);
       }
       const visitPayload =
-        visitRes && typeof visitRes === 'object'
-          ? { ...visitRes, map_id: visitRes.map_id ?? mapId }
-          : { zones: [], markers: [], tutorials: [], map_id: mapId };
+        visitRes && typeof visitRes === 'object' && !Array.isArray(visitRes)
+          ? { ...visitRes, map_id: visitRes.map_id ?? requestedMapId }
+          : { zones: [], markers: [], tutorials: [], map_id: requestedMapId };
       setContent(visitPayload);
       setTutorialSelection((visitPayload.tutorials || []).map((t) => t.id));
       const nextSeen = new Set((progressRes?.seen || []).map((r) => itemSeenKey(r.target_type, r.target_id)));
@@ -1340,7 +1353,7 @@ function VisitView({
                   )}
                 </svg>
 
-                {mode === 'view' && visitCartographyProgress.total > 0 ? (
+                {showVisitMapMascot ? (
                   <div
                     className={`visit-map-mascot${visitMapMascotWalking ? ' visit-map-mascot--walking' : ''}${prefersReducedMotion ? ' visit-map-mascot--reduced-motion' : ''}`}
                     style={{ left: `${visitMapMascotPct.xp}%`, top: `${visitMapMascotPct.yp}%` }}

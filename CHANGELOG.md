@@ -5,6 +5,9 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé
+- **Visite — mascotte** : affichage dès qu’il existe au moins une **zone** ou un **repère** dans le contenu chargé, pas uniquement lorsque le décompte « parcourable » (polygones valides à ≥ 3 points) est &gt; 0 — évite une mascotte absente si des zones sont mal géométrisées. Chargement visite : ignore les réponses **obsolètes** après changement de carte ; payload visite rejeté s’il s’agit d’un **tableau** (spread JSON invalide).
+
 ### Modifié
 - **Build** : régénération de **`dist/`** (bundles Vite production, dont chunk mascotte visite).
 - **Visite — mascotte (plan N3)** : position **initiale** sous le repère **entrée N3** (même abscisse, ordonnée légèrement plus basse) lorsque le libellé du repère correspond ; les autres cartes restent centrées (50 % / 50 %). Garde **`content.map_id`** pour ne pas appliquer la position avec des données d’une autre carte ; **`map_id`** est fusionné dans le payload visite au chargement.
