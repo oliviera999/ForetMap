@@ -16,7 +16,7 @@ export const ZONE_PRESENCE_FILTER = {
   NOT_IN_MAP: 'not_in_map',
 };
 
-/** Noms d’êtres vivants rattachés à une zone (API `living_beings_list` + primaire). */
+/** Noms d’êtres vivants rattachés à une zone (`living_beings_list` + colonne legacy `current_plant` si présente). */
 export function mapZoneLivingNames(zone) {
   const names = new Set();
   if (Array.isArray(zone?.living_beings_list)) {
@@ -30,7 +30,7 @@ export function mapZoneLivingNames(zone) {
   return names;
 }
 
-/** Noms d’êtres vivants rattachés à un repère (API `living_beings_list` + `plant_name`). */
+/** Noms d’êtres vivants rattachés à un repère (`living_beings_list` + colonne legacy `plant_name` si présente). */
 export function mapMarkerLivingNames(marker) {
   const names = new Set();
   if (Array.isArray(marker?.living_beings_list)) {

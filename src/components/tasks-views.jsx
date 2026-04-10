@@ -13,7 +13,14 @@ import { ContextComments } from './context-comments';
 import { HELP_PANELS, HELP_TOOLTIPS, resolveRoleText } from '../constants/help';
 import { lockBodyScroll } from '../utils/body-scroll-lock';
 import { isStudentAssignedToTask } from '../utils/task-assignments';
-import { orderedLivingBeingsForForm, nextLivingBeingsFromMultiSelect } from '../utils/livingBeings';
+import { orderedLivingBeingsForForm, nextLivingBeingsFromMultiSelect, formatLivingBeingsListLine } from '../utils/livingBeings';
+
+function zonePickDisplayName(z) {
+  const line = formatLivingBeingsListLine(
+    orderedLivingBeingsForForm(z.living_beings_list || z.living_beings, z.current_plant),
+  );
+  return line ? `${z.name} — ${line}` : z.name;
+}
 
 function taskLivingBeingEmoji(plants, name) {
   const p = (plants || []).find((x) => x.name === name);
@@ -672,7 +679,7 @@ function TaskFormModal({
                           checked={form.zone_ids.includes(String(z.id || '').trim())}
                           onChange={() => toggleZoneId(z.id)}
                         />
-                        <span className="task-form-pick-text">{z.name}{z.current_plant ? ` — ${z.current_plant}` : ''}</span>
+                        <span className="task-form-pick-text">{zonePickDisplayName(z)}</span>
                       </label>
                     ))}
                   </>
@@ -1169,7 +1176,7 @@ function TaskProjectFormModal({
                           checked={form.zone_ids.includes(String(z.id || '').trim())}
                           onChange={() => toggleZoneId(z.id)}
                         />
-                        <span className="task-form-pick-text">{z.name}{z.current_plant ? ` — ${z.current_plant}` : ''}</span>
+                        <span className="task-form-pick-text">{zonePickDisplayName(z)}</span>
                       </label>
                     ))}
                   </>

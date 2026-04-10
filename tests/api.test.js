@@ -1161,6 +1161,7 @@ test('Zones et repères acceptent plusieurs êtres vivants associés', async () 
   assert.ok(Array.isArray(zoneRes.body.living_beings_list));
   assert.ok(zoneRes.body.living_beings_list.includes('Menthe'));
   assert.ok(zoneRes.body.living_beings_list.includes('Tomate'));
+  assert.strictEqual(String(zoneRes.body.current_plant || '').trim(), '');
 
   const markerRes = await request(app)
     .post('/api/map/markers')
@@ -1178,6 +1179,7 @@ test('Zones et repères acceptent plusieurs êtres vivants associés', async () 
   assert.ok(Array.isArray(markerRes.body.living_beings_list));
   assert.ok(markerRes.body.living_beings_list.includes('Laitue'));
   assert.ok(markerRes.body.living_beings_list.includes('Carotte'));
+  assert.strictEqual(String(markerRes.body.plant_name || '').trim(), '');
 });
 
 test('PUT /api/zones/:id et /api/map/markers/:id permettent de renommer', async () => {

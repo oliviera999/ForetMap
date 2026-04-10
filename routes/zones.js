@@ -157,12 +157,28 @@ router.put('/:id', requirePermission('zones.manage', { needsElevation: true }), 
       if (!(await mapExists(nextMapId))) return res.status(400).json({ error: 'Carte introuvable' });
     }
     const existingLiving = normalizeLivingBeings(zone.living_beings, zone.current_plant);
-    const nextLiving = living_beings !== undefined ? normalizeLivingBeings(living_beings, current_plant ?? zone.current_plant) : existingLiving;
-    const nextCurrentPlant = current_plant !== undefined
-      ? (current_plant || nextLiving[0] || '')
-      : (nextLiving[0] || zone.current_plant || '');
-    if (zone.current_plant && current_plant !== undefined &&
-        zone.current_plant !== nextCurrentPlant && zone.current_plant.trim() !== '') {
+    const nextLiving = living_beings !== undefined
+      ? normalizeLivingBeings(living_beings, '')
+      : existingLiving;
+    const nextCurrentPlant = nextLiving.length > 0
+      ? ''
+      : (current_plant !== undefined
+        ? String(current_plant || '').trim()
+        : String(zone.current_plant || '').trim());
+    if (living_beings !== undefined) {
+      const prevCp = String(zone.current_plant || '').trim();
+      if (prevCp && !nextLiving.some((n) => String(n).trim() === prevCp)) {
+        await execute(
+          'INSERT INTO zone_history (zone_id, plant, harvested_at) VALUES (?, ?, ?)',
+          [zone.id, prevCp, new Date().toISOString().split('T')[0]]
+        );
+      }
+    } else if (
+      current_plant !== undefined
+      && zone.current_plant
+      && String(zone.current_plant).trim() !== ''
+      && String(zone.current_plant).trim() !== String(nextCurrentPlant || '').trim()
+    ) {
       await execute(
         'INSERT INTO zone_history (zone_id, plant, harvested_at) VALUES (?, ?, ?)',
         [zone.id, zone.current_plant, new Date().toISOString().split('T')[0]]
@@ -282,7 +298,7 @@ router.post('/', requirePermission('zones.manage', { needsElevation: true }), as
     if (!mapId) return res.status(400).json({ error: 'map_id requis' });
     if (!(await mapExists(mapId))) return res.status(400).json({ error: 'Carte introuvable' });
     const nextLiving = normalizeLivingBeings(living_beings, current_plant);
-    const nextCurrentPlant = (current_plant || nextLiving[0] || '').trim();
+    const nextCurrentPlant = nextLiving.length > 0 ? '' : String(current_plant || '').trim();
     const desc = description !== undefined && description !== null ? String(description) : '';
     const id = 'zone-' + uuidv4().slice(0, 8);
     await execute(

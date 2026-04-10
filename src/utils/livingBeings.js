@@ -24,13 +24,9 @@ export function parseLivingBeings(value, fallback = '') {
   return cleaned;
 }
 
-/** Met l’être vivant « principal » en tête (zones/repères : current_plant / plant_name). */
+/** Ordre conservé depuis `living_beings` (JSON) ; `primary` sert de repli si la liste est vide (colonnes legacy). */
 export function orderedLivingBeingsForForm(value, primary) {
-  const list = parseLivingBeings(value, primary);
-  const p = primary != null && String(primary).trim() ? String(primary).trim() : '';
-  if (!p) return list;
-  const rest = list.filter((n) => n !== p);
-  return [p, ...rest];
+  return parseLivingBeings(value, primary);
 }
 
 /**
@@ -44,4 +40,12 @@ export function nextLivingBeingsFromMultiSelect(prevOrdered, selectedNames, plan
     .map((p) => p.name)
     .filter((name) => selectedSet.has(name) && !kept.includes(name));
   return [...kept, ...added];
+}
+
+/** Libellé court pour listes déroulantes (noms séparés par des virgules, troncature). */
+export function formatLivingBeingsListLine(names, maxLen = 56) {
+  if (!Array.isArray(names) || !names.length) return '';
+  const s = names.join(', ');
+  if (s.length <= maxLen) return s;
+  return `${s.slice(0, Math.max(0, maxLen - 1))}…`;
 }
