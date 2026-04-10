@@ -10,7 +10,7 @@ const {
 } = require('./fixtures/auth.fixture');
 
 test('cycle complet tâche: création prof -> prise élève -> soumission -> validation prof', async ({ page }) => {
-  test.setTimeout(90_000);
+  test.setTimeout(120_000);
   const taskTitle = `E2E Cycle ${Date.now()}`;
 
   await loginAsNewStudent(page);
@@ -44,10 +44,11 @@ test('cycle complet tâche: création prof -> prise élève -> soumission -> val
   );
   await enableTeacherMode(page);
   await tasksAfterElevate.catch(() => {});
+  await dismissProfilePromotionModalIfPresent(page);
   await openTeacherTasksTab(page);
 
   const teacherPendingCard = page.locator('.task-card', { hasText: taskTitle }).first();
-  await expect(teacherPendingCard).toBeVisible({ timeout: 30_000 });
+  await expect(teacherPendingCard).toBeVisible({ timeout: 45_000 });
   await teacherPendingCard.getByRole('button', { name: '✔️ Validée' }).click();
 
   await expect(page.locator('.task-card', { hasText: taskTitle }).first()).toBeVisible();

@@ -31,7 +31,8 @@ test('parcours photos zone: upload puis suppression', async ({ page }) => {
     buffer: tinyPngBuffer(),
   });
 
-  await expect(page.getByRole('button', { name: /Ajouter une photo|Envoi/ })).toBeVisible();
+  // Plusieurs emplacements photo → plusieurs « Envoi… » : éviter la violation strict Playwright.
+  await expect(page.getByRole('button', { name: /Ajouter une photo|Envoi/ }).first()).toBeVisible();
   await expect(caption).toHaveValue('');
   await expect(page.locator('img[alt="Photo e2e"]').first()).toBeVisible();
 

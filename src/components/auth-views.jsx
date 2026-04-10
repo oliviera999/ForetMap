@@ -47,8 +47,22 @@ function PinModal({ onSuccess, onClose, uiSettings, isN3Affiliated = false }) {
         setLoading(false);
         return;
       }
+      const priorAuthToken = getAuthToken();
       localStorage.setItem('foretmap_auth_token', data.token);
       localStorage.setItem('foretmap_teacher_token', data.token);
+      // Conserver le JWT élève non élevé pour le retour « désactiver les droits » (évite de réutiliser le JWT élevé si authToken JSON absent).
+      try {
+        const raw = localStorage.getItem('foretmap_student');
+        if (raw && priorAuthToken && priorAuthToken !== data.token) {
+          const s = JSON.parse(raw);
+          if (s && typeof s === 'object') {
+            s.elevationStudentToken = priorAuthToken;
+            localStorage.setItem('foretmap_student', JSON.stringify(s));
+          }
+        }
+      } catch (_) {
+        /* ignore */
+      }
       const currentUser = getStoredSession()?.user || null;
       saveStoredSession({
         token: data.token,

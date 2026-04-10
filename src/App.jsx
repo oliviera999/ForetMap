@@ -1471,23 +1471,30 @@ function App() {
                 } catch (_) {
                   storedStudent = null;
                 }
-                const baseStudentToken = storedStudent && typeof storedStudent.authToken === 'string'
-                  ? storedStudent.authToken
-                  : null;
+                const fromElevation = storedStudent && typeof storedStudent.elevationStudentToken === 'string'
+                  ? storedStudent.elevationStudentToken.trim()
+                  : '';
+                const fromAuth = storedStudent && typeof storedStudent.authToken === 'string'
+                  ? storedStudent.authToken.trim()
+                  : '';
+                const baseStudentToken = fromElevation || fromAuth || null;
                 if (baseStudentToken) {
+                  const cleanedStudent = { ...storedStudent, authToken: baseStudentToken };
+                  delete cleanedStudent.elevationStudentToken;
                   localStorage.setItem('foretmap_auth_token', baseStudentToken);
                   saveStoredSession({
                     token: baseStudentToken,
                     user: {
-                      id: storedStudent.auth?.canonicalUserId || storedStudent.id || null,
+                      id: cleanedStudent.auth?.canonicalUserId || cleanedStudent.id || null,
                       userType: 'student',
-                      displayName: storedStudent.pseudo || `${storedStudent.first_name || ''} ${storedStudent.last_name || ''}`.trim() || 'Utilisateur',
-                      email: storedStudent.email || null,
-                      avatar_path: storedStudent.avatar_path ?? storedStudent.avatarPath ?? null,
+                      displayName: cleanedStudent.pseudo || `${cleanedStudent.first_name || ''} ${cleanedStudent.last_name || ''}`.trim() || 'Utilisateur',
+                      email: cleanedStudent.email || null,
+                      avatar_path: cleanedStudent.avatar_path ?? cleanedStudent.avatarPath ?? null,
                     },
-                    student: storedStudent,
+                    student: cleanedStudent,
                   });
-                  updateStudentSession(storedStudent);
+                  localStorage.setItem('foretmap_student', JSON.stringify(cleanedStudent));
+                  updateStudentSession(cleanedStudent);
                 } else {
                   const authToken = localStorage.getItem('foretmap_auth_token');
                   if (authToken) saveStoredSession({ token: authToken });
