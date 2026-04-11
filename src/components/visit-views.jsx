@@ -662,7 +662,21 @@ function VisitView({
   }, [content.tutorials]);
 
   const currentMap = useMemo(() => maps.find((m) => m.id === mapId), [maps, mapId]);
-  const visitMapImageSrc = currentMap?.map_image_url || '/map.png';
+  /** Même chaîne de repli que la carte principale : l’API peut renvoyer `/map.png` (absent) pour `foret`. */
+  const visitMapImageCandidates = useMemo(() => {
+    const base =
+      mapId === 'n3'
+        ? ['/maps/plan%20n3.jpg', '/maps/map-n3.svg', '/map.png']
+        : ['/map.png', '/maps/map-foret.svg'];
+    const first = currentMap?.map_image_url ? [currentMap.map_image_url] : [];
+    return [...new Set([...first, ...base])];
+  }, [currentMap?.map_image_url, mapId]);
+  const [visitMapImageIdx, setVisitMapImageIdx] = useState(0);
+  useEffect(() => {
+    setVisitMapImageIdx(0);
+  }, [mapId, currentMap?.map_image_url]);
+  const visitMapImageSrc =
+    visitMapImageCandidates[Math.min(visitMapImageIdx, visitMapImageCandidates.length - 1)];
   const imgRef = useRef(null);
   const [visitImgNatural, setVisitImgNatural] = useState({ w: 0, h: 0 });
   const [visitMapFit, setVisitMapFit] = useState({ offsetX: 0, offsetY: 0, width: 0, height: 0 });
@@ -1429,7 +1443,11 @@ function VisitView({
                     const el = e.currentTarget;
                     setVisitImgNatural({ w: el.naturalWidth || 0, h: el.naturalHeight || 0 });
                   }}
-                  onError={() => setVisitImgNatural({ w: 0, h: 0 })}
+                  onError={() =>
+                    setVisitMapImageIdx((idx) =>
+                      idx < visitMapImageCandidates.length - 1 ? idx + 1 : idx
+                    )
+                  }
                 />
 
                 <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="visit-map-zones">
