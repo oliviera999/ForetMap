@@ -52,6 +52,10 @@ test('GET /api/plants/me/discovered-ids sans jeton renvoie 401', async () => {
   await request(app).get('/api/plants/me/discovered-ids').expect(401);
 });
 
+test('GET /api/plants/me/observation-counts sans jeton renvoie 401', async () => {
+  await request(app).get('/api/plants/me/observation-counts?plant_ids=1').expect(401);
+});
+
 test('Eleve: acknowledge-discovery et liste plant_ids', async () => {
   const reg = await request(app)
     .post('/api/auth/register')
@@ -97,10 +101,52 @@ test('Eleve: acknowledge-discovery et liste plant_ids', async () => {
     .expect(200);
   assert.strictEqual(ok.body.success, true);
   assert.strictEqual(Number(ok.body.plant_id), Number(testPlantId));
+  assert.ok(typeof ok.body.observed_at === 'string' && ok.body.observed_at.length > 0);
+  assert.strictEqual(Number(ok.body.my_observation_count), 1);
+  assert.strictEqual(Number(ok.body.site_observation_count), 1);
+
+  const ok2 = await request(app)
+    .post(`/api/plants/${testPlantId}/acknowledge-discovery`)
+    .set('Authorization', 'Bearer ' + studentToken)
+    .send({ confirm: true })
+    .expect(200);
+  assert.strictEqual(Number(ok2.body.my_observation_count), 2);
+  assert.strictEqual(Number(ok2.body.site_observation_count), 2);
+
+  const reg2 = await request(app)
+    .post('/api/auth/register')
+    .send({
+      firstName: 'Bio',
+      lastName: `Decouverte2${Date.now()}`,
+      password: 'pass1234',
+      affiliation: 'foret',
+    })
+    .expect(201);
+  const studentToken2 = reg2.body.authToken;
+  await request(app)
+    .post(`/api/plants/${testPlantId}/acknowledge-discovery`)
+    .set('Authorization', 'Bearer ' + studentToken2)
+    .send({ confirm: true })
+    .expect(200);
+
+  const batchEmpty = await request(app)
+    .get('/api/plants/me/observation-counts')
+    .set('Authorization', 'Bearer ' + studentToken)
+    .expect(200);
+  assert.deepStrictEqual(batchEmpty.body.counts, {});
+
+  const batch = await request(app)
+    .get(`/api/plants/me/observation-counts?plant_ids=${testPlantId}`)
+    .set('Authorization', 'Bearer ' + studentToken)
+    .expect(200);
+  const entry = batch.body.counts[String(testPlantId)];
+  assert.ok(entry);
+  assert.strictEqual(entry.my_observation_count, 2);
+  assert.strictEqual(entry.site_observation_count, 3);
 
   const after = await request(app)
     .get('/api/plants/me/discovered-ids')
     .set('Authorization', 'Bearer ' + studentToken)
     .expect(200);
-  assert.ok(after.body.plant_ids.includes(testPlantId));
+  assert.ok(after.body.plant_ids.map(Number).includes(Number(testPlantId)));
 });

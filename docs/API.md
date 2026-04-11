@@ -365,11 +365,12 @@ Contraintes importantes :
 | Méthode | URL | n3boss | Description |
 |--------|-----|------|-------------|
 | GET | `/api/plants` | non | Liste des entrées biodiversité |
-| GET | `/api/plants/me/discovered-ids` | JWT obligatoire | `{ "plant_ids": number[] }` — identifiants des fiches catalogue que l’utilisateur connecté a marquées « espèce découverte » (engagement explicite) |
+| GET | `/api/plants/me/discovered-ids` | JWT obligatoire | `{ "plant_ids": number[] }` — identifiants des fiches catalogue pour lesquelles l’utilisateur a au moins une **observation** enregistrée (engagement explicite) |
+| GET | `/api/plants/me/observation-counts` | JWT obligatoire | Query **`plant_ids`** : liste d’IDs séparés par des virgules (ou espaces), entiers positifs, **max 200** (troncature silencieuse au-delà). Réponse `{ "counts": { "<id>": { "my_observation_count": number, "site_observation_count": number }, ... } }` — totaux pour l’utilisateur connecté et pour **tous** les utilisateurs sur chaque fiche demandée ; fiches sans ligne renvoient `0` / `0` |
 | POST | `/api/plants` | oui | Créer une entrée biodiversité |
 | PUT | `/api/plants/:id` | oui | Modifier une entrée biodiversité |
 | DELETE | `/api/plants/:id` | oui | Supprimer une entrée biodiversité |
-| POST | `/api/plants/:id/acknowledge-discovery` | JWT obligatoire | Corps **`{ "confirm": true }`** (obligatoire, sinon `400`). Enregistre l’accusé « espèce découverte » pour la fiche `:id` ; `200` : `{ "success", "plant_id", "acknowledged_at" }` ; `404` si la fiche n’existe pas |
+| POST | `/api/plants/:id/acknowledge-discovery` | JWT obligatoire | Corps **`{ "confirm": true }`** (obligatoire, sinon `400`). Enregistre une **observation** (engagement terrain + lecture de fiche) pour la fiche `:id` ; chaque appel ajoute une ligne (compteurs incrémentés). `200` : `{ "success", "plant_id", "observed_at", "my_observation_count", "site_observation_count" }` ; `404` si la fiche n’existe pas |
 | POST | `/api/plants/:id/photo-upload` | oui | Uploader une photo locale pour un champ `photo*` |
 | POST | `/api/plants/import` | oui | Importer des fiches biodiversité (CSV/XLSX/Google Sheet) |
 
