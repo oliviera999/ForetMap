@@ -10,6 +10,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ### Modifié
 - **Tâches collectives (n3boss)** : marquer la part d’un assigné comme terminée se fait par **un seul clic** sur le nom (plus de boîte de confirmation navigateur).
+- **Build** : régénération de **`dist/`** (`npm run build`, Vite production en local).
 
 ### Corrigé
 - **Tâches collectives (`all_assignees_done`)** : le clic n3boss pour **marquer la part d’un assigné** (`POST /api/tasks/:id/done` avec `studentId` ou noms) échouait avec un profil n’ayant que **`tasks.validate`** (sans `tasks.manage`) — la résolution d’identité côté serveur exigeait `tasks.manage`. Désormais **`tasks.validate`** suffit pour ces actions « au nom du n3beur », comme pour la lecture des assignations sur `GET /api/tasks`. Côté client : **clé de chargement** alignée entre la tuile et `withLoad`, et corps JSON avec **`student_id` ou `studentId`** sur l’assignation.
