@@ -6,8 +6,16 @@ const { logRouteError } = require('../lib/routeLog');
 const { logAudit } = require('./audit');
 const { emitContextCommentsChanged } = require('../lib/realtime');
 const { getSettingValue } = require('../lib/settings');
+const {
+  persistUserContentImages,
+  deleteUserContentImagesFromJson,
+  attachPublicImageUrls,
+  validateImagesPayload,
+} = require('../lib/userContentImages');
 
 const router = express.Router();
+
+const AUTO_BODY_WITH_PHOTOS = '(Photo)';
 
 const ALLOWED_CONTEXT_TYPES = new Set(['task', 'project', 'zone', 'marker', 'plant', 'tutorial']);
 const DEFAULT_PAGE_SIZE = 20;
@@ -227,7 +235,7 @@ router.get('/', async (req, res) => {
     );
     const total = Number(totalRow?.c || 0);
     const rows = await queryAll(
-      `SELECT c.id, c.context_type, c.context_id, c.body, c.author_user_type, c.author_user_id, c.is_deleted, c.created_at, c.updated_at,
+      `SELECT c.id, c.context_type, c.context_id, c.body, c.image_paths_json, c.author_user_type, c.author_user_id, c.is_deleted, c.created_at, c.updated_at,
               COALESCE(
                 NULLIF(u.display_name, ''),
                 NULLIF(CONCAT(COALESCE(u.first_name, ''), ' ', COALESCE(u.last_name, '')), ''),
@@ -243,10 +251,16 @@ router.get('/', async (req, res) => {
         LIMIT ${sqlLimit} OFFSET ${sqlOffset}`,
       [contextType, contextId]
     );
-    const items = rows.map((row) => ({
-      ...row,
-      body: Number(row.is_deleted) ? '' : row.body,
-    }));
+    const items = rows.map((row) => {
+      const item = { ...row, body: Number(row.is_deleted) ? '' : row.body };
+      if (Number(row.is_deleted)) {
+        delete item.image_paths_json;
+        item.image_urls = [];
+      } else {
+        attachPublicImageUrls(item, 'context-comments');
+      }
+      return item;
+    });
     const reactionsByComment = await loadContextCommentReactions(items.map((item) => item.id), actor);
     const enrichedItems = items.map((item) => ({
       ...item,
@@ -331,10 +345,19 @@ router.post('/', async (req, res) => {
     if (!actor) return res.status(401).json({ error: 'Session invalide' });
     const contextType = normalizeContextType(req.body?.contextType);
     const contextId = normalizeOptionalString(req.body?.contextId);
-    const body = normalizeOptionalString(req.body?.body);
+    const imagesCheck = validateImagesPayload(req.body?.images);
+    if (imagesCheck.error) return res.status(400).json({ error: imagesCheck.error });
+    const imageList = imagesCheck.images || [];
+    let body = normalizeOptionalString(req.body?.body);
     if (!contextType) return res.status(400).json({ error: 'contextType invalide (task|project|zone|marker|plant|tutorial)' });
     if (!contextId) return res.status(400).json({ error: 'contextId requis' });
-    if (!body || body.length < MIN_COMMENT_LEN || body.length > MAX_COMMENT_LEN) {
+    if (imageList.length === 0 && (!body || body.length < MIN_COMMENT_LEN || body.length > MAX_COMMENT_LEN)) {
+      return res.status(400).json({ error: `Message invalide (${MIN_COMMENT_LEN}-${MAX_COMMENT_LEN} caractères), ou ajoute au moins une image` });
+    }
+    if (imageList.length > 0 && (!body || !String(body).trim())) {
+      body = AUTO_BODY_WITH_PHOTOS;
+    }
+    if (body.length < MIN_COMMENT_LEN || body.length > MAX_COMMENT_LEN) {
       return res.status(400).json({ error: `Message invalide (${MIN_COMMENT_LEN}-${MAX_COMMENT_LEN} caractères)` });
     }
     if (!(await contextExists(contextType, contextId))) {
@@ -344,14 +367,22 @@ router.post('/', async (req, res) => {
       return res.status(429).json({ error: 'Action trop rapide, réessaie dans quelques secondes' });
     }
     const commentId = uuidv4();
+    let pathsJson = null;
+    if (imageList.length > 0) {
+      const persisted = persistUserContentImages('context-comments', commentId, imageList);
+      if (persisted.error) {
+        return res.status(400).json({ error: persisted.error });
+      }
+      pathsJson = persisted.pathsJson;
+    }
     await execute(
       `INSERT INTO context_comments
-        (id, context_type, context_id, body, author_user_type, author_user_id, is_deleted)
-       VALUES (?, ?, ?, ?, ?, ?, 0)`,
-      [commentId, contextType, contextId, body, actor.userType, actor.userId]
+        (id, context_type, context_id, body, image_paths_json, author_user_type, author_user_id, is_deleted)
+       VALUES (?, ?, ?, ?, ?, ?, ?, 0)`,
+      [commentId, contextType, contextId, body, pathsJson, actor.userType, actor.userId]
     );
     const created = await queryOne(
-      `SELECT c.id, c.context_type, c.context_id, c.body, c.author_user_type, c.author_user_id, c.is_deleted, c.created_at, c.updated_at,
+      `SELECT c.id, c.context_type, c.context_id, c.body, c.image_paths_json, c.author_user_type, c.author_user_id, c.is_deleted, c.created_at, c.updated_at,
               COALESCE(
                 NULLIF(u.display_name, ''),
                 NULLIF(CONCAT(COALESCE(u.first_name, ''), ' ', COALESCE(u.last_name, '')), ''),
@@ -365,11 +396,12 @@ router.post('/', async (req, res) => {
         LIMIT 1`,
       [commentId]
     );
+    attachPublicImageUrls(created, 'context-comments');
     await logAudit('context_comment_create', 'context_comment', commentId, `Commentaire ${contextType}:${contextId}`, {
       req,
       actorUserType: actor.userType,
       actorUserId: actor.userId,
-      payload: { context_type: contextType, context_id: contextId },
+      payload: { context_type: contextType, context_id: contextId, images_count: imageList.length },
     });
     emitContextCommentsChanged({ reason: 'comment_created', contextType, contextId, commentId });
     return res.status(201).json(created);
@@ -385,7 +417,7 @@ router.delete('/:id', async (req, res) => {
     const actor = getActor(req.auth);
     if (!actor) return res.status(401).json({ error: 'Session invalide' });
     const comment = await queryOne(
-      `SELECT id, context_type, context_id, author_user_type, author_user_id, is_deleted
+      `SELECT id, context_type, context_id, author_user_type, author_user_id, is_deleted, image_paths_json
          FROM context_comments
         WHERE id = ?
         LIMIT 1`,
@@ -398,8 +430,9 @@ router.delete('/:id', async (req, res) => {
     const moderator = canModerateComments(req.auth);
     if (!ownsComment && !moderator) return res.status(403).json({ error: 'Permission insuffisante' });
 
+    deleteUserContentImagesFromJson(comment.image_paths_json, 'context-comments');
     await execute(
-      'UPDATE context_comments SET is_deleted = 1, body = ?, updated_at = NOW() WHERE id = ?',
+      'UPDATE context_comments SET is_deleted = 1, body = ?, image_paths_json = NULL, updated_at = NOW() WHERE id = ?',
       ['[commentaire supprimé]', comment.id]
     );
     await logAudit('context_comment_delete', 'context_comment', comment.id, 'Suppression commentaire contextuel', {

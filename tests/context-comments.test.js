@@ -466,3 +466,38 @@ test('Commentaires contextuels: compte en lecture seule (GET OK, POST/réactions
     .expect(403);
   assert.strictEqual(deniedDelete.body?.code, 'CONTEXT_COMMENT_READ_ONLY');
 });
+
+const TINY_PNG_DATA_URL =
+  'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO5qXg8AAAAASUVORK5CYII=';
+
+test('Commentaires contextuels: photos jointes (image_urls)', async () => {
+  const student = await registerStudent('CtxImg');
+  const teacher = await teacherToken();
+  const { taskId } = await createContextFixture(teacher);
+
+  const withText = await request(app)
+    .post('/api/context-comments')
+    .set(auth(student.authToken))
+    .send({
+      contextType: 'task',
+      contextId: taskId,
+      body: 'Regarde la photo ci-dessous.',
+      images: [TINY_PNG_DATA_URL],
+    })
+    .expect(201);
+  assert.ok(Array.isArray(withText.body.image_urls));
+  assert.strictEqual(withText.body.image_urls.length, 1);
+  assert.match(withText.body.image_urls[0], /^\/uploads\/context-comments\//);
+
+  const imageOnly = await request(app)
+    .post('/api/context-comments')
+    .set(auth(student.authToken))
+    .send({
+      contextType: 'task',
+      contextId: taskId,
+      images: [TINY_PNG_DATA_URL],
+    })
+    .expect(201);
+  assert.strictEqual(imageOnly.body.body, '(Photo)');
+  assert.strictEqual(imageOnly.body.image_urls.length, 1);
+});

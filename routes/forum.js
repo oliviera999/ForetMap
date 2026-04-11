@@ -6,8 +6,16 @@ const { logRouteError } = require('../lib/routeLog');
 const { emitForumChanged } = require('../lib/realtime');
 const { getSettingValue } = require('../lib/settings');
 const { logAudit } = require('./audit');
+const {
+  persistUserContentImages,
+  deleteUserContentImagesFromJson,
+  attachPublicImageUrls,
+  validateImagesPayload,
+} = require('../lib/userContentImages');
 
 const router = express.Router();
+
+const AUTO_BODY_WITH_PHOTOS = '(Photo)';
 
 const MAX_THREAD_TITLE_LEN = 180;
 const MIN_THREAD_TITLE_LEN = 4;
@@ -229,9 +237,18 @@ router.post('/threads', async (req, res) => {
     const actor = getActor(req.auth);
     if (!actor) return res.status(401).json({ error: 'Session invalide' });
     const title = normalizeOptionalString(req.body?.title);
-    const body = normalizeOptionalString(req.body?.body);
+    const imagesCheck = validateImagesPayload(req.body?.images);
+    if (imagesCheck.error) return res.status(400).json({ error: imagesCheck.error });
+    const imageList = imagesCheck.images || [];
+    let body = normalizeOptionalString(req.body?.body);
     if (!title || title.length < MIN_THREAD_TITLE_LEN || title.length > MAX_THREAD_TITLE_LEN) {
       return res.status(400).json({ error: `Titre invalide (${MIN_THREAD_TITLE_LEN}-${MAX_THREAD_TITLE_LEN} caractères)` });
+    }
+    if (imageList.length === 0 && (!body || body.length < MIN_POST_BODY_LEN || body.length > MAX_POST_BODY_LEN)) {
+      return res.status(400).json({ error: `Message invalide (${MIN_POST_BODY_LEN}-${MAX_POST_BODY_LEN} caractères), ou ajoute au moins une image` });
+    }
+    if (imageList.length > 0 && (!body || !String(body).trim())) {
+      body = AUTO_BODY_WITH_PHOTOS;
     }
     if (!body || body.length < MIN_POST_BODY_LEN || body.length > MAX_POST_BODY_LEN) {
       return res.status(400).json({ error: `Message invalide (${MIN_POST_BODY_LEN}-${MAX_POST_BODY_LEN} caractères)` });
@@ -242,6 +259,14 @@ router.post('/threads', async (req, res) => {
 
     const threadId = uuidv4();
     const postId = uuidv4();
+    let pathsJson = null;
+    if (imageList.length > 0) {
+      const persisted = persistUserContentImages('forum-posts', postId, imageList);
+      if (persisted.error) {
+        return res.status(400).json({ error: persisted.error });
+      }
+      pathsJson = persisted.pathsJson;
+    }
     await execute(
       `INSERT INTO forum_threads
         (id, title, author_user_type, author_user_id, is_locked, is_pinned, last_post_at)
@@ -250,9 +275,9 @@ router.post('/threads', async (req, res) => {
     );
     await execute(
       `INSERT INTO forum_posts
-        (id, thread_id, body, author_user_type, author_user_id, is_deleted)
-       VALUES (?, ?, ?, ?, ?, 0)`,
-      [postId, threadId, body, actor.userType, actor.userId]
+        (id, thread_id, body, image_paths_json, author_user_type, author_user_id, is_deleted)
+       VALUES (?, ?, ?, ?, ?, ?, 0)`,
+      [postId, threadId, body, pathsJson, actor.userType, actor.userId]
     );
 
     const thread = await loadThreadThreadSafe(threadId);
@@ -260,7 +285,7 @@ router.post('/threads', async (req, res) => {
       req,
       actorUserType: actor.userType,
       actorUserId: actor.userId,
-      payload: { post_id: postId },
+      payload: { post_id: postId, images_count: imageList.length },
     });
     emitForumChanged({ reason: 'thread_created', threadId });
     res.status(201).json({ thread, first_post_id: postId });
@@ -281,7 +306,7 @@ router.get('/threads/:id', async (req, res) => {
 
     const countRow = await queryOne('SELECT COUNT(*) AS c FROM forum_posts WHERE thread_id = ?', [thread.id]);
     const posts = await queryAll(
-      `SELECT p.id, p.thread_id, p.body, p.author_user_type, p.author_user_id, p.is_deleted, p.created_at, p.updated_at,
+      `SELECT p.id, p.thread_id, p.body, p.image_paths_json, p.author_user_type, p.author_user_id, p.is_deleted, p.created_at, p.updated_at,
               COALESCE(
                 NULLIF(u.display_name, ''),
                 NULLIF(CONCAT(COALESCE(u.first_name, ''), ' ', COALESCE(u.last_name, '')), ''),
@@ -296,10 +321,16 @@ router.get('/threads/:id', async (req, res) => {
         LIMIT ${sqlLimit} OFFSET ${sqlOffset}`,
       [thread.id]
     );
-    const sanitizedPosts = posts.map((p) => ({
-      ...p,
-      body: Number(p.is_deleted) ? '' : p.body,
-    }));
+    const sanitizedPosts = posts.map((p) => {
+      const row = { ...p, body: Number(p.is_deleted) ? '' : p.body };
+      if (Number(p.is_deleted)) {
+        delete row.image_paths_json;
+        row.image_urls = [];
+      } else {
+        attachPublicImageUrls(row, 'forum-posts');
+      }
+      return row;
+    });
     const reactionsByPost = await loadForumPostReactions(
       sanitizedPosts.map((p) => p.id),
       actor
@@ -382,7 +413,16 @@ router.post('/threads/:id/posts', async (req, res) => {
     if (!(await requireForumParticipation(req, res))) return;
     const actor = getActor(req.auth);
     if (!actor) return res.status(401).json({ error: 'Session invalide' });
-    const body = normalizeOptionalString(req.body?.body);
+    const imagesCheck = validateImagesPayload(req.body?.images);
+    if (imagesCheck.error) return res.status(400).json({ error: imagesCheck.error });
+    const imageList = imagesCheck.images || [];
+    let body = normalizeOptionalString(req.body?.body);
+    if (imageList.length === 0 && (!body || body.length < MIN_POST_BODY_LEN || body.length > MAX_POST_BODY_LEN)) {
+      return res.status(400).json({ error: `Message invalide (${MIN_POST_BODY_LEN}-${MAX_POST_BODY_LEN} caractères), ou ajoute au moins une image` });
+    }
+    if (imageList.length > 0 && (!body || !String(body).trim())) {
+      body = AUTO_BODY_WITH_PHOTOS;
+    }
     if (!body || body.length < MIN_POST_BODY_LEN || body.length > MAX_POST_BODY_LEN) {
       return res.status(400).json({ error: `Message invalide (${MIN_POST_BODY_LEN}-${MAX_POST_BODY_LEN} caractères)` });
     }
@@ -395,15 +435,23 @@ router.post('/threads/:id/posts', async (req, res) => {
     if (Number(thread.is_locked)) return res.status(409).json({ error: 'Sujet verrouillé' });
 
     const postId = uuidv4();
+    let pathsJson = null;
+    if (imageList.length > 0) {
+      const persisted = persistUserContentImages('forum-posts', postId, imageList);
+      if (persisted.error) {
+        return res.status(400).json({ error: persisted.error });
+      }
+      pathsJson = persisted.pathsJson;
+    }
     await execute(
       `INSERT INTO forum_posts
-        (id, thread_id, body, author_user_type, author_user_id, is_deleted)
-       VALUES (?, ?, ?, ?, ?, 0)`,
-      [postId, thread.id, body, actor.userType, actor.userId]
+        (id, thread_id, body, image_paths_json, author_user_type, author_user_id, is_deleted)
+       VALUES (?, ?, ?, ?, ?, ?, 0)`,
+      [postId, thread.id, body, pathsJson, actor.userType, actor.userId]
     );
     await execute('UPDATE forum_threads SET last_post_at = NOW(), updated_at = NOW() WHERE id = ?', [thread.id]);
     const post = await queryOne(
-      `SELECT p.id, p.thread_id, p.body, p.author_user_type, p.author_user_id, p.is_deleted, p.created_at, p.updated_at,
+      `SELECT p.id, p.thread_id, p.body, p.image_paths_json, p.author_user_type, p.author_user_id, p.is_deleted, p.created_at, p.updated_at,
               COALESCE(
                 NULLIF(u.display_name, ''),
                 NULLIF(CONCAT(COALESCE(u.first_name, ''), ' ', COALESCE(u.last_name, '')), ''),
@@ -417,11 +465,12 @@ router.post('/threads/:id/posts', async (req, res) => {
         LIMIT 1`,
       [postId]
     );
+    attachPublicImageUrls(post, 'forum-posts');
     await logAudit('forum_post_create', 'forum_post', postId, `Réponse dans ${thread.title}`, {
       req,
       actorUserType: actor.userType,
       actorUserId: actor.userId,
-      payload: { thread_id: thread.id },
+      payload: { thread_id: thread.id, images_count: imageList.length },
     });
     emitForumChanged({ reason: 'post_created', threadId: thread.id, postId });
     res.status(201).json(post);
@@ -504,7 +553,7 @@ router.delete('/posts/:id', async (req, res) => {
     const actor = getActor(req.auth);
     if (!actor) return res.status(401).json({ error: 'Session invalide' });
     const post = await queryOne(
-      'SELECT id, thread_id, author_user_type, author_user_id, is_deleted FROM forum_posts WHERE id = ? LIMIT 1',
+      'SELECT id, thread_id, author_user_type, author_user_id, is_deleted, image_paths_json FROM forum_posts WHERE id = ? LIMIT 1',
       [req.params.id]
     );
     if (!post) return res.status(404).json({ error: 'Message introuvable' });
@@ -514,8 +563,9 @@ router.delete('/posts/:id', async (req, res) => {
     const moderator = canModerateForum(req.auth);
     if (!ownsPost && !moderator) return res.status(403).json({ error: 'Permission insuffisante' });
 
+    deleteUserContentImagesFromJson(post.image_paths_json, 'forum-posts');
     await execute(
-      'UPDATE forum_posts SET is_deleted = 1, body = ?, updated_at = NOW() WHERE id = ?',
+      'UPDATE forum_posts SET is_deleted = 1, body = ?, image_paths_json = NULL, updated_at = NOW() WHERE id = ?',
       ['[message supprimé]', post.id]
     );
     await execute(

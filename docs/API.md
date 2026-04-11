@@ -455,7 +455,7 @@ Contraintes principales :
 - `POST /api/tasks/:id/done` :
   - en `single_done`, la tâche passe en `done` dès la déclaration de fin ;
   - en `all_assignees_done`, chaque assigné valide individuellement, puis la tâche passe en `done` uniquement quand tous les assignés ont terminé.
-  - **N3boss** : avec en-tête `Authorization: Bearer <token>` enseignant, le corps peut cibler un assigné via `studentId` (UUID n3beur) ou couple `firstName` / `lastName` (comme pour l’affectation) : cela enregistre `done_at` sur **son** inscription pour une tâche en `all_assignees_done` (validation manuelle de la part d’un élève), sans commentaire ni image obligatoires. Même logique que lorsque l’élève appelle la route pour lui-même.
+  - **N3boss / validation** : avec en-tête `Authorization: Bearer <token>` et un profil disposant de `tasks.manage` **ou** de `tasks.validate` (même sans `tasks.manage`, par ex. rôle RBAC personnalisé), le corps peut cibler un assigné via `studentId` (UUID n3beur) ou couple `firstName` / `lastName` (comme pour l’affectation) : cela enregistre `done_at` sur **son** inscription pour une tâche en `all_assignees_done` (validation manuelle de la part d’un élève), sans commentaire ni image obligatoires. Même logique que lorsque l’élève appelle la route pour lui-même.
 - `POST /api/tasks/:id/validate` : possible sans que la tâche soit `done` ; **400** uniquement si elle est déjà `validated`. Les liaisons **zones / repères** sont retirées, comme pour un passage à `validated` via `PUT`. Pour une tâche avec récurrence `weekly`, `biweekly` ou `monthly`, un **snapshot** des identifiants de zones et de repères est enregistré au moment de la **première** transition vers `validated` (`recurrence_template_zone_ids` et `recurrence_template_marker_ids`, texte JSON côté BDD) afin que le job de duplication des tâches récurrentes recrée les clones avec la même localisation. Même logique lors d’un passage à `validated` via `PUT` lorsque le statut précédent n’était pas déjà `validated`. Les payloads JSON de tâche peuvent exposer ces champs.
 - Les commentaires contextuels restent possibles sur les tâches, projets, zones, repères, fiches biodiversité et tutoriels (`/api/context-comments`).
 
@@ -497,9 +497,9 @@ Si le réglage public `ui.modules.forum_enabled` est à `false`, toutes les rout
 | Méthode | URL | Description |
 |--------|-----|-------------|
 | GET | `/api/forum/threads?page=1&page_size=20` | Liste paginée des sujets (tri : épinglés puis activité récente) |
-| POST | `/api/forum/threads` | Créer un sujet + premier message (`{ title, body }`) |
+| POST | `/api/forum/threads` | Créer un sujet + premier message (`{ title, body?, images? }`) |
 | GET | `/api/forum/threads/:id?page=1&page_size=50` | Détail d’un sujet + messages paginés |
-| POST | `/api/forum/threads/:id/posts` | Ajouter une réponse (`{ body }`) |
+| POST | `/api/forum/threads/:id/posts` | Ajouter une réponse (`{ body?, images? }`) |
 | POST | `/api/forum/posts/:id/reactions` | Toggle d’une réaction emoji (`{ emoji }`) |
 | POST | `/api/forum/posts/:id/report` | Signaler un message (`{ reason }`) |
 | PATCH | `/api/forum/threads/:id/lock` | Verrouiller/déverrouiller un sujet (`{ locked }`, n3boss/admin) |
@@ -507,6 +507,7 @@ Si le réglage public `ui.modules.forum_enabled` est à `false`, toutes les rout
 
 Contraintes principales :
 
+- **Photos** : champ optionnel `images` (tableau de data URLs / base64 **JPEG, PNG ou WebP**), **maximum 3** fichiers, **1,5 Mo** chacun après décodage (corps JSON limité par Express à 10 Mo). Fichiers stockés sous `uploads/forum-posts/<postId>/`. Les réponses incluent `posts[].image_urls` (chemins publics `/uploads/…`, tableau vide si aucune image). Si au moins une image est envoyée **sans** texte de message, le corps enregistré vaut littéralement `(Photo)` pour respecter la longueur minimale du message.
 - Validation serveur des longueurs (titre/message/motif).
 - Anti-abus V1 : cooldown par utilisateur sur création de sujet/réponse.
 - Réactions emoji supportées : issues du réglage public `ui.reactions.allowed_emojis` (fallback défaut `👍 ❤️ 😂 😮 😢 😡 🔥 👏`).
@@ -538,13 +539,14 @@ Contexte supporté :
 | Méthode | URL | Description |
 |--------|-----|-------------|
 | GET | `/api/context-comments?contextType=task|project|zone|marker|plant|tutorial&contextId=:id&page=1&page_size=20` | Liste paginée des commentaires d’un contexte |
-| POST | `/api/context-comments` | Créer un commentaire (`{ contextType, contextId, body }`) |
+| POST | `/api/context-comments` | Créer un commentaire (`{ contextType, contextId, body?, images? }`) |
 | POST | `/api/context-comments/:id/reactions` | Toggle d’une réaction emoji (`{ emoji }`) |
 | DELETE | `/api/context-comments/:id` | Supprimer un commentaire (auteur ou n3boss/admin) |
 | POST | `/api/context-comments/:id/report` | Signaler un commentaire (`{ reason }`) |
 
 Contraintes principales :
 
+- **Photos** : champ optionnel `images` (même format et limites que le forum : **max 3**, **1,5 Mo** par image après décodage, JPEG/PNG/WebP). Stockage sous `uploads/context-comments/<commentId>/`. Les réponses `GET` exposent `items[].image_urls` (`/uploads/…`). Texte seul, images seules ou texte + images : au moins un texte **ou** une image requis ; sans texte mais avec images, le corps enregistré vaut `(Photo)`.
 - Validation serveur de `contextType` et de l’existence du contexte ciblé.
 - Validation longueur message/motif de signalement.
 - Anti-abus V1 : cooldown par utilisateur sur publication.

@@ -9,6 +9,7 @@ import {
   toggleContextCommentReaction,
 } from '../services/api';
 import { formatDateTimeFr } from '../utils/datetime-fr';
+import { AttachmentImagesPicker, UserContentImagesGrid } from './attachment-images-picker';
 
 const PAGE_SIZE = 10;
 const DEFAULT_REACTION_EMOJIS = ['👍', '❤️', '😂', '😮', '😢', '😡', '🔥', '👏'];
@@ -110,6 +111,7 @@ function ContextComments({
   const [reactionEmojis, setReactionEmojis] = useState(DEFAULT_REACTION_EMOJIS);
   const [expandedReactionsByComment, setExpandedReactionsByComment] = useState({});
   const [body, setBody] = useState(() => readContextCommentDraft(contextType, contextId));
+  const [pendingImages, setPendingImages] = useState([]);
   const [reportReasonById, setReportReasonById] = useState({});
   const [toast, setToast] = useState('');
   const [authClaims, setAuthClaims] = useState(() => getAuthClaims());
@@ -245,11 +247,17 @@ function ContextComments({
 
   const submit = async (e) => {
     e.preventDefault();
-    if (!body.trim() || !contextType || !contextId) return;
+    if ((!body.trim() && pendingImages.length === 0) || !contextType || !contextId) return;
     setSubmitting(true);
     try {
-      await createContextComment({ contextType, contextId, body });
+      await createContextComment({
+        contextType,
+        contextId,
+        body: body.trim() || undefined,
+        images: pendingImages.length ? pendingImages : undefined,
+      });
       setBody('');
+      setPendingImages([]);
       writeContextCommentDraft(contextType, contextId, '');
       setToast('Commentaire publié');
       await load(1);
@@ -326,7 +334,13 @@ function ContextComments({
                 rows={2}
                 maxLength={4000}
                 placeholder={placeholder}
-                required
+                required={pendingImages.length === 0}
+              />
+              <AttachmentImagesPicker
+                value={pendingImages}
+                onChange={setPendingImages}
+                disabled={submitting}
+                onNotify={(msg) => setToast(msg)}
               />
               <button type="submit" className="btn btn-secondary btn-sm" disabled={submitting}>
                 {submitting ? 'Envoi...' : 'Publier'}
@@ -354,6 +368,9 @@ function ContextComments({
                   <p className="context-comment-body">
                     {item.is_deleted ? '[commentaire supprimé]' : item.body}
                   </p>
+                  {!item.is_deleted && (
+                    <UserContentImagesGrid urls={item.image_urls} />
+                  )}
                   {!item.is_deleted && (canUseCommentActions ? (
                     <div className={`message-reactions-row ${reactionsExpanded ? 'expanded' : 'compact'}`}>
                       {!reactionsExpanded ? (

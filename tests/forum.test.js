@@ -316,3 +316,43 @@ test('Forum: n3beur sans participation — lecture OK, création sujet 403', asy
     .expect(403);
   assert.strictEqual(res.body.code, 'FORUM_READ_ONLY');
 });
+
+const TINY_PNG_DATA_URL =
+  'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO5qXg8AAAAASUVORK5CYII=';
+
+test('Forum: premier message et réponse avec photos (image_urls)', async () => {
+  const student = await registerStudent('ForumImg');
+  const create = await request(app)
+    .post('/api/forum/threads')
+    .set(auth(student.authToken))
+    .send({
+      title: `Sujet photo ${Date.now()}`,
+      body: 'Message avec une image.',
+      images: [TINY_PNG_DATA_URL],
+    })
+    .expect(201);
+  const threadId = create.body?.thread?.id;
+  assert.ok(threadId);
+
+  const detail = await request(app)
+    .get(`/api/forum/threads/${threadId}`)
+    .set(auth(student.authToken))
+    .expect(200);
+  const firstPost = detail.body.posts.find((p) => Array.isArray(p.image_urls) && p.image_urls.length > 0);
+  assert.ok(firstPost);
+  assert.match(firstPost.image_urls[0], /^\/uploads\/forum-posts\//);
+
+  await request(app)
+    .post(`/api/forum/threads/${threadId}/posts`)
+    .set(auth(student.authToken))
+    .send({ images: [TINY_PNG_DATA_URL] })
+    .expect(201);
+
+  const detail2 = await request(app)
+    .get(`/api/forum/threads/${threadId}`)
+    .set(auth(student.authToken))
+    .expect(200);
+  const withSoloPhoto = detail2.body.posts.find((p) => p.body === '(Photo)');
+  assert.ok(withSoloPhoto);
+  assert.strictEqual(withSoloPhoto.image_urls.length, 1);
+});
