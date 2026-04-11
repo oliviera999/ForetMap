@@ -1,16 +1,15 @@
 const express = require('express');
 const fs = require('fs');
-const path = require('path');
 const PDFDocument = require('pdfkit');
 const { queryAll, queryOne, execute, withTransaction } = require('../database');
 const { authenticate, requirePermission, requireAuth } = require('../middleware/requireTeacher');
 const { logRouteError } = require('../lib/routeLog');
 const { emitTasksChanged } = require('../lib/realtime');
 const { saveBase64ToDisk, deleteFile } = require('../lib/uploads');
+const { resolveLocalTutorialFile, isAllowedSourceFilePath } = require('../lib/inlineLegacyTutorialHtml');
 
 const router = express.Router();
 const MAX_TUTORIAL_COVER_BYTES = 5 * 1024 * 1024;
-const ROOT_DIR = path.resolve(__dirname, '..');
 const TUTORIAL_MANAGER_ROLES = new Set(['prof', 'admin']);
 router.use(authenticate);
 
@@ -311,24 +310,6 @@ async function uniqueSlug(baseSlug, excludeId = null) {
   }
 }
 
-function isAllowedSourceFilePath(value) {
-  const v = normalizeString(value);
-  if (!v) return false;
-  if (!v.startsWith('/tutos/')) return false;
-  if (v.includes('..')) return false;
-  return true;
-}
-
-function resolveLocalTutorialFile(publicPath) {
-  const normalized = normalizeString(publicPath);
-  if (!isAllowedSourceFilePath(normalized)) return null;
-  const rel = normalized.replace(/^\/+/, '');
-  const absolute = path.resolve(ROOT_DIR, rel);
-  const allowedRoot = path.resolve(ROOT_DIR, 'tutos');
-  if (!absolute.startsWith(allowedRoot)) return null;
-  return absolute;
-}
-
 function decodeHtmlEntities(text) {
   return String(text || '')
     .replace(/&nbsp;/g, ' ')
@@ -617,9 +598,9 @@ router.post('/', requirePermission('tutorials.manage', { needsElevation: true })
       const coverErr = validateTutorialCoverImageUrl(coverImageUrl || '');
       if (coverErr) return res.status(400).json({ error: coverErr });
     }
-    const htmlContent = req.body.html_content != null ? String(req.body.html_content) : null;
+    let htmlContent = req.body.html_content != null ? String(req.body.html_content) : null;
     const sourceUrl = normalizeString(req.body.source_url) || null;
-    const sourceFilePath = normalizeString(req.body.source_file_path) || null;
+    let sourceFilePath = normalizeString(req.body.source_file_path) || null;
     const sortOrder = sanitizeSortOrder(req.body.sort_order);
 
     if (!title) return res.status(400).json({ error: 'Titre requis' });
@@ -633,6 +614,21 @@ router.post('/', requirePermission('tutorials.manage', { needsElevation: true })
       const hasFile = !!sourceFilePath;
       if (!hasHtml && !hasFile) {
         return res.status(400).json({ error: 'Un contenu HTML ou un fichier source est requis' });
+      }
+      if (hasFile && !hasHtml) {
+        if (!isAllowedSourceFilePath(sourceFilePath)) {
+          return res.status(400).json({ error: 'Chemin de fichier source non autorisé' });
+        }
+        const abs = resolveLocalTutorialFile(sourceFilePath);
+        if (!abs || !fs.existsSync(abs)) {
+          return res.status(400).json({ error: 'Fichier source introuvable' });
+        }
+        try {
+          htmlContent = fs.readFileSync(abs, 'utf8');
+        } catch (e) {
+          return res.status(400).json({ error: 'Lecture du fichier source impossible' });
+        }
+        sourceFilePath = null;
       }
     }
     if (sourceFilePath && !isAllowedSourceFilePath(sourceFilePath)) {
@@ -803,9 +799,9 @@ router.put('/:id', requirePermission('tutorials.manage', { needsElevation: true 
       const coverErr = validateTutorialCoverImageUrl(nextCoverImageUrl || '');
       if (coverErr) return res.status(400).json({ error: coverErr });
     }
-    const nextHtml = req.body.html_content !== undefined ? (req.body.html_content != null ? String(req.body.html_content) : null) : existing.html_content;
+    let nextHtml = req.body.html_content !== undefined ? (req.body.html_content != null ? String(req.body.html_content) : null) : existing.html_content;
     const nextSourceUrl = req.body.source_url !== undefined ? (normalizeString(req.body.source_url) || null) : existing.source_url;
-    const nextSourceFilePath = req.body.source_file_path !== undefined ? (normalizeString(req.body.source_file_path) || null) : existing.source_file_path;
+    let nextSourceFilePath = req.body.source_file_path !== undefined ? (normalizeString(req.body.source_file_path) || null) : existing.source_file_path;
     const nextSortOrder = req.body.sort_order !== undefined ? sanitizeSortOrder(req.body.sort_order) : existing.sort_order;
     const nextIsActive = req.body.is_active !== undefined ? (req.body.is_active ? 1 : 0) : existing.is_active;
 
@@ -814,8 +810,27 @@ router.put('/:id', requirePermission('tutorials.manage', { needsElevation: true 
     if (nextType === 'link' && !isValidHttpUrl(nextSourceUrl)) {
       return res.status(400).json({ error: 'URL du tutoriel invalide' });
     }
-    if (nextType === 'html' && !(nextHtml && String(nextHtml).trim()) && !nextSourceFilePath) {
-      return res.status(400).json({ error: 'Un contenu HTML ou un fichier source est requis' });
+    if (nextType === 'html') {
+      const hasH = !!(nextHtml && String(nextHtml).trim());
+      const hasF = !!nextSourceFilePath;
+      if (!hasH && !hasF) {
+        return res.status(400).json({ error: 'Un contenu HTML ou un fichier source est requis' });
+      }
+      if (hasF && !hasH) {
+        if (!isAllowedSourceFilePath(nextSourceFilePath)) {
+          return res.status(400).json({ error: 'Chemin de fichier source non autorisé' });
+        }
+        const abs = resolveLocalTutorialFile(nextSourceFilePath);
+        if (!abs || !fs.existsSync(abs)) {
+          return res.status(400).json({ error: 'Fichier source introuvable' });
+        }
+        try {
+          nextHtml = fs.readFileSync(abs, 'utf8');
+        } catch (e) {
+          return res.status(400).json({ error: 'Lecture du fichier source impossible' });
+        }
+        nextSourceFilePath = null;
+      }
     }
     if (nextSourceFilePath && !isAllowedSourceFilePath(nextSourceFilePath)) {
       return res.status(400).json({ error: 'Chemin de fichier source non autorisé' });

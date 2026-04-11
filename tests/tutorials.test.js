@@ -113,6 +113,43 @@ test('POST /api/tutorials crée un tuto HTML, téléchargeable en HTML/PDF', asy
   assert.ok((pdfRes.headers['content-disposition'] || '').includes('.pdf'));
 });
 
+test('POST /api/tutorials avec seulement source_file_path intègre le HTML en base', async () => {
+  const create = await request(app)
+    .post('/api/tutorials')
+    .set('Authorization', 'Bearer ' + teacherToken)
+    .send({
+      title: `Tuto fichier ${Date.now()}`,
+      summary: 'Import depuis /tutos/',
+      type: 'html',
+      source_file_path: '/tutos/fiche-arrosage-punk.html',
+      sort_order: 97,
+    })
+    .expect(201);
+  assert.strictEqual(create.body.source_file_path, null);
+  const detail = await request(app)
+    .get(`/api/tutorials/${create.body.id}?include_content=1`)
+    .set('Authorization', 'Bearer ' + teacherToken)
+    .expect(200);
+  assert.ok(detail.body.html_content && String(detail.body.html_content).trim().length > 80);
+  await execute('DELETE FROM tutorials WHERE id = ?', [create.body.id]);
+});
+
+test('inlineLegacyTutorialHtmlToDb remplit html_content depuis source_file_path', async () => {
+  const { inlineLegacyTutorialHtmlToDb } = require('../lib/inlineLegacyTutorialHtml');
+  const slug = `inline-db-${Date.now()}`;
+  const ins = await execute(
+    `INSERT INTO tutorials (title, slug, type, summary, html_content, source_file_path, is_active, sort_order, created_at, updated_at)
+     VALUES (?, ?, 'html', 'x', NULL, '/tutos/fiche-arrosage-punk.html', 1, 998, NOW(), NOW())`,
+    ['Test inline BDD', slug]
+  );
+  const r = await inlineLegacyTutorialHtmlToDb({ queryAll, execute });
+  assert.ok(r.applied >= 1);
+  const row = await queryOne('SELECT html_content, source_file_path FROM tutorials WHERE id = ?', [ins.insertId]);
+  assert.ok(row.html_content && String(row.html_content).length > 50);
+  assert.strictEqual(row.source_file_path, null);
+  await execute('DELETE FROM tutorials WHERE id = ?', [ins.insertId]);
+});
+
 test('POST /api/tasks accepte tutorial_ids et renvoie tutorials_linked', async () => {
   const tutorialsRes = await request(app).get('/api/tutorials').expect(200);
   const tutorialId = tutorialsRes.body[0]?.id;

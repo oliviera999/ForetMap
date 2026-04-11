@@ -4,6 +4,7 @@ const { v4: uuidv4 } = require('uuid');
 const path = require('path');
 const fs = require('fs');
 const logger = require('./lib/logger');
+const { inlineLegacyTutorialHtmlToDb } = require('./lib/inlineLegacyTutorialHtml');
 
 /** Errnos MySQL souvent attendus lors de migrations idempotentes (table/colonne/index déjà présents ou legacy absent). */
 const MYSQL_MIGRATION_EXPECTED_ERRNO = new Set([1050, 1060, 1061, 1091, 1146, 1826]);
@@ -323,6 +324,11 @@ async function initSchema() {
   } finally {
     conn.release();
   }
+  try {
+    await inlineLegacyTutorialHtmlToDb({ queryAll, execute });
+  } catch (err) {
+    logger.warn({ err }, 'Incorporation fichiers tutoriels HTML (après schéma) ignorée');
+  }
 }
 
 /**
@@ -484,6 +490,11 @@ async function seedData() {
  */
 async function initDatabase() {
   await ping();
+  try {
+    await inlineLegacyTutorialHtmlToDb({ queryAll, execute });
+  } catch (err) {
+    logger.warn({ err }, 'Incorporation fichiers tutoriels HTML (démarrage) ignorée');
+  }
   applicationDatabaseReady = true;
 }
 
