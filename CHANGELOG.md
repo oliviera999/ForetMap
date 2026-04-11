@@ -10,7 +10,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ### Modifié
 - **Tâches collectives (n3boss)** : marquer la part d’un assigné comme terminée se fait par **un seul clic** sur le nom (plus de boîte de confirmation navigateur).
-- **Build** : régénération de **`dist/`** (`npm run build`, Vite production en local).
+- **Build** : régénération de **`dist/`** (`npm run build`, Vite production en local — bundles à jour dont styles modales centrées).
 
 ### Corrigé
 - **Modales (tutoriels, biodiversité, zones, repères, tâches, aide)** : le calque **`.modal-overlay`** centre désormais systématiquement le contenu dans la **fenêtre visible** (plus de feuille collée en bas ou en haut) ; défilement éventuel **dans le calque** si la fenêtre est petite ; panneau d’aide mobile harmonisé ; aperçu tutoriel **`.tuto-preview-modal`** conserve une largeur jusqu’à **980px** avec hauteur bornée au viewport.
