@@ -14,41 +14,13 @@ import { ContextComments } from './context-comments';
 import { useOverlayHistoryBack } from '../hooks/useOverlayHistoryBack';
 import { computeMapImageContainRect } from '../utils/mapImageFit';
 import { parseVisitZonePoints as parsePctPoints, visitZoneCentroidPct } from '../utils/visitMapGeometry.js';
+import { computeVisitMascotStartPct } from '../utils/visitMascotPlacement.js';
+import { shouldShowVisitMapMascot as computeShowVisitMapMascot } from '../utils/visitMascotVisibility.js';
 import { wheelZoomScaleFactor } from '../utils/mapWheelZoom';
 
 const VisitMapMascotLottie = lazy(() => import('./VisitMapMascotLottie.jsx'));
 
 const VISIT_MAP_MASCOT_MOVE_MS = 560;
-
-/** Décalage vertical (%, vers le bas) sous le repère « entrée N3 » au début de la visite. */
-const VISIT_MASCOT_BELOW_N3_ENTRANCE_YP = 5.5;
-
-/**
- * Repère visite « entrée N3 » (libellés possibles côté contenu).
- * Ex. « Entrée N3 », « 📍 Entrée N3 », « n3 entrée », « Portail N3 ».
- */
-const VISIT_N3_ENTRANCE_LABEL_RE =
-  /entr[ée]e.*n3|n3.*entr[ée]e|entr[ée]e\s*\(?\s*n3|portail.*n3|acc[èe]s.*n3/i;
-
-function findVisitN3EntranceMarker(markers) {
-  if (!Array.isArray(markers)) return null;
-  return markers.find((mk) => VISIT_N3_ENTRANCE_LABEL_RE.test(String(mk.label || '').trim())) || null;
-}
-
-function computeVisitMascotStartPct(mapId, markers) {
-  if (mapId === 'n3') {
-    const m = findVisitN3EntranceMarker(markers);
-    if (m && Number.isFinite(Number(m.x_pct)) && Number.isFinite(Number(m.y_pct))) {
-      const xp = Math.max(0, Math.min(100, Number(m.x_pct)));
-      const yp = Math.max(
-        0,
-        Math.min(100, Number(m.y_pct) + VISIT_MASCOT_BELOW_N3_ENTRANCE_YP)
-      );
-      return { xp, yp };
-    }
-  }
-  return { xp: 50, yp: 50 };
-}
 
 function itemSeenKey(type, id) {
   return `${type}:${id}`;
@@ -611,11 +583,12 @@ function VisitView({
   }, [content.zones, content.markers, seen]);
 
   /** Mascotte : afficher dès qu’il existe des zones/repères côté contenu, pas seulement si le total « parcourable » > 0 (polygones valides). */
-  const showVisitMapMascot =
-    mode === 'view' &&
-    (visitCartographyProgress.total > 0 ||
-      (Array.isArray(content.zones) && content.zones.length > 0) ||
-      (Array.isArray(content.markers) && content.markers.length > 0));
+  const showVisitMapMascot = computeShowVisitMapMascot(
+    mode,
+    visitCartographyProgress.total,
+    content.zones,
+    content.markers
+  );
 
   useEffect(() => {
     const next = String(initialMapId || 'foret').trim() || 'foret';
@@ -1469,6 +1442,7 @@ function VisitView({
                       key={m.id}
                       type="button"
                       className="visit-marker-btn"
+                      aria-label={String(m.label || '').trim() || 'Repère visite'}
                       style={{ left: `${m.x_pct}%`, top: `${m.y_pct}%` }}
                       onClick={(event) => {
                         event.stopPropagation();

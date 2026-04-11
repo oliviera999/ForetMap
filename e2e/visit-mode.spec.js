@@ -57,6 +57,7 @@ test('visite connectée : mascotte visible si au moins une zone ou un repère su
   const zoneCount = await stage.locator('.visit-zone-hit').count();
   const markerCount = await stage.locator('.visit-marker-btn').count();
   if (zoneCount + markerCount > 0) {
-    await expect(stage.locator('.visit-map-mascot')).toBeVisible({ timeout: 15_000 });
+    await expect(stage.locator('.visit-map-mascot')).toBeAttached({ timeout: 15_000 });
+    await expect(stage.locator('.visit-map-mascot-inner')).toBeVisible({ timeout: 15_000 });
   }
 });
