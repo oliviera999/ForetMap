@@ -2,9 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useRive, Layout, Fit, Alignment } from '@rive-app/react-canvas';
 import { VISIT_MASCOT_STATE } from '../utils/visitMascotState.js';
 
-const VISIT_MASCOT_RIVE_SRC = '/assets/rive/visit-mascot.riv';
-
-function StaticVisitMascotSvg() {
+function DefaultVisitMascotStaticSvg() {
   return (
     <svg viewBox="0 0 128 148" role="presentation" focusable="false">
       <ellipse cx="64" cy="140" rx="34" ry="7" fill="rgba(26,71,49,0.22)" />
@@ -24,14 +22,14 @@ function StaticVisitMascotSvg() {
   );
 }
 
-function pickAnimationName(animationNames = [], mascotState = VISIT_MASCOT_STATE.IDLE) {
+function pickAnimationName(animationNames = [], mascotState = VISIT_MASCOT_STATE.IDLE, stateAnimations = null) {
   const names = Array.isArray(animationNames) ? animationNames : [];
-  const byState = {
+  const byState = stateAnimations && typeof stateAnimations === 'object' ? stateAnimations : {
     [VISIT_MASCOT_STATE.IDLE]: ['idle', 'Idle', 'IDLE'],
     [VISIT_MASCOT_STATE.WALKING]: ['walk', 'Walk', 'walking', 'Walking'],
     [VISIT_MASCOT_STATE.HAPPY]: ['happy', 'Happy', 'celebrate', 'Celebrate'],
   };
-  const preferred = byState[mascotState] || byState[VISIT_MASCOT_STATE.IDLE];
+  const preferred = byState[mascotState] || byState[VISIT_MASCOT_STATE.IDLE] || [];
   for (const wanted of preferred) {
     const found = names.find((n) => String(n).toLowerCase() === String(wanted).toLowerCase());
     if (found) return found;
@@ -39,15 +37,21 @@ function pickAnimationName(animationNames = [], mascotState = VISIT_MASCOT_STATE
   return names[0] || '';
 }
 
-function VisitMapMascotRive({ mascotState = VISIT_MASCOT_STATE.IDLE }) {
+function VisitMapMascotRive({
+  mascotState = VISIT_MASCOT_STATE.IDLE,
+  mascotConfig = null,
+  fallback = <DefaultVisitMascotStaticSvg />,
+}) {
   const [riveError, setRiveError] = useState(false);
   const [status, setStatus] = useState('loading');
+  const riveSrc = String(mascotConfig?.rive?.src || '').trim();
+  const stateAnimations = mascotConfig?.rive?.stateAnimations || null;
   const layout = useMemo(
     () => new Layout({ fit: Fit.Contain, alignment: Alignment.Center }),
     []
   );
   const { rive, RiveComponent } = useRive({
-    src: VISIT_MASCOT_RIVE_SRC,
+    src: riveSrc,
     autoplay: true,
     layout,
     onLoad: () => {
@@ -63,7 +67,7 @@ function VisitMapMascotRive({ mascotState = VISIT_MASCOT_STATE.IDLE }) {
   useEffect(() => {
     if (!rive || riveError) return;
     const names = rive.animationNames || [];
-    const selected = pickAnimationName(names, mascotState);
+    const selected = pickAnimationName(names, mascotState, stateAnimations);
     if (!selected) {
       setStatus('fallback-no-animation');
       return;
@@ -87,7 +91,7 @@ function VisitMapMascotRive({ mascotState = VISIT_MASCOT_STATE.IDLE }) {
       aria-hidden="true"
     >
       <div className="visit-map-mascot-static" aria-hidden="true">
-        <StaticVisitMascotSvg />
+        {fallback}
       </div>
       {!riveError ? (
         <div className="visit-map-mascot-rive" aria-hidden="true">
@@ -99,4 +103,4 @@ function VisitMapMascotRive({ mascotState = VISIT_MASCOT_STATE.IDLE }) {
 }
 
 export default VisitMapMascotRive;
-export { VisitMapMascotRive };
+export { VisitMapMascotRive, DefaultVisitMascotStaticSvg };

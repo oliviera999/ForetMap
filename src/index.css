@@ -2621,6 +2621,27 @@
       gap:6px;
       flex-wrap:wrap;
     }
+    .visit-mascot-picker {
+      margin-top:8px;
+      display:flex;
+      flex-direction:column;
+      gap:4px;
+      max-width:260px;
+    }
+    .visit-mascot-picker span {
+      font-size:.8rem;
+      color:#365314;
+      font-weight:700;
+    }
+    .visit-mascot-picker select {
+      min-height:32px;
+      border:1px solid rgba(82,183,136,.55);
+      border-radius:8px;
+      background:#fff;
+      color:#1a4731;
+      font-weight:600;
+      padding:4px 8px;
+    }
     .visit-mascot-preview-body {
       min-width:84px;
       min-height:84px;
@@ -2633,7 +2654,8 @@
       padding:4px;
       flex-shrink:0;
     }
-    .visit-mascot-preview-body .visit-map-mascot-rive-shell {
+    .visit-mascot-preview-body .visit-map-mascot-rive-shell,
+    .visit-mascot-preview-body .visit-map-mascot-spritesheet-shell {
       width:74px;
       height:82px;
     }
@@ -2792,6 +2814,32 @@
       height:100%;
       opacity:.96;
     }
+    .visit-map-mascot-spritesheet-shell {
+      position:relative;
+      width:clamp(54px, 11.5vw, 72px);
+      height:clamp(62px, 13vw, 84px);
+      pointer-events:none;
+      user-select:none;
+      filter:drop-shadow(0 2px 6px rgba(26,71,49,.35));
+    }
+    .visit-map-mascot-spritesheet {
+      position:absolute;
+      inset:0;
+      margin:auto;
+      max-width:100%;
+      max-height:100%;
+      background-repeat:no-repeat;
+      background-position-x:0;
+      background-size:auto 100%;
+      animation:visitMascotSpriteFrames calc(1s / var(--visit-sprite-fps, 8) * var(--visit-sprite-frames, 1)) steps(var(--visit-sprite-frames, 1)) infinite;
+      image-rendering:auto;
+    }
+    .visit-map-mascot-spritesheet--pixelated {
+      image-rendering:pixelated;
+    }
+    .visit-map-mascot-sprite-preload {
+      display:none;
+    }
     .visit-map-mascot--walking .visit-map-mascot-rive-shell {
       animation:visitMascotWalkBob .36s ease-in-out infinite;
     }
@@ -2847,6 +2895,10 @@
     @keyframes visitMascotDialogPop {
       from { opacity:0; transform:translateX(-50%) scale(.86); }
       to { opacity:1; transform:translateX(-50%) scale(1); }
+    }
+    @keyframes visitMascotSpriteFrames {
+      from { background-position-x:0; }
+      to { background-position-x:calc(-1 * var(--visit-sprite-frames, 1) * var(--visit-sprite-frame-width, 64px)); }
     }
     .visit-map-controls {
       position:absolute;
