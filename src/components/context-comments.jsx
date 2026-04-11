@@ -8,6 +8,7 @@ import {
   reportContextComment,
   toggleContextCommentReaction,
 } from '../services/api';
+import { formatDateTimeFr } from '../utils/datetime-fr';
 
 const PAGE_SIZE = 10;
 const DEFAULT_REACTION_EMOJIS = ['👍', '❤️', '😂', '😮', '😢', '😡', '🔥', '👏'];
@@ -84,13 +85,6 @@ function parseReactionEmojiList(rawValue) {
     .filter((item) => item.length <= 16);
   const unique = [...new Set(tokens)].slice(0, 24);
   return unique.length > 0 ? unique : [...DEFAULT_REACTION_EMOJIS];
-}
-
-function fmtDate(value) {
-  if (!value) return '';
-  const d = new Date(value);
-  if (Number.isNaN(d.getTime())) return String(value);
-  return d.toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' });
 }
 
 function canModerate(authClaims) {
@@ -355,7 +349,7 @@ function ContextComments({
                 <article key={item.id} className={`context-comment-item ${item.is_deleted ? 'is-deleted' : ''}`}>
                   <div className="context-comment-head">
                     <strong>{item.author_display_name}</strong>
-                    <span>{fmtDate(item.created_at)}</span>
+                    <span>{formatDateTimeFr(item.created_at)}</span>
                   </div>
                   <p className="context-comment-body">
                     {item.is_deleted ? '[commentaire supprimé]' : item.body}
