@@ -588,6 +588,7 @@ function VisitView({
   const [visitMapMascotPct, setVisitMapMascotPct] = useState({ xp: 50, yp: 50 });
   const [visitMapMascotFaceRight, setVisitMapMascotFaceRight] = useState(true);
   const [visitMapMascotWalking, setVisitMapMascotWalking] = useState(false);
+  const [visitMascotPreviewWalking, setVisitMascotPreviewWalking] = useState(false);
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
   const visitMapMascotPctRef = useRef({ xp: 50, yp: 50 });
   const visitMapMascotMoveTimeoutRef = useRef(null);
@@ -1399,6 +1400,35 @@ function VisitView({
           onSynced={loadData}
           onForceLogout={onForceLogout}
         />
+      )}
+      {isTeacher && (
+        <section className="visit-mascot-preview-card" aria-label="Aperçu de la mascotte">
+          <div>
+            <h3>🧭 Aperçu mascotte (prof/admin)</h3>
+            <p className="section-sub">Rendu visuel de la mascotte en dehors de la carte.</p>
+            <div className="visit-mascot-preview-actions">
+              <button
+                type="button"
+                className={`btn btn-sm ${visitMascotPreviewWalking ? 'btn-ghost' : 'btn-primary'}`}
+                aria-pressed={!visitMascotPreviewWalking}
+                onClick={() => setVisitMascotPreviewWalking(false)}
+              >
+                🧍 Idle
+              </button>
+              <button
+                type="button"
+                className={`btn btn-sm ${visitMascotPreviewWalking ? 'btn-primary' : 'btn-ghost'}`}
+                aria-pressed={visitMascotPreviewWalking}
+                onClick={() => setVisitMascotPreviewWalking(true)}
+              >
+                🚶 Marche
+              </button>
+            </div>
+          </div>
+          <div className="visit-mascot-preview-body" aria-hidden="true">
+            <VisitMapMascotLottie walking={visitMascotPreviewWalking} prefersReducedMotion={prefersReducedMotion} />
+          </div>
+        </section>
       )}
 
       <div className="visit-grid">

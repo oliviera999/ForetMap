@@ -2598,6 +2598,54 @@
     .visit-grid {
       display:grid; grid-template-columns:1.35fr 1fr; gap:12px;
     }
+    .visit-mascot-preview-card {
+      margin-bottom:12px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      background:white;
+      border:1px solid var(--mint);
+      border-radius:12px;
+      box-shadow:var(--shadow);
+      padding:10px 12px;
+    }
+    .visit-mascot-preview-card h3 {
+      margin:0 0 2px;
+      color:var(--forest);
+      font-size:.98rem;
+    }
+    .visit-mascot-preview-actions {
+      margin-top:8px;
+      display:flex;
+      gap:6px;
+      flex-wrap:wrap;
+    }
+    .visit-mascot-preview-body {
+      min-width:84px;
+      min-height:84px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      border-radius:10px;
+      border:1px dashed rgba(82,183,136,.55);
+      background:linear-gradient(135deg, rgba(240,253,244,.9), rgba(248,250,245,.9));
+      padding:4px;
+      flex-shrink:0;
+    }
+    .visit-mascot-preview-body .visit-map-mascot-lottie {
+      width:74px;
+      height:82px;
+    }
+    @media (max-width:680px) {
+      .visit-mascot-preview-card {
+        flex-direction:column;
+        align-items:flex-start;
+      }
+      .visit-mascot-preview-body {
+        width:100%;
+      }
+    }
     @media (max-width:860px) {
       .visit-grid { grid-template-columns:1fr; }
     }
