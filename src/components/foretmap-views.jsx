@@ -49,6 +49,7 @@ const EMPTY_PLANT_FORM = {
   group_1: '',
   group_2: '',
   group_3: '',
+  group_4: '',
   habitat: '',
   photo: '',
   nutrition: '',
@@ -92,6 +93,7 @@ const PLANTS_IMPORT_TEMPLATE_HEADERS_FULL = [
   'group_1',
   'group_2',
   'group_3',
+  'group_4',
   'habitat',
   'photo',
   'nutrition',
@@ -127,6 +129,7 @@ const PLANT_META_SECTIONS = [
       { key: 'group_1', label: 'Groupe (taxon) 1' },
       { key: 'group_2', label: 'Groupe (taxon) 2' },
       { key: 'group_3', label: 'Groupe (taxon) 3' },
+      { key: 'group_4', label: 'Groupe (taxon) 4' },
       { key: 'geographic_origin', label: 'Origine géographique' },
       { key: 'longevity', label: 'Longévité' },
       { key: 'size', label: 'Taille' },
@@ -648,6 +651,7 @@ function PlantEditForm({ title, form, setForm, onSave, onCancel, saving, plantId
         <div className="field"><label>Groupe (taxon) 1</label><input value={form.group_1} onChange={set('group_1')} placeholder="Végétal / Animal..."/></div>
         <div className="field"><label>Groupe (taxon) 2</label><input value={form.group_2} onChange={set('group_2')} placeholder="Angiosperme..."/></div>
         <div className="field"><label>Groupe (taxon) 3</label><input value={form.group_3} onChange={set('group_3')} placeholder="Famille..."/></div>
+        <div className="field"><label>Groupe (taxon) 4</label><input value={form.group_4} onChange={set('group_4')} placeholder="Famille (végétal) ou genre (animal)"/></div>
       </div>
       <div className="field"><label>Rôle dans l'écosystème</label><textarea value={form.ecosystem_role} onChange={set('ecosystem_role')} rows={2} placeholder="Fonction écologique principale"/></div>
       <div className="field"><label>Utilité pour l'être humain</label><textarea value={form.human_utility} onChange={set('human_utility')} rows={2} placeholder="Usages alimentaires, pédagogiques..."/></div>
