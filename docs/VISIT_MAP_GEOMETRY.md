@@ -37,8 +37,10 @@ La mascotte n’est rendue que si le client a du **contenu public** visite (zone
 1. **Réseau** : ouvrir la réponse de **`GET /api/visit/content?map_id=`** (même `map_id` que le sélecteur de carte en visite). Vérifier les longueurs de **`zones`**, **`markers`**, **`tutorials`**. Si les trois sont vides, le composant mascotte **n’est pas monté** (comportement attendu).
 2. **DOM** (onglet Visite, plan visible) : existe-t-il **`.visit-map-mascot-inner`** ?
    - **Non** → données / module visite / chargement (étape 1) ou onglet pas en mode navigation.
+     Vérifier aussi les attributs de scène **`.visit-map-stage[data-visit-mascot-visibility][data-visit-mascot-reason]`** :
+     `hidden + no-public-content` = pas de contenu public (comportement attendu), `hidden + mode-not-view` = mode édition prof.
    - **Oui** avec **`.visit-map-mascot-lottie--placeholder`** (🧭) → Lottie en erreur ou **CSP** (`script-src` sans `unsafe-eval` côté proxy) ; console navigateur.
-   - **Oui** avec **SVG** mais **chemins sans `d` / sans remplissage visible** dans l’inspecteur → timing Lottie : la première frame peut être appliquée avant le DOM SVG (`DOMLoaded`) ; le client force désormais l’idle après `DOMLoaded` + double `requestAnimationFrame`. Sinon : **style** / calque (z-index explicite : zones **1**, mascotte **10**, repères **14**), zoom page.
+   - **Oui** avec **SVG** mais **chemins sans `d` / sans remplissage visible** dans l’inspecteur → timing Lottie : la première frame peut être appliquée avant le DOM SVG (`DOMLoaded`) ; le client force désormais l’idle après `DOMLoaded` + double `requestAnimationFrame`, puis bascule en placeholder si aucun SVG exploitable n’est détecté. Sinon : **style** / calque (z-index explicite : zones **1**, mascotte **16**, repères **14**), zoom page.
 3. **Version déployée** : **`GET /api/version`** ; comparer au dépôt. Vérifier que **`index.vite.html`** charge un **`/assets/index.vite-*.js`** cohérent (hash aligné avec le déploiement).
 4. **Cache** : navigation privée ; **Application → Service Workers → Désinscrire** ; rechargement forcé (Ctrl+F5).
 5. **Serveur** : le répertoire **`dist/`** servi par Node ([`server.js`](../server.js) en `NODE_ENV=production`) est bien celui mis à jour ; pas seulement un `git pull` sans **`dist/`** si le flux ne rebuild pas le front.

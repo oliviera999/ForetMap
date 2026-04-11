@@ -35,6 +35,35 @@ function VisitMapMascotLottie({ walking, prefersReducedMotion }) {
     }
     animRef.current = anim;
 
+    const switchToPlaceholder = () => {
+      if (cancelled || animRef.current !== anim) return;
+      setLoadError(true);
+      try {
+        anim.destroy();
+      } catch (_) {
+        /* noop */
+      }
+      animRef.current = null;
+    };
+
+    const hasDrawableSvg = () => {
+      const svg = el.querySelector('svg');
+      if (!svg) return false;
+      const box = svg.getBoundingClientRect();
+      if (!(box.width > 2 && box.height > 2)) return false;
+      const drawableNodes = svg.querySelectorAll('path,circle,ellipse,rect,polygon,polyline,line');
+      if (drawableNodes.length === 0) return false;
+      for (const node of drawableNodes) {
+        if (node.tagName === 'path') {
+          const d = node.getAttribute('d');
+          if (typeof d === 'string' && d.trim()) return true;
+          continue;
+        }
+        return true;
+      }
+      return false;
+    };
+
     /** Sans ça, `goToAndStop(0)` peut partir avant le DOM SVG → chemins vides, mascotte « invisible » sans erreur console. */
     const paintIdle = () => {
       if (cancelled || animRef.current !== anim) return;
@@ -45,18 +74,31 @@ function VisitMapMascotLottie({ walking, prefersReducedMotion }) {
         /* noop */
       }
     };
-    const onDomLoaded = () => paintIdle();
+    const checkDrawableAfterPaint = () => {
+      if (cancelled || animRef.current !== anim) return;
+      if (!hasDrawableSvg()) switchToPlaceholder();
+    };
+    const onDomLoaded = () => {
+      paintIdle();
+      requestAnimationFrame(checkDrawableAfterPaint);
+    };
     anim.addEventListener('DOMLoaded', onDomLoaded);
     let raf0 = 0;
     let raf1 = 0;
+    let checkTimer = 0;
     raf0 = requestAnimationFrame(() => {
-      raf1 = requestAnimationFrame(paintIdle);
+      raf1 = requestAnimationFrame(() => {
+        paintIdle();
+        checkDrawableAfterPaint();
+      });
     });
+    checkTimer = window.setTimeout(checkDrawableAfterPaint, 650);
 
     return () => {
       cancelled = true;
       cancelAnimationFrame(raf0);
       cancelAnimationFrame(raf1);
+      if (checkTimer) clearTimeout(checkTimer);
       try {
         anim.removeEventListener('DOMLoaded', onDomLoaded);
       } catch (_) {

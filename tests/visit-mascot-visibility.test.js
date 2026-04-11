@@ -7,10 +7,12 @@ const { pathToFileURL } = require('url');
 const { join } = require('path');
 
 let shouldShowVisitMapMascot;
+let getVisitMascotVisibilityReason;
 
 before(async () => {
   const mod = await import(pathToFileURL(join(__dirname, '../src/utils/visitMascotVisibility.js')).href);
   shouldShowVisitMapMascot = mod.shouldShowVisitMapMascot;
+  getVisitMascotVisibilityReason = mod.getVisitMascotVisibilityReason;
 });
 
 describe('visitMascotVisibility', () => {
@@ -41,5 +43,13 @@ describe('visitMascotVisibility', () => {
 
   it('tolère zones / markers non-tableau', () => {
     assert.equal(shouldShowVisitMapMascot('view', 0, null, undefined, 0), false);
+  });
+
+  it('raison explicite: contenu vide (pas un bug visuel)', () => {
+    assert.equal(getVisitMascotVisibilityReason('view', 0, [], [], 0), 'no-public-content');
+  });
+
+  it('raison explicite: mode édition', () => {
+    assert.equal(getVisitMascotVisibilityReason('draw-zone', 5, [{ id: 1 }], [{ id: 1 }], 1), 'mode-not-view');
   });
 });

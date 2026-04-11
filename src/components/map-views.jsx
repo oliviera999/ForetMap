@@ -98,7 +98,7 @@ function livingBeingCatalogText(value) {
   return t.length ? t : null;
 }
 
-/** Liste d’êtres vivants cliquable + extrait catalogue (description, rôle, utilité). */
+/** Liste d’êtres vivants cliquable + extrait catalogue (description, rôle, utilité, remarques). */
 function LivingBeingsCatalogPanel({ plants, names, showHeading = true }) {
   const list = names || [];
   const listKey = useMemo(() => list.join('\u0001'), [list]);
@@ -118,6 +118,11 @@ function LivingBeingsCatalogPanel({ plants, names, showHeading = true }) {
   const desc = selectedPlant ? livingBeingCatalogText(selectedPlant.description) : null;
   const role = selectedPlant ? livingBeingCatalogText(selectedPlant.ecosystem_role) : null;
   const utility = selectedPlant ? livingBeingCatalogText(selectedPlant.human_utility) : null;
+  const remark1 = selectedPlant ? livingBeingCatalogText(selectedPlant.remark_1) : null;
+  const remark2 = selectedPlant ? livingBeingCatalogText(selectedPlant.remark_2) : null;
+  const remark3 = selectedPlant ? livingBeingCatalogText(selectedPlant.remark_3) : null;
+  const remarkLines = [remark1, remark2, remark3];
+  const hasAnyRemark = remarkLines.some(Boolean);
 
   const labelStyle = {
     fontSize: '.72rem',
@@ -148,7 +153,7 @@ function LivingBeingsCatalogPanel({ plants, names, showHeading = true }) {
         </div>
       )}
       <p style={{ fontSize: '.72rem', color: '#64748b', margin: '0 0 8px', lineHeight: 1.45 }}>
-        Touche ou clique un nom pour afficher la fiche du catalogue (description, rôle, utilité).
+        Touche ou clique un nom pour afficher la fiche du catalogue (description, rôle, utilité, remarques).
       </p>
       <div
         style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}
@@ -231,6 +236,26 @@ function LivingBeingsCatalogPanel({ plants, names, showHeading = true }) {
                   {utility || 'Non renseigné'}
                 </p>
               </div>
+              {hasAnyRemark && (
+                <div>
+                  <div style={labelStyle}>Remarques</div>
+                  {remarkLines.map((text, idx) => (
+                    <p
+                      key={`remark-${idx}`}
+                      style={{
+                        fontSize: '.83rem',
+                        color: text ? '#555' : '#94a3b8',
+                        lineHeight: 1.5,
+                        margin: idx === 0 ? '0 0 4px' : '4px 0 0',
+                        whiteSpace: 'pre-wrap',
+                        fontStyle: text ? 'normal' : 'italic',
+                      }}
+                    >
+                      {text || '—'}
+                    </p>
+                  ))}
+                </div>
+              )}
             </>
           )}
         </div>

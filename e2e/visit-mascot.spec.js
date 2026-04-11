@@ -49,6 +49,18 @@ async function openVisitMap(page) {
   /* Le conteneur .visit-map-mascot est volontairement en 0×0 (ancrage %) : Playwright le voit « hidden ». */
   await expect(stage.locator('.visit-map-mascot')).toBeAttached();
   await expect(stage.locator('.visit-map-mascot-inner')).toBeVisible({ timeout: 25_000 });
+  await expect(stage.locator('.visit-map-mascot-lottie--placeholder')).toHaveCount(0);
+  await expect
+    .poll(async () => {
+      const lottie = stage.locator('.visit-map-mascot-lottie').first();
+      return lottie.evaluate((el) => {
+        const svg = el.querySelector('svg');
+        if (!svg) return false;
+        const box = svg.getBoundingClientRect();
+        return box.width > 2 && box.height > 2;
+      });
+    }, { timeout: 7000 })
+    .toBe(true);
   return stage;
 }
 
@@ -82,6 +94,7 @@ test.describe.serial('mascotte visite (comportement carte)', () => {
     const stage = page.locator('.visit-map-stage');
     await expect(stage.locator('.visit-map-mascot')).toBeAttached();
     await expect(stage.locator('.visit-map-mascot-inner')).toBeVisible();
+    await expect(stage.locator('.visit-map-mascot-lottie--placeholder')).toHaveCount(0);
   });
 
   test('position initiale sous le repère entrée N3 (plan n3)', async ({ page }) => {
@@ -149,4 +162,5 @@ test.describe.serial('mascotte visite (prefers-reduced-motion)', () => {
     await clickVisitMapAtPct(page, 88, 50);
     await expect(mascot).not.toHaveClass(/visit-map-mascot--walking/);
   });
+
 });
