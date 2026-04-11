@@ -36,6 +36,20 @@ const VISIT_MASCOT_CATALOG = [
     },
   },
   {
+    id: 'gnome-punk-rive',
+    label: 'Gnome punk (Rive)',
+    renderer: 'rive',
+    fallbackVariant: 'punk',
+    rive: {
+      src: '/assets/rive/visit-mascot-punk.riv',
+      stateAnimations: {
+        idle: ['idle', 'Idle', 'IDLE'],
+        walking: ['walk', 'Walk', 'walking', 'Walking'],
+        happy: ['happy', 'Happy', 'celebrate', 'Celebrate'],
+      },
+    },
+  },
+  {
     id: 'sprite-template',
     label: 'Gnome template (spritesheet)',
     renderer: 'spritesheet',
