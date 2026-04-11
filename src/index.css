@@ -3434,6 +3434,54 @@
   }
   .main, .teacher-main {
     overflow-wrap:break-word;
+    padding:12px;
+  }
+  .section-title {
+    font-size:clamp(1.05rem, 1rem + .45vw, 1.2rem);
+  }
+  .section-sub {
+    font-size:.82rem;
+    line-height:1.52;
+    margin-bottom:12px;
+  }
+  .task-filters {
+    gap:6px;
+  }
+  .task-filters input,
+  .task-filters select {
+    flex:1 1 100%;
+    min-width:0;
+    min-height:42px;
+    border-radius:10px;
+    padding:10px 12px;
+  }
+  .tasks-view-switch {
+    width:100%;
+    margin-right:0;
+  }
+  .tasks-view-switch .btn {
+    flex:1 1 0%;
+  }
+  .tasks-section {
+    margin-bottom:18px;
+  }
+  .visit-grid {
+    gap:10px;
+  }
+  .visit-map-card,
+  .visit-side-card,
+  .visit-tutorials,
+  .visit-sync-card {
+    padding:10px;
+    border-radius:12px;
+  }
+  .visit-map-switch {
+    width:100%;
+    gap:8px;
+    padding:8px;
+  }
+  .visit-map-switch .btn {
+    min-height:40px;
   }
 }
 
