@@ -6,6 +6,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 ## [Non publié]
 
 ### Corrigé
+- **Visite — plan** : la molette et le tactile appelaient `preventDefault` sur des écouteurs **passifs** (comportement React), d’où l’avertissement console *« unable to preventDefault inside passive event listener »* après rechargement forcé. Les gestes **wheel**, **touch** et **pointer** (pan / pincement) sont branchés sur le nœud carte avec **`addEventListener(..., { passive: false })`**, comme sur la carte principale (`map-views.jsx`). **`visit-views.jsx`**.
 - **Visite — mascotte Lottie « invisible »** : après `loadAnimation`, application de la frame idle sur l’événement **`DOMLoaded`** et repli **double `requestAnimationFrame`** pour éviter des chemins SVG vides si `goToAndStop(0)` partait trop tôt. Calque carte : **`z-index`** explicites (**zones 1**, mascotte **10**, repères **14**). **`VisitMapMascotLottie.jsx`**, **`index.css`**, **`docs/VISIT_MAP_GEOMETRY.md`**.
 
 ### Ajouté
