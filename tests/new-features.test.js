@@ -781,6 +781,84 @@ test('POST /api/visit/sync importe de manière sélective visite -> carte', asyn
   assert.ok(!markersRes.body.some((m) => m.id === visitMarkerB.body.id));
 });
 
+test('POST /api/visit/rebuild-from-map conserve l’éditorial par id et retire la visite hors carte', async () => {
+  const ts = Date.now();
+  const points = [{ xp: 31, yp: 31 }, { xp: 39, yp: 31 }, { xp: 35, yp: 38 }];
+  const zoneMap = await request(app)
+    .post('/api/zones')
+    .set('Authorization', 'Bearer ' + teacherToken)
+    .send({
+      name: `Zone rebuild carte ${ts}`,
+      map_id: 'foret',
+      points,
+      stage: 'empty',
+    })
+    .expect(201);
+
+  await request(app)
+    .post('/api/visit/sync')
+    .set('Authorization', 'Bearer ' + teacherToken)
+    .send({
+      map_id: 'foret',
+      direction: 'map_to_visit',
+      zone_ids: [zoneMap.body.id],
+      marker_ids: [],
+    })
+    .expect(200);
+
+  const editorial = `Sous-titre conservé ${ts}`;
+  await request(app)
+    .put(`/api/visit/zones/${zoneMap.body.id}`)
+    .set('Authorization', 'Bearer ' + teacherToken)
+    .send({
+      subtitle: editorial,
+      short_description: 'court',
+      details_title: 'Détails',
+      details_text: 'corps',
+    })
+    .expect(200);
+
+  const newName = `Nom carte mis à jour ${ts}`;
+  await request(app)
+    .put(`/api/zones/${zoneMap.body.id}`)
+    .set('Authorization', 'Bearer ' + teacherToken)
+    .send({ name: newName })
+    .expect(200);
+
+  const orphan = await request(app)
+    .post('/api/visit/zones')
+    .set('Authorization', 'Bearer ' + teacherToken)
+    .send({
+      map_id: 'foret',
+      name: `Zone visite seule ${ts}`,
+      points: [{ xp: 80, yp: 80 }, { xp: 88, yp: 80 }, { xp: 84, yp: 87 }],
+    })
+    .expect(201);
+
+  const rebuild = await request(app)
+    .post('/api/visit/rebuild-from-map')
+    .set('Authorization', 'Bearer ' + teacherToken)
+    .send({ map_id: 'foret' })
+    .expect(200);
+  assert.strictEqual(rebuild.body.ok, true);
+  assert.ok(Number(rebuild.body.removed.zones) >= 1);
+  assert.ok(Number(rebuild.body.imported.zones) >= 1);
+
+  const content = await request(app).get('/api/visit/content?map_id=foret').expect(200);
+  const z = content.body.zones.find((x) => x.id === zoneMap.body.id);
+  assert.ok(z, 'zone carte toujours en visite');
+  assert.strictEqual(z.name, newName);
+  assert.strictEqual(z.visit_subtitle, editorial);
+  assert.ok(!content.body.zones.some((x) => x.id === orphan.body.id));
+
+  await request(app).delete(`/api/zones/${zoneMap.body.id}`).set('Authorization', 'Bearer ' + teacherToken).expect(200);
+  await request(app)
+    .post('/api/visit/rebuild-from-map')
+    .set('Authorization', 'Bearer ' + teacherToken)
+    .send({ map_id: 'foret' })
+    .expect(200);
+});
+
 test('Progression visite anonyme persiste via cookie signé', async () => {
   const zoneRes = await request(app)
     .post('/api/visit/zones')

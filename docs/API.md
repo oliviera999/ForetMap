@@ -322,11 +322,13 @@ Contenus éditables du site (micro-CMS texte brut) :
 | PUT | `/api/visit/tutorials` | oui | Définir la sélection des tutoriels affichés en visite pour un plan : `{ map_id?, tutorial_ids }` (`map_id` défaut `foret`) — remplace uniquement les entrées de `visit_tutorials` pour cette carte |
 | GET | `/api/visit/sync/options?map_id=foret` | oui | Récupérer les zones/repères disponibles côté carte et côté visite pour import sélectif |
 | POST | `/api/visit/sync` | oui | Import sélectif bidirectionnel (`{ map_id, direction: "map_to_visit" \| "visit_to_map", zone_ids, marker_ids }`) |
+| POST | `/api/visit/rebuild-from-map` | oui | Réaligner **toute** la visite du plan sur la carte : corps `{ map_id? }` (défaut `foret`). Supprime puis recrée les lignes **`visit_zones`** et **`visit_markers`** pour ce `map_id` à partir de **`zones`** / **`map_markers`** ; pour chaque **id** encore présent sur la carte, **réinjecte** sous-titre, textes de détails, `is_active`, `sort_order`, `created_at` et **conserve** les lignes **`visit_media`** (cibles inchangées). Retire médias + progression pour les cibles visite **sans** équivalent carte. Réponse : `{ ok, map_id, removed: { zones, markers }, imported: { zones, markers } }`. |
 
 Contraintes importantes :
 
 - **`GET /api/visit/content`** : chaque zone renvoyée inclut **`description`** (texte de la table **`zones`**, jointure sur le même `id`) ; chaque repère inclut **`note`** (table **`map_markers`**, même principe). Ces champs sont **`null`** s’il n’y a pas de ligne carte correspondante ou si le texte est vide. Les zones et repères dont **`is_active`** est **explicitement** désactivé (`0`, `false`, chaîne `'0'`) sont exclus ; les autres valeurs « actives » (y compris variantes driver) restent listées.
 - `direction=map_to_visit` : copie/synchronise les zones et repères de la carte vers la visite.
+- **`POST /api/visit/rebuild-from-map`** : alternative à « tout supprimer à la main puis réimporter » : une seule opération atomique (transaction BDD) qui vide et recrée la couche visite du plan tout en **fusionnant** l’éditorial existant par **id** ; les fichiers image des cibles définitivement retirées sont effacés du disque **après** commit réussi.
 - `direction=visit_to_map` : copie/synchronise les zones et repères de la visite vers la carte.
 - L’import est **sélectif** (listes `zone_ids` / `marker_ids`) et en **upsert** (pas de doublon si l’ID existe déjà).
 - Les routes de gestion (`/zones`, `/markers`, `/media`, `/tutorials`, `/sync/*`) exigent la permission n3boss `visit.manage` (session élevée).
