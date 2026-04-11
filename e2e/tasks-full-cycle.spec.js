@@ -10,7 +10,8 @@ const {
 } = require('./fixtures/auth.fixture');
 
 test('cycle complet tâche: création prof -> prise élève -> soumission -> validation prof', async ({ page }) => {
-  test.setTimeout(120_000);
+  /* Suite complète + 2 élévations : marge pour serveur e2e déjà sollicité (temps réel, flux tâches). */
+  test.setTimeout(180_000);
   const taskTitle = `E2E Cycle ${Date.now()}`;
 
   await loginAsNewStudent(page);
@@ -37,6 +38,8 @@ test('cycle complet tâche: création prof -> prise élève -> soumission -> val
 
   await page.getByLabel('Commentaire (optionnel)').fill('Rapport e2e complet');
   await page.getByRole('button', { name: /Marquer comme terminée/ }).click();
+  await page.getByRole('dialog', { name: 'Rapport de tâche' }).waitFor({ state: 'hidden', timeout: 30_000 }).catch(() => {});
+  await dismissProfilePromotionModalIfPresent(page);
 
   const tasksAfterElevate = page.waitForResponse(
     (r) => r.url().includes('/api/tasks') && r.request().method() === 'GET' && r.status() === 200,
