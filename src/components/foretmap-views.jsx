@@ -124,9 +124,9 @@ const PLANT_META_SECTIONS = [
     items: [
       { key: 'second_name', label: 'Deuxième nom' },
       { key: 'scientific_name', label: 'Nom scientifique' },
-      { key: 'group_1', label: 'Groupe 1' },
-      { key: 'group_2', label: 'Groupe 2' },
-      { key: 'group_3', label: 'Groupe 3' },
+      { key: 'group_1', label: 'Groupe (taxon) 1' },
+      { key: 'group_2', label: 'Groupe (taxon) 2' },
+      { key: 'group_3', label: 'Groupe (taxon) 3' },
       { key: 'geographic_origin', label: 'Origine géographique' },
       { key: 'longevity', label: 'Longévité' },
       { key: 'size', label: 'Taille' },
@@ -327,7 +327,7 @@ function getSourceLabel(value) {
   }
 }
 
-/** Grand groupe catalogue type « Végétal (Chlorobiontes) » — nutrition souvent redondante (autotrophe). */
+/** Groupe (taxon) 1 catalogue type « Végétal (Chlorobiontes) » — nutrition souvent redondante (autotrophe). */
 function isVegetalCatalogEntry(plant) {
   const g1 = (normalizedPlantValue(plant.group_1) || '').toLowerCase();
   return g1.includes('végétal');
@@ -645,9 +645,9 @@ function PlantEditForm({ title, form, setForm, onSave, onCancel, saving, plantId
         <div className="field"><label>pH optimal</label><input value={form.optimal_ph} onChange={set('optimal_ph')} placeholder="Ex: 6,0-7,0"/></div>
         <div className="field"><label>Origine géographique</label><input value={form.geographic_origin} onChange={set('geographic_origin')} placeholder="Ex: Bassin méditerranéen"/></div>
         <div className="field"><label>Partie à récolter</label><input value={form.harvest_part} onChange={set('harvest_part')} placeholder="Feuilles, fruits..."/></div>
-        <div className="field"><label>Groupe 1</label><input value={form.group_1} onChange={set('group_1')} placeholder="Végétal / Animal..."/></div>
-        <div className="field"><label>Groupe 2</label><input value={form.group_2} onChange={set('group_2')} placeholder="Angiosperme..."/></div>
-        <div className="field"><label>Groupe 3</label><input value={form.group_3} onChange={set('group_3')} placeholder="Famille..."/></div>
+        <div className="field"><label>Groupe (taxon) 1</label><input value={form.group_1} onChange={set('group_1')} placeholder="Végétal / Animal..."/></div>
+        <div className="field"><label>Groupe (taxon) 2</label><input value={form.group_2} onChange={set('group_2')} placeholder="Angiosperme..."/></div>
+        <div className="field"><label>Groupe (taxon) 3</label><input value={form.group_3} onChange={set('group_3')} placeholder="Famille..."/></div>
       </div>
       <div className="field"><label>Rôle dans l'écosystème</label><textarea value={form.ecosystem_role} onChange={set('ecosystem_role')} rows={2} placeholder="Fonction écologique principale"/></div>
       <div className="field"><label>Utilité pour l'être humain</label><textarea value={form.human_utility} onChange={set('human_utility')} rows={2} placeholder="Usages alimentaires, pédagogiques..."/></div>
@@ -778,7 +778,7 @@ function PlantCatalogFilterPanel({
   return (
     <div style={{ display: 'grid', gap: 8, marginBottom: 12 }}>
       <div className="field" style={{ marginBottom: 0 }}>
-        <label>Grand groupe</label>
+        <label>Groupe (taxon) 1</label>
         <select
           value={group1}
           onChange={(e) => {
@@ -810,7 +810,7 @@ function PlantCatalogFilterPanel({
         <div style={{ display: 'grid', gap: 8, marginTop: 10 }}>
           <div className="plant-form-grid">
             <div className="field" style={{ marginBottom: 0 }}>
-              <label>Sous-groupe 1</label>
+              <label>Groupe (taxon) 2</label>
               <select
                 value={group2}
                 onChange={(e) => {
@@ -828,7 +828,7 @@ function PlantCatalogFilterPanel({
               </select>
             </div>
             <div className="field" style={{ marginBottom: 0 }}>
-              <label>Sous-groupe 2</label>
+              <label>Groupe (taxon) 3</label>
               <select value={group3} onChange={(e) => setGroup3(e.target.value)} style={selectStyle}>
                 <option value="">Tous</option>
                 {group3Options.map((g) => (
