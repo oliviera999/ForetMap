@@ -2795,6 +2795,20 @@
       width:100%;
       height:100%;
     }
+    .visit-gnome-arm--front {
+      transform-origin:91px 86px;
+    }
+    .visit-gnome-arm--back {
+      transform-origin:60px 87px;
+      opacity:.9;
+    }
+    .visit-gnome-leg--front {
+      transform-origin:86px 111px;
+    }
+    .visit-gnome-leg--back {
+      transform-origin:67px 111px;
+      opacity:.92;
+    }
     .visit-map-mascot-rive-shell > .visit-map-mascot-rive {
       position:absolute;
       inset:0;
@@ -2848,9 +2862,25 @@
     .visit-map-mascot--walking .visit-map-mascot-spritesheet-shell {
       animation:visitMascotWalkBob .36s ease-in-out infinite;
     }
+    .visit-map-mascot--walking .visit-gnome-arm--front {
+      animation:visitGnomeArmFrontSwing .36s ease-in-out infinite;
+    }
+    .visit-map-mascot--walking .visit-gnome-arm--back {
+      animation:visitGnomeArmBackSwing .36s ease-in-out infinite;
+    }
+    .visit-map-mascot--walking .visit-gnome-leg--front {
+      animation:visitGnomeLegFrontStep .36s ease-in-out infinite;
+    }
+    .visit-map-mascot--walking .visit-gnome-leg--back {
+      animation:visitGnomeLegBackStep .36s ease-in-out infinite;
+    }
     .visit-map-mascot--happy .visit-map-mascot-rive-shell,
     .visit-map-mascot--happy .visit-map-mascot-spritesheet-shell {
       animation:visitMascotHappyBounce .42s ease-in-out 3;
+    }
+    .visit-map-mascot--happy .visit-gnome-arm--front,
+    .visit-map-mascot--happy .visit-gnome-arm--back {
+      transform:rotate(-58deg) translateY(-4px);
     }
     .visit-map-mascot--reduced-motion .visit-map-mascot-rive-shell,
     .visit-map-mascot--reduced-motion .visit-map-mascot-spritesheet-shell,
@@ -2902,6 +2932,22 @@
       0%, 100% { transform:translateY(0) scale(1); }
       40% { transform:translateY(-6px) scale(1.04); }
       70% { transform:translateY(-2px) scale(1.02); }
+    }
+    @keyframes visitGnomeArmFrontSwing {
+      0%, 100% { transform:rotate(-15deg); }
+      50% { transform:rotate(20deg); }
+    }
+    @keyframes visitGnomeArmBackSwing {
+      0%, 100% { transform:rotate(18deg); }
+      50% { transform:rotate(-14deg); }
+    }
+    @keyframes visitGnomeLegFrontStep {
+      0%, 100% { transform:rotate(11deg) translateY(-1px); }
+      50% { transform:rotate(-12deg) translateY(0); }
+    }
+    @keyframes visitGnomeLegBackStep {
+      0%, 100% { transform:rotate(-12deg) translateY(0); }
+      50% { transform:rotate(10deg) translateY(-1px); }
     }
     @keyframes visitMascotDialogPop {
       from { opacity:0; transform:translateX(-50%) scale(.86); }
