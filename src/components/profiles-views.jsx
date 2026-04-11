@@ -208,7 +208,8 @@ function ProfilesAdminView({ isN3Affiliated = false, onImpersonationApplied, pub
     }
 
     if (canLoadStudents) {
-      const rows = await api('/api/stats/all');
+      const payload = await api('/api/stats/all');
+      const rows = Array.isArray(payload) ? payload : (payload?.students ?? []);
       setStudents(Array.isArray(rows) ? rows : []);
     } else {
       setStudents([]);

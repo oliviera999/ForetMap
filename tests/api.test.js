@@ -164,6 +164,56 @@ test('GET /api/stats/me/:studentId autorise le propriétaire connecté', async (
   assert.ok(res.body.stats);
 });
 
+test('GET /api/stats/me/:studentId inclut biodiversité et tutoriels lus', async () => {
+  const studentRes = await request(app)
+    .post('/api/auth/register')
+    .send({ firstName: 'Stats', lastName: `Engage${Date.now()}`, password: 'pass1234' })
+    .expect(201);
+  const studentId = studentRes.body.id;
+  const plants = await queryAll('SELECT id FROM plants ORDER BY id ASC LIMIT 2');
+  assert.ok(plants.length >= 1, 'au moins une fiche plants en base de test');
+  const p1 = Number(plants[0].id);
+  const p2 = plants[1] != null ? Number(plants[1].id) : p1;
+  const tut = await queryOne('SELECT id FROM tutorials ORDER BY id ASC LIMIT 1');
+  assert.ok(tut?.id, 'au moins un tutoriel en base de test');
+  const ts = new Date().toISOString();
+  await execute(
+    'INSERT INTO user_plant_observation_events (user_id, plant_id, observed_at) VALUES (?, ?, ?), (?, ?, ?), (?, ?, ?)',
+    [studentId, p1, ts, studentId, p1, ts, studentId, p2, ts]
+  );
+  await execute(
+    `INSERT INTO user_tutorial_reads (user_id, tutorial_id, acknowledged_at) VALUES (?, ?, ?)
+     ON DUPLICATE KEY UPDATE acknowledged_at = VALUES(acknowledged_at)`,
+    [studentId, tut.id, ts]
+  );
+  const res = await request(app)
+    .get(`/api/stats/me/${studentId}`)
+    .set('Authorization', `Bearer ${studentRes.body.authToken}`)
+    .expect(200);
+  const distinctSpecies = p1 === p2 ? 1 : 2;
+  assert.strictEqual(res.body.stats.plant_species_observed, distinctSpecies);
+  assert.strictEqual(res.body.stats.plant_observation_events, 3);
+  assert.strictEqual(res.body.stats.tutorials_read, 1);
+});
+
+test('GET /api/stats/all renvoie students et agrégats site', async () => {
+  const token = await getAdminAuthToken();
+  const res = await request(app)
+    .get('/api/stats/all')
+    .set('Authorization', `Bearer ${token}`)
+    .expect(200);
+  assert.ok(Array.isArray(res.body.students));
+  assert.ok(res.body.site);
+  assert.strictEqual(typeof res.body.site.plant_species_observed, 'number');
+  assert.strictEqual(typeof res.body.site.plant_observation_events, 'number');
+  assert.strictEqual(typeof res.body.site.tutorials_read, 'number');
+  const st = res.body.students[0];
+  assert.ok(st?.stats);
+  assert.strictEqual(typeof st.stats.plant_species_observed, 'number');
+  assert.strictEqual(typeof st.stats.plant_observation_events, 'number');
+  assert.strictEqual(typeof st.stats.tutorials_read, 'number');
+});
+
 test('GET /api/stats/me/:studentId synchronise le profil élève selon les seuils configurés', async () => {
   const teacherToken = await getAdminAuthToken();
 
@@ -1395,4 +1445,138 @@ test('X-Request-Id client accepté si format sûr', async () => {
     .set('X-Request-Id', 'client-req-id-abc123')
     .expect(200);
   assert.strictEqual(res.headers['x-request-id'], 'client-req-id-abc123');
+});
+
+test('GET /api/plants/autofill refuse sans authentification', async () => {
+  await request(app).get('/api/plants/autofill?q=tomate').expect(401);
+});
+
+test('GET /api/plants/autofill renvoie une pré-saisie normalisée multi-sources', { concurrency: false }, async () => {
+  const token = await getAdminAuthToken();
+  const previousFetch = global.fetch;
+  global.fetch = async (url) => {
+    const raw = String(url || '');
+    if (raw.includes('wikipedia.org/api/rest_v1/page/summary')) {
+      return {
+        ok: true,
+        status: 200,
+        async json() {
+          return {
+            title: 'Tomate',
+            extract: 'Plante potagère cultivée.',
+            thumbnail: { source: 'https://upload.wikimedia.org/tomato.jpg' },
+            content_urls: { desktop: { page: 'https://fr.wikipedia.org/wiki/Tomate' } },
+          };
+        },
+      };
+    }
+    if (raw.includes('wikidata.org/w/api.php')) {
+      return {
+        ok: true,
+        status: 200,
+        async json() {
+          return { search: [{ id: 'Q23501' }] };
+        },
+      };
+    }
+    if (raw.includes('wikidata.org/wiki/Special:EntityData')) {
+      return {
+        ok: true,
+        status: 200,
+        async json() {
+          return {
+            entities: {
+              Q23501: {
+                labels: { fr: { value: 'Tomate' } },
+                descriptions: { fr: { value: 'Espèce végétale' } },
+                sitelinks: { frwiki: { title: 'Tomate' } },
+                claims: {
+                  P225: [{ mainsnak: { datavalue: { value: 'Solanum lycopersicum' } } }],
+                  P18: [{ mainsnak: { datavalue: { value: 'Tomato_on_white_background.jpg' } } }],
+                },
+              },
+            },
+          };
+        },
+      };
+    }
+    if (raw.includes('api.gbif.org/v1/species/match')) {
+      return {
+        ok: true,
+        status: 200,
+        async json() {
+          return {
+            confidence: 96,
+            canonicalName: 'Tomate',
+            scientificName: 'Solanum lycopersicum',
+            family: 'Solanaceae',
+            order: 'Solanales',
+            kingdom: 'Plantae',
+            usageKey: 2930132,
+          };
+        },
+      };
+    }
+    throw new Error(`URL inattendue: ${raw}`);
+  };
+  try {
+    const res = await request(app)
+      .get('/api/plants/autofill?q=tomate')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+    assert.strictEqual(res.body.query, 'tomate');
+    assert.strictEqual(typeof res.body.confidence, 'number');
+    assert.ok(res.body.confidence > 0);
+    assert.strictEqual(res.body.fields.scientific_name, 'Solanum lycopersicum');
+    assert.ok(Array.isArray(res.body.photos));
+    assert.ok(res.body.photos.length >= 1);
+    assert.ok(Array.isArray(res.body.sources));
+    assert.ok(res.body.sources.some((s) => s.source === 'wikipedia'));
+    assert.ok(res.body.sources.some((s) => s.source === 'wikidata'));
+    assert.ok(res.body.sources.some((s) => s.source === 'gbif'));
+  } finally {
+    global.fetch = previousFetch;
+  }
+});
+
+test('GET /api/plants/autofill garde un fallback partiel si une source échoue', { concurrency: false }, async () => {
+  const token = await getAdminAuthToken();
+  const previousFetch = global.fetch;
+  global.fetch = async (url) => {
+    const raw = String(url || '');
+    if (raw.includes('wikipedia.org/api/rest_v1/page/summary')) {
+      throw new Error('timeout');
+    }
+    if (raw.includes('wikidata.org/w/api.php')) {
+      return {
+        ok: true,
+        status: 200,
+        async json() {
+          return { search: [] };
+        },
+      };
+    }
+    if (raw.includes('api.gbif.org/v1/species/match')) {
+      return {
+        ok: true,
+        status: 200,
+        async json() {
+          return { confidence: 88, canonicalName: 'Basilic', scientificName: 'Ocimum basilicum', usageKey: 3214412 };
+        },
+      };
+    }
+    throw new Error(`URL inattendue: ${raw}`);
+  };
+  try {
+    const res = await request(app)
+      .get('/api/plants/autofill?q=basilic')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+    assert.strictEqual(res.body.query, 'basilic');
+    assert.strictEqual(res.body.fields.scientific_name, 'Ocimum basilicum');
+    assert.ok(Array.isArray(res.body.warnings));
+    assert.ok(res.body.warnings.some((w) => String(w).includes('wikipedia')));
+  } finally {
+    global.fetch = previousFetch;
+  }
 });

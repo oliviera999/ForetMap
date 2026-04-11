@@ -1555,8 +1555,9 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
     const loadTeacherStudents = async () => {
       setLoadingTeacherStudents(true);
       try {
-        const rows = await api('/api/stats/all');
+        const payload = await api('/api/stats/all');
         if (cancelled) return;
+        const rows = Array.isArray(payload) ? payload : (payload?.students ?? []);
         const list = Array.isArray(rows)
           ? rows.slice().sort((a, b) => (
             `${a?.first_name || ''} ${a?.last_name || ''}`.trim().localeCompare(
