@@ -24,6 +24,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - **Commentaires / forum / rapports de tâche** : horodatage toujours **date + heure** (fr-FR, jour/mois/année et minutes) via utilitaire commun **`formatDateTimeFr`** ; les **rapports** (modal) utilisaient **`toLocaleDateString`** avec options d’heure souvent ignorées par le moteur.
 
 ### Modifié
+- **Tâches** : les pastilles **tutoriels** (`tutorials_linked`) sur les **cartes mission** et les **fiches projet** ouvrent le contenu au **clic** (nouvel onglet, même URL que le bouton « 📖 Consulter » des tutoriels liés aux zones/repères). Style **`task-tutorial-chip`**.
 - **Documentation déploiement** : précision que le **ZIP runtime est optionnel** ; le dossier `deploy/runtime/foretmap-runtime-*` peut être **uploadé décompressé** (`rsync`, SFTP, etc.). **`docs/LOCAL_DEV.md`**, **`docs/EXPLOITATION.md`**, **`README.md`** ; règle **`.cursor/rules/foretmap-conventions.mdc`** ; messages de fin **`scripts/prepare-runtime-deploy.js`** et **`prepare-runtime-deploy.ps1`**.
 - **Visite — mascotte** : affichage dès qu’il existe au moins une **zone** ou un **repère** dans le contenu chargé, pas uniquement lorsque le décompte « parcourable » (polygones valides à ≥ 3 points) est &gt; 0 — évite une mascotte absente si des zones sont mal géométrisées. Chargement visite : ignore les réponses **obsolètes** après changement de carte ; payload visite rejeté s’il s’agit d’un **tableau** (spread JSON invalide).
 

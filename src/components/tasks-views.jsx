@@ -3119,9 +3119,23 @@ function TaskTileCard({
               {taskLivingBeingEmoji(plants, name)} {name}
             </button>
           ))}
-          {(t.tutorials_linked || []).map((tu) => (
-            <span key={tu.id} className="task-chip">📘 {tu.title}</span>
-          ))}
+          {(t.tutorials_linked || []).map((tu) => {
+            const href = tutorialPickerOpenHref(tu);
+            return href ? (
+              <a
+                key={tu.id}
+                className="task-chip task-tutorial-chip"
+                href={href}
+                target="_blank"
+                rel="noopener noreferrer"
+                title={`Ouvrir le tutoriel « ${tu.title || ''} »`}
+              >
+                📘 {tu.title}
+              </a>
+            ) : (
+              <span key={tu.id} className="task-chip">📘 {tu.title}</span>
+            );
+          })}
           {t.project_title && <span className="task-chip">📁 {t.project_title}</span>}
           {t.project_title && t.project_status === 'on_hold' && <span className="task-chip">⏸️ Projet en attente</span>}
           {startDateChip(t.start_date)}
@@ -3476,9 +3490,23 @@ if (visibleProjects.length <= 0) return null;
                       {(p.markers_linked || []).map((m) => (
                         <span key={m.id} className="task-chip">📍 {m.label}</span>
                       ))}
-                      {(p.tutorials_linked || []).map((tu) => (
-                        <span key={tu.id} className="task-chip">📘 {tu.title}</span>
-                      ))}
+                      {(p.tutorials_linked || []).map((tu) => {
+                        const href = tutorialPickerOpenHref(tu);
+                        return href ? (
+                          <a
+                            key={tu.id}
+                            className="task-chip task-tutorial-chip"
+                            href={href}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            title={`Ouvrir le tutoriel « ${tu.title || ''} »`}
+                          >
+                            📘 {tu.title}
+                          </a>
+                        ) : (
+                          <span key={tu.id} className="task-chip">📘 {tu.title}</span>
+                        );
+                      })}
                     </div>
                     <div style={{ fontSize: '.82rem', color: '#666' }}>
                       {p.map_label || mapLabelFromMaps(p.map_id, maps)} · {projectTasksCount} tâche{projectTasksCount > 1 ? 's' : ''}
