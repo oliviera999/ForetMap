@@ -22,9 +22,13 @@ import {
 } from '../utils/visitMascotVisibility.js';
 import { safeVisitProgressPayload } from '../utils/visitProgressClient.js';
 import { wheelZoomScaleFactor } from '../utils/mapWheelZoom';
-import VisitMapMascotLottie from './VisitMapMascotLottie.jsx';
+import VisitMapMascotRive from './VisitMapMascotRive.jsx';
+import { VISIT_MASCOT_STATE, pickMascotDialog, resolveVisitMascotState } from '../utils/visitMascotState.js';
 
 const VISIT_MAP_MASCOT_MOVE_MS = 560;
+const VISIT_MAP_MASCOT_HAPPY_MS = 1800;
+const VISIT_MASCOT_DIALOG_MS = 2600;
+const VISIT_MASCOT_DIALOG_MOVE_COOLDOWN_MS = 4200;
 const VISIT_MAP_MASCOT_ESTIMATED_HEIGHT_PX = 78;
 
 function itemSeenKey(type, id) {
@@ -601,10 +605,16 @@ function VisitView({
   const [visitMapMascotPct, setVisitMapMascotPct] = useState({ xp: 50, yp: 50 });
   const [visitMapMascotFaceRight, setVisitMapMascotFaceRight] = useState(true);
   const [visitMapMascotWalking, setVisitMapMascotWalking] = useState(false);
-  const [visitMascotPreviewWalking, setVisitMascotPreviewWalking] = useState(false);
+  const [visitMapMascotHappy, setVisitMapMascotHappy] = useState(false);
+  const [visitMascotPreviewState, setVisitMascotPreviewState] = useState(VISIT_MASCOT_STATE.IDLE);
+  const [visitMascotDialog, setVisitMascotDialog] = useState('');
+  const [visitMascotDialogVisible, setVisitMascotDialogVisible] = useState(false);
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
   const visitMapMascotPctRef = useRef({ xp: 50, yp: 50 });
   const visitMapMascotMoveTimeoutRef = useRef(null);
+  const visitMapMascotHappyTimeoutRef = useRef(null);
+  const visitMascotDialogTimeoutRef = useRef(null);
+  const visitMascotMoveDialogCooldownUntilRef = useRef(0);
   const visitMascotStartPlacedForMapRef = useRef(null);
   const { isHelpEnabled, hasSeenSection, markSectionSeen, trackPanelOpen, trackPanelDismiss } = useHelp({ publicSettings, isTeacher });
   const isGuestPublicVisit = !student && typeof onBackToAuth === 'function';
@@ -884,7 +894,17 @@ function VisitView({
       clearTimeout(visitMapMascotMoveTimeoutRef.current);
       visitMapMascotMoveTimeoutRef.current = null;
     }
+    if (visitMapMascotHappyTimeoutRef.current) {
+      clearTimeout(visitMapMascotHappyTimeoutRef.current);
+      visitMapMascotHappyTimeoutRef.current = null;
+    }
+    if (visitMascotDialogTimeoutRef.current) {
+      clearTimeout(visitMascotDialogTimeoutRef.current);
+      visitMascotDialogTimeoutRef.current = null;
+    }
     setVisitMapMascotWalking(false);
+    setVisitMapMascotHappy(false);
+    setVisitMascotDialogVisible(false);
   }, [mapId, resetMapTransform]);
 
   useLayoutEffect(() => {
@@ -901,6 +921,7 @@ function VisitView({
       visitMapMascotMoveTimeoutRef.current = null;
     }
     setVisitMapMascotWalking(false);
+    setVisitMapMascotHappy(false);
     const start = computeVisitMascotStartPct(mapId, content.markers || []);
     visitMapMascotPctRef.current = start;
     setVisitMapMascotPct(start);
@@ -922,7 +943,38 @@ function VisitView({
   useEffect(() => () => {
     cancelVisitZoomAnim();
     if (visitMapMascotMoveTimeoutRef.current) clearTimeout(visitMapMascotMoveTimeoutRef.current);
+    if (visitMapMascotHappyTimeoutRef.current) clearTimeout(visitMapMascotHappyTimeoutRef.current);
+    if (visitMascotDialogTimeoutRef.current) clearTimeout(visitMascotDialogTimeoutRef.current);
   }, [cancelVisitZoomAnim]);
+
+  const showMascotDialog = useCallback((eventKey, { force = false } = {}) => {
+    const now = Date.now();
+    if (!force && eventKey === 'move' && now < visitMascotMoveDialogCooldownUntilRef.current) return;
+    const text = pickMascotDialog(eventKey);
+    if (!text) return;
+    if (eventKey === 'move') {
+      visitMascotMoveDialogCooldownUntilRef.current = now + VISIT_MASCOT_DIALOG_MOVE_COOLDOWN_MS;
+    }
+    if (visitMascotDialogTimeoutRef.current) clearTimeout(visitMascotDialogTimeoutRef.current);
+    setVisitMascotDialog(text);
+    setVisitMascotDialogVisible(true);
+    visitMascotDialogTimeoutRef.current = window.setTimeout(() => {
+      setVisitMascotDialogVisible(false);
+      visitMascotDialogTimeoutRef.current = null;
+    }, VISIT_MASCOT_DIALOG_MS);
+  }, []);
+
+  const triggerMascotHappy = useCallback(() => {
+    if (visitMapMascotHappyTimeoutRef.current) {
+      clearTimeout(visitMapMascotHappyTimeoutRef.current);
+      visitMapMascotHappyTimeoutRef.current = null;
+    }
+    setVisitMapMascotHappy(true);
+    visitMapMascotHappyTimeoutRef.current = window.setTimeout(() => {
+      setVisitMapMascotHappy(false);
+      visitMapMascotHappyTimeoutRef.current = null;
+    }, VISIT_MAP_MASCOT_HAPPY_MS);
+  }, []);
 
   const moveVisitMapMascotTo = useCallback(
     (xp, yp) => {
@@ -946,6 +998,7 @@ function VisitView({
         setVisitMapMascotWalking(false);
       } else {
         setVisitMapMascotWalking(true);
+        if (dist > 4) showMascotDialog('move');
         visitMapMascotMoveTimeoutRef.current = window.setTimeout(() => {
           setVisitMapMascotWalking(false);
           visitMapMascotMoveTimeoutRef.current = null;
@@ -955,7 +1008,12 @@ function VisitView({
       visitMapMascotPctRef.current = { xp: nx, yp: ny };
       setVisitMapMascotPct({ xp: nx, yp: ny });
     },
-    [prefersReducedMotion]
+    [prefersReducedMotion, showMascotDialog]
+  );
+
+  const visitMascotAnimationState = useMemo(
+    () => resolveVisitMascotState({ happy: visitMapMascotHappy, walking: visitMapMascotWalking }),
+    [visitMapMascotHappy, visitMapMascotWalking]
   );
 
   const visitMapMascotRenderPct = useMemo(
@@ -1016,6 +1074,10 @@ function VisitView({
         target_id: selected.id,
         seen: !wasSeen,
       });
+      if (!wasSeen) {
+        triggerMascotHappy();
+        showMascotDialog('mark_seen', { force: true });
+      }
     } catch (err) {
       if (err instanceof AccountDeletedError) onForceLogout?.();
       else alert(err.message || 'Erreur mise à jour');
@@ -1430,24 +1492,32 @@ function VisitView({
             <div className="visit-mascot-preview-actions">
               <button
                 type="button"
-                className={`btn btn-sm ${visitMascotPreviewWalking ? 'btn-ghost' : 'btn-primary'}`}
-                aria-pressed={!visitMascotPreviewWalking}
-                onClick={() => setVisitMascotPreviewWalking(false)}
+                className={`btn btn-sm ${visitMascotPreviewState === VISIT_MASCOT_STATE.IDLE ? 'btn-primary' : 'btn-ghost'}`}
+                aria-pressed={visitMascotPreviewState === VISIT_MASCOT_STATE.IDLE}
+                onClick={() => setVisitMascotPreviewState(VISIT_MASCOT_STATE.IDLE)}
               >
                 🧍 Idle
               </button>
               <button
                 type="button"
-                className={`btn btn-sm ${visitMascotPreviewWalking ? 'btn-primary' : 'btn-ghost'}`}
-                aria-pressed={visitMascotPreviewWalking}
-                onClick={() => setVisitMascotPreviewWalking(true)}
+                className={`btn btn-sm ${visitMascotPreviewState === VISIT_MASCOT_STATE.WALKING ? 'btn-primary' : 'btn-ghost'}`}
+                aria-pressed={visitMascotPreviewState === VISIT_MASCOT_STATE.WALKING}
+                onClick={() => setVisitMascotPreviewState(VISIT_MASCOT_STATE.WALKING)}
               >
                 🚶 Marche
+              </button>
+              <button
+                type="button"
+                className={`btn btn-sm ${visitMascotPreviewState === VISIT_MASCOT_STATE.HAPPY ? 'btn-primary' : 'btn-ghost'}`}
+                aria-pressed={visitMascotPreviewState === VISIT_MASCOT_STATE.HAPPY}
+                onClick={() => setVisitMascotPreviewState(VISIT_MASCOT_STATE.HAPPY)}
+              >
+                🎉 Heureuse
               </button>
             </div>
           </div>
           <div className="visit-mascot-preview-body" aria-hidden="true">
-            <VisitMapMascotLottie walking={visitMascotPreviewWalking} prefersReducedMotion={prefersReducedMotion} />
+            <VisitMapMascotRive mascotState={visitMascotPreviewState} />
           </div>
         </section>
       )}
@@ -1593,18 +1663,23 @@ function VisitView({
 
                 {showVisitMapMascot ? (
                   <div
-                    className={`visit-map-mascot${visitMapMascotWalking ? ' visit-map-mascot--walking' : ''}${prefersReducedMotion ? ' visit-map-mascot--reduced-motion' : ''}`}
+                    className={`visit-map-mascot${visitMapMascotWalking ? ' visit-map-mascot--walking' : ''}${visitMapMascotHappy ? ' visit-map-mascot--happy' : ''}${prefersReducedMotion ? ' visit-map-mascot--reduced-motion' : ''}`}
                     style={{ left: `${visitMapMascotRenderPct.xp}%`, top: `${visitMapMascotRenderPct.yp}%` }}
                     aria-hidden="true"
                   >
                     <div
                       className="visit-map-mascot-inner"
-                      style={{ transform: `translate(-50%, -100%) scaleX(${visitMapMascotFaceRight ? 1 : -1})` }}
+                      style={{
+                        transform: `translate(-50%, -100%) scaleX(${visitMapMascotFaceRight ? 1 : -1})`,
+                        '--visit-mascot-dialog-x': visitMapMascotFaceRight ? 1 : -1,
+                      }}
                     >
-                      <VisitMapMascotLottie
-                        walking={visitMapMascotWalking}
-                        prefersReducedMotion={prefersReducedMotion}
-                      />
+                      <VisitMapMascotRive mascotState={visitMascotAnimationState} />
+                      {visitMascotDialogVisible && visitMascotDialog ? (
+                        <div className="visit-map-mascot-dialog" role="status" aria-live="polite">
+                          {visitMascotDialog}
+                        </div>
+                      ) : null}
                     </div>
                   </div>
                 ) : null}

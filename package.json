@@ -1,12 +1,13 @@
 {
   "name": "foretmap",
-  "version": "1.38.23",
+  "version": "1.38.24",
   "description": "Application de gestion de la forêt comestible - Lycée Lyautey",
   "main": "server.js",
   "engines": {
     "node": ">=18"
   },
   "dependencies": {
+    "@rive-app/react-canvas": "^4.28.0",
     "bcryptjs": "^2.4.3",
     "compression": "^1.8.1",
     "cors": "^2.8.5",
@@ -15,7 +16,6 @@
     "express-rate-limit": "^8.3.1",
     "google-auth-library": "^10.6.2",
     "jsonwebtoken": "^9.0.2",
-    "lottie-web": "^5.13.0",
     "mysql2": "^3.6.5",
     "nodemailer": "^8.0.4",
     "on-finished": "^2.4.1",
@@ -88,7 +88,6 @@
     "smoke:local:fast": "node scripts/local-smoke.js --fast",
     "icons:pwa": "node scripts/generate-pwa-icons-n3-white.js",
     "build": "node scripts/build-safe.js",
-    "lottie:visit-mascot": "node scripts/build-visit-mascot-lottie.mjs",
     "preview": "vite preview",
     "deploy:prepare": "node scripts/prepare-dist-deploy.js",
     "deploy:prepare:fast": "node scripts/prepare-dist-deploy.js --skip-install",
