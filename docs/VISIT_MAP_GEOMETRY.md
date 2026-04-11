@@ -30,7 +30,7 @@ Après **`POST /api/visit/sync`** (carte → visite ou l’inverse), ouvrir **la
 
 ## Diagnostic prod : mascotte invisible
 
-La mascotte n’est rendue que si le client a du **contenu public** visite (zones/repères filtrés comme **`GET /api/visit/content`**, ou tutoriels actifs liés au plan). Un déploiement **sans** `dist/` à jour, un **cache** (navigateur / SW / CDN) ou une **CSP** amont bloquant Lottie peut donner l’impression d’un « bug mascotte » alors que la cause est ailleurs.
+La mascotte n’est rendue que si le client a du **contenu public** visite (zones/repères filtrés comme **`GET /api/visit/content`**, ou tutoriels actifs liés au plan). Un déploiement **sans** `dist/` à jour, un **cache** (navigateur / SW / CDN) ou un asset Rive manquant (`/assets/rive/visit-mascot.riv`) peut donner l’impression d’un « bug mascotte » alors que la cause est ailleurs.
 
 ### Checklist (navigateur + réseau)
 
@@ -39,13 +39,13 @@ La mascotte n’est rendue que si le client a du **contenu public** visite (zone
    - **Non** → données / module visite / chargement (étape 1) ou onglet pas en mode navigation.
      Vérifier aussi les attributs de scène **`.visit-map-stage[data-visit-mascot-visibility][data-visit-mascot-reason]`** :
      `hidden + no-public-content` = pas de contenu public (comportement attendu), `hidden + mode-not-view` = mode édition prof.
-   - **Oui** → inspecter aussi **`.visit-map-mascot-lottie`** :
-     - `data-renderer` (`svg` ou `canvas`)
-     - `data-painted-status` (`loading`, `checking`, `painted`, `fallback-canvas`, `fallback-placeholder`)
-     - `data-painted-checks` / `data-painted-reason`
-     Ces attributs permettent d’identifier un faux positif visuel (cadre présent mais rendu non peint).
-   - **Oui** avec **`.visit-map-mascot-lottie--placeholder`** (🧭) → Lottie en erreur ou **CSP** (`script-src` sans `unsafe-eval` côté proxy) ; console navigateur.
-   - **Oui** avec **SVG** mais **chemins sans `d` / sans remplissage visible** dans l’inspecteur → timing Lottie : la première frame peut être appliquée avant le DOM SVG (`DOMLoaded`) ; le client force désormais l’idle après `DOMLoaded` + double `requestAnimationFrame`, puis bascule en placeholder si aucun SVG exploitable n’est détecté. Sinon : **style** / calque (z-index explicite : zones **1**, mascotte **16**, repères **14**), zoom page.
+  - **Oui** → inspecter aussi **`.visit-map-mascot-rive-shell`** :
+    - `data-renderer` (`rive` ou `fallback-static`)
+    - `data-rive-status` (`loading`, `loaded`, `playing:<animation>`, `fallback-no-animation`, `error`)
+    - `data-mascot-state` (`idle`, `walking`, `happy`)
+    Ces attributs permettent d’identifier si Rive joue une animation ou si le fallback SVG statique est utilisé.
+  - **Oui** avec `data-renderer="fallback-static"` → le shell est visible mais le fichier Rive n’a pas pu être chargé (asset absent, URL invalide, erreur réseau).
+  - **Oui** mais bulle absente alors qu’une action a eu lieu → vérifier `mark_seen` côté UI (bouton « Marquer comme vu ») et la classe de conteneur (`visit-map-mascot--happy`/`--walking`). Sinon : **style** / calque (z-index explicite : zones **1**, mascotte **16**, repères **14**), zoom page.
 3. **Version déployée** : **`GET /api/version`** ; comparer au dépôt. Vérifier que **`index.vite.html`** charge un **`/assets/index.vite-*.js`** cohérent (hash aligné avec le déploiement).
 4. **Cache** : navigation privée ; **Application → Service Workers → Désinscrire** ; rechargement forcé (Ctrl+F5).
 5. **Serveur** : le répertoire **`dist/`** servi par Node ([`server.js`](../server.js) en `NODE_ENV=production`) est bien celui mis à jour ; pas seulement un `git pull` sans **`dist/`** si le flux ne rebuild pas le front.

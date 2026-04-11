@@ -5,6 +5,12 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Ajouté
+- **Visite — mascotte V1 (états + dialogue)** : machine d’état front (`idle`/`walking`/`happy`) reliée aux événements visite (déplacement et marquage « vu »), bulle de dialogue contextuelle près de la mascotte, et nouveaux tests unitaires (`tests/visit-mascot-state.test.js`) + e2e (`e2e/visit-mascot.spec.js`) pour couvrir ces comportements.
+
+### Modifié
+- **Visite — migration renderer mascotte vers Rive** : remplacement du composant Lottie par `VisitMapMascotRive`, ajout du runtime `@rive-app/react-canvas`, suppression des scripts/assets Lottie (`VisitMapMascotLottie.jsx`, `src/assets/lottie/visit-mascot.json`, `scripts/build-visit-mascot-lottie.mjs`) et adaptation du diagnostic (`data-renderer`, `data-rive-status`, `data-mascot-state`) + docs associées (`docs/VISIT_MAP_GEOMETRY.md`).
+
 ### Corrigé
 - **Visite — mascotte toujours perceptible** : ajout d’une silhouette mascotte statique affichée en permanence sous la couche Lottie, afin de garantir une présence visuelle même si le renderer navigateur produit un rendu transparent malgré un état “painted”. Le fallback d’erreur reste actif et les tests e2e mascotte restent verts. **`VisitMapMascotLottie.jsx`**, **`index.css`**, **`e2e/visit-mascot.spec.js`**.
 - **Visite — mascotte toujours visible en cas d’échec Lottie** : quand les renderers SVG/canvas ne produisent pas de rendu exploitable, la carte affiche désormais une mascotte **SVG statique** (fallback visuel) au lieu d’un simple cadre/placeholder ambigu. Le diagnostic runtime (`data-renderer`, `data-painted-*`) reste disponible pour l’analyse locale/prod. **`VisitMapMascotLottie.jsx`**, **`index.css`**, **`e2e/visit-mascot.spec.js`**.

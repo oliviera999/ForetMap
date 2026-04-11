@@ -49,66 +49,14 @@ async function openVisitMap(page) {
   /* Le conteneur .visit-map-mascot est volontairement en 0×0 (ancrage %) : Playwright le voit « hidden ». */
   await expect(stage.locator('.visit-map-mascot')).toBeAttached();
   await expect(stage.locator('.visit-map-mascot-inner')).toBeVisible({ timeout: 25_000 });
-  await expect(stage.locator('.visit-map-mascot-lottie--placeholder')).toHaveCount(0);
   await expect
     .poll(async () => {
-      const lottie = stage.locator('.visit-map-mascot-lottie').first();
-      return lottie.evaluate((el) => {
-        const isTransparent = (value) => {
-          const raw = String(value || '').trim().toLowerCase();
-          if (!raw || raw === 'none' || raw === 'transparent') return true;
-          if (raw.startsWith('rgba(') || raw.startsWith('hsla(')) {
-            const parts = raw
-              .replace(/^rgba?\(/, '')
-              .replace(/^hsla?\(/, '')
-              .replace(/\)$/, '')
-              .split(',')
-              .map((p) => p.trim());
-            const alpha = Number(parts[3]);
-            return Number.isFinite(alpha) ? alpha <= 0 : false;
-          }
-          return false;
-        };
-        const svg = el.querySelector('svg');
-        if (svg) {
-          const box = svg.getBoundingClientRect();
-          if (box.width > 2 && box.height > 2) {
-            const nodes = svg.querySelectorAll('path,circle,ellipse,rect,polygon,polyline,line');
-            for (const node of nodes) {
-              if (node.tagName === 'path') {
-                const d = node.getAttribute('d');
-                if (!d || !String(d).trim()) continue;
-              }
-              const st = window.getComputedStyle(node);
-              const opacity = Number.parseFloat(st.opacity || '1');
-              if (Number.isFinite(opacity) && opacity <= 0) continue;
-              const strokeWidth = Number.parseFloat(st.strokeWidth || '0');
-              const fillHidden = isTransparent(st.fill);
-              const strokeHidden = isTransparent(st.stroke) || !(strokeWidth > 0);
-              if (!(fillHidden && strokeHidden)) return true;
-            }
-          }
-        }
-        const canvas = el.querySelector('canvas');
-        if (canvas) {
-          const box = canvas.getBoundingClientRect();
-          if (!(box.width > 2 && box.height > 2)) return false;
-          const ctx = canvas.getContext('2d');
-          if (!ctx || !(canvas.width > 1) || !(canvas.height > 1)) return false;
-          const sampleCols = 6;
-          const sampleRows = 6;
-          let painted = 0;
-          for (let row = 0; row < sampleRows; row += 1) {
-            for (let col = 0; col < sampleCols; col += 1) {
-              const x = Math.min(canvas.width - 1, Math.max(0, Math.round((col / (sampleCols - 1 || 1)) * (canvas.width - 1))));
-              const y = Math.min(canvas.height - 1, Math.max(0, Math.round((row / (sampleRows - 1 || 1)) * (canvas.height - 1))));
-              const px = ctx.getImageData(x, y, 1, 1).data;
-              if ((px?.[3] || 0) > 8) painted += 1;
-            }
-          }
-          return painted >= 2;
-        }
-        return false;
+      const shell = stage.locator('.visit-map-mascot-rive-shell').first();
+      return shell.evaluate((el) => {
+        const staticSvg = el.querySelector('.visit-map-mascot-static svg');
+        if (!staticSvg) return false;
+        const box = staticSvg.getBoundingClientRect();
+        return box.width > 2 && box.height > 2;
       });
     }, { timeout: 7000 })
     .toBe(true);
@@ -145,7 +93,7 @@ test.describe.serial('mascotte visite (comportement carte)', () => {
     const stage = page.locator('.visit-map-stage');
     await expect(stage.locator('.visit-map-mascot')).toBeAttached();
     await expect(stage.locator('.visit-map-mascot-inner')).toBeVisible();
-    await expect(stage.locator('.visit-map-mascot-lottie--placeholder')).toHaveCount(0);
+    await expect(stage.locator('.visit-map-mascot-rive-shell')).toBeVisible();
   });
 
   test('position initiale sous le repère entrée N3 (plan n3)', async ({ page }) => {
@@ -177,6 +125,15 @@ test.describe.serial('mascotte visite (comportement carte)', () => {
     await clickVisitMapAtPct(page, 12, 50);
     await expect(mascot).toHaveClass(/visit-map-mascot--walking/, { timeout: 2000 });
     await expect(mascot).not.toHaveClass(/visit-map-mascot--walking/, { timeout: VISIT_MAP_MASCOT_MOVE_MS + 400 });
+  });
+
+  test('marquer vu déclenche état happy et bulle', async ({ page }) => {
+    await clickVisitMapAtPct(page, 88, 50);
+    await expect(page.getByRole('button', { name: /Marquer comme vu|Marqué comme vu/i })).toBeVisible();
+    await page.getByRole('button', { name: /Marquer comme vu|Marqué comme vu/i }).click();
+    const mascot = page.locator('.visit-map-mascot');
+    await expect(mascot).toHaveClass(/visit-map-mascot--happy/, { timeout: 2000 });
+    await expect(page.locator('.visit-map-mascot-dialog')).toBeVisible({ timeout: 2000 });
   });
 });
 
