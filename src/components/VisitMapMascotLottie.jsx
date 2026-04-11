@@ -241,7 +241,32 @@ function VisitMapMascotLottie({ walking, prefersReducedMotion }) {
   }, [walking, prefersReducedMotion]);
 
   if (loadError) {
-    return <div className="visit-map-mascot-lottie visit-map-mascot-lottie--placeholder" aria-hidden="true" />;
+    return (
+      <div
+        className="visit-map-mascot-lottie visit-map-mascot-lottie--fallback-mascot"
+        data-renderer="fallback-mascot"
+        data-painted-status={paintMeta.status}
+        data-painted-checks={paintMeta.checks}
+        data-painted-reason={paintMeta.lastReason}
+        aria-hidden="true"
+      >
+        <svg viewBox="0 0 128 148" role="presentation" focusable="false">
+          <ellipse cx="64" cy="140" rx="34" ry="7" fill="rgba(26,71,49,0.22)" />
+          <rect x="23" y="18" width="82" height="30" rx="15" fill="#e8f5e9" stroke="#1a4731" strokeWidth="4" />
+          <ellipse cx="64" cy="74" rx="38" ry="46" fill="#f4e9d0" stroke="#1a4731" strokeWidth="4" />
+          <ellipse cx="48" cy="68" rx="9" ry="11" fill="#ffffff" />
+          <ellipse cx="80" cy="68" rx="9" ry="11" fill="#ffffff" />
+          <ellipse cx="48" cy="70" rx="4" ry="5" fill="#1a4731" />
+          <ellipse cx="80" cy="70" rx="4" ry="5" fill="#1a4731" />
+          <circle cx="51" cy="66" r="1.4" fill="#ffffff" />
+          <circle cx="83" cy="66" r="1.4" fill="#ffffff" />
+          <path d="M57 86 Q64 91 71 86" fill="none" stroke="#1a4731" strokeWidth="4" strokeLinecap="round" />
+          <rect x="40" y="97" width="48" height="25" rx="12" fill="#86efac" stroke="#1a4731" strokeWidth="4" />
+          <rect x="46" y="120" width="13" height="17" rx="6" fill="#6b4f2d" />
+          <rect x="69" y="120" width="13" height="17" rx="6" fill="#6b4f2d" />
+        </svg>
+      </div>
+    );
   }
 
   return (
