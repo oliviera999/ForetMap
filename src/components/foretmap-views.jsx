@@ -164,6 +164,22 @@ const PHOTO_FIELD_KEYS = new Set([
   'photo_harvest_part',
 ]);
 
+/** Champs candidats pour la vignette « photo principale » sous la description (ordre de priorité). */
+const BIODIV_HERO_PHOTO_KEYS = ['photo', 'photo_species'];
+
+function findFirstBiodivHeroPhotoCandidate(plant) {
+  for (const key of BIODIV_HERO_PHOTO_KEYS) {
+    const entries = parseLinkCandidates(plant[key]).filter((e) => isHttpLink(e) || isLocalUploadsPath(e));
+    for (const entry of entries) {
+      if (isLikelyDirectImageUrl(entry)) return { kind: 'direct', src: entry };
+      const fileSrc = commonsFilePageToDisplaySrc(entry);
+      if (fileSrc) return { kind: 'direct', src: fileSrc };
+      if (parseCommonsCategoryFromUrl(entry)) return { kind: 'category', categoryUrl: entry };
+    }
+  }
+  return null;
+}
+
 function normalizedPlantValue(value) {
   if (value == null) return '';
   const s = String(value).trim();
@@ -332,6 +348,51 @@ function PlantSummaryBadges({ plant }) {
         <span key={chip} className="plant-badge">{chip}</span>
       ))}
     </div>
+  );
+}
+
+/** Photo principale (champ `photo` puis `photo_species`) entre description brève et bloc écologie. */
+function PlantBiodivHeroPhoto({ plant }) {
+  const [lightbox, setLightbox] = useState(null);
+  const candidate = useMemo(() => findFirstBiodivHeroPhotoCandidate(plant), [plant]);
+  const [categorySrc, setCategorySrc] = useState(null);
+
+  useEffect(() => {
+    setCategorySrc(null);
+    if (!candidate || candidate.kind !== 'category') return undefined;
+    let cancelled = false;
+    (async () => {
+      const thumb = await fetchCommonsCategoryPreview(candidate.categoryUrl);
+      if (!cancelled) setCategorySrc(thumb);
+    })();
+    return () => { cancelled = true; };
+  }, [candidate]);
+
+  if (!candidate) return null;
+  const src = candidate.kind === 'direct' ? candidate.src : categorySrc;
+  if (!src) return null;
+
+  const name = normalizedPlantValue(plant.name) || 'Espèce';
+
+  return (
+    <>
+      {lightbox && (
+        <Lightbox
+          src={lightbox.src}
+          caption={lightbox.caption}
+          onClose={() => setLightbox(null)}
+        />
+      )}
+      <button
+        type="button"
+        className="biodiv-card-hero-photo-wrap"
+        onClick={() => setLightbox({ src, caption: `Photo — ${name}` })}
+        aria-label={`Agrandir la photo de ${name}`}
+      >
+        <img src={src} alt="" className="biodiv-card-hero-photo" loading="lazy" />
+        <span className="biodiv-card-hero-photo-hint" aria-hidden="true">🔍 Voir</span>
+      </button>
+    </>
   );
 }
 
@@ -1176,6 +1237,7 @@ function PlantManager({
 
                 <div className="biodiv-card-body">
                   <p className="plant-row-desc">{p.description || <em style={{color:'#bbb'}}>Pas de description</em>}</p>
+                  <PlantBiodivHeroPhoto plant={p} />
                   <PlantEcosystemHumanLead plant={p} />
                   <div className="task-meta">
                     {normalizedPlantValue(p.habitat) && !isGenericPotagerLabel(p.habitat) && (
@@ -1697,6 +1759,7 @@ function PlantViewer({ plants, zones, markers = [], maps = [], publicSettings = 
 
                 <div className="biodiv-card-body">
                   <p className="plant-row-desc">{p.description || <em style={{ color: '#bbb' }}>Pas de description</em>}</p>
+                  <PlantBiodivHeroPhoto plant={p} />
                   <PlantEcosystemHumanLead plant={p} />
                   <div className="task-meta">
                     {normalizedPlantValue(p.habitat) && !isGenericPotagerLabel(p.habitat) && (
