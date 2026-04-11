@@ -2156,7 +2156,8 @@
     button.task-chip.living-being-catalog-chip:hover {
       filter:brightness(0.97);
     }
-    a.task-chip.task-tutorial-chip {
+    a.task-chip.task-tutorial-chip,
+    button.task-chip.task-tutorial-chip {
       cursor:pointer;
       font:inherit;
       text-align:center;
@@ -2167,8 +2168,11 @@
       min-height:44px;
       padding:6px 12px;
       box-sizing:border-box;
+      border:none;
+      background:transparent;
     }
-    a.task-chip.task-tutorial-chip:hover {
+    a.task-chip.task-tutorial-chip:hover,
+    button.task-chip.task-tutorial-chip:hover {
       filter:brightness(0.97);
     }
     button.task-chip.tuto-linked-tasks-pill {

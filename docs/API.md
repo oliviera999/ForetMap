@@ -354,6 +354,8 @@ Contraintes importantes :
 | GET | `/api/tutorials/:id/download/html` | non | Téléchargement HTML |
 | GET | `/api/tutorials/:id/download/pdf` | non | Export PDF (contenu HTML) |
 
+- **GET /api/tutorials/:id/view** : la réponse HTML inclut un script en fin de document qui intercepte les clics sur les liens en **target="_blank"** ou **target="_top"** et impose la navigation dans la **même frame** (utile pour l’affichage en iframe dans l’application, notamment les anciennes fiches HTML importées). **GET …/download/html** renvoie le document **sans** ce script.
+
 ---
 
 ## Biodiversité (`/api/plants`)

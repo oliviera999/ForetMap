@@ -379,6 +379,17 @@ async function loadTutorialHtml(tutorial) {
   return null;
 }
 
+/** Réécrit les clics `target="_blank"` pour rester dans l’iframe (modale app). */
+const TUTORIAL_VIEW_IFRAME_LINK_SCRIPT = `<script>(function(){document.addEventListener("click",function(e){var a=e.target&&e.target.closest&&e.target.closest("a[href]");if(!a)return;var href=(a.getAttribute("href")||"").trim();if(!href||href.toLowerCase().startsWith("javascript:"))return;var t=(a.getAttribute("target")||"").toLowerCase();if(t==="_blank"||t==="_top"){e.preventDefault();window.location.href=a.href;}},true);})();<\/script>`;
+
+function injectTutorialViewIframeLinkScript(html) {
+  const s = String(html || '');
+  if (!s.trim()) return s;
+  const replaced = s.replace(/<\/body\s*>/i, `${TUTORIAL_VIEW_IFRAME_LINK_SCRIPT}</body>`);
+  if (replaced !== s) return replaced;
+  return `${s}${TUTORIAL_VIEW_IFRAME_LINK_SCRIPT}`;
+}
+
 function toPublicTutorialRow(row, zonesLinked = [], markersLinked = []) {
   const zl = zonesLinked || [];
   const ml = markersLinked || [];
@@ -937,7 +948,7 @@ router.get('/:id/view', async (req, res) => {
     const html = await loadTutorialHtml(tutorial);
     if (!html) return res.status(400).send('Aucun contenu HTML');
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
-    res.send(html);
+    res.send(injectTutorialViewIframeLinkScript(html));
   } catch (err) {
     logRouteError(err, req, 'Prévisualisation tutoriel en échec');
     res.status(500).send('Erreur serveur');

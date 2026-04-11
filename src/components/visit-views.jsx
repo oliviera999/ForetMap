@@ -10,6 +10,7 @@ import { HELP_PANELS, HELP_TOOLTIPS, resolveRoleText } from '../constants/help';
 import { getContentText } from '../utils/content';
 import { resolveMapOverlayTypography } from '../utils/mapOverlayTypography';
 import { TutorialReadAcknowledgeButton, fetchTutorialReadIds } from './TutorialReadAcknowledge';
+import { TutorialPreviewModal, tutorialPreviewPayload, tutorialPreviewCanEmbed } from './TutorialPreviewModal';
 import { ContextComments } from './context-comments';
 import { useOverlayHistoryBack } from '../hooks/useOverlayHistoryBack';
 import { computeMapImageContainRect } from '../utils/mapImageFit';
@@ -519,6 +520,7 @@ function VisitView({
   const [tutorialSelection, setTutorialSelection] = useState([]);
   const [savingTutorials, setSavingTutorials] = useState(false);
   const [tutorialReadIds, setTutorialReadIds] = useState(() => new Set());
+  const [visitTutorialPreview, setVisitTutorialPreview] = useState(null);
   const [mode, setMode] = useState('view');
   const [drawPoints, setDrawPoints] = useState([]);
   const [creating, setCreating] = useState(false);
@@ -1150,6 +1152,9 @@ function VisitView({
 
   return (
     <div className={`visit-view fade-in${isGuestPublicVisit ? ' visit-view--guest-public' : ''}`}>
+      {visitTutorialPreview && (
+        <TutorialPreviewModal tutorial={visitTutorialPreview} onClose={() => setVisitTutorialPreview(null)} />
+      )}
       <div className="visit-header-row">
         <div>
           <h2 className="section-title">{visitTitle}</h2>
@@ -1633,13 +1638,9 @@ function VisitView({
                 <div className="task-actions">
                   <button
                     className="btn btn-ghost btn-sm"
-                    onClick={() => {
-                      const href =
-                        t.type === 'link' && t.source_url
-                          ? t.source_url
-                          : `/api/tutorials/${t.id}/view`;
-                      window.open(href, '_blank', 'noopener,noreferrer');
-                    }}
+                    disabled={!tutorialPreviewCanEmbed(t)}
+                    title={!tutorialPreviewCanEmbed(t) ? 'Aperçu indisponible pour ce tutoriel' : undefined}
+                    onClick={() => setVisitTutorialPreview(tutorialPreviewPayload(t))}
                   >
                     👁️ Lire
                   </button>

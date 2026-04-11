@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo, useId } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useId, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { api, API, getAuthToken, AccountDeletedError, withAppBase } from '../services/api';
 import { compressImage, isLikelyImageFile } from '../utils/image';
@@ -13,6 +13,7 @@ import { ContextComments } from './context-comments';
 import { formatDateTimeFr } from '../utils/datetime-fr';
 import { HELP_PANELS, HELP_TOOLTIPS, resolveRoleText } from '../constants/help';
 import { LivingBeingsCatalogPanel } from './map-views';
+import { TutorialPreviewModal, tutorialPreviewPayload, tutorialPreviewCanEmbed } from './TutorialPreviewModal';
 import { lockBodyScroll } from '../utils/body-scroll-lock';
 import { armNativeFilePickerGuard, disarmNativeFilePickerGuard } from '../utils/overlayHistory';
 import { isStudentAssignedToTask } from '../utils/task-assignments';
@@ -1317,13 +1318,6 @@ function tutorialPickerLinkedToSameMap(tu, mapId) {
   return [...zl, ...ml].every((x) => x.map_id === mapId);
 }
 
-function tutorialPickerOpenHref(tu) {
-  if (!tu) return '';
-  if (tu.type === 'link' && tu.source_url) return String(tu.source_url).trim();
-  if (tu.type === 'html') return `/api/tutorials/${tu.id}/view`;
-  return (tu.source_file_path && String(tu.source_file_path).trim()) || `/api/tutorials/${tu.id}/view`;
-}
-
 function dedupeTutorialsByIdForTasks(list) {
   const seen = new Set();
   const out = [];
@@ -1534,6 +1528,10 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
   const helpTasks = HELP_PANELS.tasks;
   const tooltipText = (entry) => resolveRoleText(entry, isTeacher);
   const [quickTutoLinkId, setQuickTutoLinkId] = useState('');
+  const [tasksTutorialPreview, setTasksTutorialPreview] = useState(null);
+  const openTasksTutorialPreview = useCallback((tu) => {
+    setTasksTutorialPreview(tutorialPreviewPayload(tu));
+  }, []);
 
   const mapLocationFocusKey = mapLocationFocus ? `${mapLocationFocus.kind}:${mapLocationFocus.id}` : '';
   useEffect(() => {
@@ -2174,11 +2172,15 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
     runTeacherQuickAssign,
     teacherMarkCollectiveAssignmentDone,
     tooltipText,
+    openTasksTutorialPreview,
   };
 
   return (
     <div>
       {toast && <Toast msg={toast} onDone={() => setToast(null)} />}
+      {tasksTutorialPreview && (
+        <TutorialPreviewModal tutorial={tasksTutorialPreview} onClose={() => setTasksTutorialPreview(null)} />
+      )}
       {(showForm || editTask || duplicateTask || showProposalForm) && (
         <TaskFormModal
           key={editTask?.id || duplicateTask?.id || (showProposalForm ? 'proposal' : 'new')}
@@ -2542,7 +2544,6 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
                 <p style={{ color: '#999', fontSize: '.85rem', margin: 0 }}>Aucun tutoriel lié à ce lieu.</p>
               ) : (
                 linkedTutorialsAtFocus.map((tu) => {
-                  const href = tutorialPickerOpenHref(tu);
                   const [fk, fid] = String(filterZone).split(':');
                   const otherZones = (tu.zones_linked || []).filter((z) => !(fk === 'zone' && String(z.id) === String(fid)));
                   const otherMarkers = (tu.markers_linked || []).filter((mk) => !(fk === 'marker' && String(mk.id) === String(fid)));
@@ -2570,16 +2571,15 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
                           <strong>Repères</strong> : {otherMarkers.map((m) => `${m.emoji ? `${m.emoji} ` : ''}${m.label}`).join(', ')}
                         </p>
                       )}
-                      {href ? (
-                        <a
+                      {tutorialPreviewCanEmbed(tu) ? (
+                        <button
+                          type="button"
                           className="btn btn-primary btn-sm"
-                          href={href}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          style={{ marginTop: 10, display: 'inline-block', textDecoration: 'none' }}
+                          style={{ marginTop: 10 }}
+                          onClick={() => openTasksTutorialPreview(tu)}
                         >
                           📖 Consulter
-                        </a>
+                        </button>
                       ) : null}
                     </div>
                   );
@@ -2648,6 +2648,7 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
             setProjectStatus={setProjectStatus}
             loading={loading}
             taskTileProps={taskTileProps}
+            openTasksTutorialPreview={openTasksTutorialPreview}
           />
           {proposed.length > 0 && (
             <div className="tasks-section">
@@ -2702,6 +2703,7 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
             setProjectStatus={setProjectStatus}
             loading={loading}
             taskTileProps={taskTileProps}
+            openTasksTutorialPreview={openTasksTutorialPreview}
           />
             </>
           ) : (
@@ -2742,6 +2744,7 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
             setProjectStatus={setProjectStatus}
             loading={loading}
             taskTileProps={taskTileProps}
+            openTasksTutorialPreview={openTasksTutorialPreview}
           />
               {doneNotMine.length > 0 && (
               <div className="tasks-section">
@@ -3040,6 +3043,7 @@ function TaskTileCard({
   runTeacherQuickAssign,
   teacherMarkCollectiveAssignmentDone,
   tooltipText,
+  openTasksTutorialPreview,
 }) {
     const [coverLightbox, setCoverLightbox] = useState(null);
     const [speciesCatalogName, setSpeciesCatalogName] = useState(null);
@@ -3148,23 +3152,21 @@ function TaskTileCard({
                 {taskLivingBeingEmoji(plants, name)} {name}
               </button>
             ))}
-            {(t.tutorials_linked || []).map((tu) => {
-              const href = tutorialPickerOpenHref(tu);
-              return href ? (
-                <a
+            {(t.tutorials_linked || []).map((tu) => (
+              tutorialPreviewCanEmbed(tu) ? (
+                <button
                   key={tu.id}
+                  type="button"
                   className="task-chip task-tutorial-chip"
-                  href={href}
-                  target="_blank"
-                  rel="noopener noreferrer"
                   title={`Ouvrir le tutoriel « ${tu.title || ''} »`}
+                  onClick={() => openTasksTutorialPreview(tu)}
                 >
                   📘 {tu.title}
-                </a>
+                </button>
               ) : (
                 <span key={tu.id} className="task-chip">📘 {tu.title}</span>
-              );
-            })}
+              )
+            ))}
           </div>
         )}
         {referentsLinked.length > 0 && (
@@ -3473,6 +3475,7 @@ function TaskProjectsBlock({
   setProjectStatus,
   loading,
   taskTileProps,
+  openTasksTutorialPreview,
 }) {
 if (visibleProjects.length <= 0) return null;
     return (
@@ -3497,23 +3500,21 @@ if (visibleProjects.length <= 0) return null;
                       {(p.markers_linked || []).map((m) => (
                         <span key={m.id} className="task-chip">📍 {m.label}</span>
                       ))}
-                      {(p.tutorials_linked || []).map((tu) => {
-                        const href = tutorialPickerOpenHref(tu);
-                        return href ? (
-                          <a
+                      {(p.tutorials_linked || []).map((tu) => (
+                        tutorialPreviewCanEmbed(tu) ? (
+                          <button
                             key={tu.id}
+                            type="button"
                             className="task-chip task-tutorial-chip"
-                            href={href}
-                            target="_blank"
-                            rel="noopener noreferrer"
                             title={`Ouvrir le tutoriel « ${tu.title || ''} »`}
+                            onClick={() => openTasksTutorialPreview(tu)}
                           >
                             📘 {tu.title}
-                          </a>
+                          </button>
                         ) : (
                           <span key={tu.id} className="task-chip">📘 {tu.title}</span>
-                        );
-                      })}
+                        )
+                      ))}
                     </div>
                     <div style={{ fontSize: '.82rem', color: '#666' }}>
                       {p.map_label || mapLabelFromMaps(p.map_id, maps)} · {projectTasksCount} tâche{projectTasksCount > 1 ? 's' : ''}
