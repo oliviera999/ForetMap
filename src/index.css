@@ -3041,6 +3041,10 @@
   align-items:center;
   gap:8px;
 }
+.attachment-images-picker-actions .attachment-images-picker-btn {
+  flex:1 1 120px;
+  min-height:44px;
+}
 .attachment-images-picker-hint {
   flex:1;
   min-width:140px;

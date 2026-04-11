@@ -1,9 +1,29 @@
 import React, { useCallback, useRef } from 'react';
 import { withAppBase } from '../services/api';
+import { isLikelyImageFile } from '../utils/image';
+import { armNativeFilePickerGuard, disarmNativeFilePickerGuard } from '../utils/overlayHistory';
 
 /** Aligné sur le serveur : lib/userContentImages.js */
 export const MAX_ATTACHMENT_IMAGES = 3;
 const MAX_ATTACHMENT_BYTES = Math.floor(1.5 * 1024 * 1024);
+
+function isSupportedInlineImageDataUrl(dataUrl) {
+  return /^data:image\/(png|jpe?g|webp);/i.test(String(dataUrl || ''));
+}
+
+/** JPEG / PNG / WebP, y compris captures mobile (type vide ou octet-stream). */
+function fileAllowedForAttachment(file) {
+  if (!file || !file.size) return false;
+  const t = String(file.type || '').toLowerCase();
+  if (t === 'image/jpeg' || t === 'image/png' || t === 'image/webp') return true;
+  if (t === 'image/gif' || t === 'image/bmp' || t === 'image/heic' || t === 'image/heif' || t === 'image/avif') {
+    return false;
+  }
+  if (t === '' || t === 'application/octet-stream' || t === 'binary/octet-stream') {
+    return isLikelyImageFile(file);
+  }
+  return false;
+}
 
 function readFileAsDataUrl(file) {
   return new Promise((resolve, reject) => {
@@ -23,17 +43,15 @@ export function AttachmentImagesPicker({
   onChange,
   disabled = false,
   onNotify,
-  label = 'Photos (optionnel, max 3, JPEG/PNG/WebP, 1,5 Mo chacune)',
+  label = 'Photos (optionnel, max 3, JPEG/PNG/WebP, 1,5 Mo ; galerie ou appareil photo)',
 }) {
-  const inputRef = useRef(null);
+  const galleryInputRef = useRef(null);
+  const cameraInputRef = useRef(null);
   const list = Array.isArray(value) ? value : [];
 
   const addFiles = useCallback(
     async (fileList) => {
-      const picked = Array.from(fileList || []).filter((f) => {
-        const t = String(f.type || '').toLowerCase();
-        return t === 'image/jpeg' || t === 'image/png' || t === 'image/webp';
-      });
+      const picked = Array.from(fileList || []).filter(fileAllowedForAttachment);
       const next = [...list];
       for (const file of picked) {
         if (next.length >= MAX_ATTACHMENT_IMAGES) {
@@ -46,6 +64,10 @@ export function AttachmentImagesPicker({
         }
         try {
           const dataUrl = await readFileAsDataUrl(file);
+          if (!isSupportedInlineImageDataUrl(dataUrl)) {
+            onNotify?.(`Format non pris en charge (JPEG, PNG ou WebP) : ${file.name || 'fichier'}`);
+            continue;
+          }
           next.push(dataUrl);
         } catch {
           onNotify?.(`Lecture impossible : ${file.name || 'fichier'}`);
@@ -60,29 +82,66 @@ export function AttachmentImagesPicker({
     onChange(list.filter((_, i) => i !== idx));
   };
 
+  const openGallery = () => {
+    if (galleryInputRef.current) galleryInputRef.current.value = '';
+    armNativeFilePickerGuard();
+    galleryInputRef.current?.click();
+  };
+
+  const openCamera = () => {
+    if (cameraInputRef.current) cameraInputRef.current.value = '';
+    armNativeFilePickerGuard();
+    cameraInputRef.current?.click();
+  };
+
+  const atLimit = list.length >= MAX_ATTACHMENT_IMAGES;
+
   return (
     <div className="attachment-images-picker">
       <input
-        ref={inputRef}
+        ref={galleryInputRef}
         type="file"
         accept="image/jpeg,image/png,image/webp"
         multiple
         disabled={disabled}
         className="attachment-images-picker-input"
-        aria-label={label}
+        aria-label={`${label} — galerie ou fichiers`}
         onChange={(e) => {
+          disarmNativeFilePickerGuard();
           addFiles(e.target.files);
           e.target.value = '';
         }}
       />
-      <div className="attachment-images-picker-row">
+      <input
+        ref={cameraInputRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        disabled={disabled}
+        className="attachment-images-picker-input"
+        aria-label={`${label} — appareil photo`}
+        onChange={(e) => {
+          disarmNativeFilePickerGuard();
+          addFiles(e.target.files);
+          e.target.value = '';
+        }}
+      />
+      <div className="attachment-images-picker-row attachment-images-picker-actions">
         <button
           type="button"
-          className="btn btn-ghost btn-sm"
-          disabled={disabled || list.length >= MAX_ATTACHMENT_IMAGES}
-          onClick={() => inputRef.current?.click()}
+          className="btn btn-ghost btn-sm attachment-images-picker-btn"
+          disabled={disabled || atLimit}
+          onClick={openGallery}
         >
-          Ajouter des photos
+          Galerie
+        </button>
+        <button
+          type="button"
+          className="btn btn-ghost btn-sm attachment-images-picker-btn"
+          disabled={disabled || atLimit}
+          onClick={openCamera}
+        >
+          Appareil photo
         </button>
         <span className="forum-muted attachment-images-picker-hint">{label}</span>
       </div>
