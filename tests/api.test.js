@@ -1369,6 +1369,17 @@ test('GET /api/admin/diagnostics avec bon secret → 200', async () => {
     res.body.runtimeProcess.cluster.workerId === null || typeof res.body.runtimeProcess.cluster.workerId === 'number'
   );
   assert.ok(res.body.runtimeProcess.envHints && typeof res.body.runtimeProcess.envHints === 'object');
+  assert.ok(res.body.visitMascotHint && Array.isArray(res.body.visitMascotHint.maps));
+  assert.ok(
+    res.body.visitMascotHint.maps.every(
+      (row) =>
+        typeof row.map_id === 'string'
+        && typeof row.visitZonesInPublicApi === 'number'
+        && typeof row.visitMarkersInPublicApi === 'number'
+        && typeof row.visitTutorialsForContentApi === 'number'
+        && typeof row.mascotWouldRenderHint === 'boolean'
+    )
+  );
   process.env.DEPLOY_SECRET = prev;
 });
 

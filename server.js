@@ -10,12 +10,13 @@ const cors    = require('cors');
 const compression = require('compression');
 const path    = require('path');
 const Layer   = require('express/lib/router/layer');
-const { initDatabase, ping: dbPing, isApplicationDatabaseReady, endPool } = require('./database');
+const { initDatabase, ping: dbPing, isApplicationDatabaseReady, endPool, queryAll } = require('./database');
 const { validateEnv } = require('./lib/env');
 const logger = require('./lib/logger');
 const { runRecurringTaskSpawnJob } = require('./lib/recurringTasks');
 const { initRealtime, shutdownRealtime } = require('./lib/realtime');
 const { getRuntimeProcessSnapshot } = require('./lib/runtimeDiagnostics');
+const { getVisitMascotHintSnapshot } = require('./lib/visitMascotDiagnostics');
 const { tailLogLines, getBufferedLineCount, getMaxLines } = require('./lib/logBuffer');
 const { checkCriticalAdminAccount } = require('./lib/rbac');
 const { assignRequestId } = require('./lib/requestId');
@@ -216,7 +217,20 @@ if (fs.existsSync(serviceWorkerPath)) {
     res.sendFile(serviceWorkerPath);
   });
 }
-app.use(express.static(staticRoot, serveDist ? { index: false } : undefined));
+const staticServeOptions = serveDist
+  ? {
+      index: false,
+      setHeaders(res, filePath) {
+        const base = path.basename(filePath);
+        if (base === 'index.vite.html' || base === 'index.html' || base === 'deploy-help.html') {
+          res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+          res.setHeader('Pragma', 'no-cache');
+          res.setHeader('Expires', '0');
+        }
+      },
+    }
+  : undefined;
+app.use(express.static(staticRoot, staticServeOptions));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 app.use('/tutos', express.static(path.join(__dirname, 'tutos')));
 
@@ -331,6 +345,13 @@ app.get('/api/admin/diagnostics', async (req, res) => {
   } catch (_) {
     /* repli startupVersion */
   }
+  let visitMascotHint = { maps: [], error: null };
+  try {
+    visitMascotHint = await getVisitMascotHintSnapshot(queryAll);
+  } catch (err) {
+    logger.warn({ err }, 'Diagnostics admin : agrégats visite (mascotte)');
+    visitMascotHint = { maps: [], error: 'visit_mascot_hint_unavailable' };
+  }
   res.type('application/json').json({
     ok: true,
     ts: new Date().toISOString(),
@@ -351,6 +372,8 @@ app.get('/api/admin/diagnostics', async (req, res) => {
     metrics: logMetrics.getMetrics(),
     // Processus courant uniquement ; le nombre d’instances Passenger/PM2 se lit au panneau hébergeur.
     runtimeProcess: getRuntimeProcessSnapshot(),
+    /** Par carte : volumes alignés sur GET /api/visit/content (mascotte si au moins un compteur public > 0). */
+    visitMascotHint,
   });
 });
 
