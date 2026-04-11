@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { api, AccountDeletedError } from '../services/api';
 import { useOverlayHistoryBack } from '../hooks/useOverlayHistoryBack';
 import { TutorialReadAcknowledgeButton, fetchTutorialReadIds } from './TutorialReadAcknowledge';
+import { TutorialPreviewModal, tutorialPreviewPayload } from './TutorialPreviewModal';
 import { ContextComments } from './context-comments';
 import { orderedLivingBeingsForForm, formatLivingBeingsListLine } from '../utils/livingBeings';
 
@@ -49,37 +50,6 @@ const LINKED_TASK_STATUS_LABELS = {
 function linkedTaskStatusLabel(status) {
   const s = String(status || '').toLowerCase();
   return LINKED_TASK_STATUS_LABELS[s] || status || '—';
-}
-
-function TutorialPreviewModal({ tutorial, onClose }) {
-  useOverlayHistoryBack(!!tutorial, onClose);
-  if (!tutorial) return null;
-  const source =
-    (tutorial.preview_url && String(tutorial.preview_url).trim()) ||
-    tutorial.source_file_path ||
-    (tutorial.type === 'link' ? String(tutorial.source_url || '').trim() : '') ||
-    '';
-  const canEmbed = !!source;
-  return (
-    <div className="modal-overlay modal-overlay--tuto-preview" onClick={e => e.target === e.currentTarget && onClose()}>
-      <div className="log-modal tuto-preview-modal" role="dialog" aria-modal="true" aria-labelledby="tuto-preview-title" tabIndex={-1} onClick={e => e.stopPropagation()}>
-        <button type="button" className="modal-close" onClick={onClose} aria-label="Fermer l’aperçu">✕</button>
-        <h3 id="tuto-preview-title">📘 {tutorial.title}</h3>
-        {canEmbed ? (
-          <iframe
-            title={`Preview ${tutorial.title}`}
-            src={source}
-            className="tuto-preview-frame"
-            sandbox="allow-same-origin allow-scripts allow-popups allow-forms"
-          />
-        ) : (
-          <div className="empty" style={{ padding: 18 }}>
-            <p>Aperçu non disponible pour ce tutoriel.</p>
-          </div>
-        )}
-      </div>
-    </div>
-  );
 }
 
 function TutorialLinkedTasksModal({ state, onClose }) {
@@ -283,21 +253,12 @@ function TutorialsView({
   };
 
   const openPreview = (t) => {
-    let preview_url = '';
-    if (t.type === 'html') {
-      preview_url = `/api/tutorials/${t.id}/view`;
-    } else if (t.type === 'link') {
-      preview_url = String(t.source_url || '').trim();
-    } else {
-      preview_url = t.source_file_path || '';
-    }
-    setPreview({ ...t, preview_url });
+    setPreview(tutorialPreviewPayload(t));
   };
 
+  /** Même contenu que l’aperçu : tout passe par la modale (plus d’onglet pour les fichiers /tutos/…). */
   const openSource = (t) => {
-    const href = t.source_url || t.source_file_path;
-    if (href) window.open(href, '_blank', 'noopener,noreferrer');
-    else openPreview(t);
+    setPreview(tutorialPreviewPayload(t));
   };
 
   const onFileHtml = async (ev) => {

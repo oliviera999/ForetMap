@@ -26,6 +26,7 @@ import { resolveMapOverlayTypography } from '../utils/mapOverlayTypography';
 import { isStudentAssignedToTask } from '../utils/task-assignments';
 import { parseLivingBeings, orderedLivingBeingsForForm, nextLivingBeingsFromMultiSelect } from '../utils/livingBeings';
 import { wheelZoomScaleFactor } from '../utils/mapWheelZoom';
+import { TutorialPreviewModal, tutorialPreviewPayload, tutorialPreviewCanEmbed } from './TutorialPreviewModal';
 
 function Toast({ msg, onDone }) {
   useEffect(() => { const t = setTimeout(onDone, 2400); return () => clearTimeout(t); }, []);
@@ -416,13 +417,6 @@ function tutorialLinkedToSameMap(tu, mapId) {
   return [...zl, ...ml].every((x) => x.map_id === mapId);
 }
 
-function tutorialOpenHref(tu) {
-  if (!tu) return '';
-  if (tu.type === 'link' && tu.source_url) return String(tu.source_url).trim();
-  if (tu.type === 'html') return `/api/tutorials/${tu.id}/view`;
-  return (tu.source_file_path && String(tu.source_file_path).trim()) || `/api/tutorials/${tu.id}/view`;
-}
-
 function taskOpenSlots(task) {
   const required = Number(task?.required_students || 1);
   const assigned = Array.isArray(task?.assignments) ? task.assignments.length : 0;
@@ -597,7 +591,7 @@ function livingBeingNamesFromTasksAtLocation(kind, locationId, tasks) {
   return names;
 }
 
-function ZoneInfoModal({ zone, plants, tasks, tutorials = [], isTeacher, student, canSelfAssignTasks = true, canEnrollOnTasks, markerEmojis = MARKER_EMOJIS, emojiParsingList = MARKER_EMOJIS, contextCommentsEnabled = true, canParticipateContextComments = true, onClose, onUpdate, onDelete, onDuplicate, onEditPoints, onLinkTask, onUnlinkTask, onAssignTasks, onLinkTutorial, onUnlinkTutorial, onNavigateToTasksForLocation = null }) {
+function ZoneInfoModal({ zone, plants, tasks, tutorials = [], isTeacher, student, canSelfAssignTasks = true, canEnrollOnTasks, markerEmojis = MARKER_EMOJIS, emojiParsingList = MARKER_EMOJIS, contextCommentsEnabled = true, canParticipateContextComments = true, onClose, onUpdate, onDelete, onDuplicate, onEditPoints, onLinkTask, onUnlinkTask, onAssignTasks, onLinkTutorial, onUnlinkTutorial, onNavigateToTasksForLocation = null, onOpenTutorialPreview = null }) {
   const canEnroll = canEnrollOnTasks !== undefined ? canEnrollOnTasks : canSelfAssignTasks;
   const dialogRef = useDialogA11y(onClose);
   useOverlayHistoryBack(true, onClose);
@@ -1153,7 +1147,6 @@ function ZoneInfoModal({ zone, plants, tasks, tutorials = [], isTeacher, student
             ) : (
               <div style={{ display: 'grid', gap: 12 }}>
                 {linkedTutorialsVisible.map((tu) => {
-                  const href = tutorialOpenHref(tu);
                   const otherZones = (tu.zones_linked || []).filter((z) => z.id !== zone.id);
                   const markers = tu.markers_linked || [];
                   return (
@@ -1179,15 +1172,15 @@ function ZoneInfoModal({ zone, plants, tasks, tutorials = [], isTeacher, student
                           <strong>Repères</strong> : {markers.map((m) => m.label).join(', ')}
                         </p>
                       )}
-                      {href ? (
-                        <a
+                      {tutorialPreviewCanEmbed(tu) && onOpenTutorialPreview ? (
+                        <button
+                          type="button"
                           className="btn btn-primary btn-sm"
-                          href={href}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          style={{ marginTop: 10, display: 'inline-block', textDecoration: 'none' }}>
+                          style={{ marginTop: 10 }}
+                          onClick={() => onOpenTutorialPreview(tutorialPreviewPayload(tu))}
+                        >
                           📖 Consulter
-                        </a>
+                        </button>
                       ) : null}
                     </div>
                   );
@@ -1353,6 +1346,7 @@ function MarkerModal({
   canEnrollOnTasks,
   markerEmojis = MARKER_EMOJIS,
   onNavigateToTasksForLocation = null,
+  onOpenTutorialPreview = null,
   contextCommentsEnabled = true,
   canParticipateContextComments = true,
   onRequestAdjustMarkerPosition = null,
@@ -1882,7 +1876,6 @@ function MarkerModal({
             ) : (
               <div style={{ display: 'grid', gap: 12 }}>
                 {linkedTutorialsVisible.map((tu) => {
-                  const href = tutorialOpenHref(tu);
                   const zones = tu.zones_linked || [];
                   const otherMarkers = (tu.markers_linked || []).filter((mk) => mk.id !== marker.id);
                   return (
@@ -1908,15 +1901,15 @@ function MarkerModal({
                           <strong>Autres repères</strong> : {otherMarkers.map((m) => m.label).join(', ')}
                         </p>
                       )}
-                      {href ? (
-                        <a
+                      {tutorialPreviewCanEmbed(tu) && onOpenTutorialPreview ? (
+                        <button
+                          type="button"
                           className="btn btn-primary btn-sm"
-                          href={href}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          style={{ marginTop: 10, display: 'inline-block', textDecoration: 'none' }}>
+                          style={{ marginTop: 10 }}
+                          onClick={() => onOpenTutorialPreview(tutorialPreviewPayload(tu))}
+                        >
                           📖 Consulter
-                        </a>
+                        </button>
                       ) : null}
                     </div>
                   );
@@ -2569,6 +2562,7 @@ function MapView({ zones, markers, tasks = [], tutorials = [], plants, maps = []
   const [pendingZone, setPendingZone] = useState(null);
   const [pendingMarker, setPendingMarker] = useState(null);
   const [toast, setToast] = useState(null);
+  const [mapTutorialPreview, setMapTutorialPreview] = useState(null);
   const [markerPositionUnlocked, setMarkerPositionUnlocked] = useState(false);
   const configuredLocationEmojis = String(
     publicSettings?.ui?.map?.location_emojis
@@ -3116,6 +3110,9 @@ function MapView({ zones, markers, tasks = [], tutorials = [], plants, maps = []
   return (
     <div className={`map-view-root ${embedded ? 'map-view-root--embedded' : 'map-view-root--solo'}`}>
       {toast && <Toast msg={toast} onDone={() => setToast(null)} />}
+      {mapTutorialPreview && (
+        <TutorialPreviewModal tutorial={mapTutorialPreview} onClose={() => setMapTutorialPreview(null)} />
+      )}
 
       {selectedZone && (
         <ZoneInfoModal zone={selectedZone} plants={plants} tasks={tasks} tutorials={tutorials} isTeacher={isTeacher} student={student} canSelfAssignTasks={canSelfAssignTasks} canEnrollOnTasks={canEnrollNewTasks} markerEmojis={markerEmojis} emojiParsingList={emojiParsingList} contextCommentsEnabled={contextCommentsEnabled} canParticipateContextComments={canParticipateContextComments}
@@ -3129,7 +3126,8 @@ function MapView({ zones, markers, tasks = [], tutorials = [], plants, maps = []
           onLinkTutorial={async (tutorialId) => linkTutorialToZone(tutorialId, selectedZone.id)}
           onUnlinkTutorial={(tu) => unlinkTutorialFromZone(tu, selectedZone.id)}
           onEditPoints={isTeacher ? z => startEditPoints(z) : null}
-          onNavigateToTasksForLocation={onNavigateToTasksForLocation} />
+          onNavigateToTasksForLocation={onNavigateToTasksForLocation}
+          onOpenTutorialPreview={setMapTutorialPreview} />
       )}
       {selectedMarker && (
         <MarkerModal
@@ -3155,6 +3153,7 @@ function MapView({ zones, markers, tasks = [], tutorials = [], plants, maps = []
           onUnlinkTutorial={(tu) => unlinkTutorialFromMarker(tu, selectedMarker.id)}
           onAssignTasks={assignTasksToStudent}
           onNavigateToTasksForLocation={onNavigateToTasksForLocation}
+          onOpenTutorialPreview={setMapTutorialPreview}
           onRequestAdjustMarkerPosition={isTeacher
             ? () => {
               setMarkerPositionUnlocked(true);
