@@ -4,6 +4,10 @@ import { VISIT_MASCOT_STATE } from '../utils/visitMascotState.js';
 function resolveStateSpec(spritesheetConfig = null, mascotState = VISIT_MASCOT_STATE.IDLE) {
   const spec = spritesheetConfig?.stateFrames?.[mascotState];
   if (spec) return spec;
+  const aliasKey = spritesheetConfig?.stateAliases?.[mascotState];
+  if (aliasKey && spritesheetConfig?.stateFrames?.[aliasKey]) {
+    return spritesheetConfig.stateFrames[aliasKey];
+  }
   return spritesheetConfig?.stateFrames?.[VISIT_MASCOT_STATE.IDLE] || { row: 0, frames: 1, fps: 1 };
 }
 
@@ -22,6 +26,7 @@ function VisitMapMascotSpritesheet({
     && Number(sheet?.frameWidth) > 0
     && Number(sheet?.frameHeight) > 0;
   const fallbackSilhouette = mascotConfig?.fallbackSilhouette || 'gnome';
+  const spriteStartCol = Math.max(0, Number(stateSpec?.col) || 0);
 
   return (
     <div
@@ -43,10 +48,12 @@ function VisitMapMascotSpritesheet({
             width: `${sheet.frameWidth}px`,
             height: `${sheet.frameHeight}px`,
             backgroundImage: `url("${sheet.src}")`,
+            backgroundPositionX: `-${spriteStartCol * sheet.frameWidth}px`,
             backgroundPositionY: `-${Math.max(0, Number(stateSpec.row) || 0) * sheet.frameHeight}px`,
             '--visit-sprite-frames': Math.max(1, Number(stateSpec.frames) || 1),
             '--visit-sprite-fps': Math.max(1, Number(stateSpec.fps) || 1),
             '--visit-sprite-frame-width': `${sheet.frameWidth}px`,
+            '--visit-sprite-start-x': `${-spriteStartCol * sheet.frameWidth}px`,
           }}
           onError={() => setImgError(true)}
           role="presentation"

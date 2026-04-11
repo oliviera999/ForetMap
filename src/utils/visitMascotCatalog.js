@@ -177,6 +177,40 @@ const VISIT_MASCOT_CATALOG = [
       pixelated: true,
     },
   },
+  {
+    id: 'olu-spritesheet',
+    label: 'OLU (spritesheet)',
+    renderer: 'spritesheet',
+    fallbackSilhouette: 'olu',
+    spritesheet: {
+      src: '/assets/mascots/olu/olu-spritesheet.png',
+      frameWidth: 64,
+      frameHeight: 64,
+      stateAliases: {
+        happy_jump: 'happy_jump',
+        happy: 'happy_jump',
+        spin: 'spin',
+        celebrate: 'celebrate',
+        map_read: 'map_read',
+        inspect: 'inspect',
+      },
+      stateFrames: {
+        idle: { row: 0, frames: 4, fps: 4 },
+        walking: { row: 1, frames: 6, fps: 10 },
+        running: { row: 1, frames: 6, fps: 14 },
+        talk: { row: 2, frames: 4, fps: 8 },
+        happy: { row: 3, frames: 5, fps: 10 },
+        happy_jump: { row: 3, frames: 5, fps: 10 },
+        spin: { row: 3, frames: 5, fps: 12 },
+        inspect: { row: 4, frames: 2, fps: 3 },
+        map_read: { row: 4, frames: 2, fps: 3 },
+        alert: { row: 2, frames: 4, fps: 11 },
+        celebrate: { row: 3, frames: 5, fps: 12 },
+        surprise: { row: 2, frames: 4, fps: 9 },
+      },
+      pixelated: true,
+    },
+  },
 ];
 
 function getVisitMascotCatalog() {
@@ -199,11 +233,13 @@ function normalizeVisitMascotId(mascotId) {
 function getVisitMascotSupportedStates(mascotId) {
   const mascot = getVisitMascotById(mascotId);
   if (!mascot) return ['idle', 'walking', 'happy'];
-  const stateAnimations = mascot?.rive?.stateAnimations;
-  if (!stateAnimations || typeof stateAnimations !== 'object') {
+  const stateSource = mascot?.renderer === 'spritesheet'
+    ? mascot?.spritesheet?.stateFrames
+    : mascot?.rive?.stateAnimations;
+  if (!stateSource || typeof stateSource !== 'object') {
     return ['idle', 'walking', 'happy'];
   }
-  const states = Object.keys(stateAnimations)
+  const states = Object.keys(stateSource)
     .map((state) => String(state || '').trim())
     .filter(Boolean);
   if (states.length === 0) return ['idle', 'walking', 'happy'];

@@ -26,7 +26,9 @@ description: Donne le contexte du projet ForetMap (forêt comestible, Lycée Lya
 ## Stack
 
 - **Backend :** Node.js, Express, MySQL (mysql2, pool). Fichiers : `server.js` (montage des routeurs), `database.js` (pool, schéma, seed), `routes/` (dont `task-projects`, `tutorials`, `settings`, `rbac`, `forum`), `middleware/requireTeacher.js` (JWT). Auth élèves : bcrypt, session en localStorage. Auth prof : PIN vérifié côté serveur, JWT.
+- **Biodiversité assistée :** endpoint `GET /api/plants/autofill` (sources externes Wikipedia/Wikidata/GBIF), agrégation dans `lib/speciesAutofill.js`, panneau de revue dans `PlantEditForm` (`src/components/foretmap-views.jsx`).
 - **Frontend :** React 18 + Vite. Entrée dans `index.vite.html`, bootstrap dans `src/main.jsx`, application modulaire dans `src/` (composants/hooks/services), build servi depuis `dist/` en production.
+- **Visite / mascotte :** moteur extensible multi-renderer (`rive` + `spritesheet`) via `src/utils/visitMascotCatalog.js`, `src/components/VisitMapMascotRenderer.jsx`, `src/components/VisitMapMascotRive.jsx`, `src/components/VisitMapMascotSpritesheet.jsx`, hook d’état `src/hooks/useVisitMascotStateMachine.js`, fallback SVG `src/components/VisitMascotFallbackSvg.jsx`.
 - **Utilitaires :** `lib/logger.js` (Pino, `redact`), `lib/env.js`, `lib/uploads.js`, `lib/routeLog.js` (`logRouteError`, `requestId`), `lib/requestId.js`, `lib/httpRequestLog.js` (`FORETMAP_HTTP_LOG`), `lib/logMetrics.js` (métriques diagnostics), `lib/helpers.js`.
 - **Tests :** `npm test` sur **`tests/*.test.js`** (API supertest + utilitaires **`src/utils`** en ESM, ex. visite / mascotte) ; e2e Playwright dans **`e2e/`** via **`npm run test:e2e`** (serveur **`npm run start:e2e`**, bypass rate limit). Skills **foretmap-tests**, **foretmap-e2e** ; récap **`docs/LOCAL_DEV.md`** (§ 5).
 
@@ -53,9 +55,12 @@ description: Donne le contexte du projet ForetMap (forêt comestible, Lycée Lya
 | `lib/logMetrics.js` | Métriques pour `/api/admin/diagnostics` |
 | `lib/env.js` | Validation des variables d'environnement |
 | `lib/uploads.js` | Gestion des fichiers uploadés |
+| `lib/speciesAutofill.js` | Agrégation multi-sources pour la pré-saisie d’espèces |
 | `index.vite.html` | Point d'entrée HTML de l'application Vite |
 | `src/main.jsx` | Bootstrap React et montage de l'app |
 | `src/components/`, `src/hooks/`, `src/services/` | Modules UI, logique locale et accès API |
+| `src/utils/visitMascotCatalog.js` | Catalogue mascottes, renderer cible, états supportés |
+| `src/hooks/useVisitMascotStateMachine.js` | États preview/runtime mascotte + comportements dynamiques |
 | `tests/` | Tests `node:test` : API, géométrie visite, mascotte (`visit-mascot-*.test.js`), etc. |
 | `e2e/` | Playwright : smoke, cycles tâches, **visite / mascotte** (`visit-mascot.spec.js`), … |
 

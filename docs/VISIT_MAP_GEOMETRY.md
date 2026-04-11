@@ -32,9 +32,11 @@ Après **`POST /api/visit/sync`** (carte → visite ou l’inverse), ouvrir **la
 
 - Le catalogue des mascottes est centralisé dans `src/utils/visitMascotCatalog.js`.
 - Chaque entrée définit `renderer` (`rive` ou `spritesheet`) et ses assets/états.
-- **`fallbackSilhouette`** : forme du SVG de secours (`gnome`, `spore`, `vine`, `moss`, `seed`, `swarm`) — voir `src/components/VisitMascotFallbackSvg.jsx`.
+- **`fallbackSilhouette`** : forme du SVG de secours (`gnome`, `spore`, `vine`, `moss`, `seed`, `swarm`, `sprout`, `scrap`, `olu`) — voir `src/components/VisitMascotFallbackSvg.jsx`.
 - Pour ajouter une mascotte : déposer les assets dans `public/assets/mascots/...` puis déclarer une nouvelle entrée de catalogue.
 - Le choix courant est persisté côté client (`localStorage`) et utilisé par `VisitMapMascotRenderer.jsx`.
+- Le pilotage d’état passe par `src/hooks/useVisitMascotStateMachine.js` (boutons preview dynamiques selon la mascotte active).
+- La palette d’états n’est plus limitée à `idle/walking/happy` : elle peut inclure `running`, `talk`, `alert`, `angry`, `surprise`, `inspect`, `map_read`, `spin`, `celebrate`, `happy_jump` selon la config du catalogue.
 
 ## Diagnostic prod : mascotte invisible
 
@@ -47,16 +49,18 @@ La mascotte n’est rendue que si le client a du **contenu public** visite (zone
    - **Non** → données / module visite / chargement (étape 1) ou onglet pas en mode navigation.
      Vérifier aussi les attributs de scène **`.visit-map-stage[data-visit-mascot-visibility][data-visit-mascot-reason]`** :
      `hidden + no-public-content` = pas de contenu public (comportement attendu), `hidden + mode-not-view` = mode édition prof.
-  - **Oui** → inspecter aussi **`.visit-map-mascot-rive-shell`** :
-    - `data-renderer` (`rive` ou `fallback-static`)
+  - **Oui** → inspecter aussi le shell actif :
+    - `data-renderer` (`rive`, `spritesheet` ou `fallback-static`)
     - `data-rive-status` (`loading`, `loaded`, `playing:<animation>`, `fallback-no-animation`, `error`)
-    - `data-mascot-state` (`idle`, `walking`, `happy`)
-    Ces attributs permettent d’identifier si Rive joue une animation ou si le fallback SVG statique est utilisé.
+    - `data-spritesheet-status` (`ready`, `fallback`)
+    - `data-mascot-state` (ex. `idle`, `walking`, `running`, `talk`, `inspect`, `map_read`, `celebrate`…)
+    Ces attributs permettent d’identifier si Rive/spritesheet joue une animation ou si le fallback SVG statique est utilisé.
   - **Oui** avec `data-renderer="fallback-static"` → le shell est visible mais le fichier Rive n’a pas pu être chargé (asset absent, URL invalide, erreur réseau).
   - **Oui** mais bulle absente alors qu’une action a eu lieu → vérifier `mark_seen` côté UI (bouton « Marquer comme vu ») et la classe de conteneur (`visit-map-mascot--happy`/`--walking`). Sinon : **style** / calque (z-index explicite : zones **1**, mascotte **16**, repères **14**), zoom page.
 3. **Version déployée** : **`GET /api/version`** ; comparer au dépôt. Vérifier que **`index.vite.html`** charge un **`/assets/index.vite-*.js`** cohérent (hash aligné avec le déploiement).
 4. **Cache** : navigation privée ; **Application → Service Workers → Désinscrire** ; rechargement forcé (Ctrl+F5).
 5. **Serveur** : le répertoire **`dist/`** servi par Node ([`server.js`](../server.js) en `NODE_ENV=production`) est bien celui mis à jour ; pas seulement un `git pull` sans **`dist/`** si le flux ne rebuild pas le front.
+6. **Asset OLU** (spritesheet) : vérifier la présence de `public/assets/mascots/olu/olu-spritesheet.png` et son accessibilité HTTP (`/assets/mascots/olu/olu-spritesheet.png`).
 
 ### Agrégats BDD (secret deploy)
 

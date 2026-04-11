@@ -1,0 +1,14 @@
+---
+description: Garde-fous pour la pré-saisie biodiversité multi-sources (backend + UI)
+globs: lib/speciesAutofill.js,routes/plants.js,src/components/foretmap-views.jsx,tests/species-autofill.test.js,tests/api.test.js,docs/API.md
+alwaysApply: false
+---
+
+# Pré-saisie biodiversité (autofill)
+
+- Garder la route `/api/plants/autofill` en **lecture seule** : aucune création/modification BDD.
+- Exiger auth `plants.manage` + élévation, et valider `q` (2 à 120 caractères).
+- Préserver la résilience : timeouts externes bornés, fusion partielle possible, avertissements non bloquants.
+- Les photos proposées doivent rester **HTTPS/URL valides** et inclure si possible crédit/licence/source.
+- Côté UI, conserver un workflow de **revue explicite** : sélection des champs/photos puis action manuelle "Appliquer la sélection".
+- Documenter dans `docs/API.md` toute évolution du contrat (`fields`, `field_sources`, `photos`, `warnings`, `confidence`).

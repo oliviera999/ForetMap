@@ -14,6 +14,11 @@ test('resolveVisitMascotState priorise happy sur walking', async () => {
 
 test('resolveVisitMascotState supporte les états étendus et la priorité explicite', async () => {
   const { VISIT_MASCOT_STATE, resolveVisitMascotState } = await loadModule();
+  assert.equal(resolveVisitMascotState({ running: true }), VISIT_MASCOT_STATE.RUNNING);
+  assert.equal(resolveVisitMascotState({ celebrating: true }), VISIT_MASCOT_STATE.CELEBRATE);
+  assert.equal(resolveVisitMascotState({ inspecting: true }), VISIT_MASCOT_STATE.INSPECT);
+  assert.equal(resolveVisitMascotState({ mapReading: true }), VISIT_MASCOT_STATE.MAP_READ);
+  assert.equal(resolveVisitMascotState({ spinning: true }), VISIT_MASCOT_STATE.SPIN);
   assert.equal(resolveVisitMascotState({ talking: true }), VISIT_MASCOT_STATE.TALK);
   assert.equal(resolveVisitMascotState({ alert: true }), VISIT_MASCOT_STATE.ALERT);
   assert.equal(resolveVisitMascotState({ angry: true, happy: true }), VISIT_MASCOT_STATE.ANGRY);
@@ -31,6 +36,10 @@ test('pickMascotDialog renvoie toujours une phrase pour les événements connus'
   const alert = pickMascotDialog('alert');
   const angry = pickMascotDialog('angry');
   const surprise = pickMascotDialog('surprise');
+  const running = pickMascotDialog('running');
+  const inspect = pickMascotDialog('inspect');
+  const mapRead = pickMascotDialog('map_read');
+  const celebrate = pickMascotDialog('celebrate');
   assert.equal(typeof move, 'string');
   assert.equal(typeof seen, 'string');
   assert.equal(typeof idle, 'string');
@@ -38,6 +47,10 @@ test('pickMascotDialog renvoie toujours une phrase pour les événements connus'
   assert.equal(typeof alert, 'string');
   assert.equal(typeof angry, 'string');
   assert.equal(typeof surprise, 'string');
+  assert.equal(typeof running, 'string');
+  assert.equal(typeof inspect, 'string');
+  assert.equal(typeof mapRead, 'string');
+  assert.equal(typeof celebrate, 'string');
   assert.ok(move.length > 0);
   assert.ok(seen.length > 0);
   assert.ok(idle.length > 0);
@@ -45,4 +58,8 @@ test('pickMascotDialog renvoie toujours une phrase pour les événements connus'
   assert.ok(alert.length > 0);
   assert.ok(angry.length > 0);
   assert.ok(surprise.length > 0);
+  assert.ok(running.length > 0);
+  assert.ok(inspect.length > 0);
+  assert.ok(mapRead.length > 0);
+  assert.ok(celebrate.length > 0);
 });

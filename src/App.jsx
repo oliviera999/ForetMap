@@ -1310,7 +1310,7 @@ function App() {
         </div>
       )}
 
-      <header>
+      <header className="app-header">
         <div className="logo">
           <img
             className="app-header-logo"
@@ -1562,8 +1562,8 @@ function App() {
       )}
 
       {effectiveIsTeacher ? (
-        <div className={`main teacher-main ${useWideMain ? 'main--wide' : ''} ${mapChromeCompactVisible ? 'teacher-main--map-visible' : ''} ${useSplitMapTasks ? 'main--maptasks-split' : ''}`}>
-          <div className="top-tabs">
+        <div className={`main teacher-main app-main-shell app-main-shell--teacher ${useWideMain ? 'main--wide' : ''} ${mapChromeCompactVisible ? 'teacher-main--map-visible' : ''} ${useSplitMapTasks ? 'main--maptasks-split' : ''}`}>
+          <div className="top-tabs app-tabs-surface">
             {shouldUseDesktopSplit && (
               <button className={`top-tab ${tab === 'maptasks' ? 'active' : ''}`} onClick={() => setTab('maptasks')}>
                 {mapTasksSplitLabel}{teacherPendingValidationCount > 0 ? ` (${teacherPendingValidationCount} à valider)` : ''}
@@ -1694,7 +1694,7 @@ function App() {
         </div>
       ) : (
         <>
-          <div className={`main ${useWideMain ? 'main--wide' : ''} ${mapChromeCompactVisible ? 'main--map-visible' : ''} ${useSplitMapTasks ? 'main--maptasks-split' : ''}`}>
+          <div className={`main app-main-shell app-main-shell--student ${useWideMain ? 'main--wide' : ''} ${mapChromeCompactVisible ? 'main--map-visible' : ''} ${useSplitMapTasks ? 'main--maptasks-split' : ''}`}>
             {loading ? (
               <div className="loader" style={{ height: '60vh' }}>
                 <div className="loader-leaf">🌿</div>

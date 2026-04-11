@@ -2177,7 +2177,7 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
   };
 
   return (
-    <div>
+    <div className="tasks-view fade-in">
       {toast && <Toast msg={toast} onDone={() => setToast(null)} />}
       {tasksTutorialPreview && (
         <TutorialPreviewModal tutorial={tasksTutorialPreview} onClose={() => setTasksTutorialPreview(null)} />
@@ -2981,10 +2981,24 @@ function TaskLogsViewer({ task, onClose }) {
   );
 }
 
-/** Fiche catalogue (description, rôle, utilité) pour une espèce liée à une mission — même logique que zone/repère. */
-function TaskLivingBeingCatalogModal({ plants, speciesName, onClose }) {
+/** Fiche catalogue (description, rôle, utilité) pour les espèces liées à une mission. */
+function TaskLivingBeingCatalogModal({ plants, speciesName, speciesNames = [], onClose }) {
   const dialogRef = useDialogA11y(onClose);
   useOverlayHistoryBack(true, onClose);
+  const orderedNames = (() => {
+    const raw = Array.isArray(speciesNames) ? speciesNames : [];
+    const unique = [];
+    const seen = new Set();
+    const push = (value) => {
+      const name = String(value || '').trim();
+      if (!name || seen.has(name)) return;
+      seen.add(name);
+      unique.push(name);
+    };
+    push(speciesName);
+    raw.forEach(push);
+    return unique;
+  })();
   return (
     <div className="modal-overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
       <div
@@ -2999,7 +3013,7 @@ function TaskLivingBeingCatalogModal({ plants, speciesName, onClose }) {
       >
         <button type="button" className="modal-close" aria-label="Fermer la fenêtre" onClick={onClose}>✕</button>
         <h3 style={{ margin: '0 0 12px', fontSize: '1.05rem', color: 'var(--forest)' }}>Biodiversité</h3>
-        <LivingBeingsCatalogPanel plants={plants} names={[speciesName]} showHeading={false} />
+        <LivingBeingsCatalogPanel plants={plants} names={orderedNames} showHeading={false} />
       </div>
     </div>
   );
@@ -3094,6 +3108,7 @@ function TaskTileCard({
           <TaskLivingBeingCatalogModal
             plants={plants}
             speciesName={speciesCatalogName}
+            speciesNames={Array.isArray(t.living_beings_list) ? t.living_beings_list : []}
             onClose={() => setSpeciesCatalogName(null)}
           />
         )}
