@@ -1508,7 +1508,7 @@ function VisitView({
           ) : (
             <div>
               <h3>{selectedType === 'zone' ? selected.name : selected.label}</h3>
-              {selectedType === 'zone' && selected.description && (
+              {isTeacher && selectedType === 'zone' && selected.description && (
                 <div
                   style={{
                     background: '#f0fdf4',
@@ -1523,7 +1523,7 @@ function VisitView({
                   {selected.description}
                 </div>
               )}
-              {selectedType === 'marker' && selected.note && (
+              {isTeacher && selectedType === 'marker' && selected.note && (
                 <div
                   style={{
                     background: '#f0fdf4',
