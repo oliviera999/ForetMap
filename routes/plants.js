@@ -3,7 +3,7 @@ const http = require('http');
 const https = require('https');
 const XLSX = require('xlsx');
 const { pool, queryAll, queryOne, execute } = require('../database');
-const { requirePermission } = require('../middleware/requireTeacher');
+const { requirePermission, requireAuth } = require('../middleware/requireTeacher');
 const { logRouteError } = require('../lib/routeLog');
 const { emitGardenChanged } = require('../lib/realtime');
 const { saveBase64ToDisk, deleteFile } = require('../lib/uploads');
@@ -378,6 +378,57 @@ function validateImportPayloadRow(row, rowNumber) {
 
   return { payload, errors };
 }
+
+/** Identifiants des fiches biodiversité que l’utilisateur connecté a marquées « espèce découverte ». */
+router.get('/me/discovered-ids', requireAuth, async (req, res) => {
+  try {
+    const userId = req.auth.userId;
+    if (userId == null || userId === '') {
+      return res.status(403).json({ error: 'Profil utilisateur invalide' });
+    }
+    const rows = await queryAll(
+      'SELECT plant_id FROM user_plant_discoveries WHERE user_id = ? ORDER BY plant_id ASC',
+      [String(userId)]
+    );
+    res.json({ plant_ids: rows.map((r) => Number(r.plant_id)).filter((n) => Number.isFinite(n)) });
+  } catch (e) {
+    logRouteError(e, req, 'Liste découvertes biodiversité en échec');
+    res.status(500).json({ error: 'Erreur serveur' });
+  }
+});
+
+/**
+ * Enregistre l’engagement terrain + lecture de fiche pour une entrée du catalogue plants.
+ * Corps JSON : { "confirm": true } (obligatoire).
+ */
+router.post('/:id/acknowledge-discovery', requireAuth, async (req, res) => {
+  try {
+    if (!req.body || req.body.confirm !== true) {
+      return res.status(400).json({ error: 'Confirmation explicite requise (confirm: true)' });
+    }
+    const userId = req.auth.userId;
+    if (userId == null || userId === '') {
+      return res.status(403).json({ error: 'Profil utilisateur invalide' });
+    }
+    const pid = Number(req.params.id);
+    if (!Number.isFinite(pid) || pid <= 0) {
+      return res.status(400).json({ error: 'Identifiant de fiche invalide' });
+    }
+    const plant = await queryOne('SELECT id FROM plants WHERE id = ?', [pid]);
+    if (!plant) return res.status(404).json({ error: 'Fiche introuvable' });
+    const now = new Date().toISOString();
+    await execute(
+      `INSERT INTO user_plant_discoveries (user_id, plant_id, acknowledged_at)
+       VALUES (?, ?, ?)
+       ON DUPLICATE KEY UPDATE acknowledged_at = VALUES(acknowledged_at)`,
+      [String(userId), pid, now]
+    );
+    res.json({ success: true, plant_id: pid, acknowledged_at: now });
+  } catch (e) {
+    logRouteError(e, req, 'Accusé découverte espèce en échec');
+    res.status(500).json({ error: 'Erreur serveur' });
+  }
+});
 
 router.post('/:id/photo-upload', requirePermission('plants.manage', { needsElevation: true }), async (req, res) => {
   try {
