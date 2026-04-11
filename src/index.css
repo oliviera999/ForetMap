@@ -425,11 +425,12 @@
     /* ── BOTTOM NAV ── */
     .bottom-nav {
       position:fixed; bottom:0; left:0; right:0;
-      background:white; border-top:1px solid rgba(183,228,199,.6);
+      background:rgba(255,255,255,.82); border-top:1px solid rgba(183,228,199,.6);
       display:flex; z-index:99;
       box-shadow:0 -2px 20px rgba(26,71,49,.06);
       padding-bottom:var(--safe-bottom);
       min-height:calc(var(--bottom-nav-height) + var(--safe-bottom));
+      backdrop-filter:blur(8px);
     }
     .nav-btn {
       flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center;
@@ -443,7 +444,7 @@
       white-space:normal;
       text-align:center;
       line-height:1.05;
-      transition:color .2s var(--ease-out);
+      transition:color .2s var(--ease-out), transform var(--motion-fast) var(--spring), background var(--motion-fast) var(--ease-out);
     }
     /* Mobile / tactile : éviter une barre à plusieurs lignes (onglets étroits + texte wrappé
        = hauteur énorme et zone carte écrasée / invisible). Défilement horizontal, hauteur stable. */
@@ -477,6 +478,12 @@
       transition:transform .25s var(--spring);
     }
     .nav-btn.active .nav-icon { transform:scale(1.2) translateY(-1px); }
+    @media(hover:hover) {
+      .nav-btn:hover {
+        color:var(--forest);
+        background:rgba(183,228,199,.26);
+      }
+    }
     /* Active indicator dot */
     .nav-btn::after {
       content:''; position:absolute; bottom:6px; left:50%; transform:translateX(-50%);
@@ -668,6 +675,11 @@
     }
     .top-tab.active { background:linear-gradient(160deg, var(--forest), var(--leaf)); color:white; font-weight:700; line-height:1.2; box-shadow:0 8px 16px rgba(26,71,49,.24); }
     .top-tab:active { transform:scale(.95); }
+    @media(hover:hover) {
+      .top-tab:not(.active):hover {
+        background:rgba(255,255,255,.56);
+      }
+    }
 
     /* ── APERÇU RÔLES (basculer vue n3beur / vue n3boss) ── */
     .role-preview-banner {
@@ -951,7 +963,10 @@
     .edit-zone { background:#f0fdf4; border-radius:12px; padding:14px; border:1.5px dashed var(--sage); margin-top:12px; }
 
     /* ── TASK CARDS ── */
-    .tasks-section { margin-bottom:24px; }
+    .tasks-section {
+      margin-bottom:24px;
+      animation:fadeIn .2s var(--ease-out) both;
+    }
     .tasks-section-title {
       font-size:.75rem; font-weight:700; text-transform:uppercase;
       letter-spacing:.08em; color:#6b7280; margin-bottom:10px;
@@ -2615,6 +2630,12 @@
       flex-wrap:wrap;
     }
     .visit-map-switch { display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+    .visit-map-switch {
+      padding:8px 10px;
+      border-radius:12px;
+      background:rgba(255,255,255,.55);
+      border:1px solid rgba(82,183,136,.2);
+    }
     .visit-progress {
       background:linear-gradient(160deg, rgba(240,253,244,.92), rgba(231,247,238,.94));
       border:1px solid var(--outline-soft);
