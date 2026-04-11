@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { api, toggleForumPostReaction } from '../services/api';
+import { formatDateTimeFr } from '../utils/datetime-fr';
 
 const THREAD_PAGE_SIZE = 20;
 const POST_PAGE_SIZE = 50;
@@ -16,13 +17,6 @@ function parseReactionEmojiList(rawValue) {
     .filter((item) => item.length <= 16);
   const unique = [...new Set(tokens)].slice(0, 24);
   return unique.length > 0 ? unique : [...DEFAULT_REACTION_EMOJIS];
-}
-
-function fmtDate(value) {
-  if (!value) return '';
-  const d = new Date(value);
-  if (Number.isNaN(d.getTime())) return String(value);
-  return d.toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' });
 }
 
 function isModerator(authClaims) {
@@ -294,7 +288,7 @@ function ForumView({ authClaims, canParticipateForum = true }) {
                   {t.author_display_name} · {Number(t.posts_count || 0)} message(s)
                 </span>
                 <span className="forum-meta-line">
-                  {t.is_locked ? '🔒 Verrouillé' : '💬 Ouvert'} · maj {fmtDate(t.last_post_at)}
+                  {t.is_locked ? '🔒 Verrouillé' : '💬 Ouvert'} · maj {formatDateTimeFr(t.last_post_at)}
                 </span>
               </button>
             ))}
@@ -310,7 +304,7 @@ function ForumView({ authClaims, canParticipateForum = true }) {
                 <div>
                   <h3>{threadDetail.title}</h3>
                   <p className="forum-muted">
-                    Par {threadDetail.author_display_name} · créé le {fmtDate(threadDetail.created_at)}
+                    Par {threadDetail.author_display_name} · créé le {formatDateTimeFr(threadDetail.created_at)}
                   </p>
                 </div>
                 {canModerate && (
@@ -350,7 +344,7 @@ function ForumView({ authClaims, canParticipateForum = true }) {
                     <article key={p.id} className={`forum-post ${p.is_deleted ? 'is-deleted' : ''}`}>
                       <div className="forum-post-head">
                         <strong>{p.author_display_name}</strong>
-                        <span>{fmtDate(p.created_at)}</span>
+                        <span>{formatDateTimeFr(p.created_at)}</span>
                       </div>
                       <p className="forum-post-body">
                         {p.is_deleted ? '[message supprimé]' : p.body}

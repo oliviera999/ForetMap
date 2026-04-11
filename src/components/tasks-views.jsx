@@ -10,6 +10,7 @@ import { useHelp } from '../hooks/useHelp';
 import { Tooltip } from './Tooltip';
 import { HelpPanel } from './HelpPanel';
 import { ContextComments } from './context-comments';
+import { formatDateTimeFr } from '../utils/datetime-fr';
 import { HELP_PANELS, HELP_TOOLTIPS, resolveRoleText } from '../constants/help';
 import { lockBodyScroll } from '../utils/body-scroll-lock';
 import { armNativeFilePickerGuard, disarmNativeFilePickerGuard } from '../utils/overlayHistory';
@@ -2944,7 +2945,7 @@ function TaskLogsViewer({ task, onClose }) {
               <div className="log-entry-header">
                 <span className="log-entry-author">{l.student_first_name} {l.student_last_name}</span>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <span>{new Date(l.created_at).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>
+                  <span>{formatDateTimeFr(l.created_at)}</span>
                   <button className="btn btn-danger btn-sm" style={{ padding: '4px 8px', minHeight: 'auto', fontSize: '.72rem' }}
                     onClick={() => { if (confirm('Supprimer ce rapport ?')) deleteLog(l.id); }}
                     title="Supprimer ce rapport">🗑️</button>
