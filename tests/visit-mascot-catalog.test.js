@@ -21,3 +21,28 @@ test('normalizeVisitMascotId retombe sur la mascotte par défaut', async () => {
   assert.equal(normalizeVisitMascotId('inconnue'), def);
   assert.equal(normalizeVisitMascotId(''), def);
 });
+
+test('catalogue inclut SPR0UT et SCR4P avec états étendus', async () => {
+  const {
+    getVisitMascotById,
+    getVisitMascotSupportedStates,
+  } = await loadModule();
+
+  const sprout = getVisitMascotById('sprout-rive');
+  const scrap = getVisitMascotById('scrap-rive');
+
+  assert.ok(sprout);
+  assert.ok(scrap);
+  assert.equal(sprout.renderer, 'rive');
+  assert.equal(scrap.renderer, 'rive');
+  assert.equal(sprout.fallbackSilhouette, 'sprout');
+  assert.equal(scrap.fallbackSilhouette, 'scrap');
+
+  const sproutStates = getVisitMascotSupportedStates('sprout-rive');
+  const scrapStates = getVisitMascotSupportedStates('scrap-rive');
+
+  for (const wanted of ['idle', 'walking', 'happy', 'talk', 'alert', 'angry', 'surprise']) {
+    assert.ok(sproutStates.includes(wanted), `sprout etat manquant: ${wanted}`);
+    assert.ok(scrapStates.includes(wanted), `scrap etat manquant: ${wanted}`);
+  }
+});

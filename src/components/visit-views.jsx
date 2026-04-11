@@ -23,9 +23,9 @@ import {
 import { safeVisitProgressPayload } from '../utils/visitProgressClient.js';
 import { wheelZoomScaleFactor } from '../utils/mapWheelZoom';
 import VisitMapMascotRenderer from './VisitMapMascotRenderer.jsx';
-import { VISIT_MASCOT_STATE, pickMascotDialog, resolveVisitMascotState } from '../utils/visitMascotState.js';
-import { getVisitMascotCatalog, loadVisitMascotId, saveVisitMascotId } from '../utils/visitMascotCatalog.js';
+import { VISIT_MASCOT_STATE, pickMascotDialog } from '../utils/visitMascotState.js';
 import { loadVisitMascotPositionPct, saveVisitMascotPositionPct } from '../utils/visitMascotPositionPersistence.js';
+import useVisitMascotStateMachine from '../hooks/useVisitMascotStateMachine.js';
 
 const VISIT_MAP_MASCOT_MOVE_MS = 560;
 const VISIT_MAP_MASCOT_HAPPY_MS = 1800;
@@ -608,8 +608,6 @@ function VisitView({
   const [visitMapMascotFaceRight, setVisitMapMascotFaceRight] = useState(true);
   const [visitMapMascotWalking, setVisitMapMascotWalking] = useState(false);
   const [visitMapMascotHappy, setVisitMapMascotHappy] = useState(false);
-  const [visitMascotPreviewState, setVisitMascotPreviewState] = useState(VISIT_MASCOT_STATE.IDLE);
-  const [visitMascotId, setVisitMascotId] = useState(() => loadVisitMascotId());
   const [visitMascotDialog, setVisitMascotDialog] = useState('');
   const [visitMascotDialogVisible, setVisitMascotDialogVisible] = useState(false);
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
@@ -626,7 +624,20 @@ function VisitView({
     setSelectedType(null);
   }, []);
   useOverlayHistoryBack(isGuestPublicVisit && !!selected, clearGuestSelection);
-  const visitMascotOptions = useMemo(() => getVisitMascotCatalog(), []);
+  const {
+    visitMascotId,
+    visitMascotOptions,
+    visitMascotPreviewState,
+    visitMascotPreviewStateOptions,
+    visitMascotAnimationState,
+    onChangeVisitMascotId,
+    setVisitMascotPreviewState,
+    triggerMascotTransientState,
+    resetMascotTransientState,
+  } = useVisitMascotStateMachine({
+    walking: visitMapMascotWalking,
+    happy: visitMapMascotHappy,
+  });
 
   const visitProgressLabelId = useId();
 
@@ -908,8 +919,9 @@ function VisitView({
     }
     setVisitMapMascotWalking(false);
     setVisitMapMascotHappy(false);
+    resetMascotTransientState();
     setVisitMascotDialogVisible(false);
-  }, [mapId, resetMapTransform]);
+  }, [mapId, resetMapTransform, resetMascotTransientState]);
 
   useLayoutEffect(() => {
     visitMascotStartPlacedForMapRef.current = null;
@@ -1005,6 +1017,10 @@ function VisitView({
         setVisitMapMascotWalking(false);
       } else {
         setVisitMapMascotWalking(true);
+        if (dist > 15) {
+          triggerMascotTransientState(VISIT_MASCOT_STATE.SURPRISE, 1200);
+          showMascotDialog('surprise');
+        }
         if (dist > 4) showMascotDialog('move');
         visitMapMascotMoveTimeoutRef.current = window.setTimeout(() => {
           setVisitMapMascotWalking(false);
@@ -1016,18 +1032,8 @@ function VisitView({
       setVisitMapMascotPct({ xp: nx, yp: ny });
       saveVisitMascotPositionPct(mapId, { xp: nx, yp: ny });
     },
-    [mapId, prefersReducedMotion, showMascotDialog]
+    [mapId, prefersReducedMotion, showMascotDialog, triggerMascotTransientState]
   );
-
-  const visitMascotAnimationState = useMemo(
-    () => resolveVisitMascotState({ happy: visitMapMascotHappy, walking: visitMapMascotWalking }),
-    [visitMapMascotHappy, visitMapMascotWalking]
-  );
-
-  const onChangeVisitMascotId = useCallback((nextId) => {
-    const normalized = saveVisitMascotId(nextId);
-    setVisitMascotId(normalized);
-  }, []);
 
   const visitMapMascotRenderPct = useMemo(
     () => clampVisitMascotPctForViewport(visitMapMascotPct.xp, visitMapMascotPct.yp, visitMapFit.height),
@@ -1527,6 +1533,20 @@ function VisitView({
               >
                 🎉 Heureuse
               </button>
+                {visitMascotPreviewStateOptions
+                  .filter((entry) => ![VISIT_MASCOT_STATE.IDLE, VISIT_MASCOT_STATE.WALKING, VISIT_MASCOT_STATE.HAPPY].includes(entry.state))
+                  .map((entry) => (
+                    <button
+                      key={entry.state}
+                      type="button"
+                      className={`btn btn-sm ${visitMascotPreviewState === entry.state ? 'btn-primary' : 'btn-ghost'}`}
+                      aria-pressed={visitMascotPreviewState === entry.state}
+                      title={entry.aliases.length > 0 ? `Animations candidates: ${entry.aliases.join(', ')}` : undefined}
+                      onClick={() => setVisitMascotPreviewState(entry.state)}
+                    >
+                      {entry.icon} {entry.label}
+                    </button>
+                  ))}
             </div>
             <label className="visit-mascot-picker">
               <span>Mascotte active</span>
@@ -1622,6 +1642,8 @@ function VisitView({
                           if (mode === 'view') {
                             const c = visitZoneCentroidPct(z);
                             if (c) moveVisitMapMascotTo(c.xp, c.yp);
+                            triggerMascotTransientState(VISIT_MASCOT_STATE.TALK, 1150);
+                            showMascotDialog('talk');
                           }
                           setSelected(z);
                           setSelectedType('zone');
@@ -1722,6 +1744,8 @@ function VisitView({
                         if (consumeSkipClick()) return;
                         if (mode === 'view') {
                           moveVisitMapMascotTo(Number(m.x_pct), Number(m.y_pct));
+                          triggerMascotTransientState(VISIT_MASCOT_STATE.TALK, 1150);
+                          showMascotDialog('talk');
                         }
                         setSelected(m);
                         setSelectedType('marker');

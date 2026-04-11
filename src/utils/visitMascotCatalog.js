@@ -9,6 +9,42 @@ const VISIT_MASCOT_STORAGE_KEY = 'foretmap_visit_mascot_id';
  */
 const VISIT_MASCOT_CATALOG = [
   {
+    id: 'sprout-rive',
+    label: 'SPR0UT (Rive)',
+    renderer: 'rive',
+    fallbackSilhouette: 'sprout',
+    rive: {
+      src: '/assets/rive/sprout.riv',
+      stateAnimations: {
+        idle: ['idle', 'Idle', 'IDLE'],
+        walking: ['move', 'Move', 'walk', 'Walk', 'walking', 'Walking'],
+        happy: ['happy', 'Happy'],
+        talk: ['talk', 'Talk', 'speaking', 'Speaking'],
+        angry: ['angry', 'Angry', 'alert', 'Alert'],
+        alert: ['alert', 'Alert', 'angry', 'Angry'],
+        surprise: ['surprise', 'Surprise', 'happy', 'Happy'],
+      },
+    },
+  },
+  {
+    id: 'scrap-rive',
+    label: 'SCR4P (Rive)',
+    renderer: 'rive',
+    fallbackSilhouette: 'scrap',
+    rive: {
+      src: '/assets/rive/scrap.riv',
+      stateAnimations: {
+        idle: ['idle', 'Idle', 'IDLE'],
+        walking: ['move', 'Move', 'walk', 'Walk', 'walking', 'Walking'],
+        happy: ['happy', 'Happy'],
+        talk: ['talk', 'Talk', 'speaking', 'Speaking'],
+        alert: ['alert', 'Alert', 'angry', 'Angry'],
+        angry: ['angry', 'Angry', 'alert', 'Alert'],
+        surprise: ['surprise', 'Surprise', 'happy', 'Happy'],
+      },
+    },
+  },
+  {
     id: 'gnome-foret-rive',
     label: 'Gnome foret (Rive)',
     renderer: 'rive',
@@ -160,6 +196,21 @@ function normalizeVisitMascotId(mascotId) {
   return getVisitMascotById(mascotId)?.id || getDefaultVisitMascotId();
 }
 
+function getVisitMascotSupportedStates(mascotId) {
+  const mascot = getVisitMascotById(mascotId);
+  if (!mascot) return ['idle', 'walking', 'happy'];
+  const stateAnimations = mascot?.rive?.stateAnimations;
+  if (!stateAnimations || typeof stateAnimations !== 'object') {
+    return ['idle', 'walking', 'happy'];
+  }
+  const states = Object.keys(stateAnimations)
+    .map((state) => String(state || '').trim())
+    .filter(Boolean);
+  if (states.length === 0) return ['idle', 'walking', 'happy'];
+  if (!states.includes('idle')) states.unshift('idle');
+  return [...new Set(states)];
+}
+
 function loadVisitMascotId() {
   if (typeof window === 'undefined') return getDefaultVisitMascotId();
   const raw = window.localStorage.getItem(VISIT_MASCOT_STORAGE_KEY);
@@ -179,6 +230,7 @@ export {
   getVisitMascotCatalog,
   getDefaultVisitMascotId,
   getVisitMascotById,
+  getVisitMascotSupportedStates,
   normalizeVisitMascotId,
   loadVisitMascotId,
   saveVisitMascotId,

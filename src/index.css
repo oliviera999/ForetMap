@@ -3024,6 +3024,49 @@
       transform-origin:64px 78px;
       animation:visitSwarmFigureSpiral .5s ease-out 3;
     }
+    .visit-map-mascot--walking .visit-map-mascot-rive-shell[data-mascot-shape="sprout"] .visit-sprout-body,
+    .visit-map-mascot--walking .visit-map-mascot-spritesheet-shell[data-mascot-shape="sprout"] .visit-sprout-body {
+      transform-origin:64px 92px;
+      animation:visitSproutBodyShift .34s ease-in-out infinite;
+    }
+    .visit-map-mascot--happy .visit-map-mascot-rive-shell[data-mascot-shape="sprout"] .visit-sprout-lights,
+    .visit-map-mascot--happy .visit-map-mascot-spritesheet-shell[data-mascot-shape="sprout"] .visit-sprout-lights {
+      animation:visitSproutLightsPulse .42s ease-in-out 4;
+    }
+    .visit-map-mascot-rive-shell[data-mascot-shape="sprout"][data-mascot-state="talk"] .visit-sprout-core,
+    .visit-map-mascot-spritesheet-shell[data-mascot-shape="sprout"][data-mascot-state="talk"] .visit-sprout-core {
+      animation:visitSproutCoreTalk .26s ease-in-out infinite;
+    }
+    .visit-map-mascot-rive-shell[data-mascot-shape="sprout"][data-mascot-state="angry"] .visit-sprout-roots,
+    .visit-map-mascot-spritesheet-shell[data-mascot-shape="sprout"][data-mascot-state="angry"] .visit-sprout-roots {
+      animation:visitSproutRootsAngry .2s ease-in-out infinite;
+    }
+    .visit-map-mascot-rive-shell[data-mascot-shape="sprout"][data-mascot-state="surprise"] .visit-sprout-plant,
+    .visit-map-mascot-spritesheet-shell[data-mascot-shape="sprout"][data-mascot-state="surprise"] .visit-sprout-plant {
+      transform-origin:64px 54px;
+      animation:visitSproutLeafSurprise .26s ease-in-out infinite alternate;
+    }
+    .visit-map-mascot--walking .visit-map-mascot-rive-shell[data-mascot-shape="scrap"] .visit-scrap-body,
+    .visit-map-mascot--walking .visit-map-mascot-spritesheet-shell[data-mascot-shape="scrap"] .visit-scrap-body {
+      transform-origin:64px 92px;
+      animation:visitScrapBodyStep .32s ease-in-out infinite;
+    }
+    .visit-map-mascot--happy .visit-map-mascot-rive-shell[data-mascot-shape="scrap"] .visit-scrap-beam,
+    .visit-map-mascot--happy .visit-map-mascot-spritesheet-shell[data-mascot-shape="scrap"] .visit-scrap-beam {
+      animation:visitScrapBeamHappy .4s ease-in-out 3;
+    }
+    .visit-map-mascot-rive-shell[data-mascot-shape="scrap"][data-mascot-state="talk"] .visit-scrap-face,
+    .visit-map-mascot-spritesheet-shell[data-mascot-shape="scrap"][data-mascot-state="talk"] .visit-scrap-face {
+      animation:visitScrapFaceTalk .22s linear infinite;
+    }
+    .visit-map-mascot-rive-shell[data-mascot-shape="scrap"][data-mascot-state="alert"] .visit-scrap-beam,
+    .visit-map-mascot-spritesheet-shell[data-mascot-shape="scrap"][data-mascot-state="alert"] .visit-scrap-beam {
+      animation:visitScrapBeamAlert .16s ease-in-out infinite;
+    }
+    .visit-map-mascot-rive-shell[data-mascot-shape="scrap"][data-mascot-state="angry"] .visit-scrap-glitch,
+    .visit-map-mascot-spritesheet-shell[data-mascot-shape="scrap"][data-mascot-state="angry"] .visit-scrap-glitch {
+      animation:visitScrapGlitchAngry .12s steps(2) infinite;
+    }
     @keyframes visitSporeCapWobble {
       0%, 100% { transform:rotate(-4deg) scale(1); }
       50% { transform:rotate(5deg) scale(1.02); }
@@ -3066,6 +3109,49 @@
       40% { transform:rotate(12deg) scale(1.06); }
       70% { transform:rotate(-8deg) scale(1.03); }
     }
+    @keyframes visitSproutBodyShift {
+      0%, 100% { transform:rotate(-3deg) translateY(0); }
+      50% { transform:rotate(3deg) translateY(-1px); }
+    }
+    @keyframes visitSproutLightsPulse {
+      0%, 100% { opacity:.85; transform:scale(1); }
+      50% { opacity:1; transform:scale(1.25); }
+    }
+    @keyframes visitSproutCoreTalk {
+      0%, 100% { transform:scale(1); opacity:.85; }
+      50% { transform:scale(1.12); opacity:1; }
+    }
+    @keyframes visitSproutRootsAngry {
+      0%, 100% { transform:translateX(0); }
+      50% { transform:translateX(-1.8px); }
+    }
+    @keyframes visitSproutLeafSurprise {
+      from { transform:rotate(-9deg) scale(1); }
+      to { transform:rotate(11deg) scale(1.04); }
+    }
+    @keyframes visitScrapBodyStep {
+      0%, 100% { transform:translateY(0); }
+      50% { transform:translateY(-2px); }
+    }
+    @keyframes visitScrapBeamHappy {
+      0%, 100% { opacity:.45; transform:scaleX(1); }
+      50% { opacity:1; transform:scaleX(1.2) translateX(2px); }
+    }
+    @keyframes visitScrapFaceTalk {
+      0%, 100% { transform:translateX(0); }
+      50% { transform:translateX(1px); }
+    }
+    @keyframes visitScrapBeamAlert {
+      0%, 100% { opacity:.2; transform:scaleX(.7); }
+      50% { opacity:.95; transform:scaleX(1.35); }
+    }
+    @keyframes visitScrapGlitchAngry {
+      0% { transform:translateX(0); opacity:.25; }
+      25% { transform:translateX(1px); opacity:.6; }
+      50% { transform:translateX(-1px); opacity:.4; }
+      75% { transform:translateX(2px); opacity:.75; }
+      100% { transform:translateX(0); opacity:.25; }
+    }
     .visit-map-mascot--reduced-motion .visit-spore-cap,
     .visit-map-mascot--reduced-motion .visit-spore-spores,
     .visit-map-mascot--reduced-motion .visit-vine-body,
@@ -3075,7 +3161,16 @@
     .visit-map-mascot--reduced-motion .visit-seed-body,
     .visit-map-mascot--reduced-motion .visit-seed-leaf,
     .visit-map-mascot--reduced-motion .visit-swarm-dot,
-    .visit-map-mascot--reduced-motion .visit-swarm-figure {
+    .visit-map-mascot--reduced-motion .visit-swarm-figure,
+    .visit-map-mascot--reduced-motion .visit-sprout-body,
+    .visit-map-mascot--reduced-motion .visit-sprout-lights,
+    .visit-map-mascot--reduced-motion .visit-sprout-core,
+    .visit-map-mascot--reduced-motion .visit-sprout-roots,
+    .visit-map-mascot--reduced-motion .visit-sprout-plant,
+    .visit-map-mascot--reduced-motion .visit-scrap-body,
+    .visit-map-mascot--reduced-motion .visit-scrap-beam,
+    .visit-map-mascot--reduced-motion .visit-scrap-face,
+    .visit-map-mascot--reduced-motion .visit-scrap-glitch {
       animation:none !important;
     }
     .visit-map-controls {

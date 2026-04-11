@@ -199,24 +199,27 @@ test.describe.serial('mascotte visite (sélecteur prof)', () => {
   test('le sélecteur change bien la mascotte active', async ({ page }) => {
     const picker = page.locator('.visit-mascot-picker select');
     await expect(picker).toBeVisible();
-    await expect(picker).toHaveValue(/gnome-/);
-    await expect(picker.locator('option[value="gnome-punk-rive"]')).toHaveCount(1);
+    await expect(picker.locator('option[value="sprout-rive"]')).toHaveCount(1);
+    await expect(picker.locator('option[value="scrap-rive"]')).toHaveCount(1);
 
-    await picker.selectOption('gnome-punk-rive');
+    await picker.selectOption('sprout-rive');
 
     await expect
       .poll(async () => page.locator('.visit-mascot-preview-body [data-mascot-id]').first().getAttribute('data-mascot-id'))
-      .toBe('gnome-punk-rive');
+      .toBe('sprout-rive');
     await expect
       .poll(async () => page.locator('.visit-map-stage [data-mascot-id]').first().getAttribute('data-mascot-id'))
-      .toBe('gnome-punk-rive');
-
-    await picker.selectOption('spore-rive');
-    await expect
-      .poll(async () => page.locator('.visit-mascot-preview-body [data-mascot-shape]').first().getAttribute('data-mascot-shape'))
-      .toBe('spore');
+      .toBe('sprout-rive');
     await expect
       .poll(async () => page.locator('.visit-map-stage [data-mascot-shape]').first().getAttribute('data-mascot-shape'))
-      .toBe('spore');
+      .toBe('sprout');
+
+    await picker.selectOption('scrap-rive');
+    await expect
+      .poll(async () => page.locator('.visit-mascot-preview-body [data-mascot-shape]').first().getAttribute('data-mascot-shape'))
+      .toBe('scrap');
+    await expect
+      .poll(async () => page.locator('.visit-map-stage [data-mascot-shape]').first().getAttribute('data-mascot-shape'))
+      .toBe('scrap');
   });
 });

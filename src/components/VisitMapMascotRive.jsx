@@ -9,10 +9,18 @@ function pickAnimationName(animationNames = [], mascotState = VISIT_MASCOT_STATE
     [VISIT_MASCOT_STATE.IDLE]: ['idle', 'Idle', 'IDLE'],
     [VISIT_MASCOT_STATE.WALKING]: ['walk', 'Walk', 'walking', 'Walking'],
     [VISIT_MASCOT_STATE.HAPPY]: ['happy', 'Happy', 'celebrate', 'Celebrate'],
+    [VISIT_MASCOT_STATE.TALK]: ['talk', 'Talk', 'speaking', 'Speaking'],
+    [VISIT_MASCOT_STATE.ALERT]: ['alert', 'Alert', 'warning', 'Warning'],
+    [VISIT_MASCOT_STATE.ANGRY]: ['angry', 'Angry', 'alert', 'Alert'],
+    [VISIT_MASCOT_STATE.SURPRISE]: ['surprise', 'Surprise', 'happy', 'Happy'],
   };
-  const preferred = byState[mascotState] || byState[VISIT_MASCOT_STATE.IDLE] || [];
-  for (const wanted of preferred) {
-    const found = names.find((n) => String(n).toLowerCase() === String(wanted).toLowerCase());
+  const preferredByPriority = [
+    ...(byState[mascotState] || []),
+    ...(byState[VISIT_MASCOT_STATE.IDLE] || []),
+  ];
+  for (const wanted of preferredByPriority) {
+    const normalizedWanted = String(wanted).toLowerCase();
+    const found = names.find((n) => String(n).toLowerCase() === normalizedWanted);
     if (found) return found;
   }
   return names[0] || '';

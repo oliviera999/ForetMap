@@ -772,11 +772,6 @@ function ZoneInfoModal({ zone, plants, tasks, tutorials = [], isTeacher, student
         <button className="modal-close" onClick={onClose}>✕</button>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
-          <span style={{ fontSize: '1.8rem' }} aria-hidden="true">
-            {zone.special
-              ? (String(zone.id || '').includes('ruche') ? '🐝' : String(zone.id || '').includes('mare') ? '💧' : String(zone.id || '').includes('butte') ? '🌸' : '🏛️')
-              : (plantObj?.emoji || (zoneLivingNames.length ? '🌱' : '🪨'))}
-          </span>
           <div style={{ flex: 1, minWidth: 0 }}>
             <h3 style={{ margin: 0, fontSize: '1.1rem' }}>{zone.name}</h3>
             <div style={{ marginTop: 3 }}>{stageBadge(displayStage)}</div>
@@ -1551,7 +1546,6 @@ function MarkerModal({
           {toast && <Toast msg={toast} onDone={() => setToast(null)} />}
           <button className="modal-close" onClick={onClose}>✕</button>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
-            <span style={{ fontSize: '2rem' }}>{form.emoji}</span>
             <h3 style={{ margin: 0 }}>Nouveau repère</h3>
           </div>
           {isTeacher ? (
@@ -1648,7 +1642,6 @@ function MarkerModal({
         <button className="modal-close" onClick={onClose}>✕</button>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
-          <span style={{ fontSize: '1.8rem' }}>{form.emoji}</span>
           <div style={{ flex: 1, minWidth: 0 }}>
             <h3 style={{ margin: 0, fontSize: '1.1rem' }}>{marker.label}</h3>
             <div style={{ marginTop: 3, fontSize: '.72rem', color: '#64748b', fontWeight: 600 }}>Repère</div>

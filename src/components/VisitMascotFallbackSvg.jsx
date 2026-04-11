@@ -1,4 +1,6 @@
 import React from 'react';
+import VisitMascotSproutSvg from './VisitMascotSproutSvg.jsx';
+import VisitMascotScrapSvg from './VisitMascotScrapSvg.jsx';
 
 /** Gnome de profil (variantes couleur). */
 function GnomeVisitMascotSvg({ variant = 'forest' }) {
@@ -181,13 +183,18 @@ function SwarmVisitMascotSvg() {
   );
 }
 
+
 /**
  * @param {object} props
- * @param {'gnome'|'spore'|'vine'|'moss'|'seed'|'swarm'} props.silhouette
+ * @param {'gnome'|'spore'|'vine'|'moss'|'seed'|'swarm'|'sprout'|'scrap'} props.silhouette
  * @param {string} [props.variant] — pour silhouette gnome : forest | amber | punk
  */
 function VisitMascotFallbackSvg({ silhouette = 'gnome', variant = 'forest' }) {
   switch (silhouette) {
+    case 'sprout':
+      return <VisitMascotSproutSvg />;
+    case 'scrap':
+      return <VisitMascotScrapSvg />;
     case 'spore':
       return <SporeVisitMascotSvg />;
     case 'vine':
@@ -219,4 +226,6 @@ export {
   MossVisitMascotSvg,
   SeedVisitMascotSvg,
   SwarmVisitMascotSvg,
+  VisitMascotSproutSvg as SproutVisitMascotSvg,
+  VisitMascotScrapSvg as ScrapVisitMascotSvg,
 };
