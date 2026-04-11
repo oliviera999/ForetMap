@@ -2549,6 +2549,9 @@
       font-size:.85rem;
       color:#244437;
     }
+    .visit-sync-actions {
+      display:flex; flex-wrap:wrap; gap:8px; align-items:center;
+    }
     .visit-grid {
       display:grid; grid-template-columns:1.35fr 1fr; gap:12px;
     }

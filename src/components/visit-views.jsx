@@ -141,6 +141,30 @@ function VisitSyncPanel({ isTeacher, mapId, onSynced, onForceLogout }) {
     }
   };
 
+  const rebuildVisitFromMap = async () => {
+    if (
+      !window.confirm(
+        'Réaligner toute la visite sur cette carte ? Toutes les zones et repères visite du plan seront recréés à partir de la carte. Pour chaque élément encore présent sur la carte (même id), les textes, médias et ordre sont conservés ; les éléments visite sans équivalent carte sont supprimés.'
+      )
+    ) {
+      return;
+    }
+    setSyncing(true);
+    try {
+      const res = await api('/api/visit/rebuild-from-map', 'POST', { map_id: mapId });
+      alert(
+        `Réalignement terminé : ${res?.imported?.zones ?? 0} zone(s), ${res?.imported?.markers ?? 0} repère(s) recréé(s). Retirés (hors carte) : ${res?.removed?.zones ?? 0} zone(s), ${res?.removed?.markers ?? 0} repère(s).`
+      );
+      await onSynced?.();
+      await loadOptions();
+    } catch (err) {
+      if (err instanceof AccountDeletedError) onForceLogout?.();
+      else alert(err.message || 'Erreur réalignement visite');
+    } finally {
+      setSyncing(false);
+    }
+  };
+
   if (!isTeacher) return null;
 
   return (
@@ -209,9 +233,19 @@ function VisitSyncPanel({ isTeacher, mapId, onSynced, onForceLogout }) {
           </div>
         </div>
       )}
-      <button className="btn btn-secondary btn-sm" disabled={loading || syncing} onClick={runSync}>
-        {syncing ? 'Synchronisation...' : 'Lancer l’import sélectionné'}
-      </button>
+      <div className="visit-sync-actions">
+        <button className="btn btn-secondary btn-sm" disabled={loading || syncing} onClick={runSync}>
+          {syncing ? 'Synchronisation...' : 'Lancer l’import sélectionné'}
+        </button>
+        <button
+          type="button"
+          className="btn btn-ghost btn-sm"
+          disabled={loading || syncing}
+          onClick={rebuildVisitFromMap}
+        >
+          Tout réaligner sur la carte (sans perte pour les ids conservés)
+        </button>
+      </div>
     </section>
   );
 }
@@ -1126,6 +1160,57 @@ function VisitView({
     if (pinchRef.current.active) pinchRef.current.active = false;
   };
 
+  /** React enregistre wheel / touch / pointermove comme passifs : `preventDefault` échoue sans `{ passive: false }` (cf. `map-views.jsx`). */
+  const visitStageInteractionRef = useRef({});
+  visitStageInteractionRef.current = {
+    onStagePointerDown,
+    onStagePointerMove,
+    onStagePointerUp,
+    onStageWheel,
+    onStageTouchStart,
+    onStageTouchMove,
+    onStageTouchEnd,
+  };
+
+  useLayoutEffect(() => {
+    if (loading) return undefined;
+    const el = stageRef.current;
+    if (!el) return undefined;
+
+    const r = visitStageInteractionRef;
+    const pd = (e) => r.current.onStagePointerDown(e);
+    const pm = (e) => r.current.onStagePointerMove(e);
+    const pu = (e) => r.current.onStagePointerUp(e);
+    const wh = (e) => r.current.onStageWheel(e);
+    const ts = (e) => r.current.onStageTouchStart(e);
+    const tm = (e) => r.current.onStageTouchMove(e);
+    const te = () => r.current.onStageTouchEnd();
+
+    el.addEventListener('pointerdown', pd, { passive: true });
+    el.addEventListener('pointermove', pm, { passive: false });
+    el.addEventListener('pointerup', pu, { passive: false });
+    el.addEventListener('pointercancel', pu, { passive: false });
+    el.addEventListener('pointerleave', pu, { passive: false });
+    el.addEventListener('wheel', wh, { passive: false });
+    el.addEventListener('touchstart', ts, { passive: false });
+    el.addEventListener('touchmove', tm, { passive: false });
+    el.addEventListener('touchend', te, { passive: true });
+    el.addEventListener('touchcancel', te, { passive: true });
+
+    return () => {
+      el.removeEventListener('pointerdown', pd);
+      el.removeEventListener('pointermove', pm);
+      el.removeEventListener('pointerup', pu);
+      el.removeEventListener('pointercancel', pu);
+      el.removeEventListener('pointerleave', pu);
+      el.removeEventListener('wheel', wh);
+      el.removeEventListener('touchstart', ts);
+      el.removeEventListener('touchmove', tm);
+      el.removeEventListener('touchend', te);
+      el.removeEventListener('touchcancel', te);
+    };
+  }, [loading]);
+
   const saveTutorialSelection = async () => {
     setSavingTutorials(true);
     try {
@@ -1298,15 +1383,6 @@ function VisitView({
             ref={stageRef}
             className="visit-map-stage"
             onClick={onMapClick}
-            onPointerDown={onStagePointerDown}
-            onPointerMove={onStagePointerMove}
-            onPointerUp={onStagePointerUp}
-            onPointerCancel={onStagePointerUp}
-            onPointerLeave={onStagePointerUp}
-            onWheel={onStageWheel}
-            onTouchStart={onStageTouchStart}
-            onTouchMove={onStageTouchMove}
-            onTouchEnd={onStageTouchEnd}
             style={{
               cursor:
                 isTeacher && mode !== 'view' && !visitMapImageReady ? 'wait'

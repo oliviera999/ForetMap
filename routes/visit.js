@@ -1,7 +1,7 @@
 const express = require('express');
 const crypto = require('crypto');
 const { v4: uuidv4 } = require('uuid');
-const { queryAll, queryOne, execute } = require('../database');
+const { queryAll, queryOne, execute, withTransaction } = require('../database');
 const { requirePermission, JWT_SECRET, authenticate } = require('../middleware/requireTeacher');
 const { logRouteError } = require('../lib/routeLog');
 const { emitGardenChanged } = require('../lib/realtime');
@@ -531,6 +531,178 @@ router.post('/sync', requirePermission('visit.manage', { needsElevation: true })
         zones: importedZones,
         markers: importedMarkers,
       },
+    });
+  } catch (err) {
+    logRouteError(err, req);
+    return res.status(500).json({ error: 'Erreur serveur' });
+  }
+});
+
+/**
+ * Réaligne toute la couche visite (zones + repères) sur la carte pour un plan :
+ * recrée les lignes `visit_zones` / `visit_markers` à partir de `zones` / `map_markers`,
+ * en réinjectant pour chaque id conservé les champs éditoriaux et l’ordre issus de l’ancienne visite.
+ * Les cibles visite disparues (ids hors carte) sont retirées avec nettoyage médias / progression.
+ */
+router.post('/rebuild-from-map', requirePermission('visit.manage', { needsElevation: true }), async (req, res) => {
+  try {
+    const mapId = String(req.body.map_id || 'foret').trim();
+    if (!mapId) return res.status(400).json({ error: 'map_id requis' });
+    if (!(await mapExists(mapId))) return res.status(400).json({ error: 'Carte introuvable' });
+
+    const mapZones = await queryAll(
+      `SELECT id, map_id, name, points FROM zones WHERE map_id = ? ORDER BY name ASC, id ASC`,
+      [mapId]
+    );
+    const mapMarkers = await queryAll(
+      `SELECT id, map_id, x_pct, y_pct, label, emoji FROM map_markers WHERE map_id = ? ORDER BY label ASC, id ASC`,
+      [mapId]
+    );
+
+    const newZoneIds = new Set(mapZones.map((z) => String(z.id)));
+    const newMarkerIds = new Set(mapMarkers.map((m) => String(m.id)));
+
+    const prevZones = await queryAll('SELECT * FROM visit_zones WHERE map_id = ?', [mapId]);
+    const prevMarkers = await queryAll('SELECT * FROM visit_markers WHERE map_id = ?', [mapId]);
+
+    const savedZoneById = new Map(prevZones.map((z) => [String(z.id), z]));
+    const savedMarkerById = new Map(prevMarkers.map((m) => [String(m.id), m]));
+
+    const removedZoneIds = prevZones.map((z) => String(z.id)).filter((id) => !newZoneIds.has(id));
+    const removedMarkerIds = prevMarkers.map((m) => String(m.id)).filter((id) => !newMarkerIds.has(id));
+
+    const filesToDelete = [];
+    for (const id of removedZoneIds) {
+      const rows = await queryAll(
+        'SELECT image_path FROM visit_media WHERE target_type = ? AND target_id = ?',
+        ['zone', id]
+      );
+      for (const r of rows) {
+        if (r.image_path) filesToDelete.push(r.image_path);
+      }
+    }
+    for (const id of removedMarkerIds) {
+      const rows = await queryAll(
+        'SELECT image_path FROM visit_media WHERE target_type = ? AND target_id = ?',
+        ['marker', id]
+      );
+      for (const r of rows) {
+        if (r.image_path) filesToDelete.push(r.image_path);
+      }
+    }
+
+    const now = nowIso();
+    let importedZones = 0;
+    let importedMarkers = 0;
+
+    await withTransaction(async (tx) => {
+      for (const id of removedZoneIds) {
+        await tx.execute(`DELETE FROM visit_media WHERE target_type = 'zone' AND target_id = ?`, [id]);
+        await tx.execute(`DELETE FROM visit_seen_students WHERE target_type = 'zone' AND target_id = ?`, [id]);
+        await tx.execute(`DELETE FROM visit_seen_anonymous WHERE target_type = 'zone' AND target_id = ?`, [id]);
+      }
+      for (const id of removedMarkerIds) {
+        await tx.execute(`DELETE FROM visit_media WHERE target_type = 'marker' AND target_id = ?`, [id]);
+        await tx.execute(`DELETE FROM visit_seen_students WHERE target_type = 'marker' AND target_id = ?`, [id]);
+        await tx.execute(`DELETE FROM visit_seen_anonymous WHERE target_type = 'marker' AND target_id = ?`, [id]);
+      }
+
+      await tx.execute('DELETE FROM visit_zones WHERE map_id = ?', [mapId]);
+      await tx.execute('DELETE FROM visit_markers WHERE map_id = ?', [mapId]);
+
+      for (const z of mapZones) {
+        const saved = savedZoneById.get(String(z.id));
+        const pointsStr =
+          z.points != null ? (typeof z.points === 'string' ? z.points : JSON.stringify(z.points)) : '[]';
+        const subtitle = saved ? String(saved.subtitle ?? '') : '';
+        const shortDescription = saved ? String(saved.short_description ?? '') : '';
+        const detailsTitle = saved
+          ? String(saved.details_title || 'Détails').trim() || 'Détails'
+          : 'Détails';
+        const detailsText = saved ? String(saved.details_text ?? '') : '';
+        const isActive = visitContentRowIsPublicActive({ visit_is_active: saved?.is_active }) ? 1 : 0;
+        const sortOrder =
+          saved != null && Number.isFinite(Number(saved.sort_order))
+            ? Math.max(0, Number(saved.sort_order))
+            : 0;
+        const createdAt = saved && saved.created_at ? String(saved.created_at) : now;
+
+        await tx.execute(
+          `INSERT INTO visit_zones
+            (id, map_id, name, points, subtitle, short_description, details_title, details_text, is_active, sort_order, created_at, updated_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [
+            z.id,
+            z.map_id,
+            String(z.name || '').trim() || z.id,
+            pointsStr,
+            subtitle,
+            shortDescription,
+            detailsTitle,
+            detailsText,
+            isActive,
+            sortOrder,
+            createdAt,
+            now,
+          ]
+        );
+        importedZones += 1;
+      }
+
+      for (const m of mapMarkers) {
+        const saved = savedMarkerById.get(String(m.id));
+        const subtitle = saved ? String(saved.subtitle ?? '') : '';
+        const shortDescription = saved ? String(saved.short_description ?? '') : '';
+        const detailsTitle = saved
+          ? String(saved.details_title || 'Détails').trim() || 'Détails'
+          : 'Détails';
+        const detailsText = saved ? String(saved.details_text ?? '') : '';
+        const isActive = visitContentRowIsPublicActive({ visit_is_active: saved?.is_active }) ? 1 : 0;
+        const sortOrder =
+          saved != null && Number.isFinite(Number(saved.sort_order))
+            ? Math.max(0, Number(saved.sort_order))
+            : 0;
+        const createdAt = saved && saved.created_at ? String(saved.created_at) : now;
+        const emoji = String(m.emoji || '📍').trim().slice(0, 16) || '📍';
+
+        await tx.execute(
+          `INSERT INTO visit_markers
+            (id, map_id, x_pct, y_pct, label, emoji, subtitle, short_description, details_title, details_text, is_active, sort_order, created_at, updated_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [
+            m.id,
+            m.map_id,
+            Number(m.x_pct),
+            Number(m.y_pct),
+            String(m.label || '').trim() || m.id,
+            emoji,
+            subtitle,
+            shortDescription,
+            detailsTitle,
+            detailsText,
+            isActive,
+            sortOrder,
+            createdAt,
+            now,
+          ]
+        );
+        importedMarkers += 1;
+      }
+    });
+
+    for (const p of filesToDelete) {
+      try {
+        deleteFile(p);
+      } catch (_) {
+        /* fichier déjà absent */
+      }
+    }
+
+    return res.json({
+      ok: true,
+      map_id: mapId,
+      removed: { zones: removedZoneIds.length, markers: removedMarkerIds.length },
+      imported: { zones: importedZones, markers: importedMarkers },
     });
   } catch (err) {
     logRouteError(err, req);
