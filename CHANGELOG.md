@@ -5,6 +5,9 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Ajouté
+- **Tâches** : les pastilles **biodiversité** (`living_beings_list`) sur chaque **carte de mission** (affichage tuiles ou liste) sont **cliquables** ; une fenêtre affiche la **fiche catalogue** (description, rôle dans l’écosystème, utilité pour l’humain), sur le même principe que les modales **zone** et **repère**. Le panneau `LivingBeingsCatalogPanel` est **exporté** depuis `map-views.jsx` pour réutilisation dans `tasks-views.jsx`.
+
 ### Corrigé
 - **Tâches collectives (`all_assignees_done`)** : le clic n3boss pour **marquer la part d’un assigné** (`POST /api/tasks/:id/done` avec `studentId` ou noms) échouait avec un profil n’ayant que **`tasks.validate`** (sans `tasks.manage`) — la résolution d’identité côté serveur exigeait `tasks.manage`. Désormais **`tasks.validate`** suffit pour ces actions « au nom du n3beur », comme pour la lecture des assignations sur `GET /api/tasks`. Côté client : **clé de chargement** alignée entre la tuile et `withLoad`, et corps JSON avec **`student_id` ou `studentId`** sur l’assignation.
 - **Stats (`GET /api/stats/export`, `GET /api/stats/all`)** : agrégation par élève avec **concurrence bornée** (défaut 8, `FORETMAP_STATS_STUDENT_AGG_CONCURRENCY`) pour éviter les erreurs MySQL « Too many connections » tout en restant plus rapide qu’un traitement strictement séquentiel.

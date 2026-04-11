@@ -3493,4 +3493,4 @@ function MapView({ zones, markers, tasks = [], tutorials = [], plants, maps = []
   );
 }
 
-export { Lightbox, PhotoGallery, ZoneInfoModal, ZoneDrawModal, MarkerModal, MapView };
+export { Lightbox, PhotoGallery, ZoneInfoModal, ZoneDrawModal, MarkerModal, MapView, LivingBeingsCatalogPanel };
