@@ -10,8 +10,8 @@ const {
 } = require('./fixtures/auth.fixture');
 
 test('cycle complet tâche: création prof -> prise élève -> soumission -> validation prof', async ({ page }) => {
-  /* Suite complète + 2 élévations : marge pour serveur e2e déjà sollicité (temps réel, flux tâches). */
-  test.setTimeout(180_000);
+  /* Deux élévations + liste tâches : > 3 min possible quand le worker est chargé. */
+  test.setTimeout(300_000);
   const taskTitle = `E2E Cycle ${Date.now()}`;
 
   await loginAsNewStudent(page);
@@ -41,18 +41,19 @@ test('cycle complet tâche: création prof -> prise élève -> soumission -> val
   await page.getByRole('dialog', { name: 'Rapport de tâche' }).waitFor({ state: 'hidden', timeout: 30_000 }).catch(() => {});
   await dismissProfilePromotionModalIfPresent(page);
 
+  await enableTeacherMode(page);
+  await dismissProfilePromotionModalIfPresent(page);
   const tasksAfterElevate = page.waitForResponse(
     (r) => r.url().includes('/api/tasks') && r.request().method() === 'GET' && r.status() === 200,
-    { timeout: 25_000 },
+    { timeout: 45_000 },
   );
-  await enableTeacherMode(page);
-  await tasksAfterElevate.catch(() => {});
-  await dismissProfilePromotionModalIfPresent(page);
   await openTeacherTasksTab(page);
+  await tasksAfterElevate.catch(() => {});
 
   const teacherPendingCard = page.locator('.task-card', { hasText: taskTitle }).first();
   await expect(teacherPendingCard).toBeVisible({ timeout: 45_000 });
-  await teacherPendingCard.getByRole('button', { name: '✔️ Validée' }).click();
+  await dismissProfilePromotionModalIfPresent(page);
+  await teacherPendingCard.getByRole('button', { name: '✔️ Validée' }).click({ force: true });
 
   await expect(page.locator('.task-card', { hasText: taskTitle }).first()).toBeVisible();
   await expect(page.getByText('C’est noté : statut « Validée ».')).toBeVisible();
