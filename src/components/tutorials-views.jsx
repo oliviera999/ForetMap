@@ -62,9 +62,9 @@ function TutorialPreviewModal({ tutorial, onClose }) {
   const canEmbed = !!source;
   return (
     <div className="modal-overlay modal-overlay--tuto-preview" onClick={e => e.target === e.currentTarget && onClose()}>
-      <div className="log-modal fade-in tuto-preview-modal">
-        <button className="modal-close" onClick={onClose}>✕</button>
-        <h3>📘 {tutorial.title}</h3>
+      <div className="log-modal tuto-preview-modal" role="dialog" aria-modal="true" aria-labelledby="tuto-preview-title" tabIndex={-1} onClick={e => e.stopPropagation()}>
+        <button type="button" className="modal-close" onClick={onClose} aria-label="Fermer l’aperçu">✕</button>
+        <h3 id="tuto-preview-title">📘 {tutorial.title}</h3>
         {canEmbed ? (
           <iframe
             title={`Preview ${tutorial.title}`}
@@ -88,7 +88,7 @@ function TutorialLinkedTasksModal({ state, onClose }) {
   const { tutorial, loading, error, tasks } = state;
   return (
     <div className="modal-overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
-      <div className="log-modal fade-in tuto-linked-tasks-modal" role="dialog" aria-labelledby="tuto-linked-tasks-title" aria-modal="true">
+      <div className="log-modal tuto-linked-tasks-modal" role="dialog" aria-labelledby="tuto-linked-tasks-title" aria-modal="true" tabIndex={-1} onClick={e => e.stopPropagation()}>
         <button type="button" className="modal-close" onClick={onClose} aria-label="Fermer">✕</button>
         <h3 id="tuto-linked-tasks-title">Tâches liées</h3>
         <p className="tuto-linked-tasks-subtitle">« {tutorial.title} »</p>
@@ -439,12 +439,12 @@ function TutorialsView({
   };
 
   return (
-    <div className="fade-in">
+    <>
       {preview && <TutorialPreviewModal tutorial={preview} onClose={() => setPreview(null)} />}
       {linkedTasksModal && <TutorialLinkedTasksModal state={linkedTasksModal} onClose={closeLinkedTasks} />}
       {showReorder && (
         <div className="modal-overlay" onClick={(e) => e.target === e.currentTarget && !reorderSaving && closeReorder()}>
-          <div className="log-modal fade-in tuto-reorder-modal" role="dialog" aria-labelledby="tuto-reorder-title">
+          <div className="log-modal tuto-reorder-modal" role="dialog" aria-labelledby="tuto-reorder-title" aria-modal="true" tabIndex={-1} onClick={(e) => e.stopPropagation()}>
             <button type="button" className="modal-close" disabled={reorderSaving} onClick={closeReorder}>✕</button>
             <h3 id="tuto-reorder-title">Ordre d’affichage des tutoriels</h3>
             <p className="tuto-reorder-hint">
@@ -491,6 +491,7 @@ function TutorialsView({
           </div>
         </div>
       )}
+    <div className="fade-in">
       {toast && <div className="toast">{toast}</div>}
 
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4, flexWrap: 'wrap', gap: 8 }}>
@@ -748,6 +749,7 @@ function TutorialsView({
         </div>
       )}
     </div>
+    </>
   );
 }
 
