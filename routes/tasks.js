@@ -546,6 +546,14 @@ function canManageTasks(auth) {
   return perms.includes('tasks.manage');
 }
 
+/** Actions « pour le compte d’un n3beur » (assign / done / unassign) : aligné sur la lecture des assignations (GET liste). */
+function canRunTeacherStyleTaskStudentAction(auth) {
+  if (!auth) return false;
+  if (canManageTasks(auth)) return true;
+  const perms = Array.isArray(auth.permissions) ? auth.permissions : [];
+  return perms.includes('tasks.validate');
+}
+
 function isVisitorRole(auth) {
   return String(auth?.roleSlug || '').toLowerCase() === 'visiteur';
 }
@@ -1072,7 +1080,7 @@ async function resolveStudentActionContext(req, payload = {}, permissionKey) {
   const providedStudentId = normalizeOptionalId(payload?.studentId);
   const providedFirstName = trimName(payload?.firstName);
   const providedLastName = trimName(payload?.lastName);
-  const isTeacherAction = canManageTasks(auth);
+  const isTeacherAction = canRunTeacherStyleTaskStudentAction(auth);
 
   const byId = async (studentId) => queryOne(
     "SELECT id, first_name, last_name FROM users WHERE user_type = 'student' AND id = ? LIMIT 1",

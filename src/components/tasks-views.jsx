@@ -1417,6 +1417,21 @@ function getAssigneesDoneCount(task) {
   return task.assignments.reduce((count, assignment) => (assignment?.done_at ? count + 1 : count), 0);
 }
 
+/** Clé `loading[…]` pour POST /done côté n3boss (tâche collective) — doit coïncider entre la carte et `withLoad`. */
+function teacherCollectiveAssigneeLoadKey(taskId, assignment) {
+  const tid = String(taskId || '');
+  const rawId = assignment?.id != null ? String(assignment.id) : '';
+  if (rawId !== '') return `${tid}_teacher_collective_done_${rawId}`;
+  const sid = assignment?.student_id ?? assignment?.studentId;
+  if (sid != null && String(sid).trim() !== '') {
+    return `${tid}_teacher_collective_done_sid:${String(sid).trim()}`;
+  }
+  const fn = String(assignment?.student_first_name || '').trim();
+  const ln = String(assignment?.student_last_name || '').trim();
+  if (fn && ln) return `${tid}_teacher_collective_done_${fn}|${ln}`;
+  return `${tid}_teacher_collective_done_legacy`;
+}
+
 function completionModeLabel(mode) {
   return mode === 'all_assignees_done' ? 'Validation collective' : 'Validation individuelle';
 }
@@ -1655,12 +1670,11 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
   const teacherMarkCollectiveAssignmentDone = (task, assignment) => {
     const who = `${assignment?.student_first_name || ''} ${assignment?.student_last_name || ''}`.trim() || 'cet élève';
     if (!window.confirm(`Marquer la part de ${who} comme terminée pour la tâche « ${task?.title || ''} » ?`)) return;
-    const aid = assignment?.id != null
-      ? String(assignment.id)
-      : `${String(assignment?.student_first_name || '')}-${String(assignment?.student_last_name || '')}-${String(assignment?.student_id || '')}`;
-    void withLoad(`${task.id}_teacher_collective_done_${aid}`, async () => {
-      const body = assignment.student_id
-        ? { studentId: String(assignment.student_id) }
+    const loadKey = teacherCollectiveAssigneeLoadKey(task.id, assignment);
+    void withLoad(loadKey, async () => {
+      const sidRaw = assignment?.student_id ?? assignment?.studentId;
+      const body = sidRaw != null && String(sidRaw).trim() !== ''
+        ? { studentId: String(sidRaw).trim() }
         : {
             firstName: String(assignment.student_first_name || '').trim(),
             lastName: String(assignment.student_last_name || '').trim(),
@@ -3146,8 +3160,7 @@ function TaskTileCard({
                 ? `${item.fullName} (toi)`
                 : item.fullName;
               const suffix = isCollectiveCompletion ? (a.done_at ? ' ✓' : ' • en cours') : '';
-              const loadAid = a.id != null ? String(a.id) : `${i}`;
-              const collectiveBusy = !!loading[`${t.id}_teacher_collective_done_${loadAid}`];
+              const collectiveBusy = !!loading[teacherCollectiveAssigneeLoadKey(t.id, a)];
               const canTeacherMarkThisPart = isTeacher && isCollectiveCompletion && !a.done_at && effectiveStatus !== 'validated';
               if (canTeacherMarkThisPart && typeof teacherMarkCollectiveAssignmentDone === 'function') {
                 return (
