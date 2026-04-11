@@ -252,11 +252,7 @@ function TutorialsView({
     }
   };
 
-  const openPreview = (t) => {
-    setPreview(tutorialPreviewPayload(t));
-  };
-
-  /** Même contenu que l’aperçu : tout passe par la modale (plus d’onglet pour les fichiers /tutos/…). */
+  /** Ouvre le tutoriel dans la modale (sans bouton aperçu dédié). */
   const openSource = (t) => {
     setPreview(tutorialPreviewPayload(t));
   };
@@ -672,7 +668,6 @@ function TutorialsView({
               <div className="task-actions">
                 {t.is_active && (
                   <>
-                    <button className="btn btn-ghost btn-sm" onClick={() => openPreview(t)}>👁️ Aperçu</button>
                     <button className="btn btn-ghost btn-sm" onClick={() => openSource(t)}>🌐 Ouvrir</button>
                     <button className="btn btn-ghost btn-sm" onClick={() => downloadUrl(`/api/tutorials/${t.id}/download/html`)}>⬇️ HTML</button>
                     <button className="btn btn-primary btn-sm" onClick={() => downloadUrl(`/api/tutorials/${t.id}/download/pdf`)}>⬇️ PDF</button>

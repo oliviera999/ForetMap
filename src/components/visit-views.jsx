@@ -16,7 +16,10 @@ import { useOverlayHistoryBack } from '../hooks/useOverlayHistoryBack';
 import { computeMapImageContainRect } from '../utils/mapImageFit';
 import { parseVisitZonePoints as parsePctPoints, visitZoneCentroidPct } from '../utils/visitMapGeometry.js';
 import { computeVisitMascotStartPct } from '../utils/visitMascotPlacement.js';
-import { shouldShowVisitMapMascot as computeShowVisitMapMascot } from '../utils/visitMascotVisibility.js';
+import {
+  shouldShowVisitMapMascot as computeShowVisitMapMascot,
+  getVisitMascotVisibilityReason,
+} from '../utils/visitMascotVisibility.js';
 import { safeVisitProgressPayload } from '../utils/visitProgressClient.js';
 import { wheelZoomScaleFactor } from '../utils/mapWheelZoom';
 import VisitMapMascotLottie from './VisitMapMascotLottie.jsx';
@@ -620,6 +623,13 @@ function VisitView({
 
   /** Mascotte : zones/repères visibles, total parcourable, ou tutoriels du plan (évite plan « vide » côté API alors que la visite est animée). */
   const showVisitMapMascot = computeShowVisitMapMascot(
+    mode,
+    visitCartographyProgress.total,
+    content.zones,
+    content.markers,
+    (content.tutorials || []).length
+  );
+  const visitMascotVisibilityReason = getVisitMascotVisibilityReason(
     mode,
     visitCartographyProgress.total,
     content.zones,
@@ -1383,6 +1393,8 @@ function VisitView({
             ref={stageRef}
             className="visit-map-stage"
             onClick={onMapClick}
+            data-visit-mascot-visibility={showVisitMapMascot ? 'visible' : 'hidden'}
+            data-visit-mascot-reason={visitMascotVisibilityReason}
             style={{
               cursor:
                 isTeacher && mode !== 'view' && !visitMapImageReady ? 'wait'

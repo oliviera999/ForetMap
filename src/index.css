@@ -2691,7 +2691,7 @@
     }
     .visit-map-mascot {
       position:absolute;
-      z-index:10;
+      z-index:16;
       width:0;
       height:0;
       pointer-events:none;
