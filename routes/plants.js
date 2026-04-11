@@ -8,6 +8,7 @@ const { logRouteError } = require('../lib/routeLog');
 const { emitGardenChanged } = require('../lib/realtime');
 const { saveBase64ToDisk, deleteFile } = require('../lib/uploads');
 const { getNamedMemoryTtlCache } = require('../lib/memoryTtlCache');
+const { applyDerivedGroup4IfEmpty } = require('../lib/plantGroup4');
 
 const router = express.Router();
 const plantsListCache = getNamedMemoryTtlCache('plants:list:v1', { ttlMs: 20000, maxEntries: 5 });
@@ -25,6 +26,7 @@ const PLANT_EXTRA_FIELDS = [
   'group_1',
   'group_2',
   'group_3',
+  'group_4',
   'habitat',
   ...PHOTO_FIELDS,
   'nutrition',
@@ -97,6 +99,7 @@ const HEADER_ALIASES = new Map([
   ['groupe_1', 'group_1'],
   ['groupe_2', 'group_2'],
   ['groupe_3', 'group_3'],
+  ['groupe_4', 'group_4'],
   ['categorie_agrosysteme', 'agroecosystem_category'],
   ['temperature_ideale_c', 'ideal_temperature_c'],
   ['temperature_ideale', 'ideal_temperature_c'],
@@ -333,6 +336,7 @@ function buildPlantPayload(body, fallback = {}) {
     const sourceValue = hasOwn(body, field) ? body[field] : fallback[field];
     payload[field] = asOptionalText(sourceValue);
   }
+  applyDerivedGroup4IfEmpty(payload);
   return payload;
 }
 

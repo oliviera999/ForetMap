@@ -447,16 +447,16 @@ async function seedData() {
     ];
     const insertPlantSql = `
       INSERT INTO plants (
-        name, emoji, description, second_name, scientific_name, group_1, group_2, group_3,
+        name, emoji, description, second_name, scientific_name, group_1, group_2, group_3, group_4,
         habitat, photo, nutrition, agroecosystem_category, longevity, remark_1, remark_2, remark_3,
         reproduction, size, sources, ideal_temperature_c, optimal_ph, ecosystem_role, geographic_origin,
         human_utility, harvest_part, planting_recommendations, preferred_nutrients,
         photo_species, photo_leaf, photo_flower, photo_fruit, photo_harvest_part
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
     for (const p of plants) {
       await execute(insertPlantSql, [
-        p[0], p[1], p[2], null, null, null, null, null, null, null, null, null, null, null, null, null,
+        p[0], p[1], p[2], null, null, null, null, null, null, null, null, null, null, null, null, null, null,
         null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null,
       ]);
     }

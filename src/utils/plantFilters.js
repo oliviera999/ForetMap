@@ -99,6 +99,7 @@ export function plantTextMatchesQuery(plant, queryTrimmedLower) {
     plant.group_1,
     plant.group_2,
     plant.group_3,
+    plant.group_4,
     plant.geographic_origin,
     plant.harvest_part,
   ];
