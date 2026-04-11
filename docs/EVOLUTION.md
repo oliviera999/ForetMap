@@ -32,7 +32,7 @@ Il a été mis à jour pour refléter l’état réel du dépôt (mars 2026), pu
 
 ## 1.2 Partiellement réalisé / restant
 
-- **Observabilité externe (hors scope court terme)** : intégration **Sentry**, **OpenTelemetry** ou agrégation fichier/ELK pour historiser au-delà du tampon mémoire Pino — à trancher selon budget hébergeur et besoin de rétention ; l’app expose déjà stdout, `/api/admin/logs`, `/api/admin/diagnostics` et **`X-Request-Id`** pour corrélation.
+- **Observabilité externe (hors scope court terme)** : intégration **Sentry**, **OpenTelemetry** ou agrégation fichier/ELK pour historiser au-delà du tampon mémoire Pino — à trancher selon budget hébergeur et besoin de rétention ; l’app expose déjà stdout, `/api/admin/logs`, `/api/admin/diagnostics` (inclut désormais **`visitMascotHint`** pour diagnostiquer une visite « vide » / mascotte absente côté données) et **`X-Request-Id`** pour corrélation.
 - **Frontend (partiellement réalisé)** :
   - `auth`, `tâches`, `carte`, `stats`, `audit`, `about` sont désormais extraits en modules dédiés.
   - **Reste à faire** : éventuel nettoyage final de façade dans `foretmap-views.jsx` (optionnel, faible valeur métier).

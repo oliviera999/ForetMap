@@ -25,5 +25,24 @@ Après **`POST /api/visit/sync`** (carte → visite ou l’inverse), ouvrir **la
 
 ## Tests automatisés (géométrie et mascotte)
 
-- **Unitaires** : `tests/visit-map-geometry.test.js` (`parseVisitZonePoints`, `visitZoneCentroidPct`), `tests/visit-mascot-placement.test.js`, `tests/visit-mascot-visibility.test.js` (mascotte aussi si **tutoriels** seuls), `tests/visit-progress-client.test.js`, `tests/visit-content-public-active.test.js` (`lib/visitContentPublicActive.js`).
+- **Unitaires** : `tests/visit-map-geometry.test.js` (`parseVisitZonePoints`, `visitZoneCentroidPct`), `tests/visit-mascot-placement.test.js`, `tests/visit-mascot-visibility.test.js` (mascotte aussi si **tutoriels** seuls), `tests/visit-progress-client.test.js`, `tests/visit-content-public-active.test.js` (`lib/visitContentPublicActive.js`), `tests/visit-mascot-diagnostics.test.js` (`lib/visitMascotDiagnostics.js`).
 - **E2e** : `e2e/visit-mascot.spec.js` — seed sur le plan **n3** (comportement réaliste pour les comptes « N3 + Forêt »), clics au **pourcentage** dans **`.visit-map-fit-layer`** ; visibilité mascotte via **`.visit-map-mascot-inner`** (le nœud **`.visit-map-mascot`** est volontairement en **0×0** pour l’ancrage en %).
+
+## Diagnostic prod : mascotte invisible
+
+La mascotte n’est rendue que si le client a du **contenu public** visite (zones/repères filtrés comme **`GET /api/visit/content`**, ou tutoriels actifs liés au plan). Un déploiement **sans** `dist/` à jour, un **cache** (navigateur / SW / CDN) ou une **CSP** amont bloquant Lottie peut donner l’impression d’un « bug mascotte » alors que la cause est ailleurs.
+
+### Checklist (navigateur + réseau)
+
+1. **Réseau** : ouvrir la réponse de **`GET /api/visit/content?map_id=`** (même `map_id` que le sélecteur de carte en visite). Vérifier les longueurs de **`zones`**, **`markers`**, **`tutorials`**. Si les trois sont vides, le composant mascotte **n’est pas monté** (comportement attendu).
+2. **DOM** (onglet Visite, plan visible) : existe-t-il **`.visit-map-mascot-inner`** ?
+   - **Non** → données / module visite / chargement (étape 1) ou onglet pas en mode navigation.
+   - **Oui** avec **`.visit-map-mascot-lottie--placeholder`** (🧭) → Lottie en erreur ou **CSP** (`script-src` sans `unsafe-eval` côté proxy) ; console navigateur.
+   - **Oui** avec **SVG** à l’intérieur du Lottie → problème de **style** / calque (z-index, zoom page).
+3. **Version déployée** : **`GET /api/version`** ; comparer au dépôt. Vérifier que **`index.vite.html`** charge un **`/assets/index.vite-*.js`** cohérent (hash aligné avec le déploiement).
+4. **Cache** : navigation privée ; **Application → Service Workers → Désinscrire** ; rechargement forcé (Ctrl+F5).
+5. **Serveur** : le répertoire **`dist/`** servi par Node ([`server.js`](../server.js) en `NODE_ENV=production`) est bien celui mis à jour ; pas seulement un `git pull` sans **`dist/`** si le flux ne rebuild pas le front.
+
+### Agrégats BDD (secret deploy)
+
+Avec le header **`X-Deploy-Secret`**, **`GET /api/admin/diagnostics`** inclut **`visitMascotHint`** : pour chaque carte, compteurs **`visitZonesInPublicApi`**, **`visitMarkersInPublicApi`**, **`visitTutorialsForContentApi`** et booléen **`mascotWouldRenderHint`** (même logique que le client pour afficher la mascotte). Utile pour confirmer en prod qu’une carte n’a **aucune** cible publique sans ouvrir le navigateur élève.
