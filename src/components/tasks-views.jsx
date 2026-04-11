@@ -1670,7 +1670,6 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
   /** Marque `done_at` pour un assigné (tâche en mode collectif) — `POST /api/tasks/:id/done` côté n3boss. */
   const teacherMarkCollectiveAssignmentDone = (task, assignment) => {
     const who = `${assignment?.student_first_name || ''} ${assignment?.student_last_name || ''}`.trim() || 'cet élève';
-    if (!window.confirm(`Marquer la part de ${who} comme terminée pour la tâche « ${task?.title || ''} » ?`)) return;
     const loadKey = teacherCollectiveAssigneeLoadKey(task.id, assignment);
     void withLoad(loadKey, async () => {
       const sidRaw = assignment?.student_id ?? assignment?.studentId;
@@ -3222,7 +3221,7 @@ function TaskTileCard({
                     type="button"
                     className={`assignee-tag assignee-tag--teacher-mark ${item.isCurrentStudent ? 'me' : ''}`}
                     disabled={collectiveBusy}
-                    title="Marquer manuellement la part de cet élève comme terminée (équivalent à « Marquer terminée » côté n3beur)"
+                    title="Marquer tout de suite la part de cet élève comme terminée (équivalent à « Marquer terminée » côté n3beur)"
                     onClick={() => teacherMarkCollectiveAssignmentDone(t, a)}
                   >
                     {label}{suffix}
