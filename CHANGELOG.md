@@ -6,6 +6,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 ## [Non publié]
 
 ### Ajouté
+- **Visite — cinq silhouettes mascotte distinctes** : Spore (champignon), Liane, Mousse (blob), Graine (feuille), Essaim (lucioles) — SVG de fallback dédiés dans `src/components/VisitMascotFallbackSvg.jsx`, entrées catalogue Rive associées, attribut `data-mascot-shape` sur les shells, animations CSS spécifiques marche/joie par forme ; e2e sélecteur étendu (`data-mascot-shape` après choix Spore).
 - **Visite — position mascotte persistante** : mémorisation locale (`localStorage`, par identifiant de plan) de la position % de la mascotte entre sessions, y compris en visite publique sans compte ; utilitaire `src/utils/visitMascotPositionPersistence.js` et tests `tests/visit-mascot-position-persistence.test.js`.
 - **Visite — mascotte gnome punk** : nouvelle variante `Gnome punk (Rive)` (look décalé : mohawk coloré, palette contrastée, détails punk) disponible dans le sélecteur de mascotte.
 - **Visite — deuxième mascotte gnome** : ajout d’une variante `Gnome ambre (Rive)` dans le catalogue, avec fallback visuel dédié (`fallbackVariant`) pour proposer dès maintenant un vrai second choix de mascotte dans le sélecteur.

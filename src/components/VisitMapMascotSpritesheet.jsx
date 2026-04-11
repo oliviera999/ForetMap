@@ -21,6 +21,7 @@ function VisitMapMascotSpritesheet({
     && !!sheet?.src
     && Number(sheet?.frameWidth) > 0
     && Number(sheet?.frameHeight) > 0;
+  const fallbackSilhouette = mascotConfig?.fallbackSilhouette || 'gnome';
 
   return (
     <div
@@ -29,6 +30,7 @@ function VisitMapMascotSpritesheet({
       data-mascot-state={mascotState}
       data-spritesheet-status={canRender ? 'ready' : 'fallback'}
       data-mascot-id={mascotId}
+      data-mascot-shape={fallbackSilhouette}
       aria-hidden="true"
     >
       <div className="visit-map-mascot-static" aria-hidden="true">
