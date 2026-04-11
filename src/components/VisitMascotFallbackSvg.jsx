@@ -183,10 +183,38 @@ function SwarmVisitMascotSvg() {
   );
 }
 
+/** OLU: renard pixel-style simplifié pour fallback statique. */
+function OluVisitMascotSvg() {
+  return (
+    <svg className="visit-olu-svg" viewBox="0 0 128 148" role="presentation" focusable="false">
+      <ellipse cx="64" cy="140" rx="28" ry="6" fill="rgba(26,71,49,0.16)" />
+      <g className="visit-olu-body">
+        <path d="M38 110 Q28 82 43 60 Q56 42 78 50 Q95 56 95 78 Q95 101 78 112 Q56 122 38 110 Z" fill="#d97745" stroke="#4a2b18" strokeWidth="3.6" />
+        <path d="M66 78 Q76 84 79 94 Q72 101 62 99 Q57 90 66 78 Z" fill="#fff4df" />
+      </g>
+      <g className="visit-olu-head">
+        <path d="M48 58 Q47 38 65 32 Q82 37 80 58 Q79 75 64 78 Q50 74 48 58 Z" fill="#e08a55" stroke="#4a2b18" strokeWidth="3.2" />
+        <path d="M52 46 L56 34 L63 43 Z" fill="#e08a55" stroke="#4a2b18" strokeWidth="2.2" />
+        <path d="M76 46 L72 34 L65 43 Z" fill="#e08a55" stroke="#4a2b18" strokeWidth="2.2" />
+        <circle cx="59" cy="58" r="3" fill="#1f2937" />
+        <circle cx="70" cy="58" r="3" fill="#1f2937" />
+        <path d="M60 66 Q64 70 68 66" fill="none" stroke="#4a2b18" strokeWidth="2.2" strokeLinecap="round" />
+      </g>
+      <g className="visit-olu-tail">
+        <path d="M88 92 Q111 90 113 106 Q100 116 85 109 Z" fill="#d97745" stroke="#4a2b18" strokeWidth="3" />
+        <path d="M99 103 Q109 103 109 110 Q102 113 95 110 Z" fill="#fff4df" />
+      </g>
+      <g className="visit-olu-bag">
+        <rect x="74" y="76" width="16" height="18" rx="4" fill="#8b5a3c" stroke="#4a2b18" strokeWidth="2.4" />
+      </g>
+    </svg>
+  );
+}
+
 
 /**
  * @param {object} props
- * @param {'gnome'|'spore'|'vine'|'moss'|'seed'|'swarm'|'sprout'|'scrap'} props.silhouette
+ * @param {'gnome'|'spore'|'vine'|'moss'|'seed'|'swarm'|'sprout'|'scrap'|'olu'} props.silhouette
  * @param {string} [props.variant] — pour silhouette gnome : forest | amber | punk
  */
 function VisitMascotFallbackSvg({ silhouette = 'gnome', variant = 'forest' }) {
@@ -195,6 +223,8 @@ function VisitMascotFallbackSvg({ silhouette = 'gnome', variant = 'forest' }) {
       return <VisitMascotSproutSvg />;
     case 'scrap':
       return <VisitMascotScrapSvg />;
+    case 'olu':
+      return <OluVisitMascotSvg />;
     case 'spore':
       return <SporeVisitMascotSvg />;
     case 'vine':
@@ -226,6 +256,7 @@ export {
   MossVisitMascotSvg,
   SeedVisitMascotSvg,
   SwarmVisitMascotSvg,
+  OluVisitMascotSvg,
   VisitMascotSproutSvg as SproutVisitMascotSvg,
   VisitMascotScrapSvg as ScrapVisitMascotSvg,
 };

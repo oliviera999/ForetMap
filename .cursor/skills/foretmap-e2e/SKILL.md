@@ -71,6 +71,7 @@ Les deux enchaînent **`node scripts/e2e-kill-listen-port.js`** (hors CI) pour l
 - Le conteneur **`.visit-map-mascot`** est en **0×0** (ancrage en %) : Playwright le considère souvent **non visible** ; cibler **`.visit-map-mascot-inner`** (ou le Lottie) pour **`toBeVisible`**.
 - Les élèves **N3 + Forêt** ouvrent souvent la visite sur le plan **n3** : les données de test mascotte sont seedées sur **`map_id: 'n3'`** dans `visit-api.fixture.js` pour éviter un plan vide ou incohérent.
 - Clics au pourcentage du plan : utiliser le **bounding box** de **`.visit-map-fit-layer`** (même repère que `left` / `top` des repères), pas seulement le stage 16/10.
+- La prévisualisation prof/admin (`.visit-mascot-preview-card`) doit refléter la mascotte active et ses comportements dynamiques ; pour les mascottes spritesheet (ex. OLU), vérifier `data-renderer="spritesheet"` + `data-mascot-state` après clic sur un bouton de comportement.
 
 ## CI
 

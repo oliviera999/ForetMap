@@ -153,6 +153,23 @@ Le script force `DB_NAME=foretmap_test` ; le schéma est (re)créé par les fich
 
 Après une modification **frontend** : **`npm run build`** si le serveur sert **`dist/`** (`NODE_ENV=production`), avant **`npm run test:e2e`**.
 
+### Vérification ciblée pré-saisie biodiversité (MVP)
+
+Tests backend rapides :
+
+```bash
+node --test tests/species-autofill.test.js
+node --test tests/api.test.js --test-name-pattern="autofill"
+```
+
+Parcours UX manuel recommandé (profil n3boss avec élévation active) :
+
+1. Ouvrir `Biodiversité` puis `+ Ajouter`.
+2. Renseigner un nom (ex. `tomate`) et cliquer `✨ Pré-saisir depuis sources externes`.
+3. Vérifier l’affichage du panneau de revue (confiance, warnings, champs cochables, photos).
+4. Cliquer `Appliquer la sélection`.
+5. Contrôler les champs critiques avant sauvegarde (`scientific_name`, `description`, `sources`, photos/licences).
+
 ## 5ter. Tests etendus sur snapshot importe (optionnel)
 
 Pour valider rapidement une copie de base distante deja importee dans `foretmap_local`, utilisez :
@@ -193,7 +210,7 @@ Si **`NODE_ENV=production`** dans l’environnement du serveur (souvent via **`.
 
 Vous pouvez cibler une autre URL avec **`E2E_BASE_URL`**.
 
-**Visite / mascotte** : scénario dédié **`e2e/visit-mascot.spec.js`** (seed API prof sur la carte **n3** via **`e2e/fixtures/visit-api.fixture.js`**, clics en % sur **`.visit-map-fit-layer`**, `prefers-reduced-motion`). Voir aussi skill **foretmap-e2e** et **`docs/VISIT_MAP_GEOMETRY.md`**.
+**Visite / mascotte** : scénario dédié **`e2e/visit-mascot.spec.js`** (seed API prof sur la carte **n3** via **`e2e/fixtures/visit-api.fixture.js`**, clics en % sur **`.visit-map-fit-layer`**, `prefers-reduced-motion`, sélection mascotte OLU spritesheet et contrôle des comportements en preview prof/admin). Voir aussi skills **foretmap-e2e**, **foretmap-mascot-catalog** et **`docs/VISIT_MAP_GEOMETRY.md`**.
 
 ### Nettoyage local des artefacts de tests
 

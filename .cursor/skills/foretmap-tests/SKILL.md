@@ -37,6 +37,15 @@ npm run smoke:local:fast # smoke applicatif (scripts/local-smoke.js)
 # Charge : npm run test:load / test:load:light / … (voir docs/LOCAL_DEV.md, LOAD_TEST_SECRET)
 ```
 
+### Ciblage pré-saisie biodiversité
+
+```bash
+node --test tests/species-autofill.test.js
+node --test tests/api.test.js --test-name-pattern="autofill"
+```
+
+Utiliser `{ concurrency: false }` pour les tests qui mockent `global.fetch` afin d’éviter les interférences.
+
 ### Tests utilitaires frontend (`src/utils/*.js`)
 
 Certains modules **ESM** partagés avec le build Vite sont validés par **`node --test`** via **import dynamique** (`pathToFileURL` + `import()`, comme `visit-map-geometry.test.js`) :
@@ -44,6 +53,8 @@ Certains modules **ESM** partagés avec le build Vite sont validés par **`node 
 - `tests/visit-map-geometry.test.js` → `src/utils/visitMapGeometry.js`
 - `tests/visit-mascot-placement.test.js` → `src/utils/visitMascotPlacement.js`
 - `tests/visit-mascot-visibility.test.js` → `src/utils/visitMascotVisibility.js`
+- `tests/visit-mascot-state.test.js` → `src/utils/visitMascotState.js`
+- `tests/visit-mascot-catalog.test.js` → `src/utils/visitMascotCatalog.js`
 
 ## Débogage / logs
 
@@ -57,6 +68,7 @@ tests/
 │   └── setup.js          # env + BDD de test
 ├── auth.test.js           # register, login, teacher login, rejet mdp
 ├── api.test.js            # routes CRUD principales
+├── species-autofill.test.js # agrégation multi-sources / scoring / fallback
 ├── tasks-status.test.js   # recalcul statuts tâches (assign/unassign/done)
 ├── students-delete.test.js # cascade suppression élève
 ├── new-features.test.js   # tests de nouvelles fonctionnalités
@@ -89,6 +101,7 @@ tests/
 - Conserver les scénarios Playwright stables sur les parcours élève/prof critiques.
 - Ajouter progressivement des cas limites (erreurs API, interruptions réseau, concurrence d'actions).
 - Vérifier l'exécution CI des tests e2e avec les mêmes hypothèses que local (`playwright.config.js` + `e2e/`).
+- Pour une évolution mascotte (nouveaux comportements/renderer), valider au minimum : `node --test tests/visit-mascot-state.test.js tests/visit-mascot-catalog.test.js` puis `e2e/visit-mascot.spec.js`.
 
 ## Voir aussi
 

@@ -172,6 +172,58 @@ const PHOTO_FIELD_KEYS = new Set([
   'photo_harvest_part',
 ]);
 
+const SPECIES_PREFILL_FIELDS = [
+  'name',
+  'scientific_name',
+  'second_name',
+  'description',
+  'group_1',
+  'group_2',
+  'group_3',
+  'group_4',
+  'habitat',
+  'agroecosystem_category',
+  'nutrition',
+  'longevity',
+  'reproduction',
+  'size',
+  'ideal_temperature_c',
+  'optimal_ph',
+  'ecosystem_role',
+  'geographic_origin',
+  'human_utility',
+  'harvest_part',
+  'planting_recommendations',
+  'preferred_nutrients',
+  'sources',
+];
+
+const SPECIES_PREFILL_FIELD_LABELS = {
+  name: 'Nom',
+  scientific_name: 'Nom scientifique',
+  second_name: 'Deuxième nom',
+  description: "Description d'identification",
+  group_1: 'Groupe (taxon) 1',
+  group_2: 'Groupe (taxon) 2',
+  group_3: 'Groupe (taxon) 3',
+  group_4: 'Groupe (taxon) 4',
+  habitat: 'Habitat',
+  agroecosystem_category: 'Catégorie agrosystème',
+  nutrition: 'Nutrition',
+  longevity: 'Longévité',
+  reproduction: 'Reproduction',
+  size: 'Taille',
+  ideal_temperature_c: 'Température idéale (°C)',
+  optimal_ph: 'pH optimal',
+  ecosystem_role: "Rôle dans l'écosystème",
+  geographic_origin: 'Origine géographique',
+  human_utility: "Utilité pour l'être humain",
+  harvest_part: 'Partie à récolter',
+  planting_recommendations: 'Recommandations de plantation',
+  preferred_nutrients: 'Nutriments préférés',
+  sources: 'Sources',
+};
+
 /** Champs candidats pour la vignette « photo principale » sous la description (ordre de priorité). */
 const BIODIV_HERO_PHOTO_KEYS = ['photo', 'photo_species'];
 
@@ -583,6 +635,12 @@ function PlantMetaSections({ plant }) {
 function PlantEditForm({ title, form, setForm, onSave, onCancel, saving, plantId, onToast, onEnsurePlantId = null }) {
   const set = k => e => setForm(f => ({...f, [k]: e.target.value}));
   const [uploadingField, setUploadingField] = useState('');
+  const [prefillLoading, setPrefillLoading] = useState(false);
+  const [prefillError, setPrefillError] = useState('');
+  const [prefillResult, setPrefillResult] = useState(null);
+  const [overwriteFilled, setOverwriteFilled] = useState(false);
+  const [selectedFields, setSelectedFields] = useState({});
+  const [selectedPhotos, setSelectedPhotos] = useState({});
 
   const photoFields = [
     { key: 'photo_species', label: 'Photo espèce' },
@@ -616,6 +674,98 @@ function PlantEditForm({ title, form, setForm, onSave, onCancel, saving, plantId
     }
   };
 
+  const groupedPrefillPhotos = useMemo(() => {
+    const groups = {};
+    for (const photo of prefillResult?.photos || []) {
+      const field = String(photo?.field || '').trim();
+      if (!field) continue;
+      if (!groups[field]) groups[field] = [];
+      groups[field].push(photo);
+    }
+    return groups;
+  }, [prefillResult]);
+
+  const prefillQuery = (form.scientific_name || form.name || '').trim();
+
+  const requestPrefill = async () => {
+    if (!prefillQuery || prefillQuery.length < 2) {
+      onToast?.('Indique un nom (ou nom scientifique) avec au moins 2 caractères.');
+      return;
+    }
+    setPrefillLoading(true);
+    setPrefillError('');
+    try {
+      const data = await api(`/api/plants/autofill?q=${encodeURIComponent(prefillQuery)}`);
+      setPrefillResult(data || null);
+
+      const nextFields = {};
+      for (const key of SPECIES_PREFILL_FIELDS) {
+        const value = String(data?.fields?.[key] || '').trim();
+        if (!value) continue;
+        const hasCurrentValue = String(form?.[key] || '').trim().length > 0;
+        nextFields[key] = overwriteFilled ? true : !hasCurrentValue;
+      }
+      setSelectedFields(nextFields);
+
+      const photosByField = {};
+      for (const photo of data?.photos || []) {
+        const field = String(photo?.field || '').trim();
+        if (!field) continue;
+        if (!photosByField[field]) photosByField[field] = [];
+        photosByField[field].push(photo);
+      }
+      const nextPhotos = {};
+      for (const field of Object.keys(photosByField)) nextPhotos[field] = 0;
+      setSelectedPhotos(nextPhotos);
+    } catch (e) {
+      setPrefillResult(null);
+      setPrefillError(e?.message || 'Erreur de pré-saisie');
+    } finally {
+      setPrefillLoading(false);
+    }
+  };
+
+  const toggleFieldSelection = (key) => {
+    setSelectedFields((prev) => ({ ...prev, [key]: !prev[key] }));
+  };
+
+  const applyPrefill = () => {
+    if (!prefillResult) return;
+    setForm((prev) => {
+      const next = { ...prev };
+      for (const key of SPECIES_PREFILL_FIELDS) {
+        if (!selectedFields[key]) continue;
+        const value = String(prefillResult?.fields?.[key] || '').trim();
+        if (!value) continue;
+        const hasCurrentValue = String(prev?.[key] || '').trim().length > 0;
+        if (!hasCurrentValue || overwriteFilled) {
+          next[key] = value;
+        }
+      }
+
+      const mergedSources = parseLinkCandidates(next.sources);
+      for (const [field, idx] of Object.entries(selectedPhotos || {})) {
+        const options = groupedPrefillPhotos[field] || [];
+        const selected = options[Number(idx)];
+        if (!selected?.url) continue;
+        const existing = parseLinkCandidates(next[field]);
+        if (existing.length === 0 || overwriteFilled) {
+          next[field] = selected.url;
+        } else if (!existing.includes(selected.url)) {
+          next[field] = [...existing, selected.url].join('\n');
+        }
+        if (selected.source_url && !mergedSources.includes(selected.source_url)) {
+          mergedSources.push(selected.source_url);
+        }
+      }
+      if (mergedSources.length > 0) {
+        next.sources = mergedSources.join('\n');
+      }
+      return next;
+    });
+    onToast?.('Pré-saisie appliquée au formulaire ✓');
+  };
+
   return (
     <div className="plant-edit-form fade-in">
       <h4>{title}</h4>
@@ -631,6 +781,103 @@ function PlantEditForm({ title, form, setForm, onSave, onCancel, saving, plantId
       <div className="field"><label>Nom *</label>
         <input value={form.name} onChange={set('name')} placeholder="Ex: Aubergine"/>
       </div>
+      <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', marginBottom: 8 }}>
+        <button
+          type="button"
+          className="btn btn-ghost btn-sm"
+          onClick={requestPrefill}
+          disabled={saving || prefillLoading}
+        >
+          {prefillLoading ? 'Pré-saisie…' : '✨ Pré-saisir depuis sources externes'}
+        </button>
+        <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '.8rem', color: '#444' }}>
+          <input
+            type="checkbox"
+            checked={overwriteFilled}
+            onChange={(e) => setOverwriteFilled(e.target.checked)}
+          />
+          Autoriser l'écrasement des champs déjà remplis
+        </label>
+      </div>
+      {prefillError && (
+        <p style={{ marginTop: -4, marginBottom: 8, color: '#a94442', fontSize: '.83rem' }}>
+          Pré-saisie indisponible: {prefillError}
+        </p>
+      )}
+      {prefillResult && (
+        <details className="plant-more" style={{ marginBottom: 10 }} open>
+          <summary>
+            Pré-saisie proposée — confiance {Math.round(Number(prefillResult?.confidence || 0) * 100)}%
+          </summary>
+          <div style={{ display: 'grid', gap: 8, marginTop: 10 }}>
+            {Array.isArray(prefillResult?.warnings) && prefillResult.warnings.length > 0 && (
+              <div style={{ fontSize: '.8rem', color: '#7a5a13', background: '#fff9e5', borderRadius: 8, padding: '6px 8px' }}>
+                {prefillResult.warnings.slice(0, 3).map((w, idx) => (
+                  <div key={`prefill-warning-${idx}`}>- {w}</div>
+                ))}
+              </div>
+            )}
+            <div style={{ display: 'grid', gap: 6 }}>
+              {SPECIES_PREFILL_FIELDS.map((key) => {
+                const value = String(prefillResult?.fields?.[key] || '').trim();
+                if (!value) return null;
+                const sourceMeta = prefillResult?.field_sources?.[key];
+                return (
+                  <label key={`prefill-field-${key}`} style={{ display: 'grid', gap: 2 }}>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <input
+                        type="checkbox"
+                        checked={!!selectedFields[key]}
+                        onChange={() => toggleFieldSelection(key)}
+                      />
+                      <strong>{SPECIES_PREFILL_FIELD_LABELS[key] || key}</strong>
+                      {sourceMeta?.source && (
+                        <small style={{ color: '#666' }}>
+                          ({sourceMeta.source}, {Math.round(Number(sourceMeta.confidence || 0) * 100)}%)
+                        </small>
+                      )}
+                    </span>
+                    <span style={{ fontSize: '.83rem', color: '#333', paddingLeft: 24 }}>{value}</span>
+                  </label>
+                );
+              })}
+            </div>
+            {Object.keys(groupedPrefillPhotos).length > 0 && (
+              <div style={{ display: 'grid', gap: 6 }}>
+                <strong style={{ fontSize: '.9rem' }}>Photos proposées (URL + crédit/licence)</strong>
+                {Object.entries(groupedPrefillPhotos).map(([field, photos]) => (
+                  <div key={`prefill-photo-${field}`} style={{ border: '1px solid #e5e7eb', borderRadius: 8, padding: 8 }}>
+                    <div style={{ fontSize: '.82rem', marginBottom: 4 }}>{SPECIES_PREFILL_FIELD_LABELS[field] || field}</div>
+                    {photos.map((photo, idx) => (
+                      <label key={`${field}-${idx}`} style={{ display: 'block', fontSize: '.8rem', marginBottom: 4 }}>
+                        <input
+                          type="radio"
+                          name={`prefill-photo-${field}`}
+                          checked={Number(selectedPhotos[field]) === idx}
+                          onChange={() => setSelectedPhotos((prev) => ({ ...prev, [field]: idx }))}
+                          style={{ marginRight: 6 }}
+                        />
+                        <span>{photo.url}</span>
+                        <div style={{ color: '#666', paddingLeft: 20 }}>
+                          Crédit: {photo.credit || 'inconnu'} · Licence: {photo.license || 'à vérifier'}
+                        </div>
+                      </label>
+                    ))}
+                  </div>
+                ))}
+              </div>
+            )}
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              <button type="button" className="btn btn-primary btn-sm" onClick={applyPrefill}>
+                Appliquer la sélection
+              </button>
+              <button type="button" className="btn btn-ghost btn-sm" onClick={() => setPrefillResult(null)}>
+                Masquer
+              </button>
+            </div>
+          </div>
+        </details>
+      )}
       <div className="field"><label>Description d'identification</label>
         <textarea value={form.description} onChange={set('description')} rows={3}
           placeholder="Comment reconnaître cet être vivant ? Feuilles, taille, odeur..."/>

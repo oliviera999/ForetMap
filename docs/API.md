@@ -336,6 +336,22 @@ Contraintes importantes :
 - **Prévisualisation prof** : en session « aperçu élève », le client n’envoie pas de jeton élève pour la visite ; la progression suit le parcours **anonyme** (cookie), pas le compte réel de l’élève prévisualisé.
 - **Médias photos** : **`POST /api/visit/media`** accepte soit **`image_url`** (lien HTTPS ou chemin servi par l’app, ex. `/uploads/…`), soit **`image_data`** (JPEG base64 ou data URL, même principe que `POST /api/zones/:id/photos`). Les fichiers envoyés via `image_data` sont enregistrés sous `uploads/visit_media/{id}.jpg` ; la réponse et **`GET /api/visit/content`** exposent alors **`image_url`** = `/api/visit/media/:id/data`. **`PUT /api/visit/media/:id`** : avec **`image_data`**, remplace l’image locale ; avec **`image_url`** explicite, passe en média « URL uniquement » (fichier local précédent supprimé) ; sans les deux, met à jour **`caption`** / **`sort_order`** uniquement.
 
+### Mascotte visite (client) — diagnostic rendu
+
+La mascotte de visite est pilotée côté frontend (catalogue + renderer), mais son affichage dépend des données publiques renvoyées par `GET /api/visit/content`.
+
+- **Visibilité côté scène** : attributs de `.visit-map-stage`
+  - `data-visit-mascot-visibility` (`visible` / `hidden`)
+  - `data-visit-mascot-reason` (ex. `no-public-content`, `mode-not-view`)
+- **Shell mascotte** : attributs de `[data-mascot-id]`
+  - `data-renderer` (`rive`, `spritesheet`, `fallback-static`)
+  - `data-mascot-state` (ex. `idle`, `walking`, `running`, `talk`, `inspect`, `map_read`, `celebrate`)
+  - `data-mascot-shape` (silhouette fallback)
+- **Rive** : `[data-rive-status]` (`loading`, `loaded`, `playing:<anim>`, `fallback-no-animation`, `error`)
+- **Spritesheet** : `[data-spritesheet-status]` (`ready`, `fallback`)
+
+Pour une mascotte spritesheet (ex. OLU), vérifier aussi l’asset statique servi par l’app (`/assets/mascots/olu/olu-spritesheet.png`) ; en cas d’échec de chargement, le renderer bascule en `fallback-static`.
+
 ---
 
 ## Tutoriels (`/api/tutorials`)
@@ -433,8 +449,12 @@ Réponse:
   - résultats agrégés depuis plusieurs sources externes publiques,
   - cache mémoire TTL côté serveur pour limiter la latence et les quotas,
   - validation/filtrage des URLs photo avant retour.
+- Limites connues:
+  - des homonymies peuvent remonter des descriptions hors contexte botanique (ex. nom ambigu),
+  - le score de confiance indique une tendance de qualité, pas une vérité scientifique.
 - Bonnes pratiques:
   - la pré-saisie est une **suggestion** : validation humaine nécessaire avant sauvegarde,
+  - vérifier la cohérence taxonomique (`scientific_name`, `group_*`) avant publication,
   - vérifier la licence/crédit photo avant publication.
 
 ---

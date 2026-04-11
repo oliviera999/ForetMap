@@ -46,3 +46,28 @@ test('catalogue inclut SPR0UT et SCR4P avec états étendus', async () => {
     assert.ok(scrapStates.includes(wanted), `scrap etat manquant: ${wanted}`);
   }
 });
+
+test('catalogue inclut OLU spritesheet avec palette complète', async () => {
+  const { getVisitMascotById, getVisitMascotSupportedStates } = await loadModule();
+  const olu = getVisitMascotById('olu-spritesheet');
+  assert.ok(olu);
+  assert.equal(olu.renderer, 'spritesheet');
+  assert.equal(olu.fallbackSilhouette, 'olu');
+  const states = getVisitMascotSupportedStates('olu-spritesheet');
+  for (const wanted of [
+    'idle',
+    'walking',
+    'running',
+    'talk',
+    'happy',
+    'happy_jump',
+    'spin',
+    'inspect',
+    'map_read',
+    'alert',
+    'celebrate',
+    'surprise',
+  ]) {
+    assert.ok(states.includes(wanted), `olu etat manquant: ${wanted}`);
+  }
+});

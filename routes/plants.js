@@ -9,9 +9,11 @@ const { emitGardenChanged } = require('../lib/realtime');
 const { saveBase64ToDisk, deleteFile } = require('../lib/uploads');
 const { getNamedMemoryTtlCache } = require('../lib/memoryTtlCache');
 const { applyDerivedGroup4IfEmpty } = require('../lib/plantGroup4');
+const { buildSpeciesAutofill } = require('../lib/speciesAutofill');
 
 const router = express.Router();
 const plantsListCache = getNamedMemoryTtlCache('plants:list:v1', { ttlMs: 20000, maxEntries: 5 });
+const plantsAutofillCache = getNamedMemoryTtlCache('plants:autofill:v1', { ttlMs: 10 * 60 * 1000, maxEntries: 120 });
 const PHOTO_FIELDS = [
   'photo',
   'photo_species',
@@ -661,6 +663,43 @@ router.get('/', async (req, res) => {
   } catch (e) {
     logRouteError(e, req);
     res.status(500).json({ error: e.message });
+  }
+});
+
+router.get('/autofill', requirePermission('plants.manage', { needsElevation: true }), async (req, res) => {
+  try {
+    const query = asTrimmedString(req.query?.q);
+    if (!query || query.length < 2) {
+      return res.status(400).json({ error: 'Paramètre q requis (min 2 caractères)' });
+    }
+    if (query.length > 120) {
+      return res.status(400).json({ error: 'Paramètre q trop long (max 120 caractères)' });
+    }
+
+    const cacheKey = query.toLowerCase();
+    const cached = plantsAutofillCache.get(cacheKey);
+    if (cached) return res.json(cached);
+
+    const payload = await buildSpeciesAutofill(query, { timeoutMs: 6500 });
+    const photoValidationPayload = {};
+    for (const photo of payload?.photos || []) {
+      if (!PHOTO_FIELDS.includes(photo.field)) continue;
+      if (photoValidationPayload[photo.field]) {
+        photoValidationPayload[photo.field] += `\n${photo.url}`;
+      } else {
+        photoValidationPayload[photo.field] = photo.url;
+      }
+    }
+    const photoErr = validateHttpsPhotoLinks(photoValidationPayload);
+    if (photoErr) {
+      payload.warnings = Array.from(new Set([...(payload.warnings || []), `Photos filtrées: ${photoErr}`]));
+      payload.photos = [];
+    }
+    plantsAutofillCache.set(cacheKey, payload);
+    res.json(payload);
+  } catch (e) {
+    logRouteError(e, req, 'Pré-saisie biodiversité externe en échec');
+    res.status(502).json({ error: 'Impossible de récupérer une pré-saisie pour le moment' });
   }
 });
 

@@ -1018,7 +1018,10 @@ function VisitView({
       } else {
         setVisitMapMascotWalking(true);
         if (dist > 15) {
-          triggerMascotTransientState(VISIT_MASCOT_STATE.SURPRISE, 1200);
+          triggerMascotTransientState(VISIT_MASCOT_STATE.RUNNING, 1000);
+          showMascotDialog('running');
+        } else if (dist > 9) {
+          triggerMascotTransientState(VISIT_MASCOT_STATE.SURPRISE, 900);
           showMascotDialog('surprise');
         }
         if (dist > 4) showMascotDialog('move');
@@ -1095,6 +1098,7 @@ function VisitView({
       });
       if (!wasSeen) {
         triggerMascotHappy();
+        triggerMascotTransientState(VISIT_MASCOT_STATE.CELEBRATE, 1450);
         showMascotDialog('mark_seen', { force: true });
       }
     } catch (err) {
@@ -1380,7 +1384,7 @@ function VisitView({
           <h2 className="section-title">{visitTitle}</h2>
           <p className="section-sub">{visitSubtitle}</p>
         </div>
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+        <div className="visit-header-actions">
           {isHelpEnabled && (
             <HelpPanel
               sectionId="visit"
@@ -1642,8 +1646,8 @@ function VisitView({
                           if (mode === 'view') {
                             const c = visitZoneCentroidPct(z);
                             if (c) moveVisitMapMascotTo(c.xp, c.yp);
-                            triggerMascotTransientState(VISIT_MASCOT_STATE.TALK, 1150);
-                            showMascotDialog('talk');
+                            triggerMascotTransientState(VISIT_MASCOT_STATE.MAP_READ, 1200);
+                            showMascotDialog('map_read');
                           }
                           setSelected(z);
                           setSelectedType('zone');
@@ -1744,8 +1748,8 @@ function VisitView({
                         if (consumeSkipClick()) return;
                         if (mode === 'view') {
                           moveVisitMapMascotTo(Number(m.x_pct), Number(m.y_pct));
-                          triggerMascotTransientState(VISIT_MASCOT_STATE.TALK, 1150);
-                          showMascotDialog('talk');
+                          triggerMascotTransientState(VISIT_MASCOT_STATE.INSPECT, 1200);
+                          showMascotDialog('inspect');
                         }
                         setSelected(m);
                         setSelectedType('marker');

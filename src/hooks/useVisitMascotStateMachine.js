@@ -13,7 +13,13 @@ const VISIT_MASCOT_TRANSIENT_STATE_MS = 1500;
 const VISIT_MASCOT_PREVIEW_STATE_META = {
   [VISIT_MASCOT_STATE.IDLE]: { label: 'Idle', icon: '🧍' },
   [VISIT_MASCOT_STATE.WALKING]: { label: 'Marche', icon: '🚶' },
+  [VISIT_MASCOT_STATE.RUNNING]: { label: 'Course', icon: '🏃' },
   [VISIT_MASCOT_STATE.HAPPY]: { label: 'Heureuse', icon: '🎉' },
+  [VISIT_MASCOT_STATE.HAPPY_JUMP]: { label: 'Saut joyeux', icon: '🤸' },
+  [VISIT_MASCOT_STATE.SPIN]: { label: 'Rotation', icon: '🌀' },
+  [VISIT_MASCOT_STATE.INSPECT]: { label: 'Inspecte', icon: '🔎' },
+  [VISIT_MASCOT_STATE.MAP_READ]: { label: 'Lit la carte', icon: '🗺️' },
+  [VISIT_MASCOT_STATE.CELEBRATE]: { label: 'Célèbre', icon: '✨' },
   [VISIT_MASCOT_STATE.TALK]: { label: 'Parle', icon: '💬' },
   [VISIT_MASCOT_STATE.ALERT]: { label: 'Alerte', icon: '⚠️' },
   [VISIT_MASCOT_STATE.ANGRY]: { label: 'Colère', icon: '😠' },
@@ -36,7 +42,13 @@ function useVisitMascotStateMachine({
     const knownOrder = [
       VISIT_MASCOT_STATE.IDLE,
       VISIT_MASCOT_STATE.WALKING,
+      VISIT_MASCOT_STATE.RUNNING,
       VISIT_MASCOT_STATE.HAPPY,
+      VISIT_MASCOT_STATE.HAPPY_JUMP,
+      VISIT_MASCOT_STATE.SPIN,
+      VISIT_MASCOT_STATE.INSPECT,
+      VISIT_MASCOT_STATE.MAP_READ,
+      VISIT_MASCOT_STATE.CELEBRATE,
       VISIT_MASCOT_STATE.TALK,
       VISIT_MASCOT_STATE.ALERT,
       VISIT_MASCOT_STATE.ANGRY,
@@ -44,7 +56,9 @@ function useVisitMascotStateMachine({
     ];
     const supported = getVisitMascotSupportedStates(visitMascotId);
     const fromCatalog = getVisitMascotById(visitMascotId);
-    const stateAnimations = fromCatalog?.rive?.stateAnimations || {};
+    const stateAnimations = fromCatalog?.renderer === 'spritesheet'
+      ? (fromCatalog?.spritesheet?.stateFrames || {})
+      : (fromCatalog?.rive?.stateAnimations || {});
     return knownOrder
       .filter((state) => supported.includes(state))
       .map((state) => ({
