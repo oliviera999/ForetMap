@@ -195,6 +195,30 @@ Vous pouvez cibler une autre URL avec **`E2E_BASE_URL`**.
 
 **Visite / mascotte** : scénario dédié **`e2e/visit-mascot.spec.js`** (seed API prof sur la carte **n3** via **`e2e/fixtures/visit-api.fixture.js`**, clics en % sur **`.visit-map-fit-layer`**, `prefers-reduced-motion`). Voir aussi skill **foretmap-e2e** et **`docs/VISIT_MAP_GEOMETRY.md`**.
 
+### Nettoyage local des artefacts de tests
+
+Pour éviter l'accumulation locale après plusieurs runs:
+
+```bash
+# Nettoie les sorties e2e/Playwright (rapports, resultats, logs de demarrage)
+npm run clean:tests
+
+# Nettoie les rapports de charge JSON horodates
+npm run clean:load
+
+# Nettoyage global local (tests + charge)
+npm run clean:local
+```
+
+Variantes pratiques avant execution Playwright:
+
+```bash
+npm run test:e2e:clean
+npm run test:e2e:headed:clean
+```
+
+Ces commandes n'affectent pas la politique de versionnage de **`dist/`**.
+
 ### Nettoyage comptes e2e et clones de tâches récurrentes
 
 Les scénarios créent des élèves reconnaissables (**prénom `E2E…`**, **email `e2e%@example.com`**, **pseudo `e2e%`**). Le job serveur duplique les tâches validées avec récurrence en conservant **`parent_task_id`**.
