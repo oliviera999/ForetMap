@@ -14,6 +14,10 @@ set -euo pipefail
 # - DEPLOY_LOCK_DIR     : dossier lock anti-concurrence
 # - DEPLOY_ENV_FILE     : fichier env à charger (défaut: $APP_DIR/.env)
 # - DEPLOY_AUTO_MIGRATE : 1 pour lancer npm run db:migrate après pull
+# - DEPLOY_SKIP_RESTART_IF_SOFT_ONLY : 1 pour ne pas appeler /api/admin/restart
+#   lorsque tous les fichiers du déploiement matchent DEPLOY_SOFT_CHANGE_REGEX
+#   (ex. docs seulement) — opt-in, défaut 0 = toujours redémarrer après pull
+# - DEPLOY_SOFT_CHANGE_REGEX : ERE grep (défaut: CHANGELOG, README, LICENSE, docs/, .github/, .cursor/)
 #
 # Prérequis:
 # - DEPLOY_SECRET doit être défini (dans DEPLOY_ENV_FILE ou env shell)
@@ -34,6 +38,8 @@ DEPLOY_BASE_URL="${DEPLOY_BASE_URL:-https://foretmap.olution.info}"
 DEPLOY_LOCK_DIR="${DEPLOY_LOCK_DIR:-/tmp/foretmap-auto-deploy.lock}"
 DEPLOY_ENV_FILE="${DEPLOY_ENV_FILE:-$APP_DIR/.env}"
 DEPLOY_AUTO_MIGRATE="${DEPLOY_AUTO_MIGRATE:-0}"
+DEPLOY_SKIP_RESTART_IF_SOFT_ONLY="${DEPLOY_SKIP_RESTART_IF_SOFT_ONLY:-0}"
+DEPLOY_SOFT_CHANGE_REGEX="${DEPLOY_SOFT_CHANGE_REGEX:-^(CHANGELOG\.md|README\.md|LICENSE(\.txt)?|\.gitattributes|docs/|\.github/|\.cursor/)}"
 
 # Lock simple anti-cron concurrent
 if ! mkdir "$DEPLOY_LOCK_DIR" 2>/dev/null; then
@@ -83,6 +89,20 @@ log "Mise à jour détectée: $LOCAL_SHA -> $REMOTE_SHA"
 # Détermine les fichiers changés pour déclencher les étapes utiles.
 CHANGED_FILES="$(git diff --name-only "$LOCAL_SHA" "$REMOTE_SHA" || true)"
 
+# Redémarrage Node : par défaut systématique après pull (nouveau code / assets).
+# Opt-in : éviter /api/admin/restart si le diff ne touche qu'à des chemins « non runtime ».
+DO_DEPLOY_RESTART=1
+if [[ "$DEPLOY_SKIP_RESTART_IF_SOFT_ONLY" == "1" ]]; then
+  if [[ -z "$(printf '%s' "$CHANGED_FILES" | tr -d '[:space:]')" ]]; then
+    log "Diff de fichiers vide ou inattendu: redémarrage conservé."
+  elif grep -Ev "$DEPLOY_SOFT_CHANGE_REGEX" <<<"$CHANGED_FILES" | grep -q .; then
+    log "Fichiers runtime ou non triviaux modifiés: redémarrage requis."
+  else
+    DO_DEPLOY_RESTART=0
+    log "Redémarrage différé (changements limités au périmètre doc/méta, DEPLOY_SKIP_RESTART_IF_SOFT_ONLY=1)."
+  fi
+fi
+
 # Garde-fou: en mode "build local", toute modif frontend doit inclure une mise à jour de dist/.
 FRONTEND_PATTERNS='^(src/|index\.vite\.html$|vite\.config\.js$|public/)'
 if grep -Eq "$FRONTEND_PATTERNS" <<<"$CHANGED_FILES"; then
@@ -106,11 +126,15 @@ if [[ "$DEPLOY_AUTO_MIGRATE" == "1" ]] && grep -Eq '^migrations/' <<<"$CHANGED_F
   npm run db:migrate
 fi
 
-log "Redémarrage applicatif via /api/admin/restart"
-curl -fsS -X POST "$DEPLOY_BASE_URL/api/admin/restart" \
-  -H "X-Deploy-Secret: $DEPLOY_SECRET" \
-  -H "Content-Type: application/json" \
-  >/dev/null
+if [[ "$DO_DEPLOY_RESTART" == "1" ]]; then
+  log "Redémarrage applicatif via /api/admin/restart"
+  curl -fsS -X POST "$DEPLOY_BASE_URL/api/admin/restart" \
+    -H "X-Deploy-Secret: $DEPLOY_SECRET" \
+    -H "Content-Type: application/json" \
+    >/dev/null
+else
+  log "Aucun redémarrage applicatif (déploiement sans impact processus Node)."
+fi
 
 log "Vérification post-déploiement"
 node scripts/post-deploy-check.js --base-url "$DEPLOY_BASE_URL"
