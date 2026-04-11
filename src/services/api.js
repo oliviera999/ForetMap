@@ -127,6 +127,36 @@ function sleepMs(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+/** Message navigateur (Chrome « Failed to fetch », Firefox « NetworkError… », etc.) */
+function isLikelyNetworkTransportFailure(err) {
+  if (!err) return false;
+  if (err.name === 'AbortError') return false;
+  const msg = String(err.message || err || '').toLowerCase();
+  if (err instanceof TypeError && typeof fetch !== 'undefined') {
+    return (
+      msg.includes('failed to fetch')
+      || msg.includes('networkerror')
+      || msg.includes('network request failed')
+      || msg.includes('chargement')
+      || msg.includes('load failed')
+    );
+  }
+  return (
+    msg.includes('failed to fetch')
+    || msg.includes('networkerror when attempting to fetch')
+    || msg.includes('network request failed')
+  );
+}
+
+function networkFailureUserMessage() {
+  return (
+    'Impossible de contacter le serveur. En développement local, lancez l’API sur le port 3000 '
+    + '(`npm run dev` à la racine du projet) en parallèle du client Vite (`npm run dev:client`), '
+    + 'puis ouvrez l’URL affichée par Vite (souvent http://localhost:5173). '
+    + 'Sans l’API, toute inscription ou connexion échoue ainsi.'
+  );
+}
+
 function isIdempotentGet(method, body) {
   return String(method || 'GET').toUpperCase() === 'GET' && (body === undefined || body === null);
 }
@@ -153,9 +183,15 @@ export async function api(path, method = 'GET', body) {
     } catch (err) {
       clearTimeout(timeoutId);
       const isAbort = err && err.name === 'AbortError';
+      if (isAbort) {
+        throw new Error('Délai d’attente dépassé pour la requête réseau.');
+      }
       if (allowTransientRetry && !isAbort && err instanceof TypeError && attempt < maxAttempts - 1) {
         await sleepMs(transientGetRetryDelayMs(attempt));
         continue;
+      }
+      if (isLikelyNetworkTransportFailure(err)) {
+        throw new Error(networkFailureUserMessage());
       }
       throw err;
     } finally {
