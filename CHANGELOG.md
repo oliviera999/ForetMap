@@ -6,6 +6,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 ## [Non publié]
 
 ### Ajouté
+- **Visite — mascotte gnome punk** : nouvelle variante `Gnome punk (Rive)` (look décalé : mohawk coloré, palette contrastée, détails punk) disponible dans le sélecteur de mascotte.
 - **Visite — deuxième mascotte gnome** : ajout d’une variante `Gnome ambre (Rive)` dans le catalogue, avec fallback visuel dédié (`fallbackVariant`) pour proposer dès maintenant un vrai second choix de mascotte dans le sélecteur.
 - **Visite — mascottes extensibles (catalogue)** : nouveau registre `src/utils/visitMascotCatalog.js` pour déclarer facilement plusieurs mascottes (Rive ou spritesheet), persistance locale du choix (`localStorage`) et renderer unifié `VisitMapMascotRenderer` pour préparer la sélection de mascotte par utilisateur.
 - **Visite — renderer spritesheet prêt à l’usage** : composant `VisitMapMascotSpritesheet.jsx` (états `idle/walking/happy`, config frames/fps/row), fallback statique automatique si sprite manquant et sélecteur “Mascotte active” dans l’aperçu visite prof/admin.
@@ -13,6 +14,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - **Visite — mascotte V1 (états + dialogue)** : machine d’état front (`idle`/`walking`/`happy`) reliée aux événements visite (déplacement et marquage « vu »), bulle de dialogue contextuelle près de la mascotte, et nouveaux tests unitaires (`tests/visit-mascot-state.test.js`) + e2e (`e2e/visit-mascot.spec.js`) pour couvrir ces comportements.
 
 ### Modifié
+- **Tests e2e — sélecteur mascotte prof** : ajout d’un scénario Playwright qui vérifie explicitement que changer la valeur du sélecteur met à jour la mascotte active (attribut `data-mascot-id`) dans l’aperçu et sur la carte visite.
 - **Visite — gnome de profil en mouvement** : le fallback mascotte adopte une silhouette de gnome en profil avec membres distincts ; en marche, bras et jambes alternent selon la direction de déplacement (gauche/droite via orientation existante) et, à l’état `happy` après marquage “vu”, le gnome lève les bras.
 - **Visite — style mascotte “gnome ForetMap”** : fallback SVG repensé en gnome (chapeau, barbe, tenue nature), animations CSS enrichies (`idle` respirant, `walking`, `happy`) et dialogues thématiques gnome pour mieux coller à l’identité visuelle du projet.
 - **Visite — migration renderer mascotte vers Rive** : remplacement du composant Lottie par `VisitMapMascotRive`, ajout du runtime `@rive-app/react-canvas`, suppression des scripts/assets Lottie (`VisitMapMascotLottie.jsx`, `src/assets/lottie/visit-mascot.json`, `scripts/build-visit-mascot-lottie.mjs`) et adaptation du diagnostic (`data-renderer`, `data-rive-status`, `data-mascot-state`) + docs associées (`docs/VISIT_MAP_GEOMETRY.md`).

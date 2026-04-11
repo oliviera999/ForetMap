@@ -4,13 +4,14 @@ import { VISIT_MASCOT_STATE } from '../utils/visitMascotState.js';
 
 function DefaultVisitMascotStaticSvg({ variant = 'forest' }) {
   const isAmber = variant === 'amber';
-  const hatFill = isAmber ? '#b45309' : '#2f855a';
-  const bodyFill = isAmber ? '#7c9a42' : '#6cc596';
-  const beltFill = isAmber ? '#92400e' : '#84512f';
-  const skinFill = isAmber ? '#f2ddc2' : '#f4e9d0';
-  const beardFill = isAmber ? '#fff3df' : '#fff8ef';
-  const charmFill = isAmber ? '#f59e0b' : '#fbbf24';
-  const shoesFill = isAmber ? '#5b3a1b' : '#6b4f2d';
+  const isPunk = variant === 'punk';
+  const hatFill = isPunk ? '#111827' : (isAmber ? '#b45309' : '#2f855a');
+  const bodyFill = isPunk ? '#d946ef' : (isAmber ? '#7c9a42' : '#6cc596');
+  const beltFill = isPunk ? '#1f2937' : (isAmber ? '#92400e' : '#84512f');
+  const skinFill = isPunk ? '#f5dfcf' : (isAmber ? '#f2ddc2' : '#f4e9d0');
+  const beardFill = isPunk ? '#f3f4f6' : (isAmber ? '#fff3df' : '#fff8ef');
+  const charmFill = isPunk ? '#22d3ee' : (isAmber ? '#f59e0b' : '#fbbf24');
+  const shoesFill = isPunk ? '#111827' : (isAmber ? '#5b3a1b' : '#6b4f2d');
 
   return (
     <svg className="visit-gnome-svg" viewBox="0 0 128 148" role="presentation" focusable="false">
@@ -19,6 +20,13 @@ function DefaultVisitMascotStaticSvg({ variant = 'forest' }) {
       <g className="visit-gnome-hat">
         <path d="M34 40 L73 12 L100 37 L74 42 Z" fill={hatFill} stroke="#1a4731" strokeWidth="4" />
         <circle cx="100" cy="37" r="4" fill={charmFill} stroke="#1a4731" strokeWidth="2" />
+        {isPunk ? (
+          <g className="visit-gnome-mohawk">
+            <path d="M66 17 L71 5 L76 17 Z" fill="#22d3ee" stroke="#1a4731" strokeWidth="1.6" />
+            <path d="M74 18 L80 6 L85 18 Z" fill="#f43f5e" stroke="#1a4731" strokeWidth="1.6" />
+            <path d="M82 20 L88 8 L93 20 Z" fill="#f59e0b" stroke="#1a4731" strokeWidth="1.6" />
+          </g>
+        ) : null}
       </g>
 
       <g className="visit-gnome-head">
@@ -29,6 +37,9 @@ function DefaultVisitMascotStaticSvg({ variant = 'forest' }) {
         <circle cx="84" cy="54" r="2.2" fill="#d97745" />
         <path d="M73 60 Q79 63 85 58" fill="none" stroke="#1a4731" strokeWidth="2.6" strokeLinecap="round" />
         <path d="M58 60 Q77 96 95 61 Q89 108 77 116 Q65 107 58 60 Z" fill={beardFill} stroke="#1a4731" strokeWidth="3" />
+        {isPunk ? (
+          <circle cx="88.8" cy="56.2" r="1.5" fill="#9ca3af" stroke="#1a4731" strokeWidth="1.2" />
+        ) : null}
       </g>
 
       <g className="visit-gnome-body">
@@ -72,6 +83,7 @@ function VisitMapMascotRive({
   mascotState = VISIT_MASCOT_STATE.IDLE,
   mascotConfig = null,
   fallback = <DefaultVisitMascotStaticSvg />,
+  mascotId = '',
 }) {
   const [riveError, setRiveError] = useState(false);
   const [status, setStatus] = useState('loading');
@@ -119,6 +131,7 @@ function VisitMapMascotRive({
       data-renderer={riveError ? 'fallback-static' : 'rive'}
       data-rive-status={status}
       data-mascot-state={mascotState}
+      data-mascot-id={mascotId}
       aria-hidden="true"
     >
       <div className="visit-map-mascot-static" aria-hidden="true">

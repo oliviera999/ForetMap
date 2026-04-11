@@ -11,6 +11,7 @@ function VisitMapMascotSpritesheet({
   mascotState = VISIT_MASCOT_STATE.IDLE,
   mascotConfig = null,
   fallback,
+  mascotId = '',
 }) {
   const [imgError, setImgError] = useState(false);
   const sheet = mascotConfig?.spritesheet || null;
@@ -27,6 +28,7 @@ function VisitMapMascotSpritesheet({
       data-renderer={canRender ? 'spritesheet' : 'fallback-static'}
       data-mascot-state={mascotState}
       data-spritesheet-status={canRender ? 'ready' : 'fallback'}
+      data-mascot-id={mascotId}
       aria-hidden="true"
     >
       <div className="visit-map-mascot-static" aria-hidden="true">

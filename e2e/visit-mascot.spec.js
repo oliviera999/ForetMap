@@ -172,3 +172,43 @@ test.describe.serial('mascotte visite (prefers-reduced-motion)', () => {
   });
 
 });
+
+test.describe.serial('mascotte visite (sélecteur prof)', () => {
+  /** @type {{ n3: { zoneId: string, markerAId: string, markerBId: string, entranceId: string } } | null} */
+  let seededIds = null;
+  let teacherToken = '';
+
+  test.beforeEach(async ({ page }) => {
+    seededIds = null;
+    teacherToken = '';
+    await loginAsNewStudent(page);
+    await dismissProfilePromotionModalIfPresent(page);
+    await enableTeacherMode(page);
+    const seeded = await seedVisitMascotContent(page);
+    teacherToken = seeded.token;
+    seededIds = { n3: seeded.n3 };
+    await openVisitMap(page);
+  });
+
+  test.afterEach(async ({ page }) => {
+    if (teacherToken && seededIds) {
+      await cleanupVisitMascotContent(page, teacherToken, seededIds);
+    }
+  });
+
+  test('le sélecteur change bien la mascotte active', async ({ page }) => {
+    const picker = page.locator('.visit-mascot-picker select');
+    await expect(picker).toBeVisible();
+    await expect(picker).toHaveValue(/gnome-/);
+    await expect(picker.locator('option[value="gnome-punk-rive"]')).toHaveCount(1);
+
+    await picker.selectOption('gnome-punk-rive');
+
+    await expect
+      .poll(async () => page.locator('.visit-mascot-preview-body [data-mascot-id]').first().getAttribute('data-mascot-id'))
+      .toBe('gnome-punk-rive');
+    await expect
+      .poll(async () => page.locator('.visit-map-stage [data-mascot-id]').first().getAttribute('data-mascot-id'))
+      .toBe('gnome-punk-rive');
+  });
+});

@@ -12,6 +12,7 @@ function VisitMapMascotRenderer({
   mascotId = '',
 }) {
   const selectedMascot = getVisitMascotById(mascotId) || getVisitMascotById(getDefaultVisitMascotId());
+  const selectedMascotId = selectedMascot?.id || getDefaultVisitMascotId();
   const fallbackVariant = selectedMascot?.fallbackVariant || 'forest';
   const fallback = <DefaultVisitMascotStaticSvg variant={fallbackVariant} />;
   const renderer = selectedMascot?.renderer;
@@ -22,6 +23,7 @@ function VisitMapMascotRenderer({
         mascotState={mascotState}
         mascotConfig={selectedMascot}
         fallback={fallback}
+        mascotId={selectedMascotId}
       />
     );
   }
@@ -31,6 +33,7 @@ function VisitMapMascotRenderer({
       mascotState={mascotState}
       mascotConfig={selectedMascot}
       fallback={fallback}
+      mascotId={selectedMascotId}
     />
   );
 }
