@@ -177,13 +177,27 @@ export async function api(path, method = 'GET', body) {
       clearStoredSession();
       window.dispatchEvent(new CustomEvent('foretmap_teacher_expired'));
     }
-    let errMsg = errBody.error || 'Erreur serveur';
+    const reqId = (typeof res.headers?.get === 'function' && (res.headers.get('X-Request-Id') || res.headers.get('x-request-id'))) || '';
+    let errMsg = typeof errBody.error === 'string' && errBody.error.trim() ? errBody.error.trim() : '';
+    if (!errMsg) {
+      if (errBody.raw != null && String(errBody.raw).length > 0) {
+        errMsg = res.status >= 500
+          ? `Le serveur a répondu par une page ou un texte inattendu (HTTP ${res.status}), pas par du JSON — souvent une mauvaise URL d’API, un proxy ou une panne temporaire.`
+          : `Réponse inattendue du serveur (HTTP ${res.status}).`;
+      } else {
+        errMsg = res.status >= 500 ? `Erreur serveur (HTTP ${res.status})` : `Erreur (HTTP ${res.status})`;
+      }
+    }
     if (errBody.debugDetail && typeof errBody.debugDetail === 'string') {
       errMsg = `${errMsg} — ${errBody.debugDetail}`;
+    }
+    if (reqId) {
+      errMsg = `${errMsg} [requête ${reqId}]`;
     }
     const ex = new Error(errMsg);
     ex.status = res.status;
     ex.body = errBody;
+    if (reqId) ex.requestId = reqId;
     if (res.status === 429) ex.rateLimited = true;
     throw ex;
   }
