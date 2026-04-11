@@ -6,6 +6,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 ## [Non publié]
 
 ### Ajouté
+- **Visite — deuxième mascotte gnome** : ajout d’une variante `Gnome ambre (Rive)` dans le catalogue, avec fallback visuel dédié (`fallbackVariant`) pour proposer dès maintenant un vrai second choix de mascotte dans le sélecteur.
 - **Visite — mascottes extensibles (catalogue)** : nouveau registre `src/utils/visitMascotCatalog.js` pour déclarer facilement plusieurs mascottes (Rive ou spritesheet), persistance locale du choix (`localStorage`) et renderer unifié `VisitMapMascotRenderer` pour préparer la sélection de mascotte par utilisateur.
 - **Visite — renderer spritesheet prêt à l’usage** : composant `VisitMapMascotSpritesheet.jsx` (états `idle/walking/happy`, config frames/fps/row), fallback statique automatique si sprite manquant et sélecteur “Mascotte active” dans l’aperçu visite prof/admin.
 
