@@ -1672,6 +1672,7 @@ function App() {
                   markers={markers}
                   maps={visibleMaps}
                   canParticipateContextComments={canParticipateContextComments}
+                  onForceLogout={forceLogout}
                 />
               )}
               {publicSettings?.modules?.tutorials_enabled !== false && tab === 'tuto'   && <TutorialsView tutorials={tutorials} zones={zones} markers={markers} maps={visibleMaps} activeMapId={activeMapId} isTeacher onRefresh={fetchAll} onForceLogout={forceLogout} publicSettings={publicSettings} canParticipateContextComments={canParticipateContextComments} />}
@@ -1764,6 +1765,7 @@ function App() {
                     maps={visibleMaps}
                     publicSettings={publicSettings}
                     canParticipateContextComments={canParticipateContextComments}
+                    onForceLogout={forceLogout}
                   />
                 )}
                 {publicSettings?.modules?.tutorials_enabled !== false && tab === 'tuto' && <TutorialsView tutorials={tutorials} zones={zones} markers={markers} maps={visibleMaps} activeMapId={activeMapId} isTeacher={false} onRefresh={fetchAll} onForceLogout={forceLogout} publicSettings={publicSettings} canParticipateContextComments={canParticipateContextComments} />}

@@ -920,6 +920,13 @@ function PlantManager({
       if (!cancelled) setPlantDiscoveredIds(new Set(ids));
     };
     load();
+    if (typeof window !== 'undefined') {
+      window.addEventListener('foretmap_session_changed', load);
+      return () => {
+        cancelled = true;
+        window.removeEventListener('foretmap_session_changed', load);
+      };
+    }
     return () => {
       cancelled = true;
     };
@@ -1266,6 +1273,15 @@ function PlantManager({
                   ) : (
                     <p style={{ fontSize: '.82rem', color: '#bbb', fontStyle: 'italic' }}>Pas encore associé à une zone ni à un repère sur la carte</p>
                   )}
+                  <div className="plant-discovery-ack-row" style={{ marginTop: 10, display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
+                    <PlantSpeciesDiscoveryAcknowledgeButton
+                      plantId={p.id}
+                      speciesName={p.name}
+                      isDiscovered={plantDiscoveredIds.has(Number(p.id))}
+                      onAcknowledged={(id) => setPlantDiscoveredIds((prev) => new Set([...prev, id]))}
+                      onForceLogout={onForceLogout}
+                    />
+                  </div>
                 </div>
 
                 {contextCommentsEnabled && (
@@ -1657,7 +1673,15 @@ function PlantLocationPreviewMaps({ maps, zones, markers }) {
 }
 
 // ── PLANT VIEWER (student read-only) ──────────────────────────────────────────
-function PlantViewer({ plants, zones, markers = [], maps = [], publicSettings = null, canParticipateContextComments = true }) {
+function PlantViewer({
+  plants,
+  zones,
+  markers = [],
+  maps = [],
+  publicSettings = null,
+  canParticipateContextComments = true,
+  onForceLogout = null,
+}) {
   const contextCommentsEnabled = publicSettings?.modules?.context_comments_enabled !== false;
   const [search, setSearch] = useState('');
   const [group1, setGroup1] = useState('');
@@ -1666,7 +1690,27 @@ function PlantViewer({ plants, zones, markers = [], maps = [], publicSettings = 
   const [habitatFilter, setHabitatFilter] = useState('');
   const [agroFilter, setAgroFilter] = useState('');
   const [zonePresence, setZonePresence] = useState(ZONE_PRESENCE_FILTER.ALL);
+  const [plantDiscoveredIds, setPlantDiscoveredIds] = useState(() => new Set());
   const { isHelpEnabled, hasSeenSection, markSectionSeen, trackPanelOpen, trackPanelDismiss } = useHelp({ publicSettings, isTeacher: false });
+
+  useEffect(() => {
+    let cancelled = false;
+    const load = async () => {
+      const ids = await fetchPlantDiscoveredIds();
+      if (!cancelled) setPlantDiscoveredIds(new Set(ids));
+    };
+    load();
+    if (typeof window !== 'undefined') {
+      window.addEventListener('foretmap_session_changed', load);
+      return () => {
+        cancelled = true;
+        window.removeEventListener('foretmap_session_changed', load);
+      };
+    }
+    return () => {
+      cancelled = true;
+    };
+  }, [plants.length]);
 
   const structured = useMemo(
     () => ({
@@ -1788,6 +1832,15 @@ function PlantViewer({ plants, zones, markers = [], maps = [], publicSettings = 
                   ) : (
                     <p style={{ fontSize: '.82rem', color: '#bbb', fontStyle: 'italic' }}>Pas encore associé à une zone ni à un repère sur la carte</p>
                   )}
+                  <div className="plant-discovery-ack-row" style={{ marginTop: 10, display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
+                    <PlantSpeciesDiscoveryAcknowledgeButton
+                      plantId={p.id}
+                      speciesName={p.name}
+                      isDiscovered={plantDiscoveredIds.has(Number(p.id))}
+                      onAcknowledged={(id) => setPlantDiscoveredIds((prev) => new Set([...prev, id]))}
+                      onForceLogout={onForceLogout}
+                    />
+                  </div>
                   {contextCommentsEnabled && (
                     <ContextComments
                       contextType="plant"
