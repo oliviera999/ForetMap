@@ -28,7 +28,7 @@ description: Donne le contexte du projet ForetMap (forêt comestible, Lycée Lya
 - **Backend :** Node.js, Express, MySQL (mysql2, pool). Fichiers : `server.js` (montage des routeurs), `database.js` (pool, schéma, seed), `routes/` (dont `task-projects`, `tutorials`, `settings`, `rbac`, `forum`), `middleware/requireTeacher.js` (JWT). Auth élèves : bcrypt, session en localStorage. Auth prof : PIN vérifié côté serveur, JWT.
 - **Frontend :** React 18 + Vite. Entrée dans `index.vite.html`, bootstrap dans `src/main.jsx`, application modulaire dans `src/` (composants/hooks/services), build servi depuis `dist/` en production.
 - **Utilitaires :** `lib/logger.js` (Pino, `redact`), `lib/env.js`, `lib/uploads.js`, `lib/routeLog.js` (`logRouteError`, `requestId`), `lib/requestId.js`, `lib/httpRequestLog.js` (`FORETMAP_HTTP_LOG`), `lib/logMetrics.js` (métriques diagnostics), `lib/helpers.js`.
-- **Tests :** backend avec `node --test` + supertest dans `tests/` ; e2e Playwright dans `e2e/` via **`npm run test:e2e`** (serveur **`npm run start:e2e`**, bypass rate limit). Détail : skill **foretmap-e2e**.
+- **Tests :** `npm test` sur **`tests/*.test.js`** (API supertest + utilitaires **`src/utils`** en ESM, ex. visite / mascotte) ; e2e Playwright dans **`e2e/`** via **`npm run test:e2e`** (serveur **`npm run start:e2e`**, bypass rate limit). Skills **foretmap-tests**, **foretmap-e2e** ; récap **`docs/LOCAL_DEV.md`** (§ 5).
 
 ## Points d'attention
 
@@ -56,8 +56,8 @@ description: Donne le contexte du projet ForetMap (forêt comestible, Lycée Lya
 | `index.vite.html` | Point d'entrée HTML de l'application Vite |
 | `src/main.jsx` | Bootstrap React et montage de l'app |
 | `src/components/`, `src/hooks/`, `src/services/` | Modules UI, logique locale et accès API |
-| `tests/` | Tests backend (auth, API, statuts tâches, suppression élève) |
-| `e2e/` | Tests UI Playwright (smoke et scénarios complets élève/prof) |
+| `tests/` | Tests `node:test` : API, géométrie visite, mascotte (`visit-mascot-*.test.js`), etc. |
+| `e2e/` | Playwright : smoke, cycles tâches, **visite / mascotte** (`visit-mascot.spec.js`), … |
 
 ## Voir aussi
 

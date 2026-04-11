@@ -49,6 +49,8 @@ Les deux enchaînent **`node scripts/e2e-kill-listen-port.js`** (hors CI) pour l
 |-----------------|------|
 | `e2e/` | Scénarios Playwright (auth, tâches, photos, temps réel, cas PIN invalide) |
 | `e2e/fixtures/auth.fixture.js` | Inscription, login, mode prof (`enableTeacherMode` / `disableTeacherMode`), onglets tâches |
+| `e2e/fixtures/visit-api.fixture.js` | Seed / cleanup **zones et repères visite** via `page.request` + JWT `foretmap_teacher_token` (scénarios déterministes, ex. mascotte) |
+| `e2e/visit-mascot.spec.js` | Mascotte visite : position initiale N3, déplacement au clic (% sur `.visit-map-fit-layer`), classe **walking**, `prefers-reduced-motion` |
 | `scripts/e2e-kill-listen-port.js` | Libère le port HTTP (Windows : `taskkill` via `netstat`) avant les runs |
 | `playwright.config.js` | Workers, timeouts, `webServer`, `serviceWorkers: 'block'`, dotenv |
 | `package.json` | `test:e2e`, `test:e2e:headed`, **`start:e2e`** |
@@ -63,6 +65,12 @@ Les deux enchaînent **`node scripts/e2e-kill-listen-port.js`** (hors CI) pour l
 - Garder les tests indépendants : chaque spec prépare ses prérequis.
 - Couvrir en priorité les flux critiques avant les cas rares.
 - En cas de flaky test, corriger la synchronisation (attentes explicites) avant d’augmenter brutalement les timeouts.
+
+### Visite — mascotte (e2e)
+
+- Le conteneur **`.visit-map-mascot`** est en **0×0** (ancrage en %) : Playwright le considère souvent **non visible** ; cibler **`.visit-map-mascot-inner`** (ou le Lottie) pour **`toBeVisible`**.
+- Les élèves **N3 + Forêt** ouvrent souvent la visite sur le plan **n3** : les données de test mascotte sont seedées sur **`map_id: 'n3'`** dans `visit-api.fixture.js` pour éviter un plan vide ou incohérent.
+- Clics au pourcentage du plan : utiliser le **bounding box** de **`.visit-map-fit-layer`** (même repère que `left` / `top` des repères), pas seulement le stage 16/10.
 
 ## CI
 

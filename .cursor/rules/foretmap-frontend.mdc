@@ -14,3 +14,4 @@ alwaysApply: false
 - **Locale :** Français (fr-FR) pour les dates et textes utilisateur. Pas de texte en dur en anglais dans l'UI.
 - **Mode professeur :** Auth gérée côté serveur (middleware JWT). Le PIN est envoyé au serveur via `POST /api/auth/teacher` ; le client stocke le token reçu. Ne jamais stocker le PIN en dur dans le code source.
 - **Organisation recommandée :** conserver la logique UI dans `src/components/`, les hooks dans `src/hooks/`, l'accès API dans `src/services/`. `public/` reste réservé aux assets statiques et pages d'assistance hors build.
+- **Visite — mascotte :** logique pure dans `src/utils/visitMascotPlacement.js` et `visitMascotVisibility.js` (`npm test` → `visit-mascot-*.test.js`). Sur le plan, **`.visit-map-mascot`** est en **0×0** (Playwright « hidden ») : assertions e2e sur **`.visit-map-mascot-inner`** ; voir `e2e/visit-mascot.spec.js` et `docs/VISIT_MAP_GEOMETRY.md`.

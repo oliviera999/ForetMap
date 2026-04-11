@@ -1,6 +1,6 @@
 ---
 name: foretmap-tests
-description: Guide l'écriture et l'exécution des tests backend ForetMap. À utiliser quand on écrit, modifie ou exécute des tests (auth, API, statuts tâches, suppression élève, routes).
+description: Guide l'écriture et l'exécution des tests ForetMap (backend API, utilitaires `src/utils` via node:test, smoke). À utiliser pour auth, routes, statuts tâches, géométrie / mascotte visite, exécution `npm test`.
 ---
 
 # Tests ForetMap
@@ -33,7 +33,17 @@ npm run test:local    # idem avec DB_NAME=foretmap_test (cross-env)
 npm run test:snapshot # tests "snapshot" contre la DB courante (FORETMAP_SNAPSHOT_TESTS=1)
 npm run test:e2e      # lance les scénarios UI Playwright
 npm run test:e2e:headed # idem avec navigateur visible
+npm run smoke:local:fast # smoke applicatif (scripts/local-smoke.js)
+# Charge : npm run test:load / test:load:light / … (voir docs/LOCAL_DEV.md, LOAD_TEST_SECRET)
 ```
+
+### Tests utilitaires frontend (`src/utils/*.js`)
+
+Certains modules **ESM** partagés avec le build Vite sont validés par **`node --test`** via **import dynamique** (`pathToFileURL` + `import()`, comme `visit-map-geometry.test.js`) :
+
+- `tests/visit-map-geometry.test.js` → `src/utils/visitMapGeometry.js`
+- `tests/visit-mascot-placement.test.js` → `src/utils/visitMascotPlacement.js`
+- `tests/visit-mascot-visibility.test.js` → `src/utils/visitMascotVisibility.js`
 
 ## Débogage / logs
 
@@ -50,6 +60,9 @@ tests/
 ├── tasks-status.test.js   # recalcul statuts tâches (assign/unassign/done)
 ├── students-delete.test.js # cascade suppression élève
 ├── new-features.test.js   # tests de nouvelles fonctionnalités
+├── visit-map-geometry.test.js   # centroïde / parsing polygones visite
+├── visit-mascot-placement.test.js
+├── visit-mascot-visibility.test.js
 └── recurring-tasks-spawn.test.js # job duplication tâches récurrentes validées
 ```
 

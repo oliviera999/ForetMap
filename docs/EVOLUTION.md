@@ -82,7 +82,7 @@ Références : **`docs/EXPLOITATION.md`** (temps réel / Passenger), **`docs/LOC
 ## 2.1 Priorité haute
 
 1. **Consolider les tests UI automatisés**
-   - Maintenir et stabiliser les scénarios Playwright désormais étendus (tâches, photos, retrait tâche, auth invalide).
+   - Maintenir et stabiliser les scénarios Playwright désormais étendus (tâches, photos, retrait tâche, auth invalide, **visite / mascotte** : `e2e/visit-mascot.spec.js` + fixture `e2e/fixtures/visit-api.fixture.js`).
    - Ajouter des cas limites avancés (erreurs API, données extrêmes, parcours multi-élèves) pour limiter la fragilité.
 
 ## 2.2 Priorité moyenne
