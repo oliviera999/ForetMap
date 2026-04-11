@@ -365,6 +365,7 @@ Contraintes importantes :
 | Méthode | URL | n3boss | Description |
 |--------|-----|------|-------------|
 | GET | `/api/plants` | non | Liste des entrées biodiversité |
+| GET | `/api/plants/autofill?q=...` | oui | Pré-saisie assistée multi-sources (suggestions de champs + photos/licences, sans écriture BDD) |
 | GET | `/api/plants/me/discovered-ids` | JWT obligatoire | `{ "plant_ids": number[] }` — identifiants des fiches catalogue pour lesquelles l’utilisateur a au moins une **observation** enregistrée (engagement explicite) |
 | GET | `/api/plants/me/observation-counts` | JWT obligatoire | Query **`plant_ids`** : liste d’IDs séparés par des virgules (ou espaces), entiers positifs, **max 200** (troncature silencieuse au-delà). Réponse `{ "counts": { "<id>": { "my_observation_count": number, "site_observation_count": number }, ... } }` — totaux pour l’utilisateur connecté et pour **tous** les utilisateurs sur chaque fiche demandée ; fiches sans ligne renvoient `0` / `0` |
 | POST | `/api/plants` | oui | Créer une entrée biodiversité |
@@ -413,6 +414,28 @@ Réponse:
   - `totals.skipped_existing`, `totals.skipped_invalid`,
   - `preview` (aperçu des lignes valides),
   - `errors` (liste des erreurs ligne/champ).
+
+`GET /api/plants/autofill?q=...` (n3boss):
+
+- Route en lecture seule (aucune création/modification de fiche).
+- Auth: permission `plants.manage` (élévation requise selon profil).
+- Paramètre query:
+  - `q` (obligatoire, 2 à 120 caractères) : nom courant ou scientifique recherché.
+- Réponse JSON:
+  - `query`: requête normalisée,
+  - `confidence`: score global `0..1`,
+  - `fields`: objet de suggestions mappées vers les champs ForetMap (`name`, `scientific_name`, `group_*`, `description`, etc.),
+  - `field_sources`: provenance par champ (source, confiance, alternatives éventuelles),
+  - `photos`: tableau de propositions `{ field, url, license, credit, source_url, source, confidence }`,
+  - `sources`: sources effectivement interrogées `{ source, confidence, source_url }`,
+  - `warnings`: avertissements non bloquants (source indisponible, qualité des données, photos filtrées...).
+- Comportement:
+  - résultats agrégés depuis plusieurs sources externes publiques,
+  - cache mémoire TTL côté serveur pour limiter la latence et les quotas,
+  - validation/filtrage des URLs photo avant retour.
+- Bonnes pratiques:
+  - la pré-saisie est une **suggestion** : validation humaine nécessaire avant sauvegarde,
+  - vérifier la licence/crédit photo avant publication.
 
 ---
 
@@ -569,13 +592,24 @@ Contraintes principales :
 
 | Méthode | URL | n3boss | Description |
 |--------|-----|------|-------------|
-| GET | `/api/stats/me/:studentId` | non | Stats de l’utilisateur ciblé (propriétaire ou permission `stats.read.all`) ; pour n3boss/admin sans activités n3beur, compteurs à `0` |
-| GET | `/api/stats/all` | oui | Stats de tous les n3beurs (inclut `pseudo`, `description`, `avatar_path`, `progression.roleEmoji`, n’expose pas `email`) |
+| GET | `/api/stats/me/:studentId` | non | Stats de l’utilisateur ciblé (propriétaire ou permission `stats.read.all`) ; pour n3boss/admin sans activités n3beur, compteurs tâches à `0` |
+| GET | `/api/stats/all` | oui | Agrégat : `{ students: [...], site: { ... } }` — chaque entrée de `students` inclut `pseudo`, `description`, `avatar_path`, `progression.roleEmoji` (pas `email`). `site` = totaux biodiversité + tutoriels sur tout le site. |
+| GET | `/api/stats/export` | oui (PIN) | Export CSV des n3beurs ; colonnes tâches + **Espèces observées (fiches)**, **Observations fiches plantes**, **Tutoriels lus** |
 
 `GET /api/stats/me/:studentId` renvoie aussi `progression` pour les n3beurs :
 - `progression.thresholds` : seuils actifs par profil (clés dynamiques selon les profils `eleve_*`)
 - `progression.steps` : paliers affichables (min + label + emoji + ordre d’affichage)
 - `progression.roleSlug` / `progression.roleDisplayName` : profil principal actuel après synchronisation.
+
+Champ **`stats`** (tous les utilisateurs cibles, y compris non-élève) inclut en plus des tâches :
+- `stats.plant_species_observed` : nombre d’**espèces distinctes** (fiches `plants`) avec au moins une ligne dans `user_plant_observation_events` pour cet utilisateur.
+- `stats.plant_observation_events` : nombre total d’**observations** (confirmations « espèce observée » / fiches plantes), toutes espèces confondues.
+- `stats.tutorials_read` : nombre de **tutoriels** distincts marqués lus (`user_tutorial_reads`).
+
+Objet **`site`** (réponse `GET /api/stats/all` uniquement) :
+- `site.plant_species_observed` : `COUNT(DISTINCT plant_id)` sur tout le site (espèces du catalogue ayant au moins une observation).
+- `site.plant_observation_events` : nombre total d’événements d’observation fiche-plante sur le site.
+- `site.tutorials_read` : nombre total de marquages « tutoriel lu » (une ligne par couple utilisateur × tutoriel).
 
 ---
 

@@ -5,6 +5,9 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Ajouté
+- **Stats** : `GET /api/stats/me/:studentId` et chaque entrée de `GET /api/stats/all` exposent **`stats.plant_species_observed`**, **`stats.plant_observation_events`**, **`stats.tutorials_read`** (biodiversité catalogue + tutoriels lus). **`GET /api/stats/all`** renvoie **`{ students, site }`** avec agrégats tout le site. **Export CSV** (`GET /api/stats/export`) : trois colonnes supplémentaires. Vues **`StudentStats`** / **`TeacherStats`** ; consommation **`tasks-views`** / **`profiles-views`** avec repli si l’API renvoie encore un tableau nu.
+
 ### Modifié
 - **Biodiversité — observations par espèce** : remplacement de **`user_plant_discoveries`** par **`user_plant_observation_events`** (plusieurs confirmations par utilisateur et par fiche) ; migration **`070_user_plant_observation_events.sql`** et schéma **`sql/schema_foretmap.sql`** ; **`GET /api/plants/me/discovered-ids`** inchangé côté usage (IDs avec au moins une observation) ; nouveau **`GET /api/plants/me/observation-counts`** (`plant_ids`, max 200) ; **`POST /api/plants/:id/acknowledge-discovery`** renvoie **`observed_at`**, **`my_observation_count`**, **`site_observation_count`** ; bouton **« Espèce observée »** avec compteurs perso / tout le site et possibilité d’enregistrer une observation supplémentaire. **`routes/plants.js`**, **`PlantSpeciesDiscoveryAcknowledge.jsx`**, **`foretmap-views.jsx`**, **`index.css`**, **`docs/API.md`**, **`tests/plants-discovery.test.js`**.
 - **Biodiversité — remarques catalogue** : affichage aligné sur la fiche espèce des missions (titre **Remarques**, trois paragraphes, mêmes styles que **`LivingBeingsCatalogPanel`**) via **`CatalogRemarksSection`** ; les champs **`remark_1`…3** ne sont plus dans le panneau repliable **Identité**. **`map-views.jsx`**, **`foretmap-views.jsx`**.

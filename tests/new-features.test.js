@@ -98,6 +98,9 @@ test('GET /api/stats/export renvoie un CSV avec le bon content-type', async () =
   assert.ok(res.headers['content-type'].includes('text/csv'));
   assert.ok(res.headers['content-disposition'].includes('.csv'));
   assert.ok(res.text.includes('Prénom'));
+  assert.ok(res.text.includes('Espèces observées (fiches)'));
+  assert.ok(res.text.includes('Observations fiches plantes'));
+  assert.ok(res.text.includes('Tutoriels lus'));
 });
 
 test('GET /api/stats/export sans token renvoie 401', async () => {

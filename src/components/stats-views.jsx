@@ -134,6 +134,25 @@ function StudentStats({ student, isN3Affiliated = false }) {
         </div>
       </div>
 
+      <h3 style={{ fontFamily: 'Playfair Display,serif', fontSize: '1.05rem', margin: '20px 0 10px', color: 'var(--forest)' }}>Biodiversité & tutoriels</h3>
+      <div className="stats-grid">
+        <div className="stat-card">
+          <div className="stat-icon">🌿</div>
+          <div className="stat-number">{Number(stats.plant_species_observed ?? 0).toLocaleString('fr-FR')}</div>
+          <div className="stat-label">Espèces observées (fiches)</div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-icon">🔭</div>
+          <div className="stat-number">{Number(stats.plant_observation_events ?? 0).toLocaleString('fr-FR')}</div>
+          <div className="stat-label">Observations fiches plantes</div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-icon">📖</div>
+          <div className="stat-number">{Number(stats.tutorials_read ?? 0).toLocaleString('fr-FR')}</div>
+          <div className="stat-label">Tutoriels lus</div>
+        </div>
+      </div>
+
       <h3 style={{ fontFamily: 'Playfair Display,serif', fontSize: '1.1rem', marginBottom: 12, color: 'var(--forest)' }}>Activité récente</h3>
       <div className="activity-list">
         {assignments.length === 0
@@ -405,17 +424,21 @@ function StudentProfileEditor({ student, onUpdated, onClose, isN3Affiliated = fa
 
 function TeacherStats({ isN3Affiliated = false }) {
   const roleTerms = getRoleTerms(isN3Affiliated);
-  const [data, setData] = useState(null);
+  const [students, setStudents] = useState(null);
+  const [site, setSite] = useState(null);
   const [error, setError] = useState('');
   const [search, setSearch] = useState('');
   const [toast, setToast] = useState(null);
 
-  const load = useCallback(() => api('/api/stats/all').then((rows) => {
-    setData(rows);
+  const load = useCallback(() => api('/api/stats/all').then((payload) => {
+    const rows = Array.isArray(payload) ? payload : (payload?.students ?? []);
+    setStudents(rows);
+    setSite(Array.isArray(payload) ? null : (payload?.site ?? null));
     setError('');
   }).catch(err => {
     console.error('[ForetMap] stats tous', err);
-    setData([]);
+    setStudents([]);
+    setSite(null);
     setError(err?.message || 'Impossible de charger les statistiques.');
     setToast('Impossible de charger les statistiques.');
   }), []);
@@ -429,8 +452,9 @@ function TeacherStats({ isN3Affiliated = false }) {
     return () => window.removeEventListener('foretmap_realtime', onRealtime);
   }, [load]);
 
-  if (!data) return <div className="loader" style={{ height: '60vh' }}><div className="loader-leaf">🌿</div><p>Chargement...</p></div>;
+  if (students === null) return <div className="loader" style={{ height: '60vh' }}><div className="loader-leaf">🌿</div><p>Chargement...</p></div>;
 
+  const data = students;
   const filtered = data.filter(s =>
     `${s.first_name} ${s.last_name}`.toLowerCase().includes(search.toLowerCase())
   );
@@ -442,6 +466,9 @@ function TeacherStats({ isN3Affiliated = false }) {
   const totalValidated = data.reduce((s, d) => s + d.stats.done, 0);
   const totalPending = data.reduce((s, d) => s + d.stats.pending, 0);
   const activeStudents = data.filter(d => d.stats.total > 0).length;
+  const siteSpecies = Number(site?.plant_species_observed ?? 0);
+  const siteObsEvents = Number(site?.plant_observation_events ?? 0);
+  const siteTutorials = Number(site?.tutorials_read ?? 0);
 
   return (
     <div className="fade-in">
@@ -456,7 +483,7 @@ function TeacherStats({ isN3Affiliated = false }) {
         </div>
       )}
 
-      <div className="stats-grid" style={{ gridTemplateColumns: 'repeat(3,1fr)', marginBottom: 20 }}>
+      <div className="stats-grid" style={{ gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', marginBottom: 16 }}>
         <div className="stat-card highlight">
           <div className="stat-icon">✅</div>
           <div className="stat-number">{totalValidated}</div>
@@ -471,6 +498,25 @@ function TeacherStats({ isN3Affiliated = false }) {
           <div className="stat-icon">👤</div>
           <div className="stat-number">{activeStudents}</div>
           <div className="stat-label">Actifs</div>
+        </div>
+      </div>
+
+      <p className="section-sub" style={{ marginTop: 0, marginBottom: 8 }}>Tout le site (biodiversité & tutoriels)</p>
+      <div className="stats-grid" style={{ gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', marginBottom: 20 }}>
+        <div className="stat-card">
+          <div className="stat-icon">🌿</div>
+          <div className="stat-number">{siteSpecies.toLocaleString('fr-FR')}</div>
+          <div className="stat-label">Espèces observées (catalogue)</div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-icon">🔭</div>
+          <div className="stat-number">{siteObsEvents.toLocaleString('fr-FR')}</div>
+          <div className="stat-label">Observations fiches plantes</div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-icon">📖</div>
+          <div className="stat-number">{siteTutorials.toLocaleString('fr-FR')}</div>
+          <div className="stat-label">Marquages tutoriel lus</div>
         </div>
       </div>
 
@@ -542,7 +588,7 @@ function TeacherStats({ isN3Affiliated = false }) {
                       : 'Jamais connecté'}
                   </small>
                 </div>
-                <div className="lb-stats" style={{ display: 'flex', gap: 10, alignItems: 'center', flexShrink: 0 }}>
+                <div className="lb-stats" style={{ display: 'flex', gap: 8, alignItems: 'center', flexShrink: 0, flexWrap: 'wrap', justifyContent: 'flex-end', maxWidth: '100%' }}>
                   <div className="lb-stat lb-stat-done">
                     <div className="lb-stat-num" style={{ color: 'var(--sage)' }}>{s.stats.done}</div>
                     <div className="lb-stat-label">✅</div>
@@ -562,6 +608,18 @@ function TeacherStats({ isN3Affiliated = false }) {
                   <div className="lb-stat lb-stat-rate" title="Part des tâches validées sur le total des tâches prises">
                     <div className="lb-stat-num" style={{ color: '#0f766e' }}>{completionRate}%</div>
                     <div className="lb-stat-label">🎯</div>
+                  </div>
+                  <div className="lb-stat" title="Espèces distinctes observées (fiches plantes)">
+                    <div className="lb-stat-num" style={{ color: '#15803d' }}>{Number(s.stats?.plant_species_observed ?? 0)}</div>
+                    <div className="lb-stat-label">🌿</div>
+                  </div>
+                  <div className="lb-stat" title="Nombre d’observations sur les fiches plantes (toutes espèces)">
+                    <div className="lb-stat-num" style={{ color: '#0369a1' }}>{Number(s.stats?.plant_observation_events ?? 0)}</div>
+                    <div className="lb-stat-label">🔭</div>
+                  </div>
+                  <div className="lb-stat" title="Tutoriels marqués comme lus">
+                    <div className="lb-stat-num" style={{ color: '#7c3aed' }}>{Number(s.stats?.tutorials_read ?? 0)}</div>
+                    <div className="lb-stat-label">📖</div>
                   </div>
                   <div style={{ width: 60, display: 'none' }} className="lb-bar-desktop">
                     <div className="lb-bar-bg">

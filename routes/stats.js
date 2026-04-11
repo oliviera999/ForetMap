@@ -38,6 +38,72 @@ async function mapWithConcurrency(items, limit, mapper) {
   return results;
 }
 
+/** Agrégats biodiversité + tutoriels par user_id (clés chaîne). */
+async function fetchEngagementByUserId() {
+  const [plantRows, tutRows] = await Promise.all([
+    queryAll(
+      `SELECT user_id, COUNT(DISTINCT plant_id) AS species, COUNT(*) AS events
+       FROM user_plant_observation_events GROUP BY user_id`
+    ),
+    queryAll(`SELECT user_id, COUNT(*) AS tutorials_read FROM user_tutorial_reads GROUP BY user_id`),
+  ]);
+  const plantMap = new Map();
+  for (const r of plantRows) {
+    plantMap.set(String(r.user_id), {
+      species: Number(r.species) || 0,
+      events: Number(r.events) || 0,
+    });
+  }
+  const tutMap = new Map();
+  for (const r of tutRows) {
+    tutMap.set(String(r.user_id), Number(r.tutorials_read) || 0);
+  }
+  return { plantMap, tutMap };
+}
+
+function engagementStatsForUser(userId, plantMap, tutMap) {
+  const uid = String(userId);
+  const p = plantMap.get(uid) || { species: 0, events: 0 };
+  return {
+    plant_species_observed: p.species,
+    plant_observation_events: p.events,
+    tutorials_read: tutMap.get(uid) || 0,
+  };
+}
+
+/** Totaux site (distinct espèces observées, événements, lectures tutoriel). */
+async function fetchSiteEngagementTotals() {
+  const [plants, tutorials] = await Promise.all([
+    queryOne(
+      `SELECT COUNT(DISTINCT plant_id) AS plant_species_observed, COUNT(*) AS plant_observation_events
+       FROM user_plant_observation_events`
+    ),
+    queryOne(`SELECT COUNT(*) AS tutorials_read FROM user_tutorial_reads`),
+  ]);
+  return {
+    plant_species_observed: Number(plants?.plant_species_observed) || 0,
+    plant_observation_events: Number(plants?.plant_observation_events) || 0,
+    tutorials_read: Number(tutorials?.tutorials_read) || 0,
+  };
+}
+
+async function fetchUserEngagementStats(userId) {
+  const uid = String(userId);
+  const [plantRow, tutRow] = await Promise.all([
+    queryOne(
+      `SELECT COUNT(DISTINCT plant_id) AS species, COUNT(*) AS events
+       FROM user_plant_observation_events WHERE user_id = ?`,
+      [uid]
+    ),
+    queryOne(`SELECT COUNT(*) AS tutorials_read FROM user_tutorial_reads WHERE user_id = ?`, [uid]),
+  ]);
+  return {
+    plant_species_observed: Number(plantRow?.species) || 0,
+    plant_observation_events: Number(plantRow?.events) || 0,
+    tutorials_read: Number(tutRow?.tutorials_read) || 0,
+  };
+}
+
 async function userStats(userId, options = {}) {
   const s = await queryOne('SELECT * FROM users WHERE id = ? LIMIT 1', [userId]);
   if (!s) return null;
@@ -59,6 +125,7 @@ async function userStats(userId, options = {}) {
   const pending = assignments.filter((a) => a.status === 'available' || a.status === 'in_progress').length;
   const submitted = assignments.filter((a) => a.status === 'done').length;
   const total = assignments.length;
+  const engagement = await fetchUserEngagementStats(s.id);
   let progression = null;
   if (isStudent) {
     const sync = await syncStudentPrimaryRoleFromProgress(s.id, done, progressionConfig, {
@@ -84,7 +151,15 @@ async function userStats(userId, options = {}) {
     description: s.description,
     avatar_path: s.avatar_path,
     last_seen: s.last_seen,
-    stats: { done, pending, submitted, total },
+    stats: {
+      done,
+      pending,
+      submitted,
+      total,
+      plant_species_observed: engagement.plant_species_observed,
+      plant_observation_events: engagement.plant_observation_events,
+      tutorials_read: engagement.tutorials_read,
+    },
     progression,
     assignments,
   };
@@ -113,8 +188,12 @@ router.get('/me/:studentId', requireAuth, async (req, res) => {
 
 router.get('/all', requirePermission('stats.read.all'), async (req, res) => {
   try {
-    const students = await queryAll("SELECT * FROM users WHERE user_type = 'student'");
-    const progressionConfig = await getStudentProgressionConfig();
+    const [students, progressionConfig, { plantMap, tutMap }, site] = await Promise.all([
+      queryAll("SELECT * FROM users WHERE user_type = 'student'"),
+      getStudentProgressionConfig(),
+      fetchEngagementByUserId(),
+      fetchSiteEngagementTotals(),
+    ]);
     const result = await mapWithConcurrency(students, STATS_STUDENT_AGG_CONCURRENCY, async (s) => {
       const assignments = await queryAll(
         `SELECT ta.*, t.status FROM task_assignments ta
@@ -125,6 +204,7 @@ router.get('/all', requirePermission('stats.read.all'), async (req, res) => {
       const done = assignments.filter(a => a.status === 'validated').length;
       const sync = await syncStudentPrimaryRoleFromProgress(s.id, done, progressionConfig);
       const currentStep = (sync.steps || []).find((step) => String(step.roleSlug) === String(sync.currentRoleSlug));
+      const extra = engagementStatsForUser(s.id, plantMap, tutMap);
       return {
         id: s.id,
         first_name: s.first_name,
@@ -138,6 +218,9 @@ router.get('/all', requirePermission('stats.read.all'), async (req, res) => {
           done,
           pending: assignments.filter(a => a.status === 'available' || a.status === 'in_progress').length,
           submitted: assignments.filter(a => a.status === 'done').length,
+          plant_species_observed: extra.plant_species_observed,
+          plant_observation_events: extra.plant_observation_events,
+          tutorials_read: extra.tutorials_read,
         },
         progression: {
           roleSlug: sync.currentRoleSlug,
@@ -148,7 +231,7 @@ router.get('/all', requirePermission('stats.read.all'), async (req, res) => {
       };
     });
     result.sort((a, b) => b.stats.done - a.stats.done);
-    res.json(result);
+    res.json({ students: result, site });
   } catch (e) {
     logRouteError(e, req);
     res.status(500).json({ error: e.message });
@@ -158,7 +241,10 @@ router.get('/all', requirePermission('stats.read.all'), async (req, res) => {
 // Export CSV des stats n3beurs (n3boss uniquement)
 router.get('/export', requirePermission('stats.export', { needsElevation: true }), async (req, res) => {
   try {
-    const students = await queryAll("SELECT * FROM users WHERE user_type = 'student'");
+    const [students, { plantMap, tutMap }] = await Promise.all([
+      queryAll("SELECT * FROM users WHERE user_type = 'student'"),
+      fetchEngagementByUserId(),
+    ]);
     const result = await mapWithConcurrency(students, STATS_STUDENT_AGG_CONCURRENCY, async (s) => {
       const assignments = await queryAll(
         `SELECT ta.*, t.status FROM task_assignments ta
@@ -166,6 +252,7 @@ router.get('/export', requirePermission('stats.export', { needsElevation: true }
          WHERE ta.student_id = ? OR (ta.student_first_name = ? AND ta.student_last_name = ?)`,
         [s.id, s.first_name, s.last_name]
       );
+      const extra = engagementStatsForUser(s.id, plantMap, tutMap);
       return {
         first_name: s.first_name,
         last_name: s.last_name,
@@ -174,19 +261,41 @@ router.get('/export', requirePermission('stats.export', { needsElevation: true }
         pending: assignments.filter(a => a.status === 'available' || a.status === 'in_progress').length,
         submitted: assignments.filter(a => a.status === 'done').length,
         total: assignments.length,
+        plant_species_observed: extra.plant_species_observed,
+        plant_observation_events: extra.plant_observation_events,
+        tutorials_read: extra.tutorials_read,
       };
     });
     result.sort((a, b) => b.validated - a.validated);
 
-    const headers = ['Prénom', 'Nom', 'Validées', 'En cours', 'En attente', 'Total', 'Dernière connexion'];
+    const headers = [
+      'Prénom',
+      'Nom',
+      'Validées',
+      'En cours',
+      'En attente',
+      'Total',
+      'Espèces observées (fiches)',
+      'Observations fiches plantes',
+      'Tutoriels lus',
+      'Dernière connexion',
+    ];
     const escapeCSV = v => {
       const s = String(v ?? '');
       return s.includes(';') || s.includes('"') || s.includes('\n')
         ? `"${s.replace(/"/g, '""')}"` : s;
     };
     const rows = result.map(s => [
-      s.first_name, s.last_name, s.validated, s.pending, s.submitted, s.total,
-      s.last_seen ? new Date(s.last_seen).toLocaleDateString('fr-FR') : 'Jamais'
+      s.first_name,
+      s.last_name,
+      s.validated,
+      s.pending,
+      s.submitted,
+      s.total,
+      s.plant_species_observed,
+      s.plant_observation_events,
+      s.tutorials_read,
+      s.last_seen ? new Date(s.last_seen).toLocaleDateString('fr-FR') : 'Jamais',
     ].map(escapeCSV).join(';'));
 
     const BOM = '\uFEFF';
