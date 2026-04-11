@@ -25,8 +25,15 @@ Après **`POST /api/visit/sync`** (carte → visite ou l’inverse), ouvrir **la
 
 ## Tests automatisés (géométrie et mascotte)
 
-- **Unitaires** : `tests/visit-map-geometry.test.js` (`parseVisitZonePoints`, `visitZoneCentroidPct`), `tests/visit-mascot-placement.test.js`, `tests/visit-mascot-visibility.test.js` (mascotte aussi si **tutoriels** seuls), `tests/visit-progress-client.test.js`, `tests/visit-content-public-active.test.js` (`lib/visitContentPublicActive.js`), `tests/visit-mascot-diagnostics.test.js` (`lib/visitMascotDiagnostics.js`).
+- **Unitaires** : `tests/visit-map-geometry.test.js` (`parseVisitZonePoints`, `visitZoneCentroidPct`), `tests/visit-mascot-placement.test.js`, `tests/visit-mascot-visibility.test.js` (mascotte aussi si **tutoriels** seuls), `tests/visit-progress-client.test.js`, `tests/visit-content-public-active.test.js` (`lib/visitContentPublicActive.js`), `tests/visit-mascot-diagnostics.test.js` (`lib/visitMascotDiagnostics.js`), `tests/visit-mascot-state.test.js`, `tests/visit-mascot-catalog.test.js`.
 - **E2e** : `e2e/visit-mascot.spec.js` — seed sur le plan **n3** (comportement réaliste pour les comptes « N3 + Forêt »), clics au **pourcentage** dans **`.visit-map-fit-layer`** ; visibilité mascotte via **`.visit-map-mascot-inner`** (le nœud **`.visit-map-mascot`** est volontairement en **0×0** pour l’ancrage en %).
+
+## Mascottes extensibles (Rive / spritesheet)
+
+- Le catalogue des mascottes est centralisé dans `src/utils/visitMascotCatalog.js`.
+- Chaque entrée définit `renderer` (`rive` ou `spritesheet`) et ses assets/états.
+- Pour ajouter une mascotte : déposer les assets dans `public/assets/mascots/...` puis déclarer une nouvelle entrée de catalogue.
+- Le choix courant est persisté côté client (`localStorage`) et utilisé par `VisitMapMascotRenderer.jsx`.
 
 ## Diagnostic prod : mascotte invisible
 

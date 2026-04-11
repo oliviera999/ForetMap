@@ -6,6 +6,9 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 ## [Non publié]
 
 ### Ajouté
+- **Visite — mascottes extensibles (catalogue)** : nouveau registre `src/utils/visitMascotCatalog.js` pour déclarer facilement plusieurs mascottes (Rive ou spritesheet), persistance locale du choix (`localStorage`) et renderer unifié `VisitMapMascotRenderer` pour préparer la sélection de mascotte par utilisateur.
+- **Visite — renderer spritesheet prêt à l’usage** : composant `VisitMapMascotSpritesheet.jsx` (états `idle/walking/happy`, config frames/fps/row), fallback statique automatique si sprite manquant et sélecteur “Mascotte active” dans l’aperçu visite prof/admin.
+
 - **Visite — mascotte V1 (états + dialogue)** : machine d’état front (`idle`/`walking`/`happy`) reliée aux événements visite (déplacement et marquage « vu »), bulle de dialogue contextuelle près de la mascotte, et nouveaux tests unitaires (`tests/visit-mascot-state.test.js`) + e2e (`e2e/visit-mascot.spec.js`) pour couvrir ces comportements.
 
 ### Modifié

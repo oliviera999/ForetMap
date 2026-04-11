@@ -22,8 +22,9 @@ import {
 } from '../utils/visitMascotVisibility.js';
 import { safeVisitProgressPayload } from '../utils/visitProgressClient.js';
 import { wheelZoomScaleFactor } from '../utils/mapWheelZoom';
-import VisitMapMascotRive from './VisitMapMascotRive.jsx';
+import VisitMapMascotRenderer from './VisitMapMascotRenderer.jsx';
 import { VISIT_MASCOT_STATE, pickMascotDialog, resolveVisitMascotState } from '../utils/visitMascotState.js';
+import { getVisitMascotCatalog, loadVisitMascotId, saveVisitMascotId } from '../utils/visitMascotCatalog.js';
 
 const VISIT_MAP_MASCOT_MOVE_MS = 560;
 const VISIT_MAP_MASCOT_HAPPY_MS = 1800;
@@ -607,6 +608,7 @@ function VisitView({
   const [visitMapMascotWalking, setVisitMapMascotWalking] = useState(false);
   const [visitMapMascotHappy, setVisitMapMascotHappy] = useState(false);
   const [visitMascotPreviewState, setVisitMascotPreviewState] = useState(VISIT_MASCOT_STATE.IDLE);
+  const [visitMascotId, setVisitMascotId] = useState(() => loadVisitMascotId());
   const [visitMascotDialog, setVisitMascotDialog] = useState('');
   const [visitMascotDialogVisible, setVisitMascotDialogVisible] = useState(false);
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
@@ -623,6 +625,7 @@ function VisitView({
     setSelectedType(null);
   }, []);
   useOverlayHistoryBack(isGuestPublicVisit && !!selected, clearGuestSelection);
+  const visitMascotOptions = useMemo(() => getVisitMascotCatalog(), []);
 
   const visitProgressLabelId = useId();
 
@@ -1015,6 +1018,11 @@ function VisitView({
     () => resolveVisitMascotState({ happy: visitMapMascotHappy, walking: visitMapMascotWalking }),
     [visitMapMascotHappy, visitMapMascotWalking]
   );
+
+  const onChangeVisitMascotId = useCallback((nextId) => {
+    const normalized = saveVisitMascotId(nextId);
+    setVisitMascotId(normalized);
+  }, []);
 
   const visitMapMascotRenderPct = useMemo(
     () => clampVisitMascotPctForViewport(visitMapMascotPct.xp, visitMapMascotPct.yp, visitMapFit.height),
@@ -1515,9 +1523,20 @@ function VisitView({
                 🎉 Heureuse
               </button>
             </div>
+            <label className="visit-mascot-picker">
+              <span>Mascotte active</span>
+              <select
+                value={visitMascotId}
+                onChange={(e) => onChangeVisitMascotId(e.target.value)}
+              >
+                {visitMascotOptions.map((m) => (
+                  <option key={m.id} value={m.id}>{m.label}</option>
+                ))}
+              </select>
+            </label>
           </div>
           <div className="visit-mascot-preview-body" aria-hidden="true">
-            <VisitMapMascotRive mascotState={visitMascotPreviewState} />
+            <VisitMapMascotRenderer mascotState={visitMascotPreviewState} mascotId={visitMascotId} />
           </div>
         </section>
       )}
@@ -1674,7 +1693,7 @@ function VisitView({
                         '--visit-mascot-dialog-x': visitMapMascotFaceRight ? 1 : -1,
                       }}
                     >
-                      <VisitMapMascotRive mascotState={visitMascotAnimationState} />
+                      <VisitMapMascotRenderer mascotState={visitMascotAnimationState} mascotId={visitMascotId} />
                       {visitMascotDialogVisible && visitMascotDialog ? (
                         <div className="visit-map-mascot-dialog" role="status" aria-live="polite">
                           {visitMascotDialog}
