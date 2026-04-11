@@ -20,7 +20,8 @@ set -euo pipefail
 # - DEPLOY_SOFT_CHANGE_REGEX : ERE grep (défaut: CHANGELOG, README, LICENSE, docs/, .github/, .cursor/)
 #
 # Prérequis:
-# - DEPLOY_SECRET doit être défini (dans DEPLOY_ENV_FILE ou env shell)
+# - DEPLOY_SECRET requis uniquement si un redémarrage est prévu (défaut ou après
+#   analyse du diff avec DEPLOY_SKIP_RESTART_IF_SOFT_ONLY=1) — charger via DEPLOY_ENV_FILE
 # - curl, git, node disponibles sur le serveur
 
 ts() {
@@ -63,11 +64,6 @@ if [[ -f "$DEPLOY_ENV_FILE" ]]; then
   set +a
 fi
 
-if [[ -z "${DEPLOY_SECRET:-}" ]]; then
-  log "DEPLOY_SECRET manquant: impossible d'appeler /api/admin/restart"
-  exit 1
-fi
-
 if [[ -n "$(git status --porcelain)" ]]; then
   log "Arbre de travail non propre sur serveur, déploiement auto ignoré."
   exit 1
@@ -101,6 +97,11 @@ if [[ "$DEPLOY_SKIP_RESTART_IF_SOFT_ONLY" == "1" ]]; then
     DO_DEPLOY_RESTART=0
     log "Redémarrage différé (changements limités au périmètre doc/méta, DEPLOY_SKIP_RESTART_IF_SOFT_ONLY=1)."
   fi
+fi
+
+if [[ "$DO_DEPLOY_RESTART" == "1" ]] && [[ -z "${DEPLOY_SECRET:-}" ]]; then
+  log "DEPLOY_SECRET manquant: impossible d'appeler /api/admin/restart"
+  exit 1
 fi
 
 # Garde-fou: en mode "build local", toute modif frontend doit inclure une mise à jour de dist/.
