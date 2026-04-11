@@ -325,7 +325,7 @@ Contenus éditables du site (micro-CMS texte brut) :
 
 Contraintes importantes :
 
-- **`GET /api/visit/content`** : chaque zone renvoyée inclut **`description`** (texte de la table **`zones`**, jointure sur le même `id`) ; chaque repère inclut **`note`** (table **`map_markers`**, même principe). Ces champs sont **`null`** s’il n’y a pas de ligne carte correspondante ou si le texte est vide.
+- **`GET /api/visit/content`** : chaque zone renvoyée inclut **`description`** (texte de la table **`zones`**, jointure sur le même `id`) ; chaque repère inclut **`note`** (table **`map_markers`**, même principe). Ces champs sont **`null`** s’il n’y a pas de ligne carte correspondante ou si le texte est vide. Les zones et repères dont **`is_active`** est **explicitement** désactivé (`0`, `false`, chaîne `'0'`) sont exclus ; les autres valeurs « actives » (y compris variantes driver) restent listées.
 - `direction=map_to_visit` : copie/synchronise les zones et repères de la carte vers la visite.
 - `direction=visit_to_map` : copie/synchronise les zones et repères de la visite vers la carte.
 - L’import est **sélectif** (listes `zone_ids` / `marker_ids`) et en **upsert** (pas de doublon si l’ID existe déjà).
@@ -511,7 +511,7 @@ Si le réglage public `ui.modules.forum_enabled` est à `false`, toutes les rout
 
 Contraintes principales :
 
-- **Photos** : champ optionnel `images` (tableau de data URLs / base64 **JPEG, PNG ou WebP**), **maximum 3** fichiers, **1,5 Mo** chacun après décodage (corps JSON limité par Express à 10 Mo). Fichiers stockés sous `uploads/forum-posts/<postId>/`. Les réponses incluent `posts[].image_urls` (chemins publics `/uploads/…`, tableau vide si aucune image). Si au moins une image est envoyée **sans** texte de message, le corps enregistré vaut littéralement `(Photo)` pour respecter la longueur minimale du message.
+- **Photos** : champ optionnel `images` (tableau de data URLs / base64 **JPEG, PNG ou WebP**), **maximum 3** fichiers, **sans plafond de taille par image** côté application (la seule borne est la **limite du corps JSON** HTTP, par défaut **100 Mo** ; surcharge possible via variable d’environnement **`FORETMAP_JSON_BODY_LIMIT`** côté serveur, ex. `200mb`). Fichiers stockés sous `uploads/forum-posts/<postId>/`. Les réponses incluent `posts[].image_urls` (chemins publics `/uploads/…`, tableau vide si aucune image). Si au moins une image est envoyée **sans** texte de message, le corps enregistré vaut littéralement `(Photo)` pour respecter la longueur minimale du message.
 - Validation serveur des longueurs (titre/message/motif).
 - Anti-abus V1 : cooldown par utilisateur sur création de sujet/réponse.
 - Réactions emoji supportées : issues du réglage public `ui.reactions.allowed_emojis` (fallback défaut `👍 ❤️ 😂 😮 😢 😡 🔥 👏`).
@@ -550,7 +550,7 @@ Contexte supporté :
 
 Contraintes principales :
 
-- **Photos** : champ optionnel `images` (même format et limites que le forum : **max 3**, **1,5 Mo** par image après décodage, JPEG/PNG/WebP). Stockage sous `uploads/context-comments/<commentId>/`. Les réponses `GET` exposent `items[].image_urls` (`/uploads/…`). Texte seul, images seules ou texte + images : au moins un texte **ou** une image requis ; sans texte mais avec images, le corps enregistré vaut `(Photo)`.
+- **Photos** : champ optionnel `images` (même format que le forum : **max 3**, JPEG/PNG/WebP, **pas de limite de taille par image** côté appli — borne = corps JSON HTTP, voir forum / **`FORETMAP_JSON_BODY_LIMIT`**). Stockage sous `uploads/context-comments/<commentId>/`. Les réponses `GET` exposent `items[].image_urls` (`/uploads/…`). Texte seul, images seules ou texte + images : au moins un texte **ou** une image requis ; sans texte mais avec images, le corps enregistré vaut `(Photo)`.
 - Validation serveur de `contextType` et de l’existence du contexte ciblé.
 - Validation longueur message/motif de signalement.
 - Anti-abus V1 : cooldown par utilisateur sur publication.

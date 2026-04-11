@@ -31,11 +31,15 @@ describe('visitMascotVisibility', () => {
     assert.equal(shouldShowVisitMapMascot('view', 3, [], []), true);
   });
 
-  it('masquée en view si carte vide', () => {
-    assert.equal(shouldShowVisitMapMascot('view', 0, [], []), false);
+  it('masquée en view si carte vide sans tutoriel', () => {
+    assert.equal(shouldShowVisitMapMascot('view', 0, [], [], 0), false);
+  });
+
+  it('visible en view si au moins un tutoriel (plan sans zone/repère)', () => {
+    assert.equal(shouldShowVisitMapMascot('view', 0, [], [], 1), true);
   });
 
   it('tolère zones / markers non-tableau', () => {
-    assert.equal(shouldShowVisitMapMascot('view', 0, null, undefined), false);
+    assert.equal(shouldShowVisitMapMascot('view', 0, null, undefined, 0), false);
   });
 });

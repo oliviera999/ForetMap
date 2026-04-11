@@ -1,4 +1,4 @@
-import React, { lazy, Suspense, useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { api, AccountDeletedError, withAppBase } from '../services/api';
 import { compressImage } from '../utils/image';
 import { MARKER_EMOJIS, parseEmojiListSetting, detectLeadingMarkerEmoji, stripLeadingMarkerEmoji } from '../constants/emojis';
@@ -19,8 +19,7 @@ import { computeVisitMascotStartPct } from '../utils/visitMascotPlacement.js';
 import { shouldShowVisitMapMascot as computeShowVisitMapMascot } from '../utils/visitMascotVisibility.js';
 import { safeVisitProgressPayload } from '../utils/visitProgressClient.js';
 import { wheelZoomScaleFactor } from '../utils/mapWheelZoom';
-
-const VisitMapMascotLottie = lazy(() => import('./VisitMapMascotLottie.jsx'));
+import VisitMapMascotLottie from './VisitMapMascotLottie.jsx';
 
 const VISIT_MAP_MASCOT_MOVE_MS = 560;
 
@@ -585,12 +584,13 @@ function VisitView({
     return { total, seenCount, pct };
   }, [content.zones, content.markers, seen]);
 
-  /** Mascotte : afficher dès qu’il existe des zones/repères côté contenu, pas seulement si le total « parcourable » > 0 (polygones valides). */
+  /** Mascotte : zones/repères visibles, total parcourable, ou tutoriels du plan (évite plan « vide » côté API alors que la visite est animée). */
   const showVisitMapMascot = computeShowVisitMapMascot(
     mode,
     visitCartographyProgress.total,
     content.zones,
-    content.markers
+    content.markers,
+    (content.tutorials || []).length
   );
 
   useEffect(() => {
@@ -1444,16 +1444,10 @@ function VisitView({
                       className="visit-map-mascot-inner"
                       style={{ transform: `translate(-50%, -100%) scaleX(${visitMapMascotFaceRight ? 1 : -1})` }}
                     >
-                      <Suspense
-                        fallback={
-                          <div className="visit-map-mascot-lottie visit-map-mascot-lottie--placeholder" aria-hidden="true" />
-                        }
-                      >
-                        <VisitMapMascotLottie
-                          walking={visitMapMascotWalking}
-                          prefersReducedMotion={prefersReducedMotion}
-                        />
-                      </Suspense>
+                      <VisitMapMascotLottie
+                        walking={visitMapMascotWalking}
+                        prefersReducedMotion={prefersReducedMotion}
+                      />
                     </div>
                   </div>
                 ) : null}
