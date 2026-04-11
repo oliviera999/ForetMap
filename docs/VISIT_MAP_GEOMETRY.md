@@ -39,6 +39,11 @@ La mascotte n’est rendue que si le client a du **contenu public** visite (zone
    - **Non** → données / module visite / chargement (étape 1) ou onglet pas en mode navigation.
      Vérifier aussi les attributs de scène **`.visit-map-stage[data-visit-mascot-visibility][data-visit-mascot-reason]`** :
      `hidden + no-public-content` = pas de contenu public (comportement attendu), `hidden + mode-not-view` = mode édition prof.
+   - **Oui** → inspecter aussi **`.visit-map-mascot-lottie`** :
+     - `data-renderer` (`svg` ou `canvas`)
+     - `data-painted-status` (`loading`, `checking`, `painted`, `fallback-canvas`, `fallback-placeholder`)
+     - `data-painted-checks` / `data-painted-reason`
+     Ces attributs permettent d’identifier un faux positif visuel (cadre présent mais rendu non peint).
    - **Oui** avec **`.visit-map-mascot-lottie--placeholder`** (🧭) → Lottie en erreur ou **CSP** (`script-src` sans `unsafe-eval` côté proxy) ; console navigateur.
    - **Oui** avec **SVG** mais **chemins sans `d` / sans remplissage visible** dans l’inspecteur → timing Lottie : la première frame peut être appliquée avant le DOM SVG (`DOMLoaded`) ; le client force désormais l’idle après `DOMLoaded` + double `requestAnimationFrame`, puis bascule en placeholder si aucun SVG exploitable n’est détecté. Sinon : **style** / calque (z-index explicite : zones **1**, mascotte **16**, repères **14**), zoom page.
 3. **Version déployée** : **`GET /api/version`** ; comparer au dépôt. Vérifier que **`index.vite.html`** charge un **`/assets/index.vite-*.js`** cohérent (hash aligné avec le déploiement).

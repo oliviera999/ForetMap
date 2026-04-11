@@ -6,6 +6,8 @@ import visitMascotAnim from '../assets/lottie/visit-mascot.json';
 const IDLE_FRAME = 0;
 const WALK_START = 1;
 const WALK_END = 30;
+const MAX_PAINT_CHECKS = 6;
+const PAINT_CHECK_INTERVAL_MS = 180;
 
 function isTransparentPaint(value) {
   const raw = String(value || '').trim().toLowerCase();
@@ -30,6 +32,10 @@ function svgLooksPainted(containerEl) {
   if (!svg) return false;
   const box = svg.getBoundingClientRect();
   if (!(box.width > 2 && box.height > 2)) return false;
+  const svgStyle = window.getComputedStyle(svg);
+  const svgOpacity = Number.parseFloat(svgStyle.opacity || '1');
+  if (svgStyle.display === 'none' || svgStyle.visibility === 'hidden') return false;
+  if (Number.isFinite(svgOpacity) && svgOpacity <= 0) return false;
   const drawableNodes = svg.querySelectorAll('path,circle,ellipse,rect,polygon,polyline,line');
   if (drawableNodes.length === 0) return false;
   for (const node of drawableNodes) {
@@ -38,6 +44,7 @@ function svgLooksPainted(containerEl) {
       if (!d || !String(d).trim()) continue;
     }
     const st = window.getComputedStyle(node);
+    if (st.display === 'none' || st.visibility === 'hidden') continue;
     const opacity = Number.parseFloat(st.opacity || '1');
     if (Number.isFinite(opacity) && opacity <= 0) continue;
     const strokeWidth = Number.parseFloat(st.strokeWidth || '0');
@@ -52,7 +59,36 @@ function canvasLooksPainted(containerEl) {
   const canvas = containerEl.querySelector('canvas');
   if (!canvas) return false;
   const box = canvas.getBoundingClientRect();
-  return box.width > 2 && box.height > 2;
+  if (!(box.width > 2 && box.height > 2)) return false;
+  const w = Math.max(0, Number(canvas.width) || 0);
+  const h = Math.max(0, Number(canvas.height) || 0);
+  if (!(w > 1 && h > 1)) return false;
+  let ctx = null;
+  try {
+    ctx = canvas.getContext('2d', { willReadFrequently: true }) || canvas.getContext('2d');
+  } catch (_) {
+    ctx = null;
+  }
+  if (!ctx) return false;
+  const sampleCols = 6;
+  const sampleRows = 6;
+  let paintedSamples = 0;
+  let sampled = 0;
+  for (let row = 0; row < sampleRows; row += 1) {
+    for (let col = 0; col < sampleCols; col += 1) {
+      const x = Math.min(w - 1, Math.max(0, Math.round((col / (sampleCols - 1 || 1)) * (w - 1))));
+      const y = Math.min(h - 1, Math.max(0, Math.round((row / (sampleRows - 1 || 1)) * (h - 1))));
+      try {
+        const px = ctx.getImageData(x, y, 1, 1).data;
+        sampled += 1;
+        if ((px?.[3] || 0) > 8) paintedSamples += 1;
+      } catch (_) {
+        return false;
+      }
+    }
+  }
+  if (sampled === 0) return false;
+  return paintedSamples >= 2;
 }
 
 /**
@@ -64,6 +100,11 @@ function VisitMapMascotLottie({ walking, prefersReducedMotion }) {
   const animRef = useRef(null);
   const [loadError, setLoadError] = useState(false);
   const [rendererMode, setRendererMode] = useState('svg');
+  const [paintMeta, setPaintMeta] = useState({
+    status: 'init',
+    checks: 0,
+    lastReason: 'init',
+  });
 
   useEffect(() => {
     const el = containerRef.current;
@@ -83,10 +124,12 @@ function VisitMapMascotLottie({ walking, prefersReducedMotion }) {
       return undefined;
     }
     animRef.current = anim;
+    setPaintMeta({ status: 'loading', checks: 0, lastReason: `renderer:${rendererMode}` });
 
     const switchToCanvasOrPlaceholder = () => {
       if (cancelled || animRef.current !== anim) return;
       if (rendererMode === 'svg') {
+        setPaintMeta((prev) => ({ ...prev, status: 'fallback-canvas', lastReason: 'svg-unpainted' }));
         try {
           anim.destroy();
         } catch (_) {
@@ -96,6 +139,7 @@ function VisitMapMascotLottie({ walking, prefersReducedMotion }) {
         setRendererMode('canvas');
         return;
       }
+      setPaintMeta((prev) => ({ ...prev, status: 'fallback-placeholder', lastReason: 'canvas-unpainted' }));
       setLoadError(true);
       try {
         anim.destroy();
@@ -115,10 +159,22 @@ function VisitMapMascotLottie({ walking, prefersReducedMotion }) {
         /* noop */
       }
     };
+    let paintChecks = 0;
     const checkDrawableAfterPaint = () => {
       if (cancelled || animRef.current !== anim) return;
       const looksPainted = rendererMode === 'svg' ? svgLooksPainted(el) : canvasLooksPainted(el);
-      if (!looksPainted) switchToCanvasOrPlaceholder();
+      paintChecks += 1;
+      setPaintMeta((prev) => ({
+        status: looksPainted ? 'painted' : 'checking',
+        checks: paintChecks,
+        lastReason: looksPainted ? `painted:${rendererMode}` : `retry:${rendererMode}`,
+      }));
+      if (looksPainted) return;
+      if (paintChecks < MAX_PAINT_CHECKS) {
+        checkTimer = window.setTimeout(checkDrawableAfterPaint, PAINT_CHECK_INTERVAL_MS);
+        return;
+      }
+      switchToCanvasOrPlaceholder();
     };
     const onDomLoaded = () => {
       paintIdle();
@@ -188,7 +244,17 @@ function VisitMapMascotLottie({ walking, prefersReducedMotion }) {
     return <div className="visit-map-mascot-lottie visit-map-mascot-lottie--placeholder" aria-hidden="true" />;
   }
 
-  return <div className="visit-map-mascot-lottie" data-renderer={rendererMode} ref={containerRef} aria-hidden="true" />;
+  return (
+    <div
+      className="visit-map-mascot-lottie"
+      data-renderer={rendererMode}
+      data-painted-status={paintMeta.status}
+      data-painted-checks={paintMeta.checks}
+      data-painted-reason={paintMeta.lastReason}
+      ref={containerRef}
+      aria-hidden="true"
+    />
+  );
 }
 
 export default VisitMapMascotLottie;
