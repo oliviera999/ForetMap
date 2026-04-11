@@ -7,6 +7,54 @@ const IDLE_FRAME = 0;
 const WALK_START = 1;
 const WALK_END = 30;
 
+function isTransparentPaint(value) {
+  const raw = String(value || '').trim().toLowerCase();
+  if (!raw || raw === 'none' || raw === 'transparent') return true;
+  if (raw.startsWith('rgba(') || raw.startsWith('hsla(')) {
+    const parts = raw
+      .replace(/^rgba?\(/, '')
+      .replace(/^hsla?\(/, '')
+      .replace(/\)$/, '')
+      .split(',')
+      .map((p) => p.trim());
+    const alpha = Number(parts[3]);
+    return Number.isFinite(alpha) ? alpha <= 0 : false;
+  }
+  if (/^#[0-9a-f]{8}$/i.test(raw)) return raw.slice(7, 9) === '00';
+  if (/^#[0-9a-f]{4}$/i.test(raw)) return raw.slice(3, 4) === '0';
+  return false;
+}
+
+function svgLooksPainted(containerEl) {
+  const svg = containerEl.querySelector('svg');
+  if (!svg) return false;
+  const box = svg.getBoundingClientRect();
+  if (!(box.width > 2 && box.height > 2)) return false;
+  const drawableNodes = svg.querySelectorAll('path,circle,ellipse,rect,polygon,polyline,line');
+  if (drawableNodes.length === 0) return false;
+  for (const node of drawableNodes) {
+    if (node.tagName === 'path') {
+      const d = node.getAttribute('d');
+      if (!d || !String(d).trim()) continue;
+    }
+    const st = window.getComputedStyle(node);
+    const opacity = Number.parseFloat(st.opacity || '1');
+    if (Number.isFinite(opacity) && opacity <= 0) continue;
+    const strokeWidth = Number.parseFloat(st.strokeWidth || '0');
+    const fillHidden = isTransparentPaint(st.fill);
+    const strokeHidden = isTransparentPaint(st.stroke) || !(strokeWidth > 0);
+    if (!(fillHidden && strokeHidden)) return true;
+  }
+  return false;
+}
+
+function canvasLooksPainted(containerEl) {
+  const canvas = containerEl.querySelector('canvas');
+  if (!canvas) return false;
+  const box = canvas.getBoundingClientRect();
+  return box.width > 2 && box.height > 2;
+}
+
 /**
  * Mascotte visite (Lottie) — petit personnage « rétro-moderne » (gros yeux, reflets, pas alternés).
  * L’orientation gauche/droite est gérée par le parent (`scaleX`). Marche : segment Lottie dédié ; idle : frame 0 figée.
@@ -15,6 +63,7 @@ function VisitMapMascotLottie({ walking, prefersReducedMotion }) {
   const containerRef = useRef(null);
   const animRef = useRef(null);
   const [loadError, setLoadError] = useState(false);
+  const [rendererMode, setRendererMode] = useState('svg');
 
   useEffect(() => {
     const el = containerRef.current;
@@ -24,7 +73,7 @@ function VisitMapMascotLottie({ walking, prefersReducedMotion }) {
     try {
       anim = lottie.loadAnimation({
         container: el,
-        renderer: 'svg',
+        renderer: rendererMode,
         loop: true,
         autoplay: false,
         animationData: visitMascotAnim,
@@ -35,8 +84,18 @@ function VisitMapMascotLottie({ walking, prefersReducedMotion }) {
     }
     animRef.current = anim;
 
-    const switchToPlaceholder = () => {
+    const switchToCanvasOrPlaceholder = () => {
       if (cancelled || animRef.current !== anim) return;
+      if (rendererMode === 'svg') {
+        try {
+          anim.destroy();
+        } catch (_) {
+          /* noop */
+        }
+        animRef.current = null;
+        setRendererMode('canvas');
+        return;
+      }
       setLoadError(true);
       try {
         anim.destroy();
@@ -44,24 +103,6 @@ function VisitMapMascotLottie({ walking, prefersReducedMotion }) {
         /* noop */
       }
       animRef.current = null;
-    };
-
-    const hasDrawableSvg = () => {
-      const svg = el.querySelector('svg');
-      if (!svg) return false;
-      const box = svg.getBoundingClientRect();
-      if (!(box.width > 2 && box.height > 2)) return false;
-      const drawableNodes = svg.querySelectorAll('path,circle,ellipse,rect,polygon,polyline,line');
-      if (drawableNodes.length === 0) return false;
-      for (const node of drawableNodes) {
-        if (node.tagName === 'path') {
-          const d = node.getAttribute('d');
-          if (typeof d === 'string' && d.trim()) return true;
-          continue;
-        }
-        return true;
-      }
-      return false;
     };
 
     /** Sans ça, `goToAndStop(0)` peut partir avant le DOM SVG → chemins vides, mascotte « invisible » sans erreur console. */
@@ -76,7 +117,8 @@ function VisitMapMascotLottie({ walking, prefersReducedMotion }) {
     };
     const checkDrawableAfterPaint = () => {
       if (cancelled || animRef.current !== anim) return;
-      if (!hasDrawableSvg()) switchToPlaceholder();
+      const looksPainted = rendererMode === 'svg' ? svgLooksPainted(el) : canvasLooksPainted(el);
+      if (!looksPainted) switchToCanvasOrPlaceholder();
     };
     const onDomLoaded = () => {
       paintIdle();
@@ -111,7 +153,7 @@ function VisitMapMascotLottie({ walking, prefersReducedMotion }) {
       }
       animRef.current = null;
     };
-  }, []);
+  }, [rendererMode]);
 
   useEffect(() => {
     const anim = animRef.current;
@@ -146,7 +188,7 @@ function VisitMapMascotLottie({ walking, prefersReducedMotion }) {
     return <div className="visit-map-mascot-lottie visit-map-mascot-lottie--placeholder" aria-hidden="true" />;
   }
 
-  return <div className="visit-map-mascot-lottie" ref={containerRef} aria-hidden="true" />;
+  return <div className="visit-map-mascot-lottie" data-renderer={rendererMode} ref={containerRef} aria-hidden="true" />;
 }
 
 export default VisitMapMascotLottie;
