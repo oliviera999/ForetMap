@@ -6,6 +6,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 ## [Non publié]
 
 ### Ajouté
+- **Tests — mascotte visite** : extraction **`src/utils/visitMascotPlacement.js`** (repère entrée N3, position initiale) et **`src/utils/visitMascotVisibility.js`** ; tests Node **`tests/visit-mascot-placement.test.js`**, **`tests/visit-mascot-visibility.test.js`** ; e2e Playwright **`e2e/visit-mascot.spec.js`** avec fixture **`e2e/fixtures/visit-api.fixture.js`** (seed API prof sur carte **n3**, nettoyage après chaque test). Couverture : visibilité, position initiale entrée N3, déplacement au clic (repère / zone), classe **walking**, **`prefers-reduced-motion`**. **`e2e/visit-mode.spec.js`** : assertion mascotte sur **`.visit-map-mascot-inner`** (le conteneur **`.visit-map-mascot`** est en **0×0** et est vu « hidden » par Playwright).
 - **Tâches** : les pastilles **biodiversité** (`living_beings_list`) sur chaque **carte de mission** (affichage tuiles ou liste) sont **cliquables** ; une fenêtre affiche la **fiche catalogue** (description, rôle dans l’écosystème, utilité pour l’humain), sur le même principe que les modales **zone** et **repère**. Le panneau `LivingBeingsCatalogPanel` est **exporté** depuis `map-views.jsx` pour réutilisation dans `tasks-views.jsx`.
 
 ### Modifié
@@ -31,6 +32,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - **Commentaires / forum / rapports de tâche** : horodatage toujours **date + heure** (fr-FR, jour/mois/année et minutes) via utilitaire commun **`formatDateTimeFr`** ; les **rapports** (modal) utilisaient **`toLocaleDateString`** avec options d’heure souvent ignorées par le moteur.
 
 ### Modifié
+- **Visite (repères)** : **`aria-label`** sur les boutons repère du plan visite (libellé du repère), pour l’accessibilité et des sélecteurs e2e plus stables lorsque le bundle sert une build à jour.
 - **Tâches** : les pastilles **tutoriels** (`tutorials_linked`) sur les **cartes mission** et les **fiches projet** ouvrent le contenu au **clic** (nouvel onglet, même URL que le bouton « 📖 Consulter » des tutoriels liés aux zones/repères). Style **`task-tutorial-chip`**.
 - **Documentation déploiement** : précision que le **ZIP runtime est optionnel** ; le dossier `deploy/runtime/foretmap-runtime-*` peut être **uploadé décompressé** (`rsync`, SFTP, etc.). **`docs/LOCAL_DEV.md`**, **`docs/EXPLOITATION.md`**, **`README.md`** ; règle **`.cursor/rules/foretmap-conventions.mdc`** ; messages de fin **`scripts/prepare-runtime-deploy.js`** et **`prepare-runtime-deploy.ps1`**.
 - **Visite — mascotte** : affichage dès qu’il existe au moins une **zone** ou un **repère** dans le contenu chargé, pas uniquement lorsque le décompte « parcourable » (polygones valides à ≥ 3 points) est &gt; 0 — évite une mascotte absente si des zones sont mal géométrisées. Chargement visite : ignore les réponses **obsolètes** après changement de carte ; payload visite rejeté s’il s’agit d’un **tableau** (spread JSON invalide).
