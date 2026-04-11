@@ -3107,34 +3107,6 @@ function TaskTileCard({
             <span key={m.id} className="task-chip">📍 {m.label}</span>
           ))}
           {!((t.markers_linked || []).length) && t.marker_label && <span className="task-chip">📍 {t.marker_label}</span>}
-          {(Array.isArray(t.living_beings_list) ? t.living_beings_list : []).map((name) => (
-            <button
-              type="button"
-              key={`lb-${t.id}-${name}`}
-              className="task-chip living-being-catalog-chip"
-              aria-label={`Afficher la fiche catalogue : ${name}`}
-              onClick={() => setSpeciesCatalogName(name)}
-            >
-              {taskLivingBeingEmoji(plants, name)} {name}
-            </button>
-          ))}
-          {(t.tutorials_linked || []).map((tu) => {
-            const href = tutorialPickerOpenHref(tu);
-            return href ? (
-              <a
-                key={tu.id}
-                className="task-chip task-tutorial-chip"
-                href={href}
-                target="_blank"
-                rel="noopener noreferrer"
-                title={`Ouvrir le tutoriel « ${tu.title || ''} »`}
-              >
-                📘 {tu.title}
-              </a>
-            ) : (
-              <span key={tu.id} className="task-chip">📘 {tu.title}</span>
-            );
-          })}
           {t.project_title && <span className="task-chip">📁 {t.project_title}</span>}
           {t.project_title && t.project_status === 'on_hold' && <span className="task-chip">⏸️ Projet en attente</span>}
           {startDateChip(t.start_date)}
@@ -3159,6 +3131,42 @@ function TaskTileCard({
           </button>
         )}
         {cardDescription && <div className="task-desc">{cardDescription}</div>}
+        {(((Array.isArray(t.living_beings_list) ? t.living_beings_list : []).length > 0)
+          || ((t.tutorials_linked || []).length > 0)) && (
+          <div
+            className="task-meta task-meta--after-desc"
+            style={!cardDescription && coverSrc ? { marginTop: 10 } : undefined}
+          >
+            {(Array.isArray(t.living_beings_list) ? t.living_beings_list : []).map((name) => (
+              <button
+                type="button"
+                key={`lb-${t.id}-${name}`}
+                className="task-chip living-being-catalog-chip"
+                aria-label={`Afficher la fiche catalogue : ${name}`}
+                onClick={() => setSpeciesCatalogName(name)}
+              >
+                {taskLivingBeingEmoji(plants, name)} {name}
+              </button>
+            ))}
+            {(t.tutorials_linked || []).map((tu) => {
+              const href = tutorialPickerOpenHref(tu);
+              return href ? (
+                <a
+                  key={tu.id}
+                  className="task-chip task-tutorial-chip"
+                  href={href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  title={`Ouvrir le tutoriel « ${tu.title || ''} »`}
+                >
+                  📘 {tu.title}
+                </a>
+              ) : (
+                <span key={tu.id} className="task-chip">📘 {tu.title}</span>
+              );
+            })}
+          </div>
+        )}
         {referentsLinked.length > 0 && (
           <div
             className="task-desc"
