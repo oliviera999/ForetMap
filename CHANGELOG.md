@@ -5,6 +5,9 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé
+- **Visite — mascotte Lottie « invisible »** : après `loadAnimation`, application de la frame idle sur l’événement **`DOMLoaded`** et repli **double `requestAnimationFrame`** pour éviter des chemins SVG vides si `goToAndStop(0)` partait trop tôt. Calque carte : **`z-index`** explicites (**zones 1**, mascotte **10**, repères **14**). **`VisitMapMascotLottie.jsx`**, **`index.css`**, **`docs/VISIT_MAP_GEOMETRY.md`**.
+
 ### Ajouté
 - **Visite — diagnostic prod (mascotte)** : agrégats **`visitMascotHint`** sur **`GET /api/admin/diagnostics`** (par carte : volumes visite publics / tutoriels et **`mascotWouldRenderHint`**, sans PII) via **`lib/visitMascotDiagnostics.js`** ; tests **`tests/visit-mascot-diagnostics.test.js`** et assertions **`tests/api.test.js`** ; checklist opérateur dans **`docs/VISIT_MAP_GEOMETRY.md`** ; mentions **`docs/API.md`**, **`docs/EXPLOITATION.md`**, **`docs/EVOLUTION.md`**.
 - **Biodiversité — découvertes utilisateur** : bouton **« Espèce découverte »** (JWT) et engagement explicite (observation sur le terrain + lecture de fiche), sur le modèle tutoriel « marquer comme lu » ; table **`user_plant_discoveries`** (migration **`068_user_plant_discoveries.sql`**, schéma **`sql/schema_foretmap.sql`**), **`GET /api/plants/me/discovered-ids`** et **`POST /api/plants/:id/acknowledge-discovery`** (`confirm: true`) dans **`routes/plants.js`** ; composant **`PlantSpeciesDiscoveryAcknowledge.jsx`**, intégration **`PlantViewer`** / **`PlantManager`** et **`App.jsx`** (`onForceLogout`) ; tests **`tests/plants-discovery.test.js`** ; **`docs/API.md`**.
