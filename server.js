@@ -188,8 +188,10 @@ app.use('/api/auth/login', authLimiter);
 app.use('/api/auth/register', authLimiter);
 app.use('/api/auth/reset-password', authLimiter);
 
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+// JSON volumineux (ex. plusieurs photos en base64 sur forum / commentaires). Surcharge : FORETMAP_JSON_BODY_LIMIT (ex. 200mb).
+const jsonBodyLimit = String(process.env.FORETMAP_JSON_BODY_LIMIT || '100mb').trim() || '100mb';
+app.use(express.json({ limit: jsonBodyLimit }));
+app.use(express.urlencoded({ extended: true, limit: jsonBodyLimit }));
 app.use((req, res, next) => {
   // Limite les sources d'images (photos externes + base64 locales).
   res.setHeader('Content-Security-Policy', "img-src 'self' https: data: blob:;");

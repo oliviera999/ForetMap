@@ -77,7 +77,7 @@ Note importante: la suppression de zone n'appelle pas explicitement `deleteFile`
 ### 2.6 Pipeline technique commun
 
 - Compression client JPEG via canvas (`compressImage`, + variante locale dans `LogModal`).
-- Transport en JSON base64 (`express.json({ limit: '10mb' })`).
+- Transport en JSON base64 (`express.json` : défaut **100mb**, variable **`FORETMAP_JSON_BODY_LIMIT`**).
 - Ecriture disque via `saveBase64ToDisk(relativePath, base64Data)`.
 - Protection path traversal via `assertInsideUploads`.
 - Exposition statique globale de `uploads/` via `app.use('/uploads', express.static(...))`.
