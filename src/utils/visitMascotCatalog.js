@@ -11,8 +11,23 @@ const VISIT_MASCOT_CATALOG = [
     id: 'gnome-foret-rive',
     label: 'Gnome foret (Rive)',
     renderer: 'rive',
+    fallbackVariant: 'forest',
     rive: {
       src: '/assets/rive/visit-mascot.riv',
+      stateAnimations: {
+        idle: ['idle', 'Idle', 'IDLE'],
+        walking: ['walk', 'Walk', 'walking', 'Walking'],
+        happy: ['happy', 'Happy', 'celebrate', 'Celebrate'],
+      },
+    },
+  },
+  {
+    id: 'gnome-ambre-rive',
+    label: 'Gnome ambre (Rive)',
+    renderer: 'rive',
+    fallbackVariant: 'amber',
+    rive: {
+      src: '/assets/rive/visit-mascot-amber.riv',
       stateAnimations: {
         idle: ['idle', 'Idle', 'IDLE'],
         walking: ['walk', 'Walk', 'walking', 'Walking'],
@@ -24,6 +39,7 @@ const VISIT_MASCOT_CATALOG = [
     id: 'sprite-template',
     label: 'Gnome template (spritesheet)',
     renderer: 'spritesheet',
+    fallbackVariant: 'forest',
     spritesheet: {
       src: '/assets/mascots/template/mascot-spritesheet.png',
       frameWidth: 64,

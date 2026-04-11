@@ -12,7 +12,8 @@ function VisitMapMascotRenderer({
   mascotId = '',
 }) {
   const selectedMascot = getVisitMascotById(mascotId) || getVisitMascotById(getDefaultVisitMascotId());
-  const fallback = <DefaultVisitMascotStaticSvg />;
+  const fallbackVariant = selectedMascot?.fallbackVariant || 'forest';
+  const fallback = <DefaultVisitMascotStaticSvg variant={fallbackVariant} />;
   const renderer = selectedMascot?.renderer;
 
   if (renderer === 'spritesheet') {
