@@ -6,17 +6,17 @@ const VISIT_MASCOT_STATE = {
 
 const VISIT_MASCOT_DIALOG = {
   move: [
-    'Je te suis.',
-    'On avance.',
-    'Continuons la visite.',
+    'Je trottine derriere toi.',
+    'Le sentier du gnome est ouvert.',
+    'On explore la foret ensemble.',
   ],
   mark_seen: [
-    'Bravo, repère validé.',
-    'Super, zone visitée.',
-    'Très bien, on continue.',
+    'Bravo, zone benie du gnome.',
+    'Excellent, repere valide.',
+    'Parfait, la foret te remercie.',
   ],
   idle: [
-    'Je suis prêt.',
+    'Ton gnome gardien est pret.',
   ],
 };
 

@@ -5,19 +5,24 @@ import { VISIT_MASCOT_STATE } from '../utils/visitMascotState.js';
 function DefaultVisitMascotStaticSvg() {
   return (
     <svg viewBox="0 0 128 148" role="presentation" focusable="false">
-      <ellipse cx="64" cy="140" rx="34" ry="7" fill="rgba(26,71,49,0.22)" />
-      <rect x="23" y="18" width="82" height="30" rx="15" fill="#e8f5e9" stroke="#1a4731" strokeWidth="4" />
-      <ellipse cx="64" cy="74" rx="38" ry="46" fill="#f4e9d0" stroke="#1a4731" strokeWidth="4" />
-      <ellipse cx="48" cy="68" rx="9" ry="11" fill="#ffffff" />
-      <ellipse cx="80" cy="68" rx="9" ry="11" fill="#ffffff" />
-      <ellipse cx="48" cy="70" rx="4" ry="5" fill="#1a4731" />
-      <ellipse cx="80" cy="70" rx="4" ry="5" fill="#1a4731" />
-      <circle cx="51" cy="66" r="1.4" fill="#ffffff" />
-      <circle cx="83" cy="66" r="1.4" fill="#ffffff" />
-      <path d="M57 86 Q64 91 71 86" fill="none" stroke="#1a4731" strokeWidth="4" strokeLinecap="round" />
-      <rect x="40" y="97" width="48" height="25" rx="12" fill="#86efac" stroke="#1a4731" strokeWidth="4" />
-      <rect x="46" y="120" width="13" height="17" rx="6" fill="#6b4f2d" />
-      <rect x="69" y="120" width="13" height="17" rx="6" fill="#6b4f2d" />
+      <ellipse cx="64" cy="140" rx="33" ry="7" fill="rgba(26,71,49,0.2)" />
+      <path d="M28 40 L64 9 L100 40 L89 44 L39 44 Z" fill="#2f855a" stroke="#1a4731" strokeWidth="4" />
+      <ellipse cx="64" cy="48" rx="27" ry="20" fill="#f4e9d0" stroke="#1a4731" strokeWidth="4" />
+      <ellipse cx="50" cy="47" rx="6.5" ry="8.5" fill="#fff" />
+      <ellipse cx="78" cy="47" rx="6.5" ry="8.5" fill="#fff" />
+      <ellipse cx="50" cy="49" rx="3" ry="4" fill="#1a4731" />
+      <ellipse cx="78" cy="49" rx="3" ry="4" fill="#1a4731" />
+      <circle cx="52" cy="46" r="1.3" fill="#fff" />
+      <circle cx="80" cy="46" r="1.3" fill="#fff" />
+      <circle cx="64" cy="56" r="2.7" fill="#d97745" />
+      <path d="M58 60 Q64 64 70 60" fill="none" stroke="#1a4731" strokeWidth="3" strokeLinecap="round" />
+      <path d="M43 62 Q64 99 85 62 Q77 110 64 118 Q51 110 43 62 Z" fill="#fff8ef" stroke="#1a4731" strokeWidth="3.4" />
+      <rect x="36" y="76" width="56" height="34" rx="14" fill="#6cc596" stroke="#1a4731" strokeWidth="4" />
+      <rect x="59" y="78" width="10" height="28" rx="5" fill="#84512f" />
+      <rect x="43" y="108" width="16" height="26" rx="8" fill="#6b4f2d" />
+      <rect x="69" y="108" width="16" height="26" rx="8" fill="#6b4f2d" />
+      <rect x="36" y="82" width="14" height="22" rx="7" fill="#f4e9d0" stroke="#1a4731" strokeWidth="3" />
+      <rect x="78" y="82" width="14" height="22" rx="7" fill="#f4e9d0" stroke="#1a4731" strokeWidth="3" />
     </svg>
   );
 }

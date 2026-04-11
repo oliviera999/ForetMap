@@ -8,8 +8,8 @@ const VISIT_MASCOT_STORAGE_KEY = 'foretmap_visit_mascot_id';
  */
 const VISIT_MASCOT_CATALOG = [
   {
-    id: 'forest-guide-rive',
-    label: 'Guide forêt (Rive)',
+    id: 'gnome-foret-rive',
+    label: 'Gnome foret (Rive)',
     renderer: 'rive',
     rive: {
       src: '/assets/rive/visit-mascot.riv',
@@ -22,7 +22,7 @@ const VISIT_MASCOT_CATALOG = [
   },
   {
     id: 'sprite-template',
-    label: 'Template spritesheet',
+    label: 'Gnome template (spritesheet)',
     renderer: 'spritesheet',
     spritesheet: {
       src: '/assets/mascots/template/mascot-spritesheet.png',
