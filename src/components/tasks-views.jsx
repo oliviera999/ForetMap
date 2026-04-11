@@ -12,6 +12,7 @@ import { HelpPanel } from './HelpPanel';
 import { ContextComments } from './context-comments';
 import { formatDateTimeFr } from '../utils/datetime-fr';
 import { HELP_PANELS, HELP_TOOLTIPS, resolveRoleText } from '../constants/help';
+import { LivingBeingsCatalogPanel } from './map-views';
 import { lockBodyScroll } from '../utils/body-scroll-lock';
 import { armNativeFilePickerGuard, disarmNativeFilePickerGuard } from '../utils/overlayHistory';
 import { isStudentAssignedToTask } from '../utils/task-assignments';
@@ -2977,6 +2978,30 @@ function TaskLogsViewer({ task, onClose }) {
   );
 }
 
+/** Fiche catalogue (description, rôle, utilité) pour une espèce liée à une mission — même logique que zone/repère. */
+function TaskLivingBeingCatalogModal({ plants, speciesName, onClose }) {
+  const dialogRef = useDialogA11y(onClose);
+  useOverlayHistoryBack(true, onClose);
+  return (
+    <div className="modal-overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
+      <div
+        ref={dialogRef}
+        className="log-modal fade-in"
+        role="dialog"
+        aria-modal="true"
+        aria-label={`Espèce : ${speciesName}`}
+        tabIndex={-1}
+        onClick={(e) => e.stopPropagation()}
+        style={{ maxWidth: 440, width: 'min(92vw, 440px)' }}
+      >
+        <button type="button" className="modal-close" aria-label="Fermer la fenêtre" onClick={onClose}>✕</button>
+        <h3 style={{ margin: '0 0 12px', fontSize: '1.05rem', color: 'var(--forest)' }}>Biodiversité</h3>
+        <LivingBeingsCatalogPanel plants={plants} names={[speciesName]} showHeading={false} />
+      </div>
+    </div>
+  );
+}
+
 function TaskTileCard({
   t,
   index = 0,
@@ -3018,6 +3043,7 @@ function TaskTileCard({
   tooltipText,
 }) {
     const [coverLightbox, setCoverLightbox] = useState(null);
+    const [speciesCatalogName, setSpeciesCatalogName] = useState(null);
 
     const effectiveStatus = taskEffectiveStatus(t);
     const isMine = !!(student && isStudentAssignedToTask(t, student));
@@ -3060,6 +3086,13 @@ function TaskTileCard({
         style={{ animationDelay: `${Math.min(index * 60, 360)}ms` }}
       >
         {coverLightbox && <Lightbox src={coverLightbox} caption="" onClose={() => setCoverLightbox(null)} />}
+        {speciesCatalogName && (
+          <TaskLivingBeingCatalogModal
+            plants={plants}
+            speciesName={speciesCatalogName}
+            onClose={() => setSpeciesCatalogName(null)}
+          />
+        )}
         <div className="task-top">
           <div className="task-title-row">
             {taskStatusIndicator(effectiveStatus, isN3Affiliated)}
@@ -3076,9 +3109,15 @@ function TaskTileCard({
           ))}
           {!((t.markers_linked || []).length) && t.marker_label && <span className="task-chip">📍 {t.marker_label}</span>}
           {(Array.isArray(t.living_beings_list) ? t.living_beings_list : []).map((name) => (
-            <span key={`lb-${t.id}-${name}`} className="task-chip">
+            <button
+              type="button"
+              key={`lb-${t.id}-${name}`}
+              className="task-chip living-being-catalog-chip"
+              aria-label={`Afficher la fiche catalogue : ${name}`}
+              onClick={() => setSpeciesCatalogName(name)}
+            >
               {taskLivingBeingEmoji(plants, name)} {name}
-            </span>
+            </button>
           ))}
           {(t.tutorials_linked || []).map((tu) => (
             <span key={tu.id} className="task-chip">📘 {tu.title}</span>
