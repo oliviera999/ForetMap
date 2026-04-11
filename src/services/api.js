@@ -201,8 +201,11 @@ export async function listContextComments({ contextType, contextId, page = 1, pa
   return api(`/api/context-comments?${qs.toString()}`);
 }
 
-export async function createContextComment({ contextType, contextId, body }) {
-  return api('/api/context-comments', 'POST', { contextType, contextId, body });
+export async function createContextComment({ contextType, contextId, body, images }) {
+  const payload = { contextType, contextId };
+  if (body !== undefined && body !== null && String(body).length > 0) payload.body = body;
+  if (Array.isArray(images) && images.length > 0) payload.images = images;
+  return api('/api/context-comments', 'POST', payload);
 }
 
 export async function deleteContextComment(commentId) {

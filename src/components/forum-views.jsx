@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { api, toggleForumPostReaction } from '../services/api';
 import { formatDateTimeFr } from '../utils/datetime-fr';
+import { AttachmentImagesPicker, UserContentImagesGrid } from './attachment-images-picker';
 
 const THREAD_PAGE_SIZE = 20;
 const POST_PAGE_SIZE = 50;
@@ -43,7 +44,9 @@ function ForumView({ authClaims, canParticipateForum = true }) {
 
   const [newTitle, setNewTitle] = useState('');
   const [newBody, setNewBody] = useState('');
+  const [newThreadImages, setNewThreadImages] = useState([]);
   const [replyBody, setReplyBody] = useState('');
+  const [replyImages, setReplyImages] = useState([]);
   const [reportReasonByPost, setReportReasonByPost] = useState({});
   const [toast, setToast] = useState('');
 
@@ -133,9 +136,12 @@ function ForumView({ authClaims, canParticipateForum = true }) {
   const handleCreateThread = async (e) => {
     e.preventDefault();
     try {
-      const res = await api('/api/forum/threads', 'POST', { title: newTitle, body: newBody });
+      const payload = { title: newTitle, body: newBody.trim() || undefined };
+      if (newThreadImages.length > 0) payload.images = newThreadImages;
+      const res = await api('/api/forum/threads', 'POST', payload);
       setNewTitle('');
       setNewBody('');
+      setNewThreadImages([]);
       setToast('Sujet créé');
       await loadThreads(1);
       const nextId = res?.thread?.id || '';
@@ -152,8 +158,11 @@ function ForumView({ authClaims, canParticipateForum = true }) {
     e.preventDefault();
     if (!selectedThreadId) return;
     try {
-      await api(`/api/forum/threads/${encodeURIComponent(selectedThreadId)}/posts`, 'POST', { body: replyBody });
+      const payload = { body: replyBody.trim() || undefined };
+      if (replyImages.length > 0) payload.images = replyImages;
+      await api(`/api/forum/threads/${encodeURIComponent(selectedThreadId)}/posts`, 'POST', payload);
       setReplyBody('');
+      setReplyImages([]);
       setToast('Réponse publiée');
       await loadThreads(threadsPage);
       await loadThreadDetail(selectedThreadId, postsPage);
@@ -235,9 +244,15 @@ function ForumView({ authClaims, canParticipateForum = true }) {
                 onChange={(e) => setNewBody(e.target.value)}
                 rows={4}
                 maxLength={4000}
-                required
+                required={newThreadImages.length === 0}
               />
             </div>
+            <AttachmentImagesPicker
+              value={newThreadImages}
+              onChange={setNewThreadImages}
+              onNotify={(msg) => setToast(msg)}
+              label="Photos du premier message (optionnel, max 3, 1,5 Mo chacune)"
+            />
             <button type="submit" className="btn btn-primary btn-sm">Publier le sujet</button>
           </form>
         </section>
@@ -349,6 +364,7 @@ function ForumView({ authClaims, canParticipateForum = true }) {
                       <p className="forum-post-body">
                         {p.is_deleted ? '[message supprimé]' : p.body}
                       </p>
+                      {!p.is_deleted && <UserContentImagesGrid urls={p.image_urls} />}
                       {!p.is_deleted && (canUseForumActions ? (
                         <div className={`message-reactions-row ${reactionsExpanded ? 'expanded' : 'compact'}`}>
                           {!reactionsExpanded ? (
@@ -435,10 +451,17 @@ function ForumView({ authClaims, canParticipateForum = true }) {
                       onChange={(e) => setReplyBody(e.target.value)}
                       rows={3}
                       maxLength={4000}
-                      required
+                      required={replyImages.length === 0}
                       disabled={!!threadDetail.is_locked}
                     />
                   </div>
+                  <AttachmentImagesPicker
+                    value={replyImages}
+                    onChange={setReplyImages}
+                    disabled={!!threadDetail.is_locked}
+                    onNotify={(msg) => setToast(msg)}
+                    label="Photos (optionnel, max 3, 1,5 Mo chacune)"
+                  />
                   <button type="submit" className="btn btn-primary btn-sm" disabled={!!threadDetail.is_locked}>
                     Envoyer
                   </button>
