@@ -9,6 +9,26 @@ const WALK_END = 30;
 const MAX_PAINT_CHECKS = 6;
 const PAINT_CHECK_INTERVAL_MS = 180;
 
+function StaticVisitMascotSvg() {
+  return (
+    <svg viewBox="0 0 128 148" role="presentation" focusable="false">
+      <ellipse cx="64" cy="140" rx="34" ry="7" fill="rgba(26,71,49,0.22)" />
+      <rect x="23" y="18" width="82" height="30" rx="15" fill="#e8f5e9" stroke="#1a4731" strokeWidth="4" />
+      <ellipse cx="64" cy="74" rx="38" ry="46" fill="#f4e9d0" stroke="#1a4731" strokeWidth="4" />
+      <ellipse cx="48" cy="68" rx="9" ry="11" fill="#ffffff" />
+      <ellipse cx="80" cy="68" rx="9" ry="11" fill="#ffffff" />
+      <ellipse cx="48" cy="70" rx="4" ry="5" fill="#1a4731" />
+      <ellipse cx="80" cy="70" rx="4" ry="5" fill="#1a4731" />
+      <circle cx="51" cy="66" r="1.4" fill="#ffffff" />
+      <circle cx="83" cy="66" r="1.4" fill="#ffffff" />
+      <path d="M57 86 Q64 91 71 86" fill="none" stroke="#1a4731" strokeWidth="4" strokeLinecap="round" />
+      <rect x="40" y="97" width="48" height="25" rx="12" fill="#86efac" stroke="#1a4731" strokeWidth="4" />
+      <rect x="46" y="120" width="13" height="17" rx="6" fill="#6b4f2d" />
+      <rect x="69" y="120" width="13" height="17" rx="6" fill="#6b4f2d" />
+    </svg>
+  );
+}
+
 function isTransparentPaint(value) {
   const raw = String(value || '').trim().toLowerCase();
   if (!raw || raw === 'none' || raw === 'transparent') return true;
@@ -250,35 +270,26 @@ function VisitMapMascotLottie({ walking, prefersReducedMotion }) {
         data-painted-reason={paintMeta.lastReason}
         aria-hidden="true"
       >
-        <svg viewBox="0 0 128 148" role="presentation" focusable="false">
-          <ellipse cx="64" cy="140" rx="34" ry="7" fill="rgba(26,71,49,0.22)" />
-          <rect x="23" y="18" width="82" height="30" rx="15" fill="#e8f5e9" stroke="#1a4731" strokeWidth="4" />
-          <ellipse cx="64" cy="74" rx="38" ry="46" fill="#f4e9d0" stroke="#1a4731" strokeWidth="4" />
-          <ellipse cx="48" cy="68" rx="9" ry="11" fill="#ffffff" />
-          <ellipse cx="80" cy="68" rx="9" ry="11" fill="#ffffff" />
-          <ellipse cx="48" cy="70" rx="4" ry="5" fill="#1a4731" />
-          <ellipse cx="80" cy="70" rx="4" ry="5" fill="#1a4731" />
-          <circle cx="51" cy="66" r="1.4" fill="#ffffff" />
-          <circle cx="83" cy="66" r="1.4" fill="#ffffff" />
-          <path d="M57 86 Q64 91 71 86" fill="none" stroke="#1a4731" strokeWidth="4" strokeLinecap="round" />
-          <rect x="40" y="97" width="48" height="25" rx="12" fill="#86efac" stroke="#1a4731" strokeWidth="4" />
-          <rect x="46" y="120" width="13" height="17" rx="6" fill="#6b4f2d" />
-          <rect x="69" y="120" width="13" height="17" rx="6" fill="#6b4f2d" />
-        </svg>
+        <StaticVisitMascotSvg />
       </div>
     );
   }
 
   return (
-    <div
-      className="visit-map-mascot-lottie"
-      data-renderer={rendererMode}
-      data-painted-status={paintMeta.status}
-      data-painted-checks={paintMeta.checks}
-      data-painted-reason={paintMeta.lastReason}
-      ref={containerRef}
-      aria-hidden="true"
-    />
+    <div className="visit-map-mascot-lottie-shell" aria-hidden="true">
+      <div className="visit-map-mascot-static" aria-hidden="true">
+        <StaticVisitMascotSvg />
+      </div>
+      <div
+        className="visit-map-mascot-lottie"
+        data-renderer={rendererMode}
+        data-painted-status={paintMeta.status}
+        data-painted-checks={paintMeta.checks}
+        data-painted-reason={paintMeta.lastReason}
+        ref={containerRef}
+        aria-hidden="true"
+      />
+    </div>
   );
 }
 
