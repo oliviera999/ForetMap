@@ -20,6 +20,7 @@ function VisitMapMascotLottie({ walking, prefersReducedMotion }) {
     const el = containerRef.current;
     if (!el) return undefined;
     let anim = null;
+    let cancelled = false;
     try {
       anim = lottie.loadAnimation({
         container: el,
@@ -33,7 +34,34 @@ function VisitMapMascotLottie({ walking, prefersReducedMotion }) {
       return undefined;
     }
     animRef.current = anim;
+
+    /** Sans ça, `goToAndStop(0)` peut partir avant le DOM SVG → chemins vides, mascotte « invisible » sans erreur console. */
+    const paintIdle = () => {
+      if (cancelled || animRef.current !== anim) return;
+      try {
+        anim.pause();
+        anim.goToAndStop(IDLE_FRAME, true);
+      } catch (_) {
+        /* noop */
+      }
+    };
+    const onDomLoaded = () => paintIdle();
+    anim.addEventListener('DOMLoaded', onDomLoaded);
+    let raf0 = 0;
+    let raf1 = 0;
+    raf0 = requestAnimationFrame(() => {
+      raf1 = requestAnimationFrame(paintIdle);
+    });
+
     return () => {
+      cancelled = true;
+      cancelAnimationFrame(raf0);
+      cancelAnimationFrame(raf1);
+      try {
+        anim.removeEventListener('DOMLoaded', onDomLoaded);
+      } catch (_) {
+        /* noop */
+      }
       try {
         anim.destroy();
       } catch (_) {

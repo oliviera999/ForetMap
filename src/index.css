@@ -2591,6 +2591,7 @@
       inset:0;
       width:100%;
       height:100%;
+      z-index:1;
     }
     .visit-zone-hit { pointer-events:all; }
     .visit-zone-label {
@@ -2616,6 +2617,7 @@
     }
     .visit-marker-btn {
       position:absolute; transform:translate(-50%,-50%);
+      z-index:14;
       min-width:44px; min-height:44px; padding:2px;
       border:none; border-radius:0;
       background:transparent; cursor:pointer;
@@ -2643,7 +2645,7 @@
     }
     .visit-map-mascot {
       position:absolute;
-      z-index:12;
+      z-index:10;
       width:0;
       height:0;
       pointer-events:none;
