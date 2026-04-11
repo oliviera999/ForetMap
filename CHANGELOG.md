@@ -12,6 +12,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - **Visite — mascotte V1 (états + dialogue)** : machine d’état front (`idle`/`walking`/`happy`) reliée aux événements visite (déplacement et marquage « vu »), bulle de dialogue contextuelle près de la mascotte, et nouveaux tests unitaires (`tests/visit-mascot-state.test.js`) + e2e (`e2e/visit-mascot.spec.js`) pour couvrir ces comportements.
 
 ### Modifié
+- **Visite — gnome de profil en mouvement** : le fallback mascotte adopte une silhouette de gnome en profil avec membres distincts ; en marche, bras et jambes alternent selon la direction de déplacement (gauche/droite via orientation existante) et, à l’état `happy` après marquage “vu”, le gnome lève les bras.
 - **Visite — style mascotte “gnome ForetMap”** : fallback SVG repensé en gnome (chapeau, barbe, tenue nature), animations CSS enrichies (`idle` respirant, `walking`, `happy`) et dialogues thématiques gnome pour mieux coller à l’identité visuelle du projet.
 - **Visite — migration renderer mascotte vers Rive** : remplacement du composant Lottie par `VisitMapMascotRive`, ajout du runtime `@rive-app/react-canvas`, suppression des scripts/assets Lottie (`VisitMapMascotLottie.jsx`, `src/assets/lottie/visit-mascot.json`, `scripts/build-visit-mascot-lottie.mjs`) et adaptation du diagnostic (`data-renderer`, `data-rive-status`, `data-mascot-state`) + docs associées (`docs/VISIT_MAP_GEOMETRY.md`).
 
