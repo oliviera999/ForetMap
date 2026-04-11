@@ -17,7 +17,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - **Tâches** : les pastilles **biodiversité** (`living_beings_list`) sur chaque **carte de mission** (affichage tuiles ou liste) sont **cliquables** ; une fenêtre affiche la **fiche catalogue** (description, rôle dans l’écosystème, utilité pour l’humain), sur le même principe que les modales **zone** et **repère**. Le panneau `LivingBeingsCatalogPanel` est **exporté** depuis `map-views.jsx` pour réutilisation dans `tasks-views.jsx`.
 
 ### Modifié
-- **Biodiversité (catalogue / base prof)** : la pastille en tête de fiche (à droite du titre) affiche le **groupe 2** (sous-groupe taxonomique, ex. angiosperme) au lieu du **groupe 1** (grand groupe). **`foretmap-views.jsx`**.
+- **Biodiversité (catalogue / base prof)** : pastille en tête de fiche = **groupe 2** ; **photo principale** (`photo` puis `photo_species`, y compris résolution catégorie Commons) affichée **sous la description brève** et **au-dessus** du bloc rôle écosystème / utilité humaine, avec lightbox au clic. **`foretmap-views.jsx`**, **`index.css`**.
 - **Build** : régénération de **`dist/`** (`npm run build` en local — bouton **réalignement visite** sur la carte).
 - **Build** : régénération de **`dist/`** (`npm run build` en local — bundles Vite : mascotte visite Lottie **DOMLoaded** / z-index calque).
 - **Serveur / cache HTML** : en prod, **`express.static`** sur **`dist/`** envoie **`Cache-Control: no-store`** pour **`index.vite.html`**, **`index.html`** et **`deploy-help.html`** afin de limiter les incohérences entre l’index mis en cache et les assets Vite hashés. **`server.js`**.
