@@ -5,7 +5,6 @@ import { armNativeFilePickerGuard, disarmNativeFilePickerGuard } from '../utils/
 
 /** Aligné sur le serveur : lib/userContentImages.js */
 export const MAX_ATTACHMENT_IMAGES = 3;
-const MAX_ATTACHMENT_BYTES = Math.floor(1.5 * 1024 * 1024);
 
 function isSupportedInlineImageDataUrl(dataUrl) {
   return /^data:image\/(png|jpe?g|webp);/i.test(String(dataUrl || ''));
@@ -43,7 +42,7 @@ export function AttachmentImagesPicker({
   onChange,
   disabled = false,
   onNotify,
-  label = 'Photos (optionnel, max 3, JPEG/PNG/WebP, 1,5 Mo ; galerie ou appareil photo)',
+  label = 'Photos (optionnel, max 3, JPEG/PNG/WebP ; galerie ou appareil photo)',
 }) {
   const galleryInputRef = useRef(null);
   const cameraInputRef = useRef(null);
@@ -57,10 +56,6 @@ export function AttachmentImagesPicker({
         if (next.length >= MAX_ATTACHMENT_IMAGES) {
           onNotify?.(`Maximum ${MAX_ATTACHMENT_IMAGES} photos.`);
           break;
-        }
-        if (file.size > MAX_ATTACHMENT_BYTES) {
-          onNotify?.(`Photo trop lourde (max 1,5 Mo) : ${file.name || 'fichier'}`);
-          continue;
         }
         try {
           const dataUrl = await readFileAsDataUrl(file);

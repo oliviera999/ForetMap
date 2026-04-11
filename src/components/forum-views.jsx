@@ -251,7 +251,7 @@ function ForumView({ authClaims, canParticipateForum = true }) {
               value={newThreadImages}
               onChange={setNewThreadImages}
               onNotify={(msg) => setToast(msg)}
-              label="Photos du premier message (optionnel, max 3, 1,5 Mo chacune)"
+              label="Photos du premier message (optionnel, max 3)"
             />
             <button type="submit" className="btn btn-primary btn-sm">Publier le sujet</button>
           </form>
@@ -460,7 +460,7 @@ function ForumView({ authClaims, canParticipateForum = true }) {
                     onChange={setReplyImages}
                     disabled={!!threadDetail.is_locked}
                     onNotify={(msg) => setToast(msg)}
-                    label="Photos (optionnel, max 3, 1,5 Mo chacune)"
+                    label="Photos (optionnel, max 3)"
                   />
                   <button type="submit" className="btn btn-primary btn-sm" disabled={!!threadDetail.is_locked}>
                     Envoyer
