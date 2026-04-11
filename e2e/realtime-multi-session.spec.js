@@ -9,8 +9,8 @@ const {
 } = require('./fixtures/auth.fixture');
 
 test('temps réel: création prof visible côté élève sans reload manuel', async ({ browser, page }) => {
-  /* Deux sessions + Socket.IO : marge ; modale promo profil peut recouvrir le formulaire tâche. */
-  test.setTimeout(120_000);
+  /* Deux sessions + Socket.IO : en tête de suite le run peut dépasser 2 min (cold start + double login). */
+  test.setTimeout(180_000);
   const taskTitle = `E2E TempsReel ${Date.now()}`;
 
   // Session élève (client récepteur temps réel)

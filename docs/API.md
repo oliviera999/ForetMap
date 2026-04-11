@@ -361,9 +361,11 @@ Contraintes importantes :
 | Méthode | URL | n3boss | Description |
 |--------|-----|------|-------------|
 | GET | `/api/plants` | non | Liste des entrées biodiversité |
+| GET | `/api/plants/me/discovered-ids` | JWT obligatoire | `{ "plant_ids": number[] }` — identifiants des fiches catalogue que l’utilisateur connecté a marquées « espèce découverte » (engagement explicite) |
 | POST | `/api/plants` | oui | Créer une entrée biodiversité |
 | PUT | `/api/plants/:id` | oui | Modifier une entrée biodiversité |
 | DELETE | `/api/plants/:id` | oui | Supprimer une entrée biodiversité |
+| POST | `/api/plants/:id/acknowledge-discovery` | JWT obligatoire | Corps **`{ "confirm": true }`** (obligatoire, sinon `400`). Enregistre l’accusé « espèce découverte » pour la fiche `:id` ; `200` : `{ "success", "plant_id", "acknowledged_at" }` ; `404` si la fiche n’existe pas |
 | POST | `/api/plants/:id/photo-upload` | oui | Uploader une photo locale pour un champ `photo*` |
 | POST | `/api/plants/import` | oui | Importer des fiches biodiversité (CSV/XLSX/Google Sheet) |
 

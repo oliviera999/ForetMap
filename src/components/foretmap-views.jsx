@@ -9,6 +9,10 @@ import { Lightbox, PhotoGallery, ZoneInfoModal, ZoneDrawModal, MarkerModal, MapV
 import { Tooltip } from './Tooltip';
 import { HelpPanel } from './HelpPanel';
 import { ContextComments } from './context-comments';
+import {
+  PlantSpeciesDiscoveryAcknowledgeButton,
+  fetchPlantDiscoveredIds,
+} from './PlantSpeciesDiscoveryAcknowledge';
 import { HELP_PANELS, HELP_TOOLTIPS, resolveRoleText } from '../constants/help';
 import {
   ZONE_PRESENCE_FILTER,
@@ -815,7 +819,16 @@ function PlantCatalogFilterPanel({
 }
 
 // ── PLANT MANAGER (teacher) ───────────────────────────────────────────────────
-function PlantManager({ plants, onRefresh, publicSettings = null, zones = [], markers = [], maps = [], canParticipateContextComments = true }) {
+function PlantManager({
+  plants,
+  onRefresh,
+  publicSettings = null,
+  zones = [],
+  markers = [],
+  maps = [],
+  canParticipateContextComments = true,
+  onForceLogout = null,
+}) {
   const contextCommentsEnabled = publicSettings?.modules?.context_comments_enabled !== false;
   const [editId,  setEditId]  = useState(null);
   const [form,    setForm]    = useState({ ...EMPTY_PLANT_FORM });
@@ -835,8 +848,21 @@ function PlantManager({ plants, onRefresh, publicSettings = null, zones = [], ma
   const [importing, setImporting] = useState(false);
   const [confirmReplaceAll, setConfirmReplaceAll] = useState(false);
   const [importReport, setImportReport] = useState(null);
+  const [plantDiscoveredIds, setPlantDiscoveredIds] = useState(() => new Set());
   const { isHelpEnabled, hasSeenSection, markSectionSeen, trackPanelOpen, trackPanelDismiss } = useHelp({ publicSettings, isTeacher: true });
   const tooltipText = (entry) => resolveRoleText(entry, true);
+
+  useEffect(() => {
+    let cancelled = false;
+    const load = async () => {
+      const ids = await fetchPlantDiscoveredIds();
+      if (!cancelled) setPlantDiscoveredIds(new Set(ids));
+    };
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, [plants.length]);
 
   const structured = useMemo(
     () => ({
