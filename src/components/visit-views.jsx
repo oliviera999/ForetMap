@@ -25,6 +25,7 @@ import { wheelZoomScaleFactor } from '../utils/mapWheelZoom';
 import VisitMapMascotRenderer from './VisitMapMascotRenderer.jsx';
 import { VISIT_MASCOT_STATE, pickMascotDialog, resolveVisitMascotState } from '../utils/visitMascotState.js';
 import { getVisitMascotCatalog, loadVisitMascotId, saveVisitMascotId } from '../utils/visitMascotCatalog.js';
+import { loadVisitMascotPositionPct, saveVisitMascotPositionPct } from '../utils/visitMascotPositionPersistence.js';
 
 const VISIT_MAP_MASCOT_MOVE_MS = 560;
 const VISIT_MAP_MASCOT_HAPPY_MS = 1800;
@@ -925,9 +926,12 @@ function VisitView({
     }
     setVisitMapMascotWalking(false);
     setVisitMapMascotHappy(false);
-    const start = computeVisitMascotStartPct(mapId, content.markers || []);
+    const stored = loadVisitMascotPositionPct(mapId);
+    const fallback = computeVisitMascotStartPct(mapId, content.markers || []);
+    const start = stored ?? fallback;
     visitMapMascotPctRef.current = start;
     setVisitMapMascotPct(start);
+    saveVisitMascotPositionPct(mapId, start);
   }, [mapId, loading, content.map_id, content.markers]);
 
   useEffect(() => {
@@ -1010,8 +1014,9 @@ function VisitView({
 
       visitMapMascotPctRef.current = { xp: nx, yp: ny };
       setVisitMapMascotPct({ xp: nx, yp: ny });
+      saveVisitMascotPositionPct(mapId, { xp: nx, yp: ny });
     },
-    [prefersReducedMotion, showMascotDialog]
+    [mapId, prefersReducedMotion, showMascotDialog]
   );
 
   const visitMascotAnimationState = useMemo(

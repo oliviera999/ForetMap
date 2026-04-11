@@ -6,6 +6,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 ## [Non publié]
 
 ### Ajouté
+- **Visite — position mascotte persistante** : mémorisation locale (`localStorage`, par identifiant de plan) de la position % de la mascotte entre sessions, y compris en visite publique sans compte ; utilitaire `src/utils/visitMascotPositionPersistence.js` et tests `tests/visit-mascot-position-persistence.test.js`.
 - **Visite — mascotte gnome punk** : nouvelle variante `Gnome punk (Rive)` (look décalé : mohawk coloré, palette contrastée, détails punk) disponible dans le sélecteur de mascotte.
 - **Visite — deuxième mascotte gnome** : ajout d’une variante `Gnome ambre (Rive)` dans le catalogue, avec fallback visuel dédié (`fallbackVariant`) pour proposer dès maintenant un vrai second choix de mascotte dans le sélecteur.
 - **Visite — mascottes extensibles (catalogue)** : nouveau registre `src/utils/visitMascotCatalog.js` pour déclarer facilement plusieurs mascottes (Rive ou spritesheet), persistance locale du choix (`localStorage`) et renderer unifié `VisitMapMascotRenderer` pour préparer la sélection de mascotte par utilisateur.
