@@ -17,6 +17,7 @@ import { computeMapImageContainRect } from '../utils/mapImageFit';
 import { parseVisitZonePoints as parsePctPoints, visitZoneCentroidPct } from '../utils/visitMapGeometry.js';
 import { computeVisitMascotStartPct } from '../utils/visitMascotPlacement.js';
 import { shouldShowVisitMapMascot as computeShowVisitMapMascot } from '../utils/visitMascotVisibility.js';
+import { safeVisitProgressPayload } from '../utils/visitProgressClient.js';
 import { wheelZoomScaleFactor } from '../utils/mapWheelZoom';
 
 const VisitMapMascotLottie = lazy(() => import('./VisitMapMascotLottie.jsx'));
@@ -743,12 +744,18 @@ function VisitView({
     const requestedMapId = String(mapId).trim();
     setLoading(true);
     try {
-      const [mapsRes, visitRes, progressRes] = await Promise.all([
+      const [mapsRes, visitRes] = await Promise.all([
         api('/api/maps').catch(() => []),
         api(`/api/visit/content?map_id=${encodeURIComponent(requestedMapId)}`),
-        api('/api/visit/progress'),
       ]);
       if (requestedMapId !== String(visitLoadMapIdLiveRef.current).trim()) return;
+
+      let progressBody = null;
+      try {
+        progressBody = await api('/api/visit/progress');
+      } catch (_) {
+        progressBody = null;
+      }
 
       const fetchedMaps = Array.isArray(mapsRes) ? mapsRes : [];
       const activeMaps = fetchedMaps.filter((m) => m?.is_active !== false);
@@ -763,7 +770,8 @@ function VisitView({
           : { zones: [], markers: [], tutorials: [], map_id: requestedMapId };
       setContent(visitPayload);
       setTutorialSelection((visitPayload.tutorials || []).map((t) => t.id));
-      const nextSeen = new Set((progressRes?.seen || []).map((r) => itemSeenKey(r.target_type, r.target_id)));
+      const { seen: progressSeen } = safeVisitProgressPayload(progressBody);
+      const nextSeen = new Set(progressSeen.map((r) => itemSeenKey(r.target_type, r.target_id)));
       setSeen(nextSeen);
     } catch (err) {
       if (err instanceof AccountDeletedError) onForceLogout?.();
@@ -1438,7 +1446,7 @@ function VisitView({
                     >
                       <Suspense
                         fallback={
-                          <div className="visit-map-mascot-lottie visit-map-mascot-lottie--fallback" aria-hidden="true" />
+                          <div className="visit-map-mascot-lottie visit-map-mascot-lottie--placeholder" aria-hidden="true" />
                         }
                       >
                         <VisitMapMascotLottie
