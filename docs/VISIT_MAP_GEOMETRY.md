@@ -32,6 +32,7 @@ Après **`POST /api/visit/sync`** (carte → visite ou l’inverse), ouvrir **la
 
 - Le catalogue des mascottes est centralisé dans `src/utils/visitMascotCatalog.js`.
 - Chaque entrée définit `renderer` (`rive` ou `spritesheet`) et ses assets/états.
+- **`fallbackSilhouette`** : forme du SVG de secours (`gnome`, `spore`, `vine`, `moss`, `seed`, `swarm`) — voir `src/components/VisitMascotFallbackSvg.jsx`.
 - Pour ajouter une mascotte : déposer les assets dans `public/assets/mascots/...` puis déclarer une nouvelle entrée de catalogue.
 - Le choix courant est persisté côté client (`localStorage`) et utilisé par `VisitMapMascotRenderer.jsx`.
 

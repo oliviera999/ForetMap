@@ -2957,6 +2957,108 @@
       from { background-position-x:0; }
       to { background-position-x:calc(-1 * var(--visit-sprite-frames, 1) * var(--visit-sprite-frame-width, 64px)); }
     }
+    /* Mascottes non-gnome : animations spécifiques marche / joie */
+    .visit-map-mascot--walking .visit-map-mascot-rive-shell[data-mascot-shape="spore"] .visit-spore-cap,
+    .visit-map-mascot--walking .visit-map-mascot-spritesheet-shell[data-mascot-shape="spore"] .visit-spore-cap {
+      transform-origin:64px 58px;
+      animation:visitSporeCapWobble .36s ease-in-out infinite;
+    }
+    .visit-map-mascot--happy .visit-map-mascot-rive-shell[data-mascot-shape="spore"] .visit-spore-spores,
+    .visit-map-mascot--happy .visit-map-mascot-spritesheet-shell[data-mascot-shape="spore"] .visit-spore-spores {
+      animation:visitSporeSporesBurst .45s ease-out 3;
+    }
+    .visit-map-mascot--walking .visit-map-mascot-rive-shell[data-mascot-shape="vine"] .visit-vine-body,
+    .visit-map-mascot--walking .visit-map-mascot-spritesheet-shell[data-mascot-shape="vine"] .visit-vine-body {
+      transform-origin:64px 90px;
+      animation:visitVineSway .38s ease-in-out infinite;
+    }
+    .visit-map-mascot--happy .visit-map-mascot-rive-shell[data-mascot-shape="vine"] .visit-vine-bud,
+    .visit-map-mascot--happy .visit-map-mascot-spritesheet-shell[data-mascot-shape="vine"] .visit-vine-bud {
+      transform-origin:48px 14px;
+      animation:visitVineBudBloom .4s ease-out 3;
+    }
+    .visit-map-mascot--walking .visit-map-mascot-rive-shell[data-mascot-shape="moss"] .visit-moss-body,
+    .visit-map-mascot--walking .visit-map-mascot-spritesheet-shell[data-mascot-shape="moss"] .visit-moss-body {
+      transform-origin:64px 82px;
+      animation:visitMossJiggle .32s ease-in-out infinite;
+    }
+    .visit-map-mascot--happy .visit-map-mascot-rive-shell[data-mascot-shape="moss"] .visit-moss-eye,
+    .visit-map-mascot--happy .visit-map-mascot-spritesheet-shell[data-mascot-shape="moss"] .visit-moss-eye {
+      animation:visitMossEyePop .35s ease-out 4;
+    }
+    .visit-map-mascot--walking .visit-map-mascot-rive-shell[data-mascot-shape="seed"] .visit-seed-body,
+    .visit-map-mascot--walking .visit-map-mascot-spritesheet-shell[data-mascot-shape="seed"] .visit-seed-body {
+      transform-origin:64px 92px;
+      animation:visitSeedTilt .34s ease-in-out infinite;
+    }
+    .visit-map-mascot--happy .visit-map-mascot-rive-shell[data-mascot-shape="seed"] .visit-seed-leaf,
+    .visit-map-mascot--happy .visit-map-mascot-spritesheet-shell[data-mascot-shape="seed"] .visit-seed-leaf {
+      transform-origin:90px 44px;
+      animation:visitSeedLeafWave .42s ease-in-out 3;
+    }
+    .visit-map-mascot--walking .visit-map-mascot-rive-shell[data-mascot-shape="swarm"] .visit-swarm-dot,
+    .visit-map-mascot--walking .visit-map-mascot-spritesheet-shell[data-mascot-shape="swarm"] .visit-swarm-dot {
+      animation:visitSwarmDotDrift .28s ease-in-out infinite;
+    }
+    .visit-map-mascot--happy .visit-map-mascot-rive-shell[data-mascot-shape="swarm"] .visit-swarm-figure,
+    .visit-map-mascot--happy .visit-map-mascot-spritesheet-shell[data-mascot-shape="swarm"] .visit-swarm-figure {
+      transform-origin:64px 78px;
+      animation:visitSwarmFigureSpiral .5s ease-out 3;
+    }
+    @keyframes visitSporeCapWobble {
+      0%, 100% { transform:rotate(-4deg) scale(1); }
+      50% { transform:rotate(5deg) scale(1.02); }
+    }
+    @keyframes visitSporeSporesBurst {
+      0%, 100% { transform:translate(0,0) scale(1); opacity:.7; }
+      50% { transform:translate(-4px,-6px) scale(1.15); opacity:1; }
+    }
+    @keyframes visitVineSway {
+      0%, 100% { transform:rotate(-3deg); }
+      50% { transform:rotate(5deg); }
+    }
+    @keyframes visitVineBudBloom {
+      0%, 100% { transform:scale(1); }
+      50% { transform:scale(1.18) translateY(-3px); }
+    }
+    @keyframes visitMossJiggle {
+      0%, 100% { transform:skewX(0deg) translateX(0); }
+      25% { transform:skewX(-2deg) translateX(-1px); }
+      75% { transform:skewX(2deg) translateX(1px); }
+    }
+    @keyframes visitMossEyePop {
+      0%, 100% { transform:scale(1); }
+      50% { transform:scale(1.12); }
+    }
+    @keyframes visitSeedTilt {
+      0%, 100% { transform:rotate(-6deg); }
+      50% { transform:rotate(6deg); }
+    }
+    @keyframes visitSeedLeafWave {
+      0%, 100% { transform:rotate(0deg); }
+      50% { transform:rotate(-14deg); }
+    }
+    @keyframes visitSwarmDotDrift {
+      0%, 100% { transform:translate(0,0); opacity:1; }
+      50% { transform:translate(1px,-3px); opacity:.85; }
+    }
+    @keyframes visitSwarmFigureSpiral {
+      0%, 100% { transform:rotate(0deg) scale(1); }
+      40% { transform:rotate(12deg) scale(1.06); }
+      70% { transform:rotate(-8deg) scale(1.03); }
+    }
+    .visit-map-mascot--reduced-motion .visit-spore-cap,
+    .visit-map-mascot--reduced-motion .visit-spore-spores,
+    .visit-map-mascot--reduced-motion .visit-vine-body,
+    .visit-map-mascot--reduced-motion .visit-vine-bud,
+    .visit-map-mascot--reduced-motion .visit-moss-body,
+    .visit-map-mascot--reduced-motion .visit-moss-eye,
+    .visit-map-mascot--reduced-motion .visit-seed-body,
+    .visit-map-mascot--reduced-motion .visit-seed-leaf,
+    .visit-map-mascot--reduced-motion .visit-swarm-dot,
+    .visit-map-mascot--reduced-motion .visit-swarm-figure {
+      animation:none !important;
+    }
     .visit-map-controls {
       position:absolute;
       right:8px;

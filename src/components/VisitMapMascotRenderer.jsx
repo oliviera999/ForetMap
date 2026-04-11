@@ -4,7 +4,8 @@ import {
   getVisitMascotById,
   getDefaultVisitMascotId,
 } from '../utils/visitMascotCatalog.js';
-import VisitMapMascotRive, { DefaultVisitMascotStaticSvg } from './VisitMapMascotRive.jsx';
+import VisitMapMascotRive from './VisitMapMascotRive.jsx';
+import VisitMascotFallbackSvg from './VisitMascotFallbackSvg.jsx';
 import VisitMapMascotSpritesheet from './VisitMapMascotSpritesheet.jsx';
 
 function VisitMapMascotRenderer({
@@ -13,8 +14,11 @@ function VisitMapMascotRenderer({
 }) {
   const selectedMascot = getVisitMascotById(mascotId) || getVisitMascotById(getDefaultVisitMascotId());
   const selectedMascotId = selectedMascot?.id || getDefaultVisitMascotId();
+  const fallbackSilhouette = selectedMascot?.fallbackSilhouette || 'gnome';
   const fallbackVariant = selectedMascot?.fallbackVariant || 'forest';
-  const fallback = <DefaultVisitMascotStaticSvg variant={fallbackVariant} />;
+  const fallback = (
+    <VisitMascotFallbackSvg silhouette={fallbackSilhouette} variant={fallbackVariant} />
+  );
   const renderer = selectedMascot?.renderer;
 
   if (renderer === 'spritesheet') {

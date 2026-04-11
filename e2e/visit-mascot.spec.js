@@ -210,5 +210,13 @@ test.describe.serial('mascotte visite (sélecteur prof)', () => {
     await expect
       .poll(async () => page.locator('.visit-map-stage [data-mascot-id]').first().getAttribute('data-mascot-id'))
       .toBe('gnome-punk-rive');
+
+    await picker.selectOption('spore-rive');
+    await expect
+      .poll(async () => page.locator('.visit-mascot-preview-body [data-mascot-shape]').first().getAttribute('data-mascot-shape'))
+      .toBe('spore');
+    await expect
+      .poll(async () => page.locator('.visit-map-stage [data-mascot-shape]').first().getAttribute('data-mascot-shape'))
+      .toBe('spore');
   });
 });
