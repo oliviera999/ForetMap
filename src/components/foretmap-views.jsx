@@ -1169,8 +1169,8 @@ function PlantManager({
                       </p>
                     </div>
                   </div>
-                  {normalizedPlantValue(p.group_1) && (
-                    <span className="task-chip">{p.group_1}</span>
+                  {normalizedPlantValue(p.group_2) && (
+                    <span className="task-chip">{p.group_2}</span>
                   )}
                 </div>
 
@@ -1690,8 +1690,8 @@ function PlantViewer({ plants, zones, markers = [], maps = [], publicSettings = 
                       </p>
                     </div>
                   </div>
-                  {normalizedPlantValue(p.group_1) && (
-                    <span className="task-chip">{p.group_1}</span>
+                  {normalizedPlantValue(p.group_2) && (
+                    <span className="task-chip">{p.group_2}</span>
                   )}
                 </div>
 
