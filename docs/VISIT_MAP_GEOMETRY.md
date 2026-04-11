@@ -25,5 +25,5 @@ Après **`POST /api/visit/sync`** (carte → visite ou l’inverse), ouvrir **la
 
 ## Tests automatisés (géométrie et mascotte)
 
-- **Unitaires** : `tests/visit-map-geometry.test.js` (`parseVisitZonePoints`, `visitZoneCentroidPct`), `tests/visit-mascot-placement.test.js`, `tests/visit-mascot-visibility.test.js`, `tests/visit-progress-client.test.js` (`safeVisitProgressPayload` dans `src/utils/visitProgressClient.js`).
+- **Unitaires** : `tests/visit-map-geometry.test.js` (`parseVisitZonePoints`, `visitZoneCentroidPct`), `tests/visit-mascot-placement.test.js`, `tests/visit-mascot-visibility.test.js` (mascotte aussi si **tutoriels** seuls), `tests/visit-progress-client.test.js`, `tests/visit-content-public-active.test.js` (`lib/visitContentPublicActive.js`).
 - **E2e** : `e2e/visit-mascot.spec.js` — seed sur le plan **n3** (comportement réaliste pour les comptes « N3 + Forêt »), clics au **pourcentage** dans **`.visit-map-fit-layer`** ; visibilité mascotte via **`.visit-map-mascot-inner`** (le nœud **`.visit-map-mascot`** est volontairement en **0×0** pour l’ancrage en %).

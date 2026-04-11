@@ -6,6 +6,7 @@ const { requirePermission, JWT_SECRET, authenticate } = require('../middleware/r
 const { logRouteError } = require('../lib/routeLog');
 const { emitGardenChanged } = require('../lib/realtime');
 const { saveBase64ToDisk, getAbsolutePath, deleteFile } = require('../lib/uploads');
+const { visitContentRowIsPublicActive } = require('../lib/visitContentPublicActive');
 
 const router = express.Router();
 
@@ -338,13 +339,13 @@ router.get('/content', async (req, res) => {
     const payload = {
       map_id: mapId,
       zones: zones
-        .filter((z) => Number(z.visit_is_active) === 1)
+        .filter((z) => visitContentRowIsPublicActive(z))
         .map((z) => ({
           ...z,
           visit_media: mediaByTarget[`zone:${z.id}`] || [],
         })),
       markers: markers
-        .filter((m) => Number(m.visit_is_active) === 1)
+        .filter((m) => visitContentRowIsPublicActive(m))
         .map((m) => ({
           ...m,
           visit_media: mediaByTarget[`marker:${m.id}`] || [],
