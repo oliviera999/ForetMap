@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import lottie from 'lottie-web';
 import visitMascotAnim from '../assets/lottie/visit-mascot.json';
 
@@ -14,20 +14,31 @@ const WALK_END = 30;
 function VisitMapMascotLottie({ walking, prefersReducedMotion }) {
   const containerRef = useRef(null);
   const animRef = useRef(null);
+  const [loadError, setLoadError] = useState(false);
 
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return undefined;
-    const anim = lottie.loadAnimation({
-      container: el,
-      renderer: 'svg',
-      loop: true,
-      autoplay: false,
-      animationData: visitMascotAnim,
-    });
+    let anim = null;
+    try {
+      anim = lottie.loadAnimation({
+        container: el,
+        renderer: 'svg',
+        loop: true,
+        autoplay: false,
+        animationData: visitMascotAnim,
+      });
+    } catch (_) {
+      setLoadError(true);
+      return undefined;
+    }
     animRef.current = anim;
     return () => {
-      anim.destroy();
+      try {
+        anim.destroy();
+      } catch (_) {
+        /* noop */
+      }
       animRef.current = null;
     };
   }, []);
@@ -60,6 +71,10 @@ function VisitMapMascotLottie({ walking, prefersReducedMotion }) {
       }
     }
   }, [walking, prefersReducedMotion]);
+
+  if (loadError) {
+    return <div className="visit-map-mascot-lottie visit-map-mascot-lottie--placeholder" aria-hidden="true" />;
+  }
 
   return <div className="visit-map-mascot-lottie" ref={containerRef} aria-hidden="true" />;
 }
