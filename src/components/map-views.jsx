@@ -98,6 +98,48 @@ function livingBeingCatalogText(value) {
   return t.length ? t : null;
 }
 
+const CATALOG_PANEL_LABEL_STYLE = {
+  fontSize: '.72rem',
+  fontWeight: 700,
+  color: '#64748b',
+  textTransform: 'uppercase',
+  marginBottom: 4,
+  marginTop: 10,
+};
+
+/**
+ * Bloc « Remarques » (3 champs catalogue) — même présentation partout (mission, zone, fiche biodiversité).
+ */
+function CatalogRemarksSection({ plant }) {
+  if (!plant) return null;
+  const remark1 = livingBeingCatalogText(plant.remark_1);
+  const remark2 = livingBeingCatalogText(plant.remark_2);
+  const remark3 = livingBeingCatalogText(plant.remark_3);
+  const remarkLines = [remark1, remark2, remark3];
+  const hasAnyRemark = remarkLines.some(Boolean);
+  if (!hasAnyRemark) return null;
+  return (
+    <div>
+      <div style={CATALOG_PANEL_LABEL_STYLE}>Remarques</div>
+      {remarkLines.map((text, idx) => (
+        <p
+          key={`remark-${idx}`}
+          style={{
+            fontSize: '.83rem',
+            color: text ? '#555' : '#94a3b8',
+            lineHeight: 1.5,
+            margin: idx === 0 ? '0 0 4px' : '4px 0 0',
+            whiteSpace: 'pre-wrap',
+            fontStyle: text ? 'normal' : 'italic',
+          }}
+        >
+          {text || '—'}
+        </p>
+      ))}
+    </div>
+  );
+}
+
 /** Liste d’êtres vivants cliquable + extrait catalogue (description, rôle, utilité, remarques). */
 function LivingBeingsCatalogPanel({ plants, names, showHeading = true }) {
   const list = names || [];
@@ -118,19 +160,8 @@ function LivingBeingsCatalogPanel({ plants, names, showHeading = true }) {
   const desc = selectedPlant ? livingBeingCatalogText(selectedPlant.description) : null;
   const role = selectedPlant ? livingBeingCatalogText(selectedPlant.ecosystem_role) : null;
   const utility = selectedPlant ? livingBeingCatalogText(selectedPlant.human_utility) : null;
-  const remark1 = selectedPlant ? livingBeingCatalogText(selectedPlant.remark_1) : null;
-  const remark2 = selectedPlant ? livingBeingCatalogText(selectedPlant.remark_2) : null;
-  const remark3 = selectedPlant ? livingBeingCatalogText(selectedPlant.remark_3) : null;
-  const remarkLines = [remark1, remark2, remark3];
-  const hasAnyRemark = remarkLines.some(Boolean);
-
   const labelStyle = {
-    fontSize: '.72rem',
-    fontWeight: 700,
-    color: '#64748b',
-    textTransform: 'uppercase',
-    marginBottom: 4,
-    marginTop: 10,
+    ...CATALOG_PANEL_LABEL_STYLE,
   };
 
   return (
@@ -236,26 +267,7 @@ function LivingBeingsCatalogPanel({ plants, names, showHeading = true }) {
                   {utility || 'Non renseigné'}
                 </p>
               </div>
-              {hasAnyRemark && (
-                <div>
-                  <div style={labelStyle}>Remarques</div>
-                  {remarkLines.map((text, idx) => (
-                    <p
-                      key={`remark-${idx}`}
-                      style={{
-                        fontSize: '.83rem',
-                        color: text ? '#555' : '#94a3b8',
-                        lineHeight: 1.5,
-                        margin: idx === 0 ? '0 0 4px' : '4px 0 0',
-                        whiteSpace: 'pre-wrap',
-                        fontStyle: text ? 'normal' : 'italic',
-                      }}
-                    >
-                      {text || '—'}
-                    </p>
-                  ))}
-                </div>
-              )}
+              <CatalogRemarksSection plant={selectedPlant} />
             </>
           )}
         </div>
@@ -3517,4 +3529,13 @@ function MapView({ zones, markers, tasks = [], tutorials = [], plants, maps = []
   );
 }
 
-export { Lightbox, PhotoGallery, ZoneInfoModal, ZoneDrawModal, MarkerModal, MapView, LivingBeingsCatalogPanel };
+export {
+  Lightbox,
+  PhotoGallery,
+  ZoneInfoModal,
+  ZoneDrawModal,
+  MarkerModal,
+  MapView,
+  LivingBeingsCatalogPanel,
+  CatalogRemarksSection,
+};

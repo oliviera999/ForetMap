@@ -5,13 +5,21 @@ import { PLANT_EMOJIS } from '../constants/emojis';
 import { compressImage } from '../utils/image';
 import { useHelp } from '../hooks/useHelp';
 import { TaskFormModal, TasksView, LogModal, TaskLogsViewer } from './tasks-views';
-import { Lightbox, PhotoGallery, ZoneInfoModal, ZoneDrawModal, MarkerModal, MapView } from './map-views';
+import {
+  Lightbox,
+  PhotoGallery,
+  ZoneInfoModal,
+  ZoneDrawModal,
+  MarkerModal,
+  MapView,
+  CatalogRemarksSection,
+} from './map-views';
 import { Tooltip } from './Tooltip';
 import { HelpPanel } from './HelpPanel';
 import { ContextComments } from './context-comments';
 import {
   PlantSpeciesDiscoveryAcknowledgeButton,
-  fetchPlantDiscoveredIds,
+  fetchPlantObservationCounts,
 } from './PlantSpeciesDiscoveryAcknowledge';
 import { HELP_PANELS, HELP_TOOLTIPS, resolveRoleText } from '../constants/help';
 import {
@@ -123,9 +131,6 @@ const PLANT_META_SECTIONS = [
       { key: 'longevity', label: 'Longévité' },
       { key: 'size', label: 'Taille' },
       { key: 'reproduction', label: 'Reproduction' },
-      { key: 'remark_1', label: 'Remarque 1' },
-      { key: 'remark_2', label: 'Remarque 2' },
-      { key: 'remark_3', label: 'Remarque 3' },
     ],
   },
   {
@@ -909,28 +914,9 @@ function PlantManager({
   const [importing, setImporting] = useState(false);
   const [confirmReplaceAll, setConfirmReplaceAll] = useState(false);
   const [importReport, setImportReport] = useState(null);
-  const [plantDiscoveredIds, setPlantDiscoveredIds] = useState(() => new Set());
+  const [plantObservationCounts, setPlantObservationCounts] = useState(() => ({}));
   const { isHelpEnabled, hasSeenSection, markSectionSeen, trackPanelOpen, trackPanelDismiss } = useHelp({ publicSettings, isTeacher: true });
   const tooltipText = (entry) => resolveRoleText(entry, true);
-
-  useEffect(() => {
-    let cancelled = false;
-    const load = async () => {
-      const ids = await fetchPlantDiscoveredIds();
-      if (!cancelled) setPlantDiscoveredIds(new Set(ids));
-    };
-    load();
-    if (typeof window !== 'undefined') {
-      window.addEventListener('foretmap_session_changed', load);
-      return () => {
-        cancelled = true;
-        window.removeEventListener('foretmap_session_changed', load);
-      };
-    }
-    return () => {
-      cancelled = true;
-    };
-  }, [plants.length]);
 
   const structured = useMemo(
     () => ({
@@ -957,6 +943,36 @@ function PlantManager({
       ),
     [plants, structured, queryTrimmedLower, zones, markers],
   );
+
+  const biodivObservationPlantIds = useMemo(() => {
+    const ids = filteredPlants.map((p) => Number(p.id)).filter((n) => Number.isFinite(n) && n > 0);
+    ids.sort((a, b) => a - b);
+    return ids;
+  }, [filteredPlants]);
+  const biodivObservationIdsKey = biodivObservationPlantIds.join(',');
+
+  useEffect(() => {
+    let cancelled = false;
+    const load = async () => {
+      if (biodivObservationPlantIds.length === 0) {
+        if (!cancelled) setPlantObservationCounts({});
+        return;
+      }
+      const counts = await fetchPlantObservationCounts(biodivObservationPlantIds);
+      if (!cancelled) setPlantObservationCounts(counts);
+    };
+    load();
+    if (typeof window !== 'undefined') {
+      window.addEventListener('foretmap_session_changed', load);
+      return () => {
+        cancelled = true;
+        window.removeEventListener('foretmap_session_changed', load);
+      };
+    }
+    return () => {
+      cancelled = true;
+    };
+  }, [biodivObservationIdsKey, plants.length]);
 
   const zonesForPlant = (p) => zones.filter((z) => plantLinkedToMapZone(p, z));
   const markersForPlant = (p) => markers.filter((m) => plantLinkedToMapMarker(p, m));
@@ -1246,6 +1262,7 @@ function PlantManager({
                   <p className="plant-row-desc">{p.description || <em style={{color:'#bbb'}}>Pas de description</em>}</p>
                   <PlantBiodivHeroPhoto plant={p} />
                   <PlantEcosystemHumanLead plant={p} />
+                  <CatalogRemarksSection plant={p} />
                   <div className="task-meta">
                     {normalizedPlantValue(p.habitat) && !isGenericPotagerLabel(p.habitat) && (
                       <span className="task-chip">🏡 {p.habitat}</span>
@@ -1277,8 +1294,17 @@ function PlantManager({
                     <PlantSpeciesDiscoveryAcknowledgeButton
                       plantId={p.id}
                       speciesName={p.name}
-                      isDiscovered={plantDiscoveredIds.has(Number(p.id))}
-                      onAcknowledged={(id) => setPlantDiscoveredIds((prev) => new Set([...prev, id]))}
+                      myObservationCount={plantObservationCounts[String(p.id)]?.my_observation_count ?? 0}
+                      siteObservationCount={plantObservationCounts[String(p.id)]?.site_observation_count ?? 0}
+                      onAcknowledged={(id, next) => {
+                        setPlantObservationCounts((prev) => ({
+                          ...prev,
+                          [String(id)]: {
+                            my_observation_count: next.my_observation_count,
+                            site_observation_count: next.site_observation_count,
+                          },
+                        }));
+                      }}
                       onForceLogout={onForceLogout}
                     />
                   </div>
@@ -1690,27 +1716,8 @@ function PlantViewer({
   const [habitatFilter, setHabitatFilter] = useState('');
   const [agroFilter, setAgroFilter] = useState('');
   const [zonePresence, setZonePresence] = useState(ZONE_PRESENCE_FILTER.ALL);
-  const [plantDiscoveredIds, setPlantDiscoveredIds] = useState(() => new Set());
+  const [plantObservationCounts, setPlantObservationCounts] = useState(() => ({}));
   const { isHelpEnabled, hasSeenSection, markSectionSeen, trackPanelOpen, trackPanelDismiss } = useHelp({ publicSettings, isTeacher: false });
-
-  useEffect(() => {
-    let cancelled = false;
-    const load = async () => {
-      const ids = await fetchPlantDiscoveredIds();
-      if (!cancelled) setPlantDiscoveredIds(new Set(ids));
-    };
-    load();
-    if (typeof window !== 'undefined') {
-      window.addEventListener('foretmap_session_changed', load);
-      return () => {
-        cancelled = true;
-        window.removeEventListener('foretmap_session_changed', load);
-      };
-    }
-    return () => {
-      cancelled = true;
-    };
-  }, [plants.length]);
 
   const structured = useMemo(
     () => ({
@@ -1732,6 +1739,36 @@ function PlantViewer({
       ),
     [plants, structured, queryTrimmedLower, zonePresence, zones, markers],
   );
+
+  const biodivObservationPlantIdsStudent = useMemo(() => {
+    const ids = filtered.map((p) => Number(p.id)).filter((n) => Number.isFinite(n) && n > 0);
+    ids.sort((a, b) => a - b);
+    return ids;
+  }, [filtered]);
+  const biodivObservationIdsKeyStudent = biodivObservationPlantIdsStudent.join(',');
+
+  useEffect(() => {
+    let cancelled = false;
+    const load = async () => {
+      if (biodivObservationPlantIdsStudent.length === 0) {
+        if (!cancelled) setPlantObservationCounts({});
+        return;
+      }
+      const counts = await fetchPlantObservationCounts(biodivObservationPlantIdsStudent);
+      if (!cancelled) setPlantObservationCounts(counts);
+    };
+    load();
+    if (typeof window !== 'undefined') {
+      window.addEventListener('foretmap_session_changed', load);
+      return () => {
+        cancelled = true;
+        window.removeEventListener('foretmap_session_changed', load);
+      };
+    }
+    return () => {
+      cancelled = true;
+    };
+  }, [biodivObservationIdsKeyStudent, plants.length]);
 
   const zonesForPlant = (p) => zones.filter((z) => plantLinkedToMapZone(p, z));
   const markersForPlant = (p) => markers.filter((m) => plantLinkedToMapMarker(p, m));
@@ -1805,6 +1842,7 @@ function PlantViewer({
                   <p className="plant-row-desc">{p.description || <em style={{ color: '#bbb' }}>Pas de description</em>}</p>
                   <PlantBiodivHeroPhoto plant={p} />
                   <PlantEcosystemHumanLead plant={p} />
+                  <CatalogRemarksSection plant={p} />
                   <div className="task-meta">
                     {normalizedPlantValue(p.habitat) && !isGenericPotagerLabel(p.habitat) && (
                       <span className="task-chip">🏡 {p.habitat}</span>
@@ -1836,8 +1874,17 @@ function PlantViewer({
                     <PlantSpeciesDiscoveryAcknowledgeButton
                       plantId={p.id}
                       speciesName={p.name}
-                      isDiscovered={plantDiscoveredIds.has(Number(p.id))}
-                      onAcknowledged={(id) => setPlantDiscoveredIds((prev) => new Set([...prev, id]))}
+                      myObservationCount={plantObservationCounts[String(p.id)]?.my_observation_count ?? 0}
+                      siteObservationCount={plantObservationCounts[String(p.id)]?.site_observation_count ?? 0}
+                      onAcknowledged={(id, next) => {
+                        setPlantObservationCounts((prev) => ({
+                          ...prev,
+                          [String(id)]: {
+                            my_observation_count: next.my_observation_count,
+                            site_observation_count: next.site_observation_count,
+                          },
+                        }));
+                      }}
                       onForceLogout={onForceLogout}
                     />
                   </div>

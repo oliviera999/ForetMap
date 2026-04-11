@@ -5,6 +5,10 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Modifié
+- **Biodiversité — observations par espèce** : remplacement de **`user_plant_discoveries`** par **`user_plant_observation_events`** (plusieurs confirmations par utilisateur et par fiche) ; migration **`070_user_plant_observation_events.sql`** et schéma **`sql/schema_foretmap.sql`** ; **`GET /api/plants/me/discovered-ids`** inchangé côté usage (IDs avec au moins une observation) ; nouveau **`GET /api/plants/me/observation-counts`** (`plant_ids`, max 200) ; **`POST /api/plants/:id/acknowledge-discovery`** renvoie **`observed_at`**, **`my_observation_count`**, **`site_observation_count`** ; bouton **« Espèce observée »** avec compteurs perso / tout le site et possibilité d’enregistrer une observation supplémentaire. **`routes/plants.js`**, **`PlantSpeciesDiscoveryAcknowledge.jsx`**, **`foretmap-views.jsx`**, **`index.css`**, **`docs/API.md`**, **`tests/plants-discovery.test.js`**.
+- **Biodiversité — remarques catalogue** : affichage aligné sur la fiche espèce des missions (titre **Remarques**, trois paragraphes, mêmes styles que **`LivingBeingsCatalogPanel`**) via **`CatalogRemarksSection`** ; les champs **`remark_1`…3** ne sont plus dans le panneau repliable **Identité**. **`map-views.jsx`**, **`foretmap-views.jsx`**.
+
 ### Ajouté
 - **Visite — cinq silhouettes mascotte distinctes** : Spore (champignon), Liane, Mousse (blob), Graine (feuille), Essaim (lucioles) — SVG de fallback dédiés dans `src/components/VisitMascotFallbackSvg.jsx`, entrées catalogue Rive associées, attribut `data-mascot-shape` sur les shells, animations CSS spécifiques marche/joie par forme ; e2e sélecteur étendu (`data-mascot-shape` après choix Spore).
 - **Visite — position mascotte persistante** : mémorisation locale (`localStorage`, par identifiant de plan) de la position % de la mascotte entre sessions, y compris en visite publique sans compte ; utilitaire `src/utils/visitMascotPositionPersistence.js` et tests `tests/visit-mascot-position-persistence.test.js`.
