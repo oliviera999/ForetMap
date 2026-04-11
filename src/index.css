@@ -2840,13 +2840,20 @@
     .visit-map-mascot-sprite-preload {
       display:none;
     }
-    .visit-map-mascot--walking .visit-map-mascot-rive-shell {
+    .visit-map-mascot:not(.visit-map-mascot--walking):not(.visit-map-mascot--happy) .visit-map-mascot-rive-shell,
+    .visit-map-mascot:not(.visit-map-mascot--walking):not(.visit-map-mascot--happy) .visit-map-mascot-spritesheet-shell {
+      animation:visitMascotIdleBreath 2.4s ease-in-out infinite;
+    }
+    .visit-map-mascot--walking .visit-map-mascot-rive-shell,
+    .visit-map-mascot--walking .visit-map-mascot-spritesheet-shell {
       animation:visitMascotWalkBob .36s ease-in-out infinite;
     }
-    .visit-map-mascot--happy .visit-map-mascot-rive-shell {
+    .visit-map-mascot--happy .visit-map-mascot-rive-shell,
+    .visit-map-mascot--happy .visit-map-mascot-spritesheet-shell {
       animation:visitMascotHappyBounce .42s ease-in-out 3;
     }
     .visit-map-mascot--reduced-motion .visit-map-mascot-rive-shell,
+    .visit-map-mascot--reduced-motion .visit-map-mascot-spritesheet-shell,
     .visit-map-mascot--reduced-motion .visit-map-mascot-dialog {
       animation:none !important;
       transition:none !important;
@@ -2886,6 +2893,10 @@
     @keyframes visitMascotWalkBob {
       0%, 100% { transform:translateY(0); }
       50% { transform:translateY(-3px); }
+    }
+    @keyframes visitMascotIdleBreath {
+      0%, 100% { transform:translateY(0) scale(1); }
+      50% { transform:translateY(-1px) scale(1.015); }
     }
     @keyframes visitMascotHappyBounce {
       0%, 100% { transform:translateY(0) scale(1); }
