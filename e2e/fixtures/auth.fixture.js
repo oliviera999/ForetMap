@@ -73,12 +73,19 @@ async function loginByIdentifier(page, identifier, password) {
 }
 
 async function enableTeacherMode(page, pin = process.env.E2E_ELEVATION_PIN || process.env.TEACHER_PIN || '1234') {
-  await page.getByRole('button', { name: 'Activer les droits étendus' }).click();
-  await page.locator('.pin-card .pin-input').waitFor({ state: 'visible' });
+  /* La promo « nouveau palier » recouvre l’en-tête ; la désactiver avant le cadenas évite des PIN bloqués ou une 2e élévation lente. */
+  await dismissProfilePromotionModalIfPresent(page);
+  await page.getByRole('button', { name: 'Activer les droits étendus' }).click({ timeout: 25_000 });
+  await page.locator('.pin-card .pin-input').waitFor({ state: 'visible', timeout: 25_000 });
   await page.locator('.pin-card .pin-input').fill(pin);
   // « Recentrer la carte » contient la sous-chaîne « Entrer » : cibler la modale PIN + exact.
+  const elevateDone = page.waitForResponse(
+    (r) => r.url().includes('/api/auth/elevate') && r.request().method() === 'POST',
+    { timeout: 60_000 },
+  );
   await page.locator('.pin-card').getByRole('button', { name: 'Entrer', exact: true }).click();
-  await page.getByRole('button', { name: 'Désactiver les droits étendus' }).waitFor({ state: 'visible', timeout: 45_000 });
+  await elevateDone;
+  await page.getByRole('button', { name: 'Désactiver les droits étendus' }).waitFor({ state: 'visible', timeout: 60_000 });
   await dismissProfilePromotionModalIfPresent(page);
 }
 

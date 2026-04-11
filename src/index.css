@@ -2100,34 +2100,49 @@
       border-left:4px solid var(--sage);
       margin-bottom:12px;
     }
-    .log-modal.tuto-preview-modal {
-      width:min(980px, calc(100vw - 32px));
-      max-width:min(980px, calc(100vw - 32px));
-      max-height:min(90vh, calc(100vh - var(--safe-top) - var(--safe-bottom) - 32px));
-      max-height:min(90dvh, calc(100dvh - var(--safe-top) - var(--safe-bottom) - 32px));
+    /* Aperçu tutoriel : presque toute la fenêtre (zones sûres + marge minimale), iframe fluide. */
+    .modal-overlay.modal-overlay--tuto-preview {
+      padding:max(4px, var(--safe-top)) max(8px, env(safe-area-inset-right, 0px)) max(4px, var(--safe-bottom)) max(8px, env(safe-area-inset-left, 0px));
+      align-items:stretch;
+    }
+    .modal-overlay.modal-overlay--tuto-preview > .log-modal.tuto-preview-modal {
+      width:100%;
+      max-width:none;
+      flex:1 1 auto;
+      min-height:0;
+      max-height:none;
+      height:auto;
+      align-self:stretch;
+      display:flex;
+      flex-direction:column;
+      overflow:hidden;
+      padding:10px 12px 12px;
+      border-radius:14px;
+    }
+    .log-modal.tuto-preview-modal h3 {
+      flex-shrink:0;
+      margin-bottom:8px;
+      padding-right:44px;
     }
     .tuto-preview-frame {
+      flex:1 1 auto;
+      min-height:min(50dvh, 420px);
       width:100%;
-      min-height:70vh;
       border:1px solid rgba(0,0,0,.08);
       border-radius:10px;
-      margin-top:10px;
+      margin-top:0;
       background:#fff;
     }
-    /* Aperçu tutoriel : reste centré dans la fenêtre ; cadre iframe un peu plus bas sur petit écran. */
     @media (max-width:768px) {
       .modal-overlay.modal-overlay--tuto-preview {
-        padding:max(10px, var(--safe-top)) 12px max(12px, var(--safe-bottom));
+        padding:max(4px, var(--safe-top)) max(6px, env(safe-area-inset-right, 0px)) max(4px, var(--safe-bottom)) max(6px, env(safe-area-inset-left, 0px));
       }
-      .modal-overlay.modal-overlay--tuto-preview .log-modal.tuto-preview-modal {
-        border-radius:16px;
-        width:100%;
-        max-width:min(980px, 96vw);
-        max-height:min(88vh, calc(100vh - var(--safe-top) - var(--safe-bottom) - 24px));
-        max-height:min(88dvh, calc(100dvh - var(--safe-top) - var(--safe-bottom) - 24px));
+      .modal-overlay.modal-overlay--tuto-preview > .log-modal.tuto-preview-modal {
+        border-radius:12px;
+        padding:8px 10px 10px;
       }
-      .modal-overlay.modal-overlay--tuto-preview .tuto-preview-frame {
-        min-height:min(55vh, 380px);
+      .tuto-preview-frame {
+        min-height:min(45dvh, 320px);
       }
     }
     button.task-chip.living-being-catalog-chip {

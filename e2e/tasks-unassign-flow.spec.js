@@ -10,8 +10,8 @@ const {
 } = require('./fixtures/auth.fixture');
 
 test('élève peut se retirer d’une tâche prise en charge', async ({ page }) => {
-  /* Aligné sur tasks-full-cycle : la suite e2e complète peut ralentir le run ; modale promo éventuelle après « Je m'en occupe ». */
-  test.setTimeout(120_000);
+  /* Aligné sur tasks-full-cycle : marge quand le worker e2e est déjà chargé. */
+  test.setTimeout(180_000);
   const taskTitle = `E2E Unassign ${Date.now()}`;
 
   await loginAsNewStudent(page);
@@ -27,7 +27,8 @@ test('élève peut se retirer d’une tâche prise en charge', async ({ page }) 
   await openStudentTasksTab(page);
 
   const studentTaskCard = page.locator('.task-card', { hasText: taskTitle }).first();
-  await studentTaskCard.getByRole('button', { name: /Je m['\u2019]en occupe/ }).click();
+  await dismissProfilePromotionModalIfPresent(page);
+  await studentTaskCard.getByRole('button', { name: /Je m['\u2019]en occupe/ }).click({ force: true });
   await dismissProfilePromotionModalIfPresent(page);
   const studentTaskCardAfter = page.locator('.task-card', { hasText: taskTitle }).first();
   await expect(studentTaskCardAfter.getByRole('button', { name: /retirer/i })).toBeVisible({ timeout: 45_000 });
