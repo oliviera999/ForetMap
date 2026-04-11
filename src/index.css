@@ -2122,6 +2122,21 @@
     button.task-chip.living-being-catalog-chip:hover {
       filter:brightness(0.97);
     }
+    a.task-chip.task-tutorial-chip {
+      cursor:pointer;
+      font:inherit;
+      text-align:center;
+      text-decoration:none;
+      color:inherit;
+      display:inline-flex;
+      align-items:center;
+      min-height:44px;
+      padding:6px 12px;
+      box-sizing:border-box;
+    }
+    a.task-chip.task-tutorial-chip:hover {
+      filter:brightness(0.97);
+    }
     button.task-chip.tuto-linked-tasks-pill {
       cursor:pointer;
       font:inherit;
