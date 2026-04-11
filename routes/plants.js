@@ -379,7 +379,26 @@ function validateImportPayloadRow(row, rowNumber) {
   return { payload, errors };
 }
 
-/** Identifiants des fiches biodiversité que l’utilisateur connecté a marquées « espèce découverte ». */
+const MAX_PLANT_OBSERVATION_COUNT_IDS = 200;
+
+/** Parse `plant_ids` query (comma-separated positive ints), dédupliqué, max MAX_PLANT_OBSERVATION_COUNT_IDS. */
+function parsePlantIdsQueryParam(raw) {
+  const s = asTrimmedString(raw);
+  if (!s) return [];
+  const seen = new Set();
+  const out = [];
+  for (const part of s.split(/[,;\s]+/)) {
+    const n = Number(String(part).trim());
+    if (!Number.isFinite(n) || n <= 0 || !Number.isInteger(n)) continue;
+    if (seen.has(n)) continue;
+    seen.add(n);
+    out.push(n);
+    if (out.length >= MAX_PLANT_OBSERVATION_COUNT_IDS) break;
+  }
+  return out;
+}
+
+/** Identifiants des fiches biodiversité pour lesquelles l’utilisateur connecté a au moins une observation enregistrée. */
 router.get('/me/discovered-ids', requireAuth, async (req, res) => {
   try {
     const userId = req.auth.userId;
@@ -387,7 +406,7 @@ router.get('/me/discovered-ids', requireAuth, async (req, res) => {
       return res.status(403).json({ error: 'Profil utilisateur invalide' });
     }
     const rows = await queryAll(
-      'SELECT plant_id FROM user_plant_discoveries WHERE user_id = ? ORDER BY plant_id ASC',
+      'SELECT DISTINCT plant_id FROM user_plant_observation_events WHERE user_id = ? ORDER BY plant_id ASC',
       [String(userId)]
     );
     res.json({ plant_ids: rows.map((r) => Number(r.plant_id)).filter((n) => Number.isFinite(n)) });
@@ -398,8 +417,50 @@ router.get('/me/discovered-ids', requireAuth, async (req, res) => {
 });
 
 /**
- * Enregistre l’engagement terrain + lecture de fiche pour une entrée du catalogue plants.
- * Corps JSON : { "confirm": true } (obligatoire).
+ * Compteurs d’observations par fiche (moi + tout le site) pour une liste d’identifiants.
+ * Query : plant_ids=1,2,3 (max 200, entiers positifs).
+ */
+router.get('/me/observation-counts', requireAuth, async (req, res) => {
+  try {
+    const userId = req.auth.userId;
+    if (userId == null || userId === '') {
+      return res.status(403).json({ error: 'Profil utilisateur invalide' });
+    }
+    const ids = parsePlantIdsQueryParam(req.query.plant_ids);
+    if (ids.length === 0) {
+      return res.json({ counts: {} });
+    }
+    const placeholders = ids.map(() => '?').join(',');
+    const uid = String(userId);
+    const [siteRows, myRows] = await Promise.all([
+      queryAll(
+        `SELECT plant_id, COUNT(*) AS c FROM user_plant_observation_events WHERE plant_id IN (${placeholders}) GROUP BY plant_id`,
+        ids
+      ),
+      queryAll(
+        `SELECT plant_id, COUNT(*) AS c FROM user_plant_observation_events WHERE user_id = ? AND plant_id IN (${placeholders}) GROUP BY plant_id`,
+        [uid, ...ids]
+      ),
+    ]);
+    const siteByPlant = new Map(siteRows.map((r) => [Number(r.plant_id), Number(r.c) || 0]));
+    const myByPlant = new Map(myRows.map((r) => [Number(r.plant_id), Number(r.c) || 0]));
+    const counts = {};
+    for (const pid of ids) {
+      counts[String(pid)] = {
+        my_observation_count: myByPlant.get(pid) || 0,
+        site_observation_count: siteByPlant.get(pid) || 0,
+      };
+    }
+    res.json({ counts });
+  } catch (e) {
+    logRouteError(e, req, 'Compteurs observations biodiversité en échec');
+    res.status(500).json({ error: 'Erreur serveur' });
+  }
+});
+
+/**
+ * Enregistre une observation (engagement terrain + lecture de fiche) pour une entrée du catalogue plants.
+ * Corps JSON : { "confirm": true } (obligatoire). Chaque confirmation ajoute une ligne (compteur incrémenté).
  */
 router.post('/:id/acknowledge-discovery', requireAuth, async (req, res) => {
   try {
@@ -418,12 +479,24 @@ router.post('/:id/acknowledge-discovery', requireAuth, async (req, res) => {
     if (!plant) return res.status(404).json({ error: 'Fiche introuvable' });
     const now = new Date().toISOString();
     await execute(
-      `INSERT INTO user_plant_discoveries (user_id, plant_id, acknowledged_at)
-       VALUES (?, ?, ?)
-       ON DUPLICATE KEY UPDATE acknowledged_at = VALUES(acknowledged_at)`,
+      'INSERT INTO user_plant_observation_events (user_id, plant_id, observed_at) VALUES (?, ?, ?)',
       [String(userId), pid, now]
     );
-    res.json({ success: true, plant_id: pid, acknowledged_at: now });
+    const myRow = await queryOne(
+      'SELECT COUNT(*) AS c FROM user_plant_observation_events WHERE user_id = ? AND plant_id = ?',
+      [String(userId), pid]
+    );
+    const siteRow = await queryOne(
+      'SELECT COUNT(*) AS c FROM user_plant_observation_events WHERE plant_id = ?',
+      [pid]
+    );
+    res.json({
+      success: true,
+      plant_id: pid,
+      observed_at: now,
+      my_observation_count: Number(myRow?.c) || 0,
+      site_observation_count: Number(siteRow?.c) || 0,
+    });
   } catch (e) {
     logRouteError(e, req, 'Accusé découverte espèce en échec');
     res.status(500).json({ error: 'Erreur serveur' });

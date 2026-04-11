@@ -259,15 +259,16 @@ CREATE TABLE IF NOT EXISTS user_tutorial_reads (
   CONSTRAINT fk_user_tutorial_reads_tutorial FOREIGN KEY (tutorial_id) REFERENCES tutorials(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Découvertes d’espèces (catalogue biodiversité / plants)
-CREATE TABLE IF NOT EXISTS user_plant_discoveries (
+-- Observations attestées par espèce (catalogue biodiversité / plants ; plusieurs par utilisateur)
+CREATE TABLE IF NOT EXISTS user_plant_observation_events (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
   user_id VARCHAR(64) NOT NULL,
   plant_id INT UNSIGNED NOT NULL,
-  acknowledged_at VARCHAR(32) NOT NULL,
-  PRIMARY KEY (user_id, plant_id),
-  INDEX idx_user_plant_discoveries_plant (plant_id),
-  CONSTRAINT fk_user_plant_discoveries_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-  CONSTRAINT fk_user_plant_discoveries_plant FOREIGN KEY (plant_id) REFERENCES plants(id) ON DELETE CASCADE
+  observed_at VARCHAR(32) NOT NULL,
+  INDEX idx_upoe_user_plant (user_id, plant_id),
+  INDEX idx_upoe_plant (plant_id),
+  CONSTRAINT fk_upoe_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  CONSTRAINT fk_upoe_plant FOREIGN KEY (plant_id) REFERENCES plants(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 INSERT IGNORE INTO tutorials
