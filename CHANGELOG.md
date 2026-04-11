@@ -9,6 +9,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - **Tâches** : les pastilles **biodiversité** (`living_beings_list`) sur chaque **carte de mission** (affichage tuiles ou liste) sont **cliquables** ; une fenêtre affiche la **fiche catalogue** (description, rôle dans l’écosystème, utilité pour l’humain), sur le même principe que les modales **zone** et **repère**. Le panneau `LivingBeingsCatalogPanel` est **exporté** depuis `map-views.jsx` pour réutilisation dans `tasks-views.jsx`.
 
 ### Modifié
+- **Commentaires de contexte / forum** : photos en **Galerie** ou **Appareil photo** (`capture="environment"`), comme pour les zones et repères ; **`armNativeFilePickerGuard`** à l’ouverture du sélecteur (évite la fermeture des modales au retour caméra sur mobile) ; captures avec **type MIME vide** ou **`application/octet-stream`** acceptées si le **data URL** est bien JPEG/PNG/WebP.
 - **Tâches collectives (n3boss)** : marquer la part d’un assigné comme terminée se fait par **un seul clic** sur le nom (plus de boîte de confirmation navigateur).
 - **Build** : régénération de **`dist/`** (`npm run build`, Vite production en local — bundles à jour dont styles modales centrées).
 
