@@ -25,6 +25,7 @@ import { wheelZoomScaleFactor } from '../utils/mapWheelZoom';
 import VisitMapMascotLottie from './VisitMapMascotLottie.jsx';
 
 const VISIT_MAP_MASCOT_MOVE_MS = 560;
+const VISIT_MAP_MASCOT_ESTIMATED_HEIGHT_PX = 78;
 
 function itemSeenKey(type, id) {
   return `${type}:${id}`;
@@ -67,6 +68,18 @@ function pointToPct(event, stageEl, transform = { x: 0, y: 0, s: 1 }, fit = null
     xp: Math.max(0, Math.min(100, Number(xp.toFixed(2)))),
     yp: Math.max(0, Math.min(100, Number(yp.toFixed(2)))),
   };
+}
+
+function clampVisitMascotPctForViewport(xp, yp, fitHeightPx = 0) {
+  const nx = Math.max(0, Math.min(100, Number(xp) || 0));
+  const rawY = Math.max(0, Math.min(100, Number(yp) || 0));
+  if (!(fitHeightPx > 0)) return { xp: nx, yp: rawY };
+  const minVisibleY = Math.max(
+    6,
+    (VISIT_MAP_MASCOT_ESTIMATED_HEIGHT_PX / Math.max(1, fitHeightPx)) * 100
+  );
+  const ny = Math.max(minVisibleY, Math.min(99.2, rawY));
+  return { xp: nx, yp: ny };
 }
 
 function VisitSyncPanel({ isTeacher, mapId, onSynced, onForceLogout }) {
@@ -681,6 +694,8 @@ function VisitView({
   const imgRef = useRef(null);
   const [visitImgNatural, setVisitImgNatural] = useState({ w: 0, h: 0 });
   const [visitMapFit, setVisitMapFit] = useState({ offsetX: 0, offsetY: 0, width: 0, height: 0 });
+  const visitMapFitRef = useRef(visitMapFit);
+  visitMapFitRef.current = visitMapFit;
   const visitMapImageReady = visitImgNatural.w > 0 && visitImgNatural.h > 0;
   const canPanAndZoom = mode === 'view';
 
@@ -912,8 +927,9 @@ function VisitView({
   const moveVisitMapMascotTo = useCallback(
     (xp, yp) => {
       if (!Number.isFinite(xp) || !Number.isFinite(yp)) return;
-      const nx = Math.max(0, Math.min(100, xp));
-      const ny = Math.max(0, Math.min(100, yp));
+      const target = clampVisitMascotPctForViewport(xp, yp, visitMapFitRef.current?.height || 0);
+      const nx = target.xp;
+      const ny = target.yp;
       const prev = visitMapMascotPctRef.current;
       const dist = Math.hypot(nx - prev.xp, ny - prev.yp);
       if (dist < 0.08) return;
@@ -940,6 +956,11 @@ function VisitView({
       setVisitMapMascotPct({ xp: nx, yp: ny });
     },
     [prefersReducedMotion]
+  );
+
+  const visitMapMascotRenderPct = useMemo(
+    () => clampVisitMascotPctForViewport(visitMapMascotPct.xp, visitMapMascotPct.yp, visitMapFit.height),
+    [visitMapMascotPct.xp, visitMapMascotPct.yp, visitMapFit.height]
   );
 
   /** Dimensions naturelles : synchro cache (complete) + reset si pas encore décodé (évite % faux avant onLoad). */
@@ -1573,7 +1594,7 @@ function VisitView({
                 {showVisitMapMascot ? (
                   <div
                     className={`visit-map-mascot${visitMapMascotWalking ? ' visit-map-mascot--walking' : ''}${prefersReducedMotion ? ' visit-map-mascot--reduced-motion' : ''}`}
-                    style={{ left: `${visitMapMascotPct.xp}%`, top: `${visitMapMascotPct.yp}%` }}
+                    style={{ left: `${visitMapMascotRenderPct.xp}%`, top: `${visitMapMascotRenderPct.yp}%` }}
                     aria-hidden="true"
                   >
                     <div

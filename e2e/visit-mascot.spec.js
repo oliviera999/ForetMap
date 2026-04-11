@@ -54,15 +54,59 @@ async function openVisitMap(page) {
     .poll(async () => {
       const lottie = stage.locator('.visit-map-mascot-lottie').first();
       return lottie.evaluate((el) => {
+        const isTransparent = (value) => {
+          const raw = String(value || '').trim().toLowerCase();
+          if (!raw || raw === 'none' || raw === 'transparent') return true;
+          if (raw.startsWith('rgba(') || raw.startsWith('hsla(')) {
+            const parts = raw
+              .replace(/^rgba?\(/, '')
+              .replace(/^hsla?\(/, '')
+              .replace(/\)$/, '')
+              .split(',')
+              .map((p) => p.trim());
+            const alpha = Number(parts[3]);
+            return Number.isFinite(alpha) ? alpha <= 0 : false;
+          }
+          return false;
+        };
         const svg = el.querySelector('svg');
         if (svg) {
           const box = svg.getBoundingClientRect();
-          if (box.width > 2 && box.height > 2) return true;
+          if (box.width > 2 && box.height > 2) {
+            const nodes = svg.querySelectorAll('path,circle,ellipse,rect,polygon,polyline,line');
+            for (const node of nodes) {
+              if (node.tagName === 'path') {
+                const d = node.getAttribute('d');
+                if (!d || !String(d).trim()) continue;
+              }
+              const st = window.getComputedStyle(node);
+              const opacity = Number.parseFloat(st.opacity || '1');
+              if (Number.isFinite(opacity) && opacity <= 0) continue;
+              const strokeWidth = Number.parseFloat(st.strokeWidth || '0');
+              const fillHidden = isTransparent(st.fill);
+              const strokeHidden = isTransparent(st.stroke) || !(strokeWidth > 0);
+              if (!(fillHidden && strokeHidden)) return true;
+            }
+          }
         }
         const canvas = el.querySelector('canvas');
         if (canvas) {
           const box = canvas.getBoundingClientRect();
-          return box.width > 2 && box.height > 2;
+          if (!(box.width > 2 && box.height > 2)) return false;
+          const ctx = canvas.getContext('2d');
+          if (!ctx || !(canvas.width > 1) || !(canvas.height > 1)) return false;
+          const sampleCols = 6;
+          const sampleRows = 6;
+          let painted = 0;
+          for (let row = 0; row < sampleRows; row += 1) {
+            for (let col = 0; col < sampleCols; col += 1) {
+              const x = Math.min(canvas.width - 1, Math.max(0, Math.round((col / (sampleCols - 1 || 1)) * (canvas.width - 1))));
+              const y = Math.min(canvas.height - 1, Math.max(0, Math.round((row / (sampleRows - 1 || 1)) * (canvas.height - 1))));
+              const px = ctx.getImageData(x, y, 1, 1).data;
+              if ((px?.[3] || 0) > 8) painted += 1;
+            }
+          }
+          return painted >= 2;
         }
         return false;
       });
