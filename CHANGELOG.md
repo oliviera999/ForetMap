@@ -15,7 +15,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - **Tâches (cartes mission)** : les accès **biodiversité** (fiches catalogue) et **tutoriels** liés à la mission sont affichés **sous le texte de description** de la tâche (et sous la photo si elle existe), au lieu d’être mélangés aux pastilles lieu / dates en tête de carte.
 - **Commentaires de contexte / forum** : photos en **Galerie** ou **Appareil photo** (`capture="environment"`), comme pour les zones et repères ; **`armNativeFilePickerGuard`** à l’ouverture du sélecteur (évite la fermeture des modales au retour caméra sur mobile) ; captures avec **type MIME vide** ou **`application/octet-stream`** acceptées si le **data URL** est bien JPEG/PNG/WebP.
 - **Tâches collectives (n3boss)** : marquer la part d’un assigné comme terminée se fait par **un seul clic** sur le nom (plus de boîte de confirmation navigateur).
-- **Build** : régénération de **`dist/`** (`npm run build`, Vite production en local — bundles à jour dont styles modales centrées).
+- **Build** : régénération de **`dist/`** (`npm run build`, Vite production en local — correctif aperçu onglet Tutoriels + bundles à jour).
 
 ### Corrigé
 - **Onglet Tutoriels** : l’**aperçu** (et les autres surcouches modales de la vue) était rendu **à l’intérieur** du conteneur **`fade-in`** racine, dont l’animation applique un **`transform`** — cela créait un **bloc d’ancrage** pour **`position: fixed`** : fond sombre visible mais panneau blanc hors champ ou invisible. Les modales sont rendues **en dehors** de ce wrapper ; suppression du **`fade-in`** redondant sur les **`log-modal`** d’aperçu / tâches liées / réordonnancement ; **`aria-modal`** / **`tabIndex`** / **`stopPropagation`** sur le panneau pour l’aperçu.

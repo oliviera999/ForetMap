@@ -439,7 +439,7 @@ function TutorialsView({
   };
 
   return (
-    <>
+    <div className="tutorials-root" style={{ display: 'contents' }}>
       {preview && <TutorialPreviewModal tutorial={preview} onClose={() => setPreview(null)} />}
       {linkedTasksModal && <TutorialLinkedTasksModal state={linkedTasksModal} onClose={closeLinkedTasks} />}
       {showReorder && (
@@ -749,7 +749,7 @@ function TutorialsView({
         </div>
       )}
     </div>
-    </>
+    </div>
   );
 }
 
