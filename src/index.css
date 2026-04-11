@@ -2719,6 +2719,11 @@
       width:100% !important;
       height:100% !important;
     }
+    .visit-map-mascot-lottie canvas {
+      display:block;
+      width:100% !important;
+      height:100% !important;
+    }
     .visit-map-mascot-lottie--placeholder {
       display:flex;
       align-items:center;

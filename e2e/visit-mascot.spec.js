@@ -55,9 +55,16 @@ async function openVisitMap(page) {
       const lottie = stage.locator('.visit-map-mascot-lottie').first();
       return lottie.evaluate((el) => {
         const svg = el.querySelector('svg');
-        if (!svg) return false;
-        const box = svg.getBoundingClientRect();
-        return box.width > 2 && box.height > 2;
+        if (svg) {
+          const box = svg.getBoundingClientRect();
+          if (box.width > 2 && box.height > 2) return true;
+        }
+        const canvas = el.querySelector('canvas');
+        if (canvas) {
+          const box = canvas.getBoundingClientRect();
+          return box.width > 2 && box.height > 2;
+        }
+        return false;
       });
     }, { timeout: 7000 })
     .toBe(true);
