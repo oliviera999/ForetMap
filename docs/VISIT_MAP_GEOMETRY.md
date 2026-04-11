@@ -22,3 +22,8 @@ Après **`POST /api/visit/sync`** (carte → visite ou l’inverse), ouvrir **la
 ## Statistiques admin
 
 `GET /api/visit/stats` agrège des objectifs actifs **sur toutes les cartes** ; l’UI visite affiche une progression **par `map_id`**. Ne pas confondre les deux périmètres lors de l’analyse des KPI.
+
+## Tests automatisés (géométrie et mascotte)
+
+- **Unitaires** : `tests/visit-map-geometry.test.js` (`parseVisitZonePoints`, `visitZoneCentroidPct`), `tests/visit-mascot-placement.test.js`, `tests/visit-mascot-visibility.test.js` (modules dans `src/utils/`).
+- **E2e** : `e2e/visit-mascot.spec.js` — seed sur le plan **n3** (comportement réaliste pour les comptes « N3 + Forêt »), clics au **pourcentage** dans **`.visit-map-fit-layer`** ; visibilité mascotte via **`.visit-map-mascot-inner`** (le nœud **`.visit-map-mascot`** est volontairement en **0×0** pour l’ancrage en %).

@@ -141,6 +141,18 @@ npm run test:local
 
 Le script force `DB_NAME=foretmap_test` ; le schéma est (re)créé par les fichiers de test.
 
+### Récapitulatif des commandes de test (référence)
+
+| Commande | Rôle |
+|----------|------|
+| `npm test` | Tous les **`tests/*.test.js`** (API + utilitaires **`src/utils`** : géométrie visite, mascotte, etc.) |
+| `npm run test:e2e` | Playwright sur **`e2e/`** (inclut visite / mascotte) |
+| `npm run smoke:local:fast` | Smoke applicatif (`scripts/local-smoke.js`) |
+| `npm run test:snapshot` | Snapshot DB importée (`FORETMAP_SNAPSHOT_TESTS=1`, voir § 5ter) |
+| `npm run test:load` (et variantes) | Charge Artillery (`LOAD_TEST_SECRET`, voir § **5quinquies**) |
+
+Après une modification **frontend** : **`npm run build`** si le serveur sert **`dist/`** (`NODE_ENV=production`), avant **`npm run test:e2e`**.
+
 ## 5ter. Tests etendus sur snapshot importe (optionnel)
 
 Pour valider rapidement une copie de base distante deja importee dans `foretmap_local`, utilisez :
@@ -181,6 +193,8 @@ Si **`NODE_ENV=production`** dans l’environnement du serveur (souvent via **`.
 
 Vous pouvez cibler une autre URL avec **`E2E_BASE_URL`**.
 
+**Visite / mascotte** : scénario dédié **`e2e/visit-mascot.spec.js`** (seed API prof sur la carte **n3** via **`e2e/fixtures/visit-api.fixture.js`**, clics en % sur **`.visit-map-fit-layer`**, `prefers-reduced-motion`). Voir aussi skill **foretmap-e2e** et **`docs/VISIT_MAP_GEOMETRY.md`**.
+
 ### Nettoyage comptes e2e et clones de tâches récurrentes
 
 Les scénarios créent des élèves reconnaissables (**prénom `E2E…`**, **email `e2e%@example.com`**, **pseudo `e2e%`**). Le job serveur duplique les tâches validées avec récurrence en conservant **`parent_task_id`**.
@@ -195,7 +209,7 @@ Options supplémentaires (passer après `--`) :
 - **`--no-recurring-spawns`** : ne pas supprimer les tâches avec **`parent_task_id`**.
 - **`--include-node-test-students`** : supprime aussi les comptes résiduels des tests Node (**nom `Task` + prénom `St` + chiffres**, **nom `Student` + prénom `Del` + chiffres**) — **réservé à une base de dev**.
 
-## 5ter. Tests de montée en charge (Artillery)
+## 5quinquies. Tests de montée en charge (Artillery)
 
 Le scénario de charge est défini dans `load/artillery.yml` et cible par défaut `http://127.0.0.1:3000`.
 
