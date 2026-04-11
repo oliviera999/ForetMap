@@ -20,6 +20,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 ### Modifié
 - **Client API** (`src/services/api.js`) : si le navigateur signale une panne de transport (**« Failed to fetch »**, **NetworkError**, etc.), le message affiché rappelle explicitement de lancer **`npm run dev`** (port **3000**) en parallèle de **`npm run dev:client`** (Vite), cause habituelle en local quand seul le front est ouvert.
 - **Carte / extrait catalogue** (`LivingBeingsCatalogPanel`) : sous **Utilité pour l’être humain**, ajout du bloc **Remarques** avec les trois champs d’identité (**remarque 1**, **2**, **3**), **une ligne chacune** (tiret côté client si vide), affiché dès qu’au moins une remarque est renseignée sur la fiche. Modales zone et repère, cartes mission (tâches). **`map-views.jsx`**.
+- **Build** : régénération de **`dist/`** (`npm run build` en local — bundles Vite production à jour pour déploiement).
 - **Biodiversité (catalogue / base prof)** : pastille en tête de fiche = **groupe 2** ; **photo principale** (`photo` puis `photo_species`, y compris résolution catégorie Commons) affichée **sous la description brève** et **au-dessus** du bloc rôle écosystème / utilité humaine, avec lightbox au clic. **`foretmap-views.jsx`**, **`index.css`**.
 - **Build** : régénération de **`dist/`** (`npm run build` en local — bouton **réalignement visite** sur la carte).
 - **Build** : régénération de **`dist/`** (`npm run build` en local — bundles Vite : mascotte visite Lottie **DOMLoaded** / z-index calque).
