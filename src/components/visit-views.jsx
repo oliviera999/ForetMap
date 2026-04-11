@@ -1129,6 +1129,16 @@ function VisitView({
     }
   };
 
+  const selectedVisitMedia = selected ? (selected.visit_media || []) : [];
+  const firstVisitPhoto = selectedVisitMedia[0] || null;
+  const restVisitPhotos = selectedVisitMedia.slice(1);
+  const visitDetailsTextTrim =
+    selected && selected.visit_details_text ? String(selected.visit_details_text).trim() : '';
+  const showVisitDetailsBlock = !!(
+    visitDetailsTextTrim ||
+    (selected && restVisitPhotos.length > 0)
+  );
+
   if (loading) {
     return (
       <div className="loader">
@@ -1539,22 +1549,30 @@ function VisitView({
                 </div>
               )}
               {selected.visit_subtitle && <p className="visit-subtitle">{selected.visit_subtitle}</p>}
+              {firstVisitPhoto && (
+                <div className="visit-media-gallery visit-media-gallery--lead">
+                  <figure>
+                    <img src={visitMediaImgSrc(firstVisitPhoto)} alt={firstVisitPhoto.caption || ''} />
+                    {firstVisitPhoto.caption && <figcaption>{firstVisitPhoto.caption}</figcaption>}
+                  </figure>
+                </div>
+              )}
               {selected.visit_short_description && <p>{selected.visit_short_description}</p>}
-              {selected.visit_details_text && (
+              {showVisitDetailsBlock && (
                 <details className="visit-details">
                   <summary>{selected.visit_details_title || 'Détails'}</summary>
-                  <p>{selected.visit_details_text}</p>
+                  {visitDetailsTextTrim ? <p>{selected.visit_details_text}</p> : null}
+                  {restVisitPhotos.length > 0 && (
+                    <div className="visit-media-gallery visit-media-gallery--details-extra">
+                      {restVisitPhotos.map((m) => (
+                        <figure key={m.id}>
+                          <img src={visitMediaImgSrc(m)} alt={m.caption || ''} />
+                          {m.caption && <figcaption>{m.caption}</figcaption>}
+                        </figure>
+                      ))}
+                    </div>
+                  )}
                 </details>
-              )}
-              {(selected.visit_media || []).length > 0 && (
-                <div className="visit-media-gallery">
-                  {selected.visit_media.map((m) => (
-                    <figure key={m.id}>
-                      <img src={visitMediaImgSrc(m)} alt={m.caption || ''} />
-                      {m.caption && <figcaption>{m.caption}</figcaption>}
-                    </figure>
-                  ))}
-                </div>
               )}
               <button className="btn btn-primary btn-sm" disabled={savingSeen} onClick={onToggleSeen}>
                 {seen.has(itemSeenKey(selectedType, selected.id)) ? '✅ Marqué comme vu' : '🔴 Marquer comme vu'}

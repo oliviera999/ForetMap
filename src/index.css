@@ -2713,6 +2713,16 @@
     }
     .visit-media-gallery img { width:100%; height:90px; object-fit:cover; display:block; }
     .visit-media-gallery figcaption { font-size:.72rem; padding:6px; color:#5b655f; }
+    .visit-media-gallery--lead {
+      grid-template-columns:1fr;
+      margin-bottom:10px;
+    }
+    .visit-media-gallery--lead img {
+      height:auto;
+      max-height:220px;
+      min-height:100px;
+    }
+    .visit-details .visit-media-gallery--details-extra { margin-top:10px; }
     .visit-editor {
       margin-top:12px; background:#f0fdf4; border:1px dashed var(--sage);
       border-radius:10px; padding:10px;
