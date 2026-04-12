@@ -130,6 +130,17 @@ function serializeMapLeadPhoto(kind, targetId, row) {
   return { id: pid, image_url, caption: String(row.caption || '').trim() };
 }
 
+/** Autres photos galerie carte (après la première, même tri que `map_lead_photo`). */
+function serializeMapExtraPhotos(kind, targetId, allRows, targetIdField = 'target_id') {
+  const tid = String(targetId);
+  const forTarget = (allRows || []).filter((r) => String(r[targetIdField] ?? '') === tid);
+  if (forTarget.length <= 1) return [];
+  return forTarget
+    .slice(1)
+    .map((row) => serializeMapLeadPhoto(kind, targetId, row))
+    .filter(Boolean);
+}
+
 async function deleteVisitMediaFilesForTarget(targetType, targetId) {
   const rows = await queryAll(
     'SELECT image_path FROM visit_media WHERE target_type = ? AND target_id = ?',
@@ -565,6 +576,7 @@ router.get('/content', async (req, res) => {
         .map((z) => ({
           ...z,
           map_lead_photo: serializeMapLeadPhoto('zone', z.id, zoneMapLeadById.get(String(z.id))),
+          map_extra_photos: serializeMapExtraPhotos('zone', z.id, zoneMapPhotoRows),
           visit_media: mediaByTarget[`zone:${z.id}`] || [],
         })),
       markers: markers
@@ -572,6 +584,7 @@ router.get('/content', async (req, res) => {
         .map((m) => ({
           ...m,
           map_lead_photo: serializeMapLeadPhoto('marker', m.id, markerMapLeadById.get(String(m.id))),
+          map_extra_photos: serializeMapExtraPhotos('marker', m.id, markerMapPhotoRows),
           visit_media: mediaByTarget[`marker:${m.id}`] || [],
         })),
       tutorials,
