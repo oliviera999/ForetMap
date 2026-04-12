@@ -1901,6 +1901,69 @@
     .emoji-btn:active { transform:scale(.85); }
     .emoji-btn.sel { background:var(--mint); border-color:var(--sage); transform:scale(1.1); }
 
+    /* Pré-saisie biodiversité : choix de photo par aperçu (formulaire plante) */
+    .plant-prefill-photo-field {
+      border:1px solid #e5e7eb;
+      border-radius:10px;
+      padding:10px 10px 8px;
+      background:#fff;
+    }
+    .plant-prefill-photo-field-title { font-size:.82rem; font-weight:600; color:var(--forest); margin-bottom:8px; }
+    .plant-prefill-photo-grid {
+      display:grid;
+      grid-template-columns:repeat(auto-fill, minmax(200px, 1fr));
+      gap:10px;
+    }
+    .plant-prefill-photo-card {
+      padding:10px;
+      border-radius:10px;
+      border:1.5px solid #e8ece9;
+      cursor:pointer;
+      transition:border-color .15s, box-shadow .15s, background .15s;
+      -webkit-tap-highlight-color:transparent;
+    }
+    .plant-prefill-photo-card:hover { border-color:var(--mint); background:#fafdfb; }
+    .plant-prefill-photo-card--selected {
+      border-color:var(--sage);
+      background:#f0fdf4;
+      box-shadow:0 0 0 1px rgba(74, 124, 89, .2);
+    }
+    .plant-prefill-photo-card-row {
+      display:flex;
+      align-items:flex-start;
+      gap:10px;
+    }
+    .plant-prefill-photo-radio { flex-shrink:0; margin-top:6px; accent-color:var(--forest); }
+    .plant-prefill-photo-body { flex:1; min-width:0; display:flex; flex-direction:column; gap:8px; }
+    .plant-prefill-photo-thumb-wrap {
+      width:100%;
+      height:120px;
+      border-radius:8px;
+      overflow:hidden;
+      background:#f4f4f5;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+    }
+    .plant-prefill-photo-thumb {
+      width:100%;
+      height:100%;
+      object-fit:contain;
+      display:block;
+    }
+    .plant-prefill-photo-thumb-fallback {
+      font-size:.72rem;
+      color:#888;
+      text-align:center;
+      padding:12px 8px;
+      line-height:1.35;
+    }
+    .plant-prefill-photo-meta { display:flex; flex-direction:column; gap:4px; font-size:.72rem; color:#555; }
+    .plant-prefill-photo-url,
+    .plant-prefill-photo-source { font-weight:600; color:var(--forest); text-decoration:underline; text-underline-offset:2px; word-break:break-all; }
+    .plant-prefill-photo-source { font-weight:500; color:#3d6b4a; }
+    .plant-prefill-photo-credit { color:#666; line-height:1.35; }
+
     /* ── STATS ── */
     .stats-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:10px; margin-bottom:20px; }
     .audit-subtabs { margin-bottom:14px; }
