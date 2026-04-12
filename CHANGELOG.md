@@ -6,6 +6,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 ## [Non publié]
 
 ### Modifié
+- **Photos carte / visite (perf)** : URLs **`/uploads/zones/...`** et **`/uploads/markers/...`** dans les listes API et **`GET /api/visit/content`** ; **`GET .../photos/:pid/data`** renvoie **`302`** vers le statique quand le chemin est public ; vignettes **`*.thumb.jpg`** (génération **`sharp`** à l’upload, champ **`thumb_url`**) ; en-têtes **`Cache-Control`** sur **`/uploads`** et `sendFile` de secours ; UI (**`map-views`**, **`visit-views`**, **`tasks-views`**, héro biodiversité) : **`loading` / `decoding` / `fetchPriority`** ; dépendance **`sharp`** ; script **`post-deploy-check`** suit les redirections image.
 - **Rules Cursor** : obligation explicite d’**ajouter ou adapter les tests dans le même lot** que toute nouvelle fonctionnalité (**`foretmap-conventions`** : API / `src.utils` / e2e selon le cas ; rappels **`foretmap-backend`** et **`foretmap-frontend`**).
 - **Outillage agent / documentation** : skills (**`foretmap-species-autofill`**, **`foretmap-tests`**, **`foretmap-mascot-catalog`**, **`foretmap-docs-rules-skills`**) et rules (**`foretmap-biodiversite-autofill`**, **`foretmap-conventions`**) alignés sur l’identification Pl@ntNet hors autofill, l’inventaire des tests, les packs mascotte (`lib/visit-pack/`, sync build) et la sonde transport prod ; **`docs/EVOLUTION.md`** (§1.1, état avril 2026).
 - **Build** : régénération des artefacts **`dist/`** (bundle Vite production).

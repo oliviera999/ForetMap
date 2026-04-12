@@ -63,6 +63,7 @@ test('Route image zone lit bien depuis disque', async () => {
 
   const res = await request(app)
     .get(`/api/zones/${zoneId}/photos/${photoId}/data`)
+    .redirects(1)
     .expect(200);
   assert.ok((res.headers['content-type'] || '').toLowerCase().includes('image'));
 });
@@ -80,6 +81,7 @@ test('Route image zone renvoie 404 si image_path absent', async () => {
 
   await request(app)
     .get(`/api/zones/${zoneId}/photos/${result.insertId}/data`)
+    .redirects(0)
     .expect(404);
 });
 

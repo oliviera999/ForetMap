@@ -250,15 +250,7 @@ function decodeTaskImageBuffer(imageData) {
   return { buffer: buf, ext };
 }
 
-/** Chemin relatif uploads/ sûr pour exposition publique (fichier sous tasks/). */
-function isSafePublicTaskImageRelativePath(rel) {
-  const s = rel != null ? String(rel).trim() : '';
-  if (!s || s.includes('..') || s.includes('\\')) return false;
-  if (!s.startsWith('tasks/')) return false;
-  const rest = s.slice('tasks/'.length);
-  // id tâche (uuid, import, etc.) + extension image connue
-  return /^[a-zA-Z0-9_-]+\.(jpe?g|png|webp)$/i.test(rest);
-}
+const { isSafePublicTaskImageRelativePath } = require('../lib/uploadsPublicUrls');
 
 function attachTaskImagePublicFields(task) {
   if (!task || task.id == null) return;

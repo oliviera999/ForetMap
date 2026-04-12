@@ -239,7 +239,20 @@ const staticServeOptions = serveDist
     }
   : undefined;
 app.use(express.static(staticRoot, staticServeOptions));
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+const { PUBLIC_IMAGE_CACHE_CONTROL } = require('./lib/httpImageCache');
+const uploadsStaticRoot = path.join(__dirname, 'uploads');
+app.use(
+  '/uploads',
+  express.static(uploadsStaticRoot, {
+    index: false,
+    setHeaders(res, filePath) {
+      const lower = String(filePath || '').toLowerCase();
+      if (/\.(jpe?g|png|gif|webp|avif|svg|ico|bmp)$/i.test(lower)) {
+        res.setHeader('Cache-Control', PUBLIC_IMAGE_CACHE_CONTROL);
+      }
+    },
+  })
+);
 app.use('/tutos', express.static(path.join(__dirname, 'tutos')));
 
 // Route de santé sans BDD — pour le contrôle de disponibilité (o2switch / Passenger)

@@ -148,3 +148,29 @@ test('checkImageEndpoint accepte 404 comme succès optionnel', async () => {
     await new Promise((resolve) => server.close(resolve));
   }
 });
+
+test('checkImageEndpoint suit une redirection 302 vers le fichier image', async () => {
+  const server = http.createServer((req, res) => {
+    if (req.url === '/api/zones/a/photos/1/data') {
+      res.writeHead(302, { Location: '/uploads/zones/a/1.jpg' });
+      res.end();
+    } else if (req.url === '/uploads/zones/a/1.jpg') {
+      res.writeHead(200, { 'Content-Type': 'image/jpeg' });
+      res.end(Buffer.from([0xff, 0xd8, 0xff, 0xd9]));
+    } else {
+      res.writeHead(404, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'not found' }));
+    }
+  });
+
+  await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+  const port = server.address().port;
+  try {
+    const out = await checkImageEndpoint(`http://127.0.0.1:${port}`, '/api/zones/a/photos/1/data', 3000);
+    assert.strictEqual(out.required, false);
+    assert.strictEqual(out.pass, true);
+    assert.strictEqual(out.status, 200);
+  } finally {
+    await new Promise((resolve) => server.close(resolve));
+  }
+});

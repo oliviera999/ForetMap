@@ -9,6 +9,7 @@ const { requirePermission, JWT_SECRET, authenticate, hasPermission } = require('
 const { logRouteError } = require('../lib/routeLog');
 const { emitGardenChanged } = require('../lib/realtime');
 const { saveBase64ToDisk, getAbsolutePath, deleteFile } = require('../lib/uploads');
+const { zoneMapPhotoImageUrl, markerMapPhotoImageUrl, resolveMapPhotoThumbUrl } = require('../lib/uploadsPublicUrls');
 const { visitContentRowIsPublicActive } = require('../lib/visitContentPublicActive');
 
 const router = express.Router();
@@ -120,14 +121,15 @@ function pickNewestMapPhotoByTarget(rows, targetIdField = 'target_id') {
 /** Vignette issue de `zone_photos` / `marker_photos` (même `id` zone/repère qu’après sync carte → visite). */
 function serializeMapLeadPhoto(kind, targetId, row) {
   if (!row || row.id == null) return null;
-  const tid = encodeURIComponent(String(targetId));
   const pid = Number(row.id);
   if (!Number.isFinite(pid) || pid <= 0) return null;
+  const pathCol = row.image_path != null ? String(row.image_path).trim() : '';
   const image_url =
     kind === 'zone'
-      ? `/api/zones/${tid}/photos/${pid}/data`
-      : `/api/map/markers/${tid}/photos/${pid}/data`;
-  return { id: pid, image_url, caption: String(row.caption || '').trim() };
+      ? zoneMapPhotoImageUrl(pathCol || null, targetId, pid)
+      : markerMapPhotoImageUrl(pathCol || null, targetId, pid);
+  const thumb_url = pathCol ? resolveMapPhotoThumbUrl(pathCol, kind) : null;
+  return { id: pid, image_url, thumb_url, caption: String(row.caption || '').trim() };
 }
 
 /** Autres photos galerie carte (après la première, même tri que `map_lead_photo`). */
@@ -517,14 +519,14 @@ router.get('/content', async (req, res) => {
 
     const [zoneMapPhotoRows, markerMapPhotoRows] = await Promise.all([
       queryAll(
-        `SELECT zp.zone_id AS target_id, zp.id, zp.caption, zp.uploaded_at, zp.sort_order
+        `SELECT zp.zone_id AS target_id, zp.id, zp.caption, zp.uploaded_at, zp.sort_order, zp.image_path
          FROM zone_photos zp
          INNER JOIN visit_zones vz ON vz.id = zp.zone_id AND vz.map_id = ?
          ORDER BY zp.zone_id ASC, zp.sort_order ASC, zp.id ASC`,
         [mapId]
       ),
       queryAll(
-        `SELECT mp.marker_id AS target_id, mp.id, mp.caption, mp.uploaded_at, mp.sort_order
+        `SELECT mp.marker_id AS target_id, mp.id, mp.caption, mp.uploaded_at, mp.sort_order, mp.image_path
          FROM marker_photos mp
          INNER JOIN visit_markers vm ON vm.id = mp.marker_id AND vm.map_id = ?
          ORDER BY mp.marker_id ASC, mp.sort_order ASC, mp.id ASC`,

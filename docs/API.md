@@ -271,11 +271,12 @@ Contenus éditables du site (micro-CMS texte brut) :
 | POST | `/api/zones` | oui | Créer zone |
 | DELETE | `/api/zones/:id` | oui | Supprimer zone |
 | GET | `/api/zones/:id/photos` | non | Liste des photos (méta, tri `sort_order` croissant) |
-| GET | `/api/zones/:id/photos/:pid/data` | non | Données image (fichier disque) |
+| GET | `/api/zones/:id/photos/:pid/data` | non | Données image : **`302`** vers **`/uploads/zones/...`** si le chemin disque est au format public ; sinon `sendFile` direct |
 | POST | `/api/zones/:id/photos` | oui | Ajouter photo (`image_data` base64, `caption`) |
 | PUT | `/api/zones/:id/photos/reorder` | oui | Réordonner : corps JSON **`photo_ids`** (ou **`ordered_ids`**) = tableau des `id` dans le nouvel ordre (exactement toutes les photos de la zone) |
 | DELETE | `/api/zones/:id/photos/:pid` | oui | Supprimer photo |
 
+- **`GET /api/zones/:id/photos`** : chaque entrée inclut **`image_url`** (URL **`/uploads/zones/{id}/{photoId}.jpg`** pour les fichiers créés par l’API — pas de passage par `/api` pour le chargement navigateur) et **`thumb_url`** (`*.thumb.jpg`, **absent** ou `null` si la vignette n’existe pas, p. ex. module **`sharp`** indisponible sur l’hôte). Le champ **`image_path`** (relatif à `uploads/`) reste exposé.
 - Le champ `name` peut commencer par un **emoji de zone** : préfixe (séquence emoji) suivi d’un **espace** puis le libellé ; l’UI carte permet de choisir l’emoji dans une grille ou de coller un pictogramme.
 - **`POST /api/zones`** : corps JSON `name`, `points` (≥ 3 sommets `{ xp, yp }` en pourcentage de l’image), `map_id` ; optionnellement `color`, **`living_beings`** (tableau de noms du catalogue, ordre conservé), `current_plant` (colonne legacy, ignorée en persistance si `living_beings` est non vide — alors `current_plant` est stocké vide), `stage`, **`description`** (texte, chaîne vide si absent).
 - **`GET /api/zones`** et **`GET /api/zones/:id`** : chaque zone expose **`living_beings_list`** (tableau dérivé de `living_beings` JSON, ordre conservé). La colonne brute `living_beings` n’est pas renvoyée. **`current_plant`** reste en réponse pour compatibilité mais est vide dès qu’au moins un être vivant est listé dans `living_beings_list`.
@@ -292,8 +293,8 @@ Contenus éditables du site (micro-CMS texte brut) :
 | POST | `/api/map/markers` | oui | Créer repère |
 | PUT | `/api/map/markers/:id` | oui | Modifier repère |
 | DELETE | `/api/map/markers/:id` | oui | Supprimer repère |
-| GET | `/api/map/markers/:id/photos` | non | Liste des photos du repère (méta + `image_url`, tri `sort_order` croissant) |
-| GET | `/api/map/markers/:id/photos/:pid/data` | non | Fichier image (disque) |
+| GET | `/api/map/markers/:id/photos` | non | Liste des photos du repère (méta + **`image_url`**, **`thumb_url`**, tri `sort_order` croissant) — mêmes principes que les photos zone |
+| GET | `/api/map/markers/:id/photos/:pid/data` | non | Fichier image : **`302`** vers **`/uploads/markers/...`** si chemin public ; sinon `sendFile` |
 | POST | `/api/map/markers/:id/photos` | oui | Ajouter photo (`image_data` base64, `caption`) — même principe que les zones |
 | PUT | `/api/map/markers/:id/photos/reorder` | oui | Réordonner : corps JSON **`photo_ids`** (ou **`ordered_ids`**) = tableau des `id` dans le nouvel ordre (exactement toutes les photos du repère) |
 | DELETE | `/api/map/markers/:id/photos/:pid` | oui | Supprimer photo |
@@ -341,7 +342,7 @@ Contenus éditables du site (micro-CMS texte brut) :
 Contraintes importantes :
 
 - **`GET /api/visit/content`** : chaque zone renvoyée inclut **`description`** (texte de la table **`zones`**, jointure sur le même `id`) ; chaque repère inclut **`note`** (table **`map_markers`**, même principe). Ces champs sont **`null`** s’il n’y a pas de ligne carte correspondante ou si le texte est vide. Les zones et repères dont **`is_active`** est **explicitement** désactivé (`0`, `false`, chaîne `'0'`) sont exclus ; les autres valeurs « actives » (y compris variantes driver) restent listées.
-- **Photos galerie carte (visite)** : pour chaque zone / repère, **`map_lead_photo`** est la **première** entrée de la galerie carte (`zone_photos` / `marker_photos`, tri `sort_order` puis `id`, aligné sur les routes galerie carte) ou **`null`** ; **`map_extra_photos`** est le **tableau** des entrées suivantes, chacune au même format que **`map_lead_photo`** (`{ id, image_url, caption }`), **vide** s’il n’y a qu’une image ou aucune. Le client peut les afficher après le texte du bloc « Détails » visite.
+- **Photos galerie carte (visite)** : pour chaque zone / repère, **`map_lead_photo`** est la **première** entrée de la galerie carte (`zone_photos` / `marker_photos`, tri `sort_order` puis `id`, aligné sur les routes galerie carte) ou **`null`** ; **`map_extra_photos`** est le **tableau** des entrées suivantes, chacune au même format que **`map_lead_photo`** (`{ id, image_url, thumb_url?, caption }` — **`thumb_url`** optionnel comme sur **`GET /api/zones/:id/photos`**), **vide** s’il n’y a qu’une image ou aucune. Le client peut les afficher après le texte du bloc « Détails » visite.
 - `direction=map_to_visit` : copie/synchronise les zones et repères de la carte vers la visite.
 - **`POST /api/visit/rebuild-from-map`** : alternative à « tout supprimer à la main puis réimporter » : une seule opération atomique (transaction BDD) qui vide et recrée la couche visite du plan tout en **fusionnant** l’éditorial existant par **id** ; les fichiers image des cibles définitivement retirées sont effacés du disque **après** commit réussi.
 - `direction=visit_to_map` : copie/synchronise les zones et repères de la visite vers la carte.
