@@ -6,6 +6,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 ## [Non publié]
 
 ### Corrigé
+- **Visite — panneau latéral** : la description « carte » des zones et la note « carte » des repères ne s’affichent plus dans l’onglet Visite ; seuls les textes et médias **dédiés visite** restent visibles (les notes carte restent éditables depuis l’onglet Carte). **`visit-views.jsx`**.
 - **Biodiversité — pré-saisie prod (HTTP 503 non JSON)** : la route attendait trop longtemps (Wikidata jusqu’à **5** requêtes entité **séquentielles** × timeout) ; désormais **budget wall-clock** (~12 s), timeouts HTTP **dégressifs**, plafond par requête, et chargements entité Wikidata en **parallèle** pour rester sous les délais des reverse proxies. **`lib/speciesAutofill.js`**, **`routes/plants.js`**, **`docs/API.md`**.
 
 - **Visite — aperçu mascotte (prof/admin)** : les boutons de comportement déclenchent désormais la bonne animation **Rive** (fusion des noms d’animation par défaut pour tous les états avec le catalogue, ex. `running` → clip de marche/course) ; les **spritesheets** remontent le nœud animé au changement d’état pour relancer la CSS `steps()` ; le cadre d’aperçu applique les mêmes **mouvements de coque** (respiration / marche / rebond) que sur la carte selon l’état choisi.
