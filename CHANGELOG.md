@@ -6,10 +6,12 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 ## [Non publié]
 
 ### Modifié
+- **Outillage agent / documentation** : skills (**`foretmap-species-autofill`**, **`foretmap-tests`**, **`foretmap-mascot-catalog`**, **`foretmap-docs-rules-skills`**) et rules (**`foretmap-biodiversite-autofill`**, **`foretmap-conventions`**) alignés sur l’identification Pl@ntNet hors autofill, l’inventaire des tests, les packs mascotte (`lib/visit-pack/`, sync build) et la sonde transport prod ; **`docs/EVOLUTION.md`** (§1.1, état avril 2026).
 - **Build** : régénération des artefacts **`dist/`** (bundle Vite production).
 - **Carte — fiche zone / repère (Info)** : sous le texte visite, panneaux dépliables **Biodiversité** (espèces sur le lieu + missions, liens vers le catalogue comme avant) et **Tuto** (même cartes qu’à l’onglet Tutoriels, avec **Consulter** si l’aperçu est disponible). **`map-views.jsx`**.
 
 ### Ajouté
+- **Tests API** : couverture de **`PUT /api/map/markers/:id/photos/reorder`** dans **`tests/new-features.test.js`** (symétrique zone / médias visite).
 - **Exploitation / diagnostic transport** : script **`scripts/prod-transport-probe.mjs`** et commande **`npm run prod:transport-probe`** (HTTP/1.1 vs HTTP/2, multiplex, handshake **`/socket.io`** ; JWT optionnel **`FORETMAP_TRANSPORT_PROBE_JWT`** / **`FORETMAP_SOCKETIO_LOAD_JWT`**) ; section **`docs/EXPLOITATION.md`** (*Chrome ERR_HTTP2_PROTOCOL_ERROR / Tiger Protect*) ; entrée **`R9`** dans **`docs/SITE_ISSUES.md`** / **`docs/SITE_ISSUES.json`** ; mentions **`docs/LOCAL_DEV.md`** et **`README.md`**.
 
 ### Modifié

@@ -60,23 +60,26 @@ Certains modules **ESM** partagés avec le build Vite sont validés par **`node 
 
 Les réponses API exposent **`X-Request-Id`** : l’inclure dans les rapports de bug. Les erreurs 500 journalisées via **`logRouteError`** contiennent cet id. Voir skill **foretmap-observability** et `docs/API.md` (Observabilité).
 
-## Structure existante
+## Inventaire `tests/` (par domaine)
 
-```
-tests/
-├── helpers/
-│   └── setup.js          # env + BDD de test
-├── auth.test.js           # register, login, teacher login, rejet mdp
-├── api.test.js            # routes CRUD principales
-├── species-autofill.test.js # agrégation multi-sources / scoring / fallback
-├── tasks-status.test.js   # recalcul statuts tâches (assign/unassign/done)
-├── students-delete.test.js # cascade suppression élève
-├── new-features.test.js   # tests de nouvelles fonctionnalités
-├── visit-map-geometry.test.js   # centroïde / parsing polygones visite
-├── visit-mascot-placement.test.js
-├── visit-mascot-visibility.test.js
-└── recurring-tasks-spawn.test.js # job duplication tâches récurrentes validées
-```
+Tous les fichiers `tests/*.test.js` sont exécutés par **`npm test`**. Extraits utiles :
+
+| Domaine | Fichiers (exemples) |
+|---------|---------------------|
+| **Auth / RBAC** | `auth.test.js`, `rbac.test.js` |
+| **API large** | `api.test.js` (CRUD, autofill, plantnet-identify, …) |
+| **Pré-saisie biodiversité** | `species-autofill.test.js`, `species-autofill-wikidata.test.js`, `species-autofill-gbif-descriptions.test.js`, `species-autofill-wikipedia-heuristics.test.js`, `species-autofill-extensions.test.js`, `species-autofill-gap.test.js`, `species-autofill-openai-context.test.js`, `species-autofill-plantnet.test.js`, `species-autofill-common-species.test.js`, `species-autofill-provider-selftest.test.js` |
+| **Plantes / import / sécurité** | `plants-import.test.js`, `plants-security.test.js`, `plants-discovery.test.js`, `plant-group4.test.js` |
+| **Tâches** | `tasks-status.test.js`, `tasks-import.test.js`, `tasks-importance.test.js`, `tasks-image.test.js`, `task-referents.test.js`, `recurring-tasks-spawn.test.js`, `recurring-tasks-utils.test.js` |
+| **Visite / mascotte / pack** | `visit-map-geometry.test.js`, `visit-mascot-state.test.js`, `visit-mascot-catalog.test.js`, `visit-mascot-placement.test.js`, `visit-mascot-visibility.test.js`, `visit-mascot-position-persistence.test.js`, `visit-mascot-diagnostics.test.js`, `visit-content-public-active.test.js`, `visit-progress-client.test.js`, `mascot-pack.test.js` |
+| **Carte / médias** | `map-wheel-zoom.test.js`, `new-features.test.js` (zones, repères, visit, photos, réordonnancement, …) |
+| **Forum / commentaires / tuto** | `forum.test.js`, `context-comments.test.js`, `context-comments-plant-tuto.test.js`, `tutorials.test.js` |
+| **Élèves / stats / réglages** | `students-delete.test.js`, `students-duplicate.test.js`, `students-import.test.js`, `settings.test.js`, `observations-images.test.js` |
+| **Temps réel / déploiement / scripts** | `realtime.test.js`, `post-deploy-check-script.test.js`, `deploy-secret-from-env.test.js`, `uploads-reconcile-script.test.js`, … |
+| **UI partagée** | `emoji-font-coverage.test.js` |
+| **Snapshot BDD** | `snapshot-db.test.js` (sans `initSchema` dans le test) |
+
+**Helpers** : `tests/helpers/setup.js` (env, `DB_NAME` test, `TEACHER_PIN`).
 
 ## Conventions
 

@@ -27,6 +27,14 @@ description: Guide l’ajout et l’évolution des mascottes visite (catalogue m
 | `src/components/VisitMapMascotSpriteCut.jsx` | Rendu `sprite_cut` (PNG par frame, manifeste + catalogue) |
 | `src/components/VisitMascotFallbackSvg.jsx` | Silhouettes de secours |
 | `src/components/visit-views.jsx` | Déclencheurs UI et preview prof/admin |
+| `src/components/VisitMascotPackManager.jsx` | Gestion des packs persistés (prof / modale Visite) |
+| `src/components/MascotPackWysiwygEditor.jsx` | Éditeur WYSIWYG pack (métadonnées, états, vignettes, médiathèque) |
+| `src/utils/mascotPackEditorModel.js` | Modèle éditeur (états, assets, synchro JSON) |
+| `routes/visit.js` | CRUD packs, assets (`GET/POST/DELETE …/mascot-packs/…`), `GET /api/visit/content` (`mascot_packs`) |
+
+## Prod sans dossier `src/`
+
+L’API de validation des packs ne doit pas dépendre uniquement de `src/utils/mascotPack.js` (absent des déploiements « runtime » sans sources). Le build exécute **`scripts/sync-visit-pack-server-lib.js`** (npm **`sync:visit-pack-lib`**, enchaîné par **`npm run build`** via `scripts/build-safe.js`) pour maintenir le miroir **`lib/visit-pack/`**. Voir **`docs/MASCOT_PACK.md`** et **`docs/EXPLOITATION.md`** (garde-fou auto-deploy si `mascotPack.js` / `visitMascotState.js` changent sans lib synchronisée).
 
 ## Checklist d’intégration
 
@@ -34,9 +42,10 @@ description: Guide l’ajout et l’évolution des mascottes visite (catalogue m
 2. Vérifier les états supportés (`stateAnimations` Rive, `stateFrames` spritesheet, ou `spriteCut.stateFrames` avec `srcs` + `fps` pour `sprite_cut`).
 3. Étendre `VISIT_MASCOT_STATE` et `resolveVisitMascotState` si nouveau comportement global.
 4. Vérifier la preview prof/admin : boutons dynamiques + animation visible.
-5. Couvrir les tests:
+5. Couvrir les tests :
    - `tests/visit-mascot-state.test.js`
    - `tests/visit-mascot-catalog.test.js`
+   - `tests/mascot-pack.test.js` (pack JSON / validation)
    - `e2e/visit-mascot.spec.js`
 
 ## Conventions importantes

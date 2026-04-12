@@ -700,6 +700,46 @@ test('PUT /api/zones/:id/photos/reorder réordonne les photos zone', async () =>
   await request(app).delete(`/api/zones/${zone.body.id}`).set('Authorization', 'Bearer ' + teacherToken).expect(200);
 });
 
+test('PUT /api/map/markers/:id/photos/reorder réordonne les photos repère', async () => {
+  const marker = await request(app)
+    .post('/api/map/markers')
+    .set('Authorization', 'Bearer ' + teacherToken)
+    .send({
+      map_id: 'foret',
+      x_pct: 41,
+      y_pct: 42,
+      label: `Repère reorder photos carte ${Date.now()}`,
+      emoji: '📌',
+    })
+    .expect(201);
+
+  const p1 = await request(app)
+    .post(`/api/map/markers/${marker.body.id}/photos`)
+    .set('Authorization', 'Bearer ' + teacherToken)
+    .send({ image_data: `data:image/jpeg;base64,${TINY_JPEG_B64}`, caption: 'photo 1' })
+    .expect(201);
+  const p2 = await request(app)
+    .post(`/api/map/markers/${marker.body.id}/photos`)
+    .set('Authorization', 'Bearer ' + teacherToken)
+    .send({ image_data: `data:image/jpeg;base64,${TINY_JPEG_B64}`, caption: 'photo 2' })
+    .expect(201);
+
+  let list = await request(app).get(`/api/map/markers/${marker.body.id}/photos`).expect(200);
+  assert.strictEqual(list.body.length, 2);
+
+  await request(app)
+    .put(`/api/map/markers/${marker.body.id}/photos/reorder`)
+    .set('Authorization', 'Bearer ' + teacherToken)
+    .send({ photo_ids: [p2.body.id, p1.body.id] })
+    .expect(200);
+
+  list = await request(app).get(`/api/map/markers/${marker.body.id}/photos`).expect(200);
+  assert.strictEqual(list.body[0].id, p2.body.id);
+  assert.strictEqual(list.body[1].id, p1.body.id);
+
+  await request(app).delete(`/api/map/markers/${marker.body.id}`).set('Authorization', 'Bearer ' + teacherToken).expect(200);
+});
+
 test('PUT /api/visit/media/reorder réordonne les médias', async () => {
   const markerRes = await request(app)
     .post('/api/visit/markers')
