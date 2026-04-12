@@ -47,3 +47,17 @@ test('buildOpenAiPartialContext inclut les indices formulaire', () => {
   assert.match(text, /Tomate cerise/);
   assert.match(text, /Solanum lycopersicum/);
 });
+
+test('buildOpenAiPartialContext inclut le texte de recherche sans Wikipedia ni GBIF', () => {
+  const text = buildOpenAiPartialContext({
+    wikiFrRes: null,
+    primaryResults: [],
+    gbifRes: null,
+    gbifTraitsPack: null,
+    secondaryResults: [],
+    hints: {},
+    searchQuery: 'tomate',
+  });
+  assert.match(text, /\[Texte de recherche pré-saisie\]/);
+  assert.match(text, /tomate/i);
+});
