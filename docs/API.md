@@ -448,6 +448,7 @@ Réponse:
 - Comportement:
   - résultats agrégés depuis plusieurs sources externes publiques : **Wikipedia (FR)** avec repli **opensearch** ; **Wikidata** ; **GBIF** (`species/match`, `usageKey`) ; **Catalogue of Life** lorsqu’un nom scientifique est connu ; **iNaturalist** (recherche taxons, photo HTTPS et lien taxon si disponibles) ; **noms vernaculaires GBIF** (`/species/{usageKey}/vernacularNames`, langues `fra` / `fre` / `fr`) pour enrichir **`second_name`** (synonymes / noms vulgaires, hors doublons du nom principal) ; **Wikipedia EN** (résumé) en secours si l’extrait FR est trop court ;
   - cache mémoire TTL côté serveur pour limiter la latence et les quotas,
+  - budget global d’agrégation côté serveur (ordre de grandeur **12 s** wall-clock, timeouts HTTP dynamiques et plafond par requête) afin de limiter les **503** renvoyés par les reverse proxies lorsque les sources externes sont lentes,
   - validation/filtrage des URLs photo avant retour.
 - Limites connues:
   - des homonymies peuvent remonter des descriptions hors contexte botanique (ex. nom ambigu),

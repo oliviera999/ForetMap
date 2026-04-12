@@ -680,7 +680,8 @@ router.get('/autofill', requirePermission('plants.manage', { needsElevation: tru
     const cached = plantsAutofillCache.get(cacheKey);
     if (cached) return res.json(cached);
 
-    const payload = await buildSpeciesAutofill(query, { timeoutMs: 6500 });
+    /** Budget global wall-clock (évite 503 HTML des proxies si Wikidata + sources s’enchaînent trop longtemps). */
+    const payload = await buildSpeciesAutofill(query, { budgetMs: 12000 });
     const photoValidationPayload = {};
     for (const photo of payload?.photos || []) {
       if (!PHOTO_FIELDS.includes(photo.field)) continue;
