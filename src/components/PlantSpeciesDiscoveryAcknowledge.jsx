@@ -1,10 +1,15 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { api, AccountDeletedError, getAuthToken } from '../services/api';
+import { api, AccountDeletedError, createContextComment, getAuthToken } from '../services/api';
 import { useOverlayHistoryBack } from '../hooks/useOverlayHistoryBack';
+import { AttachmentImagesPicker } from './attachment-images-picker';
+
+const MIN_CONTEXT_COMMENT_CHARS = 2;
 
 /**
  * Bouton + modal pour confirmer une observation d’espèce (terrain + lecture de fiche).
  * N’affiche rien si aucune session (pas de jeton).
+ *
+ * @param {boolean} [offerPlantCommentAfterObservation] — si vrai, après validation propose un commentaire (texte et/ou photos) sur la fiche (`contextType` plant).
  */
 export function PlantSpeciesDiscoveryAcknowledgeButton({
   plantId,
@@ -13,27 +18,47 @@ export function PlantSpeciesDiscoveryAcknowledgeButton({
   siteObservationCount = 0,
   onAcknowledged,
   onForceLogout,
+  offerPlantCommentAfterObservation = false,
 }) {
   const [modalOpen, setModalOpen] = useState(false);
+  const [phase, setPhase] = useState('confirm');
   const [checked, setChecked] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [enrichBody, setEnrichBody] = useState('');
+  const [enrichImages, setEnrichImages] = useState([]);
+  const [enrichSaving, setEnrichSaving] = useState(false);
+  const [enrichError, setEnrichError] = useState('');
+  const [enrichToast, setEnrichToast] = useState('');
 
   const hasToken = typeof getAuthToken === 'function' && !!getAuthToken();
   const my = Math.max(0, Number(myObservationCount) || 0);
   const site = Math.max(0, Number(siteObservationCount) || 0);
   const hasObserved = my > 0;
 
+  const busy = saving || enrichSaving;
+
   useOverlayHistoryBack(modalOpen, () => {
-    if (!saving) setModalOpen(false);
+    if (!busy) setModalOpen(false);
   });
 
   useEffect(() => {
     if (!modalOpen) {
+      setPhase('confirm');
       setChecked(false);
       setError('');
+      setEnrichBody('');
+      setEnrichImages([]);
+      setEnrichError('');
+      setEnrichToast('');
     }
   }, [modalOpen]);
+
+  useEffect(() => {
+    if (!enrichToast) return undefined;
+    const t = setTimeout(() => setEnrichToast(''), 2400);
+    return () => clearTimeout(t);
+  }, [enrichToast]);
 
   const submit = useCallback(async () => {
     if (!checked) return;
@@ -45,16 +70,112 @@ export function PlantSpeciesDiscoveryAcknowledgeButton({
         my_observation_count: Number(res?.my_observation_count) || 0,
         site_observation_count: Number(res?.site_observation_count) || 0,
       });
-      setModalOpen(false);
+      setChecked(false);
+      if (offerPlantCommentAfterObservation) {
+        setPhase('enrich');
+      } else {
+        setModalOpen(false);
+      }
     } catch (e) {
       if (e instanceof AccountDeletedError) onForceLogout?.();
       setError(e?.message || 'Erreur');
     } finally {
       setSaving(false);
     }
-  }, [checked, plantId, onAcknowledged, onForceLogout]);
+  }, [checked, plantId, onAcknowledged, onForceLogout, offerPlantCommentAfterObservation]);
+
+  const submitEnrichment = useCallback(async () => {
+    const trimmed = String(enrichBody || '').trim();
+    const imgs = Array.isArray(enrichImages) ? enrichImages : [];
+    if (trimmed.length < MIN_CONTEXT_COMMENT_CHARS && imgs.length === 0) {
+      setEnrichError(`Saisis au moins ${MIN_CONTEXT_COMMENT_CHARS} caractères ou ajoute une photo.`);
+      return;
+    }
+    setEnrichSaving(true);
+    setEnrichError('');
+    try {
+      await createContextComment({
+        contextType: 'plant',
+        contextId: String(plantId),
+        body: trimmed.length >= MIN_CONTEXT_COMMENT_CHARS ? trimmed : undefined,
+        images: imgs.length ? imgs : undefined,
+      });
+      setModalOpen(false);
+    } catch (e) {
+      if (e instanceof AccountDeletedError) onForceLogout?.();
+      setEnrichError(e?.message || 'Erreur');
+    } finally {
+      setEnrichSaving(false);
+    }
+  }, [enrichBody, enrichImages, plantId, onForceLogout]);
+
+  const skipEnrichment = useCallback(() => {
+    setModalOpen(false);
+  }, []);
 
   if (!hasToken) return null;
+
+  const renderEnrichStep = () => (
+    <div
+      className="modal-overlay"
+      role="presentation"
+      onClick={(e) => e.target === e.currentTarget && !busy && setModalOpen(false)}
+    >
+      <div
+        className="log-modal fade-in tuto-read-ack-modal"
+        role="dialog"
+        aria-labelledby="plant-discovery-enrich-title"
+        aria-modal="true"
+      >
+        <button
+          type="button"
+          className="modal-close"
+          onClick={() => !busy && setModalOpen(false)}
+          aria-label="Fermer"
+        >
+          ✕
+        </button>
+        <h3 id="plant-discovery-enrich-title">Enrichir ta observation ?</h3>
+        <p className="tuto-read-ack-intro">
+          Tu peux publier un court commentaire sur la fiche
+          {' '}
+          <strong>« {speciesName || 'cette espèce'} »</strong>
+          {' '}
+          (lieu, comportement, stade…) et joindre jusqu’à trois photos. Ce passage est optionnel.
+        </p>
+        <div style={{ marginBottom: 8 }}>
+          <textarea
+            className="task-log-comment-input"
+            style={{ width: '100%', minHeight: 72, marginTop: 6, resize: 'vertical' }}
+            rows={3}
+            maxLength={4000}
+            value={enrichBody}
+            onChange={(e) => setEnrichBody(e.target.value)}
+            disabled={enrichSaving}
+            placeholder="Ex. : vu près du compost, fleurs blanches, plusieurs pieds…"
+            aria-label="Commentaire pour enrichir l’observation"
+          />
+        </div>
+        <AttachmentImagesPicker
+          value={enrichImages}
+          onChange={setEnrichImages}
+          disabled={enrichSaving}
+          onNotify={(msg) => setEnrichToast(msg)}
+          label="Photos (optionnel, max 3, JPEG / PNG / WebP)"
+        />
+        {enrichError ? <p className="tuto-read-ack-error">{enrichError}</p> : null}
+        {enrichToast ? <p className="tuto-read-ack-intro" style={{ marginTop: 6, color: 'var(--leaf)' }} role="status">{enrichToast}</p> : null}
+        <div className="tuto-read-ack-actions">
+          <button type="button" className="btn btn-ghost btn-sm" disabled={enrichSaving} onClick={skipEnrichment}>
+            Plus tard
+          </button>
+          <button type="button" className="btn btn-primary btn-sm" disabled={enrichSaving} onClick={submitEnrichment}>
+            {enrichSaving ? 'Publication…' : 'Publier sur la fiche'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 
   if (hasObserved) {
     return (
@@ -77,7 +198,7 @@ export function PlantSpeciesDiscoveryAcknowledgeButton({
             <span className="plant-discovery-observed-counts__site">Tout le site : {site}</span>
           </span>
         </div>
-        {modalOpen && (
+        {modalOpen && (phase === 'enrich' ? renderEnrichStep() : (
           <div
             className="modal-overlay"
             role="presentation"
@@ -123,7 +244,7 @@ export function PlantSpeciesDiscoveryAcknowledgeButton({
               </div>
             </div>
           </div>
-        )}
+        ))}
       </>
     );
   }
@@ -133,7 +254,7 @@ export function PlantSpeciesDiscoveryAcknowledgeButton({
       <button type="button" className="btn btn-secondary btn-sm" onClick={() => setModalOpen(true)}>
         Espèce découverte
       </button>
-      {modalOpen && (
+      {modalOpen && (phase === 'enrich' ? renderEnrichStep() : (
         <div
           className="modal-overlay"
           role="presentation"
@@ -180,7 +301,7 @@ export function PlantSpeciesDiscoveryAcknowledgeButton({
             </div>
           </div>
         </div>
-      )}
+      ))}
     </>
   );
 }
