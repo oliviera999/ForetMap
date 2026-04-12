@@ -44,7 +44,7 @@ Puis importer ce manifeste dans le catalogue et appeler `expandMascotPackToSprit
 
 ## API utilitaire (Zod)
 
-- [`src/utils/mascotPack.js`](../src/utils/mascotPack.js) : `mascotPackSchemaV1`, `parseMascotPackV1`, `validateMascotPackV1`, `expandMascotPackToSpriteCut`.
+- [`src/utils/mascotPack.js`](../src/utils/mascotPack.js) : `mascotPackSchemaV1`, `parseMascotPackV1`, `validateMascotPackV1`, `expandMascotPackToSpriteCut` (copie serveur synchronisée : **`lib/visit-pack/`** via `npm run build` ou **`npm run sync:visit-pack-lib`**).
 - Option **`relaxAssetPrefix: true`** : utilisée par l’outil [`mascot-pack-tool.html`](../mascot-pack-tool.html) / modale visite pour accepter `blob:` et des `framesBase` hors `/assets/` côté prévisualisation.
 - Option **`allowedFramesBasePrefixes`** : côté serveur (routes `/api/visit/mascot-packs`), autorise en plus `/assets/mascots/` une base **`/api/visit/mascot-packs/{id}/assets/`** alignée sur le pack enregistré.
 

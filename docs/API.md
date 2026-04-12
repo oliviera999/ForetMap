@@ -333,6 +333,8 @@ Contenus éditables du site (micro-CMS texte brut) :
 | POST | `/api/visit/sync` | oui | Import sélectif bidirectionnel (`{ map_id, direction: "map_to_visit" \| "visit_to_map", zone_ids, marker_ids }`) |
 | POST | `/api/visit/rebuild-from-map` | oui | Réaligner **toute** la visite du plan sur la carte : corps `{ map_id? }` (défaut `foret`). Supprime puis recrée les lignes **`visit_zones`** et **`visit_markers`** pour ce `map_id` à partir de **`zones`** / **`map_markers`** ; pour chaque **id** encore présent sur la carte, **réinjecte** sous-titre, textes de détails, `is_active`, `sort_order`, `created_at` et **conserve** les lignes **`visit_media`** (cibles inchangées). Retire médias + progression pour les cibles visite **sans** équivalent carte. Réponse : `{ ok, map_id, removed: { zones, markers }, imported: { zones, markers } }`. |
 
+**Packs mascotte (validation serveur)** : les **POST** / **PUT** sur `/api/visit/mascot-packs` chargent `validateMascotPackV1` depuis **`lib/visit-pack/`** (copie de `src/utils`, générée par **`npm run build`** ou **`npm run sync:visit-pack-lib`**). Sans ce dossier sur l’artefact, **503** avec `code: mascot_pack_module_unavailable`.
+
 Contraintes importantes :
 
 - **`GET /api/visit/content`** : chaque zone renvoyée inclut **`description`** (texte de la table **`zones`**, jointure sur le même `id`) ; chaque repère inclut **`note`** (table **`map_markers`**, même principe). Ces champs sont **`null`** s’il n’y a pas de ligne carte correspondante ou si le texte est vide. Les zones et repères dont **`is_active`** est **explicitement** désactivé (`0`, `false`, chaîne `'0'`) sont exclus ; les autres valeurs « actives » (y compris variantes driver) restent listées.
