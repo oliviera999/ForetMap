@@ -381,7 +381,7 @@ Pour une mascotte spritesheet (ex. OLU), vérifier aussi l’asset statique serv
 | Méthode | URL | n3boss | Description |
 |--------|-----|------|-------------|
 | GET | `/api/plants` | non | Liste des entrées biodiversité |
-| GET | `/api/plants/autofill?q=...&hint_scientific=...&hint_name=...` | oui | Pré-saisie assistée multi-sources (suggestions de champs + photos/licences, sans écriture BDD) ; paramètres `hint_*` optionnels |
+| GET | `/api/plants/autofill?q=...&hint_scientific=...&hint_name=...&sources=...` | oui | Pré-saisie assistée multi-sources (suggestions de champs + photos/licences, sans écriture BDD) ; paramètres `hint_*` et `sources` optionnels |
 | GET | `/api/plants/me/discovered-ids` | JWT obligatoire | `{ "plant_ids": number[] }` — identifiants des fiches catalogue pour lesquelles l’utilisateur a au moins une **observation** enregistrée (engagement explicite) |
 | GET | `/api/plants/me/observation-counts` | JWT obligatoire | Query **`plant_ids`** : liste d’IDs séparés par des virgules (ou espaces), entiers positifs, **max 200** (troncature silencieuse au-delà). Réponse `{ "counts": { "<id>": { "my_observation_count": number, "site_observation_count": number }, ... } }` — totaux pour l’utilisateur connecté et pour **tous** les utilisateurs sur chaque fiche demandée ; fiches sans ligne renvoient `0` / `0` |
 | POST | `/api/plants` | oui | Créer une entrée biodiversité |
@@ -439,7 +439,8 @@ Réponse:
   - `q` (obligatoire, 2 à 120 caractères) : nom courant ou scientifique recherché.
   - `hint_scientific` (optionnel, max 120 caractères) : nom scientifique déjà saisi dans le formulaire (améliore la graine taxonomique, Pl@ntNet, Catalogue of Life, etc.).
   - `hint_name` (optionnel, max 120 caractères) : nom courant déjà saisi ; injecté dans le contexte OpenAI comme indice utilisateur.
-- **Cache** : la clé de cache inclut `q` **et** les hints (empreinte SHA-256 tronquée) : deux appels avec le même `q` mais des hints différents ne renvoient pas la même entrée de cache.
+  - `sources` (optionnel) : liste d’identifiants de sources **séparés par des virgules** (ex. `wikipedia,wikidata,gbif`) ; seuls les ids reconnus sont pris en compte, les autres sont **ignorés**. Valeurs reconnues : `wikipedia`, `wikidata`, `gbif`, `gbif_traits`, `inaturalist`, `catalogue_of_life`, `gbif_vernacular`, `wikipedia_en`, `wikipedia_heuristic`, `trefle`, `openai`, `plantnet`. **Défaut** (paramètre absent, vide ou sans aucun id valide) : toutes les sources, comme avant. Les extensions **Trefle** / **OpenAI** / **Pl@ntNet** ne sont interrogées que si leur id figure dans la liste **et** que les variables d’environnement requises sont déjà activées (comportement inchangé si désactivées côté serveur). Les dépendances sont respectées côté agrégateur (ex. `gbif_traits` et `gbif_vernacular` seulement si `gbif` est autorisé et qu’un `usageKey` est disponible ; pas d’appel **Wikipedia EN** si **Wikipedia FR** est exclu).
+- **Cache** : la clé de cache inclut `q`, les hints **et** la liste normalisée de `sources` (empreinte SHA-256 tronquée) : deux appels avec le même `q` mais des filtres de sources différents ne partagent pas la même entrée de cache.
 - Réponse JSON:
   - `query`: requête normalisée,
   - `confidence`: score global `0..1`,

@@ -1622,6 +1622,43 @@ test('GET /api/plants/autofill renvoie une pré-saisie normalisée multi-sources
   }
 });
 
+test('GET /api/plants/autofill sources=gbif évite Wikipedia et Wikidata', { concurrency: false }, async () => {
+  const token = await getAdminAuthToken();
+  const previousFetch = global.fetch;
+  const urls = [];
+  global.fetch = async (url) => {
+    urls.push(String(url));
+    if (String(url).includes('api.gbif.org/v1/species/match')) {
+      return {
+        ok: true,
+        status: 200,
+        async json() {
+          return {
+            confidence: 95,
+            scientificName: 'Solanum lycopersicum',
+            canonicalName: 'Tomate',
+            usageKey: 2930132,
+          };
+        },
+      };
+    }
+    throw new Error(`URL inattendue: ${url}`);
+  };
+  try {
+    const res = await request(app)
+      .get('/api/plants/autofill?q=tomate&sources=gbif')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+    assert.strictEqual(res.body.query, 'tomate');
+    assert.ok(!urls.some((u) => u.includes('wikidata.org')));
+    assert.ok(!urls.some((u) => u.includes('wikipedia.org')));
+    assert.ok(urls.some((u) => u.includes('api.gbif.org/v1/species/match')));
+    assert.ok((res.body.sources || []).some((s) => s.source === 'gbif'));
+  } finally {
+    global.fetch = previousFetch;
+  }
+});
+
 test('GET /api/plants/autofill accepte hint_scientific et hint_name (cache distinct)', { concurrency: false }, async () => {
   const token = await getAdminAuthToken();
   const previousFetch = global.fetch;

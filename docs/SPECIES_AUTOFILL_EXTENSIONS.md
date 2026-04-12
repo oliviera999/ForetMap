@@ -2,7 +2,7 @@
 
 Ces sources sont **désactivées par défaut** : aucune clé API n’est requise pour faire tourner ForetMap. Activez-les uniquement sur un serveur de confiance (données lycée, RGPD).
 
-**Route `GET /api/plants/autofill`** : paramètres optionnels **`hint_scientific`** et **`hint_name`** (voir [`docs/API.md`](API.md)) pour transmettre le nom courant / scientifique déjà présents dans le formulaire ; ils améliorent la graine taxonomique et le contexte LLM. Après la fusion multi-sources, une passe **complément des champs vides** réutilise les champs **Pl@ntNet** déjà chargés puis, si activé, un second appel **OpenAI** ciblé (`openai_gap`) sur les clés encore sans proposition (sans écraser les champs déjà remplis).
+**Route `GET /api/plants/autofill`** : paramètres optionnels **`hint_scientific`** et **`hint_name`** (voir [`docs/API.md`](API.md)) pour transmettre le nom courant / scientifique déjà présents dans le formulaire ; ils améliorent la graine taxonomique et le contexte LLM. Le paramètre **`sources`** (liste d’ids séparés par des virgules, même liste que l’UI prof) limite quelles sources sont **appelées** et fusionnées ; une extension n’est utilisée que si son id est inclus **et** que les variables d’environnement l’autorisent déjà. Après la fusion multi-sources, une passe **complément des champs vides** réutilise le pack **Pl@ntNet** déjà chargé (si `plantnet` est dans `sources`) puis, si `openai` est dans `sources` et que le module est activé, un second appel **OpenAI** ciblé (`openai_gap`) sur les clés encore sans proposition (sans écraser les champs déjà remplis).
 
 ## Trefle (`lib/speciesAutofillTrefle.js`)
 

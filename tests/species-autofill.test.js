@@ -6,6 +6,7 @@ const {
   mergeSources,
   buildSearchQueries,
   descriptionMergeRank,
+  parseAutofillSourcesQueryParam,
 } = require('../lib/speciesAutofill');
 
 function jsonResponse(payload, status = 200) {
@@ -52,6 +53,18 @@ test('mergeSources favorise Wikidata pour le champ description (rang source)', (
 
 test('descriptionMergeRank classe wikipedia au-dessus de gbif', () => {
   assert.ok(descriptionMergeRank('wikipedia') > descriptionMergeRank('gbif'));
+});
+
+test('parseAutofillSourcesQueryParam blanc-liste et ignore les ids inconnus', () => {
+  const s = parseAutofillSourcesQueryParam('gbif,wikipedia,foo');
+  assert.ok(s instanceof Set);
+  assert.ok(s.has('gbif') && s.has('wikipedia'));
+  assert.strictEqual(s.size, 2);
+  assert.equal(parseAutofillSourcesQueryParam(''), null);
+  assert.equal(parseAutofillSourcesQueryParam('inconnu'), null);
+  const dup = parseAutofillSourcesQueryParam(['gbif', 'gbif,wikipedia']);
+  assert.ok(dup.has('gbif') && dup.has('wikipedia'));
+  assert.strictEqual(dup.size, 2);
 });
 
 test('mergeSources priorise la source la plus fiable', () => {
@@ -329,4 +342,30 @@ test('buildSpeciesAutofill évite un homonyme wikidata non taxonomique', async (
   const result = await buildSpeciesAutofill('tomate', { fetchImpl, timeoutMs: 1200 });
   assert.equal(result.fields.scientific_name, 'Solanum lycopersicum');
   assert.ok(!String(result.fields.description || '').toLowerCase().includes('chanteur'));
+});
+
+test('buildSpeciesAutofill avec sourcesAllowed gbif seul n’interroge pas Wikipedia ni Wikidata', async () => {
+  const urls = [];
+  const fetchImpl = async (url) => {
+    urls.push(String(url));
+    if (String(url).includes('api.gbif.org/v1/species/match')) {
+      return jsonResponse({
+        confidence: 95,
+        scientificName: 'Solanum lycopersicum',
+        canonicalName: 'Tomate',
+        usageKey: 2930132,
+      });
+    }
+    throw new Error(`URL inattendue: ${url}`);
+  };
+  const result = await buildSpeciesAutofill('tomate', {
+    fetchImpl,
+    timeoutMs: 1200,
+    sourcesAllowed: ['gbif'],
+  });
+  assert.ok(!urls.some((u) => u.includes('wikidata.org')));
+  assert.ok(!urls.some((u) => u.includes('wikipedia.org')));
+  assert.ok(urls.some((u) => u.includes('api.gbif.org/v1/species/match')));
+  assert.ok(result.sources.some((s) => s.source === 'gbif'));
+  assert.ok(!result.sources.some((s) => s.source === 'wikidata'));
 });
