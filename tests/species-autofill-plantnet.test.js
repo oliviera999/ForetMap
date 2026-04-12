@@ -1,166 +1,132 @@
 require('./helpers/setup');
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { fetchPlantnetSpeciesTraits, isPlantnetAutofillEnabled } = require('../lib/speciesAutofillPlantnet');
+const {
+  isPlantnetAutofillEnabled,
+  normalizePlantnetIdentifyResponse,
+  decodeImageDataToBuffer,
+  plantnetIdentifyFromImages,
+  buildPlantnetQuotaTestUrl,
+} = require('../lib/speciesAutofillPlantnet');
 
-test('PlantNet : désactivé sans flag + clé', async () => {
+test('Pl@ntNet : désactivé sans flag + clé', () => {
   const prevF = process.env.SPECIES_AUTOFILL_PLANTNET;
   const prevK = process.env.PLANTNET_API_KEY;
   delete process.env.SPECIES_AUTOFILL_PLANTNET;
   delete process.env.PLANTNET_API_KEY;
   assert.equal(isPlantnetAutofillEnabled(), false);
-  assert.equal(await fetchPlantnetSpeciesTraits('Rosa canina'), null);
   process.env.SPECIES_AUTOFILL_PLANTNET = prevF;
   process.env.PLANTNET_API_KEY = prevK;
 });
 
-test('PlantNet : second_name depuis bestMatch legacy (fetch mock)', async () => {
-  const prevF = process.env.SPECIES_AUTOFILL_PLANTNET;
-  const prevK = process.env.PLANTNET_API_KEY;
-  const prevNoImg = process.env.SPECIES_AUTOFILL_PLANTNET_NO_IMAGES;
-  process.env.SPECIES_AUTOFILL_PLANTNET = '1';
-  process.env.PLANTNET_API_KEY = 'pk-test';
-  process.env.SPECIES_AUTOFILL_PLANTNET_NO_IMAGES = '1';
-  let calls = 0;
-  const fetchImpl = async () => {
-    calls += 1;
-    return {
-      ok: true,
-      json: async () => ({ bestMatch: { commonName: 'Églantier', acceptedName: 'Rosa canina L.', family: 'Rosaceae', genus: 'Rosa' } }),
-    };
-  };
-  const pack = await fetchPlantnetSpeciesTraits('Rosa canina', { fetchImpl });
-  assert.ok(pack);
-  assert.equal(pack.fields.second_name, 'Églantier');
-  assert.equal(pack.fields.group_3, 'Rosaceae');
-  assert.equal(pack.fields.group_4, 'Rosa');
-  assert.equal(calls, 1);
-  process.env.SPECIES_AUTOFILL_PLANTNET = prevF;
-  process.env.PLANTNET_API_KEY = prevK;
-  if (prevNoImg === undefined) delete process.env.SPECIES_AUTOFILL_PLANTNET_NO_IMAGES;
-  else process.env.SPECIES_AUTOFILL_PLANTNET_NO_IMAGES = prevNoImg;
+test('buildPlantnetQuotaTestUrl est null sans PLANTNET_API_KEY', () => {
+  const prev = process.env.PLANTNET_API_KEY;
+  delete process.env.PLANTNET_API_KEY;
+  try {
+    assert.equal(buildPlantnetQuotaTestUrl(), null);
+  } finally {
+    if (prev !== undefined) process.env.PLANTNET_API_KEY = prev;
+    else delete process.env.PLANTNET_API_KEY;
+  }
 });
 
-test('PlantNet : align officiel + liste espèces (vernaculaire, UICN, photos)', async () => {
-  const prevF = process.env.SPECIES_AUTOFILL_PLANTNET;
+test('buildPlantnetQuotaTestUrl contient /v2/quota', () => {
   const prevK = process.env.PLANTNET_API_KEY;
-  process.env.SPECIES_AUTOFILL_PLANTNET = '1';
-  process.env.PLANTNET_API_KEY = 'pk-test';
-  let calls = 0;
-  const fetchImpl = async (url) => {
-    calls += 1;
-    if (String(url).includes('/species/align')) {
-      return {
-        ok: true,
-        json: async () => ({
-          searchedName: 'Acer campestre',
-          matchingName: 'Acer campestre L.',
-          acceptedName: 'Acer campestre L.',
-          isSynonym: false,
-          project: 'k-southwestern-europe',
-          family: 'Sapindaceae',
-          genus: 'Acer',
-          gbif: { id: '3189863' },
-        }),
-      };
-    }
-    return {
-      ok: true,
-      json: async () => [
-        {
-          id: '1356455',
+  process.env.PLANTNET_API_KEY = 'pk-unit';
+  try {
+    const u = buildPlantnetQuotaTestUrl();
+    assert.ok(u);
+    assert.match(u, /my-api\.plantnet\.org\/v2\/quota/);
+    assert.match(u, /api-key=/);
+  } finally {
+    if (prevK !== undefined) process.env.PLANTNET_API_KEY = prevK;
+    else delete process.env.PLANTNET_API_KEY;
+  }
+});
+
+test('decodeImageDataToBuffer accepte une data URL base64', () => {
+  const raw = Buffer.from([10, 20, 30]).toString('base64');
+  const r = decodeImageDataToBuffer(`data:image/png;base64,${raw}`);
+  assert.ok(r);
+  assert.equal(r.buffer.length, 3);
+  assert.match(r.contentType, /png/i);
+});
+
+test('normalizePlantnetIdentifyResponse extrait prédictions', () => {
+  const data = normalizePlantnetIdentifyResponse({
+    results: [
+      {
+        score: 0.42,
+        species: {
           scientificNameWithoutAuthor: 'Acer campestre',
-          commonNames: ['Field Maple', 'Érable champêtre'],
-          iucnCategory: 'LC',
-          images: [
-            {
-              organ: 'leaf',
-              author: 'Test',
-              license: 'cc-by-sa',
-              url: { m: 'https://bs.plantnet.org/image/m/abc123' },
-              citation: 'Test / Pl@ntNet, cc-by-sa',
-            },
-            {
-              organ: 'flower',
-              url: { o: 'https://bs.plantnet.org/image/o/def456' },
-              citation: 'Fl / Pl@ntNet',
-            },
-          ],
+          scientificNameAuthorship: 'L.',
+          scientificName: 'Acer campestre L.',
+          commonNames: ['Érable champêtre', 'Field Maple'],
+          genus: { scientificNameWithoutAuthor: 'Acer' },
+          family: { scientificNameWithoutAuthor: 'Sapindaceae' },
         },
-      ],
-    };
-  };
-  const pack = await fetchPlantnetSpeciesTraits('Acer campestre', { fetchImpl, timeoutMs: 8000 });
-  assert.ok(pack);
-  assert.equal(pack.fields.second_name, 'Érable champêtre');
-  assert.equal(pack.fields.group_3, 'Sapindaceae');
-  assert.equal(pack.fields.group_4, 'Acer');
-  assert.ok(pack.fields.ecosystem_role.includes('LC'));
-  assert.equal(pack.photos.length, 2);
-  const leaf = pack.photos.find((p) => p.field === 'photo_leaf');
-  assert.ok(leaf);
-  assert.equal(leaf.url, 'https://bs.plantnet.org/image/m/abc123');
-  assert.equal(calls, 2);
-  process.env.SPECIES_AUTOFILL_PLANTNET = prevF;
-  process.env.PLANTNET_API_KEY = prevK;
+      },
+    ],
+    version: '2.2',
+    bestMatch: 'Acer campestre L.',
+  });
+  assert.equal(data.predictions.length, 1);
+  const p = data.predictions[0];
+  assert.equal(p.scientificNameWithoutAuthor, 'Acer campestre');
+  assert.equal(p.genus, 'Acer');
+  assert.equal(p.family, 'Sapindaceae');
+  assert.equal(p.score, 0.42);
+  assert.ok(String(p.scientificName || '').includes('Acer campestre'));
 });
 
-test('PlantNet : sans appel species si SPECIES_AUTOFILL_PLANTNET_NO_IMAGES=1', async () => {
+test('plantnetIdentifyFromImages : mock HTTP OK', async () => {
   const prevF = process.env.SPECIES_AUTOFILL_PLANTNET;
   const prevK = process.env.PLANTNET_API_KEY;
   process.env.SPECIES_AUTOFILL_PLANTNET = '1';
   process.env.PLANTNET_API_KEY = 'pk-test';
-  process.env.SPECIES_AUTOFILL_PLANTNET_NO_IMAGES = '1';
-  let calls = 0;
-  const fetchImpl = async (url) => {
-    calls += 1;
-    assert.ok(String(url).includes('/species/align'));
+  const png = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
+  const imageData = `data:image/png;base64,${png}`;
+  const fetchImpl = async (url, opts) => {
+    assert.match(String(url), /\/v2\/identify\//);
+    assert.ok(opts && opts.body);
     return {
       ok: true,
+      status: 200,
       json: async () => ({
-        acceptedName: 'Foo bar L.',
-        family: 'Fabaceae',
-        genus: 'Foo',
+        results: [{
+          score: 0.91,
+          species: {
+            scientificNameWithoutAuthor: 'Rosa canina',
+            commonNames: ['Églantier'],
+          },
+        }],
       }),
     };
   };
-  const pack = await fetchPlantnetSpeciesTraits('Foo bar', { fetchImpl });
-  assert.ok(pack);
-  assert.equal(pack.photos.length, 0);
-  assert.equal(calls, 1);
-  delete process.env.SPECIES_AUTOFILL_PLANTNET_NO_IMAGES;
+  const out = await plantnetIdentifyFromImages({
+    images: [{ organ: 'leaf', imageData }],
+    fetchImpl,
+    timeoutMs: 8000,
+  });
+  assert.equal(out.ok, true);
+  assert.equal(out.data.predictions.length, 1);
+  assert.equal(out.data.predictions[0].scientificNameWithoutAuthor, 'Rosa canina');
   process.env.SPECIES_AUTOFILL_PLANTNET = prevF;
   process.env.PLANTNET_API_KEY = prevK;
 });
 
-test('PlantNet : plusieurs lignes espèce — pas de correspondance exacte → pas de vernaculaire ni photos', async () => {
+test('plantnetIdentifyFromImages : organe invalide', async () => {
   const prevF = process.env.SPECIES_AUTOFILL_PLANTNET;
   const prevK = process.env.PLANTNET_API_KEY;
   process.env.SPECIES_AUTOFILL_PLANTNET = '1';
   process.env.PLANTNET_API_KEY = 'pk-test';
-  let calls = 0;
-  const fetchImpl = async (url) => {
-    calls += 1;
-    if (String(url).includes('/species/align')) {
-      return {
-        ok: true,
-        json: async () => ({ acceptedName: 'Acer platanoides L.', family: 'Sapindaceae', genus: 'Acer' }),
-      };
-    }
-    return {
-      ok: true,
-      json: async () => [
-        { scientificNameWithoutAuthor: 'Acer pseudoplatanus', commonNames: ['Erable'], images: [] },
-        { scientificNameWithoutAuthor: 'Acer saccharum', commonNames: ['Erable'], images: [] },
-      ],
-    };
-  };
-  const pack = await fetchPlantnetSpeciesTraits('Acer platanoides', { fetchImpl });
-  assert.ok(pack);
-  assert.equal(pack.fields.group_3, 'Sapindaceae');
-  assert.equal(pack.fields.second_name, undefined);
-  assert.equal(pack.photos.length, 0);
-  assert.equal(calls, 2);
+  const png = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
+  const out = await plantnetIdentifyFromImages({
+    images: [{ organ: 'invalid_organ', imageData: `data:image/png;base64,${png}` }],
+    fetchImpl: async () => ({ ok: true, status: 200, json: async () => ({}) }),
+  });
+  assert.equal(out.ok, false);
+  assert.match(String(out.error || ''), /Organe invalide/i);
   process.env.SPECIES_AUTOFILL_PLANTNET = prevF;
   process.env.PLANTNET_API_KEY = prevK;
 });

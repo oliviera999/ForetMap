@@ -15,6 +15,7 @@ const {
   parseAutofillSourcesQueryParam,
   sourcesAllowedCacheFingerprint,
 } = require('../lib/speciesAutofill');
+const { plantnetIdentifyFromImages } = require('../lib/speciesAutofillPlantnet');
 
 const router = express.Router();
 const plantsListCache = getNamedMemoryTtlCache('plants:list:v1', { ttlMs: 20000, maxEntries: 5 });
@@ -715,6 +716,44 @@ router.get('/autofill', requirePermission('plants.manage', { needsElevation: tru
   } catch (e) {
     logRouteError(e, req, 'Pré-saisie biodiversité externe en échec');
     res.status(502).json({ error: 'Impossible de récupérer une pré-saisie pour le moment' });
+  }
+});
+
+/**
+ * Identification d’espèce via Pl@ntNet (images) — proxy serveur, clé jamais exposée au client.
+ * Corps JSON : { images: [{ organ, imageData }], project?, nbResults?, lang? }
+ */
+router.post('/plantnet-identify', requirePermission('plants.manage', { needsElevation: true }), async (req, res) => {
+  try {
+    const body = req.body && typeof req.body === 'object' ? req.body : {};
+    const images = Array.isArray(body.images) ? body.images : [];
+    const project = asOptionalText(body.project);
+    const nbResults = body.nbResults != null ? Number(body.nbResults) : undefined;
+    const lang = asOptionalText(body.lang);
+
+    const out = await plantnetIdentifyFromImages({
+      images,
+      project: project || undefined,
+      nbResults,
+      lang: lang || undefined,
+      timeoutMs: 16000,
+    });
+
+    if (!out.ok) {
+      const hs = Number(out.httpStatus);
+      const status = Number.isFinite(hs) && hs >= 400 && hs < 600 ? hs : 400;
+      return res.status(status).json({
+        error: out.error || 'Identification indisponible',
+      });
+    }
+
+    res.json({
+      ...out.data,
+      attribution: 'Résultats fournis par le service Pl@ntNet — respecter les conditions d’usage (my.plantnet.org).',
+    });
+  } catch (e) {
+    logRouteError(e, req, 'Identification Pl@ntNet en échec');
+    res.status(502).json({ error: 'Identification Pl@ntNet temporairement indisponible' });
   }
 });
 
