@@ -1,4 +1,5 @@
 import React from 'react';
+import { createPortal } from 'react-dom';
 import { useOverlayHistoryBack } from '../hooks/useOverlayHistoryBack';
 import { TutorialReadAcknowledgeButton } from './TutorialReadAcknowledge';
 
@@ -52,7 +53,8 @@ export function TutorialPreviewModal({ tutorial, onClose, readAcknowledge = null
     readAcknowledge &&
     Number.isFinite(tutoIdNum) &&
     tutoIdNum > 0;
-  return (
+  /** Rendu sous `document.body` : évite `overflow:hidden` / défilement des ancêtres (carte, vue scindée, formulaire tâche) qui rognaient ou déplaçaient le `position:fixed`. */
+  const overlay = (
     <div className="modal-overlay modal-overlay--tuto-preview" onClick={e => e.target === e.currentTarget && onClose()}>
       <div className="log-modal tuto-preview-modal" role="dialog" aria-modal="true" aria-labelledby="tuto-preview-title" tabIndex={-1} onClick={e => e.stopPropagation()}>
         <div className="tuto-preview-modal__head">
@@ -89,4 +91,6 @@ export function TutorialPreviewModal({ tutorial, onClose, readAcknowledge = null
       </div>
     </div>
   );
+  if (typeof document === 'undefined' || !document.body) return null;
+  return createPortal(overlay, document.body);
 }
