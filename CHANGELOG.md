@@ -6,6 +6,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 ## [Non publié]
 
 ### Modifié
+- **Build** : régénération des artefacts **`dist/`** (bundle Vite production).
 - **Carte — fiche zone / repère (Info)** : sous le texte visite, panneaux dépliables **Biodiversité** (espèces sur le lieu + missions, liens vers le catalogue comme avant) et **Tuto** (même cartes qu’à l’onglet Tutoriels, avec **Consulter** si l’aperçu est disponible). **`map-views.jsx`**.
 
 ### Ajouté
@@ -16,7 +17,6 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - **Biodiversité — identification Pl@ntNet (UI)** : par emplacement d’image, boutons **Galerie / fichier** et **Appareil photo** (entrée `capture="environment"`) pour ouvrir directement la caméra sur smartphone, en plus du choix depuis la galerie. **`foretmap-views.jsx`**.
 - **Navigation (n3beur / aperçu)** : lorsqu’une **zone** ou un **repère** est affiché sur la carte, les entrées **Tâches** et **Tuto** de la barre du bas sont fusionnées en un seul libellé **Tâches&tuto** (vers la vue Tâches, tutoriels du lieu inclus) ; idem pour les onglets prof en tête d’écran. Synchronisation du **focus lieu** avec la carte hors mode split (et effacement quand on ferme la fiche lieu). **`App.jsx`**, **`map-views.jsx`**.
 - **Photos (galerie)** : sélection **multiple** depuis l’explorateur de fichiers pour l’upload prof sur **zone/repère** (carte), les **médias visite** (zone/repère), et le **formulaire biodiversité** (plusieurs fichiers répartis sur les champs photo dans l’ordre à partir du bouton utilisé). **`map-views.jsx`**, **`visit-views.jsx`**, **`foretmap-views.jsx`**.
-- **Build** : régénération des artefacts **`dist/`** (bundle Vite production).
 
 ### Ajouté
 - **Photos — ordre par glisser-déposer** : colonne **`sort_order`** sur **`zone_photos`** et **`marker_photos`** (migration **`073_zone_marker_photos_sort_order.sql`**) ; **`PUT /api/zones/:id/photos/reorder`** et **`PUT /api/map/markers/:id/photos/reorder`** ; **`PUT /api/visit/media/reorder`** pour les médias visite ; UI prof (galerie carte zone/repère, liste médias éditeur visite) et **forum** (aperçu des pièces jointes images). **`routes/zones.js`**, **`routes/map.js`**, **`routes/visit.js`**, **`map-views.jsx`**, **`visit-views.jsx`**, **`attachment-images-picker.jsx`**, **`sql/schema_foretmap.sql`**, **`docs/API.md`**, tests.
