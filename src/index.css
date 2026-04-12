@@ -1236,7 +1236,7 @@
       z-index:392;
     }
     .modal-overlay .log-modal.log-modal--dialog.visit-mascot-pack-tool-dialog {
-      max-width:min(980px, calc(100vw - 24px));
+      max-width:min(1120px, calc(100vw - 24px));
     }
 
     .modal h3, .log-modal h3 { font-size:clamp(1.05rem, .95rem + .45vw, 1.2rem); margin-bottom:16px; color:var(--forest); }

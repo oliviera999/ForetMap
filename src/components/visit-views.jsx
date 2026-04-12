@@ -24,7 +24,8 @@ import {
 import { safeVisitProgressPayload } from '../utils/visitProgressClient.js';
 import { wheelZoomScaleFactor } from '../utils/mapWheelZoom';
 import VisitMapMascotRenderer from './VisitMapMascotRenderer.jsx';
-import MascotPackToolView from './MascotPackToolView.jsx';
+import VisitMascotPackManager from './VisitMascotPackManager.jsx';
+import { buildVisitMascotCatalogExtrasFromContent } from '../utils/visitMascotPackExtras.js';
 import { VISIT_MASCOT_STATE, pickMascotDialog } from '../utils/visitMascotState.js';
 import { loadVisitMascotPositionPct, saveVisitMascotPositionPct } from '../utils/visitMascotPositionPersistence.js';
 import useVisitMascotStateMachine from '../hooks/useVisitMascotStateMachine.js';
@@ -590,7 +591,7 @@ function VisitView({
   const visitLoadMapIdLiveRef = useRef(mapId);
   visitLoadMapIdLiveRef.current = mapId;
   const [maps, setMaps] = useState([]);
-  const [content, setContent] = useState({ zones: [], markers: [], tutorials: [] });
+  const [content, setContent] = useState({ zones: [], markers: [], tutorials: [], mascot_packs: [] });
   const [selected, setSelected] = useState(null);
   const [selectedType, setSelectedType] = useState(null);
   const [seen, setSeen] = useState(new Set());
@@ -651,6 +652,11 @@ function VisitView({
   useOverlayHistoryBack(isGuestPublicVisit && !!selected, clearGuestSelection);
   useOverlayHistoryBack(!!visitMediaLightbox, () => setVisitMediaLightbox(null));
   useOverlayHistoryBack(mascotPackToolOpen, () => setMascotPackToolOpen(false));
+  const visitMascotCatalogExtras = useMemo(
+    () => buildVisitMascotCatalogExtrasFromContent(content.mascot_packs),
+    [content.mascot_packs],
+  );
+
   const {
     visitMascotId,
     visitMascotOptions,
@@ -664,6 +670,7 @@ function VisitView({
   } = useVisitMascotStateMachine({
     walking: visitMapMascotWalking,
     happy: visitMapMascotHappy,
+    extraCatalogEntries: visitMascotCatalogExtras,
   });
 
   const visitMascotPreviewBodyMotionClass = useMemo(() => {
@@ -908,8 +915,12 @@ function VisitView({
       }
       const visitPayload =
         visitRes && typeof visitRes === 'object' && !Array.isArray(visitRes)
-          ? { ...visitRes, map_id: visitRes.map_id ?? requestedMapId }
-          : { zones: [], markers: [], tutorials: [], map_id: requestedMapId };
+          ? {
+            ...visitRes,
+            map_id: visitRes.map_id ?? requestedMapId,
+            mascot_packs: Array.isArray(visitRes.mascot_packs) ? visitRes.mascot_packs : [],
+          }
+          : { zones: [], markers: [], tutorials: [], mascot_packs: [], map_id: requestedMapId };
       setContent(visitPayload);
       setTutorialSelection((visitPayload.tutorials || []).map((t) => t.id));
       const { seen: progressSeen } = safeVisitProgressPayload(progressBody);
@@ -1637,7 +1648,7 @@ function VisitView({
             className={`visit-mascot-preview-body ${visitMascotPreviewBodyMotionClass}${prefersReducedMotion ? ' visit-mascot-preview-body--reduced-motion' : ''}`}
             aria-hidden="true"
           >
-            <VisitMapMascotRenderer mascotState={visitMascotPreviewState} mascotId={visitMascotId} />
+            <VisitMapMascotRenderer mascotState={visitMascotPreviewState} mascotId={visitMascotId} extraCatalogEntries={visitMascotCatalogExtras} />
           </div>
         </section>
       )}
@@ -1796,7 +1807,7 @@ function VisitView({
                         '--visit-mascot-dialog-x': visitMapMascotFaceRight ? 1 : -1,
                       }}
                     >
-                      <VisitMapMascotRenderer mascotState={visitMascotAnimationState} mascotId={visitMascotId} />
+                      <VisitMapMascotRenderer mascotState={visitMascotAnimationState} mascotId={visitMascotId} extraCatalogEntries={visitMascotCatalogExtras} />
                       {visitMascotDialogVisible && visitMascotDialog ? (
                         <div className="visit-map-mascot-dialog" role="status" aria-live="polite">
                           {visitMascotDialog}
@@ -2045,7 +2056,12 @@ function VisitView({
             >
               ✕
             </button>
-            <MascotPackToolView embedded />
+            <VisitMascotPackManager
+              mapId={mapId}
+              mapLabel={currentMap?.label}
+              onPacksChanged={loadData}
+              onForceLogout={onForceLogout}
+            />
           </div>
         </div>,
         document.body,

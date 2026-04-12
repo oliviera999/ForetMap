@@ -6,6 +6,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 ## [Non publié]
 
 ### Ajouté
+- **Visite — packs mascotte persistés** : table **`visit_mascot_packs`** (pack JSON par carte et entrée catalogue), migration **`072_visit_mascot_packs.sql`**, API **`routes/visit.js`**, gestion côté prof **`VisitMascotPackManager.jsx`**, utilitaires **`visitMascotPackExtras.js`**, intégration **`visit-views.jsx`**, **`VisitMapMascotRenderer.jsx`**, **`useVisitMascotStateMachine`**, **`visitMascotCatalog.js`**, schéma SQL, tests e2e / API / **`mascot-pack`** ; build production **`dist/`** mis à jour.
 - **Paramètres admin — pré-saisie espèces** : route **`GET /api/settings/admin/system/species-autofill-providers-test`** (auto-test HTTP minimal Pl@ntNet + OpenAI, sans exposer les clés) et bouton **Test pré-saisie (Pl@ntNet / OpenAI)** dans Actions système. **`lib/speciesAutofillProviderSelfTest.js`**, **`routes/settings.js`**, **`settings-admin-views.jsx`**, tests, **`docs/API.md`**, **`docs/SPECIES_AUTOFILL_EXTENSIONS.md`**.
 
 ### Modifié

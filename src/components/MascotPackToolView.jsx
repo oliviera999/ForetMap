@@ -1,6 +1,6 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import { VISIT_MASCOT_STATE } from '../utils/visitMascotState.js';
-import { validateMascotPackV1, expandMascotPackToSpriteCut } from '../utils/mascotPack.js';
+import { validateMascotPackV1 } from '../utils/mascotPack.js';
 import VisitMapMascotSpriteCut from './VisitMapMascotSpriteCut.jsx';
 import VisitMascotFallbackSvg from './VisitMascotFallbackSvg.jsx';
 
@@ -24,11 +24,25 @@ const DEFAULT_PACK_JSON = `{
 const STATE_OPTIONS = Object.values(VISIT_MASCOT_STATE).sort();
 
 /**
- * Composer / valider un mascot pack v1 (`sprite_cut`) côté client (sans écriture serveur).
- * @param {{ embedded?: boolean }} [props] — `embedded` : affichage compact dans une modale (ex. onglet Visite).
+ * Composer / valider un mascot pack v1 (`sprite_cut`) côté client.
+ * @param {{
+ *   embedded?: boolean,
+ *   controlledJsonText?: string,
+ *   onControlledJsonTextChange?: (s: string) => void,
+ *   hideIntegrationSection?: boolean,
+ * }} [props]
  */
-export default function MascotPackToolView({ embedded = false } = {}) {
-  const [jsonText, setJsonText] = useState(DEFAULT_PACK_JSON);
+export default function MascotPackToolView({
+  embedded = false,
+  controlledJsonText,
+  onControlledJsonTextChange,
+  hideIntegrationSection = false,
+} = {}) {
+  const [internalJson, setInternalJson] = useState(DEFAULT_PACK_JSON);
+  const isControlled = typeof controlledJsonText === 'string' && typeof onControlledJsonTextChange === 'function';
+  const jsonText = isControlled ? controlledJsonText : internalJson;
+  const setJsonText = isControlled ? onControlledJsonTextChange : setInternalJson;
+
   const [message, setMessage] = useState('');
   const [previewState, setPreviewState] = useState(VISIT_MASCOT_STATE.IDLE);
   const [validated, setValidated] = useState(null);
@@ -99,7 +113,7 @@ export default function MascotPackToolView({ embedded = false } = {}) {
       <p style={{ fontSize: '0.9rem', opacity: 0.9 }}>
         Éditez le JSON, validez, prévisualisez avec les vrais chemins ou des URLs blob après chargement local.
         Référence : <code>docs/MASCOT_PACK.md</code>
-        {embedded ? ' — page autonome : /mascot-pack-tool.html' : null}
+        {embedded && !hideIntegrationSection ? ' — page autonome : /mascot-pack-tool.html' : null}
       </p>
 
       <textarea
@@ -122,7 +136,9 @@ export default function MascotPackToolView({ embedded = false } = {}) {
         <button type="button" className="btn btn-primary btn-sm" onClick={onValidate}>Valider</button>
         <button type="button" className="btn btn-ghost btn-sm" onClick={onCopyJson}>Copier JSON</button>
         <button type="button" className="btn btn-ghost btn-sm" onClick={onDownload}>Télécharger JSON</button>
-        <button type="button" className="btn btn-ghost btn-sm" onClick={() => setJsonText(DEFAULT_PACK_JSON)}>Réinitialiser l’exemple</button>
+        {!isControlled ? (
+          <button type="button" className="btn btn-ghost btn-sm" onClick={() => setJsonText(DEFAULT_PACK_JSON)}>Réinitialiser l’exemple</button>
+        ) : null}
       </div>
 
       {message ? (
@@ -189,15 +205,17 @@ export default function MascotPackToolView({ embedded = false } = {}) {
         </section>
       ) : null}
 
-      <section style={{ marginTop: 28, fontSize: '0.88rem', opacity: 0.9 }}>
-        <h2 style={{ fontSize: '1.05rem' }}>Intégration</h2>
-        <ol style={{ paddingLeft: 18, lineHeight: 1.5 }}>
-          <li>Déposer les PNG sous <code>public/assets/mascots/&lt;id&gt;/frames/</code>.</li>
-          <li><code>npm run mascot:pack:validate -- votre-pack.json</code></li>
-          <li>Ajouter l’entrée dans <code>visitMascotCatalog.js</code> (ou manifeste généré + import).</li>
-          <li><code>npm run build</code> si prod sert <code>dist/</code>.</li>
-        </ol>
-      </section>
+      {!hideIntegrationSection ? (
+        <section style={{ marginTop: 28, fontSize: '0.88rem', opacity: 0.9 }}>
+          <h2 style={{ fontSize: '1.05rem' }}>Intégration</h2>
+          <ol style={{ paddingLeft: 18, lineHeight: 1.5 }}>
+            <li>Déposer les PNG sous <code>public/assets/mascots/&lt;id&gt;/frames/</code> ou publier un pack avec images via l’API (voir <code>docs/MASCOT_PACK.md</code>).</li>
+            <li><code>npm run mascot:pack:validate -- votre-pack.json</code></li>
+            <li>Packs publiés sur le serveur : visibles dans le sélecteur mascotte (onglet Visite) sans modifier <code>visitMascotCatalog.js</code>.</li>
+            <li><code>npm run build</code> si prod sert <code>dist/</code>.</li>
+          </ol>
+        </section>
+      ) : null}
     </div>
   );
 }

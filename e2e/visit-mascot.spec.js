@@ -280,3 +280,17 @@ test.describe.serial('mascotte visite (sélecteur prof)', () => {
       .toBe('inspect');
   });
 });
+
+test.describe('pack mascotte serveur (GUI)', () => {
+  test('ouvre le gestionnaire depuis l’onglet Visite (prof)', async ({ page }) => {
+    await loginAsNewStudent(page);
+    await dismissProfilePromotionModalIfPresent(page);
+    await enableTeacherMode(page);
+    await seedVisitMascotContent(page);
+    await page.getByRole('button', { name: /^🧭 Visite$/ }).click();
+    await expect(page.locator('.visit-view')).toBeVisible({ timeout: 30_000 });
+    await page.getByRole('button', { name: /Boîte à outils pack mascotte/i }).click();
+    await expect(page.locator('.visit-mascot-pack-manager')).toBeVisible({ timeout: 20_000 });
+    await expect(page.getByRole('heading', { name: /Packs mascotte/i })).toBeVisible();
+  });
+});

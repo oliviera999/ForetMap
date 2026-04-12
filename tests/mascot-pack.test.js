@@ -76,6 +76,26 @@ test('expandMascotPackToSpriteCut sans frameDwellMs remplit fps seulement', asyn
   assert.equal(r.spriteCut.stateFrames.idle.srcs.length, 2);
 });
 
+test('allowedFramesBasePrefixes autorise une base API pack', async () => {
+  const { validateMascotPackV1 } = await loadMascotPack();
+  const uuid = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee';
+  const base = `/api/visit/mascot-packs/${uuid}/assets/`;
+  const r = validateMascotPackV1({
+    mascotPackVersion: 1,
+    id: 'api-pack',
+    label: 'API',
+    renderer: 'sprite_cut',
+    framesBase: base,
+    frameWidth: 16,
+    frameHeight: 16,
+    fallbackSilhouette: 'gnome',
+    stateFrames: {
+      idle: { files: ['a.png'], fps: 2 },
+    },
+  }, { allowedFramesBasePrefixes: [base] });
+  assert.equal(r.ok, true);
+});
+
 test('relaxAssetPrefix autorise framesBase hors /assets/', async () => {
   const { validateMascotPackV1 } = await loadMascotPack();
   const r = validateMascotPackV1({

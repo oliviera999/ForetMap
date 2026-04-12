@@ -141,6 +141,7 @@ module.exports = {
   authenticate,
   requireAuth,
   requirePermission,
+  hasPermission,
   requireTeacher,
   requireTeacherElevated,
   signAuthToken,

@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { VISIT_MASCOT_STATE, resolveVisitMascotState } from '../utils/visitMascotState.js';
 import {
+  VISIT_MASCOT_STORAGE_KEY,
   getVisitMascotCatalog,
-  getVisitMascotById,
+  resolveVisitMascotEntry,
   getVisitMascotSupportedStates,
+  normalizeVisitMascotId,
   loadVisitMascotId,
   saveVisitMascotId,
 } from '../utils/visitMascotCatalog.js';
@@ -30,13 +32,24 @@ function useVisitMascotStateMachine({
   walking = false,
   happy = false,
   transientDurationMs = VISIT_MASCOT_TRANSIENT_STATE_MS,
+  extraCatalogEntries = [],
 } = {}) {
   const [visitMascotId, setVisitMascotId] = useState(() => loadVisitMascotId());
   const [visitMascotPreviewState, setVisitMascotPreviewState] = useState(VISIT_MASCOT_STATE.IDLE);
   const [visitMapMascotTransientState, setVisitMapMascotTransientState] = useState('');
   const visitMapMascotTransientStateTimeoutRef = useRef(null);
 
-  const visitMascotOptions = useMemo(() => getVisitMascotCatalog(), []);
+  const visitMascotOptions = useMemo(
+    () => [...getVisitMascotCatalog(), ...extraCatalogEntries],
+    [extraCatalogEntries],
+  );
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const raw = window.localStorage.getItem(VISIT_MASCOT_STORAGE_KEY);
+    const normalized = normalizeVisitMascotId(raw, extraCatalogEntries);
+    setVisitMascotId((prev) => (prev === normalized ? prev : normalized));
+  }, [extraCatalogEntries]);
 
   const visitMascotPreviewStateOptions = useMemo(() => {
     const knownOrder = [
@@ -54,8 +67,8 @@ function useVisitMascotStateMachine({
       VISIT_MASCOT_STATE.ANGRY,
       VISIT_MASCOT_STATE.SURPRISE,
     ];
-    const supported = getVisitMascotSupportedStates(visitMascotId);
-    const fromCatalog = getVisitMascotById(visitMascotId);
+    const supported = getVisitMascotSupportedStates(visitMascotId, extraCatalogEntries);
+    const fromCatalog = resolveVisitMascotEntry(visitMascotId, extraCatalogEntries);
     let stateAnimations = fromCatalog?.rive?.stateAnimations || {};
     if (fromCatalog?.renderer === 'spritesheet') {
       stateAnimations = fromCatalog?.spritesheet?.stateFrames || {};
@@ -77,7 +90,7 @@ function useVisitMascotStateMachine({
         label: VISIT_MASCOT_PREVIEW_STATE_META[state]?.label || state,
         aliases: stateAnimations[state] || [],
       }));
-  }, [visitMascotId]);
+  }, [visitMascotId, extraCatalogEntries]);
 
   useEffect(() => {
     if (visitMascotPreviewStateOptions.some((entry) => entry.state === visitMascotPreviewState)) return;
@@ -121,9 +134,9 @@ function useVisitMascotStateMachine({
   );
 
   const onChangeVisitMascotId = useCallback((nextId) => {
-    const normalized = saveVisitMascotId(nextId);
+    const normalized = saveVisitMascotId(nextId, extraCatalogEntries);
     setVisitMascotId(normalized);
-  }, []);
+  }, [extraCatalogEntries]);
 
   return {
     visitMascotId,

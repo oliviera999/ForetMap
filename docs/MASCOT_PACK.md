@@ -10,7 +10,7 @@ Ce document décrit le JSON **mascot pack** version **1** : une source de vérit
 | `id` | string | Identifiant catalogue (`kebab-case`, lettres minuscules et chiffres). |
 | `label` | string | Libellé affiché dans le sélecteur prof. |
 | `renderer` | `"sprite_cut"` | Seule valeur supportée par ce format. |
-| `framesBase` | string | URL-prefix des frames, ex. `/assets/mascots/mon-id/frames/` (slash final recommandé). |
+| `framesBase` | string | URL-prefix des frames, ex. `/assets/mascots/mon-id/frames/` (slash final recommandé) **ou**, pour les packs stockés serveur avec upload, `/api/visit/mascot-packs/{uuid}/assets/` (même `uuid` que la ligne BDD). |
 | `frameWidth` | entier | Largeur logique d’une cellule (px). |
 | `frameHeight` | entier | Hauteur logique (px). |
 | `pixelated` | booléen (optionnel) | Défaut `true` : rendu pixelated. |
@@ -45,19 +45,28 @@ Puis importer ce manifeste dans le catalogue et appeler `expandMascotPackToSprit
 ## API utilitaire (Zod)
 
 - [`src/utils/mascotPack.js`](../src/utils/mascotPack.js) : `mascotPackSchemaV1`, `parseMascotPackV1`, `validateMascotPackV1`, `expandMascotPackToSpriteCut`.
-- Option **`relaxAssetPrefix: true`** : utilisée par l’outil dev [`mascot-pack-tool.html`](../mascot-pack-tool.html) pour accepter `blob:` et des `framesBase` hors `/assets/`.
+- Option **`relaxAssetPrefix: true`** : utilisée par l’outil [`mascot-pack-tool.html`](../mascot-pack-tool.html) / modale visite pour accepter `blob:` et des `framesBase` hors `/assets/` côté prévisualisation.
+- Option **`allowedFramesBasePrefixes`** : côté serveur (routes `/api/visit/mascot-packs`), autorise en plus `/assets/mascots/` une base **`/api/visit/mascot-packs/{id}/assets/`** alignée sur le pack enregistré.
 
 ## Intégration dans ForetMap
+
+### Option A — catalogue versionné (dépôt)
 
 1. Placer les PNG sous `public/assets/mascots/<id>/frames/`.
 2. Valider le pack (`npm run mascot:pack:validate`).
 3. Ajouter une entrée dans `visitMascotCatalog.js` avec `renderer: 'sprite_cut'`, `spriteCut: { ... }` (dimensions, `stateFrames` avec `srcs` et éventuellement `frameDwellMs`, `displayScale`).
 4. `npm run build` si le serveur sert `dist/`, tests catalogue / e2e si nouvelle entrée exposée au sélecteur.
 
+### Option B — stockage serveur (MySQL + GUI prof)
+
+1. Onglet **Visite (prof, élévation PIN)** : **« Boîte à outils pack mascotte »** — panneau **Packs mascotte** (liste, brouillon, enregistrement, publication).
+2. Les packs **publiés** sont renvoyés dans **`GET /api/visit/content`** (`mascot_packs`) et fusionnés au sélecteur mascotte pour cette carte (identifiant runtime = **`catalog_id`**, préfixe `srv-…`).
+3. Upload d’images : **`POST /api/visit/mascot-packs/:id/assets`** puis `framesBase` pointant vers **`/api/visit/mascot-packs/{id}/assets/`** — voir **`docs/API.md`**.
+
 ## Outil graphique (dev)
 
 - **Page autonome** : avec **`npm run dev:client`**, ouvrir **`/mascot-pack-tool.html`** (édition JSON, validation, prévisualisation, export). Voir [`docs/LOCAL_DEV.md`](LOCAL_DEV.md).
-- **Onglet Visite (prof)** : bouton **« Boîte à outils pack mascotte »** sous l’aperçu mascotte — ouvre la même interface en modale (`visit-views.jsx`), en local comme en production (aperçu client uniquement).
+- **Onglet Visite (prof)** : bouton **« Boîte à outils pack mascotte »** sous l’aperçu mascotte — ouvre la modale avec le **gestionnaire serveur** + éditeur JSON / prévisualisation (`visit-views.jsx`, `VisitMascotPackManager.jsx`, `MascotPackToolView.jsx`).
 
 ## Rive et spritesheet classique
 
