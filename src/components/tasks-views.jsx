@@ -12,7 +12,8 @@ import { HelpPanel } from './HelpPanel';
 import { ContextComments } from './context-comments';
 import { formatDateTimeFr } from '../utils/datetime-fr';
 import { HELP_PANELS, HELP_TOOLTIPS, resolveRoleText } from '../constants/help';
-import { LivingBeingsCatalogPanel } from './map-views';
+import { CatalogRemarksSection } from './map-views';
+import { PlantSpeciesDiscoveryAcknowledgeButton, fetchPlantObservationCounts } from './PlantSpeciesDiscoveryAcknowledge';
 import { TutorialPreviewModal, tutorialPreviewPayload, tutorialPreviewCanEmbed } from './TutorialPreviewModal';
 import { lockBodyScroll } from '../utils/body-scroll-lock';
 import { armNativeFilePickerGuard, disarmNativeFilePickerGuard } from '../utils/overlayHistory';
@@ -2174,6 +2175,7 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
     teacherMarkCollectiveAssignmentDone,
     tooltipText,
     openTasksTutorialPreview,
+    onForceLogout,
   };
 
   return (
@@ -2981,24 +2983,235 @@ function TaskLogsViewer({ task, onClose }) {
   );
 }
 
-/** Fiche catalogue (description, rôle, utilité) pour les espèces liées à une mission. */
-function TaskLivingBeingCatalogModal({ plants, speciesName, speciesNames = [], onClose }) {
+/** Texte catalogue non vide (aligné sur map-views / fiche biodiversité). */
+function taskSpeciesCatalogText(value) {
+  const t = String(value ?? '').trim();
+  return t.length ? t : null;
+}
+
+function taskParseLinkCandidates(value) {
+  return String(value ?? '')
+    .trim()
+    .split(/\n|,\s*/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
+
+function taskIsHttpLink(value) {
+  return /^https?:\/\//i.test(value);
+}
+
+function taskIsLocalUploadsPath(value) {
+  return /^\/uploads\/[^?#\s]+/i.test(value);
+}
+
+function taskIsLikelyDirectImageUrl(value) {
+  if (taskIsLocalUploadsPath(value)) {
+    return /\.(avif|bmp|gif|jpe?g|png|svg|webp)(?:$|\?)/i.test(value);
+  }
+  if (!taskIsHttpLink(value)) return false;
+  try {
+    const url = new URL(value);
+    const path = url.pathname.toLowerCase();
+    if (/\.(avif|bmp|gif|jpe?g|png|svg|webp)$/.test(path)) return true;
+    if (/\/wiki\/special:filepath\//.test(path)) return true;
+    return false;
+  } catch {
+    return false;
+  }
+}
+
+function taskParseCommonsFilePageFromUrl(value) {
+  if (!taskIsHttpLink(value)) return null;
+  try {
+    const url = new URL(value);
+    if (!/^(?:www\.)?commons\.wikimedia\.org$/i.test(url.hostname)) return null;
+    const m = url.pathname.match(/^\/wiki\/File:(.+)$/i);
+    if (!m) return null;
+    return m[1];
+  } catch {
+    return null;
+  }
+}
+
+function taskCommonsFilePageToDisplaySrc(value) {
+  const fileTitle = taskParseCommonsFilePageFromUrl(value);
+  if (!fileTitle) return null;
+  return `https://commons.wikimedia.org/wiki/Special:FilePath/${fileTitle}`;
+}
+
+function taskParseCommonsCategoryFromUrl(value) {
+  if (!taskIsHttpLink(value)) return null;
+  try {
+    const url = new URL(value);
+    if (!/^(?:www\.)?commons\.wikimedia\.org$/i.test(url.hostname)) return null;
+    const m = url.pathname.match(/^\/wiki\/(Category:.+)$/i);
+    if (!m) return null;
+    return decodeURIComponent(m[1]);
+  } catch {
+    return null;
+  }
+}
+
+async function taskFetchCommonsCategoryPreview(urlValue) {
+  const categoryTitle = taskParseCommonsCategoryFromUrl(urlValue);
+  if (!categoryTitle) return null;
+  const endpoint = new URL('https://commons.wikimedia.org/w/api.php');
+  endpoint.searchParams.set('action', 'query');
+  endpoint.searchParams.set('format', 'json');
+  endpoint.searchParams.set('origin', '*');
+  endpoint.searchParams.set('generator', 'categorymembers');
+  endpoint.searchParams.set('gcmtype', 'file');
+  endpoint.searchParams.set('gcmtitle', categoryTitle);
+  endpoint.searchParams.set('gcmlimit', '1');
+  endpoint.searchParams.set('prop', 'imageinfo');
+  endpoint.searchParams.set('iiprop', 'url');
+  endpoint.searchParams.set('iiurlwidth', '1200');
+  const res = await fetch(endpoint.toString());
+  if (!res.ok) return null;
+  const data = await res.json();
+  const pages = data?.query?.pages ? Object.values(data.query.pages) : [];
+  const first = pages[0];
+  const info = first?.imageinfo?.[0];
+  return info?.thumburl || info?.url || null;
+}
+
+const TASK_SPECIES_HERO_KEYS = ['photo', 'photo_species'];
+
+function taskFindFirstBiodivHeroPhotoCandidate(plant) {
+  for (const key of TASK_SPECIES_HERO_KEYS) {
+    const entries = taskParseLinkCandidates(plant[key]).filter(
+      (e) => taskIsHttpLink(e) || taskIsLocalUploadsPath(e),
+    );
+    for (const entry of entries) {
+      if (taskIsLikelyDirectImageUrl(entry)) return { kind: 'direct', src: entry };
+      const fileSrc = taskCommonsFilePageToDisplaySrc(entry);
+      if (fileSrc) return { kind: 'direct', src: fileSrc };
+      if (taskParseCommonsCategoryFromUrl(entry)) return { kind: 'category', categoryUrl: entry };
+    }
+  }
+  return null;
+}
+
+function taskResolveDisplayImageSrc(src) {
+  if (!src) return null;
+  return taskIsLocalUploadsPath(src) ? withAppBase(src) : src;
+}
+
+/** Photo principale (champs photo / photo_species), même logique que la fiche biodiversité. */
+function TaskSpeciesHeroPhoto({ plant }) {
+  const [lightbox, setLightbox] = useState(null);
+  const candidate = useMemo(() => taskFindFirstBiodivHeroPhotoCandidate(plant), [plant]);
+  const [categorySrc, setCategorySrc] = useState(null);
+
+  useEffect(() => {
+    setCategorySrc(null);
+    if (!candidate || candidate.kind !== 'category') return undefined;
+    let cancelled = false;
+    (async () => {
+      const thumb = await taskFetchCommonsCategoryPreview(candidate.categoryUrl);
+      if (!cancelled) setCategorySrc(thumb);
+    })();
+    return () => { cancelled = true; };
+  }, [candidate]);
+
+  if (!candidate) return null;
+  const rawSrc = candidate.kind === 'direct' ? candidate.src : categorySrc;
+  const displaySrc = taskResolveDisplayImageSrc(rawSrc);
+  if (!displaySrc) return null;
+
+  const name = taskSpeciesCatalogText(plant?.name) || 'Espèce';
+
+  return (
+    <>
+      {lightbox && (
+        <Lightbox
+          src={lightbox.src}
+          caption={lightbox.caption}
+          onClose={() => setLightbox(null)}
+        />
+      )}
+      <button
+        type="button"
+        className="biodiv-card-hero-photo-wrap"
+        onClick={() => setLightbox({ src: displaySrc, caption: `Photo — ${name}` })}
+        aria-label={`Agrandir la photo de ${name}`}
+      >
+        <img src={displaySrc} alt="" className="biodiv-card-hero-photo" loading="lazy" />
+        <span className="biodiv-card-hero-photo-hint" aria-hidden="true">🔍 Voir</span>
+      </button>
+    </>
+  );
+}
+
+function TaskSpeciesCatalogDetails({ plant }) {
+  const desc = taskSpeciesCatalogText(plant?.description);
+  const role = taskSpeciesCatalogText(plant?.ecosystem_role);
+  const utility = taskSpeciesCatalogText(plant?.human_utility);
+  const renderEmpty = () => (
+    <p className="plant-meta-value" style={{ margin: 0, fontStyle: 'italic', color: '#94a3b8' }}>Non renseigné</p>
+  );
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+      <details className="plant-more">
+        <summary>Description</summary>
+        <div className="plant-meta-grid" style={{ borderTop: 'none', paddingTop: 6 }}>
+          {desc ? (
+            <p className="plant-meta-value" style={{ margin: 0, whiteSpace: 'pre-wrap' }}>{desc}</p>
+          ) : renderEmpty()}
+        </div>
+      </details>
+      <details className="plant-more">
+        <summary>Rôle dans l&apos;écosystème</summary>
+        <div className="plant-meta-grid" style={{ borderTop: 'none', paddingTop: 6 }}>
+          {role ? (
+            <p className="plant-meta-value" style={{ margin: 0, whiteSpace: 'pre-wrap' }}>{role}</p>
+          ) : renderEmpty()}
+        </div>
+      </details>
+      <details className="plant-more">
+        <summary>Utilité pour l&apos;être humain</summary>
+        <div className="plant-meta-grid" style={{ borderTop: 'none', paddingTop: 6 }}>
+          {utility ? (
+            <p className="plant-meta-value" style={{ margin: 0, whiteSpace: 'pre-wrap' }}>{utility}</p>
+          ) : renderEmpty()}
+        </div>
+      </details>
+    </div>
+  );
+}
+
+/** Fiche d’une seule espèce (photo, 3 blocs repliables, remarques catalogue, découverte / observation). */
+function TaskLivingBeingCatalogModal({ plants, speciesName, onClose, onForceLogout }) {
   const dialogRef = useDialogA11y(onClose);
   useOverlayHistoryBack(true, onClose);
-  const orderedNames = (() => {
-    const raw = Array.isArray(speciesNames) ? speciesNames : [];
-    const unique = [];
-    const seen = new Set();
-    const push = (value) => {
-      const name = String(value || '').trim();
-      if (!name || seen.has(name)) return;
-      seen.add(name);
-      unique.push(name);
-    };
-    push(speciesName);
-    raw.forEach(push);
-    return unique;
-  })();
+  const plant = useMemo(
+    () => (plants || []).find((p) => String(p?.name || '').trim() === String(speciesName || '').trim()) || null,
+    [plants, speciesName],
+  );
+  const [observationCounts, setObservationCounts] = useState({
+    my_observation_count: 0,
+    site_observation_count: 0,
+  });
+
+  useEffect(() => {
+    if (!plant?.id) return;
+    let cancelled = false;
+    (async () => {
+      const map = await fetchPlantObservationCounts([plant.id]);
+      const row = map[String(plant.id)] || map[plant.id];
+      if (cancelled || !row) return;
+      setObservationCounts({
+        my_observation_count: Number(row.my_observation_count) || 0,
+        site_observation_count: Number(row.site_observation_count) || 0,
+      });
+    })();
+    return () => { cancelled = true; };
+  }, [plant?.id]);
+
+  const displayName = String(speciesName || '').trim() || 'Espèce';
+  const emoji = plant ? (plant.emoji || '🌱') : '🌱';
+
   return (
     <div className="modal-overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
       <div
@@ -3006,14 +3219,45 @@ function TaskLivingBeingCatalogModal({ plants, speciesName, speciesNames = [], o
         className="log-modal fade-in"
         role="dialog"
         aria-modal="true"
-        aria-label={`Espèce : ${speciesName}`}
+        aria-label={`Espèce : ${displayName}`}
         tabIndex={-1}
         onClick={(e) => e.stopPropagation()}
-        style={{ maxWidth: 440, width: 'min(92vw, 440px)' }}
+        style={{ maxWidth: 480, width: 'min(92vw, 480px)', maxHeight: 'min(88vh, 720px)', overflowY: 'auto' }}
       >
         <button type="button" className="modal-close" aria-label="Fermer la fenêtre" onClick={onClose}>✕</button>
-        <h3 style={{ margin: '0 0 12px', fontSize: '1.05rem', color: 'var(--forest)' }}>Biodiversité</h3>
-        <LivingBeingsCatalogPanel plants={plants} names={orderedNames} showHeading={false} />
+        <h3 style={{ margin: '0 0 6px', fontSize: '1.05rem', color: 'var(--forest)' }}>Biodiversité</h3>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10, flexWrap: 'wrap' }}>
+          <span style={{ fontSize: '1.35rem', lineHeight: 1 }} aria-hidden="true">{emoji}</span>
+          <span style={{ fontWeight: 700, color: 'var(--forest)', fontSize: '1rem' }}>{displayName}</span>
+        </div>
+        {!plant ? (
+          <p style={{ fontSize: '.88rem', color: '#92400e', margin: 0, lineHeight: 1.5 }}>
+            Aucune fiche catalogue ne correspond à « {displayName} ». Un professeur peut mettre à jour la base biodiversité.
+          </p>
+        ) : (
+          <>
+            <TaskSpeciesHeroPhoto plant={plant} />
+            <TaskSpeciesCatalogDetails plant={plant} />
+            <div style={{ marginTop: 10 }}>
+              <CatalogRemarksSection plant={plant} />
+            </div>
+            <div className="plant-discovery-ack-row" style={{ marginTop: 12, display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
+              <PlantSpeciesDiscoveryAcknowledgeButton
+                plantId={plant.id}
+                speciesName={plant.name}
+                myObservationCount={observationCounts.my_observation_count}
+                siteObservationCount={observationCounts.site_observation_count}
+                onAcknowledged={(id, next) => {
+                  setObservationCounts({
+                    my_observation_count: next.my_observation_count,
+                    site_observation_count: next.site_observation_count,
+                  });
+                }}
+                onForceLogout={onForceLogout}
+              />
+            </div>
+          </>
+        )}
       </div>
     </div>
   );
@@ -3059,6 +3303,7 @@ function TaskTileCard({
   teacherMarkCollectiveAssignmentDone,
   tooltipText,
   openTasksTutorialPreview,
+  onForceLogout,
 }) {
     const [coverLightbox, setCoverLightbox] = useState(null);
     const [speciesCatalogName, setSpeciesCatalogName] = useState(null);
@@ -3108,8 +3353,8 @@ function TaskTileCard({
           <TaskLivingBeingCatalogModal
             plants={plants}
             speciesName={speciesCatalogName}
-            speciesNames={Array.isArray(t.living_beings_list) ? t.living_beings_list : []}
             onClose={() => setSpeciesCatalogName(null)}
+            onForceLogout={onForceLogout}
           />
         )}
         <div className="task-top">
