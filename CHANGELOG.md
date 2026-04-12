@@ -6,6 +6,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 ## [Non publié]
 
 ### Modifié
+- **Rules Cursor** : obligation explicite d’**ajouter ou adapter les tests dans le même lot** que toute nouvelle fonctionnalité (**`foretmap-conventions`** : API / `src.utils` / e2e selon le cas ; rappels **`foretmap-backend`** et **`foretmap-frontend`**).
 - **Outillage agent / documentation** : skills (**`foretmap-species-autofill`**, **`foretmap-tests`**, **`foretmap-mascot-catalog`**, **`foretmap-docs-rules-skills`**) et rules (**`foretmap-biodiversite-autofill`**, **`foretmap-conventions`**) alignés sur l’identification Pl@ntNet hors autofill, l’inventaire des tests, les packs mascotte (`lib/visit-pack/`, sync build) et la sonde transport prod ; **`docs/EVOLUTION.md`** (§1.1, état avril 2026).
 - **Build** : régénération des artefacts **`dist/`** (bundle Vite production).
 - **Carte — fiche zone / repère (Info)** : sous le texte visite, panneaux dépliables **Biodiversité** (espèces sur le lieu + missions, liens vers le catalogue comme avant) et **Tuto** (même cartes qu’à l’onglet Tutoriels, avec **Consulter** si l’aperçu est disponible). **`map-views.jsx`**.
