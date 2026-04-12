@@ -5,8 +5,11 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé
+- **Biodiversité — pré-saisie (`sources` restreint)** : avec seulement **Pl@ntNet** ou **OpenAI** (sans GBIF/Wikidata), le nom passé à l’align Pl@ntNet et le contexte LLM utilisent désormais **`hint_name`** et le texte **`q`** en repli, et la requête OpenAI inclut les **indices formulaire** — évite l’absence totale de proposition pour un nom courant type « tomate ». **`lib/speciesAutofill.js`**, **`lib/speciesAutofillOpenAi.js`**, tests, **`docs/API.md`**.
+
 ### Ajouté
-- **Visite — utilitaire mascotte pack v1** : schéma JSON **`sprite_cut`** (`docs/MASCOT_PACK.md`, `docs/mascot-pack.example.json`), validation Zod **`src/utils/mascotPack.js`**, CLI **`npm run mascot:pack:validate`** (`scripts/mascot-pack-validate.cjs`, option **`--generate-js`**), page dev **`/mascot-pack-tool.html`** (`mascot-pack-tool.html`, `src/mascot-pack-tool.jsx`, `src/components/MascotPackToolView.jsx`), build Vite multi-entrée ; runtime **`VisitMapMascotSpriteCut`** : **`frameDwellMs`** par frame et **`displayScale`** sur **`spriteCut`** ; tests **`tests/mascot-pack.test.js`** ; **`docs/LOCAL_DEV.md`** ; lecture **`/docs/MASCOT_PACK.md`** côté serveur.
+- **Visite — utilitaire mascotte pack v1** : schéma JSON **`sprite_cut`** (`docs/MASCOT_PACK.md`, `docs/mascot-pack.example.json`), validation Zod **`src/utils/mascotPack.js`**, CLI **`npm run mascot:pack:validate`** (`scripts/mascot-pack-validate.cjs`, option **`--generate-js`**), page dev **`/mascot-pack-tool.html`** (`mascot-pack-tool.html`, `src/mascot-pack-tool.jsx`, `src/components/MascotPackToolView.jsx`), build Vite multi-entrée ; runtime **`VisitMapMascotSpriteCut`** : **`frameDwellMs`** par frame et **`displayScale`** sur **`spriteCut`** ; tests **`tests/mascot-pack.test.js`** ; **`docs/LOCAL_DEV.md`** ; lecture **`/docs/MASCOT_PACK.md`** côté serveur ; accès **onglet Visite (prof, dev)** : bouton ouvrant **`MascotPackToolView`** en modale (`visit-views.jsx`, **`index.css`**).
 - **Biodiversité — pré-saisie** : paramètre **`GET /api/plants/autofill?sources=`** (liste CSV d’identifiants blanc-listés) et cases à cocher **Sources à interroger** dans le formulaire plante pour n’appeler que les sources choisies ; la clé de cache inclut le filtre normalisé. **`routes/plants.js`**, **`lib/speciesAutofill.js`**, **`foretmap-views.jsx`**, tests, **`docs/API.md`**, **`docs/SPECIES_AUTOFILL_EXTENSIONS.md`**.
 
 ### Corrigé
