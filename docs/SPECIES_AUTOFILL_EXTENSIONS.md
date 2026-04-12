@@ -2,6 +2,8 @@
 
 Ces sources sont **désactivées par défaut** : aucune clé API n’est requise pour faire tourner ForetMap. Activez-les uniquement sur un serveur de confiance (données lycée, RGPD).
 
+**Route `GET /api/plants/autofill`** : paramètres optionnels **`hint_scientific`** et **`hint_name`** (voir [`docs/API.md`](API.md)) pour transmettre le nom courant / scientifique déjà présents dans le formulaire ; ils améliorent la graine taxonomique et le contexte LLM. Après la fusion multi-sources, une passe **complément des champs vides** réutilise les champs **Pl@ntNet** déjà chargés puis, si activé, un second appel **OpenAI** ciblé (`openai_gap`) sur les clés encore sans proposition (sans écraser les champs déjà remplis).
+
 ## Trefle (`lib/speciesAutofillTrefle.js`)
 
 - **Variables** : `TREFLE_TOKEN` (jeton API [Trefle](https://trefle.io/)), **`SPECIES_AUTOFILL_TREFLE=1`** pour autoriser le module.
@@ -15,8 +17,8 @@ Ces sources sont **désactivées par défaut** : aucune clé API n’est requise
   - **`SPECIES_AUTOFILL_OPENAI=1`** : sans cette valeur exacte, aucun appel n’est effectué.
   - Optionnel : `SPECIES_AUTOFILL_OPENAI_MODEL` (défaut **`gpt-4o-mini`**).
 - **Comportement** : requête `POST /v1/chat/completions` avec `response_format: json_object`. Le **contexte** agrège avant l’appel (sans secrets) : extrait **Wikipedia FR**, libellé/description **Wikidata**, taxonomie **GBIF**, **traits / descriptions GBIF** (`gbif_traits`), extraits **iNaturalist** / **Wikipedia EN** si présents, liste **noms vernaculaires GBIF (FR)** — le tout tronqué (~**3000** caractères côté agrégateur, puis ~**3200** côté module OpenAI). Champs JSON autorisés incluant **`agroecosystem_category`** et **`second_name`** (nom vernaculaire unique **uniquement** s’il figure explicitement dans le contexte). Timeout court (plafond **8 s**, borné par le budget global de pré-saisie).
-- **Confiance** : **0,22** dans `mergeSources` (sous les heuristiques Wikipedia et Wikidata) pour limiter l’écrasement des sources factuelles.
-- **Logs** : événement court côté Pino (`species_autofill_openai_*`) ; pas de journalisation du corps complet du prompt/réponse.
+- **Confiance** : **0,22** dans `mergeSources` (sous les heuristiques Wikipedia et Wikidata) pour limiter l’écrasement des sources factuelles ; passe **« trous »** (`openai_gap`) : **0,26** sur les seuls champs encore vides après fusion (et overlay Pl@ntNet).
+- **Logs** : événement court côté Pino (`species_autofill_openai_*`, `species_autofill_openai_gap_*`) ; pas de journalisation du corps complet du prompt/réponse.
 - **RGPD / pédagogie** : les sorties LLM sont **indicatives** ; checklist prof : vérifier chaque champ avant publication, surtout si l’élève a saisi des données personnelles dans la requête (éviter d’activer OpenAI sur des requêtes libres non contrôlées si le risque est jugé trop élevé).
 
 ## Pl@ntNet (`lib/speciesAutofillPlantnet.js`)
