@@ -1,38 +1,31 @@
 require('./helpers/setup');
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const {
-  runSpeciesAutofillProviderSelfTest,
-  buildPlantnetAlignTestUrl,
-} = require('../lib/speciesAutofillProviderSelfTest');
+const { runSpeciesAutofillProviderSelfTest } = require('../lib/speciesAutofillProviderSelfTest');
+const { buildPlantnetQuotaTestUrl } = require('../lib/speciesAutofillPlantnet');
 
-test('buildPlantnetAlignTestUrl est null sans PLANTNET_API_KEY', () => {
+test('buildPlantnetQuotaTestUrl est null sans PLANTNET_API_KEY', () => {
   const prev = process.env.PLANTNET_API_KEY;
   delete process.env.PLANTNET_API_KEY;
   try {
-    assert.equal(buildPlantnetAlignTestUrl(), null);
+    assert.equal(buildPlantnetQuotaTestUrl(), null);
   } finally {
     if (prev !== undefined) process.env.PLANTNET_API_KEY = prev;
     else delete process.env.PLANTNET_API_KEY;
   }
 });
 
-test('buildPlantnetAlignTestUrl contient le projet et le nom de test', () => {
+test('buildPlantnetQuotaTestUrl contient /v2/quota', () => {
   const prevK = process.env.PLANTNET_API_KEY;
-  const prevP = process.env.PLANTNET_PROJECT;
   process.env.PLANTNET_API_KEY = 'pk-unit';
-  process.env.PLANTNET_PROJECT = 'k-world-flora';
   try {
-    const u = buildPlantnetAlignTestUrl();
+    const u = buildPlantnetQuotaTestUrl();
     assert.ok(u);
-    assert.match(u, /my-api\.plantnet\.org/);
-    assert.match(u, /Solanum\+lycopersicum|Solanum%20lycopersicum/);
+    assert.match(u, /my-api\.plantnet\.org\/v2\/quota/);
     assert.match(u, /api-key=/);
   } finally {
     if (prevK !== undefined) process.env.PLANTNET_API_KEY = prevK;
     else delete process.env.PLANTNET_API_KEY;
-    if (prevP !== undefined) process.env.PLANTNET_PROJECT = prevP;
-    else delete process.env.PLANTNET_PROJECT;
   }
 });
 
@@ -48,7 +41,7 @@ test('runSpeciesAutofillProviderSelfTest : HTTP 200 simulés', async () => {
   const fetchImpl = async (url) => {
     const u = String(url || '');
     if (u.includes('my-api.plantnet.org')) {
-      return { ok: true, status: 200, json: async () => ({ acceptedName: 'Solanum lycopersicum L.' }) };
+      return { ok: true, status: 200, json: async () => ({ identify: 500 }) };
     }
     if (u.includes('api.openai.com/v1/models')) {
       return { ok: true, status: 200, json: async () => ({ data: [{ id: 'gpt-4o-mini' }] }) };

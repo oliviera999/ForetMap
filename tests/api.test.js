@@ -1451,6 +1451,23 @@ test('GET /api/plants/autofill refuse sans authentification', async () => {
   await request(app).get('/api/plants/autofill?q=tomate').expect(401);
 });
 
+test('POST /api/plants/plantnet-identify refuse sans authentification', async () => {
+  await request(app)
+    .post('/api/plants/plantnet-identify')
+    .send({ images: [{ organ: 'leaf', imageData: 'data:image/png;base64,abc' }] })
+    .expect(401);
+});
+
+test('POST /api/plants/plantnet-identify rejette une liste d’images vide', async () => {
+  const token = await getAdminAuthToken();
+  const res = await request(app)
+    .post('/api/plants/plantnet-identify')
+    .set('Authorization', 'Bearer ' + token)
+    .send({ images: [] })
+    .expect(400);
+  assert.ok(String(res.body?.error || '').length > 0);
+});
+
 test('GET /api/plants/autofill renvoie une pré-saisie normalisée multi-sources', { concurrency: false }, async () => {
   const token = await getAdminAuthToken();
   const previousFetch = global.fetch;

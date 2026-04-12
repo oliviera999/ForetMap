@@ -245,8 +245,40 @@ const SPECIES_PREFILL_SOURCE_CHECKBOXES = [
   { id: 'wikipedia_heuristic', label: 'Heuristiques (extrait FR)' },
   { id: 'trefle', label: 'Trefle' },
   { id: 'openai', label: 'OpenAI' },
-  { id: 'plantnet', label: 'Pl@ntNet' },
 ];
+
+/** Organes Pl@ntNet pour `POST /api/plants/plantnet-identify` (alignés sur l’API v2). */
+const PLANTNET_IDENTIFY_ORGAN_OPTIONS = [
+  { id: 'auto', label: 'Auto' },
+  { id: 'leaf', label: 'Feuille' },
+  { id: 'flower', label: 'Fleur' },
+  { id: 'fruit', label: 'Fruit' },
+  { id: 'bark', label: 'Écorce' },
+  { id: 'habit', label: 'Port / habitude' },
+  { id: 'branch', label: 'Branche' },
+  { id: 'seed', label: 'Graine' },
+  { id: 'bud', label: 'Bourgeon' },
+  { id: 'scan', label: 'Scan' },
+  { id: 'sheet', label: 'Planche' },
+  { id: 'other', label: 'Autre' },
+  { id: 'drawing', label: 'Dessin' },
+  { id: 'anatomy', label: 'Anatomie' },
+  { id: 'aerial', label: 'Vue aérienne' },
+];
+
+function newPlantnetIdentifySlot() {
+  return { key: `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`, organ: 'auto', imageData: '', fileName: '' };
+}
+
+function pickPlantnetVernacularName(commonNames) {
+  const list = Array.isArray(commonNames) ? commonNames.map((x) => String(x || '').trim()).filter(Boolean) : [];
+  if (!list.length) return '';
+  const frHint = (s) => /[àâäéèêëïîôùûüçœæ]/i.test(s) || /\b(l'|d'|de la |des |le |la |les |du |au )\b/i.test(` ${s} `);
+  const scored = list.map((s) => ({ s, score: frHint(s) ? 2 : 0 }));
+  scored.sort((a, b) => b.score - a.score);
+  if (scored[0].score > 0) return scored[0].s;
+  return list[0];
+}
 
 /** Champs photo du formulaire (ordre affichage upload + menu pré-saisie). */
 const PLANT_PHOTO_FIELD_OPTIONS = [
@@ -685,6 +717,10 @@ function PlantEditForm({ title, form, setForm, onSave, onCancel, saving, plantId
   const [prefillSources, setPrefillSources] = useState(() =>
     Object.fromEntries(SPECIES_PREFILL_SOURCE_CHECKBOXES.map((o) => [o.id, true])),
   );
+  const [identifySlots, setIdentifySlots] = useState(() => [newPlantnetIdentifySlot()]);
+  const [identifyLoading, setIdentifyLoading] = useState(false);
+  const [identifyError, setIdentifyError] = useState('');
+  const [identifyPredictions, setIdentifyPredictions] = useState([]);
 
   useEffect(() => {
     setPrefillThumbBroken({});
@@ -718,6 +754,74 @@ function PlantEditForm({ title, form, setForm, onSave, onCancel, saving, plantId
     } finally {
       setUploadingField('');
     }
+  };
+
+  const addIdentifySlot = () => {
+    setIdentifySlots((prev) => (prev.length >= 5 ? prev : [...prev, newPlantnetIdentifySlot()]));
+  };
+
+  const removeIdentifySlot = (key) => {
+    setIdentifySlots((prev) => {
+      const next = prev.filter((r) => r.key !== key);
+      return next.length === 0 ? [newPlantnetIdentifySlot()] : next;
+    });
+  };
+
+  const setIdentifySlotOrgan = (key, organ) => {
+    setIdentifySlots((prev) => prev.map((r) => (r.key === key ? { ...r, organ } : r)));
+  };
+
+  const onIdentifyFileChosen = async (key, file) => {
+    if (!file) return;
+    try {
+      const imageData = await compressImage(file, 1600, 0.82);
+      setIdentifySlots((prev) => prev.map((r) => (r.key === key ? { ...r, imageData, fileName: file.name || '' } : r)));
+    } catch {
+      onToast?.('Impossible de lire cette image.');
+    }
+  };
+
+  const runPlantnetIdentify = async () => {
+    const images = identifySlots
+      .filter((r) => String(r.imageData || '').trim().length > 0)
+      .map((r) => ({ organ: r.organ || 'auto', imageData: r.imageData }));
+    if (images.length === 0) {
+      onToast?.('Ajoute au moins une photo (1 à 5).');
+      return;
+    }
+    setIdentifyLoading(true);
+    setIdentifyError('');
+    setIdentifyPredictions([]);
+    try {
+      const data = await api('/api/plants/plantnet-identify', 'POST', {
+        images,
+        nbResults: 10,
+        lang: 'fr',
+      });
+      const preds = Array.isArray(data?.predictions) ? data.predictions : [];
+      setIdentifyPredictions(preds);
+      if (preds.length === 0) {
+        onToast?.('Aucune espèce proposée — essaie d’autres photos ou organes.');
+      }
+    } catch (e) {
+      setIdentifyError(e?.message || 'Identification indisponible');
+      onToast?.(String(e?.message || 'Identification indisponible'));
+    } finally {
+      setIdentifyLoading(false);
+    }
+  };
+
+  const applyIdentifyPrediction = (pred) => {
+    if (!pred || typeof pred !== 'object') return;
+    const sci = String(pred.scientificName || pred.scientificNameWithoutAuthor || '').trim();
+    const vern = pickPlantnetVernacularName(pred.commonNames);
+    const nameGuess = vern || String(pred.scientificNameWithoutAuthor || '').trim();
+    setForm((f) => ({
+      ...f,
+      scientific_name: sci.slice(0, 200) || f.scientific_name,
+      name: (nameGuess && nameGuess.slice(0, 200)) || f.name,
+    }));
+    onToast?.('Nom mis à jour — tu peux lancer la pré-saisie depuis les sources.');
   };
 
   const groupedPrefillPhotos = useMemo(() => {
@@ -872,6 +976,127 @@ function PlantEditForm({ title, form, setForm, onSave, onCancel, saving, plantId
       <div className="field"><label>Nom *</label>
         <input value={form.name} onChange={set('name')} placeholder="Ex: Aubergine"/>
       </div>
+      <details className="plant-more" style={{ marginBottom: 10 }}>
+        <summary style={{ cursor: 'pointer', fontSize: '.88rem' }}>Identifier une plante à partir de photos (Pl@ntNet)</summary>
+        <div style={{ marginTop: 8, display: 'grid', gap: 10, fontSize: '.82rem', color: '#444' }}>
+          <p style={{ margin: 0, lineHeight: 1.45 }}>
+            Envoie 1 à 5 images de la <strong>même</strong> plante (feuille, fleur, fruit…). Le serveur appelle Pl@ntNet ;
+            choisis une proposition puis lance la pré-saisie ci-dessous. Données soumises aux conditions d’usage{' '}
+            <a href="https://my.plantnet.org/" target="_blank" rel="noreferrer">my.plantnet.org</a>.
+          </p>
+          {identifySlots.map((row) => (
+            <div
+              key={row.key}
+              style={{
+                display: 'grid',
+                gap: 6,
+                padding: 8,
+                border: '1px solid #e2e2e2',
+                borderRadius: 8,
+                background: '#fafafa',
+              }}
+            >
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
+                <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: '.78rem' }}>
+                  <span>Organe</span>
+                  <select
+                    value={row.organ}
+                    onChange={(e) => setIdentifySlotOrgan(row.key, e.target.value)}
+                    disabled={saving || identifyLoading}
+                  >
+                    {PLANTNET_IDENTIFY_ORGAN_OPTIONS.map((o) => (
+                      <option key={o.id} value={o.id}>{o.label}</option>
+                    ))}
+                  </select>
+                </label>
+                <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: '.78rem', flex: '1 1 180px' }}>
+                  <span>Image</span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    disabled={saving || identifyLoading}
+                    onChange={(e) => {
+                      const f = e.target.files && e.target.files[0];
+                      e.target.value = '';
+                      onIdentifyFileChosen(row.key, f);
+                    }}
+                  />
+                </label>
+                {identifySlots.length > 1 && (
+                  <button
+                    type="button"
+                    className="btn btn-ghost btn-sm"
+                    disabled={saving || identifyLoading}
+                    onClick={() => removeIdentifySlot(row.key)}
+                  >
+                    Retirer
+                  </button>
+                )}
+              </div>
+              {row.fileName && (
+                <span style={{ color: '#2a6a2a' }}>Fichier : {row.fileName}</span>
+              )}
+            </div>
+          ))}
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
+            {identifySlots.length < 5 && (
+              <button type="button" className="btn btn-ghost btn-sm" disabled={saving || identifyLoading} onClick={addIdentifySlot}>
+                + Ajouter une image
+              </button>
+            )}
+            <button
+              type="button"
+              className="btn btn-sm"
+              disabled={saving || identifyLoading}
+              onClick={runPlantnetIdentify}
+            >
+              {identifyLoading ? 'Identification…' : 'Lancer l’identification'}
+            </button>
+          </div>
+          {identifyError && (
+            <p style={{ margin: 0, color: '#a94442' }}>{identifyError}</p>
+          )}
+          {identifyPredictions.length > 0 && (
+            <div style={{ display: 'grid', gap: 6 }}>
+              <strong>Propositions</strong>
+              {identifyPredictions.map((p, idx) => {
+                const label = String(p.scientificName || p.scientificNameWithoutAuthor || '').trim() || `Taxon ${idx + 1}`;
+                const scorePct = p.score != null && Number.isFinite(Number(p.score)) ? Math.round(Number(p.score) * 1000) / 10 : null;
+                const vern = pickPlantnetVernacularName(p.commonNames);
+                return (
+                  <div
+                    key={`pn-id-${idx}-${label}`}
+                    style={{
+                      display: 'flex',
+                      flexWrap: 'wrap',
+                      gap: 8,
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: '6px 8px',
+                      borderRadius: 8,
+                      border: '1px solid #e6e6e6',
+                      background: '#fff',
+                    }}
+                  >
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ fontWeight: 600 }}>{label}{scorePct != null ? ` — ${scorePct} %` : ''}</div>
+                      {vern && <div style={{ color: '#555', marginTop: 2 }}>{vern}</div>}
+                    </div>
+                    <button
+                      type="button"
+                      className="btn btn-ghost btn-sm"
+                      disabled={saving || identifyLoading}
+                      onClick={() => applyIdentifyPrediction(p)}
+                    >
+                      Utiliser pour le formulaire
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </details>
       <details className="plant-more" style={{ marginBottom: 8 }}>
         <summary style={{ cursor: 'pointer', fontSize: '.88rem' }}>Sources à interroger</summary>
         <div

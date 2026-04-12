@@ -518,8 +518,8 @@ function SettingsAdminView({ isN3Affiliated = false }) {
       setSpeciesAutofillTest(data || null);
       setMsg(
         data?.ok
-          ? 'Test Pl@ntNet / OpenAI (pré-saisie) : connexions OK'
-          : 'Test pré-saisie terminé — voir le détail ci-dessous (au moins un fournisseur en échec ou non testé).',
+          ? 'Test connectivité Pl@ntNet / OpenAI : OK'
+          : 'Test connectivité terminé — voir le détail ci-dessous (au moins un fournisseur en échec ou non testé).',
       );
     } catch (e) {
       setSpeciesAutofillTest(null);
@@ -705,7 +705,7 @@ function SettingsAdminView({ isN3Affiliated = false }) {
               onClick={fetchSpeciesAutofillProvidersTest}
               disabled={savingKey === 'species-autofill-test'}
             >
-              {savingKey === 'species-autofill-test' ? 'Test…' : 'Test pré-saisie (Pl@ntNet / OpenAI)'}
+              {savingKey === 'species-autofill-test' ? 'Test…' : 'Test connectivité (Pl@ntNet / OpenAI)'}
             </button>
             <button className="btn btn-danger btn-sm" onClick={triggerRestart} disabled={savingKey === 'restart'}>
               {savingKey === 'restart' ? '...' : 'Redémarrer'}

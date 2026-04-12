@@ -5,7 +5,7 @@
 require('./helpers/setup');
 const { describe, test, before, after } = require('node:test');
 const assert = require('node:assert/strict');
-const { buildSpeciesAutofill, resolvePlantnetAlignName } = require('../lib/speciesAutofill');
+const { buildSpeciesAutofill, pickScientificSeed } = require('../lib/speciesAutofill');
 
 function jsonResponse(payload, status = 200) {
   return {
@@ -273,12 +273,11 @@ describe('Pré-saisie — espèces communes (mocks HTTP)', () => {
     });
   }
 
-  test('indices formulaire : hint scientifique binomial prioritaire pour align Pl@ntNet', () => {
+  test('indices formulaire : hint scientifique binomial prioritaire pour pickScientificSeed', () => {
     assert.equal(
-      resolvePlantnetAlignName(null, { scientific_name: 'Solanum tuberosum', name: 'pomme de terre' }, 'pomme de terre'),
+      pickScientificSeed('pomme de terre', [], { scientific_name: 'Solanum tuberosum', name: 'pomme de terre' }),
       'Solanum tuberosum',
     );
-    assert.equal(resolvePlantnetAlignName(null, { name: 'Épinard' }, 'légume'), 'Épinard');
   });
 
   test('filtrage sources : wikipedia + gbif seuls pour « tomate » (mock)', async () => {

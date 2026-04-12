@@ -3,7 +3,6 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const {
   pickScientificSeed,
-  resolvePlantnetAlignName,
   computeEmptyGapKeys,
   mergeSources,
 } = require('../lib/speciesAutofill');
@@ -14,18 +13,13 @@ test('pickScientificSeed priorise hint_scientific binomial', () => {
   assert.equal(seed, 'Solanum lycopersicum L.');
 });
 
-test('resolvePlantnetAlignName utilise hint si pas de graine', () => {
-  const n = resolvePlantnetAlignName(null, { scientific_name: 'Rosa canina' }, 'fleur');
-  assert.equal(n, 'Rosa canina');
-});
-
 test('computeEmptyGapKeys liste les champs vides', () => {
   const keys = computeEmptyGapKeys({ name: 'X', habitat: '', description: '   ' });
   assert.ok(keys.includes('habitat'));
   assert.ok(!keys.includes('name'));
 });
 
-test('overlay PlantNet + openai_gap sur merge (mocks)', async () => {
+test('remplissage manuel des champs vides depuis un pack complémentaire (mock)', async () => {
   const merged = mergeSources([
     {
       source: 'wikipedia',
@@ -36,17 +30,17 @@ test('overlay PlantNet + openai_gap sur merge (mocks)', async () => {
       warnings: [],
     },
   ]);
-  const plantnetPack = {
-    source: 'plantnet',
+  const extraPack = {
+    source: 'extra_mock',
     confidence: 0.46,
-    source_url: 'https://my.plantnet.org',
+    source_url: 'https://example.org',
     fields: { group_3: 'Rosaceae', second_name: 'Églantier' },
     photos: [],
     warnings: [],
   };
   const emptySet = new Set(computeEmptyGapKeys(merged.fields));
   assert.ok(emptySet.has('group_3'));
-  for (const [k, v] of Object.entries(plantnetPack.fields)) {
+  for (const [k, v] of Object.entries(extraPack.fields)) {
     if (!emptySet.has(k)) continue;
     merged.fields[k] = v;
   }

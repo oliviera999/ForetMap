@@ -7,7 +7,8 @@ const {
   buildSearchQueries,
   descriptionMergeRank,
   parseAutofillSourcesQueryParam,
-  resolvePlantnetAlignName,
+  shouldRunSource,
+  SPECIES_AUTOFILL_SOURCE_IDS,
 } = require('../lib/speciesAutofill');
 
 function jsonResponse(payload, status = 200) {
@@ -56,10 +57,20 @@ test('descriptionMergeRank classe wikipedia au-dessus de gbif', () => {
   assert.ok(descriptionMergeRank('wikipedia') > descriptionMergeRank('gbif'));
 });
 
-test('resolvePlantnetAlignName replie sur le nom courant ou la requête sans graine taxonomique', () => {
-  assert.equal(resolvePlantnetAlignName(null, { name: 'Tomate' }, 'autre'), 'Tomate');
-  assert.equal(resolvePlantnetAlignName(null, {}, 'tomate'), 'tomate');
-  assert.equal(resolvePlantnetAlignName('Solanum lycopersicum', {}, 'tomate'), 'Solanum lycopersicum');
+test('parseAutofillSourcesQueryParam ignore plantnet (retiré des sources autofill)', () => {
+  assert.equal(parseAutofillSourcesQueryParam('plantnet'), null);
+});
+
+test('shouldRunSource ignore les ids hors liste canonique', () => {
+  assert.equal(shouldRunSource('plantnet', null), false);
+  assert.equal(shouldRunSource('wikipedia', null), true);
+  const subset = new Set(['gbif']);
+  assert.equal(shouldRunSource('wikipedia', subset), false);
+  assert.equal(shouldRunSource('gbif', subset), true);
+});
+
+test('SPECIES_AUTOFILL_SOURCE_IDS ne contient plus plantnet', () => {
+  assert.ok(!SPECIES_AUTOFILL_SOURCE_IDS.includes('plantnet'));
 });
 
 test('parseAutofillSourcesQueryParam blanc-liste et ignore les ids inconnus', () => {
