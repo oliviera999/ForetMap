@@ -5,6 +5,9 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Modifié
+- **Configuration** : `.env.example` précise que Wikipedia / GBIF / Wikidata (pré-saisie) ne requièrent pas de variables d’environnement.
+
 ### Corrigé
 - **Biodiversité — pré-saisie OpenAI** : lorsque le **contexte agrégé** est très court (ex. extension seule sans Wikipedia/GBIF), consignes **mode indicatif pédagogique** pour éviter un JSON vide sur des requêtes vernaculaires courantes (aubergine, etc.) ; température légèrement relevée dans ce cas ; avertissement dédié. **`lib/speciesAutofillOpenAi.js`**, **`docs/SPECIES_AUTOFILL_EXTENSIONS.md`**.
 
