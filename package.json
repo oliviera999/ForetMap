@@ -1,6 +1,6 @@
 {
   "name": "foretmap",
-  "version": "1.43.9",
+  "version": "1.43.8",
   "description": "Application de gestion de la forêt comestible - Lycée Lyautey",
   "main": "server.js",
   "engines": {
@@ -106,7 +106,8 @@
     "mcp:diag": "node scripts/mcp-foretmap-diagnostics.mjs",
     "prod:admin-tail": "node scripts/prod-admin-tail.js",
     "prod:admin-diagnostics": "node scripts/prod-admin-diagnostics.js",
-    "prod:remote-debug": "node scripts/prod-remote-debug.js"
+    "prod:remote-debug": "node scripts/prod-remote-debug.js",
+    "prod:transport-probe": "node scripts/prod-transport-probe.mjs"
   },
   "devDependencies": {
     "@fontsource/noto-color-emoji": "^5.2.12",

@@ -623,15 +623,34 @@ test('GET /api/visit/content expose map_lead_photo (première photo galerie cart
     .send({ image_data: `data:image/jpeg;base64,${TINY_JPEG_B64}`, caption: 'Légende photo carte repère' })
     .expect(201);
 
+  await request(app)
+    .post(`/api/zones/${zone.body.id}/photos`)
+    .set('Authorization', 'Bearer ' + teacherToken)
+    .send({ image_data: `data:image/jpeg;base64,${TINY_JPEG_B64}`, caption: 'Deuxième photo zone carte' })
+    .expect(201);
+  await request(app)
+    .post(`/api/map/markers/${marker.body.id}/photos`)
+    .set('Authorization', 'Bearer ' + teacherToken)
+    .send({ image_data: `data:image/jpeg;base64,${TINY_JPEG_B64}`, caption: 'Deuxième photo repère carte' })
+    .expect(201);
+
   const content = await request(app).get('/api/visit/content?map_id=foret').expect(200);
   const vz = content.body.zones.find((z) => z.id === zone.body.id);
   assert.ok(vz?.map_lead_photo?.image_url);
   assert.ok(String(vz.map_lead_photo.image_url).includes(`/api/zones/${zone.body.id}/photos/`));
   assert.strictEqual(vz.map_lead_photo.caption, 'Légende photo carte zone');
+  assert.ok(Array.isArray(vz.map_extra_photos));
+  assert.strictEqual(vz.map_extra_photos.length, 1);
+  assert.ok(String(vz.map_extra_photos[0].image_url).includes(`/api/zones/${zone.body.id}/photos/`));
+  assert.strictEqual(vz.map_extra_photos[0].caption, 'Deuxième photo zone carte');
   const vm = content.body.markers.find((m) => m.id === marker.body.id);
   assert.ok(vm?.map_lead_photo?.image_url);
   assert.ok(String(vm.map_lead_photo.image_url).includes(`/api/map/markers/${marker.body.id}/photos/`));
   assert.strictEqual(vm.map_lead_photo.caption, 'Légende photo carte repère');
+  assert.ok(Array.isArray(vm.map_extra_photos));
+  assert.strictEqual(vm.map_extra_photos.length, 1);
+  assert.ok(String(vm.map_extra_photos[0].image_url).includes(`/api/map/markers/${marker.body.id}/photos/`));
+  assert.strictEqual(vm.map_extra_photos[0].caption, 'Deuxième photo repère carte');
 
   await request(app).delete(`/api/map/markers/${marker.body.id}`).set('Authorization', 'Bearer ' + teacherToken).expect(200);
   await request(app).delete(`/api/zones/${zone.body.id}`).set('Authorization', 'Bearer ' + teacherToken).expect(200);
