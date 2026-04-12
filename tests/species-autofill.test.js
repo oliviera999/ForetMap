@@ -1,7 +1,12 @@
 require('./helpers/setup');
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { buildSpeciesAutofill, mergeSources, buildSearchQueries } = require('../lib/speciesAutofill');
+const {
+  buildSpeciesAutofill,
+  mergeSources,
+  buildSearchQueries,
+  descriptionMergeRank,
+} = require('../lib/speciesAutofill');
 
 function jsonResponse(payload, status = 200) {
   return {
@@ -21,6 +26,32 @@ test('buildSearchQueries déduplique et ajoute le nom scientifique', () => {
   assert.deepEqual(buildSearchQueries('Solanum lycopersicum', { scientificName: 'Solanum lycopersicum' }), [
     'Solanum lycopersicum',
   ]);
+});
+
+test('mergeSources favorise Wikidata pour le champ description (rang source)', () => {
+  const merged = mergeSources([
+    {
+      source: 'inaturalist',
+      confidence: 0.95,
+      source_url: 'https://inat',
+      fields: { description: 'Très long résumé iNaturalist qui dominerait sans règle de rang.' },
+      photos: [],
+      warnings: [],
+    },
+    {
+      source: 'wikidata',
+      confidence: 0.62,
+      source_url: 'https://wd',
+      fields: { description: 'Description courte taxon WD.' },
+      photos: [],
+      warnings: [],
+    },
+  ]);
+  assert.equal(merged.fields.description, 'Description courte taxon WD.');
+});
+
+test('descriptionMergeRank classe wikipedia au-dessus de gbif', () => {
+  assert.ok(descriptionMergeRank('wikipedia') > descriptionMergeRank('gbif'));
 });
 
 test('mergeSources priorise la source la plus fiable', () => {
@@ -139,6 +170,17 @@ test('buildSpeciesAutofill fusionne les sources et retourne des photos', async (
         usageKey: 2930132,
       });
     }
+    if (raw.includes('/species/2930132/descriptions')) {
+      return jsonResponse({
+        results: [
+          { type: 'habit', language: 'eng', description: 'herb' },
+          { type: 'native range', language: 'fra', description: 'Amérique du Sud' },
+        ],
+      });
+    }
+    if (raw.includes('api.gbif.org/v1/species/2930132') && !raw.includes('vernacularNames')) {
+      return jsonResponse({ taxonomicStatus: 'ACCEPTED', remarks: '' });
+    }
     if (raw.includes('api.inaturalist.org/v1/taxa')) {
       return jsonResponse({
         results: [{
@@ -190,6 +232,7 @@ test('buildSpeciesAutofill fusionne les sources et retourne des photos', async (
   assert.ok(String(result.fields.human_utility || '').includes('aliment'));
   assert.ok(String(result.fields.geographic_origin || '').includes('France'));
   assert.ok((result.warnings || []).some((w) => String(w).includes('P366')));
+  assert.match(String(result.fields.habitat || ''), /herb/i);
 });
 
 test('buildSpeciesAutofill ajoute un warning si une source échoue', async () => {
@@ -250,6 +293,12 @@ test('buildSpeciesAutofill évite un homonyme wikidata non taxonomique', async (
     }
     if (raw.includes('api.gbif.org/v1/species/match')) {
       return jsonResponse({ confidence: 90, scientificName: 'Solanum lycopersicum', canonicalName: 'Tomate', usageKey: 2930132 });
+    }
+    if (raw.includes('/species/2930132/descriptions')) {
+      return jsonResponse({ results: [] });
+    }
+    if (raw.includes('api.gbif.org/v1/species/2930132') && !raw.includes('vernacularNames')) {
+      return jsonResponse({ taxonomicStatus: 'ACCEPTED' });
     }
     if (raw.includes('api.checklistbank.org/dataset/3LR/nameusage/search')) {
       return jsonResponse({ result: [{ id: 'COL-OK', name: 'Solanum lycopersicum' }] });

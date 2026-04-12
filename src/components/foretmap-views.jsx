@@ -900,6 +900,17 @@ function PlantEditForm({ title, form, setForm, onSave, onCancel, saving, plantId
                 );
               })}
             </div>
+            {(() => {
+              const empty = SPECIES_PREFILL_FIELDS.filter((k) => !String(prefillResult?.fields?.[k] || '').trim());
+              if (empty.length === 0) return null;
+              const labels = empty.slice(0, 14).map((k) => SPECIES_PREFILL_FIELD_LABELS[k] || k);
+              const extra = empty.length > 14 ? ` (+${empty.length - 14} autres)` : '';
+              return (
+                <p style={{ fontSize: '.76rem', color: '#666', margin: 0, lineHeight: 1.35 }}>
+                  Sans proposition automatique pour : {labels.join(', ')}{extra}. Les sources publiques ne couvrent pas toujours ces champs ; complément possible via saisie manuelle ou extensions documentées (voir la doc API).
+                </p>
+              );
+            })()}
             {Object.keys(groupedPrefillPhotos).length > 0 && (
               <div style={{ display: 'grid', gap: 6 }}>
                 <div>

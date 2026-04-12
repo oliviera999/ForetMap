@@ -27,3 +27,12 @@ test('buildWikipediaHeuristicSource retourne null si rien à extraire', () => {
   assert.equal(buildWikipediaHeuristicSource('Courte.'), null);
   assert.equal(buildWikipediaHeuristicSource(''), null);
 });
+
+test('extractTraitsFromWikipediaExtract détecte récolte et culture', () => {
+  const { fields } = extractTraitsFromWikipediaExtract(
+    'Les fruits comestibles mûrissent en été. Culture au potager en plein soleil, semis au printemps.',
+  );
+  assert.ok(fields.harvest_part);
+  assert.ok(fields.planting_recommendations);
+  assert.equal(fields.agroecosystem_category, 'Culture (indice résumé Wikipedia)');
+});

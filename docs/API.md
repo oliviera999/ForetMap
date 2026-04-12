@@ -446,13 +446,17 @@ Réponse:
   - `sources`: sources effectivement interrogées `{ source, confidence, source_url }`,
   - `warnings`: avertissements non bloquants (source indisponible, qualité des données, photos filtrées...).
 - Comportement:
-  - résultats agrégés depuis plusieurs sources externes publiques : **Wikipedia (FR)** avec repli **opensearch** ; **Wikidata** ; **GBIF** (`species/match`, `usageKey`) ; **Catalogue of Life** lorsqu’un nom scientifique est connu ; **iNaturalist** (recherche taxons, photo HTTPS et lien taxon si disponibles) ; **noms vernaculaires GBIF** (`/species/{usageKey}/vernacularNames`, langues `fra` / `fre` / `fr`) pour enrichir **`second_name`** (synonymes / noms vulgaires, hors doublons du nom principal) ; **Wikipedia EN** (résumé) en secours si l’extrait FR est trop court ;
+  - résultats agrégés depuis plusieurs sources externes publiques : **Wikipedia (FR)** avec repli **opensearch** ; **Wikidata** (dont **P366** / **P183** / **P9714** pour utilité, endémisme / aire d’occurrence, libellés via `wbgetentities`) ; **GBIF** (`species/match`, `usageKey`) ; **GBIF traits** (`/v1/species/{usageKey}` + `/descriptions`, source interne `gbif_traits`, confiance modérée : habit / zone / écologie textuels et avertissements de statut taxonomique) ; **Catalogue of Life** lorsqu’un nom scientifique est connu ; **iNaturalist** (recherche taxons, résumé Wikipedia, photo HTTPS, indices **extinction / statut de conservation** lorsque présents) ; **noms vernaculaires GBIF** (`/species/{usageKey}/vernacularNames`, langues `fra` / `fre` / `fr`) pour enrichir **`second_name`** ; **Wikipedia EN** (résumé) en secours si l’extrait FR est trop court ; **heuristiques** sur l’extrait FR (`wikipedia_heuristic`, faible confiance : température, pH, taille, longévité, indices culture / récolte / plantation) ;
+  - le nom scientifique « graine » pour les requêtes secondaires privilégie **GBIF** puis **Wikidata** (meilleure désambiguïsation quand le nom vulgaire est ambigu) ;
+  - pour le champ **`description`**, la fusion applique un **ordre de priorité par source** (Wikidata / Wikipedia au-dessus d’iNaturalist ou GBIF) afin qu’une description courte mais fiable ne soit pas remplacée par un résumé périphérique plus long ;
+  - extensions optionnelles (voir [`docs/SPECIES_AUTOFILL_EXTENSIONS.md`](SPECIES_AUTOFILL_EXTENSIONS.md)) : **Trefle**, **OpenAI**, **Pl@ntNet** (`plantnet`) ;
   - cache mémoire TTL côté serveur pour limiter la latence et les quotas,
   - budget global d’agrégation côté serveur (ordre de grandeur **12 s** wall-clock, timeouts HTTP dynamiques et plafond par requête) afin de limiter les **503** renvoyés par les reverse proxies lorsque les sources externes sont lentes,
   - validation/filtrage des URLs photo avant retour.
 - Limites connues:
   - des homonymies peuvent remonter des descriptions hors contexte botanique (ex. nom ambigu),
   - le score de confiance indique une tendance de qualité, pas une vérité scientifique.
+  - les champs issus d’heuristiques ou de blocs GBIF « descriptions » restent **indicatifs** (langues mixtes, sources hétérogènes).
 - Bonnes pratiques:
   - la pré-saisie est une **suggestion** : validation humaine nécessaire avant sauvegarde,
   - vérifier la cohérence taxonomique (`scientific_name`, `group_*`) avant publication,
