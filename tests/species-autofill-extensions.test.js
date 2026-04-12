@@ -81,6 +81,44 @@ test('OpenAI : parse JSON et mappe les champs (fetch mock)', async () => {
   process.env.OPENAI_API_KEY = prevK;
 });
 
+test('OpenAI : mode contexte court — payload indique mode_contexte court_indicatif (fetch mock)', async () => {
+  const prevF = process.env.SPECIES_AUTOFILL_OPENAI;
+  const prevK = process.env.OPENAI_API_KEY;
+  process.env.SPECIES_AUTOFILL_OPENAI = '1';
+  process.env.OPENAI_API_KEY = 'sk-test';
+  let capturedBody = null;
+  const fetchImpl = async (url, init) => {
+    capturedBody = JSON.parse(String(init?.body || '{}'));
+    return {
+      ok: true,
+      json: async () => ({
+        choices: [{
+          message: {
+            content: JSON.stringify({
+              description: 'Plante potagère annuelle, fruit comestible.',
+              habitat: 'Maraîchage, sol fertile et drainé.',
+            }),
+          },
+        }],
+      }),
+    };
+  };
+  const shortCtx = '[Texte de recherche pré-saisie]\naubergine';
+  const pack = await fetchOpenAiSpeciesTraits({
+    query: 'aubergine',
+    partialContext: shortCtx,
+    hintName: 'Aubergine',
+  }, { fetchImpl });
+  assert.ok(pack);
+  assert.ok((pack.warnings || []).some((w) => String(w).includes('Contexte externe limité')));
+  assert.ok(capturedBody?.messages?.[1]?.content);
+  const user = JSON.parse(capturedBody.messages[1].content);
+  assert.strictEqual(user.mode_contexte, 'court_indicatif');
+  assert.equal(pack.fields.description.length > 10, true);
+  process.env.SPECIES_AUTOFILL_OPENAI = prevF;
+  process.env.OPENAI_API_KEY = prevK;
+});
+
 test('OpenAI : second_name autorisé et tronqué si trop long (fetch mock)', async () => {
   const prevF = process.env.SPECIES_AUTOFILL_OPENAI;
   const prevK = process.env.OPENAI_API_KEY;
