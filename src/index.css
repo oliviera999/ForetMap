@@ -2827,6 +2827,23 @@
       width:74px;
       height:82px;
     }
+    /* Aperçu prof : mouvement du corps aligné sur l’état choisi (comme sur la carte, sans wrapper 0×0). */
+    .visit-mascot-preview-body--motion-idle .visit-map-mascot-rive-shell,
+    .visit-mascot-preview-body--motion-idle .visit-map-mascot-spritesheet-shell {
+      animation:visitMascotIdleBreath 2.4s ease-in-out infinite;
+    }
+    .visit-mascot-preview-body--motion-walk .visit-map-mascot-rive-shell,
+    .visit-mascot-preview-body--motion-walk .visit-map-mascot-spritesheet-shell {
+      animation:visitMascotWalkBob .36s ease-in-out infinite;
+    }
+    .visit-mascot-preview-body--motion-happy .visit-map-mascot-rive-shell,
+    .visit-mascot-preview-body--motion-happy .visit-map-mascot-spritesheet-shell {
+      animation:visitMascotHappyBounce .42s ease-in-out infinite;
+    }
+    .visit-mascot-preview-body--reduced-motion .visit-map-mascot-rive-shell,
+    .visit-mascot-preview-body--reduced-motion .visit-map-mascot-spritesheet-shell {
+      animation:none !important;
+    }
     @media (max-width:680px) {
       .visit-mascot-preview-card {
         flex-direction:column;

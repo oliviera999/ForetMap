@@ -5,6 +5,9 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé
+- **Visite — aperçu mascotte (prof/admin)** : les boutons de comportement déclenchent désormais la bonne animation **Rive** (fusion des noms d’animation par défaut pour tous les états avec le catalogue, ex. `running` → clip de marche/course) ; les **spritesheets** remontent le nœud animé au changement d’état pour relancer la CSS `steps()` ; le cadre d’aperçu applique les mêmes **mouvements de coque** (respiration / marche / rebond) que sur la carte selon l’état choisi.
+
 ### Ajouté
 - **Visite — mascotte oiseau tan (spritesheet 2 frames)** : atlas horizontal `public/assets/mascots/tan-bird/tan-bird-spritesheet.png`, entrée catalogue `tan-bird-spritesheet` (`idle` = 1ère image, `walking`/`running` = alternance des 2 images), fallback SVG **`TanBirdVisitMascotSvg`** dans **`VisitMascotFallbackSvg.jsx`**, tests catalogue et e2e sélecteur prof.
 - **Stats** : `GET /api/stats/me/:studentId` et chaque entrée de `GET /api/stats/all` exposent **`stats.plant_species_observed`**, **`stats.plant_observation_events`**, **`stats.tutorials_read`** (biodiversité catalogue + tutoriels lus). **`GET /api/stats/all`** renvoie **`{ students, site }`** avec agrégats tout le site. **Export CSV** (`GET /api/stats/export`) : trois colonnes supplémentaires. Vues **`StudentStats`** / **`TeacherStats`** ; consommation **`tasks-views`** / **`profiles-views`** avec repli si l’API renvoie encore un tableau nu.
