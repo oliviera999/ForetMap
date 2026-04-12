@@ -196,9 +196,52 @@ function serializeVisitMascotPackRow(row) {
   };
 }
 
+/** Valide un pack via le module ESM `src/utils/mascotPack.js` (requis au runtime). */
 async function validateMascotPackForDb(raw, opts = {}) {
-  const { validateMascotPackV1 } = await import('../src/utils/mascotPack.js');
-  return validateMascotPackV1(raw, opts);
+  try {
+    const { validateMascotPackV1 } = await import('../src/utils/mascotPack.js');
+    return validateMascotPackV1(raw, opts);
+  } catch (moduleErr) {
+    return { ok: false, moduleError: moduleErr };
+  }
+}
+
+function mapVisitMascotPackSqlError(err) {
+  if (!err) return null;
+  if (err.errno === 1146 || err.code === 'ER_NO_SUCH_TABLE') {
+    return {
+      status: 503,
+      body: {
+        error: 'Table MySQL `visit_mascot_packs` absente : appliquer le schéma (`sql/schema_foretmap.sql`) ou la migration `072_visit_mascot_packs.sql`, puis redémarrer l’application.',
+        code: 'visit_mascot_packs_table_missing',
+      },
+    };
+  }
+  if (err.errno === 1452 || err.code === 'ER_NO_REFERENCED_ROW_2') {
+    return {
+      status: 400,
+      body: {
+        error: 'Référence invalide (utilisateur ou carte) pour ce pack mascotte.',
+        code: 'visit_mascot_pack_referential_integrity',
+      },
+    };
+  }
+  return null;
+}
+
+async function resolveVisitMascotPackCreatedBy(auth) {
+  if (!auth || auth.userId == null) return null;
+  const id = String(auth.userId).trim();
+  if (!id) return null;
+  const row = await queryOne('SELECT id FROM users WHERE id = ? LIMIT 1', [id]);
+  return row ? id : null;
+}
+
+function jsonVisitMascotPackError(res, req, status, body) {
+  return res.status(status).json({
+    ...body,
+    requestId: req.requestId || null,
+  });
 }
 
 async function removeVisitMascotPackUploadDir(packId) {
@@ -497,7 +540,7 @@ router.get('/content', async (req, res) => {
     res.json(payload);
   } catch (err) {
     logRouteError(err, req);
-    res.status(500).json({ error: 'Erreur serveur' });
+    res.status(500).json({ error: 'Erreur serveur', requestId: req.requestId || null });
   }
 });
 
@@ -530,7 +573,9 @@ router.get(
       });
     } catch (err) {
       logRouteError(err, req);
-      return res.status(500).json({ error: 'Erreur serveur' });
+      const mapped = mapVisitMascotPackSqlError(err);
+      if (mapped) return jsonVisitMascotPackError(res, req, mapped.status, mapped.body);
+      return res.status(500).json({ error: 'Erreur serveur', requestId: req.requestId || null });
     }
   },
 );
@@ -550,7 +595,9 @@ router.get('/mascot-packs', requirePermission('visit.manage', { needsElevation: 
     res.json({ map_id: mapId, packs: rows.map(serializeVisitMascotPackRow) });
   } catch (err) {
     logRouteError(err, req);
-    res.status(500).json({ error: 'Erreur serveur' });
+    const mapped = mapVisitMascotPackSqlError(err);
+    if (mapped) return jsonVisitMascotPackError(res, req, mapped.status, mapped.body);
+    res.status(500).json({ error: 'Erreur serveur', requestId: req.requestId || null });
   }
 });
 
@@ -569,16 +616,24 @@ router.post('/mascot-packs', requirePermission('visit.manage', { needsElevation:
     const validated = await validateMascotPackForDb(packObj, {
       allowedFramesBasePrefixes: ['/assets/mascots/', apiPrefix],
     });
+    if (validated.moduleError) {
+      logRouteError(validated.moduleError, req, 'visit_mascot_packs: chargement mascotPack.js');
+      return jsonVisitMascotPackError(res, req, 503, {
+        error: 'Validation des packs mascotte indisponible sur ce serveur (fichier `src/utils/mascotPack.js` introuvable ou erreur de chargement).',
+        code: 'mascot_pack_module_unavailable',
+      });
+    }
     if (!validated.ok) {
       return res.status(400).json({
         error: 'Pack JSON invalide',
         details: validated.error?.format ? validated.error.format() : String(validated.error),
+        requestId: req.requestId || null,
       });
     }
     const label = String(req.body.label || validated.pack.label || 'Pack mascotte').trim().slice(0, 120);
     const isPublished = Number(req.body.is_published) === 1 ? 1 : 0;
     const now = nowIso();
-    const createdBy = req.auth?.userId != null ? String(req.auth.userId) : null;
+    const createdBy = await resolveVisitMascotPackCreatedBy(req.auth);
     await execute(
       `INSERT INTO visit_mascot_packs (id, map_id, catalog_id, label, pack_json, is_published, created_at, updated_at, created_by)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -588,7 +643,9 @@ router.post('/mascot-packs', requirePermission('visit.manage', { needsElevation:
     res.status(201).json(serializeVisitMascotPackRow(row));
   } catch (err) {
     logRouteError(err, req);
-    res.status(500).json({ error: 'Erreur serveur' });
+    const mapped = mapVisitMascotPackSqlError(err);
+    if (mapped) return jsonVisitMascotPackError(res, req, mapped.status, mapped.body);
+    res.status(500).json({ error: 'Erreur serveur', requestId: req.requestId || null });
   }
 });
 
@@ -616,10 +673,18 @@ router.put('/mascot-packs/:id', requirePermission('visit.manage', { needsElevati
       const validated = await validateMascotPackForDb(req.body.pack, {
         allowedFramesBasePrefixes: ['/assets/mascots/', apiPrefix],
       });
+      if (validated.moduleError) {
+        logRouteError(validated.moduleError, req, 'visit_mascot_packs: chargement mascotPack.js');
+        return jsonVisitMascotPackError(res, req, 503, {
+          error: 'Validation des packs mascotte indisponible sur ce serveur.',
+          code: 'mascot_pack_module_unavailable',
+        });
+      }
       if (!validated.ok) {
         return res.status(400).json({
           error: 'Pack JSON invalide',
           details: validated.error?.format ? validated.error.format() : String(validated.error),
+          requestId: req.requestId || null,
         });
       }
       packJson = JSON.stringify(validated.pack);
@@ -633,7 +698,9 @@ router.put('/mascot-packs/:id', requirePermission('visit.manage', { needsElevati
     res.json(serializeVisitMascotPackRow(row));
   } catch (err) {
     logRouteError(err, req);
-    res.status(500).json({ error: 'Erreur serveur' });
+    const mapped = mapVisitMascotPackSqlError(err);
+    if (mapped) return jsonVisitMascotPackError(res, req, mapped.status, mapped.body);
+    res.status(500).json({ error: 'Erreur serveur', requestId: req.requestId || null });
   }
 });
 
@@ -648,7 +715,9 @@ router.delete('/mascot-packs/:id', requirePermission('visit.manage', { needsElev
     res.json({ ok: true });
   } catch (err) {
     logRouteError(err, req);
-    res.status(500).json({ error: 'Erreur serveur' });
+    const mapped = mapVisitMascotPackSqlError(err);
+    if (mapped) return jsonVisitMascotPackError(res, req, mapped.status, mapped.body);
+    res.status(500).json({ error: 'Erreur serveur', requestId: req.requestId || null });
   }
 });
 
@@ -678,7 +747,9 @@ router.post(
       res.status(201).json({ ok: true, url: publicUrl, filename });
     } catch (err) {
       logRouteError(err, req);
-      res.status(500).json({ error: 'Erreur serveur' });
+      const mapped = mapVisitMascotPackSqlError(err);
+      if (mapped) return jsonVisitMascotPackError(res, req, mapped.status, mapped.body);
+      res.status(500).json({ error: 'Erreur serveur', requestId: req.requestId || null });
     }
   },
 );
@@ -700,7 +771,9 @@ router.delete(
       res.json({ ok: true });
     } catch (err) {
       logRouteError(err, req);
-      res.status(500).json({ error: 'Erreur serveur' });
+      const mapped = mapVisitMascotPackSqlError(err);
+      if (mapped) return jsonVisitMascotPackError(res, req, mapped.status, mapped.body);
+      res.status(500).json({ error: 'Erreur serveur', requestId: req.requestId || null });
     }
   },
 );
