@@ -386,22 +386,27 @@ function VisitEditorPanel({ selected, selectedType, onSaved, onForceLogout, isTe
   };
 
   const addMediaFromFile = async (e) => {
-    const file = e.target.files?.[0];
+    const files = Array.from(e.target.files || []).filter((f) => f?.size);
     if (e.target) e.target.value = '';
-    if (!file) return;
-    if (!String(file.type || '').startsWith('image/')) {
-      alert('Format image invalide (image requise)');
-      return;
+    if (!files.length) return;
+    for (const file of files) {
+      if (!String(file.type || '').startsWith('image/')) {
+        alert('Format image invalide (image requise)');
+        return;
+      }
     }
+    const cap = mediaCaption.trim();
     setMediaUploading(true);
     try {
-      const image_data = await compressImage(file);
-      await api('/api/visit/media', 'POST', {
-        target_type: selectedType,
-        target_id: selected.id,
-        image_data,
-        caption: mediaCaption.trim(),
-      });
+      for (const file of files) {
+        const image_data = await compressImage(file);
+        await api('/api/visit/media', 'POST', {
+          target_type: selectedType,
+          target_id: selected.id,
+          image_data,
+          caption: cap,
+        });
+      }
       setMediaCaption('');
       await onSaved?.();
     } catch (err) {
@@ -521,7 +526,7 @@ function VisitEditorPanel({ selected, selectedType, onSaved, onForceLogout, isTe
           <label>Légende (optionnel)</label>
           <input value={mediaCaption} onChange={(e) => setMediaCaption(e.target.value)} />
         </div>
-        <input ref={mediaFileRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={addMediaFromFile} />
+        <input ref={mediaFileRef} type="file" accept="image/*" multiple style={{ display: 'none' }} onChange={addMediaFromFile} />
         <button
           type="button"
           className="btn btn-secondary btn-sm btn-full"
@@ -529,7 +534,7 @@ function VisitEditorPanel({ selected, selectedType, onSaved, onForceLogout, isTe
           disabled={mediaUploading}
           onClick={() => mediaFileRef.current?.click()}
         >
-          {mediaUploading ? 'Envoi...' : '📷 Ajouter une photo (fichier)'}
+          {mediaUploading ? 'Envoi...' : '📷 Ajouter des photos (fichiers, sélection multiple)'}
         </button>
         <div className="field">
           <label>URL image</label>

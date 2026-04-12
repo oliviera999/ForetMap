@@ -756,6 +756,55 @@ function PlantEditForm({ title, form, setForm, onSave, onCancel, saving, plantId
     }
   };
 
+  /** Galerie : plusieurs fichiers → champs photo suivants dans l’ordre (photo espèce → … → partie récoltée). */
+  const uploadPhotosFromGallery = async (startFieldKey, fileList) => {
+    const files = Array.from(fileList || []).filter((f) => f?.size);
+    if (!files.length) return;
+    const startIdx = photoFields.findIndex((f) => f.key === startFieldKey);
+    if (startIdx < 0) return;
+
+    let targetId = plantId;
+    if (!targetId && typeof onEnsurePlantId === 'function') {
+      targetId = await onEnsurePlantId();
+      if (!targetId) return;
+    } else if (!targetId) {
+      onToast?.('Crée d\'abord la fiche, puis ajoute les photos.');
+      return;
+    }
+
+    setUploadingField(startFieldKey);
+    let ok = 0;
+    let skipped = 0;
+    try {
+      for (let i = 0; i < files.length; i++) {
+        const slotIdx = startIdx + i;
+        if (slotIdx >= photoFields.length) {
+          skipped = files.length - i;
+          break;
+        }
+        const fld = photoFields[slotIdx].key;
+        try {
+          const imageData = await compressImage(files[i], 1600, 0.82);
+          const result = await api(`/api/plants/${targetId}/photo-upload`, 'POST', { field: fld, imageData });
+          setForm((prev) => ({ ...prev, [fld]: result?.url || prev[fld] }));
+          ok += 1;
+        } catch (e) {
+          onToast?.(`Erreur import (${photoFields[slotIdx].label}) : ${e.message}`);
+        }
+      }
+      if (skipped > 0) {
+        onToast?.(`${skipped} photo(s) non importée(s) — plus de champ disponible après « ${photoFields[startIdx].label} ».`);
+      }
+      if (ok === 1 && skipped === 0) {
+        onToast?.('Photo importée ✓');
+      } else if (ok > 1) {
+        onToast?.(`${ok} photos importées ✓`);
+      }
+    } finally {
+      setUploadingField('');
+    }
+  };
+
   const addIdentifySlot = () => {
     setIdentifySlots((prev) => (prev.length >= 5 ? prev : [...prev, newPlantnetIdentifySlot()]));
   };
@@ -1374,12 +1423,13 @@ function PlantEditForm({ title, form, setForm, onSave, onCancel, saving, plantId
                 <input
                   type="file"
                   accept="image/*"
+                  multiple
                   style={{ display: 'none' }}
                   disabled={saving || uploadingField === field.key}
                   onChange={(e) => {
-                    const file = e.target.files?.[0];
+                    const list = e.target.files;
                     e.target.value = '';
-                    uploadPhoto(field.key, file);
+                    void uploadPhotosFromGallery(field.key, list);
                   }}
                 />
               </label>
