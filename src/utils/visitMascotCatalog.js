@@ -211,6 +211,33 @@ const VISIT_MASCOT_CATALOG = [
       pixelated: true,
     },
   },
+  {
+    id: 'tan-bird-spritesheet',
+    label: 'Oiseau tan (2 frames)',
+    renderer: 'spritesheet',
+    fallbackSilhouette: 'tanBird',
+    spritesheet: {
+      src: '/assets/mascots/tan-bird/tan-bird-spritesheet.png',
+      frameWidth: 712,
+      frameHeight: 637,
+      stateFrames: {
+        idle: { row: 0, frames: 1, fps: 1 },
+        walking: { row: 0, frames: 2, fps: 8 },
+        running: { row: 0, frames: 2, fps: 12 },
+        happy: { row: 0, frames: 1, fps: 1 },
+        happy_jump: { row: 0, frames: 1, fps: 1 },
+        spin: { row: 0, frames: 1, fps: 1 },
+        celebrate: { row: 0, frames: 1, fps: 1 },
+        map_read: { row: 0, frames: 1, fps: 1 },
+        inspect: { row: 0, frames: 1, fps: 1 },
+        talk: { row: 0, frames: 1, fps: 1 },
+        alert: { row: 0, frames: 1, fps: 1 },
+        angry: { row: 0, frames: 1, fps: 1 },
+        surprise: { row: 0, frames: 1, fps: 1 },
+      },
+      pixelated: false,
+    },
+  },
 ];
 
 function getVisitMascotCatalog() {

@@ -202,6 +202,7 @@ test.describe.serial('mascotte visite (sélecteur prof)', () => {
     await expect(picker.locator('option[value="sprout-rive"]')).toHaveCount(1);
     await expect(picker.locator('option[value="scrap-rive"]')).toHaveCount(1);
     await expect(picker.locator('option[value="olu-spritesheet"]')).toHaveCount(1);
+    await expect(picker.locator('option[value="tan-bird-spritesheet"]')).toHaveCount(1);
 
     await picker.selectOption('sprout-rive');
 
@@ -230,6 +231,14 @@ test.describe.serial('mascotte visite (sélecteur prof)', () => {
     await expect
       .poll(async () => page.locator('.visit-map-stage [data-mascot-shape]').first().getAttribute('data-mascot-shape'))
       .toBe('olu');
+
+    await picker.selectOption('tan-bird-spritesheet');
+    await expect
+      .poll(async () => page.locator('.visit-mascot-preview-body [data-mascot-id]').first().getAttribute('data-mascot-id'))
+      .toBe('tan-bird-spritesheet');
+    await expect
+      .poll(async () => page.locator('.visit-map-stage [data-mascot-shape]').first().getAttribute('data-mascot-shape'))
+      .toBe('tanBird');
 
     const preview = page.locator('.visit-mascot-preview-card');
     await expect(preview.getByRole('button', { name: /Course/i })).toBeVisible();
