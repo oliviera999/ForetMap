@@ -1,8 +1,6 @@
-import React, { useCallback, useMemo, useState } from 'react';
-import { VISIT_MASCOT_STATE } from '../utils/visitMascotState.js';
-import { validateMascotPackV1 } from '../utils/mascotPack.js';
-import VisitMapMascotSpriteCut from './VisitMapMascotSpriteCut.jsx';
-import VisitMascotFallbackSvg from './VisitMascotFallbackSvg.jsx';
+import React, { useCallback, useState } from 'react';
+import { parsePackJson, stringifyPack } from '../utils/mascotPackEditorModel.js';
+import MascotPackWysiwygEditor from './MascotPackWysiwygEditor.jsx';
 
 const DEFAULT_PACK_JSON = `{
   "mascotPackVersion": 1,
@@ -21,77 +19,42 @@ const DEFAULT_PACK_JSON = `{
   }
 }`;
 
-const STATE_OPTIONS = Object.values(VISIT_MASCOT_STATE).sort();
-
 /**
- * Composer / valider un mascot pack v1 (`sprite_cut`) côté client.
+ * Composer / valider un mascot pack v1 (`sprite_cut`) : éditeur visuel + onglet JSON.
  * @param {{
  *   embedded?: boolean,
- *   controlledJsonText?: string,
- *   onControlledJsonTextChange?: (s: string) => void,
  *   hideIntegrationSection?: boolean,
  * }} [props]
  */
 export default function MascotPackToolView({
   embedded = false,
-  controlledJsonText,
-  onControlledJsonTextChange,
   hideIntegrationSection = false,
 } = {}) {
-  const [internalJson, setInternalJson] = useState(DEFAULT_PACK_JSON);
-  const isControlled = typeof controlledJsonText === 'string' && typeof onControlledJsonTextChange === 'function';
-  const jsonText = isControlled ? controlledJsonText : internalJson;
-  const setJsonText = isControlled ? onControlledJsonTextChange : setInternalJson;
+  const [editorTab, setEditorTab] = useState('visual');
+  const [pack, setPack] = useState(() => {
+    const p = parsePackJson(DEFAULT_PACK_JSON);
+    return p.ok ? p.pack : {};
+  });
+  const [jsonDraft, setJsonDraft] = useState(DEFAULT_PACK_JSON);
+  const [jsonError, setJsonError] = useState('');
 
-  const [message, setMessage] = useState('');
-  const [previewState, setPreviewState] = useState(VISIT_MASCOT_STATE.IDLE);
-  const [validated, setValidated] = useState(null);
-
-  const onValidate = useCallback(() => {
-    let raw;
-    try {
-      raw = JSON.parse(jsonText);
-    } catch (e) {
-      setMessage(`JSON invalide : ${e.message}`);
-      setValidated(null);
+  const applyJson = useCallback(() => {
+    const parsed = parsePackJson(jsonDraft);
+    if (!parsed.ok) {
+      setJsonError(parsed.error || 'JSON invalide');
       return;
     }
-    const result = validateMascotPackV1(raw, { relaxAssetPrefix: true });
-    if (!result.ok) {
-      setMessage(result.error.format ? result.error.format() : String(result.error));
-      setValidated(null);
-      return;
-    }
-    setValidated(result);
-    setMessage(`Valide — id « ${result.pack.id} », ${Object.keys(result.pack.stateFrames).length} état(s).`);
-  }, [jsonText]);
+    setJsonError('');
+    setPack(parsed.pack);
+    setEditorTab('visual');
+  }, [jsonDraft]);
 
-  const mascotConfig = useMemo(() => {
-    if (!validated?.ok) return null;
-    return {
-      id: validated.pack.id,
-      renderer: 'sprite_cut',
-      fallbackSilhouette: validated.pack.fallbackSilhouette || 'gnome',
-      spriteCut: validated.spriteCut,
-    };
-  }, [validated]);
-
-  const onCopyJson = useCallback(() => {
-    navigator.clipboard.writeText(jsonText).then(
-      () => setMessage('JSON copié dans le presse-papiers.'),
-      () => setMessage('Copie impossible (permissions navigateur).'),
-    );
-  }, [jsonText]);
-
-  const onDownload = useCallback(() => {
-    const blob = new Blob([jsonText], { type: 'application/json;charset=utf-8' });
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = 'mascot-pack.json';
-    a.click();
-    URL.revokeObjectURL(a.href);
-    setMessage('Téléchargement lancé (mascot-pack.json).');
-  }, [jsonText]);
+  const resetExample = useCallback(() => {
+    const p = parsePackJson(DEFAULT_PACK_JSON);
+    if (p.ok) setPack(p.pack);
+    setJsonError('');
+    setEditorTab('visual');
+  }, []);
 
   const pad = embedded ? 8 : 20;
   const maxW = embedded ? '100%' : 960;
@@ -111,99 +74,85 @@ export default function MascotPackToolView({
         <h1 style={{ fontSize: '1.35rem' }}>Mascotte pack v1 (`sprite_cut`)</h1>
       )}
       <p style={{ fontSize: '0.9rem', opacity: 0.9 }}>
-        Éditez le JSON, validez, prévisualisez avec les vrais chemins ou des URLs blob après chargement local.
-        Référence : <code>docs/MASCOT_PACK.md</code>
+        Éditeur visuel (WYSIWYG) ou JSON pour export. Référence : <code>docs/MASCOT_PACK.md</code>
         {embedded && !hideIntegrationSection ? ' — page autonome : /mascot-pack-tool.html' : null}
       </p>
 
-      <textarea
-        value={jsonText}
-        onChange={(e) => setJsonText(e.target.value)}
-        spellCheck={false}
-        style={{
-          width: '100%',
-          minHeight: 220,
-          fontFamily: 'ui-monospace, monospace',
-          fontSize: 12,
-          borderRadius: 8,
-          border: '1px solid rgba(26,71,49,0.25)',
-          padding: 10,
-          boxSizing: 'border-box',
-        }}
-      />
-
-      <div style={{ marginTop: 12, display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
-        <button type="button" className="btn btn-primary btn-sm" onClick={onValidate}>Valider</button>
-        <button type="button" className="btn btn-ghost btn-sm" onClick={onCopyJson}>Copier JSON</button>
-        <button type="button" className="btn btn-ghost btn-sm" onClick={onDownload}>Télécharger JSON</button>
-        {!isControlled ? (
-          <button type="button" className="btn btn-ghost btn-sm" onClick={() => setJsonText(DEFAULT_PACK_JSON)}>Réinitialiser l’exemple</button>
-        ) : null}
+      <div className="visit-mascot-pack-manager__tabs" role="tablist" style={{ display: 'flex', gap: 6, marginBottom: 12 }}>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={editorTab === 'visual'}
+          className={`btn btn-sm ${editorTab === 'visual' ? 'btn-primary' : 'btn-ghost'}`}
+          onClick={() => { setEditorTab('visual'); setJsonError(''); }}
+        >
+          Éditeur visuel
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={editorTab === 'json'}
+          className={`btn btn-sm ${editorTab === 'json' ? 'btn-primary' : 'btn-ghost'}`}
+          onClick={() => { setEditorTab('json'); setJsonDraft(stringifyPack(pack, 2)); setJsonError(''); }}
+        >
+          JSON / export
+        </button>
       </div>
 
-      {message ? (
-        <pre style={{
-          marginTop: 12,
-          padding: 10,
-          background: 'rgba(240,253,244,0.9)',
-          borderRadius: 8,
-          fontSize: 12,
-          whiteSpace: 'pre-wrap',
-          wordBreak: 'break-word',
-        }}
-        >
-          {message}
-        </pre>
-      ) : null}
-
-      {mascotConfig ? (
-        <section style={{ marginTop: 24 }}>
-          <h2 style={{ fontSize: '1.1rem' }}>Prévisualisation</h2>
-          <div style={{ marginBottom: 8, display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-            <label>
-              État :{' '}
-              <select
-                value={previewState}
-                onChange={(e) => setPreviewState(e.target.value)}
-                className="form-select"
-                style={{ minWidth: 160 }}
-              >
-                {STATE_OPTIONS.filter((s) => mascotConfig.spriteCut.stateFrames[s]).map((s) => (
-                  <option key={s} value={s}>{s}</option>
-                ))}
-              </select>
-            </label>
-            <span style={{ fontSize: '0.85rem', opacity: 0.85 }}>
-              Silhouette secours : {mascotConfig.fallbackSilhouette}
-            </span>
-          </div>
-          <div
-            className="visit-mascot-preview-body visit-mascot-preview-body--motion-idle"
+      {editorTab === 'visual' ? (
+        <MascotPackWysiwygEditor
+          pack={pack}
+          onPackChange={setPack}
+          packUuid={null}
+          relaxAssetPrefix
+        />
+      ) : (
+        <div className="mascot-pack-json-tab">
+          <textarea
+            value={jsonDraft}
+            onChange={(ev) => { setJsonDraft(ev.target.value); setJsonError(''); }}
+            spellCheck={false}
             style={{
-              width: 120,
-              height: 130,
-              border: '1px dashed rgba(26,71,49,0.35)',
+              width: '100%',
+              minHeight: 220,
+              fontFamily: 'ui-monospace, monospace',
+              fontSize: 12,
               borderRadius: 8,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              background: 'rgba(248,250,245,0.95)',
+              border: '1px solid rgba(26,71,49,0.25)',
+              padding: 10,
+              boxSizing: 'border-box',
             }}
-          >
-            <VisitMapMascotSpriteCut
-              mascotId={mascotConfig.id}
-              mascotState={previewState}
-              mascotConfig={mascotConfig}
-              fallback={(
-                <VisitMascotFallbackSvg
-                  silhouette={mascotConfig.fallbackSilhouette}
-                  variant="forest"
-                />
-              )}
-            />
+          />
+          {jsonError ? (
+            <p className="text-danger" role="alert" style={{ fontSize: '0.82rem' }}>{jsonError}</p>
+          ) : null}
+          <div style={{ marginTop: 10, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+            <button type="button" className="btn btn-primary btn-sm" onClick={applyJson}>
+              Appliquer le JSON
+            </button>
+            <button type="button" className="btn btn-ghost btn-sm" onClick={() => void navigator.clipboard.writeText(jsonDraft)}>
+              Copier JSON
+            </button>
+            <button
+              type="button"
+              className="btn btn-ghost btn-sm"
+              onClick={() => {
+                const blob = new Blob([jsonDraft], { type: 'application/json;charset=utf-8' });
+                const a = document.createElement('a');
+                a.href = URL.createObjectURL(blob);
+                a.download = 'mascot-pack.json';
+                a.click();
+                URL.revokeObjectURL(a.href);
+              }}
+            >
+              Télécharger JSON
+            </button>
+            <button type="button" className="btn btn-ghost btn-sm" onClick={resetExample}>
+              Réinitialiser l’exemple
+            </button>
           </div>
-        </section>
-      ) : null}
+        </div>
+      )}
 
       {!hideIntegrationSection ? (
         <section style={{ marginTop: 28, fontSize: '0.88rem', opacity: 0.9 }}>

@@ -311,6 +311,7 @@ Contenus éditables du site (micro-CMS texte brut) :
 | POST | `/api/visit/mascot-packs` | oui | Créer un pack : `{ map_id, pack?, label?, is_published? }` — sans `pack`, modèle brouillon Renard 2 (`/assets/mascots/renard2-cut/frames/`) |
 | PUT | `/api/visit/mascot-packs/:id` | oui | Mettre à jour `label`, `pack`, `is_published` (corps : `map_id` requis, identique à la ligne) |
 | DELETE | `/api/visit/mascot-packs/:id` | oui | Supprime le pack et le dossier **`uploads/visit_mascot_packs/{id}/`** |
+| GET | `/api/visit/mascot-packs/:id/assets` | oui | Liste les PNG uploadés du pack : `{ pack_id, assets: [{ filename, url }] }` — **`visit.manage`** + élévation PIN |
 | GET | `/api/visit/mascot-packs/:packId/assets/:filename` | partiel | Image PNG si le pack est **publié** ; sinon jeton prof avec **`visit.manage`** + élévation |
 | POST | `/api/visit/mascot-packs/:id/assets` | oui | Upload PNG : `{ filename, image_data }` (base64 / data URL) — fichier sous **`uploads/visit_mascot_packs/{id}/`** ; le JSON du pack peut référencer **`framesBase`** = `/api/visit/mascot-packs/{id}/assets/` |
 | DELETE | `/api/visit/mascot-packs/:id/assets/:filename` | oui | Supprime un fichier uploadé du pack |

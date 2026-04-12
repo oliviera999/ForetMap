@@ -22,6 +22,7 @@ import { AboutView } from './components/about-views';
 import { StudentAvatar } from './components/student-avatar';
 import { TutorialsView } from './components/tutorials-views';
 import { VisitView } from './components/visit-views';
+import VisitMascotPackManager from './components/VisitMascotPackManager.jsx';
 import { ProfilesAdminView } from './components/profiles-views';
 import { SettingsAdminView } from './components/settings-admin-views';
 import { NotificationCenter } from './components/notifications-center';
@@ -52,6 +53,7 @@ const POLLING_COARSE_TABS = new Set([
   'stats',
   'forum',
   'notebook',
+  'mascot_packs',
 ]);
 const IOS_INSTALL_HINT_DISMISSED_KEY = 'foretmap_ios_install_hint_dismissed';
 const KNOWN_TAB_VALUES = new Set([
@@ -62,6 +64,7 @@ const KNOWN_TAB_VALUES = new Set([
   'tuto',
   'stats',
   'visit',
+  'mascot_packs',
   'notebook',
   'profiles',
   'settings',
@@ -852,6 +855,13 @@ function App() {
     const scopedMaps = baseMaps.filter((mp) => allowedMapIds.includes(mp.id));
     return scopedMaps.length > 0 ? scopedMaps : baseMaps;
   }, [maps, effectiveIsTeacher, showPublicVisit, student?.affiliation]);
+  const mascotStudioMapLabel = useMemo(() => {
+    const m = visibleMaps.find((x) => x.id === activeMapId);
+    return String(m?.label || m?.id || activeMapId || '').trim() || activeMapId;
+  }, [visibleMaps, activeMapId]);
+  const openMascotPackStudioTab = useCallback(() => {
+    setTab('mascot_packs');
+  }, []);
   const previewStudent = useMemo(() => {
     if (!isTeacher || roleViewMode !== 'student') return null;
     const fallbackName = String(sessionUser?.displayName || authClaims?.roleDisplayName || 'Utilisateur').trim();
@@ -1038,6 +1048,7 @@ function App() {
     if (tab === 'stats' && publicSettings?.modules?.stats_enabled === false) setTab('map');
     if (tab === 'stats' && publicSettings?.modules?.stats_enabled !== false && !canViewGeneralStats) setTab('map');
     if (tab === 'visit' && publicSettings?.modules?.visit_enabled === false) setTab('map');
+    if (tab === 'mascot_packs' && publicSettings?.modules?.visit_enabled === false) setTab('map');
     if (tab === 'notebook' && publicSettings?.modules?.observations_enabled === false) setTab('map');
     if (tab === 'forum' && !canAccessForum) setTab('about');
   }, [tab, publicSettings?.modules?.tutorials_enabled, publicSettings?.modules?.stats_enabled, publicSettings?.modules?.visit_enabled, publicSettings?.modules?.observations_enabled, publicSettings?.modules?.forum_enabled, canAccessForum, canViewGeneralStats]);
@@ -1642,6 +1653,9 @@ function App() {
             {publicSettings?.modules?.visit_enabled !== false && (
               <button className={`top-tab ${tab === 'visit' ? 'active' : ''}`} onClick={() => setTab('visit')}>🧭 Visite</button>
             )}
+            {publicSettings?.modules?.visit_enabled !== false && (
+              <button className={`top-tab ${tab === 'mascot_packs' ? 'active' : ''}`} onClick={() => setTab('mascot_packs')}>🎨 Packs mascotte</button>
+            )}
             {(
               hasPermissionInRole('admin.roles.manage')
               || hasPermissionInRole('admin.users.assign_roles')
@@ -1746,7 +1760,45 @@ function App() {
                 />
               )}
               {tab === 'audit'  && (hasPermission('audit.read') ? <AuditLog isN3Affiliated={isN3Affiliated} /> : <div className="empty"><p>Journal d’audit réservé — il te manque un droit pour l’ouvrir.</p></div>)}
-              {publicSettings?.modules?.visit_enabled !== false && tab === 'visit'  && <VisitView student={currentUser} isTeacher availableTutorials={tutorials} initialMapId={activeMapId} onForceLogout={forceLogout} isN3Affiliated={isN3Affiliated} publicSettings={publicSettings} canParticipateContextComments={canParticipateContextComments} />}
+              {publicSettings?.modules?.visit_enabled !== false && tab === 'visit'  && (
+                <VisitView
+                  student={currentUser}
+                  isTeacher
+                  availableTutorials={tutorials}
+                  initialMapId={activeMapId}
+                  onForceLogout={forceLogout}
+                  isN3Affiliated={isN3Affiliated}
+                  publicSettings={publicSettings}
+                  canParticipateContextComments={canParticipateContextComments}
+                  onOpenMascotPackStudioTab={openMascotPackStudioTab}
+                />
+              )}
+              {publicSettings?.modules?.visit_enabled !== false && tab === 'mascot_packs' && (
+                <div className="mascot-pack-studio-page" style={{ padding: '12px 16px 24px' }}>
+                  <h2 className="section-title" style={{ marginTop: 0 }}>Packs mascotte (visite)</h2>
+                  <p className="section-sub" style={{ marginBottom: 14 }}>
+                    Carte active :{' '}
+                    <select
+                      className="form-select"
+                      style={{ display: 'inline-block', maxWidth: 280, verticalAlign: 'middle' }}
+                      value={activeMapId}
+                      onChange={(e) => setActiveMapId(e.target.value)}
+                      aria-label="Choisir la carte pour les packs mascotte"
+                    >
+                      {visibleMaps.map((m) => (
+                        <option key={m.id} value={m.id}>{m.label || m.id}</option>
+                      ))}
+                    </select>
+                  </p>
+                  <VisitMascotPackManager
+                    variant="page"
+                    mapId={activeMapId}
+                    mapLabel={mascotStudioMapLabel}
+                    onPacksChanged={fetchAll}
+                    onForceLogout={forceLogout}
+                  />
+                </div>
+              )}
               {tab === 'settings' && <SettingsAdminView isN3Affiliated={isN3Affiliated} />}
               {tab === 'forum' && canAccessForum && <ForumView authClaims={authClaims} canParticipateForum />}
               {tab === 'about'  && <AboutView appVersion={appVersion} isN3Affiliated={isN3Affiliated} publicSettings={publicSettings} isTeacher={effectiveIsTeacher} />}

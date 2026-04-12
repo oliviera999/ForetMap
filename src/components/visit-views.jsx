@@ -569,6 +569,8 @@ function VisitView({
   isN3Affiliated = false,
   publicSettings = null,
   canParticipateContextComments = true,
+  /** Prof : ouvre l’onglet dédié « Packs mascotte » dans l’app principale. */
+  onOpenMascotPackStudioTab,
 }) {
   const contextCommentsEnabled = publicSettings?.modules?.context_comments_enabled !== false;
   const configuredLocationEmojis = String(
@@ -1582,15 +1584,28 @@ function VisitView({
           <div>
             <h3>🧭 Aperçu mascotte (prof/admin)</h3>
             <p className="section-sub">Rendu visuel de la mascotte en dehors de la carte.</p>
-            <p className="section-sub" style={{ marginTop: 4 }}>
+            <p className="section-sub" style={{ marginTop: 4, display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
               <button
                 type="button"
                 className="btn btn-ghost btn-sm"
                 onClick={() => setMascotPackToolOpen(true)}
-                title="Composer ou valider un pack JSON sprite_cut (aperçu local, sans enregistrement serveur)"
+                title="Éditer les packs de cette carte (modale)"
               >
                 Boîte à outils pack mascotte
               </button>
+              {typeof onOpenMascotPackStudioTab === 'function' ? (
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  onClick={() => {
+                    setMascotPackToolOpen(false);
+                    onOpenMascotPackStudioTab();
+                  }}
+                  title="Ouvrir l’éditeur en plein écran dans l’onglet Packs mascotte"
+                >
+                  Ouvrir dans l’onglet Packs mascotte
+                </button>
+              ) : null}
             </p>
             <div className="visit-mascot-preview-actions">
               <button

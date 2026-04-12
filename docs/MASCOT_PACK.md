@@ -59,14 +59,14 @@ Puis importer ce manifeste dans le catalogue et appeler `expandMascotPackToSprit
 
 ### Option B — stockage serveur (MySQL + GUI prof)
 
-1. Onglet **Visite (prof, élévation PIN)** : **« Boîte à outils pack mascotte »** — panneau **Packs mascotte** (liste, brouillon, enregistrement, publication).
+1. **Onglet prof « Packs mascotte »** (barre du haut) ou **Visite** : **« Boîte à outils pack mascotte »** (modale) / **« Ouvrir dans l’onglet Packs mascotte »** — panneau **Packs mascotte** : liste, brouillon, **éditeur visuel (WYSIWYG)**, onglet JSON/export, enregistrement, publication (API **`visit.manage`** + élévation PIN).
 2. Les packs **publiés** sont renvoyés dans **`GET /api/visit/content`** (`mascot_packs`) et fusionnés au sélecteur mascotte pour cette carte (identifiant runtime = **`catalog_id`**, préfixe `srv-…`).
-3. Upload d’images : **`POST /api/visit/mascot-packs/:id/assets`** puis `framesBase` pointant vers **`/api/visit/mascot-packs/{id}/assets/`** — voir **`docs/API.md`**.
+3. Médiathèque : **`GET /api/visit/mascot-packs/:id/assets`** (liste des PNG), **`POST …/assets`**, **`DELETE …/assets/:filename`** ; `framesBase` = **`/api/visit/mascot-packs/{id}/assets/`** — voir **`docs/API.md`**.
 
 ## Outil graphique (dev)
 
-- **Page autonome** : avec **`npm run dev:client`**, ouvrir **`/mascot-pack-tool.html`** (édition JSON, validation, prévisualisation, export). Voir [`docs/LOCAL_DEV.md`](LOCAL_DEV.md).
-- **Onglet Visite (prof)** : bouton **« Boîte à outils pack mascotte »** sous l’aperçu mascotte — ouvre la modale avec le **gestionnaire serveur** + éditeur JSON / prévisualisation (`visit-views.jsx`, `VisitMascotPackManager.jsx`, `MascotPackToolView.jsx`).
+- **Page autonome** : avec **`npm run dev:client`**, ouvrir **`/mascot-pack-tool.html`** (onglets **Éditeur visuel** / **JSON / export**, validation, prévisualisation). Les URLs **`blob:`** en **`srcs`** sont possibles avec l’assouplissement `relaxAssetPrefix`. Voir [`docs/LOCAL_DEV.md`](LOCAL_DEV.md).
+- **Modale Visite (prof)** : bouton **« Boîte à outils pack mascotte »** — `VisitMascotPackManager.jsx` + **`MascotPackWysiwygEditor.jsx`** (fichiers : `mascotPackEditorModel.js`, `MascotPackPreviewPanel.jsx`).
 
 ## Rive et spritesheet classique
 

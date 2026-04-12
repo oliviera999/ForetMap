@@ -156,6 +156,29 @@ function sanitizeMascotPackAssetFilename(name) {
   return base;
 }
 
+/** Fichiers PNG listables pour un pack (tri alpha), sans exposer de chemins absolus. */
+function listVisitMascotPackAssetFilenames(packId) {
+  const relDir = visitMascotPackAssetRelativeDir(packId);
+  if (!relDir) return [];
+  const absDir = getAbsolutePath(relDir);
+  if (!fs.existsSync(absDir) || !fs.statSync(absDir).isDirectory()) return [];
+  const names = fs.readdirSync(absDir);
+  const out = [];
+  for (const raw of names) {
+    const safe = sanitizeMascotPackAssetFilename(raw);
+    if (!safe || safe !== raw) continue;
+    if (!/\.png$/i.test(safe)) continue;
+    const fp = path.join(absDir, safe);
+    try {
+      if (fs.statSync(fp).isFile()) out.push(safe);
+    } catch (_) {
+      /* ignore */
+    }
+  }
+  out.sort((a, b) => a.localeCompare(b, 'en'));
+  return out;
+}
+
 function buildDefaultVisitMascotPackJson(catalogId) {
   const slug = String(catalogId || '').trim().toLowerCase().replace(/[^a-z0-9-]/g, '-') || 'brouillon';
   return {
@@ -720,6 +743,30 @@ router.delete('/mascot-packs/:id', requirePermission('visit.manage', { needsElev
     res.status(500).json({ error: 'Erreur serveur', requestId: req.requestId || null });
   }
 });
+
+router.get(
+  '/mascot-packs/:id/assets',
+  requirePermission('visit.manage', { needsElevation: true }),
+  async (req, res) => {
+    try {
+      const packId = String(req.params.id || '').trim();
+      if (!/^[0-9a-f-]{36}$/i.test(packId)) return res.status(400).json({ error: 'Pack invalide' });
+      const row = await queryOne('SELECT id FROM visit_mascot_packs WHERE id = ? LIMIT 1', [packId]);
+      if (!row) return res.status(404).json({ error: 'Pack introuvable' });
+      const filenames = listVisitMascotPackAssetFilenames(packId);
+      const assets = filenames.map((filename) => ({
+        filename,
+        url: `/api/visit/mascot-packs/${packId}/assets/${encodeURIComponent(filename)}`,
+      }));
+      res.json({ pack_id: packId, assets });
+    } catch (err) {
+      logRouteError(err, req);
+      const mapped = mapVisitMascotPackSqlError(err);
+      if (mapped) return jsonVisitMascotPackError(res, req, mapped.status, mapped.body);
+      res.status(500).json({ error: 'Erreur serveur', requestId: req.requestId || null });
+    }
+  },
+);
 
 router.post(
   '/mascot-packs/:id/assets',

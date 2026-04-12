@@ -113,3 +113,28 @@ test('relaxAssetPrefix autorise framesBase hors /assets/', async () => {
   }, { relaxAssetPrefix: true });
   assert.equal(r.ok, true);
 });
+
+test('mascotPackEditorModel : parse, stringify, ensureServerFramesBase', async () => {
+  const {
+    parsePackJson,
+    stringifyPack,
+    ensureServerFramesBase,
+    serverMascotPackAssetsPrefix,
+    clonePackDeep,
+  } = await import('../src/utils/mascotPackEditorModel.js');
+  const bad = parsePackJson('{');
+  assert.equal(bad.ok, false);
+  const ok = parsePackJson('{"a":1}');
+  assert.equal(ok.ok, true);
+  assert.equal(ok.pack.a, 1);
+  assert.equal(stringifyPack({ x: 1 }, 0), '{"x":1}');
+  const uuid = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee';
+  assert.ok(String(serverMascotPackAssetsPrefix(uuid)).includes(uuid));
+  assert.equal(serverMascotPackAssetsPrefix('not-uuid'), null);
+  const merged = ensureServerFramesBase({ framesBase: '/old/', id: 'p' }, uuid);
+  assert.ok(String(merged.framesBase).startsWith('/api/visit/mascot-packs/'));
+  const src = { nested: { y: 2 } };
+  const c = clonePackDeep(src);
+  c.nested.y = 99;
+  assert.equal(src.nested.y, 2);
+});

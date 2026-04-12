@@ -1,19 +1,31 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { api, AccountDeletedError } from '../services/api';
-import MascotPackToolView from './MascotPackToolView.jsx';
+import MascotPackWysiwygEditor from './MascotPackWysiwygEditor.jsx';
+import { clonePackDeep, parsePackJson, stringifyPack } from '../utils/mascotPackEditorModel.js';
 
 /**
  * Gestionnaire GUI des packs mascotte serveur (prof élevé, par carte).
- * @param {{ mapId: string, mapLabel?: string, onPacksChanged?: () => void | Promise<void>, onForceLogout?: () => void }} props
+ * @param {{ mapId: string, mapLabel?: string, onPacksChanged?: () => void | Promise<void>, onForceLogout?: () => void, variant?: 'modal' | 'page' }} props
  */
-export default function VisitMascotPackManager({ mapId, mapLabel = '', onPacksChanged, onForceLogout }) {
+export default function VisitMascotPackManager({
+  mapId,
+  mapLabel = '',
+  onPacksChanged,
+  onForceLogout,
+  variant = 'modal',
+}) {
   const [packs, setPacks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [listError, setListError] = useState('');
   const [actionError, setActionError] = useState('');
   const [actionBusy, setActionBusy] = useState(false);
   const [selectedId, setSelectedId] = useState(null);
-  const [editorJson, setEditorJson] = useState('{}');
+  /** @type {[Record<string, unknown>, React.Dispatch<React.SetStateAction<Record<string, unknown>>>]} */
+  const [editorPack, setEditorPack] = useState({});
+  const [editorTab, setEditorTab] = useState('visual');
+  const [jsonDraft, setJsonDraft] = useState('{}');
+  const [jsonError, setJsonError] = useState('');
+  const [labelDraft, setLabelDraft] = useState('');
 
   const mapTitle = useMemo(() => String(mapLabel || mapId || '').trim() || mapId, [mapLabel, mapId]);
 
@@ -44,16 +56,24 @@ export default function VisitMascotPackManager({ mapId, mapLabel = '', onPacksCh
   }, [loadList]);
 
   useEffect(() => {
+    setEditorTab('visual');
+  }, [selectedId]);
+
+  const selectedRow = packs.find((p) => p.id === selectedId);
+
+  useEffect(() => {
     const row = packs.find((p) => p.id === selectedId);
     if (!row) {
-      setEditorJson('{}');
+      setEditorPack({});
+      setLabelDraft('');
+      setJsonDraft('{}');
+      setJsonError('');
       return;
     }
-    try {
-      setEditorJson(JSON.stringify(row.pack || {}, null, 2));
-    } catch (_) {
-      setEditorJson('{}');
-    }
+    setLabelDraft(String(row.label || '').trim());
+    const raw = row.pack && typeof row.pack === 'object' ? row.pack : {};
+    setEditorPack(clonePackDeep(raw));
+    setJsonError('');
   }, [selectedId, packs]);
 
   const onRefresh = useCallback(async () => {
@@ -61,14 +81,26 @@ export default function VisitMascotPackManager({ mapId, mapLabel = '', onPacksCh
     await onPacksChanged?.();
   }, [loadList, onPacksChanged]);
 
+  const applyJsonDraft = useCallback(() => {
+    const parsed = parsePackJson(jsonDraft);
+    if (!parsed.ok) {
+      setJsonError(parsed.error || 'JSON invalide');
+      return;
+    }
+    setJsonError('');
+    setEditorPack(clonePackDeep(parsed.pack));
+    setEditorTab('visual');
+  }, [jsonDraft]);
+
   const onNewDraft = useCallback(async () => {
     const mid = String(mapId || '').trim();
     if (!mid) return;
     setActionBusy(true);
     setActionError('');
     try {
-      await api('/api/visit/mascot-packs', 'POST', { map_id: mid, is_published: 0 });
+      const created = await api('/api/visit/mascot-packs', 'POST', { map_id: mid, is_published: 0 });
       await onRefresh();
+      if (created?.id) setSelectedId(String(created.id));
     } catch (e) {
       if (e instanceof AccountDeletedError) onForceLogout?.();
       else setActionError(e.message || 'Création impossible');
@@ -82,21 +114,15 @@ export default function VisitMascotPackManager({ mapId, mapLabel = '', onPacksCh
       setActionError('Sélectionnez un pack dans la liste ou créez un brouillon.');
       return;
     }
-    let packObj;
-    try {
-      packObj = JSON.parse(editorJson);
-    } catch (e) {
-      setActionError(`JSON invalide : ${e.message}`);
-      return;
-    }
     setActionBusy(true);
     setActionError('');
     try {
       const row = packs.find((p) => p.id === selectedId);
+      const label = String(labelDraft || '').trim() || String(editorPack.label || '').trim() || 'Pack mascotte';
       await api(`/api/visit/mascot-packs/${encodeURIComponent(selectedId)}`, 'PUT', {
         map_id: String(mapId || '').trim(),
-        label: row?.label || packObj.label || 'Pack mascotte',
-        pack: packObj,
+        label,
+        pack: editorPack,
         is_published: row?.is_published ? 1 : 0,
       });
       await onRefresh();
@@ -106,7 +132,7 @@ export default function VisitMascotPackManager({ mapId, mapLabel = '', onPacksCh
     } finally {
       setActionBusy(false);
     }
-  }, [selectedId, editorJson, packs, mapId, onRefresh, onForceLogout]);
+  }, [selectedId, editorPack, packs, mapId, onRefresh, onForceLogout, labelDraft]);
 
   const onTogglePublish = useCallback(async () => {
     if (!selectedId) return;
@@ -115,18 +141,11 @@ export default function VisitMascotPackManager({ mapId, mapLabel = '', onPacksCh
     setActionBusy(true);
     setActionError('');
     try {
-      let packObj;
-      try {
-        packObj = JSON.parse(editorJson);
-      } catch (e) {
-        setActionError(`JSON invalide : ${e.message}`);
-        setActionBusy(false);
-        return;
-      }
+      const label = String(labelDraft || '').trim() || String(editorPack.label || '').trim() || 'Pack mascotte';
       await api(`/api/visit/mascot-packs/${encodeURIComponent(selectedId)}`, 'PUT', {
         map_id: String(mapId || '').trim(),
-        label: row.label || packObj.label || 'Pack mascotte',
-        pack: packObj,
+        label,
+        pack: editorPack,
         is_published: row.is_published ? 0 : 1,
       });
       await onRefresh();
@@ -136,7 +155,7 @@ export default function VisitMascotPackManager({ mapId, mapLabel = '', onPacksCh
     } finally {
       setActionBusy(false);
     }
-  }, [selectedId, editorJson, packs, mapId, onRefresh, onForceLogout]);
+  }, [selectedId, editorPack, packs, mapId, onRefresh, onForceLogout, labelDraft]);
 
   const onDelete = useCallback(async () => {
     if (!selectedId) return;
@@ -155,19 +174,18 @@ export default function VisitMascotPackManager({ mapId, mapLabel = '', onPacksCh
     }
   }, [selectedId, onRefresh, onForceLogout]);
 
-  const selectedRow = packs.find((p) => p.id === selectedId);
-
   return (
     <div
-      className="visit-mascot-pack-manager"
+      className={`visit-mascot-pack-manager ${variant === 'page' ? 'visit-mascot-pack-manager--page' : ''}`}
       style={{
         display: 'flex',
         flexDirection: 'row',
         flexWrap: 'wrap',
         gap: 16,
         alignItems: 'stretch',
-        maxHeight: 'min(85vh, 900px)',
-        overflow: 'auto',
+        ...(variant === 'page'
+          ? { minHeight: '60vh' }
+          : { maxHeight: 'min(85vh, 900px)', overflow: 'auto' }),
       }}
     >
       <aside
@@ -227,6 +245,15 @@ export default function VisitMascotPackManager({ mapId, mapLabel = '', onPacksCh
         </ul>
         {selectedId ? (
           <div style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <label>
+              <span className="section-sub" style={{ fontSize: '0.75rem', display: 'block', marginBottom: 4 }}>Libellé (liste)</span>
+              <input
+                className="form-input"
+                value={labelDraft}
+                onChange={(ev) => setLabelDraft(ev.target.value)}
+                placeholder="Nom du pack"
+              />
+            </label>
             <button type="button" className="btn btn-primary btn-sm" disabled={actionBusy} onClick={() => void onSave()}>
               Enregistrer sur le serveur
             </button>
@@ -242,13 +269,94 @@ export default function VisitMascotPackManager({ mapId, mapLabel = '', onPacksCh
           <p className="text-danger" role="alert" style={{ fontSize: '0.82rem', marginTop: 10 }}>{actionError}</p>
         ) : null}
       </aside>
-      <div style={{ flex: '1 1 360px', minWidth: 280 }}>
-        <MascotPackToolView
-          embedded
-          hideIntegrationSection
-          controlledJsonText={editorJson}
-          onControlledJsonTextChange={setEditorJson}
-        />
+      <div style={{ flex: '1 1 420px', minWidth: 300 }}>
+        {!selectedId ? (
+          <p className="section-sub">Sélectionnez un pack pour l’éditer.</p>
+        ) : (
+          <>
+            <div className="visit-mascot-pack-manager__tabs" role="tablist" style={{ display: 'flex', gap: 6, marginBottom: 12 }}>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={editorTab === 'visual'}
+                className={`btn btn-sm ${editorTab === 'visual' ? 'btn-primary' : 'btn-ghost'}`}
+                onClick={() => { setEditorTab('visual'); setJsonError(''); }}
+              >
+                Éditeur visuel
+              </button>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={editorTab === 'json'}
+                className={`btn btn-sm ${editorTab === 'json' ? 'btn-primary' : 'btn-ghost'}`}
+                onClick={() => { setEditorTab('json'); setJsonDraft(stringifyPack(editorPack, 2)); setJsonError(''); }}
+              >
+                JSON / export
+              </button>
+            </div>
+            {editorTab === 'visual' ? (
+              <MascotPackWysiwygEditor
+                pack={editorPack}
+                onPackChange={setEditorPack}
+                packUuid={selectedId}
+                catalogId={selectedRow?.catalog_id || ''}
+                onForceLogout={onForceLogout}
+              />
+            ) : (
+              <div className="mascot-pack-json-tab">
+                <p className="section-sub" style={{ fontSize: '0.82rem' }}>
+                  Modifiez le JSON puis cliquez « Appliquer » pour revenir à l’éditeur visuel avec les changements pris en compte.
+                </p>
+                <textarea
+                  value={jsonDraft}
+                  onChange={(ev) => { setJsonDraft(ev.target.value); setJsonError(''); }}
+                  spellCheck={false}
+                  style={{
+                    width: '100%',
+                    minHeight: 280,
+                    fontFamily: 'ui-monospace, monospace',
+                    fontSize: 12,
+                    borderRadius: 8,
+                    border: '1px solid rgba(26,71,49,0.25)',
+                    padding: 10,
+                    boxSizing: 'border-box',
+                  }}
+                />
+                {jsonError ? (
+                  <p className="text-danger" role="alert" style={{ fontSize: '0.82rem' }}>{jsonError}</p>
+                ) : null}
+                <div style={{ marginTop: 10, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                  <button type="button" className="btn btn-primary btn-sm" onClick={applyJsonDraft}>
+                    Appliquer le JSON
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-ghost btn-sm"
+                    onClick={() => {
+                      void navigator.clipboard.writeText(jsonDraft);
+                    }}
+                  >
+                    Copier
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-ghost btn-sm"
+                    onClick={() => {
+                      const blob = new Blob([jsonDraft], { type: 'application/json;charset=utf-8' });
+                      const a = document.createElement('a');
+                      a.href = URL.createObjectURL(blob);
+                      a.download = 'mascot-pack.json';
+                      a.click();
+                      URL.revokeObjectURL(a.href);
+                    }}
+                  >
+                    Télécharger
+                  </button>
+                </div>
+              </div>
+            )}
+          </>
+        )}
       </div>
     </div>
   );

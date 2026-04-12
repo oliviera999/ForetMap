@@ -1956,6 +1956,13 @@ test('visit mascot packs : CRUD prof + présence dans content si publié', async
   assert.ok(Array.isArray(list.body.packs));
   assert.ok(list.body.packs.some((p) => p.id === packId));
 
+  const assetsList = await request(app)
+    .get(`/api/visit/mascot-packs/${packId}/assets`)
+    .set('Authorization', `Bearer ${token}`)
+    .expect(200);
+  assert.strictEqual(assetsList.body.pack_id, packId);
+  assert.ok(Array.isArray(assetsList.body.assets));
+
   const packObj = created.body.pack;
   await request(app)
     .put(`/api/visit/mascot-packs/${packId}`)

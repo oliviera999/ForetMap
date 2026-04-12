@@ -222,7 +222,7 @@ Vous pouvez cibler une autre URL avec **`E2E_BASE_URL`**.
 
 **Visite / mascotte** : scénario dédié **`e2e/visit-mascot.spec.js`** (seed API prof sur la carte **n3** via **`e2e/fixtures/visit-api.fixture.js`**, clics en % sur **`.visit-map-fit-layer`**, `prefers-reduced-motion`, sélection mascotte OLU spritesheet et contrôle des comportements en preview prof/admin). Voir aussi skills **foretmap-e2e**, **foretmap-mascot-catalog** et **`docs/VISIT_MAP_GEOMETRY.md`**.
 
-**Pack mascotte `sprite_cut`** : format **`docs/MASCOT_PACK.md`** ; validation **`npm run mascot:pack:validate -- docs/mascot-pack.example.json`** ; page autonome **`/mascot-pack-tool.html`**. **Onglet Visite (prof, PIN)** : **« Boîte à outils pack mascotte »** — modale **`VisitMascotPackManager`** (liste / brouillon / publication serveur) + éditeur **`MascotPackToolView`**. Le build produit **`dist/mascot-pack-tool.html`**.
+**Pack mascotte `sprite_cut`** : format **`docs/MASCOT_PACK.md`** ; validation **`npm run mascot:pack:validate -- docs/mascot-pack.example.json`** ; page autonome **`/mascot-pack-tool.html`** (WYSIWYG + JSON). **Onglet prof « Packs mascotte »** ou **Visite (prof, PIN)** : modale **`VisitMascotPackManager`** + **`MascotPackWysiwygEditor`**. Le build produit **`dist/mascot-pack-tool.html`**.
 
 ### Nettoyage local des artefacts de tests
 
