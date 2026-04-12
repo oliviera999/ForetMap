@@ -56,7 +56,8 @@ Puis importer ce manifeste dans le catalogue et appeler `expandMascotPackToSprit
 
 ## Outil graphique (dev)
 
-Avec **`npm run dev`**, ouvrir **`/mascot-pack-tool.html`** : édition JSON, validation, prévisualisation, copie / téléchargement du pack. Voir [`docs/LOCAL_DEV.md`](LOCAL_DEV.md).
+- **Page autonome** : avec **`npm run dev:client`**, ouvrir **`/mascot-pack-tool.html`** (édition JSON, validation, prévisualisation, export). Voir [`docs/LOCAL_DEV.md`](LOCAL_DEV.md).
+- **Onglet Visite (prof)** : en **`import.meta.env.DEV`** uniquement, bouton **« Boîte à outils pack mascotte (dev) »** sous l’aperçu mascotte — ouvre la même interface en modale (`visit-views.jsx`).
 
 ## Rive et spritesheet classique
 

@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { api, AccountDeletedError, withAppBase } from '../services/api';
 import { compressImage } from '../utils/image';
 import { MARKER_EMOJIS, parseEmojiListSetting, detectLeadingMarkerEmoji, stripLeadingMarkerEmoji } from '../constants/emojis';
@@ -23,6 +24,7 @@ import {
 import { safeVisitProgressPayload } from '../utils/visitProgressClient.js';
 import { wheelZoomScaleFactor } from '../utils/mapWheelZoom';
 import VisitMapMascotRenderer from './VisitMapMascotRenderer.jsx';
+import MascotPackToolView from './MascotPackToolView.jsx';
 import { VISIT_MASCOT_STATE, pickMascotDialog } from '../utils/visitMascotState.js';
 import { loadVisitMascotPositionPct, saveVisitMascotPositionPct } from '../utils/visitMascotPositionPersistence.js';
 import useVisitMascotStateMachine from '../hooks/useVisitMascotStateMachine.js';
@@ -599,6 +601,7 @@ function VisitView({
   const [tutorialReadIds, setTutorialReadIds] = useState(() => new Set());
   const [visitTutorialPreview, setVisitTutorialPreview] = useState(null);
   const [visitMediaLightbox, setVisitMediaLightbox] = useState(null);
+  const [mascotPackToolOpen, setMascotPackToolOpen] = useState(false);
   const [mode, setMode] = useState('view');
   const [drawPoints, setDrawPoints] = useState([]);
   const [creating, setCreating] = useState(false);
@@ -647,6 +650,7 @@ function VisitView({
   }, []);
   useOverlayHistoryBack(isGuestPublicVisit && !!selected, clearGuestSelection);
   useOverlayHistoryBack(!!visitMediaLightbox, () => setVisitMediaLightbox(null));
+  useOverlayHistoryBack(mascotPackToolOpen, () => setMascotPackToolOpen(false));
   const {
     visitMascotId,
     visitMascotOptions,
@@ -1414,6 +1418,7 @@ function VisitView({
   }
 
   return (
+    <>
     <div className={`visit-view fade-in${isGuestPublicVisit ? ' visit-view--guest-public' : ''}`}>
       {visitTutorialPreview && (
         <TutorialPreviewModal
@@ -1566,6 +1571,18 @@ function VisitView({
           <div>
             <h3>🧭 Aperçu mascotte (prof/admin)</h3>
             <p className="section-sub">Rendu visuel de la mascotte en dehors de la carte.</p>
+            {import.meta.env.DEV ? (
+              <p className="section-sub" style={{ marginTop: 4 }}>
+                <button
+                  type="button"
+                  className="btn btn-ghost btn-sm"
+                  onClick={() => setMascotPackToolOpen(true)}
+                  title="Composer ou valider un pack JSON sprite_cut (mode développement uniquement)"
+                >
+                  Boîte à outils pack mascotte (dev)
+                </button>
+              </p>
+            ) : null}
             <div className="visit-mascot-preview-actions">
               <button
                 type="button"
@@ -2007,6 +2024,36 @@ function VisitView({
         )}
       </section>
     </div>
+    {import.meta.env.DEV && isTeacher && mascotPackToolOpen && typeof document !== 'undefined'
+      ? createPortal(
+        <div
+          className="modal-overlay modal-overlay--centered visit-mascot-pack-tool-overlay"
+          role="presentation"
+          onClick={(event) => event.target === event.currentTarget && setMascotPackToolOpen(false)}
+        >
+          <div
+            className="log-modal log-modal--dialog fade-in visit-mascot-pack-tool-dialog"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Boîte à outils pack mascotte (développement)"
+            tabIndex={-1}
+            onClick={(event) => event.stopPropagation()}
+          >
+            <button
+              type="button"
+              className="modal-close"
+              aria-label="Fermer la boîte à outils pack mascotte"
+              onClick={() => setMascotPackToolOpen(false)}
+            >
+              ✕
+            </button>
+            <MascotPackToolView embedded />
+          </div>
+        </div>,
+        document.body,
+      )
+      : null}
+    </>
   );
 }
 

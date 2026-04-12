@@ -1232,6 +1232,13 @@
       animation:popIn .28s var(--spring) forwards;
     }
 
+    .visit-mascot-pack-tool-overlay {
+      z-index:392;
+    }
+    .modal-overlay .log-modal.log-modal--dialog.visit-mascot-pack-tool-dialog {
+      max-width:min(980px, calc(100vw - 24px));
+    }
+
     .modal h3, .log-modal h3 { font-size:clamp(1.05rem, .95rem + .45vw, 1.2rem); margin-bottom:16px; color:var(--forest); }
     .modal-close {
       position:absolute; top:12px; right:12px; z-index:2;

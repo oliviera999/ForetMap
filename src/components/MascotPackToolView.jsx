@@ -30,8 +30,9 @@ const SILHOUETTES = [
 
 /**
  * Outil dev : composer / valider un mascot pack v1 (hors navigation élève).
+ * @param {{ embedded?: boolean }} [props] — `embedded` : affichage compact dans une modale (ex. onglet Visite).
  */
-export default function MascotPackToolView() {
+export default function MascotPackToolView({ embedded = false } = {}) {
   const [jsonText, setJsonText] = useState(DEFAULT_PACK_JSON);
   const [message, setMessage] = useState('');
   const [previewState, setPreviewState] = useState(VISIT_MASCOT_STATE.IDLE);
@@ -92,19 +93,27 @@ export default function MascotPackToolView() {
     );
   }
 
+  const pad = embedded ? 8 : 20;
+  const maxW = embedded ? '100%' : 960;
+
   return (
     <div style={{
-      padding: 20,
-      maxWidth: 960,
-      margin: '0 auto',
+      padding: pad,
+      maxWidth: maxW,
+      margin: embedded ? 0 : '0 auto',
       fontFamily: 'var(--font-sans-with-emoji, DM Sans, system-ui)',
       color: '#1a4731',
     }}
     >
-      <h1 style={{ fontSize: '1.35rem' }}>Outil dev — Mascotte pack v1 (`sprite_cut`)</h1>
+      {embedded ? (
+        <h2 style={{ fontSize: '1.15rem', marginTop: 0 }}>Mascotte pack v1 (`sprite_cut`)</h2>
+      ) : (
+        <h1 style={{ fontSize: '1.35rem' }}>Outil dev — Mascotte pack v1 (`sprite_cut`)</h1>
+      )}
       <p style={{ fontSize: '0.9rem', opacity: 0.9 }}>
         Éditez le JSON, validez, prévisualisez avec les vrais chemins ou des URLs blob après chargement local.
         Référence : <code>docs/MASCOT_PACK.md</code>
+        {embedded ? ' — page autonome : /mascot-pack-tool.html (Vite).' : null}
       </p>
 
       <textarea
