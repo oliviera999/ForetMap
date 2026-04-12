@@ -7,6 +7,7 @@ import {
 import VisitMapMascotRive from './VisitMapMascotRive.jsx';
 import VisitMascotFallbackSvg from './VisitMascotFallbackSvg.jsx';
 import VisitMapMascotSpritesheet from './VisitMapMascotSpritesheet.jsx';
+import VisitMapMascotSpriteCut from './VisitMapMascotSpriteCut.jsx';
 
 function VisitMapMascotRenderer({
   mascotState = VISIT_MASCOT_STATE.IDLE,
@@ -24,6 +25,17 @@ function VisitMapMascotRenderer({
   if (renderer === 'spritesheet') {
     return (
       <VisitMapMascotSpritesheet
+        mascotState={mascotState}
+        mascotConfig={selectedMascot}
+        fallback={fallback}
+        mascotId={selectedMascotId}
+      />
+    );
+  }
+
+  if (renderer === 'sprite_cut') {
+    return (
+      <VisitMapMascotSpriteCut
         mascotState={mascotState}
         mascotConfig={selectedMascot}
         fallback={fallback}

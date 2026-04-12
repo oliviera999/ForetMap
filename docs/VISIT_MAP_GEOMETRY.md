@@ -50,9 +50,10 @@ La mascotte n’est rendue que si le client a du **contenu public** visite (zone
      Vérifier aussi les attributs de scène **`.visit-map-stage[data-visit-mascot-visibility][data-visit-mascot-reason]`** :
      `hidden + no-public-content` = pas de contenu public (comportement attendu), `hidden + mode-not-view` = mode édition prof.
   - **Oui** → inspecter aussi le shell actif :
-    - `data-renderer` (`rive`, `spritesheet` ou `fallback-static`)
+    - `data-renderer` (`rive`, `spritesheet`, `sprite-cut` ou `fallback-static`)
     - `data-rive-status` (`loading`, `loaded`, `playing:<animation>`, `fallback-no-animation`, `error`)
-    - `data-spritesheet-status` (`ready`, `fallback`)
+    - `data-spritesheet-status` (`ready`, `fallback`) — spritesheet classique
+    - `data-sprite-cut-status` (`ready`, `fallback`) — Renard 2 (PNG découpés)
     - `data-mascot-state` (ex. `idle`, `walking`, `running`, `talk`, `inspect`, `map_read`, `celebrate`…)
     Ces attributs permettent d’identifier si Rive/spritesheet joue une animation ou si le fallback SVG statique est utilisé.
   - **Oui** avec `data-renderer="fallback-static"` → le shell est visible mais le fichier Rive n’a pas pu être chargé (asset absent, URL invalide, erreur réseau).
@@ -61,6 +62,7 @@ La mascotte n’est rendue que si le client a du **contenu public** visite (zone
 4. **Cache** : navigation privée ; **Application → Service Workers → Désinscrire** ; rechargement forcé (Ctrl+F5).
 5. **Serveur** : le répertoire **`dist/`** servi par Node ([`server.js`](../server.js) en `NODE_ENV=production`) est bien celui mis à jour ; pas seulement un `git pull` sans **`dist/`** si le flux ne rebuild pas le front.
 6. **Assets spritesheet** : pour OLU, `public/assets/mascots/olu/olu-spritesheet.png` (`/assets/mascots/olu/olu-spritesheet.png`) ; pour l’oiseau tan (2 frames), `public/assets/mascots/tan-bird/tan-bird-spritesheet.png` (`/assets/mascots/tan-bird/tan-bird-spritesheet.png`) ; pour le **renard sac** (grille 6×4, 153×160 px), seul l’atlas **`/assets/mascots/fox-backpack/fox-backpack-spritesheet.png`** est chargé par le client (pas les fichiers `cells/`). Pour mettre à jour depuis une nouvelle planche (ex. export Gemini) : `npm run mascot:fox-backpack -- --import "chemin.png"` ou `npm run mascot:fox-backpack -- --import` si la PNG « ai-brush » est au chemin Cursor attendu ; puis **`npm run build`** si le serveur sert **`dist/`**.
+7. **Renard 2 (images découpées)** : mascotte catalogue **`renard2-cut-spritesheet`**, renderer **`sprite_cut`** (`data-renderer="sprite-cut"`). **Aucun atlas** : uniquement des PNG sous **`public/assets/mascots/renard2-cut/frames/`** (convention `cell-r{R}-c{C}.png`), listés dans **`src/data/renard2-cut-manifest.js`**. Extraction depuis une planche 6×4 × 153×160 (même logique que le renard sac, bulles neutralisées) : **`npm run mascot:renard2-cut`** (source par défaut : atlas renard sac, ou variable `FORETMAP_RENARD2_SOURCE` / option `--source`). Fallback SVG **`backpackFox2`**. Puis **`npm run build`** si le serveur sert **`dist/`**.
 
 ### Agrégats BDD (secret deploy)
 

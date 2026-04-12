@@ -220,6 +220,41 @@ function TanBirdVisitMascotSvg() {
   );
 }
 
+/** Renard au sac — variante visuelle pour mascotte « Renard 2 » (sprites découpés). */
+function BackpackFox2VisitMascotSvg() {
+  return (
+    <svg className="visit-backpack-fox2-svg" viewBox="0 0 128 148" role="presentation" focusable="false">
+      <ellipse cx="64" cy="140" rx="28" ry="6" fill="rgba(26,71,49,0.15)" />
+      <g className="visit-backpack-fox2-body">
+        <path
+          d="M42 106 Q34 80 50 60 Q64 42 88 50 Q104 56 104 78 Q104 100 88 112 Q66 124 42 106 Z"
+          fill="#c2410c"
+          stroke="#7c2d12"
+          strokeWidth="3.4"
+        />
+        <path d="M60 86 Q74 96 90 84 Q84 106 70 110 Q56 102 60 86 Z" fill="#ffedd5" stroke="#7c2d12" strokeWidth="2.2" />
+      </g>
+      <g className="visit-backpack-fox2-head">
+        <path d="M54 56 Q52 34 70 30 Q88 34 86 56 Q84 74 68 76 Q52 72 54 56 Z" fill="#ea580c" stroke="#7c2d12" strokeWidth="3" />
+        <path d="M48 48 L44 36 L56 42 Z" fill="#ea580c" stroke="#7c2d12" strokeWidth="2" />
+        <path d="M86 48 L90 36 L78 42 Z" fill="#ea580c" stroke="#7c2d12" strokeWidth="2" />
+        <ellipse cx="62" cy="58" rx="5" ry="6" fill="#fff" stroke="#7c2d12" strokeWidth="1.6" />
+        <ellipse cx="72" cy="58" rx="5" ry="6" fill="#fff" stroke="#7c2d12" strokeWidth="1.6" />
+        <circle cx="63" cy="59" r="2.2" fill="#1f2937" />
+        <circle cx="73" cy="59" r="2.2" fill="#1f2937" />
+        <path d="M64 68 Q70 72 76 68" fill="none" stroke="#7c2d12" strokeWidth="2" strokeLinecap="round" />
+      </g>
+      <g className="visit-backpack-fox2-bag">
+        <rect x="76" y="70" width="24" height="30" rx="6" fill="#0f766e" stroke="#134e4a" strokeWidth="2.4" />
+        <path d="M82 70 Q88 58 96 70" fill="none" stroke="#134e4a" strokeWidth="2.5" strokeLinecap="round" />
+      </g>
+      <g className="visit-backpack-fox2-tail">
+        <path d="M30 94 Q14 86 20 70 Q26 58 38 66 Q34 82 30 94 Z" fill="#c2410c" stroke="#7c2d12" strokeWidth="2.8" />
+      </g>
+    </svg>
+  );
+}
+
 /** Renard au sac à dos — secours mascotte spritesheet « fox-backpack ». */
 function BackpackFoxVisitMascotSvg() {
   return (
@@ -286,7 +321,7 @@ function OluVisitMascotSvg() {
 
 /**
  * @param {object} props
- * @param {'gnome'|'spore'|'vine'|'moss'|'seed'|'swarm'|'sprout'|'scrap'|'olu'|'tanBird'|'backpackFox'} props.silhouette
+ * @param {'gnome'|'spore'|'vine'|'moss'|'seed'|'swarm'|'sprout'|'scrap'|'olu'|'tanBird'|'backpackFox'|'backpackFox2'} props.silhouette
  * @param {string} [props.variant] — pour silhouette gnome : forest | amber | punk
  */
 function VisitMascotFallbackSvg({ silhouette = 'gnome', variant = 'forest' }) {
@@ -301,6 +336,8 @@ function VisitMascotFallbackSvg({ silhouette = 'gnome', variant = 'forest' }) {
       return <TanBirdVisitMascotSvg />;
     case 'backpackFox':
       return <BackpackFoxVisitMascotSvg />;
+    case 'backpackFox2':
+      return <BackpackFox2VisitMascotSvg />;
     case 'spore':
       return <SporeVisitMascotSvg />;
     case 'vine':
@@ -335,6 +372,7 @@ export {
   OluVisitMascotSvg,
   TanBirdVisitMascotSvg,
   BackpackFoxVisitMascotSvg,
+  BackpackFox2VisitMascotSvg,
   VisitMascotSproutSvg as SproutVisitMascotSvg,
   VisitMascotScrapSvg as ScrapVisitMascotSvg,
 };

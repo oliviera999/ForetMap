@@ -116,3 +116,21 @@ test('catalogue inclut renard sac spritesheet (grille 6x4, etats complets)', asy
     assert.ok(states.includes(wanted), `fox etat manquant: ${wanted}`);
   }
 });
+
+test('catalogue inclut Renard 2 sprite_cut (srcs multiples, pas d’atlas)', async () => {
+  const { getVisitMascotById, getVisitMascotSupportedStates } = await loadModule();
+  const r2 = getVisitMascotById('renard2-cut-spritesheet');
+  assert.ok(r2);
+  assert.equal(r2.renderer, 'sprite_cut');
+  assert.equal(r2.fallbackSilhouette, 'backpackFox2');
+  assert.equal(r2.spriteCut.frameWidth, 153);
+  assert.equal(r2.spriteCut.frameHeight, 160);
+  assert.equal(r2.spriteCut.pixelated, true);
+  const walk = r2.spriteCut.stateFrames.walking;
+  assert.ok(Array.isArray(walk.srcs));
+  assert.ok(walk.srcs.length >= 2);
+  assert.ok(walk.srcs.every((u) => String(u).startsWith('/assets/mascots/renard2-cut/frames/')));
+  const states = getVisitMascotSupportedStates('renard2-cut-spritesheet');
+  assert.ok(states.includes('idle'));
+  assert.ok(states.includes('walking'));
+});

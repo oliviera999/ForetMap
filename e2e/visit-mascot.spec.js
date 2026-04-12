@@ -204,6 +204,7 @@ test.describe.serial('mascotte visite (sélecteur prof)', () => {
     await expect(picker.locator('option[value="olu-spritesheet"]')).toHaveCount(1);
     await expect(picker.locator('option[value="tan-bird-spritesheet"]')).toHaveCount(1);
     await expect(picker.locator('option[value="fox-backpack-spritesheet"]')).toHaveCount(1);
+    await expect(picker.locator('option[value="renard2-cut-spritesheet"]')).toHaveCount(1);
 
     await picker.selectOption('sprout-rive');
 
@@ -248,6 +249,20 @@ test.describe.serial('mascotte visite (sélecteur prof)', () => {
     await expect
       .poll(async () => page.locator('.visit-map-stage [data-mascot-shape]').first().getAttribute('data-mascot-shape'))
       .toBe('backpackFox');
+
+    await picker.selectOption('renard2-cut-spritesheet');
+    await expect
+      .poll(async () => page.locator('.visit-mascot-preview-body [data-mascot-id]').first().getAttribute('data-mascot-id'))
+      .toBe('renard2-cut-spritesheet');
+    await expect
+      .poll(async () => page.locator('.visit-map-stage [data-mascot-shape]').first().getAttribute('data-mascot-shape'))
+      .toBe('backpackFox2');
+    await expect
+      .poll(async () => page.locator('.visit-mascot-preview-body [data-renderer]').first().getAttribute('data-renderer'))
+      .toBe('sprite-cut');
+    await expect
+      .poll(async () => page.locator('.visit-map-stage [data-renderer]').first().getAttribute('data-renderer'))
+      .toBe('sprite-cut');
 
     const preview = page.locator('.visit-mascot-preview-card');
     await expect(preview.getByRole('button', { name: /Course/i })).toBeVisible();

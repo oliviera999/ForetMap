@@ -1,6 +1,6 @@
 ---
 name: foretmap-mascot-catalog
-description: Guide l’ajout et l’évolution des mascottes visite (catalogue multi-renderer Rive/spritesheet, états, preview prof/admin, fallback SVG, tests).
+description: Guide l’ajout et l’évolution des mascottes visite (catalogue multi-renderer Rive / spritesheet / sprite_cut, états, preview prof/admin, fallback SVG, tests).
 ---
 
 # Mascottes visite ForetMap (catalogue)
@@ -8,7 +8,7 @@ description: Guide l’ajout et l’évolution des mascottes visite (catalogue m
 ## Quand utiliser ce skill
 
 - Ajout d’une nouvelle mascotte dans la visite.
-- Migration d’une mascotte entre renderers (`rive` -> `spritesheet` ou inverse).
+- Migration d’une mascotte entre renderers (`rive` ↔ `spritesheet` ↔ `sprite_cut`).
 - Extension de comportements (`running`, `inspect`, `map_read`, `celebrate`, etc.).
 - Ajustement des boutons de preview prof/admin selon la mascotte active.
 
@@ -22,13 +22,14 @@ description: Guide l’ajout et l’évolution des mascottes visite (catalogue m
 | `src/components/VisitMapMascotRenderer.jsx` | Routeur renderer |
 | `src/components/VisitMapMascotRive.jsx` | Rendu Rive + fallback |
 | `src/components/VisitMapMascotSpritesheet.jsx` | Rendu spritesheet + fallback |
+| `src/components/VisitMapMascotSpriteCut.jsx` | Rendu `sprite_cut` (PNG par frame, manifeste + catalogue) |
 | `src/components/VisitMascotFallbackSvg.jsx` | Silhouettes de secours |
 | `src/components/visit-views.jsx` | Déclencheurs UI et preview prof/admin |
 
 ## Checklist d’intégration
 
 1. Ajouter l’entrée dans `visitMascotCatalog.js` (`id`, `label`, `renderer`, fallback, config renderer).
-2. Vérifier les états supportés (`stateAnimations` Rive ou `stateFrames` spritesheet).
+2. Vérifier les états supportés (`stateAnimations` Rive, `stateFrames` spritesheet, ou `spriteCut.stateFrames` avec `srcs` + `fps` pour `sprite_cut`).
 3. Étendre `VISIT_MASCOT_STATE` et `resolveVisitMascotState` si nouveau comportement global.
 4. Vérifier la preview prof/admin : boutons dynamiques + animation visible.
 5. Couvrir les tests:

@@ -1,12 +1,30 @@
+import { renard2CutManifest, RENARD2_FRAMES_BASE } from '../data/renard2-cut-manifest.js';
+
 const VISIT_MASCOT_STORAGE_KEY = 'foretmap_visit_mascot_id';
 
 /**
  * Ajouter une mascotte :
  * 1) Déposer les assets sous /public/assets/mascots/... ou /public/assets/rive/...
- * 2) Ajouter une entrée ici (renderer: 'rive' ou 'spritesheet')
- * 3) `fallbackSilhouette` : forme du SVG de secours (gnome, spore, vine, moss, seed, swarm, sprout, scrap, olu, tanBird, backpackFox)
- * 4) Renseigner les animations Rive par état si applicable
+ * 2) Ajouter une entrée ici (renderer: 'rive' | 'spritesheet' | 'sprite_cut')
+ * 3) `fallbackSilhouette` : forme du SVG de secours (gnome, spore, vine, moss, seed, swarm, sprout, scrap, olu, tanBird, backpackFox, backpackFox2)
+ * 4) Renseigner les animations Rive par état si applicable ; pour `sprite_cut`, voir `spriteCut.stateFrames` (srcs + fps).
  */
+function buildRenard2CutSpriteCutConfig() {
+  const stateFrames = {};
+  for (const [state, { files, fps }] of Object.entries(renard2CutManifest)) {
+    stateFrames[state] = {
+      srcs: files.map((f) => `${RENARD2_FRAMES_BASE}/${f}`),
+      fps: Math.max(1, Number(fps) || 1),
+    };
+  }
+  return {
+    frameWidth: 153,
+    frameHeight: 160,
+    pixelated: true,
+    stateFrames,
+  };
+}
+
 const VISIT_MASCOT_CATALOG = [
   {
     id: 'sprout-rive',
@@ -266,6 +284,13 @@ const VISIT_MASCOT_CATALOG = [
       pixelated: true,
     },
   },
+  {
+    id: 'renard2-cut-spritesheet',
+    label: 'Renard 2 (images découpées)',
+    renderer: 'sprite_cut',
+    fallbackSilhouette: 'backpackFox2',
+    spriteCut: buildRenard2CutSpriteCutConfig(),
+  },
 ];
 
 function getVisitMascotCatalog() {
@@ -288,9 +313,12 @@ function normalizeVisitMascotId(mascotId) {
 function getVisitMascotSupportedStates(mascotId) {
   const mascot = getVisitMascotById(mascotId);
   if (!mascot) return ['idle', 'walking', 'happy'];
-  const stateSource = mascot?.renderer === 'spritesheet'
-    ? mascot?.spritesheet?.stateFrames
-    : mascot?.rive?.stateAnimations;
+  let stateSource = mascot?.rive?.stateAnimations;
+  if (mascot?.renderer === 'spritesheet') {
+    stateSource = mascot?.spritesheet?.stateFrames;
+  } else if (mascot?.renderer === 'sprite_cut') {
+    stateSource = mascot?.spriteCut?.stateFrames;
+  }
   if (!stateSource || typeof stateSource !== 'object') {
     return ['idle', 'walking', 'happy'];
   }
