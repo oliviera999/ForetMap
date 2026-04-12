@@ -24,15 +24,29 @@ function runViteBuild() {
   return child.status === 0;
 }
 
+function syncVisitPackServerLib() {
+  const script = path.join(root, 'scripts', 'sync-visit-pack-server-lib.js');
+  if (!fs.existsSync(script)) return true;
+  const child = spawnSync(process.execPath, [script], {
+    cwd: root,
+    stdio: 'inherit',
+    env: process.env,
+  });
+  return child.status === 0;
+}
+
 function main() {
   if (fs.existsSync(viteBin)) {
     const ok = runViteBuild();
-    process.exit(ok ? 0 : 1);
+    if (!ok) process.exit(1);
+    if (!syncVisitPackServerLib()) process.exit(1);
+    process.exit(0);
   }
 
   if (hasUsableDist()) {
     console.warn('[build-safe] Vite indisponible (dépendances dev absentes).');
     console.warn('[build-safe] dist/ détecté : build ignoré (mode prébuild local).');
+    if (!syncVisitPackServerLib()) process.exit(1);
     process.exit(0);
   }
 

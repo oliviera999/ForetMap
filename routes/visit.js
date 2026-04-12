@@ -2,6 +2,7 @@ const express = require('express');
 const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
+const { pathToFileURL } = require('url');
 const { v4: uuidv4 } = require('uuid');
 const { queryAll, queryOne, execute, withTransaction } = require('../database');
 const { requirePermission, JWT_SECRET, authenticate, hasPermission } = require('../middleware/requireTeacher');
@@ -219,14 +220,29 @@ function serializeVisitMascotPackRow(row) {
   };
 }
 
-/** Valide un pack via le module ESM `src/utils/mascotPack.js` (requis au runtime). */
+/**
+ * Valide un pack via ESM : `src/utils` en dev, sinon **`lib/visit-pack/`** (copie synchronisée au build,
+ * présente sur les déploiements sans dossier `src/`).
+ */
 async function validateMascotPackForDb(raw, opts = {}) {
-  try {
-    const { validateMascotPackV1 } = await import('../src/utils/mascotPack.js');
-    return validateMascotPackV1(raw, opts);
-  } catch (moduleErr) {
-    return { ok: false, moduleError: moduleErr };
+  const srcPack = path.join(__dirname, '../src/utils/mascotPack.js');
+  const libPack = path.join(__dirname, '../lib/visit-pack/mascotPack.js');
+  const candidates = [];
+  if (fs.existsSync(srcPack)) candidates.push(srcPack);
+  if (fs.existsSync(libPack)) candidates.push(libPack);
+  let lastErr;
+  for (const abs of candidates) {
+    try {
+      const { validateMascotPackV1 } = await import(pathToFileURL(abs));
+      return validateMascotPackV1(raw, opts);
+    } catch (moduleErr) {
+      lastErr = moduleErr;
+    }
   }
+  return {
+    ok: false,
+    moduleError: lastErr || new Error('mascotPack introuvable (exécuter `npm run build` ou `node scripts/sync-visit-pack-server-lib.js`)'),
+  };
 }
 
 function mapVisitMascotPackSqlError(err) {
@@ -642,7 +658,7 @@ router.post('/mascot-packs', requirePermission('visit.manage', { needsElevation:
     if (validated.moduleError) {
       logRouteError(validated.moduleError, req, 'visit_mascot_packs: chargement mascotPack.js');
       return jsonVisitMascotPackError(res, req, 503, {
-        error: 'Validation des packs mascotte indisponible sur ce serveur (fichier `src/utils/mascotPack.js` introuvable ou erreur de chargement).',
+        error: 'Validation des packs mascotte indisponible sur ce serveur (modules `lib/visit-pack/` absents ou erreur de chargement — exécuter `npm run build` sur l’artefact déployé ou inclure `lib/visit-pack/` dans le bundle).',
         code: 'mascot_pack_module_unavailable',
       });
     }
@@ -699,7 +715,7 @@ router.put('/mascot-packs/:id', requirePermission('visit.manage', { needsElevati
       if (validated.moduleError) {
         logRouteError(validated.moduleError, req, 'visit_mascot_packs: chargement mascotPack.js');
         return jsonVisitMascotPackError(res, req, 503, {
-          error: 'Validation des packs mascotte indisponible sur ce serveur.',
+          error: 'Validation des packs mascotte indisponible sur ce serveur (`lib/visit-pack/` manquant ou erreur de chargement).',
           code: 'mascot_pack_module_unavailable',
         });
       }
