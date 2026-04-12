@@ -18,6 +18,7 @@ set -euo pipefail
 #   lorsque tous les fichiers du déploiement matchent DEPLOY_SOFT_CHANGE_REGEX
 #   (ex. docs seulement) — opt-in, défaut 0 = toujours redémarrer après pull
 # - DEPLOY_SOFT_CHANGE_REGEX : ERE grep (défaut: CHANGELOG, README, LICENSE, docs/, .github/, .cursor/)
+# - DEPLOY_SKIP_SYNC_VISIT_PACK_LIB : 1 pour ne pas exécuter scripts/sync-visit-pack-server-lib.js après pull
 #
 # Prérequis:
 # - DEPLOY_SECRET requis uniquement si un redémarrage est prévu (défaut ou après
@@ -41,6 +42,7 @@ DEPLOY_ENV_FILE="${DEPLOY_ENV_FILE:-$APP_DIR/.env}"
 DEPLOY_AUTO_MIGRATE="${DEPLOY_AUTO_MIGRATE:-0}"
 DEPLOY_SKIP_RESTART_IF_SOFT_ONLY="${DEPLOY_SKIP_RESTART_IF_SOFT_ONLY:-0}"
 DEPLOY_SOFT_CHANGE_REGEX="${DEPLOY_SOFT_CHANGE_REGEX:-^(CHANGELOG\.md|README\.md|LICENSE(\.txt)?|\.gitattributes|docs/|\.github/|\.cursor/)}"
+DEPLOY_SKIP_SYNC_VISIT_PACK_LIB="${DEPLOY_SKIP_SYNC_VISIT_PACK_LIB:-0}"
 
 # Lock simple anti-cron concurrent
 if ! mkdir "$DEPLOY_LOCK_DIR" 2>/dev/null; then
@@ -114,8 +116,30 @@ if grep -Eq "$FRONTEND_PATTERNS" <<<"$CHANGED_FILES"; then
   fi
 fi
 
+# Garde-fou: toute évolution des modules pack mascotte côté src doit être reflétée dans lib/visit-pack/
+# (API sans dossier src/ en prod — voir scripts/sync-visit-pack-server-lib.js).
+if grep -Eq '(^|/)src/utils/mascotPack\.js$' <<<"$CHANGED_FILES"; then
+  if ! grep -Eq '^lib/visit-pack/mascotPack\.js$' <<<"$CHANGED_FILES"; then
+    log "Déploiement bloqué: src/utils/mascotPack.js modifié sans lib/visit-pack/mascotPack.js dans le même lot."
+    log "Action requise: npm run sync:visit-pack-lib (ou build-safe) puis commit des fichiers lib/visit-pack/."
+    exit 1
+  fi
+fi
+if grep -Eq '(^|/)src/utils/visitMascotState\.js$' <<<"$CHANGED_FILES"; then
+  if ! grep -Eq '^lib/visit-pack/visitMascotState\.js$' <<<"$CHANGED_FILES"; then
+    log "Déploiement bloqué: src/utils/visitMascotState.js modifié sans lib/visit-pack/visitMascotState.js dans le même lot."
+    log "Action requise: npm run sync:visit-pack-lib (ou build-safe) puis commit des fichiers lib/visit-pack/."
+    exit 1
+  fi
+fi
+
 log "git pull --ff-only origin $DEPLOY_BRANCH"
 git pull --ff-only origin "$DEPLOY_BRANCH"
+
+if [[ "$DEPLOY_SKIP_SYNC_VISIT_PACK_LIB" != "1" ]] && [[ -f "$APP_DIR/scripts/sync-visit-pack-server-lib.js" ]]; then
+  log "Synchronisation lib/visit-pack/ (sources présentes ou contrôle d'intégrité)"
+  node scripts/sync-visit-pack-server-lib.js
+fi
 
 if grep -Eq '(^|/)(package\.json|package-lock\.json)$' <<<"$CHANGED_FILES"; then
   log "Dépendances modifiées: npm ci --omit=dev"
