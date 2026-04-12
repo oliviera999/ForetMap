@@ -13,6 +13,7 @@ const {
   listAdminSettings,
   validateCrossSettings,
 } = require('../lib/settings');
+const { runSpeciesAutofillProviderSelfTest } = require('../lib/speciesAutofillProviderSelfTest');
 
 const router = express.Router();
 
@@ -246,6 +247,20 @@ router.get(
     } catch (e) {
       logRouteError(e, req);
       res.status(500).json({ error: e.message });
+    }
+  }
+);
+
+router.get(
+  '/admin/system/species-autofill-providers-test',
+  requirePermission('admin.settings.read', { needsElevation: true }),
+  async (req, res) => {
+    try {
+      const payload = await runSpeciesAutofillProviderSelfTest();
+      res.json(payload);
+    } catch (e) {
+      logRouteError(e, req);
+      res.status(500).json({ error: e.message || 'Auto-test fournisseurs en échec' });
     }
   }
 );
