@@ -43,18 +43,24 @@ export function TutorialPreviewModal({ tutorial, onClose }) {
   return (
     <div className="modal-overlay modal-overlay--tuto-preview" onClick={e => e.target === e.currentTarget && onClose()}>
       <div className="log-modal tuto-preview-modal" role="dialog" aria-modal="true" aria-labelledby="tuto-preview-title" tabIndex={-1} onClick={e => e.stopPropagation()}>
-        <button type="button" className="modal-close" onClick={onClose} aria-label="Fermer l’aperçu">✕</button>
-        <h3 id="tuto-preview-title">📘 {tutorial.title}</h3>
+        <div className="tuto-preview-modal__head">
+          <button type="button" className="modal-close" onClick={onClose} aria-label="Fermer l’aperçu">✕</button>
+          <h3 id="tuto-preview-title">📘 {tutorial.title}</h3>
+        </div>
         {canEmbed ? (
-          <iframe
-            title={`Aperçu : ${tutorial.title}`}
-            src={source}
-            className="tuto-preview-frame"
-            sandbox="allow-same-origin allow-scripts allow-popups allow-forms"
-          />
+          <div className="tuto-preview-modal__body">
+            <iframe
+              title={`Aperçu : ${tutorial.title}`}
+              src={source}
+              className="tuto-preview-frame"
+              sandbox="allow-same-origin allow-scripts allow-popups allow-forms"
+            />
+          </div>
         ) : (
-          <div className="empty" style={{ padding: 18 }}>
-            <p>Aperçu non disponible pour ce tutoriel.</p>
+          <div className="tuto-preview-modal__body tuto-preview-modal__body--empty">
+            <div className="empty" style={{ padding: 18 }}>
+              <p>Aperçu non disponible pour ce tutoriel.</p>
+            </div>
           </div>
         )}
       </div>

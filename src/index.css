@@ -2182,49 +2182,84 @@
       border-left:4px solid var(--sage);
       margin-bottom:12px;
     }
-    /* Aperçu tutoriel : presque toute la fenêtre (zones sûres + marge minimale), iframe fluide. */
+    /* Aperçu tutoriel : panneau centré, hauteur bornée au viewport pour que l’iframe remplisse
+       l’espace et que le défilement reste prévisible (plus de flex « height:auto » qui casse la hauteur). */
     .modal-overlay.modal-overlay--tuto-preview {
-      padding:max(4px, var(--safe-top)) max(8px, env(safe-area-inset-right, 0px)) max(4px, var(--safe-bottom)) max(8px, env(safe-area-inset-left, 0px));
-      align-items:stretch;
+      align-items:center;
+      justify-content:center;
+      padding:max(10px, var(--safe-top)) max(12px, env(safe-area-inset-right, 0px)) max(10px, var(--safe-bottom)) max(12px, env(safe-area-inset-left, 0px));
+      box-sizing:border-box;
     }
     .modal-overlay.modal-overlay--tuto-preview > .log-modal.tuto-preview-modal {
-      width:100%;
-      max-width:none;
-      flex:1 1 auto;
+      width:min(100%, calc(100vw - 24px));
+      max-width:min(1120px, calc(100vw - 24px));
+      flex:0 1 auto;
       min-height:0;
-      max-height:none;
-      height:auto;
-      align-self:stretch;
+      /* Hauteur explicite : chaîne flex → iframe en % fonctionne ; le document HTML du tuto défile à l’intérieur. */
+      height:min(92dvh, calc(100dvh - var(--safe-top) - var(--safe-bottom) - 24px));
+      max-height:min(92dvh, calc(100dvh - var(--safe-top) - var(--safe-bottom) - 24px));
       display:flex;
       flex-direction:column;
       overflow:hidden;
-      padding:10px 12px 12px;
+      padding:0;
       border-radius:14px;
     }
-    .log-modal.tuto-preview-modal h3 {
+    .tuto-preview-modal__head {
+      position:relative;
       flex-shrink:0;
-      margin-bottom:8px;
-      padding-right:44px;
+      padding:12px 48px 10px 16px;
+      text-align:center;
+      border-bottom:1px solid rgba(45, 106, 79, 0.12);
+    }
+    .tuto-preview-modal__head .modal-close {
+      top:8px;
+      right:8px;
+    }
+    .log-modal.tuto-preview-modal h3 {
+      margin:0;
+      font-size:clamp(1rem, 0.92rem + 0.35vw, 1.12rem);
+      line-height:1.35;
+      color:var(--forest);
+      text-wrap:balance;
+    }
+    .tuto-preview-modal__body {
+      flex:1 1 auto;
+      min-height:0;
+      display:flex;
+      flex-direction:column;
+      padding:10px 12px 12px;
+      overflow:hidden;
+    }
+    .tuto-preview-modal__body--empty {
+      overflow:auto;
+      -webkit-overflow-scrolling:touch;
+      align-items:center;
+      justify-content:center;
     }
     .tuto-preview-frame {
       flex:1 1 auto;
-      min-height:min(50dvh, 420px);
+      min-height:0;
       width:100%;
+      align-self:stretch;
       border:1px solid rgba(0,0,0,.08);
       border-radius:10px;
-      margin-top:0;
+      margin:0;
       background:#fff;
     }
     @media (max-width:768px) {
       .modal-overlay.modal-overlay--tuto-preview {
-        padding:max(4px, var(--safe-top)) max(6px, env(safe-area-inset-right, 0px)) max(4px, var(--safe-bottom)) max(6px, env(safe-area-inset-left, 0px));
+        padding:max(8px, var(--safe-top)) max(8px, env(safe-area-inset-right, 0px)) max(8px, var(--safe-bottom)) max(8px, env(safe-area-inset-left, 0px));
       }
       .modal-overlay.modal-overlay--tuto-preview > .log-modal.tuto-preview-modal {
         border-radius:12px;
-        padding:8px 10px 10px;
+        height:min(94dvh, calc(100dvh - var(--safe-top) - var(--safe-bottom) - 16px));
+        max-height:min(94dvh, calc(100dvh - var(--safe-top) - var(--safe-bottom) - 16px));
       }
-      .tuto-preview-frame {
-        min-height:min(45dvh, 320px);
+      .tuto-preview-modal__head {
+        padding:10px 44px 8px 12px;
+      }
+      .tuto-preview-modal__body {
+        padding:8px 10px 10px;
       }
     }
     button.task-chip.living-being-catalog-chip {
