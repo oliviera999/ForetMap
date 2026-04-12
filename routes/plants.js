@@ -1,6 +1,7 @@
 const express = require('express');
 const http = require('http');
 const https = require('https');
+const crypto = require('crypto');
 const XLSX = require('xlsx');
 const { pool, queryAll, queryOne, execute } = require('../database');
 const { requirePermission, requireAuth } = require('../middleware/requireTeacher');
@@ -676,12 +677,19 @@ router.get('/autofill', requirePermission('plants.manage', { needsElevation: tru
       return res.status(400).json({ error: 'Paramètre q trop long (max 120 caractères)' });
     }
 
-    const cacheKey = query.toLowerCase();
+    const hintScientific = asTrimmedString(req.query?.hint_scientific).slice(0, 120);
+    const hintName = asTrimmedString(req.query?.hint_name).slice(0, 120);
+
+    const hintsPart = `${hintScientific.toLowerCase()}\x1e${hintName.toLowerCase()}`;
+    const cacheKey = crypto.createHash('sha256').update(`${query.toLowerCase()}\x1e${hintsPart}`).digest('hex').slice(0, 48);
     const cached = plantsAutofillCache.get(cacheKey);
     if (cached) return res.json(cached);
 
     /** Budget global wall-clock (évite 503 HTML des proxies si Wikidata + sources s’enchaînent trop longtemps). */
-    const payload = await buildSpeciesAutofill(query, { budgetMs: 12000 });
+    const hints = {};
+    if (hintScientific) hints.scientific_name = hintScientific;
+    if (hintName) hints.name = hintName;
+    const payload = await buildSpeciesAutofill(query, { budgetMs: 12000, hints });
     const photoValidationPayload = {};
     for (const photo of payload?.photos || []) {
       if (!PHOTO_FIELDS.includes(photo.field)) continue;

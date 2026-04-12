@@ -722,7 +722,13 @@ function PlantEditForm({ title, form, setForm, onSave, onCancel, saving, plantId
     setPrefillLoading(true);
     setPrefillError('');
     try {
-      const data = await api(`/api/plants/autofill?q=${encodeURIComponent(prefillQuery)}`);
+      const hintParams = new URLSearchParams();
+      hintParams.set('q', prefillQuery);
+      const sciHint = String(form?.scientific_name || '').trim();
+      const nameHint = String(form?.name || '').trim();
+      if (sciHint) hintParams.set('hint_scientific', sciHint.slice(0, 120));
+      if (nameHint) hintParams.set('hint_name', nameHint.slice(0, 120));
+      const data = await api(`/api/plants/autofill?${hintParams.toString()}`);
       setPrefillResult(data || null);
 
       const nextFields = {};

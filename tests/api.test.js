@@ -1622,6 +1622,180 @@ test('GET /api/plants/autofill renvoie une pré-saisie normalisée multi-sources
   }
 });
 
+test('GET /api/plants/autofill accepte hint_scientific et hint_name (cache distinct)', { concurrency: false }, async () => {
+  const token = await getAdminAuthToken();
+  const previousFetch = global.fetch;
+  let hitCount = 0;
+  global.fetch = async (url) => {
+    hitCount += 1;
+    const raw = String(url || '');
+    if (raw.includes('fr.wikipedia.org/api/rest_v1/page/summary')) {
+      return {
+        ok: true,
+        status: 200,
+        async json() {
+          return {
+            title: 'Tomate',
+            extract: 'Plante potagère cultivée.',
+            thumbnail: { source: 'https://upload.wikimedia.org/tomato.jpg' },
+            content_urls: { desktop: { page: 'https://fr.wikipedia.org/wiki/Tomate' } },
+          };
+        },
+      };
+    }
+    if (raw.includes('wikidata.org/w/api.php')) {
+      return {
+        ok: true,
+        status: 200,
+        async json() {
+          return { search: [{ id: 'Q111' }, { id: 'Q23501' }] };
+        },
+      };
+    }
+    if (raw.includes('wikidata.org/wiki/Special:EntityData')) {
+      if (raw.includes('Q111')) {
+        return {
+          ok: true,
+          status: 200,
+          async json() {
+            return {
+              entities: {
+                Q111: {
+                  labels: { fr: { value: 'Tomate' } },
+                  descriptions: { fr: { value: 'chanteur brésilien' } },
+                  claims: {},
+                },
+              },
+            };
+          },
+        };
+      }
+      return {
+        ok: true,
+        status: 200,
+        async json() {
+          return {
+            entities: {
+              Q23501: {
+                labels: { fr: { value: 'Tomate' } },
+                descriptions: { fr: { value: 'Espèce végétale' } },
+                sitelinks: { frwiki: { title: 'Tomate' } },
+                claims: {
+                  P31: [{ mainsnak: { datavalue: { value: { id: 'Q16521' } } } }],
+                  P105: [{ mainsnak: { datavalue: { value: { id: 'Q7432' } } } }],
+                  P225: [{ mainsnak: { datavalue: { value: 'Solanum lycopersicum' } } }],
+                  P18: [{ mainsnak: { datavalue: { value: 'Tomato_on_white_background.jpg' } } }],
+                },
+              },
+            },
+          };
+        },
+      };
+    }
+    if (raw.includes('api.gbif.org/v1/species/match')) {
+      return {
+        ok: true,
+        status: 200,
+        async json() {
+          return {
+            confidence: 96,
+            canonicalName: 'Tomate',
+            scientificName: 'Solanum lycopersicum',
+            family: 'Solanaceae',
+            order: 'Solanales',
+            kingdom: 'Plantae',
+            usageKey: 2930132,
+          };
+        },
+      };
+    }
+    if (raw.includes('/species/2930132/descriptions')) {
+      return { ok: true, status: 200, async json() { return { results: [] }; } };
+    }
+    if (raw.includes('api.gbif.org/v1/species/2930132') && !raw.includes('vernacularNames')) {
+      return { ok: true, status: 200, async json() { return { taxonomicStatus: 'ACCEPTED' }; } };
+    }
+    if (raw.includes('api.checklistbank.org/dataset/3LR/nameusage/search')) {
+      return {
+        ok: true,
+        status: 200,
+        async json() {
+          return {
+            result: [{
+              id: 'COL-2930132',
+              name: 'Solanum lycopersicum',
+              classification: [
+                { rank: 'kingdom', name: 'Plantae' },
+                { rank: 'order', name: 'Solanales' },
+                { rank: 'family', name: 'Solanaceae' },
+              ],
+            }],
+          };
+        },
+      };
+    }
+    if (raw.includes('api.inaturalist.org/v1/taxa')) {
+      return {
+        ok: true,
+        status: 200,
+        async json() {
+          return {
+            results: [{
+              id: 58698,
+              rank: 'species',
+              name: 'Solanum lycopersicum',
+              observations_count: 1000,
+              matched_term: 'tomate',
+            }],
+          };
+        },
+      };
+    }
+    if (raw.includes('api.gbif.org/v1/species/2930132/vernacularNames')) {
+      return {
+        ok: true,
+        status: 200,
+        async json() {
+          return { results: [{ vernacularName: 'Tomate-cerise', language: 'fra' }] };
+        },
+      };
+    }
+    if (raw.includes('en.wikipedia.org/api/rest_v1/page/summary')) {
+      return {
+        ok: true,
+        status: 200,
+        async json() {
+          return {
+            title: 'Tomato',
+            extract: 'The tomato is the edible berry of the plant Solanum lycopersicum, commonly known as a tomato plant.',
+            content_urls: { desktop: { page: 'https://en.wikipedia.org/wiki/Tomato' } },
+          };
+        },
+      };
+    }
+    if (raw.includes('api.openai.com')) {
+      return {
+        ok: true,
+        status: 200,
+        async json() {
+          return { choices: [{ message: { content: '{}' } }] };
+        },
+      };
+    }
+    throw new Error(`URL inattendue: ${raw}`);
+  };
+  try {
+    const res = await request(app)
+      .get('/api/plants/autofill?q=tomate&hint_name=Tomate%20cerise&hint_scientific=Solanum%20lycopersicum')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+    assert.strictEqual(res.body.query, 'tomate');
+    assert.ok(hitCount > 0);
+  } finally {
+    global.fetch = previousFetch;
+  }
+});
+
 test('GET /api/plants/autofill garde un fallback partiel si une source échoue', { concurrency: false }, async () => {
   const token = await getAdminAuthToken();
   const previousFetch = global.fetch;

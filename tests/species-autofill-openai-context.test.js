@@ -33,3 +33,17 @@ test('buildOpenAiPartialContext borne la longueur totale', () => {
   });
   assert.ok(text.length <= 3000);
 });
+
+test('buildOpenAiPartialContext inclut les indices formulaire', () => {
+  const text = buildOpenAiPartialContext({
+    wikiFrRes: null,
+    primaryResults: [],
+    gbifRes: null,
+    gbifTraitsPack: null,
+    secondaryResults: [],
+    hints: { name: 'Tomate cerise', scientific_name: 'Solanum lycopersicum' },
+  });
+  assert.match(text, /\[Indices utilisateur\]/);
+  assert.match(text, /Tomate cerise/);
+  assert.match(text, /Solanum lycopersicum/);
+});

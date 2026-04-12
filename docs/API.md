@@ -381,7 +381,7 @@ Pour une mascotte spritesheet (ex. OLU), vérifier aussi l’asset statique serv
 | Méthode | URL | n3boss | Description |
 |--------|-----|------|-------------|
 | GET | `/api/plants` | non | Liste des entrées biodiversité |
-| GET | `/api/plants/autofill?q=...` | oui | Pré-saisie assistée multi-sources (suggestions de champs + photos/licences, sans écriture BDD) |
+| GET | `/api/plants/autofill?q=...&hint_scientific=...&hint_name=...` | oui | Pré-saisie assistée multi-sources (suggestions de champs + photos/licences, sans écriture BDD) ; paramètres `hint_*` optionnels |
 | GET | `/api/plants/me/discovered-ids` | JWT obligatoire | `{ "plant_ids": number[] }` — identifiants des fiches catalogue pour lesquelles l’utilisateur a au moins une **observation** enregistrée (engagement explicite) |
 | GET | `/api/plants/me/observation-counts` | JWT obligatoire | Query **`plant_ids`** : liste d’IDs séparés par des virgules (ou espaces), entiers positifs, **max 200** (troncature silencieuse au-delà). Réponse `{ "counts": { "<id>": { "my_observation_count": number, "site_observation_count": number }, ... } }` — totaux pour l’utilisateur connecté et pour **tous** les utilisateurs sur chaque fiche demandée ; fiches sans ligne renvoient `0` / `0` |
 | POST | `/api/plants` | oui | Créer une entrée biodiversité |
@@ -435,8 +435,11 @@ Réponse:
 
 - Route en lecture seule (aucune création/modification de fiche).
 - Auth: permission `plants.manage` (élévation requise selon profil).
-- Paramètre query:
+- Paramètres query:
   - `q` (obligatoire, 2 à 120 caractères) : nom courant ou scientifique recherché.
+  - `hint_scientific` (optionnel, max 120 caractères) : nom scientifique déjà saisi dans le formulaire (améliore la graine taxonomique, Pl@ntNet, Catalogue of Life, etc.).
+  - `hint_name` (optionnel, max 120 caractères) : nom courant déjà saisi ; injecté dans le contexte OpenAI comme indice utilisateur.
+- **Cache** : la clé de cache inclut `q` **et** les hints (empreinte SHA-256 tronquée) : deux appels avec le même `q` mais des hints différents ne renvoient pas la même entrée de cache.
 - Réponse JSON:
   - `query`: requête normalisée,
   - `confidence`: score global `0..1`,
@@ -447,7 +450,8 @@ Réponse:
   - `warnings`: avertissements non bloquants (source indisponible, qualité des données, photos filtrées...).
 - Comportement:
   - résultats agrégés depuis plusieurs sources externes publiques : **Wikipedia (FR)** avec repli **opensearch** ; **Wikidata** (dont **P366** / **P183** / **P9714** pour utilité, endémisme / aire d’occurrence, libellés via `wbgetentities`) ; **GBIF** (`species/match`, `usageKey`) ; **GBIF traits** (`/v1/species/{usageKey}` + `/descriptions`, source interne `gbif_traits`, confiance modérée : habit / zone / écologie textuels et avertissements de statut taxonomique) ; **Catalogue of Life** lorsqu’un nom scientifique est connu ; **iNaturalist** (recherche taxons, résumé Wikipedia, photo HTTPS, indices **extinction / statut de conservation** lorsque présents) ; **noms vernaculaires GBIF** (`/species/{usageKey}/vernacularNames`, langues `fra` / `fre` / `fr`) pour enrichir **`second_name`** ; **Wikipedia EN** (résumé) en secours si l’extrait FR est trop court ; **heuristiques** sur l’extrait FR (`wikipedia_heuristic`, faible confiance : température, pH, taille, longévité, indices culture / récolte / plantation) ;
-  - le nom scientifique « graine » pour les requêtes secondaires privilégie **GBIF** puis **Wikidata** (meilleure désambiguïsation quand le nom vulgaire est ambigu) ;
+  - le nom scientifique « graine » pour les requêtes secondaires privilégie **`hint_scientific`** (si forme binomiale plausible), puis **GBIF** puis **Wikidata** (meilleure désambiguïsation quand le nom vulgaire est ambigu) ;
+  - après fusion des sources, une passe **« trous uniquement »** : champs texte encore vides peuvent être complétés depuis le **pack Pl@ntNet** déjà récupéré (sans second appel HTTP), puis par une requête **OpenAI ciblée** (`openai_gap`, si `SPECIES_AUTOFILL_OPENAI=1`) sur les seules clés encore vides parmi les champs autorisés LLM, dans la limite du budget temps restant (sinon la passe est ignorée) ;
   - pour le champ **`description`**, la fusion applique un **ordre de priorité par source** (Wikidata / Wikipedia au-dessus d’iNaturalist ou GBIF) afin qu’une description courte mais fiable ne soit pas remplacée par un résumé périphérique plus long ;
   - extensions optionnelles (voir [`docs/SPECIES_AUTOFILL_EXTENSIONS.md`](SPECIES_AUTOFILL_EXTENSIONS.md)) : **Trefle**, **OpenAI** (complément LLM avec **contexte multi-sources** agrégé côté serveur si `SPECIES_AUTOFILL_OPENAI=1`), **Pl@ntNet** (`plantnet` : alignement taxonomique + liste espèce avec **photos par organe** et noms vernaculaires lorsque l’API le permet) ;
   - cache mémoire TTL côté serveur pour limiter la latence et les quotas,
