@@ -1029,64 +1029,109 @@ function PlantEditForm({ title, form, setForm, onSave, onCancel, saving, plantId
         <summary style={{ cursor: 'pointer', fontSize: '.88rem' }}>Identifier une plante à partir de photos (Pl@ntNet)</summary>
         <div style={{ marginTop: 8, display: 'grid', gap: 10, fontSize: '.82rem', color: '#444' }}>
           <p style={{ margin: 0, lineHeight: 1.45 }}>
-            Envoie 1 à 5 images de la <strong>même</strong> plante (feuille, fleur, fruit…). Le serveur appelle Pl@ntNet ;
-            choisis une proposition puis lance la pré-saisie ci-dessous. Données soumises aux conditions d’usage{' '}
+            Envoie 1 à 5 images de la <strong>même</strong> plante (feuille, fleur, fruit…), depuis la <strong>galerie</strong> ou
+            en <strong>prenant une photo</strong> avec le téléphone (bouton « Appareil photo », caméra arrière si disponible).
+            Le serveur appelle Pl@ntNet ; choisis une proposition puis lance la pré-saisie ci-dessous. Données soumises aux
+            conditions d’usage{' '}
             <a href="https://my.plantnet.org/" target="_blank" rel="noreferrer">my.plantnet.org</a>.
           </p>
-          {identifySlots.map((row) => (
-            <div
-              key={row.key}
-              style={{
-                display: 'grid',
-                gap: 6,
-                padding: 8,
-                border: '1px solid #e2e2e2',
-                borderRadius: 8,
-                background: '#fafafa',
-              }}
-            >
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
-                <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: '.78rem' }}>
-                  <span>Organe</span>
-                  <select
-                    value={row.organ}
-                    onChange={(e) => setIdentifySlotOrgan(row.key, e.target.value)}
-                    disabled={saving || identifyLoading}
-                  >
-                    {PLANTNET_IDENTIFY_ORGAN_OPTIONS.map((o) => (
-                      <option key={o.id} value={o.id}>{o.label}</option>
-                    ))}
-                  </select>
-                </label>
-                <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: '.78rem', flex: '1 1 180px' }}>
-                  <span>Image</span>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    disabled={saving || identifyLoading}
-                    onChange={(e) => {
-                      const f = e.target.files && e.target.files[0];
-                      e.target.value = '';
-                      onIdentifyFileChosen(row.key, f);
-                    }}
-                  />
-                </label>
-                {identifySlots.length > 1 && (
-                  <button
-                    type="button"
-                    className="btn btn-ghost btn-sm"
-                    disabled={saving || identifyLoading}
-                    onClick={() => removeIdentifySlot(row.key)}
-                  >
-                    Retirer
-                  </button>
+          {identifySlots.map((row) => {
+            const safeId = String(row.key).replace(/\W/g, '_');
+            const idGal = `plantnet-id-gal-${safeId}`;
+            const idCam = `plantnet-id-cam-${safeId}`;
+            const onIdentifyPick = (e) => {
+              const f = e.target.files && e.target.files[0];
+              e.target.value = '';
+              onIdentifyFileChosen(row.key, f);
+            };
+            const busy = saving || identifyLoading;
+            const triggerIdentifyFile = (inputId) => {
+              if (busy) return;
+              const el = document.getElementById(inputId);
+              if (!el) return;
+              el.value = '';
+              el.click();
+            };
+            return (
+              <div
+                key={row.key}
+                style={{
+                  display: 'grid',
+                  gap: 6,
+                  padding: 8,
+                  border: '1px solid #e2e2e2',
+                  borderRadius: 8,
+                  background: '#fafafa',
+                }}
+              >
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
+                  <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: '.78rem' }}>
+                    <span>Organe</span>
+                    <select
+                      value={row.organ}
+                      onChange={(e) => setIdentifySlotOrgan(row.key, e.target.value)}
+                      disabled={busy}
+                    >
+                      {PLANTNET_IDENTIFY_ORGAN_OPTIONS.map((o) => (
+                        <option key={o.id} value={o.id}>{o.label}</option>
+                      ))}
+                    </select>
+                  </label>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6, fontSize: '.78rem', flex: '1 1 220px' }}>
+                    <span>Image</span>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }} role="group" aria-label="Image : galerie ou appareil photo">
+                      <input
+                        id={idGal}
+                        type="file"
+                        accept="image/*"
+                        disabled={busy}
+                        style={{ display: 'none' }}
+                        onChange={onIdentifyPick}
+                      />
+                      <input
+                        id={idCam}
+                        type="file"
+                        accept="image/*"
+                        capture="environment"
+                        disabled={busy}
+                        style={{ display: 'none' }}
+                        onChange={onIdentifyPick}
+                      />
+                      <button
+                        type="button"
+                        className="btn btn-secondary btn-sm"
+                        disabled={busy}
+                        onClick={() => triggerIdentifyFile(idGal)}
+                      >
+                        📁 Galerie / fichier
+                      </button>
+                      <button
+                        type="button"
+                        className="btn btn-secondary btn-sm"
+                        disabled={busy}
+                        onClick={() => triggerIdentifyFile(idCam)}
+                      >
+                        📸 Appareil photo
+                      </button>
+                    </div>
+                  </div>
+                  {identifySlots.length > 1 && (
+                    <button
+                      type="button"
+                      className="btn btn-ghost btn-sm"
+                      disabled={busy}
+                      onClick={() => removeIdentifySlot(row.key)}
+                    >
+                      Retirer
+                    </button>
+                  )}
+                </div>
+                {row.fileName && (
+                  <span style={{ color: '#2a6a2a' }}>Fichier : {row.fileName}</span>
                 )}
               </div>
-              {row.fileName && (
-                <span style={{ color: '#2a6a2a' }}>Fichier : {row.fileName}</span>
-              )}
-            </div>
-          ))}
+            );
+          })}
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
             {identifySlots.length < 5 && (
               <button type="button" className="btn btn-ghost btn-sm" disabled={saving || identifyLoading} onClick={addIdentifySlot}>
