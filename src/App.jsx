@@ -39,8 +39,19 @@ const DESKTOP_SPLIT_MIN_TASKS_PX = 420;
 const TAB_STORAGE_KEY = 'foretmap_active_tab';
 /** Regroupe les rafraîchissements auto quand plusieurs états changent à la suite (réglages, carte, session). */
 const FETCH_ALL_AUTO_DEBOUNCE_MS = 250;
-/** Intervalle de polling par défaut (rafraîchissement complet) — réduit la pression BDD vs 30 s. */
-const DATA_REFRESH_INTERVAL_MS = 45000;
+/** Intervalle de polling par défaut (rafraîchissement complet) — compromis charge serveur / fraîcheur des données. */
+const DATA_REFRESH_INTERVAL_MS = 60000;
+/** Onglets où les tâches / carte changent rarement : on double l’intervalle quand le temps réel Socket.IO est inactif. */
+const POLLING_COARSE_TABS = new Set([
+  'about',
+  'settings',
+  'audit',
+  'profiles',
+  'tuto',
+  'stats',
+  'forum',
+  'notebook',
+]);
 const IOS_INSTALL_HINT_DISMISSED_KEY = 'foretmap_ios_install_hint_dismissed';
 const KNOWN_TAB_VALUES = new Set([
   'map',
@@ -180,6 +191,8 @@ function App() {
     return displayStandalone || iosStandalone;
   });
   const failCountRef = useRef(0);
+  const prevTabForPollingRef = useRef(tab);
+  const viewportResizeRafRef = useRef(null);
   /** Promesse du chargement global en cours ; les appels suivants s’y accrochent et peuvent demander une nouvelle passe. */
   const fetchAllRunPromiseRef = useRef(null);
   const fetchAllPendingRef = useRef(false);
@@ -641,9 +654,21 @@ function App() {
   }, [authClaims?.roleSlug, authClaims?.userId, isTeacher]);
 
   useEffect(() => {
-    const onResize = () => setViewportWidth(window.innerWidth || 0);
-    window.addEventListener('resize', onResize);
-    return () => window.removeEventListener('resize', onResize);
+    const onResize = () => {
+      if (viewportResizeRafRef.current != null) return;
+      viewportResizeRafRef.current = window.requestAnimationFrame(() => {
+        viewportResizeRafRef.current = null;
+        setViewportWidth(window.innerWidth || 0);
+      });
+    };
+    window.addEventListener('resize', onResize, { passive: true });
+    return () => {
+      window.removeEventListener('resize', onResize);
+      if (viewportResizeRafRef.current != null) {
+        window.cancelAnimationFrame(viewportResizeRafRef.current);
+        viewportResizeRafRef.current = null;
+      }
+    };
   }, []);
 
   useEffect(() => {
@@ -1009,18 +1034,29 @@ function App() {
 
   // Auto-refresh adaptatif (ralenti quand le push est actif, ralenti en arrière-plan).
   const pollingIntervalMs = useMemo(() => {
-    const liveAdjusted = rtStatus === 'live' ? Math.max(refreshMs, 90000) : refreshMs;
+    const coarse = POLLING_COARSE_TABS.has(tab) ? 2 : 1;
+    const liveAdjusted = rtStatus === 'live' ? Math.max(refreshMs, 90000) : refreshMs * coarse;
     return isTabVisible ? liveAdjusted : Math.max(liveAdjusted, 120000);
-  }, [isTabVisible, refreshMs, rtStatus]);
+  }, [isTabVisible, refreshMs, rtStatus, tab]);
 
   useEffect(() => {
     if (rtStatus === 'live') return undefined;
     const id = setInterval(() => {
       if (pauseDataRefreshForTaskOverlaysRef.current) return;
+      if (document.visibilityState === 'hidden') return;
       fetchAll();
     }, pollingIntervalMs);
     return () => clearInterval(id);
   }, [fetchAll, pollingIntervalMs, rtStatus]);
+
+  /** En quittant un onglet « secondaire », on refetch une fois pour éviter des données trop vieilles à l’arrivée sur carte / tâches / visite. */
+  useEffect(() => {
+    const prev = prevTabForPollingRef.current;
+    prevTabForPollingRef.current = tab;
+    const wasCoarse = POLLING_COARSE_TABS.has(prev);
+    const isCoarse = POLLING_COARSE_TABS.has(tab);
+    if (wasCoarse && !isCoarse) void fetchAll();
+  }, [tab, fetchAll]);
 
   const updateZone = async (id, data) => {
     await api(`/api/zones/${id}`, 'PUT', data);
