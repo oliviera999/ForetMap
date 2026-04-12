@@ -10,7 +10,11 @@ const { emitGardenChanged } = require('../lib/realtime');
 const { saveBase64ToDisk, deleteFile } = require('../lib/uploads');
 const { getNamedMemoryTtlCache } = require('../lib/memoryTtlCache');
 const { applyDerivedGroup4IfEmpty } = require('../lib/plantGroup4');
-const { buildSpeciesAutofill } = require('../lib/speciesAutofill');
+const {
+  buildSpeciesAutofill,
+  parseAutofillSourcesQueryParam,
+  sourcesAllowedCacheFingerprint,
+} = require('../lib/speciesAutofill');
 
 const router = express.Router();
 const plantsListCache = getNamedMemoryTtlCache('plants:list:v1', { ttlMs: 20000, maxEntries: 5 });
@@ -679,9 +683,11 @@ router.get('/autofill', requirePermission('plants.manage', { needsElevation: tru
 
     const hintScientific = asTrimmedString(req.query?.hint_scientific).slice(0, 120);
     const hintName = asTrimmedString(req.query?.hint_name).slice(0, 120);
+    const sourcesAllowed = parseAutofillSourcesQueryParam(req.query?.sources);
+    const sourcesFp = sourcesAllowedCacheFingerprint(sourcesAllowed);
 
     const hintsPart = `${hintScientific.toLowerCase()}\x1e${hintName.toLowerCase()}`;
-    const cacheKey = crypto.createHash('sha256').update(`${query.toLowerCase()}\x1e${hintsPart}`).digest('hex').slice(0, 48);
+    const cacheKey = crypto.createHash('sha256').update(`${query.toLowerCase()}\x1e${hintsPart}\x1e${sourcesFp}`).digest('hex').slice(0, 48);
     const cached = plantsAutofillCache.get(cacheKey);
     if (cached) return res.json(cached);
 
@@ -689,7 +695,7 @@ router.get('/autofill', requirePermission('plants.manage', { needsElevation: tru
     const hints = {};
     if (hintScientific) hints.scientific_name = hintScientific;
     if (hintName) hints.name = hintName;
-    const payload = await buildSpeciesAutofill(query, { budgetMs: 12000, hints });
+    const payload = await buildSpeciesAutofill(query, { budgetMs: 12000, hints, sourcesAllowed });
     const photoValidationPayload = {};
     for (const photo of payload?.photos || []) {
       if (!PHOTO_FIELDS.includes(photo.field)) continue;

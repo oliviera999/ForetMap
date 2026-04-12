@@ -232,6 +232,22 @@ const SPECIES_PREFILL_FIELD_LABELS = {
   photo_harvest_part: 'Photo partie récoltée',
 };
 
+/** Sources externes pré-saisie (ids alignés sur `GET /api/plants/autofill?sources=`). */
+const SPECIES_PREFILL_SOURCE_CHECKBOXES = [
+  { id: 'wikipedia', label: 'Wikipedia (FR)' },
+  { id: 'wikidata', label: 'Wikidata' },
+  { id: 'gbif', label: 'GBIF (taxonomie)' },
+  { id: 'gbif_traits', label: 'GBIF — descriptions / traits' },
+  { id: 'gbif_vernacular', label: 'GBIF — noms vernaculaires' },
+  { id: 'inaturalist', label: 'iNaturalist' },
+  { id: 'catalogue_of_life', label: 'Catalogue of Life' },
+  { id: 'wikipedia_en', label: 'Wikipedia (EN, secours)' },
+  { id: 'wikipedia_heuristic', label: 'Heuristiques (extrait FR)' },
+  { id: 'trefle', label: 'Trefle' },
+  { id: 'openai', label: 'OpenAI' },
+  { id: 'plantnet', label: 'Pl@ntNet' },
+];
+
 /** Champs photo du formulaire (ordre affichage upload + menu pré-saisie). */
 const PLANT_PHOTO_FIELD_OPTIONS = [
   { key: 'photo_species', label: 'Photo espèce' },
@@ -666,6 +682,9 @@ function PlantEditForm({ title, form, setForm, onSave, onCancel, saving, plantId
   const [prefillPhotoSelections, setPrefillPhotoSelections] = useState({});
   /** Clés `${field}:${idx}` pour masquer l’aperçu image après erreur de chargement. */
   const [prefillThumbBroken, setPrefillThumbBroken] = useState({});
+  const [prefillSources, setPrefillSources] = useState(() =>
+    Object.fromEntries(SPECIES_PREFILL_SOURCE_CHECKBOXES.map((o) => [o.id, true])),
+  );
 
   useEffect(() => {
     setPrefillThumbBroken({});
@@ -719,6 +738,11 @@ function PlantEditForm({ title, form, setForm, onSave, onCancel, saving, plantId
       onToast?.('Indique un nom (ou nom scientifique) avec au moins 2 caractères.');
       return;
     }
+    const selectedSourceIds = SPECIES_PREFILL_SOURCE_CHECKBOXES.filter((o) => prefillSources[o.id]).map((o) => o.id);
+    if (selectedSourceIds.length === 0) {
+      onToast?.('Coche au moins une source pour la pré-saisie.');
+      return;
+    }
     setPrefillLoading(true);
     setPrefillError('');
     try {
@@ -728,6 +752,9 @@ function PlantEditForm({ title, form, setForm, onSave, onCancel, saving, plantId
       const nameHint = String(form?.name || '').trim();
       if (sciHint) hintParams.set('hint_scientific', sciHint.slice(0, 120));
       if (nameHint) hintParams.set('hint_name', nameHint.slice(0, 120));
+      if (selectedSourceIds.length < SPECIES_PREFILL_SOURCE_CHECKBOXES.length) {
+        hintParams.set('sources', selectedSourceIds.join(','));
+      }
       const data = await api(`/api/plants/autofill?${hintParams.toString()}`);
       setPrefillResult(data || null);
 
@@ -845,6 +872,32 @@ function PlantEditForm({ title, form, setForm, onSave, onCancel, saving, plantId
       <div className="field"><label>Nom *</label>
         <input value={form.name} onChange={set('name')} placeholder="Ex: Aubergine"/>
       </div>
+      <details className="plant-more" style={{ marginBottom: 8 }}>
+        <summary style={{ cursor: 'pointer', fontSize: '.88rem' }}>Sources à interroger</summary>
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))',
+            gap: 6,
+            marginTop: 8,
+          }}
+        >
+          {SPECIES_PREFILL_SOURCE_CHECKBOXES.map((row) => (
+            <label
+              key={row.id}
+              style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '.8rem', color: '#333' }}
+            >
+              <input
+                type="checkbox"
+                checked={!!prefillSources[row.id]}
+                onChange={() => setPrefillSources((prev) => ({ ...prev, [row.id]: !prev[row.id] }))}
+              />
+              <span>{row.label}</span>
+              <small style={{ color: '#888' }}>({row.id})</small>
+            </label>
+          ))}
+        </div>
+      </details>
       <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', marginBottom: 8 }}>
         <button
           type="button"
