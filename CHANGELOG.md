@@ -5,7 +5,44 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé
+- **Visite — validation packs mascotte en prod** : l’API ne dépend plus uniquement de **`src/utils/mascotPack.js`** (absent des déploiements sans sources) ; copie sous **`lib/visit-pack/`** synchronisée à chaque **`npm run build`** (`scripts/sync-visit-pack-server-lib.js`, script **`npm run sync:visit-pack-lib`**), résolution **`src`** puis **`lib`**. **`routes/visit.js`**, **`scripts/build-safe.js`**, **`package.json`**, **`docs/MASCOT_PACK.md`**.
+
+### Ajouté
+- **Visite — éditeur WYSIWYG packs mascotte** : édition visuelle (métadonnées, états, vignettes, médiathèque avec **`GET /api/visit/mascot-packs/:id/assets`**, upload/suppression PNG), onglet **JSON / export** ; onglet prof **« Packs mascotte »** ; bouton **« Ouvrir dans l’onglet Packs mascotte »** depuis la Visite. **`MascotPackWysiwygEditor.jsx`**, **`MascotPackPreviewPanel.jsx`**, **`mascotPackEditorModel.js`**, **`VisitMascotPackManager.jsx`**, **`MascotPackToolView.jsx`**, **`App.jsx`**, **`visit-views.jsx`**, **`routes/visit.js`**, **`index.css`**, **`docs/API.md`**, **`docs/MASCOT_PACK.md`**, **`docs/LOCAL_DEV.md`**, tests.
+- **Tests — pré-saisie biodiversité** : fichier **`tests/species-autofill-common-species.test.js`** (suite `describe`) : cinq espèces vernaculaires courantes avec **HTTP mocké** (Wikipedia, Wikidata, GBIF, CoL, iNaturalist), désactivation temporaire des extensions **Pl@ntNet / OpenAI / Trefle** pour ne pas dépendre du `.env` ; cas **sources** restreintes (`wikipedia` + `gbif`) ; test **`resolvePlantnetAlignName`** avec indices formulaire.
+- **Tests API** : **`GET /api/plants/autofill?q=aubergine&sources=gbif,openai`** avec **fetch mocké** (GBIF + OpenAI), activation temporaire **`SPECIES_AUTOFILL_OPENAI`**, contrôle des champs attribués à OpenAI vs **`OPENAI_ALLOWED_FIELD_KEYS`**. **`tests/api.test.js`**.
+
 ### Modifié
+- **Visite — packs mascotte** : **`VisitMascotPackManager`** chargé à la demande (`React.lazy` + **`Suspense`**) dans l’onglet **Packs mascotte** et la modale Visite, pour alléger le chunk **`main`**. **`App.jsx`**, **`visit-views.jsx`**, build **`dist/`**.
+- **Configuration** : `.env.example` précise que Wikipedia / GBIF / Wikidata (pré-saisie) ne requièrent pas de variables d’environnement.
+
+### Corrigé
+- **Biodiversité — pré-saisie OpenAI** : lorsque le **contexte agrégé** est très court (ex. extension seule sans Wikipedia/GBIF), consignes **mode indicatif pédagogique** pour éviter un JSON vide sur des requêtes vernaculaires courantes (aubergine, etc.) ; température légèrement relevée dans ce cas ; avertissement dédié. **`lib/speciesAutofillOpenAi.js`**, **`docs/SPECIES_AUTOFILL_EXTENSIONS.md`**.
+
+### Ajouté
+- **Paramètres admin — pré-saisie espèces** : route **`GET /api/settings/admin/system/species-autofill-providers-test`** (auto-test HTTP minimal Pl@ntNet + OpenAI, sans exposer les clés) et bouton **Test pré-saisie (Pl@ntNet / OpenAI)** dans Actions système. **`lib/speciesAutofillProviderSelfTest.js`**, **`routes/settings.js`**, **`settings-admin-views.jsx`**, tests, **`docs/API.md`**, **`docs/SPECIES_AUTOFILL_EXTENSIONS.md`**.
+
+### Modifié
+- **Visite — outil pack mascotte** : le bouton et la modale ne sont plus réservés au mode dev Vite ; libellé **« Boîte à outils pack mascotte »** ; **`visit-views.jsx`**, **`MascotPackToolView.jsx`**, **`docs/MASCOT_PACK.md`**, **`docs/LOCAL_DEV.md`**.
+
+### Corrigé
+- **Visite — API packs mascotte** : les **POST/DELETE** d’assets et **GET /api/visit/content** appliquent le même mappage d’erreurs SQL (table absente, contrainte) et incluent **`requestId`** dans les réponses 500 pour corréler avec les logs serveur. **`routes/visit.js`**.
+- **Biodiversité — pré-saisie (`sources` restreint)** : avec seulement **Pl@ntNet** ou **OpenAI** (sans GBIF/Wikidata), le nom passé à l’align Pl@ntNet et le contexte LLM utilisent désormais **`hint_name`** et le texte **`q`** en repli, et la requête OpenAI inclut les **indices formulaire** — évite l’absence totale de proposition pour un nom courant type « tomate ». **`lib/speciesAutofill.js`**, **`lib/speciesAutofillOpenAi.js`**, tests, **`docs/API.md`**.
+
+### Ajouté
+- **Visite — mascotte pack v1 (`sprite_cut`)** : schéma JSON (`docs/MASCOT_PACK.md`, `docs/mascot-pack.example.json`), Zod **`src/utils/mascotPack.js`** (dont **`allowedFramesBasePrefixes`** pour assets `/api/visit/mascot-packs/...`), CLI **`npm run mascot:pack:validate`**, page **`/mascot-pack-tool.html`**, runtime **`VisitMapMascotSpriteCut`** ; **persist serveur** : table **`visit_mascot_packs`**, migration **`072_visit_mascot_packs.sql`**, **`GET /api/visit/content`** (`mascot_packs`), CRUD + assets **`routes/visit.js`**, export **`hasPermission`**, **`VisitMascotPackManager.jsx`**, **`visitMascotPackExtras.js`**, fusion catalogue (**`visitMascotCatalog.js`**, **`useVisitMascotStateMachine`**, **`VisitMapMascotRenderer.jsx`**, **`visit-views.jsx`**, **`MascotPackToolView`** mode contrôlé), **`docs/API.md`** ; tests API / **`mascot-pack`** / e2e **`visit-mascot.spec.js`** ; bouton prof **« Boîte à outils pack mascotte »** (`index.css`).
+- **Biodiversité — pré-saisie** : paramètre **`GET /api/plants/autofill?sources=`** (liste CSV d’identifiants blanc-listés) et cases à cocher **Sources à interroger** dans le formulaire plante pour n’appeler que les sources choisies ; la clé de cache inclut le filtre normalisé. **`routes/plants.js`**, **`lib/speciesAutofill.js`**, **`foretmap-views.jsx`**, tests, **`docs/API.md`**, **`docs/SPECIES_AUTOFILL_EXTENSIONS.md`**.
+
+### Corrigé
+- **Visite — Renard 2 (`sprite_cut`)** : le fallback SVG **`backpackFox2`** n’est plus rendu sous les PNG découpés (il ne s’affiche que si aucune image de l’état n’est utilisable), pour éviter qu’il ne transparaisse aux bords des cellules.
+
+### Ajouté
+- **Visite — mascotte « Renard 2 » (sprites découpés)** : entrée catalogue **`renard2-cut-spritesheet`** (`renderer: sprite_cut`, pas d’atlas), images **`/assets/mascots/renard2-cut/frames/cell-r*-c*.png`**, manifeste **`src/data/renard2-cut-manifest.js`**, script **`npm run mascot:renard2-cut`**, composant **`VisitMapMascotSpriteCut.jsx`**, routage dans **`VisitMapMascotRenderer.jsx`**, états preview via **`getVisitMascotSupportedStates`** et **`useVisitMascotStateMachine`**, fallback SVG **`backpackFox2`**, styles **`index.css`**, tests catalogue et e2e sélecteur prof, doc **`docs/VISIT_MAP_GEOMETRY.md`**.
+
+### Modifié
+- **Skill `foretmap-mascot-catalog`** : documenter le renderer **`sprite_cut`** et le composant **`VisitMapMascotSpriteCut.jsx`** (checklist des états).
+- **Biodiversité — pré-saisie (`GET /api/plants/autofill`)** : **`hint_scientific`** / **`hint_name`**, cache par empreinte **`q`+hints**, graine scientifique et alignement **Pl@ntNet** renforcés, passe **« trous »** (overlay PlantNet puis **OpenAI** `openai_gap` si activé). **`routes/plants.js`**, **`lib/speciesAutofill.js`**, **`lib/speciesAutofillOpenAi.js`**, **`foretmap-views.jsx`**, tests, **`docs/API.md`**, **`docs/SPECIES_AUTOFILL_EXTENSIONS.md`**.
 - **Visite — mascotte renard sac (assets)** : le script `fox-backpack-extract-and-compose.cjs` accepte **`--import`** (chemin PNG optionnel, sinon `FORETMAP_FOX_SOURCE` ou planche Gemini « ai-brush » du workspace Cursor) pour remplacer l’atlas par la **dernière planche** avant découpe ; rappel : le navigateur ne charge que **`fox-backpack-spritesheet.png`**, pas les fichiers `cells/`. Rebuild **`dist/`** après mise à jour si le serveur sert la prod locale.
 - **Biodiversité — pré-saisie OpenAI** : **contexte enrichi** (Wikipedia FR, Wikidata, GBIF, traits GBIF, iNaturalist / Wikipedia EN, vernaculaires GBIF) pour de meilleures propositions ; champ autorisé **`second_name`** (consigne anti-invention) ; limite de contexte élargie. **`lib/speciesAutofill.js`**, **`lib/speciesAutofillOpenAi.js`**, tests, **`docs/SPECIES_AUTOFILL_EXTENSIONS.md`**, **`docs/API.md`**.
 - **Visite — photos média** : vignettes en **`object-fit: contain`** (image entière dans le cadre, bandes neutres si besoin) ; **clic** → **`Lightbox`** plein écran (composant partagé avec la carte) ; le **retour navigateur** ferme l’aperçu. **`visit-views.jsx`**, **`index.css`**.
@@ -16,7 +53,8 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ### Corrigé
 - **Aide contextuelle (?)** : le panneau s’affiche via **`createPortal` sur `document.body`** avec **`z-index: 380`** (même cause que l’aperçu tutoriel : ancêtres `overflow` / vue scindée / carte). **`HelpPanel.jsx`**, **`index.css`**, build **`dist/`**.
-- **Visite — panneau latéral** : **`map_lead_photo`** à nouveau affichée (API visite) dans l’ordre sous-titre → photo carte → description courte visite → médias visite ; pas de **description zone** ni **note repère** « carte » dans cet onglet (réservées à la carte). **`visit-views.jsx`**.
+- **Visite — panneau latéral** : la description « carte » des zones et la note « carte » des repères ne s’affichent plus dans l’onglet Visite ; seuls les textes et médias **dédiés visite** restent visibles (les notes carte restent éditables depuis l’onglet Carte). **`visit-views.jsx`**.
+- **Visite — panneau latéral (régression)** : réaffichage de **`map_lead_photo`** dans l’UI (photo la plus récente des galeries carte, déjà fournie par l’API) dans l’ordre documenté ; suppression des encarts **description zone** / **note repère** réservés au prof dans cet onglet (contenu carte uniquement). **`visit-views.jsx`**.
 - **Biodiversité — pré-saisie prod (HTTP 503 non JSON)** : la route attendait trop longtemps (Wikidata jusqu’à **5** requêtes entité **séquentielles** × timeout) ; désormais **budget wall-clock** (~12 s), timeouts HTTP **dégressifs**, plafond par requête, et chargements entité Wikidata en **parallèle** pour rester sous les délais des reverse proxies. **`lib/speciesAutofill.js`**, **`routes/plants.js`**, **`docs/API.md`**.
 
 - **Visite — aperçu mascotte (prof/admin)** : les boutons de comportement déclenchent désormais la bonne animation **Rive** (fusion des noms d’animation par défaut pour tous les états avec le catalogue, ex. `running` → clip de marche/course) ; les **spritesheets** remontent le nœud animé au changement d’état pour relancer la CSS `steps()` ; le cadre d’aperçu applique les mêmes **mouvements de coque** (respiration / marche / rebond) que sur la carte selon l’état choisi.
