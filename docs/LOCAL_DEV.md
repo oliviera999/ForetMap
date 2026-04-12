@@ -344,7 +344,15 @@ npm run test:load:socketio-smoke
 
 Variables utiles : `FORETMAP_SOCKETIO_LOAD_CLIENTS` (défaut 5), `FORETMAP_SOCKETIO_LOAD_DURATION_MS` (défaut 30000), `FORETMAP_SOCKETIO_LOAD_MAP_ID` (défaut `foret`), `FORETMAP_SOCKETIO_PATH` (défaut `/socket.io`), `BASE_URL` / `FORETMAP_SOCKETIO_LOAD_BASE_URL`. Pour enchaîner un **GET /api/tasks** par client après connexion : `set FORETMAP_SOCKETIO_LOAD_REST_BURST=1`.
 
-Voir aussi **`docs/EXPLOITATION.md`** (section temps réel / Passenger) et **`docs/EVOLUTION.md`** (critères de décision hébergement).
+**Sonde transport prod (HTTP/1.1 vs HTTP/2)** : depuis la racine du dépôt (avec `npm install` déjà fait pour **`socket.io-client`** en devDependency) :
+
+```bash
+npm run prod:transport-probe
+```
+
+Base URL : `FORETMAP_PROD_BASE_URL` ou `DEPLOY_BASE_URL`, ou argument `--base-url`. Pour tester une courte connexion Socket.IO en polling : définir aussi **`FORETMAP_TRANSPORT_PROBE_JWT`** ou réutiliser **`FORETMAP_SOCKETIO_LOAD_JWT`**.
+
+Voir aussi **`docs/EXPLOITATION.md`** (section temps réel / Passenger, section **Chrome ERR_HTTP2_PROTOCOL_ERROR**) et **`docs/EVOLUTION.md`** (critères de décision hébergement).
 
 Après `npm run test:load:all`, vous obtenez aussi :
 - `load/reports/light-summary.md`

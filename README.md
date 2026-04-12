@@ -199,7 +199,7 @@ Le script vide les tables MySQL puis recopie toutes les données (zones, biodive
    ```bash
    npm run deploy:check:prod
    ```
-   Voir aussi la checklist complète d'exploitation : [docs/EXPLOITATION.md](docs/EXPLOITATION.md).
+   En cas de **`ERR_HTTP2_PROTOCOL_ERROR`** côté navigateur : **`npm run prod:transport-probe`** (HTTP/1.1 vs HTTP/2). Checklist d’exploitation : [docs/EXPLOITATION.md](docs/EXPLOITATION.md).
 
 ### Variante recommandée: bundle runtime préparé en local (sans npm côté serveur)
 

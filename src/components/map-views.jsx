@@ -347,6 +347,71 @@ function BiodiversitySpeciesOpenLinks({ plants, names, showHeading = true, secti
   );
 }
 
+/** Liste cartes tutoriel (aperçu), alignée sur l’onglet « Tutoriels » des modales zone/repère. */
+function LocationTutorialPreviewList({ tutorials, locationKind, locationId, onOpenTutorialPreview }) {
+  const list = tutorials || [];
+  if (!list.length) {
+    return (
+      <p style={{ color: '#999', fontSize: '.85rem', margin: 0 }}>
+        {locationKind === 'zone' ? 'Aucun tutoriel lié à cette zone.' : 'Aucun tutoriel lié à ce repère.'}
+      </p>
+    );
+  }
+  return (
+    <div style={{ display: 'grid', gap: 12 }}>
+      {list.map((tu) => {
+        const zones = tu.zones_linked || [];
+        const markers = tu.markers_linked || [];
+        const showZones = locationKind === 'marker'
+          ? zones
+          : zones.filter((z) => String(z.id) !== String(locationId));
+        const showMarkers = locationKind === 'zone'
+          ? markers
+          : markers.filter((m) => String(m.id) !== String(locationId));
+        return (
+          <div
+            key={tu.id}
+            style={{
+              border: '1px solid rgba(0,0,0,.08)',
+              borderRadius: 10,
+              padding: '12px 14px',
+              background: 'var(--parchment)',
+            }}
+          >
+            <div style={{ fontWeight: 700, color: 'var(--forest)' }}>
+              {tu.title}
+              {tu.is_active === false ? <span style={{ fontWeight: 400, color: '#94a3b8' }}> (archivé)</span> : null}
+            </div>
+            {tu.summary ? (
+              <p style={{ margin: '8px 0 0', fontSize: '.82rem', color: '#555', lineHeight: 1.45 }}>{tu.summary}</p>
+            ) : null}
+            {showZones.length > 0 ? (
+              <p style={{ margin: '10px 0 0', fontSize: '.76rem', color: '#64748b' }}>
+                <strong>{locationKind === 'marker' ? 'Zones' : 'Autres zones'}</strong> : {showZones.map((z) => z.name).join(', ')}
+              </p>
+            ) : null}
+            {showMarkers.length > 0 ? (
+              <p style={{ margin: '6px 0 0', fontSize: '.76rem', color: '#64748b' }}>
+                <strong>{locationKind === 'zone' ? 'Repères' : 'Autres repères'}</strong> : {showMarkers.map((m) => m.label).join(', ')}
+              </p>
+            ) : null}
+            {tutorialPreviewCanEmbed(tu) && typeof onOpenTutorialPreview === 'function' ? (
+              <button
+                type="button"
+                className="btn btn-primary btn-sm"
+                style={{ marginTop: 10 }}
+                onClick={() => onOpenTutorialPreview(tutorialPreviewPayload(tu))}
+              >
+                📖 Consulter
+              </button>
+            ) : null}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 const FORETMAP_PHOTO_DRAG_MIME = 'application/x-foretmap-zone-marker-photo-id';
 
 function reorderZoneMarkerPhotosByDrop(list, draggedId, dropTargetId) {
@@ -822,6 +887,10 @@ function ZoneInfoModal({ zone, plants, tasks, tutorials = [], isTeacher, student
   const showTutorialsTab = isTeacher || linkedTutorialsVisible.length > 0;
   const livingBeingsFromTasksHere = livingBeingNamesFromTasksAtLocation('zone', zone.id, tasks);
   const livingBeingsOnlyOnTasks = livingBeingsFromTasksHere.filter((n) => !zoneLivingNames.includes(n));
+  const visitAsideTutorials = (isTeacher ? linkedTutorialsAll : linkedTutorialsVisible).length > 0;
+  const visitAsideSpecies = !zone.special && (zoneLivingNames.length > 0 || livingBeingsOnlyOnTasks.length > 0);
+  const showVisitAsideBlock = !!(zone.visit_subtitle || zone.visit_short_description || zone.visit_details_text
+    || visitAsideSpecies || visitAsideTutorials);
   const assignableTutorials = (tutorials || []).filter((tu) => (
     tu.is_active !== false
     && !tutorialLocationIds(tu).zoneIds.some((id) => String(id) === String(zone.id))
@@ -971,38 +1040,13 @@ function ZoneInfoModal({ zone, plants, tasks, tutorials = [], isTeacher, student
 
         {tab === 'info' && (
           <div className="fade-in">
-            {!zone.special && (() => {
-              const names = orderedLivingBeingsForForm(zone.living_beings_list || zone.living_beings, zone.current_plant);
-              if (names.length === 0) return null;
-              return onOpenPlantCatalogPreview ? (
-                <BiodiversitySpeciesOpenLinks plants={plants} names={names} onOpenPlant={onOpenPlantCatalogPreview} />
-              ) : (
-                <LivingBeingsCatalogPanel plants={plants} names={names} />
-              );
-            })()}
-            {!zone.special && livingBeingsOnlyOnTasks.length > 0 && (
-              <div style={{ marginTop: zoneLivingNames.length ? 14 : 0 }}>
-                <h4 style={{ margin: '0 0 8px', fontSize: '.88rem', color: 'var(--forest)' }}>Également dans les missions</h4>
-                {onOpenPlantCatalogPreview ? (
-                  <BiodiversitySpeciesOpenLinks
-                    plants={plants}
-                    names={livingBeingsOnlyOnTasks}
-                    showHeading={false}
-                    sectionTitle="Également dans les missions"
-                    onOpenPlant={onOpenPlantCatalogPreview}
-                  />
-                ) : (
-                  <LivingBeingsCatalogPanel plants={plants} names={livingBeingsOnlyOnTasks} showHeading={false} />
-                )}
-              </div>
-            )}
             {zone.description && (
               <div style={{ background: '#f0fdf4', borderRadius: 10, padding: '10px 14px', marginBottom: 12,
                 border: '1px solid var(--mint)', fontSize: '.88rem', color: '#333', lineHeight: 1.6 }}>
                 {zone.description}
               </div>
             )}
-            {(zone.visit_subtitle || zone.visit_short_description || zone.visit_details_text) && (
+            {showVisitAsideBlock && (
               <div style={{ marginBottom: 12 }}>
                 {zone.visit_subtitle && <p className="visit-subtitle" style={{ margin: '0 0 8px' }}>{zone.visit_subtitle}</p>}
                 {zone.visit_short_description && (
@@ -1012,6 +1056,59 @@ function ZoneInfoModal({ zone, plants, tasks, tutorials = [], isTeacher, student
                   <details className="visit-details" style={{ marginTop: 8 }}>
                     <summary>{zone.visit_details_title || 'Détails'}</summary>
                     <p style={{ margin: '8px 0 0', fontSize: '.86rem', lineHeight: 1.55 }}>{zone.visit_details_text}</p>
+                  </details>
+                )}
+                {visitAsideSpecies && (
+                  <details className="visit-details" style={{ marginTop: 8 }}>
+                    <summary>Biodiversité</summary>
+                    <div style={{ marginTop: 8 }}>
+                      {zoneLivingNames.length > 0 && (
+                        <div style={{ marginBottom: livingBeingsOnlyOnTasks.length ? 14 : 0 }}>
+                          {zoneLivingNames.length > 1 || livingBeingsOnlyOnTasks.length > 0 ? (
+                            <h4 style={{ margin: '0 0 8px', fontSize: '.82rem', color: 'var(--forest)' }}>Sur cette zone</h4>
+                          ) : null}
+                          {onOpenPlantCatalogPreview ? (
+                            <BiodiversitySpeciesOpenLinks
+                              plants={plants}
+                              names={zoneLivingNames}
+                              showHeading={false}
+                              onOpenPlant={onOpenPlantCatalogPreview}
+                            />
+                          ) : (
+                            <LivingBeingsCatalogPanel plants={plants} names={zoneLivingNames} showHeading={false} />
+                          )}
+                        </div>
+                      )}
+                      {livingBeingsOnlyOnTasks.length > 0 && (
+                        <div>
+                          <h4 style={{ margin: '0 0 8px', fontSize: '.82rem', color: 'var(--forest)' }}>Également dans les missions</h4>
+                          {onOpenPlantCatalogPreview ? (
+                            <BiodiversitySpeciesOpenLinks
+                              plants={plants}
+                              names={livingBeingsOnlyOnTasks}
+                              showHeading={false}
+                              sectionTitle="Également dans les missions"
+                              onOpenPlant={onOpenPlantCatalogPreview}
+                            />
+                          ) : (
+                            <LivingBeingsCatalogPanel plants={plants} names={livingBeingsOnlyOnTasks} showHeading={false} />
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </details>
+                )}
+                {visitAsideTutorials && (
+                  <details className="visit-details" style={{ marginTop: 8 }}>
+                    <summary>Tuto</summary>
+                    <div style={{ marginTop: 8 }}>
+                      <LocationTutorialPreviewList
+                        tutorials={isTeacher ? linkedTutorialsAll : linkedTutorialsVisible}
+                        locationKind="zone"
+                        locationId={zone.id}
+                        onOpenTutorialPreview={onOpenTutorialPreview}
+                      />
+                    </div>
                   </details>
                 )}
               </div>
@@ -1030,7 +1127,7 @@ function ZoneInfoModal({ zone, plants, tasks, tutorials = [], isTeacher, student
               && orderedLivingBeingsForForm(zone.living_beings_list || zone.living_beings, zone.current_plant).length === 0
               && livingBeingsOnlyOnTasks.length === 0
               && !zone.description && zone.history?.length === 0
-              && !zone.visit_subtitle && !zone.visit_short_description && !zone.visit_details_text && (
+              && !showVisitAsideBlock && (
               <p style={{ color: '#bbb', fontSize: '.85rem', fontStyle: 'italic', textAlign: 'center', padding: '20px 0' }}>
                 Zone vide — aucune information pour l'instant.
               </p>
@@ -1583,6 +1680,10 @@ function MarkerModal({
   const markerLivingNamesOrdered = orderedLivingBeingsForForm(marker.living_beings_list || marker.living_beings, marker.plant_name);
   const livingBeingsFromTasksHere = livingBeingNamesFromTasksAtLocation('marker', marker.id, tasks);
   const livingBeingsOnlyOnTasks = livingBeingsFromTasksHere.filter((n) => !markerLivingNamesOrdered.includes(n));
+  const visitAsideTutorials = !isNew && (isTeacher ? linkedTutorialsAll : linkedTutorialsVisible).length > 0;
+  const visitAsideSpecies = !isNew && (markerLivingNamesOrdered.length > 0 || livingBeingsOnlyOnTasks.length > 0);
+  const showVisitAsideBlock = !isNew && !!(marker.visit_subtitle || marker.visit_short_description || marker.visit_details_text
+    || visitAsideSpecies || visitAsideTutorials);
   const assignableTutorials = (tutorials || []).filter((tu) => (
     tu.is_active !== false
     && !tutorialLocationIds(tu).markerIds.some((id) => String(id) === String(marker.id))
@@ -2101,38 +2202,13 @@ function MarkerModal({
         )}
         {tab === 'info' && (
           <div className="fade-in">
-            {(() => {
-              const names = orderedLivingBeingsForForm(marker.living_beings_list || marker.living_beings, marker.plant_name);
-              if (names.length === 0) return null;
-              return onOpenPlantCatalogPreview ? (
-                <BiodiversitySpeciesOpenLinks plants={plants} names={names} onOpenPlant={onOpenPlantCatalogPreview} />
-              ) : (
-                <LivingBeingsCatalogPanel plants={plants} names={names} />
-              );
-            })()}
-            {livingBeingsOnlyOnTasks.length > 0 && (
-              <div style={{ marginTop: markerLivingNamesOrdered.length ? 14 : 0 }}>
-                <h4 style={{ margin: '0 0 8px', fontSize: '.88rem', color: 'var(--forest)' }}>Également dans les missions</h4>
-                {onOpenPlantCatalogPreview ? (
-                  <BiodiversitySpeciesOpenLinks
-                    plants={plants}
-                    names={livingBeingsOnlyOnTasks}
-                    showHeading={false}
-                    sectionTitle="Également dans les missions"
-                    onOpenPlant={onOpenPlantCatalogPreview}
-                  />
-                ) : (
-                  <LivingBeingsCatalogPanel plants={plants} names={livingBeingsOnlyOnTasks} showHeading={false} />
-                )}
-              </div>
-            )}
             {marker.note && (
               <div style={{ background: '#f0fdf4', borderRadius: 10, padding: '10px 14px', marginBottom: 12,
                 border: '1px solid var(--mint)', fontSize: '.88rem', color: '#333', lineHeight: 1.6 }}>
                 {marker.note}
               </div>
             )}
-            {(marker.visit_subtitle || marker.visit_short_description || marker.visit_details_text) && (
+            {showVisitAsideBlock && (
               <div style={{ marginBottom: 12 }}>
                 {marker.visit_subtitle && <p className="visit-subtitle" style={{ margin: '0 0 8px' }}>{marker.visit_subtitle}</p>}
                 {marker.visit_short_description && (
@@ -2144,12 +2220,65 @@ function MarkerModal({
                     <p style={{ margin: '8px 0 0', fontSize: '.86rem', lineHeight: 1.55 }}>{marker.visit_details_text}</p>
                   </details>
                 )}
+                {visitAsideSpecies && (
+                  <details className="visit-details" style={{ marginTop: 8 }}>
+                    <summary>Biodiversité</summary>
+                    <div style={{ marginTop: 8 }}>
+                      {markerLivingNamesOrdered.length > 0 && (
+                        <div style={{ marginBottom: livingBeingsOnlyOnTasks.length ? 14 : 0 }}>
+                          {markerLivingNamesOrdered.length > 1 || livingBeingsOnlyOnTasks.length > 0 ? (
+                            <h4 style={{ margin: '0 0 8px', fontSize: '.82rem', color: 'var(--forest)' }}>Sur ce repère</h4>
+                          ) : null}
+                          {onOpenPlantCatalogPreview ? (
+                            <BiodiversitySpeciesOpenLinks
+                              plants={plants}
+                              names={markerLivingNamesOrdered}
+                              showHeading={false}
+                              onOpenPlant={onOpenPlantCatalogPreview}
+                            />
+                          ) : (
+                            <LivingBeingsCatalogPanel plants={plants} names={markerLivingNamesOrdered} showHeading={false} />
+                          )}
+                        </div>
+                      )}
+                      {livingBeingsOnlyOnTasks.length > 0 && (
+                        <div>
+                          <h4 style={{ margin: '0 0 8px', fontSize: '.82rem', color: 'var(--forest)' }}>Également dans les missions</h4>
+                          {onOpenPlantCatalogPreview ? (
+                            <BiodiversitySpeciesOpenLinks
+                              plants={plants}
+                              names={livingBeingsOnlyOnTasks}
+                              showHeading={false}
+                              sectionTitle="Également dans les missions"
+                              onOpenPlant={onOpenPlantCatalogPreview}
+                            />
+                          ) : (
+                            <LivingBeingsCatalogPanel plants={plants} names={livingBeingsOnlyOnTasks} showHeading={false} />
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </details>
+                )}
+                {visitAsideTutorials && (
+                  <details className="visit-details" style={{ marginTop: 8 }}>
+                    <summary>Tuto</summary>
+                    <div style={{ marginTop: 8 }}>
+                      <LocationTutorialPreviewList
+                        tutorials={isTeacher ? linkedTutorialsAll : linkedTutorialsVisible}
+                        locationKind="marker"
+                        locationId={marker.id}
+                        onOpenTutorialPreview={onOpenTutorialPreview}
+                      />
+                    </div>
+                  </details>
+                )}
               </div>
             )}
             {orderedLivingBeingsForForm(marker.living_beings_list || marker.living_beings, marker.plant_name).length === 0
               && livingBeingsOnlyOnTasks.length === 0
               && !marker.note
-              && !marker.visit_subtitle && !marker.visit_short_description && !marker.visit_details_text && (
+              && !showVisitAsideBlock && (
               <p style={{ color: '#bbb', fontSize: '.85rem', fontStyle: 'italic', textAlign: 'center', padding: '20px 0' }}>
                 Aucune information pour l’instant.
               </p>

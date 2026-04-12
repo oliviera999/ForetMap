@@ -1,6 +1,6 @@
 # Problemes potentiels du site ForetMap
 
-Date de reference: 2026-03-26
+Date de reference: 2026-04-12
 
 Ce document liste les principaux problemes potentiels identifies a ce jour.
 Il consolide les constats des audits internes, notamment:
@@ -24,6 +24,7 @@ Il consolide les constats des audits internes, notamment:
 - `R5` - Logique de compression image dupliquee cote frontend.
 - `R6` - Gouvernance des URLs externes plantes a renforcer (allowlist / verifications periodiques).
 - `R7` - Moderation explicite des photos eleves a clarifier selon besoin pedagogique.
+- `R9` - Risque de rupture HTTP/2 / WAF (Tiger Protect) sur o2switch : erreurs type Chrome **`ERR_HTTP2_PROTOCOL_ERROR`** sur `/socket.io` ou `/api/*` (voir **`docs/EXPLOITATION.md`**, section *Chrome ERR_HTTP2_PROTOCOL_ERROR*).
 
 ## Basse priorite
 
