@@ -21,9 +21,18 @@ Ces sources sont **désactivées par défaut** : aucune clé API n’est requise
 
 ## Pl@ntNet (`lib/speciesAutofillPlantnet.js`)
 
-- **Variables** : `PLANTNET_API_KEY` (clé [my.plantnet.org](https://my.plantnet.org/)), **`SPECIES_AUTOFILL_PLANTNET=1`**, optionnel **`PLANTNET_PROJECT`** (défaut **`k-world-flora`**).
-- **Comportement** : `GET …/v2/projects/{project}/species/align?api-key=…&name=<nom scientifique>` ; si l’API renvoie un **nom commun** (`bestMatch.commonName` ou équivalent), proposition pour **`second_name`** (confiance **0,42**). En cas d’échec HTTP ou de payload inattendu, retour silencieux `null`.
-- **Conditions** : respecter les quotas et la documentation officielle Pl@ntNet ; ne pas exposer la clé côté client.
+- **Variables** :
+  - `PLANTNET_API_KEY` (clé [my.plantnet.org](https://my.plantnet.org/)) ;
+  - **`SPECIES_AUTOFILL_PLANTNET=1`** ;
+  - optionnel **`PLANTNET_PROJECT`** (défaut **`k-world-flora`**) ;
+  - optionnel **`PLANTNET_LANG`** (défaut **`fr`**, passé à `align` et à la liste `species` pour les noms vernaculaires) ;
+  - optionnel **`PLANTNET_ALIGN_AUTHORSHIP`** : `1` / `0` pour forcer le paramètre `authorship` de l’alignement (sinon heuristique sur le nom) ;
+  - optionnel **`SPECIES_AUTOFILL_PLANTNET_NO_IMAGES=1`** : n’appelle pas `GET …/species?images=true` (économise un appel ; les illustrations peuvent nécessiter un plan **pro** selon la doc Pl@ntNet).
+- **Comportement** :
+  1. `GET …/v2/projects/{project}/species/align` avec **`synonyms=true`**, **`lang`**, **`authorship`** : nom accepté, **famille** → **`group_3`**, **genre** → **`group_4`**, **`scientific_name`** si le nom accepté diffère du libellé aligné ; prise en charge des payloads **`bestMatch`** hérités.
+  2. `GET …/species?prefix=<binôme>&images=true&pageSize=8&page=1` : si la réponse contient une ligne dont **`scientificNameWithoutAuthor`** correspond exactement au binôme dérivé du nom accepté, **nom vernaculaire** (priorisation légère FR si `lang` français), **`ecosystem_role`** à partir de **`iucnCategory`**, et **photos** par organe (`flower` → `photo_flower`, `leaf` → `photo_leaf`, `fruit`/`seed` → `photo_fruit`, sinon `photo_species`) avec crédit / licence Pl@ntNet. Si plusieurs lignes sont renvoyées sans correspondance exacte, **aucune** photo ni vernaculaire n’est importé (évite les homonymes).
+- **Confiance** : champs **0,42–0,46** selon présence de photos ; vignettes **0,58** chacune dans `mergeSources`.
+- **Conditions** : respecter les quotas, la mention des auteurs et la doc « [Using images](https://my.plantnet.org/doc/references/using-images) » ; ne pas exposer la clé côté client.
 
 ## Références
 
