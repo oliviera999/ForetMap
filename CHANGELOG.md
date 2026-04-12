@@ -5,6 +5,9 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Ajouté
+- **Tests — pré-saisie biodiversité** : fichier **`tests/species-autofill-common-species.test.js`** (suite `describe`) : cinq espèces vernaculaires courantes avec **HTTP mocké** (Wikipedia, Wikidata, GBIF, CoL, iNaturalist), désactivation temporaire des extensions **Pl@ntNet / OpenAI / Trefle** pour ne pas dépendre du `.env` ; cas **sources** restreintes (`wikipedia` + `gbif`) ; test **`resolvePlantnetAlignName`** avec indices formulaire.
+
 ### Modifié
 - **Configuration** : `.env.example` précise que Wikipedia / GBIF / Wikidata (pré-saisie) ne requièrent pas de variables d’environnement.
 
