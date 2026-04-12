@@ -3,17 +3,32 @@ import { useRive, Layout, Fit, Alignment } from '@rive-app/react-canvas';
 import { VISIT_MASCOT_STATE } from '../utils/visitMascotState.js';
 import { VisitMascotFallbackSvg, DefaultVisitMascotStaticSvg } from './VisitMascotFallbackSvg.jsx';
 
-function pickAnimationName(animationNames = [], mascotState = VISIT_MASCOT_STATE.IDLE, stateAnimations = null) {
-  const names = Array.isArray(animationNames) ? animationNames : [];
-  const byState = stateAnimations && typeof stateAnimations === 'object' ? stateAnimations : {
+/** Repli par état : fusionné avec `rive.stateAnimations` du catalogue (le catalogue peut surcharger une clé, pas besoin de tout redéclarer). */
+function buildStateAnimationLookup(stateAnimations) {
+  const defaults = {
     [VISIT_MASCOT_STATE.IDLE]: ['idle', 'Idle', 'IDLE'],
-    [VISIT_MASCOT_STATE.WALKING]: ['walk', 'Walk', 'walking', 'Walking'],
+    [VISIT_MASCOT_STATE.WALKING]: ['walk', 'Walk', 'walking', 'Walking', 'move', 'Move'],
+    [VISIT_MASCOT_STATE.RUNNING]: ['run', 'Run', 'running', 'sprint', 'move', 'Move', 'walk', 'Walk', 'walking', 'Walking'],
     [VISIT_MASCOT_STATE.HAPPY]: ['happy', 'Happy', 'celebrate', 'Celebrate'],
-    [VISIT_MASCOT_STATE.TALK]: ['talk', 'Talk', 'speaking', 'Speaking'],
-    [VISIT_MASCOT_STATE.ALERT]: ['alert', 'Alert', 'warning', 'Warning'],
+    [VISIT_MASCOT_STATE.HAPPY_JUMP]: ['happy_jump', 'happyJump', 'happy', 'Happy', 'celebrate', 'Celebrate'],
+    [VISIT_MASCOT_STATE.SPIN]: ['spin', 'rotate', 'happy', 'Happy', 'celebrate', 'Celebrate'],
+    [VISIT_MASCOT_STATE.INSPECT]: ['inspect', 'look', 'idle', 'Idle', 'talk', 'Talk'],
+    [VISIT_MASCOT_STATE.MAP_READ]: ['map_read', 'mapRead', 'map', 'read', 'idle', 'Idle', 'talk', 'Talk'],
+    [VISIT_MASCOT_STATE.CELEBRATE]: ['celebrate', 'Celebrate', 'happy', 'Happy', 'victory', 'Victory'],
+    [VISIT_MASCOT_STATE.TALK]: ['talk', 'Talk', 'speaking', 'Speaking', 'idle', 'Idle'],
+    [VISIT_MASCOT_STATE.ALERT]: ['alert', 'Alert', 'warning', 'Warning', 'angry', 'Angry'],
     [VISIT_MASCOT_STATE.ANGRY]: ['angry', 'Angry', 'alert', 'Alert'],
     [VISIT_MASCOT_STATE.SURPRISE]: ['surprise', 'Surprise', 'happy', 'Happy'],
   };
+  if (!stateAnimations || typeof stateAnimations !== 'object') return defaults;
+  return { ...defaults, ...stateAnimations };
+}
+
+function pickAnimationName(animationNames = [], mascotState = VISIT_MASCOT_STATE.IDLE, stateAnimations = null) {
+  const names = Array.isArray(animationNames) ? animationNames : [];
+  const byState = buildStateAnimationLookup(
+    stateAnimations && typeof stateAnimations === 'object' ? stateAnimations : null,
+  );
   const preferredByPriority = [
     ...(byState[mascotState] || []),
     ...(byState[VISIT_MASCOT_STATE.IDLE] || []),
@@ -75,7 +90,7 @@ function VisitMapMascotRive({
       setStatus('fallback-play-error');
       setRiveError(true);
     }
-  }, [rive, riveError, mascotState]);
+  }, [rive, riveError, mascotState, stateAnimations]);
 
   return (
     <div

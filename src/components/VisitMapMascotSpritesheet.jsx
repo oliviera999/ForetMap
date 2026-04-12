@@ -27,6 +27,17 @@ function VisitMapMascotSpritesheet({
     && Number(sheet?.frameHeight) > 0;
   const fallbackSilhouette = mascotConfig?.fallbackSilhouette || 'gnome';
   const spriteStartCol = Math.max(0, Number(stateSpec?.col) || 0);
+  const spriteAnimKey = useMemo(
+    () => [
+      mascotId,
+      mascotState,
+      spriteStartCol,
+      stateSpec?.row ?? 0,
+      stateSpec?.frames ?? 1,
+      stateSpec?.fps ?? 1,
+    ].join('|'),
+    [mascotId, mascotState, spriteStartCol, stateSpec?.row, stateSpec?.frames, stateSpec?.fps],
+  );
 
   return (
     <div
@@ -43,6 +54,7 @@ function VisitMapMascotSpritesheet({
       </div>
       {canRender ? (
         <div
+          key={spriteAnimKey}
           className={`visit-map-mascot-spritesheet${sheet.pixelated ? ' visit-map-mascot-spritesheet--pixelated' : ''}`}
           style={{
             width: `${sheet.frameWidth}px`,

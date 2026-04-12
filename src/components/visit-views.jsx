@@ -639,6 +639,22 @@ function VisitView({
     happy: visitMapMascotHappy,
   });
 
+  const visitMascotPreviewBodyMotionClass = useMemo(() => {
+    const s = visitMascotPreviewState;
+    if (s === VISIT_MASCOT_STATE.WALKING || s === VISIT_MASCOT_STATE.RUNNING) {
+      return 'visit-mascot-preview-body--motion-walk';
+    }
+    if (
+      s === VISIT_MASCOT_STATE.HAPPY
+      || s === VISIT_MASCOT_STATE.CELEBRATE
+      || s === VISIT_MASCOT_STATE.HAPPY_JUMP
+      || s === VISIT_MASCOT_STATE.SPIN
+    ) {
+      return 'visit-mascot-preview-body--motion-happy';
+    }
+    return 'visit-mascot-preview-body--motion-idle';
+  }, [visitMascotPreviewState]);
+
   const visitProgressLabelId = useId();
 
   /** Zones affichées sur le plan (polygone valide) + repères : aligné sur ce que l’utilisateur peut parcourir sur la carte courante. */
@@ -1572,7 +1588,10 @@ function VisitView({
               </select>
             </label>
           </div>
-          <div className="visit-mascot-preview-body" aria-hidden="true">
+          <div
+            className={`visit-mascot-preview-body ${visitMascotPreviewBodyMotionClass}${prefersReducedMotion ? ' visit-mascot-preview-body--reduced-motion' : ''}`}
+            aria-hidden="true"
+          >
             <VisitMapMascotRenderer mascotState={visitMascotPreviewState} mascotId={visitMascotId} />
           </div>
         </section>
