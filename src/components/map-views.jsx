@@ -375,13 +375,16 @@ function PhotoGallery({ zoneId, markerId, isTeacher }) {
 
   const upload = async e => {
     disarmNativeFilePickerGuard();
-    const file = e.target.files[0];
+    const files = Array.from(e.target.files || []).filter((f) => f?.size);
     e.target.value = '';
-    if (!file) return;
+    if (!files.length) return;
+    const captionTrim = caption.trim();
     setUploading(true);
     try {
-      const img = await compressImage(file);
-      await api(listBase, 'POST', { image_data: img, caption });
+      for (const file of files) {
+        const img = await compressImage(file);
+        await api(listBase, 'POST', { image_data: img, caption: captionTrim });
+      }
       setCaption('');
       await load();
     } catch (err) {
@@ -472,7 +475,7 @@ function PhotoGallery({ zoneId, markerId, isTeacher }) {
               {uploading ? 'Envoi...' : '📸 Appareil photo'}
             </button>
           </div>
-          <input ref={galleryFileRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={upload} />
+          <input ref={galleryFileRef} type="file" accept="image/*" multiple style={{ display: 'none' }} onChange={upload} />
           <input ref={cameraFileRef} type="file" accept="image/*" capture="environment" style={{ display: 'none' }} onChange={upload} />
         </div>
       )}
@@ -2834,14 +2837,19 @@ function MapView({ zones, markers, tasks = [], tutorials = [], plants, maps = []
     };
   }, [tutorials]);
 
+  const hadZoneOrMarkerSelectionRef = useRef(false);
   useEffect(() => {
-    if (!embedded || !onLocationTasksFocus) return;
+    if (!onLocationTasksFocus) return;
+    const hasSelection = !!(selectedZone || selectedMarker);
     if (selectedZone) {
       onLocationTasksFocus({ kind: 'zone', id: String(selectedZone.id) });
     } else if (selectedMarker) {
       onLocationTasksFocus({ kind: 'marker', id: String(selectedMarker.id) });
+    } else if (hadZoneOrMarkerSelectionRef.current) {
+      onLocationTasksFocus(null);
     }
-  }, [embedded, selectedZone, selectedMarker, onLocationTasksFocus]);
+    hadZoneOrMarkerSelectionRef.current = hasSelection;
+  }, [selectedZone, selectedMarker, onLocationTasksFocus]);
 
   useEffect(() => {
     setMapImageIdx(0);
