@@ -1,4 +1,6 @@
-import React, { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import React, {
+  useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, lazy, Suspense,
+} from 'react';
 import { createPortal } from 'react-dom';
 import { api, AccountDeletedError, withAppBase } from '../services/api';
 import { compressImage } from '../utils/image';
@@ -24,7 +26,8 @@ import {
 import { safeVisitProgressPayload } from '../utils/visitProgressClient.js';
 import { wheelZoomScaleFactor } from '../utils/mapWheelZoom';
 import VisitMapMascotRenderer from './VisitMapMascotRenderer.jsx';
-import VisitMascotPackManager from './VisitMascotPackManager.jsx';
+
+const VisitMascotPackManagerLazy = lazy(() => import('./VisitMascotPackManager.jsx'));
 import { buildVisitMascotCatalogExtrasFromContent } from '../utils/visitMascotPackExtras.js';
 import { VISIT_MASCOT_STATE, pickMascotDialog } from '../utils/visitMascotState.js';
 import { loadVisitMascotPositionPct, saveVisitMascotPositionPct } from '../utils/visitMascotPositionPersistence.js';
@@ -2071,12 +2074,17 @@ function VisitView({
             >
               ✕
             </button>
-            <VisitMascotPackManager
-              mapId={mapId}
-              mapLabel={currentMap?.label}
-              onPacksChanged={loadData}
-              onForceLogout={onForceLogout}
-            />
+            <Suspense fallback={(
+              <div className="section-sub" style={{ padding: 16 }}>Chargement de l’éditeur…</div>
+            )}
+            >
+              <VisitMascotPackManagerLazy
+                mapId={mapId}
+                mapLabel={currentMap?.label}
+                onPacksChanged={loadData}
+                onForceLogout={onForceLogout}
+              />
+            </Suspense>
           </div>
         </div>,
         document.body,
