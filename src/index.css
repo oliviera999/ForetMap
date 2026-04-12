@@ -2257,6 +2257,10 @@
     .modal-overlay.modal-overlay--tuto-read-ack {
       z-index:460;
     }
+    /* Panneau d’aide (?) : portal `body` ; au-dessus modales 200 / PIN 300, sous aperçu tutoriel 400. */
+    .modal-overlay.modal-overlay--help-panel {
+      z-index:380;
+    }
     .modal-overlay.modal-overlay--tuto-preview > .log-modal.tuto-preview-modal {
       width:min(100%, calc(100vw - 24px));
       max-width:min(1120px, calc(100vw - 24px));

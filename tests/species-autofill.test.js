@@ -59,6 +59,14 @@ test('buildSpeciesAutofill fusionne les sources et retourne des photos', async (
       });
     }
     if (raw.includes('wikidata.org/w/api.php')) {
+      if (String(raw).includes('action=wbgetentities')) {
+        return jsonResponse({
+          entities: {
+            Q2095: { labels: { fr: { value: 'aliment' } } },
+            Q142: { labels: { fr: { value: 'France' } } },
+          },
+        });
+      }
       return jsonResponse({ search: [{ id: 'Q111' }, { id: 'Q23501' }] });
     }
     if (raw.includes('wikidata.org/wiki/Special:EntityData')) {
@@ -84,6 +92,24 @@ test('buildSpeciesAutofill fusionne les sources et retourne des photos', async (
               P105: [{ mainsnak: { datavalue: { value: { id: 'Q7432' } } } }],
               P225: [{ mainsnak: { datavalue: { value: 'Solanum lycopersicum' } } }],
               P18: [{ mainsnak: { datavalue: { value: 'Tomato_je.jpg' } } }],
+              P366: [{
+                mainsnak: {
+                  snaktype: 'value',
+                  datavalue: {
+                    type: 'wikibase-entityid',
+                    value: { id: 'Q2095', 'entity-type': 'item', 'numeric-id': 2095 },
+                  },
+                },
+              }],
+              P183: [{
+                mainsnak: {
+                  snaktype: 'value',
+                  datavalue: {
+                    type: 'wikibase-entityid',
+                    value: { id: 'Q142', 'entity-type': 'item', 'numeric-id': 142 },
+                  },
+                },
+              }],
             },
           },
         },
@@ -161,6 +187,9 @@ test('buildSpeciesAutofill fusionne les sources et retourne des photos', async (
   assert.ok(result.sources.some((s) => s.source === 'gbif_vernacular'));
   assert.ok(result.sources.some((s) => s.source === 'wikipedia_en'));
   assert.ok(String(result.fields.second_name || '').includes("Pommier d'amour"));
+  assert.ok(String(result.fields.human_utility || '').includes('aliment'));
+  assert.ok(String(result.fields.geographic_origin || '').includes('France'));
+  assert.ok((result.warnings || []).some((w) => String(w).includes('P366')));
 });
 
 test('buildSpeciesAutofill ajoute un warning si une source échoue', async () => {

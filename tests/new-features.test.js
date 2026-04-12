@@ -578,6 +578,70 @@ test('GET /api/visit/content expose les contenus visite et les tutos choisis', a
 const TINY_JPEG_B64 =
   '/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAP//////////////////////////////////////////////////////////////////////////////////////2wBDAf//////////////////////////////////////////////////////////////////////////////////////wAARCABAAEADASIAAhEBAxEB/8QAFwABAQEBAAAAAAAAAAAAAAAAAAIDBP/EABQQAQAAAAAAAAAAAAAAAAAAAAD/2gAMAwEAAhADEAAAf//EABQRAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQEAAQUCf//EABQRAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQMBAT8Bf//EABQRAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQIBAT8Bf//EABQQAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQEABj8Cf//Z';
 
+test('GET /api/visit/content expose map_lead_photo (première photo galerie carte)', async () => {
+  const zone = await request(app)
+    .post('/api/zones')
+    .set('Authorization', 'Bearer ' + teacherToken)
+    .send({
+      name: `Zone map_lead_photo ${Date.now()}`,
+      map_id: 'foret',
+      points: [{ xp: 12, yp: 12 }, { xp: 20, yp: 12 }, { xp: 16, yp: 19 }],
+      stage: 'empty',
+    })
+    .expect(201);
+  const marker = await request(app)
+    .post('/api/map/markers')
+    .set('Authorization', 'Bearer ' + teacherToken)
+    .send({
+      map_id: 'foret',
+      x_pct: 33,
+      y_pct: 34,
+      label: `Repère map_lead_photo ${Date.now()}`,
+      emoji: '📷',
+    })
+    .expect(201);
+
+  await request(app)
+    .post('/api/visit/sync')
+    .set('Authorization', 'Bearer ' + teacherToken)
+    .send({
+      map_id: 'foret',
+      direction: 'map_to_visit',
+      zone_ids: [zone.body.id],
+      marker_ids: [marker.body.id],
+    })
+    .expect(200);
+
+  await request(app)
+    .post(`/api/zones/${zone.body.id}/photos`)
+    .set('Authorization', 'Bearer ' + teacherToken)
+    .send({ image_data: `data:image/jpeg;base64,${TINY_JPEG_B64}`, caption: 'Légende photo carte zone' })
+    .expect(201);
+  await request(app)
+    .post(`/api/map/markers/${marker.body.id}/photos`)
+    .set('Authorization', 'Bearer ' + teacherToken)
+    .send({ image_data: `data:image/jpeg;base64,${TINY_JPEG_B64}`, caption: 'Légende photo carte repère' })
+    .expect(201);
+
+  const content = await request(app).get('/api/visit/content?map_id=foret').expect(200);
+  const vz = content.body.zones.find((z) => z.id === zone.body.id);
+  assert.ok(vz?.map_lead_photo?.image_url);
+  assert.ok(String(vz.map_lead_photo.image_url).includes(`/api/zones/${zone.body.id}/photos/`));
+  assert.strictEqual(vz.map_lead_photo.caption, 'Légende photo carte zone');
+  const vm = content.body.markers.find((m) => m.id === marker.body.id);
+  assert.ok(vm?.map_lead_photo?.image_url);
+  assert.ok(String(vm.map_lead_photo.image_url).includes(`/api/map/markers/${marker.body.id}/photos/`));
+  assert.strictEqual(vm.map_lead_photo.caption, 'Légende photo carte repère');
+
+  await request(app).delete(`/api/map/markers/${marker.body.id}`).set('Authorization', 'Bearer ' + teacherToken).expect(200);
+  await request(app).delete(`/api/zones/${zone.body.id}`).set('Authorization', 'Bearer ' + teacherToken).expect(200);
+  await request(app)
+    .post('/api/visit/rebuild-from-map')
+    .set('Authorization', 'Bearer ' + teacherToken)
+    .send({ map_id: 'foret' })
+    .expect(200);
+});
+
 test('POST /api/tutorials/:id/cover-photo-upload enregistre cover_image_url', async () => {
   const createRes = await request(app)
     .post('/api/tutorials')
