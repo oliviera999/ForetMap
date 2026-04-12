@@ -6,6 +6,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 ## [Non publié]
 
 ### Ajouté
+- **Visite — éditeur WYSIWYG packs mascotte** : édition visuelle (métadonnées, états, vignettes, médiathèque avec **`GET /api/visit/mascot-packs/:id/assets`**, upload/suppression PNG), onglet **JSON / export** ; onglet prof **« Packs mascotte »** ; bouton **« Ouvrir dans l’onglet Packs mascotte »** depuis la Visite. **`MascotPackWysiwygEditor.jsx`**, **`MascotPackPreviewPanel.jsx`**, **`mascotPackEditorModel.js`**, **`VisitMascotPackManager.jsx`**, **`MascotPackToolView.jsx`**, **`App.jsx`**, **`visit-views.jsx`**, **`routes/visit.js`**, **`index.css`**, **`docs/API.md`**, **`docs/MASCOT_PACK.md`**, **`docs/LOCAL_DEV.md`**, tests.
 - **Tests — pré-saisie biodiversité** : fichier **`tests/species-autofill-common-species.test.js`** (suite `describe`) : cinq espèces vernaculaires courantes avec **HTTP mocké** (Wikipedia, Wikidata, GBIF, CoL, iNaturalist), désactivation temporaire des extensions **Pl@ntNet / OpenAI / Trefle** pour ne pas dépendre du `.env` ; cas **sources** restreintes (`wikipedia` + `gbif`) ; test **`resolvePlantnetAlignName`** avec indices formulaire.
 
 ### Modifié
