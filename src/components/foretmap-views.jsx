@@ -1145,6 +1145,7 @@ function PlantManager({
   maps = [],
   canParticipateContextComments = true,
   onForceLogout = null,
+  scrollToPlantId = null,
 }) {
   const contextCommentsEnabled = publicSettings?.modules?.context_comments_enabled !== false;
   const [editId,  setEditId]  = useState(null);
@@ -1235,6 +1236,23 @@ function PlantManager({
   };
 
   const cancelEdit = () => { setEditId(null); setShowAdd(false); };
+
+  useEffect(() => {
+    const id = scrollToPlantId != null ? Number(scrollToPlantId) : null;
+    if (!id || !Number.isFinite(id)) return undefined;
+    setEditId(null);
+    setShowAdd(false);
+    setSearch('');
+    setGroup1('');
+    setGroup2('');
+    setGroup3('');
+    setHabitatFilter('');
+    setAgroFilter('');
+    const t = window.setTimeout(() => {
+      document.querySelector(`[data-biodiv-plant-id="${id}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }, 80);
+    return () => window.clearTimeout(t);
+  }, [scrollToPlantId]);
 
   const save = async () => {
     if (!form.name.trim()) return;
@@ -1481,7 +1499,7 @@ function PlantManager({
           const pMarkers = markersForPlant(p);
           const hasMapLink = pZones.length > 0 || pMarkers.length > 0;
           return (
-          <div key={p.id}>
+          <div key={p.id} data-biodiv-plant-id={p.id}>
             {editId === p.id ? (
               <div className="biodiv-card biodiv-card-edit fade-in">
                 <PlantEditForm
@@ -1959,6 +1977,7 @@ function PlantViewer({
   publicSettings = null,
   canParticipateContextComments = true,
   onForceLogout = null,
+  scrollToPlantId = null,
 }) {
   const contextCommentsEnabled = publicSettings?.modules?.context_comments_enabled !== false;
   const [search, setSearch] = useState('');
@@ -2022,6 +2041,22 @@ function PlantViewer({
     };
   }, [biodivObservationIdsKeyStudent, plants.length]);
 
+  useEffect(() => {
+    const id = scrollToPlantId != null ? Number(scrollToPlantId) : null;
+    if (!id || !Number.isFinite(id)) return undefined;
+    setSearch('');
+    setGroup1('');
+    setGroup2('');
+    setGroup3('');
+    setHabitatFilter('');
+    setAgroFilter('');
+    setZonePresence(ZONE_PRESENCE_FILTER.ALL);
+    const t = window.setTimeout(() => {
+      document.querySelector(`[data-biodiv-plant-id="${id}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }, 80);
+    return () => window.clearTimeout(t);
+  }, [scrollToPlantId]);
+
   const zonesForPlant = (p) => zones.filter((z) => plantLinkedToMapZone(p, z));
   const markersForPlant = (p) => markers.filter((m) => plantLinkedToMapMarker(p, m));
 
@@ -2074,7 +2109,7 @@ function PlantViewer({
             const pMarkers = markersForPlant(p);
             const hasMapLink = pZones.length > 0 || pMarkers.length > 0;
             return (
-              <article key={p.id} className="biodiv-card fade-in">
+              <article key={p.id} className="biodiv-card fade-in" data-biodiv-plant-id={p.id}>
                 <div className="biodiv-card-head">
                   <div className="biodiv-card-title-wrap">
                     <span className="biodiv-emoji">{p.emoji}</span>
