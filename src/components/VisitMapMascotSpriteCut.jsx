@@ -13,6 +13,18 @@ function resolveSpriteCutStateSpec(spriteCutConfig = null, mascotState = VISIT_M
   return { srcs: [], fps: 1 };
 }
 
+/** Durée par frame (ms) : `frameDwellMs` si aligné sur `srcs`, sinon uniforme depuis `fps`. */
+function computeDwellMsForSrcs(stateSpec, srcsLength) {
+  if (srcsLength <= 0) return [];
+  const fps = Math.max(1, Number(stateSpec?.fps) || 8);
+  const uniform = Math.max(33, Math.round(1000 / fps));
+  const custom = stateSpec?.frameDwellMs;
+  if (Array.isArray(custom) && custom.length === srcsLength) {
+    return custom.map((n) => Math.max(33, Math.round(Number(n) || uniform)));
+  }
+  return Array(srcsLength).fill(uniform);
+}
+
 function usePrefersReducedMotion() {
   const [reduced, setReduced] = useState(() => (
     typeof window !== 'undefined'
@@ -43,18 +55,33 @@ function VisitMapMascotSpriteCut({
     [stateSpec?.srcs],
   );
   const fps = Math.max(1, Number(stateSpec?.fps) || 1);
+  const dwellMsFull = useMemo(
+    () => computeDwellMsForSrcs(stateSpec, srcs.length),
+    [stateSpec, srcs.length],
+  );
   const [frameIndex, setFrameIndex] = useState(0);
   const [failedSrcs, setFailedSrcs] = useState(() => new Set());
 
+  const dwellKey = useMemo(
+    () => (Array.isArray(stateSpec?.frameDwellMs) ? JSON.stringify(stateSpec.frameDwellMs) : ''),
+    [stateSpec?.frameDwellMs],
+  );
+
   const spriteAnimKey = useMemo(
-    () => [mascotId, mascotState, srcs.join('|'), fps].join('::'),
-    [mascotId, mascotState, srcs, fps],
+    () => [mascotId, mascotState, srcs.join('|'), fps, dwellKey].join('::'),
+    [mascotId, mascotState, srcs, fps, dwellKey],
   );
 
   const workingSrcs = useMemo(
     () => srcs.filter((u) => !failedSrcs.has(u)),
     [srcs, failedSrcs],
   );
+
+  const workingDwells = useMemo(() => {
+    return srcs
+      .map((url, i) => (!failedSrcs.has(url) ? dwellMsFull[i] : null))
+      .filter((d) => d != null);
+  }, [srcs, failedSrcs, dwellMsFull]);
 
   useEffect(() => {
     setFrameIndex(0);
@@ -71,15 +98,18 @@ function VisitMapMascotSpriteCut({
 
   useEffect(() => {
     if (workingSrcs.length <= 1 || prefersReducedMotion) return undefined;
-    const ms = Math.round(1000 / fps);
-    const id = window.setInterval(() => {
-      setFrameIndex((i) => (i + 1) % workingSrcs.length);
-    }, Math.max(33, ms));
-    return () => window.clearInterval(id);
-  }, [workingSrcs.length, fps, prefersReducedMotion, spriteAnimKey]);
+    const n = workingSrcs.length;
+    const idx = frameIndex % n;
+    const dwell = workingDwells[idx] ?? Math.max(33, Math.round(1000 / fps));
+    const id = window.setTimeout(() => {
+      setFrameIndex((i) => (i + 1) % n);
+    }, Math.max(33, dwell));
+    return () => window.clearTimeout(id);
+  }, [frameIndex, workingSrcs, workingDwells, prefersReducedMotion, fps, spriteAnimKey]);
+
   const safeIndex = workingSrcs.length === 0
     ? 0
-    : (prefersReducedMotion ? 0 : Math.min(frameIndex, workingSrcs.length - 1));
+    : (prefersReducedMotion ? 0 : frameIndex % workingSrcs.length);
   const currentSrc = workingSrcs[safeIndex] || '';
 
   const onImgError = () => {
@@ -96,6 +126,11 @@ function VisitMapMascotSpriteCut({
     && Number(cut?.frameWidth) > 0
     && Number(cut?.frameHeight) > 0;
   const fallbackSilhouette = mascotConfig?.fallbackSilhouette || 'gnome';
+  const displayScale = (() => {
+    const s = Number(cut?.displayScale);
+    if (!Number.isFinite(s) || s <= 0) return 1;
+    return Math.min(4, Math.max(0.25, s));
+  })();
 
   return (
     <div
@@ -107,7 +142,6 @@ function VisitMapMascotSpriteCut({
       data-mascot-shape={fallbackSilhouette}
       aria-hidden="true"
     >
-      {/* Pas de silhouette SVG sous les PNG : elle transparaît aux bords des cellules ; uniquement si aucune image exploitable. */}
       {!canRender ? (
         <div className="visit-map-mascot-static" aria-hidden="true">
           {fallback}
@@ -120,6 +154,8 @@ function VisitMapMascotSpriteCut({
           style={{
             width: `${cut.frameWidth}px`,
             height: `${cut.frameHeight}px`,
+            transform: displayScale !== 1 ? `scale(${displayScale})` : undefined,
+            transformOrigin: 'center bottom',
           }}
           role="presentation"
           aria-hidden="true"
