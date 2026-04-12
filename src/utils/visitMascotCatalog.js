@@ -4,7 +4,7 @@ const VISIT_MASCOT_STORAGE_KEY = 'foretmap_visit_mascot_id';
  * Ajouter une mascotte :
  * 1) Déposer les assets sous /public/assets/mascots/... ou /public/assets/rive/...
  * 2) Ajouter une entrée ici (renderer: 'rive' ou 'spritesheet')
- * 3) `fallbackSilhouette` : forme du SVG de secours (gnome, spore, vine, moss, seed, swarm)
+ * 3) `fallbackSilhouette` : forme du SVG de secours (gnome, spore, vine, moss, seed, swarm, sprout, scrap, olu, tanBird, backpackFox)
  * 4) Renseigner les animations Rive par état si applicable
  */
 const VISIT_MASCOT_CATALOG = [
@@ -236,6 +236,34 @@ const VISIT_MASCOT_CATALOG = [
         surprise: { row: 0, frames: 1, fps: 1 },
       },
       pixelated: false,
+    },
+  },
+  {
+    id: 'fox-backpack-spritesheet',
+    label: 'Renard sac (spritesheet)',
+    renderer: 'spritesheet',
+    fallbackSilhouette: 'backpackFox',
+    spritesheet: {
+      src: '/assets/mascots/fox-backpack/fox-backpack-spritesheet.png',
+      frameWidth: 153,
+      frameHeight: 160,
+      stateFrames: {
+        /* Grille 6×4 (153×160) : ligne 0 poses, 1 course, 2 parole (cols 4–5 bulles neutralisées), 3 émotes */
+        idle: { row: 0, frames: 3, fps: 3 },
+        walking: { row: 1, frames: 5, fps: 10 },
+        running: { row: 1, frames: 5, fps: 14 },
+        talk: { row: 2, col: 0, frames: 4, fps: 8 },
+        inspect: { row: 0, col: 2, frames: 1, fps: 1 },
+        map_read: { row: 0, col: 0, frames: 1, fps: 1 },
+        surprise: { row: 3, col: 0, frames: 1, fps: 2 },
+        alert: { row: 3, col: 0, frames: 1, fps: 5 },
+        angry: { row: 3, col: 0, frames: 1, fps: 7 },
+        spin: { row: 3, col: 1, frames: 2, fps: 10 },
+        happy: { row: 3, col: 3, frames: 3, fps: 9 },
+        happy_jump: { row: 3, col: 3, frames: 3, fps: 11 },
+        celebrate: { row: 3, col: 3, frames: 3, fps: 10 },
+      },
+      pixelated: true,
     },
   },
 ];
