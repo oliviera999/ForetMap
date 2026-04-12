@@ -1,6 +1,6 @@
 {
   "title": "Problemes potentiels du site ForetMap",
-  "reference_date": "2026-03-26",
+  "reference_date": "2026-04-12",
   "sources": [
     "docs/AUDIT_BUGS_INCOHERENCES.md",
     "docs/AUDIT_PHOTOS_BIODIVERSITE.md"
@@ -57,6 +57,11 @@
       {
         "id": "R7",
         "summary": "Moderation explicite des photos eleves a clarifier"
+      },
+      {
+        "id": "R9",
+        "summary": "Rupture HTTP/2 / WAF (Tiger Protect) mutualise",
+        "details": "Chrome ERR_HTTP2_PROTOCOL_ERROR sur /socket.io ou /api — voir docs/EXPLOITATION.md"
       }
     ],
     "low": [

@@ -80,7 +80,15 @@ const corsOpts = process.env.NODE_ENV === 'production' && process.env.FRONTEND_O
   ? { origin: process.env.FRONTEND_ORIGIN }
   : {};
 app.use(cors(corsOpts));
-app.use(compression());
+app.use(
+  compression({
+    filter: (req, res) => {
+      const p = String(req.path || '').split('?')[0];
+      if (p === '/socket.io' || p.startsWith('/socket.io/')) return false;
+      return compression.filter(req, res);
+    },
+  })
+);
 app.use(assignRequestId);
 
 function isTestEnv() {
