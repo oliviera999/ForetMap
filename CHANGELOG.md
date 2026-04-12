@@ -5,6 +5,9 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Ajouté
+- **Paramètres admin — pré-saisie espèces** : route **`GET /api/settings/admin/system/species-autofill-providers-test`** (auto-test HTTP minimal Pl@ntNet + OpenAI, sans exposer les clés) et bouton **Test pré-saisie (Pl@ntNet / OpenAI)** dans Actions système. **`lib/speciesAutofillProviderSelfTest.js`**, **`routes/settings.js`**, **`settings-admin-views.jsx`**, tests, **`docs/API.md`**, **`docs/SPECIES_AUTOFILL_EXTENSIONS.md`**.
+
 ### Modifié
 - **Visite — outil pack mascotte** : le bouton et la modale ne sont plus réservés au mode dev Vite ; libellé **« Boîte à outils pack mascotte »** ; **`visit-views.jsx`**, **`MascotPackToolView.jsx`**, **`docs/MASCOT_PACK.md`**, **`docs/LOCAL_DEV.md`**.
 

@@ -177,6 +177,20 @@ test('security.jwt_ttl_base_seconds pilote la durée du JWT à l’émission', a
     .expect(200);
 });
 
+test('GET /api/settings/admin/system/species-autofill-providers-test renvoie le détail plantnet et openai', async () => {
+  const token = await getAdminToken();
+  const res = await request(app)
+    .get('/api/settings/admin/system/species-autofill-providers-test')
+    .set('Authorization', `Bearer ${token}`)
+    .expect(200);
+  assert.strictEqual(typeof res.body.ok, 'boolean');
+  assert.ok(res.body.plantnet && typeof res.body.plantnet === 'object');
+  assert.ok(res.body.openai && typeof res.body.openai === 'object');
+  assert.ok('keyPresent' in res.body.plantnet);
+  assert.ok('configuredForAutofill' in res.body.plantnet);
+  assert.ok('keyPresent' in res.body.openai);
+});
+
 test('RBAC refuse la rétrogradation du dernier administrateur', async () => {
   const token = await getAdminToken();
   const users = await request(app)

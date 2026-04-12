@@ -232,6 +232,7 @@ function SettingsAdminView({ isN3Affiliated = false }) {
   const [maps, setMaps] = useState([]);
   const [logs, setLogs] = useState([]);
   const [oauthDebug, setOauthDebug] = useState(null);
+  const [speciesAutofillTest, setSpeciesAutofillTest] = useState(null);
   const [msg, setMsg] = useState('');
   const [err, setErr] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
@@ -508,6 +509,26 @@ function SettingsAdminView({ isN3Affiliated = false }) {
     }
   };
 
+  const fetchSpeciesAutofillProvidersTest = async () => {
+    setErr('');
+    setMsg('');
+    setSavingKey('species-autofill-test');
+    try {
+      const data = await api('/api/settings/admin/system/species-autofill-providers-test');
+      setSpeciesAutofillTest(data || null);
+      setMsg(
+        data?.ok
+          ? 'Test Pl@ntNet / OpenAI (pré-saisie) : connexions OK'
+          : 'Test pré-saisie terminé — voir le détail ci-dessous (au moins un fournisseur en échec ou non testé).',
+      );
+    } catch (e) {
+      setSpeciesAutofillTest(null);
+      setErr(e.message || 'Impossible d’exécuter le test des fournisseurs pré-saisie');
+    } finally {
+      setSavingKey('');
+    }
+  };
+
   const triggerRestart = async () => {
     if (!window.confirm('Redémarrer l’application maintenant ?')) return;
     setErr('');
@@ -678,16 +699,32 @@ function SettingsAdminView({ isN3Affiliated = false }) {
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             <button className="btn btn-secondary btn-sm" onClick={fetchLogs}>Charger logs</button>
             <button className="btn btn-secondary btn-sm" onClick={fetchOauthDebug}>Diagnostic OAuth</button>
+            <button
+              type="button"
+              className="btn btn-secondary btn-sm"
+              onClick={fetchSpeciesAutofillProvidersTest}
+              disabled={savingKey === 'species-autofill-test'}
+            >
+              {savingKey === 'species-autofill-test' ? 'Test…' : 'Test pré-saisie (Pl@ntNet / OpenAI)'}
+            </button>
             <button className="btn btn-danger btn-sm" onClick={triggerRestart} disabled={savingKey === 'restart'}>
               {savingKey === 'restart' ? '...' : 'Redémarrer'}
             </button>
           </div>
+          <p style={{ margin: '8px 0 0', fontSize: '.78rem', color: '#6b7280' }}>
+            Vérifie les clés <code>PLANTNET_API_KEY</code> et <code>OPENAI_API_KEY</code> définies sur le serveur (variables d’environnement). Aucune clé n’est affichée ni enregistrée ici.
+          </p>
         </div>
       </div>
 
-      {(logs.length > 0 || oauthDebug) && (
+      {(logs.length > 0 || oauthDebug || speciesAutofillTest) && (
         <div style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: 12, padding: 12, marginTop: 12 }}>
           <h3 style={{ marginTop: 0 }}>Diagnostics</h3>
+          {speciesAutofillTest && (
+            <pre style={{ whiteSpace: 'pre-wrap', maxHeight: 280, overflow: 'auto', fontSize: '.78rem', background: '#f0fdf4', borderRadius: 8, padding: 8, marginBottom: oauthDebug || logs.length > 0 ? 8 : 0 }}>
+              {JSON.stringify(speciesAutofillTest, null, 2)}
+            </pre>
+          )}
           {oauthDebug && (
             <pre style={{ whiteSpace: 'pre-wrap', maxHeight: 220, overflow: 'auto', fontSize: '.78rem', background: '#f9fafb', borderRadius: 8, padding: 8 }}>
               {JSON.stringify(oauthDebug, null, 2)}

@@ -220,7 +220,7 @@ Les profils sont entièrement paramétrables ; ce tableau documente les **valeur
 ## Paramètres admin (GUI)
 
 Ces routes sont destinées à la console admin et exigent un token avec permissions
-`admin.settings.read` / `admin.settings.write` / `admin.settings.secrets.write` + élévation PIN.
+`admin.settings.read` / `admin.settings.write` / `admin.settings.secrets.write` + élévation PIN (sauf profils **admin** / **prof** natifs, élévation non requise comme pour le reste du panneau).
 
 | Méthode | URL | Description |
 |--------|-----|-------------|
@@ -231,6 +231,7 @@ Ces routes sont destinées à la console admin et exigent un token avec permissi
 | POST | `/api/settings/admin/maps/:id/image` | Upload image de plan (`{ image_data }`) |
 | GET | `/api/settings/admin/system/logs` | Lecture des logs applicatifs via GUI |
 | GET | `/api/settings/admin/system/oauth-debug` | Diagnostic runtime OAuth (sans secrets) |
+| GET | `/api/settings/admin/system/species-autofill-providers-test` | Auto-test minimal **Pl@ntNet** (GET `species/align`) et **OpenAI** (GET `v1/models?limit=1`) avec les variables d’environnement du processus ; réponse JSON `{ ok, plantnet, openai }` sans aucune clé. Par fournisseur : `configuredForAutofill`, `keyPresent`, `moduleFlagOn`, `tested`, `ok`, `httpStatus`, `latencyMs`, `message` / `error`. |
 | POST | `/api/settings/admin/system/restart` | Redémarrage applicatif contrôlé |
 
 Progression n3beurs :
