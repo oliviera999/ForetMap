@@ -80,3 +80,29 @@ test('OpenAI : parse JSON et mappe les champs (fetch mock)', async () => {
   process.env.SPECIES_AUTOFILL_OPENAI = prevF;
   process.env.OPENAI_API_KEY = prevK;
 });
+
+test('OpenAI : second_name autorisé et tronqué si trop long (fetch mock)', async () => {
+  const prevF = process.env.SPECIES_AUTOFILL_OPENAI;
+  const prevK = process.env.OPENAI_API_KEY;
+  process.env.SPECIES_AUTOFILL_OPENAI = '1';
+  process.env.OPENAI_API_KEY = 'sk-test';
+  const longVern = `Tomate ${'x'.repeat(200)}`;
+  const fetchImpl = async () => ({
+    ok: true,
+    json: async () => ({
+      choices: [{
+        message: {
+          content: JSON.stringify({
+            fields: { second_name: longVern, habitat: 'Plein soleil.' },
+          }),
+        },
+      }],
+    }),
+  });
+  const pack = await fetchOpenAiSpeciesTraits({ query: 'x', partialContext: 'Libellé: Tomate' }, { fetchImpl });
+  assert.ok(pack);
+  assert.ok(pack.fields.second_name.length <= 118);
+  assert.equal(pack.fields.habitat, 'Plein soleil.');
+  process.env.SPECIES_AUTOFILL_OPENAI = prevF;
+  process.env.OPENAI_API_KEY = prevK;
+});
