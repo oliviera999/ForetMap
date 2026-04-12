@@ -1659,6 +1659,130 @@ test('GET /api/plants/autofill sources=gbif évite Wikipedia et Wikidata', { con
   }
 });
 
+test('GET /api/plants/autofill aubergine avec OpenAI (mock GBIF + OpenAI)', { concurrency: false }, async () => {
+  const { OPENAI_ALLOWED_FIELD_KEYS } = require('../lib/speciesAutofillOpenAi');
+  const allowedOpenAi = new Set(OPENAI_ALLOWED_FIELD_KEYS);
+  const prevOpenaiFlag = process.env.SPECIES_AUTOFILL_OPENAI;
+  const prevOpenaiKey = process.env.OPENAI_API_KEY;
+  process.env.SPECIES_AUTOFILL_OPENAI = '1';
+  process.env.OPENAI_API_KEY = 'sk-test-aubergine-api';
+  const token = await getAdminAuthToken();
+  const previousFetch = global.fetch;
+  let openAiPostCount = 0;
+  global.fetch = async (url, init) => {
+    const raw = String(url || '');
+    if (raw.includes('api.gbif.org/v1/species/match') && raw.includes(`name=${encodeURIComponent('aubergine')}`)) {
+      return {
+        ok: true,
+        status: 200,
+        async json() {
+          return {
+            confidence: 95,
+            canonicalName: 'Aubergine',
+            scientificName: 'Solanum melongena',
+            family: 'Solanaceae',
+            order: 'Solanales',
+            kingdom: 'Plantae',
+            usageKey: 3084924,
+          };
+        },
+      };
+    }
+    if (
+      raw.includes('api.gbif.org/v1/species/3084924')
+      && !raw.includes('vernacularNames')
+      && !raw.includes('/descriptions')
+    ) {
+      return { ok: true, status: 200, async json() { return { taxonomicStatus: 'ACCEPTED', remarks: '' }; } };
+    }
+    if (raw.includes('api.checklistbank.org/dataset/3LR/nameusage/search') && raw.includes(`q=${encodeURIComponent('Solanum melongena')}`)) {
+      return {
+        ok: true,
+        status: 200,
+        async json() {
+          return {
+            result: [{
+              id: 'COL-AUB-3084924',
+              name: 'Solanum melongena',
+              classification: [
+                { rank: 'kingdom', name: 'Plantae' },
+                { rank: 'order', name: 'Solanales' },
+                { rank: 'family', name: 'Solanaceae' },
+              ],
+            }],
+          };
+        },
+      };
+    }
+    if (raw.includes('api.openai.com/v1/chat/completions')) {
+      openAiPostCount += 1;
+      let userContent = '';
+      try {
+        const body = JSON.parse(String(init?.body || '{}'));
+        const userMsg = Array.isArray(body.messages) ? body.messages.find((m) => m.role === 'user') : null;
+        userContent = typeof userMsg?.content === 'string' ? userMsg.content : '';
+      } catch {
+        userContent = '';
+      }
+      if (userContent.includes('cles_a_remplir')) {
+        return {
+          ok: true,
+          status: 200,
+          async json() {
+            return { choices: [{ message: { content: '{}' } }] };
+          },
+        };
+      }
+      return {
+        ok: true,
+        status: 200,
+        async json() {
+          return {
+            choices: [{
+              message: {
+                content: JSON.stringify({
+                  habitat: 'Culture maraîchère ; sol profond, chaud et bien drainé.',
+                  harvest_part: 'Fruit charnu (baie) consommé cuit en légume.',
+                  human_utility: 'Alimentation (légume frais ou cuisiné).',
+                  agroecosystem_category: 'Maraîchage, cultures légumières sous abri ou plein champ.',
+                }),
+              },
+            }],
+          };
+        },
+      };
+    }
+    throw new Error(`URL inattendue (aubergine autofill): ${raw}`);
+  };
+  try {
+    const res = await request(app)
+      .get('/api/plants/autofill?q=aubergine&sources=gbif%2Copenai')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+    assert.strictEqual(res.body.query, 'aubergine');
+    assert.strictEqual(res.body.fields.scientific_name, 'Solanum melongena');
+    assert.ok((res.body.sources || []).some((s) => s.source === 'gbif'));
+    assert.ok((res.body.sources || []).some((s) => s.source === 'openai'));
+    assert.ok(openAiPostCount >= 1, 'au moins un POST OpenAI attendu');
+    assert.match(String(res.body.fields.habitat || ''), /maraîch|drainé|chaud/i);
+    assert.match(String(res.body.fields.harvest_part || ''), /Fruit|baie|cuit/i);
+    for (const [fieldKey, meta] of Object.entries(res.body.field_sources || {})) {
+      if (meta && meta.source === 'openai') {
+        assert.ok(
+          allowedOpenAi.has(fieldKey),
+          `clé « ${fieldKey} » attribuée à OpenAI doit être dans OPENAI_ALLOWED_FIELD_KEYS`,
+        );
+      }
+    }
+  } finally {
+    global.fetch = previousFetch;
+    if (prevOpenaiFlag === undefined) delete process.env.SPECIES_AUTOFILL_OPENAI;
+    else process.env.SPECIES_AUTOFILL_OPENAI = prevOpenaiFlag;
+    if (prevOpenaiKey === undefined) delete process.env.OPENAI_API_KEY;
+    else process.env.OPENAI_API_KEY = prevOpenaiKey;
+  }
+});
+
 test('GET /api/plants/autofill accepte hint_scientific et hint_name (cache distinct)', { concurrency: false }, async () => {
   const token = await getAdminAuthToken();
   const previousFetch = global.fetch;
