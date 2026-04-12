@@ -43,6 +43,16 @@ npm run db:init
 
 Cela applique le schéma et le seed sur **`foretmap_local`**.
 
+### Police emoji (Noto Color Emoji, auto-hébergée)
+
+L’application sert `public/fonts/noto-color-emoji.woff2` pour afficher les emojis (carte, visite, badges, etc.) même lorsque le système n’a pas de police colorée complète. Après `npm install` ou une mise à jour de `@fontsource/noto-color-emoji`, régénérer la copie versionnée :
+
+```bash
+npm run fonts:sync-noto-emoji
+```
+
+Puis committer `public/fonts/noto-color-emoji.woff2` si le fichier change. Le réglage admin `ui.map.location_emojis` contrôle **quelles** emojis sont proposées dans les sélecteurs ; le **rendu** repose sur cette police (voir le libellé du champ dans la console réglages).
+
 ### Option rapide (bootstrap en une commande)
 
 ```bash
