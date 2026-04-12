@@ -224,7 +224,27 @@ const SPECIES_PREFILL_FIELD_LABELS = {
   planting_recommendations: 'Recommandations de plantation',
   preferred_nutrients: 'Nutriments préférés',
   sources: 'Sources',
+  photo: 'Photo',
+  photo_species: 'Photo espèce',
+  photo_leaf: 'Photo feuille',
+  photo_flower: 'Photo fleur',
+  photo_fruit: 'Photo fruit',
+  photo_harvest_part: 'Photo partie récoltée',
 };
+
+/** Champs photo du formulaire (ordre affichage upload + menu pré-saisie). */
+const PLANT_PHOTO_FIELD_OPTIONS = [
+  { key: 'photo_species', label: 'Photo espèce' },
+  { key: 'photo_leaf', label: 'Photo feuille' },
+  { key: 'photo_flower', label: 'Photo fleur' },
+  { key: 'photo_fruit', label: 'Photo fruit' },
+  { key: 'photo_harvest_part', label: 'Photo partie récoltée' },
+  { key: 'photo', label: 'Photo (générale)' },
+];
+
+function prefillPhotoSlotKey(field, idx) {
+  return `${String(field).trim()}:${Number(idx)}`;
+}
 
 /** Champs candidats pour la vignette « photo principale » sous la description (ordre de priorité). */
 const BIODIV_HERO_PHOTO_KEYS = ['photo', 'photo_species'];
@@ -642,7 +662,8 @@ function PlantEditForm({ title, form, setForm, onSave, onCancel, saving, plantId
   const [prefillResult, setPrefillResult] = useState(null);
   const [overwriteFilled, setOverwriteFilled] = useState(false);
   const [selectedFields, setSelectedFields] = useState({});
-  const [selectedPhotos, setSelectedPhotos] = useState({});
+  /** Par emplacement `field:idx` : case cochée + champ cible au moment d’appliquer la pré-saisie. */
+  const [prefillPhotoSelections, setPrefillPhotoSelections] = useState({});
   /** Clés `${field}:${idx}` pour masquer l’aperçu image après erreur de chargement. */
   const [prefillThumbBroken, setPrefillThumbBroken] = useState({});
 
@@ -655,14 +676,7 @@ function PlantEditForm({ title, form, setForm, onSave, onCancel, saving, plantId
     setPrefillThumbBroken((prev) => (prev[k] ? prev : { ...prev, [k]: true }));
   };
 
-  const photoFields = [
-    { key: 'photo_species', label: 'Photo espèce' },
-    { key: 'photo_leaf', label: 'Photo feuille' },
-    { key: 'photo_flower', label: 'Photo fleur' },
-    { key: 'photo_fruit', label: 'Photo fruit' },
-    { key: 'photo_harvest_part', label: 'Photo partie récoltée' },
-    { key: 'photo', label: 'Photo' },
-  ];
+  const photoFields = PLANT_PHOTO_FIELD_OPTIONS;
 
   const uploadPhoto = async (field, file) => {
     if (!file) return;
@@ -727,9 +741,15 @@ function PlantEditForm({ title, form, setForm, onSave, onCancel, saving, plantId
         if (!photosByField[field]) photosByField[field] = [];
         photosByField[field].push(photo);
       }
-      const nextPhotos = {};
-      for (const field of Object.keys(photosByField)) nextPhotos[field] = 0;
-      setSelectedPhotos(nextPhotos);
+      const nextPhotoSel = {};
+      for (const [field, list] of Object.entries(photosByField)) {
+        (list || []).forEach((_, idx) => {
+          const slot = prefillPhotoSlotKey(field, idx);
+          const defaultTarget = PHOTO_FIELD_KEYS.has(field) ? field : 'photo_species';
+          nextPhotoSel[slot] = { checked: idx === 0, assignTo: defaultTarget };
+        });
+      }
+      setPrefillPhotoSelections(nextPhotoSel);
     } catch (e) {
       setPrefillResult(null);
       setPrefillError(e?.message || 'Erreur de pré-saisie');
@@ -757,18 +777,43 @@ function PlantEditForm({ title, form, setForm, onSave, onCancel, saving, plantId
       }
 
       const mergedSources = parseLinkCandidates(next.sources);
-      for (const [field, idx] of Object.entries(selectedPhotos || {})) {
-        const options = groupedPrefillPhotos[field] || [];
-        const selected = options[Number(idx)];
+      const picked = [];
+      for (const [slotKey, sel] of Object.entries(prefillPhotoSelections || {})) {
+        if (!sel?.checked) continue;
+        const colon = slotKey.lastIndexOf(':');
+        if (colon <= 0) continue;
+        const sourceField = slotKey.slice(0, colon);
+        const idx = Number(slotKey.slice(colon + 1));
+        if (!Number.isFinite(idx)) continue;
+        const options = groupedPrefillPhotos[sourceField] || [];
+        const selected = options[idx];
         if (!selected?.url) continue;
-        const existing = parseLinkCandidates(next[field]);
+        const assignTo = PHOTO_FIELD_KEYS.has(sel.assignTo) ? sel.assignTo : sourceField;
+        picked.push({ assignTo, url: selected.url, source_url: selected.source_url });
+      }
+      picked.sort((a, b) => a.assignTo.localeCompare(b.assignTo) || String(a.url).localeCompare(String(b.url)));
+      const byTarget = new Map();
+      for (const row of picked) {
+        if (!byTarget.has(row.assignTo)) byTarget.set(row.assignTo, []);
+        byTarget.get(row.assignTo).push(row);
+      }
+      for (const [targetField, rows] of byTarget) {
+        const urls = [...new Set(rows.map((r) => r.url).filter(Boolean))];
+        if (urls.length === 0) continue;
+        const existing = parseLinkCandidates(next[targetField]);
         if (existing.length === 0 || overwriteFilled) {
-          next[field] = selected.url;
-        } else if (!existing.includes(selected.url)) {
-          next[field] = [...existing, selected.url].join('\n');
+          next[targetField] = urls.join('\n');
+        } else {
+          const merged = [...existing];
+          for (const u of urls) {
+            if (!merged.includes(u)) merged.push(u);
+          }
+          next[targetField] = merged.join('\n');
         }
-        if (selected.source_url && !mergedSources.includes(selected.source_url)) {
-          mergedSources.push(selected.source_url);
+        for (const row of rows) {
+          if (row.source_url && !mergedSources.includes(row.source_url)) {
+            mergedSources.push(row.source_url);
+          }
         }
       }
       if (mergedSources.length > 0) {
@@ -857,29 +902,75 @@ function PlantEditForm({ title, form, setForm, onSave, onCancel, saving, plantId
             </div>
             {Object.keys(groupedPrefillPhotos).length > 0 && (
               <div style={{ display: 'grid', gap: 6 }}>
-                <strong style={{ fontSize: '.9rem' }}>Photos proposées (aperçu + crédit / licence)</strong>
+                <div>
+                  <strong style={{ fontSize: '.9rem' }}>Photos proposées (aperçu + crédit / licence)</strong>
+                  <p style={{ margin: '4px 0 0', fontSize: '.78rem', color: '#555', lineHeight: 1.35 }}>
+                    Cochez une ou plusieurs images à importer. Le menu « Associer au champ » indique la case photo du formulaire cible (vous pouvez regrouper plusieurs images sur un même champ : les URL seront listées les unes sous les autres).
+                  </p>
+                </div>
                 {Object.entries(groupedPrefillPhotos).map(([field, photos]) => (
                   <div key={`prefill-photo-${field}`} className="plant-prefill-photo-field">
-                    <div className="plant-prefill-photo-field-title">{SPECIES_PREFILL_FIELD_LABELS[field] || field}</div>
+                    <div className="plant-prefill-photo-field-title">
+                      Suggestion source : {SPECIES_PREFILL_FIELD_LABELS[field] || field}
+                    </div>
                     <div className="plant-prefill-photo-grid">
                       {photos.map((photo, idx) => {
-                        const thumbKey = `${field}:${idx}`;
+                        const slotKey = prefillPhotoSlotKey(field, idx);
+                        const thumbKey = slotKey;
                         const broken = !!prefillThumbBroken[thumbKey];
-                        const selected = Number(selectedPhotos[field]) === idx;
+                        const slot = prefillPhotoSelections[slotKey] || { checked: false, assignTo: field };
+                        const checked = !!slot.checked;
+                        const assignTo = PHOTO_FIELD_KEYS.has(slot.assignTo) ? slot.assignTo : field;
                         return (
-                          <label
-                            key={`${field}-${idx}`}
-                            className={`plant-prefill-photo-card${selected ? ' plant-prefill-photo-card--selected' : ''}`}
+                          <div
+                            key={slotKey}
+                            className={`plant-prefill-photo-card${checked ? ' plant-prefill-photo-card--selected' : ''}`}
                           >
                             <div className="plant-prefill-photo-card-row">
                               <input
-                                type="radio"
-                                name={`prefill-photo-${field}`}
-                                className="plant-prefill-photo-radio"
-                                checked={selected}
-                                onChange={() => setSelectedPhotos((prev) => ({ ...prev, [field]: idx }))}
+                                type="checkbox"
+                                className="plant-prefill-photo-check"
+                                checked={checked}
+                                aria-label={`Inclure cette proposition dans la pré-saisie (${SPECIES_PREFILL_FIELD_LABELS[field] || field})`}
+                                onChange={(e) => {
+                                  const on = e.target.checked;
+                                  setPrefillPhotoSelections((prev) => ({
+                                    ...prev,
+                                    [slotKey]: {
+                                      checked: on,
+                                      assignTo: PHOTO_FIELD_KEYS.has(prev[slotKey]?.assignTo)
+                                        ? prev[slotKey].assignTo
+                                        : (PHOTO_FIELD_KEYS.has(field) ? field : 'photo_species'),
+                                    },
+                                  }));
+                                }}
                               />
                               <div className="plant-prefill-photo-body">
+                                <div className="plant-prefill-photo-assign-row">
+                                  <label className="plant-prefill-photo-assign-label" htmlFor={`prefill-assign-${slotKey}`}>
+                                    Associer au champ
+                                  </label>
+                                  <select
+                                    id={`prefill-assign-${slotKey}`}
+                                    className="plant-prefill-photo-assign"
+                                    value={assignTo}
+                                    disabled={!checked}
+                                    onChange={(e) => {
+                                      const v = e.target.value;
+                                      setPrefillPhotoSelections((prev) => ({
+                                        ...prev,
+                                        [slotKey]: {
+                                          checked: !!prev[slotKey]?.checked,
+                                          assignTo: PHOTO_FIELD_KEYS.has(v) ? v : assignTo,
+                                        },
+                                      }));
+                                    }}
+                                  >
+                                    {PLANT_PHOTO_FIELD_OPTIONS.map((opt) => (
+                                      <option key={opt.key} value={opt.key}>{opt.label}</option>
+                                    ))}
+                                  </select>
+                                </div>
                                 <div className="plant-prefill-photo-thumb-wrap">
                                   {broken ? (
                                     <div className="plant-prefill-photo-thumb-fallback" role="img" aria-label="Aperçu non chargé">
@@ -924,7 +1015,7 @@ function PlantEditForm({ title, form, setForm, onSave, onCancel, saving, plantId
                                 </div>
                               </div>
                             </div>
-                          </label>
+                          </div>
                         );
                       })}
                     </div>

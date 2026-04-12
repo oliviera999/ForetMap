@@ -1,6 +1,6 @@
 {
   "name": "foretmap",
-  "version": "1.39.1",
+  "version": "1.39.3",
   "description": "Application de gestion de la forêt comestible - Lycée Lyautey",
   "main": "server.js",
   "engines": {
@@ -87,6 +87,7 @@
     "smoke:local": "node scripts/local-smoke.js",
     "smoke:local:fast": "node scripts/local-smoke.js --fast",
     "icons:pwa": "node scripts/generate-pwa-icons-n3-white.js",
+    "fonts:sync-noto-emoji": "node scripts/sync-noto-color-emoji-font.js",
     "build": "node scripts/build-safe.js",
     "preview": "vite preview",
     "deploy:prepare": "node scripts/prepare-dist-deploy.js",
@@ -104,6 +105,7 @@
     "prod:remote-debug": "node scripts/prod-remote-debug.js"
   },
   "devDependencies": {
+    "@fontsource/noto-color-emoji": "^5.2.12",
     "@modelcontextprotocol/sdk": "^1.29.0",
     "@playwright/test": "^1.58.2",
     "@vitejs/plugin-react": "^4.2.1",

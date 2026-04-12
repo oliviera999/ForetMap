@@ -54,7 +54,13 @@ const KEY_META = {
   'ui.modules.forum_enabled': { label: 'Forum', section: 'modules', order: 46 },
   'ui.modules.context_comments_enabled': { label: 'Commentaires de contexte (zones, tâches, projets, biodiversité, tutoriels)', section: 'modules', order: 47 },
   'ui.reactions.allowed_emojis': { label: 'Emojis de réaction (séparés par espaces)', section: 'modules', order: 48 },
-  'ui.map.location_emojis': { label: 'Emojis zones/repères/tâches (séparés par espaces)', section: 'modules', order: 49, multiline: true },
+  'ui.map.location_emojis': {
+    label:
+      'Emojis zones/repères/tâches (séparés par espaces) — catalogue proposé dans les sélecteurs ; le rendu coloré est assuré par la police Noto auto-hébergée (voir npm run fonts:sync-noto-emoji, docs/LOCAL_DEV.md).',
+    section: 'modules',
+    order: 49,
+    multiline: true,
+  },
   'ui.map.default_map_student': { section: 'modules', order: 50, dynamicLabel: 'defaultStudentMap' },
   'ui.map.default_map_teacher': { section: 'modules', order: 60, dynamicLabel: 'defaultTeacherMap' },
   'ui.map.default_map_visit': { label: 'Carte par défaut (visite publique)', section: 'modules', order: 70 },

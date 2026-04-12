@@ -1933,8 +1933,19 @@
       align-items:flex-start;
       gap:10px;
     }
-    .plant-prefill-photo-radio { flex-shrink:0; margin-top:6px; accent-color:var(--forest); }
+    .plant-prefill-photo-check { flex-shrink:0; margin-top:6px; accent-color:var(--forest); }
     .plant-prefill-photo-body { flex:1; min-width:0; display:flex; flex-direction:column; gap:8px; }
+    .plant-prefill-photo-assign-row {
+      display:flex; flex-wrap:wrap; align-items:center; gap:6px 10px;
+      padding-bottom:4px; border-bottom:1px dashed rgba(26,71,49,.12);
+    }
+    .plant-prefill-photo-assign-label { font-size:.72rem; font-weight:600; color:#444; margin:0; }
+    .plant-prefill-photo-assign {
+      flex:1; min-width:min(100%, 160px); max-width:100%;
+      font-size:.75rem; padding:4px 8px; border-radius:8px; border:1px solid rgba(26,71,49,.2);
+      background:#fff; color:#222;
+    }
+    .plant-prefill-photo-assign:disabled { opacity:.55; cursor:not-allowed; }
     .plant-prefill-photo-thumb-wrap {
       width:100%;
       height:120px;
@@ -2256,10 +2267,6 @@
     /* Confirmation « lu » ouverte depuis le pied de l’aperçu (au-dessus de l’aperçu z-index 400). */
     .modal-overlay.modal-overlay--tuto-read-ack {
       z-index:460;
-    }
-    /* Panneau d’aide (?) : portal `body` ; au-dessus modales 200 / PIN 300, sous aperçu tutoriel 400. */
-    .modal-overlay.modal-overlay--help-panel {
-      z-index:380;
     }
     .modal-overlay.modal-overlay--tuto-preview > .log-modal.tuto-preview-modal {
       width:min(100%, calc(100vw - 24px));
@@ -3307,49 +3314,6 @@
     .visit-map-mascot-rive-shell[data-mascot-shape="scrap"][data-mascot-state="angry"] .visit-scrap-glitch,
     .visit-map-mascot-spritesheet-shell[data-mascot-shape="scrap"][data-mascot-state="angry"] .visit-scrap-glitch {
       animation:visitScrapGlitchAngry .12s steps(2) infinite;
-    }
-    .visit-map-mascot--walking .visit-map-mascot-rive-shell[data-mascot-shape="backpackFox"] .visit-backpack-fox-body,
-    .visit-map-mascot--walking .visit-map-mascot-spritesheet-shell[data-mascot-shape="backpackFox"] .visit-backpack-fox-body {
-      transform-origin:64px 94px;
-      animation:visitBackpackFoxBodyWalk .34s ease-in-out infinite;
-    }
-    .visit-map-mascot--walking .visit-map-mascot-rive-shell[data-mascot-shape="backpackFox"] .visit-backpack-fox-bag,
-    .visit-map-mascot--walking .visit-map-mascot-spritesheet-shell[data-mascot-shape="backpackFox"] .visit-backpack-fox-bag {
-      transform-origin:89px 84px;
-      animation:visitBackpackFoxBagWalk .34s ease-in-out infinite;
-    }
-    .visit-map-mascot--happy .visit-map-mascot-rive-shell[data-mascot-shape="backpackFox"] .visit-backpack-fox-tail,
-    .visit-map-mascot--happy .visit-map-mascot-spritesheet-shell[data-mascot-shape="backpackFox"] .visit-backpack-fox-tail {
-      transform-origin:18px 100px;
-      animation:visitBackpackFoxTailHappy .4s ease-in-out 3;
-    }
-    .visit-mascot-preview-body--motion-walk .visit-map-mascot-spritesheet-shell[data-mascot-shape="backpackFox"] .visit-backpack-fox-body,
-    .visit-mascot-preview-body--motion-walk .visit-map-mascot-rive-shell[data-mascot-shape="backpackFox"] .visit-backpack-fox-body {
-      transform-origin:64px 94px;
-      animation:visitBackpackFoxBodyWalk .34s ease-in-out infinite;
-    }
-    .visit-mascot-preview-body--motion-walk .visit-map-mascot-spritesheet-shell[data-mascot-shape="backpackFox"] .visit-backpack-fox-bag,
-    .visit-mascot-preview-body--motion-walk .visit-map-mascot-rive-shell[data-mascot-shape="backpackFox"] .visit-backpack-fox-bag {
-      transform-origin:89px 84px;
-      animation:visitBackpackFoxBagWalk .34s ease-in-out infinite;
-    }
-    .visit-mascot-preview-body--motion-happy .visit-map-mascot-spritesheet-shell[data-mascot-shape="backpackFox"] .visit-backpack-fox-tail,
-    .visit-mascot-preview-body--motion-happy .visit-map-mascot-rive-shell[data-mascot-shape="backpackFox"] .visit-backpack-fox-tail {
-      transform-origin:18px 100px;
-      animation:visitBackpackFoxTailHappy .4s ease-in-out infinite;
-    }
-    @keyframes visitBackpackFoxBodyWalk {
-      0%, 100% { transform:translateY(0) rotate(-1deg); }
-      50% { transform:translateY(-2px) rotate(1deg); }
-    }
-    @keyframes visitBackpackFoxBagWalk {
-      0%, 100% { transform:rotate(-3deg); }
-      50% { transform:rotate(4deg); }
-    }
-    @keyframes visitBackpackFoxTailHappy {
-      0%, 100% { transform:rotate(0deg); }
-      40% { transform:rotate(-12deg) scale(1.04); }
-      70% { transform:rotate(6deg); }
     }
     @keyframes visitSporeCapWobble {
       0%, 100% { transform:rotate(-4deg) scale(1); }
