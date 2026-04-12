@@ -35,6 +35,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - **Visite — migration renderer mascotte vers Rive** : remplacement du composant Lottie par `VisitMapMascotRive`, ajout du runtime `@rive-app/react-canvas`, suppression des scripts/assets Lottie (`VisitMapMascotLottie.jsx`, `src/assets/lottie/visit-mascot.json`, `scripts/build-visit-mascot-lottie.mjs`) et adaptation du diagnostic (`data-renderer`, `data-rive-status`, `data-mascot-state`) + docs associées (`docs/VISIT_MAP_GEOMETRY.md`).
 
 ### Corrigé
+- **Tutoriels — aperçu** : modale centrée dans le viewport, hauteur bornée pour que l’iframe remplisse l’espace sans défilement parasite sur le conteneur parent ; titre centré dans un en-tête dédié. **`TutorialPreviewModal.jsx`**, **`src/index.css`**.
 - **Client — erreur réseau** : en build de production, le message « impossible de contacter le serveur » n’affiche plus les consignes de développement local (Vite, port 3000) ; un texte adapté aux utilisateurs du site distant est utilisé à la place. **`src/services/api.js`**.
 
 - **Biodiversité — build après remarques catalogue** : le commit **`CatalogRemarksSection`** référençait **`fetchPlantObservationCounts`** sans livrer les fichiers associés ; correctif en lot (**`PlantSpeciesDiscoveryAcknowledge.jsx`**, **`routes/plants.js`**, migration **`070_user_plant_observation_events.sql`**, schéma, **`docs/API.md`**, **`tests/plants-discovery.test.js`**, **`index.css`**).
