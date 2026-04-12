@@ -1850,6 +1850,7 @@ function VisitView({
                   </figure>
                 </div>
               )}
+              {selected.visit_short_description && <p>{selected.visit_short_description}</p>}
               {firstVisitPhoto && (
                 <div className="visit-media-gallery visit-media-gallery--lead">
                   <figure>
@@ -1858,7 +1859,6 @@ function VisitView({
                   </figure>
                 </div>
               )}
-              {selected.visit_short_description && <p>{selected.visit_short_description}</p>}
               {showVisitDetailsBlock && (
                 <details className="visit-details">
                   <summary>{selected.visit_details_title || 'Détails'}</summary>
