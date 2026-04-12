@@ -5,6 +5,9 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Modifié
+- **Build** : régénération des artefacts **`dist/`** (bundle Vite production).
+
 ### Ajouté
 - **Biodiversité — identification Pl@ntNet** : route **`POST /api/plants/plantnet-identify`** (proxy multipart vers l’API v2 **identify**, clé serveur uniquement) ; dans le formulaire plante (onglet biodiversité), section repliable pour 1 à 5 photos + organes, liste de propositions puis **« Utiliser pour le formulaire »** avant la pré-saisie multi-sources. **`lib/speciesAutofillPlantnet.js`**, **`routes/plants.js`**, **`foretmap-views.jsx`**, **`docs/API.md`**, **`docs/SPECIES_AUTOFILL_EXTENSIONS.md`**, tests.
 - **Tâches — vue condensée** : troisième mode d’affichage (à côté des tuiles et de la liste) : une ligne par tâche (pastille de statut + titre), détails complets au clic sur la ligne ; préférence persistée dans `localStorage` (`foretmap:tasks:viewMode` = `condensed`). **`tasks-views.jsx`**, **`index.css`**.
