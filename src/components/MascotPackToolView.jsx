@@ -23,13 +23,8 @@ const DEFAULT_PACK_JSON = `{
 
 const STATE_OPTIONS = Object.values(VISIT_MASCOT_STATE).sort();
 
-const SILHOUETTES = [
-  'gnome', 'spore', 'vine', 'moss', 'seed', 'swarm', 'sprout', 'scrap',
-  'olu', 'tanBird', 'backpackFox', 'backpackFox2',
-];
-
 /**
- * Outil dev : composer / valider un mascot pack v1 (hors navigation élève).
+ * Composer / valider un mascot pack v1 (`sprite_cut`) côté client (sans écriture serveur).
  * @param {{ embedded?: boolean }} [props] — `embedded` : affichage compact dans une modale (ex. onglet Visite).
  */
 export default function MascotPackToolView({ embedded = false } = {}) {
@@ -84,15 +79,6 @@ export default function MascotPackToolView({ embedded = false } = {}) {
     setMessage('Téléchargement lancé (mascot-pack.json).');
   }, [jsonText]);
 
-  if (!import.meta.env.DEV) {
-    return (
-      <div style={{ padding: 24, fontFamily: 'system-ui' }}>
-        <h1>Outil mascot pack</h1>
-        <p>Cette page n’est disponible qu’en build développement (`npm run dev`).</p>
-      </div>
-    );
-  }
-
   const pad = embedded ? 8 : 20;
   const maxW = embedded ? '100%' : 960;
 
@@ -108,12 +94,12 @@ export default function MascotPackToolView({ embedded = false } = {}) {
       {embedded ? (
         <h2 style={{ fontSize: '1.15rem', marginTop: 0 }}>Mascotte pack v1 (`sprite_cut`)</h2>
       ) : (
-        <h1 style={{ fontSize: '1.35rem' }}>Outil dev — Mascotte pack v1 (`sprite_cut`)</h1>
+        <h1 style={{ fontSize: '1.35rem' }}>Mascotte pack v1 (`sprite_cut`)</h1>
       )}
       <p style={{ fontSize: '0.9rem', opacity: 0.9 }}>
         Éditez le JSON, validez, prévisualisez avec les vrais chemins ou des URLs blob après chargement local.
         Référence : <code>docs/MASCOT_PACK.md</code>
-        {embedded ? ' — page autonome : /mascot-pack-tool.html (Vite).' : null}
+        {embedded ? ' — page autonome : /mascot-pack-tool.html' : null}
       </p>
 
       <textarea
