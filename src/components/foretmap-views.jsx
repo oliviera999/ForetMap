@@ -1547,6 +1547,7 @@ function PlantManager({
                       speciesName={p.name}
                       myObservationCount={plantObservationCounts[String(p.id)]?.my_observation_count ?? 0}
                       siteObservationCount={plantObservationCounts[String(p.id)]?.site_observation_count ?? 0}
+                      offerPlantCommentAfterObservation={contextCommentsEnabled && canParticipateContextComments}
                       onAcknowledged={(id, next) => {
                         setPlantObservationCounts((prev) => ({
                           ...prev,
@@ -2127,6 +2128,7 @@ function PlantViewer({
                       speciesName={p.name}
                       myObservationCount={plantObservationCounts[String(p.id)]?.my_observation_count ?? 0}
                       siteObservationCount={plantObservationCounts[String(p.id)]?.site_observation_count ?? 0}
+                      offerPlantCommentAfterObservation={contextCommentsEnabled && canParticipateContextComments}
                       onAcknowledged={(id, next) => {
                         setPlantObservationCounts((prev) => ({
                           ...prev,

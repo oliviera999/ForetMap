@@ -14,6 +14,7 @@ import { formatDateTimeFr } from '../utils/datetime-fr';
 import { HELP_PANELS, HELP_TOOLTIPS, resolveRoleText } from '../constants/help';
 import { PlantSpeciesDiscoveryAcknowledgeButton, fetchPlantObservationCounts } from './PlantSpeciesDiscoveryAcknowledge';
 import { TutorialPreviewModal, tutorialPreviewPayload, tutorialPreviewCanEmbed } from './TutorialPreviewModal';
+import { fetchTutorialReadIds } from './TutorialReadAcknowledge';
 import { lockBodyScroll } from '../utils/body-scroll-lock';
 import { armNativeFilePickerGuard, disarmNativeFilePickerGuard } from '../utils/overlayHistory';
 import { isStudentAssignedToTask } from '../utils/task-assignments';
@@ -1529,9 +1530,29 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
   const tooltipText = (entry) => resolveRoleText(entry, isTeacher);
   const [quickTutoLinkId, setQuickTutoLinkId] = useState('');
   const [tasksTutorialPreview, setTasksTutorialPreview] = useState(null);
+  const [tasksTutorialReadIds, setTasksTutorialReadIds] = useState(() => new Set());
   const openTasksTutorialPreview = useCallback((tu) => {
     setTasksTutorialPreview(tutorialPreviewPayload(tu));
   }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    const load = async () => {
+      const ids = await fetchTutorialReadIds();
+      if (!cancelled) setTasksTutorialReadIds(new Set(ids));
+    };
+    load();
+    if (typeof window !== 'undefined') {
+      window.addEventListener('foretmap_session_changed', load);
+      return () => {
+        cancelled = true;
+        window.removeEventListener('foretmap_session_changed', load);
+      };
+    }
+    return () => {
+      cancelled = true;
+    };
+  }, [tutorials]);
 
   const mapLocationFocusKey = mapLocationFocus ? `${mapLocationFocus.kind}:${mapLocationFocus.id}` : '';
   useEffect(() => {
@@ -2181,7 +2202,15 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
     <div className="tasks-view fade-in">
       {toast && <Toast msg={toast} onDone={() => setToast(null)} />}
       {tasksTutorialPreview && (
-        <TutorialPreviewModal tutorial={tasksTutorialPreview} onClose={() => setTasksTutorialPreview(null)} />
+        <TutorialPreviewModal
+          tutorial={tasksTutorialPreview}
+          onClose={() => setTasksTutorialPreview(null)}
+          readAcknowledge={{
+            isRead: tasksTutorialReadIds.has(Number(tasksTutorialPreview.id)),
+            onAcknowledged: (id) => setTasksTutorialReadIds((prev) => new Set([...prev, id])),
+            onForceLogout,
+          }}
+        />
       )}
       {(showForm || editTask || duplicateTask || showProposalForm) && (
         <TaskFormModal
@@ -3181,7 +3210,14 @@ function TaskSpeciesCatalogDetails({ plant }) {
 }
 
 /** Fiche d’une seule espèce (photo, 3 blocs repliables, découverte / observation). */
-function TaskLivingBeingCatalogModal({ plants, speciesName, onClose, onForceLogout }) {
+function TaskLivingBeingCatalogModal({
+  plants,
+  speciesName,
+  onClose,
+  onForceLogout,
+  contextCommentsEnabled,
+  canParticipateContextComments,
+}) {
   const dialogRef = useDialogA11y(onClose);
   useOverlayHistoryBack(true, onClose);
   const plant = useMemo(
@@ -3243,6 +3279,7 @@ function TaskLivingBeingCatalogModal({ plants, speciesName, onClose, onForceLogo
                 speciesName={plant.name}
                 myObservationCount={observationCounts.my_observation_count}
                 siteObservationCount={observationCounts.site_observation_count}
+                offerPlantCommentAfterObservation={!!contextCommentsEnabled && !!canParticipateContextComments}
                 onAcknowledged={(id, next) => {
                   setObservationCounts({
                     my_observation_count: next.my_observation_count,
@@ -3351,6 +3388,8 @@ function TaskTileCard({
             speciesName={speciesCatalogName}
             onClose={() => setSpeciesCatalogName(null)}
             onForceLogout={onForceLogout}
+            contextCommentsEnabled={contextCommentsEnabled}
+            canParticipateContextComments={canParticipateContextComments}
           />
         )}
         <div className="task-top">
