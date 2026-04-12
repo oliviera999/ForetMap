@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { api, AccountDeletedError, getAuthToken } from '../services/api';
 import { useOverlayHistoryBack } from '../hooks/useOverlayHistoryBack';
 
@@ -60,34 +61,41 @@ export function TutorialReadAcknowledgeButton({ tutorialId, tutorialTitle, isRea
       >
         ✓ Marquer comme lu
       </button>
-      {modalOpen && (
-        <div className="modal-overlay" role="presentation" onClick={(e) => e.target === e.currentTarget && !saving && setModalOpen(false)}>
-          <div className="log-modal fade-in tuto-read-ack-modal" role="dialog" aria-labelledby="tuto-read-ack-title" aria-modal="true">
-            <button type="button" className="modal-close" onClick={() => !saving && setModalOpen(false)} aria-label="Fermer">
-              ✕
-            </button>
-            <h3 id="tuto-read-ack-title">Confirmer la lecture</h3>
-            <p className="tuto-read-ack-intro">
-              En validant, tu t&apos;engages à avoir lu et compris le tutoriel
-              {' '}
-              <strong>« {tutorialTitle || 'ce tutoriel'} »</strong>.
-            </p>
-            <label className="tuto-read-ack-check">
-              <input type="checkbox" checked={checked} onChange={(e) => setChecked(e.target.checked)} disabled={saving} />
-              <span>Je confirme avoir lu et compris ce contenu.</span>
-            </label>
-            {error ? <p className="tuto-read-ack-error">{error}</p> : null}
-            <div className="tuto-read-ack-actions">
-              <button type="button" className="btn btn-ghost btn-sm" disabled={saving} onClick={() => setModalOpen(false)}>
-                Annuler
+      {modalOpen && typeof document !== 'undefined' && document.body
+        ? createPortal(
+          <div
+            className="modal-overlay modal-overlay--tuto-read-ack"
+            role="presentation"
+            onClick={(e) => e.target === e.currentTarget && !saving && setModalOpen(false)}
+          >
+            <div className="log-modal fade-in tuto-read-ack-modal" role="dialog" aria-labelledby="tuto-read-ack-title" aria-modal="true">
+              <button type="button" className="modal-close" onClick={() => !saving && setModalOpen(false)} aria-label="Fermer">
+                ✕
               </button>
-              <button type="button" className="btn btn-primary btn-sm" disabled={!checked || saving} onClick={submit}>
-                {saving ? 'Enregistrement…' : 'Confirmer'}
-              </button>
+              <h3 id="tuto-read-ack-title">Confirmer la lecture</h3>
+              <p className="tuto-read-ack-intro">
+                En validant, tu t&apos;engages à avoir lu et compris le tutoriel
+                {' '}
+                <strong>« {tutorialTitle || 'ce tutoriel'} »</strong>.
+              </p>
+              <label className="tuto-read-ack-check">
+                <input type="checkbox" checked={checked} onChange={(e) => setChecked(e.target.checked)} disabled={saving} />
+                <span>Je confirme avoir lu et compris ce contenu.</span>
+              </label>
+              {error ? <p className="tuto-read-ack-error">{error}</p> : null}
+              <div className="tuto-read-ack-actions">
+                <button type="button" className="btn btn-ghost btn-sm" disabled={saving} onClick={() => setModalOpen(false)}>
+                  Annuler
+                </button>
+                <button type="button" className="btn btn-primary btn-sm" disabled={!checked || saving} onClick={submit}>
+                  {saving ? 'Enregistrement…' : 'Confirmer'}
+                </button>
+              </div>
             </div>
-          </div>
-        </div>
-      )}
+          </div>,
+          document.body,
+        )
+        : null}
     </>
   );
 }

@@ -2182,13 +2182,17 @@
       border-left:4px solid var(--sage);
       margin-bottom:12px;
     }
-    /* Aperçu tutoriel : panneau centré, hauteur bornée au viewport pour que l’iframe remplisse
-       l’espace et que le défilement reste prévisible (plus de flex « height:auto » qui casse la hauteur). */
+    /* Aperçu tutoriel : rendu via portal sous `body` ; z-index > modales tâche/carte (200) et PIN (300). */
     .modal-overlay.modal-overlay--tuto-preview {
+      z-index:400;
       align-items:center;
       justify-content:center;
       padding:max(10px, var(--safe-top)) max(12px, env(safe-area-inset-right, 0px)) max(10px, var(--safe-bottom)) max(12px, env(safe-area-inset-left, 0px));
       box-sizing:border-box;
+    }
+    /* Confirmation « lu » ouverte depuis le pied de l’aperçu (au-dessus de l’aperçu z-index 400). */
+    .modal-overlay.modal-overlay--tuto-read-ack {
+      z-index:460;
     }
     .modal-overlay.modal-overlay--tuto-preview > .log-modal.tuto-preview-modal {
       width:min(100%, calc(100vw - 24px));
