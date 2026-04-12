@@ -56,9 +56,19 @@ function useVisitMascotStateMachine({
     ];
     const supported = getVisitMascotSupportedStates(visitMascotId);
     const fromCatalog = getVisitMascotById(visitMascotId);
-    const stateAnimations = fromCatalog?.renderer === 'spritesheet'
-      ? (fromCatalog?.spritesheet?.stateFrames || {})
-      : (fromCatalog?.rive?.stateAnimations || {});
+    let stateAnimations = fromCatalog?.rive?.stateAnimations || {};
+    if (fromCatalog?.renderer === 'spritesheet') {
+      stateAnimations = fromCatalog?.spritesheet?.stateFrames || {};
+    } else if (fromCatalog?.renderer === 'sprite_cut') {
+      const frames = fromCatalog?.spriteCut?.stateFrames || {};
+      stateAnimations = Object.fromEntries(
+        Object.entries(frames).map(([stateKey, spec]) => {
+          const srcs = Array.isArray(spec?.srcs) ? spec.srcs : [];
+          const aliases = srcs.map((u) => String(u || '').split('/').pop() || u);
+          return [stateKey, aliases];
+        }),
+      );
+    }
     return knownOrder
       .filter((state) => supported.includes(state))
       .map((state) => ({

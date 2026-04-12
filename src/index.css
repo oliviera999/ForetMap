@@ -3144,6 +3144,30 @@
     .visit-map-mascot-spritesheet--pixelated {
       image-rendering:pixelated;
     }
+    .visit-map-mascot-sprite-cut {
+      position:absolute;
+      inset:0;
+      margin:auto;
+      max-width:100%;
+      max-height:100%;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      pointer-events:none;
+      user-select:none;
+    }
+    .visit-map-mascot-sprite-cut img {
+      display:block;
+      width:100%;
+      height:100%;
+      max-width:100%;
+      max-height:100%;
+      object-fit:contain;
+      image-rendering:auto;
+    }
+    .visit-map-mascot-sprite-cut.visit-map-mascot-spritesheet--pixelated img {
+      image-rendering:pixelated;
+    }
     .visit-map-mascot-sprite-preload {
       display:none;
     }
