@@ -85,3 +85,34 @@ test('catalogue inclut oiseau tan spritesheet (idle 1 frame, marche 2 frames)', 
   assert.equal(bird.spritesheet.stateFrames.running.frames, 2);
   assert.equal(bird.spritesheet.pixelated, false);
 });
+
+test('catalogue inclut renard sac spritesheet (grille 6x4, etats complets)', async () => {
+  const { getVisitMascotById, getVisitMascotSupportedStates } = await loadModule();
+  const fox = getVisitMascotById('fox-backpack-spritesheet');
+  assert.ok(fox);
+  assert.equal(fox.renderer, 'spritesheet');
+  assert.equal(fox.fallbackSilhouette, 'backpackFox');
+  assert.equal(fox.spritesheet.frameWidth, 153);
+  assert.equal(fox.spritesheet.frameHeight, 160);
+  assert.equal(fox.spritesheet.pixelated, true);
+  assert.equal(fox.spritesheet.stateFrames.talk.col, 0);
+  assert.equal(fox.spritesheet.stateFrames.talk.frames, 4);
+  const states = getVisitMascotSupportedStates('fox-backpack-spritesheet');
+  for (const wanted of [
+    'idle',
+    'walking',
+    'running',
+    'talk',
+    'happy',
+    'happy_jump',
+    'spin',
+    'inspect',
+    'map_read',
+    'alert',
+    'angry',
+    'celebrate',
+    'surprise',
+  ]) {
+    assert.ok(states.includes(wanted), `fox etat manquant: ${wanted}`);
+  }
+});
