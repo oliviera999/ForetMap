@@ -446,7 +446,7 @@ Réponse:
   - `sources`: sources effectivement interrogées `{ source, confidence, source_url }`,
   - `warnings`: avertissements non bloquants (source indisponible, qualité des données, photos filtrées...).
 - Comportement:
-  - résultats agrégés depuis plusieurs sources externes publiques (Wikipedia, Wikidata, GBIF) et enrichissement taxonomique via Catalogue of Life quand un nom scientifique est disponible,
+  - résultats agrégés depuis plusieurs sources externes publiques : **Wikipedia (FR)** avec repli **opensearch** ; **Wikidata** ; **GBIF** (`species/match`, `usageKey`) ; **Catalogue of Life** lorsqu’un nom scientifique est connu ; **iNaturalist** (recherche taxons, photo HTTPS et lien taxon si disponibles) ; **noms vernaculaires GBIF** (`/species/{usageKey}/vernacularNames`, langues `fra` / `fre` / `fr`) pour enrichir **`second_name`** (synonymes / noms vulgaires, hors doublons du nom principal) ; **Wikipedia EN** (résumé) en secours si l’extrait FR est trop court ;
   - cache mémoire TTL côté serveur pour limiter la latence et les quotas,
   - validation/filtrage des URLs photo avant retour.
 - Limites connues:
