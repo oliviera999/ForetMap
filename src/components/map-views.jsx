@@ -277,6 +277,76 @@ function LivingBeingsCatalogPanel({ plants, names, showHeading = true }) {
   );
 }
 
+/** Boutons espèces : ouvre la même fiche que l’onglet « Biodiversité » (via callback parent). */
+function BiodiversitySpeciesOpenLinks({ plants, names, showHeading = true, sectionTitle = null, onOpenPlant }) {
+  const raw = names || [];
+  const list = [];
+  const seen = new Set();
+  for (const n of raw) {
+    const s = String(n || '').trim();
+    if (!s || seen.has(s)) continue;
+    seen.add(s);
+    list.push(s);
+  }
+  if (!list.length) return null;
+  const canOpen = typeof onOpenPlant === 'function';
+
+  return (
+    <div style={{
+      background: 'var(--parchment)',
+      borderRadius: 10,
+      padding: '10px 14px',
+      marginBottom: 12,
+      border: '1px solid rgba(0,0,0,.06)',
+    }}>
+      {showHeading && (
+        <div style={{
+          fontSize: '.78rem',
+          fontWeight: 700,
+          color: '#64748b',
+          marginBottom: 8,
+          textTransform: 'uppercase',
+        }}>
+          {sectionTitle || 'Êtres vivants'}
+        </div>
+      )}
+      <p style={{ fontSize: '.72rem', color: '#64748b', margin: '0 0 8px', lineHeight: 1.45 }}>
+        Ouvre la même fiche que dans l&apos;onglet « Biodiversité ».
+      </p>
+      <div
+        style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}
+        role="group"
+        aria-label="Espèces liées — ouvrir le catalogue biodiversité"
+      >
+        {list.map((name) => {
+          const plant = (plants || []).find((p) => String(p?.name || '').trim() === name);
+          const disabled = !canOpen || !plant?.id;
+          return (
+            <button
+              type="button"
+              key={name}
+              className="task-chip living-being-catalog-chip"
+              disabled={disabled}
+              title={!plant ? 'Pas de fiche catalogue pour ce nom — un prof peut compléter la biodiversité.' : undefined}
+              aria-label={plant ? `Ouvrir la fiche biodiversité : ${name}` : `Aucune fiche pour : ${name}`}
+              onClick={() => plant && canOpen && onOpenPlant(plant.id)}
+              style={{
+                fontWeight: 500,
+                border: plant && canOpen ? '1px solid rgba(0,0,0,.12)' : '1px solid rgba(0,0,0,.08)',
+                cursor: plant && canOpen ? 'pointer' : 'not-allowed',
+                fontFamily: 'inherit',
+                opacity: plant && canOpen ? 1 : 0.65,
+              }}
+            >
+              {livingBeingEmoji(plants, name)} {name}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 function PhotoGallery({ zoneId, markerId, isTeacher }) {
   const [photos, setPhotos] = useState([]);
   const [big, setBig] = useState(null);
@@ -629,7 +699,7 @@ function livingBeingNamesFromTasksAtLocation(kind, locationId, tasks) {
   return names;
 }
 
-function ZoneInfoModal({ zone, plants, tasks, tutorials = [], isTeacher, student, canSelfAssignTasks = true, canEnrollOnTasks, markerEmojis = MARKER_EMOJIS, emojiParsingList = MARKER_EMOJIS, contextCommentsEnabled = true, canParticipateContextComments = true, onClose, onUpdate, onDelete, onDuplicate, onEditPoints, onLinkTask, onUnlinkTask, onAssignTasks, onLinkTutorial, onUnlinkTutorial, onNavigateToTasksForLocation = null, onOpenTutorialPreview = null }) {
+function ZoneInfoModal({ zone, plants, tasks, tutorials = [], isTeacher, student, canSelfAssignTasks = true, canEnrollOnTasks, markerEmojis = MARKER_EMOJIS, emojiParsingList = MARKER_EMOJIS, contextCommentsEnabled = true, canParticipateContextComments = true, onClose, onUpdate, onDelete, onDuplicate, onEditPoints, onLinkTask, onUnlinkTask, onAssignTasks, onLinkTutorial, onUnlinkTutorial, onNavigateToTasksForLocation = null, onOpenTutorialPreview = null, onOpenBiodiversityPlant = null }) {
   const canEnroll = canEnrollOnTasks !== undefined ? canEnrollOnTasks : canSelfAssignTasks;
   const dialogRef = useDialogA11y(onClose);
   useOverlayHistoryBack(true, onClose);
@@ -839,12 +909,26 @@ function ZoneInfoModal({ zone, plants, tasks, tutorials = [], isTeacher, student
             {!zone.special && (() => {
               const names = orderedLivingBeingsForForm(zone.living_beings_list || zone.living_beings, zone.current_plant);
               if (names.length === 0) return null;
-              return <LivingBeingsCatalogPanel plants={plants} names={names} />;
+              return onOpenBiodiversityPlant ? (
+                <BiodiversitySpeciesOpenLinks plants={plants} names={names} onOpenPlant={onOpenBiodiversityPlant} />
+              ) : (
+                <LivingBeingsCatalogPanel plants={plants} names={names} />
+              );
             })()}
             {!zone.special && livingBeingsOnlyOnTasks.length > 0 && (
               <div style={{ marginTop: zoneLivingNames.length ? 14 : 0 }}>
                 <h4 style={{ margin: '0 0 8px', fontSize: '.88rem', color: 'var(--forest)' }}>Également dans les missions</h4>
-                <LivingBeingsCatalogPanel plants={plants} names={livingBeingsOnlyOnTasks} showHeading={false} />
+                {onOpenBiodiversityPlant ? (
+                  <BiodiversitySpeciesOpenLinks
+                    plants={plants}
+                    names={livingBeingsOnlyOnTasks}
+                    showHeading={false}
+                    sectionTitle="Également dans les missions"
+                    onOpenPlant={onOpenBiodiversityPlant}
+                  />
+                ) : (
+                  <LivingBeingsCatalogPanel plants={plants} names={livingBeingsOnlyOnTasks} showHeading={false} />
+                )}
               </div>
             )}
             {zone.description && (
@@ -1383,6 +1467,7 @@ function MarkerModal({
   contextCommentsEnabled = true,
   canParticipateContextComments = true,
   onRequestAdjustMarkerPosition = null,
+  onOpenBiodiversityPlant = null,
 }) {
   const canEnroll = canEnrollOnTasks !== undefined ? canEnrollOnTasks : canSelfAssignTasks;
   const dialogRef = useDialogA11y(onClose);
@@ -1954,12 +2039,26 @@ function MarkerModal({
             {(() => {
               const names = orderedLivingBeingsForForm(marker.living_beings_list || marker.living_beings, marker.plant_name);
               if (names.length === 0) return null;
-              return <LivingBeingsCatalogPanel plants={plants} names={names} />;
+              return onOpenBiodiversityPlant ? (
+                <BiodiversitySpeciesOpenLinks plants={plants} names={names} onOpenPlant={onOpenBiodiversityPlant} />
+              ) : (
+                <LivingBeingsCatalogPanel plants={plants} names={names} />
+              );
             })()}
             {livingBeingsOnlyOnTasks.length > 0 && (
               <div style={{ marginTop: markerLivingNamesOrdered.length ? 14 : 0 }}>
                 <h4 style={{ margin: '0 0 8px', fontSize: '.88rem', color: 'var(--forest)' }}>Également dans les missions</h4>
-                <LivingBeingsCatalogPanel plants={plants} names={livingBeingsOnlyOnTasks} showHeading={false} />
+                {onOpenBiodiversityPlant ? (
+                  <BiodiversitySpeciesOpenLinks
+                    plants={plants}
+                    names={livingBeingsOnlyOnTasks}
+                    showHeading={false}
+                    sectionTitle="Également dans les missions"
+                    onOpenPlant={onOpenBiodiversityPlant}
+                  />
+                ) : (
+                  <LivingBeingsCatalogPanel plants={plants} names={livingBeingsOnlyOnTasks} showHeading={false} />
+                )}
               </div>
             )}
             {marker.note && (
@@ -2576,7 +2675,7 @@ function useMapGestures({ mapImageSrc, activeMapId, mode, onRefresh, embedded = 
   };
 }
 
-function MapView({ zones, markers, tasks = [], tutorials = [], plants, maps = [], activeMapId = 'foret', onMapChange, isTeacher, student, canSelfAssignTasks = true, canEnrollOnTasks, canParticipateContextComments = true, onZoneUpdate, onRefresh, embedded = false, publicSettings = null, onLocationTasksFocus = null, onNavigateToTasksForLocation = null, onForceLogout }) {
+function MapView({ zones, markers, tasks = [], tutorials = [], plants, maps = [], activeMapId = 'foret', onMapChange, isTeacher, student, canSelfAssignTasks = true, canEnrollOnTasks, canParticipateContextComments = true, onZoneUpdate, onRefresh, embedded = false, publicSettings = null, onLocationTasksFocus = null, onNavigateToTasksForLocation = null, onOpenBiodiversityPlant = null, onForceLogout }) {
   const canEnrollNewTasks = canEnrollOnTasks !== undefined ? canEnrollOnTasks : canSelfAssignTasks;
   const [mode, setMode] = useState('view');
   const [showLabels, setShowLabels] = useState(true);
@@ -3186,7 +3285,9 @@ function MapView({ zones, markers, tasks = [], tutorials = [], plants, maps = []
           onUnlinkTutorial={(tu) => unlinkTutorialFromZone(tu, selectedZone.id)}
           onEditPoints={isTeacher ? z => startEditPoints(z) : null}
           onNavigateToTasksForLocation={onNavigateToTasksForLocation}
-          onOpenTutorialPreview={setMapTutorialPreview} />
+          onOpenTutorialPreview={setMapTutorialPreview}
+          onOpenBiodiversityPlant={onOpenBiodiversityPlant ? (id) => { onOpenBiodiversityPlant(id); setSelectedZone(null); } : null}
+        />
       )}
       {selectedMarker && (
         <MarkerModal
@@ -3213,6 +3314,7 @@ function MapView({ zones, markers, tasks = [], tutorials = [], plants, maps = []
           onAssignTasks={assignTasksToStudent}
           onNavigateToTasksForLocation={onNavigateToTasksForLocation}
           onOpenTutorialPreview={setMapTutorialPreview}
+          onOpenBiodiversityPlant={onOpenBiodiversityPlant ? (id) => { onOpenBiodiversityPlant(id); setSelectedMarker(null); } : null}
           onRequestAdjustMarkerPosition={isTeacher
             ? () => {
               setMarkerPositionUnlocked(true);
