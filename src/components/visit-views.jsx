@@ -1,7 +1,4 @@
-import React, {
-  useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, lazy, Suspense,
-} from 'react';
-import { createPortal } from 'react-dom';
+import React, { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { api, AccountDeletedError, withAppBase } from '../services/api';
 import { compressImage } from '../utils/image';
 import { MARKER_EMOJIS, parseEmojiListSetting, detectLeadingMarkerEmoji, stripLeadingMarkerEmoji } from '../constants/emojis';
@@ -26,9 +23,6 @@ import {
 import { safeVisitProgressPayload } from '../utils/visitProgressClient.js';
 import { wheelZoomScaleFactor } from '../utils/mapWheelZoom';
 import VisitMapMascotRenderer from './VisitMapMascotRenderer.jsx';
-
-const VisitMascotPackManagerLazy = lazy(() => import('./VisitMascotPackManager.jsx'));
-import { buildVisitMascotCatalogExtrasFromContent } from '../utils/visitMascotPackExtras.js';
 import { VISIT_MASCOT_STATE, pickMascotDialog } from '../utils/visitMascotState.js';
 import { loadVisitMascotPositionPct, saveVisitMascotPositionPct } from '../utils/visitMascotPositionPersistence.js';
 import useVisitMascotStateMachine from '../hooks/useVisitMascotStateMachine.js';
@@ -572,8 +566,6 @@ function VisitView({
   isN3Affiliated = false,
   publicSettings = null,
   canParticipateContextComments = true,
-  /** Prof : ouvre l’onglet dédié « Packs mascotte » dans l’app principale. */
-  onOpenMascotPackStudioTab,
 }) {
   const contextCommentsEnabled = publicSettings?.modules?.context_comments_enabled !== false;
   const configuredLocationEmojis = String(
@@ -596,7 +588,7 @@ function VisitView({
   const visitLoadMapIdLiveRef = useRef(mapId);
   visitLoadMapIdLiveRef.current = mapId;
   const [maps, setMaps] = useState([]);
-  const [content, setContent] = useState({ zones: [], markers: [], tutorials: [], mascot_packs: [] });
+  const [content, setContent] = useState({ zones: [], markers: [], tutorials: [] });
   const [selected, setSelected] = useState(null);
   const [selectedType, setSelectedType] = useState(null);
   const [seen, setSeen] = useState(new Set());
@@ -607,7 +599,6 @@ function VisitView({
   const [tutorialReadIds, setTutorialReadIds] = useState(() => new Set());
   const [visitTutorialPreview, setVisitTutorialPreview] = useState(null);
   const [visitMediaLightbox, setVisitMediaLightbox] = useState(null);
-  const [mascotPackToolOpen, setMascotPackToolOpen] = useState(false);
   const [mode, setMode] = useState('view');
   const [drawPoints, setDrawPoints] = useState([]);
   const [creating, setCreating] = useState(false);
@@ -656,12 +647,6 @@ function VisitView({
   }, []);
   useOverlayHistoryBack(isGuestPublicVisit && !!selected, clearGuestSelection);
   useOverlayHistoryBack(!!visitMediaLightbox, () => setVisitMediaLightbox(null));
-  useOverlayHistoryBack(mascotPackToolOpen, () => setMascotPackToolOpen(false));
-  const visitMascotCatalogExtras = useMemo(
-    () => buildVisitMascotCatalogExtrasFromContent(content.mascot_packs),
-    [content.mascot_packs],
-  );
-
   const {
     visitMascotId,
     visitMascotOptions,
@@ -675,7 +660,6 @@ function VisitView({
   } = useVisitMascotStateMachine({
     walking: visitMapMascotWalking,
     happy: visitMapMascotHappy,
-    extraCatalogEntries: visitMascotCatalogExtras,
   });
 
   const visitMascotPreviewBodyMotionClass = useMemo(() => {
@@ -920,12 +904,8 @@ function VisitView({
       }
       const visitPayload =
         visitRes && typeof visitRes === 'object' && !Array.isArray(visitRes)
-          ? {
-            ...visitRes,
-            map_id: visitRes.map_id ?? requestedMapId,
-            mascot_packs: Array.isArray(visitRes.mascot_packs) ? visitRes.mascot_packs : [],
-          }
-          : { zones: [], markers: [], tutorials: [], mascot_packs: [], map_id: requestedMapId };
+          ? { ...visitRes, map_id: visitRes.map_id ?? requestedMapId }
+          : { zones: [], markers: [], tutorials: [], map_id: requestedMapId };
       setContent(visitPayload);
       setTutorialSelection((visitPayload.tutorials || []).map((t) => t.id));
       const { seen: progressSeen } = safeVisitProgressPayload(progressBody);
@@ -1434,7 +1414,6 @@ function VisitView({
   }
 
   return (
-    <>
     <div className={`visit-view fade-in${isGuestPublicVisit ? ' visit-view--guest-public' : ''}`}>
       {visitTutorialPreview && (
         <TutorialPreviewModal
@@ -1587,29 +1566,6 @@ function VisitView({
           <div>
             <h3>🧭 Aperçu mascotte (prof/admin)</h3>
             <p className="section-sub">Rendu visuel de la mascotte en dehors de la carte.</p>
-            <p className="section-sub" style={{ marginTop: 4, display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
-              <button
-                type="button"
-                className="btn btn-ghost btn-sm"
-                onClick={() => setMascotPackToolOpen(true)}
-                title="Éditer les packs de cette carte (modale)"
-              >
-                Boîte à outils pack mascotte
-              </button>
-              {typeof onOpenMascotPackStudioTab === 'function' ? (
-                <button
-                  type="button"
-                  className="btn btn-secondary btn-sm"
-                  onClick={() => {
-                    setMascotPackToolOpen(false);
-                    onOpenMascotPackStudioTab();
-                  }}
-                  title="Ouvrir l’éditeur en plein écran dans l’onglet Packs mascotte"
-                >
-                  Ouvrir dans l’onglet Packs mascotte
-                </button>
-              ) : null}
-            </p>
             <div className="visit-mascot-preview-actions">
               <button
                 type="button"
@@ -1666,7 +1622,7 @@ function VisitView({
             className={`visit-mascot-preview-body ${visitMascotPreviewBodyMotionClass}${prefersReducedMotion ? ' visit-mascot-preview-body--reduced-motion' : ''}`}
             aria-hidden="true"
           >
-            <VisitMapMascotRenderer mascotState={visitMascotPreviewState} mascotId={visitMascotId} extraCatalogEntries={visitMascotCatalogExtras} />
+            <VisitMapMascotRenderer mascotState={visitMascotPreviewState} mascotId={visitMascotId} />
           </div>
         </section>
       )}
@@ -1825,7 +1781,7 @@ function VisitView({
                         '--visit-mascot-dialog-x': visitMapMascotFaceRight ? 1 : -1,
                       }}
                     >
-                      <VisitMapMascotRenderer mascotState={visitMascotAnimationState} mascotId={visitMascotId} extraCatalogEntries={visitMascotCatalogExtras} />
+                      <VisitMapMascotRenderer mascotState={visitMascotAnimationState} mascotId={visitMascotId} />
                       {visitMascotDialogVisible && visitMascotDialog ? (
                         <div className="visit-map-mascot-dialog" role="status" aria-live="polite">
                           {visitMascotDialog}
@@ -1910,43 +1866,24 @@ function VisitView({
           ) : (
             <div>
               <h3>{selectedType === 'zone' ? selected.name : selected.label}</h3>
-              {isTeacher && selectedType === 'zone' && selected.description && (
-                <div
-                  style={{
-                    background: '#f0fdf4',
-                    borderRadius: 10,
-                    padding: '10px 14px',
-                    marginBottom: 12,
-                    border: '1px solid var(--mint)',
-                    fontSize: '.88rem',
-                    color: '#333',
-                    lineHeight: 1.6,
-                  }}>
-                  {selected.description}
-                </div>
-              )}
-              {isTeacher && selectedType === 'marker' && selected.note && (
-                <div
-                  style={{
-                    background: '#f0fdf4',
-                    borderRadius: 10,
-                    padding: '10px 14px',
-                    marginBottom: 12,
-                    border: '1px solid var(--mint)',
-                    fontSize: '.88rem',
-                    color: '#333',
-                    lineHeight: 1.6,
-                  }}>
-                  {selected.note}
-                </div>
-              )}
               {selected.visit_subtitle && <p className="visit-subtitle">{selected.visit_subtitle}</p>}
+              {selected.map_lead_photo?.image_url && (
+                <div className="visit-media-gallery visit-media-gallery--lead">
+                  <VisitMediaGalleryThumb
+                    media={{
+                      image_url: selected.map_lead_photo.image_url,
+                      caption: selected.map_lead_photo.caption,
+                    }}
+                    onOpenLightbox={setVisitMediaLightbox}
+                  />
+                </div>
+              )}
+              {selected.visit_short_description && <p>{selected.visit_short_description}</p>}
               {firstVisitPhoto && (
                 <div className="visit-media-gallery visit-media-gallery--lead">
                   <VisitMediaGalleryThumb media={firstVisitPhoto} onOpenLightbox={setVisitMediaLightbox} />
                 </div>
               )}
-              {selected.visit_short_description && <p>{selected.visit_short_description}</p>}
               {showVisitDetailsBlock && (
                 <details className="visit-details">
                   <summary>{selected.visit_details_title || 'Détails'}</summary>
@@ -2051,46 +1988,6 @@ function VisitView({
         )}
       </section>
     </div>
-    {isTeacher && mascotPackToolOpen && typeof document !== 'undefined'
-      ? createPortal(
-        <div
-          className="modal-overlay modal-overlay--centered visit-mascot-pack-tool-overlay"
-          role="presentation"
-          onClick={(event) => event.target === event.currentTarget && setMascotPackToolOpen(false)}
-        >
-          <div
-            className="log-modal log-modal--dialog fade-in visit-mascot-pack-tool-dialog"
-            role="dialog"
-            aria-modal="true"
-            aria-label="Boîte à outils pack mascotte"
-            tabIndex={-1}
-            onClick={(event) => event.stopPropagation()}
-          >
-            <button
-              type="button"
-              className="modal-close"
-              aria-label="Fermer la boîte à outils pack mascotte"
-              onClick={() => setMascotPackToolOpen(false)}
-            >
-              ✕
-            </button>
-            <Suspense fallback={(
-              <div className="section-sub" style={{ padding: 16 }}>Chargement de l’éditeur…</div>
-            )}
-            >
-              <VisitMascotPackManagerLazy
-                mapId={mapId}
-                mapLabel={currentMap?.label}
-                onPacksChanged={loadData}
-                onForceLogout={onForceLogout}
-              />
-            </Suspense>
-          </div>
-        </div>,
-        document.body,
-      )
-      : null}
-    </>
   );
 }
 
