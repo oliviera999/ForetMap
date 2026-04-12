@@ -149,11 +149,19 @@ function isLikelyNetworkTransportFailure(err) {
 }
 
 function networkFailureUserMessage() {
+  // En build prod, ne pas afficher les consignes « Vite + port 3000 » (inadaptées sur serveur distant).
+  if (import.meta.env.DEV) {
+    return (
+      'Impossible de contacter le serveur. En développement local, lancez l’API sur le port 3000 '
+      + '(`npm run dev` à la racine du projet) en parallèle du client Vite (`npm run dev:client`), '
+      + 'puis ouvrez l’URL affichée par Vite (souvent http://localhost:5173). '
+      + 'Sans l’API, toute inscription ou connexion échoue ainsi.'
+    );
+  }
   return (
-    'Impossible de contacter le serveur. En développement local, lancez l’API sur le port 3000 '
-    + '(`npm run dev` à la racine du projet) en parallèle du client Vite (`npm run dev:client`), '
-    + 'puis ouvrez l’URL affichée par Vite (souvent http://localhost:5173). '
-    + 'Sans l’API, toute inscription ou connexion échoue ainsi.'
+    'Impossible de contacter le serveur. Vérifiez votre connexion, rechargez la page ou réessayez plus tard. '
+    + 'Si le problème continue, le site peut être en maintenance ou la passerelle réseau indisponible : '
+    + 'contactez l’administrateur de la plateforme.'
   );
 }
 
