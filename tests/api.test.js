@@ -1475,11 +1475,28 @@ test('GET /api/plants/autofill renvoie une pré-saisie normalisée multi-sources
         ok: true,
         status: 200,
         async json() {
-          return { search: [{ id: 'Q23501' }] };
+          return { search: [{ id: 'Q111' }, { id: 'Q23501' }] };
         },
       };
     }
     if (raw.includes('wikidata.org/wiki/Special:EntityData')) {
+      if (raw.includes('Q111')) {
+        return {
+          ok: true,
+          status: 200,
+          async json() {
+            return {
+              entities: {
+                Q111: {
+                  labels: { fr: { value: 'Tomate' } },
+                  descriptions: { fr: { value: 'chanteur brésilien' } },
+                  claims: {},
+                },
+              },
+            };
+          },
+        };
+      }
       return {
         ok: true,
         status: 200,
@@ -1491,6 +1508,8 @@ test('GET /api/plants/autofill renvoie une pré-saisie normalisée multi-sources
                 descriptions: { fr: { value: 'Espèce végétale' } },
                 sitelinks: { frwiki: { title: 'Tomate' } },
                 claims: {
+                  P31: [{ mainsnak: { datavalue: { value: { id: 'Q16521' } } } }],
+                  P105: [{ mainsnak: { datavalue: { value: { id: 'Q7432' } } } }],
                   P225: [{ mainsnak: { datavalue: { value: 'Solanum lycopersicum' } } }],
                   P18: [{ mainsnak: { datavalue: { value: 'Tomato_on_white_background.jpg' } } }],
                 },
@@ -1513,6 +1532,25 @@ test('GET /api/plants/autofill renvoie une pré-saisie normalisée multi-sources
             order: 'Solanales',
             kingdom: 'Plantae',
             usageKey: 2930132,
+          };
+        },
+      };
+    }
+    if (raw.includes('api.checklistbank.org/dataset/3LR/nameusage/search')) {
+      return {
+        ok: true,
+        status: 200,
+        async json() {
+          return {
+            result: [{
+              id: 'COL-2930132',
+              name: 'Solanum lycopersicum',
+              classification: [
+                { rank: 'kingdom', name: 'Plantae' },
+                { rank: 'order', name: 'Solanales' },
+                { rank: 'family', name: 'Solanaceae' },
+              ],
+            }],
           };
         },
       };
@@ -1562,6 +1600,15 @@ test('GET /api/plants/autofill garde un fallback partiel si une source échoue',
         status: 200,
         async json() {
           return { confidence: 88, canonicalName: 'Basilic', scientificName: 'Ocimum basilicum', usageKey: 3214412 };
+        },
+      };
+    }
+    if (raw.includes('api.checklistbank.org/dataset/3LR/nameusage/search')) {
+      return {
+        ok: true,
+        status: 200,
+        async json() {
+          return { result: [{ id: 'COL-3214412', name: 'Ocimum basilicum' }] };
         },
       };
     }
