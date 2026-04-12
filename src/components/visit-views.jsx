@@ -1494,13 +1494,11 @@ function VisitView({
   const selectedVisitMedia = selected ? (selected.visit_media || []) : [];
   const firstVisitPhoto = selectedVisitMedia[0] || null;
   const restVisitPhotos = selectedVisitMedia.slice(1);
-  const mapExtraPhotos = selected && Array.isArray(selected.map_extra_photos) ? selected.map_extra_photos : [];
   const visitDetailsTextTrim =
     selected && selected.visit_details_text ? String(selected.visit_details_text).trim() : '';
   const showVisitDetailsBlock = !!(
     visitDetailsTextTrim ||
-    (selected && restVisitPhotos.length > 0) ||
-    mapExtraPhotos.length > 0
+    (selected && restVisitPhotos.length > 0)
   );
 
   if (loading) {
@@ -2011,17 +2009,10 @@ function VisitView({
                 <details className="visit-details">
                   <summary>{selected.visit_details_title || 'Détails'}</summary>
                   {visitDetailsTextTrim ? <p>{selected.visit_details_text}</p> : null}
-                  {(restVisitPhotos.length > 0 || mapExtraPhotos.length > 0) && (
+                  {restVisitPhotos.length > 0 && (
                     <div className="visit-media-gallery visit-media-gallery--details-extra">
                       {restVisitPhotos.map((m) => (
                         <VisitMediaGalleryThumb key={m.id} media={m} onOpenLightbox={setVisitMediaLightbox} />
-                      ))}
-                      {mapExtraPhotos.map((ph) => (
-                        <VisitMediaGalleryThumb
-                          key={`map-extra-${ph.id}`}
-                          media={{ image_url: ph.image_url, caption: ph.caption }}
-                          onOpenLightbox={setVisitMediaLightbox}
-                        />
                       ))}
                     </div>
                   )}
