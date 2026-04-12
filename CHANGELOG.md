@@ -7,13 +7,6 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ### Modifié
 - **Carte — fiche zone / repère (Info)** : sous le texte visite, panneaux dépliables **Biodiversité** (espèces sur le lieu + missions, liens vers le catalogue comme avant) et **Tuto** (même cartes qu’à l’onglet Tutoriels, avec **Consulter** si l’aperçu est disponible). **`map-views.jsx`**.
-
-### Ajouté
-- **Visite — photos dans le bloc Détails** : **`GET /api/visit/content`** expose **`map_extra_photos`** (galerie carte après **`map_lead_photo`**, même format `{ id, image_url, caption }`) ; dans l’UI, une fois le panneau **Détails** déplié, la galerie sous le texte inclut les **médias visite** restants et ces **photos carte** supplémentaires. **`routes/visit.js`**, **`visit-views.jsx`**, **`docs/API.md`**, **`tests/new-features.test.js`**.
-- **Exploitation / diagnostic transport** : script **`scripts/prod-transport-probe.mjs`** et commande **`npm run prod:transport-probe`** (HTTP/1.1 vs HTTP/2, multiplex, handshake **`/socket.io`** ; JWT optionnel **`FORETMAP_TRANSPORT_PROBE_JWT`** / **`FORETMAP_SOCKETIO_LOAD_JWT`**) ; section **`docs/EXPLOITATION.md`** (*Chrome ERR_HTTP2_PROTOCOL_ERROR / Tiger Protect*) ; entrée **`R9`** dans **`docs/SITE_ISSUES.md`** / **`docs/SITE_ISSUES.json`** ; mentions **`docs/LOCAL_DEV.md`** et **`README.md`**.
-
-### Modifié
-- **Compression Express** : exclusion des chemins **`/socket.io`** du middleware **`compression`** (garde-fou proxy / Engine.IO). **`server.js`**.
 - **Biodiversité — identification Pl@ntNet (UI)** : par emplacement d’image, boutons **Galerie / fichier** et **Appareil photo** (entrée `capture="environment"`) pour ouvrir directement la caméra sur smartphone, en plus du choix depuis la galerie. **`foretmap-views.jsx`**.
 - **Navigation (n3beur / aperçu)** : lorsqu’une **zone** ou un **repère** est affiché sur la carte, les entrées **Tâches** et **Tuto** de la barre du bas sont fusionnées en un seul libellé **Tâches&tuto** (vers la vue Tâches, tutoriels du lieu inclus) ; idem pour les onglets prof en tête d’écran. Synchronisation du **focus lieu** avec la carte hors mode split (et effacement quand on ferme la fiche lieu). **`App.jsx`**, **`map-views.jsx`**.
 - **Photos (galerie)** : sélection **multiple** depuis l’explorateur de fichiers pour l’upload prof sur **zone/repère** (carte), les **médias visite** (zone/repère), et le **formulaire biodiversité** (plusieurs fichiers répartis sur les champs photo dans l’ordre à partir du bouton utilisé). **`map-views.jsx`**, **`visit-views.jsx`**, **`foretmap-views.jsx`**.
