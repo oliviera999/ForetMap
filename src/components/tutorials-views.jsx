@@ -397,7 +397,17 @@ function TutorialsView({
 
   return (
     <div className="tutorials-root" style={{ display: 'contents' }}>
-      {preview && <TutorialPreviewModal tutorial={preview} onClose={() => setPreview(null)} />}
+      {preview && (
+        <TutorialPreviewModal
+          tutorial={preview}
+          onClose={() => setPreview(null)}
+          readAcknowledge={{
+            isRead: tutorialReadIds.has(Number(preview.id)),
+            onAcknowledged: (id) => setTutorialReadIds((prev) => new Set([...prev, id])),
+            onForceLogout,
+          }}
+        />
+      )}
       {linkedTasksModal && <TutorialLinkedTasksModal state={linkedTasksModal} onClose={closeLinkedTasks} />}
       {showReorder && (
         <div className="modal-overlay" onClick={(e) => e.target === e.currentTarget && !reorderSaving && closeReorder()}>

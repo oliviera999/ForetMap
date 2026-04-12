@@ -1,5 +1,6 @@
 import React from 'react';
 import { useOverlayHistoryBack } from '../hooks/useOverlayHistoryBack';
+import { TutorialReadAcknowledgeButton } from './TutorialReadAcknowledge';
 
 /**
  * Objet tutoriel enrichi pour l’iframe (même logique que l’aperçu liste Tutoriels).
@@ -31,7 +32,13 @@ export function tutorialPreviewCanEmbed(t) {
   return !!source;
 }
 
-export function TutorialPreviewModal({ tutorial, onClose }) {
+/**
+ * @param {object} props
+ * @param {object|null} props.tutorial
+ * @param {() => void} props.onClose
+ * @param {{ isRead: boolean, onAcknowledged: (id: number) => void, onForceLogout?: () => void }|null} [props.readAcknowledge] — pied de modale : marquage « lu » avec confirmation (même flux que l’onglet Tutoriels).
+ */
+export function TutorialPreviewModal({ tutorial, onClose, readAcknowledge = null }) {
   useOverlayHistoryBack(!!tutorial, onClose);
   if (!tutorial) return null;
   const source =
@@ -40,6 +47,11 @@ export function TutorialPreviewModal({ tutorial, onClose }) {
     (tutorial.type === 'link' ? String(tutorial.source_url || '').trim() : '') ||
     '';
   const canEmbed = !!source;
+  const tutoIdNum = Number(tutorial.id);
+  const showReadFooter =
+    readAcknowledge &&
+    Number.isFinite(tutoIdNum) &&
+    tutoIdNum > 0;
   return (
     <div className="modal-overlay modal-overlay--tuto-preview" onClick={e => e.target === e.currentTarget && onClose()}>
       <div className="log-modal tuto-preview-modal" role="dialog" aria-modal="true" aria-labelledby="tuto-preview-title" tabIndex={-1} onClick={e => e.stopPropagation()}>
@@ -63,6 +75,17 @@ export function TutorialPreviewModal({ tutorial, onClose }) {
             </div>
           </div>
         )}
+        {showReadFooter ? (
+          <div className="tuto-preview-modal__foot">
+            <TutorialReadAcknowledgeButton
+              tutorialId={tutoIdNum}
+              tutorialTitle={tutorial.title}
+              isRead={readAcknowledge.isRead}
+              onAcknowledged={readAcknowledge.onAcknowledged}
+              onForceLogout={readAcknowledge.onForceLogout}
+            />
+          </div>
+        ) : null}
       </div>
     </div>
   );

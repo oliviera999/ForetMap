@@ -1377,7 +1377,15 @@ function VisitView({
   return (
     <div className={`visit-view fade-in${isGuestPublicVisit ? ' visit-view--guest-public' : ''}`}>
       {visitTutorialPreview && (
-        <TutorialPreviewModal tutorial={visitTutorialPreview} onClose={() => setVisitTutorialPreview(null)} />
+        <TutorialPreviewModal
+          tutorial={visitTutorialPreview}
+          onClose={() => setVisitTutorialPreview(null)}
+          readAcknowledge={{
+            isRead: tutorialReadIds.has(Number(visitTutorialPreview.id)),
+            onAcknowledged: (id) => setTutorialReadIds((prev) => new Set([...prev, id])),
+            onForceLogout,
+          }}
+        />
       )}
       <div className="visit-header-row">
         <div>
