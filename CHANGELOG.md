@@ -9,7 +9,6 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - **Carte — fiche zone / repère (Info)** : sous le texte visite, panneaux dépliables **Biodiversité** (espèces sur le lieu + missions, liens vers le catalogue comme avant) et **Tuto** (même cartes qu’à l’onglet Tutoriels, avec **Consulter** si l’aperçu est disponible). **`map-views.jsx`**.
 
 ### Ajouté
-- **Visite — photos dans le bloc Détails** : **`GET /api/visit/content`** expose **`map_extra_photos`** (galerie carte après **`map_lead_photo`**, même format `{ id, image_url, caption }`) ; dans l’UI, une fois le panneau **Détails** déplié, la galerie sous le texte inclut les **médias visite** restants et ces **photos carte** supplémentaires. **`routes/visit.js`**, **`visit-views.jsx`**, **`docs/API.md`**, **`tests/new-features.test.js`**.
 - **Exploitation / diagnostic transport** : script **`scripts/prod-transport-probe.mjs`** et commande **`npm run prod:transport-probe`** (HTTP/1.1 vs HTTP/2, multiplex, handshake **`/socket.io`** ; JWT optionnel **`FORETMAP_TRANSPORT_PROBE_JWT`** / **`FORETMAP_SOCKETIO_LOAD_JWT`**) ; section **`docs/EXPLOITATION.md`** (*Chrome ERR_HTTP2_PROTOCOL_ERROR / Tiger Protect*) ; entrée **`R9`** dans **`docs/SITE_ISSUES.md`** / **`docs/SITE_ISSUES.json`** ; mentions **`docs/LOCAL_DEV.md`** et **`README.md`**.
 
 ### Modifié
