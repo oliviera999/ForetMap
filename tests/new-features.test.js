@@ -642,6 +642,102 @@ test('GET /api/visit/content expose map_lead_photo (première photo galerie cart
     .expect(200);
 });
 
+test('PUT /api/zones/:id/photos/reorder réordonne les photos zone', async () => {
+  const zone = await request(app)
+    .post('/api/zones')
+    .set('Authorization', 'Bearer ' + teacherToken)
+    .send({
+      name: `Zone reorder photos ${Date.now()}`,
+      map_id: 'foret',
+      points: [{ xp: 12, yp: 12 }, { xp: 20, yp: 12 }, { xp: 16, yp: 19 }],
+      stage: 'empty',
+    })
+    .expect(201);
+
+  const p1 = await request(app)
+    .post(`/api/zones/${zone.body.id}/photos`)
+    .set('Authorization', 'Bearer ' + teacherToken)
+    .send({ image_data: `data:image/jpeg;base64,${TINY_JPEG_B64}`, caption: 'photo 1' })
+    .expect(201);
+  const p2 = await request(app)
+    .post(`/api/zones/${zone.body.id}/photos`)
+    .set('Authorization', 'Bearer ' + teacherToken)
+    .send({ image_data: `data:image/jpeg;base64,${TINY_JPEG_B64}`, caption: 'photo 2' })
+    .expect(201);
+
+  let list = await request(app).get(`/api/zones/${zone.body.id}/photos`).expect(200);
+  assert.strictEqual(list.body.length, 2);
+
+  await request(app)
+    .put(`/api/zones/${zone.body.id}/photos/reorder`)
+    .set('Authorization', 'Bearer ' + teacherToken)
+    .send({ photo_ids: [p2.body.id, p1.body.id] })
+    .expect(200);
+
+  list = await request(app).get(`/api/zones/${zone.body.id}/photos`).expect(200);
+  assert.strictEqual(list.body[0].id, p2.body.id);
+  assert.strictEqual(list.body[1].id, p1.body.id);
+
+  await request(app).delete(`/api/zones/${zone.body.id}`).set('Authorization', 'Bearer ' + teacherToken).expect(200);
+});
+
+test('PUT /api/visit/media/reorder réordonne les médias', async () => {
+  const markerRes = await request(app)
+    .post('/api/visit/markers')
+    .set('Authorization', 'Bearer ' + teacherToken)
+    .send({
+      map_id: 'foret',
+      x_pct: 42,
+      y_pct: 43,
+      label: `Repère media reorder ${Date.now()}`,
+      emoji: '📷',
+    })
+    .expect(201);
+
+  const a = await request(app)
+    .post('/api/visit/media')
+    .set('Authorization', 'Bearer ' + teacherToken)
+    .send({
+      target_type: 'marker',
+      target_id: markerRes.body.id,
+      image_data: `data:image/jpeg;base64,${TINY_JPEG_B64}`,
+      caption: 'A',
+    })
+    .expect(201);
+  const b = await request(app)
+    .post('/api/visit/media')
+    .set('Authorization', 'Bearer ' + teacherToken)
+    .send({
+      target_type: 'marker',
+      target_id: markerRes.body.id,
+      image_data: `data:image/jpeg;base64,${TINY_JPEG_B64}`,
+      caption: 'B',
+    })
+    .expect(201);
+
+  await request(app)
+    .put('/api/visit/media/reorder')
+    .set('Authorization', 'Bearer ' + teacherToken)
+    .send({
+      target_type: 'marker',
+      target_id: markerRes.body.id,
+      ordered_ids: [b.body.id, a.body.id],
+    })
+    .expect(200);
+
+  const contentRes = await request(app).get('/api/visit/content?map_id=foret').expect(200);
+  const vm = contentRes.body.markers.find((x) => x.id === markerRes.body.id);
+  assert.ok(vm?.visit_media);
+  assert.strictEqual(vm.visit_media.length, 2);
+  assert.strictEqual(vm.visit_media[0].id, b.body.id);
+  assert.strictEqual(vm.visit_media[1].id, a.body.id);
+
+  await request(app)
+    .delete(`/api/visit/markers/${markerRes.body.id}`)
+    .set('Authorization', 'Bearer ' + teacherToken)
+    .expect(200);
+});
+
 test('POST /api/tutorials/:id/cover-photo-upload enregistre cover_image_url', async () => {
   const createRes = await request(app)
     .post('/api/tutorials')

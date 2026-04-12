@@ -6,6 +6,16 @@ import { armNativeFilePickerGuard, disarmNativeFilePickerGuard } from '../utils/
 /** Aligné sur le serveur : lib/userContentImages.js */
 export const MAX_ATTACHMENT_IMAGES = 3;
 
+const FORETMAP_ATTACHMENT_IMG_DRAG = 'application/x-foretmap-attachment-img-idx';
+
+function reorderStringListByDrop(list, fromIdx, toIdx) {
+  if (fromIdx < 0 || toIdx < 0 || fromIdx === toIdx || fromIdx >= list.length || toIdx >= list.length) return list;
+  const next = [...list];
+  const [removed] = next.splice(fromIdx, 1);
+  next.splice(toIdx, 0, removed);
+  return next;
+}
+
 function isSupportedInlineImageDataUrl(dataUrl) {
   return /^data:image\/(png|jpe?g|webp);/i.test(String(dataUrl || ''));
 }
@@ -143,12 +153,34 @@ export function AttachmentImagesPicker({
       {list.length > 0 && (
         <ul className="attachment-images-preview-list">
           {list.map((url, i) => (
-            <li key={`${i}-${url.slice(0, 48)}`} className="attachment-images-preview-item">
+            <li
+              key={`${i}-${url.slice(0, 48)}`}
+              className={`attachment-images-preview-item${list.length > 1 ? ' attachment-images-preview-item--reorder' : ''}`}
+              draggable={!disabled && list.length > 1}
+              onDragStart={(e) => {
+                if (disabled || list.length < 2) return;
+                e.dataTransfer.setData(FORETMAP_ATTACHMENT_IMG_DRAG, String(i));
+                e.dataTransfer.effectAllowed = 'move';
+              }}
+              onDragOver={(e) => {
+                if (disabled || list.length < 2) return;
+                e.preventDefault();
+                e.dataTransfer.dropEffect = 'move';
+              }}
+              onDrop={(e) => {
+                if (disabled || list.length < 2) return;
+                e.preventDefault();
+                const from = Number(e.dataTransfer.getData(FORETMAP_ATTACHMENT_IMG_DRAG));
+                if (!Number.isFinite(from) || from === i) return;
+                onChange(reorderStringListByDrop(list, from, i));
+              }}
+            >
               <img src={url} alt="" className="attachment-images-preview-thumb" />
               <button
                 type="button"
                 className="btn btn-ghost btn-sm attachment-images-remove"
                 disabled={disabled}
+                onMouseDown={(ev) => ev.stopPropagation()}
                 onClick={() => removeAt(i)}
                 aria-label="Retirer cette photo"
               >

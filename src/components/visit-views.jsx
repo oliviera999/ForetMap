@@ -299,6 +299,19 @@ function VisitSyncPanel({ isTeacher, mapId, onSynced, onForceLogout }) {
   );
 }
 
+const FORETMAP_VISIT_MEDIA_DRAG_MIME = 'application/x-foretmap-visit-media-id';
+
+function reorderVisitMediaRows(list, draggedId, dropTargetId) {
+  const ids = list.map((m) => m.id);
+  const from = ids.indexOf(draggedId);
+  const to = ids.indexOf(dropTargetId);
+  if (from < 0 || to < 0 || from === to) return list;
+  const next = [...list];
+  const [removed] = next.splice(from, 1);
+  next.splice(to, 0, removed);
+  return next;
+}
+
 function VisitEditorPanel({ selected, selectedType, onSaved, onForceLogout, isTeacher, roleTerms, markerEmojis = MARKER_EMOJIS }) {
   const [form, setForm] = useState({
     title: '',
@@ -316,7 +329,16 @@ function VisitEditorPanel({ selected, selectedType, onSaved, onForceLogout, isTe
   const [mediaSaving, setMediaSaving] = useState(false);
   const [mediaUploading, setMediaUploading] = useState(false);
   const mediaFileRef = useRef(null);
+  const [mediaReorderBusy, setMediaReorderBusy] = useState(false);
   const tooltipText = (entry) => resolveRoleText(entry, true);
+
+  const sortedVisitMedia = useMemo(() => {
+    const arr = [...(selected?.visit_media || [])];
+    arr.sort(
+      (a, b) => (Number(a.sort_order) || 0) - (Number(b.sort_order) || 0) || Number(a.id) - Number(b.id),
+    );
+    return arr;
+  }, [selected]);
 
   useEffect(() => {
     const nextTitle = selectedType === 'zone' ? (selected?.name || '') : (selected?.label || '');
@@ -428,6 +450,24 @@ function VisitEditorPanel({ selected, selectedType, onSaved, onForceLogout, isTe
     }
   };
 
+  const persistVisitMediaReorder = async (nextOrdered) => {
+    if (nextOrdered.length < 2) return;
+    setMediaReorderBusy(true);
+    try {
+      await api('/api/visit/media/reorder', 'PUT', {
+        target_type: selectedType === 'zone' ? 'zone' : 'marker',
+        target_id: selected.id,
+        ordered_ids: nextOrdered.map((m) => m.id),
+      });
+      await onSaved?.();
+    } catch (err) {
+      if (err instanceof AccountDeletedError) onForceLogout?.();
+      else alert(err.message || 'Impossible de réordonner les photos');
+    } finally {
+      setMediaReorderBusy(false);
+    }
+  };
+
   return (
     <div className="visit-editor">
       <h4>🎛️ Édition visite ({roleTerms.teacherShort})</h4>
@@ -521,6 +561,7 @@ function VisitEditorPanel({ selected, selectedType, onSaved, onForceLogout, isTe
         <h5>🖼️ Photos</h5>
         <p style={{ fontSize: '.76rem', color: '#64748b', margin: '0 0 10px', lineHeight: 1.45 }}>
           Envoi d’image (comme sur la carte) ou lien URL (ex. Wikimedia, fichier déjà sur le serveur).
+          {sortedVisitMedia.length > 1 ? ' Plusieurs photos : glisser-déposer une ligne pour réordonner.' : ''}
         </p>
         <div className="field">
           <label>Légende (optionnel)</label>
@@ -543,9 +584,32 @@ function VisitEditorPanel({ selected, selectedType, onSaved, onForceLogout, isTe
         <button className="btn btn-secondary btn-sm" disabled={mediaSaving || !mediaUrl.trim()} onClick={addMedia}>
           {mediaSaving ? 'Ajout...' : '+ Ajouter depuis URL'}
         </button>
-        <div className="visit-media-list">
-          {(selected.visit_media || []).map((m) => (
-            <div key={m.id} className="visit-media-row" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <div className="visit-media-list" style={{ opacity: mediaReorderBusy ? 0.65 : 1, pointerEvents: mediaReorderBusy ? 'none' : undefined }}>
+          {sortedVisitMedia.map((m) => (
+            <div
+              key={m.id}
+              className={`visit-media-row${sortedVisitMedia.length > 1 ? ' visit-media-row--reorder' : ''}`}
+              draggable={sortedVisitMedia.length > 1}
+              onDragStart={(e) => {
+                if (sortedVisitMedia.length < 2) return;
+                e.dataTransfer.setData(FORETMAP_VISIT_MEDIA_DRAG_MIME, String(m.id));
+                e.dataTransfer.effectAllowed = 'move';
+              }}
+              onDragOver={(e) => {
+                if (sortedVisitMedia.length < 2) return;
+                e.preventDefault();
+                e.dataTransfer.dropEffect = 'move';
+              }}
+              onDrop={(e) => {
+                if (sortedVisitMedia.length < 2) return;
+                e.preventDefault();
+                const dragId = Number(e.dataTransfer.getData(FORETMAP_VISIT_MEDIA_DRAG_MIME));
+                if (!Number.isFinite(dragId) || dragId === m.id) return;
+                const next = reorderVisitMediaRows(sortedVisitMedia, dragId, m.id);
+                void persistVisitMediaReorder(next);
+              }}
+              style={{ display: 'flex', alignItems: 'center', gap: 8 }}
+            >
               {m.image_url ? (
                 <img
                   src={visitMediaImgSrc(m)}
@@ -557,7 +621,15 @@ function VisitEditorPanel({ selected, selectedType, onSaved, onForceLogout, isTe
                 {m.caption || m.image_url || `#${m.id}`}
               </span>
               <Tooltip text={tooltipText(HELP_TOOLTIPS.visit.mediaDelete)}>
-                <button className="btn btn-danger btn-sm" aria-label="Supprimer la photo" onClick={() => deleteMedia(m.id)}>🗑️</button>
+                <button
+                  type="button"
+                  className="btn btn-danger btn-sm"
+                  aria-label="Supprimer la photo"
+                  onMouseDown={(ev) => ev.stopPropagation()}
+                  onClick={() => deleteMedia(m.id)}
+                >
+                  🗑️
+                </button>
               </Tooltip>
             </div>
           ))}

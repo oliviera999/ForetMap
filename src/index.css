@@ -3730,6 +3730,13 @@
       font-size:.8rem; border:1px solid rgba(0,0,0,.08); background:white;
       border-radius:8px; padding:6px 8px;
     }
+    .visit-media-row--reorder {
+      cursor: grab;
+      touch-action: none;
+    }
+    .visit-media-row--reorder:active {
+      cursor: grabbing;
+    }
     .visit-tutorials {
       background:var(--surface-1); border:1px solid var(--outline-soft); border-radius:14px;
       box-shadow:var(--shadow-soft); padding:12px;
@@ -4117,6 +4124,20 @@
   flex:1;
   min-width:140px;
   line-height:1.35;
+}
+.photo-reorder-tile {
+  cursor: grab;
+  touch-action: none;
+}
+.photo-reorder-tile:active {
+  cursor: grabbing;
+}
+.attachment-images-preview-item--reorder {
+  cursor: grab;
+  touch-action: none;
+}
+.attachment-images-preview-item--reorder:active {
+  cursor: grabbing;
 }
 .attachment-images-preview-list {
   list-style:none;
