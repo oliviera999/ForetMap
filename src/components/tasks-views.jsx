@@ -12,7 +12,6 @@ import { HelpPanel } from './HelpPanel';
 import { ContextComments } from './context-comments';
 import { formatDateTimeFr } from '../utils/datetime-fr';
 import { HELP_PANELS, HELP_TOOLTIPS, resolveRoleText } from '../constants/help';
-import { CatalogRemarksSection } from './map-views';
 import { PlantSpeciesDiscoveryAcknowledgeButton, fetchPlantObservationCounts } from './PlantSpeciesDiscoveryAcknowledge';
 import { TutorialPreviewModal, tutorialPreviewPayload, tutorialPreviewCanEmbed } from './TutorialPreviewModal';
 import { lockBodyScroll } from '../utils/body-scroll-lock';
@@ -3181,7 +3180,7 @@ function TaskSpeciesCatalogDetails({ plant }) {
   );
 }
 
-/** Fiche d’une seule espèce (photo, 3 blocs repliables, remarques catalogue, découverte / observation). */
+/** Fiche d’une seule espèce (photo, 3 blocs repliables, découverte / observation). */
 function TaskLivingBeingCatalogModal({ plants, speciesName, onClose, onForceLogout }) {
   const dialogRef = useDialogA11y(onClose);
   useOverlayHistoryBack(true, onClose);
@@ -3238,9 +3237,6 @@ function TaskLivingBeingCatalogModal({ plants, speciesName, onClose, onForceLogo
           <>
             <TaskSpeciesHeroPhoto plant={plant} />
             <TaskSpeciesCatalogDetails plant={plant} />
-            <div style={{ marginTop: 10 }}>
-              <CatalogRemarksSection plant={plant} />
-            </div>
             <div className="plant-discovery-ack-row" style={{ marginTop: 12, display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
               <PlantSpeciesDiscoveryAcknowledgeButton
                 plantId={plant.id}
