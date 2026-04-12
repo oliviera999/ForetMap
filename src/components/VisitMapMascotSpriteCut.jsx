@@ -107,9 +107,12 @@ function VisitMapMascotSpriteCut({
       data-mascot-shape={fallbackSilhouette}
       aria-hidden="true"
     >
-      <div className="visit-map-mascot-static" aria-hidden="true">
-        {fallback}
-      </div>
+      {/* Pas de silhouette SVG sous les PNG : elle transparaît aux bords des cellules ; uniquement si aucune image exploitable. */}
+      {!canRender ? (
+        <div className="visit-map-mascot-static" aria-hidden="true">
+          {fallback}
+        </div>
+      ) : null}
       {canRender ? (
         <div
           key={spriteAnimKey}

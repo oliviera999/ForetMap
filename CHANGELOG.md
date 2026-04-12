@@ -5,6 +5,9 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé
+- **Visite — Renard 2 (`sprite_cut`)** : le fallback SVG **`backpackFox2`** n’est plus rendu sous les PNG découpés (il ne s’affiche que si aucune image de l’état n’est utilisable), pour éviter qu’il ne transparaisse aux bords des cellules.
+
 ### Ajouté
 - **Visite — mascotte « Renard 2 » (sprites découpés)** : entrée catalogue **`renard2-cut-spritesheet`** (`renderer: sprite_cut`, pas d’atlas), images **`/assets/mascots/renard2-cut/frames/cell-r*-c*.png`**, manifeste **`src/data/renard2-cut-manifest.js`**, script **`npm run mascot:renard2-cut`**, composant **`VisitMapMascotSpriteCut.jsx`**, routage dans **`VisitMapMascotRenderer.jsx`**, états preview via **`getVisitMascotSupportedStates`** et **`useVisitMascotStateMachine`**, fallback SVG **`backpackFox2`**, styles **`index.css`**, tests catalogue et e2e sélecteur prof, doc **`docs/VISIT_MAP_GEOMETRY.md`**.
 
