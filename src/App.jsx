@@ -993,7 +993,8 @@ function App() {
   const useWideMain = shouldUseDesktopSplit;
   const mapChromeCompactVisible = !loading && (useSplitMapTasks || (!useSplitMapTasks && tab === 'map'));
   const tutorialsModuleEnabled = publicSettings?.modules?.tutorials_enabled !== false;
-  const tasksTabLabel = tutorialsModuleEnabled ? '✅ Tâches et tuto' : '✅ Tâches';
+  const mergeTasksTutoNav = tutorialsModuleEnabled && !!(tasksLocationFocus?.kind && tasksLocationFocus?.id != null && String(tasksLocationFocus.id).trim() !== '');
+  const tasksTabLabel = mergeTasksTutoNav ? '✅ Tâches&tuto' : (tutorialsModuleEnabled ? '✅ Tâches et tuto' : '✅ Tâches');
   const mapTasksSplitLabel = tutorialsModuleEnabled ? '🗺️ Cartes, tâches et tuto' : '🗺️ Cartes & tâches';
 
   const rtStatus = useForetmapRealtime({
@@ -1055,6 +1056,12 @@ function App() {
     if (tab === 'notebook' && publicSettings?.modules?.observations_enabled === false) setTab('map');
     if (tab === 'forum' && !canAccessForum) setTab('about');
   }, [tab, publicSettings?.modules?.tutorials_enabled, publicSettings?.modules?.stats_enabled, publicSettings?.modules?.visit_enabled, publicSettings?.modules?.observations_enabled, publicSettings?.modules?.forum_enabled, canAccessForum, canViewGeneralStats]);
+
+  /** Avec une zone/repère au focus, l’onglet Tuto est fusionné avec Tâches (navigation vers la vue Tâches). */
+  useEffect(() => {
+    if (!mergeTasksTutoNav || tab !== 'tuto') return;
+    setTab('tasks');
+  }, [mergeTasksTutoNav, tab]);
 
   // Auto-refresh adaptatif (ralenti quand le push est actif, ralenti en arrière-plan).
   const pollingIntervalMs = useMemo(() => {
@@ -1642,11 +1649,11 @@ function App() {
               </button>
             )}
             <button className={`top-tab ${tab === 'map' ? 'active' : ''}`} onClick={() => setTab('map')}>🗺️ Carte & Zones</button>
-            <button className={`top-tab ${tab === 'tasks' ? 'active' : ''}`} onClick={() => setTab('tasks')}>
+            <button className={`top-tab ${tab === 'tasks' || (mergeTasksTutoNav && tab === 'tuto') ? 'active' : ''}`} onClick={() => setTab('tasks')}>
               {tasksTabLabel}{teacherPendingValidationCount > 0 ? ` (${teacherPendingValidationCount} à valider)` : ''}
             </button>
             <button className={`top-tab ${tab === 'plants' ? 'active' : ''}`} onClick={() => setTab('plants')}>🌱 Biodiversité</button>
-            {publicSettings?.modules?.tutorials_enabled !== false && (
+            {publicSettings?.modules?.tutorials_enabled !== false && !mergeTasksTutoNav && (
               <button className={`top-tab ${tab === 'tuto' ? 'active' : ''}`} onClick={() => setTab('tuto')}>📘 Tuto</button>
             )}
             {canAccessForum && <button className={`top-tab ${tab === 'forum' ? 'active' : ''}`} onClick={() => setTab('forum')}>💬 Forum</button>}
@@ -1917,16 +1924,23 @@ function App() {
               </button>
             )}
             {canAccessStudentMapTasks && (
-              <button className={`nav-btn ${tab === 'tasks' ? 'active' : ''}`} onClick={() => setTab('tasks')}>
-                <span className="nav-icon">✅</span>
-                {tutorialsModuleEnabled ? 'Tâches · tuto' : 'Tâches'}{studentActiveAssignedTasksCount > 0 && ` (${studentActiveAssignedTasksCount})`}
-              </button>
+              mergeTasksTutoNav ? (
+                <button className={`nav-btn ${tab === 'tasks' || tab === 'tuto' ? 'active' : ''}`} type="button" onClick={() => setTab('tasks')}>
+                  <span className="nav-icon">✅</span>
+                  Tâches&tuto{studentActiveAssignedTasksCount > 0 && ` (${studentActiveAssignedTasksCount})`}
+                </button>
+              ) : (
+                <button className={`nav-btn ${tab === 'tasks' ? 'active' : ''}`} type="button" onClick={() => setTab('tasks')}>
+                  <span className="nav-icon">✅</span>
+                  {tutorialsModuleEnabled ? 'Tâches · tuto' : 'Tâches'}{studentActiveAssignedTasksCount > 0 && ` (${studentActiveAssignedTasksCount})`}
+                </button>
+              )
             )}
             <button className={`nav-btn ${tab === 'plants' ? 'active' : ''}`} onClick={() => setTab('plants')}>
               <span className="nav-icon">🌱</span> Biodiversité
             </button>
-            {publicSettings?.modules?.tutorials_enabled !== false && (
-              <button className={`nav-btn ${tab === 'tuto' ? 'active' : ''}`} onClick={() => setTab('tuto')}>
+            {publicSettings?.modules?.tutorials_enabled !== false && !mergeTasksTutoNav && (
+              <button className={`nav-btn ${tab === 'tuto' ? 'active' : ''}`} type="button" onClick={() => setTab('tuto')}>
                 <span className="nav-icon">📘</span> Tuto
               </button>
             )}

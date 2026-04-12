@@ -6,6 +6,8 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 ## [Non publié]
 
 ### Modifié
+- **Navigation (n3beur / aperçu)** : lorsqu’une **zone** ou un **repère** est affiché sur la carte, les entrées **Tâches** et **Tuto** de la barre du bas sont fusionnées en un seul libellé **Tâches&tuto** (vers la vue Tâches, tutoriels du lieu inclus) ; idem pour les onglets prof en tête d’écran. Synchronisation du **focus lieu** avec la carte hors mode split (et effacement quand on ferme la fiche lieu). **`App.jsx`**, **`map-views.jsx`**.
+- **Photos (galerie)** : sélection **multiple** depuis l’explorateur de fichiers pour l’upload prof sur **zone/repère** (carte), les **médias visite** (zone/repère), et le **formulaire biodiversité** (plusieurs fichiers répartis sur les champs photo dans l’ordre à partir du bouton utilisé). **`map-views.jsx`**, **`visit-views.jsx`**, **`foretmap-views.jsx`**.
 - **Build** : régénération des artefacts **`dist/`** (bundle Vite production).
 
 ### Ajouté
