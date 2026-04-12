@@ -5,6 +5,9 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé
+- **Biodiversité — pré-saisie OpenAI** : lorsque le **contexte agrégé** est très court (ex. extension seule sans Wikipedia/GBIF), consignes **mode indicatif pédagogique** pour éviter un JSON vide sur des requêtes vernaculaires courantes (aubergine, etc.) ; température légèrement relevée dans ce cas ; avertissement dédié. **`lib/speciesAutofillOpenAi.js`**, **`docs/SPECIES_AUTOFILL_EXTENSIONS.md`**.
+
 ### Ajouté
 - **Paramètres admin — pré-saisie espèces** : route **`GET /api/settings/admin/system/species-autofill-providers-test`** (auto-test HTTP minimal Pl@ntNet + OpenAI, sans exposer les clés) et bouton **Test pré-saisie (Pl@ntNet / OpenAI)** dans Actions système. **`lib/speciesAutofillProviderSelfTest.js`**, **`routes/settings.js`**, **`settings-admin-views.jsx`**, tests, **`docs/API.md`**, **`docs/SPECIES_AUTOFILL_EXTENSIONS.md`**.
 
@@ -12,6 +15,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - **Visite — outil pack mascotte** : le bouton et la modale ne sont plus réservés au mode dev Vite ; libellé **« Boîte à outils pack mascotte »** ; **`visit-views.jsx`**, **`MascotPackToolView.jsx`**, **`docs/MASCOT_PACK.md`**, **`docs/LOCAL_DEV.md`**.
 
 ### Corrigé
+- **Visite — API packs mascotte** : les **POST/DELETE** d’assets et **GET /api/visit/content** appliquent le même mappage d’erreurs SQL (table absente, contrainte) et incluent **`requestId`** dans les réponses 500 pour corréler avec les logs serveur. **`routes/visit.js`**.
 - **Biodiversité — pré-saisie (`sources` restreint)** : avec seulement **Pl@ntNet** ou **OpenAI** (sans GBIF/Wikidata), le nom passé à l’align Pl@ntNet et le contexte LLM utilisent désormais **`hint_name`** et le texte **`q`** en repli, et la requête OpenAI inclut les **indices formulaire** — évite l’absence totale de proposition pour un nom courant type « tomate ». **`lib/speciesAutofill.js`**, **`lib/speciesAutofillOpenAi.js`**, tests, **`docs/API.md`**.
 
 ### Ajouté
