@@ -6,7 +6,7 @@ const {
   extractWikidataTraitFields,
 } = require('../lib/speciesAutofillWikidata');
 
-test('collectItemIdsFromClaims agrège P366 et P183', () => {
+test('collectItemIdsFromClaims agrège P366, P183 et P9714', () => {
   const claims = {
     P366: [{
       mainsnak: {
@@ -26,10 +26,34 @@ test('collectItemIdsFromClaims agrège P366 et P183', () => {
         },
       },
     }],
+    P9714: [{
+      mainsnak: {
+        snaktype: 'value',
+        datavalue: {
+          type: 'wikibase-entityid',
+          value: { id: 'Q155' },
+        },
+      },
+    }],
   };
-  const ids = collectItemIdsFromClaims(claims, ['P366', 'P183']);
+  const ids = collectItemIdsFromClaims(claims, ['P366', 'P183', 'P9714']);
   assert.ok(ids.includes('Q2095'));
   assert.ok(ids.includes('Q142'));
+  assert.ok(ids.includes('Q155'));
+});
+
+test('extractWikidataTraitFields inclut P9714 dans geographic_origin', () => {
+  const claims = {
+    P9714: [{
+      mainsnak: {
+        snaktype: 'value',
+        datavalue: { type: 'wikibase-entityid', value: { id: 'Q155' } },
+      },
+    }],
+  };
+  const labelMap = new Map([['Q155', { fr: 'Brésil', en: 'Brazil' }]]);
+  const { fields } = extractWikidataTraitFields(claims, labelMap);
+  assert.match(fields.geographic_origin, /Brésil/);
 });
 
 test('extractWikidataTraitFields joint libellés P366 et P183', () => {

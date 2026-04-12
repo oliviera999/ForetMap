@@ -1536,6 +1536,12 @@ test('GET /api/plants/autofill renvoie une pré-saisie normalisée multi-sources
         },
       };
     }
+    if (raw.includes('/species/2930132/descriptions')) {
+      return { ok: true, status: 200, async json() { return { results: [] }; } };
+    }
+    if (raw.includes('api.gbif.org/v1/species/2930132') && !raw.includes('vernacularNames')) {
+      return { ok: true, status: 200, async json() { return { taxonomicStatus: 'ACCEPTED' }; } };
+    }
     if (raw.includes('api.checklistbank.org/dataset/3LR/nameusage/search')) {
       return {
         ok: true,
@@ -1641,6 +1647,12 @@ test('GET /api/plants/autofill garde un fallback partiel si une source échoue',
           return { confidence: 88, canonicalName: 'Basilic', scientificName: 'Ocimum basilicum', usageKey: 3214412 };
         },
       };
+    }
+    if (raw.includes('/species/3214412/descriptions')) {
+      return { ok: true, status: 200, async json() { return { results: [] }; } };
+    }
+    if (raw.includes('api.gbif.org/v1/species/3214412') && !raw.includes('vernacularNames')) {
+      return { ok: true, status: 200, async json() { return { taxonomicStatus: 'ACCEPTED' }; } };
     }
     if (raw.includes('api.checklistbank.org/dataset/3LR/nameusage/search')) {
       return {

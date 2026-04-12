@@ -15,13 +15,29 @@ test('Trefle : désactivé sans flag + token', async () => {
   process.env.TREFLE_TOKEN = prevTok;
 });
 
-test('Trefle : activé mais squelette → null sans fetch', async () => {
+test('Trefle : mapping quand API renvoie une espèce (fetch mock)', async () => {
   const prevFlag = process.env.SPECIES_AUTOFILL_TREFLE;
   const prevTok = process.env.TREFLE_TOKEN;
   process.env.SPECIES_AUTOFILL_TREFLE = '1';
   process.env.TREFLE_TOKEN = 'test-token';
   assert.equal(isTrefleAutofillEnabled(), true);
-  assert.equal(await fetchTrefleSpeciesTraits('Solanum lycopersicum'), null);
+  const fetchImpl = async () => ({
+    ok: true,
+    json: async () => ({
+      data: [{
+        observations: 'Open ground',
+        edible_part: ['fruit'],
+        duration: ['Perennial'],
+        growth: { description: 'Fast grower', ph_minimum: 6, ph_maximum: 7 },
+        image_url: 'https://images.trefle.io/example.jpg',
+      }],
+    }),
+  });
+  const pack = await fetchTrefleSpeciesTraits('Solanum lycopersicum', { fetchImpl });
+  assert.ok(pack);
+  assert.equal(pack.source, 'trefle');
+  assert.match(pack.fields.habitat, /Open ground/i);
+  assert.ok((pack.photos || []).length >= 1);
   process.env.SPECIES_AUTOFILL_TREFLE = prevFlag;
   process.env.TREFLE_TOKEN = prevTok;
 });
