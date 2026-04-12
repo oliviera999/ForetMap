@@ -220,6 +220,43 @@ function TanBirdVisitMascotSvg() {
   );
 }
 
+/** Renard pixel + sac à dos (secours mascotte fox-backpack-spritesheet). */
+function BackpackFoxVisitMascotSvg() {
+  return (
+    <svg className="visit-backpack-fox-svg" viewBox="0 0 128 148" role="presentation" focusable="false">
+      <ellipse cx="64" cy="140" rx="28" ry="6" fill="rgba(26,71,49,0.14)" />
+      <g className="visit-backpack-fox-tail">
+        <path d="M24 96 L10 88 L14 108 Z" fill="#c2410c" stroke="#431407" strokeWidth="2.4" strokeLinejoin="round" />
+        <path d="M20 106 L6 104 L12 118 Z" fill="#c2410c" stroke="#431407" strokeWidth="2.4" strokeLinejoin="round" />
+      </g>
+      <g className="visit-backpack-fox-body">
+        <rect x="44" y="72" width="52" height="44" rx="16" fill="#ea580c" stroke="#431407" strokeWidth="3.2" />
+        <rect x="52" y="80" width="36" height="28" rx="10" fill="#ffedd5" stroke="#431407" strokeWidth="2" />
+      </g>
+      <g className="visit-backpack-fox-bag">
+        <rect x="78" y="68" width="22" height="32" rx="5" fill="#78350f" stroke="#431407" strokeWidth="2.6" />
+        <rect x="82" y="74" width="14" height="8" rx="2" fill="#92400e" />
+        <path d="M88 68 L88 58 Q92 52 98 58 L98 68" fill="none" stroke="#431407" strokeWidth="2.4" strokeLinecap="round" />
+      </g>
+      <g className="visit-backpack-fox-head">
+        <rect x="52" y="36" width="44" height="40" rx="14" fill="#f97316" stroke="#431407" strokeWidth="3" />
+        <rect x="58" y="56" width="32" height="14" rx="6" fill="#ffedd5" stroke="#431407" strokeWidth="2" />
+        <rect x="58" y="44" width="10" height="10" rx="2" fill="#1f2937" />
+        <rect x="78" y="44" width="10" height="10" rx="2" fill="#1f2937" />
+        <rect x="70" y="52" width="8" height="4" rx="1" fill="#1f2937" />
+      </g>
+      <g className="visit-backpack-fox-ear" fill="#ea580c" stroke="#431407" strokeWidth="2.4">
+        <path d="M52 40 L46 22 L62 34 Z" strokeLinejoin="round" />
+        <path d="M88 34 L102 22 L96 40 Z" strokeLinejoin="round" />
+      </g>
+      <g className="visit-backpack-fox-feet" stroke="#431407" strokeWidth="3.2" strokeLinecap="round">
+        <path d="M54 118 L50 134" fill="none" />
+        <path d="M74 118 L78 134" fill="none" />
+      </g>
+    </svg>
+  );
+}
+
 /** OLU: renard pixel-style simplifié pour fallback statique. */
 function OluVisitMascotSvg() {
   return (
@@ -251,7 +288,7 @@ function OluVisitMascotSvg() {
 
 /**
  * @param {object} props
- * @param {'gnome'|'spore'|'vine'|'moss'|'seed'|'swarm'|'sprout'|'scrap'|'olu'|'tanBird'} props.silhouette
+ * @param {'gnome'|'spore'|'vine'|'moss'|'seed'|'swarm'|'sprout'|'scrap'|'olu'|'tanBird'|'backpackFox'} props.silhouette
  * @param {string} [props.variant] — pour silhouette gnome : forest | amber | punk
  */
 function VisitMascotFallbackSvg({ silhouette = 'gnome', variant = 'forest' }) {
@@ -262,6 +299,8 @@ function VisitMascotFallbackSvg({ silhouette = 'gnome', variant = 'forest' }) {
       return <VisitMascotScrapSvg />;
     case 'olu':
       return <OluVisitMascotSvg />;
+    case 'backpackFox':
+      return <BackpackFoxVisitMascotSvg />;
     case 'tanBird':
       return <TanBirdVisitMascotSvg />;
     case 'spore':
@@ -296,6 +335,7 @@ export {
   SeedVisitMascotSvg,
   SwarmVisitMascotSvg,
   OluVisitMascotSvg,
+  BackpackFoxVisitMascotSvg,
   TanBirdVisitMascotSvg,
   VisitMascotSproutSvg as SproutVisitMascotSvg,
   VisitMascotScrapSvg as ScrapVisitMascotSvg,

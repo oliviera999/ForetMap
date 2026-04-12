@@ -238,6 +238,37 @@ const VISIT_MASCOT_CATALOG = [
       pixelated: false,
     },
   },
+  /**
+   * Renard pixel + sac : atlas 918×640, grille uniforme 6×4 (153×160 px/cellule).
+   * Source recadrée depuis 918×637 (+3 px transparents en bas pour aligner les 4 rangées).
+   */
+  {
+    id: 'fox-backpack-spritesheet',
+    label: 'Renard sac (spritesheet)',
+    renderer: 'spritesheet',
+    fallbackSilhouette: 'backpackFox',
+    spritesheet: {
+      src: '/assets/mascots/fox-backpack/fox-backpack-spritesheet.png',
+      frameWidth: 153,
+      frameHeight: 160,
+      stateFrames: {
+        idle: { row: 0, col: 0, frames: 3, fps: 2 },
+        walking: { row: 1, col: 0, frames: 5, fps: 9 },
+        running: { row: 1, col: 0, frames: 5, fps: 15 },
+        talk: { row: 2, col: 0, frames: 3, fps: 7 },
+        happy: { row: 2, col: 3, frames: 1, fps: 1 },
+        happy_jump: { row: 3, col: 0, frames: 1, fps: 3 },
+        spin: { row: 3, col: 1, frames: 2, fps: 9 },
+        inspect: { row: 0, col: 2, frames: 1, fps: 1 },
+        map_read: { row: 0, col: 0, frames: 1, fps: 1 },
+        alert: { row: 3, col: 0, frames: 1, fps: 4 },
+        celebrate: { row: 3, col: 5, frames: 1, fps: 2 },
+        surprise: { row: 3, col: 0, frames: 1, fps: 2 },
+        angry: { row: 3, col: 0, frames: 1, fps: 4 },
+      },
+      pixelated: true,
+    },
+  },
 ];
 
 function getVisitMascotCatalog() {

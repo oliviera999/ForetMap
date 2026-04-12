@@ -85,3 +85,37 @@ test('catalogue inclut oiseau tan spritesheet (idle 1 frame, marche 2 frames)', 
   assert.equal(bird.spritesheet.stateFrames.running.frames, 2);
   assert.equal(bird.spritesheet.pixelated, false);
 });
+
+test('catalogue inclut renard sac spritesheet (grille 153×160, palette complète)', async () => {
+  const { getVisitMascotById, getVisitMascotSupportedStates } = await loadModule();
+  const fox = getVisitMascotById('fox-backpack-spritesheet');
+  assert.ok(fox);
+  assert.equal(fox.renderer, 'spritesheet');
+  assert.equal(fox.fallbackSilhouette, 'backpackFox');
+  assert.equal(fox.spritesheet.frameWidth, 153);
+  assert.equal(fox.spritesheet.frameHeight, 160);
+  assert.equal(fox.spritesheet.pixelated, true);
+  assert.match(String(fox.spritesheet.src), /fox-backpack/);
+  assert.equal(fox.spritesheet.stateFrames.walking.frames, 5);
+  assert.equal(fox.spritesheet.stateFrames.running.frames, 5);
+  assert.equal(fox.spritesheet.stateFrames.talk.frames, 3);
+  assert.equal(fox.spritesheet.stateFrames.spin.frames, 2);
+  const states = getVisitMascotSupportedStates('fox-backpack-spritesheet');
+  for (const wanted of [
+    'idle',
+    'walking',
+    'running',
+    'talk',
+    'happy',
+    'happy_jump',
+    'spin',
+    'inspect',
+    'map_read',
+    'alert',
+    'celebrate',
+    'surprise',
+    'angry',
+  ]) {
+    assert.ok(states.includes(wanted), `renard sac etat manquant: ${wanted}`);
+  }
+});
