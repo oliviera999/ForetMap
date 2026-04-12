@@ -579,6 +579,7 @@ CREATE TABLE IF NOT EXISTS zone_photos (
   zone_id VARCHAR(64) NOT NULL,
   image_path VARCHAR(512) DEFAULT NULL,
   caption VARCHAR(512) DEFAULT '',
+  sort_order INT UNSIGNED NOT NULL DEFAULT 0,
   uploaded_at VARCHAR(32) DEFAULT NULL,
   INDEX idx_zone_photos_zone_id (zone_id),
   CONSTRAINT fk_zone_photos_zone FOREIGN KEY (zone_id) REFERENCES zones(id) ON DELETE CASCADE
@@ -607,6 +608,7 @@ CREATE TABLE IF NOT EXISTS marker_photos (
   marker_id VARCHAR(64) NOT NULL,
   image_path VARCHAR(512) DEFAULT NULL,
   caption VARCHAR(512) DEFAULT '',
+  sort_order INT UNSIGNED NOT NULL DEFAULT 0,
   uploaded_at VARCHAR(32) DEFAULT NULL,
   INDEX idx_marker_photos_marker_id (marker_id),
   CONSTRAINT fk_marker_photos_marker FOREIGN KEY (marker_id) REFERENCES map_markers(id) ON DELETE CASCADE

@@ -1,7 +1,7 @@
 const express = require('express');
 const path = require('path');
 const { v4: uuidv4 } = require('uuid');
-const { queryAll, queryOne, execute } = require('../database');
+const { queryAll, queryOne, execute, withTransaction } = require('../database');
 const { requirePermission } = require('../middleware/requireTeacher');
 const { saveBase64ToDisk, getAbsolutePath, deleteFile } = require('../lib/uploads');
 const { logRouteError } = require('../lib/routeLog');
@@ -216,13 +216,48 @@ router.get('/:id/photos', async (req, res) => {
   try {
     const zoneId = req.params.id;
     const photos = await queryAll(
-      'SELECT id, zone_id, caption, uploaded_at, image_path FROM zone_photos WHERE zone_id=? ORDER BY uploaded_at DESC',
+      'SELECT id, zone_id, caption, sort_order, uploaded_at, image_path FROM zone_photos WHERE zone_id=? ORDER BY sort_order ASC, id ASC',
       [zoneId]
     );
     res.json(photos.map(p => ({
       ...p,
       image_url: p.image_path ? `/api/zones/${zoneId}/photos/${p.id}/data` : null,
     })));
+  } catch (e) {
+    logRouteError(e, req);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+router.put('/:id/photos/reorder', requirePermission('zones.manage', { needsElevation: true }), async (req, res) => {
+  try {
+    const zoneId = String(req.params.id || '').trim();
+    const zone = await queryOne('SELECT id, map_id FROM zones WHERE id = ?', [zoneId]);
+    if (!zone) return res.status(404).json({ error: 'Zone introuvable' });
+    const raw = req.body?.photo_ids ?? req.body?.ordered_ids;
+    if (!Array.isArray(raw)) {
+      return res.status(400).json({ error: 'Liste photo_ids (ou ordered_ids) requise' });
+    }
+    const photoIds = raw.map((x) => Number(x)).filter((n) => Number.isFinite(n) && n > 0);
+    const rows = await queryAll('SELECT id FROM zone_photos WHERE zone_id = ?', [zoneId]);
+    const existing = rows.map((r) => r.id);
+    if (photoIds.length !== existing.length || existing.length === 0) {
+      return res.status(400).json({ error: 'La liste doit contenir exactement toutes les photos de la zone' });
+    }
+    const set = new Set(existing);
+    for (const id of photoIds) {
+      if (!set.has(id)) return res.status(400).json({ error: 'Identifiant de photo invalide' });
+    }
+    if (new Set(photoIds).size !== photoIds.length) {
+      return res.status(400).json({ error: 'photo_ids en double' });
+    }
+    await withTransaction(async (tx) => {
+      for (let i = 0; i < photoIds.length; i += 1) {
+        await tx.execute('UPDATE zone_photos SET sort_order = ? WHERE id = ? AND zone_id = ?', [i, photoIds[i], zoneId]);
+      }
+    });
+    emitGardenChanged({ reason: 'reorder_zone_photos', zoneId, mapId: zone.map_id });
+    res.json({ ok: true });
   } catch (e) {
     logRouteError(e, req);
     res.status(500).json({ error: e.message });
@@ -253,9 +288,14 @@ router.post('/:id/photos', requirePermission('zones.manage', { needsElevation: t
     if (!zone) return res.status(404).json({ error: 'Zone introuvable' });
     const { image_data, caption } = req.body;
     if (!image_data) return res.status(400).json({ error: 'Image requise' });
+    const nextSortRow = await queryOne(
+      'SELECT COALESCE(MAX(sort_order), -1) + 1 AS n FROM zone_photos WHERE zone_id = ?',
+      [req.params.id]
+    );
+    const sortOrder = Number(nextSortRow?.n) >= 0 ? Number(nextSortRow.n) : 0;
     const result = await execute(
-      'INSERT INTO zone_photos (zone_id, image_path, caption, uploaded_at) VALUES (?, ?, ?, ?)',
-      [req.params.id, null, caption || '', new Date().toISOString()]
+      'INSERT INTO zone_photos (zone_id, image_path, caption, sort_order, uploaded_at) VALUES (?, ?, ?, ?, ?)',
+      [req.params.id, null, caption || '', sortOrder, new Date().toISOString()]
     );
     photoId = result.insertId;
     const relativePath = `zones/${req.params.id}/${photoId}.jpg`;
@@ -266,7 +306,7 @@ router.post('/:id/photos', requirePermission('zones.manage', { needsElevation: t
       throw fileErr;
     }
     await execute('UPDATE zone_photos SET image_path = ? WHERE id = ?', [relativePath, photoId]);
-    const photo = await queryOne('SELECT id, zone_id, caption, uploaded_at FROM zone_photos WHERE id=?', [photoId]);
+    const photo = await queryOne('SELECT id, zone_id, caption, sort_order, uploaded_at FROM zone_photos WHERE id=?', [photoId]);
     emitGardenChanged({ reason: 'add_zone_photo', zoneId: req.params.id, mapId: zone.map_id });
     res.status(201).json(photo);
   } catch (e) {

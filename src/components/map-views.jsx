@@ -347,11 +347,25 @@ function BiodiversitySpeciesOpenLinks({ plants, names, showHeading = true, secti
   );
 }
 
+const FORETMAP_PHOTO_DRAG_MIME = 'application/x-foretmap-zone-marker-photo-id';
+
+function reorderZoneMarkerPhotosByDrop(list, draggedId, dropTargetId) {
+  const ids = list.map((p) => p.id);
+  const from = ids.indexOf(draggedId);
+  const to = ids.indexOf(dropTargetId);
+  if (from < 0 || to < 0 || from === to) return list;
+  const next = [...list];
+  const [removed] = next.splice(from, 1);
+  next.splice(to, 0, removed);
+  return next;
+}
+
 function PhotoGallery({ zoneId, markerId, isTeacher }) {
   const [photos, setPhotos] = useState([]);
   const [big, setBig] = useState(null);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
+  const [reorderingPhotos, setReorderingPhotos] = useState(false);
   const [caption, setCaption] = useState('');
   const galleryFileRef = useRef(null);
   const cameraFileRef = useRef(null);
@@ -404,6 +418,20 @@ function PhotoGallery({ zoneId, markerId, isTeacher }) {
     }
   };
 
+  const persistPhotoReorder = async (nextOrdered) => {
+    if (!isTeacher || nextOrdered.length < 2) return;
+    setReorderingPhotos(true);
+    try {
+      await api(`${listBase}/reorder`, 'PUT', { photo_ids: nextOrdered.map((x) => x.id) });
+      await load();
+    } catch (err) {
+      alert(err.message || 'Impossible de réordonner les photos');
+      await load();
+    } finally {
+      setReorderingPhotos(false);
+    }
+  };
+
   return (
     <div style={{ marginTop: 12 }}>
       {big && <Lightbox src={big.src} caption={big.caption} onClose={() => setBig(null)} />}
@@ -414,32 +442,66 @@ function PhotoGallery({ zoneId, markerId, isTeacher }) {
           ? <p style={{ color: '#bbb', fontSize: '.85rem', fontStyle: 'italic', textAlign: 'center', padding: '12px 0' }}>
               {`Aucune photo pour ce ${emptyLabel}.`}
             </p>
-          : <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(100px,1fr))', gap: 8, marginBottom: 12 }}>
-              {photos.map(p => (
-                <div key={p.id} style={{ position: 'relative', borderRadius: 8, overflow: 'hidden',
-                  aspectRatio: '1', background: '#e8f5e9' }}>
-                  {p.image_url
-                    ? <img src={p.image_url} style={{ width: '100%', height: '100%', objectFit: 'cover', cursor: 'pointer' }}
-                        onClick={() => setBig({ src: p.image_url, caption: p.caption })} alt={p.caption || ''} />
-                    : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center',
-                        justifyContent: 'center', fontSize: '1.5rem', animation: 'sway 1.5s infinite' }}>🌿</div>
-                  }
-                  {p.image_url && p.caption && (
-                    <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'rgba(0,0,0,.55)',
-                      color: 'white', fontSize: '.62rem', padding: '3px 5px',
-                      overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.caption}</div>
-                  )}
-                  {isTeacher && p.image_url && (
-                    <button onClick={() => del(p.id)}
-                      style={{ position: 'absolute', top: 4, right: 4, background: 'rgba(0,0,0,.55)',
-                        border: 'none', color: 'white', borderRadius: '50%', width: 22, height: 22,
-                        fontSize: '.7rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      ✕
-                    </button>
-                  )}
-                </div>
-              ))}
-            </div>
+          : (
+            <>
+              {isTeacher && photos.length > 1 && (
+                <p style={{ color: '#64748b', fontSize: '.76rem', margin: '0 0 8px', lineHeight: 1.45 }}>
+                  Glisser-déposer une vignette pour changer l’ordre. La première sert de photo d’accroche sur la visite guidée.
+                </p>
+              )}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(100px,1fr))', gap: 8, marginBottom: 12,
+                opacity: reorderingPhotos ? 0.65 : 1, pointerEvents: reorderingPhotos ? 'none' : undefined }}>
+                {photos.map((p) => (
+                  <div
+                    key={p.id}
+                    className={isTeacher && photos.length > 1 ? 'photo-reorder-tile' : undefined}
+                    draggable={!!(isTeacher && photos.length > 1 && p.image_url)}
+                    onDragStart={(e) => {
+                      if (!isTeacher || photos.length < 2 || !p.image_url) return;
+                      e.dataTransfer.setData(FORETMAP_PHOTO_DRAG_MIME, String(p.id));
+                      e.dataTransfer.effectAllowed = 'move';
+                    }}
+                    onDragOver={(e) => {
+                      if (!isTeacher || photos.length < 2) return;
+                      e.preventDefault();
+                      e.dataTransfer.dropEffect = 'move';
+                    }}
+                    onDrop={(e) => {
+                      if (!isTeacher || photos.length < 2) return;
+                      e.preventDefault();
+                      const raw = e.dataTransfer.getData(FORETMAP_PHOTO_DRAG_MIME);
+                      const dragId = Number(raw);
+                      if (!Number.isFinite(dragId) || dragId === p.id) return;
+                      const next = reorderZoneMarkerPhotosByDrop(photos, dragId, p.id);
+                      void persistPhotoReorder(next);
+                    }}
+                    style={{ position: 'relative', borderRadius: 8, overflow: 'hidden',
+                      aspectRatio: '1', background: '#e8f5e9' }}
+                  >
+                    {p.image_url
+                      ? <img src={p.image_url} style={{ width: '100%', height: '100%', objectFit: 'cover', cursor: 'pointer' }}
+                          onClick={() => setBig({ src: p.image_url, caption: p.caption })} alt={p.caption || ''} />
+                      : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center',
+                          justifyContent: 'center', fontSize: '1.5rem', animation: 'sway 1.5s infinite' }}>🌿</div>
+                    }
+                    {p.image_url && p.caption && (
+                      <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'rgba(0,0,0,.55)',
+                        color: 'white', fontSize: '.62rem', padding: '3px 5px',
+                        overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.caption}</div>
+                    )}
+                    {isTeacher && p.image_url && (
+                      <button type="button" onMouseDown={(ev) => ev.stopPropagation()} onClick={() => del(p.id)}
+                        style={{ position: 'absolute', top: 4, right: 4, background: 'rgba(0,0,0,.55)',
+                          border: 'none', color: 'white', borderRadius: '50%', width: 22, height: 22,
+                          fontSize: '.7rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        ✕
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </>
+          )
       }
 
       {isTeacher && (

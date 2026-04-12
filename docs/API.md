@@ -270,9 +270,10 @@ Contenus éditables du site (micro-CMS texte brut) :
 | PUT | `/api/zones/:id` | oui | Modifier zone |
 | POST | `/api/zones` | oui | Créer zone |
 | DELETE | `/api/zones/:id` | oui | Supprimer zone |
-| GET | `/api/zones/:id/photos` | non | Liste des photos (méta) |
+| GET | `/api/zones/:id/photos` | non | Liste des photos (méta, tri `sort_order` croissant) |
 | GET | `/api/zones/:id/photos/:pid/data` | non | Données image (fichier disque) |
 | POST | `/api/zones/:id/photos` | oui | Ajouter photo (`image_data` base64, `caption`) |
+| PUT | `/api/zones/:id/photos/reorder` | oui | Réordonner : corps JSON **`photo_ids`** (ou **`ordered_ids`**) = tableau des `id` dans le nouvel ordre (exactement toutes les photos de la zone) |
 | DELETE | `/api/zones/:id/photos/:pid` | oui | Supprimer photo |
 
 - Le champ `name` peut commencer par un **emoji de zone** : préfixe (séquence emoji) suivi d’un **espace** puis le libellé ; l’UI carte permet de choisir l’emoji dans une grille ou de coller un pictogramme.
@@ -291,9 +292,10 @@ Contenus éditables du site (micro-CMS texte brut) :
 | POST | `/api/map/markers` | oui | Créer repère |
 | PUT | `/api/map/markers/:id` | oui | Modifier repère |
 | DELETE | `/api/map/markers/:id` | oui | Supprimer repère |
-| GET | `/api/map/markers/:id/photos` | non | Liste des photos du repère (méta + `image_url`) |
+| GET | `/api/map/markers/:id/photos` | non | Liste des photos du repère (méta + `image_url`, tri `sort_order` croissant) |
 | GET | `/api/map/markers/:id/photos/:pid/data` | non | Fichier image (disque) |
 | POST | `/api/map/markers/:id/photos` | oui | Ajouter photo (`image_data` base64, `caption`) — même principe que les zones |
+| PUT | `/api/map/markers/:id/photos/reorder` | oui | Réordonner : corps JSON **`photo_ids`** (ou **`ordered_ids`**) = tableau des `id` dans le nouvel ordre (exactement toutes les photos du repère) |
 | DELETE | `/api/map/markers/:id/photos/:pid` | oui | Supprimer photo |
 
 - Corps JSON : notamment `emoji` (pictogramme du repère). Valeur **tronquée à 16 caractères** côté serveur si besoin (colonne `map_markers.emoji`). **`living_beings`** : tableau de noms (ordre conservé) ; **`plant_name`** est une colonne legacy laissée **vide** dès que la liste est non vide (comme **`current_plant`** pour les zones).
@@ -324,6 +326,7 @@ Contenus éditables du site (micro-CMS texte brut) :
 | POST | `/api/visit/markers` | oui | Créer un repère de visite |
 | PUT | `/api/visit/markers/:id` | oui | Modifier un repère de visite |
 | DELETE | `/api/visit/markers/:id` | oui | Supprimer un repère de visite |
+| PUT | `/api/visit/media/reorder` | oui | Réordonner les médias d’une cible : `{ target_type: "zone"|"marker", target_id, ordered_ids }` (ou **`photo_ids`**) — tableau des `id` dans le nouvel ordre (exactement tous les médias de la cible) |
 | GET | `/api/visit/media/:id/data` | non | Fichier image pour un média visite stocké sur disque (`image_path`) |
 | POST | `/api/visit/media` | oui | Ajouter un média sur une cible de visite |
 | PUT | `/api/visit/media/:id` | oui | Modifier un média de visite |
@@ -345,7 +348,7 @@ Contraintes importantes :
 - Les routes de gestion (`/zones`, `/markers`, `/media`, `/tutorials`, `/sync/*`) exigent la permission n3boss `visit.manage` (session élevée).
 - **Cookie visite anonyme** : variable optionnelle `VISIT_COOKIE_SECRET` (sinon repli sur `JWT_SECRET`, puis secret de dev hors production) — voir `.env.example`.
 - **Prévisualisation prof** : en session « aperçu élève », le client n’envoie pas de jeton élève pour la visite ; la progression suit le parcours **anonyme** (cookie), pas le compte réel de l’élève prévisualisé.
-- **Médias photos** : **`POST /api/visit/media`** accepte soit **`image_url`** (lien HTTPS ou chemin servi par l’app, ex. `/uploads/…`), soit **`image_data`** (JPEG base64 ou data URL, même principe que `POST /api/zones/:id/photos`). Les fichiers envoyés via `image_data` sont enregistrés sous `uploads/visit_media/{id}.jpg` ; la réponse et **`GET /api/visit/content`** exposent alors **`image_url`** = `/api/visit/media/:id/data`. **`PUT /api/visit/media/:id`** : avec **`image_data`**, remplace l’image locale ; avec **`image_url`** explicite, passe en média « URL uniquement » (fichier local précédent supprimé) ; sans les deux, met à jour **`caption`** / **`sort_order`** uniquement.
+- **Médias photos** : **`POST /api/visit/media`** accepte soit **`image_url`** (lien HTTPS ou chemin servi par l’app, ex. `/uploads/…`), soit **`image_data`** (JPEG base64 ou data URL, même principe que `POST /api/zones/:id/photos`). Les fichiers envoyés via `image_data` sont enregistrés sous `uploads/visit_media/{id}.jpg` ; la réponse et **`GET /api/visit/content`** exposent alors **`image_url`** = `/api/visit/media/:id/data`. Chaque nouveau média reçoit un **`sort_order`** en fin de liste (les listes dans **`GET /api/visit/content`** sont triées par `sort_order` puis `id`). **`PUT /api/visit/media/reorder`** met à jour l’ordre en une fois. **`PUT /api/visit/media/:id`** : avec **`image_data`**, remplace l’image locale ; avec **`image_url`** explicite, passe en média « URL uniquement » (fichier local précédent supprimé) ; sans les deux, met à jour **`caption`** / **`sort_order`** uniquement.
 
 ### Mascotte visite (client) — diagnostic rendu
 

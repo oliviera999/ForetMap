@@ -104,8 +104,8 @@ function serializeVisitMedia(row) {
 }
 
 /**
- * Première ligne conservée par cible : `rows` triées par (identifiant cible), puis **`uploaded_at` DESC**
- * (même ordre que `GET /api/zones/:id/photos` et `GET /api/map/markers/:id/photos` : vignette la plus récente en premier).
+ * Première ligne conservée par cible : `rows` triées par identifiant cible puis **`sort_order` ASC** (ordre galerie carte ;
+ * aligné sur `GET /api/zones/:id/photos` et `GET /api/map/markers/:id/photos`).
  */
 function pickNewestMapPhotoByTarget(rows, targetIdField = 'target_id') {
   const m = new Map();
@@ -506,17 +506,17 @@ router.get('/content', async (req, res) => {
 
     const [zoneMapPhotoRows, markerMapPhotoRows] = await Promise.all([
       queryAll(
-        `SELECT zp.zone_id AS target_id, zp.id, zp.caption, zp.uploaded_at
+        `SELECT zp.zone_id AS target_id, zp.id, zp.caption, zp.uploaded_at, zp.sort_order
          FROM zone_photos zp
          INNER JOIN visit_zones vz ON vz.id = zp.zone_id AND vz.map_id = ?
-         ORDER BY zp.zone_id ASC, zp.uploaded_at DESC`,
+         ORDER BY zp.zone_id ASC, zp.sort_order ASC, zp.id ASC`,
         [mapId]
       ),
       queryAll(
-        `SELECT mp.marker_id AS target_id, mp.id, mp.caption, mp.uploaded_at
+        `SELECT mp.marker_id AS target_id, mp.id, mp.caption, mp.uploaded_at, mp.sort_order
          FROM marker_photos mp
          INNER JOIN visit_markers vm ON vm.id = mp.marker_id AND vm.map_id = ?
-         ORDER BY mp.marker_id ASC, mp.uploaded_at DESC`,
+         ORDER BY mp.marker_id ASC, mp.sort_order ASC, mp.id ASC`,
         [mapId]
       ),
     ]);
@@ -1513,6 +1513,63 @@ router.delete('/markers/:id', requirePermission('visit.manage', { needsElevation
   }
 });
 
+router.put('/media/reorder', requirePermission('visit.manage', { needsElevation: true }), async (req, res) => {
+  try {
+    const targetType = sanitizeTargetType(req.body?.target_type);
+    const targetId = sanitizeTargetId(req.body?.target_id);
+    const raw = req.body?.ordered_ids ?? req.body?.photo_ids;
+    if (!targetType || !targetId) {
+      return res.status(400).json({ error: 'target_type et target_id requis' });
+    }
+    if (!Array.isArray(raw)) {
+      return res.status(400).json({ error: 'Liste ordered_ids (ou photo_ids) requise' });
+    }
+    const ids = raw.map((x) => Number(x)).filter((n) => Number.isFinite(n) && n > 0);
+    if (targetType === 'zone') {
+      const zone = await queryOne('SELECT id FROM visit_zones WHERE id = ? LIMIT 1', [targetId]);
+      if (!zone) return res.status(404).json({ error: 'Zone de visite introuvable' });
+    } else {
+      const marker = await queryOne('SELECT id FROM visit_markers WHERE id = ? LIMIT 1', [targetId]);
+      if (!marker) return res.status(404).json({ error: 'Repère de visite introuvable' });
+    }
+    const rows = await queryAll(
+      'SELECT id FROM visit_media WHERE target_type = ? AND target_id = ?',
+      [targetType, targetId]
+    );
+    const existing = rows.map((r) => r.id);
+    if (ids.length !== existing.length || existing.length === 0) {
+      return res.status(400).json({ error: 'La liste doit contenir exactement tous les médias de la cible' });
+    }
+    const set = new Set(existing);
+    for (const id of ids) {
+      if (!set.has(id)) return res.status(400).json({ error: 'Identifiant de média invalide' });
+    }
+    if (new Set(ids).size !== ids.length) {
+      return res.status(400).json({ error: 'ordered_ids en double' });
+    }
+    const now = nowIso();
+    await withTransaction(async (tx) => {
+      for (let i = 0; i < ids.length; i += 1) {
+        await tx.execute(
+          'UPDATE visit_media SET sort_order = ?, updated_at = ? WHERE id = ? AND target_type = ? AND target_id = ?',
+          [i, now, ids[i], targetType, targetId]
+        );
+      }
+    });
+    const mapRow =
+      targetType === 'zone'
+        ? await queryOne('SELECT map_id FROM visit_zones WHERE id = ? LIMIT 1', [targetId])
+        : await queryOne('SELECT map_id FROM visit_markers WHERE id = ? LIMIT 1', [targetId]);
+    if (mapRow?.map_id) {
+      emitGardenChanged({ reason: 'reorder_visit_media', mapId: mapRow.map_id, targetType, targetId });
+    }
+    res.json({ ok: true });
+  } catch (err) {
+    logRouteError(err, req);
+    res.status(500).json({ error: 'Erreur serveur' });
+  }
+});
+
 router.get('/media/:id/data', async (req, res) => {
   try {
     const mediaId = Number(req.params.id);
@@ -1539,7 +1596,6 @@ router.post('/media', requirePermission('visit.manage', { needsElevation: true }
       imageDataRaw !== undefined && imageDataRaw !== null ? String(imageDataRaw).trim() : '';
     const imageUrl = String(req.body.image_url || '').trim();
     const caption = String(req.body.caption || '').trim();
-    const sortOrder = Number.isFinite(Number(req.body.sort_order)) ? Math.max(0, Number(req.body.sort_order)) : 0;
     if (!targetType || !targetId || (!imageUrl && !imageData)) {
       return res.status(400).json({ error: 'Photo de visite invalide (image_url ou image_data requis)' });
     }
@@ -1550,6 +1606,11 @@ router.post('/media', requirePermission('visit.manage', { needsElevation: true }
       const marker = await queryOne('SELECT id FROM visit_markers WHERE id = ? LIMIT 1', [targetId]);
       if (!marker) return res.status(404).json({ error: 'Repère de visite introuvable' });
     }
+    const maxSo = await queryOne(
+      'SELECT COALESCE(MAX(sort_order), -1) AS m FROM visit_media WHERE target_type = ? AND target_id = ?',
+      [targetType, targetId]
+    );
+    const sortOrder = Number(maxSo?.m) >= 0 ? Number(maxSo.m) + 1 : 0;
     const now = nowIso();
     if (imageData) {
       const result = await execute(
