@@ -1,4 +1,6 @@
-import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import React, {
+  useState, useEffect, useCallback, useRef, useMemo, lazy, Suspense,
+} from 'react';
 import { api, AccountDeletedError, getAuthClaims, getStoredSession, saveStoredSession, clearStoredSession, withAppBase } from './services/api';
 import { useForetmapRealtime } from './hooks/useForetmapRealtime';
 import { useNotificationCenter } from './hooks/useNotificationCenter';
@@ -22,7 +24,8 @@ import { AboutView } from './components/about-views';
 import { StudentAvatar } from './components/student-avatar';
 import { TutorialsView } from './components/tutorials-views';
 import { VisitView } from './components/visit-views';
-import VisitMascotPackManager from './components/VisitMascotPackManager.jsx';
+
+const VisitMascotPackManagerLazy = lazy(() => import('./components/VisitMascotPackManager.jsx'));
 import { ProfilesAdminView } from './components/profiles-views';
 import { SettingsAdminView } from './components/settings-admin-views';
 import { NotificationCenter } from './components/notifications-center';
@@ -1790,13 +1793,21 @@ function App() {
                       ))}
                     </select>
                   </p>
-                  <VisitMascotPackManager
-                    variant="page"
-                    mapId={activeMapId}
-                    mapLabel={mascotStudioMapLabel}
-                    onPacksChanged={fetchAll}
-                    onForceLogout={forceLogout}
-                  />
+                  <Suspense fallback={(
+                    <div className="loader" style={{ padding: '24px 16px', minHeight: 120 }}>
+                      <div className="loader-leaf">🌿</div>
+                      <p className="section-sub">Chargement de l’éditeur packs mascotte…</p>
+                    </div>
+                  )}
+                  >
+                    <VisitMascotPackManagerLazy
+                      variant="page"
+                      mapId={activeMapId}
+                      mapLabel={mascotStudioMapLabel}
+                      onPacksChanged={fetchAll}
+                      onForceLogout={forceLogout}
+                    />
+                  </Suspense>
                 </div>
               )}
               {tab === 'settings' && <SettingsAdminView isN3Affiliated={isN3Affiliated} />}
