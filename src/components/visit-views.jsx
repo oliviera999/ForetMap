@@ -1836,36 +1836,6 @@ function VisitView({
           ) : (
             <div>
               <h3>{selectedType === 'zone' ? selected.name : selected.label}</h3>
-              {isTeacher && selectedType === 'zone' && selected.description && (
-                <div
-                  style={{
-                    background: '#f0fdf4',
-                    borderRadius: 10,
-                    padding: '10px 14px',
-                    marginBottom: 12,
-                    border: '1px solid var(--mint)',
-                    fontSize: '.88rem',
-                    color: '#333',
-                    lineHeight: 1.6,
-                  }}>
-                  {selected.description}
-                </div>
-              )}
-              {isTeacher && selectedType === 'marker' && selected.note && (
-                <div
-                  style={{
-                    background: '#f0fdf4',
-                    borderRadius: 10,
-                    padding: '10px 14px',
-                    marginBottom: 12,
-                    border: '1px solid var(--mint)',
-                    fontSize: '.88rem',
-                    color: '#333',
-                    lineHeight: 1.6,
-                  }}>
-                  {selected.note}
-                </div>
-              )}
               {selected.visit_subtitle && <p className="visit-subtitle">{selected.visit_subtitle}</p>}
               {firstVisitPhoto && (
                 <div className="visit-media-gallery visit-media-gallery--lead">
