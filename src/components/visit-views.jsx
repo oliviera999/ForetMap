@@ -1571,18 +1571,16 @@ function VisitView({
           <div>
             <h3>🧭 Aperçu mascotte (prof/admin)</h3>
             <p className="section-sub">Rendu visuel de la mascotte en dehors de la carte.</p>
-            {import.meta.env.DEV ? (
-              <p className="section-sub" style={{ marginTop: 4 }}>
-                <button
-                  type="button"
-                  className="btn btn-ghost btn-sm"
-                  onClick={() => setMascotPackToolOpen(true)}
-                  title="Composer ou valider un pack JSON sprite_cut (mode développement uniquement)"
-                >
-                  Boîte à outils pack mascotte (dev)
-                </button>
-              </p>
-            ) : null}
+            <p className="section-sub" style={{ marginTop: 4 }}>
+              <button
+                type="button"
+                className="btn btn-ghost btn-sm"
+                onClick={() => setMascotPackToolOpen(true)}
+                title="Composer ou valider un pack JSON sprite_cut (aperçu local, sans enregistrement serveur)"
+              >
+                Boîte à outils pack mascotte
+              </button>
+            </p>
             <div className="visit-mascot-preview-actions">
               <button
                 type="button"
@@ -2024,7 +2022,7 @@ function VisitView({
         )}
       </section>
     </div>
-    {import.meta.env.DEV && isTeacher && mascotPackToolOpen && typeof document !== 'undefined'
+    {isTeacher && mascotPackToolOpen && typeof document !== 'undefined'
       ? createPortal(
         <div
           className="modal-overlay modal-overlay--centered visit-mascot-pack-tool-overlay"
@@ -2035,7 +2033,7 @@ function VisitView({
             className="log-modal log-modal--dialog fade-in visit-mascot-pack-tool-dialog"
             role="dialog"
             aria-modal="true"
-            aria-label="Boîte à outils pack mascotte (développement)"
+            aria-label="Boîte à outils pack mascotte"
             tabIndex={-1}
             onClick={(event) => event.stopPropagation()}
           >
