@@ -26,6 +26,7 @@ import VisitMapMascotRenderer from './VisitMapMascotRenderer.jsx';
 import { VISIT_MASCOT_STATE, pickMascotDialog } from '../utils/visitMascotState.js';
 import { loadVisitMascotPositionPct, saveVisitMascotPositionPct } from '../utils/visitMascotPositionPersistence.js';
 import useVisitMascotStateMachine from '../hooks/useVisitMascotStateMachine.js';
+import { Lightbox } from './map-views';
 
 const VISIT_MAP_MASCOT_MOVE_MS = 560;
 const VISIT_MAP_MASCOT_HAPPY_MS = 1800;
@@ -41,6 +42,26 @@ function visitMediaImgSrc(m) {
   const u = m?.image_url;
   if (!u) return '';
   return withAppBase(u);
+}
+
+/** Vignette cliquable : aperçu sans rognage (CSS `object-fit: contain`) + lightbox plein écran. */
+function VisitMediaGalleryThumb({ media, onOpenLightbox }) {
+  const src = visitMediaImgSrc(media);
+  if (!src) return null;
+  const cap = String(media?.caption || '').trim();
+  return (
+    <figure>
+      <button
+        type="button"
+        className="visit-media-gallery__open"
+        onClick={() => onOpenLightbox({ src, caption: cap })}
+        aria-label={cap ? `Agrandir la photo : ${cap}` : 'Agrandir la photo'}
+      >
+        <img src={src} alt="" loading="lazy" />
+      </button>
+      {cap ? <figcaption>{media.caption}</figcaption> : null}
+    </figure>
+  );
 }
 
 /**
@@ -577,6 +598,7 @@ function VisitView({
   const [savingTutorials, setSavingTutorials] = useState(false);
   const [tutorialReadIds, setTutorialReadIds] = useState(() => new Set());
   const [visitTutorialPreview, setVisitTutorialPreview] = useState(null);
+  const [visitMediaLightbox, setVisitMediaLightbox] = useState(null);
   const [mode, setMode] = useState('view');
   const [drawPoints, setDrawPoints] = useState([]);
   const [creating, setCreating] = useState(false);
@@ -624,6 +646,7 @@ function VisitView({
     setSelectedType(null);
   }, []);
   useOverlayHistoryBack(isGuestPublicVisit && !!selected, clearGuestSelection);
+  useOverlayHistoryBack(!!visitMediaLightbox, () => setVisitMediaLightbox(null));
   const {
     visitMascotId,
     visitMascotOptions,
@@ -1403,6 +1426,13 @@ function VisitView({
           }}
         />
       )}
+      {visitMediaLightbox && (
+        <Lightbox
+          src={visitMediaLightbox.src}
+          caption={visitMediaLightbox.caption}
+          onClose={() => setVisitMediaLightbox(null)}
+        />
+      )}
       <div className="visit-header-row">
         <div>
           <h2 className="section-title">{visitTitle}</h2>
@@ -1869,10 +1899,7 @@ function VisitView({
               {selected.visit_subtitle && <p className="visit-subtitle">{selected.visit_subtitle}</p>}
               {firstVisitPhoto && (
                 <div className="visit-media-gallery visit-media-gallery--lead">
-                  <figure>
-                    <img src={visitMediaImgSrc(firstVisitPhoto)} alt={firstVisitPhoto.caption || ''} />
-                    {firstVisitPhoto.caption && <figcaption>{firstVisitPhoto.caption}</figcaption>}
-                  </figure>
+                  <VisitMediaGalleryThumb media={firstVisitPhoto} onOpenLightbox={setVisitMediaLightbox} />
                 </div>
               )}
               {selected.visit_short_description && <p>{selected.visit_short_description}</p>}
@@ -1883,10 +1910,7 @@ function VisitView({
                   {restVisitPhotos.length > 0 && (
                     <div className="visit-media-gallery visit-media-gallery--details-extra">
                       {restVisitPhotos.map((m) => (
-                        <figure key={m.id}>
-                          <img src={visitMediaImgSrc(m)} alt={m.caption || ''} />
-                          {m.caption && <figcaption>{m.caption}</figcaption>}
-                        </figure>
+                        <VisitMediaGalleryThumb key={m.id} media={m} onOpenLightbox={setVisitMediaLightbox} />
                       ))}
                     </div>
                   )}
