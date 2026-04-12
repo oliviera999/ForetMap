@@ -1836,21 +1836,37 @@ function VisitView({
           ) : (
             <div>
               <h3>{selectedType === 'zone' ? selected.name : selected.label}</h3>
-              {selected.visit_subtitle && <p className="visit-subtitle">{selected.visit_subtitle}</p>}
-              {selected.map_lead_photo?.image_url && (
-                <div className="visit-media-gallery visit-media-gallery--lead visit-media-gallery--map-photo">
-                  <figure>
-                    <img
-                      src={visitMediaImgSrc(selected.map_lead_photo)}
-                      alt={selected.map_lead_photo.caption || ''}
-                    />
-                    {selected.map_lead_photo.caption ? (
-                      <figcaption>{selected.map_lead_photo.caption}</figcaption>
-                    ) : null}
-                  </figure>
+              {isTeacher && selectedType === 'zone' && selected.description && (
+                <div
+                  style={{
+                    background: '#f0fdf4',
+                    borderRadius: 10,
+                    padding: '10px 14px',
+                    marginBottom: 12,
+                    border: '1px solid var(--mint)',
+                    fontSize: '.88rem',
+                    color: '#333',
+                    lineHeight: 1.6,
+                  }}>
+                  {selected.description}
                 </div>
               )}
-              {selected.visit_short_description && <p>{selected.visit_short_description}</p>}
+              {isTeacher && selectedType === 'marker' && selected.note && (
+                <div
+                  style={{
+                    background: '#f0fdf4',
+                    borderRadius: 10,
+                    padding: '10px 14px',
+                    marginBottom: 12,
+                    border: '1px solid var(--mint)',
+                    fontSize: '.88rem',
+                    color: '#333',
+                    lineHeight: 1.6,
+                  }}>
+                  {selected.note}
+                </div>
+              )}
+              {selected.visit_subtitle && <p className="visit-subtitle">{selected.visit_subtitle}</p>}
               {firstVisitPhoto && (
                 <div className="visit-media-gallery visit-media-gallery--lead">
                   <figure>
@@ -1859,6 +1875,7 @@ function VisitView({
                   </figure>
                 </div>
               )}
+              {selected.visit_short_description && <p>{selected.visit_short_description}</p>}
               {showVisitDetailsBlock && (
                 <details className="visit-details">
                   <summary>{selected.visit_details_title || 'Détails'}</summary>

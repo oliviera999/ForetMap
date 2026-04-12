@@ -1142,7 +1142,11 @@ function ProfilesAdminView({ isN3Affiliated = false, onImpersonationApplied, pub
                       ↓
                     </button>
                   </div>
-                  <button className={`btn btn-sm ${Number(selectedRoleId) === Number(r.id) ? 'btn-primary' : 'btn-ghost'}`} onClick={() => setSelectedRoleId(r.id)}>
+                  <button
+                    type="button"
+                    className={`btn btn-sm foretmap-emoji-text-mixed ${Number(selectedRoleId) === Number(r.id) ? 'btn-primary' : 'btn-ghost'}`}
+                    onClick={() => setSelectedRoleId(r.id)}
+                  >
                     {(r.emoji ? `${r.emoji} ` : '') + r.display_name}
                   </button>
                   <button className="btn btn-ghost btn-sm" onClick={() => saveRoleDetails(r)} disabled={loading}>Modifier</button>

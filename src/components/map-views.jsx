@@ -3138,7 +3138,7 @@ function MapView({ zones, markers, tasks = [], tutorials = [], plants, maps = []
             textAnchor="middle"
             dominantBaseline="middle"
             fontSize={mapEmojiFontPx}
-            fontFamily="Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif"
+            fontFamily="ForetMapColorEmoji, Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif"
             style={{ pointerEvents: 'none', userSelect: 'none' }}
           >
             {zoneEmoji || ''}
@@ -3556,7 +3556,6 @@ function MapView({ zones, markers, tasks = [], tutorials = [], plants, maps = []
                 flexShrink: 0,
                 background: 'transparent', border: 'none', borderRadius: 0,
                 fontSize: markerEmojiSize,
-                fontFamily: 'Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif',
                 lineHeight: 1 }}>
                 {m.emoji}
                 {markerTaskVisual && (
