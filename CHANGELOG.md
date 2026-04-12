@@ -5,6 +5,10 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Modifié
+- **Visite — photos média** : vignettes en **`object-fit: contain`** (image entière dans le cadre, bandes neutres si besoin) ; **clic** → **`Lightbox`** plein écran (composant partagé avec la carte) ; le **retour navigateur** ferme l’aperçu. **`visit-views.jsx`**, **`index.css`**.
+- **Biodiversité — pré-saisie Pl@ntNet** : alignement avec **synonymes**, **langue** (`PLANTNET_LANG`, défaut `fr`), **authorship** (heuristique ou `PLANTNET_ALIGN_AUTHORSHIP`) ; second appel **`/species`** (`prefix` + `images=true`) pour **noms vernaculaires**, **UICN**, **photos** par organe (avec repli si plan pro / ambiguïtés) ; variables **`SPECIES_AUTOFILL_PLANTNET_NO_IMAGES`**, champs **`group_3` / `group_4` / `scientific_name`**. **`lib/speciesAutofillPlantnet.js`**, tests, **`docs/SPECIES_AUTOFILL_EXTENSIONS.md`**, **`docs/API.md`**, **`.env.example`**.
+
 ### Ajouté
 - **Visite — mascotte « Renard sac » (implémentation)** : entrée catalogue `fox-backpack-spritesheet` (grille **6×4**, **153×160** px, états visite complets), fallback SVG **`BackpackFoxVisitMascotSvg`**, script **`npm run mascot:fox-backpack`** (`scripts/fox-backpack-extract-and-compose.cjs` : extraction des cellules sous `public/assets/mascots/fox-backpack/cells/`, bulles **(2,4)(2,5)** remplacées par du transparent puis atlas recomposé), tests catalogue et e2e, doc **`docs/VISIT_MAP_GEOMETRY.md`**.
 
