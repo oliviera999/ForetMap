@@ -311,7 +311,7 @@ function BiodiversitySpeciesOpenLinks({ plants, names, showHeading = true, secti
         </div>
       )}
       <p style={{ fontSize: '.72rem', color: '#64748b', margin: '0 0 8px', lineHeight: 1.45 }}>
-        Ouvre la même fiche que dans l&apos;onglet « Biodiversité ».
+        Affiche la fiche catalogue dans une fenêtre (comme pour les tutoriels).
       </p>
       <div
         style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}
@@ -699,7 +699,7 @@ function livingBeingNamesFromTasksAtLocation(kind, locationId, tasks) {
   return names;
 }
 
-function ZoneInfoModal({ zone, plants, tasks, tutorials = [], isTeacher, student, canSelfAssignTasks = true, canEnrollOnTasks, markerEmojis = MARKER_EMOJIS, emojiParsingList = MARKER_EMOJIS, contextCommentsEnabled = true, canParticipateContextComments = true, onClose, onUpdate, onDelete, onDuplicate, onEditPoints, onLinkTask, onUnlinkTask, onAssignTasks, onLinkTutorial, onUnlinkTutorial, onNavigateToTasksForLocation = null, onOpenTutorialPreview = null, onOpenBiodiversityPlant = null }) {
+function ZoneInfoModal({ zone, plants, tasks, tutorials = [], isTeacher, student, canSelfAssignTasks = true, canEnrollOnTasks, markerEmojis = MARKER_EMOJIS, emojiParsingList = MARKER_EMOJIS, contextCommentsEnabled = true, canParticipateContextComments = true, onClose, onUpdate, onDelete, onDuplicate, onEditPoints, onLinkTask, onUnlinkTask, onAssignTasks, onLinkTutorial, onUnlinkTutorial, onNavigateToTasksForLocation = null, onOpenTutorialPreview = null, onOpenPlantCatalogPreview = null }) {
   const canEnroll = canEnrollOnTasks !== undefined ? canEnrollOnTasks : canSelfAssignTasks;
   const dialogRef = useDialogA11y(onClose);
   useOverlayHistoryBack(true, onClose);
@@ -909,8 +909,8 @@ function ZoneInfoModal({ zone, plants, tasks, tutorials = [], isTeacher, student
             {!zone.special && (() => {
               const names = orderedLivingBeingsForForm(zone.living_beings_list || zone.living_beings, zone.current_plant);
               if (names.length === 0) return null;
-              return onOpenBiodiversityPlant ? (
-                <BiodiversitySpeciesOpenLinks plants={plants} names={names} onOpenPlant={onOpenBiodiversityPlant} />
+              return onOpenPlantCatalogPreview ? (
+                <BiodiversitySpeciesOpenLinks plants={plants} names={names} onOpenPlant={onOpenPlantCatalogPreview} />
               ) : (
                 <LivingBeingsCatalogPanel plants={plants} names={names} />
               );
@@ -918,13 +918,13 @@ function ZoneInfoModal({ zone, plants, tasks, tutorials = [], isTeacher, student
             {!zone.special && livingBeingsOnlyOnTasks.length > 0 && (
               <div style={{ marginTop: zoneLivingNames.length ? 14 : 0 }}>
                 <h4 style={{ margin: '0 0 8px', fontSize: '.88rem', color: 'var(--forest)' }}>Également dans les missions</h4>
-                {onOpenBiodiversityPlant ? (
+                {onOpenPlantCatalogPreview ? (
                   <BiodiversitySpeciesOpenLinks
                     plants={plants}
                     names={livingBeingsOnlyOnTasks}
                     showHeading={false}
                     sectionTitle="Également dans les missions"
-                    onOpenPlant={onOpenBiodiversityPlant}
+                    onOpenPlant={onOpenPlantCatalogPreview}
                   />
                 ) : (
                   <LivingBeingsCatalogPanel plants={plants} names={livingBeingsOnlyOnTasks} showHeading={false} />
@@ -1467,7 +1467,7 @@ function MarkerModal({
   contextCommentsEnabled = true,
   canParticipateContextComments = true,
   onRequestAdjustMarkerPosition = null,
-  onOpenBiodiversityPlant = null,
+  onOpenPlantCatalogPreview = null,
 }) {
   const canEnroll = canEnrollOnTasks !== undefined ? canEnrollOnTasks : canSelfAssignTasks;
   const dialogRef = useDialogA11y(onClose);
@@ -2039,8 +2039,8 @@ function MarkerModal({
             {(() => {
               const names = orderedLivingBeingsForForm(marker.living_beings_list || marker.living_beings, marker.plant_name);
               if (names.length === 0) return null;
-              return onOpenBiodiversityPlant ? (
-                <BiodiversitySpeciesOpenLinks plants={plants} names={names} onOpenPlant={onOpenBiodiversityPlant} />
+              return onOpenPlantCatalogPreview ? (
+                <BiodiversitySpeciesOpenLinks plants={plants} names={names} onOpenPlant={onOpenPlantCatalogPreview} />
               ) : (
                 <LivingBeingsCatalogPanel plants={plants} names={names} />
               );
@@ -2048,13 +2048,13 @@ function MarkerModal({
             {livingBeingsOnlyOnTasks.length > 0 && (
               <div style={{ marginTop: markerLivingNamesOrdered.length ? 14 : 0 }}>
                 <h4 style={{ margin: '0 0 8px', fontSize: '.88rem', color: 'var(--forest)' }}>Également dans les missions</h4>
-                {onOpenBiodiversityPlant ? (
+                {onOpenPlantCatalogPreview ? (
                   <BiodiversitySpeciesOpenLinks
                     plants={plants}
                     names={livingBeingsOnlyOnTasks}
                     showHeading={false}
                     sectionTitle="Également dans les missions"
-                    onOpenPlant={onOpenBiodiversityPlant}
+                    onOpenPlant={onOpenPlantCatalogPreview}
                   />
                 ) : (
                   <LivingBeingsCatalogPanel plants={plants} names={livingBeingsOnlyOnTasks} showHeading={false} />
@@ -2675,7 +2675,7 @@ function useMapGestures({ mapImageSrc, activeMapId, mode, onRefresh, embedded = 
   };
 }
 
-function MapView({ zones, markers, tasks = [], tutorials = [], plants, maps = [], activeMapId = 'foret', onMapChange, isTeacher, student, canSelfAssignTasks = true, canEnrollOnTasks, canParticipateContextComments = true, onZoneUpdate, onRefresh, embedded = false, publicSettings = null, onLocationTasksFocus = null, onNavigateToTasksForLocation = null, onOpenBiodiversityPlant = null, onForceLogout }) {
+function MapView({ zones, markers, tasks = [], tutorials = [], plants, maps = [], activeMapId = 'foret', onMapChange, isTeacher, student, canSelfAssignTasks = true, canEnrollOnTasks, canParticipateContextComments = true, onZoneUpdate, onRefresh, embedded = false, publicSettings = null, onLocationTasksFocus = null, onNavigateToTasksForLocation = null, onOpenPlantCatalogPreview = null, onForceLogout }) {
   const canEnrollNewTasks = canEnrollOnTasks !== undefined ? canEnrollOnTasks : canSelfAssignTasks;
   const [mode, setMode] = useState('view');
   const [showLabels, setShowLabels] = useState(true);
@@ -3286,7 +3286,7 @@ function MapView({ zones, markers, tasks = [], tutorials = [], plants, maps = []
           onEditPoints={isTeacher ? z => startEditPoints(z) : null}
           onNavigateToTasksForLocation={onNavigateToTasksForLocation}
           onOpenTutorialPreview={setMapTutorialPreview}
-          onOpenBiodiversityPlant={onOpenBiodiversityPlant ? (id) => { onOpenBiodiversityPlant(id); setSelectedZone(null); } : null}
+          onOpenPlantCatalogPreview={onOpenPlantCatalogPreview ? (id) => { onOpenPlantCatalogPreview(id); setSelectedZone(null); } : null}
         />
       )}
       {selectedMarker && (
@@ -3314,7 +3314,7 @@ function MapView({ zones, markers, tasks = [], tutorials = [], plants, maps = []
           onAssignTasks={assignTasksToStudent}
           onNavigateToTasksForLocation={onNavigateToTasksForLocation}
           onOpenTutorialPreview={setMapTutorialPreview}
-          onOpenBiodiversityPlant={onOpenBiodiversityPlant ? (id) => { onOpenBiodiversityPlant(id); setSelectedMarker(null); } : null}
+          onOpenPlantCatalogPreview={onOpenPlantCatalogPreview ? (id) => { onOpenPlantCatalogPreview(id); setSelectedMarker(null); } : null}
           onRequestAdjustMarkerPosition={isTeacher
             ? () => {
               setMarkerPositionUnlocked(true);

@@ -1479,7 +1479,7 @@ function mapLabelFromMaps(mapId, maps) {
   return map ? map.label : mapId;
 }
 
-function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], tutorials = [], plants = [], activeMapId = 'foret', isTeacher, student, canSelfAssignTasks = true, canEnrollOnTasks, canParticipateContextComments = true, canViewOtherUsersIdentity = true, onRefresh, onForceLogout, isN3Affiliated = false, publicSettings = null, onTaskFormOverlayOpenChange = null, mapLocationFocus = null, onMapLocationFocusChange = null, onOpenBiodiversityPlant = null }) {
+function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], tutorials = [], plants = [], activeMapId = 'foret', isTeacher, student, canSelfAssignTasks = true, canEnrollOnTasks, canParticipateContextComments = true, canViewOtherUsersIdentity = true, onRefresh, onForceLogout, isN3Affiliated = false, publicSettings = null, onTaskFormOverlayOpenChange = null, mapLocationFocus = null, onMapLocationFocusChange = null, onOpenPlantCatalogPreview = null }) {
   const canEnrollNewTask = canEnrollOnTasks !== undefined ? canEnrollOnTasks : canSelfAssignTasks;
   const roleTerms = getRoleTerms(isN3Affiliated);
   const [showForm, setShowForm] = useState(false);
@@ -2196,9 +2196,9 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
     openTasksTutorialPreview,
     onForceLogout,
     onOpenBiodiversityFromTaskName: (name) => {
-      if (typeof onOpenBiodiversityPlant !== 'function') return;
+      if (typeof onOpenPlantCatalogPreview !== 'function') return;
       const p = (plants || []).find((x) => String(x?.name || '').trim() === String(name || '').trim());
-      if (p) onOpenBiodiversityPlant(p.id);
+      if (p) onOpenPlantCatalogPreview(p.id);
       else setToast('Pas de fiche « Biodiversité » pour ce nom. Un prof peut compléter le catalogue.');
     },
   };

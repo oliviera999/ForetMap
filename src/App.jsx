@@ -12,6 +12,7 @@ import {
   PlantManager,
   PlantViewer,
   ObservationNotebook,
+  PlantCatalogPreviewModal,
 } from './components/foretmap-views';
 import { MapView } from './components/map-views';
 import { AuthScreen, PinModal } from './components/auth-views';
@@ -968,29 +969,13 @@ function App() {
     setTab('tasks');
   }, [effectiveIsTeacher, canAccessStudentMapTasks, useSplitMapTasks]);
 
-  const biodiversityScrollClearRef = useRef(null);
-  const [biodiversityScrollPlantId, setBiodiversityScrollPlantId] = useState(null);
-  const openBiodiversityPlant = useCallback((plantId) => {
+  const [plantCatalogPreview, setPlantCatalogPreview] = useState(null);
+  const openPlantCatalogPreviewById = useCallback((plantId) => {
     const id = Number(plantId);
     if (!Number.isFinite(id) || id <= 0) return;
-    if (biodiversityScrollClearRef.current) {
-      window.clearTimeout(biodiversityScrollClearRef.current);
-      biodiversityScrollClearRef.current = null;
-    }
-    setBiodiversityScrollPlantId(null);
-    window.requestAnimationFrame(() => {
-      setBiodiversityScrollPlantId(id);
-      biodiversityScrollClearRef.current = window.setTimeout(() => {
-        biodiversityScrollClearRef.current = null;
-        setBiodiversityScrollPlantId(null);
-      }, 1200);
-    });
-    setTab('plants');
-  }, []);
-
-  useEffect(() => () => {
-    if (biodiversityScrollClearRef.current) window.clearTimeout(biodiversityScrollClearRef.current);
-  }, []);
+    const p = (plants || []).find((x) => Number(x.id) === id);
+    if (p) setPlantCatalogPreview(p);
+  }, [plants]);
 
   const useWideMain = shouldUseDesktopSplit;
   const mapChromeCompactVisible = !loading && (useSplitMapTasks || (!useSplitMapTasks && tab === 'map'));
@@ -1225,6 +1210,18 @@ function App() {
 
   return (
     <div id="app">
+      {plantCatalogPreview && (
+        <PlantCatalogPreviewModal
+          plant={plantCatalogPreview}
+          zones={zones}
+          markers={markers}
+          maps={visibleMaps}
+          publicSettings={publicSettings}
+          canParticipateContextComments={canParticipateContextComments}
+          onClose={() => setPlantCatalogPreview(null)}
+          onForceLogout={forceLogout}
+        />
+      )}
       {showIosInstallHint && !deferredInstallPrompt && !isStandaloneMode && (
         <div className="fade-in install-ios-banner" role="status" aria-live="polite">
           <span>Pour installer ForetMap sur iPhone ou iPad : ouvre Safari, touche Partager, puis « Sur l’écran d’accueil ».</span>
@@ -1692,7 +1689,7 @@ function App() {
                       publicSettings={publicSettings}
                       embedded
                       onLocationTasksFocus={handleMapLocationTasksFocus}
-                      onOpenBiodiversityPlant={openBiodiversityPlant}
+                      onOpenPlantCatalogPreview={openPlantCatalogPreviewById}
                       onForceLogout={forceLogout}
                     />
                   </section>
@@ -1719,14 +1716,14 @@ function App() {
                         onTaskFormOverlayOpenChange={onTaskFormOverlayOpenChange}
                         mapLocationFocus={tasksLocationFocus}
                         onMapLocationFocusChange={setTasksLocationFocus}
-                        onOpenBiodiversityPlant={openBiodiversityPlant}
+                        onOpenPlantCatalogPreview={openPlantCatalogPreviewById}
                       />
                     </div>
                   </section>
                 </div>
               )}
-              {!useSplitMapTasks && tab === 'map'    && <MapView zones={zones} markers={markers} tasks={tasks} tutorials={tutorials} plants={plants} maps={visibleMaps} activeMapId={activeMapId} onMapChange={setActiveMapId} isTeacher student={currentUser} canSelfAssignTasks canParticipateContextComments={canParticipateContextComments} onZoneUpdate={updateZone} onRefresh={fetchAll} publicSettings={publicSettings} onLocationTasksFocus={handleMapLocationTasksFocus} onNavigateToTasksForLocation={(effectiveIsTeacher || canAccessStudentMapTasks) ? navigateToTasksForLocation : undefined} onOpenBiodiversityPlant={openBiodiversityPlant} onForceLogout={forceLogout}/>}
-              {!useSplitMapTasks && tab === 'tasks'  && <TasksView  tasks={tasks} taskProjects={taskProjects} zones={zones} markers={markers} maps={visibleMaps} tutorials={tutorials} plants={plants} activeMapId={activeMapId} isTeacher student={currentUser} canSelfAssignTasks canParticipateContextComments={canParticipateContextComments} canViewOtherUsersIdentity onRefresh={fetchAll} onForceLogout={forceLogout} isN3Affiliated={isN3Affiliated} publicSettings={publicSettings} onTaskFormOverlayOpenChange={onTaskFormOverlayOpenChange} mapLocationFocus={tasksLocationFocus} onMapLocationFocusChange={setTasksLocationFocus} onOpenBiodiversityPlant={openBiodiversityPlant} />}
+              {!useSplitMapTasks && tab === 'map'    && <MapView zones={zones} markers={markers} tasks={tasks} tutorials={tutorials} plants={plants} maps={visibleMaps} activeMapId={activeMapId} onMapChange={setActiveMapId} isTeacher student={currentUser} canSelfAssignTasks canParticipateContextComments={canParticipateContextComments} onZoneUpdate={updateZone} onRefresh={fetchAll} publicSettings={publicSettings} onLocationTasksFocus={handleMapLocationTasksFocus} onNavigateToTasksForLocation={(effectiveIsTeacher || canAccessStudentMapTasks) ? navigateToTasksForLocation : undefined} onOpenPlantCatalogPreview={openPlantCatalogPreviewById} onForceLogout={forceLogout}/>}
+              {!useSplitMapTasks && tab === 'tasks'  && <TasksView  tasks={tasks} taskProjects={taskProjects} zones={zones} markers={markers} maps={visibleMaps} tutorials={tutorials} plants={plants} activeMapId={activeMapId} isTeacher student={currentUser} canSelfAssignTasks canParticipateContextComments={canParticipateContextComments} canViewOtherUsersIdentity onRefresh={fetchAll} onForceLogout={forceLogout} isN3Affiliated={isN3Affiliated} publicSettings={publicSettings} onTaskFormOverlayOpenChange={onTaskFormOverlayOpenChange} mapLocationFocus={tasksLocationFocus} onMapLocationFocusChange={setTasksLocationFocus} onOpenPlantCatalogPreview={openPlantCatalogPreviewById} />}
               {tab === 'plants' && (
                 <PlantManager
                   plants={plants}
@@ -1737,7 +1734,6 @@ function App() {
                   maps={visibleMaps}
                   canParticipateContextComments={canParticipateContextComments}
                   onForceLogout={forceLogout}
-                  scrollToPlantId={biodiversityScrollPlantId}
                 />
               )}
               {publicSettings?.modules?.tutorials_enabled !== false && tab === 'tuto'   && <TutorialsView tutorials={tutorials} zones={zones} markers={markers} maps={visibleMaps} activeMapId={activeMapId} isTeacher onRefresh={fetchAll} onForceLogout={forceLogout} publicSettings={publicSettings} canParticipateContextComments={canParticipateContextComments} />}
@@ -1789,7 +1785,7 @@ function App() {
                         publicSettings={publicSettings}
                         embedded
                         onLocationTasksFocus={handleMapLocationTasksFocus}
-                        onOpenBiodiversityPlant={openBiodiversityPlant}
+                        onOpenPlantCatalogPreview={openPlantCatalogPreviewById}
                         onForceLogout={forceLogout}
                       />
                     </section>
@@ -1817,14 +1813,14 @@ function App() {
                           onTaskFormOverlayOpenChange={onTaskFormOverlayOpenChange}
                           mapLocationFocus={tasksLocationFocus}
                           onMapLocationFocusChange={setTasksLocationFocus}
-                          onOpenBiodiversityPlant={openBiodiversityPlant}
+                          onOpenPlantCatalogPreview={openPlantCatalogPreviewById}
                         />
                       </div>
                     </section>
                   </div>
                 )}
-                {!useSplitMapTasks && tab === 'map'    && canAccessStudentMapTasks && <MapView zones={zones} markers={markers} tasks={tasks} tutorials={tutorials} plants={plants} maps={visibleMaps} activeMapId={activeMapId} onMapChange={setActiveMapId} isTeacher={false} student={studentForUi} canSelfAssignTasks={canSelfAssignTasks} canEnrollOnTasks={canSelfAssignMoreTasks} canParticipateContextComments={canParticipateContextComments} onZoneUpdate={updateZone} onRefresh={fetchAll} publicSettings={publicSettings} onLocationTasksFocus={handleMapLocationTasksFocus} onNavigateToTasksForLocation={navigateToTasksForLocation} onOpenBiodiversityPlant={openBiodiversityPlant} onForceLogout={forceLogout}/>}
-                {!useSplitMapTasks && tab === 'tasks'  && canAccessStudentMapTasks && <TasksView tasks={tasks} taskProjects={taskProjects} zones={zones} markers={markers} maps={visibleMaps} tutorials={tutorials} plants={plants} activeMapId={activeMapId} isTeacher={false} student={studentForUi} canSelfAssignTasks={canSelfAssignTasks} canEnrollOnTasks={canSelfAssignMoreTasks} canParticipateContextComments={canParticipateContextComments} canViewOtherUsersIdentity={canViewOtherUsersIdentity} onRefresh={fetchAll} onForceLogout={forceLogout} isN3Affiliated={isN3Affiliated} publicSettings={publicSettings} onTaskFormOverlayOpenChange={onTaskFormOverlayOpenChange} mapLocationFocus={tasksLocationFocus} onMapLocationFocusChange={setTasksLocationFocus} onOpenBiodiversityPlant={openBiodiversityPlant} />}
+                {!useSplitMapTasks && tab === 'map'    && canAccessStudentMapTasks && <MapView zones={zones} markers={markers} tasks={tasks} tutorials={tutorials} plants={plants} maps={visibleMaps} activeMapId={activeMapId} onMapChange={setActiveMapId} isTeacher={false} student={studentForUi} canSelfAssignTasks={canSelfAssignTasks} canEnrollOnTasks={canSelfAssignMoreTasks} canParticipateContextComments={canParticipateContextComments} onZoneUpdate={updateZone} onRefresh={fetchAll} publicSettings={publicSettings} onLocationTasksFocus={handleMapLocationTasksFocus} onNavigateToTasksForLocation={navigateToTasksForLocation} onOpenPlantCatalogPreview={openPlantCatalogPreviewById} onForceLogout={forceLogout}/>}
+                {!useSplitMapTasks && tab === 'tasks'  && canAccessStudentMapTasks && <TasksView tasks={tasks} taskProjects={taskProjects} zones={zones} markers={markers} maps={visibleMaps} tutorials={tutorials} plants={plants} activeMapId={activeMapId} isTeacher={false} student={studentForUi} canSelfAssignTasks={canSelfAssignTasks} canEnrollOnTasks={canSelfAssignMoreTasks} canParticipateContextComments={canParticipateContextComments} canViewOtherUsersIdentity={canViewOtherUsersIdentity} onRefresh={fetchAll} onForceLogout={forceLogout} isN3Affiliated={isN3Affiliated} publicSettings={publicSettings} onTaskFormOverlayOpenChange={onTaskFormOverlayOpenChange} mapLocationFocus={tasksLocationFocus} onMapLocationFocusChange={setTasksLocationFocus} onOpenPlantCatalogPreview={openPlantCatalogPreviewById} />}
                 {tab === 'plants' && (
                   <PlantViewer
                     plants={plants}
@@ -1834,7 +1830,6 @@ function App() {
                     publicSettings={publicSettings}
                     canParticipateContextComments={canParticipateContextComments}
                     onForceLogout={forceLogout}
-                    scrollToPlantId={biodiversityScrollPlantId}
                   />
                 )}
                 {publicSettings?.modules?.tutorials_enabled !== false && tab === 'tuto' && <TutorialsView tutorials={tutorials} zones={zones} markers={markers} maps={visibleMaps} activeMapId={activeMapId} isTeacher={false} onRefresh={fetchAll} onForceLogout={forceLogout} publicSettings={publicSettings} canParticipateContextComments={canParticipateContextComments} />}

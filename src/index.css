@@ -2303,6 +2303,12 @@
       align-items:center;
       justify-content:center;
     }
+    /* Aperçu fiche biodiversité : défilement du contenu (pas d’iframe). */
+    .tuto-preview-modal__body--biodiv-scroll {
+      overflow:auto;
+      -webkit-overflow-scrolling:touch;
+      align-items:stretch;
+    }
     .tuto-preview-modal__foot {
       flex-shrink:0;
       padding:10px 14px 12px;

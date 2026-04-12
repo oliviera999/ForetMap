@@ -2263,25 +2263,6 @@ function PlantViewer({
     };
   }, [biodivObservationIdsKeyStudent, plants.length]);
 
-  useEffect(() => {
-    const id = scrollToPlantId != null ? Number(scrollToPlantId) : null;
-    if (!id || !Number.isFinite(id)) return undefined;
-    setSearch('');
-    setGroup1('');
-    setGroup2('');
-    setGroup3('');
-    setHabitatFilter('');
-    setAgroFilter('');
-    setZonePresence(ZONE_PRESENCE_FILTER.ALL);
-    const t = window.setTimeout(() => {
-      document.querySelector(`[data-biodiv-plant-id="${id}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-    }, 80);
-    return () => window.clearTimeout(t);
-  }, [scrollToPlantId]);
-
-  const zonesForPlant = (p) => zones.filter((z) => plantLinkedToMapZone(p, z));
-  const markersForPlant = (p) => markers.filter((m) => plantLinkedToMapMarker(p, m));
-
   return (
     <div className="fade-in">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
@@ -2326,91 +2307,31 @@ function PlantViewer({
       {filtered.length === 0
         ? <div className="empty"><div className="empty-icon">🌿</div><p>Aucun être vivant ne colle à ta recherche — essaie un autre mot.</p></div>
         : <div className="biodiv-grid">
-          {filtered.map(p => {
-            const pZones = zonesForPlant(p);
-            const pMarkers = markersForPlant(p);
-            const hasMapLink = pZones.length > 0 || pMarkers.length > 0;
-            return (
-              <article key={p.id} className="biodiv-card fade-in" data-biodiv-plant-id={p.id}>
-                <div className="biodiv-card-head">
-                  <div className="biodiv-card-title-wrap">
-                    <span className="biodiv-emoji">{p.emoji}</span>
-                    <div className="biodiv-card-title-content">
-                      <h3>{p.name}</h3>
-                      <p className="plant-scientific">
-                        {normalizedPlantValue(p.scientific_name) || 'Nom scientifique non renseigne'}
-                      </p>
-                    </div>
-                  </div>
-                  {normalizedPlantValue(p.group_2) && (
-                    <span className="task-chip">{p.group_2}</span>
-                  )}
-                </div>
-
-                <div className="biodiv-card-body">
-                  <p className="plant-row-desc">{p.description || <em style={{ color: '#bbb' }}>Pas de description</em>}</p>
-                  <PlantBiodivHeroPhoto plant={p} />
-                  <PlantEcosystemHumanLead plant={p} />
-                  <CatalogRemarksSection plant={p} />
-                  <div className="task-meta">
-                    {normalizedPlantValue(p.habitat) && !isGenericPotagerLabel(p.habitat) && (
-                      <span className="task-chip">🏡 {p.habitat}</span>
-                    )}
-                    {normalizedPlantValue(p.agroecosystem_category) && !isGenericPotagerLabel(p.agroecosystem_category) && (
-                      <span className="task-chip">🌍 {p.agroecosystem_category}</span>
-                    )}
-                  </div>
-                  <PlantSummaryBadges plant={p} />
-                  <PlantMetaSections plant={p} />
-                  {hasMapLink ? (
-                    <div>
-                      <div style={{ fontSize: '.74rem', fontWeight: 700, color: '#aaa', textTransform: 'uppercase', marginBottom: 4 }}>Sur la carte</div>
-                      <PlantLocationPreviewMaps maps={maps} zones={pZones} markers={pMarkers} />
-                      <div style={{ fontSize: '.74rem', fontWeight: 700, color: '#aaa', textTransform: 'uppercase', margin: '10px 0 4px' }}>Zones et repères</div>
-                      <div className="plant-zones">
-                        {pZones.map((z) => (
-                          <span key={`zone-${z.id}`} className="plant-zone-chip">📍 {z.name}</span>
-                        ))}
-                        {pMarkers.map((m) => (
-                          <span key={`marker-${m.id}`} className="plant-zone-chip">📌 {m.label?.trim() ? m.label : 'Repère'}</span>
-                        ))}
-                      </div>
-                    </div>
-                  ) : (
-                    <p style={{ fontSize: '.82rem', color: '#bbb', fontStyle: 'italic' }}>Pas encore associé à une zone ni à un repère sur la carte</p>
-                  )}
-                  <div className="plant-discovery-ack-row" style={{ marginTop: 10, display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
-                    <PlantSpeciesDiscoveryAcknowledgeButton
-                      plantId={p.id}
-                      speciesName={p.name}
-                      myObservationCount={plantObservationCounts[String(p.id)]?.my_observation_count ?? 0}
-                      siteObservationCount={plantObservationCounts[String(p.id)]?.site_observation_count ?? 0}
-                      offerPlantCommentAfterObservation={contextCommentsEnabled && canParticipateContextComments}
-                      onAcknowledged={(id, next) => {
-                        setPlantObservationCounts((prev) => ({
-                          ...prev,
-                          [String(id)]: {
-                            my_observation_count: next.my_observation_count,
-                            site_observation_count: next.site_observation_count,
-                          },
-                        }));
-                      }}
-                      onForceLogout={onForceLogout}
-                    />
-                  </div>
-                  {contextCommentsEnabled && (
-                    <ContextComments
-                      contextType="plant"
-                      contextId={String(p.id)}
-                      title="Commentaires sur cette fiche"
-                      placeholder="Remarque ou question sur cet être vivant…"
-                      canParticipateContextComments={canParticipateContextComments}
-                    />
-                  )}
-                </div>
-              </article>
-            );
-          })}
+          {filtered.map((p) => (
+            <PlantBiodiversityCatalogPreviewCard
+              key={p.id}
+              plant={p}
+              zones={zones}
+              markers={markers}
+              maps={maps}
+              myObservationCount={plantObservationCounts[String(p.id)]?.my_observation_count ?? 0}
+              siteObservationCount={plantObservationCounts[String(p.id)]?.site_observation_count ?? 0}
+              onObservationAcknowledged={(id, next) => {
+                setPlantObservationCounts((prev) => ({
+                  ...prev,
+                  [String(id)]: {
+                    my_observation_count: next.my_observation_count,
+                    site_observation_count: next.site_observation_count,
+                  },
+                }));
+              }}
+              contextCommentsEnabled={contextCommentsEnabled}
+              canParticipateContextComments={canParticipateContextComments}
+              onForceLogout={onForceLogout}
+              showContextComments
+              dataBiodivPlantId={null}
+            />
+          ))}
         </div>
       }
     </div>
@@ -2433,4 +2354,5 @@ export {
   PlantManager,
   ObservationNotebook,
   PlantViewer,
+  PlantCatalogPreviewModal,
 };
