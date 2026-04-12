@@ -100,6 +100,33 @@ function serializeVisitMedia(row) {
   return { ...rest, image_url: visitMediaPublicImageUrl(row) };
 }
 
+/**
+ * Première ligne conservée par cible : `rows` triées par (identifiant cible), puis **`uploaded_at` DESC**
+ * (même ordre que `GET /api/zones/:id/photos` et `GET /api/map/markers/:id/photos` : vignette la plus récente en premier).
+ */
+function pickNewestMapPhotoByTarget(rows, targetIdField = 'target_id') {
+  const m = new Map();
+  for (const r of rows) {
+    const key = String(r[targetIdField] ?? '');
+    if (!key || m.has(key)) continue;
+    m.set(key, r);
+  }
+  return m;
+}
+
+/** Vignette issue de `zone_photos` / `marker_photos` (même `id` zone/repère qu’après sync carte → visite). */
+function serializeMapLeadPhoto(kind, targetId, row) {
+  if (!row || row.id == null) return null;
+  const tid = encodeURIComponent(String(targetId));
+  const pid = Number(row.id);
+  if (!Number.isFinite(pid) || pid <= 0) return null;
+  const image_url =
+    kind === 'zone'
+      ? `/api/zones/${tid}/photos/${pid}/data`
+      : `/api/map/markers/${tid}/photos/${pid}/data`;
+  return { id: pid, image_url, caption: String(row.caption || '').trim() };
+}
+
 async function deleteVisitMediaFilesForTarget(targetType, targetId) {
   const rows = await queryAll(
     'SELECT image_path FROM visit_media WHERE target_type = ? AND target_id = ?',
@@ -325,6 +352,25 @@ router.get('/content', async (req, res) => {
       return acc;
     }, {});
 
+    const [zoneMapPhotoRows, markerMapPhotoRows] = await Promise.all([
+      queryAll(
+        `SELECT zp.zone_id AS target_id, zp.id, zp.caption, zp.uploaded_at
+         FROM zone_photos zp
+         INNER JOIN visit_zones vz ON vz.id = zp.zone_id AND vz.map_id = ?
+         ORDER BY zp.zone_id ASC, zp.uploaded_at DESC`,
+        [mapId]
+      ),
+      queryAll(
+        `SELECT mp.marker_id AS target_id, mp.id, mp.caption, mp.uploaded_at
+         FROM marker_photos mp
+         INNER JOIN visit_markers vm ON vm.id = mp.marker_id AND vm.map_id = ?
+         ORDER BY mp.marker_id ASC, mp.uploaded_at DESC`,
+        [mapId]
+      ),
+    ]);
+    const zoneMapLeadById = pickNewestMapPhotoByTarget(zoneMapPhotoRows);
+    const markerMapLeadById = pickNewestMapPhotoByTarget(markerMapPhotoRows);
+
     const tutorials = await queryAll(
       `SELECT
          t.id, t.title, t.slug, t.type, t.summary, t.cover_image_url, t.source_url, t.source_file_path,
@@ -342,12 +388,14 @@ router.get('/content', async (req, res) => {
         .filter((z) => visitContentRowIsPublicActive(z))
         .map((z) => ({
           ...z,
+          map_lead_photo: serializeMapLeadPhoto('zone', z.id, zoneMapLeadById.get(String(z.id))),
           visit_media: mediaByTarget[`zone:${z.id}`] || [],
         })),
       markers: markers
         .filter((m) => visitContentRowIsPublicActive(m))
         .map((m) => ({
           ...m,
+          map_lead_photo: serializeMapLeadPhoto('marker', m.id, markerMapLeadById.get(String(m.id))),
           visit_media: mediaByTarget[`marker:${m.id}`] || [],
         })),
       tutorials,

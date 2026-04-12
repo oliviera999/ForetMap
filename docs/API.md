@@ -326,7 +326,7 @@ Contenus éditables du site (micro-CMS texte brut) :
 
 Contraintes importantes :
 
-- **`GET /api/visit/content`** : chaque zone renvoyée inclut **`description`** (texte de la table **`zones`**, jointure sur le même `id`) ; chaque repère inclut **`note`** (table **`map_markers`**, même principe). Ces champs sont **`null`** s’il n’y a pas de ligne carte correspondante ou si le texte est vide. Les zones et repères dont **`is_active`** est **explicitement** désactivé (`0`, `false`, chaîne `'0'`) sont exclus ; les autres valeurs « actives » (y compris variantes driver) restent listées.
+- **`GET /api/visit/content`** : chaque zone renvoyée inclut **`description`** (texte de la table **`zones`**, jointure sur le même `id`) ; chaque repère inclut **`note`** (table **`map_markers`**, même principe). Ces champs sont **`null`** s’il n’y a pas de ligne carte correspondante ou si le texte est vide. Chaque zone / repère inclut aussi **`map_lead_photo`** : objet **`{ id, image_url, caption }`** pour la **première photo de la galerie carte** (`zone_photos` / `marker_photos`, même ordre que **`GET /api/zones/:id/photos`** et **`GET /api/map/markers/:id/photos`** : tri **`uploaded_at` DESC**, donc image la plus récente en premier), ou **`null`** s’il n’y a pas de photo ou si l’**`id`** visite ne correspond pas à une zone/repère carte (ex. zone créée uniquement en visite). Les zones et repères dont **`is_active`** est **explicitement** désactivé (`0`, `false`, chaîne `'0'`) sont exclus ; les autres valeurs « actives » (y compris variantes driver) restent listées.
 - `direction=map_to_visit` : copie/synchronise les zones et repères de la carte vers la visite.
 - **`POST /api/visit/rebuild-from-map`** : alternative à « tout supprimer à la main puis réimporter » : une seule opération atomique (transaction BDD) qui vide et recrée la couche visite du plan tout en **fusionnant** l’éditorial existant par **id** ; les fichiers image des cibles définitivement retirées sont effacés du disque **après** commit réussi.
 - `direction=visit_to_map` : copie/synchronise les zones et repères de la visite vers la carte.
@@ -446,13 +446,14 @@ Réponse:
   - `sources`: sources effectivement interrogées `{ source, confidence, source_url }`,
   - `warnings`: avertissements non bloquants (source indisponible, qualité des données, photos filtrées...).
 - Comportement:
-  - résultats agrégés depuis plusieurs sources externes publiques : **Wikipedia (FR)** avec repli **opensearch** ; **Wikidata** ; **GBIF** (`species/match`, `usageKey`) ; **Catalogue of Life** lorsqu’un nom scientifique est connu ; **iNaturalist** (recherche taxons, photo HTTPS et lien taxon si disponibles) ; **noms vernaculaires GBIF** (`/species/{usageKey}/vernacularNames`, langues `fra` / `fre` / `fr`) pour enrichir **`second_name`** (synonymes / noms vulgaires, hors doublons du nom principal) ; **Wikipedia EN** (résumé) en secours si l’extrait FR est trop court ;
+  - résultats agrégés depuis plusieurs sources externes publiques : **Wikipedia (FR)** avec repli **opensearch** ; **Wikidata** (dont claims structurés **P366** *has use* → `human_utility`, **P183** *endemic to* → `geographic_origin`, libellés FR via `wbgetentities` ; validation humaine recommandée) ; **GBIF** (`species/match`, `usageKey`) ; **Catalogue of Life** lorsqu’un nom scientifique est connu ; **iNaturalist** (recherche taxons, photo HTTPS et lien taxon si disponibles) ; **noms vernaculaires GBIF** (`/species/{usageKey}/vernacularNames`, langues `fra` / `fre` / `fr`) pour enrichir **`second_name`** (synonymes / noms vulgaires, hors doublons du nom principal) ; **Wikipedia EN** (résumé) en secours si l’extrait FR est trop court ; **heuristiques sur l’extrait Wikipedia FR** (source `wikipedia_heuristic`, faible confiance) pour repérer dans le texte des motifs de **température idéale**, **pH**, **taille**, **longévité** lorsqu’ils sont présents — **à vérifier** (faux positifs possibles) ;
   - cache mémoire TTL côté serveur pour limiter la latence et les quotas,
   - budget global d’agrégation côté serveur (ordre de grandeur **12 s** wall-clock, timeouts HTTP dynamiques et plafond par requête) afin de limiter les **503** renvoyés par les reverse proxies lorsque les sources externes sont lentes,
   - validation/filtrage des URLs photo avant retour.
 - Limites connues:
   - des homonymies peuvent remonter des descriptions hors contexte botanique (ex. nom ambigu),
   - le score de confiance indique une tendance de qualité, pas une vérité scientifique.
+  - extensions optionnelles (API plantes type Trefle, complément **OpenAI**) : variables d’environnement et activation documentées dans [`docs/SPECIES_AUTOFILL_EXTENSIONS.md`](docs/SPECIES_AUTOFILL_EXTENSIONS.md) (désactivées par défaut).
 - Bonnes pratiques:
   - la pré-saisie est une **suggestion** : validation humaine nécessaire avant sauvegarde,
   - vérifier la cohérence taxonomique (`scientific_name`, `group_*`) avant publication,

@@ -1837,6 +1837,19 @@ function VisitView({
             <div>
               <h3>{selectedType === 'zone' ? selected.name : selected.label}</h3>
               {selected.visit_subtitle && <p className="visit-subtitle">{selected.visit_subtitle}</p>}
+              {selected.map_lead_photo?.image_url && (
+                <div className="visit-media-gallery visit-media-gallery--lead visit-media-gallery--map-photo">
+                  <figure>
+                    <img
+                      src={visitMediaImgSrc(selected.map_lead_photo)}
+                      alt={selected.map_lead_photo.caption || ''}
+                    />
+                    {selected.map_lead_photo.caption ? (
+                      <figcaption>{selected.map_lead_photo.caption}</figcaption>
+                    ) : null}
+                  </figure>
+                </div>
+              )}
               {firstVisitPhoto && (
                 <div className="visit-media-gallery visit-media-gallery--lead">
                   <figure>

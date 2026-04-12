@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useDialogA11y } from '../hooks/useDialogA11y';
 import { useOverlayHistoryBack } from '../hooks/useOverlayHistoryBack';
 import { resolveRoleText } from '../constants/help';
@@ -41,43 +42,49 @@ function HelpPanel({
       >
         ?
       </button>
-      {open && (
-        <div className="modal-overlay" onClick={(event) => event.target === event.currentTarget && closePanel()}>
+      {open && typeof document !== 'undefined' && document.body
+        ? createPortal(
           <div
-            ref={dialogRef}
-            className="log-modal fm-help-panel fade-in"
-            role="dialog"
-            aria-modal="true"
-            aria-label={title}
-            tabIndex={-1}
-            onClick={(event) => event.stopPropagation()}
+            className="modal-overlay modal-overlay--help-panel"
+            onClick={(event) => event.target === event.currentTarget && closePanel()}
           >
-            <button className="modal-close" type="button" aria-label="Fermer l aide" onClick={closePanel}>✕</button>
-            <h3 className="fm-help-panel__title">💡 {title}</h3>
-            <ul className="fm-help-panel__list">
-              {visibleEntries.map((item) => (
-                <li key={item} className="fm-help-panel__item">{item}</li>
-              ))}
-            </ul>
-            <div className="fm-help-panel__actions">
-              <button type="button" className="btn btn-ghost btn-sm" onClick={closePanel}>
-                Fermer
-              </button>
-              <button
-                type="button"
-                className="btn btn-secondary btn-sm"
-                onClick={() => {
-                  onMarkSeen?.(sectionId);
-                  onDismiss?.(sectionId);
-                  closePanel();
-                }}
-              >
-                Ne plus afficher
-              </button>
+            <div
+              ref={dialogRef}
+              className="log-modal fm-help-panel fade-in"
+              role="dialog"
+              aria-modal="true"
+              aria-label={title}
+              tabIndex={-1}
+              onClick={(event) => event.stopPropagation()}
+            >
+              <button className="modal-close" type="button" aria-label="Fermer l aide" onClick={closePanel}>✕</button>
+              <h3 className="fm-help-panel__title">💡 {title}</h3>
+              <ul className="fm-help-panel__list">
+                {visibleEntries.map((item) => (
+                  <li key={item} className="fm-help-panel__item">{item}</li>
+                ))}
+              </ul>
+              <div className="fm-help-panel__actions">
+                <button type="button" className="btn btn-ghost btn-sm" onClick={closePanel}>
+                  Fermer
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  onClick={() => {
+                    onMarkSeen?.(sectionId);
+                    onDismiss?.(sectionId);
+                    closePanel();
+                  }}
+                >
+                  Ne plus afficher
+                </button>
+              </div>
             </div>
-          </div>
-        </div>
-      )}
+          </div>,
+          document.body,
+        )
+        : null}
     </>
   );
 }
