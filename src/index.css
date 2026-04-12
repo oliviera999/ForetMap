@@ -999,6 +999,50 @@
       margin-top:10px;
     }
     .tasks-list { margin-top:10px; }
+    .tasks-condensed {
+      display:flex;
+      flex-direction:column;
+      gap:6px;
+      margin-top:10px;
+    }
+    .tasks-condensed .task-card { margin-bottom:0; }
+    .task-card--condensed {
+      padding:10px 12px;
+    }
+    .task-card--condensed-open {
+      padding:16px;
+    }
+    .task-card--condensed:not(.task-card--condensed-open) .task-top--condensed-toggle {
+      margin-bottom:0;
+    }
+    .task-top--condensed-toggle {
+      appearance:none;
+      -webkit-appearance:none;
+      border:none;
+      background:transparent;
+      width:100%;
+      text-align:left;
+      cursor:pointer;
+      padding:0;
+      font:inherit;
+      color:inherit;
+      border-radius:10px;
+      box-sizing:border-box;
+      min-height:44px;
+      align-items:flex-start;
+    }
+    .task-top--condensed-toggle:focus-visible {
+      outline:2px solid var(--sage, #22c55e);
+      outline-offset:2px;
+    }
+    .task-condensed-chevron {
+      flex-shrink:0;
+      opacity:.55;
+      font-size:.72rem;
+      line-height:1.4;
+      margin-top:4px;
+      font-family:var(--font-sans);
+    }
     .tasks-view-switch {
       display:inline-flex;
       align-items:center;

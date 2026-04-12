@@ -1502,7 +1502,9 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
   const [viewMode, setViewMode] = useState(() => {
     try {
       const saved = localStorage.getItem('foretmap:tasks:viewMode');
-      return saved === 'list' ? 'list' : 'tiles';
+      if (saved === 'list') return 'list';
+      if (saved === 'condensed') return 'condensed';
+      return 'tiles';
     } catch {
       return 'tiles';
     }
@@ -2050,7 +2052,9 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
       && tutorialPickerLinkedToSameMap(tu, focusMapIdForTutorials)
     ));
   }, [filterZone, tutorials, isTeacher, tutorialsModuleEnabled, focusMapIdForTutorials]);
-  const sectionListClass = viewMode === 'tiles' ? 'tasks-grid' : 'tasks-list';
+  const sectionListClass = viewMode === 'tiles'
+    ? 'tasks-grid'
+    : (viewMode === 'condensed' ? 'tasks-condensed' : 'tasks-list');
   /** Inscriptions à ajouter / retirer (liste n3beurs chargée côté n3boss) pour l’affectation rapide. */
   const teacherQuickAssignDelta = (task, selectedIds) => {
     const idSet = new Set((selectedIds || []).map(String));
@@ -2450,6 +2454,13 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
             type="button"
           >
             📄 Liste
+          </button>
+          <button
+            className={`btn btn-sm ${viewMode === 'condensed' ? 'btn-primary' : 'btn-ghost'}`}
+            onClick={() => setViewMode('condensed')}
+            type="button"
+          >
+            📋 Condensé
           </button>
         </div>
         <select value={filterMap} onChange={e => setFilterMap(e.target.value)}>
@@ -3060,6 +3071,13 @@ function TaskTileCard({
   onOpenBiodiversityFromTaskName,
 }) {
     const [coverLightbox, setCoverLightbox] = useState(null);
+    const [condensedExpanded, setCondensedExpanded] = useState(false);
+    const isCondensed = viewMode === 'condensed';
+    const showTaskDetails = !isCondensed || condensedExpanded;
+
+    useEffect(() => {
+      if (!isCondensed) setCondensedExpanded(false);
+    }, [isCondensed]);
 
     const effectiveStatus = taskEffectiveStatus(t);
     const isMine = !!(student && isStudentAssignedToTask(t, student));
@@ -3096,18 +3114,46 @@ function TaskTileCard({
     const referentBriefing = taskRequiresReferentBriefingBeforeStart(t);
     const referentsLinked = t.referents_linked || [];
     const coverSrc = t.image_url ? withAppBase(t.image_url) : null;
+    const toggleCondensedHead = () => {
+      setCondensedExpanded((prev) => {
+        const next = !prev;
+        if (!next && quickAssignTaskId === t.id) {
+          quickAssignUserEditedRef.current = false;
+          setQuickAssignTaskId(null);
+          setQuickAssignStudentIds([]);
+        }
+        return next;
+      });
+    };
+    const TopTag = isCondensed ? 'button' : 'div';
+    const topTagProps = isCondensed
+      ? {
+        type: 'button',
+        className: 'task-top task-top--condensed-toggle',
+        onClick: toggleCondensedHead,
+        'aria-expanded': condensedExpanded,
+        'aria-label': condensedExpanded
+          ? `Réduire les détails : ${t.title}`
+          : `Afficher les détails : ${t.title}`,
+      }
+      : { className: 'task-top' };
     return (
       <div
-        className={`task-card ${viewMode === 'tiles' ? 'task-card--tile' : ''} fade-in ${isMine ? 'mine' : ''} ${effectiveStatus === 'validated' ? 'done' : ''} ${effectiveStatus === 'proposed' ? 'proposed' : ''}`}
+        className={`task-card ${viewMode === 'tiles' ? 'task-card--tile' : ''}${isCondensed ? ` task-card--condensed${condensedExpanded ? ' task-card--condensed-open' : ''}` : ''} fade-in ${isMine ? 'mine' : ''} ${effectiveStatus === 'validated' ? 'done' : ''} ${effectiveStatus === 'proposed' ? 'proposed' : ''}`}
         style={{ animationDelay: `${Math.min(index * 60, 360)}ms` }}
       >
         {coverLightbox && <Lightbox src={coverLightbox} caption="" onClose={() => setCoverLightbox(null)} />}
-        <div className="task-top">
+        <TopTag {...topTagProps}>
           <div className="task-title-row">
             {taskStatusIndicator(effectiveStatus, isN3Affiliated)}
             <div className="task-title">{t.title}</div>
+            {isCondensed && (
+              <span className="task-condensed-chevron" aria-hidden>{condensedExpanded ? '▼' : '▶'}</span>
+            )}
           </div>
-        </div>
+        </TopTag>
+        {showTaskDetails && (
+        <>
         <div className="task-meta">
           {(t.zones_linked || []).map((z) => (
             <span key={z.id} className="task-chip">{z.name}</span>
@@ -3458,6 +3504,8 @@ function TaskTileCard({
             placeholder="Partager une info utile sur cette tâche..."
             canParticipateContextComments={canParticipateContextComments}
           />
+        )}
+        </>
         )}
       </div>
     );

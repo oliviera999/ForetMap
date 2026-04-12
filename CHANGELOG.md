@@ -5,6 +5,9 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Ajouté
+- **Tâches — vue condensée** : troisième mode d’affichage (à côté des tuiles et de la liste) : une ligne par tâche (pastille de statut + titre), détails complets au clic sur la ligne ; préférence persistée dans `localStorage` (`foretmap:tasks:viewMode` = `condensed`). **`tasks-views.jsx`**, **`index.css`**.
+
 ### Modifié
 - **Exploitation — auto-deploy cron** : garde-fou avant `git pull` si **`src/utils/mascotPack.js`** ou **`src/utils/visitMascotState.js`** change sans le fichier miroir sous **`lib/visit-pack/`** ; après pull, exécution de **`scripts/sync-visit-pack-server-lib.js`** par défaut (désactivable avec **`DEPLOY_SKIP_SYNC_VISIT_PACK_LIB=1`**). **`scripts/auto-deploy-cron.sh`**, **`docs/EXPLOITATION.md`**.
 
