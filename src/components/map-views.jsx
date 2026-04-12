@@ -68,7 +68,7 @@ function Lightbox({ src, caption, onClose }) {
         style={{ maxWidth: '95vw', maxHeight: '85vh', borderRadius: 10,
           objectFit: 'contain', boxShadow: '0 8px 40px rgba(0,0,0,.5)',
           animation: 'popIn .25s var(--spring,cubic-bezier(.34,1.56,.64,1))' }}
-        alt={caption || ''} />
+        alt={caption || ''} decoding="async" />
       {caption && (
         <p style={{ color: 'rgba(255,255,255,.8)', marginTop: 12, fontSize: '.9rem',
           maxWidth: '80vw', textAlign: 'center' }}>{caption}</p>
@@ -516,13 +516,15 @@ function PhotoGallery({ zoneId, markerId, isTeacher }) {
               )}
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(100px,1fr))', gap: 8, marginBottom: 12,
                 opacity: reorderingPhotos ? 0.65 : 1, pointerEvents: reorderingPhotos ? 'none' : undefined }}>
-                {photos.map((p) => (
+                {photos.map((p) => {
+                  const tileSrc = p.thumb_url || p.image_url;
+                  return (
                   <div
                     key={p.id}
                     className={isTeacher && photos.length > 1 ? 'photo-reorder-tile' : undefined}
-                    draggable={!!(isTeacher && photos.length > 1 && p.image_url)}
+                    draggable={!!(isTeacher && photos.length > 1 && tileSrc)}
                     onDragStart={(e) => {
-                      if (!isTeacher || photos.length < 2 || !p.image_url) return;
+                      if (!isTeacher || photos.length < 2 || !tileSrc) return;
                       e.dataTransfer.setData(FORETMAP_PHOTO_DRAG_MIME, String(p.id));
                       e.dataTransfer.effectAllowed = 'move';
                     }}
@@ -543,18 +545,19 @@ function PhotoGallery({ zoneId, markerId, isTeacher }) {
                     style={{ position: 'relative', borderRadius: 8, overflow: 'hidden',
                       aspectRatio: '1', background: '#e8f5e9' }}
                   >
-                    {p.image_url
-                      ? <img src={p.image_url} style={{ width: '100%', height: '100%', objectFit: 'cover', cursor: 'pointer' }}
+                    {tileSrc
+                      ? <img src={tileSrc} style={{ width: '100%', height: '100%', objectFit: 'cover', cursor: 'pointer' }}
+                          loading="lazy" decoding="async"
                           onClick={() => setBig({ src: p.image_url, caption: p.caption })} alt={p.caption || ''} />
                       : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center',
                           justifyContent: 'center', fontSize: '1.5rem', animation: 'sway 1.5s infinite' }}>🌿</div>
                     }
-                    {p.image_url && p.caption && (
+                    {tileSrc && p.caption && (
                       <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'rgba(0,0,0,.55)',
                         color: 'white', fontSize: '.62rem', padding: '3px 5px',
                         overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.caption}</div>
                     )}
-                    {isTeacher && p.image_url && (
+                    {isTeacher && tileSrc && (
                       <button type="button" onMouseDown={(ev) => ev.stopPropagation()} onClick={() => del(p.id)}
                         style={{ position: 'absolute', top: 4, right: 4, background: 'rgba(0,0,0,.55)',
                           border: 'none', color: 'white', borderRadius: '50%', width: 22, height: 22,
@@ -563,7 +566,8 @@ function PhotoGallery({ zoneId, markerId, isTeacher }) {
                       </button>
                     )}
                   </div>
-                ))}
+                );
+                })}
               </div>
             </>
           )
@@ -3692,6 +3696,7 @@ function MapView({ zones, markers, tasks = [], tutorials = [], plants, maps = []
               transformOrigin: '0 0', willChange: 'transform' }}>
 
           <img ref={imgRef} src={mapImageSrc} draggable={false} alt={`Plan ${activeMap?.label || 'du jardin'}`}
+            fetchPriority="high" decoding="async"
             onError={() => setMapImageIdx((idx) => (
               idx < mapImageCandidates.length - 1 ? idx + 1 : idx
             ))}

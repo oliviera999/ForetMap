@@ -123,7 +123,7 @@ function Lightbox({ src, caption, onClose }) {
         style={{ maxWidth: '95vw', maxHeight: '85vh', borderRadius: 10,
           objectFit: 'contain', boxShadow: '0 8px 40px rgba(0,0,0,.5)',
           animation: 'popIn .25s var(--spring,cubic-bezier(.34,1.56,.64,1))' }}
-        alt={caption || ''} />
+        alt={caption || ''} decoding="async" />
       {caption && (
         <p style={{ color: 'rgba(255,255,255,.8)', marginTop: 12, fontSize: '.9rem',
           maxWidth: '80vw', textAlign: 'center' }}>{caption}</p>
@@ -3017,7 +3017,8 @@ function TaskLogsViewer({ task, onClose }) {
               </div>
               {l.comment && <div className="log-comment">{l.comment}</div>}
               {l.image_url && (
-                <img src={l.image_url} className="log-image" alt="rapport" onClick={() => setBig(l.image_url)} />
+                <img src={l.image_url} className="log-image" alt="rapport" loading="lazy" decoding="async"
+                  onClick={() => setBig(l.image_url)} />
               )}
             </div>
           ))
@@ -3183,7 +3184,7 @@ function TaskTileCard({
             onClick={() => setCoverLightbox(coverSrc)}
             aria-label="Agrandir la photo de la tâche"
           >
-            <img src={coverSrc} className="task-card-cover" alt="" />
+            <img src={coverSrc} className="task-card-cover" alt="" loading={index < 3 ? 'eager' : 'lazy'} decoding="async" />
           </button>
         )}
         {cardDescription && <div className="task-desc">{cardDescription}</div>}

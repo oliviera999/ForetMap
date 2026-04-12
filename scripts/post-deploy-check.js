@@ -142,9 +142,14 @@ async function checkEndpoint(baseUrl, path, timeoutMs, required = true) {
 }
 
 async function checkImageEndpoint(baseUrl, path, timeoutMs) {
-  const full = new URL(path, baseUrl).toString();
+  let full = new URL(path, baseUrl).toString();
   try {
-    const res = await requestJsonWithRetry(full, timeoutMs);
+    let res = await requestJsonWithRetry(full, timeoutMs);
+    for (let hop = 0; hop < 5 && res.status >= 300 && res.status < 400 && res.headers?.location; hop += 1) {
+      const next = new URL(String(res.headers.location), full).toString();
+      full = next;
+      res = await requestJsonWithRetry(full, timeoutMs);
+    }
     const pass = res.status === 200 || res.status === 404;
     const label = pass ? 'OK' : 'FAIL';
     console.log(`${label} ${path} -> HTTP ${res.status}${res.status === 404 ? ' (ressource absente, check optionnel)' : ''}`);

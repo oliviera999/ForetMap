@@ -50,20 +50,35 @@ function visitMediaImgSrc(m) {
   return withAppBase(u);
 }
 
+/** Vignette galerie visite : préfère `thumb_url` (carte) si fourni par l’API. */
+function visitMediaGalleryThumbDisplaySrc(m) {
+  const u = m?.thumb_url || m?.image_url;
+  if (!u) return '';
+  return withAppBase(u);
+}
+
+/** Image plein écran (lightbox) : toujours la résolution principale. */
+function visitMediaGalleryLightboxSrc(m) {
+  const u = m?.image_url || m?.thumb_url;
+  if (!u) return '';
+  return withAppBase(u);
+}
+
 /** Vignette cliquable : aperçu sans rognage (CSS `object-fit: contain`) + lightbox plein écran. */
 function VisitMediaGalleryThumb({ media, onOpenLightbox }) {
-  const src = visitMediaImgSrc(media);
-  if (!src) return null;
+  const srcThumb = visitMediaGalleryThumbDisplaySrc(media);
+  const srcFull = visitMediaGalleryLightboxSrc(media);
+  if (!srcThumb || !srcFull) return null;
   const cap = String(media?.caption || '').trim();
   return (
     <figure>
       <button
         type="button"
         className="visit-media-gallery__open"
-        onClick={() => onOpenLightbox({ src, caption: cap })}
+        onClick={() => onOpenLightbox({ src: srcFull, caption: cap })}
         aria-label={cap ? `Agrandir la photo : ${cap}` : 'Agrandir la photo'}
       >
-        <img src={src} alt="" loading="lazy" />
+        <img src={srcThumb} alt="" loading="lazy" decoding="async" />
       </button>
       {cap ? <figcaption>{media.caption}</figcaption> : null}
     </figure>
@@ -2019,7 +2034,7 @@ function VisitView({
                       {mapExtraPhotos.map((ph) => (
                         <VisitMediaGalleryThumb
                           key={`map-extra-${ph.id}`}
-                          media={{ image_url: ph.image_url, caption: ph.caption }}
+                          media={{ image_url: ph.image_url, thumb_url: ph.thumb_url, caption: ph.caption }}
                           onOpenLightbox={setVisitMediaLightbox}
                         />
                       ))}

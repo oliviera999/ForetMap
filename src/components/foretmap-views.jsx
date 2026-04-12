@@ -519,7 +519,7 @@ function PlantBiodivHeroPhoto({ plant }) {
         onClick={() => setLightbox({ src, caption: `Photo — ${name}` })}
         aria-label={`Agrandir la photo de ${name}`}
       >
-        <img src={src} alt="" className="biodiv-card-hero-photo" loading="lazy" />
+        <img src={src} alt="" className="biodiv-card-hero-photo" fetchPriority="high" decoding="async" />
         <span className="biodiv-card-hero-photo-hint" aria-hidden="true">🔍 Voir</span>
       </button>
     </>
@@ -598,7 +598,7 @@ function PlantMetaSections({ plant }) {
           type="button"
           className="plant-photo-thumb"
           onClick={() => setBigPhoto({ src: entry.src, caption: item.label })}>
-          <img src={entry.src} alt={item.label} loading="lazy" />
+          <img src={entry.src} alt={item.label} loading="lazy" decoding="async" />
           <span className="plant-photo-overlay">🔍 Voir</span>
         </button>
       ))}

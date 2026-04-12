@@ -1301,9 +1301,12 @@ test('Photos repère : POST liste GET data DELETE', async () => {
 
   const list = await request(app).get(`/api/map/markers/${mid}/photos`).expect(200);
   assert.ok(Array.isArray(list.body));
-  assert.ok(list.body.some((p) => p.id === pid));
+  const row = list.body.find((p) => Number(p.id) === Number(pid));
+  assert.ok(row);
+  assert.match(String(row.image_url || ''), /^\/uploads\/markers\//);
+  if (row.thumb_url) assert.match(String(row.thumb_url), /\.thumb\.jpe?g$/i);
 
-  await request(app).get(`/api/map/markers/${mid}/photos/${pid}/data`).expect(200);
+  await request(app).get(`/api/map/markers/${mid}/photos/${pid}/data`).redirects(1).expect(200);
 
   await request(app)
     .delete(`/api/map/markers/${mid}/photos/${pid}`)

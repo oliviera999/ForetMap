@@ -3,7 +3,10 @@ const path = require('path');
 const { v4: uuidv4 } = require('uuid');
 const { queryAll, queryOne, execute, withTransaction } = require('../database');
 const { requirePermission } = require('../middleware/requireTeacher');
-const { saveBase64ToDisk, getAbsolutePath, deleteFile } = require('../lib/uploads');
+const { saveBase64ToDisk, getAbsolutePath } = require('../lib/uploads');
+const { serializeZonePhotoListRow, redirectIfPublicZonePhotoDataUrl } = require('../lib/uploadsPublicUrls');
+const { generateMapPhotoThumbFromMainRelativePath, deleteMapPhotoMainAndThumb } = require('../lib/imageThumb');
+const { sendFilePublicImageOptions } = require('../lib/httpImageCache');
 const { logRouteError } = require('../lib/routeLog');
 const { emitGardenChanged } = require('../lib/realtime');
 
@@ -219,10 +222,7 @@ router.get('/:id/photos', async (req, res) => {
       'SELECT id, zone_id, caption, sort_order, uploaded_at, image_path FROM zone_photos WHERE zone_id=? ORDER BY sort_order ASC, id ASC',
       [zoneId]
     );
-    res.json(photos.map(p => ({
-      ...p,
-      image_url: p.image_path ? `/api/zones/${zoneId}/photos/${p.id}/data` : null,
-    })));
+    res.json(photos.map((p) => serializeZonePhotoListRow(p, zoneId)));
   } catch (e) {
     logRouteError(e, req);
     res.status(500).json({ error: e.message });
@@ -269,8 +269,10 @@ router.get('/:id/photos/:pid/data', async (req, res) => {
     const p = await queryOne('SELECT image_path FROM zone_photos WHERE id=? AND zone_id=?', [req.params.pid, req.params.id]);
     if (!p) return res.status(404).json({ error: 'Photo introuvable' });
     if (p.image_path) {
+      const redirectTo = redirectIfPublicZonePhotoDataUrl(p.image_path, req.params.id, req.params.pid);
+      if (redirectTo) return res.redirect(302, redirectTo);
       const absolutePath = getAbsolutePath(p.image_path);
-      return res.sendFile(absolutePath, (err) => {
+      return res.sendFile(absolutePath, sendFilePublicImageOptions(), (err) => {
         if (err && !res.headersSent) res.status(404).json({ error: 'Fichier introuvable' });
       });
     }
@@ -306,9 +308,10 @@ router.post('/:id/photos', requirePermission('zones.manage', { needsElevation: t
       throw fileErr;
     }
     await execute('UPDATE zone_photos SET image_path = ? WHERE id = ?', [relativePath, photoId]);
-    const photo = await queryOne('SELECT id, zone_id, caption, sort_order, uploaded_at FROM zone_photos WHERE id=?', [photoId]);
+    await generateMapPhotoThumbFromMainRelativePath(relativePath);
+    const photo = await queryOne('SELECT id, zone_id, caption, sort_order, uploaded_at, image_path FROM zone_photos WHERE id=?', [photoId]);
     emitGardenChanged({ reason: 'add_zone_photo', zoneId: req.params.id, mapId: zone.map_id });
-    res.status(201).json(photo);
+    res.status(201).json(serializeZonePhotoListRow(photo, req.params.id));
   } catch (e) {
     logRouteError(e, req);
     res.status(500).json({ error: e.message });
@@ -319,7 +322,7 @@ router.delete('/:id/photos/:pid', requirePermission('zones.manage', { needsEleva
   try {
     const zone = await queryOne('SELECT map_id FROM zones WHERE id = ?', [req.params.id]);
     const p = await queryOne('SELECT image_path FROM zone_photos WHERE id=? AND zone_id=?', [req.params.pid, req.params.id]);
-    if (p && p.image_path) deleteFile(p.image_path);
+    if (p && p.image_path) deleteMapPhotoMainAndThumb(p.image_path);
     await execute('DELETE FROM zone_photos WHERE id=? AND zone_id=?', [req.params.pid, req.params.id]);
     emitGardenChanged({ reason: 'delete_zone_photo', zoneId: req.params.id, mapId: zone?.map_id || null });
     res.json({ success: true });
@@ -360,7 +363,7 @@ router.delete('/:id', requirePermission('zones.manage', { needsElevation: true }
     if (!zone) return res.status(404).json({ error: 'Zone introuvable' });
     const photos = await queryAll('SELECT image_path FROM zone_photos WHERE zone_id = ?', [req.params.id]);
     for (const p of photos) {
-      if (p && p.image_path) deleteFile(p.image_path);
+      if (p && p.image_path) deleteMapPhotoMainAndThumb(p.image_path);
     }
     await execute('DELETE FROM zone_history WHERE zone_id = ?', [req.params.id]);
     await execute('DELETE FROM zone_photos WHERE zone_id = ?', [req.params.id]);
