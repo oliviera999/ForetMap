@@ -446,7 +446,7 @@ Réponse:
   - `sources`: sources effectivement interrogées `{ source, confidence, source_url }`,
   - `warnings`: avertissements non bloquants (source indisponible, qualité des données, photos filtrées...).
 - Comportement:
-  - résultats agrégés depuis plusieurs sources externes publiques,
+  - résultats agrégés depuis plusieurs sources externes publiques (Wikipedia, Wikidata, GBIF) et enrichissement taxonomique via Catalogue of Life quand un nom scientifique est disponible,
   - cache mémoire TTL côté serveur pour limiter la latence et les quotas,
   - validation/filtrage des URLs photo avant retour.
 - Limites connues:
