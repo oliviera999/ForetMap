@@ -302,17 +302,27 @@ function getDefaultVisitMascotId() {
   return VISIT_MASCOT_CATALOG[0]?.id || '';
 }
 
-function getVisitMascotById(mascotId) {
+/** Entrées mascotte additionnelles (ex. packs serveur `sprite_cut`) : mêmes champs que le catalogue statique. */
+function resolveVisitMascotEntry(mascotId, extraEntries = []) {
   const id = String(mascotId || '').trim();
-  return VISIT_MASCOT_CATALOG.find((m) => m.id === id) || null;
+  const fromStatic = VISIT_MASCOT_CATALOG.find((m) => m.id === id);
+  if (fromStatic) return fromStatic;
+  const extras = Array.isArray(extraEntries) ? extraEntries : [];
+  return extras.find((m) => m && m.id === id) || null;
 }
 
-function normalizeVisitMascotId(mascotId) {
-  return getVisitMascotById(mascotId)?.id || getDefaultVisitMascotId();
+function getVisitMascotById(mascotId) {
+  return resolveVisitMascotEntry(mascotId, []);
 }
 
-function getVisitMascotSupportedStates(mascotId) {
-  const mascot = getVisitMascotById(mascotId);
+function normalizeVisitMascotId(mascotId, extraEntries = []) {
+  const id = String(mascotId || '').trim();
+  if (resolveVisitMascotEntry(id, extraEntries)) return id;
+  return getDefaultVisitMascotId();
+}
+
+function getVisitMascotSupportedStates(mascotId, extraEntries = []) {
+  const mascot = resolveVisitMascotEntry(mascotId, extraEntries);
   if (!mascot) return ['idle', 'walking', 'happy'];
   let stateSource = mascot?.rive?.stateAnimations;
   if (mascot?.renderer === 'spritesheet') {
@@ -331,14 +341,14 @@ function getVisitMascotSupportedStates(mascotId) {
   return [...new Set(states)];
 }
 
-function loadVisitMascotId() {
+function loadVisitMascotId(extraEntries = []) {
   if (typeof window === 'undefined') return getDefaultVisitMascotId();
   const raw = window.localStorage.getItem(VISIT_MASCOT_STORAGE_KEY);
-  return normalizeVisitMascotId(raw);
+  return normalizeVisitMascotId(raw, extraEntries);
 }
 
-function saveVisitMascotId(mascotId) {
-  const id = normalizeVisitMascotId(mascotId);
+function saveVisitMascotId(mascotId, extraEntries = []) {
+  const id = normalizeVisitMascotId(mascotId, extraEntries);
   if (typeof window !== 'undefined') {
     window.localStorage.setItem(VISIT_MASCOT_STORAGE_KEY, id);
   }
@@ -350,6 +360,7 @@ export {
   getVisitMascotCatalog,
   getDefaultVisitMascotId,
   getVisitMascotById,
+  resolveVisitMascotEntry,
   getVisitMascotSupportedStates,
   normalizeVisitMascotId,
   loadVisitMascotId,

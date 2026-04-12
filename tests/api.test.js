@@ -1928,3 +1928,54 @@ test('GET /api/plants/autofill garde un fallback partiel si une source échoue',
     global.fetch = previousFetch;
   }
 });
+
+test('GET /api/visit/content expose mascot_packs (tableau)', async () => {
+  const res = await request(app).get('/api/visit/content?map_id=foret').expect(200);
+  assert.ok(Array.isArray(res.body.mascot_packs));
+});
+
+test('visit mascot packs : CRUD prof + présence dans content si publié', async () => {
+  const token = await getAdminAuthToken();
+  const created = await request(app)
+    .post('/api/visit/mascot-packs')
+    .set('Authorization', `Bearer ${token}`)
+    .send({ map_id: 'foret', is_published: 0 })
+    .expect(201);
+  const packId = created.body.id;
+  const catalogId = created.body.catalog_id;
+  assert.ok(packId && /^[0-9a-f-]{36}$/i.test(String(packId)));
+  assert.ok(String(catalogId || '').startsWith('srv-'));
+
+  const beforePub = await request(app).get('/api/visit/content?map_id=foret').expect(200);
+  assert.ok(!beforePub.body.mascot_packs.some((p) => p.catalog_id === catalogId));
+
+  const list = await request(app)
+    .get('/api/visit/mascot-packs?map_id=foret')
+    .set('Authorization', `Bearer ${token}`)
+    .expect(200);
+  assert.ok(Array.isArray(list.body.packs));
+  assert.ok(list.body.packs.some((p) => p.id === packId));
+
+  const packObj = created.body.pack;
+  await request(app)
+    .put(`/api/visit/mascot-packs/${packId}`)
+    .set('Authorization', `Bearer ${token}`)
+    .send({
+      map_id: 'foret',
+      label: 'Pack e2e test',
+      pack: packObj,
+      is_published: 1,
+    })
+    .expect(200);
+
+  const afterPub = await request(app).get('/api/visit/content?map_id=foret').expect(200);
+  assert.ok(afterPub.body.mascot_packs.some((p) => p.catalog_id === catalogId));
+
+  await request(app)
+    .delete(`/api/visit/mascot-packs/${packId}`)
+    .set('Authorization', `Bearer ${token}`)
+    .expect(200);
+
+  const afterDel = await request(app).get('/api/visit/content?map_id=foret').expect(200);
+  assert.ok(!afterDel.body.mascot_packs.some((p) => p.catalog_id === catalogId));
+});

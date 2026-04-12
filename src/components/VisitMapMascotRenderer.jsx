@@ -1,7 +1,7 @@
 import React from 'react';
 import { VISIT_MASCOT_STATE } from '../utils/visitMascotState.js';
 import {
-  getVisitMascotById,
+  resolveVisitMascotEntry,
   getDefaultVisitMascotId,
 } from '../utils/visitMascotCatalog.js';
 import VisitMapMascotRive from './VisitMapMascotRive.jsx';
@@ -12,8 +12,10 @@ import VisitMapMascotSpriteCut from './VisitMapMascotSpriteCut.jsx';
 function VisitMapMascotRenderer({
   mascotState = VISIT_MASCOT_STATE.IDLE,
   mascotId = '',
+  extraCatalogEntries = [],
 }) {
-  const selectedMascot = getVisitMascotById(mascotId) || getVisitMascotById(getDefaultVisitMascotId());
+  const selectedMascot = resolveVisitMascotEntry(mascotId, extraCatalogEntries)
+    || resolveVisitMascotEntry(getDefaultVisitMascotId(), extraCatalogEntries);
   const selectedMascotId = selectedMascot?.id || getDefaultVisitMascotId();
   const fallbackSilhouette = selectedMascot?.fallbackSilhouette || 'gnome';
   const fallbackVariant = selectedMascot?.fallbackVariant || 'forest';

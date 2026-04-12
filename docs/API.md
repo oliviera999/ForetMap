@@ -306,7 +306,14 @@ Contenus éditables du site (micro-CMS texte brut) :
 
 | Méthode | URL | n3boss | Description |
 |--------|-----|------|-------------|
-| GET | `/api/visit/content?map_id=foret` | non | Contenus publics de visite (zones, repères, médias du plan, tutoriels actifs **pour ce plan**) |
+| GET | `/api/visit/content?map_id=foret` | non | Contenus publics de visite (zones, repères, médias du plan, tutoriels actifs **pour ce plan**) ; inclut **`mascot_packs`** : packs `sprite_cut` **publiés** pour cette carte (`{ catalog_id, label, pack }` chacun — voir **`docs/MASCOT_PACK.md`**) |
+| GET | `/api/visit/mascot-packs?map_id=foret` | oui | Liste tous les packs mascotte (brouillons + publiés) pour la carte — **`visit.manage`** + élévation PIN |
+| POST | `/api/visit/mascot-packs` | oui | Créer un pack : `{ map_id, pack?, label?, is_published? }` — sans `pack`, modèle brouillon Renard 2 (`/assets/mascots/renard2-cut/frames/`) |
+| PUT | `/api/visit/mascot-packs/:id` | oui | Mettre à jour `label`, `pack`, `is_published` (corps : `map_id` requis, identique à la ligne) |
+| DELETE | `/api/visit/mascot-packs/:id` | oui | Supprime le pack et le dossier **`uploads/visit_mascot_packs/{id}/`** |
+| GET | `/api/visit/mascot-packs/:packId/assets/:filename` | partiel | Image PNG si le pack est **publié** ; sinon jeton prof avec **`visit.manage`** + élévation |
+| POST | `/api/visit/mascot-packs/:id/assets` | oui | Upload PNG : `{ filename, image_data }` (base64 / data URL) — fichier sous **`uploads/visit_mascot_packs/{id}/`** ; le JSON du pack peut référencer **`framesBase`** = `/api/visit/mascot-packs/{id}/assets/` |
+| DELETE | `/api/visit/mascot-packs/:id/assets/:filename` | oui | Supprime un fichier uploadé du pack |
 | GET | `/api/visit/progress` | non | Progression des cibles vues : mode **student** si `Authorization: Bearer` = jeton **élève** (l’identité est tirée du jeton ; le paramètre `student_id` est refusé sauf s’il correspond au même compte) ; sinon mode **anonymous** via cookie signé `anon_visit_token` (pas de `student_id` en query) |
 | POST | `/api/visit/seen` | non | Marquer/démarquer une cible vue (`{ target_type, target_id, seen }`). Avec jeton **élève**, la progression est enregistrée pour ce compte uniquement (le corps ne doit pas contenir `student_id`, ou il doit être identique au compte du jeton). Sans jeton élève, enregistrement **anonyme** (cookie) ; tout `student_id` dans le corps sans jeton élève valide → **401** |
 | GET | `/api/visit/stats` | oui | KPI de visite (sessions, complétion, breakdown n3beur/anonyme) |

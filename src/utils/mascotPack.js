@@ -73,22 +73,31 @@ function normalizeFramesBase(base) {
 
 /**
  * @param {unknown} raw
- * @param {{ relaxAssetPrefix?: boolean }} [opts] — `relaxAssetPrefix`: autorise `blob:` / `data:` et tout préfixe `framesBase` (outil dev).
+ * @param {{
+ *   relaxAssetPrefix?: boolean,
+ *   allowedFramesBasePrefixes?: string[],
+ * }} [opts] — `relaxAssetPrefix`: autorise tout préfixe `framesBase` (outil dev).
+ * `allowedFramesBasePrefixes`: préfixes additionnels autorisés (ex. `/api/visit/mascot-packs/{uuid}/assets/`).
  */
 export function parseMascotPackV1(raw, opts = {}) {
   const relax = Boolean(opts.relaxAssetPrefix);
+  const prefixList = Array.isArray(opts.allowedFramesBasePrefixes)
+    ? opts.allowedFramesBasePrefixes.map((p) => normalizeFramesBase(String(p || ''))).filter(Boolean)
+    : [];
   const parsed = mascotPackSchemaV1.safeParse(raw);
   if (!parsed.success) return parsed;
   const data = parsed.data;
   const base = normalizeFramesBase(data.framesBase);
   if (!relax) {
-    if (!base.startsWith('/assets/mascots/')) {
+    const okStatic = base.startsWith('/assets/mascots/');
+    const okPrefix = prefixList.some((p) => base.startsWith(p));
+    if (!okStatic && !okPrefix) {
       return {
         success: false,
         error: new z.ZodError([{
           code: z.ZodIssueCode.custom,
           path: ['framesBase'],
-          message: 'framesBase doit commencer par /assets/mascots/ (ou utiliser relaxAssetPrefix en dev).',
+          message: 'framesBase doit commencer par /assets/mascots/ ou par un préfixe serveur autorisé (ou relaxAssetPrefix en dev).',
         }]),
       };
     }
@@ -132,7 +141,7 @@ export function expandMascotPackToSpriteCut(pack) {
 
 /**
  * @param {unknown} raw
- * @param {{ relaxAssetPrefix?: boolean }} [opts]
+ * @param {{ relaxAssetPrefix?: boolean, allowedFramesBasePrefixes?: string[] }} [opts]
  * @returns {{ ok: true, pack: object, spriteCut: ReturnType<typeof expandMascotPackToSpriteCut> } | { ok: false, error: z.ZodError }}
  */
 export function validateMascotPackV1(raw, opts = {}) {
