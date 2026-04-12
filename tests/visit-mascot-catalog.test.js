@@ -71,3 +71,17 @@ test('catalogue inclut OLU spritesheet avec palette complète', async () => {
     assert.ok(states.includes(wanted), `olu etat manquant: ${wanted}`);
   }
 });
+
+test('catalogue inclut oiseau tan spritesheet (idle 1 frame, marche 2 frames)', async () => {
+  const { getVisitMascotById } = await loadModule();
+  const bird = getVisitMascotById('tan-bird-spritesheet');
+  assert.ok(bird);
+  assert.equal(bird.renderer, 'spritesheet');
+  assert.equal(bird.fallbackSilhouette, 'tanBird');
+  assert.equal(bird.spritesheet.frameWidth, 712);
+  assert.equal(bird.spritesheet.frameHeight, 637);
+  assert.equal(bird.spritesheet.stateFrames.idle.frames, 1);
+  assert.equal(bird.spritesheet.stateFrames.walking.frames, 2);
+  assert.equal(bird.spritesheet.stateFrames.running.frames, 2);
+  assert.equal(bird.spritesheet.pixelated, false);
+});

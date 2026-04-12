@@ -183,6 +183,43 @@ function SwarmVisitMascotSvg() {
   );
 }
 
+/** Oiseau de profil (style jeu mobile) — secours pour mascotte spritesheet 2 frames. */
+function TanBirdVisitMascotSvg() {
+  return (
+    <svg className="visit-tan-bird-svg" viewBox="0 0 128 148" role="presentation" focusable="false">
+      <ellipse cx="64" cy="140" rx="26" ry="5" fill="rgba(26,71,49,0.14)" />
+      <g className="visit-tan-bird-tail">
+        <path d="M22 88 L8 78 L12 96 Z" fill="#111827" stroke="#0f172a" strokeWidth="2" strokeLinejoin="round" />
+        <path d="M18 96 L4 92 L10 108 Z" fill="#111827" stroke="#0f172a" strokeWidth="2" strokeLinejoin="round" />
+        <path d="M20 104 L6 108 L14 118 Z" fill="#111827" stroke="#0f172a" strokeWidth="2" strokeLinejoin="round" />
+      </g>
+      <g className="visit-tan-bird-body">
+        <ellipse cx="72" cy="92" rx="38" ry="34" fill="#e8d4b8" stroke="#111827" strokeWidth="3.2" />
+        <path d="M58 102 Q72 118 88 100" fill="#f5ead8" stroke="#111827" strokeWidth="2" />
+        <ellipse cx="56" cy="88" rx="5" ry="7" fill="#c9a574" opacity="0.55" />
+      </g>
+      <g className="visit-tan-bird-wing">
+        <path d="M48 86 Q38 72 44 58 Q52 52 58 68 Q54 80 48 86 Z" fill="#d4bc9a" stroke="#111827" strokeWidth="2.6" />
+        <path d="M50 82 Q44 70 50 62" fill="none" stroke="#111827" strokeWidth="1.8" strokeLinecap="round" />
+      </g>
+      <g className="visit-tan-bird-head">
+        <rect x="58" y="38" width="18" height="22" rx="3" fill="#c4a574" stroke="#111827" strokeWidth="2.4" />
+        <line x1="62" y1="44" x2="62" y2="52" stroke="#8b7355" strokeWidth="1.4" />
+        <line x1="68" y1="42" x2="68" y2="54" stroke="#8b7355" strokeWidth="1.4" />
+        <line x1="72" y1="44" x2="72" y2="52" stroke="#8b7355" strokeWidth="1.4" />
+        <ellipse cx="86" cy="70" rx="22" ry="20" fill="#fff" stroke="#111827" strokeWidth="3" />
+        <ellipse cx="88" cy="72" rx="6" ry="7" fill="#111827" />
+        <circle cx="90" cy="69" r="2" fill="#fff" />
+        <path d="M108 68 L124 72 L108 78 Z" fill="#f97316" stroke="#111827" strokeWidth="2.4" strokeLinejoin="round" />
+      </g>
+      <g className="visit-tan-bird-feet" stroke="#111827" strokeWidth="3" strokeLinecap="round">
+        <path d="M62 124 L58 136" fill="none" />
+        <path d="M74 124 L78 136" fill="none" />
+      </g>
+    </svg>
+  );
+}
+
 /** OLU: renard pixel-style simplifié pour fallback statique. */
 function OluVisitMascotSvg() {
   return (
@@ -214,7 +251,7 @@ function OluVisitMascotSvg() {
 
 /**
  * @param {object} props
- * @param {'gnome'|'spore'|'vine'|'moss'|'seed'|'swarm'|'sprout'|'scrap'|'olu'} props.silhouette
+ * @param {'gnome'|'spore'|'vine'|'moss'|'seed'|'swarm'|'sprout'|'scrap'|'olu'|'tanBird'} props.silhouette
  * @param {string} [props.variant] — pour silhouette gnome : forest | amber | punk
  */
 function VisitMascotFallbackSvg({ silhouette = 'gnome', variant = 'forest' }) {
@@ -225,6 +262,8 @@ function VisitMascotFallbackSvg({ silhouette = 'gnome', variant = 'forest' }) {
       return <VisitMascotScrapSvg />;
     case 'olu':
       return <OluVisitMascotSvg />;
+    case 'tanBird':
+      return <TanBirdVisitMascotSvg />;
     case 'spore':
       return <SporeVisitMascotSvg />;
     case 'vine':
@@ -257,6 +296,7 @@ export {
   SeedVisitMascotSvg,
   SwarmVisitMascotSvg,
   OluVisitMascotSvg,
+  TanBirdVisitMascotSvg,
   VisitMascotSproutSvg as SproutVisitMascotSvg,
   VisitMascotScrapSvg as ScrapVisitMascotSvg,
 };

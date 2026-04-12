@@ -60,7 +60,7 @@ La mascotte n’est rendue que si le client a du **contenu public** visite (zone
 3. **Version déployée** : **`GET /api/version`** ; comparer au dépôt. Vérifier que **`index.vite.html`** charge un **`/assets/index.vite-*.js`** cohérent (hash aligné avec le déploiement).
 4. **Cache** : navigation privée ; **Application → Service Workers → Désinscrire** ; rechargement forcé (Ctrl+F5).
 5. **Serveur** : le répertoire **`dist/`** servi par Node ([`server.js`](../server.js) en `NODE_ENV=production`) est bien celui mis à jour ; pas seulement un `git pull` sans **`dist/`** si le flux ne rebuild pas le front.
-6. **Asset OLU** (spritesheet) : vérifier la présence de `public/assets/mascots/olu/olu-spritesheet.png` et son accessibilité HTTP (`/assets/mascots/olu/olu-spritesheet.png`).
+6. **Assets spritesheet** : pour OLU, `public/assets/mascots/olu/olu-spritesheet.png` (`/assets/mascots/olu/olu-spritesheet.png`) ; pour l’oiseau tan (2 frames), `public/assets/mascots/tan-bird/tan-bird-spritesheet.png` (`/assets/mascots/tan-bird/tan-bird-spritesheet.png`).
 
 ### Agrégats BDD (secret deploy)
 
