@@ -7,7 +7,7 @@ const VISIT_MASCOT_STORAGE_KEY = 'foretmap_visit_mascot_id';
  * 1) Déposer les assets sous /public/assets/mascots/... ou /public/assets/rive/...
  * 2) Ajouter une entrée ici (renderer: 'rive' | 'spritesheet' | 'sprite_cut')
  * 3) `fallbackSilhouette` : forme du SVG de secours (gnome, spore, vine, moss, seed, swarm, sprout, scrap, olu, tanBird, backpackFox, backpackFox2)
- * 4) Renseigner les animations Rive par état si applicable ; pour `sprite_cut`, voir `spriteCut.stateFrames` (srcs + fps).
+ * 4) Renseigner les animations Rive par état si applicable ; pour `sprite_cut`, voir `spriteCut.stateFrames` (srcs, fps, optionnel frameDwellMs, displayScale). Pack JSON : docs/MASCOT_PACK.md.
  */
 function buildRenard2CutSpriteCutConfig() {
   const stateFrames = {};
@@ -21,6 +21,7 @@ function buildRenard2CutSpriteCutConfig() {
     frameWidth: 153,
     frameHeight: 160,
     pixelated: true,
+    displayScale: 1,
     stateFrames,
   };
 }

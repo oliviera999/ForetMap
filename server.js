@@ -435,7 +435,7 @@ const rootDocs = new Map([
   ['/README.md', path.resolve(__dirname, 'README.md')],
   ['/CHANGELOG.md', path.resolve(__dirname, 'CHANGELOG.md')],
 ]);
-const allowedDocFiles = new Set(['API.md', 'LOCAL_DEV.md', 'EVOLUTION.md', 'VERSIONING.md']);
+const allowedDocFiles = new Set(['API.md', 'LOCAL_DEV.md', 'EVOLUTION.md', 'VERSIONING.md', 'MASCOT_PACK.md']);
 
 for (const [routePath, filePath] of rootDocs.entries()) {
   app.get(routePath, (req, res) => {

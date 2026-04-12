@@ -1,0 +1,23 @@
+{
+  "mascotPackVersion": 1,
+  "id": "exemple-pack",
+  "label": "Exemple pack (documentation)",
+  "renderer": "sprite_cut",
+  "framesBase": "/assets/mascots/exemple-pack/frames/",
+  "frameWidth": 64,
+  "frameHeight": 64,
+  "pixelated": true,
+  "displayScale": 1,
+  "fallbackSilhouette": "gnome",
+  "stateFrames": {
+    "idle": {
+      "files": ["idle-0.png", "idle-1.png"],
+      "fps": 4,
+      "frameDwellMs": [200, 350]
+    },
+    "walking": {
+      "files": ["walk-0.png", "walk-1.png", "walk-2.png"],
+      "fps": 10
+    }
+  }
+}

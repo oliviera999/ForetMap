@@ -17,6 +17,8 @@ description: Guide l’ajout et l’évolution des mascottes visite (catalogue m
 | Fichier | Rôle |
 |---------|------|
 | `src/utils/visitMascotCatalog.js` | Entrées mascottes, renderer, assets, états supportés |
+| `docs/MASCOT_PACK.md` | Format JSON **mascot pack v1** (`sprite_cut`), validation CLI, outil dev |
+| `src/utils/mascotPack.js` | Zod : `validateMascotPackV1`, `expandMascotPackToSpriteCut` |
 | `src/utils/visitMascotState.js` | États canoniques + résolution prioritaire + dialogues |
 | `src/hooks/useVisitMascotStateMachine.js` | Pilotage runtime/preview et comportements transitoires |
 | `src/components/VisitMapMascotRenderer.jsx` | Routeur renderer |
