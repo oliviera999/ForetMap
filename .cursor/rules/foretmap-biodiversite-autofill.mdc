@@ -1,6 +1,6 @@
 ---
-description: Garde-fous pour la pré-saisie biodiversité multi-sources (backend + UI)
-globs: lib/speciesAutofill.js,routes/plants.js,src/components/foretmap-views.jsx,tests/species-autofill.test.js,tests/api.test.js,docs/API.md
+description: Garde-fous pour la pré-saisie biodiversité multi-sources (backend + UI) et identification Pl@ntNet par image
+globs: lib/speciesAutofill.js,lib/speciesAutofillPlantnet.js,routes/plants.js,src/components/foretmap-views.jsx,tests/species-autofill.test.js,tests/species-autofill-plantnet.test.js,tests/species-autofill-common-species.test.js,tests/api.test.js,docs/API.md
 alwaysApply: false
 ---
 
@@ -12,3 +12,4 @@ alwaysApply: false
 - Les photos proposées doivent rester **HTTPS/URL valides** et inclure si possible crédit/licence/source.
 - Côté UI, conserver un workflow de **revue explicite** : sélection des champs/photos puis action manuelle "Appliquer la sélection".
 - Documenter dans `docs/API.md` toute évolution du contrat (`fields`, `field_sources`, `photos`, `warnings`, `confidence`).
+- **Pl@ntNet (images)** : exposé uniquement via **`POST /api/plants/plantnet-identify`** (proxy multipart, pas d’écriture BDD, clés serveur). **Ne pas** réintroduire la source agrégée **`plantnet`** dans le paramètre **`sources`** de **`GET /api/plants/autofill`** sans décision produit explicite (cf. `docs/SPECIES_AUTOFILL_EXTENSIONS.md`).

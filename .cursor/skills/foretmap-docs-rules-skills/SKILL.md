@@ -16,10 +16,16 @@ description: Maintient la cohérence entre documentation projet, règles Cursor 
 ## Méthode rapide
 
 1. Identifier les zones code modifiées (`routes`, `lib`, `src/components`, `tests`).
-2. Mettre à jour le contrat API et le runbook local dans `docs/`.
-3. Mettre à jour les règles existantes ou en créer de ciblées (`.mdc`, frontmatter correct).
-4. Ajouter/adapter les skills concernés (description précise "quoi + quand").
+2. Mettre à jour le contrat API et le runbook local dans `docs/` (au minimum **`docs/API.md`** pour une route publique ; runbook **`docs/LOCAL_DEV.md`** / exploitation **`docs/EXPLOITATION.md`** selon le sujet).
+3. Mettre à jour les règles existantes ou en créer de ciblées (`.mdc`, frontmatter correct, **`globs`** si la rule est ciblée).
+4. Ajouter/adapter les skills concernés (description précise « quoi + quand »).
 5. Vérifier que les commandes de validation mentionnées existent réellement dans `package.json`.
+
+### Exemples concrets (ForetMap)
+
+- **Nouvelle route API** : `docs/API.md` + rule métier existante (`foretmap-biodiversite-autofill`, `foretmap-backend`, etc.) ou skill (`foretmap-species-autofill`, `foretmap-mascot-catalog`…).
+- **Symptômes HTTP/2 navigateur (ex. ERR_HTTP2_PROTOCOL_ERROR)** : documenter ou pointer **`npm run prod:transport-probe`** et **`docs/EXPLOITATION.md`** ; mention éventuelle dans **`docs/LOCAL_DEV.md`** / **`README.md`**.
+- **Packs mascotte / validation sans `src/` en prod** : **`docs/MASCOT_PACK.md`**, script **`npm run sync:visit-pack-lib`**, dossier **`lib/visit-pack/`**, garde-fou cron dans **`docs/EXPLOITATION.md`** ; skill **`foretmap-mascot-catalog`**.
 
 ## Critères de qualité
 
