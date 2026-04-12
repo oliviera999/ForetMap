@@ -2236,6 +2236,17 @@
       align-items:center;
       justify-content:center;
     }
+    .tuto-preview-modal__foot {
+      flex-shrink:0;
+      padding:10px 14px 12px;
+      border-top:1px solid rgba(45, 106, 79, 0.12);
+      display:flex;
+      flex-wrap:wrap;
+      justify-content:center;
+      align-items:center;
+      gap:8px;
+      background:var(--parchment);
+    }
     .tuto-preview-frame {
       flex:1 1 auto;
       min-height:0;
@@ -2259,6 +2270,9 @@
         padding:10px 44px 8px 12px;
       }
       .tuto-preview-modal__body {
+        padding:8px 10px 10px;
+      }
+      .tuto-preview-modal__foot {
         padding:8px 10px 10px;
       }
     }

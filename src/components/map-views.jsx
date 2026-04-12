@@ -27,6 +27,7 @@ import { isStudentAssignedToTask } from '../utils/task-assignments';
 import { parseLivingBeings, orderedLivingBeingsForForm, nextLivingBeingsFromMultiSelect } from '../utils/livingBeings';
 import { wheelZoomScaleFactor } from '../utils/mapWheelZoom';
 import { TutorialPreviewModal, tutorialPreviewPayload, tutorialPreviewCanEmbed } from './TutorialPreviewModal';
+import { fetchTutorialReadIds } from './TutorialReadAcknowledge';
 
 function Toast({ msg, onDone }) {
   useEffect(() => { const t = setTimeout(onDone, 2400); return () => clearTimeout(t); }, []);
@@ -2575,7 +2576,7 @@ function useMapGestures({ mapImageSrc, activeMapId, mode, onRefresh, embedded = 
   };
 }
 
-function MapView({ zones, markers, tasks = [], tutorials = [], plants, maps = [], activeMapId = 'foret', onMapChange, isTeacher, student, canSelfAssignTasks = true, canEnrollOnTasks, canParticipateContextComments = true, onZoneUpdate, onRefresh, embedded = false, publicSettings = null, onLocationTasksFocus = null, onNavigateToTasksForLocation = null }) {
+function MapView({ zones, markers, tasks = [], tutorials = [], plants, maps = [], activeMapId = 'foret', onMapChange, isTeacher, student, canSelfAssignTasks = true, canEnrollOnTasks, canParticipateContextComments = true, onZoneUpdate, onRefresh, embedded = false, publicSettings = null, onLocationTasksFocus = null, onNavigateToTasksForLocation = null, onForceLogout }) {
   const canEnrollNewTasks = canEnrollOnTasks !== undefined ? canEnrollOnTasks : canSelfAssignTasks;
   const [mode, setMode] = useState('view');
   const [showLabels, setShowLabels] = useState(true);
@@ -2593,6 +2594,7 @@ function MapView({ zones, markers, tasks = [], tutorials = [], plants, maps = []
   const [pendingMarker, setPendingMarker] = useState(null);
   const [toast, setToast] = useState(null);
   const [mapTutorialPreview, setMapTutorialPreview] = useState(null);
+  const [tutorialReadIds, setTutorialReadIds] = useState(() => new Set());
   const [markerPositionUnlocked, setMarkerPositionUnlocked] = useState(false);
   const configuredLocationEmojis = String(
     publicSettings?.ui?.map?.location_emojis
@@ -2713,6 +2715,25 @@ function MapView({ zones, markers, tasks = [], tutorials = [], plants, maps = []
     }
     return { zoneTutorialCountById: zoneMap, markerTutorialCountById: markerMap };
   }, [tutorials, zones, markers, activeMapId, tasks]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const load = async () => {
+      const ids = await fetchTutorialReadIds();
+      if (!cancelled) setTutorialReadIds(new Set(ids));
+    };
+    load();
+    if (typeof window !== 'undefined') {
+      window.addEventListener('foretmap_session_changed', load);
+      return () => {
+        cancelled = true;
+        window.removeEventListener('foretmap_session_changed', load);
+      };
+    }
+    return () => {
+      cancelled = true;
+    };
+  }, [tutorials]);
 
   useEffect(() => {
     if (!embedded || !onLocationTasksFocus) return;
@@ -3141,7 +3162,15 @@ function MapView({ zones, markers, tasks = [], tutorials = [], plants, maps = []
     <div className={`map-view-root ${embedded ? 'map-view-root--embedded' : 'map-view-root--solo'}`}>
       {toast && <Toast msg={toast} onDone={() => setToast(null)} />}
       {mapTutorialPreview && (
-        <TutorialPreviewModal tutorial={mapTutorialPreview} onClose={() => setMapTutorialPreview(null)} />
+        <TutorialPreviewModal
+          tutorial={mapTutorialPreview}
+          onClose={() => setMapTutorialPreview(null)}
+          readAcknowledge={{
+            isRead: tutorialReadIds.has(Number(mapTutorialPreview.id)),
+            onAcknowledged: (id) => setTutorialReadIds((prev) => new Set([...prev, id])),
+            onForceLogout,
+          }}
+        />
       )}
 
       {selectedZone && (
