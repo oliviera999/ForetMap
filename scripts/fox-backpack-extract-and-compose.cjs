@@ -1,15 +1,15 @@
 /**
- * Extrait chaque cellule 153×160 de l’atlas renard sac, remplace les cases « bulles »
- * (ligne 2, colonnes 4–5) par du transparent, puis réécrit l’atlas composite.
+ * 1) Optionnel (--import) : copier une planche PNG vers l’atlas 918×640 (padding transparent si besoin).
+ * 2) Extraire chaque cellule 153×160, remplacer les bulles (ligne 2, cols 4–5) par du transparent,
+ *    réécrire l’atlas et les PNG sous cells/.
  *
- * Usage (depuis la racine du dépôt) :
- *   node scripts/fox-backpack-extract-and-compose.cjs
+ * Usage (racine dépôt) :
  *   npm run mascot:fox-backpack
+ *   npm run mascot:fox-backpack -- --import
+ *   npm run mascot:fox-backpack -- --import "C:\chemin\vers\planche.png"
  *
- * Entrée / sortie : public/assets/mascots/fox-backpack/fox-backpack-spritesheet.png
- * Extraits : public/assets/mascots/fox-backpack/cells/cell-r{R}-c{C}.png
- *
- * Grille : 6 × 4 cellules, 918 × 640 px. Aucun redessin : extract Sharp + cases vides.
+ * Avec `--import` seul : essaie FORETMAP_FOX_SOURCE puis la planche Gemini « ai-brush » du workspace Cursor si elle existe.
+ * Le client ne charge que fox-backpack-spritesheet.png ; cells/ sert au pipeline / relecture.
  */
 
 const path = require('path');
@@ -26,8 +26,61 @@ const FRAME_H = 160;
 const COLS = 6;
 const ROWS = 4;
 
-/** Cellules bulles (hors personnage) — tuiles transparentes + atlas recomposé. */
 const BUBBLE_KEYS = new Set(['2,4', '2,5']);
+
+function cursorDefaultBrushPath() {
+  const base = process.env.USERPROFILE || process.env.HOME || '';
+  if (!base) return null;
+  return path.join(
+    base,
+    'AppData/Roaming/Cursor/User/workspaceStorage/af0ff3949d6f54adf531a34c6b69d944/images/Gemini_Generated_Image_iv4dyhiv4dyhiv4d-ai-brush-removebg-w75w6koi-6567727b-8cd8-461b-a022-b835aa3cd48f.png',
+  );
+}
+
+function resolveImportSource(argv) {
+  const idx = argv.indexOf('--import');
+  if (idx >= 0) {
+    const next = argv[idx + 1];
+    if (next && !next.startsWith('-')) return path.resolve(next);
+    if (process.env.FORETMAP_FOX_SOURCE) return path.resolve(process.env.FORETMAP_FOX_SOURCE);
+    const def = cursorDefaultBrushPath();
+    if (def && fs.existsSync(def)) return def;
+    console.error(
+      'Aucune planche source : passez un chemin après --import ou définissez FORETMAP_FOX_SOURCE, ou placez la PNG Gemini ai-brush au chemin Cursor attendu.',
+    );
+    process.exit(1);
+  }
+  return null;
+}
+
+async function importSourceToAtlas(srcPath) {
+  const tw = COLS * FRAME_W;
+  const th = ROWS * FRAME_H;
+  const buf = await fs.promises.readFile(srcPath);
+  const meta = await sharp(buf).metadata();
+  const w = meta.width || 0;
+  const h = meta.height || 0;
+  if (w > tw || h > th) {
+    throw new Error(
+      `Planche ${w}×${h} : dépasse le gabarit ${tw}×${th}. Recadrer à ${tw}×${th} max (grille 6×4 × 153×160).`,
+    );
+  }
+  const padR = tw - w;
+  const padB = th - h;
+  let pipeline = sharp(buf).ensureAlpha();
+  if (padR > 0 || padB > 0) {
+    pipeline = pipeline.extend({
+      top: 0,
+      left: 0,
+      bottom: Math.max(0, padB),
+      right: Math.max(0, padR),
+      background: { r: 0, g: 0, b: 0, alpha: 0 },
+    });
+  }
+  fs.mkdirSync(path.dirname(ATLAS), { recursive: true });
+  await pipeline.png().toFile(ATLAS);
+  console.log('Import planche → atlas', path.relative(ROOT, srcPath), '→', ATLAS_REL, `(${tw}×${th})`);
+}
 
 async function transparentTilePng() {
   return sharp({
@@ -40,9 +93,9 @@ async function transparentTilePng() {
   }).png().toBuffer();
 }
 
-async function main() {
+async function extractAndCompose() {
   if (!fs.existsSync(ATLAS)) {
-    console.error('Atlas introuvable:', ATLAS);
+    console.error('Atlas introuvable:', ATLAS, '(utilisez --import avec une planche source)');
     process.exit(1);
   }
   const meta = await sharp(ATLAS).metadata();
@@ -95,6 +148,13 @@ async function main() {
   console.log('OK fox-backpack:', ATLAS_REL);
   console.log('  cellules:', COLS * ROWS, '→', path.relative(ROOT, CELLS_DIR));
   console.log('  bulles neutralisées:', [...BUBBLE_KEYS].join(', '));
+}
+
+async function main() {
+  const argv = process.argv.slice(2);
+  const importSrc = resolveImportSource(argv);
+  if (importSrc) await importSourceToAtlas(importSrc);
+  await extractAndCompose();
 }
 
 main().catch((err) => {
