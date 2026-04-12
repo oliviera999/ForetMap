@@ -6,6 +6,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 ## [Non publié]
 
 ### Corrigé
+- **Biodiversité — Pl@ntNet `species/align`** : suppression du paramètre de requête **`lang`** (l’API v2 le rejette en **400** *« lang is not allowed »*). **`PLANTNET_LANG`** reste utilisé pour **`GET …/species`** et le choix du vernaculaire. **`lib/speciesAutofillPlantnet.js`**, **`lib/speciesAutofillProviderSelfTest.js`**, **`docs/SPECIES_AUTOFILL_EXTENSIONS.md`**.
 - **Visite — validation packs mascotte en prod** : l’API ne dépend plus uniquement de **`src/utils/mascotPack.js`** (absent des déploiements sans sources) ; copie sous **`lib/visit-pack/`** synchronisée à chaque **`npm run build`** (`scripts/sync-visit-pack-server-lib.js`, script **`npm run sync:visit-pack-lib`**), résolution **`src`** puis **`lib`**. **`routes/visit.js`**, **`scripts/build-safe.js`**, **`package.json`**, **`docs/MASCOT_PACK.md`**.
 
 ### Ajouté
