@@ -7,6 +7,7 @@ const {
   buildSearchQueries,
   descriptionMergeRank,
   parseAutofillSourcesQueryParam,
+  resolvePlantnetAlignName,
 } = require('../lib/speciesAutofill');
 
 function jsonResponse(payload, status = 200) {
@@ -53,6 +54,12 @@ test('mergeSources favorise Wikidata pour le champ description (rang source)', (
 
 test('descriptionMergeRank classe wikipedia au-dessus de gbif', () => {
   assert.ok(descriptionMergeRank('wikipedia') > descriptionMergeRank('gbif'));
+});
+
+test('resolvePlantnetAlignName replie sur le nom courant ou la requête sans graine taxonomique', () => {
+  assert.equal(resolvePlantnetAlignName(null, { name: 'Tomate' }, 'autre'), 'Tomate');
+  assert.equal(resolvePlantnetAlignName(null, {}, 'tomate'), 'tomate');
+  assert.equal(resolvePlantnetAlignName('Solanum lycopersicum', {}, 'tomate'), 'Solanum lycopersicum');
 });
 
 test('parseAutofillSourcesQueryParam blanc-liste et ignore les ids inconnus', () => {
