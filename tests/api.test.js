@@ -1456,7 +1456,7 @@ test('GET /api/plants/autofill renvoie une pré-saisie normalisée multi-sources
   const previousFetch = global.fetch;
   global.fetch = async (url) => {
     const raw = String(url || '');
-    if (raw.includes('wikipedia.org/api/rest_v1/page/summary')) {
+    if (raw.includes('fr.wikipedia.org/api/rest_v1/page/summary')) {
       return {
         ok: true,
         status: 200,
@@ -1555,6 +1555,45 @@ test('GET /api/plants/autofill renvoie une pré-saisie normalisée multi-sources
         },
       };
     }
+    if (raw.includes('api.inaturalist.org/v1/taxa')) {
+      return {
+        ok: true,
+        status: 200,
+        async json() {
+          return {
+            results: [{
+              id: 58698,
+              rank: 'species',
+              name: 'Solanum lycopersicum',
+              observations_count: 1000,
+              matched_term: 'tomate',
+            }],
+          };
+        },
+      };
+    }
+    if (raw.includes('api.gbif.org/v1/species/2930132/vernacularNames')) {
+      return {
+        ok: true,
+        status: 200,
+        async json() {
+          return { results: [{ vernacularName: 'Tomate-cerise', language: 'fra' }] };
+        },
+      };
+    }
+    if (raw.includes('en.wikipedia.org/api/rest_v1/page/summary')) {
+      return {
+        ok: true,
+        status: 200,
+        async json() {
+          return {
+            title: 'Tomato',
+            extract: 'The tomato is the edible berry of the plant Solanum lycopersicum, commonly known as a tomato plant.',
+            content_urls: { desktop: { page: 'https://en.wikipedia.org/wiki/Tomato' } },
+          };
+        },
+      };
+    }
     throw new Error(`URL inattendue: ${raw}`);
   };
   try {
@@ -1582,7 +1621,7 @@ test('GET /api/plants/autofill garde un fallback partiel si une source échoue',
   const previousFetch = global.fetch;
   global.fetch = async (url) => {
     const raw = String(url || '');
-    if (raw.includes('wikipedia.org/api/rest_v1/page/summary')) {
+    if (raw.includes('fr.wikipedia.org')) {
       throw new Error('timeout');
     }
     if (raw.includes('wikidata.org/w/api.php')) {
@@ -1609,6 +1648,45 @@ test('GET /api/plants/autofill garde un fallback partiel si une source échoue',
         status: 200,
         async json() {
           return { result: [{ id: 'COL-3214412', name: 'Ocimum basilicum' }] };
+        },
+      };
+    }
+    if (raw.includes('api.inaturalist.org/v1/taxa')) {
+      return {
+        ok: true,
+        status: 200,
+        async json() {
+          return {
+            results: [{
+              id: 51734,
+              rank: 'species',
+              name: 'Ocimum basilicum',
+              observations_count: 500,
+              matched_term: 'basilic',
+            }],
+          };
+        },
+      };
+    }
+    if (raw.includes('api.gbif.org/v1/species/3214412/vernacularNames')) {
+      return {
+        ok: true,
+        status: 200,
+        async json() {
+          return { results: [] };
+        },
+      };
+    }
+    if (raw.includes('en.wikipedia.org/api/rest_v1/page/summary')) {
+      return {
+        ok: true,
+        status: 200,
+        async json() {
+          return {
+            title: 'Basil',
+            extract: 'Basil is a culinary herb of the family Lamiaceae (mints). It is a tender plant, and is used in cuisines worldwide.',
+            content_urls: { desktop: { page: 'https://en.wikipedia.org/wiki/Basil' } },
+          };
         },
       };
     }

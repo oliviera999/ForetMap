@@ -1,7 +1,7 @@
 require('./helpers/setup');
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { buildSpeciesAutofill, mergeSources } = require('../lib/speciesAutofill');
+const { buildSpeciesAutofill, mergeSources, buildSearchQueries } = require('../lib/speciesAutofill');
 
 function jsonResponse(payload, status = 200) {
   return {
@@ -12,6 +12,16 @@ function jsonResponse(payload, status = 200) {
     },
   };
 }
+
+test('buildSearchQueries déduplique et ajoute le nom scientifique', () => {
+  assert.deepEqual(buildSearchQueries('tomate', { scientificName: 'Solanum lycopersicum' }), [
+    'tomate',
+    'Solanum lycopersicum',
+  ]);
+  assert.deepEqual(buildSearchQueries('Solanum lycopersicum', { scientificName: 'Solanum lycopersicum' }), [
+    'Solanum lycopersicum',
+  ]);
+});
 
 test('mergeSources priorise la source la plus fiable', () => {
   const merged = mergeSources([
@@ -40,7 +50,7 @@ test('mergeSources priorise la source la plus fiable', () => {
 test('buildSpeciesAutofill fusionne les sources et retourne des photos', async () => {
   const fetchImpl = async (url) => {
     const raw = String(url || '');
-    if (raw.includes('wikipedia.org/api/rest_v1/page/summary')) {
+    if (raw.includes('fr.wikipedia.org/api/rest_v1/page/summary')) {
       return jsonResponse({
         title: 'Tomate',
         extract: 'Plante cultivée pour son fruit.',
@@ -103,6 +113,40 @@ test('buildSpeciesAutofill fusionne les sources et retourne des photos', async (
         usageKey: 2930132,
       });
     }
+    if (raw.includes('api.inaturalist.org/v1/taxa')) {
+      return jsonResponse({
+        results: [{
+          id: 58698,
+          rank: 'species',
+          name: 'Solanum lycopersicum',
+          preferred_common_name: 'Tomate-cerise (test)',
+          observations_count: 40000,
+          matched_term: 'tomate',
+          default_photo: {
+            url: 'https://inaturalist-open-data.s3.amazonaws.com/photos/1/medium.jpg',
+            license_code: 'cc-by',
+            attribution: '(c) Test, CC BY',
+          },
+          wikipedia_summary: 'Espèce de plantes potagères du genre Solanum.',
+        }],
+      });
+    }
+    if (raw.includes('api.gbif.org/v1/species/2930132/vernacularNames')) {
+      return jsonResponse({
+        results: [
+          { vernacularName: 'Tomate', language: 'fre' },
+          { vernacularName: "Pommier d'amour", language: 'fra' },
+          { vernacularName: 'Cherry tomato', language: 'eng' },
+        ],
+      });
+    }
+    if (raw.includes('en.wikipedia.org/api/rest_v1/page/summary')) {
+      return jsonResponse({
+        title: 'Tomato',
+        extract: 'The tomato is the edible berry of the plant Solanum lycopersicum, commonly known as a tomato plant.',
+        content_urls: { desktop: { page: 'https://en.wikipedia.org/wiki/Tomato' } },
+      });
+    }
     throw new Error(`URL inattendue: ${raw}`);
   };
   const result = await buildSpeciesAutofill('tomate', { fetchImpl, timeoutMs: 1200 });
@@ -113,15 +157,22 @@ test('buildSpeciesAutofill fusionne les sources et retourne des photos', async (
   assert.ok(result.sources.some((s) => s.source === 'wikidata'));
   assert.ok(result.sources.some((s) => s.source === 'gbif'));
   assert.ok(result.sources.some((s) => s.source === 'catalogue_of_life'));
+  assert.ok(result.sources.some((s) => s.source === 'inaturalist'));
+  assert.ok(result.sources.some((s) => s.source === 'gbif_vernacular'));
+  assert.ok(result.sources.some((s) => s.source === 'wikipedia_en'));
+  assert.ok(String(result.fields.second_name || '').includes("Pommier d'amour"));
 });
 
 test('buildSpeciesAutofill ajoute un warning si une source échoue', async () => {
   const fetchImpl = async (url) => {
     const raw = String(url || '');
-    if (raw.includes('wikipedia.org')) throw new Error('timeout');
+    if (raw.includes('fr.wikipedia.org')) throw new Error('timeout');
     if (raw.includes('wikidata.org/w/api.php')) return jsonResponse({ search: [] });
     if (raw.includes('api.gbif.org/v1/species/match')) return jsonResponse({ matchType: 'NONE' });
     if (raw.includes('api.checklistbank.org/dataset/3LR/nameusage/search')) return jsonResponse({ result: [] });
+    if (raw.includes('api.inaturalist.org/v1/taxa')) return jsonResponse({ results: [] });
+    if (raw.includes('vernacularNames')) return jsonResponse({ results: [] });
+    if (raw.includes('en.wikipedia.org')) return jsonResponse({ title: 'X', extract: 'Short' });
     throw new Error(`URL inattendue: ${raw}`);
   };
   const result = await buildSpeciesAutofill('plante inconnue', { fetchImpl, timeoutMs: 1200 });
@@ -132,7 +183,7 @@ test('buildSpeciesAutofill ajoute un warning si une source échoue', async () =>
 test('buildSpeciesAutofill évite un homonyme wikidata non taxonomique', async () => {
   const fetchImpl = async (url) => {
     const raw = String(url || '');
-    if (raw.includes('wikipedia.org/api/rest_v1/page/summary')) {
+    if (raw.includes('fr.wikipedia.org/api/rest_v1/page/summary')) {
       return jsonResponse({
         title: 'Tomate',
         extract: 'Plante potagère.',
@@ -173,6 +224,27 @@ test('buildSpeciesAutofill évite un homonyme wikidata non taxonomique', async (
     }
     if (raw.includes('api.checklistbank.org/dataset/3LR/nameusage/search')) {
       return jsonResponse({ result: [{ id: 'COL-OK', name: 'Solanum lycopersicum' }] });
+    }
+    if (raw.includes('api.inaturalist.org/v1/taxa')) {
+      return jsonResponse({
+        results: [{
+          id: 58698,
+          rank: 'species',
+          name: 'Solanum lycopersicum',
+          observations_count: 1000,
+          matched_term: 'tomate',
+        }],
+      });
+    }
+    if (raw.includes('api.gbif.org/v1/species/2930132/vernacularNames')) {
+      return jsonResponse({ results: [{ vernacularName: 'Tomate potagère', language: 'fra' }] });
+    }
+    if (raw.includes('en.wikipedia.org/api/rest_v1/page/summary')) {
+      return jsonResponse({
+        title: 'Tomato',
+        extract: 'The tomato is the edible berry of the plant Solanum lycopersicum, commonly known as a tomato plant.',
+        content_urls: { desktop: { page: 'https://en.wikipedia.org/wiki/Tomato' } },
+      });
     }
     throw new Error(`URL inattendue: ${raw}`);
   };
