@@ -48,6 +48,9 @@ const REQUIRED_RUNTIME = [
   'package-lock.json',
   'node_modules',
   'dist',
+  /** Validation POST/PUT `/api/visit/mascot-packs` sans dossier `src/` (voir `npm run sync:visit-pack-lib`). */
+  'lib/visit-pack/mascotPack.js',
+  'lib/visit-pack/visitMascotState.js',
 ];
 
 function runCommand(cmd, args, options = {}) {

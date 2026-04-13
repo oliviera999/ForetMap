@@ -1423,6 +1423,10 @@ test('GET /api/admin/diagnostics avec bon secret → 200', async () => {
   );
   assert.ok(res.body.runtimeProcess.envHints && typeof res.body.runtimeProcess.envHints === 'object');
   assert.ok(res.body.visitMascotHint && Array.isArray(res.body.visitMascotHint.maps));
+  assert.ok(res.body.mascotPackLibProbe && typeof res.body.mascotPackLibProbe === 'object');
+  assert.ok(Array.isArray(res.body.mascotPackLibProbe.roots));
+  assert.ok(typeof res.body.mascotPackLibProbe.candidatesCount === 'number');
+  assert.ok(typeof res.body.mascotPackLibProbe.libMirrorOk === 'boolean');
   assert.ok(
     res.body.visitMascotHint.maps.every(
       (row) =>

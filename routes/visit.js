@@ -11,6 +11,7 @@ const { emitGardenChanged } = require('../lib/realtime');
 const { saveBase64ToDisk, getAbsolutePath, deleteFile } = require('../lib/uploads');
 const { zoneMapPhotoImageUrl, markerMapPhotoImageUrl, resolveMapPhotoThumbUrl } = require('../lib/uploadsPublicUrls');
 const { visitContentRowIsPublicActive } = require('../lib/visitContentPublicActive');
+const { getMascotPackValidatorCandidates } = require('../lib/mascotPackValidatorResolve');
 
 const router = express.Router();
 
@@ -238,11 +239,7 @@ function serializeVisitMascotPackRow(row) {
  * présente sur les déploiements sans dossier `src/`).
  */
 async function validateMascotPackForDb(raw, opts = {}) {
-  const srcPack = path.join(__dirname, '../src/utils/mascotPack.js');
-  const libPack = path.join(__dirname, '../lib/visit-pack/mascotPack.js');
-  const candidates = [];
-  if (fs.existsSync(srcPack)) candidates.push(srcPack);
-  if (fs.existsSync(libPack)) candidates.push(libPack);
+  const candidates = getMascotPackValidatorCandidates();
   let lastErr;
   for (const abs of candidates) {
     try {

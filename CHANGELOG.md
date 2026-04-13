@@ -5,6 +5,9 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Modifié
+- **Visite — validation packs mascotte (prod)** : résolution des chemins **`mascotPack.js`** sur plusieurs racines (**`lib/mascotPackValidatorResolve.js`**, utilisé par **`routes/visit.js`**) pour les hébergeurs où **`process.cwd()`** diffère de la racine du dépôt ; **`GET /api/admin/diagnostics`** expose **`mascotPackLibProbe`** (`libMirrorOk`, `roots`, `candidatesCount`) ; **`deploy:prepare:runtime`** exige **`lib/visit-pack/mascotPack.js`** et **`visitMascotState.js`** dans le staging ; doc **`docs/EXPLOITATION.md`** (503 `mascot_pack_module_unavailable`), **`docs/API.md`** ; tests **`tests/mascot-pack-validator-resolve.test.js`**, **`tests/api.test.js`**.
+
 ### Ajouté
 - **Visite — panneau lieu** : après le bloc **Détails**, cadres repliables **Biodiversité** et **Tuto** (même logique que la fiche Info zone/repère en mode carte : espèces sur le lieu, espèces des missions, tutoriels liés au lieu ou aux tâches, aperçu **Consulter**). Données carte / tâches / catalogue passées depuis **`App.jsx`** ; utilitaires partagés **`src/utils/mapLocationContext.js`** (importés par **`map-views.jsx`**) ; tests **`tests/map-location-context.test.js`**.
 
