@@ -3685,6 +3685,9 @@
       align-content:start;
     }
     .visit-subtitle { color:var(--leaf); font-weight:700; margin-bottom:6px; }
+    .visit-selection-aside .visit-details + .visit-details {
+      margin-top:8px;
+    }
     .visit-details {
       background:#f8fbf9; border:1px solid var(--mint); border-radius:10px;
       padding:8px 10px;

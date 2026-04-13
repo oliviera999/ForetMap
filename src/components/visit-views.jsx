@@ -32,7 +32,19 @@ import { buildVisitMascotCatalogExtrasFromContent } from '../utils/visitMascotPa
 import { VISIT_MASCOT_STATE, pickMascotDialog } from '../utils/visitMascotState.js';
 import { loadVisitMascotPositionPct, saveVisitMascotPositionPct } from '../utils/visitMascotPositionPersistence.js';
 import useVisitMascotStateMachine from '../hooks/useVisitMascotStateMachine.js';
-import { Lightbox } from './map-views';
+import {
+  Lightbox,
+  BiodiversitySpeciesOpenLinks,
+  LocationTutorialPreviewList,
+  LivingBeingsCatalogPanel,
+} from './map-views';
+import { orderedLivingBeingsForForm } from '../utils/livingBeings';
+import {
+  tutorialLocationIds,
+  tutorialsFromTasksAtLocation,
+  livingBeingNamesFromTasksAtLocation,
+  dedupeTutorialsById,
+} from '../utils/mapLocationContext';
 
 const VISIT_MAP_MASCOT_MOVE_MS = 560;
 const VISIT_MAP_MASCOT_HAPPY_MS = 1800;
@@ -666,6 +678,14 @@ function VisitView({
   canParticipateContextComments = true,
   /** Prof : ouvre l’onglet dédié « Packs mascotte » dans l’app principale. */
   onOpenMascotPackStudioTab,
+  /** Carte source : mêmes IDs que la visite — pour biodiversité / tutos comme en mode carte. */
+  mapZones = [],
+  mapMarkers = [],
+  tasks = [],
+  /** Catalogue tutoriels (liens lieu + missions), distinct de la sélection `visit_tutorials`. */
+  catalogTutorials = [],
+  plants = [],
+  onOpenPlantCatalogPreview = null,
 }) {
   const contextCommentsEnabled = publicSettings?.modules?.context_comments_enabled !== false;
   const configuredLocationEmojis = String(
@@ -1518,6 +1538,77 @@ function VisitView({
     mapExtraPhotos.length > 0
   );
 
+  /** Biodiversité et tutoriels liés au lieu (aligné sur les panneaux zone/repère de la carte). */
+  const visitLocationAside = useMemo(() => {
+    if (!selected || !selectedType) {
+      return {
+        showBiodiversity: false,
+        showTutos: false,
+        primaryLivingNames: [],
+        livingBeingsOnlyOnTasks: [],
+        tutorialListForPreview: [],
+        locationKind: 'zone',
+      };
+    }
+    const catalog = catalogTutorials || [];
+    const taskList = tasks || [];
+    if (selectedType === 'zone') {
+      const mapZone = (mapZones || []).find(
+        (z) => String(z.id) === String(selected.id) && String(z.map_id || '') === String(mapId),
+      );
+      const zoneSpecial = !!mapZone?.special;
+      const primaryLivingNames = mapZone
+        ? orderedLivingBeingsForForm(mapZone.living_beings_list || mapZone.living_beings, mapZone.current_plant)
+        : [];
+      const livingFromTasks = livingBeingNamesFromTasksAtLocation('zone', selected.id, taskList);
+      const livingBeingsOnlyOnTasks = livingFromTasks.filter((n) => !primaryLivingNames.includes(n));
+      const showBiodiversity = !zoneSpecial && (primaryLivingNames.length > 0 || livingBeingsOnlyOnTasks.length > 0);
+      const linkedTutorialsDirect = catalog.filter((tu) => (
+        tutorialLocationIds(tu).zoneIds.some((id) => String(id) === String(selected.id))
+      ));
+      const tutorialsFromTasksHere = tutorialsFromTasksAtLocation('zone', selected.id, taskList, catalog);
+      const linkedTutorialsAll = dedupeTutorialsById([...linkedTutorialsDirect, ...tutorialsFromTasksHere]);
+      const linkedTutorialsVisible = isTeacher
+        ? linkedTutorialsAll
+        : linkedTutorialsAll.filter((tu) => tu.is_active !== false);
+      const tutorialListForPreview = isTeacher ? linkedTutorialsAll : linkedTutorialsVisible;
+      return {
+        showBiodiversity,
+        showTutos: tutorialListForPreview.length > 0,
+        primaryLivingNames,
+        livingBeingsOnlyOnTasks,
+        tutorialListForPreview,
+        locationKind: 'zone',
+      };
+    }
+    const mapMarker = (mapMarkers || []).find(
+      (m) => String(m.id) === String(selected.id) && String(m.map_id || '') === String(mapId),
+    );
+    const primaryLivingNames = mapMarker
+      ? orderedLivingBeingsForForm(mapMarker.living_beings_list || mapMarker.living_beings, mapMarker.plant_name)
+      : [];
+    const livingFromTasks = livingBeingNamesFromTasksAtLocation('marker', selected.id, taskList);
+    const livingBeingsOnlyOnTasks = livingFromTasks.filter((n) => !primaryLivingNames.includes(n));
+    const showBiodiversity = primaryLivingNames.length > 0 || livingBeingsOnlyOnTasks.length > 0;
+    const linkedTutorialsDirect = catalog.filter((tu) => (
+      tutorialLocationIds(tu).markerIds.some((id) => String(id) === String(selected.id))
+    ));
+    const tutorialsFromTasksHere = tutorialsFromTasksAtLocation('marker', selected.id, taskList, catalog);
+    const linkedTutorialsAll = dedupeTutorialsById([...linkedTutorialsDirect, ...tutorialsFromTasksHere]);
+    const linkedTutorialsVisible = isTeacher
+      ? linkedTutorialsAll
+      : linkedTutorialsAll.filter((tu) => tu.is_active !== false);
+    const tutorialListForPreview = isTeacher ? linkedTutorialsAll : linkedTutorialsVisible;
+    return {
+      showBiodiversity,
+      showTutos: tutorialListForPreview.length > 0,
+      primaryLivingNames,
+      livingBeingsOnlyOnTasks,
+      tutorialListForPreview,
+      locationKind: 'marker',
+    };
+  }, [selected, selectedType, mapId, mapZones, mapMarkers, tasks, catalogTutorials, isTeacher]);
+
   if (loading) {
     return (
       <div className="loader">
@@ -2002,7 +2093,7 @@ function VisitView({
               <p>{visitEmptySelection}</p>
             </div>
           ) : (
-            <div>
+            <div className="visit-selection-aside">
               <h3>{selectedType === 'zone' ? selected.name : selected.label}</h3>
               {selected.visit_subtitle && <p className="visit-subtitle">{selected.visit_subtitle}</p>}
               {selected.map_lead_photo?.image_url && (
@@ -2040,6 +2131,72 @@ function VisitView({
                     </div>
                   )}
                   {visitDetailsTextTrim ? <p className="visit-details__body">{selected.visit_details_text}</p> : null}
+                </details>
+              )}
+              {visitLocationAside.showBiodiversity && (
+                <details className="visit-details">
+                  <summary>Biodiversité</summary>
+                  <div style={{ marginTop: 8 }}>
+                    {visitLocationAside.primaryLivingNames.length > 0 && (
+                      <div style={{ marginBottom: visitLocationAside.livingBeingsOnlyOnTasks.length ? 14 : 0 }}>
+                        {(visitLocationAside.primaryLivingNames.length > 1
+                          || visitLocationAside.livingBeingsOnlyOnTasks.length > 0) ? (
+                          <h4 style={{ margin: '0 0 8px', fontSize: '.82rem', color: 'var(--forest)' }}>
+                            {visitLocationAside.locationKind === 'zone' ? 'Sur cette zone' : 'Sur ce repère'}
+                          </h4>
+                          ) : null}
+                        {onOpenPlantCatalogPreview ? (
+                          <BiodiversitySpeciesOpenLinks
+                            plants={plants}
+                            names={visitLocationAside.primaryLivingNames}
+                            showHeading={false}
+                            onOpenPlant={onOpenPlantCatalogPreview}
+                          />
+                        ) : (
+                          <LivingBeingsCatalogPanel
+                            plants={plants}
+                            names={visitLocationAside.primaryLivingNames}
+                            showHeading={false}
+                          />
+                        )}
+                      </div>
+                    )}
+                    {visitLocationAside.livingBeingsOnlyOnTasks.length > 0 && (
+                      <div>
+                        <h4 style={{ margin: '0 0 8px', fontSize: '.82rem', color: 'var(--forest)' }}>
+                          Également dans les missions
+                        </h4>
+                        {onOpenPlantCatalogPreview ? (
+                          <BiodiversitySpeciesOpenLinks
+                            plants={plants}
+                            names={visitLocationAside.livingBeingsOnlyOnTasks}
+                            showHeading={false}
+                            sectionTitle="Également dans les missions"
+                            onOpenPlant={onOpenPlantCatalogPreview}
+                          />
+                        ) : (
+                          <LivingBeingsCatalogPanel
+                            plants={plants}
+                            names={visitLocationAside.livingBeingsOnlyOnTasks}
+                            showHeading={false}
+                          />
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </details>
+              )}
+              {visitLocationAside.showTutos && (
+                <details className="visit-details">
+                  <summary>Tuto</summary>
+                  <div style={{ marginTop: 8 }}>
+                    <LocationTutorialPreviewList
+                      tutorials={visitLocationAside.tutorialListForPreview}
+                      locationKind={visitLocationAside.locationKind}
+                      locationId={selected.id}
+                      onOpenTutorialPreview={setVisitTutorialPreview}
+                    />
+                  </div>
                 </details>
               )}
               <button className="btn btn-primary btn-sm" disabled={savingSeen} onClick={onToggleSeen}>
