@@ -8,6 +8,7 @@ import {
   MASCOT_PACK_FALLBACK_SILHOUETTES,
   ensureServerFramesBase,
   serverMascotPackAssetsPrefix,
+  serverMascotSpriteLibraryAssetsPrefix,
 } from '../utils/mascotPackEditorModel.js';
 import MascotPackPreviewPanel from './MascotPackPreviewPanel.jsx';
 
@@ -36,6 +37,7 @@ function resolveFrameUrl(pack, rel) {
  *   onPackChange: (next: Record<string, unknown>) => void,
  *   packUuid?: string | null,
  *   catalogId?: string,
+ *   visitMapId?: string,
  *   relaxAssetPrefix?: boolean,
  *   onForceLogout?: () => void,
  * }} props
@@ -45,6 +47,7 @@ export default function MascotPackWysiwygEditor({
   onPackChange,
   packUuid = null,
   catalogId = '',
+  visitMapId = '',
   relaxAssetPrefix = false,
   onForceLogout,
 }) {
@@ -59,8 +62,10 @@ export default function MascotPackWysiwygEditor({
     const allowed = ['/assets/mascots/'];
     const p = serverMascotPackAssetsPrefix(packUuid);
     if (p) allowed.push(p);
+    const lib = serverMascotSpriteLibraryAssetsPrefix(visitMapId);
+    if (lib) allowed.push(lib);
     return { relaxAssetPrefix: Boolean(relaxAssetPrefix), allowedFramesBasePrefixes: allowed };
-  }, [packUuid, relaxAssetPrefix]);
+  }, [packUuid, visitMapId, relaxAssetPrefix]);
 
   const runValidate = useCallback(() => {
     const result = validateMascotPackV1(pack, validationOpts);

@@ -5,7 +5,13 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Ajouté
+- **Packs mascotte (studio unifié)** : format pack **v2** avec `interactionProfile` (réactions sur la carte par pack), **bibliothèque sprites** par carte (`/api/visit/mascot-sprite-library/...`), **clonage** (`clone_from_pack_id`, `clone_from_catalog_id`), onglets fiche / bibliothèque / comportements / aperçu dans **`VisitMascotPackManager.jsx`** ; runtime visite branché sur **`visitMascotInteractionApply.js`**. Migration **`074_visit_mascot_sprite_library.sql`**, sync **`lib/visit-pack/visitMascotInteractionEvents.js`**.
+
 ### Modifié
+- **Visite — clic sur le plan (mode vue)** : le fond de carte déplace à nouveau la mascotte pour **élève et prof** (`onMapClick` ne court-circuitait plus que les outils d’édition). **`visit-views.jsx`**.
+- **Studio packs — sélection après création** : `POST` mascotte-packs puis **`setSelectedId` avant `onRefresh`**, pour que le `loadList` conserve le pack courant. **`VisitMascotPackManager.jsx`**.
+- **E2e Playwright (local)** : `webServer.env.NODE_ENV=production` pour servir **`dist/`** ; ajustements **`visit-mascot.spec.js`**, **`visit-mode.spec.js`** (suffixe seed, studio après changement d’onglet, `evaluate` sur le toggle aperçu élève) ; bouton **`data-testid="visit-teacher-preview-toggle"`**. Skill **`foretmap-e2e`**.
 - **Visite — emojis du plan** : les repères (HTML) appliquent une **contre-échelle** par rapport au zoom du calque (`scale(1/s)` via `--visit-map-scale`) pour composer les glyphes en pixels écran et limiter le flou ; les emojis des **zones** (SVG) utilisent la pile **`ForetMapColorEmoji`** / `text-rendering: geometricPrecision`. **`visit-views.jsx`**, **`index.css`**.
 - **Carte — édition des sommets de zone** : poignées moins opaques (anneau léger + croix + point au sommet exact), zone de saisie élargie pour le tactile ; même principe visuel pour les points du tracé **nouvelle zone**. **`map-views.jsx`**.
 - **Carte — édition des sommets** : la croix (viseur) n’apparaît qu’au **survol** souris ou pendant le **glisser** (tactile). **`map-views.jsx`**, **`index.css`**.

@@ -1351,11 +1351,18 @@ function VisitView({
 
   const onMapClick = async (event) => {
     if (consumeSkipClick()) return;
-    if (!isTeacher || mode === 'view') return;
     if (!visitMapImageReady) return;
     const stage = event.currentTarget;
     const p = pointToPct(event, stage, mapTransform, visitMapFit);
     if (!p) return;
+
+    /* Clic sur le fond du plan (hors zone/repère : stopPropagation côté SVG/boutons) : déplace la mascotte — élève et prof en mode vue. */
+    if (mode === 'view') {
+      moveVisitMapMascotTo(p.xp, p.yp);
+      return;
+    }
+
+    if (!isTeacher) return;
 
     if (mode === 'draw-zone') {
       setDrawPoints((prev) => [...prev, p]);
@@ -1838,6 +1845,7 @@ function VisitView({
               {isTeacher ? (
                 <button
                   type="button"
+                  data-testid="visit-teacher-preview-toggle"
                   className={`btn btn-sm ${teacherPreviewAsStudent ? 'btn-primary' : 'btn-ghost'}`}
                   onClick={() => setTeacherPreviewAsStudent((v) => !v)}
                   aria-pressed={teacherPreviewAsStudent}

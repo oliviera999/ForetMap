@@ -36,7 +36,8 @@ async function clickVisitMapAtPct(page, xpPct, ypPct) {
   if (!box || box.width <= 0 || box.height <= 0) {
     throw new Error('visit-map-fit-layer sans taille exploitable');
   }
-  await fit.click({ position: { x: (xpPct / 100) * box.width, y: (ypPct / 100) * box.height } });
+  /* `force` : le backdrop du panneau détail peut recouvrir le plan alors qu’un lieu reste sélectionné. */
+  await fit.click({ position: { x: (xpPct / 100) * box.width, y: (ypPct / 100) * box.height }, force: true });
 }
 
 async function openVisitMap(page) {
@@ -68,15 +69,19 @@ test.describe.serial('mascotte visite (comportement carte)', () => {
   let seededIds = null;
   /** @type {string} */
   let teacherToken = '';
+  /** @type {string} */
+  let seededSuffix = '';
 
   test.beforeEach(async ({ page }) => {
     seededIds = null;
     teacherToken = '';
+    seededSuffix = '';
     await loginAsNewStudent(page);
     await dismissProfilePromotionModalIfPresent(page);
     await enableTeacherMode(page);
     const seeded = await seedVisitMascotContent(page);
     teacherToken = seeded.token;
+    seededSuffix = seeded.suffix;
     seededIds = { n3: seeded.n3 };
     await disableTeacherMode(page);
     await dismissProfilePromotionModalIfPresent(page);
@@ -120,9 +125,11 @@ test.describe.serial('mascotte visite (comportement carte)', () => {
   test('marche : classe walking pendant le déplacement puis retrait', async ({ page }) => {
     const stage = page.locator('.visit-map-stage');
     const mascot = stage.locator('.visit-map-mascot');
-    await clickVisitMapAtPct(page, 88, 50);
+    /* Repères seedés (88,50) puis (12,50) : `moveVisitMapMascotTo` via boutons — pas le clic fond (backdrop si panneau ouvert). */
+    await stage.getByRole('button', { name: `E2E mascotte B ${seededSuffix}` }).click({ force: true });
     await expect(mascot).toBeAttached();
-    await clickVisitMapAtPct(page, 12, 50);
+    await page.getByTestId('visit-detail-panel').getByRole('button', { name: 'Fermer' }).click();
+    await stage.getByRole('button', { name: `E2E mascotte A ${seededSuffix}` }).click({ force: true });
     await expect(mascot).toHaveClass(/visit-map-mascot--walking/, { timeout: 2000 });
     await expect(mascot).not.toHaveClass(/visit-map-mascot--walking/, { timeout: VISIT_MAP_MASCOT_MOVE_MS + 400 });
   });
@@ -196,9 +203,17 @@ test.describe.serial('mascotte visite (sélecteur prof)', () => {
     }
   });
 
-  test('le sélecteur change bien la mascotte active', async ({ page }) => {
-    const picker = page.locator('.visit-mascot-picker select');
-    await expect(picker).toBeVisible();
+  test('le sélecteur change bien la mascotte active (studio Packs mascotte)', async ({ page }) => {
+    const openStudioPreview = async () => {
+      await page.getByRole('button', { name: /Packs mascotte/i }).click();
+      await expect(page.locator('.visit-mascot-pack-manager')).toBeVisible({ timeout: 20_000 });
+      await page.getByRole('button', { name: 'Nouveau brouillon' }).click();
+      await expect(page.getByRole('tab', { name: 'Fiche comportements' })).toBeVisible({ timeout: 30_000 });
+      await page.getByRole('tab', { name: 'Aperçu mascotte' }).click();
+    };
+    await openStudioPreview();
+    const picker = page.locator('.visit-mascot-pack-manager .visit-mascot-picker select');
+    await expect(picker).toBeVisible({ timeout: 15_000 });
     await expect(picker.locator('option[value="sprout-rive"]')).toHaveCount(1);
     await expect(picker.locator('option[value="scrap-rive"]')).toHaveCount(1);
     await expect(picker.locator('option[value="olu-spritesheet"]')).toHaveCount(1);
@@ -206,11 +221,13 @@ test.describe.serial('mascotte visite (sélecteur prof)', () => {
     await expect(picker.locator('option[value="fox-backpack-spritesheet"]')).toHaveCount(1);
     await expect(picker.locator('option[value="renard2-cut-spritesheet"]')).toHaveCount(1);
 
-    await picker.selectOption('sprout-rive');
+    const previewRoot = page.locator('.visit-mascot-pack-manager .visit-mascot-preview-card');
 
+    await picker.selectOption('sprout-rive');
     await expect
-      .poll(async () => page.locator('.visit-mascot-preview-body [data-mascot-id]').first().getAttribute('data-mascot-id'))
+      .poll(async () => previewRoot.locator('.visit-mascot-preview-body [data-mascot-id]').first().getAttribute('data-mascot-id'))
       .toBe('sprout-rive');
+    await page.getByRole('button', { name: /^🧭 Visite$/ }).click();
     await expect
       .poll(async () => page.locator('.visit-map-stage [data-mascot-id]').first().getAttribute('data-mascot-id'))
       .toBe('sprout-rive');
@@ -218,80 +235,89 @@ test.describe.serial('mascotte visite (sélecteur prof)', () => {
       .poll(async () => page.locator('.visit-map-stage [data-mascot-shape]').first().getAttribute('data-mascot-shape'))
       .toBe('sprout');
 
+    await openStudioPreview();
     await picker.selectOption('scrap-rive');
     await expect
-      .poll(async () => page.locator('.visit-mascot-preview-body [data-mascot-shape]').first().getAttribute('data-mascot-shape'))
+      .poll(async () => previewRoot.locator('.visit-mascot-preview-body [data-mascot-shape]').first().getAttribute('data-mascot-shape'))
       .toBe('scrap');
+    await page.getByRole('button', { name: /^🧭 Visite$/ }).click();
     await expect
       .poll(async () => page.locator('.visit-map-stage [data-mascot-shape]').first().getAttribute('data-mascot-shape'))
       .toBe('scrap');
 
+    await openStudioPreview();
     await picker.selectOption('olu-spritesheet');
     await expect
-      .poll(async () => page.locator('.visit-mascot-preview-body [data-mascot-id]').first().getAttribute('data-mascot-id'))
+      .poll(async () => previewRoot.locator('.visit-mascot-preview-body [data-mascot-id]').first().getAttribute('data-mascot-id'))
       .toBe('olu-spritesheet');
+    await page.getByRole('button', { name: /^🧭 Visite$/ }).click();
     await expect
       .poll(async () => page.locator('.visit-map-stage [data-mascot-shape]').first().getAttribute('data-mascot-shape'))
       .toBe('olu');
 
+    await openStudioPreview();
     await picker.selectOption('tan-bird-spritesheet');
     await expect
-      .poll(async () => page.locator('.visit-mascot-preview-body [data-mascot-id]').first().getAttribute('data-mascot-id'))
+      .poll(async () => previewRoot.locator('.visit-mascot-preview-body [data-mascot-id]').first().getAttribute('data-mascot-id'))
       .toBe('tan-bird-spritesheet');
+    await page.getByRole('button', { name: /^🧭 Visite$/ }).click();
     await expect
       .poll(async () => page.locator('.visit-map-stage [data-mascot-shape]').first().getAttribute('data-mascot-shape'))
       .toBe('tanBird');
 
+    await openStudioPreview();
     await picker.selectOption('fox-backpack-spritesheet');
     await expect
-      .poll(async () => page.locator('.visit-mascot-preview-body [data-mascot-id]').first().getAttribute('data-mascot-id'))
+      .poll(async () => previewRoot.locator('.visit-mascot-preview-body [data-mascot-id]').first().getAttribute('data-mascot-id'))
       .toBe('fox-backpack-spritesheet');
+    await page.getByRole('button', { name: /^🧭 Visite$/ }).click();
     await expect
       .poll(async () => page.locator('.visit-map-stage [data-mascot-shape]').first().getAttribute('data-mascot-shape'))
       .toBe('backpackFox');
 
+    await openStudioPreview();
     await picker.selectOption('renard2-cut-spritesheet');
     await expect
-      .poll(async () => page.locator('.visit-mascot-preview-body [data-mascot-id]').first().getAttribute('data-mascot-id'))
+      .poll(async () => previewRoot.locator('.visit-mascot-preview-body [data-mascot-id]').first().getAttribute('data-mascot-id'))
       .toBe('renard2-cut-spritesheet');
+    await page.getByRole('button', { name: /^🧭 Visite$/ }).click();
     await expect
       .poll(async () => page.locator('.visit-map-stage [data-mascot-shape]').first().getAttribute('data-mascot-shape'))
       .toBe('backpackFox2');
+    await openStudioPreview();
     await expect
-      .poll(async () => page.locator('.visit-mascot-preview-body [data-renderer]').first().getAttribute('data-renderer'))
+      .poll(async () => previewRoot.locator('.visit-mascot-preview-body [data-renderer]').first().getAttribute('data-renderer'))
       .toBe('sprite-cut');
+    await page.getByRole('button', { name: /^🧭 Visite$/ }).click();
     await expect
       .poll(async () => page.locator('.visit-map-stage [data-renderer]').first().getAttribute('data-renderer'))
       .toBe('sprite-cut');
 
-    const preview = page.locator('.visit-mascot-preview-card');
-    await expect(preview.getByRole('button', { name: /Course/i })).toBeVisible();
-    await expect(preview.getByRole('button', { name: /Inspecte/i })).toBeVisible();
-    await expect(preview.getByRole('button', { name: /Lit la carte/i })).toBeVisible();
-    await expect(preview.getByRole('button', { name: /Célèbre/i })).toBeVisible();
+    await openStudioPreview();
+    await expect(previewRoot.getByRole('button', { name: /Course/i })).toBeVisible();
+    await expect(previewRoot.getByRole('button', { name: /Inspecte/i })).toBeVisible();
+    await expect(previewRoot.getByRole('button', { name: /Lit la carte/i })).toBeVisible();
+    await expect(previewRoot.getByRole('button', { name: /Célèbre/i })).toBeVisible();
 
-    await preview.getByRole('button', { name: /Course/i }).click();
+    await previewRoot.getByRole('button', { name: /Course/i }).click();
     await expect
-      .poll(async () => page.locator('.visit-mascot-preview-body [data-mascot-state]').first().getAttribute('data-mascot-state'))
+      .poll(async () => previewRoot.locator('.visit-mascot-preview-body [data-mascot-state]').first().getAttribute('data-mascot-state'))
       .toBe('running');
-    await preview.getByRole('button', { name: /Inspecte/i }).click();
+    await previewRoot.getByRole('button', { name: /Inspecte/i }).click();
     await expect
-      .poll(async () => page.locator('.visit-mascot-preview-body [data-mascot-state]').first().getAttribute('data-mascot-state'))
+      .poll(async () => previewRoot.locator('.visit-mascot-preview-body [data-mascot-state]').first().getAttribute('data-mascot-state'))
       .toBe('inspect');
   });
 });
 
 test.describe('pack mascotte serveur (GUI)', () => {
-  test('ouvre le gestionnaire depuis l’onglet Visite (prof)', async ({ page }) => {
+  test('ouvre le studio depuis l’onglet Packs mascotte (prof)', async ({ page }) => {
     await loginAsNewStudent(page);
     await dismissProfilePromotionModalIfPresent(page);
     await enableTeacherMode(page);
     await seedVisitMascotContent(page);
-    await page.getByRole('button', { name: /^🧭 Visite$/ }).click();
-    await expect(page.locator('.visit-view')).toBeVisible({ timeout: 30_000 });
-    await page.locator('details.visit-prof-tools summary').click();
-    await page.getByRole('button', { name: /Boîte à outils pack mascotte/i }).click();
+    await page.getByRole('button', { name: /Packs mascotte/i }).click();
     await expect(page.locator('.visit-mascot-pack-manager')).toBeVisible({ timeout: 20_000 });
-    await expect(page.getByRole('heading', { name: /Packs mascotte/i })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Packs mascotte (visite)' })).toBeVisible();
   });
 });

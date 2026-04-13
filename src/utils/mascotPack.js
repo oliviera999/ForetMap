@@ -1,9 +1,11 @@
 /**
- * Format « mascot pack » v1 : validation (Zod) et expansion vers `spriteCut` du catalogue visite.
+ * Format « mascot pack » v1 / v2 : validation (Zod) et expansion vers `spriteCut` du catalogue visite.
+ * v2 ajoute `interactionProfile` (comportements visite par pack).
  * @see docs/MASCOT_PACK.md
  */
 import { z } from 'zod';
 import { VISIT_MASCOT_STATE } from './visitMascotState.js';
+import { interactionProfileSchema } from './visitMascotInteractionEvents.js';
 
 const CANONICAL_STATE_KEYS = new Set(Object.values(VISIT_MASCOT_STATE));
 
@@ -31,12 +33,12 @@ const stateFrameSchemaV1 = z.object({
   }
 });
 
-export const mascotPackSchemaV1 = z.object({
-  mascotPackVersion: z.literal(1),
+/** Corps commun (sans superRefine) : le merge Zod ne propage pas toujours les refinements du 2e opérande. */
+const packBodyObjectSchema = z.object({
   id: z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/).max(64),
   label: z.string().min(1).max(120),
   renderer: z.literal('sprite_cut'),
-  framesBase: z.string().min(8).max(200),
+  framesBase: z.string().min(8).max(220),
   frameWidth: z.number().int().positive().max(2048),
   frameHeight: z.number().int().positive().max(2048),
   pixelated: z.boolean().optional(),
@@ -44,7 +46,9 @@ export const mascotPackSchemaV1 = z.object({
   fallbackSilhouette: z.string().min(1).max(40),
   stateAliases: z.record(z.string(), z.string()).optional(),
   stateFrames: z.record(z.string(), stateFrameSchemaV1),
-}).superRefine((data, ctx) => {
+});
+
+function refineMascotPackBody(data, ctx) {
   for (const key of Object.keys(data.stateFrames)) {
     if (!CANONICAL_STATE_KEYS.has(key)) {
       ctx.addIssue({
@@ -63,7 +67,21 @@ export const mascotPackSchemaV1 = z.object({
       }
     }
   }
-});
+}
+
+export const mascotPackSchemaV1 = z.object({
+  mascotPackVersion: z.literal(1),
+}).merge(packBodyObjectSchema).superRefine(refineMascotPackBody);
+
+export const mascotPackSchemaV2 = z.object({
+  mascotPackVersion: z.literal(2),
+  interactionProfile: interactionProfileSchema.optional(),
+}).merge(packBodyObjectSchema).superRefine(refineMascotPackBody);
+
+export const mascotPackSchemaUnion = z.discriminatedUnion('mascotPackVersion', [
+  mascotPackSchemaV1,
+  mascotPackSchemaV2,
+]);
 
 function normalizeFramesBase(base) {
   let b = String(base || '').trim();
@@ -71,20 +89,31 @@ function normalizeFramesBase(base) {
   return b;
 }
 
+/** Préfixe API autorisé pour la médiathèque sprites partagée par carte. */
+export function visitMascotSpriteLibraryAssetsPrefix(mapId) {
+  const mid = String(mapId || '').trim();
+  if (!mid || mid.length > 64) return null;
+  if (!/^[a-zA-Z0-9_-]+$/.test(mid)) return null;
+  return `/api/visit/mascot-sprite-library/${mid}/assets/`;
+}
+
 /**
  * @param {unknown} raw
  * @param {{
  *   relaxAssetPrefix?: boolean,
  *   allowedFramesBasePrefixes?: string[],
- * }} [opts] — `relaxAssetPrefix`: autorise tout préfixe `framesBase` (outil dev).
- * `allowedFramesBasePrefixes`: préfixes additionnels autorisés (ex. `/api/visit/mascot-packs/{uuid}/assets/`).
+ * }} [opts]
  */
-export function parseMascotPackV1(raw, opts = {}) {
+export function parseMascotPack(raw, opts = {}) {
   const relax = Boolean(opts.relaxAssetPrefix);
   const prefixList = Array.isArray(opts.allowedFramesBasePrefixes)
     ? opts.allowedFramesBasePrefixes.map((p) => normalizeFramesBase(String(p || ''))).filter(Boolean)
     : [];
-  const parsed = mascotPackSchemaV1.safeParse(raw);
+  let candidate = raw;
+  if (candidate && typeof candidate === 'object' && candidate.mascotPackVersion == null) {
+    candidate = { ...candidate, mascotPackVersion: 1 };
+  }
+  const parsed = mascotPackSchemaUnion.safeParse(candidate);
   if (!parsed.success) return parsed;
   const data = parsed.data;
   const base = normalizeFramesBase(data.framesBase);
@@ -106,7 +135,22 @@ export function parseMascotPackV1(raw, opts = {}) {
 }
 
 /**
- * @param {z.infer<typeof mascotPackSchemaV1> & { framesBase: string }} pack
+ * @deprecated Utiliser parseMascotPack (v1 et v2).
+ * @param {unknown} raw
+ * @param {{ relaxAssetPrefix?: boolean, allowedFramesBasePrefixes?: string[] }} [opts]
+ */
+export function parseMascotPackV1(raw, opts = {}) {
+  const fixed = raw && typeof raw === 'object' && raw.mascotPackVersion == null
+    ? { ...raw, mascotPackVersion: 1 }
+    : raw;
+  if (fixed && typeof fixed === 'object' && Number(fixed.mascotPackVersion) === 2) {
+    return parseMascotPack(fixed, opts);
+  }
+  return parseMascotPack(fixed, opts);
+}
+
+/**
+ * @param {z.infer<typeof mascotPackSchemaV1> & { framesBase: string } | z.infer<typeof mascotPackSchemaV2> & { framesBase: string }} pack
  */
 export function expandMascotPackToSpriteCut(pack) {
   const base = normalizeFramesBase(pack.framesBase);
@@ -144,9 +188,18 @@ export function expandMascotPackToSpriteCut(pack) {
  * @param {{ relaxAssetPrefix?: boolean, allowedFramesBasePrefixes?: string[] }} [opts]
  * @returns {{ ok: true, pack: object, spriteCut: ReturnType<typeof expandMascotPackToSpriteCut> } | { ok: false, error: z.ZodError }}
  */
-export function validateMascotPackV1(raw, opts = {}) {
-  const parsed = parseMascotPackV1(raw, opts);
+export function validateMascotPack(raw, opts = {}) {
+  const parsed = parseMascotPack(raw, opts);
   if (!parsed.success) return { ok: false, error: parsed.error };
   const spriteCut = expandMascotPackToSpriteCut(parsed.data);
   return { ok: true, pack: parsed.data, spriteCut };
+}
+
+/**
+ * Alias : accepte les packs v1 et v2.
+ * @param {unknown} raw
+ * @param {{ relaxAssetPrefix?: boolean, allowedFramesBasePrefixes?: string[] }} [opts]
+ */
+export function validateMascotPackV1(raw, opts = {}) {
+  return validateMascotPack(raw, opts);
 }

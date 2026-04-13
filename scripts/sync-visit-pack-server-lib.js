@@ -12,6 +12,7 @@ const outDir = path.join(root, 'lib', 'visit-pack');
 const files = [
   ['src/utils/mascotPack.js', 'mascotPack.js'],
   ['src/utils/visitMascotState.js', 'visitMascotState.js'],
+  ['src/utils/visitMascotInteractionEvents.js', 'visitMascotInteractionEvents.js'],
 ];
 
 function main() {

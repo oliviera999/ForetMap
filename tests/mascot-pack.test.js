@@ -96,6 +96,29 @@ test('allowedFramesBasePrefixes autorise une base API pack', async () => {
   assert.equal(r.ok, true);
 });
 
+test('validateMascotPack v2 + interactionProfile + bibliothèque API', async () => {
+  const { validateMascotPackV1, visitMascotSpriteLibraryAssetsPrefix } = await loadMascotPack();
+  const base = visitMascotSpriteLibraryAssetsPrefix('foret');
+  const r = validateMascotPackV1({
+    mascotPackVersion: 2,
+    id: 'pack-v2-lib',
+    label: 'V2',
+    renderer: 'sprite_cut',
+    framesBase: base,
+    frameWidth: 8,
+    frameHeight: 8,
+    fallbackSilhouette: 'gnome',
+    interactionProfile: {
+      mascotDragVeryLarge: { mode: 'transient', state: 'running', durationMs: 800 },
+    },
+    stateFrames: {
+      idle: { files: ['a.png'], fps: 2 },
+    },
+  }, { allowedFramesBasePrefixes: [base] });
+  assert.equal(r.ok, true);
+  assert.strictEqual(r.pack.mascotPackVersion, 2);
+});
+
 test('relaxAssetPrefix autorise framesBase hors /assets/', async () => {
   const { validateMascotPackV1 } = await loadMascotPack();
   const r = validateMascotPackV1({

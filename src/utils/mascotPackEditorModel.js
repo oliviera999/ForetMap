@@ -32,6 +32,17 @@ export function serverMascotPackAssetsPrefix(packUuid) {
 }
 
 /**
+ * Préfixe `framesBase` pour sprites partagés par carte (bibliothèque).
+ * @param {string} mapId
+ * @returns {string | null}
+ */
+export function serverMascotSpriteLibraryAssetsPrefix(mapId) {
+  const mid = String(mapId || '').trim();
+  if (!mid || mid.length > 64 || !/^[a-zA-Z0-9_-]+$/.test(mid)) return null;
+  return `/api/visit/mascot-sprite-library/${mid}/assets/`;
+}
+
+/**
  * Force `framesBase` vers le dossier API du pack (si uuid valide).
  * @param {Record<string, unknown>} pack
  * @param {string} packUuid

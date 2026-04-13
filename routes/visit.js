@@ -196,22 +196,11 @@ function listVisitMascotPackAssetFilenames(packId) {
 
 function buildDefaultVisitMascotPackJson(catalogId) {
   const slug = String(catalogId || '').trim().toLowerCase().replace(/[^a-z0-9-]/g, '-') || 'brouillon';
+  const base = buildRenard2CatalogPackTemplate(slug);
   return {
-    mascotPackVersion: 1,
+    ...base,
     id: slug,
     label: 'Nouveau pack (brouillon)',
-    renderer: 'sprite_cut',
-    framesBase: '/assets/mascots/renard2-cut/frames/',
-    frameWidth: 153,
-    frameHeight: 160,
-    pixelated: true,
-    displayScale: 1,
-    fallbackSilhouette: 'backpackFox2',
-    stateFrames: {
-      idle: { files: ['cell-r0-c0.png', 'cell-r0-c1.png', 'cell-r0-c2.png'], fps: 3 },
-      walking: { files: ['cell-r1-c0.png', 'cell-r1-c1.png', 'cell-r1-c2.png', 'cell-r1-c3.png', 'cell-r1-c4.png'], fps: 10 },
-      happy: { files: ['cell-r3-c3.png', 'cell-r3-c4.png', 'cell-r3-c5.png'], fps: 9 },
-    },
   };
 }
 
@@ -302,6 +291,121 @@ async function removeVisitMascotPackUploadDir(packId) {
   } catch (_) {
     /* dossier absent ou déjà supprimé */
   }
+}
+
+function visitMascotSpriteLibraryRelativeDir(mapId) {
+  const mid = String(mapId || '').trim();
+  if (!mid || mid.length > 64 || !/^[a-zA-Z0-9_-]+$/.test(mid)) return null;
+  return `visit_mascot_sprite_library/${mid}`;
+}
+
+function visitMascotSpriteLibraryAssetsApiPrefix(mapId) {
+  const mid = String(mapId || '').trim();
+  if (!visitMascotSpriteLibraryRelativeDir(mid)) return null;
+  return `/api/visit/mascot-sprite-library/${mid}/assets/`;
+}
+
+function mascotPackAllowedFramesPrefixesForMap(mapId, packUuid) {
+  const out = ['/assets/mascots/'];
+  const pPack = packUuid && /^[0-9a-f-]{36}$/i.test(String(packUuid))
+    ? `/api/visit/mascot-packs/${String(packUuid).trim()}/assets/`
+    : null;
+  if (pPack) out.push(pPack);
+  const pLib = visitMascotSpriteLibraryAssetsApiPrefix(mapId);
+  if (pLib) out.push(pLib);
+  return out;
+}
+
+function listVisitMascotSpriteLibraryFilenamesFromDisk(mapId) {
+  const relDir = visitMascotSpriteLibraryRelativeDir(mapId);
+  if (!relDir) return [];
+  const absDir = getAbsolutePath(relDir);
+  if (!fs.existsSync(absDir) || !fs.statSync(absDir).isDirectory()) return [];
+  const names = fs.readdirSync(absDir);
+  const out = [];
+  for (const raw of names) {
+    const safe = sanitizeMascotPackAssetFilename(raw);
+    if (!safe || safe !== raw) continue;
+    if (!/\.png$/i.test(safe)) continue;
+    const fp = path.join(absDir, safe);
+    try {
+      if (fs.statSync(fp).isFile()) out.push(safe);
+    } catch (_) {
+      /* ignore */
+    }
+  }
+  out.sort((a, b) => a.localeCompare(b, 'en'));
+  return out;
+}
+
+async function copyVisitMascotPackAssetDirectory(fromPackId, toPackId) {
+  const fromRel = visitMascotPackAssetRelativeDir(fromPackId);
+  const toRel = visitMascotPackAssetRelativeDir(toPackId);
+  if (!fromRel || !toRel) return;
+  const fromAbs = getAbsolutePath(fromRel);
+  const toAbs = getAbsolutePath(toRel);
+  if (!fs.existsSync(fromAbs)) return;
+  await fs.promises.mkdir(toAbs, { recursive: true });
+  const names = listVisitMascotPackAssetFilenames(fromPackId);
+  for (const name of names) {
+    await fs.promises.copyFile(path.join(fromAbs, name), path.join(toAbs, name));
+  }
+}
+
+function mapVisitMascotSpriteLibSqlError(err) {
+  if (!err) return null;
+  if (err.errno === 1146 || err.code === 'ER_NO_SUCH_TABLE') {
+    return {
+      status: 503,
+      body: {
+        error: 'Table MySQL `visit_mascot_sprite_library` absente : appliquer la migration `074_visit_mascot_sprite_library.sql` ou le schéma, puis redémarrer.',
+        code: 'visit_mascot_sprite_library_table_missing',
+      },
+    };
+  }
+  if (err.errno === 1452 || err.code === 'ER_NO_REFERENCED_ROW_2') {
+    return {
+      status: 400,
+      body: {
+        error: 'Référence invalide pour la bibliothèque sprites visite.',
+        code: 'visit_mascot_sprite_library_referential_integrity',
+      },
+    };
+  }
+  return null;
+}
+
+/** Template pack v2 aligné sur le catalogue statique `renard2-cut-spritesheet`. */
+function buildRenard2CatalogPackTemplate(newPackIdSlug) {
+  const slug = String(newPackIdSlug || '').trim().toLowerCase().replace(/[^a-z0-9-]/g, '-') || 'renard2-clone';
+  const framesBase = '/assets/mascots/renard2-cut/frames/';
+  return {
+    mascotPackVersion: 2,
+    id: slug,
+    label: 'Renard 2 (copie modèle)',
+    renderer: 'sprite_cut',
+    framesBase,
+    frameWidth: 153,
+    frameHeight: 160,
+    pixelated: true,
+    displayScale: 1,
+    fallbackSilhouette: 'backpackFox2',
+    stateFrames: {
+      idle: { files: ['cell-r0-c0.png', 'cell-r0-c1.png', 'cell-r0-c2.png'], fps: 3 },
+      walking: { files: ['cell-r1-c0.png', 'cell-r1-c1.png', 'cell-r1-c2.png', 'cell-r1-c3.png', 'cell-r1-c4.png'], fps: 10 },
+      running: { files: ['cell-r1-c0.png', 'cell-r1-c1.png', 'cell-r1-c2.png', 'cell-r1-c3.png', 'cell-r1-c4.png'], fps: 14 },
+      talk: { files: ['cell-r2-c0.png', 'cell-r2-c1.png', 'cell-r2-c2.png', 'cell-r2-c3.png'], fps: 8 },
+      inspect: { files: ['cell-r0-c2.png'], fps: 1 },
+      map_read: { files: ['cell-r0-c0.png'], fps: 1 },
+      surprise: { files: ['cell-r3-c0.png'], fps: 2 },
+      alert: { files: ['cell-r3-c0.png'], fps: 5 },
+      angry: { files: ['cell-r3-c0.png'], fps: 7 },
+      spin: { files: ['cell-r3-c1.png', 'cell-r3-c2.png'], fps: 10 },
+      happy: { files: ['cell-r3-c3.png', 'cell-r3-c4.png', 'cell-r3-c5.png'], fps: 9 },
+      happy_jump: { files: ['cell-r3-c3.png', 'cell-r3-c4.png', 'cell-r3-c5.png'], fps: 11 },
+      celebrate: { files: ['cell-r3-c3.png', 'cell-r3-c4.png', 'cell-r3-c5.png'], fps: 10 },
+    },
+  };
 }
 
 function parsePointsInput(points) {
@@ -657,15 +761,45 @@ router.post('/mascot-packs', requirePermission('visit.manage', { needsElevation:
     const mapId = String(req.body.map_id || '').trim();
     if (!mapId) return res.status(400).json({ error: 'map_id requis' });
     if (!(await mapExists(mapId))) return res.status(400).json({ error: 'Carte introuvable' });
+    const cloneFromPackId = String(req.body.clone_from_pack_id || '').trim();
+    const cloneFromCatalogId = String(req.body.clone_from_catalog_id || '').trim();
     const packUuid = uuidv4();
     const catalogId = `srv-${packUuid}`;
+    const prefixesForNew = mascotPackAllowedFramesPrefixesForMap(mapId, packUuid);
     let packObj = req.body.pack;
-    if (packObj == null) {
+    let sourcePackIdForCopy = null;
+
+    if (cloneFromPackId && /^[0-9a-f-]{36}$/i.test(cloneFromPackId)) {
+      const src = await queryOne(
+        'SELECT id, pack_json FROM visit_mascot_packs WHERE id = ? AND map_id = ? LIMIT 1',
+        [cloneFromPackId, mapId]
+      );
+      if (!src) return res.status(404).json({ error: 'Pack source introuvable sur cette carte' });
+      let parsed = {};
+      try {
+        parsed = JSON.parse(src.pack_json);
+      } catch (_) {
+        parsed = {};
+      }
+      const oldApiPrefix = `/api/visit/mascot-packs/${cloneFromPackId}/assets/`;
+      const newApiPrefix = `/api/visit/mascot-packs/${packUuid}/assets/`;
+      packObj = {
+        ...parsed,
+        mascotPackVersion: Number(parsed.mascotPackVersion) === 2 ? 2 : 2,
+        id: catalogId,
+      };
+      if (String(parsed.framesBase || '').startsWith(oldApiPrefix)) {
+        packObj = { ...packObj, framesBase: newApiPrefix };
+        sourcePackIdForCopy = cloneFromPackId;
+      }
+    } else if (cloneFromCatalogId === 'renard2-cut-spritesheet') {
+      packObj = buildRenard2CatalogPackTemplate(catalogId);
+    } else if (packObj == null) {
       packObj = buildDefaultVisitMascotPackJson(catalogId);
     }
-    const apiPrefix = `/api/visit/mascot-packs/${packUuid}/assets/`;
+
     const validated = await validateMascotPackForDb(packObj, {
-      allowedFramesBasePrefixes: ['/assets/mascots/', apiPrefix],
+      allowedFramesBasePrefixes: prefixesForNew,
     });
     if (validated.moduleError) {
       logRouteError(validated.moduleError, req, 'visit_mascot_packs: chargement mascotPack.js');
@@ -690,6 +824,9 @@ router.post('/mascot-packs', requirePermission('visit.manage', { needsElevation:
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [packUuid, mapId, catalogId, label, JSON.stringify(validated.pack), isPublished, now, now, createdBy]
     );
+    if (sourcePackIdForCopy) {
+      await copyVisitMascotPackAssetDirectory(sourcePackIdForCopy, packUuid);
+    }
     const row = await queryOne('SELECT * FROM visit_mascot_packs WHERE id = ? LIMIT 1', [packUuid]);
     res.status(201).json(serializeVisitMascotPackRow(row));
   } catch (err) {
@@ -720,9 +857,8 @@ router.put('/mascot-packs/:id', requirePermission('visit.manage', { needsElevati
       : Number(exists.is_published);
     let packJson = exists.pack_json;
     if (req.body.pack !== undefined) {
-      const apiPrefix = `/api/visit/mascot-packs/${packId}/assets/`;
       const validated = await validateMascotPackForDb(req.body.pack, {
-        allowedFramesBasePrefixes: ['/assets/mascots/', apiPrefix],
+        allowedFramesBasePrefixes: mascotPackAllowedFramesPrefixesForMap(mapId, packId),
       });
       if (validated.moduleError) {
         logRouteError(validated.moduleError, req, 'visit_mascot_packs: chargement mascotPack.js');
@@ -847,6 +983,152 @@ router.delete(
     } catch (err) {
       logRouteError(err, req);
       const mapped = mapVisitMascotPackSqlError(err);
+      if (mapped) return jsonVisitMascotPackError(res, req, mapped.status, mapped.body);
+      res.status(500).json({ error: 'Erreur serveur', requestId: req.requestId || null });
+    }
+  },
+);
+
+/** PNG bibliothèque sprites (public si la ligne existe — utilisé par les packs publiés). */
+router.get(
+  '/mascot-sprite-library/:mapId/assets/:filename',
+  async (req, res) => {
+    try {
+      const mapId = String(req.params.mapId || '').trim();
+      const filename = sanitizeMascotPackAssetFilename(req.params.filename);
+      if (!visitMascotSpriteLibraryRelativeDir(mapId) || !filename) {
+        return res.status(400).json({ error: 'Paramètres invalides' });
+      }
+      if (!(await mapExists(mapId))) return res.status(404).json({ error: 'Carte introuvable' });
+      const row = await queryOne(
+        'SELECT id FROM visit_mascot_sprite_library WHERE map_id = ? AND filename = ? LIMIT 1',
+        [mapId, filename]
+      );
+      if (!row) return res.status(404).json({ error: 'Fichier introuvable' });
+      const rel = `${visitMascotSpriteLibraryRelativeDir(mapId)}/${filename}`;
+      const abs = getAbsolutePath(rel);
+      if (!fs.existsSync(abs)) return res.status(404).json({ error: 'Fichier introuvable' });
+      return res.type('image/png').sendFile(abs, (err) => {
+        if (err && !res.headersSent) res.status(404).json({ error: 'Fichier introuvable' });
+      });
+    } catch (err) {
+      logRouteError(err, req);
+      const mapped = mapVisitMascotSpriteLibSqlError(err);
+      if (mapped) return jsonVisitMascotPackError(res, req, mapped.status, mapped.body);
+      return res.status(500).json({ error: 'Erreur serveur', requestId: req.requestId || null });
+    }
+  },
+);
+
+router.get(
+  '/mascot-sprite-library/:mapId/assets',
+  requirePermission('visit.manage', { needsElevation: true }),
+  async (req, res) => {
+    try {
+      const mapId = String(req.params.mapId || '').trim();
+      if (!visitMascotSpriteLibraryRelativeDir(mapId)) {
+        return res.status(400).json({ error: 'map_id invalide' });
+      }
+      if (!(await mapExists(mapId))) return res.status(400).json({ error: 'Carte introuvable' });
+      const rows = await queryAll(
+        `SELECT id, filename, created_at
+         FROM visit_mascot_sprite_library
+         WHERE map_id = ?
+         ORDER BY filename ASC`,
+        [mapId]
+      );
+      const assets = (rows || []).map((r) => ({
+        id: r.id,
+        filename: r.filename,
+        url: `/api/visit/mascot-sprite-library/${mapId}/assets/${encodeURIComponent(r.filename)}`,
+        created_at: r.created_at,
+      }));
+      res.json({ map_id: mapId, assets });
+    } catch (err) {
+      logRouteError(err, req);
+      const mapped = mapVisitMascotSpriteLibSqlError(err);
+      if (mapped) return jsonVisitMascotPackError(res, req, mapped.status, mapped.body);
+      res.status(500).json({ error: 'Erreur serveur', requestId: req.requestId || null });
+    }
+  },
+);
+
+router.post(
+  '/mascot-sprite-library/:mapId/assets',
+  requirePermission('visit.manage', { needsElevation: true }),
+  async (req, res) => {
+    try {
+      const mapId = String(req.params.mapId || '').trim();
+      if (!visitMascotSpriteLibraryRelativeDir(mapId)) {
+        return res.status(400).json({ error: 'map_id invalide' });
+      }
+      if (!(await mapExists(mapId))) return res.status(400).json({ error: 'Carte introuvable' });
+      const filename = sanitizeMascotPackAssetFilename(req.body.filename);
+      const imageDataRaw = req.body.image_data;
+      const imageData = imageDataRaw !== undefined && imageDataRaw !== null ? String(imageDataRaw).trim() : '';
+      if (!filename || !imageData) {
+        return res.status(400).json({ error: 'filename et image_data requis' });
+      }
+      const relDir = visitMascotSpriteLibraryRelativeDir(mapId);
+      const rel = `${relDir}/${filename}`;
+      try {
+        saveBase64ToDisk(rel, imageData);
+      } catch (fileErr) {
+        logRouteError(fileErr, req);
+        return res.status(400).json({ error: 'Image invalide ou trop volumineuse' });
+      }
+      const now = nowIso();
+      const createdBy = await resolveVisitMascotPackCreatedBy(req.auth);
+      const existing = await queryOne(
+        'SELECT id FROM visit_mascot_sprite_library WHERE map_id = ? AND filename = ? LIMIT 1',
+        [mapId, filename]
+      );
+      if (existing) {
+        await execute(
+          'UPDATE visit_mascot_sprite_library SET created_at = ?, created_by = ? WHERE id = ?',
+          [now, createdBy, existing.id]
+        );
+      } else {
+        const rowId = uuidv4();
+        await execute(
+          `INSERT INTO visit_mascot_sprite_library (id, map_id, filename, created_at, created_by)
+           VALUES (?, ?, ?, ?, ?)`,
+          [rowId, mapId, filename, now, createdBy]
+        );
+      }
+      const publicUrl = `/api/visit/mascot-sprite-library/${mapId}/assets/${encodeURIComponent(filename)}`;
+      res.status(201).json({ ok: true, url: publicUrl, filename });
+    } catch (err) {
+      logRouteError(err, req);
+      const mapped = mapVisitMascotSpriteLibSqlError(err);
+      if (mapped) return jsonVisitMascotPackError(res, req, mapped.status, mapped.body);
+      res.status(500).json({ error: 'Erreur serveur', requestId: req.requestId || null });
+    }
+  },
+);
+
+router.delete(
+  '/mascot-sprite-library/:mapId/assets/:filename',
+  requirePermission('visit.manage', { needsElevation: true }),
+  async (req, res) => {
+    try {
+      const mapId = String(req.params.mapId || '').trim();
+      const filename = sanitizeMascotPackAssetFilename(req.params.filename);
+      if (!visitMascotSpriteLibraryRelativeDir(mapId) || !filename) {
+        return res.status(400).json({ error: 'Paramètres invalides' });
+      }
+      const row = await queryOne(
+        'SELECT id FROM visit_mascot_sprite_library WHERE map_id = ? AND filename = ? LIMIT 1',
+        [mapId, filename]
+      );
+      if (!row) return res.status(404).json({ error: 'Entrée introuvable' });
+      const rel = `${visitMascotSpriteLibraryRelativeDir(mapId)}/${filename}`;
+      deleteFile(rel);
+      await execute('DELETE FROM visit_mascot_sprite_library WHERE id = ?', [row.id]);
+      res.json({ ok: true });
+    } catch (err) {
+      logRouteError(err, req);
+      const mapped = mapVisitMascotSpriteLibSqlError(err);
       if (mapped) return jsonVisitMascotPackError(res, req, mapped.status, mapped.body);
       res.status(500).json({ error: 'Erreur serveur', requestId: req.requestId || null });
     }

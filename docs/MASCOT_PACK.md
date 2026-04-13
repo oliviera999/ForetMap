@@ -1,16 +1,25 @@
-# Mascotte visite — format « mascot pack » v1 (`sprite_cut`)
+# Mascotte visite — format « mascot pack » v1 / v2 (`sprite_cut`)
 
-Ce document décrit le JSON **mascot pack** version **1** : une source de vérité pour définir une mascotte **`renderer: sprite_cut`** (images PNG par frame, sans atlas obligatoire), validable en CI et alignée sur le catalogue [`src/utils/visitMascotCatalog.js`](../src/utils/visitMascotCatalog.js) et le moteur [`VisitMapMascotSpriteCut.jsx`](../src/components/VisitMapMascotSpriteCut.jsx).
+Ce document décrit le JSON **mascot pack** versions **1** et **2** : source de vérité pour une mascotte **`renderer: sprite_cut`** (images PNG par frame), alignée sur le catalogue [`src/utils/visitMascotCatalog.js`](../src/utils/visitMascotCatalog.js) et le moteur [`VisitMapMascotSpriteCut.jsx`](../src/components/VisitMapMascotSpriteCut.jsx).
 
-## Champs racine
+## Version 2 — champs supplémentaires
 
 | Champ | Type | Description |
 |--------|------|-------------|
-| `mascotPackVersion` | `1` | Version du schéma. |
+| `mascotPackVersion` | `2` | Active le profil d’interaction ci-dessous. |
+| `interactionProfile` | objet (optionnel) | Clés stables listées dans [`visitMascotInteractionEvents.js`](../src/utils/visitMascotInteractionEvents.js) ; chaque valeur : `{ mode: 'none' \| 'happy' \| 'transient', state?: état canonique, durationMs?: nombre }` (pour `transient`, `state` requis). Absence d’entrée = **comportement par défaut** (équivalent historique ForetMap). |
+
+**Bibliothèque sprites** : `framesBase` peut aussi être `/api/visit/mascot-sprite-library/{mapId}/assets/` (PNG partagés par carte, voir **`docs/API.md`**).
+
+## Champs racine (v1 et v2)
+
+| Champ | Type | Description |
+|--------|------|-------------|
+| `mascotPackVersion` | `1` ou `2` | Version du schéma. |
 | `id` | string | Identifiant catalogue (`kebab-case`, lettres minuscules et chiffres). |
 | `label` | string | Libellé affiché dans le sélecteur prof. |
 | `renderer` | `"sprite_cut"` | Seule valeur supportée par ce format. |
-| `framesBase` | string | URL-prefix des frames, ex. `/assets/mascots/mon-id/frames/` (slash final recommandé) **ou**, pour les packs stockés serveur avec upload, `/api/visit/mascot-packs/{uuid}/assets/` (même `uuid` que la ligne BDD). |
+| `framesBase` | string | URL-prefix des frames, ex. `/assets/mascots/mon-id/frames/` (slash final recommandé) **ou** `/api/visit/mascot-packs/{uuid}/assets/` **ou** `/api/visit/mascot-sprite-library/{mapId}/assets/`. |
 | `frameWidth` | entier | Largeur logique d’une cellule (px). |
 | `frameHeight` | entier | Hauteur logique (px). |
 | `pixelated` | booléen (optionnel) | Défaut `true` : rendu pixelated. |
@@ -59,14 +68,14 @@ Puis importer ce manifeste dans le catalogue et appeler `expandMascotPackToSprit
 
 ### Option B — stockage serveur (MySQL + GUI prof)
 
-1. **Onglet prof « Packs mascotte »** (barre du haut) ou **Visite** : **« Boîte à outils pack mascotte »** (modale) / **« Ouvrir dans l’onglet Packs mascotte »** — panneau **Packs mascotte** : liste, brouillon, **éditeur visuel (WYSIWYG)**, onglet JSON/export, enregistrement, publication (API **`visit.manage`** + élévation PIN).
+1. **Onglet prof « Packs mascotte »** (barre du haut) : studio — liste, brouillon, duplication (pack ou modèle Renard 2), fiche comportements, **éditeur visuel (WYSIWYG)**, JSON, **bibliothèque sprites** par carte, **profil d’interaction** (v2), **aperçu mascotte**, publication (API **`visit.manage`** + élévation PIN). L’onglet **Visite** propose un lien vers ce studio.
 2. Les packs **publiés** sont renvoyés dans **`GET /api/visit/content`** (`mascot_packs`) et fusionnés au sélecteur mascotte pour cette carte (identifiant runtime = **`catalog_id`**, préfixe `srv-…`).
 3. Médiathèque : **`GET /api/visit/mascot-packs/:id/assets`** (liste des PNG), **`POST …/assets`**, **`DELETE …/assets/:filename`** ; `framesBase` = **`/api/visit/mascot-packs/{id}/assets/`** — voir **`docs/API.md`**.
 
 ## Outil graphique (dev)
 
 - **Page autonome** : avec **`npm run dev:client`**, ouvrir **`/mascot-pack-tool.html`** (onglets **Éditeur visuel** / **JSON / export**, validation, prévisualisation). Les URLs **`blob:`** en **`srcs`** sont possibles avec l’assouplissement `relaxAssetPrefix`. Voir [`docs/LOCAL_DEV.md`](LOCAL_DEV.md).
-- **Modale Visite (prof)** : bouton **« Boîte à outils pack mascotte »** — `VisitMascotPackManager.jsx` + **`MascotPackWysiwygEditor.jsx`** (fichiers : `mascotPackEditorModel.js`, `MascotPackPreviewPanel.jsx`).
+- **Studio** : `VisitMascotPackManager.jsx` + **`MascotPackWysiwygEditor.jsx`** (`mascotPackEditorModel.js`, `MascotPackPreviewPanel.jsx`).
 
 ## Rive et spritesheet classique
 
