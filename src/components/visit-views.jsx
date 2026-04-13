@@ -2025,7 +2025,6 @@ function VisitView({
               {showVisitDetailsBlock && (
                 <details className="visit-details">
                   <summary>{selected.visit_details_title || 'Détails'}</summary>
-                  {visitDetailsTextTrim ? <p>{selected.visit_details_text}</p> : null}
                   {(restVisitPhotos.length > 0 || mapExtraPhotos.length > 0) && (
                     <div className="visit-media-gallery visit-media-gallery--details-extra">
                       {restVisitPhotos.map((m) => (
@@ -2040,6 +2039,7 @@ function VisitView({
                       ))}
                     </div>
                   )}
+                  {visitDetailsTextTrim ? <p className="visit-details__body">{selected.visit_details_text}</p> : null}
                 </details>
               )}
               <button className="btn btn-primary btn-sm" disabled={savingSeen} onClick={onToggleSeen}>
