@@ -1878,7 +1878,11 @@ function VisitView({
           >
             <div
               className="visit-map-world"
-              style={{ transform: `translate(${mapTransform.x}px, ${mapTransform.y}px) scale(${mapTransform.s})` }}
+              style={{
+                transform: `translate(${mapTransform.x}px, ${mapTransform.y}px) scale(${mapTransform.s})`,
+                /* Repères HTML : contre-échelle pour composer les emojis en px écran (évite le flou sous transform). */
+                '--visit-map-scale': String(Math.max(Number(mapTransform.s) || 1, 0.001)),
+              }}
             >
               <div
                 className="visit-map-fit-layer"
@@ -1956,7 +1960,6 @@ function VisitView({
                                 textAnchor="middle"
                                 dominantBaseline="middle"
                                 fontSize={emojiU}
-                                fontFamily="Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif"
                                 className="visit-zone-label visit-zone-label--emoji"
                               >
                                 {zoneEmoji}
