@@ -28,6 +28,12 @@ import { wheelZoomScaleFactor } from '../utils/mapWheelZoom';
 import VisitMapMascotRenderer from './VisitMapMascotRenderer.jsx';
 
 const VisitMascotPackManagerLazy = lazy(() => import('./VisitMascotPackManager.jsx'));
+
+/** Diagramme circulaire de progression visite (viewBox carré, cercle centré). */
+const VISIT_PROGRESS_DONUT_VB = 40;
+const VISIT_PROGRESS_DONUT_R = 14;
+const VISIT_PROGRESS_DONUT_STROKE = 3;
+const VISIT_PROGRESS_DONUT_C = 2 * Math.PI * VISIT_PROGRESS_DONUT_R;
 import { buildVisitMascotCatalogExtrasFromContent } from '../utils/visitMascotPackExtras.js';
 import { VISIT_MASCOT_STATE, pickMascotDialog } from '../utils/visitMascotState.js';
 import { loadVisitMascotPositionPct, saveVisitMascotPositionPct } from '../utils/visitMascotPositionPersistence.js';
@@ -806,7 +812,6 @@ function VisitView({
     return 'visit-mascot-preview-body--motion-idle';
   }, [visitMascotPreviewState]);
 
-  const visitProgressLabelId = useId();
   const visitDetailPanelTitleId = useId();
   const VISIT_IMMERSION_LS_KEY = 'foretmap_visit_immersion';
   const VISIT_TEACHER_PREVIEW_LS_KEY = 'foretmap_visit_teacher_preview_student';
@@ -1798,31 +1803,47 @@ function VisitView({
                 </div>
               )}
               {visitCartographyProgress.total > 0 ? (
-                <div className="visit-progress visit-progress--compact">
-                  <div className="visit-progress-head visit-progress-head--compact">
-                    <span id={visitProgressLabelId} className="visit-progress-label">
-                      Vus :{' '}
-                      <strong>
-                        {visitCartographyProgress.seenCount} / {visitCartographyProgress.total}
-                      </strong>
-                      <span className="visit-progress-hint"> (zones et repères)</span>
-                    </span>
-                    <span className="visit-progress-pct" aria-hidden="true">
-                      {visitCartographyProgress.pct} %
-                    </span>
-                  </div>
+                <div className="visit-progress visit-progress--donut">
                   <div
-                    className="visit-progress-track"
+                    className="visit-progress-donut"
                     role="progressbar"
                     aria-valuemin={0}
-                    aria-valuemax={visitCartographyProgress.total}
-                    aria-valuenow={visitCartographyProgress.seenCount}
-                    aria-labelledby={visitProgressLabelId}
+                    aria-valuemax={100}
+                    aria-valuenow={visitCartographyProgress.pct}
+                    aria-label={`Parcours sur la carte : ${visitCartographyProgress.pct} % des zones et repères marqués comme vus (${visitCartographyProgress.seenCount} sur ${visitCartographyProgress.total}).`}
+                    title={`${visitCartographyProgress.pct} % — ${visitCartographyProgress.seenCount} / ${visitCartographyProgress.total} vus`}
+                    data-testid="visit-progress-donut"
                   >
-                    <div
-                      className="visit-progress-fill"
-                      style={{ width: `${visitCartographyProgress.pct}%` }}
-                    />
+                    <svg
+                      className="visit-progress-donut__svg"
+                      viewBox={`0 0 ${VISIT_PROGRESS_DONUT_VB} ${VISIT_PROGRESS_DONUT_VB}`}
+                      aria-hidden="true"
+                    >
+                      <circle
+                        className="visit-progress-donut__track"
+                        fill="none"
+                        strokeWidth={VISIT_PROGRESS_DONUT_STROKE}
+                        cx={VISIT_PROGRESS_DONUT_VB / 2}
+                        cy={VISIT_PROGRESS_DONUT_VB / 2}
+                        r={VISIT_PROGRESS_DONUT_R}
+                      />
+                      <circle
+                        className="visit-progress-donut__arc"
+                        fill="none"
+                        strokeWidth={VISIT_PROGRESS_DONUT_STROKE}
+                        strokeLinecap="round"
+                        cx={VISIT_PROGRESS_DONUT_VB / 2}
+                        cy={VISIT_PROGRESS_DONUT_VB / 2}
+                        r={VISIT_PROGRESS_DONUT_R}
+                        transform={`rotate(-90 ${VISIT_PROGRESS_DONUT_VB / 2} ${VISIT_PROGRESS_DONUT_VB / 2})`}
+                        strokeDasharray={VISIT_PROGRESS_DONUT_C}
+                        strokeDashoffset={VISIT_PROGRESS_DONUT_C * (1 - visitCartographyProgress.pct / 100)}
+                      />
+                    </svg>
+                    <span className="visit-progress-donut__label" aria-hidden="true">
+                      <span className="visit-progress-donut__value">{visitCartographyProgress.pct}</span>
+                      <span className="visit-progress-donut__pct-sign">%</span>
+                    </span>
                   </div>
                 </div>
               ) : (
