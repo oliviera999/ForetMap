@@ -28,7 +28,8 @@ module.exports = defineConfig({
   webServer: process.env.CI ? undefined : {
     // start:e2e = node server.js --foretmap-e2e-no-rate-limit (bypass fiable du rate limit, y compris sous Windows).
     command: 'npm run db:init && npm run start:e2e',
-    env: { ...process.env, E2E_DISABLE_RATE_LIMIT: '1' },
+    /* Sert `dist/` (SPA) comme en prod : sans cela `server.js` utilise `public/` + deploy-help. */
+    env: { ...process.env, E2E_DISABLE_RATE_LIMIT: '1', NODE_ENV: 'production' },
     url: `${baseURL}/api/health`,
     // Après changement backend, un vieux Node sur le port sert un code périmé ; ne pas réutiliser par défaut.
     reuseExistingServer: process.env.E2E_REUSE_SERVER === '1',

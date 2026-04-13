@@ -2134,3 +2134,72 @@ test('visit mascot packs : CRUD prof + présence dans content si publié', async
   const afterDel = await request(app).get('/api/visit/content?map_id=foret').expect(200);
   assert.ok(!afterDel.body.mascot_packs.some((p) => p.catalog_id === catalogId));
 });
+
+const VISIT_LIB_TINY_PNG_B64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO5qXg8AAAAASUVORK5CYII=';
+
+test('visit : bibliothèque sprites + clone catalogue + clone pack (assets)', async () => {
+  const token = await getAdminAuthToken();
+  const libName = `lib-api-${Date.now()}.png`;
+  await request(app)
+    .post('/api/visit/mascot-sprite-library/foret/assets')
+    .set('Authorization', `Bearer ${token}`)
+    .send({ filename: libName, image_data: VISIT_LIB_TINY_PNG_B64 })
+    .expect(201);
+
+  const libList = await request(app)
+    .get('/api/visit/mascot-sprite-library/foret/assets')
+    .set('Authorization', `Bearer ${token}`)
+    .expect(200);
+  assert.ok(Array.isArray(libList.body.assets));
+  assert.ok(libList.body.assets.some((a) => a.filename === libName));
+
+  await request(app)
+    .get(`/api/visit/mascot-sprite-library/foret/assets/${encodeURIComponent(libName)}`)
+    .expect(200);
+
+  const fromCat = await request(app)
+    .post('/api/visit/mascot-packs')
+    .set('Authorization', `Bearer ${token}`)
+    .send({ map_id: 'foret', is_published: 0, clone_from_catalog_id: 'renard2-cut-spritesheet' })
+    .expect(201);
+  assert.strictEqual(Number(fromCat.body.pack.mascotPackVersion), 2);
+  const catPackId = fromCat.body.id;
+
+  await request(app)
+    .post(`/api/visit/mascot-packs/${catPackId}/assets`)
+    .set('Authorization', `Bearer ${token}`)
+    .send({ filename: 'clone-src.png', image_data: VISIT_LIB_TINY_PNG_B64 })
+    .expect(201);
+
+  const fb = `/api/visit/mascot-packs/${catPackId}/assets/`;
+  const slimPack = {
+    ...fromCat.body.pack,
+    framesBase: fb,
+    stateFrames: { idle: { files: ['clone-src.png'], fps: 4 } },
+  };
+  await request(app)
+    .put(`/api/visit/mascot-packs/${catPackId}`)
+    .set('Authorization', `Bearer ${token}`)
+    .send({ map_id: 'foret', label: 'clone source api', pack: slimPack, is_published: 0 })
+    .expect(200);
+
+  const cloned = await request(app)
+    .post('/api/visit/mascot-packs')
+    .set('Authorization', `Bearer ${token}`)
+    .send({ map_id: 'foret', is_published: 0, clone_from_pack_id: catPackId })
+    .expect(201);
+  const cloneId = cloned.body.id;
+  assert.notStrictEqual(cloneId, catPackId);
+  const cloneAssets = await request(app)
+    .get(`/api/visit/mascot-packs/${cloneId}/assets`)
+    .set('Authorization', `Bearer ${token}`)
+    .expect(200);
+  assert.ok(cloneAssets.body.assets.some((a) => a.filename === 'clone-src.png'));
+
+  await request(app).delete(`/api/visit/mascot-packs/${cloneId}`).set('Authorization', `Bearer ${token}`).expect(200);
+  await request(app).delete(`/api/visit/mascot-packs/${catPackId}`).set('Authorization', `Bearer ${token}`).expect(200);
+  await request(app)
+    .delete(`/api/visit/mascot-sprite-library/foret/assets/${encodeURIComponent(libName)}`)
+    .set('Authorization', `Bearer ${token}`)
+    .expect(200);
+});

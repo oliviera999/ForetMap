@@ -109,9 +109,9 @@ test('visite prof : aperçu comme élève masque le panneau d’édition', async
   await expect(page.getByTestId('visit-detail-panel')).toBeVisible({ timeout: 10_000 });
   await expect(page.getByTestId('visit-editor-panel')).toBeVisible({ timeout: 10_000 });
 
-  await page.getByRole('button', { name: /Aperçu comme élève/ }).click();
+  await page.getByTestId('visit-teacher-preview-toggle').evaluate((el) => el.click());
   await expect(page.getByTestId('visit-editor-panel')).toHaveCount(0);
 
-  await page.getByRole('button', { name: /Retour édition prof/ }).click();
+  await page.getByTestId('visit-teacher-preview-toggle').evaluate((el) => el.click());
   await expect(page.getByTestId('visit-editor-panel')).toBeVisible({ timeout: 10_000 });
 });

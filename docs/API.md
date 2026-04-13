@@ -311,7 +311,11 @@ Contenus éditables du site (micro-CMS texte brut) :
 |--------|-----|------|-------------|
 | GET | `/api/visit/content?map_id=foret` | non | Contenus publics de visite (zones, repères, médias du plan, tutoriels actifs **pour ce plan**) ; inclut **`mascot_packs`** : packs `sprite_cut` **publiés** pour cette carte (`{ catalog_id, label, pack }` chacun — voir **`docs/MASCOT_PACK.md`**) |
 | GET | `/api/visit/mascot-packs?map_id=foret` | oui | Liste tous les packs mascotte (brouillons + publiés) pour la carte — **`visit.manage`** + élévation PIN |
-| POST | `/api/visit/mascot-packs` | oui | Créer un pack : `{ map_id, pack?, label?, is_published? }` — sans `pack`, modèle brouillon Renard 2 (`/assets/mascots/renard2-cut/frames/`) |
+| POST | `/api/visit/mascot-packs` | oui | Créer un pack : `{ map_id, pack?, label?, is_published?, clone_from_pack_id?, clone_from_catalog_id? }` — sans `pack` ni clone : brouillon **v2** complet (Renard 2 sous `/assets/mascots/renard2-cut/frames/`). **`clone_from_pack_id`** (UUID, même `map_id`) : copie JSON + fichiers uploadés vers un nouveau pack. **`clone_from_catalog_id`** : seul `renard2-cut-spritesheet` (modèle catalogue statique). |
+| GET | `/api/visit/mascot-sprite-library/:mapId/assets` | oui | Liste PNG partagés par carte — **`visit.manage`** + élévation |
+| GET | `/api/visit/mascot-sprite-library/:mapId/assets/:filename` | non | Image PNG si une ligne bibliothèque existe pour ce couple (`map_id`, `filename`) |
+| POST | `/api/visit/mascot-sprite-library/:mapId/assets` | oui | Upload PNG : `{ filename, image_data }` — **`uploads/visit_mascot_sprite_library/{map_id}/`** ; le pack peut utiliser **`framesBase`** = `/api/visit/mascot-sprite-library/{mapId}/assets/` |
+| DELETE | `/api/visit/mascot-sprite-library/:mapId/assets/:filename` | oui | Supprime l’entrée et le fichier |
 | PUT | `/api/visit/mascot-packs/:id` | oui | Mettre à jour `label`, `pack`, `is_published` (corps : `map_id` requis, identique à la ligne) |
 | DELETE | `/api/visit/mascot-packs/:id` | oui | Supprime le pack et le dossier **`uploads/visit_mascot_packs/{id}/`** |
 | GET | `/api/visit/mascot-packs/:id/assets` | oui | Liste les PNG uploadés du pack : `{ pack_id, assets: [{ filename, url }] }` — **`visit.manage`** + élévation PIN |
@@ -337,7 +341,7 @@ Contenus éditables du site (micro-CMS texte brut) :
 | POST | `/api/visit/sync` | oui | Import sélectif bidirectionnel (`{ map_id, direction: "map_to_visit" \| "visit_to_map", zone_ids, marker_ids }`) |
 | POST | `/api/visit/rebuild-from-map` | oui | Réaligner **toute** la visite du plan sur la carte : corps `{ map_id? }` (défaut `foret`). Supprime puis recrée les lignes **`visit_zones`** et **`visit_markers`** pour ce `map_id` à partir de **`zones`** / **`map_markers`** ; pour chaque **id** encore présent sur la carte, **réinjecte** sous-titre, textes de détails, `is_active`, `sort_order`, `created_at` et **conserve** les lignes **`visit_media`** (cibles inchangées). Retire médias + progression pour les cibles visite **sans** équivalent carte. Réponse : `{ ok, map_id, removed: { zones, markers }, imported: { zones, markers } }`. |
 
-**Packs mascotte (validation serveur)** : les **POST** / **PUT** sur `/api/visit/mascot-packs` chargent `validateMascotPackV1` depuis **`lib/visit-pack/`** (copie de `src/utils`, générée par **`npm run build`** ou **`npm run sync:visit-pack-lib`**). Sans ce dossier sur l’artefact, **503** avec `code: mascot_pack_module_unavailable`.
+**Packs mascotte (validation serveur)** : les **POST** / **PUT** sur `/api/visit/mascot-packs` chargent la validation Zod (v1 et v2) depuis **`lib/visit-pack/`** (`mascotPack.js`, `visitMascotState.js`, `visitMascotInteractionEvents.js`, générés par **`npm run build`** ou **`npm run sync:visit-pack-lib`**). Sans ce dossier sur l’artefact, **503** avec `code: mascot_pack_module_unavailable`.
 
 Contraintes importantes :
 
