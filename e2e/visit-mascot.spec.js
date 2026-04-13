@@ -289,6 +289,7 @@ test.describe('pack mascotte serveur (GUI)', () => {
     await seedVisitMascotContent(page);
     await page.getByRole('button', { name: /^🧭 Visite$/ }).click();
     await expect(page.locator('.visit-view')).toBeVisible({ timeout: 30_000 });
+    await page.locator('details.visit-prof-tools summary').click();
     await page.getByRole('button', { name: /Boîte à outils pack mascotte/i }).click();
     await expect(page.locator('.visit-mascot-pack-manager')).toBeVisible({ timeout: 20_000 });
     await expect(page.getByRole('heading', { name: /Packs mascotte/i })).toBeVisible();

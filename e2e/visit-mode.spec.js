@@ -1,5 +1,5 @@
 const { test, expect } = require('@playwright/test');
-const { loginAsNewStudent } = require('./fixtures/auth.fixture');
+const { loginAsNewStudent, enableTeacherMode } = require('./fixtures/auth.fixture');
 
 test('visite publique : accès sans compte puis retour connexion', async ({ page }) => {
   await page.goto('/');
@@ -60,4 +60,58 @@ test('visite connectée : mascotte visible si au moins une zone ou un repère su
     await expect(stage.locator('.visit-map-mascot')).toBeAttached({ timeout: 15_000 });
     await expect(stage.locator('.visit-map-mascot-inner')).toBeVisible({ timeout: 15_000 });
   }
+});
+
+test('visite connectée : clic sur une zone ouvre le panneau détail', async ({ page }) => {
+  await loginAsNewStudent(page);
+  await page.getByRole('button', { name: /^🧭 Visite$/ }).click();
+  await expect(page.locator('.visit-view')).toBeVisible({ timeout: 30_000 });
+
+  const stage = page.locator('.visit-map-stage');
+  await expect(stage.locator('img.visit-map-img')).toBeVisible({ timeout: 15_000 });
+  const zoneHit = stage.locator('.visit-zone-hit').first();
+  if ((await zoneHit.count()) === 0) {
+    test.skip();
+    return;
+  }
+  const poly = zoneHit.locator('polygon').first();
+  if (await poly.count()) {
+    await poly.click({ force: true, timeout: 10_000 });
+  } else {
+    await zoneHit.click({ force: true, timeout: 10_000 });
+  }
+  const panel = page.getByTestId('visit-detail-panel');
+  await expect(panel).toBeVisible({ timeout: 10_000 });
+  await expect(panel).toHaveAttribute('role', 'dialog');
+  await panel.getByRole('button', { name: 'Fermer' }).click();
+  await expect(panel).toHaveCount(0);
+});
+
+test('visite prof : aperçu comme élève masque le panneau d’édition', async ({ page }) => {
+  await loginAsNewStudent(page);
+  await enableTeacherMode(page);
+  await page.getByRole('button', { name: /^🧭 Visite$/ }).click();
+  await expect(page.locator('.visit-view')).toBeVisible({ timeout: 30_000 });
+
+  const stage = page.locator('.visit-map-stage');
+  await expect(stage.locator('img.visit-map-img')).toBeVisible({ timeout: 15_000 });
+  const zoneHit = stage.locator('.visit-zone-hit').first();
+  if ((await zoneHit.count()) === 0) {
+    test.skip();
+    return;
+  }
+  const poly = zoneHit.locator('polygon').first();
+  if (await poly.count()) {
+    await poly.click({ force: true, timeout: 10_000 });
+  } else {
+    await zoneHit.click({ force: true, timeout: 10_000 });
+  }
+  await expect(page.getByTestId('visit-detail-panel')).toBeVisible({ timeout: 10_000 });
+  await expect(page.getByTestId('visit-editor-panel')).toBeVisible({ timeout: 10_000 });
+
+  await page.getByRole('button', { name: /Aperçu comme élève/ }).click();
+  await expect(page.getByTestId('visit-editor-panel')).toHaveCount(0);
+
+  await page.getByRole('button', { name: /Retour édition prof/ }).click();
+  await expect(page.getByTestId('visit-editor-panel')).toBeVisible({ timeout: 10_000 });
 });

@@ -3009,6 +3009,220 @@
       transition:width .28s ease;
     }
     .visit-progress-empty { margin:0; }
+    .visit-progress--compact {
+      padding:6px 8px;
+      gap:6px;
+      margin:0;
+      border-radius:10px;
+    }
+    .visit-progress-head--compact {
+      flex-wrap:nowrap;
+      gap:8px;
+    }
+    .visit-progress-head--compact .visit-progress-label {
+      font-size:.78rem;
+    }
+    .visit-progress-head--compact .visit-progress-hint {
+      display:none;
+    }
+    .visit-progress-empty--inline {
+      margin:0;
+      font-size:.8rem;
+      padding:2px 0;
+    }
+    .visit-map-card__chrome {
+      display:flex;
+      flex-wrap:wrap;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:10px 14px;
+      padding-bottom:8px;
+      margin-bottom:2px;
+      border-bottom:1px solid rgba(82,183,136,.15);
+    }
+    .visit-map-card__chrome-main {
+      flex:1 1 220px;
+      min-width:0;
+      display:grid;
+      gap:8px;
+    }
+    .visit-map-card__title {
+      margin:0;
+      font-size:clamp(1.05rem, 1rem + .5vw, 1.35rem);
+    }
+    .visit-map-card__about {
+      max-width:52rem;
+    }
+    .visit-map-card__about-summary {
+      cursor:pointer;
+      font-size:.82rem;
+      font-weight:700;
+      color:var(--forest);
+    }
+    .visit-map-card__about-text {
+      margin:6px 0 0;
+    }
+    .visit-map-switch--embedded {
+      width:100%;
+    }
+    .visit-map-card__chrome-actions {
+      display:flex;
+      flex-wrap:wrap;
+      align-items:center;
+      gap:6px;
+      justify-content:flex-end;
+      flex:0 0 auto;
+    }
+    .visit-map-empty-hint {
+      margin:8px 0 0;
+      text-align:center;
+      color:#5b655f;
+      font-size:.88rem;
+    }
+    .visit-detail-backdrop {
+      position:fixed;
+      inset:0;
+      z-index:210;
+      margin:0;
+      padding:0;
+      border:none;
+      background:rgba(26,71,49,.28);
+      cursor:pointer;
+    }
+    .visit-detail-panel {
+      position:fixed;
+      z-index:220;
+      right:0;
+      top:0;
+      bottom:0;
+      width:min(100%, 420px);
+      max-height:100dvh;
+      background:var(--surface-1);
+      border-left:1px solid var(--outline-soft);
+      box-shadow:-12px 0 32px rgba(0,0,0,.12);
+      display:flex;
+      flex-direction:column;
+      padding:0;
+      overscroll-behavior:contain;
+    }
+    @media (prefers-reduced-motion: no-preference) {
+      .visit-detail-panel {
+        animation:visitDetailSlideIn .22s ease-out;
+      }
+    }
+    @keyframes visitDetailSlideIn {
+      from { transform:translateX(12px); opacity:.92; }
+      to { transform:translateX(0); opacity:1; }
+    }
+    .visit-detail-panel__handle {
+      display:none;
+      height:5px;
+      width:44px;
+      border-radius:999px;
+      background:rgba(0,0,0,.18);
+      margin:8px auto 4px;
+      flex-shrink:0;
+    }
+    .visit-detail-panel__head {
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:10px;
+      padding:12px 14px 8px;
+      border-bottom:1px solid var(--outline-soft);
+      flex-shrink:0;
+    }
+    .visit-detail-panel__title {
+      margin:0;
+      font-size:1.05rem;
+      line-height:1.25;
+      color:var(--forest);
+      flex:1;
+      min-width:0;
+      overflow-wrap:anywhere;
+    }
+    .visit-detail-panel__body {
+      overflow:auto;
+      padding:12px 14px 18px;
+      flex:1;
+      min-height:0;
+    }
+    @media (max-width:860px) {
+      .visit-detail-panel {
+        top:auto;
+        left:0;
+        right:0;
+        bottom:0;
+        width:100%;
+        max-height:62dvh;
+        border-left:none;
+        border-top:1px solid var(--outline-soft);
+        border-radius:16px 16px 0 0;
+        box-shadow:0 -8px 32px rgba(0,0,0,.16);
+      }
+      .visit-detail-panel__handle {
+        display:block;
+      }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .visit-detail-panel {
+        animation:none !important;
+      }
+    }
+    .visit-tutorials-disclosure {
+      background:var(--surface-1);
+      border:1px solid var(--outline-soft);
+      border-radius:14px;
+      padding:10px 12px;
+      box-shadow:var(--shadow-soft);
+    }
+    .visit-tutorials-disclosure__summary {
+      cursor:pointer;
+      font-weight:700;
+      color:var(--forest);
+    }
+    .visit-tutorials-disclosure__body {
+      margin-top:10px;
+    }
+    .visit-tutorials--in-disclosure {
+      padding:0;
+      border:none;
+      box-shadow:none;
+      background:transparent;
+    }
+    .visit-prof-tools {
+      margin-top:12px;
+      background:var(--surface-1);
+      border:1px solid var(--outline-soft);
+      border-radius:14px;
+      padding:10px 12px;
+      box-shadow:var(--shadow-soft);
+    }
+    .visit-prof-tools__summary {
+      cursor:pointer;
+      font-weight:700;
+      color:var(--forest);
+    }
+    .visit-prof-tools__body {
+      margin-top:12px;
+      display:grid;
+      gap:12px;
+    }
+    .visit-view--map-forward .visit-map-card {
+      display:flex;
+      flex-direction:column;
+      min-height:0;
+    }
+    .visit-view--map-forward .visit-map-stage {
+      min-height:min(58dvh, 720px);
+      aspect-ratio:unset;
+    }
+    .visit-view--immersion .visit-map-stage {
+      min-height:min(72dvh, 880px);
+    }
+    .visit-prof-tools .visit-mascot-preview-card {
+      margin-bottom:0;
+    }
     .visit-sync-card {
       background:var(--surface-1); border:1px solid var(--outline-soft); border-radius:14px;
       box-shadow:var(--shadow-soft); padding:12px; display:grid; gap:10px;
@@ -3038,7 +3252,12 @@
       display:flex; flex-wrap:wrap; gap:8px; align-items:center;
     }
     .visit-grid {
-      display:grid; grid-template-columns:1.35fr 1fr; gap:12px;
+      display:grid;
+      grid-template-columns:1fr;
+      gap:12px;
+    }
+    .visit-grid.visit-grid--map-forward {
+      grid-template-columns:1fr;
     }
     .visit-mascot-preview-card {
       margin-bottom:12px;
@@ -3128,7 +3347,7 @@
       }
     }
     @media (max-width:860px) {
-      .visit-grid { grid-template-columns:1fr; }
+      .visit-grid { grid-template-columns:minmax(0, 1fr); }
     }
     .visit-map-card {
       background:var(--surface-1); border-radius:14px; border:1px solid var(--outline-soft);
@@ -3762,15 +3981,14 @@
         gap:14px;
         min-height:0;
       }
-      .visit-view.visit-view--guest-public .visit-header-row,
-      .visit-view.visit-view--guest-public .visit-map-switch,
-      .visit-view.visit-view--guest-public .visit-tutorials {
+      .visit-view.visit-view--guest-public .visit-tutorials,
+      .visit-view.visit-view--guest-public .visit-tutorials-disclosure {
         flex:0 0 auto;
       }
       .visit-view.visit-view--guest-public .visit-grid {
         flex:1 1 auto;
         min-height:0;
-        grid-template-columns:minmax(0, 2.25fr) minmax(280px, 400px);
+        grid-template-columns:minmax(0, 1fr);
         gap:16px;
         align-items:stretch;
       }
