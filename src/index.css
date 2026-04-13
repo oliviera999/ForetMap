@@ -3717,7 +3717,8 @@
       min-height:100px;
       object-fit:contain;
     }
-    .visit-details .visit-media-gallery--details-extra { margin-top:10px; }
+    .visit-details .visit-media-gallery--details-extra { margin:0 0 10px; }
+    .visit-details .visit-details__body { margin-top:0; }
     .visit-editor {
       margin-top:12px; background:#f0fdf4; border:1px dashed var(--sage);
       border-radius:10px; padding:10px;
