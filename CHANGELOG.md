@@ -6,6 +6,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 ## [Non publié]
 
 ### Modifié
+- **Visite — emojis du plan** : les repères (HTML) appliquent une **contre-échelle** par rapport au zoom du calque (`scale(1/s)` via `--visit-map-scale`) pour composer les glyphes en pixels écran et limiter le flou ; les emojis des **zones** (SVG) utilisent la pile **`ForetMapColorEmoji`** / `text-rendering: geometricPrecision`. **`visit-views.jsx`**, **`index.css`**.
 - **Carte — édition des sommets de zone** : poignées moins opaques (anneau léger + croix + point au sommet exact), zone de saisie élargie pour le tactile ; même principe visuel pour les points du tracé **nouvelle zone**. **`map-views.jsx`**.
 - **Carte — édition des sommets** : la croix (viseur) n’apparaît qu’au **survol** souris ou pendant le **glisser** (tactile). **`map-views.jsx`**, **`index.css`**.
 - **Visite — mise en page centrée carte** : barre d’en-tête fusionnée dans le bandeau au-dessus du plan (titre, présentation repliable, cartes, progression compacte, aide, retour invité, **Plein plan** persistant, prof : **Aperçu comme élève**) ; carte pleine largeur avec hauteur renforcée ; détails lieu en **panneau latéral** (desktop) / **feuille bas** (mobile) avec **Échap**, bouton **Fermer** et fond assombri en mode navigation ; outils prof (plan, sync, mascotte) regroupés sous les tutoriels dans un **`<details>`** ; en mode **Plein plan**, tutoriels dans un **`<details>`**. **`visit-views.jsx`**, **`index.css`**, e2e **`visit-mode.spec.js`**.

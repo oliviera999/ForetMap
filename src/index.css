@@ -3408,6 +3408,10 @@
       pointer-events:none;
       user-select:none;
     }
+    .visit-zone-label--emoji {
+      font-family:var(--font-emoji-stack);
+      text-rendering:geometricPrecision;
+    }
     .visit-zone-poly {
       fill:rgba(22,163,74,.18);
       stroke:rgba(26,71,49,.52);
@@ -3426,7 +3430,9 @@
       filter:drop-shadow(0 0 4px rgba(22,163,74,.35));
     }
     .visit-marker-btn {
-      position:absolute; transform:translate(-50%,-50%);
+      position:absolute;
+      transform:translate(-50%,-50%) scale(calc(1 / var(--visit-map-scale, 1)));
+      transform-origin:center;
       z-index:14;
       min-width:44px; min-height:44px; padding:2px;
       border:none; border-radius:0;
