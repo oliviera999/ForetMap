@@ -1781,6 +1781,12 @@ function App() {
                   publicSettings={publicSettings}
                   canParticipateContextComments={canParticipateContextComments}
                   onOpenMascotPackStudioTab={openMascotPackStudioTab}
+                  mapZones={zones}
+                  mapMarkers={markers}
+                  tasks={tasks}
+                  catalogTutorials={tutorials}
+                  plants={plants}
+                  onOpenPlantCatalogPreview={openPlantCatalogPreviewById}
                 />
               )}
               {publicSettings?.modules?.visit_enabled !== false && tab === 'mascot_packs' && (
@@ -1905,7 +1911,24 @@ function App() {
                 {publicSettings?.modules?.tutorials_enabled !== false && tab === 'tuto' && <TutorialsView tutorials={tutorials} zones={zones} markers={markers} maps={visibleMaps} activeMapId={activeMapId} isTeacher={false} onRefresh={fetchAll} onForceLogout={forceLogout} publicSettings={publicSettings} canParticipateContextComments={canParticipateContextComments} />}
                 {tab === 'stats' && canViewGeneralStats && <TeacherStats isN3Affiliated={isN3Affiliated} />}
                 {publicSettings?.modules?.observations_enabled !== false && tab === 'notebook' && <ObservationNotebook student={studentForUi} zones={zones} onForceLogout={forceLogout} />}
-                {publicSettings?.modules?.visit_enabled !== false && tab === 'visit' && <VisitView student={studentForUi} isTeacher={false} availableTutorials={tutorials} initialMapId={activeMapId} onForceLogout={forceLogout} isN3Affiliated={isN3Affiliated} publicSettings={publicSettings} canParticipateContextComments={canParticipateContextComments} />}
+                {publicSettings?.modules?.visit_enabled !== false && tab === 'visit' && (
+                  <VisitView
+                    student={studentForUi}
+                    isTeacher={false}
+                    availableTutorials={tutorials}
+                    initialMapId={activeMapId}
+                    onForceLogout={forceLogout}
+                    isN3Affiliated={isN3Affiliated}
+                    publicSettings={publicSettings}
+                    canParticipateContextComments={canParticipateContextComments}
+                    mapZones={zones}
+                    mapMarkers={markers}
+                    tasks={tasks}
+                    catalogTutorials={tutorials}
+                    plants={plants}
+                    onOpenPlantCatalogPreview={openPlantCatalogPreviewById}
+                  />
+                )}
                 {tab === 'forum' && canAccessForum && <ForumView authClaims={authClaims} canParticipateForum={canParticipateForum} />}
                 {tab === 'about' && <AboutView appVersion={appVersion} isN3Affiliated={isN3Affiliated} publicSettings={publicSettings} isTeacher={false} />}
               </>

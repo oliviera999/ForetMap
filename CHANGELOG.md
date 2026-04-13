@@ -5,6 +5,9 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Ajouté
+- **Visite — panneau lieu** : après le bloc **Détails**, cadres repliables **Biodiversité** et **Tuto** (même logique que la fiche Info zone/repère en mode carte : espèces sur le lieu, espèces des missions, tutoriels liés au lieu ou aux tâches, aperçu **Consulter**). Données carte / tâches / catalogue passées depuis **`App.jsx`** ; utilitaires partagés **`src/utils/mapLocationContext.js`** (importés par **`map-views.jsx`**) ; tests **`tests/map-location-context.test.js`**.
+
 ### Modifié
 - **Visite — bloc Détails** : les photos supplémentaires (**`visit_media`** restants + **`map_extra_photos`**) s’affichent **en tête** du corps déplié, **avant** le texte `visit_details_text` (puis le paragraphe). **`visit-views.jsx`**, **`index.css`**, **`docs/API.md`**.
 - **Photos carte / visite (perf)** : URLs **`/uploads/zones/...`** et **`/uploads/markers/...`** dans les listes API et **`GET /api/visit/content`** ; **`GET .../photos/:pid/data`** renvoie **`302`** vers le statique quand le chemin est public ; vignettes **`*.thumb.jpg`** (génération **`sharp`** à l’upload, champ **`thumb_url`**) ; en-têtes **`Cache-Control`** sur **`/uploads`** et `sendFile` de secours ; UI (**`map-views`**, **`visit-views`**, **`tasks-views`**, héro biodiversité) : **`loading` / `decoding` / `fetchPriority`** ; dépendance **`sharp`** ; script **`post-deploy-check`** suit les redirections image.
