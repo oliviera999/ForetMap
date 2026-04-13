@@ -981,6 +981,20 @@
     .history-item { display:flex; justify-content:space-between; font-size:.82rem; padding:6px 0; border-bottom:1px solid var(--mint); color:#555; }
     .edit-zone { background:#f0fdf4; border-radius:12px; padding:14px; border:1.5px dashed var(--sage); margin-top:12px; }
 
+    /* Sommets zone : croix (viseur) masquée par défaut ; survol souris ou glissement (tactile). */
+    .edit-pt-cross {
+      opacity: 0;
+      transition: opacity 0.12s ease;
+    }
+    .edit-pt.edit-pt--dragging .edit-pt-cross {
+      opacity: 1;
+    }
+    @media (hover: hover) and (pointer: fine) {
+      .edit-pt:hover .edit-pt-cross {
+        opacity: 1;
+      }
+    }
+
     /* ── TASK CARDS ── */
     .tasks-section {
       margin-bottom:24px;

@@ -3352,7 +3352,7 @@ function MapView({ zones, markers, tasks = [], tutorials = [], plants, maps = []
           return (
             <g
               key={i}
-              className="edit-pt"
+              className={`edit-pt${dragging ? ' edit-pt--dragging' : ''}`}
               style={{ cursor: 'grab', touchAction: 'none' }}
               onPointerDown={(e) => {
                 e.stopPropagation();
@@ -3384,7 +3384,7 @@ function MapView({ zones, markers, tasks = [], tutorials = [], plants, maps = []
                 strokeWidth={dragging ? 2.4 * inv : 1.6 * inv}
                 style={{ pointerEvents: 'none' }}
               />
-              <g style={{ pointerEvents: 'none' }}>
+              <g className="edit-pt-cross" style={{ pointerEvents: 'none' }}>
                 <line
                   x1={p.cx - crossHalf}
                   y1={p.cy}
