@@ -16,6 +16,7 @@ const logger = require('./lib/logger');
 const { runRecurringTaskSpawnJob } = require('./lib/recurringTasks');
 const { initRealtime, shutdownRealtime } = require('./lib/realtime');
 const { getRuntimeProcessSnapshot } = require('./lib/runtimeDiagnostics');
+const { getMascotPackLibProbe } = require('./lib/mascotPackValidatorResolve');
 const { getVisitMascotHintSnapshot } = require('./lib/visitMascotDiagnostics');
 const { tailLogLines, getBufferedLineCount, getMaxLines } = require('./lib/logBuffer');
 const { checkCriticalAdminAccount } = require('./lib/rbac');
@@ -395,6 +396,8 @@ app.get('/api/admin/diagnostics', async (req, res) => {
     runtimeProcess: getRuntimeProcessSnapshot(),
     /** Par carte : volumes alignés sur GET /api/visit/content (mascotte si au moins un compteur public > 0). */
     visitMascotHint,
+    /** Présence des fichiers `lib/visit-pack/*` (validation POST/PUT packs) — voir docs/EXPLOITATION.md si `libMirrorOk` est false. */
+    mascotPackLibProbe: getMascotPackLibProbe(),
   });
 });
 
