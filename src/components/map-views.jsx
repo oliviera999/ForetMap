@@ -3310,7 +3310,12 @@ function MapView({ zones, markers, tasks = [], tutorials = [], plants, maps = []
     if (mode !== 'edit-points' || !editPoints.length) return null;
     const wp = editPoints.map(toWorld);
     const str = wp.map(p => `${p.cx},${p.cy}`).join(' ');
-    const r = Math.max(5, 8 * inv);
+    /** Anneau léger + croix : voir le sol sous le sommet ; disque invisible pour le doigt. */
+    const rHit = Math.max(22, 14 * inv);
+    const rVis = Math.max(4, 5.5 * inv);
+    const crossHalf = Math.max(9, 11 * inv);
+    const crossStroke = Math.max(1, 1.2 * inv);
+    const centerR = Math.max(1.4, 1.7 * inv);
     return (
       <g>
         <polygon
@@ -3342,21 +3347,73 @@ function MapView({ zones, markers, tasks = [], tutorials = [], plants, maps = []
           onPointerCancel={endEditZoneTranslate}
           onLostPointerCapture={() => { editZoneTranslateLastRef.current = null; }}
         />
-        {wp.map((p, i) => (
-          <circle key={i} className="edit-pt" cx={p.cx} cy={p.cy} r={r}
-            fill={draggingPtIdx === i ? '#1a4731' : 'white'} stroke="#1a4731" strokeWidth={2 * inv}
-            style={{ cursor: 'grab', touchAction: 'none' }}
-            onPointerDown={e => { e.stopPropagation(); setDraggingPtIdx(i); e.currentTarget.setPointerCapture(e.pointerId); }}
-            onPointerMove={e => { if (draggingPtIdx === i) { const p2 = toImagePct(e.clientX, e.clientY); if (p2) setEditPoints((pts) => pts.map((pt, j) => (j === i ? clampEditZonePct(p2) : pt))); } }}
-            onPointerUp={(e) => {
-              e.stopPropagation();
-              scheduleRecordEditHistory();
-              setDraggingPtIdx(-1);
-              if (e.currentTarget.hasPointerCapture?.(e.pointerId)) {
-                try { e.currentTarget.releasePointerCapture(e.pointerId); } catch (_) {}
-              }
-            }} />
-        ))}
+        {wp.map((p, i) => {
+          const dragging = draggingPtIdx === i;
+          return (
+            <g
+              key={i}
+              className="edit-pt"
+              style={{ cursor: 'grab', touchAction: 'none' }}
+              onPointerDown={(e) => {
+                e.stopPropagation();
+                setDraggingPtIdx(i);
+                try { e.currentTarget.setPointerCapture(e.pointerId); } catch (_) {}
+              }}
+              onPointerMove={(e) => {
+                if (draggingPtIdx === i) {
+                  const p2 = toImagePct(e.clientX, e.clientY);
+                  if (p2) setEditPoints((pts) => pts.map((pt, j) => (j === i ? clampEditZonePct(p2) : pt)));
+                }
+              }}
+              onPointerUp={(e) => {
+                e.stopPropagation();
+                scheduleRecordEditHistory();
+                setDraggingPtIdx(-1);
+                if (e.currentTarget.hasPointerCapture?.(e.pointerId)) {
+                  try { e.currentTarget.releasePointerCapture(e.pointerId); } catch (_) {}
+                }
+              }}
+            >
+              <circle cx={p.cx} cy={p.cy} r={rHit} fill="transparent" />
+              <circle
+                cx={p.cx}
+                cy={p.cy}
+                r={rVis}
+                fill={dragging ? 'rgba(26,71,49,0.38)' : 'rgba(255,255,255,0.18)'}
+                stroke="#1a4731"
+                strokeWidth={dragging ? 2.4 * inv : 1.6 * inv}
+                style={{ pointerEvents: 'none' }}
+              />
+              <g style={{ pointerEvents: 'none' }}>
+                <line
+                  x1={p.cx - crossHalf}
+                  y1={p.cy}
+                  x2={p.cx + crossHalf}
+                  y2={p.cy}
+                  stroke="rgba(26,71,49,0.88)"
+                  strokeWidth={crossStroke}
+                  strokeLinecap="round"
+                />
+                <line
+                  x1={p.cx}
+                  y1={p.cy - crossHalf}
+                  x2={p.cx}
+                  y2={p.cy + crossHalf}
+                  stroke="rgba(26,71,49,0.88)"
+                  strokeWidth={crossStroke}
+                  strokeLinecap="round"
+                />
+              </g>
+              <circle
+                cx={p.cx}
+                cy={p.cy}
+                r={centerR}
+                fill={dragging ? '#1a4731' : 'rgba(26,71,49,0.82)'}
+                style={{ pointerEvents: 'none' }}
+              />
+            </g>
+          );
+        })}
       </g>
     );
   };
@@ -3365,11 +3422,44 @@ function MapView({ zones, markers, tasks = [], tutorials = [], plants, maps = []
     if (!drawPoints.length) return null;
     const wp = drawPoints.map(toWorld);
     const str = wp.map(p => `${p.cx},${p.cy}`).join(' ');
-    const r = Math.max(4, 6 * inv);
+    const rVis = Math.max(3.5, 5 * inv);
+    const crossHalf = Math.max(7, 9 * inv);
+    const crossStroke = Math.max(1, 1.1 * inv);
+    const centerR = Math.max(1.2, 1.5 * inv);
     return (
       <g>
         {drawPoints.length > 1 && <polyline points={str} fill="none" stroke="#52b788" strokeWidth={2 * inv} strokeDasharray={`${6 * inv},${3 * inv}`} />}
-        {wp.map((p, i) => <circle key={i} cx={p.cx} cy={p.cy} r={r} fill="#1a4731" stroke="white" strokeWidth={1.5 * inv} />)}
+        {wp.map((p, i) => (
+          <g key={i} style={{ pointerEvents: 'none' }}>
+            <circle
+              cx={p.cx}
+              cy={p.cy}
+              r={rVis}
+              fill="rgba(26,71,49,0.2)"
+              stroke="rgba(26,71,49,0.9)"
+              strokeWidth={1.5 * inv}
+            />
+            <line
+              x1={p.cx - crossHalf}
+              y1={p.cy}
+              x2={p.cx + crossHalf}
+              y2={p.cy}
+              stroke="rgba(26,71,49,0.85)"
+              strokeWidth={crossStroke}
+              strokeLinecap="round"
+            />
+            <line
+              x1={p.cx}
+              y1={p.cy - crossHalf}
+              x2={p.cx}
+              y2={p.cy + crossHalf}
+              stroke="rgba(26,71,49,0.85)"
+              strokeWidth={crossStroke}
+              strokeLinecap="round"
+            />
+            <circle cx={p.cx} cy={p.cy} r={centerR} fill="rgba(26,71,49,0.88)" />
+          </g>
+        ))}
       </g>
     );
   };
