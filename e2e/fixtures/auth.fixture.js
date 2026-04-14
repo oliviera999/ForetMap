@@ -20,7 +20,7 @@ async function loginAsNewStudent(page) {
   // Inscription = profil visiteur ; la 1re connexion identifiant/mot de passe promeut en n3beur novice (droits tâches).
   await logoutToAuth(page);
   await page.goto('/');
-  await loginByIdentifier(page, email, password);
+  await loginByIdentifier(page, email, password, { waitForStudentRegister: true });
   return { firstName, lastName, password, pseudo: '', email };
 }
 
@@ -64,11 +64,19 @@ async function dismissProfilePromotionModalIfPresent(page) {
   }
 }
 
-async function loginByIdentifier(page, identifier, password) {
+async function loginByIdentifier(page, identifier, password, opts = {}) {
+  const waitForStudentRegister = !!opts.waitForStudentRegister;
+  const registerDone = waitForStudentRegister
+    ? page.waitForResponse(
+        (r) => r.url().includes('/api/students/register') && r.request().method() === 'POST',
+        { timeout: 90_000 },
+      )
+    : null;
   await page.getByLabel('Identifiant (pseudo ou email)').fill(identifier);
   await page.getByLabel('Mot de passe').fill(password);
   await page.getByRole('button', { name: 'Se connecter 🌱' }).click();
   await page.getByRole('button', { name: /Déconnexion/ }).waitFor({ state: 'visible', timeout: 60_000 });
+  if (registerDone) await registerDone.catch(() => {});
   await dismissProfilePromotionModalIfPresent(page);
 }
 
@@ -81,11 +89,54 @@ async function enableTeacherMode(page, pin = process.env.E2E_ELEVATION_PIN || pr
   // « Recentrer la carte » contient la sous-chaîne « Entrer » : cibler la modale PIN + exact.
   const elevateDone = page.waitForResponse(
     (r) => r.url().includes('/api/auth/elevate') && r.request().method() === 'POST',
-    { timeout: 60_000 },
+    { timeout: 90_000 },
   );
   await page.locator('.pin-card').getByRole('button', { name: 'Entrer', exact: true }).click();
-  await elevateDone;
-  await page.getByRole('button', { name: 'Désactiver les droits étendus' }).waitFor({ state: 'visible', timeout: 60_000 });
+  const elevateResp = await elevateDone;
+  if (!elevateResp.ok()) {
+    const snippet = await elevateResp.text().catch(() => '');
+    throw new Error(
+      `Élévation PIN refusée (HTTP ${elevateResp.status()}). Vérifier E2E_ELEVATION_PIN / TEACHER_PIN et le PIN du rôle en BDD. ${snippet.slice(0, 240)}`,
+    );
+  }
+  /* La modale PIN se ferme dans le même tick que `setAuthClaims` : attendre le retrait du DOM évite une course avec le bouton « Désactiver ». */
+  await page.locator('.pin-card').waitFor({ state: 'detached', timeout: 30_000 }).catch(() => {});
+  await dismissProfilePromotionModalIfPresent(page);
+  /* Attendre le JWT élevé dans le stockage (race validateStudentSession / merge auth). */
+  await page.waitForFunction(
+    () => {
+      try {
+        const pick = () => {
+          try {
+            const raw = localStorage.getItem('foretmap_session');
+            if (raw) {
+              const p = JSON.parse(raw);
+              if (typeof p?.token === 'string' && p.token.split('.').length >= 2) return p.token;
+            }
+          } catch (_) {
+            /* ignore */
+          }
+          return localStorage.getItem('foretmap_auth_token') || localStorage.getItem('foretmap_teacher_token');
+        };
+        const t = pick();
+        if (!t || String(t).split('.').length < 2) return false;
+        const b64 = String(t).split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+        const pad = '='.repeat((4 - (b64.length % 4)) % 4);
+        const json = JSON.parse(atob(b64 + pad));
+        return (
+          json.elevated === true
+          && Array.isArray(json.permissions)
+          && json.permissions.includes('teacher.access')
+        );
+      } catch (_) {
+        return false;
+      }
+    },
+    null,
+    { timeout: 90_000 },
+  );
+  /* Le libellé accessible peut être retardé ; le bouton cadenas reçoit `active` dès que `authClaims.elevated` est vrai. */
+  await page.locator('header button.lock-btn.active').waitFor({ state: 'visible', timeout: 45_000 });
   await dismissProfilePromotionModalIfPresent(page);
 }
 
@@ -197,6 +248,10 @@ async function clickTeacherNewTask(page) {
   await btn.waitFor({ state: 'attached', timeout: 25_000 });
   await btn.evaluate((el) => {
     el.click();
+  });
+  await page.getByRole('dialog', { name: /Nouvelle tâche|Dupliquer la tâche|Modifier la tâche|Proposer une tâche/ }).waitFor({
+    state: 'visible',
+    timeout: 35_000,
   });
 }
 

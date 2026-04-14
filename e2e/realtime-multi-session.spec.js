@@ -10,7 +10,7 @@ const {
 
 test('temps réel: création prof visible côté élève sans reload manuel', async ({ browser, page }) => {
   /* Deux sessions + Socket.IO : en tête de suite le run peut dépasser 2 min (cold start + double login). */
-  test.setTimeout(180_000);
+  test.setTimeout(300_000);
   const taskTitle = `E2E TempsReel ${Date.now()}`;
 
   // Session élève (client récepteur temps réel)
@@ -29,7 +29,9 @@ test('temps réel: création prof visible côté élève sans reload manuel', as
   await clickTeacherNewTask(page);
   await dismissProfilePromotionModalIfPresent(page);
   await page.getByPlaceholder('Ex: Arroser les tomates').fill(taskTitle);
-  await page.getByRole('button', { name: 'Créer la tâche' }).click({ force: true });
+  const submitCreate = page.getByRole('button', { name: 'Créer la tâche' });
+  await submitCreate.scrollIntoViewIfNeeded();
+  await submitCreate.click({ timeout: 60_000 });
 
   const studentTaskCard = studentPage.locator('.task-card', { hasText: taskTitle }).first();
   await expect(studentTaskCard).toBeVisible({ timeout: 15000 });
