@@ -12,6 +12,8 @@ const { app } = require('../server');
 const authRouter = require('../routes/auth');
 const { initSchema, execute, queryOne } = require('../database');
 const { setSetting } = require('../lib/settings');
+const jwt = require('jsonwebtoken');
+const { JWT_SECRET } = require('../middleware/requireTeacher');
 
 before(async () => {
   process.env.SMTP_JSON_TRANSPORT = 'true';
@@ -343,5 +345,33 @@ describe('Auth', () => {
       .send({ identifier: teacherEmail, password: newPassword })
       .expect(200);
     assert.ok(login.body.authToken);
+  });
+
+  it('POST /api/auth/elevate : JWT élève élevé contient teacher.access', async () => {
+    const u = `ElevJwt${Date.now()}`;
+    const reg = await request(app)
+      .post('/api/auth/register')
+      .send({
+        firstName: u,
+        lastName: 'Jwt',
+        password: '1234',
+        pseudo: `pjwt_${Date.now()}`,
+        email: `pjwt_${Date.now()}@example.com`,
+        description: 'test',
+        affiliation: 'both',
+      })
+      .expect(201);
+    const baseToken = reg.body.authToken;
+    assert.ok(baseToken);
+    const el = await request(app)
+      .post('/api/auth/elevate')
+      .set('Authorization', `Bearer ${baseToken}`)
+      .send({ pin: '1234' })
+      .expect(200);
+    assert.ok(el.body.token);
+    const claims = jwt.verify(el.body.token, JWT_SECRET);
+    assert.strictEqual(claims.elevated, true);
+    assert.ok(Array.isArray(claims.permissions));
+    assert.ok(claims.permissions.includes('teacher.access'));
   });
 });
