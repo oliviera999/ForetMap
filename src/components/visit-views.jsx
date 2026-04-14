@@ -841,6 +841,9 @@ function VisitView({
     }
   }, [isTeacher, teacherPreviewAsStudent]);
 
+  /** Tutoriels / lien « Présentation » sous la carte : réservés au prof en édition (pas invité, pas élève, pas aperçu élève). */
+  const showVisitMapTutorialsSection = isTeacher && !teacherPreviewAsStudent;
+
   /** Zones affichées sur le plan (polygone valide) + repères : aligné sur ce que l’utilisateur peut parcourir sur la carte courante. */
   const visitCartographyProgress = useMemo(() => {
     const zones = content.zones || [];
@@ -1826,7 +1829,7 @@ function VisitView({
             <div className="visit-map-card__chrome-top">
               <div className="visit-map-card__chrome-title-line">
                 <h2 className="section-title visit-map-card__title">{visitTitle}</h2>
-                {visitPresentationTutorial ? (
+                {showVisitMapTutorialsSection && visitPresentationTutorial ? (
                   <button
                     type="button"
                     className="visit-map-card__presentation-link"
@@ -2326,21 +2329,23 @@ function VisitView({
         </div>
       ) : null}
 
-      {visitImmersion ? (
-        <details className="visit-tutorials-disclosure">
-          <summary className="visit-tutorials-disclosure__summary">{visitTutorialsTitle}</summary>
-          <div className="visit-tutorials-disclosure__body">
-            <section className="visit-tutorials visit-tutorials--in-disclosure">
-              {visitTutorialsBody}
-            </section>
-          </div>
-        </details>
-      ) : (
-        <section className="visit-tutorials">
-          <h3>{visitTutorialsTitle}</h3>
-          {visitTutorialsBody}
-        </section>
-      )}
+      {showVisitMapTutorialsSection ? (
+        visitImmersion ? (
+          <details className="visit-tutorials-disclosure" data-testid="visit-map-tutorials-section">
+            <summary className="visit-tutorials-disclosure__summary">{visitTutorialsTitle}</summary>
+            <div className="visit-tutorials-disclosure__body">
+              <section className="visit-tutorials visit-tutorials--in-disclosure">
+                {visitTutorialsBody}
+              </section>
+            </div>
+          </details>
+        ) : (
+          <section className="visit-tutorials" data-testid="visit-map-tutorials-section">
+            <h3>{visitTutorialsTitle}</h3>
+            {visitTutorialsBody}
+          </section>
+        )
+      ) : null}
 
       {isTeacher && !teacherPreviewAsStudent && (
         <details className="visit-prof-tools">
