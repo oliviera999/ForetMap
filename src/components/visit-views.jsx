@@ -2126,15 +2126,6 @@ function VisitView({
         </div>
       </div>
 
-      {selected && mode === 'view' ? (
-        <button
-          type="button"
-          className="visit-detail-backdrop"
-          aria-label="Fermer le panneau lieu"
-          onClick={closeVisitSelection}
-        />
-      ) : null}
-
       {selected ? (
         <div
           role="dialog"

@@ -36,7 +36,7 @@ async function clickVisitMapAtPct(page, xpPct, ypPct) {
   if (!box || box.width <= 0 || box.height <= 0) {
     throw new Error('visit-map-fit-layer sans taille exploitable');
   }
-  /* `force` : le backdrop du panneau détail peut recouvrir le plan alors qu’un lieu reste sélectionné. */
+  /* `force` : le panneau lieu plein écran peut recouvrir le plan tant qu’un lieu reste sélectionné. */
   await fit.click({ position: { x: (xpPct / 100) * box.width, y: (ypPct / 100) * box.height }, force: true });
 }
 
