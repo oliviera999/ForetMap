@@ -62,6 +62,25 @@ test('visite connectée : mascotte visible si au moins une zone ou un repère su
   }
 });
 
+test('visite connectée : bouton Présentation du lieu (animation si parcours carte à 0)', async ({ page }) => {
+  await loginAsNewStudent(page);
+  await page.getByRole('button', { name: /^🧭 Visite$/ }).click();
+  await expect(page.locator('.visit-view')).toBeVisible({ timeout: 30_000 });
+  const pres = page.getByTestId('visit-presentation-link');
+  if ((await pres.count()) === 0) {
+    test.skip();
+    return;
+  }
+  await expect(pres).toBeVisible();
+  await expect(pres).toHaveText(/Présentation du lieu/i);
+  const stage = page.locator('.visit-map-stage');
+  await expect(stage.locator('img.visit-map-img')).toBeVisible({ timeout: 15_000 });
+  const navigable = (await stage.locator('.visit-zone-hit, .visit-marker-btn').count()) > 0;
+  if (navigable) {
+    await expect(pres).toHaveAttribute('data-invite-pulse', '1');
+  }
+});
+
 test('visite connectée : clic sur une zone ouvre le panneau détail', async ({ page }) => {
   await loginAsNewStudent(page);
   await page.getByRole('button', { name: /^🧭 Visite$/ }).click();

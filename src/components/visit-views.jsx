@@ -841,7 +841,7 @@ function VisitView({
     }
   }, [isTeacher, teacherPreviewAsStudent]);
 
-  /** Tutoriels / lien « Présentation » sous la carte : réservés au prof en édition (pas invité, pas élève, pas aperçu élève). */
+  /** Tutoriels sous la carte : réservés au prof en édition (pas invité, pas élève, pas aperçu élève). */
   const showVisitMapTutorialsSection = isTeacher && !teacherPreviewAsStudent;
 
   /** Zones affichées sur le plan (polygone valide) + repères : aligné sur ce que l’utilisateur peut parcourir sur la carte courante. */
@@ -862,6 +862,15 @@ function VisitView({
     const pct = total > 0 ? Math.min(100, Math.round((seenCount / total) * 100)) : 0;
     return { total, seenCount, pct };
   }, [content.zones, content.markers, seen]);
+
+  /** Bandeau carte : ouverture du premier tutoriel « présentation » (tous les profils en navigation). */
+  const showVisitPresentationButton = mode === 'view' && !!visitPresentationTutorial;
+  /** Incitation visuelle tant qu’aucune zone ni repère n’a été marqué·e comme vu·e sur la carte courante. */
+  const visitPresentationInvitePulse =
+    showVisitPresentationButton
+    && visitCartographyProgress.total > 0
+    && visitCartographyProgress.seenCount === 0
+    && !prefersReducedMotion;
 
   /** Mascotte : zones/repères visibles, total parcourable, ou tutoriels du plan (évite plan « vide » côté API alors que la visite est animée). */
   const showVisitMapMascot = computeShowVisitMapMascot(
@@ -1829,14 +1838,15 @@ function VisitView({
             <div className="visit-map-card__chrome-top">
               <div className="visit-map-card__chrome-title-line">
                 <h2 className="section-title visit-map-card__title">{visitTitle}</h2>
-                {showVisitMapTutorialsSection && visitPresentationTutorial ? (
+                {showVisitPresentationButton ? (
                   <button
                     type="button"
-                    className="visit-map-card__presentation-link"
+                    className={`btn btn-sm btn-primary visit-map-card__presentation-btn${visitPresentationInvitePulse ? ' visit-map-card__presentation-btn--invite' : ''}`}
                     data-testid="visit-presentation-link"
+                    data-invite-pulse={visitPresentationInvitePulse ? '1' : '0'}
                     onClick={() => setVisitTutorialPreview(tutorialPreviewPayload(visitPresentationTutorial))}
                   >
-                    Présentation
+                    Présentation du lieu
                   </button>
                 ) : null}
               </div>
