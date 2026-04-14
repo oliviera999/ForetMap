@@ -5,6 +5,9 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Modifié
+- **Visite — présentation du lieu** : le premier tutoriel embarquable s’ouvre via un **bouton** « Présentation du lieu » (bandeau au-dessus du plan) pour **tous** les utilisateurs en **navigation** ; **animation d’incitation** (léger pulse / halo) tant qu’**aucune zone ni repère** de la carte courante n’a été marqué·e comme vu·e, désactivée si **réduction des animations** système. **`visit-views.jsx`**, **`index.css`** ; e2e **`visit-mode.spec.js`**.
+
 ### Corrigé
 - **Pré-saisie biodiversité — OpenAI** : fallback automatique vers **`POST /v1/responses`** quand **`/v1/chat/completions`** n’est pas compatible avec le modèle configuré ; parsing JSON robuste sur les deux formats de réponse (appel principal + gap-fill). **`lib/speciesAutofillOpenAi.js`**, **`tests/species-autofill-extensions.test.js`**.
 - **Visite / mascotte (prof)** : retrait des anciens blocs legacy dans l’onglet **Visite** (boîte à outils pack en modale + aperçu/édition local), pour éviter les conflits d’état avec le studio unifié ; l’édition passe désormais uniquement par l’onglet **Packs mascotte** (bouton de redirection conservé). **`visit-views.jsx`**.
