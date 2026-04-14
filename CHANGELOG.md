@@ -6,6 +6,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 ## [Non publié]
 
 ### Corrigé
+- **Pré-saisie biodiversité — OpenAI** : fallback automatique vers **`POST /v1/responses`** quand **`/v1/chat/completions`** n’est pas compatible avec le modèle configuré ; parsing JSON robuste sur les deux formats de réponse (appel principal + gap-fill). **`lib/speciesAutofillOpenAi.js`**, **`tests/species-autofill-extensions.test.js`**.
 - **Visite / mascotte (prof)** : retrait des anciens blocs legacy dans l’onglet **Visite** (boîte à outils pack en modale + aperçu/édition local), pour éviter les conflits d’état avec le studio unifié ; l’édition passe désormais uniquement par l’onglet **Packs mascotte** (bouton de redirection conservé). **`visit-views.jsx`**.
 - **Tests API** : **`POST /api/auth/elevate`** — le JWT élevé doit contenir **`teacher.access`** (alignement UI / e2e). **`tests/auth.test.js`**.
 - **Élévation PIN (n3beur)** : une fin tardive de **`POST /api/students/register`** (`updateStudentSession`) ou un **`refreshedToken`** de **`GET /api/auth/me`** ne doit pas remplacer le JWT **élevé** par le jeton élève de base encore présent dans **`foretmap_student.authToken`** (course avec la validation de session au chargement). Garde-fou via **`isElevatedJwt`** : pas de « downgrade » de jeton. Écoute **`foretmap_session_changed`** pour réaligner **`authClaims` / `isTeacher`** sur le JWT après **`saveStoredSession`** (PIN). **`App.jsx`**, **`src/services/api.js`**.

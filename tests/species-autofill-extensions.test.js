@@ -2,7 +2,11 @@ require('./helpers/setup');
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { fetchTrefleSpeciesTraits, isTrefleAutofillEnabled } = require('../lib/speciesAutofillTrefle');
-const { fetchOpenAiSpeciesTraits, isOpenAiAutofillEnabled } = require('../lib/speciesAutofillOpenAi');
+const {
+  fetchOpenAiSpeciesTraits,
+  fetchOpenAiSpeciesGapFill,
+  isOpenAiAutofillEnabled,
+} = require('../lib/speciesAutofillOpenAi');
 
 test('Trefle : désactivé sans flag + token', async () => {
   const prevFlag = process.env.SPECIES_AUTOFILL_TREFLE;
@@ -141,6 +145,90 @@ test('OpenAI : second_name autorisé et tronqué si trop long (fetch mock)', asy
   assert.ok(pack);
   assert.ok(pack.fields.second_name.length <= 118);
   assert.equal(pack.fields.habitat, 'Plein soleil.');
+  process.env.SPECIES_AUTOFILL_OPENAI = prevF;
+  process.env.OPENAI_API_KEY = prevK;
+});
+
+test('OpenAI : fallback Responses API si chat/completions indisponible', async () => {
+  const prevF = process.env.SPECIES_AUTOFILL_OPENAI;
+  const prevK = process.env.OPENAI_API_KEY;
+  process.env.SPECIES_AUTOFILL_OPENAI = '1';
+  process.env.OPENAI_API_KEY = 'sk-test';
+  const urls = [];
+  const fetchImpl = async (url) => {
+    const raw = String(url || '');
+    urls.push(raw);
+    if (raw.includes('/v1/chat/completions')) {
+      return { ok: false, status: 400, json: async () => ({ error: { message: 'Unsupported model for this endpoint' } }) };
+    }
+    if (raw.includes('/v1/responses')) {
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({
+          output_text: JSON.stringify({
+            fields: {
+              habitat: 'Sol drainé, exposition ensoleillée.',
+              harvest_part: 'Fruit.',
+            },
+          }),
+        }),
+      };
+    }
+    throw new Error(`URL inattendue: ${raw}`);
+  };
+  const pack = await fetchOpenAiSpeciesTraits(
+    { query: 'Tomate', scientificName: 'Solanum lycopersicum' },
+    { fetchImpl },
+  );
+  assert.ok(pack);
+  assert.equal(pack.fields.habitat, 'Sol drainé, exposition ensoleillée.');
+  assert.equal(pack.fields.harvest_part, 'Fruit.');
+  assert.ok(urls.some((u) => u.includes('/v1/chat/completions')));
+  assert.ok(urls.some((u) => u.includes('/v1/responses')));
+  process.env.SPECIES_AUTOFILL_OPENAI = prevF;
+  process.env.OPENAI_API_KEY = prevK;
+});
+
+test('OpenAI gap-fill : fallback Responses API si chat/completions indisponible', async () => {
+  const prevF = process.env.SPECIES_AUTOFILL_OPENAI;
+  const prevK = process.env.OPENAI_API_KEY;
+  process.env.SPECIES_AUTOFILL_OPENAI = '1';
+  process.env.OPENAI_API_KEY = 'sk-test';
+  const fetchImpl = async (url) => {
+    const raw = String(url || '');
+    if (raw.includes('/v1/chat/completions')) {
+      return { ok: false, status: 404, json: async () => ({ error: { message: 'Not found' } }) };
+    }
+    if (raw.includes('/v1/responses')) {
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({
+          output: [
+            {
+              type: 'message',
+              content: [
+                {
+                  type: 'output_text',
+                  text: JSON.stringify({ habitat: 'Milieu chaud.', size: '0,6 à 1,2 m.' }),
+                },
+              ],
+            },
+          ],
+        }),
+      };
+    }
+    throw new Error(`URL inattendue: ${raw}`);
+  };
+  const gap = await fetchOpenAiSpeciesGapFill({
+    query: 'aubergine',
+    keysToFill: ['habitat', 'size'],
+    knownFields: { scientific_name: 'Solanum melongena' },
+  }, { fetchImpl });
+  assert.ok(gap);
+  assert.equal(gap.fields.habitat, 'Milieu chaud.');
+  assert.equal(gap.fields.size, '0,6 à 1,2 m.');
   process.env.SPECIES_AUTOFILL_OPENAI = prevF;
   process.env.OPENAI_API_KEY = prevK;
 });
