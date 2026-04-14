@@ -686,11 +686,14 @@ router.get('/autofill', requirePermission('plants.manage', { needsElevation: tru
     const hintName = asTrimmedString(req.query?.hint_name).slice(0, 120);
     const sourcesAllowed = parseAutofillSourcesQueryParam(req.query?.sources);
     const sourcesFp = sourcesAllowedCacheFingerprint(sourcesAllowed);
+    const openAiOnlyRequest = !!(sourcesAllowed instanceof Set && sourcesAllowed.size === 1 && sourcesAllowed.has('openai'));
+    const hasAutofillFields = (payload) => Object.keys(payload?.fields || {})
+      .some((key) => asTrimmedString(payload?.fields?.[key]).length > 0);
 
     const hintsPart = `${hintScientific.toLowerCase()}\x1e${hintName.toLowerCase()}`;
     const cacheKey = crypto.createHash('sha256').update(`${query.toLowerCase()}\x1e${hintsPart}\x1e${sourcesFp}`).digest('hex').slice(0, 48);
     const cached = plantsAutofillCache.get(cacheKey);
-    if (cached) return res.json(cached);
+    if (cached && !(openAiOnlyRequest && !hasAutofillFields(cached))) return res.json(cached);
 
     /** Budget global wall-clock (évite 503 HTML des proxies si Wikidata + sources s’enchaînent trop longtemps). */
     const hints = {};
@@ -711,7 +714,10 @@ router.get('/autofill', requirePermission('plants.manage', { needsElevation: tru
       payload.warnings = Array.from(new Set([...(payload.warnings || []), `Photos filtrées: ${photoErr}`]));
       payload.photos = [];
     }
-    plantsAutofillCache.set(cacheKey, payload);
+    // Évite de figer 10 min un « 0% » quand la requête est OpenAI-only et vide.
+    if (!(openAiOnlyRequest && !hasAutofillFields(payload))) {
+      plantsAutofillCache.set(cacheKey, payload);
+    }
     res.json(payload);
   } catch (e) {
     logRouteError(e, req, 'Pré-saisie biodiversité externe en échec');
