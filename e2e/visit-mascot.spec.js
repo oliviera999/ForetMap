@@ -168,7 +168,10 @@ test.describe.serial('mascotte visite (comportement carte)', () => {
 
   test('marquer vu déclenche état happy et bulle', async ({ page }) => {
     await clickVisitMapAtPct(page, 88, 50);
-    await expect(page.getByRole('button', { name: /Marquer comme vu|Marqué comme vu/i })).toBeVisible();
+    /* Panneau lieu après fin de déplacement mascotte (délai aligné sur VISIT_MAP_MASCOT_MOVE_MS côté app). */
+    await expect(page.getByRole('button', { name: /Marquer comme vu|Marqué comme vu/i })).toBeVisible({
+      timeout: VISIT_MAP_MASCOT_MOVE_MS + 15_000,
+    });
     await page.getByRole('button', { name: /Marquer comme vu|Marqué comme vu/i }).click();
     const mascot = page.locator('.visit-map-mascot');
     await expect(mascot).toHaveClass(/visit-map-mascot--happy/, { timeout: 2000 });
