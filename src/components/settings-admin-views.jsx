@@ -40,7 +40,6 @@ const KEY_META = {
   'content.about.purpose_title': { label: 'Titre carte objet de l’application', section: 'content', order: 170 },
   'content.about.purpose_body': { label: 'Texte objet de l’application', section: 'content', order: 180, multiline: true },
   'content.about.docs_title': { label: 'Titre carte documentation', section: 'content', order: 190 },
-  'content.about.repo_title': { label: 'Titre carte dépôt GitHub', section: 'content', order: 200 },
   'content.about.help_title': { label: 'Titre carte aide contextuelle', section: 'content', order: 210 },
   'content.about.help_body': { label: 'Texte aide contextuelle', section: 'content', order: 220, multiline: true },
   'content.about.help_reenable_cta': { label: 'Bouton réactiver aides', section: 'content', order: 230 },

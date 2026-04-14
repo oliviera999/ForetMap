@@ -9,7 +9,6 @@ function AboutView({ appVersion, publicSettings = null, isTeacher = false }) {
   const aboutPurposeTitle = getContentText(publicSettings, 'about.purpose_title', "Objet de l'application");
   const aboutPurposeBody = getContentText(publicSettings, 'about.purpose_body', 'ForetMap aide les n3beurs et les n3boss du Lycée Lyautey à organiser les activités de la forêt comestible: suivi des zones, de la biodiversité, des tâches et des observations.');
   const aboutDocsTitle = getContentText(publicSettings, 'about.docs_title', 'Documentation');
-  const aboutRepoTitle = getContentText(publicSettings, 'about.repo_title', 'Dépôt GitHub');
   const aboutHelpTitle = getContentText(publicSettings, 'about.help_title', 'Aide contextuelle');
   const aboutHelpBody = getContentText(publicSettings, 'about.help_body', 'Si les bulles d aide ont ete masquées, tu peux les reactiver ici.');
   const aboutHelpReenableLabel = getContentText(publicSettings, 'about.help_reenable_cta', 'Reactiver toutes les aides');
@@ -37,7 +36,7 @@ function AboutView({ appVersion, publicSettings = null, isTeacher = false }) {
           <div className="about-meta">
             <span className="about-chip">Version: {appVersion || 'indisponible'}</span>
             <span className="about-chip">Auteur: Mohammed El Farrai</span>
-            <span className="about-chip">Contributeur: oliviera999</span>
+            <span className="about-chip">Contributeur : Olivier Arnould-Laurent</span>
           </div>
         </div>
 
@@ -51,14 +50,6 @@ function AboutView({ appVersion, publicSettings = null, isTeacher = false }) {
               </a>
             ))}
           </div>
-        </div>
-
-        <div className="about-card">
-          <h3>{aboutRepoTitle}</h3>
-          <a className="about-link" href="https://github.com/oliviera999/ForetMap" target="_blank" rel="noopener noreferrer">
-            <strong>github.com/oliviera999/ForetMap</strong><br />
-            <small>Code source complet du projet</small>
-          </a>
         </div>
 
         <div className="about-card">
