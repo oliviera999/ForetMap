@@ -3091,40 +3091,36 @@
       color:#5b655f;
       font-size:.88rem;
     }
-    .visit-detail-backdrop {
-      position:fixed;
-      inset:0;
-      z-index:210;
-      margin:0;
-      padding:0;
-      border:none;
-      background:rgba(26,71,49,.28);
-      cursor:pointer;
-    }
+    /* Panneau lieu visite : plein viewport (repère/zone), au-dessus de la barre du bas. */
     .visit-detail-panel {
       position:fixed;
-      z-index:220;
-      right:0;
-      top:0;
-      bottom:0;
-      width:min(100%, 420px);
+      inset:0;
+      z-index:320;
+      width:100%;
+      max-width:none;
+      height:100%;
       max-height:100dvh;
+      box-sizing:border-box;
+      padding-top:env(safe-area-inset-top, 0px);
+      padding-right:env(safe-area-inset-right, 0px);
+      padding-bottom:env(safe-area-inset-bottom, 0px);
+      padding-left:env(safe-area-inset-left, 0px);
       background:var(--surface-1);
-      border-left:1px solid var(--outline-soft);
-      box-shadow:-12px 0 32px rgba(0,0,0,.12);
+      border:none;
+      border-radius:0;
+      box-shadow:none;
       display:flex;
       flex-direction:column;
-      padding:0;
       overscroll-behavior:contain;
     }
     @media (prefers-reduced-motion: no-preference) {
       .visit-detail-panel {
-        animation:visitDetailSlideIn .22s ease-out;
+        animation:visitDetailPanelIn .2s ease-out;
       }
     }
-    @keyframes visitDetailSlideIn {
-      from { transform:translateX(12px); opacity:.92; }
-      to { transform:translateX(0); opacity:1; }
+    @keyframes visitDetailPanelIn {
+      from { opacity:0; transform:translateY(10px); }
+      to { opacity:1; transform:translateY(0); }
     }
     .visit-detail-panel__handle {
       display:none;
@@ -3158,23 +3154,6 @@
       padding:12px 14px 18px;
       flex:1;
       min-height:0;
-    }
-    @media (max-width:860px) {
-      .visit-detail-panel {
-        top:auto;
-        left:0;
-        right:0;
-        bottom:0;
-        width:100%;
-        max-height:62dvh;
-        border-left:none;
-        border-top:1px solid var(--outline-soft);
-        border-radius:16px 16px 0 0;
-        box-shadow:0 -8px 32px rgba(0,0,0,.16);
-      }
-      .visit-detail-panel__handle {
-        display:block;
-      }
     }
     @media (prefers-reduced-motion: reduce) {
       .visit-detail-panel {
