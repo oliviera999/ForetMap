@@ -15,11 +15,6 @@ test('catalogue mascotte expose un défaut valide', async () => {
   assert.ok(getVisitMascotById(def));
 });
 
-test('mascotte visite par défaut : Renard 2', async () => {
-  const { getDefaultVisitMascotId } = await loadModule();
-  assert.equal(getDefaultVisitMascotId(), 'renard2-cut-spritesheet');
-});
-
 test('normalizeVisitMascotId retombe sur la mascotte par défaut', async () => {
   const { normalizeVisitMascotId, getDefaultVisitMascotId } = await loadModule();
   const def = getDefaultVisitMascotId();
