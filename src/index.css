@@ -1016,12 +1016,12 @@
     .tasks-condensed {
       display:flex;
       flex-direction:column;
-      gap:6px;
+      gap:4px;
       margin-top:10px;
     }
     .tasks-condensed .task-card { margin-bottom:0; }
     .task-card--condensed {
-      padding:10px 12px;
+      padding:7px 12px;
     }
     .task-card--condensed-open {
       padding:16px;
@@ -1042,8 +1042,13 @@
       color:inherit;
       border-radius:10px;
       box-sizing:border-box;
-      min-height:44px;
+      min-height:40px;
       align-items:flex-start;
+    }
+    @media (pointer: coarse) {
+      .task-top--condensed-toggle {
+        min-height:44px;
+      }
     }
     .task-top--condensed-toggle:focus-visible {
       outline:2px solid var(--sage, #22c55e);
@@ -1054,8 +1059,17 @@
       opacity:.55;
       font-size:.72rem;
       line-height:1.4;
-      margin-top:4px;
+      margin-top:2px;
       font-family:var(--font-sans);
+    }
+    .task-card--condensed .task-title-row {
+      gap:8px;
+    }
+    .task-card--condensed .task-status-dot {
+      margin-top:3px;
+    }
+    .task-card--condensed .task-title {
+      line-height:1.25;
     }
     .tasks-view-switch {
       display:inline-flex;
@@ -3062,17 +3076,24 @@
       margin:0;
       font-size:clamp(1.05rem, 1rem + .5vw, 1.35rem);
     }
-    .visit-map-card__about {
-      max-width:52rem;
-    }
-    .visit-map-card__about-summary {
-      cursor:pointer;
+    .visit-map-card__presentation-link {
+      justify-self:start;
+      margin:0;
+      padding:0;
+      border:none;
+      background:none;
+      font:inherit;
       font-size:.82rem;
       font-weight:700;
       color:var(--forest);
+      text-decoration:underline;
+      text-underline-offset:2px;
+      cursor:pointer;
+      text-align:left;
+      max-width:52rem;
     }
-    .visit-map-card__about-text {
-      margin:6px 0 0;
+    .visit-map-card__presentation-link:hover {
+      color:var(--leaf);
     }
     .visit-map-switch--embedded {
       width:100%;
