@@ -2,6 +2,9 @@ import { renard2CutManifest, RENARD2_FRAMES_BASE } from '../data/renard2-cut-man
 
 const VISIT_MASCOT_STORAGE_KEY = 'foretmap_visit_mascot_id';
 
+/** Mascotte proposée par défaut (première visite ou valeur localStorage inconnue). */
+const DEFAULT_VISIT_MASCOT_ID = 'renard2-cut-spritesheet';
+
 /**
  * Ajouter une mascotte :
  * 1) Déposer les assets sous /public/assets/mascots/... ou /public/assets/rive/...
@@ -299,6 +302,9 @@ function getVisitMascotCatalog() {
 }
 
 function getDefaultVisitMascotId() {
+  if (VISIT_MASCOT_CATALOG.some((m) => m.id === DEFAULT_VISIT_MASCOT_ID)) {
+    return DEFAULT_VISIT_MASCOT_ID;
+  }
   return VISIT_MASCOT_CATALOG[0]?.id || '';
 }
 
