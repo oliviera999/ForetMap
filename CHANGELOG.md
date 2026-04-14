@@ -5,6 +5,10 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé
+- **Élévation PIN (n3beur)** : une fin tardive de **`POST /api/students/register`** (`updateStudentSession`) ou un **`refreshedToken`** de **`GET /api/auth/me`** ne doit pas remplacer le JWT **élevé** par le jeton élève de base encore présent dans **`foretmap_student.authToken`** (course avec la validation de session au chargement). Garde-fou via **`isElevatedJwt`** : pas de « downgrade » de jeton. Écoute **`foretmap_session_changed`** pour réaligner **`authClaims` / `isTeacher`** sur le JWT après **`saveStoredSession`** (PIN). **`App.jsx`**, **`src/services/api.js`**.
+- **E2e tâches / PIN** : **`loginByIdentifier`** peut attendre explicitement **`POST /api/students/register`** (`waitForStudentRegister`) ; **`enableTeacherMode`** attend le flag **`elevated`** dans le stockage avant le bouton **Désactiver**. **`e2e/fixtures/auth.fixture.js`**, **`e2e/student-login-identifier.spec.js`**.
+
 ### Ajouté
 - **Packs mascotte (studio unifié)** : format pack **v2** avec `interactionProfile` (réactions sur la carte par pack), **bibliothèque sprites** par carte (`/api/visit/mascot-sprite-library/...`), **clonage** (`clone_from_pack_id`, `clone_from_catalog_id`), onglets fiche / bibliothèque / comportements / aperçu dans **`VisitMascotPackManager.jsx`** ; runtime visite branché sur **`visitMascotInteractionApply.js`**. Migration **`074_visit_mascot_sprite_library.sql`**, sync **`lib/visit-pack/visitMascotInteractionEvents.js`**.
 

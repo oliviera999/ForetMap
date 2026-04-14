@@ -1,7 +1,17 @@
 import React, {
   useState, useEffect, useCallback, useRef, useMemo, lazy, Suspense,
 } from 'react';
-import { api, AccountDeletedError, getAuthClaims, getStoredSession, saveStoredSession, clearStoredSession, withAppBase } from './services/api';
+import {
+  api,
+  AccountDeletedError,
+  getAuthClaims,
+  getAuthToken,
+  getStoredSession,
+  saveStoredSession,
+  clearStoredSession,
+  withAppBase,
+  isElevatedJwt,
+} from './services/api';
 import { useForetmapRealtime } from './hooks/useForetmapRealtime';
 import { useNotificationCenter } from './hooks/useNotificationCenter';
 import { RT_PROF_TOOLTIPS } from './constants/realtime';
@@ -476,10 +486,16 @@ function App() {
     setStudent(merged);
     localStorage.setItem('foretmap_student', JSON.stringify(merged));
     const sessionToken = getStoredSession()?.token || null;
-    const nextToken =
+    const prevAuthToken = getAuthToken();
+    let nextToken =
       (typeof merged.authToken === 'string' && merged.authToken.trim() !== '')
-        ? merged.authToken
+        ? merged.authToken.trim()
         : sessionToken;
+    /* `merged.authToken` reste souvent le JWT élève d’origine : une fin tardive de
+       `validateStudentSession` ne doit pas écraser une session déjà élevée (PIN). */
+    if (prevAuthToken && isElevatedJwt(prevAuthToken) && !isElevatedJwt(nextToken)) {
+      nextToken = prevAuthToken;
+    }
     saveStoredSession({
       token: nextToken,
       user: {
@@ -580,9 +596,12 @@ function App() {
     const { auth } = d;
     if (typeof d.refreshedToken === 'string' && d.refreshedToken.trim() !== '') {
       const trimmed = d.refreshedToken.trim();
-      localStorage.setItem('foretmap_auth_token', trimmed);
-      const sess = getStoredSession() || {};
-      saveStoredSession({ ...sess, token: trimmed });
+      const cur = getAuthToken();
+      if (!(cur && isElevatedJwt(cur) && !isElevatedJwt(trimmed))) {
+        localStorage.setItem('foretmap_auth_token', trimmed);
+        const sess = getStoredSession() || {};
+        saveStoredSession({ ...sess, token: trimmed });
+      }
     }
     const claims = getAuthClaims();
     setAuthClaims(claims);
@@ -654,6 +673,27 @@ function App() {
     const onExpired = () => { setIsTeacher(false); setAuthClaims(null); setSessionUser(null); setToast('Session n3boss expirée.'); };
     window.addEventListener('foretmap_teacher_expired', onExpired);
     return () => window.removeEventListener('foretmap_teacher_expired', onExpired);
+  }, []);
+
+  /* `saveStoredSession` (PIN, OAuth…) émet avant le callback React du modal : réaligner claims / isTeacher sur le JWT. */
+  useEffect(() => {
+    let t = 0;
+    const syncAuthFromStoredSession = () => {
+      window.clearTimeout(t);
+      /* Reporter d’un tick : coalescer avec `PinModal` / `mergeAuthMeResponse` et laisser le `localStorage` se stabiliser. */
+      t = window.setTimeout(() => {
+        const sess = getStoredSession();
+        const claims = getAuthClaims();
+        setAuthClaims(claims);
+        setIsTeacher(Array.isArray(claims?.permissions) && claims.permissions.includes('teacher.access'));
+        setSessionUser(sess?.user || null);
+      }, 0);
+    };
+    window.addEventListener('foretmap_session_changed', syncAuthFromStoredSession);
+    return () => {
+      window.removeEventListener('foretmap_session_changed', syncAuthFromStoredSession);
+      window.clearTimeout(t);
+    };
   }, []);
 
   useEffect(() => {

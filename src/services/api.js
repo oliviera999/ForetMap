@@ -102,6 +102,11 @@ export function getAuthClaims() {
   return token ? decodeJwtPayload(token) : null;
 }
 
+/** Indique si le JWT ForetMap porte le flag `elevated` (droits étendus après PIN). */
+export function isElevatedJwt(token) {
+  return !!decodeJwtPayload(token)?.elevated;
+}
+
 async function parseApiBody(res) {
   if (!res || res.status === 204 || res.status === 205) return null;
   const contentType = String(res.headers?.get('content-type') || '').toLowerCase();

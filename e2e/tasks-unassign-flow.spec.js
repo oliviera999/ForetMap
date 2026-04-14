@@ -11,7 +11,7 @@ const {
 
 test('élève peut se retirer d’une tâche prise en charge', async ({ page }) => {
   /* Aligné sur tasks-full-cycle : marge quand le worker e2e est déjà chargé. */
-  test.setTimeout(180_000);
+  test.setTimeout(300_000);
   const taskTitle = `E2E Unassign ${Date.now()}`;
 
   await loginAsNewStudent(page);
@@ -20,7 +20,9 @@ test('élève peut se retirer d’une tâche prise en charge', async ({ page }) 
 
   await clickTeacherNewTask(page);
   await page.getByPlaceholder('Ex: Arroser les tomates').fill(taskTitle);
-  await page.getByRole('button', { name: 'Créer la tâche' }).click();
+  const submitCreate = page.getByRole('button', { name: 'Créer la tâche' });
+  await submitCreate.scrollIntoViewIfNeeded();
+  await submitCreate.click({ timeout: 60_000 });
   await expect(page.locator('.task-card', { hasText: taskTitle }).first()).toBeVisible();
 
   await disableTeacherMode(page);

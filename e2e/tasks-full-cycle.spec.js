@@ -20,7 +20,9 @@ test('cycle complet tâche: création prof -> prise élève -> soumission -> val
   await openTeacherTasksTab(page);
   await clickTeacherNewTask(page);
   await page.getByPlaceholder('Ex: Arroser les tomates').fill(taskTitle);
-  await page.getByRole('button', { name: 'Créer la tâche' }).click();
+  const submitCreate = page.getByRole('button', { name: 'Créer la tâche' });
+  await submitCreate.scrollIntoViewIfNeeded();
+  await submitCreate.click({ timeout: 60_000 });
 
   const taskCard = page.locator('.task-card', { hasText: taskTitle }).first();
   await expect(taskCard).toBeVisible();
