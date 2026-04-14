@@ -112,6 +112,7 @@ async function main() {
   }
   console.log('OK renard2-cut:', path.relative(ROOT, OUT_DIR), `(${COLS * ROWS} frames)`);
   console.log('  source:', path.relative(ROOT, srcPath));
+  console.log('  Astuce visite : si la ligne de course « défile » horizontalement, lancer npm run mascot:renard2-cut-align-walk');
 }
 
 main().catch((err) => {
