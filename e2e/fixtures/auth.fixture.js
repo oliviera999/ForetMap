@@ -20,7 +20,7 @@ async function loginAsNewStudent(page) {
   // Inscription = profil visiteur ; la 1re connexion identifiant/mot de passe promeut en n3beur novice (droits tâches).
   await logoutToAuth(page);
   await page.goto('/');
-  await loginByIdentifier(page, email, password, { waitForStudentRegister: true });
+  await loginByIdentifier(page, email, password);
   return { firstName, lastName, password, pseudo: '', email };
 }
 
@@ -64,19 +64,11 @@ async function dismissProfilePromotionModalIfPresent(page) {
   }
 }
 
-async function loginByIdentifier(page, identifier, password, opts = {}) {
-  const waitForStudentRegister = !!opts.waitForStudentRegister;
-  const registerDone = waitForStudentRegister
-    ? page.waitForResponse(
-        (r) => r.url().includes('/api/students/register') && r.request().method() === 'POST',
-        { timeout: 90_000 },
-      )
-    : null;
+async function loginByIdentifier(page, identifier, password) {
   await page.getByLabel('Identifiant (pseudo ou email)').fill(identifier);
   await page.getByLabel('Mot de passe').fill(password);
   await page.getByRole('button', { name: 'Se connecter 🌱' }).click();
   await page.getByRole('button', { name: /Déconnexion/ }).waitFor({ state: 'visible', timeout: 60_000 });
-  if (registerDone) await registerDone.catch(() => {});
   await dismissProfilePromotionModalIfPresent(page);
 }
 
@@ -116,6 +108,15 @@ async function enableTeacherMode(page, pin = process.env.E2E_ELEVATION_PIN || pr
           } catch (_) {
             /* ignore */
           }
+          try {
+            const sr = localStorage.getItem('foretmap_student');
+            if (sr) {
+              const s = JSON.parse(sr);
+              if (typeof s?.authToken === 'string' && s.authToken.split('.').length >= 2) return s.authToken;
+            }
+          } catch (_) {
+            /* ignore */
+          }
           return localStorage.getItem('foretmap_auth_token') || localStorage.getItem('foretmap_teacher_token');
         };
         const t = pick();
@@ -135,8 +136,20 @@ async function enableTeacherMode(page, pin = process.env.E2E_ELEVATION_PIN || pr
     null,
     { timeout: 90_000 },
   );
-  /* Le libellé accessible peut être retardé ; le bouton cadenas reçoit `active` dès que `authClaims.elevated` est vrai. */
-  await page.locator('header button.lock-btn.active').waitFor({ state: 'visible', timeout: 45_000 });
+  /* Le JWT est en LS avant la réconciliation React du cadenas : attendre le DOM, sans Promise.race
+     (le premier waitFor en échec faisait échouer toute la course). */
+  await page.waitForFunction(
+    () => {
+      /* Plusieurs `lock-btn` dans l’en-tête (profil, vues rôle, déconnexion) : cibler uniquement l’élévation. */
+      const btn = document.querySelector('header button.lock-btn[aria-label*="droits étendus"]');
+      if (!btn) return false;
+      if (btn.classList.contains('active')) return true;
+      const aria = String(btn.getAttribute('aria-label') || '');
+      return aria.includes('Désactiver');
+    },
+    null,
+    { timeout: 45_000 },
+  );
   await dismissProfilePromotionModalIfPresent(page);
 }
 
@@ -144,7 +157,9 @@ async function disableTeacherMode(page) {
   const des = page.getByRole('button', { name: 'Désactiver les droits étendus' });
   if ((await des.count()) > 0) {
     await dismissProfilePromotionModalIfPresent(page);
-    await des.first().click({ force: true, timeout: 20_000 });
+    await des.first().evaluate((el) => {
+      el.click();
+    });
     await page.getByRole('button', { name: 'Activer les droits étendus' }).waitFor({ state: 'visible', timeout: 20_000 });
   }
 }
@@ -197,8 +212,8 @@ async function resetTaskFiltersInTasksView(page) {
     /* pas de barre de filtres */
   }
   const search = page.getByPlaceholder('🔍 Rechercher une tâche...');
-  if (await search.isVisible().catch(() => false)) {
-    await search.fill('');
+  if (await search.isVisible({ timeout: 2500 }).catch(() => false)) {
+    await search.fill('', { timeout: 8000, force: true }).catch(() => {});
   }
 }
 
@@ -232,8 +247,18 @@ async function openStudentTasksTab(page) {
  * Le temps réel recrée le DOM ; le JWT élevé peut expirer entre scénarios (serveur e2e réutilisé).
  * Clic natif via evaluate pour éviter les boucles « detached » de Playwright.
  */
+/** Soumet le formulaire « Nouvelle tâche » / proposition (évite scrollIntoView instable sur long formulaire). */
+async function submitTaskFormDialog(page) {
+  const dlg = page.getByRole('dialog', { name: /Nouvelle tâche|Dupliquer la tâche|Modifier la tâche|Proposer une tâche/ });
+  await dlg.waitFor({ state: 'visible', timeout: 35_000 });
+  /* Un seul `btn-full` primaire en bas de modale ; `force` évite les blocages « scroll / stable » Playwright. */
+  await dlg.locator('button.btn-primary.btn-full').last().click({ force: true, timeout: 60_000 });
+}
+
 async function clickTeacherNewTask(page) {
-  const elevated = await page.getByRole('button', { name: 'Désactiver les droits étendus' }).isVisible().catch(() => false);
+  const elevated =
+    (await page.locator('header button.lock-btn.active').isVisible().catch(() => false))
+    || (await page.getByRole('button', { name: 'Désactiver les droits étendus' }).isVisible().catch(() => false));
   let btn = page.getByRole('button', { name: /\+ Nouvelle tâche/ });
   if (!(await btn.isVisible().catch(() => false))) {
     if (!elevated) {
@@ -267,4 +292,5 @@ module.exports = {
   openTeacherTasksTab,
   openStudentTasksTab,
   clickTeacherNewTask,
+  submitTaskFormDialog,
 };

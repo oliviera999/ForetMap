@@ -5,6 +5,7 @@ const {
   disableTeacherMode,
   dismissProfilePromotionModalIfPresent,
   clickTeacherNewTask,
+  submitTaskFormDialog,
   openTeacherTasksTab,
   openStudentTasksTab,
 } = require('./fixtures/auth.fixture');
@@ -20,9 +21,7 @@ test('cycle complet tâche: création prof -> prise élève -> soumission -> val
   await openTeacherTasksTab(page);
   await clickTeacherNewTask(page);
   await page.getByPlaceholder('Ex: Arroser les tomates').fill(taskTitle);
-  const submitCreate = page.getByRole('button', { name: 'Créer la tâche' });
-  await submitCreate.scrollIntoViewIfNeeded();
-  await submitCreate.click({ timeout: 60_000 });
+  await submitTaskFormDialog(page);
 
   const taskCard = page.locator('.task-card', { hasText: taskTitle }).first();
   await expect(taskCard).toBeVisible();
@@ -38,9 +37,12 @@ test('cycle complet tâche: création prof -> prise élève -> soumission -> val
   await expect(studentTaskCardAfter.getByRole('button', { name: /Marquer terminée/ })).toBeVisible({ timeout: 45_000 });
   await studentTaskCardAfter.getByRole('button', { name: /Marquer terminée/ }).click();
 
-  await page.getByLabel('Commentaire (optionnel)').fill('Rapport e2e complet');
-  await page.getByRole('button', { name: /Marquer comme terminée/ }).click();
-  await page.getByRole('dialog', { name: 'Rapport de tâche' }).waitFor({ state: 'hidden', timeout: 30_000 }).catch(() => {});
+  const reportDlg = page.getByRole('dialog', { name: 'Rapport de tâche' });
+  await reportDlg.waitFor({ state: 'visible', timeout: 30_000 });
+  await dismissProfilePromotionModalIfPresent(page);
+  await reportDlg.getByLabel('Commentaire (optionnel)').fill('Rapport e2e complet');
+  await reportDlg.getByRole('button', { name: /Marquer comme terminée/ }).click();
+  await reportDlg.waitFor({ state: 'hidden', timeout: 30_000 }).catch(() => {});
   await dismissProfilePromotionModalIfPresent(page);
 
   await enableTeacherMode(page);
@@ -51,6 +53,10 @@ test('cycle complet tâche: création prof -> prise élève -> soumission -> val
   );
   await openTeacherTasksTab(page);
   await tasksAfterElevate.catch(() => {});
+
+  const taskSearch = page.getByPlaceholder('🔍 Rechercher une tâche...');
+  await taskSearch.waitFor({ state: 'visible', timeout: 20_000 });
+  await taskSearch.fill(taskTitle);
 
   const teacherPendingCard = page.locator('.task-card', { hasText: taskTitle }).first();
   await expect(teacherPendingCard).toBeVisible({ timeout: 45_000 });

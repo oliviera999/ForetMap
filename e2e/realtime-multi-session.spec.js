@@ -4,6 +4,7 @@ const {
   enableTeacherMode,
   dismissProfilePromotionModalIfPresent,
   clickTeacherNewTask,
+  submitTaskFormDialog,
   openTeacherTasksTab,
   openStudentTasksTab,
 } = require('./fixtures/auth.fixture');
@@ -29,9 +30,7 @@ test('temps réel: création prof visible côté élève sans reload manuel', as
   await clickTeacherNewTask(page);
   await dismissProfilePromotionModalIfPresent(page);
   await page.getByPlaceholder('Ex: Arroser les tomates').fill(taskTitle);
-  const submitCreate = page.getByRole('button', { name: 'Créer la tâche' });
-  await submitCreate.scrollIntoViewIfNeeded();
-  await submitCreate.click({ timeout: 60_000 });
+  await submitTaskFormDialog(page);
 
   const studentTaskCard = studentPage.locator('.task-card', { hasText: taskTitle }).first();
   await expect(studentTaskCard).toBeVisible({ timeout: 15000 });

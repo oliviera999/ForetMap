@@ -48,8 +48,6 @@ function PinModal({ onSuccess, onClose, uiSettings, isN3Affiliated = false }) {
         return;
       }
       const priorAuthToken = getAuthToken();
-      localStorage.setItem('foretmap_auth_token', data.token);
-      localStorage.setItem('foretmap_teacher_token', data.token);
       // Conserver le JWT élève non élevé pour le retour « désactiver les droits » (évite de réutiliser le JWT élevé si authToken JSON absent).
       try {
         const raw = localStorage.getItem('foretmap_student');
@@ -64,16 +62,23 @@ function PinModal({ onSuccess, onClose, uiSettings, isN3Affiliated = false }) {
         /* ignore */
       }
       const currentUser = getStoredSession()?.user || null;
+      const sessionUserType = data?.auth?.userType === 'teacher' || data?.auth?.userType === 'student'
+        ? data.auth.userType
+        : (currentUser?.userType || 'student');
+      /* `getAuthToken()` lit `foretmap_session` en priorité : mettre la session à jour avant les clés legacy,
+         sinon une fin tardive de `validateStudentSession` peut lire un JWT encore non élevé et réécraser le bon jeton. */
       saveStoredSession({
         token: data.token,
         user: {
           id: data?.auth?.canonicalUserId || data?.auth?.userId || null,
-          userType: 'teacher',
+          userType: sessionUserType,
           displayName: currentUser?.displayName || data?.auth?.roleDisplayName || 'Utilisateur',
           email: currentUser?.email || null,
           avatar_path: currentUser?.avatar_path || null,
         },
       });
+      localStorage.setItem('foretmap_auth_token', data.token);
+      localStorage.setItem('foretmap_teacher_token', data.token);
       onSuccess();
     } catch (e) {
       setErr(e.message || 'Code incorrect');

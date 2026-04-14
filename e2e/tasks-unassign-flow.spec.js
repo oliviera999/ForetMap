@@ -5,6 +5,7 @@ const {
   disableTeacherMode,
   dismissProfilePromotionModalIfPresent,
   clickTeacherNewTask,
+  submitTaskFormDialog,
   openTeacherTasksTab,
   openStudentTasksTab,
 } = require('./fixtures/auth.fixture');
@@ -20,9 +21,7 @@ test('élève peut se retirer d’une tâche prise en charge', async ({ page }) 
 
   await clickTeacherNewTask(page);
   await page.getByPlaceholder('Ex: Arroser les tomates').fill(taskTitle);
-  const submitCreate = page.getByRole('button', { name: 'Créer la tâche' });
-  await submitCreate.scrollIntoViewIfNeeded();
-  await submitCreate.click({ timeout: 60_000 });
+  await submitTaskFormDialog(page);
   await expect(page.locator('.task-card', { hasText: taskTitle }).first()).toBeVisible();
 
   await disableTeacherMode(page);
@@ -36,7 +35,8 @@ test('élève peut se retirer d’une tâche prise en charge', async ({ page }) 
   await expect(studentTaskCardAfter.getByRole('button', { name: /retirer/i })).toBeVisible({ timeout: 45_000 });
 
   await studentTaskCardAfter.getByRole('button', { name: /retirer/i }).click();
-  await page.getByRole('button', { name: 'Confirmer' }).click();
+  const unassignConfirm = page.getByRole('dialog', { name: /Confirmation d.action/i });
+  await unassignConfirm.getByRole('button', { name: 'Confirmer' }).click();
 
   await expect(page.getByText('OK, place libérée pour quelqu’un d’autre — merci d’avoir prévenu.')).toBeVisible();
 });
