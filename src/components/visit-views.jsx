@@ -1849,19 +1849,104 @@ function VisitView({
       <div className="visit-grid visit-grid--map-forward">
         <div className="visit-map-card">
           <div className="visit-map-card__chrome">
-            <div className="visit-map-card__chrome-main">
-              <h2 className="section-title visit-map-card__title">{visitTitle}</h2>
-              {visitPresentationTutorial ? (
+            <div className="visit-map-card__chrome-top">
+              <div className="visit-map-card__chrome-title-line">
+                <h2 className="section-title visit-map-card__title">{visitTitle}</h2>
+                {visitPresentationTutorial ? (
+                  <button
+                    type="button"
+                    className="visit-map-card__presentation-link"
+                    data-testid="visit-presentation-link"
+                    onClick={() => setVisitTutorialPreview(tutorialPreviewPayload(visitPresentationTutorial))}
+                  >
+                    Présentation
+                  </button>
+                ) : null}
+              </div>
+              <div className="visit-map-card__chrome-actions">
                 <button
                   type="button"
-                  className="visit-map-card__presentation-link"
-                  data-testid="visit-presentation-link"
-                  onClick={() => setVisitTutorialPreview(tutorialPreviewPayload(visitPresentationTutorial))}
+                  className={`btn btn-sm ${visitImmersion ? 'btn-primary' : 'btn-ghost'}`}
+                  onClick={() => setVisitImmersion((v) => !v)}
+                  aria-pressed={visitImmersion}
                 >
-                  Présentation
+                  {visitImmersion ? 'Quitter le plein plan' : 'Plein plan'}
                 </button>
-              ) : null}
-              {maps.length > 1 && (
+                {isTeacher ? (
+                  <button
+                    type="button"
+                    data-testid="visit-teacher-preview-toggle"
+                    className={`btn btn-sm ${teacherPreviewAsStudent ? 'btn-primary' : 'btn-ghost'}`}
+                    onClick={() => setTeacherPreviewAsStudent((v) => !v)}
+                    aria-pressed={teacherPreviewAsStudent}
+                  >
+                    {teacherPreviewAsStudent ? 'Retour édition prof' : 'Aperçu comme élève'}
+                  </button>
+                ) : null}
+                {visitCartographyProgress.total > 0 ? (
+                  <div className="visit-progress visit-progress--donut visit-progress--chrome-inline">
+                    <div
+                      className="visit-progress-donut"
+                      role="progressbar"
+                      aria-valuemin={0}
+                      aria-valuemax={100}
+                      aria-valuenow={visitCartographyProgress.pct}
+                      aria-label={`Parcours sur la carte : ${visitCartographyProgress.pct} % des zones et repères marqués comme vus (${visitCartographyProgress.seenCount} sur ${visitCartographyProgress.total}).`}
+                      title={`${visitCartographyProgress.pct} % — ${visitCartographyProgress.seenCount} / ${visitCartographyProgress.total} vus`}
+                      data-testid="visit-progress-donut"
+                    >
+                      <svg
+                        className="visit-progress-donut__svg"
+                        viewBox={`0 0 ${VISIT_PROGRESS_DONUT_VB} ${VISIT_PROGRESS_DONUT_VB}`}
+                        aria-hidden="true"
+                      >
+                        <circle
+                          className="visit-progress-donut__track"
+                          fill="none"
+                          strokeWidth={VISIT_PROGRESS_DONUT_STROKE}
+                          cx={VISIT_PROGRESS_DONUT_VB / 2}
+                          cy={VISIT_PROGRESS_DONUT_VB / 2}
+                          r={VISIT_PROGRESS_DONUT_R}
+                        />
+                        <circle
+                          className="visit-progress-donut__arc"
+                          fill="none"
+                          strokeWidth={VISIT_PROGRESS_DONUT_STROKE}
+                          strokeLinecap="round"
+                          cx={VISIT_PROGRESS_DONUT_VB / 2}
+                          cy={VISIT_PROGRESS_DONUT_VB / 2}
+                          r={VISIT_PROGRESS_DONUT_R}
+                          transform={`rotate(-90 ${VISIT_PROGRESS_DONUT_VB / 2} ${VISIT_PROGRESS_DONUT_VB / 2})`}
+                          strokeDasharray={VISIT_PROGRESS_DONUT_C}
+                          strokeDashoffset={VISIT_PROGRESS_DONUT_C * (1 - visitCartographyProgress.pct / 100)}
+                        />
+                      </svg>
+                      <span className="visit-progress-donut__label" aria-hidden="true">
+                        <span className="visit-progress-donut__value">{visitCartographyProgress.pct}</span>
+                        <span className="visit-progress-donut__pct-sign">%</span>
+                      </span>
+                    </div>
+                  </div>
+                ) : null}
+                {isHelpEnabled ? (
+                  <HelpPanel
+                    sectionId="visit"
+                    title={HELP_PANELS.visit.title}
+                    entries={HELP_PANELS.visit.items}
+                    isTeacher={isTeacher}
+                    isPulsing={!hasSeenSection('visit')}
+                    onMarkSeen={markSectionSeen}
+                    onOpen={trackPanelOpen}
+                    onDismiss={trackPanelDismiss}
+                  />
+                ) : null}
+                {!student && onBackToAuth ? (
+                  <button type="button" className="btn btn-ghost btn-sm" onClick={onBackToAuth}>↩ Retour connexion</button>
+                ) : null}
+              </div>
+            </div>
+            {maps.length > 1 && (
+              <div className="visit-map-card__chrome-maps">
                 <div className="visit-map-switch visit-map-switch--embedded">
                   {maps.map((m) => (
                     <button
@@ -1874,95 +1959,15 @@ function VisitView({
                     </button>
                   ))}
                 </div>
-              )}
-              {visitCartographyProgress.total > 0 ? (
-                <div className="visit-progress visit-progress--donut">
-                  <div
-                    className="visit-progress-donut"
-                    role="progressbar"
-                    aria-valuemin={0}
-                    aria-valuemax={100}
-                    aria-valuenow={visitCartographyProgress.pct}
-                    aria-label={`Parcours sur la carte : ${visitCartographyProgress.pct} % des zones et repères marqués comme vus (${visitCartographyProgress.seenCount} sur ${visitCartographyProgress.total}).`}
-                    title={`${visitCartographyProgress.pct} % — ${visitCartographyProgress.seenCount} / ${visitCartographyProgress.total} vus`}
-                    data-testid="visit-progress-donut"
-                  >
-                    <svg
-                      className="visit-progress-donut__svg"
-                      viewBox={`0 0 ${VISIT_PROGRESS_DONUT_VB} ${VISIT_PROGRESS_DONUT_VB}`}
-                      aria-hidden="true"
-                    >
-                      <circle
-                        className="visit-progress-donut__track"
-                        fill="none"
-                        strokeWidth={VISIT_PROGRESS_DONUT_STROKE}
-                        cx={VISIT_PROGRESS_DONUT_VB / 2}
-                        cy={VISIT_PROGRESS_DONUT_VB / 2}
-                        r={VISIT_PROGRESS_DONUT_R}
-                      />
-                      <circle
-                        className="visit-progress-donut__arc"
-                        fill="none"
-                        strokeWidth={VISIT_PROGRESS_DONUT_STROKE}
-                        strokeLinecap="round"
-                        cx={VISIT_PROGRESS_DONUT_VB / 2}
-                        cy={VISIT_PROGRESS_DONUT_VB / 2}
-                        r={VISIT_PROGRESS_DONUT_R}
-                        transform={`rotate(-90 ${VISIT_PROGRESS_DONUT_VB / 2} ${VISIT_PROGRESS_DONUT_VB / 2})`}
-                        strokeDasharray={VISIT_PROGRESS_DONUT_C}
-                        strokeDashoffset={VISIT_PROGRESS_DONUT_C * (1 - visitCartographyProgress.pct / 100)}
-                      />
-                    </svg>
-                    <span className="visit-progress-donut__label" aria-hidden="true">
-                      <span className="visit-progress-donut__value">{visitCartographyProgress.pct}</span>
-                      <span className="visit-progress-donut__pct-sign">%</span>
-                    </span>
-                  </div>
-                </div>
-              ) : (
-                <p className="visit-progress-empty visit-progress-empty--inline section-sub">
-                  {maps.length > 1
-                    ? 'Aucune zone ni repère sur cette carte. Choisis une autre carte ci-dessus si besoin.'
-                    : 'Aucune zone ni repère sur cette carte pour l’instant.'}
-                </p>
-              )}
-            </div>
-            <div className="visit-map-card__chrome-actions">
-              <button
-                type="button"
-                className={`btn btn-sm ${visitImmersion ? 'btn-primary' : 'btn-ghost'}`}
-                onClick={() => setVisitImmersion((v) => !v)}
-                aria-pressed={visitImmersion}
-              >
-                {visitImmersion ? 'Quitter le plein plan' : 'Plein plan'}
-              </button>
-              {isTeacher ? (
-                <button
-                  type="button"
-                  data-testid="visit-teacher-preview-toggle"
-                  className={`btn btn-sm ${teacherPreviewAsStudent ? 'btn-primary' : 'btn-ghost'}`}
-                  onClick={() => setTeacherPreviewAsStudent((v) => !v)}
-                  aria-pressed={teacherPreviewAsStudent}
-                >
-                  {teacherPreviewAsStudent ? 'Retour édition prof' : 'Aperçu comme élève'}
-                </button>
-              ) : null}
-              {isHelpEnabled ? (
-                <HelpPanel
-                  sectionId="visit"
-                  title={HELP_PANELS.visit.title}
-                  entries={HELP_PANELS.visit.items}
-                  isTeacher={isTeacher}
-                  isPulsing={!hasSeenSection('visit')}
-                  onMarkSeen={markSectionSeen}
-                  onOpen={trackPanelOpen}
-                  onDismiss={trackPanelDismiss}
-                />
-              ) : null}
-              {!student && onBackToAuth ? (
-                <button type="button" className="btn btn-ghost btn-sm" onClick={onBackToAuth}>↩ Retour connexion</button>
-              ) : null}
-            </div>
+              </div>
+            )}
+            {visitCartographyProgress.total === 0 ? (
+              <p className="visit-progress-empty visit-progress-empty--below-chrome section-sub">
+                {maps.length > 1
+                  ? 'Aucune zone ni repère sur cette carte. Choisis une autre carte ci-dessus si besoin.'
+                  : 'Aucune zone ni repère sur cette carte pour l’instant.'}
+              </p>
+            ) : null}
           </div>
           <div
             ref={stageRef}

@@ -3002,6 +3002,10 @@
       border:none;
       box-shadow:none;
     }
+    .visit-progress--chrome-inline.visit-progress--donut {
+      margin:0;
+      align-self:center;
+    }
     .visit-progress-donut {
       position:relative;
       width:52px;
@@ -3056,28 +3060,45 @@
       font-size:.8rem;
       padding:2px 0;
     }
+    .visit-progress-empty--below-chrome {
+      margin:6px 0 0;
+      width:100%;
+      font-size:.8rem;
+    }
     .visit-map-card__chrome {
       display:flex;
-      flex-wrap:wrap;
-      align-items:flex-start;
-      justify-content:space-between;
-      gap:10px 14px;
+      flex-direction:column;
+      align-items:stretch;
+      gap:8px;
       padding-bottom:8px;
       margin-bottom:2px;
       border-bottom:1px solid rgba(82,183,136,.15);
     }
-    .visit-map-card__chrome-main {
-      flex:1 1 220px;
+    .visit-map-card__chrome-top {
+      display:flex;
+      flex-wrap:wrap;
+      align-items:center;
+      gap:8px 12px;
+      width:100%;
       min-width:0;
-      display:grid;
-      gap:8px;
+    }
+    .visit-map-card__chrome-title-line {
+      display:flex;
+      flex-wrap:wrap;
+      align-items:center;
+      gap:8px 14px;
+      flex:1 1 auto;
+      min-width:0;
+    }
+    .visit-map-card__chrome-maps {
+      width:100%;
+      min-width:0;
     }
     .visit-map-card__title {
       margin:0;
       font-size:clamp(1.05rem, 1rem + .5vw, 1.35rem);
     }
     .visit-map-card__presentation-link {
-      justify-self:start;
       margin:0;
       padding:0;
       border:none;
@@ -3104,7 +3125,8 @@
       align-items:center;
       gap:6px;
       justify-content:flex-end;
-      flex:0 0 auto;
+      flex:0 1 auto;
+      margin-inline-start:auto;
     }
     .visit-map-empty-hint {
       margin:8px 0 0;
