@@ -387,3 +387,59 @@ test('buildSpeciesAutofill avec sourcesAllowed gbif seul n’interroge pas Wikip
   assert.ok(result.sources.some((s) => s.source === 'gbif'));
   assert.ok(!result.sources.some((s) => s.source === 'wikidata'));
 });
+
+test('buildSpeciesAutofill avec gbif+openai : OpenAI complète sans écraser GBIF', async () => {
+  const fetchImpl = async (url, init) => {
+    const raw = String(url || '');
+    if (raw.includes('api.gbif.org/v1/species/match')) {
+      return jsonResponse({
+        confidence: 95,
+        scientificName: 'Oxythyrea funesta',
+        canonicalName: 'Cétoine funeste',
+        family: 'Scarabaeidae',
+        order: 'Coleoptera',
+        kingdom: 'Animalia',
+        usageKey: 1234567,
+      });
+    }
+    if (raw.includes('api.gbif.org/v1/species/1234567') && !raw.includes('vernacularNames')) {
+      return jsonResponse({ taxonomicStatus: 'ACCEPTED' });
+    }
+    if (raw.includes('api.openai.com/v1/chat/completions')) {
+      const body = JSON.parse(String(init?.body || '{}'));
+      const user = Array.isArray(body.messages) ? body.messages.find((m) => m.role === 'user') : null;
+      const content = String(user?.content || '');
+      if (content.includes('cles_a_remplir')) {
+        return jsonResponse({
+          choices: [{ message: { content: JSON.stringify({ habitat: 'Prairies sèches, friches fleuries.', nutrition: 'Nectar et pollen.' }) } }],
+        });
+      }
+      return jsonResponse({
+        choices: [{ message: { content: JSON.stringify({ name: 'Nom inventé OpenAI', habitat: 'Milieux ouverts et chauds.' }) } }],
+      });
+    }
+    throw new Error(`URL inattendue: ${raw}`);
+  };
+  const prevFlag = process.env.SPECIES_AUTOFILL_OPENAI;
+  const prevKey = process.env.OPENAI_API_KEY;
+  process.env.SPECIES_AUTOFILL_OPENAI = '1';
+  process.env.OPENAI_API_KEY = 'sk-test';
+  try {
+    const result = await buildSpeciesAutofill('cétoine funeste', {
+      fetchImpl,
+      timeoutMs: 1200,
+      sourcesAllowed: ['gbif', 'openai'],
+    });
+    assert.equal(result.fields.name, 'Cétoine funeste');
+    assert.equal(result.fields.scientific_name, 'Oxythyrea funesta');
+    assert.equal(result.fields.group_1, 'Animalia');
+    assert.match(String(result.fields.habitat || ''), /prair|ouvert|chaud/i);
+    assert.ok((result.sources || []).some((s) => s.source === 'gbif'));
+    assert.ok((result.sources || []).some((s) => s.source === 'openai'));
+  } finally {
+    if (prevFlag === undefined) delete process.env.SPECIES_AUTOFILL_OPENAI;
+    else process.env.SPECIES_AUTOFILL_OPENAI = prevFlag;
+    if (prevKey === undefined) delete process.env.OPENAI_API_KEY;
+    else process.env.OPENAI_API_KEY = prevKey;
+  }
+});

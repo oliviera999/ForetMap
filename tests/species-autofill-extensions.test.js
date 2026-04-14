@@ -232,3 +232,34 @@ test('OpenAI gap-fill : fallback Responses API si chat/completions indisponible'
   process.env.SPECIES_AUTOFILL_OPENAI = prevF;
   process.env.OPENAI_API_KEY = prevK;
 });
+
+test('OpenAI : mode contexte court + allowGeneralKnowledge inclut extension taxons non végétaux', async () => {
+  const prevF = process.env.SPECIES_AUTOFILL_OPENAI;
+  const prevK = process.env.OPENAI_API_KEY;
+  process.env.SPECIES_AUTOFILL_OPENAI = '1';
+  process.env.OPENAI_API_KEY = 'sk-test';
+  let capturedSystem = '';
+  let capturedUser = '';
+  const fetchImpl = async (_url, init) => {
+    const body = JSON.parse(String(init?.body || '{}'));
+    const sysMsg = Array.isArray(body.messages) ? body.messages.find((m) => m.role === 'system') : null;
+    const userMsg = Array.isArray(body.messages) ? body.messages.find((m) => m.role === 'user') : null;
+    capturedSystem = String(sysMsg?.content || '');
+    capturedUser = String(userMsg?.content || '');
+    return {
+      ok: true,
+      status: 200,
+      json: async () => ({ choices: [{ message: { content: '{}' } }] }),
+    };
+  };
+  await fetchOpenAiSpeciesTraits({
+    query: 'cétoine funeste',
+    partialContext: 'cétoine funeste',
+    allowGeneralKnowledge: true,
+  }, { fetchImpl });
+  assert.match(capturedSystem, /insecte|non végétal|mammifère/i);
+  const parsedUser = JSON.parse(capturedUser);
+  assert.equal(parsedUser.mode_contexte, 'court_indicatif');
+  process.env.SPECIES_AUTOFILL_OPENAI = prevF;
+  process.env.OPENAI_API_KEY = prevK;
+});
