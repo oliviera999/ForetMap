@@ -705,7 +705,6 @@ function VisitView({
   );
   const roleTerms = getRoleTerms(isN3Affiliated);
   const visitTitle = getContentText(publicSettings, 'visit.title', '🧭 Visite de la carte');
-  const visitSubtitle = getContentText(publicSettings, 'visit.subtitle', 'Explore les zones et repères, puis marque ce que tu as déjà vu.');
   const visitEmptySelection = getContentText(publicSettings, 'visit.empty_selection', 'Sélectionne une zone ou un repère pour afficher les détails.');
   const visitTutorialsTitle = getContentText(publicSettings, 'visit.tutorials_title', '📘 Tutoriels de la visite');
   const visitTutorialsEmpty = getContentText(publicSettings, 'visit.tutorials_empty', 'Aucun tutoriel sélectionné pour le moment.');
@@ -715,6 +714,14 @@ function VisitView({
   visitLoadMapIdLiveRef.current = mapId;
   const [maps, setMaps] = useState([]);
   const [content, setContent] = useState({ zones: [], markers: [], tutorials: [], mascot_packs: [] });
+  /** Premier tutoriel « visite » ouvrable en modale (ordre API / sélection prof). */
+  const visitPresentationTutorial = useMemo(() => {
+    const list = content.tutorials || [];
+    for (const t of list) {
+      if (tutorialPreviewCanEmbed(t)) return t;
+    }
+    return null;
+  }, [content.tutorials]);
   const [selected, setSelected] = useState(null);
   const [selectedType, setSelectedType] = useState(null);
   const [seen, setSeen] = useState(new Set());
@@ -762,6 +769,8 @@ function VisitView({
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
   const visitMapMascotPctRef = useRef({ xp: 50, yp: 50 });
   const visitMapMascotMoveTimeoutRef = useRef(null);
+  /** Ouverture du panneau lieu après la fin du déplacement mascotte (mode vue). */
+  const visitDetailPanelAfterMoveTimeoutRef = useRef(null);
   const visitMapMascotHappyTimeoutRef = useRef(null);
   const visitMascotDialogTimeoutRef = useRef(null);
   const visitMascotMoveDialogCooldownUntilRef = useRef(0);
@@ -769,6 +778,10 @@ function VisitView({
   const { isHelpEnabled, hasSeenSection, markSectionSeen, trackPanelOpen, trackPanelDismiss } = useHelp({ publicSettings, isTeacher });
   const isGuestPublicVisit = !student && typeof onBackToAuth === 'function';
   const closeVisitSelection = useCallback(() => {
+    if (visitDetailPanelAfterMoveTimeoutRef.current) {
+      clearTimeout(visitDetailPanelAfterMoveTimeoutRef.current);
+      visitDetailPanelAfterMoveTimeoutRef.current = null;
+    }
     setSelected(null);
     setSelectedType(null);
   }, []);
@@ -1126,6 +1139,10 @@ function VisitView({
       clearTimeout(visitMapMascotMoveTimeoutRef.current);
       visitMapMascotMoveTimeoutRef.current = null;
     }
+    if (visitDetailPanelAfterMoveTimeoutRef.current) {
+      clearTimeout(visitDetailPanelAfterMoveTimeoutRef.current);
+      visitDetailPanelAfterMoveTimeoutRef.current = null;
+    }
     if (visitMapMascotHappyTimeoutRef.current) {
       clearTimeout(visitMapMascotHappyTimeoutRef.current);
       visitMapMascotHappyTimeoutRef.current = null;
@@ -1179,6 +1196,7 @@ function VisitView({
   useEffect(() => () => {
     cancelVisitZoomAnim();
     if (visitMapMascotMoveTimeoutRef.current) clearTimeout(visitMapMascotMoveTimeoutRef.current);
+    if (visitDetailPanelAfterMoveTimeoutRef.current) clearTimeout(visitDetailPanelAfterMoveTimeoutRef.current);
     if (visitMapMascotHappyTimeoutRef.current) clearTimeout(visitMapMascotHappyTimeoutRef.current);
     if (visitMascotDialogTimeoutRef.current) clearTimeout(visitMascotDialogTimeoutRef.current);
   }, [cancelVisitZoomAnim]);
@@ -1255,6 +1273,39 @@ function VisitView({
     [mapId, prefersReducedMotion, showMascotDialog, triggerMascotTransientState]
   );
 
+  /**
+   * Ouvre le panneau lieu une fois le déplacement mascotte terminé (même durée que `VISIT_MAP_MASCOT_MOVE_MS`).
+   * @param {{ xp: number, yp: number }} moveFromPct position mascotte **avant** `moveVisitMapMascotTo` (snapshot ref).
+   */
+  const scheduleVisitDetailPanelOpen = useCallback((item, itemType, targetXp, targetYp, moveFromPct) => {
+    if (visitDetailPanelAfterMoveTimeoutRef.current) {
+      clearTimeout(visitDetailPanelAfterMoveTimeoutRef.current);
+      visitDetailPanelAfterMoveTimeoutRef.current = null;
+    }
+    const prev = moveFromPct && Number.isFinite(moveFromPct.xp) && Number.isFinite(moveFromPct.yp)
+      ? moveFromPct
+      : visitMapMascotPctRef.current;
+    const target = clampVisitMascotPctForViewport(
+      targetXp,
+      targetYp,
+      visitMapFitRef.current?.height || 0,
+    );
+    const dist = Math.hypot(target.xp - prev.xp, target.yp - prev.yp);
+    const delay = dist < 0.08 || prefersReducedMotion ? 0 : VISIT_MAP_MASCOT_MOVE_MS;
+
+    const applySelection = () => {
+      visitDetailPanelAfterMoveTimeoutRef.current = null;
+      setSelected(item);
+      setSelectedType(itemType);
+    };
+
+    if (delay === 0) {
+      applySelection();
+    } else {
+      visitDetailPanelAfterMoveTimeoutRef.current = window.setTimeout(applySelection, delay);
+    }
+  }, [prefersReducedMotion]);
+
   const visitMapMascotRenderPct = useMemo(
     () => clampVisitMascotPctForViewport(visitMapMascotPct.xp, visitMapMascotPct.yp, visitMapFit.height),
     [visitMapMascotPct.xp, visitMapMascotPct.yp, visitMapFit.height]
@@ -1300,6 +1351,22 @@ function VisitView({
     if (!selected || !selectedType) return;
     const key = itemSeenKey(selectedType, selected.id);
     const wasSeen = seen.has(key);
+    const payloadType = selectedType;
+    const payloadId = selected.id;
+
+    if (!wasSeen) {
+      closeVisitSelection();
+      await new Promise((resolve) => {
+        if (typeof requestAnimationFrame !== 'function') {
+          setTimeout(resolve, 0);
+          return;
+        }
+        requestAnimationFrame(() => {
+          requestAnimationFrame(resolve);
+        });
+      });
+    }
+
     setSeen((prev) => {
       const optimistic = new Set(prev);
       if (wasSeen) optimistic.delete(key);
@@ -1309,8 +1376,8 @@ function VisitView({
     setSavingSeen(true);
     try {
       await api('/api/visit/seen', 'POST', {
-        target_type: selectedType,
-        target_id: selected.id,
+        target_type: payloadType,
+        target_id: payloadId,
         seen: !wasSeen,
       });
       if (!wasSeen) {
@@ -1784,10 +1851,16 @@ function VisitView({
           <div className="visit-map-card__chrome">
             <div className="visit-map-card__chrome-main">
               <h2 className="section-title visit-map-card__title">{visitTitle}</h2>
-              <details className="visit-map-card__about">
-                <summary className="visit-map-card__about-summary">Présentation</summary>
-                <p className="section-sub visit-map-card__about-text">{visitSubtitle}</p>
-              </details>
+              {visitPresentationTutorial ? (
+                <button
+                  type="button"
+                  className="visit-map-card__presentation-link"
+                  data-testid="visit-presentation-link"
+                  onClick={() => setVisitTutorialPreview(tutorialPreviewPayload(visitPresentationTutorial))}
+                >
+                  Présentation
+                </button>
+              ) : null}
               {maps.length > 1 && (
                 <div className="visit-map-switch visit-map-switch--embedded">
                   {maps.map((m) => (
@@ -1968,12 +2041,19 @@ function VisitView({
                           if (consumeSkipClick()) return;
                           if (mode === 'view') {
                             const c = visitZoneCentroidPct(z);
+                            const fromPct = { ...visitMapMascotPctRef.current };
                             if (c) moveVisitMapMascotTo(c.xp, c.yp);
                             triggerMascotTransientState(VISIT_MASCOT_STATE.MAP_READ, 1200);
                             showMascotDialog('map_read');
+                            if (c) scheduleVisitDetailPanelOpen(z, 'zone', c.xp, c.yp, fromPct);
+                            else {
+                              setSelected(z);
+                              setSelectedType('zone');
+                            }
+                          } else {
+                            setSelected(z);
+                            setSelectedType('zone');
                           }
-                          setSelected(z);
-                          setSelectedType('zone');
                         }}
                       >
                         <polygon
@@ -2069,12 +2149,15 @@ function VisitView({
                         event.stopPropagation();
                         if (consumeSkipClick()) return;
                         if (mode === 'view') {
+                          const fromPct = { ...visitMapMascotPctRef.current };
                           moveVisitMapMascotTo(Number(m.x_pct), Number(m.y_pct));
                           triggerMascotTransientState(VISIT_MASCOT_STATE.INSPECT, 1200);
                           showMascotDialog('inspect');
+                          scheduleVisitDetailPanelOpen(m, 'marker', Number(m.x_pct), Number(m.y_pct), fromPct);
+                        } else {
+                          setSelected(m);
+                          setSelectedType('marker');
                         }
-                        setSelected(m);
-                        setSelectedType('marker');
                       }}
                     >
                       <span className="visit-marker-emoji">{m.emoji || '📍'}</span>
