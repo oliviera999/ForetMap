@@ -11,7 +11,7 @@ const { emitGardenChanged } = require('../lib/realtime');
 const { saveBase64ToDisk, getAbsolutePath, deleteFile } = require('../lib/uploads');
 const { zoneMapPhotoImageUrl, markerMapPhotoImageUrl, resolveMapPhotoThumbUrl } = require('../lib/uploadsPublicUrls');
 const { visitContentRowIsPublicActive } = require('../lib/visitContentPublicActive');
-const { getMascotPackValidatorCandidates } = require('../lib/mascotPackValidatorResolve');
+const { getMascotPackValidatorCandidates, getMascotPackLibProbe } = require('../lib/mascotPackValidatorResolve');
 
 const router = express.Router();
 
@@ -229,6 +229,12 @@ function serializeVisitMascotPackRow(row) {
  */
 async function validateMascotPackForDb(raw, opts = {}) {
   const candidates = getMascotPackValidatorCandidates();
+  if (!Array.isArray(candidates) || candidates.length === 0) {
+    return {
+      ok: false,
+      moduleError: new Error('mascotPack validator introuvable: aucun candidat importable (src/utils ou lib/visit-pack miroir incomplet)'),
+    };
+  }
   let lastErr;
   for (const abs of candidates) {
     try {
@@ -241,6 +247,47 @@ async function validateMascotPackForDb(raw, opts = {}) {
   return {
     ok: false,
     moduleError: lastErr || new Error('mascotPack introuvable (exécuter `npm run build` ou `node scripts/sync-visit-pack-server-lib.js`)'),
+  };
+}
+
+function classifyMascotPackModuleError(moduleErr) {
+  const msg = String(moduleErr?.message || moduleErr || '');
+  if (/cannot find (module|package).+zod|err_module_not_found.+zod/i.test(msg)) {
+    return {
+      reason: 'missing_runtime_dependency',
+      hint: 'La dépendance runtime `zod` est introuvable sur le serveur (installer les dépendances de production à jour).',
+    };
+  }
+  if (/visitMascotState\.js|visitMascotInteractionEvents\.js/i.test(msg)) {
+    return {
+      reason: 'incomplete_lib_mirror',
+      hint: 'Le miroir `lib/visit-pack/` est incomplet (fichiers auxiliaires manquants).',
+    };
+  }
+  if (/cannot find module|cannot find package|err_module_not_found/i.test(msg)) {
+    return {
+      reason: 'validator_module_missing',
+      hint: 'Le module de validation des packs mascotte est introuvable (exécuter `npm run build` et redéployer `lib/visit-pack/`).',
+    };
+  }
+  return {
+    reason: 'validator_import_error',
+    hint: 'Erreur de chargement du validateur des packs mascotte (consulter les logs serveur).',
+  };
+}
+
+function buildMascotPackModuleUnavailableBody(moduleErr) {
+  const { reason, hint } = classifyMascotPackModuleError(moduleErr);
+  const probe = getMascotPackLibProbe();
+  return {
+    error: `Validation des packs mascotte indisponible sur ce serveur. ${hint}`,
+    code: 'mascot_pack_module_unavailable',
+    details: {
+      reason,
+      message: String(moduleErr?.message || moduleErr || '').slice(0, 400),
+      libMirrorOk: !!probe.libMirrorOk,
+      candidatesCount: Number(probe.candidatesCount) || 0,
+    },
   };
 }
 
@@ -803,10 +850,7 @@ router.post('/mascot-packs', requirePermission('visit.manage', { needsElevation:
     });
     if (validated.moduleError) {
       logRouteError(validated.moduleError, req, 'visit_mascot_packs: chargement mascotPack.js');
-      return jsonVisitMascotPackError(res, req, 503, {
-        error: 'Validation des packs mascotte indisponible sur ce serveur (modules `lib/visit-pack/` absents ou erreur de chargement — exécuter `npm run build` sur l’artefact déployé ou inclure `lib/visit-pack/` dans le bundle).',
-        code: 'mascot_pack_module_unavailable',
-      });
+      return jsonVisitMascotPackError(res, req, 503, buildMascotPackModuleUnavailableBody(validated.moduleError));
     }
     if (!validated.ok) {
       return res.status(400).json({
@@ -862,10 +906,7 @@ router.put('/mascot-packs/:id', requirePermission('visit.manage', { needsElevati
       });
       if (validated.moduleError) {
         logRouteError(validated.moduleError, req, 'visit_mascot_packs: chargement mascotPack.js');
-        return jsonVisitMascotPackError(res, req, 503, {
-          error: 'Validation des packs mascotte indisponible sur ce serveur (`lib/visit-pack/` manquant ou erreur de chargement).',
-          code: 'mascot_pack_module_unavailable',
-        });
+        return jsonVisitMascotPackError(res, req, 503, buildMascotPackModuleUnavailableBody(validated.moduleError));
       }
       if (!validated.ok) {
         return res.status(400).json({

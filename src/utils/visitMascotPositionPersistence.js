@@ -1,3 +1,5 @@
+import { safeLocalStorageGetItem, safeLocalStorageSetItem } from './browserStorage.js';
+
 /**
  * Persistance locale (localStorage) de la position % de la mascotte sur le plan visite,
  * par identifiant de carte — fonctionne sans compte (visite publique).
@@ -29,13 +31,7 @@ function normalizeStoredPct(rawXp, rawYp) {
  * @returns {{ xp: number, yp: number } | null}
  */
 function loadVisitMascotPositionPct(mapId) {
-  if (typeof window === 'undefined') return null;
-  let raw;
-  try {
-    raw = window.localStorage.getItem(positionStorageKey(mapId));
-  } catch {
-    return null;
-  }
+  const raw = safeLocalStorageGetItem(positionStorageKey(mapId), null);
   if (raw == null || raw === '') return null;
   try {
     const o = JSON.parse(raw);
@@ -51,14 +47,9 @@ function loadVisitMascotPositionPct(mapId) {
  * @param {{ xp: number, yp: number }} pct
  */
 function saveVisitMascotPositionPct(mapId, pct) {
-  if (typeof window === 'undefined') return;
   const n = normalizeStoredPct(pct?.xp, pct?.yp);
   if (!n) return;
-  try {
-    window.localStorage.setItem(positionStorageKey(mapId), JSON.stringify(n));
-  } catch {
-    /* quota / mode privé strict */
-  }
+  safeLocalStorageSetItem(positionStorageKey(mapId), JSON.stringify(n));
 }
 
 export {

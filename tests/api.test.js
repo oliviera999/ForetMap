@@ -2135,6 +2135,36 @@ test('visit mascot packs : CRUD prof + présence dans content si publié', async
   assert.ok(!afterDel.body.mascot_packs.some((p) => p.catalog_id === catalogId));
 });
 
+test('visit mascot packs : filtrage strict par map_id dans la liste studio', async () => {
+  const token = await getAdminAuthToken();
+  const created = await request(app)
+    .post('/api/visit/mascot-packs')
+    .set('Authorization', `Bearer ${token}`)
+    .send({ map_id: 'n3', is_published: 0 })
+    .expect(201);
+  const n3PackId = created.body.id;
+  try {
+    const listN3 = await request(app)
+      .get('/api/visit/mascot-packs?map_id=n3')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+    assert.ok(Array.isArray(listN3.body.packs));
+    assert.ok(listN3.body.packs.some((p) => p.id === n3PackId));
+
+    const listForet = await request(app)
+      .get('/api/visit/mascot-packs?map_id=foret')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+    assert.ok(Array.isArray(listForet.body.packs));
+    assert.ok(!listForet.body.packs.some((p) => p.id === n3PackId));
+  } finally {
+    await request(app)
+      .delete(`/api/visit/mascot-packs/${n3PackId}`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+  }
+});
+
 const VISIT_LIB_TINY_PNG_B64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO5qXg8AAAAASUVORK5CYII=';
 
 test('visit : bibliothèque sprites + clone catalogue + clone pack (assets)', async () => {

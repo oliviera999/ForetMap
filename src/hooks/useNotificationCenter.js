@@ -4,6 +4,7 @@ import {
   NOTIFICATION_LEVEL,
   NOTIFICATION_PREFS_DEFAULTS,
 } from '../constants/notifications';
+import { safeLocalStorageGetItem, safeLocalStorageSetItem } from '../utils/browserStorage.js';
 
 const MAX_ITEMS = 80;
 const KEEP_MS = 7 * 24 * 60 * 60 * 1000;
@@ -29,7 +30,7 @@ function nowIso() {
 
 function safeJsonRead(key, fallback) {
   try {
-    const raw = localStorage.getItem(key);
+    const raw = safeLocalStorageGetItem(key, null);
     if (!raw) return fallback;
     const parsed = JSON.parse(raw);
     return parsed ?? fallback;
@@ -40,7 +41,7 @@ function safeJsonRead(key, fallback) {
 
 function safeJsonWrite(key, value) {
   try {
-    localStorage.setItem(key, JSON.stringify(value));
+    safeLocalStorageSetItem(key, JSON.stringify(value));
   } catch {
     // localStorage indisponible/non critique
   }

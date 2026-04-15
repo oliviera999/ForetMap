@@ -1,4 +1,5 @@
 import { renard2CutManifest, RENARD2_FRAMES_BASE } from '../data/renard2-cut-manifest.js';
+import { safeLocalStorageGetItem, safeLocalStorageSetItem } from './browserStorage.js';
 
 const VISIT_MASCOT_STORAGE_KEY = 'foretmap_visit_mascot_id';
 
@@ -348,16 +349,13 @@ function getVisitMascotSupportedStates(mascotId, extraEntries = []) {
 }
 
 function loadVisitMascotId(extraEntries = []) {
-  if (typeof window === 'undefined') return getDefaultVisitMascotId();
-  const raw = window.localStorage.getItem(VISIT_MASCOT_STORAGE_KEY);
+  const raw = safeLocalStorageGetItem(VISIT_MASCOT_STORAGE_KEY, null);
   return normalizeVisitMascotId(raw, extraEntries);
 }
 
 function saveVisitMascotId(mascotId, extraEntries = []) {
   const id = normalizeVisitMascotId(mascotId, extraEntries);
-  if (typeof window !== 'undefined') {
-    window.localStorage.setItem(VISIT_MASCOT_STORAGE_KEY, id);
-  }
+  safeLocalStorageSetItem(VISIT_MASCOT_STORAGE_KEY, id);
   return id;
 }
 
