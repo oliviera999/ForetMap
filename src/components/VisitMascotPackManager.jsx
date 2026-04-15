@@ -226,6 +226,18 @@ export default function VisitMascotPackManager({
   const [libAssets, setLibAssets] = useState([]);
   const [libLoading, setLibLoading] = useState(false);
   const [libMessage, setLibMessage] = useState('');
+  const [globalAssets, setGlobalAssets] = useState([]);
+  const [globalAssetsLoading, setGlobalAssetsLoading] = useState(false);
+  const [globalAssetsMessage, setGlobalAssetsMessage] = useState('');
+  const [globalAssetSearch, setGlobalAssetSearch] = useState('');
+  const [globalTargetState, setGlobalTargetState] = useState('idle');
+  const catalogModelOptions = useMemo(
+    () => getVisitMascotCatalog().map((m) => ({ id: String(m.id || ''), label: String(m.label || m.id || '') })).filter((m) => m.id),
+    []
+  );
+  const [selectedCatalogModelId, setSelectedCatalogModelId] = useState(() => (
+    getVisitMascotCatalog()[0]?.id || 'renard2-cut-spritesheet'
+  ));
 
   const mapTitle = useMemo(() => String(mapLabel || mapId || '').trim() || mapId, [mapLabel, mapId]);
 
@@ -268,6 +280,21 @@ export default function VisitMascotPackManager({
     }
   }, [mapId, onForceLogout]);
 
+  const loadGlobalAssets = useCallback(async () => {
+    setGlobalAssetsLoading(true);
+    setGlobalAssetsMessage('');
+    try {
+      const res = await api('/api/visit/mascot-assets');
+      setGlobalAssets(Array.isArray(res?.assets) ? res.assets : []);
+    } catch (e) {
+      if (e instanceof AccountDeletedError) onForceLogout?.();
+      else setGlobalAssetsMessage(e.message || 'Impossible de charger les assets globaux');
+      setGlobalAssets([]);
+    } finally {
+      setGlobalAssetsLoading(false);
+    }
+  }, [onForceLogout]);
+
   useEffect(() => {
     void loadList();
   }, [loadList]);
@@ -277,8 +304,11 @@ export default function VisitMascotPackManager({
   }, [selectedId]);
 
   useEffect(() => {
-    if (editorTab === 'library') void loadLibrary();
-  }, [editorTab, loadLibrary]);
+    if (editorTab === 'library') {
+      void loadLibrary();
+      void loadGlobalAssets();
+    }
+  }, [editorTab, loadLibrary, loadGlobalAssets]);
 
   const selectedRow = packs.find((p) => p.id === selectedId);
 
@@ -336,8 +366,10 @@ export default function VisitMascotPackManager({
   }, [postNewPack]);
 
   const onNewFromCatalog = useCallback(async () => {
-    await postNewPack({ clone_from_catalog_id: 'renard2-cut-spritesheet' });
-  }, [postNewPack]);
+    const modelId = String(selectedCatalogModelId || '').trim();
+    if (!modelId) return;
+    await postNewPack({ clone_from_catalog_id: modelId });
+  }, [postNewPack, selectedCatalogModelId]);
 
   const onDuplicateSelected = useCallback(async () => {
     if (!selectedId) return;
@@ -507,6 +539,54 @@ export default function VisitMascotPackManager({
     setEditorTab('visual');
   }, [mapId]);
 
+  const libraryFilteredAssets = useMemo(() => {
+    const q = String(globalAssetSearch || '').trim().toLowerCase();
+    if (!q) return globalAssets;
+    return globalAssets.filter((a) => {
+      const hay = [
+        a?.filename,
+        a?.url,
+        a?.source,
+        a?.map_id,
+        a?.pack_catalog_id,
+        a?.pack_label,
+      ].map((x) => String(x || '').toLowerCase()).join(' ');
+      return hay.includes(q);
+    });
+  }, [globalAssets, globalAssetSearch]);
+
+  const insertGlobalAssetIntoState = useCallback((assetUrl) => {
+    const state = String(globalTargetState || '').trim() || 'idle';
+    const url = String(assetUrl || '').trim();
+    if (!url) return;
+    setEditorPack((prev) => {
+      const next = { ...(prev || {}) };
+      const sf = next.stateFrames && typeof next.stateFrames === 'object' ? { ...next.stateFrames } : {};
+      const cur = sf[state] && typeof sf[state] === 'object' ? { ...sf[state] } : {};
+      let srcs = [];
+      if (Array.isArray(cur.srcs) && cur.srcs.length > 0) {
+        srcs = cur.srcs.map((u) => String(u || '').trim()).filter(Boolean);
+      } else if (Array.isArray(cur.files) && cur.files.length > 0) {
+        const base = String(next.framesBase || '').trim();
+        const normalizedBase = base.endsWith('/') ? base : (base ? `${base}/` : '');
+        srcs = cur.files
+          .map((f) => `${normalizedBase}${String(f || '').replace(/^\//, '')}`)
+          .map((u) => String(u || '').trim())
+          .filter(Boolean);
+      }
+      if (!srcs.includes(url)) srcs.push(url);
+      sf[state] = {
+        ...cur,
+        srcs,
+        fps: Math.max(1, Number(cur.fps) || 8),
+      };
+      delete sf[state].files;
+      next.stateFrames = sf;
+      return next;
+    });
+    setEditorTab('visual');
+  }, [globalTargetState]);
+
   return (
     <div
       className={`visit-mascot-pack-manager ${variant === 'page' ? 'visit-mascot-pack-manager--page' : ''}`}
@@ -544,14 +624,29 @@ export default function VisitMascotPackManager({
           >
             Nouveau brouillon
           </button>
+          <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+            <span className="section-sub" style={{ fontSize: '0.78rem' }}>Modèle</span>
+            <select
+              className="form-select"
+              value={selectedCatalogModelId}
+              onChange={(e) => setSelectedCatalogModelId(e.target.value)}
+              style={{ minWidth: 190 }}
+              disabled={actionBusy}
+              aria-label="Choisir une mascotte catalogue comme modèle"
+            >
+              {catalogModelOptions.map((opt) => (
+                <option key={opt.id} value={opt.id}>{opt.label}</option>
+              ))}
+            </select>
+          </label>
           <button
             type="button"
             className="btn btn-secondary btn-sm"
-            disabled={actionBusy}
+            disabled={actionBusy || !selectedCatalogModelId}
             onClick={() => void onNewFromCatalog()}
-            title="Modèle Renard 2 (assets /public/)"
+            title="Créer un pack depuis la mascotte catalogue sélectionnée"
           >
-            Nouveau depuis modèle
+            Nouveau depuis ce modèle
           </button>
           <button type="button" className="btn btn-ghost btn-sm" disabled={actionBusy} onClick={() => void onRefresh()}>
             Actualiser
@@ -702,32 +797,120 @@ export default function VisitMascotPackManager({
             ) : null}
             {editorTab === 'library' ? (
               <div>
-                <p className="section-sub" style={{ fontSize: '0.82rem' }}>
-                  PNG partagés pour cette carte. Utilisez « Définir framesBase sur la bibliothèque » puis des noms relatifs dans chaque état.
-                </p>
-                <button type="button" className="btn btn-secondary btn-sm" style={{ marginRight: 8 }} onClick={() => void loadLibrary()}>
-                  Actualiser la liste
-                </button>
-                <button type="button" className="btn btn-primary btn-sm" onClick={setFramesBaseToLibrary}>
-                  Définir framesBase sur la bibliothèque
-                </button>
-                <label className="btn btn-ghost btn-sm" style={{ marginLeft: 8, cursor: 'pointer' }}>
-                  Importer PNG…
-                  <input type="file" accept="image/png" style={{ display: 'none' }} onChange={(e) => void onLibUpload(e)} />
-                </label>
-                {libMessage ? <p className="section-sub" style={{ marginTop: 8 }}>{libMessage}</p> : null}
-                {libLoading ? <p className="section-sub">Chargement…</p> : null}
-                <ul style={{ marginTop: 10, paddingLeft: 18 }}>
-                  {libAssets.map((a) => (
-                    <li key={a.filename} style={{ marginBottom: 6, fontSize: '0.85rem' }}>
-                      <code>{a.filename}</code>
-                      {' '}
-                      <button type="button" className="btn btn-ghost btn-sm" onClick={() => void onLibDelete(a.filename)}>
-                        Supprimer
-                      </button>
-                    </li>
-                  ))}
-                </ul>
+                <section style={{ marginBottom: 16 }}>
+                  <h3 style={{ marginTop: 0, fontSize: '0.95rem' }}>Bibliothèque de la carte</h3>
+                  <p className="section-sub" style={{ fontSize: '0.82rem' }}>
+                    PNG partagés pour cette carte. Utilisez « Définir framesBase sur la bibliothèque » puis des noms relatifs dans chaque état.
+                  </p>
+                  <button type="button" className="btn btn-secondary btn-sm" style={{ marginRight: 8 }} onClick={() => void loadLibrary()}>
+                    Actualiser la liste
+                  </button>
+                  <button type="button" className="btn btn-primary btn-sm" onClick={setFramesBaseToLibrary}>
+                    Définir framesBase sur la bibliothèque
+                  </button>
+                  <label className="btn btn-ghost btn-sm" style={{ marginLeft: 8, cursor: 'pointer' }}>
+                    Importer PNG…
+                    <input type="file" accept="image/png" style={{ display: 'none' }} onChange={(e) => void onLibUpload(e)} />
+                  </label>
+                  {libMessage ? <p className="section-sub" style={{ marginTop: 8 }}>{libMessage}</p> : null}
+                  {libLoading ? <p className="section-sub">Chargement…</p> : null}
+                  <ul style={{ marginTop: 10, paddingLeft: 18 }}>
+                    {libAssets.map((a) => (
+                      <li key={a.filename} style={{ marginBottom: 6, fontSize: '0.85rem' }}>
+                        <code>{a.filename}</code>
+                        {' '}
+                        <button type="button" className="btn btn-ghost btn-sm" onClick={() => void onLibDelete(a.filename)}>
+                          Supprimer
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </section>
+
+                <section>
+                  <h3 style={{ marginTop: 0, fontSize: '0.95rem' }}>Tous les assets mascotte du site</h3>
+                  <p className="section-sub" style={{ fontSize: '0.82rem' }}>
+                    Vue globale : catalogue statique + assets des packs + bibliothèques cartes, sans dépendre de la mascotte en cours d’édition.
+                  </p>
+                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', marginBottom: 8 }}>
+                    <button type="button" className="btn btn-secondary btn-sm" onClick={() => void loadGlobalAssets()}>
+                      Actualiser assets site
+                    </button>
+                    <input
+                      className="form-input"
+                      style={{ minWidth: 220 }}
+                      placeholder="Filtrer (nom, map, source, URL)…"
+                      value={globalAssetSearch}
+                      onChange={(e) => setGlobalAssetSearch(e.target.value)}
+                    />
+                    <label className="section-sub" style={{ fontSize: '0.8rem', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                      Insérer dans état
+                      <select
+                        className="form-select"
+                        value={globalTargetState}
+                        onChange={(e) => setGlobalTargetState(e.target.value)}
+                      >
+                        {Object.values(VISIT_MASCOT_STATE).map((st) => (
+                          <option key={st} value={st}>{st}</option>
+                        ))}
+                      </select>
+                    </label>
+                  </div>
+                  {globalAssetsMessage ? <p className="section-sub" style={{ marginTop: 8 }}>{globalAssetsMessage}</p> : null}
+                  {globalAssetsLoading ? <p className="section-sub">Chargement assets globaux…</p> : null}
+                  <div style={{ maxHeight: 330, overflow: 'auto', border: '1px solid rgba(26,71,49,0.12)', borderRadius: 8 }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }}>
+                      <thead>
+                        <tr style={{ textAlign: 'left', borderBottom: '1px solid rgba(26,71,49,0.18)' }}>
+                          <th style={{ padding: '6px 8px' }}>Source</th>
+                          <th style={{ padding: '6px 8px' }}>Fichier</th>
+                          <th style={{ padding: '6px 8px' }}>URL</th>
+                          <th style={{ padding: '6px 8px' }}>Action</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {libraryFilteredAssets.map((asset) => (
+                          <tr key={asset.id} style={{ borderBottom: '1px solid rgba(26,71,49,0.08)' }}>
+                            <td style={{ padding: '6px 8px' }}>
+                              <code>{asset.source}</code>
+                              {asset.map_id ? <span>{` · ${asset.map_id}`}</span> : null}
+                            </td>
+                            <td style={{ padding: '6px 8px' }}>
+                              <code>{asset.filename || '—'}</code>
+                            </td>
+                            <td style={{ padding: '6px 8px', maxWidth: 320, wordBreak: 'break-all' }}>
+                              <code>{asset.url}</code>
+                            </td>
+                            <td style={{ padding: '6px 8px', whiteSpace: 'nowrap' }}>
+                              <button
+                                type="button"
+                                className="btn btn-ghost btn-sm"
+                                onClick={() => void navigator.clipboard.writeText(asset.url || '')}
+                              >
+                                Copier URL
+                              </button>
+                              <button
+                                type="button"
+                                className="btn btn-secondary btn-sm"
+                                style={{ marginLeft: 6 }}
+                                onClick={() => insertGlobalAssetIntoState(asset.url)}
+                              >
+                                Utiliser
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                        {!globalAssetsLoading && libraryFilteredAssets.length === 0 ? (
+                          <tr>
+                            <td colSpan={4} style={{ padding: '10px 8px' }} className="section-sub">
+                              Aucun asset trouvé pour ce filtre.
+                            </td>
+                          </tr>
+                        ) : null}
+                      </tbody>
+                    </table>
+                  </div>
+                </section>
               </div>
             ) : null}
             {editorTab === 'interaction' ? (

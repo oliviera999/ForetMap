@@ -13,6 +13,7 @@ Réponses JSON. En cas d’erreur : `{ "error": "message" }` avec statut HTTP ad
 | GET | `/api/health` | Santé sans BDD |
 | GET | `/api/health/db` | Ping MySQL : `200` si OK, `503` si base indisponible |
 | GET | `/api/ready` | **Readiness** : `200` si l’init BDD a réussi **et** un ping MySQL actuel OK ; `503` pendant le boot, si l’init a échoué ou si MySQL ne répond pas (sonde LB / orchestrateur) |
+| GET | `/api/version` | Version SemVer de l’app : JSON `{ "version": "<semver>" }` (lecture de `package.json` à chaque requête ; en cas d’échec de lecture, repli sur la version chargée au démarrage du process). Utilisé par les scripts de contrôle post-déploiement (`npm run deploy:check:prod`, etc.) |
 | GET | `/health` | Alias |
 
 ---
@@ -55,6 +56,7 @@ Nécessite la variable d’environnement **`DEPLOY_SECRET`** et le header **`X-D
 | POST | `/api/admin/restart` | Redémarre le processus Node (body JSON `{ "secret" }` ou header) |
 | GET | `/api/admin/logs` | Dernières lignes des logs applicatifs (Pino) depuis un **tampon mémoire** (`?lines=200` par défaut, max 5000). Réponse JSON : `entries` (tableau de chaînes), `bufferLines`, `bufferMax`. En local : secret dans `.env` via **`DEPLOY_SECRET`**, **`FORETMAP_DEPLOY_CHECK_SECRET`** ou **`FORETMAP_DEPLOY_SECRET`** (même valeur que la prod). Scripts : **`npm run prod:admin-tail`** (résumé + tampon), **`npm run prod:admin-diagnostics`** (JSON complet diagnostics), **`npm run prod:remote-debug`** (check post-déploiement puis tail). **User-Agent** dédiés + pause pour limiter les **429**. |
 | GET | `/api/admin/diagnostics` | **Instantané d’exploitation** (sans secrets dans la réponse) : champs ci-dessus + **`metrics`** (`httpRequests`, `http5xx`, `http4xx`, **`http429`** : compteur exact des réponses 429, `httpSlow`, `routeErrors`, `rateLimit429Samples` : échantillon logs rate limit global, **`recentHttp5xx`**, **`recentHttp429`** : derniers 429 avec `requestId`, `method`, `path`, `at`) + **`runtimeProcess`** (`pid`, `cluster.isWorker` / `cluster.workerId`, `envHints.nodeAppInstance`, `envHints.passengerAppEnv`) : décrit **le processus qui répond** ; le nombre d’instances Passenger/PM2 se lit au **panneau hébergeur** (voir **`docs/EXPLOITATION.md`**, temps réel). + **`visitMascotHint`** : `{ maps: [{ map_id, visitZonesInPublicApi, visitZonesTotalRows, visitMarkersInPublicApi, visitMarkersTotalRows, visitTutorialsForContentApi, mascotWouldRenderHint }], error? }` — agrégats alignés sur le public **`GET /api/visit/content`** (diagnostic mascotte ; **`docs/VISIT_MAP_GEOMETRY.md`**). + **`mascotPackLibProbe`** : `{ roots, candidatesCount, libMirrorOk }` — présence des fichiers **`lib/visit-pack/*`** pour la validation **POST/PUT** `/api/visit/mascot-packs` (**`docs/EXPLOITATION.md`** si `libMirrorOk` est false). |
+| GET | `/api/admin/oauth-debug` | Diagnostic OAuth **sans secrets** : résolution des URLs (origine front, redirect Google), présence des variables client id/secret (booléens uniquement), en-têtes **`X-Forwarded-*`** et hôte/protocole vus par le process. **Même** contrôle d’accès que les autres routes admin ci-dessus : header **`X-Deploy-Secret`** = **`DEPLOY_SECRET`**. Pour la console réglages (JWT prof + droits), voir **`GET /api/settings/admin/system/oauth-debug`** (champs supplémentaires **`allowedDomains`**, **`allowedEmails`**). |
 
 Le tampon est dimensionné par **`LOG_BUFFER_MAX_LINES`** (défaut 2000, plafond 5000). Les logs antérieurs au démarrage du process ne sont pas disponibles ici (voir aussi les logs du panel hébergeur / stdout).
 
@@ -230,7 +232,7 @@ Ces routes sont destinées à la console admin et exigent un token avec permissi
 | PUT | `/api/settings/admin/maps/:id` | Mettre à jour une carte (label, ordre, activation, URL image, padding) |
 | POST | `/api/settings/admin/maps/:id/image` | Upload image de plan (`{ image_data }`) |
 | GET | `/api/settings/admin/system/logs` | Lecture des logs applicatifs via GUI |
-| GET | `/api/settings/admin/system/oauth-debug` | Diagnostic runtime OAuth (sans secrets) |
+| GET | `/api/settings/admin/system/oauth-debug` | Diagnostic runtime OAuth (sans secrets) : **`admin.settings.read`** + élévation PIN ; JSON avec **`allowedDomains`** / **`allowedEmails`** (restrictions Google). **Doublon fonctionnel** (autre périmètre d’accès) : **`GET /api/admin/oauth-debug`** avec **`X-Deploy-Secret`** — voir section **Administration (secret `DEPLOY_SECRET`)**. |
 | GET | `/api/settings/admin/system/species-autofill-providers-test` | Auto-test minimal **Pl@ntNet** (GET `/v2/quota`, clé + connectivité) et **OpenAI** (GET `v1/models?limit=1`) avec les variables d’environnement du processus ; réponse JSON `{ ok, plantnet, openai }` sans aucune clé. Par fournisseur : `configuredForAutofill`, `keyPresent`, `moduleFlagOn`, `tested`, `ok`, `httpStatus`, `latencyMs`, `message` / `error`. |
 | POST | `/api/settings/admin/system/restart` | Redémarrage applicatif contrôlé |
 
@@ -311,15 +313,16 @@ Contenus éditables du site (micro-CMS texte brut) :
 |--------|-----|------|-------------|
 | GET | `/api/visit/content?map_id=foret` | non | Contenus publics de visite (zones, repères, médias du plan, tutoriels actifs **pour ce plan**) ; inclut **`mascot_packs`** : packs `sprite_cut` **publiés** pour cette carte (`{ catalog_id, label, pack }` chacun — voir **`docs/MASCOT_PACK.md`**) |
 | GET | `/api/visit/mascot-packs?map_id=foret` | oui | Liste tous les packs mascotte (brouillons + publiés) pour la carte — **`visit.manage`** + élévation PIN |
-| POST | `/api/visit/mascot-packs` | oui | Créer un pack : `{ map_id, pack?, label?, is_published?, clone_from_pack_id?, clone_from_catalog_id? }` — sans `pack` ni clone : brouillon **v2** complet (Renard 2 sous `/assets/mascots/renard2-cut/frames/`). **`clone_from_pack_id`** (UUID, même `map_id`) : copie JSON + fichiers uploadés vers un nouveau pack. **`clone_from_catalog_id`** : seul `renard2-cut-spritesheet` (modèle catalogue statique). |
+| POST | `/api/visit/mascot-packs` | oui | Créer un pack : `{ map_id, pack?, label?, is_published?, clone_from_pack_id?, clone_from_catalog_id? }` — sans `pack` ni clone : brouillon **v2** complet (Renard 2 sous `/assets/mascots/renard2-cut/frames/`). **`clone_from_pack_id`** (UUID, même `map_id`) : copie JSON + fichiers uploadés vers un nouveau pack. **`clone_from_catalog_id`** : accepte toutes les mascottes catalogue connues du serveur ; en cas d’ID invalide, **400** avec `allowed_catalog_ids`. |
 | GET | `/api/visit/mascot-sprite-library/:mapId/assets` | oui | Liste PNG partagés par carte — **`visit.manage`** + élévation |
-| GET | `/api/visit/mascot-sprite-library/:mapId/assets/:filename` | non | Image PNG si une ligne bibliothèque existe pour ce couple (`map_id`, `filename`) |
+| GET | `/api/visit/mascot-sprite-library/:mapId/assets/:filename` | non | Image PNG si une ligne bibliothèque existe pour ce couple (`map_id`, `filename`). **Aucune** vérification de rôle sur cette URL : la protection repose sur le fait que seuls les profs peuvent **créer** des entrées bibliothèque et sur la discrétion des URLs référencées dans les packs publiés. |
 | POST | `/api/visit/mascot-sprite-library/:mapId/assets` | oui | Upload PNG : `{ filename, image_data }` — **`uploads/visit_mascot_sprite_library/{map_id}/`** ; le pack peut utiliser **`framesBase`** = `/api/visit/mascot-sprite-library/{mapId}/assets/` |
 | DELETE | `/api/visit/mascot-sprite-library/:mapId/assets/:filename` | oui | Supprime l’entrée et le fichier |
 | PUT | `/api/visit/mascot-packs/:id` | oui | Mettre à jour `label`, `pack`, `is_published` (corps : `map_id` requis, identique à la ligne) |
 | DELETE | `/api/visit/mascot-packs/:id` | oui | Supprime le pack et le dossier **`uploads/visit_mascot_packs/{id}/`** |
 | GET | `/api/visit/mascot-packs/:id/assets` | oui | Liste les PNG uploadés du pack : `{ pack_id, assets: [{ filename, url }] }` — **`visit.manage`** + élévation PIN |
-| GET | `/api/visit/mascot-packs/:packId/assets/:filename` | partiel | Image PNG si le pack est **publié** ; sinon jeton prof avec **`visit.manage`** + élévation |
+| GET | `/api/visit/mascot-assets` | oui | Inventaire global des assets mascotte du site : catalogue statique (`public/assets/mascots`), assets uploadés par pack, bibliothèques par carte. Réponse `{ assets, counts }` avec `source` (`public`/`pack`/`library`) |
+| GET | `/api/visit/mascot-packs/:packId/assets/:filename` | oui | Fichier PNG du pack. **JWT obligatoire** (middleware `authenticate`) : sans jeton valide → **401**. Pack **publié** (`is_published`) → tout utilisateur **authentifié** peut lire l’asset. Pack **brouillon** → **`visit.manage`** + élévation PIN requises, sinon **403**. |
 | POST | `/api/visit/mascot-packs/:id/assets` | oui | Upload PNG : `{ filename, image_data }` (base64 / data URL) — fichier sous **`uploads/visit_mascot_packs/{id}/`** ; le JSON du pack peut référencer **`framesBase`** = `/api/visit/mascot-packs/{id}/assets/` |
 | DELETE | `/api/visit/mascot-packs/:id/assets/:filename` | oui | Supprime un fichier uploadé du pack |
 | GET | `/api/visit/progress` | non | Progression des cibles vues : mode **student** si `Authorization: Bearer` = jeton **élève** (l’identité est tirée du jeton ; le paramètre `student_id` est refusé sauf s’il correspond au même compte) ; sinon mode **anonymous** via cookie signé `anon_visit_token` (pas de `student_id` en query) |
@@ -343,6 +346,8 @@ Contenus éditables du site (micro-CMS texte brut) :
 
 **Packs mascotte (validation serveur)** : les **POST** / **PUT** sur `/api/visit/mascot-packs` chargent la validation Zod (v1 et v2) depuis **`lib/visit-pack/`** (`mascotPack.js`, `visitMascotState.js`, `visitMascotInteractionEvents.js`, générés par **`npm run build`** ou **`npm run sync:visit-pack-lib`**). Sans miroir `lib/visit-pack/` complet **ou** sans dépendance runtime `zod`, l’API renvoie **503** avec `code: mascot_pack_module_unavailable` (diagnostic dans `details.reason`).
 
+- **`clone_from_catalog_id`** : la liste des IDs acceptés est définie **côté serveur** (`routes/visit.js`, métadonnées catalogue / templates). Elle doit rester alignée avec le catalogue frontend **`src/utils/visitMascotCatalog.js`** (aperçu studio, libellés) ; en cas d’ID inconnu, la réponse **400** inclut **`allowed_catalog_ids`**.
+
 Contraintes importantes :
 
 - **`GET /api/visit/content`** : chaque zone renvoyée inclut **`description`** (texte de la table **`zones`**, jointure sur le même `id`) ; chaque repère inclut **`note`** (table **`map_markers`**, même principe). Ces champs sont **`null`** s’il n’y a pas de ligne carte correspondante ou si le texte est vide. Les zones et repères dont **`is_active`** est **explicitement** désactivé (`0`, `false`, chaîne `'0'`) sont exclus ; les autres valeurs « actives » (y compris variantes driver) restent listées.
@@ -364,7 +369,7 @@ La mascotte de visite est pilotée côté frontend (catalogue + renderer), mais 
   - `data-visit-mascot-visibility` (`visible` / `hidden`)
   - `data-visit-mascot-reason` (ex. `no-public-content`, `mode-not-view`)
 - **Shell mascotte** : attributs de `[data-mascot-id]`
-  - `data-renderer` (`rive`, `spritesheet`, `fallback-static`)
+  - `data-renderer` (`rive`, `spritesheet`, `sprite_cut`, `fallback-static`)
   - `data-mascot-state` (ex. `idle`, `walking`, `running`, `talk`, `inspect`, `map_read`, `celebrate`)
   - `data-mascot-shape` (silhouette fallback)
 - **Rive** : `[data-rive-status]` (`loading`, `loaded`, `playing:<anim>`, `fallback-no-animation`, `error`)

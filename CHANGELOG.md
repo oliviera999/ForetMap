@@ -3,9 +3,12 @@
 Ce fichier suit les principes de [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/).
 Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (MAJEUR.MINEUR.CORRECTIF).
 
+**ForetMap :** pendant le développement sur `main`, le champ **`version`** de **`package.json`** est incrémenté **à chaque lot livré** (`npm run bump:*`, voir [docs/VERSIONING.md](docs/VERSIONING.md) — *Lots livrés sur `main`*), tandis que **`[Non publié]`** ci-dessous accumule les notes jusqu’à une **release** formelle (section renommée en **`[X.Y.Z] - date`** + tag **`vX.Y.Z`**). Les sections **datées** plus bas conservent l’historique des releases passées.
+
 ## [Non publié]
 
 ### Modifié
+- **Build** : régénération locale des artefacts **`dist/`** (bundle Vite production).
 - **Visite — présentation du lieu** : le premier tutoriel embarquable s’ouvre via un **bouton** « Présentation du lieu » (bandeau au-dessus du plan) pour **tous** les utilisateurs en **navigation** ; **animation d’incitation** (léger pulse / halo) tant qu’**aucune zone ni repère** de la carte courante n’a été marqué·e comme vu·e, désactivée si **réduction des animations** système. **`visit-views.jsx`**, **`index.css`** ; e2e **`visit-mode.spec.js`**.
 
 ### Corrigé
