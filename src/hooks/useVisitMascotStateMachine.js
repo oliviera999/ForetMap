@@ -45,9 +45,7 @@ function useVisitMascotStateMachine({
   );
 
   useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const raw = window.localStorage.getItem(VISIT_MASCOT_STORAGE_KEY);
-    const normalized = normalizeVisitMascotId(raw, extraCatalogEntries);
+    const normalized = normalizeVisitMascotId(loadVisitMascotId(extraCatalogEntries), extraCatalogEntries);
     setVisitMascotId((prev) => (prev === normalized ? prev : normalized));
   }, [extraCatalogEntries]);
 

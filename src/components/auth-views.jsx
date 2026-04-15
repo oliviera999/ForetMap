@@ -1,5 +1,17 @@
 import React, { useEffect, useId, useMemo, useRef, useState } from 'react';
-import { api, getAuthToken, getStoredSession, saveStoredSession, withAppBase } from '../services/api';
+import {
+  api,
+  getAuthToken,
+  getStoredSession,
+  saveLegacyStudentSnapshot,
+  saveStoredSession,
+  withAppBase,
+} from '../services/api';
+import {
+  safeLocalStorageGetItem,
+  safeLocalStorageRemoveItem,
+  safeLocalStorageSetItem,
+} from '../utils/browserStorage.js';
 import { useOverlayHistoryBack } from '../hooks/useOverlayHistoryBack';
 import { getRoleTerms } from '../utils/n3-terminology';
 import { getContentText } from '../utils/content';
@@ -50,12 +62,12 @@ function PinModal({ onSuccess, onClose, uiSettings, isN3Affiliated = false }) {
       const priorAuthToken = getAuthToken();
       // Conserver le JWT élève non élevé pour le retour « désactiver les droits » (évite de réutiliser le JWT élevé si authToken JSON absent).
       try {
-        const raw = localStorage.getItem('foretmap_student');
+        const raw = safeLocalStorageGetItem('foretmap_student', null);
         if (raw && priorAuthToken && priorAuthToken !== data.token) {
           const s = JSON.parse(raw);
           if (s && typeof s === 'object') {
             s.elevationStudentToken = priorAuthToken;
-            localStorage.setItem('foretmap_student', JSON.stringify(s));
+            saveLegacyStudentSnapshot(s);
           }
         }
       } catch (_) {
@@ -77,8 +89,8 @@ function PinModal({ onSuccess, onClose, uiSettings, isN3Affiliated = false }) {
           avatar_path: currentUser?.avatar_path || null,
         },
       });
-      localStorage.setItem('foretmap_auth_token', data.token);
-      localStorage.setItem('foretmap_teacher_token', data.token);
+      safeLocalStorageSetItem('foretmap_auth_token', data.token);
+      safeLocalStorageSetItem('foretmap_teacher_token', data.token);
       onSuccess();
     } catch (e) {
       setErr(e.message || 'Code incorrect');
@@ -105,8 +117,8 @@ function PinModal({ onSuccess, onClose, uiSettings, isN3Affiliated = false }) {
         setLoading(false);
         return;
       }
-      localStorage.setItem('foretmap_auth_token', data.authToken);
-      localStorage.setItem('foretmap_teacher_token', data.authToken);
+      safeLocalStorageSetItem('foretmap_auth_token', data.authToken);
+      safeLocalStorageSetItem('foretmap_teacher_token', data.authToken);
       saveStoredSession({
         token: data.authToken,
         user: {
@@ -384,15 +396,15 @@ function AuthScreen({ onLogin, appVersion, onVisitGuest, uiSettings, isN3Affilia
       }
       const student = await api(endpoint, 'POST', payload);
       if (student?.authToken) {
-        localStorage.setItem('foretmap_auth_token', student.authToken);
+        safeLocalStorageSetItem('foretmap_auth_token', student.authToken);
       }
       const userType = String(student?.auth?.userType || student?.user_type || 'student').toLowerCase();
       const isTeacher = userType === 'teacher';
       if (!isTeacher) {
-        localStorage.setItem('foretmap_student', JSON.stringify(student));
+        saveLegacyStudentSnapshot(student);
       } else {
-        localStorage.removeItem('foretmap_student');
-        if (student?.authToken) localStorage.setItem('foretmap_teacher_token', student.authToken);
+        safeLocalStorageRemoveItem('foretmap_student');
+        if (student?.authToken) safeLocalStorageSetItem('foretmap_teacher_token', student.authToken);
       }
       saveStoredSession({
         token: student?.authToken || null,

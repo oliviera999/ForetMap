@@ -1,12 +1,12 @@
 import { useCallback, useMemo, useState } from 'react';
+import { safeLocalStorageGetItem, safeLocalStorageSetItem } from '../utils/browserStorage.js';
 
 const HELP_SEEN_STORAGE_KEY = 'foretmap_help_seen';
 const HELP_METRICS_STORAGE_KEY = 'foretmap_help_metrics';
 
 function readSeenSections() {
-  if (typeof window === 'undefined') return {};
   try {
-    const raw = window.localStorage.getItem(HELP_SEEN_STORAGE_KEY);
+    const raw = safeLocalStorageGetItem(HELP_SEEN_STORAGE_KEY, null);
     const parsed = raw ? JSON.parse(raw) : {};
     return parsed && typeof parsed === 'object' ? parsed : {};
   } catch (_) {
@@ -15,20 +15,16 @@ function readSeenSections() {
 }
 
 function persistSeenSections(next) {
-  if (typeof window === 'undefined') return;
   try {
-    window.localStorage.setItem(HELP_SEEN_STORAGE_KEY, JSON.stringify(next || {}));
+    safeLocalStorageSetItem(HELP_SEEN_STORAGE_KEY, JSON.stringify(next || {}));
   } catch (_) {
     // Ignore quota/storage errors.
   }
 }
 
 function readHelpMetrics() {
-  if (typeof window === 'undefined') {
-    return { panelOpenCount: 0, panelDismissCount: 0, bySection: {}, lastEventAt: null };
-  }
   try {
-    const raw = window.localStorage.getItem(HELP_METRICS_STORAGE_KEY);
+    const raw = safeLocalStorageGetItem(HELP_METRICS_STORAGE_KEY, null);
     const parsed = raw ? JSON.parse(raw) : null;
     if (!parsed || typeof parsed !== 'object') {
       return { panelOpenCount: 0, panelDismissCount: 0, bySection: {}, lastEventAt: null };
@@ -45,9 +41,8 @@ function readHelpMetrics() {
 }
 
 function persistHelpMetrics(next) {
-  if (typeof window === 'undefined') return;
   try {
-    window.localStorage.setItem(HELP_METRICS_STORAGE_KEY, JSON.stringify(next || {}));
+    safeLocalStorageSetItem(HELP_METRICS_STORAGE_KEY, JSON.stringify(next || {}));
   } catch (_) {
     // Ignore quota/storage errors.
   }

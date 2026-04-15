@@ -7,6 +7,7 @@ import {
   getAuthClaims,
   getAuthToken,
   getStoredSession,
+  saveLegacyStudentSnapshot,
   saveStoredSession,
   clearStoredSession,
   withAppBase,
@@ -43,6 +44,13 @@ import { ForumView } from './components/forum-views';
 import { Tooltip } from './components/Tooltip';
 import { getRoleTerms, isN3OnlyAffiliation } from './utils/n3-terminology';
 import { getContentText } from './utils/content';
+import {
+  safeLocalStorageGetItem,
+  safeLocalStorageRemoveItem,
+  safeLocalStorageSetItem,
+  safeSessionStorageGetItem,
+  safeSessionStorageRemoveItem,
+} from './utils/browserStorage.js';
 import { useDialogA11y } from './hooks/useDialogA11y';
 import { useOverlayHistoryBack } from './hooks/useOverlayHistoryBack';
 import { abandonAllOverlays, pushOverlayClose } from './utils/overlayHistory';
@@ -114,7 +122,7 @@ function decodeBase64UrlJson(value) {
 }
 
 function readStoredTab() {
-  const raw = String(localStorage.getItem(TAB_STORAGE_KEY) || '').trim().toLowerCase();
+  const raw = String(safeLocalStorageGetItem(TAB_STORAGE_KEY, '') || '').trim().toLowerCase();
   if (!raw) return 'map';
   return KNOWN_TAB_VALUES.has(raw) ? raw : 'map';
 }
@@ -180,7 +188,7 @@ function App() {
   /** Synchronise le filtre lieu de l’onglet tâches avec la zone/repère ouvert(e) sur la carte. */
   const [tasksLocationFocus, setTasksLocationFocus] = useState(null);
   const [maps,       setMaps]       = useState(DEFAULT_MAPS);
-  const [activeMapId, setActiveMapId] = useState(() => localStorage.getItem('foretmap_active_map') || 'foret');
+  const [activeMapId, setActiveMapId] = useState(() => safeLocalStorageGetItem('foretmap_active_map', 'foret') || 'foret');
   const [zones,      setZones]      = useState([]);
   const [tasks,      setTasks]      = useState([]);
   const [taskProjects, setTaskProjects] = useState([]);
@@ -275,8 +283,8 @@ function App() {
     try {
       const payload = decodeBase64UrlJson(oauthPayload);
       if (payload?.type === 'teacher' && payload?.token) {
-        localStorage.setItem('foretmap_teacher_token', payload.token);
-        localStorage.setItem('foretmap_auth_token', payload.token);
+        safeLocalStorageSetItem('foretmap_teacher_token', payload.token);
+        safeLocalStorageSetItem('foretmap_auth_token', payload.token);
         saveStoredSession({
           token: payload.token,
           user: {
@@ -295,9 +303,9 @@ function App() {
       if (payload?.type === 'student' && payload?.student) {
         const nextStudent = payload.student;
         if (nextStudent?.authToken) {
-          localStorage.setItem('foretmap_auth_token', nextStudent.authToken);
+          safeLocalStorageSetItem('foretmap_auth_token', nextStudent.authToken);
         }
-        localStorage.setItem('foretmap_student', JSON.stringify(nextStudent));
+        saveLegacyStudentSnapshot(nextStudent);
         saveStoredSession({
           token: nextStudent?.authToken || getStoredSession()?.token || null,
           user: {
@@ -322,11 +330,11 @@ function App() {
   }, []);
 
   useEffect(() => {
-    localStorage.setItem('foretmap_active_map', activeMapId);
+    safeLocalStorageSetItem('foretmap_active_map', activeMapId);
   }, [activeMapId]);
 
   useEffect(() => {
-    localStorage.setItem(TAB_STORAGE_KEY, tab);
+    safeLocalStorageSetItem(TAB_STORAGE_KEY, tab);
   }, [tab]);
 
   useEffect(() => {
@@ -366,6 +374,8 @@ function App() {
 
   useEffect(() => {
     if (!publicSettingsReady) return;
+    const storedMapId = String(safeLocalStorageGetItem('foretmap_active_map', '') || '').trim();
+    if (storedMapId) return;
     const defaultMap = showPublicVisit
       ? publicSettings?.map?.default_map_visit
       : (effectiveIsTeacher ? publicSettings?.map?.default_map_teacher : publicSettings?.map?.default_map_student);
@@ -383,8 +393,8 @@ function App() {
 
   useEffect(() => {
     try {
-      if (sessionStorage.getItem('foretmap_sw_updated') === '1') {
-        sessionStorage.removeItem('foretmap_sw_updated');
+      if (safeSessionStorageGetItem('foretmap_sw_updated', null) === '1') {
+        safeSessionStorageRemoveItem('foretmap_sw_updated');
         setToast('Nouvelle version installée.');
       }
     } catch (_) {}
@@ -433,7 +443,7 @@ function App() {
       setShowIosInstallHint(false);
       return;
     }
-    const dismissed = localStorage.getItem(IOS_INSTALL_HINT_DISMISSED_KEY) === '1';
+    const dismissed = safeLocalStorageGetItem(IOS_INSTALL_HINT_DISMISSED_KEY, null) === '1';
     setShowIosInstallHint(!dismissed);
   }, [isIosDevice, isStandaloneMode]);
 
@@ -484,7 +494,7 @@ function App() {
     };
     studentRef.current = merged;
     setStudent(merged);
-    localStorage.setItem('foretmap_student', JSON.stringify(merged));
+    saveLegacyStudentSnapshot(merged);
     const sessionToken = getStoredSession()?.token || null;
     const prevAuthToken = getAuthToken();
     let nextToken =
@@ -513,8 +523,8 @@ function App() {
   const handleAdminImpersonationApplied = useCallback((data) => {
     if (!data?.authToken) return;
     const token = String(data.authToken).trim();
-    localStorage.setItem('foretmap_auth_token', token);
-    localStorage.setItem('foretmap_teacher_token', token);
+    safeLocalStorageSetItem('foretmap_auth_token', token);
+    safeLocalStorageSetItem('foretmap_teacher_token', token);
     const auth = data.auth;
     if (auth?.userType === 'student' && data.profile) {
       updateStudentSession({
@@ -523,7 +533,7 @@ function App() {
         auth,
       });
     } else {
-      localStorage.removeItem('foretmap_student');
+      safeLocalStorageRemoveItem('foretmap_student');
       const p = data.profile || {};
       const displayName = [p.first_name, p.last_name].filter(Boolean).join(' ').trim()
         || p.display_name
@@ -563,9 +573,9 @@ function App() {
         return;
       }
       const token = String(data.authToken).trim();
-      localStorage.setItem('foretmap_auth_token', token);
-      localStorage.setItem('foretmap_teacher_token', token);
-      localStorage.removeItem('foretmap_student');
+      safeLocalStorageSetItem('foretmap_auth_token', token);
+      safeLocalStorageSetItem('foretmap_teacher_token', token);
+      safeLocalStorageRemoveItem('foretmap_student');
       saveStoredSession({
         token,
         user: {
@@ -598,7 +608,7 @@ function App() {
       const trimmed = d.refreshedToken.trim();
       const cur = getAuthToken();
       if (!(cur && isElevatedJwt(cur) && !isElevatedJwt(trimmed))) {
-        localStorage.setItem('foretmap_auth_token', trimmed);
+        safeLocalStorageSetItem('foretmap_auth_token', trimmed);
         const sess = getStoredSession() || {};
         saveStoredSession({ ...sess, token: trimmed });
       }
@@ -655,7 +665,7 @@ function App() {
 
   // Restore session — validates against server on load
   useEffect(() => {
-    const saved = localStorage.getItem('foretmap_student');
+    const saved = safeLocalStorageGetItem('foretmap_student', null);
     if (saved) {
       try {
         const s = JSON.parse(saved);
@@ -1290,7 +1300,7 @@ function App() {
             type="button"
             className="btn btn-ghost btn-sm"
             onClick={() => {
-              localStorage.setItem(IOS_INSTALL_HINT_DISMISSED_KEY, '1');
+              safeLocalStorageSetItem(IOS_INSTALL_HINT_DISMISSED_KEY, '1');
               setShowIosInstallHint(false);
             }}
           >
@@ -1582,10 +1592,10 @@ function App() {
               aria-label={authClaims?.elevated ? 'Désactiver les droits étendus' : 'Activer les droits étendus'}
               onClick={() => {
               if (authClaims?.elevated) {
-                localStorage.removeItem('foretmap_teacher_token');
+                safeLocalStorageRemoveItem('foretmap_teacher_token');
                 let storedStudent = null;
                 try {
-                  const raw = localStorage.getItem('foretmap_student');
+                  const raw = safeLocalStorageGetItem('foretmap_student', null);
                   if (raw) storedStudent = JSON.parse(raw);
                 } catch (_) {
                   storedStudent = null;
@@ -1600,7 +1610,7 @@ function App() {
                 if (baseStudentToken) {
                   const cleanedStudent = { ...storedStudent, authToken: baseStudentToken };
                   delete cleanedStudent.elevationStudentToken;
-                  localStorage.setItem('foretmap_auth_token', baseStudentToken);
+                  safeLocalStorageSetItem('foretmap_auth_token', baseStudentToken);
                   saveStoredSession({
                     token: baseStudentToken,
                     user: {
@@ -1612,10 +1622,10 @@ function App() {
                     },
                     student: cleanedStudent,
                   });
-                  localStorage.setItem('foretmap_student', JSON.stringify(cleanedStudent));
+                  saveLegacyStudentSnapshot(cleanedStudent);
                   updateStudentSession(cleanedStudent);
                 } else {
-                  const authToken = localStorage.getItem('foretmap_auth_token');
+                  const authToken = safeLocalStorageGetItem('foretmap_auth_token', null);
                   if (authToken) saveStoredSession({ token: authToken });
                 }
                 const claims = getAuthClaims();

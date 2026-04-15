@@ -573,7 +573,10 @@ export default function VisitMascotPackManager({
         ) : null}
         {loading ? <p className="section-sub">Chargement…</p> : null}
         {!loading && packs.length === 0 ? (
-          <p className="section-sub">Aucun pack — créez un brouillon.</p>
+          <p className="section-sub">
+            Aucun pack pour la carte <strong>{mapTitle}</strong> — créez un brouillon
+            {' '}ou changez de carte dans l’onglet studio.
+          </p>
         ) : null}
         <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
           {packs.map((p) => (

@@ -48,6 +48,10 @@ import {
   livingBeingNamesFromTasksAtLocation,
   dedupeTutorialsById,
 } from '../utils/mapLocationContext';
+import {
+  safeLocalStorageGetItem,
+  safeLocalStorageSetItem,
+} from '../utils/browserStorage.js';
 
 const VISIT_MAP_MASCOT_MOVE_MS = 560;
 const VISIT_MAP_MASCOT_HAPPY_MS = 1800;
@@ -804,20 +808,11 @@ function VisitView({
   const VISIT_TEACHER_PREVIEW_LS_KEY = 'foretmap_visit_teacher_preview_student';
 
   const [visitImmersion, setVisitImmersion] = useState(() => {
-    if (typeof window === 'undefined') return false;
-    try {
-      return window.localStorage.getItem(VISIT_IMMERSION_LS_KEY) === '1';
-    } catch {
-      return false;
-    }
+    return safeLocalStorageGetItem(VISIT_IMMERSION_LS_KEY, null) === '1';
   });
   const [teacherPreviewAsStudent, setTeacherPreviewAsStudent] = useState(() => {
-    if (typeof window === 'undefined' || !isTeacher) return false;
-    try {
-      return window.localStorage.getItem(VISIT_TEACHER_PREVIEW_LS_KEY) === '1';
-    } catch {
-      return false;
-    }
+    if (!isTeacher) return false;
+    return safeLocalStorageGetItem(VISIT_TEACHER_PREVIEW_LS_KEY, null) === '1';
   });
 
   useEffect(() => {
@@ -825,20 +820,12 @@ function VisitView({
   }, [isTeacher]);
 
   useEffect(() => {
-    try {
-      window.localStorage?.setItem(VISIT_IMMERSION_LS_KEY, visitImmersion ? '1' : '0');
-    } catch {
-      /* ignore */
-    }
+    safeLocalStorageSetItem(VISIT_IMMERSION_LS_KEY, visitImmersion ? '1' : '0');
   }, [visitImmersion]);
 
   useEffect(() => {
     if (!isTeacher) return;
-    try {
-      window.localStorage?.setItem(VISIT_TEACHER_PREVIEW_LS_KEY, teacherPreviewAsStudent ? '1' : '0');
-    } catch {
-      /* ignore */
-    }
+    safeLocalStorageSetItem(VISIT_TEACHER_PREVIEW_LS_KEY, teacherPreviewAsStudent ? '1' : '0');
   }, [isTeacher, teacherPreviewAsStudent]);
 
   /** Tutoriels sous la carte : réservés au prof en édition (pas invité, pas élève, pas aperçu élève). */

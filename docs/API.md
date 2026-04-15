@@ -341,7 +341,7 @@ Contenus éditables du site (micro-CMS texte brut) :
 | POST | `/api/visit/sync` | oui | Import sélectif bidirectionnel (`{ map_id, direction: "map_to_visit" \| "visit_to_map", zone_ids, marker_ids }`) |
 | POST | `/api/visit/rebuild-from-map` | oui | Réaligner **toute** la visite du plan sur la carte : corps `{ map_id? }` (défaut `foret`). Supprime puis recrée les lignes **`visit_zones`** et **`visit_markers`** pour ce `map_id` à partir de **`zones`** / **`map_markers`** ; pour chaque **id** encore présent sur la carte, **réinjecte** sous-titre, textes de détails, `is_active`, `sort_order`, `created_at` et **conserve** les lignes **`visit_media`** (cibles inchangées). Retire médias + progression pour les cibles visite **sans** équivalent carte. Réponse : `{ ok, map_id, removed: { zones, markers }, imported: { zones, markers } }`. |
 
-**Packs mascotte (validation serveur)** : les **POST** / **PUT** sur `/api/visit/mascot-packs` chargent la validation Zod (v1 et v2) depuis **`lib/visit-pack/`** (`mascotPack.js`, `visitMascotState.js`, `visitMascotInteractionEvents.js`, générés par **`npm run build`** ou **`npm run sync:visit-pack-lib`**). Sans ce dossier sur l’artefact, **503** avec `code: mascot_pack_module_unavailable`.
+**Packs mascotte (validation serveur)** : les **POST** / **PUT** sur `/api/visit/mascot-packs` chargent la validation Zod (v1 et v2) depuis **`lib/visit-pack/`** (`mascotPack.js`, `visitMascotState.js`, `visitMascotInteractionEvents.js`, générés par **`npm run build`** ou **`npm run sync:visit-pack-lib`**). Sans miroir `lib/visit-pack/` complet **ou** sans dépendance runtime `zod`, l’API renvoie **503** avec `code: mascot_pack_module_unavailable` (diagnostic dans `details.reason`).
 
 Contraintes importantes :
 

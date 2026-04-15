@@ -4,6 +4,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('fs');
 const path = require('path');
+const { pathToFileURL } = require('url');
 const {
   getMascotPackValidatorCandidates,
   getMascotPackLibProbe,
@@ -24,4 +25,21 @@ test('mascotPackValidatorResolve : au moins un candidat importable', () => {
     assert.ok(fs.existsSync(abs));
     assert.ok(abs.includes('mascotPack.js'));
   }
+});
+
+test('mascotPackValidatorResolve : import dynamique du validateur opérationnel', async () => {
+  const candidates = getMascotPackValidatorCandidates();
+  assert.ok(candidates.length >= 1);
+  let imported = null;
+  let lastErr = null;
+  for (const abs of candidates) {
+    try {
+      imported = await import(pathToFileURL(abs).href);
+      break;
+    } catch (err) {
+      lastErr = err;
+    }
+  }
+  assert.ok(imported, lastErr ? `Import impossible: ${lastErr.message}` : 'Import impossible');
+  assert.equal(typeof imported.validateMascotPackV1, 'function');
 });

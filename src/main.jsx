@@ -4,6 +4,7 @@ import './index.css';
 import { App } from './App.jsx';
 import { ErrorBoundary } from './components/ErrorBoundary.jsx';
 import { withAppBase } from './services/api';
+import { safeSessionStorageSetItem } from './utils/browserStorage.js';
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <ErrorBoundary>
@@ -17,9 +18,7 @@ if ('serviceWorker' in navigator) {
   const triggerReloadOnControllerChange = () => {
     if (hasReloadedForUpdate) return;
     hasReloadedForUpdate = true;
-    try {
-      sessionStorage.setItem('foretmap_sw_updated', '1');
-    } catch (_) {}
+    safeSessionStorageSetItem('foretmap_sw_updated', '1');
     window.location.reload();
   };
 

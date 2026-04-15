@@ -1,3 +1,8 @@
+import {
+  safeLocalStorageGetItem,
+  safeLocalStorageRemoveItem,
+} from '../utils/browserStorage.js';
+
 /**
  * Préfixe de base de l'app (Vite `base`) sans slash final.
  *
@@ -18,6 +23,96 @@ export function withAppBase(path) {
   return `${API}${normalized}` || normalized;
 }
 const SESSION_KEY = 'foretmap_session';
+const LEGACY_STUDENT_KEY = 'foretmap_student';
+
+const STUDENT_SESSION_FIELDS = [
+  'id',
+  'first_name',
+  'last_name',
+  'pseudo',
+  'email',
+  'avatar_path',
+  'avatarPath',
+  'authToken',
+  'elevationStudentToken',
+  'affiliation',
+  'taskEnrollment',
+  'forumParticipate',
+  'forum_participate',
+  'contextCommentParticipate',
+  'context_comment_participate',
+  'preview_mode',
+  'display_name',
+  'user_type',
+];
+
+const STUDENT_AUTH_FIELDS = [
+  'canonicalUserId',
+  'userId',
+  'userType',
+  'roleDisplayName',
+  'roleSlug',
+  'permissions',
+  'elevatedPermissions',
+  'elevated',
+  'nativePrivileged',
+  'impersonating',
+];
+
+function isQuotaExceededError(err) {
+  if (!err) return false;
+  return err.name === 'QuotaExceededError'
+    || err.name === 'NS_ERROR_DOM_QUOTA_REACHED'
+    || err.code === 22
+    || err.code === 1014;
+}
+
+function safeSetLocalStorageItem(key, value, { allowDropLegacyStudent = true } = {}) {
+  if (typeof localStorage === 'undefined') return false;
+  try {
+    localStorage.setItem(key, value);
+    return true;
+  } catch (err) {
+    if (!isQuotaExceededError(err)) return false;
+    if (allowDropLegacyStudent && key !== LEGACY_STUDENT_KEY) {
+      try {
+        safeLocalStorageRemoveItem(LEGACY_STUDENT_KEY);
+        localStorage.setItem(key, value);
+        return true;
+      } catch (_) {
+        return false;
+      }
+    }
+    return false;
+  }
+}
+
+export function compactStudentForStorage(student) {
+  if (!student || typeof student !== 'object') return null;
+  const compact = {};
+  for (const field of STUDENT_SESSION_FIELDS) {
+    if (student[field] !== undefined) compact[field] = student[field];
+  }
+  if (student.auth && typeof student.auth === 'object') {
+    const authCompact = {};
+    for (const field of STUDENT_AUTH_FIELDS) {
+      if (student.auth[field] !== undefined) authCompact[field] = student.auth[field];
+    }
+    if (Object.keys(authCompact).length > 0) compact.auth = authCompact;
+  }
+  return compact;
+}
+
+export function saveLegacyStudentSnapshot(student) {
+  const compact = compactStudentForStorage(student);
+  if (!compact) {
+    safeLocalStorageRemoveItem(LEGACY_STUDENT_KEY);
+    return true;
+  }
+  return safeSetLocalStorageItem(LEGACY_STUDENT_KEY, JSON.stringify(compact), {
+    allowDropLegacyStudent: false,
+  });
+}
 
 function dispatchSessionChanged() {
   if (typeof window === 'undefined') return;
@@ -45,25 +140,23 @@ function decodeJwtPayload(token) {
 }
 
 export function getAuthToken() {
-  if (typeof localStorage === 'undefined') return null;
   try {
-    const raw = localStorage.getItem(SESSION_KEY);
+    const raw = safeLocalStorageGetItem(SESSION_KEY, null);
     if (raw) {
       const parsed = JSON.parse(raw);
       if (parsed?.token) return parsed.token;
     }
   } catch (_) {}
-  return localStorage.getItem('foretmap_auth_token') || localStorage.getItem('foretmap_teacher_token');
+  return safeLocalStorageGetItem('foretmap_auth_token', null) || safeLocalStorageGetItem('foretmap_teacher_token', null);
 }
 
 export function getStoredSession() {
-  if (typeof localStorage === 'undefined') return null;
   try {
-    const raw = localStorage.getItem(SESSION_KEY);
+    const raw = safeLocalStorageGetItem(SESSION_KEY, null);
     if (raw) return JSON.parse(raw);
   } catch (_) {}
-  const token = localStorage.getItem('foretmap_auth_token') || localStorage.getItem('foretmap_teacher_token');
-  const studentRaw = localStorage.getItem('foretmap_student');
+  const token = safeLocalStorageGetItem('foretmap_auth_token', null) || safeLocalStorageGetItem('foretmap_teacher_token', null);
+  const studentRaw = safeLocalStorageGetItem(LEGACY_STUDENT_KEY, null);
   let student = null;
   try { student = studentRaw ? JSON.parse(studentRaw) : null; } catch (_) {}
   if (!token && !student) return null;
@@ -81,19 +174,31 @@ export function getStoredSession() {
 }
 
 export function saveStoredSession(next) {
-  if (typeof localStorage === 'undefined') return;
   const current = getStoredSession() || {};
   const merged = { ...current, ...(next || {}) };
-  localStorage.setItem(SESSION_KEY, JSON.stringify(merged));
+  if (Object.prototype.hasOwnProperty.call(merged, 'student')) {
+    merged.student = compactStudentForStorage(merged.student);
+  }
+  let persisted = merged;
+  let writeOk = safeSetLocalStorageItem(SESSION_KEY, JSON.stringify(persisted));
+  if (!writeOk && persisted.student) {
+    // En cas de quota serré, garder au moins token + user.
+    persisted = { ...persisted, student: null };
+    writeOk = safeSetLocalStorageItem(SESSION_KEY, JSON.stringify(persisted), {
+      allowDropLegacyStudent: false,
+    });
+  }
+  if (!writeOk) return;
+  if (persisted.student) saveLegacyStudentSnapshot(persisted.student);
+  else safeLocalStorageRemoveItem(LEGACY_STUDENT_KEY);
   dispatchSessionChanged();
 }
 
 export function clearStoredSession() {
-  if (typeof localStorage === 'undefined') return;
-  localStorage.removeItem(SESSION_KEY);
-  localStorage.removeItem('foretmap_auth_token');
-  localStorage.removeItem('foretmap_teacher_token');
-  localStorage.removeItem('foretmap_student');
+  safeLocalStorageRemoveItem(SESSION_KEY);
+  safeLocalStorageRemoveItem('foretmap_auth_token');
+  safeLocalStorageRemoveItem('foretmap_teacher_token');
+  safeLocalStorageRemoveItem(LEGACY_STUDENT_KEY);
   dispatchSessionChanged();
 }
 

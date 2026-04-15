@@ -18,6 +18,13 @@ import { lockBodyScroll } from '../utils/body-scroll-lock';
 import { armNativeFilePickerGuard, disarmNativeFilePickerGuard } from '../utils/overlayHistory';
 import { isStudentAssignedToTask } from '../utils/task-assignments';
 import { orderedLivingBeingsForForm, nextLivingBeingsFromMultiSelect, formatLivingBeingsListLine } from '../utils/livingBeings';
+import {
+  safeLocalStorageGetItem,
+  safeLocalStorageSetItem,
+  safeSessionStorageGetItem,
+  safeSessionStorageRemoveItem,
+  safeSessionStorageSetItem,
+} from '../utils/browserStorage.js';
 
 function zonePickDisplayName(z) {
   const line = formatLivingBeingsListLine(
@@ -67,25 +74,15 @@ function taskLogCommentDraftKey(taskId) {
 }
 
 function readTaskLogCommentDraft(taskId) {
-  if (typeof window === 'undefined') return '';
-  try {
-    return String(sessionStorage.getItem(taskLogCommentDraftKey(taskId)) || '');
-  } catch {
-    return '';
-  }
+  return String(safeSessionStorageGetItem(taskLogCommentDraftKey(taskId), '') || '');
 }
 
 function writeTaskLogCommentDraft(taskId, text) {
-  if (typeof window === 'undefined') return;
   if (taskId == null || taskId === '') return;
-  try {
-    const key = taskLogCommentDraftKey(taskId);
-    const v = String(text || '');
-    if (v.trim()) sessionStorage.setItem(key, v);
-    else sessionStorage.removeItem(key);
-  } catch {
-    // ignore
-  }
+  const key = taskLogCommentDraftKey(taskId);
+  const v = String(text || '');
+  if (v.trim()) safeSessionStorageSetItem(key, v);
+  else safeSessionStorageRemoveItem(key);
 }
 
 function Lightbox({ src, caption, onClose }) {
@@ -1500,14 +1497,10 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
   const [filterMap, setFilterMap] = useState('active');
   const [filterProject, setFilterProject] = useState('');
   const [viewMode, setViewMode] = useState(() => {
-    try {
-      const saved = localStorage.getItem('foretmap:tasks:viewMode');
-      if (saved === 'list') return 'list';
-      if (saved === 'condensed') return 'condensed';
-      return 'tiles';
-    } catch {
-      return 'tiles';
-    }
+    const saved = safeLocalStorageGetItem('foretmap:tasks:viewMode', 'tiles');
+    if (saved === 'list') return 'list';
+    if (saved === 'condensed') return 'condensed';
+    return 'tiles';
   });
   const [importFile, setImportFile] = useState(null);
   const [importDryRun, setImportDryRun] = useState(false);
@@ -1565,11 +1558,7 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
     setFilterMap('active');
   }, [activeMapId]);
   useEffect(() => {
-    try {
-      localStorage.setItem('foretmap:tasks:viewMode', viewMode);
-    } catch {
-      // Ignore localStorage errors (mode privé, permissions, etc.)
-    }
+    safeLocalStorageSetItem('foretmap:tasks:viewMode', viewMode);
   }, [viewMode]);
   useEffect(() => {
     if (!isTeacher) return;

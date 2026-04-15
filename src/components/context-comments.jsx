@@ -10,6 +10,13 @@ import {
 } from '../services/api';
 import { formatDateTimeFr } from '../utils/datetime-fr';
 import { AttachmentImagesPicker, UserContentImagesGrid } from './attachment-images-picker';
+import {
+  safeLocalStorageGetItem,
+  safeLocalStorageSetItem,
+  safeSessionStorageGetItem,
+  safeSessionStorageRemoveItem,
+  safeSessionStorageSetItem,
+} from '../utils/browserStorage.js';
 
 const PAGE_SIZE = 10;
 const DEFAULT_REACTION_EMOJIS = ['👍', '❤️', '😂', '😮', '😢', '😡', '🔥', '👏'];
@@ -20,25 +27,15 @@ function contextCommentDraftKey(contextType, contextId) {
 }
 
 function readContextCommentDraft(contextType, contextId) {
-  if (typeof window === 'undefined') return '';
-  try {
-    return String(sessionStorage.getItem(contextCommentDraftKey(contextType, contextId)) || '');
-  } catch {
-    return '';
-  }
+  return String(safeSessionStorageGetItem(contextCommentDraftKey(contextType, contextId), '') || '');
 }
 
 function writeContextCommentDraft(contextType, contextId, text) {
-  if (typeof window === 'undefined') return;
   if (!contextType || contextId == null || contextId === '') return;
-  try {
-    const key = contextCommentDraftKey(contextType, contextId);
-    const v = String(text || '');
-    if (v.trim()) sessionStorage.setItem(key, v);
-    else sessionStorage.removeItem(key);
-  } catch {
-    // quota / mode privé : ignorer
-  }
+  const key = contextCommentDraftKey(contextType, contextId);
+  const v = String(text || '');
+  if (v.trim()) safeSessionStorageSetItem(key, v);
+  else safeSessionStorageRemoveItem(key);
 }
 
 /** Dernier commentaire « lu » pour ce contexte (persisté, par utilisateur). */
@@ -47,10 +44,9 @@ function contextCommentReadCursorKey(userType, userId, contextType, contextId) {
 }
 
 function readContextCommentReadCursor(userType, userId, contextType, contextId) {
-  if (typeof window === 'undefined') return null;
   if (!userType || !userId || !contextType || contextId == null || contextId === '') return null;
   try {
-    const raw = localStorage.getItem(contextCommentReadCursorKey(userType, userId, contextType, contextId));
+    const raw = safeLocalStorageGetItem(contextCommentReadCursorKey(userType, userId, contextType, contextId), null);
     if (!raw) return null;
     const o = JSON.parse(raw);
     const newestId = Number(o?.newestId);
@@ -62,17 +58,12 @@ function readContextCommentReadCursor(userType, userId, contextType, contextId) 
 }
 
 function writeContextCommentReadCursor(userType, userId, contextType, contextId, newestId) {
-  if (typeof window === 'undefined') return;
   if (!userType || !userId || !contextType || contextId == null || contextId === '') return;
-  try {
-    const n = Math.max(0, Math.floor(Number(newestId) || 0));
-    localStorage.setItem(
-      contextCommentReadCursorKey(userType, userId, contextType, contextId),
-      JSON.stringify({ newestId: n })
-    );
-  } catch {
-    // quota / mode privé : ignorer
-  }
+  const n = Math.max(0, Math.floor(Number(newestId) || 0));
+  safeLocalStorageSetItem(
+    contextCommentReadCursorKey(userType, userId, contextType, contextId),
+    JSON.stringify({ newestId: n })
+  );
 }
 
 function parseReactionEmojiList(rawValue) {
