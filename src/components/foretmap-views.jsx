@@ -32,6 +32,7 @@ import {
   plantLinkedToMapMarker,
   plantLinkedToMapZone,
 } from '../utils/plantFilters';
+import { armNativeFilePickerGuard, disarmNativeFilePickerGuard } from '../utils/overlayHistory';
 
 // ── TOAST ──────────────────────────────────────────────────────────────────
 function Toast({ msg, onDone }) {
@@ -1040,6 +1041,7 @@ function PlantEditForm({ title, form, setForm, onSave, onCancel, saving, plantId
             const idGal = `plantnet-id-gal-${safeId}`;
             const idCam = `plantnet-id-cam-${safeId}`;
             const onIdentifyPick = (e) => {
+              disarmNativeFilePickerGuard();
               const f = e.target.files && e.target.files[0];
               e.target.value = '';
               onIdentifyFileChosen(row.key, f);
@@ -1050,6 +1052,7 @@ function PlantEditForm({ title, form, setForm, onSave, onCancel, saving, plantId
               const el = document.getElementById(inputId);
               if (!el) return;
               el.value = '';
+              armNativeFilePickerGuard();
               el.click();
             };
             return (
@@ -1472,6 +1475,7 @@ function PlantEditForm({ title, form, setForm, onSave, onCancel, saving, plantId
                   style={{ display: 'none' }}
                   disabled={saving || uploadingField === field.key}
                   onChange={(e) => {
+                    disarmNativeFilePickerGuard();
                     const list = e.target.files;
                     e.target.value = '';
                     void uploadPhotosFromGallery(field.key, list);
@@ -1487,6 +1491,7 @@ function PlantEditForm({ title, form, setForm, onSave, onCancel, saving, plantId
                   style={{ display: 'none' }}
                   disabled={saving || uploadingField === field.key}
                   onChange={(e) => {
+                    disarmNativeFilePickerGuard();
                     const file = e.target.files?.[0];
                     e.target.value = '';
                     uploadPhoto(field.key, file);
@@ -2248,6 +2253,7 @@ function ObservationNotebook({ student, zones, onForceLogout = null }) {
                     className="btn btn-secondary btn-sm"
                     onClick={() => {
                       if (galleryFileRef.current) galleryFileRef.current.value = '';
+                      armNativeFilePickerGuard();
                       galleryFileRef.current?.click();
                     }}
                   >
@@ -2258,14 +2264,32 @@ function ObservationNotebook({ student, zones, onForceLogout = null }) {
                     className="btn btn-secondary btn-sm"
                     onClick={() => {
                       if (cameraFileRef.current) cameraFileRef.current.value = '';
+                      armNativeFilePickerGuard();
                       cameraFileRef.current?.click();
                     }}
                   >
                     📸 Prendre une photo
                   </button>
                 </div>
-                <input ref={galleryFileRef} type="file" accept="image/*" onChange={handleFile} />
-                <input ref={cameraFileRef} type="file" accept="image/*" capture="environment" onChange={handleFile} />
+                <input
+                  ref={galleryFileRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => {
+                    disarmNativeFilePickerGuard();
+                    handleFile(e);
+                  }}
+                />
+                <input
+                  ref={cameraFileRef}
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  onChange={(e) => {
+                    disarmNativeFilePickerGuard();
+                    handleFile(e);
+                  }}
+                />
               </div>
             ) : (
               <div className="img-preview-wrap">
