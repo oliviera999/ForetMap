@@ -1,18 +1,18 @@
 # Évolution du code ForetMap — État réel et suite
 
 Ce document sert de feuille de route d’évolution **sans changement métier non souhaité**.
-Il a été mis à jour pour refléter l’état réel du dépôt (mars 2026), puis prioriser la suite en commençant par des quick wins.
+Il reflète l’état réel du dépôt (avril 2026) et priorise la suite en commençant par des quick wins.
 
 ---
 
-## 1. État actuel (2026-03)
+## 1. État actuel (2026-04)
 
 ## 1.1 Réalisé
 
 - **Auth professeur côté serveur** : `POST /api/auth/teacher`, token JWT, middleware `requireTeacher` sur les routes sensibles.
 - **Suppression du PIN en dur côté client** : plus de vérification locale ; le front passe par l’API auth.
 - **CORS conditionnel** : origine restreinte en production via `FRONTEND_ORIGIN`.
-- **Backend découpé en routeurs** : `routes/auth`, `zones`, `tasks`, `plants`, `stats`, `students`, `map`, `observations`, `audit`.
+- **Backend découpé en routeurs** (montage dans `server.js`, préfixe `/api`) : `auth`, `zones`, `maps`, `map`, `plants`, `tasks`, `task-projects`, `tutorials`, `visit`, `stats`, `students`, `observations`, `audit`, `rbac`, `settings`, `forum`, `context-comments` — chacun sous `routes/<nom>.js` sauf cas particulier documenté.
 - **Frontend migré vers Vite + React modulaire** : source dans `src/`, build `dist/`, entrée `index.vite.html`.
 - **Tests backend en place** (node:test + supertest) : auth, statuts tâches, suppression élève, temps réel, nouvelles fonctionnalités.
 - **Tâches récurrentes (job serveur)** : après validation et échéance passée, duplication automatique des tâches avec `recurrence` (voir `lib/recurringTasks.js`, migration `046`, script `npm run tasks:spawn-recurring`).
@@ -29,7 +29,7 @@ Il a été mis à jour pour refléter l’état réel du dépôt (mars 2026), pu
 - **Temps réel Socket.IO** : tests étendus dans **`tests/realtime.test.js`** (JWT invalide / expiré, changement de carte via **`subscribe:map`**, `tasks:changed` sans `mapId` vers **`domain:tasks`**) ; paragraphe **Robustesse** dans **`docs/API.md`** (section Temps réel).
 - **Exploitation temps réel / hébergeur** : **`GET /api/admin/diagnostics`** inclut **`runtimeProcess`** (`pid`, cluster, indices d’environnement) ; guide **`docs/EXPLOITATION.md`** (Passenger / instances) ; smoke charge **`npm run test:load:socketio-smoke`** ; critères de décision hébergement en **§ 1.4** ci-dessous. Quick wins charge : **`tasks:changed` par carte** (élève, import CSV, tutoriels liés) ; refetch jardin **sans `/api/plants`** si événement zone/repère uniquement (`useForetmapRealtime.js`).
 - **Prise de contrôle admin (impersonation)** : permission RBAC **`admin.impersonate`** (profil **admin** par défaut) ; **`POST /api/auth/admin/impersonate`** / **`POST /api/auth/admin/impersonate/stop`** ; JWT avec identité cible et acteur conservé ; UI **Profils & utilisateurs** (« Voir comme cet utilisateur ») et bandeau de retour ; journal d’audit **`auth_impersonate_start`** / **`auth_impersonate_stop`**. Référence API : **`docs/API.md`**.
-- **Mascotte visite extensible (Rive + spritesheet)** : catalogue centralisé (`src/utils/visitMascotCatalog.js`) + hook de pilotage (`src/hooks/useVisitMascotStateMachine.js`) ; ajout de mascottes Rive (`sprout-rive`, `scrap-rive`) et d’une mascotte spritesheet (`olu-spritesheet`) avec palette de comportements étendue (ex. `running`, `inspect`, `map_read`, `celebrate`) ; tests renforcés (`tests/visit-mascot-state.test.js`, `tests/visit-mascot-catalog.test.js`, `e2e/visit-mascot.spec.js`).
+- **Mascotte visite extensible (Rive + spritesheet + sprite_cut)** : catalogue centralisé (`src/utils/visitMascotCatalog.js`) + hook de pilotage (`src/hooks/useVisitMascotStateMachine.js`) ; mascottes Rive (`sprout-rive`, `scrap-rive`), spritesheet (`olu-spritesheet`) et packs **sprite_cut** (ex. Renard 2) avec palette de comportements étendue (ex. `running`, `inspect`, `map_read`, `celebrate`) ; tests renforcés (`tests/visit-mascot-state.test.js`, `tests/visit-mascot-catalog.test.js`, `tests/mascot-pack.test.js`, `e2e/visit-mascot.spec.js`).
 - **Avril 2026 — livrées récentes (résumé)** : **packs mascotte** persistés (`visit_mascot_packs`), renderer **`sprite_cut`**, pack **v2** (`interactionProfile`), **bibliothèque sprites** (`visit_mascot_sprite_library`), clonage API, studio unifié onglet **Packs mascotte** + synchro **`lib/visit-pack/`** (y compris `visitMascotInteractionEvents.js`) ; **biodiversité** : identification **Pl@ntNet** par image via route dédiée (hors agrégateur `sources` de l’autofill) ; **galerie** : réordonnancement des photos zone/repère carte et des médias visite ; **exploitation** : sonde **`npm run prod:transport-probe`** (HTTP/2 vs HTTP/1.1, option Socket.IO) documentée avec **`docs/EXPLOITATION.md`**.
 
 ## 1.2 Partiellement réalisé / restant

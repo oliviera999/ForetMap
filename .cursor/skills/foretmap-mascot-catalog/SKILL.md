@@ -30,7 +30,7 @@ description: Guide l’ajout et l’évolution des mascottes visite (catalogue m
 | `src/components/VisitMascotPackManager.jsx` | Gestion des packs persistés (prof / modale Visite) |
 | `src/components/MascotPackWysiwygEditor.jsx` | Éditeur WYSIWYG pack (métadonnées, états, vignettes, médiathèque) |
 | `src/utils/mascotPackEditorModel.js` | Modèle éditeur (états, assets, synchro JSON) |
-| `routes/visit.js` | CRUD packs, assets (`GET/POST/DELETE …/mascot-packs/…`), `GET /api/visit/content` (`mascot_packs`) |
+| `routes/visit.js` | CRUD packs, médiathèque, bibliothèque sprites, **`GET /api/visit/mascot-assets`**, **`GET /api/visit/content`** (`mascot_packs`) |
 
 ## Prod sans dossier `src/`
 

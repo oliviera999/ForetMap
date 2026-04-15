@@ -28,8 +28,8 @@ description: Guide l'écriture et l'exécution des tests ForetMap (backend API, 
 ## Commandes
 
 ```bash
-npm test              # lance tous les tests dans tests/
-npm run test:local    # idem avec DB_NAME=foretmap_test (cross-env)
+npm test              # lance tous les tests dans tests/ (un seul process Node, schéma initialisé une fois par le helper)
+npm run test:local    # exécute **chaque** fichier `tests/*.test.js` **séquentiellement** avec `DB_NAME=foretmap_test` et réinitialisation BDD entre fichiers (`scripts/test-local-isolated.js` — utile pour l’isolation, plus lent que `npm test`)
 npm run test:snapshot # tests "snapshot" contre la DB courante (FORETMAP_SNAPSHOT_TESTS=1)
 npm run test:e2e      # lance les scénarios UI Playwright
 npm run test:e2e:headed # idem avec navigateur visible
