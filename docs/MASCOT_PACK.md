@@ -2,12 +2,14 @@
 
 Ce document décrit le JSON **mascot pack** versions **1** et **2** : source de vérité pour une mascotte **`renderer: sprite_cut`** (images PNG par frame), alignée sur le catalogue [`src/utils/visitMascotCatalog.js`](../src/utils/visitMascotCatalog.js) et le moteur [`VisitMapMascotSpriteCut.jsx`](../src/components/VisitMapMascotSpriteCut.jsx).
 
+**Prod / runtime sans `src/` :** la validation Zod côté API et les clés d’**`interactionProfile`** sont servies depuis le miroir **`lib/visit-pack/`** (`mascotPack.js`, `visitMascotState.js`, `visitMascotInteractionEvents.js` — synchronisés par **`npm run build`** ou **`npm run sync:visit-pack-lib`**). Les liens ci-dessous vers `src/utils/` restent la référence **développement** ; en exploitation, vérifier la présence des mêmes noms sous **`lib/visit-pack/`** (sonde **`mascotPackLibProbe`** dans **`GET /api/admin/diagnostics`**).
+
 ## Version 2 — champs supplémentaires
 
 | Champ | Type | Description |
 |--------|------|-------------|
 | `mascotPackVersion` | `2` | Active le profil d’interaction ci-dessous. |
-| `interactionProfile` | objet (optionnel) | Clés stables listées dans [`visitMascotInteractionEvents.js`](../src/utils/visitMascotInteractionEvents.js) ; chaque valeur : `{ mode: 'none' \| 'happy' \| 'transient', state?: état canonique, durationMs?: nombre }` (pour `transient`, `state` requis). Absence d’entrée = **comportement par défaut** (équivalent historique ForetMap). |
+| `interactionProfile` | objet (optionnel) | Clés stables listées dans [`visitMascotInteractionEvents.js`](../src/utils/visitMascotInteractionEvents.js) (miroir prod : **`lib/visit-pack/visitMascotInteractionEvents.js`**) ; chaque valeur : `{ mode: 'none' \| 'happy' \| 'transient', state?: état canonique, durationMs?: nombre }` (pour `transient`, `state` requis). Absence d’entrée = **comportement par défaut** (équivalent historique ForetMap). |
 
 **Bibliothèque sprites** : `framesBase` peut aussi être `/api/visit/mascot-sprite-library/{mapId}/assets/` (PNG partagés par carte, voir **`docs/API.md`**).
 
@@ -68,7 +70,7 @@ Puis importer ce manifeste dans le catalogue et appeler `expandMascotPackToSprit
 
 ### Option B — stockage serveur (MySQL + GUI prof)
 
-1. **Onglet prof « Packs mascotte »** (barre du haut) : studio — liste, brouillon, duplication (pack ou modèle Renard 2), fiche comportements, **éditeur visuel (WYSIWYG)**, JSON, **bibliothèque sprites** par carte, **profil d’interaction** (v2), **aperçu mascotte**, publication (API **`visit.manage`** + élévation PIN). L’onglet **Visite** propose un lien vers ce studio.
+1. **Onglet prof « Packs mascotte »** (barre du haut) : studio — liste, brouillon, duplication (pack ou modèle catalogue), fiche comportements, **éditeur visuel (WYSIWYG)**, JSON, **bibliothèque sprites** par carte, inventaire **`GET /api/visit/mascot-assets`** (recherche / copie d’URL / insertion dans un état via **`srcs`**), **profil d’interaction** (v2), **aperçu mascotte**, publication (API **`visit.manage`** + élévation PIN). L’onglet **Visite** propose un lien vers ce studio.
 2. Les packs **publiés** sont renvoyés dans **`GET /api/visit/content`** (`mascot_packs`) et fusionnés au sélecteur mascotte pour cette carte (identifiant runtime = **`catalog_id`**, préfixe `srv-…`).
 3. Médiathèque : **`GET /api/visit/mascot-packs/:id/assets`** (liste des PNG), **`POST …/assets`**, **`DELETE …/assets/:filename`** ; `framesBase` = **`/api/visit/mascot-packs/{id}/assets/`** — voir **`docs/API.md`**.
 

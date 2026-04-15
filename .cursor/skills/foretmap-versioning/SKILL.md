@@ -13,8 +13,8 @@ description: Guide le versionnage SemVer, la mise à jour du CHANGELOG et les re
 
 ## Quand ne pas l'utiliser
 
-- Développement de fonctionnalités ou correction de bugs : préférer **foretmap-project**.
-- Les entrées `[Non publié]` dans le CHANGELOG sont ajoutées au fil du dev par convention (pas besoin de ce skill pour ça).
+- Développement de fonctionnalités ou correction de bugs : préférer **foretmap-project** pour le code métier.
+- Rédiger seule des lignes sous **`[Non publié]`** ne nécessite pas d’ouvrir ce skill, **à condition** d’appliquer quand même la fin de tâche du dépôt (**`bump:*`**, commit, push — voir **`docs/VERSIONING.md`**, *Lots livrés sur `main`*) décrite dans **`.cursor/rules/foretmap-conventions.mdc`**.
 
 ## Référence complète
 
@@ -100,8 +100,8 @@ Si le shell est PowerShell, éviter `<<'EOF'` (syntaxe Bash) pour `git commit`.
 
 - Toujours refléter les changements utilisateur dans `[Non publié]` du CHANGELOG quand c'est pertinent.
 - Ne jamais utiliser `release:*` si le CHANGELOG n'est pas déjà à jour.
-- Vérifier que la version dans `package.json` correspond au tag Git le plus récent.
-- **Ne jamais terminer une tâche sans avoir bumped, commité et poussé.**
+- Vérifier que la version dans `package.json` correspond au tag Git le plus récent lorsqu'une **release** nommée vient d'être faite.
+- **Fin de lot sur `main` :** incrémenter **`package.json`**, committer et pousser — obligation projet (même hors utilisation de ce skill) ; détail dans **`docs/VERSIONING.md`**.
 
 ## Voir aussi
 

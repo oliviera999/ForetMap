@@ -8,6 +8,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 ## [Non publié]
 
 ### Modifié
+- **Documentation / agent Cursor** : alignement **`docs/API.md`** (version, OAuth debug, assets mascotte), **`docs/VERSIONING.md`** / présent fichier (politique SemVer continue vs release), **`docs/EVOLUTION.md`**, **`docs/MASCOT_PACK.md`**, règles **`.cursor/rules`** et skills **`.cursor/skills`** sur le périmètre réel du code.
 - **Build** : régénération locale des artefacts **`dist/`** (bundle Vite production).
 - **Visite — présentation du lieu** : le premier tutoriel embarquable s’ouvre via un **bouton** « Présentation du lieu » (bandeau au-dessus du plan) pour **tous** les utilisateurs en **navigation** ; **animation d’incitation** (léger pulse / halo) tant qu’**aucune zone ni repère** de la carte courante n’a été marqué·e comme vu·e, désactivée si **réduction des animations** système. **`visit-views.jsx`**, **`index.css`** ; e2e **`visit-mode.spec.js`**.
 

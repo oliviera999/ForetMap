@@ -34,8 +34,15 @@ description: Maintient la cohérence entre documentation projet, règles Cursor 
 - Rules courtes, actionnables, et ciblées par `globs` quand possible.
 - Skills orientées workflow concret (implémenter + vérifier + documenter).
 
-## Livrable attendu
+## Livrable attendu (selon le périmètre)
 
-- Au moins une mise à jour `docs/` liée au changement réel.
-- Au moins une mise à jour `rules` (ou nouvelle rule dédiée).
-- Au moins une skill nouvelle ou enrichie, directement réutilisable sur les prochains tickets.
+Adapter au **type** de changement — pas obligatoire de tout toucher pour un correctif minimal :
+
+| Changement | Minimum typique |
+|------------|-----------------|
+| Nouvelle route API ou contrat modifié | `docs/API.md` + tests `tests/*.test.js` |
+| Workflow dev / CI / e2e | `docs/LOCAL_DEV.md` et/ou skill **`foretmap-e2e`** / **`foretmap-tests`** |
+| Nouvelle convention persistante agent | rule **`.mdc`** ciblée et, si procédure réutilisable, skill associée |
+| Évolution transversale (plusieurs zones) | combinaison des lignes ci-dessus + **`docs/EVOLUTION.md`** si impact roadmap |
+
+En cas de doute, privilégier **`docs/API.md`** pour tout endpoint exposé et la rule **`foretmap-conventions`** pour les tests obligatoires.
