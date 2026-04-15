@@ -17,6 +17,16 @@
 
 Pendant le développement, ajouter les changements notables sous **`[Non publié]`** dans `CHANGELOG.md`.
 
+### Lots livrés sur `main` (incrément continu)
+
+Sur ce dépôt, chaque **lot livré** (correctif ou fonctionnalité prête à être intégrée sur `main`) inclut en général :
+
+1. une ou plusieurs entrées sous **`[Non publié]`** dans `CHANGELOG.md` lorsque c’est pertinent pour les humains ;
+2. une incrémentation du numéro dans **`package.json`** via **`npm run bump:patch`** (défaut), **`bump:minor`** ou **`bump:major`** selon SemVer ;
+3. un **commit** puis un **`git push`** de tous les fichiers concernés.
+
+Cela garde **`GET /api/version`**, les tickets et le suivi alignés sur le dernier état publié de la branche. Ce flux est **complémentaire** d’une **release formelle** (tag **`vX.Y.Z`**) : la release « fige » une portion d’historique en renommant la section **`[Non publié]`** en **`[X.Y.Z] - AAAA-MM-JJ`** puis en créant le tag (voir ci-dessous), sans obliger à une coupe à chaque correctif.
+
 ## Shell PowerShell : éviter les échecs heredoc
 
 Dans cet environnement, le shell par défaut est **PowerShell**.  
@@ -85,4 +95,6 @@ Si le dépôt englobe plusieurs dossiers, travailler depuis **`ForetMap/`** ; le
 ## Rappel pour l’IA / contributeurs
 
 - Toujours refléter les changements utilisateur dans **`[Non publié]`** du CHANGELOG quand c’est pertinent.
-- Pour une release : **CHANGELOG d’abord** (section datée), puis **`bump:*` + commit groupé + tag**, sauf si on utilise volontairement `release:*` (deux commits possibles).
+- Après chaque **lot livré** sur `main` : voir la sous-section **Lots livrés sur `main`** ci-dessus (**CHANGELOG** + **`bump:*`** + commit + push).
+- Pour une **release** nommée : **CHANGELOG d’abord** (renommer `[Non publié]` en section datée), puis **`bump:*` + commit groupé + tag**, sauf si on utilise volontairement **`release:*`** (deux commits possibles).
+- Le fichier **`CHANGELOG.md`** peut conserver une longue section **`[Non publié]`** entre deux releases datées : ce n’est pas une incohérence avec **`package.json`** tant que la version du manifeste suit les **`bump:*`** successifs.

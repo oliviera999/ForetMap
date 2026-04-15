@@ -204,6 +204,70 @@ function buildDefaultVisitMascotPackJson(catalogId) {
   };
 }
 
+const VISIT_MASCOT_CATALOG_MODEL_META = Object.freeze({
+  'sprout-rive': { label: 'SPR0UT', fallbackSilhouette: 'sprout' },
+  'scrap-rive': { label: 'SCR4P', fallbackSilhouette: 'scrap' },
+  'gnome-foret-rive': { label: 'Gnome foret', fallbackSilhouette: 'gnome' },
+  'gnome-ambre-rive': { label: 'Gnome ambre', fallbackSilhouette: 'gnome' },
+  'gnome-punk-rive': { label: 'Gnome punk', fallbackSilhouette: 'gnome' },
+  'spore-rive': { label: 'Spore', fallbackSilhouette: 'spore' },
+  'vine-rive': { label: 'Liane', fallbackSilhouette: 'vine' },
+  'moss-rive': { label: 'Mousse', fallbackSilhouette: 'moss' },
+  'seed-rive': { label: 'Graine', fallbackSilhouette: 'seed' },
+  'swarm-rive': { label: 'Essaim', fallbackSilhouette: 'swarm' },
+  'sprite-template': {
+    label: 'Gnome template',
+    fallbackSilhouette: 'gnome',
+    sourceImage: '/assets/mascots/template/mascot-spritesheet.png',
+  },
+  'olu-spritesheet': {
+    label: 'OLU',
+    fallbackSilhouette: 'olu',
+    sourceImage: '/assets/mascots/olu/olu-spritesheet.png',
+  },
+  'tan-bird-spritesheet': {
+    label: 'Oiseau tan',
+    fallbackSilhouette: 'tanBird',
+    sourceImage: '/assets/mascots/tan-bird/tan-bird-spritesheet.png',
+  },
+  'fox-backpack-spritesheet': { label: 'Renard sac', fallbackSilhouette: 'backpackFox' },
+  'renard2-cut-spritesheet': { label: 'Renard 2', fallbackSilhouette: 'backpackFox2' },
+});
+
+function listVisitMascotCatalogTemplateIds() {
+  return Object.keys(VISIT_MASCOT_CATALOG_MODEL_META);
+}
+
+function buildSingleFrameMascotTemplate(slug, title, silhouette, sourceImage = '/assets/mascots/renard2-cut/frames/cell-r0-c0.png') {
+  return {
+    mascotPackVersion: 2,
+    id: slug,
+    label: `${title} (modèle)`,
+    renderer: 'sprite_cut',
+    framesBase: '/assets/mascots/renard2-cut/frames/',
+    frameWidth: 153,
+    frameHeight: 160,
+    pixelated: true,
+    displayScale: 1,
+    fallbackSilhouette: silhouette || 'backpackFox2',
+    stateFrames: {
+      idle: { srcs: [sourceImage], fps: 1 },
+      walking: { srcs: [sourceImage], fps: 1 },
+      running: { srcs: [sourceImage], fps: 1 },
+      talk: { srcs: [sourceImage], fps: 1 },
+      inspect: { srcs: [sourceImage], fps: 1 },
+      map_read: { srcs: [sourceImage], fps: 1 },
+      surprise: { srcs: [sourceImage], fps: 1 },
+      alert: { srcs: [sourceImage], fps: 1 },
+      angry: { srcs: [sourceImage], fps: 1 },
+      spin: { srcs: [sourceImage], fps: 1 },
+      happy: { srcs: [sourceImage], fps: 1 },
+      happy_jump: { srcs: [sourceImage], fps: 1 },
+      celebrate: { srcs: [sourceImage], fps: 1 },
+    },
+  };
+}
+
 function serializeVisitMascotPackRow(row) {
   let pack = {};
   try {
@@ -385,6 +449,38 @@ function listVisitMascotSpriteLibraryFilenamesFromDisk(mapId) {
   return out;
 }
 
+function listPublicMascotStaticAssets() {
+  const root = path.join(__dirname, '..', 'public', 'assets', 'mascots');
+  if (!fs.existsSync(root)) return [];
+  /** @type {string[]} */
+  const out = [];
+  /** @param {string} dir */
+  const walk = (dir) => {
+    let entries = [];
+    try {
+      entries = fs.readdirSync(dir, { withFileTypes: true });
+    } catch (_) {
+      return;
+    }
+    for (const entry of entries) {
+      const abs = path.join(dir, entry.name);
+      if (entry.isDirectory()) {
+        walk(abs);
+        continue;
+      }
+      if (!entry.isFile()) continue;
+      const lower = String(entry.name || '').toLowerCase();
+      if (!/\.(png|jpg|jpeg|webp|gif|svg|riv)$/i.test(lower)) continue;
+      const rel = path.relative(path.join(__dirname, '..', 'public'), abs).replace(/\\/g, '/');
+      if (!rel || rel.startsWith('..')) continue;
+      out.push(`/${rel.replace(/^\/+/, '')}`);
+    }
+  };
+  walk(root);
+  out.sort((a, b) => a.localeCompare(b, 'en'));
+  return out;
+}
+
 async function copyVisitMascotPackAssetDirectory(fromPackId, toPackId) {
   const fromRel = visitMascotPackAssetRelativeDir(fromPackId);
   const toRel = visitMascotPackAssetRelativeDir(toPackId);
@@ -453,6 +549,49 @@ function buildRenard2CatalogPackTemplate(newPackIdSlug) {
       celebrate: { files: ['cell-r3-c3.png', 'cell-r3-c4.png', 'cell-r3-c5.png'], fps: 10 },
     },
   };
+}
+
+function buildFoxBackpackCatalogPackTemplate(newPackIdSlug) {
+  const slug = String(newPackIdSlug || '').trim().toLowerCase().replace(/[^a-z0-9-]/g, '-') || 'fox-backpack-clone';
+  const framesBase = '/assets/mascots/fox-backpack/cells/';
+  return {
+    mascotPackVersion: 2,
+    id: slug,
+    label: 'Renard sac (copie modèle)',
+    renderer: 'sprite_cut',
+    framesBase,
+    frameWidth: 153,
+    frameHeight: 160,
+    pixelated: true,
+    displayScale: 1,
+    fallbackSilhouette: 'backpackFox',
+    stateFrames: {
+      idle: { files: ['cell-r0-c0.png', 'cell-r0-c1.png', 'cell-r0-c2.png'], fps: 3 },
+      walking: { files: ['cell-r1-c0.png', 'cell-r1-c1.png', 'cell-r1-c2.png', 'cell-r1-c3.png', 'cell-r1-c4.png'], fps: 10 },
+      running: { files: ['cell-r1-c0.png', 'cell-r1-c1.png', 'cell-r1-c2.png', 'cell-r1-c3.png', 'cell-r1-c4.png'], fps: 14 },
+      talk: { files: ['cell-r2-c0.png', 'cell-r2-c1.png', 'cell-r2-c2.png', 'cell-r2-c3.png'], fps: 8 },
+      inspect: { files: ['cell-r0-c2.png'], fps: 1 },
+      map_read: { files: ['cell-r0-c0.png'], fps: 1 },
+      surprise: { files: ['cell-r3-c0.png'], fps: 2 },
+      alert: { files: ['cell-r3-c0.png'], fps: 5 },
+      angry: { files: ['cell-r3-c0.png'], fps: 7 },
+      spin: { files: ['cell-r3-c1.png', 'cell-r3-c2.png'], fps: 10 },
+      happy: { files: ['cell-r3-c3.png', 'cell-r3-c4.png', 'cell-r3-c5.png'], fps: 9 },
+      happy_jump: { files: ['cell-r3-c3.png', 'cell-r3-c4.png', 'cell-r3-c5.png'], fps: 11 },
+      celebrate: { files: ['cell-r3-c3.png', 'cell-r3-c4.png', 'cell-r3-c5.png'], fps: 10 },
+    },
+  };
+}
+
+function buildVisitCatalogPackTemplate(catalogTemplateId, newPackIdSlug) {
+  const id = String(catalogTemplateId || '').trim();
+  if (!id) return null;
+  const slug = String(newPackIdSlug || '').trim().toLowerCase().replace(/[^a-z0-9-]/g, '-') || 'catalog-clone';
+  if (id === 'renard2-cut-spritesheet') return buildRenard2CatalogPackTemplate(slug);
+  if (id === 'fox-backpack-spritesheet') return buildFoxBackpackCatalogPackTemplate(slug);
+  const meta = VISIT_MASCOT_CATALOG_MODEL_META[id];
+  if (!meta) return null;
+  return buildSingleFrameMascotTemplate(slug, meta.label || id, meta.fallbackSilhouette, meta.sourceImage);
 }
 
 function parsePointsInput(points) {
@@ -839,8 +978,16 @@ router.post('/mascot-packs', requirePermission('visit.manage', { needsElevation:
         packObj = { ...packObj, framesBase: newApiPrefix };
         sourcePackIdForCopy = cloneFromPackId;
       }
-    } else if (cloneFromCatalogId === 'renard2-cut-spritesheet') {
-      packObj = buildRenard2CatalogPackTemplate(catalogId);
+    } else if (cloneFromCatalogId) {
+      const fromCatalog = buildVisitCatalogPackTemplate(cloneFromCatalogId, catalogId);
+      if (!fromCatalog) {
+        return res.status(400).json({
+          error: 'clone_from_catalog_id invalide',
+          allowed_catalog_ids: listVisitMascotCatalogTemplateIds(),
+          requestId: req.requestId || null,
+        });
+      }
+      packObj = fromCatalog;
     } else if (packObj == null) {
       packObj = buildDefaultVisitMascotPackJson(catalogId);
     }
@@ -1031,6 +1178,72 @@ router.delete(
 );
 
 /** PNG bibliothèque sprites (public si la ligne existe — utilisé par les packs publiés). */
+router.get(
+  '/mascot-assets',
+  requirePermission('visit.manage', { needsElevation: true }),
+  async (req, res) => {
+    try {
+      const publicAssets = listPublicMascotStaticAssets().map((url, idx) => ({
+        id: `public:${idx}:${url}`,
+        source: 'public',
+        filename: String(url).split('/').pop() || '',
+        url,
+      }));
+
+      const packRows = await queryAll(
+        `SELECT id, map_id, catalog_id, label
+         FROM visit_mascot_packs
+         ORDER BY map_id ASC, updated_at DESC, id ASC`
+      );
+      const packAssets = [];
+      for (const row of packRows) {
+        const filenames = listVisitMascotPackAssetFilenames(row.id);
+        for (const filename of filenames) {
+          packAssets.push({
+            id: `pack:${row.id}:${filename}`,
+            source: 'pack',
+            map_id: row.map_id,
+            pack_id: row.id,
+            pack_catalog_id: row.catalog_id,
+            pack_label: row.label,
+            filename,
+            url: `/api/visit/mascot-packs/${row.id}/assets/${encodeURIComponent(filename)}`,
+          });
+        }
+      }
+
+      const libraryRows = await queryAll(
+        `SELECT map_id, filename
+         FROM visit_mascot_sprite_library
+         ORDER BY map_id ASC, filename ASC`
+      );
+      const libraryAssets = libraryRows.map((row) => ({
+        id: `library:${row.map_id}:${row.filename}`,
+        source: 'library',
+        map_id: row.map_id,
+        filename: row.filename,
+        url: `/api/visit/mascot-sprite-library/${row.map_id}/assets/${encodeURIComponent(row.filename)}`,
+      }));
+
+      const assets = [...publicAssets, ...packAssets, ...libraryAssets];
+      res.json({
+        assets,
+        counts: {
+          total: assets.length,
+          public: publicAssets.length,
+          pack: packAssets.length,
+          library: libraryAssets.length,
+        },
+      });
+    } catch (err) {
+      logRouteError(err, req);
+      const mapped = mapVisitMascotPackSqlError(err) || mapVisitMascotSpriteLibSqlError(err);
+      if (mapped) return jsonVisitMascotPackError(res, req, mapped.status, mapped.body);
+      return res.status(500).json({ error: 'Erreur serveur', requestId: req.requestId || null });
+    }
+  },
+);
+
 router.get(
   '/mascot-sprite-library/:mapId/assets/:filename',
   async (req, res) => {
