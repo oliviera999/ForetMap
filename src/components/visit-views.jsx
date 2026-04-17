@@ -794,7 +794,9 @@ function VisitView({
 
   const {
     visitMascotId,
+    visitMascotOptions,
     visitMascotAnimationState,
+    onChangeVisitMascotId,
     triggerMascotTransientState,
     resetMascotTransientState,
   } = useVisitMascotStateMachine({
@@ -1856,6 +1858,32 @@ function VisitView({
                   >
                     {teacherPreviewAsStudent ? 'Retour édition prof' : 'Aperçu comme élève'}
                   </button>
+                ) : null}
+                {visitMascotOptions.length > 0 ? (
+                  <label
+                    className="visit-mascot-picker visit-mascot-picker--visit-chrome"
+                    data-testid="visit-mascot-picker"
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 6,
+                      fontSize: '0.85rem',
+                      marginLeft: 4,
+                    }}
+                  >
+                    <span className="section-sub" style={{ whiteSpace: 'nowrap' }}>Mascotte</span>
+                    <select
+                      className="form-select"
+                      style={{ minWidth: 140, maxWidth: 220 }}
+                      value={visitMascotId}
+                      onChange={(e) => onChangeVisitMascotId(e.target.value)}
+                      aria-label="Choisir la mascotte affichée sur le plan"
+                    >
+                      {visitMascotOptions.map((m) => (
+                        <option key={m.id} value={m.id}>{m.label}</option>
+                      ))}
+                    </select>
+                  </label>
                 ) : null}
                 {visitCartographyProgress.total > 0 ? (
                   <div className="visit-progress visit-progress--donut visit-progress--chrome-inline">
