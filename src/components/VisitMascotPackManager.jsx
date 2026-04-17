@@ -1,7 +1,7 @@
 import React, {
   useCallback, useEffect, useMemo, useState,
 } from 'react';
-import { api, AccountDeletedError } from '../services/api';
+import { api, AccountDeletedError, withAppBase } from '../services/api';
 import MascotPackWysiwygEditor from './MascotPackWysiwygEditor.jsx';
 import VisitMapMascotRenderer from './VisitMapMascotRenderer.jsx';
 import { clonePackDeep, parsePackJson, stringifyPack } from '../utils/mascotPackEditorModel.js';
@@ -15,6 +15,11 @@ import {
   DEFAULT_VISIT_MASCOT_INTERACTION_PROFILE,
 } from '../utils/visitMascotInteractionEvents.js';
 import useVisitMascotStateMachine from '../hooks/useVisitMascotStateMachine.js';
+
+/** @param {string} url */
+function isSpriteLibraryPreviewableUrl(url) {
+  return /\.(png|jpg|jpeg|webp|gif|svg)(\?|$)/i.test(String(url || ''));
+}
 
 const RIGHT_TABS = [
   { id: 'detail', label: 'Fiche comportements' },
@@ -814,17 +819,37 @@ export default function VisitMascotPackManager({
                   </label>
                   {libMessage ? <p className="section-sub" style={{ marginTop: 8 }}>{libMessage}</p> : null}
                   {libLoading ? <p className="section-sub">Chargement…</p> : null}
-                  <ul style={{ marginTop: 10, paddingLeft: 18 }}>
-                    {libAssets.map((a) => (
-                      <li key={a.filename} style={{ marginBottom: 6, fontSize: '0.85rem' }}>
-                        <code>{a.filename}</code>
-                        {' '}
-                        <button type="button" className="btn btn-ghost btn-sm" onClick={() => void onLibDelete(a.filename)}>
-                          Supprimer
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
+                  {libAssets.length === 0 && !libLoading ? (
+                    <p className="section-sub" style={{ marginTop: 10 }}>Aucun PNG dans la bibliothèque pour cette carte.</p>
+                  ) : null}
+                  {libAssets.length > 0 ? (
+                    <ul className="mascot-pack-wysiwyg__asset-grid" style={{ marginTop: 12 }} aria-label="Sprites de la bibliothèque carte">
+                      {libAssets.map((a) => (
+                        <li key={a.filename} className="mascot-pack-wysiwyg__asset-card">
+                          <div
+                            className="mascot-pack-wysiwyg__asset-thumb"
+                            style={{ cursor: 'default' }}
+                            title={a.filename}
+                          >
+                            <img
+                              src={withAppBase(a.url)}
+                              alt={`Aperçu ${a.filename}`}
+                              loading="lazy"
+                              decoding="async"
+                            />
+                          </div>
+                          <div className="mascot-pack-wysiwyg__asset-name">
+                            <code>{a.filename}</code>
+                          </div>
+                          <div className="mascot-pack-wysiwyg__asset-actions">
+                            <button type="button" className="btn btn-danger btn-sm" onClick={() => void onLibDelete(a.filename)}>
+                              Supprimer
+                            </button>
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : null}
                 </section>
 
                 <section>
@@ -862,6 +887,7 @@ export default function VisitMascotPackManager({
                     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }}>
                       <thead>
                         <tr style={{ textAlign: 'left', borderBottom: '1px solid rgba(26,71,49,0.18)' }}>
+                          <th style={{ padding: '6px 8px', width: 76 }}>Aperçu</th>
                           <th style={{ padding: '6px 8px' }}>Source</th>
                           <th style={{ padding: '6px 8px' }}>Fichier</th>
                           <th style={{ padding: '6px 8px' }}>URL</th>
@@ -871,6 +897,29 @@ export default function VisitMascotPackManager({
                       <tbody>
                         {libraryFilteredAssets.map((asset) => (
                           <tr key={asset.id} style={{ borderBottom: '1px solid rgba(26,71,49,0.08)' }}>
+                            <td style={{ padding: '6px 8px', verticalAlign: 'middle' }}>
+                              {isSpriteLibraryPreviewableUrl(asset.url) ? (
+                                <img
+                                  src={withAppBase(asset.url)}
+                                  alt=""
+                                  width={56}
+                                  height={56}
+                                  loading="lazy"
+                                  decoding="async"
+                                  style={{
+                                    display: 'block',
+                                    width: 56,
+                                    height: 56,
+                                    objectFit: 'contain',
+                                    borderRadius: 6,
+                                    background: 'rgba(248,250,245,0.95)',
+                                    border: '1px solid rgba(26,71,49,0.12)',
+                                  }}
+                                />
+                              ) : (
+                                <span className="section-sub" title="Pas d’aperçu pour ce type de fichier">—</span>
+                              )}
+                            </td>
                             <td style={{ padding: '6px 8px' }}>
                               <code>{asset.source}</code>
                               {asset.map_id ? <span>{` · ${asset.map_id}`}</span> : null}
@@ -902,7 +951,7 @@ export default function VisitMascotPackManager({
                         ))}
                         {!globalAssetsLoading && libraryFilteredAssets.length === 0 ? (
                           <tr>
-                            <td colSpan={4} style={{ padding: '10px 8px' }} className="section-sub">
+                            <td colSpan={5} style={{ padding: '10px 8px' }} className="section-sub">
                               Aucun asset trouvé pour ce filtre.
                             </td>
                           </tr>
