@@ -149,6 +149,73 @@ test('OpenAI : second_name autorisé et tronqué si trop long (fetch mock)', asy
   process.env.OPENAI_API_KEY = prevK;
 });
 
+test('OpenAI : complète aussi les champs taxonomiques quand plausibles', async () => {
+  const prevF = process.env.SPECIES_AUTOFILL_OPENAI;
+  const prevK = process.env.OPENAI_API_KEY;
+  process.env.SPECIES_AUTOFILL_OPENAI = '1';
+  process.env.OPENAI_API_KEY = 'sk-test';
+  const fetchImpl = async () => ({
+    ok: true,
+    json: async () => ({
+      choices: [{
+        message: {
+          content: JSON.stringify({
+            name: 'Cétoine funeste',
+            scientific_name: 'Oxythyrea funesta',
+            group_1: 'Animalia',
+            group_2: 'Coleoptera',
+            group_3: 'Scarabaeidae',
+            group_4: 'Cetoniinae',
+            habitat: 'Milieux ouverts, fleuris et ensoleillés.',
+          }),
+        },
+      }],
+    }),
+  });
+  const pack = await fetchOpenAiSpeciesTraits({ query: 'cétoine funeste' }, { fetchImpl });
+  assert.ok(pack);
+  assert.equal(pack.fields.name, 'Cétoine funeste');
+  assert.equal(pack.fields.scientific_name, 'Oxythyrea funesta');
+  assert.equal(pack.fields.group_1, 'Animalia');
+  assert.equal(pack.fields.group_2, 'Coleoptera');
+  assert.equal(pack.fields.group_3, 'Scarabaeidae');
+  assert.equal(pack.fields.group_4, 'Cetoniinae');
+  process.env.SPECIES_AUTOFILL_OPENAI = prevF;
+  process.env.OPENAI_API_KEY = prevK;
+});
+
+test('OpenAI : rejette les valeurs taxonomiques/numériques non plausibles', async () => {
+  const prevF = process.env.SPECIES_AUTOFILL_OPENAI;
+  const prevK = process.env.OPENAI_API_KEY;
+  process.env.SPECIES_AUTOFILL_OPENAI = '1';
+  process.env.OPENAI_API_KEY = 'sk-test';
+  const fetchImpl = async () => ({
+    ok: true,
+    json: async () => ({
+      choices: [{
+        message: {
+          content: JSON.stringify({
+            scientific_name: '12345 ???',
+            ideal_temperature_c: 'température tiède',
+            optimal_ph: 'acide',
+            group_1: 'inconnu',
+            habitat: 'Prairie sèche.',
+          }),
+        },
+      }],
+    }),
+  });
+  const pack = await fetchOpenAiSpeciesTraits({ query: 'x' }, { fetchImpl });
+  assert.ok(pack);
+  assert.equal(pack.fields.scientific_name, undefined);
+  assert.equal(pack.fields.ideal_temperature_c, undefined);
+  assert.equal(pack.fields.optimal_ph, undefined);
+  assert.equal(pack.fields.group_1, undefined);
+  assert.equal(pack.fields.habitat, 'Prairie sèche.');
+  process.env.SPECIES_AUTOFILL_OPENAI = prevF;
+  process.env.OPENAI_API_KEY = prevK;
+});
+
 test('OpenAI : fallback Responses API si chat/completions indisponible', async () => {
   const prevF = process.env.SPECIES_AUTOFILL_OPENAI;
   const prevK = process.env.OPENAI_API_KEY;
