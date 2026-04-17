@@ -8,7 +8,7 @@
   },
   "dependencies": {
     "@rive-app/react-canvas": "^4.28.0",
-    "bcryptjs": "^2.4.3",
+    "bcryptjs": "^3.0.3",
     "compression": "^1.8.1",
     "cors": "^2.8.5",
     "dotenv": "^16.3.1",
