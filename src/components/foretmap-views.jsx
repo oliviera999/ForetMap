@@ -949,6 +949,35 @@ function PlantEditForm({ title, form, setForm, onSave, onCancel, saving, plantId
     setSelectedFields((prev) => ({ ...prev, [key]: !prev[key] }));
   };
 
+  const prefillSourceBadge = (sourceMeta) => {
+    const src = String(sourceMeta?.source || '').trim().toLowerCase();
+    if (!src) return null;
+    const isOpenAi = src === 'openai' || src === 'openai_gap';
+    const label = isOpenAi ? '🧠 OpenAI' : `🔎 ${src}`;
+    return (
+      <span
+        style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: 4,
+          padding: '1px 6px',
+          borderRadius: 999,
+          fontSize: '.72rem',
+          lineHeight: 1.5,
+          fontWeight: 600,
+          background: isOpenAi ? '#ede9fe' : '#ecfeff',
+          color: isOpenAi ? '#5b21b6' : '#155e75',
+          border: `1px solid ${isOpenAi ? '#c4b5fd' : '#a5f3fc'}`,
+        }}
+        title={isOpenAi
+          ? 'Champ proposé par OpenAI à partir du contexte multi-sources'
+          : `Champ proposé par la source ${src}`}
+      >
+        {label}
+      </span>
+    );
+  };
+
   const applyPrefill = () => {
     if (!prefillResult) return;
     setForm((prev) => {
@@ -1270,9 +1299,10 @@ function PlantEditForm({ title, form, setForm, onSave, onCancel, saving, plantId
                         onChange={() => toggleFieldSelection(key)}
                       />
                       <strong>{SPECIES_PREFILL_FIELD_LABELS[key] || key}</strong>
+                      {prefillSourceBadge(sourceMeta)}
                       {sourceMeta?.source && (
                         <small style={{ color: '#666' }}>
-                          ({sourceMeta.source}, {Math.round(Number(sourceMeta.confidence || 0) * 100)}%)
+                          ({Math.round(Number(sourceMeta.confidence || 0) * 100)}%)
                         </small>
                       )}
                     </span>
