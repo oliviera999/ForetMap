@@ -505,6 +505,7 @@ Réponse:
 | GET | `/api/tasks/:id` | non | Détail tâche |
 | GET | `/api/tasks/:id/image` | non | Fichier image illustrative (fallback) ; en pratique `image_url` pointe vers **`/uploads/tasks/…`** (fichier statique, même origine) |
 | POST | `/api/tasks` | oui | Créer tâche |
+| POST | `/api/tasks/reorder-project` | oui | Réordonner les tâches d’un projet (drag & drop prof/admin) |
 | PUT | `/api/tasks/:id` | oui\* | Modifier tâche |
 | DELETE | `/api/tasks/:id` | oui | Supprimer tâche |
 | POST | `/api/tasks/:id/assign` | non | S’assigner (n3beur) |
@@ -529,7 +530,12 @@ Contraintes principales :
 - Niveaux de danger (`danger_level`) : optionnel ; valeurs `safe`, `potential_danger`, `dangerous`, `very_dangerous`. Si non renseigné, le champ vaut **`null`** en réponse (pas de niveau implicite). `POST /api/tasks`, `PUT /api/tasks/:id` et `POST /api/tasks/proposals` : champ omis, chaîne vide ou **`null`** → enregistrement **`null`** ; valeur invalide → **400**. Les n3beurs peuvent le modifier sur **leur** proposition (`proposed`) comme les autres champs non réservés au prof.
 - Niveaux de difficulté (`difficulty_level`) : optionnel ; valeurs `easy`, `medium`, `hard`, `very_hard`. Mêmes règles que `danger_level` (`null` si non renseigné). Les clones **récurrents** reprennent les niveaux de la tâche source (y compris **`null`**).
 - Degré d’importance (`importance_level`) : optionnel ; valeurs `not_important`, `low`, `medium`, `high`, `absolute`. Si non renseigné, **`null`** en réponse. `POST /api/tasks`, `PUT /api/tasks/:id` et `POST /api/tasks/proposals` : champ omis, chaîne vide ou **`null`** → enregistrement **`null`** ; valeur invalide → **400**. Les clones **récurrents** reprennent le même degré que la tâche source (y compris **`null`**).
-- **Tri `GET /api/tasks`** : d’abord les tâches avec un `importance_level` explicite, par priorité décroissante (`absolute` → `not_important`), puis par `due_date` croissante ; ensuite les tâches sans importance (`null`), par `due_date` croissante.
+- **Tri `GET /api/tasks`** : d’abord les tâches avec un `sort_order > 0` (ordre manuel prof/admin, croissant), puis les autres tâches avec un `importance_level` explicite (priorité décroissante `absolute` → `not_important`) ; dans chaque groupe, `due_date` croissante.
+- **Réordonnancement projet** (`POST /api/tasks/reorder-project`) : payload `{ project_id, task_ids }` (tableau d’IDs tâche dans l’ordre souhaité). Contrat :
+  - route réservée à `tasks.manage` (+ élévation selon profil) ;
+  - `project_id` doit exister ;
+  - les IDs transmis doivent appartenir au projet cible (sinon `400`) ;
+  - les tâches non listées explicitement sont conservées en fin de projet, dans leur ordre courant.
 - Statuts projet supportés : `active`, `on_hold` (retourné dans `project_status` sur les payloads de tâche).
 - Champ optionnel `start_date` (`YYYY-MM-DD`) sur les tâches ; tant que la date n’est pas atteinte, la tâche est considérée en attente (`is_before_start_date: true` dans les payloads).
 - Si une tâche est `on_hold` **ou** si son projet est `on_hold`, `POST /api/tasks/:id/assign` renvoie `400` (inscription n3beur bloquée).

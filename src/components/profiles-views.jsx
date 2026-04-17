@@ -5,6 +5,7 @@ import { useHelp } from '../hooks/useHelp';
 import { HelpPanel } from './HelpPanel';
 import { HELP_PANELS, HELP_TOOLTIPS, resolveRoleText } from '../constants/help';
 import { Tooltip } from './Tooltip';
+import { DialogShell } from './DialogShell';
 
 const EDIT_EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -953,8 +954,17 @@ function ProfilesAdminView({ isN3Affiliated = false, onImpersonationApplied, pub
       {msg && <div className="auth-success">{msg}</div>}
 
       {editModalOpen && (
-        <div className="modal-overlay modal-overlay--centered" onClick={(e) => e.target === e.currentTarget && !editLoading && editUserLoadState !== 'loading' && closeEditUser()}>
-          <div className="log-modal log-modal--dialog fade-in" style={{ paddingBottom: 'calc(20px + var(--safe-bottom))' }} onClick={(e) => e.stopPropagation()}>
+        <DialogShell
+          open={editModalOpen}
+          onClose={() => {
+            if (!editLoading && editUserLoadState !== 'loading') closeEditUser();
+          }}
+          overlayClassName="modal-overlay modal-overlay--centered"
+          dialogClassName="log-modal log-modal--dialog fade-in"
+          dialogStyle={{ paddingBottom: 'calc(20px + var(--safe-bottom))' }}
+          ariaLabel="Modifier le compte"
+          closeOnOverlay={!editLoading && editUserLoadState !== 'loading'}
+        >
             <h3 style={{ marginBottom: 8 }}>Modifier le compte</h3>
             {editUserLoadState === 'loading' && (
               <p style={{ margin: '12px 0', fontSize: '.9rem', color: '#64748b' }}>Chargement des données du compte…</p>
@@ -1083,13 +1093,19 @@ function ProfilesAdminView({ isN3Affiliated = false, onImpersonationApplied, pub
                 </button>
               </div>
             )}
-          </div>
-        </div>
+        </DialogShell>
       )}
 
       {confirmStudent && (
-        <div className="modal-overlay modal-overlay--centered" onClick={(e) => e.target === e.currentTarget && setConfirmStudent(null)}>
-          <div className="log-modal log-modal--dialog fade-in" style={{ paddingBottom: 'calc(20px + var(--safe-bottom))' }} onClick={(e) => e.stopPropagation()}>
+        <DialogShell
+          open={!!confirmStudent}
+          onClose={() => setConfirmStudent(null)}
+          overlayClassName="modal-overlay modal-overlay--centered"
+          dialogClassName="log-modal log-modal--dialog fade-in"
+          dialogStyle={{ paddingBottom: 'calc(20px + var(--safe-bottom))' }}
+          ariaLabel="Confirmer la suppression"
+          closeOnOverlay
+        >
             <h3 style={{ marginBottom: 8 }}>Supprimer le/la {roleTerms.studentSingular} ?</h3>
             <p style={{ fontSize: '.95rem', color: '#444', marginBottom: 6, lineHeight: 1.5 }}>
               <strong>{confirmStudent.first_name} {confirmStudent.last_name}</strong>
@@ -1101,8 +1117,7 @@ function ProfilesAdminView({ isN3Affiliated = false, onImpersonationApplied, pub
               <button className="btn btn-danger" style={{ flex: 1 }} onClick={confirmDelete}>Supprimer</button>
               <button className="btn btn-ghost" style={{ flex: 1 }} onClick={() => setConfirmStudent(null)}>Annuler</button>
             </div>
-          </div>
-        </div>
+        </DialogShell>
       )}
 
       {canManageProfiles && (

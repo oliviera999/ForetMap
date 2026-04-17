@@ -7,9 +7,16 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Ajouté
+- **Routine QA / personae** : prompt **`docs/QA_AUDIT_PERSONAE_PROMPT.md`**, dossier **`docs/reports/`** (README, template, rapport d’initialisation), skill **`.cursor/skills/foretmap-qa-personae`**, rule **`.cursor/rules/foretmap-qa-routine.mdc`** ; mention dans **`docs/LOCAL_DEV.md`**.
+- **E2e — modales responsive** : fichier **`e2e/modals-responsive.spec.js`**.
+- **Tâches — ordre manuel par projet** : colonne **`tasks.sort_order`** (**`migrations/075_tasks_sort_order.sql`**, **`sql/schema_foretmap.sql`**), **`POST /api/tasks/reorder-project`**, tri **`GET /api/tasks`** (**`routes/tasks.js`**, **`docs/API.md`**), UI dans **`tasks-views.jsx`** ; tests **`tests/tasks-project-reorder.test.js`**.
+- **UI — coque modale** : composant **`DialogShell.jsx`** et branchements (tutoriels, confirmations biodiversité, aide).
+
 ### Modifié
-- **Documentation / agent Cursor** : alignement **`docs/API.md`** (version, OAuth debug, assets mascotte), **`docs/VERSIONING.md`** / présent fichier (politique SemVer continue vs release), **`docs/EVOLUTION.md`**, **`docs/MASCOT_PACK.md`**, règles **`.cursor/rules`** et skills **`.cursor/skills`** sur le périmètre réel du code.
+- **Vues / styles** : ajustements **`profiles-views.jsx`**, **`map-views.jsx`**, **`foretmap-views.jsx`**, **`tutorials-views.jsx`**, **`auth-views.jsx`**, **`AutoProfilePromotionModal.jsx`**, **`App.jsx`**, **`index.css`**, **`badges.jsx`** (cohérence modale et responsive).
 - **Build** : régénération locale des artefacts **`dist/`** (bundle Vite production).
+- **Documentation / agent Cursor** : alignement **`docs/API.md`** (version, OAuth debug, assets mascotte), **`docs/VERSIONING.md`** / présent fichier (politique SemVer continue vs release), **`docs/EVOLUTION.md`**, **`docs/MASCOT_PACK.md`**, règles **`.cursor/rules`** et skills **`.cursor/skills`** sur le périmètre réel du code.
 - **Visite — présentation du lieu** : le premier tutoriel embarquable s’ouvre via un **bouton** « Présentation du lieu » (bandeau au-dessus du plan) pour **tous** les utilisateurs en **navigation** ; **animation d’incitation** (léger pulse / halo) tant qu’**aucune zone ni repère** de la carte courante n’a été marqué·e comme vu·e, désactivée si **réduction des animations** système. **`visit-views.jsx`**, **`index.css`** ; e2e **`visit-mode.spec.js`**.
 - **Biodiversité — UI pré-saisie** : affichage explicite de la source par champ avec badge dédié **🧠 OpenAI** (et confiance associée) pour distinguer visuellement les propositions LLM des autres sources avant application. **`foretmap-views.jsx`**.
 

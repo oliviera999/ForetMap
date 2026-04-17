@@ -1,0 +1,17 @@
+---
+description: Routine QA UX par personae pour les evolutions a risque de regression utilisateur
+globs: src/components/**/*.jsx, src/App.jsx, src/index.css, routes/**/*.js, middleware/**/*.js, e2e/**/*.js, tests/**/*.test.js
+alwaysApply: false
+---
+
+# Routine QA personae (ForetMap)
+
+- Si un changement touche un parcours utilisateur critique (auth, taches, carte, visite, mode prof), appliquer une verification QA par personae.
+- Utiliser le skill `.cursor/skills/foretmap-qa-personae/SKILL.md` et le prompt de `docs/QA_AUDIT_PERSONAE_PROMPT.md`.
+- Couvrir au minimum:
+  - eleve: entree dans l'app + action utile
+  - eleve: cycle taches (lecture/modification statut)
+  - prof: elevation PIN + action de gestion
+  - mobile et navigation clavier
+- Inclure les cas limites: champs invalides, erreurs API, timeout, doubles soumissions.
+- Le rapport doit contenir severite, categorie, impact persona, et suggestion corrective testable.

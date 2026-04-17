@@ -37,6 +37,7 @@ import {
 } from '../utils/mapLocationContext';
 import { TutorialPreviewModal, tutorialPreviewPayload, tutorialPreviewCanEmbed } from './TutorialPreviewModal';
 import { fetchTutorialReadIds } from './TutorialReadAcknowledge';
+import { DialogShell } from './DialogShell';
 
 function Toast({ msg, onDone }) {
   useEffect(() => { const t = setTimeout(onDone, 2400); return () => clearTimeout(t); }, []);
@@ -888,16 +889,16 @@ function ZoneInfoModal({ zone, plants, tasks, tutorials = [], isTeacher, student
   ];
 
   return (
-    <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
-      <div
-        ref={dialogRef}
-        className="log-modal fade-in"
-        style={{ paddingTop: 16 }}
-        role="dialog"
-        aria-modal="true"
-        aria-label={`Zone ${zoneTitleDisplay}`}
-        tabIndex={-1}
-      >
+    <DialogShell
+      open
+      onClose={onClose}
+      overlayClassName="modal-overlay"
+      dialogClassName="log-modal fade-in"
+      dialogStyle={{ paddingTop: 16 }}
+      ariaLabel={`Zone ${zoneTitleDisplay}`}
+      closeOnOverlay
+      dialogRef={dialogRef}
+    >
         {toast && <Toast msg={toast} onDone={() => setToast(null)} />}
         <button className="modal-close" onClick={onClose}>✕</button>
 
@@ -1393,8 +1394,7 @@ function ZoneInfoModal({ zone, plants, tasks, tutorials = [], isTeacher, student
             )}
           </div>
         )}
-      </div>
-    </div>
+    </DialogShell>
   );
 }
 
@@ -1434,15 +1434,15 @@ function ZoneDrawModal({ points_pct, onClose, onSave, plants, markerEmojis = MAR
     catch (e) { setSaving(false); }
   };
   return (
-    <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
-      <div
-        ref={dialogRef}
-        className="log-modal fade-in"
-        role="dialog"
-        aria-modal="true"
-        aria-label="Nouvelle zone"
-        tabIndex={-1}
-      >
+    <DialogShell
+      open
+      onClose={onClose}
+      overlayClassName="modal-overlay"
+      dialogClassName="log-modal fade-in"
+      ariaLabel="Nouvelle zone"
+      closeOnOverlay
+      dialogRef={dialogRef}
+    >
         <button className="modal-close" onClick={onClose}>✕</button>
         <h3>🖊️ Nouvelle zone</h3>
         <p style={{ fontSize: '.83rem', color: '#888', marginBottom: 14 }}>{points_pct.length} points tracés</p>
@@ -1524,8 +1524,7 @@ function ZoneDrawModal({ points_pct, onClose, onSave, plants, markerEmojis = MAR
         <button className="btn btn-primary btn-full" onClick={save} disabled={saving} style={{ marginTop: 4 }}>
           {saving ? '...' : '✅ Créer la zone'}
         </button>
-      </div>
-    </div>
+    </DialogShell>
   );
 }
 
@@ -1711,15 +1710,15 @@ function MarkerModal({
 
   if (isNew) {
     return (
-      <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
-        <div
-          ref={dialogRef}
-          className="log-modal fade-in"
-          role="dialog"
-          aria-modal="true"
-          aria-label="Nouveau repère"
-          tabIndex={-1}
-        >
+      <DialogShell
+        open
+        onClose={onClose}
+        overlayClassName="modal-overlay"
+        dialogClassName="log-modal fade-in"
+        ariaLabel="Nouveau repère"
+        closeOnOverlay
+        dialogRef={dialogRef}
+      >
           {toast && <Toast msg={toast} onDone={() => setToast(null)} />}
           <button className="modal-close" onClick={onClose}>✕</button>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
@@ -1799,22 +1798,21 @@ function MarkerModal({
           ) : (
             <p style={{ color: '#64748b', fontSize: '.9rem' }}>Création de repère réservée au professeur.</p>
           )}
-        </div>
-      </div>
+      </DialogShell>
     );
   }
 
   return (
-    <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
-      <div
-        ref={dialogRef}
-        className="log-modal fade-in"
-        style={{ paddingTop: 16 }}
-        role="dialog"
-        aria-modal="true"
-        aria-label={`Repère ${marker.label || ''}`}
-        tabIndex={-1}
-      >
+    <DialogShell
+      open
+      onClose={onClose}
+      overlayClassName="modal-overlay"
+      dialogClassName="log-modal fade-in"
+      dialogStyle={{ paddingTop: 16 }}
+      ariaLabel={`Repère ${marker.label || ''}`}
+      closeOnOverlay
+      dialogRef={dialogRef}
+    >
         {toast && <Toast msg={toast} onDone={() => setToast(null)} />}
         <button className="modal-close" onClick={onClose}>✕</button>
 
@@ -2309,8 +2307,7 @@ function MarkerModal({
           </div>
         )}
 
-      </div>
-    </div>
+    </DialogShell>
   );
 }
 

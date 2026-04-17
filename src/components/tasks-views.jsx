@@ -14,6 +14,7 @@ import { formatDateTimeFr } from '../utils/datetime-fr';
 import { HELP_PANELS, HELP_TOOLTIPS, resolveRoleText } from '../constants/help';
 import { TutorialPreviewModal, tutorialPreviewPayload, tutorialPreviewCanEmbed } from './TutorialPreviewModal';
 import { fetchTutorialReadIds } from './TutorialReadAcknowledge';
+import { DialogShell } from './DialogShell';
 import { lockBodyScroll } from '../utils/body-scroll-lock';
 import { armNativeFilePickerGuard, disarmNativeFilePickerGuard } from '../utils/overlayHistory';
 import { isStudentAssignedToTask } from '../utils/task-assignments';
@@ -62,6 +63,10 @@ function compareTasksByImportanceThenDueDate(a, b) {
   const db = String(b?.due_date || '');
   if (da !== db) return da.localeCompare(db);
   return String(a?.id || '').localeCompare(String(b?.id || ''));
+}
+
+function isTaskUrgentCategory(task) {
+  return String(task?.importance_level || '').trim().toLowerCase() === 'absolute';
 }
 
 function Toast({ msg, onDone }) {
@@ -566,15 +571,15 @@ function TaskFormModal({
   }, [searchableStudentsForAssign, assignInitialSearch]);
 
   return (
-    <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
-      <div
-        ref={dialogRef}
-        className="modal fade-in"
-        role="dialog"
-        aria-modal="true"
-        aria-label={isDuplicate ? 'Dupliquer la tâche' : editTask ? 'Modifier la tâche' : isProposal ? 'Proposer une tâche' : 'Nouvelle tâche'}
-        tabIndex={-1}
-      >
+    <DialogShell
+      open
+      onClose={onClose}
+      overlayClassName="modal-overlay"
+      dialogClassName="modal fade-in"
+      ariaLabel={isDuplicate ? 'Dupliquer la tâche' : editTask ? 'Modifier la tâche' : isProposal ? 'Proposer une tâche' : 'Nouvelle tâche'}
+      closeOnOverlay
+      dialogRef={dialogRef}
+    >
         <button className="modal-close" aria-label="Fermer la fenêtre" onClick={onClose}>✕</button>
         <h3>{isDuplicate ? 'Dupliquer la tâche' : editTask ? 'Modifier la tâche' : isProposal ? 'Proposer une tâche' : 'Nouvelle tâche'}</h3>
         {err && <p style={{ color: var_alert, marginBottom: 12, fontSize: '.85rem' }}>{err}</p>}
@@ -960,7 +965,7 @@ function TaskFormModal({
               <option value="low">Peu important</option>
               <option value="medium">Modéré</option>
               <option value="high">Important</option>
-              <option value="absolute">Priorité absolue</option>
+              <option value="absolute">Urgent !</option>
             </select>
           </div>
         </div>
@@ -989,8 +994,7 @@ function TaskFormModal({
         <button className="btn btn-primary btn-full" onClick={submit} disabled={saving}>
           {saving ? 'Sauvegarde...' : isDuplicate ? 'Créer la copie' : editTask ? 'Modifier' : isProposal ? 'Envoyer la proposition' : 'Créer la tâche'}
         </button>
-      </div>
-    </div>
+    </DialogShell>
   );
 }
 
@@ -1124,15 +1128,15 @@ function TaskProjectFormModal({
   const heading = isEdit ? 'Modifier le projet' : 'Nouveau projet';
 
   return (
-    <div className="modal-overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
-      <div
-        ref={dialogRef}
-        className="modal fade-in"
-        role="dialog"
-        aria-modal="true"
-        aria-label={heading}
-        tabIndex={-1}
-      >
+    <DialogShell
+      open
+      onClose={onClose}
+      overlayClassName="modal-overlay"
+      dialogClassName="modal fade-in"
+      ariaLabel={heading}
+      closeOnOverlay
+      dialogRef={dialogRef}
+    >
         <button className="modal-close" aria-label="Fermer la fenêtre" onClick={onClose}>✕</button>
         <h3>{heading}</h3>
         {err && <p style={{ color: var_alert, marginBottom: 12, fontSize: '.85rem' }}>{err}</p>}
@@ -1260,8 +1264,7 @@ function TaskProjectFormModal({
         <button className="btn btn-primary btn-full" onClick={submit} disabled={saving}>
           {saving ? 'Sauvegarde...' : isEdit ? 'Enregistrer le projet' : 'Créer le projet'}
         </button>
-      </div>
-    </div>
+    </DialogShell>
   );
 }
 
@@ -1496,6 +1499,8 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
   const [hasTouchedStatusFilter, setHasTouchedStatusFilter] = useState(false);
   const [filterMap, setFilterMap] = useState('active');
   const [filterProject, setFilterProject] = useState('');
+  /** '' = toutes, 'urgent' = importance absolute uniquement, 'non_urgent' = exclure les urgent */
+  const [filterUrgentCategory, setFilterUrgentCategory] = useState('');
   const [viewMode, setViewMode] = useState(() => {
     const saved = safeLocalStorageGetItem('foretmap:tasks:viewMode', 'tiles');
     if (saved === 'list') return 'list';
@@ -1515,6 +1520,9 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
   const quickAssignUserEditedRef = useRef(false);
   /** Préremplit le sélecteur « Projet » à l’ouverture de « Nouvelle tâche » (y compris projet en attente). */
   const [newTaskDefaultProjectId, setNewTaskDefaultProjectId] = useState(null);
+  /** Payload de drag & drop actif (prof/admin) pour déplacer / réordonner les tâches dans un projet. */
+  const [taskDragPayload, setTaskDragPayload] = useState(null);
+  const [taskDropHint, setTaskDropHint] = useState({ projectId: '', beforeTaskId: '' });
   const confirmDialogRef = useDialogA11y(() => setConfirmTask(null));
   useOverlayHistoryBack(!!confirmTask, () => setConfirmTask(null));
   const { isHelpEnabled, hasSeenSection, markSectionSeen, trackPanelOpen, trackPanelDismiss } = useHelp({ publicSettings, isTeacher });
@@ -1676,6 +1684,82 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
     }
     setLoading(l => ({ ...l, [id]: false }));
   };
+
+  const clearTaskDragState = useCallback(() => {
+    setTaskDragPayload(null);
+    setTaskDropHint({ projectId: '', beforeTaskId: '' });
+  }, []);
+
+  const startTaskDrag = useCallback((task) => {
+    if (!isTeacher || !task?.id) return;
+    setTaskDragPayload({
+      taskId: String(task.id),
+      sourceProjectId: String(task.project_id || '').trim(),
+    });
+    setTaskDropHint({ projectId: '', beforeTaskId: '' });
+  }, [isTeacher]);
+
+  const registerProjectDropHint = useCallback((projectIdRaw, beforeTaskIdRaw = '') => {
+    if (!taskDragPayload?.taskId) return;
+    const projectId = String(projectIdRaw || '').trim();
+    if (!projectId) return;
+    setTaskDropHint({
+      projectId,
+      beforeTaskId: String(beforeTaskIdRaw || '').trim(),
+    });
+  }, [taskDragPayload?.taskId]);
+
+  const dropTaskToProject = useCallback((targetProjectIdRaw, beforeTaskIdRaw = '') => {
+    const dragTaskId = String(taskDragPayload?.taskId || '').trim();
+    if (!isTeacher || !dragTaskId) return;
+    const targetProjectId = String(targetProjectIdRaw || '').trim();
+    if (!targetProjectId) {
+      clearTaskDragState();
+      return;
+    }
+    const draggedTask = tasks.find((task) => String(task.id) === dragTaskId);
+    if (!draggedTask) {
+      clearTaskDragState();
+      return;
+    }
+    const sourceProjectId = String(draggedTask.project_id || '').trim();
+    const beforeTaskId = String(beforeTaskIdRaw || '').trim();
+    const loadKey = `${dragTaskId}dnd:${targetProjectId}:${beforeTaskId || 'end'}`;
+    void withLoad(loadKey, async () => {
+      if (sourceProjectId !== targetProjectId) {
+        await api(`/api/tasks/${dragTaskId}`, 'PUT', { project_id: targetProjectId });
+      }
+      const targetIdsWithoutDragged = tasks
+        .filter((task) => String(task.id) !== dragTaskId && String(task.project_id || '').trim() === targetProjectId)
+        .map((task) => String(task.id));
+      let insertAt = targetIdsWithoutDragged.length;
+      if (beforeTaskId) {
+        const idx = targetIdsWithoutDragged.indexOf(beforeTaskId);
+        if (idx >= 0) insertAt = idx;
+      }
+      const orderedTaskIds = [
+        ...targetIdsWithoutDragged.slice(0, insertAt),
+        dragTaskId,
+        ...targetIdsWithoutDragged.slice(insertAt),
+      ];
+      await api('/api/tasks/reorder-project', 'POST', {
+        project_id: targetProjectId,
+        task_ids: orderedTaskIds,
+      });
+      setToast(
+        sourceProjectId === targetProjectId
+          ? 'Ordre des tâches du projet mis à jour ✓'
+          : 'Tâche intégrée au projet et positionnée ✓'
+      );
+      clearTaskDragState();
+    });
+  }, [clearTaskDragState, isTeacher, taskDragPayload?.taskId, tasks, withLoad]);
+
+  useEffect(() => {
+    if (!taskDragPayload?.taskId) return;
+    const stillExists = tasks.some((task) => String(task.id) === String(taskDragPayload.taskId));
+    if (!stillExists) clearTaskDragState();
+  }, [clearTaskDragState, taskDragPayload, tasks]);
 
   /** Marque `done_at` pour un assigné (tâche en mode collectif) — `POST /api/tasks/:id/done` côté n3boss. */
   const teacherMarkCollectiveAssignmentDone = (task, assignment) => {
@@ -1902,6 +1986,8 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
     if (filterZone && !taskHasLocation(t, filterZone)) return false;
     if (filterStatus && taskEffectiveStatus(t) !== filterStatus) return false;
     if (filterProject && t.project_id !== filterProject) return false;
+    if (filterUrgentCategory === 'urgent' && !isTaskUrgentCategory(t)) return false;
+    if (filterUrgentCategory === 'non_urgent' && isTaskUrgentCategory(t)) return false;
     return true;
   });
 
@@ -1914,6 +2000,14 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
     .slice()
     .sort((a, b) => String(a.title || '').localeCompare(String(b.title || ''), 'fr'));
   const allFiltered = applyFilters(tasks);
+  const urgentCategoryTasks = useMemo(
+    () => allFiltered.filter(isTaskUrgentCategory).sort(compareTasksByImportanceThenDueDate),
+    [allFiltered]
+  );
+  const allFilteredWithoutUrgent = useMemo(
+    () => allFiltered.filter((t) => !isTaskUrgentCategory(t)),
+    [allFiltered]
+  );
   const visibleProjectIds = useMemo(
     () => new Set(visibleProjects.map((p) => String(p.id || ''))),
     [visibleProjects]
@@ -1923,8 +2017,8 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
     return !!projectId && visibleProjectIds.has(projectId);
   };
   const regularFiltered = useMemo(
-    () => allFiltered.filter((t) => !isTaskInVisibleProject(t)),
-    [allFiltered, visibleProjectIds]
+    () => allFilteredWithoutUrgent.filter((t) => !isTaskInVisibleProject(t)),
+    [allFilteredWithoutUrgent, visibleProjectIds]
   );
   const myProposals = allFiltered.filter((t) => (
     !isTeacher
@@ -1948,6 +2042,7 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
     || !!filterZone
     || !!filterProject
     || !!filterStatus
+    || !!filterUrgentCategory
     || hasTouchedStatusFilter
     || filterMap !== 'active'
   );
@@ -2188,6 +2283,10 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
     tooltipText,
     openTasksTutorialPreview,
     onForceLogout,
+    enableTaskDrag: isTeacher,
+    onTaskDragStart: startTaskDrag,
+    onTaskDragEnd: clearTaskDragState,
+    draggingTaskId: taskDragPayload?.taskId ?? null,
     onOpenBiodiversityFromTaskName: (name) => {
       if (typeof onOpenPlantCatalogPreview !== 'function') return;
       const p = (plants || []).find((x) => String(x?.name || '').trim() === String(name || '').trim());
@@ -2260,17 +2359,16 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
       {logsTask && <TaskLogsViewer task={logsTask} onClose={() => setLogsTask(null)} />}
 
       {confirmTask && (
-        <div className="modal-overlay" onClick={e => e.target === e.currentTarget && setConfirmTask(null)}>
-          <div
-            ref={confirmDialogRef}
-            className="log-modal fade-in"
-            style={{ paddingBottom: 'calc(20px + var(--safe-bottom))' }}
-            onClick={e => e.stopPropagation()}
-            role="dialog"
-            aria-modal="true"
-            aria-label="Confirmation d'action"
-            tabIndex={-1}
-          >
+        <DialogShell
+          open={!!confirmTask}
+          onClose={() => setConfirmTask(null)}
+          overlayClassName="modal-overlay"
+          dialogClassName="log-modal fade-in"
+          dialogStyle={{ paddingBottom: 'calc(20px + var(--safe-bottom))' }}
+          ariaLabel="Confirmation d'action"
+          closeOnOverlay
+          dialogRef={confirmDialogRef}
+        >
             <h3 style={{ marginBottom: 8 }}>Confirmation</h3>
             <p style={{ fontSize: '.95rem', color: '#444', marginBottom: 20, lineHeight: 1.5 }}>{confirmTask.label}</p>
             <div style={{ display: 'flex', gap: 10 }}>
@@ -2279,8 +2377,7 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
               }}>Confirmer</button>
               <button className="btn btn-ghost" style={{ flex: 1 }} onClick={() => setConfirmTask(null)}>Annuler</button>
             </div>
-          </div>
-        </div>
+        </DialogShell>
       )}
 
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
@@ -2509,6 +2606,15 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
             ))}
         </select>
         <select
+          value={filterUrgentCategory}
+          onChange={(e) => setFilterUrgentCategory(e.target.value)}
+          aria-label="Filtrer par catégorie urgent"
+        >
+          <option value="">Toutes les catégories</option>
+          <option value="urgent">Urgent ! uniquement</option>
+          <option value="non_urgent">Hors urgent</option>
+        </select>
+        <select
           value={filterStatus}
           onChange={(e) => {
             setFilterStatus(e.target.value);
@@ -2645,6 +2751,13 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
         </div>
       )}
 
+      {urgentCategoryTasks.length > 0 && (
+        <div className="tasks-section">
+          <div className="tasks-section-title">🚨 Urgent ! ({urgentCategoryTasks.length})</div>
+          <div className={sectionListClass}>{urgentCategoryTasks.map((t, idx) => <TaskTileCard key={t.id} {...taskTileProps} t={t} index={idx} />)}</div>
+        </div>
+      )}
+
       {!isTeacher && myTasks.length > 0 && (
         <div className="tasks-section">
           <div className="tasks-section-title">🧩 Mes tâches</div>
@@ -2668,7 +2781,7 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
           )}
           <TaskProjectsBlock
             visibleProjects={visibleProjects}
-            allFiltered={allFiltered}
+            allFiltered={allFilteredWithoutUrgent}
             sectionListClass={sectionListClass}
             isTeacher={isTeacher}
             maps={maps}
@@ -2685,6 +2798,10 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
             loading={loading}
             taskTileProps={taskTileProps}
             openTasksTutorialPreview={openTasksTutorialPreview}
+            taskDragPayload={taskDragPayload}
+            taskDropHint={taskDropHint}
+            onProjectTaskDragOver={registerProjectDropHint}
+            onDropTaskToProject={dropTaskToProject}
           />
           {proposed.length > 0 && (
             <div className="tasks-section">
@@ -2723,7 +2840,7 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
               </div>
               <TaskProjectsBlock
             visibleProjects={visibleProjects}
-            allFiltered={allFiltered}
+            allFiltered={allFilteredWithoutUrgent}
             sectionListClass={sectionListClass}
             isTeacher={isTeacher}
             maps={maps}
@@ -2740,6 +2857,10 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
             loading={loading}
             taskTileProps={taskTileProps}
             openTasksTutorialPreview={openTasksTutorialPreview}
+            taskDragPayload={taskDragPayload}
+            taskDropHint={taskDropHint}
+            onProjectTaskDragOver={registerProjectDropHint}
+            onDropTaskToProject={dropTaskToProject}
           />
             </>
           ) : (
@@ -2764,7 +2885,7 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
               )}
               <TaskProjectsBlock
             visibleProjects={visibleProjects}
-            allFiltered={allFiltered}
+            allFiltered={allFilteredWithoutUrgent}
             sectionListClass={sectionListClass}
             isTeacher={isTeacher}
             maps={maps}
@@ -2781,6 +2902,10 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
             loading={loading}
             taskTileProps={taskTileProps}
             openTasksTutorialPreview={openTasksTutorialPreview}
+            taskDragPayload={taskDragPayload}
+            taskDropHint={taskDropHint}
+            onProjectTaskDragOver={registerProjectDropHint}
+            onDropTaskToProject={dropTaskToProject}
           />
               {doneNotMine.length > 0 && (
               <div className="tasks-section">
@@ -2879,15 +3004,15 @@ function LogModal({ task, student, onClose, onDone, onForceLogout }) {
   };
 
   return (
-    <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
-      <div
-        ref={dialogRef}
-        className="log-modal fade-in"
-        role="dialog"
-        aria-modal="true"
-        aria-label="Rapport de tâche"
-        tabIndex={-1}
-      >
+    <DialogShell
+      open
+      onClose={onClose}
+      overlayClassName="modal-overlay"
+      dialogClassName="log-modal fade-in"
+      ariaLabel="Rapport de tâche"
+      closeOnOverlay
+      dialogRef={dialogRef}
+    >
         <button className="modal-close" aria-label="Fermer la fenêtre" onClick={onClose}>✕</button>
         <h3>📋 Rapport de tâche</h3>
         <p style={{ fontSize: '.85rem', color: '#777', marginBottom: 16 }}>
@@ -2948,8 +3073,7 @@ function LogModal({ task, student, onClose, onDone, onForceLogout }) {
           </button>
           <button className="btn btn-ghost" onClick={onClose}>Annuler</button>
         </div>
-      </div>
-    </div>
+    </DialogShell>
   );
 }
 
@@ -2978,42 +3102,41 @@ function TaskLogsViewer({ task, onClose }) {
   };
 
   return (
-    <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
+    <DialogShell
+      open
+      onClose={onClose}
+      overlayClassName="modal-overlay"
+      dialogClassName="log-modal fade-in"
+      ariaLabel={`Rapports de la tâche ${task.title}`}
+      closeOnOverlay
+      dialogRef={dialogRef}
+    >
       {big && <Lightbox src={big} caption="" onClose={() => setBig(null)} />}
       {toast && <Toast msg={toast} onDone={() => setToast(null)} />}
-      <div
-        ref={dialogRef}
-        className="log-modal fade-in"
-        role="dialog"
-        aria-modal="true"
-        aria-label={`Rapports de la tâche ${task.title}`}
-        tabIndex={-1}
-      >
-        <button className="modal-close" aria-label="Fermer la fenêtre" onClick={onClose}>✕</button>
-        <h3>📋 Rapports — {task.title}</h3>
-        {logs.length === 0
-          ? <div className="empty"><div className="empty-icon">📭</div><p>Pas encore de retour sur cette mission — à toi d’ouvrir le bal !</p></div>
-          : logs.map(l => (
-            <div key={l.id} className="log-entry fade-in">
-              <div className="log-entry-header">
-                <span className="log-entry-author">{l.student_first_name} {l.student_last_name}</span>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <span>{formatDateTimeFr(l.created_at)}</span>
-                  <button className="btn btn-danger btn-sm" style={{ padding: '4px 8px', minHeight: 'auto', fontSize: '.72rem' }}
-                    onClick={() => { if (confirm('Supprimer ce rapport ?')) deleteLog(l.id); }}
-                    title="Supprimer ce rapport">🗑️</button>
-                </div>
+      <button className="modal-close" aria-label="Fermer la fenêtre" onClick={onClose}>✕</button>
+      <h3>📋 Rapports — {task.title}</h3>
+      {logs.length === 0
+        ? <div className="empty"><div className="empty-icon">📭</div><p>Pas encore de retour sur cette mission — à toi d’ouvrir le bal !</p></div>
+        : logs.map(l => (
+          <div key={l.id} className="log-entry fade-in">
+            <div className="log-entry-header">
+              <span className="log-entry-author">{l.student_first_name} {l.student_last_name}</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span>{formatDateTimeFr(l.created_at)}</span>
+                <button className="btn btn-danger btn-sm" style={{ padding: '4px 8px', minHeight: 'auto', fontSize: '.72rem' }}
+                  onClick={() => { if (confirm('Supprimer ce rapport ?')) deleteLog(l.id); }}
+                  title="Supprimer ce rapport">🗑️</button>
               </div>
-              {l.comment && <div className="log-comment">{l.comment}</div>}
-              {l.image_url && (
-                <img src={l.image_url} className="log-image" alt="rapport" loading="lazy" decoding="async"
-                  onClick={() => setBig(l.image_url)} />
-              )}
             </div>
-          ))
-        }
-      </div>
-    </div>
+            {l.comment && <div className="log-comment">{l.comment}</div>}
+            {l.image_url && (
+              <img src={l.image_url} className="log-image" alt="rapport" loading="lazy" decoding="async"
+                onClick={() => setBig(l.image_url)} />
+            )}
+          </div>
+        ))
+      }
+    </DialogShell>
   );
 }
 
@@ -3059,6 +3182,10 @@ function TaskTileCard({
   openTasksTutorialPreview,
   onForceLogout,
   onOpenBiodiversityFromTaskName,
+  enableTaskDrag = false,
+  onTaskDragStart = null,
+  onTaskDragEnd = null,
+  draggingTaskId = null,
 }) {
     const [coverLightbox, setCoverLightbox] = useState(null);
     const [condensedExpanded, setCondensedExpanded] = useState(false);
@@ -3127,10 +3254,25 @@ function TaskTileCard({
           : `Afficher les détails : ${t.title}`,
       }
       : { className: 'task-top' };
+    const isTaskDraggingThis = !!draggingTaskId && String(draggingTaskId) === String(t.id || '');
     return (
       <div
-        className={`task-card ${viewMode === 'tiles' ? 'task-card--tile' : ''}${isCondensed ? ` task-card--condensed${condensedExpanded ? ' task-card--condensed-open' : ''}` : ''} fade-in ${isMine ? 'mine' : ''} ${effectiveStatus === 'validated' ? 'done' : ''} ${effectiveStatus === 'proposed' ? 'proposed' : ''}`}
+        className={`task-card ${viewMode === 'tiles' ? 'task-card--tile' : ''}${isCondensed ? ` task-card--condensed${condensedExpanded ? ' task-card--condensed-open' : ''}` : ''} fade-in ${isMine ? 'mine' : ''} ${effectiveStatus === 'validated' ? 'done' : ''} ${effectiveStatus === 'proposed' ? 'proposed' : ''} ${isTaskDraggingThis ? 'task-card--dragging' : ''}`}
         style={{ animationDelay: `${Math.min(index * 60, 360)}ms` }}
+        draggable={enableTaskDrag}
+        onDragStart={(event) => {
+          if (!enableTaskDrag) return;
+          event.dataTransfer.effectAllowed = 'move';
+          try {
+            event.dataTransfer.setData('text/plain', String(t.id || ''));
+          } catch (_) {
+            // dataTransfer peut être restreint selon le navigateur.
+          }
+          onTaskDragStart?.(t);
+        }}
+        onDragEnd={() => {
+          if (enableTaskDrag) onTaskDragEnd?.();
+        }}
       >
         {coverLightbox && <Lightbox src={coverLightbox} caption="" onClose={() => setCoverLightbox(null)} />}
         <TopTag {...topTagProps}>
@@ -3520,6 +3662,10 @@ function TaskProjectsBlock({
   loading,
   taskTileProps,
   openTasksTutorialPreview,
+  taskDragPayload,
+  taskDropHint,
+  onProjectTaskDragOver,
+  onDropTaskToProject,
 }) {
 if (visibleProjects.length <= 0) return null;
     return (
@@ -3532,8 +3678,28 @@ if (visibleProjects.length <= 0) return null;
             const projectStatus = p.status === 'on_hold' ? 'on_hold' : 'active';
             const loadingActive = !!loading[`${p.id}projectactive`];
             const loadingHold = !!loading[`${p.id}projecton_hold`];
+            const canReceiveTaskDrop = !!(isTeacher && taskDragPayload?.taskId);
+            const projectDropId = String(p.id || '');
+            const projectCardDropActive = canReceiveTaskDrop
+              && taskDropHint?.projectId === projectDropId
+              && !taskDropHint?.beforeTaskId;
             return (
-              <div key={p.id} className="task-card" style={{ padding: 12 }}>
+              <div
+                key={p.id}
+                className={`task-card ${projectCardDropActive ? 'task-card--drop-target' : ''}`}
+                style={{ padding: 12 }}
+                onDragOver={(event) => {
+                  if (!canReceiveTaskDrop) return;
+                  event.preventDefault();
+                  event.dataTransfer.dropEffect = 'move';
+                  onProjectTaskDragOver?.(projectDropId, '');
+                }}
+                onDrop={(event) => {
+                  if (!canReceiveTaskDrop) return;
+                  event.preventDefault();
+                  onDropTaskToProject?.(projectDropId, '');
+                }}
+              >
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                   <div>
                     <div className="task-title" style={{ fontSize: '1rem' }}>📁 {p.title}</div>
@@ -3639,7 +3805,25 @@ if (visibleProjects.length <= 0) return null;
                   ) : (
                     <div className={sectionListClass}>
                       {projectTasks.map((t, idx) => (
-                        <TaskTileCard key={t.id} {...taskTileProps} t={t} index={idx} />
+                        <div
+                          key={t.id}
+                          className={`task-project-drop-slot ${canReceiveTaskDrop && taskDropHint?.projectId === projectDropId && taskDropHint?.beforeTaskId === String(t.id) ? 'task-project-drop-slot--active' : ''}`}
+                          onDragOver={(event) => {
+                            if (!canReceiveTaskDrop) return;
+                            event.preventDefault();
+                            event.stopPropagation();
+                            event.dataTransfer.dropEffect = 'move';
+                            onProjectTaskDragOver?.(projectDropId, String(t.id));
+                          }}
+                          onDrop={(event) => {
+                            if (!canReceiveTaskDrop) return;
+                            event.preventDefault();
+                            event.stopPropagation();
+                            onDropTaskToProject?.(projectDropId, String(t.id));
+                          }}
+                        >
+                          <TaskTileCard {...taskTileProps} t={t} index={idx} />
+                        </div>
                       ))}
                     </div>
                   )}

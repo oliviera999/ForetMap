@@ -51,10 +51,10 @@ import {
   safeSessionStorageGetItem,
   safeSessionStorageRemoveItem,
 } from './utils/browserStorage.js';
-import { useDialogA11y } from './hooks/useDialogA11y';
 import { useOverlayHistoryBack } from './hooks/useOverlayHistoryBack';
 import { abandonAllOverlays, pushOverlayClose } from './utils/overlayHistory';
 import { AutoProfilePromotionModal } from './components/AutoProfilePromotionModal.jsx';
+import { DialogShell } from './components/DialogShell';
 
 const DESKTOP_SPLIT_MIN_WIDTH = 1024;
 const DESKTOP_SPLIT_MIN_MAP_PX = 620;
@@ -1161,8 +1161,6 @@ function App() {
       return next;
     });
   }, [authClaims?.userId]);
-  const studentStatsDialogRef = useDialogA11y(() => setShowStats(false));
-  const studentProfileDialogRef = useDialogA11y(() => setShowProfile(false));
   const {
     roleKey: notificationRoleKey,
     items: notifications,
@@ -1366,77 +1364,65 @@ function App() {
         isN3Affiliated={isN3Affiliated}
       />}
       {showStats && canOpenUserDialogs && (
-        <div className="modal-overlay" onClick={e => e.target === e.currentTarget && setShowStats(false)}>
-          <div
-            ref={studentStatsDialogRef}
-            className="log-modal log-modal--with-close fade-in"
-            style={{maxHeight:'88vh'}}
-            onClick={e => e.stopPropagation()}
-            role="dialog"
-            aria-modal="true"
-            aria-label="Statistiques utilisateur"
-            tabIndex={-1}
-          >
-            <div className="log-modal__head">
-              <button
-                type="button"
-                className="modal-close"
-                aria-label="Fermer la fenêtre des statistiques"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setShowStats(false);
-                }}
-              >
-                ✕
-              </button>
-            </div>
-            <div className="log-modal__scroll">
-              <StudentStats student={{ id: profileTargetUserId }} isN3Affiliated={isN3Affiliated} />
-            </div>
+        <DialogShell
+          open={showStats}
+          onClose={() => setShowStats(false)}
+          overlayClassName="modal-overlay"
+          dialogClassName="log-modal log-modal--with-close fade-in"
+          dialogStyle={{ maxHeight: '88vh' }}
+          ariaLabel="Statistiques utilisateur"
+          closeOnOverlay
+        >
+          <div className="log-modal__head">
+            <button
+              type="button"
+              className="modal-close"
+              aria-label="Fermer la fenêtre des statistiques"
+              onClick={() => setShowStats(false)}
+            >
+              ✕
+            </button>
           </div>
-        </div>
+          <div className="log-modal__scroll">
+            <StudentStats student={{ id: profileTargetUserId }} isN3Affiliated={isN3Affiliated} />
+          </div>
+        </DialogShell>
       )}
       {showProfile && canOpenUserDialogs && profileTargetUser && (
-        <div className="modal-overlay" onClick={e => e.target === e.currentTarget && setShowProfile(false)}>
-          <div
-            ref={studentProfileDialogRef}
-            className="log-modal log-modal--with-close fade-in"
-            style={{maxHeight:'88vh'}}
-            onClick={e => e.stopPropagation()}
-            role="dialog"
-            aria-modal="true"
-            aria-label="Profil utilisateur"
-            tabIndex={-1}
-          >
-            <div className="log-modal__head">
-              <button
-                type="button"
-                className="modal-close"
-                aria-label="Fermer la fenêtre du profil"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setShowProfile(false);
-                }}
-              >
-                ✕
-              </button>
-            </div>
-            <div className="log-modal__scroll">
-              <StudentProfileEditor
-                student={profileTargetUser}
-                onUpdated={(updated) => {
-                  if (effectiveIsTeacher) {
-                    updateTeacherSession(updated);
-                    return;
-                  }
-                  updateStudentSession(updated);
-                }}
-                onClose={() => setShowProfile(false)}
-                isN3Affiliated={isN3Affiliated}
-              />
-            </div>
+        <DialogShell
+          open={showProfile}
+          onClose={() => setShowProfile(false)}
+          overlayClassName="modal-overlay"
+          dialogClassName="log-modal log-modal--with-close fade-in"
+          dialogStyle={{ maxHeight: '88vh' }}
+          ariaLabel="Profil utilisateur"
+          closeOnOverlay
+        >
+          <div className="log-modal__head">
+            <button
+              type="button"
+              className="modal-close"
+              aria-label="Fermer la fenêtre du profil"
+              onClick={() => setShowProfile(false)}
+            >
+              ✕
+            </button>
           </div>
-        </div>
+          <div className="log-modal__scroll">
+            <StudentProfileEditor
+              student={profileTargetUser}
+              onUpdated={(updated) => {
+                if (effectiveIsTeacher) {
+                  updateTeacherSession(updated);
+                  return;
+                }
+                updateStudentSession(updated);
+              }}
+              onClose={() => setShowProfile(false)}
+              isN3Affiliated={isN3Affiliated}
+            />
+          </div>
+        </DialogShell>
       )}
 
       <header className="app-header">

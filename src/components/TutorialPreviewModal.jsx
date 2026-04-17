@@ -1,7 +1,7 @@
 import React from 'react';
-import { createPortal } from 'react-dom';
 import { useOverlayHistoryBack } from '../hooks/useOverlayHistoryBack';
 import { TutorialReadAcknowledgeButton } from './TutorialReadAcknowledge';
+import { DialogShell } from './DialogShell';
 
 /**
  * Objet tutoriel enrichi pour l’iframe (même logique que l’aperçu liste Tutoriels).
@@ -53,44 +53,46 @@ export function TutorialPreviewModal({ tutorial, onClose, readAcknowledge = null
     readAcknowledge &&
     Number.isFinite(tutoIdNum) &&
     tutoIdNum > 0;
-  /** Rendu sous `document.body` : évite `overflow:hidden` / défilement des ancêtres (carte, vue scindée, formulaire tâche) qui rognaient ou déplaçaient le `position:fixed`. */
-  const overlay = (
-    <div className="modal-overlay modal-overlay--tuto-preview" onClick={e => e.target === e.currentTarget && onClose()}>
-      <div className="log-modal tuto-preview-modal" role="dialog" aria-modal="true" aria-labelledby="tuto-preview-title" tabIndex={-1} onClick={e => e.stopPropagation()}>
-        <div className="tuto-preview-modal__head">
-          <button type="button" className="modal-close" onClick={onClose} aria-label="Fermer l’aperçu">✕</button>
-          <h3 id="tuto-preview-title">📘 {tutorial.title}</h3>
-        </div>
-        {canEmbed ? (
-          <div className="tuto-preview-modal__body">
-            <iframe
-              title={`Aperçu : ${tutorial.title}`}
-              src={source}
-              className="tuto-preview-frame"
-              sandbox="allow-same-origin allow-scripts allow-popups allow-forms"
-            />
-          </div>
-        ) : (
-          <div className="tuto-preview-modal__body tuto-preview-modal__body--empty">
-            <div className="empty" style={{ padding: 18 }}>
-              <p>Aperçu non disponible pour ce tutoriel.</p>
-            </div>
-          </div>
-        )}
-        {showReadFooter ? (
-          <div className="tuto-preview-modal__foot">
-            <TutorialReadAcknowledgeButton
-              tutorialId={tutoIdNum}
-              tutorialTitle={tutorial.title}
-              isRead={readAcknowledge.isRead}
-              onAcknowledged={readAcknowledge.onAcknowledged}
-              onForceLogout={readAcknowledge.onForceLogout}
-            />
-          </div>
-        ) : null}
+  return (
+    <DialogShell
+      open={!!tutorial}
+      onClose={onClose}
+      overlayClassName="modal-overlay modal-overlay--tuto-preview"
+      dialogClassName="log-modal tuto-preview-modal"
+      ariaLabelledBy="tuto-preview-title"
+      closeOnOverlay
+    >
+      <div className="tuto-preview-modal__head">
+        <button type="button" className="modal-close" onClick={onClose} aria-label="Fermer l’aperçu">✕</button>
+        <h3 id="tuto-preview-title">📘 {tutorial.title}</h3>
       </div>
-    </div>
+      {canEmbed ? (
+        <div className="tuto-preview-modal__body">
+          <iframe
+            title={`Aperçu : ${tutorial.title}`}
+            src={source}
+            className="tuto-preview-frame"
+            sandbox="allow-same-origin allow-scripts allow-popups allow-forms"
+          />
+        </div>
+      ) : (
+        <div className="tuto-preview-modal__body tuto-preview-modal__body--empty">
+          <div className="empty" style={{ padding: 18 }}>
+            <p>Aperçu non disponible pour ce tutoriel.</p>
+          </div>
+        </div>
+      )}
+      {showReadFooter ? (
+        <div className="tuto-preview-modal__foot">
+          <TutorialReadAcknowledgeButton
+            tutorialId={tutoIdNum}
+            tutorialTitle={tutorial.title}
+            isRead={readAcknowledge.isRead}
+            onAcknowledged={readAcknowledge.onAcknowledged}
+            onForceLogout={readAcknowledge.onForceLogout}
+          />
+        </div>
+      ) : null}
+    </DialogShell>
   );
-  if (typeof document === 'undefined' || !document.body) return null;
-  return createPortal(overlay, document.body);
 }

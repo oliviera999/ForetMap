@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { api, AccountDeletedError, createContextComment, getAuthToken } from '../services/api';
 import { useOverlayHistoryBack } from '../hooks/useOverlayHistoryBack';
 import { AttachmentImagesPicker } from './attachment-images-picker';
+import { DialogShell } from './DialogShell';
 
 const MIN_CONTEXT_COMMENT_CHARS = 2;
 
@@ -116,25 +117,17 @@ export function PlantSpeciesDiscoveryAcknowledgeButton({
   if (!hasToken) return null;
 
   const renderEnrichStep = () => (
-    <div
-      className="modal-overlay"
-      role="presentation"
-      onClick={(e) => e.target === e.currentTarget && !busy && setModalOpen(false)}
+    <DialogShell
+      open={modalOpen}
+      onClose={() => !busy && setModalOpen(false)}
+      overlayClassName="modal-overlay"
+      dialogClassName="log-modal fade-in tuto-read-ack-modal"
+      ariaLabelledBy="plant-discovery-enrich-title"
+      closeOnOverlay={!busy}
+      showCloseButton
+      closeButtonLabel="Fermer"
+      closeButtonDisabled={busy}
     >
-      <div
-        className="log-modal fade-in tuto-read-ack-modal"
-        role="dialog"
-        aria-labelledby="plant-discovery-enrich-title"
-        aria-modal="true"
-      >
-        <button
-          type="button"
-          className="modal-close"
-          onClick={() => !busy && setModalOpen(false)}
-          aria-label="Fermer"
-        >
-          ✕
-        </button>
         <h3 id="plant-discovery-enrich-title">Enrichir ta observation ?</h3>
         <p className="tuto-read-ack-intro">
           Tu peux publier un court commentaire sur la fiche
@@ -173,8 +166,7 @@ export function PlantSpeciesDiscoveryAcknowledgeButton({
             {enrichSaving ? 'Publication…' : 'Publier sur la fiche'}
           </button>
         </div>
-      </div>
-    </div>
+    </DialogShell>
   );
 
   if (hasObserved) {
@@ -199,25 +191,17 @@ export function PlantSpeciesDiscoveryAcknowledgeButton({
           </span>
         </div>
         {modalOpen && (phase === 'enrich' ? renderEnrichStep() : (
-          <div
-            className="modal-overlay"
-            role="presentation"
-            onClick={(e) => e.target === e.currentTarget && !saving && setModalOpen(false)}
+          <DialogShell
+            open={modalOpen}
+            onClose={() => !saving && setModalOpen(false)}
+            overlayClassName="modal-overlay"
+            dialogClassName="log-modal fade-in tuto-read-ack-modal"
+            ariaLabelledBy="plant-discovery-ack-title-new"
+            closeOnOverlay={!saving}
+            showCloseButton
+            closeButtonLabel="Fermer"
+            closeButtonDisabled={saving}
           >
-            <div
-              className="log-modal fade-in tuto-read-ack-modal"
-              role="dialog"
-              aria-labelledby="plant-discovery-ack-title-new"
-              aria-modal="true"
-            >
-              <button
-                type="button"
-                className="modal-close"
-                onClick={() => !saving && setModalOpen(false)}
-                aria-label="Fermer"
-              >
-                ✕
-              </button>
               <h3 id="plant-discovery-ack-title-new">Nouvelle observation</h3>
               <p className="tuto-read-ack-intro">
                 Tu confirmes une observation supplémentaire pour l&apos;espèce
@@ -242,8 +226,7 @@ export function PlantSpeciesDiscoveryAcknowledgeButton({
                   {saving ? 'Enregistrement…' : 'Confirmer'}
                 </button>
               </div>
-            </div>
-          </div>
+          </DialogShell>
         ))}
       </>
     );
@@ -255,25 +238,17 @@ export function PlantSpeciesDiscoveryAcknowledgeButton({
         Espèce découverte
       </button>
       {modalOpen && (phase === 'enrich' ? renderEnrichStep() : (
-        <div
-          className="modal-overlay"
-          role="presentation"
-          onClick={(e) => e.target === e.currentTarget && !saving && setModalOpen(false)}
+        <DialogShell
+          open={modalOpen}
+          onClose={() => !saving && setModalOpen(false)}
+          overlayClassName="modal-overlay"
+          dialogClassName="log-modal fade-in tuto-read-ack-modal"
+          ariaLabelledBy="plant-discovery-ack-title"
+          closeOnOverlay={!saving}
+          showCloseButton
+          closeButtonLabel="Fermer"
+          closeButtonDisabled={saving}
         >
-          <div
-            className="log-modal fade-in tuto-read-ack-modal"
-            role="dialog"
-            aria-labelledby="plant-discovery-ack-title"
-            aria-modal="true"
-          >
-            <button
-              type="button"
-              className="modal-close"
-              onClick={() => !saving && setModalOpen(false)}
-              aria-label="Fermer"
-            >
-              ✕
-            </button>
             <h3 id="plant-discovery-ack-title">Confirmer la découverte</h3>
             <p className="tuto-read-ack-intro">
               En validant, tu confirmes pour l&apos;espèce
@@ -299,8 +274,7 @@ export function PlantSpeciesDiscoveryAcknowledgeButton({
                 {saving ? 'Enregistrement…' : 'Confirmer'}
               </button>
             </div>
-          </div>
-        </div>
+        </DialogShell>
       ))}
     </>
   );

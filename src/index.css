@@ -1098,6 +1098,24 @@
     }
     .task-card.mine { border-color:var(--sage); background:#f7fef9; }
     .task-card.done { opacity:.65; }
+    .task-card--dragging {
+      opacity:.55;
+      cursor:grabbing;
+    }
+    .task-card--drop-target {
+      border-color:var(--leaf, #22c55e);
+      box-shadow:0 0 0 2px rgba(34,197,94,.15), var(--shadow-soft);
+      background:#f6fff9;
+    }
+    .task-project-drop-slot {
+      border:1px dashed transparent;
+      border-radius:12px;
+      transition:border-color var(--motion-fast, .15s ease), background var(--motion-fast, .15s ease);
+    }
+    .task-project-drop-slot--active {
+      border-color:var(--leaf, #22c55e);
+      background:rgba(34,197,94,.08);
+    }
     .task-card.proposed {
       border-color:#c4b5fd;
       background:#faf5ff;
@@ -1317,6 +1335,11 @@
       justify-content:center;
       padding:max(16px, var(--safe-top)) 16px max(16px, var(--safe-bottom));
     }
+    @media (max-width: 720px) {
+      .modal-overlay.modal-overlay--centered {
+        align-items:flex-start;
+      }
+    }
 
     .modal-overlay .log-modal.log-modal--dialog {
       border-radius:20px;
@@ -1517,7 +1540,12 @@
       position:relative;
       z-index:1;
       background:white; border-radius:20px; padding:32px 24px;
-      max-width:320px; width:100%; text-align:center;
+      width:min(100%, 320px);
+      max-height:min(90vh, calc(100vh - var(--safe-top) - var(--safe-bottom) - 40px));
+      max-height:min(90dvh, calc(100dvh - var(--safe-top) - var(--safe-bottom) - 40px));
+      overflow-y:auto;
+      -webkit-overflow-scrolling:touch;
+      text-align:center;
       animation:popIn .3s var(--spring) forwards;
     }
     @keyframes popIn { from{transform:scale3d(.88,.88,1) translate3d(0,12px,0);opacity:0} to{transform:scale3d(1,1,1) translate3d(0,0,0);opacity:1} }
@@ -1545,6 +1573,10 @@
       width: calc(100vw - 32px);
       border-radius: 22px;
       overflow: hidden;
+      max-height:min(90vh, calc(100vh - var(--safe-top) - var(--safe-bottom) - 32px));
+      max-height:min(90dvh, calc(100dvh - var(--safe-top) - var(--safe-bottom) - 32px));
+      overflow-y:auto;
+      -webkit-overflow-scrolling:touch;
       box-shadow: 0 24px 48px rgba(20, 60, 40, 0.35), 0 0 0 1px rgba(255, 255, 255, 0.12);
       animation: popIn 0.32s var(--spring) forwards;
     }
@@ -1629,6 +1661,15 @@
     .profile-promo-card__cta:focus-visible {
       outline: 3px solid rgba(82, 183, 136, 0.55);
       outline-offset: 2px;
+    }
+    @media (max-width: 720px) {
+      .profile-promo-card {
+        width:min(100%, calc(100vw - 24px));
+        border-radius: 18px;
+      }
+      .profile-promo-card__inner {
+        padding: 20px 16px calc(18px + var(--safe-bottom));
+      }
     }
 
     /* ── AUTH SCREEN ── */

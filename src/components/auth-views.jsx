@@ -15,6 +15,7 @@ import {
 import { useOverlayHistoryBack } from '../hooks/useOverlayHistoryBack';
 import { getRoleTerms } from '../utils/n3-terminology';
 import { getContentText } from '../utils/content';
+import { DialogShell } from './DialogShell';
 
 function startGoogleAuth(mode) {
   const safeMode = mode === 'teacher' ? 'teacher' : 'student';
@@ -170,8 +171,14 @@ function PinModal({ onSuccess, onClose, uiSettings, isN3Affiliated = false }) {
   };
 
   return (
-    <div className="pin-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
-      <div className="pin-card fade-in">
+    <DialogShell
+      open
+      onClose={onClose}
+      overlayClassName="pin-overlay"
+      dialogClassName="pin-card fade-in"
+      ariaLabel={`Mode ${roleTerms.teacherSingular}`}
+      closeOnOverlay
+    >
         <div style={{ fontSize: '2rem', marginBottom: 8 }}>🔒</div>
         <h3>Mode {roleTerms.teacherSingular}</h3>
         <p>Utilise ton code ou un compte {roleTerms.teacherShort} (e-mail + mot de passe).</p>
@@ -281,8 +288,7 @@ function PinModal({ onSuccess, onClose, uiSettings, isN3Affiliated = false }) {
           </button>
         )}
         <button className="btn btn-ghost btn-full" style={{ marginTop: 8 }} onClick={onClose}>Annuler</button>
-      </div>
-    </div>
+    </DialogShell>
   );
 }
 
