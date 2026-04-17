@@ -339,6 +339,30 @@ function parseLinkCandidates(value) {
     .filter(Boolean);
 }
 
+/** Fusionne une URL uploadée avec les liens déjà présents (évite les doublons). */
+function mergePlantPhotoFieldValue(prevValue, newUrl, position) {
+  const url = String(newUrl || '').trim();
+  if (!url) return normalizedPlantValue(prevValue);
+  const existing = parseLinkCandidates(prevValue);
+  if (existing.includes(url)) return existing.join('\n');
+  if (existing.length === 0) return url;
+  if (position === 'prepend') return [url, ...existing].join('\n');
+  return [...existing, url].join('\n');
+}
+
+/**
+ * Ordre des champs pour les images envoyées à Pl@ntNet : la 1re image = illustration principale (`photo`),
+ * les suivantes = autres cases photo du formulaire.
+ */
+const PLANTNET_IDENTIFY_PHOTO_FIELD_ORDER = [
+  'photo',
+  'photo_species',
+  'photo_leaf',
+  'photo_flower',
+  'photo_fruit',
+  'photo_harvest_part',
+];
+
 function fileToDataUrl(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -720,6 +744,7 @@ function PlantEditForm({ title, form, setForm, onSave, onCancel, saving, plantId
   );
   const [identifySlots, setIdentifySlots] = useState(() => [newPlantnetIdentifySlot()]);
   const [identifyLoading, setIdentifyLoading] = useState(false);
+  const [identifyApplying, setIdentifyApplying] = useState(false);
   const [identifyError, setIdentifyError] = useState('');
   const [identifyPredictions, setIdentifyPredictions] = useState([]);
 
@@ -861,7 +886,7 @@ function PlantEditForm({ title, form, setForm, onSave, onCancel, saving, plantId
     }
   };
 
-  const applyIdentifyPrediction = (pred) => {
+  const applyIdentifyPrediction = async (pred) => {
     if (!pred || typeof pred !== 'object') return;
     const sci = String(pred.scientificName || pred.scientificNameWithoutAuthor || '').trim();
     const vern = pickPlantnetVernacularName(pred.commonNames);
@@ -871,7 +896,43 @@ function PlantEditForm({ title, form, setForm, onSave, onCancel, saving, plantId
       scientific_name: sci.slice(0, 200) || f.scientific_name,
       name: (nameGuess && nameGuess.slice(0, 200)) || f.name,
     }));
-    onToast?.('Nom mis à jour — tu peux lancer la pré-saisie depuis les sources.');
+
+    const slots = identifySlots.filter((r) => String(r.imageData || '').trim().length > 0);
+    if (slots.length === 0) {
+      onToast?.('Nom mis à jour — ajoute des photos d’identification pour les importer dans la fiche.');
+      return;
+    }
+
+    let targetId = plantId;
+    if (!targetId && typeof onEnsurePlantId === 'function') {
+      targetId = await onEnsurePlantId();
+    }
+    if (!targetId) {
+      onToast?.('Enregistre la fiche (nom) pour importer les photos, puis réessaie.');
+      return;
+    }
+
+    setIdentifyApplying(true);
+    try {
+      for (let i = 0; i < slots.length; i++) {
+        const field = PLANTNET_IDENTIFY_PHOTO_FIELD_ORDER[i];
+        if (!field) break;
+        const imageData = slots[i].imageData;
+        const result = await api(`/api/plants/${targetId}/photo-upload`, 'POST', { field, imageData });
+        const newUrl = result?.url;
+        if (!newUrl) continue;
+        const position = i === 0 ? 'prepend' : 'append';
+        setForm((prev) => ({
+          ...prev,
+          [field]: mergePlantPhotoFieldValue(prev[field], newUrl, position),
+        }));
+      }
+      onToast?.('Proposition appliquée : noms et photos d’identification importés ✓');
+    } catch (e) {
+      onToast?.('Import des photos : ' + (e?.message || 'erreur'));
+    } finally {
+      setIdentifyApplying(false);
+    }
   };
 
   const groupedPrefillPhotos = useMemo(() => {
@@ -933,7 +994,8 @@ function PlantEditForm({ title, form, setForm, onSave, onCancel, saving, plantId
         (list || []).forEach((_, idx) => {
           const slot = prefillPhotoSlotKey(field, idx);
           const defaultTarget = PHOTO_FIELD_KEYS.has(field) ? field : 'photo_species';
-          nextPhotoSel[slot] = { checked: idx === 0, assignTo: defaultTarget };
+          // Propositions visibles par défaut ; l’utilisateur coche pour ajouter sans remplacer les photos déjà présentes.
+          nextPhotoSel[slot] = { checked: false, assignTo: defaultTarget };
         });
       }
       setPrefillPhotoSelections(nextPhotoSel);
@@ -1061,11 +1123,15 @@ function PlantEditForm({ title, form, setForm, onSave, onCancel, saving, plantId
           <p style={{ margin: 0, lineHeight: 1.45 }}>
             Envoie 1 à 5 images de la <strong>même</strong> plante (feuille, fleur, fruit…), depuis la <strong>galerie</strong> ou
             en <strong>prenant une photo</strong> avec le téléphone (bouton « Appareil photo », caméra arrière si disponible).
-            Le serveur appelle Pl@ntNet ; choisis une proposition puis lance la pré-saisie ci-dessous. Données soumises aux
+            Le serveur appelle Pl@ntNet ; choisis une proposition puis « Utiliser pour le formulaire » : les noms sont renseignés
+            et les images sont importées (la 1<sup>re</sup> sert de <strong>photo principale</strong> pour illustrer la fiche ;
+            les suivantes remplissent les autres cases photo). Tu peux ensuite lancer la pré-saisie ci-dessous. Données soumises aux
             conditions d’usage{' '}
             <a href="https://my.plantnet.org/" target="_blank" rel="noreferrer">my.plantnet.org</a>.
           </p>
-          {identifySlots.map((row) => {
+          {(() => {
+            const identifyBusy = saving || identifyLoading || identifyApplying;
+            return identifySlots.map((row) => {
             const safeId = String(row.key).replace(/\W/g, '_');
             const idGal = `plantnet-id-gal-${safeId}`;
             const idCam = `plantnet-id-cam-${safeId}`;
@@ -1075,9 +1141,8 @@ function PlantEditForm({ title, form, setForm, onSave, onCancel, saving, plantId
               e.target.value = '';
               onIdentifyFileChosen(row.key, f);
             };
-            const busy = saving || identifyLoading;
             const triggerIdentifyFile = (inputId) => {
-              if (busy) return;
+              if (identifyBusy) return;
               const el = document.getElementById(inputId);
               if (!el) return;
               el.value = '';
@@ -1102,7 +1167,7 @@ function PlantEditForm({ title, form, setForm, onSave, onCancel, saving, plantId
                     <select
                       value={row.organ}
                       onChange={(e) => setIdentifySlotOrgan(row.key, e.target.value)}
-                      disabled={busy}
+                      disabled={identifyBusy}
                     >
                       {PLANTNET_IDENTIFY_ORGAN_OPTIONS.map((o) => (
                         <option key={o.id} value={o.id}>{o.label}</option>
@@ -1116,7 +1181,7 @@ function PlantEditForm({ title, form, setForm, onSave, onCancel, saving, plantId
                         id={idGal}
                         type="file"
                         accept="image/*"
-                        disabled={busy}
+                        disabled={identifyBusy}
                         style={{ display: 'none' }}
                         onChange={onIdentifyPick}
                       />
@@ -1125,14 +1190,14 @@ function PlantEditForm({ title, form, setForm, onSave, onCancel, saving, plantId
                         type="file"
                         accept="image/*"
                         capture="environment"
-                        disabled={busy}
+                        disabled={identifyBusy}
                         style={{ display: 'none' }}
                         onChange={onIdentifyPick}
                       />
                       <button
                         type="button"
                         className="btn btn-secondary btn-sm"
-                        disabled={busy}
+                        disabled={identifyBusy}
                         onClick={() => triggerIdentifyFile(idGal)}
                       >
                         📁 Galerie / fichier
@@ -1140,7 +1205,7 @@ function PlantEditForm({ title, form, setForm, onSave, onCancel, saving, plantId
                       <button
                         type="button"
                         className="btn btn-secondary btn-sm"
-                        disabled={busy}
+                        disabled={identifyBusy}
                         onClick={() => triggerIdentifyFile(idCam)}
                       >
                         📸 Appareil photo
@@ -1151,7 +1216,7 @@ function PlantEditForm({ title, form, setForm, onSave, onCancel, saving, plantId
                     <button
                       type="button"
                       className="btn btn-ghost btn-sm"
-                      disabled={busy}
+                      disabled={identifyBusy}
                       onClick={() => removeIdentifySlot(row.key)}
                     >
                       Retirer
@@ -1163,17 +1228,18 @@ function PlantEditForm({ title, form, setForm, onSave, onCancel, saving, plantId
                 )}
               </div>
             );
-          })}
+          });
+          })()}
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
             {identifySlots.length < 5 && (
-              <button type="button" className="btn btn-ghost btn-sm" disabled={saving || identifyLoading} onClick={addIdentifySlot}>
+              <button type="button" className="btn btn-ghost btn-sm" disabled={saving || identifyLoading || identifyApplying} onClick={addIdentifySlot}>
                 + Ajouter une image
               </button>
             )}
             <button
               type="button"
               className="btn btn-sm"
-              disabled={saving || identifyLoading}
+              disabled={saving || identifyLoading || identifyApplying}
               onClick={runPlantnetIdentify}
             >
               {identifyLoading ? 'Identification…' : 'Lancer l’identification'}
@@ -1211,10 +1277,10 @@ function PlantEditForm({ title, form, setForm, onSave, onCancel, saving, plantId
                     <button
                       type="button"
                       className="btn btn-ghost btn-sm"
-                      disabled={saving || identifyLoading}
+                      disabled={saving || identifyLoading || identifyApplying}
                       onClick={() => applyIdentifyPrediction(p)}
                     >
-                      Utiliser pour le formulaire
+                      {identifyApplying ? 'Import des photos…' : 'Utiliser pour le formulaire'}
                     </button>
                   </div>
                 );
@@ -1327,7 +1393,7 @@ function PlantEditForm({ title, form, setForm, onSave, onCancel, saving, plantId
                 <div>
                   <strong style={{ fontSize: '.9rem' }}>Photos proposées (aperçu + crédit / licence)</strong>
                   <p style={{ margin: '4px 0 0', fontSize: '.78rem', color: '#555', lineHeight: 1.35 }}>
-                    Cochez une ou plusieurs images à importer. Le menu « Associer au champ » indique la case photo du formulaire cible (vous pouvez regrouper plusieurs images sur un même champ : les URL seront listées les unes sous les autres).
+                    Cochez les images à ajouter (aucune n’est cochée par défaut). Le menu « Associer au champ » indique la case photo du formulaire cible ; plusieurs URL sur un même champ sont listées ligne à ligne. Les photos déjà présentes (ex. prises pour Pl@ntNet ou importées manuellement) sont conservées : les propositions de pré-saisie s’ajoutent sans les remplacer, sauf si vous cochez « Autoriser l’écrasement des champs déjà remplis ».
                   </p>
                 </div>
                 {Object.entries(groupedPrefillPhotos).map(([field, photos]) => (

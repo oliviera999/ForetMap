@@ -14,11 +14,13 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - **UI — coque modale** : composant **`DialogShell.jsx`** et branchements (tutoriels, confirmations biodiversité, aide).
 
 ### Modifié
+- **Studio packs mascotte — bibliothèque sprites** : vignettes visuelles des PNG (grille comme la médiathèque pack) + colonne d’aperçu dans la table « assets du site » pour les images. **`VisitMascotPackManager.jsx`**.
 - **Vues / styles** : ajustements **`profiles-views.jsx`**, **`map-views.jsx`**, **`foretmap-views.jsx`**, **`tutorials-views.jsx`**, **`auth-views.jsx`**, **`AutoProfilePromotionModal.jsx`**, **`App.jsx`**, **`index.css`**, **`badges.jsx`** (cohérence modale et responsive).
 - **Build** : régénération locale des artefacts **`dist/`** (bundle Vite production).
 - **Documentation / agent Cursor** : alignement **`docs/API.md`** (version, OAuth debug, assets mascotte), **`docs/VERSIONING.md`** / présent fichier (politique SemVer continue vs release), **`docs/EVOLUTION.md`**, **`docs/MASCOT_PACK.md`**, règles **`.cursor/rules`** et skills **`.cursor/skills`** sur le périmètre réel du code.
 - **Visite — présentation du lieu** : le premier tutoriel embarquable s’ouvre via un **bouton** « Présentation du lieu » (bandeau au-dessus du plan) pour **tous** les utilisateurs en **navigation** ; **animation d’incitation** (léger pulse / halo) tant qu’**aucune zone ni repère** de la carte courante n’a été marqué·e comme vu·e, désactivée si **réduction des animations** système. **`visit-views.jsx`**, **`index.css`** ; e2e **`visit-mode.spec.js`**.
 - **Biodiversité — UI pré-saisie** : affichage explicite de la source par champ avec badge dédié **🧠 OpenAI** (et confiance associée) pour distinguer visuellement les propositions LLM des autres sources avant application. **`foretmap-views.jsx`**.
+- **Biodiversité — Pl@ntNet** : « Utiliser pour le formulaire » importe les images d’identification sur le serveur : la **1re** alimente la **photo principale** (`photo`, vignette fiche) ; les suivantes remplissent les autres champs photo dans l’ordre. **Pré-saisie — photos** : suggestions listées sans case cochée par défaut ; à l’application, fusion avec les photos déjà présentes (pas d’écrasement tant que l’option d’écrasement global n’est pas activée). **`foretmap-views.jsx`**.
 
 ### Corrigé
 - **Visite — sélecteur mascotte** : liste déroulante **Mascotte** rétablie dans la barre au-dessus du plan (catalogue + packs publiés), en complément de l’onglet **Aperçu mascotte** du studio. **`visit-views.jsx`**.
