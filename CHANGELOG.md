@@ -11,6 +11,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - **Documentation / agent Cursor** : alignement **`docs/API.md`** (version, OAuth debug, assets mascotte), **`docs/VERSIONING.md`** / présent fichier (politique SemVer continue vs release), **`docs/EVOLUTION.md`**, **`docs/MASCOT_PACK.md`**, règles **`.cursor/rules`** et skills **`.cursor/skills`** sur le périmètre réel du code.
 - **Build** : régénération locale des artefacts **`dist/`** (bundle Vite production).
 - **Visite — présentation du lieu** : le premier tutoriel embarquable s’ouvre via un **bouton** « Présentation du lieu » (bandeau au-dessus du plan) pour **tous** les utilisateurs en **navigation** ; **animation d’incitation** (léger pulse / halo) tant qu’**aucune zone ni repère** de la carte courante n’a été marqué·e comme vu·e, désactivée si **réduction des animations** système. **`visit-views.jsx`**, **`index.css`** ; e2e **`visit-mode.spec.js`**.
+- **Biodiversité — UI pré-saisie** : affichage explicite de la source par champ avec badge dédié **🧠 OpenAI** (et confiance associée) pour distinguer visuellement les propositions LLM des autres sources avant application. **`foretmap-views.jsx`**.
 
 ### Corrigé
 - **Biodiversité mobile — prise de photo** : l’ouverture caméra/galerie dans l’éditeur d’espèce et dans le bloc Pl@ntNet arme désormais la garde `popstate` des overlays ; au retour appareil photo, la fenêtre d’édition ne se ferme plus avant le `change` de l’input. **`foretmap-views.jsx`**.
