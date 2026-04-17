@@ -112,7 +112,7 @@ const TASK_IMPORTANCE_DISPLAY = {
   low: { emoji: '◔', label: 'Peu important', title: 'Importance : peu important' },
   medium: { emoji: '◕', label: 'Modéré', title: 'Importance : modéré' },
   high: { emoji: '⏫', label: 'Important', title: 'Importance : important' },
-  absolute: { emoji: '🎯', label: 'Priorité absolue', title: 'Importance : priorité absolue' },
+  absolute: { emoji: '🚨', label: 'Urgent !', title: 'Importance : urgent' },
 };
 
 const TASK_DANGER_DISPLAY = {

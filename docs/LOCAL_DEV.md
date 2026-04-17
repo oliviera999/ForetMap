@@ -163,6 +163,20 @@ Le script force `DB_NAME=foretmap_test` ; le schéma est (re)créé par les fich
 
 Après une modification **frontend** : **`npm run build`** si le serveur sert **`dist/`** (`NODE_ENV=production`), avant **`npm run test:e2e`**.
 
+### Audit QA UX par personae (routine)
+
+Pour une recette plus complete qu'un simple run automatisé, utilisez le prompt dedie:
+
+- `docs/QA_AUDIT_PERSONAE_PROMPT.md`
+
+Workflow conseille:
+
+1. `npm test`
+2. `npm run build` (si frontend touche et serveur sert `dist/`)
+3. `npm run test:e2e`
+4. Audit personae (parcours eleve/prof, mobile, clavier, erreurs/timeouts/double soumission)
+5. Rapport date (ex: `docs/reports/qa-ux-YYYY-MM-DD.md`) avec priorisation des corrections
+
 ### Vérification ciblée pré-saisie biodiversité (MVP)
 
 Tests backend rapides :

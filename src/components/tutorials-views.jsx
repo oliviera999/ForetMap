@@ -5,6 +5,7 @@ import { TutorialReadAcknowledgeButton, fetchTutorialReadIds } from './TutorialR
 import { TutorialPreviewModal, tutorialPreviewPayload } from './TutorialPreviewModal';
 import { ContextComments } from './context-comments';
 import { orderedLivingBeingsForForm, formatLivingBeingsListLine } from '../utils/livingBeings';
+import { DialogShell } from './DialogShell';
 
 function tutorialZonePickLabel(z) {
   const line = formatLivingBeingsListLine(
@@ -57,37 +58,43 @@ function TutorialLinkedTasksModal({ state, onClose }) {
   if (!state?.tutorial) return null;
   const { tutorial, loading, error, tasks } = state;
   return (
-    <div className="modal-overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
-      <div className="log-modal tuto-linked-tasks-modal" role="dialog" aria-labelledby="tuto-linked-tasks-title" aria-modal="true" tabIndex={-1} onClick={e => e.stopPropagation()}>
-        <button type="button" className="modal-close" onClick={onClose} aria-label="Fermer">✕</button>
-        <h3 id="tuto-linked-tasks-title">Tâches liées</h3>
-        <p className="tuto-linked-tasks-subtitle">« {tutorial.title} »</p>
-        {loading ? (
-          <p className="tuto-linked-tasks-loading">Chargement…</p>
-        ) : error ? (
-          <p className="tuto-linked-tasks-error">{error}</p>
-        ) : !tasks?.length ? (
-          <p className="tuto-linked-tasks-empty">Aucune tâche liée.</p>
-        ) : (
-          <ul className="tuto-linked-tasks-list">
-            {tasks.map((task) => (
-              <li key={task.id} className="tuto-linked-tasks-row">
-                <div className="tuto-linked-tasks-row-title">{task.title}</div>
-                <div className="tuto-linked-tasks-row-meta">
-                  <span className="task-chip">{linkedTaskStatusLabel(task.status)}</span>
-                  {task.map_label ? (
-                    <span className="task-chip" title={task.map_id || ''}>🗺️ {task.map_label}</span>
-                  ) : null}
-                  {task.location_hint ? (
-                    <span className="task-chip" title="Lieu">📍 {task.location_hint}</span>
-                  ) : null}
-                </div>
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
-    </div>
+    <DialogShell
+      open={!!state?.tutorial}
+      onClose={onClose}
+      overlayClassName="modal-overlay"
+      dialogClassName="log-modal tuto-linked-tasks-modal"
+      ariaLabelledBy="tuto-linked-tasks-title"
+      closeOnOverlay
+      showCloseButton
+      closeButtonLabel="Fermer"
+    >
+      <h3 id="tuto-linked-tasks-title">Tâches liées</h3>
+      <p className="tuto-linked-tasks-subtitle">« {tutorial.title} »</p>
+      {loading ? (
+        <p className="tuto-linked-tasks-loading">Chargement…</p>
+      ) : error ? (
+        <p className="tuto-linked-tasks-error">{error}</p>
+      ) : !tasks?.length ? (
+        <p className="tuto-linked-tasks-empty">Aucune tâche liée.</p>
+      ) : (
+        <ul className="tuto-linked-tasks-list">
+          {tasks.map((task) => (
+            <li key={task.id} className="tuto-linked-tasks-row">
+              <div className="tuto-linked-tasks-row-title">{task.title}</div>
+              <div className="tuto-linked-tasks-row-meta">
+                <span className="task-chip">{linkedTaskStatusLabel(task.status)}</span>
+                {task.map_label ? (
+                  <span className="task-chip" title={task.map_id || ''}>🗺️ {task.map_label}</span>
+                ) : null}
+                {task.location_hint ? (
+                  <span className="task-chip" title="Lieu">📍 {task.location_hint}</span>
+                ) : null}
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+    </DialogShell>
   );
 }
 
@@ -410,53 +417,61 @@ function TutorialsView({
       )}
       {linkedTasksModal && <TutorialLinkedTasksModal state={linkedTasksModal} onClose={closeLinkedTasks} />}
       {showReorder && (
-        <div className="modal-overlay" onClick={(e) => e.target === e.currentTarget && !reorderSaving && closeReorder()}>
-          <div className="log-modal tuto-reorder-modal" role="dialog" aria-labelledby="tuto-reorder-title" aria-modal="true" tabIndex={-1} onClick={(e) => e.stopPropagation()}>
-            <button type="button" className="modal-close" disabled={reorderSaving} onClick={closeReorder}>✕</button>
-            <h3 id="tuto-reorder-title">Ordre d’affichage des tutoriels</h3>
-            <p className="tuto-reorder-hint">
-              Glissez-déposez une ligne ou utilisez les flèches. Cet ordre est celui de la liste des tutoriels (élèves et profs) et correspond au champ « Ordre » de chaque fiche.
-            </p>
-            <ul className="tuto-reorder-list">
-              {reorderDraft.map((t, index) => (
-                <li
-                  key={t.id}
-                  className={`tuto-reorder-row ${!t.is_active ? 'archived' : ''}`}
-                  draggable={!reorderSaving}
-                  onDragStart={(e) => onReorderDragStart(e, index)}
-                  onDragOver={onReorderDragOver}
-                  onDrop={(e) => onReorderDrop(e, index)}
-                >
-                  <span className="tuto-reorder-grip" title="Glisser pour déplacer" aria-hidden>⋮⋮</span>
-                  <span className="tuto-reorder-row-title">{t.title}</span>
-                  {!t.is_active && <span className="task-chip archived">Archivé</span>}
-                  <span className="tuto-reorder-actions">
-                    <button
-                      type="button"
-                      className="btn btn-ghost btn-sm"
-                      disabled={reorderSaving || index === 0}
-                      onClick={() => moveReorderRow(index, -1)}
-                      aria-label="Monter"
-                    >↑</button>
-                    <button
-                      type="button"
-                      className="btn btn-ghost btn-sm"
-                      disabled={reorderSaving || index >= reorderDraft.length - 1}
-                      onClick={() => moveReorderRow(index, 1)}
-                      aria-label="Descendre"
-                    >↓</button>
-                  </span>
-                </li>
-              ))}
-            </ul>
-            <div className="tuto-reorder-footer">
-              <button type="button" className="btn btn-primary btn-sm" disabled={reorderSaving} onClick={saveReorder}>
-                {reorderSaving ? 'Enregistrement…' : '💾 Enregistrer l’ordre'}
-              </button>
-              <button type="button" className="btn btn-ghost btn-sm" disabled={reorderSaving} onClick={closeReorder}>Annuler</button>
-            </div>
+        <DialogShell
+          open={showReorder}
+          onClose={() => {
+            if (!reorderSaving) closeReorder();
+          }}
+          overlayClassName="modal-overlay"
+          dialogClassName="log-modal tuto-reorder-modal"
+          ariaLabelledBy="tuto-reorder-title"
+          closeOnOverlay={!reorderSaving}
+          showCloseButton
+          closeButtonDisabled={reorderSaving}
+        >
+          <h3 id="tuto-reorder-title">Ordre d’affichage des tutoriels</h3>
+          <p className="tuto-reorder-hint">
+            Glissez-déposez une ligne ou utilisez les flèches. Cet ordre est celui de la liste des tutoriels (élèves et profs) et correspond au champ « Ordre » de chaque fiche.
+          </p>
+          <ul className="tuto-reorder-list">
+            {reorderDraft.map((t, index) => (
+              <li
+                key={t.id}
+                className={`tuto-reorder-row ${!t.is_active ? 'archived' : ''}`}
+                draggable={!reorderSaving}
+                onDragStart={(e) => onReorderDragStart(e, index)}
+                onDragOver={onReorderDragOver}
+                onDrop={(e) => onReorderDrop(e, index)}
+              >
+                <span className="tuto-reorder-grip" title="Glisser pour déplacer" aria-hidden>⋮⋮</span>
+                <span className="tuto-reorder-row-title">{t.title}</span>
+                {!t.is_active && <span className="task-chip archived">Archivé</span>}
+                <span className="tuto-reorder-actions">
+                  <button
+                    type="button"
+                    className="btn btn-ghost btn-sm"
+                    disabled={reorderSaving || index === 0}
+                    onClick={() => moveReorderRow(index, -1)}
+                    aria-label="Monter"
+                  >↑</button>
+                  <button
+                    type="button"
+                    className="btn btn-ghost btn-sm"
+                    disabled={reorderSaving || index >= reorderDraft.length - 1}
+                    onClick={() => moveReorderRow(index, 1)}
+                    aria-label="Descendre"
+                  >↓</button>
+                </span>
+              </li>
+            ))}
+          </ul>
+          <div className="tuto-reorder-footer">
+            <button type="button" className="btn btn-primary btn-sm" disabled={reorderSaving} onClick={saveReorder}>
+              {reorderSaving ? 'Enregistrement…' : '💾 Enregistrer l’ordre'}
+            </button>
+            <button type="button" className="btn btn-ghost btn-sm" disabled={reorderSaving} onClick={closeReorder}>Annuler</button>
           </div>
-        </div>
+        </DialogShell>
       )}
     <div className="fade-in">
       {toast && <div className="toast">{toast}</div>}

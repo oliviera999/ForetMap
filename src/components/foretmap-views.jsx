@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
-import { createPortal } from 'react-dom';
 import { useOverlayHistoryBack } from '../hooks/useOverlayHistoryBack';
 import { api, AccountDeletedError } from '../services/api';
 import { SPECIAL_EMOJI, SPECIAL_DESC, TREE_LEGEND, TREE_DOTS } from '../constants/garden';
@@ -33,6 +32,7 @@ import {
   plantLinkedToMapZone,
 } from '../utils/plantFilters';
 import { armNativeFilePickerGuard, disarmNativeFilePickerGuard } from '../utils/overlayHistory';
+import { DialogShell } from './DialogShell';
 
 // ── TOAST ──────────────────────────────────────────────────────────────────
 function Toast({ msg, onDone }) {
@@ -2684,46 +2684,42 @@ function PlantCatalogPreviewModal({
   }, [plant?.id]);
 
   if (!plant) return null;
-  const overlay = (
-    <div className="modal-overlay modal-overlay--tuto-preview" onClick={(e) => e.target === e.currentTarget && onClose()}>
-      <div
-        className="log-modal tuto-preview-modal"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="plant-catalog-preview-title"
-        tabIndex={-1}
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="tuto-preview-modal__head">
-          <button type="button" className="modal-close" onClick={onClose} aria-label="Fermer l’aperçu">✕</button>
-          <h3 id="plant-catalog-preview-title">🌱 {plant.name}</h3>
-        </div>
-        <div className="tuto-preview-modal__body tuto-preview-modal__body--biodiv-scroll">
-          <PlantBiodiversityCatalogPreviewCard
-            plant={plant}
-            zones={zones}
-            markers={markers}
-            maps={maps}
-            myObservationCount={obs.my}
-            siteObservationCount={obs.site}
-            onObservationAcknowledged={(_id, next) => {
-              setObs({
-                my: Number(next.my_observation_count) || 0,
-                site: Number(next.site_observation_count) || 0,
-              });
-            }}
-            contextCommentsEnabled={contextCommentsEnabled}
-            canParticipateContextComments={canParticipateContextComments}
-            onForceLogout={onForceLogout}
-            showContextComments
-            dataBiodivPlantId={null}
-          />
-        </div>
+  return (
+    <DialogShell
+      open={!!plant}
+      onClose={onClose}
+      overlayClassName="modal-overlay modal-overlay--tuto-preview"
+      dialogClassName="log-modal tuto-preview-modal"
+      ariaLabelledBy="plant-catalog-preview-title"
+      closeOnOverlay
+    >
+      <div className="tuto-preview-modal__head">
+        <button type="button" className="modal-close" onClick={onClose} aria-label="Fermer l’aperçu">✕</button>
+        <h3 id="plant-catalog-preview-title">🌱 {plant.name}</h3>
       </div>
-    </div>
+      <div className="tuto-preview-modal__body tuto-preview-modal__body--biodiv-scroll">
+        <PlantBiodiversityCatalogPreviewCard
+          plant={plant}
+          zones={zones}
+          markers={markers}
+          maps={maps}
+          myObservationCount={obs.my}
+          siteObservationCount={obs.site}
+          onObservationAcknowledged={(_id, next) => {
+            setObs({
+              my: Number(next.my_observation_count) || 0,
+              site: Number(next.site_observation_count) || 0,
+            });
+          }}
+          contextCommentsEnabled={contextCommentsEnabled}
+          canParticipateContextComments={canParticipateContextComments}
+          onForceLogout={onForceLogout}
+          showContextComments
+          dataBiodivPlantId={null}
+        />
+      </div>
+    </DialogShell>
   );
-  if (typeof document === 'undefined' || !document.body) return null;
-  return createPortal(overlay, document.body);
 }
 
 // ── PLANT VIEWER (student read-only) ──────────────────────────────────────────

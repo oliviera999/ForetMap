@@ -128,6 +128,7 @@ CREATE TABLE IF NOT EXISTS tasks (
   danger_level VARCHAR(32) DEFAULT NULL,
   difficulty_level VARCHAR(32) DEFAULT NULL,
   importance_level VARCHAR(32) DEFAULT NULL,
+  sort_order INT UNSIGNED NOT NULL DEFAULT 0,
   living_beings TEXT DEFAULT NULL,
   status VARCHAR(32) DEFAULT 'available',
   created_at VARCHAR(32) DEFAULT NULL,

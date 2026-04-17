@@ -2,7 +2,7 @@ const express = require('express');
 const jwt = require('jsonwebtoken');
 const XLSX = require('xlsx');
 const { v4: uuidv4 } = require('uuid');
-const { queryAll, queryOne, execute } = require('../database');
+const { queryAll, queryOne, execute, withTransaction } = require('../database');
 const { requirePermission, JWT_SECRET, hydrateAuthFromTokenClaims } = require('../middleware/requireTeacher');
 const { saveBase64ToDisk, getAbsolutePath, deleteFile, writeBufferToDisk } = require('../lib/uploads');
 const { logRouteError } = require('../lib/routeLog');
@@ -1180,6 +1180,8 @@ router.get('/', async (req, res) => {
     }
     const whereSql = where.length ? `WHERE ${where.join(' AND ')}` : '';
     const orderSql = `ORDER BY
+      CASE WHEN COALESCE(t.sort_order, 0) > 0 THEN 0 ELSE 1 END ASC,
+      CASE WHEN COALESCE(t.sort_order, 0) > 0 THEN t.sort_order ELSE NULL END ASC,
       CASE WHEN COALESCE(NULLIF(TRIM(t.importance_level), ''), '') = '' THEN 1 ELSE 0 END ASC,
       CASE LOWER(TRIM(t.importance_level))
         WHEN 'absolute' THEN 5
@@ -1246,6 +1248,75 @@ router.get('/', async (req, res) => {
       }
     }
     res.json(enriched);
+  } catch (e) {
+    respondInternalError(res, req, e);
+  }
+});
+
+router.post('/reorder-project', requirePermission('tasks.manage', { needsElevation: true }), async (req, res) => {
+  try {
+    const projectId = normalizeOptionalId(req.body?.project_id);
+    const orderedTaskIdsInput = normalizeIdArray(req.body?.task_ids);
+    if (!projectId) return res.status(400).json({ error: 'Projet requis' });
+    if (!orderedTaskIdsInput.length) return res.status(400).json({ error: 'Liste de tâches requise' });
+    const project = await getTaskProject(projectId);
+    if (!project) return res.status(404).json({ error: 'Projet introuvable' });
+
+    const mapId = project.map_id || null;
+    const projectTasks = await queryAll(
+      `SELECT id, sort_order, importance_level, due_date
+         FROM tasks
+        WHERE project_id = ?
+        ORDER BY
+          CASE WHEN COALESCE(sort_order, 0) > 0 THEN 0 ELSE 1 END ASC,
+          CASE WHEN COALESCE(sort_order, 0) > 0 THEN sort_order ELSE NULL END ASC,
+          CASE WHEN COALESCE(NULLIF(TRIM(importance_level), ''), '') = '' THEN 1 ELSE 0 END ASC,
+          CASE LOWER(TRIM(importance_level))
+            WHEN 'absolute' THEN 5
+            WHEN 'high' THEN 4
+            WHEN 'medium' THEN 3
+            WHEN 'low' THEN 2
+            WHEN 'not_important' THEN 1
+            ELSE 0
+          END DESC,
+          due_date ASC,
+          id ASC`,
+      [projectId]
+    );
+    if (!projectTasks.length) return res.status(400).json({ error: 'Ce projet ne contient aucune tâche à ordonner' });
+
+    const knownIds = new Set(projectTasks.map((row) => String(row.id)));
+    const orderedTaskIds = [];
+    const seen = new Set();
+    for (const tid of orderedTaskIdsInput) {
+      const normalized = String(tid || '').trim();
+      if (!normalized || seen.has(normalized)) continue;
+      if (!knownIds.has(normalized)) {
+        return res.status(400).json({ error: 'La liste contient une tâche qui n’appartient pas au projet cible' });
+      }
+      seen.add(normalized);
+      orderedTaskIds.push(normalized);
+    }
+    for (const row of projectTasks) {
+      const tid = String(row.id);
+      if (!seen.has(tid)) orderedTaskIds.push(tid);
+    }
+
+    await withTransaction(async (tx) => {
+      for (let idx = 0; idx < orderedTaskIds.length; idx += 1) {
+        await tx.execute('UPDATE tasks SET sort_order = ? WHERE id = ?', [idx + 1, orderedTaskIds[idx]]);
+      }
+    });
+
+    logAudit('reorder_project_tasks', 'task_project', projectId, project.title || 'Projet', {
+      req,
+      payload: {
+        project_id: projectId,
+        task_count: orderedTaskIds.length,
+      },
+    });
+    emitTasksChanged({ reason: 'reorder_project_tasks', projectId, mapId });
+    res.json({ success: true, project_id: projectId, ordered_task_ids: orderedTaskIds });
   } catch (e) {
     respondInternalError(res, req, e);
   }

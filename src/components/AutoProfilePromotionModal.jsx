@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { useOverlayHistoryBack } from '../hooks/useOverlayHistoryBack';
+import { DialogShell } from './DialogShell';
 
 /**
  * Célébration courte après une montée de palier automatique (progression par tâches validées).
@@ -18,21 +19,15 @@ export function AutoProfilePromotionModal({ data, roleTerms, onClose }) {
   const studentLabel = roleTerms?.studentSingular || 'n3beur';
 
   return (
-    <div
-      className="modal-overlay modal-overlay--centered profile-promo-overlay"
-      role="presentation"
-      onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
-      }}
+    <DialogShell
+      open={!!data}
+      onClose={onClose}
+      overlayClassName="modal-overlay modal-overlay--centered profile-promo-overlay"
+      dialogClassName="profile-promo-card fade-in"
+      ariaLabelledBy="profile-promo-title"
+      ariaDescribedBy="profile-promo-desc"
+      closeOnOverlay
     >
-      <div
-        className="profile-promo-card fade-in"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="profile-promo-title"
-        aria-describedby="profile-promo-desc"
-        onClick={(e) => e.stopPropagation()}
-      >
         <div className="profile-promo-card__glow" aria-hidden="true" />
         <div className="profile-promo-card__inner">
           <p className="profile-promo-card__kicker">Nouveau palier</p>
@@ -78,7 +73,6 @@ export function AutoProfilePromotionModal({ data, roleTerms, onClose }) {
             C’est parti !
           </button>
         </div>
-      </div>
-    </div>
+    </DialogShell>
   );
 }
