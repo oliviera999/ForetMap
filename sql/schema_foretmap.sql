@@ -412,7 +412,7 @@ CREATE TABLE IF NOT EXISTS users (
   display_name VARCHAR(255) DEFAULT NULL,
   description TEXT DEFAULT NULL,
   avatar_path VARCHAR(512) DEFAULT NULL,
-  affiliation VARCHAR(16) DEFAULT 'both',
+  affiliation VARCHAR(32) NOT NULL DEFAULT 'both',
   password_hash VARCHAR(255) DEFAULT NULL,
   auth_provider VARCHAR(32) NOT NULL DEFAULT 'local',
   is_active TINYINT(1) NOT NULL DEFAULT 1,

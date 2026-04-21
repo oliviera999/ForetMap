@@ -8,6 +8,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 ## [Non publié]
 
 ### Ajouté
+- **Cartes — troisième plan (et suivants)** : **`POST /api/settings/admin/maps`** pour créer une entrée dans **`maps`** depuis la console admin ; normalisation d’URL d’image générique (**`lib/mapImageUrl.js`**). Affiliation élève : identifiant de carte existante en plus de **`n3` / `foret` / `both`** (**`lib/studentAffiliation.js`**, migration **`076_users_affiliation_map_slug.sql`**, colonne **`users.affiliation` VARCHAR(32)**). UI : formulaire « Cartes & plans », sélecteurs d’espace (inscription, profil, admin profils). Voir **`docs/API.md`**.
 - **Routine QA / personae** : prompt **`docs/QA_AUDIT_PERSONAE_PROMPT.md`**, dossier **`docs/reports/`** (README, template, rapport d’initialisation), skill **`.cursor/skills/foretmap-qa-personae`**, rule **`.cursor/rules/foretmap-qa-routine.mdc`** ; mention dans **`docs/LOCAL_DEV.md`**.
 - **E2e — modales responsive** : fichier **`e2e/modals-responsive.spec.js`**.
 - **Tâches — ordre manuel par projet** : colonne **`tasks.sort_order`** (**`migrations/075_tasks_sort_order.sql`**, **`sql/schema_foretmap.sql`**), **`POST /api/tasks/reorder-project`**, tri **`GET /api/tasks`** (**`routes/tasks.js`**, **`docs/API.md`**), UI dans **`tasks-views.jsx`** ; tests **`tests/tasks-project-reorder.test.js`**.

@@ -43,14 +43,14 @@ test('GET /api/students/import/template retourne un modèle CSV', async () => {
     .expect(200);
 
   assert.ok((res.headers['content-type'] || '').includes('text/csv'));
-  assert.ok((res.text || '').includes('Rôle;Prénom;Nom;Mot de passe;Affiliation (n3|foret|both)'));
+  assert.ok((res.text || '').includes('Rôle;Prénom;Nom;Mot de passe;Affiliation (n3|foret|both|id_carte)'));
   assert.ok((res.text || '').includes('eleve;Exemple;Eleve;azerty123;both'));
 });
 
 test('POST /api/students/import dryRun valide un CSV avec erreurs', async () => {
   const unique = Date.now();
   const csv = [
-    'Rôle;Prénom;Nom;Mot de passe;Affiliation (n3|foret|both);Pseudo (optionnel);Email (optionnel);Description (optionnel)',
+    'Rôle;Prénom;Nom;Mot de passe;Affiliation (n3|foret|both|id_carte);Pseudo (optionnel);Email (optionnel);Description (optionnel)',
     `eleve;Import;Eleve-${unique};pass123;n3;import_${unique};import_${unique}@example.com;Test import`,
     `prof;Import;SansMdp-${unique};;wrong;;;`,
   ].join('\n');
@@ -78,7 +78,7 @@ test('POST /api/students/import dryRun valide un CSV avec erreurs', async () => 
 test('POST /api/students/import crée les élèves valides', async () => {
   const unique = Date.now();
   const csv = [
-    'Rôle;Prénom;Nom;Mot de passe;Affiliation (n3|foret|both);Pseudo (optionnel);Email (optionnel);Description (optionnel)',
+    'Rôle;Prénom;Nom;Mot de passe;Affiliation (n3|foret|both|id_carte);Pseudo (optionnel);Email (optionnel);Description (optionnel)',
     `eleve;Mass;Create-${unique};pass123;foret;mass_${unique};mass_${unique}@example.com;Import réel`,
   ].join('\n');
   const fileDataBase64 = Buffer.from(csv, 'utf8').toString('base64');
@@ -105,7 +105,7 @@ test('POST /api/students/import crée les élèves valides', async () => {
 test('POST /api/students/import crée un professeur si rôle=prof', async () => {
   const unique = Date.now();
   const csv = [
-    'Rôle;Prénom;Nom;Mot de passe;Affiliation (n3|foret|both);Pseudo (optionnel);Email (optionnel);Description (optionnel)',
+    'Rôle;Prénom;Nom;Mot de passe;Affiliation (n3|foret|both|id_carte);Pseudo (optionnel);Email (optionnel);Description (optionnel)',
     `prof;Prof;Import-${unique};pass123;both;prof_${unique};prof_${unique}@example.com;Import prof`,
   ].join('\n');
   const fileDataBase64 = Buffer.from(csv, 'utf8').toString('base64');

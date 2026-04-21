@@ -6,6 +6,7 @@ const { requirePermission } = require('../middleware/requireTeacher');
 const { setPrimaryRole, getPrimaryRoleForUser } = require('../lib/rbac');
 const { getSettingValue, setSetting } = require('../lib/settings');
 const { emitStudentsChanged } = require('../lib/realtime');
+const { resolveStudentAffiliationForPersist } = require('../lib/studentAffiliation');
 
 async function emitStudentsWithPrimaryRole(roleId) {
   const rows = await queryAll(
@@ -23,7 +24,6 @@ const router = express.Router();
 const MAX_DESCRIPTION_LEN = 300;
 const PSEUDO_RE = /^[A-Za-z0-9_.-]{3,30}$/;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const ALLOWED_STUDENT_AFFILIATIONS = new Set(['n3', 'foret', 'both']);
 const STUDENT_ROLE_SLUG_RE = /^eleve_/i;
 
 /** Slugs réservés aux profils système : interdits pour création / duplication personnalisées. */
@@ -82,14 +82,6 @@ function normalizeOptionalString(value) {
 function normalizeEmail(value) {
   const email = normalizeOptionalString(value);
   return email ? email.toLowerCase() : null;
-}
-
-function normalizeStudentAffiliation(value) {
-  const raw = normalizeOptionalString(value);
-  if (!raw) return 'both';
-  const normalized = raw.toLowerCase();
-  if (!ALLOWED_STUDENT_AFFILIATIONS.has(normalized)) return null;
-  return normalized;
 }
 
 /** Valeurs texte BDD → chaînes JSON stables (évite Buffer / types exotiques mysql2 côté client). */
@@ -194,10 +186,12 @@ router.post(
       }
 
       const userType = roleSlug === 'eleve_novice' ? 'student' : 'teacher';
-      const affiliation = userType === 'student'
-        ? normalizeStudentAffiliation(req.body?.affiliation)
-        : 'both';
-      if (!affiliation) return res.status(400).json({ error: "Affiliation invalide (n3, foret ou both)" });
+      let affiliation = 'both';
+      if (userType === 'student') {
+        const affRes = await resolveStudentAffiliationForPersist(req.body?.affiliation, queryOne);
+        if (!affRes.ok) return res.status(400).json({ error: affRes.error });
+        affiliation = affRes.affiliation;
+      }
 
       if (userType === 'student') {
         const existingByName = await queryOne(
@@ -776,9 +770,9 @@ router.patch(
         if (resolvedUserType !== 'student') {
           return res.status(400).json({ error: 'L’affiliation ne s’applique qu’aux comptes n3beur' });
         }
-        const nextAff = normalizeStudentAffiliation(body.affiliation);
-        if (!nextAff) return res.status(400).json({ error: "Affiliation invalide (n3, foret ou both)" });
-        affiliation = nextAff;
+        const affRes = await resolveStudentAffiliationForPersist(body.affiliation, queryOne);
+        if (!affRes.ok) return res.status(400).json({ error: affRes.error });
+        affiliation = affRes.affiliation;
       }
 
       if (resolvedUserType === 'student' && (hasFirst || hasLast)) {

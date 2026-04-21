@@ -14,23 +14,10 @@ const {
   validateCrossSettings,
 } = require('../lib/settings');
 const { runSpeciesAutofillProviderSelfTest } = require('../lib/speciesAutofillProviderSelfTest');
+const { normalizeMapImageUrl } = require('../lib/mapImageUrl');
+const { MAP_SLUG_RE } = require('../lib/studentAffiliation');
 
 const router = express.Router();
-
-function normalizeMapImageUrl(mapId, mapImageUrl) {
-  const raw = (mapImageUrl || '').trim();
-  if (mapId === 'foret') {
-    if (!raw || raw === '/maps/map-foret.png' || raw === '/maps/map-foret.svg' || raw === '/map.png') {
-      return '/map.png';
-    }
-  }
-  if (mapId === 'n3') {
-    if (!raw || raw === '/maps/map-n3.png' || raw === '/maps/map-n3.svg' || raw === '/maps/plan n3.jpg') {
-      return '/maps/plan%20n3.jpg';
-    }
-  }
-  return raw || (mapId === 'n3' ? '/maps/plan%20n3.jpg' : '/map.png');
-}
 
 function parseBoolean(value, fallback) {
   if (typeof value === 'boolean') return value;
@@ -126,6 +113,57 @@ router.put(
     } catch (e) {
       logRouteError(e, req);
       res.status(400).json({ error: e.message });
+    }
+  }
+);
+
+router.post(
+  '/admin/maps',
+  requirePermission('admin.settings.write', { needsElevation: true }),
+  async (req, res) => {
+    try {
+      const id = String(req.body?.id || '').trim().toLowerCase();
+      const label = String(req.body?.label || '').trim();
+      if (!id || !MAP_SLUG_RE.test(id)) {
+        return res.status(400).json({ error: 'Identifiant carte invalide (minuscules, chiffres, tirets ; 1 à 31 caractères)' });
+      }
+      if (id === 'both') {
+        return res.status(400).json({ error: 'Identifiant réservé (both)' });
+      }
+      const dup = await queryOne('SELECT id FROM maps WHERE id = ? LIMIT 1', [id]);
+      if (dup) return res.status(409).json({ error: 'Une carte avec cet identifiant existe déjà' });
+      if (!label) return res.status(400).json({ error: 'Label requis' });
+      const sortOrderRaw = parseInt(req.body?.sort_order, 10);
+      const sortOrder = Number.isFinite(sortOrderRaw) ? Math.max(0, sortOrderRaw) : 999;
+      const mapImageUrl = normalizeMapImageUrl(id, String(req.body?.map_image_url || '').trim());
+      const isActive = parseBoolean(req.body?.is_active, true);
+      try {
+        await execute(
+          `INSERT INTO maps (id, label, map_image_url, sort_order, frame_padding_px, is_active)
+           VALUES (?, ?, ?, ?, NULL, ?)`,
+          [id, label, mapImageUrl, sortOrder, isActive ? 1 : 0]
+        );
+      } catch (e) {
+        if (!(e && (e.errno === 1054 || e.code === 'ER_BAD_FIELD_ERROR'))) throw e;
+        await execute(
+          'INSERT INTO maps (id, label, map_image_url, sort_order) VALUES (?, ?, ?, ?)',
+          [id, label, mapImageUrl, sortOrder]
+        );
+      }
+      invalidateMapsListCache();
+      const created = await getMapById(id);
+      await logAudit('settings_map_create', 'map', id, 'Carte créée', {
+        req,
+        payload: { id, label, map_image_url: mapImageUrl, sort_order: sortOrder },
+      });
+      res.status(201).json({
+        ...created,
+        map_image_url: normalizeMapImageUrl(created.id, created.map_image_url),
+        is_active: !!created.is_active,
+      });
+    } catch (e) {
+      logRouteError(e, req);
+      res.status(500).json({ error: e.message });
     }
   }
 );

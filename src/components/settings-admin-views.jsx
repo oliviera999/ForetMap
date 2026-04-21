@@ -237,6 +237,9 @@ function SettingsAdminView({ isN3Affiliated = false }) {
   const [searchQuery, setSearchQuery] = useState('');
   const mapGalleryFileRefs = useRef({});
   const mapCameraFileRefs = useRef({});
+  const [newMapId, setNewMapId] = useState('');
+  const [newMapLabel, setNewMapLabel] = useState('');
+  const [newMapSort, setNewMapSort] = useState('3');
 
   const settingByKey = useMemo(() => {
     const out = {};
@@ -486,6 +489,36 @@ function SettingsAdminView({ isN3Affiliated = false }) {
     setSavingKey('');
   };
 
+  const createMap = async () => {
+    const id = String(newMapId || '').trim().toLowerCase();
+    const label = String(newMapLabel || '').trim();
+    if (!id || !label) {
+      setErr('Identifiant et libellé sont requis pour créer une carte');
+      return;
+    }
+    setErr('');
+    setMsg('');
+    setSavingKey('map:create');
+    try {
+      const sortOrder = parseInt(newMapSort, 10);
+      await api('/api/settings/admin/maps', 'POST', {
+        id,
+        label,
+        sort_order: Number.isFinite(sortOrder) ? sortOrder : 99,
+        map_image_url: '/map.png',
+        is_active: true,
+      });
+      setNewMapId('');
+      setNewMapLabel('');
+      setNewMapSort(String(Math.max(3, (maps?.length || 2) + 1)));
+      await load();
+      setMsg('Carte créée — configure l’URL ou l’image ci-dessous si besoin.');
+    } catch (e) {
+      setErr(e.message || 'Échec création carte');
+    }
+    setSavingKey('');
+  };
+
   const fetchLogs = async () => {
     setErr('');
     try {
@@ -590,6 +623,26 @@ function SettingsAdminView({ isN3Affiliated = false }) {
 
       <div style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: 12, padding: 12, marginTop: 12 }}>
         <h3 style={{ marginTop: 0 }}>Cartes & plans</h3>
+        <p style={{ fontSize: '.82rem', color: '#6b7280', marginBottom: 10, lineHeight: 1.45 }}>
+          Nouveau plan : identifiant technique stable (ex. <code>potager</code>), libellé affiché dans l’app, puis image (URL ou upload). Les élèves « les deux espaces » voient toutes les cartes actives ; une affiliation peut cibler un seul plan (y compris ceux ajoutés ici).
+        </p>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'flex-end', marginBottom: 12, paddingBottom: 12, borderBottom: '1px solid #e5e7eb' }}>
+          <div className="field" style={{ margin: 0, flex: '1 1 120px' }}>
+            <label>Identifiant (slug)</label>
+            <input value={newMapId} onChange={(e) => setNewMapId(e.target.value)} placeholder="ex. potager" autoComplete="off" />
+          </div>
+          <div className="field" style={{ margin: 0, flex: '1 1 180px' }}>
+            <label>Libellé</label>
+            <input value={newMapLabel} onChange={(e) => setNewMapLabel(e.target.value)} placeholder="ex. Potager pédagogique" autoComplete="off" />
+          </div>
+          <div className="field" style={{ margin: 0, width: 96 }}>
+            <label>Ordre</label>
+            <input type="number" min={0} value={newMapSort} onChange={(e) => setNewMapSort(e.target.value)} />
+          </div>
+          <button type="button" className="btn btn-primary btn-sm" onClick={createMap} disabled={savingKey === 'map:create'}>
+            {savingKey === 'map:create' ? '…' : '+ Ajouter la carte'}
+          </button>
+        </div>
         <div className="settings-admin-maps-list">
           {maps.map((m) => (
             <div key={m.id} style={{ border: '1px solid #e5e7eb', borderRadius: 10, padding: 10 }}>

@@ -108,10 +108,14 @@ const OAUTH_ERROR_MESSAGES = {
   oauth_server_error: 'Erreur serveur pendant la connexion Google.',
 };
 
+const MAP_AFFILIATION_SLUG_RE = /^[a-z0-9][a-z0-9_-]{0,30}$/;
+
 function allowedMapIdsFromAffiliation(affiliation) {
   const normalized = String(affiliation || 'both').toLowerCase();
   if (normalized === 'n3') return ['n3'];
   if (normalized === 'foret') return ['foret'];
+  if (normalized === 'both') return null;
+  if (MAP_AFFILIATION_SLUG_RE.test(normalized)) return [normalized];
   return null;
 }
 
@@ -1411,6 +1415,7 @@ function App() {
           <div className="log-modal__scroll">
             <StudentProfileEditor
               student={profileTargetUser}
+              maps={maps}
               onUpdated={(updated) => {
                 if (effectiveIsTeacher) {
                   updateTeacherSession(updated);
@@ -1801,6 +1806,7 @@ function App() {
               {tab === 'profiles' && (
                 <ProfilesAdminView
                   isN3Affiliated={isN3Affiliated}
+                  maps={maps}
                   publicSettings={publicSettings}
                   onImpersonationApplied={handleAdminImpersonationApplied}
                 />
