@@ -229,6 +229,7 @@ Ces routes sont destinées à la console admin et exigent un token avec permissi
 | GET | `/api/settings/public` | Réglages publics consommés par l’UI (accueil, modules, cartes par défaut) |
 | GET | `/api/settings/admin` | Liste complète des réglages + métadonnées + cartes |
 | PUT | `/api/settings/admin/:key` | Mettre à jour un réglage (`{ value }`) |
+| POST | `/api/settings/admin/maps` | Créer une carte (`{ id, label, sort_order?, map_image_url?, is_active? }`) — `id` : slug minuscules/chiffres/tirets (1–31 caractères), réservé `both` interdit |
 | PUT | `/api/settings/admin/maps/:id` | Mettre à jour une carte (label, ordre, activation, URL image, padding) |
 | POST | `/api/settings/admin/maps/:id/image` | Upload image de plan (`{ image_data }`) |
 | GET | `/api/settings/admin/system/logs` | Lecture des logs applicatifs via GUI |

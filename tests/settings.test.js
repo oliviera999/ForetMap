@@ -60,6 +60,26 @@ async function getAdminToken() {
   }, false);
 }
 
+test('POST /api/settings/admin/maps crée une carte puis GET /api/maps la liste', async () => {
+  const token = await getAdminToken();
+  const id = `tst_${Date.now()}`.slice(0, 31);
+  await request(app)
+    .post('/api/settings/admin/maps')
+    .set('Authorization', `Bearer ${token}`)
+    .send({ id, label: 'Plan test API', sort_order: 90, map_image_url: '/map.png', is_active: true })
+    .expect(201);
+  const list = await request(app).get('/api/maps').expect(200);
+  assert.ok(Array.isArray(list.body));
+  assert.ok(list.body.some((m) => m.id === id));
+  const dup = await request(app)
+    .post('/api/settings/admin/maps')
+    .set('Authorization', `Bearer ${token}`)
+    .send({ id, label: 'Doublon', sort_order: 91 })
+    .expect(409);
+  assert.ok(String(dup.body?.error || '').length > 0);
+  await execute('DELETE FROM maps WHERE id = ?', [id]);
+});
+
 test('GET /api/settings/public renvoie les réglages publics', async () => {
   const res = await request(app).get('/api/settings/public').expect(200);
   assert.ok(res.body?.settings);

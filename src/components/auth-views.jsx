@@ -16,6 +16,7 @@ import { useOverlayHistoryBack } from '../hooks/useOverlayHistoryBack';
 import { getRoleTerms } from '../utils/n3-terminology';
 import { getContentText } from '../utils/content';
 import { DialogShell } from './DialogShell';
+import { buildAffiliationSelectOptions } from '../utils/affiliationSelectOptions';
 
 function startGoogleAuth(mode) {
   const safeMode = mode === 'teacher' ? 'teacher' : 'student';
@@ -365,6 +366,18 @@ function AuthScreen({ onLogin, appVersion, onVisitGuest, uiSettings, isN3Affilia
     setMode(def);
   }, [uiSettings?.auth?.default_mode, allowRegister]);
 
+  const [affiliationMaps, setAffiliationMaps] = useState([]);
+  useEffect(() => {
+    if (!allowRegister) return;
+    api('/api/maps')
+      .then((d) => {
+        if (Array.isArray(d)) setAffiliationMaps(d);
+      })
+      .catch(() => setAffiliationMaps([]));
+  }, [allowRegister]);
+
+  const affiliationOptions = useMemo(() => buildAffiliationSelectOptions(affiliationMaps), [affiliationMaps]);
+
   const submit = async () => {
     setInfo('');
     setErr('');
@@ -383,9 +396,9 @@ function AuthScreen({ onLogin, appVersion, onVisitGuest, uiSettings, isN3Affilia
       return setErr('Description trop longue (max 300 caractères)');
     }
     if (mode === 'register' && !affiliation) {
-      return setErr('Choisis ton espace (N3, Forêt comestible ou les deux)');
+      return setErr('Choisis ton espace (cartes proposées dans la liste)');
     }
-    if (mode === 'register' && !['n3', 'foret', 'both'].includes(affiliation)) {
+    if (mode === 'register' && !affiliationOptions.some((o) => o.value === affiliation)) {
       return setErr('Choix d’espace invalide');
     }
     setLoading(true);
@@ -538,9 +551,9 @@ function AuthScreen({ onLogin, appVersion, onVisitGuest, uiSettings, isN3Affilia
             <div className="field"><label htmlFor={fieldIds.affiliation}>Mon espace</label>
               <select id={fieldIds.affiliation} value={affiliation} onChange={e => setAffiliation(e.target.value)}>
                 <option value="" disabled>-- Choisir --</option>
-                <option value="both">N3 + Forêt comestible</option>
-                <option value="n3">N3 uniquement</option>
-                <option value="foret">Forêt comestible uniquement</option>
+                {affiliationOptions.map((o) => (
+                  <option key={o.value} value={o.value}>{o.label}</option>
+                ))}
               </select>
             </div>
             <div className="field"><label htmlFor={fieldIds.pass2}>Confirmer le mot de passe</label>

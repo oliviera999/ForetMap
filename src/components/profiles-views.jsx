@@ -6,6 +6,7 @@ import { HelpPanel } from './HelpPanel';
 import { HELP_PANELS, HELP_TOOLTIPS, resolveRoleText } from '../constants/help';
 import { Tooltip } from './Tooltip';
 import { DialogShell } from './DialogShell';
+import { buildAffiliationSelectOptions } from '../utils/affiliationSelectOptions';
 
 const EDIT_EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -93,7 +94,7 @@ function buildUserEditInitialFields(u) {
   const descRaw = pickUserField(u, 'description');
   const description = descRaw != null ? toUiString(descRaw) : '';
   let affiliation = toUiString(pickUserField(u, 'affiliation') ?? 'both').toLowerCase();
-  if (!['both', 'n3', 'foret'].includes(affiliation)) affiliation = 'both';
+  if (!affiliation) affiliation = 'both';
 
   if (!firstName && !lastName) {
     const dn = toUiString(pickUserField(u, 'display_name', 'displayName')).trim();
@@ -114,8 +115,14 @@ function buildUserEditInitialFields(u) {
   return { firstName, lastName, pseudo, email, description, affiliation };
 }
 
-function ProfilesAdminView({ isN3Affiliated = false, onImpersonationApplied, publicSettings }) {
+function ProfilesAdminView({ isN3Affiliated = false, onImpersonationApplied, publicSettings, maps = [] }) {
   const roleTerms = getRoleTerms(isN3Affiliated);
+  const affiliationOptions = useMemo(() => buildAffiliationSelectOptions(maps), [maps]);
+  const affiliationOptionsForEdit = useMemo(() => {
+    const base = affiliationOptions;
+    if (!editAffiliation || base.some((o) => o.value === editAffiliation)) return base;
+    return [...base, { value: editAffiliation, label: `${editAffiliation} (valeur en base)` }];
+  }, [affiliationOptions, editAffiliation]);
   const { isHelpEnabled, hasSeenSection, markSectionSeen, trackPanelOpen, trackPanelDismiss } = useHelp({
     publicSettings,
     isTeacher: true,
@@ -1048,9 +1055,9 @@ function ProfilesAdminView({ isN3Affiliated = false, onImpersonationApplied, pub
                     <div className="field" style={{ margin: 0 }}>
                       <label htmlFor="edit-user-aff">Affiliation</label>
                       <select id="edit-user-aff" value={editAffiliation} onChange={(e) => setEditAffiliation(e.target.value)} disabled={editLoading}>
-                        <option value="both">N3 + Forêt comestible</option>
-                        <option value="n3">N3 uniquement</option>
-                        <option value="foret">Forêt comestible uniquement</option>
+                        {affiliationOptionsForEdit.map((o) => (
+                          <option key={o.value} value={o.value}>{o.label}</option>
+                        ))}
                       </select>
                     </div>
                   )}
@@ -1518,9 +1525,9 @@ function ProfilesAdminView({ isN3Affiliated = false, onImpersonationApplied, pub
               <div className="field" style={{ margin: 0 }}>
                 <label>Affiliation {roleTerms.studentSingular}</label>
                 <select value={createAffiliation} onChange={(e) => setCreateAffiliation(e.target.value)} disabled={!canCreateUsers || createLoading || createRole !== 'eleve_novice'}>
-                  <option value="both">N3 + Forêt comestible</option>
-                  <option value="n3">N3 uniquement</option>
-                  <option value="foret">Forêt comestible uniquement</option>
+                  {affiliationOptions.map((o) => (
+                    <option key={o.value} value={o.value}>{o.label}</option>
+                  ))}
                 </select>
               </div>
             </div>

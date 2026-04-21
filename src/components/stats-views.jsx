@@ -1,10 +1,11 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { api } from '../services/api';
 import { statusBadge } from '../utils/badges';
 import { getDicebearAvatarUrl, getStudentAvatarUrl } from '../utils/avatar';
 import { getRoleTerms } from '../utils/n3-terminology';
 import { StudentAvatar } from './student-avatar';
 import { compressImage } from '../utils/image';
+import { buildAffiliationSelectOptions } from '../utils/affiliationSelectOptions';
 
 function Toast({ msg, onDone }) {
   useEffect(() => { const t = setTimeout(onDone, 2400); return () => clearTimeout(t); }, []);
@@ -176,8 +177,14 @@ function StudentStats({ student, isN3Affiliated = false }) {
   );
 }
 
-function StudentProfileEditor({ student, onUpdated, onClose, isN3Affiliated = false }) {
+function StudentProfileEditor({ student, onUpdated, onClose, isN3Affiliated = false, maps = [] }) {
   const roleTerms = getRoleTerms(isN3Affiliated);
+  const affiliationSelectOptions = useMemo(() => {
+    const base = buildAffiliationSelectOptions(maps);
+    const a = String(affiliation || student?.affiliation || 'both').toLowerCase();
+    if (base.some((o) => o.value === a)) return base;
+    return [...base, { value: a, label: `${a} (valeur en base)` }];
+  }, [maps, affiliation, student?.affiliation]);
   const fallbackDisplayName = String(student?.display_name || student?.displayName || student?.email || 'Utilisateur').trim();
   const displayFirstName = String(student?.first_name || '').trim() || fallbackDisplayName;
   const displayLastName = String(student?.last_name || '').trim();
@@ -384,9 +391,9 @@ function StudentProfileEditor({ student, onUpdated, onClose, isN3Affiliated = fa
       <div className="field">
         <label>Mon espace</label>
         <select value={affiliation} onChange={e => setAffiliation(e.target.value)}>
-          <option value="both">N3 + Forêt comestible</option>
-          <option value="n3">N3 uniquement</option>
-          <option value="foret">Forêt comestible uniquement</option>
+          {affiliationSelectOptions.map((o) => (
+            <option key={o.value} value={o.value}>{o.label}</option>
+          ))}
         </select>
       </div>
       <div className="field">

@@ -503,6 +503,7 @@ test('PATCH /api/students/:id/profile rejette une affiliation invalide', async (
     .send({ affiliation: 'n4', currentPassword: 'pwd123' })
     .expect(400);
   assert.ok(res.body.error);
+  assert.match(String(res.body.error || ''), /carte inconnue|Affiliation invalide/i);
 });
 
 test('GET /api/visit/content expose les contenus visite et les tutos choisis', async () => {

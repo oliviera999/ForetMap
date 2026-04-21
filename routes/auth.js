@@ -36,6 +36,7 @@ const {
   ensureCanonicalUserByAuth,
 } = require('../lib/identity');
 const { saveBase64ToDisk, deleteFile } = require('../lib/uploads');
+const { resolveStudentAffiliationForPersist } = require('../lib/studentAffiliation');
 
 const router = express.Router();
 const MAX_DESCRIPTION_LEN = 300;
@@ -44,7 +45,6 @@ const PSEUDO_RE = /^[A-Za-z0-9_.-]{3,30}$/;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PASSWORD_RESET_MIN_LEN = 4;
 const PASSWORD_RESET_TTL_MINUTES = 60;
-const ALLOWED_STUDENT_AFFILIATIONS = new Set(['n3', 'foret', 'both']);
 const OAUTH_STATE_COOKIE = 'foretmap_oauth_state';
 const OAUTH_MODE_COOKIE = 'foretmap_oauth_mode';
 const OAUTH_STATE_TTL_MS = 10 * 60 * 1000;
@@ -65,14 +65,6 @@ function normalizeOptionalString(value) {
 function normalizeEmail(value) {
   const email = normalizeOptionalString(value);
   return email ? email.toLowerCase() : null;
-}
-
-function normalizeStudentAffiliation(value) {
-  const raw = normalizeOptionalString(value);
-  if (!raw) return 'both';
-  const normalized = raw.toLowerCase();
-  if (!ALLOWED_STUDENT_AFFILIATIONS.has(normalized)) return null;
-  return normalized;
 }
 
 function detectAvatarExtension(dataUrl) {
@@ -447,14 +439,19 @@ router.patch('/me/profile', requireAuth, async (req, res) => {
     const pseudo = hasPseudo ? normalizeOptionalString(body.pseudo) : account.pseudo;
     const email = hasEmail ? normalizeEmail(body.email ?? body.mail) : account.email;
     const description = hasDescription ? normalizeOptionalString(body.description) : account.description;
-    const affiliation = hasAffiliation
-      ? normalizeStudentAffiliation(body.affiliation)
-      : (normalizeStudentAffiliation(account.affiliation) || 'both');
+    let affiliation;
+    if (hasAffiliation) {
+      const affRes = await resolveStudentAffiliationForPersist(body.affiliation, queryOne);
+      if (!affRes.ok) return res.status(400).json({ error: affRes.error });
+      affiliation = affRes.affiliation;
+    } else {
+      const affRes = await resolveStudentAffiliationForPersist(account.affiliation, queryOne);
+      affiliation = affRes.ok ? affRes.affiliation : 'both';
+    }
     let avatarPath = account.avatar_path || null;
 
     const profileError = validateProfileInput({ pseudo, email, description });
     if (profileError) return res.status(400).json({ error: profileError });
-    if (!affiliation) return res.status(400).json({ error: "Affiliation invalide (n3, foret ou both)" });
     if (hasAvatarData) {
       const avatarData = normalizeOptionalString(body.avatarData);
       if (!avatarData) return res.status(400).json({ error: 'Image de profil invalide' });
@@ -524,11 +521,12 @@ router.post('/register', async (req, res) => {
     const pseudo = normalizeOptionalString(req.body?.pseudo);
     const email = normalizeEmail(req.body?.email ?? req.body?.mail);
     const description = normalizeOptionalString(req.body?.description);
-    const affiliation = normalizeStudentAffiliation(req.body?.affiliation);
+    const affRes = await resolveStudentAffiliationForPersist(req.body?.affiliation, queryOne);
+    if (!affRes.ok) return res.status(400).json({ error: affRes.error });
+    const affiliation = affRes.affiliation;
     if (!firstName?.trim() || !lastName?.trim()) return res.status(400).json({ error: 'Prénom et nom requis' });
     const minPasswordLen = await getPasswordMinLength();
     if (!password || password.length < minPasswordLen) return res.status(400).json({ error: `Mot de passe trop court (min ${minPasswordLen} caractères)` });
-    if (!affiliation) return res.status(400).json({ error: "Affiliation invalide (n3, foret ou both)" });
     const profileError = validateProfileInput({ pseudo, email, description });
     if (profileError) return res.status(400).json({ error: profileError });
 

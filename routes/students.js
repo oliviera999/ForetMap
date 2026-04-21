@@ -14,6 +14,7 @@ const { ensurePrimaryRole, getPrimaryRoleForUser, setPrimaryRole } = require('..
 const { deleteStudentById } = require('../lib/studentDeletion');
 const { getSettingValue } = require('../lib/settings');
 const logger = require('../lib/logger');
+const { parseStudentAffiliationInput, resolveStudentAffiliationForPersist } = require('../lib/studentAffiliation');
 
 const router = express.Router();
 const MAX_DESCRIPTION_LEN = 300;
@@ -22,13 +23,12 @@ const MAX_IMPORT_FILE_BYTES = 8 * 1024 * 1024;
 const MAX_IMPORT_ROWS = 1000;
 const PSEUDO_RE = /^[A-Za-z0-9_.-]{3,30}$/;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const ALLOWED_STUDENT_AFFILIATIONS = new Set(['n3', 'foret', 'both']);
 const TEMPLATE_COLUMNS = [
   'Rôle',
   'Prénom',
   'Nom',
   'Mot de passe',
-  'Affiliation (n3|foret|both)',
+  'Affiliation (n3|foret|both|id_carte)',
   'Pseudo (optionnel)',
   'Email (optionnel)',
   'Description (optionnel)',
@@ -66,6 +66,7 @@ const IMPORT_HEADER_ALIASES = new Map([
   ['description_optionnel', 'description'],
   ['affiliation', 'affiliation'],
   ['affiliation_n3_foret_both', 'affiliation'],
+  ['affiliation_n3_foret_both_id_carte', 'affiliation'],
   ['espace', 'affiliation'],
   ['mon_espace', 'affiliation'],
   ['zone', 'affiliation'],
@@ -86,12 +87,10 @@ function hasOwn(obj, key) {
   return Object.prototype.hasOwnProperty.call(obj || {}, key);
 }
 
-function normalizeStudentAffiliation(value) {
-  const raw = normalizeOptionalString(value);
-  if (!raw) return 'both';
-  const normalized = raw.toLowerCase();
-  if (!ALLOWED_STUDENT_AFFILIATIONS.has(normalized)) return null;
-  return normalized;
+function affiliationFromImportCell(raw) {
+  const p = parseStudentAffiliationInput(raw);
+  if (p.kind === 'invalid') return null;
+  return p.value;
 }
 
 function normalizeImportUserType(value) {
@@ -192,7 +191,7 @@ function buildImportStudentPayload(row = {}) {
     firstName: asTrimmedString(mapped.firstName),
     lastName: asTrimmedString(mapped.lastName),
     password: asTrimmedString(mapped.password),
-    affiliation: normalizeStudentAffiliation(mapped.affiliation),
+    affiliation: affiliationFromImportCell(mapped.affiliation),
     pseudo: normalizeOptionalString(mapped.pseudo),
     email: normalizeOptionalString(mapped.email),
     description: normalizeOptionalString(mapped.description),
@@ -212,7 +211,7 @@ function validateImportStudentPayload(payload, rowNumber) {
     errors.push({ row: rowNumber, field: 'password', error: 'Mot de passe trop court (min 4 caractères)' });
   }
   if (!payload.affiliation) {
-    errors.push({ row: rowNumber, field: 'affiliation', error: "Affiliation invalide (n3, foret ou both)" });
+    errors.push({ row: rowNumber, field: 'affiliation', error: "Affiliation invalide (n3, foret, both ou identifiant de carte)" });
   }
   if (payload.pseudo != null && !PSEUDO_RE.test(payload.pseudo)) {
     errors.push({ row: rowNumber, field: 'pseudo', error: 'Pseudo invalide (3-30 caractères, lettres/chiffres/._-)' });
@@ -361,23 +360,37 @@ router.post('/import', requirePermission('students.import', { needsElevation: tr
       if (payload.email) emailSet.add(payload.email.toLowerCase());
 
       validRows.push({ payload, rowNumber });
-      if (report.preview.length < 20) {
-        report.preview.push({
-          row: rowNumber,
-          user_type: payload.userType,
-          first_name: payload.firstName,
-          last_name: payload.lastName,
-          affiliation: payload.affiliation,
-        });
-      }
     });
 
-    report.totals.valid = validRows.length;
-    if (dryRun || validRows.length === 0) {
+    const affiliationResolvedRows = [];
+    for (const rowItem of validRows) {
+      const resolved = await resolveStudentAffiliationForPersist(rowItem.payload.affiliation, queryOne);
+      if (!resolved.ok) {
+        report.totals.skipped_invalid += 1;
+        report.errors.push({ row: rowItem.rowNumber, field: 'affiliation', error: resolved.error });
+        continue;
+      }
+      affiliationResolvedRows.push({
+        ...rowItem,
+        payload: { ...rowItem.payload, affiliation: resolved.affiliation },
+      });
+      if (report.preview.length < 20) {
+        report.preview.push({
+          row: rowItem.rowNumber,
+          user_type: rowItem.payload.userType,
+          first_name: rowItem.payload.firstName,
+          last_name: rowItem.payload.lastName,
+          affiliation: resolved.affiliation,
+        });
+      }
+    }
+
+    report.totals.valid = affiliationResolvedRows.length;
+    if (dryRun || affiliationResolvedRows.length === 0) {
       return res.json({ report });
     }
 
-    for (const rowItem of validRows) {
+    for (const rowItem of affiliationResolvedRows) {
       const { payload, rowNumber } = rowItem;
       const hash = await bcrypt.hash(payload.password, 10);
       const id = uuidv4();
@@ -496,7 +509,8 @@ router.post('/:id/duplicate', requirePermission('users.create', { needsElevation
       return res.status(500).json({ error: 'Profil RBAC introuvable' });
     }
 
-    const affiliation = normalizeStudentAffiliation(source.affiliation) || 'both';
+    const affDup = await resolveStudentAffiliationForPersist(source.affiliation, queryOne);
+    const affiliation = affDup.ok ? affDup.affiliation : 'both';
     const description = normalizeOptionalString(source.description);
 
     const newId = uuidv4();
@@ -581,9 +595,15 @@ router.patch('/:id/profile', async (req, res) => {
     const pseudo = hasPseudo ? normalizeOptionalString(body.pseudo) : student.pseudo;
     const email = hasEmail ? normalizeOptionalString(body.email ?? body.mail) : student.email;
     const description = hasDescription ? normalizeOptionalString(body.description) : student.description;
-    const affiliation = hasAffiliation
-      ? normalizeStudentAffiliation(body.affiliation)
-      : (normalizeStudentAffiliation(student.affiliation) || 'both');
+    let affiliation;
+    if (hasAffiliation) {
+      const affRes = await resolveStudentAffiliationForPersist(body.affiliation, queryOne);
+      if (!affRes.ok) return res.status(400).json({ error: affRes.error });
+      affiliation = affRes.affiliation;
+    } else {
+      const affRes = await resolveStudentAffiliationForPersist(student.affiliation, queryOne);
+      affiliation = affRes.ok ? affRes.affiliation : 'both';
+    }
     let avatarPath = student.avatar_path || null;
 
     if (pseudo != null && !PSEUDO_RE.test(pseudo)) {
@@ -594,9 +614,6 @@ router.patch('/:id/profile', async (req, res) => {
     }
     if (description != null && description.length > MAX_DESCRIPTION_LEN) {
       return res.status(400).json({ error: `Description trop longue (max ${MAX_DESCRIPTION_LEN} caractères)` });
-    }
-    if (!affiliation) {
-      return res.status(400).json({ error: "Affiliation invalide (n3, foret ou both)" });
     }
     if (hasAvatarData) {
       const avatarData = normalizeOptionalString(body.avatarData);

@@ -2,24 +2,10 @@ const express = require('express');
 const { queryAll } = require('../database');
 const { logRouteError } = require('../lib/routeLog');
 const { getNamedMemoryTtlCache } = require('../lib/memoryTtlCache');
+const { normalizeMapImageUrl } = require('../lib/mapImageUrl');
 
 const router = express.Router();
 const mapsListCache = getNamedMemoryTtlCache('maps:list:v1', { ttlMs: 20000, maxEntries: 5 });
-
-function normalizeMapImageUrl(mapId, mapImageUrl) {
-  const raw = (mapImageUrl || '').trim();
-  if (mapId === 'foret') {
-    if (!raw || raw === '/maps/map-foret.png' || raw === '/maps/map-foret.svg' || raw === '/map.png') {
-      return '/map.png';
-    }
-  }
-  if (mapId === 'n3') {
-    if (!raw || raw === '/maps/map-n3.png' || raw === '/maps/map-n3.svg' || raw === '/maps/plan n3.jpg') {
-      return '/maps/plan%20n3.jpg';
-    }
-  }
-  return raw || (mapId === 'n3' ? '/maps/plan%20n3.jpg' : '/map.png');
-}
 
 router.get('/', async (req, res) => {
   try {
