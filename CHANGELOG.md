@@ -8,6 +8,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 ## [Non publié]
 
 ### Ajouté
+- **Projets de tâches — statut terminé** : passage automatique du projet en **`completed`** en base lorsque **toutes** les tâches liées sont **`done`** ou **`validated`** (retour **`active`** dès qu’une tâche redevient « en cours » ou si le projet n’a plus aucune tâche). Synchro **`lib/syncTaskProjectCompletion.js`** (appels depuis les mutations tâches, récurrence, suppression élève) ; blocage des inscriptions si projet **`completed`** ; UI et pastilles (**`tasks-views.jsx`**, **`map-views.jsx`**, **`badges.jsx`**). Test **`tests/new-features.test.js`** ; **`docs/API.md`** (statut réservé serveur).
 - **Cartes — troisième plan (et suivants)** : **`POST /api/settings/admin/maps`** pour créer une entrée dans **`maps`** depuis la console admin ; normalisation d’URL d’image générique (**`lib/mapImageUrl.js`**). Affiliation élève : identifiant de carte existante en plus de **`n3` / `foret` / `both`** (**`lib/studentAffiliation.js`**, migration **`076_users_affiliation_map_slug.sql`**, colonne **`users.affiliation` VARCHAR(32)**). UI : formulaire « Cartes & plans », sélecteurs d’espace (inscription, profil, admin profils). Voir **`docs/API.md`**.
 - **Routine QA / personae** : prompt **`docs/QA_AUDIT_PERSONAE_PROMPT.md`**, dossier **`docs/reports/`** (README, template, rapport d’initialisation), skill **`.cursor/skills/foretmap-qa-personae`**, rule **`.cursor/rules/foretmap-qa-routine.mdc`** ; mention dans **`docs/LOCAL_DEV.md`**.
 - **E2e — modales responsive** : fichier **`e2e/modals-responsive.spec.js`**.
@@ -15,6 +16,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - **UI — coque modale** : composant **`DialogShell.jsx`** et branchements (tutoriels, confirmations biodiversité, aide).
 
 ### Modifié
+- **Tâches — affichage** : sections liste, filtres par statut et raccourcis prof affichent **En cours** avant **À faire**. **`tasks-views.jsx`**.
 - **Studio packs mascotte — bibliothèque sprites** : vignettes visuelles des PNG (grille comme la médiathèque pack) + colonne d’aperçu dans la table « assets du site » pour les images. **`VisitMascotPackManager.jsx`**.
 - **Vues / styles** : ajustements **`profiles-views.jsx`**, **`map-views.jsx`**, **`foretmap-views.jsx`**, **`tutorials-views.jsx`**, **`auth-views.jsx`**, **`AutoProfilePromotionModal.jsx`**, **`App.jsx`**, **`index.css`**, **`badges.jsx`** (cohérence modale et responsive).
 - **Build** : régénération locale des artefacts **`dist/`** (bundle Vite production, chunks `main` et studio mascotte).

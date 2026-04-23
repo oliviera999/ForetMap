@@ -569,7 +569,7 @@ Regroupe plusieurs tâches sous un même projet (carte, titre, description, stat
 **Corps JSON (création / mise à jour)** — champs usuels :
 
 - `map_id` (obligatoire à la création), `title`, `description` (texte libre, optionnel),
-- `status` : `active` (défaut) ou `on_hold` (inscriptions n3beurs fermées pour les tâches du projet, comme aujourd’hui),
+- `status` (écriture API `POST`/`PUT`) : `active` (défaut) ou `on_hold` (inscriptions n3beurs fermées pour les tâches du projet). Le statut **`completed`** est **réservé au serveur** : il est appliqué automatiquement lorsque le projet comporte au moins une tâche et que **toutes** les tâches liées sont en `done` ou `validated` ; dès qu’une tâche redevient « en cours » (autre statut), le projet repasse en `active` (sauf `on_hold` défini par le professeur, inchangé par cette synchro).
 - `zone_ids` : tableau d’identifiants de **zones** (`zones.id`) — toutes doivent appartenir à `map_id` du projet,
 - `marker_ids` : tableau d’identifiants de **repères** (`map_markers.id`) — même carte,
 - `tutorial_ids` : tableau d’identifiants numériques de **tutoriels** actifs (`tutorials.id`).

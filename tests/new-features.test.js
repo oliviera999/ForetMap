@@ -253,6 +253,65 @@ test('POST /api/tasks accepte project_id et GET /api/tasks?project_id filtre cor
   assert.ok(listRes.body.some((t) => t.id === taskRes.body.id));
 });
 
+test('projet : statut completed quand toutes les tâches liées sont done ou validated', async () => {
+  const projectRes = await request(app)
+    .post('/api/task-projects')
+    .set('Authorization', 'Bearer ' + teacherToken)
+    .send({ map_id: 'foret', title: `Projet synchro termine ${Date.now()}` })
+    .expect(201);
+  const projectId = projectRes.body.id;
+  assert.strictEqual(projectRes.body.status, 'active');
+
+  const task1 = await request(app)
+    .post('/api/tasks')
+    .set('Authorization', 'Bearer ' + teacherToken)
+    .send({
+      title: `Tache synchro A ${Date.now()}`,
+      map_id: 'foret',
+      project_id: projectId,
+      required_students: 1,
+    })
+    .expect(201);
+  const task2 = await request(app)
+    .post('/api/tasks')
+    .set('Authorization', 'Bearer ' + teacherToken)
+    .send({
+      title: `Tache synchro B ${Date.now()}`,
+      map_id: 'foret',
+      project_id: projectId,
+      required_students: 1,
+    })
+    .expect(201);
+
+  let row = await queryOne('SELECT status FROM task_projects WHERE id = ?', [projectId]);
+  assert.strictEqual(row.status, 'active');
+
+  await request(app)
+    .put(`/api/tasks/${task1.body.id}`)
+    .set('Authorization', 'Bearer ' + teacherToken)
+    .send({ status: 'validated' })
+    .expect(200);
+  row = await queryOne('SELECT status FROM task_projects WHERE id = ?', [projectId]);
+  assert.strictEqual(row.status, 'active');
+
+  await request(app)
+    .put(`/api/tasks/${task2.body.id}`)
+    .set('Authorization', 'Bearer ' + teacherToken)
+    .send({ status: 'done' })
+    .expect(200);
+
+  row = await queryOne('SELECT status FROM task_projects WHERE id = ?', [projectId]);
+  assert.strictEqual(row.status, 'completed');
+
+  await request(app)
+    .put(`/api/tasks/${task2.body.id}`)
+    .set('Authorization', 'Bearer ' + teacherToken)
+    .send({ status: 'available' })
+    .expect(200);
+  row = await queryOne('SELECT status FROM task_projects WHERE id = ?', [projectId]);
+  assert.strictEqual(row.status, 'active');
+});
+
 test('POST/PUT /api/tasks persiste completion_mode', async () => {
   const created = await request(app)
     .post('/api/tasks')
