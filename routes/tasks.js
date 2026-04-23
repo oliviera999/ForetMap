@@ -9,6 +9,7 @@ const { logRouteError } = require('../lib/routeLog');
 const logger = require('../lib/logger');
 const { logAudit } = require('./audit');
 const { emitTasksChanged } = require('../lib/realtime');
+const { syncTaskProjectCompletionForProjects } = require('../lib/syncTaskProjectCompletion');
 const { ensurePrimaryRole, buildAuthzPayload, verifyRolePin, syncStudentPrimaryRoleFromProgress } = require('../lib/rbac');
 const {
   countStudentActiveTaskAssignments,
@@ -1619,6 +1620,7 @@ router.post('/import', requirePermission('tasks.manage', { needsElevation: true 
     }
 
     const importMapIds = new Set();
+    const importProjectIds = new Set();
     const createdProjectsByMapTitle = new Map();
     for (const project of projectRows) {
       const id = uuidv4();
@@ -1664,6 +1666,7 @@ router.post('/import', requirePermission('tasks.manage', { needsElevation: true 
       if (task.resolvedMapId != null && String(task.resolvedMapId).trim()) {
         importMapIds.add(String(task.resolvedMapId).trim());
       }
+      if (existingProject?.id) importProjectIds.add(String(existingProject.id));
     }
 
     if (report.totals.created_projects + report.totals.created_tasks > 0) {
@@ -1683,6 +1686,9 @@ router.post('/import', requirePermission('tasks.manage', { needsElevation: true 
       } else {
         emitTasksChanged(payloadBase);
       }
+    }
+    if (importProjectIds.size > 0) {
+      await syncTaskProjectCompletionForProjects([...importProjectIds]);
     }
     res.json({ report });
   } catch (e) {
@@ -1800,6 +1806,7 @@ router.post('/', requirePermission('tasks.manage', { needsElevation: true }), as
       payload: { map_id: projectValidation.mapId, project_id: projectValidation.projectId || null },
     });
     emitTasksChanged({ reason: 'create_task', taskId: id, projectId: projectValidation.projectId || null, mapId: projectValidation.mapId });
+    await syncTaskProjectCompletionForProjects([projectValidation.projectId]);
     res.status(201).json(task);
   } catch (e) {
     respondInternalError(res, req, e);
@@ -1937,6 +1944,9 @@ router.put('/:id', async (req, res) => {
   try {
     const task = await queryOne('SELECT * FROM tasks WHERE id = ?', [req.params.id]);
     if (!task) return res.status(404).json({ error: 'Tâche introuvable' });
+    const previousProjectId = task.project_id != null && String(task.project_id).trim()
+      ? String(task.project_id).trim()
+      : null;
     const auth = await parseOptionalAuth(req);
     const isTeacherAction = canManageTasks(auth);
     const isStudentSession = auth?.userType === 'student' && !!auth?.userId;
@@ -2174,6 +2184,7 @@ router.put('/:id', async (req, res) => {
       },
     });
     emitTasksChanged({ reason: 'update_task', taskId: task.id, projectId: projectValidation.projectId || null, mapId: resolveTaskMapId(updated) });
+    await syncTaskProjectCompletionForProjects([previousProjectId, projectValidation.projectId]);
     res.json(updated);
   } catch (e) {
     let exposeDetail = false;
@@ -2199,6 +2210,10 @@ router.delete('/:id', requirePermission('tasks.manage', { needsElevation: true }
     await execute('DELETE FROM tasks WHERE id = ?', [req.params.id]);
     logAudit('delete_task', 'task', req.params.id, task.title, { req });
     emitTasksChanged({ reason: 'delete_task', taskId: req.params.id, mapId: resolveTaskMapId(task) });
+    const delProjectId = task.project_id != null && String(task.project_id).trim()
+      ? String(task.project_id).trim()
+      : null;
+    await syncTaskProjectCompletionForProjects([delProjectId]);
     res.json({ success: true });
   } catch (e) {
     respondInternalError(res, req, e);
@@ -2211,7 +2226,12 @@ router.post('/:id/assign', async (req, res) => {
     if (!task) return res.status(404).json({ error: 'Tâche introuvable' });
     if (task.status === 'validated') return res.status(400).json({ error: 'Tâche déjà validée' });
     if (task.status === 'on_hold') return res.status(400).json({ error: 'Tâche en attente : inscription indisponible' });
-    if (task.project_status === 'on_hold') return res.status(400).json({ error: 'Projet en attente : inscription indisponible' });
+    if (task.project_status === 'on_hold') {
+      return res.status(400).json({ error: 'Projet en attente : inscription indisponible' });
+    }
+    if (task.project_status === 'completed') {
+      return res.status(400).json({ error: 'Projet terminé : inscription indisponible' });
+    }
     if (isTaskBeforeStartDate(task)) return res.status(400).json({ error: 'Date de départ non atteinte : inscription indisponible' });
 
     const action = await resolveStudentActionContext(req, req.body || {}, 'tasks.assign_self');
@@ -2270,6 +2290,7 @@ router.post('/:id/assign', async (req, res) => {
       payload: { student_id: action.studentId || null, status: newStatus },
     });
     emitTasksChanged({ reason: 'assign', taskId: task.id, mapId: resolveTaskMapId(updated) });
+    await syncTaskProjectCompletionForProjects([updated.project_id]);
     res.json(updated);
   } catch (e) {
     respondInternalError(res, req, e);
@@ -2358,6 +2379,7 @@ router.post('/:id/done', async (req, res) => {
       },
     });
     emitTasksChanged({ reason: 'done', taskId: task.id, mapId: resolveTaskMapId(updated) });
+    await syncTaskProjectCompletionForProjects([updated.project_id]);
     res.json(updated);
   } catch (e) {
     respondInternalError(res, req, e);
@@ -2445,6 +2467,7 @@ router.post('/:id/validate', requirePermission('tasks.validate', { needsElevatio
     logAudit('validate_task', 'task', req.params.id, task.title, { req });
     const updated = await getTaskWithAssignments(task.id);
     emitTasksChanged({ reason: 'validate', taskId: task.id, mapId: resolveTaskMapId(updated) });
+    await syncTaskProjectCompletionForProjects([task.project_id]);
     res.json(updated);
   } catch (e) {
     respondInternalError(res, req, e);
@@ -2487,6 +2510,7 @@ router.post('/:id/unassign', async (req, res) => {
       payload: { student_id: action.studentId || null, status: newStatus },
     });
     emitTasksChanged({ reason: 'unassign', taskId: task.id, mapId: resolveTaskMapId(updated) });
+    await syncTaskProjectCompletionForProjects([updated.project_id]);
     res.json(updated);
   } catch (err) {
     respondInternalError(res, req, err, 'Erreur lors du retrait');

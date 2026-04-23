@@ -1045,7 +1045,7 @@ function TaskProjectFormModal({
       zone_ids: initialLocationIds(editProject, 'zone_ids', 'zone_id'),
       marker_ids: initialLocationIds(editProject, 'marker_ids', 'marker_id'),
       tutorial_ids: normalizeTutorialIds(editProject.tutorial_ids || []),
-      status: editProject.status === 'on_hold' ? 'on_hold' : 'active',
+      status: editProject.status === 'on_hold' ? 'on_hold' : editProject.status === 'completed' ? 'completed' : 'active',
     });
   }, [editProject, defaultMapId]);
 
@@ -1115,7 +1115,13 @@ function TaskProjectFormModal({
         marker_ids: [...new Set(form.marker_ids.map((id) => String(id || '').trim()).filter(Boolean))],
         tutorial_ids: normalizedTutorialIds,
       };
-      if (editProject) payload.status = form.status;
+      if (editProject) {
+        if (form.status === 'completed') {
+          delete payload.status;
+        } else {
+          payload.status = form.status;
+        }
+      }
       await onSave(payload);
       onClose();
     } catch (e) {
@@ -1161,9 +1167,17 @@ function TaskProjectFormModal({
         {isEdit && (
           <div className="field"><label>Statut du projet</label>
             <select value={form.status} onChange={(e) => setForm((f) => ({ ...f, status: e.target.value }))}>
+              {form.status === 'completed' && (
+                <option value="completed" disabled>Terminé (toutes les tâches réalisées)</option>
+              )}
               <option value="active">Actif (inscriptions ouvertes)</option>
               <option value="on_hold">En attente (inscriptions fermées)</option>
             </select>
+            {form.status === 'completed' && (
+              <p style={{ fontSize: '.82rem', color: '#555', marginTop: 6 }}>
+                Choisis « Actif » ou « En attente » pour rouvrir le projet, ou ajoute une tâche non terminée (le projet repasse alors automatiquement en actif).
+              </p>
+            )}
           </div>
         )}
         <div className="field"><label>Zones et repères (optionnel)</label>
@@ -1448,16 +1462,16 @@ function toQuickAssignStudentId(id) {
 }
 
 const TEACHER_STATUS_ACTIONS = [
-  { value: 'available', label: 'À faire', icon: '🔥' },
   { value: 'in_progress', label: 'En cours', icon: '⚙️' },
+  { value: 'available', label: 'À faire', icon: '🔥' },
   { value: 'done', label: 'Terminée', icon: '✅' },
   { value: 'validated', label: 'Validée', icon: '✔️' },
   { value: 'proposed', label: 'Proposée', icon: '💡' },
   { value: 'on_hold', label: 'En attente', icon: '⏸️' },
 ];
 const TASK_STATUS_FILTER_OPTIONS = [
-  { value: 'available', label: 'À faire' },
   { value: 'in_progress', label: 'En cours' },
+  { value: 'available', label: 'À faire' },
   { value: 'done', label: 'Terminée' },
   { value: 'validated', label: 'Validée' },
   { value: 'proposed', label: 'Proposée' },
@@ -1467,6 +1481,7 @@ const TASK_STATUS_FILTER_OPTIONS = [
 function taskEffectiveStatus(task) {
   const baseStatus = task?.status || 'available';
   if (baseStatus === 'done' || baseStatus === 'validated' || baseStatus === 'proposed') return baseStatus;
+  if (task?.project_status === 'completed') return 'project_completed';
   if (baseStatus === 'on_hold' || task?.project_status === 'on_hold' || task?.is_before_start_date || isBeforeTaskStartDate(task)) {
     return 'on_hold';
   }
@@ -1984,7 +1999,13 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
     if (filterText && !t.title.toLowerCase().includes(filterText.toLowerCase()) &&
       !(t.description || '').toLowerCase().includes(filterText.toLowerCase())) return false;
     if (filterZone && !taskHasLocation(t, filterZone)) return false;
-    if (filterStatus && taskEffectiveStatus(t) !== filterStatus) return false;
+    if (filterStatus) {
+      const eff = taskEffectiveStatus(t);
+      const matches = filterStatus === 'on_hold'
+        ? (eff === 'on_hold' || eff === 'project_completed')
+        : eff === filterStatus;
+      if (!matches) return false;
+    }
     if (filterProject && t.project_id !== filterProject) return false;
     if (filterUrgentCategory === 'urgent' && !isTaskUrgentCategory(t)) return false;
     if (filterUrgentCategory === 'non_urgent' && isTaskUrgentCategory(t)) return false;
@@ -2036,7 +2057,10 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
   const done = regularFiltered.filter(t => taskEffectiveStatus(t) === 'done');
   const validated = regularFiltered.filter(t => taskEffectiveStatus(t) === 'validated');
   const proposed = regularFiltered.filter(t => taskEffectiveStatus(t) === 'proposed');
-  const onHold = regularFiltered.filter(t => taskEffectiveStatus(t) === 'on_hold');
+  const onHold = regularFiltered.filter((t) => {
+    const eff = taskEffectiveStatus(t);
+    return eff === 'on_hold' || eff === 'project_completed';
+  });
   const hasStudentFilters = !isTeacher && (
     !!filterText
     || !!filterZone
@@ -2072,7 +2096,7 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
 
   const urgentTasks = !isTeacher ? regularFiltered.filter(t => {
     const effective = taskEffectiveStatus(t);
-    if (effective === 'validated' || effective === 'done' || effective === 'on_hold') return false;
+    if (effective === 'validated' || effective === 'done' || effective === 'on_hold' || effective === 'project_completed') return false;
     const d = daysUntil(t.due_date);
     return d !== null && d <= 3 && d >= -2;
   }).sort(compareTasksByImportanceThenDueDate) : [];
@@ -2154,7 +2178,8 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
     if (!isTeacher || !task) return false;
     const { toAdd, toRemove } = teacherQuickAssignDelta(task, selectedIds);
     if (toAdd.length === 0 && toRemove.length === 0) return false;
-    if (taskEffectiveStatus(task) === 'on_hold') return false;
+    const te = taskEffectiveStatus(task);
+    if (te === 'on_hold' || te === 'project_completed') return false;
     if (toRemove.length > 0 && (task.status === 'done' || task.status === 'validated')) return false;
     if (toAdd.length > 0) {
       if (task.status === 'proposed' || task.status === 'done' || task.status === 'validated') return false;
@@ -2165,7 +2190,9 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
   };
   const quickAssignHint = (task, selectedIds) => {
     if (!task) return "Cette tâche n’est pas dispo ici";
-    if (taskEffectiveStatus(task) === 'on_hold') return "Patience : tâche ou projet en pause";
+    const te = taskEffectiveStatus(task);
+    if (te === 'on_hold') return "Patience : tâche ou projet en pause";
+    if (te === 'project_completed') return "Projet terminé : inscriptions fermées";
     const { toAdd, toRemove } = teacherQuickAssignDelta(task, selectedIds);
     if (toAdd.length === 0 && toRemove.length === 0) return "Coche ou décoche des n3beurs pour ajuster l’équipe sur la mission";
     if (toRemove.length > 0 && (task.status === 'done' || task.status === 'validated')) {
@@ -2767,16 +2794,16 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
 
       {isTeacher ? (
         <>
-          {available.length > 0 && (
-            <div className="tasks-section">
-              <div className="tasks-section-title">🔥 À faire</div>
-              <div className={sectionListClass}>{available.map((t, idx) => <TaskTileCard key={t.id} {...taskTileProps} t={t} index={idx} />)}</div>
-            </div>
-          )}
           {inProgress.length > 0 && (
             <div className="tasks-section">
               <div className="tasks-section-title">⚙️ En cours</div>
               <div className={sectionListClass}>{inProgress.map((t, idx) => <TaskTileCard key={t.id} {...taskTileProps} t={t} index={idx} />)}</div>
+            </div>
+          )}
+          {available.length > 0 && (
+            <div className="tasks-section">
+              <div className="tasks-section-title">🔥 À faire</div>
+              <div className={sectionListClass}>{available.map((t, idx) => <TaskTileCard key={t.id} {...taskTileProps} t={t} index={idx} />)}</div>
             </div>
           )}
           <TaskProjectsBlock
@@ -2865,6 +2892,12 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
             </>
           ) : (
             <>
+              {inProgressNotMine.length > 0 && (
+              <div className="tasks-section">
+                <div className="tasks-section-title">⚙️ En cours (déjà prises)</div>
+                <div className={sectionListClass}>{inProgressNotMine.map((t, idx) => <TaskTileCard key={t.id} {...taskTileProps} t={t} index={idx} />)}</div>
+              </div>
+              )}
               {availableNotMine.length > 0 && (
             <div className="tasks-section">
               <div className="tasks-section-title">🔥 Tâches à faire</div>
@@ -2875,12 +2908,6 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
               <div className="tasks-section">
                 <div className="tasks-section-title">💡 Mes propositions ({myProposals.length})</div>
                 <div className={sectionListClass}>{myProposals.map((t, idx) => <TaskTileCard key={t.id} {...taskTileProps} t={t} index={idx} />)}</div>
-              </div>
-              )}
-              {inProgressNotMine.length > 0 && (
-              <div className="tasks-section">
-                <div className="tasks-section-title">⚙️ En cours (déjà prises)</div>
-                <div className={sectionListClass}>{inProgressNotMine.map((t, idx) => <TaskTileCard key={t.id} {...taskTileProps} t={t} index={idx} />)}</div>
               </div>
               )}
               <TaskProjectsBlock
@@ -3297,6 +3324,7 @@ function TaskTileCard({
           {!((t.markers_linked || []).length) && t.marker_label && <span className="task-chip">📍 {t.marker_label}</span>}
           {t.project_title && <span className="task-chip">📁 {t.project_title}</span>}
           {t.project_title && t.project_status === 'on_hold' && <span className="task-chip">⏸️ Projet en attente</span>}
+          {t.project_title && t.project_status === 'completed' && <span className="task-chip">Terminé (projet)</span>}
           {startDateChip(t.start_date)}
           {isTeacher && t.status === 'proposed' && proposalMeta.proposer && (
             <span className="task-chip proposal">🙋 Proposée par {proposalMeta.proposer}</span>
@@ -3434,7 +3462,7 @@ function TaskTileCard({
           <div className="slots">{slots} place{slots > 1 ? 's' : ''} restante{slots > 1 ? 's' : ''}</div>
         )}
         <div className="task-actions">
-          {!isTeacher && canEnrollNewTask && !isMine && slots > 0 && effectiveStatus !== 'validated' && effectiveStatus !== 'on_hold' && (
+          {!isTeacher && canEnrollNewTask && !isMine && slots > 0 && effectiveStatus !== 'validated' && effectiveStatus !== 'on_hold' && effectiveStatus !== 'project_completed' && (
             <button className="btn btn-primary btn-sm" disabled={loading[t.id + 'assign']} onClick={() => assign(t)}>
               {loading[t.id + 'assign'] ? '...' : '✋ Je m\'en occupe'}
             </button>
@@ -3457,7 +3485,7 @@ function TaskTileCard({
           {isTeacher && (
             <button
               className={`btn btn-sm ${isQuickAssignOpen ? 'btn-primary' : 'btn-ghost'}`}
-              disabled={quickAssignBusy || loadingTeacherStudents || teacherStudents.length === 0 || taskEffectiveStatus(t) === 'on_hold'}
+              disabled={quickAssignBusy || loadingTeacherStudents || teacherStudents.length === 0 || ['on_hold', 'project_completed'].includes(taskEffectiveStatus(t))}
               onClick={() => {
                 if (isQuickAssignOpen) {
                   quickAssignUserEditedRef.current = false;
@@ -3473,9 +3501,12 @@ function TaskTileCard({
                     .map((s) => toQuickAssignStudentId(s.id))
                 );
               }}
-              title={taskEffectiveStatus(t) === 'on_hold'
-                ? "Affectation désactivée (en attente)"
-                : (teacherStudents.length === 0 ? 'Aucun n3beur disponible' : 'Afficher la liste des n3beurs')}
+              title={(() => {
+                const x = taskEffectiveStatus(t);
+                if (x === 'on_hold') return 'Affectation désactivée (en attente)';
+                if (x === 'project_completed') return 'Affectation désactivée (projet terminé)';
+                return teacherStudents.length === 0 ? 'Aucun n3beur disponible' : 'Afficher la liste des n3beurs';
+              })()}
             >
               {quickAssignBusy ? '...' : '⚡ Affectation rapide'}
             </button>
@@ -3675,7 +3706,7 @@ if (visibleProjects.length <= 0) return null;
           {visibleProjects.map((p) => {
             const projectTasks = allFiltered.filter((t) => String(t.project_id || '') === String(p.id || ''));
             const projectTasksCount = projectTasks.length;
-            const projectStatus = p.status === 'on_hold' ? 'on_hold' : 'active';
+            const projectStatus = p.status === 'on_hold' ? 'on_hold' : p.status === 'completed' ? 'completed' : 'active';
             const loadingActive = !!loading[`${p.id}projectactive`];
             const loadingHold = !!loading[`${p.id}projecton_hold`];
             const canReceiveTaskDrop = !!(isTeacher && taskDragPayload?.taskId);
@@ -3739,6 +3770,13 @@ if (visibleProjects.length <= 0) return null;
                           : '⏸️ Projet en pause : inscriptions fermées pour l’instant, les commentaires restent ouverts.'}
                       </div>
                     )}
+                    {p.status === 'completed' && (
+                      <div style={{ fontSize: '.82rem', color: '#166534', marginTop: 4 }}>
+                        {isTeacher
+                          ? 'Toutes les tâches du projet sont terminées ou validées. Tu peux rouvrir le projet en « Actif » ou ajouter une nouvelle tâche.'
+                          : 'Toutes les tâches de ce projet sont terminées ou validées.'}
+                      </div>
+                    )}
                   </div>
                   {isTeacher ? (
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, justifyContent: 'flex-end' }}>
@@ -3767,23 +3805,43 @@ if (visibleProjects.length <= 0) return null;
                       >
                         + Tâche
                       </button>
-                      <button
-                        className={`btn btn-sm ${projectStatus === 'active' ? 'btn-primary' : 'btn-ghost'}`}
-                        disabled={projectStatus === 'active' || loadingActive}
-                        onClick={() => setProjectStatus(p, 'active')}
-                      >
-                        {loadingActive ? '...' : '✅ Actif'}
-                      </button>
-                      <button
-                        className={`btn btn-sm ${projectStatus === 'on_hold' ? 'btn-primary' : 'btn-ghost'}`}
-                        disabled={projectStatus === 'on_hold' || loadingHold}
-                        onClick={() => setProjectStatus(p, 'on_hold')}
-                      >
-                        {loadingHold ? '...' : '⏸️ En attente'}
-                      </button>
+                      {projectStatus === 'completed' ? (
+                        <>
+                          <span className="task-chip">Terminé</span>
+                          <button
+                            type="button"
+                            className="btn btn-sm btn-primary"
+                            disabled={loadingActive}
+                            onClick={() => setProjectStatus(p, 'active')}
+                          >
+                            {loadingActive ? '...' : 'Rouvrir (actif)'}
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <button
+                            className={`btn btn-sm ${projectStatus === 'active' ? 'btn-primary' : 'btn-ghost'}`}
+                            disabled={projectStatus === 'active' || loadingActive}
+                            onClick={() => setProjectStatus(p, 'active')}
+                          >
+                            {loadingActive ? '...' : '✅ Actif'}
+                          </button>
+                          <button
+                            className={`btn btn-sm ${projectStatus === 'on_hold' ? 'btn-primary' : 'btn-ghost'}`}
+                            disabled={projectStatus === 'on_hold' || loadingHold}
+                            onClick={() => setProjectStatus(p, 'on_hold')}
+                          >
+                            {loadingHold ? '...' : '⏸️ En attente'}
+                          </button>
+                        </>
+                      )}
                     </div>
                   ) : (
-                    <span className="task-chip">{projectStatus === 'on_hold' ? '⏸️ En attente' : '✅ Actif'}</span>
+                    <span className="task-chip">
+                      {projectStatus === 'completed'
+                        ? 'Terminé'
+                        : projectStatus === 'on_hold' ? '⏸️ En attente' : '✅ Actif'}
+                    </span>
                   )}
                 </div>
                 <div style={{ marginTop: 8 }}>

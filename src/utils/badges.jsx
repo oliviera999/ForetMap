@@ -19,6 +19,7 @@ function taskStatusAria(status, isN3Affiliated) {
     validated: 'Validée',
     proposed: `Proposition ${roleTerms.studentSingular}`,
     on_hold: 'En attente',
+    project_completed: 'Projet terminé',
   };
   return labels[status] || status;
 }
@@ -31,7 +32,7 @@ export function taskStatusIndicator(status, isN3Affiliated = false) {
       ? 'task-status-dot--todo'
       : status === 'proposed'
         ? 'task-status-dot--todo'
-      : status === 'on_hold'
+      : status === 'on_hold' || status === 'project_completed'
         ? 'task-status-dot--progress'
       : status === 'in_progress'
         ? 'task-status-dot--progress'
@@ -54,6 +55,7 @@ export function statusBadge(status) {
     validated: 'Validée ✓',
     proposed: 'Proposée',
     on_hold: 'En attente',
+    project_completed: 'Projet terminé',
   };
   return <span className={`status-badge status-${status}`}>{labels[status] || status}</span>;
 }

@@ -6,17 +6,18 @@ const { logRouteError } = require('../lib/routeLog');
 const { emitTasksChanged } = require('../lib/realtime');
 
 const router = express.Router();
-const ALLOWED_PROJECT_STATUSES = new Set(['active', 'on_hold']);
+/** Statuts acceptés sur POST/PUT corps JSON (pas `completed` : réservé à la synchro tâches). */
+const PROJECT_STATUSES_API_WRITE = new Set(['active', 'on_hold']);
 
 function normalizeText(value) {
   return value == null ? '' : String(value).trim();
 }
 
-function normalizeProjectStatus(value, fallback = 'active') {
+function normalizeProjectStatusForApi(value, fallback = 'active') {
   const raw = normalizeText(value).toLowerCase();
   if (!raw) return fallback;
   if (raw === 'en_attente' || raw === 'en attente' || raw === 'attente') return 'on_hold';
-  return ALLOWED_PROJECT_STATUSES.has(raw) ? raw : '';
+  return PROJECT_STATUSES_API_WRITE.has(raw) ? raw : '';
 }
 
 function normalizeIdArray(value) {
@@ -249,7 +250,7 @@ router.post('/', requirePermission('tasks.manage', { needsElevation: true }), as
     const mapId = normalizeText(req.body.map_id);
     const title = normalizeText(req.body.title);
     const description = normalizeText(req.body.description) || null;
-    const status = normalizeProjectStatus(req.body.status, 'active');
+    const status = normalizeProjectStatusForApi(req.body.status, 'active');
     const zoneIds = normalizeIdArray(req.body.zone_ids);
     const markerIds = normalizeIdArray(req.body.marker_ids);
     const tutorialIds = normalizeTutorialIdArray(req.body.tutorial_ids);
@@ -292,7 +293,7 @@ router.put('/:id', requirePermission('tasks.manage', { needsElevation: true }), 
     const nextTitle = req.body.title !== undefined ? normalizeText(req.body.title) : existing.title;
     const nextDescription = req.body.description !== undefined ? normalizeText(req.body.description) || null : existing.description;
     const nextStatus = req.body.status !== undefined
-      ? normalizeProjectStatus(req.body.status, 'active')
+      ? normalizeProjectStatusForApi(req.body.status, 'active')
       : (existing.status || 'active');
 
     let nextZoneIds;
