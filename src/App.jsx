@@ -43,6 +43,7 @@ import { NotificationCenter } from './components/notifications-center';
 import { ForumView } from './components/forum-views';
 import { Tooltip } from './components/Tooltip';
 import { getRoleTerms, isN3OnlyAffiliation } from './utils/n3-terminology';
+import { allowedMapIdsFromAffiliation, mapsForAffiliationScope } from './utils/mapAffiliation';
 import { getContentText } from './utils/content';
 import {
   safeLocalStorageGetItem,
@@ -107,17 +108,6 @@ const OAUTH_ERROR_MESSAGES = {
   oauth_teacher_no_role: 'Aucun rôle n3boss attribué à ce compte.',
   oauth_server_error: 'Erreur serveur pendant la connexion Google.',
 };
-
-const MAP_AFFILIATION_SLUG_RE = /^[a-z0-9][a-z0-9_-]{0,30}$/;
-
-function allowedMapIdsFromAffiliation(affiliation) {
-  const normalized = String(affiliation || 'both').toLowerCase();
-  if (normalized === 'n3') return ['n3'];
-  if (normalized === 'foret') return ['foret'];
-  if (normalized === 'both') return null;
-  if (MAP_AFFILIATION_SLUG_RE.test(normalized)) return [normalized];
-  return null;
-}
 
 function decodeBase64UrlJson(value) {
   const normalized = String(value || '').replace(/-/g, '+').replace(/_/g, '/');
@@ -802,12 +792,7 @@ function App() {
             const safeMaps = Array.isArray(mapsRes) && mapsRes.length > 0 ? mapsRes : DEFAULT_MAPS;
             setMaps(safeMaps);
 
-            const activeMaps = safeMaps.filter((mp) => mp.is_active !== false);
-            const allowedMaps = activeMaps.length > 0 ? activeMaps : safeMaps;
-            const affiliationAllowedMaps = restrictedMapIds
-              ? allowedMaps.filter((mp) => restrictedMapIds.includes(mp.id))
-              : allowedMaps;
-            const visibleAllowedMaps = affiliationAllowedMaps.length > 0 ? affiliationAllowedMaps : allowedMaps;
+            const visibleAllowedMaps = mapsForAffiliationScope(safeMaps, restrictedMapIds);
             const requestedMapId = (restrictedMapIds && !restrictedMapIds.includes(mapIdState))
               ? restrictedMapIds[0]
               : mapIdState;
@@ -816,6 +801,7 @@ function App() {
               : (isTeacherSnap ? defaultMapTeacher : defaultMapStudent);
             const fallbackMap = visibleAllowedMaps.find((mp) => mp.id === defaultMap)?.id
               || visibleAllowedMaps[0]?.id
+              || requestedMapId
               || 'foret';
             const resolvedMapId = visibleAllowedMaps.some((mp) => mp.id === requestedMapId)
               ? requestedMapId
@@ -904,13 +890,10 @@ function App() {
     [tasksForActiveMap]
   );
   const visibleMaps = useMemo(() => {
-    const active = maps.filter((mp) => mp.is_active !== false);
-    const baseMaps = active.length > 0 ? active : maps;
-    if (effectiveIsTeacher || showPublicVisit) return baseMaps;
-    const allowedMapIds = allowedMapIdsFromAffiliation(student?.affiliation);
-    if (!allowedMapIds) return baseMaps;
-    const scopedMaps = baseMaps.filter((mp) => allowedMapIds.includes(mp.id));
-    return scopedMaps.length > 0 ? scopedMaps : baseMaps;
+    const allowedMapIds = (effectiveIsTeacher || showPublicVisit)
+      ? null
+      : allowedMapIdsFromAffiliation(student?.affiliation);
+    return mapsForAffiliationScope(maps, allowedMapIds);
   }, [maps, effectiveIsTeacher, showPublicVisit, student?.affiliation]);
   const mascotStudioMapLabel = useMemo(() => {
     const m = visibleMaps.find((x) => x.id === activeMapId);
