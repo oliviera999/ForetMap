@@ -509,8 +509,7 @@ router.post('/:id/duplicate', requirePermission('users.create', { needsElevation
       return res.status(500).json({ error: 'Profil RBAC introuvable' });
     }
 
-    const affDup = await resolveStudentAffiliationForPersist(source.affiliation, queryOne);
-    const affiliation = affDup.ok ? affDup.affiliation : 'both';
+    const affiliation = source.affiliation || 'both';
     const description = normalizeOptionalString(source.description);
 
     const newId = uuidv4();
@@ -595,11 +594,13 @@ router.patch('/:id/profile', async (req, res) => {
     const pseudo = hasPseudo ? normalizeOptionalString(body.pseudo) : student.pseudo;
     const email = hasEmail ? normalizeOptionalString(body.email ?? body.mail) : student.email;
     const description = hasDescription ? normalizeOptionalString(body.description) : student.description;
-    let affiliation = null;
+    let affiliation;
     if (hasAffiliation) {
       const affRes = await resolveStudentAffiliationForPersist(body.affiliation, queryOne);
       if (!affRes.ok) return res.status(400).json({ error: affRes.error });
       affiliation = affRes.affiliation;
+    } else {
+      affiliation = student.affiliation || 'both';
     }
     let avatarPath = student.avatar_path || null;
 
@@ -652,8 +653,8 @@ router.patch('/:id/profile', async (req, res) => {
 
     try {
       await execute(
-        "UPDATE users SET pseudo = ?, email = ?, description = ?, avatar_path = ?, affiliation = CASE WHEN ? THEN ? ELSE affiliation END, display_name = TRIM(CONCAT(COALESCE(first_name,''), ' ', COALESCE(last_name,''))) WHERE id = ? AND user_type = 'student'",
-        [pseudo, email, description, avatarPath, hasAffiliation ? 1 : 0, affiliation, student.id]
+        "UPDATE users SET pseudo = ?, email = ?, description = ?, avatar_path = ?, affiliation = ?, display_name = TRIM(CONCAT(COALESCE(first_name,''), ' ', COALESCE(last_name,''))) WHERE id = ? AND user_type = 'student'",
+        [pseudo, email, description, avatarPath, affiliation, student.id]
       );
     } catch (err) {
       if (err && (err.errno === 1062 || err.code === 'ER_DUP_ENTRY')) {
