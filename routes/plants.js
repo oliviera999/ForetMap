@@ -209,6 +209,31 @@ function extractUploadsRelativePath(value) {
   return null;
 }
 
+function extractUploadsRelativePaths(value) {
+  const links = parseLinkCandidates(value);
+  const candidates = links.length > 0 ? links : [asTrimmedString(value)].filter(Boolean);
+  const seen = new Set();
+  const rels = [];
+  for (const candidate of candidates) {
+    const rel = extractUploadsRelativePath(candidate);
+    if (rel && !seen.has(rel)) {
+      seen.add(rel);
+      rels.push(rel);
+    }
+  }
+  return rels;
+}
+
+function mergePlantPhotoFieldValue(prevValue, newUrl, position = 'append') {
+  const url = asTrimmedString(newUrl);
+  if (!url) return asTrimmedString(prevValue);
+  const existing = parseLinkCandidates(prevValue);
+  if (existing.includes(url)) return existing.join('\n');
+  if (existing.length === 0) return url;
+  if (position === 'prepend') return [url, ...existing].join('\n');
+  return [...existing, url].join('\n');
+}
+
 function validateHttpsPhotoLinks(body = {}) {
   for (const field of PHOTO_FIELDS) {
     if (!hasOwn(body, field)) continue;
@@ -543,16 +568,25 @@ router.post('/:id/photo-upload', requirePermission('plants.manage', { needsEleva
     saveBase64ToDisk(relativePath, imageData);
     const publicUrl = `/uploads/${relativePath}`;
 
-    const previousRelativePath = extractUploadsRelativePath(plant[field]);
-    if (previousRelativePath && previousRelativePath !== relativePath) {
-      deleteFile(previousRelativePath);
+    const mergePosition = asTrimmedString(req.body?.position).toLowerCase();
+    const shouldMerge = mergePosition === 'prepend' || mergePosition === 'append';
+    const nextValue = shouldMerge
+      ? mergePlantPhotoFieldValue(plant[field], publicUrl, mergePosition)
+      : publicUrl;
+
+    if (!shouldMerge) {
+      for (const previousRelativePath of extractUploadsRelativePaths(plant[field])) {
+        if (previousRelativePath && previousRelativePath !== relativePath) {
+          deleteFile(previousRelativePath);
+        }
+      }
     }
 
-    await execute(`UPDATE plants SET ${field} = ? WHERE id = ?`, [publicUrl, plant.id]);
+    await execute(`UPDATE plants SET ${field} = ? WHERE id = ?`, [nextValue, plant.id]);
     const updated = await queryOne('SELECT * FROM plants WHERE id = ?', [plant.id]);
     invalidatePlantsListCache();
     emitGardenChanged({ reason: 'update_plant_photo', plantId: plant.id });
-    res.json({ field, url: publicUrl, plant: updated });
+    res.json({ field, url: publicUrl, value: nextValue, plant: updated });
   } catch (e) {
     logRouteError(e, req);
     res.status(500).json({ error: e.message });
