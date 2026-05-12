@@ -9,6 +9,9 @@ const { signAuthToken } = require('../middleware/requireTeacher');
 let teacherToken;
 let plantId;
 
+const TINY_JPEG_B64 =
+  '/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAP//////////////////////////////////////////////////////////////////////////////////////2wBDAf//////////////////////////////////////////////////////////////////////////////////////wAARCABAAEADASIAAhEBAxEB/8QAFwABAQEBAAAAAAAAAAAAAAAAAAIDBP/EABQQAQAAAAAAAAAAAAAAAAAAAAD/2gAMAwEAAhADEAAAf//EABQRAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQEAAQUCf//EABQRAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQMBAT8Bf//EABQRAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQIBAT8Bf//EABQQAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQEABj8Cf//Z';
+
 async function refreshAdminTeacherToken() {
   const loginEmail = String(process.env.TEACHER_ADMIN_EMAIL || '').trim();
   const teacher = await queryOne(
@@ -93,6 +96,38 @@ test('PUT /api/plants/:id rejette les URLs photo en http', async () => {
     .expect(400);
 
   assert.ok(res.body.error.includes('HTTPS'));
+});
+
+test('POST /api/plants/:id/photo-upload peut fusionner sans écraser les photos existantes', async () => {
+  const existingHttps = 'https://example.com/photo-originale.jpg';
+  const existingUpload = '/uploads/plants/existant/photo-locale.jpg';
+  const create = await request(app)
+    .post('/api/plants')
+    .set('Authorization', 'Bearer ' + teacherToken)
+    .send({
+      name: `Entrée biodiversité upload fusion ${Date.now()}`,
+      emoji: '🌱',
+      photo: `${existingHttps}\n${existingUpload}`,
+    })
+    .expect(201);
+
+  const up = await request(app)
+    .post(`/api/plants/${create.body.id}/photo-upload`)
+    .set('Authorization', 'Bearer ' + teacherToken)
+    .send({
+      field: 'photo',
+      imageData: `data:image/jpeg;base64,${TINY_JPEG_B64}`,
+      position: 'prepend',
+    })
+    .expect(200);
+
+  assert.ok(String(up.body.url || '').startsWith('/uploads/plants/'));
+  assert.strictEqual(up.body.value, up.body.plant.photo);
+  const links = String(up.body.plant.photo || '').split('\n').filter(Boolean);
+  assert.deepStrictEqual(links, [up.body.url, existingHttps, existingUpload]);
+
+  const row = await queryOne('SELECT photo FROM plants WHERE id = ?', [create.body.id]);
+  assert.strictEqual(row.photo, up.body.value);
 });
 
 test('GET /api/health expose une CSP avec img-src restreint', async () => {
