@@ -113,6 +113,40 @@ describe('Auth', () => {
     assert.strictEqual(res.body.password_hash, undefined);
   });
 
+  it('PATCH /api/auth/me/profile préserve une affiliation stockée non résolue si elle n’est pas modifiée', async () => {
+    const stamp = Date.now();
+    const profilePassword = 'password123';
+    const reg = await request(app)
+      .post('/api/auth/register')
+      .send({
+        firstName: `Aff${stamp}`,
+        lastName: 'Profile',
+        password: profilePassword,
+        pseudo: `aff_profile_${stamp}`,
+        email: `aff_profile_${stamp}@example.com`,
+        affiliation: 'both',
+      })
+      .expect(201);
+    const storedAffiliation = `missing_${stamp % 100000}`;
+    await execute(
+      "UPDATE users SET affiliation = ? WHERE id = ? AND user_type = 'student'",
+      [storedAffiliation, reg.body.id]
+    );
+
+    const res = await request(app)
+      .patch('/api/auth/me/profile')
+      .set('Authorization', `Bearer ${reg.body.authToken}`)
+      .send({
+        description: 'Mise à jour sans changer l’affiliation',
+        currentPassword: profilePassword,
+      })
+      .expect(200);
+
+    assert.strictEqual(res.body.affiliation, storedAffiliation);
+    const row = await queryOne("SELECT affiliation FROM users WHERE id = ? AND user_type = 'student' LIMIT 1", [reg.body.id]);
+    assert.strictEqual(row.affiliation, storedAffiliation);
+  });
+
   it('POST /api/auth/login refuse firstName+lastName (users-only identifier)', async () => {
     const res = await request(app)
       .post('/api/auth/login')
