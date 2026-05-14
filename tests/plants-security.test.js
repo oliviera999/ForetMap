@@ -8,6 +8,8 @@ const { signAuthToken } = require('../middleware/requireTeacher');
 
 let teacherToken;
 let plantId;
+const ONE_PIXEL_PNG_DATA_URL =
+  'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=';
 
 async function refreshAdminTeacherToken() {
   const loginEmail = String(process.env.TEACHER_ADMIN_EMAIL || '').trim();
@@ -93,6 +95,41 @@ test('PUT /api/plants/:id rejette les URLs photo en http', async () => {
     .expect(400);
 
   assert.ok(res.body.error.includes('HTTPS'));
+});
+
+test('POST /api/plants/:id/photo-upload conserve les URLs photo existantes', async () => {
+  const existingPhotos = [
+    'https://example.com/photos/existante-1.jpg',
+    'https://example.com/photos/existante-2.jpg',
+  ];
+  const created = await request(app)
+    .post('/api/plants')
+    .set('Authorization', 'Bearer ' + teacherToken)
+    .send({
+      name: `Entrée biodiversité upload ${Date.now()}`,
+      emoji: '🌿',
+      photo: existingPhotos.join('\n'),
+    })
+    .expect(201);
+
+  const uploaded = await request(app)
+    .post(`/api/plants/${created.body.id}/photo-upload`)
+    .set('Authorization', 'Bearer ' + teacherToken)
+    .send({
+      field: 'photo',
+      imageData: ONE_PIXEL_PNG_DATA_URL,
+      position: 'prepend',
+    })
+    .expect(200);
+
+  assert.match(uploaded.body.url, /^\/uploads\/plants\/\d+\/photo-\d+\.png$/);
+
+  const updated = await queryOne('SELECT photo FROM plants WHERE id = ?', [created.body.id]);
+  const entries = String(updated.photo || '').split(/\n|,\s*/).filter(Boolean);
+  assert.strictEqual(entries[0], uploaded.body.url);
+  assert.ok(entries.includes(existingPhotos[0]));
+  assert.ok(entries.includes(existingPhotos[1]));
+  assert.strictEqual(uploaded.body.plant.photo, updated.photo);
 });
 
 test('GET /api/health expose une CSP avec img-src restreint', async () => {
