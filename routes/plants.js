@@ -7,7 +7,7 @@ const { pool, queryAll, queryOne, execute } = require('../database');
 const { requirePermission, requireAuth } = require('../middleware/requireTeacher');
 const { logRouteError } = require('../lib/routeLog');
 const { emitGardenChanged } = require('../lib/realtime');
-const { saveBase64ToDisk, deleteFile } = require('../lib/uploads');
+const { saveBase64ToDisk } = require('../lib/uploads');
 const { getNamedMemoryTtlCache } = require('../lib/memoryTtlCache');
 const { applyDerivedGroup4IfEmpty } = require('../lib/plantGroup4');
 const {
@@ -196,17 +196,14 @@ function isDirectImageUrl(url) {
   return false;
 }
 
-function extractUploadsRelativePath(value) {
-  const raw = asTrimmedString(value);
-  if (!raw) return null;
-  if (raw.startsWith('/uploads/')) return raw.slice('/uploads/'.length);
-  try {
-    const u = new URL(raw);
-    if (u.pathname.startsWith('/uploads/')) return u.pathname.slice('/uploads/'.length);
-  } catch {
-    return null;
-  }
-  return null;
+function mergePlantPhotoUploadValue(prevValue, newUrl, position = 'append') {
+  const url = asTrimmedString(newUrl);
+  if (!url) return asTrimmedString(prevValue) || null;
+  const existing = parseLinkCandidates(prevValue);
+  if (existing.includes(url)) return existing.join('\n') || null;
+  if (existing.length === 0) return url;
+  if (position === 'prepend') return [url, ...existing].join('\n');
+  return [...existing, url].join('\n');
 }
 
 function validateHttpsPhotoLinks(body = {}) {
@@ -542,13 +539,10 @@ router.post('/:id/photo-upload', requirePermission('plants.manage', { needsEleva
     const relativePath = `plants/${plant.id}/${field}-${Date.now()}.${ext}`;
     saveBase64ToDisk(relativePath, imageData);
     const publicUrl = `/uploads/${relativePath}`;
+    const position = asTrimmedString(req.body?.position) === 'prepend' ? 'prepend' : 'append';
+    const nextPhotoValue = mergePlantPhotoUploadValue(plant[field], publicUrl, position);
 
-    const previousRelativePath = extractUploadsRelativePath(plant[field]);
-    if (previousRelativePath && previousRelativePath !== relativePath) {
-      deleteFile(previousRelativePath);
-    }
-
-    await execute(`UPDATE plants SET ${field} = ? WHERE id = ?`, [publicUrl, plant.id]);
+    await execute(`UPDATE plants SET ${field} = ? WHERE id = ?`, [nextPhotoValue, plant.id]);
     const updated = await queryOne('SELECT * FROM plants WHERE id = ?', [plant.id]);
     invalidatePlantsListCache();
     emitGardenChanged({ reason: 'update_plant_photo', plantId: plant.id });

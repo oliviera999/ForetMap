@@ -430,9 +430,10 @@ des métadonnées biodiversité sont normalisés en `null`.
 
 `POST /api/plants/:id/photo-upload` (n3boss):
 
-- Body: `{ field, imageData }`
+- Body: `{ field, imageData, position? }`
 - `field` doit être l'un des champs photo (`photo`, `photo_species`, `photo_leaf`, `photo_flower`, `photo_fruit`, `photo_harvest_part`)
 - `imageData` doit être une Data URL image (png/jpg/webp/gif/bmp/avif)
+- `position` vaut optionnellement `prepend` (sinon ajout en fin) ; l'URL uploadée est fusionnée avec les URLs déjà présentes dans le champ sans les écraser.
 - Réponse: `{ field, url, plant }`
 
 `POST /api/plants/import` (n3boss):
