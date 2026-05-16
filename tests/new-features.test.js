@@ -312,6 +312,49 @@ test('projet : statut completed quand toutes les tâches liées sont done ou val
   assert.strictEqual(row.status, 'active');
 });
 
+test('projet : la synchro conserve un statut on_hold posé manuellement', async () => {
+  const projectRes = await request(app)
+    .post('/api/task-projects')
+    .set('Authorization', 'Bearer ' + teacherToken)
+    .send({ map_id: 'foret', title: `Projet pause manuelle ${Date.now()}` })
+    .expect(201);
+  const projectId = projectRes.body.id;
+
+  const taskRes = await request(app)
+    .post('/api/tasks')
+    .set('Authorization', 'Bearer ' + teacherToken)
+    .send({
+      title: `Tache pause manuelle ${Date.now()}`,
+      map_id: 'foret',
+      project_id: projectId,
+      required_students: 1,
+    })
+    .expect(201);
+
+  await request(app)
+    .put(`/api/tasks/${taskRes.body.id}`)
+    .set('Authorization', 'Bearer ' + teacherToken)
+    .send({ status: 'done' })
+    .expect(200);
+  let row = await queryOne('SELECT status FROM task_projects WHERE id = ?', [projectId]);
+  assert.strictEqual(row.status, 'completed');
+
+  await request(app)
+    .put(`/api/task-projects/${projectId}`)
+    .set('Authorization', 'Bearer ' + teacherToken)
+    .send({ status: 'on_hold' })
+    .expect(200);
+
+  await request(app)
+    .put(`/api/tasks/${taskRes.body.id}`)
+    .set('Authorization', 'Bearer ' + teacherToken)
+    .send({ title: `Tache pause manuelle edit ${Date.now()}` })
+    .expect(200);
+
+  row = await queryOne('SELECT status FROM task_projects WHERE id = ?', [projectId]);
+  assert.strictEqual(row.status, 'on_hold');
+});
+
 test('POST/PUT /api/tasks persiste completion_mode', async () => {
   const created = await request(app)
     .post('/api/tasks')
