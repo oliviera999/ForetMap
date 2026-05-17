@@ -920,13 +920,13 @@ function PlantEditForm({ title, form, setForm, onSave, onCancel, saving, plantId
         const field = PLANTNET_IDENTIFY_PHOTO_FIELD_ORDER[i];
         if (!field) break;
         const imageData = slots[i].imageData;
-        const result = await api(`/api/plants/${targetId}/photo-upload`, 'POST', { field, imageData });
+        const position = i === 0 ? 'prepend' : 'append';
+        const result = await api(`/api/plants/${targetId}/photo-upload`, 'POST', { field, imageData, position });
         const newUrl = result?.url;
         if (!newUrl) continue;
-        const position = i === 0 ? 'prepend' : 'append';
         setForm((prev) => ({
           ...prev,
-          [field]: mergePlantPhotoFieldValue(prev[field], newUrl, position),
+          [field]: result?.value || mergePlantPhotoFieldValue(prev[field], newUrl, position),
         }));
       }
       onToast?.('Proposition appliquée : noms et photos d’identification importés ✓');
