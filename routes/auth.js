@@ -439,11 +439,13 @@ router.patch('/me/profile', requireAuth, async (req, res) => {
     const pseudo = hasPseudo ? normalizeOptionalString(body.pseudo) : account.pseudo;
     const email = hasEmail ? normalizeEmail(body.email ?? body.mail) : account.email;
     const description = hasDescription ? normalizeOptionalString(body.description) : account.description;
-    let affiliation = null;
+    let affiliation;
     if (hasAffiliation) {
       const affRes = await resolveStudentAffiliationForPersist(body.affiliation, queryOne);
       if (!affRes.ok) return res.status(400).json({ error: affRes.error });
       affiliation = affRes.affiliation;
+    } else {
+      affiliation = account.affiliation || 'both';
     }
     let avatarPath = account.avatar_path || null;
 
@@ -483,11 +485,9 @@ router.patch('/me/profile', requireAuth, async (req, res) => {
     try {
       await execute(
         `UPDATE users
-            SET pseudo = ?, email = ?, description = ?,
-                affiliation = CASE WHEN ? THEN ? ELSE affiliation END,
-                avatar_path = ?, updated_at = NOW()
+            SET pseudo = ?, email = ?, description = ?, affiliation = ?, avatar_path = ?, updated_at = NOW()
           WHERE id = ?`,
-        [pseudo, email, description, hasAffiliation ? 1 : 0, affiliation, avatarPath, account.id]
+        [pseudo, email, description, affiliation, avatarPath, account.id]
       );
     } catch (err) {
       if (err && (err.errno === 1062 || err.code === 'ER_DUP_ENTRY')) {
