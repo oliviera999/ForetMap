@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { api, toggleForumPostReaction } from '../services/api';
 import { formatDateTimeFr } from '../utils/datetime-fr';
 import { AttachmentImagesPicker, UserContentImagesGrid } from './attachment-images-picker';
@@ -50,6 +50,8 @@ function ForumView({ authClaims, canParticipateForum = true }) {
   const [reportReasonByPost, setReportReasonByPost] = useState({});
   const [toast, setToast] = useState('');
 
+  const threadDetailRequestSeqRef = useRef(0);
+
   const canModerate = useMemo(() => isModerator(authClaims), [authClaims]);
   const canUseForumActions = canParticipateForum || canModerate;
   const currentUserType = String(authClaims?.userType || '').toLowerCase();
@@ -74,23 +76,28 @@ function ForumView({ authClaims, canParticipateForum = true }) {
 
   const loadThreadDetail = useCallback(async (threadId, page = 1) => {
     if (!threadId) {
+      threadDetailRequestSeqRef.current += 1;
       setThreadDetail(null);
       setPosts([]);
       setPostsTotal(0);
       setPostsPage(1);
+      setDetailLoading(false);
       return;
     }
+    const seq = ++threadDetailRequestSeqRef.current;
     setDetailLoading(true);
     try {
       const data = await api(`/api/forum/threads/${encodeURIComponent(threadId)}?page=${page}&page_size=${POST_PAGE_SIZE}`);
+      if (seq !== threadDetailRequestSeqRef.current) return;
       setThreadDetail(data?.thread || null);
       setPosts(Array.isArray(data?.posts) ? data.posts : []);
       setPostsTotal(Number(data?.total_posts || 0));
       setPostsPage(Number(data?.page || page));
     } catch (err) {
+      if (seq !== threadDetailRequestSeqRef.current) return;
       setToast(`Erreur chargement sujet : ${err.message}`);
     } finally {
-      setDetailLoading(false);
+      if (seq === threadDetailRequestSeqRef.current) setDetailLoading(false);
     }
   }, []);
 

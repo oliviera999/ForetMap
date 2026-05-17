@@ -96,8 +96,18 @@ router.post('/', requireAuth, async (req, res) => {
 
     if (imageData) {
       const relativePath = `observations/${resolvedStudentId}_${logId}.jpg`;
-      saveBase64ToDisk(relativePath, imageData);
-      await execute('UPDATE observation_logs SET image_path = ? WHERE id = ?', [relativePath, logId]);
+      try {
+        saveBase64ToDisk(relativePath, imageData);
+        await execute('UPDATE observation_logs SET image_path = ? WHERE id = ?', [relativePath, logId]);
+      } catch (err) {
+        try {
+          deleteFile(relativePath);
+        } catch (_) {
+          /* ignore */
+        }
+        await execute('DELETE FROM observation_logs WHERE id = ?', [logId]);
+        throw err;
+      }
     }
 
     const obs = await queryOne('SELECT * FROM observation_logs WHERE id = ?', [logId]);

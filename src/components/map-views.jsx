@@ -1047,7 +1047,7 @@ function ZoneInfoModal({ zone, plants, tasks, tutorials = [], isTeacher, student
               <div className="history-list">
                 <h4>Historique cultures</h4>
                 {zone.history.map((h, i) => (
-                  <div key={i} className="history-item">
+                  <div key={`${h?.harvested_at ?? ''}-${h?.plant ?? ''}-${i}`} className="history-item">
                     <span>{h.plant}</span><span style={{ color: '#aaa', fontSize: '.76rem' }}>{h.harvested_at}</span>
                   </div>
                 ))}

@@ -3112,13 +3112,30 @@ function TaskLogsViewer({ task, onClose }) {
   const [toast, setToast] = useState(null);
 
   const loadLogs = () => {
-    api(`/api/tasks/${task.id}/logs`).then(setLogs).catch(err => {
-      console.error('[ForetMap] logs tâche', err);
-      setLogs([]);
-    });
+    api(`/api/tasks/${task.id}/logs`)
+      .then((data) => setLogs(Array.isArray(data) ? data : []))
+      .catch((err) => {
+        console.error('[ForetMap] logs tâche', err);
+        setLogs([]);
+      });
   };
 
-  useEffect(() => { loadLogs(); }, [task.id]);
+  useEffect(() => {
+    let cancelled = false;
+    api(`/api/tasks/${task.id}/logs`)
+      .then((data) => {
+        if (cancelled) return;
+        setLogs(Array.isArray(data) ? data : []);
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        console.error('[ForetMap] logs tâche', err);
+        setLogs([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [task.id]);
 
   const deleteLog = async (logId) => {
     try {
