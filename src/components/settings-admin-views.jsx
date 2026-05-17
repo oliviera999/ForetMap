@@ -223,6 +223,55 @@ function AdminTextSettingField({
   );
 }
 
+/** Champ nombre piloté : resynchronisation après chargement serveur (comme AdminTextSettingField). */
+function AdminNumberSettingField({
+  rowKey,
+  label,
+  row,
+  serverValue,
+  disabled,
+  min,
+  max,
+  fallback,
+  onSave,
+}) {
+  const synced = Number.isFinite(Number(serverValue)) ? Number(serverValue) : fallback;
+  const [draft, setDraft] = useState(String(synced));
+  useEffect(() => {
+    setDraft(String(Number.isFinite(Number(serverValue)) ? Number(serverValue) : fallback));
+  }, [rowKey, serverValue, fallback]);
+
+  const commit = () => {
+    const n = parseInt(String(draft).trim(), 10);
+    const next = Number.isFinite(n) ? n : fallback;
+    if (next === synced) return;
+    onSave(rowKey, next);
+  };
+
+  return (
+    <div className="field">
+      <label>
+        {label}
+        <span style={{ marginLeft: 8, fontSize: '.74rem', color: '#6b7280' }}>
+          ({scopeLabel(row.scope)})
+        </span>
+      </label>
+      <input
+        type="number"
+        min={Number.isFinite(Number(min)) ? Number(min) : undefined}
+        max={Number.isFinite(Number(max)) ? Number(max) : undefined}
+        value={draft}
+        disabled={disabled}
+        onChange={(e) => setDraft(e.target.value)}
+        onBlur={commit}
+      />
+      <div style={{ fontSize: '.74rem', color: '#6b7280', marginTop: 3 }}>
+        {buildConstraintHelp(row)}
+      </div>
+    </div>
+  );
+}
+
 function SettingsAdminView({ isN3Affiliated = false }) {
   const roleTerms = getRoleTerms(isN3Affiliated);
   const [loading, setLoading] = useState(true);
@@ -390,27 +439,18 @@ function SettingsAdminView({ isN3Affiliated = false }) {
     if (row.type === 'number') {
       const fallback = Number.isFinite(Number(row.default_value)) ? Number(row.default_value) : 0;
       return (
-        <div key={key} className="field">
-          <label>
-            {label}
-            <span style={{ marginLeft: 8, fontSize: '.74rem', color: '#6b7280' }}>
-              ({scopeLabel(row.scope)})
-            </span>
-          </label>
-          <input
-            type="number"
-            min={Number.isFinite(Number(min)) ? Number(min) : undefined}
-            max={Number.isFinite(Number(max)) ? Number(max) : undefined}
-            defaultValue={Number.isFinite(Number(value)) ? Number(value) : fallback}
+        <div key={key}>
+          <AdminNumberSettingField
+            rowKey={key}
+            label={label}
+            row={row}
+            serverValue={value}
             disabled={disabled}
-            onBlur={(e) => {
-              const n = parseInt(e.target.value || String(fallback), 10);
-              saveSetting(key, Number.isFinite(n) ? n : fallback);
-            }}
+            min={min}
+            max={max}
+            fallback={fallback}
+            onSave={saveSetting}
           />
-          <div style={{ fontSize: '.74rem', color: '#6b7280', marginTop: 3 }}>
-            {buildConstraintHelp(row)}
-          </div>
         </div>
       );
     }

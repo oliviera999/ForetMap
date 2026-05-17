@@ -15,6 +15,11 @@ const {
   countStudentActiveTaskAssignments,
   getEffectiveMaxActiveTaskAssignments,
 } = require('../lib/studentTaskEnrollment');
+const {
+  normalizeTaskStatusForRead,
+  normalizeTaskCompletionMode,
+  recalculateTaskStatusWithConn,
+} = require('../lib/taskStatusRecalc');
 
 const router = express.Router();
 const MAX_IMPORT_FILE_BYTES = 8 * 1024 * 1024;
@@ -36,7 +41,6 @@ const IMPORT_TEMPLATE_COLUMNS = [
 ];
 
 const ALLOWED_TASK_STATUSES = new Set(['available', 'in_progress', 'done', 'validated', 'proposed', 'on_hold']);
-const ALLOWED_TASK_COMPLETION_MODES = new Set(['single_done', 'all_assignees_done']);
 const ALLOWED_TASK_DANGER_LEVELS = new Set(['safe', 'potential_danger', 'dangerous', 'very_dangerous']);
 const ALLOWED_TASK_DIFFICULTY_LEVELS = new Set(['easy', 'medium', 'hard', 'very_hard']);
 const ALLOWED_TASK_IMPORTANCE_LEVELS = new Set(['not_important', 'low', 'medium', 'high', 'absolute']);
@@ -130,16 +134,6 @@ function normalizeImportTaskStatus(value) {
   if (['proposee', 'proposée'].includes(raw)) return 'proposed';
   if (['en_attente', 'en attente', 'attente'].includes(raw)) return 'on_hold';
   return ALLOWED_IMPORT_TASK_STATUSES.has(raw) ? raw : null;
-}
-
-function normalizeTaskStatusForRead(value) {
-  return normalizeImportTaskStatus(value) || 'available';
-}
-
-function normalizeTaskCompletionMode(value) {
-  const raw = asTrimmedString(value).toLowerCase();
-  if (!raw) return 'single_done';
-  return ALLOWED_TASK_COMPLETION_MODES.has(raw) ? raw : null;
 }
 
 /** Entrée client : absent / vide / null → non renseigné (null SQL) ; valeur invalide → { error }. */
@@ -277,57 +271,8 @@ function countDoneAssignments(assignments = []) {
   }, 0);
 }
 
-function computeTaskStatusFromProgress({ currentStatus, completionMode, assignedCount, doneCount }) {
-  if (currentStatus === 'validated' || currentStatus === 'proposed' || currentStatus === 'on_hold') {
-    return currentStatus;
-  }
-  if (completionMode === 'all_assignees_done') {
-    if (assignedCount <= 0) return 'available';
-    if (doneCount >= assignedCount) return 'done';
-    return 'in_progress';
-  }
-  if (currentStatus === 'done') return 'done';
-  if (assignedCount <= 0) return 'available';
-  return 'in_progress';
-}
-
-async function fetchTaskAssignmentProgress(taskId) {
-  const progress = await queryOne(
-    `SELECT COUNT(*) AS assigned_count,
-            SUM(CASE WHEN done_at IS NOT NULL THEN 1 ELSE 0 END) AS done_count
-       FROM task_assignments
-      WHERE task_id = ?`,
-    [taskId]
-  );
-  return {
-    assignedCount: Number(progress?.assigned_count) || 0,
-    doneCount: Number(progress?.done_count) || 0,
-  };
-}
-
 async function recalculateTaskStatus(taskLike) {
-  const task = typeof taskLike === 'string'
-    ? await queryOne('SELECT id, status, completion_mode FROM tasks WHERE id = ?', [taskLike])
-    : taskLike;
-  if (!task || !task.id) return null;
-  const currentStatus = normalizeTaskStatusForRead(task.status);
-  const completionMode = normalizeTaskCompletionMode(task.completion_mode) || 'single_done';
-  const progress = await fetchTaskAssignmentProgress(task.id);
-  const nextStatus = computeTaskStatusFromProgress({
-    currentStatus,
-    completionMode,
-    assignedCount: progress.assignedCount,
-    doneCount: progress.doneCount,
-  });
-  if (nextStatus !== currentStatus) {
-    await execute('UPDATE tasks SET status = ? WHERE id = ?', [nextStatus, task.id]);
-  }
-  return {
-    status: nextStatus,
-    completionMode,
-    assignedCount: progress.assignedCount,
-    doneCount: progress.doneCount,
-  };
+  return recalculateTaskStatusWithConn({ queryOne, execute }, taskLike);
 }
 
 function normalizeImportTaskRecurrence(value) {

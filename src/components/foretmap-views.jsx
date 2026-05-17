@@ -499,8 +499,8 @@ function PlantSummaryBadges({ plant }) {
   if (chips.length === 0) return null;
   return (
     <div className="plant-badges">
-      {chips.slice(0, 3).map(chip => (
-        <span key={chip} className="plant-badge">{chip}</span>
+      {chips.slice(0, 3).map((chip, idx) => (
+        <span key={`plant-badge-${idx}-${chip}`} className="plant-badge">{chip}</span>
       ))}
     </div>
   );
@@ -728,6 +728,8 @@ function PlantMetaSections({ plant }) {
 
 // ── PLANT EDIT FORM (outside PlantManager to avoid remount on every keystroke) ──
 function PlantEditForm({ title, form, setForm, onSave, onCancel, saving, plantId, onToast, onEnsurePlantId = null }) {
+  const formRef = useRef(form);
+  formRef.current = form;
   const set = k => e => setForm(f => ({...f, [k]: e.target.value}));
   const [uploadingField, setUploadingField] = useState('');
   const [prefillLoading, setPrefillLoading] = useState(false);
@@ -973,11 +975,12 @@ function PlantEditForm({ title, form, setForm, onSave, onCancel, saving, plantId
       const data = await api(`/api/plants/autofill?${hintParams.toString()}`);
       setPrefillResult(data || null);
 
+      const latest = formRef.current || {};
       const nextFields = {};
       for (const key of SPECIES_PREFILL_FIELDS) {
         const value = String(data?.fields?.[key] || '').trim();
         if (!value) continue;
-        const hasCurrentValue = String(form?.[key] || '').trim().length > 0;
+        const hasCurrentValue = String(latest?.[key] || '').trim().length > 0;
         nextFields[key] = overwriteFilled ? true : !hasCurrentValue;
       }
       setSelectedFields(nextFields);
@@ -2252,7 +2255,7 @@ function ObservationNotebook({ student, zones, onForceLogout = null }) {
   const galleryFileRef = useRef(null);
   const cameraFileRef = useRef(null);
 
-  const load = async () => {
+  const load = useCallback(async () => {
     setLoadError('');
     try {
       const data = await api(`/api/observations/student/${student.id}?studentId=${encodeURIComponent(student.id)}`);
@@ -2266,10 +2269,34 @@ function ObservationNotebook({ student, zones, onForceLogout = null }) {
       setEntries([]);
       setLoadError(e?.message || 'Impossible de charger ton carnet.');
     }
-    setLoading(false);
-  };
+  }, [student.id, onForceLogout]);
 
-  useEffect(() => { load(); }, [student.id]);
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    setLoadError('');
+    (async () => {
+      try {
+        const data = await api(`/api/observations/student/${student.id}?studentId=${encodeURIComponent(student.id)}`);
+        if (cancelled) return;
+        setEntries(data);
+      } catch (e) {
+        if (cancelled) return;
+        if (e instanceof AccountDeletedError) {
+          onForceLogout?.();
+          return;
+        }
+        console.error('[ForetMap] observations', e);
+        setEntries([]);
+        setLoadError(e?.message || 'Impossible de charger ton carnet.');
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [student.id, onForceLogout]);
 
   const handleFile = e => {
     const file = e.target.files[0];

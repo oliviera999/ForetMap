@@ -159,7 +159,7 @@ function StudentStats({ student, isN3Affiliated = false }) {
         {assignments.length === 0
           ? <div className="empty"><div className="empty-icon">🌿</div><p>Aucune tâche prise pour l'instant</p></div>
           : assignments.slice(0, 10).map((a, i) => (
-            <div key={i} className="activity-item">
+            <div key={a?.id != null ? String(a.id) : `activity-${a?.task_id ?? 'x'}-${a?.assigned_at ?? i}-${i}`} className="activity-item">
               <div className={`activity-dot ${a.status}`} />
               <div className="activity-info">
                 <div className="activity-title">{a.title}</div>
