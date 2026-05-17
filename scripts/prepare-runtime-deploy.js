@@ -93,20 +93,15 @@ function stampCompact() {
 
 function copyProjectFiltered(srcRoot, destRoot) {
   fs.mkdirSync(destRoot, { recursive: true });
-  fs.cpSync(srcRoot, destRoot, {
-    recursive: true,
-    dereference: false,
-    filter(src) {
-      const rel = path.relative(srcRoot, src);
-      if (!rel || rel === '.') return true;
-      const segments = rel.split(path.sep);
-      for (const seg of segments) {
-        if (EXCLUDE_DIR_NAMES.has(seg)) return false;
-      }
-      if (EXCLUDE_FILE_NAMES.has(path.basename(src))) return false;
-      return true;
-    },
-  });
+  const entries = fs.readdirSync(srcRoot, { withFileTypes: true });
+  for (const entry of entries) {
+    if (EXCLUDE_DIR_NAMES.has(entry.name) || EXCLUDE_FILE_NAMES.has(entry.name)) {
+      continue;
+    }
+    const srcPath = path.join(srcRoot, entry.name);
+    const destPath = path.join(destRoot, entry.name);
+    fs.cpSync(srcPath, destPath, { recursive: true, dereference: false });
+  }
 }
 
 function copyNodeModulesDir(src, dest) {
