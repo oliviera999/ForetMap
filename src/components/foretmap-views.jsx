@@ -774,8 +774,9 @@ function PlantEditForm({ title, form, setForm, onSave, onCancel, saving, plantId
     setUploadingField(field);
     try {
       const imageData = await compressImage(file, 1600, 0.82);
-      const result = await api(`/api/plants/${targetId}/photo-upload`, 'POST', { field, imageData });
-      setForm((prev) => ({ ...prev, [field]: result?.url || prev[field] }));
+      const position = field === 'photo' ? 'prepend' : 'append';
+      const result = await api(`/api/plants/${targetId}/photo-upload`, 'POST', { field, imageData, position });
+      setForm((prev) => ({ ...prev, [field]: result?.plant?.[field] || result?.url || prev[field] }));
       onToast?.('Photo importée ✓');
     } catch (e) {
       onToast?.('Erreur import photo : ' + e.message);
@@ -813,8 +814,8 @@ function PlantEditForm({ title, form, setForm, onSave, onCancel, saving, plantId
         const fld = photoFields[slotIdx].key;
         try {
           const imageData = await compressImage(files[i], 1600, 0.82);
-          const result = await api(`/api/plants/${targetId}/photo-upload`, 'POST', { field: fld, imageData });
-          setForm((prev) => ({ ...prev, [fld]: result?.url || prev[fld] }));
+          const result = await api(`/api/plants/${targetId}/photo-upload`, 'POST', { field: fld, imageData, position: 'append' });
+          setForm((prev) => ({ ...prev, [fld]: result?.plant?.[fld] || result?.url || prev[fld] }));
           ok += 1;
         } catch (e) {
           onToast?.(`Erreur import (${photoFields[slotIdx].label}) : ${e.message}`);
@@ -926,7 +927,7 @@ function PlantEditForm({ title, form, setForm, onSave, onCancel, saving, plantId
         if (!newUrl) continue;
         setForm((prev) => ({
           ...prev,
-          [field]: result?.value || mergePlantPhotoFieldValue(prev[field], newUrl, position),
+          [field]: result?.value || result?.plant?.[field] || mergePlantPhotoFieldValue(prev[field], newUrl, position),
         }));
       }
       onToast?.('Proposition appliquée : noms et photos d’identification importés ✓');
