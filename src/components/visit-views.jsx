@@ -14,6 +14,8 @@ import { resolveMapOverlayTypography } from '../utils/mapOverlayTypography';
 import { TutorialReadAcknowledgeButton, fetchTutorialReadIds } from './TutorialReadAcknowledge';
 import { TutorialPreviewModal, tutorialPreviewPayload, tutorialPreviewCanEmbed } from './TutorialPreviewModal';
 import { ContextComments } from './context-comments';
+import { MarkdownContent } from './MarkdownContent.jsx';
+import { MarkdownTextarea } from './MarkdownTextarea.jsx';
 import { useOverlayHistoryBack } from '../hooks/useOverlayHistoryBack';
 import { computeMapImageContainRect } from '../utils/mapImageFit';
 import { parseVisitZonePoints as parsePctPoints, visitZoneCentroidPct } from '../utils/visitMapGeometry.js';
@@ -515,7 +517,7 @@ function VisitEditorPanel({ selected, selectedType, onSaved, onForceLogout, isTe
       </div>
       <div className="field">
         <label>Description courte</label>
-        <textarea rows={2} value={form.short_description} onChange={(e) => setForm((f) => ({ ...f, short_description: e.target.value }))} />
+        <MarkdownTextarea rows={2} value={form.short_description} onChange={(e) => setForm((f) => ({ ...f, short_description: e.target.value }))} />
       </div>
       <div className="field">
         <label>Titre du bloc dépliable</label>
@@ -523,7 +525,7 @@ function VisitEditorPanel({ selected, selectedType, onSaved, onForceLogout, isTe
       </div>
       <div className="field">
         <label>Détails dépliables</label>
-        <textarea rows={4} value={form.details_text} onChange={(e) => setForm((f) => ({ ...f, details_text: e.target.value }))} />
+        <MarkdownTextarea rows={4} value={form.details_text} onChange={(e) => setForm((f) => ({ ...f, details_text: e.target.value }))} />
       </div>
       <div className="row">
         <div className="field">
@@ -2246,7 +2248,7 @@ function VisitView({
                   />
                 </div>
               )}
-              {selected.visit_short_description && <p>{selected.visit_short_description}</p>}
+              {selected.visit_short_description && <MarkdownContent>{selected.visit_short_description}</MarkdownContent>}
               {firstVisitPhoto && (
                 <div className="visit-media-gallery visit-media-gallery--lead">
                   <VisitMediaGalleryThumb media={firstVisitPhoto} onOpenLightbox={setVisitMediaLightbox} />
@@ -2269,7 +2271,7 @@ function VisitView({
                       ))}
                     </div>
                   )}
-                  {visitDetailsTextTrim ? <p className="visit-details__body">{selected.visit_details_text}</p> : null}
+                  {visitDetailsTextTrim ? <MarkdownContent className="visit-details__body">{selected.visit_details_text}</MarkdownContent> : null}
                 </details>
               )}
               {visitLocationAside.showBiodiversity && (

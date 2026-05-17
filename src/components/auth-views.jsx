@@ -13,6 +13,7 @@ import {
   safeLocalStorageSetItem,
 } from '../utils/browserStorage.js';
 import { useOverlayHistoryBack } from '../hooks/useOverlayHistoryBack';
+import { MarkdownTextarea } from './MarkdownTextarea.jsx';
 import { getRoleTerms } from '../utils/n3-terminology';
 import { getContentText } from '../utils/content';
 import { DialogShell } from './DialogShell';
@@ -538,7 +539,7 @@ function AuthScreen({ onLogin, appVersion, onVisitGuest, uiSettings, isN3Affilia
               <input id={fieldIds.email} type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="moi@exemple.com" onKeyDown={onKey} />
             </div>
             <div className="field"><label htmlFor={fieldIds.description}>Description (optionnel)</label>
-              <textarea
+              <MarkdownTextarea
                 id={fieldIds.description}
                 value={description}
                 onChange={e => setDescription(e.target.value)}

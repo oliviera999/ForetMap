@@ -7,7 +7,7 @@ const { saveBase64ToDisk, getAbsolutePath } = require('../lib/uploads');
 const { serializeZonePhotoListRow, redirectIfPublicZonePhotoDataUrl } = require('../lib/uploadsPublicUrls');
 const { generateMapPhotoThumbFromMainRelativePath, deleteMapPhotoMainAndThumb } = require('../lib/imageThumb');
 const { sendFilePublicImageOptions } = require('../lib/httpImageCache');
-const { logRouteError } = require('../lib/routeLog');
+const { logRouteError, respondInternalError } = require('../lib/routeLog');
 const { emitGardenChanged } = require('../lib/realtime');
 
 const router = express.Router();
@@ -126,8 +126,7 @@ router.get('/', async (req, res) => {
     }));
     res.json(result);
   } catch (e) {
-    logRouteError(e, req);
-    res.status(500).json({ error: e.message });
+    respondInternalError(res, req, e);
   }
 });
 
@@ -141,8 +140,7 @@ router.get('/:id', async (req, res) => {
     );
     res.json({ ...withLivingBeings(zone), special: !!zone.special, history });
   } catch (e) {
-    logRouteError(e, req);
-    res.status(500).json({ error: e.message });
+    respondInternalError(res, req, e);
   }
 });
 
@@ -210,8 +208,7 @@ router.put('/:id', requirePermission('zones.manage', { needsElevation: true }), 
     emitGardenChanged({ reason: 'update_zone', zoneId: zone.id, mapId: updatedWithVisit.map_id });
     res.json({ ...withLivingBeings(updatedWithVisit), special: !!updatedWithVisit.special, history });
   } catch (e) {
-    logRouteError(e, req);
-    res.status(500).json({ error: e.message });
+    respondInternalError(res, req, e);
   }
 });
 
@@ -224,8 +221,7 @@ router.get('/:id/photos', async (req, res) => {
     );
     res.json(photos.map((p) => serializeZonePhotoListRow(p, zoneId)));
   } catch (e) {
-    logRouteError(e, req);
-    res.status(500).json({ error: e.message });
+    respondInternalError(res, req, e);
   }
 });
 
@@ -259,8 +255,7 @@ router.put('/:id/photos/reorder', requirePermission('zones.manage', { needsEleva
     emitGardenChanged({ reason: 'reorder_zone_photos', zoneId, mapId: zone.map_id });
     res.json({ ok: true });
   } catch (e) {
-    logRouteError(e, req);
-    res.status(500).json({ error: e.message });
+    respondInternalError(res, req, e);
   }
 });
 
@@ -278,8 +273,7 @@ router.get('/:id/photos/:pid/data', async (req, res) => {
     }
     return res.status(404).json({ error: 'Aucune image' });
   } catch (e) {
-    logRouteError(e, req);
-    res.status(500).json({ error: e.message });
+    respondInternalError(res, req, e);
   }
 });
 
@@ -313,8 +307,7 @@ router.post('/:id/photos', requirePermission('zones.manage', { needsElevation: t
     emitGardenChanged({ reason: 'add_zone_photo', zoneId: req.params.id, mapId: zone.map_id });
     res.status(201).json(serializeZonePhotoListRow(photo, req.params.id));
   } catch (e) {
-    logRouteError(e, req);
-    res.status(500).json({ error: e.message });
+    respondInternalError(res, req, e);
   }
 });
 
@@ -327,8 +320,7 @@ router.delete('/:id/photos/:pid', requirePermission('zones.manage', { needsEleva
     emitGardenChanged({ reason: 'delete_zone_photo', zoneId: req.params.id, mapId: zone?.map_id || null });
     res.json({ success: true });
   } catch (e) {
-    logRouteError(e, req);
-    res.status(500).json({ error: e.message });
+    respondInternalError(res, req, e);
   }
 });
 
@@ -352,8 +344,7 @@ router.post('/', requirePermission('zones.manage', { needsElevation: true }), as
     emitGardenChanged({ reason: 'create_zone', zoneId: id, mapId });
     res.status(201).json({ ...withLivingBeings(zone), history: [] });
   } catch (e) {
-    logRouteError(e, req);
-    res.status(500).json({ error: e.message });
+    respondInternalError(res, req, e);
   }
 });
 
@@ -371,8 +362,7 @@ router.delete('/:id', requirePermission('zones.manage', { needsElevation: true }
     emitGardenChanged({ reason: 'delete_zone', zoneId: req.params.id, mapId: zone.map_id });
     res.json({ success: true });
   } catch (e) {
-    logRouteError(e, req);
-    res.status(500).json({ error: e.message });
+    respondInternalError(res, req, e);
   }
 });
 

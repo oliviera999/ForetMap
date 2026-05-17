@@ -1,7 +1,7 @@
 const express = require('express');
 const { queryAll, queryOne, execute } = require('../database');
 const { requirePermission } = require('../middleware/requireTeacher');
-const { logRouteError } = require('../lib/routeLog');
+const { logRouteError, respondInternalError } = require('../lib/routeLog');
 const { ensureCanonicalUserByAuth, resolveActorFromReq } = require('../lib/identity');
 
 const router = express.Router();
@@ -16,8 +16,7 @@ router.get('/', requirePermission('audit.read', { needsElevation: true }), async
     );
     res.json(rows);
   } catch (e) {
-    logRouteError(e, req);
-    res.status(500).json({ error: e.message });
+    respondInternalError(res, req, e);
   }
 });
 

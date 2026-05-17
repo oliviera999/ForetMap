@@ -327,9 +327,17 @@ export async function api(path, method = 'GET', body) {
 
     const errBody = (await parseApiBody(res)) || {};
     if (res.status === 401 && errBody.deleted) throw new AccountDeletedError();
-    if (res.status === 401 && authToken && (errBody.error || '').toLowerCase().includes('token')) {
-      clearStoredSession();
-      window.dispatchEvent(new CustomEvent('foretmap_teacher_expired'));
+    if (res.status === 401 && authToken) {
+      const errText = String(errBody.error || '').toLowerCase();
+      const sessionExpired =
+        errText.includes('token invalide')
+        || errText.includes('expiré')
+        || errText.includes('expired')
+        || errBody.code === 'jwt_expired';
+      if (sessionExpired) {
+        clearStoredSession();
+        window.dispatchEvent(new CustomEvent('foretmap_teacher_expired'));
+      }
     }
     const reqId = (typeof res.headers?.get === 'function' && (res.headers.get('X-Request-Id') || res.headers.get('x-request-id'))) || '';
     let errMsg = typeof errBody.error === 'string' && errBody.error.trim() ? errBody.error.trim() : '';

@@ -2,6 +2,8 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { api, toggleForumPostReaction } from '../services/api';
 import { formatDateTimeFr } from '../utils/datetime-fr';
 import { AttachmentImagesPicker, UserContentImagesGrid } from './attachment-images-picker';
+import { MarkdownContent } from './MarkdownContent.jsx';
+import { MarkdownTextarea } from './MarkdownTextarea.jsx';
 
 const THREAD_PAGE_SIZE = 20;
 const POST_PAGE_SIZE = 50;
@@ -245,7 +247,7 @@ function ForumView({ authClaims, canParticipateForum = true }) {
             </div>
             <div className="field">
               <label htmlFor="forum-thread-body">Message</label>
-              <textarea
+              <MarkdownTextarea
                 id="forum-thread-body"
                 value={newBody}
                 onChange={(e) => setNewBody(e.target.value)}
@@ -368,9 +370,11 @@ function ForumView({ authClaims, canParticipateForum = true }) {
                         <strong>{p.author_display_name}</strong>
                         <span>{formatDateTimeFr(p.created_at)}</span>
                       </div>
-                      <p className="forum-post-body">
-                        {p.is_deleted ? '[message supprimé]' : p.body}
-                      </p>
+                      {p.is_deleted ? (
+                        <p className="forum-post-body">[message supprimé]</p>
+                      ) : (
+                        <MarkdownContent className="forum-post-body">{p.body}</MarkdownContent>
+                      )}
                       {!p.is_deleted && <UserContentImagesGrid urls={p.image_urls} />}
                       {!p.is_deleted && (canUseForumActions ? (
                         <div className={`message-reactions-row ${reactionsExpanded ? 'expanded' : 'compact'}`}>
@@ -452,7 +456,7 @@ function ForumView({ authClaims, canParticipateForum = true }) {
                 <form className="forum-form forum-reply-form" onSubmit={handleReply}>
                   <div className="field">
                     <label htmlFor="forum-reply">Répondre</label>
-                    <textarea
+                    <MarkdownTextarea
                       id="forum-reply"
                       value={replyBody}
                       onChange={(e) => setReplyBody(e.target.value)}

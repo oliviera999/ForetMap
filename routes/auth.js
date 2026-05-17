@@ -606,7 +606,7 @@ router.post('/login', async (req, res) => {
         { requestId: req.requestId, event: 'auth_login_failure', reason: 'account_not_found' },
         'Échec connexion (compte introuvable)'
       );
-      return res.status(401).json({ error: 'Compte introuvable' });
+      return res.status(401).json({ error: 'Identifiant ou mot de passe incorrect' });
     }
     if (!account.password_hash) {
       await logSecurityEvent('auth.login', {
@@ -657,7 +657,7 @@ router.post('/login', async (req, res) => {
         { requestId: req.requestId, event: 'auth_login_failure', reason: 'password_invalid', userType: account.user_type },
         'Échec connexion (mot de passe incorrect)'
       );
-      return res.status(401).json({ error: 'Mot de passe incorrect' });
+      return res.status(401).json({ error: 'Identifiant ou mot de passe incorrect' });
     }
 
     const userType = await resolveLoginUserType(account);

@@ -4825,3 +4825,68 @@
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+/* ── Markdown léger (champs longs) ───────────────────────────────────────── */
+.markdown-textarea-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.markdown-textarea-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  align-items: center;
+}
+.markdown-textarea-tool {
+  min-width: 2.2rem;
+  padding: 4px 8px;
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+.markdown-textarea-input {
+  width: 100%;
+  min-height: 0;
+}
+.markdown-textarea-hint {
+  margin: 0;
+  font-size: 0.72rem;
+  color: #6b7280;
+  line-height: 1.35;
+}
+.markdown-content {
+  line-height: 1.55;
+  word-break: break-word;
+}
+.markdown-content p {
+  margin: 0 0 0.5em;
+}
+.markdown-content p:last-child {
+  margin-bottom: 0;
+}
+.markdown-content ul,
+.markdown-content ol {
+  margin: 0.35em 0 0.5em 1.15em;
+  padding: 0;
+}
+.markdown-content li {
+  margin: 0.15em 0;
+}
+.markdown-content a {
+  color: var(--forest, #2d6a4f);
+  text-decoration: underline;
+}
+.markdown-content strong,
+.markdown-content b {
+  font-weight: 700;
+}
+.markdown-content--plain {
+  white-space: pre-wrap;
+}
+.task-desc.markdown-content,
+.plant-row-desc.markdown-content,
+.forum-post-body.markdown-content,
+.context-comment-body.markdown-content,
+.obs-content.markdown-content {
+  white-space: normal;
+}

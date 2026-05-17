@@ -24,7 +24,12 @@ function nowIso() {
 }
 
 function visitCookieSecret() {
-  return process.env.VISIT_COOKIE_SECRET || JWT_SECRET || 'visit-dev-secret-change-me';
+  const fromEnv = String(process.env.VISIT_COOKIE_SECRET || '').trim();
+  if (fromEnv) return fromEnv;
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('VISIT_COOKIE_SECRET requis en production');
+  }
+  return JWT_SECRET || 'visit-dev-secret-change-me';
 }
 
 function parseCookies(req) {

@@ -2,7 +2,7 @@ const express = require('express');
 const path = require('path');
 const { queryAll, queryOne, execute } = require('../database');
 const { requirePermission } = require('../middleware/requireTeacher');
-const { logRouteError } = require('../lib/routeLog');
+const { logRouteError, respondInternalError } = require('../lib/routeLog');
 const { logAudit } = require('./audit');
 const { invalidateMapsListCache } = require('./maps');
 const { tailLogLines, getBufferedLineCount, getMaxLines } = require('../lib/logBuffer');
@@ -59,8 +59,7 @@ router.get('/public', async (req, res) => {
     const settings = await getSettings('public');
     res.json({ settings: settings.nested });
   } catch (e) {
-    logRouteError(e, req);
-    res.status(500).json({ error: e.message });
+    respondInternalError(res, req, e);
   }
 });
 
@@ -82,8 +81,7 @@ router.get(
         })),
       });
     } catch (e) {
-      logRouteError(e, req);
-      res.status(500).json({ error: e.message });
+      respondInternalError(res, req, e);
     }
   }
 );
@@ -162,8 +160,7 @@ router.post(
         is_active: !!created.is_active,
       });
     } catch (e) {
-      logRouteError(e, req);
-      res.status(500).json({ error: e.message });
+      respondInternalError(res, req, e);
     }
   }
 );
@@ -221,8 +218,7 @@ router.put(
         is_active: !!updated.is_active,
       });
     } catch (e) {
-      logRouteError(e, req);
-      res.status(500).json({ error: e.message });
+      respondInternalError(res, req, e);
     }
   }
 );
@@ -257,8 +253,7 @@ router.post(
         is_active: !!updated.is_active,
       });
     } catch (e) {
-      logRouteError(e, req);
-      res.status(500).json({ error: e.message });
+      respondInternalError(res, req, e);
     }
   }
 );
@@ -283,8 +278,7 @@ router.get(
         entries,
       });
     } catch (e) {
-      logRouteError(e, req);
-      res.status(500).json({ error: e.message });
+      respondInternalError(res, req, e);
     }
   }
 );
@@ -297,8 +291,7 @@ router.get(
       const payload = await runSpeciesAutofillProviderSelfTest();
       res.json(payload);
     } catch (e) {
-      logRouteError(e, req);
-      res.status(500).json({ error: e.message || 'Auto-test fournisseurs en échec' });
+      respondInternalError(res, req, e, 'Auto-test fournisseurs en échec');
     }
   }
 );
@@ -327,8 +320,7 @@ router.get(
         },
       });
     } catch (e) {
-      logRouteError(e, req);
-      res.status(500).json({ error: e.message });
+      respondInternalError(res, req, e);
     }
   }
 );
@@ -346,8 +338,7 @@ router.post(
       res.json({ ok: true, message: 'Redémarrage dans 1s' });
       setTimeout(() => process.exit(0), 1000);
     } catch (e) {
-      logRouteError(e, req);
-      res.status(500).json({ error: e.message });
+      respondInternalError(res, req, e);
     }
   }
 );

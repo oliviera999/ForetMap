@@ -155,13 +155,13 @@ describe('Recalcul statuts tâches', () => {
       .expect(403);
   });
 
-  it('assign autorise un prof à assigner par nom (flux atelier)', async () => {
+  it('assign refuse un prof sans studentId (nom seul)', async () => {
     const res = await request(app)
       .post(`/api/tasks/${taskIdTeacherFlow}/assign`)
       .set('Authorization', `Bearer ${teacherToken}`)
       .send({ firstName, lastName })
-      .expect(200);
-    assert.strictEqual(res.body.status, 'in_progress');
+      .expect(400);
+    assert.match(String(res.body.error || ''), /studentId obligatoire/i);
   });
 
   it('assign refuse une tâche en attente', async () => {

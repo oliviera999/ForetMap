@@ -33,6 +33,8 @@ import {
 } from '../utils/plantFilters';
 import { armNativeFilePickerGuard, disarmNativeFilePickerGuard } from '../utils/overlayHistory';
 import { DialogShell } from './DialogShell';
+import { MarkdownContent } from './MarkdownContent.jsx';
+import { MarkdownTextarea } from './MarkdownTextarea.jsx';
 
 // ── TOAST ──────────────────────────────────────────────────────────────────
 function Toast({ msg, onDone }) {
@@ -561,13 +563,13 @@ function PlantEcosystemHumanLead({ plant }) {
       {role && (
         <div className="plant-meta-item">
           <div className="plant-meta-label">Rôle dans l'écosystème</div>
-          <div className="plant-meta-value">{role}</div>
+          <MarkdownContent className="plant-meta-value">{role}</MarkdownContent>
         </div>
       )}
       {utility && (
         <div className="plant-meta-item">
           <div className="plant-meta-label">Utilité pour l'être humain</div>
-          <div className="plant-meta-value">{utility}</div>
+          <MarkdownContent className="plant-meta-value">{utility}</MarkdownContent>
         </div>
       )}
     </div>
@@ -714,7 +716,7 @@ function PlantMetaSections({ plant }) {
                       })()}
                     </div>
                   ) : (
-                    <div className="plant-meta-value">{item.value}</div>
+                    <MarkdownContent className="plant-meta-value">{item.value}</MarkdownContent>
                   )}
                 </div>
               ))}
@@ -1527,7 +1529,7 @@ function PlantEditForm({ title, form, setForm, onSave, onCancel, saving, plantId
         </details>
       )}
       <div className="field"><label>Description d'identification</label>
-        <textarea value={form.description} onChange={set('description')} rows={3}
+        <MarkdownTextarea value={form.description} onChange={set('description')} rows={3}
           placeholder="Comment reconnaître cet être vivant ? Feuilles, taille, odeur..."/>
       </div>
       <div className="plant-form-grid">
@@ -1548,11 +1550,11 @@ function PlantEditForm({ title, form, setForm, onSave, onCancel, saving, plantId
         <div className="field"><label>Groupe (taxon) 3</label><input value={form.group_3} onChange={set('group_3')} placeholder="Famille..."/></div>
         <div className="field"><label>Groupe (taxon) 4</label><input value={form.group_4} onChange={set('group_4')} placeholder="Famille (végétal) ou genre (animal)"/></div>
       </div>
-      <div className="field"><label>Rôle dans l'écosystème</label><textarea value={form.ecosystem_role} onChange={set('ecosystem_role')} rows={2} placeholder="Fonction écologique principale"/></div>
-      <div className="field"><label>Utilité pour l'être humain</label><textarea value={form.human_utility} onChange={set('human_utility')} rows={2} placeholder="Usages alimentaires, pédagogiques..."/></div>
-      <div className="field"><label>Recommandations de plantation</label><textarea value={form.planting_recommendations} onChange={set('planting_recommendations')} rows={2} placeholder="Semis, exposition, espacement..."/></div>
-      <div className="field"><label>Nutriments préférés</label><textarea value={form.preferred_nutrients} onChange={set('preferred_nutrients')} rows={2} placeholder="Azote, phosphore, potassium..."/></div>
-      <div className="field"><label>Sources</label><textarea value={form.sources} onChange={set('sources')} rows={2} placeholder="URL ou références, séparées par virgules"/></div>
+      <div className="field"><label>Rôle dans l'écosystème</label><MarkdownTextarea value={form.ecosystem_role} onChange={set('ecosystem_role')} rows={2} placeholder="Fonction écologique principale"/></div>
+      <div className="field"><label>Utilité pour l'être humain</label><MarkdownTextarea value={form.human_utility} onChange={set('human_utility')} rows={2} placeholder="Usages alimentaires, pédagogiques..."/></div>
+      <div className="field"><label>Recommandations de plantation</label><MarkdownTextarea value={form.planting_recommendations} onChange={set('planting_recommendations')} rows={2} placeholder="Semis, exposition, espacement..."/></div>
+      <div className="field"><label>Nutriments préférés</label><MarkdownTextarea value={form.preferred_nutrients} onChange={set('preferred_nutrients')} rows={2} placeholder="Azote, phosphore, potassium..."/></div>
+      <div className="field"><label>Sources</label><MarkdownTextarea value={form.sources} onChange={set('sources')} rows={2} placeholder="URL ou références, séparées par virgules"/></div>
       <p className="section-sub" style={{ marginTop: -4, marginBottom: 10 }}>
         Photos : utiliser uniquement des liens directs vers image (`.jpg`, `.png`, `.webp`, etc.) ou `.../wiki/Special:FilePath/...`.
       </p>
@@ -2161,7 +2163,11 @@ function PlantManager({
                 </div>
 
                 <div className="biodiv-card-body">
-                  <p className="plant-row-desc">{p.description || <em style={{color:'#bbb'}}>Pas de description</em>}</p>
+                  {p.description ? (
+                    <MarkdownContent className="plant-row-desc">{p.description}</MarkdownContent>
+                  ) : (
+                    <p className="plant-row-desc"><em style={{color:'#bbb'}}>Pas de description</em></p>
+                  )}
                   <PlantBiodivHeroPhoto plant={p} />
                   <PlantEcosystemHumanLead plant={p} />
                   <CatalogRemarksSection plant={p} />
@@ -2363,7 +2369,7 @@ function ObservationNotebook({ student, zones, onForceLogout = null }) {
             </select>
           </div>
           <div className="field"><label>Observation *</label>
-            <textarea value={content} onChange={e => setContent(e.target.value)} rows={3}
+            <MarkdownTextarea value={content} onChange={e => setContent(e.target.value)} rows={3}
               placeholder="Qu'as-tu observé ? Croissance, insectes, couleur des feuilles..." autoFocus/>
           </div>
           <div className="field"><label>Photo (optionnel)</label>
@@ -2454,7 +2460,7 @@ function ObservationNotebook({ student, zones, onForceLogout = null }) {
                 <button className="btn btn-ghost btn-sm" style={{padding:'2px 6px', minHeight:'auto', fontSize:'.7rem'}}
                   onClick={() => { if (confirm('Supprimer cette observation ?')) deleteObs(e.id); }}>🗑️</button>
               </div>
-              <div className="obs-content">{e.content}</div>
+              <MarkdownContent className="obs-content">{e.content}</MarkdownContent>
               {e.zone_name && <div className="obs-zone">📍 {e.zone_name}</div>}
               {e.image_url && <img src={e.image_url} alt="observation" style={{width:'100%',borderRadius:8,marginTop:8,maxHeight:200,objectFit:'cover'}}/>}
             </div>
@@ -2686,7 +2692,11 @@ function PlantBiodiversityCatalogPreviewCard({
       </div>
 
       <div className="biodiv-card-body">
-        <p className="plant-row-desc">{plant.description || <em style={{ color: '#bbb' }}>Pas de description</em>}</p>
+        {plant.description ? (
+          <MarkdownContent className="plant-row-desc">{plant.description}</MarkdownContent>
+        ) : (
+          <p className="plant-row-desc"><em style={{ color: '#bbb' }}>Pas de description</em></p>
+        )}
         <PlantBiodivHeroPhoto plant={plant} />
         <PlantEcosystemHumanLead plant={plant} />
         <CatalogRemarksSection plant={plant} />

@@ -3,6 +3,7 @@ import { api, AccountDeletedError, createContextComment, getAuthToken } from '..
 import { useOverlayHistoryBack } from '../hooks/useOverlayHistoryBack';
 import { AttachmentImagesPicker } from './attachment-images-picker';
 import { DialogShell } from './DialogShell';
+import { MarkdownTextarea } from './MarkdownTextarea.jsx';
 
 const MIN_CONTEXT_COMMENT_CHARS = 2;
 
@@ -137,7 +138,7 @@ export function PlantSpeciesDiscoveryAcknowledgeButton({
           (lieu, comportement, stade…) et joindre jusqu’à trois photos. Ce passage est optionnel.
         </p>
         <div style={{ marginBottom: 8 }}>
-          <textarea
+          <MarkdownTextarea
             className="task-log-comment-input"
             style={{ width: '100%', minHeight: 72, marginTop: 6, resize: 'vertical' }}
             rows={3}

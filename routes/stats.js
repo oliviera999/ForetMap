@@ -1,7 +1,7 @@
 const express = require('express');
 const { queryAll, queryOne } = require('../database');
 const { requireAuth, requirePermission } = require('../middleware/requireTeacher');
-const { logRouteError } = require('../lib/routeLog');
+const { logRouteError, respondInternalError } = require('../lib/routeLog');
 const { getStudentProgressionConfig, syncStudentPrimaryRoleFromProgress } = require('../lib/rbac');
 
 const router = express.Router();
@@ -181,8 +181,7 @@ router.get('/me/:studentId', requireAuth, async (req, res) => {
     if (!data) return res.status(404).json({ error: 'Utilisateur introuvable' });
     res.json(data);
   } catch (e) {
-    logRouteError(e, req);
-    res.status(500).json({ error: e.message });
+    respondInternalError(res, req, e);
   }
 });
 
@@ -233,8 +232,7 @@ router.get('/all', requirePermission('stats.read.all'), async (req, res) => {
     result.sort((a, b) => b.stats.done - a.stats.done);
     res.json({ students: result, site });
   } catch (e) {
-    logRouteError(e, req);
-    res.status(500).json({ error: e.message });
+    respondInternalError(res, req, e);
   }
 });
 
@@ -305,8 +303,7 @@ router.get('/export', requirePermission('stats.export', { needsElevation: true }
     res.setHeader('Content-Disposition', `attachment; filename="foretmap-stats-${new Date().toISOString().slice(0,10)}.csv"`);
     res.send(csv);
   } catch (e) {
-    logRouteError(e, req);
-    res.status(500).json({ error: e.message });
+    respondInternalError(res, req, e);
   }
 });
 
