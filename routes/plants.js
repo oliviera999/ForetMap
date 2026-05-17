@@ -5,7 +5,7 @@ const crypto = require('crypto');
 const XLSX = require('xlsx');
 const { pool, queryAll, queryOne, execute } = require('../database');
 const { requirePermission, requireAuth } = require('../middleware/requireTeacher');
-const { logRouteError } = require('../lib/routeLog');
+const { logRouteError, respondInternalError } = require('../lib/routeLog');
 const { emitGardenChanged } = require('../lib/realtime');
 const { saveBase64ToDisk } = require('../lib/uploads');
 const { getNamedMemoryTtlCache } = require('../lib/memoryTtlCache');
@@ -573,8 +573,7 @@ router.post('/:id/photo-upload', requirePermission('plants.manage', { needsEleva
     emitGardenChanged({ reason: 'update_plant_photo', plantId: plant.id });
     res.json({ field, url: publicUrl, value: nextPhotoValue, plant: updated });
   } catch (e) {
-    logRouteError(e, req);
-    res.status(500).json({ error: e.message });
+    respondInternalError(res, req, e);
   }
 });
 
@@ -673,8 +672,7 @@ router.post('/import', requirePermission('plants.manage', { needsElevation: true
     emitGardenChanged({ reason: 'import_plants' });
     res.json({ report });
   } catch (e) {
-    logRouteError(e, req);
-    res.status(500).json({ error: e.message });
+    respondInternalError(res, req, e);
   }
 });
 
@@ -686,8 +684,7 @@ router.get('/', async (req, res) => {
     plantsListCache.set('all', rows);
     res.json(rows);
   } catch (e) {
-    logRouteError(e, req);
-    res.status(500).json({ error: e.message });
+    respondInternalError(res, req, e);
   }
 });
 
@@ -799,8 +796,7 @@ router.post('/', requirePermission('plants.manage', { needsElevation: true }), a
     emitGardenChanged({ reason: 'create_plant', plantId: result.insertId });
     res.status(201).json(plant);
   } catch (e) {
-    logRouteError(e, req);
-    res.status(500).json({ error: e.message });
+    respondInternalError(res, req, e);
   }
 });
 
@@ -823,8 +819,7 @@ router.put('/:id', requirePermission('plants.manage', { needsElevation: true }),
     emitGardenChanged({ reason: 'update_plant', plantId: plant.id });
     res.json(updated);
   } catch (e) {
-    logRouteError(e, req);
-    res.status(500).json({ error: e.message });
+    respondInternalError(res, req, e);
   }
 });
 
@@ -837,8 +832,7 @@ router.delete('/:id', requirePermission('plants.manage', { needsElevation: true 
     emitGardenChanged({ reason: 'delete_plant', plantId: req.params.id });
     res.json({ success: true });
   } catch (e) {
-    logRouteError(e, req);
-    res.status(500).json({ error: e.message });
+    respondInternalError(res, req, e);
   }
 });
 

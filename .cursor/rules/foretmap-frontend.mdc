@@ -6,7 +6,7 @@ alwaysApply: false
 
 # Frontend ForetMap (React)
 
-- **Stack actuelle :** React 18 + Vite actifs. Entrée HTML dans `index.vite.html`, bootstrap dans `src/main.jsx`, application modulaire dans `src/` (composants, hooks, services). Le build de production sert `dist/`.
+- **Stack actuelle :** React 19 + react-dom 18 + Vite actifs. Entrée HTML dans `index.vite.html`, bootstrap dans `src/main.jsx`, application modulaire dans `src/` (composants, hooks, services). Le build de production sert `dist/`.
 - **Composants :** Fonctionnels, hooks (`useState`, `useEffect`, `useCallback`, `useRef`). Pas de classes.
 - **Architecture UI :** préserver l'approche modulaire actuelle (vues découpées dans `src/components/`) ; éviter de réintroduire des écrans monolithiques.
 - **API :** Appels via une fonction centrale (ex. `api(url, method, body)`). Gérer les réponses 401 avec `deleted: true` (compte supprimé) en déconnectant et en affichant un toast. Les actions prof envoient un token JWT (header `Authorization: Bearer <token>`) obtenu via `POST /api/auth/teacher`.

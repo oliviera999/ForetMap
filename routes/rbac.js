@@ -1,7 +1,7 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
 const { v4: uuidv4 } = require('uuid');
-const { queryAll, queryOne, execute } = require('../database');
+const { queryAll, queryOne, execute, withTransaction } = require('../database');
 const { requirePermission } = require('../middleware/requireTeacher');
 const { setPrimaryRole, getPrimaryRoleForUser } = require('../lib/rbac');
 const { getSettingValue, setSetting } = require('../lib/settings');
@@ -17,7 +17,7 @@ async function emitStudentsWithPrimaryRole(roleId) {
     emitStudentsChanged({ reason: 'role_forum_context_participation', studentId: row.user_id });
   }
 }
-const { logRouteError } = require('../lib/routeLog');
+const { logRouteError, respondInternalError } = require('../lib/routeLog');
 const { logAudit } = require('./audit');
 
 const router = express.Router();
@@ -245,8 +245,7 @@ router.post(
         role_display_name: role.display_name,
       });
     } catch (e) {
-      logRouteError(e, req);
-      res.status(500).json({ error: e.message });
+      respondInternalError(res, req, e);
     }
   }
 );
@@ -280,8 +279,7 @@ router.get(
         progressionByValidatedTasksEnabled: !!progressionByValidatedTasksEnabled,
       });
     } catch (e) {
-      logRouteError(e, req);
-      res.status(500).json({ error: e.message });
+      respondInternalError(res, req, e);
     }
   }
 );
@@ -361,7 +359,7 @@ router.post(
     } catch (e) {
       logRouteError(e, req);
       if (e && (e.errno === 1062 || e.code === 'ER_DUP_ENTRY')) return res.status(409).json({ error: 'Slug déjà utilisé' });
-      res.status(500).json({ error: e.message });
+      respondInternalError(res, req, e);
     }
   }
 );
@@ -446,7 +444,7 @@ router.post(
     } catch (e) {
       logRouteError(e, req);
       if (e && (e.errno === 1062 || e.code === 'ER_DUP_ENTRY')) return res.status(409).json({ error: 'Slug déjà utilisé' });
-      res.status(500).json({ error: e.message });
+      respondInternalError(res, req, e);
     }
   }
 );
@@ -546,8 +544,7 @@ router.patch(
       }
       res.json(updated);
     } catch (e) {
-      logRouteError(e, req);
-      res.status(500).json({ error: e.message });
+      respondInternalError(res, req, e);
     }
   }
 );
@@ -560,22 +557,23 @@ router.put(
       const role = await queryOne('SELECT id FROM roles WHERE id = ?', [req.params.id]);
       if (!role) return res.status(404).json({ error: 'Profil introuvable' });
       const entries = Array.isArray(req.body?.permissions) ? req.body.permissions : [];
-      await execute('DELETE FROM role_permissions WHERE role_id = ?', [role.id]);
-      for (const item of entries) {
-        const key = String(item?.key || '').trim();
-        if (!key) continue;
-        const p = await queryOne('SELECT `key` FROM permissions WHERE `key` = ? LIMIT 1', [key]);
-        if (!p) continue;
-        await execute(
-          'INSERT INTO role_permissions (role_id, permission_key, requires_elevation) VALUES (?, ?, ?)',
-          [role.id, key, item?.requires_elevation ? 1 : 0]
-        );
-      }
+      await withTransaction(async (tx) => {
+        await tx.execute('DELETE FROM role_permissions WHERE role_id = ?', [role.id]);
+        for (const item of entries) {
+          const key = String(item?.key || '').trim();
+          if (!key) continue;
+          const p = await tx.queryOne('SELECT `key` FROM permissions WHERE `key` = ? LIMIT 1', [key]);
+          if (!p) continue;
+          await tx.execute(
+            'INSERT INTO role_permissions (role_id, permission_key, requires_elevation) VALUES (?, ?, ?)',
+            [role.id, key, item?.requires_elevation ? 1 : 0]
+          );
+        }
+      });
       logAudit('rbac_update_profile_permissions', 'role', role.id, `permissions=${entries.length}`, { req });
       res.json({ ok: true });
     } catch (e) {
-      logRouteError(e, req);
-      res.status(500).json({ error: e.message });
+      respondInternalError(res, req, e);
     }
   }
 );
@@ -597,8 +595,7 @@ router.put(
       logAudit('rbac_update_profile_pin', 'role', role.id, 'PIN mis à jour', { req });
       res.json({ ok: true });
     } catch (e) {
-      logRouteError(e, req);
-      res.status(500).json({ error: e.message });
+      respondInternalError(res, req, e);
     }
   }
 );
@@ -639,8 +636,7 @@ router.get(
         }))
       );
     } catch (e) {
-      logRouteError(e, req);
-      res.status(500).json({ error: e.message });
+      respondInternalError(res, req, e);
     }
   }
 );
@@ -686,8 +682,7 @@ router.get(
           resolvedUserType === 'student' ? Number(rj?.context_comment_participate) !== 0 : true,
       });
     } catch (e) {
-      logRouteError(e, req);
-      res.status(500).json({ error: e.message });
+      respondInternalError(res, req, e);
     }
   }
 );
@@ -900,8 +895,7 @@ router.patch(
           resolvedUserType === 'student' ? Number(roleJoin?.context_comment_participate) !== 0 : true,
       });
     } catch (e) {
-      logRouteError(e, req);
-      res.status(500).json({ error: e.message });
+      respondInternalError(res, req, e);
     }
   }
 );
@@ -941,8 +935,7 @@ router.put(
       });
       res.json({ ok: true });
     } catch (e) {
-      logRouteError(e, req);
-      res.status(500).json({ error: e.message });
+      respondInternalError(res, req, e);
     }
   }
 );

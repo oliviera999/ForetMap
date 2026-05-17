@@ -45,6 +45,24 @@ const contextCommentsRouter = require('./routes/context-comments');
 
 const app = express();
 
+/** Derrière nginx / Passenger / load balancer : IP client pour rate-limit et logs. */
+function configureTrustProxy() {
+  const raw = String(process.env.FORETMAP_TRUST_PROXY || '').trim();
+  if (raw === '0' || raw.toLowerCase() === 'false') return;
+  if (raw) {
+    if (/^\d+$/.test(raw)) {
+      app.set('trust proxy', parseInt(raw, 10));
+      return;
+    }
+    app.set('trust proxy', raw);
+    return;
+  }
+  if (process.env.NODE_ENV === 'production') {
+    app.set('trust proxy', 1);
+  }
+}
+configureTrustProxy();
+
 function installAsyncErrorForwarding() {
   if (Layer.prototype.__foretmapAsyncPatched) return;
   const originalHandleRequest = Layer.prototype.handle_request;
@@ -198,8 +216,8 @@ app.use('/api/auth/login', authLimiter);
 app.use('/api/auth/register', authLimiter);
 app.use('/api/auth/reset-password', authLimiter);
 
-// JSON volumineux (ex. plusieurs photos en base64 sur forum / commentaires). Surcharge : FORETMAP_JSON_BODY_LIMIT (ex. 200mb).
-const jsonBodyLimit = String(process.env.FORETMAP_JSON_BODY_LIMIT || '100mb').trim() || '100mb';
+// JSON volumineux (ex. photos base64 forum). Défaut 25mb ; surcharge : FORETMAP_JSON_BODY_LIMIT (ex. 100mb).
+const jsonBodyLimit = String(process.env.FORETMAP_JSON_BODY_LIMIT || '25mb').trim() || '25mb';
 app.use(express.json({ limit: jsonBodyLimit }));
 app.use(express.urlencoded({ extended: true, limit: jsonBodyLimit }));
 app.use((req, res, next) => {

@@ -2,7 +2,7 @@ const express = require('express');
 const { v4: uuidv4 } = require('uuid');
 const { queryAll, queryOne, execute } = require('../database');
 const { requireAuth, requirePermission } = require('../middleware/requireTeacher');
-const { logRouteError } = require('../lib/routeLog');
+const { logRouteError, respondInternalError } = require('../lib/routeLog');
 const { emitForumChanged } = require('../lib/realtime');
 const { getSettingValue } = require('../lib/settings');
 const { logAudit } = require('./audit');
@@ -226,8 +226,7 @@ router.get('/threads', async (req, res) => {
     );
     res.json({ items: rows, page, page_size: pageSize, total });
   } catch (e) {
-    logRouteError(e, req);
-    res.status(500).json({ error: e.message });
+    respondInternalError(res, req, e);
   }
 });
 
@@ -290,8 +289,7 @@ router.post('/threads', async (req, res) => {
     emitForumChanged({ reason: 'thread_created', threadId });
     res.status(201).json({ thread, first_post_id: postId });
   } catch (e) {
-    logRouteError(e, req);
-    res.status(500).json({ error: e.message });
+    respondInternalError(res, req, e);
   }
 });
 
@@ -347,8 +345,7 @@ router.get('/threads/:id', async (req, res) => {
       total_posts: Number(countRow?.c || 0),
     });
   } catch (e) {
-    logRouteError(e, req);
-    res.status(500).json({ error: e.message });
+    respondInternalError(res, req, e);
   }
 });
 
@@ -404,7 +401,7 @@ router.post('/posts/:id/reactions', async (req, res) => {
     return res.json({ ok: true, reacted, emoji });
   } catch (e) {
     logRouteError(e, req);
-    return res.status(500).json({ error: e.message });
+    return respondInternalError(res, req, e);
   }
 });
 
@@ -475,8 +472,7 @@ router.post('/threads/:id/posts', async (req, res) => {
     emitForumChanged({ reason: 'post_created', threadId: thread.id, postId });
     res.status(201).json(post);
   } catch (e) {
-    logRouteError(e, req);
-    res.status(500).json({ error: e.message });
+    respondInternalError(res, req, e);
   }
 });
 
@@ -519,8 +515,7 @@ router.post('/posts/:id/report', async (req, res) => {
     emitForumChanged({ reason: 'post_reported', threadId: post.thread_id, postId: post.id });
     res.status(201).json({ ok: true, report_id: insert.insertId });
   } catch (e) {
-    logRouteError(e, req);
-    res.status(500).json({ error: e.message });
+    respondInternalError(res, req, e);
   }
 });
 
@@ -542,8 +537,7 @@ router.patch('/threads/:id/lock', requirePermission('teacher.access'), async (re
     emitForumChanged({ reason: nextLocked ? 'thread_locked' : 'thread_unlocked', threadId: thread.id });
     res.json(updated);
   } catch (e) {
-    logRouteError(e, req);
-    res.status(500).json({ error: e.message });
+    respondInternalError(res, req, e);
   }
 });
 
@@ -587,8 +581,7 @@ router.delete('/posts/:id', async (req, res) => {
     emitForumChanged({ reason: 'post_deleted', threadId: post.thread_id, postId: post.id });
     res.json({ ok: true });
   } catch (e) {
-    logRouteError(e, req);
-    res.status(500).json({ error: e.message });
+    respondInternalError(res, req, e);
   }
 });
 

@@ -43,8 +43,11 @@ jobs:
           TEACHER_PIN: '1234'
           JWT_SECRET: 'ci-test-secret-not-for-production'
 
+      - name: Run lint
+        run: npm run lint
+
       - name: Run tests
-        run: node --test --test-concurrency=1 --test-force-exit tests/*.test.js
+        run: npm run test
         env:
           NODE_ENV: test
           DB_HOST: 127.0.0.1
@@ -110,14 +113,3 @@ jobs:
             test-results/
             /tmp/foretmap-server.log
 
-  # Optionnel : lint si un config existe
-  # lint:
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - uses: actions/checkout@v4
-  #     - uses: actions/setup-node@v4
-  #       with:
-  #         node-version: '20'
-  #         cache: 'npm'
-  #     - run: npm ci
-  #     - run: npm run lint

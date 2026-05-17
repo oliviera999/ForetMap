@@ -2,7 +2,7 @@ const express = require('express');
 const { v4: uuidv4 } = require('uuid');
 const { queryAll, queryOne, execute, withTransaction } = require('../database');
 const { requirePermission } = require('../middleware/requireTeacher');
-const { logRouteError } = require('../lib/routeLog');
+const { logRouteError, respondInternalError } = require('../lib/routeLog');
 const { emitGardenChanged } = require('../lib/realtime');
 const { saveBase64ToDisk, getAbsolutePath } = require('../lib/uploads');
 const { serializeMarkerPhotoListRow, redirectIfPublicMarkerPhotoDataUrl } = require('../lib/uploadsPublicUrls');
@@ -136,8 +136,7 @@ router.get('/markers/:id/photos/:pid/data', async (req, res) => {
     }
     return res.status(404).json({ error: 'Aucune image' });
   } catch (e) {
-    logRouteError(e, req);
-    res.status(500).json({ error: e.message });
+    respondInternalError(res, req, e);
   }
 });
 
@@ -150,8 +149,7 @@ router.get('/markers/:id/photos', async (req, res) => {
     );
     res.json(photos.map((p) => serializeMarkerPhotoListRow(p, markerId)));
   } catch (e) {
-    logRouteError(e, req);
-    res.status(500).json({ error: e.message });
+    respondInternalError(res, req, e);
   }
 });
 
@@ -185,8 +183,7 @@ router.put('/markers/:id/photos/reorder', requirePermission('map.manage_markers'
     emitGardenChanged({ reason: 'reorder_marker_photos', markerId, mapId: m.map_id });
     res.json({ ok: true });
   } catch (e) {
-    logRouteError(e, req);
-    res.status(500).json({ error: e.message });
+    respondInternalError(res, req, e);
   }
 });
 
@@ -223,8 +220,7 @@ router.post('/markers/:id/photos', requirePermission('map.manage_markers', { nee
     emitGardenChanged({ reason: 'add_marker_photo', markerId: req.params.id, mapId: m.map_id });
     res.status(201).json(serializeMarkerPhotoListRow(photo, req.params.id));
   } catch (e) {
-    logRouteError(e, req);
-    res.status(500).json({ error: e.message });
+    respondInternalError(res, req, e);
   }
 });
 
@@ -237,8 +233,7 @@ router.delete('/markers/:id/photos/:pid', requirePermission('map.manage_markers'
     emitGardenChanged({ reason: 'delete_marker_photo', markerId: req.params.id, mapId: m?.map_id || null });
     res.json({ success: true });
   } catch (e) {
-    logRouteError(e, req);
-    res.status(500).json({ error: e.message });
+    respondInternalError(res, req, e);
   }
 });
 
@@ -253,8 +248,7 @@ router.get('/markers', async (req, res) => {
       : await queryAll(`${MARKERS_LIST_SQL} ORDER BY m.created_at`);
     res.json(rows.map(withLivingBeings));
   } catch (e) {
-    logRouteError(e, req);
-    res.status(500).json({ error: e.message });
+    respondInternalError(res, req, e);
   }
 });
 
@@ -280,8 +274,7 @@ router.post('/markers', requirePermission('map.manage_markers', { needsElevation
     emitGardenChanged({ reason: 'create_marker', markerId: id, mapId });
     res.status(201).json(withLivingBeings(row));
   } catch (e) {
-    logRouteError(e, req);
-    res.status(500).json({ error: e.message });
+    respondInternalError(res, req, e);
   }
 });
 
@@ -329,8 +322,7 @@ router.put('/markers/:id', requirePermission('map.manage_markers', { needsElevat
     emitGardenChanged({ reason: 'update_marker', markerId: m.id, mapId: updated.map_id });
     res.json(withLivingBeings(updated));
   } catch (e) {
-    logRouteError(e, req);
-    res.status(500).json({ error: e.message });
+    respondInternalError(res, req, e);
   }
 });
 
@@ -347,8 +339,7 @@ router.delete('/markers/:id', requirePermission('map.manage_markers', { needsEle
     emitGardenChanged({ reason: 'delete_marker', markerId: req.params.id, mapId: m.map_id });
     res.json({ success: true });
   } catch (e) {
-    logRouteError(e, req);
-    res.status(500).json({ error: e.message });
+    respondInternalError(res, req, e);
   }
 });
 

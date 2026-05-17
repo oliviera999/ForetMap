@@ -20,6 +20,8 @@ import { useHelp } from '../hooks/useHelp';
 import { HelpPanel } from './HelpPanel';
 import { Tooltip } from './Tooltip';
 import { ContextComments } from './context-comments';
+import { MarkdownContent } from './MarkdownContent.jsx';
+import { MarkdownTextarea } from './MarkdownTextarea.jsx';
 import { HELP_PANELS, HELP_TOOLTIPS, resolveRoleText } from '../constants/help';
 import { lockBodyScroll } from '../utils/body-scroll-lock';
 import { resolveMapOverlayTypography } from '../utils/mapOverlayTypography';
@@ -973,19 +975,19 @@ function ZoneInfoModal({ zone, plants, tasks, tutorials = [], isTeacher, student
             {zone.description && (
               <div style={{ background: '#f0fdf4', borderRadius: 10, padding: '10px 14px', marginBottom: 12,
                 border: '1px solid var(--mint)', fontSize: '.88rem', color: '#333', lineHeight: 1.6 }}>
-                {zone.description}
+                <MarkdownContent>{zone.description}</MarkdownContent>
               </div>
             )}
             {showVisitAsideBlock && (
               <div style={{ marginBottom: 12 }}>
                 {zone.visit_subtitle && <p className="visit-subtitle" style={{ margin: '0 0 8px' }}>{zone.visit_subtitle}</p>}
                 {zone.visit_short_description && (
-                  <p style={{ margin: '0 0 8px', fontSize: '.88rem', color: '#333', lineHeight: 1.55 }}>{zone.visit_short_description}</p>
+                  <MarkdownContent style={{ margin: '0 0 8px', fontSize: '.88rem', color: '#333' }}>{zone.visit_short_description}</MarkdownContent>
                 )}
                 {zone.visit_details_text && (
                   <details className="visit-details" style={{ marginTop: 8 }}>
                     <summary>{zone.visit_details_title || 'Détails'}</summary>
-                    <p style={{ margin: '8px 0 0', fontSize: '.86rem', lineHeight: 1.55 }}>{zone.visit_details_text}</p>
+                    <MarkdownContent style={{ margin: '8px 0 0', fontSize: '.86rem' }}>{zone.visit_details_text}</MarkdownContent>
                   </details>
                 )}
                 {visitAsideSpecies && (
@@ -1115,7 +1117,7 @@ function ZoneInfoModal({ zone, plants, tasks, tutorials = [], isTeacher, student
               </select>
             </div>
             <div className="field"><label>Description</label>
-              <textarea value={desc} onChange={e => setDesc(e.target.value)} rows={3}
+              <MarkdownTextarea value={desc} onChange={e => setDesc(e.target.value)} rows={3}
                 placeholder="Observations, conseils, notes sur cette zone..." />
             </div>
             <p style={{ fontSize: '.78rem', color: '#64748b', margin: '0 0 10px', lineHeight: 1.45 }}>
@@ -1125,13 +1127,13 @@ function ZoneInfoModal({ zone, plants, tasks, tutorials = [], isTeacher, student
               <input value={visitSubtitle} onChange={(e) => setVisitSubtitle(e.target.value)} placeholder="Optionnel" />
             </div>
             <div className="field"><label>Description courte (visite)</label>
-              <textarea value={visitShortDesc} onChange={(e) => setVisitShortDesc(e.target.value)} rows={2} placeholder="Texte d’accroche sous le titre" />
+              <MarkdownTextarea value={visitShortDesc} onChange={(e) => setVisitShortDesc(e.target.value)} rows={2} placeholder="Texte d’accroche sous le titre" />
             </div>
             <div className="field"><label>Titre du bloc dépliable (visite)</label>
               <input value={visitDetailsTitle} onChange={(e) => setVisitDetailsTitle(e.target.value)} placeholder="Détails" />
             </div>
             <div className="field"><label>Détails dépliables (visite)</label>
-              <textarea value={visitDetailsText} onChange={(e) => setVisitDetailsText(e.target.value)} rows={4} placeholder="Contenu du panneau repliable" />
+              <MarkdownTextarea value={visitDetailsText} onChange={(e) => setVisitDetailsText(e.target.value)} rows={4} placeholder="Contenu du panneau repliable" />
             </div>
             <div className="field"><label htmlFor="zone-edit-emoji-custom">Emoji de zone</label>
               <ZoneOrMarkerEmojiField
@@ -1484,7 +1486,7 @@ function ZoneDrawModal({ points_pct, onClose, onSave, plants, markerEmojis = MAR
           </div>
         </div>
         <div className="field"><label>Description</label>
-          <textarea value={form.description} onChange={set('description')} rows={2}
+          <MarkdownTextarea value={form.description} onChange={set('description')} rows={2}
             placeholder="Notes, observations sur cette zone..." />
         </div>
         <div className="field"><label>Couleur</label>
@@ -1755,7 +1757,7 @@ function MarkerModal({
                 <LivingBeingsCatalogPanel plants={plants} names={form.living_beings} showHeading={false} />
               )}
               <div className="field"><label>Description</label>
-                <textarea value={form.note} onChange={set('note')} rows={3}
+                <MarkdownTextarea value={form.note} onChange={set('note')} rows={3}
                   placeholder="Observations, entretien..." />
               </div>
               <p style={{ fontSize: '.78rem', color: '#64748b', margin: '0 0 10px', lineHeight: 1.45 }}>
@@ -1765,13 +1767,13 @@ function MarkerModal({
                 <input value={form.visit_subtitle} onChange={set('visit_subtitle')} placeholder="Optionnel" />
               </div>
               <div className="field"><label>Description courte (visite)</label>
-                <textarea value={form.visit_short_description} onChange={set('visit_short_description')} rows={2} placeholder="Texte d’accroche sous le titre" />
+                <MarkdownTextarea value={form.visit_short_description} onChange={set('visit_short_description')} rows={2} placeholder="Texte d’accroche sous le titre" />
               </div>
               <div className="field"><label>Titre du bloc dépliable (visite)</label>
                 <input value={form.visit_details_title} onChange={set('visit_details_title')} placeholder="Détails" />
               </div>
               <div className="field"><label>Détails dépliables (visite)</label>
-                <textarea value={form.visit_details_text} onChange={set('visit_details_text')} rows={4} placeholder="Contenu du panneau repliable" />
+                <MarkdownTextarea value={form.visit_details_text} onChange={set('visit_details_text')} rows={4} placeholder="Contenu du panneau repliable" />
               </div>
               <div className="field"><label htmlFor="marker-new-emoji-custom">Emoji du repère</label>
                 <ZoneOrMarkerEmojiField
@@ -2132,19 +2134,19 @@ function MarkerModal({
             {marker.note && (
               <div style={{ background: '#f0fdf4', borderRadius: 10, padding: '10px 14px', marginBottom: 12,
                 border: '1px solid var(--mint)', fontSize: '.88rem', color: '#333', lineHeight: 1.6 }}>
-                {marker.note}
+                <MarkdownContent>{marker.note}</MarkdownContent>
               </div>
             )}
             {showVisitAsideBlock && (
               <div style={{ marginBottom: 12 }}>
                 {marker.visit_subtitle && <p className="visit-subtitle" style={{ margin: '0 0 8px' }}>{marker.visit_subtitle}</p>}
                 {marker.visit_short_description && (
-                  <p style={{ margin: '0 0 8px', fontSize: '.88rem', color: '#333', lineHeight: 1.55 }}>{marker.visit_short_description}</p>
+                  <MarkdownContent style={{ margin: '0 0 8px', fontSize: '.88rem', color: '#333' }}>{marker.visit_short_description}</MarkdownContent>
                 )}
                 {marker.visit_details_text && (
                   <details className="visit-details" style={{ marginTop: 8 }}>
                     <summary>{marker.visit_details_title || 'Détails'}</summary>
-                    <p style={{ margin: '8px 0 0', fontSize: '.86rem', lineHeight: 1.55 }}>{marker.visit_details_text}</p>
+                    <MarkdownContent style={{ margin: '8px 0 0', fontSize: '.86rem' }}>{marker.visit_details_text}</MarkdownContent>
                   </details>
                 )}
                 {visitAsideSpecies && (
@@ -2253,7 +2255,7 @@ function MarkerModal({
               <LivingBeingsCatalogPanel plants={plants} names={form.living_beings} showHeading={false} />
             )}
             <div className="field"><label>Description</label>
-              <textarea value={form.note} onChange={set('note')} rows={3}
+              <MarkdownTextarea value={form.note} onChange={set('note')} rows={3}
                 placeholder="Observations, entretien..." />
             </div>
             <p style={{ fontSize: '.78rem', color: '#64748b', margin: '0 0 10px', lineHeight: 1.45 }}>
@@ -2263,13 +2265,13 @@ function MarkerModal({
               <input value={form.visit_subtitle} onChange={set('visit_subtitle')} placeholder="Optionnel" />
             </div>
             <div className="field"><label>Description courte (visite)</label>
-              <textarea value={form.visit_short_description} onChange={set('visit_short_description')} rows={2} placeholder="Texte d’accroche sous le titre" />
+              <MarkdownTextarea value={form.visit_short_description} onChange={set('visit_short_description')} rows={2} placeholder="Texte d’accroche sous le titre" />
             </div>
             <div className="field"><label>Titre du bloc dépliable (visite)</label>
               <input value={form.visit_details_title} onChange={set('visit_details_title')} placeholder="Détails" />
             </div>
             <div className="field"><label>Détails dépliables (visite)</label>
-              <textarea value={form.visit_details_text} onChange={set('visit_details_text')} rows={4} placeholder="Contenu du panneau repliable" />
+              <MarkdownTextarea value={form.visit_details_text} onChange={set('visit_details_text')} rows={4} placeholder="Contenu du panneau repliable" />
             </div>
             <div className="field"><label htmlFor="marker-edit-emoji-custom">Emoji du repère</label>
               <ZoneOrMarkerEmojiField

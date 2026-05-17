@@ -1069,15 +1069,8 @@ async function resolveStudentActionContext(req, payload = {}, permissionKey) {
     };
   }
 
-  if (isTeacherAction && providedFirstName && providedLastName) {
-    return {
-      auth,
-      studentId: null,
-      firstName: providedFirstName,
-      lastName: providedLastName,
-      actorUserType: auth?.userType || null,
-      actorUserId: auth?.userId || null,
-    };
+  if (isTeacherAction && providedFirstName && providedLastName && !providedStudentId) {
+    return { errorStatus: 400, error: 'Identifiant n3beur requis (studentId obligatoire pour une action prof)' };
   }
 
   return { errorStatus: 400, error: 'Identifiant n3beur requis' };

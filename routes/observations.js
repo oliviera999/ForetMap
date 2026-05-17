@@ -3,7 +3,7 @@ const jwt = require('jsonwebtoken');
 const { queryAll, queryOne, execute } = require('../database');
 const { requireAuth, requirePermission, JWT_SECRET } = require('../middleware/requireTeacher');
 const { saveBase64ToDisk, getAbsolutePath, deleteFile } = require('../lib/uploads');
-const { logRouteError } = require('../lib/routeLog');
+const { logRouteError, respondInternalError } = require('../lib/routeLog');
 
 const router = express.Router();
 
@@ -47,8 +47,7 @@ router.get('/student/:studentId', requireAuth, async (req, res) => {
       image_url: r.image_path ? `/api/observations/${r.id}/image` : null,
     })));
   } catch (e) {
-    logRouteError(e, req);
-    res.status(500).json({ error: e.message });
+    respondInternalError(res, req, e);
   }
 });
 
@@ -68,8 +67,7 @@ router.get('/all', requirePermission('observations.read.all', { needsElevation: 
       image_url: r.image_path ? `/api/observations/${r.id}/image` : null,
     })));
   } catch (e) {
-    logRouteError(e, req);
-    res.status(500).json({ error: e.message });
+    respondInternalError(res, req, e);
   }
 });
 
@@ -113,8 +111,7 @@ router.post('/', requireAuth, async (req, res) => {
     const obs = await queryOne('SELECT * FROM observation_logs WHERE id = ?', [logId]);
     res.status(201).json(obs);
   } catch (e) {
-    logRouteError(e, req);
-    res.status(500).json({ error: e.message });
+    respondInternalError(res, req, e);
   }
 });
 
@@ -134,8 +131,7 @@ router.get('/:id/image', requireAuth, async (req, res) => {
       if (err && !res.headersSent) res.status(404).json({ error: 'Fichier introuvable' });
     });
   } catch (e) {
-    logRouteError(e, req);
-    res.status(500).json({ error: e.message });
+    respondInternalError(res, req, e);
   }
 });
 
@@ -159,8 +155,7 @@ router.delete('/:id', requireAuth, async (req, res) => {
     await execute('DELETE FROM observation_logs WHERE id = ?', [req.params.id]);
     res.json({ success: true });
   } catch (e) {
-    logRouteError(e, req);
-    res.status(500).json({ error: e.message });
+    respondInternalError(res, req, e);
   }
 });
 

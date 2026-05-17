@@ -220,8 +220,8 @@ npm run test:e2e
 La commande **`npm run test:e2e`** enchaîne :
 
 1. **`scripts/e2e-kill-listen-port.js`** (hors CI) : libère le port **3000** (ou `PORT` / `E2E_KILL_PORT`) pour éviter un vieux Node qui écoute encore sans le mode e2e.
-2. **Playwright** : hors CI, **`webServer`** exécute **`npm run db:init && npm run start:e2e`**.  
-   - **`npm run start:e2e`** = **`node server.js --foretmap-e2e-no-rate-limit`** : désactive le **rate limiting** (sinon inscription / formulaires peuvent renvoyer **« Trop de requêtes »**). Sur Windows, ce **flag CLI** est plus fiable que la seule variable **`E2E_DISABLE_RATE_LIMIT`**.
+2. **Playwright** : hors CI, **`webServer`** exécute **`npm run db:init`** puis **`node --max-old-space-size=<Mo> server.js --foretmap-e2e-no-rate-limit`** (défaut heap **12288** Mo via **`E2E_NODE_MAX_OLD_SPACE_SIZE`** dans **`playwright.config.js`**) — équivalent fonctionnel à **`npm run start:e2e`** avec heap explicite pour limiter les OOM.  
+   - Le flag **`--foretmap-e2e-no-rate-limit`** désactive le **rate limiting** (sinon inscription / formulaires peuvent renvoyer **« Trop de requêtes »**). Sur Windows, ce **flag CLI** est plus fiable que la seule variable **`E2E_DISABLE_RATE_LIMIT`**.
 3. Le fichier **`playwright.config.js`** charge **`.env`** : le PIN prof des tests suit **`TEACHER_PIN`** (surcharge possible avec **`E2E_ELEVATION_PIN`**).
 
 Si **`NODE_ENV=production`** dans l’environnement du serveur (souvent via **`.env`**), Express sert le bundle **`dist/`** : après une modification du frontend, exécuter **`npm run build`** avant **`npm run test:e2e`**, sinon les tests peuvent tourner sur un **JavaScript périmé** (ex. élévation PIN / temps réel).

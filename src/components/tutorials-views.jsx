@@ -6,6 +6,8 @@ import { TutorialPreviewModal, tutorialPreviewPayload } from './TutorialPreviewM
 import { ContextComments } from './context-comments';
 import { orderedLivingBeingsForForm, formatLivingBeingsListLine } from '../utils/livingBeings';
 import { DialogShell } from './DialogShell';
+import { MarkdownContent } from './MarkdownContent.jsx';
+import { MarkdownTextarea } from './MarkdownTextarea.jsx';
 
 function tutorialZonePickLabel(z) {
   const line = formatLivingBeingsListLine(
@@ -516,7 +518,7 @@ function TutorialsView({
         <div className="plant-edit-form fade-in tuto-editor">
           <h4>{form.id ? 'Modifier le tutoriel' : 'Nouveau tutoriel'}</h4>
           <div className="field"><label>Titre *</label><input value={form.title} onChange={set('title')} /></div>
-          <div className="field"><label>Résumé</label><textarea rows={2} value={form.summary} onChange={set('summary')} /></div>
+          <div className="field"><label>Résumé</label><MarkdownTextarea rows={2} value={form.summary} onChange={set('summary')} /></div>
           <div className="row">
             <div className="field">
               <label>Type</label>
@@ -659,7 +661,7 @@ function TutorialsView({
               <div className="tuto-card-head">
                 <div>
                   <h3>{t.title}</h3>
-                  {t.summary && <p>{t.summary}</p>}
+                  {t.summary && <MarkdownContent>{t.summary}</MarkdownContent>}
                 </div>
                 <span className={`task-chip ${!t.is_active ? 'archived' : ''}`}>
                   {t.type.toUpperCase()}

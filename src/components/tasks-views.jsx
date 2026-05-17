@@ -10,6 +10,8 @@ import { useHelp } from '../hooks/useHelp';
 import { Tooltip } from './Tooltip';
 import { HelpPanel } from './HelpPanel';
 import { ContextComments } from './context-comments';
+import { MarkdownContent } from './MarkdownContent.jsx';
+import { MarkdownTextarea } from './MarkdownTextarea.jsx';
 import { formatDateTimeFr } from '../utils/datetime-fr';
 import { HELP_PANELS, HELP_TOOLTIPS, resolveRoleText } from '../constants/help';
 import { TutorialPreviewModal, tutorialPreviewPayload, tutorialPreviewCanEmbed } from './TutorialPreviewModal';
@@ -584,7 +586,7 @@ function TaskFormModal({
         <h3>{isDuplicate ? 'Dupliquer la tâche' : editTask ? 'Modifier la tâche' : isProposal ? 'Proposer une tâche' : 'Nouvelle tâche'}</h3>
         {err && <p style={{ color: var_alert, marginBottom: 12, fontSize: '.85rem' }}>{err}</p>}
         <div className="field"><label>Titre *</label><input value={form.title} onChange={set('title')} placeholder="Ex: Arroser les tomates" /></div>
-        <div className="field"><label>Description</label><textarea value={form.description} onChange={set('description')} rows={2} placeholder="Instructions détaillées..." /></div>
+        <div className="field"><label>Description</label><MarkdownTextarea value={form.description} onChange={set('description')} rows={2} placeholder="Instructions détaillées..." /></div>
         <div className="field">
           <label>Photo illustrative (optionnel)</label>
           <p style={{ fontSize: '.8rem', color: '#555', margin: '0 0 8px', lineHeight: 1.45 }}>
@@ -1147,7 +1149,7 @@ function TaskProjectFormModal({
         <h3>{heading}</h3>
         {err && <p style={{ color: var_alert, marginBottom: 12, fontSize: '.85rem' }}>{err}</p>}
         <div className="field"><label>Titre *</label><input value={form.title} onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))} placeholder="Ex: Préparer la serre de printemps" /></div>
-        <div className="field"><label>Description</label><textarea value={form.description} onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))} rows={4} placeholder="Objectif du projet, consignes générales..." /></div>
+        <div className="field"><label>Description</label><MarkdownTextarea value={form.description} onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))} rows={4} placeholder="Objectif du projet, consignes générales..." /></div>
         <div className="field"><label>Carte</label>
           <select
             value={form.map_id}
@@ -3049,7 +3051,7 @@ function LogModal({ task, student, onClose, onDone, onForceLogout }) {
 
         <div className="field">
           <label htmlFor={commentFieldId}>Commentaire (optionnel)</label>
-          <textarea id={commentFieldId} value={comment} onChange={e => setComment(e.target.value)} rows={3}
+          <MarkdownTextarea id={commentFieldId} value={comment} onChange={e => setComment(e.target.value)} rows={3}
             placeholder="Comment ça s'est passé ? Des observations sur l'être vivant ?" />
         </div>
 
@@ -3172,7 +3174,7 @@ function TaskLogsViewer({ task, onClose }) {
                   title="Supprimer ce rapport">🗑️</button>
               </div>
             </div>
-            {l.comment && <div className="log-comment">{l.comment}</div>}
+            {l.comment && <MarkdownContent className="log-comment">{l.comment}</MarkdownContent>}
             {l.image_url && (
               <img src={l.image_url} className="log-image" alt="rapport" loading="lazy" decoding="async"
                 onClick={() => setBig(l.image_url)} />
@@ -3363,7 +3365,7 @@ function TaskTileCard({
             <img src={coverSrc} className="task-card-cover" alt="" loading={index < 3 ? 'eager' : 'lazy'} decoding="async" />
           </button>
         )}
-        {cardDescription && <div className="task-desc">{cardDescription}</div>}
+        {cardDescription && <MarkdownContent className="task-desc">{cardDescription}</MarkdownContent>}
         {(((Array.isArray(t.living_beings_list) ? t.living_beings_list : []).length > 0)
           || ((t.tutorials_linked || []).length > 0)) && (
           <div
@@ -3778,7 +3780,7 @@ if (visibleProjects.length <= 0) return null;
                       {p.map_label || mapLabelFromMaps(p.map_id, maps)} · {projectTasksCount} tâche{projectTasksCount > 1 ? 's' : ''}
                     </div>
                     {!!(p.description || '').trim() && (
-                      <div className="task-desc" style={{ marginTop: 8 }}>{String(p.description).trim()}</div>
+                      <MarkdownContent className="task-desc" style={{ marginTop: 8 }}>{String(p.description).trim()}</MarkdownContent>
                     )}
                     {p.status === 'on_hold' && (
                       <div style={{ fontSize: '.82rem', color: '#92400e', marginTop: 4 }}>

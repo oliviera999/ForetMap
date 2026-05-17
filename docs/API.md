@@ -75,6 +75,8 @@ Les requêtes **`GET`** sans corps émises par **`api()`** (`src/services/api.js
 
 Le plafond global sur **`/api/*`** (hors bypass ci-dessus) est de **1200 requêtes par minute par adresse IP** par défaut, configurable avec **`FORETMAP_API_RATE_LIMIT_PER_MIN`** (entier entre 60 et 20000). Objectif : limiter les abus tout en évitant des **429** lorsque plusieurs utilisateurs ou onglets passent par la **même IP publique** (ex. Wi‑Fi établissement).
 
+**Proxy inverse (IP client)** : en **`NODE_ENV=production`**, Express active **`trust proxy`** (défaut **1** hop) pour que **`req.ip`** et le rate limit reflètent l’IP du client derrière nginx / Passenger. Surcharges : **`FORETMAP_TRUST_PROXY`** = nombre de hops, nom de sous-réseau, ou **`false`** pour désactiver. Sans confiance proxy adaptée, tous les clients peuvent partager l’IP du frontal (429 groupés ou contournement inversé).
+
 Pour valider ce comportement en local (plusieurs utilisateurs virtuels, **une seule IP source** côté serveur, rate limit **actif**), utiliser le profil Artillery **`10vu`** : fichier `load/artillery-10vu.yml`, commande **`npm run test:load:10vu`** (voir aussi `docs/LOCAL_DEV.md`).
 
 ### Mode Playwright / e2e (rate limit)
@@ -92,6 +94,7 @@ Réservé aux environnements de **développement / CI** ; ne pas utiliser en pro
 
 Connexion Socket.IO en transport **polling uniquement** côté client (compatibilité proxy TLS / mutualisé ; pas de WebSocket) sur le **même hôte** que l’API, chemin `/socket.io`.
 
+- **Authentification** : JWT via **`handshake.auth.token`** ou en-tête **`Authorization: Bearer`**. Le jeton en **query string** (`?token=`) est **désactivé en production** (fuite possible dans logs proxy) ; réservé aux tests (**`NODE_ENV=test`**, **`E2E_DISABLE_RATE_LIMIT=1`**) ou **`FORETMAP_SOCKET_QUERY_TOKEN=1`**.
 - **Client (Engine.IO)** : **`transports: ['polling']`** et **`upgrade: false`** pour interdire toute tentative WebSocket (évite des erreurs **« reserved bits »** si un proxy renvoie du trafic non conforme sur le chemin WS).
 - **Serveur (Engine.IO)** : transports **`polling`** puis **`websocket`** (WS pour tests / outils) ; **`allowUpgrades: false`** (pas d’upgrade polling→WS, aligné navigateurs prod) ; **`pingInterval` 20 s** / **`pingTimeout` 60 s** (heartbeat un peu plus fréquent, tolérance réseau mobile et proxy).
 - **CORS** : en production, même règle que l’API (`FRONTEND_ORIGIN` si défini).

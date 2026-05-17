@@ -6,6 +6,7 @@ import { getRoleTerms } from '../utils/n3-terminology';
 import { StudentAvatar } from './student-avatar';
 import { compressImage } from '../utils/image';
 import { buildAffiliationSelectOptions } from '../utils/affiliationSelectOptions';
+import { MarkdownTextarea } from './MarkdownTextarea.jsx';
 
 function Toast({ msg, onDone }) {
   useEffect(() => { const t = setTimeout(onDone, 2400); return () => clearTimeout(t); }, []);
@@ -179,12 +180,6 @@ function StudentStats({ student, isN3Affiliated = false }) {
 
 function StudentProfileEditor({ student, onUpdated, onClose, isN3Affiliated = false, maps = [] }) {
   const roleTerms = getRoleTerms(isN3Affiliated);
-  const affiliationSelectOptions = useMemo(() => {
-    const base = buildAffiliationSelectOptions(maps);
-    const a = String(affiliation || student?.affiliation || 'both').toLowerCase();
-    if (base.some((o) => o.value === a)) return base;
-    return [...base, { value: a, label: `${a} (valeur en base)` }];
-  }, [maps, affiliation, student?.affiliation]);
   const fallbackDisplayName = String(student?.display_name || student?.displayName || student?.email || 'Utilisateur').trim();
   const displayFirstName = String(student?.first_name || '').trim() || fallbackDisplayName;
   const displayLastName = String(student?.last_name || '').trim();
@@ -203,6 +198,12 @@ function StudentProfileEditor({ student, onUpdated, onClose, isN3Affiliated = fa
   const [email, setEmail] = useState(student?.email || '');
   const [description, setDescription] = useState(student?.description || '');
   const [affiliation, setAffiliation] = useState(student?.affiliation || 'both');
+  const affiliationSelectOptions = useMemo(() => {
+    const base = buildAffiliationSelectOptions(maps);
+    const a = String(affiliation || student?.affiliation || 'both').toLowerCase();
+    if (base.some((o) => o.value === a)) return base;
+    return [...base, { value: a, label: `${a} (valeur en base)` }];
+  }, [maps, affiliation, student?.affiliation]);
   const [avatarPreview, setAvatarPreview] = useState(getStudentAvatarUrl(student));
   const [avatarData, setAvatarData] = useState(null);
   const [removeAvatar, setRemoveAvatar] = useState(false);
@@ -398,7 +399,7 @@ function StudentProfileEditor({ student, onUpdated, onClose, isN3Affiliated = fa
       </div>
       <div className="field">
         <label>Description</label>
-        <textarea
+        <MarkdownTextarea
           value={description}
           onChange={e => setDescription(e.target.value)}
           rows={4}

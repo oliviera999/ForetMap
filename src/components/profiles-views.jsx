@@ -6,6 +6,7 @@ import { HelpPanel } from './HelpPanel';
 import { HELP_PANELS, HELP_TOOLTIPS, resolveRoleText } from '../constants/help';
 import { Tooltip } from './Tooltip';
 import { DialogShell } from './DialogShell';
+import { MarkdownTextarea } from './MarkdownTextarea.jsx';
 import { buildAffiliationSelectOptions } from '../utils/affiliationSelectOptions';
 
 const EDIT_EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -1041,12 +1042,13 @@ function ProfilesAdminView({ isN3Affiliated = false, onImpersonationApplied, pub
                   </div>
                   <div className="field" style={{ margin: 0 }}>
                     <label htmlFor="edit-user-desc">Description</label>
-                    <input
+                    <MarkdownTextarea
                       id="edit-user-desc"
                       value={editDescription}
                       onChange={(e) => setEditDescription(e.target.value)}
                       disabled={editLoading}
                       maxLength={300}
+                      rows={2}
                       autoComplete="off"
                       placeholder={editDescription ? undefined : 'Aucune description en base'}
                     />
@@ -1520,7 +1522,7 @@ function ProfilesAdminView({ isN3Affiliated = false, onImpersonationApplied, pub
               </div>
               <div className="field" style={{ margin: 0 }}>
                 <label>Description (optionnel)</label>
-                <input value={createDescription} onChange={(e) => setCreateDescription(e.target.value)} disabled={!canCreateUsers || createLoading} />
+                <MarkdownTextarea value={createDescription} onChange={(e) => setCreateDescription(e.target.value)} disabled={!canCreateUsers || createLoading} rows={2} maxLength={300} />
               </div>
               <div className="field" style={{ margin: 0 }}>
                 <label>Affiliation {roleTerms.studentSingular}</label>
@@ -1648,7 +1650,4 @@ function ProfilesAdminView({ isN3Affiliated = false, onImpersonationApplied, pub
         </div>
       )}
     </div>
-  );
-}
-
-export { ProfilesAdminView };
+  

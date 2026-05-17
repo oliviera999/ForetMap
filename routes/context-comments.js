@@ -2,7 +2,7 @@ const express = require('express');
 const { v4: uuidv4 } = require('uuid');
 const { queryAll, queryOne, execute } = require('../database');
 const { requireAuth } = require('../middleware/requireTeacher');
-const { logRouteError } = require('../lib/routeLog');
+const { logRouteError, respondInternalError } = require('../lib/routeLog');
 const { logAudit } = require('./audit');
 const { emitContextCommentsChanged } = require('../lib/realtime');
 const { getSettingValue } = require('../lib/settings');
@@ -269,7 +269,7 @@ router.get('/', async (req, res) => {
     return res.json({ items: enrichedItems, page, page_size: pageSize, total });
   } catch (e) {
     logRouteError(e, req);
-    return res.status(500).json({ error: e.message });
+    return respondInternalError(res, req, e);
   }
 });
 
@@ -334,7 +334,7 @@ router.post('/:id/reactions', async (req, res) => {
     return res.json({ ok: true, reacted, emoji });
   } catch (e) {
     logRouteError(e, req);
-    return res.status(500).json({ error: e.message });
+    return respondInternalError(res, req, e);
   }
 });
 
@@ -407,7 +407,7 @@ router.post('/', async (req, res) => {
     return res.status(201).json(created);
   } catch (e) {
     logRouteError(e, req);
-    return res.status(500).json({ error: e.message });
+    return respondInternalError(res, req, e);
   }
 });
 
@@ -454,7 +454,7 @@ router.delete('/:id', async (req, res) => {
     return res.json({ ok: true });
   } catch (e) {
     logRouteError(e, req);
-    return res.status(500).json({ error: e.message });
+    return respondInternalError(res, req, e);
   }
 });
 
@@ -513,7 +513,7 @@ router.post('/:id/report', async (req, res) => {
     return res.status(201).json({ ok: true, report_id: created.insertId });
   } catch (e) {
     logRouteError(e, req);
-    return res.status(500).json({ error: e.message });
+    return respondInternalError(res, req, e);
   }
 });
 

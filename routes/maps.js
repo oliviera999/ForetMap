@@ -1,6 +1,6 @@
 const express = require('express');
 const { queryAll } = require('../database');
-const { logRouteError } = require('../lib/routeLog');
+const { logRouteError, respondInternalError } = require('../lib/routeLog');
 const { getNamedMemoryTtlCache } = require('../lib/memoryTtlCache');
 const { normalizeMapImageUrl } = require('../lib/mapImageUrl');
 
@@ -30,8 +30,7 @@ router.get('/', async (req, res) => {
     mapsListCache.set('all', payload);
     res.json(payload);
   } catch (e) {
-    logRouteError(e, req);
-    res.status(500).json({ error: e.message });
+    respondInternalError(res, req, e);
   }
 });
 

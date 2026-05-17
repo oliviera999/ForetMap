@@ -10,6 +10,8 @@ import {
 } from '../services/api';
 import { formatDateTimeFr } from '../utils/datetime-fr';
 import { AttachmentImagesPicker, UserContentImagesGrid } from './attachment-images-picker';
+import { MarkdownContent } from './MarkdownContent.jsx';
+import { MarkdownTextarea } from './MarkdownTextarea.jsx';
 import {
   safeLocalStorageGetItem,
   safeLocalStorageSetItem,
@@ -319,7 +321,7 @@ function ContextComments({
         <div className="context-comments-body">
           {canUseCommentActions ? (
             <form className="context-comments-form" onSubmit={submit}>
-              <textarea
+              <MarkdownTextarea
                 value={body}
                 onChange={(e) => setBody(e.target.value)}
                 rows={2}
@@ -356,9 +358,11 @@ function ContextComments({
                     <strong>{item.author_display_name}</strong>
                     <span>{formatDateTimeFr(item.created_at)}</span>
                   </div>
-                  <p className="context-comment-body">
-                    {item.is_deleted ? '[commentaire supprimé]' : item.body}
-                  </p>
+                  {item.is_deleted ? (
+                    <p className="context-comment-body">[commentaire supprimé]</p>
+                  ) : (
+                    <MarkdownContent className="context-comment-body">{item.body}</MarkdownContent>
+                  )}
                   {!item.is_deleted && (
                     <UserContentImagesGrid urls={item.image_urls} />
                   )}

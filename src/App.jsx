@@ -1707,7 +1707,9 @@ function App() {
                 ⚙️ Paramètres
               </button>
             )}
-            <button className={`top-tab ${tab === 'audit' ? 'active' : ''}`} onClick={() => setTab('audit')}>📜 Audit</button>
+            {hasPermission('audit.read') && (
+              <button className={`top-tab ${tab === 'audit' ? 'active' : ''}`} onClick={() => setTab('audit')}>📜 Audit</button>
+            )}
             <button className={`top-tab ${tab === 'about' ? 'active' : ''}`} onClick={() => setTab('about')}>ℹ️ À propos</button>
           </div>
           {loading ? (

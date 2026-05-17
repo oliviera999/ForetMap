@@ -6,7 +6,7 @@ const { v4: uuidv4 } = require('uuid');
 const XLSX = require('xlsx');
 const { queryAll, queryOne, execute } = require('../database');
 const { requirePermission } = require('../middleware/requireTeacher');
-const { logRouteError } = require('../lib/routeLog');
+const { logRouteError, respondInternalError } = require('../lib/routeLog');
 const { logAudit } = require('./audit');
 const { emitStudentsChanged, emitTasksChanged } = require('../lib/realtime');
 const { saveBase64ToDisk, deleteFile, getAbsolutePath, ensureDir } = require('../lib/uploads');
@@ -291,8 +291,7 @@ router.get('/import/template', requirePermission('students.import', { needsEleva
     res.setHeader('Content-Disposition', 'attachment; filename="foretmap-modele-n3beurs.csv"');
     res.send(csv);
   } catch (e) {
-    logRouteError(e, req);
-    res.status(500).json({ error: e.message });
+    respondInternalError(res, req, e);
   }
 });
 
@@ -428,8 +427,7 @@ router.post('/import', requirePermission('students.import', { needsElevation: tr
     }
     res.json({ report });
   } catch (e) {
-    logRouteError(e, req);
-    res.status(500).json({ error: e.message });
+    respondInternalError(res, req, e);
   }
 });
 
@@ -442,8 +440,7 @@ router.post('/register', async (req, res) => {
     await execute("UPDATE users SET last_seen = ? WHERE id = ? AND user_type = 'student'", [new Date().toISOString(), studentId]);
     res.json({ ...s, password_hash: undefined });
   } catch (e) {
-    logRouteError(e, req);
-    res.status(500).json({ error: e.message });
+    respondInternalError(res, req, e);
   }
 });
 
@@ -564,8 +561,7 @@ router.post('/:id/duplicate', requirePermission('users.create', { needsElevation
       source_student_id: sourceId,
     });
   } catch (e) {
-    logRouteError(e, req);
-    res.status(500).json({ error: e.message });
+    respondInternalError(res, req, e);
   }
 });
 
@@ -672,8 +668,7 @@ router.patch('/:id/profile', async (req, res) => {
     emitStudentsChanged({ reason: 'student_profile_update', studentId: student.id });
     res.json({ ...updated, password_hash: undefined });
   } catch (e) {
-    logRouteError(e, req);
-    res.status(500).json({ error: e.message });
+    respondInternalError(res, req, e);
   }
 });
 
@@ -707,8 +702,7 @@ router.delete('/:id', requirePermission('students.delete', { needsElevation: tru
     }
     res.json({ success: true });
   } catch (e) {
-    logRouteError(e, req);
-    res.status(500).json({ error: e.message });
+    respondInternalError(res, req, e);
   }
 });
 

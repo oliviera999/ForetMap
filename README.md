@@ -14,7 +14,7 @@ Les élèves peuvent consulter la carte des zones, s’inscrire à des tâches e
 |------------|-------------|
 | Backend    | Node.js, Express, Socket.IO (mises à jour temps réel) |
 | Base de données | **MySQL** (mysql2, pool promesses) — hébergement o2switch |
-| Frontend   | React 18, build **Vite** (`src/`), bundle servi depuis `dist/` en production |
+| Frontend   | React 19 + react-dom 18, build **Vite** (`src/`), bundle servi depuis `dist/` en production |
 | Auth élèves | bcrypt (hash des mots de passe), session en `localStorage` |
 
 Fichiers principaux : `server.js` (API + fichiers statiques), `database.js` (pool MySQL, helpers, seed), `sql/schema_foretmap.sql` (DDL), `src/` (application React), `index.vite.html` + `vite.config.js` (build → `dist/`).
