@@ -1650,4 +1650,7 @@ function ProfilesAdminView({ isN3Affiliated = false, onImpersonationApplied, pub
         </div>
       )}
     </div>
-  
+  );
+}
+
+export { ProfilesAdminView };
