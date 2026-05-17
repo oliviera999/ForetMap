@@ -238,7 +238,7 @@ function sleepMs(ms) {
 }
 
 /** Message navigateur (Chrome « Failed to fetch », Firefox « NetworkError… », etc.) */
-function isLikelyNetworkTransportFailure(err) {
+export function isLikelyNetworkTransportFailure(err) {
   if (!err) return false;
   if (err.name === 'AbortError') return false;
   const msg = String(err.message || err || '').toLowerCase();

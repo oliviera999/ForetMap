@@ -339,7 +339,7 @@ function AuthScreen({ onLogin, appVersion, onVisitGuest, uiSettings, isN3Affilia
   const authSubtitle = getContentText(uiSettings, 'auth.subtitle', 'ForetMap — Le terrain d’apprentissage vivant du lycée');
   const loginTabLabel = getContentText(uiSettings, 'auth.login_tab', 'Connexion');
   const registerTabLabel = getContentText(uiSettings, 'auth.register_tab', 'Créer un compte');
-  const guestVisitLabel = getContentText(uiSettings, 'auth.guest_visit_cta', '🧭 Visiter sans connexion');
+  const guestVisitLabel = getContentText(uiSettings, 'auth.guest_visit_cta', '🧭 Visiter sans compte');
 
   const resetTokenFromUrl = useMemo(() => {
     const params = new URLSearchParams(window.location.search);

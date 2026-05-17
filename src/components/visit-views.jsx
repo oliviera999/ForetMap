@@ -1,7 +1,7 @@
 import React, {
   useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState,
 } from 'react';
-import { api, AccountDeletedError, withAppBase } from '../services/api';
+import { api, AccountDeletedError, isLikelyNetworkTransportFailure, withAppBase } from '../services/api';
 import { compressImage } from '../utils/image';
 import { MARKER_EMOJIS, parseEmojiListSetting, detectLeadingMarkerEmoji, stripLeadingMarkerEmoji } from '../constants/emojis';
 import { getRoleTerms } from '../utils/n3-terminology';
@@ -24,7 +24,14 @@ import {
   shouldShowVisitMapMascot as computeShowVisitMapMascot,
   getVisitMascotVisibilityReason,
 } from '../utils/visitMascotVisibility.js';
-import { safeVisitProgressPayload } from '../utils/visitProgressClient.js';
+import {
+  applyVisitSeenQueueToSet,
+  enqueueVisitSeenAction,
+  flushVisitSeenQueue,
+  isBrowserOnline,
+  loadVisitSeenQueue,
+  safeVisitProgressPayload,
+} from '../utils/visitProgressClient.js';
 import { wheelZoomScaleFactor } from '../utils/mapWheelZoom';
 import VisitMapMascotRenderer from './VisitMapMascotRenderer.jsx';
 
@@ -730,6 +737,13 @@ function VisitView({
   const [seen, setSeen] = useState(new Set());
   const [loading, setLoading] = useState(true);
   const [savingSeen, setSavingSeen] = useState(false);
+  const [isOnline, setIsOnline] = useState(() => isBrowserOnline());
+  const [pendingSyncCount, setPendingSyncCount] = useState(() => loadVisitSeenQueue().length);
+  /** idle | pending | syncing | synced | error */
+  const [syncStatus, setSyncStatus] = useState(() => (
+    loadVisitSeenQueue().length > 0 ? 'pending' : 'idle'
+  ));
+  const visitSeenFlushInFlightRef = useRef(false);
   const [tutorialSelection, setTutorialSelection] = useState([]);
   const [savingTutorials, setSavingTutorials] = useState(false);
   const [tutorialReadIds, setTutorialReadIds] = useState(() => new Set());
@@ -862,6 +876,17 @@ function VisitView({
     && visitCartographyProgress.total > 0
     && visitCartographyProgress.seenCount === 0
     && !prefersReducedMotion;
+
+  const visitNetworkStatusLabel = useMemo(() => {
+    if (!isOnline) return 'Hors ligne — consultation locale';
+    if (syncStatus === 'syncing') return 'Synchronisation en cours…';
+    if (pendingSyncCount > 0) {
+      return `${pendingSyncCount} action${pendingSyncCount > 1 ? 's' : ''} en attente de sync.`;
+    }
+    if (syncStatus === 'error') return 'Synchronisation en attente';
+    if (syncStatus === 'synced') return 'Synchronisé';
+    return null;
+  }, [isOnline, syncStatus, pendingSyncCount]);
 
   /** Mascotte : zones/repères visibles, total parcourable, ou tutoriels du plan (évite plan « vide » côté API alors que la visite est animée). */
   const showVisitMapMascot = computeShowVisitMapMascot(
@@ -1077,8 +1102,13 @@ function VisitView({
       setContent(visitPayload);
       setTutorialSelection((visitPayload.tutorials || []).map((t) => t.id));
       const { seen: progressSeen } = safeVisitProgressPayload(progressBody);
-      const nextSeen = new Set(progressSeen.map((r) => itemSeenKey(r.target_type, r.target_id)));
+      const nextSeen = applyVisitSeenQueueToSet(
+        new Set(progressSeen.map((r) => itemSeenKey(r.target_type, r.target_id)))
+      );
       setSeen(nextSeen);
+      const queueLen = loadVisitSeenQueue().length;
+      setPendingSyncCount(queueLen);
+      if (queueLen > 0) setSyncStatus((prev) => (prev === 'syncing' ? prev : 'pending'));
     } catch (err) {
       if (err instanceof AccountDeletedError) onForceLogout?.();
       else alert(err.message || 'Erreur chargement visite');
@@ -1090,6 +1120,67 @@ function VisitView({
   useEffect(() => {
     loadData();
   }, [loadData]);
+
+  const flushVisitSeenQueueNow = useCallback(async () => {
+    if (!isBrowserOnline() || visitSeenFlushInFlightRef.current) return;
+    const queue = loadVisitSeenQueue();
+    if (queue.length === 0) {
+      setPendingSyncCount(0);
+      setSyncStatus('idle');
+      return;
+    }
+    visitSeenFlushInFlightRef.current = true;
+    setSyncStatus('syncing');
+    try {
+      const result = await flushVisitSeenQueue(async (action) => {
+        await api('/api/visit/seen', 'POST', action);
+      });
+      setPendingSyncCount(result.remaining);
+      if (result.remaining > 0) {
+        setSyncStatus('error');
+      } else if (result.synced > 0) {
+        setSyncStatus('synced');
+      } else {
+        setSyncStatus('idle');
+      }
+    } catch (err) {
+      if (err instanceof AccountDeletedError) onForceLogout?.();
+      setSyncStatus('error');
+    } finally {
+      visitSeenFlushInFlightRef.current = false;
+    }
+  }, [onForceLogout]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+    const onOnline = () => {
+      setIsOnline(true);
+      void flushVisitSeenQueueNow();
+    };
+    const onOffline = () => setIsOnline(false);
+    window.addEventListener('online', onOnline);
+    window.addEventListener('offline', onOffline);
+    return () => {
+      window.removeEventListener('online', onOnline);
+      window.removeEventListener('offline', onOffline);
+    };
+  }, [flushVisitSeenQueueNow]);
+
+  useEffect(() => {
+    if (typeof document === 'undefined') return undefined;
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible' && isBrowserOnline()) {
+        void flushVisitSeenQueueNow();
+      }
+    };
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => document.removeEventListener('visibilitychange', onVisibility);
+  }, [flushVisitSeenQueueNow]);
+
+  useEffect(() => {
+    if (loading || !isOnline) return;
+    if (loadVisitSeenQueue().length > 0) void flushVisitSeenQueueNow();
+  }, [loading, isOnline, flushVisitSeenQueueNow]);
 
   useEffect(() => {
     if (loading) return;
@@ -1324,12 +1415,29 @@ function VisitView({
     return () => window.removeEventListener('resize', onResize);
   }, [clampTransform]);
 
+  const onMascotSeenCelebration = useCallback(() => {
+    triggerMascotHappy();
+    triggerMascotTransientState(VISIT_MASCOT_STATE.CELEBRATE, 1450);
+    showMascotDialog('mark_seen', { force: true });
+  }, [triggerMascotHappy, triggerMascotTransientState, showMascotDialog]);
+
+  const queueSeenChangeLocally = useCallback((payloadType, payloadId, nextSeen) => {
+    const compact = enqueueVisitSeenAction({
+      target_type: payloadType,
+      target_id: payloadId,
+      seen: nextSeen,
+    });
+    setPendingSyncCount(compact.length);
+    setSyncStatus('pending');
+  }, []);
+
   const onToggleSeen = async () => {
     if (!selected || !selectedType) return;
     const key = itemSeenKey(selectedType, selected.id);
     const wasSeen = seen.has(key);
     const payloadType = selectedType;
     const payloadId = selected.id;
+    const nextSeen = !wasSeen;
 
     if (!wasSeen) {
       closeVisitSelection();
@@ -1350,21 +1458,32 @@ function VisitView({
       else optimistic.add(key);
       return optimistic;
     });
+
+    if (!isBrowserOnline()) {
+      queueSeenChangeLocally(payloadType, payloadId, nextSeen);
+      if (nextSeen) onMascotSeenCelebration();
+      return;
+    }
+
     setSavingSeen(true);
     try {
       await api('/api/visit/seen', 'POST', {
         target_type: payloadType,
         target_id: payloadId,
-        seen: !wasSeen,
+        seen: nextSeen,
       });
-      if (!wasSeen) {
-        triggerMascotHappy();
-        triggerMascotTransientState(VISIT_MASCOT_STATE.CELEBRATE, 1450);
-        showMascotDialog('mark_seen', { force: true });
-      }
+      if (nextSeen) onMascotSeenCelebration();
     } catch (err) {
-      if (err instanceof AccountDeletedError) onForceLogout?.();
-      else alert(err.message || 'Erreur mise à jour');
+      if (err instanceof AccountDeletedError) {
+        onForceLogout?.();
+        return;
+      }
+      if (isLikelyNetworkTransportFailure(err)) {
+        queueSeenChangeLocally(payloadType, payloadId, nextSeen);
+        if (nextSeen) onMascotSeenCelebration();
+        return;
+      }
+      alert(err.message || 'Erreur mise à jour');
       setSeen((prev) => {
         const revert = new Set(prev);
         if (wasSeen) revert.add(key);
@@ -1842,6 +1961,19 @@ function VisitView({
                 ) : null}
               </div>
               <div className="visit-map-card__chrome-actions">
+                {mode === 'view' && visitNetworkStatusLabel ? (
+                  <span
+                    className={`visit-network-status${!isOnline ? ' visit-network-status--offline' : ''}${pendingSyncCount > 0 || syncStatus === 'error' ? ' visit-network-status--pending' : ''}${syncStatus === 'syncing' ? ' visit-network-status--syncing' : ''}`}
+                    data-testid="visit-network-status"
+                    data-online={isOnline ? '1' : '0'}
+                    data-sync={syncStatus}
+                    data-pending={String(pendingSyncCount)}
+                    role="status"
+                    aria-live="polite"
+                  >
+                    {visitNetworkStatusLabel}
+                  </span>
+                ) : null}
                 <button
                   type="button"
                   className={`btn btn-sm ${visitImmersion ? 'btn-primary' : 'btn-ghost'}`}

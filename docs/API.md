@@ -584,6 +584,30 @@ Regroupe plusieurs tâches sous un même projet (carte, titre, description, stat
 
 ---
 
+## Texte enrichi (Markdown léger)
+
+Plusieurs champs texte longs acceptent du **Markdown léger** côté client (saisie avec barre d’outils, rendu à l’affichage). L’API **ne transforme pas** le contenu : elle stocke et renvoie une **chaîne UTF-8** telle quelle.
+
+**Sous-ensemble supporté à l’affichage** (sanitization HTML côté interface) : gras, italique, listes à puces / numérotées, liens `http`/`https` (ouverts dans un nouvel onglet, `rel="noopener noreferrer"`). Pas de HTML brut, scripts ni URLs `javascript:`.
+
+**Champs concernés (exemples)** :
+
+| Domaine | Champs |
+|--------|--------|
+| Forum | `body` des messages (`forum_posts`) |
+| Commentaires contextuels | `body` (`context_comments`) |
+| Tâches / projets | `description` (`tasks`, `task_projects`), `comment` des journaux de validation |
+| Biodiversité | `description`, champs texte longs de fiche (`plants`), contenu des **observations** |
+| Carte / visite | `description` (zones), `note` (repères), textes visite `visit_short_description`, `visit_details_text` |
+| Comptes | `description` (profil n3beur / RBAC, max 300 caractères) |
+| Tutoriels | `summary` (résumé ; le corps HTML `html_content` reste du HTML édité séparément) |
+
+**Rétrocompatibilité** : les textes déjà enregistrés sans syntaxe Markdown s’affichent comme avant (retours à la ligne conservés).
+
+**Sécurité** : la validation serveur reste limitée aux **longueurs** et règles métier existantes ; la neutralisation XSS est assurée au **rendu** interface (`src/utils/markdown.js`).
+
+---
+
 ## Forum global
 
 Toutes les routes forum exigent un utilisateur connecté (`Authorization: Bearer <token>`), n3beur ou n3boss.
@@ -606,7 +630,7 @@ Si le réglage public `ui.modules.forum_enabled` est à `false`, toutes les rout
 Contraintes principales :
 
 - **Photos** : champ optionnel `images` (tableau de data URLs / base64 **JPEG, PNG ou WebP**), **maximum 3** fichiers, **sans plafond de taille par image** côté application (la seule borne est la **limite du corps JSON** HTTP, par défaut **100 Mo** ; surcharge possible via variable d’environnement **`FORETMAP_JSON_BODY_LIMIT`** côté serveur, ex. `200mb`). Fichiers stockés sous `uploads/forum-posts/<postId>/`. Les réponses incluent `posts[].image_urls` (chemins publics `/uploads/…`, tableau vide si aucune image). Si au moins une image est envoyée **sans** texte de message, le corps enregistré vaut littéralement `(Photo)` pour respecter la longueur minimale du message.
-- Validation serveur des longueurs (titre/message/motif).
+- Validation serveur des longueurs (titre/message/motif). Le corps `body` peut contenir du Markdown léger (voir section **Texte enrichi**).
 - Anti-abus V1 : cooldown par utilisateur sur création de sujet/réponse.
 - Réactions emoji supportées : issues du réglage public `ui.reactions.allowed_emojis` (fallback défaut `👍 ❤️ 😂 😮 😢 😡 🔥 👏`).
 - `POST /api/forum/posts/:id/reactions` fonctionne en **toggle** (ajoute puis retire sur second clic).
@@ -644,7 +668,7 @@ Contexte supporté :
 
 Contraintes principales :
 
-- **Photos** : champ optionnel `images` (même format que le forum : **max 3**, JPEG/PNG/WebP, **pas de limite de taille par image** côté appli — borne = corps JSON HTTP, voir forum / **`FORETMAP_JSON_BODY_LIMIT`**). Stockage sous `uploads/context-comments/<commentId>/`. Les réponses `GET` exposent `items[].image_urls` (`/uploads/…`). Texte seul, images seules ou texte + images : au moins un texte **ou** une image requis ; sans texte mais avec images, le corps enregistré vaut `(Photo)`.
+- **Photos** : champ optionnel `images` (même format que le forum : **max 3**, JPEG/PNG/WebP, **pas de limite de taille par image** côté appli — borne = corps JSON HTTP, voir forum / **`FORETMAP_JSON_BODY_LIMIT`**). Stockage sous `uploads/context-comments/<commentId>/`. Les réponses `GET` exposent `items[].image_urls` (`/uploads/…`). Texte seul, images seules ou texte + images : au moins un texte **ou** une image requis ; sans texte mais avec images, le corps enregistré vaut `(Photo)`. Le champ `body` peut contenir du Markdown léger (voir section **Texte enrichi**).
 - Validation serveur de `contextType` et de l’existence du contexte ciblé.
 - Validation longueur message/motif de signalement.
 - Anti-abus V1 : cooldown par utilisateur sur publication.
