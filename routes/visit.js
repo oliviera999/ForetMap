@@ -68,7 +68,7 @@ function verifyAnonCookie(cookieValue) {
 function setAnonCookie(res, anonToken) {
   const secure = process.env.NODE_ENV === 'production' ? '; Secure' : '';
   const value = encodeURIComponent(buildAnonCookie(anonToken));
-  res.setHeader('Set-Cookie', `${ANON_COOKIE_NAME}=${value}; Max-Age=${ANON_TTL_SECONDS}; Path=/; HttpOnly; SameSite=Lax${secure}`);
+  res.append('Set-Cookie', `${ANON_COOKIE_NAME}=${value}; Max-Age=${ANON_TTL_SECONDS}; Path=/; HttpOnly; SameSite=Lax${secure}`);
 }
 
 function readOrCreateAnonToken(req, res) {

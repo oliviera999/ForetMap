@@ -563,6 +563,39 @@ test('PATCH /api/students/:id/profile met à jour pseudo/email/description', asy
   assert.strictEqual(res.body.password_hash, undefined);
 });
 
+test('PATCH /api/students/:id/profile préserve une affiliation stockée non résolue si elle n’est pas modifiée', async () => {
+  const stamp = Date.now();
+  const password = 'pwd123';
+  const reg = await request(app)
+    .post('/api/auth/register')
+    .send({
+      firstName: `Affiliation${stamp}`,
+      lastName: 'Preserve',
+      password,
+      pseudo: `aff_student_${stamp}`,
+      email: `aff_student_${stamp}@example.com`,
+      affiliation: 'both',
+    })
+    .expect(201);
+  const storedAffiliation = `missing_${stamp % 100000}`;
+  await execute(
+    "UPDATE users SET affiliation = ? WHERE id = ? AND user_type = 'student'",
+    [storedAffiliation, reg.body.id]
+  );
+
+  const res = await request(app)
+    .patch(`/api/students/${reg.body.id}/profile`)
+    .send({
+      pseudo: `aff_keep_${stamp}`,
+      currentPassword: password,
+    })
+    .expect(200);
+
+  assert.strictEqual(res.body.affiliation, storedAffiliation);
+  const row = await queryOne("SELECT affiliation FROM users WHERE id = ? AND user_type = 'student' LIMIT 1", [reg.body.id]);
+  assert.strictEqual(row.affiliation, storedAffiliation);
+});
+
 test('PATCH /api/students/:id/profile rejette un email invalide', async () => {
   const res = await request(app)
     .patch(`/api/students/${studentData.id}/profile`)

@@ -8,7 +8,7 @@
   },
   "dependencies": {
     "@rive-app/react-canvas": "^4.28.0",
-    "bcryptjs": "^2.4.3",
+    "bcryptjs": "^3.0.3",
     "compression": "^1.8.1",
     "cors": "^2.8.5",
     "dotenv": "^16.3.1",
@@ -20,7 +20,7 @@
     "nodemailer": "^8.0.4",
     "on-finished": "^2.4.1",
     "pdfkit": "^0.18.0",
-    "pino": "^8.17.2",
+    "pino": "^10.3.1",
     "socket.io": "^4.8.1",
     "uuid": "^9.0.0",
     "xlsx": "^0.18.5",
@@ -119,11 +119,11 @@
     "artillery": "^2.0.30",
     "cross-env": "^7.0.3",
     "nodemon": "^3.0.2",
-    "react": "^18.2.0",
+    "react": "^19.2.5",
     "react-dom": "^18.2.0",
     "sharp": "^0.33.5",
     "socket.io-client": "^4.8.1",
-    "supertest": "^6.3.4",
+    "supertest": "^7.2.2",
     "vite": "^5.0.10"
   }
 }

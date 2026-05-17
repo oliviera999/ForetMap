@@ -4,6 +4,9 @@ const { defineConfig, devices } = require('@playwright/test');
 
 const baseURL = process.env.E2E_BASE_URL || 'http://127.0.0.1:3000';
 
+/** Heap Node explicite pour `server.js` e2e (`npm run` ne propage pas toujours NODE_OPTIONS jusqu’au processus enfant). */
+const E2E_SERVER_HEAP_MB = process.env.E2E_NODE_MAX_OLD_SPACE_SIZE || '12288';
+
 module.exports = defineConfig({
   testDir: './e2e',
   timeout: 60_000,
@@ -26,10 +29,14 @@ module.exports = defineConfig({
     serviceWorkers: 'block',
   },
   webServer: process.env.CI ? undefined : {
-    // start:e2e = node server.js --foretmap-e2e-no-rate-limit (bypass fiable du rate limit, y compris sous Windows).
-    command: 'npm run db:init && npm run start:e2e',
+    // Aligné sur `npm run start:e2e` : même flags, heap explicite pour limiter les OOM pendant la suite.
+    command: `npm run db:init && node --max-old-space-size=${E2E_SERVER_HEAP_MB} server.js --foretmap-e2e-no-rate-limit`,
     /* Sert `dist/` (SPA) comme en prod : sans cela `server.js` utilise `public/` + deploy-help. */
-    env: { ...process.env, E2E_DISABLE_RATE_LIMIT: '1', NODE_ENV: 'production' },
+    env: {
+      ...process.env,
+      E2E_DISABLE_RATE_LIMIT: '1',
+      NODE_ENV: 'production',
+    },
     url: `${baseURL}/api/health`,
     // Après changement backend, un vieux Node sur le port sert un code périmé ; ne pas réutiliser par défaut.
     reuseExistingServer: process.env.E2E_REUSE_SERVER === '1',
