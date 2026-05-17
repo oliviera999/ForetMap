@@ -3,7 +3,7 @@ const { loginAsNewStudent, enableTeacherMode } = require('./fixtures/auth.fixtur
 
 test('visite publique : accès sans compte puis retour connexion', async ({ page }) => {
   await page.goto('/');
-  const guestCta = page.getByRole('button', { name: /Visiter sans connexion/i });
+  const guestCta = page.getByRole('button', { name: /Visiter sans compte/i });
   await expect(guestCta).toBeVisible({ timeout: 30_000 });
   await guestCta.click();
 
@@ -133,4 +133,45 @@ test('visite prof : aperçu comme élève masque le panneau d’édition', async
 
   await page.getByTestId('visit-teacher-preview-toggle').evaluate((el) => el.click());
   await expect(page.getByTestId('visit-editor-panel')).toBeVisible({ timeout: 10_000 });
+});
+
+test('visite publique : marquage vu hors ligne puis synchronisation', async ({ page, context }) => {
+  await page.goto('/');
+  const guestCta = page.getByRole('button', { name: /Visiter sans compte/i });
+  await expect(guestCta).toBeVisible({ timeout: 30_000 });
+  await guestCta.click();
+
+  await expect(page.locator('.visit-view--guest-public')).toBeVisible({ timeout: 30_000 });
+  const stage = page.locator('.visit-map-stage');
+  await expect(stage.locator('img.visit-map-img')).toBeVisible({ timeout: 15_000 });
+
+  const zoneHit = stage.locator('.visit-zone-hit').first();
+  if ((await zoneHit.count()) === 0) {
+    test.skip();
+    return;
+  }
+  const poly = zoneHit.locator('polygon').first();
+  if (await poly.count()) {
+    await poly.click({ force: true, timeout: 10_000 });
+  } else {
+    await zoneHit.click({ force: true, timeout: 10_000 });
+  }
+  const panel = page.getByTestId('visit-detail-panel');
+  await expect(panel).toBeVisible({ timeout: 10_000 });
+
+  await context.setOffline(true);
+  const status = page.getByTestId('visit-network-status');
+  await expect(status).toHaveAttribute('data-online', '0', { timeout: 10_000 });
+
+  const markBtn = panel.getByRole('button', { name: /Marquer comme vu/i });
+  if ((await markBtn.count()) === 0) {
+    test.skip();
+    return;
+  }
+  await markBtn.click();
+  await expect(status).toHaveAttribute('data-pending', /[1-9]/, { timeout: 10_000 });
+
+  await context.setOffline(false);
+  await expect(status).toHaveAttribute('data-online', '1', { timeout: 15_000 });
+  await expect(status).toHaveAttribute('data-pending', '0', { timeout: 25_000 });
 });

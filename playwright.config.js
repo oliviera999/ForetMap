@@ -7,6 +7,12 @@ const baseURL = process.env.E2E_BASE_URL || 'http://127.0.0.1:3000';
 /** Heap Node explicite pour `server.js` e2e (`npm run` ne propage pas toujours NODE_OPTIONS jusqu’au processus enfant). */
 const E2E_SERVER_HEAP_MB = process.env.E2E_NODE_MAX_OLD_SPACE_SIZE || '12288';
 
+/** Secret cookie visite anonyme (NODE_ENV=production en webServer) — repli e2e si absent du .env. */
+const E2E_VISIT_COOKIE_SECRET =
+  String(process.env.VISIT_COOKIE_SECRET || '').trim().length >= 16
+    ? String(process.env.VISIT_COOKIE_SECRET).trim()
+    : 'foretmap-e2e-visit-cookie-secret';
+
 module.exports = defineConfig({
   testDir: './e2e',
   timeout: 60_000,
@@ -36,6 +42,7 @@ module.exports = defineConfig({
       ...process.env,
       E2E_DISABLE_RATE_LIMIT: '1',
       NODE_ENV: 'production',
+      VISIT_COOKIE_SECRET: E2E_VISIT_COOKIE_SECRET,
     },
     url: `${baseURL}/api/health`,
     // Après changement backend, un vieux Node sur le port sert un code périmé ; ne pas réutiliser par défaut.

@@ -3212,6 +3212,30 @@
       flex:0 1 auto;
       margin-inline-start:auto;
     }
+    .visit-network-status {
+      display:inline-flex;
+      align-items:center;
+      max-width:min(100%, 220px);
+      padding:4px 10px;
+      border-radius:999px;
+      font-size:.78rem;
+      font-weight:500;
+      line-height:1.25;
+      color:#1a4731;
+      background:#e8f5ec;
+      border:1px solid #b7dfc4;
+    }
+    .visit-network-status--offline {
+      color:#78350f;
+      background:#fef3c7;
+      border-color:#f59e0b;
+    }
+    .visit-network-status--pending,
+    .visit-network-status--syncing {
+      color:#1e3a5f;
+      background:#e0f2fe;
+      border-color:#7dd3fc;
+    }
     .visit-map-empty-hint {
       margin:8px 0 0;
       text-align:center;
