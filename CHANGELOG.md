@@ -16,6 +16,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - **UI — coque modale** : composant **`DialogShell.jsx`** et branchements (tutoriels, confirmations biodiversité, aide).
 
 ### Modifié
+- **E2e (Playwright)** : le `webServer` local lance **`server.js`** avec **`--max-old-space-size`** explicite (défaut 12288 Mo, surcharge **`E2E_NODE_MAX_OLD_SPACE_SIZE`**) pour réduire les crash mémoire V8 pendant la suite ; commande alignée sur **`npm run start:e2e`**. **`playwright.config.js`**.
 - **Tâches — affichage** : sections liste, filtres par statut et raccourcis prof affichent **En cours** avant **À faire**. **`tasks-views.jsx`**.
 - **Studio packs mascotte — bibliothèque sprites** : vignettes visuelles des PNG (grille comme la médiathèque pack) + colonne d’aperçu dans la table « assets du site » pour les images. **`VisitMascotPackManager.jsx`**.
 - **Vues / styles** : ajustements **`profiles-views.jsx`**, **`map-views.jsx`**, **`foretmap-views.jsx`**, **`tutorials-views.jsx`**, **`auth-views.jsx`**, **`AutoProfilePromotionModal.jsx`**, **`App.jsx`**, **`index.css`**, **`badges.jsx`** (cohérence modale et responsive).
@@ -27,6 +28,8 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ### Corrigé
 - **Cartes — affiliation mono-plan** : un élève limité à un plan personnalisé ne retombe plus sur toutes les cartes actives lorsque ce plan est temporairement désactivé ; le filtrage client conserve le périmètre d’affiliation. **`App.jsx`**, **`src/utils/mapAffiliation.js`**, **`tests/map-affiliation.test.js`**.
+- **Suppression élève / statuts de tâches** : le recalcul après suppression d’un compte utilise la même logique que **`recalculateTaskStatus`** (**`completion_mode`**, **`done_at`**) via **`lib/taskStatusRecalc.js`** ; évite un statut incorrect sur les tâches collectives. Cookie visite anonyme : **`append('Set-Cookie', …)`** pour ne pas écraser d’autres cookies (**`routes/visit.js`**). **Observations** : si l’enregistrement fichier image échoue après insertion, la ligne est supprimée (**`routes/observations.js`**).
+- **UI** : garde-fous anti-réponses obsolètes (forum, carnet d’observations, journaux de tâche) ; pré-saisie biodiversité — sélection des champs basée sur le formulaire à jour ; clés React plus stables (badges fiche, liste activité stats, historique cultures carte) ; champs **nombre** admin resynchronisés après chargement serveur (**`settings-admin-views.jsx`**).
 - **Visite — sélecteur mascotte** : liste déroulante **Mascotte** rétablie dans la barre au-dessus du plan (catalogue + packs publiés), en complément de l’onglet **Aperçu mascotte** du studio. **`visit-views.jsx`**.
 - **Biodiversité mobile — prise de photo** : l’ouverture caméra/galerie dans l’éditeur d’espèce et dans le bloc Pl@ntNet arme désormais la garde `popstate` des overlays ; au retour appareil photo, la fenêtre d’édition ne se ferme plus avant le `change` de l’input. **`foretmap-views.jsx`**.
 - **Studio packs mascotte — assets globaux** : ajout d’un inventaire complet des assets mascotte du site (catalogue public + assets packs + bibliothèques carte) utilisable quel que soit le pack en édition, avec filtres, copie d’URL et insertion directe dans un état d’animation. **`/api/visit/mascot-assets`**, **`VisitMascotPackManager.jsx`**, **`tests/api.test.js`**, **`docs/API.md`**.
