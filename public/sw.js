@@ -1,4 +1,4 @@
-const CACHE_NAME = 'foretmap-offline-v7';
+const CACHE_NAME = 'foretmap-offline-v8';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
@@ -28,11 +28,10 @@ const API_CACHE_URLS = [
   '/api/tasks',
 ];
 
-/** GET lecture mode visite : stale-while-revalidate (réponse immédiate + rafraîchissement réseau). */
+/** GET lecture mode visite public : stale-while-revalidate (réponse immédiate + rafraîchissement réseau). */
 function isVisitReadApiPath(pathname) {
   return pathname.endsWith('/api/maps')
-    || pathname.endsWith('/api/visit/content')
-    || pathname.endsWith('/api/visit/progress');
+    || pathname.endsWith('/api/visit/content');
 }
 
 function staleWhileRevalidate(request) {
@@ -103,7 +102,7 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Mode visite : stale-while-revalidate (contenu, cartes, progression)
+  // Mode visite : seules les données publiques sont cacheables. La progression varie par compte/cookie.
   if (isVisitReadApiPath(url.pathname)) {
     event.respondWith(staleWhileRevalidate(event.request));
     return;
