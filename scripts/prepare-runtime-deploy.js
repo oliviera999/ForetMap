@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Bundle « runtime » (sources + dist + node_modules prod) pour déploiement sans npm sur le serveur.
+ * Bundle « runtime » (sources + dist, avec ou sans node_modules) pour déploiement.
  * Équivalent logique de `prepare-runtime-deploy.ps1`, portable Linux / macOS / Windows (sh ou cmd).
  */
 const fs = require('fs');
@@ -21,6 +21,8 @@ const argv = new Set(process.argv.slice(2));
 const skipInstall = argv.has('--skip-install');
 const skipBuild = argv.has('--skip-build');
 const skipPrune = argv.has('--skip-prune');
+const cloudlinuxSelector = argv.has('--cloudlinux-selector');
+const includeNodeModules = !argv.has('--without-node-modules') && !cloudlinuxSelector;
 
 const EXCLUDE_DIR_NAMES = new Set([
   '.git',
@@ -40,19 +42,21 @@ const EXCLUDE_FILE_NAMES = new Set([
   'npm-debug.log',
 ]);
 
-const REQUIRED_RUNTIME = [
+const REQUIRED_RUNTIME_BASE = [
   'app.js',
   'server.js',
   'database.js',
   'package.json',
   'package-lock.json',
-  'node_modules',
   'dist',
   /** Validation POST/PUT `/api/visit/mascot-packs` sans dossier `src/` (voir `npm run sync:visit-pack-lib`). */
   'lib/visit-pack/mascotPack.js',
   'lib/visit-pack/visitMascotState.js',
   'lib/visit-pack/visitMascotInteractionEvents.js',
 ];
+const REQUIRED_RUNTIME = includeNodeModules
+  ? [...REQUIRED_RUNTIME_BASE, 'node_modules']
+  : REQUIRED_RUNTIME_BASE;
 
 function runCommand(cmd, args, options = {}) {
   const commandLine = [cmd, ...args].join(' ');
@@ -162,11 +166,13 @@ if (!skipBuild) {
   console.log('==> Build ignoré (--skip-build)');
 }
 
-if (!skipPrune) {
+if (!skipPrune && includeNodeModules) {
   console.log('==> Prune vers dépendances production');
   if (!runCommand('npm', ['prune', '--omit=dev'], { env: envForNpmBundle() })) {
     fail('Échec npm prune --omit=dev');
   }
+} else if (!skipPrune && !includeNodeModules) {
+  console.log('==> Prune ignorée (bundle sans node_modules)');
 } else {
   console.log('==> Prune ignorée (--skip-prune)');
 }
@@ -176,7 +182,7 @@ const distIndexLegacy = path.join(rootDir, 'dist', 'index.html');
 if (!fs.existsSync(distIndexVite) && !fs.existsSync(distIndexLegacy)) {
   fail('Build incomplet: dist/index.vite.html (ou dist/index.html) introuvable.');
 }
-if (!fs.existsSync(path.join(rootDir, 'node_modules'))) {
+if (includeNodeModules && !fs.existsSync(path.join(rootDir, 'node_modules'))) {
   fail('node_modules introuvable. Relance sans --skip-install.');
 }
 
@@ -197,8 +203,12 @@ fs.mkdirSync(stageDir, { recursive: true });
 console.log('==> Copie des fichiers projet (hors secrets, sans node_modules)');
 copyProjectFiltered(rootDir, stageDir);
 
-console.log('==> Copie node_modules (runtime)');
-copyNodeModulesDir(path.join(rootDir, 'node_modules'), path.join(stageDir, 'node_modules'));
+if (includeNodeModules) {
+  console.log('==> Copie node_modules (runtime)');
+  copyNodeModulesDir(path.join(rootDir, 'node_modules'), path.join(stageDir, 'node_modules'));
+} else {
+  console.log('==> Copie node_modules ignorée (CloudLinux Selector / --without-node-modules)');
+}
 
 for (const name of REQUIRED_RUNTIME) {
   const p = path.join(stageDir, name);
@@ -223,7 +233,10 @@ const manifest = [
   `generated_at=${new Date().toISOString()}`,
   `git_sha=${gitSha}`,
   `stage_dir=${stageDir}`,
-  'notes=Ce bundle contient dist + node_modules(prod).',
+  `includes_node_modules=${includeNodeModules ? 'true' : 'false'}`,
+  includeNodeModules
+    ? 'notes=Ce bundle contient dist + node_modules(prod).'
+    : 'notes=Bundle compatible CloudLinux NodeJS Selector (sans node_modules en racine).',
 ].join('\n');
 fs.writeFileSync(manifestPath, manifest, 'utf8');
 
@@ -241,5 +254,11 @@ if (zipped) {
 console.log('');
 console.log('Déploiement serveur:');
 console.log('1) Uploader le dossier ci-dessus tel quel (rsync / SFTP), ou extraire le ZIP si tu l’as produit.');
-console.log('2) Redémarrer l’application Node.js.');
-console.log('3) Vérifier avec: npm run deploy:check:prod');
+if (!includeNodeModules) {
+  console.log('2) Installer les dépendances via NodeJS Selector (symlink node_modules géré par l’hébergeur).');
+  console.log('3) Redémarrer l’application Node.js.');
+  console.log('4) Vérifier avec: npm run deploy:check:prod');
+} else {
+  console.log('2) Redémarrer l’application Node.js.');
+  console.log('3) Vérifier avec: npm run deploy:check:prod');
+}

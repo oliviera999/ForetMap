@@ -5,7 +5,9 @@
 param(
   [switch]$SkipInstall,
   [switch]$SkipBuild,
-  [switch]$SkipPrune
+  [switch]$SkipPrune,
+  [switch]$WithoutNodeModules,
+  [switch]$CloudlinuxSelector
 )
 
 Set-StrictMode -Version Latest
@@ -34,7 +36,11 @@ $bundleName = "foretmap-runtime-$stamp"
 $stageDir = Join-Path $runtimeRoot $bundleName
 $zipPath = Join-Path $deployRoot "$bundleName.zip"
 $manifestPath = Join-Path $stageDir "DEPLOY_MANIFEST.txt"
-$requiredForRuntime = @("app.js", "server.js", "database.js", "package.json", "package-lock.json", "node_modules", "dist")
+$includeNodeModules = (-not $WithoutNodeModules) -and (-not $CloudlinuxSelector)
+$requiredForRuntime = @("app.js", "server.js", "database.js", "package.json", "package-lock.json", "dist")
+if ($includeNodeModules) {
+  $requiredForRuntime += "node_modules"
+}
 
 if (-not (Test-CommandAvailable "powershell")) {
   throw "Commande introuvable: powershell"
@@ -68,8 +74,10 @@ try {
     Write-Host "==> Build ignoré (--SkipBuild)"
   }
 
-  if (-not $SkipPrune) {
+  if (-not $SkipPrune -and $includeNodeModules) {
     Invoke-Step -Label "Prune vers dépendances production" -Command "npm prune --omit=dev"
+  } elseif (-not $SkipPrune -and -not $includeNodeModules) {
+    Write-Host "==> Prune ignoré (bundle sans node_modules)"
   } else {
     Write-Host "==> Prune ignoré (--SkipPrune)"
   }
@@ -79,7 +87,7 @@ try {
   if (-not (Test-Path $distIndexVite) -and -not (Test-Path $distIndexLegacy)) {
     throw "Build incomplet: dist/index.vite.html (ou dist/index.html) introuvable."
   }
-  if (-not (Test-Path (Join-Path $projectRoot "node_modules"))) {
+  if ($includeNodeModules -and -not (Test-Path (Join-Path $projectRoot "node_modules"))) {
     throw "node_modules introuvable. Relance sans --SkipInstall."
   }
 
@@ -106,16 +114,20 @@ try {
     throw "Robocopy a échoué (code $LASTEXITCODE)"
   }
 
-  Write-Host "==> Copie node_modules (runtime)"
-  $stageNodeModules = Join-Path $stageDir "node_modules"
-  New-Item -ItemType Directory -Path $stageNodeModules -Force | Out-Null
-  $robocopyArgsNodeModules = @(
-    (Join-Path $projectRoot "node_modules"), $stageNodeModules, "/E",
-    "/NFL", "/NDL", "/NJH", "/NJS", "/NP"
-  )
-  & robocopy @robocopyArgsNodeModules | Out-Null
-  if ($LASTEXITCODE -ge 8) {
-    throw "Copie node_modules échouée (code $LASTEXITCODE)"
+  if ($includeNodeModules) {
+    Write-Host "==> Copie node_modules (runtime)"
+    $stageNodeModules = Join-Path $stageDir "node_modules"
+    New-Item -ItemType Directory -Path $stageNodeModules -Force | Out-Null
+    $robocopyArgsNodeModules = @(
+      (Join-Path $projectRoot "node_modules"), $stageNodeModules, "/E",
+      "/NFL", "/NDL", "/NJH", "/NJS", "/NP"
+    )
+    & robocopy @robocopyArgsNodeModules | Out-Null
+    if ($LASTEXITCODE -ge 8) {
+      throw "Copie node_modules échouée (code $LASTEXITCODE)"
+    }
+  } else {
+    Write-Host "==> Copie node_modules ignorée (CloudLinux Selector / --WithoutNodeModules)"
   }
 
   foreach ($required in $requiredForRuntime) {
@@ -136,7 +148,12 @@ try {
     "generated_at=$(Get-Date -Format o)",
     "git_sha=$gitSha",
     "stage_dir=$stageDir",
-    "notes=Ce bundle contient dist + node_modules(prod)."
+    "includes_node_modules=$($includeNodeModules.ToString().ToLowerInvariant())",
+    $(if ($includeNodeModules) {
+      "notes=Ce bundle contient dist + node_modules(prod)."
+    } else {
+      "notes=Bundle compatible CloudLinux NodeJS Selector (sans node_modules en racine)."
+    })
   )
   Set-Content -Path $manifestPath -Value $manifest -Encoding UTF8
 
@@ -153,8 +170,14 @@ try {
   Write-Host ""
   Write-Host "Déploiement serveur:"
   Write-Host "1) Uploader le dossier ci-dessus (rsync / SFTP) ou extraire le ZIP."
-  Write-Host "2) Redémarrer l'application Node.js."
-  Write-Host "3) Vérifier avec: npm run deploy:check:prod"
+  if ($includeNodeModules) {
+    Write-Host "2) Redémarrer l'application Node.js."
+    Write-Host "3) Vérifier avec: npm run deploy:check:prod"
+  } else {
+    Write-Host "2) Installer les dépendances via NodeJS Selector (symlink node_modules géré par l’hébergeur)."
+    Write-Host "3) Redémarrer l'application Node.js."
+    Write-Host "4) Vérifier avec: npm run deploy:check:prod"
+  }
 }
 finally {
   Pop-Location
