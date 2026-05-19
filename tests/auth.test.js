@@ -147,6 +147,24 @@ describe('Auth', () => {
     assert.strictEqual(row.affiliation, storedAffiliation);
   });
 
+  it('PATCH /api/auth/me/profile met à jour la mascotte préférée du compte connecté', async () => {
+    const res = await request(app)
+      .patch('/api/auth/me/profile')
+      .set('Authorization', `Bearer ${authToken}`)
+      .send({
+        visit_mascot_catalog_id: 'sprout-rive',
+        currentPassword: password,
+      })
+      .expect(200);
+    assert.strictEqual(res.body.visit_mascot_catalog_id, 'sprout-rive');
+
+    const row = await queryOne(
+      "SELECT visit_mascot_catalog_id FROM users WHERE id = ? AND user_type = 'student' LIMIT 1",
+      [studentId],
+    );
+    assert.strictEqual(row?.visit_mascot_catalog_id, 'sprout-rive');
+  });
+
   it('POST /api/auth/login refuse firstName+lastName (users-only identifier)', async () => {
     const res = await request(app)
       .post('/api/auth/login')

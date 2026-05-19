@@ -298,11 +298,36 @@ const VISIT_MASCOT_CATALOG = [
   },
 ];
 
+function normalizeAllowedMascotIdsInput(raw) {
+  if (Array.isArray(raw)) {
+    return raw.map((id) => String(id || '').trim()).filter(Boolean);
+  }
+  if (typeof raw === 'string') {
+    return raw
+      .split(/[,\n;]+/g)
+      .map((id) => String(id || '').trim())
+      .filter(Boolean);
+  }
+  return [];
+}
+
 function getVisitMascotCatalog() {
   return VISIT_MASCOT_CATALOG.slice();
 }
 
-function getDefaultVisitMascotId() {
+function getDefaultVisitMascotId(allowedMascotIds = null, extraEntries = [], forcedDefaultId = DEFAULT_VISIT_MASCOT_ID) {
+  const normalizedAllowed = normalizeAllowedMascotIdsInput(allowedMascotIds)
+    .filter((id, idx, arr) => arr.indexOf(id) === idx)
+    .filter((id) => !!resolveVisitMascotEntry(id, extraEntries));
+  const pickDefault = String(forcedDefaultId || '').trim() || DEFAULT_VISIT_MASCOT_ID;
+  if (normalizedAllowed.length > 0) {
+    if (normalizedAllowed.includes(pickDefault)) return pickDefault;
+    if (normalizedAllowed.includes(DEFAULT_VISIT_MASCOT_ID)) return DEFAULT_VISIT_MASCOT_ID;
+    return normalizedAllowed[0];
+  }
+  if (resolveVisitMascotEntry(pickDefault, extraEntries)) {
+    return pickDefault;
+  }
   if (VISIT_MASCOT_CATALOG.some((m) => m.id === DEFAULT_VISIT_MASCOT_ID)) {
     return DEFAULT_VISIT_MASCOT_ID;
   }
@@ -322,10 +347,14 @@ function getVisitMascotById(mascotId) {
   return resolveVisitMascotEntry(mascotId, []);
 }
 
-function normalizeVisitMascotId(mascotId, extraEntries = []) {
+function normalizeVisitMascotId(mascotId, extraEntries = [], options = {}) {
   const id = String(mascotId || '').trim();
-  if (resolveVisitMascotEntry(id, extraEntries)) return id;
-  return getDefaultVisitMascotId();
+  const allowedIds = normalizeAllowedMascotIdsInput(options.allowedMascotIds)
+    .filter((allowedId, idx, arr) => arr.indexOf(allowedId) === idx)
+    .filter((allowedId) => !!resolveVisitMascotEntry(allowedId, extraEntries));
+  const isAllowed = allowedIds.length === 0 || allowedIds.includes(id);
+  if (resolveVisitMascotEntry(id, extraEntries) && isAllowed) return id;
+  return getDefaultVisitMascotId(allowedIds, extraEntries, options.defaultMascotId);
 }
 
 function getVisitMascotSupportedStates(mascotId, extraEntries = []) {
@@ -348,13 +377,13 @@ function getVisitMascotSupportedStates(mascotId, extraEntries = []) {
   return [...new Set(states)];
 }
 
-function loadVisitMascotId(extraEntries = []) {
+function loadVisitMascotId(extraEntries = [], options = {}) {
   const raw = safeLocalStorageGetItem(VISIT_MASCOT_STORAGE_KEY, null);
-  return normalizeVisitMascotId(raw, extraEntries);
+  return normalizeVisitMascotId(raw, extraEntries, options);
 }
 
-function saveVisitMascotId(mascotId, extraEntries = []) {
-  const id = normalizeVisitMascotId(mascotId, extraEntries);
+function saveVisitMascotId(mascotId, extraEntries = [], options = {}) {
+  const id = normalizeVisitMascotId(mascotId, extraEntries, options);
   safeLocalStorageSetItem(VISIT_MASCOT_STORAGE_KEY, id);
   return id;
 }

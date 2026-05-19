@@ -27,6 +27,26 @@ test('normalizeVisitMascotId retombe sur la mascotte par défaut', async () => {
   assert.equal(normalizeVisitMascotId(''), def);
 });
 
+test('normalizeVisitMascotId respecte la liste autorisée et le défaut configuré', async () => {
+  const { normalizeVisitMascotId, getDefaultVisitMascotId } = await loadModule();
+  const options = {
+    allowedMascotIds: ['sprout-rive', 'renard2-cut-spritesheet'],
+    defaultMascotId: 'sprout-rive',
+  };
+  assert.equal(
+    normalizeVisitMascotId('sprout-rive', [], options),
+    'sprout-rive',
+  );
+  assert.equal(
+    normalizeVisitMascotId('fox-backpack-spritesheet', [], options),
+    'sprout-rive',
+  );
+  assert.equal(
+    getDefaultVisitMascotId(options.allowedMascotIds, [], options.defaultMascotId),
+    'sprout-rive',
+  );
+});
+
 test('catalogue inclut SPR0UT et SCR4P avec états étendus', async () => {
   const {
     getVisitMascotById,

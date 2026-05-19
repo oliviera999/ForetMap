@@ -78,6 +78,24 @@ const POLLING_COARSE_TABS = new Set([
   'mascot_packs',
 ]);
 const IOS_INSTALL_HINT_DISMISSED_KEY = 'foretmap_ios_install_hint_dismissed';
+const GUEST_VISIT_MASCOT_CONFIRMED_KEY = 'foretmap_visit_guest_mascot_confirmed_v1';
+const DEFAULT_VISIT_MASCOT_ALLOWED_IDS = [
+  'sprout-rive',
+  'scrap-rive',
+  'gnome-foret-rive',
+  'gnome-ambre-rive',
+  'gnome-punk-rive',
+  'spore-rive',
+  'vine-rive',
+  'moss-rive',
+  'seed-rive',
+  'swarm-rive',
+  'sprite-template',
+  'olu-spritesheet',
+  'tan-bird-spritesheet',
+  'fox-backpack-spritesheet',
+  'renard2-cut-spritesheet',
+];
 const KNOWN_TAB_VALUES = new Set([
   'map',
   'maptasks',
@@ -159,6 +177,12 @@ function App() {
       forum_enabled: true,
       context_comments_enabled: true,
     },
+    visit: {
+      mascot: {
+        allowed_ids: DEFAULT_VISIT_MASCOT_ALLOWED_IDS,
+        default_id: 'renard2-cut-spritesheet',
+      },
+    },
   }), []);
   const [student,    setStudent]    = useState(() => initialSession?.student || null);
   const studentRef = useRef(initialSession?.student || null);
@@ -176,6 +200,7 @@ function App() {
   });
   const [showPin,    setShowPin]    = useState(false);
   const [showPublicVisit, setShowPublicVisit] = useState(false);
+  const [guestVisitNeedsMascotChoice, setGuestVisitNeedsMascotChoice] = useState(false);
   const [showStats,  setShowStats]  = useState(false);
   const [showProfile,setShowProfile]= useState(false);
   const [tab,        setTab]        = useState(() => readStoredTab());
@@ -353,6 +378,9 @@ function App() {
             }
             if (ui.auth && typeof ui.auth === 'object') {
               next.auth = { ...prev.auth, ...ui.auth };
+            }
+            if (ui.visit && typeof ui.visit === 'object') {
+              next.visit = { ...prev.visit, ...ui.visit };
             }
           }
           return next;
@@ -976,6 +1004,7 @@ function App() {
       pseudo: null,
       email: sessionUser?.email || null,
       avatar_path: sessionUser?.avatar_path || null,
+      visit_mascot_catalog_id: sessionUser?.visit_mascot_catalog_id || null,
       description: '',
       affiliation: 'both',
       auth: {
@@ -1143,6 +1172,7 @@ function App() {
         displayName: nextDisplayName,
         email: updatedUser?.email ?? prev?.email ?? null,
         avatar_path: updatedUser?.avatar_path ?? updatedUser?.avatarPath ?? prev?.avatar_path ?? null,
+        visit_mascot_catalog_id: updatedUser?.visit_mascot_catalog_id ?? prev?.visit_mascot_catalog_id ?? null,
       };
       saveStoredSession({ user: next });
       return next;
@@ -1214,10 +1244,16 @@ function App() {
               initialMapId={publicSettings?.map?.default_map_visit || activeMapId}
               onBackToAuth={() => {
                 abandonAllOverlays();
+                setGuestVisitNeedsMascotChoice(false);
                 setShowPublicVisit(false);
               }}
               availableTutorials={[]}
               publicSettings={publicSettings}
+              requireGuestMascotChoice={guestVisitNeedsMascotChoice}
+              onGuestMascotChoiceDone={() => {
+                safeLocalStorageSetItem(GUEST_VISIT_MASCOT_CONFIRMED_KEY, '1');
+                setGuestVisitNeedsMascotChoice(false);
+              }}
             />
           </div>
           <footer className="app-footer">{appFooterVersionPrefix} {appVersion != null ? appVersion : '…'}</footer>
@@ -1234,6 +1270,7 @@ function App() {
                 displayName: s?.display_name || s?.auth?.roleDisplayName || 'Utilisateur',
                 email: s?.email || null,
                 avatar_path: s?.avatar_path || null,
+                visit_mascot_catalog_id: s?.visit_mascot_catalog_id || null,
               });
             } else {
               updateStudentSession(s);
@@ -1246,6 +1283,9 @@ function App() {
           uiSettings={publicSettings}
           onVisitGuest={() => {
             pushOverlayClose(() => setShowPublicVisit(false));
+            const guestAlreadyConfirmedMascot =
+              safeLocalStorageGetItem(GUEST_VISIT_MASCOT_CONFIRMED_KEY, null) === '1';
+            setGuestVisitNeedsMascotChoice(!guestAlreadyConfirmedMascot);
             setShowPublicVisit(true);
           }}
           isN3Affiliated={isN3Affiliated}
@@ -1399,6 +1439,7 @@ function App() {
             <StudentProfileEditor
               student={profileTargetUser}
               maps={maps}
+              publicSettings={publicSettings}
               onUpdated={(updated) => {
                 if (effectiveIsTeacher) {
                   updateTeacherSession(updated);
@@ -1808,6 +1849,7 @@ function App() {
                   publicSettings={publicSettings}
                   canParticipateContextComments={canParticipateContextComments}
                   onOpenMascotPackStudioTab={openMascotPackStudioTab}
+                  profileVisitMascotId={currentUser?.visit_mascot_catalog_id || null}
                   mapZones={zones}
                   mapMarkers={markers}
                   tasks={tasks}
@@ -1948,6 +1990,7 @@ function App() {
                     isN3Affiliated={isN3Affiliated}
                     publicSettings={publicSettings}
                     canParticipateContextComments={canParticipateContextComments}
+                  profileVisitMascotId={studentForUi?.visit_mascot_catalog_id || null}
                     mapZones={zones}
                     mapMarkers={markers}
                     tasks={tasks}

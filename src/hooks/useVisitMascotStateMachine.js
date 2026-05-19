@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { VISIT_MASCOT_STATE, resolveVisitMascotState } from '../utils/visitMascotState.js';
 import {
-  VISIT_MASCOT_STORAGE_KEY,
   getVisitMascotCatalog,
+  getDefaultVisitMascotId,
   resolveVisitMascotEntry,
   getVisitMascotSupportedStates,
   normalizeVisitMascotId,
@@ -33,21 +33,53 @@ function useVisitMascotStateMachine({
   happy = false,
   transientDurationMs = VISIT_MASCOT_TRANSIENT_STATE_MS,
   extraCatalogEntries = [],
+  preferredMascotId = null,
+  allowedMascotIds = [],
+  defaultMascotId = '',
 } = {}) {
-  const [visitMascotId, setVisitMascotId] = useState(() => loadVisitMascotId());
+  const mascotSelectionOptions = useMemo(
+    () => ({ allowedMascotIds, defaultMascotId }),
+    [allowedMascotIds, defaultMascotId],
+  );
+  const [visitMascotId, setVisitMascotId] = useState(() => {
+    const preferred = String(preferredMascotId || '').trim();
+    if (preferred) {
+      return normalizeVisitMascotId(preferred, extraCatalogEntries, mascotSelectionOptions);
+    }
+    const stored = loadVisitMascotId(extraCatalogEntries, mascotSelectionOptions);
+    return normalizeVisitMascotId(stored, extraCatalogEntries, mascotSelectionOptions);
+  });
   const [visitMascotPreviewState, setVisitMascotPreviewState] = useState(VISIT_MASCOT_STATE.IDLE);
   const [visitMapMascotTransientState, setVisitMapMascotTransientState] = useState('');
   const visitMapMascotTransientStateTimeoutRef = useRef(null);
 
-  const visitMascotOptions = useMemo(
+  const rawVisitMascotOptions = useMemo(
     () => [...getVisitMascotCatalog(), ...extraCatalogEntries],
     [extraCatalogEntries],
   );
+  const visitMascotOptions = useMemo(() => {
+    const allowed = Array.isArray(allowedMascotIds)
+      ? allowedMascotIds.map((id) => String(id || '').trim()).filter(Boolean)
+      : [];
+    if (allowed.length === 0) return rawVisitMascotOptions;
+    return rawVisitMascotOptions.filter((entry) => allowed.includes(String(entry?.id || '').trim()));
+  }, [rawVisitMascotOptions, allowedMascotIds]);
 
   useEffect(() => {
-    const normalized = normalizeVisitMascotId(loadVisitMascotId(extraCatalogEntries), extraCatalogEntries);
+    const preferred = String(preferredMascotId || '').trim();
+    if (preferred) {
+      const normalizedPreferred = normalizeVisitMascotId(preferred, extraCatalogEntries, mascotSelectionOptions);
+      saveVisitMascotId(normalizedPreferred, extraCatalogEntries, mascotSelectionOptions);
+      setVisitMascotId((prev) => (prev === normalizedPreferred ? prev : normalizedPreferred));
+      return;
+    }
+    const normalized = normalizeVisitMascotId(
+      loadVisitMascotId(extraCatalogEntries, mascotSelectionOptions),
+      extraCatalogEntries,
+      mascotSelectionOptions,
+    );
     setVisitMascotId((prev) => (prev === normalized ? prev : normalized));
-  }, [extraCatalogEntries]);
+  }, [extraCatalogEntries, preferredMascotId, mascotSelectionOptions]);
 
   const visitMascotPreviewStateOptions = useMemo(() => {
     const knownOrder = [
@@ -132,9 +164,9 @@ function useVisitMascotStateMachine({
   );
 
   const onChangeVisitMascotId = useCallback((nextId) => {
-    const normalized = saveVisitMascotId(nextId, extraCatalogEntries);
+    const normalized = saveVisitMascotId(nextId, extraCatalogEntries, mascotSelectionOptions);
     setVisitMascotId(normalized);
-  }, [extraCatalogEntries]);
+  }, [extraCatalogEntries, mascotSelectionOptions]);
 
   return {
     visitMascotId,

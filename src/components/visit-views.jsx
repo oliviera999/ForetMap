@@ -113,6 +113,128 @@ function VisitMediaGalleryThumb({ media, onOpenLightbox }) {
   );
 }
 
+function normalizeEditorialBlocks(blocks) {
+  if (!Array.isArray(blocks)) return [];
+  const out = [];
+  for (const block of blocks) {
+    if (!block || typeof block !== 'object') continue;
+    const type = String(block.type || '').trim();
+    if (type === 'paragraph') {
+      const markdown = String(block.markdown || '').trim();
+      if (!markdown) continue;
+      out.push({
+        id: String(block.id || `p-${out.length + 1}`),
+        type: 'paragraph',
+        markdown,
+      });
+      continue;
+    }
+    if (type === 'heading') {
+      const text = String(block.text || '').trim();
+      if (!text) continue;
+      out.push({
+        id: String(block.id || `h-${out.length + 1}`),
+        type: 'heading',
+        text,
+        level: Math.min(4, Math.max(2, Number(block.level) || 3)),
+      });
+      continue;
+    }
+    if (type === 'image') {
+      const media_ids = (Array.isArray(block.media_ids) ? block.media_ids : [])
+        .map((id) => Number(id))
+        .filter((id, idx, arr) => Number.isFinite(id) && id > 0 && arr.indexOf(id) === idx)
+        .slice(0, 2);
+      if (!media_ids.length) continue;
+      out.push({
+        id: String(block.id || `img-${out.length + 1}`),
+        type: 'image',
+        media_ids,
+        layout: media_ids.length > 1 ? (block.layout === 'single' ? 'single' : 'duo') : 'single',
+        size: block.size === 'sm' || block.size === 'lg' ? block.size : 'md',
+        align: block.align === 'left' || block.align === 'right' ? block.align : 'center',
+        caption: String(block.caption || '').trim(),
+      });
+    }
+  }
+  return out;
+}
+
+function buildLegacyEditorialBlocks(selected, selectedVisitMedia) {
+  const out = [];
+  const shortDescription = String(selected?.visit_short_description || '').trim();
+  if (shortDescription) {
+    out.push({ id: 'legacy-short', type: 'paragraph', markdown: shortDescription });
+  }
+  for (let i = 0; i < selectedVisitMedia.length; i += 1) {
+    const media = selectedVisitMedia[i];
+    const mediaId = Number(media?.id);
+    if (!Number.isFinite(mediaId) || mediaId <= 0) continue;
+    out.push({
+      id: `legacy-image-${i + 1}`,
+      type: 'image',
+      media_ids: [mediaId],
+      layout: 'single',
+      size: i === 0 ? 'lg' : 'md',
+      align: 'center',
+      caption: String(media?.caption || '').trim(),
+    });
+  }
+  const detailsTitle = String(selected?.visit_details_title || '').trim();
+  const detailsText = String(selected?.visit_details_text || '').trim();
+  if (detailsText) {
+    if (detailsTitle) out.push({ id: 'legacy-heading', type: 'heading', level: 3, text: detailsTitle });
+    out.push({ id: 'legacy-details', type: 'paragraph', markdown: detailsText });
+  }
+  return out;
+}
+
+function VisitEditorialRenderer({ blocks, selectedVisitMedia, onOpenLightbox }) {
+  const mediaById = useMemo(() => {
+    const m = new Map();
+    for (const media of selectedVisitMedia || []) {
+      const id = Number(media?.id);
+      if (!Number.isFinite(id) || id <= 0) continue;
+      m.set(id, media);
+    }
+    return m;
+  }, [selectedVisitMedia]);
+  return (
+    <div className="visit-editorial">
+      {blocks.map((block) => {
+        if (block.type === 'heading') {
+          return <h4 key={block.id} className={`visit-editorial-heading visit-editorial-heading--h${block.level || 3}`}>{block.text}</h4>;
+        }
+        if (block.type === 'paragraph') {
+          return (
+            <div key={block.id} className="visit-editorial-paragraph">
+              <MarkdownContent>{block.markdown}</MarkdownContent>
+            </div>
+          );
+        }
+        if (block.type === 'image') {
+          const images = (block.media_ids || []).map((id) => mediaById.get(Number(id))).filter(Boolean);
+          if (!images.length) return null;
+          return (
+            <div
+              key={block.id}
+              className={`visit-editorial-image visit-editorial-image--${block.layout || 'single'} visit-editorial-image--${block.size || 'md'} visit-editorial-image--${block.align || 'center'}`}
+            >
+              <div className="visit-media-gallery">
+                {images.map((media) => (
+                  <VisitMediaGalleryThumb key={`${block.id}-${media.id}`} media={media} onOpenLightbox={onOpenLightbox} />
+                ))}
+              </div>
+              {block.caption ? <p className="visit-editorial-image__caption">{block.caption}</p> : null}
+            </div>
+          );
+        }
+        return null;
+      })}
+    </div>
+  );
+}
+
 /**
  * Compense l’étirement anisotrope du SVG (viewBox carré + preserveAspectRatio="none" sur un rectangle carte) :
  * sans cela, les <text> et emojis paraissent tassés sur l’axe Y dès que largeur ≠ hauteur du calque.
@@ -373,6 +495,7 @@ function VisitEditorPanel({ selected, selectedType, onSaved, onForceLogout, isTe
   const [mediaUploading, setMediaUploading] = useState(false);
   const mediaFileRef = useRef(null);
   const [mediaReorderBusy, setMediaReorderBusy] = useState(false);
+  const [editorialBlocks, setEditorialBlocks] = useState([]);
   const tooltipText = (entry) => resolveRoleText(entry, true);
 
   const sortedVisitMedia = useMemo(() => {
@@ -397,9 +520,11 @@ function VisitEditorPanel({ selected, selectedType, onSaved, onForceLogout, isTe
       is_active: Number(selected?.visit_is_active ?? 1) === 1,
       emoji: selectedType === 'zone' ? (detectedZoneEmoji || markerEmojis[0] || '📍') : (selected?.emoji || markerEmojis[0] || '📍'),
     });
+    const fromApiBlocks = normalizeEditorialBlocks(selected?.visit_editorial_blocks || []);
+    setEditorialBlocks(fromApiBlocks.length ? fromApiBlocks : buildLegacyEditorialBlocks(selected, sortedVisitMedia));
     setMediaUrl('');
     setMediaCaption('');
-  }, [markerEmojis, selected, selectedType]);
+  }, [markerEmojis, selected, selectedType, sortedVisitMedia]);
 
   if (!isTeacher || !selected || !selectedType) return null;
 
@@ -411,6 +536,7 @@ function VisitEditorPanel({ selected, selectedType, onSaved, onForceLogout, isTe
         short_description: form.short_description,
         details_title: form.details_title,
         details_text: form.details_text,
+        visit_editorial_blocks: normalizeEditorialBlocks(editorialBlocks),
         sort_order: form.sort_order,
         is_active: form.is_active,
       };
@@ -511,6 +637,40 @@ function VisitEditorPanel({ selected, selectedType, onSaved, onForceLogout, isTe
     }
   };
 
+  const addEditorialBlock = (type) => {
+    const blockId = `${type}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+    if (type === 'heading') {
+      setEditorialBlocks((prev) => [...prev, { id: blockId, type: 'heading', level: 3, text: 'Intertitre' }]);
+      return;
+    }
+    if (type === 'image') {
+      setEditorialBlocks((prev) => [...prev, { id: blockId, type: 'image', media_ids: [], layout: 'single', size: 'md', align: 'center', caption: '' }]);
+      return;
+    }
+    setEditorialBlocks((prev) => [...prev, { id: blockId, type: 'paragraph', markdown: '' }]);
+  };
+
+  const updateEditorialBlock = (id, patch) => {
+    setEditorialBlocks((prev) => prev.map((b) => (b.id === id ? { ...b, ...patch } : b)));
+  };
+
+  const moveEditorialBlock = (id, delta) => {
+    setEditorialBlocks((prev) => {
+      const from = prev.findIndex((b) => b.id === id);
+      if (from < 0) return prev;
+      const to = Math.max(0, Math.min(prev.length - 1, from + delta));
+      if (to === from) return prev;
+      const next = [...prev];
+      const [removed] = next.splice(from, 1);
+      next.splice(to, 0, removed);
+      return next;
+    });
+  };
+
+  const removeEditorialBlock = (id) => {
+    setEditorialBlocks((prev) => prev.filter((b) => b.id !== id));
+  };
+
   return (
     <div className="visit-editor" data-testid="visit-editor-panel">
       <h4>🎛️ Édition visite ({roleTerms.teacherShort})</h4>
@@ -533,6 +693,84 @@ function VisitEditorPanel({ selected, selectedType, onSaved, onForceLogout, isTe
       <div className="field">
         <label>Détails dépliables</label>
         <MarkdownTextarea rows={4} value={form.details_text} onChange={(e) => setForm((f) => ({ ...f, details_text: e.target.value }))} />
+      </div>
+      <div className="visit-editorial-builder">
+        <h5>Mise en page éditoriale</h5>
+        <p className="section-sub">Ajoute des blocs texte/image, puis réordonne-les pour placer les images où tu veux.</p>
+        <div className="visit-editorial-builder__actions">
+          <button type="button" className="btn btn-ghost btn-sm" onClick={() => addEditorialBlock('paragraph')}>+ Paragraphe</button>
+          <button type="button" className="btn btn-ghost btn-sm" onClick={() => addEditorialBlock('heading')}>+ Intertitre</button>
+          <button type="button" className="btn btn-ghost btn-sm" onClick={() => addEditorialBlock('image')}>+ Bloc image</button>
+        </div>
+        <div className="visit-editorial-builder__list">
+          {editorialBlocks.map((block, index) => (
+            <div key={block.id} className="visit-editorial-builder__item">
+              <div className="visit-editorial-builder__head">
+                <strong>{block.type === 'paragraph' ? 'Paragraphe' : block.type === 'heading' ? 'Intertitre' : 'Image(s)'}</strong>
+                <div className="visit-editorial-builder__head-actions">
+                  <button type="button" className="btn btn-ghost btn-sm" onClick={() => moveEditorialBlock(block.id, -1)} disabled={index === 0}>↑</button>
+                  <button type="button" className="btn btn-ghost btn-sm" onClick={() => moveEditorialBlock(block.id, 1)} disabled={index === editorialBlocks.length - 1}>↓</button>
+                  <button type="button" className="btn btn-danger btn-sm" onClick={() => removeEditorialBlock(block.id)}>Suppr.</button>
+                </div>
+              </div>
+              {block.type === 'paragraph' ? (
+                <MarkdownTextarea
+                  rows={3}
+                  value={block.markdown || ''}
+                  onChange={(e) => updateEditorialBlock(block.id, { markdown: e.target.value })}
+                  placeholder="Texte (Markdown léger)"
+                />
+              ) : null}
+              {block.type === 'heading' ? (
+                <div className="visit-editorial-builder__heading">
+                  <input
+                    value={block.text || ''}
+                    onChange={(e) => updateEditorialBlock(block.id, { text: e.target.value })}
+                    placeholder="Titre de section"
+                  />
+                </div>
+              ) : null}
+              {block.type === 'image' ? (
+                <div className="visit-editorial-builder__image">
+                  <label>Images du bloc (1 ou 2)</label>
+                  <select
+                    multiple
+                    value={(block.media_ids || []).map(String)}
+                    onChange={(e) => {
+                      const ids = Array.from(e.target.selectedOptions).map((opt) => Number(opt.value)).filter((n) => Number.isFinite(n)).slice(0, 2);
+                      updateEditorialBlock(block.id, {
+                        media_ids: ids,
+                        layout: ids.length > 1 ? (block.layout === 'single' ? 'single' : 'duo') : 'single',
+                      });
+                    }}
+                  >
+                    {sortedVisitMedia.map((media) => (
+                      <option key={media.id} value={String(media.id)}>
+                        #{media.id} {media.caption || media.image_url || 'photo'}
+                      </option>
+                    ))}
+                  </select>
+                  <div className="visit-editorial-builder__image-meta">
+                    <select value={block.layout || 'single'} onChange={(e) => updateEditorialBlock(block.id, { layout: e.target.value })}>
+                      <option value="single">1 colonne</option>
+                      <option value="duo">2 colonnes</option>
+                    </select>
+                    <select value={block.size || 'md'} onChange={(e) => updateEditorialBlock(block.id, { size: e.target.value })}>
+                      <option value="sm">Compact</option>
+                      <option value="md">Normal</option>
+                      <option value="lg">Large</option>
+                    </select>
+                  </div>
+                  <input
+                    value={block.caption || ''}
+                    onChange={(e) => updateEditorialBlock(block.id, { caption: e.target.value })}
+                    placeholder="Légende du bloc (optionnel)"
+                  />
+                </div>
+              ) : null}
+            </div>
+          ))}
+        </div>
       </div>
       <div className="row">
         <div className="field">
@@ -702,6 +940,9 @@ function VisitView({
   catalogTutorials = [],
   plants = [],
   onOpenPlantCatalogPreview = null,
+  profileVisitMascotId = null,
+  requireGuestMascotChoice = false,
+  onGuestMascotChoiceDone = null,
 }) {
   const contextCommentsEnabled = publicSettings?.modules?.context_comments_enabled !== false;
   const configuredLocationEmojis = String(
@@ -714,6 +955,18 @@ function VisitView({
     [configuredLocationEmojis]
   );
   const roleTerms = getRoleTerms(isN3Affiliated);
+  const visitMascotAllowedIds = useMemo(() => {
+    const raw = publicSettings?.visit?.mascot?.allowed_ids;
+    if (Array.isArray(raw)) return raw.map((id) => String(id || '').trim()).filter(Boolean);
+    if (typeof raw === 'string') {
+      return raw
+        .split(/[,\n;]+/g)
+        .map((id) => String(id || '').trim())
+        .filter(Boolean);
+    }
+    return [];
+  }, [publicSettings?.visit?.mascot?.allowed_ids]);
+  const visitMascotDefaultId = String(publicSettings?.visit?.mascot?.default_id || '').trim() || 'renard2-cut-spritesheet';
   const visitTitle = getContentText(publicSettings, 'visit.title', '🧭 Visite de la carte');
   const visitEmptySelection = getContentText(publicSettings, 'visit.empty_selection', 'Sélectionne une zone ou un repère pour afficher les détails.');
   const visitTutorialsTitle = getContentText(publicSettings, 'visit.tutorials_title', '📘 Tutoriels de la visite');
@@ -793,6 +1046,7 @@ function VisitView({
   const visitMascotStartPlacedForMapRef = useRef(null);
   const { isHelpEnabled, hasSeenSection, markSectionSeen, trackPanelOpen, trackPanelDismiss } = useHelp({ publicSettings, isTeacher });
   const isGuestPublicVisit = !student && typeof onBackToAuth === 'function';
+  const [guestMascotChoiceOpen, setGuestMascotChoiceOpen] = useState(() => isGuestPublicVisit && requireGuestMascotChoice);
   const closeVisitSelection = useCallback(() => {
     if (visitDetailPanelAfterMoveTimeoutRef.current) {
       clearTimeout(visitDetailPanelAfterMoveTimeoutRef.current);
@@ -819,11 +1073,20 @@ function VisitView({
     walking: visitMapMascotWalking,
     happy: visitMapMascotHappy,
     extraCatalogEntries: visitMascotCatalogExtras,
+    preferredMascotId: profileVisitMascotId,
+    allowedMascotIds: visitMascotAllowedIds,
+    defaultMascotId: visitMascotDefaultId,
   });
+
+  useEffect(() => {
+    setGuestMascotChoiceOpen(isGuestPublicVisit && requireGuestMascotChoice);
+  }, [isGuestPublicVisit, requireGuestMascotChoice]);
 
   const visitDetailPanelTitleId = useId();
   const VISIT_IMMERSION_LS_KEY = 'foretmap_visit_immersion';
   const VISIT_TEACHER_PREVIEW_LS_KEY = 'foretmap_visit_teacher_preview_student';
+  const VISIT_COMFORTABLE_READING_LS_KEY = 'foretmap_visit_comfortable_reading';
+  const VISIT_READING_TONE_LS_KEY = 'foretmap_visit_reading_tone';
 
   const [visitImmersion, setVisitImmersion] = useState(() => {
     return safeLocalStorageGetItem(VISIT_IMMERSION_LS_KEY, null) === '1';
@@ -831,6 +1094,14 @@ function VisitView({
   const [teacherPreviewAsStudent, setTeacherPreviewAsStudent] = useState(() => {
     if (!isTeacher) return false;
     return safeLocalStorageGetItem(VISIT_TEACHER_PREVIEW_LS_KEY, null) === '1';
+  });
+  const [comfortableReading, setComfortableReading] = useState(() => {
+    return safeLocalStorageGetItem(VISIT_COMFORTABLE_READING_LS_KEY, null) === '1';
+  });
+  const [readingTone, setReadingTone] = useState(() => {
+    const saved = String(safeLocalStorageGetItem(VISIT_READING_TONE_LS_KEY, 'paper') || 'paper').trim();
+    if (saved === 'nature' || saved === 'soft-contrast') return saved;
+    return 'paper';
   });
 
   useEffect(() => {
@@ -845,6 +1116,14 @@ function VisitView({
     if (!isTeacher) return;
     safeLocalStorageSetItem(VISIT_TEACHER_PREVIEW_LS_KEY, teacherPreviewAsStudent ? '1' : '0');
   }, [isTeacher, teacherPreviewAsStudent]);
+
+  useEffect(() => {
+    safeLocalStorageSetItem(VISIT_COMFORTABLE_READING_LS_KEY, comfortableReading ? '1' : '0');
+  }, [comfortableReading]);
+
+  useEffect(() => {
+    safeLocalStorageSetItem(VISIT_READING_TONE_LS_KEY, readingTone);
+  }, [readingTone]);
 
   /** Tutoriels sous la carte : réservés au prof en édition (pas invité, pas élève, pas aperçu élève). */
   const showVisitMapTutorialsSection = isTeacher && !teacherPreviewAsStudent;
@@ -1743,6 +2022,8 @@ function VisitView({
   };
 
   const selectedVisitMedia = selected ? (selected.visit_media || []) : [];
+  const selectedEditorialBlocks = normalizeEditorialBlocks(selected?.visit_editorial_blocks || []);
+  const hasEditorialBlocks = selectedEditorialBlocks.length > 0;
   const firstVisitPhoto = selectedVisitMedia[0] || null;
   const restVisitPhotos = selectedVisitMedia.slice(1);
   const mapExtraPhotos = selected && Array.isArray(selected.map_extra_photos) ? selected.map_extra_photos : [];
@@ -1941,6 +2222,57 @@ function VisitView({
           caption={visitMediaLightbox.caption}
           onClose={() => setVisitMediaLightbox(null)}
         />
+      )}
+      {guestMascotChoiceOpen && (
+        <div className="visit-mascot-onboarding" role="dialog" aria-modal="true" aria-label="Choix de la mascotte">
+          <div className="visit-mascot-onboarding__card">
+            <p className="visit-mascot-onboarding__eyebrow">Bienvenue dans la visite</p>
+            <h3>Choisis ta mascotte guide</h3>
+            <p>
+              Avant de commencer, sélectionne ton compagnon de balade. Tu pourras le changer plus tard pendant la visite.
+            </p>
+            <div className="visit-mascot-onboarding__grid" role="list">
+              {visitMascotOptions.map((mascot) => {
+                const isActive = visitMascotId === mascot.id;
+                return (
+                  <button
+                    key={mascot.id}
+                    type="button"
+                    role="listitem"
+                    className={`visit-mascot-onboarding__option${isActive ? ' is-active' : ''}`}
+                    onClick={() => onChangeVisitMascotId(mascot.id)}
+                    aria-pressed={isActive}
+                  >
+                    <span className="visit-mascot-onboarding__preview" aria-hidden="true">
+                      <VisitMapMascotRenderer
+                        mascotId={mascot.id}
+                        state={VISIT_MASCOT_STATE.IDLE}
+                        extraCatalogEntries={visitMascotCatalogExtras}
+                      />
+                    </span>
+                    <span className="visit-mascot-onboarding__label">{mascot.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+            <div className="visit-mascot-onboarding__actions">
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={() => {
+                  setGuestMascotChoiceOpen(false);
+                  onGuestMascotChoiceDone?.();
+                }}
+                disabled={visitMascotOptions.length === 0}
+              >
+                Commencer la visite
+              </button>
+              {!visitMascotOptions.length ? (
+                <span className="section-sub">Aucune mascotte disponible pour l’instant.</span>
+              ) : null}
+            </div>
+          </div>
+        </div>
       )}
       <div className="visit-grid visit-grid--map-forward">
         <div className="visit-map-card">
@@ -2356,13 +2688,51 @@ function VisitView({
           aria-modal="true"
           aria-labelledby={visitDetailPanelTitleId}
           data-testid="visit-detail-panel"
-          className="visit-detail-panel"
+          className={`visit-detail-panel${comfortableReading ? ' visit-detail-panel--comfortable' : ''} visit-detail-panel--tone-${readingTone}`}
         >
           <div className="visit-detail-panel__handle" aria-hidden="true" />
           <div className="visit-detail-panel__head">
             <h3 id={visitDetailPanelTitleId} className="visit-detail-panel__title">
               {selectedType === 'zone' ? selected.name : selected.label}
             </h3>
+            <button
+              type="button"
+              className={`btn btn-ghost btn-sm ${comfortableReading ? 'is-active' : ''}`}
+              aria-pressed={comfortableReading}
+              title="Basculer le mode lecture confortable"
+              onClick={() => setComfortableReading((v) => !v)}
+            >
+              Aa
+            </button>
+            <div className="visit-reading-tone-switch" role="group" aria-label="Ambiance de lecture">
+              <button
+                type="button"
+                className={`btn btn-ghost btn-sm ${readingTone === 'nature' ? 'is-active' : ''}`}
+                aria-pressed={readingTone === 'nature'}
+                onClick={() => setReadingTone('nature')}
+                title="Ambiance nature"
+              >
+                Nature
+              </button>
+              <button
+                type="button"
+                className={`btn btn-ghost btn-sm ${readingTone === 'paper' ? 'is-active' : ''}`}
+                aria-pressed={readingTone === 'paper'}
+                onClick={() => setReadingTone('paper')}
+                title="Ambiance papier"
+              >
+                Papier
+              </button>
+              <button
+                type="button"
+                className={`btn btn-ghost btn-sm ${readingTone === 'soft-contrast' ? 'is-active' : ''}`}
+                aria-pressed={readingTone === 'soft-contrast'}
+                onClick={() => setReadingTone('soft-contrast')}
+                title="Ambiance contraste doux"
+              >
+                Doux
+              </button>
+            </div>
             <button type="button" className="btn btn-ghost btn-sm" onClick={closeVisitSelection}>
               Fermer
             </button>
@@ -2380,41 +2750,51 @@ function VisitView({
                   />
                 </div>
               )}
-              {selected.visit_short_description && <MarkdownContent>{selected.visit_short_description}</MarkdownContent>}
-              {firstVisitPhoto && (
-                <div className="visit-media-gallery visit-media-gallery--lead">
-                  <VisitMediaGalleryThumb media={firstVisitPhoto} onOpenLightbox={setVisitMediaLightbox} />
-                </div>
-              )}
-              {showVisitDetailsBlock && (
-                <details className="visit-details">
-                  <summary>{selected.visit_details_title || 'Détails'}</summary>
-                  {(restVisitPhotos.length > 0 || mapExtraPhotos.length > 0) && (
-                    <div className="visit-media-gallery visit-media-gallery--details-extra">
-                      {restVisitPhotos.map((m) => (
-                        <VisitMediaGalleryThumb key={m.id} media={m} onOpenLightbox={setVisitMediaLightbox} />
-                      ))}
-                      {mapExtraPhotos.map((ph) => (
-                        <VisitMediaGalleryThumb
-                          key={`map-extra-${ph.id}`}
-                          media={{ image_url: ph.image_url, thumb_url: ph.thumb_url, caption: ph.caption }}
-                          onOpenLightbox={setVisitMediaLightbox}
-                        />
-                      ))}
+              {hasEditorialBlocks ? (
+                <VisitEditorialRenderer
+                  blocks={selectedEditorialBlocks}
+                  selectedVisitMedia={selectedVisitMedia}
+                  onOpenLightbox={setVisitMediaLightbox}
+                />
+              ) : (
+                <>
+                  {selected.visit_short_description && <MarkdownContent>{selected.visit_short_description}</MarkdownContent>}
+                  {firstVisitPhoto && (
+                    <div className="visit-media-gallery visit-media-gallery--lead">
+                      <VisitMediaGalleryThumb media={firstVisitPhoto} onOpenLightbox={setVisitMediaLightbox} />
                     </div>
                   )}
-                  {visitDetailsTextTrim ? <MarkdownContent className="visit-details__body">{selected.visit_details_text}</MarkdownContent> : null}
-                </details>
+                  {showVisitDetailsBlock && (
+                    <details className="visit-details">
+                      <summary>{selected.visit_details_title || 'Détails'}</summary>
+                      {(restVisitPhotos.length > 0 || mapExtraPhotos.length > 0) && (
+                        <div className="visit-media-gallery visit-media-gallery--details-extra">
+                          {restVisitPhotos.map((m) => (
+                            <VisitMediaGalleryThumb key={m.id} media={m} onOpenLightbox={setVisitMediaLightbox} />
+                          ))}
+                          {mapExtraPhotos.map((ph) => (
+                            <VisitMediaGalleryThumb
+                              key={`map-extra-${ph.id}`}
+                              media={{ image_url: ph.image_url, thumb_url: ph.thumb_url, caption: ph.caption }}
+                              onOpenLightbox={setVisitMediaLightbox}
+                            />
+                          ))}
+                        </div>
+                      )}
+                      {visitDetailsTextTrim ? <MarkdownContent className="visit-details__body">{selected.visit_details_text}</MarkdownContent> : null}
+                    </details>
+                  )}
+                </>
               )}
               {visitLocationAside.showBiodiversity && (
                 <details className="visit-details">
                   <summary>Biodiversité</summary>
-                  <div style={{ marginTop: 8 }}>
+                  <div className="visit-details__section">
                     {visitLocationAside.primaryLivingNames.length > 0 && (
-                      <div style={{ marginBottom: visitLocationAside.livingBeingsOnlyOnTasks.length ? 14 : 0 }}>
+                      <div className={`visit-details__subsection${visitLocationAside.livingBeingsOnlyOnTasks.length ? ' visit-details__subsection--with-gap' : ''}`}>
                         {(visitLocationAside.primaryLivingNames.length > 1
                           || visitLocationAside.livingBeingsOnlyOnTasks.length > 0) ? (
-                          <h4 style={{ margin: '0 0 8px', fontSize: '.82rem', color: 'var(--forest)' }}>
+                          <h4 className="visit-details__h4">
                             {visitLocationAside.locationKind === 'zone' ? 'Sur cette zone' : 'Sur ce repère'}
                           </h4>
                           ) : null}
@@ -2436,7 +2816,7 @@ function VisitView({
                     )}
                     {visitLocationAside.livingBeingsOnlyOnTasks.length > 0 && (
                       <div>
-                        <h4 style={{ margin: '0 0 8px', fontSize: '.82rem', color: 'var(--forest)' }}>
+                        <h4 className="visit-details__h4">
                           Également dans les missions
                         </h4>
                         {onOpenPlantCatalogPreview ? (
@@ -2462,7 +2842,7 @@ function VisitView({
               {visitLocationAside.showTutos && (
                 <details className="visit-details">
                   <summary>Tuto</summary>
-                  <div style={{ marginTop: 8 }}>
+                  <div className="visit-details__section">
                     <LocationTutorialPreviewList
                       tutorials={visitLocationAside.tutorialListForPreview}
                       locationKind={visitLocationAside.locationKind}

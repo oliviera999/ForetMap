@@ -26,7 +26,7 @@ const {
   setPrimaryRole,
   verifyRolePin,
 } = require('../lib/rbac');
-const { getSettingValue } = require('../lib/settings');
+const { getSettingValue, getVisitMascotSettings } = require('../lib/settings');
 const {
   countStudentActiveTaskAssignments,
   getEffectiveMaxActiveTaskAssignments,
@@ -195,6 +195,12 @@ function validateProfileInput({ pseudo, email, description }) {
     return `Description trop longue (max ${MAX_DESCRIPTION_LEN} caractères)`;
   }
   return null;
+}
+
+function normalizeVisitMascotPreference(value) {
+  if (value == null) return null;
+  const s = String(value).trim();
+  return s.length > 0 ? s : null;
 }
 
 function hashResetToken(token) {
@@ -430,9 +436,10 @@ router.patch('/me/profile', requireAuth, async (req, res) => {
       || Object.prototype.hasOwnProperty.call(body, 'mail');
     const hasDescription = Object.prototype.hasOwnProperty.call(body, 'description');
     const hasAffiliation = Object.prototype.hasOwnProperty.call(body, 'affiliation');
+    const hasVisitMascotCatalogId = Object.prototype.hasOwnProperty.call(body, 'visit_mascot_catalog_id');
     const hasAvatarData = Object.prototype.hasOwnProperty.call(body, 'avatarData');
     const removeAvatar = !!body.removeAvatar;
-    if (!hasPseudo && !hasEmail && !hasDescription && !hasAffiliation && !hasAvatarData && !removeAvatar) {
+    if (!hasPseudo && !hasEmail && !hasDescription && !hasAffiliation && !hasVisitMascotCatalogId && !hasAvatarData && !removeAvatar) {
       return res.status(400).json({ error: 'Aucun champ de profil à mettre à jour' });
     }
 
@@ -446,6 +453,15 @@ router.patch('/me/profile', requireAuth, async (req, res) => {
       affiliation = affRes.affiliation;
     } else {
       affiliation = account.affiliation || 'both';
+    }
+    let visitMascotCatalogId = hasVisitMascotCatalogId
+      ? normalizeVisitMascotPreference(body.visit_mascot_catalog_id)
+      : normalizeVisitMascotPreference(account.visit_mascot_catalog_id);
+    if (hasVisitMascotCatalogId && visitMascotCatalogId) {
+      const { allowedIds } = await getVisitMascotSettings();
+      if (!allowedIds.includes(visitMascotCatalogId)) {
+        return res.status(400).json({ error: 'Mascotte indisponible pour la visite' });
+      }
     }
     let avatarPath = account.avatar_path || null;
 
@@ -485,9 +501,9 @@ router.patch('/me/profile', requireAuth, async (req, res) => {
     try {
       await execute(
         `UPDATE users
-            SET pseudo = ?, email = ?, description = ?, affiliation = ?, avatar_path = ?, updated_at = NOW()
+            SET pseudo = ?, email = ?, description = ?, affiliation = ?, visit_mascot_catalog_id = ?, avatar_path = ?, updated_at = NOW()
           WHERE id = ?`,
-        [pseudo, email, description, affiliation, avatarPath, account.id]
+        [pseudo, email, description, affiliation, visitMascotCatalogId, avatarPath, account.id]
       );
     } catch (err) {
       if (err && (err.errno === 1062 || err.code === 'ER_DUP_ENTRY')) {
@@ -501,7 +517,14 @@ router.patch('/me/profile', requireAuth, async (req, res) => {
       req,
       actorUserType: account.user_type,
       actorUserId: account.id,
-      payload: { pseudo: !!hasPseudo, email: !!hasEmail, description: !!hasDescription, affiliation: !!hasAffiliation, avatar: !!(hasAvatarData || removeAvatar) },
+      payload: {
+        pseudo: !!hasPseudo,
+        email: !!hasEmail,
+        description: !!hasDescription,
+        affiliation: !!hasAffiliation,
+        visit_mascot_catalog_id: !!hasVisitMascotCatalogId,
+        avatar: !!(hasAvatarData || removeAvatar),
+      },
     });
     if (String(account.user_type || '').toLowerCase() === 'student') {
       emitStudentsChanged({ reason: 'student_profile_update', studentId: account.id });

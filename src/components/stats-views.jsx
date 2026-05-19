@@ -7,6 +7,7 @@ import { StudentAvatar } from './student-avatar';
 import { compressImage } from '../utils/image';
 import { buildAffiliationSelectOptions } from '../utils/affiliationSelectOptions';
 import { MarkdownTextarea } from './MarkdownTextarea.jsx';
+import { getVisitMascotCatalog } from '../utils/visitMascotCatalog.js';
 
 function Toast({ msg, onDone }) {
   useEffect(() => { const t = setTimeout(onDone, 2400); return () => clearTimeout(t); }, []);
@@ -178,7 +179,7 @@ function StudentStats({ student, isN3Affiliated = false }) {
   );
 }
 
-function StudentProfileEditor({ student, onUpdated, onClose, isN3Affiliated = false, maps = [] }) {
+function StudentProfileEditor({ student, onUpdated, onClose, isN3Affiliated = false, maps = [], publicSettings = null }) {
   const roleTerms = getRoleTerms(isN3Affiliated);
   const fallbackDisplayName = String(student?.display_name || student?.displayName || student?.email || 'Utilisateur').trim();
   const displayFirstName = String(student?.first_name || '').trim() || fallbackDisplayName;
@@ -198,12 +199,22 @@ function StudentProfileEditor({ student, onUpdated, onClose, isN3Affiliated = fa
   const [email, setEmail] = useState(student?.email || '');
   const [description, setDescription] = useState(student?.description || '');
   const [affiliation, setAffiliation] = useState(student?.affiliation || 'both');
+  const [visitMascotCatalogId, setVisitMascotCatalogId] = useState(student?.visit_mascot_catalog_id || '');
   const affiliationSelectOptions = useMemo(() => {
     const base = buildAffiliationSelectOptions(maps);
     const a = String(affiliation || student?.affiliation || 'both').toLowerCase();
     if (base.some((o) => o.value === a)) return base;
     return [...base, { value: a, label: `${a} (valeur en base)` }];
   }, [maps, affiliation, student?.affiliation]);
+  const visitMascotOptions = useMemo(() => {
+    const allowedRaw = publicSettings?.visit?.mascot?.allowed_ids;
+    const allowedIds = Array.isArray(allowedRaw)
+      ? allowedRaw.map((id) => String(id || '').trim()).filter(Boolean)
+      : [];
+    const base = getVisitMascotCatalog();
+    if (!allowedIds.length) return base;
+    return base.filter((m) => allowedIds.includes(String(m?.id || '').trim()));
+  }, [publicSettings?.visit?.mascot?.allowed_ids]);
   const [avatarPreview, setAvatarPreview] = useState(getStudentAvatarUrl(student));
   const [avatarData, setAvatarData] = useState(null);
   const [removeAvatar, setRemoveAvatar] = useState(false);
@@ -268,6 +279,7 @@ function StudentProfileEditor({ student, onUpdated, onClose, isN3Affiliated = fa
         email: email.trim() || null,
         description: description.trim() || null,
         affiliation,
+        visit_mascot_catalog_id: visitMascotCatalogId || null,
         currentPassword,
       };
       if (avatarData) payload.avatarData = avatarData;
@@ -283,6 +295,7 @@ function StudentProfileEditor({ student, onUpdated, onClose, isN3Affiliated = fa
       setEmail(updated?.email || '');
       setDescription(updated?.description || '');
       setAffiliation(updated?.affiliation || 'both');
+      setVisitMascotCatalogId(updated?.visit_mascot_catalog_id || '');
       setCurrentPassword('');
       setAvatarData(null);
       setRemoveAvatar(false);
@@ -394,6 +407,15 @@ function StudentProfileEditor({ student, onUpdated, onClose, isN3Affiliated = fa
         <select value={affiliation} onChange={e => setAffiliation(e.target.value)}>
           {affiliationSelectOptions.map((o) => (
             <option key={o.value} value={o.value}>{o.label}</option>
+          ))}
+        </select>
+      </div>
+      <div className="field">
+        <label>Mascotte préférée (visite)</label>
+        <select value={visitMascotCatalogId} onChange={(e) => setVisitMascotCatalogId(e.target.value)}>
+          <option value="">Défaut global du site</option>
+          {visitMascotOptions.map((m) => (
+            <option key={m.id} value={m.id}>{m.label}</option>
           ))}
         </select>
       </div>
