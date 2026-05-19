@@ -965,7 +965,11 @@ router.get('/mascot-packs', requirePermission('visit.manage', { needsElevation: 
        ORDER BY updated_at DESC, id ASC`,
       [mapId]
     );
-    res.json({ map_id: mapId, packs: rows.map(serializeVisitMascotPackRow) });
+    res.json({
+      map_id: mapId,
+      packs: rows.map(serializeVisitMascotPackRow),
+      allowed_catalog_ids: listVisitMascotCatalogTemplateIds(),
+    });
   } catch (err) {
     logRouteError(err, req);
     const mapped = mapVisitMascotPackSqlError(err);

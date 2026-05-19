@@ -4193,9 +4193,14 @@
       gap:6px;
     }
     .visit-editorial-image .visit-media-gallery {
-      grid-template-columns:1fr;
+      grid-template-columns:repeat(auto-fit, minmax(min(220px, 100%), 1fr));
     }
-    .visit-editorial-image--duo .visit-media-gallery {
+    .visit-editorial-image--single .visit-media-gallery {
+      grid-template-columns:1fr;
+      max-width:min(680px, 100%);
+      margin-inline:auto;
+    }
+    .visit-editorial-image--multi .visit-media-gallery {
       grid-template-columns:repeat(2, minmax(0, 1fr));
     }
     .visit-editorial-image--sm .visit-media-gallery img { height:120px; }
@@ -4208,11 +4213,22 @@
       text-align:center;
     }
     @media (max-width: 700px) {
-      .visit-editorial-image--duo .visit-media-gallery {
+      .visit-editorial-image--multi .visit-media-gallery {
         grid-template-columns:1fr;
       }
       .visit-editorial-image--md .visit-media-gallery img {
         height:190px;
+      }
+    }
+    @media (min-width: 701px) and (max-width: 1024px) {
+      .visit-editorial-image--multi .visit-media-gallery {
+        grid-template-columns:repeat(2, minmax(0, 1fr));
+      }
+      .visit-editorial-image--md .visit-media-gallery img {
+        height:180px;
+      }
+      .visit-editorial-image--lg .visit-media-gallery img {
+        height:clamp(220px, 30dvh, 320px);
       }
     }
     .visit-details__section {
@@ -4246,6 +4262,36 @@
     }
     .visit-media-row--reorder:active {
       cursor: grabbing;
+    }
+    .visit-media-import-from-map {
+      margin:8px 0 10px;
+      border:1px solid #d5e6da;
+      border-radius:8px;
+      background:#f7fbf8;
+      padding:8px;
+      display:grid;
+      gap:6px;
+    }
+    .visit-media-import-from-map h6 {
+      margin:0;
+      color:var(--forest);
+      font-size:.8rem;
+    }
+    .visit-media-import-from-map__list {
+      display:grid;
+      gap:6px;
+    }
+    .visit-media-import-from-map__item {
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:8px;
+      font-size:.78rem;
+      color:#3f554b;
+      padding:6px 8px;
+      border-radius:6px;
+      background:#fff;
+      border:1px solid rgba(0,0,0,.06);
     }
     .visit-editorial-builder {
       margin-top:4px;

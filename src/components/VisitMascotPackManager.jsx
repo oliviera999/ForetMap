@@ -236,12 +236,26 @@ export default function VisitMascotPackManager({
   const [globalAssetsMessage, setGlobalAssetsMessage] = useState('');
   const [globalAssetSearch, setGlobalAssetSearch] = useState('');
   const [globalTargetState, setGlobalTargetState] = useState('idle');
+  const [catalogModelIds, setCatalogModelIds] = useState(() => (
+    getVisitMascotCatalog().map((m) => String(m?.id || '').trim()).filter(Boolean)
+  ));
   const catalogModelOptions = useMemo(
-    () => getVisitMascotCatalog().map((m) => ({ id: String(m.id || ''), label: String(m.label || m.id || '') })).filter((m) => m.id),
-    []
+    () => {
+      const labelById = new Map(
+        getVisitMascotCatalog()
+          .map((m) => ({ id: String(m?.id || '').trim(), label: String(m?.label || m?.id || '').trim() }))
+          .filter((m) => m.id)
+          .map((m) => [m.id, m.label || m.id]),
+      );
+      return catalogModelIds
+        .map((id) => String(id || '').trim())
+        .filter(Boolean)
+        .map((id) => ({ id, label: labelById.get(id) || id }));
+    },
+    [catalogModelIds]
   );
   const [selectedCatalogModelId, setSelectedCatalogModelId] = useState(() => (
-    getVisitMascotCatalog()[0]?.id || 'renard2-cut-spritesheet'
+    getVisitMascotCatalog()[0]?.id || ''
   ));
 
   const mapTitle = useMemo(() => String(mapLabel || mapId || '').trim() || mapId, [mapLabel, mapId]);
@@ -254,6 +268,12 @@ export default function VisitMascotPackManager({
     try {
       const res = await api(`/api/visit/mascot-packs?map_id=${encodeURIComponent(mid)}`);
       const list = Array.isArray(res?.packs) ? res.packs : [];
+      const allowedCatalogIds = Array.isArray(res?.allowed_catalog_ids)
+        ? res.allowed_catalog_ids.map((id) => String(id || '').trim()).filter(Boolean)
+        : [];
+      if (allowedCatalogIds.length > 0) {
+        setCatalogModelIds(allowedCatalogIds);
+      }
       setPacks(list);
       setSelectedId((prev) => {
         if (prev && list.some((p) => p.id === prev)) return prev;
@@ -267,6 +287,15 @@ export default function VisitMascotPackManager({
       setLoading(false);
     }
   }, [mapId, onForceLogout]);
+
+  useEffect(() => {
+    if (!catalogModelOptions.length) {
+      setSelectedCatalogModelId('');
+      return;
+    }
+    if (catalogModelOptions.some((opt) => opt.id === selectedCatalogModelId)) return;
+    setSelectedCatalogModelId(catalogModelOptions[0].id);
+  }, [catalogModelOptions, selectedCatalogModelId]);
 
   const loadLibrary = useCallback(async () => {
     const mid = String(mapId || '').trim();
@@ -360,7 +389,13 @@ export default function VisitMascotPackManager({
       await onRefresh();
     } catch (e) {
       if (e instanceof AccountDeletedError) onForceLogout?.();
-      else setActionError(e.message || 'Création impossible');
+      else {
+        if (Array.isArray(e?.allowed_catalog_ids)) {
+          const ids = e.allowed_catalog_ids.map((id) => String(id || '').trim()).filter(Boolean);
+          if (ids.length > 0) setCatalogModelIds(ids);
+        }
+        setActionError(e.message || 'Création impossible');
+      }
     } finally {
       setActionBusy(false);
     }
@@ -629,21 +664,25 @@ export default function VisitMascotPackManager({
           >
             Nouveau brouillon
           </button>
-          <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-            <span className="section-sub" style={{ fontSize: '0.78rem' }}>Modèle</span>
-            <select
-              className="form-select"
-              value={selectedCatalogModelId}
-              onChange={(e) => setSelectedCatalogModelId(e.target.value)}
-              style={{ minWidth: 190 }}
-              disabled={actionBusy}
-              aria-label="Choisir une mascotte catalogue comme modèle"
-            >
+          <div style={{ width: '100%' }}>
+            <p className="section-sub" style={{ fontSize: '0.78rem', margin: '4px 0 6px' }}>Modèle de base</p>
+            <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'grid', gap: 6, maxHeight: 140, overflowY: 'auto' }}>
               {catalogModelOptions.map((opt) => (
-                <option key={opt.id} value={opt.id}>{opt.label}</option>
+                <li key={opt.id}>
+                  <button
+                    type="button"
+                    className={`btn btn-sm ${selectedCatalogModelId === opt.id ? 'btn-primary' : 'btn-ghost'}`}
+                    style={{ width: '100%', textAlign: 'left', justifyContent: 'flex-start' }}
+                    aria-pressed={selectedCatalogModelId === opt.id}
+                    onClick={() => setSelectedCatalogModelId(opt.id)}
+                    disabled={actionBusy}
+                  >
+                    {opt.label}
+                  </button>
+                </li>
               ))}
-            </select>
-          </label>
+            </ul>
+          </div>
           <button
             type="button"
             className="btn btn-secondary btn-sm"
