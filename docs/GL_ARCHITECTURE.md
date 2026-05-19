@@ -42,7 +42,27 @@ Ajouts phase post-fondation :
 - `GET /api/gl/admin/content` : listing éditorial (slug, titre, mise à jour), réservé `gl.content.manage`.
 - Édition inline des pages `world/rules/spells` via `GLContentPage` (PUT `/api/gl/content/:slug`).
 
+Ajouts Lot 2A (gameplay paramétrable) :
+
+- `GET /api/gl/gameplay-settings` : snapshot des toggles de gameplay (joueur + admin).
+- `POST /api/gl/games/:id/turn/next` : avance le tour cyclique (refus `409` si `gameplay.turns_enabled=false`).
+- `POST /api/gl/games/:id/actions` (joueur) + `POST /api/gl/games/:id/actions/:actionId/resolve` (MJ) : flux d'actions joueurs validées par le MJ.
+- `POST /api/gl/games/:id/events` accepte deux nouveaux types : `narration` (texte diffusé) et `score` (delta + raison, persisté dans `gl_team_scores`).
+
 Les endpoints GL exigent un JWT avec claim `product = "gl"`.
+
+### Gameplay paramétrable (toggles `gl_settings`)
+
+Chaque toggle est une clé dans `gl_settings` (modifiable via `PUT /api/gl/admin/settings/:key`, permission `gl.settings.manage`). Tous **désactivés par défaut** → comportement minimal (déplacement de mascotte uniquement, comme avant Lot 2A).
+
+| Toggle (clé `gl_settings`) | Effet quand `true` |
+|---|---|
+| `gameplay.turns_enabled` | Active la rotation cyclique des équipes (`current_team_id` sur `gl_games`, événement `turn_change`). Les actions joueurs (si activées) ne sont autorisées que pour l'équipe du tour courant. |
+| `gameplay.narration_enabled` | Le MJ peut envoyer un événement `narration` (texte affiché en bandeau temporaire chez les joueurs). |
+| `gameplay.player_actions_enabled` | Les joueurs peuvent soumettre une demande d'action sur un marker via la modale carte ; insérée dans `gl_action_requests` (`status=pending`). |
+| `gameplay.scoring_enabled` | Activation du tableau de scores par équipe (`gl_team_scores`) ; bonus possible à la résolution d'une action acceptée. |
+
+Côté serveur : module `lib/glSettings.js` (cache mémoire 30 s, invalidé à chaque PUT `gameplay.*`). Côté client : `apiGL('/api/gl/gameplay-settings')` au login et au déclenchement de chaque event reçu côté MJ ; UI conditionnelle dans `GLGameMasterConsole` et `GLMapView`.
 
 ## Isolation de sécurité
 
@@ -71,6 +91,11 @@ Tables GL préfixées `gl_` :
   - `gl_team_members`
   - `gl_game_events`
   - `gl_mascot_assignments`
+- Gameplay paramétrable (`migrations/082_gl_gameplay_settings.sql`)
+  - `gl_games.current_team_id` (colonne) — équipe dont c'est le tour
+  - `gl_team_scores` — score cumulé par équipe et par partie
+  - `gl_action_requests` — demandes d'action joueurs (pending / accepted / refused)
+  - Seed des toggles `gameplay.*` dans `gl_settings` (tous `false`)
 
 ## Temps réel
 

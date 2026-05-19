@@ -2,6 +2,7 @@ const express = require('express');
 const bcrypt = require('bcryptjs');
 const { queryAll, queryOne, execute } = require('../../database');
 const { requireGlPermission } = require('../../middleware/requireGlAuth');
+const { invalidateGameplayCache } = require('../../lib/glSettings');
 
 const router = express.Router();
 
@@ -110,6 +111,9 @@ router.put('/settings/:key', requireGlPermission('gl.settings.manage'), async (r
      ON DUPLICATE KEY UPDATE value_json = VALUES(value_json), updated_by = VALUES(updated_by), updated_at = NOW()`,
     [key, JSON.stringify(value), req.glAuth.userId]
   );
+  if (key.startsWith('gameplay.')) {
+    invalidateGameplayCache();
+  }
   return res.json({ ok: true });
 });
 
