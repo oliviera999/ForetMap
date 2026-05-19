@@ -1860,6 +1860,27 @@
     .map-view-toolbar > * {
       flex-shrink:0;
     }
+    .map-switch-inline {
+      max-width:100%;
+      overflow-x:auto;
+      overflow-y:hidden;
+      -webkit-overflow-scrolling:touch;
+      scrollbar-width:none;
+    }
+    .map-switch-inline::-webkit-scrollbar {
+      display:none;
+    }
+    .map-switch-select {
+      min-width:180px;
+      max-width:min(100%, 300px);
+      min-height:34px;
+      border:1px solid var(--mint);
+      border-radius:10px;
+      background:var(--parchment);
+      color:var(--soil);
+      font-weight:700;
+      padding:4px 10px;
+    }
     /* Carte (vue seule ou split) : barre d'outils compacte sur tous les viewports (comme mobile) pour gagner de la hauteur.
        `.map-view-root--solo` en plus de `main--map-visible` : évite un retour au wrap si la classe sur `main` manque un instant. */
     .main.main--map-visible .map-view-toolbar,
@@ -3071,6 +3092,23 @@
       border-radius:12px;
       background:rgba(255,255,255,.55);
       border:1px solid rgba(82,183,136,.2);
+      overflow-x:auto;
+      overflow-y:hidden;
+      -webkit-overflow-scrolling:touch;
+      scrollbar-width:none;
+    }
+    .visit-map-switch::-webkit-scrollbar {
+      display:none;
+    }
+    .visit-map-switch-select {
+      width:min(100%, 360px);
+      min-height:40px;
+      border:1px solid rgba(82,183,136,.45);
+      border-radius:10px;
+      background:#fff;
+      color:var(--soil);
+      font-weight:600;
+      padding:8px 10px;
     }
     .visit-progress {
       display:flex;
@@ -3672,6 +3710,29 @@
       left:0;
       top:0;
       transform-origin:50% 100%;
+    }
+    .map-view-static-mascot {
+      z-index:12;
+    }
+    .map-view-static-mascot .visit-map-mascot-rive-shell,
+    .map-view-static-mascot .visit-map-mascot-spritesheet-shell,
+    .map-view-static-mascot .visit-map-mascot-sprite-cut {
+      width:clamp(44px, 8.6vw, 58px);
+      height:clamp(50px, 9.5vw, 66px);
+    }
+    .map-view-static-mascot--embedded .visit-map-mascot-rive-shell,
+    .map-view-static-mascot--embedded .visit-map-mascot-spritesheet-shell,
+    .map-view-static-mascot--embedded .visit-map-mascot-sprite-cut {
+      width:clamp(40px, 7.2vw, 54px);
+      height:clamp(46px, 8.2vw, 62px);
+    }
+    @media (max-width: 900px) {
+      .map-view-static-mascot .visit-map-mascot-rive-shell,
+      .map-view-static-mascot .visit-map-mascot-spritesheet-shell,
+      .map-view-static-mascot .visit-map-mascot-sprite-cut {
+        width:clamp(38px, 10vw, 50px);
+        height:clamp(42px, 11.2vw, 56px);
+      }
     }
     .visit-map-mascot-rive-shell {
       position:relative;

@@ -12,6 +12,7 @@ const { saveBase64ToDisk, getAbsolutePath, deleteFile } = require('../lib/upload
 const { zoneMapPhotoImageUrl, markerMapPhotoImageUrl, resolveMapPhotoThumbUrl } = require('../lib/uploadsPublicUrls');
 const { visitContentRowIsPublicActive } = require('../lib/visitContentPublicActive');
 const { getMascotPackValidatorCandidates, getMascotPackLibProbe } = require('../lib/mascotPackValidatorResolve');
+const { resolveDefaultMapId } = require('../lib/settings');
 const {
   parseVisitEditorialBlocksInput,
   parseVisitEditorialBlocksStored,
@@ -27,6 +28,12 @@ const TARGET_TYPES = new Set(['zone', 'marker']);
 
 function nowIso() {
   return new Date().toISOString();
+}
+
+async function resolveVisitMapId(rawMapId) {
+  const requested = String(rawMapId || '').trim();
+  if (requested) return requested;
+  return resolveDefaultMapId('visit');
 }
 
 function visitCookieSecret() {
@@ -772,7 +779,7 @@ router.get('/stats', requirePermission('stats.read.all'), async (req, res) => {
 
 router.get('/content', async (req, res) => {
   try {
-    const mapId = String(req.query.map_id || 'foret').trim();
+    const mapId = await resolveVisitMapId(req.query.map_id);
     if (!mapId) return res.status(400).json({ error: 'map_id requis' });
     if (!(await mapExists(mapId))) return res.status(400).json({ error: 'Carte introuvable' });
 
@@ -955,7 +962,7 @@ router.get(
 
 router.get('/mascot-packs', requirePermission('visit.manage', { needsElevation: true }), async (req, res) => {
   try {
-    const mapId = String(req.query.map_id || 'foret').trim();
+    const mapId = await resolveVisitMapId(req.query.map_id);
     if (!mapId) return res.status(400).json({ error: 'map_id requis' });
     if (!(await mapExists(mapId))) return res.status(400).json({ error: 'Carte introuvable' });
     const rows = await queryAll(
@@ -1427,7 +1434,7 @@ router.delete(
 
 router.get('/sync/options', requirePermission('visit.manage', { needsElevation: true }), async (req, res) => {
   try {
-    const mapId = String(req.query.map_id || 'foret').trim();
+    const mapId = await resolveVisitMapId(req.query.map_id);
     if (!mapId) return res.status(400).json({ error: 'map_id requis' });
     if (!(await mapExists(mapId))) return res.status(400).json({ error: 'Carte introuvable' });
 
@@ -1483,7 +1490,7 @@ router.get('/sync/options', requirePermission('visit.manage', { needsElevation: 
 
 router.post('/sync', requirePermission('visit.manage', { needsElevation: true }), async (req, res) => {
   try {
-    const mapId = String(req.body.map_id || 'foret').trim();
+    const mapId = await resolveVisitMapId(req.body.map_id);
     const direction = String(req.body.direction || '').trim();
     if (!mapId) return res.status(400).json({ error: 'map_id requis' });
     if (!(await mapExists(mapId))) return res.status(400).json({ error: 'Carte introuvable' });
@@ -1612,7 +1619,7 @@ router.post('/sync', requirePermission('visit.manage', { needsElevation: true })
  */
 router.post('/rebuild-from-map', requirePermission('visit.manage', { needsElevation: true }), async (req, res) => {
   try {
-    const mapId = String(req.body.map_id || 'foret').trim();
+    const mapId = await resolveVisitMapId(req.body.map_id);
     if (!mapId) return res.status(400).json({ error: 'map_id requis' });
     if (!(await mapExists(mapId))) return res.status(400).json({ error: 'Carte introuvable' });
 
@@ -1898,7 +1905,7 @@ router.post('/seen', authenticate, async (req, res) => {
 
 router.post('/zones', requirePermission('visit.manage', { needsElevation: true }), async (req, res) => {
   try {
-    const mapId = String(req.body.map_id || 'foret').trim();
+    const mapId = await resolveVisitMapId(req.body.map_id);
     const name = String(req.body.name || '').trim();
     const points = normalizePoints(req.body.points);
     if (!mapId || !(await mapExists(mapId))) return res.status(400).json({ error: 'Carte introuvable' });
@@ -2005,7 +2012,7 @@ router.delete('/zones/:id', requirePermission('visit.manage', { needsElevation: 
 
 router.post('/markers', requirePermission('visit.manage', { needsElevation: true }), async (req, res) => {
   try {
-    const mapId = String(req.body.map_id || 'foret').trim();
+    const mapId = await resolveVisitMapId(req.body.map_id);
     const label = String(req.body.label || '').trim();
     const x = normalizeCoord(req.body.x_pct);
     const y = normalizeCoord(req.body.y_pct);
@@ -2326,7 +2333,7 @@ router.delete('/media/:id', requirePermission('visit.manage', { needsElevation: 
 
 router.put('/tutorials', requirePermission('visit.manage', { needsElevation: true }), async (req, res) => {
   try {
-    const mapId = String(req.body.map_id || 'foret').trim();
+    const mapId = await resolveVisitMapId(req.body.map_id);
     if (!mapId) return res.status(400).json({ error: 'map_id requis' });
     if (!(await mapExists(mapId))) return res.status(400).json({ error: 'Carte introuvable' });
     const ids = Array.isArray(req.body.tutorial_ids) ? req.body.tutorial_ids : [];

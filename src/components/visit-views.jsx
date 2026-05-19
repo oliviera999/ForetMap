@@ -18,6 +18,7 @@ import { MarkdownContent } from './MarkdownContent.jsx';
 import { MarkdownTextarea } from './MarkdownTextarea.jsx';
 import { useOverlayHistoryBack } from '../hooks/useOverlayHistoryBack';
 import { computeMapImageContainRect } from '../utils/mapImageFit';
+import { buildMapImageCandidates } from '../utils/mapImageCandidates';
 import { parseVisitZonePoints as parsePctPoints, visitZoneCentroidPct } from '../utils/visitMapGeometry.js';
 import { computeVisitMascotStartPct } from '../utils/visitMascotPlacement.js';
 import {
@@ -1015,7 +1016,7 @@ function VisitView({
   const visitEmptySelection = getContentText(publicSettings, 'visit.empty_selection', 'Sélectionne une zone ou un repère pour afficher les détails.');
   const visitTutorialsTitle = getContentText(publicSettings, 'visit.tutorials_title', '📘 Tutoriels de la visite');
   const visitTutorialsEmpty = getContentText(publicSettings, 'visit.tutorials_empty', 'Aucun tutoriel sélectionné pour le moment.');
-  const [mapId, setMapId] = useState(initialMapId || 'foret');
+  const [mapId, setMapId] = useState(() => String(initialMapId || '').trim());
   /** Dernière carte affichée : évite d’appliquer une réponse `/api/visit/content` obsolète après changement de `map_id`. */
   const visitLoadMapIdLiveRef = useRef(mapId);
   visitLoadMapIdLiveRef.current = mapId;
@@ -1228,7 +1229,8 @@ function VisitView({
   );
 
   useEffect(() => {
-    const next = String(initialMapId || 'foret').trim() || 'foret';
+    const next = String(initialMapId || '').trim();
+    if (!next) return;
     setMapId((prev) => (prev === next ? prev : next));
   }, [initialMapId]);
 
@@ -1252,15 +1254,7 @@ function VisitView({
   }, [content.tutorials]);
 
   const currentMap = useMemo(() => maps.find((m) => m.id === mapId), [maps, mapId]);
-  /** Même chaîne de repli que la carte principale : l’API peut renvoyer `/map.png` (absent) pour `foret`. */
-  const visitMapImageCandidates = useMemo(() => {
-    const base =
-      mapId === 'n3'
-        ? ['/maps/plan%20n3.jpg', '/maps/map-n3.svg', '/map.png']
-        : ['/map.png', '/maps/map-foret.svg'];
-    const first = currentMap?.map_image_url ? [currentMap.map_image_url] : [];
-    return [...new Set([...first, ...base])];
-  }, [currentMap?.map_image_url, mapId]);
+  const visitMapImageCandidates = useMemo(() => buildMapImageCandidates(currentMap), [currentMap]);
   const [visitMapImageIdx, setVisitMapImageIdx] = useState(0);
   useEffect(() => {
     setVisitMapImageIdx(0);
@@ -1392,11 +1386,14 @@ function VisitView({
 
   const loadData = useCallback(async () => {
     const requestedMapId = String(mapId).trim();
+    const visitContentPath = requestedMapId
+      ? `/api/visit/content?map_id=${encodeURIComponent(requestedMapId)}`
+      : '/api/visit/content';
     setLoading(true);
     try {
       const [mapsRes, visitRes] = await Promise.all([
         api('/api/maps').catch(() => []),
-        api(`/api/visit/content?map_id=${encodeURIComponent(requestedMapId)}`),
+        api(visitContentPath),
       ]);
       if (requestedMapId !== String(visitLoadMapIdLiveRef.current).trim()) return;
 
@@ -2460,16 +2457,31 @@ function VisitView({
             {maps.length > 1 && (
               <div className="visit-map-card__chrome-maps">
                 <div className="visit-map-switch visit-map-switch--embedded">
-                  {maps.map((m) => (
-                    <button
-                      key={m.id}
-                      type="button"
-                      className={`btn btn-sm ${mapId === m.id ? 'btn-primary' : 'btn-ghost'}`}
-                      onClick={() => setMapId(m.id)}
+                  {maps.length > 4 ? (
+                    <select
+                      className="visit-map-switch-select"
+                      value={mapId}
+                      onChange={(event) => setMapId(event.target.value)}
+                      aria-label="Sélection de carte visite"
                     >
-                      {m.label}
-                    </button>
-                  ))}
+                      {maps.map((m) => (
+                        <option key={m.id} value={m.id}>
+                          {m.label}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    maps.map((m) => (
+                      <button
+                        key={m.id}
+                        type="button"
+                        className={`btn btn-sm ${mapId === m.id ? 'btn-primary' : 'btn-ghost'}`}
+                        onClick={() => setMapId(m.id)}
+                      >
+                        {m.label}
+                      </button>
+                    ))
+                  )}
                 </div>
               </div>
             )}

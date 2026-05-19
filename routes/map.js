@@ -9,6 +9,7 @@ const { serializeMarkerPhotoListRow, redirectIfPublicMarkerPhotoDataUrl } = requ
 const { generateMapPhotoThumbFromMainRelativePath, deleteMapPhotoMainAndThumb } = require('../lib/imageThumb');
 const { sendFilePublicImageOptions } = require('../lib/httpImageCache');
 const { parseVisitEditorialBlocksInput, serializeVisitEditorialBlocks } = require('../lib/visitEditorialBlocks');
+const { resolveDefaultMapId } = require('../lib/settings');
 
 const router = express.Router();
 
@@ -266,7 +267,7 @@ router.get('/markers', async (req, res) => {
 router.post('/markers', requirePermission('map.manage_markers', { needsElevation: true }), async (req, res) => {
   try {
     const { x_pct, y_pct, label, plant_name, living_beings, note, emoji, map_id } = req.body;
-    const mapId = String(map_id || 'foret').trim();
+    const mapId = String(map_id || '').trim() || await resolveDefaultMapId('teacher');
     if (!mapId) return res.status(400).json({ error: 'map_id requis' });
     if (!(await mapExists(mapId))) return res.status(400).json({ error: 'Carte introuvable' });
     if (!label?.trim()) return res.status(400).json({ error: 'Label requis' });

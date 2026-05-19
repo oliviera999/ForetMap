@@ -35,6 +35,7 @@ import { armNativeFilePickerGuard, disarmNativeFilePickerGuard } from '../utils/
 import { DialogShell } from './DialogShell';
 import { MarkdownContent } from './MarkdownContent.jsx';
 import { MarkdownTextarea } from './MarkdownTextarea.jsx';
+import { buildMapImageCandidates } from '../utils/mapImageCandidates';
 
 // ── TOAST ──────────────────────────────────────────────────────────────────
 function Toast({ msg, onDone }) {
@@ -2517,14 +2518,7 @@ function groupPlantLocationsByMap(zoneList, markerList) {
 
 function BiodivLocationMapBlock({ mapId, maps, zones, markers }) {
   const activeMap = maps.find((m) => m.id === mapId);
-  const candidates = useMemo(() => {
-    const base =
-      mapId === 'n3'
-        ? ['/maps/plan%20n3.jpg', '/maps/map-n3.svg', '/map.png']
-        : ['/map.png', '/maps/map-foret.svg'];
-    const first = activeMap?.map_image_url ? [activeMap.map_image_url] : [];
-    return [...new Set([...first, ...base])];
-  }, [activeMap?.map_image_url, mapId]);
+  const candidates = useMemo(() => buildMapImageCandidates(activeMap), [activeMap]);
 
   const [ci, setCi] = useState(0);
   useEffect(() => {
