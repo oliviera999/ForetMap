@@ -666,7 +666,7 @@ function TaskFormModal({
               <option value="">Aucun projet</option>
               {selectableProjects.map((p) => (
                 <option key={p.id} value={p.id}>
-                  📁 {p.title}{p.status === 'on_hold' ? ' (en attente)' : ''}
+                  📁 {p.title}{projectStatusLabel(p.status)}
                 </option>
               ))}
             </select>
@@ -1047,7 +1047,13 @@ function TaskProjectFormModal({
       zone_ids: initialLocationIds(editProject, 'zone_ids', 'zone_id'),
       marker_ids: initialLocationIds(editProject, 'marker_ids', 'marker_id'),
       tutorial_ids: normalizeTutorialIds(editProject.tutorial_ids || []),
-      status: editProject.status === 'on_hold' ? 'on_hold' : editProject.status === 'completed' ? 'completed' : 'active',
+      status: editProject.status === 'on_hold'
+        ? 'on_hold'
+        : editProject.status === 'completed'
+          ? 'completed'
+          : editProject.status === 'validated'
+            ? 'validated'
+            : 'active',
     });
   }, [editProject, defaultMapId]);
 
@@ -1117,12 +1123,8 @@ function TaskProjectFormModal({
         marker_ids: [...new Set(form.marker_ids.map((id) => String(id || '').trim()).filter(Boolean))],
         tutorial_ids: normalizedTutorialIds,
       };
-      if (editProject) {
-        if (form.status === 'completed') {
-          delete payload.status;
-        } else {
-          payload.status = form.status;
-        }
+      if (editProject && (form.status === 'active' || form.status === 'on_hold')) {
+        payload.status = form.status;
       }
       await onSave(payload);
       onClose();
@@ -1172,12 +1174,20 @@ function TaskProjectFormModal({
               {form.status === 'completed' && (
                 <option value="completed" disabled>Terminé (toutes les tâches réalisées)</option>
               )}
+              {form.status === 'validated' && (
+                <option value="validated" disabled>Validé (décision n3boss)</option>
+              )}
               <option value="active">Actif (inscriptions ouvertes)</option>
               <option value="on_hold">En attente (inscriptions fermées)</option>
             </select>
             {form.status === 'completed' && (
               <p style={{ fontSize: '.82rem', color: '#555', marginTop: 6 }}>
                 Choisis « Actif » ou « En attente » pour rouvrir le projet, ou ajoute une tâche non terminée (le projet repasse alors automatiquement en actif).
+              </p>
+            )}
+            {form.status === 'validated' && (
+              <p style={{ fontSize: '.82rem', color: '#555', marginTop: 6 }}>
+                Choisis « Actif » ou « En attente » pour rouvrir le projet après validation manuelle.
               </p>
             )}
           </div>
@@ -1478,16 +1488,33 @@ const TASK_STATUS_FILTER_OPTIONS = [
   { value: 'validated', label: 'Validée' },
   { value: 'proposed', label: 'Proposée' },
   { value: 'on_hold', label: 'En attente' },
+  { value: 'project_completed', label: 'Projet terminé (auto)' },
+  { value: 'project_validated', label: 'Projet validé' },
 ];
 
 function taskEffectiveStatus(task) {
   const baseStatus = task?.status || 'available';
   if (baseStatus === 'done' || baseStatus === 'validated' || baseStatus === 'proposed') return baseStatus;
+  if (task?.project_status === 'validated') return 'project_validated';
   if (task?.project_status === 'completed') return 'project_completed';
   if (baseStatus === 'on_hold' || task?.project_status === 'on_hold' || task?.is_before_start_date || isBeforeTaskStartDate(task)) {
     return 'on_hold';
   }
   return baseStatus;
+}
+
+function projectStatusLabel(status) {
+  if (status === 'on_hold') return ' (en attente)';
+  if (status === 'completed') return ' (terminé)';
+  if (status === 'validated') return ' (validé)';
+  return '';
+}
+
+function normalizeProjectUiStatus(status) {
+  if (status === 'on_hold') return 'on_hold';
+  if (status === 'completed') return 'completed';
+  if (status === 'validated') return 'validated';
+  return 'active';
 }
 
 function mapLabelFromMaps(mapId, maps) {
@@ -1943,6 +1970,17 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
     setToast(`Projet « ${project.title} » : ${nextStatus === 'on_hold' ? 'en pause (inscriptions fermées)' : 'de retour en action'}.`);
   });
 
+  const validateProject = (project) => withLoad(`${project.id}projectvalidate`, async () => {
+    await api(`/api/task-projects/${project.id}/validate`, 'POST');
+    setToast(`Projet « ${project.title} » validé ✓`);
+  });
+
+  const duplicateProject = (project) => withLoad(`${project.id}projectduplicate`, async () => {
+    const result = await api(`/api/task-projects/${project.id}/duplicate`, 'POST', {});
+    const copied = Number(result?.tasks_copied || 0);
+    setToast(`Projet dupliqué : ${copied} tâche${copied > 1 ? 's' : ''} recopiée${copied > 1 ? 's' : ''} ✓`);
+  });
+
   const downloadImportTemplate = async (format) => {
     try {
       const token = getAuthToken();
@@ -2003,9 +2041,16 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
     if (filterZone && !taskHasLocation(t, filterZone)) return false;
     if (filterStatus) {
       const eff = taskEffectiveStatus(t);
-      const matches = filterStatus === 'on_hold'
-        ? (eff === 'on_hold' || eff === 'project_completed')
-        : eff === filterStatus;
+      let matches = eff === filterStatus;
+      if (filterStatus === 'validated') {
+        matches = eff === 'validated' || eff === 'project_validated';
+      } else if (filterStatus === 'on_hold') {
+        matches = eff === 'on_hold';
+      } else if (filterStatus === 'project_completed') {
+        matches = eff === 'project_completed';
+      } else if (filterStatus === 'project_validated') {
+        matches = eff === 'project_validated';
+      }
       if (!matches) return false;
     }
     if (filterProject && t.project_id !== filterProject) return false;
@@ -2059,10 +2104,9 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
   const done = regularFiltered.filter(t => taskEffectiveStatus(t) === 'done');
   const validated = regularFiltered.filter(t => taskEffectiveStatus(t) === 'validated');
   const proposed = regularFiltered.filter(t => taskEffectiveStatus(t) === 'proposed');
-  const onHold = regularFiltered.filter((t) => {
-    const eff = taskEffectiveStatus(t);
-    return eff === 'on_hold' || eff === 'project_completed';
-  });
+  const onHold = regularFiltered.filter((t) => taskEffectiveStatus(t) === 'on_hold');
+  const projectCompletedTasks = regularFiltered.filter((t) => taskEffectiveStatus(t) === 'project_completed');
+  const projectValidatedTasks = regularFiltered.filter((t) => taskEffectiveStatus(t) === 'project_validated');
   const hasStudentFilters = !isTeacher && (
     !!filterText
     || !!filterZone
@@ -2098,7 +2142,7 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
 
   const urgentTasks = !isTeacher ? regularFiltered.filter(t => {
     const effective = taskEffectiveStatus(t);
-    if (effective === 'validated' || effective === 'done' || effective === 'on_hold' || effective === 'project_completed') return false;
+    if (effective === 'validated' || effective === 'done' || effective === 'on_hold' || effective === 'project_completed' || effective === 'project_validated') return false;
     const d = daysUntil(t.due_date);
     return d !== null && d <= 3 && d >= -2;
   }).sort(compareTasksByImportanceThenDueDate) : [];
@@ -2181,7 +2225,7 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
     const { toAdd, toRemove } = teacherQuickAssignDelta(task, selectedIds);
     if (toAdd.length === 0 && toRemove.length === 0) return false;
     const te = taskEffectiveStatus(task);
-    if (te === 'on_hold' || te === 'project_completed') return false;
+    if (te === 'on_hold' || te === 'project_completed' || te === 'project_validated') return false;
     if (toRemove.length > 0 && (task.status === 'done' || task.status === 'validated')) return false;
     if (toAdd.length > 0) {
       if (task.status === 'proposed' || task.status === 'done' || task.status === 'validated') return false;
@@ -2195,6 +2239,7 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
     const te = taskEffectiveStatus(task);
     if (te === 'on_hold') return "Patience : tâche ou projet en pause";
     if (te === 'project_completed') return "Projet terminé : inscriptions fermées";
+    if (te === 'project_validated') return "Projet validé : inscriptions fermées";
     const { toAdd, toRemove } = teacherQuickAssignDelta(task, selectedIds);
     if (toAdd.length === 0 && toRemove.length === 0) return "Coche ou décoche des n3beurs pour ajuster l’équipe sur la mission";
     if (toRemove.length > 0 && (task.status === 'done' || task.status === 'validated')) {
@@ -2630,7 +2675,7 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
             })
             .map((p) => (
               <option key={p.id} value={p.id}>
-                {p.title}{p.status === 'on_hold' ? ' (en attente)' : ''}
+                {p.title}{projectStatusLabel(p.status)}
               </option>
             ))}
         </select>
@@ -2824,6 +2869,8 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
             setShowForm={setShowForm}
             setShowProposalForm={setShowProposalForm}
             setProjectStatus={setProjectStatus}
+            validateProject={validateProject}
+            duplicateProject={duplicateProject}
             loading={loading}
             taskTileProps={taskTileProps}
             openTasksTutorialPreview={openTasksTutorialPreview}
@@ -2883,6 +2930,8 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
             setShowForm={setShowForm}
             setShowProposalForm={setShowProposalForm}
             setProjectStatus={setProjectStatus}
+            validateProject={validateProject}
+            duplicateProject={duplicateProject}
             loading={loading}
             taskTileProps={taskTileProps}
             openTasksTutorialPreview={openTasksTutorialPreview}
@@ -2928,6 +2977,8 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
             setShowForm={setShowForm}
             setShowProposalForm={setShowProposalForm}
             setProjectStatus={setProjectStatus}
+            validateProject={validateProject}
+            duplicateProject={duplicateProject}
             loading={loading}
             taskTileProps={taskTileProps}
             openTasksTutorialPreview={openTasksTutorialPreview}
@@ -3344,6 +3395,7 @@ function TaskTileCard({
           {t.project_title && <span className="task-chip">📁 {t.project_title}</span>}
           {t.project_title && t.project_status === 'on_hold' && <span className="task-chip">⏸️ Projet en attente</span>}
           {t.project_title && t.project_status === 'completed' && <span className="task-chip">Terminé (projet)</span>}
+          {t.project_title && t.project_status === 'validated' && <span className="task-chip">Validé (projet)</span>}
           {startDateChip(t.start_date)}
           {isTeacher && t.status === 'proposed' && proposalMeta.proposer && (
             <span className="task-chip proposal">🙋 Proposée par {proposalMeta.proposer}</span>
@@ -3481,7 +3533,7 @@ function TaskTileCard({
           <div className="slots">{slots} place{slots > 1 ? 's' : ''} restante{slots > 1 ? 's' : ''}</div>
         )}
         <div className="task-actions">
-          {!isTeacher && canEnrollNewTask && !isMine && slots > 0 && effectiveStatus !== 'validated' && effectiveStatus !== 'on_hold' && effectiveStatus !== 'project_completed' && (
+          {!isTeacher && canEnrollNewTask && !isMine && slots > 0 && effectiveStatus !== 'validated' && effectiveStatus !== 'on_hold' && effectiveStatus !== 'project_completed' && effectiveStatus !== 'project_validated' && (
             <button className="btn btn-primary btn-sm" disabled={loading[t.id + 'assign']} onClick={() => assign(t)}>
               {loading[t.id + 'assign'] ? '...' : '✋ Je m\'en occupe'}
             </button>
@@ -3504,7 +3556,7 @@ function TaskTileCard({
           {isTeacher && (
             <button
               className={`btn btn-sm ${isQuickAssignOpen ? 'btn-primary' : 'btn-ghost'}`}
-              disabled={quickAssignBusy || loadingTeacherStudents || teacherStudents.length === 0 || ['on_hold', 'project_completed'].includes(taskEffectiveStatus(t))}
+              disabled={quickAssignBusy || loadingTeacherStudents || teacherStudents.length === 0 || ['on_hold', 'project_completed', 'project_validated'].includes(taskEffectiveStatus(t))}
               onClick={() => {
                 if (isQuickAssignOpen) {
                   quickAssignUserEditedRef.current = false;
@@ -3524,6 +3576,7 @@ function TaskTileCard({
                 const x = taskEffectiveStatus(t);
                 if (x === 'on_hold') return 'Affectation désactivée (en attente)';
                 if (x === 'project_completed') return 'Affectation désactivée (projet terminé)';
+                if (x === 'project_validated') return 'Affectation désactivée (projet validé)';
                 return teacherStudents.length === 0 ? 'Aucun n3beur disponible' : 'Afficher la liste des n3beurs';
               })()}
             >
@@ -3709,6 +3762,8 @@ function TaskProjectsBlock({
   setShowForm,
   setShowProposalForm,
   setProjectStatus,
+  validateProject,
+  duplicateProject,
   loading,
   taskTileProps,
   openTasksTutorialPreview,
@@ -3722,12 +3777,25 @@ if (visibleProjects.length <= 0) return null;
       <div className="tasks-section">
         <div className="tasks-section-title">📁 Projets ({visibleProjects.length})</div>
         <div style={{ display: 'grid', gap: 8 }}>
-          {visibleProjects.map((p) => {
+          {[...visibleProjects].sort((a, b) => {
+            const rank = (status) => {
+              if (status === 'active') return 0;
+              if (status === 'on_hold') return 1;
+              if (status === 'completed') return 2;
+              if (status === 'validated') return 3;
+              return 4;
+            };
+            const diff = rank(a.status) - rank(b.status);
+            if (diff !== 0) return diff;
+            return String(a.title || '').localeCompare(String(b.title || ''), 'fr');
+          }).map((p) => {
             const projectTasks = allFiltered.filter((t) => String(t.project_id || '') === String(p.id || ''));
             const projectTasksCount = projectTasks.length;
-            const projectStatus = p.status === 'on_hold' ? 'on_hold' : p.status === 'completed' ? 'completed' : 'active';
+            const projectStatus = normalizeProjectUiStatus(p.status);
             const loadingActive = !!loading[`${p.id}projectactive`];
             const loadingHold = !!loading[`${p.id}projecton_hold`];
+            const loadingValidate = !!loading[`${p.id}projectvalidate`];
+            const loadingDuplicate = !!loading[`${p.id}projectduplicate`];
             const canReceiveTaskDrop = !!(isTeacher && taskDragPayload?.taskId);
             const projectDropId = String(p.id || '');
             const projectCardDropActive = canReceiveTaskDrop
@@ -3792,8 +3860,15 @@ if (visibleProjects.length <= 0) return null;
                     {p.status === 'completed' && (
                       <div style={{ fontSize: '.82rem', color: '#166534', marginTop: 4 }}>
                         {isTeacher
-                          ? 'Toutes les tâches du projet sont terminées ou validées. Tu peux rouvrir le projet en « Actif » ou ajouter une nouvelle tâche.'
+                          ? 'Toutes les tâches du projet sont terminées ou validées (fin automatique). Tu peux valider le projet, le rouvrir ou ajouter une nouvelle tâche.'
                           : 'Toutes les tâches de ce projet sont terminées ou validées.'}
+                      </div>
+                    )}
+                    {p.status === 'validated' && (
+                      <div style={{ fontSize: '.82rem', color: '#166534', marginTop: 4 }}>
+                        {isTeacher
+                          ? 'Projet validé manuellement : inscriptions fermées. Tu peux le rouvrir en « Actif » ou « En attente ».'
+                          : 'Projet validé par les n3boss : inscriptions fermées.'}
                       </div>
                     )}
                   </div>
@@ -3813,6 +3888,15 @@ if (visibleProjects.length <= 0) return null;
                       <button
                         type="button"
                         className="btn btn-ghost btn-sm"
+                        disabled={loadingDuplicate}
+                        onClick={() => duplicateProject?.(p)}
+                        title="Dupliquer le projet et ses tâches (structure uniquement)"
+                      >
+                        {loadingDuplicate ? '...' : '📄 Dupliquer'}
+                      </button>
+                      <button
+                        type="button"
+                        className="btn btn-ghost btn-sm"
                         onClick={() => {
                           setNewTaskDefaultProjectId(String(p.id));
                           setEditTask(null);
@@ -3824,9 +3908,30 @@ if (visibleProjects.length <= 0) return null;
                       >
                         + Tâche
                       </button>
-                      {projectStatus === 'completed' ? (
+                      {projectStatus === 'validated' ? (
+                        <>
+                          <span className="task-chip">Validé</span>
+                          <button
+                            type="button"
+                            className="btn btn-sm btn-primary"
+                            disabled={loadingActive}
+                            onClick={() => setProjectStatus(p, 'active')}
+                          >
+                            {loadingActive ? '...' : 'Rouvrir (actif)'}
+                          </button>
+                        </>
+                      ) : projectStatus === 'completed' ? (
                         <>
                           <span className="task-chip">Terminé</span>
+                          <button
+                            type="button"
+                            className="btn btn-sm btn-ghost"
+                            disabled={loadingValidate}
+                            onClick={() => validateProject?.(p)}
+                            title="Valider le projet (clôture manuelle n3boss)"
+                          >
+                            {loadingValidate ? '...' : '✔️ Valider'}
+                          </button>
                           <button
                             type="button"
                             className="btn btn-sm btn-primary"
@@ -3852,14 +3957,25 @@ if (visibleProjects.length <= 0) return null;
                           >
                             {loadingHold ? '...' : '⏸️ En attente'}
                           </button>
+                          <button
+                            type="button"
+                            className="btn btn-sm btn-ghost"
+                            disabled={loadingValidate}
+                            onClick={() => validateProject?.(p)}
+                            title="Valider le projet (clôture manuelle n3boss)"
+                          >
+                            {loadingValidate ? '...' : '✔️ Valider'}
+                          </button>
                         </>
                       )}
                     </div>
                   ) : (
                     <span className="task-chip">
-                      {projectStatus === 'completed'
-                        ? 'Terminé'
-                        : projectStatus === 'on_hold' ? '⏸️ En attente' : '✅ Actif'}
+                      {projectStatus === 'validated'
+                        ? 'Validé'
+                        : projectStatus === 'completed'
+                          ? 'Terminé'
+                          : projectStatus === 'on_hold' ? '⏸️ En attente' : '✅ Actif'}
                     </span>
                   )}
                 </div>

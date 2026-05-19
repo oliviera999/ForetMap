@@ -69,3 +69,15 @@ test('syncTaskProjectCompletionForProject préserve les projets mis en attente m
     ctx.restore();
   }
 });
+
+test('syncTaskProjectCompletionForProject préserve les projets validés manuellement', async () => {
+  const ctx = loadSyncModuleWithMocks({ projectStatus: 'validated', total: 2, doneCount: 2 });
+  try {
+    const changed = await ctx.module.syncTaskProjectCompletionForProject('project-1');
+    assert.strictEqual(changed, false);
+    assert.deepStrictEqual(ctx.executeCalls, []);
+    assert.deepStrictEqual(ctx.emitted, []);
+  } finally {
+    ctx.restore();
+  }
+});

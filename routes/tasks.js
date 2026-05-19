@@ -2170,6 +2170,9 @@ router.post('/:id/assign', async (req, res) => {
     if (task.project_status === 'completed') {
       return res.status(400).json({ error: 'Projet terminé : inscription indisponible' });
     }
+    if (task.project_status === 'validated') {
+      return res.status(400).json({ error: 'Projet validé : inscription indisponible' });
+    }
     if (isTaskBeforeStartDate(task)) return res.status(400).json({ error: 'Date de départ non atteinte : inscription indisponible' });
 
     const action = await resolveStudentActionContext(req, req.body || {}, 'tasks.assign_self');
