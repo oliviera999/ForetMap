@@ -119,6 +119,7 @@ CREATE TABLE IF NOT EXISTS tasks (
   image_path VARCHAR(512) DEFAULT NULL,
   map_id VARCHAR(32) DEFAULT NULL,
   project_id VARCHAR(64) DEFAULT NULL,
+  group_id VARCHAR(64) DEFAULT NULL,
   zone_id VARCHAR(64) DEFAULT NULL,
   marker_id VARCHAR(64) DEFAULT NULL,
   start_date VARCHAR(32) DEFAULT NULL,
@@ -134,6 +135,7 @@ CREATE TABLE IF NOT EXISTS tasks (
   created_at VARCHAR(32) DEFAULT NULL,
   INDEX idx_tasks_map_id (map_id),
   INDEX idx_tasks_project_id (project_id),
+  INDEX idx_tasks_group_id (group_id),
   INDEX idx_tasks_zone_id (zone_id),
   INDEX idx_tasks_marker_id (marker_id),
   INDEX idx_tasks_start_date (start_date),
@@ -304,6 +306,7 @@ CREATE TABLE IF NOT EXISTS task_assignments (
 -- forum global (threads, posts, signalements)
 CREATE TABLE IF NOT EXISTS forum_threads (
   id VARCHAR(64) NOT NULL PRIMARY KEY,
+  group_id VARCHAR(64) DEFAULT NULL,
   title VARCHAR(180) NOT NULL,
   author_user_type VARCHAR(16) NOT NULL,
   author_user_id VARCHAR(64) NOT NULL,
@@ -313,6 +316,7 @@ CREATE TABLE IF NOT EXISTS forum_threads (
   updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   last_post_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   INDEX idx_forum_threads_last_post (is_pinned, last_post_at, created_at),
+  INDEX idx_forum_threads_group (group_id, is_pinned, last_post_at),
   INDEX idx_forum_threads_author (author_user_type, author_user_id, created_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -548,13 +552,64 @@ CREATE TABLE IF NOT EXISTS audit_log (
 CREATE TABLE IF NOT EXISTS observation_logs (
   id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
   student_id VARCHAR(64) NOT NULL,
+  group_id VARCHAR(64) DEFAULT NULL,
   zone_id VARCHAR(64) DEFAULT NULL,
   content TEXT NOT NULL,
   image_path VARCHAR(512) DEFAULT NULL,
   created_at VARCHAR(32) DEFAULT NULL,
   INDEX idx_observation_logs_student (student_id),
+  INDEX idx_observation_logs_group (group_id),
   CONSTRAINT fk_observation_logs_student FOREIGN KEY (student_id) REFERENCES users(id) ON DELETE CASCADE,
   CONSTRAINT fk_observation_logs_zone FOREIGN KEY (zone_id) REFERENCES zones(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- groups (groupes pédagogiques + sous-groupes)
+CREATE TABLE IF NOT EXISTS `groups` (
+  id VARCHAR(64) NOT NULL PRIMARY KEY,
+  slug VARCHAR(96) NOT NULL,
+  name VARCHAR(180) NOT NULL,
+  description TEXT DEFAULT NULL,
+  kind VARCHAR(32) NOT NULL DEFAULT 'class',
+  parent_group_id VARCHAR(64) DEFAULT NULL,
+  is_active TINYINT(1) NOT NULL DEFAULT 1,
+  created_by VARCHAR(64) DEFAULT NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  UNIQUE KEY uq_groups_slug (slug),
+  INDEX idx_groups_parent (parent_group_id),
+  INDEX idx_groups_kind_active (kind, is_active),
+  CONSTRAINT fk_groups_parent FOREIGN KEY (parent_group_id) REFERENCES `groups`(id) ON DELETE SET NULL,
+  CONSTRAINT fk_groups_created_by FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- group_members (membres et responsables de groupes)
+CREATE TABLE IF NOT EXISTS group_members (
+  group_id VARCHAR(64) NOT NULL,
+  user_id VARCHAR(64) NOT NULL,
+  user_type VARCHAR(16) NOT NULL,
+  role_in_group VARCHAR(32) NOT NULL DEFAULT 'member',
+  joined_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (group_id, user_id),
+  INDEX idx_group_members_user (user_id, user_type),
+  INDEX idx_group_members_group_role (group_id, role_in_group),
+  CONSTRAINT fk_group_members_group FOREIGN KEY (group_id) REFERENCES `groups`(id) ON DELETE CASCADE,
+  CONSTRAINT fk_group_members_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- group_scopes (liaison groupe -> cartes/projets)
+CREATE TABLE IF NOT EXISTS group_scopes (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  group_id VARCHAR(64) NOT NULL,
+  map_id VARCHAR(32) DEFAULT NULL,
+  project_id VARCHAR(64) DEFAULT NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_group_scopes_group (group_id),
+  INDEX idx_group_scopes_map (map_id),
+  INDEX idx_group_scopes_project (project_id),
+  UNIQUE KEY uq_group_scopes_triplet (group_id, map_id, project_id),
+  CONSTRAINT fk_group_scopes_group FOREIGN KEY (group_id) REFERENCES `groups`(id) ON DELETE CASCADE,
+  CONSTRAINT fk_group_scopes_map FOREIGN KEY (map_id) REFERENCES maps(id) ON DELETE CASCADE,
+  CONSTRAINT fk_group_scopes_project FOREIGN KEY (project_id) REFERENCES task_projects(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- task_logs (commentaires / images de réalisation d'une tâche)

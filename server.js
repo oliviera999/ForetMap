@@ -42,6 +42,7 @@ const rbacRouter          = require('./routes/rbac');
 const settingsRouter      = require('./routes/settings');
 const forumRouter         = require('./routes/forum');
 const contextCommentsRouter = require('./routes/context-comments');
+const groupsRouter        = require('./routes/groups');
 
 const app = express();
 
@@ -471,6 +472,7 @@ app.use('/api/rbac', rbacRouter);
 app.use('/api/settings', settingsRouter);
 app.use('/api/forum', forumRouter);
 app.use('/api/context-comments', contextCommentsRouter);
+app.use('/api/groups', groupsRouter);
 
 // Docs locales (Markdown) accessibles depuis l'onglet "À propos"
 const rootDocs = new Map([

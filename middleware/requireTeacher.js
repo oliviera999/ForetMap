@@ -1,6 +1,7 @@
 const jwt = require('jsonwebtoken');
 const { ensureRbacBootstrap, buildAuthzPayload } = require('../lib/rbac');
 const { getAuthJwtTtls } = require('../lib/settings');
+const { getUserAccessibleGroupIds } = require('../lib/groupScope');
 
 const JWT_SECRET = process.env.JWT_SECRET || (process.env.NODE_ENV === 'production' ? null : 'dev-secret-change-in-production');
 
@@ -32,6 +33,11 @@ async function hydrateAuthFromTokenClaims(claims) {
     if (!actorAuthz || !actorPerms.includes('admin.impersonate')) return null;
     const authz = await buildAuthzPayload(claims.userType, claims.userId, elevated);
     if (!authz) return null;
+    const groupIds = await getUserAccessibleGroupIds({
+      userId: claims.userId,
+      roleSlug: authz.roleSlug,
+      permissions: authz.permissions,
+    });
     return {
       userType: claims.userType,
       userId: claims.userId,
@@ -43,6 +49,7 @@ async function hydrateAuthFromTokenClaims(claims) {
       elevatedPermissions: authz.elevatedPermissions,
       elevated,
       nativePrivileged: !!authz.nativePrivileged,
+      groupIds,
       impersonating: true,
       impersonatedBy: {
         userType: claims.actorUserType,
@@ -53,6 +60,11 @@ async function hydrateAuthFromTokenClaims(claims) {
   }
   const authz = await buildAuthzPayload(claims.userType, claims.userId, elevated);
   if (!authz) return null;
+  const groupIds = await getUserAccessibleGroupIds({
+    userId: claims.userId,
+    roleSlug: authz.roleSlug,
+    permissions: authz.permissions,
+  });
   return {
     userType: claims.userType,
     userId: claims.userId,
@@ -64,6 +76,7 @@ async function hydrateAuthFromTokenClaims(claims) {
     elevatedPermissions: authz.elevatedPermissions,
     elevated,
     nativePrivileged: !!authz.nativePrivileged,
+    groupIds,
   };
 }
 

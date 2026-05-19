@@ -20,6 +20,11 @@ const {
   normalizeTaskCompletionMode,
   recalculateTaskStatusWithConn,
 } = require('../lib/taskStatusRecalc');
+const {
+  getScopedStudentIds,
+  canAccessStudentId,
+  getUserAccessibleGroupIds,
+} = require('../lib/groupScope');
 
 const router = express.Router();
 const MAX_IMPORT_FILE_BYTES = 8 * 1024 * 1024;
@@ -474,13 +479,14 @@ async function parseOptionalAuth(req) {
 
 function canReadAllAssignments(auth) {
   const perms = Array.isArray(auth?.permissions) ? auth.permissions : [];
-  if (auth?.userType === 'teacher') return true;
-  return perms.includes('tasks.manage') || perms.includes('tasks.validate') || perms.includes('stats.read.all');
+  return perms.includes('tasks.manage')
+    || perms.includes('tasks.validate')
+    || perms.includes('stats.read.all')
+    || perms.includes('stats.read.group');
 }
 
 function canManageTasks(auth) {
   const perms = Array.isArray(auth?.permissions) ? auth.permissions : [];
-  if (auth?.userType === 'teacher') return true;
   return perms.includes('tasks.manage');
 }
 
@@ -654,8 +660,22 @@ async function fetchTaskProposerMap(taskIds) {
 async function fetchTaskListAssignments(auth, taskIds) {
   if (!taskIds.length) return [];
   if (canReadAllAssignments(auth)) {
+    const perms = Array.isArray(auth?.permissions) ? auth.permissions : [];
+    const hasGlobalRead =
+      perms.includes('stats.read.all') || perms.includes('tasks.manage') || perms.includes('tasks.validate');
     const ph = taskIds.map(() => '?').join(',');
-    return queryAll(`SELECT * FROM task_assignments WHERE task_id IN (${ph})`, taskIds);
+    if (hasGlobalRead) {
+      return queryAll(`SELECT * FROM task_assignments WHERE task_id IN (${ph})`, taskIds);
+    }
+    const scope = await getScopedStudentIds(auth);
+    if (!scope.studentIds.length) return [];
+    const sph = scope.studentIds.map(() => '?').join(',');
+    return queryAll(
+      `SELECT * FROM task_assignments
+        WHERE task_id IN (${ph})
+          AND student_id IN (${sph})`,
+      [...taskIds, ...scope.studentIds]
+    );
   }
   if (auth?.userType === 'student' && auth?.userId) {
     const ph = taskIds.map(() => '?').join(',');
@@ -674,6 +694,29 @@ async function fetchTaskListAssignments(auth, taskIds) {
     );
   }
   return [];
+}
+
+async function getScopedAssignableStudentIds(auth) {
+  const scope = await getScopedStudentIds(auth);
+  return scope.all ? null : scope.studentIds;
+}
+
+async function getScopedTeacherIds(auth) {
+  const perms = Array.isArray(auth?.permissions) ? auth.permissions : [];
+  const isAdmin = String(auth?.roleSlug || '').toLowerCase() === 'admin';
+  if (isAdmin || perms.includes('stats.read.all')) return null;
+  const groupIds = await getUserAccessibleGroupIds(auth, { includeDescendants: true });
+  if (!groupIds.length) return [];
+  const rows = await queryAll(
+    `SELECT DISTINCT gm.user_id
+       FROM group_members gm
+       INNER JOIN users u ON u.id = gm.user_id
+      WHERE gm.group_id IN (${groupIds.map(() => '?').join(',')})
+        AND u.user_type = 'teacher'
+        AND u.is_active = 1`,
+    groupIds
+  );
+  return rows.map((r) => String(r.user_id));
 }
 
 async function fetchTaskAssignmentAggregates(taskIds) {
@@ -1040,6 +1083,10 @@ async function resolveStudentActionContext(req, payload = {}, permissionKey) {
       const permission = await ensureStudentPermission({ studentId: providedStudentId, permissionKey, profilePin });
       if (!permission.ok) return { errorStatus: 403, error: permission.error };
     }
+    if (isTeacherAction) {
+      const allowed = await canAccessStudentId(auth, providedStudentId);
+      if (!allowed) return { errorStatus: 403, error: 'n3beur hors périmètre de groupe' };
+    }
     const names = pickNames(student);
     if (!names.firstName || !names.lastName) return { errorStatus: 400, error: 'Nom requis' };
     return {
@@ -1081,6 +1128,7 @@ router.get('/', async (req, res) => {
     const auth = await parseOptionalAuth(req);
     const mapId = req.query.map_id ? String(req.query.map_id).trim() : '';
     const projectId = req.query.project_id ? String(req.query.project_id).trim() : '';
+    const groupId = req.query.group_id ? String(req.query.group_id).trim() : '';
     if (mapId && !(await mapExists(mapId))) {
       return res.status(400).json({ error: 'Carte introuvable' });
     }
@@ -1116,6 +1164,10 @@ router.get('/', async (req, res) => {
     if (projectId) {
       where.push('t.project_id = ?');
       params.push(projectId);
+    }
+    if (groupId) {
+      where.push('t.group_id = ?');
+      params.push(groupId);
     }
     const whereSql = where.length ? `WHERE ${where.join(' AND ')}` : '';
     const orderSql = `ORDER BY
@@ -1263,6 +1315,10 @@ router.post('/reorder-project', requirePermission('tasks.manage', { needsElevati
 
 router.get('/referent-candidates', requirePermission('tasks.manage', { needsElevation: true }), async (req, res) => {
   try {
+    const [scopedStudentIds, scopedTeacherIds] = await Promise.all([
+      getScopedAssignableStudentIds(req.auth),
+      getScopedTeacherIds(req.auth),
+    ]);
     const rows = await queryAll(
       `SELECT u.id, u.user_type, u.first_name, u.last_name, u.display_name, r.slug AS primary_role_slug
          FROM users u
@@ -1279,8 +1335,16 @@ router.get('/referent-candidates', requirePermission('tasks.manage', { needsElev
     function labelForSort(row) {
       return referentPublicLabel({ ...row, uid: row.id });
     }
-    const teachers = rows.filter((r) => r.user_type === 'teacher');
-    const students = rows.filter((r) => r.user_type === 'student');
+    const teachers = rows.filter((r) => {
+      if (r.user_type !== 'teacher') return false;
+      if (scopedTeacherIds == null) return true;
+      return scopedTeacherIds.includes(String(r.id));
+    });
+    const students = rows.filter((r) => {
+      if (r.user_type !== 'student') return false;
+      if (scopedStudentIds == null) return true;
+      return scopedStudentIds.includes(String(r.id));
+    });
     teachers.sort((a, b) => {
       const ta = teacherTier(a.primary_role_slug);
       const tb = teacherTier(b.primary_role_slug);
@@ -1655,6 +1719,7 @@ router.post('/', requirePermission('tasks.manage', { needsElevation: true }), as
       danger_level,
       difficulty_level,
       importance_level,
+      group_id,
       living_beings,
       imageData,
     } = req.body;
@@ -1695,15 +1760,17 @@ router.post('/', requirePermission('tasks.manage', { needsElevation: true }), as
     const livingDb = Object.prototype.hasOwnProperty.call(req.body || {}, 'living_beings')
       ? serializeTaskLivingBeingsForDb(living_beings)
       : null;
+    const normalizedGroupId = normalizeOptionalId(group_id);
     const id = uuidv4();
     await execute(
-      'INSERT INTO tasks (id, title, description, map_id, project_id, zone_id, marker_id, start_date, due_date, required_students, completion_mode, danger_level, difficulty_level, importance_level, living_beings, recurrence, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      'INSERT INTO tasks (id, title, description, map_id, project_id, group_id, zone_id, marker_id, start_date, due_date, required_students, completion_mode, danger_level, difficulty_level, importance_level, living_beings, recurrence, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
       [
         id,
         title,
         description || '',
         projectValidation.mapId,
         projectValidation.projectId,
+        normalizedGroupId,
         zIds[0] || null,
         mIds[0] || null,
         start_date || null,
@@ -1921,6 +1988,7 @@ router.put('/:id', async (req, res) => {
       status,
       recurrence,
       project_id,
+      group_id,
       completion_mode,
       danger_level,
       difficulty_level,
@@ -1960,6 +2028,9 @@ router.put('/:id', async (req, res) => {
       : task.project_id || null;
     const projectValidation = await validateTaskProject(nextProjectId, loc.mapId);
     if (projectValidation.error) return res.status(400).json({ error: projectValidation.error });
+    const nextGroupId = isTeacherAction && Object.prototype.hasOwnProperty.call(req.body, 'group_id')
+      ? normalizeOptionalId(group_id)
+      : normalizeOptionalId(task.group_id);
 
     let nextTutorialIds;
     if (isTeacherAction && Object.prototype.hasOwnProperty.call(req.body, 'tutorial_ids')) {
@@ -2044,12 +2115,13 @@ router.put('/:id', async (req, res) => {
     }
 
     await execute(
-      'UPDATE tasks SET title=?, description=?, map_id=?, project_id=?, zone_id=?, marker_id=?, start_date=?, due_date=?, required_students=?, status=?, completion_mode=?, danger_level=?, difficulty_level=?, importance_level=?, living_beings=?, recurrence=? WHERE id=?',
+      'UPDATE tasks SET title=?, description=?, map_id=?, project_id=?, group_id=?, zone_id=?, marker_id=?, start_date=?, due_date=?, required_students=?, status=?, completion_mode=?, danger_level=?, difficulty_level=?, importance_level=?, living_beings=?, recurrence=? WHERE id=?',
       [
         title ?? task.title,
         description ?? task.description,
         projectValidation.mapId,
         projectValidation.projectId,
+        nextGroupId,
         nextZoneIds[0] || null,
         nextMarkerIds[0] || null,
         start_date ?? task.start_date,
@@ -2235,6 +2307,51 @@ router.post('/:id/assign', async (req, res) => {
     res.json(updated);
   } catch (e) {
     respondInternalError(res, req, e);
+  }
+});
+
+router.post('/:id/assign-group', requirePermission('tasks.assign.group', { needsElevation: true }), async (req, res) => {
+  try {
+    const task = await getTaskWithAssignments(req.params.id);
+    if (!task) return res.status(404).json({ error: 'Tâche introuvable' });
+    if (task.status === 'validated') return res.status(400).json({ error: 'Tâche déjà validée' });
+    const groupId = normalizeOptionalId(req.body?.group_id);
+    if (!groupId) return res.status(400).json({ error: 'group_id requis' });
+    const scope = await getScopedStudentIds(req.auth, { groupId });
+    if (scope.unauthorizedGroup) return res.status(403).json({ error: 'Groupe hors périmètre' });
+    if (!scope.studentIds.length) return res.status(400).json({ error: 'Aucun n3beur dans ce groupe' });
+    const students = await queryAll(
+      `SELECT id, first_name, last_name
+         FROM users
+        WHERE user_type = 'student'
+          AND is_active = 1
+          AND id IN (${scope.studentIds.map(() => '?').join(',')})`,
+      scope.studentIds
+    );
+    let assigned = 0;
+    let skipped = 0;
+    const already = new Set((task.assignments || []).map((a) => String(a.student_id || '')));
+    const maxSlots = Math.max(0, Number(task.required_students || 1) - Number(task.assignments?.length || 0));
+    for (const student of students) {
+      if (already.has(String(student.id))) {
+        skipped += 1;
+        continue;
+      }
+      if (assigned >= maxSlots) break;
+      await execute(
+        `INSERT INTO task_assignments (task_id, student_id, student_first_name, student_last_name, assigned_at)
+         VALUES (?, ?, ?, ?, ?)`,
+        [task.id, student.id, student.first_name || '', student.last_name || '', new Date().toISOString()]
+      );
+      assigned += 1;
+    }
+    await recalculateTaskStatus(task);
+    const updated = await getTaskWithAssignments(task.id);
+    emitTasksChanged({ reason: 'assign_group', taskId: task.id, mapId: resolveTaskMapId(updated) });
+    await syncTaskProjectCompletionForProjects([updated.project_id]);
+    return res.json({ task: updated, assigned, skipped, considered: students.length });
+  } catch (e) {
+    return respondInternalError(res, req, e);
   }
 });
 

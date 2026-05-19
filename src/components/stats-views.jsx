@@ -456,11 +456,13 @@ function TeacherStats({ isN3Affiliated = false }) {
   const roleTerms = getRoleTerms(isN3Affiliated);
   const [students, setStudents] = useState(null);
   const [site, setSite] = useState(null);
+  const [groups, setGroups] = useState([]);
+  const [filterGroupId, setFilterGroupId] = useState('');
   const [error, setError] = useState('');
   const [search, setSearch] = useState('');
   const [toast, setToast] = useState(null);
 
-  const load = useCallback(() => api('/api/stats/all').then((payload) => {
+  const load = useCallback(() => api(`/api/stats/all${filterGroupId ? `?group_id=${encodeURIComponent(filterGroupId)}` : ''}`).then((payload) => {
     const rows = Array.isArray(payload) ? payload : (payload?.students ?? []);
     setStudents(rows);
     setSite(Array.isArray(payload) ? null : (payload?.site ?? null));
@@ -471,8 +473,13 @@ function TeacherStats({ isN3Affiliated = false }) {
     setSite(null);
     setError(err?.message || 'Impossible de charger les statistiques.');
     setToast('Impossible de charger les statistiques.');
-  }), []);
+  }), [filterGroupId]);
   useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    api('/api/groups/options')
+      .then((payload) => setGroups(Array.isArray(payload?.groups) ? payload.groups : []))
+      .catch(() => setGroups([]));
+  }, []);
 
   useEffect(() => {
     const onRealtime = (e) => {
@@ -554,6 +561,14 @@ function TeacherStats({ isN3Affiliated = false }) {
         <input value={search} onChange={e => setSearch(e.target.value)}
           placeholder={`🔍 Rechercher un(e) ${roleTerms.studentSingular}...`}
           style={{ background: 'white' }} />
+      </div>
+      <div className="field" style={{ marginBottom: 12 }}>
+        <select value={filterGroupId} onChange={(e) => setFilterGroupId(e.target.value)}>
+          <option value="">Tous les groupes</option>
+          {groups.map((g) => (
+            <option key={g.id} value={g.id}>{g.name}</option>
+          ))}
+        </select>
       </div>
 
       <div className="leaderboard">
