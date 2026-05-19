@@ -1013,6 +1013,15 @@ function VisitView({
   }, [publicSettings?.visit?.mascot?.allowed_ids]);
   const visitMascotDefaultId = String(publicSettings?.visit?.mascot?.default_id || '').trim() || 'renard2-cut-spritesheet';
   const visitTitle = getContentText(publicSettings, 'visit.title', '🧭 Visite de la carte');
+  const helpHintPrefix = getContentText(publicSettings, 'help.hint_prefix', 'Astuce :');
+  const helpPanelTitlePrefix = getContentText(publicSettings, 'help.panel_title_prefix', '💡');
+  const helpPanelCloseCta = getContentText(publicSettings, 'help.panel_close_cta', 'Fermer');
+  const helpPanelDismissCta = getContentText(publicSettings, 'help.panel_dismiss_cta', 'Ne plus afficher');
+  const visitQuickTip = getContentText(
+    publicSettings,
+    'help.visit_quick_tip',
+    'Coche ce que tu vois déjà pour suivre ta progression sur la carte.'
+  );
   const visitEmptySelection = getContentText(publicSettings, 'visit.empty_selection', 'Sélectionne une zone ou un repère pour afficher les détails.');
   const visitTutorialsTitle = getContentText(publicSettings, 'visit.tutorials_title', '📘 Tutoriels de la visite');
   const visitTutorialsEmpty = getContentText(publicSettings, 'visit.tutorials_empty', 'Aucun tutoriel sélectionné pour le moment.');
@@ -1089,7 +1098,15 @@ function VisitView({
   const visitMascotDialogTimeoutRef = useRef(null);
   const visitMascotMoveDialogCooldownUntilRef = useRef(0);
   const visitMascotStartPlacedForMapRef = useRef(null);
-  const { isHelpEnabled, hasSeenSection, markSectionSeen, trackPanelOpen, trackPanelDismiss } = useHelp({ publicSettings, isTeacher });
+  const {
+    isHelpEnabled,
+    showContextHints,
+    pulseUnseenPanels,
+    hasSeenSection,
+    markSectionSeen,
+    trackPanelOpen,
+    trackPanelDismiss,
+  } = useHelp({ publicSettings, isTeacher });
   const isGuestPublicVisit = !student && typeof onBackToAuth === 'function';
   const [guestMascotChoiceOpen, setGuestMascotChoiceOpen] = useState(() => isGuestPublicVisit && requireGuestMascotChoice);
   const closeVisitSelection = useCallback(() => {
@@ -2443,7 +2460,10 @@ function VisitView({
                     title={HELP_PANELS.visit.title}
                     entries={HELP_PANELS.visit.items}
                     isTeacher={isTeacher}
-                    isPulsing={!hasSeenSection('visit')}
+                    isPulsing={pulseUnseenPanels && !hasSeenSection('visit')}
+                    panelTitlePrefix={helpPanelTitlePrefix}
+                    closeButtonText={helpPanelCloseCta}
+                    dismissButtonText={helpPanelDismissCta}
                     onMarkSeen={markSectionSeen}
                     onOpen={trackPanelOpen}
                     onDismiss={trackPanelDismiss}
@@ -2490,6 +2510,11 @@ function VisitView({
                 {maps.length > 1
                   ? 'Aucune zone ni repère sur cette carte. Choisis une autre carte ci-dessus si besoin.'
                   : 'Aucune zone ni repère sur cette carte pour l’instant.'}
+              </p>
+            ) : null}
+            {isHelpEnabled && showContextHints && visitQuickTip ? (
+              <p className="visit-progress-empty visit-progress-empty--below-chrome section-sub">
+                <strong>{helpHintPrefix}</strong> {visitQuickTip}
               </p>
             ) : null}
           </div>

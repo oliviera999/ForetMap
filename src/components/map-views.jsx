@@ -27,6 +27,7 @@ import { lockBodyScroll } from '../utils/body-scroll-lock';
 import { resolveMapOverlayTypography } from '../utils/mapOverlayTypography';
 import { isStudentAssignedToTask } from '../utils/task-assignments';
 import { parseLivingBeings, orderedLivingBeingsForForm, nextLivingBeingsFromMultiSelect } from '../utils/livingBeings';
+import { getContentText } from '../utils/content';
 import { wheelZoomScaleFactor } from '../utils/mapWheelZoom';
 import { buildMapImageCandidates } from '../utils/mapImageCandidates';
 import {
@@ -3838,8 +3839,25 @@ function MapView({ zones, markers, tasks = [], tutorials = [], plants, maps = []
     }),
     [embedded, isCoarsePointer]
   );
-  const { isHelpEnabled, hasSeenSection, markSectionSeen, trackPanelOpen, trackPanelDismiss } = useHelp({ publicSettings, isTeacher });
+  const {
+    isHelpEnabled,
+    showContextHints,
+    pulseUnseenPanels,
+    hasSeenSection,
+    markSectionSeen,
+    trackPanelOpen,
+    trackPanelDismiss,
+  } = useHelp({ publicSettings, isTeacher });
   const helpMap = HELP_PANELS.map;
+  const helpHintPrefix = getContentText(publicSettings, 'help.hint_prefix', 'Astuce :');
+  const helpPanelTitlePrefix = getContentText(publicSettings, 'help.panel_title_prefix', '💡');
+  const helpPanelCloseCta = getContentText(publicSettings, 'help.panel_close_cta', 'Fermer');
+  const helpPanelDismissCta = getContentText(publicSettings, 'help.panel_dismiss_cta', 'Ne plus afficher');
+  const mapQuickTip = getContentText(
+    publicSettings,
+    'help.map_quick_tip',
+    'Clique une zone ou un repère puis ouvre ? pour les actions guidées.'
+  );
   const tooltipText = (entry) => resolveRoleText(entry, isTeacher);
 
   return (
@@ -4047,7 +4065,10 @@ function MapView({ zones, markers, tasks = [], tutorials = [], plants, maps = []
               title={helpMap.title}
               entries={helpMap.items}
               isTeacher={isTeacher}
-              isPulsing={!hasSeenSection('map')}
+              isPulsing={pulseUnseenPanels && !hasSeenSection('map')}
+              panelTitlePrefix={helpPanelTitlePrefix}
+              closeButtonText={helpPanelCloseCta}
+              dismissButtonText={helpPanelDismissCta}
               onMarkSeen={markSectionSeen}
               onOpen={trackPanelOpen}
               onDismiss={trackPanelDismiss}
@@ -4055,6 +4076,11 @@ function MapView({ zones, markers, tasks = [], tutorials = [], plants, maps = []
           )}
         </div>
       </div>
+      {isHelpEnabled && showContextHints && mapQuickTip ? (
+        <p className="section-sub" style={{ margin: '8px 12px 0' }}>
+          <strong>{helpHintPrefix}</strong> {mapQuickTip}
+        </p>
+      ) : null}
 
       <div
         ref={mapLayoutOuterRef}
