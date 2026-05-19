@@ -2081,6 +2081,8 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
     })
     .slice()
     .sort((a, b) => String(a.title || '').localeCompare(String(b.title || ''), 'fr'));
+  const activeProjects = visibleProjects.filter((p) => normalizeProjectUiStatus(p.status) !== 'validated');
+  const validatedProjects = visibleProjects.filter((p) => normalizeProjectUiStatus(p.status) === 'validated');
   const allFiltered = applyFilters(tasks);
   const urgentCategoryTasks = useMemo(
     () => allFiltered.filter(isTaskUrgentCategory).sort(compareTasksByImportanceThenDueDate),
@@ -2890,7 +2892,7 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
             </div>
           )}
           <TaskProjectsBlock
-            visibleProjects={visibleProjects}
+            visibleProjects={activeProjects}
             allFiltered={allFilteredWithoutUrgent}
             sectionListClass={sectionListClass}
             isTeacher={isTeacher}
@@ -2951,7 +2953,7 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
                 <div className={sectionListClass}>{regularFiltered.map((t, idx) => <TaskTileCard key={t.id} {...taskTileProps} t={t} index={idx} />)}</div>
               </div>
               <TaskProjectsBlock
-            visibleProjects={visibleProjects}
+            visibleProjects={activeProjects}
             allFiltered={allFilteredWithoutUrgent}
             sectionListClass={sectionListClass}
             isTeacher={isTeacher}
@@ -2998,7 +3000,7 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
               </div>
               )}
               <TaskProjectsBlock
-            visibleProjects={visibleProjects}
+            visibleProjects={activeProjects}
             allFiltered={allFilteredWithoutUrgent}
             sectionListClass={sectionListClass}
             isTeacher={isTeacher}
@@ -3045,6 +3047,34 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
           )}
         </>
       )}
+
+      <TaskProjectsBlock
+        visibleProjects={validatedProjects}
+        allFiltered={allFilteredWithoutUrgent}
+        sectionListClass={sectionListClass}
+        isTeacher={isTeacher}
+        maps={maps}
+        contextCommentsEnabled={contextCommentsEnabled}
+        canParticipateContextComments={canParticipateContextComments}
+        setEditProject={setEditProject}
+        setShowProjectForm={setShowProjectForm}
+        setNewTaskDefaultProjectId={setNewTaskDefaultProjectId}
+        setEditTask={setEditTask}
+        setDuplicateTask={setDuplicateTask}
+        setShowForm={setShowForm}
+        setShowProposalForm={setShowProposalForm}
+        setProjectStatus={setProjectStatus}
+        validateProject={validateProject}
+        duplicateProject={duplicateProject}
+        loading={loading}
+        taskTileProps={taskTileProps}
+        openTasksTutorialPreview={openTasksTutorialPreview}
+        taskDragPayload={taskDragPayload}
+        taskDropHint={taskDropHint}
+        onProjectTaskDragOver={registerProjectDropHint}
+        onDropTaskToProject={dropTaskToProject}
+        sectionTitle={`✅ Projets validés (${validatedProjects.length})`}
+      />
 
       {allFiltered.length === 0 && (
         <div className="empty"><div className="empty-icon">🌿</div><p>Rien à faire ici pour l’instant — reviens plus tard ou change tes filtres.</p></div>
@@ -3785,6 +3815,7 @@ function TaskTileCard({
 function TaskProjectsBlock({
   visibleProjects,
   allFiltered,
+  sectionTitle = null,
   sectionListClass,
   isTeacher,
   maps,
@@ -3811,7 +3842,7 @@ function TaskProjectsBlock({
 if (visibleProjects.length <= 0) return null;
     return (
       <div className="tasks-section">
-        <div className="tasks-section-title">📁 Projets ({visibleProjects.length})</div>
+        <div className="tasks-section-title">{sectionTitle || `📁 Projets (${visibleProjects.length})`}</div>
         <div style={{ display: 'grid', gap: 8 }}>
           {[...visibleProjects].sort((a, b) => {
             const rank = (status) => {
