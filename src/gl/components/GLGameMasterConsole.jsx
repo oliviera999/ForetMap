@@ -201,13 +201,19 @@ export function GLGameMasterConsole({
                   className={`gl-team-chip${isSelected ? ' is-selected' : ''}${isCurrentTurn ? ' is-current-turn' : ''}`}
                   onClick={() => onSelectTeam?.(Number(team.id))}
                   style={{ borderColor: team.color || '#22c55e' }}
+                  data-team-id={team.id}
+                  data-team-mascot={team.mascot_id || ''}
                 >
                   <span>{team.name}</span>
+                  {team.mascot_id ? <span className="gl-team-chip-mascot">{team.mascot_id}</span> : null}
                   {isCurrentTurn ? <span className="gl-team-chip-badge">Tour</span> : null}
                 </button>
               );
             })}
           </div>
+          <p className="gl-hint">
+            Pour assigner ou changer la mascotte d'une équipe, utiliser l'onglet « Gestion mascottes ».
+          </p>
         </div>
       )}
 

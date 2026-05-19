@@ -36,6 +36,7 @@ Préfixe : `/api/gl`
 - Contenus éditoriaux (pages éditoriales `gl_content_pages`) : `routes/gl/content.js`
 - Chapitres et repères (`gl_chapters`, `gl_chapter_markers`) : `routes/gl/chapters.js`
 - Gameplay : `routes/gl/games.js`
+- Mascottes (catalogue + assignation, `gl_mascot_assignments`) : `routes/gl/mascots.js`
 - Admin GL : `routes/gl/admin.js`
 
 Ajouts phase post-fondation :
@@ -55,6 +56,13 @@ Ajouts Lot 2B (contenus & chapitres) :
 - `GET /api/gl/chapters/:slug` : détail d'un chapitre (champs `gl_chapters`) + ses `markers` triés.
 - `POST/PUT/DELETE /api/gl/chapters/admin[/:id]` : CRUD chapitres (permission `gl.content.manage` ; refus `409` à la suppression si une partie référence le chapitre).
 - `POST /api/gl/chapters/admin/:id/markers`, `PUT/DELETE /api/gl/chapters/admin/markers/:markerId` : CRUD repères de chapitre. La suppression détache d'abord les équipes positionnées sur ce marker (`gl_teams.position_marker_id` → `NULL`) avant l'effacement.
+
+Ajouts Lot 2C (mascottes & équipes) :
+
+- `GET /api/gl/mascots[?gameId=]` : retourne le catalogue (`mascots`) + les `assignments` actuels pour la partie demandée.
+- `POST /api/gl/mascots/assign` : assignation transactionnelle d'une mascotte à une équipe. Met à jour `gl_teams.mascot_id` ET upsert dans `gl_mascot_assignments`. Refuse `409` si la mascotte est déjà utilisée par une autre équipe de la même partie ; `404` si la mascotte n'est pas dans le catalogue.
+
+Catalogue de mascottes : source de vérité unique `src/utils/glMascotCatalog.js` (ESM, consommé par le frontend Vite). Le backend l'importe dynamiquement via `lib/glMascotCatalog.js` (cache mémoire). Rendu visuel : composant React `GLMascotAvatar` qui délègue à `GLMascotFallbackSvg` (SVG inline) tant qu'aucun asset Rive/spritesheet n'est livré pour G&L. Les ids portent le préfixe `gl-*` (`gl-gnome-mousse`, `gl-licorne-aube`, …) pour cohabiter avec le catalogue forêt (`renard2-cut-spritesheet`, etc.) sans conflit. Voir aussi `docs/MASCOT_PACK.md` (note divergence catalogue visite vs G&L).
 
 Les endpoints GL exigent un JWT avec claim `product = "gl"`.
 

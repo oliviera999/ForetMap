@@ -50,6 +50,7 @@ const glAuthRouter = require('./routes/gl/auth');
 const glContentRouter = require('./routes/gl/content');
 const glGamesRouter = require('./routes/gl/games');
 const glChaptersRouter = require('./routes/gl/chapters');
+const glMascotsRouter = require('./routes/gl/mascots');
 const glAdminRouter = require('./routes/gl/admin');
 
 const app = express();
@@ -483,6 +484,7 @@ app.get('/api/admin/oauth-debug', (req, res) => {
 app.use('/api/gl/auth', glAuthRouter);
 app.use('/api/gl/content', glContentRouter);
 app.use('/api/gl/chapters', glChaptersRouter);
+app.use('/api/gl/mascots', glMascotsRouter);
 app.use('/api/gl', glGamesRouter);
 app.use('/api/gl/admin', glAdminRouter);
 

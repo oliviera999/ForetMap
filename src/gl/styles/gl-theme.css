@@ -520,3 +520,116 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* --- Lot 2C : mascottes & équipes --- */
+
+.gl-mascots-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px;
+  margin: 12px 0;
+}
+
+.gl-mascots-controls label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.gl-mascots-filters {
+  display: flex;
+  gap: 4px;
+}
+
+.gl-mascots-filters button {
+  padding: 4px 10px;
+  border: 1px solid #cbd5e1;
+  background: #f8fafc;
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.gl-mascots-filters button.is-active {
+  background: #1d4ed8;
+  color: white;
+  border-color: #1d4ed8;
+}
+
+.gl-mascot-grid {
+  list-style: none;
+  padding: 0;
+  margin: 12px 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.gl-mascot-card {
+  display: flex;
+  gap: 10px;
+  padding: 10px;
+  border: 2px solid #e2e8f0;
+  border-radius: 12px;
+  background: white;
+  align-items: flex-start;
+}
+
+.gl-mascot-card.is-mine {
+  border-color: #16a34a;
+  background: #f0fdf4;
+}
+
+.gl-mascot-card.is-taken {
+  opacity: 0.55;
+}
+
+.gl-mascot-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
+}
+
+.gl-mascot-card-body p {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #475569;
+}
+
+.gl-mascot-card-body button {
+  margin-top: 4px;
+  padding: 6px 10px;
+  border: 1px solid #1d4ed8;
+  background: #eff6ff;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.gl-mascot-card-body button:disabled {
+  cursor: not-allowed;
+  background: #f1f5f9;
+  border-color: #94a3b8;
+  color: #64748b;
+}
+
+.gl-mascot-svg {
+  display: block;
+}
+
+.gl-mascot-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.gl-team-chip-mascot {
+  display: inline-block;
+  margin-left: 4px;
+  padding: 1px 6px;
+  font-size: 0.7rem;
+  background: #e2e8f0;
+  color: #1e293b;
+  border-radius: 999px;
+}

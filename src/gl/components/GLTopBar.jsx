@@ -1,4 +1,9 @@
 import React from 'react';
+import { GLMascotAvatar } from './GLMascotAvatar.jsx';
+
+function isGlMascotId(id) {
+  return typeof id === 'string' && id.startsWith('gl-');
+}
 
 export function GLTopBar({
   tabs,
@@ -6,6 +11,7 @@ export function GLTopBar({
   onTabChange,
   auth,
   onLogout,
+  playerMascotId,
 }) {
   return (
     <header className="gl-topbar">
@@ -26,6 +32,9 @@ export function GLTopBar({
         ))}
       </nav>
       <div className="gl-user">
+        {isGlMascotId(playerMascotId) ? (
+          <GLMascotAvatar mascotId={playerMascotId} size={32} />
+        ) : null}
         <span>{auth?.displayName || auth?.roleSlug || 'Session'}</span>
         <button type="button" className="gl-logout" onClick={onLogout}>
           Deconnexion
