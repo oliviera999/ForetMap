@@ -765,6 +765,72 @@ function mergeTaskVisualStatus(current, next) {
   return (TASK_VISUAL_PRIORITY[next] || 0) > (TASK_VISUAL_PRIORITY[current] || 0) ? next : current;
 }
 
+function parseVisitEditorialBlocksFromJson(raw) {
+  if (!raw) return [];
+  try {
+    const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;
+    if (!Array.isArray(parsed)) return [];
+    return parsed
+      .filter((block) => block && typeof block === 'object' && typeof block.type === 'string')
+      .map((block, index) => ({
+        id: String(block.id || `${block.type}-${index + 1}`),
+        type: String(block.type || '').trim(),
+        media_ids: Array.isArray(block.media_ids)
+          ? block.media_ids.map((id) => Number(id)).filter((id, idx, arr) => Number.isFinite(id) && id > 0 && arr.indexOf(id) === idx).slice(0, 2)
+          : [],
+        layout: block.layout === 'single' ? 'single' : 'duo',
+        size: block.size === 'sm' || block.size === 'lg' ? block.size : 'md',
+        align: block.align === 'left' || block.align === 'right' ? block.align : 'center',
+        caption: String(block.caption || '').trim(),
+        markdown: String(block.markdown || ''),
+        text: String(block.text || ''),
+        level: Number.isFinite(Number(block.level)) ? Number(block.level) : 3,
+      }));
+  } catch (_) {
+    return [];
+  }
+}
+
+function normalizeVisitEditorialBlocksForSave(blocks) {
+  if (!Array.isArray(blocks)) return [];
+  return blocks
+    .filter((b) => b && typeof b === 'object' && typeof b.type === 'string')
+    .map((b) => {
+      if (b.type === 'image') {
+        return {
+          id: String(b.id || ''),
+          type: 'image',
+          media_ids: (Array.isArray(b.media_ids) ? b.media_ids : [])
+            .map((id) => Number(id))
+            .filter((id, idx, arr) => Number.isFinite(id) && id > 0 && arr.indexOf(id) === idx)
+            .slice(0, 2),
+          layout: b.layout === 'single' ? 'single' : 'duo',
+          size: b.size === 'sm' || b.size === 'lg' ? b.size : 'md',
+          align: b.align === 'left' || b.align === 'right' ? b.align : 'center',
+          caption: String(b.caption || '').trim(),
+        };
+      }
+      if (b.type === 'heading') {
+        return {
+          id: String(b.id || ''),
+          type: 'heading',
+          text: String(b.text || '').trim(),
+          level: Number.isFinite(Number(b.level)) ? Number(b.level) : 3,
+        };
+      }
+      return {
+        id: String(b.id || ''),
+        type: 'paragraph',
+        markdown: String(b.markdown || ''),
+      };
+    })
+    .filter((b) => (
+      (b.type === 'image' && b.media_ids.length > 0)
+      || (b.type === 'heading' && b.text)
+      || (b.type === 'paragraph' && String(b.markdown || '').trim())
+    ));
+}
+
 function ZoneInfoModal({ zone, plants, tasks, tutorials = [], isTeacher, student, canSelfAssignTasks = true, canEnrollOnTasks, markerEmojis = MARKER_EMOJIS, emojiParsingList = MARKER_EMOJIS, contextCommentsEnabled = true, canParticipateContextComments = true, onClose, onUpdate, onDelete, onDuplicate, onEditPoints, onLinkTask, onUnlinkTask, onAssignTasks, onLinkTutorial, onUnlinkTutorial, onNavigateToTasksForLocation = null, onOpenTutorialPreview = null, onOpenPlantCatalogPreview = null }) {
   const canEnroll = canEnrollOnTasks !== undefined ? canEnrollOnTasks : canSelfAssignTasks;
   const dialogRef = useDialogA11y(onClose);
@@ -790,6 +856,9 @@ function ZoneInfoModal({ zone, plants, tasks, tutorials = [], isTeacher, student
   const [saving, setSaving] = useState(false);
   const [duplicating, setDuplicating] = useState(false);
   const [toast, setToast] = useState(null);
+  const [visitEditorialBlocks, setVisitEditorialBlocks] = useState(() => parseVisitEditorialBlocksFromJson(zone.visit_body_json));
+  const [visitMediaOptions, setVisitMediaOptions] = useState([]);
+  const [zonePhotoOptions, setZonePhotoOptions] = useState([]);
 
   const displayStage = zone.special ? 'special' : zone.stage;
   const zoneLivingNames = orderedLivingBeingsForForm(zone.living_beings_list || zone.living_beings, zone.current_plant);
@@ -855,7 +924,33 @@ function ZoneInfoModal({ zone, plants, tasks, tutorials = [], isTeacher, student
     setVisitShortDesc(zone.visit_short_description || '');
     setVisitDetailsTitle(zone.visit_details_title || 'Détails');
     setVisitDetailsText(zone.visit_details_text || '');
-  }, [zone.id, zone.name, zone.living_beings, zone.living_beings_list, zone.current_plant, zone.stage, zone.description, zone.visit_subtitle, zone.visit_short_description, zone.visit_details_title, zone.visit_details_text, emojiParsingList, markerEmojis]);
+    setVisitEditorialBlocks(parseVisitEditorialBlocksFromJson(zone.visit_body_json));
+  }, [zone.id, zone.name, zone.living_beings, zone.living_beings_list, zone.current_plant, zone.stage, zone.description, zone.visit_subtitle, zone.visit_short_description, zone.visit_details_title, zone.visit_details_text, zone.visit_body_json, emojiParsingList, markerEmojis]);
+
+  useEffect(() => {
+    let cancel = false;
+    (async () => {
+      try {
+        const [photos, content] = await Promise.all([
+          api(`/api/zones/${zone.id}/photos`),
+          api(`/api/visit/content?map_id=${encodeURIComponent(zone.map_id || 'foret')}`),
+        ]);
+        if (cancel) return;
+        const zoneVisit = (content?.zones || []).find((z) => String(z.id) === String(zone.id));
+        const vm = [...(zoneVisit?.visit_media || [])].sort(
+          (a, b) => (Number(a.sort_order) || 0) - (Number(b.sort_order) || 0) || Number(a.id) - Number(b.id),
+        );
+        setVisitMediaOptions(vm);
+        setZonePhotoOptions(Array.isArray(photos) ? photos : []);
+      } catch (_) {
+        if (!cancel) {
+          setVisitMediaOptions([]);
+          setZonePhotoOptions([]);
+        }
+      }
+    })();
+    return () => { cancel = true; };
+  }, [zone.id, zone.map_id]);
 
   useEffect(() => {
     setSelectedTaskIds((prev) => prev.filter((id) => studentAssignableTasks.some((t) => t.id === id)));
@@ -883,11 +978,47 @@ function ZoneInfoModal({ zone, plants, tasks, tutorials = [], isTeacher, student
         visit_short_description: visitShortDesc,
         visit_details_title: visitDetailsTitle,
         visit_details_text: visitDetailsText,
+        visit_editorial_blocks: normalizeVisitEditorialBlocksForSave(visitEditorialBlocks),
       });
       setToast('Sauvegardé ✓');
       setTab('info');
     } catch (e) { setToast('Erreur'); }
     setSaving(false);
+  };
+
+  const imageBlocks = useMemo(
+    () => visitEditorialBlocks.filter((b) => b.type === 'image'),
+    [visitEditorialBlocks],
+  );
+  const addImageBlock = () => {
+    const id = `img-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+    setVisitEditorialBlocks((prev) => [...prev, { id, type: 'image', media_ids: [], layout: 'single', size: 'md', align: 'center', caption: '' }]);
+  };
+  const updateImageBlock = (id, patch) => {
+    setVisitEditorialBlocks((prev) => prev.map((b) => (b.id === id ? { ...b, ...patch } : b)));
+  };
+  const removeImageBlock = (id) => {
+    setVisitEditorialBlocks((prev) => prev.filter((b) => b.id !== id));
+  };
+  const attachZonePhotoToVisit = async (photo) => {
+    if (!photo?.image_url) return;
+    try {
+      await api('/api/visit/media', 'POST', {
+        target_type: 'zone',
+        target_id: zone.id,
+        image_url: String(photo.image_url || '').trim(),
+        caption: String(photo.caption || '').trim(),
+      });
+      const content = await api(`/api/visit/content?map_id=${encodeURIComponent(zone.map_id || 'foret')}`);
+      const zoneVisit = (content?.zones || []).find((z) => String(z.id) === String(zone.id));
+      const vm = [...(zoneVisit?.visit_media || [])].sort(
+        (a, b) => (Number(a.sort_order) || 0) - (Number(b.sort_order) || 0) || Number(a.id) - Number(b.id),
+      );
+      setVisitMediaOptions(vm);
+      setToast('Photo associée à la visite ✓');
+    } catch (e) {
+      setToast(e?.message || 'Erreur association photo');
+    }
   };
 
   const TABS = [
@@ -1138,6 +1269,69 @@ function ZoneInfoModal({ zone, plants, tasks, tutorials = [], isTeacher, student
             </div>
             <div className="field"><label>Détails dépliables (visite)</label>
               <MarkdownTextarea value={visitDetailsText} onChange={(e) => setVisitDetailsText(e.target.value)} rows={4} placeholder="Contenu du panneau repliable" />
+            </div>
+            <div className="visit-editorial-builder">
+              <h5>Bloc images (visite)</h5>
+              <p className="section-sub">Choisis des photos déjà associées à la zone, ou associe d’abord une photo de l’onglet Photos.</p>
+              <div className="visit-editorial-builder__actions">
+                <button type="button" className="btn btn-ghost btn-sm" onClick={addImageBlock}>+ Bloc image</button>
+              </div>
+              {zonePhotoOptions.length > 0 ? (
+                <div className="visit-media-import-from-map">
+                  <h6>Photos liées à cette zone</h6>
+                  <div className="visit-media-import-from-map__list">
+                    {zonePhotoOptions.map((ph) => (
+                      <div key={`zone-photo-${ph.id}`} className="visit-media-import-from-map__item">
+                        <span>{ph.caption || ph.image_url}</span>
+                        <button type="button" className="btn btn-ghost btn-sm" onClick={() => attachZonePhotoToVisit(ph)}>
+                          Associer à la visite
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+              <div className="visit-editorial-builder__list">
+                {imageBlocks.map((block) => (
+                  <div key={block.id} className="visit-editorial-builder__item">
+                    <div className="visit-editorial-builder__head">
+                      <strong>Image(s)</strong>
+                      <div className="visit-editorial-builder__head-actions">
+                        <button type="button" className="btn btn-danger btn-sm" onClick={() => removeImageBlock(block.id)}>Suppr.</button>
+                      </div>
+                    </div>
+                    <div className="visit-editorial-builder__image">
+                      <label>Photos du bloc (1 ou 2)</label>
+                      <select
+                        multiple
+                        value={(block.media_ids || []).map(String)}
+                        onChange={(e) => {
+                          const ids = Array.from(e.target.selectedOptions).map((opt) => Number(opt.value)).filter((n) => Number.isFinite(n)).slice(0, 2);
+                          updateImageBlock(block.id, { media_ids: ids });
+                        }}
+                      >
+                        {visitMediaOptions.map((media) => (
+                          <option key={media.id} value={String(media.id)}>
+                            #{media.id} {media.caption || media.image_url || 'photo'}
+                          </option>
+                        ))}
+                      </select>
+                      <div className="visit-editorial-builder__image-meta">
+                        <select value={block.size || 'md'} onChange={(e) => updateImageBlock(block.id, { size: e.target.value })}>
+                          <option value="sm">Compact</option>
+                          <option value="md">Normal</option>
+                          <option value="lg">Large</option>
+                        </select>
+                      </div>
+                      <input
+                        value={block.caption || ''}
+                        onChange={(e) => updateImageBlock(block.id, { caption: e.target.value })}
+                        placeholder="Légende (optionnel)"
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
             <div className="field"><label htmlFor="zone-edit-emoji-custom">Emoji de zone</label>
               <ZoneOrMarkerEmojiField
@@ -1587,6 +1781,9 @@ function MarkerModal({
   const [assigning, setAssigning] = useState(false);
   const [toast, setToast] = useState(null);
   const [duplicating, setDuplicating] = useState(false);
+  const [visitEditorialBlocks, setVisitEditorialBlocks] = useState(() => parseVisitEditorialBlocksFromJson(marker.visit_body_json));
+  const [visitMediaOptions, setVisitMediaOptions] = useState([]);
+  const [markerPhotoOptions, setMarkerPhotoOptions] = useState([]);
   const set = k => e => setForm(f => ({ ...f, [k]: e.target.value }));
 
   const taskMapId = (t) => t.map_id_resolved || t.map_id || t.zone_map_id || t.marker_map_id || null;
@@ -1652,6 +1849,7 @@ function MarkerModal({
       visit_details_title: marker.visit_details_title || 'Détails',
       visit_details_text: marker.visit_details_text || '',
     });
+    setVisitEditorialBlocks(parseVisitEditorialBlocksFromJson(marker.visit_body_json));
   }, [
     marker.id,
     marker.label,
@@ -1664,7 +1862,38 @@ function MarkerModal({
     marker.visit_short_description,
     marker.visit_details_title,
     marker.visit_details_text,
+    marker.visit_body_json,
   ]);
+
+  useEffect(() => {
+    if (isNew || !marker.id) {
+      setVisitMediaOptions([]);
+      setMarkerPhotoOptions([]);
+      return;
+    }
+    let cancel = false;
+    (async () => {
+      try {
+        const [photos, content] = await Promise.all([
+          api(`/api/map/markers/${marker.id}/photos`),
+          api(`/api/visit/content?map_id=${encodeURIComponent(marker.map_id || 'foret')}`),
+        ]);
+        if (cancel) return;
+        const markerVisit = (content?.markers || []).find((m) => String(m.id) === String(marker.id));
+        const vm = [...(markerVisit?.visit_media || [])].sort(
+          (a, b) => (Number(a.sort_order) || 0) - (Number(b.sort_order) || 0) || Number(a.id) - Number(b.id),
+        );
+        setVisitMediaOptions(vm);
+        setMarkerPhotoOptions(Array.isArray(photos) ? photos : []);
+      } catch (_) {
+        if (!cancel) {
+          setVisitMediaOptions([]);
+          setMarkerPhotoOptions([]);
+        }
+      }
+    })();
+    return () => { cancel = true; };
+  }, [isNew, marker.id, marker.map_id]);
 
   const buildPayload = () => {
     const living = form.living_beings;
@@ -1682,7 +1911,43 @@ function MarkerModal({
       visit_short_description: form.visit_short_description,
       visit_details_title: form.visit_details_title,
       visit_details_text: form.visit_details_text,
+      visit_editorial_blocks: normalizeVisitEditorialBlocksForSave(visitEditorialBlocks),
     };
+  };
+
+  const imageBlocks = useMemo(
+    () => visitEditorialBlocks.filter((b) => b.type === 'image'),
+    [visitEditorialBlocks],
+  );
+  const addImageBlock = () => {
+    const id = `img-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+    setVisitEditorialBlocks((prev) => [...prev, { id, type: 'image', media_ids: [], layout: 'single', size: 'md', align: 'center', caption: '' }]);
+  };
+  const updateImageBlock = (id, patch) => {
+    setVisitEditorialBlocks((prev) => prev.map((b) => (b.id === id ? { ...b, ...patch } : b)));
+  };
+  const removeImageBlock = (id) => {
+    setVisitEditorialBlocks((prev) => prev.filter((b) => b.id !== id));
+  };
+  const attachMarkerPhotoToVisit = async (photo) => {
+    if (!photo?.image_url || !marker.id) return;
+    try {
+      await api('/api/visit/media', 'POST', {
+        target_type: 'marker',
+        target_id: marker.id,
+        image_url: String(photo.image_url || '').trim(),
+        caption: String(photo.caption || '').trim(),
+      });
+      const content = await api(`/api/visit/content?map_id=${encodeURIComponent(marker.map_id || 'foret')}`);
+      const markerVisit = (content?.markers || []).find((m) => String(m.id) === String(marker.id));
+      const vm = [...(markerVisit?.visit_media || [])].sort(
+        (a, b) => (Number(a.sort_order) || 0) - (Number(b.sort_order) || 0) || Number(a.id) - Number(b.id),
+      );
+      setVisitMediaOptions(vm);
+      setToast('Photo associée à la visite ✓');
+    } catch (e) {
+      setToast(e?.message || 'Erreur association photo');
+    }
   };
 
   const saveNew = async () => {
@@ -2276,6 +2541,69 @@ function MarkerModal({
             </div>
             <div className="field"><label>Détails dépliables (visite)</label>
               <MarkdownTextarea value={form.visit_details_text} onChange={set('visit_details_text')} rows={4} placeholder="Contenu du panneau repliable" />
+            </div>
+            <div className="visit-editorial-builder">
+              <h5>Bloc images (visite)</h5>
+              <p className="section-sub">Choisis des photos déjà associées au repère, ou associe d’abord une photo de l’onglet Photos.</p>
+              <div className="visit-editorial-builder__actions">
+                <button type="button" className="btn btn-ghost btn-sm" onClick={addImageBlock}>+ Bloc image</button>
+              </div>
+              {markerPhotoOptions.length > 0 ? (
+                <div className="visit-media-import-from-map">
+                  <h6>Photos liées à ce repère</h6>
+                  <div className="visit-media-import-from-map__list">
+                    {markerPhotoOptions.map((ph) => (
+                      <div key={`marker-photo-${ph.id}`} className="visit-media-import-from-map__item">
+                        <span>{ph.caption || ph.image_url}</span>
+                        <button type="button" className="btn btn-ghost btn-sm" onClick={() => attachMarkerPhotoToVisit(ph)}>
+                          Associer à la visite
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+              <div className="visit-editorial-builder__list">
+                {imageBlocks.map((block) => (
+                  <div key={block.id} className="visit-editorial-builder__item">
+                    <div className="visit-editorial-builder__head">
+                      <strong>Image(s)</strong>
+                      <div className="visit-editorial-builder__head-actions">
+                        <button type="button" className="btn btn-danger btn-sm" onClick={() => removeImageBlock(block.id)}>Suppr.</button>
+                      </div>
+                    </div>
+                    <div className="visit-editorial-builder__image">
+                      <label>Photos du bloc (1 ou 2)</label>
+                      <select
+                        multiple
+                        value={(block.media_ids || []).map(String)}
+                        onChange={(e) => {
+                          const ids = Array.from(e.target.selectedOptions).map((opt) => Number(opt.value)).filter((n) => Number.isFinite(n)).slice(0, 2);
+                          updateImageBlock(block.id, { media_ids: ids });
+                        }}
+                      >
+                        {visitMediaOptions.map((media) => (
+                          <option key={media.id} value={String(media.id)}>
+                            #{media.id} {media.caption || media.image_url || 'photo'}
+                          </option>
+                        ))}
+                      </select>
+                      <div className="visit-editorial-builder__image-meta">
+                        <select value={block.size || 'md'} onChange={(e) => updateImageBlock(block.id, { size: e.target.value })}>
+                          <option value="sm">Compact</option>
+                          <option value="md">Normal</option>
+                          <option value="lg">Large</option>
+                        </select>
+                      </div>
+                      <input
+                        value={block.caption || ''}
+                        onChange={(e) => updateImageBlock(block.id, { caption: e.target.value })}
+                        placeholder="Légende (optionnel)"
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
             <div className="field"><label htmlFor="marker-edit-emoji-custom">Emoji du repère</label>
               <ZoneOrMarkerEmojiField

@@ -218,7 +218,7 @@ function VisitEditorialRenderer({ blocks, selectedVisitMedia, onOpenLightbox }) 
           return (
             <div
               key={block.id}
-              className={`visit-editorial-image visit-editorial-image--${block.layout || 'single'} visit-editorial-image--${block.size || 'md'} visit-editorial-image--${block.align || 'center'}`}
+              className={`visit-editorial-image ${images.length === 1 ? 'visit-editorial-image--single' : 'visit-editorial-image--multi'} visit-editorial-image--${block.size || 'md'} visit-editorial-image--${block.align || 'center'}`}
             >
               <div className="visit-media-gallery">
                 {images.map((media) => (
@@ -774,10 +774,7 @@ function VisitEditorPanel({ selected, selectedType, onSaved, onForceLogout, isTe
                     value={(block.media_ids || []).map(String)}
                     onChange={(e) => {
                       const ids = Array.from(e.target.selectedOptions).map((opt) => Number(opt.value)).filter((n) => Number.isFinite(n)).slice(0, 2);
-                      updateEditorialBlock(block.id, {
-                        media_ids: ids,
-                        layout: ids.length > 1 ? (block.layout === 'single' ? 'single' : 'duo') : 'single',
-                      });
+                      updateEditorialBlock(block.id, { media_ids: ids });
                     }}
                   >
                     {sortedVisitMedia.map((media) => (
@@ -787,10 +784,6 @@ function VisitEditorPanel({ selected, selectedType, onSaved, onForceLogout, isTe
                     ))}
                   </select>
                   <div className="visit-editorial-builder__image-meta">
-                    <select value={block.layout || 'single'} onChange={(e) => updateEditorialBlock(block.id, { layout: e.target.value })}>
-                      <option value="single">1 colonne</option>
-                      <option value="duo">2 colonnes</option>
-                    </select>
                     <select value={block.size || 'md'} onChange={(e) => updateEditorialBlock(block.id, { size: e.target.value })}>
                       <option value="sm">Compact</option>
                       <option value="md">Normal</option>
