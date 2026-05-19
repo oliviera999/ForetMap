@@ -113,4 +113,18 @@ router.put('/settings/:key', requireGlPermission('gl.settings.manage'), async (r
   return res.json({ ok: true });
 });
 
+router.get('/content', requireGlPermission('gl.content.manage'), async (_req, res) => {
+  const rows = await queryAll(
+    `SELECT slug, title, updated_by, updated_at
+       FROM gl_content_pages
+      ORDER BY updated_at DESC, slug ASC`
+  );
+  return res.json(rows.map((row) => ({
+    slug: row.slug,
+    title: row.title,
+    updatedBy: row.updated_by || null,
+    updatedAt: row.updated_at || null,
+  })));
+});
+
 module.exports = router;

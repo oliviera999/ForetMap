@@ -188,3 +188,25 @@
   display: grid;
   gap: 6px;
 }
+
+.gl-content-admin-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.gl-content-admin-list button {
+  border: 1px solid #bfdbfe;
+  border-radius: 999px;
+  background: #eff6ff;
+  color: #1e3a8a;
+  padding: 6px 10px;
+  cursor: pointer;
+}
+
+.gl-content-admin-list button.is-active {
+  border-color: #1d4ed8;
+  background: #1d4ed8;
+  color: #ffffff;
+}

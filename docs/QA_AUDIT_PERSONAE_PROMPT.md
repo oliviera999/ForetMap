@@ -14,7 +14,7 @@ Tu dois simuler des personae realistes, parcourir les flux critiques eleve/prof,
   - Local dev UI: http://localhost:5173 (proxy API vers 3000)
   - Ou app servie par Express: http://localhost:3000
 - Stack:
-  - Frontend: React 18 + Vite (`src/`, build `dist/`)
+  - Frontend: React 19 + Vite (`src/`, build `dist/`)
   - Backend: Node.js + Express (`server.js`, `routes/`)
   - BDD: MySQL/MariaDB (`database.js`, `sql/schema_foretmap.sql`)
   - Tests UI: Playwright (`e2e/`)
@@ -147,4 +147,31 @@ Utiliser ce cycle sur chaque lot qui touche l'UX, les formulaires, l'auth ou les
 - Mobile + clavier testes
 - Erreurs/timeouts/double submit testes
 - Rapport final complete (matrice + top10 + verdict)
+
+## 4) Personae GL (Gnomes & Licornes)
+
+Utiliser cette checklist pour la recette ciblee de `gl.olution.info` apres un lot GL.
+
+### Persona GL Joueur (6e)
+
+- Connexion via pseudo + PIN (onglet auth GL)
+- Verification des onglets: Cartes, Biotope, Biocenose, Histoire, Monde, Sortileges, Regles
+- Join team sur une partie (`/api/gl/games/:id/join-team`)
+- Observation d'un mouvement d'equipe emis par le MJ (temps reel Socket.IO room `gl:game:{id}`)
+- Verification de la lisibilite mobile (actions principales en <=3 taps)
+
+### Persona GL MJ (admin)
+
+- Connexion admin (Google) puis acces console MJ
+- Creation d'une partie (classe + chapitre)
+- Ajout de 2 equipes (gnome + licorne), assignation mascotte
+- Emission d'un event `move` (API `/api/gl/games/:id/events`)
+- Changement d'etat partie (start, pause, end)
+
+### Criteres d'acceptation GL
+
+- Aucune confusion visuelle avec ForetMap (theme et onglets dedies GL)
+- Aucune fuite cross-produit (token GL refuse sur endpoints ForetMap)
+- Les events MJ sont visibles cote joueur sans rechargement
+- Les ecrans editoriaux GL sont consultables sans erreur bloquante
 

@@ -10,14 +10,24 @@ const {
   requestJsonWithRetry,
   parseRetryAfterMs,
   checkEndpoint,
+  checkEndpointAllowedStatuses,
   checkImageEndpoint,
 } = require('../scripts/post-deploy-check');
 
 test('parseArgs lit --base-url et --timeout-ms', () => {
-  const parsed = parseArgs(['--base-url', 'https://example.org', '--timeout-ms', '7000', '--image-check-path', '/api/zones/x/photos/1/data']);
+  const parsed = parseArgs([
+    '--base-url',
+    'https://example.org',
+    '--timeout-ms',
+    '7000',
+    '--image-check-path',
+    '/api/zones/x/photos/1/data',
+    '--gl-health-only',
+  ]);
   assert.strictEqual(parsed.baseUrl, 'https://example.org');
   assert.strictEqual(parsed.timeoutMs, 7000);
   assert.strictEqual(parsed.imageCheckPath, '/api/zones/x/photos/1/data');
+  assert.strictEqual(parsed.glHealthOnly, true);
 });
 
 test('parseArgs garde les valeurs par défaut', () => {
@@ -126,6 +136,30 @@ test('checkEndpoint marque un endpoint requis en échec si 503', async () => {
     assert.strictEqual(out.pass, false);
     assert.strictEqual(out.status, 503);
     assert.strictEqual(out.path, '/api/health/db');
+  } finally {
+    await new Promise((resolve) => server.close(resolve));
+  }
+});
+
+test('checkEndpointAllowedStatuses accepte 401 pour contenu GL optionnel', async () => {
+  const server = http.createServer((req, res) => {
+    res.writeHead(401, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ error: 'token requis' }));
+  });
+
+  await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+  const port = server.address().port;
+  try {
+    const out = await checkEndpointAllowedStatuses(
+      `http://127.0.0.1:${port}`,
+      '/api/gl/content/world',
+      3000,
+      [200, 401],
+      false
+    );
+    assert.strictEqual(out.required, false);
+    assert.strictEqual(out.pass, true);
+    assert.strictEqual(out.status, 401);
   } finally {
     await new Promise((resolve) => server.close(resolve));
   }
