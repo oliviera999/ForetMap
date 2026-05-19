@@ -1,24 +1,13 @@
 const express = require('express');
-const jwt = require('jsonwebtoken');
 const { queryAll, queryOne, execute } = require('../database');
-const { requireAuth, requirePermission, JWT_SECRET } = require('../middleware/requireTeacher');
+const { requireAuth, requirePermission, hasPermission } = require('../middleware/requireTeacher');
 const { saveBase64ToDisk, getAbsolutePath, deleteFile } = require('../lib/uploads');
 const { logRouteError, respondInternalError } = require('../lib/routeLog');
 
 const router = express.Router();
 
 function isTeacherRequest(req) {
-  try {
-    if (!JWT_SECRET) return false;
-    const auth = req.headers.authorization;
-    const token = auth && auth.startsWith('Bearer ') ? auth.slice(7) : null;
-    if (!token) return false;
-    const payload = jwt.verify(token, JWT_SECRET);
-    const perms = Array.isArray(payload?.permissions) ? payload.permissions : [];
-    return perms.includes('observations.read.all');
-  } catch (_) {
-    return false;
-  }
+  return hasPermission(req.auth, 'observations.read.all', true);
 }
 
 // Observations d'un élève

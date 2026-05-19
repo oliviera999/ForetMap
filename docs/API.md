@@ -709,7 +709,7 @@ Objet **`site`** (réponse `GET /api/stats/all` uniquement) :
 
 | Méthode | URL | n3boss | Description |
 |--------|-----|------|-------------|
-| POST | `/api/students/register` | non | Rafraîchir last_seen (`{ studentId }`) |
+| POST | `/api/students/register` | non (jeton élève propriétaire requis) | Rafraîchir `last_seen` et la session élève (`{ studentId }`) |
 | PATCH | `/api/students/:id/profile` | non | Mettre à jour son profil (`{ pseudo?, email?, description?, avatarData?, removeAvatar?, currentPassword }`) |
 | DELETE | `/api/students/:id` | oui | Supprimer un n3beur (cascade) |
 

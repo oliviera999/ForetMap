@@ -31,8 +31,7 @@ const API_CACHE_URLS = [
 /** GET lecture mode visite : stale-while-revalidate (réponse immédiate + rafraîchissement réseau). */
 function isVisitReadApiPath(pathname) {
   return pathname.endsWith('/api/maps')
-    || pathname.endsWith('/api/visit/content')
-    || pathname.endsWith('/api/visit/progress');
+    || pathname.endsWith('/api/visit/content');
 }
 
 function staleWhileRevalidate(request) {
@@ -103,7 +102,7 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Mode visite : stale-while-revalidate (contenu, cartes, progression)
+  // Mode visite : stale-while-revalidate (contenu public, cartes)
   if (isVisitReadApiPath(url.pathname)) {
     event.respondWith(staleWhileRevalidate(event.request));
     return;
