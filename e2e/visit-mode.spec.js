@@ -1,15 +1,27 @@
 const { test, expect } = require('@playwright/test');
 const { loginAsNewStudent, enableTeacherMode } = require('./fixtures/auth.fixture');
 
-test('visite publique : accès sans compte puis retour connexion', async ({ page }) => {
+test('visite publique : choix mascotte obligatoire au premier lancement puis mémorisé', async ({ page }) => {
   await page.goto('/');
   const guestCta = page.getByRole('button', { name: /Visiter sans compte/i });
   await expect(guestCta).toBeVisible({ timeout: 30_000 });
   await guestCta.click();
 
+  const onboarding = page.locator('.visit-mascot-onboarding');
+  await expect(onboarding).toBeVisible({ timeout: 30_000 });
+  await expect(onboarding.getByRole('heading', { name: /Choisis ta mascotte guide/i })).toBeVisible();
+  await onboarding.locator('.visit-mascot-onboarding__option').first().click();
+  await onboarding.getByRole('button', { name: /Commencer la visite/i }).click();
+  await expect(onboarding).toHaveCount(0);
+
   await expect(page.locator('.visit-view--guest-public')).toBeVisible({ timeout: 30_000 });
   await expect(page.getByRole('button', { name: /Retour connexion/i })).toBeVisible();
-  await expect(page.getByRole('heading', { level: 2 })).toBeVisible();
+  await page.getByRole('button', { name: /Retour connexion/i }).click();
+  await expect(guestCta).toBeVisible({ timeout: 30_000 });
+
+  await guestCta.click();
+  await expect(page.locator('.visit-view--guest-public')).toBeVisible({ timeout: 30_000 });
+  await expect(page.locator('.visit-mascot-onboarding')).toHaveCount(0);
 });
 
 test('visite connectée : onglet Visite affiche la vue visite', async ({ page }) => {
@@ -127,6 +139,7 @@ test('visite prof : aperçu comme élève masque le panneau d’édition', async
   }
   await expect(page.getByTestId('visit-detail-panel')).toBeVisible({ timeout: 10_000 });
   await expect(page.getByTestId('visit-editor-panel')).toBeVisible({ timeout: 10_000 });
+  await expect(page.getByText('Mise en page éditoriale')).toBeVisible({ timeout: 10_000 });
 
   await page.getByTestId('visit-teacher-preview-toggle').evaluate((el) => el.click());
   await expect(page.getByTestId('visit-editor-panel')).toHaveCount(0);

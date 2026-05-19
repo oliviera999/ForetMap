@@ -12,7 +12,7 @@ const { emitStudentsChanged, emitTasksChanged } = require('../lib/realtime');
 const { saveBase64ToDisk, deleteFile, getAbsolutePath, ensureDir } = require('../lib/uploads');
 const { ensurePrimaryRole, getPrimaryRoleForUser, setPrimaryRole } = require('../lib/rbac');
 const { deleteStudentById } = require('../lib/studentDeletion');
-const { getSettingValue } = require('../lib/settings');
+const { getSettingValue, getVisitMascotSettings } = require('../lib/settings');
 const logger = require('../lib/logger');
 const { parseStudentAffiliationInput, resolveStudentAffiliationForPersist } = require('../lib/studentAffiliation');
 
@@ -73,6 +73,12 @@ const IMPORT_HEADER_ALIASES = new Map([
 ]);
 
 function normalizeOptionalString(value) {
+  if (value == null) return null;
+  const s = String(value).trim();
+  return s.length > 0 ? s : null;
+}
+
+function normalizeVisitMascotPreference(value) {
   if (value == null) return null;
   const s = String(value).trim();
   return s.length > 0 ? s : null;
@@ -581,9 +587,10 @@ router.patch('/:id/profile', async (req, res) => {
     const hasEmail = hasOwn(body, 'email') || hasOwn(body, 'mail');
     const hasDescription = hasOwn(body, 'description');
     const hasAffiliation = hasOwn(body, 'affiliation');
+    const hasVisitMascotCatalogId = hasOwn(body, 'visit_mascot_catalog_id');
     const hasAvatarData = hasOwn(body, 'avatarData');
     const removeAvatar = !!body.removeAvatar;
-    if (!hasPseudo && !hasEmail && !hasDescription && !hasAffiliation && !hasAvatarData && !removeAvatar) {
+    if (!hasPseudo && !hasEmail && !hasDescription && !hasAffiliation && !hasVisitMascotCatalogId && !hasAvatarData && !removeAvatar) {
       return res.status(400).json({ error: 'Aucun champ de profil à mettre à jour' });
     }
 
@@ -597,6 +604,15 @@ router.patch('/:id/profile', async (req, res) => {
       affiliation = affRes.affiliation;
     } else {
       affiliation = student.affiliation || 'both';
+    }
+    let visitMascotCatalogId = hasVisitMascotCatalogId
+      ? normalizeVisitMascotPreference(body.visit_mascot_catalog_id)
+      : normalizeVisitMascotPreference(student.visit_mascot_catalog_id);
+    if (hasVisitMascotCatalogId && visitMascotCatalogId) {
+      const { allowedIds } = await getVisitMascotSettings();
+      if (!allowedIds.includes(visitMascotCatalogId)) {
+        return res.status(400).json({ error: 'Mascotte indisponible pour la visite' });
+      }
     }
     let avatarPath = student.avatar_path || null;
 
@@ -649,8 +665,8 @@ router.patch('/:id/profile', async (req, res) => {
 
     try {
       await execute(
-        "UPDATE users SET pseudo = ?, email = ?, description = ?, avatar_path = ?, affiliation = ?, display_name = TRIM(CONCAT(COALESCE(first_name,''), ' ', COALESCE(last_name,''))) WHERE id = ? AND user_type = 'student'",
-        [pseudo, email, description, avatarPath, affiliation, student.id]
+        "UPDATE users SET pseudo = ?, email = ?, description = ?, avatar_path = ?, affiliation = ?, visit_mascot_catalog_id = ?, display_name = TRIM(CONCAT(COALESCE(first_name,''), ' ', COALESCE(last_name,''))) WHERE id = ? AND user_type = 'student'",
+        [pseudo, email, description, avatarPath, affiliation, visitMascotCatalogId, student.id]
       );
     } catch (err) {
       if (err && (err.errno === 1062 || err.code === 'ER_DUP_ENTRY')) {
@@ -663,7 +679,14 @@ router.patch('/:id/profile', async (req, res) => {
       req,
       actorUserType: 'student',
       actorUserId: student.id,
-      payload: { pseudo: !!hasPseudo, email: !!hasEmail, description: !!hasDescription, affiliation: !!hasAffiliation, avatar: !!(hasAvatarData || removeAvatar) },
+      payload: {
+        pseudo: !!hasPseudo,
+        email: !!hasEmail,
+        description: !!hasDescription,
+        affiliation: !!hasAffiliation,
+        visit_mascot_catalog_id: !!hasVisitMascotCatalogId,
+        avatar: !!(hasAvatarData || removeAvatar),
+      },
     });
     emitStudentsChanged({ reason: 'student_profile_update', studentId: student.id });
     res.json({ ...updated, password_hash: undefined });

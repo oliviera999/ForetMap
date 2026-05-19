@@ -94,6 +94,64 @@ test('GET /api/settings/public renvoie les réglages publics', async () => {
   assert.strictEqual(uiMap.emoji_label_center_gap, 14);
   assert.strictEqual(uiMap.overlay_emoji_size_percent, 100);
   assert.strictEqual(uiMap.overlay_label_size_percent, 100);
+  assert.ok(Array.isArray(res.body.settings.ui?.visit?.mascot?.allowed_ids));
+  assert.strictEqual(typeof res.body.settings.ui?.visit?.mascot?.default_id, 'string');
+});
+
+test('réglages mascotte visite : liste autorisée + défaut global normalisés', async () => {
+  const token = await getAdminToken();
+  const allowedIds = 'renard2-cut-spritesheet,sprout-rive';
+  await request(app)
+    .put('/api/settings/admin/ui.visit.mascot.allowed_ids')
+    .set('Authorization', `Bearer ${token}`)
+    .send({ value: allowedIds })
+    .expect(200);
+  await request(app)
+    .put('/api/settings/admin/ui.visit.mascot.default_id')
+    .set('Authorization', `Bearer ${token}`)
+    .send({ value: 'sprout-rive' })
+    .expect(200);
+
+  const pub = await request(app).get('/api/settings/public').expect(200);
+  assert.deepStrictEqual(pub.body?.settings?.ui?.visit?.mascot?.allowed_ids, ['renard2-cut-spritesheet', 'sprout-rive']);
+  assert.strictEqual(pub.body?.settings?.ui?.visit?.mascot?.default_id, 'sprout-rive');
+
+  await request(app)
+    .put('/api/settings/admin/ui.visit.mascot.default_id')
+    .set('Authorization', `Bearer ${token}`)
+    .send({ value: 'inconnue' })
+    .expect(200);
+  const normalized = await request(app).get('/api/settings/public').expect(200);
+  assert.strictEqual(normalized.body?.settings?.ui?.visit?.mascot?.default_id, 'renard2-cut-spritesheet');
+
+  await request(app)
+    .put('/api/settings/admin/ui.visit.mascot.allowed_ids')
+    .set('Authorization', `Bearer ${token}`)
+    .send({
+      value: [
+        'sprout-rive',
+        'scrap-rive',
+        'gnome-foret-rive',
+        'gnome-ambre-rive',
+        'gnome-punk-rive',
+        'spore-rive',
+        'vine-rive',
+        'moss-rive',
+        'seed-rive',
+        'swarm-rive',
+        'sprite-template',
+        'olu-spritesheet',
+        'tan-bird-spritesheet',
+        'fox-backpack-spritesheet',
+        'renard2-cut-spritesheet',
+      ].join(','),
+    })
+    .expect(200);
+  await request(app)
+    .put('/api/settings/admin/ui.visit.mascot.default_id')
+    .set('Authorization', `Bearer ${token}`)
+    .send({ value: 'renard2-cut-spritesheet' })
+    .expect(200);
 });
 
 test('PUT ui.map.emoji_label_center_gap valide et refuse hors plage', async () => {

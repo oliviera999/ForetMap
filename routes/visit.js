@@ -12,6 +12,12 @@ const { saveBase64ToDisk, getAbsolutePath, deleteFile } = require('../lib/upload
 const { zoneMapPhotoImageUrl, markerMapPhotoImageUrl, resolveMapPhotoThumbUrl } = require('../lib/uploadsPublicUrls');
 const { visitContentRowIsPublicActive } = require('../lib/visitContentPublicActive');
 const { getMascotPackValidatorCandidates, getMascotPackLibProbe } = require('../lib/mascotPackValidatorResolve');
+const {
+  parseVisitEditorialBlocksInput,
+  parseVisitEditorialBlocksStored,
+  serializeVisitEditorialBlocks,
+  buildLegacyVisitEditorialBlocks,
+} = require('../lib/visitEditorialBlocks');
 
 const router = express.Router();
 
@@ -108,6 +114,17 @@ function serializeVisitMedia(row) {
   if (!row) return row;
   const { image_path: _p, ...rest } = row;
   return { ...rest, image_url: visitMediaPublicImageUrl(row) };
+}
+
+function resolveVisitEditorialBlocksForContentRow(row, visitMediaList) {
+  const fromStored = parseVisitEditorialBlocksStored(row?.visit_body_json);
+  if (fromStored.length > 0) return fromStored;
+  return buildLegacyVisitEditorialBlocks({
+    shortDescription: row?.visit_short_description,
+    detailsTitle: row?.visit_details_title,
+    detailsText: row?.visit_details_text,
+    visitMedia: visitMediaList,
+  });
 }
 
 /**
@@ -767,6 +784,7 @@ router.get('/content', async (req, res) => {
          z.short_description AS visit_short_description,
          z.details_title AS visit_details_title,
          z.details_text AS visit_details_text,
+         z.body_json AS visit_body_json,
          z.is_active AS visit_is_active,
          z.sort_order AS visit_sort_order
        FROM visit_zones z
@@ -784,6 +802,7 @@ router.get('/content', async (req, res) => {
          m.short_description AS visit_short_description,
          m.details_title AS visit_details_title,
          m.details_text AS visit_details_text,
+         m.body_json AS visit_body_json,
          m.is_active AS visit_is_active,
          m.sort_order AS visit_sort_order
        FROM visit_markers m
@@ -867,20 +886,28 @@ router.get('/content', async (req, res) => {
       mascot_packs: mascotPacks,
       zones: zones
         .filter((z) => visitContentRowIsPublicActive(z))
-        .map((z) => ({
-          ...z,
-          map_lead_photo: serializeMapLeadPhoto('zone', z.id, zoneMapLeadById.get(String(z.id))),
-          map_extra_photos: serializeMapExtraPhotos('zone', z.id, zoneMapPhotoRows),
-          visit_media: mediaByTarget[`zone:${z.id}`] || [],
-        })),
+        .map((z) => {
+          const visitMedia = mediaByTarget[`zone:${z.id}`] || [];
+          return {
+            ...z,
+            map_lead_photo: serializeMapLeadPhoto('zone', z.id, zoneMapLeadById.get(String(z.id))),
+            map_extra_photos: serializeMapExtraPhotos('zone', z.id, zoneMapPhotoRows),
+            visit_media: visitMedia,
+            visit_editorial_blocks: resolveVisitEditorialBlocksForContentRow(z, visitMedia),
+          };
+        }),
       markers: markers
         .filter((m) => visitContentRowIsPublicActive(m))
-        .map((m) => ({
-          ...m,
-          map_lead_photo: serializeMapLeadPhoto('marker', m.id, markerMapLeadById.get(String(m.id))),
-          map_extra_photos: serializeMapExtraPhotos('marker', m.id, markerMapPhotoRows),
-          visit_media: mediaByTarget[`marker:${m.id}`] || [],
-        })),
+        .map((m) => {
+          const visitMedia = mediaByTarget[`marker:${m.id}`] || [];
+          return {
+            ...m,
+            map_lead_photo: serializeMapLeadPhoto('marker', m.id, markerMapLeadById.get(String(m.id))),
+            map_extra_photos: serializeMapExtraPhotos('marker', m.id, markerMapPhotoRows),
+            visit_media: visitMedia,
+            visit_editorial_blocks: resolveVisitEditorialBlocksForContentRow(m, visitMedia),
+          };
+        }),
       tutorials,
     };
     res.json(payload);
@@ -1495,8 +1522,8 @@ router.post('/sync', requirePermission('visit.manage', { needsElevation: true })
         const z = zoneById.get(zoneId);
         await execute(
           `INSERT INTO visit_zones
-            (id, map_id, name, points, subtitle, short_description, details_title, details_text, is_active, sort_order, created_at, updated_at)
-           VALUES (?, ?, ?, ?, '', '', 'Détails', '', 1, 0, ?, ?)
+            (id, map_id, name, points, subtitle, short_description, details_title, details_text, body_json, is_active, sort_order, created_at, updated_at)
+           VALUES (?, ?, ?, ?, '', '', 'Détails', '', NULL, 1, 0, ?, ?)
            ON DUPLICATE KEY UPDATE
              map_id = VALUES(map_id),
              name = VALUES(name),
@@ -1510,8 +1537,8 @@ router.post('/sync', requirePermission('visit.manage', { needsElevation: true })
         const m = markerById.get(markerId);
         await execute(
           `INSERT INTO visit_markers
-            (id, map_id, x_pct, y_pct, label, emoji, subtitle, short_description, details_title, details_text, is_active, sort_order, created_at, updated_at)
-           VALUES (?, ?, ?, ?, ?, ?, '', '', 'Détails', '', 1, 0, ?, ?)
+            (id, map_id, x_pct, y_pct, label, emoji, subtitle, short_description, details_title, details_text, body_json, is_active, sort_order, created_at, updated_at)
+           VALUES (?, ?, ?, ?, ?, ?, '', '', 'Détails', '', NULL, 1, 0, ?, ?)
            ON DUPLICATE KEY UPDATE
              map_id = VALUES(map_id),
              x_pct = VALUES(x_pct),
@@ -1655,6 +1682,9 @@ router.post('/rebuild-from-map', requirePermission('visit.manage', { needsElevat
           ? String(saved.details_title || 'Détails').trim() || 'Détails'
           : 'Détails';
         const detailsText = saved ? String(saved.details_text ?? '') : '';
+        const bodyJson = saved
+          ? serializeVisitEditorialBlocks(parseVisitEditorialBlocksStored(saved.body_json))
+          : null;
         const isActive = visitContentRowIsPublicActive({ visit_is_active: saved?.is_active }) ? 1 : 0;
         const sortOrder =
           saved != null && Number.isFinite(Number(saved.sort_order))
@@ -1664,8 +1694,8 @@ router.post('/rebuild-from-map', requirePermission('visit.manage', { needsElevat
 
         await tx.execute(
           `INSERT INTO visit_zones
-            (id, map_id, name, points, subtitle, short_description, details_title, details_text, is_active, sort_order, created_at, updated_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            (id, map_id, name, points, subtitle, short_description, details_title, details_text, body_json, is_active, sort_order, created_at, updated_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [
             z.id,
             z.map_id,
@@ -1675,6 +1705,7 @@ router.post('/rebuild-from-map', requirePermission('visit.manage', { needsElevat
             shortDescription,
             detailsTitle,
             detailsText,
+            bodyJson,
             isActive,
             sortOrder,
             createdAt,
@@ -1692,6 +1723,9 @@ router.post('/rebuild-from-map', requirePermission('visit.manage', { needsElevat
           ? String(saved.details_title || 'Détails').trim() || 'Détails'
           : 'Détails';
         const detailsText = saved ? String(saved.details_text ?? '') : '';
+        const bodyJson = saved
+          ? serializeVisitEditorialBlocks(parseVisitEditorialBlocksStored(saved.body_json))
+          : null;
         const isActive = visitContentRowIsPublicActive({ visit_is_active: saved?.is_active }) ? 1 : 0;
         const sortOrder =
           saved != null && Number.isFinite(Number(saved.sort_order))
@@ -1702,8 +1736,8 @@ router.post('/rebuild-from-map', requirePermission('visit.manage', { needsElevat
 
         await tx.execute(
           `INSERT INTO visit_markers
-            (id, map_id, x_pct, y_pct, label, emoji, subtitle, short_description, details_title, details_text, is_active, sort_order, created_at, updated_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            (id, map_id, x_pct, y_pct, label, emoji, subtitle, short_description, details_title, details_text, body_json, is_active, sort_order, created_at, updated_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [
             m.id,
             m.map_id,
@@ -1715,6 +1749,7 @@ router.post('/rebuild-from-map', requirePermission('visit.manage', { needsElevat
             shortDescription,
             detailsTitle,
             detailsText,
+            bodyJson,
             isActive,
             sortOrder,
             createdAt,
@@ -1868,8 +1903,8 @@ router.post('/zones', requirePermission('visit.manage', { needsElevation: true }
     const id = uuidv4();
     await execute(
       `INSERT INTO visit_zones
-        (id, map_id, name, points, subtitle, short_description, details_title, details_text, sort_order, is_active, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        (id, map_id, name, points, subtitle, short_description, details_title, details_text, body_json, sort_order, is_active, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         id,
         mapId,
@@ -1879,6 +1914,7 @@ router.post('/zones', requirePermission('visit.manage', { needsElevation: true }
         String(req.body.short_description || '').trim(),
         String(req.body.details_title || 'Détails').trim() || 'Détails',
         String(req.body.details_text || '').trim(),
+        serializeVisitEditorialBlocks(parseVisitEditorialBlocksInput(req.body.visit_editorial_blocks ?? req.body.body_json)),
         Number.isFinite(Number(req.body.sort_order)) ? Math.max(0, Number(req.body.sort_order)) : 0,
         req.body.is_active === false ? 0 : 1,
         nowIso(),
@@ -1913,13 +1949,16 @@ router.put('/zones/:id', requirePermission('visit.manage', { needsElevation: tru
       ? (String(req.body.details_title || 'Détails').trim() || 'Détails')
       : (String(exists.details_title || 'Détails').trim() || 'Détails');
     const detailsText = req.body.details_text !== undefined ? String(req.body.details_text || '').trim() : String(exists.details_text || '');
+    const bodyJson = req.body.visit_editorial_blocks !== undefined || req.body.body_json !== undefined
+      ? serializeVisitEditorialBlocks(parseVisitEditorialBlocksInput(req.body.visit_editorial_blocks ?? req.body.body_json))
+      : serializeVisitEditorialBlocks(parseVisitEditorialBlocksStored(exists.body_json));
     const isActive = req.body.is_active !== undefined ? (req.body.is_active === false ? 0 : 1) : Number(exists.is_active ?? 1);
     const sortOrder = req.body.sort_order !== undefined
       ? (Number.isFinite(Number(req.body.sort_order)) ? Math.max(0, Number(req.body.sort_order)) : Number(exists.sort_order || 0))
       : Number(exists.sort_order || 0);
     await execute(
       `UPDATE visit_zones
-       SET name = ?, points = ?, subtitle = ?, short_description = ?, details_title = ?, details_text = ?,
+       SET name = ?, points = ?, subtitle = ?, short_description = ?, details_title = ?, details_text = ?, body_json = ?,
            is_active = ?, sort_order = ?, updated_at = ?
        WHERE id = ?`,
       [
@@ -1929,6 +1968,7 @@ router.put('/zones/:id', requirePermission('visit.manage', { needsElevation: tru
         shortDescription,
         detailsTitle,
         detailsText,
+        bodyJson,
         isActive,
         sortOrder,
         nowIso(),
@@ -1971,8 +2011,8 @@ router.post('/markers', requirePermission('visit.manage', { needsElevation: true
     const id = uuidv4();
     await execute(
       `INSERT INTO visit_markers
-        (id, map_id, x_pct, y_pct, label, emoji, subtitle, short_description, details_title, details_text, sort_order, is_active, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        (id, map_id, x_pct, y_pct, label, emoji, subtitle, short_description, details_title, details_text, body_json, sort_order, is_active, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         id,
         mapId,
@@ -1984,6 +2024,7 @@ router.post('/markers', requirePermission('visit.manage', { needsElevation: true
         String(req.body.short_description || '').trim(),
         String(req.body.details_title || 'Détails').trim() || 'Détails',
         String(req.body.details_text || '').trim(),
+        serializeVisitEditorialBlocks(parseVisitEditorialBlocksInput(req.body.visit_editorial_blocks ?? req.body.body_json)),
         Number.isFinite(Number(req.body.sort_order)) ? Math.max(0, Number(req.body.sort_order)) : 0,
         req.body.is_active === false ? 0 : 1,
         nowIso(),
@@ -2018,13 +2059,16 @@ router.put('/markers/:id', requirePermission('visit.manage', { needsElevation: t
       ? (String(req.body.details_title || 'Détails').trim() || 'Détails')
       : (String(exists.details_title || 'Détails').trim() || 'Détails');
     const detailsText = req.body.details_text !== undefined ? String(req.body.details_text || '').trim() : String(exists.details_text || '');
+    const bodyJson = req.body.visit_editorial_blocks !== undefined || req.body.body_json !== undefined
+      ? serializeVisitEditorialBlocks(parseVisitEditorialBlocksInput(req.body.visit_editorial_blocks ?? req.body.body_json))
+      : serializeVisitEditorialBlocks(parseVisitEditorialBlocksStored(exists.body_json));
     const isActive = req.body.is_active !== undefined ? (req.body.is_active === false ? 0 : 1) : Number(exists.is_active ?? 1);
     const sortOrder = req.body.sort_order !== undefined
       ? (Number.isFinite(Number(req.body.sort_order)) ? Math.max(0, Number(req.body.sort_order)) : Number(exists.sort_order || 0))
       : Number(exists.sort_order || 0);
     await execute(
       `UPDATE visit_markers
-       SET label = ?, x_pct = ?, y_pct = ?, emoji = ?, subtitle = ?, short_description = ?, details_title = ?, details_text = ?,
+       SET label = ?, x_pct = ?, y_pct = ?, emoji = ?, subtitle = ?, short_description = ?, details_title = ?, details_text = ?, body_json = ?,
            is_active = ?, sort_order = ?, updated_at = ?
        WHERE id = ?`,
       [
@@ -2036,6 +2080,7 @@ router.put('/markers/:id', requirePermission('visit.manage', { needsElevation: t
         shortDescription,
         detailsTitle,
         detailsText,
+        bodyJson,
         isActive,
         sortOrder,
         nowIso(),

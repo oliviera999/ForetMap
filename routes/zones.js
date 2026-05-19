@@ -9,6 +9,7 @@ const { generateMapPhotoThumbFromMainRelativePath, deleteMapPhotoMainAndThumb } 
 const { sendFilePublicImageOptions } = require('../lib/httpImageCache');
 const { logRouteError, respondInternalError } = require('../lib/routeLog');
 const { emitGardenChanged } = require('../lib/realtime');
+const { parseVisitEditorialBlocksInput, serializeVisitEditorialBlocks } = require('../lib/visitEditorialBlocks');
 
 const router = express.Router();
 
@@ -51,13 +52,13 @@ function withLivingBeings(zone) {
 /** Champs éditoriaux visite (tables `visit_zones`, même `id` que `zones` après sync carte → visite). */
 function hasVisitZoneContentPatch(body) {
   if (!body || typeof body !== 'object') return false;
-  return ['visit_subtitle', 'visit_short_description', 'visit_details_title', 'visit_details_text']
+  return ['visit_subtitle', 'visit_short_description', 'visit_details_title', 'visit_details_text', 'visit_body_json', 'visit_editorial_blocks']
     .some((k) => body[k] !== undefined);
 }
 
 async function upsertVisitZoneEditorial(reqBody, zoneRow) {
   const existing = await queryOne(
-    'SELECT subtitle, short_description, details_title, details_text FROM visit_zones WHERE id = ? LIMIT 1',
+    'SELECT subtitle, short_description, details_title, details_text, body_json FROM visit_zones WHERE id = ? LIMIT 1',
     [zoneRow.id],
   );
   const subtitle = reqBody.visit_subtitle !== undefined
@@ -72,11 +73,18 @@ async function upsertVisitZoneEditorial(reqBody, zoneRow) {
   const detailsText = reqBody.visit_details_text !== undefined
     ? String(reqBody.visit_details_text || '').trim()
     : String(existing?.details_text || '');
+  const patchBlocksInput = reqBody.visit_editorial_blocks !== undefined
+    ? reqBody.visit_editorial_blocks
+    : reqBody.visit_body_json;
+  const normalizedBlocks = patchBlocksInput !== undefined
+    ? parseVisitEditorialBlocksInput(patchBlocksInput)
+    : parseVisitEditorialBlocksInput(existing?.body_json);
+  const bodyJson = serializeVisitEditorialBlocks(normalizedBlocks);
   const now = new Date().toISOString();
   await execute(
     `INSERT INTO visit_zones
-      (id, map_id, name, points, subtitle, short_description, details_title, details_text, is_active, sort_order, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, 0, ?, ?)
+      (id, map_id, name, points, subtitle, short_description, details_title, details_text, body_json, is_active, sort_order, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 0, ?, ?)
      ON DUPLICATE KEY UPDATE
        map_id = VALUES(map_id),
        name = VALUES(name),
@@ -85,6 +93,7 @@ async function upsertVisitZoneEditorial(reqBody, zoneRow) {
        short_description = VALUES(short_description),
        details_title = VALUES(details_title),
        details_text = VALUES(details_text),
+       body_json = VALUES(body_json),
        updated_at = VALUES(updated_at)`,
     [
       zoneRow.id,
@@ -95,6 +104,7 @@ async function upsertVisitZoneEditorial(reqBody, zoneRow) {
       shortDescription,
       detailsTitle,
       detailsText,
+      bodyJson,
       now,
       now,
     ],
@@ -105,7 +115,8 @@ const ZONES_LIST_SQL = `SELECT z.*,
   vz.subtitle AS visit_subtitle,
   vz.short_description AS visit_short_description,
   vz.details_title AS visit_details_title,
-  vz.details_text AS visit_details_text
+  vz.details_text AS visit_details_text,
+  vz.body_json AS visit_body_json
 FROM zones z
 LEFT JOIN visit_zones vz ON vz.id = z.id`;
 
