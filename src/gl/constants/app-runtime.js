@@ -12,6 +12,7 @@ export const GL_PLAYER_TABS = [
 
 export const GL_ADMIN_EXTRA_TABS = [
   { id: 'users', label: 'Gestion utilisateurs' },
+  { id: 'contents', label: 'Contenus' },
   { id: 'settings', label: 'Reglages plateforme' },
   { id: 'mascots', label: 'Gestion mascottes' },
   { id: 'mj', label: 'Console MJ' },

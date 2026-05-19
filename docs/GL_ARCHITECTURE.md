@@ -37,6 +37,11 @@ Préfixe : `/api/gl`
 - Gameplay : `routes/gl/games.js`
 - Admin GL : `routes/gl/admin.js`
 
+Ajouts phase post-fondation :
+
+- `GET /api/gl/admin/content` : listing éditorial (slug, titre, mise à jour), réservé `gl.content.manage`.
+- Édition inline des pages `world/rules/spells` via `GLContentPage` (PUT `/api/gl/content/:slug`).
+
 Les endpoints GL exigent un JWT avec claim `product = "gl"`.
 
 ## Isolation de sécurité
@@ -82,6 +87,22 @@ Tables GL préfixées `gl_` :
 - Onglets joueur : Cartes, Biotope, Biocenose, Histoire, Monde, Sortileges, Regles
 - Onglets admin : utilisateurs, reglages, mascottes, console MJ
 - Réutilisation renderer mascotte via `VisitMapMascotRenderer`
+- Onglet admin `Contenus` pour piloter les pages éditoriales.
+
+## Migration de contenu WordPress
+
+Source recommandée : API publique WordPress de `gl.olution.info`.
+
+- Config : `scripts/gl-import-wp.config.json`
+- Script : `scripts/gl-import-wp.js`
+- Commande : `npm run gl:import:wp`
+
+Modes disponibles :
+
+- `--dry-run` (défaut) : export markdown dans `tmp/gl-wp-import/*.md`.
+- `--apply` : UPSERT direct dans `gl_content_pages`.
+
+Le mapping de slugs est configurable (ex. `le-monde-de-gnomes-et-licornes -> world`).
 
 ## Variables d'environnement utiles
 

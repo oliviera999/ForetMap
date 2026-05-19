@@ -14,6 +14,7 @@ import { GLBiotopeView } from './components/GLBiotopeView.jsx';
 import { GLBiocenoseView } from './components/GLBiocenoseView.jsx';
 import { GLHistoryView } from './components/GLHistoryView.jsx';
 import { GLUsersAdminView } from './components/GLUsersAdminView.jsx';
+import { GLContentsAdminView } from './components/GLContentsAdminView.jsx';
 import { GLSettingsView } from './components/GLSettingsView.jsx';
 import { GLMascotsAdminView } from './components/GLMascotsAdminView.jsx';
 import { GLGameMasterConsole } from './components/GLGameMasterConsole.jsx';
@@ -152,9 +153,9 @@ export function AppGL() {
       {error ? <div className="gl-error-banner">{error}</div> : null}
 
       <main className="gl-main">
-        {tab === 'world' && <GLWorldView />}
-        {tab === 'rules' && <GLRulesView />}
-        {tab === 'spells' && <GLSpellsView />}
+        {tab === 'world' && <GLWorldView auth={auth} />}
+        {tab === 'rules' && <GLRulesView auth={auth} />}
+        {tab === 'spells' && <GLSpellsView auth={auth} />}
         {tab === 'maps' && (
           <GLMapView
             gameState={gameState}
@@ -166,6 +167,7 @@ export function AppGL() {
         {tab === 'biocenose' && <GLBiocenoseView gameState={gameState} />}
         {tab === 'history' && <GLHistoryView gameState={gameState} />}
         {tab === 'users' && isAdmin && <GLUsersAdminView />}
+        {tab === 'contents' && isAdmin && <GLContentsAdminView auth={auth} />}
         {tab === 'settings' && isAdmin && <GLSettingsView />}
         {tab === 'mascots' && isAdmin && <GLMascotsAdminView />}
         {tab === 'mj' && isAdmin && (

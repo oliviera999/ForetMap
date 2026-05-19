@@ -39,6 +39,8 @@ Le mode GL est isolé par JWT avec claim `product: "gl"` et routes dédiées.
 
 Slugs livrés en seed : `world`, `rules`, `spells`.
 
+Import éditorial WordPress : `npm run gl:import:wp` (`--dry-run` par défaut, `--apply` pour UPSERT BDD).
+
 ### Gameplay GL
 
 | Méthode | URL | Body | Permission |
@@ -66,6 +68,7 @@ Slugs livrés en seed : `world`, `rules`, `spells`.
 | POST | `/api/gl/admin/players/:id/reset-pin` | `{ pin? }` | `gl.players.manage` |
 | GET | `/api/gl/admin/settings` | — | `gl.settings.manage` |
 | PUT | `/api/gl/admin/settings/:key` | `{ value }` | `gl.settings.manage` |
+| GET | `/api/gl/admin/content` | — | `gl.content.manage` |
 
 ### Permissions RBAC GL ajoutées
 

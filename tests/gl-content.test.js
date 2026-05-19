@@ -63,3 +63,19 @@ test('PUT /api/gl/content/:slug met à jour le markdown', async () => {
   assert.strictEqual(res.body.title, updatedTitle);
   assert.ok(String(res.body.bodyMarkdown).includes('Contenu modifie'));
 });
+
+test('GET /api/gl/admin/content exige gl.content.manage', async () => {
+  await request(app)
+    .get('/api/gl/admin/content')
+    .set('Authorization', `Bearer ${playerToken}`)
+    .expect(403);
+});
+
+test('GET /api/gl/admin/content renvoie la liste des contenus GL', async () => {
+  const res = await request(app)
+    .get('/api/gl/admin/content')
+    .set('Authorization', `Bearer ${adminToken}`)
+    .expect(200);
+  assert.ok(Array.isArray(res.body));
+  assert.ok(res.body.some((item) => item.slug === 'world'));
+});

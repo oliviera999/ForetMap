@@ -30,12 +30,15 @@ function parseArgs(argv) {
     if (a === '--gl-base-url') args.glBaseUrl = argv[i + 1];
     if (a === '--timeout-ms') args.timeoutMs = argv[i + 1];
     if (a === '--image-check-path') args.imageCheckPath = argv[i + 1];
+    if (a === '--gl-health-only') args.glHealthOnly = true;
   }
+  const envGlHealthOnly = String(process.env.DEPLOY_GL_HEALTH_ONLY || '').trim().toLowerCase();
   return {
     baseUrl: args.baseUrl || process.env.DEPLOY_BASE_URL || 'http://localhost:3000',
     glBaseUrl: args.glBaseUrl || process.env.GL_PROD_BASE_URL || '',
     timeoutMs: Number.isFinite(parseInt(args.timeoutMs, 10)) ? parseInt(args.timeoutMs, 10) : 10000,
     imageCheckPath: args.imageCheckPath || process.env.DEPLOY_IMAGE_CHECK_PATH || '',
+    glHealthOnly: Boolean(args.glHealthOnly || envGlHealthOnly === '1' || envGlHealthOnly === 'true'),
   };
 }
 
@@ -143,6 +146,34 @@ async function checkEndpoint(baseUrl, path, timeoutMs, required = true) {
   }
 }
 
+async function checkEndpointAllowedStatuses(baseUrl, path, timeoutMs, allowedStatuses, required = false) {
+  const full = new URL(path, baseUrl).toString();
+  try {
+    const res = await requestJsonWithRetry(full, timeoutMs);
+    const allowed = Array.isArray(allowedStatuses) ? allowedStatuses : [];
+    const pass = allowed.includes(res.status);
+    const label = pass ? 'OK' : 'FAIL';
+    const allowedLabel = allowed.join(',');
+    console.log(`${label} ${path} -> HTTP ${res.status} (attendus: ${allowedLabel})`);
+    return {
+      path,
+      required,
+      pass,
+      status: res.status,
+      body: res.body,
+    };
+  } catch (err) {
+    console.log(`FAIL ${path} -> ${err.name || 'Error'}: ${err.message || err}`);
+    return {
+      path,
+      required,
+      pass: false,
+      status: 0,
+      body: { error: err.message || String(err) },
+    };
+  }
+}
+
 async function checkImageEndpoint(baseUrl, path, timeoutMs) {
   let full = new URL(path, baseUrl).toString();
   try {
@@ -175,53 +206,58 @@ async function checkImageEndpoint(baseUrl, path, timeoutMs) {
 }
 
 async function main() {
-  const { baseUrl, glBaseUrl, timeoutMs, imageCheckPath } = parseArgs(process.argv.slice(2));
-  console.log(`[post-deploy-check] baseUrl=${baseUrl} glBaseUrl=${glBaseUrl || '-'} timeoutMs=${timeoutMs}`);
+  const { baseUrl, glBaseUrl, timeoutMs, imageCheckPath, glHealthOnly } = parseArgs(process.argv.slice(2));
+  console.log(`[post-deploy-check] baseUrl=${baseUrl} glBaseUrl=${glBaseUrl || '-'} timeoutMs=${timeoutMs} glHealthOnly=${glHealthOnly}`);
 
-  const checks = [
-    await checkEndpoint(baseUrl, '/api/health', timeoutMs, true),
-    await checkEndpoint(baseUrl, '/api/health/db', timeoutMs, true),
-    await checkEndpoint(baseUrl, '/api/ready', timeoutMs, true),
-    await checkEndpoint(baseUrl, '/api/version', timeoutMs, false),
-  ];
+  const checks = [];
 
-  const diagSecret = deploySecretFromEnv();
-  if (diagSecret) {
-    const path = '/api/admin/diagnostics';
-    const full = new URL(path, baseUrl).toString();
-    try {
-      const res = await requestJsonWithRetry(full, timeoutMs, 3, {
-        'X-Deploy-Secret': diagSecret,
-      });
-      const pass = Boolean(res.ok && res.body && res.body.ok === true);
-      const label = pass ? 'OK' : 'FAIL';
-      console.log(`${label} ${path} (avec secret local) -> HTTP ${res.status}`);
-      checks.push({
-        path,
-        required: false,
-        pass,
-        status: res.status,
-        body: res.body,
-      });
-    } catch (err) {
-      console.log(`FAIL ${path} (avec secret local) -> ${err.name || 'Error'}: ${err.message || err}`);
-      checks.push({
-        path,
-        required: false,
-        pass: false,
-        status: 0,
-        body: { error: err.message || String(err) },
-      });
+  if (!glHealthOnly) {
+    checks.push(await checkEndpoint(baseUrl, '/api/health', timeoutMs, true));
+    checks.push(await checkEndpoint(baseUrl, '/api/health/db', timeoutMs, true));
+    checks.push(await checkEndpoint(baseUrl, '/api/ready', timeoutMs, true));
+    checks.push(await checkEndpoint(baseUrl, '/api/version', timeoutMs, false));
+
+    const diagSecret = deploySecretFromEnv();
+    if (diagSecret) {
+      const path = '/api/admin/diagnostics';
+      const full = new URL(path, baseUrl).toString();
+      try {
+        const res = await requestJsonWithRetry(full, timeoutMs, 3, {
+          'X-Deploy-Secret': diagSecret,
+        });
+        const pass = Boolean(res.ok && res.body && res.body.ok === true);
+        const label = pass ? 'OK' : 'FAIL';
+        console.log(`${label} ${path} (avec secret local) -> HTTP ${res.status}`);
+        checks.push({
+          path,
+          required: false,
+          pass,
+          status: res.status,
+          body: res.body,
+        });
+      } catch (err) {
+        console.log(`FAIL ${path} (avec secret local) -> ${err.name || 'Error'}: ${err.message || err}`);
+        checks.push({
+          path,
+          required: false,
+          pass: false,
+          status: 0,
+          body: { error: err.message || String(err) },
+        });
+      }
+    }
+
+    if (imageCheckPath) {
+      checks.push(await checkImageEndpoint(baseUrl, imageCheckPath, timeoutMs));
     }
   }
 
-  if (imageCheckPath) {
-    checks.push(await checkImageEndpoint(baseUrl, imageCheckPath, timeoutMs));
-  }
-
-  if (glBaseUrl) {
-    checks.push(await checkEndpoint(glBaseUrl, '/api/health', timeoutMs, false));
-    checks.push(await checkEndpoint(glBaseUrl, '/api/version', timeoutMs, false));
+  const glTargetUrl = glBaseUrl || (glHealthOnly ? baseUrl : '');
+  if (glTargetUrl) {
+    checks.push(await checkEndpoint(glTargetUrl, '/api/health', timeoutMs, false));
+    checks.push(await checkEndpoint(glTargetUrl, '/api/version', timeoutMs, false));
+    checks.push(await checkEndpoint(glTargetUrl, '/api/gl/chapters', timeoutMs, false));
+    checks.push(await checkEndpointAllowedStatuses(glTargetUrl, '/api/gl/content/world', timeoutMs, [200, 401], false));
   }
 
   const requiredFails = checks.filter((c) => c.required && !c.pass);
@@ -252,5 +288,6 @@ module.exports = {
   requestJsonWithRetry,
   parseRetryAfterMs,
   checkEndpoint,
+  checkEndpointAllowedStatuses,
   checkImageEndpoint,
 };

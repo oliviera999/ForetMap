@@ -1,0 +1,8 @@
+{
+  "sourceBaseUrl": "https://gl.olution.info",
+  "slugMap": {
+    "le-monde-de-gnomes-et-licornes": "world",
+    "regles-du-jeu": "rules",
+    "sortileges": "spells"
+  }
+}
