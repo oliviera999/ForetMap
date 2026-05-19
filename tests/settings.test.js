@@ -6,6 +6,7 @@ const request = require('supertest');
 const { app } = require('../server');
 const { initSchema, queryOne, execute } = require('../database');
 const { signAuthToken } = require('../middleware/requireTeacher');
+const { setSetting, resolveDefaultMapId } = require('../lib/settings');
 
 test.before(async () => {
   for (let attempt = 0; attempt < 5; attempt += 1) {
@@ -78,6 +79,26 @@ test('POST /api/settings/admin/maps crée une carte puis GET /api/maps la liste'
     .expect(409);
   assert.ok(String(dup.body?.error || '').length > 0);
   await execute('DELETE FROM maps WHERE id = ?', [id]);
+});
+
+test('resolveDefaultMapId ignore une carte par défaut inactive', async () => {
+  const inactiveMapId = `inactive_${Date.now()}`.slice(0, 31);
+  const activeMapId = `active_${Date.now()}`.slice(0, 31);
+  await execute(
+    'INSERT INTO maps (id, label, map_image_url, sort_order, is_active) VALUES (?, ?, ?, ?, ?), (?, ?, ?, ?, ?)',
+    [inactiveMapId, 'Inactive', '/map.png', 0, 0, activeMapId, 'Active', '/map.png', -1, 1]
+  );
+  await setSetting('ui.map.default_map_visit', inactiveMapId, { userType: 'teacher', userId: 'test-suite' });
+
+  const resolved = await resolveDefaultMapId('visit');
+
+  assert.notStrictEqual(resolved, inactiveMapId);
+  const resolvedRow = await queryOne('SELECT id, is_active FROM maps WHERE id = ? LIMIT 1', [resolved]);
+  assert.ok(resolvedRow?.id, 'Une carte résolue doit exister');
+  assert.strictEqual(Number(resolvedRow.is_active || 0), 1, 'La carte résolue doit être active');
+
+  await setSetting('ui.map.default_map_visit', 'foret', { userType: 'teacher', userId: 'test-suite' });
+  await execute('DELETE FROM maps WHERE id IN (?, ?)', [inactiveMapId, activeMapId]);
 });
 
 test('GET /api/settings/public renvoie les réglages publics', async () => {
