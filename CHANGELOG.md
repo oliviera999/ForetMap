@@ -18,6 +18,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - **UI — coque modale** : composant **`DialogShell.jsx`** et branchements (tutoriels, confirmations biodiversité, aide).
 
 ### Modifié
+- **Tests / lint** : suppression de directives `eslint-disable` devenues inutiles dans les tests de commentaires contextuels et de persistance de position mascotte, pour garder une base `npm run lint` sans avertissement.
 - **Réglages publics** : libellés admin et défaut **`content.auth.guest_visit_cta`** alignés sur « Visiter sans compte » (**`lib/settings.js`**, **`settings-admin-views.jsx`**).
 - **E2e (Playwright)** : le `webServer` local lance **`server.js`** avec **`--max-old-space-size`** explicite (défaut 12288 Mo, surcharge **`E2E_NODE_MAX_OLD_SPACE_SIZE`**) pour réduire les crash mémoire V8 pendant la suite ; commande alignée sur **`npm run start:e2e`**. **`playwright.config.js`**.
 - **Tâches — affichage** : sections liste, filtres par statut et raccourcis prof affichent **En cours** avant **À faire**. **`tasks-views.jsx`**.

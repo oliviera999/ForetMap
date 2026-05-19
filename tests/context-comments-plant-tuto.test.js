@@ -51,7 +51,6 @@ test('context-comments plant + tutorial', async () => {
     .set(auth(student.authToken))
     .send({ contextType: 'plant', contextId: plantId, body: 'Commentaire plante.' });
   if (plantRes.status !== 201) {
-    // eslint-disable-next-line no-console
     console.log('plant fail', plantRes.status, plantRes.body);
   }
   assert.strictEqual(plantRes.status, 201, JSON.stringify(plantRes.body));
@@ -61,7 +60,6 @@ test('context-comments plant + tutorial', async () => {
     .set(auth(student.authToken))
     .send({ contextType: 'tutorial', contextId: tutorialId, body: 'Commentaire tuto.' });
   if (tutoRes.status !== 201) {
-    // eslint-disable-next-line no-console
     console.log('tuto fail', tutoRes.status, tutoRes.body);
   }
   assert.strictEqual(tutoRes.status, 201, JSON.stringify(tutoRes.body));

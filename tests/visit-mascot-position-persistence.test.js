@@ -33,7 +33,6 @@ test('normalizeStoredPct refuse les valeurs non numériques', async () => {
 
 test('load retourne null sans window', async () => {
   const prev = globalThis.window;
-  // eslint-disable-next-line no-delete-var -- test isolation
   delete globalThis.window;
   try {
     const { loadVisitMascotPositionPct } = await loadModule();
@@ -58,7 +57,6 @@ test('sauvegarde et relecture par carte', async () => {
     const keyN3 = positionStorageKey('n3');
     assert.ok(globalThis.window.localStorage._store.has(keyN3));
   } finally {
-    // eslint-disable-next-line no-delete-var -- test isolation
     delete globalThis.window;
   }
 });
@@ -72,7 +70,6 @@ test('JSON invalide ou structure incorrecte → null', async () => {
     window.localStorage.setItem(positionStorageKey('n3'), JSON.stringify({ xp: 1 }));
     assert.equal(loadVisitMascotPositionPct('n3'), null);
   } finally {
-    // eslint-disable-next-line no-delete-var -- test isolation
     delete globalThis.window;
   }
 });
