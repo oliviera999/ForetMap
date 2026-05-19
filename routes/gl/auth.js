@@ -44,7 +44,7 @@ function getGlRolePermissions(roleSlug) {
       'gl.settings.manage',
     ];
   }
-  return ['gl.read'];
+  return ['gl.read', 'gl.action.request'];
 }
 
 async function signGlToken(payload) {

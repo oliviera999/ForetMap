@@ -46,16 +46,31 @@ Import éditorial WordPress : `npm run gl:import:wp` (`--dry-run` par défaut, `
 | Méthode | URL | Body | Permission |
 |--------|-----|------|------------|
 | GET | `/api/gl/chapters` | — | `gl.read` |
+| GET | `/api/gl/gameplay-settings` | — | Auth GL (joueur ou admin) |
 | POST | `/api/gl/games` | `{ classId, chapterId, name }` | `gl.game.manage` |
 | GET | `/api/gl/games/:id` | — | `gl.read` (ou membre de la partie) |
 | POST | `/api/gl/games/:id/teams` | `{ name, type, mascotId, color }` | `gl.team.manage` |
 | POST | `/api/gl/games/:id/join-team` | `{ teamId }` | Joueur connecté GL |
 | POST | `/api/gl/games/:id/events` | `{ teamId?, eventType, payload }` | `gl.event.emit` |
+| POST | `/api/gl/games/:id/turn/next` | — | `gl.game.manage` (refus `409` si `gameplay.turns_enabled=false`) |
+| POST | `/api/gl/games/:id/actions` | `{ actionType, payload }` | `gl.action.request` (joueur) (refus `409` si toggle off / hors tour) |
+| POST | `/api/gl/games/:id/actions/:actionId/resolve` | `{ decision: "accepted"\|"refused", scoreDelta?, reason? }` | `gl.game.manage` |
 | POST | `/api/gl/games/:id/start` | — | `gl.game.manage` |
 | POST | `/api/gl/games/:id/pause` | — | `gl.game.manage` |
 | POST | `/api/gl/games/:id/end` | — | `gl.game.manage` |
 
 Événements de partie stockés dans `gl_game_events` et diffusés en Socket.IO (`gl:game:event`, room `gl:game:{id}`).
+
+**Types d'événements (`eventType`)** :
+- `move` — déplacement d'une mascotte d'équipe sur un marker (`payload: { markerId, markerLabel? }`).
+- `game_status` — changement de statut de partie (`payload: { status }`).
+- `turn_change` — équipe dont c'est le tour (`payload: { teamId }`). Requiert `gameplay.turns_enabled=true`.
+- `narration` — texte narratif diffusé en bandeau (`payload: { text }`). Requiert `gameplay.narration_enabled=true`.
+- `score` — variation de score d'équipe (`payload: { delta, reason? }`). Met à jour `gl_team_scores`. Requiert `gameplay.scoring_enabled=true`.
+- `action_request` — demande joueur (`payload: { actionRequestId, actionType, playerId, payload }`).
+- `action_resolved` — décision MJ (`payload: { actionRequestId, decision, scoreDelta, reason }`).
+
+**Toggles `gameplay.*`** persistés dans `gl_settings` (table `(key, value_json)`), modifiables via `PUT /api/gl/admin/settings/:key` (permission `gl.settings.manage`). Snapshot public (joueur + admin) exposé par `GET /api/gl/gameplay-settings` (réponse `{ settings: { turnsEnabled, narrationEnabled, playerActionsEnabled, scoringEnabled } }`). Cache mémoire 30 s côté serveur, invalidé à chaque PUT sur une clé `gameplay.*`.
 
 ### Administration GL
 
