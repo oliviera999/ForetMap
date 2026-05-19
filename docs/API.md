@@ -90,6 +90,20 @@ Réservé aux environnements de **développement / CI** ; ne pas utiliser en pro
 
 ---
 
+## Cartes
+
+| Méthode | URL | Description |
+|--------|-----|-------------|
+| GET | `/api/maps` | Liste des cartes configurées, triées (`sort_order`, `id`). Retourne les champs `id`, `label`, `map_image_url`, `sort_order`, `is_active`, `updated_at`, `frame_padding_px`. Utilisé par toutes les vues carte/tâches/visite ; la logique client filtre ensuite selon l’affiliation et le mode (élève, n3boss, visite). |
+
+Notes :
+
+- Le backend n’impose pas de plafond à 2 cartes : le contrat est compatible **N cartes**.
+- Le paramètre `is_active` permet de masquer une carte côté UI sans la supprimer de la base.
+- Les routes admin associées (création/mise à jour) sont documentées dans la section **Réglages admin**.
+
+---
+
 ## Temps réel (Socket.IO)
 
 Connexion Socket.IO en transport **polling uniquement** côté client (compatibilité proxy TLS / mutualisé ; pas de WebSocket) sur le **même hôte** que l’API, chemin `/socket.io`.

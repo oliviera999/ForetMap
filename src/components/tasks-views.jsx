@@ -1012,7 +1012,7 @@ function TaskProjectFormModal({
 }) {
   const dialogRef = useDialogA11y(onClose);
   useOverlayHistoryBack(true, onClose);
-  const defaultMapId = activeMapId || maps[0]?.id || 'foret';
+  const defaultMapId = activeMapId || maps[0]?.id || '';
   const [tutorialSearch, setTutorialSearch] = useState('');
   const [form, setForm] = useState({
     title: '',
