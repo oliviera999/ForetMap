@@ -86,7 +86,7 @@ test('resolveDefaultMapId ignore une carte par défaut inactive', async () => {
   const activeMapId = `active_${Date.now()}`.slice(0, 31);
   await execute(
     'INSERT INTO maps (id, label, map_image_url, sort_order, is_active) VALUES (?, ?, ?, ?, ?), (?, ?, ?, ?, ?)',
-    [inactiveMapId, 'Inactive', '/map.png', 0, 0, activeMapId, 'Active', '/map.png', -1, 1]
+    [inactiveMapId, 'Inactive', '/map.png', 0, 0, activeMapId, 'Active', '/map.png', 1, 1]
   );
   await setSetting('ui.map.default_map_visit', inactiveMapId, { userType: 'teacher', userId: 'test-suite' });
 
@@ -108,8 +108,17 @@ test('GET /api/settings/public renvoie les réglages publics', async () => {
   assert.strictEqual(typeof res.body.settings.ui?.auth?.allow_google_student, 'boolean');
   assert.strictEqual(typeof res.body.settings.ui?.modules?.forum_enabled, 'boolean');
   assert.strictEqual(typeof res.body.settings.ui?.modules?.context_comments_enabled, 'boolean');
+  assert.strictEqual(typeof res.body.settings.ui?.help?.show_context_hints, 'boolean');
+  assert.strictEqual(typeof res.body.settings.ui?.help?.pulse_unseen_panels, 'boolean');
   assert.strictEqual(typeof res.body.settings.content?.auth?.title, 'string');
   assert.strictEqual(typeof res.body.settings.content?.visit?.title, 'string');
+  assert.strictEqual(typeof res.body.settings.content?.help?.hint_prefix, 'string');
+  assert.strictEqual(typeof res.body.settings.content?.help?.panel_title_prefix, 'string');
+  assert.strictEqual(typeof res.body.settings.content?.help?.panel_close_cta, 'string');
+  assert.strictEqual(typeof res.body.settings.content?.help?.panel_dismiss_cta, 'string');
+  assert.strictEqual(typeof res.body.settings.content?.help?.map_quick_tip, 'string');
+  assert.strictEqual(typeof res.body.settings.content?.help?.tasks_quick_tip, 'string');
+  assert.strictEqual(typeof res.body.settings.content?.help?.visit_quick_tip, 'string');
   const uiMap = res.body.settings.ui?.map;
   assert.ok(uiMap);
   assert.strictEqual(uiMap.emoji_label_center_gap, 14);
@@ -235,6 +244,23 @@ test('PUT /api/settings/admin/:key met à jour un contenu texte public', async (
     .expect(200);
 });
 
+test('PUT /api/settings/admin/:key met à jour les libellés d aide contextuelle', async () => {
+  const token = await getAdminToken();
+  const nextClose = 'Fermer le panneau';
+  await request(app)
+    .put('/api/settings/admin/content.help.panel_close_cta')
+    .set('Authorization', `Bearer ${token}`)
+    .send({ value: nextClose })
+    .expect(200);
+  const pub = await request(app).get('/api/settings/public').expect(200);
+  assert.strictEqual(pub.body?.settings?.content?.help?.panel_close_cta, nextClose);
+  await request(app)
+    .put('/api/settings/admin/content.help.panel_close_cta')
+    .set('Authorization', `Bearer ${token}`)
+    .send({ value: 'Fermer' })
+    .expect(200);
+});
+
 test('PUT /api/settings/admin/:key refuse un contenu texte trop long', async () => {
   const token = await getAdminToken();
   const tooLong = 'x'.repeat(241); // maxLength content.about.help_body = 240
@@ -242,6 +268,16 @@ test('PUT /api/settings/admin/:key refuse un contenu texte trop long', async () 
     .put('/api/settings/admin/content.about.help_body')
     .set('Authorization', `Bearer ${token}`)
     .send({ value: tooLong })
+    .expect(400);
+  assert.match(String(res.body?.error || ''), /Texte trop long/i);
+});
+
+test('PUT /api/settings/admin/:key refuse un préfixe aide trop long', async () => {
+  const token = await getAdminToken();
+  const res = await request(app)
+    .put('/api/settings/admin/content.help.panel_title_prefix')
+    .set('Authorization', `Bearer ${token}`)
+    .send({ value: '123456789' })
     .expect(400);
   assert.match(String(res.body?.error || ''), /Texte trop long/i);
 });

@@ -18,6 +18,19 @@ import { useNotificationCenter } from './hooks/useNotificationCenter';
 import { RT_PROF_TOOLTIPS } from './constants/realtime';
 import { NOTIFICATION_CATEGORY, NOTIFICATION_LEVEL } from './constants/notifications';
 import { HELP_TOOLTIPS, resolveRoleText } from './constants/help';
+import {
+  DESKTOP_SPLIT_MIN_WIDTH,
+  DESKTOP_SPLIT_MIN_MAP_PX,
+  DESKTOP_SPLIT_MIN_TASKS_PX,
+  TAB_STORAGE_KEY,
+  FETCH_ALL_AUTO_DEBOUNCE_MS,
+  DATA_REFRESH_INTERVAL_MS,
+  POLLING_COARSE_TABS,
+  IOS_INSTALL_HINT_DISMISSED_KEY,
+  GUEST_VISIT_MASCOT_CONFIRMED_KEY,
+  DEFAULT_VISIT_MASCOT_ALLOWED_IDS,
+  KNOWN_TAB_VALUES,
+} from './constants/app-runtime';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import {
   Toast,
@@ -56,62 +69,6 @@ import { useOverlayHistoryBack } from './hooks/useOverlayHistoryBack';
 import { abandonAllOverlays, pushOverlayClose } from './utils/overlayHistory';
 import { AutoProfilePromotionModal } from './components/AutoProfilePromotionModal.jsx';
 import { DialogShell } from './components/DialogShell';
-
-const DESKTOP_SPLIT_MIN_WIDTH = 1024;
-const DESKTOP_SPLIT_MIN_MAP_PX = 620;
-const DESKTOP_SPLIT_MIN_TASKS_PX = 420;
-const TAB_STORAGE_KEY = 'foretmap_active_tab';
-/** Regroupe les rafraîchissements auto quand plusieurs états changent à la suite (réglages, carte, session). */
-const FETCH_ALL_AUTO_DEBOUNCE_MS = 250;
-/** Intervalle de polling par défaut (rafraîchissement complet) — compromis charge serveur / fraîcheur des données. */
-const DATA_REFRESH_INTERVAL_MS = 60000;
-/** Onglets où les tâches / carte changent rarement : on double l’intervalle quand le temps réel Socket.IO est inactif. */
-const POLLING_COARSE_TABS = new Set([
-  'about',
-  'settings',
-  'audit',
-  'profiles',
-  'tuto',
-  'stats',
-  'forum',
-  'notebook',
-  'mascot_packs',
-]);
-const IOS_INSTALL_HINT_DISMISSED_KEY = 'foretmap_ios_install_hint_dismissed';
-const GUEST_VISIT_MASCOT_CONFIRMED_KEY = 'foretmap_visit_guest_mascot_confirmed_v1';
-const DEFAULT_VISIT_MASCOT_ALLOWED_IDS = [
-  'sprout-rive',
-  'scrap-rive',
-  'gnome-foret-rive',
-  'gnome-ambre-rive',
-  'gnome-punk-rive',
-  'spore-rive',
-  'vine-rive',
-  'moss-rive',
-  'seed-rive',
-  'swarm-rive',
-  'sprite-template',
-  'olu-spritesheet',
-  'tan-bird-spritesheet',
-  'fox-backpack-spritesheet',
-  'renard2-cut-spritesheet',
-];
-const KNOWN_TAB_VALUES = new Set([
-  'map',
-  'maptasks',
-  'tasks',
-  'plants',
-  'tuto',
-  'stats',
-  'visit',
-  'mascot_packs',
-  'notebook',
-  'profiles',
-  'settings',
-  'forum',
-  'audit',
-  'about',
-]);
 
 const OAUTH_ERROR_MESSAGES = {
   oauth_not_configured: 'Connexion Google indisponible (configuration serveur incomplète).',
@@ -180,6 +137,10 @@ function App() {
       help_enabled: true,
       forum_enabled: true,
       context_comments_enabled: true,
+    },
+    help: {
+      show_context_hints: true,
+      pulse_unseen_panels: true,
     },
     visit: {
       mascot: {
@@ -376,6 +337,9 @@ function App() {
           if (ui && typeof ui === 'object') {
             if (ui.modules && typeof ui.modules === 'object') {
               next.modules = { ...prev.modules, ...ui.modules };
+            }
+            if (ui.help && typeof ui.help === 'object') {
+              next.help = { ...prev.help, ...ui.help };
             }
             if (ui.map && typeof ui.map === 'object') {
               next.map = { ...prev.map, ...ui.map };

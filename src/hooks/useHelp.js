@@ -53,6 +53,8 @@ function useHelp({ publicSettings, isTeacher }) {
   const [metrics, setMetrics] = useState(() => readHelpMetrics());
 
   const isHelpEnabled = publicSettings?.modules?.help_enabled !== false;
+  const showContextHints = publicSettings?.help?.show_context_hints !== false;
+  const pulseUnseenPanels = publicSettings?.help?.pulse_unseen_panels !== false;
   const roleKey = isTeacher ? 'teacher' : 'student';
 
   const markSectionSeen = useCallback((sectionId) => {
@@ -122,6 +124,8 @@ function useHelp({ publicSettings, isTeacher }) {
 
   return useMemo(() => ({
     isHelpEnabled,
+    showContextHints,
+    pulseUnseenPanels,
     roleKey,
     hasSeenSection,
     markSectionSeen,
@@ -133,11 +137,13 @@ function useHelp({ publicSettings, isTeacher }) {
   }), [
     hasSeenSection,
     isHelpEnabled,
+    pulseUnseenPanels,
     markSectionSeen,
     metrics,
     resetHelp,
     resetHelpMetrics,
     roleKey,
+    showContextHints,
     trackPanelDismiss,
     trackPanelOpen,
   ]);

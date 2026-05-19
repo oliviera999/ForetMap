@@ -9,6 +9,9 @@ function HelpPanel({
   entries = [],
   isTeacher = false,
   isPulsing = false,
+  panelTitlePrefix = '💡',
+  closeButtonText = 'Fermer',
+  dismissButtonText = 'Ne plus afficher',
   onMarkSeen,
   onOpen,
   onDismiss,
@@ -48,9 +51,9 @@ function HelpPanel({
           dialogClassName="log-modal fm-help-panel fade-in"
           ariaLabel={title}
           showCloseButton
-          closeButtonLabel="Fermer l aide"
+          closeButtonLabel={closeButtonText}
         >
-          <h3 className="fm-help-panel__title">💡 {title}</h3>
+          <h3 className="fm-help-panel__title">{panelTitlePrefix ? `${panelTitlePrefix} ` : ''}{title}</h3>
           <ul className="fm-help-panel__list">
             {visibleEntries.map((item) => (
               <li key={item} className="fm-help-panel__item">{item}</li>
@@ -58,7 +61,7 @@ function HelpPanel({
           </ul>
           <div className="fm-help-panel__actions">
             <button type="button" className="btn btn-ghost btn-sm" onClick={closePanel}>
-              Fermer
+              {closeButtonText}
             </button>
             <button
               type="button"
@@ -69,7 +72,7 @@ function HelpPanel({
                 closePanel();
               }}
             >
-              Ne plus afficher
+              {dismissButtonText}
             </button>
           </div>
         </DialogShell>

@@ -18,6 +18,68 @@ Réponses JSON. En cas d’erreur : `{ "error": "message" }` avec statut HTTP ad
 
 ---
 
+## Gnomes & Licornes (`/api/gl`)
+
+Le mode GL est isolé par JWT avec claim `product: "gl"` et routes dédiées.
+
+### Auth GL
+
+| Méthode | URL | Body | Description |
+|--------|-----|------|-------------|
+| POST | `/api/gl/auth/login` | `{ pseudo, pin }` | Connexion joueur (pseudo + PIN, table `gl_players`) |
+| POST | `/api/gl/auth/google` | `{ idToken }` | Connexion admin/MJ via Google ID token |
+| GET | `/api/gl/auth/me` | — | Profil courant GL (`auth`, `profile`) |
+
+### Contenus éditoriaux GL
+
+| Méthode | URL | Body | Permission |
+|--------|-----|------|------------|
+| GET | `/api/gl/content/:slug` | — | `gl.read` |
+| PUT | `/api/gl/content/:slug` | `{ title, bodyMarkdown }` | `gl.content.manage` |
+
+Slugs livrés en seed : `world`, `rules`, `spells`.
+
+### Gameplay GL
+
+| Méthode | URL | Body | Permission |
+|--------|-----|------|------------|
+| GET | `/api/gl/chapters` | — | `gl.read` |
+| POST | `/api/gl/games` | `{ classId, chapterId, name }` | `gl.game.manage` |
+| GET | `/api/gl/games/:id` | — | `gl.read` (ou membre de la partie) |
+| POST | `/api/gl/games/:id/teams` | `{ name, type, mascotId, color }` | `gl.team.manage` |
+| POST | `/api/gl/games/:id/join-team` | `{ teamId }` | Joueur connecté GL |
+| POST | `/api/gl/games/:id/events` | `{ teamId?, eventType, payload }` | `gl.event.emit` |
+| POST | `/api/gl/games/:id/start` | — | `gl.game.manage` |
+| POST | `/api/gl/games/:id/pause` | — | `gl.game.manage` |
+| POST | `/api/gl/games/:id/end` | — | `gl.game.manage` |
+
+Événements de partie stockés dans `gl_game_events` et diffusés en Socket.IO (`gl:game:event`, room `gl:game:{id}`).
+
+### Administration GL
+
+| Méthode | URL | Body | Permission |
+|--------|-----|------|------------|
+| GET | `/api/gl/admin/classes` | — | `gl.players.manage` |
+| POST | `/api/gl/admin/classes` | `{ name, school }` | `gl.players.manage` |
+| GET | `/api/gl/admin/players` | `?classId=` optionnel | `gl.players.manage` |
+| POST | `/api/gl/admin/players` | `{ classId, pseudo, pin? }` | `gl.players.manage` |
+| POST | `/api/gl/admin/players/:id/reset-pin` | `{ pin? }` | `gl.players.manage` |
+| GET | `/api/gl/admin/settings` | — | `gl.settings.manage` |
+| PUT | `/api/gl/admin/settings/:key` | `{ value }` | `gl.settings.manage` |
+
+### Permissions RBAC GL ajoutées
+
+- `gl.read`
+- `gl.content.manage`
+- `gl.players.manage`
+- `gl.game.manage`
+- `gl.team.manage`
+- `gl.event.emit`
+- `gl.mascot.position`
+- `gl.settings.manage`
+
+---
+
 ## Observabilité (logs / corrélation)
 
 - **Réponse** : toutes les requêtes reçoivent un en-tête **`X-Request-Id`** (UUID ou valeur client si format sûr, 8–128 caractères `[a-zA-Z0-9._-]`). À utiliser pour relier une erreur côté client aux lignes Pino / au tampon admin.
@@ -204,12 +266,16 @@ Ces droits sont assignables depuis la console **Profils & utilisateurs**.
 | `admin.settings.write` | Édition paramètres admin | Modifier les réglages non secrets |
 | `admin.settings.secrets.write` | Actions admin critiques | Exécuter les actions critiques (restart, secrets) |
 | `stats.read.all` | Lecture stats globales | Consulter les stats de tous les n3beurs |
+| `stats.read.group` | Lecture stats par groupe | Consulter les stats dans le périmètre de groupe |
 | `stats.export` | Export stats | Exporter les stats n3beurs en CSV |
+| `groups.read` | Lecture groupes utilisateurs | Consulter les groupes et sous-groupes |
+| `groups.manage` | Gestion groupes utilisateurs | Créer/éditer/supprimer les groupes, membres et scopes |
 | `students.import` | Import n3beurs | Importer des n3beurs via CSV/XLSX |
 | `students.delete` | Suppression n3beur | Supprimer un compte n3beur |
 | `tasks.manage` | Gestion tâches | Créer/éditer/supprimer les tâches |
 | `tasks.validate` | Validation tâches | Valider une tâche (tous statuts sauf déjà validée) |
 | `tasks.propose` | Proposition de tâches | Proposer de nouvelles tâches |
+| `tasks.assign.group` | Affectation groupe de tâches | Assigner en masse les membres d’un groupe |
 | `tasks.assign_self` | Prise en charge tâche | S’assigner à une tâche |
 | `tasks.unassign_self` | Retrait de tâche | Se retirer d’une tâche |
 | `tasks.done_self` | Soumission de tâche | Marquer une tâche comme faite |
@@ -220,6 +286,8 @@ Ces droits sont assignables depuis la console **Profils & utilisateurs**.
 | `visit.manage` | Gestion visite | Gérer la carte de visite publique |
 | `audit.read` | Lecture audit | Consulter le journal d’audit |
 | `observations.read.all` | Lecture observations globales | Consulter toutes les observations |
+| `observations.read.group` | Lecture observations par groupe | Consulter les observations du périmètre de groupe |
+| `forum.group.moderate` | Modération forum par groupe | Modérer les fils/messages dans les groupes accessibles |
 
 ### Profils système (droits par défaut)
 
@@ -227,8 +295,8 @@ Les profils sont entièrement paramétrables ; ce tableau documente les **valeur
 
 | Profil | Droits par défaut |
 |--------|-------------------|
-| `admin` | `teacher.access`, `admin.roles.manage` (PIN), `admin.users.assign_roles` (PIN), `users.create` (PIN), `admin.settings.read` (PIN), `admin.settings.write` (PIN), `admin.settings.secrets.write` (PIN), `stats.read.all`, `stats.export` (PIN), `students.import` (PIN), `students.delete` (PIN), `tasks.manage` (PIN), `tasks.validate` (PIN), `tasks.propose`, `tasks.assign_self`, `tasks.unassign_self`, `tasks.done_self`, `zones.manage` (PIN), `map.manage_markers` (PIN), `plants.manage` (PIN), `tutorials.manage` (PIN), `visit.manage` (PIN), `audit.read` (PIN), `observations.read.all` (PIN) |
-| `prof` | `teacher.access`, `stats.read.all`, `stats.export` (PIN), `students.import` (PIN), `students.delete` (PIN), `users.create` (PIN), `tasks.manage` (PIN), `tasks.validate` (PIN), `tasks.propose`, `tasks.assign_self`, `tasks.unassign_self`, `tasks.done_self`, `zones.manage` (PIN), `map.manage_markers` (PIN), `plants.manage` (PIN), `tutorials.manage` (PIN), `visit.manage` (PIN), `audit.read` (PIN), `observations.read.all` (PIN) |
+| `admin` | `teacher.access`, `admin.roles.manage` (PIN), `admin.users.assign_roles` (PIN), `users.create` (PIN), `admin.settings.read` (PIN), `admin.settings.write` (PIN), `admin.settings.secrets.write` (PIN), `groups.read`, `groups.manage` (PIN), `stats.read.all`, `stats.read.group`, `stats.export` (PIN), `students.import` (PIN), `students.delete` (PIN), `tasks.manage` (PIN), `tasks.validate` (PIN), `tasks.propose`, `tasks.assign.group` (PIN), `tasks.assign_self`, `tasks.unassign_self`, `tasks.done_self`, `zones.manage` (PIN), `map.manage_markers` (PIN), `plants.manage` (PIN), `tutorials.manage` (PIN), `visit.manage` (PIN), `audit.read` (PIN), `observations.read.all` (PIN), `observations.read.group`, `forum.group.moderate` |
+| `prof` | `teacher.access`, `groups.read`, `groups.manage` (PIN), `stats.read.all`, `stats.read.group`, `stats.export` (PIN), `students.import` (PIN), `students.delete` (PIN), `users.create` (PIN), `tasks.manage` (PIN), `tasks.validate` (PIN), `tasks.propose`, `tasks.assign.group` (PIN), `tasks.assign_self`, `tasks.unassign_self`, `tasks.done_self`, `zones.manage` (PIN), `map.manage_markers` (PIN), `plants.manage` (PIN), `tutorials.manage` (PIN), `visit.manage` (PIN), `audit.read` (PIN), `observations.read.all` (PIN), `observations.read.group`, `forum.group.moderate` |
 | `eleve_chevronne` | `tasks.propose` (PIN), `tasks.assign_self`, `tasks.unassign_self`, `tasks.done_self` |
 | `eleve_avance` | `tasks.propose`, `tasks.assign_self`, `tasks.unassign_self`, `tasks.done_self` |
 | `eleve_novice` | `tasks.assign_self`, `tasks.unassign_self`, `tasks.done_self` |
@@ -279,6 +347,14 @@ Contenus éditables du site (micro-CMS texte brut) :
 - Fallback frontend : en cas de valeur vide/absente, l’UI conserve un texte de secours local.
 - Exemples de clés : `content.auth.title`, `content.visit.subtitle`, `content.about.help_body`, `content.app.loader`.
 
+Aides contextuelles (public) :
+- `ui.help.show_context_hints` (booléen, défaut `true`) : affiche/masque les mini-astuces sur Carte, Tâches et Visite.
+- `ui.help.pulse_unseen_panels` (booléen, défaut `true`) : active l’animation du bouton `?` tant que l’aide de la section n’a pas été marquée comme vue.
+- `content.help.hint_prefix` (chaîne, défaut `Astuce :`) : préfixe affiché devant les mini-astuces.
+- `content.help.map_quick_tip`, `content.help.tasks_quick_tip`, `content.help.visit_quick_tip` (chaînes) : textes des mini-astuces par écran.
+- `content.help.panel_title_prefix` (chaîne, défaut `💡`) : préfixe du titre des panneaux d’aide `?`.
+- `content.help.panel_close_cta` et `content.help.panel_dismiss_cta` (chaînes) : libellés des actions “Fermer” / “Ne plus afficher” des panneaux d’aide.
+
 ---
 
 ## Zones
@@ -291,7 +367,7 @@ Contenus éditables du site (micro-CMS texte brut) :
 | POST | `/api/zones` | oui | Créer zone |
 | DELETE | `/api/zones/:id` | oui | Supprimer zone |
 | GET | `/api/zones/:id/photos` | non | Liste des photos (méta, tri `sort_order` croissant) |
-| GET | `/api/zones/:id/photos/:pid/data` | non | Données image : **`302`** vers **`/uploads/zones/...`** si le chemin disque est au format public ; sinon `sendFile` direct |
+| GET | `/api/zones/:id/photos/:pid/data` | non (token requis) | Données image : **`302`** vers **`/uploads/zones/...`** si le chemin disque est au format public ; sinon `sendFile` direct |
 | POST | `/api/zones/:id/photos` | oui | Ajouter photo (`image_data` base64, `caption`) |
 | PUT | `/api/zones/:id/photos/reorder` | oui | Réordonner : corps JSON **`photo_ids`** (ou **`ordered_ids`**) = tableau des `id` dans le nouvel ordre (exactement toutes les photos de la zone) |
 | DELETE | `/api/zones/:id/photos/:pid` | oui | Supprimer photo |
@@ -314,7 +390,7 @@ Contenus éditables du site (micro-CMS texte brut) :
 | PUT | `/api/map/markers/:id` | oui | Modifier repère |
 | DELETE | `/api/map/markers/:id` | oui | Supprimer repère |
 | GET | `/api/map/markers/:id/photos` | non | Liste des photos du repère (méta + **`image_url`**, **`thumb_url`**, tri `sort_order` croissant) — mêmes principes que les photos zone |
-| GET | `/api/map/markers/:id/photos/:pid/data` | non | Fichier image : **`302`** vers **`/uploads/markers/...`** si chemin public ; sinon `sendFile` |
+| GET | `/api/map/markers/:id/photos/:pid/data` | non (token requis) | Fichier image : **`302`** vers **`/uploads/markers/...`** si chemin public ; sinon `sendFile` |
 | POST | `/api/map/markers/:id/photos` | oui | Ajouter photo (`image_data` base64, `caption`) — même principe que les zones |
 | PUT | `/api/map/markers/:id/photos/reorder` | oui | Réordonner : corps JSON **`photo_ids`** (ou **`ordered_ids`**) = tableau des `id` dans le nouvel ordre (exactement toutes les photos du repère) |
 | DELETE | `/api/map/markers/:id/photos/:pid` | oui | Supprimer photo |
@@ -672,7 +748,7 @@ Si le réglage public `ui.modules.forum_enabled` est à `false`, toutes les rout
 
 Contraintes principales :
 
-- **Photos** : champ optionnel `images` (tableau de data URLs / base64 **JPEG, PNG ou WebP**), **maximum 3** fichiers, **sans plafond de taille par image** côté application (la seule borne est la **limite du corps JSON** HTTP, par défaut **100 Mo** ; surcharge possible via variable d’environnement **`FORETMAP_JSON_BODY_LIMIT`** côté serveur, ex. `200mb`). Fichiers stockés sous `uploads/forum-posts/<postId>/`. Les réponses incluent `posts[].image_urls` (chemins publics `/uploads/…`, tableau vide si aucune image). Si au moins une image est envoyée **sans** texte de message, le corps enregistré vaut littéralement `(Photo)` pour respecter la longueur minimale du message.
+- **Photos** : champ optionnel `images` (tableau de data URLs / base64 **JPEG, PNG ou WebP**), **maximum 3** fichiers, **sans plafond de taille par image** côté application (la borne globale reste la **limite du corps JSON** HTTP, par défaut **25 Mo** ; surcharge possible via variable d’environnement **`FORETMAP_JSON_BODY_LIMIT`**, ex. `50mb`). Fichiers stockés sous `uploads/forum-posts/<postId>/`. Les réponses incluent `posts[].image_urls` (chemins publics `/uploads/…`, tableau vide si aucune image). Si au moins une image est envoyée **sans** texte de message, le corps enregistré vaut littéralement `(Photo)` pour respecter la longueur minimale du message.
 - Validation serveur des longueurs (titre/message/motif). Le corps `body` peut contenir du Markdown léger (voir section **Texte enrichi**).
 - Anti-abus V1 : cooldown par utilisateur sur création de sujet/réponse.
 - Réactions emoji supportées : issues du réglage public `ui.reactions.allowed_emojis` (fallback défaut `👍 ❤️ 😂 😮 😢 😡 🔥 👏`).
@@ -724,6 +800,33 @@ Contraintes principales :
 
 ---
 
+## Observations
+
+Toutes les routes observations exigent un utilisateur connecté (`Authorization: Bearer <token>`).
+
+| Méthode | URL | n3boss | Description |
+|--------|-----|--------|-------------|
+| GET | `/api/observations/student/:studentId` | non (token requis) | Carnet d’un n3beur : propriétaire ou n3boss (`observations.read.all` / `observations.read.group`) |
+| GET | `/api/observations/all?group_id=:id` | oui (`observations.read.all` ou `observations.read.group`) | Liste globale (max 100), filtrable par périmètre groupe |
+| POST | `/api/observations` | non (token requis) | Créer une observation (`content`, `zone_id?`, `imageData?`) |
+| GET | `/api/observations/:id/image` | non (token requis) | Lire l’image liée (propriétaire ou n3boss selon périmètre) |
+| DELETE | `/api/observations/:id` | non (token requis) | Supprimer une observation (propriétaire ou n3boss selon périmètre) |
+
+Règles d’accès:
+- **n3beur** : accès strict à ses propres observations (lecture / image / suppression).
+- **n3boss** avec `observations.read.all` : accès global.
+- **n3boss** avec `observations.read.group` : accès limité au périmètre groupe.
+
+---
+
+## Audit
+
+| Méthode | URL | n3boss | Description |
+|--------|-----|--------|-------------|
+| GET | `/api/audit?limit=50` | oui (`audit.read` + élévation) | Journal d’audit (ordre décroissant, `limit` borné entre 1 et 200) |
+
+---
+
 ## Stats
 
 | Méthode | URL | n3boss | Description |
@@ -753,9 +856,12 @@ Objet **`site`** (réponse `GET /api/stats/all` uniquement) :
 
 | Méthode | URL | n3boss | Description |
 |--------|-----|------|-------------|
+| GET | `/api/students/import/template` | oui (`students.import` + élévation) | Télécharger le modèle d’import CSV/XLSX |
+| POST | `/api/students/import` | oui (`students.import` + élévation) | Import en lot (CSV/XLSX base64) |
 | POST | `/api/students/register` | non | Rafraîchir last_seen (`{ studentId }`) |
-| PATCH | `/api/students/:id/profile` | non | Mettre à jour son profil (`{ pseudo?, email?, description?, avatarData?, removeAvatar?, currentPassword }`) |
-| DELETE | `/api/students/:id` | oui | Supprimer un n3beur (cascade) |
+| POST | `/api/students/:id/duplicate` | oui (`users.create` + élévation) | Dupliquer un compte n3beur |
+| PATCH | `/api/students/:id/profile` | non (token élève propriétaire requis) | Mettre à jour son profil (`{ pseudo?, email?, description?, avatarData?, removeAvatar?, currentPassword }`) |
+| DELETE | `/api/students/:id` | oui (`students.delete` + élévation) | Supprimer un n3beur (cascade) |
 
 `avatarData` doit être une data URL image (`png`, `jpg/jpeg`, `webp`). Les fichiers sont stockés sous `uploads/students/...` et exposés via `/uploads/...`.
 

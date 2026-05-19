@@ -59,16 +59,16 @@ const HELP_PANELS = {
     title: 'Aide carte',
     items: [
       {
-        text: 'Appuie sur une zone ou un repère pour ouvrir sa fiche.',
+        text: 'Commence par cliquer une zone ou un repère : la fiche te montre quoi observer et quoi faire.',
       },
       {
-        text: 'Utilise + et − pour zoomer, puis ⊡ pour recentrer.',
+        text: 'Si tu es perdu, fais + ou − pour zoomer puis ⊡ pour revenir à la vue complète.',
       },
       {
-        text: 'Si la page bouge trop, verrouille les gestes avec le bouton cadenas.',
+        text: 'Sur mobile, verrouille les gestes avec 🔒 pour éviter les déplacements involontaires.',
       },
       {
-        textTeacher: 'En mode n3boss, tu peux ajouter des zones et des repères.',
+        textTeacher: 'En mode n3boss, passe en mode Zone ou Repère pour créer le terrain, puis reviens en mode Nav.',
       },
     ],
   },
@@ -76,16 +76,16 @@ const HELP_PANELS = {
     title: 'Aide tâches',
     items: [
       {
-        text: 'Lis la consigne, puis prends la mission si tu veux t’en charger.',
+        text: 'Lis d abord la consigne et la carte liée, puis inscris-toi seulement quand tu peux vraiment la prendre.',
       },
       {
-        text: 'Quand c’est fait, envoie un rapport : un mot, une photo, tout aide l’équipe.',
+        text: 'Quand c est fait, envoie un retour clair (texte + photo si possible) pour faciliter la validation.',
       },
       {
-        textTeacher: 'En mode n3boss, tu coches les retours et tu fais avancer les statuts.',
+        textTeacher: 'Côté n3boss : traite d abord les tâches en attente de validation, puis ajuste les statuts.',
       },
       {
-        textTeacher: 'Tu peux modifier, dupliquer ou supprimer une tâche.',
+        textTeacher: 'Tu peux aussi dupliquer une tâche pour gagner du temps sur les missions répétitives.',
       },
     ],
   },
@@ -107,16 +107,16 @@ const HELP_PANELS = {
     title: 'Aide visite',
     items: [
       {
-        text: 'Clique une zone ou un repère pour afficher sa fiche.',
+        text: 'Explore la carte en cliquant les zones et repères pour ouvrir leurs fiches.',
       },
       {
-        text: 'Coche ce que tu as déjà vu : ta progression s’en souvient.',
+        text: 'Marque ce que tu as déjà vu : la progression se met à jour automatiquement.',
       },
       {
-        textTeacher: 'En mode n3boss, tu peux modifier le contenu de visite.',
+        textTeacher: 'En mode n3boss, utilise "Aperçu comme élève" pour vérifier ce que les élèves verront vraiment.',
       },
       {
-        textTeacher: 'Tu choisis aussi quels tutoriels sont visibles pendant la visite.',
+        textTeacher: 'Pense à sélectionner les tutoriels utiles à la visite pour guider le parcours sur le terrain.',
       },
     ],
   },

@@ -14,6 +14,7 @@ import { MarkdownContent } from './MarkdownContent.jsx';
 import { MarkdownTextarea } from './MarkdownTextarea.jsx';
 import { formatDateTimeFr } from '../utils/datetime-fr';
 import { HELP_PANELS, HELP_TOOLTIPS, resolveRoleText } from '../constants/help';
+import { getContentText } from '../utils/content';
 import { TutorialPreviewModal, tutorialPreviewPayload, tutorialPreviewCanEmbed } from './TutorialPreviewModal';
 import { fetchTutorialReadIds } from './TutorialReadAcknowledge';
 import { DialogShell } from './DialogShell';
@@ -1571,11 +1572,28 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
   const [taskDropHint, setTaskDropHint] = useState({ projectId: '', beforeTaskId: '' });
   const confirmDialogRef = useDialogA11y(() => setConfirmTask(null));
   useOverlayHistoryBack(!!confirmTask, () => setConfirmTask(null));
-  const { isHelpEnabled, hasSeenSection, markSectionSeen, trackPanelOpen, trackPanelDismiss } = useHelp({ publicSettings, isTeacher });
+  const {
+    isHelpEnabled,
+    showContextHints,
+    pulseUnseenPanels,
+    hasSeenSection,
+    markSectionSeen,
+    trackPanelOpen,
+    trackPanelDismiss,
+  } = useHelp({ publicSettings, isTeacher });
   const contextCommentsEnabled = publicSettings?.modules?.context_comments_enabled !== false;
   const tutorialsModuleEnabled = publicSettings?.modules?.tutorials_enabled !== false;
   const helpTasks = HELP_PANELS.tasks;
   const helpGroupFilters = HELP_PANELS.groupFilters;
+  const helpHintPrefix = getContentText(publicSettings, 'help.hint_prefix', 'Astuce :');
+  const helpPanelTitlePrefix = getContentText(publicSettings, 'help.panel_title_prefix', '💡');
+  const helpPanelCloseCta = getContentText(publicSettings, 'help.panel_close_cta', 'Fermer');
+  const helpPanelDismissCta = getContentText(publicSettings, 'help.panel_dismiss_cta', 'Ne plus afficher');
+  const tasksQuickTip = getContentText(
+    publicSettings,
+    'help.tasks_quick_tip',
+    'Filtre d abord par carte ou groupe, puis traite les retours en attente.'
+  );
   const tooltipText = (entry) => resolveRoleText(entry, isTeacher);
   const [quickTutoLinkId, setQuickTutoLinkId] = useState('');
   const [tasksTutorialPreview, setTasksTutorialPreview] = useState(null);
@@ -2480,7 +2498,10 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
                 title={helpTasks.title}
                 entries={helpTasks.items}
                 isTeacher={isTeacher}
-                isPulsing={!hasSeenSection('tasks')}
+                isPulsing={pulseUnseenPanels && !hasSeenSection('tasks')}
+                panelTitlePrefix={helpPanelTitlePrefix}
+                closeButtonText={helpPanelCloseCta}
+                dismissButtonText={helpPanelDismissCta}
                 onMarkSeen={markSectionSeen}
                 onOpen={trackPanelOpen}
                 onDismiss={trackPanelDismiss}
@@ -2515,7 +2536,10 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
                 title={helpTasks.title}
                 entries={helpTasks.items}
                 isTeacher={isTeacher}
-                isPulsing={!hasSeenSection('tasks')}
+                isPulsing={pulseUnseenPanels && !hasSeenSection('tasks')}
+                panelTitlePrefix={helpPanelTitlePrefix}
+                closeButtonText={helpPanelCloseCta}
+                dismissButtonText={helpPanelDismissCta}
                 onMarkSeen={markSectionSeen}
                 onOpen={trackPanelOpen}
                 onDismiss={trackPanelDismiss}
@@ -2528,6 +2552,11 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
         )}
       </div>
       <p className="section-sub">{isTeacher ? 'Piloter les missions, valider les retours et traiter les idées du terrain' : (canSelfAssignTasks ? "Choisis une mission ou propose la tienne, tout le monde peut la lire. Il faut t'inscrire seulement au moment où tu commences la mission pour de vrai." : 'Tu consultes la liste en lecture seule')}</p>
+      {isHelpEnabled && showContextHints && tasksQuickTip ? (
+        <p className="section-sub" style={{ marginTop: 6 }}>
+          <strong>{helpHintPrefix}</strong> {tasksQuickTip}
+        </p>
+      ) : null}
       {!isTeacher && student && Number(student.taskEnrollment?.maxActiveAssignments) > 0 && (
         <p
           className="section-sub"
@@ -2709,7 +2738,10 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
                 title={helpGroupFilters.title}
                 entries={helpGroupFilters.items}
                 isTeacher={isTeacher}
-                isPulsing={!hasSeenSection('tasks-group-filter')}
+                isPulsing={pulseUnseenPanels && !hasSeenSection('tasks-group-filter')}
+                panelTitlePrefix={helpPanelTitlePrefix}
+                closeButtonText={helpPanelCloseCta}
+                dismissButtonText={helpPanelDismissCta}
                 onMarkSeen={markSectionSeen}
                 onOpen={trackPanelOpen}
                 onDismiss={trackPanelDismiss}

@@ -44,6 +44,13 @@ const KEY_META = {
   'content.about.help_body': { label: 'Texte aide contextuelle', section: 'content', order: 220, multiline: true },
   'content.about.help_reenable_cta': { label: 'Bouton réactiver aides', section: 'content', order: 230 },
   'content.about.help_reset_metrics_cta': { label: 'Bouton reset compteurs aide', section: 'content', order: 240 },
+  'content.help.hint_prefix': { label: 'Préfixe mini-astuce contextuelle', section: 'content', order: 245 },
+  'content.help.panel_title_prefix': { label: 'Préfixe titre panneau aide (?)', section: 'content', order: 246 },
+  'content.help.panel_close_cta': { label: 'Bouton fermer panneau aide (?)', section: 'content', order: 247 },
+  'content.help.panel_dismiss_cta': { label: 'Bouton masquer panneau aide (?)', section: 'content', order: 248 },
+  'content.help.map_quick_tip': { label: 'Mini-astuce carte', section: 'content', order: 249, multiline: true },
+  'content.help.tasks_quick_tip': { label: 'Mini-astuce tâches', section: 'content', order: 250, multiline: true },
+  'content.help.visit_quick_tip': { label: 'Mini-astuce visite', section: 'content', order: 251, multiline: true },
 
   'ui.modules.tutorials_enabled': { label: 'Tutoriels', section: 'modules', order: 10 },
   'ui.modules.visit_enabled': { label: 'Visite', section: 'modules', order: 20 },
@@ -52,6 +59,8 @@ const KEY_META = {
   'ui.modules.help_enabled': { label: 'Aide contextuelle (tooltips + panneau ?)', section: 'modules', order: 45 },
   'ui.modules.forum_enabled': { label: 'Forum', section: 'modules', order: 46 },
   'ui.modules.context_comments_enabled': { label: 'Commentaires de contexte (zones, tâches, projets, biodiversité, tutoriels)', section: 'modules', order: 47 },
+  'ui.help.show_context_hints': { label: 'Afficher les mini-astuces contextuelles', section: 'modules', order: 47.1 },
+  'ui.help.pulse_unseen_panels': { label: 'Animer le bouton ? tant que l’aide n’est pas vue', section: 'modules', order: 47.2 },
   'ui.reactions.allowed_emojis': { label: 'Emojis de réaction (séparés par espaces)', section: 'modules', order: 48 },
   'ui.map.location_emojis': {
     label:
