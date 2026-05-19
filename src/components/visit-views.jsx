@@ -505,6 +505,26 @@ function VisitEditorPanel({ selected, selectedType, onSaved, onForceLogout, isTe
     );
     return arr;
   }, [selected]);
+  const mapAssociatedPhotos = useMemo(() => {
+    if (!selected) return [];
+    const list = [];
+    if (selected?.map_lead_photo?.image_url) {
+      list.push({
+        id: `map-lead-${selected.map_lead_photo.id || 'x'}`,
+        image_url: selected.map_lead_photo.image_url,
+        caption: selected.map_lead_photo.caption || '',
+      });
+    }
+    for (const ph of selected?.map_extra_photos || []) {
+      if (!ph?.image_url) continue;
+      list.push({
+        id: `map-extra-${ph.id || Math.random()}`,
+        image_url: ph.image_url,
+        caption: ph.caption || '',
+      });
+    }
+    return list;
+  }, [selected]);
 
   useEffect(() => {
     const nextTitle = selectedType === 'zone' ? (selected?.name || '') : (selected?.label || '');
@@ -616,6 +636,22 @@ function VisitEditorPanel({ selected, selectedType, onSaved, onForceLogout, isTe
     } catch (err) {
       if (err instanceof AccountDeletedError) onForceLogout?.();
       else alert(err.message || 'Erreur suppression photo');
+    }
+  };
+
+  const attachMapPhotoToVisitMedia = async (photo) => {
+    if (!photo?.image_url) return;
+    try {
+      await api('/api/visit/media', 'POST', {
+        target_type: selectedType,
+        target_id: selected.id,
+        image_url: String(photo.image_url || '').trim(),
+        caption: String(photo.caption || '').trim(),
+      });
+      await onSaved?.();
+    } catch (err) {
+      if (err instanceof AccountDeletedError) onForceLogout?.();
+      else alert(err.message || 'Erreur association photo');
     }
   };
 
@@ -844,6 +880,21 @@ function VisitEditorPanel({ selected, selectedType, onSaved, onForceLogout, isTe
           Envoi d’image (comme sur la carte) ou lien URL (ex. Wikimedia, fichier déjà sur le serveur).
           {sortedVisitMedia.length > 1 ? ' Plusieurs photos : glisser-déposer une ligne pour réordonner.' : ''}
         </p>
+        {mapAssociatedPhotos.length > 0 ? (
+          <div className="visit-media-import-from-map">
+            <h6>Photos déjà associées à ce lieu (carte)</h6>
+            <div className="visit-media-import-from-map__list">
+              {mapAssociatedPhotos.map((ph) => (
+                <div key={ph.id} className="visit-media-import-from-map__item">
+                  <span>{ph.caption || ph.image_url}</span>
+                  <button type="button" className="btn btn-ghost btn-sm" onClick={() => attachMapPhotoToVisitMedia(ph)}>
+                    Associer à la visite
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : null}
         <div className="field">
           <label>Légende (optionnel)</label>
           <input value={mediaCaption} onChange={(e) => setMediaCaption(e.target.value)} />

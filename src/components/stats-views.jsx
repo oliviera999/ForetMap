@@ -8,6 +8,9 @@ import { compressImage } from '../utils/image';
 import { buildAffiliationSelectOptions } from '../utils/affiliationSelectOptions';
 import { MarkdownTextarea } from './MarkdownTextarea.jsx';
 import { getVisitMascotCatalog } from '../utils/visitMascotCatalog.js';
+import { useHelp } from '../hooks/useHelp';
+import { HelpPanel } from './HelpPanel';
+import { HELP_PANELS } from '../constants/help';
 
 function Toast({ msg, onDone }) {
   useEffect(() => { const t = setTimeout(onDone, 2400); return () => clearTimeout(t); }, []);
@@ -454,6 +457,14 @@ function StudentProfileEditor({ student, onUpdated, onClose, isN3Affiliated = fa
 
 function TeacherStats({ isN3Affiliated = false }) {
   const roleTerms = getRoleTerms(isN3Affiliated);
+  const {
+    isHelpEnabled,
+    hasSeenSection,
+    markSectionSeen,
+    trackPanelOpen,
+    trackPanelDismiss,
+  } = useHelp({ publicSettings: null, isTeacher: true });
+  const helpGroupFilters = HELP_PANELS.groupFilters;
   const [students, setStudents] = useState(null);
   const [site, setSite] = useState(null);
   const [groups, setGroups] = useState([]);
@@ -512,6 +523,18 @@ function TeacherStats({ isN3Affiliated = false }) {
       {toast && <Toast msg={toast} onDone={() => setToast(null)} />}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
         <h2 className="section-title">📊 Statistiques des {roleTerms.studentPlural}</h2>
+        {isHelpEnabled && (
+          <HelpPanel
+            sectionId="stats-group-filter"
+            title={helpGroupFilters.title}
+            entries={helpGroupFilters.items}
+            isTeacher
+            isPulsing={!hasSeenSection('stats-group-filter')}
+            onMarkSeen={markSectionSeen}
+            onOpen={trackPanelOpen}
+            onDismiss={trackPanelDismiss}
+          />
+        )}
       </div>
       <p className="section-sub">{data.length} {data.length > 1 ? roleTerms.studentPlural : roleTerms.studentSingular} dans les stats collectives</p>
       {error && (
