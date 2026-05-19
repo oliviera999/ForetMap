@@ -71,7 +71,8 @@ export function useForetmapRealtime({
   const refreshTasksFromServer = useCallback(async () => {
     if (pauseDataRefreshRef?.current) return;
     try {
-      const mapId = activeMapIdRef.current || 'foret';
+      const mapId = String(activeMapIdRef.current || '').trim();
+      if (!mapId) return;
       const mapQuery = `map_id=${encodeURIComponent(mapId)}`;
       const [t, projects] = await Promise.all([
         api(`/api/tasks?${mapQuery}`),
@@ -94,7 +95,8 @@ export function useForetmapRealtime({
     if (pauseDataRefreshRef?.current) return;
     const includePlants = options.includePlants !== false;
     try {
-      const mapId = activeMapIdRef.current || 'foret';
+      const mapId = String(activeMapIdRef.current || '').trim();
+      if (!mapId) return;
       const mapQuery = `map_id=${encodeURIComponent(mapId)}`;
       if (includePlants) {
         const [z, p, m] = await Promise.all([

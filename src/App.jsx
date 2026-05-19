@@ -144,13 +144,17 @@ function detectIosDevice() {
   return ua.includes('iphone') || ua.includes('ipad') || ua.includes('ipod');
 }
 
+function pickVisibleMapId(visibleMaps, preferredMapId = '') {
+  const preferred = String(preferredMapId || '').trim();
+  if (!Array.isArray(visibleMaps) || visibleMaps.length === 0) return '';
+  if (preferred && visibleMaps.some((map) => map.id === preferred)) return preferred;
+  return String(visibleMaps[0]?.id || '').trim();
+}
+
 // ── APP ───────────────────────────────────────────────────────────────────────
 function App() {
   const initialSession = useMemo(() => getStoredSession(), []);
-  const DEFAULT_MAPS = useMemo(() => ([
-    { id: 'foret', label: 'Forêt comestible', map_image_url: '/map.png', sort_order: 1, is_active: true },
-    { id: 'n3', label: 'N3', map_image_url: '/maps/plan%20n3.jpg', sort_order: 2, is_active: true },
-  ]), []);
+  const DEFAULT_MAPS = useMemo(() => ([]), []);
   const DEFAULT_PUBLIC_SETTINGS = useMemo(() => ({
     auth: {
       allow_register: true,
@@ -207,7 +211,7 @@ function App() {
   /** Synchronise le filtre lieu de l’onglet tâches avec la zone/repère ouvert(e) sur la carte. */
   const [tasksLocationFocus, setTasksLocationFocus] = useState(null);
   const [maps,       setMaps]       = useState(DEFAULT_MAPS);
-  const [activeMapId, setActiveMapId] = useState(() => safeLocalStorageGetItem('foretmap_active_map', 'foret') || 'foret');
+  const [activeMapId, setActiveMapId] = useState(() => String(safeLocalStorageGetItem('foretmap_active_map', '') || '').trim());
   const [zones,      setZones]      = useState([]);
   const [tasks,      setTasks]      = useState([]);
   const [taskProjects, setTaskProjects] = useState([]);
@@ -830,21 +834,21 @@ function App() {
             const fallbackMap = visibleAllowedMaps.find((mp) => mp.id === defaultMap)?.id
               || visibleAllowedMaps[0]?.id
               || requestedMapId
-              || 'foret';
+              || '';
             const resolvedMapId = visibleAllowedMaps.some((mp) => mp.id === requestedMapId)
               ? requestedMapId
               : fallbackMap;
-            const mapQuery = `map_id=${encodeURIComponent(resolvedMapId)}`;
+            const mapQuery = resolvedMapId ? `map_id=${encodeURIComponent(resolvedMapId)}` : '';
 
             const tutorialsEndpoint = canTutorialsSnap
               ? '/api/tutorials?include_inactive=1'
               : '/api/tutorials';
             const [z, t, taskProjectsRes, p, m, tu] = await Promise.all([
-              safeApi(() => api(`/api/zones?${mapQuery}`), []),
-              safeApi(() => api(`/api/tasks?${mapQuery}`), []),
-              safeApi(() => api(`/api/task-projects?${mapQuery}`), []),
+              safeApi(() => (mapQuery ? api(`/api/zones?${mapQuery}`) : Promise.resolve([])), []),
+              safeApi(() => (mapQuery ? api(`/api/tasks?${mapQuery}`) : Promise.resolve([])), []),
+              safeApi(() => (mapQuery ? api(`/api/task-projects?${mapQuery}`) : Promise.resolve([])), []),
               safeApi(() => api('/api/plants'), []),
-              safeApi(() => api(`/api/map/markers?${mapQuery}`), []),
+              safeApi(() => (mapQuery ? api(`/api/map/markers?${mapQuery}`) : Promise.resolve([])), []),
               safeApi(() => api(tutorialsEndpoint), []),
             ]);
 
@@ -923,6 +927,26 @@ function App() {
       : allowedMapIdsFromAffiliation(student?.affiliation);
     return mapsForAffiliationScope(maps, allowedMapIds);
   }, [maps, effectiveIsTeacher, showPublicVisit, student?.affiliation]);
+  useEffect(() => {
+    if (!Array.isArray(visibleMaps) || visibleMaps.length === 0) {
+      if (activeMapId) setActiveMapId('');
+      return;
+    }
+    if (activeMapId && visibleMaps.some((map) => map.id === activeMapId)) return;
+    const preferredDefaultMapId = showPublicVisit
+      ? publicSettings?.map?.default_map_visit
+      : (effectiveIsTeacher ? publicSettings?.map?.default_map_teacher : publicSettings?.map?.default_map_student);
+    const nextMapId = pickVisibleMapId(visibleMaps, preferredDefaultMapId);
+    setActiveMapId((prev) => (prev === nextMapId ? prev : nextMapId));
+  }, [
+    activeMapId,
+    effectiveIsTeacher,
+    publicSettings?.map?.default_map_student,
+    publicSettings?.map?.default_map_teacher,
+    publicSettings?.map?.default_map_visit,
+    showPublicVisit,
+    visibleMaps,
+  ]);
   const mascotStudioMapLabel = useMemo(() => {
     const m = visibleMaps.find((x) => x.id === activeMapId);
     return String(m?.label || m?.id || activeMapId || '').trim() || activeMapId;

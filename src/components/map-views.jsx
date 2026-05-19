@@ -28,6 +28,7 @@ import { resolveMapOverlayTypography } from '../utils/mapOverlayTypography';
 import { isStudentAssignedToTask } from '../utils/task-assignments';
 import { parseLivingBeings, orderedLivingBeingsForForm, nextLivingBeingsFromMultiSelect } from '../utils/livingBeings';
 import { wheelZoomScaleFactor } from '../utils/mapWheelZoom';
+import { buildMapImageCandidates } from '../utils/mapImageCandidates';
 import {
   taskLocationIds,
   tutorialLocationIds,
@@ -40,6 +41,12 @@ import {
 import { TutorialPreviewModal, tutorialPreviewPayload, tutorialPreviewCanEmbed } from './TutorialPreviewModal';
 import { fetchTutorialReadIds } from './TutorialReadAcknowledge';
 import { DialogShell } from './DialogShell';
+import VisitMapMascotRenderer from './VisitMapMascotRenderer.jsx';
+import { VISIT_MASCOT_STATE } from '../utils/visitMascotState.js';
+import {
+  normalizeVisitMascotId,
+  loadVisitMascotId,
+} from '../utils/visitMascotCatalog.js';
 
 function Toast({ msg, onDone }) {
   useEffect(() => { const t = setTimeout(onDone, 2400); return () => clearTimeout(t); }, []);
@@ -933,7 +940,7 @@ function ZoneInfoModal({ zone, plants, tasks, tutorials = [], isTeacher, student
       try {
         const [photos, content] = await Promise.all([
           api(`/api/zones/${zone.id}/photos`),
-          api(`/api/visit/content?map_id=${encodeURIComponent(zone.map_id || 'foret')}`),
+          api(`/api/visit/content?map_id=${encodeURIComponent(zone.map_id || '')}`),
         ]);
         if (cancel) return;
         const zoneVisit = (content?.zones || []).find((z) => String(z.id) === String(zone.id));
@@ -1009,7 +1016,7 @@ function ZoneInfoModal({ zone, plants, tasks, tutorials = [], isTeacher, student
         image_url: String(photo.image_url || '').trim(),
         caption: String(photo.caption || '').trim(),
       });
-      const content = await api(`/api/visit/content?map_id=${encodeURIComponent(zone.map_id || 'foret')}`);
+      const content = await api(`/api/visit/content?map_id=${encodeURIComponent(zone.map_id || '')}`);
       const zoneVisit = (content?.zones || []).find((z) => String(z.id) === String(zone.id));
       const vm = [...(zoneVisit?.visit_media || [])].sort(
         (a, b) => (Number(a.sort_order) || 0) - (Number(b.sort_order) || 0) || Number(a.id) - Number(b.id),
@@ -1876,7 +1883,7 @@ function MarkerModal({
       try {
         const [photos, content] = await Promise.all([
           api(`/api/map/markers/${marker.id}/photos`),
-          api(`/api/visit/content?map_id=${encodeURIComponent(marker.map_id || 'foret')}`),
+          api(`/api/visit/content?map_id=${encodeURIComponent(marker.map_id || '')}`),
         ]);
         if (cancel) return;
         const markerVisit = (content?.markers || []).find((m) => String(m.id) === String(marker.id));
@@ -1938,7 +1945,7 @@ function MarkerModal({
         image_url: String(photo.image_url || '').trim(),
         caption: String(photo.caption || '').trim(),
       });
-      const content = await api(`/api/visit/content?map_id=${encodeURIComponent(marker.map_id || 'foret')}`);
+      const content = await api(`/api/visit/content?map_id=${encodeURIComponent(marker.map_id || '')}`);
       const markerVisit = (content?.markers || []).find((m) => String(m.id) === String(marker.id));
       const vm = [...(markerVisit?.visit_media || [])].sort(
         (a, b) => (Number(a.sort_order) || 0) - (Number(b.sort_order) || 0) || Number(a.id) - Number(b.id),
@@ -3129,7 +3136,7 @@ function useMapGestures({ mapImageSrc, activeMapId, mode, onRefresh, embedded = 
   };
 }
 
-function MapView({ zones, markers, tasks = [], tutorials = [], plants, maps = [], activeMapId = 'foret', onMapChange, isTeacher, student, canSelfAssignTasks = true, canEnrollOnTasks, canParticipateContextComments = true, onZoneUpdate, onRefresh, embedded = false, publicSettings = null, onLocationTasksFocus = null, onNavigateToTasksForLocation = null, onOpenPlantCatalogPreview = null, onForceLogout }) {
+function MapView({ zones, markers, tasks = [], tutorials = [], plants, maps = [], activeMapId = '', onMapChange, isTeacher, student, canSelfAssignTasks = true, canEnrollOnTasks, canParticipateContextComments = true, onZoneUpdate, onRefresh, embedded = false, publicSettings = null, onLocationTasksFocus = null, onNavigateToTasksForLocation = null, onOpenPlantCatalogPreview = null, onForceLogout }) {
   const canEnrollNewTasks = canEnrollOnTasks !== undefined ? canEnrollOnTasks : canSelfAssignTasks;
   const [mode, setMode] = useState('view');
   const [showLabels, setShowLabels] = useState(true);
@@ -3158,26 +3165,47 @@ function MapView({ zones, markers, tasks = [], tutorials = [], plants, maps = []
     () => parseEmojiListSetting(configuredLocationEmojis, MARKER_EMOJIS),
     [configuredLocationEmojis]
   );
+  const visitMascotAllowedIds = useMemo(() => {
+    const raw = publicSettings?.visit?.mascot?.allowed_ids;
+    if (Array.isArray(raw)) {
+      return raw
+        .map((id) => String(id || '').trim())
+        .filter(Boolean);
+    }
+    if (typeof raw === 'string') {
+      return raw
+        .split(/[,\n;]+/g)
+        .map((id) => String(id || '').trim())
+        .filter(Boolean);
+    }
+    return [];
+  }, [publicSettings?.visit?.mascot?.allowed_ids]);
+  const visitMascotDefaultId = String(publicSettings?.visit?.mascot?.default_id || '').trim();
+  const mapMascotSelectionOptions = useMemo(
+    () => ({ allowedMascotIds: visitMascotAllowedIds, defaultMascotId: visitMascotDefaultId }),
+    [visitMascotAllowedIds, visitMascotDefaultId]
+  );
+  const mapMascotId = useMemo(() => {
+    const preferred = String(student?.visit_mascot_catalog_id || '').trim();
+    if (preferred) {
+      return normalizeVisitMascotId(preferred, [], mapMascotSelectionOptions);
+    }
+    return loadVisitMascotId([], mapMascotSelectionOptions);
+  }, [student?.visit_mascot_catalog_id, mapMascotSelectionOptions]);
   const contextCommentsEnabled = publicSettings?.modules?.context_comments_enabled !== false;
   const emojiParsingList = useMemo(
     () => [...new Set([...markerEmojis, ...MARKER_EMOJIS])],
     [markerEmojis]
   );
   const activeMap = maps.find((m) => m.id === activeMapId);
-  const mapImageCandidates = useMemo(() => {
-    const base = activeMapId === 'n3'
-      ? ['/maps/plan%20n3.jpg', '/maps/map-n3.svg', '/map.png']
-      : ['/map.png', '/maps/map-foret.svg'];
-    const first = activeMap?.map_image_url ? [activeMap.map_image_url] : [];
-    return [...new Set([...first, ...base])];
-  }, [activeMap?.map_image_url, activeMapId]);
+  const mapImageCandidates = useMemo(() => buildMapImageCandidates(activeMap), [activeMap]);
   const [mapImageIdx, setMapImageIdx] = useState(0);
   const mapImageSrc = mapImageCandidates[Math.min(mapImageIdx, mapImageCandidates.length - 1)];
   const mapFramePaddingPx = useMemo(() => {
     const custom = Number(activeMap?.frame_padding_px);
     if (Number.isFinite(custom) && custom >= 0) return Math.min(custom, 32);
-    return activeMapId === 'n3' ? 14 : 8;
-  }, [activeMap?.frame_padding_px, activeMapId]);
+    return 8;
+  }, [activeMap?.frame_padding_px]);
   const mapLayoutOuterRef = useRef(null);
   const {
     containerRef,
@@ -3802,6 +3830,14 @@ function MapView({ zones, markers, tasks = [], tutorials = [], plants, maps = []
   const cursor = mode === 'view' ? 'grab' : mode === 'draw-zone' ? 'crosshair' : mode === 'edit-points' ? 'default' : 'cell';
   const mobileInteractionsActive = mapInteractionEnabled || committed.s > 1.05;
   const canManageMarkerPositions = !!isTeacher;
+  const showMapMascot = mode === 'view' && !!mapMascotId;
+  const mapMascotPositionStyle = useMemo(
+    () => ({
+      left: isCoarsePointer ? '16%' : (embedded ? '10%' : '12%'),
+      top: embedded ? '90%' : '92%',
+    }),
+    [embedded, isCoarsePointer]
+  );
   const { isHelpEnabled, hasSeenSection, markSectionSeen, trackPanelOpen, trackPanelDismiss } = useHelp({ publicSettings, isTeacher });
   const helpMap = HELP_PANELS.map;
   const tooltipText = (entry) => resolveRoleText(entry, isTeacher);
@@ -3888,17 +3924,32 @@ function MapView({ zones, markers, tasks = [], tutorials = [], plants, maps = []
       <div className="map-view-toolbar" style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 12px',
         background: 'white', borderBottom: '1.5px solid var(--mint)', flexShrink: 0, minHeight: 50 }}>
         {maps.length > 1 && (
-          <div style={{ display: 'flex', gap: 3, background: 'var(--parchment)', borderRadius: 10, padding: 3 }}>
-            {maps.map((mp) => (
-              <button key={mp.id}
-                style={{ background: activeMapId === mp.id ? 'var(--forest)' : 'transparent', color: activeMapId === mp.id ? 'white' : 'var(--soil)',
-                  border: 'none', borderRadius: 8, padding: '7px 11px', cursor: 'pointer',
-                  fontFamily: 'DM Sans,sans-serif', fontSize: '.82rem', fontWeight: 700, whiteSpace: 'nowrap' }}
-                onClick={() => onMapChange?.(mp.id)}>
-                {mp.label}
-              </button>
-            ))}
-          </div>
+          maps.length > 4 ? (
+            <select
+              className="map-switch-select"
+              value={activeMapId}
+              onChange={(event) => onMapChange?.(event.target.value)}
+              aria-label="Sélection de carte active"
+            >
+              {maps.map((mp) => (
+                <option key={mp.id} value={mp.id}>
+                  {mp.label}
+                </option>
+              ))}
+            </select>
+          ) : (
+            <div className="map-switch-inline" style={{ display: 'flex', gap: 3, background: 'var(--parchment)', borderRadius: 10, padding: 3 }}>
+              {maps.map((mp) => (
+                <button key={mp.id}
+                  style={{ background: activeMapId === mp.id ? 'var(--forest)' : 'transparent', color: activeMapId === mp.id ? 'white' : 'var(--soil)',
+                    border: 'none', borderRadius: 8, padding: '7px 11px', cursor: 'pointer',
+                    fontFamily: 'DM Sans,sans-serif', fontSize: '.82rem', fontWeight: 700, whiteSpace: 'nowrap' }}
+                  onClick={() => onMapChange?.(mp.id)}>
+                  {mp.label}
+                </button>
+              ))}
+            </div>
+          )
         )}
 
         <div style={{ display: 'flex', gap: 3, background: 'var(--parchment)', borderRadius: 10, padding: 3 }}>
@@ -4058,6 +4109,24 @@ function MapView({ zones, markers, tasks = [], tutorials = [], plants, maps = []
               {renderEditPts()}
             </g>
           </svg>
+
+          {showMapMascot ? (
+            <div
+              className={`visit-map-mascot visit-map-mascot--reduced-motion map-view-static-mascot${embedded ? ' map-view-static-mascot--embedded' : ''}`}
+              style={mapMascotPositionStyle}
+              aria-hidden="true"
+            >
+              <div
+                className="visit-map-mascot-inner"
+                style={{ transform: 'translate(-50%, -100%) scaleX(1)' }}
+              >
+                <VisitMapMascotRenderer
+                  mascotState={mode === 'view' ? VISIT_MASCOT_STATE.MAP_READ : VISIT_MASCOT_STATE.IDLE}
+                  mascotId={mapMascotId}
+                />
+              </div>
+            </div>
+          ) : null}
 
           {markers.map((m) => {
             const markerTaskVisual = markerTaskVisualById.get(m.id);

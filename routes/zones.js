@@ -10,6 +10,7 @@ const { sendFilePublicImageOptions } = require('../lib/httpImageCache');
 const { logRouteError, respondInternalError } = require('../lib/routeLog');
 const { emitGardenChanged } = require('../lib/realtime');
 const { parseVisitEditorialBlocksInput, serializeVisitEditorialBlocks } = require('../lib/visitEditorialBlocks');
+const { resolveDefaultMapId } = require('../lib/settings');
 
 const router = express.Router();
 
@@ -340,7 +341,7 @@ router.post('/', requirePermission('zones.manage', { needsElevation: true }), as
     const { name, points, color, current_plant, living_beings, stage, map_id, description } = req.body;
     if (!name?.trim()) return res.status(400).json({ error: 'Nom requis' });
     if (!points || points.length < 3) return res.status(400).json({ error: 'Au moins 3 points requis' });
-    const mapId = String(map_id || 'foret').trim();
+    const mapId = String(map_id || '').trim() || await resolveDefaultMapId('teacher');
     if (!mapId) return res.status(400).json({ error: 'map_id requis' });
     if (!(await mapExists(mapId))) return res.status(400).json({ error: 'Carte introuvable' });
     const nextLiving = normalizeLivingBeings(living_beings, current_plant);
