@@ -6,6 +6,7 @@ const { logRouteError, respondInternalError } = require('../lib/routeLog');
 const { emitForumChanged } = require('../lib/realtime');
 const { getSettingValue } = require('../lib/settings');
 const { logAudit } = require('./audit');
+const { getUserAccessibleGroupIds, canBypassGroupScope, normalizeId } = require('../lib/groupScope');
 const {
   persistUserContentImages,
   deleteUserContentImagesFromJson,
@@ -139,7 +140,7 @@ function checkCooldown(actor, action, cooldownMs) {
 
 async function loadThreadThreadSafe(threadId) {
   return queryOne(
-    `SELECT t.id, t.title, t.author_user_type, t.author_user_id, t.is_locked, t.is_pinned, t.created_at, t.updated_at, t.last_post_at,
+    `SELECT t.id, t.group_id, t.title, t.author_user_type, t.author_user_id, t.is_locked, t.is_pinned, t.created_at, t.updated_at, t.last_post_at,
             COALESCE(
               NULLIF(u.display_name, ''),
               NULLIF(CONCAT(COALESCE(u.first_name, ''), ' ', COALESCE(u.last_name, '')), ''),
@@ -153,6 +154,11 @@ async function loadThreadThreadSafe(threadId) {
       LIMIT 1`,
     [threadId]
   );
+}
+
+async function resolveForumVisibleGroupIds(auth) {
+  if (canBypassGroupScope(auth)) return null;
+  return getUserAccessibleGroupIds(auth, { includeDescendants: true });
 }
 
 async function loadForumPostReactions(postIds = [], actor = null) {
@@ -199,13 +205,31 @@ router.use((req, res, next) => {
 
 router.get('/threads', async (req, res) => {
   try {
+    const requestedGroupId = normalizeId(req.query?.group_id);
+    const visibleGroupIds = await resolveForumVisibleGroupIds(req.auth);
+    if (requestedGroupId && Array.isArray(visibleGroupIds) && !visibleGroupIds.includes(requestedGroupId)) {
+      return res.status(403).json({ error: 'Groupe hors périmètre' });
+    }
     const { page, pageSize, offset } = parsePage(req);
     const sqlLimit = Math.max(1, Number(pageSize) || DEFAULT_PAGE_SIZE);
     const sqlOffset = Math.max(0, Number(offset) || 0);
-    const totalRow = await queryOne('SELECT COUNT(*) AS c FROM forum_threads');
+    if (Array.isArray(visibleGroupIds) && !visibleGroupIds.length && !requestedGroupId) {
+      return res.json({ items: [], page, page_size: pageSize, total: 0 });
+    }
+    const whereParts = [];
+    const whereParams = [];
+    if (requestedGroupId) {
+      whereParts.push('t.group_id = ?');
+      whereParams.push(requestedGroupId);
+    } else if (Array.isArray(visibleGroupIds)) {
+      whereParts.push(`t.group_id IN (${visibleGroupIds.map(() => '?').join(',')})`);
+      whereParams.push(...visibleGroupIds);
+    }
+    const whereSql = whereParts.length ? `WHERE ${whereParts.join(' AND ')}` : '';
+    const totalRow = await queryOne(`SELECT COUNT(*) AS c FROM forum_threads t ${whereSql}`, whereParams);
     const total = Number(totalRow?.c || 0);
     const rows = await queryAll(
-      `SELECT t.id, t.title, t.author_user_type, t.author_user_id, t.is_locked, t.is_pinned, t.created_at, t.updated_at, t.last_post_at,
+      `SELECT t.id, t.group_id, t.title, t.author_user_type, t.author_user_id, t.is_locked, t.is_pinned, t.created_at, t.updated_at, t.last_post_at,
               COALESCE(
                 NULLIF(u.display_name, ''),
                 NULLIF(CONCAT(COALESCE(u.first_name, ''), ' ', COALESCE(u.last_name, '')), ''),
@@ -220,9 +244,10 @@ router.get('/threads', async (req, res) => {
               ) AS posts_count
          FROM forum_threads t
     LEFT JOIN users u ON u.id = t.author_user_id AND u.user_type = t.author_user_type
+        ${whereSql}
         ORDER BY t.is_pinned DESC, t.last_post_at DESC, t.created_at DESC
         LIMIT ${sqlLimit} OFFSET ${sqlOffset}`,
-      []
+      whereParams
     );
     res.json({ items: rows, page, page_size: pageSize, total });
   } catch (e) {
@@ -235,6 +260,18 @@ router.post('/threads', async (req, res) => {
     if (!(await requireForumParticipation(req, res))) return;
     const actor = getActor(req.auth);
     if (!actor) return res.status(401).json({ error: 'Session invalide' });
+    const visibleGroupIds = await resolveForumVisibleGroupIds(req.auth);
+    let groupId = normalizeId(req.body?.group_id);
+    if (!groupId) {
+      if (Array.isArray(visibleGroupIds)) {
+        if (!visibleGroupIds.length) {
+          return res.status(400).json({ error: 'Aucun groupe accessible pour créer un sujet' });
+        }
+        groupId = visibleGroupIds[0];
+      }
+    } else if (Array.isArray(visibleGroupIds) && !visibleGroupIds.includes(groupId)) {
+      return res.status(403).json({ error: 'Groupe hors périmètre' });
+    }
     const title = normalizeOptionalString(req.body?.title);
     const imagesCheck = validateImagesPayload(req.body?.images);
     if (imagesCheck.error) return res.status(400).json({ error: imagesCheck.error });
@@ -268,9 +305,9 @@ router.post('/threads', async (req, res) => {
     }
     await execute(
       `INSERT INTO forum_threads
-        (id, title, author_user_type, author_user_id, is_locked, is_pinned, last_post_at)
-       VALUES (?, ?, ?, ?, 0, 0, NOW())`,
-      [threadId, title, actor.userType, actor.userId]
+        (id, group_id, title, author_user_type, author_user_id, is_locked, is_pinned, last_post_at)
+       VALUES (?, ?, ?, ?, ?, 0, 0, NOW())`,
+      [threadId, groupId, title, actor.userType, actor.userId]
     );
     await execute(
       `INSERT INTO forum_posts
@@ -301,6 +338,10 @@ router.get('/threads/:id', async (req, res) => {
     const sqlOffset = Math.max(0, Number(offset) || 0);
     const thread = await loadThreadThreadSafe(req.params.id);
     if (!thread) return res.status(404).json({ error: 'Sujet introuvable' });
+    const visibleGroupIds = await resolveForumVisibleGroupIds(req.auth);
+    if (Array.isArray(visibleGroupIds) && !visibleGroupIds.includes(String(thread.group_id || ''))) {
+      return res.status(403).json({ error: 'Groupe hors périmètre' });
+    }
 
     const countRow = await queryOne('SELECT COUNT(*) AS c FROM forum_posts WHERE thread_id = ?', [thread.id]);
     const posts = await queryAll(

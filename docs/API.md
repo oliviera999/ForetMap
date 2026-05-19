@@ -504,6 +504,27 @@ Réponse:
 
 ---
 
+## Groupes / sous-groupes
+
+Toutes les routes ci-dessous exigent un utilisateur connecté (`Authorization: Bearer <token>`).
+
+| Méthode | URL | n3boss | Description |
+|--------|-----|--------|-------------|
+| GET | `/api/groups/options` | non | Liste compacte des groupes accessibles (id, nom, parent) pour les filtres UI |
+| GET | `/api/groups` | oui (`groups.read` ou `groups.manage`) | Liste détaillée + arborescence + membres + scopes |
+| POST | `/api/groups` | oui (`groups.manage`) | Créer un groupe |
+| PATCH | `/api/groups/:id` | oui (`groups.manage`) | Mettre à jour nom/slug/type/parent/activation |
+| DELETE | `/api/groups/:id` | oui (`groups.manage`) | Supprimer un groupe (les enfants sont détachés) |
+| GET | `/api/groups/:id/members` | oui (`groups.read` ou périmètre groupe) | Lire les membres d’un groupe |
+| PUT | `/api/groups/:id/members` | oui (`groups.manage`) | Remplacer membres (`member_user_ids`), responsables (`manager_user_ids`) et scopes (`scope_map_ids`, `scope_project_ids`) |
+
+Contrat principal :
+- `group_members.role_in_group` : `member` ou `manager`.
+- `group_scopes` porte le périmètre map/projet par défaut du groupe (optionnel ; vide = non borné).
+- Les filtres transverses utilisent `group_id` (et `subgroup_id` côté stats) pour les lectures ciblées.
+
+---
+
 ## Tâches
 
 | Méthode | URL | n3boss | Description |
@@ -517,6 +538,7 @@ Réponse:
 | PUT | `/api/tasks/:id` | oui\* | Modifier tâche |
 | DELETE | `/api/tasks/:id` | oui | Supprimer tâche |
 | POST | `/api/tasks/:id/assign` | non | S’assigner (n3beur) |
+| POST | `/api/tasks/:id/assign-group` | oui (`tasks.assign.group` + élévation) | Affecter en masse les n3beurs d’un groupe à une tâche |
 | POST | `/api/tasks/:id/unassign` | non | Se désassigner |
 | POST | `/api/tasks/:id/done` | non | Marquer comme fait (commentaire/image) |
 | GET | `/api/tasks/:id/logs` | non | Logs de la tâche |
@@ -550,6 +572,7 @@ Contraintes principales :
 - Si `start_date` est dans le futur, `POST /api/tasks/:id/assign` renvoie aussi `400` (inscription n3beur bloquée jusqu’à la date de départ).
 - Si le **plafond effectif** (profil `roles.max_concurrent_tasks` si défini, sinon réglage `tasks.student_max_active_assignments`) est strictement positif et que l’action est une **auto-inscription n3beur**, le serveur compte les assignations actives (tâches non `validated`, en excluant pour `all_assignees_done` les lignes où le n3beur a déjà `done_at`) : au-delà de la limite, réponse **`400`** avec `code: "TASK_ENROLLMENT_LIMIT"`, `maxActiveAssignments`, `currentActiveAssignments` et un message d’erreur explicite.
 - `POST /api/tasks` et `PUT /api/tasks/:id` acceptent `completion_mode` pour les profils autorisés, et `danger_level` / `difficulty_level` / `importance_level` (prof + proposition n3beur sur les champs autorisés).
+- `POST /api/tasks` et `PUT /api/tasks/:id` acceptent aussi `group_id` (optionnel) pour lier la tâche à un groupe pédagogique.
 - **Référents** : `referent_user_ids` (tableau d’UUID utilisateurs, max **15**) — uniquement comptes **actifs** `teacher` ou `student`. Les réponses incluent `referent_user_ids` et `referents_linked` (`id`, `user_type`, `label` affichable, `role_slug` du profil RBAC primaire si présent). Pas d’adresse e-mail dans ces objets. Les clones **récurrents** héritent des mêmes référents que la tâche source.
 - **Biodiversité** : `living_beings` (tableau de **noms** d’espèces, comme sur les zones et repères) — optionnel sur `POST /api/tasks`, `PUT /api/tasks/:id` et `POST /api/tasks/proposals`. Les réponses exposent `living_beings_list` (tableau de chaînes) ; la colonne brute `living_beings` (JSON en base) n’est pas renvoyée. Tableau vide ou omission côté écriture : enregistrement **`null`**. Les clones **récurrents** reprennent la même liste que la tâche source.
 - Les payloads tâche exposent `completion_mode`, `danger_level`, `difficulty_level`, `importance_level`, `assignees_total_count` et `assignees_done_count`.
@@ -624,8 +647,8 @@ Si le réglage public `ui.modules.forum_enabled` est à `false`, toutes les rout
 
 | Méthode | URL | Description |
 |--------|-----|-------------|
-| GET | `/api/forum/threads?page=1&page_size=20` | Liste paginée des sujets (tri : épinglés puis activité récente) |
-| POST | `/api/forum/threads` | Créer un sujet + premier message (`{ title, body?, images? }`) |
+| GET | `/api/forum/threads?page=1&page_size=20&group_id=:id` | Liste paginée des sujets (tri : épinglés puis activité récente), filtrable par groupe |
+| POST | `/api/forum/threads` | Créer un sujet + premier message (`{ title, body?, images?, group_id? }`) |
 | GET | `/api/forum/threads/:id?page=1&page_size=50` | Détail d’un sujet + messages paginés |
 | POST | `/api/forum/threads/:id/posts` | Ajouter une réponse (`{ body?, images? }`) |
 | POST | `/api/forum/posts/:id/reactions` | Toggle d’une réaction emoji (`{ emoji }`) |
@@ -641,6 +664,7 @@ Contraintes principales :
 - Réactions emoji supportées : issues du réglage public `ui.reactions.allowed_emojis` (fallback défaut `👍 ❤️ 😂 😮 😢 😡 🔥 👏`).
 - `POST /api/forum/posts/:id/reactions` fonctionne en **toggle** (ajoute puis retire sur second clic).
 - `GET /api/forum/threads/:id` inclut `posts[].reactions` (agrégat par emoji + `reacted_by_me`).
+- Le thread transporte `group_id` (nullable) pour la visibilité scoped. Les comptes non globaux ne voient que leurs groupes accessibles.
 - `409` sur réponse dans un sujet verrouillé.
 - `409` sur signalement dupliqué (même utilisateur, même message, signalement déjà ouvert).
 
@@ -691,8 +715,8 @@ Contraintes principales :
 | Méthode | URL | n3boss | Description |
 |--------|-----|------|-------------|
 | GET | `/api/stats/me/:studentId` | non | Stats de l’utilisateur ciblé (propriétaire ou permission `stats.read.all`) ; pour n3boss/admin sans activités n3beur, compteurs tâches à `0` |
-| GET | `/api/stats/all` | oui | Agrégat : `{ students: [...], site: { ... } }` — chaque entrée de `students` inclut `pseudo`, `description`, `avatar_path`, `progression.roleEmoji` (pas `email`). `site` = totaux biodiversité + tutoriels sur tout le site. |
-| GET | `/api/stats/export` | oui (PIN) | Export CSV des n3beurs ; colonnes tâches + **Espèces observées (fiches)**, **Observations fiches plantes**, **Tutoriels lus** |
+| GET | `/api/stats/all?group_id=:id&subgroup_id=:id` | oui (`stats.read.all` ou `stats.read.group`) | Agrégat : `{ students: [...], site: { ... } }` filtrable par groupe/sous-groupe |
+| GET | `/api/stats/export?group_id=:id&subgroup_id=:id` | oui (`stats.export`) | Export CSV des n3beurs, filtrable par groupe/sous-groupe |
 
 `GET /api/stats/me/:studentId` renvoie aussi `progression` pour les n3beurs :
 - `progression.thresholds` : seuils actifs par profil (clés dynamiques selon les profils `eleve_*`)

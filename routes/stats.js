@@ -1,8 +1,9 @@
 const express = require('express');
 const { queryAll, queryOne } = require('../database');
-const { requireAuth, requirePermission } = require('../middleware/requireTeacher');
+const { requireAuth } = require('../middleware/requireTeacher');
 const { logRouteError, respondInternalError } = require('../lib/routeLog');
 const { getStudentProgressionConfig, syncStudentPrimaryRoleFromProgress } = require('../lib/rbac');
+const { getScopedStudentIds, canAccessStudentId } = require('../lib/groupScope');
 
 const router = express.Router();
 
@@ -171,10 +172,15 @@ router.get('/me/:studentId', requireAuth, async (req, res) => {
     const auth = req.auth || null;
     const perms = Array.isArray(auth?.permissions) ? auth.permissions : [];
     const canReadAll = perms.includes('stats.read.all');
+    const canReadGroup = perms.includes('stats.read.group');
     // Autorise l'accès aux propres stats sur l'ID du compte, y compris profils legacy.
     const isOwner = String(auth?.userId || '') === askedStudentId;
-    if (!canReadAll && !isOwner) {
+    if (!canReadAll && !isOwner && !canReadGroup) {
       return res.status(403).json({ error: 'Accès refusé à ces statistiques' });
+    }
+    if (!canReadAll && !isOwner && canReadGroup) {
+      const allowed = await canAccessStudentId(auth, askedStudentId);
+      if (!allowed) return res.status(403).json({ error: 'Accès refusé à ces statistiques' });
     }
     const recordPromotionNotice = isOwner && String(auth?.userType || '').toLowerCase() === 'student';
     const data = await userStats(askedStudentId, { recordPromotionNotice });
@@ -185,10 +191,35 @@ router.get('/me/:studentId', requireAuth, async (req, res) => {
   }
 });
 
-router.get('/all', requirePermission('stats.read.all'), async (req, res) => {
+router.get('/all', requireAuth, async (req, res) => {
   try {
+    const perms = Array.isArray(req.auth?.permissions) ? req.auth.permissions : [];
+    const canReadAll = perms.includes('stats.read.all');
+    const canReadGroup = perms.includes('stats.read.group');
+    if (!canReadAll && !canReadGroup) {
+      return res.status(403).json({ error: 'Permission insuffisante' });
+    }
+    const requestedGroupId = String(req.query?.group_id || '').trim();
+    const requestedSubgroupId = String(req.query?.subgroup_id || '').trim();
+    const scope = await getScopedStudentIds(req.auth, {
+      groupId: requestedSubgroupId || requestedGroupId || null,
+      mapId: req.query?.map_id || null,
+      projectId: req.query?.project_id || null,
+    });
+    if (scope.unauthorizedGroup) {
+      return res.status(403).json({ error: 'Groupe hors périmètre' });
+    }
     const [students, progressionConfig, { plantMap, tutMap }, site] = await Promise.all([
-      queryAll("SELECT * FROM users WHERE user_type = 'student'"),
+      scope.all
+        ? queryAll("SELECT * FROM users WHERE user_type = 'student'")
+        : (scope.studentIds.length > 0
+          ? queryAll(
+            `SELECT * FROM users
+              WHERE user_type = 'student'
+                AND id IN (${scope.studentIds.map(() => '?').join(',')})`,
+            scope.studentIds
+          )
+          : Promise.resolve([])),
       getStudentProgressionConfig(),
       fetchEngagementByUserId(),
       fetchSiteEngagementTotals(),
@@ -237,10 +268,32 @@ router.get('/all', requirePermission('stats.read.all'), async (req, res) => {
 });
 
 // Export CSV des stats n3beurs (n3boss uniquement)
-router.get('/export', requirePermission('stats.export', { needsElevation: true }), async (req, res) => {
+router.get('/export', requireAuth, async (req, res) => {
   try {
+    const perms = Array.isArray(req.auth?.permissions) ? req.auth.permissions : [];
+    const canExport = perms.includes('stats.export');
+    if (!canExport) return res.status(403).json({ error: 'Permission insuffisante' });
+    const requestedGroupId = String(req.query?.group_id || '').trim();
+    const requestedSubgroupId = String(req.query?.subgroup_id || '').trim();
+    const scope = await getScopedStudentIds(req.auth, {
+      groupId: requestedSubgroupId || requestedGroupId || null,
+      mapId: req.query?.map_id || null,
+      projectId: req.query?.project_id || null,
+    });
+    if (scope.unauthorizedGroup) {
+      return res.status(403).json({ error: 'Groupe hors périmètre' });
+    }
     const [students, { plantMap, tutMap }] = await Promise.all([
-      queryAll("SELECT * FROM users WHERE user_type = 'student'"),
+      scope.all
+        ? queryAll("SELECT * FROM users WHERE user_type = 'student'")
+        : (scope.studentIds.length > 0
+          ? queryAll(
+            `SELECT * FROM users
+              WHERE user_type = 'student'
+                AND id IN (${scope.studentIds.map(() => '?').join(',')})`,
+            scope.studentIds
+          )
+          : Promise.resolve([])),
       fetchEngagementByUserId(),
     ]);
     const result = await mapWithConcurrency(students, STATS_STUDENT_AGG_CONCURRENCY, async (s) => {

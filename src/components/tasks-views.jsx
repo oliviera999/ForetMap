@@ -1543,6 +1543,7 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
   const [hasTouchedStatusFilter, setHasTouchedStatusFilter] = useState(false);
   const [filterMap, setFilterMap] = useState('active');
   const [filterProject, setFilterProject] = useState('');
+  const [filterGroupId, setFilterGroupId] = useState('');
   /** '' = toutes, 'urgent' = importance absolute uniquement, 'non_urgent' = exclure les urgent */
   const [filterUrgentCategory, setFilterUrgentCategory] = useState('');
   const [viewMode, setViewMode] = useState(() => {
@@ -1556,6 +1557,7 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
   const [importing, setImporting] = useState(false);
   const [importReport, setImportReport] = useState(null);
   const [teacherStudents, setTeacherStudents] = useState([]);
+  const [groupOptions, setGroupOptions] = useState([]);
   const [referentCandidates, setReferentCandidates] = useState([]);
   const [quickAssignTaskId, setQuickAssignTaskId] = useState(null);
   const [quickAssignStudentIds, setQuickAssignStudentIds] = useState([]);
@@ -1614,11 +1616,18 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
   }, [viewMode]);
   useEffect(() => {
     if (!isTeacher) return;
+    api('/api/groups/options')
+      .then((payload) => setGroupOptions(Array.isArray(payload?.groups) ? payload.groups : []))
+      .catch(() => setGroupOptions([]));
+  }, [isTeacher]);
+
+  useEffect(() => {
+    if (!isTeacher) return;
     let cancelled = false;
     const loadTeacherStudents = async () => {
       setLoadingTeacherStudents(true);
       try {
-        const payload = await api('/api/stats/all');
+        const payload = await api(`/api/stats/all${filterGroupId ? `?group_id=${encodeURIComponent(filterGroupId)}` : ''}`);
         if (cancelled) return;
         const rows = Array.isArray(payload) ? payload : (payload?.students ?? []);
         const list = Array.isArray(rows)
@@ -1640,7 +1649,7 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
     return () => {
       cancelled = true;
     };
-  }, [isTeacher]);
+  }, [isTeacher, filterGroupId]);
 
   useEffect(() => {
     if (!isTeacher) return;
@@ -1915,7 +1924,10 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
       await onRefresh();
       return;
     }
-    const created = await api('/api/tasks', 'POST', taskPayload);
+    const created = await api('/api/tasks', 'POST', {
+      ...taskPayload,
+      ...(isTeacher && filterGroupId && !taskPayload.group_id ? { group_id: filterGroupId } : {}),
+    });
     if (assignStudentIds.length > 0 && created?.id) {
       let ok = 0;
       for (const sid of assignStudentIds) {
@@ -2054,6 +2066,7 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
       if (!matches) return false;
     }
     if (filterProject && t.project_id !== filterProject) return false;
+    if (filterGroupId && String(t.group_id || '') !== String(filterGroupId)) return false;
     if (filterUrgentCategory === 'urgent' && !isTaskUrgentCategory(t)) return false;
     if (filterUrgentCategory === 'non_urgent' && isTaskUrgentCategory(t)) return false;
     return true;
@@ -2679,6 +2692,14 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
               </option>
             ))}
         </select>
+        {isTeacher && (
+          <select value={filterGroupId} onChange={(e) => setFilterGroupId(e.target.value)}>
+            <option value="">Tous les groupes</option>
+            {groupOptions.map((g) => (
+              <option key={g.id} value={g.id}>{g.name}</option>
+            ))}
+          </select>
+        )}
         <select
           value={filterUrgentCategory}
           onChange={(e) => setFilterUrgentCategory(e.target.value)}

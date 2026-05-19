@@ -8,6 +8,7 @@ import { Tooltip } from './Tooltip';
 import { DialogShell } from './DialogShell';
 import { MarkdownTextarea } from './MarkdownTextarea.jsx';
 import { buildAffiliationSelectOptions } from '../utils/affiliationSelectOptions';
+import { GroupsAdminView } from './groups-views.jsx';
 
 const EDIT_EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -119,11 +120,6 @@ function buildUserEditInitialFields(u) {
 function ProfilesAdminView({ isN3Affiliated = false, onImpersonationApplied, publicSettings, maps = [] }) {
   const roleTerms = getRoleTerms(isN3Affiliated);
   const affiliationOptions = useMemo(() => buildAffiliationSelectOptions(maps), [maps]);
-  const affiliationOptionsForEdit = useMemo(() => {
-    const base = affiliationOptions;
-    if (!editAffiliation || base.some((o) => o.value === editAffiliation)) return base;
-    return [...base, { value: editAffiliation, label: `${editAffiliation} (valeur en base)` }];
-  }, [affiliationOptions, editAffiliation]);
   const { isHelpEnabled, hasSeenSection, markSectionSeen, trackPanelOpen, trackPanelDismiss } = useHelp({
     publicSettings,
     isTeacher: true,
@@ -174,6 +170,11 @@ function ProfilesAdminView({ isN3Affiliated = false, onImpersonationApplied, pub
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [editUserLoadState, setEditUserLoadState] = useState('idle');
   const [impersonateLoading, setImpersonateLoading] = useState(false);
+  const affiliationOptionsForEdit = useMemo(() => {
+    const base = affiliationOptions;
+    if (!editAffiliation || base.some((o) => o.value === editAffiliation)) return base;
+    return [...base, { value: editAffiliation, label: `${editAffiliation} (valeur en base)` }];
+  }, [affiliationOptions, editAffiliation]);
 
   const load = async () => {
     setErr('');
@@ -1477,6 +1478,8 @@ function ProfilesAdminView({ isN3Affiliated = false, onImpersonationApplied, pub
           </div>
         </>
       )}
+
+      {canManageProfiles && <GroupsAdminView />}
 
       {canManageStudents && (
         <>
