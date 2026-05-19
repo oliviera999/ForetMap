@@ -148,9 +148,13 @@ describe('Auth', () => {
   });
 
   it('PATCH /api/auth/me/profile met à jour la mascotte préférée du compte connecté', async () => {
+    const login = await request(app)
+      .post('/api/auth/login')
+      .send({ identifier: email, password })
+      .expect(200);
     const res = await request(app)
       .patch('/api/auth/me/profile')
-      .set('Authorization', `Bearer ${authToken}`)
+      .set('Authorization', `Bearer ${login.body.authToken}`)
       .send({
         visit_mascot_catalog_id: 'sprout-rive',
         currentPassword: password,
@@ -160,7 +164,7 @@ describe('Auth', () => {
 
     const row = await queryOne(
       "SELECT visit_mascot_catalog_id FROM users WHERE id = ? AND user_type = 'student' LIMIT 1",
-      [studentId],
+      [login.body.id],
     );
     assert.strictEqual(row?.visit_mascot_catalog_id, 'sprout-rive');
   });
