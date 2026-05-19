@@ -355,6 +355,126 @@ test('projet : la synchro conserve un statut on_hold posé manuellement', async 
   assert.strictEqual(row.status, 'on_hold');
 });
 
+test('projet : validation manuelle via POST /api/task-projects/:id/validate', async () => {
+  const projectRes = await request(app)
+    .post('/api/task-projects')
+    .set('Authorization', 'Bearer ' + teacherToken)
+    .send({ map_id: 'foret', title: `Projet validation manuelle ${Date.now()}` })
+    .expect(201);
+  const projectId = projectRes.body.id;
+
+  const validateRes = await request(app)
+    .post(`/api/task-projects/${projectId}/validate`)
+    .set('Authorization', 'Bearer ' + teacherToken)
+    .expect(200);
+  assert.strictEqual(validateRes.body.status, 'validated');
+
+  const row = await queryOne('SELECT status FROM task_projects WHERE id = ?', [projectId]);
+  assert.strictEqual(row.status, 'validated');
+});
+
+test('projet : la synchro auto ne remplace pas un statut validated', async () => {
+  const projectRes = await request(app)
+    .post('/api/task-projects')
+    .set('Authorization', 'Bearer ' + teacherToken)
+    .send({ map_id: 'foret', title: `Projet synchro validated ${Date.now()}` })
+    .expect(201);
+  const projectId = projectRes.body.id;
+
+  await request(app)
+    .post(`/api/task-projects/${projectId}/validate`)
+    .set('Authorization', 'Bearer ' + teacherToken)
+    .expect(200);
+
+  const taskRes = await request(app)
+    .post('/api/tasks')
+    .set('Authorization', 'Bearer ' + teacherToken)
+    .send({
+      title: `Tache synchro validated ${Date.now()}`,
+      map_id: 'foret',
+      project_id: projectId,
+      required_students: 1,
+    })
+    .expect(201);
+
+  await request(app)
+    .put(`/api/tasks/${taskRes.body.id}`)
+    .set('Authorization', 'Bearer ' + teacherToken)
+    .send({ status: 'done' })
+    .expect(200);
+
+  const row = await queryOne('SELECT status FROM task_projects WHERE id = ?', [projectId]);
+  assert.strictEqual(row.status, 'validated');
+});
+
+test('projet : duplication structurelle sans assignations', async () => {
+  const projectRes = await request(app)
+    .post('/api/task-projects')
+    .set('Authorization', 'Bearer ' + teacherToken)
+    .send({
+      map_id: 'foret',
+      title: `Projet source duplication ${Date.now()}`,
+      description: 'Description projet source',
+    })
+    .expect(201);
+  const sourceProjectId = projectRes.body.id;
+
+  const taskRes = await request(app)
+    .post('/api/tasks')
+    .set('Authorization', 'Bearer ' + teacherToken)
+    .send({
+      title: `Tache source duplication ${Date.now()}`,
+      description: 'Description tache source',
+      map_id: 'foret',
+      project_id: sourceProjectId,
+      required_students: 2,
+      completion_mode: 'all_assignees_done',
+      status: 'done',
+    })
+    .expect(201);
+  const sourceTaskId = taskRes.body.id;
+
+  await execute(
+    'INSERT INTO task_assignments (task_id, student_id, student_first_name, student_last_name, assigned_at) VALUES (?, ?, ?, ?, ?)',
+    [sourceTaskId, studentData.id, 'Test', 'Eleve', new Date().toISOString()]
+  );
+  await execute(
+    'INSERT INTO task_logs (task_id, student_id, student_first_name, student_last_name, comment, created_at) VALUES (?, ?, ?, ?, ?, ?)',
+    [sourceTaskId, studentData.id, 'Test', 'Eleve', 'Log test', new Date().toISOString()]
+  );
+
+  const dupRes = await request(app)
+    .post(`/api/task-projects/${sourceProjectId}/duplicate`)
+    .set('Authorization', 'Bearer ' + teacherToken)
+    .send({})
+    .expect(201);
+
+  assert.notStrictEqual(dupRes.body.project.id, sourceProjectId);
+  assert.ok(String(dupRes.body.project.title).includes('(copie)'));
+  assert.strictEqual(Number(dupRes.body.tasks_copied), 1);
+
+  const cloneTask = await queryOne(
+    'SELECT id, status, description, required_students, completion_mode FROM tasks WHERE project_id = ? LIMIT 1',
+    [dupRes.body.project.id]
+  );
+  assert.ok(cloneTask);
+  assert.strictEqual(cloneTask.status, 'available');
+  assert.strictEqual(cloneTask.description, 'Description tache source');
+  assert.strictEqual(Number(cloneTask.required_students), 2);
+  assert.strictEqual(cloneTask.completion_mode, 'all_assignees_done');
+
+  const assignCount = await queryOne(
+    'SELECT COUNT(*) AS n FROM task_assignments WHERE task_id = ?',
+    [cloneTask.id]
+  );
+  const logCount = await queryOne(
+    'SELECT COUNT(*) AS n FROM task_logs WHERE task_id = ?',
+    [cloneTask.id]
+  );
+  assert.strictEqual(Number(assignCount.n), 0);
+  assert.strictEqual(Number(logCount.n), 0);
+});
+
 test('POST/PUT /api/tasks persiste completion_mode', async () => {
   const created = await request(app)
     .post('/api/tasks')
@@ -662,6 +782,9 @@ test('GET /api/visit/content expose les contenus visite et les tutos choisis', a
       short_description: 'Description zone visite',
       details_title: 'Détails zone',
       details_text: 'Contenu dépliable zone',
+      visit_editorial_blocks: [
+        { type: 'paragraph', markdown: 'Bloc introduction zone' },
+      ],
       sort_order: 1,
       is_active: true,
     })
@@ -686,6 +809,10 @@ test('GET /api/visit/content expose les contenus visite et les tutos choisis', a
       subtitle: 'Sous-titre repère visite',
       short_description: 'Description repère visite',
       details_text: 'Contenu repère',
+      visit_editorial_blocks: [
+        { type: 'heading', text: 'Repère en vue', level: 3 },
+        { type: 'paragraph', markdown: 'Bloc repère libre' },
+      ],
       sort_order: 2,
       is_active: true,
     })
@@ -708,6 +835,12 @@ test('GET /api/visit/content expose les contenus visite et les tutos choisis', a
   assert.ok(visitRes.body.zones.some((z) => z.id === zoneId));
   assert.ok(visitRes.body.markers.some((m) => m.id === markerRes.body.id));
   assert.ok(visitRes.body.tutorials.some((t) => t.id === firstTutorial));
+  const zonePayload = visitRes.body.zones.find((z) => z.id === zoneId);
+  const markerPayload = visitRes.body.markers.find((m) => m.id === markerRes.body.id);
+  assert.ok(Array.isArray(zonePayload?.visit_editorial_blocks));
+  assert.ok(Array.isArray(markerPayload?.visit_editorial_blocks));
+  assert.equal(zonePayload.visit_editorial_blocks[0]?.type, 'paragraph');
+  assert.equal(markerPayload.visit_editorial_blocks[0]?.type, 'heading');
 });
 
 /** JPEG 1×1 px minimal (valide) pour upload base64. */

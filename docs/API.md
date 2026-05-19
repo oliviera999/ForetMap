@@ -286,7 +286,7 @@ Contenus éditables du site (micro-CMS texte brut) :
 - Le champ `name` peut commencer par un **emoji de zone** : préfixe (séquence emoji) suivi d’un **espace** puis le libellé ; l’UI carte permet de choisir l’emoji dans une grille ou de coller un pictogramme.
 - **`POST /api/zones`** : corps JSON `name`, `points` (≥ 3 sommets `{ xp, yp }` en pourcentage de l’image), `map_id` ; optionnellement `color`, **`living_beings`** (tableau de noms du catalogue, ordre conservé), `current_plant` (colonne legacy, ignorée en persistance si `living_beings` est non vide — alors `current_plant` est stocké vide), `stage`, **`description`** (texte, chaîne vide si absent).
 - **`GET /api/zones`** et **`GET /api/zones/:id`** : chaque zone expose **`living_beings_list`** (tableau dérivé de `living_beings` JSON, ordre conservé). La colonne brute `living_beings` n’est pas renvoyée. **`current_plant`** reste en réponse pour compatibilité mais est vide dès qu’au moins un être vivant est listé dans `living_beings_list`.
-- **`PUT /api/zones/:id`** : si le corps contient au moins une des clés **`visit_subtitle`**, **`visit_short_description`**, **`visit_details_title`**, **`visit_details_text`**, une ligne **`visit_zones`** est créée ou mise à jour pour ce même `id` (textes visite alignés sur le mode visite), sans modifier `is_active` / `sort_order` d’une ligne déjà présente.
+- **`PUT /api/zones/:id`** : si le corps contient au moins une des clés **`visit_subtitle`**, **`visit_short_description`**, **`visit_details_title`**, **`visit_details_text`**, **`visit_body_json`** (ou alias **`visit_editorial_blocks`**), une ligne **`visit_zones`** est créée ou mise à jour pour ce même `id` (textes visite alignés sur le mode visite), sans modifier `is_active` / `sort_order` d’une ligne déjà présente.
 - **Historique cultures** (`zone_history`) : si le corps contient **`living_beings`**, une ligne est ajoutée lorsque l’ancienne valeur de **`current_plant`** en base était non vide et **n’apparaît plus** dans la nouvelle liste (être vivant retiré). Si seul **`current_plant`** est modifié dans le corps (sans `living_beings`), le comportement historique reste aligné sur le changement explicite de ce champ.
 
 ---
@@ -306,8 +306,8 @@ Contenus éditables du site (micro-CMS texte brut) :
 | DELETE | `/api/map/markers/:id/photos/:pid` | oui | Supprimer photo |
 
 - Corps JSON : notamment `emoji` (pictogramme du repère). Valeur **tronquée à 16 caractères** côté serveur si besoin (colonne `map_markers.emoji`). **`living_beings`** : tableau de noms (ordre conservé) ; **`plant_name`** est une colonne legacy laissée **vide** dès que la liste est non vide (comme **`current_plant`** pour les zones).
-- **`GET /api/map/markers`** : chaque repère inclut **`living_beings_list`** (même principe que les zones ; **`plant_name`** vide si la liste est non vide) et, si une ligne existe dans `visit_markers` avec le même `id`, **`visit_subtitle`**, **`visit_short_description`**, **`visit_details_title`**, **`visit_details_text`** (sinon `null` pour ces champs visite).
-- **`POST`** / **`PUT /api/map/markers/:id`** : si le corps contient au moins une des clés **`visit_subtitle`**, **`visit_short_description`**, **`visit_details_title`**, **`visit_details_text`**, une ligne **`visit_markers`** est créée ou mise à jour pour ce même `id`, sans modifier `is_active` / `sort_order` d’une ligne déjà présente.
+- **`GET /api/map/markers`** : chaque repère inclut **`living_beings_list`** (même principe que les zones ; **`plant_name`** vide si la liste est non vide) et, si une ligne existe dans `visit_markers` avec le même `id`, **`visit_subtitle`**, **`visit_short_description`**, **`visit_details_title`**, **`visit_details_text`**, **`visit_body_json`** (sinon `null` pour ces champs visite).
+- **`POST`** / **`PUT /api/map/markers/:id`** : si le corps contient au moins une des clés **`visit_subtitle`**, **`visit_short_description`**, **`visit_details_title`**, **`visit_details_text`**, **`visit_body_json`** (ou alias **`visit_editorial_blocks`**), une ligne **`visit_markers`** est créée ou mise à jour pour ce même `id`, sans modifier `is_active` / `sort_order` d’une ligne déjà présente.
 
 ---
 
@@ -355,6 +355,9 @@ Contenus éditables du site (micro-CMS texte brut) :
 Contraintes importantes :
 
 - **`GET /api/visit/content`** : chaque zone renvoyée inclut **`description`** (texte de la table **`zones`**, jointure sur le même `id`) ; chaque repère inclut **`note`** (table **`map_markers`**, même principe). Ces champs sont **`null`** s’il n’y a pas de ligne carte correspondante ou si le texte est vide. Les zones et repères dont **`is_active`** est **explicitement** désactivé (`0`, `false`, chaîne `'0'`) sont exclus ; les autres valeurs « actives » (y compris variantes driver) restent listées.
+- **Blocs éditoriaux (nouveau)** : `GET /api/visit/content` expose **`visit_editorial_blocks`** (tableau ordonné) pour chaque zone/repère. Si `visit_body_json` est présent en base, le serveur l’utilise en priorité ; sinon il génère un fallback compatible depuis `visit_short_description`, `visit_details_*` et `visit_media`.
+- **Écriture blocs** : `POST/PUT /api/visit/zones(:id)` et `POST/PUT /api/visit/markers(:id)` acceptent **`visit_editorial_blocks`** (alias **`body_json`**) ; le serveur normalise et persiste dans `visit_zones.body_json` / `visit_markers.body_json`.
+- **Schéma de bloc** : `paragraph` (`markdown`), `heading` (`text`, `level` 2..4), `image` (`media_ids` 1..2, `layout`, `size`, `align`, `caption` optionnel). Les `media_ids` doivent pointer vers des entrées de `visit_media` de la cible.
 - **Photos galerie carte (visite)** : pour chaque zone / repère, **`map_lead_photo`** est la **première** entrée de la galerie carte (`zone_photos` / `marker_photos`, tri `sort_order` puis `id`, aligné sur les routes galerie carte) ou **`null`** ; **`map_extra_photos`** est le **tableau** des entrées suivantes, chacune au même format que **`map_lead_photo`** (`{ id, image_url, thumb_url?, caption }` — **`thumb_url`** optionnel comme sur **`GET /api/zones/:id/photos`**), **vide** s’il n’y a qu’une image ou aucune. Le client peut les afficher en tête du corps du bloc « Détails » visite (avant le texte `visit_details_text`).
 - `direction=map_to_visit` : copie/synchronise les zones et repères de la carte vers la visite.
 - **`POST /api/visit/rebuild-from-map`** : alternative à « tout supprimer à la main puis réimporter » : une seule opération atomique (transaction BDD) qui vide et recrée la couche visite du plan tout en **fusionnant** l’éditorial existant par **id** ; les fichiers image des cibles définitivement retirées sont effacés du disque **après** commit réussi.
@@ -541,9 +544,9 @@ Contraintes principales :
   - `project_id` doit exister ;
   - les IDs transmis doivent appartenir au projet cible (sinon `400`) ;
   - les tâches non listées explicitement sont conservées en fin de projet, dans leur ordre courant.
-- Statuts projet supportés : `active`, `on_hold` (retourné dans `project_status` sur les payloads de tâche).
+- Statuts projet supportés : `active`, `on_hold`, `completed` (synchro automatique), `validated` (validation manuelle n3boss) — retournés dans `project_status` sur les payloads de tâche.
 - Champ optionnel `start_date` (`YYYY-MM-DD`) sur les tâches ; tant que la date n’est pas atteinte, la tâche est considérée en attente (`is_before_start_date: true` dans les payloads).
-- Si une tâche est `on_hold` **ou** si son projet est `on_hold`, `POST /api/tasks/:id/assign` renvoie `400` (inscription n3beur bloquée).
+- Si une tâche est `on_hold` **ou** si son projet est `on_hold`, `completed` ou `validated`, `POST /api/tasks/:id/assign` renvoie `400` (inscription n3beur bloquée ; messages dédiés pour projet terminé ou validé).
 - Si `start_date` est dans le futur, `POST /api/tasks/:id/assign` renvoie aussi `400` (inscription n3beur bloquée jusqu’à la date de départ).
 - Si le **plafond effectif** (profil `roles.max_concurrent_tasks` si défini, sinon réglage `tasks.student_max_active_assignments`) est strictement positif et que l’action est une **auto-inscription n3beur**, le serveur compte les assignations actives (tâches non `validated`, en excluant pour `all_assignees_done` les lignes où le n3beur a déjà `done_at`) : au-delà de la limite, réponse **`400`** avec `code: "TASK_ENROLLMENT_LIMIT"`, `maxActiveAssignments`, `currentActiveAssignments` et un message d’erreur explicite.
 - `POST /api/tasks` et `PUT /api/tasks/:id` acceptent `completion_mode` pour les profils autorisés, et `danger_level` / `difficulty_level` / `importance_level` (prof + proposition n3beur sur les champs autorisés).
@@ -568,12 +571,15 @@ Regroupe plusieurs tâches sous un même projet (carte, titre, description, stat
 | GET | `/api/task-projects` | non | Liste des projets (`?map_id=` optionnel pour filtrer par carte) |
 | POST | `/api/task-projects` | oui (`tasks.manage` + élévation) | Créer un projet |
 | PUT | `/api/task-projects/:id` | oui | Modifier un projet |
+| POST | `/api/task-projects/:id/validate` | oui (`tasks.validate` + élévation) | Valider manuellement un projet (`status` → `validated`) |
+| POST | `/api/task-projects/:id/duplicate` | oui (`tasks.manage` + élévation) | Dupliquer un projet et ses tâches structurelles (sans assignations ni journaux) |
 | DELETE | `/api/task-projects/:id` | oui | Supprimer le projet (`project_id` des tâches liées repassent à `NULL`) |
 
 **Corps JSON (création / mise à jour)** — champs usuels :
 
 - `map_id` (obligatoire à la création), `title`, `description` (texte libre, optionnel),
-- `status` (écriture API `POST`/`PUT`) : `active` (défaut) ou `on_hold` (inscriptions n3beurs fermées pour les tâches du projet). Le statut **`completed`** est **réservé au serveur** : il est appliqué automatiquement lorsque le projet comporte au moins une tâche et que **toutes** les tâches liées sont en `done` ou `validated` ; dès qu’une tâche redevient « en cours » (autre statut), le projet repasse en `active` (sauf `on_hold` défini par le professeur, inchangé par cette synchro).
+- `status` (écriture API `POST`/`PUT`) : `active` (défaut) ou `on_hold` (inscriptions n3beurs fermées pour les tâches du projet). Le statut **`completed`** est **réservé au serveur** : il est appliqué automatiquement lorsque le projet comporte au moins une tâche et que **toutes** les tâches liées sont en `done` ou `validated` ; dès qu’une tâche redevient « en cours » (autre statut), le projet repasse en `active` (sauf `on_hold` ou `validated` définis manuellement, inchangés par cette synchro). Le statut **`validated`** est **réservé à la validation manuelle** via `POST /api/task-projects/:id/validate` (permission `tasks.validate`) : clôture explicite du projet par le n3boss, inscriptions fermées même si des tâches ne sont pas toutes terminées.
+- **Duplication** (`POST /api/task-projects/:id/duplicate`) : corps optionnel `{ title?, map_id? }` (défaut : titre source + « (copie) », même carte). Crée un nouveau projet `active`, recopie les liaisons zones/repères/tutoriels du projet et, pour chaque tâche liée, les champs structurels (titre, description, dates, mode, niveaux, localisation N-N, tutoriels, ordre) avec statut initial **`available`**. Ne copie **pas** les assignations (`task_assignments`), journaux (`task_logs`) ni commentaires contextuels. Réponse `201` : `{ project, source_project_id, tasks_copied, task_ids }`.
 - `zone_ids` : tableau d’identifiants de **zones** (`zones.id`) — toutes doivent appartenir à `map_id` du projet,
 - `marker_ids` : tableau d’identifiants de **repères** (`map_markers.id`) — même carte,
 - `tutorial_ids` : tableau d’identifiants numériques de **tutoriels** actifs (`tutorials.id`).

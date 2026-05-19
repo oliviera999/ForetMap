@@ -684,6 +684,7 @@ function taskEffectiveStatus(task) {
   const startDate = normalizeDateOnly(task?.start_date);
   const blockedByStartDate = !!startDate && startDate > currentLocalDateOnly();
   if (task?.project_status === 'completed') return 'project_completed';
+  if (task?.project_status === 'validated') return 'project_validated';
   if (baseStatus === 'on_hold' || task?.project_status === 'on_hold' || task?.is_before_start_date || blockedByStartDate) {
     return 'on_hold';
   }
@@ -693,7 +694,7 @@ function taskEffectiveStatus(task) {
 function canStudentAssignTask(task, student) {
   if (!task || !student) return false;
   const effectiveStatus = taskEffectiveStatus(task);
-  if (effectiveStatus === 'validated' || effectiveStatus === 'done' || effectiveStatus === 'on_hold' || effectiveStatus === 'project_completed') return false;
+  if (effectiveStatus === 'validated' || effectiveStatus === 'done' || effectiveStatus === 'on_hold' || effectiveStatus === 'project_completed' || effectiveStatus === 'project_validated') return false;
   if (isStudentAssignedToTask(task, student)) return false;
   return taskOpenSlots(task) > 0;
 }
@@ -711,6 +712,9 @@ function taskEnrollmentMeta(task, student) {
   }
   if (effectiveStatus === 'project_completed') {
     return { tone: '#92400e', bg: '#fffbeb', border: '#fde68a', dot: '●', label: 'Projet terminé' };
+  }
+  if (effectiveStatus === 'project_validated') {
+    return { tone: '#166534', bg: '#f0fdf4', border: '#86efac', dot: '●', label: 'Projet validé' };
   }
   if (isClosed) {
     return { tone: '#92400e', bg: '#fffbeb', border: '#fde68a', dot: '●', label: effectiveStatus === 'done' ? 'Terminée (en attente)' : 'Validée' };
