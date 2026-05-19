@@ -418,3 +418,105 @@
   display: grid;
   gap: 10px;
 }
+
+/* --- Lot 2B : contenus & chapitres --- */
+
+.gl-subtabs {
+  display: flex;
+  gap: 6px;
+  margin: 8px 0 16px;
+  flex-wrap: wrap;
+}
+
+.gl-subtabs button {
+  padding: 6px 14px;
+  border: 1px solid #cbd5e1;
+  background: #f1f5f9;
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.gl-subtabs button.is-active {
+  background: #1d4ed8;
+  color: white;
+  border-color: #1d4ed8;
+}
+
+.gl-chapters-admin-grid {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) 3fr;
+  gap: 16px;
+  align-items: start;
+}
+
+.gl-chapters-admin-list {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 8px;
+  display: grid;
+  gap: 4px;
+}
+
+.gl-chapters-admin-list button {
+  width: 100%;
+  text-align: left;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  background: white;
+  cursor: pointer;
+  display: grid;
+  gap: 2px;
+}
+
+.gl-chapters-admin-list button.is-active {
+  background: #eff6ff;
+  border-color: #93c5fd;
+}
+
+.gl-chapters-admin-list .gl-hint {
+  font-size: 0.8rem;
+  color: #64748b;
+}
+
+.gl-markers-list {
+  list-style: none;
+  padding: 0;
+  margin: 8px 0;
+  display: grid;
+  gap: 4px;
+}
+
+.gl-markers-list li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.gl-danger {
+  background: #ef4444;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 4px 10px;
+  cursor: pointer;
+}
+
+.gl-info {
+  padding: 6px 12px;
+  background: #ecfdf5;
+  border: 1px solid #86efac;
+  border-radius: 8px;
+  color: #065f46;
+}
+
+@media (max-width: 800px) {
+  .gl-chapters-admin-grid {
+    grid-template-columns: 1fr;
+  }
+}

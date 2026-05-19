@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { apiGL } from '../services/apiGL.js';
 import { GLContentPage } from './GLContentPage.jsx';
+import { GLChaptersAdminView } from './GLChaptersAdminView.jsx';
 
 export function GLContentsAdminView({ auth }) {
+  const [section, setSection] = useState('pages');
   const [items, setItems] = useState([]);
   const [activeSlug, setActiveSlug] = useState('world');
   const [error, setError] = useState('');
@@ -22,33 +24,58 @@ export function GLContentsAdminView({ auth }) {
   }
 
   useEffect(() => {
-    load();
-  }, []);
+    if (section === 'pages') load();
+  }, [section]);
 
   return (
     <section className="gl-panel">
       <h2>Contenus editoriaux</h2>
-      {error ? <p className="gl-error">{error}</p> : null}
-      <div className="gl-content-admin-list">
-        {items.map((item) => (
-          <button
-            key={item.slug}
-            type="button"
-            className={item.slug === activeSlug ? 'is-active' : ''}
-            onClick={() => setActiveSlug(item.slug)}
-          >
-            {item.title || item.slug}
-          </button>
-        ))}
-      </div>
-      {activeSlug ? (
-        <GLContentPage
-          slug={activeSlug}
-          fallbackTitle={items.find((item) => item.slug === activeSlug)?.title || activeSlug}
-          auth={auth}
-          onSaved={load}
-        />
-      ) : null}
+      <nav className="gl-subtabs">
+        <button
+          type="button"
+          className={section === 'pages' ? 'is-active' : ''}
+          onClick={() => setSection('pages')}
+          data-subtab="pages"
+        >
+          Pages
+        </button>
+        <button
+          type="button"
+          className={section === 'chapters' ? 'is-active' : ''}
+          onClick={() => setSection('chapters')}
+          data-subtab="chapters"
+        >
+          Chapitres
+        </button>
+      </nav>
+
+      {section === 'pages' ? (
+        <>
+          {error ? <p className="gl-error">{error}</p> : null}
+          <div className="gl-content-admin-list">
+            {items.map((item) => (
+              <button
+                key={item.slug}
+                type="button"
+                className={item.slug === activeSlug ? 'is-active' : ''}
+                onClick={() => setActiveSlug(item.slug)}
+              >
+                {item.title || item.slug}
+              </button>
+            ))}
+          </div>
+          {activeSlug ? (
+            <GLContentPage
+              slug={activeSlug}
+              fallbackTitle={items.find((item) => item.slug === activeSlug)?.title || activeSlug}
+              auth={auth}
+              onSaved={load}
+            />
+          ) : null}
+        </>
+      ) : (
+        <GLChaptersAdminView />
+      )}
     </section>
   );
 }

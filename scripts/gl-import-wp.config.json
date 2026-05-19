@@ -4,5 +4,13 @@
     "le-monde-de-gnomes-et-licornes": "world",
     "regles-du-jeu": "rules",
     "sortileges": "spells"
+  },
+  "chapterMap": {
+    "chapitre-1-la-foret-magique": {
+      "slug": "foret-magique",
+      "biome": "forêt tempérée",
+      "mapImageUrl": "/maps/map-foret.svg",
+      "orderIndex": 10
+    }
   }
 }
