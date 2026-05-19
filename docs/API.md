@@ -41,11 +41,20 @@ Slugs livrés en seed : `world`, `rules`, `spells`.
 
 Import éditorial WordPress : `npm run gl:import:wp` (`--dry-run` par défaut, `--apply` pour UPSERT BDD).
 
+Le script accepte également `--target=chapters` (Lot 2B) : seules les pages WP référencées dans `scripts/gl-import-wp.config.json` (clé `chapterMap`, slug WP → `{ slug, biome, mapImageUrl, orderIndex }` GL) sont importées, vers la table `gl_chapters` (le champ `story_markdown` est rempli depuis le contenu HTML converti ; `biotope_markdown` / `biocenose_markdown` restent à éditer ensuite via l'admin GL).
+
 ### Gameplay GL
 
 | Méthode | URL | Body | Permission |
 |--------|-----|------|------------|
 | GET | `/api/gl/chapters` | — | `gl.read` |
+| GET | `/api/gl/chapters/:slug` | — | `gl.read` (réponse `{ chapter, markers }`) |
+| POST | `/api/gl/chapters/admin` | `{ slug, title, biome?, mapImageUrl?, storyMarkdown?, biotopeMarkdown?, biocenoseMarkdown?, orderIndex? }` | `gl.content.manage` (refus `409` si slug existant) |
+| PUT | `/api/gl/chapters/admin/:id` | mise à jour partielle des mêmes champs | `gl.content.manage` |
+| DELETE | `/api/gl/chapters/admin/:id` | — | `gl.content.manage` (refus `409` si partie liée) |
+| POST | `/api/gl/chapters/admin/:id/markers` | `{ label, xPct, yPct, eventType?, description?, orderIndex? }` | `gl.content.manage` |
+| PUT | `/api/gl/chapters/admin/markers/:markerId` | mise à jour partielle marker | `gl.content.manage` |
+| DELETE | `/api/gl/chapters/admin/markers/:markerId` | — | `gl.content.manage` (détache les équipes positionnées sur ce marker via `ON DELETE SET NULL`) |
 | GET | `/api/gl/gameplay-settings` | — | Auth GL (joueur ou admin) |
 | POST | `/api/gl/games` | `{ classId, chapterId, name }` | `gl.game.manage` |
 | GET | `/api/gl/games/:id` | — | `gl.read` (ou membre de la partie) |

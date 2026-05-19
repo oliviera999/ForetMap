@@ -8,10 +8,12 @@ const path = require('node:path');
 const {
   parseArgs,
   mapWpSlugToGlSlug,
+  mapWpSlugToChapterMeta,
   createMarkdownConverter,
   htmlToMarkdown,
   fetchWpCollection,
   transformWpEntries,
+  transformWpEntriesAsChapters,
   mergeRecordsBySlug,
 } = require('../scripts/gl-import-wp');
 
@@ -94,4 +96,68 @@ test('transformWpEntries convertit HTML en markdown puis dedupe par slug', () =>
 
   const md = htmlToMarkdown('<h1>Titre</h1><p>Texte.</p>', turndown);
   assert.ok(md.includes('# Titre'));
+});
+
+test('parseArgs accepte --target=chapters', () => {
+  const a = parseArgs(['--target=chapters']);
+  assert.strictEqual(a.target, 'chapters');
+  const b = parseArgs(['--target', 'chapters']);
+  assert.strictEqual(b.target, 'chapters');
+  const c = parseArgs([]);
+  assert.strictEqual(c.target, 'pages');
+  const d = parseArgs(['--target=invalid']);
+  assert.strictEqual(d.target, 'pages');
+});
+
+test('mapWpSlugToChapterMeta retourne meta pour slug mappé, null sinon', () => {
+  const map = {
+    'chapitre-1-la-foret-magique': {
+      slug: 'foret-magique',
+      biome: 'forêt tempérée',
+      mapImageUrl: '/maps/map-foret.svg',
+      orderIndex: 10,
+    },
+  };
+  const meta = mapWpSlugToChapterMeta('chapitre-1-la-foret-magique', map);
+  assert.strictEqual(meta.slug, 'foret-magique');
+  assert.strictEqual(meta.biome, 'forêt tempérée');
+  assert.strictEqual(meta.orderIndex, 10);
+  assert.strictEqual(mapWpSlugToChapterMeta('autre-page', map), null);
+});
+
+test('transformWpEntriesAsChapters ne retient que les slugs mappés en chapitre', () => {
+  const turndown = createMarkdownConverter();
+  const rows = transformWpEntriesAsChapters(
+    [
+      {
+        slug: 'chapitre-1-la-foret-magique',
+        title: { rendered: 'Chapitre 1 — La forêt magique' },
+        content: { rendered: '<p>Histoire du chapitre 1.</p>' },
+        modified: '2026-01-01T00:00:00',
+      },
+      {
+        slug: 'page-non-chapitre',
+        title: { rendered: 'Autre page' },
+        content: { rendered: '<p>Hors champ.</p>' },
+        modified: '2026-01-01T00:00:00',
+      },
+    ],
+    {
+      chapterMap: {
+        'chapitre-1-la-foret-magique': {
+          slug: 'foret-magique',
+          biome: 'forêt tempérée',
+          mapImageUrl: '/maps/map-foret.svg',
+          orderIndex: 10,
+        },
+      },
+      sourceType: 'page',
+      turndownService: turndown,
+    }
+  );
+  assert.strictEqual(rows.length, 1);
+  assert.strictEqual(rows[0].slug, 'foret-magique');
+  assert.strictEqual(rows[0].biome, 'forêt tempérée');
+  assert.strictEqual(rows[0].orderIndex, 10);
+  assert.ok(String(rows[0].storyMarkdown).includes('Histoire'));
 });

@@ -33,7 +33,8 @@ Ce document décrit l'architecture du second mode **Gnomes & Licornes** (GL) dan
 Préfixe : `/api/gl`
 
 - Auth : `routes/gl/auth.js`
-- Contenus éditoriaux : `routes/gl/content.js`
+- Contenus éditoriaux (pages éditoriales `gl_content_pages`) : `routes/gl/content.js`
+- Chapitres et repères (`gl_chapters`, `gl_chapter_markers`) : `routes/gl/chapters.js`
 - Gameplay : `routes/gl/games.js`
 - Admin GL : `routes/gl/admin.js`
 
@@ -48,6 +49,12 @@ Ajouts Lot 2A (gameplay paramétrable) :
 - `POST /api/gl/games/:id/turn/next` : avance le tour cyclique (refus `409` si `gameplay.turns_enabled=false`).
 - `POST /api/gl/games/:id/actions` (joueur) + `POST /api/gl/games/:id/actions/:actionId/resolve` (MJ) : flux d'actions joueurs validées par le MJ.
 - `POST /api/gl/games/:id/events` accepte deux nouveaux types : `narration` (texte diffusé) et `score` (delta + raison, persisté dans `gl_team_scores`).
+
+Ajouts Lot 2B (contenus & chapitres) :
+
+- `GET /api/gl/chapters/:slug` : détail d'un chapitre (champs `gl_chapters`) + ses `markers` triés.
+- `POST/PUT/DELETE /api/gl/chapters/admin[/:id]` : CRUD chapitres (permission `gl.content.manage` ; refus `409` à la suppression si une partie référence le chapitre).
+- `POST /api/gl/chapters/admin/:id/markers`, `PUT/DELETE /api/gl/chapters/admin/markers/:markerId` : CRUD repères de chapitre. La suppression détache d'abord les équipes positionnées sur ce marker (`gl_teams.position_marker_id` → `NULL`) avant l'effacement.
 
 Les endpoints GL exigent un JWT avec claim `product = "gl"`.
 
@@ -125,9 +132,11 @@ Source recommandée : API publique WordPress de `gl.olution.info`.
 Modes disponibles :
 
 - `--dry-run` (défaut) : export markdown dans `tmp/gl-wp-import/*.md`.
-- `--apply` : UPSERT direct dans `gl_content_pages`.
+- `--apply` : UPSERT direct dans la table cible.
+- `--target=pages` (défaut) : cible `gl_content_pages` (mapping `slugMap`).
+- `--target=chapters` (Lot 2B) : cible `gl_chapters`, en utilisant la clé `chapterMap` de la config pour ne retenir que les pages WP référencées comme chapitres GL (`slug`, `biome`, `mapImageUrl`, `orderIndex`).
 
-Le mapping de slugs est configurable (ex. `le-monde-de-gnomes-et-licornes -> world`).
+Le mapping de slugs est configurable (ex. `le-monde-de-gnomes-et-licornes -> world` pour les pages, et `chapitre-1-la-foret-magique -> { slug: foret-magique, ... }` pour les chapitres).
 
 ## Variables d'environnement utiles
 
