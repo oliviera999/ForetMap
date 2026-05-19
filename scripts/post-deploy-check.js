@@ -27,11 +27,13 @@ function parseArgs(argv) {
   for (let i = 0; i < argv.length; i += 1) {
     const a = argv[i];
     if (a === '--base-url') args.baseUrl = argv[i + 1];
+    if (a === '--gl-base-url') args.glBaseUrl = argv[i + 1];
     if (a === '--timeout-ms') args.timeoutMs = argv[i + 1];
     if (a === '--image-check-path') args.imageCheckPath = argv[i + 1];
   }
   return {
     baseUrl: args.baseUrl || process.env.DEPLOY_BASE_URL || 'http://localhost:3000',
+    glBaseUrl: args.glBaseUrl || process.env.GL_PROD_BASE_URL || '',
     timeoutMs: Number.isFinite(parseInt(args.timeoutMs, 10)) ? parseInt(args.timeoutMs, 10) : 10000,
     imageCheckPath: args.imageCheckPath || process.env.DEPLOY_IMAGE_CHECK_PATH || '',
   };
@@ -173,8 +175,8 @@ async function checkImageEndpoint(baseUrl, path, timeoutMs) {
 }
 
 async function main() {
-  const { baseUrl, timeoutMs, imageCheckPath } = parseArgs(process.argv.slice(2));
-  console.log(`[post-deploy-check] baseUrl=${baseUrl} timeoutMs=${timeoutMs}`);
+  const { baseUrl, glBaseUrl, timeoutMs, imageCheckPath } = parseArgs(process.argv.slice(2));
+  console.log(`[post-deploy-check] baseUrl=${baseUrl} glBaseUrl=${glBaseUrl || '-'} timeoutMs=${timeoutMs}`);
 
   const checks = [
     await checkEndpoint(baseUrl, '/api/health', timeoutMs, true),
@@ -215,6 +217,11 @@ async function main() {
 
   if (imageCheckPath) {
     checks.push(await checkImageEndpoint(baseUrl, imageCheckPath, timeoutMs));
+  }
+
+  if (glBaseUrl) {
+    checks.push(await checkEndpoint(glBaseUrl, '/api/health', timeoutMs, false));
+    checks.push(await checkEndpoint(glBaseUrl, '/api/version', timeoutMs, false));
   }
 
   const requiredFails = checks.filter((c) => c.required && !c.pass);

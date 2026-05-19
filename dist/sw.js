@@ -1,4 +1,4 @@
-const CACHE_NAME = 'foretmap-offline-v7';
+const CACHE_NAME = 'foretmap-offline-v8';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
@@ -14,10 +14,6 @@ const STATIC_ASSETS = [
   '/pwa-maskable-512.png',
   '/pwa-screenshot-mobile.png',
   '/pwa-screenshot-wide.png',
-  '/map.png',
-  '/maps/map-foret.svg',
-  '/maps/map-n3.svg',
-  '/maps/plan%20n3.jpg',
 ];
 
 // URLs d'API en lecture (correspondance exacte pathname)

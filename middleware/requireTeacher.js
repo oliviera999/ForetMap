@@ -41,6 +41,7 @@ async function hydrateAuthFromTokenClaims(claims) {
     return {
       userType: claims.userType,
       userId: claims.userId,
+      product: claims.product || 'foret',
       canonicalUserId: claims.canonicalUserId || null,
       roleId: authz.roleId,
       roleSlug: authz.roleSlug,
@@ -68,6 +69,7 @@ async function hydrateAuthFromTokenClaims(claims) {
   return {
     userType: claims.userType,
     userId: claims.userId,
+    product: claims.product || 'foret',
     canonicalUserId: claims.canonicalUserId || null,
     roleId: authz.roleId,
     roleSlug: authz.roleSlug,
@@ -143,6 +145,28 @@ function requirePermission(permissionKey, options = {}) {
   };
 }
 
+function requireProduct(expectedProduct) {
+  const expected = String(expectedProduct || '').trim().toLowerCase();
+  return async (req, res, next) => {
+    if (!requireJwtConfigured(res)) return;
+    await ensureRbacBootstrap();
+    const token = parseBearerToken(req);
+    if (!token) return res.status(401).json({ error: 'Token requis' });
+    try {
+      const claims = jwt.verify(token, JWT_SECRET);
+      const product = String(claims.product || 'foret').toLowerCase();
+      if (product !== expected) {
+        return res.status(403).json({ error: 'Session non autorisée pour ce produit' });
+      }
+      req.auth = await hydrateAuthFromTokenClaims(claims);
+      if (!req.auth) return res.status(403).json({ error: 'Aucun profil attribué' });
+      return next();
+    } catch (_) {
+      return res.status(401).json({ error: 'Token invalide ou expiré' });
+    }
+  };
+}
+
 const requireTeacher = requirePermission('teacher.access');
 const requireTeacherElevated = requirePermission('teacher.access', { needsElevation: true });
 
@@ -154,6 +178,7 @@ module.exports = {
   requireAuth,
   requirePermission,
   hasPermission,
+  requireProduct,
   requireTeacher,
   requireTeacherElevated,
   signAuthToken,

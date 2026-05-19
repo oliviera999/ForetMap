@@ -1,7 +1,7 @@
 const express = require('express');
 const { v4: uuidv4 } = require('uuid');
 const { queryAll, queryOne, execute, withTransaction } = require('../database');
-const { requirePermission } = require('../middleware/requireTeacher');
+const { requireAuth, requirePermission } = require('../middleware/requireTeacher');
 const { logRouteError, respondInternalError } = require('../lib/routeLog');
 const { emitGardenChanged } = require('../lib/realtime');
 const { saveBase64ToDisk, getAbsolutePath } = require('../lib/uploads');
@@ -130,7 +130,7 @@ function normalizeMarkerEmoji(value, fallback = '🌱') {
   return s.slice(0, 16);
 }
 
-router.get('/markers/:id/photos/:pid/data', async (req, res) => {
+router.get('/markers/:id/photos/:pid/data', requireAuth, async (req, res) => {
   try {
     const markerId = String(req.params.id || '').trim();
     const p = await queryOne(

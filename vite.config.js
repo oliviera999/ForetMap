@@ -13,6 +13,7 @@ export default defineConfig({
       input: {
         main: path.resolve(process.cwd(), 'index.vite.html'),
         mascotPackTool: path.resolve(process.cwd(), 'mascot-pack-tool.html'),
+        gl: path.resolve(process.cwd(), 'gl.html'),
       },
     },
   },

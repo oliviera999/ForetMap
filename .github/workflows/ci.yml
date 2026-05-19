@@ -58,6 +58,18 @@ jobs:
           TEACHER_PIN: '1234'
           JWT_SECRET: 'ci-test-secret-not-for-production'
 
+      - name: Run backend coverage
+        run: npm run test:coverage
+        env:
+          NODE_ENV: test
+          DB_HOST: 127.0.0.1
+          DB_PORT: 3306
+          DB_NAME: foretmap_test
+          DB_USER: root
+          DB_PASS: ''
+          TEACHER_PIN: '1234'
+          JWT_SECRET: 'ci-test-secret-not-for-production'
+
       - name: Build frontend (Vite)
         run: npm run build
 
