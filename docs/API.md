@@ -67,6 +67,8 @@ Le script accepte également `--target=chapters` (Lot 2B) : seules les pages WP 
 | POST | `/api/gl/games/:id/start` | — | `gl.game.manage` |
 | POST | `/api/gl/games/:id/pause` | — | `gl.game.manage` |
 | POST | `/api/gl/games/:id/end` | — | `gl.game.manage` |
+| GET | `/api/gl/mascots` | `?gameId=` optionnel (renvoie aussi `assignments`) | Auth GL (joueur ou admin) |
+| POST | `/api/gl/mascots/assign` | `{ gameId, teamId, mascotId }` | `gl.team.manage` (refus `404` mascotte inconnue, refus `409` mascotte déjà utilisée par une autre équipe de la même partie) |
 
 Événements de partie stockés dans `gl_game_events` et diffusés en Socket.IO (`gl:game:event`, room `gl:game:{id}`).
 

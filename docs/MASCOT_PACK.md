@@ -82,3 +82,11 @@ Puis importer ce manifeste dans le catalogue et appeler `expandMascotPackToSprit
 ## Rive et spritesheet classique
 
 Ce format ne couvre **pas** les fichiers `.riv` ni les atlases `spritesheet` : flux séparés (éditeur Rive / scripts d’extraction dédiés).
+
+## Divergence ForetMap (visite) vs Gnomes & Licornes (Lot 2C)
+
+Le catalogue **visite** (`src/utils/visitMascotCatalog.js`, mascottes forêt comme `renard2-cut-spritesheet`, `tan-bird-spritesheet`, …) reste la **source de vérité** pour le studio packs mascotte (`VisitMascotPackManager`) et pour le rendu sur la carte forêt (`VisitMapMascotRenderer`). Il continue de supporter les renderers `rive`, `spritesheet`, `sprite_cut`, plus les packs serveur publiés (`srv-*`).
+
+Le catalogue **G&L** est volontairement **séparé** : `src/utils/glMascotCatalog.js` regroupe ≥ 6 gnomes et ≥ 6 licornes au format `renderer: 'fallback'`, avec rendu via `GLMascotFallbackSvg`. Les identifiants sont préfixés `gl-*` pour permettre la cohabitation dans `gl_teams.mascot_id` sans collision avec les ids visite. Côté UI (`GLGameBoard`, `GLTopBar`), un test sur le préfixe `gl-` bascule l'avatar vers `GLMascotAvatar` (catalogue GL) ; sinon le `VisitMapMascotRenderer` historique est conservé pour assurer la compatibilité avec d'anciennes parties qui auraient stocké un id visite.
+
+À terme, si des packs `mascot_pack` G&L doivent être livrés, on pourra ajouter un renderer `sprite_cut` dans `glMascotCatalog.js` en réutilisant `expandMascotPackToSpriteCut` (déjà partagé dans `lib/visit-pack/`).

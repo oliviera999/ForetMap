@@ -1,6 +1,11 @@
 import React, { useState } from 'react';
 import VisitMapMascotRenderer from '../../components/VisitMapMascotRenderer.jsx';
 import { VISIT_MASCOT_STATE } from '../../utils/visitMascotState.js';
+import { GLMascotAvatar } from './GLMascotAvatar.jsx';
+
+function isGlMascotId(id) {
+  return typeof id === 'string' && id.startsWith('gl-');
+}
 
 export function GLGameBoard({
   chapter,
@@ -76,7 +81,11 @@ export function GLGameBoard({
             >
               <div className="gl-board-team-label">{team.name}</div>
               <div className="gl-board-team-mascot">
-                <VisitMapMascotRenderer mascotState={VISIT_MASCOT_STATE.IDLE} mascotId={team.mascot_id} />
+                {isGlMascotId(team.mascot_id) ? (
+                  <GLMascotAvatar mascotId={team.mascot_id} size={48} />
+                ) : (
+                  <VisitMapMascotRenderer mascotState={VISIT_MASCOT_STATE.IDLE} mascotId={team.mascot_id} />
+                )}
               </div>
             </div>
           );

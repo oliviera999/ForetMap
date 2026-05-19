@@ -209,6 +209,14 @@ export function AppGL() {
     return true;
   }, [isAdmin, gameplaySettings, auth, currentTeamId]);
 
+  const playerMascotId = useMemo(() => {
+    if (isAdmin) return null;
+    const myTeamId = auth?.teamId != null ? Number(auth.teamId) : null;
+    if (myTeamId == null || !Array.isArray(gameState?.teams)) return null;
+    const team = gameState.teams.find((t) => Number(t.id) === myTeamId);
+    return team?.mascot_id || null;
+  }, [isAdmin, auth, gameState]);
+
   if (!session?.token) {
     return (
       <GLAuthView
@@ -228,6 +236,7 @@ export function AppGL() {
         activeTab={tab}
         onTabChange={setTab}
         auth={auth}
+        playerMascotId={playerMascotId}
         onLogout={() => {
           logout();
           setGameState(null);
@@ -270,7 +279,9 @@ export function AppGL() {
         {tab === 'users' && isAdmin && <GLUsersAdminView />}
         {tab === 'contents' && isAdmin && <GLContentsAdminView auth={auth} />}
         {tab === 'settings' && isAdmin && <GLSettingsView />}
-        {tab === 'mascots' && isAdmin && <GLMascotsAdminView />}
+        {tab === 'mascots' && isAdmin && (
+          <GLMascotsAdminView gameState={gameState} onReloadGame={reloadGame} />
+        )}
         {tab === 'mj' && isAdmin && (
           <GLGameMasterConsole
             chapters={chapters}
