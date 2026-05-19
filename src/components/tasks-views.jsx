@@ -1575,6 +1575,7 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
   const contextCommentsEnabled = publicSettings?.modules?.context_comments_enabled !== false;
   const tutorialsModuleEnabled = publicSettings?.modules?.tutorials_enabled !== false;
   const helpTasks = HELP_PANELS.tasks;
+  const helpGroupFilters = HELP_PANELS.groupFilters;
   const tooltipText = (entry) => resolveRoleText(entry, isTeacher);
   const [quickTutoLinkId, setQuickTutoLinkId] = useState('');
   const [tasksTutorialPreview, setTasksTutorialPreview] = useState(null);
@@ -2693,12 +2694,26 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
             ))}
         </select>
         {isTeacher && (
-          <select value={filterGroupId} onChange={(e) => setFilterGroupId(e.target.value)}>
-            <option value="">Tous les groupes</option>
-            {groupOptions.map((g) => (
-              <option key={g.id} value={g.id}>{g.name}</option>
-            ))}
-          </select>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <select value={filterGroupId} onChange={(e) => setFilterGroupId(e.target.value)} aria-label="Filtrer les tâches par groupe">
+              <option value="">Tous les groupes</option>
+              {groupOptions.map((g) => (
+                <option key={g.id} value={g.id}>{g.name}</option>
+              ))}
+            </select>
+            {isHelpEnabled && (
+              <HelpPanel
+                sectionId="tasks-group-filter"
+                title={helpGroupFilters.title}
+                entries={helpGroupFilters.items}
+                isTeacher={isTeacher}
+                isPulsing={!hasSeenSection('tasks-group-filter')}
+                onMarkSeen={markSectionSeen}
+                onOpen={trackPanelOpen}
+                onDismiss={trackPanelDismiss}
+              />
+            )}
+          </div>
         )}
         <select
           value={filterUrgentCategory}

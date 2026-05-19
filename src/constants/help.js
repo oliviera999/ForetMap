@@ -133,6 +133,48 @@ const HELP_PANELS = {
       },
     ],
   },
+  groups: {
+    title: 'Aide groupes et sous-groupes',
+    items: [
+      {
+        textTeacher:
+          'Un groupe représente une classe, équipe ou unité pédagogique. Un sous-groupe est simplement un groupe avec un parent.',
+      },
+      {
+        textTeacher:
+          'Le bouton « Membres » permet de choisir qui appartient au groupe, et qui est responsable (manager).',
+      },
+      {
+        textTeacher:
+          'Le périmètre cartes/projets définit la portée par défaut du groupe. Sans scope, le groupe reste utilisable globalement.',
+      },
+      {
+        textTeacher:
+          'Les filtres groupe sont repris dans Tâches, Stats et Forum pour cibler rapidement les actions et les lectures.',
+      },
+      {
+        textTeacher:
+          'Quand un groupe est désactivé, il n’est plus proposé dans les sélecteurs, mais l’historique reste conservé.',
+      },
+    ],
+  },
+  groupFilters: {
+    title: 'Aide filtre groupe',
+    items: [
+      {
+        textTeacher:
+          'Utilise ce filtre pour limiter la vue au groupe choisi (et ses sous-groupes selon le contexte).',
+      },
+      {
+        textTeacher:
+          'Dans les Tâches, une nouvelle mission reprend automatiquement le groupe filtré si aucun groupe n’est précisé.',
+      },
+      {
+        textTeacher:
+          'Dans les Stats, ce filtre cible le suivi des n3beurs du groupe pour comparer plus facilement les progressions.',
+      },
+    ],
+  },
 };
 
 export { HELP_TOOLTIPS, HELP_PANELS, resolveRoleText };

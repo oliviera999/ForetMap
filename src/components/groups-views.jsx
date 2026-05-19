@@ -1,5 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { api } from '../services/api';
+import { HelpPanel } from './HelpPanel';
+import { HELP_PANELS } from '../constants/help';
 
 function normalizeIds(values = []) {
   return [...new Set(values.map((v) => String(v || '').trim()).filter(Boolean))];
@@ -138,6 +140,7 @@ export function GroupsAdminView() {
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState('');
   const [msg, setMsg] = useState('');
+  const helpGroups = HELP_PANELS.groups;
 
   const load = async () => {
     setErr('');
@@ -194,7 +197,15 @@ export function GroupsAdminView() {
 
   return (
     <div style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: 12, padding: 12, marginTop: 12 }}>
-      <h3 style={{ marginTop: 0 }}>Groupes & sous-groupes</h3>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+        <h3 style={{ marginTop: 0, marginBottom: 0 }}>Groupes & sous-groupes</h3>
+        <HelpPanel
+          sectionId="groups"
+          title={helpGroups.title}
+          entries={helpGroups.items}
+          isTeacher
+        />
+      </div>
       <p style={{ marginTop: 0, fontSize: '.84rem', color: '#64748b' }}>
         Module dédié: structure pédagogique, membres, responsables et périmètre carte/projet.
       </p>
