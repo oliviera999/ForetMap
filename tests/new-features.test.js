@@ -665,6 +665,7 @@ test('PATCH /api/students/:id/profile met à jour pseudo/email/description', asy
   const tinyAvatar = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/a9sAAAAASUVORK5CYII=';
   const res = await request(app)
     .patch(`/api/students/${studentData.id}/profile`)
+    .set('Authorization', `Bearer ${studentData.authToken}`)
     .send({
       pseudo: `profil_${Date.now()}`,
       email: `profil_${Date.now()}@example.com`,
@@ -705,6 +706,7 @@ test('PATCH /api/students/:id/profile préserve une affiliation stockée non ré
 
   const res = await request(app)
     .patch(`/api/students/${reg.body.id}/profile`)
+    .set('Authorization', `Bearer ${reg.body.authToken}`)
     .send({
       pseudo: `aff_keep_${stamp}`,
       currentPassword: password,
@@ -719,6 +721,7 @@ test('PATCH /api/students/:id/profile préserve une affiliation stockée non ré
 test('PATCH /api/students/:id/profile rejette un email invalide', async () => {
   const res = await request(app)
     .patch(`/api/students/${studentData.id}/profile`)
+    .set('Authorization', `Bearer ${studentData.authToken}`)
     .send({ email: 'pas-un-email', currentPassword: 'pwd123' })
     .expect(400);
   assert.ok(res.body.error);
@@ -739,6 +742,7 @@ test('PATCH /api/students/:id/profile rejette un conflit pseudo', async () => {
 
   const res = await request(app)
     .patch(`/api/students/${studentData.id}/profile`)
+    .set('Authorization', `Bearer ${studentData.authToken}`)
     .send({ pseudo: pseudoConflict, currentPassword: 'pwd123' })
     .expect(409);
   assert.ok(res.body.error);
@@ -747,6 +751,7 @@ test('PATCH /api/students/:id/profile rejette un conflit pseudo', async () => {
 test('PATCH /api/students/:id/profile rejette un mot de passe actuel invalide', async () => {
   const res = await request(app)
     .patch(`/api/students/${studentData.id}/profile`)
+    .set('Authorization', `Bearer ${studentData.authToken}`)
     .send({ pseudo: `new_${Date.now()}`, currentPassword: 'bad-password' })
     .expect(401);
   assert.ok(res.body.error);
@@ -755,10 +760,31 @@ test('PATCH /api/students/:id/profile rejette un mot de passe actuel invalide', 
 test('PATCH /api/students/:id/profile rejette une affiliation invalide', async () => {
   const res = await request(app)
     .patch(`/api/students/${studentData.id}/profile`)
+    .set('Authorization', `Bearer ${studentData.authToken}`)
     .send({ affiliation: 'n4', currentPassword: 'pwd123' })
     .expect(400);
   assert.ok(res.body.error);
   assert.match(String(res.body.error || ''), /carte inconnue|Affiliation invalide/i);
+});
+
+test('PATCH /api/students/:id/profile sans token renvoie 401', async () => {
+  await request(app)
+    .patch(`/api/students/${studentData.id}/profile`)
+    .send({ pseudo: `profil_no_token_${Date.now()}`, currentPassword: 'pwd123' })
+    .expect(401);
+});
+
+test('PATCH /api/students/:id/profile refuse la modification par un autre élève', async () => {
+  const other = await request(app)
+    .post('/api/auth/register')
+    .send({ firstName: 'Other', lastName: `Student${Date.now()}`, password: 'pwd123' })
+    .expect(201);
+
+  await request(app)
+    .patch(`/api/students/${studentData.id}/profile`)
+    .set('Authorization', `Bearer ${other.body.authToken}`)
+    .send({ pseudo: `profil_other_${Date.now()}`, currentPassword: 'pwd123' })
+    .expect(403);
 });
 
 test('GET /api/visit/content expose les contenus visite et les tutos choisis', async () => {
@@ -819,13 +845,15 @@ test('GET /api/visit/content expose les contenus visite et les tutos choisis', a
     .expect(200);
 
   const tutosRes = await request(app).get('/api/tutorials').expect(200);
-  const firstTutorial = tutosRes.body[0]?.id;
+  const firstTutorial =
+    tutosRes.body.find((tutorial) => Number(tutorial?.is_active ?? 1) === 1)?.id
+    ?? tutosRes.body[0]?.id;
   assert.ok(firstTutorial);
 
   await request(app)
     .put('/api/visit/tutorials')
     .set('Authorization', 'Bearer ' + teacherToken)
-    .send({ tutorial_ids: [firstTutorial] })
+    .send({ map_id: 'foret', tutorial_ids: [firstTutorial] })
     .expect(200);
 
   const visitRes = await request(app).get('/api/visit/content?map_id=foret').expect(200);

@@ -10,6 +10,7 @@ const cors    = require('cors');
 const compression = require('compression');
 const path    = require('path');
 const Layer   = require('express/lib/router/layer');
+const jwt = require('jsonwebtoken');
 const { initDatabase, ping: dbPing, isApplicationDatabaseReady, endPool, queryAll } = require('./database');
 const { validateEnv } = require('./lib/env');
 const logger = require('./lib/logger');
@@ -23,6 +24,8 @@ const { checkCriticalAdminAccount } = require('./lib/rbac');
 const { assignRequestId } = require('./lib/requestId');
 const { createHttpRequestLogMiddleware } = require('./lib/httpRequestLog');
 const logMetrics = require('./lib/logMetrics');
+const { parseBearerToken, JWT_SECRET } = require('./middleware/requireTeacher');
+const { resolveProductFromRequest } = require('./lib/productResolver');
 
 const rateLimit     = require('express-rate-limit');
 const authRouter    = require('./routes/auth');
@@ -43,6 +46,10 @@ const settingsRouter      = require('./routes/settings');
 const forumRouter         = require('./routes/forum');
 const contextCommentsRouter = require('./routes/context-comments');
 const groupsRouter        = require('./routes/groups');
+const glAuthRouter = require('./routes/gl/auth');
+const glContentRouter = require('./routes/gl/content');
+const glGamesRouter = require('./routes/gl/games');
+const glAdminRouter = require('./routes/gl/admin');
 
 const app = express();
 
@@ -96,9 +103,24 @@ function normalizeOptionalString(value) {
   return s.length > 0 ? s : null;
 }
 
-const corsOpts = process.env.NODE_ENV === 'production' && process.env.FRONTEND_ORIGIN
-  ? { origin: process.env.FRONTEND_ORIGIN }
-  : {};
+function parseCorsOriginsFromEnv() {
+  const raw = String(process.env.FRONTEND_ORIGINS || '').trim();
+  if (!raw) return [];
+  return raw
+    .split(',')
+    .map((part) => String(part || '').trim())
+    .filter(Boolean);
+}
+
+function buildCorsOptions() {
+  if (process.env.NODE_ENV !== 'production') return {};
+  const multi = parseCorsOriginsFromEnv();
+  if (multi.length > 0) return { origin: multi };
+  if (process.env.FRONTEND_ORIGIN) return { origin: process.env.FRONTEND_ORIGIN };
+  return {};
+}
+
+const corsOpts = buildCorsOptions();
 app.use(cors(corsOpts));
 app.use(
   compression({
@@ -216,6 +238,7 @@ app.use('/api/', generalLimiter);
 app.use('/api/auth/login', authLimiter);
 app.use('/api/auth/register', authLimiter);
 app.use('/api/auth/reset-password', authLimiter);
+app.use('/api/gl/auth/login', authLimiter);
 
 // JSON volumineux (ex. photos base64 forum). Défaut 25mb ; surcharge : FORETMAP_JSON_BODY_LIMIT (ex. 100mb).
 const jsonBodyLimit = String(process.env.FORETMAP_JSON_BODY_LIMIT || '25mb').trim() || '25mb';
@@ -233,6 +256,7 @@ const distDir = path.join(__dirname, 'dist');
 const distSpaIndex = fs.existsSync(path.join(distDir, 'index.vite.html'))
   ? path.join(distDir, 'index.vite.html')
   : path.join(distDir, 'index.html');
+const distGlIndex = path.join(distDir, 'gl.html');
 const serveDist = process.env.NODE_ENV === 'production' && fs.existsSync(distSpaIndex);
 const staticRoot = serveDist ? distDir : path.join(__dirname, 'public');
 const serviceWorkerPath = path.join(staticRoot, 'sw.js');
@@ -455,6 +479,27 @@ app.get('/api/admin/oauth-debug', (req, res) => {
   });
 });
 
+app.use('/api/gl/auth', glAuthRouter);
+app.use('/api/gl/content', glContentRouter);
+app.use('/api/gl', glGamesRouter);
+app.use('/api/gl/admin', glAdminRouter);
+
+app.use('/api', (req, res, next) => {
+  if (String(req.path || '').startsWith('/gl')) return next();
+  const token = parseBearerToken(req);
+  if (!token || !JWT_SECRET) return next();
+  try {
+    const claims = jwt.verify(token, JWT_SECRET);
+    const product = String(claims.product || 'foret').toLowerCase();
+    if (product === 'gl') {
+      return res.status(403).json({ error: 'Session Gnomes & Licornes non autorisée sur cette API' });
+    }
+  } catch (_) {
+    // Les routes protégées gèrent ensuite le cas token invalide.
+  }
+  return next();
+});
+
 app.use('/api/auth', authRouter);
 app.use('/api/zones', zonesRouter);
 app.use('/api/maps', mapsRouter);
@@ -510,7 +555,12 @@ app.get('/favicon.ico', (req, res) => res.status(204).end());
 
 // Fallback SPA (build Vite en prod, sinon page d'aide locale)
 app.get('*', (req, res) => {
-  const indexPath = serveDist ? distSpaIndex : path.resolve(__dirname, 'public', 'deploy-help.html');
+  let indexPath = path.resolve(__dirname, 'public', 'deploy-help.html');
+  if (serveDist) {
+    const product = resolveProductFromRequest(req);
+    const glIndexExists = fs.existsSync(distGlIndex);
+    indexPath = product === 'gl' && glIndexExists ? distGlIndex : distSpaIndex;
+  }
   res.sendFile(indexPath, (err) => {
     if (err) {
       logger.error(

@@ -2,7 +2,7 @@ const express = require('express');
 const path = require('path');
 const { v4: uuidv4 } = require('uuid');
 const { queryAll, queryOne, execute, withTransaction } = require('../database');
-const { requirePermission } = require('../middleware/requireTeacher');
+const { requireAuth, requirePermission } = require('../middleware/requireTeacher');
 const { saveBase64ToDisk, getAbsolutePath } = require('../lib/uploads');
 const { serializeZonePhotoListRow, redirectIfPublicZonePhotoDataUrl } = require('../lib/uploadsPublicUrls');
 const { generateMapPhotoThumbFromMainRelativePath, deleteMapPhotoMainAndThumb } = require('../lib/imageThumb');
@@ -271,7 +271,7 @@ router.put('/:id/photos/reorder', requirePermission('zones.manage', { needsEleva
   }
 });
 
-router.get('/:id/photos/:pid/data', async (req, res) => {
+router.get('/:id/photos/:pid/data', requireAuth, async (req, res) => {
   try {
     const p = await queryOne('SELECT image_path FROM zone_photos WHERE id=? AND zone_id=?', [req.params.pid, req.params.id]);
     if (!p) return res.status(404).json({ error: 'Photo introuvable' });

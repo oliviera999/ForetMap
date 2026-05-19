@@ -5,7 +5,7 @@ const bcrypt = require('bcryptjs');
 const { v4: uuidv4 } = require('uuid');
 const XLSX = require('xlsx');
 const { queryAll, queryOne, execute } = require('../database');
-const { requirePermission } = require('../middleware/requireTeacher');
+const { requireAuth, requirePermission } = require('../middleware/requireTeacher');
 const { logRouteError, respondInternalError } = require('../lib/routeLog');
 const { logAudit } = require('./audit');
 const { emitStudentsChanged, emitTasksChanged } = require('../lib/realtime');
@@ -571,12 +571,18 @@ router.post('/:id/duplicate', requirePermission('users.create', { needsElevation
   }
 });
 
-router.patch('/:id/profile', async (req, res) => {
+router.patch('/:id/profile', requireAuth, async (req, res) => {
   try {
+    const askedStudentId = String(req.params.id || '').trim();
+    const auth = req.auth || null;
+    const isOwner = auth?.userType === 'student' && String(auth?.userId || '') === askedStudentId;
+    if (!isOwner) {
+      return res.status(403).json({ error: 'Modification de profil non autorisée' });
+    }
     const body = req.body || {};
     if (!body.currentPassword) return res.status(400).json({ error: 'Mot de passe actuel requis' });
 
-    const student = await queryOne("SELECT * FROM users WHERE id = ? AND user_type = 'student'", [req.params.id]);
+    const student = await queryOne("SELECT * FROM users WHERE id = ? AND user_type = 'student'", [askedStudentId]);
     if (!student) return res.status(404).json({ error: 'n3beur introuvable' });
     if (!student.password_hash) return res.status(401).json({ error: 'Ce compte n\'a pas de mot de passe. Contactez le prof.' });
 

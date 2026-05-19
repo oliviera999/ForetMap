@@ -1306,7 +1306,11 @@ test('Photos repère : POST liste GET data DELETE', async () => {
   assert.match(String(row.image_url || ''), /^\/uploads\/markers\//);
   if (row.thumb_url) assert.match(String(row.thumb_url), /\.thumb\.jpe?g$/i);
 
-  await request(app).get(`/api/map/markers/${mid}/photos/${pid}/data`).redirects(1).expect(200);
+  await request(app)
+    .get(`/api/map/markers/${mid}/photos/${pid}/data`)
+    .set('Authorization', 'Bearer ' + token)
+    .redirects(1)
+    .expect(200);
 
   await request(app)
     .delete(`/api/map/markers/${mid}/photos/${pid}`)
