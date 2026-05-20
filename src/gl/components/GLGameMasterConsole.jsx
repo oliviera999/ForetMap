@@ -27,6 +27,7 @@ export function GLGameMasterConsole({
   const [scoreDelta, setScoreDelta] = useState(1);
   const [scoreReason, setScoreReason] = useState('');
   const [resolveDeltas, setResolveDeltas] = useState({});
+  const [actionError, setActionError] = useState('');
 
   const teams = Array.isArray(gameState?.teams) ? gameState.teams : [];
   const game = gameState?.game || null;
@@ -55,35 +56,60 @@ export function GLGameMasterConsole({
 
   async function createGame(event) {
     event.preventDefault();
-    const payload = {
-      name,
-      chapterId: Number(chapterId),
-      classId: Number(classId),
-    };
-    const created = await apiGL('/api/gl/games', 'POST', payload);
-    onGameStateChange(created);
-    setEventLog('Partie créée.');
+    setActionError('');
+    if (!chapterId) {
+      setActionError('Choisissez un chapitre avant de créer la partie.');
+      return;
+    }
+    try {
+      const payload = {
+        name,
+        chapterId: Number(chapterId),
+        classId: Number(classId),
+      };
+      const created = await apiGL('/api/gl/games', 'POST', payload);
+      onGameStateChange(created);
+      setEventLog('Partie créée.');
+    } catch (err) {
+      setActionError(err.message || 'Création de partie impossible');
+    }
   }
 
   async function setStatus(nextStatus) {
-    if (!game?.id) return;
-    await apiGL(`/api/gl/games/${game.id}/${nextStatus}`, 'POST');
-    await onReloadGame?.();
-    setEventLog(`Statut: ${nextStatus}`);
+    if (!game?.id) {
+      setActionError('Créez d’abord une partie.');
+      return;
+    }
+    setActionError('');
+    try {
+      await apiGL(`/api/gl/games/${game.id}/${nextStatus}`, 'POST');
+      await onReloadGame?.();
+      setEventLog(`Statut: ${nextStatus}`);
+    } catch (err) {
+      setActionError(err.message || `Action « ${nextStatus} » impossible`);
+    }
   }
 
   async function addTeam(type) {
-    if (!game?.id) return;
-    const label = type === 'gnome' ? 'Equipe Gnomes' : 'Equipe Licornes';
-    const mascotId = type === 'gnome' ? 'gnome-foret-rive' : 'tan-bird-spritesheet';
-    await apiGL(`/api/gl/games/${game.id}/teams`, 'POST', {
-      name: `${label} ${Date.now().toString().slice(-3)}`,
-      type,
-      mascotId,
-      color: type === 'gnome' ? '#65a30d' : '#a855f7',
-    });
-    await onReloadGame?.();
-    setEventLog(`Equipe ${type} ajoutée.`);
+    if (!game?.id) {
+      setActionError('Créez d’abord une partie.');
+      return;
+    }
+    setActionError('');
+    try {
+      const label = type === 'gnome' ? 'Equipe Gnomes' : 'Equipe Licornes';
+      const mascotId = type === 'gnome' ? 'gl-gnome-mousse' : 'gl-licorne-aube';
+      await apiGL(`/api/gl/games/${game.id}/teams`, 'POST', {
+        name: `${label} ${Date.now().toString().slice(-3)}`,
+        type,
+        mascotId,
+        color: type === 'gnome' ? '#65a30d' : '#a855f7',
+      });
+      await onReloadGame?.();
+      setEventLog(`Equipe ${type} ajoutée.`);
+    } catch (err) {
+      setActionError(err.message || 'Ajout d’équipe impossible');
+    }
   }
 
   async function nextTurn() {
@@ -155,6 +181,7 @@ export function GLGameMasterConsole({
   return (
     <section className="gl-panel gl-mj-console">
       <h2>Console MJ</h2>
+      {actionError ? <p className="gl-error">{actionError}</p> : null}
 
       <form onSubmit={createGame} className="gl-form">
         <label>

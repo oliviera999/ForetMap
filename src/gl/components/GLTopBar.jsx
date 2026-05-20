@@ -14,7 +14,7 @@ export function GLTopBar({
   playerMascotId,
 }) {
   return (
-    <header className="gl-topbar">
+    <div className="gl-topbar" role="banner">
       <div className="gl-brand">
         <div className="gl-brand-title">Gnomes &amp; Licornes</div>
         <div className="gl-brand-subtitle">Le jeu de Sciences et Technologie</div>
@@ -40,6 +40,6 @@ export function GLTopBar({
           Deconnexion
         </button>
       </div>
-    </header>
+    </div>
   );
 }

@@ -4,6 +4,7 @@
   color: #0f172a;
 }
 
+/* role=banner : évite la balise <header> (styles globaux ForetMap = 56px + overflow:hidden) */
 .gl-topbar {
   display: grid;
   grid-template-columns: 1fr;
@@ -11,6 +12,17 @@
   padding: 14px 16px;
   background: #0b3d2e;
   color: #f8fafc;
+  height: auto;
+  max-height: none;
+  min-height: 0;
+  overflow: visible;
+  align-items: stretch;
+  justify-content: flex-start;
+  flex-wrap: wrap;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  box-sizing: border-box;
 }
 
 .gl-brand-title {
