@@ -27,7 +27,10 @@ Le mode GL est isolé par JWT avec claim `product: "gl"` et routes dédiées.
 | Méthode | URL | Body | Description |
 |--------|-----|------|-------------|
 | POST | `/api/gl/auth/login` | `{ pseudo, pin }` | Connexion joueur (pseudo + PIN, table `gl_players`) |
-| POST | `/api/gl/auth/google` | `{ idToken }` | Connexion admin/MJ via Google ID token |
+| POST | `/api/gl/auth/staff/login` | `{ identifier, password }` | Connexion MJ/Admin via compte **ForetMap** (enseignant). Les **admins ForetMap** (rôle RBAC `admin`) sont synchronisés automatiquement dans `gl_admins`. Les comptes MJ déjà enregistrés dans `gl_admins` (rôle `mj`) sont aussi acceptés. Refus `403` pour un élève ForetMap (onglet joueur requis). |
+| GET | `/api/gl/auth/google/start` | — | Redirection OAuth Google (flux navigateur, comme ForetMap). Callback : `/api/gl/auth/google/callback` → retour `gl.html#oauth=…` |
+| POST | `/api/gl/auth/google` | `{ idToken }` | Connexion MJ/Admin via Google ID token (compatibilité API ; mêmes règles d’accès que `staff/login`) |
+| GET | `/api/gl/auth/config` | — | Libellés écran connexion (`title`, `subtitle`, `allowGoogleStaff`) |
 | GET | `/api/gl/auth/me` | — | Profil courant GL (`auth`, `profile`) |
 
 ### Contenus éditoriaux GL
