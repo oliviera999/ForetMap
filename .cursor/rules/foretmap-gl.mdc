@@ -1,0 +1,10 @@
+# Règles spécifiques Gnomes & Licornes (GL)
+
+- **Routage host** : `gl.*` ou `X-Foretmap-Product: gl` → SPA `gl.html` ; les routes API sont préfixées **`/api/gl/*`**.
+- **Token GL** : JWT avec claim `product: 'gl'` ; signé via `signAuthToken({ product: 'gl', ... })`. Vérifié par `middleware/requireGlAuth.js`.
+- **Isolement cross-produit** : un JWT `product: 'gl'` est explicitement rejeté sur les routes ForetMap principales (`server.js`). Ne pas brancher de route GL sous `/api/<autre>`.
+- **Tests GL** : exécution séquentielle obligatoire (`--test-concurrency=1 --test-force-exit`) — la BDD est partagée, sinon deadlocks d'`initSchema()`.
+- **Modules GL** : tout nouvel onglet/feature exposé côté `src/gl/AppGL.jsx` doit avoir un drapeau `modules.*` correspondant dans `lib/glSettings.js` et être validé strictement (booléen) côté `routes/gl/admin.js`.
+- **Mascottes GL** : préfixe id `gl-*` ; renderer multi-mode via `GLMascotRenderer` ; packs persistés validés par `lib/gl-pack/mascotPack.js` (Zod).
+- **Diagnostics** : section `gl` dans `GET /api/admin/diagnostics` (compteurs parties, joueurs actifs, types d'évènements récents, packs).
+- **Convention commits** : préfixe Conventional Commits `feat(gl)`, `fix(gl)`, `chore(gl)`, etc. quand le lot est exclusivement GL.

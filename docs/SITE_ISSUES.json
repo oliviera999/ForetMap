@@ -8,16 +8,6 @@
   "items": {
     "high": [
       {
-        "id": "B1",
-        "summary": "Suppression d'observation insuffisamment protegee",
-        "details": "DELETE /api/observations/:id"
-      },
-      {
-        "id": "B2",
-        "summary": "Risque d'IDOR sur la lecture d'observations",
-        "details": "Lecture par studentId"
-      },
-      {
         "id": "B3",
         "summary": "Actions eleves basees sur un studentId client",
         "details": "Risque d'usurpation selon contexte reseau"
@@ -33,8 +23,8 @@
       },
       {
         "id": "R3",
-        "summary": "Exposition potentielle de medias via routes ouvertes",
-        "details": "Politique d'acces non unifiee"
+        "summary": "Exposition potentielle de medias via URL publiques /uploads",
+        "details": "Routes data durcies, politique globale d'acces medias a unifier"
       }
     ],
     "medium": [
@@ -62,6 +52,16 @@
         "id": "R9",
         "summary": "Rupture HTTP/2 / WAF (Tiger Protect) mutualise",
         "details": "Chrome ERR_HTTP2_PROTOCOL_ERROR sur /socket.io ou /api — voir docs/EXPLOITATION.md"
+      },
+      {
+        "id": "GL1",
+        "summary": "Isolement cross-produit JWT GL/ForetMap",
+        "details": "Verifier que le token product=gl ne donne pas acces aux routes ForetMap (server.js)."
+      },
+      {
+        "id": "GL2",
+        "summary": "Schema partage tests GL",
+        "details": "Lancer les tests GL en --test-concurrency=1 (sinon deadlocks initSchema)."
       }
     ],
     "low": [
@@ -83,6 +83,18 @@
       {
         "id": "B6",
         "summary": "Regle interne frontend mise a jour sur la stack Vite"
+      },
+      {
+        "id": "B1",
+        "summary": "Suppression d'observation protegee (owner ou n3boss scope)"
+      },
+      {
+        "id": "B2",
+        "summary": "Lecture observations protegee contre IDOR inter-eleves"
+      },
+      {
+        "id": "B8",
+        "summary": "PATCH profil eleve protege par JWT et verification proprietaire"
       }
     ]
   },
