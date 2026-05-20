@@ -127,6 +127,73 @@ Le script accepte également `--target=chapters` (Lot 2B) : seules les pages WP 
 - `gl.settings.manage`
 - `gl.action.request`
 
+### Modules GL activables (`modules.*`)
+
+Drapeaux booléens lus via `GET /api/gl/auth/config` (champ `modules`) et persistés
+dans `gl_settings` :
+
+- `modules.mascot_packs_enabled`
+- `modules.context_comments_enabled`
+- `modules.forum_enabled`
+- `modules.notifications_enabled`
+- `modules.tutorials_enabled`
+- `modules.help_enabled`
+- `modules.journal_enabled`
+- `modules.kingdom_map_enabled`
+
+Modifiables via `PUT /api/gl/admin/settings/:key` (validation booléenne stricte,
+permission `gl.settings.manage`).
+
+### Modules collaboration / pédagogie GL
+
+| Méthode | URL | Body | Permission |
+|--------|-----|------|------------|
+| GET | `/api/gl/context-comments?contextType=&contextId=` | — | Auth GL |
+| POST | `/api/gl/context-comments` | `{ contextType, contextId, body }` | Auth GL |
+| DELETE | `/api/gl/context-comments/:id` | — | Auteur ou `gl_admin` |
+| GET | `/api/gl/forum/threads` | — | Auth GL |
+| POST | `/api/gl/forum/threads` | `{ title, body }` | Auth GL |
+| GET | `/api/gl/forum/threads/:id` | — | Auth GL |
+| POST | `/api/gl/forum/threads/:id/posts` | `{ body }` | Auth GL (refus 409 si verrouillé sauf `gl_admin`) |
+| PATCH | `/api/gl/forum/threads/:id/lock` | `{ locked }` | `gl_admin` |
+| DELETE | `/api/gl/forum/posts/:id` | — | Auteur ou `gl_admin` |
+| GET | `/api/gl/tutorials` | `?chapterId=` optionnel | Auth GL |
+| GET | `/api/gl/tutorials/me/read-ids` | — | Auth GL |
+| GET | `/api/gl/tutorials/:idOrSlug` | — | Auth GL |
+| POST | `/api/gl/tutorials/:id/read` | — | Auth GL |
+| POST | `/api/gl/tutorials` | `{ slug, title, bodyMarkdown, chapterId?, markerId?, orderIndex?, isPublished? }` | `gl.content.manage` |
+| PUT | `/api/gl/tutorials/:id` | mise à jour partielle | `gl.content.manage` |
+| DELETE | `/api/gl/tutorials/:id` | — | `gl.content.manage` |
+| GET | `/api/gl/journal/games/:id` | `?teamId=&limit=` | Auth GL |
+| GET | `/api/gl/kingdom-map/zones?chapterId=` | — | Auth GL |
+| POST | `/api/gl/kingdom-map/zones` | `{ chapterId, label, description?, color?, points: [{x,y}…] }` | `gl.content.manage` |
+| PUT | `/api/gl/kingdom-map/zones/:id` | mise à jour partielle | `gl.content.manage` |
+| DELETE | `/api/gl/kingdom-map/zones/:id` | — | `gl.content.manage` |
+
+### Diagnostics GL (admin)
+
+`GET /api/admin/diagnostics` (header `X-Deploy-Secret`) inclut désormais une
+section `gl` :
+
+```json
+{
+  "gl": {
+    "ok": true,
+    "gamesByStatus": { "draft": 1, "live": 2 },
+    "activePlayers": 42,
+    "recentEventTypes": [{ "eventType": "move", "count": 12 }],
+    "mascotPackCount": 3
+  }
+}
+```
+
+Outils MCP exposés (`scripts/mcp-foretmap-diagnostics.mjs`) :
+
+- `gl_public_health` (sans secret) — `/api/health`, `/api/version`,
+  `/api/gl/chapters` (200/401 attendus).
+- `gl_diagnostics` (secret requis) — sous-section `gl` de
+  `/api/admin/diagnostics`.
+
 ---
 
 ## Observabilité (logs / corrélation)
