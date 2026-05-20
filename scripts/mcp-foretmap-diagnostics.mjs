@@ -19,6 +19,11 @@ function baseUrl() {
   return raw.replace(/\/$/, '');
 }
 
+function glBaseUrl() {
+  const raw = (process.env.GL_BASE_URL || process.env.GL_PROD_BASE_URL || 'https://gl.olution.info').trim();
+  return raw.replace(/\/$/, '');
+}
+
 async function fetchText(url, init = {}) {
   const res = await fetch(url, {
     ...init,
@@ -131,6 +136,51 @@ server.registerTool(
       };
     }
     return { content: [{ type: 'text', text: JSON.stringify(json, null, 2) }] };
+  }
+);
+
+server.registerTool(
+  'gl_public_health',
+  {
+    description:
+      'Contrôles publics Gnomes & Licornes (sans secret) : /api/health (mutualisé), /api/version (mutualisé), /api/gl/chapters (sans auth → 401 attendu).',
+  },
+  async () => {
+    const b = glBaseUrl();
+    const [h, ver, ch] = await Promise.all([
+      fetchText(`${b}/api/health`),
+      fetchText(`${b}/api/version`),
+      fetchText(`${b}/api/gl/chapters`),
+    ]);
+    const out = {
+      baseUrl: b,
+      health: { status: h.status, body: h.json },
+      version: { status: ver.status, body: ver.json },
+      glChapters: { status: ch.status, body: ch.json },
+    };
+    return { content: [{ type: 'text', text: JSON.stringify(out, null, 2) }] };
+  }
+);
+
+server.registerTool(
+  'gl_diagnostics',
+  {
+    description:
+      'Section GL de l\'instantané serveur (secret requis). Renvoie la sous-section `gl` de /api/admin/diagnostics : statuts parties, joueurs actifs, types d\'évènements récents, nb packs.',
+  },
+  async () => {
+    const secret = requireSecret();
+    const { status, json } = await fetchText(`${baseUrl()}/api/admin/diagnostics`, {
+      headers: { 'X-Deploy-Secret': secret },
+    });
+    if (status !== 200) {
+      return {
+        isError: true,
+        content: [{ type: 'text', text: JSON.stringify({ status, body: json }, null, 2) }],
+      };
+    }
+    const out = { ts: json?.ts || null, version: json?.version || null, gl: json?.gl || null };
+    return { content: [{ type: 'text', text: JSON.stringify(out, null, 2) }] };
   }
 );
 
