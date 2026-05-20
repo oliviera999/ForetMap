@@ -3,7 +3,7 @@ import { apiGL } from '../services/apiGL.js';
 import { GLContentPage } from './GLContentPage.jsx';
 import { GLChaptersAdminView } from './GLChaptersAdminView.jsx';
 
-export function GLContentsAdminView({ auth }) {
+export function GLContentsAdminView({ auth, onNavigateTab }) {
   const [section, setSection] = useState('pages');
   const [items, setItems] = useState([]);
   const [activeSlug, setActiveSlug] = useState('world');
@@ -70,6 +70,7 @@ export function GLContentsAdminView({ auth }) {
               fallbackTitle={items.find((item) => item.slug === activeSlug)?.title || activeSlug}
               auth={auth}
               onSaved={load}
+              onNavigateTab={onNavigateTab}
             />
           ) : null}
         </>

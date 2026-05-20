@@ -8,30 +8,39 @@ function canManageContent(auth) {
   return permissions.includes('gl.content.manage');
 }
 
-export function GLContentPage({ slug, fallbackTitle, auth, onSaved }) {
+function hasExistingContent(data) {
+  return Boolean(String(data?.bodyMarkdown || '').trim());
+}
+
+export function GLContentPage({ slug, fallbackTitle, auth, onSaved, onNavigateTab }) {
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [loadError, setLoadError] = useState('');
+  const [saveError, setSaveError] = useState('');
   const [content, setContent] = useState(null);
   const [draftTitle, setDraftTitle] = useState('');
   const [draftBody, setDraftBody] = useState('');
+  const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [savedMessage, setSavedMessage] = useState('');
+
+  const manageable = canManageContent(auth);
 
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
-    setError('');
+    setLoadError('');
+    setSaveError('');
     setSavedMessage('');
     apiGL(`/api/gl/content/${encodeURIComponent(slug)}`)
       .then((data) => {
-        if (!cancelled) {
-          setContent(data);
-          setDraftTitle(String(data?.title || fallbackTitle || slug));
-          setDraftBody(String(data?.bodyMarkdown || ''));
-        }
+        if (cancelled) return;
+        setContent(data);
+        setDraftTitle(String(data?.title || fallbackTitle || slug));
+        setDraftBody(String(data?.bodyMarkdown || ''));
+        setEditing(manageable && !hasExistingContent(data));
       })
       .catch((err) => {
-        if (!cancelled) setError(err.message || 'Chargement impossible');
+        if (!cancelled) setLoadError(err.message || 'Chargement impossible');
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -39,40 +48,91 @@ export function GLContentPage({ slug, fallbackTitle, auth, onSaved }) {
     return () => {
       cancelled = true;
     };
-  }, [slug, fallbackTitle]);
+  }, [slug, fallbackTitle, manageable]);
 
   async function save() {
-    if (!canManageContent(auth) || saving) return;
+    if (!manageable || saving) return;
+    const titleTrim = String(draftTitle || '').trim();
+    if (!titleTrim) {
+      setSaveError('Le titre est obligatoire.');
+      return;
+    }
     setSaving(true);
-    setError('');
+    setSaveError('');
     setSavedMessage('');
     try {
       const data = await apiGL(`/api/gl/content/${encodeURIComponent(slug)}`, 'PUT', {
-        title: draftTitle,
+        title: titleTrim,
         bodyMarkdown: draftBody,
       });
       setContent(data);
-      setDraftTitle(String(data?.title || draftTitle));
+      setDraftTitle(String(data?.title || titleTrim));
       setDraftBody(String(data?.bodyMarkdown || draftBody));
-      setSavedMessage('Contenu enregistre');
+      setEditing(false);
+      setSavedMessage('Contenu enregistré.');
       if (typeof onSaved === 'function') onSaved(data);
     } catch (err) {
-      setError(err.message || 'Enregistrement impossible');
+      setSaveError(err.message || 'Enregistrement impossible');
     } finally {
       setSaving(false);
     }
   }
 
-  if (loading) return <div className="gl-panel">Chargement...</div>;
-  if (error) return <div className="gl-panel gl-error">{error}</div>;
-  const title = content?.title || fallbackTitle || slug;
-  const markdown = canManageContent(auth) ? draftBody : (content?.bodyMarkdown || '');
-  const html = DOMPurify.sanitize(marked.parse(markdown));
+  if (loading) return <div className="gl-panel">Chargement…</div>;
+  if (loadError) {
+    return (
+      <div className="gl-panel gl-error">
+        <p>{loadError}</p>
+        <button type="button" onClick={() => window.location.reload()}>Réessayer</button>
+      </div>
+    );
+  }
+
+  const displayTitle = content?.title || fallbackTitle || slug;
+  const previewMarkdown = manageable && editing ? draftBody : (content?.bodyMarkdown || draftBody || '');
+  let previewHtml = '';
+  try {
+    previewHtml = DOMPurify.sanitize(marked.parse(previewMarkdown || '_Contenu vide._'));
+  } catch (_) {
+    previewHtml = '<p>Aperçu indisponible (markdown invalide).</p>';
+  }
+
   return (
     <article className="gl-panel gl-markdown">
-      <h2>{title}</h2>
-      {canManageContent(auth) ? (
+      <h2>{displayTitle}</h2>
+
+      {savedMessage ? (
+        <div className="gl-success-banner" role="status">
+          {savedMessage}
+          {typeof onNavigateTab === 'function' ? (
+            <button type="button" className="gl-btn-secondary" onClick={() => onNavigateTab('mj')}>
+              Ouvrir la console MJ
+            </button>
+          ) : null}
+        </div>
+      ) : null}
+
+      {saveError ? <p className="gl-error">{saveError}</p> : null}
+
+      {manageable && !editing ? (
+        <div className="gl-inline-actions" style={{ marginBottom: 12 }}>
+          <button type="button" onClick={() => { setSaveError(''); setSavedMessage(''); setEditing(true); }}>
+            Modifier le contenu
+          </button>
+          {typeof onNavigateTab === 'function' ? (
+            <button type="button" className="gl-btn-secondary" onClick={() => onNavigateTab('contents')}>
+              Tous les contenus (admin)
+            </button>
+          ) : null}
+        </div>
+      ) : null}
+
+      {manageable && editing ? (
         <section className="gl-form">
+          <p className="gl-hint">
+            Cette page est affichée aux joueurs dans l’onglet correspondant. Vous pouvez la modifier plus tard
+            depuis l’onglet <strong>Contenus</strong>.
+          </p>
           <label>
             Titre
             <input value={draftTitle} onChange={(event) => setDraftTitle(event.target.value)} />
@@ -87,14 +147,30 @@ export function GLContentPage({ slug, fallbackTitle, auth, onSaved }) {
           </label>
           <div className="gl-inline-actions">
             <button type="button" onClick={save} disabled={saving}>
-              {saving ? 'Enregistrement...' : 'Enregistrer'}
+              {saving ? 'Enregistrement…' : 'Enregistrer'}
             </button>
-            {savedMessage ? <span>{savedMessage}</span> : null}
+            {hasExistingContent(content) ? (
+              <button
+                type="button"
+                className="gl-btn-secondary"
+                disabled={saving}
+                onClick={() => {
+                  setSaveError('');
+                  setSavedMessage('');
+                  setDraftTitle(String(content?.title || fallbackTitle || slug));
+                  setDraftBody(String(content?.bodyMarkdown || ''));
+                  setEditing(false);
+                }}
+              >
+                Annuler
+              </button>
+            ) : null}
           </div>
         </section>
       ) : null}
-      {canManageContent(auth) ? <h3>Apercu</h3> : null}
-      <div dangerouslySetInnerHTML={{ __html: html }} />
+
+      {manageable && editing ? <h3>Aperçu</h3> : null}
+      <div dangerouslySetInnerHTML={{ __html: previewHtml }} />
     </article>
   );
 }
