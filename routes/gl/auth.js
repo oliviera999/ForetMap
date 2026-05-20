@@ -7,6 +7,7 @@ const {
   resolveGlStaffLogin,
   buildGlAdminClaims,
 } = require('../../lib/glStaffAuth');
+const { getGlModulesSettings } = require('../../lib/glSettings');
 const {
   makeGoogleOAuthState,
   buildOAuthFrontendRedirect,
@@ -76,6 +77,7 @@ function exposeGlAuth(claims) {
     classId: claims.classId || null,
     teamId: claims.teamId || null,
     permissions: claims.permissions || [],
+    passwordMustReset: !!claims.passwordMustReset,
   };
 }
 
@@ -152,31 +154,39 @@ router.get('/config', async (_req, res) => {
   } catch (_) { /* noop */ }
   const clientId = normalizeOptionalString(process.env.GL_GOOGLE_OAUTH_CLIENT_ID)
     || normalizeOptionalString(process.env.GOOGLE_OAUTH_CLIENT_ID);
+  const modules = await getGlModulesSettings();
   return res.json({
     title: String(title || 'Gnomes & Licornes'),
     subtitle: String(subtitle || ''),
     allowGoogleStaff: !!clientId,
+    modules,
   });
 });
 
 router.post('/login', async (req, res) => {
   try {
-    const pseudo = normalizeOptionalString(req.body?.pseudo);
-    const pin = normalizeOptionalString(req.body?.pin);
-    if (!pseudo || !pin) return res.status(400).json({ error: 'Pseudo et PIN requis' });
+    const pseudo = normalizeOptionalString(req.body?.pseudo)
+      || normalizeOptionalString(req.body?.identifier);
+    // Compat legacy: "pin" reste accepté pour les clients existants.
+    const password = normalizeOptionalString(req.body?.password)
+      || normalizeOptionalString(req.body?.pin);
+    if (!pseudo || !password) {
+      return res.status(400).json({ error: 'Pseudo et mot de passe requis' });
+    }
 
     const player = await queryOne(
-      `SELECT p.id, p.class_id, p.team_id, p.pseudo, p.pin_hash, p.is_active
+      `SELECT p.id, p.class_id, p.team_id, p.pseudo, p.first_name, p.last_name,
+              p.password_hash, p.password_must_reset, p.is_active
          FROM gl_players p
         WHERE LOWER(p.pseudo) = LOWER(?)
         LIMIT 1`,
       [pseudo]
     );
     if (!player || !Number(player.is_active)) {
-      return res.status(401).json({ error: 'Pseudo ou PIN incorrect' });
+      return res.status(401).json({ error: 'Pseudo ou mot de passe incorrect' });
     }
-    const ok = await bcrypt.compare(pin, String(player.pin_hash || ''));
-    if (!ok) return res.status(401).json({ error: 'Pseudo ou PIN incorrect' });
+    const ok = await bcrypt.compare(password, String(player.password_hash || ''));
+    if (!ok) return res.status(401).json({ error: 'Pseudo ou mot de passe incorrect' });
 
     await execute('UPDATE gl_players SET last_seen = NOW() WHERE id = ?', [player.id]);
     const claims = {
@@ -186,6 +196,7 @@ router.post('/login', async (req, res) => {
       displayName: player.pseudo,
       classId: player.class_id ? Number(player.class_id) : null,
       teamId: player.team_id ? Number(player.team_id) : null,
+      passwordMustReset: !!Number(player.password_must_reset || 0),
       permissions: getGlRolePermissions('player'),
     };
     const token = await signGlToken(claims);
@@ -389,7 +400,8 @@ router.get('/google/callback', async (req, res) => {
 router.get('/me', requireGlAuth, async (req, res) => {
   if (req.glAuth.userType === 'gl_player') {
     const player = await queryOne(
-      `SELECT p.id, p.pseudo, p.class_id, p.team_id, c.name AS class_name, t.name AS team_name
+      `SELECT p.id, p.first_name, p.last_name, p.pseudo, p.class_id, p.team_id,
+              p.password_must_reset, c.name AS class_name, t.name AS team_name
          FROM gl_players p
     LEFT JOIN gl_classes c ON c.id = p.class_id
     LEFT JOIN gl_teams t ON t.id = p.team_id
@@ -410,6 +422,41 @@ router.get('/me', requireGlAuth, async (req, res) => {
     auth: req.glAuth,
     profile: admin || null,
   });
+});
+
+router.post('/change-password', requireGlAuth, async (req, res) => {
+  if (req.glAuth.userType !== 'gl_player') {
+    return res.status(403).json({ error: 'Action réservée aux joueurs GL' });
+  }
+  const currentPassword = normalizeOptionalString(req.body?.currentPassword)
+    || normalizeOptionalString(req.body?.pin);
+  const nextPassword = normalizeOptionalString(req.body?.newPassword)
+    || normalizeOptionalString(req.body?.password);
+  if (!currentPassword || !nextPassword) {
+    return res.status(400).json({ error: 'Mot de passe actuel et nouveau requis' });
+  }
+  if (nextPassword.length < 4) {
+    return res.status(400).json({ error: 'Mot de passe trop court (min 4 caractères)' });
+  }
+  const player = await queryOne(
+    'SELECT id, password_hash FROM gl_players WHERE id = ? LIMIT 1',
+    [req.glAuth.userId]
+  );
+  if (!player) {
+    return res.status(404).json({ error: 'Joueur introuvable' });
+  }
+  const ok = await bcrypt.compare(currentPassword, String(player.password_hash || ''));
+  if (!ok) {
+    return res.status(401).json({ error: 'Mot de passe actuel incorrect' });
+  }
+  const passwordHash = await bcrypt.hash(nextPassword, 10);
+  await execute(
+    `UPDATE gl_players
+        SET password_hash = ?, password_must_reset = 0, updated_at = NOW()
+      WHERE id = ?`,
+    [passwordHash, player.id]
+  );
+  return res.json({ ok: true });
 });
 
 module.exports = router;
