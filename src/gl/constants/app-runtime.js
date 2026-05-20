@@ -8,6 +8,10 @@ export const GL_PLAYER_TABS = [
   { id: 'world', label: 'Le monde de G&L' },
   { id: 'spells', label: 'Sortileges' },
   { id: 'rules', label: 'Regles du jeu' },
+  { id: 'kingdom', label: 'Royaume' },
+  { id: 'tutorials', label: 'Tutoriels' },
+  { id: 'forum', label: 'Forum' },
+  { id: 'journal', label: 'Journal' },
 ];
 
 export const GL_ADMIN_EXTRA_TABS = [
