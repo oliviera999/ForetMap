@@ -1,0 +1,14 @@
+CREATE TABLE IF NOT EXISTS gl_kingdom_zones (
+  id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  chapter_id INT UNSIGNED NOT NULL,
+  label VARCHAR(180) NOT NULL,
+  description TEXT DEFAULT NULL,
+  points_json LONGTEXT NOT NULL,
+  color VARCHAR(32) DEFAULT '#22c55e',
+  created_by INT UNSIGNED DEFAULT NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  INDEX idx_gl_kingdom_zones_chapter (chapter_id),
+  CONSTRAINT fk_gl_kingdom_zones_chapter FOREIGN KEY (chapter_id) REFERENCES gl_chapters(id) ON DELETE CASCADE,
+  CONSTRAINT fk_gl_kingdom_zones_admin FOREIGN KEY (created_by) REFERENCES gl_admins(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
