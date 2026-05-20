@@ -1,6 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { apiGL } from '../services/apiGL.js';
-import { GLMascotAvatar } from './GLMascotAvatar.jsx';
+import { GLMascotRenderer } from './GLMascotRenderer.jsx';
+import { GL_MASCOT_STATE } from '../hooks/useGLMascotStateMachine.js';
+import { GLMascotPackManager } from './GLMascotPackManager.jsx';
 
 const TYPE_FILTERS = [
   { id: 'all', label: 'Tous' },
@@ -15,6 +17,7 @@ export function GLMascotsAdminView({ gameState, onReloadGame }) {
   const [selectedTeamId, setSelectedTeamId] = useState('');
   const [error, setError] = useState('');
   const [info, setInfo] = useState('');
+  const [previewState, setPreviewState] = useState(GL_MASCOT_STATE.IDLE);
 
   const gameId = gameState?.game?.id || null;
   const teams = useMemo(() => (Array.isArray(gameState?.teams) ? gameState.teams : []), [gameState]);
@@ -117,6 +120,16 @@ export function GLMascotsAdminView({ gameState, onReloadGame }) {
             </button>
           ))}
         </div>
+        <label>
+          Etat preview
+          <select value={previewState} onChange={(event) => setPreviewState(event.target.value)}>
+            <option value={GL_MASCOT_STATE.IDLE}>Idle</option>
+            <option value={GL_MASCOT_STATE.WALKING}>Walking</option>
+            <option value={GL_MASCOT_STATE.TALKING}>Talking</option>
+            <option value={GL_MASCOT_STATE.HAPPY}>Happy</option>
+            <option value={GL_MASCOT_STATE.SAD}>Sad</option>
+          </select>
+        </label>
       </div>
 
       <ul className="gl-mascot-grid">
@@ -131,7 +144,7 @@ export function GLMascotsAdminView({ gameState, onReloadGame }) {
               data-mascot-id={mascot.id}
               data-mascot-type={mascot.type}
             >
-              <GLMascotAvatar mascotId={mascot.id} size={72} />
+              <GLMascotRenderer mascotId={mascot.id} mascotState={previewState} size={72} />
               <div className="gl-mascot-card-body">
                 <strong>{mascot.label}</strong>
                 <span className="gl-hint">{mascot.type === 'gnome' ? 'Gnome' : 'Licorne'}</span>
@@ -149,6 +162,7 @@ export function GLMascotsAdminView({ gameState, onReloadGame }) {
           );
         })}
       </ul>
+      <GLMascotPackManager />
     </section>
   );
 }
