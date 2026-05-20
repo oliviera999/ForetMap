@@ -17,7 +17,18 @@ const router = express.Router();
 
 const AUTO_BODY_WITH_PHOTOS = '(Photo)';
 
-const ALLOWED_CONTEXT_TYPES = new Set(['task', 'project', 'zone', 'marker', 'plant', 'tutorial']);
+const ALLOWED_CONTEXT_TYPES = new Set([
+  'task',
+  'project',
+  'zone',
+  'marker',
+  'plant',
+  'tutorial',
+  'gl_chapter',
+  'gl_scene',
+  'gl_game',
+  'gl_mascot_pack',
+]);
 const DEFAULT_PAGE_SIZE = 20;
 const MAX_PAGE_SIZE = 50;
 const MIN_COMMENT_LEN = 2;
@@ -163,6 +174,22 @@ async function contextExists(contextType, contextId) {
   }
   if (contextType === 'tutorial') {
     const row = await queryOne('SELECT id FROM tutorials WHERE id = ? LIMIT 1', [contextId]);
+    return !!row;
+  }
+  if (contextType === 'gl_chapter') {
+    const row = await queryOne('SELECT id FROM gl_chapters WHERE id = ? LIMIT 1', [contextId]);
+    return !!row;
+  }
+  if (contextType === 'gl_scene') {
+    const row = await queryOne('SELECT id FROM gl_chapter_markers WHERE id = ? LIMIT 1', [contextId]);
+    return !!row;
+  }
+  if (contextType === 'gl_game') {
+    const row = await queryOne('SELECT id FROM gl_games WHERE id = ? LIMIT 1', [contextId]);
+    return !!row;
+  }
+  if (contextType === 'gl_mascot_pack') {
+    const row = await queryOne('SELECT id FROM gl_mascot_packs WHERE id = ? LIMIT 1', [contextId]);
     return !!row;
   }
   return false;
