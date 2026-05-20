@@ -7,4 +7,12 @@ test.describe('Gnomes & Licornes foundations', () => {
     const glChapters = await request.get('/api/gl/chapters');
     expect([200, 401]).toContain(glChapters.status());
   });
+
+  test('config GL expose les drapeaux modules', async ({ request }) => {
+    const config = await request.get('/api/gl/auth/config');
+    expect(config.ok()).toBeTruthy();
+    const body = await config.json();
+    expect(typeof body?.modules?.journalEnabled).toBe('boolean');
+    expect(typeof body?.modules?.mascotPacksEnabled).toBe('boolean');
+  });
 });

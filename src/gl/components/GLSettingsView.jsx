@@ -28,6 +28,17 @@ const GAMEPLAY_TOGGLES = [
   },
 ];
 
+const MODULE_TOGGLES = [
+  { key: 'modules.mascot_packs_enabled', label: 'Studio mascottes', hint: 'Affiche la gestion mascottes/packs.' },
+  { key: 'modules.context_comments_enabled', label: 'Commentaires contextuels', hint: 'Prépare le module commentaires GL.' },
+  { key: 'modules.forum_enabled', label: 'Forum', hint: 'Prépare le module forum GL.' },
+  { key: 'modules.notifications_enabled', label: 'Notifications', hint: 'Prépare le centre de notifications GL.' },
+  { key: 'modules.tutorials_enabled', label: 'Tutoriels', hint: 'Prépare le module tutoriels GL.' },
+  { key: 'modules.help_enabled', label: 'Aide contextuelle', hint: 'Prépare l’onboarding GL.' },
+  { key: 'modules.journal_enabled', label: 'Journal/Histoire', hint: 'Affiche/masque l’onglet Histoire.' },
+  { key: 'modules.kingdom_map_enabled', label: 'Carte royaume', hint: 'Prépare la carte royaume GL.' },
+];
+
 function readGameplayFlag(settings, key) {
   const value = settings?.[key];
   return value === true || value === 'true';
@@ -117,6 +128,31 @@ export function GLSettingsView() {
       </p>
       <ul className="gl-gameplay-toggles">
         {GAMEPLAY_TOGGLES.map((toggle) => {
+          const current = readGameplayFlag(settings, toggle.key);
+          const saving = savingKey === toggle.key;
+          return (
+            <li key={toggle.key} className="gl-gameplay-toggle">
+              <label>
+                <input
+                  type="checkbox"
+                  checked={current}
+                  disabled={saving}
+                  onChange={(event) => toggleGameplayFlag(toggle.key, event.target.checked)}
+                />
+                <span className="gl-gameplay-toggle-label">{toggle.label}</span>
+              </label>
+              <span className="gl-gameplay-toggle-hint">{toggle.hint}</span>
+            </li>
+          );
+        })}
+      </ul>
+
+      <h3>Modules GL</h3>
+      <p className="gl-hint">
+        Ces drapeaux activent/désactivent les modules GL côté interface.
+      </p>
+      <ul className="gl-gameplay-toggles">
+        {MODULE_TOGGLES.map((toggle) => {
           const current = readGameplayFlag(settings, toggle.key);
           const saving = savingKey === toggle.key;
           return (
