@@ -37,7 +37,9 @@ export function GLSettingsView() {
   const [settings, setSettings] = useState({});
   const [title, setTitle] = useState('Gnomes & Licornes');
   const [error, setError] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
   const [savingKey, setSavingKey] = useState('');
+  const [savingTitle, setSavingTitle] = useState(false);
 
   async function load() {
     try {
@@ -57,11 +59,23 @@ export function GLSettingsView() {
 
   async function saveTitle(event) {
     event.preventDefault();
+    const titleTrim = String(title || '').trim();
+    if (!titleTrim) {
+      setError('Le titre plateforme est obligatoire.');
+      setSuccessMessage('');
+      return;
+    }
+    setSavingTitle(true);
+    setError('');
+    setSuccessMessage('');
     try {
-      await apiGL('/api/gl/admin/settings/platform.title', 'PUT', { value: title });
+      await apiGL('/api/gl/admin/settings/platform.title', 'PUT', { value: titleTrim });
       await load();
+      setSuccessMessage('Titre plateforme enregistré.');
     } catch (err) {
       setError(err.message || 'Enregistrement impossible');
+    } finally {
+      setSavingTitle(false);
     }
   }
 
@@ -84,13 +98,16 @@ export function GLSettingsView() {
     <section className="gl-panel">
       <h2>Réglages plateforme</h2>
       {error ? <p className="gl-error">{error}</p> : null}
+      {successMessage ? <div className="gl-success-banner" role="status">{successMessage}</div> : null}
 
       <form onSubmit={saveTitle} className="gl-form">
         <label>
           Titre plateforme
           <input value={title} onChange={(event) => setTitle(event.target.value)} />
         </label>
-        <button type="submit">Enregistrer</button>
+        <button type="submit" disabled={savingTitle}>
+          {savingTitle ? 'Enregistrement…' : 'Enregistrer'}
+        </button>
       </form>
 
       <h3>Gameplay</h3>

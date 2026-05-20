@@ -50,6 +50,10 @@ function isAdminRole(auth) {
   return auth?.userType === 'gl_admin';
 }
 
+function defaultTabForAuth(auth) {
+  return isAdminRole(auth) ? 'mj' : 'maps';
+}
+
 function toGameViewModel(raw) {
   if (!raw) return null;
   const game = raw?.game || null;
@@ -92,8 +96,9 @@ export function AppGL() {
     }
     const payload = decodeBase64UrlJson(oauthPayload);
     if (payload?.type === 'gl_staff' && payload?.token) {
-      updateSession({ token: payload.token, auth: payload.auth || null });
-      setTab('world');
+      const nextAuth = payload.auth || null;
+      updateSession({ token: payload.token, auth: nextAuth });
+      setTab(defaultTabForAuth(nextAuth));
       setOauthNotice({ success: true });
       setError('');
       return;
@@ -260,7 +265,7 @@ export function AppGL() {
         oauthNotice={oauthNotice}
         onLogin={(data) => {
           updateSession({ token: data.authToken, auth: data.auth });
-          setTab('world');
+          setTab(defaultTabForAuth(data?.auth));
           setError('');
           setOauthNotice(null);
         }}
@@ -298,9 +303,9 @@ export function AppGL() {
       ) : null}
 
       <main className="gl-main">
-        {tab === 'world' && <GLWorldView auth={auth} />}
-        {tab === 'rules' && <GLRulesView auth={auth} />}
-        {tab === 'spells' && <GLSpellsView auth={auth} />}
+        {tab === 'world' && <GLWorldView auth={auth} onNavigateTab={setTab} />}
+        {tab === 'rules' && <GLRulesView auth={auth} onNavigateTab={setTab} />}
+        {tab === 'spells' && <GLSpellsView auth={auth} onNavigateTab={setTab} />}
         {tab === 'maps' && (
           <GLMapView
             gameState={gameState}
@@ -316,7 +321,7 @@ export function AppGL() {
         {tab === 'biocenose' && <GLBiocenoseView gameState={gameState} />}
         {tab === 'history' && <GLHistoryView gameState={gameState} />}
         {tab === 'users' && isAdmin && <GLUsersAdminView />}
-        {tab === 'contents' && isAdmin && <GLContentsAdminView auth={auth} />}
+        {tab === 'contents' && isAdmin && <GLContentsAdminView auth={auth} onNavigateTab={setTab} />}
         {tab === 'settings' && isAdmin && <GLSettingsView />}
         {tab === 'mascots' && isAdmin && (
           <GLMascotsAdminView gameState={gameState} onReloadGame={reloadGame} />

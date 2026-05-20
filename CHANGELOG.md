@@ -25,6 +25,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - **UI — coque modale** : composant **`DialogShell.jsx`** et branchements (tutoriels, confirmations biodiversité, aide).
 
 ### Modifié
+- **Gnomes & Licornes — parcours admin après connexion** : les MJ/Admin arrivent sur l’onglet **Console MJ** (plus sur « Le monde » avec l’éditeur markdown bloquant). Édition des pages éditoriales en mode lecture par défaut (bouton « Modifier »), message de succès visible, lien vers la console MJ ; erreurs de sauvegarde affichées sans masquer la page.
 - **Post-déploiement bi-produit** : `scripts/post-deploy-check.js` ajoute `--gl-health-only` (`DEPLOY_GL_HEALTH_ONLY`) et des contrôles GL dédiés (`/api/gl/chapters`, `/api/gl/content/world` avec `200/401` acceptés), avec couverture unitaire dans `tests/post-deploy-check-script.test.js`.
 - **Déploiement/check prod** : `deploy:check:prod` prend en charge la vérification du sous-domaine GL (option `--gl-base-url` / variable `GL_PROD_BASE_URL`) et la doc d’exploitation inclut `FRONTEND_ORIGINS`.
 - **E2E GL** : `e2e/gl-game-flow.spec.js` couvre désormais un flux MJ → joueur via Socket.IO (`gl:game:event`) avec seed DB contrôlé pour éviter les faux négatifs.
