@@ -21,6 +21,7 @@ description: Centralise les conventions Playwright ForetMap (scénarios UI élè
 ```bash
 npm run test:e2e
 npm run test:e2e:headed
+npx playwright test e2e/gl-*.spec.js
 ```
 
 Les deux enchaînent **`node scripts/e2e-kill-listen-port.js`** (hors CI) pour libérer le port d’écoute (souvent **3000**) avant Playwright, puis lancent la suite. Cela évite de réutiliser par erreur un **vieux `node server.js`** sans le mode e2e.

@@ -6,8 +6,8 @@ const assert = require('node:assert');
 const request = require('supertest');
 const { app } = require('../server');
 const { initSchema, execute, queryOne } = require('../database');
-const { signAuthToken } = require('../middleware/requireTeacher');
 const { invalidateGameplayCache } = require('../lib/glSettings');
+const { createGlAdmin, createGlClass, createGlGameWithTeams, createGlPlayer, signTokens } = require('./helpers/glFixtures');
 
 let adminToken = '';
 let playerToken = '';
@@ -24,41 +24,26 @@ before(async () => {
   await initSchema();
   invalidateGameplayCache();
 
-  await execute(
-    `INSERT INTO gl_admins (email, display_name, role, is_active, created_at, updated_at)
-     VALUES (?, 'MJ Actions', 'admin', 1, NOW(), NOW())
-     ON DUPLICATE KEY UPDATE is_active = 1, updated_at = NOW()`,
-    [adminEmail]
-  );
-  const admin = await queryOne('SELECT id FROM gl_admins WHERE email = ? LIMIT 1', [adminEmail]);
-  await execute(
-    `INSERT INTO gl_classes (name, school, created_by, is_active, created_at, updated_at)
-     VALUES (?, 'Ecole Actions', ?, 1, NOW(), NOW())`,
-    [className, admin.id]
-  );
-  const cls = await queryOne('SELECT id FROM gl_classes WHERE name = ? ORDER BY id DESC LIMIT 1', [className]);
+  const admin = await createGlAdmin({ email: adminEmail, displayName: 'MJ Actions' });
+  const cls = await createGlClass({ name: className, school: 'Ecole Actions', adminId: admin.id });
   const chapter = await queryOne("SELECT id FROM gl_chapters WHERE slug = 'foret-magique' LIMIT 1");
-  await execute(
-    `INSERT INTO gl_games (class_id, chapter_id, name, status, created_by, created_at, updated_at)
-     VALUES (?, ?, ?, 'live', ?, NOW(), NOW())`,
-    [cls.id, chapter.id, gameName, admin.id]
-  );
-  const game = await queryOne('SELECT id FROM gl_games WHERE name = ? ORDER BY id DESC LIMIT 1', [gameName]);
-  gameId = Number(game.id);
+  const gameSeed = await createGlGameWithTeams({
+    classId: cls.id,
+    chapterId: chapter.id,
+    name: gameName,
+    createdBy: admin.id,
+    status: 'live',
+    teams: [{ name: 'Eq Actions', type: 'gnome', color: '#65a30d' }],
+  });
+  gameId = Number(gameSeed.game.id);
+  teamId = Number(gameSeed.teams[0].id);
 
-  await execute(
-    `INSERT INTO gl_teams (game_id, name, type, color, created_at, updated_at)
-     VALUES (?, 'Eq Actions', 'gnome', '#65a30d', NOW(), NOW())`,
-    [gameId]
-  );
-  teamId = Number((await queryOne('SELECT id FROM gl_teams WHERE game_id = ? ORDER BY id DESC LIMIT 1', [gameId])).id);
-
-  await execute(
-    `INSERT INTO gl_players (class_id, team_id, pseudo, pin_hash, is_active, created_at, updated_at)
-     VALUES (?, ?, ?, 'x', 1, NOW(), NOW())`,
-    [cls.id, teamId, playerPseudo]
-  );
-  const player = await queryOne('SELECT id FROM gl_players WHERE pseudo = ? LIMIT 1', [playerPseudo]);
+  const player = await createGlPlayer({
+    classId: cls.id,
+    teamId,
+    pseudo: playerPseudo,
+    password: '1234',
+  });
   playerId = Number(player.id);
   await execute(
     `INSERT IGNORE INTO gl_team_members (game_id, team_id, player_id, joined_at)
@@ -66,23 +51,17 @@ before(async () => {
     [gameId, teamId, playerId]
   );
 
-  adminToken = await signAuthToken({
-    product: 'gl',
-    userType: 'gl_admin',
-    userId: String(admin.id),
-    roleSlug: 'gl_admin',
-    permissions: ['gl.read', 'gl.game.manage', 'gl.event.emit'],
-    displayName: 'MJ Actions',
-  });
-  playerToken = await signAuthToken({
-    product: 'gl',
-    userType: 'gl_player',
-    userId: String(playerId),
-    roleSlug: 'gl_player',
-    permissions: ['gl.read', 'gl.action.request'],
-    displayName: playerPseudo,
+  const tokens = await signTokens({
+    adminId: admin.id,
+    adminDisplayName: 'MJ Actions',
+    adminPermissions: ['gl.read', 'gl.game.manage', 'gl.event.emit'],
+    playerId,
+    playerPseudo,
+    playerPermissions: ['gl.read', 'gl.action.request'],
     teamId,
   });
+  adminToken = tokens.adminToken;
+  playerToken = tokens.playerToken;
 });
 
 test('POST /actions refusé quand toggle player_actions_enabled = false', async () => {

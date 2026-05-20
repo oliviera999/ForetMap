@@ -24,6 +24,7 @@ description: Guide l'écriture et l'exécution des tests ForetMap (backend API, 
 | `supertest` | Requêtes HTTP sur l'app Express |
 | `node:assert` | Assertions (strict) |
 | `tests/helpers/setup.js` | Chargement `.env`, surcharge `DB_NAME` pour BDD de test, `TEACHER_PIN` par défaut |
+| `vitest` + RTL | Tests UI React (`tests-ui/**`) en environnement `jsdom` |
 
 ## Commandes
 
@@ -33,6 +34,9 @@ npm run test:local    # exécute **chaque** fichier `tests/*.test.js` **séquent
 npm run test:snapshot # tests "snapshot" contre la DB courante (FORETMAP_SNAPSHOT_TESTS=1)
 npm run test:e2e      # lance les scénarios UI Playwright
 npm run test:e2e:headed # idem avec navigateur visible
+npm run test:ui       # tests UI Vitest (tests-ui/**)
+npm run test:ui:watch # mode watch Vitest
+npm run test:all      # backend + UI
 npm run smoke:local:fast # smoke applicatif (scripts/local-smoke.js)
 # Charge : npm run test:load / test:load:light / … (voir docs/LOCAL_DEV.md, LOAD_TEST_SECRET)
 ```
@@ -79,7 +83,7 @@ Tous les fichiers `tests/*.test.js` sont exécutés par **`npm test`**. Extraits
 | **UI partagée** | `emoji-font-coverage.test.js` |
 | **Snapshot BDD** | `snapshot-db.test.js` (sans `initSchema` dans le test) |
 
-**Helpers** : `tests/helpers/setup.js` (env, `DB_NAME` test, `TEACHER_PIN`).
+**Helpers** : `tests/helpers/setup.js` (env, `DB_NAME` test, `TEACHER_PIN`) et `tests/helpers/glFixtures.js` (seed GL mutualisé : admin, classe, joueur, partie, tokens).
 
 ## Conventions
 
