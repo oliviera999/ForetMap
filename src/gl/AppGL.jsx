@@ -4,6 +4,7 @@ import { withAppBase } from '../services/api.js';
 import { useGLSession } from './hooks/useGLSession.js';
 import { apiGL } from './services/apiGL.js';
 import { GL_TAB_STORAGE_KEY, GL_PLAYER_TABS, GL_ADMIN_EXTRA_TABS, GL_VALID_TABS } from './constants/app-runtime.js';
+import { GL_MODULE_DEFAULTS, normalizeGlModules, isModuleEnabled } from './constants/modules.js';
 import { GLAuthView } from './components/GLAuthView.jsx';
 import { GLTopBar } from './components/GLTopBar.jsx';
 import { GLWorldView } from './components/GLWorldView.jsx';
@@ -18,6 +19,14 @@ import { GLContentsAdminView } from './components/GLContentsAdminView.jsx';
 import { GLSettingsView } from './components/GLSettingsView.jsx';
 import { GLMascotsAdminView } from './components/GLMascotsAdminView.jsx';
 import { GLGameMasterConsole } from './components/GLGameMasterConsole.jsx';
+import { useGLMascotStateMachine } from './hooks/useGLMascotStateMachine.js';
+import { useGLNotificationCenter } from './hooks/useGLNotificationCenter.js';
+import { GLForumView } from './components/GLForumView.jsx';
+import { GLTutorialsView } from './components/GLTutorialsView.jsx';
+import { GLJournalView } from './components/GLJournalView.jsx';
+import { GLKingdomMapView } from './components/GLKingdomMapView.jsx';
+import { GLNotificationsCenter } from './components/GLNotificationsCenter.jsx';
+import { GLHelpPanel } from './components/GLHelpPanel.jsx';
 
 const DEFAULT_GAMEPLAY = {
   turnsEnabled: false,
@@ -76,6 +85,7 @@ export function AppGL() {
   const [turnToast, setTurnToast] = useState(null); // { teamId, ts }
   const [error, setError] = useState('');
   const [oauthNotice, setOauthNotice] = useState(null);
+  const [modules, setModules] = useState(GL_MODULE_DEFAULTS);
 
   const isAdmin = isAdminRole(auth);
 
@@ -105,10 +115,21 @@ export function AppGL() {
     }
     setOauthNotice({ error: 'oauth_invalid_payload' });
   }, [updateSession]);
-  const tabs = useMemo(
-    () => (isAdmin ? [...GL_PLAYER_TABS, ...GL_ADMIN_EXTRA_TABS] : GL_PLAYER_TABS),
-    [isAdmin]
-  );
+  const tabs = useMemo(() => {
+    const playerTabs = GL_PLAYER_TABS.filter((tab) => {
+      if (tab.id === 'history') return isModuleEnabled(modules, 'journalEnabled');
+      if (tab.id === 'kingdom') return isModuleEnabled(modules, 'kingdomMapEnabled');
+      if (tab.id === 'tutorials') return isModuleEnabled(modules, 'tutorialsEnabled');
+      if (tab.id === 'forum') return isModuleEnabled(modules, 'forumEnabled');
+      if (tab.id === 'journal') return isModuleEnabled(modules, 'journalEnabled');
+      return true;
+    });
+    const adminTabs = GL_ADMIN_EXTRA_TABS.filter((tab) => {
+      if (tab.id === 'mascots') return isModuleEnabled(modules, 'mascotPacksEnabled');
+      return true;
+    });
+    return isAdmin ? [...playerTabs, ...adminTabs] : playerTabs;
+  }, [isAdmin, modules]);
 
   useEffect(() => {
     try {
@@ -117,6 +138,12 @@ export function AppGL() {
       // noop
     }
   }, [tab]);
+
+  useEffect(() => {
+    if (!tabs.some((current) => current.id === tab)) {
+      setTab(defaultTabForAuth(auth));
+    }
+  }, [tabs, tab, auth]);
 
   const reloadGameplaySettings = useCallback(async () => {
     if (!token) return;
@@ -134,9 +161,11 @@ export function AppGL() {
     let cancelled = false;
     Promise.all([
       apiGL('/api/gl/chapters').catch(() => []),
-    ]).then(([chaptersData]) => {
+      apiGL('/api/gl/auth/config').catch(() => ({})),
+    ]).then(([chaptersData, configData]) => {
       if (cancelled) return;
       setChapters(Array.isArray(chaptersData) ? chaptersData : []);
+      setModules(normalizeGlModules(configData?.modules));
     });
     reloadGameplaySettings();
     return () => {
@@ -250,6 +279,11 @@ export function AppGL() {
     if (gameplaySettings.turnsEnabled && currentTeamId != null && currentTeamId !== myTeamId) return false;
     return true;
   }, [isAdmin, gameplaySettings, auth, currentTeamId]);
+  const mascotStateMachine = useGLMascotStateMachine({
+    gameState,
+    selectedTeamId,
+    currentTeamId,
+  });
 
   const playerMascotId = useMemo(() => {
     if (isAdmin) return null;
@@ -258,6 +292,25 @@ export function AppGL() {
     const team = gameState.teams.find((t) => Number(t.id) === myTeamId);
     return team?.mascot_id || null;
   }, [isAdmin, auth, gameState]);
+
+  const notifications = useGLNotificationCenter();
+  useEffect(() => {
+    if (narrationToast) {
+      notifications.push({
+        category: 'narration',
+        title: 'Narration du MJ',
+        body: narrationToast.text,
+        ts: narrationToast.ts,
+      });
+    }
+  }, [narrationToast, notifications]);
+
+  const activeChapter = useMemo(() => {
+    if (gameState?.game?.chapter_id) {
+      return chapters.find((c) => Number(c.id) === Number(gameState.game.chapter_id)) || null;
+    }
+    return chapters[0] || null;
+  }, [chapters, gameState]);
 
   if (!session?.token) {
     return (
@@ -315,6 +368,7 @@ export function AppGL() {
             canRequestAction={canRequestAction}
             selectedTeamId={selectedTeamId}
             currentTeamId={currentTeamId}
+            mascotStateMachine={mascotStateMachine}
           />
         )}
         {tab === 'biotope' && <GLBiotopeView gameState={gameState} />}
@@ -346,6 +400,35 @@ export function AppGL() {
             }}
           />
         )}
+        {tab === 'forum' && isModuleEnabled(modules, 'forumEnabled') && (
+          <GLForumView canModerate={isAdmin} />
+        )}
+        {tab === 'tutorials' && isModuleEnabled(modules, 'tutorialsEnabled') && (
+          <GLTutorialsView canManage={isAdmin} />
+        )}
+        {tab === 'journal' && isModuleEnabled(modules, 'journalEnabled') && (
+          <GLJournalView gameId={activeGameId} />
+        )}
+        {tab === 'kingdom' && isModuleEnabled(modules, 'kingdomMapEnabled') && (
+          <GLKingdomMapView chapter={activeChapter} canManage={isAdmin} />
+        )}
+        {isModuleEnabled(modules, 'helpEnabled') ? (
+          <GLHelpPanel helpKey={`tab:${tab}`} title="Aide GL" defaultOpen={false}>
+            <p>
+              Onglet courant&nbsp;: <strong>{tab}</strong>. Astuce&nbsp;: les modules visibles
+              dépendent des réglages MJ. Désactive un module dans <strong>Réglages plateforme</strong>
+              pour épurer la navigation joueur.
+            </p>
+          </GLHelpPanel>
+        ) : null}
+        {isModuleEnabled(modules, 'notificationsEnabled') ? (
+          <GLNotificationsCenter
+            items={notifications.items}
+            unreadCount={notifications.unreadCount}
+            onMarkAllRead={notifications.markAllRead}
+            onClear={notifications.clear}
+          />
+        ) : null}
       </main>
     </div>
   );

@@ -52,6 +52,11 @@ const glGamesRouter = require('./routes/gl/games');
 const glChaptersRouter = require('./routes/gl/chapters');
 const glMascotsRouter = require('./routes/gl/mascots');
 const glAdminRouter = require('./routes/gl/admin');
+const glContextCommentsRouter = require('./routes/gl/context-comments');
+const glForumRouter = require('./routes/gl/forum');
+const glTutorialsRouter = require('./routes/gl/tutorials');
+const glJournalRouter = require('./routes/gl/journal');
+const glKingdomMapRouter = require('./routes/gl/kingdom-map');
 
 const app = express();
 
@@ -419,6 +424,32 @@ app.get('/api/admin/diagnostics', async (req, res) => {
     logger.warn({ err }, 'Diagnostics admin : agrégats visite (mascotte)');
     visitMascotHint = { maps: [], error: 'visit_mascot_hint_unavailable' };
   }
+  let glDiagnostics = { ok: false, error: null };
+  try {
+    const games = await queryAll(
+      `SELECT status, COUNT(*) AS c FROM gl_games GROUP BY status`
+    );
+    const playersRow = await queryAll('SELECT COUNT(*) AS c FROM gl_players WHERE is_active = 1');
+    const eventsRecent = await queryAll(
+      `SELECT event_type, COUNT(*) AS c
+         FROM gl_game_events
+        WHERE created_at > (NOW() - INTERVAL 24 HOUR)
+        GROUP BY event_type
+        ORDER BY c DESC
+        LIMIT 10`
+    );
+    const packsRow = await queryAll('SELECT COUNT(*) AS c FROM gl_mascot_packs');
+    glDiagnostics = {
+      ok: true,
+      gamesByStatus: Object.fromEntries(games.map((row) => [row.status, Number(row.c)])),
+      activePlayers: Number(playersRow?.[0]?.c || 0),
+      recentEventTypes: eventsRecent.map((row) => ({ eventType: row.event_type, count: Number(row.c) })),
+      mascotPackCount: Number(packsRow?.[0]?.c || 0),
+    };
+  } catch (err) {
+    logger.warn({ err }, 'Diagnostics admin : agrégats GL');
+    glDiagnostics = { ok: false, error: 'gl_diagnostics_unavailable' };
+  }
   res.type('application/json').json({
     ok: true,
     ts: new Date().toISOString(),
@@ -443,6 +474,8 @@ app.get('/api/admin/diagnostics', async (req, res) => {
     visitMascotHint,
     /** Présence des fichiers `lib/visit-pack/*` (validation POST/PUT packs) — voir docs/EXPLOITATION.md si `libMirrorOk` est false. */
     mascotPackLibProbe: getMascotPackLibProbe(),
+    /** Agrégats GL (Gnomes & Licornes) : statuts parties, joueurs actifs, types d'évènements récents, nb packs mascotte. */
+    gl: glDiagnostics,
   });
 });
 
@@ -487,6 +520,11 @@ app.use('/api/gl/chapters', glChaptersRouter);
 app.use('/api/gl/mascots', glMascotsRouter);
 app.use('/api/gl', glGamesRouter);
 app.use('/api/gl/admin', glAdminRouter);
+app.use('/api/gl/context-comments', glContextCommentsRouter);
+app.use('/api/gl/forum', glForumRouter);
+app.use('/api/gl/tutorials', glTutorialsRouter);
+app.use('/api/gl/journal', glJournalRouter);
+app.use('/api/gl/kingdom-map', glKingdomMapRouter);
 
 app.use('/api', (req, res, next) => {
   if (String(req.path || '').startsWith('/gl')) return next();
