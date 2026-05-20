@@ -32,7 +32,7 @@ Ce document décrit l'architecture du second mode **Gnomes & Licornes** (GL) dan
 
 Préfixe : `/api/gl`
 
-- Auth : `routes/gl/auth.js`
+- Auth : `routes/gl/auth.js` (joueur `pseudo`+`PIN` ; MJ/Admin via compte ForetMap `staff/login` ou OAuth `google/start` ; admins ForetMap RBAC `admin` → synchro auto `gl_admins`)
 - Contenus éditoriaux (pages éditoriales `gl_content_pages`) : `routes/gl/content.js`
 - Chapitres et repères (`gl_chapters`, `gl_chapter_markers`) : `routes/gl/chapters.js`
 - Gameplay : `routes/gl/games.js`

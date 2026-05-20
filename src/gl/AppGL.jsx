@@ -26,6 +26,16 @@ const DEFAULT_GAMEPLAY = {
   scoringEnabled: false,
 };
 
+function decodeBase64UrlJson(value) {
+  try {
+    const normalized = String(value || '').replace(/-/g, '+').replace(/_/g, '/');
+    const padded = normalized + '='.repeat((4 - (normalized.length % 4)) % 4);
+    return JSON.parse(atob(padded));
+  } catch (_) {
+    return null;
+  }
+}
+
 function readStoredTab() {
   try {
     const raw = String(localStorage.getItem(GL_TAB_STORAGE_KEY) || '').trim();
@@ -61,8 +71,35 @@ export function AppGL() {
   const [narrationToast, setNarrationToast] = useState(null); // { text, ts }
   const [turnToast, setTurnToast] = useState(null); // { teamId, ts }
   const [error, setError] = useState('');
+  const [oauthNotice, setOauthNotice] = useState(null);
 
   const isAdmin = isAdminRole(auth);
+
+  useEffect(() => {
+    const hashRaw = window.location.hash.startsWith('#') ? window.location.hash.slice(1) : '';
+    if (!hashRaw) return;
+    const hashParams = new URLSearchParams(hashRaw);
+    const oauthPayload = hashParams.get('oauth');
+    const oauthError = hashParams.get('oauth_error');
+    if (!oauthPayload && !oauthError) return;
+
+    const cleanUrl = `${window.location.pathname}${window.location.search}`;
+    window.history.replaceState({}, document.title, cleanUrl);
+
+    if (oauthError) {
+      setOauthNotice({ error: oauthError });
+      return;
+    }
+    const payload = decodeBase64UrlJson(oauthPayload);
+    if (payload?.type === 'gl_staff' && payload?.token) {
+      updateSession({ token: payload.token, auth: payload.auth || null });
+      setTab('world');
+      setOauthNotice({ success: true });
+      setError('');
+      return;
+    }
+    setOauthNotice({ error: 'oauth_invalid_payload' });
+  }, [updateSession]);
   const tabs = useMemo(
     () => (isAdmin ? [...GL_PLAYER_TABS, ...GL_ADMIN_EXTRA_TABS] : GL_PLAYER_TABS),
     [isAdmin]
@@ -220,10 +257,12 @@ export function AppGL() {
   if (!session?.token) {
     return (
       <GLAuthView
+        oauthNotice={oauthNotice}
         onLogin={(data) => {
           updateSession({ token: data.authToken, auth: data.auth });
           setTab('world');
           setError('');
+          setOauthNotice(null);
         }}
       />
     );
