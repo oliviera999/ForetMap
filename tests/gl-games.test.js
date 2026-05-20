@@ -50,6 +50,36 @@ test('POST /api/gl/games crée une partie', async () => {
   gameId = Number(res.body.game.id);
 });
 
+// Régression : en prod (v1.52.3), un classId orphelin remontait en HTTP 500
+// (ER_NO_REFERENCED_ROW_2 / fk_gl_games_class). La route doit répondre 404.
+test('POST /api/gl/games : 404 si classId introuvable', async () => {
+  const chapter = await queryOne("SELECT id FROM gl_chapters WHERE slug = 'foret-magique' LIMIT 1");
+  const res = await request(app)
+    .post('/api/gl/games')
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ classId: 999999, chapterId: chapter.id, name: 'Partie orpheline' })
+    .expect(404);
+  assert.match(String(res.body?.error || ''), /classe/i);
+});
+
+test('POST /api/gl/games : 404 si chapterId introuvable', async () => {
+  const cls = await queryOne('SELECT id FROM gl_classes ORDER BY id DESC LIMIT 1');
+  const res = await request(app)
+    .post('/api/gl/games')
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ classId: cls.id, chapterId: 999999, name: 'Partie sans chapitre' })
+    .expect(404);
+  assert.match(String(res.body?.error || ''), /chapitre/i);
+});
+
+test('POST /api/gl/games : 400 si payload incomplet', async () => {
+  await request(app)
+    .post('/api/gl/games')
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ name: 'Sans ids' })
+    .expect(400);
+});
+
 test('POST /api/gl/games/:id/teams ajoute une équipe', async () => {
   const res = await request(app)
     .post(`/api/gl/games/${gameId}/teams`)
@@ -62,6 +92,15 @@ test('POST /api/gl/games/:id/teams ajoute une équipe', async () => {
     })
     .expect(201);
   assert.strictEqual(res.body.type, 'gnome');
+});
+
+test('POST /api/gl/games/:id/teams : 404 si partie inexistante', async () => {
+  const res = await request(app)
+    .post('/api/gl/games/999999/teams')
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ name: 'Eq fantôme', type: 'gnome', color: '#65a30d' })
+    .expect(404);
+  assert.match(String(res.body?.error || ''), /partie/i);
 });
 
 test('POST /api/gl/games/:id/events move met à jour la position', async () => {

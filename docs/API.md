@@ -61,9 +61,9 @@ Le script accepte également `--target=chapters` (Lot 2B) : seules les pages WP 
 | PUT | `/api/gl/chapters/admin/markers/:markerId` | mise à jour partielle marker | `gl.content.manage` |
 | DELETE | `/api/gl/chapters/admin/markers/:markerId` | — | `gl.content.manage` (détache les équipes positionnées sur ce marker via `ON DELETE SET NULL`) |
 | GET | `/api/gl/gameplay-settings` | — | Auth GL (joueur ou admin) |
-| POST | `/api/gl/games` | `{ classId, chapterId, name }` | `gl.game.manage` |
+| POST | `/api/gl/games` | `{ classId, chapterId, name }` | `gl.game.manage` (refus `404` si `classId`/`chapterId` introuvable, `409` si la ressource est supprimée entre validation et insertion) |
 | GET | `/api/gl/games/:id` | — | `gl.read` (ou membre de la partie) |
-| POST | `/api/gl/games/:id/teams` | `{ name, type, mascotId, color }` | `gl.team.manage` |
+| POST | `/api/gl/games/:id/teams` | `{ name, type, mascotId, color }` | `gl.team.manage` (refus `404` si partie introuvable) |
 | POST | `/api/gl/games/:id/join-team` | `{ teamId }` | Joueur connecté GL |
 | POST | `/api/gl/games/:id/events` | `{ teamId?, eventType, payload }` | `gl.event.emit` |
 | POST | `/api/gl/games/:id/turn/next` | — | `gl.game.manage` (refus `409` si `gameplay.turns_enabled=false`) |

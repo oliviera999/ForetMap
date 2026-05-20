@@ -4,6 +4,7 @@ const { requireGlAuth, requireGlPermission } = require('../../middleware/require
 const { normalizeEventRow, replayGameEvents } = require('../../lib/glGameEvents');
 const { emitGlGameEvent } = require('../../lib/realtime');
 const { getGameplaySettings } = require('../../lib/glSettings');
+const { logRouteError } = require('../../lib/routeLog');
 
 const router = express.Router();
 
@@ -150,13 +151,33 @@ router.post('/games', requireGlPermission('gl.game.manage'), async (req, res) =>
   const chapterId = parseId(req.body?.chapterId);
   const name = normalizeOptionalString(req.body?.name) || 'Nouvelle partie';
   if (!classId || !chapterId) return res.status(400).json({ error: 'classId et chapterId requis' });
-  await execute(
-    `INSERT INTO gl_games (class_id, chapter_id, name, status, created_by, created_at, updated_at)
-     VALUES (?, ?, ?, 'draft', ?, NOW(), NOW())`,
-    [classId, chapterId, name, req.glAuth.userId]
+
+  // Validation préalable des FK : évite un 500 ER_NO_REFERENCED_ROW_2 (cf. POST /api/gl/games en prod, v1.52.3).
+  const classRow = await queryOne(
+    'SELECT id FROM gl_classes WHERE id = ? AND is_active = 1 LIMIT 1',
+    [classId]
   );
-  const created = await queryOne('SELECT id FROM gl_games ORDER BY id DESC LIMIT 1');
-  const state = await readGameState(created.id);
+  if (!classRow) return res.status(404).json({ error: 'Classe introuvable' });
+  const chapterRow = await queryOne('SELECT id FROM gl_chapters WHERE id = ? LIMIT 1', [chapterId]);
+  if (!chapterRow) return res.status(404).json({ error: 'Chapitre introuvable' });
+
+  let insertResult;
+  try {
+    insertResult = await execute(
+      `INSERT INTO gl_games (class_id, chapter_id, name, status, created_by, created_at, updated_at)
+       VALUES (?, ?, ?, 'draft', ?, NOW(), NOW())`,
+      [classId, chapterId, name, req.glAuth.userId]
+    );
+  } catch (err) {
+    // Filet de sécurité en cas de course entre la validation ci-dessus et l'INSERT.
+    if (err && err.code === 'ER_NO_REFERENCED_ROW_2') {
+      return res.status(409).json({ error: 'Classe ou chapitre supprimé entre-temps' });
+    }
+    logRouteError(err, req, 'POST /api/gl/games : INSERT en échec');
+    return res.status(500).json({ error: 'Erreur lors de la création de la partie' });
+  }
+  const newId = insertResult?.insertId;
+  const state = await readGameState(newId);
   return res.status(201).json(state);
 });
 
@@ -169,12 +190,23 @@ router.post('/games/:id/teams', requireGlPermission('gl.team.manage'), async (re
   const color = normalizeOptionalString(req.body?.color) || '#22c55e';
   if (!name) return res.status(400).json({ error: 'Nom d’équipe requis' });
   if (!['gnome', 'unicorn'].includes(type)) return res.status(400).json({ error: 'Type équipe invalide' });
-  await execute(
-    `INSERT INTO gl_teams (game_id, name, type, mascot_id, position_marker_id, color, created_at, updated_at)
-     VALUES (?, ?, ?, ?, NULL, ?, NOW(), NOW())`,
-    [gameId, name, type, mascotId, color]
-  );
-  const team = await queryOne('SELECT * FROM gl_teams WHERE game_id = ? ORDER BY id DESC LIMIT 1', [gameId]);
+  const gameRow = await queryOne('SELECT id FROM gl_games WHERE id = ? LIMIT 1', [gameId]);
+  if (!gameRow) return res.status(404).json({ error: 'Partie introuvable' });
+  let insertResult;
+  try {
+    insertResult = await execute(
+      `INSERT INTO gl_teams (game_id, name, type, mascot_id, position_marker_id, color, created_at, updated_at)
+       VALUES (?, ?, ?, ?, NULL, ?, NOW(), NOW())`,
+      [gameId, name, type, mascotId, color]
+    );
+  } catch (err) {
+    if (err && err.code === 'ER_NO_REFERENCED_ROW_2') {
+      return res.status(409).json({ error: 'Partie supprimée entre-temps' });
+    }
+    logRouteError(err, req, 'POST /api/gl/games/:id/teams : INSERT en échec');
+    return res.status(500).json({ error: 'Erreur lors de la création de l’équipe' });
+  }
+  const team = await queryOne('SELECT * FROM gl_teams WHERE id = ? LIMIT 1', [insertResult?.insertId]);
   return res.status(201).json(team);
 });
 
