@@ -148,3 +148,54 @@ test('Flux complet : joueur soumet → MJ accepte avec score → score appliqué
   );
   invalidateGameplayCache();
 });
+
+test('POST /actions crédite l’équipe de la partie et non la dernière équipe globale du joueur', async () => {
+  const chapter = await queryOne("SELECT id FROM gl_chapters WHERE slug = 'foret-magique' LIMIT 1");
+  const currentGame = await queryOne('SELECT class_id, created_by FROM gl_games WHERE id = ? LIMIT 1', [gameId]);
+  await execute(
+    `INSERT INTO gl_games (class_id, chapter_id, name, status, created_by, created_at, updated_at)
+     VALUES (?, ?, ?, 'live', ?, NOW(), NOW())`,
+    [currentGame.class_id, chapter.id, `Partie Actions bis ${stamp}`, currentGame.created_by]
+  );
+  const otherGame = await queryOne('SELECT id FROM gl_games WHERE name = ? ORDER BY id DESC LIMIT 1', [`Partie Actions bis ${stamp}`]);
+  await execute(
+    `INSERT INTO gl_teams (game_id, name, type, color, created_at, updated_at)
+     VALUES (?, 'Eq Actions Bis', 'unicorn', '#a855f7', NOW(), NOW())`,
+    [otherGame.id]
+  );
+  const otherTeam = await queryOne('SELECT id FROM gl_teams WHERE game_id = ? ORDER BY id DESC LIMIT 1', [otherGame.id]);
+  await execute(
+    `INSERT INTO gl_team_members (game_id, team_id, player_id, joined_at)
+     VALUES (?, ?, ?, NOW())
+     ON DUPLICATE KEY UPDATE team_id = VALUES(team_id), joined_at = NOW()`,
+    [otherGame.id, otherTeam.id, playerId]
+  );
+  await execute('UPDATE gl_players SET team_id = ?, updated_at = NOW() WHERE id = ?', [otherTeam.id, playerId]);
+  await execute(
+    `INSERT INTO gl_settings (\`key\`, value_json, updated_at)
+     VALUES ('gameplay.player_actions_enabled', 'true', NOW())
+     ON DUPLICATE KEY UPDATE value_json = 'true', updated_at = NOW()`
+  );
+  await execute(
+    `INSERT INTO gl_settings (\`key\`, value_json, updated_at)
+     VALUES ('gameplay.turns_enabled', 'false', NOW())
+     ON DUPLICATE KEY UPDATE value_json = 'false', updated_at = NOW()`
+  );
+  invalidateGameplayCache();
+
+  const submission = await request(app)
+    .post(`/api/gl/games/${gameId}/actions`)
+    .set('Authorization', `Bearer ${playerToken}`)
+    .send({ actionType: 'explore', payload: { markerId: 2 } })
+    .expect(201);
+
+  const action = await queryOne('SELECT team_id FROM gl_action_requests WHERE id = ? LIMIT 1', [submission.body.actionRequestId]);
+  assert.strictEqual(Number(action.team_id), Number(teamId));
+  assert.notStrictEqual(Number(action.team_id), Number(otherTeam.id));
+
+  await execute(
+    `UPDATE gl_settings SET value_json = 'false', updated_at = NOW()
+      WHERE \`key\` IN ('gameplay.player_actions_enabled', 'gameplay.turns_enabled')`
+  );
+  invalidateGameplayCache();
+});

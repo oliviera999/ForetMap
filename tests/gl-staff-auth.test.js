@@ -13,7 +13,9 @@ const { isForetmapAdminForGl } = require('../lib/glStaffAuth');
 const stamp = Date.now();
 const adminEmail = `gl.staff.admin.${stamp}@ecole.local`;
 const mjOnlyEmail = `gl.staff.mjonly.${stamp}@ecole.local`;
+const mjTeacherEmail = `gl.staff.mjteacher.${stamp}@ecole.local`;
 const adminPassword = 'StaffTest-Admin-1';
+const mjTeacherPassword = 'StaffTest-Mj-1';
 
 let adminTeacherId = null;
 
@@ -44,6 +46,20 @@ before(async () => {
      ON DUPLICATE KEY UPDATE is_active = 1`,
     [mjOnlyEmail]
   );
+
+  const mjHash = await bcrypt.hash(mjTeacherPassword, 10);
+  await execute(
+    `INSERT INTO users (id, user_type, email, pseudo, display_name, password_hash, auth_provider, is_active, created_at, updated_at)
+     VALUES (?, 'teacher', ?, ?, ?, ?, 'local', 1, NOW(), NOW())
+     ON DUPLICATE KEY UPDATE password_hash = VALUES(password_hash), is_active = 1`,
+    [`teacher-gl-mj-${stamp}`, mjTeacherEmail, `mj${stamp}`, 'MJ GL enregistré', mjHash]
+  );
+  await execute(
+    `INSERT INTO gl_admins (email, display_name, role, is_active, created_at, updated_at)
+     VALUES (?, 'MJ GL enregistré', 'mj', 1, NOW(), NOW())
+     ON DUPLICATE KEY UPDATE role = 'mj', is_active = 1`,
+    [mjTeacherEmail]
+  );
 });
 
 test('isForetmapAdminForGl détecte le rôle admin ForetMap', async () => {
@@ -72,6 +88,16 @@ test('POST /api/gl/auth/staff/login refuse un compte MJ GL sans admin ForetMap',
     .send({ identifier: mjOnlyEmail, password: 'wrong' })
     .expect(401);
   assert.ok(res.body?.error);
+});
+
+test('POST /api/gl/auth/staff/login accepte un MJ déjà enregistré dans GL sans rôle admin ForetMap', async () => {
+  const res = await request(app)
+    .post('/api/gl/auth/staff/login')
+    .send({ identifier: mjTeacherEmail, password: mjTeacherPassword })
+    .expect(200);
+  assert.strictEqual(res.body?.auth?.product, 'gl');
+  assert.strictEqual(res.body?.auth?.roleSlug, 'gl_mj');
+  assert.ok(res.body?.auth?.permissions?.includes('gl.game.manage'));
 });
 
 test('GET /api/gl/auth/config expose allowGoogleStaff', async () => {

@@ -10,6 +10,7 @@ const { signAuthToken } = require('../middleware/requireTeacher');
 
 let adminToken = '';
 let gameId = null;
+const stamp = Date.now();
 
 before(async () => {
   await initSchema();
@@ -84,4 +85,71 @@ test('POST /api/gl/games/:id/events move met à jour la position', async () => {
     .expect(200);
   const movedTeam = (state.body.teams || []).find((item) => Number(item.id) === Number(team.id));
   assert.strictEqual(Number(movedTeam.position_marker_id), Number(marker.id));
+});
+
+test('un joueur ne lit pas et ne rejoint pas une partie GL d’une autre classe', async () => {
+  const ownGame = await queryOne('SELECT class_id, chapter_id FROM gl_games WHERE id = ? LIMIT 1', [gameId]);
+  const ownTeam = await queryOne('SELECT id FROM gl_teams WHERE game_id = ? ORDER BY id DESC LIMIT 1', [gameId]);
+  const admin = await queryOne('SELECT id FROM gl_admins WHERE email = ? LIMIT 1', ['games.mj@ecole.local']);
+  const pseudo = `games-player-${stamp}`;
+  await execute(
+    `INSERT INTO gl_players (class_id, team_id, pseudo, pin_hash, is_active, created_at, updated_at)
+     VALUES (?, ?, ?, 'x', 1, NOW(), NOW())`,
+    [ownGame.class_id, ownTeam.id, pseudo]
+  );
+  const player = await queryOne('SELECT id FROM gl_players WHERE pseudo = ? LIMIT 1', [pseudo]);
+  await execute(
+    `INSERT INTO gl_team_members (game_id, team_id, player_id, joined_at)
+     VALUES (?, ?, ?, NOW())`,
+    [gameId, ownTeam.id, player.id]
+  );
+
+  await execute(
+    `INSERT INTO gl_classes (name, school, created_by, is_active, created_at, updated_at)
+     VALUES (?, 'College Test', ?, 1, NOW(), NOW())`,
+    [`Classe isolée ${stamp}`, admin.id]
+  );
+  const otherClass = await queryOne('SELECT id FROM gl_classes WHERE name = ? ORDER BY id DESC LIMIT 1', [`Classe isolée ${stamp}`]);
+  await execute(
+    `INSERT INTO gl_games (class_id, chapter_id, name, status, created_by, created_at, updated_at)
+     VALUES (?, ?, ?, 'live', ?, NOW(), NOW())`,
+    [otherClass.id, ownGame.chapter_id, `Partie isolée ${stamp}`, admin.id]
+  );
+  const otherGame = await queryOne('SELECT id FROM gl_games WHERE name = ? ORDER BY id DESC LIMIT 1', [`Partie isolée ${stamp}`]);
+  await execute(
+    `INSERT INTO gl_teams (game_id, name, type, color, created_at, updated_at)
+     VALUES (?, 'Equipe isolée', 'unicorn', '#a855f7', NOW(), NOW())`,
+    [otherGame.id]
+  );
+  const otherTeam = await queryOne('SELECT id FROM gl_teams WHERE game_id = ? ORDER BY id DESC LIMIT 1', [otherGame.id]);
+  const playerToken = await signAuthToken({
+    product: 'gl',
+    userType: 'gl_player',
+    userId: String(player.id),
+    roleSlug: 'gl_player',
+    permissions: ['gl.read', 'gl.action.request'],
+    displayName: pseudo,
+    classId: Number(ownGame.class_id),
+    teamId: Number(ownTeam.id),
+  });
+
+  await request(app)
+    .get(`/api/gl/games/${gameId}`)
+    .set('Authorization', `Bearer ${playerToken}`)
+    .expect(200);
+  await request(app)
+    .get(`/api/gl/games/${otherGame.id}`)
+    .set('Authorization', `Bearer ${playerToken}`)
+    .expect(403);
+  await request(app)
+    .post(`/api/gl/games/${otherGame.id}/join-team`)
+    .set('Authorization', `Bearer ${playerToken}`)
+    .send({ teamId: otherTeam.id })
+    .expect(403);
+
+  const leakedMembership = await queryOne(
+    'SELECT 1 AS ok FROM gl_team_members WHERE game_id = ? AND player_id = ? LIMIT 1',
+    [otherGame.id, player.id]
+  );
+  assert.strictEqual(leakedMembership, undefined);
 });
