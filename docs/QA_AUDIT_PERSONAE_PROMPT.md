@@ -168,10 +168,53 @@ Utiliser cette checklist pour la recette ciblee de `gl.olution.info` apres un lo
 - Emission d'un event `move` (API `/api/gl/games/:id/events`)
 - Changement d'etat partie (start, pause, end)
 
+### Persona GL Joueur novice (1ere connexion)
+
+- Decouverte des onglets actifs (modules `modules.*` selon flags MJ)
+- Onboarding aide contextuelle GL (`GLHelpPanel`) consulte au moins une fois
+- Lecture d'un tutoriel GL (accuse de lecture `/api/gl/tutorials/:id/read`)
+- Consultation de la carte du royaume si `kingdomMapEnabled`
+
+### Persona GL Joueur confirme (rejoue)
+
+- Verification que les notifications GL precedentes sont marquees lues
+- Reactions sur un commentaire contextuel (chapitre / partie)
+- Participation au forum GL (creation thread / reply)
+- Lecture du journal de partie (timeline `/api/gl/journal/games/:id`)
+
+### Persona GL Admin
+
+- Reglages plateforme : activer/desactiver chaque module GL et observer la
+  navigation joueur (impact direct sans redeploiement)
+- Import joueurs CSV/XLSX (template `format=csv|xlsx`, dryRun puis apply)
+- Reset mot de passe joueur (`/reset-password`) puis verification connexion
+- Studio packs mascottes (`GLMascotPackManager`) : creation, edition, preview
+- Diagnostics MCP : outils `gl_public_health` et `gl_diagnostics` repondent
+  avec statuts coherents
+
+### Matrice parcours x personae GL
+
+| Parcours / Persona            | Joueur 6e | Joueur conf. | MJ      | Admin GL |
+|-------------------------------|-----------|--------------|---------|----------|
+| Connexion + tabs              | OK        | OK           | OK      | OK       |
+| Forum GL                      | -         | OK           | OK      | OK       |
+| Tutoriels GL                  | OK        | OK           | OK      | OK       |
+| Commentaires contextuels GL   | OK        | OK           | OK      | OK       |
+| Mascotte renderer/state       | -         | OK           | OK      | OK       |
+| Studio packs mascotte         | -         | -            | OK      | OK       |
+| Carte royaume                 | OK        | OK           | OK      | OK       |
+| Journal de partie             | OK        | OK           | OK      | OK       |
+| Notifications GL              | OK        | OK           | OK      | OK       |
+| Reglages modules.*            | -         | -            | -       | OK       |
+| Import joueurs                | -         | -            | -       | OK       |
+| MCP diagnostics GL            | -         | -            | -       | OK       |
+
 ### Criteres d'acceptation GL
 
 - Aucune confusion visuelle avec ForetMap (theme et onglets dedies GL)
 - Aucune fuite cross-produit (token GL refuse sur endpoints ForetMap)
 - Les events MJ sont visibles cote joueur sans rechargement
 - Les ecrans editoriaux GL sont consultables sans erreur bloquante
+- Les modules GL desactives (`modules.*=false`) masquent l'onglet
+  correspondant immediatement apres rechargement
 
