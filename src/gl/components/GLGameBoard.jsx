@@ -1,11 +1,6 @@
 import React, { useState } from 'react';
-import VisitMapMascotRenderer from '../../components/VisitMapMascotRenderer.jsx';
 import { VISIT_MASCOT_STATE } from '../../utils/visitMascotState.js';
-import { GLMascotAvatar } from './GLMascotAvatar.jsx';
-
-function isGlMascotId(id) {
-  return typeof id === 'string' && id.startsWith('gl-');
-}
+import { GLMascotRenderer } from './GLMascotRenderer.jsx';
 
 export function GLGameBoard({
   chapter,
@@ -17,6 +12,7 @@ export function GLGameBoard({
   canRequestAction,
   selectedTeamId,
   currentTeamId,
+  mascotStateMachine,
 }) {
   const imageUrl = chapter?.map_image_url || '/maps/map-foret.svg';
   const [pendingMarker, setPendingMarker] = useState(null);
@@ -81,11 +77,11 @@ export function GLGameBoard({
             >
               <div className="gl-board-team-label">{team.name}</div>
               <div className="gl-board-team-mascot">
-                {isGlMascotId(team.mascot_id) ? (
-                  <GLMascotAvatar mascotId={team.mascot_id} size={48} />
-                ) : (
-                  <VisitMapMascotRenderer mascotState={VISIT_MASCOT_STATE.IDLE} mascotId={team.mascot_id} />
-                )}
+                <GLMascotRenderer
+                  mascotId={team.mascot_id}
+                  mascotState={mascotStateMachine?.getStateForTeam?.(team.id) || VISIT_MASCOT_STATE.IDLE}
+                  size={48}
+                />
               </div>
             </div>
           );
