@@ -10,12 +10,10 @@ Il consolide les constats des audits internes, notamment:
 
 ## Critiques / Haute priorite
 
-- `B1` - Suppression d'observation insuffisamment protegee (`DELETE /api/observations/:id`).
-- `B2` - Risque d'IDOR sur la lecture d'observations par `studentId`.
 - `B3` - Actions eleves basees sur un `studentId` client (risque d'usurpation selon contexte reseau).
 - `R1` - Suppressions SQL sans purge systematique des fichiers medias associes.
 - `R2` - Validation des uploads image a durcir (MIME, magic bytes, taille decodee).
-- `R3` - Exposition potentielle de medias via routes ouvertes sans politique d'acces unifiee.
+- `R3` - Exposition potentielle de medias via URLs publiques (`/uploads`) ; routes `.../photos/:pid/data` durcies mais politique globale encore a unifier.
 
 ## Moyenne priorite
 
@@ -25,6 +23,8 @@ Il consolide les constats des audits internes, notamment:
 - `R6` - Gouvernance des URLs externes plantes a renforcer (allowlist / verifications periodiques).
 - `R7` - Moderation explicite des photos eleves a clarifier selon besoin pedagogique.
 - `R9` - Risque de rupture HTTP/2 / WAF (Tiger Protect) sur o2switch : erreurs type Chrome **`ERR_HTTP2_PROTOCOL_ERROR`** sur `/socket.io` ou `/api/*` (voir **`docs/EXPLOITATION.md`**, section *Chrome ERR_HTTP2_PROTOCOL_ERROR*).
+- `GL1` - Isolement cross-produit : verifier en CI/QA qu'un JWT `product: 'gl'` ne donne pas acces aux routes ForetMap principales (cf. garde dans **`server.js`**).
+- `GL2` - Tests GL : la base est partagee, executer les suites `tests/gl-*.test.js` en `--test-concurrency=1 --test-force-exit` (sinon deadlocks `initSchema`).
 
 ## Basse priorite
 
@@ -35,6 +35,9 @@ Il consolide les constats des audits internes, notamment:
 
 - `B4` - Incoherence `unassign` eleve/prof corrigee et alignee avec la documentation.
 - `B6` - Regle interne frontend mise a jour sur la stack Vite.
+- `B1` - Suppression d'observation protegee (proprietaire ou n3boss selon perimetre).
+- `B2` - Lecture observations protegee contre IDOR inter-eleves.
+- `B8` - `PATCH /api/students/:id/profile` protege par JWT et verification proprietaire.
 
 ## Endpoint d'acces
 
