@@ -1,6 +1,6 @@
 {
   "name": "foretmap",
-  "version": "1.52.3",
+  "version": "1.53.1",
   "description": "Application de gestion de la forêt comestible - Lycée Lyautey",
   "main": "server.js",
   "engines": {
@@ -28,6 +28,9 @@
     "uuid": "^9.0.0",
     "xlsx": "^0.18.5",
     "zod": "^4.3.6"
+  },
+  "optionalDependencies": {
+    "sharp": "^0.33.5"
   },
   "scripts": {
     "start": "node server.js",
@@ -145,7 +148,6 @@
     "nodemon": "^3.0.2",
     "react": "^19.2.5",
     "react-dom": "^19.2.6",
-    "sharp": "^0.33.5",
     "socket.io-client": "^4.8.1",
     "supertest": "^7.2.2",
     "vite": "^5.0.10",
