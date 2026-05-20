@@ -1,0 +1,23 @@
+CREATE TABLE IF NOT EXISTS gl_forum_threads (
+  id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  title VARCHAR(200) NOT NULL,
+  author_user_type VARCHAR(40) NOT NULL,
+  author_user_id VARCHAR(64) NOT NULL,
+  is_locked TINYINT(1) NOT NULL DEFAULT 0,
+  is_deleted TINYINT(1) NOT NULL DEFAULT 0,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  INDEX idx_gl_forum_threads_recent (updated_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS gl_forum_posts (
+  id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  thread_id INT UNSIGNED NOT NULL,
+  body TEXT NOT NULL,
+  author_user_type VARCHAR(40) NOT NULL,
+  author_user_id VARCHAR(64) NOT NULL,
+  is_deleted TINYINT(1) NOT NULL DEFAULT 0,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_gl_forum_posts_thread (thread_id, id),
+  CONSTRAINT fk_gl_forum_posts_thread FOREIGN KEY (thread_id) REFERENCES gl_forum_threads(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
