@@ -43,8 +43,9 @@ before(async () => {
   );
   const cls = await queryOne('SELECT id FROM gl_classes WHERE name = ? ORDER BY id DESC LIMIT 1', [className]);
   await execute(
-    `INSERT INTO gl_players (class_id, pseudo, pin_hash, is_active, created_at, updated_at)
-     VALUES (?, ?, 'x', 1, NOW(), NOW())`,
+    `INSERT INTO gl_players
+      (class_id, first_name, last_name, pseudo, password_must_reset, password_hash, is_active, created_at, updated_at)
+     VALUES (?, 'Jean', 'Test', ?, 0, '$2a$10$abcdefghijklmnopqrstuvabcdefghijklmnopqrstuvabcd', 1, NOW(), NOW())`,
     [cls.id, playerPseudo]
   );
   const player = await queryOne('SELECT id FROM gl_players WHERE pseudo = ? LIMIT 1', [playerPseudo]);
@@ -102,4 +103,38 @@ test('PUT par admin met à jour le toggle, lu ensuite par /gameplay-settings', a
     .send({ value: false })
     .expect(200);
   invalidateGameplayCache();
+});
+
+test('GET /api/gl/auth/config expose les modules GL', async () => {
+  const res = await request(app)
+    .get('/api/gl/auth/config')
+    .expect(200);
+  assert.ok(res.body?.modules);
+  assert.strictEqual(typeof res.body.modules.journalEnabled, 'boolean');
+  assert.strictEqual(typeof res.body.modules.mascotPacksEnabled, 'boolean');
+});
+
+test('PUT /api/gl/admin/settings/modules.* valide booléen et persiste', async () => {
+  await request(app)
+    .put('/api/gl/admin/settings/modules.journal_enabled')
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ value: false })
+    .expect(200);
+
+  const cfg = await request(app)
+    .get('/api/gl/auth/config')
+    .expect(200);
+  assert.strictEqual(cfg.body?.modules?.journalEnabled, false);
+
+  await request(app)
+    .put('/api/gl/admin/settings/modules.journal_enabled')
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ value: 'false' })
+    .expect(400);
+
+  await request(app)
+    .put('/api/gl/admin/settings/modules.unknown_flag')
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ value: true })
+    .expect(400);
 });
