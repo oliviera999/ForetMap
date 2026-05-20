@@ -10,9 +10,15 @@ const { saveBase64ToDisk } = require('../lib/uploads');
 
 const SAMPLE_IMAGE_DATA =
   'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO5qXg8AAAAASUVORK5CYII=';
+let studentToken = '';
 
 test.before(async () => {
   await initSchema();
+  const reg = await request(app)
+    .post('/api/auth/register')
+    .send({ firstName: 'Sec', lastName: `Img${Date.now()}`, password: 'pass1234' })
+    .expect(201);
+  studentToken = reg.body.authToken;
 });
 
 test('Route prof sans token -> 401', async () => {
@@ -63,6 +69,7 @@ test('Route image zone lit bien depuis disque', async () => {
 
   const res = await request(app)
     .get(`/api/zones/${zoneId}/photos/${photoId}/data`)
+    .set('Authorization', `Bearer ${studentToken}`)
     .redirects(1)
     .expect(200);
   assert.ok((res.headers['content-type'] || '').toLowerCase().includes('image'));
@@ -81,6 +88,7 @@ test('Route image zone renvoie 404 si image_path absent', async () => {
 
   await request(app)
     .get(`/api/zones/${zoneId}/photos/${result.insertId}/data`)
+    .set('Authorization', `Bearer ${studentToken}`)
     .redirects(0)
     .expect(404);
 });
