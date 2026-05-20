@@ -2,7 +2,17 @@ const express = require('express');
 const bcrypt = require('bcryptjs');
 const { queryAll, queryOne, execute } = require('../../database');
 const { requireGlPermission } = require('../../middleware/requireGlAuth');
-const { invalidateGameplayCache } = require('../../lib/glSettings');
+const { invalidateGameplayCache, invalidateModulesCache, MODULE_KEYS } = require('../../lib/glSettings');
+const {
+  MAX_IMPORT_ROWS,
+  PSEUDO_RE,
+  normalizeOptionalString: normalizeImportOptionalString,
+  buildPlayerImportPayload,
+  validatePlayerImportPayload,
+  resolveImportRows,
+  buildCsvTemplate,
+  buildXlsxTemplate,
+} = require('../../lib/glPlayersImport');
 
 const router = express.Router();
 
@@ -10,6 +20,50 @@ function normalizeOptionalString(value) {
   if (value == null) return null;
   const s = String(value).trim();
   return s.length > 0 ? s : null;
+}
+
+function normalizePseudo(value) {
+  const pseudo = normalizeOptionalString(value);
+  return pseudo ? pseudo.toLowerCase() : null;
+}
+
+function normalizePassword(value) {
+  const password = normalizeOptionalString(value);
+  if (!password) return null;
+  return password;
+}
+
+function buildGeneratedPassword() {
+  return `gl-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
+const ALLOWED_MODULE_SETTINGS = new Set(MODULE_KEYS);
+const ALLOWED_GAMEPLAY_SETTINGS = new Set([
+  'gameplay.turns_enabled',
+  'gameplay.narration_enabled',
+  'gameplay.player_actions_enabled',
+  'gameplay.scoring_enabled',
+]);
+
+async function ensureClassExists(classId) {
+  const row = await queryOne(
+    'SELECT id, name FROM gl_classes WHERE id = ? LIMIT 1',
+    [classId]
+  );
+  return row || null;
+}
+
+async function ensurePseudoAvailable(pseudo, excludedPlayerId = null) {
+  const existing = excludedPlayerId
+    ? await queryOne(
+      'SELECT id FROM gl_players WHERE LOWER(pseudo) = LOWER(?) AND id <> ? LIMIT 1',
+      [pseudo, excludedPlayerId]
+    )
+    : await queryOne(
+      'SELECT id FROM gl_players WHERE LOWER(pseudo) = LOWER(?) LIMIT 1',
+      [pseudo]
+    );
+  return !existing;
 }
 
 router.get('/classes', requireGlPermission('gl.players.manage'), async (_req, res) => {
@@ -39,7 +93,8 @@ router.get('/players', requireGlPermission('gl.players.manage'), async (req, res
   const classId = req.query?.classId ? Number(req.query.classId) : null;
   const rows = classId
     ? await queryAll(
-      `SELECT p.id, p.class_id, p.team_id, p.pseudo, p.is_active, p.linked_foretmap_user_id, p.last_seen, c.name AS class_name
+      `SELECT p.id, p.class_id, p.team_id, p.first_name, p.last_name, p.pseudo,
+              p.password_must_reset, p.is_active, p.linked_foretmap_user_id, p.last_seen, c.name AS class_name
          FROM gl_players p
     LEFT JOIN gl_classes c ON c.id = p.class_id
         WHERE p.class_id = ?
@@ -47,7 +102,8 @@ router.get('/players', requireGlPermission('gl.players.manage'), async (req, res
       [classId]
     )
     : await queryAll(
-      `SELECT p.id, p.class_id, p.team_id, p.pseudo, p.is_active, p.linked_foretmap_user_id, p.last_seen, c.name AS class_name
+      `SELECT p.id, p.class_id, p.team_id, p.first_name, p.last_name, p.pseudo,
+              p.password_must_reset, p.is_active, p.linked_foretmap_user_id, p.last_seen, c.name AS class_name
          FROM gl_players p
     LEFT JOIN gl_classes c ON c.id = p.class_id
         ORDER BY p.id DESC`
@@ -56,20 +112,43 @@ router.get('/players', requireGlPermission('gl.players.manage'), async (req, res
 });
 
 router.post('/players', requireGlPermission('gl.players.manage'), async (req, res) => {
-  const pseudo = normalizeOptionalString(req.body?.pseudo);
-  const pin = normalizeOptionalString(req.body?.pin) || '1234';
+  const firstName = normalizeImportOptionalString(req.body?.firstName);
+  const lastName = normalizeImportOptionalString(req.body?.lastName);
+  const pseudo = normalizePseudo(req.body?.pseudo);
+  const password = normalizePassword(req.body?.password) || normalizePassword(req.body?.pin);
   const classId = Number(req.body?.classId);
-  if (!pseudo || !Number.isFinite(classId)) {
-    return res.status(400).json({ error: 'Pseudo et classId requis' });
+  const passwordMustResetInput = req.body?.passwordMustReset;
+  if (!firstName || !lastName || !pseudo || !Number.isFinite(classId)) {
+    return res.status(400).json({ error: 'Prénom, nom, pseudo et classId requis' });
   }
-  const pinHash = await bcrypt.hash(pin, 10);
+  if (!PSEUDO_RE.test(pseudo)) {
+    return res.status(400).json({ error: 'Pseudo invalide (3-30 caractères, lettres/chiffres/._-)' });
+  }
+  if (password && password.length < 4) {
+    return res.status(400).json({ error: 'Mot de passe trop court (min 4 caractères)' });
+  }
+  const cls = await ensureClassExists(classId);
+  if (!cls) {
+    return res.status(404).json({ error: 'Classe introuvable' });
+  }
+  const pseudoAvailable = await ensurePseudoAvailable(pseudo);
+  if (!pseudoAvailable) {
+    return res.status(409).json({ error: 'Pseudo déjà utilisé' });
+  }
+  const generatedPassword = buildGeneratedPassword();
+  const effectivePassword = password || generatedPassword;
+  const passwordMustReset = passwordMustResetInput == null
+    ? (password ? 0 : 1)
+    : (passwordMustResetInput ? 1 : 0);
+  const passwordHash = await bcrypt.hash(effectivePassword, 10);
   await execute(
-    `INSERT INTO gl_players (class_id, team_id, pseudo, pin_hash, linked_foretmap_user_id, is_active, created_at, updated_at)
-     VALUES (?, NULL, ?, ?, NULL, 1, NOW(), NOW())`,
-    [classId, pseudo, pinHash]
+    `INSERT INTO gl_players
+      (class_id, team_id, first_name, last_name, pseudo, password_must_reset, password_hash, linked_foretmap_user_id, is_active, created_at, updated_at)
+     VALUES (?, NULL, ?, ?, ?, ?, ?, NULL, 1, NOW(), NOW())`,
+    [classId, firstName, lastName, pseudo, passwordMustReset, passwordHash]
   );
   const created = await queryOne(
-    `SELECT p.id, p.class_id, p.team_id, p.pseudo, p.is_active
+    `SELECT p.id, p.class_id, p.team_id, p.first_name, p.last_name, p.pseudo, p.password_must_reset, p.is_active
        FROM gl_players p
       WHERE p.class_id = ? AND p.pseudo = ?
       ORDER BY p.id DESC
@@ -79,13 +158,202 @@ router.post('/players', requireGlPermission('gl.players.manage'), async (req, re
   return res.status(201).json(created);
 });
 
+router.put('/players/:id', requireGlPermission('gl.players.manage'), async (req, res) => {
+  const id = Number(req.params.id);
+  if (!Number.isFinite(id)) return res.status(400).json({ error: 'Identifiant invalide' });
+  const existing = await queryOne('SELECT id, pseudo, class_id FROM gl_players WHERE id = ? LIMIT 1', [id]);
+  if (!existing) return res.status(404).json({ error: 'Joueur introuvable' });
+
+  const firstName = normalizeImportOptionalString(req.body?.firstName);
+  const lastName = normalizeImportOptionalString(req.body?.lastName);
+  const classId = req.body?.classId == null ? null : Number(req.body.classId);
+  const pseudo = req.body?.pseudo == null ? null : normalizePseudo(req.body?.pseudo);
+
+  if (firstName != null && !firstName) return res.status(400).json({ error: 'Prénom invalide' });
+  if (lastName != null && !lastName) return res.status(400).json({ error: 'Nom invalide' });
+  if (pseudo != null && !PSEUDO_RE.test(pseudo)) {
+    return res.status(400).json({ error: 'Pseudo invalide (3-30 caractères, lettres/chiffres/._-)' });
+  }
+  if (Number.isFinite(classId)) {
+    const cls = await ensureClassExists(classId);
+    if (!cls) return res.status(404).json({ error: 'Classe introuvable' });
+  }
+  if (pseudo != null) {
+    const pseudoAvailable = await ensurePseudoAvailable(pseudo, id);
+    if (!pseudoAvailable) return res.status(409).json({ error: 'Pseudo déjà utilisé' });
+  }
+
+  await execute(
+    `UPDATE gl_players
+        SET first_name = COALESCE(?, first_name),
+            last_name = COALESCE(?, last_name),
+            pseudo = COALESCE(?, pseudo),
+            class_id = COALESCE(?, class_id),
+            updated_at = NOW()
+      WHERE id = ?`,
+    [firstName, lastName, pseudo, Number.isFinite(classId) ? classId : null, id]
+  );
+  const updated = await queryOne(
+    `SELECT id, class_id, team_id, first_name, last_name, pseudo, password_must_reset, is_active
+       FROM gl_players
+      WHERE id = ?
+      LIMIT 1`,
+    [id]
+  );
+  return res.json(updated);
+});
+
+router.post('/players/:id/reset-password', requireGlPermission('gl.players.manage'), async (req, res) => {
+  const id = Number(req.params.id);
+  const password = normalizePassword(req.body?.password);
+  if (!Number.isFinite(id)) return res.status(400).json({ error: 'Identifiant invalide' });
+  if (!password || password.length < 4) {
+    return res.status(400).json({ error: 'Mot de passe requis (min 4 caractères)' });
+  }
+  const existing = await queryOne('SELECT id FROM gl_players WHERE id = ? LIMIT 1', [id]);
+  if (!existing) return res.status(404).json({ error: 'Joueur introuvable' });
+  const hash = await bcrypt.hash(password, 10);
+  await execute(
+    'UPDATE gl_players SET password_hash = ?, password_must_reset = 0, updated_at = NOW() WHERE id = ?',
+    [hash, id]
+  );
+  return res.json({ ok: true });
+});
+
 router.post('/players/:id/reset-pin', requireGlPermission('gl.players.manage'), async (req, res) => {
   const id = Number(req.params.id);
-  const pin = normalizeOptionalString(req.body?.pin) || '1234';
+  const password = normalizePassword(req.body?.pin) || normalizePassword(req.body?.password);
   if (!Number.isFinite(id)) return res.status(400).json({ error: 'Identifiant invalide' });
-  const hash = await bcrypt.hash(pin, 10);
-  await execute('UPDATE gl_players SET pin_hash = ?, updated_at = NOW() WHERE id = ?', [hash, id]);
+  if (!password || password.length < 4) {
+    return res.status(400).json({ error: 'PIN/mot de passe requis (min 4 caractères)' });
+  }
+  const existing = await queryOne('SELECT id FROM gl_players WHERE id = ? LIMIT 1', [id]);
+  if (!existing) return res.status(404).json({ error: 'Joueur introuvable' });
+  const hash = await bcrypt.hash(password, 10);
+  await execute(
+    'UPDATE gl_players SET password_hash = ?, password_must_reset = 0, updated_at = NOW() WHERE id = ?',
+    [hash, id]
+  );
   return res.json({ ok: true });
+});
+
+router.get('/players/import/template', requireGlPermission('gl.players.manage'), async (req, res) => {
+  const format = String(req.query?.format || 'csv').toLowerCase();
+  if (format === 'xlsx') {
+    const buffer = buildXlsxTemplate();
+    res.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    );
+    res.setHeader('Content-Disposition', 'attachment; filename="foretmap-gl-modele-joueurs.xlsx"');
+    return res.send(buffer);
+  }
+  const csv = buildCsvTemplate();
+  res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+  res.setHeader('Content-Disposition', 'attachment; filename="foretmap-gl-modele-joueurs.csv"');
+  return res.send(csv);
+});
+
+router.post('/players/import', requireGlPermission('gl.players.manage'), async (req, res) => {
+  const dryRun = !!req.body?.dryRun;
+  let parsedRows;
+  try {
+    parsedRows = resolveImportRows(req.body || {});
+  } catch (err) {
+    return res.status(400).json({ error: err.message || 'Fichier import invalide' });
+  }
+  if (!Array.isArray(parsedRows) || parsedRows.length === 0) {
+    return res.status(400).json({ error: 'Fichier import vide ou sans lignes exploitables' });
+  }
+  if (parsedRows.length > MAX_IMPORT_ROWS) {
+    return res.status(400).json({ error: `Trop de lignes (max ${MAX_IMPORT_ROWS})` });
+  }
+
+  const classRows = await queryAll('SELECT id, name FROM gl_classes');
+  const classIdByName = new Map(
+    classRows.map((row) => [String(row.name || '').trim().toLowerCase(), Number(row.id)])
+  );
+  const existingPseudos = await queryAll('SELECT pseudo FROM gl_players');
+  const knownPseudos = new Set(existingPseudos.map((row) => String(row.pseudo || '').trim().toLowerCase()));
+
+  const errors = [];
+  const validRows = [];
+  for (let i = 0; i < parsedRows.length; i += 1) {
+    const rowNumber = i + 2;
+    const payload = buildPlayerImportPayload(parsedRows[i]);
+    const rowErrors = validatePlayerImportPayload(payload, rowNumber, { passwordMinLength: 4 });
+    const normalizedPseudo = payload.pseudo ? payload.pseudo.toLowerCase() : null;
+    const normalizedClass = payload.className ? payload.className.toLowerCase() : null;
+
+    if (normalizedPseudo && !PSEUDO_RE.test(normalizedPseudo)) {
+      rowErrors.push({
+        row: rowNumber,
+        field: 'pseudo',
+        error: 'Pseudo invalide (3-30 caractères, lettres/chiffres/._-)',
+      });
+    }
+    if (normalizedPseudo && knownPseudos.has(normalizedPseudo)) {
+      rowErrors.push({ row: rowNumber, field: 'pseudo', error: 'Pseudo déjà utilisé' });
+    }
+    const classId = normalizedClass ? classIdByName.get(normalizedClass) : null;
+    if (!classId) {
+      rowErrors.push({ row: rowNumber, field: 'className', error: 'Classe introuvable' });
+    }
+    if (rowErrors.length) {
+      errors.push(...rowErrors);
+      continue;
+    }
+    knownPseudos.add(normalizedPseudo);
+    validRows.push({
+      rowNumber,
+      firstName: payload.firstName,
+      lastName: payload.lastName,
+      pseudo: normalizedPseudo,
+      classId,
+      password: payload.password || null,
+    });
+  }
+
+  let created = 0;
+  if (!dryRun) {
+    for (const row of validRows) {
+      const effectivePassword = row.password || buildGeneratedPassword();
+      const passwordHash = await bcrypt.hash(effectivePassword, 10);
+      const passwordMustReset = row.password ? 0 : 1;
+      try {
+        await execute(
+          `INSERT INTO gl_players
+            (class_id, team_id, first_name, last_name, pseudo, password_must_reset, password_hash, linked_foretmap_user_id, is_active, created_at, updated_at)
+           VALUES (?, NULL, ?, ?, ?, ?, ?, NULL, 1, NOW(), NOW())`,
+          [row.classId, row.firstName, row.lastName, row.pseudo, passwordMustReset, passwordHash]
+        );
+        created += 1;
+      } catch (err) {
+        const code = String(err?.code || '');
+        if (code === 'ER_DUP_ENTRY') {
+          errors.push({
+            row: row.rowNumber,
+            field: 'pseudo',
+            error: 'Pseudo déjà utilisé',
+          });
+          continue;
+        }
+        throw err;
+      }
+    }
+  }
+
+  return res.json({
+    report: {
+      totals: {
+        received: parsedRows.length,
+        valid: validRows.length,
+        skipped_invalid: errors.length > 0 ? parsedRows.length - validRows.length : 0,
+        created,
+      },
+      errors,
+    },
+  });
 });
 
 router.get('/settings', requireGlPermission('gl.settings.manage'), async (_req, res) => {
@@ -105,6 +373,17 @@ router.put('/settings/:key', requireGlPermission('gl.settings.manage'), async (r
   const key = normalizeOptionalString(req.params.key);
   if (!key) return res.status(400).json({ error: 'Clé invalide' });
   const value = req.body?.value ?? null;
+  if (key.startsWith('modules.')) {
+    if (!ALLOWED_MODULE_SETTINGS.has(key)) {
+      return res.status(400).json({ error: 'Clé module inconnue' });
+    }
+    if (typeof value !== 'boolean') {
+      return res.status(400).json({ error: 'La valeur d’un module doit être booléenne' });
+    }
+  }
+  if (key.startsWith('gameplay.') && !ALLOWED_GAMEPLAY_SETTINGS.has(key)) {
+    return res.status(400).json({ error: 'Clé gameplay inconnue' });
+  }
   await execute(
     `INSERT INTO gl_settings (\`key\`, value_json, updated_by, updated_at)
      VALUES (?, ?, ?, NOW())
@@ -113,6 +392,9 @@ router.put('/settings/:key', requireGlPermission('gl.settings.manage'), async (r
   );
   if (key.startsWith('gameplay.')) {
     invalidateGameplayCache();
+  }
+  if (key.startsWith('modules.')) {
+    invalidateModulesCache();
   }
   return res.json({ ok: true });
 });
