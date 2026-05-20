@@ -37,6 +37,50 @@ test('GET /api/observations/:id/image retourne le fichier image', async () => {
   assert.ok((res.headers['content-type'] || '').toLowerCase().includes('image'));
 });
 
+test('GET /api/observations/student/:id refuse un autre élève (IDOR)', async () => {
+  const owner = await request(app)
+    .post('/api/auth/register')
+    .send({ firstName: 'Owner', lastName: `Obs${Date.now()}`, password: 'pass1234' })
+    .expect(201);
+  const intruder = await request(app)
+    .post('/api/auth/register')
+    .send({ firstName: 'Intruder', lastName: `Obs${Date.now()}`, password: 'pass1234' })
+    .expect(201);
+
+  await request(app)
+    .post('/api/observations')
+    .set('Authorization', `Bearer ${owner.body.authToken}`)
+    .send({ studentId: owner.body.id, content: 'Observation privée' })
+    .expect(201);
+
+  await request(app)
+    .get(`/api/observations/student/${owner.body.id}`)
+    .set('Authorization', `Bearer ${intruder.body.authToken}`)
+    .expect(403);
+});
+
+test('DELETE /api/observations/:id refuse la suppression par un autre élève', async () => {
+  const owner = await request(app)
+    .post('/api/auth/register')
+    .send({ firstName: 'Delete', lastName: `Owner${Date.now()}`, password: 'pass1234' })
+    .expect(201);
+  const intruder = await request(app)
+    .post('/api/auth/register')
+    .send({ firstName: 'Delete', lastName: `Intruder${Date.now()}`, password: 'pass1234' })
+    .expect(201);
+
+  const obs = await request(app)
+    .post('/api/observations')
+    .set('Authorization', `Bearer ${owner.body.authToken}`)
+    .send({ studentId: owner.body.id, content: 'À ne pas supprimer' })
+    .expect(201);
+
+  await request(app)
+    .delete(`/api/observations/${obs.body.id}`)
+    .set('Authorization', `Bearer ${intruder.body.authToken}`)
+    .expect(403);
+});
+
 test('GET /api/observations/:id/image retourne 404 si fichier absent', async () => {
   const reg = await request(app)
     .post('/api/auth/register')

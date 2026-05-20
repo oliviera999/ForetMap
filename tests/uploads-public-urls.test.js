@@ -1,5 +1,6 @@
 'use strict';
 
+require('./helpers/setup');
 const test = require('node:test');
 const assert = require('node:assert');
 const request = require('supertest');
@@ -17,9 +18,15 @@ const { PUBLIC_IMAGE_CACHE_CONTROL } = require('../lib/httpImageCache');
 
 const SAMPLE_IMAGE_DATA =
   'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO5qXg8AAAAASUVORK5CYII=';
+let studentToken = '';
 
 test.before(async () => {
   await initSchema();
+  const reg = await request(app)
+    .post('/api/auth/register')
+    .send({ firstName: 'Upload', lastName: `Public${Date.now()}`, password: 'pass1234' })
+    .expect(201);
+  studentToken = reg.body.authToken;
 });
 
 test('Validateurs chemins publics zones / repères', () => {
@@ -74,7 +81,24 @@ test('GET /api/zones/:id/photos/:pid/data redirige vers /uploads (302, sans suiv
 
   const res = await request(app)
     .get(`/api/zones/${zoneId}/photos/${photoId}/data`)
+    .set('Authorization', `Bearer ${studentToken}`)
     .redirects(0)
     .expect(302);
   assert.strictEqual(res.headers.location, `/uploads/${relativePath}`);
+});
+
+test('GET /api/zones/:id/photos/:pid/data sans token renvoie 401', async () => {
+  const zoneId = `zone-redir-auth-${Date.now()}`;
+  await execute(
+    'INSERT INTO zones (id, name, x, y, width, height, current_plant, stage, special, points, color) VALUES (?, ?, 0, 0, 0, 0, ?, ?, 0, ?, ?)',
+    [zoneId, 'Zone redir auth', '', 'empty', '[]', '#86efac80']
+  );
+  const created = await execute(
+    'INSERT INTO zone_photos (zone_id, image_path, caption, uploaded_at) VALUES (?, ?, ?, ?)',
+    [zoneId, `zones/${zoneId}/1.jpg`, 'a', new Date().toISOString()]
+  );
+  await request(app)
+    .get(`/api/zones/${zoneId}/photos/${created.insertId}/data`)
+    .redirects(0)
+    .expect(401);
 });

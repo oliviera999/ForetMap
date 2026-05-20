@@ -91,6 +91,7 @@ test('PATCH /api/students/:id/profile conserve une affiliation de carte orphelin
 
   const res = await request(app)
     .patch(`/api/students/${student.id}/profile`)
+    .set('Authorization', `Bearer ${student.authToken}`)
     .send({
       pseudo: `orph_${Date.now()}`.slice(0, 30),
       currentPassword: password,
