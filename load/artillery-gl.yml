@@ -1,0 +1,58 @@
+config:
+  target: "http://127.0.0.1:3000"
+  http:
+    timeout: 20
+  defaults:
+    headers:
+      Accept: application/json
+      X-Foretmap-Product: "gl"
+      X-ForetMap-Load-Test: "{{ $processEnvironment.LOAD_TEST_SECRET }}"
+  phases:
+    - duration: 20
+      arrivalRate: 2
+      name: warmup
+    - duration: 45
+      arrivalRate: 2
+      rampTo: 8
+      name: ramp-up
+    - duration: 90
+      arrivalRate: 8
+      name: plateau
+    - duration: 20
+      arrivalRate: 8
+      rampTo: 2
+      name: cool-down
+
+scenarios:
+  - name: gl_public_read
+    weight: 50
+    flow:
+      - get:
+          url: /api/health
+      - get:
+          url: /api/gl/auth/config
+      - think: 2
+
+  - name: gl_player_login_probe
+    weight: 35
+    flow:
+      - post:
+          url: /api/gl/auth/login
+          json:
+            pseudo: "load-test-player"
+            pin: "0000"
+      - think: 2
+      - get:
+          url: /api/gl/auth/config
+
+  - name: gl_event_probe
+    weight: 15
+    flow:
+      - get:
+          url: /api/version
+      - post:
+          url: /api/gl/auth/login
+          json:
+            pseudo: "load-test-player"
+            pin: "0000"
+      - think: 1

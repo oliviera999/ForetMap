@@ -6,7 +6,7 @@ const assert = require('node:assert');
 const request = require('supertest');
 const { app } = require('../server');
 const { initSchema, execute, queryOne } = require('../database');
-const { signAuthToken } = require('../middleware/requireTeacher');
+const { createGlAdmin, createGlClass, createGlGameWithTeams, createGlPlayer, signTokens } = require('./helpers/glFixtures');
 
 let adminToken = '';
 let playerToken = '';
@@ -22,67 +22,39 @@ const playerPseudo = `mascots-player-${stamp}`;
 
 before(async () => {
   await initSchema();
-  await execute(
-    `INSERT INTO gl_admins (email, display_name, role, is_active, created_at, updated_at)
-     VALUES (?, 'MJ Mascots', 'admin', 1, NOW(), NOW())
-     ON DUPLICATE KEY UPDATE is_active = 1, updated_at = NOW()`,
-    [adminEmail]
-  );
-  const admin = await queryOne('SELECT id FROM gl_admins WHERE email = ? LIMIT 1', [adminEmail]);
-
-  adminToken = await signAuthToken({
-    product: 'gl',
-    userType: 'gl_admin',
-    userId: String(admin.id),
-    roleSlug: 'gl_admin',
-    permissions: ['gl.read', 'gl.team.manage', 'gl.game.manage'],
-    displayName: 'MJ Mascots',
-  });
-
-  await execute(
-    `INSERT INTO gl_classes (name, school, created_by, is_active, created_at, updated_at)
-     VALUES (?, 'Ecole Mascots', ?, 1, NOW(), NOW())`,
-    [className, admin.id]
-  );
-  const cls = await queryOne('SELECT id FROM gl_classes WHERE name = ? LIMIT 1', [className]);
+  const admin = await createGlAdmin({ email: adminEmail, displayName: 'MJ Mascots' });
+  const cls = await createGlClass({ name: className, school: 'Ecole Mascots', adminId: admin.id });
   const chapter = await queryOne("SELECT id FROM gl_chapters WHERE slug = 'foret-magique' LIMIT 1");
-  await execute(
-    `INSERT INTO gl_games (class_id, chapter_id, name, status, created_by, created_at, updated_at)
-     VALUES (?, ?, ?, 'live', ?, NOW(), NOW())`,
-    [cls.id, chapter.id, gameName, admin.id]
-  );
-  const game = await queryOne('SELECT id FROM gl_games WHERE name = ? LIMIT 1', [gameName]);
-  gameId = Number(game.id);
-
-  await execute(
-    `INSERT INTO gl_teams (game_id, name, type, color, created_at, updated_at)
-     VALUES (?, 'Team A', 'gnome', '#22c55e', NOW(), NOW())`,
-    [gameId]
-  );
-  const teamA = await queryOne('SELECT id FROM gl_teams WHERE game_id = ? AND name = ? LIMIT 1', [gameId, 'Team A']);
-  teamAId = Number(teamA.id);
-  await execute(
-    `INSERT INTO gl_teams (game_id, name, type, color, created_at, updated_at)
-     VALUES (?, 'Team B', 'unicorn', '#ef4444', NOW(), NOW())`,
-    [gameId]
-  );
-  const teamB = await queryOne('SELECT id FROM gl_teams WHERE game_id = ? AND name = ? LIMIT 1', [gameId, 'Team B']);
-  teamBId = Number(teamB.id);
-
-  await execute(
-    `INSERT INTO gl_players (class_id, pseudo, pin_hash, is_active, created_at, updated_at)
-     VALUES (?, ?, 'x', 1, NOW(), NOW())`,
-    [cls.id, playerPseudo]
-  );
-  const player = await queryOne('SELECT id FROM gl_players WHERE pseudo = ? LIMIT 1', [playerPseudo]);
-  playerToken = await signAuthToken({
-    product: 'gl',
-    userType: 'gl_player',
-    userId: String(player.id),
-    roleSlug: 'gl_player',
-    permissions: ['gl.read', 'gl.action.request'],
-    displayName: playerPseudo,
+  const gameSeed = await createGlGameWithTeams({
+    classId: cls.id,
+    chapterId: chapter.id,
+    name: gameName,
+    createdBy: admin.id,
+    status: 'live',
+    teams: [
+      { name: 'Team A', type: 'gnome', color: '#22c55e' },
+      { name: 'Team B', type: 'unicorn', color: '#ef4444' },
+    ],
   });
+  gameId = Number(gameSeed.game.id);
+  teamAId = Number(gameSeed.teams[0].id);
+  teamBId = Number(gameSeed.teams[1].id);
+
+  const player = await createGlPlayer({
+    classId: cls.id,
+    pseudo: playerPseudo,
+    password: '1234',
+  });
+  const tokens = await signTokens({
+    adminId: admin.id,
+    adminDisplayName: 'MJ Mascots',
+    adminPermissions: ['gl.read', 'gl.team.manage', 'gl.game.manage', 'gl.content.manage'],
+    playerId: player.id,
+    playerPseudo,
+    playerPermissions: ['gl.read', 'gl.action.request'],
+  });
+  adminToken = tokens.adminToken;
+  playerToken = tokens.playerToken;
 });
 
 test('GET /api/gl/mascots retourne le catalogue (auth GL requise)', async () => {
@@ -147,4 +119,91 @@ test('GET /api/gl/mascots?gameId=... renvoie les assignations actuelles', async 
   const ids = (res.body?.assignments || []).map((a) => a.mascot_id);
   assert.ok(ids.includes('gl-gnome-mousse'));
   assert.ok(ids.includes('gl-licorne-aube'));
+});
+
+test('POST /api/gl/mascots/packs valide le payload Zod', async () => {
+  await request(app)
+    .post('/api/gl/mascots/packs')
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ name: 'Pack invalide', payload: { renderer: 'sprite_cut' } })
+    .expect(400);
+});
+
+test('CRUD pack mascotte GL + assets', async () => {
+  const payload = {
+    id: `pack-${stamp}`,
+    name: 'Pack test GL',
+    renderer: 'sprite_cut',
+    assets: [{ key: 'atlas', src: '/uploads/x.png' }],
+    states: [{ key: 'idle', frames: [0, 1, 2], loop: true, fps: 12 }],
+  };
+  const created = await request(app)
+    .post('/api/gl/mascots/packs')
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ chapterId: 1, name: 'Pack test GL', payload })
+    .expect(201);
+  const packId = Number(created.body?.pack?.id);
+  assert.ok(Number.isFinite(packId) && packId > 0);
+
+  const list = await request(app)
+    .get('/api/gl/mascots/packs')
+    .set('Authorization', `Bearer ${adminToken}`)
+    .expect(200);
+  assert.ok((list.body?.packs || []).some((pack) => Number(pack.id) === packId));
+
+  const updatedPayload = { ...payload, name: 'Pack update GL' };
+  await request(app)
+    .put(`/api/gl/mascots/packs/${packId}`)
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ name: 'Pack update GL', payload: updatedPayload })
+    .expect(200);
+
+  const dataBase64 = Buffer.from('asset-test', 'utf8').toString('base64');
+  await request(app)
+    .post(`/api/gl/mascots/packs/${packId}/assets`)
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({
+      filename: 'atlas.txt',
+      mimeType: 'text/plain',
+      dataBase64,
+    })
+    .expect(201);
+
+  const assets = await request(app)
+    .get(`/api/gl/mascots/packs/${packId}/assets`)
+    .set('Authorization', `Bearer ${adminToken}`)
+    .expect(200);
+  assert.ok((assets.body?.assets || []).some((asset) => asset.filename === 'atlas.txt'));
+
+  await request(app)
+    .delete(`/api/gl/mascots/packs/${packId}/assets/atlas.txt`)
+    .set('Authorization', `Bearer ${adminToken}`)
+    .expect(200);
+
+  await request(app)
+    .delete(`/api/gl/mascots/packs/${packId}`)
+    .set('Authorization', `Bearer ${adminToken}`)
+    .expect(200);
+});
+
+test('sprite library GL: ajout, liste, suppression', async () => {
+  const dataBase64 = Buffer.from('sprite-test', 'utf8').toString('base64');
+  const created = await request(app)
+    .post('/api/gl/mascots/sprite-library')
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ chapterId: 1, filename: 'sprite.txt', mimeType: 'text/plain', dataBase64 })
+    .expect(201);
+  const id = Number(created.body?.asset?.id);
+  assert.ok(Number.isFinite(id) && id > 0);
+
+  const list = await request(app)
+    .get('/api/gl/mascots/sprite-library')
+    .set('Authorization', `Bearer ${adminToken}`)
+    .expect(200);
+  assert.ok((list.body?.assets || []).some((asset) => Number(asset.id) === id));
+
+  await request(app)
+    .delete(`/api/gl/mascots/sprite-library/${id}`)
+    .set('Authorization', `Bearer ${adminToken}`)
+    .expect(200);
 });

@@ -21,17 +21,19 @@ Réponses JSON. En cas d’erreur : `{ "error": "message" }` avec statut HTTP ad
 ## Gnomes & Licornes (`/api/gl`)
 
 Le mode GL est isolé par JWT avec claim `product: "gl"` et routes dédiées.
+La matrice de couverture des tests GL est documentée dans `docs/GL_TESTS.md`.
 
 ### Auth GL
 
 | Méthode | URL | Body | Description |
 |--------|-----|------|-------------|
-| POST | `/api/gl/auth/login` | `{ pseudo, pin }` | Connexion joueur (pseudo + PIN, table `gl_players`) |
+| POST | `/api/gl/auth/login` | `{ pseudo, password }` (compat legacy `{ pseudo, pin }`) | Connexion joueur GL (`gl_players.password_hash`) |
 | POST | `/api/gl/auth/staff/login` | `{ identifier, password }` | Connexion MJ/Admin via compte **ForetMap** (enseignant). Les **admins ForetMap** (rôle RBAC `admin`) sont synchronisés automatiquement dans `gl_admins`. Les comptes MJ déjà enregistrés dans `gl_admins` (rôle `mj`) sont aussi acceptés. Refus `403` pour un élève ForetMap (onglet joueur requis). |
 | GET | `/api/gl/auth/google/start` | — | Redirection OAuth Google (flux navigateur, comme ForetMap). Callback : `/api/gl/auth/google/callback` → retour `gl.html#oauth=…` |
 | POST | `/api/gl/auth/google` | `{ idToken }` | Connexion MJ/Admin via Google ID token (compatibilité API ; mêmes règles d’accès que `staff/login`) |
-| GET | `/api/gl/auth/config` | — | Libellés écran connexion (`title`, `subtitle`, `allowGoogleStaff`) |
+| GET | `/api/gl/auth/config` | — | Libellés écran connexion + flags modules (`title`, `subtitle`, `allowGoogleStaff`, `modules`) |
 | GET | `/api/gl/auth/me` | — | Profil courant GL (`auth`, `profile`) |
+| POST | `/api/gl/auth/change-password` | `{ currentPassword, newPassword }` (compat legacy `pin`/`password`) | Changement mot de passe joueur GL (`password_must_reset=0`) |
 
 ### Contenus éditoriaux GL
 
@@ -72,6 +74,16 @@ Le script accepte également `--target=chapters` (Lot 2B) : seules les pages WP 
 | POST | `/api/gl/games/:id/end` | — | `gl.game.manage` |
 | GET | `/api/gl/mascots` | `?gameId=` optionnel (renvoie aussi `assignments`) | Auth GL (joueur ou admin) |
 | POST | `/api/gl/mascots/assign` | `{ gameId, teamId, mascotId }` | `gl.team.manage` (refus `404` mascotte inconnue, refus `409` mascotte déjà utilisée par une autre équipe de la même partie) |
+| GET | `/api/gl/mascots/packs` | `?chapterId=` optionnel | `gl.content.manage` |
+| POST | `/api/gl/mascots/packs` | `{ chapterId?, name, version?, payload }` | `gl.content.manage` (validation Zod) |
+| PUT | `/api/gl/mascots/packs/:id` | `{ chapterId?, name?, version?, payload? }` | `gl.content.manage` |
+| DELETE | `/api/gl/mascots/packs/:id` | — | `gl.content.manage` |
+| GET | `/api/gl/mascots/packs/:id/assets` | — | `gl.content.manage` |
+| POST | `/api/gl/mascots/packs/:id/assets` | `{ filename, mimeType?, dataBase64 }` | `gl.content.manage` |
+| DELETE | `/api/gl/mascots/packs/:id/assets/:filename` | — | `gl.content.manage` |
+| GET | `/api/gl/mascots/sprite-library` | `?chapterId=` optionnel | `gl.content.manage` |
+| POST | `/api/gl/mascots/sprite-library` | `{ chapterId?, filename, mimeType?, dataBase64 }` | `gl.content.manage` |
+| DELETE | `/api/gl/mascots/sprite-library/:id` | — | `gl.content.manage` |
 
 Événements de partie stockés dans `gl_game_events` et diffusés en Socket.IO (`gl:game:event`, room `gl:game:{id}`).
 
@@ -93,8 +105,12 @@ Le script accepte également `--target=chapters` (Lot 2B) : seules les pages WP 
 | GET | `/api/gl/admin/classes` | — | `gl.players.manage` |
 | POST | `/api/gl/admin/classes` | `{ name, school }` | `gl.players.manage` |
 | GET | `/api/gl/admin/players` | `?classId=` optionnel | `gl.players.manage` |
-| POST | `/api/gl/admin/players` | `{ classId, pseudo, pin? }` | `gl.players.manage` |
-| POST | `/api/gl/admin/players/:id/reset-pin` | `{ pin? }` | `gl.players.manage` |
+| POST | `/api/gl/admin/players` | `{ classId, firstName, lastName, pseudo, password?, passwordMustReset? }` | `gl.players.manage` |
+| PUT | `/api/gl/admin/players/:id` | `{ firstName?, lastName?, pseudo?, classId? }` | `gl.players.manage` |
+| POST | `/api/gl/admin/players/:id/reset-password` | `{ password }` | `gl.players.manage` |
+| POST | `/api/gl/admin/players/:id/reset-pin` | `{ pin }` (alias compat) | `gl.players.manage` |
+| GET | `/api/gl/admin/players/import/template` | `?format=csv|xlsx` | `gl.players.manage` |
+| POST | `/api/gl/admin/players/import` | `{ fileName, fileDataBase64, dryRun }` | `gl.players.manage` |
 | GET | `/api/gl/admin/settings` | — | `gl.settings.manage` |
 | PUT | `/api/gl/admin/settings/:key` | `{ value }` | `gl.settings.manage` |
 | GET | `/api/gl/admin/content` | — | `gl.content.manage` |
@@ -109,6 +125,7 @@ Le script accepte également `--target=chapters` (Lot 2B) : seules les pages WP 
 - `gl.event.emit`
 - `gl.mascot.position`
 - `gl.settings.manage`
+- `gl.action.request`
 
 ---
 

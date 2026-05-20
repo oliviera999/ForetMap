@@ -156,12 +156,17 @@ Le script force `DB_NAME=foretmap_test` ; le schéma est (re)créé par les fich
 | Commande | Rôle |
 |----------|------|
 | `npm test` | Tous les **`tests/*.test.js`** (API + utilitaires **`src/utils`** : géométrie visite, mascotte, etc.) |
+| `npm run test:ui` | Tests UI Vitest (`tests-ui/**`) |
 | `npm run test:e2e` | Playwright sur **`e2e/`** (inclut visite / mascotte) |
 | `npm run smoke:local:fast` | Smoke applicatif (`scripts/local-smoke.js`) |
 | `npm run test:snapshot` | Snapshot DB importée (`FORETMAP_SNAPSHOT_TESTS=1`, voir § 5ter) |
+| `npm run test:snapshot:gl` | Snapshot DB ciblé Gnomes & Licornes (`FORETMAP_SNAPSHOT_GL=1`) |
 | `npm run test:load` (et variantes) | Charge Artillery (`LOAD_TEST_SECRET`, voir § **5quinquies**) |
+| `npm run test:load:gl` | Charge Artillery ciblée GL (`load/artillery-gl.yml`) |
 
 Après une modification **frontend** : **`npm run build`** si le serveur sert **`dist/`** (`NODE_ENV=production`), avant **`npm run test:e2e`**.
+
+Référence de couverture GL: `docs/GL_TESTS.md`.
 
 ### Audit QA UX par personae (routine)
 
