@@ -29,9 +29,9 @@ La matrice de couverture des tests GL est documentée dans `docs/GL_TESTS.md`.
 |--------|-----|------|-------------|
 | POST | `/api/gl/auth/login` | `{ pseudo, password }` (compat legacy `{ pseudo, pin }`) | Connexion joueur GL (`gl_players.password_hash`) |
 | POST | `/api/gl/auth/staff/login` | `{ identifier, password }` | Connexion MJ/Admin via compte **ForetMap** (enseignant). Les **admins ForetMap** (rôle RBAC `admin`) sont synchronisés automatiquement dans `gl_admins`. Les comptes MJ déjà enregistrés dans `gl_admins` (rôle `mj`) sont aussi acceptés. Refus `403` pour un élève ForetMap (onglet joueur requis). |
-| GET | `/api/gl/auth/google/start` | — | Redirection OAuth Google (flux navigateur, comme ForetMap). Callback : `/api/gl/auth/google/callback` → retour `gl.html#oauth=…` |
-| POST | `/api/gl/auth/google` | `{ idToken }` | Connexion MJ/Admin via Google ID token (compatibilité API ; mêmes règles d’accès que `staff/login`) |
-| GET | `/api/gl/auth/config` | — | Libellés écran connexion + flags modules (`title`, `subtitle`, `allowGoogleStaff`, `modules`) |
+| GET | `/api/gl/auth/google/start` | Query `mode=player` ou `mode=staff` (défaut `staff`) | Redirection OAuth Google (cookie `gl_oauth_mode`). Callback : `/api/gl/auth/google/callback` → `gl.html#oauth=…` (`type: gl_player` ou `gl_staff`) ou `#oauth_error=…&oauth_mode=…` |
+| POST | `/api/gl/auth/google` | `{ idToken, mode?: 'player'|'staff' }` | Connexion via Google ID token : **joueur** si `mode=player` (compte `gl_players` avec `email` ou lien élève ForetMap) ; **MJ/Admin** sinon (mêmes règles que `staff/login`) |
+| GET | `/api/gl/auth/config` | — | Libellés écran connexion + flags (`title`, `subtitle`, `allowGoogleStaff`, `allowGooglePlayer`, `modules`) |
 | GET | `/api/gl/auth/me` | — | Profil courant GL (`auth`, `profile`) |
 | POST | `/api/gl/auth/change-password` | `{ currentPassword, newPassword }` (compat legacy `pin`/`password`) | Changement mot de passe joueur GL (`password_must_reset=0`) |
 
@@ -62,9 +62,15 @@ Le script accepte également `--target=chapters` (Lot 2B) : seules les pages WP 
 | DELETE | `/api/gl/chapters/admin/markers/:markerId` | — | `gl.content.manage` (détache les équipes positionnées sur ce marker via `ON DELETE SET NULL`) |
 | GET | `/api/gl/gameplay-settings` | — | Auth GL (joueur ou admin) |
 | POST | `/api/gl/games` | `{ classId, chapterId, name }` | `gl.game.manage` (refus `404` si `classId`/`chapterId` introuvable, `409` si la ressource est supprimée entre validation et insertion) |
+| GET | `/api/gl/games` | `?classId=&status=` optionnels | `gl.game.manage` |
 | GET | `/api/gl/games/:id` | — | `gl.read` (ou membre de la partie) |
 | POST | `/api/gl/games/:id/teams` | `{ name, type, mascotId, color }` | `gl.team.manage` (refus `404` si partie introuvable) |
+| PUT | `/api/gl/games/:id/teams/:teamId` | `{ name?, type?, mascotId?, color? }` | `gl.team.manage` |
+| DELETE | `/api/gl/games/:id/teams/:teamId` | — | `gl.team.manage` (refus `409` si équipe avec membres) |
 | POST | `/api/gl/games/:id/join-team` | `{ teamId }` | Joueur connecté GL |
+| GET | `/api/gl/games/:id/roster` | — | `gl.players.manage` |
+| POST | `/api/gl/games/:id/roster/assign` | `{ playerId, teamId }` | `gl.players.manage` |
+| POST | `/api/gl/games/:id/roster/unassign` | `{ playerId }` | `gl.players.manage` |
 | POST | `/api/gl/games/:id/events` | `{ teamId?, eventType, payload }` | `gl.event.emit` |
 | POST | `/api/gl/games/:id/turn/next` | — | `gl.game.manage` (refus `409` si `gameplay.turns_enabled=false`) |
 | POST | `/api/gl/games/:id/actions` | `{ actionType, payload }` | `gl.action.request` (joueur) (refus `409` si toggle off / hors tour) |
@@ -72,6 +78,7 @@ Le script accepte également `--target=chapters` (Lot 2B) : seules les pages WP 
 | POST | `/api/gl/games/:id/start` | — | `gl.game.manage` |
 | POST | `/api/gl/games/:id/pause` | — | `gl.game.manage` |
 | POST | `/api/gl/games/:id/end` | — | `gl.game.manage` |
+| DELETE | `/api/gl/games/:id` | — | `gl.game.manage` (autorisé uniquement pour `draft` / `ended`) |
 | GET | `/api/gl/mascots` | `?gameId=` optionnel (renvoie aussi `assignments`) | Auth GL (joueur ou admin) |
 | POST | `/api/gl/mascots/assign` | `{ gameId, teamId, mascotId }` | `gl.team.manage` (refus `404` mascotte inconnue, refus `409` mascotte déjà utilisée par une autre équipe de la même partie) |
 | GET | `/api/gl/mascots/packs` | `?chapterId=` optionnel | `gl.content.manage` |
@@ -104,13 +111,17 @@ Le script accepte également `--target=chapters` (Lot 2B) : seules les pages WP 
 |--------|-----|------|------------|
 | GET | `/api/gl/admin/classes` | — | `gl.players.manage` |
 | POST | `/api/gl/admin/classes` | `{ name, school }` | `gl.players.manage` |
+| PUT | `/api/gl/admin/classes/:id` | `{ name?, school?, isActive? }` | `gl.players.manage` |
+| DELETE | `/api/gl/admin/classes/:id` | — | `gl.players.manage` (refus `409` si joueurs actifs ou parties non terminées) |
 | GET | `/api/gl/admin/players` | `?classId=` optionnel | `gl.players.manage` |
 | POST | `/api/gl/admin/players` | `{ classId, firstName, lastName, pseudo, password?, passwordMustReset? }` | `gl.players.manage` |
-| PUT | `/api/gl/admin/players/:id` | `{ firstName?, lastName?, pseudo?, classId? }` | `gl.players.manage` |
+| PUT | `/api/gl/admin/players/:id` | `{ firstName?, lastName?, pseudo?, classId?, isActive? }` | `gl.players.manage` |
+| DELETE | `/api/gl/admin/players/:id` | — | `gl.players.manage` (refus `409` si partie active liée) |
 | POST | `/api/gl/admin/players/:id/reset-password` | `{ password }` | `gl.players.manage` |
 | POST | `/api/gl/admin/players/:id/reset-pin` | `{ pin }` (alias compat) | `gl.players.manage` |
 | GET | `/api/gl/admin/players/import/template` | `?format=csv|xlsx` | `gl.players.manage` |
 | POST | `/api/gl/admin/players/import` | `{ fileName, fileDataBase64, dryRun }` | `gl.players.manage` |
+| GET | `/api/gl/admin/players/export` | `?classId=` optionnel | `gl.players.manage` |
 | GET | `/api/gl/admin/settings` | — | `gl.settings.manage` |
 | PUT | `/api/gl/admin/settings/:key` | `{ value }` | `gl.settings.manage` |
 | GET | `/api/gl/admin/content` | — | `gl.content.manage` |

@@ -11,11 +11,13 @@ const OAUTH_ERROR_MESSAGES = {
   oauth_claims_invalid: 'Connexion Google refusée (compte non vérifié).',
   oauth_email_not_allowed: 'Adresse Google non autorisée.',
   oauth_gl_staff_denied: 'Ce compte Google n’a pas accès MJ / Admin Gnomes & Licornes.',
+  oauth_gl_player_denied: 'Aucun compte joueur Gnomes & Licornes n’est associé à cette adresse Google.',
   oauth_server_error: 'Erreur serveur pendant la connexion Google.',
 };
 
-function startGlGoogleAuth() {
-  window.location.assign(withAppBase('/api/gl/auth/google/start'));
+function startGlGoogleAuth(mode = 'staff') {
+  const query = mode === 'player' ? '?mode=player' : '?mode=staff';
+  window.location.assign(withAppBase(`/api/gl/auth/google/start${query}`));
 }
 
 export function GLAuthView({ onLogin, oauthNotice }) {
@@ -27,6 +29,7 @@ export function GLAuthView({ onLogin, oauthNotice }) {
   const [platformTitle, setPlatformTitle] = useState('Gnomes & Licornes');
   const [platformSubtitle, setPlatformSubtitle] = useState('');
   const [allowGoogleStaff, setAllowGoogleStaff] = useState(false);
+  const [allowGooglePlayer, setAllowGooglePlayer] = useState(false);
   const [error, setError] = useState('');
   const [info, setInfo] = useState('');
   const [busy, setBusy] = useState(false);
@@ -44,16 +47,18 @@ export function GLAuthView({ onLogin, oauthNotice }) {
         if (data?.title) setPlatformTitle(String(data.title));
         if (data?.subtitle) setPlatformSubtitle(String(data.subtitle));
         setAllowGoogleStaff(data?.allowGoogleStaff !== false && !!data?.allowGoogleStaff);
+        setAllowGooglePlayer(data?.allowGooglePlayer !== false && !!data?.allowGooglePlayer);
       })
       .catch(() => {
         setAllowGoogleStaff(false);
+        setAllowGooglePlayer(false);
       });
   }, []);
 
   useEffect(() => {
     if (oauthNotice?.error) {
       setError(OAUTH_ERROR_MESSAGES[oauthNotice.error] || 'Connexion Google refusée.');
-      setAuthTab('staff');
+      setAuthTab(oauthNotice.mode === 'player' ? 'player' : 'staff');
     }
     if (oauthNotice?.success) {
       setInfo('Connexion Google réussie.');
@@ -151,6 +156,17 @@ export function GLAuthView({ onLogin, oauthNotice }) {
             <button type="submit" className="btn btn-primary btn-full" disabled={busy}>
               {busy ? '…' : 'Se connecter'}
             </button>
+            {allowGooglePlayer ? (
+              <button
+                type="button"
+                className="btn btn-ghost btn-full"
+                style={{ marginTop: 8 }}
+                onClick={() => startGlGoogleAuth('player')}
+                disabled={busy}
+              >
+                Continuer avec Google
+              </button>
+            ) : null}
           </form>
         ) : (
           <form onSubmit={loginStaff} className="gl-form">
@@ -187,7 +203,7 @@ export function GLAuthView({ onLogin, oauthNotice }) {
                 type="button"
                 className="btn btn-ghost btn-full"
                 style={{ marginTop: 8 }}
-                onClick={startGlGoogleAuth}
+                onClick={() => startGlGoogleAuth('staff')}
                 disabled={busy}
               >
                 Continuer avec Google

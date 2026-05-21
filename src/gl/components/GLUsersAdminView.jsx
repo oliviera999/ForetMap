@@ -1,16 +1,24 @@
 import React, { useEffect, useState } from 'react';
 import { apiGL } from '../services/apiGL.js';
+import { GLClassesPanel } from './admin/GLClassesPanel.jsx';
+import { GLPlayersPanel } from './admin/GLPlayersPanel.jsx';
+import { GLPlayersImportPanel } from './admin/GLPlayersImportPanel.jsx';
+import { GLPlayersExportPanel } from './admin/GLPlayersExportPanel.jsx';
 
 export function GLUsersAdminView() {
   const [classes, setClasses] = useState([]);
   const [players, setPlayers] = useState([]);
   const [error, setError] = useState('');
+  const [classFilter, setClassFilter] = useState('');
 
-  async function reload() {
+  async function reload(nextClassFilter = classFilter) {
     try {
+      const playersUrl = nextClassFilter
+        ? `/api/gl/admin/players?classId=${encodeURIComponent(nextClassFilter)}`
+        : '/api/gl/admin/players';
       const [nextClasses, nextPlayers] = await Promise.all([
         apiGL('/api/gl/admin/classes'),
-        apiGL('/api/gl/admin/players'),
+        apiGL(playersUrl),
       ]);
       setClasses(nextClasses || []);
       setPlayers(nextPlayers || []);
@@ -21,26 +29,24 @@ export function GLUsersAdminView() {
   }
 
   useEffect(() => {
-    reload();
-  }, []);
+    reload(classFilter);
+  }, [classFilter]);
 
   return (
-    <section className="gl-panel">
+    <section className="gl-panel gl-users-admin">
       <h2>Gestion utilisateurs</h2>
       {error ? <p className="gl-error">{error}</p> : null}
-      <h3>Classes</h3>
-      <ul>
-        {classes.map((item) => (
-          <li key={item.id}>{item.name} ({item.players_count || 0} joueurs)</li>
-        ))}
-      </ul>
-      <h3>Joueurs</h3>
-      <ul>
-        {players.map((item) => (
-          <li key={item.id}>{item.pseudo} — classe {item.class_name || item.class_id}</li>
-        ))}
-      </ul>
-      <button type="button" onClick={reload}>Rafraichir</button>
+
+      <GLClassesPanel classes={classes} onReload={() => reload(classFilter)} />
+      <GLPlayersPanel
+        classes={classes}
+        players={players}
+        classFilter={classFilter}
+        onClassFilterChange={setClassFilter}
+        onReload={() => reload(classFilter)}
+      />
+      <GLPlayersImportPanel onReload={() => reload(classFilter)} />
+      <GLPlayersExportPanel classFilter={classFilter} />
     </section>
   );
 }

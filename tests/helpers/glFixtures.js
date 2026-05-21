@@ -43,20 +43,22 @@ async function createGlPlayer(options = {}) {
   const lastName = options.lastName == null ? 'Nom' : String(options.lastName);
   const passwordMustReset = options.passwordMustReset ? 1 : 0;
   const isActive = options.isActive == null ? 1 : (options.isActive ? 1 : 0);
-  const linkedForetmapUserId = options.linkedForetmapUserId == null ? null : Number(options.linkedForetmapUserId);
+  const linkedForetmapUserId = options.linkedForetmapUserId == null ? null : String(options.linkedForetmapUserId);
+  const email = options.email == null ? null : String(options.email).trim().toLowerCase() || null;
   const passwordHash = options.passwordHash || await bcrypt.hash(password, 10);
 
   await execute('DELETE FROM gl_players WHERE pseudo = ?', [pseudo]);
   await execute(
     `INSERT INTO gl_players
-      (class_id, team_id, first_name, last_name, pseudo, password_must_reset, password_hash,
+      (class_id, team_id, first_name, last_name, email, pseudo, password_must_reset, password_hash,
        linked_foretmap_user_id, is_active, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
     [
       classId,
       teamId,
       firstName,
       lastName,
+      email,
       pseudo,
       passwordMustReset,
       passwordHash,

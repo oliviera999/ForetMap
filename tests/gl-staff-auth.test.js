@@ -74,10 +74,11 @@ test('POST /api/gl/auth/staff/login refuse un compte MJ GL sans admin ForetMap',
   assert.ok(res.body?.error);
 });
 
-test('GET /api/gl/auth/config expose allowGoogleStaff', async () => {
+test('GET /api/gl/auth/config expose allowGoogleStaff et allowGooglePlayer', async () => {
   const res = await request(app).get('/api/gl/auth/config').expect(200);
   assert.ok(typeof res.body?.title === 'string');
   assert.ok(typeof res.body?.allowGoogleStaff === 'boolean');
+  assert.ok(typeof res.body?.allowGooglePlayer === 'boolean');
 });
 
 test('GET /api/gl/auth/google/start redirige ou 503 si OAuth absent', async () => {

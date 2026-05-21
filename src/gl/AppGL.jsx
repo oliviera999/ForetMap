@@ -77,6 +77,7 @@ export function AppGL() {
   const { session, auth, token, updateSession, logout } = useGLSession();
   const [tab, setTab] = useState(() => readStoredTab());
   const [chapters, setChapters] = useState([]);
+  const [classes, setClasses] = useState([]);
   const [activeGameId, setActiveGameId] = useState(null);
   const [gameState, setGameState] = useState(null);
   const [gameplaySettings, setGameplaySettings] = useState(DEFAULT_GAMEPLAY);
@@ -95,13 +96,14 @@ export function AppGL() {
     const hashParams = new URLSearchParams(hashRaw);
     const oauthPayload = hashParams.get('oauth');
     const oauthError = hashParams.get('oauth_error');
+    const oauthMode = hashParams.get('oauth_mode') === 'player' ? 'player' : 'staff';
     if (!oauthPayload && !oauthError) return;
 
     const cleanUrl = `${window.location.pathname}${window.location.search}`;
     window.history.replaceState({}, document.title, cleanUrl);
 
     if (oauthError) {
-      setOauthNotice({ error: oauthError });
+      setOauthNotice({ error: oauthError, mode: oauthMode });
       return;
     }
     const payload = decodeBase64UrlJson(oauthPayload);
@@ -113,7 +115,15 @@ export function AppGL() {
       setError('');
       return;
     }
-    setOauthNotice({ error: 'oauth_invalid_payload' });
+    if (payload?.type === 'gl_player' && payload?.token) {
+      const nextAuth = payload.auth || null;
+      updateSession({ token: payload.token, auth: nextAuth });
+      setTab(defaultTabForAuth(nextAuth));
+      setOauthNotice({ success: true });
+      setError('');
+      return;
+    }
+    setOauthNotice({ error: 'oauth_invalid_payload', mode: oauthMode });
   }, [updateSession]);
   const tabs = useMemo(() => {
     const playerTabs = GL_PLAYER_TABS.filter((tab) => {
@@ -159,19 +169,24 @@ export function AppGL() {
   useEffect(() => {
     if (!token) return;
     let cancelled = false;
+    const classListPromise = isAdmin
+      ? apiGL('/api/gl/admin/classes').catch(() => [])
+      : Promise.resolve([]);
     Promise.all([
       apiGL('/api/gl/chapters').catch(() => []),
       apiGL('/api/gl/auth/config').catch(() => ({})),
-    ]).then(([chaptersData, configData]) => {
+      classListPromise,
+    ]).then(([chaptersData, configData, classesData]) => {
       if (cancelled) return;
       setChapters(Array.isArray(chaptersData) ? chaptersData : []);
+      setClasses(Array.isArray(classesData) ? classesData : []);
       setModules(normalizeGlModules(configData?.modules));
     });
     reloadGameplaySettings();
     return () => {
       cancelled = true;
     };
-  }, [token, reloadGameplaySettings]);
+  }, [token, reloadGameplaySettings, isAdmin]);
 
   const reloadGame = useCallback(async () => {
     if (!activeGameId) return;
@@ -383,6 +398,7 @@ export function AppGL() {
         {tab === 'mj' && isAdmin && (
           <GLGameMasterConsole
             chapters={chapters}
+            classes={classes}
             gameState={gameState}
             gameplaySettings={gameplaySettings}
             selectedTeamId={selectedTeamId}
