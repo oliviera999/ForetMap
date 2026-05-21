@@ -4,6 +4,7 @@ import { GLChapterMapEditor } from './GLChapterMapEditor.jsx';
 import { GLPctMapCanvas } from './GLPctMapCanvas.jsx';
 import { useGlPctMapGestures } from '../hooks/useGlPctMapGestures.js';
 import { GLBoardMarkers } from './GLBoardMarkers.jsx';
+import { MediaLibraryMenu } from '../../components/MediaLibraryMenu.jsx';
 
 const EMPTY_CHAPTER_FORM = {
   slug: '',
@@ -108,6 +109,23 @@ export function GLChaptersAdminView() {
     }
   }
 
+  async function fetchMediaLibrary() {
+    const data = await apiGL('/api/gl/admin/media-library?limit=400');
+    return Array.isArray(data?.items) ? data.items : [];
+  }
+
+  async function uploadMediaLibrary(mediaData) {
+    await apiGL('/api/gl/admin/media-library', 'POST', { media_data: mediaData });
+    setInfo('Média ajouté à la bibliothèque');
+    setError('');
+  }
+
+  async function removeMediaLibrary(relativePath) {
+    await apiGL('/api/gl/admin/media-library', 'DELETE', { relative_path: relativePath });
+    setInfo('Média supprimé de la bibliothèque');
+    setError('');
+  }
+
   const markers = useMemo(() => (Array.isArray(detail?.markers) ? detail.markers : []), [detail]);
 
   return (
@@ -172,6 +190,13 @@ export function GLChaptersAdminView() {
                 onChange={(event) => setChapterForm({ ...chapterForm, mapImageUrl: event.target.value })}
               />
             </label>
+            <MediaLibraryMenu
+              title="Bibliothèque globale (images, audio, vidéo)"
+              fetchItems={fetchMediaLibrary}
+              uploadDataUrl={uploadMediaLibrary}
+              removeItem={removeMediaLibrary}
+              onPickUrl={(url) => setChapterForm((prev) => ({ ...prev, mapImageUrl: url }))}
+            />
             {chapterForm.mapImageUrl ? (
               <div className="gl-map-url-preview">
                 <p className="gl-hint">Aperçu de la carte</p>

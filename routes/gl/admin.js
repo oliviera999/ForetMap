@@ -13,6 +13,11 @@ const {
   buildCsvTemplate,
   buildXlsxTemplate,
 } = require('../../lib/glPlayersImport');
+const {
+  saveMediaFromDataUrl,
+  listMediaLibraryItems,
+  deleteMediaLibraryItem,
+} = require('../../lib/mediaLibrary');
 
 const router = express.Router();
 
@@ -597,6 +602,40 @@ router.get('/content', requireGlPermission('gl.content.manage'), async (_req, re
     updatedBy: row.updated_by || null,
     updatedAt: row.updated_at || null,
   })));
+});
+
+router.get('/media-library', requireGlPermission('gl.content.manage'), async (req, res) => {
+  const limitRaw = Number(req.query?.limit);
+  const items = listMediaLibraryItems(Number.isFinite(limitRaw) ? limitRaw : 300);
+  return res.json({ items });
+});
+
+router.post('/media-library', requireGlPermission('gl.content.manage'), async (req, res) => {
+  try {
+    const mediaData = String(req.body?.media_data || '').trim();
+    if (!mediaData) return res.status(400).json({ error: 'media_data requis' });
+    const saved = saveMediaFromDataUrl(mediaData);
+    return res.status(201).json(saved);
+  } catch (err) {
+    if (Number.isFinite(err?.status)) {
+      return res.status(err.status).json({ error: err.message || 'Upload média refusé' });
+    }
+    throw err;
+  }
+});
+
+router.delete('/media-library', requireGlPermission('gl.content.manage'), async (req, res) => {
+  try {
+    const relativePath = String(req.body?.relative_path || '').trim();
+    if (!relativePath) return res.status(400).json({ error: 'relative_path requis' });
+    deleteMediaLibraryItem(relativePath);
+    return res.json({ ok: true });
+  } catch (err) {
+    if (Number.isFinite(err?.status)) {
+      return res.status(err.status).json({ error: err.message || 'Suppression média refusée' });
+    }
+    throw err;
+  }
 });
 
 module.exports = router;

@@ -5336,6 +5336,43 @@
   }
 }
 
+.media-library-menu {
+  display: grid;
+  gap: 8px;
+}
+
+.media-library-menu__panel {
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 10px;
+  background: #fff;
+}
+
+.media-library-menu__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.media-library-menu__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+
+.media-library-menu__list > li {
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
 /* ── PROFILES ADMIN ── */
 .profiles-admin {
   width: 100%;

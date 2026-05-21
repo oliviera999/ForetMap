@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { api } from '../services/api';
 import { compressImage } from '../utils/image';
 import { getRoleTerms } from '../utils/n3-terminology';
+import { MediaLibraryMenu } from './MediaLibraryMenu.jsx';
 
 const SECTION_DEFS = {
   auth: { title: 'Accueil & authentification', order: 10 },
@@ -568,6 +569,21 @@ function SettingsAdminView({ isN3Affiliated = false }) {
     setSavingKey('');
   };
 
+  const fetchMediaLibrary = async () => {
+    const data = await api('/api/settings/admin/media-library?limit=400');
+    return Array.isArray(data?.items) ? data.items : [];
+  };
+
+  const uploadMediaLibrary = async (mediaData) => {
+    await api('/api/settings/admin/media-library', 'POST', { media_data: mediaData });
+    setMsg('Média ajouté à la bibliothèque');
+  };
+
+  const deleteMediaLibrary = async (relativePath) => {
+    await api('/api/settings/admin/media-library', 'DELETE', { relative_path: relativePath });
+    setMsg('Média supprimé de la bibliothèque');
+  };
+
   const fetchLogs = async () => {
     setErr('');
     try {
@@ -728,6 +744,13 @@ function SettingsAdminView({ isN3Affiliated = false }) {
                   onBlur={(e) => saveMap(m.id, { map_image_url: e.target.value || '' })}
                 />
               </div>
+              <MediaLibraryMenu
+                title="Bibliothèque globale (images, audio, vidéo)"
+                fetchItems={fetchMediaLibrary}
+                uploadDataUrl={uploadMediaLibrary}
+                removeItem={deleteMediaLibrary}
+                onPickUrl={(url) => saveMap(m.id, { map_image_url: url }, 'URL de carte définie depuis la bibliothèque')}
+              />
               <div className="settings-admin-map-tools">
                 <div className="field">
                   <label>Padding cadre (0-32 px)</label>

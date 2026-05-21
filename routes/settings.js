@@ -8,6 +8,11 @@ const { invalidateMapsListCache } = require('./maps');
 const { tailLogLines, getBufferedLineCount, getMaxLines } = require('../lib/logBuffer');
 const { saveBase64ToDisk, deleteFile } = require('../lib/uploads');
 const {
+  saveMediaFromDataUrl,
+  listMediaLibraryItems,
+  deleteMediaLibraryItem,
+} = require('../lib/mediaLibrary');
+const {
   getSettings,
   setSetting,
   listAdminSettings,
@@ -254,6 +259,66 @@ router.post(
       });
     } catch (e) {
       respondInternalError(res, req, e);
+    }
+  }
+);
+
+router.get(
+  '/admin/media-library',
+  requirePermission('admin.settings.read', { needsElevation: true }),
+  async (req, res) => {
+    try {
+      const limitRaw = Number(req.query?.limit);
+      const items = listMediaLibraryItems(Number.isFinite(limitRaw) ? limitRaw : 300);
+      res.json({ items });
+    } catch (e) {
+      respondInternalError(res, req, e);
+    }
+  }
+);
+
+router.post(
+  '/admin/media-library',
+  requirePermission('admin.settings.write', { needsElevation: true }),
+  async (req, res) => {
+    try {
+      const mediaData = String(req.body?.media_data || '').trim();
+      if (!mediaData) return res.status(400).json({ error: 'media_data requis' });
+      const saved = saveMediaFromDataUrl(mediaData);
+      await logAudit('settings_media_upload', 'media', saved.relativePath, 'Média uploadé', {
+        req,
+        payload: {
+          media_type: saved.mediaType,
+          mime_type: saved.mimeType,
+          size: saved.size,
+          url: saved.url,
+        },
+      });
+      res.status(201).json(saved);
+    } catch (e) {
+      if (Number.isFinite(e?.status)) {
+        return res.status(e.status).json({ error: e.message || 'Upload média refusé' });
+      }
+      return respondInternalError(res, req, e);
+    }
+  }
+);
+
+router.delete(
+  '/admin/media-library',
+  requirePermission('admin.settings.write', { needsElevation: true }),
+  async (req, res) => {
+    try {
+      const relativePath = String(req.body?.relative_path || '').trim();
+      if (!relativePath) return res.status(400).json({ error: 'relative_path requis' });
+      deleteMediaLibraryItem(relativePath);
+      await logAudit('settings_media_delete', 'media', relativePath, 'Média supprimé', { req });
+      res.json({ ok: true });
+    } catch (e) {
+      if (Number.isFinite(e?.status)) {
+        return res.status(e.status).json({ error: e.message || 'Suppression média refusée' });
+      }
+      return respondInternalError(res, req, e);
     }
   }
 );
