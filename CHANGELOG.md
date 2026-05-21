@@ -9,6 +9,10 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ### Corrigé
 - **Carte — zones** : la couleur d’une zone peut être modifiée après création (onglet **Modifier** du modal zone, professeur) ; `PUT /api/zones/:id` avec `color` déjà supporté côté API, test `tests/api.test.js`.
+- **GL — auth** : journalisation `logRouteError` sur les erreurs 500 (`GET /config`, login joueur/staff, OAuth callback, `PATCH /me/profile`).
+- **GL — client** : message explicite dans `apiGL` lors d’une réponse 5xx non-JSON (serveur/API indisponible).
+- **Tests GL** : fixtures `createGlPlayer` (chapitres) ; import CSV avec colonne **Email** vide alignée sur le modèle `Prénom;Nom;Email;Pseudo;…`.
+- **Tests groupes** : token admin via `signAuthToken` et seed `groups.read` / `groups.manage` (stabilité sans double login PIN).
 - **Doc GL** : `docs/GL_ARCHITECTURE.md` — auth joueur OAuth (`mode=player`), lien email / ForetMap, variable `GL_GOOGLE_OAUTH_REDIRECT_URI`.
 
 ### Ajouté
