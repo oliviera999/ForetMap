@@ -342,15 +342,20 @@ router.post('/staff/login', async (req, res) => {
       return res.status(403).json({ error: 'Compte non autorisé pour la connexion MJ.' });
     }
 
-    const email = normalizeEmail(account.email);
+    const loginKey = identifier.trim().toLowerCase();
+    const emailFromAccount = normalizeEmail(account.email);
+    const emailFromLogin = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(loginKey) ? loginKey : null;
+    const email = emailFromAccount || emailFromLogin;
     const displayName = normalizeOptionalString(account.display_name)
       || normalizeOptionalString(account.pseudo)
-      || email;
+      || email
+      || identifier;
     const resolved = await resolveGlStaffLogin({
       email,
       displayName,
       googleSub: null,
       teacherId: account.id,
+      loginIdentifier: loginKey,
     });
     if (!resolved.ok) {
       return res.status(resolved.status || 403).json({ error: resolved.error });

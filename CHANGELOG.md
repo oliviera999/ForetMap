@@ -9,6 +9,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ### Corrigé
 - **Carte — zones** : la couleur d’une zone peut être modifiée après création (onglet **Modifier** du modal zone, professeur) ; `PUT /api/zones/:id` avec `color` déjà supporté côté API, test `tests/api.test.js`.
+- **GL — auth staff** : connexion MJ lorsque l’email saisi correspond à l’entrée `gl_admins` mais diffère de `users.email` (ex. identifiant historique type `cdla@…`) ; recherche par `loginIdentifier` en complément du mail ForetMap.
 - **GL — auth staff** : connexion admin ForetMap par pseudo sans email (`lib/glStaffAuth.js`, email synthétique, lien `foretmap_user_id`, repli si colonnes migration absentes) ; test `tests/gl-staff-auth.test.js`.
 - **GL — auth** : journalisation `logRouteError` sur les erreurs 500 (`GET /config`, login joueur/staff, OAuth callback, `PATCH /me/profile`).
 - **GL — client** : message explicite dans `apiGL` lors d’une réponse 5xx non-JSON (serveur/API indisponible).

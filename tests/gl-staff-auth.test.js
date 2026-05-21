@@ -93,6 +93,41 @@ test('POST /api/gl/auth/staff/login connecte un admin ForetMap et crée gl_admin
   assert.strictEqual(String(row.role).toLowerCase(), 'admin');
 });
 
+test('POST /api/gl/auth/staff/login accepte un MJ GL dont gl_admins.email = identifiant saisi (≠ users.email)', async () => {
+  const glLoginKey = `cdla-${stamp}`;
+  const foretmapEmail = `prof-${stamp}@ecole.local`;
+  const legacyPassword = 'MjLegacy-1';
+  const legacyHash = await bcrypt.hash(legacyPassword, 10);
+  const legacyTeacherId = `teacher-gl-legacy-${stamp}`;
+  await execute(
+    `INSERT INTO users (id, user_type, email, pseudo, display_name, password_hash, auth_provider, is_active, created_at, updated_at)
+     VALUES (?, 'teacher', ?, ?, ?, ?, 'local', 1, NOW(), NOW())
+     ON DUPLICATE KEY UPDATE password_hash = VALUES(password_hash), is_active = 1`,
+    [legacyTeacherId, foretmapEmail, glLoginKey, 'MJ legacy', legacyHash]
+  );
+  const profRole = await queryOne("SELECT id FROM roles WHERE slug = 'prof' LIMIT 1");
+  assert.ok(profRole?.id);
+  await execute(
+    `INSERT INTO user_roles (user_id, user_type, role_id, is_primary, assigned_at)
+     VALUES (?, 'teacher', ?, 1, NOW())
+     ON DUPLICATE KEY UPDATE role_id = VALUES(role_id), is_primary = 1`,
+    [legacyTeacherId, profRole.id]
+  );
+  await execute(
+    `INSERT INTO gl_admins (email, display_name, role, is_active, created_at, updated_at)
+     VALUES (?, 'MJ legacy GL', 'mj', 1, NOW(), NOW())
+     ON DUPLICATE KEY UPDATE is_active = 1`,
+    [glLoginKey]
+  );
+
+  const res = await request(app)
+    .post('/api/gl/auth/staff/login')
+    .send({ identifier: glLoginKey, password: legacyPassword })
+    .expect(200);
+  assert.strictEqual(res.body?.auth?.userType, 'gl_admin');
+  assert.ok(res.body?.auth?.permissions?.includes('gl.read'));
+});
+
 test('POST /api/gl/auth/staff/login refuse un compte MJ GL sans admin ForetMap', async () => {
   const res = await request(app)
     .post('/api/gl/auth/staff/login')
