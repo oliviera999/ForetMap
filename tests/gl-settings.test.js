@@ -15,6 +15,8 @@ const stamp = Date.now();
 const adminEmail = `settings.mj.${stamp}@ecole.local`;
 const className = `Classe Settings ${stamp}`;
 const playerPseudo = `settings-player-${stamp}`;
+const TINY_PNG_DATA_URL =
+  'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO6pJkQAAAAASUVORK5CYII=';
 
 before(async () => {
   await initSchema();
@@ -137,4 +139,43 @@ test('PUT /api/gl/admin/settings/modules.* valide booléen et persiste', async (
     .set('Authorization', `Bearer ${adminToken}`)
     .send({ value: true })
     .expect(400);
+});
+
+test('media-library GL: upload, liste et suppression (gl.content.manage)', async () => {
+  await request(app)
+    .get('/api/gl/admin/media-library')
+    .set('Authorization', `Bearer ${playerToken}`)
+    .expect((res) => {
+      assert.ok(res.status === 401 || res.status === 403);
+    });
+
+  const contentAdminToken = await signAuthToken({
+    product: 'gl',
+    userType: 'gl_admin',
+    userId: String((await queryOne('SELECT id FROM gl_admins WHERE email = ? LIMIT 1', [adminEmail])).id),
+    roleSlug: 'gl_admin',
+    permissions: ['gl.read', 'gl.content.manage'],
+    displayName: 'MJ Content',
+  });
+
+  const created = await request(app)
+    .post('/api/gl/admin/media-library')
+    .set('Authorization', `Bearer ${contentAdminToken}`)
+    .send({ media_data: TINY_PNG_DATA_URL })
+    .expect(201);
+  assert.ok(String(created.body?.url || '').startsWith('/uploads/media-library/'));
+  assert.strictEqual(created.body?.mediaType, 'image');
+
+  const listed = await request(app)
+    .get('/api/gl/admin/media-library')
+    .set('Authorization', `Bearer ${contentAdminToken}`)
+    .expect(200);
+  assert.ok(Array.isArray(listed.body?.items));
+  assert.ok(listed.body.items.some((item) => item.relativePath === created.body.relativePath));
+
+  await request(app)
+    .delete('/api/gl/admin/media-library')
+    .set('Authorization', `Bearer ${contentAdminToken}`)
+    .send({ relative_path: created.body.relativePath })
+    .expect(200);
 });

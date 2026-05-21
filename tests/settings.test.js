@@ -61,6 +61,9 @@ async function getAdminToken() {
   }, false);
 }
 
+const TINY_PNG_DATA_URL =
+  'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO6pJkQAAAAASUVORK5CYII=';
+
 test('POST /api/settings/admin/maps crée une carte puis GET /api/maps la liste', async () => {
   const token = await getAdminToken();
   const id = `tst_${Date.now()}`.slice(0, 31);
@@ -79,6 +82,31 @@ test('POST /api/settings/admin/maps crée une carte puis GET /api/maps la liste'
     .expect(409);
   assert.ok(String(dup.body?.error || '').length > 0);
   await execute('DELETE FROM maps WHERE id = ?', [id]);
+});
+
+test('media-library admin: upload, liste et suppression', async () => {
+  const token = await getAdminToken();
+
+  const created = await request(app)
+    .post('/api/settings/admin/media-library')
+    .set('Authorization', `Bearer ${token}`)
+    .send({ media_data: TINY_PNG_DATA_URL })
+    .expect(201);
+  assert.ok(String(created.body?.url || '').startsWith('/uploads/media-library/'));
+  assert.strictEqual(created.body?.mediaType, 'image');
+
+  const listed = await request(app)
+    .get('/api/settings/admin/media-library')
+    .set('Authorization', `Bearer ${token}`)
+    .expect(200);
+  assert.ok(Array.isArray(listed.body?.items));
+  assert.ok(listed.body.items.some((item) => item.relativePath === created.body.relativePath));
+
+  await request(app)
+    .delete('/api/settings/admin/media-library')
+    .set('Authorization', `Bearer ${token}`)
+    .send({ relative_path: created.body.relativePath })
+    .expect(200);
 });
 
 test('resolveDefaultMapId ignore une carte par défaut inactive', async () => {

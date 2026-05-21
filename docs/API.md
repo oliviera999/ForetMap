@@ -131,6 +131,9 @@ Note UX admin GL : l’édition des chapitres et de la carte royaume est désorm
 | GET | `/api/gl/admin/settings` | — | `gl.settings.manage` |
 | PUT | `/api/gl/admin/settings/:key` | `{ value }` | `gl.settings.manage` |
 | GET | `/api/gl/admin/content` | — | `gl.content.manage` |
+| GET | `/api/gl/admin/media-library` | `?limit=` optionnel (défaut 300, max 800) | `gl.content.manage` |
+| POST | `/api/gl/admin/media-library` | `{ media_data }` (data URL base64 image/audio/vidéo) | `gl.content.manage` |
+| DELETE | `/api/gl/admin/media-library` | `{ relative_path }` (`media-library/...`) | `gl.content.manage` |
 
 ### Permissions RBAC GL ajoutées
 
@@ -450,6 +453,9 @@ Ces routes sont destinées à la console admin et exigent un token avec permissi
 | POST | `/api/settings/admin/maps` | Créer une carte (`{ id, label, sort_order?, map_image_url?, is_active? }`) — `id` : slug minuscules/chiffres/tirets (1–31 caractères), réservé `both` interdit |
 | PUT | `/api/settings/admin/maps/:id` | Mettre à jour une carte (label, ordre, activation, URL image, padding) |
 | POST | `/api/settings/admin/maps/:id/image` | Upload image de plan (`{ image_data }`) |
+| GET | `/api/settings/admin/media-library` | Liste bibliothèque médias globale (`?limit=` optionnel ; images/audio/vidéo, source disque `uploads/media-library/`) |
+| POST | `/api/settings/admin/media-library` | Upload média (`{ media_data }` data URL base64) |
+| DELETE | `/api/settings/admin/media-library` | Suppression média (`{ relative_path }`, préfixe `media-library/`) |
 | GET | `/api/settings/admin/system/logs` | Lecture des logs applicatifs via GUI |
 | GET | `/api/settings/admin/system/oauth-debug` | Diagnostic runtime OAuth (sans secrets) : **`admin.settings.read`** + élévation PIN ; JSON avec **`allowedDomains`** / **`allowedEmails`** (restrictions Google). **Doublon fonctionnel** (autre périmètre d’accès) : **`GET /api/admin/oauth-debug`** avec **`X-Deploy-Secret`** — voir section **Administration (secret `DEPLOY_SECRET`)**. |
 | GET | `/api/settings/admin/system/species-autofill-providers-test` | Auto-test minimal **Pl@ntNet** (GET `/v2/quota`, clé + connectivité) et **OpenAI** (GET `v1/models?limit=1`) avec les variables d’environnement du processus ; réponse JSON `{ ok, plantnet, openai }` sans aucune clé. Par fournisseur : `configuredForAutofill`, `keyPresent`, `moduleFlagOn`, `tested`, `ok`, `httpStatus`, `latencyMs`, `message` / `error`. |
