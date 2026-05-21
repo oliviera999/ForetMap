@@ -27,6 +27,8 @@ import { GLJournalView } from './components/GLJournalView.jsx';
 import { GLKingdomMapView } from './components/GLKingdomMapView.jsx';
 import { GLNotificationsCenter } from './components/GLNotificationsCenter.jsx';
 import { GLHelpPanel } from './components/GLHelpPanel.jsx';
+import { GLProfileModal } from './components/GLProfileModal.jsx';
+import { GLPasswordResetGate } from './components/GLPasswordResetGate.jsx';
 
 const DEFAULT_GAMEPLAY = {
   turnsEnabled: false,
@@ -87,6 +89,9 @@ export function AppGL() {
   const [error, setError] = useState('');
   const [oauthNotice, setOauthNotice] = useState(null);
   const [modules, setModules] = useState(GL_MODULE_DEFAULTS);
+  const [glProfile, setGlProfile] = useState(null);
+  const [glConfig, setGlConfig] = useState({});
+  const [showProfile, setShowProfile] = useState(false);
 
   const isAdmin = isAdminRole(auth);
 
@@ -166,6 +171,17 @@ export function AppGL() {
     }
   }, [token]);
 
+  const reloadProfile = useCallback(async () => {
+    if (!token) return;
+    try {
+      const data = await apiGL('/api/gl/auth/me');
+      setGlProfile(data?.profile || null);
+      setError('');
+    } catch (err) {
+      setError(err.message || 'Chargement profil impossible');
+    }
+  }, [token]);
+
   useEffect(() => {
     if (!token) return;
     let cancelled = false;
@@ -175,12 +191,15 @@ export function AppGL() {
     Promise.all([
       apiGL('/api/gl/chapters').catch(() => []),
       apiGL('/api/gl/auth/config').catch(() => ({})),
+      apiGL('/api/gl/auth/me').catch(() => ({})),
       classListPromise,
-    ]).then(([chaptersData, configData, classesData]) => {
+    ]).then(([chaptersData, configData, profileData, classesData]) => {
       if (cancelled) return;
       setChapters(Array.isArray(chaptersData) ? chaptersData : []);
       setClasses(Array.isArray(classesData) ? classesData : []);
       setModules(normalizeGlModules(configData?.modules));
+      setGlConfig(configData || {});
+      setGlProfile(profileData?.profile || null);
     });
     reloadGameplaySettings();
     return () => {
@@ -343,16 +362,25 @@ export function AppGL() {
 
   return (
     <div className="gl-app">
+      <GLPasswordResetGate
+        open={!isAdmin && auth?.passwordMustReset === true}
+        onCompleted={() => {
+          updateSession({ auth: { ...auth, passwordMustReset: false } });
+        }}
+      />
       <GLTopBar
         tabs={tabs}
         activeTab={tab}
         onTabChange={setTab}
         auth={auth}
         playerMascotId={playerMascotId}
+        onOpenProfile={() => setShowProfile(true)}
         onLogout={() => {
           logout();
           setGameState(null);
           setActiveGameId(null);
+          setGlProfile(null);
+          setShowProfile(false);
         }}
       />
 
@@ -446,6 +474,23 @@ export function AppGL() {
           />
         ) : null}
       </main>
+      <GLProfileModal
+        open={showProfile}
+        onClose={() => setShowProfile(false)}
+        auth={auth}
+        profile={glProfile}
+        config={glConfig}
+        onReloadProfile={reloadProfile}
+        onSessionUpdated={(payload) => {
+          if (payload?.authToken || payload?.auth) {
+            updateSession({
+              token: payload?.authToken || token,
+              auth: payload?.auth || auth,
+            });
+          }
+          if (payload?.profile) setGlProfile(payload.profile);
+        }}
+      />
     </div>
   );
 }

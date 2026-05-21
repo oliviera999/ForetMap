@@ -23,7 +23,10 @@ export function GLNotificationsCenter({ items, unreadCount, onMarkAllRead, onCle
             </div>
           </header>
           {items.length === 0 ? (
-            <p className="gl-hint">Aucune notification.</p>
+            <p className="gl-empty gl-hint">
+              <span className="gl-empty-icon" aria-hidden>🔔</span>
+              Aucune notification.
+            </p>
           ) : (
             <ul>
               {items.map((item) => (

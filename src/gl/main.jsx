@@ -5,6 +5,8 @@ import './styles/gl-theme.css';
 import { AppGL } from './AppGL.jsx';
 import { ErrorBoundary } from '../components/ErrorBoundary.jsx';
 
+document.body.classList.add('gl-body');
+
 ReactDOM.createRoot(document.getElementById('root')).render(
   <ErrorBoundary>
     <AppGL />

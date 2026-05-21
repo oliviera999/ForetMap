@@ -31,9 +31,13 @@ La matrice de couverture des tests GL est documentée dans `docs/GL_TESTS.md`.
 | POST | `/api/gl/auth/staff/login` | `{ identifier, password }` | Connexion MJ/Admin via compte **ForetMap** (enseignant). Les **admins ForetMap** (rôle RBAC `admin`) sont synchronisés automatiquement dans `gl_admins`. Les comptes MJ déjà enregistrés dans `gl_admins` (rôle `mj`) sont aussi acceptés. Refus `403` pour un élève ForetMap (onglet joueur requis). |
 | GET | `/api/gl/auth/google/start` | Query `mode=player` ou `mode=staff` (défaut `staff`) | Redirection OAuth Google (cookie `gl_oauth_mode`). Callback : `/api/gl/auth/google/callback` → `gl.html#oauth=…` (`type: gl_player` ou `gl_staff`) ou `#oauth_error=…&oauth_mode=…` |
 | POST | `/api/gl/auth/google` | `{ idToken, mode?: 'player'|'staff' }` | Connexion via Google ID token : **joueur** si `mode=player` (compte `gl_players` avec `email` ou lien élève ForetMap) ; **MJ/Admin** sinon (mêmes règles que `staff/login`) |
-| GET | `/api/gl/auth/config` | — | Libellés écran connexion + flags (`title`, `subtitle`, `allowGoogleStaff`, `allowGooglePlayer`, `modules`) |
-| GET | `/api/gl/auth/me` | — | Profil courant GL (`auth`, `profile`) |
+| GET | `/api/gl/auth/config` | — | Libellés écran connexion + flags (`title`, `subtitle`, `allowGoogleStaff`, `allowGooglePlayer`, `allowPlayerLinkForetmap`, `modules`) |
+| GET | `/api/gl/auth/me` | — | Profil courant GL (`auth`, `profile`) enrichi (avatar, description, liaison ForetMap) |
+| PATCH | `/api/gl/auth/me/profile` | `{ currentPassword, pseudo?, email?, description?, displayName?, avatarData?, removeAvatar? }` | Mise à jour self-service du profil GL (joueur ou staff), avec validation du mot de passe actuel et réémission de session (`authToken`, `auth`) |
 | POST | `/api/gl/auth/change-password` | `{ currentPassword, newPassword }` (compat legacy `pin`/`password`) | Changement mot de passe joueur GL (`password_must_reset=0`) |
+| POST | `/api/gl/auth/staff/change-password` | `{ currentPassword, newPassword }` | Changement du mot de passe ForetMap lié au compte MJ/Admin GL |
+| POST | `/api/gl/auth/link-foretmap` | `{ identifier, password }` | Joueur GL : lie le compte à un élève ForetMap (si `allowPlayerLinkForetmap=true`) |
+| DELETE | `/api/gl/auth/link-foretmap` | `{ currentPassword }` | Joueur GL : retire la liaison ForetMap (si activée) |
 
 ### Contenus éditoriaux GL
 

@@ -44,7 +44,12 @@ export function GLJournalView({ gameId }) {
             <pre>{JSON.stringify(evt.payload || {}, null, 2)}</pre>
           </li>
         ))}
-        {events.length === 0 ? <li className="gl-hint">Aucun évènement.</li> : null}
+        {events.length === 0 ? (
+          <li className="gl-empty gl-hint">
+            <span className="gl-empty-icon" aria-hidden>📓</span>
+            Aucun évènement.
+          </li>
+        ) : null}
       </ul>
     </section>
   );

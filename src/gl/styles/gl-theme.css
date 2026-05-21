@@ -1,3 +1,7 @@
+body.gl-body {
+  background: #f4fff5;
+}
+
 .gl-app {
   min-height: 100vh;
   min-height: 100dvh;
@@ -554,6 +558,53 @@
   animation: popIn 0.24s var(--spring) both;
 }
 
+.gl-profile-modal-body {
+  width: min(940px, calc(100% - 32px));
+  max-width: 940px;
+  max-height: 88vh;
+  overflow: auto;
+}
+
+.gl-profile-modal-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.gl-profile-layout {
+  display: grid;
+  gap: 12px;
+}
+
+.gl-profile-avatar {
+  display: grid;
+  gap: 8px;
+}
+
+.gl-profile-avatar img {
+  width: 84px;
+  height: 84px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid #cbd5e1;
+}
+
+.gl-profile-avatar-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.gl-profile-ok {
+  color: #166534;
+}
+
+.gl-profile-gate {
+  width: min(540px, calc(100% - 32px));
+  max-width: 540px;
+}
+
 /* --- Lot 2B : contenus & chapitres --- */
 
 .gl-subtabs {
@@ -800,6 +851,14 @@
   vertical-align: middle;
 }
 
+.gl-admin-table tbody tr:nth-child(even) {
+  background: #f8fafc;
+}
+
+.gl-admin-table tbody tr:hover {
+  background: #eef2ff;
+}
+
 .gl-admin-actions-cell {
   display: flex;
   flex-wrap: wrap;
@@ -833,4 +892,280 @@
   border-radius: 8px;
   padding: 10px;
   background: #ffffff;
+}
+
+.gl-empty {
+  text-align: center;
+  padding: 14px 10px;
+}
+
+.gl-empty-icon {
+  font-size: 1.5rem;
+  margin-right: 4px;
+}
+
+.gl-help-panel {
+  margin-top: 12px;
+  border: 1px solid #bfdbfe;
+  border-radius: 12px;
+  background: #eff6ff;
+  padding: 10px 12px;
+}
+
+.gl-help-panel > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.gl-help-panel > header button {
+  border: 1px solid #93c5fd;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #1e3a8a;
+  min-height: 36px;
+  padding: 6px 12px;
+  cursor: pointer;
+}
+
+.gl-help-panel.is-pulse {
+  animation: glHelpPulse 1.6s ease-in-out infinite;
+}
+
+.gl-help-panel-body {
+  margin-top: 10px;
+  color: #1e3a8a;
+}
+
+@keyframes glHelpPulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.05);
+  }
+  50% {
+    box-shadow: 0 0 0 8px rgba(37, 99, 235, 0.16);
+  }
+}
+
+.gl-notifications {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  z-index: 205;
+}
+
+.gl-notifications-bell {
+  position: relative;
+  border: 1px solid #93c5fd;
+  background: #dbeafe;
+  color: #1e3a8a;
+  border-radius: 999px;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 6px 12px;
+  cursor: pointer;
+}
+
+.gl-notifications-badge {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  min-width: 20px;
+  height: 20px;
+  border-radius: 999px;
+  background: #ef4444;
+  color: #ffffff;
+  font-size: 0.74rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 4px;
+}
+
+.gl-notifications-panel {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 8px);
+  width: min(92vw, 420px);
+  max-height: 58vh;
+  overflow: auto;
+  background: #ffffff;
+  border: 1px solid #bfdbfe;
+  border-radius: 12px;
+  box-shadow: 0 16px 34px rgba(15, 23, 42, 0.2);
+  padding: 12px;
+}
+
+.gl-notifications-panel > header {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 10px;
+  height: auto;
+  max-height: none;
+  overflow: visible;
+}
+
+.gl-notifications-panel ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.gl-notifications-panel li {
+  border: 1px solid #dbeafe;
+  border-radius: 10px;
+  padding: 8px 10px;
+  background: #eff6ff;
+}
+
+.gl-notifications-panel li.is-read {
+  opacity: 0.75;
+  background: #f8fafc;
+}
+
+.gl-notifications-cat {
+  display: inline-block;
+  margin-bottom: 6px;
+  font-size: 0.75rem;
+  color: #1d4ed8;
+  background: #dbeafe;
+  padding: 1px 8px;
+  border-radius: 999px;
+}
+
+.gl-forum-threads,
+.gl-forum-posts,
+.gl-journal-events,
+.gl-context-comments,
+.gl-kingdom-map-zones,
+.gl-tutorials-list {
+  list-style: none;
+  margin: 10px 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.gl-forum-threads li > button,
+.gl-tutorials-list li > button {
+  width: 100%;
+  text-align: left;
+  border: 1px solid #bfdbfe;
+  border-radius: 10px;
+  background: #eff6ff;
+  color: #1e3a8a;
+  padding: 10px;
+  min-height: 44px;
+  cursor: pointer;
+}
+
+.gl-forum-threads li.is-active > button,
+.gl-tutorials-list li.is-read > button {
+  border-color: #60a5fa;
+  background: #dbeafe;
+}
+
+.gl-forum-thread {
+  margin-top: 12px;
+  border: 1px solid #dbeafe;
+  border-radius: 12px;
+  padding: 12px;
+  background: #ffffff;
+}
+
+.gl-forum-thread > header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  height: auto;
+  max-height: none;
+  overflow: visible;
+}
+
+.gl-forum-posts li,
+.gl-context-comments li,
+.gl-journal-event {
+  border: 1px solid #dbeafe;
+  border-radius: 10px;
+  background: #ffffff;
+  padding: 10px;
+}
+
+.gl-forum-posts li.is-deleted,
+.gl-context-comments li.is-deleted {
+  opacity: 0.65;
+}
+
+.gl-journal-event {
+  display: grid;
+  gap: 4px;
+}
+
+.gl-journal-event pre {
+  margin: 0;
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 8px;
+  max-height: 220px;
+  overflow: auto;
+}
+
+.gl-journal-narration {
+  border-left: 4px solid #facc15;
+}
+
+.gl-journal-score {
+  border-left: 4px solid #22c55e;
+}
+
+.gl-journal-turn_change {
+  border-left: 4px solid #3b82f6;
+}
+
+.gl-kingdom-map {
+  position: relative;
+  width: 100%;
+  border: 1px solid #bfdbfe;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #ffffff;
+}
+
+.gl-kingdom-map > img {
+  width: 100%;
+  display: block;
+  min-height: 280px;
+  object-fit: cover;
+}
+
+.gl-kingdom-map-overlay {
+  position: absolute;
+  inset: 0;
+}
+
+.gl-kingdom-map-zones li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid #dbeafe;
+  border-radius: 10px;
+  background: #eff6ff;
+  padding: 8px 10px;
+}
+
+.gl-tutorial-active {
+  margin-top: 12px;
+  border: 1px solid #dbeafe;
+  border-radius: 12px;
+  background: #ffffff;
+  padding: 12px;
 }

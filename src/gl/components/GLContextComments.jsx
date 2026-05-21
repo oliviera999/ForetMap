@@ -76,7 +76,12 @@ export function GLContextComments({ contextType, contextId }) {
             <p>{item.body}</p>
           </li>
         ))}
-        {items.length === 0 ? <li className="gl-hint">Aucun commentaire.</li> : null}
+        {items.length === 0 ? (
+          <li className="gl-empty gl-hint">
+            <span className="gl-empty-icon" aria-hidden>🗨️</span>
+            Aucun commentaire.
+          </li>
+        ) : null}
       </ul>
     </section>
   );

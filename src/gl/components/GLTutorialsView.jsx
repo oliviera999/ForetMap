@@ -107,7 +107,12 @@ export function GLTutorialsView({ canManage }) {
             </button>
           </li>
         ))}
-        {items.length === 0 ? <li className="gl-hint">Aucun tutoriel.</li> : null}
+        {items.length === 0 ? (
+          <li className="gl-empty gl-hint">
+            <span className="gl-empty-icon" aria-hidden>🎓</span>
+            Aucun tutoriel.
+          </li>
+        ) : null}
       </ul>
 
       {active ? (

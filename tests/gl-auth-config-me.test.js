@@ -30,6 +30,7 @@ test('GET /api/gl/auth/config expose un payload stable', async () => {
   assert.strictEqual(typeof res.body?.title, 'string');
   assert.strictEqual(typeof res.body?.subtitle, 'string');
   assert.strictEqual(typeof res.body?.allowGoogleStaff, 'boolean');
+  assert.strictEqual(typeof res.body?.allowPlayerLinkForetmap, 'boolean');
 });
 
 test('GET /api/gl/auth/me requiert un token', async () => {

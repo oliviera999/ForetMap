@@ -40,6 +40,16 @@ Lu par le front au login via `GET /api/gl/auth/config`.
 `gl.team.manage`, `gl.event.emit`, `gl.mascot.position`,
 `gl.settings.manage`, `gl.action.request`.
 
+## Conventions UI GL
+
+- Le front GL charge `src/index.css` puis `src/gl/styles/gl-theme.css`.
+- Garder la palette GL locale (hex dans `gl-theme.css`), sans remplacer par `--forest`, `--leaf`, etc.
+- Réutiliser les conventions ForetMap sur la forme :
+  - icones emoji pour la navigation (`gl-tab-icon`, `foretmap-emoji-text-mixed`)
+  - micro-animations (`fade-in`, `popIn`, `toastIn`, transitions `--motion-*`)
+  - cibles tactiles `min-height: 44px` sur boutons/actions primaires
+- Toute nouvelle vue GL doit ajouter ses classes dans `gl-theme.css` (préfixe `gl-`) pour éviter de dépendre implicitement des styles ForetMap globaux.
+
 ## Convention tests
 
 - Backend : `tests/gl-*.test.js` avec `tests/helpers/glFixtures.js`.
