@@ -71,9 +71,9 @@ test('GET /api/gl/admin/players/import/template?format=xlsx retourne un binaire 
 test('POST /api/gl/admin/players/import dryRun signale lignes invalides sans création', async () => {
   const csv = [
     'Prénom;Nom;Email;Pseudo;Mot de passe;Classe',
-    `Ok;Eleve-${stamp};ok_${stamp};motdepasse123;${className}`,
-    `;Sans-Prenom-${stamp};err1_${stamp};motdepasse123;${className}`,
-    `Sans;Classe-${stamp};err2_${stamp};motdepasse123;Classe-Inconnue`,
+    `Ok;Eleve-${stamp};;ok_${stamp};motdepasse123;${className}`,
+    `;Sans-Prenom-${stamp};;err1_${stamp};motdepasse123;${className}`,
+    `Sans;Classe-${stamp};;err2_${stamp};motdepasse123;Classe-Inconnue`,
   ].join('\n');
   const fileDataBase64 = Buffer.from(csv, 'utf8').toString('base64');
 
@@ -91,8 +91,8 @@ test('POST /api/gl/admin/players/import dryRun signale lignes invalides sans cr�
 test('POST /api/gl/admin/players/import crée les lignes valides (must_reset selon mot de passe)', async () => {
   const csv = [
     'Prénom;Nom;Email;Pseudo;Mot de passe;Classe',
-    `Avec;Mdp-${stamp};avec_${stamp};motdepasse123;${className}`,
-    `Sans;Mdp-${stamp};sans_${stamp};;${className}`,
+    `Avec;Mdp-${stamp};;avec_${stamp};motdepasse123;${className}`,
+    `Sans;Mdp-${stamp};;sans_${stamp};;${className}`,
   ].join('\n');
   const fileDataBase64 = Buffer.from(csv, 'utf8').toString('base64');
 
@@ -134,7 +134,7 @@ test('POST /api/gl/admin/players/import refuse un pseudo déjà importé (rappor
 
   const csv = [
     'Prénom;Nom;Email;Pseudo;Mot de passe;Classe',
-    `Autre;Nom-${stamp};${pseudo};motdepasse123;${className}`,
+    `Autre;Nom-${stamp};;${pseudo};motdepasse123;${className}`,
   ].join('\n');
   const fileDataBase64 = Buffer.from(csv, 'utf8').toString('base64');
 
