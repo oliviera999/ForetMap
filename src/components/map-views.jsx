@@ -933,7 +933,6 @@ function ZoneInfoModal({ zone, plants, tasks, tutorials = [], isTeacher, student
     setVisitShortDesc(zone.visit_short_description || '');
     setVisitDetailsTitle(zone.visit_details_title || 'Détails');
     setVisitDetailsText(zone.visit_details_text || '');
-    setVisitEditorialBlocks(parseVisitEditorialBlocksFromJson(zone.visit_body_json));
   }, [zone.id, zone.name, zone.living_beings, zone.living_beings_list, zone.current_plant, zone.stage, zone.description, zone.visit_subtitle, zone.visit_short_description, zone.visit_details_title, zone.visit_details_text, zone.visit_body_json, emojiParsingList, markerEmojis]);
 
   useEffect(() => {
@@ -960,6 +959,40 @@ function ZoneInfoModal({ zone, plants, tasks, tutorials = [], isTeacher, student
     })();
     return () => { cancel = true; };
   }, [zone.id, zone.map_id]);
+
+  useEffect(() => {
+    const fromJson = parseVisitEditorialBlocksFromJson(zone.visit_body_json);
+    const trimmedBody = zone.visit_body_json == null ? '' : String(zone.visit_body_json).trim();
+    const imageBlocksFromJson = fromJson.filter((b) => b.type === 'image');
+    if (!trimmedBody) {
+      setVisitEditorialBlocks(
+        visitMediaOptions
+          .map((media, i) => {
+            const mediaId = Number(media?.id);
+            if (!Number.isFinite(mediaId) || mediaId <= 0) return null;
+            return {
+              id: `default-img-${mediaId}`,
+              type: 'image',
+              media_ids: [mediaId],
+              layout: 'single',
+              size: i === 0 ? 'lg' : 'md',
+              align: 'center',
+              caption: String(media?.caption || '').trim(),
+            };
+          })
+          .filter(Boolean),
+      );
+      return;
+    }
+    const hasImageBlock = imageBlocksFromJson.length > 0;
+    if (!hasImageBlock && visitMediaOptions.length > 0) {
+      setVisitEditorialBlocks(
+        mergeDefaultVisitMediaImageBlocks(imageBlocksFromJson, visitMediaOptions).filter((b) => b.type === 'image'),
+      );
+      return;
+    }
+    setVisitEditorialBlocks(imageBlocksFromJson);
+  }, [zone.visit_body_json, zone.id, visitMediaOptions]);
 
   useEffect(() => {
     setSelectedTaskIds((prev) => prev.filter((id) => studentAssignableTasks.some((t) => t.id === id)));
@@ -1840,7 +1873,6 @@ function MarkerModal({
       visit_details_title: marker.visit_details_title || 'Détails',
       visit_details_text: marker.visit_details_text || '',
     });
-    setVisitEditorialBlocks(parseVisitEditorialBlocksFromJson(marker.visit_body_json));
   }, [
     marker.id,
     marker.label,
@@ -1885,6 +1917,41 @@ function MarkerModal({
     })();
     return () => { cancel = true; };
   }, [isNew, marker.id, marker.map_id]);
+
+  useEffect(() => {
+    if (isNew) return;
+    const fromJson = parseVisitEditorialBlocksFromJson(marker.visit_body_json);
+    const trimmedBody = marker.visit_body_json == null ? '' : String(marker.visit_body_json).trim();
+    const imageBlocksFromJson = fromJson.filter((b) => b.type === 'image');
+    if (!trimmedBody) {
+      setVisitEditorialBlocks(
+        visitMediaOptions
+          .map((media, i) => {
+            const mediaId = Number(media?.id);
+            if (!Number.isFinite(mediaId) || mediaId <= 0) return null;
+            return {
+              id: `default-img-${mediaId}`,
+              type: 'image',
+              media_ids: [mediaId],
+              layout: 'single',
+              size: i === 0 ? 'lg' : 'md',
+              align: 'center',
+              caption: String(media?.caption || '').trim(),
+            };
+          })
+          .filter(Boolean),
+      );
+      return;
+    }
+    const hasImageBlock = imageBlocksFromJson.length > 0;
+    if (!hasImageBlock && visitMediaOptions.length > 0) {
+      setVisitEditorialBlocks(
+        mergeDefaultVisitMediaImageBlocks(imageBlocksFromJson, visitMediaOptions).filter((b) => b.type === 'image'),
+      );
+      return;
+    }
+    setVisitEditorialBlocks(imageBlocksFromJson);
+  }, [isNew, marker.visit_body_json, marker.id, visitMediaOptions]);
 
   const buildPayload = () => {
     const living = form.living_beings;

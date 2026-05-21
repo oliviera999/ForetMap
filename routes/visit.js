@@ -17,7 +17,7 @@ const {
   parseVisitEditorialBlocksInput,
   parseVisitEditorialBlocksStored,
   serializeVisitEditorialBlocks,
-  buildLegacyVisitEditorialBlocks,
+  resolveVisitEditorialBlocksForContent,
 } = require('../lib/visitEditorialBlocks');
 
 const router = express.Router();
@@ -124,9 +124,8 @@ function serializeVisitMedia(row) {
 }
 
 function resolveVisitEditorialBlocksForContentRow(row, visitMediaList) {
-  const fromStored = parseVisitEditorialBlocksStored(row?.visit_body_json);
-  if (fromStored.length > 0) return fromStored;
-  return buildLegacyVisitEditorialBlocks({
+  return resolveVisitEditorialBlocksForContent({
+    bodyJson: row?.visit_body_json,
     shortDescription: row?.visit_short_description,
     detailsTitle: row?.visit_details_title,
     detailsText: row?.visit_details_text,
