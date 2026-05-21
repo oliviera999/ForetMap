@@ -20,6 +20,10 @@ import { useOverlayHistoryBack } from '../hooks/useOverlayHistoryBack';
 import { computeMapImageContainRect } from '../utils/mapImageFit';
 import { buildMapImageCandidates } from '../utils/mapImageCandidates';
 import { parseVisitZonePoints as parsePctPoints, visitZoneCentroidPct } from '../utils/visitMapGeometry.js';
+import {
+  normalizeEditorialBlocks,
+  resolveEditorialBlocksForEditor,
+} from '../utils/visitEditorialBlocks.js';
 import { computeVisitMascotStartPct } from '../utils/visitMascotPlacement.js';
 import {
   shouldShowVisitMapMascot as computeShowVisitMapMascot,
@@ -51,6 +55,10 @@ import {
   LocationTutorialPreviewList,
   LivingBeingsCatalogPanel,
 } from './map-views';
+import {
+  VisitEditorialMapPhotoImportList,
+  VisitEditorialMediaIdPicker,
+} from './VisitEditorialPhotoUi.jsx';
 import { orderedLivingBeingsForForm } from '../utils/livingBeings';
 import {
   tutorialLocationIds,
@@ -112,82 +120,6 @@ function VisitMediaGalleryThumb({ media, onOpenLightbox }) {
       {cap ? <figcaption>{media.caption}</figcaption> : null}
     </figure>
   );
-}
-
-function normalizeEditorialBlocks(blocks) {
-  if (!Array.isArray(blocks)) return [];
-  const out = [];
-  for (const block of blocks) {
-    if (!block || typeof block !== 'object') continue;
-    const type = String(block.type || '').trim();
-    if (type === 'paragraph') {
-      const markdown = String(block.markdown || '').trim();
-      if (!markdown) continue;
-      out.push({
-        id: String(block.id || `p-${out.length + 1}`),
-        type: 'paragraph',
-        markdown,
-      });
-      continue;
-    }
-    if (type === 'heading') {
-      const text = String(block.text || '').trim();
-      if (!text) continue;
-      out.push({
-        id: String(block.id || `h-${out.length + 1}`),
-        type: 'heading',
-        text,
-        level: Math.min(4, Math.max(2, Number(block.level) || 3)),
-      });
-      continue;
-    }
-    if (type === 'image') {
-      const media_ids = (Array.isArray(block.media_ids) ? block.media_ids : [])
-        .map((id) => Number(id))
-        .filter((id, idx, arr) => Number.isFinite(id) && id > 0 && arr.indexOf(id) === idx)
-        .slice(0, 2);
-      if (!media_ids.length) continue;
-      out.push({
-        id: String(block.id || `img-${out.length + 1}`),
-        type: 'image',
-        media_ids,
-        layout: media_ids.length > 1 ? (block.layout === 'single' ? 'single' : 'duo') : 'single',
-        size: block.size === 'sm' || block.size === 'lg' ? block.size : 'md',
-        align: block.align === 'left' || block.align === 'right' ? block.align : 'center',
-        caption: String(block.caption || '').trim(),
-      });
-    }
-  }
-  return out;
-}
-
-function buildLegacyEditorialBlocks(selected, selectedVisitMedia) {
-  const out = [];
-  const shortDescription = String(selected?.visit_short_description || '').trim();
-  if (shortDescription) {
-    out.push({ id: 'legacy-short', type: 'paragraph', markdown: shortDescription });
-  }
-  for (let i = 0; i < selectedVisitMedia.length; i += 1) {
-    const media = selectedVisitMedia[i];
-    const mediaId = Number(media?.id);
-    if (!Number.isFinite(mediaId) || mediaId <= 0) continue;
-    out.push({
-      id: `legacy-image-${i + 1}`,
-      type: 'image',
-      media_ids: [mediaId],
-      layout: 'single',
-      size: i === 0 ? 'lg' : 'md',
-      align: 'center',
-      caption: String(media?.caption || '').trim(),
-    });
-  }
-  const detailsTitle = String(selected?.visit_details_title || '').trim();
-  const detailsText = String(selected?.visit_details_text || '').trim();
-  if (detailsText) {
-    if (detailsTitle) out.push({ id: 'legacy-heading', type: 'heading', level: 3, text: detailsTitle });
-    out.push({ id: 'legacy-details', type: 'paragraph', markdown: detailsText });
-  }
-  return out;
 }
 
 function VisitEditorialRenderer({ blocks, selectedVisitMedia, onOpenLightbox }) {
@@ -513,6 +445,7 @@ function VisitEditorPanel({ selected, selectedType, onSaved, onForceLogout, isTe
       list.push({
         id: `map-lead-${selected.map_lead_photo.id || 'x'}`,
         image_url: selected.map_lead_photo.image_url,
+        thumb_url: selected.map_lead_photo.thumb_url,
         caption: selected.map_lead_photo.caption || '',
       });
     }
@@ -521,6 +454,7 @@ function VisitEditorPanel({ selected, selectedType, onSaved, onForceLogout, isTe
       list.push({
         id: `map-extra-${ph.id || Math.random()}`,
         image_url: ph.image_url,
+        thumb_url: ph.thumb_url,
         caption: ph.caption || '',
       });
     }
@@ -541,8 +475,11 @@ function VisitEditorPanel({ selected, selectedType, onSaved, onForceLogout, isTe
       is_active: Number(selected?.visit_is_active ?? 1) === 1,
       emoji: selectedType === 'zone' ? (detectedZoneEmoji || markerEmojis[0] || '📍') : (selected?.emoji || markerEmojis[0] || '📍'),
     });
-    const fromApiBlocks = normalizeEditorialBlocks(selected?.visit_editorial_blocks || []);
-    setEditorialBlocks(fromApiBlocks.length ? fromApiBlocks : buildLegacyEditorialBlocks(selected, sortedVisitMedia));
+    setEditorialBlocks(resolveEditorialBlocksForEditor(
+      selected?.visit_editorial_blocks,
+      selected,
+      sortedVisitMedia,
+    ));
     setMediaUrl('');
     setMediaCaption('');
   }, [markerEmojis, selected, selectedType, sortedVisitMedia]);
@@ -770,20 +707,11 @@ function VisitEditorPanel({ selected, selectedType, onSaved, onForceLogout, isTe
               {block.type === 'image' ? (
                 <div className="visit-editorial-builder__image">
                   <label>Images du bloc (1 ou 2)</label>
-                  <select
-                    multiple
-                    value={(block.media_ids || []).map(String)}
-                    onChange={(e) => {
-                      const ids = Array.from(e.target.selectedOptions).map((opt) => Number(opt.value)).filter((n) => Number.isFinite(n)).slice(0, 2);
-                      updateEditorialBlock(block.id, { media_ids: ids });
-                    }}
-                  >
-                    {sortedVisitMedia.map((media) => (
-                      <option key={media.id} value={String(media.id)}>
-                        #{media.id} {media.caption || media.image_url || 'photo'}
-                      </option>
-                    ))}
-                  </select>
+                  <VisitEditorialMediaIdPicker
+                    mediaList={sortedVisitMedia}
+                    selectedIds={block.media_ids || []}
+                    onChange={(ids) => updateEditorialBlock(block.id, { media_ids: ids })}
+                  />
                   <div className="visit-editorial-builder__image-meta">
                     <select value={block.size || 'md'} onChange={(e) => updateEditorialBlock(block.id, { size: e.target.value })}>
                       <option value="sm">Compact</option>
@@ -874,21 +802,11 @@ function VisitEditorPanel({ selected, selectedType, onSaved, onForceLogout, isTe
           Envoi d’image (comme sur la carte) ou lien URL (ex. Wikimedia, fichier déjà sur le serveur).
           {sortedVisitMedia.length > 1 ? ' Plusieurs photos : glisser-déposer une ligne pour réordonner.' : ''}
         </p>
-        {mapAssociatedPhotos.length > 0 ? (
-          <div className="visit-media-import-from-map">
-            <h6>Photos déjà associées à ce lieu (carte)</h6>
-            <div className="visit-media-import-from-map__list">
-              {mapAssociatedPhotos.map((ph) => (
-                <div key={ph.id} className="visit-media-import-from-map__item">
-                  <span>{ph.caption || ph.image_url}</span>
-                  <button type="button" className="btn btn-ghost btn-sm" onClick={() => attachMapPhotoToVisitMedia(ph)}>
-                    Associer à la visite
-                  </button>
-                </div>
-              ))}
-            </div>
-          </div>
-        ) : null}
+        <VisitEditorialMapPhotoImportList
+          photos={mapAssociatedPhotos}
+          heading="Photos déjà associées à ce lieu (carte)"
+          onAssociate={attachMapPhotoToVisitMedia}
+        />
         <div className="field">
           <label>Légende (optionnel)</label>
           <input value={mediaCaption} onChange={(e) => setMediaCaption(e.target.value)} />
