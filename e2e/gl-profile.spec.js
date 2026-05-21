@@ -21,8 +21,9 @@ test.describe('GL profil utilisateur', () => {
     await page.reload();
 
     await page.getByRole('button', { name: 'Mon profil' }).click();
-    await expect(page.getByRole('dialog', { name: 'Mon profil GL' })).toBeVisible();
-    await expect(page.getByRole('heading', { name: 'Mon profil' })).toBeVisible();
+    const dialog = page.getByRole('dialog', { name: 'Mon profil GL' });
+    await expect(dialog).toBeVisible();
+    await expect(dialog.getByRole('heading', { name: 'Mon profil' }).first()).toBeVisible();
   });
 
   test('affiche la gate de reset mot de passe si passwordMustReset=true', async ({ page }) => {
