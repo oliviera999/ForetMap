@@ -20,11 +20,14 @@ function ev(id, type, opts = {}) {
 
 test('replayGameEvents reconstruit la dernière position par équipe', () => {
   const events = [
-    ev(1, 'move', { teamId: 21, payload: { markerId: 5 } }),
-    ev(2, 'move', { teamId: 21, payload: { markerId: 8 } }),
+    ev(1, 'move', { teamId: 21, payload: { markerId: 5, xp: 12.4, yp: 33.1 } }),
+    ev(2, 'move', { teamId: 21, payload: { markerId: 8, xp: 60.2, yp: 44.5 } }),
   ];
   const replay = replayGameEvents(events, { gameStatus: 'draft' });
   assert.strictEqual(replay.markersByTeamId[21], 8);
+  assert.strictEqual(replay.positionsByTeamId[21].markerId, 8);
+  assert.strictEqual(replay.positionsByTeamId[21].xp, 60.2);
+  assert.strictEqual(replay.positionsByTeamId[21].yp, 44.5);
   assert.strictEqual(replay.timeline.length, 2);
 });
 

@@ -279,6 +279,16 @@ body.gl-body {
   padding: 2px 8px;
   font-size: 0.72rem;
   cursor: pointer;
+  z-index: 4;
+}
+
+.gl-board-marker.is-selected {
+  outline: 2px solid #2563eb;
+  box-shadow: 0 0 0 2px rgba(147, 197, 253, 0.85);
+}
+
+.gl-board-marker.is-dragging {
+  transform: translate(-50%, -50%) scale(1.05);
 }
 
 .gl-board-team {
@@ -290,6 +300,9 @@ body.gl-body {
   border-radius: 12px;
   background: rgba(255, 255, 255, 0.92);
   padding: 4px;
+  cursor: pointer;
+  z-index: 6;
+  appearance: none;
 }
 
 .gl-board-team-label {
@@ -537,6 +550,11 @@ body.gl-body {
   outline: 3px solid #22c55e;
 }
 
+.gl-board-team:focus-visible {
+  outline: 3px solid #1d4ed8;
+  outline-offset: 1px;
+}
+
 .gl-action-modal {
   position: fixed;
   inset: 0;
@@ -675,13 +693,26 @@ body.gl-body {
 
 .gl-markers-list li {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
+  align-items: stretch;
   gap: 8px;
-  padding: 6px 10px;
+  padding: 0;
   border: 1px solid #e5e7eb;
   border-radius: 8px;
   background: #ffffff;
+}
+
+.gl-markers-list li.is-selected {
+  border-color: #60a5fa;
+  background: #eff6ff;
+}
+
+.gl-marker-row-btn {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  padding: 8px 10px;
+  cursor: pointer;
 }
 
 .gl-danger {
@@ -699,6 +730,30 @@ body.gl-body {
   border: 1px solid #86efac;
   border-radius: 8px;
   color: #065f46;
+}
+
+.gl-board--mini {
+  min-height: 210px;
+}
+
+.gl-map-url-preview {
+  display: grid;
+  gap: 6px;
+}
+
+.gl-chapter-map-editor {
+  display: grid;
+  gap: 10px;
+}
+
+.gl-map-editor-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.gl-map-editor-toolbar button.is-active {
+  background: #0b3d2e;
 }
 
 @media (max-width: 800px) {
@@ -1146,6 +1201,13 @@ body.gl-body {
   object-fit: cover;
 }
 
+.gl-kingdom-map-image {
+  width: 100%;
+  display: block;
+  min-height: 280px;
+  object-fit: cover;
+}
+
 .gl-kingdom-map-overlay {
   position: absolute;
   inset: 0;
@@ -1160,6 +1222,30 @@ body.gl-body {
   border-radius: 10px;
   background: #eff6ff;
   padding: 8px 10px;
+}
+
+.gl-kingdom-map-zones li.is-selected {
+  border-color: #60a5fa;
+  background: #dbeafe;
+}
+
+.gl-kingdom-zone-polygon {
+  cursor: pointer;
+}
+
+.gl-kingdom-zone-polygon.is-selected {
+  stroke-width: 0.8;
+}
+
+.gl-kingdom-zone-draft {
+  pointer-events: none;
+}
+
+.gl-zone-edit-pt {
+  fill: #2563eb;
+  stroke: #ffffff;
+  stroke-width: 0.3;
+  cursor: grab;
 }
 
 .gl-tutorial-active {

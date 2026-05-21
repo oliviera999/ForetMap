@@ -14,6 +14,13 @@ function parseId(value) {
   return Number.isFinite(n) ? n : null;
 }
 
+function parsePct(value) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return null;
+  if (n < 0 || n > 100) return null;
+  return Number(n.toFixed(2));
+}
+
 function normalizeOptionalString(value) {
   if (value == null) return null;
   const s = String(value).trim();
@@ -51,7 +58,10 @@ async function readGameState(gameId) {
 
   const teams = await queryAll(
     `SELECT t.id, t.game_id, t.name, t.type, t.mascot_id, t.position_marker_id, t.color, t.created_at, t.updated_at,
-            m.label AS position_label, m.x_pct AS position_x_pct, m.y_pct AS position_y_pct
+            t.position_x_pct AS free_position_x_pct, t.position_y_pct AS free_position_y_pct,
+            m.label AS position_label, m.x_pct AS marker_position_x_pct, m.y_pct AS marker_position_y_pct,
+            COALESCE(t.position_x_pct, m.x_pct, 50) AS position_x_pct,
+            COALESCE(t.position_y_pct, m.y_pct, 50) AS position_y_pct
        FROM gl_teams t
   LEFT JOIN gl_chapter_markers m ON m.id = t.position_marker_id
       WHERE t.game_id = ?
@@ -108,6 +118,15 @@ async function readGameState(gameId) {
     gameStatus: game.status,
     currentTeamId: game.current_team_id,
     teamsById: Object.fromEntries(teams.map((team) => [team.id, team])),
+    positionsByTeamId: Object.fromEntries(teams.map((team) => [Number(team.id), {
+      markerId: team.position_marker_id != null ? Number(team.position_marker_id) : null,
+      xp: team.position_x_pct != null ? Number(team.position_x_pct) : null,
+      yp: team.position_y_pct != null ? Number(team.position_y_pct) : null,
+    }])),
+    markersByTeamId: Object.fromEntries(teams.map((team) => [
+      Number(team.id),
+      team.position_marker_id != null ? Number(team.position_marker_id) : null,
+    ])),
   });
   return {
     game,
@@ -402,7 +421,20 @@ router.post('/games/:id/events', requireGlPermission('gl.event.emit'), async (re
   const teamId = req.body?.teamId != null ? parseId(req.body.teamId) : null;
   const eventType = normalizeOptionalString(req.body?.eventType);
   const payload = req.body?.payload ?? {};
+  const moveXp = parsePct(payload?.xp);
+  const moveYp = parsePct(payload?.yp);
+  const moveMarkerId = payload?.markerId != null ? parseId(payload.markerId) : null;
+  const hasMovePctPayload = payload?.xp != null || payload?.yp != null;
   if (!gameId || !eventType) return res.status(400).json({ error: 'gameId et eventType requis' });
+  if (eventType === 'move' && teamId == null) {
+    return res.status(400).json({ error: 'teamId requis pour un déplacement' });
+  }
+  if (eventType === 'move' && hasMovePctPayload && (moveXp == null || moveYp == null)) {
+    return res.status(400).json({ error: 'xp/yp invalides (attendus entre 0 et 100)' });
+  }
+  if (eventType === 'move' && moveMarkerId == null && !hasMovePctPayload) {
+    return res.status(400).json({ error: 'payload move invalide (markerId ou xp/yp requis)' });
+  }
   const settings = await getGameplaySettings();
   if (eventType === 'narration' && !settings.narrationEnabled) {
     return res.status(409).json({ error: 'Narration desactivée dans les réglages' });
@@ -418,12 +450,37 @@ router.post('/games/:id/events', requireGlPermission('gl.event.emit'), async (re
        VALUES (?, ?, ?, ?, ?, ?, NOW())`,
       [gameId, teamId, actorType, actorId, eventType, JSON.stringify(payload)]
     );
-    if (eventType === 'move' && teamId != null && payload?.markerId != null) {
-      await tx.execute('UPDATE gl_teams SET position_marker_id = ?, updated_at = NOW() WHERE id = ? AND game_id = ?', [
-        Number(payload.markerId),
-        teamId,
-        gameId,
-      ]);
+    if (eventType === 'move' && teamId != null) {
+      if (moveMarkerId != null) {
+        const marker = await tx.queryOne(
+          'SELECT id, x_pct, y_pct FROM gl_chapter_markers WHERE id = ? LIMIT 1',
+          [moveMarkerId]
+        );
+        if (!marker) {
+          const err = new Error('MARKER_NOT_FOUND');
+          err.status = 404;
+          throw err;
+        }
+        await tx.execute(
+          `UPDATE gl_teams
+              SET position_marker_id = ?,
+                  position_x_pct = ?,
+                  position_y_pct = ?,
+                  updated_at = NOW()
+            WHERE id = ? AND game_id = ?`,
+          [moveMarkerId, Number(marker.x_pct), Number(marker.y_pct), teamId, gameId]
+        );
+      } else {
+        await tx.execute(
+          `UPDATE gl_teams
+              SET position_marker_id = NULL,
+                  position_x_pct = ?,
+                  position_y_pct = ?,
+                  updated_at = NOW()
+            WHERE id = ? AND game_id = ?`,
+          [moveXp, moveYp, teamId, gameId]
+        );
+      }
     }
     if (eventType === 'score' && teamId != null) {
       const delta = Number(payload?.delta);
@@ -440,7 +497,14 @@ router.post('/games/:id/events', requireGlPermission('gl.event.emit'), async (re
         );
       }
     }
+  }).catch((err) => {
+    if (err?.status === 404 && err?.message === 'MARKER_NOT_FOUND') {
+      res.status(404).json({ error: 'Repère introuvable' });
+      return null;
+    }
+    throw err;
   });
+  if (res.headersSent) return;
   const evt = await queryOne(
     `SELECT id, game_id, team_id, actor_type, actor_id, event_type, payload_json, created_at
        FROM gl_game_events

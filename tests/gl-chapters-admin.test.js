@@ -132,6 +132,16 @@ test('PUT /api/gl/chapters/admin/markers/:markerId met à jour le label', async 
   assert.strictEqual(res.body.label, 'Repère 1 bis');
 });
 
+test('PUT /api/gl/chapters/admin/markers/:markerId met à jour xPct et yPct', async () => {
+  const res = await request(app)
+    .put(`/api/gl/chapters/admin/markers/${createdMarkerId}`)
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ xPct: 61.2, yPct: 23.4 })
+    .expect(200);
+  assert.strictEqual(Number(res.body.x_pct), 61.2);
+  assert.strictEqual(Number(res.body.y_pct), 23.4);
+});
+
 test('DELETE /api/gl/chapters/admin/markers/:markerId supprime le marker', async () => {
   await request(app)
     .delete(`/api/gl/chapters/admin/markers/${createdMarkerId}`)

@@ -10,10 +10,17 @@ const TYPE_FILTERS = [
   { id: 'unicorn', label: 'Licornes' },
 ];
 
+const SOURCE_FILTERS = [
+  { id: 'all', label: 'Toutes sources' },
+  { id: 'gl', label: 'G&L' },
+  { id: 'foretmap', label: 'ForetMap' },
+];
+
 export function GLMascotsAdminView({ gameState, onReloadGame }) {
   const [mascots, setMascots] = useState([]);
   const [assignments, setAssignments] = useState([]);
   const [typeFilter, setTypeFilter] = useState('all');
+  const [sourceFilter, setSourceFilter] = useState('all');
   const [selectedTeamId, setSelectedTeamId] = useState('');
   const [error, setError] = useState('');
   const [info, setInfo] = useState('');
@@ -80,9 +87,12 @@ export function GLMascotsAdminView({ gameState, onReloadGame }) {
   }
 
   const filtered = useMemo(() => {
-    if (typeFilter === 'all') return mascots;
-    return mascots.filter((m) => m.type === typeFilter);
-  }, [mascots, typeFilter]);
+    return mascots.filter((m) => {
+      const sourceOk = sourceFilter === 'all' ? true : m.source === sourceFilter;
+      const typeOk = typeFilter === 'all' ? true : m.type === typeFilter;
+      return sourceOk && typeOk;
+    });
+  }, [mascots, typeFilter, sourceFilter]);
 
   return (
     <section className="gl-panel">
@@ -108,6 +118,17 @@ export function GLMascotsAdminView({ gameState, onReloadGame }) {
           </select>
         </label>
         <div className="gl-mascots-filters" role="group" aria-label="Filtres">
+          {SOURCE_FILTERS.map((f) => (
+            <button
+              key={f.id}
+              type="button"
+              className={sourceFilter === f.id ? 'is-active' : ''}
+              onClick={() => setSourceFilter(f.id)}
+              data-source-filter={f.id}
+            >
+              {f.label}
+            </button>
+          ))}
           {TYPE_FILTERS.map((f) => (
             <button
               key={f.id}
@@ -147,7 +168,11 @@ export function GLMascotsAdminView({ gameState, onReloadGame }) {
               <GLMascotRenderer mascotId={mascot.id} mascotState={previewState} size={72} />
               <div className="gl-mascot-card-body">
                 <strong>{mascot.label}</strong>
-                <span className="gl-hint">{mascot.type === 'gnome' ? 'Gnome' : 'Licorne'}</span>
+                <span className="gl-hint">
+                  {mascot.source === 'foretmap'
+                    ? 'ForetMap'
+                    : (mascot.type === 'gnome' ? 'Gnome' : 'Licorne')}
+                </span>
                 <p>{mascot.description}</p>
                 <button
                   type="button"

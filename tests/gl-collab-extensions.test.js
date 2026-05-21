@@ -184,6 +184,19 @@ test('GL kingdom-map: CRUD zones avec points %', async () => {
     .expect(200);
   assert.strictEqual(updated.body?.label, 'Royaume renommé');
 
+  const reshapedPoints = [
+    { x: 12, y: 12 },
+    { x: 88, y: 15 },
+    { x: 48, y: 84 },
+    { x: 18, y: 62 },
+  ];
+  const updatedPoints = await request(app)
+    .put(`/api/gl/kingdom-map/zones/${zoneId}`)
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ points: reshapedPoints })
+    .expect(200);
+  assert.deepStrictEqual(updatedPoints.body?.points, reshapedPoints);
+
   await request(app)
     .delete(`/api/gl/kingdom-map/zones/${zoneId}`)
     .set('Authorization', `Bearer ${adminToken}`)

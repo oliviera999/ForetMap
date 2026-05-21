@@ -75,7 +75,7 @@ Le script accepte également `--target=chapters` (Lot 2B) : seules les pages WP 
 | GET | `/api/gl/games/:id/roster` | — | `gl.players.manage` |
 | POST | `/api/gl/games/:id/roster/assign` | `{ playerId, teamId }` | `gl.players.manage` |
 | POST | `/api/gl/games/:id/roster/unassign` | `{ playerId }` | `gl.players.manage` |
-| POST | `/api/gl/games/:id/events` | `{ teamId?, eventType, payload }` | `gl.event.emit` |
+| POST | `/api/gl/games/:id/events` | `{ teamId?, eventType, payload }` | `gl.event.emit` (`move` exige `teamId`) |
 | POST | `/api/gl/games/:id/turn/next` | — | `gl.game.manage` (refus `409` si `gameplay.turns_enabled=false`) |
 | POST | `/api/gl/games/:id/actions` | `{ actionType, payload }` | `gl.action.request` (joueur) (refus `409` si toggle off / hors tour) |
 | POST | `/api/gl/games/:id/actions/:actionId/resolve` | `{ decision: "accepted"\|"refused", scoreDelta?, reason? }` | `gl.game.manage` |
@@ -83,7 +83,7 @@ Le script accepte également `--target=chapters` (Lot 2B) : seules les pages WP 
 | POST | `/api/gl/games/:id/pause` | — | `gl.game.manage` |
 | POST | `/api/gl/games/:id/end` | — | `gl.game.manage` |
 | DELETE | `/api/gl/games/:id` | — | `gl.game.manage` (autorisé uniquement pour `draft` / `ended`) |
-| GET | `/api/gl/mascots` | `?gameId=` optionnel (renvoie aussi `assignments`) | Auth GL (joueur ou admin) |
+| GET | `/api/gl/mascots` | `?gameId=` optionnel (renvoie aussi `assignments`) | Auth GL (joueur ou admin) ; catalogue unifié (`source: "gl"` + `source: "foretmap"`) |
 | POST | `/api/gl/mascots/assign` | `{ gameId, teamId, mascotId }` | `gl.team.manage` (refus `404` mascotte inconnue, refus `409` mascotte déjà utilisée par une autre équipe de la même partie) |
 | GET | `/api/gl/mascots/packs` | `?chapterId=` optionnel | `gl.content.manage` |
 | POST | `/api/gl/mascots/packs` | `{ chapterId?, name, version?, payload }` | `gl.content.manage` (validation Zod) |
@@ -96,10 +96,12 @@ Le script accepte également `--target=chapters` (Lot 2B) : seules les pages WP 
 | POST | `/api/gl/mascots/sprite-library` | `{ chapterId?, filename, mimeType?, dataBase64 }` | `gl.content.manage` |
 | DELETE | `/api/gl/mascots/sprite-library/:id` | — | `gl.content.manage` |
 
+Note UX admin GL : l’édition des chapitres et de la carte royaume est désormais visuelle côté frontend (placement des repères au clic/glisser, dessin/édition des zones polygonales). Le contrat HTTP des endpoints ci-dessus ne change pas.
+
 Événements de partie stockés dans `gl_game_events` et diffusés en Socket.IO (`gl:game:event`, room `gl:game:{id}`).
 
 **Types d'événements (`eventType`)** :
-- `move` — déplacement d'une mascotte d'équipe sur un marker (`payload: { markerId, markerLabel? }`).
+- `move` — déplacement d'une mascotte d'équipe vers un marker **ou** en position libre (`payload: { markerId, markerLabel?, xp?, yp? }` ou `{ xp, yp }`, bornes `0..100`). Si `xp/yp` sont fournis seuls, la position marker est détachée (`position_marker_id = NULL`).
 - `game_status` — changement de statut de partie (`payload: { status }`).
 - `turn_change` — équipe dont c'est le tour (`payload: { teamId }`). Requiert `gameplay.turns_enabled=true`.
 - `narration` — texte narratif diffusé en bandeau (`payload: { text }`). Requiert `gameplay.narration_enabled=true`.

@@ -105,7 +105,7 @@ test('POST /api/gl/games/:id/teams : 404 si partie inexistante', async () => {
 
 test('POST /api/gl/games/:id/events move met à jour la position', async () => {
   const team = await queryOne('SELECT id FROM gl_teams WHERE game_id = ? ORDER BY id DESC LIMIT 1', [gameId]);
-  const marker = await queryOne('SELECT id FROM gl_chapter_markers ORDER BY id ASC LIMIT 1');
+  const marker = await queryOne('SELECT id, x_pct, y_pct FROM gl_chapter_markers ORDER BY id ASC LIMIT 1');
   const res = await request(app)
     .post(`/api/gl/games/${gameId}/events`)
     .set('Authorization', `Bearer ${adminToken}`)
@@ -123,4 +123,28 @@ test('POST /api/gl/games/:id/events move met à jour la position', async () => {
     .expect(200);
   const movedTeam = (state.body.teams || []).find((item) => Number(item.id) === Number(team.id));
   assert.strictEqual(Number(movedTeam.position_marker_id), Number(marker.id));
+  assert.strictEqual(Number(movedTeam.position_x_pct), Number(marker.x_pct));
+  assert.strictEqual(Number(movedTeam.position_y_pct), Number(marker.y_pct));
+});
+
+test('POST /api/gl/games/:id/events move accepte xp/yp libres', async () => {
+  const team = await queryOne('SELECT id FROM gl_teams WHERE game_id = ? ORDER BY id DESC LIMIT 1', [gameId]);
+  await request(app)
+    .post(`/api/gl/games/${gameId}/events`)
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({
+      teamId: team.id,
+      eventType: 'move',
+      payload: { xp: 63.42, yp: 27.8 },
+    })
+    .expect(201);
+
+  const state = await request(app)
+    .get(`/api/gl/games/${gameId}`)
+    .set('Authorization', `Bearer ${adminToken}`)
+    .expect(200);
+  const movedTeam = (state.body.teams || []).find((item) => Number(item.id) === Number(team.id));
+  assert.strictEqual(movedTeam.position_marker_id, null);
+  assert.strictEqual(Number(movedTeam.position_x_pct), 63.42);
+  assert.strictEqual(Number(movedTeam.position_y_pct), 27.8);
 });
