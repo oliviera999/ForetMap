@@ -7,6 +7,9 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé
+- **Doc GL** : `docs/GL_ARCHITECTURE.md` — auth joueur OAuth (`mode=player`), lien email / ForetMap, variable `GL_GOOGLE_OAUTH_REDIRECT_URI`.
+
 ### Ajouté
 - **Gnomes & Licornes — connexion Google joueurs** : bouton « Continuer avec Google » sur l’onglet **Joueur** ; flux OAuth `GET /api/gl/auth/google/start?mode=player|staff` (cookie `gl_oauth_mode`) ; callback `type: gl_player` ou `gl_staff`. Résolution joueur par `gl_players.email` ou lien `linked_foretmap_user_id` → élève ForetMap (`lib/glPlayerAuth.js`). Migration **`088_gl_players_oauth.sql`** (`email`, `google_sub`). Admin/import : champ **Email** optionnel sur les joueurs. `GET /api/gl/auth/config` expose `allowGooglePlayer`. Tests `tests/gl-player-google-auth.test.js`.
 
