@@ -6,6 +6,7 @@ const assert = require('node:assert');
 const request = require('supertest');
 const { app } = require('../server');
 const { initSchema, execute, queryOne } = require('../database');
+const { createGlPlayer } = require('./helpers/glFixtures');
 const { signAuthToken } = require('../middleware/requireTeacher');
 
 let adminToken = '';
@@ -42,12 +43,10 @@ before(async () => {
     [`Classe Chapters Admin ${stamp}`, admin.id]
   );
   const cls = await queryOne('SELECT id FROM gl_classes WHERE name = ? LIMIT 1', [`Classe Chapters Admin ${stamp}`]);
-  await execute(
-    `INSERT INTO gl_players (class_id, pseudo, pin_hash, is_active, created_at, updated_at)
-     VALUES (?, ?, 'x', 1, NOW(), NOW())`,
-    [cls.id, `chapters-admin-player-${stamp}`]
-  );
-  const player = await queryOne('SELECT id FROM gl_players WHERE pseudo = ? LIMIT 1', [`chapters-admin-player-${stamp}`]);
+  const player = await createGlPlayer({
+    classId: cls.id,
+    pseudo: `chapters-admin-player-${stamp}`,
+  });
   playerToken = await signAuthToken({
     product: 'gl',
     userType: 'gl_player',
