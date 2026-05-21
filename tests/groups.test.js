@@ -5,13 +5,14 @@ const request = require('supertest');
 const { v4: uuidv4 } = require('uuid');
 const { app } = require('../server');
 const { initSchema, queryOne, queryAll, execute } = require('../database');
+const { signAuthToken } = require('../middleware/requireTeacher');
 
 test.before(async () => {
   await initSchema();
 });
 
 async function getAdminToken() {
-  const loginEmail = String(process.env.TEACHER_ADMIN_EMAIL || '').trim();
+  const loginEmail = process.env.TEACHER_ADMIN_EMAIL || 'admin.test@foretmap.local';
   const teacher = await queryOne(
     "SELECT id FROM users WHERE user_type = 'teacher' AND LOWER(email) = LOWER(?) LIMIT 1",
     [loginEmail]
@@ -19,24 +20,31 @@ async function getAdminToken() {
   const adminRole = await queryOne("SELECT id FROM roles WHERE slug = 'admin' LIMIT 1");
   assert.ok(teacher?.id, 'Compte admin enseignant introuvable');
   assert.ok(adminRole?.id, 'Rôle admin introuvable');
+  const requiredPermissions = ['groups.read', 'groups.manage'];
+  for (const key of requiredPermissions) {
+    await execute(
+      'INSERT IGNORE INTO permissions (`key`, label, description) VALUES (?, ?, ?)',
+      [key, key, 'Permission auto-seed tests']
+    );
+    await execute(
+      'INSERT IGNORE INTO role_permissions (role_id, permission_key, requires_elevation) VALUES (?, ?, 0)',
+      [adminRole.id, key]
+    );
+  }
   await execute('UPDATE user_roles SET is_primary = 0 WHERE user_type = ? AND user_id = ?', ['teacher', teacher.id]);
   await execute(
     'INSERT INTO user_roles (user_type, user_id, role_id, is_primary) VALUES (?, ?, ?, 1) ON DUPLICATE KEY UPDATE is_primary = 1',
     ['teacher', teacher.id, adminRole.id]
   );
-  const login = await request(app)
-    .post('/api/auth/login')
-    .send({
-      identifier: loginEmail,
-      password: process.env.TEACHER_ADMIN_PASSWORD,
-    })
-    .expect(200);
-  const auth = await request(app)
-    .post('/api/auth/teacher')
-    .set({ Authorization: `Bearer ${login.body.authToken}` })
-    .send({ pin: process.env.TEACHER_PIN || '1234' })
-    .expect(200);
-  return auth.body.token;
+  return signAuthToken({
+    userType: 'teacher',
+    userId: teacher.id,
+    canonicalUserId: teacher.id,
+    roleId: adminRole.id,
+    roleSlug: 'admin',
+    roleDisplayName: 'Administrateur',
+    elevated: false,
+  }, false);
 }
 
 async function createStudentForGroups(label) {
