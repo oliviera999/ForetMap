@@ -4,7 +4,7 @@ import { GLPasswordChangeForm } from './GLPasswordChangeForm.jsx';
 export function GLPasswordResetGate({ open, onCompleted }) {
   if (!open) return null;
   return (
-    <div className="gl-action-modal" role="dialog" aria-label="Mise a jour mot de passe obligatoire">
+    <div className="gl-action-modal" role="dialog" aria-modal="true" aria-label="Mise a jour mot de passe obligatoire">
       <div className="gl-action-modal-body gl-profile-gate">
         <h3>Mise a jour du mot de passe requise</h3>
         <p className="gl-hint">

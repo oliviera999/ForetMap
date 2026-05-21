@@ -14,6 +14,7 @@ const stamp = Date.now();
 const adminEmail = `gl.staff.admin.${stamp}@ecole.local`;
 const mjOnlyEmail = `gl.staff.mjonly.${stamp}@ecole.local`;
 const adminPassword = 'StaffTest-Admin-1';
+const mjPassword = 'StaffTest-MJ-1';
 
 let adminTeacherId = null;
 
@@ -44,6 +45,21 @@ before(async () => {
      ON DUPLICATE KEY UPDATE is_active = 1`,
     [mjOnlyEmail]
   );
+  const mjHash = await bcrypt.hash(mjPassword, 10);
+  await execute(
+    `INSERT INTO users (id, user_type, email, pseudo, display_name, password_hash, auth_provider, is_active, created_at, updated_at)
+     VALUES (?, 'teacher', ?, ?, 'MJ seul GL', ?, 'local', 1, NOW(), NOW())
+     ON DUPLICATE KEY UPDATE password_hash = VALUES(password_hash), is_active = 1`,
+    [`teacher-gl-mj-${stamp}`, mjOnlyEmail, `mj${stamp}`, mjHash]
+  );
+  const profRole = await queryOne("SELECT id FROM roles WHERE slug = 'prof' LIMIT 1");
+  assert.ok(profRole?.id);
+  await execute(
+    `INSERT INTO user_roles (user_id, user_type, role_id, is_primary, assigned_at)
+     VALUES (?, 'teacher', ?, 1, NOW())
+     ON DUPLICATE KEY UPDATE role_id = VALUES(role_id), is_primary = 1`,
+    [`teacher-gl-mj-${stamp}`, profRole.id]
+  );
 });
 
 test('isForetmapAdminForGl détecte le rôle admin ForetMap', async () => {
@@ -66,12 +82,22 @@ test('POST /api/gl/auth/staff/login connecte un admin ForetMap et crée gl_admin
   assert.strictEqual(String(row.role).toLowerCase(), 'admin');
 });
 
-test('POST /api/gl/auth/staff/login refuse un compte MJ GL sans admin ForetMap', async () => {
+test('POST /api/gl/auth/staff/login refuse un mot de passe MJ incorrect', async () => {
   const res = await request(app)
     .post('/api/gl/auth/staff/login')
     .send({ identifier: mjOnlyEmail, password: 'wrong' })
     .expect(401);
   assert.ok(res.body?.error);
+});
+
+test('POST /api/gl/auth/staff/login ne donne pas gl.settings.manage a un MJ', async () => {
+  const res = await request(app)
+    .post('/api/gl/auth/staff/login')
+    .send({ identifier: mjOnlyEmail, password: mjPassword })
+    .expect(200);
+  assert.strictEqual(res.body?.auth?.roleSlug, 'gl_mj');
+  assert.ok(res.body?.auth?.permissions?.includes('gl.game.manage'));
+  assert.ok(!res.body?.auth?.permissions?.includes('gl.settings.manage'));
 });
 
 test('GET /api/gl/auth/config expose allowGoogleStaff et allowGooglePlayer', async () => {

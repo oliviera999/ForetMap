@@ -45,8 +45,8 @@ function parseCsvLowercaseSet(raw, defaults = []) {
 
 function getGlRolePermissions(roleSlug) {
   const role = String(roleSlug || '').toLowerCase();
-  if (role === 'admin' || role === 'mj') {
-    return [
+  if (role === 'admin' || role === 'gl_admin' || role === 'mj' || role === 'gl_mj') {
+    const permissions = [
       'gl.read',
       'gl.content.manage',
       'gl.players.manage',
@@ -54,8 +54,11 @@ function getGlRolePermissions(roleSlug) {
       'gl.team.manage',
       'gl.event.emit',
       'gl.mascot.position',
-      'gl.settings.manage',
     ];
+    if (role === 'admin' || role === 'gl_admin') {
+      permissions.push('gl.settings.manage');
+    }
+    return permissions;
   }
   return ['gl.read', 'gl.action.request'];
 }

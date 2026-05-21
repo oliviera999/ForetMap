@@ -10,6 +10,7 @@ const { createGlAdmin, createGlClass, createGlGameWithTeams, createGlPlayer, sig
 
 let adminToken = '';
 let playerToken = '';
+let intruderToken = '';
 let gameId = null;
 let teamId = null;
 let playerId = null;
@@ -37,6 +38,12 @@ before(async () => {
     password: '1234',
   });
   playerId = Number(player.id);
+  const intruder = await createGlPlayer({
+    classId: cls.id,
+    teamId,
+    pseudo: `lifecycle-intruder-${stamp}`,
+    password: '1234',
+  });
 
   const tokens = await signTokens({
     adminId: admin.id,
@@ -48,6 +55,12 @@ before(async () => {
   });
   adminToken = tokens.adminToken;
   playerToken = tokens.playerToken;
+  intruderToken = (await signTokens({
+    playerId: intruder.id,
+    teamId,
+    playerPseudo: intruder.pseudo,
+    playerPermissions: ['gl.read', 'gl.action.request'],
+  })).playerToken;
 });
 
 test('GET /api/gl/gameplay-settings répond pour un joueur authentifié', async () => {
@@ -69,6 +82,20 @@ test('POST /api/gl/games/:id/join-team accepte un joueur', async () => {
     [gameId, playerId]
   );
   assert.ok(member);
+});
+
+test('GET /api/gl/games/:id refuse un joueur sans appartenance a la partie', async () => {
+  await request(app)
+    .get(`/api/gl/games/${gameId}`)
+    .set('Authorization', `Bearer ${intruderToken}`)
+    .expect(403);
+});
+
+test('GET /api/gl/journal/games/:id refuse un joueur sans appartenance a la partie', async () => {
+  await request(app)
+    .get(`/api/gl/journal/games/${gameId}`)
+    .set('Authorization', `Bearer ${intruderToken}`)
+    .expect(403);
 });
 
 test('POST /api/gl/games/:id/join-team refuse un admin', async () => {
