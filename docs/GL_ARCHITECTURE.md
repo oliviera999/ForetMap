@@ -32,7 +32,7 @@ Ce document décrit l'architecture du second mode **Gnomes & Licornes** (GL) dan
 
 Préfixe : `/api/gl`
 
-- Auth : `routes/gl/auth.js` (joueur `pseudo`+`PIN` ; MJ/Admin via compte ForetMap `staff/login` ou OAuth `google/start` ; admins ForetMap RBAC `admin` → synchro auto `gl_admins`)
+- Auth : `routes/gl/auth.js` (joueur `pseudo`+mot de passe ou OAuth Google `google/start?mode=player` ; MJ/Admin via compte ForetMap `staff/login` ou OAuth `google/start?mode=staff` ; joueur Google : `gl_players.email` ou lien `linked_foretmap_user_id` ; admins ForetMap RBAC `admin` → synchro auto `gl_admins`)
 - Contenus éditoriaux (pages éditoriales `gl_content_pages`) : `routes/gl/content.js`
 - Chapitres et repères (`gl_chapters`, `gl_chapter_markers`) : `routes/gl/chapters.js`
 - Gameplay : `routes/gl/games.js`
@@ -151,6 +151,7 @@ Le mapping de slugs est configurable (ex. `le-monde-de-gnomes-et-licornes -> wor
 - `FRONTEND_ORIGINS`
 - `GL_FRONTEND_ORIGIN`
 - `GL_GOOGLE_OAUTH_CLIENT_ID`
+- `GL_GOOGLE_OAUTH_REDIRECT_URI`
 - `GL_GOOGLE_OAUTH_ALLOWED_DOMAINS`
 - `GL_GOOGLE_OAUTH_ALLOWED_EMAILS`
 - `GL_PROD_BASE_URL`
