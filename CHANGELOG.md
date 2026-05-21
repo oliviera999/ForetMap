@@ -8,6 +8,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 ## [Non publié]
 
 ### Corrigé
+- **GL — sécurité parties/journal/temps réel** : contrôle d’appartenance `gl_team_members` requis pour les joueurs sur `GET /api/gl/games/:id`, `GET /api/gl/journal/games/:id`, abonnements Socket.IO `subscribe:gl-game` et demandes d’action ; l’équipe de partie est désormais lue depuis l’appartenance réelle plutôt que depuis `gl_players.team_id` global, les MJ ne reçoivent plus `gl.settings.manage`, et la gate de réinitialisation mot de passe passe au-dessus de la topbar.
 - **Doc GL** : `docs/GL_ARCHITECTURE.md` — auth joueur OAuth (`mode=player`), lien email / ForetMap, variable `GL_GOOGLE_OAUTH_REDIRECT_URI`.
 
 ### Ajouté

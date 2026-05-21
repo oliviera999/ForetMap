@@ -6,9 +6,10 @@ const { test } = require('node:test');
 const assert = require('node:assert');
 const http = require('http');
 const express = require('express');
+const jwt = require('jsonwebtoken');
 const { io: clientIo } = require('socket.io-client');
 const { initRealtime, emitGlGameEvent } = require('../lib/realtime');
-const { signAuthToken } = require('../middleware/requireTeacher');
+const { JWT_SECRET } = require('../middleware/requireTeacher');
 
 test('Socket.IO GL : réception gl:game:event', async () => {
   const app = express();
@@ -19,13 +20,13 @@ test('Socket.IO GL : réception gl:game:event', async () => {
     server.listen(0, '127.0.0.1', resolve);
   });
   const { port } = server.address();
-  const token = await signAuthToken({
+  const token = jwt.sign({
     product: 'gl',
     userType: 'gl_admin',
     userId: '500',
     roleSlug: 'gl_admin',
     permissions: ['gl.read', 'gl.event.emit'],
-  });
+  }, JWT_SECRET, { expiresIn: '1h' });
 
   const socket = clientIo(`http://127.0.0.1:${port}`, {
     path: '/socket.io',
@@ -80,12 +81,12 @@ test('Socket.IO GL : refuse les abonnements de partie avec un token non GL', asy
     server.listen(0, '127.0.0.1', resolve);
   });
   const { port } = server.address();
-  const token = await signAuthToken({
+  const token = jwt.sign({
     userType: 'teacher',
     userId: 'teacher-500',
     roleSlug: 'prof',
     permissions: ['teacher.access'],
-  });
+  }, JWT_SECRET, { expiresIn: '1h' });
 
   const socket = clientIo(`http://127.0.0.1:${port}`, {
     path: '/socket.io',
