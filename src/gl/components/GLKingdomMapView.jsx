@@ -108,7 +108,12 @@ export function GLKingdomMapView({ chapter, canManage }) {
             ) : null}
           </li>
         ))}
-        {zones.length === 0 ? <li className="gl-hint">Aucune zone.</li> : null}
+        {zones.length === 0 ? (
+          <li className="gl-empty gl-hint">
+            <span className="gl-empty-icon" aria-hidden>🏰</span>
+            Aucune zone.
+          </li>
+        ) : null}
       </ul>
       {canManage ? (
         <form className="gl-form" onSubmit={createZone}>

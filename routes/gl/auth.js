@@ -537,6 +537,292 @@ router.get('/me', requireGlAuth, async (req, res) => {
   });
 });
 
+router.patch('/me/profile', requireGlAuth, async (req, res) => {
+  try {
+    const body = req.body || {};
+    const currentPassword = normalizeOptionalString(body.currentPassword);
+    if (!currentPassword) {
+      return res.status(400).json({ error: 'Mot de passe actuel requis' });
+    }
+
+    if (req.glAuth.userType === 'gl_player') {
+      const account = await queryOne(
+        `SELECT id, class_id, team_id, pseudo, first_name, last_name, email, description, avatar_path, password_hash, password_must_reset
+           FROM gl_players
+          WHERE id = ?
+          LIMIT 1`,
+        [req.glAuth.userId]
+      );
+      if (!account) return res.status(404).json({ error: 'Joueur introuvable' });
+      const passOk = await bcrypt.compare(currentPassword, String(account.password_hash || ''));
+      if (!passOk) return res.status(401).json({ error: 'Mot de passe actuel incorrect' });
+
+      const hasPseudo = Object.prototype.hasOwnProperty.call(body, 'pseudo');
+      const hasEmail = Object.prototype.hasOwnProperty.call(body, 'email');
+      const hasDescription = Object.prototype.hasOwnProperty.call(body, 'description');
+      const hasAvatarData = Object.prototype.hasOwnProperty.call(body, 'avatarData');
+      const removeAvatar = !!body.removeAvatar;
+      if (!hasPseudo && !hasEmail && !hasDescription && !hasAvatarData && !removeAvatar) {
+        return res.status(400).json({ error: 'Aucun champ de profil à mettre à jour' });
+      }
+
+      const pseudo = hasPseudo ? normalizeOptionalString(body.pseudo) : account.pseudo;
+      const email = hasEmail ? normalizeEmail(body.email) : account.email;
+      const description = hasDescription ? normalizeOptionalString(body.description) : account.description;
+      const validationError = validatePlayerProfileInput({ pseudo, email, description });
+      if (validationError) return res.status(400).json({ error: validationError });
+
+      if (pseudo) {
+        const existingPseudo = await queryOne(
+          'SELECT id FROM gl_players WHERE LOWER(pseudo)=LOWER(?) AND id <> ? LIMIT 1',
+          [pseudo, account.id]
+        );
+        if (existingPseudo) return res.status(409).json({ error: 'Ce pseudo est déjà utilisé' });
+      }
+      if (email) {
+        const existingEmail = await queryOne(
+          'SELECT id FROM gl_players WHERE LOWER(email)=LOWER(?) AND id <> ? LIMIT 1',
+          [email, account.id]
+        );
+        if (existingEmail) return res.status(409).json({ error: 'Cet email est déjà utilisé pour un joueur GL' });
+      }
+
+      let avatarPath = account.avatar_path || null;
+      if (hasAvatarData) {
+        const avatarData = normalizeOptionalString(body.avatarData);
+        if (!avatarData) return res.status(400).json({ error: 'Image de profil invalide' });
+        const ext = detectAvatarExtension(avatarData);
+        if (!ext) return res.status(400).json({ error: 'Format image invalide (png/jpg/webp)' });
+        const base64Payload = avatarData.includes(',') ? avatarData.split(',')[1] : avatarData;
+        const bytes = Buffer.byteLength(base64Payload, 'base64');
+        if (bytes > MAX_AVATAR_BYTES) {
+          return res.status(400).json({ error: 'Image trop lourde (max 2 Mo)' });
+        }
+        const relativePath = `gl_players/${account.id}/avatar-${Date.now()}.${ext}`;
+        saveBase64ToDisk(relativePath, avatarData);
+        if (account.avatar_path && account.avatar_path !== relativePath) {
+          deleteFile(account.avatar_path);
+        }
+        avatarPath = relativePath;
+      } else if (removeAvatar) {
+        if (account.avatar_path) deleteFile(account.avatar_path);
+        avatarPath = null;
+      }
+
+      await execute(
+        `UPDATE gl_players
+            SET pseudo = ?, email = ?, description = ?, avatar_path = ?, updated_at = NOW()
+          WHERE id = ?`,
+        [pseudo, email, description, avatarPath, account.id]
+      );
+      const updated = await queryOne(
+        `SELECT id, class_id, team_id, pseudo, first_name, last_name, email, description, avatar_path, password_must_reset
+           FROM gl_players
+          WHERE id = ?
+          LIMIT 1`,
+        [account.id]
+      );
+      const session = await issueGlPlayerSession(updated);
+      return res.json({
+        ok: true,
+        authToken: session.authToken,
+        auth: session.auth,
+        profile: updated,
+      });
+    }
+
+    if (req.glAuth.userType !== 'gl_admin') {
+      return res.status(403).json({ error: 'Type de session GL non supporté' });
+    }
+
+    const hasDisplayName = Object.prototype.hasOwnProperty.call(body, 'displayName')
+      || Object.prototype.hasOwnProperty.call(body, 'display_name');
+    const hasDescription = Object.prototype.hasOwnProperty.call(body, 'description');
+    const hasAvatarData = Object.prototype.hasOwnProperty.call(body, 'avatarData');
+    const removeAvatar = !!body.removeAvatar;
+    if (!hasDisplayName && !hasDescription && !hasAvatarData && !removeAvatar) {
+      return res.status(400).json({ error: 'Aucun champ de profil à mettre à jour' });
+    }
+
+    const admin = await queryOne(
+      'SELECT id, email, display_name, role, description, avatar_path, foretmap_user_id FROM gl_admins WHERE id = ? LIMIT 1',
+      [req.glAuth.userId]
+    );
+    if (!admin) return res.status(404).json({ error: 'Compte MJ/Admin introuvable' });
+
+    const linkedTeacher = admin.foretmap_user_id
+      ? await queryOne(
+        'SELECT id, user_type, password_hash, is_active FROM users WHERE id = ? LIMIT 1',
+        [admin.foretmap_user_id]
+      )
+      : await queryOne(
+        `SELECT id, user_type, password_hash, is_active
+           FROM users
+          WHERE user_type = 'teacher' AND LOWER(email) = LOWER(?)
+          LIMIT 1`,
+        [admin.email]
+      );
+    if (!linkedTeacher || !linkedTeacher.password_hash || !Number(linkedTeacher.is_active || 0)) {
+      return res.status(403).json({ error: 'Compte ForetMap lié introuvable pour valider le mot de passe' });
+    }
+    const passOk = await bcrypt.compare(currentPassword, String(linkedTeacher.password_hash || ''));
+    if (!passOk) return res.status(401).json({ error: 'Mot de passe actuel incorrect' });
+
+    const displayNameRaw = body.displayName ?? body.display_name;
+    const displayName = hasDisplayName ? normalizeOptionalString(displayNameRaw) : admin.display_name;
+    const description = hasDescription ? normalizeOptionalString(body.description) : admin.description;
+    const validationError = validateStaffProfileInput({ displayName, description });
+    if (validationError) return res.status(400).json({ error: validationError });
+
+    let avatarPath = admin.avatar_path || null;
+    if (hasAvatarData) {
+      const avatarData = normalizeOptionalString(body.avatarData);
+      if (!avatarData) return res.status(400).json({ error: 'Image de profil invalide' });
+      const ext = detectAvatarExtension(avatarData);
+      if (!ext) return res.status(400).json({ error: 'Format image invalide (png/jpg/webp)' });
+      const base64Payload = avatarData.includes(',') ? avatarData.split(',')[1] : avatarData;
+      const bytes = Buffer.byteLength(base64Payload, 'base64');
+      if (bytes > MAX_AVATAR_BYTES) {
+        return res.status(400).json({ error: 'Image trop lourde (max 2 Mo)' });
+      }
+      const relativePath = `gl_admins/${admin.id}/avatar-${Date.now()}.${ext}`;
+      saveBase64ToDisk(relativePath, avatarData);
+      if (admin.avatar_path && admin.avatar_path !== relativePath) {
+        deleteFile(admin.avatar_path);
+      }
+      avatarPath = relativePath;
+    } else if (removeAvatar) {
+      if (admin.avatar_path) deleteFile(admin.avatar_path);
+      avatarPath = null;
+    }
+
+    await execute(
+      `UPDATE gl_admins
+          SET display_name = ?, description = ?, avatar_path = ?, foretmap_user_id = ?, updated_at = NOW()
+        WHERE id = ?`,
+      [displayName, description, avatarPath, String(linkedTeacher.id), admin.id]
+    );
+    const updated = await queryOne(
+      `SELECT id, email, display_name, role, description, avatar_path, foretmap_user_id
+         FROM gl_admins
+        WHERE id = ?
+        LIMIT 1`,
+      [admin.id]
+    );
+    const session = await issueGlStaffSession(updated, String(updated.role || 'mj').toLowerCase());
+    return res.json({
+      ok: true,
+      authToken: session.authToken,
+      auth: session.auth,
+      profile: updated,
+    });
+  } catch (_) {
+    return res.status(500).json({ error: 'Erreur serveur' });
+  }
+});
+
+router.post('/staff/change-password', requireGlAuth, async (req, res) => {
+  if (req.glAuth.userType !== 'gl_admin') {
+    return res.status(403).json({ error: 'Action réservée aux MJ/Admin GL' });
+  }
+  const currentPassword = normalizeOptionalString(req.body?.currentPassword);
+  const nextPassword = normalizeOptionalString(req.body?.newPassword);
+  if (!currentPassword || !nextPassword) {
+    return res.status(400).json({ error: 'Mot de passe actuel et nouveau requis' });
+  }
+  if (nextPassword.length < 4) {
+    return res.status(400).json({ error: 'Mot de passe trop court (min 4 caractères)' });
+  }
+  const admin = await queryOne(
+    'SELECT id, email, foretmap_user_id FROM gl_admins WHERE id = ? LIMIT 1',
+    [req.glAuth.userId]
+  );
+  if (!admin) return res.status(404).json({ error: 'Compte MJ/Admin introuvable' });
+  const teacher = admin.foretmap_user_id
+    ? await queryOne('SELECT id, password_hash, user_type FROM users WHERE id = ? LIMIT 1', [admin.foretmap_user_id])
+    : await queryOne(
+      "SELECT id, password_hash, user_type FROM users WHERE user_type = 'teacher' AND LOWER(email)=LOWER(?) LIMIT 1",
+      [admin.email]
+    );
+  if (!teacher || !teacher.password_hash || String(teacher.user_type || '').toLowerCase() !== 'teacher') {
+    return res.status(403).json({ error: 'Aucun compte enseignant ForetMap lié' });
+  }
+  const ok = await bcrypt.compare(currentPassword, String(teacher.password_hash || ''));
+  if (!ok) return res.status(401).json({ error: 'Mot de passe actuel incorrect' });
+  const passwordHash = await bcrypt.hash(nextPassword, 10);
+  await execute('UPDATE users SET password_hash = ?, updated_at = NOW() WHERE id = ?', [passwordHash, teacher.id]);
+  await execute('UPDATE gl_admins SET foretmap_user_id = ?, updated_at = NOW() WHERE id = ?', [String(teacher.id), admin.id]);
+  return res.json({ ok: true });
+});
+
+router.post('/link-foretmap', requireGlAuth, async (req, res) => {
+  if (req.glAuth.userType !== 'gl_player') {
+    return res.status(403).json({ error: 'Action réservée aux joueurs GL' });
+  }
+  if (!(await isForetmapLinkEnabled())) {
+    return res.status(403).json({ error: 'Liaison ForetMap désactivée par la plateforme' });
+  }
+  const identifier = normalizeOptionalString(req.body?.identifier);
+  const password = normalizeOptionalString(req.body?.password);
+  if (!identifier || !password) {
+    return res.status(400).json({ error: 'Identifiant et mot de passe requis' });
+  }
+  const player = await queryOne('SELECT id FROM gl_players WHERE id = ? LIMIT 1', [req.glAuth.userId]);
+  if (!player) return res.status(404).json({ error: 'Joueur introuvable' });
+  const student = await queryOne(
+    `SELECT id, user_type, pseudo, email, password_hash, is_active
+       FROM users
+      WHERE user_type = 'student'
+        AND (LOWER(pseudo) = LOWER(?) OR LOWER(email) = LOWER(?))
+      LIMIT 1`,
+    [identifier, identifier]
+  );
+  if (!student || !student.password_hash || !Number(student.is_active || 0)) {
+    return res.status(401).json({ error: 'Compte ForetMap invalide' });
+  }
+  const passOk = await bcrypt.compare(password, String(student.password_hash || ''));
+  if (!passOk) return res.status(401).json({ error: 'Compte ForetMap invalide' });
+  const existingLink = await queryOne(
+    'SELECT id, pseudo FROM gl_players WHERE linked_foretmap_user_id = ? AND id <> ? LIMIT 1',
+    [student.id, player.id]
+  );
+  if (existingLink) {
+    return res.status(409).json({ error: 'Ce compte ForetMap est déjà lié à un autre joueur GL' });
+  }
+  await execute(
+    'UPDATE gl_players SET linked_foretmap_user_id = ?, updated_at = NOW() WHERE id = ?',
+    [String(student.id), player.id]
+  );
+  return res.json({
+    ok: true,
+    linkedForetmapStudent: {
+      id: String(student.id),
+      pseudo: student.pseudo || null,
+      email: student.email || null,
+    },
+  });
+});
+
+router.delete('/link-foretmap', requireGlAuth, async (req, res) => {
+  if (req.glAuth.userType !== 'gl_player') {
+    return res.status(403).json({ error: 'Action réservée aux joueurs GL' });
+  }
+  if (!(await isForetmapLinkEnabled())) {
+    return res.status(403).json({ error: 'Liaison ForetMap désactivée par la plateforme' });
+  }
+  const currentPassword = normalizeOptionalString(req.body?.currentPassword);
+  if (!currentPassword) return res.status(400).json({ error: 'Mot de passe actuel requis' });
+  const player = await queryOne(
+    'SELECT id, password_hash FROM gl_players WHERE id = ? LIMIT 1',
+    [req.glAuth.userId]
+  );
+  if (!player) return res.status(404).json({ error: 'Joueur introuvable' });
+  const ok = await bcrypt.compare(currentPassword, String(player.password_hash || ''));
+  if (!ok) return res.status(401).json({ error: 'Mot de passe actuel incorrect' });
+  await execute('UPDATE gl_players SET linked_foretmap_user_id = NULL, updated_at = NOW() WHERE id = ?', [player.id]);
+  return res.json({ ok: true });
+});
+
 router.post('/change-password', requireGlAuth, async (req, res) => {
   if (req.glAuth.userType !== 'gl_player') {
     return res.status(403).json({ error: 'Action réservée aux joueurs GL' });

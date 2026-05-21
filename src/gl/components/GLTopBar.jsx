@@ -11,6 +11,7 @@ export function GLTopBar({
   onTabChange,
   auth,
   onLogout,
+  onOpenProfile,
   playerMascotId,
 }) {
   return (
@@ -37,6 +38,9 @@ export function GLTopBar({
           <GLMascotAvatar mascotId={playerMascotId} size={32} />
         ) : null}
         <span>{auth?.displayName || auth?.roleSlug || 'Session'}</span>
+        <button type="button" className="gl-logout" onClick={onOpenProfile}>
+          Mon profil
+        </button>
         <button type="button" className="gl-logout" onClick={onLogout}>
           Deconnexion
         </button>

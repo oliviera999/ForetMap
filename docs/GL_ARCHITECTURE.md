@@ -32,7 +32,7 @@ Ce document décrit l'architecture du second mode **Gnomes & Licornes** (GL) dan
 
 Préfixe : `/api/gl`
 
-- Auth : `routes/gl/auth.js` (joueur `pseudo`+mot de passe ou OAuth Google `google/start?mode=player` ; MJ/Admin via compte ForetMap `staff/login` ou OAuth `google/start?mode=staff` ; joueur Google : `gl_players.email` ou lien `linked_foretmap_user_id` ; admins ForetMap RBAC `admin` → synchro auto `gl_admins`)
+- Auth : `routes/gl/auth.js` (joueur `pseudo`+mot de passe ou OAuth Google `google/start?mode=player` ; MJ/Admin via compte ForetMap `staff/login` ou OAuth `google/start?mode=staff` ; joueur Google : `gl_players.email` ou lien `linked_foretmap_user_id` ; admins ForetMap RBAC `admin` → synchro auto `gl_admins` ; profil self-service `PATCH /api/gl/auth/me/profile`, lien ForetMap joueur `POST/DELETE /api/gl/auth/link-foretmap`, changement mot de passe staff `POST /api/gl/auth/staff/change-password`)
 - Contenus éditoriaux (pages éditoriales `gl_content_pages`) : `routes/gl/content.js`
 - Chapitres et repères (`gl_chapters`, `gl_chapter_markers`) : `routes/gl/chapters.js`
 - Gameplay : `routes/gl/games.js`
@@ -128,6 +128,16 @@ Tables GL préfixées `gl_` :
 - Onglets admin : utilisateurs, reglages, mascottes, console MJ
 - Réutilisation renderer mascotte via `VisitMapMascotRenderer`
 - Onglet admin `Contenus` pour piloter les pages éditoriales.
+
+### Cohérence esthétique avec ForetMap
+
+- GL charge `src/index.css` puis `src/gl/styles/gl-theme.css`.
+- Les couleurs GL restent locales (hex dédiés dans `gl-theme.css`), sans bascule vers la palette ForetMap.
+- Les conventions visuelles ForetMap sont reprises côté structure:
+  - icones d'onglets en emoji (`gl-tab-icon`)
+  - micro-interactions (`fade-in`, `popIn`, toasts et transitions `--motion-*`)
+  - zones tactiles à `min-height: 44px` pour les boutons principaux
+- Les modules GL (forum, tutoriels, journal, carte royaume, notifications, commentaires contextuels, aide) ont des styles dédiés dans `gl-theme.css` pour rester homogènes avec le shell GL.
 
 ## Migration de contenu WordPress
 

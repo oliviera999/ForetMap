@@ -123,7 +123,12 @@ export function GLForumView({ canModerate }) {
             </button>
           </li>
         ))}
-        {threads.length === 0 ? <li className="gl-hint">Aucun sujet.</li> : null}
+        {threads.length === 0 ? (
+          <li className="gl-empty gl-hint">
+            <span className="gl-empty-icon" aria-hidden>💬</span>
+            Aucun sujet.
+          </li>
+        ) : null}
       </ul>
 
       {activeThread ? (
@@ -143,6 +148,12 @@ export function GLForumView({ canModerate }) {
                 <p>{post.body}</p>
               </li>
             ))}
+            {posts.length === 0 ? (
+              <li className="gl-empty gl-hint">
+                <span className="gl-empty-icon" aria-hidden>📝</span>
+                Aucun message.
+              </li>
+            ) : null}
           </ul>
           {!Number(activeThread.is_locked) || canModerate ? (
             <form className="gl-form" onSubmit={postReply}>
