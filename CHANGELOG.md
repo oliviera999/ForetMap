@@ -8,6 +8,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 ## [Non publié]
 
 ### Corrigé
+- **Carte — zones** : la couleur d’une zone peut être modifiée après création (onglet **Modifier** du modal zone, professeur) ; `PUT /api/zones/:id` avec `color` déjà supporté côté API, test `tests/api.test.js`.
 - **Doc GL** : `docs/GL_ARCHITECTURE.md` — auth joueur OAuth (`mode=player`), lien email / ForetMap, variable `GL_GOOGLE_OAUTH_REDIRECT_URI`.
 
 ### Ajouté
