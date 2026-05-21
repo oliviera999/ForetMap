@@ -27,7 +27,8 @@ export function GLTopBar({
             className={`gl-tab ${activeTab === tab.id ? 'is-active' : ''}`}
             onClick={() => onTabChange(tab.id)}
           >
-            {tab.label}
+            <span className="gl-tab-icon foretmap-emoji-text-mixed" aria-hidden>{tab.icon || '📌'}</span>
+            <span className="gl-tab-label">{tab.label}</span>
           </button>
         ))}
       </nav>

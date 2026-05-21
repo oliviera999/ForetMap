@@ -359,18 +359,18 @@ export function AppGL() {
       {error ? <div className="gl-error-banner">{error}</div> : null}
 
       {narrationToast ? (
-        <div className="gl-narration-banner" role="status">
+        <div className="gl-narration-banner fade-in" role="status">
           <strong>Narration du MJ :</strong> {narrationToast.text}
         </div>
       ) : null}
 
       {turnToast ? (
-        <div className="gl-turn-toast" role="status">
+        <div className="gl-turn-toast gl-toast fade-in" role="status">
           C’est au tour de <strong>{turnToastTeam?.name || `équipe #${turnToast.teamId}`}</strong>.
         </div>
       ) : null}
 
-      <main className="gl-main">
+      <main className="gl-main fade-in">
         {tab === 'world' && <GLWorldView auth={auth} onNavigateTab={setTab} />}
         {tab === 'rules' && <GLRulesView auth={auth} onNavigateTab={setTab} />}
         {tab === 'spells' && <GLSpellsView auth={auth} onNavigateTab={setTab} />}
