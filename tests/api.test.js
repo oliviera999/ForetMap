@@ -1253,6 +1253,13 @@ test('PUT /api/zones/:id et /api/map/markers/:id permettent de renommer', async 
     .expect(200);
   assert.strictEqual(zoneUpdate.body.name, 'Zone renommée API');
 
+  const zoneColorUpdate = await request(app)
+    .put(`/api/zones/${zoneRes.body.id}`)
+    .set('Authorization', 'Bearer ' + token)
+    .send({ color: '#fde04790' })
+    .expect(200);
+  assert.strictEqual(zoneColorUpdate.body.color, '#fde04790');
+
   const markerRes = await request(app)
     .post('/api/map/markers')
     .set('Authorization', 'Bearer ' + token)

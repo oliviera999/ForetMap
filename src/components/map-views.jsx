@@ -853,6 +853,7 @@ function ZoneInfoModal({ zone, plants, tasks, tutorials = [], isTeacher, student
     () => orderedLivingBeingsForForm(zone.living_beings_list || zone.living_beings, zone.current_plant),
   );
   const [stage, setStage] = useState(zone.stage || 'empty');
+  const [zoneColor, setZoneColor] = useState(zone.color || ZONE_COLORS[0]);
   const [desc, setDesc] = useState(zone.description || '');
   const [visitSubtitle, setVisitSubtitle] = useState(zone.visit_subtitle || '');
   const [visitShortDesc, setVisitShortDesc] = useState(zone.visit_short_description || '');
@@ -928,12 +929,13 @@ function ZoneInfoModal({ zone, plants, tasks, tutorials = [], isTeacher, student
     setZoneEmoji(detectLeadingMarkerEmoji(zone.name || '', emojiParsingList) || markerEmojis[0] || '📍');
     setLivingBeings(orderedLivingBeingsForForm(zone.living_beings_list || zone.living_beings, zone.current_plant));
     setStage(zone.stage || 'empty');
+    setZoneColor(zone.color || ZONE_COLORS[0]);
     setDesc(zone.description || '');
     setVisitSubtitle(zone.visit_subtitle || '');
     setVisitShortDesc(zone.visit_short_description || '');
     setVisitDetailsTitle(zone.visit_details_title || 'Détails');
     setVisitDetailsText(zone.visit_details_text || '');
-  }, [zone.id, zone.name, zone.living_beings, zone.living_beings_list, zone.current_plant, zone.stage, zone.description, zone.visit_subtitle, zone.visit_short_description, zone.visit_details_title, zone.visit_details_text, zone.visit_body_json, emojiParsingList, markerEmojis]);
+  }, [zone.id, zone.name, zone.living_beings, zone.living_beings_list, zone.current_plant, zone.stage, zone.color, zone.description, zone.visit_subtitle, zone.visit_short_description, zone.visit_details_title, zone.visit_details_text, zone.visit_body_json, emojiParsingList, markerEmojis]);
 
   useEffect(() => {
     let cancel = false;
@@ -1015,6 +1017,7 @@ function ZoneInfoModal({ zone, plants, tasks, tutorials = [], isTeacher, student
         current_plant: '',
         living_beings: livingBeings,
         stage,
+        color: zoneColor,
         description: desc,
         visit_subtitle: visitSubtitle,
         visit_short_description: visitShortDesc,
@@ -1296,6 +1299,17 @@ function ZoneInfoModal({ zone, plants, tasks, tutorials = [], isTeacher, student
             <div className="field"><label>Description</label>
               <MarkdownTextarea value={desc} onChange={e => setDesc(e.target.value)} rows={3}
                 placeholder="Observations, conseils, notes sur cette zone..." />
+            </div>
+            <div className="field"><label>Couleur</label>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                {ZONE_COLORS.map(c => (
+                  <div key={c} role="button" tabIndex={0} onClick={() => setZoneColor(c)}
+                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setZoneColor(c); } }}
+                    style={{ width: 30, height: 30, borderRadius: 8, background: c, cursor: 'pointer',
+                      border: zoneColor === c ? '3px solid #1a4731' : '2px solid #ddd',
+                      transition: 'transform .1s', transform: zoneColor === c ? 'scale(1.15)' : 'none' }} />
+                ))}
+              </div>
             </div>
             <p style={{ fontSize: '.78rem', color: '#64748b', margin: '0 0 10px', lineHeight: 1.45 }}>
               Textes ci-dessous : même contenu qu’en mode visite (sous-titre, accroche, bloc dépliable).
