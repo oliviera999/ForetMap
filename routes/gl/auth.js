@@ -9,6 +9,15 @@ const {
 } = require('../../lib/glStaffAuth');
 const { resolveGlPlayerLogin } = require('../../lib/glPlayerAuth');
 const { getGlModulesSettings } = require('../../lib/glSettings');
+const { saveBase64ToDisk, deleteFile } = require('../../lib/uploads');
+const {
+  MAX_AVATAR_BYTES,
+  normalizeEmail,
+  normalizeOptionalString,
+  detectAvatarExtension,
+  validatePlayerProfileInput,
+  validateStaffProfileInput,
+} = require('../../lib/glProfile');
 const {
   makeGoogleOAuthState,
   buildOAuthFrontendRedirect,
@@ -22,17 +31,6 @@ const router = express.Router();
 const GL_OAUTH_STATE_COOKIE = 'gl_oauth_state';
 const GL_OAUTH_MODE_COOKIE = 'gl_oauth_mode';
 const OAUTH_STATE_TTL_MS = 10 * 60 * 1000;
-
-function normalizeOptionalString(value) {
-  if (value == null) return null;
-  const s = String(value).trim();
-  return s.length > 0 ? s : null;
-}
-
-function normalizeEmail(value) {
-  const email = normalizeOptionalString(value);
-  return email ? email.toLowerCase() : null;
-}
 
 function parseCsvLowercaseSet(raw, defaults = []) {
   const value = String(raw || '').trim();
@@ -130,6 +128,22 @@ function readCookie(req, name) {
 
 function normalizeGlOAuthMode(value) {
   return String(value || '').toLowerCase() === 'player' ? 'player' : 'staff';
+}
+
+function parseBoolJsonSetting(rawValue, fallback = false) {
+  try {
+    if (rawValue == null) return fallback;
+    return JSON.parse(String(rawValue)) === true;
+  } catch (_) {
+    return fallback;
+  }
+}
+
+async function isForetmapLinkEnabled() {
+  const row = await queryOne(
+    "SELECT value_json FROM gl_settings WHERE `key` = 'platform.allow_player_link_foretmap' LIMIT 1"
+  );
+  return parseBoolJsonSetting(row?.value_json, false);
 }
 
 function buildGlOAuthFrontendErrorRedirect(frontendOrigin, code, mode) {
@@ -243,12 +257,14 @@ router.get('/config', async (_req, res) => {
   const clientId = normalizeOptionalString(process.env.GL_GOOGLE_OAUTH_CLIENT_ID)
     || normalizeOptionalString(process.env.GOOGLE_OAUTH_CLIENT_ID);
   const modules = await getGlModulesSettings();
+  const allowPlayerLinkForetmap = await isForetmapLinkEnabled();
   const googleReady = !!clientId;
   return res.json({
     title: String(title || 'Gnomes & Licornes'),
     subtitle: String(subtitle || ''),
     allowGoogleStaff: googleReady,
     allowGooglePlayer: googleReady,
+    allowPlayerLinkForetmap,
     modules,
   });
 });
@@ -469,7 +485,8 @@ router.get('/me', requireGlAuth, async (req, res) => {
   if (req.glAuth.userType === 'gl_player') {
     const player = await queryOne(
       `SELECT p.id, p.first_name, p.last_name, p.pseudo, p.class_id, p.team_id,
-              p.password_must_reset, c.name AS class_name, t.name AS team_name
+              p.email, p.description, p.avatar_path, p.password_must_reset, p.linked_foretmap_user_id,
+              p.google_sub, c.name AS class_name, t.name AS team_name
          FROM gl_players p
     LEFT JOIN gl_classes c ON c.id = p.class_id
     LEFT JOIN gl_teams t ON t.id = p.team_id
@@ -477,18 +494,46 @@ router.get('/me', requireGlAuth, async (req, res) => {
         LIMIT 1`,
       [req.glAuth.userId]
     );
+    let linkedForetmapStudent = null;
+    if (player?.linked_foretmap_user_id) {
+      linkedForetmapStudent = await queryOne(
+        `SELECT id, pseudo, email
+           FROM users
+          WHERE id = ?
+            AND user_type = 'student'
+          LIMIT 1`,
+        [player.linked_foretmap_user_id]
+      );
+    }
     return res.json({
       auth: req.glAuth,
-      profile: player || null,
+      profile: player
+        ? { ...player, linkedForetmapStudent: linkedForetmapStudent || null }
+        : null,
     });
   }
   const admin = await queryOne(
-    'SELECT id, email, display_name, role FROM gl_admins WHERE id = ? LIMIT 1',
+    `SELECT id, email, display_name, role, description, avatar_path, foretmap_user_id
+       FROM gl_admins
+      WHERE id = ?
+      LIMIT 1`,
     [req.glAuth.userId]
   );
+  let linkedForetmapUser = null;
+  if (admin?.foretmap_user_id) {
+    linkedForetmapUser = await queryOne(
+      `SELECT id, user_type, pseudo, email, display_name
+         FROM users
+        WHERE id = ?
+        LIMIT 1`,
+      [admin.foretmap_user_id]
+    );
+  }
   return res.json({
     auth: req.glAuth,
-    profile: admin || null,
+    profile: admin
+      ? { ...admin, linkedForetmapUser: linkedForetmapUser || null }
+      : null,
   });
 });
 

@@ -1,7 +1,15 @@
 .gl-app {
   min-height: 100vh;
+  min-height: 100dvh;
   background: linear-gradient(180deg, #f4fff5 0%, #e8f7ff 100%);
   color: #0f172a;
+  font-family: var(--font-sans);
+}
+
+.gl-app h1,
+.gl-app h2,
+.gl-app h3 {
+  font-family: var(--font-sans);
 }
 
 /* role=banner : évite la balise <header> (styles globaux ForetMap = 56px + overflow:hidden) */
@@ -42,17 +50,44 @@
 }
 
 .gl-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   border: 1px solid #7dd3fc;
   background: rgba(255, 255, 255, 0.1);
   color: #f8fafc;
   border-radius: 999px;
-  padding: 6px 10px;
+  padding: 6px 12px;
+  min-height: 44px;
   cursor: pointer;
+  transition:
+    transform var(--motion-base) var(--spring),
+    box-shadow var(--motion-fast) var(--ease-out),
+    background-color var(--motion-fast) var(--ease-out);
+}
+
+.gl-tab:hover {
+  transform: translateY(-1px);
+}
+
+.gl-tab:focus-visible {
+  outline: 2px solid #f8fafc;
+  outline-offset: 2px;
+}
+
+.gl-tab-icon {
+  font-size: 1.05rem;
+  line-height: 1;
+}
+
+.gl-tab-label {
+  line-height: 1.1;
 }
 
 .gl-tab.is-active {
   background: #f8fafc;
   color: #0f172a;
+  box-shadow: 0 8px 16px rgba(15, 23, 42, 0.16);
 }
 
 .gl-user {
@@ -64,8 +99,21 @@
 .gl-logout {
   border: 0;
   border-radius: 8px;
-  padding: 6px 10px;
+  min-height: 44px;
+  padding: 8px 12px;
   cursor: pointer;
+  transition:
+    transform var(--motion-base) var(--spring),
+    box-shadow var(--motion-fast) var(--ease-out);
+}
+
+.gl-logout:hover {
+  transform: translateY(-1px);
+}
+
+.gl-logout:focus-visible {
+  outline: 2px solid #f8fafc;
+  outline-offset: 2px;
 }
 
 .gl-main {
@@ -80,6 +128,14 @@
   border-radius: 14px;
   padding: 14px;
   box-shadow: 0 8px 25px rgba(15, 23, 42, 0.08);
+  transition:
+    transform var(--motion-fast) var(--ease-out),
+    box-shadow var(--motion-fast) var(--ease-out);
+}
+
+.gl-panel:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.12);
 }
 
 .gl-auth {
@@ -113,6 +169,12 @@
   border: 1px solid #cbd5e1;
   border-radius: 8px;
   padding: 8px 10px;
+  min-height: 44px;
+}
+
+.gl-form textarea {
+  min-height: 90px;
+  resize: vertical;
 }
 
 .gl-form button,
@@ -121,8 +183,33 @@
   border-radius: 9px;
   background: #2563eb;
   color: white;
+  min-height: 44px;
   padding: 8px 12px;
   cursor: pointer;
+  transition:
+    transform var(--motion-base) var(--spring),
+    filter var(--motion-fast) var(--ease-out);
+}
+
+.gl-form button:hover,
+.gl-inline-actions button:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.03);
+}
+
+.gl-form button:focus-visible,
+.gl-inline-actions button:focus-visible,
+.gl-form input:focus-visible,
+.gl-form textarea:focus-visible,
+.gl-form select:focus-visible,
+.gl-content-admin-list button:focus-visible,
+.gl-subtabs button:focus-visible,
+.gl-mascots-filters button:focus-visible,
+.gl-team-chip:focus-visible,
+.gl-btn-secondary:focus-visible,
+.gl-btn-danger:focus-visible {
+  outline: 2px solid #1d4ed8;
+  outline-offset: 2px;
 }
 
 .gl-error,
@@ -148,6 +235,7 @@
   border-radius: 9px;
   background: #fff;
   color: #1e293b;
+  min-height: 44px;
   padding: 8px 12px;
   cursor: pointer;
 }
@@ -417,12 +505,24 @@
   border-left: 4px solid #facc15;
 }
 
+.gl-toast {
+  position: fixed;
+  left: 50%;
+  bottom: 16px;
+  transform: translateX(-50%);
+  z-index: 210;
+  width: min(92vw, 560px);
+  padding: 10px 14px;
+  border-radius: 14px;
+  box-shadow: 0 14px 28px rgba(15, 23, 42, 0.2);
+  animation: toastIn 0.35s var(--spring) forwards;
+}
+
 .gl-turn-toast {
-  padding: 8px 14px;
-  margin: 6px 16px 0;
-  border-radius: 10px;
   background: #ecfeff;
   border: 1px solid #06b6d4;
+  color: #083344;
+  text-align: center;
 }
 
 .gl-board-team.is-selected {
@@ -451,6 +551,7 @@
   width: calc(100% - 32px);
   display: grid;
   gap: 10px;
+  animation: popIn 0.24s var(--spring) both;
 }
 
 /* --- Lot 2B : contenus & chapitres --- */
@@ -710,6 +811,7 @@
   border-radius: 9px;
   background: #fee2e2;
   color: #991b1b;
+  min-height: 44px;
   padding: 8px 12px;
   cursor: pointer;
 }

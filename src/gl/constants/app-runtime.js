@@ -1,25 +1,25 @@
 export const GL_TAB_STORAGE_KEY = 'gl_active_tab';
 
 export const GL_PLAYER_TABS = [
-  { id: 'maps', label: 'Cartes' },
-  { id: 'biotope', label: 'Biotope' },
-  { id: 'biocenose', label: 'Biocenose' },
-  { id: 'history', label: 'Histoire' },
-  { id: 'world', label: 'Le monde de G&L' },
-  { id: 'spells', label: 'Sortileges' },
-  { id: 'rules', label: 'Regles du jeu' },
-  { id: 'kingdom', label: 'Royaume' },
-  { id: 'tutorials', label: 'Tutoriels' },
-  { id: 'forum', label: 'Forum' },
-  { id: 'journal', label: 'Journal' },
+  { id: 'maps', label: 'Cartes', icon: '🗺️' },
+  { id: 'biotope', label: 'Biotope', icon: '🌿' },
+  { id: 'biocenose', label: 'Biocenose', icon: '🦋' },
+  { id: 'history', label: 'Histoire', icon: '📜' },
+  { id: 'world', label: 'Le monde de G&L', icon: '🌍' },
+  { id: 'spells', label: 'Sortileges', icon: '✨' },
+  { id: 'rules', label: 'Regles du jeu', icon: '📖' },
+  { id: 'kingdom', label: 'Royaume', icon: '🏰' },
+  { id: 'tutorials', label: 'Tutoriels', icon: '🎓' },
+  { id: 'forum', label: 'Forum', icon: '💬' },
+  { id: 'journal', label: 'Journal', icon: '📓' },
 ];
 
 export const GL_ADMIN_EXTRA_TABS = [
-  { id: 'users', label: 'Gestion utilisateurs' },
-  { id: 'contents', label: 'Contenus' },
-  { id: 'settings', label: 'Reglages plateforme' },
-  { id: 'mascots', label: 'Gestion mascottes' },
-  { id: 'mj', label: 'Console MJ' },
+  { id: 'users', label: 'Gestion utilisateurs', icon: '👥' },
+  { id: 'contents', label: 'Contenus', icon: '🧩' },
+  { id: 'settings', label: 'Reglages plateforme', icon: '⚙️' },
+  { id: 'mascots', label: 'Gestion mascottes', icon: '🧙' },
+  { id: 'mj', label: 'Console MJ', icon: '🎲' },
 ];
 
 export const GL_VALID_TABS = new Set([
