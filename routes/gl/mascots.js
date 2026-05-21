@@ -4,7 +4,7 @@ const express = require('express');
 const crypto = require('crypto');
 const { queryOne, queryAll, execute, withTransaction } = require('../../database');
 const { requireGlAuth, requireGlPermission } = require('../../middleware/requireGlAuth');
-const { getGlMascotCatalog, getGlMascotById } = require('../../lib/glMascotCatalog');
+const { getGlUnifiedMascotCatalog, getGlUnifiedMascotById } = require('../../lib/glUnifiedMascotCatalog');
 const { validateGlMascotPack } = require('../../lib/gl-pack/mascotPack');
 const { saveBase64ToDisk, deleteFile } = require('../../lib/uploads');
 
@@ -29,7 +29,7 @@ function toAssetUrl(relativePath) {
 
 /** GET /api/gl/mascots — catalogue complet (auth GL requise, joueur ou MJ). */
 router.get('/', requireGlAuth, async (req, res) => {
-  const catalog = await getGlMascotCatalog();
+  const catalog = await getGlUnifiedMascotCatalog();
   let assignments = [];
   const gameIdRaw = req.query?.gameId;
   if (gameIdRaw != null) {
@@ -67,9 +67,9 @@ router.post('/assign', requireGlPermission('gl.team.manage'), async (req, res) =
   if (!mascotId) {
     return res.status(400).json({ error: 'mascotId requis' });
   }
-  const mascot = await getGlMascotById(mascotId);
+  const mascot = await getGlUnifiedMascotById(mascotId);
   if (!mascot) {
-    return res.status(404).json({ error: 'Mascotte inconnue dans le catalogue G&L' });
+    return res.status(404).json({ error: 'Mascotte inconnue dans le catalogue GL/ForetMap' });
   }
   const team = await queryOne(
     'SELECT id, game_id FROM gl_teams WHERE id = ? LIMIT 1',

@@ -1,5 +1,9 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { apiGL } from '../services/apiGL.js';
+import { GLChapterMapEditor } from './GLChapterMapEditor.jsx';
+import { GLPctMapCanvas } from './GLPctMapCanvas.jsx';
+import { useGlPctMapGestures } from '../hooks/useGlPctMapGestures.js';
+import { GLBoardMarkers } from './GLBoardMarkers.jsx';
 
 const EMPTY_CHAPTER_FORM = {
   slug: '',
@@ -12,23 +16,14 @@ const EMPTY_CHAPTER_FORM = {
   orderIndex: 0,
 };
 
-const EMPTY_MARKER_FORM = {
-  label: '',
-  xPct: 50,
-  yPct: 50,
-  eventType: '',
-  description: '',
-  orderIndex: 0,
-};
-
 export function GLChaptersAdminView() {
   const [chapters, setChapters] = useState([]);
   const [selectedId, setSelectedId] = useState(null);
   const [detail, setDetail] = useState(null);
   const [chapterForm, setChapterForm] = useState(EMPTY_CHAPTER_FORM);
-  const [markerForm, setMarkerForm] = useState(EMPTY_MARKER_FORM);
   const [error, setError] = useState('');
   const [info, setInfo] = useState('');
+  const previewMapGestures = useGlPctMapGestures();
 
   async function loadChapters() {
     try {
@@ -113,42 +108,6 @@ export function GLChaptersAdminView() {
     }
   }
 
-  async function submitMarker(event) {
-    event.preventDefault();
-    if (!selectedId) {
-      setError('Sélectionnez un chapitre avant d\'ajouter un repère');
-      return;
-    }
-    setError('');
-    setInfo('');
-    try {
-      await apiGL(`/api/gl/chapters/admin/${selectedId}/markers`, 'POST', {
-        label: markerForm.label,
-        xPct: Number(markerForm.xPct),
-        yPct: Number(markerForm.yPct),
-        eventType: markerForm.eventType,
-        description: markerForm.description,
-        orderIndex: Number(markerForm.orderIndex) || 0,
-      });
-      setMarkerForm(EMPTY_MARKER_FORM);
-      setInfo('Repère ajouté');
-      await loadDetail(chapterForm.slug);
-    } catch (err) {
-      setError(err.message || 'Ajout du repère impossible');
-    }
-  }
-
-  async function deleteMarker(markerId) {
-    if (typeof window !== 'undefined' && !window.confirm('Supprimer ce repère ?')) return;
-    try {
-      await apiGL(`/api/gl/chapters/admin/markers/${markerId}`, 'DELETE');
-      setInfo('Repère supprimé');
-      await loadDetail(chapterForm.slug);
-    } catch (err) {
-      setError(err.message || 'Suppression du repère impossible');
-    }
-  }
-
   const markers = useMemo(() => (Array.isArray(detail?.markers) ? detail.markers : []), [detail]);
 
   return (
@@ -213,6 +172,19 @@ export function GLChaptersAdminView() {
                 onChange={(event) => setChapterForm({ ...chapterForm, mapImageUrl: event.target.value })}
               />
             </label>
+            {chapterForm.mapImageUrl ? (
+              <div className="gl-map-url-preview">
+                <p className="gl-hint">Aperçu de la carte</p>
+                <GLPctMapCanvas
+                  imageUrl={chapterForm.mapImageUrl}
+                  imageAlt="Aperçu carte chapitre"
+                  mapGestures={previewMapGestures}
+                  className="gl-board gl-board--mini"
+                >
+                  <GLBoardMarkers markers={markers} />
+                </GLPctMapCanvas>
+              </div>
+            ) : null}
             <label>
               Ordre
               <input
@@ -258,77 +230,21 @@ export function GLChaptersAdminView() {
           {selectedId ? (
             <>
               <h3>Repères du chapitre</h3>
-              <ul className="gl-markers-list">
-                {markers.map((marker) => (
-                  <li key={marker.id} data-marker-id={marker.id}>
-                    <span>
-                      <strong>{marker.label}</strong> — x:{Number(marker.x_pct).toFixed(1)}%, y:{Number(marker.y_pct).toFixed(1)}%
-                      {marker.event_type ? ` (${marker.event_type})` : ''}
-                    </span>
-                    <button type="button" onClick={() => deleteMarker(marker.id)} className="gl-danger">
-                      Supprimer
-                    </button>
-                  </li>
-                ))}
-              </ul>
-              <form className="gl-form" onSubmit={submitMarker}>
-                <label>
-                  Label
-                  <input
-                    value={markerForm.label}
-                    onChange={(event) => setMarkerForm({ ...markerForm, label: event.target.value })}
-                    required
-                  />
-                </label>
-                <label>
-                  x (%)
-                  <input
-                    type="number"
-                    min="0"
-                    max="100"
-                    step="0.1"
-                    value={markerForm.xPct}
-                    onChange={(event) => setMarkerForm({ ...markerForm, xPct: event.target.value })}
-                  />
-                </label>
-                <label>
-                  y (%)
-                  <input
-                    type="number"
-                    min="0"
-                    max="100"
-                    step="0.1"
-                    value={markerForm.yPct}
-                    onChange={(event) => setMarkerForm({ ...markerForm, yPct: event.target.value })}
-                  />
-                </label>
-                <label>
-                  Type d'événement
-                  <input
-                    value={markerForm.eventType}
-                    onChange={(event) => setMarkerForm({ ...markerForm, eventType: event.target.value })}
-                    placeholder="quiz, story, start..."
-                  />
-                </label>
-                <label>
-                  Description
-                  <input
-                    value={markerForm.description}
-                    onChange={(event) => setMarkerForm({ ...markerForm, description: event.target.value })}
-                  />
-                </label>
-                <label>
-                  Ordre
-                  <input
-                    type="number"
-                    value={markerForm.orderIndex}
-                    onChange={(event) => setMarkerForm({ ...markerForm, orderIndex: event.target.value })}
-                  />
-                </label>
-                <div className="gl-inline-actions">
-                  <button type="submit">Ajouter le repère</button>
-                </div>
-              </form>
+              <GLChapterMapEditor
+                chapterId={selectedId}
+                chapterSlug={chapterForm.slug}
+                mapImageUrl={chapterForm.mapImageUrl}
+                markers={markers}
+                onReload={loadDetail}
+                onInfo={(message) => {
+                  setInfo(message);
+                  setError('');
+                }}
+                onError={(message) => {
+                  setError(message);
+                  setInfo('');
+                }}
+              />
             </>
           ) : null}
         </div>

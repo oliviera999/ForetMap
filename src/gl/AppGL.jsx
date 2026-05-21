@@ -261,18 +261,39 @@ export function AppGL() {
     return () => clearTimeout(id);
   }, [turnToast]);
 
-  /** MJ : déplace la mascotte de l'équipe active sélectionnée vers le marker cliqué. */
-  async function moveMascotToMarker(marker) {
-    if (!isAdmin || !gameState?.game?.id || !marker?.id) return;
-    const teams = Array.isArray(gameState.teams) ? gameState.teams : [];
+  function resolveTargetTeamId() {
+    const teams = Array.isArray(gameState?.teams) ? gameState.teams : [];
     const fallbackTeamId = teams.length > 0 ? Number(teams[0].id) : null;
-    const teamId = selectedTeamId != null ? Number(selectedTeamId) : fallbackTeamId;
+    return selectedTeamId != null ? Number(selectedTeamId) : fallbackTeamId;
+  }
+
+  /** MJ : déplacement libre de la mascotte de l'équipe active sélectionnée. */
+  async function moveMascotToPct(point) {
+    if (!isAdmin || !gameState?.game?.id || !point) return;
+    const teamId = resolveTargetTeamId();
     if (teamId == null) return;
     try {
       await apiGL(`/api/gl/games/${gameState.game.id}/events`, 'POST', {
         teamId,
         eventType: 'move',
-        payload: { markerId: marker.id, markerLabel: marker.label },
+        payload: { xp: point.xp, yp: point.yp },
+      });
+      await reloadGame();
+    } catch (err) {
+      setError(err.message || 'Déplacement impossible');
+    }
+  }
+
+  /** MJ : déplace la mascotte de l'équipe active sélectionnée vers le marker cliqué. */
+  async function moveMascotToMarker(marker) {
+    if (!isAdmin || !gameState?.game?.id || !marker?.id) return;
+    const teamId = resolveTargetTeamId();
+    if (teamId == null) return;
+    try {
+      await apiGL(`/api/gl/games/${gameState.game.id}/events`, 'POST', {
+        teamId,
+        eventType: 'move',
+        payload: { markerId: marker.id, markerLabel: marker.label, xp: marker.x_pct, yp: marker.y_pct },
       });
       await reloadGame();
     } catch (err) {
@@ -406,7 +427,9 @@ export function AppGL() {
           <GLMapView
             gameState={gameState}
             onMoveMascot={moveMascotToMarker}
+            onMoveMascotToPct={moveMascotToPct}
             onPlayerActionRequest={submitPlayerActionRequest}
+            onSelectTeam={setSelectedTeamId}
             canMoveMascot={isAdmin}
             canRequestAction={canRequestAction}
             selectedTeamId={selectedTeamId}
@@ -454,7 +477,7 @@ export function AppGL() {
           <GLJournalView gameId={activeGameId} />
         )}
         {tab === 'kingdom' && isModuleEnabled(modules, 'kingdomMapEnabled') && (
-          <GLKingdomMapView chapter={activeChapter} canManage={isAdmin} />
+          <GLKingdomMapView chapter={activeChapter} chapters={chapters} canManage={isAdmin} />
         )}
         {isModuleEnabled(modules, 'helpEnabled') ? (
           <GLHelpPanel helpKey={`tab:${tab}`} title="Aide GL" defaultOpen={false}>

@@ -65,6 +65,7 @@ test('GET /api/gl/mascots retourne le catalogue (auth GL requise)', async () => 
     .expect(200);
   assert.ok(Array.isArray(res.body?.mascots));
   assert.ok(res.body.mascots.length >= 12);
+  assert.ok(res.body.mascots.some((row) => row.source === 'foretmap'));
 });
 
 test('POST /api/gl/mascots/assign exige gl.team.manage', async () => {
@@ -111,14 +112,24 @@ test('POST /api/gl/mascots/assign refuse une mascotte inconnue (404)', async () 
     .expect(404);
 });
 
+test('POST /api/gl/mascots/assign accepte une mascotte ForetMap', async () => {
+  const res = await request(app)
+    .post('/api/gl/mascots/assign')
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ gameId, teamId: teamAId, mascotId: 'renard2-cut-spritesheet' })
+    .expect(200);
+  assert.strictEqual(res.body?.mascot?.id, 'renard2-cut-spritesheet');
+  assert.strictEqual(res.body?.mascot?.source, 'foretmap');
+});
+
 test('GET /api/gl/mascots?gameId=... renvoie les assignations actuelles', async () => {
   const res = await request(app)
     .get(`/api/gl/mascots?gameId=${gameId}`)
     .set('Authorization', `Bearer ${adminToken}`)
     .expect(200);
-  const ids = (res.body?.assignments || []).map((a) => a.mascot_id);
-  assert.ok(ids.includes('gl-gnome-mousse'));
-  assert.ok(ids.includes('gl-licorne-aube'));
+  const map = Object.fromEntries((res.body?.assignments || []).map((a) => [Number(a.team_id), a.mascot_id]));
+  assert.strictEqual(map[Number(teamAId)], 'renard2-cut-spritesheet');
+  assert.strictEqual(map[Number(teamBId)], 'gl-licorne-aube');
 });
 
 test('POST /api/gl/mascots/packs valide le payload Zod', async () => {

@@ -56,6 +56,13 @@ Ajouts Lot 2B (contenus & chapitres) :
 - `GET /api/gl/chapters/:slug` : détail d'un chapitre (champs `gl_chapters`) + ses `markers` triés.
 - `POST/PUT/DELETE /api/gl/chapters/admin[/:id]` : CRUD chapitres (permission `gl.content.manage` ; refus `409` à la suppression si une partie référence le chapitre).
 - `POST /api/gl/chapters/admin/:id/markers`, `PUT/DELETE /api/gl/chapters/admin/markers/:markerId` : CRUD repères de chapitre. La suppression détache d'abord les équipes positionnées sur ce marker (`gl_teams.position_marker_id` → `NULL`) avant l'effacement.
+- Front admin `GLChaptersAdminView` : aperçu de la carte chapitre et éditeur visuel des repères (clic pour positionner, glisser pour ajuster), avec persistance via `POST/PUT /api/gl/chapters/admin/.../markers`.
+
+Ajouts Lot 2D (édition visuelle carte) :
+
+- `GLChapterMapEditor` : édition visuelle des repères de chapitre alignée avec les conventions ForetMap (coordonnées `%` sur image, sélection, déplacement).
+- `GLKingdomMapView` + `GLKingdomZoneEditor` : dessin polygonal des zones royaume à la souris, édition des sommets en direct, sélection de chapitre indépendante de la partie active.
+- Socle frontend partagé : `useGlPctMapGestures`, `GLPctMapCanvas`, `GLBoardMarkers` pour homogénéiser les interactions carte GL.
 
 Ajouts Lot 2C (mascottes & équipes) :
 

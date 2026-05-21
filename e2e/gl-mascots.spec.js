@@ -74,8 +74,15 @@ test.describe('Gnomes & Licornes — mascottes & équipes (Lot 2C)', () => {
     const list = await request.get(`/api/gl/mascots?gameId=${gameId}`, { headers });
     expect(list.status()).toBe(200);
     const data = await list.json();
+    expect((data?.mascots || []).some((m) => m.id === 'renard2-cut-spritesheet' && m.source === 'foretmap')).toBeTruthy();
     const map = Object.fromEntries((data?.assignments || []).map((a) => [Number(a.team_id), a.mascot_id]));
     expect(map[Number(teamA.id)]).toBe('gl-gnome-mousse');
     expect(map[Number(teamB.id)]).toBe('gl-licorne-aube');
+
+    const r4 = await request.post('/api/gl/mascots/assign', {
+      headers,
+      data: { gameId, teamId: Number(teamA.id), mascotId: 'renard2-cut-spritesheet' },
+    });
+    expect(r4.status()).toBe(200);
   });
 });

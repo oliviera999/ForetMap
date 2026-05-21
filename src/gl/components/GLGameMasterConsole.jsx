@@ -41,6 +41,7 @@ export function GLGameMasterConsole({
   });
   const [editingTeamId, setEditingTeamId] = useState(null);
   const [rosterRefreshKey, setRosterRefreshKey] = useState(0);
+  const [mascotCatalog, setMascotCatalog] = useState([]);
 
   const activeClasses = useMemo(
     () => (Array.isArray(classes) ? classes : []).filter((item) => Number(item.is_active) !== 0),
@@ -75,6 +76,45 @@ export function GLGameMasterConsole({
     }
     return teams.length > 0 ? Number(teams[0].id) : null;
   }, [selectedTeamId, teams]);
+
+  const mascotOptions = useMemo(
+    () => (Array.isArray(mascotCatalog) ? mascotCatalog : []),
+    [mascotCatalog]
+  );
+
+  const defaultMascotByType = useCallback((type) => {
+    const list = mascotOptions;
+    if (!list.length) return type === 'unicorn' ? 'gl-licorne-aube' : 'gl-gnome-mousse';
+    const preferred = list.find((item) => item.source === 'gl' && item.type === type);
+    if (preferred?.id) return preferred.id;
+    const fallback = list.find((item) => item.type === type);
+    if (fallback?.id) return fallback.id;
+    return list[0]?.id || '';
+  }, [mascotOptions]);
+
+  useEffect(() => {
+    let cancelled = false;
+    apiGL('/api/gl/mascots')
+      .then((data) => {
+        if (cancelled) return;
+        const rows = Array.isArray(data?.mascots) ? data.mascots : [];
+        setMascotCatalog(rows);
+      })
+      .catch(() => {
+        if (!cancelled) setMascotCatalog([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!mascotOptions.length) return;
+    const current = String(teamForm.mascotId || '').trim();
+    const exists = mascotOptions.some((item) => item.id === current);
+    if (exists) return;
+    setTeamForm((prev) => ({ ...prev, mascotId: defaultMascotByType(prev.type) }));
+  }, [mascotOptions, teamForm.mascotId, defaultMascotByType, teamForm.type]);
 
   async function loadGames() {
     try {
@@ -181,7 +221,7 @@ export function GLGameMasterConsole({
     setActionError('');
     try {
       const label = type === 'gnome' ? 'Equipe Gnomes' : 'Equipe Licornes';
-      const mascotId = type === 'gnome' ? 'gl-gnome-mousse' : 'gl-licorne-aube';
+      const mascotId = defaultMascotByType(type);
       await apiGL(`/api/gl/games/${game.id}/teams`, 'POST', {
         name: `${label} ${Date.now().toString().slice(-3)}`,
         type,
@@ -221,7 +261,7 @@ export function GLGameMasterConsole({
         setEventLog('Équipe créée.');
       }
       setEditingTeamId(null);
-      setTeamForm({ name: '', type: 'gnome', mascotId: 'gl-gnome-mousse', color: '#65a30d' });
+      setTeamForm((prev) => ({ ...prev, name: '', type: 'gnome', mascotId: defaultMascotByType('gnome'), color: '#65a30d' }));
       await onReloadGame?.();
       await loadGames();
       setRosterRefreshKey((value) => value + 1);
@@ -447,7 +487,10 @@ export function GLGameMasterConsole({
             Type
             <select
               value={teamForm.type}
-              onChange={(event) => setTeamForm((prev) => ({ ...prev, type: event.target.value }))}
+              onChange={(event) => {
+                const nextType = event.target.value;
+                setTeamForm((prev) => ({ ...prev, type: nextType, mascotId: defaultMascotByType(nextType) }));
+              }}
             >
               <option value="gnome">Gnome</option>
               <option value="unicorn">Licorne</option>
@@ -459,7 +502,17 @@ export function GLGameMasterConsole({
               value={teamForm.mascotId}
               onChange={(event) => setTeamForm((prev) => ({ ...prev, mascotId: event.target.value }))}
               placeholder="gl-gnome-mousse"
+              list="gl-mascot-options"
             />
+            <datalist id="gl-mascot-options">
+              {mascotOptions.map((mascot) => (
+                <option
+                  key={mascot.id}
+                  value={mascot.id}
+                  label={`${mascot.label}${mascot.source === 'foretmap' ? ' (ForetMap)' : ''}`}
+                />
+              ))}
+            </datalist>
           </label>
           <label>
             Couleur
@@ -478,7 +531,7 @@ export function GLGameMasterConsole({
               className="gl-btn-secondary"
               onClick={() => {
                 setEditingTeamId(null);
-                setTeamForm({ name: '', type: 'gnome', mascotId: 'gl-gnome-mousse', color: '#65a30d' });
+                setTeamForm((prev) => ({ ...prev, name: '', type: 'gnome', mascotId: defaultMascotByType('gnome'), color: '#65a30d' }));
               }}
             >
               Annuler édition
