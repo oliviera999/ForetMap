@@ -52,6 +52,33 @@ test('isForetmapAdminForGl détecte le rôle admin ForetMap', async () => {
   assert.ok(isForetmapAdminForGl(authz));
 });
 
+test('POST /api/gl/auth/staff/login connecte un admin ForetMap via pseudo sans email', async () => {
+  const pseudoOnlyId = `teacher-gl-pseudo-${stamp}`;
+  const pseudoOnly = `pseudo-admin-${stamp}`;
+  const hash = await bcrypt.hash(adminPassword, 10);
+  await execute(
+    `INSERT INTO users (id, user_type, email, pseudo, display_name, password_hash, auth_provider, is_active, created_at, updated_at)
+     VALUES (?, 'teacher', NULL, ?, ?, ?, 'local', 1, NOW(), NOW())
+     ON DUPLICATE KEY UPDATE password_hash = VALUES(password_hash), is_active = 1`,
+    [pseudoOnlyId, pseudoOnly, 'Admin pseudo GL', hash]
+  );
+  const adminRole = await queryOne("SELECT id FROM roles WHERE slug = 'admin' LIMIT 1");
+  await execute(
+    `INSERT INTO user_roles (user_id, user_type, role_id, is_primary, assigned_at)
+     VALUES (?, 'teacher', ?, 1, NOW())
+     ON DUPLICATE KEY UPDATE role_id = VALUES(role_id), is_primary = 1`,
+    [pseudoOnlyId, adminRole.id]
+  );
+
+  const res = await request(app)
+    .post('/api/gl/auth/staff/login')
+    .send({ identifier: pseudoOnly, password: adminPassword })
+    .expect(200);
+  assert.strictEqual(res.body?.auth?.userType, 'gl_admin');
+  const row = await queryOne('SELECT id, email, foretmap_user_id FROM gl_admins WHERE foretmap_user_id = ? LIMIT 1', [pseudoOnlyId]);
+  assert.ok(row);
+});
+
 test('POST /api/gl/auth/staff/login connecte un admin ForetMap et crée gl_admins', async () => {
   const res = await request(app)
     .post('/api/gl/auth/staff/login')
