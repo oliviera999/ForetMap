@@ -25,6 +25,7 @@ const {
   exchangeGoogleCode,
   verifyGoogleIdToken,
 } = require('../../lib/googleOAuthShared');
+const { logRouteError } = require('../../lib/routeLog');
 
 const router = express.Router();
 
@@ -239,7 +240,8 @@ async function completeGlGoogleOAuth({ cfg, payload, mode }) {
 }
 
 /** GET /api/gl/auth/config — libellés écran connexion (public). */
-router.get('/config', async (_req, res) => {
+router.get('/config', async (req, res) => {
+  try {
   const titleRow = await queryOne(
     "SELECT value_json FROM gl_settings WHERE `key` = 'platform.title' LIMIT 1"
   );
@@ -267,6 +269,10 @@ router.get('/config', async (_req, res) => {
     allowPlayerLinkForetmap,
     modules,
   });
+  } catch (err) {
+    logRouteError(err, req, 'GET /api/gl/auth/config');
+    return res.status(500).json({ error: 'Erreur serveur' });
+  }
 });
 
 router.post('/login', async (req, res) => {
@@ -296,6 +302,7 @@ router.post('/login', async (req, res) => {
 
     return res.json(await issueGlPlayerSession(player));
   } catch (err) {
+    logRouteError(err, req, 'POST /api/gl/auth/login');
     return res.status(500).json({ error: 'Erreur serveur' });
   }
 });
@@ -335,7 +342,7 @@ router.post('/staff/login', async (req, res) => {
       return res.status(403).json({ error: 'Compte non autorisé pour la connexion MJ.' });
     }
 
-    const email = normalizeEmail(account.email) || normalizeEmail(account.pseudo);
+    const email = normalizeEmail(account.email);
     const displayName = normalizeOptionalString(account.display_name)
       || normalizeOptionalString(account.pseudo)
       || email;
@@ -350,7 +357,8 @@ router.post('/staff/login', async (req, res) => {
     }
     const session = await issueGlStaffSession(resolved.admin, resolved.glRole);
     return res.json(session);
-  } catch (_) {
+  } catch (err) {
+    logRouteError(err, req, 'POST /api/gl/auth/staff/login');
     return res.status(500).json({ error: 'Erreur serveur' });
   }
 });
@@ -476,7 +484,8 @@ router.get('/google/callback', async (req, res) => {
       return res.redirect(outcome.errorRedirect);
     }
     return res.redirect(outcome.successRedirect);
-  } catch (_) {
+  } catch (err) {
+    logRouteError(err, req, 'GET /api/gl/auth/google/callback');
     return res.redirect(buildGlOAuthFrontendErrorRedirect(cfg.frontendOrigin, 'oauth_server_error', mode));
   }
 });
@@ -716,7 +725,8 @@ router.patch('/me/profile', requireGlAuth, async (req, res) => {
       auth: session.auth,
       profile: updated,
     });
-  } catch (_) {
+  } catch (err) {
+    logRouteError(err, req, 'PATCH /api/gl/auth/me/profile');
     return res.status(500).json({ error: 'Erreur serveur' });
   }
 });
