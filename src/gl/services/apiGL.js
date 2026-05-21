@@ -42,7 +42,14 @@ export async function apiGL(path, method = 'GET', body = null) {
   const isJson = contentType.includes('application/json');
   const payload = isJson ? await res.json().catch(() => ({})) : await res.text().catch(() => '');
   if (!res.ok) {
-    const message = typeof payload?.error === 'string' && payload.error ? payload.error : `Erreur HTTP ${res.status}`;
+    let message = typeof payload?.error === 'string' && payload.error ? payload.error : '';
+    if (!message) {
+      if (res.status >= 500 && !isJson) {
+        message = 'Serveur indisponible — lancez l’API ForetMap (port 3000) ou vérifiez NODE_ENV et le fichier .env.';
+      } else {
+        message = `Erreur HTTP ${res.status}`;
+      }
+    }
     const err = new Error(message);
     err.status = res.status;
     err.body = payload;
