@@ -35,6 +35,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - **UI — coque modale** : composant **`DialogShell.jsx`** et branchements (tutoriels, confirmations biodiversité, aide).
 
 ### Modifié
+- **Carte forêt — mascotte animée (comme la visite)** : sur l’onglet Carte (et la vue carte intégrée tâches/tutoriels), la mascotte n’est plus figée en bas du plan : déplacement au clic fond, marche vers zone/repère avec bulles et états transitoires (`useMapViewMascot`, persistance de position par carte). CSS `map-view-forest-mascot` (remplace `map-view-static-mascot`).
 - **Gnomes & Licornes — navigation et boutons** : la barre GL n’utilise plus `<header>` (styles globaux ForetMap imposaient 56px de hauteur et `overflow:hidden`, masquant les onglets). Console MJ : retours d’erreur visibles et mascottes `gl-*` à la création d’équipe.
 - **Gnomes & Licornes — parcours admin après connexion** : les MJ/Admin arrivent sur l’onglet **Console MJ** (plus sur « Le monde » avec l’éditeur markdown bloquant). Édition des pages éditoriales en mode lecture par défaut (bouton « Modifier »), message de succès visible, lien vers la console MJ ; erreurs de sauvegarde affichées sans masquer la page.
 - **Post-déploiement bi-produit** : `scripts/post-deploy-check.js` ajoute `--gl-health-only` (`DEPLOY_GL_HEALTH_ONLY`) et des contrôles GL dédiés (`/api/gl/chapters`, `/api/gl/content/world` avec `200/401` acceptés), avec couverture unitaire dans `tests/post-deploy-check-script.test.js`.
