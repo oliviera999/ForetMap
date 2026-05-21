@@ -19,6 +19,7 @@ const staffNewPassword = 'StaffProfile!2';
 const foretmapStudentId = `student-gl-link-${stamp}`;
 const foretmapStudentPseudo = `fm-link-${stamp}`;
 const foretmapStudentPassword = 'Eleve-1234';
+const playerPseudoUpdated = `glp-${String(stamp).slice(-6)}`;
 
 let playerToken = '';
 let staffToken = '';
@@ -78,7 +79,7 @@ test('PATCH /api/gl/auth/me/profile met a jour le profil joueur et reemet la ses
     .patch('/api/gl/auth/me/profile')
     .set('Authorization', `Bearer ${playerToken}`)
     .send({
-      pseudo: `${playerPseudo}-new`,
+      pseudo: playerPseudoUpdated,
       email: `player-new-${stamp}@ecole.local`,
       description: 'Profil GL mis a jour',
       avatarData: pngData,
@@ -87,7 +88,7 @@ test('PATCH /api/gl/auth/me/profile met a jour le profil joueur et reemet la ses
     .expect(200);
 
   assert.strictEqual(res.body?.ok, true);
-  assert.strictEqual(res.body?.auth?.displayName, `${playerPseudo}-new`);
+  assert.strictEqual(res.body?.auth?.displayName, playerPseudoUpdated);
   assert.ok(typeof res.body?.authToken === 'string' && res.body.authToken.length > 10);
   assert.strictEqual(res.body?.profile?.description, 'Profil GL mis a jour');
   assert.ok(String(res.body?.profile?.avatar_path || '').includes('gl_players/'));

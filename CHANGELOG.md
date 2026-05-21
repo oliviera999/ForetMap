@@ -11,6 +11,10 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - **Doc GL** : `docs/GL_ARCHITECTURE.md` — auth joueur OAuth (`mode=player`), lien email / ForetMap, variable `GL_GOOGLE_OAUTH_REDIRECT_URI`.
 
 ### Ajouté
+- **Gnomes & Licornes — interface Mon profil (parité ForetMap)** : nouvelle modale profil accessible depuis la topbar (`GLProfileModal`, `GLProfileEditor`) pour joueurs et staff, avec avatar upload (compression client), pseudo/email/description (joueur), nom affiché/description (staff), changement de mot de passe dédié (`/api/gl/auth/change-password`, `/api/gl/auth/staff/change-password`) et gate `passwordMustReset` côté joueur.
+- **GL — API profil self-service** : `PATCH /api/gl/auth/me/profile` (validation `currentPassword`, avatar base64, réémission `authToken`), enrichissement `GET /api/gl/auth/me` (avatar, description, liaison ForetMap), nouveaux endpoints de liaison joueur `POST/DELETE /api/gl/auth/link-foretmap`, et flag public `allowPlayerLinkForetmap` sur `GET /api/gl/auth/config`.
+- **GL — schéma profil** : migration `089_gl_profile_fields.sql` ajoutant `avatar_path`/`description` sur `gl_players` et `gl_admins`, plus `foretmap_user_id` sur `gl_admins` pour sécuriser les vérifications staff.
+
 - **Gnomes & Licornes — connexion Google joueurs** : bouton « Continuer avec Google » sur l’onglet **Joueur** ; flux OAuth `GET /api/gl/auth/google/start?mode=player|staff` (cookie `gl_oauth_mode`) ; callback `type: gl_player` ou `gl_staff`. Résolution joueur par `gl_players.email` ou lien `linked_foretmap_user_id` → élève ForetMap (`lib/glPlayerAuth.js`). Migration **`088_gl_players_oauth.sql`** (`email`, `google_sub`). Admin/import : champ **Email** optionnel sur les joueurs. `GET /api/gl/auth/config` expose `allowGooglePlayer`. Tests `tests/gl-player-google-auth.test.js`.
 
 - **GL — joueurs : passage du PIN au mot de passe (aligné ForetMap)** :
