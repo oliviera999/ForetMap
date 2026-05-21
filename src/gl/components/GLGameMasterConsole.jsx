@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { apiGL } from '../services/apiGL.js';
+import { GLGameRosterPanel } from './admin/GLGameRosterPanel.jsx';
 
 function formatTimestamp(value) {
   if (!value) return '';
@@ -12,6 +13,7 @@ function formatTimestamp(value) {
 
 export function GLGameMasterConsole({
   chapters,
+  classes = [],
   gameState,
   onGameStateChange,
   onReloadGame,
@@ -21,13 +23,39 @@ export function GLGameMasterConsole({
 }) {
   const [name, setName] = useState('Partie découverte');
   const [chapterId, setChapterId] = useState('');
-  const [classId, setClassId] = useState('1');
+  const [classId, setClassId] = useState('');
   const [eventLog, setEventLog] = useState('');
   const [narration, setNarration] = useState('');
   const [scoreDelta, setScoreDelta] = useState(1);
   const [scoreReason, setScoreReason] = useState('');
   const [resolveDeltas, setResolveDeltas] = useState({});
   const [actionError, setActionError] = useState('');
+  const [games, setGames] = useState([]);
+  const [gamesStatusFilter, setGamesStatusFilter] = useState('');
+  const [gamesClassFilter, setGamesClassFilter] = useState('');
+  const [teamForm, setTeamForm] = useState({
+    name: '',
+    type: 'gnome',
+    mascotId: 'gl-gnome-mousse',
+    color: '#65a30d',
+  });
+  const [editingTeamId, setEditingTeamId] = useState(null);
+  const [rosterRefreshKey, setRosterRefreshKey] = useState(0);
+
+  const activeClasses = useMemo(
+    () => (Array.isArray(classes) ? classes : []).filter((item) => Number(item.is_active) !== 0),
+    [classes]
+  );
+
+  useEffect(() => {
+    if (classId !== '' || activeClasses.length === 0) return;
+    setClassId(String(activeClasses[0].id));
+  }, [activeClasses, classId]);
+
+  useEffect(() => {
+    if (gamesClassFilter !== '' || activeClasses.length === 0) return;
+    setGamesClassFilter(String(activeClasses[0].id));
+  }, [activeClasses, gamesClassFilter]);
 
   const teams = Array.isArray(gameState?.teams) ? gameState.teams : [];
   const game = gameState?.game || null;
@@ -48,6 +76,23 @@ export function GLGameMasterConsole({
     return teams.length > 0 ? Number(teams[0].id) : null;
   }, [selectedTeamId, teams]);
 
+  async function loadGames() {
+    try {
+      const params = new URLSearchParams();
+      if (gamesClassFilter) params.set('classId', gamesClassFilter);
+      if (gamesStatusFilter) params.set('status', gamesStatusFilter);
+      const query = params.toString();
+      const rows = await apiGL(`/api/gl/games${query ? `?${query}` : ''}`);
+      setGames(Array.isArray(rows) ? rows : []);
+    } catch (err) {
+      setActionError(err.message || 'Chargement des parties impossible');
+    }
+  }
+
+  useEffect(() => {
+    loadGames();
+  }, [gamesClassFilter, gamesStatusFilter]);
+
   useEffect(() => {
     if (selectedTeamId !== effectiveSelectedTeamId && effectiveSelectedTeamId != null) {
       onSelectTeam?.(effectiveSelectedTeamId);
@@ -57,6 +102,14 @@ export function GLGameMasterConsole({
   async function createGame(event) {
     event.preventDefault();
     setActionError('');
+    if (!classId) {
+      setActionError(
+        activeClasses.length === 0
+          ? 'Créez d’abord une classe active (onglet « Gestion utilisateurs »).'
+          : 'Choisissez une classe avant de créer la partie.'
+      );
+      return;
+    }
     if (!chapterId) {
       setActionError('Choisissez un chapitre avant de créer la partie.');
       return;
@@ -70,8 +123,38 @@ export function GLGameMasterConsole({
       const created = await apiGL('/api/gl/games', 'POST', payload);
       onGameStateChange(created);
       setEventLog('Partie créée.');
+      await loadGames();
+      setRosterRefreshKey((value) => value + 1);
     } catch (err) {
       setActionError(err.message || 'Création de partie impossible');
+    }
+  }
+
+  async function openGame(gameId) {
+    setActionError('');
+    try {
+      const data = await apiGL(`/api/gl/games/${gameId}`);
+      onGameStateChange(data);
+      setEventLog(`Partie #${gameId} chargée.`);
+      setRosterRefreshKey((value) => value + 1);
+    } catch (err) {
+      setActionError(err.message || 'Chargement de la partie impossible');
+    }
+  }
+
+  async function removeGame(gameId) {
+    const ok = window.confirm('Supprimer cette partie ? (autorisé uniquement pour brouillon/terminée)');
+    if (!ok) return;
+    setActionError('');
+    try {
+      await apiGL(`/api/gl/games/${gameId}`, 'DELETE');
+      setEventLog(`Partie #${gameId} supprimée.`);
+      await loadGames();
+      if (Number(game?.id) === Number(gameId)) {
+        onGameStateChange(null);
+      }
+    } catch (err) {
+      setActionError(err.message || 'Suppression de partie impossible');
     }
   }
 
@@ -109,6 +192,66 @@ export function GLGameMasterConsole({
       setEventLog(`Equipe ${type} ajoutée.`);
     } catch (err) {
       setActionError(err.message || 'Ajout d’équipe impossible');
+    }
+  }
+
+  async function upsertTeam(event) {
+    event.preventDefault();
+    if (!game?.id) {
+      setActionError('Créez ou chargez une partie.');
+      return;
+    }
+    setActionError('');
+    try {
+      if (editingTeamId) {
+        await apiGL(`/api/gl/games/${game.id}/teams/${editingTeamId}`, 'PUT', {
+          name: teamForm.name,
+          type: teamForm.type,
+          mascotId: teamForm.mascotId || null,
+          color: teamForm.color || '#22c55e',
+        });
+        setEventLog('Équipe mise à jour.');
+      } else {
+        await apiGL(`/api/gl/games/${game.id}/teams`, 'POST', {
+          name: teamForm.name,
+          type: teamForm.type,
+          mascotId: teamForm.mascotId || null,
+          color: teamForm.color || '#22c55e',
+        });
+        setEventLog('Équipe créée.');
+      }
+      setEditingTeamId(null);
+      setTeamForm({ name: '', type: 'gnome', mascotId: 'gl-gnome-mousse', color: '#65a30d' });
+      await onReloadGame?.();
+      await loadGames();
+      setRosterRefreshKey((value) => value + 1);
+    } catch (err) {
+      setActionError(err.message || 'Sauvegarde équipe impossible');
+    }
+  }
+
+  function startEditTeam(team) {
+    setEditingTeamId(Number(team.id));
+    setTeamForm({
+      name: team.name || '',
+      type: team.type || 'gnome',
+      mascotId: team.mascot_id || '',
+      color: team.color || '#22c55e',
+    });
+  }
+
+  async function removeTeam(team) {
+    const ok = window.confirm(`Supprimer l'équipe « ${team.name} » ?`);
+    if (!ok) return;
+    setActionError('');
+    try {
+      await apiGL(`/api/gl/games/${game.id}/teams/${team.id}`, 'DELETE');
+      setEventLog(`Équipe ${team.name} supprimée.`);
+      await onReloadGame?.();
+      await loadGames();
+      setRosterRefreshKey((value) => value + 1);
+    } catch (err) {
+      setActionError(err.message || 'Suppression équipe impossible');
     }
   }
 
@@ -189,9 +332,22 @@ export function GLGameMasterConsole({
           <input value={name} onChange={(event) => setName(event.target.value)} />
         </label>
         <label>
-          Classe ID
-          <input value={classId} onChange={(event) => setClassId(event.target.value)} />
+          Classe
+          <select value={classId} onChange={(event) => setClassId(event.target.value)}>
+            <option value="">Choisir</option>
+            {activeClasses.map((item) => (
+              <option key={item.id} value={item.id}>
+                {item.name}
+                {item.school ? ` (${item.school})` : ''}
+              </option>
+            ))}
+          </select>
         </label>
+        {activeClasses.length === 0 ? (
+          <p className="gl-hint">
+            Aucune classe active. Créez-en une dans l’onglet « Gestion utilisateurs ».
+          </p>
+        ) : null}
         <label>
           Chapitre
           <select value={chapterId} onChange={(event) => setChapterId(event.target.value)}>
@@ -204,6 +360,68 @@ export function GLGameMasterConsole({
         <button type="submit">Créer une partie</button>
       </form>
 
+      <div className="gl-gameplay-block">
+        <h3>Parties existantes</h3>
+        <div className="gl-inline-actions">
+          <label>
+            Classe
+            <select value={gamesClassFilter} onChange={(event) => setGamesClassFilter(event.target.value)}>
+              <option value="">Toutes</option>
+              {activeClasses.map((item) => (
+                <option key={item.id} value={item.id}>
+                  {item.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            Statut
+            <select value={gamesStatusFilter} onChange={(event) => setGamesStatusFilter(event.target.value)}>
+              <option value="">Tous</option>
+              <option value="draft">Brouillon</option>
+              <option value="live">En cours</option>
+              <option value="paused">Pause</option>
+              <option value="ended">Terminée</option>
+            </select>
+          </label>
+          <button type="button" className="gl-btn-secondary" onClick={loadGames}>Rafraîchir</button>
+        </div>
+        <div className="gl-admin-table-wrap">
+          <table className="gl-admin-table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Partie</th>
+                <th>Classe</th>
+                <th>Statut</th>
+                <th>Équipes</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {games.map((item) => (
+                <tr key={item.id}>
+                  <td>{item.id}</td>
+                  <td>{item.name}</td>
+                  <td>{item.className || item.classId}</td>
+                  <td>{item.status}</td>
+                  <td>{item.teamsCount}</td>
+                  <td className="gl-admin-actions-cell">
+                    <button type="button" onClick={() => openGame(item.id)}>Charger</button>
+                    <button type="button" className="gl-btn-danger" onClick={() => removeGame(item.id)}>Supprimer</button>
+                  </td>
+                </tr>
+              ))}
+              {games.length === 0 ? (
+                <tr>
+                  <td colSpan={6}>Aucune partie.</td>
+                </tr>
+              ) : null}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
       <div className="gl-inline-actions">
         <button type="button" onClick={() => setStatus('start')}>Démarrer</button>
         <button type="button" onClick={() => setStatus('pause')}>Pause</button>
@@ -213,6 +431,61 @@ export function GLGameMasterConsole({
         <button type="button" onClick={() => addTeam('gnome')}>Ajouter équipe Gnome</button>
         <button type="button" onClick={() => addTeam('unicorn')}>Ajouter équipe Licorne</button>
       </div>
+
+      <form className="gl-form gl-gameplay-block" onSubmit={upsertTeam}>
+        <h3>{editingTeamId ? 'Modifier une équipe' : 'Nouvelle équipe'}</h3>
+        <div className="gl-admin-grid-2">
+          <label>
+            Nom
+            <input
+              value={teamForm.name}
+              onChange={(event) => setTeamForm((prev) => ({ ...prev, name: event.target.value }))}
+              required
+            />
+          </label>
+          <label>
+            Type
+            <select
+              value={teamForm.type}
+              onChange={(event) => setTeamForm((prev) => ({ ...prev, type: event.target.value }))}
+            >
+              <option value="gnome">Gnome</option>
+              <option value="unicorn">Licorne</option>
+            </select>
+          </label>
+          <label>
+            Mascotte
+            <input
+              value={teamForm.mascotId}
+              onChange={(event) => setTeamForm((prev) => ({ ...prev, mascotId: event.target.value }))}
+              placeholder="gl-gnome-mousse"
+            />
+          </label>
+          <label>
+            Couleur
+            <input
+              value={teamForm.color}
+              onChange={(event) => setTeamForm((prev) => ({ ...prev, color: event.target.value }))}
+              placeholder="#22c55e"
+            />
+          </label>
+        </div>
+        <div className="gl-inline-actions">
+          <button type="submit">{editingTeamId ? 'Enregistrer équipe' : 'Créer équipe'}</button>
+          {editingTeamId ? (
+            <button
+              type="button"
+              className="gl-btn-secondary"
+              onClick={() => {
+                setEditingTeamId(null);
+                setTeamForm({ name: '', type: 'gnome', mascotId: 'gl-gnome-mousse', color: '#65a30d' });
+              }}
+            >
+              Annuler édition
+            </button>
+          ) : null}
+        </div>
+      </form>
 
       {teams.length > 0 && (
         <div className="gl-team-selector">
@@ -241,8 +514,47 @@ export function GLGameMasterConsole({
           <p className="gl-hint">
             Pour assigner ou changer la mascotte d'une équipe, utiliser l'onglet « Gestion mascottes ».
           </p>
+          <div className="gl-admin-table-wrap">
+            <table className="gl-admin-table">
+              <thead>
+                <tr>
+                  <th>Nom</th>
+                  <th>Type</th>
+                  <th>Mascotte</th>
+                  <th>Couleur</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {teams.map((team) => (
+                  <tr key={`table-${team.id}`}>
+                    <td>{team.name}</td>
+                    <td>{team.type}</td>
+                    <td>{team.mascot_id || '—'}</td>
+                    <td>{team.color || '—'}</td>
+                    <td className="gl-admin-actions-cell">
+                      <button type="button" onClick={() => startEditTeam(team)}>Modifier</button>
+                      <button type="button" className="gl-btn-danger" onClick={() => removeTeam(team)}>Supprimer</button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
+
+      {game?.id ? (
+        <GLGameRosterPanel
+          gameId={game.id}
+          teams={teams}
+          refreshKey={rosterRefreshKey}
+          onRosterChanged={async () => {
+            await onReloadGame?.();
+            setRosterRefreshKey((value) => value + 1);
+          }}
+        />
+      ) : null}
 
       {turnsEnabled && (
         <div className="gl-gameplay-block">

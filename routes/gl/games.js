@@ -5,6 +5,7 @@ const { normalizeEventRow, replayGameEvents } = require('../../lib/glGameEvents'
 const { emitGlGameEvent } = require('../../lib/realtime');
 const { getGameplaySettings } = require('../../lib/glSettings');
 const { logRouteError } = require('../../lib/routeLog');
+const { assignPlayerToTeamTx, unassignPlayerFromGameTx } = require('../../lib/glRoster');
 
 const router = express.Router();
 
@@ -17,6 +18,19 @@ function normalizeOptionalString(value) {
   if (value == null) return null;
   const s = String(value).trim();
   return s.length > 0 ? s : null;
+}
+
+function resolveRosterError(err) {
+  if (err?.status === 404) {
+    if (err.message === 'TEAM_NOT_FOUND') return { status: 404, error: 'Équipe introuvable' };
+    if (err.message === 'PLAYER_NOT_FOUND') return { status: 404, error: 'Joueur introuvable' };
+    if (err.message === 'GAME_NOT_FOUND') return { status: 404, error: 'Partie introuvable' };
+    return { status: 404, error: 'Ressource introuvable' };
+  }
+  if (err?.status === 409 || err?.message === 'PLAYER_CLASS_MISMATCH') {
+    return { status: 409, error: 'Le joueur n’appartient pas à la classe de cette partie' };
+  }
+  return null;
 }
 
 async function readGameState(gameId) {
@@ -124,6 +138,55 @@ router.get('/gameplay-settings', requireGlAuth, async (_req, res) => {
   return res.json({ settings });
 });
 
+router.get('/games', requireGlPermission('gl.game.manage'), async (req, res) => {
+  const classId = req.query?.classId == null ? null : parseId(req.query.classId);
+  const status = normalizeOptionalString(req.query?.status);
+  if (req.query?.classId != null && !classId) {
+    return res.status(400).json({ error: 'classId invalide' });
+  }
+  if (status != null && !['draft', 'live', 'paused', 'ended'].includes(status)) {
+    return res.status(400).json({ error: 'status invalide' });
+  }
+
+  const where = [];
+  const params = [];
+  if (classId != null) {
+    where.push('g.class_id = ?');
+    params.push(classId);
+  }
+  if (status != null) {
+    where.push('g.status = ?');
+    params.push(status);
+  }
+
+  const rows = await queryAll(
+    `SELECT g.id, g.name, g.status, g.class_id, c.name AS class_name,
+            g.chapter_id, ch.title AS chapter_title, g.current_team_id,
+            g.created_at, g.updated_at, COUNT(t.id) AS teams_count
+       FROM gl_games g
+  LEFT JOIN gl_classes c ON c.id = g.class_id
+  LEFT JOIN gl_chapters ch ON ch.id = g.chapter_id
+  LEFT JOIN gl_teams t ON t.game_id = g.id
+      ${where.length ? `WHERE ${where.join(' AND ')}` : ''}
+   GROUP BY g.id
+   ORDER BY g.updated_at DESC, g.id DESC`,
+    params
+  );
+  return res.json(rows.map((row) => ({
+    id: Number(row.id),
+    name: row.name || '',
+    status: row.status || 'draft',
+    classId: row.class_id != null ? Number(row.class_id) : null,
+    className: row.class_name || null,
+    chapterId: row.chapter_id != null ? Number(row.chapter_id) : null,
+    chapterTitle: row.chapter_title || null,
+    currentTeamId: row.current_team_id != null ? Number(row.current_team_id) : null,
+    teamsCount: Number(row.teams_count) || 0,
+    createdAt: row.created_at || null,
+    updatedAt: row.updated_at || null,
+  })));
+});
+
 router.get('/games/:id', requireGlAuth, async (req, res) => {
   const gameId = parseId(req.params.id);
   if (!gameId) return res.status(400).json({ error: 'Identifiant de partie invalide' });
@@ -210,26 +273,126 @@ router.post('/games/:id/teams', requireGlPermission('gl.team.manage'), async (re
   return res.status(201).json(team);
 });
 
+router.put('/games/:id/teams/:teamId', requireGlPermission('gl.team.manage'), async (req, res) => {
+  const gameId = parseId(req.params.id);
+  const teamId = parseId(req.params.teamId);
+  if (!gameId || !teamId) return res.status(400).json({ error: 'Identifiants invalides' });
+  const existing = await queryOne('SELECT id, game_id FROM gl_teams WHERE id = ? AND game_id = ? LIMIT 1', [teamId, gameId]);
+  if (!existing) return res.status(404).json({ error: 'Équipe introuvable' });
+
+  const name = req.body?.name == null ? null : normalizeOptionalString(req.body.name);
+  const type = req.body?.type == null ? null : String(req.body.type || '').toLowerCase();
+  const mascotId = req.body?.mascotId == null ? null : normalizeOptionalString(req.body.mascotId);
+  const color = req.body?.color == null ? null : normalizeOptionalString(req.body.color);
+  if (name != null && !name) return res.status(400).json({ error: 'Nom d’équipe invalide' });
+  if (type != null && !['gnome', 'unicorn'].includes(type)) {
+    return res.status(400).json({ error: 'Type équipe invalide' });
+  }
+  if (name == null && type == null && mascotId == null && color == null) {
+    return res.status(400).json({ error: 'Aucune modification fournie' });
+  }
+
+  await execute(
+    `UPDATE gl_teams
+        SET name = COALESCE(?, name),
+            type = COALESCE(?, type),
+            mascot_id = ?,
+            color = COALESCE(?, color),
+            updated_at = NOW()
+      WHERE id = ? AND game_id = ?`,
+    [name, type, mascotId, color, teamId, gameId]
+  );
+  const updated = await queryOne('SELECT * FROM gl_teams WHERE id = ? AND game_id = ? LIMIT 1', [teamId, gameId]);
+  return res.json(updated);
+});
+
+router.delete('/games/:id/teams/:teamId', requireGlPermission('gl.team.manage'), async (req, res) => {
+  const gameId = parseId(req.params.id);
+  const teamId = parseId(req.params.teamId);
+  if (!gameId || !teamId) return res.status(400).json({ error: 'Identifiants invalides' });
+  const existing = await queryOne('SELECT id FROM gl_teams WHERE id = ? AND game_id = ? LIMIT 1', [teamId, gameId]);
+  if (!existing) return res.status(404).json({ error: 'Équipe introuvable' });
+  const members = await queryOne(
+    'SELECT COUNT(*) AS c FROM gl_team_members WHERE game_id = ? AND team_id = ?',
+    [gameId, teamId]
+  );
+  if (Number(members?.c || 0) > 0) {
+    return res.status(409).json({ error: 'Suppression refusée : équipe avec joueurs assignés' });
+  }
+  await execute('DELETE FROM gl_teams WHERE id = ? AND game_id = ?', [teamId, gameId]);
+  return res.json({ ok: true });
+});
+
 router.post('/games/:id/join-team', requireGlAuth, async (req, res) => {
   if (req.glAuth.userType !== 'gl_player') return res.status(403).json({ error: 'Réservé aux joueurs' });
   const gameId = parseId(req.params.id);
   const teamId = parseId(req.body?.teamId);
   if (!gameId || !teamId) return res.status(400).json({ error: 'gameId/teamId invalides' });
-  await withTransaction(async (tx) => {
-    const team = await tx.queryOne('SELECT id, game_id FROM gl_teams WHERE id = ? AND game_id = ? LIMIT 1', [teamId, gameId]);
-    if (!team) throw Object.assign(new Error('TEAM_NOT_FOUND'), { status: 404 });
-    await tx.execute(
-      `INSERT INTO gl_team_members (game_id, team_id, player_id, joined_at)
-       VALUES (?, ?, ?, NOW())
-       ON DUPLICATE KEY UPDATE team_id = VALUES(team_id), joined_at = NOW()`,
-      [gameId, teamId, req.glAuth.userId]
-    );
-    await tx.execute('UPDATE gl_players SET team_id = ?, updated_at = NOW() WHERE id = ?', [teamId, req.glAuth.userId]);
-  }).catch((err) => {
-    if (err?.status === 404) {
-      throw err;
-    }
+  try {
+    await withTransaction(async (tx) => {
+      await assignPlayerToTeamTx(tx, { gameId, teamId, playerId: req.glAuth.userId });
+    });
+  } catch (err) {
+    const mapped = resolveRosterError(err);
+    if (mapped) return res.status(mapped.status).json({ error: mapped.error });
     throw err;
+  }
+  return res.json({ ok: true });
+});
+
+router.get('/games/:id/roster', requireGlPermission('gl.players.manage'), async (req, res) => {
+  const gameId = parseId(req.params.id);
+  if (!gameId) return res.status(400).json({ error: 'Identifiant de partie invalide' });
+  const game = await queryOne(
+    'SELECT id, class_id FROM gl_games WHERE id = ? LIMIT 1',
+    [gameId]
+  );
+  if (!game) return res.status(404).json({ error: 'Partie introuvable' });
+
+  const rows = await queryAll(
+    `SELECT p.id, p.first_name, p.last_name, p.pseudo, p.is_active,
+            tm.team_id, t.name AS team_name
+       FROM gl_players p
+  LEFT JOIN gl_team_members tm ON tm.game_id = ? AND tm.player_id = p.id
+  LEFT JOIN gl_teams t ON t.id = tm.team_id
+      WHERE p.class_id = ?
+      ORDER BY p.last_name ASC, p.first_name ASC, p.id ASC`,
+    [gameId, game.class_id]
+  );
+  return res.json(rows.map((row) => ({
+    id: Number(row.id),
+    firstName: row.first_name || '',
+    lastName: row.last_name || '',
+    pseudo: row.pseudo || '',
+    isActive: !!Number(row.is_active),
+    teamId: row.team_id != null ? Number(row.team_id) : null,
+    teamName: row.team_name || null,
+  })));
+});
+
+router.post('/games/:id/roster/assign', requireGlPermission('gl.players.manage'), async (req, res) => {
+  const gameId = parseId(req.params.id);
+  const playerId = parseId(req.body?.playerId);
+  const teamId = parseId(req.body?.teamId);
+  if (!gameId || !playerId || !teamId) return res.status(400).json({ error: 'Identifiants invalides' });
+  try {
+    await withTransaction(async (tx) => {
+      await assignPlayerToTeamTx(tx, { gameId, teamId, playerId });
+    });
+  } catch (err) {
+    const mapped = resolveRosterError(err);
+    if (mapped) return res.status(mapped.status).json({ error: mapped.error });
+    throw err;
+  }
+  return res.json({ ok: true });
+});
+
+router.post('/games/:id/roster/unassign', requireGlPermission('gl.players.manage'), async (req, res) => {
+  const gameId = parseId(req.params.id);
+  const playerId = parseId(req.body?.playerId);
+  if (!gameId || !playerId) return res.status(400).json({ error: 'Identifiants invalides' });
+  await withTransaction(async (tx) => {
+    await unassignPlayerFromGameTx(tx, { gameId, playerId });
   });
   return res.json({ ok: true });
 });
@@ -502,6 +665,18 @@ async function updateGameStatus(req, res, nextStatus) {
   emitGlGameEvent(gameId, normalized);
   return res.json({ ok: true, status: nextStatus });
 }
+
+router.delete('/games/:id', requireGlPermission('gl.game.manage'), async (req, res) => {
+  const gameId = parseId(req.params.id);
+  if (!gameId) return res.status(400).json({ error: 'Identifiant de partie invalide' });
+  const existing = await queryOne('SELECT id, status FROM gl_games WHERE id = ? LIMIT 1', [gameId]);
+  if (!existing) return res.status(404).json({ error: 'Partie introuvable' });
+  if (!['draft', 'ended'].includes(String(existing.status || '').toLowerCase())) {
+    return res.status(409).json({ error: 'Suppression autorisée uniquement pour une partie brouillon ou terminée' });
+  }
+  await execute('DELETE FROM gl_games WHERE id = ?', [gameId]);
+  return res.json({ ok: true });
+});
 
 router.post('/games/:id/start', requireGlPermission('gl.game.manage'), (req, res) => updateGameStatus(req, res, 'live'));
 router.post('/games/:id/pause', requireGlPermission('gl.game.manage'), (req, res) => updateGameStatus(req, res, 'paused'));

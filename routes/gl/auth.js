@@ -7,6 +7,7 @@ const {
   resolveGlStaffLogin,
   buildGlAdminClaims,
 } = require('../../lib/glStaffAuth');
+const { resolveGlPlayerLogin } = require('../../lib/glPlayerAuth');
 const { getGlModulesSettings } = require('../../lib/glSettings');
 const {
   makeGoogleOAuthState,
@@ -19,6 +20,7 @@ const {
 const router = express.Router();
 
 const GL_OAUTH_STATE_COOKIE = 'gl_oauth_state';
+const GL_OAUTH_MODE_COOKIE = 'gl_oauth_mode';
 const OAUTH_STATE_TTL_MS = 10 * 60 * 1000;
 
 function normalizeOptionalString(value) {
@@ -126,6 +128,31 @@ function readCookie(req, name) {
   return null;
 }
 
+function normalizeGlOAuthMode(value) {
+  return String(value || '').toLowerCase() === 'player' ? 'player' : 'staff';
+}
+
+function buildGlOAuthFrontendErrorRedirect(frontendOrigin, code, mode) {
+  const base = String(frontendOrigin || '').replace(/\/+$/, '');
+  const modeParam = normalizeGlOAuthMode(mode) === 'player' ? '&oauth_mode=player' : '&oauth_mode=staff';
+  return `${base}/#oauth_error=${encodeURIComponent(code)}${modeParam}`;
+}
+
+async function issueGlPlayerSession(player) {
+  const claims = {
+    userType: 'gl_player',
+    userId: String(player.id),
+    roleSlug: 'gl_player',
+    displayName: player.pseudo,
+    classId: player.class_id ? Number(player.class_id) : null,
+    teamId: player.team_id ? Number(player.team_id) : null,
+    passwordMustReset: !!Number(player.password_must_reset || 0),
+    permissions: getGlRolePermissions('player'),
+  };
+  const token = await signGlToken(claims);
+  return { authToken: token, auth: exposeGlAuth(claims) };
+}
+
 async function issueGlStaffSession(admin, glRole) {
   const baseClaims = buildGlAdminClaims(admin, glRole);
   const claims = {
@@ -134,6 +161,67 @@ async function issueGlStaffSession(admin, glRole) {
   };
   const token = await signGlToken(claims);
   return { authToken: token, auth: exposeGlAuth(claims) };
+}
+
+async function completeGlGoogleOAuth({ cfg, payload, mode }) {
+  const email = normalizeEmail(payload?.email);
+  const issuer = String(payload?.iss || '');
+  const emailVerified = payload?.email_verified === true || String(payload?.email_verified) === 'true';
+  const audience = String(payload?.aud || '');
+  if (!email || !emailVerified || audience !== cfg.clientId || !['accounts.google.com', 'https://accounts.google.com'].includes(issuer)) {
+    return { errorRedirect: buildGlOAuthFrontendErrorRedirect(cfg.frontendOrigin, 'oauth_claims_invalid', mode) };
+  }
+  if (!isGoogleEmailAllowed(email, payload?.hd, cfg.allowedDomains, cfg.allowedEmails)) {
+    return { errorRedirect: buildGlOAuthFrontendErrorRedirect(cfg.frontendOrigin, 'oauth_email_not_allowed', mode) };
+  }
+
+  const displayName = normalizeOptionalString(payload?.name) || email;
+  const googleSub = normalizeOptionalString(payload?.sub);
+
+  if (normalizeGlOAuthMode(mode) === 'player') {
+    const resolved = await resolveGlPlayerLogin({ email, googleSub });
+    if (!resolved.ok) {
+      return {
+        errorRedirect: buildGlOAuthFrontendErrorRedirect(
+          cfg.frontendOrigin,
+          'oauth_gl_player_denied',
+          'player'
+        ),
+      };
+    }
+    const session = await issueGlPlayerSession(resolved.player);
+    return {
+      successRedirect: buildOAuthFrontendRedirect(cfg.frontendOrigin, {
+        type: 'gl_player',
+        token: session.authToken,
+        auth: session.auth,
+      }),
+    };
+  }
+
+  const teacher = await queryOne(
+    "SELECT id FROM users WHERE user_type = 'teacher' AND LOWER(email)=LOWER(?) LIMIT 1",
+    [email]
+  );
+  const resolved = await resolveGlStaffLogin({
+    email,
+    displayName,
+    googleSub,
+    teacherId: teacher?.id || null,
+  });
+  if (!resolved.ok) {
+    return {
+      errorRedirect: buildGlOAuthFrontendErrorRedirect(cfg.frontendOrigin, 'oauth_gl_staff_denied', 'staff'),
+    };
+  }
+  const session = await issueGlStaffSession(resolved.admin, resolved.glRole);
+  return {
+    successRedirect: buildOAuthFrontendRedirect(cfg.frontendOrigin, {
+      type: 'gl_staff',
+      token: session.authToken,
+      auth: session.auth,
+    }),
+  };
 }
 
 /** GET /api/gl/auth/config — libellés écran connexion (public). */
@@ -155,10 +243,12 @@ router.get('/config', async (_req, res) => {
   const clientId = normalizeOptionalString(process.env.GL_GOOGLE_OAUTH_CLIENT_ID)
     || normalizeOptionalString(process.env.GOOGLE_OAUTH_CLIENT_ID);
   const modules = await getGlModulesSettings();
+  const googleReady = !!clientId;
   return res.json({
     title: String(title || 'Gnomes & Licornes'),
     subtitle: String(subtitle || ''),
-    allowGoogleStaff: !!clientId,
+    allowGoogleStaff: googleReady,
+    allowGooglePlayer: googleReady,
     modules,
   });
 });
@@ -188,22 +278,7 @@ router.post('/login', async (req, res) => {
     const ok = await bcrypt.compare(password, String(player.password_hash || ''));
     if (!ok) return res.status(401).json({ error: 'Pseudo ou mot de passe incorrect' });
 
-    await execute('UPDATE gl_players SET last_seen = NOW() WHERE id = ?', [player.id]);
-    const claims = {
-      userType: 'gl_player',
-      userId: String(player.id),
-      roleSlug: 'gl_player',
-      displayName: player.pseudo,
-      classId: player.class_id ? Number(player.class_id) : null,
-      teamId: player.team_id ? Number(player.team_id) : null,
-      passwordMustReset: !!Number(player.password_must_reset || 0),
-      permissions: getGlRolePermissions('player'),
-    };
-    const token = await signGlToken(claims);
-    return res.json({
-      authToken: token,
-      auth: exposeGlAuth(claims),
-    });
+    return res.json(await issueGlPlayerSession(player));
   } catch (err) {
     return res.status(500).json({ error: 'Erreur serveur' });
   }
@@ -264,7 +339,7 @@ router.post('/staff/login', async (req, res) => {
   }
 });
 
-/** POST /api/gl/auth/google — ID token (compatibilité API / tests). */
+/** POST /api/gl/auth/google — ID token (compatibilité API / tests). Body : `{ idToken, mode?: 'player'|'staff' }`. */
 router.post('/google', async (req, res) => {
   try {
     const idToken = normalizeOptionalString(req.body?.idToken);
@@ -279,8 +354,18 @@ router.post('/google', async (req, res) => {
       return res.status(403).json({ error: 'Adresse Google non autorisée pour Gnomes & Licornes' });
     }
 
-    const displayName = normalizeOptionalString(payload?.name) || email;
+    const mode = normalizeGlOAuthMode(req.body?.mode);
     const googleSub = normalizeOptionalString(payload?.sub);
+
+    if (mode === 'player') {
+      const resolved = await resolveGlPlayerLogin({ email, googleSub });
+      if (!resolved.ok) {
+        return res.status(resolved.status || 403).json({ error: resolved.error });
+      }
+      return res.json(await issueGlPlayerSession(resolved.player));
+    }
+
+    const displayName = normalizeOptionalString(payload?.name) || email;
     const teacher = await queryOne(
       "SELECT id FROM users WHERE user_type = 'teacher' AND LOWER(email)=LOWER(?) LIMIT 1",
       [email]
@@ -300,15 +385,23 @@ router.post('/google', async (req, res) => {
   }
 });
 
-/** GET /api/gl/auth/google/start — redirection OAuth (comme ForetMap). */
+/** GET /api/gl/auth/google/start?mode=player|staff — redirection OAuth (comme ForetMap). */
 router.get('/google/start', async (req, res) => {
   const cfg = buildGoogleConfig(req);
   if (!googleOauthConfigured(cfg)) {
     return res.status(503).json({ error: 'OAuth Google non configuré' });
   }
+  const mode = normalizeGlOAuthMode(req.query?.mode);
   const state = makeGoogleOAuthState();
   const cookieSecure = process.env.NODE_ENV === 'production';
   res.cookie(GL_OAUTH_STATE_COOKIE, state, {
+    httpOnly: true,
+    sameSite: 'lax',
+    secure: cookieSecure,
+    maxAge: OAUTH_STATE_TTL_MS,
+    path: '/api/gl/auth/google',
+  });
+  res.cookie(GL_OAUTH_MODE_COOKIE, mode, {
     httpOnly: true,
     sameSite: 'lax',
     secure: cookieSecure,
@@ -331,21 +424,23 @@ router.get('/google/start', async (req, res) => {
 router.get('/google/callback', async (req, res) => {
   const cfg = buildGoogleConfig(req);
   const stateCookie = readCookie(req, GL_OAUTH_STATE_COOKIE);
+  const mode = normalizeGlOAuthMode(readCookie(req, GL_OAUTH_MODE_COOKIE));
   res.clearCookie(GL_OAUTH_STATE_COOKIE, { path: '/api/gl/auth/google' });
+  res.clearCookie(GL_OAUTH_MODE_COOKIE, { path: '/api/gl/auth/google' });
 
   if (!googleOauthConfigured(cfg)) {
-    return res.redirect(buildOAuthFrontendErrorRedirect(cfg.frontendOrigin, 'oauth_not_configured'));
+    return res.redirect(buildGlOAuthFrontendErrorRedirect(cfg.frontendOrigin, 'oauth_not_configured', mode));
   }
   if (normalizeOptionalString(req.query?.error)) {
-    return res.redirect(buildOAuthFrontendErrorRedirect(cfg.frontendOrigin, 'oauth_google_refused'));
+    return res.redirect(buildGlOAuthFrontendErrorRedirect(cfg.frontendOrigin, 'oauth_google_refused', mode));
   }
   const state = normalizeOptionalString(req.query?.state);
   if (!state || !stateCookie || state !== stateCookie) {
-    return res.redirect(buildOAuthFrontendErrorRedirect(cfg.frontendOrigin, 'oauth_invalid_state'));
+    return res.redirect(buildGlOAuthFrontendErrorRedirect(cfg.frontendOrigin, 'oauth_invalid_state', mode));
   }
   const code = normalizeOptionalString(req.query?.code);
   if (!code) {
-    return res.redirect(buildOAuthFrontendErrorRedirect(cfg.frontendOrigin, 'oauth_missing_code'));
+    return res.redirect(buildGlOAuthFrontendErrorRedirect(cfg.frontendOrigin, 'oauth_missing_code', mode));
   }
 
   try {
@@ -357,43 +452,16 @@ router.get('/google/callback', async (req, res) => {
     });
     const idToken = normalizeOptionalString(tokenData?.id_token);
     if (!idToken) {
-      return res.redirect(buildOAuthFrontendErrorRedirect(cfg.frontendOrigin, 'oauth_missing_id_token'));
+      return res.redirect(buildGlOAuthFrontendErrorRedirect(cfg.frontendOrigin, 'oauth_missing_id_token', mode));
     }
     const payload = await verifyGoogleIdToken({ idToken, audience: cfg.clientId });
-    const email = normalizeEmail(payload?.email);
-    const issuer = String(payload?.iss || '');
-    const emailVerified = payload?.email_verified === true || String(payload?.email_verified) === 'true';
-    const audience = String(payload?.aud || '');
-    if (!email || !emailVerified || audience !== cfg.clientId || !['accounts.google.com', 'https://accounts.google.com'].includes(issuer)) {
-      return res.redirect(buildOAuthFrontendErrorRedirect(cfg.frontendOrigin, 'oauth_claims_invalid'));
+    const outcome = await completeGlGoogleOAuth({ cfg, payload, mode });
+    if (outcome.errorRedirect) {
+      return res.redirect(outcome.errorRedirect);
     }
-    if (!isGoogleEmailAllowed(email, payload?.hd, cfg.allowedDomains, cfg.allowedEmails)) {
-      return res.redirect(buildOAuthFrontendErrorRedirect(cfg.frontendOrigin, 'oauth_email_not_allowed'));
-    }
-
-    const displayName = normalizeOptionalString(payload?.name) || email;
-    const googleSub = normalizeOptionalString(payload?.sub);
-    const teacher = await queryOne(
-      "SELECT id FROM users WHERE user_type = 'teacher' AND LOWER(email)=LOWER(?) LIMIT 1",
-      [email]
-    );
-    const resolved = await resolveGlStaffLogin({
-      email,
-      displayName,
-      googleSub,
-      teacherId: teacher?.id || null,
-    });
-    if (!resolved.ok) {
-      return res.redirect(buildOAuthFrontendErrorRedirect(cfg.frontendOrigin, 'oauth_gl_staff_denied'));
-    }
-    const session = await issueGlStaffSession(resolved.admin, resolved.glRole);
-    return res.redirect(buildOAuthFrontendRedirect(cfg.frontendOrigin, {
-      type: 'gl_staff',
-      token: session.authToken,
-      auth: session.auth,
-    }));
+    return res.redirect(outcome.successRedirect);
   } catch (_) {
-    return res.redirect(buildOAuthFrontendErrorRedirect(cfg.frontendOrigin, 'oauth_server_error'));
+    return res.redirect(buildGlOAuthFrontendErrorRedirect(cfg.frontendOrigin, 'oauth_server_error', mode));
   }
 });
 

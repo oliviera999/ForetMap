@@ -33,8 +33,44 @@ function normalizePassword(value) {
   return password;
 }
 
+function parseOptionalBoolean(value) {
+  if (value == null) return null;
+  if (typeof value === 'boolean') return value;
+  if (typeof value === 'number') {
+    if (value === 1) return true;
+    if (value === 0) return false;
+  }
+  if (typeof value === 'string') {
+    const normalized = value.trim().toLowerCase();
+    if (normalized === 'true' || normalized === '1') return true;
+    if (normalized === 'false' || normalized === '0') return false;
+  }
+  return undefined;
+}
+
 function buildGeneratedPassword() {
   return `gl-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
+const PLAYER_EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+function normalizePlayerEmail(value) {
+  const email = normalizeOptionalString(value);
+  return email ? email.toLowerCase() : null;
+}
+
+async function ensureEmailAvailable(email, excludedPlayerId = null) {
+  if (!email) return true;
+  const existing = excludedPlayerId
+    ? await queryOne(
+      'SELECT id FROM gl_players WHERE LOWER(email) = LOWER(?) AND id <> ? LIMIT 1',
+      [email, excludedPlayerId]
+    )
+    : await queryOne(
+      'SELECT id FROM gl_players WHERE LOWER(email) = LOWER(?) LIMIT 1',
+      [email]
+    );
+  return !existing;
 }
 
 const ALLOWED_MODULE_SETTINGS = new Set(MODULE_KEYS);
@@ -89,11 +125,64 @@ router.post('/classes', requireGlPermission('gl.players.manage'), async (req, re
   return res.status(201).json(created);
 });
 
+router.put('/classes/:id', requireGlPermission('gl.players.manage'), async (req, res) => {
+  const id = Number(req.params.id);
+  if (!Number.isFinite(id)) return res.status(400).json({ error: 'Identifiant invalide' });
+  const existing = await queryOne('SELECT id FROM gl_classes WHERE id = ? LIMIT 1', [id]);
+  if (!existing) return res.status(404).json({ error: 'Classe introuvable' });
+
+  const name = req.body?.name == null ? null : normalizeOptionalString(req.body?.name);
+  const school = req.body?.school == null ? null : normalizeOptionalString(req.body?.school);
+  const isActive = parseOptionalBoolean(req.body?.isActive);
+  if (name != null && !name) return res.status(400).json({ error: 'Nom de classe invalide' });
+  if (isActive === undefined) return res.status(400).json({ error: 'isActive doit être booléen' });
+  if (name == null && school == null && isActive == null) {
+    return res.status(400).json({ error: 'Aucune modification fournie' });
+  }
+
+  await execute(
+    `UPDATE gl_classes
+        SET name = COALESCE(?, name),
+            school = ?,
+            is_active = COALESCE(?, is_active),
+            updated_at = NOW()
+      WHERE id = ?`,
+    [name, school, isActive == null ? null : (isActive ? 1 : 0), id]
+  );
+  const updated = await queryOne('SELECT * FROM gl_classes WHERE id = ? LIMIT 1', [id]);
+  return res.json(updated);
+});
+
+router.delete('/classes/:id', requireGlPermission('gl.players.manage'), async (req, res) => {
+  const id = Number(req.params.id);
+  if (!Number.isFinite(id)) return res.status(400).json({ error: 'Identifiant invalide' });
+  const existing = await queryOne('SELECT id FROM gl_classes WHERE id = ? LIMIT 1', [id]);
+  if (!existing) return res.status(404).json({ error: 'Classe introuvable' });
+
+  const playersRow = await queryOne(
+    'SELECT COUNT(*) AS c FROM gl_players WHERE class_id = ? AND is_active = 1',
+    [id]
+  );
+  if (Number(playersRow?.c || 0) > 0) {
+    return res.status(409).json({ error: 'Suppression refusée : des joueurs actifs sont rattachés à cette classe' });
+  }
+  const gamesRow = await queryOne(
+    "SELECT COUNT(*) AS c FROM gl_games WHERE class_id = ? AND status <> 'ended'",
+    [id]
+  );
+  if (Number(gamesRow?.c || 0) > 0) {
+    return res.status(409).json({ error: 'Suppression refusée : des parties non terminées existent pour cette classe' });
+  }
+
+  await execute('DELETE FROM gl_classes WHERE id = ?', [id]);
+  return res.json({ ok: true });
+});
+
 router.get('/players', requireGlPermission('gl.players.manage'), async (req, res) => {
   const classId = req.query?.classId ? Number(req.query.classId) : null;
   const rows = classId
     ? await queryAll(
-      `SELECT p.id, p.class_id, p.team_id, p.first_name, p.last_name, p.pseudo,
+      `SELECT p.id, p.class_id, p.team_id, p.first_name, p.last_name, p.pseudo, p.email,
               p.password_must_reset, p.is_active, p.linked_foretmap_user_id, p.last_seen, c.name AS class_name
          FROM gl_players p
     LEFT JOIN gl_classes c ON c.id = p.class_id
@@ -102,7 +191,7 @@ router.get('/players', requireGlPermission('gl.players.manage'), async (req, res
       [classId]
     )
     : await queryAll(
-      `SELECT p.id, p.class_id, p.team_id, p.first_name, p.last_name, p.pseudo,
+      `SELECT p.id, p.class_id, p.team_id, p.first_name, p.last_name, p.pseudo, p.email,
               p.password_must_reset, p.is_active, p.linked_foretmap_user_id, p.last_seen, c.name AS class_name
          FROM gl_players p
     LEFT JOIN gl_classes c ON c.id = p.class_id
@@ -118,8 +207,12 @@ router.post('/players', requireGlPermission('gl.players.manage'), async (req, re
   const password = normalizePassword(req.body?.password) || normalizePassword(req.body?.pin);
   const classId = Number(req.body?.classId);
   const passwordMustResetInput = req.body?.passwordMustReset;
+  const email = normalizePlayerEmail(req.body?.email);
   if (!firstName || !lastName || !pseudo || !Number.isFinite(classId)) {
     return res.status(400).json({ error: 'Prénom, nom, pseudo et classId requis' });
+  }
+  if (email && !PLAYER_EMAIL_RE.test(email)) {
+    return res.status(400).json({ error: 'Email invalide' });
   }
   if (!PSEUDO_RE.test(pseudo)) {
     return res.status(400).json({ error: 'Pseudo invalide (3-30 caractères, lettres/chiffres/._-)' });
@@ -135,6 +228,9 @@ router.post('/players', requireGlPermission('gl.players.manage'), async (req, re
   if (!pseudoAvailable) {
     return res.status(409).json({ error: 'Pseudo déjà utilisé' });
   }
+  if (email && !(await ensureEmailAvailable(email))) {
+    return res.status(409).json({ error: 'Email déjà utilisé pour un joueur GL' });
+  }
   const generatedPassword = buildGeneratedPassword();
   const effectivePassword = password || generatedPassword;
   const passwordMustReset = passwordMustResetInput == null
@@ -143,12 +239,12 @@ router.post('/players', requireGlPermission('gl.players.manage'), async (req, re
   const passwordHash = await bcrypt.hash(effectivePassword, 10);
   await execute(
     `INSERT INTO gl_players
-      (class_id, team_id, first_name, last_name, pseudo, password_must_reset, password_hash, linked_foretmap_user_id, is_active, created_at, updated_at)
-     VALUES (?, NULL, ?, ?, ?, ?, ?, NULL, 1, NOW(), NOW())`,
-    [classId, firstName, lastName, pseudo, passwordMustReset, passwordHash]
+      (class_id, team_id, first_name, last_name, email, pseudo, password_must_reset, password_hash, linked_foretmap_user_id, is_active, created_at, updated_at)
+     VALUES (?, NULL, ?, ?, ?, ?, ?, ?, NULL, 1, NOW(), NOW())`,
+    [classId, firstName, lastName, email, pseudo, passwordMustReset, passwordHash]
   );
   const created = await queryOne(
-    `SELECT p.id, p.class_id, p.team_id, p.first_name, p.last_name, p.pseudo, p.password_must_reset, p.is_active
+    `SELECT p.id, p.class_id, p.team_id, p.first_name, p.last_name, p.pseudo, p.email, p.password_must_reset, p.is_active
        FROM gl_players p
       WHERE p.class_id = ? AND p.pseudo = ?
       ORDER BY p.id DESC
@@ -168,9 +264,16 @@ router.put('/players/:id', requireGlPermission('gl.players.manage'), async (req,
   const lastName = normalizeImportOptionalString(req.body?.lastName);
   const classId = req.body?.classId == null ? null : Number(req.body.classId);
   const pseudo = req.body?.pseudo == null ? null : normalizePseudo(req.body?.pseudo);
+  const emailProvided = req.body != null && Object.prototype.hasOwnProperty.call(req.body, 'email');
+  const email = emailProvided ? normalizePlayerEmail(req.body.email) : undefined;
+  const isActive = parseOptionalBoolean(req.body?.isActive);
 
   if (firstName != null && !firstName) return res.status(400).json({ error: 'Prénom invalide' });
+  if (emailProvided && email && !PLAYER_EMAIL_RE.test(email)) {
+    return res.status(400).json({ error: 'Email invalide' });
+  }
   if (lastName != null && !lastName) return res.status(400).json({ error: 'Nom invalide' });
+  if (isActive === undefined) return res.status(400).json({ error: 'isActive doit être booléen' });
   if (pseudo != null && !PSEUDO_RE.test(pseudo)) {
     return res.status(400).json({ error: 'Pseudo invalide (3-30 caractères, lettres/chiffres/._-)' });
   }
@@ -182,25 +285,61 @@ router.put('/players/:id', requireGlPermission('gl.players.manage'), async (req,
     const pseudoAvailable = await ensurePseudoAvailable(pseudo, id);
     if (!pseudoAvailable) return res.status(409).json({ error: 'Pseudo déjà utilisé' });
   }
+  if (emailProvided && email && !(await ensureEmailAvailable(email, id))) {
+    return res.status(409).json({ error: 'Email déjà utilisé pour un joueur GL' });
+  }
 
-  await execute(
-    `UPDATE gl_players
-        SET first_name = COALESCE(?, first_name),
-            last_name = COALESCE(?, last_name),
-            pseudo = COALESCE(?, pseudo),
-            class_id = COALESCE(?, class_id),
-            updated_at = NOW()
-      WHERE id = ?`,
-    [firstName, lastName, pseudo, Number.isFinite(classId) ? classId : null, id]
-  );
+  const setParts = [
+    'first_name = COALESCE(?, first_name)',
+    'last_name = COALESCE(?, last_name)',
+    'pseudo = COALESCE(?, pseudo)',
+    'class_id = COALESCE(?, class_id)',
+    'is_active = COALESCE(?, is_active)',
+    'updated_at = NOW()',
+  ];
+  const params = [
+    firstName,
+    lastName,
+    pseudo,
+    Number.isFinite(classId) ? classId : null,
+    isActive == null ? null : (isActive ? 1 : 0),
+  ];
+  if (emailProvided) {
+    setParts.splice(2, 0, 'email = ?');
+    params.splice(2, 0, email);
+  }
+  params.push(id);
+  await execute(`UPDATE gl_players SET ${setParts.join(', ')} WHERE id = ?`, params);
   const updated = await queryOne(
-    `SELECT id, class_id, team_id, first_name, last_name, pseudo, password_must_reset, is_active
+    `SELECT id, class_id, team_id, first_name, last_name, pseudo, email, password_must_reset, is_active
        FROM gl_players
       WHERE id = ?
       LIMIT 1`,
     [id]
   );
   return res.json(updated);
+});
+
+router.delete('/players/:id', requireGlPermission('gl.players.manage'), async (req, res) => {
+  const id = Number(req.params.id);
+  if (!Number.isFinite(id)) return res.status(400).json({ error: 'Identifiant invalide' });
+  const existing = await queryOne('SELECT id FROM gl_players WHERE id = ? LIMIT 1', [id]);
+  if (!existing) return res.status(404).json({ error: 'Joueur introuvable' });
+
+  const activeGames = await queryOne(
+    `SELECT COUNT(*) AS c
+       FROM gl_team_members tm
+ INNER JOIN gl_games g ON g.id = tm.game_id
+      WHERE tm.player_id = ? AND g.status IN ('draft', 'live', 'paused')`,
+    [id]
+  );
+  if (Number(activeGames?.c || 0) > 0) {
+    return res.status(409).json({ error: 'Suppression refusée : joueur engagé dans une partie en cours' });
+  }
+
+  await execute('DELETE FROM gl_team_members WHERE player_id = ?', [id]);
+  await execute('DELETE FROM gl_players WHERE id = ?', [id]);
+  return res.json({ ok: true });
 });
 
 router.post('/players/:id/reset-password', requireGlPermission('gl.players.manage'), async (req, res) => {
@@ -275,6 +414,8 @@ router.post('/players/import', requireGlPermission('gl.players.manage'), async (
   );
   const existingPseudos = await queryAll('SELECT pseudo FROM gl_players');
   const knownPseudos = new Set(existingPseudos.map((row) => String(row.pseudo || '').trim().toLowerCase()));
+  const existingEmails = await queryAll('SELECT email FROM gl_players WHERE email IS NOT NULL');
+  const knownEmails = new Set(existingEmails.map((row) => String(row.email || '').trim().toLowerCase()));
 
   const errors = [];
   const validRows = [];
@@ -295,6 +436,13 @@ router.post('/players/import', requireGlPermission('gl.players.manage'), async (
     if (normalizedPseudo && knownPseudos.has(normalizedPseudo)) {
       rowErrors.push({ row: rowNumber, field: 'pseudo', error: 'Pseudo déjà utilisé' });
     }
+    const normalizedEmail = payload.email ? payload.email.toLowerCase() : null;
+    if (normalizedEmail && !PLAYER_EMAIL_RE.test(normalizedEmail)) {
+      rowErrors.push({ row: rowNumber, field: 'email', error: 'Email invalide' });
+    }
+    if (normalizedEmail && knownEmails.has(normalizedEmail)) {
+      rowErrors.push({ row: rowNumber, field: 'email', error: 'Email déjà utilisé' });
+    }
     const classId = normalizedClass ? classIdByName.get(normalizedClass) : null;
     if (!classId) {
       rowErrors.push({ row: rowNumber, field: 'className', error: 'Classe introuvable' });
@@ -304,11 +452,13 @@ router.post('/players/import', requireGlPermission('gl.players.manage'), async (
       continue;
     }
     knownPseudos.add(normalizedPseudo);
+    if (normalizedEmail) knownEmails.add(normalizedEmail);
     validRows.push({
       rowNumber,
       firstName: payload.firstName,
       lastName: payload.lastName,
       pseudo: normalizedPseudo,
+      email: normalizedEmail,
       classId,
       password: payload.password || null,
     });
@@ -323,9 +473,9 @@ router.post('/players/import', requireGlPermission('gl.players.manage'), async (
       try {
         await execute(
           `INSERT INTO gl_players
-            (class_id, team_id, first_name, last_name, pseudo, password_must_reset, password_hash, linked_foretmap_user_id, is_active, created_at, updated_at)
-           VALUES (?, NULL, ?, ?, ?, ?, ?, NULL, 1, NOW(), NOW())`,
-          [row.classId, row.firstName, row.lastName, row.pseudo, passwordMustReset, passwordHash]
+            (class_id, team_id, first_name, last_name, email, pseudo, password_must_reset, password_hash, linked_foretmap_user_id, is_active, created_at, updated_at)
+           VALUES (?, NULL, ?, ?, ?, ?, ?, ?, NULL, 1, NOW(), NOW())`,
+          [row.classId, row.firstName, row.lastName, row.email, row.pseudo, passwordMustReset, passwordHash]
         );
         created += 1;
       } catch (err) {
@@ -354,6 +504,42 @@ router.post('/players/import', requireGlPermission('gl.players.manage'), async (
       errors,
     },
   });
+});
+
+router.get('/players/export', requireGlPermission('gl.players.manage'), async (req, res) => {
+  const classId = req.query?.classId == null ? null : Number(req.query.classId);
+  if (classId != null && !Number.isFinite(classId)) {
+    return res.status(400).json({ error: 'classId invalide' });
+  }
+  const rows = classId
+    ? await queryAll(
+      `SELECT p.id, p.first_name, p.last_name, p.pseudo, p.is_active, c.name AS class_name
+         FROM gl_players p
+    LEFT JOIN gl_classes c ON c.id = p.class_id
+        WHERE p.class_id = ?
+        ORDER BY p.id DESC`,
+      [classId]
+    )
+    : await queryAll(
+      `SELECT p.id, p.first_name, p.last_name, p.pseudo, p.is_active, c.name AS class_name
+         FROM gl_players p
+    LEFT JOIN gl_classes c ON c.id = p.class_id
+        ORDER BY p.id DESC`
+    );
+  const escapeCsv = (value) => `"${String(value ?? '').replace(/"/g, '""')}"`;
+  const header = ['ID', 'Prenom', 'Nom', 'Pseudo', 'Classe', 'Actif'].join(',');
+  const lines = rows.map((row) => ([
+    row.id,
+    row.first_name || '',
+    row.last_name || '',
+    row.pseudo || '',
+    row.class_name || '',
+    Number(row.is_active) ? 'oui' : 'non',
+  ].map(escapeCsv).join(',')));
+  const csv = [header, ...lines].join('\n');
+  res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+  res.setHeader('Content-Disposition', 'attachment; filename="foretmap-gl-joueurs.csv"');
+  return res.send(csv);
 });
 
 router.get('/settings', requireGlPermission('gl.settings.manage'), async (_req, res) => {

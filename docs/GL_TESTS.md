@@ -14,7 +14,7 @@ Ce document centralise les commandes et la matrice de couverture pour Gnomes & L
 ## Backend API
 
 - Auth: `tests/gl-auth.test.js`, `tests/gl-auth-config-me.test.js`, `tests/gl-staff-login.test.js`, `tests/gl-staff-auth.test.js`
-- Gameplay: `tests/gl-game-actions.test.js`, `tests/gl-game-turns.test.js`, `tests/gl-game-lifecycle.test.js`, `tests/gl-games.test.js`, `tests/gl-game-events-replay.test.js`
+- Gameplay: `tests/gl-game-actions.test.js`, `tests/gl-game-turns.test.js`, `tests/gl-game-lifecycle.test.js`, `tests/gl-games.test.js`, `tests/gl-games-roster.test.js`, `tests/gl-game-events-replay.test.js`
 - Chapitres/contenus: `tests/gl-chapters-admin.test.js`, `tests/gl-chapter-detail.test.js`, `tests/gl-chapters-admin-mutations.test.js`, `tests/gl-content.test.js`
 - Mascottes: `tests/gl-mascots.test.js`, `tests/gl-mascots-errors.test.js`, `tests/gl-mascot-catalog.test.js`
 - Admin GL: `tests/gl-admin-classes-players.test.js`, `tests/gl-settings.test.js`
@@ -27,6 +27,7 @@ Ce document centralise les commandes et la matrice de couverture pour Gnomes & L
 - `tests-ui/gl/GLAuthView.test.jsx`
 - `tests-ui/gl/GLMascotAvatar.test.jsx`
 - `tests-ui/gl/GLMascotFallbackSvg.test.jsx`
+- `tests-ui/gl/GLUsersAdminView.test.jsx`
 
 ## E2E Playwright GL
 
@@ -36,6 +37,7 @@ Ce document centralise les commandes et la matrice de couverture pour Gnomes & L
 - `e2e/gl-mascots.spec.js`
 - `e2e/gl-player-full-cycle.spec.js`
 - `e2e/gl-mj-console.spec.js`
+- `e2e/gl-users-admin.spec.js`
 - `e2e/gl-socket-reconnect.spec.js`
 - `e2e/gl-responsive-accessibility.spec.js`
 
