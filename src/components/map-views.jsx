@@ -30,6 +30,7 @@ import { parseLivingBeings, orderedLivingBeingsForForm, nextLivingBeingsFromMult
 import { getContentText } from '../utils/content';
 import { wheelZoomScaleFactor } from '../utils/mapWheelZoom';
 import { buildMapImageCandidates } from '../utils/mapImageCandidates';
+import { mergeDefaultVisitMediaImageBlocks } from '../utils/visitEditorialBlocks.js';
 import {
   taskLocationIds,
   tutorialLocationIds,
@@ -43,11 +44,11 @@ import { TutorialPreviewModal, tutorialPreviewPayload, tutorialPreviewCanEmbed }
 import { fetchTutorialReadIds } from './TutorialReadAcknowledge';
 import { DialogShell } from './DialogShell';
 import VisitMapMascotRenderer from './VisitMapMascotRenderer.jsx';
-import { VISIT_MASCOT_STATE } from '../utils/visitMascotState.js';
+import useMapViewMascot from '../hooks/useMapViewMascot.js';
 import {
-  normalizeVisitMascotId,
-  loadVisitMascotId,
-} from '../utils/visitMascotCatalog.js';
+  VisitEditorialMapPhotoImportList,
+  VisitEditorialMediaIdPicker,
+} from './VisitEditorialPhotoUi.jsx';
 
 function Toast({ msg, onDone }) {
   useEffect(() => { const t = setTimeout(onDone, 2400); return () => clearTimeout(t); }, []);
@@ -1284,21 +1285,11 @@ function ZoneInfoModal({ zone, plants, tasks, tutorials = [], isTeacher, student
               <div className="visit-editorial-builder__actions">
                 <button type="button" className="btn btn-ghost btn-sm" onClick={addImageBlock}>+ Bloc image</button>
               </div>
-              {zonePhotoOptions.length > 0 ? (
-                <div className="visit-media-import-from-map">
-                  <h6>Photos liées à cette zone</h6>
-                  <div className="visit-media-import-from-map__list">
-                    {zonePhotoOptions.map((ph) => (
-                      <div key={`zone-photo-${ph.id}`} className="visit-media-import-from-map__item">
-                        <span>{ph.caption || ph.image_url}</span>
-                        <button type="button" className="btn btn-ghost btn-sm" onClick={() => attachZonePhotoToVisit(ph)}>
-                          Associer à la visite
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ) : null}
+              <VisitEditorialMapPhotoImportList
+                photos={zonePhotoOptions}
+                heading="Photos liées à cette zone"
+                onAssociate={attachZonePhotoToVisit}
+              />
               <div className="visit-editorial-builder__list">
                 {imageBlocks.map((block) => (
                   <div key={block.id} className="visit-editorial-builder__item">
@@ -1310,20 +1301,12 @@ function ZoneInfoModal({ zone, plants, tasks, tutorials = [], isTeacher, student
                     </div>
                     <div className="visit-editorial-builder__image">
                       <label>Photos du bloc (1 ou 2)</label>
-                      <select
-                        multiple
-                        value={(block.media_ids || []).map(String)}
-                        onChange={(e) => {
-                          const ids = Array.from(e.target.selectedOptions).map((opt) => Number(opt.value)).filter((n) => Number.isFinite(n)).slice(0, 2);
-                          updateImageBlock(block.id, { media_ids: ids });
-                        }}
-                      >
-                        {visitMediaOptions.map((media) => (
-                          <option key={media.id} value={String(media.id)}>
-                            #{media.id} {media.caption || media.image_url || 'photo'}
-                          </option>
-                        ))}
-                      </select>
+                      <VisitEditorialMediaIdPicker
+                        mediaList={visitMediaOptions}
+                        selectedIds={block.media_ids || []}
+                        onChange={(ids) => updateImageBlock(block.id, { media_ids: ids })}
+                        emptyHint="Aucune photo visite — onglet Photos ou associe une photo zone ci-dessus."
+                      />
                       <div className="visit-editorial-builder__image-meta">
                         <select value={block.size || 'md'} onChange={(e) => updateImageBlock(block.id, { size: e.target.value })}>
                           <option value="sm">Compact</option>
@@ -2556,21 +2539,11 @@ function MarkerModal({
               <div className="visit-editorial-builder__actions">
                 <button type="button" className="btn btn-ghost btn-sm" onClick={addImageBlock}>+ Bloc image</button>
               </div>
-              {markerPhotoOptions.length > 0 ? (
-                <div className="visit-media-import-from-map">
-                  <h6>Photos liées à ce repère</h6>
-                  <div className="visit-media-import-from-map__list">
-                    {markerPhotoOptions.map((ph) => (
-                      <div key={`marker-photo-${ph.id}`} className="visit-media-import-from-map__item">
-                        <span>{ph.caption || ph.image_url}</span>
-                        <button type="button" className="btn btn-ghost btn-sm" onClick={() => attachMarkerPhotoToVisit(ph)}>
-                          Associer à la visite
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ) : null}
+              <VisitEditorialMapPhotoImportList
+                photos={markerPhotoOptions}
+                heading="Photos liées à ce repère"
+                onAssociate={attachMarkerPhotoToVisit}
+              />
               <div className="visit-editorial-builder__list">
                 {imageBlocks.map((block) => (
                   <div key={block.id} className="visit-editorial-builder__item">
@@ -2582,20 +2555,12 @@ function MarkerModal({
                     </div>
                     <div className="visit-editorial-builder__image">
                       <label>Photos du bloc (1 ou 2)</label>
-                      <select
-                        multiple
-                        value={(block.media_ids || []).map(String)}
-                        onChange={(e) => {
-                          const ids = Array.from(e.target.selectedOptions).map((opt) => Number(opt.value)).filter((n) => Number.isFinite(n)).slice(0, 2);
-                          updateImageBlock(block.id, { media_ids: ids });
-                        }}
-                      >
-                        {visitMediaOptions.map((media) => (
-                          <option key={media.id} value={String(media.id)}>
-                            #{media.id} {media.caption || media.image_url || 'photo'}
-                          </option>
-                        ))}
-                      </select>
+                      <VisitEditorialMediaIdPicker
+                        mediaList={visitMediaOptions}
+                        selectedIds={block.media_ids || []}
+                        onChange={(ids) => updateImageBlock(block.id, { media_ids: ids })}
+                        emptyHint="Aucune photo visite — onglet Photos ou associe une photo repère ci-dessus."
+                      />
                       <div className="visit-editorial-builder__image-meta">
                         <select value={block.size || 'md'} onChange={(e) => updateImageBlock(block.id, { size: e.target.value })}>
                           <option value="sm">Compact</option>
@@ -3182,17 +3147,10 @@ function MapView({ zones, markers, tasks = [], tutorials = [], plants, maps = []
     return [];
   }, [publicSettings?.visit?.mascot?.allowed_ids]);
   const visitMascotDefaultId = String(publicSettings?.visit?.mascot?.default_id || '').trim();
-  const mapMascotSelectionOptions = useMemo(
-    () => ({ allowedMascotIds: visitMascotAllowedIds, defaultMascotId: visitMascotDefaultId }),
-    [visitMascotAllowedIds, visitMascotDefaultId]
+  const mapMarkersOnActiveMap = useMemo(
+    () => (markers || []).filter((m) => m.map_id === activeMapId),
+    [markers, activeMapId],
   );
-  const mapMascotId = useMemo(() => {
-    const preferred = String(student?.visit_mascot_catalog_id || '').trim();
-    if (preferred) {
-      return normalizeVisitMascotId(preferred, [], mapMascotSelectionOptions);
-    }
-    return loadVisitMascotId([], mapMascotSelectionOptions);
-  }, [student?.visit_mascot_catalog_id, mapMascotSelectionOptions]);
   const contextCommentsEnabled = publicSettings?.modules?.context_comments_enabled !== false;
   const emojiParsingList = useMemo(
     () => [...new Set([...markerEmojis, ...MARKER_EMOJIS])],
@@ -3228,6 +3186,29 @@ function MapView({ zones, markers, tasks = [], tutorials = [], plants, maps = []
     touchAction,
     animateZoomTowardScale,
   } = useMapGestures({ mapImageSrc, activeMapId, mode, onRefresh, embedded, mapLayoutOuterRef });
+  const {
+    mascotId: mapMascotId,
+    showMascot: showMapMascot,
+    animationState: mapMascotAnimationState,
+    renderPct: mapMascotRenderPct,
+    faceRight: mapMascotFaceRight,
+    mascotClassName: mapMascotClassName,
+    dialog: mapMascotDialog,
+    dialogVisible: mapMascotDialogVisible,
+    moveTo: moveMapMascotTo,
+    onZoneViewClick: onMapMascotZoneClick,
+    onMarkerViewClick: onMapMascotMarkerClick,
+    resetMotion: resetMapMascotMotion,
+    clearDetailAfterMove: clearMapMascotDetailAfterMove,
+  } = useMapViewMascot({
+    mapId: activeMapId,
+    markers: mapMarkersOnActiveMap,
+    fitHeightPx: imgSize.h,
+    enabled: mode === 'view',
+    preferredMascotId: student?.visit_mascot_catalog_id,
+    allowedMascotIds: visitMascotAllowedIds,
+    defaultMascotId: visitMascotDefaultId,
+  });
   const { zoneTaskVisualById, markerTaskVisualById } = useMemo(() => {
     const zoneMap = new Map();
     const markerMap = new Map();
@@ -3348,7 +3329,8 @@ function MapView({ zones, markers, tasks = [], tutorials = [], plants, maps = []
     editZoneTranslateLastRef.current = null;
     editPointsHistoryRef.current = [];
     setEditCanUndo(false);
-  }, [activeMapId]);
+    resetMapMascotMotion?.();
+  }, [activeMapId, resetMapMascotMotion]);
 
   useEffect(() => {
     if (mode !== 'edit-points') editZoneTranslateLastRef.current = null;
@@ -3363,6 +3345,10 @@ function MapView({ zones, markers, tasks = [], tutorials = [], plants, maps = []
     if (e.target.closest('.map-zone-hit') || e.target.closest('.map-bubble')) return;
     const p = toImagePct(e.clientX, e.clientY);
     if (!p) return;
+    if (mode === 'view' && showMapMascot) {
+      moveMapMascotTo(p.xp, p.yp);
+      return;
+    }
     if (mode === 'draw-zone') setDrawPoints(pts => [...pts, p]);
     else if (mode === 'add-marker') { setPendingMarker(p); setMode('view'); }
   };
@@ -3615,7 +3601,13 @@ function MapView({ zones, markers, tasks = [], tutorials = [], plants, maps = []
     const zoneTutorialCount = zoneTutorialCountById.get(z.id) || 0;
     return (
       <g key={z.id} className={mode === 'view' ? 'map-zone-hit' : ''} style={{ cursor: mode === 'view' ? 'pointer' : 'default' }}
-        onClick={e => { if (mode === 'view' && !moved.current) { e.stopPropagation(); setSelectedZone(z); } }}>
+        onClick={e => {
+          if (mode === 'view' && !moved.current) {
+            e.stopPropagation();
+            if (showMapMascot) onMapMascotZoneClick(z, setSelectedZone);
+            else setSelectedZone(z);
+          }
+        }}>
         <polygon points={str} fill={isEd ? 'rgba(82,183,136,0.35)' : (z.color || '#86efac90')}
           stroke={isEd ? '#52b788' : 'rgba(26,71,49,0.5)'}
           strokeWidth={(isEd ? 2.5 : 1.5) * inv} strokeDasharray={z.special ? `${5 * inv},${3 * inv}` : 'none'} />
@@ -3831,14 +3823,6 @@ function MapView({ zones, markers, tasks = [], tutorials = [], plants, maps = []
   const cursor = mode === 'view' ? 'grab' : mode === 'draw-zone' ? 'crosshair' : mode === 'edit-points' ? 'default' : 'cell';
   const mobileInteractionsActive = mapInteractionEnabled || committed.s > 1.05;
   const canManageMarkerPositions = !!isTeacher;
-  const showMapMascot = mode === 'view' && !!mapMascotId;
-  const mapMascotPositionStyle = useMemo(
-    () => ({
-      left: isCoarsePointer ? '16%' : (embedded ? '10%' : '12%'),
-      top: embedded ? '90%' : '92%',
-    }),
-    [embedded, isCoarsePointer]
-  );
   const {
     isHelpEnabled,
     showContextHints,
@@ -3877,7 +3861,7 @@ function MapView({ zones, markers, tasks = [], tutorials = [], plants, maps = []
 
       {selectedZone && (
         <ZoneInfoModal zone={selectedZone} plants={plants} tasks={tasks} tutorials={tutorials} isTeacher={isTeacher} student={student} canSelfAssignTasks={canSelfAssignTasks} canEnrollOnTasks={canEnrollNewTasks} markerEmojis={markerEmojis} emojiParsingList={emojiParsingList} contextCommentsEnabled={contextCommentsEnabled} canParticipateContextComments={canParticipateContextComments}
-          onClose={() => setSelectedZone(null)}
+          onClose={() => { clearMapMascotDetailAfterMove(); setSelectedZone(null); }}
           onUpdate={async (id, data) => { await onZoneUpdate(id, data); setSelectedZone(null); await onRefresh(); }}
           onDelete={async id => { await deleteZone(id); setSelectedZone(null); }}
           onDuplicate={isTeacher ? duplicateZone : undefined}
@@ -3905,7 +3889,7 @@ function MapView({ zones, markers, tasks = [], tutorials = [], plants, maps = []
           markerEmojis={markerEmojis}
           contextCommentsEnabled={contextCommentsEnabled}
           canParticipateContextComments={canParticipateContextComments}
-          onClose={() => setSelectedMarker(null)}
+          onClose={() => { clearMapMascotDetailAfterMove(); setSelectedMarker(null); }}
           onSave={saveMarker}
           onUpdate={updateMarker}
           onDelete={deleteMarker}
@@ -4138,18 +4122,26 @@ function MapView({ zones, markers, tasks = [], tutorials = [], plants, maps = []
 
           {showMapMascot ? (
             <div
-              className={`visit-map-mascot visit-map-mascot--reduced-motion map-view-static-mascot${embedded ? ' map-view-static-mascot--embedded' : ''}`}
-              style={mapMascotPositionStyle}
+              className={`${mapMascotClassName}${embedded ? ' map-view-forest-mascot--embedded' : ''}`}
+              style={{ left: `${mapMascotRenderPct.xp}%`, top: `${mapMascotRenderPct.yp}%` }}
               aria-hidden="true"
             >
               <div
                 className="visit-map-mascot-inner"
-                style={{ transform: 'translate(-50%, -100%) scaleX(1)' }}
+                style={{
+                  transform: `translate(-50%, -100%) scaleX(${mapMascotFaceRight ? 1 : -1})`,
+                  '--visit-mascot-dialog-x': mapMascotFaceRight ? 1 : -1,
+                }}
               >
                 <VisitMapMascotRenderer
-                  mascotState={mode === 'view' ? VISIT_MASCOT_STATE.MAP_READ : VISIT_MASCOT_STATE.IDLE}
+                  mascotState={mapMascotAnimationState}
                   mascotId={mapMascotId}
                 />
+                {mapMascotDialogVisible && mapMascotDialog ? (
+                  <div className="visit-map-mascot-dialog" role="status" aria-live="polite">
+                    {mapMascotDialog}
+                  </div>
+                ) : null}
               </div>
             </div>
           ) : null}
@@ -4169,7 +4161,10 @@ function MapView({ zones, markers, tasks = [], tutorials = [], plants, maps = []
             const markerStatusDotOffset = isCoarsePointer ? -2 : -1;
             const openMarker = (e) => {
               e.stopPropagation();
-              if (!moved.current) setSelectedMarker(m);
+              if (!moved.current) {
+                if (mode === 'view' && showMapMascot) onMapMascotMarkerClick(m, setSelectedMarker);
+                else setSelectedMarker(m);
+              }
             };
             return (
             <button key={m.id} className="map-bubble" type="button"
