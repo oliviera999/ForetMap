@@ -7,6 +7,14 @@ function hasGlPermission(auth, permission) {
   return perms.includes(permission);
 }
 
+function allowsPasswordResetRoute(req) {
+  const method = String(req.method || '').toUpperCase();
+  const path = String(req.originalUrl || req.url || '').split('?')[0];
+  if (method === 'POST' && path.endsWith('/api/gl/auth/change-password')) return true;
+  if (method === 'GET' && path.endsWith('/api/gl/auth/me')) return true;
+  return false;
+}
+
 function requireGlAuth(req, res, next) {
   if (!JWT_SECRET) {
     return res.status(503).json({ error: 'Authentification GL non configurée' });
@@ -30,6 +38,16 @@ function requireGlAuth(req, res, next) {
       passwordMustReset: !!claims.passwordMustReset,
     };
     if (!req.glAuth.userId) return res.status(401).json({ error: 'Token invalide' });
+    if (
+      req.glAuth.userType === 'gl_player'
+      && req.glAuth.passwordMustReset
+      && !allowsPasswordResetRoute(req)
+    ) {
+      return res.status(403).json({
+        error: 'Mot de passe à mettre à jour avant de continuer',
+        mustResetPassword: true,
+      });
+    }
     return next();
   } catch (_) {
     return res.status(401).json({ error: 'Token invalide ou expiré' });

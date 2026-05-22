@@ -4,6 +4,7 @@ import {
   mergeDefaultVisitMediaImageBlocks,
   resolveVisitEditorialBlocksForContent,
 } from '../lib/visitEditorialBlocks.js';
+import { resolveEditorialBlocksForEditor } from '../src/utils/visitEditorialBlocks.js';
 
 describe('visitEditorialBlocks', () => {
   it('mergeDefaultVisitMediaImageBlocks ajoute les photos visit_media absentes des blocs image', () => {
@@ -59,6 +60,18 @@ describe('visitEditorialBlocks', () => {
     });
     assert.equal(out.filter((b) => b.type === 'image').length, 2);
     assert.equal(out[0].type, 'paragraph');
+  });
+
+  it('resolveEditorialBlocksForEditor conserve les paragraphes en ajoutant les photos par défaut', () => {
+    const out = resolveEditorialBlocksForEditor(
+      [{ type: 'paragraph', markdown: 'Texte carte' }],
+      { visit_body_json: JSON.stringify([{ type: 'paragraph', markdown: 'Texte carte' }]) },
+      [{ id: 17, caption: 'Photo carte' }],
+    );
+    assert.equal(out[0].type, 'paragraph');
+    assert.equal(out[0].markdown, 'Texte carte');
+    assert.equal(out[1].type, 'image');
+    assert.deepEqual(out[1].media_ids, [17]);
   });
 
   it('resolveVisitEditorialBlocksForContent : blocs image enregistrés → pas de fusion', () => {

@@ -65,3 +65,63 @@ test('Socket.IO GL : réception gl:game:event', async () => {
     server.close((err) => (err ? reject(err) : resolve()));
   });
 });
+
+test('Socket.IO GL : subscribe:gl-game refuse un token non GL', async () => {
+  const app = express();
+  const server = http.createServer(app);
+  initRealtime(server);
+  await new Promise((resolve, reject) => {
+    server.once('error', reject);
+    server.listen(0, '127.0.0.1', resolve);
+  });
+  const { port } = server.address();
+  const token = await signAuthToken({
+    userType: 'teacher',
+    userId: 'foret-teacher',
+    roleSlug: 'prof',
+    permissions: ['teacher.access'],
+  });
+
+  const socket = clientIo(`http://127.0.0.1:${port}`, {
+    path: '/socket.io',
+    transports: ['websocket'],
+    timeout: 8000,
+    auth: { token },
+  });
+
+  await new Promise((resolve, reject) => {
+    const timeout = setTimeout(() => reject(new Error('timeout connexion Socket.IO')), 8000);
+    socket.once('connect', () => {
+      clearTimeout(timeout);
+      resolve();
+    });
+    socket.once('connect_error', (err) => {
+      clearTimeout(timeout);
+      reject(err);
+    });
+  });
+
+  const errorPromise = new Promise((resolve, reject) => {
+    const timeout = setTimeout(() => reject(new Error('timeout refus abonnement GL')), 8000);
+    socket.once('gl:game:subscription-error', (msg) => {
+      clearTimeout(timeout);
+      resolve(msg);
+    });
+  });
+  socket.emit('subscribe:gl-game', { gameId: 78 });
+  const error = await errorPromise;
+  assert.strictEqual(Number(error.gameId), 78);
+
+  let received = false;
+  socket.once('gl:game:event', () => {
+    received = true;
+  });
+  emitGlGameEvent(78, { eventType: 'move', teamId: 4 });
+  await new Promise((resolve) => setTimeout(resolve, 180));
+  assert.strictEqual(received, false);
+
+  socket.close();
+  await new Promise((resolve, reject) => {
+    server.close((err) => (err ? reject(err) : resolve()));
+  });
+});

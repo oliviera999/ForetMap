@@ -60,6 +60,34 @@ test('POST /api/gl/auth/login accepte identifier + password (joueur)', async () 
   assert.strictEqual(res.body?.auth?.userType, 'gl_player');
 });
 
+test('un joueur en réinitialisation forcée ne peut appeler que le changement de mot de passe', async () => {
+  const login = await request(app)
+    .post('/api/gl/auth/login')
+    .send({ identifier: PSEUDO_MUST_RESET, password: 'ancienpin' })
+    .expect(200);
+  assert.strictEqual(login.body?.auth?.passwordMustReset, true);
+
+  await request(app)
+    .get('/api/gl/gameplay-settings')
+    .set('Authorization', `Bearer ${login.body.authToken}`)
+    .expect(403)
+    .expect((res) => {
+      assert.strictEqual(res.body?.mustResetPassword, true);
+    });
+
+  await request(app)
+    .post('/api/gl/auth/change-password')
+    .set('Authorization', `Bearer ${login.body.authToken}`)
+    .send({ currentPassword: 'ancienpin', newPassword: 'nouveaupin' })
+    .expect(200);
+
+  const relogin = await request(app)
+    .post('/api/gl/auth/login')
+    .send({ identifier: PSEUDO_MUST_RESET, password: 'nouveaupin' })
+    .expect(200);
+  assert.strictEqual(relogin.body?.auth?.passwordMustReset, false);
+});
+
 test('GET /api/gl/auth/me expose first_name / last_name', async () => {
   const login = await request(app)
     .post('/api/gl/auth/login')

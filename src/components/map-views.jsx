@@ -30,7 +30,7 @@ import { parseLivingBeings, orderedLivingBeingsForForm, nextLivingBeingsFromMult
 import { getContentText } from '../utils/content';
 import { wheelZoomScaleFactor } from '../utils/mapWheelZoom';
 import { buildMapImageCandidates } from '../utils/mapImageCandidates';
-import { mergeDefaultVisitMediaImageBlocks } from '../utils/visitEditorialBlocks.js';
+import { resolveEditorialBlocksForEditor } from '../utils/visitEditorialBlocks.js';
 import {
   taskLocationIds,
   tutorialLocationIds,
@@ -974,36 +974,7 @@ function ZoneInfoModal({ zone, plants, tasks, tutorials = [], isTeacher, student
 
   useEffect(() => {
     const fromJson = parseVisitEditorialBlocksFromJson(zone.visit_body_json);
-    const trimmedBody = zone.visit_body_json == null ? '' : String(zone.visit_body_json).trim();
-    const imageBlocksFromJson = fromJson.filter((b) => b.type === 'image');
-    if (!trimmedBody) {
-      setVisitEditorialBlocks(
-        visitMediaOptions
-          .map((media, i) => {
-            const mediaId = Number(media?.id);
-            if (!Number.isFinite(mediaId) || mediaId <= 0) return null;
-            return {
-              id: `default-img-${mediaId}`,
-              type: 'image',
-              media_ids: [mediaId],
-              layout: 'single',
-              size: i === 0 ? 'lg' : 'md',
-              align: 'center',
-              caption: String(media?.caption || '').trim(),
-            };
-          })
-          .filter(Boolean),
-      );
-      return;
-    }
-    const hasImageBlock = imageBlocksFromJson.length > 0;
-    if (!hasImageBlock && visitMediaOptions.length > 0) {
-      setVisitEditorialBlocks(
-        mergeDefaultVisitMediaImageBlocks(imageBlocksFromJson, visitMediaOptions).filter((b) => b.type === 'image'),
-      );
-      return;
-    }
-    setVisitEditorialBlocks(imageBlocksFromJson);
+    setVisitEditorialBlocks(resolveEditorialBlocksForEditor(fromJson, zone, visitMediaOptions));
   }, [zone.visit_body_json, zone.id, visitMediaOptions]);
 
   useEffect(() => {
@@ -1945,36 +1916,7 @@ function MarkerModal({
   useEffect(() => {
     if (isNew) return;
     const fromJson = parseVisitEditorialBlocksFromJson(marker.visit_body_json);
-    const trimmedBody = marker.visit_body_json == null ? '' : String(marker.visit_body_json).trim();
-    const imageBlocksFromJson = fromJson.filter((b) => b.type === 'image');
-    if (!trimmedBody) {
-      setVisitEditorialBlocks(
-        visitMediaOptions
-          .map((media, i) => {
-            const mediaId = Number(media?.id);
-            if (!Number.isFinite(mediaId) || mediaId <= 0) return null;
-            return {
-              id: `default-img-${mediaId}`,
-              type: 'image',
-              media_ids: [mediaId],
-              layout: 'single',
-              size: i === 0 ? 'lg' : 'md',
-              align: 'center',
-              caption: String(media?.caption || '').trim(),
-            };
-          })
-          .filter(Boolean),
-      );
-      return;
-    }
-    const hasImageBlock = imageBlocksFromJson.length > 0;
-    if (!hasImageBlock && visitMediaOptions.length > 0) {
-      setVisitEditorialBlocks(
-        mergeDefaultVisitMediaImageBlocks(imageBlocksFromJson, visitMediaOptions).filter((b) => b.type === 'image'),
-      );
-      return;
-    }
-    setVisitEditorialBlocks(imageBlocksFromJson);
+    setVisitEditorialBlocks(resolveEditorialBlocksForEditor(fromJson, marker, visitMediaOptions));
   }, [isNew, marker.visit_body_json, marker.id, visitMediaOptions]);
 
   const buildPayload = () => {
