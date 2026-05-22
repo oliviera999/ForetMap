@@ -195,6 +195,25 @@ export function GroupsAdminView() {
     setLoading(false);
   };
 
+  const deleteGroup = async (g) => {
+    if (!g?.id) return;
+    const ok = window.confirm(`Supprimer le groupe « ${g.name} » ?`);
+    if (!ok) return;
+    setLoading(true);
+    setErr('');
+    try {
+      await api(`/api/groups/${encodeURIComponent(g.id)}`, 'DELETE');
+      setMsg('Groupe supprimé');
+      if (editingGroup && String(editingGroup.id) === String(g.id)) {
+        setEditingGroup(null);
+      }
+      await load();
+    } catch (e) {
+      setErr(e.message || 'Erreur suppression groupe');
+    }
+    setLoading(false);
+  };
+
   return (
     <div style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: 12, padding: 12, marginTop: 12 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
@@ -225,6 +244,9 @@ export function GroupsAdminView() {
                 <button className="btn btn-ghost btn-sm" onClick={() => setEditingGroup(g)}>Membres</button>
                 <button className="btn btn-ghost btn-sm" onClick={() => toggleGroupActive(g)}>
                   {g.is_active ? 'Désactiver' : 'Activer'}
+                </button>
+                <button className="btn btn-danger btn-sm" onClick={() => deleteGroup(g)} disabled={loading}>
+                  Supprimer
                 </button>
               </div>
             </div>

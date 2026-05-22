@@ -41,6 +41,15 @@ function downloadUrl(url) {
   a.remove();
 }
 
+function fileToDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result || ''));
+    reader.onerror = () => reject(new Error('Lecture du fichier impossible'));
+    reader.readAsDataURL(file);
+  });
+}
+
 const LINKED_TASK_STATUS_LABELS = {
   available: 'À faire',
   in_progress: 'En cours',
@@ -404,6 +413,28 @@ function TutorialsView({
     }
   };
 
+  const uploadCover = async (row) => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.onchange = async () => {
+      const file = input.files?.[0];
+      if (!file) return;
+      try {
+        const imageData = await fileToDataUrl(file);
+        await api(`/api/tutorials/${row.id}/cover-photo-upload`, 'POST', { imageData });
+        await onRefresh?.();
+        setToast('Couverture mise à jour ✓');
+        setTimeout(() => setToast(''), 2500);
+      } catch (e) {
+        if (e instanceof AccountDeletedError) onForceLogout?.();
+        setToast('Erreur couverture : ' + e.message);
+        setTimeout(() => setToast(''), 3000);
+      }
+    };
+    input.click();
+  };
+
   return (
     <div className="tutorials-root" style={{ display: 'contents' }}>
       {preview && (
@@ -710,6 +741,9 @@ function TutorialsView({
                 {isTeacher && (
                   <>
                     <button className="btn btn-ghost btn-sm" onClick={() => beginEdit(t)}>✏️</button>
+                    <button className="btn btn-ghost btn-sm" onClick={() => uploadCover(t)} title="Uploader une image de couverture">
+                      🖼️ Couverture
+                    </button>
                     {t.is_active ? (
                       <button className="btn btn-danger btn-sm" onClick={() => archiveTutorial(t)}>🗑️</button>
                     ) : (

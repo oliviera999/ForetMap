@@ -21,6 +21,8 @@ const {
 const { runSpeciesAutofillProviderSelfTest } = require('../lib/speciesAutofillProviderSelfTest');
 const { normalizeMapImageUrl } = require('../lib/mapImageUrl');
 const { MAP_SLUG_RE } = require('../lib/studentAffiliation');
+const { getRuntimeProcessSnapshot } = require('../lib/runtimeDiagnostics');
+const logMetrics = require('../lib/logMetrics');
 
 const router = express.Router();
 
@@ -319,6 +321,50 @@ router.delete(
         return res.status(e.status).json({ error: e.message || 'Suppression média refusée' });
       }
       return respondInternalError(res, req, e);
+    }
+  }
+);
+
+router.get(
+  '/admin/system/diagnostics',
+  requirePermission('admin.settings.read', { needsElevation: true }),
+  async (req, res) => {
+    try {
+      const settings = await getSettings('admin');
+      if (!settings.flat['ops.allow_remote_logs']) {
+        return res.status(403).json({ error: 'Diagnostics système désactivés' });
+      }
+      const toMb = (n) => Math.round((n / 1024 / 1024) * 100) / 100;
+      const mem = process.memoryUsage();
+      const t0 = Date.now();
+      let database = { ok: false };
+      try {
+        await queryOne('SELECT 1 AS ok');
+        database = { ok: true, latencyMs: Date.now() - t0 };
+      } catch (_) {
+        database = { ok: false, error: 'Database unavailable' };
+      }
+      res.json({
+        ok: true,
+        ts: new Date().toISOString(),
+        nodeEnv: process.env.NODE_ENV || null,
+        nodeVersion: process.version,
+        uptimeSeconds: Math.floor(process.uptime()),
+        memory: {
+          rssMb: toMb(mem.rss),
+          heapUsedMb: toMb(mem.heapUsed),
+          heapTotalMb: toMb(mem.heapTotal),
+        },
+        database,
+        logBuffer: {
+          linesCount: getBufferedLineCount(),
+          maxLines: getMaxLines(),
+        },
+        metrics: logMetrics.getMetrics(),
+        runtimeProcess: getRuntimeProcessSnapshot(),
+      });
+    } catch (e) {
+      respondInternalError(res, req, e);
     }
   }
 );

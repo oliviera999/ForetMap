@@ -10,6 +10,7 @@ const { generateMapPhotoThumbFromMainRelativePath, deleteMapPhotoMainAndThumb } 
 const { sendFilePublicImageOptions } = require('../lib/httpImageCache');
 const { parseVisitEditorialBlocksInput, serializeVisitEditorialBlocks } = require('../lib/visitEditorialBlocks');
 const { resolveDefaultMapId } = require('../lib/settings');
+const { normalizeMarkerEmoji } = require('../lib/markerEmoji');
 
 const router = express.Router();
 
@@ -102,7 +103,7 @@ async function upsertVisitMarkerEditorial(reqBody, markerRow) {
       markerRow.x_pct,
       markerRow.y_pct,
       markerRow.label,
-      normalizeMarkerEmoji(markerRow.emoji),
+      normalizeMarkerEmoji(markerRow.emoji, { allowEmpty: true, fallback: '' }),
       subtitle,
       shortDescription,
       detailsTitle,
@@ -122,13 +123,6 @@ const MARKERS_LIST_SQL = `SELECT m.*,
   vm.body_json AS visit_body_json
 FROM map_markers m
 LEFT JOIN visit_markers vm ON vm.id = m.id`;
-
-/** Colonne `map_markers.emoji` : VARCHAR(16). */
-function normalizeMarkerEmoji(value, fallback = '🌱') {
-  const s = String(value ?? '').trim();
-  if (!s) return fallback;
-  return s.slice(0, 16);
-}
 
 router.get('/markers/:id/photos/:pid/data', requireAuth, async (req, res) => {
   try {
@@ -276,7 +270,7 @@ router.post('/markers', requirePermission('map.manage_markers', { needsElevation
     const id = uuidv4();
     await execute(
       'INSERT INTO map_markers (id, map_id, x_pct, y_pct, label, plant_name, living_beings, note, emoji, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-      [id, mapId, x_pct, y_pct, label.trim(), nextPlantName, serializeLivingBeings(nextLiving, nextPlantName), note || '', normalizeMarkerEmoji(emoji), new Date().toISOString()]
+      [id, mapId, x_pct, y_pct, label.trim(), nextPlantName, serializeLivingBeings(nextLiving, nextPlantName), note || '', normalizeMarkerEmoji(emoji, { allowEmpty: true, fallback: '' }), new Date().toISOString()]
     );
     let row = await queryOne(`${MARKERS_LIST_SQL} WHERE m.id = ?`, [id]);
     if (hasVisitMarkerContentPatch(req.body)) {
@@ -322,7 +316,9 @@ router.put('/markers/:id', requirePermission('map.manage_markers', { needsElevat
         nextPlantName,
         serializeLivingBeings(nextLiving, nextPlantName),
         note ?? m.note,
-        emoji !== undefined ? normalizeMarkerEmoji(emoji, m.emoji) : m.emoji,
+        emoji !== undefined
+          ? normalizeMarkerEmoji(emoji, { allowEmpty: true, fallback: '' })
+          : String(m.emoji ?? ''),
         m.id,
       ]
     );

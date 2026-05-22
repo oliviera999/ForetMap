@@ -635,7 +635,7 @@ function PhotoGallery({ zoneId, markerId, isTeacher }) {
   );
 }
 
-function ZoneOrMarkerEmojiField({ id, value, onChange, maxLen, gridLabel = 'Ou choisir dans la liste :' }) {
+function ZoneOrMarkerEmojiField({ id, value, onChange, maxLen, gridLabel = 'Ou choisir dans la liste :', allowNone = false }) {
   return (
     <>
       <input
@@ -645,12 +645,22 @@ function ZoneOrMarkerEmojiField({ id, value, onChange, maxLen, gridLabel = 'Ou c
         autoComplete="off"
         spellCheck={false}
         maxLength={maxLen}
-        placeholder="Colle ou tape un emoji…"
+        placeholder={allowNone ? 'Emoji optionnel…' : 'Colle ou tape un emoji…'}
         value={value}
         onChange={(e) => onChange(clampEmojiInput(e.target.value, maxLen))}
         style={{ fontSize: '1.2rem', width: '100%', maxWidth: 140 }}
       />
       <div style={{ fontSize: '.78rem', color: '#777', margin: '8px 0 6px' }}>{gridLabel}</div>
+      {allowNone ? (
+        <button
+          type="button"
+          className={`emoji-btn ${!String(value || '').trim() ? 'sel' : ''}`}
+          style={{ marginBottom: 8, fontSize: '.78rem', padding: '6px 10px' }}
+          onClick={() => onChange('')}
+        >
+          Sans emoji
+        </button>
+      ) : null}
     </>
   );
 }
@@ -1806,7 +1816,7 @@ function MarkerModal({
     label: marker.label || '',
     living_beings: orderedLivingBeingsForForm(marker.living_beings_list || marker.living_beings, marker.plant_name),
     note: marker.note || '',
-    emoji: marker.emoji || '🌱',
+    emoji: String(marker.emoji ?? '').trim(),
     visit_subtitle: marker.visit_subtitle || '',
     visit_short_description: marker.visit_short_description || '',
     visit_details_title: marker.visit_details_title || 'Détails',
@@ -1970,7 +1980,7 @@ function MarkerModal({
   const buildPayload = () => {
     const living = form.living_beings;
     const emojiVal = clampEmojiInput(
-      (form.emoji || '').trim() || '🌱',
+      (form.emoji || '').trim(),
       MAP_MARKER_EMOJI_MAX_CHARS,
     );
     return {
@@ -2116,12 +2126,13 @@ function MarkerModal({
               <div className="field"><label>Détails dépliables (visite)</label>
                 <MarkdownTextarea value={form.visit_details_text} onChange={set('visit_details_text')} rows={4} placeholder="Contenu du panneau repliable" />
               </div>
-              <div className="field"><label htmlFor="marker-new-emoji-custom">Emoji du repère</label>
+              <div className="field"><label htmlFor="marker-new-emoji-custom">Emoji du repère (optionnel)</label>
                 <ZoneOrMarkerEmojiField
                   id="marker-new-emoji-custom"
                   value={form.emoji}
                   onChange={(v) => setForm((f) => ({ ...f, emoji: v }))}
                   maxLen={MAP_MARKER_EMOJI_MAX_CHARS}
+                  allowNone
                 />
                 <div style={{
                   display: 'flex', gap: 6, flexWrap: 'wrap', maxHeight: 180, overflowY: 'auto', paddingRight: 2,
@@ -2659,12 +2670,13 @@ function MarkerModal({
                 ))}
               </div>
             </div>
-            <div className="field"><label htmlFor="marker-edit-emoji-custom">Emoji du repère</label>
+            <div className="field"><label htmlFor="marker-edit-emoji-custom">Emoji du repère (optionnel)</label>
               <ZoneOrMarkerEmojiField
                 id="marker-edit-emoji-custom"
                 value={form.emoji}
                 onChange={(v) => setForm((f) => ({ ...f, emoji: v }))}
                 maxLen={MAP_MARKER_EMOJI_MAX_CHARS}
+                allowNone
               />
               <div style={{
                 display: 'flex', gap: 6, flexWrap: 'wrap', maxHeight: 180, overflowY: 'auto', paddingRight: 2,
@@ -3611,7 +3623,7 @@ function MapView({ zones, markers, tasks = [], tutorials = [], plants, maps = []
       plant_name: '',
       living_beings: living,
       note: m.note || '',
-      emoji: m.emoji || '🌱',
+      emoji: String(m.emoji ?? '').trim(),
       visit_subtitle: m.visit_subtitle,
       visit_short_description: m.visit_short_description,
       visit_details_title: m.visit_details_title,
@@ -4277,8 +4289,26 @@ function MapView({ zones, markers, tasks = [], tutorials = [], plants, maps = []
                 flexShrink: 0,
                 background: 'transparent', border: 'none', borderRadius: 0,
                 fontSize: markerEmojiSize,
-                lineHeight: 1 }}>
-                {m.emoji}
+                lineHeight: 1,
+                minWidth: m.emoji ? undefined : 10,
+                minHeight: m.emoji ? undefined : 10,
+              }}>
+                {m.emoji ? (
+                  m.emoji
+                ) : (
+                  <span
+                    className="map-marker-no-emoji"
+                    aria-hidden
+                    style={{
+                      display: 'inline-block',
+                      width: 8,
+                      height: 8,
+                      borderRadius: '50%',
+                      background: '#1a4731',
+                      opacity: 0.55,
+                    }}
+                  />
+                )}
                 {markerTaskVisual && (
                   <span
                     className={`map-task-status-dot map-task-status-dot--${markerTaskVisual}`}
