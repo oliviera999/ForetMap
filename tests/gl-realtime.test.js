@@ -6,9 +6,14 @@ const { test } = require('node:test');
 const assert = require('node:assert');
 const http = require('http');
 const express = require('express');
+const jwt = require('jsonwebtoken');
 const { io: clientIo } = require('socket.io-client');
 const { initRealtime, emitGlGameEvent } = require('../lib/realtime');
-const { signAuthToken } = require('../middleware/requireTeacher');
+const { JWT_SECRET } = require('../middleware/requireTeacher');
+
+function signSocketTestToken(claims) {
+  return jwt.sign(claims, JWT_SECRET, { expiresIn: '1h' });
+}
 
 test('Socket.IO GL : réception gl:game:event', async () => {
   const app = express();
@@ -19,7 +24,7 @@ test('Socket.IO GL : réception gl:game:event', async () => {
     server.listen(0, '127.0.0.1', resolve);
   });
   const { port } = server.address();
-  const token = await signAuthToken({
+  const token = signSocketTestToken({
     product: 'gl',
     userType: 'gl_admin',
     userId: '500',
@@ -75,7 +80,7 @@ test('Socket.IO GL : subscribe:gl-game refuse un token non GL', async () => {
     server.listen(0, '127.0.0.1', resolve);
   });
   const { port } = server.address();
-  const token = await signAuthToken({
+  const token = signSocketTestToken({
     userType: 'teacher',
     userId: 'foret-teacher',
     roleSlug: 'prof',
