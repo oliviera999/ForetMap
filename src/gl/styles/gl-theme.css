@@ -1,19 +1,37 @@
 body.gl-body {
-  background: #f4fff5;
+  background: var(--gl-color-background, #f4fff5);
 }
 
 .gl-app {
+  --gl-color-primary: #013a40;
+  --gl-color-secondary: #f2e8d5;
+  --gl-color-tertiary: #bdbfb4;
+  --gl-color-text: #262626;
+  --gl-color-link: #778c88;
+  --gl-color-link-hover: #2c5959;
+  --gl-color-topbar: #013a40;
+  --gl-color-background: #f4fff5;
+  --gl-font-body: var(--font-sans);
+  --gl-font-heading: var(--font-sans);
   min-height: 100vh;
   min-height: 100dvh;
-  background: linear-gradient(180deg, #f4fff5 0%, #e8f7ff 100%);
-  color: #0f172a;
-  font-family: var(--font-sans);
+  background: linear-gradient(180deg, var(--gl-color-background, #f4fff5) 0%, #e8f7ff 100%);
+  color: var(--gl-color-text, #262626);
+  font-family: var(--gl-font-body, var(--font-sans));
 }
 
 .gl-app h1,
 .gl-app h2,
 .gl-app h3 {
-  font-family: var(--font-sans);
+  font-family: var(--gl-font-heading, var(--font-sans));
+}
+
+.gl-app a {
+  color: var(--gl-color-link, #778c88);
+}
+
+.gl-app a:hover {
+  color: var(--gl-color-link-hover, #2c5959);
 }
 
 /* role=banner : évite la balise <header> (styles globaux ForetMap = 56px + overflow:hidden) */
@@ -22,7 +40,7 @@ body.gl-body {
   grid-template-columns: 1fr;
   gap: 12px;
   padding: 14px 16px;
-  background: #0b3d2e;
+  background: var(--gl-color-topbar, #013a40);
   color: #f8fafc;
   height: auto;
   max-height: none;
@@ -42,6 +60,21 @@ body.gl-body {
   font-weight: 700;
 }
 
+.gl-brand-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.gl-brand-logo {
+  width: 48px;
+  height: 48px;
+  object-fit: contain;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.1);
+  padding: 3px;
+}
+
 .gl-brand-subtitle {
   font-size: 0.9rem;
   opacity: 0.9;
@@ -57,7 +90,7 @@ body.gl-body {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  border: 1px solid #7dd3fc;
+  border: 1px solid rgba(255, 255, 255, 0.35);
   background: rgba(255, 255, 255, 0.1);
   color: #f8fafc;
   border-radius: 999px;
@@ -90,7 +123,7 @@ body.gl-body {
 
 .gl-tab.is-active {
   background: #f8fafc;
-  color: #0f172a;
+  color: var(--gl-color-text, #262626);
   box-shadow: 0 8px 16px rgba(15, 23, 42, 0.16);
 }
 
@@ -148,6 +181,18 @@ body.gl-body {
   padding: 20px;
   display: grid;
   gap: 14px;
+}
+
+.gl-auth-logo-wrap {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 8px;
+}
+
+.gl-auth-logo {
+  width: 88px;
+  height: 88px;
+  object-fit: contain;
 }
 
 .gl-card {

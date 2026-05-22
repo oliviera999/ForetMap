@@ -11,6 +11,9 @@ const {
   mapWpSlugToChapterMeta,
   createMarkdownConverter,
   htmlToMarkdown,
+  extractCssVariablesMap,
+  normalizeBrandDataFromWp,
+  mirrorWpMediaInMarkdown,
   fetchWpCollection,
   transformWpEntries,
   transformWpEntriesAsChapters,
@@ -23,10 +26,10 @@ test('parseArgs active dry-run par defaut et --apply desactive dry-run', () => {
   assert.strictEqual(parsedDefault.apply, false);
   assert.ok(String(parsedDefault.outputDir).includes(path.join('tmp', 'gl-wp-import')));
 
-  const parsedApply = parseArgs(['--apply', '--source-base-url', 'https://gl.olution.info']);
+  const parsedApply = parseArgs(['--apply', '--source-base-url', 'https://yo.olution.info']);
   assert.strictEqual(parsedApply.apply, true);
   assert.strictEqual(parsedApply.dryRun, false);
-  assert.strictEqual(parsedApply.sourceBaseUrl, 'https://gl.olution.info');
+  assert.strictEqual(parsedApply.sourceBaseUrl, 'https://yo.olution.info');
 });
 
 test('mapWpSlugToGlSlug applique le mapping explicite', () => {
@@ -58,7 +61,7 @@ test('fetchWpCollection gere la pagination WP', async () => {
     };
   };
   const out = await fetchWpCollection({
-    sourceBaseUrl: 'https://gl.olution.info',
+    sourceBaseUrl: 'https://yo.olution.info',
     resource: 'pages',
     fetchFn,
   });
@@ -107,6 +110,14 @@ test('parseArgs accepte --target=chapters', () => {
   assert.strictEqual(c.target, 'pages');
   const d = parseArgs(['--target=invalid']);
   assert.strictEqual(d.target, 'pages');
+});
+
+test('parseArgs accepte --target=brand/--target=all et --skip-media', () => {
+  const a = parseArgs(['--target=brand']);
+  assert.strictEqual(a.target, 'brand');
+  const b = parseArgs(['--target', 'all', '--skip-media']);
+  assert.strictEqual(b.target, 'all');
+  assert.strictEqual(b.skipMedia, true);
 });
 
 test('mapWpSlugToChapterMeta retourne meta pour slug mappé, null sinon', () => {
@@ -160,4 +171,44 @@ test('transformWpEntriesAsChapters ne retient que les slugs mappés en chapitre'
   assert.strictEqual(rows[0].biome, 'forêt tempérée');
   assert.strictEqual(rows[0].orderIndex, 10);
   assert.ok(String(rows[0].storyMarkdown).includes('Histoire'));
+});
+
+test('extractCssVariablesMap et normalizeBrandDataFromWp lisent les presets Kadence', () => {
+  const html = `
+    <style>
+      :root{
+        --wp--preset--color--primary:#013a40;
+        --wp--preset--color--secondary:#f2e8d5;
+        --wp--preset--color--text-primary:#262626;
+        --wp--preset--color--custom-links:#778c88;
+        --wp--preset--color--custom-links-hover:#2c5959;
+        --wp--preset--font-family--caudex:Caudex, serif;
+        --wp--preset--font-family--cinzel:Cinzel, serif;
+      }
+    </style>
+  `;
+  const cssVars = extractCssVariablesMap(html);
+  assert.strictEqual(cssVars['--wp--preset--color--primary'], '#013a40');
+
+  const brand = normalizeBrandDataFromWp({
+    wpRootInfo: { name: 'Gnomes & Licornes', description: 'Le jeu de ST' },
+    homepageHtml: html,
+  });
+  assert.strictEqual(brand.title, 'Gnomes & Licornes');
+  assert.strictEqual(brand.subtitle, 'Le jeu de ST');
+  assert.strictEqual(brand.colors.primary, '#013a40');
+  assert.ok(Array.isArray(brand.fonts.googleFamilies));
+});
+
+test('mirrorWpMediaInMarkdown remplace les URLs médias WP', async () => {
+  const source = 'Visuel: https://www.yo.olution.info/wp-content/uploads/2026/01/hero.png';
+  const cache = new Map();
+  const out = await mirrorWpMediaInMarkdown(source, {
+    sourceHosts: ['yo.olution.info', 'www.yo.olution.info'],
+    mediaCache: cache,
+    apply: false,
+    targetDir: 'gl_import/wp',
+  });
+  assert.ok(out.includes('/uploads/gl_import/wp/'));
+  assert.strictEqual(cache.size, 1);
 });

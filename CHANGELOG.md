@@ -8,6 +8,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 ## [Non publié]
 
 ### Modifié
+- **GL — transposition WordPress yo → GL** : l’importeur `scripts/gl-import-wp.js` prend désormais `--target=brand` et `--target=all` (titre/sous-titre, charte, logo, médias + contenus), avec source recommandée `https://yo.olution.info` (`canonicalHost` possible) et réécriture des médias WordPress vers `uploads/gl_import/wp/*`; `GET /api/gl/auth/config` expose maintenant `brand` pour appliquer la charte côté UI GL (`GLTopBar`, `GLAuthView`, `gl-theme.css`, hook `useGLBrandTheme`).
 - **Carte — repères** : l’emoji associé à un repère est **optionnel** (bouton « Sans emoji », saisie vide) ; API `POST/PUT /api/map/markers` et visite `PUT /api/visit/markers/:id` acceptent `emoji: ""` ; sur le plan, repère sans emoji = pastille discrète + libellé sous le point si activé. Tests `tests/marker-emoji.test.js`, `tests/api.test.js` ; `docs/API.md`.
 - **GL — chapitres (contenus éditoriaux)** : import d’image de carte depuis galerie ou appareil photo toujours visible (URL + fichier), y compris avant la première sauvegarde du chapitre (envoi automatique à la création) ; composant `GLImageSourceField`.
 - **GL — pages éditoriales** : import d’images dans le markdown (galerie, appareil photo, bibliothèque média) via `GLMarkdownImageInsert` ; aperçu avec balises `img` sécurisées (`renderMarkdownToSafeHtml` option `allowImages`).

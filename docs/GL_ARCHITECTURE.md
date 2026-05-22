@@ -148,7 +148,7 @@ Tables GL préfixées `gl_` :
 
 ## Migration de contenu WordPress
 
-Source recommandée : API publique WordPress de `gl.olution.info`.
+Source recommandée : API publique WordPress de `yo.olution.info` (avec canonical `www.yo.olution.info`).
 
 - Config : `scripts/gl-import-wp.config.json`
 - Script : `scripts/gl-import-wp.js`
@@ -158,10 +158,12 @@ Modes disponibles :
 
 - `--dry-run` (défaut) : export markdown dans `tmp/gl-wp-import/*.md`.
 - `--apply` : UPSERT direct dans la table cible.
+- `--target=brand` : cible `gl_settings` (`platform.title`, `platform.subtitle`, `platform.brand`).
 - `--target=pages` (défaut) : cible `gl_content_pages` (mapping `slugMap`).
 - `--target=chapters` (Lot 2B) : cible `gl_chapters`, en utilisant la clé `chapterMap` de la config pour ne retenir que les pages WP référencées comme chapitres GL (`slug`, `biome`, `mapImageUrl`, `orderIndex`).
+- `--target=all` : enchaîne `brand` puis `pages` et, si `chapterMap` est renseigné, `chapters`.
 
-Le mapping de slugs est configurable (ex. `le-monde-de-gnomes-et-licornes -> world` pour les pages, et `chapitre-1-la-foret-magique -> { slug: foret-magique, ... }` pour les chapitres).
+Le mapping de slugs est configurable (ex. `le-monde-de-gnomes-licornes -> world` pour les pages, et `chapitre-1-la-foret-magique -> { slug: foret-magique, ... }` pour les chapitres). La config accepte aussi `canonicalHost` (URL canonique WordPress, ex. `www.yo.olution.info`) et `brandMap` (fallback logo).
 
 ## Variables d'environnement utiles
 
