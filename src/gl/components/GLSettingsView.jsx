@@ -47,6 +47,7 @@ function readGameplayFlag(settings, key) {
 export function GLSettingsView() {
   const [settings, setSettings] = useState({});
   const [title, setTitle] = useState('Gnomes & Licornes');
+  const [subtitle, setSubtitle] = useState('');
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
   const [savingKey, setSavingKey] = useState('');
@@ -58,6 +59,7 @@ export function GLSettingsView() {
       const next = data?.settings || {};
       setSettings(next);
       setTitle(String(next['platform.title'] || 'Gnomes & Licornes'));
+      setSubtitle(String(next['platform.subtitle'] || ''));
       setError('');
     } catch (err) {
       setError(err.message || 'Chargement impossible');
@@ -68,9 +70,10 @@ export function GLSettingsView() {
     load();
   }, []);
 
-  async function saveTitle(event) {
+  async function savePlatformIdentity(event) {
     event.preventDefault();
     const titleTrim = String(title || '').trim();
+    const subtitleTrim = String(subtitle || '').trim();
     if (!titleTrim) {
       setError('Le titre plateforme est obligatoire.');
       setSuccessMessage('');
@@ -81,8 +84,9 @@ export function GLSettingsView() {
     setSuccessMessage('');
     try {
       await apiGL('/api/gl/admin/settings/platform.title', 'PUT', { value: titleTrim });
+      await apiGL('/api/gl/admin/settings/platform.subtitle', 'PUT', { value: subtitleTrim });
       await load();
-      setSuccessMessage('Titre plateforme enregistré.');
+      setSuccessMessage('Identité plateforme enregistrée.');
     } catch (err) {
       setError(err.message || 'Enregistrement impossible');
     } finally {
@@ -111,15 +115,29 @@ export function GLSettingsView() {
       {error ? <p className="gl-error">{error}</p> : null}
       {successMessage ? <div className="gl-success-banner" role="status">{successMessage}</div> : null}
 
-      <form onSubmit={saveTitle} className="gl-form">
+      <form onSubmit={savePlatformIdentity} className="gl-form">
         <label>
           Titre plateforme
           <input value={title} onChange={(event) => setTitle(event.target.value)} />
+        </label>
+        <label>
+          Sous-titre plateforme
+          <input value={subtitle} onChange={(event) => setSubtitle(event.target.value)} />
         </label>
         <button type="submit" disabled={savingTitle}>
           {savingTitle ? 'Enregistrement…' : 'Enregistrer'}
         </button>
       </form>
+
+      {settings['platform.brand'] && typeof settings['platform.brand'] === 'object' ? (
+        <section className="gl-panel" style={{ marginTop: 12 }}>
+          <h3>Aperçu charte importée</h3>
+          <p className="gl-hint">
+            Cette section est alimentée par la clé `platform.brand` (import WordPress).
+          </p>
+          <pre>{JSON.stringify(settings['platform.brand'], null, 2)}</pre>
+        </section>
+      ) : null}
 
       <h3>Gameplay</h3>
       <p className="gl-hint">

@@ -10,15 +10,25 @@ export function GLTopBar({
   activeTab,
   onTabChange,
   auth,
+  platformTitle,
+  platformSubtitle,
+  brandLogoUrl,
   onLogout,
   onOpenProfile,
   playerMascotId,
 }) {
+  const title = String(platformTitle || 'Gnomes & Licornes');
+  const subtitle = String(platformSubtitle || 'Le jeu de Sciences et Technologie');
   return (
     <div className="gl-topbar" role="banner">
       <div className="gl-brand">
-        <div className="gl-brand-title">Gnomes &amp; Licornes</div>
-        <div className="gl-brand-subtitle">Le jeu de Sciences et Technologie</div>
+        <div className="gl-brand-header">
+          {brandLogoUrl ? <img src={brandLogoUrl} alt="Logo G&L" className="gl-brand-logo" /> : null}
+          <div>
+            <div className="gl-brand-title">{title}</div>
+            <div className="gl-brand-subtitle">{subtitle}</div>
+          </div>
+        </div>
       </div>
       <nav className="gl-tabs" aria-label="Navigation Gnomes et Licornes">
         {tabs.map((tab) => (

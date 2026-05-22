@@ -9,6 +9,7 @@ const {
 } = require('../../lib/glStaffAuth');
 const { resolveGlPlayerLogin } = require('../../lib/glPlayerAuth');
 const { getGlModulesSettings } = require('../../lib/glSettings');
+const { parseBrandFromGlSettings } = require('../../lib/glBrand');
 const { saveBase64ToDisk, deleteFile } = require('../../lib/uploads');
 const {
   MAX_AVATAR_BYTES,
@@ -303,33 +304,38 @@ async function completeGlGoogleOAuth({ cfg, payload, mode }) {
 /** GET /api/gl/auth/config — libellés écran connexion (public). */
 router.get('/config', async (req, res) => {
   try {
-  const titleRow = await queryOne(
-    "SELECT value_json FROM gl_settings WHERE `key` = 'platform.title' LIMIT 1"
-  );
-  const subtitleRow = await queryOne(
-    "SELECT value_json FROM gl_settings WHERE `key` = 'platform.subtitle' LIMIT 1"
-  );
-  let title = 'Gnomes & Licornes';
-  let subtitle = '';
-  try {
-    if (titleRow?.value_json) title = JSON.parse(titleRow.value_json);
-  } catch (_) { /* noop */ }
-  try {
-    if (subtitleRow?.value_json) subtitle = JSON.parse(subtitleRow.value_json);
-  } catch (_) { /* noop */ }
-  const clientId = normalizeOptionalString(process.env.GL_GOOGLE_OAUTH_CLIENT_ID)
-    || normalizeOptionalString(process.env.GOOGLE_OAUTH_CLIENT_ID);
-  const modules = await getGlModulesSettings();
-  const allowPlayerLinkForetmap = await isForetmapLinkEnabled();
-  const googleReady = !!clientId;
-  return res.json({
-    title: String(title || 'Gnomes & Licornes'),
-    subtitle: String(subtitle || ''),
-    allowGoogleStaff: googleReady,
-    allowGooglePlayer: googleReady,
-    allowPlayerLinkForetmap,
-    modules,
-  });
+    const titleRow = await queryOne(
+      "SELECT value_json FROM gl_settings WHERE `key` = 'platform.title' LIMIT 1"
+    );
+    const subtitleRow = await queryOne(
+      "SELECT value_json FROM gl_settings WHERE `key` = 'platform.subtitle' LIMIT 1"
+    );
+    const brandRow = await queryOne(
+      "SELECT value_json FROM gl_settings WHERE `key` = 'platform.brand' LIMIT 1"
+    );
+    let title = 'Gnomes & Licornes';
+    let subtitle = '';
+    try {
+      if (titleRow?.value_json) title = JSON.parse(titleRow.value_json);
+    } catch (_) { /* noop */ }
+    try {
+      if (subtitleRow?.value_json) subtitle = JSON.parse(subtitleRow.value_json);
+    } catch (_) { /* noop */ }
+    const brand = parseBrandFromGlSettings([{ key: 'platform.brand', value_json: brandRow?.value_json }]);
+    const clientId = normalizeOptionalString(process.env.GL_GOOGLE_OAUTH_CLIENT_ID)
+      || normalizeOptionalString(process.env.GOOGLE_OAUTH_CLIENT_ID);
+    const modules = await getGlModulesSettings();
+    const allowPlayerLinkForetmap = await isForetmapLinkEnabled();
+    const googleReady = !!clientId;
+    return res.json({
+      title: String(title || 'Gnomes & Licornes'),
+      subtitle: String(subtitle || ''),
+      brand,
+      allowGoogleStaff: googleReady,
+      allowGooglePlayer: googleReady,
+      allowPlayerLinkForetmap,
+      modules,
+    });
   } catch (err) {
     logRouteError(err, req, 'GET /api/gl/auth/config');
     return res.status(500).json({ error: 'Erreur serveur' });

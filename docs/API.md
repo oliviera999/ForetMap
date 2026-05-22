@@ -31,7 +31,7 @@ La matrice de couverture des tests GL est documentée dans `docs/GL_TESTS.md`.
 | POST | `/api/gl/auth/staff/login` | `{ identifier, password }` | Connexion MJ/Admin uniquement (compte **ForetMap** enseignant). Refus `403` pour un élève ForetMap. |
 | GET | `/api/gl/auth/google/start` | Query `mode=player`, `staff` ou `auto` (défaut **`auto`**) | Redirection OAuth Google (cookie `gl_oauth_mode`). En `auto`, joueur puis staff. Callback : `gl.html#oauth=…` ou `#oauth_error=…` |
 | POST | `/api/gl/auth/google` | `{ idToken, mode?: 'player'|'staff'|'auto' }` | Connexion Google : `player` = joueur seul ; `staff` = MJ/Admin seul ; **`auto`** (défaut) = joueur puis MJ/Admin |
-| GET | `/api/gl/auth/config` | — | Libellés écran connexion + flags (`title`, `subtitle`, `allowGoogleStaff`, `allowGooglePlayer`, `allowPlayerLinkForetmap`, `modules`) |
+| GET | `/api/gl/auth/config` | — | Libellés écran connexion + identité visuelle + flags (`title`, `subtitle`, `brand`, `allowGoogleStaff`, `allowGooglePlayer`, `allowPlayerLinkForetmap`, `modules`) |
 | GET | `/api/gl/auth/me` | — | Profil courant GL (`auth`, `profile`) enrichi (avatar, description, liaison ForetMap) |
 | PATCH | `/api/gl/auth/me/profile` | `{ currentPassword, pseudo?, email?, description?, displayName?, avatarData?, removeAvatar? }` | Mise à jour self-service du profil GL (joueur ou staff), avec validation du mot de passe actuel et réémission de session (`authToken`, `auth`) |
 | POST | `/api/gl/auth/change-password` | `{ currentPassword, newPassword }` (compat legacy `pin`/`password`) | Changement mot de passe joueur GL (`password_must_reset=0`) |
@@ -48,9 +48,13 @@ La matrice de couverture des tests GL est documentée dans `docs/GL_TESTS.md`.
 
 Slugs livrés en seed : `world`, `rules`, `spells`.
 
-Import éditorial WordPress : `npm run gl:import:wp` (`--dry-run` par défaut, `--apply` pour UPSERT BDD).
+Import éditorial WordPress (source recommandée `https://yo.olution.info`) : `npm run gl:import:wp` (`--dry-run` par défaut, `--apply` pour UPSERT BDD).
 
-Le script accepte également `--target=chapters` (Lot 2B) : seules les pages WP référencées dans `scripts/gl-import-wp.config.json` (clé `chapterMap`, slug WP → `{ slug, biome, mapImageUrl, orderIndex }` GL) sont importées, vers la table `gl_chapters` (le champ `story_markdown` est rempli depuis le contenu HTML converti ; `biotope_markdown` / `biocenose_markdown` restent à éditer ensuite via l'admin GL).
+Le script accepte aussi :
+- `--target=brand` : importe `title`, `subtitle`, `platform.brand` dans `gl_settings` (couleurs, polices, logo).
+- `--target=chapters` (Lot 2B) : seules les pages WP référencées dans `scripts/gl-import-wp.config.json` (clé `chapterMap`, slug WP → `{ slug, biome, mapImageUrl, orderIndex }` GL) sont importées, vers la table `gl_chapters` (le champ `story_markdown` est rempli depuis le contenu HTML converti ; `biotope_markdown` / `biocenose_markdown` restent à éditer ensuite via l'admin GL).
+- `--target=all` : enchaîne identité (`brand`) puis contenus (`pages`, et `chapters` si `chapterMap` est renseigné).
+- `--skip-media` : n’importe pas les assets distants (logo/images) et laisse les URLs source.
 
 ### Gameplay GL
 

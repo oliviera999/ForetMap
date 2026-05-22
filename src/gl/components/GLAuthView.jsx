@@ -42,7 +42,7 @@ function startGlGoogleAuth() {
 
 
 
-export function GLAuthView({ onLogin, oauthNotice }) {
+export function GLAuthView({ onLogin, oauthNotice, config }) {
 
   const [identifier, setIdentifier] = useState('');
 
@@ -51,6 +51,7 @@ export function GLAuthView({ onLogin, oauthNotice }) {
   const [platformTitle, setPlatformTitle] = useState('Gnomes & Licornes');
 
   const [platformSubtitle, setPlatformSubtitle] = useState('');
+  const [platformLogoUrl, setPlatformLogoUrl] = useState('');
 
   const [allowGoogle, setAllowGoogle] = useState(false);
 
@@ -81,6 +82,7 @@ export function GLAuthView({ onLogin, oauthNotice }) {
         if (data?.title) setPlatformTitle(String(data.title));
 
         if (data?.subtitle) setPlatformSubtitle(String(data.subtitle));
+        if (data?.brand?.logoUrl) setPlatformLogoUrl(String(data.brand.logoUrl));
 
         const googleReady = !!(data?.allowGoogleStaff || data?.allowGooglePlayer);
 
@@ -95,6 +97,13 @@ export function GLAuthView({ onLogin, oauthNotice }) {
       });
 
   }, []);
+
+  useEffect(() => {
+    if (!config || typeof config !== 'object') return;
+    if (config.title) setPlatformTitle(String(config.title));
+    if (config.subtitle) setPlatformSubtitle(String(config.subtitle));
+    if (config?.brand?.logoUrl) setPlatformLogoUrl(String(config.brand.logoUrl));
+  }, [config]);
 
 
 
@@ -163,6 +172,11 @@ export function GLAuthView({ onLogin, oauthNotice }) {
     <main className="gl-auth auth-wrap">
 
       <div className="auth-card fade-in gl-card">
+        {platformLogoUrl ? (
+          <div className="gl-auth-logo-wrap">
+            <img src={platformLogoUrl} alt="Logo plateforme" className="gl-auth-logo" />
+          </div>
+        ) : null}
 
         <h1>{platformTitle}</h1>
 

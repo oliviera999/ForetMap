@@ -29,6 +29,9 @@ test('GET /api/gl/auth/config expose un payload stable', async () => {
   const res = await request(app).get('/api/gl/auth/config').expect(200);
   assert.strictEqual(typeof res.body?.title, 'string');
   assert.strictEqual(typeof res.body?.subtitle, 'string');
+  assert.strictEqual(typeof res.body?.brand, 'object');
+  assert.strictEqual(typeof res.body?.brand?.colors, 'object');
+  assert.strictEqual(typeof res.body?.brand?.fonts, 'object');
   assert.strictEqual(typeof res.body?.allowGoogleStaff, 'boolean');
   assert.strictEqual(typeof res.body?.allowPlayerLinkForetmap, 'boolean');
 });

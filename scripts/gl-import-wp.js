@@ -3,12 +3,23 @@
 
 const fs = require('node:fs/promises');
 const path = require('node:path');
+const crypto = require('node:crypto');
 const TurndownService = require('turndown');
+const { writeBufferToDisk } = require('../lib/uploads');
 
 const DEFAULT_CONFIG_PATH = path.join(__dirname, 'gl-import-wp.config.json');
 const DEFAULT_OUTPUT_DIR = path.join(process.cwd(), 'tmp', 'gl-wp-import');
 
-const VALID_TARGETS = new Set(['pages', 'chapters']);
+const VALID_TARGETS = new Set(['pages', 'chapters', 'brand', 'all']);
+const EXT_BY_CONTENT_TYPE = new Map([
+  ['image/jpeg', 'jpg'],
+  ['image/png', 'png'],
+  ['image/webp', 'webp'],
+  ['image/gif', 'gif'],
+  ['image/svg+xml', 'svg'],
+  ['image/x-icon', 'ico'],
+  ['image/vnd.microsoft.icon', 'ico'],
+]);
 
 function parseArgs(argv) {
   const args = {
@@ -19,6 +30,7 @@ function parseArgs(argv) {
     apply: false,
     dryRun: true,
     target: 'pages',
+    skipMedia: false,
   };
   for (let i = 0; i < argv.length; i += 1) {
     const token = String(argv[i] || '').trim();
@@ -26,6 +38,7 @@ function parseArgs(argv) {
     if (token === '--source-base-url') args.sourceBaseUrl = String(argv[i + 1] || '').trim();
     if (token === '--output-dir') args.outputDir = String(argv[i + 1] || '').trim() || args.outputDir;
     if (token === '--include-posts') args.includePosts = true;
+    if (token === '--skip-media') args.skipMedia = true;
     if (token === '--apply') {
       args.apply = true;
       args.dryRun = false;
@@ -45,8 +58,12 @@ function parseArgs(argv) {
 async function loadConfig(configPath) {
   const raw = await fs.readFile(configPath, 'utf8');
   const parsed = JSON.parse(raw);
+  const excludeSlugsRaw = Array.isArray(parsed?.excludeSlugs) ? parsed.excludeSlugs : [];
   return {
     sourceBaseUrl: String(parsed?.sourceBaseUrl || '').trim(),
+    canonicalHost: String(parsed?.canonicalHost || '').trim(),
+    excludeSlugs: excludeSlugsRaw.map((value) => normalizeSlug(value)).filter(Boolean),
+    brandMap: parsed?.brandMap && typeof parsed.brandMap === 'object' ? parsed.brandMap : {},
     slugMap: parsed?.slugMap && typeof parsed.slugMap === 'object' ? parsed.slugMap : {},
     chapterMap: parsed?.chapterMap && typeof parsed.chapterMap === 'object' ? parsed.chapterMap : {},
   };
@@ -85,6 +102,11 @@ function mapWpSlugToGlSlug(wpSlug, slugMap) {
   const normalized = normalizeSlug(wpSlug);
   const explicit = normalizeSlug(slugMap?.[normalized] || '');
   return explicit || normalized;
+}
+
+function normalizeUrlHost(value) {
+  const raw = String(value || '').trim().toLowerCase();
+  return raw.replace(/^https?:\/\//, '').replace(/\/+$/, '');
 }
 
 function mapWpSlugToChapterMeta(wpSlug, chapterMap) {
@@ -127,11 +149,13 @@ async function fetchWpCollection({ sourceBaseUrl, resource, fetchFn = fetch }) {
   return entries;
 }
 
-function transformWpEntries(rawEntries, { slugMap, sourceType, turndownService }) {
+function transformWpEntries(rawEntries, { slugMap, sourceType, turndownService, excludeSlugs = [] }) {
+  const excluded = new Set((Array.isArray(excludeSlugs) ? excludeSlugs : []).map((value) => normalizeSlug(value)));
   return (Array.isArray(rawEntries) ? rawEntries : [])
     .map((entry) => {
       const wpSlug = normalizeSlug(entry?.slug);
       if (!wpSlug) return null;
+      if (excluded.has(wpSlug)) return null;
       const slug = mapWpSlugToGlSlug(wpSlug, slugMap);
       const title = normalizeRenderedText(entry?.title?.rendered || wpSlug || slug);
       const bodyMarkdown = htmlToMarkdown(entry?.content?.rendered || '', turndownService);
@@ -151,11 +175,13 @@ function transformWpEntries(rawEntries, { slugMap, sourceType, turndownService }
  * Convertit les entrées WP vers le schéma `gl_chapters`. Seules les entrées
  * dont le slug WP est référencé dans `chapterMap` sont retenues.
  */
-function transformWpEntriesAsChapters(rawEntries, { chapterMap, sourceType, turndownService }) {
+function transformWpEntriesAsChapters(rawEntries, { chapterMap, sourceType, turndownService, excludeSlugs = [] }) {
+  const excluded = new Set((Array.isArray(excludeSlugs) ? excludeSlugs : []).map((value) => normalizeSlug(value)));
   return (Array.isArray(rawEntries) ? rawEntries : [])
     .map((entry) => {
       const wpSlug = normalizeSlug(entry?.slug);
       if (!wpSlug) return null;
+      if (excluded.has(wpSlug)) return null;
       const meta = mapWpSlugToChapterMeta(wpSlug, chapterMap);
       if (!meta) return null;
       const title = normalizeRenderedText(entry?.title?.rendered || wpSlug || meta.slug);
@@ -185,6 +211,119 @@ function mergeRecordsBySlug(records) {
   return [...out.values()].sort((a, b) => a.slug.localeCompare(b.slug, 'fr'));
 }
 
+function getSourceHosts({ sourceBaseUrl, canonicalHost }) {
+  const hosts = new Set();
+  try {
+    hosts.add(normalizeUrlHost(new URL(sourceBaseUrl).hostname));
+  } catch (_) {
+    // noop
+  }
+  if (canonicalHost) hosts.add(normalizeUrlHost(canonicalHost));
+  return [...hosts].filter(Boolean);
+}
+
+function extractUrlsFromMarkdown(markdown) {
+  const source = String(markdown || '');
+  const seen = new Set();
+  const out = [];
+  const regex = /(https?:\/\/[^\s<>"')\]]+)/gi;
+  let match = regex.exec(source);
+  while (match) {
+    const value = String(match[1] || '').replace(/[.,;]+$/, '');
+    if (value && !seen.has(value)) {
+      seen.add(value);
+      out.push(value);
+    }
+    match = regex.exec(source);
+  }
+  return out;
+}
+
+function isWpMediaUrl(urlValue, sourceHosts = []) {
+  try {
+    const target = new URL(String(urlValue || ''));
+    const host = normalizeUrlHost(target.hostname);
+    const hostMatch = sourceHosts.includes(host);
+    return hostMatch && target.pathname.toLowerCase().includes('/wp-content/uploads/');
+  } catch (_) {
+    return false;
+  }
+}
+
+function extFromUrlOrContentType(urlValue, contentType) {
+  const fromType = EXT_BY_CONTENT_TYPE.get(String(contentType || '').split(';')[0].trim().toLowerCase());
+  if (fromType) return fromType;
+  try {
+    const parsed = new URL(String(urlValue || ''));
+    const ext = path.extname(parsed.pathname || '').replace('.', '').toLowerCase();
+    if (ext) return ext;
+  } catch (_) {
+    // noop
+  }
+  return 'bin';
+}
+
+async function fetchBinaryBuffer(urlValue, fetchFn = fetch) {
+  const res = await fetchFn(urlValue, {
+    headers: {
+      Accept: '*/*',
+      'User-Agent': 'ForetMap-GL-WP-Import/1.0',
+    },
+  });
+  if (!res.ok) {
+    throw new Error(`Media ${urlValue}: HTTP ${res.status}`);
+  }
+  const contentType = String(res.headers?.get?.('content-type') || '').toLowerCase();
+  const arrayBuffer = await res.arrayBuffer();
+  return { buffer: Buffer.from(arrayBuffer), contentType };
+}
+
+async function mirrorOneMediaUrl(urlValue, {
+  fetchFn = fetch,
+  mediaCache,
+  targetDir = 'gl_import/wp',
+  apply = false,
+}) {
+  if (mediaCache.has(urlValue)) return mediaCache.get(urlValue);
+  const checksum = crypto.createHash('sha1').update(urlValue).digest('hex').slice(0, 16);
+  if (!apply) {
+    const previewRelative = `${targetDir}/${checksum}.bin`.replace(/\\/g, '/');
+    const previewUrl = `/uploads/${previewRelative}`;
+    mediaCache.set(urlValue, previewUrl);
+    return previewUrl;
+  }
+  const { buffer, contentType } = await fetchBinaryBuffer(urlValue, fetchFn);
+  const ext = extFromUrlOrContentType(urlValue, contentType);
+  const relativePath = `${targetDir}/${checksum}.${ext}`.replace(/\\/g, '/');
+  writeBufferToDisk(relativePath, buffer);
+  const localUrl = `/uploads/${relativePath}`;
+  mediaCache.set(urlValue, localUrl);
+  return localUrl;
+}
+
+async function mirrorWpMediaInMarkdown(markdown, context = {}) {
+  const source = String(markdown || '');
+  if (!source) return source;
+  const urls = extractUrlsFromMarkdown(source).filter((urlValue) => isWpMediaUrl(urlValue, context.sourceHosts || []));
+  if (urls.length === 0) return source;
+  let out = source;
+  for (const urlValue of urls) {
+    const localUrl = await mirrorOneMediaUrl(urlValue, context);
+    out = out.split(urlValue).join(localUrl);
+  }
+  return out;
+}
+
+async function mirrorMediaInRecords(records, context = {}, fieldName) {
+  const out = [];
+  for (const row of records) {
+    const value = String(row?.[fieldName] || '');
+    const rewritten = await mirrorWpMediaInMarkdown(value, context);
+    out.push({ ...row, [fieldName]: rewritten });
+  }
+  return out;
+}
+
 async function writeDryRun(records, outputDir, label = 'pages') {
   await fs.mkdir(outputDir, { recursive: true });
   for (const row of records) {
@@ -195,6 +334,131 @@ async function writeDryRun(records, outputDir, label = 'pages') {
       + `${row.bodyMarkdown || row.storyMarkdown || '_Aucun contenu converti._'}\n`;
     await fs.writeFile(filePath, body, 'utf8');
   }
+}
+
+function extractCssVariablesMap(html) {
+  const source = String(html || '');
+  const out = {};
+  const re = /(--wp--preset--(?:color|font-family)--[a-z0-9_-]+)\s*:\s*([^;}{]+);/gi;
+  let match = re.exec(source);
+  while (match) {
+    const key = String(match[1] || '').trim();
+    const value = String(match[2] || '').trim();
+    if (key && value && !out[key]) out[key] = value;
+    match = re.exec(source);
+  }
+  return out;
+}
+
+function resolveRelativeUrl(baseUrl, maybeRelative) {
+  const raw = String(maybeRelative || '').trim();
+  if (!raw) return '';
+  try {
+    return new URL(raw, baseUrl).toString();
+  } catch (_) {
+    return '';
+  }
+}
+
+function pickFirstLogoUrlFromHtml(html, fallbackBaseUrl) {
+  const source = String(html || '');
+  const inSiteLogoBlock = source.match(/wp-block-site-logo[\s\S]{0,2500}?<img[^>]+src=["']([^"']+)["']/i);
+  if (inSiteLogoBlock?.[1]) return resolveRelativeUrl(fallbackBaseUrl, inSiteLogoBlock[1]);
+  const customLogo = source.match(/<img[^>]+class=["'][^"']*custom-logo[^"']*["'][^>]+src=["']([^"']+)["']/i);
+  if (customLogo?.[1]) return resolveRelativeUrl(fallbackBaseUrl, customLogo[1]);
+  return '';
+}
+
+async function fetchWpRootInfo(sourceBaseUrl, fetchFn = fetch) {
+  const endpoint = `${String(sourceBaseUrl).replace(/\/+$/, '')}/wp-json/`;
+  const res = await fetchFn(endpoint, {
+    headers: {
+      Accept: 'application/json',
+      'User-Agent': 'ForetMap-GL-WP-Import/1.0',
+    },
+  });
+  if (!res.ok) throw new Error(`WP root info: HTTP ${res.status}`);
+  return res.json();
+}
+
+async function fetchPageHtml(urlValue, fetchFn = fetch) {
+  const res = await fetchFn(urlValue, {
+    headers: {
+      Accept: 'text/html,application/xhtml+xml',
+      'User-Agent': 'ForetMap-GL-WP-Import/1.0',
+    },
+  });
+  if (!res.ok) {
+    throw new Error(`HTML ${urlValue}: HTTP ${res.status}`);
+  }
+  return res.text();
+}
+
+async function fetchMediaBySlug({ sourceBaseUrl, slug, fetchFn = fetch }) {
+  const base = String(sourceBaseUrl || '').replace(/\/+$/, '');
+  const endpoint =
+    `${base}/wp-json/wp/v2/media`
+    + `?slug=${encodeURIComponent(String(slug || '').trim())}&per_page=1&_fields=source_url`;
+  const res = await fetchFn(endpoint, {
+    headers: {
+      Accept: 'application/json',
+      'User-Agent': 'ForetMap-GL-WP-Import/1.0',
+    },
+  });
+  if (!res.ok) return '';
+  const body = await res.json();
+  if (!Array.isArray(body) || body.length === 0) return '';
+  return String(body[0]?.source_url || '').trim();
+}
+
+function normalizeBrandDataFromWp({ wpRootInfo, homepageHtml }) {
+  const cssVars = extractCssVariablesMap(homepageHtml);
+  const title = String(wpRootInfo?.name || '').trim() || 'Gnomes & Licornes';
+  const subtitle = String(wpRootInfo?.description || '').trim();
+  const colors = {
+    primary: cssVars['--wp--preset--color--primary'] || '#013a40',
+    secondary: cssVars['--wp--preset--color--secondary'] || '#f2e8d5',
+    tertiary: cssVars['--wp--preset--color--tertiary'] || '#bdbfb4',
+    text: cssVars['--wp--preset--color--text-primary'] || '#262626',
+    link: cssVars['--wp--preset--color--custom-links'] || '#778c88',
+    linkHover: cssVars['--wp--preset--color--custom-links-hover'] || '#2c5959',
+    topbar: cssVars['--wp--preset--color--primary'] || '#013a40',
+    background: '#f4fff5',
+  };
+  const fonts = {
+    body: String(cssVars['--wp--preset--font-family--caudex'] || 'Caudex'),
+    heading: String(cssVars['--wp--preset--font-family--cinzel'] || 'Cinzel'),
+    googleFamilies: ['Caudex', 'Cinzel'],
+  };
+  return { title, subtitle, colors, fonts, logoUrl: '', faviconUrl: null };
+}
+
+async function writeBrandDryRun(brand, outputDir) {
+  await fs.mkdir(outputDir, { recursive: true });
+  const filePath = path.join(outputDir, 'brand.json');
+  await fs.writeFile(filePath, `${JSON.stringify(brand, null, 2)}\n`, 'utf8');
+}
+
+async function applyBrandSettings(brand) {
+  const { execute } = require('../database');
+  await execute(
+    `INSERT INTO gl_settings (\`key\`, value_json, updated_by, updated_at)
+     VALUES (?, ?, ?, NOW())
+     ON DUPLICATE KEY UPDATE value_json = VALUES(value_json), updated_by = VALUES(updated_by), updated_at = NOW()`,
+    ['platform.title', JSON.stringify(String(brand?.title || 'Gnomes & Licornes')), 'wp-import']
+  );
+  await execute(
+    `INSERT INTO gl_settings (\`key\`, value_json, updated_by, updated_at)
+     VALUES (?, ?, ?, NOW())
+     ON DUPLICATE KEY UPDATE value_json = VALUES(value_json), updated_by = VALUES(updated_by), updated_at = NOW()`,
+    ['platform.subtitle', JSON.stringify(String(brand?.subtitle || '')), 'wp-import']
+  );
+  await execute(
+    `INSERT INTO gl_settings (\`key\`, value_json, updated_by, updated_at)
+     VALUES (?, ?, ?, NOW())
+     ON DUPLICATE KEY UPDATE value_json = VALUES(value_json), updated_by = VALUES(updated_by), updated_at = NOW()`,
+    ['platform.brand', JSON.stringify(brand || {}), 'wp-import']
+  );
 }
 
 async function applyRecords(records) {
@@ -242,6 +506,97 @@ async function applyChapterRecords(records) {
   }
 }
 
+async function buildPageRecords({ sourceBaseUrl, args, config, turndownService }) {
+  const pageEntries = await fetchWpCollection({ sourceBaseUrl, resource: 'pages', fetchFn: args.fetchFn });
+  const postEntries = args.includePosts
+    ? await fetchWpCollection({ sourceBaseUrl, resource: 'posts', fetchFn: args.fetchFn })
+    : [];
+  const records = mergeRecordsBySlug([
+    ...transformWpEntries(pageEntries, {
+      slugMap: config.slugMap,
+      sourceType: 'page',
+      turndownService,
+      excludeSlugs: config.excludeSlugs,
+    }),
+    ...transformWpEntries(postEntries, {
+      slugMap: config.slugMap,
+      sourceType: 'post',
+      turndownService,
+      excludeSlugs: config.excludeSlugs,
+    }),
+  ]);
+  if (args.skipMedia) return records;
+  const sourceHosts = getSourceHosts({ sourceBaseUrl, canonicalHost: config.canonicalHost });
+  return mirrorMediaInRecords(records, {
+    fetchFn: args.fetchFn,
+    mediaCache: args.mediaCache,
+    sourceHosts,
+    apply: args.apply,
+    targetDir: 'gl_import/wp',
+  }, 'bodyMarkdown');
+}
+
+async function buildChapterRecords({ sourceBaseUrl, args, config, turndownService }) {
+  const pageEntries = await fetchWpCollection({ sourceBaseUrl, resource: 'pages', fetchFn: args.fetchFn });
+  const postEntries = args.includePosts
+    ? await fetchWpCollection({ sourceBaseUrl, resource: 'posts', fetchFn: args.fetchFn })
+    : [];
+  const records = mergeRecordsBySlug([
+    ...transformWpEntriesAsChapters(pageEntries, {
+      chapterMap: config.chapterMap,
+      sourceType: 'page',
+      turndownService,
+      excludeSlugs: config.excludeSlugs,
+    }),
+    ...transformWpEntriesAsChapters(postEntries, {
+      chapterMap: config.chapterMap,
+      sourceType: 'post',
+      turndownService,
+      excludeSlugs: config.excludeSlugs,
+    }),
+  ]);
+  if (args.skipMedia) return records;
+  const sourceHosts = getSourceHosts({ sourceBaseUrl, canonicalHost: config.canonicalHost });
+  return mirrorMediaInRecords(records, {
+    fetchFn: args.fetchFn,
+    mediaCache: args.mediaCache,
+    sourceHosts,
+    apply: args.apply,
+    targetDir: 'gl_import/wp',
+  }, 'storyMarkdown');
+}
+
+async function runBrandImport({ sourceBaseUrl, args, config }) {
+  const homepageUrl = config.canonicalHost
+    ? `https://${normalizeUrlHost(config.canonicalHost)}/`
+    : `${String(sourceBaseUrl).replace(/\/+$/, '')}/`;
+  const wpRootInfo = await fetchWpRootInfo(sourceBaseUrl, args.fetchFn);
+  const homepageHtml = await fetchPageHtml(homepageUrl, args.fetchFn);
+  const brand = normalizeBrandDataFromWp({ wpRootInfo, homepageHtml });
+
+  const explicitLogoSlug = String(config?.brandMap?.logoMediaSlug || '').trim();
+  const detectedLogoUrl = pickFirstLogoUrlFromHtml(homepageHtml, homepageUrl);
+  const fallbackLogoUrl = explicitLogoSlug
+    ? await fetchMediaBySlug({ sourceBaseUrl, slug: explicitLogoSlug, fetchFn: args.fetchFn })
+    : '';
+  const logoSourceUrl = detectedLogoUrl || fallbackLogoUrl;
+  if (logoSourceUrl && !args.skipMedia) {
+    const mirroredLogo = await mirrorOneMediaUrl(logoSourceUrl, {
+      fetchFn: args.fetchFn,
+      mediaCache: args.mediaCache,
+      targetDir: 'gl_brand',
+      apply: args.apply,
+    });
+    brand.logoUrl = mirroredLogo;
+  } else if (logoSourceUrl) {
+    brand.logoUrl = logoSourceUrl;
+  }
+
+  if (args.dryRun) await writeBrandDryRun(brand, args.outputDir);
+  if (args.apply) await applyBrandSettings(brand);
+  return { target: 'brand', brand };
+}
+
 async function runImport(options = {}) {
   const args = {
     configPath: options.configPath || DEFAULT_CONFIG_PATH,
@@ -254,6 +609,8 @@ async function runImport(options = {}) {
       ? String(options.target).toLowerCase()
       : 'pages',
     fetchFn: options.fetchFn || fetch,
+    skipMedia: Boolean(options.skipMedia),
+    mediaCache: new Map(),
   };
   const config = await loadConfig(args.configPath);
   const sourceBaseUrl = args.sourceBaseUrl || config.sourceBaseUrl;
@@ -261,28 +618,53 @@ async function runImport(options = {}) {
 
   const turndownService = createMarkdownConverter();
 
+  if (args.target === 'brand') {
+    const out = await runBrandImport({ sourceBaseUrl, args, config });
+    return {
+      sourceBaseUrl,
+      target: 'brand',
+      recordsCount: out.brand ? 1 : 0,
+      records: out.brand ? [out.brand] : [],
+      brand: out.brand,
+    };
+  }
+
   if (args.target === 'chapters') {
-    const pageEntries = await fetchWpCollection({ sourceBaseUrl, resource: 'pages', fetchFn: args.fetchFn });
-    const postEntries = args.includePosts
-      ? await fetchWpCollection({ sourceBaseUrl, resource: 'posts', fetchFn: args.fetchFn })
-      : [];
-    const records = mergeRecordsBySlug([
-      ...transformWpEntriesAsChapters(pageEntries, { chapterMap: config.chapterMap, sourceType: 'page', turndownService }),
-      ...transformWpEntriesAsChapters(postEntries, { chapterMap: config.chapterMap, sourceType: 'post', turndownService }),
-    ]);
+    const records = await buildChapterRecords({ sourceBaseUrl, args, config, turndownService });
     if (args.dryRun) await writeDryRun(records, args.outputDir, 'chapters');
     if (args.apply) await applyChapterRecords(records);
     return { sourceBaseUrl, target: 'chapters', recordsCount: records.length, records };
   }
 
-  const pageEntries = await fetchWpCollection({ sourceBaseUrl, resource: 'pages', fetchFn: args.fetchFn });
-  const postEntries = args.includePosts
-    ? await fetchWpCollection({ sourceBaseUrl, resource: 'posts', fetchFn: args.fetchFn })
-    : [];
-  const records = mergeRecordsBySlug([
-    ...transformWpEntries(pageEntries, { slugMap: config.slugMap, sourceType: 'page', turndownService }),
-    ...transformWpEntries(postEntries, { slugMap: config.slugMap, sourceType: 'post', turndownService }),
-  ]);
+  if (args.target === 'all') {
+    const brandOut = await runBrandImport({ sourceBaseUrl, args, config });
+    const pageRecords = await buildPageRecords({ sourceBaseUrl, args, config, turndownService });
+    if (args.dryRun) await writeDryRun(pageRecords, args.outputDir, 'pages');
+    if (args.apply) await applyRecords(pageRecords);
+
+    const hasChapterMap = Object.keys(config.chapterMap || {}).length > 0;
+    let chapterRecords = [];
+    if (hasChapterMap) {
+      chapterRecords = await buildChapterRecords({ sourceBaseUrl, args, config, turndownService });
+      if (args.dryRun) await writeDryRun(chapterRecords, args.outputDir, 'chapters');
+      if (args.apply) await applyChapterRecords(chapterRecords);
+    }
+
+    return {
+      sourceBaseUrl,
+      target: 'all',
+      recordsCount: pageRecords.length + chapterRecords.length + (brandOut.brand ? 1 : 0),
+      records: [...pageRecords, ...chapterRecords],
+      breakdown: {
+        brand: brandOut.brand ? 1 : 0,
+        pages: pageRecords.length,
+        chapters: chapterRecords.length,
+      },
+      brand: brandOut.brand,
+    };
+  }
+
+  const records = await buildPageRecords({ sourceBaseUrl, args, config, turndownService });
   if (args.dryRun) await writeDryRun(records, args.outputDir, 'pages');
   if (args.apply) await applyRecords(records);
   return { sourceBaseUrl, target: 'pages', recordsCount: records.length, records };
@@ -291,13 +673,28 @@ async function runImport(options = {}) {
 async function main() {
   const args = parseArgs(process.argv.slice(2));
   const out = await runImport(args);
-  const label = out.target === 'chapters' ? 'chapitres' : 'pages';
+  const labelByTarget = {
+    pages: 'pages',
+    chapters: 'chapitres',
+    brand: 'identité visuelle',
+    all: 'import complet',
+  };
+  const label = labelByTarget[out.target] || out.target;
   if (args.dryRun) {
     console.log(`[gl-import-wp] dry-run OK (${label}): ${out.recordsCount} contenus exportés dans ${args.outputDir}`);
   }
   if (args.apply) {
-    const table = out.target === 'chapters' ? 'gl_chapters' : 'gl_content_pages';
-    console.log(`[gl-import-wp] apply OK (${label}): ${out.recordsCount} contenus UPSERT dans ${table}`);
+    if (out.target === 'all') {
+      const details = out.breakdown || { brand: 0, pages: 0, chapters: 0 };
+      console.log(
+        `[gl-import-wp] apply OK (${label}): brand=${details.brand}, pages=${details.pages}, chapters=${details.chapters}`
+      );
+    } else if (out.target === 'brand') {
+      console.log('[gl-import-wp] apply OK (identité visuelle): UPSERT platform.title/platform.subtitle/platform.brand');
+    } else {
+      const table = out.target === 'chapters' ? 'gl_chapters' : 'gl_content_pages';
+      console.log(`[gl-import-wp] apply OK (${label}): ${out.recordsCount} contenus UPSERT dans ${table}`);
+    }
   }
 }
 
@@ -316,6 +713,9 @@ module.exports = {
   mapWpSlugToChapterMeta,
   createMarkdownConverter,
   htmlToMarkdown,
+  extractCssVariablesMap,
+  normalizeBrandDataFromWp,
+  mirrorWpMediaInMarkdown,
   fetchWpCollection,
   transformWpEntries,
   transformWpEntriesAsChapters,

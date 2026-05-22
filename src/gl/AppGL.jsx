@@ -29,6 +29,7 @@ import { GLNotificationsCenter } from './components/GLNotificationsCenter.jsx';
 import { GLHelpPanel } from './components/GLHelpPanel.jsx';
 import { GLProfileModal } from './components/GLProfileModal.jsx';
 import { GLPasswordResetGate } from './components/GLPasswordResetGate.jsx';
+import { useGLBrandTheme } from './hooks/useGLBrandTheme.js';
 
 const DEFAULT_GAMEPLAY = {
   turnsEnabled: false,
@@ -92,6 +93,7 @@ export function AppGL() {
   const [glProfile, setGlProfile] = useState(null);
   const [glConfig, setGlConfig] = useState({});
   const [showProfile, setShowProfile] = useState(false);
+  const { brand: glBrand, style: glBrandStyle } = useGLBrandTheme(glConfig?.brand);
 
   const isAdmin = isAdminRole(auth);
 
@@ -205,6 +207,12 @@ export function AppGL() {
       cancelled = true;
     };
   }, [token, reloadGameplaySettings, isAdmin]);
+
+  useEffect(() => {
+    const nextTitle = String(glConfig?.title || '').trim();
+    if (!nextTitle) return;
+    document.title = nextTitle;
+  }, [glConfig?.title]);
 
   useEffect(() => {
     if (isAdmin) return;
@@ -395,6 +403,7 @@ export function AppGL() {
   if (!session?.token) {
     return (
       <GLAuthView
+        config={glConfig}
         oauthNotice={oauthNotice}
         onLogin={(data) => {
           updateSession({ token: data.authToken, auth: data.auth });
@@ -407,7 +416,7 @@ export function AppGL() {
   }
 
   return (
-    <div className="gl-app">
+    <div className="gl-app" style={glBrandStyle}>
       <GLPasswordResetGate
         open={!isAdmin && auth?.passwordMustReset === true}
         onCompleted={() => {
@@ -419,6 +428,9 @@ export function AppGL() {
         activeTab={tab}
         onTabChange={setTab}
         auth={auth}
+        platformTitle={glConfig?.title}
+        platformSubtitle={glConfig?.subtitle}
+        brandLogoUrl={glBrand?.logoUrl}
         playerMascotId={playerMascotId}
         onOpenProfile={() => setShowProfile(true)}
         onLogout={() => {
