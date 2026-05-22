@@ -17,6 +17,8 @@ function AboutView({ appVersion, publicSettings = null, isTeacher = false }) {
     { label: 'CHANGELOG', href: '/CHANGELOG.md', desc: 'Historique des modifications publiées' },
     { label: 'README', href: '/README.md', desc: 'Présentation du projet et installation' },
     { label: 'API', href: '/docs/API.md', desc: 'Routes backend et formats JSON' },
+    { label: 'SITE_ISSUES', href: '/api/site-issues', desc: 'Rapport markdown des problèmes connus du site' },
+    { label: 'SITE_ISSUES JSON', href: '/api/site-issues.json', desc: 'Version JSON du rapport de suivi QA' },
     { label: 'LOCAL_DEV', href: '/docs/LOCAL_DEV.md', desc: 'Mise en place locale (Docker + tests)' },
     { label: 'EVOLUTION', href: '/docs/EVOLUTION.md', desc: 'Feuille de route d\'évolution' },
     { label: 'VERSIONING', href: '/docs/VERSIONING.md', desc: 'Règles de versionnage SemVer' },

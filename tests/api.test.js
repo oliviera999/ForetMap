@@ -1280,6 +1280,37 @@ test('PUT /api/zones/:id et /api/map/markers/:id permettent de renommer', async 
   assert.strictEqual(markerUpdate.body.label, 'Repère renommé API');
 });
 
+test('Repère carte : emoji optionnel (vide autorisé)', async () => {
+  const token = await getAdminAuthToken();
+
+  const created = await request(app)
+    .post('/api/map/markers')
+    .set('Authorization', 'Bearer ' + token)
+    .send({
+      map_id: 'foret',
+      x_pct: 33,
+      y_pct: 34,
+      label: 'Repère sans emoji',
+      emoji: '',
+    })
+    .expect(201);
+  assert.strictEqual(String(created.body.emoji || '').trim(), '');
+
+  const withEmoji = await request(app)
+    .put(`/api/map/markers/${created.body.id}`)
+    .set('Authorization', 'Bearer ' + token)
+    .send({ emoji: '🍄' })
+    .expect(200);
+  assert.strictEqual(withEmoji.body.emoji, '🍄');
+
+  const cleared = await request(app)
+    .put(`/api/map/markers/${created.body.id}`)
+    .set('Authorization', 'Bearer ' + token)
+    .send({ emoji: '' })
+    .expect(200);
+  assert.strictEqual(String(cleared.body.emoji || '').trim(), '');
+});
+
 const TINY_JPEG_MARKER_PHOTO =
   '/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAP//////////////////////////////////////////////////////////////////////////////////////2wBDAf//////////////////////////////////////////////////////////////////////////////////////wAARCABAAEADASIAAhEBAxEB/8QAFwABAQEBAAAAAAAAAAAAAAAAAAIDBP/EABQQAQAAAAAAAAAAAAAAAAAAAAD/2gAMAwEAAhADEAAAf//EABQRAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQEAAQUCf//EABQRAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQMBAT8Bf//EABQRAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQIBAT8Bf//EABQQAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQEABj8Cf//Z';
 

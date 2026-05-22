@@ -473,7 +473,9 @@ function VisitEditorPanel({ selected, selectedType, onSaved, onForceLogout, isTe
       details_text: selected?.visit_details_text || '',
       sort_order: Number(selected?.visit_sort_order || 0),
       is_active: Number(selected?.visit_is_active ?? 1) === 1,
-      emoji: selectedType === 'zone' ? (detectedZoneEmoji || markerEmojis[0] || '📍') : (selected?.emoji || markerEmojis[0] || '📍'),
+      emoji: selectedType === 'zone'
+        ? (detectedZoneEmoji || markerEmojis[0] || '📍')
+        : String(selected?.emoji ?? '').trim(),
     });
     setEditorialBlocks(resolveEditorialBlocksForEditor(
       selected?.visit_editorial_blocks,
@@ -574,6 +576,19 @@ function VisitEditorPanel({ selected, selectedType, onSaved, onForceLogout, isTe
     } catch (err) {
       if (err instanceof AccountDeletedError) onForceLogout?.();
       else alert(err.message || 'Erreur suppression photo');
+    }
+  };
+
+  const editMediaCaption = async (media) => {
+    const currentCaption = String(media?.caption || '');
+    const nextCaption = window.prompt('Nouvelle légende de la photo', currentCaption);
+    if (nextCaption == null) return;
+    try {
+      await api(`/api/visit/media/${media.id}`, 'PUT', { caption: String(nextCaption).trim() });
+      await onSaved?.();
+    } catch (err) {
+      if (err instanceof AccountDeletedError) onForceLogout?.();
+      else alert(err.message || 'Erreur mise à jour légende');
     }
   };
 
@@ -752,8 +767,18 @@ function VisitEditorPanel({ selected, selectedType, onSaved, onForceLogout, isTe
         </div>
       </div>
       <div className="field">
-        <label>{selectedType === 'zone' ? 'Liste d’emojis (insérer dans le titre de zone)' : 'Emoji du repère'}</label>
-        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+        <label>{selectedType === 'zone' ? 'Liste d’emojis (insérer dans le titre de zone)' : 'Emoji du repère (optionnel)'}</label>
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+          {selectedType === 'marker' ? (
+            <button
+              type="button"
+              className={`emoji-btn ${!String(form.emoji || '').trim() ? 'sel' : ''}`}
+              style={{ fontSize: '.78rem', padding: '6px 10px' }}
+              onClick={() => setForm((f) => ({ ...f, emoji: '' }))}
+            >
+              Sans emoji
+            </button>
+          ) : null}
           {markerEmojis.map((emoji) => (
             <button
               key={emoji}
@@ -864,6 +889,15 @@ function VisitEditorPanel({ selected, selectedType, onSaved, onForceLogout, isTe
               <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>
                 {m.caption || m.image_url || `#${m.id}`}
               </span>
+              <button
+                type="button"
+                className="btn btn-ghost btn-sm"
+                aria-label="Modifier la légende"
+                onMouseDown={(ev) => ev.stopPropagation()}
+                onClick={() => editMediaCaption(m)}
+              >
+                ✏️
+              </button>
               <Tooltip text={tooltipText(HELP_TOOLTIPS.visit.mediaDelete)}>
                 <button
                   type="button"
@@ -1802,7 +1836,7 @@ function VisitView({
           x_pct: p.xp,
           y_pct: p.yp,
           label: label.trim(),
-          emoji: markerEmojis[0] || '📍',
+          emoji: '',
         });
         setMode('view');
         await loadData();
@@ -2632,7 +2666,22 @@ function VisitView({
                         }
                       }}
                     >
-                      <span className="visit-marker-emoji">{m.emoji || '📍'}</span>
+                      {m.emoji ? (
+                        <span className="visit-marker-emoji">{m.emoji}</span>
+                      ) : (
+                        <span
+                          className="visit-marker-emoji visit-marker-emoji--empty"
+                          aria-hidden
+                          style={{
+                            display: 'inline-block',
+                            width: 8,
+                            height: 8,
+                            borderRadius: '50%',
+                            background: '#1a4731',
+                            opacity: 0.55,
+                          }}
+                        />
+                      )}
                       <span className={`visit-marker-indicator ${isSeen ? 'is-seen' : 'is-unseen'}`} />
                     </button>
                   );

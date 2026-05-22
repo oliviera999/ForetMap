@@ -253,6 +253,7 @@ function ProfilesAdminView({ isN3Affiliated = false, onImpersonationApplied, pub
   const canDelete = authPerms.includes('students.delete') && effectiveElevated;
   const canCreateUsers = authPerms.includes('users.create') && effectiveElevated;
   const canReadAllStats = authPerms.includes('stats.read.all');
+  const canDuplicateStudents = authPerms.includes('users.create') && effectiveElevated && canReadAllStats;
   const isAdmin = authRoleSlug === 'admin';
   const canManageStudents = canExport || canImport || canDelete || canCreateUsers;
   const canDeleteUi = canDelete && canReadAllStats;
@@ -936,6 +937,18 @@ function ProfilesAdminView({ isN3Affiliated = false, onImpersonationApplied, pub
       await load();
     } catch (e) {
       setErr(e.message || 'Erreur suppression');
+    }
+  };
+
+  const duplicateStudent = async (studentRow) => {
+    if (!studentRow?.id) return;
+    setErr('');
+    try {
+      await api(`/api/students/${studentRow.id}/duplicate`, 'POST', {});
+      setMsg(`${studentRow.first_name} ${studentRow.last_name} dupliqué`);
+      await load();
+    } catch (e) {
+      setErr(e.message || 'Erreur duplication');
     }
   };
 
@@ -1635,9 +1648,19 @@ function ProfilesAdminView({ isN3Affiliated = false, onImpersonationApplied, pub
                         {s.stats?.done || 0} validée(s) · {s.stats?.pending || 0} en cours
                       </div>
                     </div>
-                    <button className="btn btn-danger btn-sm" disabled={!canDeleteUi} onClick={() => setConfirmStudent(s)}>
-                      🗑️ Supprimer
-                    </button>
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      <button
+                        className="btn btn-ghost btn-sm"
+                        disabled={!canDuplicateStudents}
+                        onClick={() => duplicateStudent(s)}
+                        title={canDuplicateStudents ? 'Dupliquer ce compte n3beur' : 'Permission users.create + élévation requises'}
+                      >
+                        📄 Dupliquer
+                      </button>
+                      <button className="btn btn-danger btn-sm" disabled={!canDeleteUi} onClick={() => setConfirmStudent(s)}>
+                        🗑️ Supprimer
+                      </button>
+                    </div>
                   </div>
                 ))
               )}

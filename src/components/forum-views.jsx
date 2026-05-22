@@ -46,6 +46,8 @@ function ForumView({ authClaims, canParticipateForum = true }) {
 
   const [newTitle, setNewTitle] = useState('');
   const [newBody, setNewBody] = useState('');
+  const [newThreadGroupId, setNewThreadGroupId] = useState('');
+  const [groupOptions, setGroupOptions] = useState([]);
   const [newThreadImages, setNewThreadImages] = useState([]);
   const [replyBody, setReplyBody] = useState('');
   const [replyImages, setReplyImages] = useState([]);
@@ -127,6 +129,12 @@ function ForumView({ authClaims, canParticipateForum = true }) {
   }, []);
 
   useEffect(() => {
+    api('/api/groups/options')
+      .then((payload) => setGroupOptions(Array.isArray(payload?.groups) ? payload.groups : []))
+      .catch(() => setGroupOptions([]));
+  }, []);
+
+  useEffect(() => {
     const onRealtime = (e) => {
       if (e?.detail?.domain !== 'forum') return;
       loadThreads(threadsPage);
@@ -146,10 +154,12 @@ function ForumView({ authClaims, canParticipateForum = true }) {
     e.preventDefault();
     try {
       const payload = { title: newTitle, body: newBody.trim() || undefined };
+      if (newThreadGroupId) payload.group_id = newThreadGroupId;
       if (newThreadImages.length > 0) payload.images = newThreadImages;
       const res = await api('/api/forum/threads', 'POST', payload);
       setNewTitle('');
       setNewBody('');
+      setNewThreadGroupId('');
       setNewThreadImages([]);
       setToast('Sujet créé');
       await loadThreads(1);
@@ -256,6 +266,21 @@ function ForumView({ authClaims, canParticipateForum = true }) {
                 required={newThreadImages.length === 0}
               />
             </div>
+            {groupOptions.length > 0 && (
+              <div className="field">
+                <label htmlFor="forum-thread-group">Groupe (optionnel)</label>
+                <select
+                  id="forum-thread-group"
+                  value={newThreadGroupId}
+                  onChange={(e) => setNewThreadGroupId(e.target.value)}
+                >
+                  <option value="">Tous les groupes visibles</option>
+                  {groupOptions.map((group) => (
+                    <option key={group.id} value={group.id}>{group.name}</option>
+                  ))}
+                </select>
+              </div>
+            )}
             <AttachmentImagesPicker
               value={newThreadImages}
               onChange={setNewThreadImages}

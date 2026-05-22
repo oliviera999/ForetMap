@@ -1893,6 +1893,39 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
     setToast('C’est noté, tu t’en occupes — merci ! 🌱');
   });
 
+  const assignGroupToTask = (task) => {
+    const status = taskEffectiveStatus(task);
+    if (['on_hold', 'project_completed', 'project_validated', 'validated'].includes(status)) {
+      setToast('Affectation groupe indisponible pour ce statut.');
+      return;
+    }
+    if (!Array.isArray(groupOptions) || groupOptions.length === 0) {
+      setToast('Aucun groupe disponible pour une affectation en masse.');
+      return;
+    }
+    const suggested = String(filterGroupId || groupOptions[0]?.id || '').trim();
+    const hint = groupOptions
+      .slice(0, 12)
+      .map((g) => `${g.id} : ${g.name}`)
+      .join('\n');
+    const raw = window.prompt(
+      `ID du groupe à affecter sur « ${task.title} » :\n${hint}`,
+      suggested
+    );
+    if (raw == null) return;
+    const groupId = String(raw).trim();
+    if (!groupId) return;
+    const groupMatch = groupOptions.find((g) => String(g.id) === groupId);
+    void withLoad(`${task.id}assign-group`, async () => {
+      await api(`/api/tasks/${task.id}/assign-group`, 'POST', { group_id: groupId });
+      setToast(
+        groupMatch
+          ? `Groupe « ${groupMatch.name} » affecté à la tâche ✓`
+          : 'Affectation groupe enregistrée ✓'
+      );
+    });
+  };
+
   const unassign = t => {
     setConfirmTask({
       task: t,
@@ -2011,6 +2044,19 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
     const copied = Number(result?.tasks_copied || 0);
     setToast(`Projet dupliqué : ${copied} tâche${copied > 1 ? 's' : ''} recopiée${copied > 1 ? 's' : ''} ✓`);
   });
+
+  const deleteProject = (project) => {
+    setConfirmTask({
+      task: project,
+      label: `Supprimer le projet « ${project.title} » ? Les tâches resteront conservées sans projet.`,
+      action: async () => {
+        await withLoad(`${project.id}projectdelete`, async () => {
+          await api(`/api/task-projects/${project.id}`, 'DELETE');
+          setToast(`Projet « ${project.title} » supprimé ✓`);
+        });
+      },
+    });
+  };
 
   const downloadImportTemplate = async (format) => {
     try {
@@ -2374,6 +2420,8 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
     teacherQuickAssignCanApply,
     quickAssignHint,
     assign,
+    assignGroupToTask,
+    groupOptions,
     unassign,
     setLogTask,
     setLogsTask,
@@ -2941,6 +2989,7 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
             setProjectStatus={setProjectStatus}
             validateProject={validateProject}
             duplicateProject={duplicateProject}
+            deleteProject={deleteProject}
             loading={loading}
             taskTileProps={taskTileProps}
             openTasksTutorialPreview={openTasksTutorialPreview}
@@ -3002,6 +3051,7 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
             setProjectStatus={setProjectStatus}
             validateProject={validateProject}
             duplicateProject={duplicateProject}
+            deleteProject={deleteProject}
             loading={loading}
             taskTileProps={taskTileProps}
             openTasksTutorialPreview={openTasksTutorialPreview}
@@ -3049,6 +3099,7 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
             setProjectStatus={setProjectStatus}
             validateProject={validateProject}
             duplicateProject={duplicateProject}
+            deleteProject={deleteProject}
             loading={loading}
             taskTileProps={taskTileProps}
             openTasksTutorialPreview={openTasksTutorialPreview}
@@ -3098,6 +3149,7 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
         setProjectStatus={setProjectStatus}
         validateProject={validateProject}
         duplicateProject={duplicateProject}
+        deleteProject={deleteProject}
         loading={loading}
         taskTileProps={taskTileProps}
         openTasksTutorialPreview={openTasksTutorialPreview}
@@ -3359,6 +3411,8 @@ function TaskTileCard({
   teacherQuickAssignCanApply,
   quickAssignHint,
   assign,
+  assignGroupToTask,
+  groupOptions = [],
   unassign,
   setLogTask,
   setLogsTask,
@@ -3681,6 +3735,21 @@ function TaskTileCard({
               {quickAssignBusy ? '...' : '⚡ Affectation rapide'}
             </button>
           )}
+          {isTeacher && (
+            <button
+              className="btn btn-ghost btn-sm"
+              disabled={
+                !Array.isArray(groupOptions)
+                || groupOptions.length === 0
+                || !!loading[`${t.id}assign-group`]
+                || ['on_hold', 'project_completed', 'project_validated', 'validated'].includes(taskEffectiveStatus(t))
+              }
+              onClick={() => assignGroupToTask?.(t)}
+              title="Affecter en masse les membres d’un groupe"
+            >
+              {loading[`${t.id}assign-group`] ? '...' : '👥 Affecter groupe'}
+            </button>
+          )}
           {isTeacher && isQuickAssignOpen && (
             <div style={{ display: 'grid', gap: 8, width: '100%' }}>
               {loadingTeacherStudents ? (
@@ -3863,6 +3932,7 @@ function TaskProjectsBlock({
   setProjectStatus,
   validateProject,
   duplicateProject,
+  deleteProject,
   loading,
   taskTileProps,
   openTasksTutorialPreview,
@@ -3895,6 +3965,7 @@ if (visibleProjects.length <= 0) return null;
             const loadingHold = !!loading[`${p.id}projecton_hold`];
             const loadingValidate = !!loading[`${p.id}projectvalidate`];
             const loadingDuplicate = !!loading[`${p.id}projectduplicate`];
+            const loadingDelete = !!loading[`${p.id}projectdelete`];
             const canReceiveTaskDrop = !!(isTeacher && taskDragPayload?.taskId);
             const projectDropId = String(p.id || '');
             const projectCardDropActive = canReceiveTaskDrop
@@ -3992,6 +4063,15 @@ if (visibleProjects.length <= 0) return null;
                         title="Dupliquer le projet et ses tâches (structure uniquement)"
                       >
                         {loadingDuplicate ? '...' : '📄 Dupliquer'}
+                      </button>
+                      <button
+                        type="button"
+                        className="btn btn-danger btn-sm"
+                        disabled={loadingDelete}
+                        onClick={() => deleteProject?.(p)}
+                        title="Supprimer le projet (les tâches sont conservées)"
+                      >
+                        {loadingDelete ? '...' : '🗑️ Supprimer'}
                       </button>
                       <button
                         type="button"

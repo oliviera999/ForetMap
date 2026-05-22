@@ -354,6 +354,24 @@ test('GET /api/settings/admin/system/species-autofill-providers-test renvoie le 
   assert.ok('keyPresent' in res.body.openai);
 });
 
+test('GET /api/settings/admin/system/diagnostics renvoie un snapshot runtime', async () => {
+  const token = await getAdminToken();
+  await request(app)
+    .put('/api/settings/admin/ops.allow_remote_logs')
+    .set('Authorization', `Bearer ${token}`)
+    .send({ value: true })
+    .expect(200);
+  const res = await request(app)
+    .get('/api/settings/admin/system/diagnostics')
+    .set('Authorization', `Bearer ${token}`)
+    .expect(200);
+  assert.strictEqual(res.body?.ok, true);
+  assert.ok(res.body?.memory && typeof res.body.memory === 'object');
+  assert.ok(res.body?.database && typeof res.body.database === 'object');
+  assert.ok(res.body?.metrics && typeof res.body.metrics === 'object');
+  assert.ok(res.body?.runtimeProcess && typeof res.body.runtimeProcess === 'object');
+});
+
 test('RBAC refuse la rétrogradation du dernier administrateur', async () => {
   const token = await getAdminToken();
   const users = await request(app)

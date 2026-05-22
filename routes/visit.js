@@ -19,6 +19,7 @@ const {
   serializeVisitEditorialBlocks,
   resolveVisitEditorialBlocksForContent,
 } = require('../lib/visitEditorialBlocks');
+const { normalizeMarkerEmoji } = require('../lib/markerEmoji');
 
 const router = express.Router();
 
@@ -1556,7 +1557,7 @@ router.post('/sync', requirePermission('visit.manage', { needsElevation: true })
              label = VALUES(label),
              emoji = VALUES(emoji),
              updated_at = VALUES(updated_at)`,
-          [m.id, m.map_id, m.x_pct, m.y_pct, m.label, m.emoji || '📍', now, now]
+          [m.id, m.map_id, m.x_pct, m.y_pct, m.label, normalizeMarkerEmoji(m.emoji, { allowEmpty: true, fallback: '' }), now, now]
         );
         importedMarkers += 1;
       }
@@ -1588,7 +1589,7 @@ router.post('/sync', requirePermission('visit.manage', { needsElevation: true })
              y_pct = VALUES(y_pct),
              label = VALUES(label),
              emoji = VALUES(emoji)`,
-          [m.id, m.map_id, m.x_pct, m.y_pct, m.label, m.emoji || '📍', now]
+          [m.id, m.map_id, m.x_pct, m.y_pct, m.label, normalizeMarkerEmoji(m.emoji, { allowEmpty: true, fallback: '' }), now]
         );
         importedMarkers += 1;
       }
@@ -1742,7 +1743,7 @@ router.post('/rebuild-from-map', requirePermission('visit.manage', { needsElevat
             ? Math.max(0, Number(saved.sort_order))
             : 0;
         const createdAt = saved && saved.created_at ? String(saved.created_at) : now;
-        const emoji = String(m.emoji || '📍').trim().slice(0, 16) || '📍';
+        const emoji = normalizeMarkerEmoji(m.emoji, { allowEmpty: true, fallback: '' });
 
         await tx.execute(
           `INSERT INTO visit_markers
@@ -2029,7 +2030,7 @@ router.post('/markers', requirePermission('visit.manage', { needsElevation: true
         x,
         y,
         label,
-        String(req.body.emoji || '📍').trim() || '📍',
+        normalizeMarkerEmoji(req.body.emoji, { allowEmpty: true, fallback: '' }),
         String(req.body.subtitle || '').trim(),
         String(req.body.short_description || '').trim(),
         String(req.body.details_title || 'Détails').trim() || 'Détails',
@@ -2060,7 +2061,9 @@ router.put('/markers/:id', requirePermission('visit.manage', { needsElevation: t
     const x = req.body.x_pct !== undefined ? normalizeCoord(req.body.x_pct) : Number(exists.x_pct);
     const y = req.body.y_pct !== undefined ? normalizeCoord(req.body.y_pct) : Number(exists.y_pct);
     if (x == null || y == null) return res.status(400).json({ error: 'Position repère invalide' });
-    const emoji = req.body.emoji !== undefined ? (String(req.body.emoji || '📍').trim() || '📍') : String(exists.emoji || '📍');
+    const emoji = req.body.emoji !== undefined
+      ? normalizeMarkerEmoji(req.body.emoji, { allowEmpty: true, fallback: '' })
+      : String(exists.emoji ?? '').trim();
     const subtitle = req.body.subtitle !== undefined ? String(req.body.subtitle || '').trim() : String(exists.subtitle || '');
     const shortDescription = req.body.short_description !== undefined
       ? String(req.body.short_description || '').trim()

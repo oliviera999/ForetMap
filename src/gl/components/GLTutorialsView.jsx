@@ -8,7 +8,7 @@ export function GLTutorialsView({ canManage }) {
   const [readIds, setReadIds] = useState([]);
   const [active, setActive] = useState(null);
   const [error, setError] = useState('');
-  const [draft, setDraft] = useState({ slug: '', title: '', bodyMarkdown: '' });
+  const [draft, setDraft] = useState({ id: null, slug: '', title: '', bodyMarkdown: '', isPublished: true });
   const [editing, setEditing] = useState(false);
 
   const reload = useCallback(async () => {
@@ -41,16 +41,54 @@ export function GLTutorialsView({ canManage }) {
   async function createDraft(event) {
     event.preventDefault();
     try {
-      await apiGL('/api/gl/tutorials', 'POST', {
-        slug: draft.slug || `tuto-${Date.now()}`,
-        title: draft.title,
-        bodyMarkdown: draft.bodyMarkdown,
-      });
-      setDraft({ slug: '', title: '', bodyMarkdown: '' });
+      if (draft.id) {
+        await apiGL(`/api/gl/tutorials/${draft.id}`, 'PUT', {
+          title: draft.title,
+          bodyMarkdown: draft.bodyMarkdown,
+          isPublished: !!draft.isPublished,
+        });
+      } else {
+        await apiGL('/api/gl/tutorials', 'POST', {
+          slug: draft.slug || `tuto-${Date.now()}`,
+          title: draft.title,
+          bodyMarkdown: draft.bodyMarkdown,
+          isPublished: !!draft.isPublished,
+        });
+      }
+      setDraft({ id: null, slug: '', title: '', bodyMarkdown: '', isPublished: true });
       setEditing(false);
       await reload();
     } catch (err) {
       setError(err.message || 'Création impossible');
+    }
+  }
+
+  async function startEdit(id) {
+    try {
+      const data = await apiGL(`/api/gl/tutorials/${id}`);
+      setDraft({
+        id: Number(data?.id || id),
+        slug: String(data?.slug || ''),
+        title: String(data?.title || ''),
+        bodyMarkdown: String(data?.body_markdown || ''),
+        isPublished: data?.is_published !== false,
+      });
+      setEditing(true);
+      setError('');
+    } catch (err) {
+      setError(err.message || 'Ouverture de l’édition impossible');
+    }
+  }
+
+  async function removeTutorial(id) {
+    if (!window.confirm('Supprimer ce tutoriel GL ?')) return;
+    try {
+      await apiGL(`/api/gl/tutorials/${id}`, 'DELETE');
+      if (Number(active?.id) === Number(id)) setActive(null);
+      if (Number(draft?.id) === Number(id)) setDraft({ id: null, slug: '', title: '', bodyMarkdown: '', isPublished: true });
+      await reload();
+    } catch (err) {
+      setError(err.message || 'Suppression impossible');
     }
   }
 
@@ -69,7 +107,18 @@ export function GLTutorialsView({ canManage }) {
       {error ? <p className="gl-error">{error}</p> : null}
       <div className="gl-inline-actions">
         {canManage ? (
-          <button type="button" onClick={() => setEditing((v) => !v)}>
+          <button
+            type="button"
+            onClick={() => {
+              if (editing) {
+                setEditing(false);
+                setDraft({ id: null, slug: '', title: '', bodyMarkdown: '', isPublished: true });
+                return;
+              }
+              setDraft({ id: null, slug: '', title: '', bodyMarkdown: '', isPublished: true });
+              setEditing(true);
+            }}
+          >
             {editing ? 'Annuler' : 'Nouveau tutoriel'}
           </button>
         ) : null}
@@ -80,7 +129,11 @@ export function GLTutorialsView({ canManage }) {
         <form className="gl-form" onSubmit={createDraft}>
           <label>
             Slug
-            <input value={draft.slug} onChange={(event) => setDraft((d) => ({ ...d, slug: event.target.value }))} />
+            <input
+              value={draft.slug}
+              disabled={!!draft.id}
+              onChange={(event) => setDraft((d) => ({ ...d, slug: event.target.value }))}
+            />
           </label>
           <label>
             Titre
@@ -94,7 +147,15 @@ export function GLTutorialsView({ canManage }) {
               rows={6}
             />
           </label>
-          <button type="submit">Publier</button>
+          <label>
+            <input
+              type="checkbox"
+              checked={!!draft.isPublished}
+              onChange={(event) => setDraft((d) => ({ ...d, isPublished: event.target.checked }))}
+            />
+            {' '}Publié
+          </label>
+          <button type="submit">{draft.id ? 'Enregistrer' : 'Publier'}</button>
         </form>
       ) : null}
 
@@ -105,6 +166,12 @@ export function GLTutorialsView({ canManage }) {
               <strong>{item.title}</strong>
               {readIds.includes(item.id) ? <span className="gl-hint"> · lu</span> : null}
             </button>
+            {canManage ? (
+              <div className="gl-inline-actions">
+                <button type="button" onClick={() => startEdit(item.id)}>Éditer</button>
+                <button type="button" onClick={() => removeTutorial(item.id)}>Suppr.</button>
+              </div>
+            ) : null}
           </li>
         ))}
         {items.length === 0 ? (
@@ -118,6 +185,12 @@ export function GLTutorialsView({ canManage }) {
       {active ? (
         <article className="gl-tutorial-active gl-markdown">
           <h3>{active.title}</h3>
+          {canManage ? (
+            <div className="gl-inline-actions" style={{ marginBottom: 8 }}>
+              <button type="button" onClick={() => startEdit(active.id)}>Modifier ce tutoriel</button>
+              <button type="button" onClick={() => removeTutorial(active.id)}>Supprimer ce tutoriel</button>
+            </div>
+          ) : null}
           <div dangerouslySetInnerHTML={{ __html: html }} />
         </article>
       ) : null}

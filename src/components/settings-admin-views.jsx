@@ -291,6 +291,7 @@ function SettingsAdminView({ isN3Affiliated = false }) {
   const [logs, setLogs] = useState([]);
   const [oauthDebug, setOauthDebug] = useState(null);
   const [speciesAutofillTest, setSpeciesAutofillTest] = useState(null);
+  const [systemDiagnostics, setSystemDiagnostics] = useState(null);
   const [msg, setMsg] = useState('');
   const [err, setErr] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
@@ -606,6 +607,17 @@ function SettingsAdminView({ isN3Affiliated = false }) {
     }
   };
 
+  const fetchSystemDiagnostics = async () => {
+    setErr('');
+    try {
+      const data = await api('/api/settings/admin/system/diagnostics');
+      setSystemDiagnostics(data || null);
+      setMsg('Diagnostic système chargé');
+    } catch (e) {
+      setErr(e.message || 'Impossible de charger le diagnostic système');
+    }
+  };
+
   const fetchSpeciesAutofillProvidersTest = async () => {
     setErr('');
     setMsg('');
@@ -821,6 +833,7 @@ function SettingsAdminView({ isN3Affiliated = false }) {
         <div style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: 12, padding: 12, minWidth: 0 }}>
           <h3 style={{ marginTop: 0 }}>Actions système</h3>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <button className="btn btn-secondary btn-sm" onClick={fetchSystemDiagnostics}>Diagnostic complet</button>
             <button className="btn btn-secondary btn-sm" onClick={fetchLogs}>Charger logs</button>
             <button className="btn btn-secondary btn-sm" onClick={fetchOauthDebug}>Diagnostic OAuth</button>
             <button
@@ -841,9 +854,14 @@ function SettingsAdminView({ isN3Affiliated = false }) {
         </div>
       </div>
 
-      {(logs.length > 0 || oauthDebug || speciesAutofillTest) && (
+      {(logs.length > 0 || oauthDebug || speciesAutofillTest || systemDiagnostics) && (
         <div style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: 12, padding: 12, marginTop: 12 }}>
           <h3 style={{ marginTop: 0 }}>Diagnostics</h3>
+          {systemDiagnostics && (
+            <pre style={{ whiteSpace: 'pre-wrap', maxHeight: 280, overflow: 'auto', fontSize: '.78rem', background: '#eff6ff', borderRadius: 8, padding: 8, marginBottom: oauthDebug || logs.length > 0 || speciesAutofillTest ? 8 : 0 }}>
+              {JSON.stringify(systemDiagnostics, null, 2)}
+            </pre>
+          )}
           {speciesAutofillTest && (
             <pre style={{ whiteSpace: 'pre-wrap', maxHeight: 280, overflow: 'auto', fontSize: '.78rem', background: '#f0fdf4', borderRadius: 8, padding: 8, marginBottom: oauthDebug || logs.length > 0 ? 8 : 0 }}>
               {JSON.stringify(speciesAutofillTest, null, 2)}
