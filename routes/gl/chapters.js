@@ -1,6 +1,8 @@
 const express = require('express');
+const path = require('path');
 const { queryOne, queryAll, execute, withTransaction } = require('../../database');
 const { requireGlPermission } = require('../../middleware/requireGlAuth');
+const { saveBase64ToDisk, deleteFile } = require('../../lib/uploads');
 
 const router = express.Router();
 
@@ -150,6 +152,32 @@ router.put('/admin/:id', requireGlPermission('gl.content.manage'), async (req, r
   updates.push('updated_at = NOW()');
   params.push(id);
   await execute(`UPDATE gl_chapters SET ${updates.join(', ')} WHERE id = ?`, params);
+  const data = await readChapterFull(id);
+  if (!data) return res.status(404).json({ error: 'Chapitre introuvable' });
+  return res.json(data);
+});
+
+/** POST /api/gl/chapters/admin/:id/map-image — upload image carte chapitre. */
+router.post('/admin/:id/map-image', requireGlPermission('gl.content.manage'), async (req, res) => {
+  const id = Number(req.params.id);
+  if (!Number.isFinite(id)) return res.status(400).json({ error: 'Identifiant invalide' });
+  const chapter = await queryOne(
+    'SELECT id, slug, map_image_url FROM gl_chapters WHERE id = ? LIMIT 1',
+    [id]
+  );
+  if (!chapter) return res.status(404).json({ error: 'Chapitre introuvable' });
+  const imageData = String(req.body?.image_data || '').trim();
+  if (!imageData) return res.status(400).json({ error: 'image_data requis' });
+
+  const filename = `${chapter.slug || chapter.id}-${Date.now()}.jpg`;
+  const relativePath = path.join('gl_chapters_maps', filename).replace(/\\/g, '/');
+  saveBase64ToDisk(relativePath, imageData);
+  const nextUrl = `/uploads/${relativePath}`;
+  const oldUrl = String(chapter.map_image_url || '').trim();
+  await execute('UPDATE gl_chapters SET map_image_url = ?, updated_at = NOW() WHERE id = ?', [nextUrl, id]);
+  if (oldUrl.startsWith('/uploads/gl_chapters_maps/')) {
+    deleteFile(oldUrl.replace('/uploads/', ''));
+  }
   const data = await readChapterFull(id);
   if (!data) return res.status(404).json({ error: 'Chapitre introuvable' });
   return res.json(data);

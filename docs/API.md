@@ -62,6 +62,7 @@ Le script accepte également `--target=chapters` (Lot 2B) : seules les pages WP 
 | PUT | `/api/gl/chapters/admin/:id` | mise à jour partielle des mêmes champs | `gl.content.manage` |
 | DELETE | `/api/gl/chapters/admin/:id` | — | `gl.content.manage` (refus `409` si partie liée) |
 | POST | `/api/gl/chapters/admin/:id/markers` | `{ label, xPct, yPct, eventType?, description?, orderIndex? }` | `gl.content.manage` |
+| POST | `/api/gl/chapters/admin/:id/map-image` | `{ image_data }` (data URL base64 image) | `gl.content.manage` |
 | PUT | `/api/gl/chapters/admin/markers/:markerId` | mise à jour partielle marker | `gl.content.manage` |
 | DELETE | `/api/gl/chapters/admin/markers/:markerId` | — | `gl.content.manage` (détache les équipes positionnées sur ce marker via `ON DELETE SET NULL`) |
 | GET | `/api/gl/gameplay-settings` | — | Auth GL (joueur ou admin) |

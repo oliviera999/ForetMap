@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { apiGL } from '../services/apiGL.js';
+import { compressImage } from '../../utils/image.js';
 import { GLChapterMapEditor } from './GLChapterMapEditor.jsx';
 import { GLPctMapCanvas } from './GLPctMapCanvas.jsx';
 import { useGlPctMapGestures } from '../hooks/useGlPctMapGestures.js';
@@ -24,6 +25,7 @@ export function GLChaptersAdminView() {
   const [chapterForm, setChapterForm] = useState(EMPTY_CHAPTER_FORM);
   const [error, setError] = useState('');
   const [info, setInfo] = useState('');
+  const [uploadingMapImage, setUploadingMapImage] = useState(false);
   const previewMapGestures = useGlPctMapGestures();
 
   async function loadChapters() {
@@ -126,6 +128,24 @@ export function GLChaptersAdminView() {
     setError('');
   }
 
+  async function uploadChapterMapImage(file) {
+    if (!selectedId || !file) return;
+    setUploadingMapImage(true);
+    setError('');
+    setInfo('');
+    try {
+      const imageData = await compressImage(file, 2400, 0.9);
+      const data = await apiGL(`/api/gl/chapters/admin/${selectedId}/map-image`, 'POST', { image_data: imageData });
+      setDetail(data);
+      setChapterForm((prev) => ({ ...prev, mapImageUrl: data?.chapter?.map_image_url || prev.mapImageUrl }));
+      setInfo('Image de carte importée');
+    } catch (err) {
+      setError(err.message || 'Upload image impossible');
+    } finally {
+      setUploadingMapImage(false);
+    }
+  }
+
   const markers = useMemo(() => (Array.isArray(detail?.markers) ? detail.markers : []), [detail]);
 
   return (
@@ -190,6 +210,39 @@ export function GLChaptersAdminView() {
                 onChange={(event) => setChapterForm({ ...chapterForm, mapImageUrl: event.target.value })}
               />
             </label>
+            {selectedId ? (
+              <div className="gl-inline-actions" style={{ marginTop: -4 }}>
+                <label className="gl-btn-secondary" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, cursor: uploadingMapImage ? 'wait' : 'pointer' }}>
+                  {uploadingMapImage ? 'Envoi…' : '📁 Galerie'}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    style={{ display: 'none' }}
+                    disabled={uploadingMapImage}
+                    onChange={(event) => {
+                      const file = event.target.files?.[0];
+                      event.target.value = '';
+                      uploadChapterMapImage(file);
+                    }}
+                  />
+                </label>
+                <label className="gl-btn-secondary" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, cursor: uploadingMapImage ? 'wait' : 'pointer' }}>
+                  {uploadingMapImage ? 'Envoi…' : '📸 Appareil photo'}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    capture="environment"
+                    style={{ display: 'none' }}
+                    disabled={uploadingMapImage}
+                    onChange={(event) => {
+                      const file = event.target.files?.[0];
+                      event.target.value = '';
+                      uploadChapterMapImage(file);
+                    }}
+                  />
+                </label>
+              </div>
+            ) : null}
             <MediaLibraryMenu
               title="Bibliothèque globale (images, audio, vidéo)"
               fetchItems={fetchMediaLibrary}

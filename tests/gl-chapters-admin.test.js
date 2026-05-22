@@ -15,6 +15,8 @@ let createdChapterId = null;
 let createdMarkerId = null;
 const stamp = Date.now();
 const slugCreated = `chap-test-${stamp}`;
+const TINY_PNG_DATA_URL =
+  'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO6pJkQAAAAASUVORK5CYII=';
 
 before(async () => {
   await initSchema();
@@ -103,6 +105,15 @@ test('PUT /api/gl/chapters/admin/:id met à jour le titre et l\'order_index', as
     .expect(200);
   assert.strictEqual(res.body.chapter.title, 'Chapitre test bis');
   assert.strictEqual(Number(res.body.chapter.order_index), 5);
+});
+
+test('POST /api/gl/chapters/admin/:id/map-image importe une image locale', async () => {
+  const res = await request(app)
+    .post(`/api/gl/chapters/admin/${createdChapterId}/map-image`)
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ image_data: TINY_PNG_DATA_URL })
+    .expect(200);
+  assert.ok(String(res.body?.chapter?.map_image_url || '').startsWith('/uploads/gl_chapters_maps/'));
 });
 
 test('POST /api/gl/chapters/admin/:id/markers ajoute un marker', async () => {
