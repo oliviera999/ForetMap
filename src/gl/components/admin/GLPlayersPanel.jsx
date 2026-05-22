@@ -102,14 +102,14 @@ export function GLPlayersPanel({ classes, players, classFilter, onClassFilterCha
   }
 
   async function resetPassword(player) {
-    const next = window.prompt(`Nouveau PIN pour ${player.pseudo}`, '');
+    const next = window.prompt(`Nouveau mot de passe pour ${player.pseudo}`, '');
     if (!next) return;
     setBusy(true);
     setError('');
     setInfo('');
     try {
       await apiGL(`/api/gl/admin/players/${player.id}/reset-pin`, 'POST', { pin: next });
-      setInfo('PIN réinitialisé.');
+      setInfo('Mot de passe réinitialisé.');
     } catch (err) {
       setError(err.message || 'Réinitialisation impossible');
     } finally {
@@ -162,11 +162,11 @@ export function GLPlayersPanel({ classes, players, classFilter, onClassFilterCha
             </select>
           </label>
           <label>
-            PIN (optionnel)
+            Mot de passe (optionnel)
             <input value={create.password} onChange={(e) => setCreate((p) => ({ ...p, password: e.target.value }))} />
           </label>
           <label>
-            Forcer changement PIN
+            Forcer changement mot de passe
             <select
               value={create.passwordMustReset ? 'yes' : 'no'}
               onChange={(e) => setCreate((p) => ({ ...p, passwordMustReset: e.target.value === 'yes' }))}
@@ -197,7 +197,7 @@ export function GLPlayersPanel({ classes, players, classFilter, onClassFilterCha
               <th>Nom</th>
               <th>Classe</th>
               <th>Actif</th>
-              <th>Reset PIN</th>
+              <th>Reset mdp</th>
               <th>Actions</th>
             </tr>
           </thead>
@@ -240,7 +240,7 @@ export function GLPlayersPanel({ classes, players, classFilter, onClassFilterCha
                         <button type="button" className="gl-btn-secondary" onClick={() => toggleActive(player)} disabled={busy}>
                           {toBool(player.is_active) ? 'Désactiver' : 'Activer'}
                         </button>
-                        <button type="button" className="gl-btn-secondary" onClick={() => resetPassword(player)} disabled={busy}>Reset PIN</button>
+                        <button type="button" className="gl-btn-secondary" onClick={() => resetPassword(player)} disabled={busy}>Reset mdp</button>
                         <button type="button" className="gl-btn-danger" onClick={() => deletePlayer(player)} disabled={busy}>Supprimer</button>
                       </>
                     )}

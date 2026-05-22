@@ -10,7 +10,13 @@ const logger = require('../lib/logger');
 const { logAudit } = require('./audit');
 const { emitTasksChanged } = require('../lib/realtime');
 const { syncTaskProjectCompletionForProjects } = require('../lib/syncTaskProjectCompletion');
-const { ensurePrimaryRole, buildAuthzPayload, verifyRolePin, syncStudentPrimaryRoleFromProgress } = require('../lib/rbac');
+const {
+  ensurePrimaryRole,
+  buildAuthzPayload,
+  verifyRolePin,
+  syncStudentPrimaryRoleFromProgress,
+  syncProgressionForValidatedTask,
+} = require('../lib/rbac');
 const {
   countStudentActiveTaskAssignments,
   getEffectiveMaxActiveTaskAssignments,
@@ -2094,6 +2100,7 @@ router.put('/:id', async (req, res) => {
     }
 
     const currentStatus = normalizeTaskStatusForRead(task.status);
+    const becameValidated = nextStatus === 'validated' && currentStatus !== 'validated';
     const currentZoneIds = await getTaskZoneIds(task.id);
     const currentMarkerIds = await getTaskMarkerIds(task.id);
     const locationChanged = !sameIdSet(nextZoneIds, currentZoneIds) || !sameIdSet(nextMarkerIds, currentMarkerIds);
@@ -2195,6 +2202,9 @@ router.put('/:id', async (req, res) => {
     });
     emitTasksChanged({ reason: 'update_task', taskId: task.id, projectId: projectValidation.projectId || null, mapId: resolveTaskMapId(updated) });
     await syncTaskProjectCompletionForProjects([previousProjectId, projectValidation.projectId]);
+    if (becameValidated) {
+      await syncProgressionForValidatedTask(task.id);
+    }
     res.json(updated);
   } catch (e) {
     let exposeDetail = false;
@@ -2523,6 +2533,7 @@ router.post('/:id/validate', requirePermission('tasks.validate', { needsElevatio
     await syncLegacyLocationColumns(task.id, [], []);
     await execute("UPDATE tasks SET status = 'validated' WHERE id = ?", [req.params.id]);
     logAudit('validate_task', 'task', req.params.id, task.title, { req });
+    await syncProgressionForValidatedTask(task.id);
     const updated = await getTaskWithAssignments(task.id);
     emitTasksChanged({ reason: 'validate', taskId: task.id, mapId: resolveTaskMapId(updated) });
     await syncTaskProjectCompletionForProjects([task.project_id]);

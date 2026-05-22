@@ -154,7 +154,7 @@ Utiliser cette checklist pour la recette ciblee de `gl.olution.info` apres un lo
 
 ### Persona GL Joueur (6e)
 
-- Connexion via pseudo + PIN (onglet auth GL)
+- Connexion via identifiant + mot de passe (écran auth GL unique)
 - Verification des onglets: Cartes, Biotope, Biocenose, Histoire, Monde, Sortileges, Regles
 - Join team sur une partie (`/api/gl/games/:id/join-team`)
 - Observation d'un mouvement d'equipe emis par le MJ (temps reel Socket.IO room `gl:game:{id}`)

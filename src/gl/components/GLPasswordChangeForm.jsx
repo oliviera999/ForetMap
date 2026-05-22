@@ -29,7 +29,7 @@ export function GLPasswordChangeForm({ isAdmin, onChanged }) {
 
   return (
     <form className="gl-form gl-panel" onSubmit={submit}>
-      <h3>{isAdmin ? 'Mot de passe staff' : 'PIN / mot de passe joueur'}</h3>
+      <h3>{isAdmin ? 'Mot de passe staff' : 'Mot de passe joueur'}</h3>
       {error ? <p className="gl-error">{error}</p> : null}
       {info ? <p className="gl-profile-ok">{info}</p> : null}
       <label>

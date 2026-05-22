@@ -132,11 +132,15 @@ async function userStats(userId, options = {}) {
     const sync = await syncStudentPrimaryRoleFromProgress(s.id, done, progressionConfig, {
       recordPromotionNotice: !!options.recordPromotionNotice,
     });
+    const currentStep = (sync.steps || []).find(
+      (step) => String(step.roleSlug) === String(sync.currentRoleSlug)
+    );
     progression = {
       thresholds: sync.thresholds,
       steps: sync.steps,
       roleSlug: sync.currentRoleSlug,
       roleDisplayName: sync.currentRoleDisplayName,
+      roleEmoji: currentStep?.emoji || null,
       autoProgressionEnabled: sync.autoProgressionEnabled !== false,
     };
   }

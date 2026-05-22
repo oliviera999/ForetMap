@@ -43,6 +43,14 @@ test('POST /api/gl/auth/staff/login accepte un enseignant admin ForetMap', async
   assert.ok(Array.isArray(res.body?.auth?.permissions));
 });
 
+test('POST /api/gl/auth/login connecte un MJ/admin via le formulaire commun', async () => {
+  const res = await request(app)
+    .post('/api/gl/auth/login')
+    .send({ identifier: teacherEmail, password: teacherPassword })
+    .expect(200);
+  assert.strictEqual(res.body?.auth?.userType, 'gl_admin');
+});
+
 test('POST /api/gl/auth/staff/login rejette un mot de passe invalide', async () => {
   await request(app)
     .post('/api/gl/auth/staff/login')

@@ -57,13 +57,29 @@ function StudentStats({ student, isN3Affiliated = false }) {
       icon: String(step.emoji || '').trim() || defaultIconBySlug[String(step.roleSlug || '').toLowerCase()] || '🌿',
     }))
     .sort((a, b) => a.min - b.min);
-  const currentRank = [...RANKS].reverse().find(r => stats.done >= r.min) || RANKS[0];
-  const nextRank = RANKS[RANKS.indexOf(currentRank) + 1];
-  const progressPct = nextRank
-    ? Math.min(100, ((stats.done - currentRank.min) / (nextRank.min - currentRank.min)) * 100)
-    : 100;
-
   const autoProgressionEnabled = data?.progression?.autoProgressionEnabled !== false;
+  const taskTier = [...RANKS].reverse().find(r => stats.done >= r.min) || RANKS[0];
+  const actualSlug = String(data?.progression?.roleSlug || '').toLowerCase();
+  const actualTier =
+    RANKS.find((r) => String(r.roleSlug || '').toLowerCase() === actualSlug)
+    || (data?.progression?.roleDisplayName
+      ? {
+        roleSlug: actualSlug,
+        min: taskTier.min,
+        label: data.progression.roleDisplayName,
+        icon: String(data?.progression?.roleEmoji || '').trim() || taskTier.icon,
+        color: taskTier.color,
+      }
+      : taskTier);
+  const nextRank = RANKS[RANKS.indexOf(taskTier) + 1];
+  const progressPct = nextRank
+    ? Math.min(100, ((stats.done - taskTier.min) / (nextRank.min - taskTier.min)) * 100)
+    : 100;
+  const profileAheadOfTasks =
+    autoProgressionEnabled
+    && actualSlug
+    && taskTier.roleSlug
+    && actualSlug !== String(taskTier.roleSlug || '').toLowerCase();
 
   return (
     <div className="fade-in">
@@ -76,7 +92,7 @@ function StudentStats({ student, isN3Affiliated = false }) {
           style={{ background: 'var(--parchment)', borderRadius: 20, padding: '4px 12px', fontSize: '.8rem', fontWeight: 600, color: 'var(--soil)' }}
           title="Palier n3beur actuel"
         >
-          Profil actuel : {currentRank.icon} {currentRank.label}
+          Profil actuel : {actualTier.icon} {actualTier.label}
         </span>
       </div>
       <p className="section-sub">Salut {data.first_name} ! Voici ton bilan terrain — merci pour ce que tu fais pousser.</p>
@@ -99,13 +115,20 @@ function StudentStats({ student, isN3Affiliated = false }) {
         </p>
       )}
 
+      {profileAheadOfTasks && (
+        <p className="section-sub" style={{ marginTop: 8, fontSize: '.85rem', color: '#555' }}>
+          Objectif tâches validées : {taskTier.icon} {taskTier.label}
+          {' '}
+          (ton profil attribué est plus avancé).
+        </p>
+      )}
       <div className="rank-progress">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
           <span style={{ fontSize: '.82rem', fontWeight: 600, color: 'var(--forest)' }}>
-            Profil actuel : {currentRank.icon} {currentRank.label}
+            {profileAheadOfTasks ? 'Objectif (tâches validées)' : 'Profil actuel'} : {taskTier.icon} {taskTier.label}
           </span>
-          {nextRank && <span style={{ fontSize: '.76rem', color: '#aaa' }}>Prochain profil : {nextRank.icon} {nextRank.label} ({nextRank.min - stats.done} tâche{nextRank.min - stats.done > 1 ? 's' : ''} restante{nextRank.min - stats.done > 1 ? 's' : ''})</span>}
-          {!nextRank && <span style={{ fontSize: '.76rem', color: currentRank.color, fontWeight: 600 }}>Profil maximum atteint !</span>}
+          {nextRank && <span style={{ fontSize: '.76rem', color: '#aaa' }}>Prochain palier : {nextRank.icon} {nextRank.label} ({nextRank.min - stats.done} tâche{nextRank.min - stats.done > 1 ? 's' : ''} restante{nextRank.min - stats.done > 1 ? 's' : ''})</span>}
+          {!nextRank && <span style={{ fontSize: '.76rem', color: taskTier.color, fontWeight: 600 }}>Palier maximum atteint (tâches validées) !</span>}
         </div>
         <div className="rank-bar-bg">
           <div className="rank-bar-fill" style={{ width: `${progressPct}%` }} />

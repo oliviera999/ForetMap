@@ -13,7 +13,7 @@ description: Routine d'audit QA UX pour Gnomes & Licornes (joueur, MJ, admin). �
 ## Personae minimaux
 
 1. **Joueur classe (Chromebook)**
-   - Connexion pseudo + PIN
+   - Connexion identifiant + mot de passe (écran unique)
    - Consultation chapitre
    - Soumission d’action
 2. **MJ tablette (1024x768)**

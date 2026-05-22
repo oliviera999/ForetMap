@@ -52,6 +52,14 @@ test('POST /api/gl/auth/login rejette un mauvais mot de passe', async () => {
   assert.ok(String(res.body?.error || '').includes('incorrect'));
 });
 
+test('POST /api/gl/auth/login accepte identifier + password (joueur)', async () => {
+  const res = await request(app)
+    .post('/api/gl/auth/login')
+    .send({ identifier: PSEUDO_NORMAL, password: 'motdepasse123' })
+    .expect(200);
+  assert.strictEqual(res.body?.auth?.userType, 'gl_player');
+});
+
 test('GET /api/gl/auth/me expose first_name / last_name', async () => {
   const login = await request(app)
     .post('/api/gl/auth/login')

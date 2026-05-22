@@ -1,11 +1,12 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { apiGL } from '../services/apiGL.js';
-import { compressImage } from '../../utils/image.js';
+import { compressImage, isLikelyImageFile } from '../../utils/image.js';
 import { GLChapterMapEditor } from './GLChapterMapEditor.jsx';
 import { GLPctMapCanvas } from './GLPctMapCanvas.jsx';
 import { useGlPctMapGestures } from '../hooks/useGlPctMapGestures.js';
 import { GLBoardMarkers } from './GLBoardMarkers.jsx';
 import { MediaLibraryMenu } from '../../components/MediaLibraryMenu.jsx';
+import { GLImageSourceField } from './GLImageSourceField.jsx';
 
 const EMPTY_CHAPTER_FORM = {
   slug: '',
@@ -26,6 +27,8 @@ export function GLChaptersAdminView() {
   const [error, setError] = useState('');
   const [info, setInfo] = useState('');
   const [uploadingMapImage, setUploadingMapImage] = useState(false);
+  const [pendingMapImageFile, setPendingMapImageFile] = useState(null);
+  const [pendingMapPreviewUrl, setPendingMapPreviewUrl] = useState('');
   const previewMapGestures = useGlPctMapGestures();
 
   async function loadChapters() {
@@ -59,6 +62,7 @@ export function GLChaptersAdminView() {
         orderIndex: Number(data.chapter.order_index || 0),
       });
       setSelectedId(Number(data.chapter.id));
+      clearPendingMapImage();
     } catch (err) {
       setError(err.message || 'Détail introuvable');
     }
@@ -68,11 +72,24 @@ export function GLChaptersAdminView() {
     loadChapters();
   }, []);
 
+  function clearPendingMapImage() {
+    setPendingMapImageFile(null);
+    setPendingMapPreviewUrl((prev) => {
+      if (prev) URL.revokeObjectURL(prev);
+      return '';
+    });
+  }
+
   function resetChapterForm() {
     setChapterForm(EMPTY_CHAPTER_FORM);
     setSelectedId(null);
     setDetail(null);
+    clearPendingMapImage();
   }
+
+  useEffect(() => () => {
+    if (pendingMapPreviewUrl) URL.revokeObjectURL(pendingMapPreviewUrl);
+  }, [pendingMapPreviewUrl]);
 
   async function submitChapter(event) {
     event.preventDefault();
@@ -80,6 +97,7 @@ export function GLChaptersAdminView() {
     setInfo('');
     const payload = { ...chapterForm, orderIndex: Number(chapterForm.orderIndex) || 0 };
     try {
+      let chapterId = selectedId;
       if (selectedId) {
         const data = await apiGL(`/api/gl/chapters/admin/${selectedId}`, 'PUT', payload);
         setDetail(data);
@@ -87,8 +105,12 @@ export function GLChaptersAdminView() {
       } else {
         const data = await apiGL('/api/gl/chapters/admin', 'POST', payload);
         setDetail(data);
-        setSelectedId(Number(data?.chapter?.id || null));
+        chapterId = Number(data?.chapter?.id || null);
+        setSelectedId(chapterId);
         setInfo('Chapitre créé');
+      }
+      if (pendingMapImageFile && chapterId) {
+        await uploadChapterMapImage(pendingMapImageFile, chapterId);
       }
       await loadChapters();
     } catch (err) {
@@ -128,16 +150,38 @@ export function GLChaptersAdminView() {
     setError('');
   }
 
-  async function uploadChapterMapImage(file) {
-    if (!selectedId || !file) return;
+  function queuePendingMapImage(file) {
+    if (!file || !isLikelyImageFile(file)) {
+      setError('Format d’image non reconnu (JPEG, PNG ou WebP).');
+      return;
+    }
+    clearPendingMapImage();
+    setPendingMapImageFile(file);
+    setPendingMapPreviewUrl(URL.createObjectURL(file));
+    setError('');
+    setInfo(
+      selectedId
+        ? 'Image sélectionnée — envoi en cours…'
+        : 'Image sélectionnée : elle sera envoyée lors de l’enregistrement du chapitre.'
+    );
+  }
+
+  async function uploadChapterMapImage(file, chapterId = selectedId) {
+    if (!file) return;
+    const targetId = Number(chapterId);
+    if (!Number.isFinite(targetId) || targetId <= 0) {
+      queuePendingMapImage(file);
+      return;
+    }
     setUploadingMapImage(true);
     setError('');
     setInfo('');
     try {
       const imageData = await compressImage(file, 2400, 0.9);
-      const data = await apiGL(`/api/gl/chapters/admin/${selectedId}/map-image`, 'POST', { image_data: imageData });
+      const data = await apiGL(`/api/gl/chapters/admin/${targetId}/map-image`, 'POST', { image_data: imageData });
       setDetail(data);
       setChapterForm((prev) => ({ ...prev, mapImageUrl: data?.chapter?.map_image_url || prev.mapImageUrl }));
+      clearPendingMapImage();
       setInfo('Image de carte importée');
     } catch (err) {
       setError(err.message || 'Upload image impossible');
@@ -145,6 +189,20 @@ export function GLChaptersAdminView() {
       setUploadingMapImage(false);
     }
   }
+
+  function handleMapImageFile(file) {
+    if (!file) return;
+    if (selectedId) {
+      uploadChapterMapImage(file, selectedId);
+    } else {
+      queuePendingMapImage(file);
+    }
+  }
+
+  const previewMapImageUrl = chapterForm.mapImageUrl || pendingMapPreviewUrl || '';
+  const mapImagePickHint = !selectedId && pendingMapImageFile
+    ? 'L’image sera importée sur le serveur à l’enregistrement du chapitre.'
+    : (!selectedId ? 'Vous pouvez choisir une photo avant l’enregistrement ; l’envoi se fera à la création du chapitre.' : '');
 
   const markers = useMemo(() => (Array.isArray(detail?.markers) ? detail.markers : []), [detail]);
 
@@ -203,46 +261,14 @@ export function GLChaptersAdminView() {
                 onChange={(event) => setChapterForm({ ...chapterForm, biome: event.target.value })}
               />
             </label>
-            <label>
-              Image carte (URL)
-              <input
-                value={chapterForm.mapImageUrl}
-                onChange={(event) => setChapterForm({ ...chapterForm, mapImageUrl: event.target.value })}
-              />
-            </label>
-            {selectedId ? (
-              <div className="gl-inline-actions" style={{ marginTop: -4 }}>
-                <label className="gl-btn-secondary" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, cursor: uploadingMapImage ? 'wait' : 'pointer' }}>
-                  {uploadingMapImage ? 'Envoi…' : '📁 Galerie'}
-                  <input
-                    type="file"
-                    accept="image/*"
-                    style={{ display: 'none' }}
-                    disabled={uploadingMapImage}
-                    onChange={(event) => {
-                      const file = event.target.files?.[0];
-                      event.target.value = '';
-                      uploadChapterMapImage(file);
-                    }}
-                  />
-                </label>
-                <label className="gl-btn-secondary" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, cursor: uploadingMapImage ? 'wait' : 'pointer' }}>
-                  {uploadingMapImage ? 'Envoi…' : '📸 Appareil photo'}
-                  <input
-                    type="file"
-                    accept="image/*"
-                    capture="environment"
-                    style={{ display: 'none' }}
-                    disabled={uploadingMapImage}
-                    onChange={(event) => {
-                      const file = event.target.files?.[0];
-                      event.target.value = '';
-                      uploadChapterMapImage(file);
-                    }}
-                  />
-                </label>
-              </div>
-            ) : null}
+            <GLImageSourceField
+              label="Image de carte"
+              url={chapterForm.mapImageUrl}
+              onUrlChange={(value) => setChapterForm({ ...chapterForm, mapImageUrl: value })}
+              onPickFile={handleMapImageFile}
+              uploading={uploadingMapImage}
+              filePickHint={mapImagePickHint}
+            />
             <MediaLibraryMenu
               title="Bibliothèque globale (images, audio, vidéo)"
               fetchItems={fetchMediaLibrary}
@@ -250,11 +276,14 @@ export function GLChaptersAdminView() {
               removeItem={removeMediaLibrary}
               onPickUrl={(url) => setChapterForm((prev) => ({ ...prev, mapImageUrl: url }))}
             />
-            {chapterForm.mapImageUrl ? (
+            {previewMapImageUrl ? (
               <div className="gl-map-url-preview">
-                <p className="gl-hint">Aperçu de la carte</p>
+                <p className="gl-hint">
+                  Aperçu de la carte
+                  {pendingMapPreviewUrl && !chapterForm.mapImageUrl ? ' (fichier local, en attente d’envoi)' : ''}
+                </p>
                 <GLPctMapCanvas
-                  imageUrl={chapterForm.mapImageUrl}
+                  imageUrl={previewMapImageUrl}
                   imageAlt="Aperçu carte chapitre"
                   mapGestures={previewMapGestures}
                   className="gl-board gl-board--mini"
