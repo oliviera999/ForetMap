@@ -8,11 +8,13 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 ## [Non publié]
 
 ### Modifié
+- **Carte — repères** : l’emoji associé à un repère est **optionnel** (bouton « Sans emoji », saisie vide) ; API `POST/PUT /api/map/markers` et visite `PUT /api/visit/markers/:id` acceptent `emoji: ""` ; sur le plan, repère sans emoji = pastille discrète + libellé sous le point si activé. Tests `tests/marker-emoji.test.js`, `tests/api.test.js` ; `docs/API.md`.
 - **GL — chapitres (contenus éditoriaux)** : import d’image de carte depuis galerie ou appareil photo toujours visible (URL + fichier), y compris avant la première sauvegarde du chapitre (envoi automatique à la création) ; composant `GLImageSourceField`.
 - **GL — pages éditoriales** : import d’images dans le markdown (galerie, appareil photo, bibliothèque média) via `GLMarkdownImageInsert` ; aperçu avec balises `img` sécurisées (`renderMarkdownToSafeHtml` option `allowImages`).
 - **GL — connexion** : un seul formulaire (identifiant + mot de passe) pour joueurs, MJ et admins ; le profil est déterminé après authentification. Libellés « mot de passe » (plus « PIN ») côté UI admin joueurs. OAuth Google en mode `auto` par défaut (joueur puis staff). `POST /api/gl/auth/login` accepte aussi les comptes MJ/Admin ForetMap.
 
 ### Corrigé
+- **GL — console MJ** : import manquant de `useCallback` dans `GLGameMasterConsole` (crash React / écran « Une erreur s’est produite » à l’ouverture de l’onglet MJ après connexion admin) ; test Vitest `tests-ui/gl/GLGameMasterConsole.test.jsx`.
 - **RBAC / progression n3beur** : l’échelle automatique agrège **tous** les seuils `min_done_tasks` des profils n3beur (seed `eleve_*` + paliers perso. rang &lt; 400) ; un profil attribué manuellement peut à nouveau monter selon les tâches validées ; sync à chaque validation ; stats élève = profil RBAC réel + barre objectif tâches. Tests `tests/rbac-progression.test.js` ; `docs/API.md`.
 - **Carte — zones** : la couleur d’une zone peut être modifiée après création (onglet **Modifier** du modal zone, professeur) ; `PUT /api/zones/:id` avec `color` déjà supporté côté API, test `tests/api.test.js`.
 - **GL — auth staff** : connexion MJ lorsque l’email saisi correspond à l’entrée `gl_admins` mais diffère de `users.email` (ex. identifiant historique type `cdla@…`) ; recherche par `loginIdentifier` en complément du mail ForetMap.

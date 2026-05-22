@@ -127,7 +127,7 @@ export function AppGL() {
       setError('');
       return;
     }
-    setOauthNotice({ error: 'oauth_invalid_payload', mode: oauthMode });
+    setOauthNotice({ error: 'oauth_invalid_payload' });
   }, [updateSession]);
   const tabs = useMemo(() => {
     const playerTabs = GL_PLAYER_TABS.filter((tab) => {
@@ -205,6 +205,15 @@ export function AppGL() {
       cancelled = true;
     };
   }, [token, reloadGameplaySettings, isAdmin]);
+
+  useEffect(() => {
+    if (isAdmin) return;
+    if (activeGameId) return;
+    const hintedGameId = auth?.gameId != null ? Number(auth.gameId) : null;
+    if (hintedGameId != null && Number.isFinite(hintedGameId) && hintedGameId > 0) {
+      setActiveGameId(hintedGameId);
+    }
+  }, [isAdmin, activeGameId, auth?.gameId]);
 
   const reloadGame = useCallback(async () => {
     if (!activeGameId) return;
@@ -316,6 +325,23 @@ export function AppGL() {
     }
   }
 
+  async function joinSelectedTeam() {
+    if (isAdmin || !gameState?.game?.id) return;
+    const teamId = resolveTargetTeamId();
+    if (teamId == null) {
+      setError('Choisissez une équipe avant de rejoindre.');
+      return;
+    }
+    try {
+      await apiGL(`/api/gl/games/${gameState.game.id}/join-team`, 'POST', { teamId });
+      updateSession({ auth: { ...auth, teamId } });
+      await reloadGame();
+      setError('');
+    } catch (err) {
+      setError(err.message || 'Impossible de rejoindre cette équipe');
+    }
+  }
+
   const turnToastTeam = useMemo(() => {
     if (!turnToast?.teamId || !gameState?.teams) return null;
     return gameState.teams.find((team) => Number(team.id) === Number(turnToast.teamId)) || null;
@@ -423,18 +449,31 @@ export function AppGL() {
         {tab === 'rules' && <GLRulesView auth={auth} onNavigateTab={setTab} />}
         {tab === 'spells' && <GLSpellsView auth={auth} onNavigateTab={setTab} />}
         {tab === 'maps' && (
-          <GLMapView
-            gameState={gameState}
-            onMoveMascot={moveMascotToMarker}
-            onMoveMascotToPct={moveMascotToPct}
-            onPlayerActionRequest={submitPlayerActionRequest}
-            onSelectTeam={setSelectedTeamId}
-            canMoveMascot={isAdmin}
-            canRequestAction={canRequestAction}
-            selectedTeamId={selectedTeamId}
-            currentTeamId={currentTeamId}
-            mascotStateMachine={mascotStateMachine}
-          />
+          <>
+            <GLMapView
+              gameState={gameState}
+              onMoveMascot={moveMascotToMarker}
+              onMoveMascotToPct={moveMascotToPct}
+              onPlayerActionRequest={submitPlayerActionRequest}
+              onSelectTeam={setSelectedTeamId}
+              canMoveMascot={isAdmin}
+              canRequestAction={canRequestAction}
+              selectedTeamId={selectedTeamId}
+              currentTeamId={currentTeamId}
+              mascotStateMachine={mascotStateMachine}
+            />
+            {!isAdmin && gameState?.game && auth?.teamId == null && (
+              <section className="gl-panel">
+                <h3>Rejoindre une équipe</h3>
+                <p className="gl-hint" style={{ marginTop: 0 }}>
+                  Sélectionnez une équipe sur la carte, puis confirmez l’affectation joueur.
+                </p>
+                <button type="button" onClick={joinSelectedTeam}>
+                  Rejoindre l’équipe sélectionnée
+                </button>
+              </section>
+            )}
+          </>
         )}
         {tab === 'biotope' && <GLBiotopeView gameState={gameState} />}
         {tab === 'biocenose' && <GLBiocenoseView gameState={gameState} />}
