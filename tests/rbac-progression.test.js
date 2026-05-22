@@ -5,7 +5,11 @@ const request = require('supertest');
 const { initSchema, queryOne, execute } = require('../database');
 const { app } = require('../server');
 const { signAuthToken } = require('../middleware/requireTeacher');
-const { ensureRbacBootstrap } = require('../lib/rbac');
+const {
+  ensureRbacBootstrap,
+  getStudentProgressionConfig,
+  resolveStudentRoleSlugFromValidatedCount,
+} = require('../lib/rbac');
 
 test.before(async () => {
   await initSchema();
@@ -61,6 +65,51 @@ async function setStudentPrimaryRole(studentId, roleSlug) {
   );
 }
 
+test('getStudentProgressionConfig agrège tous les seuils min_done_tasks des profils n3beur', async () => {
+  const teacherToken = await getAdminAuthToken();
+  const ts = Date.now();
+  const slugs = [`palier_a_${ts}`, `palier_b_${ts}`, `palier_c_${ts}`];
+  const thresholds = [0, 12, 37];
+
+  for (let i = 0; i < slugs.length; i += 1) {
+    await request(app)
+      .post('/api/rbac/profiles')
+      .set('Authorization', `Bearer ${teacherToken}`)
+      .send({
+        slug: slugs[i],
+        display_name: `Palier ${thresholds[i]}`,
+        rank: 120 + i * 10,
+        emoji: '🌱',
+        min_done_tasks: thresholds[i],
+        display_order: 9800 + i,
+      })
+      .expect(201);
+  }
+
+  const config = await getStudentProgressionConfig();
+  for (const slug of slugs) {
+    const step = (config.steps || []).find((s) => s.roleSlug === slug);
+    assert.ok(step, `palier ${slug} absent de l’échelle`);
+    const expectedMin = thresholds[slugs.indexOf(slug)];
+    assert.strictEqual(step.min, expectedMin);
+    assert.strictEqual(config.thresholds[slug], expectedMin);
+  }
+
+  const isolatedSteps = slugs.map((slug, i) => ({
+    roleSlug: slug,
+    min: thresholds[i],
+    displayOrder: 9800 + i,
+    label: slug,
+  }));
+  assert.strictEqual(resolveStudentRoleSlugFromValidatedCount(11, isolatedSteps), slugs[0]);
+  assert.strictEqual(resolveStudentRoleSlugFromValidatedCount(12, isolatedSteps), slugs[1]);
+  assert.strictEqual(resolveStudentRoleSlugFromValidatedCount(99, isolatedSteps), slugs[2]);
+
+  for (const slug of slugs) {
+    await execute('DELETE FROM roles WHERE slug = ?', [slug]);
+  }
+});
+
 test('progression auto : palier perso. après profil manuel hors eleve_* (validation tâche)', async () => {
   const teacherToken = await getAdminAuthToken();
   const ts = Date.now();
@@ -72,7 +121,7 @@ test('progression auto : palier perso. après profil manuel hors eleve_* (valida
     .set('Authorization', `Bearer ${teacherToken}`)
     .send({
       slug: targetSlug,
-      display_name: 'Palier objectif 40',
+      display_name: 'Palier intermédiaire',
       rank: 250,
       emoji: '🎯',
       min_done_tasks: 2,

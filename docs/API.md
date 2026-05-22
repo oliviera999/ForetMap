@@ -463,8 +463,8 @@ Ces routes sont destinées à la console admin et exigent un token avec permissi
 | POST | `/api/settings/admin/system/restart` | Redémarrage applicatif contrôlé |
 
 Progression n3beurs :
-- pilotée par les profils **`eleve_*`** et par tout **palier n3beur personnalisé** avec `roles.min_done_tasks` défini, `roles.rank` strictement inférieur à **400** (rang n3boss), hors slugs `admin`, `prof`, `visiteur` et hors préfixe `gl_` (même périmètre que l’édition des seuils dans Profils & utilisateurs).
-- montée automatique (si `rbac.progression_by_validated_tasks` est actif) : uniquement **promotion** (rang cible ≥ rang actuel), y compris après attribution manuelle d’un palier hors échelle `eleve_*` ; déclenchée à la consultation des stats, aux actions tâche élève, et à chaque **validation** de tâche (`POST`/`PUT` → `validated`) pour les n3beurs assignés.
+- l’échelle est construite à partir de **tous les profils n3beur** configurés dans Profils & utilisateurs : slugs **`eleve_*`** (seuils par défaut si besoin) et paliers personnalisés (`roles.rank` &lt; **400**, hors `admin` / `prof` / `visiteur` / `gl_*`) dès qu’un **`roles.min_done_tasks`** est renseigné pour le profil ; chaque seuil ainsi défini est pris en compte pour déterminer le palier cible selon le nombre de tâches **validées**.
+- montée automatique (si `rbac.progression_by_validated_tasks` est actif) : uniquement **promotion** (rang cible ≥ rang actuel), y compris après attribution manuelle ; déclenchée à la consultation des stats, aux actions tâche élève, et à chaque **validation** de tâche (`POST`/`PUT` → `validated`) pour les n3beurs assignés.
 - les anciens réglages `progression.student_role_min_done_*` ne sont plus utilisés.
 
 Tâches / inscriptions n3beurs :

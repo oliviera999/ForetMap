@@ -17,7 +17,7 @@ const TOOLBAR_ACTIONS = [
  * Zone de texte avec barre d’outils Markdown minimal.
  * Props identiques à textarea + value/onChange.
  */
-function MarkdownTextarea({
+const MarkdownTextarea = React.forwardRef(function MarkdownTextarea({
   value,
   onChange,
   rows = 3,
@@ -25,8 +25,14 @@ function MarkdownTextarea({
   toolbar = true,
   hint = 'Mise en forme légère : gras, listes, liens (Markdown).',
   ...rest
-}) {
+}, forwardedRef) {
   const textareaRef = useRef(null);
+
+  const setTextareaRef = useCallback((el) => {
+    textareaRef.current = el;
+    if (typeof forwardedRef === 'function') forwardedRef(el);
+    else if (forwardedRef) forwardedRef.current = el;
+  }, [forwardedRef]);
 
   const applyEdit = useCallback((editFn) => {
     const el = textareaRef.current;
@@ -73,7 +79,7 @@ function MarkdownTextarea({
         </div>
       )}
       <textarea
-        ref={textareaRef}
+        ref={setTextareaRef}
         value={value}
         onChange={onChange}
         rows={rows}
@@ -85,6 +91,6 @@ function MarkdownTextarea({
       )}
     </div>
   );
-}
+});
 
 export { MarkdownTextarea };
