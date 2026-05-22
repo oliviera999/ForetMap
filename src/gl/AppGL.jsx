@@ -101,14 +101,13 @@ export function AppGL() {
     const hashParams = new URLSearchParams(hashRaw);
     const oauthPayload = hashParams.get('oauth');
     const oauthError = hashParams.get('oauth_error');
-    const oauthMode = hashParams.get('oauth_mode') === 'player' ? 'player' : 'staff';
     if (!oauthPayload && !oauthError) return;
 
     const cleanUrl = `${window.location.pathname}${window.location.search}`;
     window.history.replaceState({}, document.title, cleanUrl);
 
     if (oauthError) {
-      setOauthNotice({ error: oauthError, mode: oauthMode });
+      setOauthNotice({ error: oauthError });
       return;
     }
     const payload = decodeBase64UrlJson(oauthPayload);

@@ -19,33 +19,36 @@ describe('GLAuthView', () => {
     apiGlMock.mockResolvedValue({ title: 'G&L', subtitle: '', allowGoogleStaff: false });
   });
 
-  test('soumet le formulaire joueur et appelle onLogin', async () => {
+  test('soumet le formulaire et appelle onLogin', async () => {
     apiGlMock
       .mockResolvedValueOnce({ title: 'G&L', subtitle: '', allowGoogleStaff: false })
       .mockResolvedValueOnce({ authToken: 'tok' });
     const onLogin = vi.fn();
     render(<GLAuthView onLogin={onLogin} />);
 
-    fireEvent.change(screen.getByLabelText('Pseudo'), { target: { value: 'teamA' } });
-    fireEvent.change(screen.getByLabelText('PIN'), { target: { value: '1234' } });
+    fireEvent.change(screen.getByLabelText(/Identifiant/), { target: { value: 'teamA' } });
+    fireEvent.change(screen.getByLabelText('Mot de passe'), { target: { value: '1234' } });
     fireEvent.click(screen.getByRole('button', { name: 'Se connecter' }));
 
     await waitFor(() => expect(onLogin).toHaveBeenCalledTimes(1));
-    expect(apiGlMock).toHaveBeenCalledWith('/api/gl/auth/login', 'POST', { pseudo: 'teamA', pin: '1234' });
+    expect(apiGlMock).toHaveBeenCalledWith('/api/gl/auth/login', 'POST', {
+      identifier: 'teamA',
+      password: '1234',
+    });
   });
 
   test('affiche un message d’erreur si login échoue', async () => {
     apiGlMock
       .mockResolvedValueOnce({ title: 'G&L', subtitle: '', allowGoogleStaff: false })
-      .mockRejectedValueOnce(new Error('Pseudo ou PIN incorrect'));
+      .mockRejectedValueOnce(new Error('Identifiant ou mot de passe incorrect'));
     render(<GLAuthView onLogin={() => {}} />);
 
-    fireEvent.change(screen.getByLabelText('Pseudo'), { target: { value: 'teamA' } });
-    fireEvent.change(screen.getByLabelText('PIN'), { target: { value: 'bad' } });
+    fireEvent.change(screen.getByLabelText(/Identifiant/), { target: { value: 'teamA' } });
+    fireEvent.change(screen.getByLabelText('Mot de passe'), { target: { value: 'bad' } });
     fireEvent.click(screen.getByRole('button', { name: 'Se connecter' }));
 
     await waitFor(() => {
-      expect(screen.getByText(/Pseudo ou PIN incorrect/)).toBeInTheDocument();
+      expect(screen.getByText(/Identifiant ou mot de passe incorrect/)).toBeInTheDocument();
     });
   });
 });

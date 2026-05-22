@@ -736,6 +736,40 @@ body.gl-body {
   min-height: 210px;
 }
 
+.gl-image-source {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 12px 14px;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  background: #f8fafc;
+}
+
+.gl-image-source legend {
+  font-weight: 600;
+  padding: 0 4px;
+}
+
+.gl-image-source__intro {
+  margin: 0;
+}
+
+.gl-image-source__upload-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.gl-image-source__file-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  margin: 0;
+}
+
 .gl-map-url-preview {
   display: grid;
   gap: 6px;

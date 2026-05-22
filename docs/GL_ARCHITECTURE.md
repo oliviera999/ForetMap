@@ -32,7 +32,7 @@ Ce document décrit l'architecture du second mode **Gnomes & Licornes** (GL) dan
 
 Préfixe : `/api/gl`
 
-- Auth : `routes/gl/auth.js` (joueur `pseudo`+mot de passe ou OAuth Google `google/start?mode=player` ; MJ/Admin via compte ForetMap `staff/login` ou OAuth `google/start?mode=staff` ; joueur Google : `gl_players.email` ou lien `linked_foretmap_user_id` ; admins ForetMap RBAC `admin` → synchro auto `gl_admins` ; profil self-service `PATCH /api/gl/auth/me/profile`, lien ForetMap joueur `POST/DELETE /api/gl/auth/link-foretmap`, changement mot de passe staff `POST /api/gl/auth/staff/change-password`)
+- Auth : `routes/gl/auth.js` (écran unique : `POST /login` avec `identifier`+mot de passe — joueur `gl_players` puis MJ/Admin ForetMap ; OAuth Google `google/start` mode `auto` par défaut ; alias `staff/login` MJ-only ; joueur Google : `gl_players.email` ou lien `linked_foretmap_user_id` ; admins ForetMap RBAC `admin` → synchro auto `gl_admins` ; profil self-service `PATCH /api/gl/auth/me/profile`, lien ForetMap joueur `POST/DELETE /api/gl/auth/link-foretmap`, changement mot de passe staff `POST /api/gl/auth/staff/change-password`)
 - Contenus éditoriaux (pages éditoriales `gl_content_pages`) : `routes/gl/content.js`
 - Chapitres et repères (`gl_chapters`, `gl_chapter_markers`) : `routes/gl/chapters.js`
 - Gameplay : `routes/gl/games.js`
@@ -130,7 +130,7 @@ Tables GL préfixées `gl_` :
 ## Frontend GL (lot actuel)
 
 - Shell : `src/gl/AppGL.jsx`
-- Auth joueur (pseudo + PIN) et admin (Google idToken)
+- Auth commune (identifiant + mot de passe) et OAuth Google (mode auto)
 - Onglets joueur : Cartes, Biotope, Biocenose, Histoire, Monde, Sortileges, Regles
 - Onglets admin : utilisateurs, reglages, mascottes, console MJ
 - Réutilisation renderer mascotte via `VisitMapMascotRenderer`

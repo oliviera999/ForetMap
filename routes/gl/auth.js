@@ -128,7 +128,64 @@ function readCookie(req, name) {
 }
 
 function normalizeGlOAuthMode(value) {
-  return String(value || '').toLowerCase() === 'player' ? 'player' : 'staff';
+  const raw = String(value || '').toLowerCase();
+  if (raw === 'player') return 'player';
+  if (raw === 'staff') return 'staff';
+  return 'auto';
+}
+
+async function attemptGlStaffPasswordLogin(identifier, password, { rejectStudent = false } = {}) {
+  const account = await queryOne(
+    `SELECT id, user_type, email, pseudo, password_hash, is_active, display_name
+       FROM users
+      WHERE LOWER(pseudo) = LOWER(?) OR LOWER(email) = LOWER(?)
+      LIMIT 1`,
+    [identifier, identifier]
+  );
+  if (!account || !account.password_hash) {
+    return { ok: false, status: 401, error: 'Identifiant ou mot de passe incorrect' };
+  }
+  if (account.is_active != null && !Number(account.is_active)) {
+    return { ok: false, status: 401, error: 'Compte inactif' };
+  }
+  const passOk = await bcrypt.compare(password, String(account.password_hash));
+  if (!passOk) return { ok: false, status: 401, error: 'Identifiant ou mot de passe incorrect' };
+
+  const userType = String(account.user_type || '').toLowerCase();
+  if (userType === 'student') {
+    if (rejectStudent) {
+      return {
+        ok: false,
+        status: 403,
+        error: 'Les comptes élèves ForetMap ne peuvent pas se connecter en tant que MJ.',
+      };
+    }
+    return { ok: false, status: 401, error: 'Identifiant ou mot de passe incorrect' };
+  }
+  if (userType !== 'teacher') {
+    return { ok: false, status: 403, error: 'Compte non autorisé pour la connexion MJ.' };
+  }
+
+  const loginKey = identifier.trim().toLowerCase();
+  const emailFromAccount = normalizeEmail(account.email);
+  const emailFromLogin = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(loginKey) ? loginKey : null;
+  const email = emailFromAccount || emailFromLogin;
+  const displayName = normalizeOptionalString(account.display_name)
+    || normalizeOptionalString(account.pseudo)
+    || email
+    || identifier;
+  const resolved = await resolveGlStaffLogin({
+    email,
+    displayName,
+    googleSub: null,
+    teacherId: account.id,
+    loginIdentifier: loginKey,
+  });
+  if (!resolved.ok) {
+    return { ok: false, status: resolved.status || 403, error: resolved.error };
+  }
+  const session = await issueGlStaffSession(resolved.admin, resolved.glRole);
+  return { ok: true, session };
 }
 
 function parseBoolJsonSetting(rawValue, fallback = false) {
@@ -192,10 +249,21 @@ async function completeGlGoogleOAuth({ cfg, payload, mode }) {
 
   const displayName = normalizeOptionalString(payload?.name) || email;
   const googleSub = normalizeOptionalString(payload?.sub);
+  const oauthMode = normalizeGlOAuthMode(mode);
 
-  if (normalizeGlOAuthMode(mode) === 'player') {
+  if (oauthMode === 'player' || oauthMode === 'auto') {
     const resolved = await resolveGlPlayerLogin({ email, googleSub });
-    if (!resolved.ok) {
+    if (resolved.ok) {
+      const session = await issueGlPlayerSession(resolved.player);
+      return {
+        successRedirect: buildOAuthFrontendRedirect(cfg.frontendOrigin, {
+          type: 'gl_player',
+          token: session.authToken,
+          auth: session.auth,
+        }),
+      };
+    }
+    if (oauthMode === 'player') {
       return {
         errorRedirect: buildGlOAuthFrontendErrorRedirect(
           cfg.frontendOrigin,
@@ -204,14 +272,6 @@ async function completeGlGoogleOAuth({ cfg, payload, mode }) {
         ),
       };
     }
-    const session = await issueGlPlayerSession(resolved.player);
-    return {
-      successRedirect: buildOAuthFrontendRedirect(cfg.frontendOrigin, {
-        type: 'gl_player',
-        token: session.authToken,
-        auth: session.auth,
-      }),
-    };
   }
 
   const teacher = await queryOne(
@@ -225,8 +285,9 @@ async function completeGlGoogleOAuth({ cfg, payload, mode }) {
     teacherId: teacher?.id || null,
   });
   if (!resolved.ok) {
+    const code = oauthMode === 'auto' ? 'oauth_gl_login_denied' : 'oauth_gl_staff_denied';
     return {
-      errorRedirect: buildGlOAuthFrontendErrorRedirect(cfg.frontendOrigin, 'oauth_gl_staff_denied', 'staff'),
+      errorRedirect: buildGlOAuthFrontendErrorRedirect(cfg.frontendOrigin, code, oauthMode),
     };
   }
   const session = await issueGlStaffSession(resolved.admin, resolved.glRole);
@@ -277,13 +338,13 @@ router.get('/config', async (req, res) => {
 
 router.post('/login', async (req, res) => {
   try {
-    const pseudo = normalizeOptionalString(req.body?.pseudo)
-      || normalizeOptionalString(req.body?.identifier);
+    const identifier = normalizeOptionalString(req.body?.identifier)
+      || normalizeOptionalString(req.body?.pseudo);
     // Compat legacy: "pin" reste accepté pour les clients existants.
     const password = normalizeOptionalString(req.body?.password)
       || normalizeOptionalString(req.body?.pin);
-    if (!pseudo || !password) {
-      return res.status(400).json({ error: 'Pseudo et mot de passe requis' });
+    if (!identifier || !password) {
+      return res.status(400).json({ error: 'Identifiant et mot de passe requis' });
     }
 
     const player = await queryOne(
@@ -292,15 +353,20 @@ router.post('/login', async (req, res) => {
          FROM gl_players p
         WHERE LOWER(p.pseudo) = LOWER(?)
         LIMIT 1`,
-      [pseudo]
+      [identifier]
     );
-    if (!player || !Number(player.is_active)) {
-      return res.status(401).json({ error: 'Pseudo ou mot de passe incorrect' });
+    if (player) {
+      if (!Number(player.is_active)) {
+        return res.status(401).json({ error: 'Identifiant ou mot de passe incorrect' });
+      }
+      const ok = await bcrypt.compare(password, String(player.password_hash || ''));
+      if (!ok) return res.status(401).json({ error: 'Identifiant ou mot de passe incorrect' });
+      return res.json(await issueGlPlayerSession(player));
     }
-    const ok = await bcrypt.compare(password, String(player.password_hash || ''));
-    if (!ok) return res.status(401).json({ error: 'Pseudo ou mot de passe incorrect' });
 
-    return res.json(await issueGlPlayerSession(player));
+    const staffOutcome = await attemptGlStaffPasswordLogin(identifier, password);
+    if (staffOutcome.ok) return res.json(staffOutcome.session);
+    return res.status(staffOutcome.status || 401).json({ error: staffOutcome.error });
   } catch (err) {
     logRouteError(err, req, 'POST /api/gl/auth/login');
     return res.status(500).json({ error: 'Erreur serveur' });
@@ -316,52 +382,9 @@ router.post('/staff/login', async (req, res) => {
       return res.status(400).json({ error: 'Identifiant et mot de passe requis' });
     }
 
-    const account = await queryOne(
-      `SELECT id, user_type, email, pseudo, password_hash, is_active, display_name
-         FROM users
-        WHERE LOWER(pseudo) = LOWER(?) OR LOWER(email) = LOWER(?)
-        LIMIT 1`,
-      [identifier, identifier]
-    );
-    if (!account || !account.password_hash) {
-      return res.status(401).json({ error: 'Identifiant ou mot de passe incorrect' });
-    }
-    if (account.is_active != null && !Number(account.is_active)) {
-      return res.status(401).json({ error: 'Compte inactif' });
-    }
-    const passOk = await bcrypt.compare(password, String(account.password_hash));
-    if (!passOk) return res.status(401).json({ error: 'Identifiant ou mot de passe incorrect' });
-
-    const userType = String(account.user_type || '').toLowerCase();
-    if (userType === 'student') {
-      return res.status(403).json({
-        error: 'Les élèves se connectent via l’onglet Joueur (pseudo + PIN).',
-      });
-    }
-    if (userType !== 'teacher') {
-      return res.status(403).json({ error: 'Compte non autorisé pour la connexion MJ.' });
-    }
-
-    const loginKey = identifier.trim().toLowerCase();
-    const emailFromAccount = normalizeEmail(account.email);
-    const emailFromLogin = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(loginKey) ? loginKey : null;
-    const email = emailFromAccount || emailFromLogin;
-    const displayName = normalizeOptionalString(account.display_name)
-      || normalizeOptionalString(account.pseudo)
-      || email
-      || identifier;
-    const resolved = await resolveGlStaffLogin({
-      email,
-      displayName,
-      googleSub: null,
-      teacherId: account.id,
-      loginIdentifier: loginKey,
-    });
-    if (!resolved.ok) {
-      return res.status(resolved.status || 403).json({ error: resolved.error });
-    }
-    const session = await issueGlStaffSession(resolved.admin, resolved.glRole);
-    return res.json(session);
+    const staffOutcome = await attemptGlStaffPasswordLogin(identifier, password, { rejectStudent: true });
+    if (staffOutcome.ok) return res.json(staffOutcome.session);
+    return res.status(staffOutcome.status || 401).json({ error: staffOutcome.error });
   } catch (err) {
     logRouteError(err, req, 'POST /api/gl/auth/staff/login');
     return res.status(500).json({ error: 'Erreur serveur' });
@@ -386,12 +409,14 @@ router.post('/google', async (req, res) => {
     const mode = normalizeGlOAuthMode(req.body?.mode);
     const googleSub = normalizeOptionalString(payload?.sub);
 
-    if (mode === 'player') {
+    if (mode === 'player' || mode === 'auto') {
       const resolved = await resolveGlPlayerLogin({ email, googleSub });
-      if (!resolved.ok) {
+      if (resolved.ok) {
+        return res.json(await issueGlPlayerSession(resolved.player));
+      }
+      if (mode === 'player') {
         return res.status(resolved.status || 403).json({ error: resolved.error });
       }
-      return res.json(await issueGlPlayerSession(resolved.player));
     }
 
     const displayName = normalizeOptionalString(payload?.name) || email;

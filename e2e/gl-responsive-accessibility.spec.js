@@ -7,15 +7,15 @@ test.describe('GL responsive & accessibilité', () => {
     await page.goto('/');
     await expect(page.locator('body')).toBeVisible();
 
-    const pseudo = page.getByLabel('Pseudo');
-    const pin = page.getByLabel('PIN');
-    await expect(pseudo).toBeVisible();
-    await expect(pin).toBeVisible();
+    const identifier = page.getByLabel(/Identifiant/);
+    const password = page.getByLabel('Mot de passe');
+    await expect(identifier).toBeVisible();
+    await expect(password).toBeVisible();
 
-    await pseudo.focus();
+    await identifier.focus();
     await page.keyboard.type('team-keyboard');
     await page.keyboard.press('Tab');
     await page.keyboard.type('1234');
-    await expect(pin).toHaveValue('1234');
+    await expect(password).toHaveValue('1234');
   });
 });
