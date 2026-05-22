@@ -770,6 +770,15 @@ body.gl-body {
   margin: 0;
 }
 
+.gl-markdown-image-insert {
+  margin-bottom: 12px;
+}
+
+.gl-markdown .gl-markdown-image-insert + label {
+  display: grid;
+  gap: 6px;
+}
+
 .gl-map-url-preview {
   display: grid;
   gap: 6px;

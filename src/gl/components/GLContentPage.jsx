@@ -1,7 +1,8 @@
-import React, { useEffect, useState } from 'react';
-import DOMPurify from 'isomorphic-dompurify';
-import { marked } from 'marked';
+import React, { useEffect, useRef, useState } from 'react';
 import { apiGL } from '../services/apiGL.js';
+import { MarkdownTextarea } from '../../components/MarkdownTextarea.jsx';
+import { renderMarkdownToSafeHtml } from '../../utils/markdown.js';
+import { GLMarkdownImageInsert } from './GLMarkdownImageInsert.jsx';
 
 function canManageContent(auth) {
   const permissions = Array.isArray(auth?.permissions) ? auth.permissions : [];
@@ -22,6 +23,8 @@ export function GLContentPage({ slug, fallbackTitle, auth, onSaved, onNavigateTa
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [savedMessage, setSavedMessage] = useState('');
+  const [imageInsertMessage, setImageInsertMessage] = useState('');
+  const bodyTextareaRef = useRef(null);
 
   const manageable = canManageContent(auth);
 
@@ -90,12 +93,7 @@ export function GLContentPage({ slug, fallbackTitle, auth, onSaved, onNavigateTa
 
   const displayTitle = content?.title || fallbackTitle || slug;
   const previewMarkdown = manageable && editing ? draftBody : (content?.bodyMarkdown || draftBody || '');
-  let previewHtml = '';
-  try {
-    previewHtml = DOMPurify.sanitize(marked.parse(previewMarkdown || '_Contenu vide._'));
-  } catch (_) {
-    previewHtml = '<p>Aperçu indisponible (markdown invalide).</p>';
-  }
+  const previewHtml = renderMarkdownToSafeHtml(previewMarkdown || '_Contenu vide._', { allowImages: true });
 
   return (
     <article className="gl-panel gl-markdown">
@@ -137,12 +135,24 @@ export function GLContentPage({ slug, fallbackTitle, auth, onSaved, onNavigateTa
             Titre
             <input value={draftTitle} onChange={(event) => setDraftTitle(event.target.value)} />
           </label>
+          <GLMarkdownImageInsert
+            textareaRef={bodyTextareaRef}
+            value={draftBody}
+            onChange={(event) => setDraftBody(event.target.value)}
+            onStatus={(message, isError) => {
+              setImageInsertMessage(message);
+              if (isError) setSaveError(message);
+            }}
+          />
+          {imageInsertMessage ? <p className="gl-info">{imageInsertMessage}</p> : null}
           <label>
             Markdown
-            <textarea
+            <MarkdownTextarea
+              ref={bodyTextareaRef}
               value={draftBody}
               onChange={(event) => setDraftBody(event.target.value)}
               rows={10}
+              hint="Mise en forme légère : gras, listes, liens et images (Markdown)."
             />
           </label>
           <div className="gl-inline-actions">

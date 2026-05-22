@@ -6,6 +6,8 @@ import DOMPurify from 'isomorphic-dompurify';
 
 const ALLOWED_TAGS = ['p', 'br', 'strong', 'em', 'b', 'i', 'ul', 'ol', 'li', 'a'];
 const ALLOWED_ATTR = ['href', 'rel', 'target', 'title'];
+const ALLOWED_TAGS_WITH_IMAGES = [...ALLOWED_TAGS, 'img'];
+const ALLOWED_ATTR_WITH_IMAGES = [...ALLOWED_ATTR, 'src', 'alt', 'title', 'loading'];
 
 marked.setOptions({
   breaks: true,
@@ -22,20 +24,28 @@ DOMPurify.addHook('afterSanitizeAttributes', (node) => {
       node.removeAttribute('href');
     }
   }
+  if (node.tagName === 'IMG') {
+    const src = node.getAttribute('src') || '';
+    if (!/^https?:\/\//i.test(src) && !/^\/uploads\//i.test(src) && !/^\/maps\//i.test(src)) {
+      node.removeAttribute('src');
+    }
+  }
 });
 
 /**
  * @param {string} markdown
+ * @param {{ allowImages?: boolean }} [options]
  * @returns {string} HTML sécurisé (chaîne vide si entrée vide)
  */
-export function renderMarkdownToSafeHtml(markdown) {
+export function renderMarkdownToSafeHtml(markdown, options = {}) {
   const raw = String(markdown ?? '').trim();
   if (!raw) return '';
   const parsed = marked.parse(raw, { async: false });
   const html = typeof parsed === 'string' ? parsed : '';
+  const allowImages = Boolean(options?.allowImages);
   return DOMPurify.sanitize(html, {
-    ALLOWED_TAGS,
-    ALLOWED_ATTR,
+    ALLOWED_TAGS: allowImages ? ALLOWED_TAGS_WITH_IMAGES : ALLOWED_TAGS,
+    ALLOWED_ATTR: allowImages ? ALLOWED_ATTR_WITH_IMAGES : ALLOWED_ATTR,
     ALLOW_DATA_ATTR: false,
   });
 }
@@ -99,6 +109,21 @@ export function applyMarkdownList(value, selectionStart, selectionEnd, listType)
 /**
  * Insère un lien Markdown [texte](url).
  */
+/**
+ * Insère une image Markdown ![alt](url) à la position du curseur.
+ */
+export function applyMarkdownImage(value, selectionStart, selectionEnd, url, alt = 'Image') {
+  const text = String(value ?? '');
+  const start = Math.max(0, Math.min(selectionStart, text.length));
+  const end = Math.max(start, Math.min(selectionEnd, text.length));
+  const safeUrl = String(url || '').trim();
+  const safeAlt = String(alt || 'Image').replace(/[\[\]]/g, '');
+  const snippet = `\n\n![${safeAlt}](${safeUrl})\n\n`;
+  const nextValue = `${text.slice(0, start)}${snippet}${text.slice(end)}`;
+  const cursor = start + snippet.length;
+  return { value: nextValue, selectionStart: cursor, selectionEnd: cursor };
+}
+
 export function applyMarkdownLink(value, selectionStart, selectionEnd) {
   const text = String(value ?? '');
   const start = Math.max(0, Math.min(selectionStart, text.length));

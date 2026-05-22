@@ -9,6 +9,7 @@ let renderMarkdownToSafeHtml;
 let applyMarkdownWrap;
 let applyMarkdownList;
 let applyMarkdownLink;
+let applyMarkdownImage;
 
 before(async () => {
   const mod = await import(pathToFileURL(join(__dirname, '../src/utils/markdown.js')).href);
@@ -16,6 +17,7 @@ before(async () => {
   applyMarkdownWrap = mod.applyMarkdownWrap;
   applyMarkdownList = mod.applyMarkdownList;
   applyMarkdownLink = mod.applyMarkdownLink;
+  applyMarkdownImage = mod.applyMarkdownImage;
 });
 
 describe('markdown utils', () => {
@@ -67,5 +69,16 @@ describe('markdown utils', () => {
     const r = applyMarkdownLink('hello', 0, 5);
     assert.equal(r.value, '[hello](https://)');
     assert.ok(r.selectionStart < r.selectionEnd);
+  });
+
+  it('renderMarkdownToSafeHtml allowImages conserve /uploads/', () => {
+    const html = renderMarkdownToSafeHtml('![x](/uploads/media-library/image/2026/01/a.jpg)', { allowImages: true });
+    assert.match(html, /<img\b/i);
+    assert.match(html, /\/uploads\/media-library\//);
+  });
+
+  it('applyMarkdownImage insère une image markdown', () => {
+    const r = applyMarkdownImage('intro', 5, 5, '/uploads/test.jpg', 'Photo');
+    assert.match(r.value, /!\[Photo\]\(\/uploads\/test\.jpg\)/);
   });
 });
