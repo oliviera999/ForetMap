@@ -4,6 +4,8 @@
 const fs = require('node:fs/promises');
 const path = require('node:path');
 const crypto = require('node:crypto');
+const http = require('node:http');
+const https = require('node:https');
 const TurndownService = require('turndown');
 const { writeBufferToDisk } = require('../lib/uploads');
 
@@ -20,6 +22,79 @@ const EXT_BY_CONTENT_TYPE = new Map([
   ['image/x-icon', 'ico'],
   ['image/vnd.microsoft.icon', 'ico'],
 ]);
+
+function normalizeHeadersObject(headers = {}) {
+  const out = {};
+  for (const [key, value] of Object.entries(headers || {})) {
+    const k = String(key || '').toLowerCase();
+    if (!k) continue;
+    out[k] = String(value ?? '');
+  }
+  return out;
+}
+
+function createHeadersApi(headersObj) {
+  return {
+    get(name) {
+      const key = String(name || '').toLowerCase();
+      return headersObj[key] ?? null;
+    },
+  };
+}
+
+function lightweightFetch(urlValue, options = {}, redirectDepth = 0) {
+  const MAX_REDIRECTS = 5;
+  const method = String(options?.method || 'GET').toUpperCase();
+  const reqHeaders = normalizeHeadersObject(options?.headers || {});
+  const target = new URL(String(urlValue || ''));
+  const lib = target.protocol === 'https:' ? https : http;
+  return new Promise((resolve, reject) => {
+    const req = lib.request(target, { method, headers: reqHeaders }, (res) => {
+      const status = Number(res.statusCode || 0);
+      const headersObj = normalizeHeadersObject(res.headers || {});
+      const chunks = [];
+      res.on('data', (chunk) => chunks.push(Buffer.from(chunk)));
+      res.on('end', async () => {
+        try {
+          const location = headersObj.location;
+          if (location && [301, 302, 303, 307, 308].includes(status)) {
+            if (redirectDepth >= MAX_REDIRECTS) {
+              reject(new Error(`HTTP redirect loop (${MAX_REDIRECTS})`));
+              return;
+            }
+            const nextUrl = new URL(location, target).toString();
+            const nextMethod = status === 303 ? 'GET' : method;
+            const nextOptions = { ...options, method: nextMethod };
+            const redirected = await lightweightFetch(nextUrl, nextOptions, redirectDepth + 1);
+            resolve(redirected);
+            return;
+          }
+          const body = Buffer.concat(chunks);
+          resolve({
+            ok: status >= 200 && status < 300,
+            status,
+            headers: createHeadersApi(headersObj),
+            async json() {
+              const text = body.toString('utf8');
+              return JSON.parse(text);
+            },
+            async text() {
+              return body.toString('utf8');
+            },
+            async arrayBuffer() {
+              const array = body.buffer.slice(body.byteOffset, body.byteOffset + body.byteLength);
+              return array;
+            },
+          });
+        } catch (err) {
+          reject(err);
+        }
+      });
+    });
+    req.on('error', (err) => reject(err));
+    req.end();
+  });
+}
 
 function parseArgs(argv) {
   const args = {
@@ -121,7 +196,7 @@ function mapWpSlugToChapterMeta(wpSlug, chapterMap) {
   };
 }
 
-async function fetchWpCollection({ sourceBaseUrl, resource, fetchFn = fetch }) {
+async function fetchWpCollection({ sourceBaseUrl, resource, fetchFn = lightweightFetch }) {
   const entries = [];
   const normalizedBase = String(sourceBaseUrl || '').replace(/\/+$/, '');
   if (!normalizedBase) throw new Error('sourceBaseUrl requis');
@@ -263,7 +338,7 @@ function extFromUrlOrContentType(urlValue, contentType) {
   return 'bin';
 }
 
-async function fetchBinaryBuffer(urlValue, fetchFn = fetch) {
+async function fetchBinaryBuffer(urlValue, fetchFn = lightweightFetch) {
   const res = await fetchFn(urlValue, {
     headers: {
       Accept: '*/*',
@@ -279,7 +354,7 @@ async function fetchBinaryBuffer(urlValue, fetchFn = fetch) {
 }
 
 async function mirrorOneMediaUrl(urlValue, {
-  fetchFn = fetch,
+  fetchFn = lightweightFetch,
   mediaCache,
   targetDir = 'gl_import/wp',
   apply = false,
@@ -369,7 +444,7 @@ function pickFirstLogoUrlFromHtml(html, fallbackBaseUrl) {
   return '';
 }
 
-async function fetchWpRootInfo(sourceBaseUrl, fetchFn = fetch) {
+async function fetchWpRootInfo(sourceBaseUrl, fetchFn = lightweightFetch) {
   const endpoint = `${String(sourceBaseUrl).replace(/\/+$/, '')}/wp-json/`;
   const res = await fetchFn(endpoint, {
     headers: {
@@ -381,7 +456,7 @@ async function fetchWpRootInfo(sourceBaseUrl, fetchFn = fetch) {
   return res.json();
 }
 
-async function fetchPageHtml(urlValue, fetchFn = fetch) {
+async function fetchPageHtml(urlValue, fetchFn = lightweightFetch) {
   const res = await fetchFn(urlValue, {
     headers: {
       Accept: 'text/html,application/xhtml+xml',
@@ -394,7 +469,7 @@ async function fetchPageHtml(urlValue, fetchFn = fetch) {
   return res.text();
 }
 
-async function fetchMediaBySlug({ sourceBaseUrl, slug, fetchFn = fetch }) {
+async function fetchMediaBySlug({ sourceBaseUrl, slug, fetchFn = lightweightFetch }) {
   const base = String(sourceBaseUrl || '').replace(/\/+$/, '');
   const endpoint =
     `${base}/wp-json/wp/v2/media`
@@ -608,7 +683,7 @@ async function runImport(options = {}) {
     target: VALID_TARGETS.has(String(options.target || '').toLowerCase())
       ? String(options.target).toLowerCase()
       : 'pages',
-    fetchFn: options.fetchFn || fetch,
+    fetchFn: options.fetchFn || lightweightFetch,
     skipMedia: Boolean(options.skipMedia),
     mediaCache: new Map(),
   };
