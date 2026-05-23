@@ -13,6 +13,8 @@ const {
   htmlToMarkdown,
   extractCssVariablesMap,
   normalizeBrandDataFromWp,
+  extractLayoutSlotsFromHomepageHtml,
+  preprocessWpHtmlForMarkdown,
   mirrorWpMediaInMarkdown,
   fetchWpCollection,
   transformWpEntries,
@@ -198,6 +200,31 @@ test('extractCssVariablesMap et normalizeBrandDataFromWp lisent les presets Kade
   assert.strictEqual(brand.subtitle, 'Le jeu de ST');
   assert.strictEqual(brand.colors.primary, '#013a40');
   assert.ok(Array.isArray(brand.fonts.googleFamilies));
+});
+
+test('extractLayoutSlotsFromHomepageHtml extrait hero et cartes yo', () => {
+  const html = `
+    <div class="wp-block-cover hero-image"><h1>Gnomes &amp; Licornes L&rsquo;aventure commence ici !</h1>
+      <img src="https://www.gl.olution.info/wp-content/uploads/2025/06/hero.png" /></div>
+    <div class="wp-block-column"><p>Découvrir… Un monde</p>
+      <img src="https://www.gl.olution.info/wp-content/uploads/2025/06/world.png" /></div>
+    <div class="wp-block-column"><p>Les règles du jeu</p>
+      <img src="https://www.gl.olution.info/wp-content/uploads/2025/06/rules.png" /></div>
+    <div class="wp-block-column"><p>Les sortilèges</p>
+      <img src="https://www.gl.olution.info/wp-content/uploads/2025/06/spells.png" /></div>
+  `;
+  const slots = extractLayoutSlotsFromHomepageHtml(html, 'https://www.yo.olution.info/');
+  assert.ok(slots.hero.imageUrl.includes('hero.png'));
+  assert.ok(slots.hero.title.includes('Gnomes'));
+  assert.ok(slots.card_world.imageUrl.includes('world.png'));
+  assert.ok(slots.card_rules.imageUrl.includes('rules.png'));
+  assert.ok(slots.card_spells.imageUrl.includes('spells.png'));
+});
+
+test('preprocessWpHtmlForMarkdown expose data-src en src', () => {
+  const turndown = createMarkdownConverter();
+  const md = htmlToMarkdown('<img data-src="/wp-content/uploads/x.png" alt="x" />', turndown);
+  assert.ok(md.includes('](/wp-content/uploads/x.png)'));
 });
 
 test('mirrorWpMediaInMarkdown remplace les URLs médias WP', async () => {

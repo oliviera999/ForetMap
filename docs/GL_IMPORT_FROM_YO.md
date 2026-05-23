@@ -28,10 +28,11 @@ curl -s https://gl.olution.info/api/gl/auth/config
 ## Ce qui est importé
 
 - `platform.title`, `platform.subtitle` (depuis WordPress).
-- `platform.brand` (couleurs, polices, logo).
+- `platform.brand` (couleurs, polices, logo, **emplacements visuels** `slots` : hero + cartes monde / règles / sortilèges, calqués sur la page d’accueil yo.olution.info).
 - Pages éditoriales GL (`gl_content_pages`) via `slugMap`.
 - Chapitres GL (`gl_chapters`) si `chapterMap` est renseigné.
-- Images référencées dans les contenus (`/wp-content/uploads/...`) vers `uploads/gl_import/wp/*` (sauf si `--skip-media`).
+- Images référencées dans les contenus (`/wp-content/uploads/...`, y compris hébergées sur `gl.olution.info`) vers `uploads/gl_import/wp/*` et `uploads/gl_brand/*` (sauf si `--skip-media`).
+- Après import, l’écran de connexion GL et les onglets **Monde / Règles / Sortilèges** affichent ces visuels via `brand.slots` (`GET /api/gl/auth/config`).
 
 ## Options utiles
 

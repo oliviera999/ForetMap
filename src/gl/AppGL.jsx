@@ -402,6 +402,7 @@ export function AppGL() {
 
   if (!session?.token) {
     return (
+      <div className="gl-app gl-app--guest" style={glBrandStyle}>
       <GLAuthView
         config={glConfig}
         oauthNotice={oauthNotice}
@@ -412,6 +413,7 @@ export function AppGL() {
           setOauthNotice(null);
         }}
       />
+      </div>
     );
   }
 
@@ -457,9 +459,9 @@ export function AppGL() {
       ) : null}
 
       <main className="gl-main fade-in">
-        {tab === 'world' && <GLWorldView auth={auth} onNavigateTab={setTab} />}
-        {tab === 'rules' && <GLRulesView auth={auth} onNavigateTab={setTab} />}
-        {tab === 'spells' && <GLSpellsView auth={auth} onNavigateTab={setTab} />}
+        {tab === 'world' && <GLWorldView auth={auth} brandSlots={glBrand?.slots} onNavigateTab={setTab} />}
+        {tab === 'rules' && <GLRulesView auth={auth} brandSlots={glBrand?.slots} onNavigateTab={setTab} />}
+        {tab === 'spells' && <GLSpellsView auth={auth} brandSlots={glBrand?.slots} onNavigateTab={setTab} />}
         {tab === 'maps' && (
           <>
             <GLMapView
