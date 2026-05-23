@@ -137,13 +137,24 @@ function normalizeGlOAuthMode(value) {
 
 async function attemptGlStaffPasswordLogin(identifier, password, { rejectStudent = false } = {}) {
   const account = await queryOne(
-    `SELECT id, user_type, email, pseudo, password_hash, is_active, display_name
+    `SELECT id, user_type, email, pseudo, password_hash, auth_provider, is_active, display_name
        FROM users
       WHERE LOWER(pseudo) = LOWER(?) OR LOWER(email) = LOWER(?)
       LIMIT 1`,
     [identifier, identifier]
   );
-  if (!account || !account.password_hash) {
+  if (!account) {
+    return { ok: false, status: 401, error: 'Identifiant ou mot de passe incorrect' };
+  }
+  if (!account.password_hash) {
+    const provider = String(account.auth_provider || '').toLowerCase();
+    if (provider === 'google') {
+      return {
+        ok: false,
+        status: 401,
+        error: 'Ce compte est lié à Google. Utilisez « Continuer avec Google » ou définissez un mot de passe depuis ForetMap.',
+      };
+    }
     return { ok: false, status: 401, error: 'Identifiant ou mot de passe incorrect' };
   }
   if (account.is_active != null && !Number(account.is_active)) {
@@ -168,6 +179,7 @@ async function attemptGlStaffPasswordLogin(identifier, password, { rejectStudent
   }
 
   const loginKey = identifier.trim().toLowerCase();
+  const pseudoKey = normalizeOptionalString(account.pseudo)?.toLowerCase() || null;
   const emailFromAccount = normalizeEmail(account.email);
   const emailFromLogin = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(loginKey) ? loginKey : null;
   const email = emailFromAccount || emailFromLogin;
@@ -175,12 +187,15 @@ async function attemptGlStaffPasswordLogin(identifier, password, { rejectStudent
     || normalizeOptionalString(account.pseudo)
     || email
     || identifier;
+  const alternateLoginIdentifiers = [];
+  if (pseudoKey && pseudoKey !== loginKey) alternateLoginIdentifiers.push(pseudoKey);
   const resolved = await resolveGlStaffLogin({
     email,
     displayName,
     googleSub: null,
     teacherId: account.id,
     loginIdentifier: loginKey,
+    alternateLoginIdentifiers,
   });
   if (!resolved.ok) {
     return { ok: false, status: resolved.status || 403, error: resolved.error };
@@ -361,17 +376,22 @@ router.post('/login', async (req, res) => {
         LIMIT 1`,
       [identifier]
     );
+    let playerPasswordOk = false;
     if (player) {
       if (!Number(player.is_active)) {
         return res.status(401).json({ error: 'Identifiant ou mot de passe incorrect' });
       }
-      const ok = await bcrypt.compare(password, String(player.password_hash || ''));
-      if (!ok) return res.status(401).json({ error: 'Identifiant ou mot de passe incorrect' });
-      return res.json(await issueGlPlayerSession(player));
+      playerPasswordOk = await bcrypt.compare(password, String(player.password_hash || ''));
+      if (playerPasswordOk) {
+        return res.json(await issueGlPlayerSession(player));
+      }
     }
 
     const staffOutcome = await attemptGlStaffPasswordLogin(identifier, password);
     if (staffOutcome.ok) return res.json(staffOutcome.session);
+    if (player) {
+      return res.status(401).json({ error: 'Identifiant ou mot de passe incorrect' });
+    }
     return res.status(staffOutcome.status || 401).json({ error: staffOutcome.error });
   } catch (err) {
     logRouteError(err, req, 'POST /api/gl/auth/login');
