@@ -8,6 +8,11 @@ const http = require('node:http');
 const https = require('node:https');
 const TurndownService = require('turndown');
 const { writeBufferToDisk } = require('../lib/uploads');
+const {
+  DEFAULT_GL_BRAND_SLOTS,
+  GL_BRAND_LAYOUT_SLOT_IDS,
+  normalizeBrandSlots,
+} = require('../lib/glBrand');
 
 const DEFAULT_CONFIG_PATH = path.join(__dirname, 'gl-import-wp.config.json');
 const DEFAULT_OUTPUT_DIR = path.join(process.cwd(), 'tmp', 'gl-wp-import');
@@ -163,8 +168,43 @@ function createMarkdownConverter() {
   return turndown;
 }
 
+function preprocessWpHtmlForMarkdown(html) {
+  let source = String(html || '');
+  if (!source) return '';
+  source = source.replace(
+    /<img([^>]*?)\sdata-src=["']([^"']+)["']/gi,
+    (match, attrs, dataSrc) => {
+      if (/\ssrc=/i.test(attrs)) return match;
+      return `<img${attrs} src="${dataSrc}"`;
+    }
+  );
+  source = source.replace(
+    /<img([^>]*?)\ssrcset=["'][^"']+["']([^>]*?)>/gi,
+    (match, before, after) => {
+      const srcMatch = match.match(/\ssrc=["']([^"']+)["']/i);
+      if (srcMatch?.[1]) return match;
+      const largest = [...match.matchAll(/\s(\d+)w/gi)]
+        .map((item, index, list) => ({
+          width: Number(item[1]),
+          index,
+        }))
+        .sort((a, b) => b.width - a.width)[0];
+      const urlMatch = match.match(/srcset=["']([^"']+)["']/i);
+      if (!urlMatch?.[1]) return match;
+      const candidates = urlMatch[1].split(',').map((part) => part.trim());
+      const pick = largest
+        ? candidates.find((part) => part.includes(`${largest.width}w`)) || candidates[candidates.length - 1]
+        : candidates[candidates.length - 1];
+      const url = String(pick || '').replace(/\s+\d+w$/, '').trim();
+      if (!url) return match;
+      return `<img${before} src="${url}"${after}>`;
+    }
+  );
+  return source;
+}
+
 function htmlToMarkdown(html, turndownService) {
-  const source = String(html || '').trim();
+  const source = preprocessWpHtmlForMarkdown(html).trim();
   if (!source) return '';
   try {
     return String(turndownService.turndown(source) || '').trim();
@@ -294,6 +334,8 @@ function getSourceHosts({ sourceBaseUrl, canonicalHost }) {
     // noop
   }
   if (canonicalHost) hosts.add(normalizeUrlHost(canonicalHost));
+  hosts.add('gl.olution.info');
+  hosts.add('www.gl.olution.info');
   return [...hosts].filter(Boolean);
 }
 
@@ -323,6 +365,106 @@ function isWpMediaUrl(urlValue, sourceHosts = []) {
   } catch (_) {
     return false;
   }
+}
+
+function decodeHtmlEntities(value) {
+  return String(value || '')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#0*39;/g, "'")
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&#8230;/g, '…')
+    .replace(/&#038;/g, '&')
+    .replace(/&rsquo;/g, '’')
+    .replace(/&lsquo;/g, '‘');
+}
+
+function stripHtmlTags(value) {
+  return decodeHtmlEntities(String(value || '').replace(/<[^>]+>/g, ' ')).replace(/\s+/g, ' ').trim();
+}
+
+/**
+ * Extrait hero + cartes « Découvrir » depuis le HTML de la page d’accueil yo.olution.info.
+ */
+function extractLayoutSlotsFromHomepageHtml(html, baseUrl = '') {
+  const source = String(html || '');
+  const slots = normalizeBrandSlots(DEFAULT_GL_BRAND_SLOTS);
+
+  const heroCover = source.match(
+    /wp-block-cover[^>]*hero-image[\s\S]{0,6000}?<img[^>]+src=["']([^"']+)["']/i
+  );
+  if (heroCover?.[1]) {
+    slots.hero.imageUrl = resolveRelativeUrl(baseUrl, heroCover[1]);
+  }
+
+  const heroHeading = source.match(
+    /wp-block-cover[^>]*hero-image[\s\S]{0,6000}?<h1[^>]*>([\s\S]*?)<\/h1>/i
+  );
+  if (heroHeading?.[1]) {
+    const headingText = stripHtmlTags(heroHeading[1]);
+    const parts = headingText.split(/\s+L['’]aventure/i);
+    slots.hero.title = parts[0]?.trim() || headingText;
+    if (parts[1]) slots.hero.subtitle = `L'aventure${parts[1].trim()}`;
+  }
+
+  const rasterGlImages = [...new Set(
+    [...source.matchAll(/https?:\/\/[^"'()\s]+\/wp-content\/uploads\/[^"'()\s]+/gi)]
+      .map((m) => m[0])
+      .filter((url) => /gl\.olution\.info/i.test(url) && /\.(png|jpe?g|webp|gif)(\?|$)/i.test(url))
+  )];
+
+  let imageCursor = 0;
+  if (!slots.hero.imageUrl && rasterGlImages[imageCursor]) {
+    slots.hero.imageUrl = rasterGlImages[imageCursor];
+    imageCursor += 1;
+  } else if (
+    slots.hero.imageUrl
+    && rasterGlImages[imageCursor]
+    && rasterGlImages[imageCursor] === slots.hero.imageUrl
+  ) {
+    imageCursor += 1;
+  }
+  for (const slotId of ['card_world', 'card_rules', 'card_spells']) {
+    if (!slots[slotId].imageUrl && rasterGlImages[imageCursor]) {
+      slots[slotId].imageUrl = rasterGlImages[imageCursor];
+      imageCursor += 1;
+    }
+  }
+
+  const cardPatterns = [
+    { slotId: 'card_world', pattern: /Découvrir[\s\S]{0,48}Un monde|Un monde/i },
+    { slotId: 'card_rules', pattern: /Les règles du jeu|Les regles du jeu/i },
+    { slotId: 'card_spells', pattern: /Les sortilèges|Les sortileges/i },
+  ];
+  for (const { slotId, pattern } of cardPatterns) {
+    const labelIndex = source.search(pattern);
+    if (labelIndex < 0) continue;
+    const chunk = source.slice(labelIndex, labelIndex + 2200);
+    if (!slots[slotId].imageUrl) {
+      const img = chunk.match(/<img[^>]+src=["']([^"']+)["']/i);
+      if (img?.[1]) slots[slotId].imageUrl = resolveRelativeUrl(baseUrl, img[1]);
+    }
+    const label = chunk.match(pattern);
+    if (label?.[0]) slots[slotId].title = stripHtmlTags(label[0]) || slots[slotId].title;
+  }
+
+  return slots;
+}
+
+async function mirrorBrandSlots(slots, context = {}) {
+  const out = { ...slots };
+  for (const slotId of GL_BRAND_LAYOUT_SLOT_IDS) {
+    const row = out[slotId];
+    if (!row?.imageUrl || !isWpMediaUrl(row.imageUrl, context.sourceHosts || [])) continue;
+    const localUrl = await mirrorOneMediaUrl(row.imageUrl, {
+      ...context,
+      targetDir: 'gl_brand',
+    });
+    out[slotId] = { ...row, imageUrl: localUrl };
+  }
+  return out;
 }
 
 function extFromUrlOrContentType(urlValue, contentType) {
@@ -505,7 +647,15 @@ function normalizeBrandDataFromWp({ wpRootInfo, homepageHtml }) {
     heading: String(cssVars['--wp--preset--font-family--cinzel'] || 'Cinzel'),
     googleFamilies: ['Caudex', 'Cinzel'],
   };
-  return { title, subtitle, colors, fonts, logoUrl: '', faviconUrl: null };
+  return {
+    title,
+    subtitle,
+    colors,
+    fonts,
+    logoUrl: '',
+    faviconUrl: null,
+    slots: normalizeBrandSlots(DEFAULT_GL_BRAND_SLOTS),
+  };
 }
 
 async function writeBrandDryRun(brand, outputDir) {
@@ -648,6 +798,16 @@ async function runBrandImport({ sourceBaseUrl, args, config }) {
   const wpRootInfo = await fetchWpRootInfo(sourceBaseUrl, args.fetchFn);
   const homepageHtml = await fetchPageHtml(homepageUrl, args.fetchFn);
   const brand = normalizeBrandDataFromWp({ wpRootInfo, homepageHtml });
+  const sourceHosts = getSourceHosts({ sourceBaseUrl, canonicalHost: config.canonicalHost });
+  brand.slots = extractLayoutSlotsFromHomepageHtml(homepageHtml, homepageUrl);
+  if (!args.skipMedia) {
+    brand.slots = await mirrorBrandSlots(brand.slots, {
+      fetchFn: args.fetchFn,
+      mediaCache: args.mediaCache,
+      sourceHosts,
+      apply: args.apply,
+    });
+  }
 
   const explicitLogoSlug = String(config?.brandMap?.logoMediaSlug || '').trim();
   const detectedLogoUrl = pickFirstLogoUrlFromHtml(homepageHtml, homepageUrl);
@@ -790,6 +950,9 @@ module.exports = {
   htmlToMarkdown,
   extractCssVariablesMap,
   normalizeBrandDataFromWp,
+  extractLayoutSlotsFromHomepageHtml,
+  mirrorBrandSlots,
+  preprocessWpHtmlForMarkdown,
   mirrorWpMediaInMarkdown,
   fetchWpCollection,
   transformWpEntries,

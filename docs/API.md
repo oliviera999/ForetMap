@@ -28,6 +28,8 @@ La matrice de couverture des tests GL est documentée dans `docs/GL_TESTS.md`.
 | Méthode | URL | Body | Description |
 |--------|-----|------|-------------|
 | POST | `/api/gl/auth/login` | `{ identifier, password }` (compat `{ pseudo, pin }`) | Connexion **commune** : joueur si `gl_players.pseudo` correspond ; sinon MJ/Admin via compte ForetMap enseignant (mêmes règles que `staff/login`, sans refus explicite élève sur cette route). |
+| POST | `/api/gl/auth/forgot-password` | `{ email }` | Demande de réinitialisation par e-mail (joueur `gl_players` avec e-mail, ou enseignant / MJ via `users` ou `gl_admins`) — **réponse neutre** ; lien vers `gl.html#resetType=…&resetToken=…` (SMTP requis). |
+| POST | `/api/gl/auth/reset-password` | `{ token, password }` | Réinitialisation après e-mail (`user_type` token : `gl_player` ou `teacher`). |
 | POST | `/api/gl/auth/staff/login` | `{ identifier, password }` | Connexion MJ/Admin uniquement (compte **ForetMap** enseignant). Refus `403` pour un élève ForetMap. |
 | GET | `/api/gl/auth/google/start` | Query `mode=player`, `staff` ou `auto` (défaut **`auto`**) | Redirection OAuth Google (cookie `gl_oauth_mode`). En `auto`, joueur puis staff. Callback : `gl.html#oauth=…` ou `#oauth_error=…` |
 | POST | `/api/gl/auth/google` | `{ idToken, mode?: 'player'|'staff'|'auto' }` | Connexion Google : `player` = joueur seul ; `staff` = MJ/Admin seul ; **`auto`** (défaut) = joueur puis MJ/Admin |

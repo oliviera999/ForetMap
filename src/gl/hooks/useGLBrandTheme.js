@@ -1,5 +1,11 @@
 import { useEffect, useMemo } from 'react';
 
+export const GL_CONTENT_PAGE_SLOT_BY_SLUG = {
+  world: 'card_world',
+  rules: 'card_rules',
+  spells: 'card_spells',
+};
+
 export const DEFAULT_GL_BRAND = {
   colors: {
     primary: '#013a40',
@@ -18,7 +24,45 @@ export const DEFAULT_GL_BRAND = {
   },
   logoUrl: '',
   faviconUrl: '',
+  slots: {
+    hero: { imageUrl: '', title: '', subtitle: '' },
+    card_world: { imageUrl: '', title: 'Un monde', tab: 'world' },
+    card_rules: { imageUrl: '', title: 'Les règles du jeu', tab: 'rules' },
+    card_spells: { imageUrl: '', title: 'Les sortilèges', tab: 'spells' },
+  },
 };
+
+function normalizeAssetUrl(value) {
+  const raw = String(value || '').trim();
+  if (!raw) return '';
+  if (raw.startsWith('/uploads/') || raw.startsWith('/maps/')) return raw;
+  return '';
+}
+
+function normalizeSlot(rawSlot, defaults) {
+  const source = rawSlot && typeof rawSlot === 'object' ? rawSlot : {};
+  const base = defaults && typeof defaults === 'object' ? defaults : {};
+  const out = {
+    imageUrl: normalizeAssetUrl(source.imageUrl),
+    title: String(source.title || base.title || '').trim(),
+  };
+  if (base.tab) out.tab = String(source.tab || base.tab).trim();
+  if ('subtitle' in base || 'subtitle' in source) {
+    out.subtitle = String(source.subtitle || base.subtitle || '').trim();
+  }
+  return out;
+}
+
+function normalizeSlots(rawSlots) {
+  const source = rawSlots && typeof rawSlots === 'object' ? rawSlots : {};
+  const defaults = DEFAULT_GL_BRAND.slots;
+  return {
+    hero: normalizeSlot(source.hero, defaults.hero),
+    card_world: normalizeSlot(source.card_world, defaults.card_world),
+    card_rules: normalizeSlot(source.card_rules, defaults.card_rules),
+    card_spells: normalizeSlot(source.card_spells, defaults.card_spells),
+  };
+}
 
 function safeColor(value, fallback) {
   const raw = String(value || '').trim();
@@ -53,8 +97,9 @@ function normalizeBrand(rawBrand) {
       heading: safeFontName(sourceFonts.heading, DEFAULT_GL_BRAND.fonts.heading),
       googleFamilies: googleFamilies.length > 0 ? googleFamilies : DEFAULT_GL_BRAND.fonts.googleFamilies,
     },
-    logoUrl: String(source.logoUrl || '').trim(),
-    faviconUrl: String(source.faviconUrl || '').trim(),
+    logoUrl: normalizeAssetUrl(source.logoUrl),
+    faviconUrl: normalizeAssetUrl(source.faviconUrl),
+    slots: normalizeSlots(source.slots),
   };
 }
 

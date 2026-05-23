@@ -1,8 +1,14 @@
 import React from 'react';
 import { GLContentPage } from './GLContentPage.jsx';
 
-export function GLRulesView({ auth, onNavigateTab }) {
+export function GLRulesView({ auth, brandSlots, onNavigateTab }) {
   return (
-    <GLContentPage slug="rules" fallbackTitle="Les regles du jeu" auth={auth} onNavigateTab={onNavigateTab} />
+    <GLContentPage
+      slug="rules"
+      fallbackTitle="Les regles du jeu"
+      auth={auth}
+      brandSlots={brandSlots}
+      onNavigateTab={onNavigateTab}
+    />
   );
 }

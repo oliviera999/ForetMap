@@ -195,6 +195,131 @@ body.gl-body {
   object-fit: contain;
 }
 
+.gl-app--guest {
+  min-height: 100vh;
+  background: var(--gl-color-background, #f4fff5);
+}
+
+.gl-brand-hub {
+  display: grid;
+  gap: 14px;
+}
+
+.gl-brand-hub__hero {
+  position: relative;
+  min-height: 220px;
+  border-radius: 16px;
+  background-color: var(--gl-color-tertiary, #bdbfb4);
+  background-size: cover;
+  background-position: center;
+  overflow: hidden;
+  box-shadow: 0 10px 28px rgba(1, 58, 64, 0.18);
+}
+
+.gl-brand-hub__hero-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 6px;
+  padding: 18px;
+  background: linear-gradient(180deg, rgba(1, 58, 64, 0.05) 0%, rgba(1, 58, 64, 0.78) 100%);
+  color: #fff;
+}
+
+.gl-brand-hub__hero-title {
+  margin: 0;
+  font-family: var(--gl-font-heading, serif);
+  font-size: clamp(1.35rem, 3vw, 2rem);
+  line-height: 1.15;
+}
+
+.gl-brand-hub__hero-subtitle {
+  margin: 0;
+  font-size: 1rem;
+  opacity: 0.95;
+}
+
+.gl-brand-hub__cards {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.gl-brand-hub__card {
+  display: grid;
+  gap: 8px;
+  padding: 0;
+  border: 1px solid #dbeafe;
+  border-radius: 14px;
+  background: #fff;
+  overflow: hidden;
+  text-align: left;
+  cursor: default;
+  min-height: 44px;
+  transition: transform var(--motion-fast) var(--ease-out), box-shadow var(--motion-fast) var(--ease-out);
+}
+
+button.gl-brand-hub__card {
+  cursor: pointer;
+}
+
+button.gl-brand-hub__card:hover,
+button.gl-brand-hub__card:focus-visible {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(1, 58, 64, 0.14);
+}
+
+.gl-brand-hub__card-image {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  display: block;
+}
+
+.gl-brand-hub__card-image--placeholder {
+  background: var(--gl-color-secondary, #f2e8d5);
+}
+
+.gl-brand-hub__card-title {
+  display: block;
+  padding: 0 10px 12px;
+  font-weight: 600;
+  color: var(--gl-color-text, #262626);
+}
+
+.gl-brand-hub--compact .gl-brand-hub__hero {
+  min-height: 160px;
+}
+
+.gl-brand-page-banner {
+  margin: 0 0 16px;
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 6px 18px rgba(1, 58, 64, 0.12);
+}
+
+.gl-brand-page-banner img {
+  width: 100%;
+  max-height: 280px;
+  object-fit: cover;
+  display: block;
+}
+
+.gl-brand-page-banner figcaption {
+  padding: 8px 12px;
+  font-size: 0.9rem;
+  background: var(--gl-color-secondary, #f2e8d5);
+  color: var(--gl-color-text, #262626);
+}
+
+@media (max-width: 720px) {
+  .gl-brand-hub__cards {
+    grid-template-columns: 1fr;
+  }
+}
+
 .gl-card {
   background: #ffffff;
   border: 1px solid #dbeafe;

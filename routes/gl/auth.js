@@ -27,6 +27,14 @@ const {
   verifyGoogleIdToken,
 } = require('../../lib/googleOAuthShared');
 const { logRouteError } = require('../../lib/routeLog');
+const { sendPasswordResetEmail } = require('../../lib/mailer');
+const {
+  EMAIL_RE,
+  createPasswordResetToken,
+  consumePasswordResetToken,
+  getPasswordMinLength,
+  makeResetUrl,
+} = require('../../lib/passwordReset');
 
 const router = express.Router();
 
@@ -395,6 +403,115 @@ router.post('/login', async (req, res) => {
     return res.status(staffOutcome.status || 401).json({ error: staffOutcome.error });
   } catch (err) {
     logRouteError(err, req, 'POST /api/gl/auth/login');
+    return res.status(500).json({ error: 'Erreur serveur' });
+  }
+});
+
+const FORGOT_PASSWORD_NEUTRAL_MESSAGE = 'Si un compte existe, un email de réinitialisation a été envoyé.';
+
+async function findTeacherForGlPasswordReset(email) {
+  let teacher = await queryOne(
+    "SELECT id, email, is_active FROM users WHERE user_type = 'teacher' AND LOWER(email) = LOWER(?) LIMIT 1",
+    [email]
+  );
+  if (teacher) return teacher;
+  const glAdmin = await queryOne(
+    'SELECT foretmap_user_id FROM gl_admins WHERE LOWER(email) = LOWER(?) LIMIT 1',
+    [email]
+  );
+  if (!glAdmin?.foretmap_user_id) return null;
+  return queryOne(
+    "SELECT id, email, is_active FROM users WHERE user_type = 'teacher' AND id = ? LIMIT 1",
+    [String(glAdmin.foretmap_user_id)]
+  );
+}
+
+/** POST /api/gl/auth/forgot-password — email de réinitialisation joueur GL ou MJ/Admin (réponse neutre). */
+router.post('/forgot-password', async (req, res) => {
+  try {
+    const email = normalizeEmail(req.body?.email ?? req.body?.mail);
+    if (!email || !EMAIL_RE.test(email)) {
+      return res.json({ ok: true, message: FORGOT_PASSWORD_NEUTRAL_MESSAGE });
+    }
+
+    const player = await queryOne(
+      `SELECT id, email, pseudo, first_name, last_name, password_hash, is_active
+         FROM gl_players
+        WHERE LOWER(email) = LOWER(?)
+          AND email IS NOT NULL
+          AND TRIM(email) <> ''
+        LIMIT 1`,
+      [email]
+    );
+    if (player && Number(player.is_active) && player.password_hash) {
+      const token = await createPasswordResetToken('gl_player', player.id);
+      const displayName = normalizeOptionalString(player.pseudo)
+        || `${player.first_name || ''} ${player.last_name || ''}`.trim()
+        || 'Joueur';
+      await sendPasswordResetEmail({
+        to: player.email,
+        displayName,
+        resetUrl: makeResetUrl('gl_player', token, { product: 'gl' }, req),
+        roleLabel: 'Gnomes & Licornes (joueur)',
+      });
+    }
+
+    const teacher = await findTeacherForGlPasswordReset(email);
+    if (teacher && Number(teacher.is_active)) {
+      const token = await createPasswordResetToken('teacher', teacher.id);
+      await sendPasswordResetEmail({
+        to: teacher.email || email,
+        displayName: 'MJ / Admin',
+        resetUrl: makeResetUrl('teacher', token, { product: 'gl' }, req),
+        roleLabel: 'Gnomes & Licornes (MJ/Admin)',
+      });
+    }
+
+    return res.json({ ok: true, message: FORGOT_PASSWORD_NEUTRAL_MESSAGE });
+  } catch (err) {
+    logRouteError(err, req, 'POST /api/gl/auth/forgot-password');
+    return res.status(500).json({ error: 'Erreur serveur' });
+  }
+});
+
+/** POST /api/gl/auth/reset-password — consomme un token émis pour gl_player ou teacher. */
+router.post('/reset-password', async (req, res) => {
+  try {
+    const token = normalizeOptionalString(req.body?.token);
+    const password = req.body?.password;
+    if (!token || !password) {
+      return res.status(400).json({ error: 'Token et nouveau mot de passe requis' });
+    }
+    const minPasswordLen = await getPasswordMinLength();
+    if (String(password).length < minPasswordLen) {
+      return res.status(400).json({ error: `Mot de passe trop court (min ${minPasswordLen} caractères)` });
+    }
+
+    const playerId = await consumePasswordResetToken('gl_player', token);
+    if (playerId) {
+      const passwordHash = await bcrypt.hash(password, 10);
+      await execute(
+        `UPDATE gl_players
+            SET password_hash = ?, password_must_reset = 0, updated_at = NOW()
+          WHERE id = ?`,
+        [passwordHash, playerId]
+      );
+      return res.json({ ok: true });
+    }
+
+    const teacherId = await consumePasswordResetToken('teacher', token);
+    if (teacherId) {
+      const passwordHash = await bcrypt.hash(password, 10);
+      await execute(
+        "UPDATE users SET password_hash = ?, updated_at = NOW() WHERE id = ? AND user_type = 'teacher'",
+        [passwordHash, teacherId]
+      );
+      return res.json({ ok: true });
+    }
+
+    return res.status(400).json({ error: 'Token invalide ou expiré' });
+  } catch (err) {
+    logRouteError(err, req, 'POST /api/gl/auth/reset-password');
     return res.status(500).json({ error: 'Erreur serveur' });
   }
 });

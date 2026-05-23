@@ -3,6 +3,8 @@ import { apiGL } from '../services/apiGL.js';
 import { MarkdownTextarea } from '../../components/MarkdownTextarea.jsx';
 import { renderMarkdownToSafeHtml } from '../../utils/markdown.js';
 import { GLMarkdownImageInsert } from './GLMarkdownImageInsert.jsx';
+import { GLBrandPageBanner } from './GLBrandHub.jsx';
+import { GL_CONTENT_PAGE_SLOT_BY_SLUG } from '../hooks/useGLBrandTheme.js';
 
 function canManageContent(auth) {
   const permissions = Array.isArray(auth?.permissions) ? auth.permissions : [];
@@ -13,7 +15,7 @@ function hasExistingContent(data) {
   return Boolean(String(data?.bodyMarkdown || '').trim());
 }
 
-export function GLContentPage({ slug, fallbackTitle, auth, onSaved, onNavigateTab }) {
+export function GLContentPage({ slug, fallbackTitle, auth, brandSlots, onSaved, onNavigateTab }) {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
   const [saveError, setSaveError] = useState('');
@@ -94,9 +96,12 @@ export function GLContentPage({ slug, fallbackTitle, auth, onSaved, onNavigateTa
   const displayTitle = content?.title || fallbackTitle || slug;
   const previewMarkdown = manageable && editing ? draftBody : (content?.bodyMarkdown || draftBody || '');
   const previewHtml = renderMarkdownToSafeHtml(previewMarkdown || '_Contenu vide._', { allowImages: true });
+  const pageSlotKey = GL_CONTENT_PAGE_SLOT_BY_SLUG[slug];
+  const pageBannerSlot = pageSlotKey && brandSlots ? brandSlots[pageSlotKey] : null;
 
   return (
     <article className="gl-panel gl-markdown">
+      <GLBrandPageBanner slot={pageBannerSlot} />
       <h2>{displayTitle}</h2>
 
       {savedMessage ? (
