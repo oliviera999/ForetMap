@@ -29,6 +29,14 @@ test('resolveProductFromRequest garde foret par défaut', () => {
   assert.strictEqual(product, 'foret');
 });
 
+test('resolveProductFromRequest reconnaît www.gl.*', () => {
+  const product = resolveProductFromRequest({
+    hostname: 'www.gl.olution.info',
+    get: (key) => (key === 'host' ? 'www.gl.olution.info' : ''),
+  });
+  assert.strictEqual(product, 'gl');
+});
+
 test('fallback SPA accepte override x-foretmap-product=gl', async () => {
   const res = await request(app)
     .get('/quelque-chose')

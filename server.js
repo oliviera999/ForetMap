@@ -295,6 +295,14 @@ const staticServeOptions = serveDist
       },
     }
   : undefined;
+// Sur gl.*, index.vite.html est l'entrée ForetMap : ne pas la servir telle quelle.
+app.use((req, res, next) => {
+  if (req.method !== 'GET' && req.method !== 'HEAD') return next();
+  const pathname = String(req.path || '').split('?')[0];
+  if (pathname !== '/index.vite.html') return next();
+  if (resolveProductFromRequest(req) !== 'gl') return next();
+  return res.redirect(302, '/');
+});
 app.use(express.static(staticRoot, staticServeOptions));
 const { PUBLIC_IMAGE_CACHE_CONTROL } = require('./lib/httpImageCache');
 const uploadsStaticRoot = path.join(__dirname, 'uploads');

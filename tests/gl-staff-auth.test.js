@@ -147,3 +147,93 @@ test('GET /api/gl/auth/google/start redirige ou 503 si OAuth absent', async () =
   const res = await request(app).get('/api/gl/auth/google/start');
   assert.ok([302, 303, 503].includes(res.status));
 });
+
+test('POST /api/gl/auth/login connecte un MJ via email ForetMap quand gl_admins.email = pseudo', async () => {
+  const glPseudo = `mj-pseudo-${stamp}`;
+  const foretmapEmail = `mj-email-${stamp}@ecole.local`;
+  const mjPassword = 'MjEmailLogin-1';
+  const mjHash = await bcrypt.hash(mjPassword, 10);
+  const mjTeacherId = `teacher-gl-email-${stamp}`;
+  await execute(
+    `INSERT INTO users (id, user_type, email, pseudo, display_name, password_hash, auth_provider, is_active, created_at, updated_at)
+     VALUES (?, 'teacher', ?, ?, ?, ?, 'local', 1, NOW(), NOW())
+     ON DUPLICATE KEY UPDATE password_hash = VALUES(password_hash), is_active = 1`,
+    [mjTeacherId, foretmapEmail, glPseudo, 'MJ email login', mjHash]
+  );
+  const profRole = await queryOne("SELECT id FROM roles WHERE slug = 'prof' LIMIT 1");
+  await execute(
+    `INSERT INTO user_roles (user_id, user_type, role_id, is_primary, assigned_at)
+     VALUES (?, 'teacher', ?, 1, NOW())
+     ON DUPLICATE KEY UPDATE role_id = VALUES(role_id), is_primary = 1`,
+    [mjTeacherId, profRole.id]
+  );
+  await execute(
+    `INSERT INTO gl_admins (email, display_name, role, is_active, created_at, updated_at)
+     VALUES (?, 'MJ pseudo GL', 'mj', 1, NOW(), NOW())
+     ON DUPLICATE KEY UPDATE is_active = 1`,
+    [glPseudo]
+  );
+
+  const res = await request(app)
+    .post('/api/gl/auth/login')
+    .send({ identifier: foretmapEmail, password: mjPassword })
+    .expect(200);
+  assert.strictEqual(res.body?.auth?.userType, 'gl_admin');
+});
+
+test('POST /api/gl/auth/login tente le staff si un joueur partage le même pseudo', async () => {
+  const { createGlAdmin, createGlClass, createGlPlayer } = require('./helpers/glFixtures');
+  const sharedId = `shared-login-${stamp}`;
+  const sharedPassword = 'SharedStaffPwd!1';
+  const hash = await bcrypt.hash(sharedPassword, 10);
+  await execute(
+    `INSERT INTO users (id, user_type, email, pseudo, display_name, password_hash, auth_provider, is_active, created_at, updated_at)
+     VALUES (?, 'teacher', ?, ?, ?, ?, 'local', 1, NOW(), NOW())
+     ON DUPLICATE KEY UPDATE password_hash = VALUES(password_hash), is_active = 1`,
+    [sharedId, `${sharedId}@ecole.local`, sharedId, 'Admin partage pseudo', hash]
+  );
+  const adminRole = await queryOne("SELECT id FROM roles WHERE slug = 'admin' LIMIT 1");
+  await execute(
+    `INSERT INTO user_roles (user_id, user_type, role_id, is_primary, assigned_at)
+     VALUES (?, 'teacher', ?, 1, NOW())
+     ON DUPLICATE KEY UPDATE role_id = VALUES(role_id), is_primary = 1`,
+    [sharedId, adminRole.id]
+  );
+  const admin = await createGlAdmin({ email: `mj.${sharedId}@ecole.local` });
+  const cls = await createGlClass({ adminId: admin.id, name: `Classe ${sharedId}` });
+  await createGlPlayer({
+    classId: cls.id,
+    pseudo: sharedId,
+    password: 'player-only-pin',
+  });
+
+  const res = await request(app)
+    .post('/api/gl/auth/login')
+    .send({ identifier: sharedId, password: sharedPassword })
+    .expect(200);
+  assert.strictEqual(res.body?.auth?.userType, 'gl_admin');
+});
+
+test('POST /api/gl/auth/staff/login signale un compte enseignant Google-only', async () => {
+  const googleOnlyId = `teacher-google-only-${stamp}`;
+  const googleEmail = `google.only.${stamp}@pedagolyautey.org`;
+  await execute(
+    `INSERT INTO users (id, user_type, email, pseudo, display_name, password_hash, auth_provider, is_active, created_at, updated_at)
+     VALUES (?, 'teacher', ?, ?, ?, NULL, 'google', 1, NOW(), NOW())
+     ON DUPLICATE KEY UPDATE password_hash = NULL, auth_provider = 'google', is_active = 1`,
+    [googleOnlyId, googleEmail, `google${stamp}`, 'Prof Google only']
+  );
+  const adminRole = await queryOne("SELECT id FROM roles WHERE slug = 'admin' LIMIT 1");
+  await execute(
+    `INSERT INTO user_roles (user_id, user_type, role_id, is_primary, assigned_at)
+     VALUES (?, 'teacher', ?, 1, NOW())
+     ON DUPLICATE KEY UPDATE role_id = VALUES(role_id), is_primary = 1`,
+    [googleOnlyId, adminRole.id]
+  );
+
+  const res = await request(app)
+    .post('/api/gl/auth/staff/login')
+    .send({ identifier: googleEmail, password: 'any-password' })
+    .expect(401);
+  assert.ok(String(res.body?.error || '').includes('Google'));
+});
