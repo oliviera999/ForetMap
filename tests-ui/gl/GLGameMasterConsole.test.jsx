@@ -13,7 +13,15 @@ describe('GLGameMasterConsole', () => {
   beforeEach(() => {
     apiGlMock.mockReset();
     apiGlMock.mockImplementation((path) => {
-      if (path === '/api/gl/mascots') return Promise.resolve({ mascots: [] });
+      if (path === '/api/gl/mascots') {
+        return Promise.resolve({
+          mascots: [
+            { id: 'gl-gnome-mousse', label: 'Gnome Mousse', type: 'gnome', source: 'gl' },
+            { id: 'gl-gnome-flamme', label: 'Gnome Flamme', type: 'gnome', source: 'gl' },
+            { id: 'gl-licorne-aube', label: 'Licorne Aube', type: 'unicorn', source: 'gl' },
+          ],
+        });
+      }
       if (String(path).startsWith('/api/gl/games')) return Promise.resolve([]);
       return Promise.resolve(null);
     });
@@ -35,5 +43,28 @@ describe('GLGameMasterConsole', () => {
 
     expect(screen.getByRole('heading', { name: 'Console MJ' })).toBeTruthy();
     await waitFor(() => expect(apiGlMock).toHaveBeenCalledWith('/api/gl/mascots'));
+  });
+
+  test('affiche un menu déroulant de mascottes filtré par type d’équipe', async () => {
+    render(
+      <GLGameMasterConsole
+        chapters={[{ id: 1, title: 'Chapitre test' }]}
+        classes={[{ id: 1, name: '6e A', is_active: 1 }]}
+        gameState={null}
+        gameplaySettings={{}}
+        selectedTeamId={null}
+        onSelectTeam={() => {}}
+        onGameStateChange={() => {}}
+        onReloadGame={async () => {}}
+      />
+    );
+
+    await waitFor(() => expect(apiGlMock).toHaveBeenCalledWith('/api/gl/mascots'));
+
+    const mascotSelect = screen.getByLabelText('Mascotte');
+    expect(mascotSelect.tagName).toBe('SELECT');
+    expect(screen.getByRole('option', { name: 'Gnome Mousse' })).toBeTruthy();
+    expect(screen.getByRole('option', { name: 'Gnome Flamme' })).toBeTruthy();
+    expect(screen.queryByRole('option', { name: 'Licorne Aube' })).toBeNull();
   });
 });

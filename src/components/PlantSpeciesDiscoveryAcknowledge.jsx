@@ -64,13 +64,22 @@ export function PlantSpeciesDiscoveryAcknowledgeButton({
 
   const submit = useCallback(async () => {
     if (!checked) return;
+    const pid = Number(plantId);
+    if (!Number.isFinite(pid) || pid <= 0) {
+      setError('Fiche espèce invalide — recharge la page ou rouvre le catalogue.');
+      return;
+    }
     setSaving(true);
     setError('');
     try {
-      const res = await api(`/api/plants/${plantId}/acknowledge-discovery`, 'POST', { confirm: true });
-      onAcknowledged?.(Number(plantId), {
-        my_observation_count: Number(res?.my_observation_count) || 0,
-        site_observation_count: Number(res?.site_observation_count) || 0,
+      const res = await api(`/api/plants/${pid}/acknowledge-discovery`, 'POST', { confirm: true });
+      if (!res || res.success !== true) {
+        setError('Réponse serveur inattendue. Réessayez ou recharge la page.');
+        return;
+      }
+      onAcknowledged?.(pid, {
+        my_observation_count: Number(res.my_observation_count) || 0,
+        site_observation_count: Number(res.site_observation_count) || 0,
       });
       setChecked(false);
       if (offerPlantCommentAfterObservation) {

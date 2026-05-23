@@ -533,6 +533,11 @@ router.post('/:id/acknowledge-discovery', requireAuth, async (req, res) => {
     });
   } catch (e) {
     logRouteError(e, req, 'Accusé découverte espèce en échec');
+    if (e && (e.code === 'ER_NO_SUCH_TABLE' || e.errno === 1146)) {
+      return res.status(503).json({
+        error: 'Observations espèce indisponibles : la base doit être migrée (table user_plant_observation_events). Contactez l’administrateur.',
+      });
+    }
     res.status(500).json({ error: 'Erreur serveur' });
   }
 });
