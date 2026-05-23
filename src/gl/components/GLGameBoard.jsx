@@ -1,9 +1,21 @@
-import React, { useState } from 'react';
-import { VISIT_MASCOT_STATE } from '../../utils/visitMascotState.js';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { clampMapMascotPctForViewport } from '../../utils/mapViewMascotMotion.js';
-import { GLMascotRenderer } from './GLMascotRenderer.jsx';
 import { GLBoardMarkers } from './GLBoardMarkers.jsx';
+import { GLBoardMascot } from './GLBoardMascot.jsx';
 import { glBoardPointToPct } from '../utils/glBoardPointToPct.js';
+import { useGLBoardMascotMotion } from '../hooks/useGLBoardMascotMotion.js';
+
+function usePrefersReducedMotion() {
+  const [reduced, setReduced] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const apply = () => setReduced(Boolean(mq.matches));
+    apply();
+    mq.addEventListener('change', apply);
+    return () => mq.removeEventListener('change', apply);
+  }, []);
+  return reduced;
+}
 
 export function GLGameBoard({
   chapter,
@@ -22,15 +34,60 @@ export function GLGameBoard({
   const imageUrl = chapter?.map_image_url || '/maps/map-foret.svg';
   const [pendingMarker, setPendingMarker] = useState(null);
   const [actionType, setActionType] = useState('explore');
+  const boardRef = useRef(null);
+  const [boardHeightPx, setBoardHeightPx] = useState(0);
+  const prefersReducedMotion = usePrefersReducedMotion();
+
+  const {
+    getPositionForTeam,
+    getMotionForTeam,
+    moveTeamTo,
+  } = useGLBoardMascotMotion({
+    teams,
+    boardHeightPx,
+    prefersReducedMotion,
+  });
+
+  useEffect(() => {
+    const el = boardRef.current;
+    if (!el || typeof ResizeObserver === 'undefined') return undefined;
+    const ro = new ResizeObserver((entries) => {
+      const h = entries[0]?.contentRect?.height;
+      if (Number.isFinite(h) && h > 0) setBoardHeightPx(h);
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  const resolveActiveTeamId = useCallback(() => {
+    const list = Array.isArray(teams) ? teams : [];
+    if (selectedTeamId != null) return Number(selectedTeamId);
+    return list.length > 0 ? Number(list[0].id) : null;
+  }, [teams, selectedTeamId]);
+
+  const handleBoardMove = useCallback((xp, yp) => {
+    const teamId = resolveActiveTeamId();
+    if (teamId == null) return;
+    moveTeamTo(teamId, xp, yp);
+    onBoardClick?.({ xp, yp });
+  }, [resolveActiveTeamId, moveTeamTo, onBoardClick]);
+
+  const handleMarkerMove = useCallback((marker) => {
+    const teamId = resolveActiveTeamId();
+    if (teamId == null) return;
+    const xp = Number(marker.x_pct);
+    const yp = Number(marker.y_pct);
+    moveTeamTo(teamId, xp, yp, { triggerHappy: true });
+    onMarkerClick?.(marker);
+  }, [resolveActiveTeamId, moveTeamTo, onMarkerClick]);
 
   function handleMarkerClick(marker) {
     if (canMoveMascot) {
-      onMarkerClick?.(marker);
+      handleMarkerMove(marker);
       return;
     }
     if (canRequestAction) {
       setPendingMarker(marker);
-      return;
     }
   }
 
@@ -43,36 +100,62 @@ export function GLGameBoard({
     setPendingMarker(null);
   }
 
+  const teamList = Array.isArray(teams) ? teams : [];
+
   return (
     <section className="gl-panel">
       <h2>{chapter?.title || 'Carte de jeu'}</h2>
       <div
+        ref={boardRef}
         className="gl-board"
         onClick={(event) => {
           if (!canMoveMascot) return;
           const point = glBoardPointToPct(event, event.currentTarget);
           if (!point) return;
-          const clamped = clampMapMascotPctForViewport(point.xp, point.yp, event.currentTarget.clientHeight || 0);
-          onBoardClick?.(clamped);
+          const clamped = clampMapMascotPctForViewport(
+            point.xp,
+            point.yp,
+            event.currentTarget.clientHeight || 0,
+          );
+          handleBoardMove(clamped.xp, clamped.yp);
         }}
       >
         <img src={imageUrl} alt={chapter?.title || 'Carte du chapitre'} className="gl-board-image" />
         <GLBoardMarkers markers={markers} onMarkerClick={handleMarkerClick} />
-        {Array.isArray(teams) && teams.map((team) => {
+
+        {teamList.map((team) => {
+          const position = getPositionForTeam(team.id);
+          const motion = getMotionForTeam(team.id);
+          const mascotState = mascotStateMachine?.getStateForTeam?.(team.id);
+          return (
+            <GLBoardMascot
+              key={`mascot-${team.id}`}
+              team={team}
+              position={position}
+              motion={motion}
+              mascotState={mascotState}
+              prefersReducedMotion={prefersReducedMotion}
+              zIndex={6 + (selectedTeamId != null && Number(selectedTeamId) === Number(team.id) ? 2 : 0)}
+            />
+          );
+        })}
+
+        {teamList.map((team) => {
+          const position = getPositionForTeam(team.id);
           const isSelected = selectedTeamId != null && Number(selectedTeamId) === Number(team.id);
           const isCurrentTurn = currentTeamId != null && Number(currentTeamId) === Number(team.id);
-          const classes = ['gl-board-team'];
+          const classes = ['gl-board-team-pin'];
           if (isSelected) classes.push('is-selected');
           if (isCurrentTurn) classes.push('is-current-turn');
           return (
             <button
-              key={team.id}
+              key={`pin-${team.id}`}
               type="button"
               className={classes.join(' ')}
               style={{
-                left: `${Number(team.position_x_pct || 50)}%`,
-                top: `${Number(team.position_y_pct || 50)}%`,
-                borderColor: team.color || '#22c55e',
+                left: `${position.xp}%`,
+                top: `${position.yp}%`,
+                '--gl-team-color': team.color || '#22c55e',
               }}
               title={team.name}
               aria-selected={isSelected}
@@ -83,14 +166,7 @@ export function GLGameBoard({
                 onSelectTeam?.(Number(team.id));
               }}
             >
-              <div className="gl-board-team-label">{team.name}</div>
-              <div className="gl-board-team-mascot">
-                <GLMascotRenderer
-                  mascotId={team.mascot_id}
-                  mascotState={mascotStateMachine?.getStateForTeam?.(team.id) || VISIT_MASCOT_STATE.IDLE}
-                  size={48}
-                />
-              </div>
+              <span className="gl-board-team-pin-label">{team.name}</span>
             </button>
           );
         })}
