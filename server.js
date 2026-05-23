@@ -251,6 +251,12 @@ app.use('/api/gl/auth/login', authLimiter);
 const jsonBodyLimit = String(process.env.FORETMAP_JSON_BODY_LIMIT || '25mb').trim() || '25mb';
 app.use(express.json({ limit: jsonBodyLimit }));
 app.use(express.urlencoded({ extended: true, limit: jsonBodyLimit }));
+app.use((err, req, res, next) => {
+  if (err instanceof SyntaxError && err.status === 400 && 'body' in err) {
+    return res.status(400).json({ error: 'Corps JSON invalide pour la requête' });
+  }
+  return next(err);
+});
 app.use((req, res, next) => {
   // Limite les sources d'images (photos externes + base64 locales).
   res.setHeader('Content-Security-Policy', "img-src 'self' https: data: blob:;");

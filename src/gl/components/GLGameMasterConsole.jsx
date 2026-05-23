@@ -82,6 +82,18 @@ export function GLGameMasterConsole({
     [mascotCatalog]
   );
 
+  const selectableMascots = useMemo(() => {
+    const byType = mascotOptions.filter((item) => item.type === teamForm.type);
+    const list = byType.length > 0 ? byType : mascotOptions;
+    const current = String(teamForm.mascotId || '').trim();
+    if (current && !list.some((item) => item.id === current)) {
+      const fromCatalog = mascotOptions.find((item) => item.id === current);
+      if (fromCatalog) return [fromCatalog, ...list];
+      return [{ id: current, label: current }, ...list];
+    }
+    return list;
+  }, [mascotOptions, teamForm.type, teamForm.mascotId]);
+
   const defaultMascotByType = useCallback((type) => {
     const list = mascotOptions;
     if (!list.length) return type === 'unicorn' ? 'gl-licorne-aube' : 'gl-gnome-mousse';
@@ -498,21 +510,21 @@ export function GLGameMasterConsole({
           </label>
           <label>
             Mascotte
-            <input
+            <select
               value={teamForm.mascotId}
               onChange={(event) => setTeamForm((prev) => ({ ...prev, mascotId: event.target.value }))}
-              placeholder="gl-gnome-mousse"
-              list="gl-mascot-options"
-            />
-            <datalist id="gl-mascot-options">
-              {mascotOptions.map((mascot) => (
-                <option
-                  key={mascot.id}
-                  value={mascot.id}
-                  label={`${mascot.label}${mascot.source === 'foretmap' ? ' (ForetMap)' : ''}`}
-                />
+              disabled={selectableMascots.length === 0}
+            >
+              {selectableMascots.length === 0 ? (
+                <option value="">Chargement du catalogue…</option>
+              ) : null}
+              {selectableMascots.map((mascot) => (
+                <option key={mascot.id} value={mascot.id}>
+                  {mascot.label}
+                  {mascot.source === 'foretmap' ? ' (ForetMap)' : ''}
+                </option>
               ))}
-            </datalist>
+            </select>
           </label>
           <label>
             Couleur
@@ -565,7 +577,7 @@ export function GLGameMasterConsole({
             })}
           </div>
           <p className="gl-hint">
-            Pour assigner ou changer la mascotte d'une équipe, utiliser l'onglet « Gestion mascottes ».
+            Pour changer la mascotte, modifiez l&apos;équipe ci-dessus ou utilisez l&apos;onglet « Gestion mascottes ».
           </p>
           <div className="gl-admin-table-wrap">
             <table className="gl-admin-table">

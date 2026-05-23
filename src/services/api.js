@@ -212,14 +212,48 @@ export function isElevatedJwt(token) {
   return !!decodeJwtPayload(token)?.elevated;
 }
 
+function isHtmlLikeApiPayload(raw) {
+  const s = String(raw || '').trimStart().toLowerCase();
+  return s.startsWith('<!doctype') || s.startsWith('<html') || s.startsWith('<!');
+}
+
+function normalizeApiErrorMessage(message, status) {
+  const msg = String(message || '').trim();
+  if (!msg) return msg;
+  if (/unexpected token.*json|json.*position|not valid json|in json at/i.test(msg)) {
+    return status >= 500
+      ? 'Le serveur ou la passerelle a renvoyé une réponse illisible (JSON invalide). Réessayez plus tard ou contactez l’administrateur.'
+      : 'Requête ou réponse invalide. Rechargez la page puis réessayez.';
+  }
+  return msg;
+}
+
 async function parseApiBody(res) {
   if (!res || res.status === 204 || res.status === 205) return null;
   const contentType = String(res.headers?.get('content-type') || '').toLowerCase();
   if (contentType.includes('application/json')) {
-    return res.json().catch(() => null);
+    try {
+      return await res.json();
+    } catch (err) {
+      return { raw: String(err?.message || 'JSON invalide'), parseError: true };
+    }
   }
   const text = await res.text().catch(() => '');
   return text ? { raw: text } : null;
+}
+
+function assertJsonApiBody(body, { ok } = {}) {
+  if (body == null) return;
+  if (!body.parseError && body.raw == null) return;
+  const looksHtml = isHtmlLikeApiPayload(body.raw);
+  const prefix = ok
+    ? 'Le serveur a renvoyé une page ou un texte inattendu au lieu du JSON attendu'
+    : 'Réponse serveur illisible';
+  throw new Error(
+    looksHtml
+      ? `${prefix} — vérifiez que l’API ForetMap est à jour et joignable (proxy / déploiement).`
+      : `${prefix} (JSON invalide). Rechargez la page puis réessayez.`,
+  );
 }
 
 const API_FETCH_TIMEOUT_MS = 40000;
@@ -317,7 +351,9 @@ export async function api(path, method = 'GET', body) {
     }
 
     if (res.ok) {
-      return parseApiBody(res);
+      const okBody = await parseApiBody(res);
+      assertJsonApiBody(okBody, { ok: true });
+      return okBody;
     }
 
     if (allowTransientRetry && TRANSIENT_HTTP_STATUSES.has(res.status) && attempt < maxAttempts - 1) {
@@ -342,14 +378,21 @@ export async function api(path, method = 'GET', body) {
     const reqId = (typeof res.headers?.get === 'function' && (res.headers.get('X-Request-Id') || res.headers.get('x-request-id'))) || '';
     let errMsg = typeof errBody.error === 'string' && errBody.error.trim() ? errBody.error.trim() : '';
     if (!errMsg) {
-      if (errBody.raw != null && String(errBody.raw).length > 0) {
-        errMsg = res.status >= 500
-          ? `Le serveur a répondu par une page ou un texte inattendu (HTTP ${res.status}), pas par du JSON — souvent une mauvaise URL d’API, un proxy ou une panne temporaire.`
-          : `Réponse inattendue du serveur (HTTP ${res.status}).`;
+      if (errBody.parseError) {
+        errMsg = normalizeApiErrorMessage(errBody.raw, res.status);
+      } else if (errBody.raw != null && String(errBody.raw).length > 0) {
+        errMsg = isHtmlLikeApiPayload(errBody.raw)
+          ? (res.status >= 500
+            ? `Le serveur a répondu par une page HTML (HTTP ${res.status}) au lieu du JSON — souvent une mauvaise URL d’API, un proxy ou une panne temporaire.`
+            : `Réponse inattendue du serveur (HTTP ${res.status}) — page HTML reçue à la place du JSON.`)
+          : (res.status >= 500
+            ? `Le serveur a répondu par une page ou un texte inattendu (HTTP ${res.status}), pas par du JSON — souvent une mauvaise URL d’API, un proxy ou une panne temporaire.`
+            : `Réponse inattendue du serveur (HTTP ${res.status}).`);
       } else {
         errMsg = res.status >= 500 ? `Erreur serveur (HTTP ${res.status})` : `Erreur (HTTP ${res.status})`;
       }
     }
+    errMsg = normalizeApiErrorMessage(errMsg, res.status);
     if (errBody.debugDetail && typeof errBody.debugDetail === 'string') {
       errMsg = `${errMsg} — ${errBody.debugDetail}`;
     }

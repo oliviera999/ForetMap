@@ -94,6 +94,14 @@ test('Eleve: acknowledge-discovery et liste plant_ids', async () => {
     .send({})
     .expect(400);
 
+  const badJson = await request(app)
+    .post(`/api/plants/${testPlantId}/acknowledge-discovery`)
+    .set('Authorization', 'Bearer ' + studentToken)
+    .set('Content-Type', 'application/json')
+    .send('{not-json')
+    .expect(400);
+  assert.match(String(badJson.body?.error || ''), /JSON invalide/i);
+
   const ok = await request(app)
     .post(`/api/plants/${testPlantId}/acknowledge-discovery`)
     .set('Authorization', 'Bearer ' + studentToken)
