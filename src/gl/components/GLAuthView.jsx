@@ -3,6 +3,10 @@ import React, { useEffect, useId, useState } from 'react';
 import { withAppBase } from '../../services/api.js';
 import { apiGL } from '../services/apiGL.js';
 import { GLBrandHub } from './GLBrandHub.jsx';
+import { GLButton } from './ui/GLButton.jsx';
+import { GLField } from './ui/GLField.jsx';
+import { GLInput } from './ui/GLInput.jsx';
+import { GLSurface } from './ui/GLSurface.jsx';
 
 const OAUTH_ERROR_MESSAGES = {
   oauth_not_configured: 'Connexion Google indisponible (configuration serveur incomplète).',
@@ -165,7 +169,7 @@ export function GLAuthView({ onLogin, oauthNotice, config }) {
     <main className="gl-auth auth-wrap">
       <GLBrandHub slots={brandSlots || config?.brand?.slots} />
 
-      <div className="auth-card fade-in gl-card">
+      <GLSurface className="gl-auth-card gl-animate-in" variant="elevated">
         {platformLogoUrl ? (
           <div className="gl-auth-logo-wrap">
             <img src={platformLogoUrl} alt="Logo plateforme" className="gl-auth-logo" />
@@ -173,28 +177,26 @@ export function GLAuthView({ onLogin, oauthNotice, config }) {
         ) : null}
 
         <h1>{platformTitle}</h1>
-        {platformSubtitle ? <p className="sub">{platformSubtitle}</p> : null}
-        <p className="sub">
+        {platformSubtitle ? <p className="gl-hint">{platformSubtitle}</p> : null}
+        <p className="gl-hint">
           Connecte-toi avec ton pseudo ou ton identifiant. Ton profil (joueur, MJ ou admin) est déterminé après connexion.
         </p>
 
-        {info ? <div className="auth-success">{info}</div> : null}
-        {error ? <p className="gl-error auth-error">⚠️ {error}</p> : null}
+        {info ? <div className="gl-success-banner">{info}</div> : null}
+        {error ? <p className="gl-error">⚠️ {error}</p> : null}
 
         <form onSubmit={login} className="gl-form">
-          <label htmlFor={fieldIds.identifier}>
-            Identifiant (pseudo ou e-mail)
-            <input
+          <GLField htmlFor={fieldIds.identifier} label="Identifiant (pseudo ou e-mail)">
+            <GLInput
               id={fieldIds.identifier}
               value={identifier}
               onChange={(event) => setIdentifier(event.target.value)}
               autoComplete="username"
               onKeyDown={onKeyDown}
             />
-          </label>
-          <label htmlFor={fieldIds.password}>
-            Mot de passe
-            <input
+          </GLField>
+          <GLField htmlFor={fieldIds.password} label="Mot de passe">
+            <GLInput
               id={fieldIds.password}
               type="password"
               value={password}
@@ -202,14 +204,14 @@ export function GLAuthView({ onLogin, oauthNotice, config }) {
               autoComplete="current-password"
               onKeyDown={onKeyDown}
             />
-          </label>
-          <button type="submit" className="btn btn-primary btn-full" disabled={busy}>
+          </GLField>
+          <GLButton type="submit" variant="primary" loading={busy}>
             {busy ? '…' : 'Se connecter'}
-          </button>
-          <button
+          </GLButton>
+          <GLButton
             type="button"
-            className="btn btn-ghost btn-full"
-            style={{ marginTop: 8 }}
+            variant="ghost"
+            className="btn-full"
             onClick={() => {
               setShowForgot((v) => !v);
               setError('');
@@ -218,28 +220,27 @@ export function GLAuthView({ onLogin, oauthNotice, config }) {
             disabled={busy}
           >
             {showForgot ? 'Masquer mot de passe oublié' : 'Mot de passe oublié ?'}
-          </button>
+          </GLButton>
           {allowGoogle ? (
-            <button
+            <GLButton
               type="button"
-              className="btn btn-ghost btn-full"
-              style={{ marginTop: 8 }}
+              variant="ghost"
+              className="btn-full"
               onClick={() => startGlGoogleAuth()}
               disabled={busy}
             >
               Continuer avec Google
-            </button>
+            </GLButton>
           ) : null}
         </form>
 
         {showForgot ? (
-          <div className="gl-forgot-panel" style={{ marginTop: 12, borderTop: '1px solid var(--line, #ddd)', paddingTop: 12 }}>
-            <p className="sub" style={{ marginTop: 0 }}>
+          <div className="gl-forgot-panel gl-form">
+            <p className="gl-hint" style={{ marginTop: 0 }}>
               Saisis l’adresse e-mail de ton compte joueur ou MJ/Admin. Si elle est reconnue, un lien de réinitialisation t’est envoyé.
             </p>
-            <label htmlFor={fieldIds.forgotEmail}>
-              E-mail
-              <input
+            <GLField htmlFor={fieldIds.forgotEmail} label="E-mail">
+              <GLInput
                 id={fieldIds.forgotEmail}
                 type="email"
                 value={forgotEmail}
@@ -247,48 +248,44 @@ export function GLAuthView({ onLogin, oauthNotice, config }) {
                 autoComplete="email"
                 placeholder="moi@exemple.com"
               />
-            </label>
-            <button
+            </GLField>
+            <GLButton
               type="button"
-              className="btn btn-ghost btn-full"
-              style={{ marginTop: 8 }}
+              variant="ghost"
               onClick={requestPasswordReset}
               disabled={busy}
             >
               Envoyer un lien de réinitialisation
-            </button>
-            <label htmlFor={fieldIds.resetToken} style={{ marginTop: 12, display: 'block' }}>
-              Code reçu par e-mail (si le lien ne s’ouvre pas)
-              <input
+            </GLButton>
+            <GLField htmlFor={fieldIds.resetToken} label="Code reçu par e-mail (si le lien ne s’ouvre pas)">
+              <GLInput
                 id={fieldIds.resetToken}
                 value={resetToken}
                 onChange={(event) => setResetToken(event.target.value)}
                 placeholder="Coller le token du mail"
                 autoComplete="off"
               />
-            </label>
-            <label htmlFor={fieldIds.resetPassword}>
-              Nouveau mot de passe
-              <input
+            </GLField>
+            <GLField htmlFor={fieldIds.resetPassword} label="Nouveau mot de passe">
+              <GLInput
                 id={fieldIds.resetPassword}
                 type="password"
                 value={resetPassword}
                 onChange={(event) => setResetPassword(event.target.value)}
                 autoComplete="new-password"
               />
-            </label>
-            <button
+            </GLField>
+            <GLButton
               type="button"
-              className="btn btn-ghost btn-full"
-              style={{ marginTop: 8 }}
+              variant="ghost"
               onClick={confirmPasswordReset}
               disabled={busy}
             >
               Valider la réinitialisation
-            </button>
+            </GLButton>
           </div>
         ) : null}
-      </div>
+      </GLSurface>
     </main>
   );
 }

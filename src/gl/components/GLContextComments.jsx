@@ -1,5 +1,8 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { apiGL } from '../services/apiGL.js';
+import { GLButton } from './ui/GLButton.jsx';
+import { GLField } from './ui/GLField.jsx';
+import { GLTextarea } from './ui/GLTextarea.jsx';
 
 const ALLOWED = ['gl_chapter', 'gl_scene', 'gl_game', 'gl_mascot_pack'];
 
@@ -54,19 +57,18 @@ export function GLContextComments({ contextType, contextId }) {
 
   if (!valid) return null;
   return (
-    <section className="gl-panel">
+    <section className="gl-panel gl-animate-in">
       <h3>Commentaires</h3>
       {error ? <p className="gl-error">{error}</p> : null}
       <form className="gl-form" onSubmit={submit}>
-        <label>
-          Message
-          <textarea value={body} onChange={(event) => setBody(event.target.value)} rows={3} />
-        </label>
+        <GLField label="Message">
+          <GLTextarea value={body} onChange={(event) => setBody(event.target.value)} rows={3} />
+        </GLField>
         <div className="gl-inline-actions">
-          <button type="submit">Publier</button>
-          <button type="button" onClick={load} disabled={loading}>
+          <GLButton type="submit">Publier</GLButton>
+          <GLButton type="button" variant="secondary" onClick={load} disabled={loading}>
             {loading ? 'Chargement…' : 'Rafraîchir'}
-          </button>
+          </GLButton>
         </div>
       </form>
       <ul className="gl-context-comments">

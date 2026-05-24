@@ -1,5 +1,9 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { apiGL } from '../services/apiGL.js';
+import { GLButton } from './ui/GLButton.jsx';
+import { GLField } from './ui/GLField.jsx';
+import { GLInput } from './ui/GLInput.jsx';
+import { GLTextarea } from './ui/GLTextarea.jsx';
 
 export function GLForumView({ canModerate }) {
   const [threads, setThreads] = useState([]);
@@ -88,27 +92,25 @@ export function GLForumView({ canModerate }) {
   }
 
   return (
-    <section className="gl-panel">
+    <section className="gl-panel gl-animate-in">
       <h2>Forum GL</h2>
       {error ? <p className="gl-error">{error}</p> : null}
       <div className="gl-inline-actions">
-        <button type="button" onClick={() => setCreatingThread((v) => !v)}>
+        <GLButton type="button" onClick={() => setCreatingThread((v) => !v)}>
           {creatingThread ? 'Annuler' : 'Nouveau sujet'}
-        </button>
-        <button type="button" onClick={loadThreads}>Rafraîchir</button>
+        </GLButton>
+        <GLButton type="button" variant="secondary" onClick={loadThreads}>Rafraîchir</GLButton>
       </div>
 
       {creatingThread ? (
         <form className="gl-form" onSubmit={createThread}>
-          <label>
-            Titre
-            <input value={draftTitle} onChange={(event) => setDraftTitle(event.target.value)} />
-          </label>
-          <label>
-            Premier message
-            <textarea value={draftBody} onChange={(event) => setDraftBody(event.target.value)} rows={4} />
-          </label>
-          <button type="submit">Publier le sujet</button>
+          <GLField label="Titre">
+            <GLInput value={draftTitle} onChange={(event) => setDraftTitle(event.target.value)} />
+          </GLField>
+          <GLField label="Premier message">
+            <GLTextarea value={draftBody} onChange={(event) => setDraftBody(event.target.value)} rows={4} />
+          </GLField>
+          <GLButton type="submit">Publier le sujet</GLButton>
         </form>
       ) : null}
 
@@ -157,11 +159,10 @@ export function GLForumView({ canModerate }) {
           </ul>
           {!Number(activeThread.is_locked) || canModerate ? (
             <form className="gl-form" onSubmit={postReply}>
-              <label>
-                Répondre
-                <textarea value={postBody} onChange={(event) => setPostBody(event.target.value)} rows={3} />
-              </label>
-              <button type="submit">Envoyer</button>
+              <GLField label="Répondre">
+                <GLTextarea value={postBody} onChange={(event) => setPostBody(event.target.value)} rows={3} />
+              </GLField>
+              <GLButton type="submit">Envoyer</GLButton>
             </form>
           ) : (
             <p className="gl-hint">Sujet verrouillé.</p>

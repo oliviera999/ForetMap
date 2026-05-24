@@ -1,5 +1,10 @@
 import React, { useState } from 'react';
 import { apiGL } from '../../services/apiGL.js';
+import { GLBadge } from '../ui/GLBadge.jsx';
+import { GLButton } from '../ui/GLButton.jsx';
+import { GLDataList } from '../ui/GLDataList.jsx';
+import { GLField } from '../ui/GLField.jsx';
+import { GLInput } from '../ui/GLInput.jsx';
 
 export function GLClassesPanel({ classes, onReload }) {
   const [name, setName] = useState('');
@@ -93,70 +98,70 @@ export function GLClassesPanel({ classes, onReload }) {
   }
 
   return (
-    <section className="gl-admin-section">
+    <section className="gl-admin-section gl-animate-in">
       <h3>Classes</h3>
       {error ? <p className="gl-error">{error}</p> : null}
       {info ? <p className="gl-hint">{info}</p> : null}
 
       <form className="gl-form" onSubmit={createClass}>
-        <label>
-          Nom
-          <input value={name} onChange={(event) => setName(event.target.value)} required />
-        </label>
-        <label>
-          Établissement
-          <input value={school} onChange={(event) => setSchool(event.target.value)} />
-        </label>
-        <button type="submit" disabled={busy}>Créer la classe</button>
+        <GLField label="Nom">
+          <GLInput value={name} onChange={(event) => setName(event.target.value)} required />
+        </GLField>
+        <GLField label="Établissement">
+          <GLInput value={school} onChange={(event) => setSchool(event.target.value)} />
+        </GLField>
+        <GLButton type="submit" disabled={busy}>Créer la classe</GLButton>
       </form>
 
-      <div className="gl-admin-table-wrap">
-        <table className="gl-admin-table">
-          <thead>
-            <tr>
-              <th>Classe</th>
-              <th>Établissement</th>
-              <th>Joueurs</th>
-              <th>Statut</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {classes.map((item) => {
-              const isEditing = editId === Number(item.id);
-              return (
-                <tr key={item.id}>
-                  <td>{isEditing ? <input value={editName} onChange={(e) => setEditName(e.target.value)} /> : item.name}</td>
-                  <td>{isEditing ? <input value={editSchool} onChange={(e) => setEditSchool(e.target.value)} /> : (item.school || '—')}</td>
-                  <td>{Number(item.players_count || 0)}</td>
-                  <td>{Number(item.is_active) ? 'Actif' : 'Inactif'}</td>
-                  <td className="gl-admin-actions-cell">
-                    {isEditing ? (
-                      <>
-                        <button type="button" onClick={saveEdit} disabled={busy}>Enregistrer</button>
-                        <button type="button" className="gl-btn-secondary" onClick={() => setEditId(null)} disabled={busy}>Annuler</button>
-                      </>
-                    ) : (
-                      <>
-                        <button type="button" onClick={() => startEdit(item)} disabled={busy}>Modifier</button>
-                        <button type="button" className="gl-btn-secondary" onClick={() => toggleActive(item)} disabled={busy}>
-                          {Number(item.is_active) ? 'Désactiver' : 'Activer'}
-                        </button>
-                        <button type="button" className="gl-btn-danger" onClick={() => deleteClass(item)} disabled={busy}>Supprimer</button>
-                      </>
-                    )}
-                  </td>
-                </tr>
-              );
-            })}
-            {classes.length === 0 ? (
-              <tr>
-                <td colSpan={5}>Aucune classe.</td>
-              </tr>
-            ) : null}
-          </tbody>
-        </table>
-      </div>
+      <GLDataList
+        columns={[
+          { key: 'name', label: 'Classe' },
+          { key: 'school', label: 'Établissement' },
+          { key: 'players', label: 'Joueurs' },
+          { key: 'status', label: 'Statut' },
+          { key: 'actions', label: 'Actions' },
+        ]}
+        emptyLabel="Aucune classe."
+        rows={classes.map((item) => {
+          const isEditing = editId === Number(item.id);
+          const actions = isEditing ? (
+            <>
+              <GLButton type="button" onClick={saveEdit} disabled={busy}>Enregistrer</GLButton>
+              <GLButton type="button" variant="secondary" onClick={() => setEditId(null)} disabled={busy}>Annuler</GLButton>
+            </>
+          ) : (
+            <>
+              <GLButton type="button" onClick={() => startEdit(item)} disabled={busy}>Modifier</GLButton>
+              <GLButton type="button" variant="secondary" onClick={() => toggleActive(item)} disabled={busy}>
+                {Number(item.is_active) ? 'Désactiver' : 'Activer'}
+              </GLButton>
+              <GLButton type="button" variant="danger" onClick={() => deleteClass(item)} disabled={busy}>Supprimer</GLButton>
+            </>
+          );
+          const statusLabel = Number(item.is_active) ? 'Actif' : 'Inactif';
+          return {
+            key: item.id,
+            desktopCells: (
+              <>
+                <td>{isEditing ? <GLInput value={editName} onChange={(e) => setEditName(e.target.value)} /> : item.name}</td>
+                <td>{isEditing ? <GLInput value={editSchool} onChange={(e) => setEditSchool(e.target.value)} /> : (item.school || '—')}</td>
+                <td>{Number(item.players_count || 0)}</td>
+                <td><GLBadge tone={Number(item.is_active) ? 'success' : 'danger'}>{statusLabel}</GLBadge></td>
+                <td className="gl-admin-actions-cell">{actions}</td>
+              </>
+            ),
+            mobileCells: (
+              <>
+                <div className="gl-data-card-row"><span className="gl-data-card-label">Classe</span><strong>{item.name}</strong></div>
+                <div className="gl-data-card-row"><span className="gl-data-card-label">Établissement</span><span>{item.school || '—'}</span></div>
+                <div className="gl-data-card-row"><span className="gl-data-card-label">Joueurs</span><span>{Number(item.players_count || 0)}</span></div>
+                <div className="gl-data-card-row"><span className="gl-data-card-label">Statut</span><GLBadge tone={Number(item.is_active) ? 'success' : 'danger'}>{statusLabel}</GLBadge></div>
+                <div className="gl-data-card-actions">{actions}</div>
+              </>
+            ),
+          };
+        })}
+      />
     </section>
   );
 }

@@ -1,5 +1,9 @@
 import React, { useState } from 'react';
 import { apiGL } from '../services/apiGL.js';
+import { GLButton } from './ui/GLButton.jsx';
+import { GLField } from './ui/GLField.jsx';
+import { GLInput } from './ui/GLInput.jsx';
+import { GLSurface } from './ui/GLSurface.jsx';
 
 export function GLForetmapLinkPanel({ enabled, profile, onReload }) {
   const [identifier, setIdentifier] = useState('');
@@ -49,7 +53,7 @@ export function GLForetmapLinkPanel({ enabled, profile, onReload }) {
   }
 
   return (
-    <section className="gl-panel gl-form">
+    <GLSurface className="gl-form gl-animate-in">
       <h3>Liaison ForetMap</h3>
       {error ? <p className="gl-error">{error}</p> : null}
       {info ? <p className="gl-profile-ok">{info}</p> : null}
@@ -57,38 +61,35 @@ export function GLForetmapLinkPanel({ enabled, profile, onReload }) {
         <>
           <p className="gl-hint">Lie a : {linked.pseudo || linked.email || linked.id}</p>
           <form className="gl-form" onSubmit={unlinkAccount}>
-            <label>
-              Mot de passe GL actuel
-              <input
+            <GLField label="Mot de passe GL actuel">
+              <GLInput
                 type="password"
                 value={currentPassword}
                 onChange={(event) => setCurrentPassword(event.target.value)}
                 autoComplete="current-password"
               />
-            </label>
-            <button type="submit" className="gl-btn-danger" disabled={busy}>
+            </GLField>
+            <GLButton type="submit" variant="danger" disabled={busy}>
               {busy ? '...' : 'Retirer la liaison'}
-            </button>
+            </GLButton>
           </form>
         </>
       ) : (
         <form className="gl-form" onSubmit={linkAccount}>
-          <label>
-            Identifiant ForetMap eleve (email ou pseudo)
-            <input value={identifier} onChange={(event) => setIdentifier(event.target.value)} autoComplete="username" />
-          </label>
-          <label>
-            Mot de passe ForetMap eleve
-            <input
+          <GLField label="Identifiant ForetMap eleve (email ou pseudo)">
+            <GLInput value={identifier} onChange={(event) => setIdentifier(event.target.value)} autoComplete="username" />
+          </GLField>
+          <GLField label="Mot de passe ForetMap eleve">
+            <GLInput
               type="password"
               value={password}
               onChange={(event) => setPassword(event.target.value)}
               autoComplete="current-password"
             />
-          </label>
-          <button type="submit" disabled={busy}>{busy ? '...' : 'Lier mon compte ForetMap'}</button>
+          </GLField>
+          <GLButton type="submit" disabled={busy}>{busy ? '...' : 'Lier mon compte ForetMap'}</GLButton>
         </form>
       )}
-    </section>
+    </GLSurface>
   );
 }

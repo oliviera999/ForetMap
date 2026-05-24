@@ -1,6 +1,10 @@
 import React, { useState } from 'react';
 import { withAppBase } from '../../../services/api.js';
 import { apiGL, getGlToken } from '../../services/apiGL.js';
+import { GLButton } from '../ui/GLButton.jsx';
+import { GLField } from '../ui/GLField.jsx';
+import { GLInput } from '../ui/GLInput.jsx';
+import { GLSelect } from '../ui/GLSelect.jsx';
 
 async function fileToDataUrl(file) {
   return new Promise((resolve, reject) => {
@@ -75,37 +79,35 @@ export function GLPlayersImportPanel({ onReload }) {
   }
 
   return (
-    <section className="gl-admin-section">
+    <section className="gl-admin-section gl-animate-in">
       <h3>Import joueurs (CSV / XLSX)</h3>
       {error ? <p className="gl-error">{error}</p> : null}
       {info ? <p className="gl-hint">{info}</p> : null}
 
       <div className="gl-inline-actions">
-        <button type="button" className="gl-btn-secondary" onClick={() => downloadTemplate('csv')} disabled={loading}>
+        <GLButton type="button" variant="secondary" onClick={() => downloadTemplate('csv')} disabled={loading}>
           Modèle CSV
-        </button>
-        <button type="button" className="gl-btn-secondary" onClick={() => downloadTemplate('xlsx')} disabled={loading}>
+        </GLButton>
+        <GLButton type="button" variant="secondary" onClick={() => downloadTemplate('xlsx')} disabled={loading}>
           Modèle XLSX
-        </button>
+        </GLButton>
       </div>
 
       <form className="gl-form" onSubmit={runImport}>
-        <label>
-          Fichier à importer
-          <input
+        <GLField label="Fichier à importer">
+          <GLInput
             type="file"
             accept=".csv,.xlsx"
             onChange={(event) => setFile(event.target.files?.[0] || null)}
           />
-        </label>
-        <label>
-          Mode
-          <select value={dryRun ? 'dry' : 'apply'} onChange={(e) => setDryRun(e.target.value === 'dry')}>
+        </GLField>
+        <GLField label="Mode">
+          <GLSelect value={dryRun ? 'dry' : 'apply'} onChange={(e) => setDryRun(e.target.value === 'dry')}>
             <option value="dry">Simulation (dry-run)</option>
             <option value="apply">Importer réellement</option>
-          </select>
-        </label>
-        <button type="submit" disabled={loading}>{loading ? 'Traitement…' : 'Lancer l’import'}</button>
+          </GLSelect>
+        </GLField>
+        <GLButton type="submit" disabled={loading}>{loading ? 'Traitement…' : 'Lancer l’import'}</GLButton>
       </form>
 
       {report ? (
