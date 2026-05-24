@@ -201,12 +201,22 @@ export function AppGL() {
       setModules(normalizeGlModules(configData?.modules));
       setGlConfig(configData || {});
       setGlProfile(profileData?.profile || null);
+      if (profileData?.auth && profileData.auth.userType === auth?.userType) {
+        const nextAuth = { ...auth, ...profileData.auth };
+        if (
+          auth?.gameId !== nextAuth.gameId
+          || auth?.teamId !== nextAuth.teamId
+          || auth?.passwordMustReset !== nextAuth.passwordMustReset
+        ) {
+          updateSession({ auth: nextAuth });
+        }
+      }
     });
     reloadGameplaySettings();
     return () => {
       cancelled = true;
     };
-  }, [token, reloadGameplaySettings, isAdmin]);
+  }, [token, reloadGameplaySettings, isAdmin, auth, updateSession]);
 
   useEffect(() => {
     const nextTitle = String(glConfig?.title || '').trim();
@@ -217,11 +227,13 @@ export function AppGL() {
   useEffect(() => {
     if (isAdmin) return;
     if (activeGameId) return;
-    const hintedGameId = auth?.gameId != null ? Number(auth.gameId) : null;
+    const hintedGameId = auth?.gameId != null
+      ? Number(auth.gameId)
+      : (glProfile?.activeGameId != null ? Number(glProfile.activeGameId) : null);
     if (hintedGameId != null && Number.isFinite(hintedGameId) && hintedGameId > 0) {
       setActiveGameId(hintedGameId);
     }
-  }, [isAdmin, activeGameId, auth?.gameId]);
+  }, [isAdmin, activeGameId, auth?.gameId, glProfile?.activeGameId]);
 
   const reloadGame = useCallback(async () => {
     if (!activeGameId) return;
@@ -342,7 +354,7 @@ export function AppGL() {
     }
     try {
       await apiGL(`/api/gl/games/${gameState.game.id}/join-team`, 'POST', { teamId });
-      updateSession({ auth: { ...auth, teamId } });
+      updateSession({ auth: { ...auth, teamId, gameId: gameState.game.id } });
       await reloadGame();
       setError('');
     } catch (err) {
@@ -382,16 +394,18 @@ export function AppGL() {
   }, [isAdmin, auth, gameState]);
 
   const notifications = useGLNotificationCenter();
+  const { push: pushNotification } = notifications;
   useEffect(() => {
     if (narrationToast) {
-      notifications.push({
+      pushNotification({
+        id: `narration-${narrationToast.ts}`,
         category: 'narration',
         title: 'Narration du MJ',
         body: narrationToast.text,
         ts: narrationToast.ts,
       });
     }
-  }, [narrationToast, notifications]);
+  }, [narrationToast, pushNotification]);
 
   const activeChapter = useMemo(() => {
     if (gameState?.game?.chapter_id) {

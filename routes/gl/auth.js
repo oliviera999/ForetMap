@@ -86,6 +86,7 @@ function exposeGlAuth(claims) {
     displayName: claims.displayName || null,
     classId: claims.classId || null,
     teamId: claims.teamId || null,
+    gameId: claims.gameId || null,
     permissions: claims.permissions || [],
     passwordMustReset: !!claims.passwordMustReset,
   };
@@ -235,18 +236,46 @@ function buildGlOAuthFrontendErrorRedirect(frontendOrigin, code, mode) {
 }
 
 async function issueGlPlayerSession(player) {
+  const membership = await resolveGlPlayerActiveMembership(player.id, player.team_id);
   const claims = {
     userType: 'gl_player',
     userId: String(player.id),
     roleSlug: 'gl_player',
     displayName: player.pseudo,
     classId: player.class_id ? Number(player.class_id) : null,
-    teamId: player.team_id ? Number(player.team_id) : null,
+    teamId: membership?.teamId || (player.team_id ? Number(player.team_id) : null),
+    gameId: membership?.gameId || null,
     passwordMustReset: !!Number(player.password_must_reset || 0),
     permissions: getGlRolePermissions('player'),
   };
   const token = await signGlToken(claims);
   return { authToken: token, auth: exposeGlAuth(claims) };
+}
+
+async function resolveGlPlayerActiveMembership(playerId, preferredTeamId = null) {
+  const membership = await queryOne(
+    `SELECT tm.game_id, tm.team_id
+       FROM gl_team_members tm
+ INNER JOIN gl_games g ON g.id = tm.game_id
+      WHERE tm.player_id = ?
+      ORDER BY
+        CASE g.status
+          WHEN 'live' THEN 0
+          WHEN 'paused' THEN 1
+          WHEN 'draft' THEN 2
+          ELSE 3
+        END ASC,
+        CASE WHEN tm.team_id = ? THEN 0 ELSE 1 END ASC,
+        g.updated_at DESC,
+        tm.joined_at DESC
+      LIMIT 1`,
+    [playerId, preferredTeamId || 0]
+  );
+  if (!membership) return null;
+  return {
+    gameId: membership.game_id != null ? Number(membership.game_id) : null,
+    teamId: membership.team_id != null ? Number(membership.team_id) : null,
+  };
 }
 
 async function issueGlStaffSession(admin, glRole) {
@@ -687,10 +716,32 @@ router.get('/me', requireGlAuth, async (req, res) => {
         [player.linked_foretmap_user_id]
       );
     }
+    const membership = player
+      ? await resolveGlPlayerActiveMembership(player.id, player.team_id)
+      : null;
+    const refreshedAuth = exposeGlAuth({
+      ...req.glAuth,
+      userType: 'gl_player',
+      userId: req.glAuth.userId,
+      roleSlug: req.glAuth.roleSlug || 'gl_player',
+      displayName: req.glAuth.displayName || player?.pseudo,
+      classId: player?.class_id != null ? Number(player.class_id) : req.glAuth.classId,
+      teamId: membership?.teamId || (player?.team_id != null ? Number(player.team_id) : req.glAuth.teamId),
+      gameId: membership?.gameId || req.glAuth.gameId || null,
+      permissions: Array.isArray(req.glAuth.permissions) ? req.glAuth.permissions : getGlRolePermissions('player'),
+      passwordMustReset: player?.password_must_reset != null
+        ? !!Number(player.password_must_reset)
+        : req.glAuth.passwordMustReset,
+    });
     return res.json({
-      auth: req.glAuth,
+      auth: refreshedAuth,
       profile: player
-        ? { ...player, linkedForetmapStudent: linkedForetmapStudent || null }
+        ? {
+          ...player,
+          activeGameId: membership?.gameId || null,
+          team_id: membership?.teamId || player.team_id,
+          linkedForetmapStudent: linkedForetmapStudent || null,
+        }
         : null,
     });
   }

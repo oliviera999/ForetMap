@@ -27,6 +27,7 @@ function requireGlAuth(req, res, next) {
       displayName: String(claims.displayName || ''),
       classId: claims.classId || null,
       teamId: claims.teamId || null,
+      gameId: claims.gameId || null,
       passwordMustReset: !!claims.passwordMustReset,
     };
     if (!req.glAuth.userId) return res.status(401).json({ error: 'Token invalide' });
