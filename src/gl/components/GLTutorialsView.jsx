@@ -2,6 +2,10 @@ import React, { useCallback, useEffect, useState } from 'react';
 import DOMPurify from 'isomorphic-dompurify';
 import { marked } from 'marked';
 import { apiGL } from '../services/apiGL.js';
+import { GLButton } from './ui/GLButton.jsx';
+import { GLField } from './ui/GLField.jsx';
+import { GLInput } from './ui/GLInput.jsx';
+import { GLTextarea } from './ui/GLTextarea.jsx';
 
 export function GLTutorialsView({ canManage }) {
   const [items, setItems] = useState([]);
@@ -102,12 +106,12 @@ export function GLTutorialsView({ canManage }) {
   }
 
   return (
-    <section className="gl-panel">
+    <section className="gl-panel gl-animate-in">
       <h2>Tutoriels GL</h2>
       {error ? <p className="gl-error">{error}</p> : null}
       <div className="gl-inline-actions">
         {canManage ? (
-          <button
+          <GLButton
             type="button"
             onClick={() => {
               if (editing) {
@@ -120,33 +124,30 @@ export function GLTutorialsView({ canManage }) {
             }}
           >
             {editing ? 'Annuler' : 'Nouveau tutoriel'}
-          </button>
+          </GLButton>
         ) : null}
-        <button type="button" onClick={reload}>Rafraîchir</button>
+        <GLButton type="button" variant="secondary" onClick={reload}>Rafraîchir</GLButton>
       </div>
 
       {editing && canManage ? (
         <form className="gl-form" onSubmit={createDraft}>
-          <label>
-            Slug
-            <input
+          <GLField label="Slug">
+            <GLInput
               value={draft.slug}
               disabled={!!draft.id}
               onChange={(event) => setDraft((d) => ({ ...d, slug: event.target.value }))}
             />
-          </label>
-          <label>
-            Titre
-            <input value={draft.title} onChange={(event) => setDraft((d) => ({ ...d, title: event.target.value }))} />
-          </label>
-          <label>
-            Markdown
-            <textarea
+          </GLField>
+          <GLField label="Titre">
+            <GLInput value={draft.title} onChange={(event) => setDraft((d) => ({ ...d, title: event.target.value }))} />
+          </GLField>
+          <GLField label="Markdown">
+            <GLTextarea
               value={draft.bodyMarkdown}
               onChange={(event) => setDraft((d) => ({ ...d, bodyMarkdown: event.target.value }))}
               rows={6}
             />
-          </label>
+          </GLField>
           <label>
             <input
               type="checkbox"
@@ -155,7 +156,7 @@ export function GLTutorialsView({ canManage }) {
             />
             {' '}Publié
           </label>
-          <button type="submit">{draft.id ? 'Enregistrer' : 'Publier'}</button>
+          <GLButton type="submit">{draft.id ? 'Enregistrer' : 'Publier'}</GLButton>
         </form>
       ) : null}
 

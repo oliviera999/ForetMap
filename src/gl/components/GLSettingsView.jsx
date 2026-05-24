@@ -1,5 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { apiGL } from '../services/apiGL.js';
+import { GLBrandHub } from './GLBrandHub.jsx';
+import { GLButton } from './ui/GLButton.jsx';
+import { GLField } from './ui/GLField.jsx';
+import { GLInput } from './ui/GLInput.jsx';
+import { GLSurface } from './ui/GLSurface.jsx';
 
 const GAMEPLAY_TOGGLES = [
   {
@@ -110,33 +115,31 @@ export function GLSettingsView() {
   }
 
   return (
-    <section className="gl-panel">
+    <GLSurface className="gl-animate-in">
       <h2>Réglages plateforme</h2>
       {error ? <p className="gl-error">{error}</p> : null}
       {successMessage ? <div className="gl-success-banner" role="status">{successMessage}</div> : null}
 
       <form onSubmit={savePlatformIdentity} className="gl-form">
-        <label>
-          Titre plateforme
-          <input value={title} onChange={(event) => setTitle(event.target.value)} />
-        </label>
-        <label>
-          Sous-titre plateforme
-          <input value={subtitle} onChange={(event) => setSubtitle(event.target.value)} />
-        </label>
-        <button type="submit" disabled={savingTitle}>
+        <GLField label="Titre plateforme">
+          <GLInput value={title} onChange={(event) => setTitle(event.target.value)} />
+        </GLField>
+        <GLField label="Sous-titre plateforme">
+          <GLInput value={subtitle} onChange={(event) => setSubtitle(event.target.value)} />
+        </GLField>
+        <GLButton type="submit" loading={savingTitle} disabled={savingTitle}>
           {savingTitle ? 'Enregistrement…' : 'Enregistrer'}
-        </button>
+        </GLButton>
       </form>
 
       {settings['platform.brand'] && typeof settings['platform.brand'] === 'object' ? (
-        <section className="gl-panel" style={{ marginTop: 12 }}>
+        <GLSurface style={{ marginTop: 12 }} variant="inset">
           <h3>Aperçu charte importée</h3>
           <p className="gl-hint">
             Cette section est alimentée par la clé `platform.brand` (import WordPress).
           </p>
-          <pre>{JSON.stringify(settings['platform.brand'], null, 2)}</pre>
-        </section>
+          <GLBrandHub slots={settings['platform.brand']?.slots} compact />
+        </GLSurface>
       ) : null}
 
       <h3>Gameplay</h3>
@@ -194,6 +197,6 @@ export function GLSettingsView() {
         <summary>État brut des réglages</summary>
         <pre>{JSON.stringify(settings, null, 2)}</pre>
       </details>
-    </section>
+    </GLSurface>
   );
 }

@@ -1,6 +1,11 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { apiGL } from '../services/apiGL.js';
 import { GLGameRosterPanel } from './admin/GLGameRosterPanel.jsx';
+import { GLButton } from './ui/GLButton.jsx';
+import { GLField } from './ui/GLField.jsx';
+import { GLInput } from './ui/GLInput.jsx';
+import { GLSelect } from './ui/GLSelect.jsx';
+import { GLTextarea } from './ui/GLTextarea.jsx';
 
 function formatTimestamp(value) {
   if (!value) return '';
@@ -374,18 +379,16 @@ export function GLGameMasterConsole({
   }
 
   return (
-    <section className="gl-panel gl-mj-console">
+    <section className="gl-panel gl-mj-console gl-animate-in">
       <h2>Console MJ</h2>
       {actionError ? <p className="gl-error">{actionError}</p> : null}
 
       <form onSubmit={createGame} className="gl-form">
-        <label>
-          Nom de partie
-          <input value={name} onChange={(event) => setName(event.target.value)} />
-        </label>
-        <label>
-          Classe
-          <select value={classId} onChange={(event) => setClassId(event.target.value)}>
+        <GLField label="Nom de partie">
+          <GLInput value={name} onChange={(event) => setName(event.target.value)} />
+        </GLField>
+        <GLField label="Classe">
+          <GLSelect value={classId} onChange={(event) => setClassId(event.target.value)}>
             <option value="">Choisir</option>
             {activeClasses.map((item) => (
               <option key={item.id} value={item.id}>
@@ -393,50 +396,47 @@ export function GLGameMasterConsole({
                 {item.school ? ` (${item.school})` : ''}
               </option>
             ))}
-          </select>
-        </label>
+          </GLSelect>
+        </GLField>
         {activeClasses.length === 0 ? (
           <p className="gl-hint">
             Aucune classe active. Créez-en une dans l’onglet « Gestion utilisateurs ».
           </p>
         ) : null}
-        <label>
-          Chapitre
-          <select value={chapterId} onChange={(event) => setChapterId(event.target.value)}>
+        <GLField label="Chapitre">
+          <GLSelect value={chapterId} onChange={(event) => setChapterId(event.target.value)}>
             <option value="">Choisir</option>
             {chapters.map((chapter) => (
               <option key={chapter.id} value={chapter.id}>{chapter.title}</option>
             ))}
-          </select>
-        </label>
-        <button type="submit">Créer une partie</button>
+          </GLSelect>
+        </GLField>
+        <GLButton type="submit">Créer une partie</GLButton>
       </form>
 
       <div className="gl-gameplay-block">
         <h3>Parties existantes</h3>
         <div className="gl-inline-actions">
-          <label>
-            Classe
-            <select value={gamesClassFilter} onChange={(event) => setGamesClassFilter(event.target.value)}>
+          <GLField label="Classe">
+            <GLSelect value={gamesClassFilter} onChange={(event) => setGamesClassFilter(event.target.value)}>
               <option value="">Toutes</option>
               {activeClasses.map((item) => (
                 <option key={item.id} value={item.id}>
                   {item.name}
                 </option>
               ))}
-            </select>
-          </label>
-          <label>
-            Statut
-            <select value={gamesStatusFilter} onChange={(event) => setGamesStatusFilter(event.target.value)}>
+            </GLSelect>
+          </GLField>
+          <GLField label="Statut">
+            <GLSelect value={gamesStatusFilter} onChange={(event) => setGamesStatusFilter(event.target.value)}>
               <option value="">Tous</option>
               <option value="draft">Brouillon</option>
               <option value="live">En cours</option>
               <option value="paused">Pause</option>
               <option value="ended">Terminée</option>
-            </select>
-          </label>
-          <button type="button" className="gl-btn-secondary" onClick={loadGames}>Rafraîchir</button>
+            </GLSelect>
+          </GLField>
+          <GLButton type="button" variant="secondary" onClick={loadGames}>Rafraîchir</GLButton>
         </div>
         <div className="gl-admin-table-wrap">
           <table className="gl-admin-table">
@@ -487,17 +487,15 @@ export function GLGameMasterConsole({
       <form className="gl-form gl-gameplay-block" onSubmit={upsertTeam}>
         <h3>{editingTeamId ? 'Modifier une équipe' : 'Nouvelle équipe'}</h3>
         <div className="gl-admin-grid-2">
-          <label>
-            Nom
-            <input
+          <GLField label="Nom">
+            <GLInput
               value={teamForm.name}
               onChange={(event) => setTeamForm((prev) => ({ ...prev, name: event.target.value }))}
               required
             />
-          </label>
-          <label>
-            Type
-            <select
+          </GLField>
+          <GLField label="Type">
+            <GLSelect
               value={teamForm.type}
               onChange={(event) => {
                 const nextType = event.target.value;
@@ -506,11 +504,10 @@ export function GLGameMasterConsole({
             >
               <option value="gnome">Gnome</option>
               <option value="unicorn">Licorne</option>
-            </select>
-          </label>
-          <label>
-            Mascotte
-            <select
+            </GLSelect>
+          </GLField>
+          <GLField label="Mascotte">
+            <GLSelect
               value={teamForm.mascotId}
               onChange={(event) => setTeamForm((prev) => ({ ...prev, mascotId: event.target.value }))}
               disabled={selectableMascots.length === 0}
@@ -524,30 +521,29 @@ export function GLGameMasterConsole({
                   {mascot.source === 'foretmap' ? ' (ForetMap)' : ''}
                 </option>
               ))}
-            </select>
-          </label>
-          <label>
-            Couleur
-            <input
+            </GLSelect>
+          </GLField>
+          <GLField label="Couleur">
+            <GLInput
               value={teamForm.color}
               onChange={(event) => setTeamForm((prev) => ({ ...prev, color: event.target.value }))}
               placeholder="#22c55e"
             />
-          </label>
+          </GLField>
         </div>
         <div className="gl-inline-actions">
-          <button type="submit">{editingTeamId ? 'Enregistrer équipe' : 'Créer équipe'}</button>
+          <GLButton type="submit">{editingTeamId ? 'Enregistrer équipe' : 'Créer équipe'}</GLButton>
           {editingTeamId ? (
-            <button
+            <GLButton
               type="button"
-              className="gl-btn-secondary"
+              variant="secondary"
               onClick={() => {
                 setEditingTeamId(null);
                 setTeamForm((prev) => ({ ...prev, name: '', type: 'gnome', mascotId: defaultMascotByType('gnome'), color: '#65a30d' }));
               }}
             >
               Annuler édition
-            </button>
+            </GLButton>
           ) : null}
         </div>
       </form>
@@ -639,13 +635,13 @@ export function GLGameMasterConsole({
       {narrationEnabled && (
         <form className="gl-gameplay-block" onSubmit={sendNarration}>
           <h3>Narration MJ</h3>
-          <textarea
+          <GLTextarea
             rows={3}
             value={narration}
             placeholder="Texte affiché en bandeau aux joueurs..."
             onChange={(event) => setNarration(event.target.value)}
           />
-          <button type="submit">Envoyer la narration</button>
+          <GLButton type="submit">Envoyer la narration</GLButton>
         </form>
       )}
 
@@ -669,16 +665,15 @@ export function GLGameMasterConsole({
                       <pre className="gl-pending-action-payload">{JSON.stringify(action.payload, null, 2)}</pre>
                     )}
                     {scoringEnabled && (
-                      <label>
-                        Score à attribuer en cas d’acceptation
-                        <input
+                      <GLField label="Score à attribuer en cas d’acceptation">
+                        <GLInput
                           type="number"
                           value={resolveDeltas[action.id] ?? 0}
                           onChange={(event) =>
                             setResolveDeltas((prev) => ({ ...prev, [action.id]: Number(event.target.value) }))
                           }
                         />
-                      </label>
+                      </GLField>
                     )}
                     <div className="gl-inline-actions">
                       <button type="button" onClick={() => resolveAction(action.id, 'accepted')}>Accepter</button>
@@ -710,19 +705,19 @@ export function GLGameMasterConsole({
             })}
           </ul>
           <div className="gl-inline-actions">
-            <input
+            <GLInput
               type="number"
               value={scoreDelta}
               onChange={(event) => setScoreDelta(Number(event.target.value) || 0)}
               style={{ width: 72 }}
             />
-            <input
+            <GLInput
               type="text"
               value={scoreReason}
               placeholder="Motif (optionnel)"
               onChange={(event) => setScoreReason(event.target.value)}
             />
-            <button type="button" onClick={() => applyScoreDelta(scoreDelta)}>Appliquer à l’équipe active</button>
+            <GLButton type="button" onClick={() => applyScoreDelta(scoreDelta)}>Appliquer à l’équipe active</GLButton>
           </div>
         </div>
       )}

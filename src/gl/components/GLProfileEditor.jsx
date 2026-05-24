@@ -3,6 +3,10 @@ import { apiGL } from '../services/apiGL.js';
 import { GLProfileAvatar } from './GLProfileAvatar.jsx';
 import { GLPasswordChangeForm } from './GLPasswordChangeForm.jsx';
 import { GLForetmapLinkPanel } from './GLForetmapLinkPanel.jsx';
+import { GLButton } from './ui/GLButton.jsx';
+import { GLField } from './ui/GLField.jsx';
+import { GLInput } from './ui/GLInput.jsx';
+import { GLTextarea } from './ui/GLTextarea.jsx';
 
 export function GLProfileEditor({ auth, profile, config, onSessionUpdated, onReloadProfile }) {
   const isAdmin = auth?.userType === 'gl_admin';
@@ -92,39 +96,34 @@ export function GLProfileEditor({ auth, profile, config, onSessionUpdated, onRel
             busy={busy}
           />
           {isAdmin ? (
-            <label>
-              Nom affiche
-              <input value={displayName} onChange={(event) => setDisplayName(event.target.value)} />
-            </label>
+            <GLField label="Nom affiche">
+              <GLInput value={displayName} onChange={(event) => setDisplayName(event.target.value)} />
+            </GLField>
           ) : (
             <>
-              <label>
-                Pseudo
-                <input value={pseudo} onChange={(event) => setPseudo(event.target.value)} autoComplete="username" />
-              </label>
-              <label>
-                Email
-                <input value={email} onChange={(event) => setEmail(event.target.value)} autoComplete="email" />
-              </label>
+              <GLField label="Pseudo">
+                <GLInput value={pseudo} onChange={(event) => setPseudo(event.target.value)} autoComplete="username" />
+              </GLField>
+              <GLField label="Email">
+                <GLInput value={email} onChange={(event) => setEmail(event.target.value)} autoComplete="email" />
+              </GLField>
               <p className="gl-hint">
                 Classe: {profile?.class_name || '-'} | Equipe: {profile?.team_name || '-'}
               </p>
             </>
           )}
-          <label>
-            Description
-            <textarea value={description} onChange={(event) => setDescription(event.target.value)} maxLength={300} />
-          </label>
-          <label>
-            Mot de passe actuel
-            <input
+          <GLField label="Description">
+            <GLTextarea value={description} onChange={(event) => setDescription(event.target.value)} maxLength={300} />
+          </GLField>
+          <GLField label="Mot de passe actuel">
+            <GLInput
               type="password"
               value={currentPassword}
               onChange={(event) => setCurrentPassword(event.target.value)}
               autoComplete="current-password"
             />
-          </label>
-          <button type="submit" disabled={busy}>{busy ? '...' : 'Enregistrer'}</button>
+          </GLField>
+          <GLButton type="submit" disabled={busy}>{busy ? '...' : 'Enregistrer'}</GLButton>
         </form>
       </section>
 

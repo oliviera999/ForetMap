@@ -11,6 +11,19 @@ body.gl-body {
   --gl-color-link-hover: #2c5959;
   --gl-color-topbar: #013a40;
   --gl-color-background: #f4fff5;
+  --gl-surface: #ffffff;
+  --gl-surface-muted: #f5fbf8;
+  --gl-border: rgba(1, 58, 64, 0.18);
+  --gl-border-focus: #047c8c;
+  --gl-radius-sm: 8px;
+  --gl-radius-md: 12px;
+  --gl-radius-lg: 16px;
+  --gl-shadow-sm: 0 5px 16px rgba(1, 58, 64, 0.1);
+  --gl-shadow-md: 0 10px 28px rgba(1, 58, 64, 0.16);
+  --gl-accent-info: #d9f0ff;
+  --gl-accent-success: #d9f9ea;
+  --gl-accent-warning: #fff4d6;
+  --gl-accent-danger: #ffe2e2;
   --gl-font-body: var(--font-sans);
   --gl-font-heading: var(--font-sans);
   min-height: 100vh;
@@ -160,11 +173,11 @@ body.gl-body {
 }
 
 .gl-panel {
-  background: #ffffff;
-  border: 1px solid #d1fae5;
-  border-radius: 14px;
+  background: var(--gl-surface);
+  border: 1px solid var(--gl-border);
+  border-radius: var(--gl-radius-lg);
   padding: 14px;
-  box-shadow: 0 8px 25px rgba(15, 23, 42, 0.08);
+  box-shadow: var(--gl-shadow-sm);
   transition:
     transform var(--motion-fast) var(--ease-out),
     box-shadow var(--motion-fast) var(--ease-out);
@@ -172,7 +185,7 @@ body.gl-body {
 
 .gl-panel:hover {
   transform: translateY(-1px);
-  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.12);
+  box-shadow: var(--gl-shadow-md);
 }
 
 .gl-auth {
@@ -193,6 +206,17 @@ body.gl-body {
   width: 88px;
   height: 88px;
   object-fit: contain;
+}
+
+.gl-auth-card {
+  max-width: 680px;
+  margin: 0 auto;
+}
+
+.gl-forgot-panel {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--gl-border);
 }
 
 .gl-app--guest {
@@ -321,10 +345,37 @@ button.gl-brand-hub__card:focus-visible {
 }
 
 .gl-card {
-  background: #ffffff;
-  border: 1px solid #dbeafe;
-  border-radius: 14px;
+  background: var(--gl-surface);
+  border: 1px solid var(--gl-border);
+  border-radius: var(--gl-radius-lg);
   padding: 14px;
+}
+
+.gl-surface {
+  background: var(--gl-surface);
+  border: 1px solid var(--gl-border);
+  border-radius: var(--gl-radius-lg);
+  padding: 14px;
+  box-shadow: var(--gl-shadow-sm);
+}
+
+.gl-surface--flat {
+  box-shadow: none;
+}
+
+.gl-surface--inset {
+  background: var(--gl-surface-muted);
+}
+
+.gl-surface--elevated {
+  transition:
+    transform var(--motion-fast) var(--ease-out),
+    box-shadow var(--motion-fast) var(--ease-out);
+}
+
+.gl-surface--elevated:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--gl-shadow-md);
 }
 
 .gl-form {
@@ -340,10 +391,55 @@ button.gl-brand-hub__card:focus-visible {
 .gl-form input,
 .gl-form textarea,
 .gl-form select {
-  border: 1px solid #cbd5e1;
-  border-radius: 8px;
+  border: 1px solid var(--gl-border);
+  border-radius: var(--gl-radius-sm);
   padding: 8px 10px;
   min-height: 44px;
+  background: #fff;
+  color: var(--gl-color-text);
+}
+
+.gl-field {
+  display: grid;
+  gap: 6px;
+}
+
+.gl-field__label {
+  font-size: 0.92rem;
+  font-weight: 600;
+}
+
+.gl-field__hint {
+  font-size: 0.8rem;
+  color: #5f6f74;
+}
+
+.gl-field__error {
+  color: #991b1b;
+  font-size: 0.82rem;
+}
+
+.gl-input,
+.gl-textarea,
+.gl-select {
+  border: 1px solid var(--gl-border);
+  border-radius: var(--gl-radius-sm);
+  padding: 8px 10px;
+  min-height: 44px;
+  background: #fff;
+  color: var(--gl-color-text);
+  width: 100%;
+}
+
+.gl-textarea {
+  min-height: 110px;
+  resize: vertical;
+}
+
+.gl-field.is-invalid .gl-input,
+.gl-field.is-invalid .gl-textarea,
+.gl-field.is-invalid .gl-select {
+  border-color: #dc2626;
 }
 
 .gl-form textarea {
@@ -351,39 +447,73 @@ button.gl-brand-hub__card:focus-visible {
   resize: vertical;
 }
 
+.gl-btn,
 .gl-form button,
 .gl-inline-actions button {
-  border: 0;
-  border-radius: 9px;
-  background: #2563eb;
-  color: white;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: var(--gl-color-primary);
+  color: #fff;
   min-height: 44px;
   padding: 8px 12px;
   cursor: pointer;
+  font-weight: 600;
   transition:
     transform var(--motion-base) var(--spring),
-    filter var(--motion-fast) var(--ease-out);
+    filter var(--motion-fast) var(--ease-out),
+    box-shadow var(--motion-fast) var(--ease-out);
 }
 
+.gl-btn:hover,
 .gl-form button:hover,
 .gl-inline-actions button:hover {
   transform: translateY(-1px);
-  filter: brightness(1.03);
+  filter: brightness(1.06);
+  box-shadow: var(--gl-shadow-sm);
 }
 
+.gl-btn:focus-visible,
 .gl-form button:focus-visible,
 .gl-inline-actions button:focus-visible,
 .gl-form input:focus-visible,
 .gl-form textarea:focus-visible,
 .gl-form select:focus-visible,
+.gl-input:focus-visible,
+.gl-textarea:focus-visible,
+.gl-select:focus-visible,
 .gl-content-admin-list button:focus-visible,
 .gl-subtabs button:focus-visible,
 .gl-mascots-filters button:focus-visible,
 .gl-team-chip:focus-visible,
 .gl-btn-secondary:focus-visible,
 .gl-btn-danger:focus-visible {
-  outline: 2px solid #1d4ed8;
+  outline: 2px solid var(--gl-border-focus);
   outline-offset: 2px;
+}
+
+.gl-btn--primary {
+  background: var(--gl-color-primary);
+  border-color: var(--gl-color-primary);
+}
+
+.gl-btn--secondary,
+.gl-btn-secondary {
+  border-color: var(--gl-border);
+  background: #fff;
+  color: var(--gl-color-primary);
+}
+
+.gl-btn--ghost {
+  border-color: var(--gl-border);
+  background: color-mix(in srgb, #fff 75%, var(--gl-color-secondary) 25%);
+  color: var(--gl-color-primary);
+}
+
+.gl-btn--danger,
+.gl-btn-danger {
+  border-color: #dc2626;
+  background: var(--gl-accent-danger);
+  color: #991b1b;
 }
 
 .gl-error,
@@ -398,20 +528,10 @@ button.gl-brand-hub__card:focus-visible {
   gap: 10px;
   margin: 0 0 12px;
   padding: 10px 12px;
-  border-radius: 8px;
-  background: #dcfce7;
+  border-radius: var(--gl-radius-sm);
+  background: var(--gl-accent-success);
   color: #166534;
-  border: 1px solid #86efac;
-}
-
-.gl-btn-secondary {
-  border: 1px solid #94a3b8;
-  border-radius: 9px;
-  background: #fff;
-  color: #1e293b;
-  min-height: 44px;
-  padding: 8px 12px;
-  cursor: pointer;
+  border: 1px solid color-mix(in srgb, var(--gl-color-primary) 30%, #86efac 70%);
 }
 
 .gl-error-banner {
@@ -589,9 +709,9 @@ button.gl-brand-hub__card:focus-visible {
 .gl-gameplay-block {
   margin-top: 14px;
   padding: 12px;
-  border: 1px solid #c7d2fe;
+  border: 1px solid var(--gl-border);
   border-radius: 12px;
-  background: #eef2ff;
+  background: var(--gl-accent-info);
 }
 
 .gl-gameplay-block h3 {
@@ -825,16 +945,26 @@ button.gl-brand-hub__card:focus-visible {
 
 .gl-subtabs button {
   padding: 6px 14px;
-  border: 1px solid #cbd5e1;
-  background: #f1f5f9;
+  border: 1px solid color-mix(in srgb, #fff 55%, var(--gl-color-primary) 45%);
+  background: color-mix(in srgb, #fff 76%, var(--gl-color-secondary) 24%);
+  color: var(--gl-color-primary);
   border-radius: 999px;
   cursor: pointer;
+  min-height: 40px;
+  transition:
+    transform var(--motion-fast) var(--ease-out),
+    box-shadow var(--motion-fast) var(--ease-out);
 }
 
 .gl-subtabs button.is-active {
-  background: #1d4ed8;
-  color: white;
-  border-color: #1d4ed8;
+  background: var(--gl-color-primary);
+  color: #fff;
+  border-color: var(--gl-color-primary);
+  box-shadow: var(--gl-shadow-sm);
+}
+
+.gl-subtabs button:hover {
+  transform: translateY(-1px);
 }
 
 .gl-chapters-admin-grid {
@@ -906,19 +1036,10 @@ button.gl-brand-hub__card:focus-visible {
   cursor: pointer;
 }
 
-.gl-danger {
-  background: #ef4444;
-  color: white;
-  border: none;
-  border-radius: 6px;
-  padding: 4px 10px;
-  cursor: pointer;
-}
-
 .gl-info {
   padding: 6px 12px;
-  background: #ecfdf5;
-  border: 1px solid #86efac;
+  background: var(--gl-accent-success);
+  border: 1px solid color-mix(in srgb, var(--gl-color-primary) 30%, #86efac 70%);
   border-radius: 8px;
   color: #065f46;
 }
@@ -968,6 +1089,11 @@ button.gl-brand-hub__card:focus-visible {
 .gl-markdown .gl-markdown-image-insert + label {
   display: grid;
   gap: 6px;
+}
+
+.gl-markdown-editor :where(textarea) {
+  border-radius: var(--gl-radius-sm);
+  border-color: var(--gl-border);
 }
 
 .gl-map-url-preview {
@@ -1115,10 +1241,10 @@ button.gl-brand-hub__card:focus-visible {
 }
 
 .gl-admin-section {
-  border: 1px solid #e2e8f0;
-  border-radius: 10px;
+  border: 1px solid var(--gl-border);
+  border-radius: var(--gl-radius-md);
   padding: 12px;
-  background: #f8fafc;
+  background: var(--gl-surface-muted);
 }
 
 .gl-admin-table-wrap {
@@ -1129,39 +1255,29 @@ button.gl-brand-hub__card:focus-visible {
 .gl-admin-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 0.9rem;
+  font-size: 0.94rem;
 }
 
 .gl-admin-table th,
 .gl-admin-table td {
-  border: 1px solid #cbd5e1;
-  padding: 8px;
+  border: 1px solid var(--gl-border);
+  padding: 10px 8px;
   text-align: left;
   vertical-align: middle;
 }
 
 .gl-admin-table tbody tr:nth-child(even) {
-  background: #f8fafc;
+  background: color-mix(in srgb, #fff 80%, var(--gl-color-secondary) 20%);
 }
 
 .gl-admin-table tbody tr:hover {
-  background: #eef2ff;
+  background: color-mix(in srgb, #fff 72%, var(--gl-accent-info) 28%);
 }
 
 .gl-admin-actions-cell {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
-}
-
-.gl-btn-danger {
-  border: 1px solid #ef4444;
-  border-radius: 9px;
-  background: #fee2e2;
-  color: #991b1b;
-  min-height: 44px;
-  padding: 8px 12px;
-  cursor: pointer;
 }
 
 .gl-admin-grid-2 {
@@ -1177,10 +1293,98 @@ button.gl-brand-hub__card:focus-visible {
 
 .gl-admin-import-report {
   margin-top: 10px;
-  border: 1px dashed #94a3b8;
+  border: 1px dashed var(--gl-border);
   border-radius: 8px;
   padding: 10px;
   background: #ffffff;
+}
+
+.gl-animate-in {
+  animation: fadeIn 0.35s var(--ease-out) both;
+}
+
+.gl-animate-pop {
+  animation: popIn 0.25s var(--spring) both;
+}
+
+.gl-stagger > * {
+  animation: fadeIn 0.35s var(--ease-out) both;
+}
+
+.gl-stagger > *:nth-child(2) { animation-delay: 0.04s; }
+.gl-stagger > *:nth-child(3) { animation-delay: 0.08s; }
+.gl-stagger > *:nth-child(4) { animation-delay: 0.12s; }
+.gl-stagger > *:nth-child(5) { animation-delay: 0.16s; }
+
+.gl-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 24px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border: 1px solid var(--gl-border);
+  background: #fff;
+  color: var(--gl-color-primary);
+}
+
+.gl-badge--success {
+  background: var(--gl-accent-success);
+  color: #166534;
+}
+
+.gl-badge--danger {
+  background: var(--gl-accent-danger);
+  color: #991b1b;
+}
+
+.gl-badge--info {
+  background: var(--gl-accent-info);
+}
+
+.gl-data-list__mobile {
+  display: none;
+}
+
+.gl-data-card {
+  border: 1px solid var(--gl-border);
+  border-radius: var(--gl-radius-md);
+  background: #fff;
+  padding: 10px;
+  display: grid;
+  gap: 6px;
+}
+
+.gl-data-card-row {
+  display: grid;
+  grid-template-columns: minmax(110px, 1fr) 1.4fr;
+  gap: 8px;
+}
+
+.gl-data-card-label {
+  color: #5f6f74;
+  font-size: 0.84rem;
+}
+
+.gl-data-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+@media (max-width: 640px) {
+  .gl-data-list__desktop {
+    display: none;
+  }
+
+  .gl-data-list__mobile {
+    display: grid;
+    gap: 10px;
+    margin-top: 8px;
+  }
 }
 
 .gl-empty {

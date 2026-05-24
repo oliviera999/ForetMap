@@ -1,10 +1,13 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { apiGL } from '../services/apiGL.js';
-import { MarkdownTextarea } from '../../components/MarkdownTextarea.jsx';
 import { renderMarkdownToSafeHtml } from '../../utils/markdown.js';
 import { GLMarkdownImageInsert } from './GLMarkdownImageInsert.jsx';
 import { GLBrandPageBanner } from './GLBrandHub.jsx';
 import { GL_CONTENT_PAGE_SLOT_BY_SLUG } from '../hooks/useGLBrandTheme.js';
+import { GLButton } from './ui/GLButton.jsx';
+import { GLField } from './ui/GLField.jsx';
+import { GLInput } from './ui/GLInput.jsx';
+import { GLMarkdownEditor } from './ui/GLMarkdownEditor.jsx';
 
 function canManageContent(auth) {
   const permissions = Array.isArray(auth?.permissions) ? auth.permissions : [];
@@ -88,7 +91,7 @@ export function GLContentPage({ slug, fallbackTitle, auth, brandSlots, onSaved, 
     return (
       <div className="gl-panel gl-error">
         <p>{loadError}</p>
-        <button type="button" onClick={() => window.location.reload()}>Réessayer</button>
+        <GLButton type="button" onClick={() => window.location.reload()}>Réessayer</GLButton>
       </div>
     );
   }
@@ -108,9 +111,9 @@ export function GLContentPage({ slug, fallbackTitle, auth, brandSlots, onSaved, 
         <div className="gl-success-banner" role="status">
           {savedMessage}
           {typeof onNavigateTab === 'function' ? (
-            <button type="button" className="gl-btn-secondary" onClick={() => onNavigateTab('mj')}>
+            <GLButton type="button" variant="secondary" onClick={() => onNavigateTab('mj')}>
               Ouvrir la console MJ
-            </button>
+            </GLButton>
           ) : null}
         </div>
       ) : null}
@@ -119,13 +122,13 @@ export function GLContentPage({ slug, fallbackTitle, auth, brandSlots, onSaved, 
 
       {manageable && !editing ? (
         <div className="gl-inline-actions" style={{ marginBottom: 12 }}>
-          <button type="button" onClick={() => { setSaveError(''); setSavedMessage(''); setEditing(true); }}>
+          <GLButton type="button" onClick={() => { setSaveError(''); setSavedMessage(''); setEditing(true); }}>
             Modifier le contenu
-          </button>
+          </GLButton>
           {typeof onNavigateTab === 'function' ? (
-            <button type="button" className="gl-btn-secondary" onClick={() => onNavigateTab('contents')}>
+            <GLButton type="button" variant="secondary" onClick={() => onNavigateTab('contents')}>
               Tous les contenus (admin)
-            </button>
+            </GLButton>
           ) : null}
         </div>
       ) : null}
@@ -136,10 +139,9 @@ export function GLContentPage({ slug, fallbackTitle, auth, brandSlots, onSaved, 
             Cette page est affichée aux joueurs dans l’onglet correspondant. Vous pouvez la modifier plus tard
             depuis l’onglet <strong>Contenus</strong>.
           </p>
-          <label>
-            Titre
-            <input value={draftTitle} onChange={(event) => setDraftTitle(event.target.value)} />
-          </label>
+          <GLField label="Titre">
+            <GLInput value={draftTitle} onChange={(event) => setDraftTitle(event.target.value)} />
+          </GLField>
           <GLMarkdownImageInsert
             textareaRef={bodyTextareaRef}
             value={draftBody}
@@ -150,24 +152,23 @@ export function GLContentPage({ slug, fallbackTitle, auth, brandSlots, onSaved, 
             }}
           />
           {imageInsertMessage ? <p className="gl-info">{imageInsertMessage}</p> : null}
-          <label>
-            Markdown
-            <MarkdownTextarea
+          <GLField label="Markdown">
+            <GLMarkdownEditor
               ref={bodyTextareaRef}
               value={draftBody}
               onChange={(event) => setDraftBody(event.target.value)}
               rows={10}
               hint="Mise en forme légère : gras, listes, liens et images (Markdown)."
             />
-          </label>
+          </GLField>
           <div className="gl-inline-actions">
-            <button type="button" onClick={save} disabled={saving}>
+            <GLButton type="button" onClick={save} loading={saving} disabled={saving}>
               {saving ? 'Enregistrement…' : 'Enregistrer'}
-            </button>
+            </GLButton>
             {hasExistingContent(content) ? (
-              <button
+              <GLButton
                 type="button"
-                className="gl-btn-secondary"
+                variant="secondary"
                 disabled={saving}
                 onClick={() => {
                   setSaveError('');
@@ -178,7 +179,7 @@ export function GLContentPage({ slug, fallbackTitle, auth, brandSlots, onSaved, 
                 }}
               >
                 Annuler
-              </button>
+              </GLButton>
             ) : null}
           </div>
         </section>
