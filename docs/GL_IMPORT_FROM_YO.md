@@ -31,7 +31,8 @@ curl -s https://gl.olution.info/api/gl/auth/config
 - `platform.brand` (couleurs, polices, logo, **emplacements visuels** `slots` : hero + cartes monde / règles / sortilèges, calqués sur la page d’accueil yo.olution.info).
 - Pages éditoriales GL (`gl_content_pages`) via `slugMap`.
 - Chapitres GL (`gl_chapters`) si `chapterMap` est renseigné.
-- Images référencées dans les contenus (`/wp-content/uploads/...`, y compris hébergées sur `gl.olution.info`) vers `uploads/gl_import/wp/*` et `uploads/gl_brand/*` (sauf si `--skip-media`).
+- Images référencées dans les contenus (`/wp-content/uploads/...`) vers `uploads/gl_import/wp/*` et `uploads/gl_brand/*` (sauf si `--skip-media`). Les URLs `gl.olution.info/wp-content/...` de la page d’accueil yo sont **re-téléchargées depuis yo.olution.info** (même chemin), car `gl.olution.info` sert l’app Node et renvoie du HTML à la place des fichiers.
+- En fin d’import **brand**, le script affiche un récapitulatif `médias charte: N/N URL locales` : si N &lt; total, relancer après déploiement du correctif ou vérifier l’accès réseau à yo.olution.info.
 - Après import, l’écran de connexion GL et les onglets **Monde / Règles / Sortilèges** affichent ces visuels via `brand.slots` (`GET /api/gl/auth/config`).
 
 ## Options utiles

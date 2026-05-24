@@ -367,6 +367,63 @@ function isWpMediaUrl(urlValue, sourceHosts = []) {
   }
 }
 
+function isGlOolutionHost(host) {
+  return /(^|\.)gl\.olution\.info$/i.test(normalizeUrlHost(host));
+}
+
+/**
+ * gl.olution.info sert l'app Node : /wp-content/uploads/ renvoie du HTML.
+ * On retente le même chemin sur yo.olution.info (WordPress source).
+ */
+function buildMediaFetchCandidates(urlValue, { sourceBaseUrl, canonicalHost } = {}) {
+  const candidates = [];
+  const add = (value) => {
+    const raw = String(value || '').trim();
+    if (!raw || candidates.includes(raw)) return;
+    candidates.push(raw);
+  };
+  add(urlValue);
+  try {
+    const original = new URL(String(urlValue || ''));
+    const pathname = original.pathname;
+    if (!pathname.toLowerCase().includes('/wp-content/uploads/')) {
+      return candidates;
+    }
+    if (!isGlOolutionHost(original.hostname)) {
+      return candidates;
+    }
+    if (canonicalHost) {
+      add(`https://${normalizeUrlHost(canonicalHost)}${pathname}`);
+    }
+    try {
+      const sourceHost = normalizeUrlHost(new URL(sourceBaseUrl).hostname);
+      if (sourceHost && !isGlOolutionHost(sourceHost)) {
+        add(`https://${sourceHost}${pathname}`);
+      }
+    } catch (_) {
+      // noop
+    }
+    add(`https://yo.olution.info${pathname}`);
+    add(`https://www.yo.olution.info${pathname}`);
+  } catch (_) {
+    // noop
+  }
+  return candidates;
+}
+
+function isLikelyImageBuffer(buffer, contentType) {
+  const ct = String(contentType || '').toLowerCase();
+  if (ct.startsWith('image/')) return true;
+  if (!buffer || buffer.length < 12) return false;
+  if (buffer[0] === 0x89 && buffer[1] === 0x50 && buffer[2] === 0x4e && buffer[3] === 0x47) return true;
+  if (buffer[0] === 0xff && buffer[1] === 0xd8) return true;
+  if (buffer.slice(0, 4).toString('ascii') === 'RIFF' && buffer.slice(8, 12).toString('ascii') === 'WEBP') {
+    return true;
+  }
+  if (buffer.slice(0, 3).toString('ascii') === 'GIF') return true;
+  return false;
+}
+
 function decodeHtmlEntities(value) {
   return String(value || '')
     .replace(/&amp;/g, '&')
@@ -480,19 +537,35 @@ function extFromUrlOrContentType(urlValue, contentType) {
   return 'bin';
 }
 
-async function fetchBinaryBuffer(urlValue, fetchFn = lightweightFetch) {
-  const res = await fetchFn(urlValue, {
-    headers: {
-      Accept: '*/*',
-      'User-Agent': 'ForetMap-GL-WP-Import/1.0',
-    },
-  });
-  if (!res.ok) {
-    throw new Error(`Media ${urlValue}: HTTP ${res.status}`);
+async function fetchBinaryBufferForMedia(urlValue, fetchFn = lightweightFetch, options = {}) {
+  const candidates = buildMediaFetchCandidates(urlValue, options);
+  const errors = [];
+  for (const candidate of candidates) {
+    try {
+      const res = await fetchFn(candidate, {
+        headers: {
+          Accept: 'image/*,*/*',
+          'User-Agent': 'ForetMap-GL-WP-Import/1.0',
+        },
+      });
+      if (!res.ok) {
+        errors.push(`${candidate}: HTTP ${res.status}`);
+        continue;
+      }
+      const contentType = String(res.headers?.get?.('content-type') || '').toLowerCase();
+      const buffer = Buffer.from(await res.arrayBuffer());
+      if (contentType.includes('text/html') || !isLikelyImageBuffer(buffer, contentType)) {
+        errors.push(
+          `${candidate}: contenu non image (${contentType || 'type inconnu'}, ${buffer.length} o)`
+        );
+        continue;
+      }
+      return { buffer, contentType, fetchUrl: candidate };
+    } catch (err) {
+      errors.push(`${candidate}: ${err.message || err}`);
+    }
   }
-  const contentType = String(res.headers?.get?.('content-type') || '').toLowerCase();
-  const arrayBuffer = await res.arrayBuffer();
-  return { buffer: Buffer.from(arrayBuffer), contentType };
+  throw new Error(`Media ${urlValue}: aucune source image valide (${errors.join(' | ')})`);
 }
 
 async function mirrorOneMediaUrl(urlValue, {
@@ -500,6 +573,9 @@ async function mirrorOneMediaUrl(urlValue, {
   mediaCache,
   targetDir = 'gl_import/wp',
   apply = false,
+  sourceBaseUrl = '',
+  canonicalHost = '',
+  mediaStats = null,
 }) {
   if (mediaCache.has(urlValue)) return mediaCache.get(urlValue);
   const checksum = crypto.createHash('sha1').update(urlValue).digest('hex').slice(0, 16);
@@ -509,12 +585,21 @@ async function mirrorOneMediaUrl(urlValue, {
     mediaCache.set(urlValue, previewUrl);
     return previewUrl;
   }
-  const { buffer, contentType } = await fetchBinaryBuffer(urlValue, fetchFn);
+  const { buffer, contentType, fetchUrl } = await fetchBinaryBufferForMedia(urlValue, fetchFn, {
+    sourceBaseUrl,
+    canonicalHost,
+  });
   const ext = extFromUrlOrContentType(urlValue, contentType);
   const relativePath = `${targetDir}/${checksum}.${ext}`.replace(/\\/g, '/');
   writeBufferToDisk(relativePath, buffer);
   const localUrl = `/uploads/${relativePath}`;
   mediaCache.set(urlValue, localUrl);
+  if (mediaStats) {
+    mediaStats.mirrored += 1;
+    if (fetchUrl !== urlValue) {
+      mediaStats.rewritten += 1;
+    }
+  }
   return localUrl;
 }
 
@@ -758,6 +843,9 @@ async function buildPageRecords({ sourceBaseUrl, args, config, turndownService }
     sourceHosts,
     apply: args.apply,
     targetDir: 'gl_import/wp',
+    sourceBaseUrl,
+    canonicalHost: config.canonicalHost,
+    mediaStats: args.mediaStats,
   }, 'bodyMarkdown');
 }
 
@@ -788,7 +876,37 @@ async function buildChapterRecords({ sourceBaseUrl, args, config, turndownServic
     sourceHosts,
     apply: args.apply,
     targetDir: 'gl_import/wp',
+    sourceBaseUrl,
+    canonicalHost: config.canonicalHost,
+    mediaStats: args.mediaStats,
   }, 'storyMarkdown');
+}
+
+function summarizeBrandMedia(brand) {
+  const rows = [];
+  if (brand?.logoUrl) rows.push({ label: 'logo', url: brand.logoUrl });
+  for (const slotId of GL_BRAND_LAYOUT_SLOT_IDS) {
+    const imageUrl = brand?.slots?.[slotId]?.imageUrl;
+    if (imageUrl) rows.push({ label: slotId, url: imageUrl });
+  }
+  return rows;
+}
+
+function logBrandMediaSummary(brand, { apply = false } = {}) {
+  const rows = summarizeBrandMedia(brand);
+  const localCount = rows.filter((row) => String(row.url).startsWith('/uploads/')).length;
+  console.log(
+    `[gl-import-wp] médias charte: ${localCount}/${rows.length} URL locales`
+    + (apply ? ' (fichiers sous uploads/gl_brand/)' : ' (dry-run)')
+  );
+  for (const row of rows) {
+    console.log(`  - ${row.label}: ${row.url}`);
+  }
+  if (apply && localCount < rows.length) {
+    console.warn(
+      '[gl-import-wp] attention: certaines images ne sont pas sous /uploads/ — elles ne s’afficheront pas dans GL.'
+    );
+  }
 }
 
 async function runBrandImport({ sourceBaseUrl, args, config }) {
@@ -806,6 +924,9 @@ async function runBrandImport({ sourceBaseUrl, args, config }) {
       mediaCache: args.mediaCache,
       sourceHosts,
       apply: args.apply,
+      sourceBaseUrl,
+      canonicalHost: config.canonicalHost,
+      mediaStats: args.mediaStats,
     });
   }
 
@@ -821,6 +942,9 @@ async function runBrandImport({ sourceBaseUrl, args, config }) {
       mediaCache: args.mediaCache,
       targetDir: 'gl_brand',
       apply: args.apply,
+      sourceBaseUrl,
+      canonicalHost: config.canonicalHost,
+      mediaStats: args.mediaStats,
     });
     brand.logoUrl = mirroredLogo;
   } else if (logoSourceUrl) {
@@ -829,6 +953,13 @@ async function runBrandImport({ sourceBaseUrl, args, config }) {
 
   if (args.dryRun) await writeBrandDryRun(brand, args.outputDir);
   if (args.apply) await applyBrandSettings(brand);
+  logBrandMediaSummary(brand, { apply: args.apply });
+  if (args.mediaStats && args.apply) {
+    console.log(
+      `[gl-import-wp] fichiers médias copiés: ${args.mediaStats.mirrored}`
+      + (args.mediaStats.rewritten ? ` (${args.mediaStats.rewritten} via yo.olution.info)` : '')
+    );
+  }
   return { target: 'brand', brand };
 }
 
@@ -846,6 +977,7 @@ async function runImport(options = {}) {
     fetchFn: options.fetchFn || lightweightFetch,
     skipMedia: Boolean(options.skipMedia),
     mediaCache: new Map(),
+    mediaStats: { mirrored: 0, rewritten: 0 },
   };
   const config = await loadConfig(args.configPath);
   const sourceBaseUrl = args.sourceBaseUrl || config.sourceBaseUrl;
@@ -951,6 +1083,9 @@ module.exports = {
   extractCssVariablesMap,
   normalizeBrandDataFromWp,
   extractLayoutSlotsFromHomepageHtml,
+  buildMediaFetchCandidates,
+  isLikelyImageBuffer,
+  fetchBinaryBufferForMedia,
   mirrorBrandSlots,
   preprocessWpHtmlForMarkdown,
   mirrorWpMediaInMarkdown,
