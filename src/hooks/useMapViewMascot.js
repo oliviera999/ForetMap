@@ -8,7 +8,9 @@ import {
   MAP_VIEW_MASCOT_DIALOG_MOVE_COOLDOWN_MS,
   MAP_VIEW_MASCOT_DIALOG_MS,
   MAP_VIEW_MASCOT_HAPPY_MS,
+  MAP_VIEW_MASCOT_INSPECT_TRANSIENT_MS,
   MAP_VIEW_MASCOT_MOVE_MS,
+  pickMapMascotMoveTransient,
 } from '../utils/mapViewMascotMotion.js';
 import useVisitMascotStateMachine from './useVisitMascotStateMachine.js';
 
@@ -157,12 +159,11 @@ function useMapViewMascot({
         setWalking(false);
       } else {
         setWalking(true);
-        if (dist > 15) {
-          triggerMascotTransientState(VISIT_MASCOT_STATE.RUNNING, 1000);
-          showDialog('running');
-        } else if (dist > 9) {
-          triggerMascotTransientState(VISIT_MASCOT_STATE.SURPRISE, 900);
-          showDialog('surprise');
+        const moveTransient = pickMapMascotMoveTransient(dist);
+        if (moveTransient) {
+          triggerMascotTransientState(moveTransient.state, moveTransient.durationMs);
+          if (moveTransient.state === VISIT_MASCOT_STATE.RUNNING) showDialog('running');
+          else if (moveTransient.state === VISIT_MASCOT_STATE.SURPRISE) showDialog('surprise');
         }
         if (dist > 4) showDialog('move');
         moveTimeoutRef.current = window.setTimeout(() => {
@@ -228,7 +229,7 @@ function useMapViewMascot({
       const xp = Number(marker.x_pct);
       const yp = Number(marker.y_pct);
       moveTo(xp, yp);
-      triggerMascotTransientState(VISIT_MASCOT_STATE.INSPECT, 1200);
+      triggerMascotTransientState(VISIT_MASCOT_STATE.INSPECT, MAP_VIEW_MASCOT_INSPECT_TRANSIENT_MS);
       showDialog('inspect');
       scheduleAfterMove(() => openMarker(marker), { xp, yp }, fromPct);
     },

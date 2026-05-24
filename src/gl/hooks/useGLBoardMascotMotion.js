@@ -1,8 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { VISIT_MASCOT_STATE } from '../../utils/visitMascotState.js';
 import {
   MAP_VIEW_MASCOT_MOVE_MS,
   MAP_VIEW_MASCOT_HAPPY_MS,
+  MAP_VIEW_MASCOT_INSPECT_TRANSIENT_MS,
   clampMapMascotPctForViewport,
+  pickMapMascotMoveTransient,
 } from '../../utils/mapViewMascotMotion.js';
 
 const DEFAULT_PCT = { xp: 50, yp: 50 };
@@ -23,6 +26,7 @@ export function useGLBoardMascotMotion({ teams = [], boardHeightPx = 0, prefersR
   const animatingRef = useRef(new Set());
   const moveTimeoutRef = useRef(new Map());
   const happyTimeoutRef = useRef(new Map());
+  const transientTimeoutRef = useRef(new Map());
 
   useEffect(() => {
     const list = Array.isArray(teams) ? teams : [];
@@ -34,7 +38,9 @@ export function useGLBoardMascotMotion({ teams = [], boardHeightPx = 0, prefersR
         if (animatingRef.current.has(id)) continue;
         nextPos.set(id, teamPct(team, boardHeightPx));
         if (!nextMotion.has(id)) {
-          nextMotion.set(id, { walking: false, happy: false, faceRight: true });
+          nextMotion.set(id, {
+            walking: false, happy: false, faceRight: true, transientState: '',
+          });
         }
       }
       return nextMotion;
@@ -46,21 +52,38 @@ export function useGLBoardMascotMotion({ teams = [], boardHeightPx = 0, prefersR
   useEffect(() => () => {
     for (const id of moveTimeoutRef.current.values()) clearTimeout(id);
     for (const id of happyTimeoutRef.current.values()) clearTimeout(id);
+    for (const id of transientTimeoutRef.current.values()) clearTimeout(id);
     moveTimeoutRef.current.clear();
     happyTimeoutRef.current.clear();
+    transientTimeoutRef.current.clear();
   }, []);
 
   const patchMotion = useCallback((teamId, patch) => {
     setMotionByTeam((prev) => {
       const next = new Map(prev);
       const id = Number(teamId);
-      const cur = next.get(id) || { walking: false, happy: false, faceRight: true };
+      const cur = next.get(id) || {
+        walking: false, happy: false, faceRight: true, transientState: '',
+      };
       next.set(id, { ...cur, ...patch });
       return next;
     });
   }, []);
 
-  const moveTeamTo = useCallback((teamId, xp, yp, { triggerHappy = false } = {}) => {
+  const triggerTransient = useCallback((teamId, state, durationMs) => {
+    const wanted = String(state || '').trim();
+    if (!wanted || wanted === VISIT_MASCOT_STATE.IDLE) return;
+    const id = Number(teamId);
+    const prev = transientTimeoutRef.current.get(id);
+    if (prev) clearTimeout(prev);
+    patchMotion(id, { transientState: wanted });
+    transientTimeoutRef.current.set(id, window.setTimeout(() => {
+      transientTimeoutRef.current.delete(id);
+      patchMotion(id, { transientState: '' });
+    }, Math.max(300, Number(durationMs) || 900)));
+  }, [patchMotion]);
+
+  const moveTeamTo = useCallback((teamId, xp, yp, { triggerHappy = false, arrival = '' } = {}) => {
     const id = Number(teamId);
     if (!Number.isFinite(id) || id <= 0) return false;
     if (!Number.isFinite(xp) || !Number.isFinite(yp)) return false;
@@ -87,6 +110,13 @@ export function useGLBoardMascotMotion({ teams = [], boardHeightPx = 0, prefersR
       animatingRef.current.delete(id);
     } else {
       patchMotion(id, { walking: true });
+      const moveTransient = pickMapMascotMoveTransient(dist);
+      if (moveTransient) {
+        triggerTransient(id, moveTransient.state, moveTransient.durationMs);
+      }
+      if (arrival === 'marker') {
+        triggerTransient(id, VISIT_MASCOT_STATE.INSPECT, MAP_VIEW_MASCOT_INSPECT_TRANSIENT_MS);
+      }
       moveTimeoutRef.current.set(id, window.setTimeout(() => {
         moveTimeoutRef.current.delete(id);
         patchMotion(id, { walking: false });
@@ -105,7 +135,7 @@ export function useGLBoardMascotMotion({ teams = [], boardHeightPx = 0, prefersR
     }
 
     return true;
-  }, [boardHeightPx, patchMotion, prefersReducedMotion]);
+  }, [boardHeightPx, patchMotion, prefersReducedMotion, triggerTransient]);
 
   const getPositionForTeam = useCallback((teamId) => {
     const id = Number(teamId);
@@ -114,7 +144,9 @@ export function useGLBoardMascotMotion({ teams = [], boardHeightPx = 0, prefersR
 
   const getMotionForTeam = useCallback((teamId) => {
     const id = Number(teamId);
-    return motionByTeam.get(id) || { walking: false, happy: false, faceRight: true };
+    return motionByTeam.get(id) || {
+      walking: false, happy: false, faceRight: true, transientState: '',
+    };
   }, [motionByTeam]);
 
   return {

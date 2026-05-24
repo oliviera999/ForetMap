@@ -8,6 +8,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 ## [Non publié]
 
 ### Modifié
+- **GL — plateau : états mascotte au déplacement** : course, surprise et inspecte sur repère alignés sur la visite ForetMap (`pickMapMascotMoveTransient`, `useGLBoardMascotMotion`) ; logique partagée avec `useMapViewMascot`. Tests `tests/map-view-mascot-motion.test.js`, `tests-ui/gl/useGLBoardMascotMotion.test.js`.
 - **Carte forêt — mascotte** : suppression des surcharges CSS `map-view-forest-mascot` (mobile et vue intégrée) ; taille identique au mode visite (`clamp` des shells Rive / spritesheet / sprite_cut).
 - **Studio packs mascotte — modèles intégrés** : bouton **Éditer sur cette carte** (réutilise la copie pack existante ou clone depuis le catalogue) ; champ JSON `clonedFromCatalogId` à la création `clone_from_catalog_id` ; libellés et aide clarifiés. Tests `tests/mascot-pack.test.js`, `tests/api.test.js`.
 - **GL — visuels yo.olution.info (emplacements dédiés)** : import WordPress remplit `platform.brand.slots` (hero + cartes Monde / Règles / Sortilèges) depuis la page d’accueil yo, copie les images vers `uploads/gl_brand/*` (y compris médias hébergés sur `gl.olution.info`) ; affichage sur l’écran de connexion (`GLBrandHub`) et bannières des pages éditoriales (`GLBrandPageBanner`). Tests `tests/gl-brand.test.js`, `tests/gl-import-wp.test.js`.
