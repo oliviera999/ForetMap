@@ -1,4 +1,5 @@
 import { useEffect, useMemo } from 'react';
+import { normalizeGlImageFrame } from '../../utils/glImageFrame.js';
 
 export const GL_CONTENT_PAGE_SLOT_BY_SLUG = {
   world: 'card_world',
@@ -25,10 +26,10 @@ export const DEFAULT_GL_BRAND = {
   logoUrl: '',
   faviconUrl: '',
   slots: {
-    hero: { imageUrl: '', title: '', subtitle: '' },
-    card_world: { imageUrl: '', title: 'Un monde', tab: 'world' },
-    card_rules: { imageUrl: '', title: 'Les règles du jeu', tab: 'rules' },
-    card_spells: { imageUrl: '', title: 'Les sortilèges', tab: 'spells' },
+    hero: { imageUrl: '', title: '', subtitle: '', frame: normalizeGlImageFrame(null, 'brand-hero') },
+    card_world: { imageUrl: '', title: 'Un monde', tab: 'world', frame: normalizeGlImageFrame(null, 'brand-card') },
+    card_rules: { imageUrl: '', title: 'Les règles du jeu', tab: 'rules', frame: normalizeGlImageFrame(null, 'brand-card') },
+    card_spells: { imageUrl: '', title: 'Les sortilèges', tab: 'spells', frame: normalizeGlImageFrame(null, 'brand-card') },
   },
 };
 
@@ -42,9 +43,11 @@ function normalizeAssetUrl(value) {
 function normalizeSlot(rawSlot, defaults) {
   const source = rawSlot && typeof rawSlot === 'object' ? rawSlot : {};
   const base = defaults && typeof defaults === 'object' ? defaults : {};
+  const slotContext = base?.tab ? 'brand-card' : 'brand-hero';
   const out = {
     imageUrl: normalizeAssetUrl(source.imageUrl),
     title: String(source.title || base.title || '').trim(),
+    frame: normalizeGlImageFrame(source.frame || base.frame || null, slotContext),
   };
   if (base.tab) out.tab = String(source.tab || base.tab).trim();
   if ('subtitle' in base || 'subtitle' in source) {
@@ -74,7 +77,7 @@ function safeFontName(value, fallback) {
   return raw || fallback;
 }
 
-function normalizeBrand(rawBrand) {
+export function normalizeBrand(rawBrand) {
   const source = rawBrand && typeof rawBrand === 'object' ? rawBrand : {};
   const sourceColors = source.colors && typeof source.colors === 'object' ? source.colors : {};
   const sourceFonts = source.fonts && typeof source.fonts === 'object' ? source.fonts : {};

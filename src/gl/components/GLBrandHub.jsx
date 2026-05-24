@@ -1,4 +1,5 @@
 import React from 'react';
+import { glImageFrameToStyle, normalizeGlImageFrame } from '../../utils/glImageFrame.js';
 
 const CARD_SLOT_IDS = ['card_world', 'card_rules', 'card_spells'];
 
@@ -9,6 +10,7 @@ const CARD_SLOT_IDS = ['card_world', 'card_rules', 'card_spells'];
 export function GLBrandHub({ slots, onOpenTab, compact = false }) {
   const hero = slots?.hero;
   const heroImage = String(hero?.imageUrl || '').trim();
+  const heroFrame = normalizeGlImageFrame(hero?.frame, 'brand-hero');
   const cards = CARD_SLOT_IDS
     .map((id) => ({ id, ...slots?.[id] }))
     .filter((card) => String(card?.imageUrl || '').trim() || String(card?.title || '').trim());
@@ -22,7 +24,10 @@ export function GLBrandHub({ slots, onOpenTab, compact = false }) {
       {heroImage ? (
         <div
           className="gl-brand-hub__hero"
-          style={{ backgroundImage: `url(${heroImage})` }}
+          style={{
+            backgroundImage: `url(${heroImage})`,
+            backgroundPosition: `${heroFrame.focalX}% ${heroFrame.focalY}%`,
+          }}
           role="img"
           aria-label={hero?.title || 'Illustration Gnomes et Licornes'}
         >
@@ -39,6 +44,7 @@ export function GLBrandHub({ slots, onOpenTab, compact = false }) {
             const imageUrl = String(card.imageUrl || '').trim();
             const title = String(card.title || '').trim();
             const tab = String(card.tab || '').trim();
+            const cardFrame = normalizeGlImageFrame(card?.frame, 'brand-card');
             const canNavigate = typeof onOpenTab === 'function' && tab;
             const Tag = canNavigate ? 'button' : 'div';
             return (
@@ -49,7 +55,13 @@ export function GLBrandHub({ slots, onOpenTab, compact = false }) {
                 onClick={canNavigate ? () => onOpenTab(tab) : undefined}
               >
                 {imageUrl ? (
-                  <img src={imageUrl} alt="" className="gl-brand-hub__card-image" loading="lazy" />
+                  <img
+                    src={imageUrl}
+                    alt=""
+                    className="gl-brand-hub__card-image"
+                    loading="lazy"
+                    style={glImageFrameToStyle(cardFrame)}
+                  />
                 ) : (
                   <div className="gl-brand-hub__card-image gl-brand-hub__card-image--placeholder" aria-hidden />
                 )}
@@ -67,10 +79,11 @@ export function GLBrandHub({ slots, onOpenTab, compact = false }) {
 export function GLBrandPageBanner({ slot }) {
   const imageUrl = String(slot?.imageUrl || '').trim();
   const title = String(slot?.title || '').trim();
+  const frame = normalizeGlImageFrame(slot?.frame, 'brand-banner');
   if (!imageUrl) return null;
   return (
     <figure className="gl-brand-page-banner">
-      <img src={imageUrl} alt={title || ''} loading="lazy" />
+      <img src={imageUrl} alt={title || ''} loading="lazy" style={glImageFrameToStyle(frame)} />
       {title ? <figcaption>{title}</figcaption> : null}
     </figure>
   );

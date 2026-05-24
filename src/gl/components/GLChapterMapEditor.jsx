@@ -3,6 +3,7 @@ import { apiGL } from '../services/apiGL.js';
 import { useGlPctMapGestures } from '../hooks/useGlPctMapGestures.js';
 import { GLPctMapCanvas } from './GLPctMapCanvas.jsx';
 import { GLBoardMarkers } from './GLBoardMarkers.jsx';
+import { glImageFrameToStyle, normalizeGlImageFrame } from '../../utils/glImageFrame.js';
 
 const EMPTY_MARKER_FORM = {
   label: '',
@@ -40,6 +41,7 @@ export function GLChapterMapEditor({
   chapterId,
   chapterSlug,
   mapImageUrl,
+  mapImageFrame,
   markers,
   onReload,
   onError,
@@ -52,6 +54,10 @@ export function GLChapterMapEditor({
   const [editableMarkers, setEditableMarkers] = useState([]);
   const [dragState, setDragState] = useState(null);
   const [saving, setSaving] = useState(false);
+  const imageStyle = useMemo(
+    () => glImageFrameToStyle(normalizeGlImageFrame(mapImageFrame, 'chapter-map')),
+    [mapImageFrame]
+  );
 
   useEffect(() => {
     setEditableMarkers(Array.isArray(markers) ? markers : []);
@@ -179,6 +185,7 @@ export function GLChapterMapEditor({
         imageUrl={mapImageUrl}
         imageAlt="Carte du chapitre (édition)"
         mapGestures={mapGestures}
+        imageStyle={imageStyle}
         cursor={isAddMode ? 'crosshair' : 'default'}
         onMapClick={(pct, event) => {
           if (!isAddMode) return;

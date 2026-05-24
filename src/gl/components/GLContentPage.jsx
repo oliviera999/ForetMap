@@ -8,6 +8,7 @@ import { GLButton } from './ui/GLButton.jsx';
 import { GLField } from './ui/GLField.jsx';
 import { GLInput } from './ui/GLInput.jsx';
 import { GLMarkdownEditor } from './ui/GLMarkdownEditor.jsx';
+import { GLImageFrameHelp } from './GLImageFrameHelp.jsx';
 
 function canManageContent(auth) {
   const permissions = Array.isArray(auth?.permissions) ? auth.permissions : [];
@@ -161,6 +162,7 @@ export function GLContentPage({ slug, fallbackTitle, auth, brandSlots, onSaved, 
               hint="Mise en forme légère : gras, listes, liens et images (Markdown)."
             />
           </GLField>
+          <GLImageFrameHelp context="markdown" />
           <div className="gl-inline-actions">
             <GLButton type="button" onClick={save} loading={saving} disabled={saving}>
               {saving ? 'Enregistrement…' : 'Enregistrer'}

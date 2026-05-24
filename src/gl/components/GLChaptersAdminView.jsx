@@ -7,6 +7,8 @@ import { useGlPctMapGestures } from '../hooks/useGlPctMapGestures.js';
 import { GLBoardMarkers } from './GLBoardMarkers.jsx';
 import { MediaLibraryMenu } from '../../components/MediaLibraryMenu.jsx';
 import { GLImageSourceField } from './GLImageSourceField.jsx';
+import { GLImageFrameEditor } from './GLImageFrameEditor.jsx';
+import { glImageFrameToStyle, normalizeGlImageFrame } from '../../utils/glImageFrame.js';
 
 const EMPTY_CHAPTER_FORM = {
   slug: '',
@@ -17,6 +19,7 @@ const EMPTY_CHAPTER_FORM = {
   biotopeMarkdown: '',
   biocenoseMarkdown: '',
   orderIndex: 0,
+  mapImageFrame: normalizeGlImageFrame(null, 'chapter-map'),
 };
 
 export function GLChaptersAdminView() {
@@ -29,6 +32,7 @@ export function GLChaptersAdminView() {
   const [uploadingMapImage, setUploadingMapImage] = useState(false);
   const [pendingMapImageFile, setPendingMapImageFile] = useState(null);
   const [pendingMapPreviewUrl, setPendingMapPreviewUrl] = useState('');
+  const [frameEditorOpen, setFrameEditorOpen] = useState(false);
   const previewMapGestures = useGlPctMapGestures();
 
   async function loadChapters() {
@@ -56,6 +60,7 @@ export function GLChaptersAdminView() {
         title: data.chapter.title || '',
         biome: data.chapter.biome || '',
         mapImageUrl: data.chapter.map_image_url || '',
+        mapImageFrame: normalizeGlImageFrame(data.chapter.map_image_frame, 'chapter-map'),
         storyMarkdown: data.chapter.story_markdown || '',
         biotopeMarkdown: data.chapter.biotope_markdown || '',
         biocenoseMarkdown: data.chapter.biocenose_markdown || '',
@@ -95,7 +100,11 @@ export function GLChaptersAdminView() {
     event.preventDefault();
     setError('');
     setInfo('');
-    const payload = { ...chapterForm, orderIndex: Number(chapterForm.orderIndex) || 0 };
+    const payload = {
+      ...chapterForm,
+      mapImageFrame: normalizeGlImageFrame(chapterForm.mapImageFrame, 'chapter-map'),
+      orderIndex: Number(chapterForm.orderIndex) || 0,
+    };
     try {
       let chapterId = selectedId;
       if (selectedId) {
@@ -180,7 +189,11 @@ export function GLChaptersAdminView() {
       const imageData = await compressImage(file, 2400, 0.9);
       const data = await apiGL(`/api/gl/chapters/admin/${targetId}/map-image`, 'POST', { image_data: imageData });
       setDetail(data);
-      setChapterForm((prev) => ({ ...prev, mapImageUrl: data?.chapter?.map_image_url || prev.mapImageUrl }));
+      setChapterForm((prev) => ({
+        ...prev,
+        mapImageUrl: data?.chapter?.map_image_url || prev.mapImageUrl,
+        mapImageFrame: normalizeGlImageFrame(data?.chapter?.map_image_frame || prev.mapImageFrame, 'chapter-map'),
+      }));
       clearPendingMapImage();
       setInfo('Image de carte importée');
     } catch (err) {
@@ -205,6 +218,10 @@ export function GLChaptersAdminView() {
     : (!selectedId ? 'Vous pouvez choisir une photo avant l’enregistrement ; l’envoi se fera à la création du chapitre.' : '');
 
   const markers = useMemo(() => (Array.isArray(detail?.markers) ? detail.markers : []), [detail]);
+  const mapPreviewStyle = useMemo(
+    () => glImageFrameToStyle(normalizeGlImageFrame(chapterForm.mapImageFrame, 'chapter-map')),
+    [chapterForm.mapImageFrame]
+  );
 
   return (
     <section className="gl-panel">
@@ -269,6 +286,11 @@ export function GLChaptersAdminView() {
               uploading={uploadingMapImage}
               filePickHint={mapImagePickHint}
             />
+            <div className="gl-inline-actions">
+              <button type="button" className="gl-btn-secondary" onClick={() => setFrameEditorOpen(true)}>
+                Ajuster le cadre carte
+              </button>
+            </div>
             <MediaLibraryMenu
               title="Bibliothèque globale (images, audio, vidéo)"
               fetchItems={fetchMediaLibrary}
@@ -287,6 +309,7 @@ export function GLChaptersAdminView() {
                   imageAlt="Aperçu carte chapitre"
                   mapGestures={previewMapGestures}
                   className="gl-board gl-board--mini"
+                  imageStyle={mapPreviewStyle}
                 >
                   <GLBoardMarkers markers={markers} />
                 </GLPctMapCanvas>
@@ -341,6 +364,7 @@ export function GLChaptersAdminView() {
                 chapterId={selectedId}
                 chapterSlug={chapterForm.slug}
                 mapImageUrl={chapterForm.mapImageUrl}
+                mapImageFrame={chapterForm.mapImageFrame}
                 markers={markers}
                 onReload={loadDetail}
                 onInfo={(message) => {
@@ -356,6 +380,19 @@ export function GLChaptersAdminView() {
           ) : null}
         </div>
       </div>
+
+      <GLImageFrameEditor
+        open={frameEditorOpen}
+        title="Cadre image - carte chapitre"
+        context="chapter-map"
+        imageUrl={previewMapImageUrl}
+        initialFrame={chapterForm.mapImageFrame}
+        onApply={({ frame }) => {
+          setChapterForm((prev) => ({ ...prev, mapImageFrame: normalizeGlImageFrame(frame, 'chapter-map') }));
+          setFrameEditorOpen(false);
+        }}
+        onClose={() => setFrameEditorOpen(false)}
+      />
     </section>
   );
 }

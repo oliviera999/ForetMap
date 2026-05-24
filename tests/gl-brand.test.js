@@ -28,6 +28,8 @@ test('normalizeBrand conserve les slots et filtre les URLs locales', () => {
   assert.strictEqual(brand.slots.hero.imageUrl, '/uploads/gl_brand/hero.png');
   assert.strictEqual(brand.slots.card_world.imageUrl, '');
   assert.strictEqual(brand.slots.card_rules.title, DEFAULT_GL_BRAND_SLOTS.card_rules.title);
+  assert.strictEqual(brand.slots.hero.frame.aspectRatio, '21/9');
+  assert.strictEqual(brand.slots.card_world.frame.aspectRatio, '4/3');
 });
 
 test('normalizeBrandSlots remplit les quatre emplacements', () => {
@@ -35,4 +37,5 @@ test('normalizeBrandSlots remplit les quatre emplacements', () => {
   assert.ok(slots.hero);
   assert.ok(slots.card_world.tab, 'world');
   assert.ok(slots.card_spells.tab, 'spells');
+  assert.strictEqual(slots.card_rules.frame.objectFit, 'cover');
 });
