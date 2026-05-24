@@ -2288,6 +2288,7 @@ test('visit mascot packs : clone_from_catalog_id accepte d’autres mascottes ca
     assert.equal(Number(fromCatalog.body.pack?.mascotPackVersion), 2);
     assert.equal(String(fromCatalog.body.pack?.renderer || ''), 'sprite_cut');
     assert.equal(String(fromCatalog.body.pack?.fallbackSilhouette || ''), 'sprout');
+    assert.equal(String(fromCatalog.body.pack?.clonedFromCatalogId || ''), 'sprout-rive');
     assert.ok(fromCatalog.body.pack?.stateFrames?.idle);
   } finally {
     await request(app)

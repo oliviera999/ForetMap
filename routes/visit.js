@@ -1030,7 +1030,7 @@ router.post('/mascot-packs', requirePermission('visit.manage', { needsElevation:
           requestId: req.requestId || null,
         });
       }
-      packObj = fromCatalog;
+      packObj = { ...fromCatalog, clonedFromCatalogId: cloneFromCatalogId };
     } else if (packObj == null) {
       packObj = buildDefaultVisitMascotPackJson(catalogId);
     }

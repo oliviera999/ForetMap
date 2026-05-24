@@ -44,6 +44,8 @@ const packBodyObjectSchema = z.object({
   pixelated: z.boolean().optional(),
   displayScale: z.number().positive().max(4).optional(),
   fallbackSilhouette: z.string().min(1).max(40),
+  /** Modèle catalogue d’origine (`visitMascotCatalog.js`) lors d’un clonage studio. */
+  clonedFromCatalogId: z.string().max(64).optional(),
   stateAliases: z.record(z.string(), z.string()).optional(),
   stateFrames: z.record(z.string(), stateFrameSchemaV1),
 });

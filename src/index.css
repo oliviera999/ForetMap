@@ -3711,28 +3711,9 @@
       top:0;
       transform-origin:50% 100%;
     }
+    /* Carte forêt : mêmes dimensions que la visite (.visit-map-mascot-rive-shell, etc.) */
     .map-view-forest-mascot {
       z-index:12;
-    }
-    .map-view-forest-mascot .visit-map-mascot-rive-shell,
-    .map-view-forest-mascot .visit-map-mascot-spritesheet-shell,
-    .map-view-forest-mascot .visit-map-mascot-sprite-cut {
-      width:clamp(44px, 8.6vw, 58px);
-      height:clamp(50px, 9.5vw, 66px);
-    }
-    .map-view-forest-mascot--embedded .visit-map-mascot-rive-shell,
-    .map-view-forest-mascot--embedded .visit-map-mascot-spritesheet-shell,
-    .map-view-forest-mascot--embedded .visit-map-mascot-sprite-cut {
-      width:clamp(40px, 7.2vw, 54px);
-      height:clamp(46px, 8.2vw, 62px);
-    }
-    @media (max-width: 900px) {
-      .map-view-forest-mascot .visit-map-mascot-rive-shell,
-      .map-view-forest-mascot .visit-map-mascot-spritesheet-shell,
-      .map-view-forest-mascot .visit-map-mascot-sprite-cut {
-        width:clamp(38px, 10vw, 50px);
-        height:clamp(42px, 11.2vw, 56px);
-      }
     }
     .visit-map-mascot-rive-shell {
       position:relative;

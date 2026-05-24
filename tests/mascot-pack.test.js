@@ -137,6 +137,26 @@ test('relaxAssetPrefix autorise framesBase hors /assets/', async () => {
   assert.equal(r.ok, true);
 });
 
+test('validateMascotPackV1 conserve clonedFromCatalogId', async () => {
+  const { validateMascotPackV1 } = await loadMascotPack();
+  const r = validateMascotPackV1({
+    mascotPackVersion: 2,
+    id: 'srv-clone',
+    label: 'Copie',
+    renderer: 'sprite_cut',
+    framesBase: '/assets/mascots/renard2-cut/frames/',
+    frameWidth: 153,
+    frameHeight: 160,
+    fallbackSilhouette: 'backpackFox2',
+    clonedFromCatalogId: 'renard2-cut-spritesheet',
+    stateFrames: {
+      idle: { files: ['cell-r0-c0.png'], fps: 1 },
+    },
+  }, { relaxAssetPrefix: false });
+  assert.equal(r.ok, true);
+  assert.equal(r.pack.clonedFromCatalogId, 'renard2-cut-spritesheet');
+});
+
 test('mascotPackEditorModel : parse, stringify, ensureServerFramesBase', async () => {
   const {
     parsePackJson,
