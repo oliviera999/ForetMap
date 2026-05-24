@@ -77,7 +77,7 @@ export function GLGameBoard({
     if (teamId == null) return;
     const xp = Number(marker.x_pct);
     const yp = Number(marker.y_pct);
-    moveTeamTo(teamId, xp, yp, { triggerHappy: true });
+    moveTeamTo(teamId, xp, yp, { triggerHappy: true, arrival: 'marker' });
     onMarkerClick?.(marker);
   }, [resolveActiveTeamId, moveTeamTo, onMarkerClick]);
 

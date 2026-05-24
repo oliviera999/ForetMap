@@ -1,25 +1,25 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { pathToFileURL } from 'node:url';
-import path from 'node:path';
+import {
+  pickMapMascotMoveTransient,
+  MAP_VIEW_MASCOT_RUN_DIST_PCT,
+  MAP_VIEW_MASCOT_SURPRISE_DIST_PCT,
+} from '../src/utils/mapViewMascotMotion.js';
+import { VISIT_MASCOT_STATE } from '../src/utils/visitMascotState.js';
 
-const motionUrl = pathToFileURL(
-  path.join(process.cwd(), 'src/utils/mapViewMascotMotion.js'),
-).href;
-
-describe('mapViewMascotMotion', () => {
-  it('clampMapMascotPctForViewport remonte Y si trop bas sur petit viewport', async () => {
-    const { clampMapMascotPctForViewport } = await import(motionUrl);
-    const r = clampMapMascotPctForViewport(50, 8, 120);
-    assert.ok(r.yp >= 6);
-    assert.ok(r.yp > 8);
-    assert.equal(r.xp, 50);
+describe('pickMapMascotMoveTransient', () => {
+  it('retourne null sous le seuil surprise', () => {
+    assert.equal(pickMapMascotMoveTransient(MAP_VIEW_MASCOT_SURPRISE_DIST_PCT - 1), null);
   });
 
-  it('clampMapMascotPctForViewport laisse Y inchangé sans hauteur fit', async () => {
-    const { clampMapMascotPctForViewport } = await import(motionUrl);
-    const r = clampMapMascotPctForViewport(12, 88, 0);
-    assert.equal(r.xp, 12);
-    assert.equal(r.yp, 88);
+  it('retourne surprise entre les seuils', () => {
+    const t = pickMapMascotMoveTransient(12);
+    assert.equal(t?.state, VISIT_MASCOT_STATE.SURPRISE);
+    assert.ok(t.durationMs > 0);
+  });
+
+  it('retourne running au-delà du seuil course', () => {
+    const t = pickMapMascotMoveTransient(MAP_VIEW_MASCOT_RUN_DIST_PCT + 1);
+    assert.equal(t?.state, VISIT_MASCOT_STATE.RUNNING);
   });
 });

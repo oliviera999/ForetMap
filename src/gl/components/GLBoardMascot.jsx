@@ -15,11 +15,11 @@ export function GLBoardMascot({
 }) {
   const animationState = useMemo(
     () => resolveVisitMascotState({
-      state: mascotState,
+      state: motion?.transientState || mascotState,
       walking: motion?.walking,
       happy: motion?.happy,
     }),
-    [mascotState, motion?.walking, motion?.happy],
+    [mascotState, motion?.walking, motion?.happy, motion?.transientState],
   );
 
   const walking = Boolean(motion?.walking);
