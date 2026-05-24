@@ -27,6 +27,7 @@ const {
   verifyGoogleIdToken,
 } = require('../../lib/googleOAuthShared');
 const { logRouteError } = require('../../lib/routeLog');
+const { resolveOAuthPublicOrigin, resolveOAuthRedirectUri } = require('../../lib/oauthPublicUrl');
 const { sendPasswordResetEmail } = require('../../lib/mailer');
 const {
   EMAIL_RE,
@@ -95,10 +96,11 @@ function buildGoogleConfig(req) {
   const clientId = normalizeOptionalString(process.env.GL_GOOGLE_OAUTH_CLIENT_ID)
     || normalizeOptionalString(process.env.GOOGLE_OAUTH_CLIENT_ID);
   const clientSecret = normalizeOptionalString(process.env.GOOGLE_OAUTH_CLIENT_SECRET);
-  const redirectUri = normalizeOptionalString(process.env.GL_GOOGLE_OAUTH_REDIRECT_URI)
-    || `${req.protocol}://${req.get('host')}/api/gl/auth/google/callback`;
-  const frontendOrigin = normalizeOptionalString(process.env.GL_FRONTEND_ORIGIN)
-    || `${req.protocol}://${req.get('host')}`;
+  const redirectUri = resolveOAuthRedirectUri(req, {
+    envRedirectUri: process.env.GL_GOOGLE_OAUTH_REDIRECT_URI,
+    callbackPath: '/api/gl/auth/google/callback',
+  });
+  const frontendOrigin = resolveOAuthPublicOrigin(req, process.env.GL_FRONTEND_ORIGIN);
   const allowedDomains = parseCsvLowercaseSet(
     process.env.GL_GOOGLE_OAUTH_ALLOWED_DOMAINS || process.env.GOOGLE_OAUTH_ALLOWED_DOMAINS,
     ['pedagolyautey.org', 'lyceelyautey.org']

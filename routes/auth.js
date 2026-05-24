@@ -45,6 +45,7 @@ const {
 } = require('../lib/identity');
 const { saveBase64ToDisk, deleteFile } = require('../lib/uploads');
 const { resolveStudentAffiliationForPersist } = require('../lib/studentAffiliation');
+const { resolveOAuthPublicOrigin, resolveOAuthRedirectUri } = require('../lib/oauthPublicUrl');
 
 const router = express.Router();
 const MAX_DESCRIPTION_LEN = 300;
@@ -113,11 +114,12 @@ function normalizeOAuthMode(value) {
 function getGoogleOauthConfig(req) {
   const clientId = normalizeOptionalString(process.env.GOOGLE_OAUTH_CLIENT_ID);
   const clientSecret = normalizeOptionalString(process.env.GOOGLE_OAUTH_CLIENT_SECRET);
-  const redirectUri = normalizeOptionalString(process.env.GOOGLE_OAUTH_REDIRECT_URI)
-    || `${req.protocol}://${req.get('host')}/api/auth/google/callback`;
-  const frontendOrigin = normalizeOptionalString(process.env.FRONTEND_ORIGIN)
-    || normalizeOptionalString(process.env.PASSWORD_RESET_BASE_URL)
-    || `${req.protocol}://${req.get('host')}`;
+  const redirectUri = resolveOAuthRedirectUri(req, {
+    envRedirectUri: process.env.GOOGLE_OAUTH_REDIRECT_URI,
+    callbackPath: '/api/auth/google/callback',
+  });
+  const frontendOrigin = resolveOAuthPublicOrigin(req, process.env.FRONTEND_ORIGIN)
+    || resolveOAuthPublicOrigin(req, process.env.PASSWORD_RESET_BASE_URL);
   const allowedDomains = parseCsvLowercaseSet(process.env.GOOGLE_OAUTH_ALLOWED_DOMAINS, GOOGLE_ALLOWED_DOMAINS_DEFAULT);
   const allowedEmails = parseCsvLowercaseSet(process.env.GOOGLE_OAUTH_ALLOWED_EMAILS, GOOGLE_ALLOWED_EMAILS_DEFAULT);
   return { clientId, clientSecret, redirectUri, frontendOrigin, allowedDomains, allowedEmails };

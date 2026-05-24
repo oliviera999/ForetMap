@@ -26,6 +26,7 @@ const { createHttpRequestLogMiddleware } = require('./lib/httpRequestLog');
 const logMetrics = require('./lib/logMetrics');
 const { parseBearerToken, JWT_SECRET } = require('./middleware/requireTeacher');
 const { resolveProductFromRequest } = require('./lib/productResolver');
+const { resolveOAuthPublicOrigin, resolveOAuthRedirectUri } = require('./lib/oauthPublicUrl');
 
 const rateLimit     = require('express-rate-limit');
 const authRouter    = require('./routes/auth');
@@ -502,11 +503,17 @@ app.get('/api/admin/oauth-debug', (req, res) => {
     return res.status(403).json({ error: 'Secret invalide ou DEPLOY_SECRET non configuré' });
   }
 
-  const frontendOrigin = normalizeOptionalString(process.env.FRONTEND_ORIGIN)
-    || normalizeOptionalString(process.env.PASSWORD_RESET_BASE_URL)
-    || `${req.protocol}://${req.get('host')}`;
-  const redirectUri = normalizeOptionalString(process.env.GOOGLE_OAUTH_REDIRECT_URI)
-    || `${req.protocol}://${req.get('host')}/api/auth/google/callback`;
+  const frontendOrigin = resolveOAuthPublicOrigin(req, process.env.FRONTEND_ORIGIN)
+    || resolveOAuthPublicOrigin(req, process.env.PASSWORD_RESET_BASE_URL);
+  const redirectUri = resolveOAuthRedirectUri(req, {
+    envRedirectUri: process.env.GOOGLE_OAUTH_REDIRECT_URI,
+    callbackPath: '/api/auth/google/callback',
+  });
+  const glFrontendOrigin = resolveOAuthPublicOrigin(req, process.env.GL_FRONTEND_ORIGIN);
+  const glRedirectUri = resolveOAuthRedirectUri(req, {
+    envRedirectUri: process.env.GL_GOOGLE_OAUTH_REDIRECT_URI,
+    callbackPath: '/api/gl/auth/google/callback',
+  });
 
   res.type('application/json').json({
     ok: true,
@@ -526,6 +533,15 @@ app.get('/api/admin/oauth-debug', (req, res) => {
       passwordResetBaseUrlEnv: normalizeOptionalString(process.env.PASSWORD_RESET_BASE_URL),
       resolvedFrontendOrigin: frontendOrigin,
       resolvedGoogleRedirectUri: redirectUri,
+      glClientIdSet: !!(
+        normalizeOptionalString(process.env.GL_GOOGLE_OAUTH_CLIENT_ID)
+        || normalizeOptionalString(process.env.GOOGLE_OAUTH_CLIENT_ID)
+      ),
+      glRedirectUriEnv: normalizeOptionalString(process.env.GL_GOOGLE_OAUTH_REDIRECT_URI),
+      glFrontendOriginEnv: normalizeOptionalString(process.env.GL_FRONTEND_ORIGIN),
+      resolvedGlFrontendOrigin: glFrontendOrigin,
+      resolvedGlRedirectUri: glRedirectUri,
+      googleConsoleHint: 'Enregistrer chaque resolved*RedirectUri exactement dans Google Cloud Console → Identifiants → URI de redirection autorisés.',
     },
   });
 });
