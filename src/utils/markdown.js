@@ -3,11 +3,12 @@
  */
 import { marked } from 'marked';
 import DOMPurify from 'isomorphic-dompurify';
+import { glImageFrameToStyle, parseGlImageFrameAttr, serializeGlImageFrameAttr } from './glImageFrame.js';
 
 const ALLOWED_TAGS = ['p', 'br', 'strong', 'em', 'b', 'i', 'ul', 'ol', 'li', 'a'];
 const ALLOWED_ATTR = ['href', 'rel', 'target', 'title'];
 const ALLOWED_TAGS_WITH_IMAGES = [...ALLOWED_TAGS, 'img'];
-const ALLOWED_ATTR_WITH_IMAGES = [...ALLOWED_ATTR, 'src', 'alt', 'title', 'loading'];
+const ALLOWED_ATTR_WITH_IMAGES = [...ALLOWED_ATTR, 'src', 'alt', 'title', 'loading', 'class', 'data-gl-frame', 'style'];
 
 marked.setOptions({
   breaks: true,
@@ -28,6 +29,18 @@ DOMPurify.addHook('afterSanitizeAttributes', (node) => {
     const src = node.getAttribute('src') || '';
     if (!/^https?:\/\//i.test(src) && !/^\/uploads\//i.test(src) && !/^\/maps\//i.test(src)) {
       node.removeAttribute('src');
+      return;
+    }
+    const frame = parseGlImageFrameAttr(node.getAttribute('data-gl-frame'), 'markdown');
+    const style = glImageFrameToStyle(frame);
+    const styleString = Object.entries(style)
+      .map(([key, value]) => `${key.replace(/[A-Z]/g, (match) => `-${match.toLowerCase()}`)}:${value}`)
+      .join(';');
+    node.setAttribute('data-gl-frame', serializeGlImageFrameAttr(frame, 'markdown'));
+    node.setAttribute('style', styleString);
+    const className = String(node.getAttribute('class') || '').trim();
+    if (!className.includes('gl-content-image')) {
+      node.setAttribute('class', `${className} gl-content-image`.trim());
     }
   }
 });
@@ -119,6 +132,19 @@ export function applyMarkdownImage(value, selectionStart, selectionEnd, url, alt
   const safeUrl = String(url || '').trim();
   const safeAlt = String(alt || 'Image').replace(/[\[\]]/g, '');
   const snippet = `\n\n![${safeAlt}](${safeUrl})\n\n`;
+  const nextValue = `${text.slice(0, start)}${snippet}${text.slice(end)}`;
+  const cursor = start + snippet.length;
+  return { value: nextValue, selectionStart: cursor, selectionEnd: cursor };
+}
+
+export function applyMarkdownHtmlImage(value, selectionStart, selectionEnd, url, alt = 'Image', frame = null) {
+  const text = String(value ?? '');
+  const start = Math.max(0, Math.min(selectionStart, text.length));
+  const end = Math.max(start, Math.min(selectionEnd, text.length));
+  const safeUrl = String(url || '').trim();
+  const safeAlt = String(alt || 'Image').replace(/"/g, '&quot;');
+  const frameAttr = serializeGlImageFrameAttr(frame, 'markdown').replace(/'/g, '&apos;');
+  const snippet = `\n\n<img src="${safeUrl}" alt="${safeAlt}" class="gl-content-image" data-gl-frame='${frameAttr}' loading="lazy" />\n\n`;
   const nextValue = `${text.slice(0, start)}${snippet}${text.slice(end)}`;
   const cursor = start + snippet.length;
   return { value: nextValue, selectionStart: cursor, selectionEnd: cursor };

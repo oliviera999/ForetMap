@@ -3,6 +3,7 @@ const path = require('path');
 const { queryOne, queryAll, execute, withTransaction } = require('../../database');
 const { requireGlPermission } = require('../../middleware/requireGlAuth');
 const { saveBase64ToDisk, deleteFile } = require('../../lib/uploads');
+const { normalizeGlImageFrame } = require('../../lib/glImageFrame');
 
 const router = express.Router();
 
@@ -28,12 +29,27 @@ function toPositiveInt(value, fallback = 0) {
   return Math.max(0, Math.floor(n));
 }
 
+function normalizeMapImageFrame(value) {
+  if (value == null) return normalizeGlImageFrame(null, 'chapter-map');
+  if (typeof value !== 'object' || Array.isArray(value)) return null;
+  return normalizeGlImageFrame(value, 'chapter-map');
+}
+
+function parseMapImageFrameJson(value) {
+  if (!value) return normalizeGlImageFrame(null, 'chapter-map');
+  try {
+    return normalizeGlImageFrame(JSON.parse(String(value)), 'chapter-map');
+  } catch (_) {
+    return normalizeGlImageFrame(null, 'chapter-map');
+  }
+}
+
 async function readChapterFull(slugOrId) {
   const isNumeric = typeof slugOrId === 'number' || /^\d+$/.test(String(slugOrId || ''));
   const chapter = isNumeric
     ? await queryOne(
       `SELECT id, slug, title, biome, map_image_url, story_markdown, biotope_markdown,
-              biocenose_markdown, order_index, created_at, updated_at
+              biocenose_markdown, map_image_frame_json, order_index, created_at, updated_at
          FROM gl_chapters
         WHERE id = ?
         LIMIT 1`,
@@ -41,13 +57,15 @@ async function readChapterFull(slugOrId) {
     )
     : await queryOne(
       `SELECT id, slug, title, biome, map_image_url, story_markdown, biotope_markdown,
-              biocenose_markdown, order_index, created_at, updated_at
+              biocenose_markdown, map_image_frame_json, order_index, created_at, updated_at
          FROM gl_chapters
         WHERE slug = ?
         LIMIT 1`,
       [normalizeSlug(slugOrId)]
     );
   if (!chapter) return null;
+  chapter.map_image_frame = parseMapImageFrameJson(chapter.map_image_frame_json);
+  delete chapter.map_image_frame_json;
   const markers = await queryAll(
     `SELECT id, chapter_id, x_pct, y_pct, event_type, label, description, order_index
        FROM gl_chapter_markers
@@ -61,11 +79,16 @@ async function readChapterFull(slugOrId) {
 /** GET /api/gl/chapters — liste publique des chapitres (sans markers). */
 router.get('/', requireGlPermission('gl.read'), async (_req, res) => {
   const rows = await queryAll(
-    `SELECT id, slug, title, biome, map_image_url, order_index
+    `SELECT id, slug, title, biome, map_image_url, map_image_frame_json, order_index
        FROM gl_chapters
       ORDER BY order_index ASC, id ASC`
   );
-  return res.json(rows);
+  const items = rows.map((row) => ({
+    ...row,
+    map_image_frame: parseMapImageFrameJson(row.map_image_frame_json),
+  }));
+  for (const row of items) delete row.map_image_frame_json;
+  return res.json(items);
 });
 
 /** GET /api/gl/chapters/:slug — détail public d'un chapitre + markers. */
@@ -92,15 +115,17 @@ router.post('/admin', requireGlPermission('gl.content.manage'), async (req, res)
   const storyMarkdown = String(req.body?.storyMarkdown || '');
   const biotopeMarkdown = String(req.body?.biotopeMarkdown || '');
   const biocenoseMarkdown = String(req.body?.biocenoseMarkdown || '');
+  const mapImageFrame = normalizeMapImageFrame(req.body?.mapImageFrame);
+  if (!mapImageFrame) return res.status(400).json({ error: 'mapImageFrame invalide' });
   const orderIndex = toPositiveInt(req.body?.orderIndex, 0);
 
   try {
     await execute(
       `INSERT INTO gl_chapters (slug, title, biome, map_image_url, story_markdown,
-                                 biotope_markdown, biocenose_markdown, order_index,
+                                 biotope_markdown, biocenose_markdown, map_image_frame_json, order_index,
                                  created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
-      [slug, title, biome, mapImageUrl, storyMarkdown, biotopeMarkdown, biocenoseMarkdown, orderIndex]
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
+      [slug, title, biome, mapImageUrl, storyMarkdown, biotopeMarkdown, biocenoseMarkdown, JSON.stringify(mapImageFrame), orderIndex]
     );
   } catch (err) {
     if (err && err.code === 'ER_DUP_ENTRY') {
@@ -147,6 +172,12 @@ router.put('/admin/:id', requireGlPermission('gl.content.manage'), async (req, r
   if (req.body && Object.prototype.hasOwnProperty.call(req.body, 'orderIndex')) {
     updates.push('order_index = ?');
     params.push(toPositiveInt(req.body.orderIndex, 0));
+  }
+  if (req.body && Object.prototype.hasOwnProperty.call(req.body, 'mapImageFrame')) {
+    const mapImageFrame = normalizeMapImageFrame(req.body.mapImageFrame);
+    if (!mapImageFrame) return res.status(400).json({ error: 'mapImageFrame invalide' });
+    updates.push('map_image_frame_json = ?');
+    params.push(JSON.stringify(mapImageFrame));
   }
   if (updates.length === 0) return res.status(400).json({ error: 'Aucun champ à mettre à jour' });
   updates.push('updated_at = NOW()');

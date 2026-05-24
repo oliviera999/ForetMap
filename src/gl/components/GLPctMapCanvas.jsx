@@ -8,6 +8,7 @@ export function GLPctMapCanvas({
   onMapReady,
   className = 'gl-board',
   imageClassName = 'gl-board-image',
+  imageStyle = undefined,
   cursor = 'default',
   children,
 }) {
@@ -32,6 +33,7 @@ export function GLPctMapCanvas({
         src={imageUrl || '/maps/map-foret.svg'}
         alt={imageAlt || 'Carte'}
         className={imageClassName}
+        style={imageStyle}
         draggable={false}
       />
       {children}

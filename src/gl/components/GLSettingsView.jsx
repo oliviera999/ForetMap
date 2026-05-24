@@ -1,10 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { apiGL } from '../services/apiGL.js';
 import { GLBrandHub } from './GLBrandHub.jsx';
+import { GLBrandEditor } from './GLBrandEditor.jsx';
 import { GLButton } from './ui/GLButton.jsx';
 import { GLField } from './ui/GLField.jsx';
 import { GLInput } from './ui/GLInput.jsx';
 import { GLSurface } from './ui/GLSurface.jsx';
+import { normalizeBrand } from '../hooks/useGLBrandTheme.js';
 
 const GAMEPLAY_TOGGLES = [
   {
@@ -57,6 +59,8 @@ export function GLSettingsView() {
   const [successMessage, setSuccessMessage] = useState('');
   const [savingKey, setSavingKey] = useState('');
   const [savingTitle, setSavingTitle] = useState(false);
+  const [savingBrand, setSavingBrand] = useState(false);
+  const [brandDraft, setBrandDraft] = useState(() => normalizeBrand({}));
 
   async function load() {
     try {
@@ -65,6 +69,7 @@ export function GLSettingsView() {
       setSettings(next);
       setTitle(String(next['platform.title'] || 'Gnomes & Licornes'));
       setSubtitle(String(next['platform.subtitle'] || ''));
+      setBrandDraft(normalizeBrand(next['platform.brand'] || {}));
       setError('');
     } catch (err) {
       setError(err.message || 'Chargement impossible');
@@ -114,6 +119,22 @@ export function GLSettingsView() {
     }
   }
 
+  async function saveBrandSettings(event) {
+    event.preventDefault();
+    setSavingBrand(true);
+    setError('');
+    setSuccessMessage('');
+    try {
+      await apiGL('/api/gl/admin/settings/platform.brand', 'PUT', { value: normalizeBrand(brandDraft) });
+      await load();
+      setSuccessMessage('Charte visuelle enregistree.');
+    } catch (err) {
+      setError(err.message || 'Enregistrement impossible');
+    } finally {
+      setSavingBrand(false);
+    }
+  }
+
   return (
     <GLSurface className="gl-animate-in">
       <h2>Réglages plateforme</h2>
@@ -132,15 +153,29 @@ export function GLSettingsView() {
         </GLButton>
       </form>
 
-      {settings['platform.brand'] && typeof settings['platform.brand'] === 'object' ? (
-        <GLSurface style={{ marginTop: 12 }} variant="inset">
-          <h3>Aperçu charte importée</h3>
-          <p className="gl-hint">
-            Cette section est alimentée par la clé `platform.brand` (import WordPress).
-          </p>
-          <GLBrandHub slots={settings['platform.brand']?.slots} compact />
-        </GLSurface>
-      ) : null}
+      <GLSurface style={{ marginTop: 12 }} variant="inset">
+        <h3>Aperçu charte importée</h3>
+        <p className="gl-hint">
+          Cette section est alimentée par la clé `platform.brand` (import WordPress).
+        </p>
+        <form onSubmit={saveBrandSettings} className="gl-form">
+          <GLBrandEditor
+            value={brandDraft}
+            onChange={(updater) => {
+              setBrandDraft((prev) => normalizeBrand(typeof updater === 'function' ? updater(prev) : updater));
+            }}
+            onStatus={(message, isError) => {
+              if (isError) setError(message);
+              else setSuccessMessage(message);
+            }}
+            disabled={savingBrand}
+          />
+          <GLButton type="submit" loading={savingBrand} disabled={savingBrand}>
+            {savingBrand ? 'Enregistrement…' : 'Enregistrer la charte visuelle'}
+          </GLButton>
+        </form>
+        <GLBrandHub slots={brandDraft?.slots} compact />
+      </GLSurface>
 
       <h3>Gameplay</h3>
       <p className="gl-hint">

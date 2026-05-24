@@ -146,6 +146,15 @@ Tables GL préfixées `gl_` :
   - zones tactiles à `min-height: 44px` pour les boutons principaux
 - Les modules GL (forum, tutoriels, journal, carte royaume, notifications, commentaires contextuels, aide) ont des styles dédiés dans `gl-theme.css` pour rester homogènes avec le shell GL.
 
+### Cadres d'image configurables
+
+- Modèle partagé : `src/utils/glImageFrame.js` (`lib/glImageFrame.js` côté serveur).
+- Éditeur visuel : `GLImageFrameEditor` (charte, markdown, chapitre, avatar).
+- Charte : `platform.brand.slots.*.frame` (via `PUT /api/gl/admin/settings/platform.brand`).
+- Chapitres : `mapImageFrame` persisté en base (`gl_chapters.map_image_frame_json`).
+- Markdown : attribut `data-gl-frame` normalisé côté `renderMarkdownToSafeHtml`.
+- Détails et exemples : `docs/GL_IMAGE_FRAMES.md`.
+
 ## Migration de contenu WordPress
 
 Source recommandée : API publique WordPress de `yo.olution.info` (avec canonical `www.yo.olution.info`).

@@ -64,8 +64,8 @@ Le script accepte aussi :
 |--------|-----|------|------------|
 | GET | `/api/gl/chapters` | — | `gl.read` |
 | GET | `/api/gl/chapters/:slug` | — | `gl.read` (réponse `{ chapter, markers }`) |
-| POST | `/api/gl/chapters/admin` | `{ slug, title, biome?, mapImageUrl?, storyMarkdown?, biotopeMarkdown?, biocenoseMarkdown?, orderIndex? }` | `gl.content.manage` (refus `409` si slug existant) |
-| PUT | `/api/gl/chapters/admin/:id` | mise à jour partielle des mêmes champs | `gl.content.manage` |
+| POST | `/api/gl/chapters/admin` | `{ slug, title, biome?, mapImageUrl?, mapImageFrame?, storyMarkdown?, biotopeMarkdown?, biocenoseMarkdown?, orderIndex? }` | `gl.content.manage` (refus `409` si slug existant) |
+| PUT | `/api/gl/chapters/admin/:id` | mise à jour partielle des mêmes champs (dont `mapImageFrame`) | `gl.content.manage` |
 | DELETE | `/api/gl/chapters/admin/:id` | — | `gl.content.manage` (refus `409` si partie liée) |
 | POST | `/api/gl/chapters/admin/:id/markers` | `{ label, xPct, yPct, eventType?, description?, orderIndex? }` | `gl.content.manage` |
 | POST | `/api/gl/chapters/admin/:id/map-image` | `{ image_data }` (data URL base64 image) | `gl.content.manage` |
@@ -136,7 +136,7 @@ Note UX admin GL : l’édition des chapitres et de la carte royaume est désorm
 | POST | `/api/gl/admin/players/import` | `{ fileName, fileDataBase64, dryRun }` | `gl.players.manage` |
 | GET | `/api/gl/admin/players/export` | `?classId=` optionnel | `gl.players.manage` |
 | GET | `/api/gl/admin/settings` | — | `gl.settings.manage` |
-| PUT | `/api/gl/admin/settings/:key` | `{ value }` | `gl.settings.manage` |
+| PUT | `/api/gl/admin/settings/:key` | `{ value }` ; pour `platform.brand`, `value` doit être un objet JSON valide (normalisé serveur) | `gl.settings.manage` |
 | GET | `/api/gl/admin/content` | — | `gl.content.manage` |
 | GET | `/api/gl/admin/media-library` | `?limit=` optionnel (défaut 300, max 800) | `gl.content.manage` |
 | POST | `/api/gl/admin/media-library` | `{ media_data }` (data URL base64 image/audio/vidéo) | `gl.content.manage` |
@@ -170,6 +170,11 @@ dans `gl_settings` :
 
 Modifiables via `PUT /api/gl/admin/settings/:key` (validation booléenne stricte,
 permission `gl.settings.manage`).
+
+`platform.brand` accepte aussi des cadres d'image par slot :
+`platform.brand.slots.{hero,card_world,card_rules,card_spells}.frame` avec
+`aspectRatio`, `objectFit`, `focalX`, `focalY`, `maxWidthPx`, `maxHeightPx`.
+Voir `docs/GL_IMAGE_FRAMES.md`.
 
 ### Modules collaboration / pédagogie GL
 

@@ -76,6 +76,7 @@ test('POST /api/gl/chapters/admin crée un chapitre', async () => {
       title: 'Chapitre test',
       biome: 'biome test',
       mapImageUrl: '/maps/map-foret.svg',
+      mapImageFrame: { aspectRatio: '16/9', objectFit: 'contain', focalX: 40, focalY: 60 },
       storyMarkdown: '# Histoire test',
       biotopeMarkdown: '## Biotope test',
       biocenoseMarkdown: '## Biocénose test',
@@ -85,6 +86,8 @@ test('POST /api/gl/chapters/admin crée un chapitre', async () => {
   assert.ok(res.body?.chapter?.id);
   assert.strictEqual(res.body.chapter.slug, slugCreated);
   assert.strictEqual(res.body.chapter.title, 'Chapitre test');
+  assert.strictEqual(res.body.chapter.map_image_frame.objectFit, 'contain');
+  assert.strictEqual(res.body.chapter.map_image_frame.aspectRatio, '16/9');
   assert.ok(Array.isArray(res.body.markers));
   createdChapterId = Number(res.body.chapter.id);
 });
@@ -101,10 +104,16 @@ test('PUT /api/gl/chapters/admin/:id met à jour le titre et l\'order_index', as
   const res = await request(app)
     .put(`/api/gl/chapters/admin/${createdChapterId}`)
     .set('Authorization', `Bearer ${adminToken}`)
-    .send({ title: 'Chapitre test bis', orderIndex: 5 })
+    .send({
+      title: 'Chapitre test bis',
+      orderIndex: 5,
+      mapImageFrame: { aspectRatio: 'auto', objectFit: 'contain', focalX: 15, focalY: 25 },
+    })
     .expect(200);
   assert.strictEqual(res.body.chapter.title, 'Chapitre test bis');
   assert.strictEqual(Number(res.body.chapter.order_index), 5);
+  assert.strictEqual(Number(res.body.chapter.map_image_frame.focalX), 15);
+  assert.strictEqual(Number(res.body.chapter.map_image_frame.focalY), 25);
 });
 
 test('POST /api/gl/chapters/admin/:id/map-image importe une image locale', async () => {

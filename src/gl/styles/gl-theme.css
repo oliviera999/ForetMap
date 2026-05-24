@@ -901,6 +901,67 @@ button.gl-brand-hub__card:focus-visible {
   gap: 12px;
 }
 
+.gl-image-frame-modal-body {
+  width: min(760px, calc(100% - 32px));
+  max-width: 760px;
+  max-height: 88vh;
+  overflow: auto;
+}
+
+.gl-image-frame-editor {
+  display: grid;
+  gap: 10px;
+}
+
+.gl-image-frame-preview-shell {
+  border: 1px solid #dbeafe;
+  border-radius: 12px;
+  background: #f8fafc;
+  min-height: 240px;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+}
+
+.gl-image-frame-preview {
+  width: min(100%, 640px);
+  max-width: 100%;
+  display: block;
+}
+
+.gl-image-frame-empty {
+  color: #64748b;
+  font-size: 0.92rem;
+}
+
+.gl-image-frame-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.gl-image-frame-help summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.gl-image-frame-help p {
+  margin: 6px 0;
+}
+
+.gl-brand-editor-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 12px;
+}
+
+.gl-brand-editor-card {
+  border: 1px solid #dbeafe;
+  border-radius: 12px;
+  padding: 10px;
+  background: #fff;
+}
+
 .gl-profile-layout {
   display: grid;
   gap: 12px;
@@ -1094,6 +1155,16 @@ button.gl-brand-hub__card:focus-visible {
 .gl-markdown-editor :where(textarea) {
   border-radius: var(--gl-radius-sm);
   border-color: var(--gl-border);
+}
+
+.gl-markdown img.gl-content-image {
+  width: 100%;
+  height: auto;
+  display: block;
+  border-radius: 10px;
+  border: 1px solid #dbeafe;
+  margin: 12px 0;
+  object-fit: cover;
 }
 
 .gl-map-url-preview {

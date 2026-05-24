@@ -22,7 +22,7 @@ test.describe('Gnomes & Licornes — édition des chapitres (Lot 2B)', () => {
     const classId = Number(classRow?.id || 0);
 
     await execute(
-      `INSERT INTO gl_players (class_id, pseudo, pin_hash, is_active, created_at, updated_at)
+      `INSERT INTO gl_players (class_id, pseudo, password_hash, is_active, created_at, updated_at)
        VALUES (?, ?, 'x', 1, NOW(), NOW())`,
       [classId, `e2e_content_player_${now}`]
     );
@@ -57,6 +57,7 @@ test.describe('Gnomes & Licornes — édition des chapitres (Lot 2B)', () => {
         title: 'Chapitre e2e',
         biome: 'biome e2e',
         mapImageUrl: '/maps/map-foret.svg',
+        mapImageFrame: { aspectRatio: '16/9', objectFit: 'contain', focalX: 30, focalY: 70 },
         storyMarkdown: '# Histoire e2e',
         biotopeMarkdown: '## Biotope e2e',
         biocenoseMarkdown: '## Biocénose e2e',
@@ -78,6 +79,7 @@ test.describe('Gnomes & Licornes — édition des chapitres (Lot 2B)', () => {
     expect(detail.status()).toBe(200);
     const detailBody = await detail.json();
     expect(detailBody?.chapter?.slug).toBe(slug);
+    expect(detailBody?.chapter?.map_image_frame?.objectFit).toBe('contain');
     expect(detailBody?.chapter?.title).toBe('Chapitre e2e');
     expect(Array.isArray(detailBody.markers)).toBe(true);
     expect(detailBody.markers.some((m) => m.label === 'Repère e2e')).toBe(true);

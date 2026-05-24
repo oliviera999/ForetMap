@@ -18,6 +18,7 @@ const {
   listMediaLibraryItems,
   deleteMediaLibraryItem,
 } = require('../../lib/mediaLibrary');
+const { normalizeBrand } = require('../../lib/glBrand');
 
 const router = express.Router();
 
@@ -563,7 +564,7 @@ router.get('/settings', requireGlPermission('gl.settings.manage'), async (_req, 
 router.put('/settings/:key', requireGlPermission('gl.settings.manage'), async (req, res) => {
   const key = normalizeOptionalString(req.params.key);
   if (!key) return res.status(400).json({ error: 'Clé invalide' });
-  const value = req.body?.value ?? null;
+  let value = req.body?.value ?? null;
   if (key.startsWith('modules.')) {
     if (!ALLOWED_MODULE_SETTINGS.has(key)) {
       return res.status(400).json({ error: 'Clé module inconnue' });
@@ -574,6 +575,12 @@ router.put('/settings/:key', requireGlPermission('gl.settings.manage'), async (r
   }
   if (key.startsWith('gameplay.') && !ALLOWED_GAMEPLAY_SETTINGS.has(key)) {
     return res.status(400).json({ error: 'Clé gameplay inconnue' });
+  }
+  if (key === 'platform.brand') {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+      return res.status(400).json({ error: 'La valeur de platform.brand doit etre un objet JSON' });
+    }
+    value = normalizeBrand(value);
   }
   await execute(
     `INSERT INTO gl_settings (\`key\`, value_json, updated_by, updated_at)

@@ -6,5 +6,6 @@
 - **Tests GL** : exécution séquentielle obligatoire (`--test-concurrency=1 --test-force-exit`) — la BDD est partagée, sinon deadlocks d'`initSchema()`.
 - **Modules GL** : tout nouvel onglet/feature exposé côté `src/gl/AppGL.jsx` doit avoir un drapeau `modules.*` correspondant dans `lib/glSettings.js` et être validé strictement (booléen) côté `routes/gl/admin.js`.
 - **Mascottes GL** : préfixe id `gl-*` ; renderer multi-mode via `GLMascotRenderer` ; packs persistés validés par `lib/gl-pack/mascotPack.js` (Zod).
+- **Cadres d'image GL** : tout nouveau cadrage image (charte, markdown, chapitres, avatar) doit passer par `src/utils/glImageFrame.js` (et `lib/glImageFrame.js` côté serveur), avec validation/normalisation stricte et tests associés.
 - **Diagnostics** : section `gl` dans `GET /api/admin/diagnostics` (compteurs parties, joueurs actifs, types d'évènements récents, packs).
 - **Convention commits** : préfixe Conventional Commits `feat(gl)`, `fix(gl)`, `chore(gl)`, etc. quand le lot est exclusivement GL.

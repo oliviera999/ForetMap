@@ -70,6 +70,15 @@ Lu par le front au login via `GET /api/gl/auth/config`.
 - Renderer multi-mode : `src/gl/components/GLMascotRenderer.jsx`
   + state machine `src/gl/hooks/useGLMascotStateMachine.js`.
 
+## Cadres d'image GL
+
+- Modèle partagé : `src/utils/glImageFrame.js` (frontend) et `lib/glImageFrame.js` (backend).
+- Éditeur visuel : `src/gl/components/GLImageFrameEditor.jsx`.
+- Charte : `platform.brand.slots.*.frame` (`GLBrandEditor`, `GLSettingsView`, validation `routes/gl/admin.js`).
+- Chapitres : `mapImageFrame` (`routes/gl/chapters.js`, migration `091_gl_chapters_map_image_frame.sql`).
+- Markdown : attribut `data-gl-frame` nettoyé/normalisé dans `src/utils/markdown.js`.
+- Référence fonctionnelle : `docs/GL_IMAGE_FRAMES.md`.
+
 ## Voir aussi
 
 - `docs/GL_ARCHITECTURE.md`

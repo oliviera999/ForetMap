@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import { apiGL } from '../services/apiGL.js';
 import { compressImage, isLikelyImageFile } from '../../utils/image.js';
-import { applyMarkdownImage } from '../../utils/markdown.js';
+import { applyMarkdownHtmlImage } from '../../utils/markdown.js';
 import { MediaLibraryMenu } from '../../components/MediaLibraryMenu.jsx';
+import { GLImageFrameEditor } from './GLImageFrameEditor.jsx';
+import { normalizeGlImageFrame } from '../../utils/glImageFrame.js';
 
 /**
  * Import d’image (fichier ou bibliothèque) et insertion Markdown dans un textarea.
@@ -14,12 +16,13 @@ export function GLMarkdownImageInsert({
   onStatus,
 }) {
   const [uploading, setUploading] = useState(false);
+  const [pendingInsert, setPendingInsert] = useState(null);
 
-  function applyInsert(url, alt = 'Image') {
+  function applyInsert(url, alt = 'Image', frame = null) {
     const el = textareaRef?.current;
     const start = el?.selectionStart ?? String(value ?? '').length;
     const end = el?.selectionEnd ?? start;
-    const result = applyMarkdownImage(String(value ?? ''), start, end, url, alt);
+    const result = applyMarkdownHtmlImage(String(value ?? ''), start, end, url, alt, frame);
     onChange({ target: { value: result.value } });
     requestAnimationFrame(() => {
       if (!el) return;
@@ -41,7 +44,11 @@ export function GLMarkdownImageInsert({
       const url = String(saved?.url || '').trim();
       if (!url) throw new Error('URL média manquante après import');
       const alt = String(file.name || 'Image').replace(/\.[^.]+$/, '') || 'Image';
-      applyInsert(url, alt);
+      setPendingInsert({
+        url,
+        alt,
+        frame: normalizeGlImageFrame(null, 'markdown'),
+      });
     } catch (err) {
       onStatus?.(err.message || 'Import image impossible', true);
     } finally {
@@ -111,9 +118,22 @@ export function GLMarkdownImageInsert({
           fetchItems={fetchMediaLibrary}
           uploadDataUrl={uploadMediaLibrary}
           removeItem={removeMediaLibrary}
-          onPickUrl={(url) => applyInsert(url, 'Image')}
+          onPickUrl={(url) => setPendingInsert({ url, alt: 'Image', frame: normalizeGlImageFrame(null, 'markdown') })}
         />
       </div>
+
+      <GLImageFrameEditor
+        open={Boolean(pendingInsert?.url)}
+        title="Cadre image markdown"
+        context="markdown"
+        imageUrl={String(pendingInsert?.url || '')}
+        initialFrame={pendingInsert?.frame || null}
+        onApply={({ frame }) => {
+          applyInsert(String(pendingInsert?.url || ''), String(pendingInsert?.alt || 'Image'), frame);
+          setPendingInsert(null);
+        }}
+        onClose={() => setPendingInsert(null)}
+      />
     </fieldset>
   );
 }
