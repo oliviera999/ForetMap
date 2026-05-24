@@ -20,6 +20,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - **GL — mot de passe oublié** : panneau sur l’écran de connexion (`GLAuthView`) ; `POST /api/gl/auth/forgot-password` et `POST /api/gl/auth/reset-password` (joueur GL ou enseignant MJ/Admin, lien e-mail vers `gl.html#resetType=…`). Module partagé `lib/passwordReset.js`. Tests `tests/gl-auth-forgot-password.test.js`, `tests-ui/gl/GLAuthView.test.jsx` ; `docs/API.md`.
 
 ### Corrigé
+- **Auth — alias admin `oliviera9`** : le login identifiant+mot de passe accepte l’alias canonique admin même si le pseudo BDD diffère (migration `users`) ; même résolution pour GL staff et script `db:admin:audit` (pose le pseudo canonique si absent). Test `tests/auth.test.js`.
 - **OAuth Google (ForetMap + GL)** : `redirect_uri` et origine front dérivées via `lib/oauthPublicUrl.js` (retrait `www.`, `X-Forwarded-Proto/Host` derrière proxy) ; diagnostic `GET /api/admin/oauth-debug` inclut les URI GL résolues. Tests `tests/oauth-public-url.test.js`.
 - **GL — auth admin/MJ par mot de passe** : le formulaire unifié retente la connexion staff si un joueur GL partage le même pseudo ; résolution `gl_admins` par pseudo alternatif quand l’email ForetMap diffère ; message explicite pour les comptes enseignant Google-only sans mot de passe local. Tests `tests/gl-staff-auth.test.js`.
 - **GL — hôte www** : `www.gl.*` résolu comme produit GL ; redirection de `/index.vite.html` vers `/` sur le sous-domaine GL (évite l’écran ForetMap). Tests `tests/gl-product-routing.test.js`.
