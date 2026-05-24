@@ -411,6 +411,53 @@ export default function VisitMascotPackManager({
     await postNewPack({ clone_from_catalog_id: modelId });
   }, [postNewPack, selectedCatalogModelId]);
 
+  const findPackForCatalogModel = useCallback((modelId) => {
+    const mid = String(modelId || '').trim();
+    if (!mid) return null;
+    return packs.find((p) => String(p.pack?.clonedFromCatalogId || '').trim() === mid) || null;
+  }, [packs]);
+
+  /** Ouvre une copie modifiable du modèle catalogue sur la carte (réutilise le pack existant si déjà cloné). */
+  const openCatalogModelForEdit = useCallback(async (modelId) => {
+    const mid = String(modelId || '').trim();
+    if (!mid) return;
+    setSelectedCatalogModelId(mid);
+    const existing = findPackForCatalogModel(mid);
+    if (existing?.id) {
+      setSelectedId(existing.id);
+      setEditorTab('visual');
+      setActionError('');
+      return;
+    }
+    setActionBusy(true);
+    setActionError('');
+    try {
+      const midMap = String(mapId || '').trim();
+      const created = await api('/api/visit/mascot-packs', 'POST', {
+        map_id: midMap,
+        is_published: 0,
+        clone_from_catalog_id: mid,
+      });
+      const newId = created?.id ? String(created.id) : '';
+      if (newId) {
+        setSelectedId(newId);
+        setEditorTab('visual');
+      }
+      await onRefresh();
+    } catch (e) {
+      if (e instanceof AccountDeletedError) onForceLogout?.();
+      else {
+        if (Array.isArray(e?.allowed_catalog_ids)) {
+          const ids = e.allowed_catalog_ids.map((id) => String(id || '').trim()).filter(Boolean);
+          if (ids.length > 0) setCatalogModelIds(ids);
+        }
+        setActionError(e.message || 'Impossible d’ouvrir ce modèle pour édition');
+      }
+    } finally {
+      setActionBusy(false);
+    }
+  }, [mapId, findPackForCatalogModel, onRefresh, onForceLogout]);
+
   const onDuplicateSelected = useCallback(async () => {
     if (!selectedId) return;
     if (!window.confirm('Dupliquer ce pack (copie JSON et fichiers uploadés) ?')) return;
@@ -654,6 +701,9 @@ export default function VisitMascotPackManager({
           Carte : <strong>{mapTitle}</strong>
           <br />
           Les packs <strong>publiés</strong> apparaissent sur la visite (sélecteur mascotte).
+          <br />
+          Les <strong>modèles intégrés</strong> (SPR0UT, Renard 2, …) ne se modifient pas directement : utilisez
+          {' '}<strong>Éditer sur cette carte</strong> pour ouvrir une copie modifiable (sprites, comportements).
         </p>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 12 }}>
           <button
@@ -665,32 +715,52 @@ export default function VisitMascotPackManager({
             Nouveau brouillon
           </button>
           <div style={{ width: '100%' }}>
-            <p className="section-sub" style={{ fontSize: '0.78rem', margin: '4px 0 6px' }}>Modèle de base</p>
-            <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'grid', gap: 6, maxHeight: 140, overflowY: 'auto' }}>
-              {catalogModelOptions.map((opt) => (
-                <li key={opt.id}>
-                  <button
-                    type="button"
-                    className={`btn btn-sm ${selectedCatalogModelId === opt.id ? 'btn-primary' : 'btn-ghost'}`}
-                    style={{ width: '100%', textAlign: 'left', justifyContent: 'flex-start' }}
-                    aria-pressed={selectedCatalogModelId === opt.id}
-                    onClick={() => setSelectedCatalogModelId(opt.id)}
-                    disabled={actionBusy}
-                  >
-                    {opt.label}
-                  </button>
-                </li>
-              ))}
+            <p className="section-sub" style={{ fontSize: '0.78rem', margin: '4px 0 6px' }}>Modèles intégrés (catalogue)</p>
+            <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'grid', gap: 8, maxHeight: 220, overflowY: 'auto' }}>
+              {catalogModelOptions.map((opt) => {
+                const linkedPack = findPackForCatalogModel(opt.id);
+                return (
+                  <li key={opt.id} style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                    <button
+                      type="button"
+                      className={`btn btn-sm ${selectedCatalogModelId === opt.id ? 'btn-primary' : 'btn-ghost'}`}
+                      style={{ width: '100%', textAlign: 'left', justifyContent: 'flex-start' }}
+                      aria-pressed={selectedCatalogModelId === opt.id}
+                      onClick={() => setSelectedCatalogModelId(opt.id)}
+                      disabled={actionBusy}
+                    >
+                      {opt.label}
+                      {linkedPack ? (
+                        <span style={{ display: 'block', fontSize: '0.72rem', opacity: 0.85, fontWeight: 400 }}>
+                          Copie sur carte : {linkedPack.label || linkedPack.catalog_id}
+                        </span>
+                      ) : null}
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-secondary btn-sm"
+                      style={{ width: '100%' }}
+                      disabled={actionBusy}
+                      onClick={() => void openCatalogModelForEdit(opt.id)}
+                      title={linkedPack
+                        ? 'Ouvrir la copie modifiable déjà créée pour cette carte'
+                        : 'Créer puis ouvrir une copie modifiable de ce modèle'}
+                    >
+                      {linkedPack ? 'Éditer la copie' : 'Éditer sur cette carte'}
+                    </button>
+                  </li>
+                );
+              })}
             </ul>
           </div>
           <button
             type="button"
-            className="btn btn-secondary btn-sm"
+            className="btn btn-ghost btn-sm"
             disabled={actionBusy || !selectedCatalogModelId}
             onClick={() => void onNewFromCatalog()}
-            title="Créer un pack depuis la mascotte catalogue sélectionnée"
+            title="Créer un second pack indépendant depuis le modèle sélectionné"
           >
-            Nouveau depuis ce modèle
+            Nouvelle copie depuis ce modèle
           </button>
           <button type="button" className="btn btn-ghost btn-sm" disabled={actionBusy} onClick={() => void onRefresh()}>
             Actualiser
@@ -768,7 +838,17 @@ export default function VisitMascotPackManager({
       </aside>
       <div style={{ flex: '1 1 420px', minWidth: 300 }}>
         {!selectedId ? (
-          <p className="section-sub">Sélectionnez un pack pour l’éditer.</p>
+          <div className="section-sub">
+            <p style={{ marginTop: 0 }}>
+              Sélectionnez un <strong>pack de la liste</strong> (brouillon ou publié), ou choisissez un
+              {' '}<strong>modèle intégré</strong> à gauche puis <strong>Éditer sur cette carte</strong>.
+            </p>
+            <p style={{ fontSize: '0.82rem', opacity: 0.9, marginBottom: 0 }}>
+              L’onglet <strong>Aperçu mascotte</strong> permet de prévisualiser tous les modèles ; les onglets
+              {' '}<strong>Éditeur visuel</strong>, <strong>JSON</strong> et <strong>Comportements visite</strong>
+              {' '}modifient uniquement le pack sélectionné dans la colonne de gauche.
+            </p>
+          </div>
         ) : (
           <>
             <div className="visit-mascot-pack-manager__tabs" role="tablist" style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 12 }}>
