@@ -14,6 +14,9 @@ const {
   extractCssVariablesMap,
   normalizeBrandDataFromWp,
   extractLayoutSlotsFromHomepageHtml,
+  buildMediaFetchCandidates,
+  isLikelyImageBuffer,
+  fetchBinaryBufferForMedia,
   preprocessWpHtmlForMarkdown,
   mirrorWpMediaInMarkdown,
   fetchWpCollection,
@@ -225,6 +228,50 @@ test('preprocessWpHtmlForMarkdown expose data-src en src', () => {
   const turndown = createMarkdownConverter();
   const md = htmlToMarkdown('<img data-src="/wp-content/uploads/x.png" alt="x" />', turndown);
   assert.ok(md.includes('](/wp-content/uploads/x.png)'));
+});
+
+test('buildMediaFetchCandidates retente yo.olution.info pour gl.olution.info', () => {
+  const candidates = buildMediaFetchCandidates(
+    'https://www.gl.olution.info/wp-content/uploads/2025/06/world.png',
+    {
+      sourceBaseUrl: 'https://yo.olution.info',
+      canonicalHost: 'www.yo.olution.info',
+    }
+  );
+  assert.ok(candidates.includes('https://www.gl.olution.info/wp-content/uploads/2025/06/world.png'));
+  assert.ok(candidates.some((url) => /yo\.olution\.info/.test(url)));
+});
+
+test('fetchBinaryBufferForMedia refuse le HTML renvoyé par gl.olution.info', async () => {
+  const html = Buffer.from('<!doctype html><html></html>', 'utf8');
+  const pngHeader = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 0]);
+  const fetchFn = async (url) => {
+    if (String(url).includes('gl.olution.info')) {
+      return {
+        ok: true,
+        status: 200,
+        headers: { get: () => 'text/html; charset=UTF-8' },
+        async arrayBuffer() {
+          return html;
+        },
+      };
+    }
+    return {
+      ok: true,
+      status: 200,
+      headers: { get: () => 'image/png' },
+      async arrayBuffer() {
+        return pngHeader;
+      },
+    };
+  };
+  const out = await fetchBinaryBufferForMedia(
+    'https://www.gl.olution.info/wp-content/uploads/2025/06/world.png',
+    fetchFn,
+    { sourceBaseUrl: 'https://yo.olution.info', canonicalHost: 'www.yo.olution.info' }
+  );
+  assert.ok(out.fetchUrl.includes('yo.olution.info'));
+  assert.ok(isLikelyImageBuffer(out.buffer, out.contentType));
 });
 
 test('mirrorWpMediaInMarkdown remplace les URLs médias WP', async () => {
