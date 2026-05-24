@@ -42,6 +42,7 @@ const {
 const { logAudit, logSecurityEvent } = require('./audit');
 const {
   ensureCanonicalUserByAuth,
+  resolveLoginAccountByIdentifier,
 } = require('../lib/identity');
 const { saveBase64ToDisk, deleteFile } = require('../lib/uploads');
 const { resolveStudentAffiliationForPersist } = require('../lib/studentAffiliation');
@@ -565,10 +566,7 @@ router.post('/login', async (req, res) => {
     if (!password || !identifier) return res.status(400).json({ error: 'Identifiant (email ou pseudo) et mot de passe requis' });
     await ensureTeacherSeedFromEnv();
 
-    const account = await queryOne(
-      "SELECT * FROM users WHERE (LOWER(pseudo)=LOWER(?) OR LOWER(email)=LOWER(?)) LIMIT 1",
-      [identifier, identifier]
-    );
+    const account = await resolveLoginAccountByIdentifier(identifier);
 
     if (!account) {
       await logSecurityEvent('auth.login', {

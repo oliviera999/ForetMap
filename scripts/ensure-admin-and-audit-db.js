@@ -3,6 +3,7 @@ require('dotenv').config();
 
 const { queryAll, queryOne, execute, ping, pool } = require('../database');
 const { ensureRbacBootstrap, setPrimaryRole } = require('../lib/rbac');
+const { resolveLoginAccountByIdentifier, adminCanonicalLogin } = require('../lib/identity');
 
 function parseArgs(argv) {
   const out = {
@@ -40,13 +41,22 @@ async function ensureAdminForLogin(login, dryRun) {
 
   await ensureRbacBootstrap();
 
-  const user = await queryOne(
+  let user = await queryOne(
     `SELECT id, user_type, pseudo, email, is_active
        FROM users
       WHERE LOWER(pseudo) = ? OR LOWER(email) = ?
       LIMIT 1`,
     [normalizedLogin, normalizedLogin]
   );
+  if (!user && normalizedLogin === adminCanonicalLogin()) {
+    const resolved = await resolveLoginAccountByIdentifier(normalizedLogin);
+    if (resolved?.id) {
+      user = await queryOne(
+        `SELECT id, user_type, pseudo, email, is_active FROM users WHERE id = ? LIMIT 1`,
+        [resolved.id]
+      );
+    }
+  }
 
   if (!user) {
     return { ok: false, message: `Utilisateur introuvable pour "${login}"` };
@@ -87,6 +97,17 @@ async function ensureAdminForLogin(login, dryRun) {
   if (currentPrimary?.slug !== 'admin') {
     if (!dryRun) {
       await setPrimaryRole('teacher', user.id, adminRole.id);
+    }
+    applied = true;
+  }
+
+  const canonicalLogin = adminCanonicalLogin();
+  if (
+    normalizedLogin === canonicalLogin
+    && String(user.pseudo || '').trim().toLowerCase() !== canonicalLogin
+  ) {
+    if (!dryRun) {
+      await execute('UPDATE users SET pseudo = ?, updated_at = NOW() WHERE id = ?', [canonicalLogin, user.id]);
     }
     applied = true;
   }

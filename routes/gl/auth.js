@@ -145,14 +145,10 @@ function normalizeGlOAuthMode(value) {
   return 'auto';
 }
 
+const { resolveLoginAccountByIdentifier } = require('../../lib/identity');
+
 async function attemptGlStaffPasswordLogin(identifier, password, { rejectStudent = false } = {}) {
-  const account = await queryOne(
-    `SELECT id, user_type, email, pseudo, password_hash, auth_provider, is_active, display_name
-       FROM users
-      WHERE LOWER(pseudo) = LOWER(?) OR LOWER(email) = LOWER(?)
-      LIMIT 1`,
-    [identifier, identifier]
-  );
+  const account = await resolveLoginAccountByIdentifier(identifier);
   if (!account) {
     return { ok: false, status: 401, error: 'Identifiant ou mot de passe incorrect' };
   }
