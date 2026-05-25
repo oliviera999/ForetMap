@@ -1,10 +1,13 @@
 require('./helpers/setup');
 const test = require('node:test');
 const assert = require('node:assert');
+const fs = require('fs');
+const path = require('path');
 const request = require('supertest');
 const { app } = require('../server');
 const { initSchema, queryOne, execute } = require('../database');
 const { signAuthToken } = require('../middleware/requireTeacher');
+const { UPLOADS_DIR, ensureDir } = require('../lib/uploads');
 
 const TINY_PNG_DATA_URL =
   'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO6pJkQAAAAASUVORK5CYII=';
@@ -92,4 +95,24 @@ test('media-library ForetMap: upload, liste et suppression', async () => {
     .set('Authorization', `Bearer ${teacherToken}`)
     .send({ relative_path: created.body.relativePath })
     .expect(200);
+});
+
+test('media-library ForetMap: refuse une suppression par traversée hors médiathèque', async () => {
+  const teacherToken = await createTeacherToken('media-traversal');
+  const victimRelativePath = `media-library-traversal-${Date.now()}.txt`;
+  const victimAbsolutePath = path.join(UPLOADS_DIR, victimRelativePath);
+  ensureDir(path.dirname(victimAbsolutePath));
+  fs.writeFileSync(victimAbsolutePath, 'victime');
+
+  try {
+    await request(app)
+      .delete('/api/media-library')
+      .set('Authorization', `Bearer ${teacherToken}`)
+      .send({ relative_path: `media-library/../${victimRelativePath}` })
+      .expect(400);
+
+    assert.ok(fs.existsSync(victimAbsolutePath), 'Le fichier hors médiathèque ne doit pas être supprimé');
+  } finally {
+    if (fs.existsSync(victimAbsolutePath)) fs.unlinkSync(victimAbsolutePath);
+  }
 });
