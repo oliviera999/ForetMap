@@ -9,6 +9,7 @@ import { MediaLibraryMenu } from '../../components/MediaLibraryMenu.jsx';
 import { GLImageSourceField } from './GLImageSourceField.jsx';
 import { GLImageFrameEditor } from './GLImageFrameEditor.jsx';
 import { glImageFrameToStyle, normalizeGlImageFrame } from '../../utils/glImageFrame.js';
+import { GLRichTextEditor } from './ui/GLRichTextEditor.jsx';
 
 const EMPTY_CHAPTER_FORM = {
   slug: '',
@@ -325,26 +326,26 @@ export function GLChaptersAdminView() {
             </label>
             <label>
               Histoire (markdown)
-              <textarea
-                rows={6}
+              <GLRichTextEditor
                 value={chapterForm.storyMarkdown}
                 onChange={(event) => setChapterForm({ ...chapterForm, storyMarkdown: event.target.value })}
+                imageLegend="Images de l'histoire"
               />
             </label>
             <label>
               Biotope (markdown)
-              <textarea
-                rows={4}
+              <GLRichTextEditor
                 value={chapterForm.biotopeMarkdown}
                 onChange={(event) => setChapterForm({ ...chapterForm, biotopeMarkdown: event.target.value })}
+                imageLegend="Images du biotope"
               />
             </label>
             <label>
               Biocénose (markdown)
-              <textarea
-                rows={4}
+              <GLRichTextEditor
                 value={chapterForm.biocenoseMarkdown}
                 onChange={(event) => setChapterForm({ ...chapterForm, biocenoseMarkdown: event.target.value })}
+                imageLegend="Images de la biocénose"
               />
             </label>
             <div className="gl-inline-actions">

@@ -10,6 +10,7 @@ let applyMarkdownWrap;
 let applyMarkdownList;
 let applyMarkdownLink;
 let applyMarkdownImage;
+let applyMarkdownHtmlImage;
 
 before(async () => {
   const mod = await import(pathToFileURL(join(__dirname, '../src/utils/markdown.js')).href);
@@ -18,6 +19,7 @@ before(async () => {
   applyMarkdownList = mod.applyMarkdownList;
   applyMarkdownLink = mod.applyMarkdownLink;
   applyMarkdownImage = mod.applyMarkdownImage;
+  applyMarkdownHtmlImage = mod.applyMarkdownHtmlImage;
 });
 
 describe('markdown utils', () => {
@@ -44,6 +46,13 @@ describe('markdown utils', () => {
     const html = renderMarkdownToSafeHtml(plain);
     assert.match(html, /Ligne simple/);
     assert.match(html, /Deuxième ligne/);
+  });
+
+  it('renderMarkdownToSafeHtml conserve titres, citation et separateur', () => {
+    const html = renderMarkdownToSafeHtml('# Titre\n\n> Citation\n\n---');
+    assert.match(html, /<h1>Titre<\/h1>/);
+    assert.match(html, /<blockquote>/);
+    assert.match(html, /<hr>/);
   });
 
   it('renderMarkdownToSafeHtml ajoute rel noopener sur les liens http', () => {
@@ -75,6 +84,27 @@ describe('markdown utils', () => {
     const html = renderMarkdownToSafeHtml('![x](/uploads/media-library/image/2026/01/a.jpg)', { allowImages: true });
     assert.match(html, /<img\b/i);
     assert.match(html, /\/uploads\/media-library\//);
+  });
+
+  it('renderMarkdownToSafeHtml allowImages supprime les sources image dangereuses', () => {
+    const html = renderMarkdownToSafeHtml('![x](javascript:alert(1))', { allowImages: true });
+    assert.match(html, /<img\b/i);
+    assert.doesNotMatch(html, /src=/i);
+  });
+
+  it('renderMarkdownToSafeHtml normalise les attributs de cadre image GL', () => {
+    const source = applyMarkdownHtmlImage(
+      'intro',
+      5,
+      5,
+      '/uploads/media-library/image/2026/01/a.jpg',
+      'Photo',
+      { ratio: '4:3', radius: 12, shadow: true, align: 'left' }
+    ).value;
+    const html = renderMarkdownToSafeHtml(source, { allowImages: true });
+    assert.match(html, /class="[^"]*gl-content-image/);
+    assert.match(html, /data-gl-frame=/);
+    assert.match(html, /style="/);
   });
 
   it('applyMarkdownImage insère une image markdown', () => {
