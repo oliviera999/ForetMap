@@ -567,7 +567,7 @@ Aides contextuelles (public) :
 | GET | `/api/visit/mascot-sprite-library/:mapId/assets/:filename` | non | Image PNG si une ligne bibliothèque existe pour ce couple (`map_id`, `filename`). **Aucune** vérification de rôle sur cette URL : la protection repose sur le fait que seuls les profs peuvent **créer** des entrées bibliothèque et sur la discrétion des URLs référencées dans les packs publiés. |
 | POST | `/api/visit/mascot-sprite-library/:mapId/assets` | oui | Upload PNG : `{ filename, image_data }` — **`uploads/visit_mascot_sprite_library/{map_id}/`** ; le pack peut utiliser **`framesBase`** = `/api/visit/mascot-sprite-library/{mapId}/assets/` |
 | DELETE | `/api/visit/mascot-sprite-library/:mapId/assets/:filename` | oui | Supprime l’entrée et le fichier |
-| PUT | `/api/visit/mascot-packs/:id` | oui | Mettre à jour `label`, `pack`, `is_published` (corps : `map_id` requis, identique à la ligne) |
+| PUT | `/api/visit/mascot-packs/:id` | oui | Mettre à jour `label`, `pack`, `is_published` (corps : `map_id` requis, identique à la ligne). En cas de pack invalide: **400** `{ error: "Pack JSON invalide", details, requestId }` (`details` = structure Zod formatée exploitable côté UI). |
 | DELETE | `/api/visit/mascot-packs/:id` | oui | Supprime le pack et le dossier **`uploads/visit_mascot_packs/{id}/`** |
 | GET | `/api/visit/mascot-packs/:id/assets` | oui | Liste les PNG uploadés du pack : `{ pack_id, assets: [{ filename, url }] }` — **`visit.manage`** + élévation PIN |
 | GET | `/api/visit/mascot-assets` | oui | Inventaire global des assets mascotte du site : catalogue statique (`public/assets/mascots`), assets uploadés par pack, bibliothèques par carte. Réponse `{ assets, counts }` avec `source` (`public`/`pack`/`library`) |
@@ -594,6 +594,8 @@ Aides contextuelles (public) :
 | POST | `/api/visit/rebuild-from-map` | oui | Réaligner **toute** la visite du plan sur la carte : corps `{ map_id? }` (défaut `foret`). Supprime puis recrée les lignes **`visit_zones`** et **`visit_markers`** pour ce `map_id` à partir de **`zones`** / **`map_markers`** ; pour chaque **id** encore présent sur la carte, **réinjecte** sous-titre, textes de détails, `is_active`, `sort_order`, `created_at` et **conserve** les lignes **`visit_media`** (cibles inchangées). Retire médias + progression pour les cibles visite **sans** équivalent carte. Réponse : `{ ok, map_id, removed: { zones, markers }, imported: { zones, markers } }`. |
 
 **Packs mascotte (validation serveur)** : les **POST** / **PUT** sur `/api/visit/mascot-packs` chargent la validation Zod (v1 et v2) depuis **`lib/visit-pack/`** (`mascotPack.js`, `visitMascotState.js`, `visitMascotInteractionEvents.js`, générés par **`npm run build`** ou **`npm run sync:visit-pack-lib`**). Sans miroir `lib/visit-pack/` complet **ou** sans dépendance runtime `zod`, l’API renvoie **503** avec `code: mascot_pack_module_unavailable` (diagnostic dans `details.reason`).
+
+- **Erreurs de validation exploitables** : pour les erreurs **400** `Pack JSON invalide`, le champ **`details`** contient les chemins de champs invalides (format Zod) afin de permettre un rendu inline dans le studio (`framesBase`, `stateFrames.*`, `stateAliases`, etc.).
 
 - **`clone_from_catalog_id`** : la liste des IDs acceptés est définie **côté serveur** (`routes/visit.js`, métadonnées catalogue / templates). Elle doit rester alignée avec le catalogue frontend **`src/utils/visitMascotCatalog.js`** (aperçu studio, libellés) ; en cas d’ID inconnu, la réponse **400** inclut **`allowed_catalog_ids`**.
 

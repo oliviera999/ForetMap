@@ -10,9 +10,28 @@ import {
   serverMascotPackAssetsPrefix,
   serverMascotSpriteLibraryAssetsPrefix,
 } from '../utils/mascotPackEditorModel.js';
+import {
+  extractMascotPackValidationIssues,
+  toMascotPackIssueLines,
+} from '../utils/mascotPackValidationUi.js';
 import MascotPackPreviewPanel from './MascotPackPreviewPanel.jsx';
 
 const STATE_OPTIONS = Object.values(VISIT_MASCOT_STATE).sort();
+const STATE_LABELS = {
+  [VISIT_MASCOT_STATE.IDLE]: 'Repos',
+  [VISIT_MASCOT_STATE.WALKING]: 'Marche',
+  [VISIT_MASCOT_STATE.HAPPY]: 'Joyeuse',
+  [VISIT_MASCOT_STATE.RUNNING]: 'Course',
+  [VISIT_MASCOT_STATE.HAPPY_JUMP]: 'Saut joyeux',
+  [VISIT_MASCOT_STATE.SPIN]: 'Rotation',
+  [VISIT_MASCOT_STATE.INSPECT]: 'Inspection',
+  [VISIT_MASCOT_STATE.MAP_READ]: 'Lecture carte',
+  [VISIT_MASCOT_STATE.CELEBRATE]: 'Célébration',
+  [VISIT_MASCOT_STATE.TALK]: 'Dialogue',
+  [VISIT_MASCOT_STATE.ALERT]: 'Alerte',
+  [VISIT_MASCOT_STATE.ANGRY]: 'Fâchée',
+  [VISIT_MASCOT_STATE.SURPRISE]: 'Surprise',
+};
 
 /** @param {string} name */
 function sanitizeClientFilename(name) {
@@ -51,8 +70,9 @@ export default function MascotPackWysiwygEditor({
   relaxAssetPrefix = false,
   onForceLogout,
 }) {
-  const [message, setMessage] = useState('');
+  const [statusMessage, setStatusMessage] = useState('');
   const [validated, setValidated] = useState(null);
+  const [validationIssues, setValidationIssues] = useState([]);
   const [assets, setAssets] = useState([]);
   const [assetsLoading, setAssetsLoading] = useState(false);
   const [libraryTargetState, setLibraryTargetState] = useState(VISIT_MASCOT_STATE.IDLE);
@@ -71,12 +91,19 @@ export default function MascotPackWysiwygEditor({
     const result = validateMascotPackV1(pack, validationOpts);
     if (!result.ok) {
       setValidated(null);
-      setMessage(result.error?.format ? result.error.format() : String(result.error));
+      setValidationIssues(extractMascotPackValidationIssues(result.error?.format?.() || result.error));
       return;
     }
     setValidated(result);
-    setMessage(`Valide — id « ${result.pack.id} », ${Object.keys(result.pack.stateFrames || {}).length} état(s).`);
+    setValidationIssues([]);
   }, [pack, validationOpts]);
+
+  useEffect(() => {
+    const t = setTimeout(() => {
+      runValidate();
+    }, 300);
+    return () => clearTimeout(t);
+  }, [runValidate]);
 
   const loadAssets = useCallback(async () => {
     const id = String(packUuid || '').trim();
@@ -91,7 +118,7 @@ export default function MascotPackWysiwygEditor({
       setAssets(list);
     } catch (e) {
       if (e instanceof AccountDeletedError) onForceLogout?.();
-      else setMessage(e.message || 'Impossible de charger la médiathèque');
+      else setStatusMessage(e.message || 'Impossible de charger la médiathèque');
       setAssets([]);
     } finally {
       setAssetsLoading(false);
@@ -121,6 +148,34 @@ export default function MascotPackWysiwygEditor({
     patchPack({ stateFrames: next });
   }, [patchPack]);
 
+  const packWarnings = useMemo(() => {
+    const warnings = [];
+    const silhouette = String(pack?.fallbackSilhouette || '').trim();
+    if (silhouette && !MASCOT_PACK_FALLBACK_SILHOUETTES.includes(silhouette)) {
+      warnings.push(`Silhouette « ${silhouette} » inconnue: un fallback par défaut sera utilisé.`);
+    }
+    const prefix = serverMascotPackAssetsPrefix(packUuid);
+    const base = String(pack?.framesBase || '').trim();
+    const normalizedBase = base.endsWith('/') ? base : `${base}/`;
+    if (prefix && normalizedBase.startsWith(prefix)) {
+      const available = new Set(assets.map((a) => String(a?.filename || '').trim()).filter(Boolean));
+      const referenced = new Set();
+      for (const spec of Object.values(stateFrames || {})) {
+        if (!spec || typeof spec !== 'object') continue;
+        const files = Array.isArray(spec.files) ? spec.files : [];
+        for (const file of files) {
+          const name = String(file || '').trim();
+          if (name) referenced.add(name);
+        }
+      }
+      const missing = [...referenced].filter((f) => !available.has(f));
+      if (missing.length > 0) {
+        warnings.push(`Fichiers référencés absents de la médiathèque serveur: ${missing.slice(0, 6).join(', ')}${missing.length > 6 ? '…' : ''}.`);
+      }
+    }
+    return warnings;
+  }, [pack, packUuid, assets, stateFrames]);
+
   const updateStateEntry = useCallback((stateKey, spec) => {
     const next = { ...stateFrames };
     if (spec == null) delete next[stateKey];
@@ -142,7 +197,7 @@ export default function MascotPackWysiwygEditor({
   const onAddLibraryToTarget = useCallback((filename) => {
     if (!filename) return;
     appendFileToState(libraryTargetState, filename);
-    setMessage(`« ${filename} » ajouté à l’état « ${libraryTargetState} ».`);
+    setStatusMessage(`« ${filename} » ajouté à l’état « ${libraryTargetState} ».`);
   }, [appendFileToState, libraryTargetState]);
 
   const fileToPngDataUrl = useCallback((file) => new Promise((resolve, reject) => {
@@ -186,18 +241,18 @@ export default function MascotPackWysiwygEditor({
     e.target.value = '';
     if (!file || !packUuid) return;
     const filename = sanitizeClientFilename(file.name);
-    setMessage('Envoi en cours…');
+    setStatusMessage('Envoi en cours…');
     try {
       const dataUrl = await fileToPngDataUrl(file);
       await api(`/api/visit/mascot-packs/${encodeURIComponent(packUuid)}/assets`, 'POST', {
         filename,
         image_data: dataUrl,
       });
-      setMessage(`Fichier « ${filename} » enregistré.`);
+      setStatusMessage(`Fichier « ${filename} » enregistré.`);
       await loadAssets();
     } catch (err) {
       if (err instanceof AccountDeletedError) onForceLogout?.();
-      else setMessage(err.message || 'Upload impossible');
+      else setStatusMessage(err.message || 'Upload impossible');
     }
   }, [fileToPngDataUrl, loadAssets, packUuid, onForceLogout]);
 
@@ -210,10 +265,10 @@ export default function MascotPackWysiwygEditor({
         'DELETE',
       );
       await loadAssets();
-      setMessage(`« ${filename} » supprimé.`);
+      setStatusMessage(`« ${filename} » supprimé.`);
     } catch (err) {
       if (err instanceof AccountDeletedError) onForceLogout?.();
-      else setMessage(err.message || 'Suppression impossible');
+      else setStatusMessage(err.message || 'Suppression impossible');
     }
   }, [loadAssets, packUuid, onForceLogout]);
 
@@ -260,6 +315,9 @@ export default function MascotPackWysiwygEditor({
             value={String(pack.framesBase ?? '')}
             onChange={(ev) => patchPack({ framesBase: ev.target.value })}
           />
+          <span className="section-sub" style={{ display: 'block', marginTop: 4, fontSize: '0.78rem' }}>
+            Utilisez idéalement une URL serveur du type <code>/api/visit/mascot-packs/…/assets/</code> ou <code>/api/visit/mascot-sprite-library/…/assets/</code>.
+          </span>
         </label>
         {packUuid ? (
           <div style={{ marginTop: 8 }}>
@@ -326,6 +384,24 @@ export default function MascotPackWysiwygEditor({
             ))}
           </select>
         </label>
+        {packWarnings.length > 0 ? (
+          <div
+            role="status"
+            style={{
+              marginTop: 10,
+              padding: 10,
+              borderRadius: 8,
+              border: '1px solid rgba(217,119,6,0.35)',
+              background: 'rgba(255,247,237,0.95)',
+              fontSize: 12,
+            }}
+          >
+            <strong>Avertissements non bloquants</strong>
+            <ul style={{ margin: '6px 0 0', paddingLeft: 16 }}>
+              {packWarnings.map((w) => <li key={w}>{w}</li>)}
+            </ul>
+          </div>
+        ) : null}
       </section>
 
       {packUuid ? (
@@ -348,7 +424,7 @@ export default function MascotPackWysiwygEditor({
                 onChange={(ev) => setLibraryTargetState(ev.target.value)}
               >
                 {STATE_OPTIONS.map((s) => (
-                  <option key={s} value={s}>{s}</option>
+                  <option key={s} value={s}>{STATE_LABELS[s] || s} ({s})</option>
                 ))}
               </select>
             </label>
@@ -415,7 +491,7 @@ export default function MascotPackWysiwygEditor({
                     checked={active}
                     onChange={(ev) => toggleState(stateKey, ev.target.checked)}
                   />
-                  <strong>{stateKey}</strong>
+                  <strong>{STATE_LABELS[stateKey] || stateKey} <span className="section-sub" style={{ fontSize: '0.78rem' }}>({stateKey})</span></strong>
                 </label>
               </summary>
               {active ? (
@@ -648,26 +724,44 @@ export default function MascotPackWysiwygEditor({
       </section>
 
       <div style={{ marginTop: 16, display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
-        <button type="button" className="btn btn-primary btn-sm" onClick={runValidate}>
-          Vérifier le pack
+        <button type="button" className="btn btn-ghost btn-sm" onClick={runValidate}>
+          Revalider maintenant
         </button>
+        <span className="section-sub" style={{ fontSize: '0.8rem' }}>
+          Validation automatique active (300 ms).
+        </span>
       </div>
 
-      {message ? (
-        <pre
+      {validated ? (
+        <p className="section-sub" style={{ marginTop: 10, fontSize: '0.82rem' }}>
+          Pack valide: <code>{validated.pack.id}</code> ({Object.keys(validated.pack.stateFrames || {}).length} état(s)).
+        </p>
+      ) : null}
+      {validationIssues.length > 0 ? (
+        <div
           className="mascot-pack-wysiwyg__message"
+          role="alert"
           style={{
             marginTop: 12,
             padding: 10,
-            background: 'rgba(240,253,244,0.9)',
             borderRadius: 8,
+            border: '1px solid rgba(185,28,28,0.28)',
+            background: 'rgba(254,242,242,0.95)',
             fontSize: 12,
-            whiteSpace: 'pre-wrap',
-            wordBreak: 'break-word',
           }}
         >
-          {message}
-        </pre>
+          <strong>Corrections nécessaires</strong>
+          <ul style={{ margin: '8px 0 0', paddingLeft: 16 }}>
+            {toMascotPackIssueLines(validationIssues).map((line) => (
+              <li key={line} style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{line}</li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+      {statusMessage ? (
+        <p className="section-sub" style={{ marginTop: 10, fontSize: '0.82rem' }}>
+          {statusMessage}
+        </p>
       ) : null}
 
       <MascotPackPreviewPanel validated={validated} />
@@ -721,7 +815,7 @@ function StateAliasesEditor({ stateFrames, aliases, onChange }) {
                 }}
               >
                 {STATE_OPTIONS.map((s) => (
-                  <option key={s} value={s}>{s}</option>
+                  <option key={s} value={s}>{STATE_LABELS[s] || s} ({s})</option>
                 ))}
               </select>
               <span>→</span>
@@ -733,7 +827,7 @@ function StateAliasesEditor({ stateFrames, aliases, onChange }) {
                 }}
               >
                 {STATE_OPTIONS.map((s) => (
-                  <option key={s} value={s}>{s}</option>
+                  <option key={s} value={s}>{STATE_LABELS[s] || s} ({s})</option>
                 ))}
               </select>
               <button

@@ -2177,6 +2177,37 @@ test('visit mascot packs : CRUD prof + présence dans content si publié', async
   assert.ok(!afterDel.body.mascot_packs.some((p) => p.catalog_id === catalogId));
 });
 
+test('visit mascot packs : PUT invalide renvoie details de validation exploitables', async () => {
+  const token = await getAdminAuthToken();
+  const created = await request(app)
+    .post('/api/visit/mascot-packs')
+    .set('Authorization', `Bearer ${token}`)
+    .send({ map_id: 'foret', is_published: 0 })
+    .expect(201);
+  const packId = created.body.id;
+  try {
+    const invalidPack = { ...created.body.pack, framesBase: '/tmp/not-allowed/' };
+    const res = await request(app)
+      .put(`/api/visit/mascot-packs/${packId}`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        map_id: 'foret',
+        label: 'Pack invalide',
+        pack: invalidPack,
+        is_published: 0,
+      })
+      .expect(400);
+    assert.equal(String(res.body.error || ''), 'Pack JSON invalide');
+    assert.ok(res.body.details && typeof res.body.details === 'object');
+    assert.ok(res.body.details.framesBase || res.body.details._errors, 'Détails Zod attendus sur framesBase');
+  } finally {
+    await request(app)
+      .delete(`/api/visit/mascot-packs/${packId}`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+  }
+});
+
 test('visit mascot packs : filtrage strict par map_id dans la liste studio', async () => {
   const token = await getAdminAuthToken();
   const created = await request(app)

@@ -4,11 +4,22 @@ import React, {
 import { api, AccountDeletedError, withAppBase } from '../services/api';
 import MascotPackWysiwygEditor from './MascotPackWysiwygEditor.jsx';
 import VisitMapMascotRenderer from './VisitMapMascotRenderer.jsx';
-import { clonePackDeep, parsePackJson, stringifyPack } from '../utils/mascotPackEditorModel.js';
+import {
+  clonePackDeep,
+  parsePackJson,
+  stringifyPack,
+  serverMascotPackAssetsPrefix,
+  serverMascotSpriteLibraryAssetsPrefix,
+  MASCOT_PACK_FALLBACK_SILHOUETTES,
+} from '../utils/mascotPackEditorModel.js';
 import { validateMascotPackV1 } from '../utils/mascotPack.js';
 import { buildVisitMascotCatalogExtrasFromContent } from '../utils/visitMascotPackExtras.js';
 import { getVisitMascotCatalog } from '../utils/visitMascotCatalog.js';
 import { VISIT_MASCOT_STATE } from '../utils/visitMascotState.js';
+import {
+  extractMascotPackValidationIssues,
+  toMascotPackIssueLines,
+} from '../utils/mascotPackValidationUi.js';
 import {
   VISIT_MASCOT_INTERACTION_EVENT_KEYS,
   VISIT_MASCOT_INTERACTION_LABELS,
@@ -22,13 +33,27 @@ function isSpriteLibraryPreviewableUrl(url) {
 }
 
 const RIGHT_TABS = [
-  { id: 'detail', label: 'Fiche comportements' },
-  { id: 'visual', label: 'Éditeur visuel' },
+  { id: 'workspace', label: 'Édition guidée' },
   { id: 'json', label: 'JSON' },
-  { id: 'library', label: 'Bibliothèque sprites' },
   { id: 'interaction', label: 'Comportements visite' },
-  { id: 'preview', label: 'Aperçu mascotte' },
+  { id: 'preview', label: 'Aperçu global' },
 ];
+
+const VISIT_STATE_LABELS = {
+  [VISIT_MASCOT_STATE.IDLE]: 'Repos',
+  [VISIT_MASCOT_STATE.WALKING]: 'Marche',
+  [VISIT_MASCOT_STATE.HAPPY]: 'Joyeuse',
+  [VISIT_MASCOT_STATE.RUNNING]: 'Course',
+  [VISIT_MASCOT_STATE.HAPPY_JUMP]: 'Saut joyeux',
+  [VISIT_MASCOT_STATE.SPIN]: 'Rotation',
+  [VISIT_MASCOT_STATE.INSPECT]: 'Inspection',
+  [VISIT_MASCOT_STATE.MAP_READ]: 'Lecture carte',
+  [VISIT_MASCOT_STATE.CELEBRATE]: 'Célébration',
+  [VISIT_MASCOT_STATE.TALK]: 'Dialogue',
+  [VISIT_MASCOT_STATE.ALERT]: 'Alerte',
+  [VISIT_MASCOT_STATE.ANGRY]: 'Fâchée',
+  [VISIT_MASCOT_STATE.SURPRISE]: 'Surprise',
+};
 
 /** @param {Record<string, unknown>} pack */
 function estimateStateDurationMs(pack, stateKey) {
@@ -41,6 +66,20 @@ function estimateStateDurationMs(pack, stateKey) {
   }
   const fps = Math.max(1, Number(sf.fps) || 8);
   return Math.round((1000 / fps) * nFiles);
+}
+
+/**
+ * @param {Record<string, unknown>} pack
+ * @param {string} packId
+ * @param {string} mapId
+ */
+function getPackStrictValidation(pack, packId, mapId) {
+  const allowedFramesBasePrefixes = ['/assets/mascots/'];
+  const packPrefix = serverMascotPackAssetsPrefix(packId);
+  if (packPrefix) allowedFramesBasePrefixes.push(packPrefix);
+  const libraryPrefix = serverMascotSpriteLibraryAssetsPrefix(mapId);
+  if (libraryPrefix) allowedFramesBasePrefixes.push(libraryPrefix);
+  return validateMascotPackV1(pack, { allowedFramesBasePrefixes });
 }
 
 /** @param {{ pack: Record<string, unknown> }} props */
@@ -220,11 +259,12 @@ export default function VisitMascotPackManager({
   const [loading, setLoading] = useState(true);
   const [listError, setListError] = useState('');
   const [actionError, setActionError] = useState('');
+  const [actionIssues, setActionIssues] = useState([]);
   const [actionBusy, setActionBusy] = useState(false);
   const [selectedId, setSelectedId] = useState(null);
   /** @type {[Record<string, unknown>, React.Dispatch<React.SetStateAction<Record<string, unknown>>>]} */
   const [editorPack, setEditorPack] = useState({});
-  const [editorTab, setEditorTab] = useState('detail');
+  const [editorTab, setEditorTab] = useState('workspace');
   const [jsonDraft, setJsonDraft] = useState('{}');
   const [jsonError, setJsonError] = useState('');
   const [labelDraft, setLabelDraft] = useState('');
@@ -334,17 +374,37 @@ export default function VisitMascotPackManager({
   }, [loadList]);
 
   useEffect(() => {
-    setEditorTab('detail');
-  }, [selectedId]);
-
-  useEffect(() => {
-    if (editorTab === 'library') {
+    if (editorTab === 'workspace') {
       void loadLibrary();
       void loadGlobalAssets();
     }
   }, [editorTab, loadLibrary, loadGlobalAssets]);
 
   const selectedRow = packs.find((p) => p.id === selectedId);
+  const selectedValidation = useMemo(() => {
+    if (!selectedId) return { ok: false, error: null };
+    return getPackStrictValidation(editorPack, selectedId, String(mapId || '').trim());
+  }, [editorPack, selectedId, mapId]);
+  const editorWarnings = useMemo(() => {
+    const warnings = [];
+    const silhouette = String(editorPack?.fallbackSilhouette || '').trim();
+    if (silhouette && !MASCOT_PACK_FALLBACK_SILHOUETTES.includes(silhouette)) {
+      warnings.push(`Silhouette « ${silhouette} » inconnue.`);
+    }
+    const stateFrames = editorPack?.stateFrames && typeof editorPack.stateFrames === 'object'
+      ? editorPack.stateFrames
+      : {};
+    if (!stateFrames?.idle) {
+      warnings.push('État recommandé manquant: ajoutez un état « idle » pour un fallback visuel fiable.');
+    }
+    return warnings;
+  }, [editorPack]);
+
+  const setActionErrorWithDetails = useCallback((message, details) => {
+    const issues = extractMascotPackValidationIssues(details);
+    setActionError(String(message || 'Action impossible'));
+    setActionIssues(issues);
+  }, []);
 
   useEffect(() => {
     const row = packs.find((p) => p.id === selectedId);
@@ -353,12 +413,14 @@ export default function VisitMascotPackManager({
       setLabelDraft('');
       setJsonDraft('{}');
       setJsonError('');
+      setActionIssues([]);
       return;
     }
     setLabelDraft(String(row.label || '').trim());
     const raw = row.pack && typeof row.pack === 'object' ? row.pack : {};
     setEditorPack(clonePackDeep(raw));
     setJsonError('');
+    setActionIssues([]);
   }, [selectedId, packs]);
 
   const onRefresh = useCallback(async () => {
@@ -374,7 +436,7 @@ export default function VisitMascotPackManager({
     }
     setJsonError('');
     setEditorPack(clonePackDeep(parsed.pack));
-    setEditorTab('detail');
+    setEditorTab('workspace');
   }, [jsonDraft]);
 
   const postNewPack = useCallback(async (bodyExtra = {}) => {
@@ -382,6 +444,7 @@ export default function VisitMascotPackManager({
     if (!mid) return;
     setActionBusy(true);
     setActionError('');
+    setActionIssues([]);
     try {
       const created = await api('/api/visit/mascot-packs', 'POST', { map_id: mid, is_published: 0, ...bodyExtra });
       const newId = created?.id ? String(created.id) : '';
@@ -425,12 +488,13 @@ export default function VisitMascotPackManager({
     const existing = findPackForCatalogModel(mid);
     if (existing?.id) {
       setSelectedId(existing.id);
-      setEditorTab('visual');
+      setEditorTab('workspace');
       setActionError('');
       return;
     }
     setActionBusy(true);
     setActionError('');
+    setActionIssues([]);
     try {
       const midMap = String(mapId || '').trim();
       const created = await api('/api/visit/mascot-packs', 'POST', {
@@ -441,7 +505,7 @@ export default function VisitMascotPackManager({
       const newId = created?.id ? String(created.id) : '';
       if (newId) {
         setSelectedId(newId);
-        setEditorTab('visual');
+        setEditorTab('workspace');
       }
       await onRefresh();
     } catch (e) {
@@ -471,7 +535,16 @@ export default function VisitMascotPackManager({
     }
     setActionBusy(true);
     setActionError('');
+    setActionIssues([]);
     try {
+      const precheck = getPackStrictValidation(editorPack, selectedId, String(mapId || '').trim());
+      if (!precheck.ok) {
+        setActionErrorWithDetails(
+          'Le pack est invalide. Corrigez les champs indiqués avant enregistrement.',
+          precheck.error?.format?.() || precheck.error,
+        );
+        return;
+      }
       const row = packs.find((p) => p.id === selectedId);
       const label = String(labelDraft || '').trim() || String(editorPack.label || '').trim() || 'Pack mascotte';
       await api(`/api/visit/mascot-packs/${encodeURIComponent(selectedId)}`, 'PUT', {
@@ -483,11 +556,11 @@ export default function VisitMascotPackManager({
       await onRefresh();
     } catch (e) {
       if (e instanceof AccountDeletedError) onForceLogout?.();
-      else setActionError(e.message || 'Enregistrement impossible');
+      else setActionErrorWithDetails(e.message || 'Enregistrement impossible', e?.body?.details);
     } finally {
       setActionBusy(false);
     }
-  }, [selectedId, editorPack, packs, mapId, onRefresh, onForceLogout, labelDraft]);
+  }, [selectedId, editorPack, packs, mapId, onRefresh, onForceLogout, labelDraft, setActionErrorWithDetails]);
 
   const onTogglePublish = useCallback(async () => {
     if (!selectedId) return;
@@ -495,7 +568,16 @@ export default function VisitMascotPackManager({
     if (!row) return;
     setActionBusy(true);
     setActionError('');
+    setActionIssues([]);
     try {
+      const precheck = getPackStrictValidation(editorPack, selectedId, String(mapId || '').trim());
+      if (!precheck.ok) {
+        setActionErrorWithDetails(
+          'Publication impossible: pack invalide.',
+          precheck.error?.format?.() || precheck.error,
+        );
+        return;
+      }
       const label = String(labelDraft || '').trim() || String(editorPack.label || '').trim() || 'Pack mascotte';
       await api(`/api/visit/mascot-packs/${encodeURIComponent(selectedId)}`, 'PUT', {
         map_id: String(mapId || '').trim(),
@@ -506,17 +588,18 @@ export default function VisitMascotPackManager({
       await onRefresh();
     } catch (e) {
       if (e instanceof AccountDeletedError) onForceLogout?.();
-      else setActionError(e.message || 'Mise à jour impossible');
+      else setActionErrorWithDetails(e.message || 'Mise à jour impossible', e?.body?.details);
     } finally {
       setActionBusy(false);
     }
-  }, [selectedId, editorPack, packs, mapId, onRefresh, onForceLogout, labelDraft]);
+  }, [selectedId, editorPack, packs, mapId, onRefresh, onForceLogout, labelDraft, setActionErrorWithDetails]);
 
   const onDelete = useCallback(async () => {
     if (!selectedId) return;
     if (!window.confirm('Supprimer définitivement ce pack (y compris les fichiers uploadés) ?')) return;
     setActionBusy(true);
     setActionError('');
+    setActionIssues([]);
     try {
       await api(`/api/visit/mascot-packs/${encodeURIComponent(selectedId)}`, 'DELETE');
       setSelectedId(null);
@@ -623,7 +706,7 @@ export default function VisitMascotPackManager({
     if (!mid) return;
     const prefix = `/api/visit/mascot-sprite-library/${mid}/assets/`;
     setEditorPack((p) => ({ ...p, framesBase: prefix.endsWith('/') ? prefix : `${prefix}/` }));
-    setEditorTab('visual');
+    setEditorTab('workspace');
   }, [mapId]);
 
   const libraryFilteredAssets = useMemo(() => {
@@ -671,7 +754,7 @@ export default function VisitMascotPackManager({
       next.stateFrames = sf;
       return next;
     });
-    setEditorTab('visual');
+    setEditorTab('workspace');
   }, [globalTargetState]);
 
   return (
@@ -827,13 +910,34 @@ export default function VisitMascotPackManager({
             <button type="button" className="btn btn-ghost btn-sm" disabled={actionBusy} onClick={() => void onTogglePublish()}>
               {selectedRow?.is_published ? 'Retirer de la visite publique' : 'Publier sur la visite'}
             </button>
+            {selectedValidation.ok ? (
+              <p className="section-sub" style={{ fontSize: '0.78rem', margin: '2px 0 0' }}>
+                Validation prête pour sauvegarde/publication.
+              </p>
+            ) : (
+              <p className="text-danger" style={{ fontSize: '0.78rem', margin: '2px 0 0' }}>
+                Pack invalide: corrigez les erreurs avant publication.
+              </p>
+            )}
+            {editorWarnings.length > 0 ? (
+              <ul style={{ margin: 0, paddingLeft: 16, fontSize: '0.78rem' }}>
+                {editorWarnings.map((w) => <li key={w}>{w}</li>)}
+              </ul>
+            ) : null}
             <button type="button" className="btn btn-danger btn-sm" disabled={actionBusy} onClick={() => void onDelete()}>
               Supprimer…
             </button>
           </div>
         ) : null}
         {actionError ? (
-          <p className="text-danger" role="alert" style={{ fontSize: '0.82rem', marginTop: 10 }}>{actionError}</p>
+          <div className="text-danger" role="alert" style={{ fontSize: '0.82rem', marginTop: 10 }}>
+            <p style={{ margin: 0 }}>{actionError}</p>
+            {actionIssues.length > 0 ? (
+              <ul style={{ margin: '6px 0 0', paddingLeft: 16 }}>
+                {toMascotPackIssueLines(actionIssues).map((line) => <li key={line}>{line}</li>)}
+              </ul>
+            ) : null}
+          </div>
         ) : null}
       </aside>
       <div style={{ flex: '1 1 420px', minWidth: 300 }}>
@@ -844,8 +948,8 @@ export default function VisitMascotPackManager({
               {' '}<strong>modèle intégré</strong> à gauche puis <strong>Éditer sur cette carte</strong>.
             </p>
             <p style={{ fontSize: '0.82rem', opacity: 0.9, marginBottom: 0 }}>
-              L’onglet <strong>Aperçu mascotte</strong> permet de prévisualiser tous les modèles ; les onglets
-              {' '}<strong>Éditeur visuel</strong>, <strong>JSON</strong> et <strong>Comportements visite</strong>
+              L’onglet <strong>Aperçu global</strong> permet de comparer les modèles ; les onglets
+              {' '}<strong>Édition guidée</strong>, <strong>JSON</strong> et <strong>Comportements visite</strong>
               {' '}modifient uniquement le pack sélectionné dans la colonne de gauche.
             </p>
           </div>
@@ -869,16 +973,18 @@ export default function VisitMascotPackManager({
                 </button>
               ))}
             </div>
-            {editorTab === 'detail' ? <PackBehaviorDetailTable pack={editorPack} /> : null}
-            {editorTab === 'visual' ? (
-              <MascotPackWysiwygEditor
-                pack={editorPack}
-                onPackChange={setEditorPack}
-                packUuid={selectedId}
-                catalogId={selectedRow?.catalog_id || ''}
-                visitMapId={String(mapId || '').trim()}
-                onForceLogout={onForceLogout}
-              />
+            {editorTab === 'workspace' ? <PackBehaviorDetailTable pack={editorPack} /> : null}
+            {editorTab === 'workspace' ? (
+              <div style={{ marginTop: 10 }}>
+                <MascotPackWysiwygEditor
+                  pack={editorPack}
+                  onPackChange={setEditorPack}
+                  packUuid={selectedId}
+                  catalogId={selectedRow?.catalog_id || ''}
+                  visitMapId={String(mapId || '').trim()}
+                  onForceLogout={onForceLogout}
+                />
+              </div>
             ) : null}
             {editorTab === 'json' ? (
               <div className="mascot-pack-json-tab">
@@ -919,7 +1025,7 @@ export default function VisitMascotPackManager({
                 </div>
               </div>
             ) : null}
-            {editorTab === 'library' ? (
+            {editorTab === 'workspace' ? (
               <div>
                 <section style={{ marginBottom: 16 }}>
                   <h3 style={{ marginTop: 0, fontSize: '0.95rem' }}>Bibliothèque de la carte</h3>
@@ -995,7 +1101,7 @@ export default function VisitMascotPackManager({
                         onChange={(e) => setGlobalTargetState(e.target.value)}
                       >
                         {Object.values(VISIT_MASCOT_STATE).map((st) => (
-                          <option key={st} value={st}>{st}</option>
+                          <option key={st} value={st}>{VISIT_STATE_LABELS[st] || st} ({st})</option>
                         ))}
                       </select>
                     </label>
@@ -1137,7 +1243,7 @@ export default function VisitMascotPackManager({
                                     })}
                                   >
                                     {Object.values(VISIT_MASCOT_STATE).map((st) => (
-                                      <option key={st} value={st}>{st}</option>
+                                      <option key={st} value={st}>{VISIT_STATE_LABELS[st] || st} ({st})</option>
                                     ))}
                                   </select>
                                 </label>
