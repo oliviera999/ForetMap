@@ -262,6 +262,7 @@ describe('Auth', () => {
   it('POST /api/auth/login accepte l\'alias canonique admin sans pseudo correspondant', async () => {
     const canonicalLogin = `canon_admin_${Date.now()}`;
     const teacherEmail = `admin_alias_${Date.now()}@example.com`;
+    const teacherPseudo = `other_pseudo_${Date.now()}`;
     const teacherPassword = 'aliasAdminPwd1';
     const previousCanonical = process.env.ADMIN_CANONICAL_LOGIN;
     const previousAdminEmail = process.env.TEACHER_ADMIN_EMAIL;
@@ -275,7 +276,7 @@ describe('Auth', () => {
       `INSERT INTO users
         (id, user_type, legacy_user_id, email, pseudo, first_name, last_name, display_name, description, avatar_path, affiliation, password_hash, auth_provider, is_active, last_seen, created_at, updated_at)
        VALUES (?, 'teacher', NULL, ?, ?, NULL, NULL, ?, NULL, NULL, 'both', ?, 'local', 1, ?, NOW(), NOW())`,
-      [teacherId, teacherEmail, 'other_pseudo', 'Admin Alias', hash, now]
+      [teacherId, teacherEmail, teacherPseudo, 'Admin Alias', hash, now]
     );
     const adminRole = await queryOne("SELECT id FROM roles WHERE slug = 'admin' LIMIT 1");
     assert.ok(adminRole?.id);
@@ -300,11 +301,30 @@ describe('Auth', () => {
   });
 
   it('POST /api/auth/login admin permet les routes élévation sans PIN', async () => {
+    const stamp = Date.now();
+    const teacherEmail = `admin-elev-${stamp}@example.com`;
+    const teacherPassword = 'AdminElevPwd!1';
+    const teacherId = uuidv4();
+    const hash = await bcrypt.hash(teacherPassword, 10);
+    const now = new Date().toISOString();
+    await execute(
+      `INSERT INTO users
+        (id, user_type, legacy_user_id, email, pseudo, first_name, last_name, display_name, description, avatar_path, affiliation, password_hash, auth_provider, is_active, last_seen, created_at, updated_at)
+       VALUES (?, 'teacher', NULL, ?, ?, NULL, NULL, ?, NULL, NULL, 'both', ?, 'local', 1, ?, NOW(), NOW())`,
+      [teacherId, teacherEmail, `admin_elev_${stamp}`, 'Admin Elev', hash, now]
+    );
+    const adminRole = await queryOne("SELECT id FROM roles WHERE slug = 'admin' LIMIT 1");
+    assert.ok(adminRole?.id);
+    await execute(
+      'INSERT INTO user_roles (user_type, user_id, role_id, is_primary) VALUES (?, ?, ?, 1)',
+      ['teacher', teacherId, adminRole.id]
+    );
+
     const res = await request(app)
       .post('/api/auth/login')
       .send({
-        identifier: process.env.TEACHER_ADMIN_EMAIL,
-        password: process.env.TEACHER_ADMIN_PASSWORD,
+        identifier: teacherEmail,
+        password: teacherPassword,
       })
       .expect(200);
     assert.ok(res.body.authToken);
