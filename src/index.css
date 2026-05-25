@@ -5429,6 +5429,51 @@
   color: #6b7280;
   line-height: 1.35;
 }
+.rich-text-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.rich-text-editor-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  align-items: center;
+}
+.rich-text-editor-tool {
+  min-width: 2.2rem;
+  padding: 4px 8px;
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+.rich-text-editor-surface {
+  width: 100%;
+  min-height: 6.45rem;
+  padding: 10px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 10px;
+  background: #fff;
+  overflow: auto;
+}
+.rich-text-editor-surface:focus {
+  outline: 2px solid color-mix(in srgb, var(--leaf, #52b788) 45%, transparent);
+  border-color: var(--leaf, #52b788);
+}
+.rich-text-editor-surface[aria-disabled="true"] {
+  background: #f3f4f6;
+  color: #6b7280;
+  cursor: not-allowed;
+}
+.rich-text-editor-surface:empty::before {
+  content: attr(data-placeholder);
+  color: #6b7280;
+}
+.rich-text-editor-hint {
+  margin: 0;
+  font-size: 0.72rem;
+  color: #6b7280;
+  line-height: 1.35;
+}
 .markdown-content {
   line-height: 1.55;
   word-break: break-word;
@@ -5438,6 +5483,14 @@
 }
 .markdown-content p:last-child {
   margin-bottom: 0;
+}
+.markdown-content h1,
+.markdown-content h2,
+.markdown-content h3,
+.markdown-content h4 {
+  margin: 0.65em 0 0.35em;
+  line-height: 1.25;
+  color: var(--forest, #2d6a4f);
 }
 .markdown-content ul,
 .markdown-content ol {
@@ -5454,6 +5507,18 @@
 .markdown-content strong,
 .markdown-content b {
   font-weight: 700;
+}
+.markdown-content blockquote {
+  margin: 0.65em 0;
+  padding: 0.45em 0.75em;
+  border-left: 3px solid var(--leaf, #52b788);
+  background: color-mix(in srgb, var(--leaf, #52b788) 10%, #fff);
+  border-radius: 0 8px 8px 0;
+}
+.markdown-content hr {
+  border: 0;
+  border-top: 1px solid #d1d5db;
+  margin: 0.85em 0;
 }
 .markdown-content--plain {
   white-space: pre-wrap;
