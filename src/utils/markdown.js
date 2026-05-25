@@ -5,7 +5,24 @@ import { marked } from 'marked';
 import DOMPurify from 'isomorphic-dompurify';
 import { glImageFrameToStyle, parseGlImageFrameAttr, serializeGlImageFrameAttr } from './glImageFrame.js';
 
-const ALLOWED_TAGS = ['p', 'br', 'strong', 'em', 'b', 'i', 'ul', 'ol', 'li', 'a'];
+const ALLOWED_TAGS = [
+  'p',
+  'br',
+  'strong',
+  'em',
+  'b',
+  'i',
+  'ul',
+  'ol',
+  'li',
+  'a',
+  'h1',
+  'h2',
+  'h3',
+  'h4',
+  'blockquote',
+  'hr',
+];
 const ALLOWED_ATTR = ['href', 'rel', 'target', 'title'];
 const ALLOWED_TAGS_WITH_IMAGES = [...ALLOWED_TAGS, 'img'];
 const ALLOWED_ATTR_WITH_IMAGES = [...ALLOWED_ATTR, 'src', 'alt', 'title', 'loading', 'class', 'data-gl-frame', 'style'];
@@ -55,6 +72,15 @@ export function renderMarkdownToSafeHtml(markdown, options = {}) {
   if (!raw) return '';
   const parsed = marked.parse(raw, { async: false });
   const html = typeof parsed === 'string' ? parsed : '';
+  return sanitizeRichHtml(html, options);
+}
+
+/**
+ * @param {string} html
+ * @param {{ allowImages?: boolean }} [options]
+ * @returns {string}
+ */
+export function sanitizeRichHtml(html, options = {}) {
   const allowImages = Boolean(options?.allowImages);
   return DOMPurify.sanitize(html, {
     ALLOWED_TAGS: allowImages ? ALLOWED_TAGS_WITH_IMAGES : ALLOWED_TAGS,

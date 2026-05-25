@@ -1,13 +1,12 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { apiGL } from '../services/apiGL.js';
 import { renderMarkdownToSafeHtml } from '../../utils/markdown.js';
-import { GLMarkdownImageInsert } from './GLMarkdownImageInsert.jsx';
 import { GLBrandPageBanner } from './GLBrandHub.jsx';
 import { GL_CONTENT_PAGE_SLOT_BY_SLUG } from '../hooks/useGLBrandTheme.js';
 import { GLButton } from './ui/GLButton.jsx';
 import { GLField } from './ui/GLField.jsx';
 import { GLInput } from './ui/GLInput.jsx';
-import { GLMarkdownEditor } from './ui/GLMarkdownEditor.jsx';
+import { GLRichTextEditor } from './ui/GLRichTextEditor.jsx';
 import { GLImageFrameHelp } from './GLImageFrameHelp.jsx';
 
 function canManageContent(auth) {
@@ -29,7 +28,6 @@ export function GLContentPage({ slug, fallbackTitle, auth, brandSlots, onSaved, 
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [savedMessage, setSavedMessage] = useState('');
-  const [imageInsertMessage, setImageInsertMessage] = useState('');
   const bodyTextareaRef = useRef(null);
 
   const manageable = canManageContent(auth);
@@ -143,23 +141,13 @@ export function GLContentPage({ slug, fallbackTitle, auth, brandSlots, onSaved, 
           <GLField label="Titre">
             <GLInput value={draftTitle} onChange={(event) => setDraftTitle(event.target.value)} />
           </GLField>
-          <GLMarkdownImageInsert
-            textareaRef={bodyTextareaRef}
-            value={draftBody}
-            onChange={(event) => setDraftBody(event.target.value)}
-            onStatus={(message, isError) => {
-              setImageInsertMessage(message);
-              if (isError) setSaveError(message);
-            }}
-          />
-          {imageInsertMessage ? <p className="gl-info">{imageInsertMessage}</p> : null}
-          <GLField label="Markdown">
-            <GLMarkdownEditor
+          <GLField label="Texte enrichi">
+            <GLRichTextEditor
               ref={bodyTextareaRef}
               value={draftBody}
               onChange={(event) => setDraftBody(event.target.value)}
-              rows={10}
-              hint="Mise en forme légère : gras, listes, liens et images (Markdown)."
+              hint="Mise en forme enrichie : titres, listes, citations, liens et images."
+              imageLegend="Images dans cette page"
             />
           </GLField>
           <GLImageFrameHelp context="markdown" />

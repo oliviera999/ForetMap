@@ -1,9 +1,8 @@
 import React from 'react';
-import DOMPurify from 'isomorphic-dompurify';
-import { marked } from 'marked';
+import { renderMarkdownToSafeHtml } from '../../utils/markdown.js';
 
 export function GLBiocenoseView({ gameState }) {
-  const html = DOMPurify.sanitize(marked.parse(gameState?.game?.biocenose_markdown || 'Biocenose non renseignee.'));
+  const html = renderMarkdownToSafeHtml(gameState?.game?.biocenose_markdown || 'Biocenose non renseignee.', { allowImages: true });
   return (
     <article className="gl-panel gl-markdown gl-animate-in">
       <h2>Biocenose</h2>

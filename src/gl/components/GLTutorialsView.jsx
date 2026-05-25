@@ -1,11 +1,10 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import DOMPurify from 'isomorphic-dompurify';
-import { marked } from 'marked';
 import { apiGL } from '../services/apiGL.js';
+import { renderMarkdownToSafeHtml } from '../../utils/markdown.js';
 import { GLButton } from './ui/GLButton.jsx';
 import { GLField } from './ui/GLField.jsx';
 import { GLInput } from './ui/GLInput.jsx';
-import { GLTextarea } from './ui/GLTextarea.jsx';
+import { GLRichTextEditor } from './ui/GLRichTextEditor.jsx';
 
 export function GLTutorialsView({ canManage }) {
   const [items, setItems] = useState([]);
@@ -99,7 +98,7 @@ export function GLTutorialsView({ canManage }) {
   let html = '';
   if (active?.body_markdown) {
     try {
-      html = DOMPurify.sanitize(marked.parse(active.body_markdown));
+      html = renderMarkdownToSafeHtml(active.body_markdown, { allowImages: true });
     } catch (_) {
       html = '<p>Aperçu indisponible.</p>';
     }
@@ -141,11 +140,11 @@ export function GLTutorialsView({ canManage }) {
           <GLField label="Titre">
             <GLInput value={draft.title} onChange={(event) => setDraft((d) => ({ ...d, title: event.target.value }))} />
           </GLField>
-          <GLField label="Markdown">
-            <GLTextarea
+          <GLField label="Texte enrichi">
+            <GLRichTextEditor
               value={draft.bodyMarkdown}
               onChange={(event) => setDraft((d) => ({ ...d, bodyMarkdown: event.target.value }))}
-              rows={6}
+              imageLegend="Images du tutoriel"
             />
           </GLField>
           <label>

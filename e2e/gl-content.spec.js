@@ -58,7 +58,7 @@ test.describe('Gnomes & Licornes — édition des chapitres (Lot 2B)', () => {
         biome: 'biome e2e',
         mapImageUrl: '/maps/map-foret.svg',
         mapImageFrame: { aspectRatio: '16/9', objectFit: 'contain', focalX: 30, focalY: 70 },
-        storyMarkdown: '# Histoire e2e',
+        storyMarkdown: '# Histoire e2e\n\n<img src="/uploads/media-library/image/2026/01/e2e-inline.jpg" alt="Illustration e2e" class="gl-content-image" data-gl-frame=\'{"ratio":"16:9","radius":10}\' loading="lazy" />',
         biotopeMarkdown: '## Biotope e2e',
         biocenoseMarkdown: '## Biocénose e2e',
         orderIndex: 999,
@@ -81,6 +81,7 @@ test.describe('Gnomes & Licornes — édition des chapitres (Lot 2B)', () => {
     expect(detailBody?.chapter?.slug).toBe(slug);
     expect(detailBody?.chapter?.map_image_frame?.objectFit).toBe('contain');
     expect(detailBody?.chapter?.title).toBe('Chapitre e2e');
+    expect(String(detailBody?.chapter?.story_markdown || '')).toContain('/uploads/media-library/image/2026/01/e2e-inline.jpg');
     expect(Array.isArray(detailBody.markers)).toBe(true);
     expect(detailBody.markers.some((m) => m.label === 'Repère e2e')).toBe(true);
 
