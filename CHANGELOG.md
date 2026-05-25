@@ -28,6 +28,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - **GL — mot de passe oublié** : panneau sur l’écran de connexion (`GLAuthView`) ; `POST /api/gl/auth/forgot-password` et `POST /api/gl/auth/reset-password` (joueur GL ou enseignant MJ/Admin, lien e-mail vers `gl.html#resetType=…`). Module partagé `lib/passwordReset.js`. Tests `tests/gl-auth-forgot-password.test.js`, `tests-ui/gl/GLAuthView.test.jsx` ; `docs/API.md`.
 
 ### Corrigé
+- **ForetMap — médiathèque n3boss** : la suppression refuse désormais les chemins traversants (`media-library/../...`) afin de ne supprimer que des fichiers réellement situés sous `uploads/media-library/`. Tests `tests/media-library.test.js`, `tests/media-library-path.test.js`.
 - **Build GL — cadres d’image partagés** : séparation explicite du cœur `glImageFrame` frontend ESM et backend CommonJS pour corriger le build Vite complet après mutualisation (`npm run build`).
 - **GL — import médias yo** : les images pointant vers `gl.olution.info/wp-content/...` (HTML de l’app Node) sont re-téléchargées depuis `yo.olution.info` avec validation binaire ; journal `médias charte: N/N URL locales` à la fin de l’import brand.
 - **Auth — alias admin `oliviera9`** : le login identifiant+mot de passe accepte l’alias canonique admin même si le pseudo BDD diffère (migration `users`) ; même résolution pour GL staff et script `db:admin:audit` (pose le pseudo canonique si absent). Test `tests/auth.test.js`.
