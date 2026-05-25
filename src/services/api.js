@@ -139,15 +139,37 @@ function decodeJwtPayload(token) {
   }
 }
 
+function readLegacyStudentSnapshot() {
+  try {
+    const raw = safeLocalStorageGetItem(LEGACY_STUDENT_KEY, null);
+    return raw ? JSON.parse(raw) : null;
+  } catch (_) {
+    return null;
+  }
+}
+
+function pickStoredToken(value) {
+  const token = typeof value === 'string' ? value.trim() : '';
+  return token || null;
+}
+
+function getLegacyStudentToken(student = readLegacyStudentSnapshot()) {
+  if (!student || typeof student !== 'object') return null;
+  return pickStoredToken(student.authToken) || pickStoredToken(student.elevationStudentToken);
+}
+
 export function getAuthToken() {
   try {
     const raw = safeLocalStorageGetItem(SESSION_KEY, null);
     if (raw) {
       const parsed = JSON.parse(raw);
-      if (parsed?.token) return parsed.token;
+      const token = pickStoredToken(parsed?.token);
+      if (token) return token;
     }
   } catch (_) {}
-  return safeLocalStorageGetItem('foretmap_auth_token', null) || safeLocalStorageGetItem('foretmap_teacher_token', null);
+  return pickStoredToken(safeLocalStorageGetItem('foretmap_auth_token', null))
+    || getLegacyStudentToken()
+    || pickStoredToken(safeLocalStorageGetItem('foretmap_teacher_token', null));
 }
 
 export function getStoredSession() {
@@ -155,10 +177,10 @@ export function getStoredSession() {
     const raw = safeLocalStorageGetItem(SESSION_KEY, null);
     if (raw) return JSON.parse(raw);
   } catch (_) {}
-  const token = safeLocalStorageGetItem('foretmap_auth_token', null) || safeLocalStorageGetItem('foretmap_teacher_token', null);
-  const studentRaw = safeLocalStorageGetItem(LEGACY_STUDENT_KEY, null);
-  let student = null;
-  try { student = studentRaw ? JSON.parse(studentRaw) : null; } catch (_) {}
+  const student = readLegacyStudentSnapshot();
+  const token = pickStoredToken(safeLocalStorageGetItem('foretmap_auth_token', null))
+    || getLegacyStudentToken(student)
+    || pickStoredToken(safeLocalStorageGetItem('foretmap_teacher_token', null));
   if (!token && !student) return null;
   return {
     token: token || null,
@@ -377,6 +399,9 @@ export async function api(path, method = 'GET', body) {
     }
     const reqId = (typeof res.headers?.get === 'function' && (res.headers.get('X-Request-Id') || res.headers.get('x-request-id'))) || '';
     let errMsg = typeof errBody.error === 'string' && errBody.error.trim() ? errBody.error.trim() : '';
+    if (res.status === 401 && !authToken && /^token requis$/i.test(errMsg)) {
+      errMsg = 'Session locale incomplète : reconnecte-toi pour continuer.';
+    }
     if (!errMsg) {
       if (errBody.parseError) {
         errMsg = normalizeApiErrorMessage(errBody.raw, res.status);
