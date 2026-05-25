@@ -3,6 +3,7 @@
 const express = require('express');
 const { queryAll, queryOne, execute } = require('../../database');
 const { requireGlAuth, requireGlPermission } = require('../../middleware/requireGlAuth');
+const { normalizeOptionalString } = require('../../lib/shared/httpHelpers');
 
 const router = express.Router();
 
@@ -10,12 +11,6 @@ const MIN_TITLE = 3;
 const MAX_TITLE = 200;
 const MIN_BODY = 1;
 const MAX_BODY = 50000;
-
-function normalizeOptionalString(value) {
-  if (value == null) return null;
-  const s = String(value).trim();
-  return s.length > 0 ? s : null;
-}
 
 function normalizeSlug(value) {
   const raw = String(value || '').trim().toLowerCase();

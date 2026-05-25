@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { apiGL } from '../services/apiGL.js';
 import { compressImage, isLikelyImageFile } from '../../utils/image.js';
-import { applyMarkdownHtmlImage } from '../../utils/markdown.js';
+import { insertHtmlImageAtSelection } from '../../shared/markdown/insertImage.js';
 import { MediaLibraryMenu } from '../../components/MediaLibraryMenu.jsx';
 import { GLImageFrameEditor } from './GLImageFrameEditor.jsx';
 import { normalizeGlImageFrame } from '../../utils/glImageFrame.js';
@@ -22,7 +22,7 @@ export function GLMarkdownImageInsert({
     const el = textareaRef?.current;
     const start = el?.selectionStart ?? String(value ?? '').length;
     const end = el?.selectionEnd ?? start;
-    const result = applyMarkdownHtmlImage(String(value ?? ''), start, end, url, alt, frame);
+    const result = insertHtmlImageAtSelection(String(value ?? ''), start, end, url, alt, frame);
     onChange({ target: { value: result.value } });
     requestAnimationFrame(() => {
       if (!el) return;

@@ -13,6 +13,11 @@ const {
   attachPublicImageUrls,
   validateImagesPayload,
 } = require('../lib/userContentImages');
+const {
+  normalizeOptionalString,
+  parsePageQuery,
+  buildInClauseParams,
+} = require('../lib/shared/httpHelpers');
 
 const router = express.Router();
 
@@ -31,35 +36,6 @@ const POST_COOLDOWN_MS = 5_000;
 const DEFAULT_REACTIONS = ['👍', '❤️', '😂', '😮', '😢', '😡', '🔥', '👏'];
 
 const cooldownState = new Map();
-
-function normalizeOptionalString(value) {
-  if (value == null) return null;
-  const s = String(value).trim();
-  return s.length > 0 ? s : null;
-}
-
-function parsePositiveInt(value, fallback) {
-  const parsed = parseInt(value, 10);
-  if (!Number.isFinite(parsed) || parsed < 1) return fallback;
-  return parsed;
-}
-
-function parsePage(req) {
-  const page = parsePositiveInt(req.query?.page, 1);
-  const pageSize = Math.min(MAX_PAGE_SIZE, parsePositiveInt(req.query?.page_size, DEFAULT_PAGE_SIZE));
-  const offset = (page - 1) * pageSize;
-  return { page, pageSize, offset };
-}
-
-function buildInClauseParams(values = []) {
-  if (!Array.isArray(values) || values.length === 0) {
-    return { clause: '(NULL)', params: [] };
-  }
-  return {
-    clause: `(${values.map(() => '?').join(',')})`,
-    params: values,
-  };
-}
 
 function parseReactionEmojiList(rawValue) {
   const raw = String(rawValue || '').trim();
@@ -210,7 +186,10 @@ router.get('/threads', async (req, res) => {
     if (requestedGroupId && Array.isArray(visibleGroupIds) && !visibleGroupIds.includes(requestedGroupId)) {
       return res.status(403).json({ error: 'Groupe hors périmètre' });
     }
-    const { page, pageSize, offset } = parsePage(req);
+    const { page, pageSize, offset } = parsePageQuery(req.query, {
+      defaultPageSize: DEFAULT_PAGE_SIZE,
+      maxPageSize: MAX_PAGE_SIZE,
+    });
     const sqlLimit = Math.max(1, Number(pageSize) || DEFAULT_PAGE_SIZE);
     const sqlOffset = Math.max(0, Number(offset) || 0);
     if (Array.isArray(visibleGroupIds) && !visibleGroupIds.length && !requestedGroupId) {
@@ -333,7 +312,10 @@ router.post('/threads', async (req, res) => {
 router.get('/threads/:id', async (req, res) => {
   try {
     const actor = getActor(req.auth);
-    const { page, pageSize, offset } = parsePage(req);
+    const { page, pageSize, offset } = parsePageQuery(req.query, {
+      defaultPageSize: DEFAULT_PAGE_SIZE,
+      maxPageSize: MAX_PAGE_SIZE,
+    });
     const sqlLimit = Math.max(1, Number(pageSize) || DEFAULT_PAGE_SIZE);
     const sqlOffset = Math.max(0, Number(offset) || 0);
     const thread = await loadThreadThreadSafe(req.params.id);

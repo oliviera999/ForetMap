@@ -31,6 +31,7 @@ import { getContentText } from '../utils/content';
 import { wheelZoomScaleFactor } from '../utils/mapWheelZoom';
 import { buildMapImageCandidates } from '../utils/mapImageCandidates';
 import { mergeDefaultVisitMediaImageBlocks } from '../utils/visitEditorialBlocks.js';
+import { pointToContainedRectPct } from '../shared/pct-map/pctMapPointer.js';
 import {
   taskLocationIds,
   tutorialLocationIds,
@@ -3006,10 +3007,15 @@ function useMapGestures({ mapImageSrc, activeMapId, mode, onRefresh, embedded = 
   const toImagePct = (clientX, clientY) => {
     const c = containerRef.current;
     if (!c) return null;
-    const r = c.getBoundingClientRect();
     const { x, y, s } = tx.current;
     const { w, h } = imgSizeRef.current;
-    return { xp: ((clientX - r.left - x) / s / w) * 100, yp: ((clientY - r.top - y) / s / h) * 100 };
+    return pointToContainedRectPct(
+      { clientX, clientY },
+      c,
+      { x, y, s },
+      { offsetX: 0, offsetY: 0, width: w, height: h },
+      { clamp: false }
+    );
   };
 
   useEffect(() => {

@@ -1,3 +1,8 @@
+import {
+  buildDicebearAvatarUrl,
+  buildUploadedAvatarUrl,
+  normalizeAvatarPath,
+} from '../shared/profile/avatarUrl.js';
 import { withAppBase } from '../services/api';
 
 function studentSeed(student) {
@@ -11,20 +16,19 @@ function studentSeed(student) {
 }
 
 function getDicebearAvatarUrl(student) {
-  const seed = encodeURIComponent(studentSeed(student));
-  return `https://api.dicebear.com/9.x/adventurer-neutral/svg?seed=${seed}&radius=50`;
+  return buildDicebearAvatarUrl(studentSeed(student));
 }
 
 function resolveAvatarPath(student) {
   if (!student) return null;
   const raw = student.avatar_path ?? student.avatarPath ?? null;
-  if (raw == null || String(raw).trim() === '') return null;
-  return String(raw).trim().replace(/^\/+/, '');
+  return normalizeAvatarPath(raw);
 }
 
 function getStudentAvatarUrl(student) {
-  const rel = resolveAvatarPath(student);
-  if (rel) return withAppBase(`/uploads/${rel}`);
+  const uploadedRel = buildUploadedAvatarUrl(resolveAvatarPath(student));
+  const uploadedUrl = uploadedRel ? withAppBase(uploadedRel) : null;
+  if (uploadedUrl) return uploadedUrl;
   return getDicebearAvatarUrl(student);
 }
 

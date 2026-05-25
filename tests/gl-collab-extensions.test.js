@@ -18,6 +18,8 @@ let adminToken = '';
 let playerToken = '';
 let gameId = null;
 let chapterId = null;
+const TINY_PNG =
+  'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO6pJkQAAAAASUVORK5CYII=';
 
 const stamp = Date.now();
 
@@ -72,6 +74,43 @@ test('GL context-comments: crée et liste sur gl_game', async () => {
     .expect(200);
   assert.ok(Array.isArray(list.body?.items));
   assert.ok(list.body.items.some((item) => item.id === created.body.id));
+});
+
+test('GL context-comments: réactions, signalement et image jointe', async () => {
+  const created = await request(app)
+    .post('/api/gl/context-comments')
+    .set('Authorization', `Bearer ${playerToken}`)
+    .send({
+      contextType: 'gl_game',
+      contextId: String(gameId),
+      body: 'Commentaire avec image',
+      images: [TINY_PNG],
+    })
+    .expect(201);
+
+  assert.ok(Array.isArray(created.body?.image_urls));
+  assert.ok(created.body.image_urls.length >= 1);
+
+  await request(app)
+    .post(`/api/gl/context-comments/${created.body.id}/reactions`)
+    .set('Authorization', `Bearer ${playerToken}`)
+    .send({ emoji: '👍' })
+    .expect(200);
+
+  const listed = await request(app)
+    .get(`/api/gl/context-comments?contextType=gl_game&contextId=${gameId}`)
+    .set('Authorization', `Bearer ${playerToken}`)
+    .expect(200);
+  const found = (listed.body?.items || []).find((item) => item.id === created.body.id);
+  assert.ok(found);
+  assert.ok(Array.isArray(found.reactions));
+  assert.ok(found.reactions.some((reaction) => reaction.emoji === '👍'));
+
+  await request(app)
+    .post(`/api/gl/context-comments/${created.body.id}/report`)
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ reason: 'A verifier' })
+    .expect(201);
 });
 
 test('GL context-comments: refuse contextType non GL', async () => {

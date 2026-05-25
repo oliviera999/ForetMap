@@ -180,9 +180,11 @@ Voir `docs/GL_IMAGE_FRAMES.md`.
 
 | Méthode | URL | Body | Permission |
 |--------|-----|------|------------|
-| GET | `/api/gl/context-comments?contextType=&contextId=` | — | Auth GL |
-| POST | `/api/gl/context-comments` | `{ contextType, contextId, body }` | Auth GL |
+| GET | `/api/gl/context-comments?contextType=&contextId=&page=&page_size=` | — | Auth GL |
+| POST | `/api/gl/context-comments` | `{ contextType, contextId, body?, images? }` | Auth GL |
+| POST | `/api/gl/context-comments/:id/reactions` | `{ emoji }` | Auth GL |
 | DELETE | `/api/gl/context-comments/:id` | — | Auteur ou `gl_admin` |
+| POST | `/api/gl/context-comments/:id/report` | `{ reason }` | Auth GL |
 | GET | `/api/gl/forum/threads` | — | Auth GL |
 | POST | `/api/gl/forum/threads` | `{ title, body }` | Auth GL |
 | GET | `/api/gl/forum/threads/:id` | — | Auth GL |
