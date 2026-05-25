@@ -21,6 +21,9 @@ export function MediaLibraryMenu({
   uploadDataUrl,
   removeItem,
   onPickUrl,
+  canUpload = true,
+  canRemove = true,
+  manageHint = '',
 }) {
   const [open, setOpen] = useState(false);
   const [items, setItems] = useState([]);
@@ -91,21 +94,28 @@ export function MediaLibraryMenu({
         <div className="media-library-menu__panel">
           <h4 style={{ marginTop: 0 }}>{title}</h4>
           {error ? <p className="gl-error">{error}</p> : null}
+          {manageHint ? <p className="gl-hint">{manageHint}</p> : null}
           <div className="media-library-menu__actions">
-            <label className="btn btn-secondary btn-sm">
-              📁 Importer
-              <input
-                type="file"
-                accept="image/*,audio/*,video/*"
-                style={{ display: 'none' }}
-                disabled={busy}
-                onChange={(event) => {
-                  const f = event.target.files?.[0];
-                  event.target.value = '';
-                  onUploadFile(f);
-                }}
-              />
-            </label>
+            {canUpload ? (
+              <label className="btn btn-secondary btn-sm">
+                📁 Importer
+                <input
+                  type="file"
+                  accept="image/*,audio/*,video/*"
+                  style={{ display: 'none' }}
+                  disabled={busy}
+                  onChange={(event) => {
+                    const f = event.target.files?.[0];
+                    event.target.value = '';
+                    onUploadFile(f);
+                  }}
+                />
+              </label>
+            ) : (
+              <button type="button" className="btn btn-secondary btn-sm" disabled>
+                📁 Importer
+              </button>
+            )}
             <button type="button" className="btn btn-secondary btn-sm" disabled={busy} onClick={reload}>
               Rafraîchir
             </button>
@@ -124,7 +134,7 @@ export function MediaLibraryMenu({
                   {mediaEmoji(item.mediaType)} <strong>{item.filename}</strong>
                   <span className="gl-hint"> — {item.url}</span>
                 </button>
-                <button type="button" className="gl-danger" onClick={() => onDelete(item)} disabled={busy}>
+                <button type="button" className="gl-danger" onClick={() => onDelete(item)} disabled={busy || !canRemove}>
                   Supprimer
                 </button>
               </li>

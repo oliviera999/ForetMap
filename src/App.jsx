@@ -52,6 +52,7 @@ import { VisitView } from './components/visit-views';
 const VisitMascotPackManagerLazy = lazy(() => import('./components/VisitMascotPackManager.jsx'));
 import { ProfilesAdminView } from './components/profiles-views';
 import { SettingsAdminView } from './components/settings-admin-views';
+import { MediaLibraryView } from './components/media-library-views';
 import { NotificationCenter } from './components/notifications-center';
 import { ForumView } from './components/forum-views';
 import { Tooltip } from './components/Tooltip';
@@ -960,6 +961,7 @@ function App() {
     if (s.forum_participate != null) return Number(s.forum_participate) !== 0;
     return true;
   }, [effectiveIsTeacher, studentForUi]);
+  const canManageMediaLibrary = !!authClaims?.elevated || !!authClaims?.nativePrivileged;
 
   const canParticipateContextComments = useMemo(() => {
     if (effectiveIsTeacher) return true;
@@ -1109,7 +1111,8 @@ function App() {
     if (tab === 'mascot_packs' && publicSettings?.modules?.visit_enabled === false) setTab('map');
     if (tab === 'notebook' && publicSettings?.modules?.observations_enabled === false) setTab('map');
     if (tab === 'forum' && !canAccessForum) setTab('about');
-  }, [tab, publicSettings?.modules?.tutorials_enabled, publicSettings?.modules?.stats_enabled, publicSettings?.modules?.visit_enabled, publicSettings?.modules?.observations_enabled, publicSettings?.modules?.forum_enabled, canAccessForum, canViewGeneralStats]);
+    if (tab === 'media_library' && !effectiveIsTeacher) setTab('about');
+  }, [tab, publicSettings?.modules?.tutorials_enabled, publicSettings?.modules?.stats_enabled, publicSettings?.modules?.visit_enabled, publicSettings?.modules?.observations_enabled, publicSettings?.modules?.forum_enabled, canAccessForum, canViewGeneralStats, effectiveIsTeacher]);
 
   /** Avec une zone/repère au focus, l’onglet Tuto est fusionné avec Tâches (navigation vers la vue Tâches). */
   useEffect(() => {
@@ -1719,6 +1722,9 @@ function App() {
             {publicSettings?.modules?.visit_enabled !== false && (
               <button className={`top-tab ${tab === 'mascot_packs' ? 'active' : ''}`} onClick={() => setTab('mascot_packs')}>🎨 Packs mascotte</button>
             )}
+            <button className={`top-tab ${tab === 'media_library' ? 'active' : ''}`} onClick={() => setTab('media_library')}>
+              🗂️ Médiathèque
+            </button>
             {(
               hasPermissionInRole('admin.roles.manage')
               || hasPermissionInRole('admin.users.assign_roles')
@@ -1881,6 +1887,7 @@ function App() {
                 </div>
               )}
               {tab === 'settings' && <SettingsAdminView isN3Affiliated={isN3Affiliated} />}
+              {tab === 'media_library' && <MediaLibraryView canManage={canManageMediaLibrary} />}
               {tab === 'forum' && canAccessForum && <ForumView authClaims={authClaims} canParticipateForum />}
               {tab === 'about'  && <AboutView appVersion={appVersion} isN3Affiliated={isN3Affiliated} publicSettings={publicSettings} isTeacher={effectiveIsTeacher} />}
             </>

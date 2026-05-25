@@ -454,6 +454,18 @@ Les profils sont entièrement paramétrables ; ce tableau documente les **valeur
 
 ---
 
+## Médiathèque ForetMap
+
+Bibliothèque globale sur disque (`uploads/media-library/`) partagée avec les contenus ForetMap et GL. Les routes ci-dessous refusent les tokens produit GL sur l’API ForetMap standard.
+
+| Méthode | URL | Description | Accès |
+|--------|-----|-------------|-------|
+| GET | `/api/media-library` | Liste les médias (`?limit=` optionnel ; défaut 300, max 800) | `teacher.access` |
+| POST | `/api/media-library` | Upload média (`{ media_data }` data URL base64 image/audio/vidéo) | `teacher.access` + droits étendus |
+| DELETE | `/api/media-library` | Suppression média (`{ relative_path }`, préfixe `media-library/`) | `teacher.access` + droits étendus |
+
+---
+
 ## Paramètres admin (GUI)
 
 Ces routes sont destinées à la console admin et exigent un token avec permissions
