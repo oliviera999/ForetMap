@@ -4,7 +4,7 @@ import {
   NOTIFICATION_LEVEL,
   NOTIFICATION_PREFS_DEFAULTS,
 } from '../constants/notifications';
-import { safeLocalStorageGetItem, safeLocalStorageSetItem } from '../utils/browserStorage.js';
+import { readJsonStorage, writeJsonStorage } from '../shared/notifications/storage.js';
 
 const MAX_ITEMS = 80;
 const KEEP_MS = 7 * 24 * 60 * 60 * 1000;
@@ -29,22 +29,11 @@ function nowIso() {
 }
 
 function safeJsonRead(key, fallback) {
-  try {
-    const raw = safeLocalStorageGetItem(key, null);
-    if (!raw) return fallback;
-    const parsed = JSON.parse(raw);
-    return parsed ?? fallback;
-  } catch {
-    return fallback;
-  }
+  return readJsonStorage(key, fallback);
 }
 
 function safeJsonWrite(key, value) {
-  try {
-    safeLocalStorageSetItem(key, JSON.stringify(value));
-  } catch {
-    // localStorage indisponible/non critique
-  }
+  writeJsonStorage(key, value);
 }
 
 function roleForStorage({ isAdmin, isTeacher }) {

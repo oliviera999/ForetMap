@@ -3,6 +3,7 @@
 const express = require('express');
 const { queryAll, queryOne, execute } = require('../../database');
 const { requireGlAuth } = require('../../middleware/requireGlAuth');
+const { normalizeOptionalString, parsePageQuery } = require('../../lib/shared/httpHelpers');
 
 const router = express.Router();
 
@@ -13,12 +14,6 @@ const MAX_BODY = 4000;
 const DEFAULT_PAGE_SIZE = 20;
 const MAX_PAGE_SIZE = 50;
 
-function normalizeOptionalString(value) {
-  if (value == null) return null;
-  const s = String(value).trim();
-  return s.length > 0 ? s : null;
-}
-
 function canModerate(auth) {
   return String(auth?.userType || '').toLowerCase() === 'gl_admin';
 }
@@ -26,9 +21,10 @@ function canModerate(auth) {
 router.use(requireGlAuth);
 
 router.get('/threads', async (req, res) => {
-  const page = Math.max(1, Number(req.query?.page) || 1);
-  const pageSize = Math.min(MAX_PAGE_SIZE, Math.max(1, Number(req.query?.page_size) || DEFAULT_PAGE_SIZE));
-  const offset = (page - 1) * pageSize;
+  const { page, pageSize, offset } = parsePageQuery(req.query, {
+    defaultPageSize: DEFAULT_PAGE_SIZE,
+    maxPageSize: MAX_PAGE_SIZE,
+  });
   const totalRow = await queryOne('SELECT COUNT(*) AS c FROM gl_forum_threads WHERE is_deleted = 0');
   const total = Number(totalRow?.c || 0);
   const rows = await queryAll(

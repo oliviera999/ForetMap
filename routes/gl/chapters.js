@@ -4,17 +4,12 @@ const { queryOne, queryAll, execute, withTransaction } = require('../../database
 const { requireGlPermission } = require('../../middleware/requireGlAuth');
 const { saveBase64ToDisk, deleteFile } = require('../../lib/uploads');
 const { normalizeGlImageFrame } = require('../../lib/glImageFrame');
+const { normalizeOptionalString } = require('../../lib/shared/httpHelpers');
 
 const router = express.Router();
 
 function normalizeSlug(value) {
   return String(value || '').trim().toLowerCase();
-}
-
-function normalizeOptionalString(value) {
-  if (value == null) return null;
-  const s = String(value).trim();
-  return s.length > 0 ? s : null;
 }
 
 function clampPercent(value) {

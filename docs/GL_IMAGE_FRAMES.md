@@ -11,7 +11,7 @@ Uniformiser le recadrage et les dimensions des images GL avec un modèle partag�
 
 ## Modèle partagé
 
-Module : `src/utils/glImageFrame.js` (miroir backend : `lib/glImageFrame.js`).
+Module : `lib/shared/glImageFrameCore.js` (source canonique partagée backend/frontend via `lib/glImageFrame.js` et `src/utils/glImageFrame.js`).
 
 ```js
 {

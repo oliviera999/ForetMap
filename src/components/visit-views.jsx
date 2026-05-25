@@ -38,6 +38,7 @@ import {
   safeVisitProgressPayload,
 } from '../utils/visitProgressClient.js';
 import { wheelZoomScaleFactor } from '../utils/mapWheelZoom';
+import { pointToContainedRectPct } from '../shared/pct-map/pctMapPointer.js';
 import VisitMapMascotRenderer from './VisitMapMascotRenderer.jsx';
 
 /** Diagramme circulaire de progression visite (viewBox carré, cercle centré). */
@@ -180,25 +181,7 @@ function visitZoneSvgTextUniformYTransform(cx, cy, fitW, fitH) {
 }
 
 function pointToPct(event, stageEl, transform = { x: 0, y: 0, s: 1 }, fit = null) {
-  const rect = stageEl.getBoundingClientRect();
-  if (!rect.width || !rect.height) return null;
-  const scale = Number(transform?.s) > 0 ? Number(transform.s) : 1;
-  const tx = Number(transform?.x) || 0;
-  const ty = Number(transform?.y) || 0;
-  const u = (event.clientX - rect.left - tx) / scale;
-  const v = (event.clientY - rect.top - ty) / scale;
-  /* u,v sont en px dans le repère du « monde » (même largeur/hauteur que la scène, avant scale écran). */
-  const fw = fit && fit.width > 0 ? fit.width : rect.width;
-  const fh = fit && fit.height > 0 ? fit.height : rect.height;
-  const fox = fit && fit.width > 0 ? fit.offsetX : 0;
-  const foy = fit && fit.height > 0 ? fit.offsetY : 0;
-  const xp = ((u - fox) / fw) * 100;
-  const yp = ((v - foy) / fh) * 100;
-  if (!Number.isFinite(xp) || !Number.isFinite(yp)) return null;
-  return {
-    xp: Math.max(0, Math.min(100, Number(xp.toFixed(2)))),
-    yp: Math.max(0, Math.min(100, Number(yp.toFixed(2)))),
-  };
+  return pointToContainedRectPct(event, stageEl, transform, fit, { clamp: true, decimals: 2 });
 }
 
 function clampVisitMascotPctForViewport(xp, yp, fitHeightPx = 0) {

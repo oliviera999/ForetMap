@@ -1,25 +1,16 @@
 import { useCallback, useEffect, useState } from 'react';
+import { readJsonStorage, writeJsonStorage } from '../../shared/notifications/storage.js';
 
 const STORAGE_KEY = 'gl_notifications';
 const MAX_NOTIFICATIONS = 50;
 
 function safeRead() {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : [];
-  } catch (_) {
-    return [];
-  }
+  const parsed = readJsonStorage(STORAGE_KEY, []);
+  return Array.isArray(parsed) ? parsed : [];
 }
 
 function safeWrite(items) {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
-  } catch (_) {
-    // noop
-  }
+  writeJsonStorage(STORAGE_KEY, items);
 }
 
 export function useGLNotificationCenter() {
