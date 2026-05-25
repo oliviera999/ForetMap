@@ -3675,6 +3675,7 @@ function MapView({ zones, markers, tasks = [], tutorials = [], plants, maps = []
   const { s: cs } = committed;
   const { w: iw, h: ih } = imgSize;
   const inv = 1 / cs;
+  const mapMascotFitScale = Math.max(1, inv);
   const mapSettings =
     publicSettings?.map && typeof publicSettings.map === 'object' ? publicSettings.map : null;
   const {
@@ -4228,7 +4229,7 @@ function MapView({ zones, markers, tasks = [], tutorials = [], plants, maps = []
               <div
                 className="visit-map-mascot-inner"
                 style={{
-                  transform: `translate(-50%, -100%) scaleX(${mapMascotFaceRight ? 1 : -1})`,
+                  transform: `translate(-50%, -100%) scale(${mapMascotFitScale}) scaleX(${mapMascotFaceRight ? 1 : -1})`,
                   '--visit-mascot-dialog-x': mapMascotFaceRight ? 1 : -1,
                 }}
               >

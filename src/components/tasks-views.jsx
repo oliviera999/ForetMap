@@ -169,6 +169,15 @@ function initialLocationIds(editTask, keyMulti, keySingle) {
   return one ? [String(one).trim()].filter(Boolean) : [];
 }
 
+function initialLinkedObjectIds(editTask, linkedKey) {
+  if (!editTask) return [];
+  const linked = editTask[linkedKey];
+  if (!Array.isArray(linked) || !linked.length) return [];
+  return [...new Set(linked
+    .map((entry) => String(entry?.id || '').trim())
+    .filter(Boolean))];
+}
+
 function normalizeTutorialIds(ids) {
   if (!Array.isArray(ids)) return [];
   const unique = new Set();
@@ -259,17 +268,25 @@ function TaskFormModal({
   const initialMapId = editTask
     ? (editTask.map_id_resolved || editTask.map_id || editTask.zone_map_id || editTask.marker_map_id || null)
     : (defaultProjectForNew?.map_id || activeMapId);
+  const initialZoneIds = (() => {
+    const ids = initialLocationIds(editTask, 'zone_ids', 'zone_id');
+    return ids.length ? ids : initialLinkedObjectIds(editTask, 'zones_linked');
+  })();
+  const initialMarkerIds = (() => {
+    const ids = initialLocationIds(editTask, 'marker_ids', 'marker_id');
+    return ids.length ? ids : initialLinkedObjectIds(editTask, 'markers_linked');
+  })();
   const [form, setForm] = useState(editTask ? {
     title: isDuplicate ? `${editTask.title} (copie)` : editTask.title, description: editTask.description || '',
     map_id: initialMapId || '',
-    zone_ids: initialLocationIds(editTask, 'zone_ids', 'zone_id'),
-    marker_ids: initialLocationIds(editTask, 'marker_ids', 'marker_id'),
+    zone_ids: initialZoneIds,
+    marker_ids: initialMarkerIds,
     tutorial_ids: normalizeTutorialIds(initialLocationIds(editTask, 'tutorial_ids', 'tutorial_id')),
     referent_user_ids: editTask && Array.isArray(editTask.referent_user_ids)
       ? [...new Set(editTask.referent_user_ids.map((id) => String(id || '').trim()).filter(Boolean))]
       : [],
     project_id: editTask.project_id || '',
-    start_date: editTask.start_date || '',
+    start_date: isDuplicate ? currentLocalDateOnly() : (editTask.start_date || ''),
     due_date: editTask.due_date || '',
     required_students: editTask.required_students || 1,
     completion_mode: getCompletionMode(editTask),
