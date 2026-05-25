@@ -11,7 +11,7 @@ Uniformiser le recadrage et les dimensions des images GL avec un modèle partag�
 
 ## Modèle partagé
 
-Module : `lib/shared/glImageFrameCore.js` (source canonique partagée backend/frontend via `lib/glImageFrame.js` et `src/utils/glImageFrame.js`).
+Modules : `lib/shared/glImageFrameCore.js` (backend CommonJS) et `src/shared/image-frame/glImageFrameCore.js` (frontend ESM), vérifiés par test de parité. Les points d’entrée restent `lib/glImageFrame.js` côté API Express et `src/utils/glImageFrame.js` côté UI.
 
 ```js
 {

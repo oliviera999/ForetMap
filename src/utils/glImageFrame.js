@@ -1,9 +1,8 @@
-import glImageFrameCore from '../../lib/shared/glImageFrameCore.js';
-
-const {
+import {
   getGlImageFrameDefaults,
   normalizeGlImageFrame,
-} = glImageFrameCore;
+  parseGlImageFrameAttr,
+} from '../shared/image-frame/glImageFrameCore.js';
 
 export { getGlImageFrameDefaults, normalizeGlImageFrame };
 
@@ -23,7 +22,7 @@ export function serializeGlImageFrameAttr(frame, context = 'default') {
   return JSON.stringify(normalizeGlImageFrame(frame, context));
 }
 
-export const parseGlImageFrameAttr = glImageFrameCore.parseGlImageFrameAttr;
+export { parseGlImageFrameAttr };
 
 function normalizeCrop(rawCrop) {
   return normalizeGlImageFrame({ crop: rawCrop }, 'default').crop;
