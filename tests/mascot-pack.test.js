@@ -181,3 +181,25 @@ test('mascotPackEditorModel : parse, stringify, ensureServerFramesBase', async (
   c.nested.y = 99;
   assert.equal(src.nested.y, 2);
 });
+
+test('mascotPackValidationUi extrait des erreurs lisibles depuis format() Zod', async () => {
+  const { validateMascotPackV1 } = await loadMascotPack();
+  const { extractMascotPackValidationIssues, toMascotPackIssueLines } = await import('../src/utils/mascotPackValidationUi.js');
+  const invalid = validateMascotPackV1({
+    mascotPackVersion: 1,
+    id: 'bad-ui',
+    label: 'UI',
+    renderer: 'sprite_cut',
+    framesBase: '/assets/mascots/bad-ui/frames/',
+    frameWidth: 16,
+    frameHeight: 16,
+    fallbackSilhouette: 'gnome',
+    stateFrames: { idle: {} },
+  }, { relaxAssetPrefix: false });
+  assert.equal(invalid.ok, false);
+  const issues = extractMascotPackValidationIssues(invalid.error.format());
+  assert.ok(Array.isArray(issues));
+  assert.ok(issues.some((it) => it.path.includes('stateFrames.idle')));
+  const lines = toMascotPackIssueLines(issues);
+  assert.ok(lines.length > 0);
+});

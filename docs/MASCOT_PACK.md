@@ -70,7 +70,7 @@ Puis importer ce manifeste dans le catalogue et appeler `expandMascotPackToSprit
 
 ### Option B — stockage serveur (MySQL + GUI prof)
 
-1. **Onglet prof « Packs mascotte »** (barre du haut) : studio — liste, brouillon, duplication (pack ou modèle catalogue), fiche comportements, **éditeur visuel (WYSIWYG)**, JSON, **bibliothèque sprites** par carte, inventaire **`GET /api/visit/mascot-assets`** (recherche / copie d’URL / insertion dans un état via **`srcs`**), **profil d’interaction** (v2), **aperçu mascotte**, publication (API **`visit.manage`** + élévation PIN). L’onglet **Visite** propose un lien vers ce studio.
+1. **Onglet prof « Packs mascotte »** (barre du haut) : studio — liste, brouillon, duplication (pack ou modèle catalogue), onglet **Édition guidée** (fiche comportements + éditeur visuel WYSIWYG + bibliothèque sprites + inventaire **`GET /api/visit/mascot-assets`**), onglet JSON, profil d’interaction (v2), aperçu global, publication (API **`visit.manage`** + élévation PIN). L’éditeur applique une **validation automatique** (retour inline) et la sauvegarde/publication effectue une **pré-validation stricte** alignée serveur (préfixes `framesBase`).
 2. Les packs **publiés** sont renvoyés dans **`GET /api/visit/content`** (`mascot_packs`) et fusionnés au sélecteur mascotte pour cette carte (identifiant runtime = **`catalog_id`**, préfixe `srv-…`).
 3. Médiathèque : **`GET /api/visit/mascot-packs/:id/assets`** (liste des PNG), **`POST …/assets`**, **`DELETE …/assets/:filename`** ; `framesBase` = **`/api/visit/mascot-packs/{id}/assets/`** — voir **`docs/API.md`**.
 

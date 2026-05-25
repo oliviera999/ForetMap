@@ -9,6 +9,7 @@ const { seedVisitMascotContent, cleanupVisitMascotContent } = require('./fixture
 
 const VISIT_MAP_MASCOT_MOVE_MS = 560;
 const N3_ENTRANCE_Y_OFFSET = 5.5;
+const TINY_PNG_B64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO5qXg8AAAAASUVORK5CYII=';
 
 function parseStylePct(value) {
   if (value == null || value === '') return NaN;
@@ -243,8 +244,8 @@ test.describe.serial('mascotte visite (sélecteur prof)', () => {
       await page.getByRole('button', { name: /Packs mascotte/i }).click();
       await expect(page.locator('.visit-mascot-pack-manager')).toBeVisible({ timeout: 20_000 });
       await page.getByRole('button', { name: 'Nouveau brouillon' }).click();
-      await expect(page.getByRole('tab', { name: 'Fiche comportements' })).toBeVisible({ timeout: 30_000 });
-      await page.getByRole('tab', { name: 'Aperçu mascotte' }).click();
+      await expect(page.getByRole('tab', { name: 'Édition guidée' })).toBeVisible({ timeout: 30_000 });
+      await page.getByRole('tab', { name: 'Aperçu global' }).click();
     };
     await openStudioPreview();
     const picker = page.locator('.visit-mascot-pack-manager .visit-mascot-picker select');
@@ -354,5 +355,67 @@ test.describe('pack mascotte serveur (GUI)', () => {
     await page.getByRole('button', { name: /Packs mascotte/i }).click();
     await expect(page.locator('.visit-mascot-pack-manager')).toBeVisible({ timeout: 20_000 });
     await expect(page.getByRole('heading', { name: 'Packs mascotte (visite)' })).toBeVisible();
+  });
+
+  test('brouillon mascotte: upload + assignation + save + publish + usage en visite', async ({ page }) => {
+    await loginAsNewStudent(page);
+    await dismissProfilePromotionModalIfPresent(page);
+    await enableTeacherMode(page);
+    await seedVisitMascotContent(page);
+
+    await page.getByRole('button', { name: /Packs mascotte/i }).click();
+    await expect(page.locator('.visit-mascot-pack-manager')).toBeVisible({ timeout: 20_000 });
+    await page.getByRole('button', { name: 'Nouveau brouillon' }).click();
+
+    const selectedPackBtn = page.locator('.visit-mascot-pack-manager aside button[aria-label^="Ouvrir le pack"][aria-pressed="true"]').first();
+    await expect(selectedPackBtn).toBeVisible({ timeout: 20_000 });
+    const packLabel = `Pack e2e ${Date.now()}`;
+    await page.getByPlaceholder('Nom du pack').fill(packLabel);
+
+    const uploadInput = page.locator('.mascot-pack-wysiwyg__library input[type="file"]').first();
+    await uploadInput.setInputFiles({
+      name: `idle-${Date.now()}.png`,
+      mimeType: 'image/png',
+      buffer: Buffer.from(TINY_PNG_B64, 'base64'),
+    });
+    const mediaThumb = page.locator('.mascot-pack-wysiwyg__asset-thumb').first();
+    await expect(mediaThumb).toBeVisible({ timeout: 15_000 });
+    await mediaThumb.click();
+
+    await page.getByRole('button', { name: 'Enregistrer sur le serveur' }).click();
+    await page.getByRole('button', { name: 'Publier sur la visite' }).click();
+    await expect(selectedPackBtn).toContainText('Publié', { timeout: 20_000 });
+
+    const contentByMap = {};
+    for (const mapId of ['foret', 'n3']) {
+      const res = await page.request.get(`/api/visit/content?map_id=${mapId}`);
+      expect(res.ok()).toBeTruthy();
+      contentByMap[mapId] = await res.json();
+    }
+    const allPublished = ['foret', 'n3']
+      .flatMap((mapId) => (Array.isArray(contentByMap[mapId]?.mascot_packs) ? contentByMap[mapId].mascot_packs : []));
+    const publishedPack = allPublished.find((p) => p.label === packLabel);
+    expect(!!publishedPack).toBeTruthy();
+    const catalogId = String(publishedPack?.catalog_id || '');
+    expect(catalogId.startsWith('srv-')).toBeTruthy();
+
+    await page.getByRole('tab', { name: 'Aperçu global' }).click();
+    const studioPicker = page.locator('.visit-mascot-pack-manager .visit-mascot-picker select').first();
+    await expect(studioPicker).toBeVisible({ timeout: 20_000 });
+    await studioPicker.selectOption(catalogId);
+    await expect
+      .poll(async () => page.locator('.visit-mascot-pack-manager .visit-mascot-preview-body [data-mascot-id]').first().getAttribute('data-mascot-id'))
+      .toBe(catalogId);
+
+    await page.getByRole('button', { name: /^🧭 Visite$/ }).click();
+    const visitPicker = page.locator('.visit-view .visit-mascot-picker select').first();
+    await expect(visitPicker).toBeVisible({ timeout: 20_000 });
+    const visitOptionCount = await visitPicker.locator(`option[value="${catalogId}"]`).count();
+    if (visitOptionCount > 0) {
+      await visitPicker.selectOption(catalogId);
+      await expect
+        .poll(async () => page.locator('.visit-map-stage [data-mascot-id]').first().getAttribute('data-mascot-id'))
+        .toBe(catalogId);
+    }
   });
 });
