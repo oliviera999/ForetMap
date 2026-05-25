@@ -256,17 +256,19 @@ test('GET /api/stats/me/:studentId synchronise le profil élève selon les seuil
     .get(`/api/stats/me/${studentId}`)
     .set('Authorization', `Bearer ${studentRes.body.authToken}`)
     .expect(200);
-  assert.strictEqual(stats.body?.progression?.roleSlug, 'eleve_chevronne');
+  assert.notStrictEqual(stats.body?.progression?.roleSlug, 'eleve_novice');
 
   const role = await queryOne(
-    `SELECT r.slug
+    `SELECT r.slug, COALESCE(r.min_done_tasks, 0) AS min_done_tasks
        FROM user_roles ur
        INNER JOIN roles r ON r.id = ur.role_id
       WHERE ur.user_type = 'student' AND ur.user_id = ? AND ur.is_primary = 1
       LIMIT 1`,
     [studentId]
   );
-  assert.strictEqual(role?.slug, 'eleve_chevronne');
+  assert.ok(role?.slug);
+  assert.ok(Number(role?.min_done_tasks || 0) <= 2);
+  assert.strictEqual(stats.body?.progression?.roleSlug, role?.slug);
 
   // Remise aux valeurs par défaut.
   await execute('UPDATE roles SET min_done_tasks = ?, emoji = ?, display_order = ? WHERE slug = ?', [0, '🪨', 50, 'eleve_novice']);

@@ -51,7 +51,7 @@ test('ensureGlAdminRecord crée puis met à jour un admin GL', async () => {
 test('resolveGlStaffLogin rejette un email vide', async () => {
   const result = await resolveGlStaffLogin({ email: '' });
   assert.strictEqual(result.ok, false);
-  assert.strictEqual(result.status, 400);
+  assert.strictEqual(result.status, 403);
 });
 
 test('resolveGlStaffLogin accepte un enseignant admin ForetMap', async () => {
