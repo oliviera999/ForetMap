@@ -330,6 +330,7 @@ router.get('/me', requireAuth, async (req, res) => {
             tp.actorUserType = claims.actorUserType;
             tp.actorUserId = claims.actorUserId;
             tp.actorCanonicalUserId = claims.actorCanonicalUserId || null;
+            tp.actorElevated = !!claims.actorElevated;
           }
           body.refreshedToken = await signAuthToken(tp, !!claims.elevated);
           body.auth = exposeAuth({
@@ -1085,8 +1086,9 @@ router.post('/admin/impersonate', requirePermission('admin.impersonate'), async 
     if (claims.impersonating) {
       return res.status(400).json({ error: 'Quittez d’abord la prise de contrôle en cours' });
     }
-    const elevated = !!claims.elevated;
-    const session = await buildSessionPayload(targetUserType, targetUserId, elevated);
+    const actorElevated = !!claims.elevated;
+    // La cible doit rester dans son niveau natif (pas d'élévation héritée de l'admin).
+    const session = await buildSessionPayload(targetUserType, targetUserId, false);
     if (!session) return res.status(403).json({ error: 'Aucun profil attribué pour ce compte' });
 
     const actorCanonical = await ensureCanonicalUserByAuth({ userType: req.auth.userType, userId: req.auth.userId });
@@ -1096,8 +1098,9 @@ router.post('/admin/impersonate', requirePermission('admin.impersonate'), async 
       actorUserType: req.auth.userType,
       actorUserId: req.auth.userId,
       actorCanonicalUserId: actorCanonical || null,
+      actorElevated,
     };
-    const token = await signAuthToken(tokenPayload, elevated);
+    const token = await signAuthToken(tokenPayload, false);
     let hydrated;
     try {
       hydrated = await hydrateAuthFromTokenClaims(jwt.verify(token, JWT_SECRET));
@@ -1143,9 +1146,10 @@ router.post('/admin/impersonate/stop', requireAuth, async (req, res) => {
     if (!actorAuthz || !actorAuthz.permissions?.includes('admin.impersonate')) {
       return res.status(403).json({ error: 'Permission de reprise refusée' });
     }
-    const session = await buildSessionPayload(actor.userType, actor.userId, !!claims.elevated);
+    const actorElevated = claims.actorElevated == null ? !!claims.elevated : !!claims.actorElevated;
+    const session = await buildSessionPayload(actor.userType, actor.userId, actorElevated);
     if (!session) return res.status(403).json({ error: 'Session administrateur introuvable' });
-    const token = await signAuthToken(session.tokenPayload, !!claims.elevated);
+    const token = await signAuthToken(session.tokenPayload, actorElevated);
     let hydrated;
     try {
       hydrated = await hydrateAuthFromTokenClaims(jwt.verify(token, JWT_SECRET));

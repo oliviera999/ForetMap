@@ -18,6 +18,7 @@ import { getVisitMascotCatalog } from '../utils/visitMascotCatalog.js';
 import { VISIT_MASCOT_STATE } from '../utils/visitMascotState.js';
 import {
   extractMascotPackValidationIssues,
+  sanitizeMascotPackDraft,
   toMascotPackIssueLines,
 } from '../utils/mascotPackValidationUi.js';
 import {
@@ -383,7 +384,7 @@ export default function VisitMascotPackManager({
   const selectedRow = packs.find((p) => p.id === selectedId);
   const selectedValidation = useMemo(() => {
     if (!selectedId) return { ok: false, error: null };
-    return getPackStrictValidation(editorPack, selectedId, String(mapId || '').trim());
+    return getPackStrictValidation(sanitizeMascotPackDraft(editorPack), selectedId, String(mapId || '').trim());
   }, [editorPack, selectedId, mapId]);
   const editorWarnings = useMemo(() => {
     const warnings = [];
@@ -537,7 +538,8 @@ export default function VisitMascotPackManager({
     setActionError('');
     setActionIssues([]);
     try {
-      const precheck = getPackStrictValidation(editorPack, selectedId, String(mapId || '').trim());
+      const cleanedPack = sanitizeMascotPackDraft(editorPack);
+      const precheck = getPackStrictValidation(cleanedPack, selectedId, String(mapId || '').trim());
       if (!precheck.ok) {
         setActionErrorWithDetails(
           'Le pack est invalide. Corrigez les champs indiqués avant enregistrement.',
@@ -550,9 +552,10 @@ export default function VisitMascotPackManager({
       await api(`/api/visit/mascot-packs/${encodeURIComponent(selectedId)}`, 'PUT', {
         map_id: String(mapId || '').trim(),
         label,
-        pack: editorPack,
+        pack: cleanedPack,
         is_published: row?.is_published ? 1 : 0,
       });
+      setEditorPack(cleanedPack);
       await onRefresh();
     } catch (e) {
       if (e instanceof AccountDeletedError) onForceLogout?.();
@@ -570,7 +573,8 @@ export default function VisitMascotPackManager({
     setActionError('');
     setActionIssues([]);
     try {
-      const precheck = getPackStrictValidation(editorPack, selectedId, String(mapId || '').trim());
+      const cleanedPack = sanitizeMascotPackDraft(editorPack);
+      const precheck = getPackStrictValidation(cleanedPack, selectedId, String(mapId || '').trim());
       if (!precheck.ok) {
         setActionErrorWithDetails(
           'Publication impossible: pack invalide.',
@@ -582,9 +586,10 @@ export default function VisitMascotPackManager({
       await api(`/api/visit/mascot-packs/${encodeURIComponent(selectedId)}`, 'PUT', {
         map_id: String(mapId || '').trim(),
         label,
-        pack: editorPack,
+        pack: cleanedPack,
         is_published: row.is_published ? 0 : 1,
       });
+      setEditorPack(cleanedPack);
       await onRefresh();
     } catch (e) {
       if (e instanceof AccountDeletedError) onForceLogout?.();

@@ -134,6 +134,7 @@ test('POST /api/auth/admin/impersonate puis stop restaure l’admin', async () =
     .expect(200);
   assert.strictEqual(meStudent.body.auth.userType, 'student');
   assert.strictEqual(meStudent.body.auth.impersonating, true);
+  assert.strictEqual(!!meStudent.body.auth.elevated, false);
 
   const stop = await request(app)
     .post('/api/auth/admin/impersonate/stop')
@@ -146,6 +147,54 @@ test('POST /api/auth/admin/impersonate puis stop restaure l’admin', async () =
     .expect(200);
   assert.strictEqual(meAdmin.body.auth.userType, 'teacher');
   assert.ok(!meAdmin.body.auth.impersonating);
+  assert.strictEqual(!!meAdmin.body.auth.elevated, false);
+});
+
+test('Impersonation: une élévation admin ne se propage pas à la cible et revient après stop', async () => {
+  const adminToken = await getAdminAuthToken();
+  const elevated = await request(app)
+    .post('/api/auth/teacher')
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ pin: process.env.TEACHER_PIN || '1234' })
+    .expect(200);
+  assert.ok(elevated.body?.token);
+
+  const reg = await request(app)
+    .post('/api/auth/register')
+    .send({ firstName: 'ImpE', lastName: `Lvl${Date.now()}`, password: 'pass1234' })
+    .expect(201);
+
+  const imp = await request(app)
+    .post('/api/auth/admin/impersonate')
+    .set('Authorization', `Bearer ${elevated.body.token}`)
+    .send({ userType: 'student', userId: reg.body.id })
+    .expect(200);
+
+  const meAsStudent = await request(app)
+    .get('/api/auth/me')
+    .set('Authorization', `Bearer ${imp.body.authToken}`)
+    .expect(200);
+  assert.strictEqual(meAsStudent.body?.auth?.userType, 'student');
+  assert.strictEqual(meAsStudent.body?.auth?.impersonating, true);
+  assert.strictEqual(!!meAsStudent.body?.auth?.elevated, false);
+
+  await request(app)
+    .get('/api/stats/all')
+    .set('Authorization', `Bearer ${imp.body.authToken}`)
+    .expect(403);
+
+  const stop = await request(app)
+    .post('/api/auth/admin/impersonate/stop')
+    .set('Authorization', `Bearer ${imp.body.authToken}`)
+    .expect(200);
+  assert.ok(stop.body?.authToken);
+
+  const meBackAsAdmin = await request(app)
+    .get('/api/auth/me')
+    .set('Authorization', `Bearer ${stop.body.authToken}`)
+    .expect(200);
+  assert.strictEqual(meBackAsAdmin.body?.auth?.userType, 'teacher');
+  assert.strictEqual(!!meBackAsAdmin.body?.auth?.elevated, true);
 });
 
 test('GET /api/stats/me/:studentId autorise le propriétaire connecté', async () => {

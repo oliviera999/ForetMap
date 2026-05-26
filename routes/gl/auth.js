@@ -3,6 +3,7 @@ const bcrypt = require('bcryptjs');
 const { queryOne, execute } = require('../../database');
 const { signAuthToken } = require('../../middleware/requireTeacher');
 const { requireGlAuth } = require('../../middleware/requireGlAuth');
+const { logAudit, logSecurityEvent } = require('../audit');
 const {
   resolveGlStaffLogin,
   buildGlAdminClaims,
@@ -79,7 +80,7 @@ async function signGlToken(payload) {
 }
 
 function exposeGlAuth(claims) {
-  return {
+  const auth = {
     product: 'gl',
     userType: claims.userType,
     userId: claims.userId,
@@ -90,6 +91,15 @@ function exposeGlAuth(claims) {
     permissions: claims.permissions || [],
     passwordMustReset: !!claims.passwordMustReset,
   };
+  if (claims.impersonating && claims.actorUserType && claims.actorUserId != null) {
+    auth.impersonating = true;
+    auth.impersonatedBy = {
+      userType: String(claims.actorUserType),
+      userId: String(claims.actorUserId),
+      roleSlug: String(claims.actorRoleSlug || ''),
+    };
+  }
+  return auth;
 }
 
 function buildGoogleConfig(req) {
@@ -255,6 +265,10 @@ async function issueGlStaffSession(admin, glRole) {
   };
   const token = await signGlToken(claims);
   return { authToken: token, auth: exposeGlAuth(claims) };
+}
+
+function isStrictGlAdmin(auth) {
+  return auth?.userType === 'gl_admin' && auth?.roleSlug === 'gl_admin';
 }
 
 async function completeGlGoogleOAuth({ cfg, payload, mode }) {
@@ -715,6 +729,142 @@ router.get('/me', requireGlAuth, async (req, res) => {
       ? { ...admin, linkedForetmapUser: linkedForetmapUser || null }
       : null,
   });
+});
+
+router.post('/admin/impersonate', requireGlAuth, async (req, res) => {
+  try {
+    if (!isStrictGlAdmin(req.glAuth)) {
+      return res.status(403).json({ error: 'Action réservée aux administrateurs GL' });
+    }
+    if (req.glAuth.impersonating) {
+      return res.status(400).json({ error: 'Quittez d’abord la prise de contrôle en cours' });
+    }
+
+    const targetUserType = String(req.body?.userType || '').trim().toLowerCase();
+    const targetUserId = String(req.body?.userId || '').trim();
+    if (targetUserType !== 'gl_player') {
+      return res.status(400).json({ error: 'Type utilisateur invalide (gl_player uniquement)' });
+    }
+    if (!targetUserId) {
+      return res.status(400).json({ error: 'Identifiant utilisateur requis' });
+    }
+    if (targetUserId === String(req.glAuth.userId)) {
+      return res.status(400).json({ error: 'Impossible de prendre le contrôle de votre propre compte' });
+    }
+
+    const actorAdmin = await queryOne(
+      `SELECT id, email, display_name, role, is_active
+         FROM gl_admins
+        WHERE id = ?
+        LIMIT 1`,
+      [req.glAuth.userId]
+    );
+    if (!actorAdmin || !Number(actorAdmin.is_active) || String(actorAdmin.role || '').toLowerCase() !== 'admin') {
+      return res.status(403).json({ error: 'Compte administrateur GL invalide ou inactif' });
+    }
+
+    const player = await queryOne(
+      `SELECT id, class_id, team_id, pseudo, password_must_reset, is_active
+         FROM gl_players
+        WHERE id = ?
+        LIMIT 1`,
+      [targetUserId]
+    );
+    if (!player || !Number(player.is_active)) {
+      return res.status(404).json({ error: 'Joueur introuvable ou inactif' });
+    }
+
+    const playerSession = await issueGlPlayerSession(player);
+    const claims = {
+      ...playerSession.auth,
+      impersonating: true,
+      actorUserType: 'gl_admin',
+      actorUserId: String(actorAdmin.id),
+      actorRoleSlug: 'gl_admin',
+    };
+    const token = await signGlToken(claims);
+
+    await logAudit('gl_auth_impersonate_start', 'gl_auth', String(actorAdmin.id), `Prise de contrôle gl_player#${player.id}`, {
+      req,
+      actorUserType: 'gl_admin',
+      actorUserId: String(actorAdmin.id),
+      payload: {
+        target_user_type: 'gl_player',
+        target_user_id: String(player.id),
+      },
+    });
+    await logSecurityEvent('gl.auth.impersonate.start', {
+      req,
+      actorUserType: 'gl_admin',
+      actorUserId: String(actorAdmin.id),
+      targetType: 'gl_player',
+      targetId: String(player.id),
+      payload: {
+        actor_role: 'gl_admin',
+      },
+    });
+
+    return res.json({
+      authToken: token,
+      auth: exposeGlAuth(claims),
+      profile: {
+        id: String(player.id),
+        pseudo: player.pseudo || null,
+        class_id: player.class_id || null,
+        team_id: player.team_id || null,
+      },
+    });
+  } catch (err) {
+    logRouteError(err, req, 'POST /api/gl/auth/admin/impersonate');
+    return res.status(500).json({ error: 'Erreur serveur' });
+  }
+});
+
+router.post('/admin/impersonate/stop', requireGlAuth, async (req, res) => {
+  try {
+    if (!req.glAuth?.impersonating || !req.glAuth?.impersonatedBy) {
+      return res.status(400).json({ error: 'Aucune prise de contrôle en cours' });
+    }
+    const actor = req.glAuth.impersonatedBy;
+    if (actor.userType !== 'gl_admin' || actor.roleSlug !== 'gl_admin') {
+      return res.status(403).json({ error: 'Compte de reprise invalide' });
+    }
+
+    const actorAdmin = await queryOne(
+      `SELECT id, email, display_name, role, is_active
+         FROM gl_admins
+        WHERE id = ?
+        LIMIT 1`,
+      [actor.userId]
+    );
+    if (!actorAdmin || !Number(actorAdmin.is_active) || String(actorAdmin.role || '').toLowerCase() !== 'admin') {
+      return res.status(403).json({ error: 'Compte administrateur GL introuvable ou inactif' });
+    }
+
+    const restored = await issueGlStaffSession(actorAdmin, 'admin');
+
+    await logAudit('gl_auth_impersonate_stop', 'gl_auth', String(actorAdmin.id), 'Fin prise de contrôle compte GL', {
+      req,
+      actorUserType: 'gl_admin',
+      actorUserId: String(actorAdmin.id),
+      payload: {
+        target_user_type: req.glAuth.userType,
+        target_user_id: req.glAuth.userId,
+      },
+    });
+    await logSecurityEvent('gl.auth.impersonate.stop', {
+      req,
+      actorUserType: 'gl_admin',
+      actorUserId: String(actorAdmin.id),
+      targetType: req.glAuth.userType,
+      targetId: String(req.glAuth.userId),
+    });
+
+    return res.json(restored);
+  } catch (err) {
+    logRouteError(err, req, 'POST /api/gl/auth/admin/impersonate/stop');
+    return res.status(500).json({ error: 'Erreur serveur' });
+  }
 });
 
 router.patch('/me/profile', requireGlAuth, async (req, res) => {

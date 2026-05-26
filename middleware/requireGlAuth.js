@@ -29,6 +29,14 @@ function requireGlAuth(req, res, next) {
       teamId: claims.teamId || null,
       passwordMustReset: !!claims.passwordMustReset,
     };
+    if (claims.impersonating && claims.actorUserType && claims.actorUserId != null) {
+      req.glAuth.impersonating = true;
+      req.glAuth.impersonatedBy = {
+        userType: String(claims.actorUserType),
+        userId: String(claims.actorUserId),
+        roleSlug: String(claims.actorRoleSlug || ''),
+      };
+    }
     if (!req.glAuth.userId) return res.status(401).json({ error: 'Token invalide' });
     return next();
   } catch (_) {

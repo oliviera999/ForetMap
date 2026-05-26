@@ -203,3 +203,32 @@ test('mascotPackValidationUi extrait des erreurs lisibles depuis format() Zod', 
   const lines = toMascotPackIssueLines(issues);
   assert.ok(lines.length > 0);
 });
+
+test('sanitizeMascotPackDraft retire les entrées srcs/files vides et états vides', async () => {
+  const { sanitizeMascotPackDraft } = await import('../src/utils/mascotPackValidationUi.js');
+  const cleaned = sanitizeMascotPackDraft({
+    id: 'draft',
+    stateFrames: {
+      idle: { srcs: ['  ', 'https://cdn.example.test/idle.png', ''], fps: 7 },
+      walking: { srcs: ['   '], fps: 8 },
+      happy: { files: ['a.png', ' ', 'b.png'], fps: 12 },
+      talk: { files: ['   '] },
+    },
+  });
+  assert.deepEqual(cleaned.stateFrames.idle.srcs, ['https://cdn.example.test/idle.png']);
+  assert.deepEqual(cleaned.stateFrames.happy.files, ['a.png', 'b.png']);
+  assert.equal(cleaned.stateFrames.walking, undefined);
+  assert.equal(cleaned.stateFrames.talk, undefined);
+});
+
+test('toMascotPackIssueLines propose des messages plus pédagogiques', async () => {
+  const { toMascotPackIssueLines } = await import('../src/utils/mascotPackValidationUi.js');
+  const lines = toMascotPackIssueLines([
+    { path: 'stateFrames.walking', message: 'Chaque état doit avoir `srcs` ou `files` non vide.' },
+    { path: 'stateFrames.walking.srcs.0', message: 'Invalid input' },
+    { path: 'stateFrames.walking', message: 'Utiliser soit `srcs` soit `files`, pas les deux sur un même état.' },
+  ]);
+  assert.ok(lines.some((l) => l.includes('Ajoutez au moins une image')));
+  assert.ok(lines.some((l) => l.includes('URL vide ou invalide')));
+  assert.ok(lines.some((l) => l.includes('Choisissez un seul mode')));
+});
