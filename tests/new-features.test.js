@@ -1,7 +1,7 @@
 require('./helpers/setup');
 const test = require('node:test');
 const assert = require('node:assert');
-const { initSchema, execute, queryOne } = require('../database');
+const { initSchema, execute, queryAll, queryOne } = require('../database');
 const { app } = require('../server');
 const request = require('supertest');
 
@@ -408,6 +408,10 @@ test('projet : la synchro auto ne remplace pas un statut validated', async () =>
 });
 
 test('projet : duplication structurelle sans assignations', async () => {
+  const linkedZone = await queryOne("SELECT id FROM zones WHERE map_id = 'foret' ORDER BY id ASC LIMIT 1");
+  const linkedMarker = await queryOne("SELECT id FROM map_markers WHERE map_id = 'foret' ORDER BY id ASC LIMIT 1");
+  assert.ok(linkedZone?.id, 'Zone foret introuvable pour test duplication');
+  assert.ok(linkedMarker?.id, 'Repère foret introuvable pour test duplication');
   const projectRes = await request(app)
     .post('/api/task-projects')
     .set('Authorization', 'Bearer ' + teacherToken)
@@ -427,6 +431,9 @@ test('projet : duplication structurelle sans assignations', async () => {
       description: 'Description tache source',
       map_id: 'foret',
       project_id: sourceProjectId,
+      zone_ids: [String(linkedZone.id)],
+      marker_ids: [String(linkedMarker.id)],
+      start_date: '2024-01-15',
       required_students: 2,
       completion_mode: 'all_assignees_done',
       status: 'done',
@@ -442,6 +449,9 @@ test('projet : duplication structurelle sans assignations', async () => {
     'INSERT INTO task_logs (task_id, student_id, student_first_name, student_last_name, comment, created_at) VALUES (?, ?, ?, ?, ?, ?)',
     [sourceTaskId, studentData.id, 'Test', 'Eleve', 'Log test', new Date().toISOString()]
   );
+  // Simule un ancien enregistrement avec localisation portée seulement par les colonnes legacy.
+  await execute('DELETE FROM task_zones WHERE task_id = ?', [sourceTaskId]);
+  await execute('DELETE FROM task_markers WHERE task_id = ?', [sourceTaskId]);
 
   const dupRes = await request(app)
     .post(`/api/task-projects/${sourceProjectId}/duplicate`)
@@ -454,7 +464,7 @@ test('projet : duplication structurelle sans assignations', async () => {
   assert.strictEqual(Number(dupRes.body.tasks_copied), 1);
 
   const cloneTask = await queryOne(
-    'SELECT id, status, description, required_students, completion_mode FROM tasks WHERE project_id = ? LIMIT 1',
+    'SELECT id, status, description, required_students, completion_mode, start_date FROM tasks WHERE project_id = ? LIMIT 1',
     [dupRes.body.project.id]
   );
   assert.ok(cloneTask);
@@ -462,6 +472,15 @@ test('projet : duplication structurelle sans assignations', async () => {
   assert.strictEqual(cloneTask.description, 'Description tache source');
   assert.strictEqual(Number(cloneTask.required_students), 2);
   assert.strictEqual(cloneTask.completion_mode, 'all_assignees_done');
+  const today = new Date();
+  const expectedStartDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+  const cloneStartDate = String(cloneTask.start_date || '').slice(0, 10);
+  assert.strictEqual(cloneStartDate, expectedStartDate);
+
+  const cloneZoneRows = await queryAll('SELECT zone_id FROM task_zones WHERE task_id = ?', [cloneTask.id]);
+  const cloneMarkerRows = await queryAll('SELECT marker_id FROM task_markers WHERE task_id = ?', [cloneTask.id]);
+  assert.ok(cloneZoneRows.some((row) => String(row.zone_id) === String(linkedZone.id)));
+  assert.ok(cloneMarkerRows.some((row) => String(row.marker_id) === String(linkedMarker.id)));
 
   const assignCount = await queryOne(
     'SELECT COUNT(*) AS n FROM task_assignments WHERE task_id = ?',

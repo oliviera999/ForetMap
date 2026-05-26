@@ -391,6 +391,14 @@ function duplicateTitleSuffix(title) {
   return base.endsWith(' (copie)') ? base : `${base} (copie)`;
 }
 
+function currentLocalDateOnly() {
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = String(now.getMonth() + 1).padStart(2, '0');
+  const d = String(now.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
 async function copyProjectLinksTx(tx, sourceProjectId, targetProjectId) {
   const zoneRows = await tx.queryAll(
     'SELECT zone_id FROM project_zones WHERE project_id = ? ORDER BY zone_id',
@@ -438,6 +446,7 @@ async function copyProjectTasksTx(tx, sourceProjectId, targetProjectId, mapId) {
   );
 
   const createdTaskIds = [];
+  const duplicatedStartDate = currentLocalDateOnly();
   for (const task of sourceTasks) {
     const newTaskId = uuidv4();
     const createdAt = new Date().toISOString();
@@ -455,7 +464,7 @@ async function copyProjectTasksTx(tx, sourceProjectId, targetProjectId, mapId) {
         targetProjectId,
         task.zone_id || null,
         task.marker_id || null,
-        task.start_date || null,
+        duplicatedStartDate,
         task.due_date || null,
         task.required_students != null ? Number(task.required_students) : 1,
         task.completion_mode || 'single_done',
@@ -471,12 +480,20 @@ async function copyProjectTasksTx(tx, sourceProjectId, targetProjectId, mapId) {
     );
 
     const zoneRows = await tx.queryAll('SELECT zone_id FROM task_zones WHERE task_id = ?', [task.id]);
-    for (const zr of zoneRows) {
-      await tx.execute('INSERT INTO task_zones (task_id, zone_id) VALUES (?, ?)', [newTaskId, zr.zone_id]);
+    const zoneIds = [...new Set([
+      ...zoneRows.map((row) => String(row.zone_id || '').trim()).filter(Boolean),
+      task.zone_id != null ? String(task.zone_id).trim() : '',
+    ].filter(Boolean))];
+    for (const zoneId of zoneIds) {
+      await tx.execute('INSERT INTO task_zones (task_id, zone_id) VALUES (?, ?)', [newTaskId, zoneId]);
     }
     const markerRows = await tx.queryAll('SELECT marker_id FROM task_markers WHERE task_id = ?', [task.id]);
-    for (const mr of markerRows) {
-      await tx.execute('INSERT INTO task_markers (task_id, marker_id) VALUES (?, ?)', [newTaskId, mr.marker_id]);
+    const markerIds = [...new Set([
+      ...markerRows.map((row) => String(row.marker_id || '').trim()).filter(Boolean),
+      task.marker_id != null ? String(task.marker_id).trim() : '',
+    ].filter(Boolean))];
+    for (const markerId of markerIds) {
+      await tx.execute('INSERT INTO task_markers (task_id, marker_id) VALUES (?, ?)', [newTaskId, markerId]);
     }
     const tutorialRows = await tx.queryAll('SELECT tutorial_id FROM task_tutorials WHERE task_id = ?', [task.id]);
     for (const tr of tutorialRows) {
