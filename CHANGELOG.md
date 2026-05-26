@@ -29,6 +29,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - **GL — mot de passe oublié** : panneau sur l’écran de connexion (`GLAuthView`) ; `POST /api/gl/auth/forgot-password` et `POST /api/gl/auth/reset-password` (joueur GL ou enseignant MJ/Admin, lien e-mail vers `gl.html#resetType=…`). Module partagé `lib/passwordReset.js`. Tests `tests/gl-auth-forgot-password.test.js`, `tests-ui/gl/GLAuthView.test.jsx` ; `docs/API.md`.
 
 ### Corrigé
+- **Médiathèque — suppression sécurisée** : rejet des chemins de suppression contenant une traversée (`media-library/../...`) afin d'empêcher l'effacement d'autres fichiers sous `uploads/`. Test ajouté dans `tests/media-library.test.js`.
 - **Stats n3beur — session legacy** : les anciennes sessions locales `foretmap_student` réhydratent de nouveau leur JWT avant les appels protégés, évitant l’erreur brute « Token requis » à l’ouverture des statistiques personnelles.
 - **Carte — mascotte** : la mascotte conserve une taille lisible lors du zoom arrière sur le plan grâce à une mise à l’échelle compensée.
 - **Tâches — duplication/édition** : initialisation plus robuste des zones/repères liés lors de l’édition, et date de départ réinitialisée à aujourd’hui lors d’une duplication.
