@@ -11,7 +11,15 @@ function toBool(value) {
   return !!Number(value);
 }
 
-export function GLPlayersPanel({ classes, players, classFilter, onClassFilterChange, onReload }) {
+export function GLPlayersPanel({
+  classes,
+  players,
+  classFilter,
+  onClassFilterChange,
+  onReload,
+  canImpersonate = false,
+  onImpersonationApplied = null,
+}) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [info, setInfo] = useState('');
@@ -147,6 +155,31 @@ export function GLPlayersPanel({ classes, players, classFilter, onClassFilterCha
     }
   }
 
+  async function impersonatePlayer(player) {
+    if (!canImpersonate) return;
+    setBusy(true);
+    setError('');
+    setInfo('');
+    try {
+      const payload = await apiGL('/api/gl/auth/admin/impersonate', 'POST', {
+        userType: 'gl_player',
+        userId: String(player.id),
+      });
+      if (!payload?.authToken) {
+        setError('Réponse serveur invalide');
+        return;
+      }
+      if (typeof onImpersonationApplied === 'function') {
+        onImpersonationApplied(payload);
+      }
+      setInfo(`Prise de contrôle active: ${player.pseudo}`);
+    } catch (err) {
+      setError(err.message || 'Prise de contrôle impossible');
+    } finally {
+      setBusy(false);
+    }
+  }
+
   return (
     <section className="gl-admin-section gl-animate-in">
       <h3>Joueurs</h3>
@@ -221,6 +254,11 @@ export function GLPlayersPanel({ classes, players, classFilter, onClassFilterCha
                 {toBool(player.is_active) ? 'Désactiver' : 'Activer'}
               </GLButton>
               <GLButton type="button" variant="secondary" onClick={() => setResetPlayer(player)} disabled={busy}>Reset mdp</GLButton>
+              {canImpersonate ? (
+                <GLButton type="button" variant="secondary" onClick={() => impersonatePlayer(player)} disabled={busy}>
+                  Voir comme
+                </GLButton>
+              ) : null}
               <GLButton type="button" variant="danger" onClick={() => deletePlayer(player)} disabled={busy}>Supprimer</GLButton>
             </>
           );

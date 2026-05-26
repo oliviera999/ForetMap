@@ -58,4 +58,27 @@ describe('GLUsersAdminView', () => {
       expect(apiGlMock).toHaveBeenCalledWith('/api/gl/admin/players?classId=1');
     });
   });
+
+  test('permet la prise de contrôle joueur pour un admin GL strict', async () => {
+    const onImpersonationApplied = vi.fn();
+    apiGlMock.mockImplementation(async (path, method, body) => {
+      if (path === '/api/gl/admin/classes') return [{ id: 1, name: '6e A', players_count: 1, is_active: 1 }];
+      if (String(path).startsWith('/api/gl/admin/players')) return [{ id: 10, pseudo: 'team_a', class_id: 1, is_active: 1 }];
+      if (path === '/api/gl/auth/admin/impersonate' && method === 'POST') {
+        expect(body).toEqual({ userType: 'gl_player', userId: '10' });
+        return { authToken: 'tok-imp', auth: { userType: 'gl_player', userId: '10', impersonating: true } };
+      }
+      return [];
+    });
+
+    render(<GLUsersAdminView auth={{ userType: 'gl_admin', roleSlug: 'gl_admin' }} onImpersonationApplied={onImpersonationApplied} />);
+
+    const buttonLabels = await screen.findAllByText('Voir comme');
+    fireEvent.click(buttonLabels[0].closest('button'));
+
+    await waitFor(() => {
+      expect(apiGlMock).toHaveBeenCalledWith('/api/gl/auth/admin/impersonate', 'POST', { userType: 'gl_player', userId: '10' });
+    });
+    expect(onImpersonationApplied).toHaveBeenCalledTimes(1);
+  });
 });

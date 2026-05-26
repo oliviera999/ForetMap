@@ -74,4 +74,36 @@ test.describe('GL users admin flow', () => {
     const found = roster.find((item) => Number(item.id) === Number(createdPlayer.id));
     expect(Number(found?.teamId || 0)).toBe(Number(team.id));
   });
+
+  test('admin GL peut voir comme un joueur puis revenir à son compte', async ({ page }) => {
+    const seeded = await seedGlScenario('impersonation');
+
+    await page.setExtraHTTPHeaders({ 'X-Foretmap-Product': 'gl' });
+    await page.goto('/');
+    await page.evaluate((payload) => {
+      localStorage.setItem('gl_session', JSON.stringify(payload));
+      localStorage.setItem('gl_active_tab', 'users');
+    }, {
+      token: seeded.adminToken,
+      auth: {
+        product: 'gl',
+        userType: 'gl_admin',
+        userId: String(seeded.adminId),
+        roleSlug: 'gl_admin',
+        displayName: 'MJ impersonation',
+        permissions: ['gl.read', 'gl.players.manage', 'gl.game.manage', 'gl.team.manage', 'gl.event.emit', 'gl.settings.manage'],
+      },
+    });
+    await page.reload();
+
+    await expect(page.getByRole('heading', { name: 'Gestion utilisateurs' })).toBeVisible();
+    await page.getByRole('button', { name: 'Voir comme' }).first().click();
+
+    await expect(page.getByText('Prise de contrôle (admin GL)')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Revenir à mon compte admin' })).toBeVisible();
+
+    await page.getByRole('button', { name: 'Revenir à mon compte admin' }).click();
+    await expect(page.getByText('Prise de contrôle (admin GL)')).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Console MJ' })).toBeVisible();
+  });
 });

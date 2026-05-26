@@ -96,6 +96,7 @@ export function AppGL() {
   const { brand: glBrand, style: glBrandStyle } = useGLBrandTheme(glConfig?.brand);
 
   const isAdmin = isAdminRole(auth);
+  const isImpersonating = !!auth?.impersonating;
 
   useEffect(() => {
     const hashRaw = window.location.hash.startsWith('#') ? window.location.hash.slice(1) : '';
@@ -182,6 +183,31 @@ export function AppGL() {
       setError(err.message || 'Chargement profil impossible');
     }
   }, [token]);
+
+  const applyGlImpersonation = useCallback((payload) => {
+    if (!payload?.authToken || !payload?.auth) {
+      setError('Réponse serveur invalide');
+      return;
+    }
+    updateSession({ token: payload.authToken, auth: payload.auth });
+    setTab(defaultTabForAuth(payload.auth));
+    setError('');
+  }, [updateSession]);
+
+  const stopGlImpersonation = useCallback(async () => {
+    try {
+      const payload = await apiGL('/api/gl/auth/admin/impersonate/stop', 'POST');
+      if (!payload?.authToken || !payload?.auth) {
+        setError('Réponse serveur invalide');
+        return;
+      }
+      updateSession({ token: payload.authToken, auth: payload.auth });
+      setTab(defaultTabForAuth(payload.auth));
+      setError('');
+    } catch (err) {
+      setError(err.message || 'Impossible de quitter la prise de contrôle');
+    }
+  }, [updateSession]);
 
   useEffect(() => {
     if (!token) return;
@@ -446,6 +472,24 @@ export function AppGL() {
 
       {error ? <div className="gl-error-banner">{error}</div> : null}
 
+      {isImpersonating ? (
+        <div className="role-preview-banner role-preview-banner--impersonation fade-in" role="status">
+          <span className="role-preview-banner__icon" aria-hidden>👤</span>
+          <div className="role-preview-banner__text" style={{ flex: '1 1 200px' }}>
+            <strong>Prise de contrôle (admin GL)</strong>
+            <span>
+              Tu navigues avec l’identité de <strong>{String(auth?.displayName || 'joueur')}</strong>.
+              Les actions sont enregistrées pour ce compte.
+            </span>
+          </div>
+          <div className="impersonation-banner-actions">
+            <button type="button" className="btn btn-primary btn-sm" onClick={() => { stopGlImpersonation(); }}>
+              Revenir à mon compte admin
+            </button>
+          </div>
+        </div>
+      ) : null}
+
       {narrationToast ? (
         <div className="gl-narration-banner fade-in" role="status">
           <strong>Narration du MJ :</strong> {narrationToast.text}
@@ -492,7 +536,12 @@ export function AppGL() {
         {tab === 'biotope' && <GLBiotopeView gameState={gameState} />}
         {tab === 'biocenose' && <GLBiocenoseView gameState={gameState} />}
         {tab === 'history' && <GLHistoryView gameState={gameState} />}
-        {tab === 'users' && isAdmin && <GLUsersAdminView />}
+        {tab === 'users' && isAdmin && (
+          <GLUsersAdminView
+            auth={auth}
+            onImpersonationApplied={applyGlImpersonation}
+          />
+        )}
         {tab === 'contents' && isAdmin && <GLContentsAdminView auth={auth} onNavigateTab={setTab} />}
         {tab === 'settings' && isAdmin && <GLSettingsView />}
         {tab === 'mascots' && isAdmin && (

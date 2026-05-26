@@ -12,6 +12,7 @@ import {
 } from '../utils/mascotPackEditorModel.js';
 import {
   extractMascotPackValidationIssues,
+  sanitizeMascotPackDraft,
   toMascotPackIssueLines,
 } from '../utils/mascotPackValidationUi.js';
 import MascotPackPreviewPanel from './MascotPackPreviewPanel.jsx';
@@ -50,6 +51,14 @@ function resolveFrameUrl(pack, rel) {
   return withAppBase(`${base}${s.replace(/^\//, '')}`);
 }
 
+/** @param {string} raw */
+function resolveSrcPreviewUrl(raw) {
+  const s = String(raw || '').trim();
+  if (!s) return '';
+  if (s.startsWith('blob:') || s.startsWith('data:') || s.startsWith('http://') || s.startsWith('https://')) return s;
+  return withAppBase(s);
+}
+
 /**
  * @param {{
  *   pack: Record<string, unknown>,
@@ -76,6 +85,7 @@ export default function MascotPackWysiwygEditor({
   const [assets, setAssets] = useState([]);
   const [assetsLoading, setAssetsLoading] = useState(false);
   const [libraryTargetState, setLibraryTargetState] = useState(VISIT_MASCOT_STATE.IDLE);
+  const [srcPreviewStatus, setSrcPreviewStatus] = useState({});
   const fileInputRef = useRef(null);
 
   const validationOpts = useMemo(() => {
@@ -88,7 +98,8 @@ export default function MascotPackWysiwygEditor({
   }, [packUuid, visitMapId, relaxAssetPrefix]);
 
   const runValidate = useCallback(() => {
-    const result = validateMascotPackV1(pack, validationOpts);
+    const draft = sanitizeMascotPackDraft(pack);
+    const result = validateMascotPackV1(draft, validationOpts);
     if (!result.ok) {
       setValidated(null);
       setValidationIssues(extractMascotPackValidationIssues(result.error?.format?.() || result.error));
@@ -476,7 +487,9 @@ export default function MascotPackWysiwygEditor({
           const spec = active && stateFrames[stateKey] && typeof stateFrames[stateKey] === 'object'
             ? stateFrames[stateKey]
             : {};
-          const useSrcs = Array.isArray(spec.srcs) && spec.srcs.length > 0;
+          const hasSrcMode = Object.prototype.hasOwnProperty.call(spec, 'srcs');
+          const hasFileMode = Object.prototype.hasOwnProperty.call(spec, 'files');
+          const useSrcs = hasSrcMode && !hasFileMode;
           const files = Array.isArray(spec.files) ? spec.files.map(String) : [];
           const srcs = Array.isArray(spec.srcs) ? spec.srcs.map(String) : [];
           const fps = Number(spec.fps) || 8;
@@ -515,7 +528,7 @@ export default function MascotPackWysiwygEditor({
                       name={`mode-${stateKey}`}
                       checked={useSrcs}
                       onChange={() => {
-                        const next = { ...spec, srcs: srcs.length ? srcs : [''], fps };
+                        const next = { ...spec, srcs: srcs.length ? srcs : [], fps };
                         delete next.files;
                         updateStateEntry(stateKey, next);
                       }}
@@ -605,6 +618,39 @@ export default function MascotPackWysiwygEditor({
                     <div style={{ marginTop: 8 }}>
                       {srcs.map((u, idx) => (
                         <div key={idx} style={{ display: 'flex', gap: 8, marginBottom: 6 }}>
+                          {String(u || '').trim() ? (
+                            <img
+                              src={resolveSrcPreviewUrl(u)}
+                              alt={`Aperçu URL ${idx + 1}`}
+                              width={44}
+                              height={44}
+                              loading="lazy"
+                              decoding="async"
+                              onLoad={() => setSrcPreviewStatus((prev) => ({ ...prev, [`${stateKey}:${idx}`]: 'ok' }))}
+                              onError={() => setSrcPreviewStatus((prev) => ({ ...prev, [`${stateKey}:${idx}`]: 'error' }))}
+                              style={{
+                                width: 44,
+                                height: 44,
+                                objectFit: 'contain',
+                                borderRadius: 6,
+                                border: '1px solid rgba(26,71,49,0.18)',
+                                background: 'rgba(248,250,245,0.95)',
+                                flex: '0 0 auto',
+                              }}
+                            />
+                          ) : (
+                            <div
+                              aria-hidden="true"
+                              style={{
+                                width: 44,
+                                height: 44,
+                                borderRadius: 6,
+                                border: '1px dashed rgba(26,71,49,0.2)',
+                                background: 'rgba(248,250,245,0.55)',
+                                flex: '0 0 auto',
+                              }}
+                            />
+                          )}
                           <input
                             className="form-input"
                             style={{ flex: 1 }}
@@ -616,6 +662,20 @@ export default function MascotPackWysiwygEditor({
                               updateStateEntry(stateKey, { ...spec, srcs: nextSrcs, fps });
                             }}
                           />
+                          <span
+                            className="section-sub"
+                            style={{
+                              fontSize: '0.74rem',
+                              alignSelf: 'center',
+                              minWidth: 74,
+                              textAlign: 'center',
+                            }}
+                            aria-live="polite"
+                          >
+                            {!String(u || '').trim()
+                              ? 'vide'
+                              : (srcPreviewStatus[`${stateKey}:${idx}`] === 'ok' ? 'chargée' : (srcPreviewStatus[`${stateKey}:${idx}`] === 'error' ? 'non trouvée' : 'test...'))}
+                          </span>
                           <button
                             type="button"
                             className="btn btn-ghost btn-sm"
@@ -635,6 +695,9 @@ export default function MascotPackWysiwygEditor({
                       >
                         + URL
                       </button>
+                      <p className="section-sub" style={{ fontSize: '0.76rem', marginTop: 6, marginBottom: 0 }}>
+                        Formats conseillés: <code>https://...</code>, <code>blob:...</code> ou URL de l’application (ex: <code>/api/visit/...</code>).
+                      </p>
                     </div>
                   )}
 

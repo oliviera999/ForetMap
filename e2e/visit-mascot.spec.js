@@ -367,14 +367,14 @@ test.describe('pack mascotte serveur (GUI)', () => {
     await expect(page.locator('.visit-mascot-pack-manager')).toBeVisible({ timeout: 20_000 });
     await page.getByRole('button', { name: 'Nouveau brouillon' }).click();
 
-    const selectedPackBtn = page.locator('.visit-mascot-pack-manager aside button[aria-label^="Ouvrir le pack"][aria-pressed="true"]').first();
-    await expect(selectedPackBtn).toBeVisible({ timeout: 20_000 });
+    await expect(page.locator('.visit-mascot-pack-manager aside button[aria-label^="Ouvrir le pack"][aria-pressed="true"]').first()).toBeVisible({ timeout: 20_000 });
     const packLabel = `Pack e2e ${Date.now()}`;
     await page.getByPlaceholder('Nom du pack').fill(packLabel);
 
     const uploadInput = page.locator('.mascot-pack-wysiwyg__library input[type="file"]').first();
+    const uploadName = `idle-${Date.now()}.png`;
     await uploadInput.setInputFiles({
-      name: `idle-${Date.now()}.png`,
+      name: uploadName,
       mimeType: 'image/png',
       buffer: Buffer.from(TINY_PNG_B64, 'base64'),
     });
@@ -382,9 +382,30 @@ test.describe('pack mascotte serveur (GUI)', () => {
     await expect(mediaThumb).toBeVisible({ timeout: 15_000 });
     await mediaThumb.click();
 
+    const walkingState = page.locator('.mascot-pack-wysiwyg__state').filter({ hasText: '(walking)' }).first();
+    await expect(walkingState).toBeVisible({ timeout: 15_000 });
+    const walkingToggle = walkingState.locator('summary input[type="checkbox"]');
+    await walkingToggle.check();
+    await walkingState.getByLabel('URLs absolues (srcs) — dev / blob').check();
+    await walkingState.getByRole('button', { name: '+ URL' }).click();
+    const srcField = walkingState.getByPlaceholder('https://… ou blob:…').first();
+    const srcUrl = `data:image/png;base64,${TINY_PNG_B64}`;
+    await srcField.fill(srcUrl);
+
     await page.getByRole('button', { name: 'Enregistrer sur le serveur' }).click();
     await page.getByRole('button', { name: 'Publier sur la visite' }).click();
-    await expect(selectedPackBtn).toContainText('Publié', { timeout: 20_000 });
+
+    await expect.poll(async () => {
+      const contentByMap = {};
+      for (const mapId of ['foret', 'n3']) {
+        const res = await page.request.get(`/api/visit/content?map_id=${mapId}`);
+        if (!res.ok()) return false;
+        contentByMap[mapId] = await res.json();
+      }
+      const allPublished = ['foret', 'n3']
+        .flatMap((mapId) => (Array.isArray(contentByMap[mapId]?.mascot_packs) ? contentByMap[mapId].mascot_packs : []));
+      return allPublished.some((p) => p.label === packLabel);
+    }, { timeout: 20_000, intervals: [500, 1000, 1500, 2000] }).toBeTruthy();
 
     const contentByMap = {};
     for (const mapId of ['foret', 'n3']) {
