@@ -76,7 +76,7 @@ Le script accepte aussi :
 | GET | `/api/gl/gameplay-settings` | — | Auth GL (joueur ou admin) |
 | POST | `/api/gl/games` | `{ classId, chapterId, name }` | `gl.game.manage` (refus `404` si `classId`/`chapterId` introuvable, `409` si la ressource est supprimée entre validation et insertion) |
 | GET | `/api/gl/games` | `?classId=&status=` optionnels | `gl.game.manage` |
-| GET | `/api/gl/games/:id` | — | `gl.read` (ou membre de la partie) |
+| GET | `/api/gl/games/:id` | — | MJ/admin GL, ou joueur membre de cette partie |
 | POST | `/api/gl/games/:id/teams` | `{ name, type, mascotId, color }` | `gl.team.manage` (refus `404` si partie introuvable) |
 | PUT | `/api/gl/games/:id/teams/:teamId` | `{ name?, type?, mascotId?, color? }` | `gl.team.manage` |
 | DELETE | `/api/gl/games/:id/teams/:teamId` | — | `gl.team.manage` (refus `409` si équipe avec membres) |
@@ -200,7 +200,7 @@ Voir `docs/GL_IMAGE_FRAMES.md`.
 | POST | `/api/gl/tutorials` | `{ slug, title, bodyMarkdown, chapterId?, markerId?, orderIndex?, isPublished? }` | `gl.content.manage` |
 | PUT | `/api/gl/tutorials/:id` | mise à jour partielle | `gl.content.manage` |
 | DELETE | `/api/gl/tutorials/:id` | — | `gl.content.manage` |
-| GET | `/api/gl/journal/games/:id` | `?teamId=&limit=` | Auth GL |
+| GET | `/api/gl/journal/games/:id` | `?teamId=&limit=` | MJ/admin GL, ou joueur membre de cette partie |
 | GET | `/api/gl/kingdom-map/zones?chapterId=` | — | Auth GL |
 | POST | `/api/gl/kingdom-map/zones` | `{ chapterId, label, description?, color?, points: [{x,y}…] }` | `gl.content.manage` |
 | PUT | `/api/gl/kingdom-map/zones/:id` | mise à jour partielle | `gl.content.manage` |
@@ -328,7 +328,7 @@ Connexion Socket.IO en transport **polling uniquement** côté client (compatibi
 - **CORS** : en production, même règle que l’API (`FRONTEND_ORIGIN` si défini).
 - **Rôle** : notifier les clients qu’une ressource a changé ; les données à jour restent à charger via les routes REST (`GET /api/tasks`, etc.). Côté client, refetch **débouncé** : ~**220 ms** pour les tâches, ~**400 ms** pour le jardin (zones / plantes / repères) — compromis fraîcheur vs rafales HTTP.
 - **Auth socket** : token JWT requis (transmis dans le handshake Socket.IO).
-- **Rooms** : souscription de domaine (`tasks`, `students`, `garden`) + souscription carte via `subscribe:map` (payload `{ mapId }`).
+- **Rooms** : souscription de domaine (`tasks`, `students`, `garden`) + souscription carte via `subscribe:map` (payload `{ mapId }`) ; pour GL, `subscribe:gl-game` (payload `{ gameId }`) refuse les tokens non-GL et les joueurs qui ne sont pas membres de la partie.
 - **Client** : le frontend se connecte pour n3beur/n3boss authentifié ; en cas d’échec, le rafraîchissement périodique reste actif (cadence adaptative).
 
 **Robustesse (comportement attendu)** :

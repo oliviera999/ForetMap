@@ -6,6 +6,7 @@ const { emitGlGameEvent } = require('../../lib/realtime');
 const { getGameplaySettings } = require('../../lib/glSettings');
 const { logRouteError } = require('../../lib/routeLog');
 const { assignPlayerToTeamTx, unassignPlayerFromGameTx } = require('../../lib/glRoster');
+const { canAccessGlGame } = require('../../lib/glGameAccess');
 
 const router = express.Router();
 
@@ -211,19 +212,8 @@ router.get('/games/:id', requireGlAuth, async (req, res) => {
   if (!gameId) return res.status(400).json({ error: 'Identifiant de partie invalide' });
   const state = await readGameState(gameId);
   if (!state) return res.status(404).json({ error: 'Partie introuvable' });
-  if (req.glAuth.userType === 'gl_player') {
-    const linked = await queryOne(
-      `SELECT 1 AS ok
-         FROM gl_team_members tm
-    INNER JOIN gl_players p ON p.id = tm.player_id
-        WHERE tm.game_id = ?
-          AND p.id = ?
-        LIMIT 1`,
-      [gameId, req.glAuth.userId]
-    );
-    if (!linked && req.glAuth.teamId == null) {
-      return res.status(403).json({ error: 'Accès refusé à cette partie' });
-    }
+  if (!(await canAccessGlGame(req.glAuth, gameId))) {
+    return res.status(403).json({ error: 'Accès refusé à cette partie' });
   }
   return res.json(state);
 });
