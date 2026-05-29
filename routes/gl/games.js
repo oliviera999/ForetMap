@@ -45,11 +45,13 @@ async function readGameState(gameId) {
     `SELECT g.id, g.class_id, g.chapter_id, g.name, g.status, g.current_team_id,
             g.created_by, g.created_at, g.updated_at,
             c.name AS class_name,
-            ch.slug AS chapter_slug, ch.title AS chapter_title, ch.biome, ch.map_image_url,
+            ch.slug AS chapter_slug, ch.title AS chapter_title, ch.biome, ch.biome_slug,
+            b.nom AS biome_nom, ch.map_image_url,
             ch.story_markdown, ch.biotope_markdown, ch.biocenose_markdown
        FROM gl_games g
   LEFT JOIN gl_classes c ON c.id = g.class_id
   LEFT JOIN gl_chapters ch ON ch.id = g.chapter_id
+  LEFT JOIN gl_biomes b ON b.slug = ch.biome_slug
       WHERE g.id = ?
       LIMIT 1`,
     [gameId]

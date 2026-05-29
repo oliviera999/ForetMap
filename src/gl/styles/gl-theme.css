@@ -1874,3 +1874,105 @@ button.gl-brand-hub__card:focus-visible {
   background: #ffffff;
   padding: 12px;
 }
+
+.gl-biocenose-intro {
+  margin-bottom: 1.25rem;
+}
+
+.gl-species-catalog__intro {
+  margin: 0 0 1rem;
+  color: var(--gl-color-text, #262626);
+}
+
+.gl-species-catalog__section {
+  margin-top: 1.5rem;
+}
+
+.gl-species-catalog__section > h3 {
+  margin: 0 0 0.75rem;
+  font-size: 1.25rem;
+}
+
+.gl-species-catalog__group {
+  margin-bottom: 1.25rem;
+}
+
+.gl-species-catalog__group > h4 {
+  margin: 0 0 0.65rem;
+  font-size: 1rem;
+  color: var(--gl-color-link, #778c88);
+}
+
+.gl-species-catalog__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr));
+  gap: 12px;
+}
+
+.gl-species-card {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--gl-border, rgba(1, 58, 64, 0.18));
+  border-radius: var(--gl-radius-md, 12px);
+  background: var(--gl-surface, #fff);
+  overflow: hidden;
+  box-shadow: var(--gl-shadow-sm);
+}
+
+.gl-species-card__media {
+  margin: 0;
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+  background: var(--gl-surface-muted, #f5fbf8);
+}
+
+.gl-species-card__media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.gl-species-card__credit {
+  padding: 4px 8px;
+  font-size: 0.72rem;
+  color: #64748b;
+  background: rgba(255, 255, 255, 0.92);
+}
+
+.gl-species-card__body {
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.gl-species-card__title {
+  margin: 0;
+  font-size: 1.05rem;
+}
+
+.gl-species-card__scientific {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #475569;
+}
+
+.gl-species-card__desc,
+.gl-species-card__role,
+.gl-species-card__adapt,
+.gl-species-card__anecdote,
+.gl-species-card__links {
+  margin: 0;
+  font-size: 0.92rem;
+  line-height: 1.45;
+}
+
+.gl-species-card__anecdote {
+  font-style: italic;
+  color: #334155;
+}
+
+.gl-species-card__links a {
+  color: var(--gl-color-link-hover, #2c5959);
+}

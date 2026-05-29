@@ -39,22 +39,32 @@ function parseMapImageFrameJson(value) {
   }
 }
 
+function normalizeBiomeSlug(value) {
+  if (value == null) return null;
+  const s = String(value).trim();
+  return s.length > 0 ? s : null;
+}
+
 async function readChapterFull(slugOrId) {
   const isNumeric = typeof slugOrId === 'number' || /^\d+$/.test(String(slugOrId || ''));
   const chapter = isNumeric
     ? await queryOne(
-      `SELECT id, slug, title, biome, map_image_url, story_markdown, biotope_markdown,
-              biocenose_markdown, map_image_frame_json, order_index, created_at, updated_at
-         FROM gl_chapters
-        WHERE id = ?
+      `SELECT c.id, c.slug, c.title, c.biome, c.biome_slug, b.nom AS biome_nom,
+              c.map_image_url, c.story_markdown, c.biotope_markdown,
+              c.biocenose_markdown, c.map_image_frame_json, c.order_index, c.created_at, c.updated_at
+         FROM gl_chapters c
+    LEFT JOIN gl_biomes b ON b.slug = c.biome_slug
+        WHERE c.id = ?
         LIMIT 1`,
       [Number(slugOrId)]
     )
     : await queryOne(
-      `SELECT id, slug, title, biome, map_image_url, story_markdown, biotope_markdown,
-              biocenose_markdown, map_image_frame_json, order_index, created_at, updated_at
-         FROM gl_chapters
-        WHERE slug = ?
+      `SELECT c.id, c.slug, c.title, c.biome, c.biome_slug, b.nom AS biome_nom,
+              c.map_image_url, c.story_markdown, c.biotope_markdown,
+              c.biocenose_markdown, c.map_image_frame_json, c.order_index, c.created_at, c.updated_at
+         FROM gl_chapters c
+    LEFT JOIN gl_biomes b ON b.slug = c.biome_slug
+        WHERE c.slug = ?
         LIMIT 1`,
       [normalizeSlug(slugOrId)]
     );
@@ -74,9 +84,11 @@ async function readChapterFull(slugOrId) {
 /** GET /api/gl/chapters — liste publique des chapitres (sans markers). */
 router.get('/', requireGlPermission('gl.read'), async (_req, res) => {
   const rows = await queryAll(
-    `SELECT id, slug, title, biome, map_image_url, map_image_frame_json, order_index
-       FROM gl_chapters
-      ORDER BY order_index ASC, id ASC`
+    `SELECT c.id, c.slug, c.title, c.biome, c.biome_slug, b.nom AS biome_nom,
+            c.map_image_url, c.map_image_frame_json, c.order_index
+       FROM gl_chapters c
+  LEFT JOIN gl_biomes b ON b.slug = c.biome_slug
+      ORDER BY c.order_index ASC, c.id ASC`
   );
   const items = rows.map((row) => ({
     ...row,
@@ -106,6 +118,11 @@ router.post('/admin', requireGlPermission('gl.content.manage'), async (req, res)
   const title = normalizeOptionalString(req.body?.title);
   if (!slug || !title) return res.status(400).json({ error: 'slug et title requis' });
   const biome = normalizeOptionalString(req.body?.biome);
+  const biomeSlug = normalizeBiomeSlug(req.body?.biomeSlug);
+  if (biomeSlug) {
+    const biomeRow = await queryOne('SELECT slug FROM gl_biomes WHERE slug = ? LIMIT 1', [biomeSlug]);
+    if (!biomeRow) return res.status(400).json({ error: 'biomeSlug introuvable dans le catalogue' });
+  }
   const mapImageUrl = normalizeOptionalString(req.body?.mapImageUrl);
   const storyMarkdown = String(req.body?.storyMarkdown || '');
   const biotopeMarkdown = String(req.body?.biotopeMarkdown || '');
@@ -116,11 +133,11 @@ router.post('/admin', requireGlPermission('gl.content.manage'), async (req, res)
 
   try {
     await execute(
-      `INSERT INTO gl_chapters (slug, title, biome, map_image_url, story_markdown,
+      `INSERT INTO gl_chapters (slug, title, biome, biome_slug, map_image_url, story_markdown,
                                  biotope_markdown, biocenose_markdown, map_image_frame_json, order_index,
                                  created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
-      [slug, title, biome, mapImageUrl, storyMarkdown, biotopeMarkdown, biocenoseMarkdown, JSON.stringify(mapImageFrame), orderIndex]
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
+      [slug, title, biome, biomeSlug, mapImageUrl, storyMarkdown, biotopeMarkdown, biocenoseMarkdown, JSON.stringify(mapImageFrame), orderIndex]
     );
   } catch (err) {
     if (err && err.code === 'ER_DUP_ENTRY') {
@@ -147,6 +164,15 @@ router.put('/admin/:id', requireGlPermission('gl.content.manage'), async (req, r
   if (req.body && Object.prototype.hasOwnProperty.call(req.body, 'biome')) {
     updates.push('biome = ?');
     params.push(normalizeOptionalString(req.body.biome));
+  }
+  if (req.body && Object.prototype.hasOwnProperty.call(req.body, 'biomeSlug')) {
+    const biomeSlug = normalizeBiomeSlug(req.body.biomeSlug);
+    if (biomeSlug) {
+      const biomeRow = await queryOne('SELECT slug FROM gl_biomes WHERE slug = ? LIMIT 1', [biomeSlug]);
+      if (!biomeRow) return res.status(400).json({ error: 'biomeSlug introuvable dans le catalogue' });
+    }
+    updates.push('biome_slug = ?');
+    params.push(biomeSlug);
   }
   if (req.body && Object.prototype.hasOwnProperty.call(req.body, 'mapImageUrl')) {
     updates.push('map_image_url = ?');
