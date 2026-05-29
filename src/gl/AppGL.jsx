@@ -525,6 +525,8 @@ export function AppGL() {
               onMoveMascotToPct={moveMascotToPct}
               onPlayerActionRequest={submitPlayerActionRequest}
               onSelectTeam={setSelectedTeamId}
+              onOpenGlossaryTerm={navigateToGlossaryTerm}
+              onQcmAnswered={reloadGame}
               canMoveMascot={isAdmin}
               canRequestAction={canRequestAction}
               selectedTeamId={selectedTeamId}

@@ -61,6 +61,7 @@ const glJournalRouter = require('./routes/gl/journal');
 const glKingdomMapRouter = require('./routes/gl/kingdom-map');
 const glSpeciesRouter = require('./routes/gl/species');
 const glGlossaryRouter = require('./routes/gl/glossary').router;
+const glQcmRouter = require('./routes/gl/qcm').router;
 
 const app = express();
 
@@ -555,6 +556,7 @@ app.use('/api/gl/chapters', glChaptersRouter);
 app.use('/api/gl/mascots', glMascotsRouter);
 app.use('/api/gl', glSpeciesRouter);
 app.use('/api/gl', glGlossaryRouter);
+app.use('/api/gl', glQcmRouter);
 app.use('/api/gl', glGamesRouter);
 app.use('/api/gl/admin', glAdminRouter);
 app.use('/api/gl/context-comments', glContextCommentsRouter);

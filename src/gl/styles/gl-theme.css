@@ -2107,3 +2107,98 @@ button.gl-brand-hub__card:focus-visible {
   margin: 0 0 0.5rem;
   font-size: 0.95rem;
 }
+
+.gl-qcm-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background: rgba(15, 23, 42, 0.45);
+}
+
+.gl-qcm-modal--inline {
+  position: static;
+  inset: auto;
+  background: transparent;
+  padding: 0;
+  margin-top: 1rem;
+}
+
+.gl-qcm-modal__body {
+  width: min(640px, 100%);
+  max-height: 90vh;
+  overflow: auto;
+  background: #fff;
+  border-radius: 14px;
+  padding: 1.25rem;
+  box-shadow: 0 20px 40px rgba(15, 23, 42, 0.18);
+}
+
+.gl-qcm-modal__question {
+  font-size: 1.05rem;
+  line-height: 1.5;
+  margin: 0.75rem 0 1rem;
+}
+
+.gl-qcm-modal__photo {
+  max-width: 100%;
+  border-radius: 10px;
+  margin-bottom: 1rem;
+}
+
+.gl-qcm-modal__choices {
+  display: grid;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.gl-qcm-choice {
+  display: flex;
+  gap: 0.65rem;
+  align-items: flex-start;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid var(--gl-color-border, #e2e8f0);
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.gl-qcm-choice:has(input:checked) {
+  border-color: var(--gl-color-accent, #2563eb);
+  background: var(--gl-color-accent-soft, #eff6ff);
+}
+
+.gl-qcm-modal__glossary {
+  margin: 0.75rem 0 1rem;
+}
+
+.gl-qcm-feedback {
+  font-weight: 600;
+  margin: 0.75rem 0;
+}
+
+.gl-qcm-feedback--ok {
+  color: #15803d;
+}
+
+.gl-qcm-feedback--ko {
+  color: #b91c1c;
+}
+
+.gl-qcm-admin-list {
+  display: grid;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.gl-qcm-admin-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: flex-start;
+  padding: 0.75rem;
+  border: 1px solid var(--gl-color-border, #e2e8f0);
+  border-radius: 10px;
+}

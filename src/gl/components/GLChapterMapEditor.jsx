@@ -11,6 +11,8 @@ const EMPTY_MARKER_FORM = {
   yPct: 50,
   eventType: '',
   description: '',
+  qcmCategorieSlug: '',
+  qcmQuestionCode: '',
   orderIndex: 0,
 };
 
@@ -22,6 +24,8 @@ function toFormFromMarker(marker) {
     yPct: Number(marker.y_pct ?? 50),
     eventType: marker.event_type || '',
     description: marker.description || '',
+    qcmCategorieSlug: marker.qcm_categorie_slug || '',
+    qcmQuestionCode: marker.qcm_question_code || '',
     orderIndex: Number(marker.order_index || 0),
   };
 }
@@ -33,6 +37,8 @@ function toMarkerPayload(form) {
     yPct: Number(form.yPct),
     eventType: String(form.eventType || '').trim(),
     description: String(form.description || '').trim(),
+    qcmCategorieSlug: String(form.qcmCategorieSlug || '').trim(),
+    qcmQuestionCode: String(form.qcmQuestionCode || '').trim(),
     orderIndex: Number(form.orderIndex) || 0,
   };
 }
@@ -269,6 +275,26 @@ export function GLChapterMapEditor({
           Description
           <input value={markerForm.description} onChange={(event) => setField('description', event.target.value)} />
         </label>
+        {String(markerForm.eventType || '').toLowerCase() === 'quiz' ? (
+          <>
+            <label>
+              Catégorie QCM (slug, optionnel)
+              <input
+                value={markerForm.qcmCategorieSlug}
+                onChange={(event) => setField('qcmCategorieSlug', event.target.value)}
+                placeholder="faune, flore, geologie…"
+              />
+            </label>
+            <label>
+              Code question fixe (optionnel)
+              <input
+                value={markerForm.qcmQuestionCode}
+                onChange={(event) => setField('qcmQuestionCode', event.target.value)}
+                placeholder="QCM0001"
+              />
+            </label>
+          </>
+        ) : null}
         <label>
           Ordre
           <input type="number" value={markerForm.orderIndex} onChange={(event) => setField('orderIndex', event.target.value)} />

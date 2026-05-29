@@ -72,7 +72,8 @@ async function readChapterFull(slugOrId) {
   chapter.map_image_frame = parseMapImageFrameJson(chapter.map_image_frame_json);
   delete chapter.map_image_frame_json;
   const markers = await queryAll(
-    `SELECT id, chapter_id, x_pct, y_pct, event_type, label, description, order_index
+    `SELECT id, chapter_id, x_pct, y_pct, event_type, label, description,
+            qcm_categorie_slug, qcm_question_code, order_index
        FROM gl_chapter_markers
       WHERE chapter_id = ?
       ORDER BY order_index ASC, id ASC`,
@@ -259,16 +260,22 @@ router.post('/admin/:id/markers', requireGlPermission('gl.content.manage'), asyn
   if (xPct == null || yPct == null) return res.status(400).json({ error: 'xPct et yPct requis (0..100)' });
   const eventType = normalizeOptionalString(req.body?.eventType);
   const description = req.body?.description != null ? String(req.body.description) : null;
+  const qcmCategorieSlug = normalizeOptionalString(req.body?.qcmCategorieSlug);
+  const qcmQuestionCode = normalizeOptionalString(req.body?.qcmQuestionCode);
   const orderIndex = toPositiveInt(req.body?.orderIndex, 0);
   const chapter = await queryOne('SELECT id FROM gl_chapters WHERE id = ? LIMIT 1', [chapterId]);
   if (!chapter) return res.status(404).json({ error: 'Chapitre introuvable' });
   await execute(
-    `INSERT INTO gl_chapter_markers (chapter_id, x_pct, y_pct, event_type, label, description, order_index, created_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, NOW())`,
-    [chapterId, xPct, yPct, eventType, label, description, orderIndex]
+    `INSERT INTO gl_chapter_markers (
+       chapter_id, x_pct, y_pct, event_type, label, description,
+       qcm_categorie_slug, qcm_question_code, order_index, created_at
+     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
+    [chapterId, xPct, yPct, eventType, label, description, qcmCategorieSlug, qcmQuestionCode, orderIndex]
   );
   const marker = await queryOne(
-    'SELECT id, chapter_id, x_pct, y_pct, event_type, label, description, order_index FROM gl_chapter_markers WHERE chapter_id = ? ORDER BY id DESC LIMIT 1',
+    `SELECT id, chapter_id, x_pct, y_pct, event_type, label, description,
+            qcm_categorie_slug, qcm_question_code, order_index
+       FROM gl_chapter_markers WHERE chapter_id = ? ORDER BY id DESC LIMIT 1`,
     [chapterId]
   );
   return res.status(201).json(marker);
@@ -310,11 +317,21 @@ router.put('/admin/markers/:markerId', requireGlPermission('gl.content.manage'),
     updates.push('order_index = ?');
     params.push(toPositiveInt(req.body.orderIndex, 0));
   }
+  if (Object.prototype.hasOwnProperty.call(req.body || {}, 'qcmCategorieSlug')) {
+    updates.push('qcm_categorie_slug = ?');
+    params.push(normalizeOptionalString(req.body.qcmCategorieSlug));
+  }
+  if (Object.prototype.hasOwnProperty.call(req.body || {}, 'qcmQuestionCode')) {
+    updates.push('qcm_question_code = ?');
+    params.push(normalizeOptionalString(req.body.qcmQuestionCode));
+  }
   if (updates.length === 0) return res.status(400).json({ error: 'Aucun champ à mettre à jour' });
   params.push(markerId);
   await execute(`UPDATE gl_chapter_markers SET ${updates.join(', ')} WHERE id = ?`, params);
   const updated = await queryOne(
-    'SELECT id, chapter_id, x_pct, y_pct, event_type, label, description, order_index FROM gl_chapter_markers WHERE id = ? LIMIT 1',
+    `SELECT id, chapter_id, x_pct, y_pct, event_type, label, description,
+            qcm_categorie_slug, qcm_question_code, order_index
+       FROM gl_chapter_markers WHERE id = ? LIMIT 1`,
     [markerId]
   );
   if (!updated) return res.status(404).json({ error: 'Marker introuvable' });
