@@ -13,6 +13,7 @@ import { GLSpellsView } from './components/GLSpellsView.jsx';
 import { GLMapView } from './components/GLMapView.jsx';
 import { GLBiotopeView } from './components/GLBiotopeView.jsx';
 import { GLBiocenoseView } from './components/GLBiocenoseView.jsx';
+import { GLGlossaryView } from './components/GLGlossaryView.jsx';
 import { GLHistoryView } from './components/GLHistoryView.jsx';
 import { GLUsersAdminView } from './components/GLUsersAdminView.jsx';
 import { GLContentsAdminView } from './components/GLContentsAdminView.jsx';
@@ -93,7 +94,17 @@ export function AppGL() {
   const [glProfile, setGlProfile] = useState(null);
   const [glConfig, setGlConfig] = useState({});
   const [showProfile, setShowProfile] = useState(false);
+  const [glossaryFocusCode, setGlossaryFocusCode] = useState(null);
   const { brand: glBrand, style: glBrandStyle } = useGLBrandTheme(glConfig?.brand);
+
+  const navigateToGlossaryTerm = useCallback((code) => {
+    setGlossaryFocusCode(String(code || '').trim() || null);
+    setTab('glossary');
+  }, []);
+
+  const clearGlossaryFocus = useCallback(() => {
+    setGlossaryFocusCode(null);
+  }, []);
 
   const isAdmin = isAdminRole(auth);
   const isImpersonating = !!auth?.impersonating;
@@ -534,7 +545,20 @@ export function AppGL() {
           </>
         )}
         {tab === 'biotope' && <GLBiotopeView gameState={gameState} />}
-        {tab === 'biocenose' && <GLBiocenoseView gameState={gameState} />}
+        {tab === 'biocenose' && (
+          <GLBiocenoseView
+            gameState={gameState}
+            onOpenGlossaryTerm={navigateToGlossaryTerm}
+          />
+        )}
+        {tab === 'glossary' && (
+          <GLGlossaryView
+            gameState={gameState}
+            focusCode={glossaryFocusCode}
+            onOpenTerm={setGlossaryFocusCode}
+            onFocusHandled={clearGlossaryFocus}
+          />
+        )}
         {tab === 'history' && <GLHistoryView gameState={gameState} />}
         {tab === 'users' && isAdmin && (
           <GLUsersAdminView

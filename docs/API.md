@@ -74,9 +74,13 @@ Le script accepte aussi :
 | PUT | `/api/gl/chapters/admin/markers/:markerId` | mise à jour partielle marker | `gl.content.manage` |
 | DELETE | `/api/gl/chapters/admin/markers/:markerId` | — | `gl.content.manage` (détache les équipes positionnées sur ce marker via `ON DELETE SET NULL`) |
 | GET | `/api/gl/biomes` | — | `gl.read` (liste biomes + effectifs espèces actives) |
-| GET | `/api/gl/species` | `?biomeSlug=` (requis) | `gl.read` (réponse `{ biome, items }` triées faune/flore/groupe/nom) |
+| GET | `/api/gl/species` | `?biomeSlug=` (requis) | `gl.read` (réponse `{ biome, items }` triées faune/flore/groupe/nom ; chaque espèce inclut `glossaryTerms[]` si `mots_cles` matchent le glossaire actif) |
 | POST | `/api/gl/admin/species/import` | `{ fileDataBase64, fileName?, dryRun?, syncBiomes? }` (XLSX feuilles `especes` / `biomes_stats`) | `gl.content.manage` (UPSERT par `species_code`, rapport `{ report }`) |
 | GET | `/api/gl/admin/species/stats` | — | `gl.content.manage` (total + agrégats par biome/type) |
+| GET | `/api/gl/glossary` | `?biomeSlug=`, `?categorie=`, `?niveau=`, `?q=` optionnels | `gl.read` (réponse `{ biome, items }` — termes actifs filtrés par biome si fourni) |
+| GET | `/api/gl/glossary/:code` | `?biomeSlug=` optionnel | `gl.read` (fiche `{ term, relatedTerms, relatedSpecies }`) |
+| POST | `/api/gl/admin/glossary/import` | `{ fileDataBase64, fileName?, dryRun? }` (XLSX feuille `glossaire`) | `gl.content.manage` (UPSERT par `glossary_code`, sync biomes + relations, rapport `{ report }`) |
+| GET | `/api/gl/admin/glossary/stats` | — | `gl.content.manage` (total + agrégats par catégorie/niveau) |
 | GET | `/api/gl/gameplay-settings` | — | Auth GL (joueur ou admin) |
 | POST | `/api/gl/games` | `{ classId, chapterId, name }` | `gl.game.manage` (refus `404` si `classId`/`chapterId` introuvable, `409` si la ressource est supprimée entre validation et insertion) |
 | GET | `/api/gl/games` | `?classId=&status=` optionnels | `gl.game.manage` |

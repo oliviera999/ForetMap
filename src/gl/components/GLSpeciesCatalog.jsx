@@ -17,7 +17,7 @@ function groupSpeciesByTypeAndGroup(items) {
   return byType;
 }
 
-function GLSpeciesCard({ species }) {
+function GLSpeciesCard({ species, onOpenGlossaryTerm }) {
   return (
     <article className="gl-species-card">
       {species.photo_url ? (
@@ -61,12 +61,29 @@ function GLSpeciesCard({ species }) {
             </a>
           </p>
         ) : null}
+        {Array.isArray(species.glossaryTerms) && species.glossaryTerms.length > 0 ? (
+          <div className="gl-species-card__glossary">
+            <strong>Glossaire :</strong>
+            <div className="gl-glossary-chips">
+              {species.glossaryTerms.map((term) => (
+                <button
+                  key={term.glossary_code}
+                  type="button"
+                  className="gl-glossary-chip"
+                  onClick={() => onOpenGlossaryTerm?.(term.glossary_code)}
+                >
+                  {term.terme}
+                </button>
+              ))}
+            </div>
+          </div>
+        ) : null}
       </div>
     </article>
   );
 }
 
-export function GLSpeciesCatalog({ biomeSlug, biomeNom }) {
+export function GLSpeciesCatalog({ biomeSlug, biomeNom, onOpenGlossaryTerm }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [items, setItems] = useState([]);
@@ -147,7 +164,11 @@ export function GLSpeciesCatalog({ biomeSlug, biomeNom }) {
                 <h4>{groupName}</h4>
                 <div className="gl-species-catalog__grid">
                   {groups[groupName].map((species) => (
-                    <GLSpeciesCard key={species.species_code || species.id} species={species} />
+                    <GLSpeciesCard
+                      key={species.species_code || species.id}
+                      species={species}
+                      onOpenGlossaryTerm={onOpenGlossaryTerm}
+                    />
                   ))}
                 </div>
               </div>

@@ -4,6 +4,7 @@ export const GL_PLAYER_TABS = [
   { id: 'maps', label: 'Cartes', icon: '🗺️' },
   { id: 'biotope', label: 'Biotope', icon: '🌿' },
   { id: 'biocenose', label: 'Biocenose', icon: '🦋' },
+  { id: 'glossary', label: 'Glossaire', icon: '📚' },
   { id: 'history', label: 'Histoire', icon: '📜' },
   { id: 'world', label: 'Le monde de G&L', icon: '🌍' },
   { id: 'spells', label: 'Sortileges', icon: '✨' },

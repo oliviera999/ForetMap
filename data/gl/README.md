@@ -15,3 +15,16 @@ npm run gl:import:species -- --apply --file=chemin/vers/fichier.xlsx
 Depuis l’admin GL : **Contenus → Espèces** (upload XLSX, dry-run puis appliquer).
 
 Après import, lier un chapitre à un biome via **Contenus → Chapitres → Biome (catalogue espèces)**.
+
+## Glossaire pédagogique
+
+Fichier de référence : `glossaire-gnomes-et-licornes.xlsx` (feuille `glossaire`).
+
+```bash
+npm run gl:import:glossary          # simulation (dry-run)
+npm run gl:import:glossary -- --apply
+```
+
+Depuis l’admin GL : **Contenus → Glossaire**.
+
+Les termes sont filtrés par biome du chapitre ; les fiches espèces affichent des liens glossaire via `mots_cles` (re-importer les espèces après ajout de la colonne).

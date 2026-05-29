@@ -8,6 +8,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 ## [Non publié]
 
 ### Ajouté
+- **GL — glossaire pédagogique** : tables `gl_glossary_terms`, `gl_glossary_term_biomes`, `gl_glossary_term_relations` ; colonne `gl_species.mots_cles` ; import XLSX (`lib/glGlossaryImport.js`, `npm run gl:import:glossary`, admin **Contenus → Glossaire**), API `GET /api/gl/glossary`, `GET /api/gl/glossary/:code`, `POST /api/gl/admin/glossary/import`, `GET /api/gl/admin/glossary/stats` ; enrichissement `GET /api/gl/species` avec `glossaryTerms[]` ; onglet joueur **Glossaire** (`GLGlossaryView`) et navigation depuis les fiches espèces. Fichier de référence `data/gl/glossaire-gnomes-et-licornes.xlsx`. Tests `tests/gl-glossary-import-lib.test.js`, `tests/gl-glossary-catalog.test.js`, `tests-ui/gl/GLGlossaryView.test.jsx`, e2e `e2e/gl-content.spec.js`.
 - **GL — catalogue espèces / biocénose structurée** : tables `gl_biomes` et `gl_species`, liaison chapitre via `gl_chapters.biome_slug`, import XLSX (`lib/glSpeciesImport.js`, `npm run gl:import:species`, admin **Contenus → Espèces**), API `GET /api/gl/biomes`, `GET /api/gl/species`, `POST /api/gl/admin/species/import`, rendu joueur `GLSpeciesCatalog` (intro markdown + fiches par biome). Fichier de référence `data/gl/especes-biomes-gnomes-et-licornes.xlsx`. Tests `tests/gl-species-import-lib.test.js`, `tests/gl-species-catalog.test.js`, `tests-ui/gl/GLSpeciesCatalog.test.jsx`, e2e `e2e/gl-content.spec.js`.
 
 ### Modifié
