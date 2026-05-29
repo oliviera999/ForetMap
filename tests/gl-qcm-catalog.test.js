@@ -93,19 +93,17 @@ test('POST /api/gl/admin/qcm/import apply upsert le catalogue', async () => {
 });
 
 test('GET /api/gl/qcm/questions/:code/present mélange à chaque appel', async () => {
-  const first = await request(app)
-    .get('/api/gl/qcm/questions/QCM0001/present')
-    .set('Authorization', `Bearer ${playerToken}`)
-    .expect(200);
-  const second = await request(app)
-    .get('/api/gl/qcm/questions/QCM0001/present')
-    .set('Authorization', `Bearer ${playerToken}`)
-    .expect(200);
-  assert.ok(first.body?.presentationToken);
-  assert.strictEqual(first.body.choices.length, 5);
-  const order1 = first.body.choices.map((c) => c.text).join('|');
-  const order2 = second.body.choices.map((c) => c.text).join('|');
-  assert.notStrictEqual(order1, order2);
+  const orders = new Set();
+  for (let i = 0; i < 12; i += 1) {
+    const res = await request(app)
+      .get('/api/gl/qcm/questions/QCM0001/present')
+      .set('Authorization', `Bearer ${playerToken}`)
+      .expect(200);
+    assert.ok(res.body?.presentationToken);
+    assert.strictEqual(res.body.choices.length, 5);
+    orders.add(res.body.choices.map((c) => c.text).join('|'));
+  }
+  assert.ok(orders.size > 1, 'plusieurs ordres attendus sur 12 présentations');
 });
 
 test('POST /api/gl/qcm/questions/:code/answer valide une réponse', async () => {
