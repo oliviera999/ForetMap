@@ -1976,3 +1976,134 @@ button.gl-brand-hub__card:focus-visible {
 .gl-species-card__links a {
   color: var(--gl-color-link-hover, #2c5959);
 }
+
+.gl-species-card__glossary {
+  margin-top: 0.5rem;
+  font-size: 0.9rem;
+}
+
+.gl-species-card__glossary strong {
+  display: block;
+  margin-bottom: 0.35rem;
+}
+
+.gl-glossary-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.gl-glossary-chip {
+  border: 1px solid var(--gl-color-border, #cbd5e1);
+  background: var(--gl-color-surface-muted, #f1f5f9);
+  color: var(--gl-color-text, #0f172a);
+  border-radius: 999px;
+  padding: 0.2rem 0.65rem;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.gl-glossary-chip:hover,
+.gl-glossary-chip.is-active {
+  background: var(--gl-color-accent-soft, #dbeafe);
+  border-color: var(--gl-color-accent, #2563eb);
+}
+
+.gl-glossary__intro {
+  margin-bottom: 1rem;
+  color: #475569;
+}
+
+.gl-glossary__filters {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.gl-glossary__layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 1fr);
+  gap: 1rem;
+  align-items: start;
+}
+
+@media (max-width: 900px) {
+  .gl-glossary__layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.gl-glossary__group {
+  margin-bottom: 1rem;
+}
+
+.gl-glossary__group > h3 {
+  margin: 0 0 0.5rem;
+  font-size: 1rem;
+  color: #334155;
+}
+
+.gl-glossary__terms {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.35rem;
+}
+
+.gl-glossary__terms button {
+  width: 100%;
+  text-align: left;
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  align-items: center;
+  border: 1px solid var(--gl-color-border, #e2e8f0);
+  background: #fff;
+  border-radius: 8px;
+  padding: 0.55rem 0.75rem;
+  cursor: pointer;
+}
+
+.gl-glossary__terms button.is-active {
+  border-color: var(--gl-color-accent, #2563eb);
+  background: var(--gl-color-accent-soft, #eff6ff);
+}
+
+.gl-glossary__term-label {
+  font-weight: 600;
+}
+
+.gl-glossary__term-meta {
+  font-size: 0.8rem;
+  color: #64748b;
+}
+
+.gl-glossary__detail {
+  border: 1px solid var(--gl-color-border, #e2e8f0);
+  border-radius: 12px;
+  padding: 1rem;
+  background: #fff;
+  min-height: 200px;
+}
+
+.gl-glossary__detail-meta {
+  color: #64748b;
+  font-size: 0.9rem;
+}
+
+.gl-glossary__detail-lead {
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.gl-glossary__related {
+  margin-top: 1rem;
+}
+
+.gl-glossary__related > h4 {
+  margin: 0 0 0.5rem;
+  font-size: 0.95rem;
+}

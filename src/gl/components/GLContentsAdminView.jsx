@@ -3,6 +3,7 @@ import { apiGL } from '../services/apiGL.js';
 import { GLContentPage } from './GLContentPage.jsx';
 import { GLChaptersAdminView } from './GLChaptersAdminView.jsx';
 import { GLSpeciesImportPanel } from './admin/GLSpeciesImportPanel.jsx';
+import { GLGlossaryImportPanel } from './admin/GLGlossaryImportPanel.jsx';
 
 export function GLContentsAdminView({ auth, onNavigateTab }) {
   const [section, setSection] = useState('pages');
@@ -56,6 +57,14 @@ export function GLContentsAdminView({ auth, onNavigateTab }) {
         >
           Espèces
         </button>
+        <button
+          type="button"
+          className={section === 'glossary' ? 'is-active' : ''}
+          onClick={() => setSection('glossary')}
+          data-subtab="glossary"
+        >
+          Glossaire
+        </button>
       </nav>
 
       {section === 'pages' ? (
@@ -85,8 +94,10 @@ export function GLContentsAdminView({ auth, onNavigateTab }) {
         </>
       ) : section === 'chapters' ? (
         <GLChaptersAdminView />
-      ) : (
+      ) : section === 'species' ? (
         <GLSpeciesImportPanel />
+      ) : (
+        <GLGlossaryImportPanel />
       )}
     </section>
   );

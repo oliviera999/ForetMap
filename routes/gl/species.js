@@ -6,6 +6,11 @@ const {
   applySpeciesImport,
   MAX_IMPORT_ROWS,
 } = require('../../lib/glSpeciesImport');
+const {
+  loadActiveGlossaryForBiome,
+  buildGlossaryLookupMap,
+  matchGlossaryTermsForSpecies,
+} = require('./glossary');
 
 const router = express.Router();
 
@@ -36,17 +41,23 @@ router.get('/species', requireGlPermission('gl.read'), async (req, res) => {
   if (!biomeSlug) return res.status(400).json({ error: 'biomeSlug requis' });
   const biome = await queryOne('SELECT slug, nom FROM gl_biomes WHERE slug = ? LIMIT 1', [biomeSlug]);
   if (!biome) return res.status(404).json({ error: 'Biome introuvable' });
-  const items = await queryAll(
+  const itemsRaw = await queryAll(
     `SELECT id, species_code, biome_slug, type, nom_commun, nom_scientifique, groupe, famille,
             statut_iucn, endemique, role_ecologique, adaptations_cles, taille_adulte, poids_adulte,
             regime_alimentaire, longevite, reproduction, observation_terrain, description_courte,
-            anecdote, present_dans_qcm, wikipedia_title, wikipedia_url, photo_url, photo_credit,
+            anecdote, present_dans_qcm, mots_cles, wikipedia_title, wikipedia_url, photo_url, photo_credit,
             photo_licence, photo_licence_url, statut
        FROM gl_species
       WHERE biome_slug = ? AND statut = 'actif'
       ORDER BY type ASC, groupe ASC, nom_commun ASC`,
     [biomeSlug]
   );
+  const glossaryRows = await loadActiveGlossaryForBiome(biomeSlug);
+  const glossaryByKey = buildGlossaryLookupMap(glossaryRows);
+  const items = itemsRaw.map((row) => ({
+    ...row,
+    glossaryTerms: matchGlossaryTermsForSpecies(row.mots_cles, glossaryByKey),
+  }));
   return res.json({ biome, items });
 });
 

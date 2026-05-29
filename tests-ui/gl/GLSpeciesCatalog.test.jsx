@@ -1,6 +1,7 @@
 import React from 'react';
 import { describe, test, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { GLSpeciesCatalog } from '../../src/gl/components/GLSpeciesCatalog.jsx';
 
 vi.mock('../../src/gl/services/apiGL.js', () => ({
@@ -47,5 +48,33 @@ describe('GLSpeciesCatalog', () => {
     expect(screen.getByText('Faune')).toBeInTheDocument();
     expect(screen.getByText('Flore')).toBeInTheDocument();
     expect(screen.getByText('Acacia')).toBeInTheDocument();
+  });
+
+  test('affiche les chips glossaire et déclenche la navigation', async () => {
+    const onOpenGlossaryTerm = vi.fn();
+    vi.mocked(apiGL).mockResolvedValue({
+      biome: { slug: 'sahara', nom: 'Désert chaud (Sahara)' },
+      items: [
+        {
+          species_code: 'SP0001',
+          type: 'faune',
+          groupe: 'mammifère',
+          nom_commun: 'Fennec',
+          glossaryTerms: [{ glossary_code: 'GL0001', terme: 'Biome' }],
+        },
+      ],
+    });
+    render(
+      <GLSpeciesCatalog
+        biomeSlug="sahara"
+        biomeNom="Désert chaud (Sahara)"
+        onOpenGlossaryTerm={onOpenGlossaryTerm}
+      />
+    );
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Biome' })).toBeInTheDocument();
+    });
+    await userEvent.click(screen.getByRole('button', { name: 'Biome' }));
+    expect(onOpenGlossaryTerm).toHaveBeenCalledWith('GL0001');
   });
 });
