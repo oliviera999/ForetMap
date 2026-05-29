@@ -1,0 +1,2 @@
+ALTER TABLE gl_species
+  MODIFY COLUMN photo_credit VARCHAR(512) DEFAULT NULL;

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { apiGL } from '../services/apiGL.js';
 import { GLContentPage } from './GLContentPage.jsx';
 import { GLChaptersAdminView } from './GLChaptersAdminView.jsx';
+import { GLSpeciesImportPanel } from './admin/GLSpeciesImportPanel.jsx';
 
 export function GLContentsAdminView({ auth, onNavigateTab }) {
   const [section, setSection] = useState('pages');
@@ -47,6 +48,14 @@ export function GLContentsAdminView({ auth, onNavigateTab }) {
         >
           Chapitres
         </button>
+        <button
+          type="button"
+          className={section === 'species' ? 'is-active' : ''}
+          onClick={() => setSection('species')}
+          data-subtab="species"
+        >
+          Espèces
+        </button>
       </nav>
 
       {section === 'pages' ? (
@@ -74,8 +83,10 @@ export function GLContentsAdminView({ auth, onNavigateTab }) {
             />
           ) : null}
         </>
-      ) : (
+      ) : section === 'chapters' ? (
         <GLChaptersAdminView />
+      ) : (
+        <GLSpeciesImportPanel />
       )}
     </section>
   );

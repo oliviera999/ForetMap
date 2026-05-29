@@ -15,6 +15,7 @@ const EMPTY_CHAPTER_FORM = {
   slug: '',
   title: '',
   biome: '',
+  biomeSlug: '',
   mapImageUrl: '',
   storyMarkdown: '',
   biotopeMarkdown: '',
@@ -34,7 +35,17 @@ export function GLChaptersAdminView() {
   const [pendingMapImageFile, setPendingMapImageFile] = useState(null);
   const [pendingMapPreviewUrl, setPendingMapPreviewUrl] = useState('');
   const [frameEditorOpen, setFrameEditorOpen] = useState(false);
+  const [biomes, setBiomes] = useState([]);
   const previewMapGestures = useGlPctMapGestures();
+
+  async function loadBiomes() {
+    try {
+      const list = await apiGL('/api/gl/biomes');
+      setBiomes(Array.isArray(list) ? list : []);
+    } catch (_) {
+      setBiomes([]);
+    }
+  }
 
   async function loadChapters() {
     try {
@@ -60,6 +71,7 @@ export function GLChaptersAdminView() {
         slug: data.chapter.slug,
         title: data.chapter.title || '',
         biome: data.chapter.biome || '',
+        biomeSlug: data.chapter.biome_slug || '',
         mapImageUrl: data.chapter.map_image_url || '',
         mapImageFrame: normalizeGlImageFrame(data.chapter.map_image_frame, 'chapter-map'),
         storyMarkdown: data.chapter.story_markdown || '',
@@ -76,6 +88,7 @@ export function GLChaptersAdminView() {
 
   useEffect(() => {
     loadChapters();
+    loadBiomes();
   }, []);
 
   function clearPendingMapImage() {
@@ -273,11 +286,25 @@ export function GLChaptersAdminView() {
               />
             </label>
             <label>
-              Biome
+              Biome (libellé libre)
               <input
                 value={chapterForm.biome}
                 onChange={(event) => setChapterForm({ ...chapterForm, biome: event.target.value })}
               />
+            </label>
+            <label>
+              Biome (catalogue espèces)
+              <select
+                value={chapterForm.biomeSlug}
+                onChange={(event) => setChapterForm({ ...chapterForm, biomeSlug: event.target.value })}
+              >
+                <option value="">— Aucun —</option>
+                {biomes.map((biome) => (
+                  <option key={biome.slug} value={biome.slug}>
+                    {biome.nom} ({biome.species_count || 0} esp.)
+                  </option>
+                ))}
+              </select>
             </label>
             <GLImageSourceField
               label="Image de carte"
