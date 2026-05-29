@@ -28,3 +28,16 @@ npm run gl:import:glossary -- --apply
 Depuis l’admin GL : **Contenus → Glossaire**.
 
 Les termes sont filtrés par biome du chapitre ; les fiches espèces affichent des liens glossaire via `mots_cles` (re-importer les espèces après ajout de la colonne).
+
+## QCM biomes
+
+Fichier de référence : `qcm-biomes-gnomes-et-licornes-consolide.xlsx` (feuilles `categories`, `questions`).
+
+```bash
+npm run gl:import:qcm          # simulation (dry-run)
+npm run gl:import:qcm -- --apply
+```
+
+Depuis l’admin GL : **Contenus → QCM**.
+
+Les questions sont liées au glossaire via `mots_cles` / `tags` (importer le glossaire avant ou re-importer le QCM après). Les réponses sont mélangées à chaque présentation (`GET /api/gl/qcm/questions/:code/present`).

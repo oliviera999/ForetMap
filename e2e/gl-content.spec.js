@@ -157,4 +157,32 @@ test.describe('Gnomes & Licornes — édition des chapitres (Lot 2B)', () => {
     const glossaryBody = await glossaryRes.json();
     expect(Array.isArray(glossaryBody?.items)).toBe(true);
   });
+
+  test('import QCM dry-run puis present avec mélange', async ({ request }) => {
+    const now = Date.now();
+    const adminEmail = `e2e-qcm-mj-${now}@example.org`;
+    await execute(
+      'INSERT INTO gl_admins (email, display_name, role, is_active, created_at, updated_at) VALUES (?, ?, ?, 1, NOW(), NOW())',
+      [adminEmail, `MJ QCM ${now}`, 'admin']
+    );
+    const adminRow = await queryOne('SELECT id FROM gl_admins WHERE email = ? LIMIT 1', [adminEmail]);
+    const adminToken = await signAuthToken({
+      product: 'gl',
+      userType: 'gl_admin',
+      userId: String(adminRow.id),
+      roleSlug: 'gl_admin',
+      permissions: ['gl.read', 'gl.content.manage'],
+    });
+    const fs = require('node:fs');
+    const path = require('node:path');
+    const xlsxPath = path.join(__dirname, '..', 'data', 'gl', 'qcm-biomes-gnomes-et-licornes-consolide.xlsx');
+    const fileDataBase64 = fs.readFileSync(xlsxPath).toString('base64');
+    const importRes = await request.post('/api/gl/admin/qcm/import', {
+      headers: { Authorization: `Bearer ${adminToken}` },
+      data: { fileDataBase64, dryRun: true },
+    });
+    expect(importRes.status()).toBe(200);
+    const importBody = await importRes.json();
+    expect(importBody?.report?.totals?.valid).toBeGreaterThan(600);
+  });
 });

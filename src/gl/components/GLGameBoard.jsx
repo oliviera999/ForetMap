@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { clampMapMascotPctForViewport } from '../../utils/mapViewMascotMotion.js';
 import { GLBoardMarkers } from './GLBoardMarkers.jsx';
 import { GLBoardMascot } from './GLBoardMascot.jsx';
+import { GLQcmModal } from './GLQcmModal.jsx';
 import { glBoardPointToPct } from '../utils/glBoardPointToPct.js';
 import { useGLBoardMascotMotion } from '../hooks/useGLBoardMascotMotion.js';
 
@@ -21,10 +22,14 @@ export function GLGameBoard({
   chapter,
   markers,
   teams,
+  gameId,
+  biomeSlug,
   onMarkerClick,
   onBoardClick,
   onPlayerActionRequest,
   onSelectTeam,
+  onOpenGlossaryTerm,
+  onQcmAnswered,
   canMoveMascot,
   canRequestAction,
   selectedTeamId,
@@ -87,9 +92,15 @@ export function GLGameBoard({
       return;
     }
     if (canRequestAction) {
+      if (String(marker?.event_type || '').toLowerCase() === 'quiz') {
+        setPendingMarker(marker);
+        return;
+      }
       setPendingMarker(marker);
     }
   }
+
+  const isQuizMarker = pendingMarker && String(pendingMarker?.event_type || '').toLowerCase() === 'quiz';
 
   function confirmActionRequest() {
     if (!pendingMarker) return;
@@ -172,7 +183,19 @@ export function GLGameBoard({
         })}
       </div>
 
-      {pendingMarker && (
+      {pendingMarker && isQuizMarker ? (
+        <GLQcmModal
+          open
+          marker={pendingMarker}
+          biomeSlug={biomeSlug || chapter?.biome_slug}
+          gameId={gameId}
+          onClose={() => setPendingMarker(null)}
+          onOpenGlossaryTerm={onOpenGlossaryTerm}
+          onAnswered={onQcmAnswered}
+        />
+      ) : null}
+
+      {pendingMarker && !isQuizMarker ? (
         <div className="gl-action-modal" role="dialog" aria-label="Proposer une action">
           <div className="gl-action-modal-body">
             <h3>Proposer une action sur « {pendingMarker.label} »</h3>
@@ -191,7 +214,7 @@ export function GLGameBoard({
             </div>
           </div>
         </div>
-      )}
+      ) : null}
     </section>
   );
 }

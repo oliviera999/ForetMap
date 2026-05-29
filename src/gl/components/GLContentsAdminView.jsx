@@ -4,6 +4,7 @@ import { GLContentPage } from './GLContentPage.jsx';
 import { GLChaptersAdminView } from './GLChaptersAdminView.jsx';
 import { GLSpeciesImportPanel } from './admin/GLSpeciesImportPanel.jsx';
 import { GLGlossaryImportPanel } from './admin/GLGlossaryImportPanel.jsx';
+import { GLQcmImportPanel } from './admin/GLQcmImportPanel.jsx';
 
 export function GLContentsAdminView({ auth, onNavigateTab }) {
   const [section, setSection] = useState('pages');
@@ -65,6 +66,14 @@ export function GLContentsAdminView({ auth, onNavigateTab }) {
         >
           Glossaire
         </button>
+        <button
+          type="button"
+          className={section === 'qcm' ? 'is-active' : ''}
+          onClick={() => setSection('qcm')}
+          data-subtab="qcm"
+        >
+          QCM
+        </button>
       </nav>
 
       {section === 'pages' ? (
@@ -96,8 +105,10 @@ export function GLContentsAdminView({ auth, onNavigateTab }) {
         <GLChaptersAdminView />
       ) : section === 'species' ? (
         <GLSpeciesImportPanel />
-      ) : (
+      ) : section === 'glossary' ? (
         <GLGlossaryImportPanel />
+      ) : (
+        <GLQcmImportPanel />
       )}
     </section>
   );
