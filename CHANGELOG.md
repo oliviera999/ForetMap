@@ -21,6 +21,9 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - **Express 5** : migration `express@5.2.1`, retrait du patch `Layer` async ; route SPA `/{*splat}` ; deps `uuid@14`, `cross-env@10`.
 - **Intégration PR GitHub** : correctifs des PR Cursor #28–#37 et Dependabot #25–#30 appliqués sur `main` (PR obsolètes/doublons fermées).
 
+### Corrigé
+- **Fallback SPA (Express 4/5)** : route `GET /` explicite + wildcard selon la version Express (`/{*splat}` en v5, `*` en v4) via `lib/spaFallback.js` — corrige « Cannot GET / » en prod si `node_modules` reste en Express 4 après déploiement du code v5. Tests `tests/spa-fallback.test.js`, `tests/gl-product-routing.test.js`.
+
 ### Ajouté
 - **GL — thèmes couleurs plateforme et par chapitre** : édition des 8 couleurs de `platform.brand` dans **Réglages plateforme** (`GLBrandColorEditor`) ; surcharges optionnelles par chapitre (`gl_chapters.theme_json`, admin **Contenus → Chapitres**) fusionnées sur toute l’app quand une partie est active ou qu’un chapitre est sélectionné sur la **Carte du royaume**. Migration `100_gl_chapters_theme.sql` ; helpers `lib/glBrand.js` / `src/utils/glBrandTheme.js`. Tests `tests/gl-brand.test.js`, `tests/gl-chapters-admin.test.js`, `tests/gl-chapter-detail.test.js` ; `docs/API.md`.
 - **GL — biocénose (espèces/biomes) : modèle et export XLSX** : `GET /api/gl/admin/species/import/template`, `GET /api/gl/admin/species/export` (feuilles `especes` et `biomes_stats`, ré-importables) ; boutons dans **Contenus → Espèces** ; logique dans `lib/glSpeciesImport.js`. Tests étendus `tests/gl-content-import-export.test.js`.
