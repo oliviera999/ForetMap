@@ -96,7 +96,24 @@ export function AppGL() {
   const [glConfig, setGlConfig] = useState({});
   const [showProfile, setShowProfile] = useState(false);
   const [glossaryFocusCode, setGlossaryFocusCode] = useState(null);
-  const { brand: glBrand, style: glBrandStyle } = useGLBrandTheme(glConfig?.brand);
+  const [kingdomChapterId, setKingdomChapterId] = useState(null);
+
+  const themeChapterId = useMemo(() => {
+    if (gameState?.game?.chapter_id) return Number(gameState.game.chapter_id);
+    if (tab === 'kingdom' && kingdomChapterId) return Number(kingdomChapterId);
+    return null;
+  }, [gameState, tab, kingdomChapterId]);
+
+  const themeChapter = useMemo(() => {
+    if (!themeChapterId) return null;
+    return chapters.find((c) => Number(c.id) === themeChapterId) || null;
+  }, [chapters, themeChapterId]);
+
+  const { brand: glBrand, style: glBrandStyle } = useGLBrandTheme(glConfig?.brand, themeChapter?.theme);
+
+  useEffect(() => {
+    if (tab !== 'kingdom') setKingdomChapterId(null);
+  }, [tab]);
 
   const navigateToGlossaryTerm = useCallback((code) => {
     setGlossaryFocusCode(String(code || '').trim() || null);
@@ -606,7 +623,12 @@ export function AppGL() {
           <GLJournalView gameId={activeGameId} />
         )}
         {tab === 'kingdom' && isModuleEnabled(modules, 'kingdomMapEnabled') && (
-          <GLKingdomMapView chapter={activeChapter} chapters={chapters} canManage={isAdmin} />
+          <GLKingdomMapView
+            chapter={activeChapter}
+            chapters={chapters}
+            canManage={isAdmin}
+            onChapterChange={setKingdomChapterId}
+          />
         )}
         {isModuleEnabled(modules, 'helpEnabled') ? (
           <GLHelpPanel helpKey={`tab:${tab}`} title="Aide GL" defaultOpen={false}>

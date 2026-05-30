@@ -7,7 +7,9 @@ import { GLInput } from './ui/GLInput.jsx';
 import { GLImageSourceField } from './GLImageSourceField.jsx';
 import { GLImageFrameEditor } from './GLImageFrameEditor.jsx';
 import { normalizeGlImageFrame } from '../../utils/glImageFrame.js';
+import { normalizeBrand } from '../hooks/useGLBrandTheme.js';
 import { compressImage, isLikelyImageFile } from '../../utils/image.js';
+import { GLBrandColorEditor } from './GLBrandColorEditor.jsx';
 
 const SLOT_DEFS = [
   { id: 'hero', label: 'Hero', context: 'brand-hero', hasSubtitle: true },
@@ -23,6 +25,7 @@ export function GLBrandEditor({ value, onChange, onStatus, disabled = false }) {
     const srcSlots = source?.slots && typeof source.slots === 'object' ? source.slots : {};
     return {
       ...source,
+      colors: normalizeBrand(source).colors,
       slots: {
         hero: {
           imageUrl: String(srcSlots?.hero?.imageUrl || '').trim(),
@@ -96,7 +99,23 @@ export function GLBrandEditor({ value, onChange, onStatus, disabled = false }) {
   return (
     <section className="gl-form">
       <h3>Charte visuelle GL</h3>
-      <p className="gl-hint">Ajustez les images hero/cartes, puis recadrez chaque slot selon votre besoin.</p>
+      <p className="gl-hint">
+        Ajustez les couleurs, les images hero/cartes, puis recadrez chaque slot selon votre besoin.
+      </p>
+
+      <h4>Couleurs de la charte</h4>
+      <GLBrandColorEditor
+        value={brand.colors}
+        disabled={disabled}
+        onChange={(updater) => {
+          onChange?.((prev) => {
+            const prevBrand = normalizeBrand(prev);
+            const nextColors = typeof updater === 'function' ? updater(prevBrand.colors) : updater;
+            return { ...prevBrand, colors: nextColors };
+          });
+        }}
+      />
+
       <div className="gl-brand-editor-grid">
         {SLOT_DEFS.map((def) => {
           const current = brand?.slots?.[def.id] || {};

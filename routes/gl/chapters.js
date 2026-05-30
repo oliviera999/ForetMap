@@ -4,6 +4,11 @@ const { queryOne, queryAll, execute, withTransaction } = require('../../database
 const { requireGlPermission } = require('../../middleware/requireGlAuth');
 const { saveBase64ToDisk, deleteFile } = require('../../lib/uploads');
 const { normalizeGlImageFrame } = require('../../lib/glImageFrame');
+const {
+  parseChapterThemeJson,
+  serializeChapterTheme,
+  validateChapterThemeInput,
+} = require('../../lib/glBrand');
 const { normalizeOptionalString } = require('../../lib/shared/httpHelpers');
 
 const router = express.Router();
@@ -45,13 +50,21 @@ function normalizeBiomeSlug(value) {
   return s.length > 0 ? s : null;
 }
 
+function attachChapterTheme(chapter) {
+  if (!chapter) return chapter;
+  chapter.theme = parseChapterThemeJson(chapter.theme_json);
+  delete chapter.theme_json;
+  return chapter;
+}
+
 async function readChapterFull(slugOrId) {
   const isNumeric = typeof slugOrId === 'number' || /^\d+$/.test(String(slugOrId || ''));
   const chapter = isNumeric
     ? await queryOne(
       `SELECT c.id, c.slug, c.title, c.biome, c.biome_slug, b.nom AS biome_nom,
               c.map_image_url, c.story_markdown, c.biotope_markdown,
-              c.biocenose_markdown, c.map_image_frame_json, c.order_index, c.created_at, c.updated_at
+              c.biocenose_markdown, c.map_image_frame_json, c.theme_json,
+              c.order_index, c.created_at, c.updated_at
          FROM gl_chapters c
     LEFT JOIN gl_biomes b ON b.slug = c.biome_slug
         WHERE c.id = ?
@@ -61,7 +74,8 @@ async function readChapterFull(slugOrId) {
     : await queryOne(
       `SELECT c.id, c.slug, c.title, c.biome, c.biome_slug, b.nom AS biome_nom,
               c.map_image_url, c.story_markdown, c.biotope_markdown,
-              c.biocenose_markdown, c.map_image_frame_json, c.order_index, c.created_at, c.updated_at
+              c.biocenose_markdown, c.map_image_frame_json, c.theme_json,
+              c.order_index, c.created_at, c.updated_at
          FROM gl_chapters c
     LEFT JOIN gl_biomes b ON b.slug = c.biome_slug
         WHERE c.slug = ?
@@ -71,6 +85,7 @@ async function readChapterFull(slugOrId) {
   if (!chapter) return null;
   chapter.map_image_frame = parseMapImageFrameJson(chapter.map_image_frame_json);
   delete chapter.map_image_frame_json;
+  attachChapterTheme(chapter);
   const markers = await queryAll(
     `SELECT id, chapter_id, x_pct, y_pct, event_type, label, description,
             qcm_categorie_slug, qcm_question_code, order_index
@@ -86,16 +101,20 @@ async function readChapterFull(slugOrId) {
 router.get('/', requireGlPermission('gl.read'), async (_req, res) => {
   const rows = await queryAll(
     `SELECT c.id, c.slug, c.title, c.biome, c.biome_slug, b.nom AS biome_nom,
-            c.map_image_url, c.map_image_frame_json, c.order_index
+            c.map_image_url, c.map_image_frame_json, c.theme_json, c.order_index
        FROM gl_chapters c
   LEFT JOIN gl_biomes b ON b.slug = c.biome_slug
       ORDER BY c.order_index ASC, c.id ASC`
   );
-  const items = rows.map((row) => ({
-    ...row,
-    map_image_frame: parseMapImageFrameJson(row.map_image_frame_json),
-  }));
-  for (const row of items) delete row.map_image_frame_json;
+  const items = rows.map((row) => {
+    const item = {
+      ...row,
+      map_image_frame: parseMapImageFrameJson(row.map_image_frame_json),
+    };
+    delete item.map_image_frame_json;
+    attachChapterTheme(item);
+    return item;
+  });
   return res.json(items);
 });
 
@@ -131,14 +150,20 @@ router.post('/admin', requireGlPermission('gl.content.manage'), async (req, res)
   const mapImageFrame = normalizeMapImageFrame(req.body?.mapImageFrame);
   if (!mapImageFrame) return res.status(400).json({ error: 'mapImageFrame invalide' });
   const orderIndex = toPositiveInt(req.body?.orderIndex, 0);
+  let themeJson = null;
+  if (req.body && Object.prototype.hasOwnProperty.call(req.body, 'theme')) {
+    const { theme, error: themeError } = validateChapterThemeInput(req.body.theme);
+    if (themeError) return res.status(400).json({ error: themeError });
+    themeJson = serializeChapterTheme(theme);
+  }
 
   try {
     await execute(
       `INSERT INTO gl_chapters (slug, title, biome, biome_slug, map_image_url, story_markdown,
-                                 biotope_markdown, biocenose_markdown, map_image_frame_json, order_index,
-                                 created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
-      [slug, title, biome, biomeSlug, mapImageUrl, storyMarkdown, biotopeMarkdown, biocenoseMarkdown, JSON.stringify(mapImageFrame), orderIndex]
+                                 biotope_markdown, biocenose_markdown, map_image_frame_json, theme_json,
+                                 order_index, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
+      [slug, title, biome, biomeSlug, mapImageUrl, storyMarkdown, biotopeMarkdown, biocenoseMarkdown, JSON.stringify(mapImageFrame), themeJson, orderIndex]
     );
   } catch (err) {
     if (err && err.code === 'ER_DUP_ENTRY') {
@@ -200,6 +225,12 @@ router.put('/admin/:id', requireGlPermission('gl.content.manage'), async (req, r
     if (!mapImageFrame) return res.status(400).json({ error: 'mapImageFrame invalide' });
     updates.push('map_image_frame_json = ?');
     params.push(JSON.stringify(mapImageFrame));
+  }
+  if (req.body && Object.prototype.hasOwnProperty.call(req.body, 'theme')) {
+    const { theme, error: themeError } = validateChapterThemeInput(req.body.theme);
+    if (themeError) return res.status(400).json({ error: themeError });
+    updates.push('theme_json = ?');
+    params.push(serializeChapterTheme(theme));
   }
   if (updates.length === 0) return res.status(400).json({ error: 'Aucun champ à mettre à jour' });
   updates.push('updated_at = NOW()');

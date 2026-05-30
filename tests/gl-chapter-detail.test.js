@@ -50,6 +50,8 @@ test('GET /api/gl/chapters/:slug renvoie chapitre et markers seedés', async () 
   assert.strictEqual(res.body.chapter.slug, 'foret-magique');
   assert.ok(Array.isArray(res.body.markers));
   assert.ok(res.body.markers.length >= 1);
+  assert.ok(res.body.chapter.theme);
+  assert.deepStrictEqual(res.body.chapter.theme.colors, {});
 });
 
 test('GET /api/gl/chapters/:slug renvoie 404 si slug inconnu', async () => {
