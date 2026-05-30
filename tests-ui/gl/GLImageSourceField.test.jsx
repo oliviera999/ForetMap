@@ -20,6 +20,21 @@ describe('GLImageSourceField', () => {
     expect(screen.getByText('📸 Appareil photo')).toBeTruthy();
   });
 
+  it('accepte une URL relative sans bloquer la validation du formulaire', () => {
+    render(
+      <form data-testid="form">
+        <GLImageSourceField
+          url="/uploads/gl_chapters_maps/test.jpg"
+          onUrlChange={vi.fn()}
+          onPickFile={vi.fn()}
+        />
+      </form>
+    );
+    const input = screen.getByDisplayValue('/uploads/gl_chapters_maps/test.jpg');
+    expect(input.getAttribute('type')).toBe('text');
+    expect(input.validity.valid).toBe(true);
+  });
+
   it('appelle onPickFile quand un fichier est choisi', () => {
     const onPickFile = vi.fn();
     const { container } = render(

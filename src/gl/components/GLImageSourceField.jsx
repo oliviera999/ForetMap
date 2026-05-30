@@ -28,7 +28,10 @@ export function GLImageSourceField({
         URL (optionnel si vous importez un fichier)
         <input
           id={`${baseId}-url`}
-          type="url"
+          type="text"
+          inputMode="url"
+          autoComplete="url"
+          spellCheck={false}
           value={url}
           placeholder={urlPlaceholder}
           onChange={(event) => onUrlChange?.(event.target.value)}

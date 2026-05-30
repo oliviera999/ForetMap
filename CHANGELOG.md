@@ -23,6 +23,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - **Intégration PR GitHub** : correctifs des PR Cursor #28–#37 et Dependabot #25–#30 appliqués sur `main` (PR obsolètes/doublons fermées).
 
 ### Corrigé
+- **GL — image de carte chapitre** : champ URL admin (`GLImageSourceField`) en `type="text"` au lieu de `type="url"` — les chemins `/uploads/…` après upload n’étaient plus bloqués par la validation HTML5 à l’enregistrement. Test `tests-ui/gl/GLImageSourceField.test.jsx`.
 - **GL — téléchargement modèles / export XLSX** : routes aussi enregistrées sur le routeur `admin` (comme les joueurs), montage `/api/gl/admin` prioritaire, réponses binaires sans compression, messages d’erreur explicites côté UI (`downloadGlFile`).
 - **GL — écran connexion** : `useGLBrandTheme` normalise la charte avant fusion thème chapitre — corrige le crash React « Une erreur s’est produite » au chargement (guest, `glConfig` vide). Test `tests-ui/gl/useGLBrandTheme.test.js`.
 - **Fallback SPA (Express 4/5)** : route `GET /` explicite + wildcard selon la version Express (`/{*splat}` en v5, `*` en v4) via `lib/spaFallback.js` — corrige « Cannot GET / » en prod si `node_modules` reste en Express 4 après déploiement du code v5. Tests `tests/spa-fallback.test.js`, `tests/gl-product-routing.test.js`.
