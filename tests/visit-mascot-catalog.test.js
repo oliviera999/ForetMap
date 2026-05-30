@@ -47,6 +47,25 @@ test('normalizeVisitMascotId respecte la liste autorisée et le défaut configur
   );
 });
 
+test('buildVisitMascotSelectionOptions inclut toujours les packs serveur publiés', async () => {
+  const { buildVisitMascotSelectionOptions, normalizeVisitMascotId } = await loadModule();
+  const extras = [{
+    id: 'srv-pack-test',
+    label: 'Pack test',
+    renderer: 'sprite_cut',
+    fallbackSilhouette: 'gnome',
+    spriteCut: { frameWidth: 32, frameHeight: 32, stateFrames: { idle: { srcs: ['/x.png'], fps: 8 } } },
+  }];
+  const allowed = ['renard2-cut-spritesheet'];
+  const options = buildVisitMascotSelectionOptions(extras, allowed);
+  assert.ok(options.some((entry) => entry.id === 'renard2-cut-spritesheet'));
+  assert.ok(options.some((entry) => entry.id === 'srv-pack-test'));
+  assert.equal(
+    normalizeVisitMascotId('srv-pack-test', extras, { allowedMascotIds: allowed }),
+    'srv-pack-test',
+  );
+});
+
 test('catalogue inclut SPR0UT et SCR4P avec états étendus', async () => {
   const {
     getVisitMascotById,

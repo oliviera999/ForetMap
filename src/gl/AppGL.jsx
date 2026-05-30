@@ -31,6 +31,7 @@ import { GLHelpPanel } from './components/GLHelpPanel.jsx';
 import { GLProfileModal } from './components/GLProfileModal.jsx';
 import { GLPasswordResetGate } from './components/GLPasswordResetGate.jsx';
 import { useGLBrandTheme } from './hooks/useGLBrandTheme.js';
+import { GLMascotCatalogProvider } from './context/GLMascotCatalogContext.jsx';
 
 const DEFAULT_GAMEPLAY = {
   turnsEnabled: false,
@@ -455,6 +456,7 @@ export function AppGL() {
   }
 
   return (
+    <GLMascotCatalogProvider token={token}>
     <div className="gl-app" style={glBrandStyle}>
       <GLPasswordResetGate
         open={!isAdmin && auth?.passwordMustReset === true}
@@ -642,5 +644,6 @@ export function AppGL() {
         }}
       />
     </div>
+    </GLMascotCatalogProvider>
   );
 }

@@ -80,6 +80,8 @@ Le script accepte aussi :
 | GET | `/api/gl/glossary` | `?biomeSlug=`, `?categorie=`, `?niveau=`, `?q=` optionnels | `gl.read` (réponse `{ biome, items }` — termes actifs filtrés par biome si fourni) |
 | GET | `/api/gl/glossary/:code` | `?biomeSlug=` optionnel | `gl.read` (fiche `{ term, relatedTerms, relatedSpecies }`) |
 | POST | `/api/gl/admin/glossary/import` | `{ fileDataBase64, fileName?, dryRun? }` (XLSX feuille `glossaire`) | `gl.content.manage` (UPSERT par `glossary_code`, sync biomes + relations, rapport `{ report }`) |
+| GET | `/api/gl/admin/glossary/import/template` | — | `gl.content.manage` (modèle XLSX vierge + ligne d’exemple, feuille `glossaire`) |
+| GET | `/api/gl/admin/glossary/export` | `?statut=actif\|all` (défaut `actif`) | `gl.content.manage` (export XLSX ré-importable du catalogue en base) |
 | GET | `/api/gl/admin/glossary/stats` | — | `gl.content.manage` (total + agrégats par catégorie/niveau) |
 | GET | `/api/gl/qcm/categories` | — | `gl.read` (liste catégories QCM) |
 | GET | `/api/gl/qcm/questions` | `?biomeSlug=`, `?categorieSlug=`, `?q=` optionnels | `gl.read` (liste admin ; ordre canonique A–E, `glossaryTerms[]`) |
@@ -87,6 +89,8 @@ Le script accepte aussi :
 | POST | `/api/gl/qcm/questions/:code/answer` | `{ presentationToken, choiceId }` | `gl.read` (validation hors partie) |
 | GET | `/api/gl/qcm/draw` | `?biomeSlug=` (requis), `?categorieSlug=`, `?exclude=` optionnels | `gl.read` (tirage aléatoire `{ question_code }`) |
 | POST | `/api/gl/admin/qcm/import` | `{ fileDataBase64, fileName?, dryRun? }` (XLSX feuilles `categories`, `questions`) | `gl.content.manage` |
+| GET | `/api/gl/admin/qcm/import/template` | — | `gl.content.manage` (modèle XLSX vierge + exemples, feuilles `categories` et `questions`) |
+| GET | `/api/gl/admin/qcm/export` | `?biomeSlug=`, `?categorieSlug=`, `?statut=actif\|all` (défaut `actif`) | `gl.content.manage` (export XLSX ré-importable ; filtres biome/catégorie optionnels) |
 | GET | `/api/gl/admin/qcm/stats` | — | `gl.content.manage` (total, liens glossaire, agrégats biome/catégorie/difficulté) |
 | POST | `/api/gl/games/:id/qcm/answer` | `{ questionCode, presentationToken, choiceId, markerId? }` | `gl.action.request` (joueur ; score +1 si correct et scoring actif) |
 | GET | `/api/gl/gameplay-settings` | — | Auth GL (joueur ou admin) |
