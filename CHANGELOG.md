@@ -17,6 +17,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - **Sécurité — register élève** : `POST /api/students/register` exige une session élève correspondante.
 
 ### Modifié
+- **GL — admin repères question** : filtres biomes/catégories/niveaux via menus déroulants à cases à cocher (`GLMultiCheckDropdown`) ; liste des questions visible en mode fixe et aléatoire (`GLMarkerQuestionList`, aperçu pool aussi pour question fixe). Tests `tests-ui/gl/GLMultiCheckDropdown.test.jsx`, `tests-ui/gl/GLMarkerQuestionList.test.jsx`.
 - **GL — gameplay joueur** : session JWT/`GET /me` expose `gameId` depuis le roster (`gl_team_members`) ; sync `AppGL.jsx` après connexion et `join-team`.
 - **GL — actions joueur** : `team_id` pris depuis `gl_team_members` pour la partie (actions, QCM, tours) ; `join-team` vérifie classe/équipe ; blocage routes si `passwordMustReset`.
 - **Médiathèque** : suppression refusée hors dossier `media-library/` (anti-traversée).
