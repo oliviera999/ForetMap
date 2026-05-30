@@ -5,12 +5,16 @@ import {
   normalizeEventConfig,
   normalizeQuestionPool,
 } from '../../utils/glMarkerEventConfig.js';
+import { GLMultiCheckDropdown } from './GLMultiCheckDropdown.jsx';
+import { GLMarkerQuestionList } from './GLMarkerQuestionList.jsx';
 
 const EVENT_TYPE_OPTIONS = [
   { value: 'question', label: 'Question (QCM)', enabled: true },
   { value: 'narration', label: 'Narration (bientôt)', enabled: false },
   { value: 'behavior', label: 'Comportement (bientôt)', enabled: false },
 ];
+
+const DEFAULT_NIVEAUX = ['base', 'approfondissement', 'avance'];
 
 function emptyQuestionForm() {
   const base = defaultEventConfigForQuestion();
@@ -136,22 +140,36 @@ export function GLMarkerEventEditor({
   }, [form.eventType, form.pool, effectiveBiomeSlugs]);
 
   useEffect(() => {
-    if (form.eventType === 'question' && form.questionMode === 'random') {
+    if (form.eventType === 'question') {
       loadPoolPreview();
     }
-  }, [form.eventType, form.questionMode, loadPoolPreview]);
+  }, [form.eventType, loadPoolPreview]);
+
+  const additionalBiomeOptions = useMemo(
+    () => allBiomes
+      .filter((biome) => !chapterBiomeSlugs.includes(biome.slug))
+      .map((biome) => ({
+        value: biome.slug,
+        label: biome.nom || biome.slug,
+      })),
+    [allBiomes, chapterBiomeSlugs]
+  );
+
+  const categoryOptions = useMemo(
+    () => categories.map((cat) => ({
+      value: cat.slug,
+      label: `${cat.emoji ? `${cat.emoji} ` : ''}${cat.nom || cat.slug}`,
+    })),
+    [categories]
+  );
 
   const niveauOptions = useMemo(() => {
-    const set = new Set(poolItems.map((item) => item.niveau).filter(Boolean));
-    return Array.from(set).sort();
+    const set = new Set(DEFAULT_NIVEAUX);
+    for (const item of poolItems) {
+      if (item.niveau) set.add(item.niveau);
+    }
+    return Array.from(set).sort().map((n) => ({ value: n, label: n }));
   }, [poolItems]);
-
-  const selectedCount = useMemo(() => {
-    const selected = form.pool.selectedQuestionCodes || [];
-    if (selected.length === 0) return poolItems.length;
-    const allowed = new Set(selected.map((c) => String(c).toUpperCase()));
-    return poolItems.filter((item) => allowed.has(String(item.question_code).toUpperCase())).length;
-  }, [form.pool.selectedQuestionCodes, poolItems]);
 
   function patchForm(patch) {
     setForm((prev) => ({ ...prev, ...patch }));
@@ -182,10 +200,8 @@ export function GLMarkerEventEditor({
     patchPool({ selectedQuestionCodes: [] });
   }
 
-  function isCodeSelected(code) {
-    const selected = form.pool.selectedQuestionCodes || [];
-    if (selected.length === 0) return true;
-    return selected.includes(String(code).toUpperCase());
+  function selectFixedQuestion(code) {
+    patchForm({ fixedQuestionCode: String(code || '').trim().toUpperCase() });
   }
 
   return (
@@ -246,63 +262,35 @@ export function GLMarkerEventEditor({
                 {' '}
                 {chapterBiomeSlugs.length ? chapterBiomeSlugs.join(', ') : 'aucun'}
               </p>
-              <label>
-                Biomes additionnels
-                <select
-                  multiple
-                  value={form.pool.biomeSlugs || []}
-                  onChange={(event) => {
-                    const values = Array.from(event.target.selectedOptions).map((o) => o.value);
-                    patchPool({ biomeSlugs: values });
-                  }}
-                  size={Math.min(6, Math.max(3, allBiomes.length))}
-                >
-                  {allBiomes.map((biome) => (
-                    <option key={biome.slug} value={biome.slug}>
-                      {biome.nom || biome.slug}
-                    </option>
-                  ))}
-                </select>
-              </label>
+              <GLMultiCheckDropdown
+                label="Biomes additionnels"
+                options={additionalBiomeOptions}
+                selectedValues={form.pool.biomeSlugs || []}
+                onChange={(values) => patchPool({ biomeSlugs: values })}
+                emptyLabel="Aucun biome additionnel"
+                allSelectedLabel="Tous les biomes additionnels"
+              />
             </div>
           ) : null}
 
-          <label>
-            Catégories QCM
-            <select
-              multiple
-              value={form.pool.categorieSlugs || []}
-              onChange={(event) => {
-                const values = Array.from(event.target.selectedOptions).map((o) => o.value);
-                patchPool({ categorieSlugs: values });
-              }}
-              size={Math.min(5, Math.max(2, categories.length))}
-            >
-              {categories.map((cat) => (
-                <option key={cat.slug} value={cat.slug}>
-                  {cat.emoji ? `${cat.emoji} ` : ''}
-                  {cat.nom || cat.slug}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <label>
-            Niveaux
-            <select
-              multiple
-              value={form.pool.niveaux || []}
-              onChange={(event) => {
-                const values = Array.from(event.target.selectedOptions).map((o) => o.value);
-                patchPool({ niveaux: values });
-              }}
-              size={Math.min(4, Math.max(2, niveauOptions.length || 2))}
-            >
-              {(niveauOptions.length ? niveauOptions : ['base', 'approfondissement', 'avance']).map((n) => (
-                <option key={n} value={n}>{n}</option>
-              ))}
-            </select>
-          </label>
+          <div className="gl-marker-event-filters">
+            <GLMultiCheckDropdown
+              label="Catégories QCM"
+              options={categoryOptions}
+              selectedValues={form.pool.categorieSlugs || []}
+              onChange={(values) => patchPool({ categorieSlugs: values })}
+              emptyLabel="Toutes les catégories"
+              allSelectedLabel="Toutes les catégories"
+            />
+            <GLMultiCheckDropdown
+              label="Niveaux"
+              options={niveauOptions}
+              selectedValues={form.pool.niveaux || []}
+              onChange={(values) => patchPool({ niveaux: values })}
+              emptyLabel="Tous les niveaux"
+              allSelectedLabel="Tous les niveaux"
+            />
+          </div>
 
           <div className="gl-marker-event-difficulte">
             <label>
@@ -341,62 +329,35 @@ export function GLMarkerEventEditor({
           </label>
 
           {form.questionMode === 'fixed' ? (
-            <label>
-              Code question fixe
-              <select
-                value={form.fixedQuestionCode || ''}
-                onChange={(event) => patchForm({ fixedQuestionCode: event.target.value })}
-              >
-                <option value="">— Choisir —</option>
-                {poolItems.map((item) => (
-                  <option key={item.question_code} value={item.question_code}>
-                    {item.question_code}
-                    {' — '}
-                    {(item.question || '').slice(0, 80)}
-                  </option>
-                ))}
-              </select>
-            </label>
+            <p className="gl-hint gl-marker-event-fixed-hint">
+              Cliquez sur une question ci-dessous pour la sélectionner comme question fixe.
+              {form.fixedQuestionCode ? (
+                <>
+                  {' '}
+                  Sélection actuelle :
+                  {' '}
+                  <strong>{form.fixedQuestionCode}</strong>
+                </>
+              ) : null}
+            </p>
           ) : (
-            <div className="gl-marker-event-pool">
-              <div className="gl-marker-event-pool__header">
-                <strong>Sélection fine des questions</strong>
-                <span className="gl-hint">
-                  {selectedCount}
-                  {' / '}
-                  {poolItems.length}
-                  {' éligible(s)'}
-                  {(form.pool.selectedQuestionCodes || []).length === 0 ? ' (toutes si aucune cochée)' : ''}
-                </span>
-                <button type="button" onClick={selectAllPool}>Tout le pool</button>
-                <button type="button" onClick={loadPoolPreview} disabled={poolLoading}>
-                  {poolLoading ? 'Actualisation…' : 'Actualiser'}
-                </button>
-              </div>
-              {poolError ? <p className="gl-error">{poolError}</p> : null}
-              <ul className="gl-marker-event-pool__list">
-                {poolItems.map((item) => (
-                  <li key={item.question_code}>
-                    <label>
-                      <input
-                        type="checkbox"
-                        checked={isCodeSelected(item.question_code)}
-                        onChange={() => toggleSelectedCode(item.question_code)}
-                      />
-                      <span className="gl-marker-event-pool__code">{item.question_code}</span>
-                      <span className="gl-marker-event-pool__meta">
-                        {item.biome_slug}
-                        {' · '}
-                        {item.categorie_slug}
-                        {item.niveau ? ` · ${item.niveau}` : ''}
-                      </span>
-                      <span className="gl-marker-event-pool__question">{item.question}</span>
-                    </label>
-                  </li>
-                ))}
-              </ul>
-            </div>
+            <p className="gl-hint gl-marker-event-random-hint">
+              Cochez les questions à inclure dans le tirage aléatoire (aucune case = tout le pool).
+            </p>
           )}
+
+          <GLMarkerQuestionList
+            items={poolItems}
+            loading={poolLoading}
+            error={poolError}
+            mode={form.questionMode}
+            fixedQuestionCode={form.fixedQuestionCode}
+            selectedQuestionCodes={form.pool.selectedQuestionCodes}
+            onToggleCode={toggleSelectedCode}
+            onSelectFixed={selectFixedQuestion}
+            onSelectAll={selectAllPool}
+            onRefresh={loadPoolPreview}
+          />
         </>
       ) : null}
     </div>
