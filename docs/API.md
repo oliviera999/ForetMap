@@ -69,9 +69,9 @@ Le script accepte aussi :
 | POST | `/api/gl/chapters/admin` | `{ slug, title, biome?, biomeSlugs?, biomeSlug?, mapImageUrl?, mapImageFrame?, theme?, storyMarkdown?, biotopeMarkdown?, biocenoseMarkdown?, orderIndex? }` | `gl.content.manage` (refus `409` si slug existant ; chaque entrée de `biomeSlugs` doit exister dans `gl_biomes` ; `biomeSlug` legacy = un seul slug) |
 | PUT | `/api/gl/chapters/admin/:id` | mise à jour partielle des mêmes champs (dont `biomeSlugs`, `mapImageFrame`, `theme`) | `gl.content.manage` |
 | DELETE | `/api/gl/chapters/admin/:id` | — | `gl.content.manage` (refus `409` si partie liée) |
-| POST | `/api/gl/chapters/admin/:id/markers` | `{ label, xPct, yPct, eventType?, description?, orderIndex?, qcmCategorieSlug?, qcmQuestionCode? }` | `gl.content.manage` |
+| POST | `/api/gl/chapters/admin/:id/markers` | `{ label, xPct, yPct, eventType?, description?, orderIndex?, eventConfig?, qcmCategorieSlug?, qcmQuestionCode? }` | `gl.content.manage` (`eventConfig` : schéma versionné `{ version, question: { mode, fixedQuestionCode?, pool } }`) |
+| PUT | `/api/gl/chapters/admin/markers/:markerId` | mise à jour partielle marker (dont `eventConfig`) | `gl.content.manage` |
 | POST | `/api/gl/chapters/admin/:id/map-image` | `{ image_data }` (data URL base64 image) | `gl.content.manage` |
-| PUT | `/api/gl/chapters/admin/markers/:markerId` | mise à jour partielle marker (dont champs QCM si `event_type=quiz`) | `gl.content.manage` |
 | DELETE | `/api/gl/chapters/admin/markers/:markerId` | — | `gl.content.manage` (détache les équipes positionnées sur ce marker via `ON DELETE SET NULL`) |
 | GET | `/api/gl/biomes` | — | `gl.read` (liste biomes + effectifs espèces actives) |
 | GET | `/api/gl/species` | `?biomeSlug=` (requis) | `gl.read` (réponse `{ biome, items }` triées faune/flore/groupe/nom ; chaque espèce inclut `glossaryTerms[]` si `mots_cles` matchent le glossaire actif) |
@@ -89,12 +89,14 @@ Le script accepte aussi :
 | GET | `/api/gl/qcm/questions` | `?biomeSlug=`, `?categorieSlug=`, `?q=` optionnels | `gl.read` (liste admin ; ordre canonique A–E, `glossaryTerms[]`) |
 | GET | `/api/gl/qcm/questions/:code/present` | — | `gl.read` (mélange des choix à chaque appel + `presentationToken` signé) |
 | POST | `/api/gl/qcm/questions/:code/answer` | `{ presentationToken, choiceId }` | `gl.read` (validation hors partie) |
+| GET | `/api/gl/qcm/pool-preview` | `?biomeSlugs=`, `?chapterId=`, `?categorieSlugs=`, `?niveaux=`, `?difficulteMin=`, `?difficulteMax=`, `?q=`, `?selectedQuestionCodes=` | `gl.content.manage` (aperçu pool pour config repère ; `{ items, total }`) |
 | GET | `/api/gl/qcm/draw` | `?biomeSlug=` ou `?biomeSlugs=` (csv, au moins 1 requis), `?categorieSlug=`, `?exclude=` optionnels | `gl.read` (tirage aléatoire `{ question_code }` dans l’union des biomes) |
 | POST | `/api/gl/admin/qcm/import` | `{ fileDataBase64, fileName?, dryRun? }` (XLSX feuilles `categories`, `questions`) | `gl.content.manage` |
 | GET | `/api/gl/admin/qcm/import/template` | — | `gl.content.manage` (modèle XLSX vierge + exemples, feuilles `categories` et `questions`) |
 | GET | `/api/gl/admin/qcm/export` | `?biomeSlug=`, `?categorieSlug=`, `?statut=actif\|all` (défaut `actif`) | `gl.content.manage` (export XLSX ré-importable ; filtres biome/catégorie optionnels) |
 | GET | `/api/gl/admin/qcm/stats` | — | `gl.content.manage` (total, liens glossaire, agrégats biome/catégorie/difficulté) |
 | POST | `/api/gl/games/:id/qcm/answer` | `{ questionCode, presentationToken, choiceId, markerId? }` | `gl.action.request` (joueur ; score +1 si correct et scoring actif) |
+| POST | `/api/gl/games/:id/markers/:markerId/present-question` | `{ teamId?, excludeCodes? }` | Auth GL + accès partie (joueur membre ; MJ avec `teamId`) — tirage selon `event_config` du repère, événement `marker_question_presented` ; refus `409` si re-déclenchement interdit |
 | GET | `/api/gl/gameplay-settings` | — | Auth GL (joueur ou admin) |
 | POST | `/api/gl/games` | `{ classId, chapterId, name }` | `gl.game.manage` (refus `404` si `classId`/`chapterId` introuvable, `409` si la ressource est supprimée entre validation et insertion) |
 | GET | `/api/gl/games` | `?classId=&status=` optionnels | `gl.game.manage` |
@@ -139,8 +141,12 @@ Note UX admin GL : l’édition des chapitres et de la carte royaume est désorm
 - `score` — variation de score d'équipe (`payload: { delta, reason? }`). Met à jour `gl_team_scores`. Requiert `gameplay.scoring_enabled=true`.
 - `action_request` — demande joueur (`payload: { actionRequestId, actionType, playerId, payload }`).
 - `action_resolved` — décision MJ (`payload: { actionRequestId, decision, scoreDelta, reason }`).
+- `marker_question_presented` — question affichée depuis un repère (`payload: { markerId, questionCode, markerLabel? }`).
+- `qcm_answer` — réponse joueur à un QCM (`payload: { questionCode, correct, choiceId, markerId? }`).
 
-**Toggles `gameplay.*`** persistés dans `gl_settings` (table `(key, value_json)`), modifiables via `PUT /api/gl/admin/settings/:key` (permission `gl.settings.manage`). Snapshot public (joueur + admin) exposé par `GET /api/gl/gameplay-settings` (réponse `{ settings: { turnsEnabled, narrationEnabled, playerActionsEnabled, scoringEnabled } }`). Cache mémoire 30 s côté serveur, invalidé à chaque PUT sur une clé `gameplay.*`.
+**Toggles `gameplay.*`** persistés dans `gl_settings` (table `(key, value_json)`), modifiables via `PUT /api/gl/admin/settings/:key` (permission `gl.settings.manage`). Snapshot public (joueur + admin) exposé par `GET /api/gl/gameplay-settings` (réponse `{ settings: { turnsEnabled, narrationEnabled, playerActionsEnabled, scoringEnabled, markerQuestionRetrigger } }`). Cache mémoire 30 s côté serveur, invalidé à chaque PUT sur une clé `gameplay.*`.
+
+**Réglage `gameplay.marker_question_retrigger`** (chaîne JSON, défaut `"every_arrival"`) : `every_arrival` | `once_per_team` | `once_per_game` — contrôle la réouverture du popover question à l'arrivée sur un repère.
 
 ### Administration GL
 

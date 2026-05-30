@@ -534,6 +534,7 @@ export function GLChaptersAdminView() {
               <GLChapterMapEditor
                 chapterId={selectedId}
                 chapterSlug={chapterForm.slug}
+                chapterBiomes={detail?.chapter?.biomes || []}
                 mapImageUrl={chapterForm.mapImageUrl}
                 mapImageFrame={chapterForm.mapImageFrame}
                 markers={markers}

@@ -203,6 +203,35 @@ export function GLSettingsView() {
         })}
       </ul>
 
+      <div className="gl-gameplay-retrigger gl-form">
+        <label>
+          Re-déclenchement des questions sur repère
+          <select
+            value={String(settings['gameplay.marker_question_retrigger'] || 'every_arrival').replace(/^"|"$/g, '')}
+            disabled={savingKey === 'gameplay.marker_question_retrigger'}
+            onChange={async (event) => {
+              const next = event.target.value;
+              setSavingKey('gameplay.marker_question_retrigger');
+              try {
+                await apiGL('/api/gl/admin/settings/gameplay.marker_question_retrigger', 'PUT', { value: next });
+                await load();
+              } catch (err) {
+                setError(err.message || 'Enregistrement impossible');
+              } finally {
+                setSavingKey('');
+              }
+            }}
+          >
+            <option value="every_arrival">À chaque arrivée sur le repère</option>
+            <option value="once_per_team">Une fois par équipe et repère</option>
+            <option value="once_per_game">Une fois par repère (toute la partie)</option>
+          </select>
+        </label>
+        <p className="gl-hint">
+          Contrôle l&apos;ouverture du popover question quand une mascotte arrive sur un repère QCM.
+        </p>
+      </div>
+
       <h3>Modules GL</h3>
       <p className="gl-hint">
         Ces drapeaux activent/désactivent les modules GL côté interface.

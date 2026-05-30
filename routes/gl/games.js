@@ -7,10 +7,44 @@ const { getGameplaySettings } = require('../../lib/glSettings');
 const { logRouteError } = require('../../lib/routeLog');
 const { assignPlayerToTeamTx, unassignPlayerFromGameTx } = require('../../lib/glRoster');
 const { canAccessGlGame } = require('../../lib/glGameAccess');
-const { verifyPresentationAnswer } = require('../../lib/glQcmChoices');
+const { verifyPresentationAnswer, presentQuestion } = require('../../lib/glQcmChoices');
 const { combineKeywords } = require('../../lib/glQcmImport');
 const { buildGlossaryLookupMap, matchGlossaryTermsForSpecies } = require('../../lib/glGlossaryMatch');
 const { loadBiomesForChapterIds } = require('../../lib/glChapterBiomes');
+const { MARKER_SELECT, formatMarkerRow, isQuestionMarker } = require('../../lib/glMarkerRow');
+const { drawQuestionFromMarker } = require('../../lib/glMarkerQuestionPool');
+const { canPresentMarkerQuestion } = require('../../lib/glMarkerQuestionRetrigger');
+
+const QUESTION_SELECT = `
+  SELECT question_code, biome_slug, categorie_slug, numero_dans_categorie, question,
+         choix_a, choix_b, choix_c, choix_d, choix_e,
+         reponse_correcte, reponse_texte, niveau, difficulte, difficulte_label,
+         notes_pedagogiques, tags, mots_cles,
+         photo_url, photo_url_hd, photo_description_url, photo_filename, photo_credit,
+         photo_licence, photo_licence_url, photo_legende, photo_sujet,
+         wikipedia_title, wikipedia_url, photo_method, statut
+    FROM gl_qcm_questions
+`;
+
+async function loadGlossaryLookup() {
+  const rows = await queryAll(
+    `SELECT glossary_code, terme, variantes, categorie, definition_courte
+       FROM gl_glossary_terms WHERE statut = 'actif'`
+  );
+  return buildGlossaryLookupMap(rows);
+}
+
+async function enrichQuestionWithGlossary(questionRow, glossaryByKey) {
+  if (!questionRow) return [];
+  return matchGlossaryTermsForSpecies(combineKeywords(questionRow), glossaryByKey);
+}
+
+async function loadActiveQuestion(code) {
+  return queryOne(
+    `${QUESTION_SELECT} WHERE question_code = ? AND statut = 'actif' LIMIT 1`,
+    [code]
+  );
+}
 
 const router = express.Router();
 
@@ -99,14 +133,14 @@ async function readGameState(gameId) {
     [gameId]
   );
   const events = eventsRaw.map(normalizeEventRow);
-  const markers = await queryAll(
-    `SELECT id, chapter_id, x_pct, y_pct, event_type, label, description,
-            qcm_categorie_slug, qcm_question_code, order_index
+  const markerRows = await queryAll(
+    `SELECT ${MARKER_SELECT}
        FROM gl_chapter_markers
       WHERE chapter_id = ?
       ORDER BY order_index ASC, id ASC`,
     [game.chapter_id]
   );
+  const markers = markerRows.map(formatMarkerRow);
   const scoreRows = await queryAll(
     'SELECT team_id, score, last_reason FROM gl_team_scores WHERE game_id = ?',
     [gameId]
@@ -849,6 +883,117 @@ router.post('/games/:id/qcm/answer', requireGlPermission('gl.action.request'), a
     feedback: verification.correct ? 'Bonne réponse !' : 'Ce n’est pas la bonne réponse.',
     scoreDelta,
     glossaryTerms: verification.correct ? glossaryTerms : undefined,
+  });
+});
+
+/** POST /api/gl/games/:id/markers/:markerId/present-question — tirage + présentation QCM depuis un repère. */
+router.post('/games/:id/markers/:markerId/present-question', requireGlAuth, async (req, res) => {
+  const gameId = parseId(req.params.id);
+  const markerId = parseId(req.params.markerId);
+  if (!gameId || !markerId) {
+    return res.status(400).json({ error: 'Identifiants invalides' });
+  }
+
+  const allowed = await canAccessGlGame(req.glAuth, gameId);
+  if (!allowed) return res.status(403).json({ error: 'Accès partie refusé' });
+
+  const game = await queryOne('SELECT id, chapter_id, status FROM gl_games WHERE id = ? LIMIT 1', [gameId]);
+  if (!game) return res.status(404).json({ error: 'Partie introuvable' });
+
+  const markerRow = await queryOne(`SELECT ${MARKER_SELECT} FROM gl_chapter_markers WHERE id = ? LIMIT 1`, [markerId]);
+  const marker = formatMarkerRow(markerRow);
+  if (!marker || !isQuestionMarker(marker)) {
+    return res.status(404).json({ error: 'Repère question introuvable' });
+  }
+  if (Number(marker.chapter_id) !== Number(game.chapter_id)) {
+    return res.status(409).json({ error: 'Repère hors chapitre de la partie' });
+  }
+
+  let teamId = req.body?.teamId != null ? parseId(req.body.teamId) : null;
+  if (req.glAuth.userType === 'gl_player') {
+    const membership = await getPlayerGameMembership(gameId, req.glAuth.userId);
+    if (!membership?.team_id) return res.status(403).json({ error: 'Joueur non rattaché à une équipe' });
+    teamId = Number(membership.team_id);
+  } else if (teamId == null) {
+    return res.status(400).json({ error: 'teamId requis pour le MJ' });
+  }
+
+  const team = await queryOne('SELECT id FROM gl_teams WHERE id = ? AND game_id = ? LIMIT 1', [teamId, gameId]);
+  if (!team) return res.status(404).json({ error: 'Équipe introuvable dans cette partie' });
+
+  const settings = await getGameplaySettings();
+  const canPresent = await canPresentMarkerQuestion(
+    { queryAll },
+    {
+      gameId,
+      teamId,
+      markerId,
+      retriggerMode: settings.markerQuestionRetrigger,
+    }
+  );
+  if (!canPresent) {
+    return res.status(409).json({ error: 'Question déjà présentée pour ce repère selon les réglages' });
+  }
+
+  const biomesMap = await loadBiomesForChapterIds({ queryAll }, [game.chapter_id]);
+  const chapterBiomes = biomesMap.get(Number(game.chapter_id)) || [];
+  const chapterBiomeSlugs = chapterBiomes.map((b) => b.slug);
+
+  const excludeRaw = req.body?.excludeCodes;
+  const excludeCodes = Array.isArray(excludeRaw)
+    ? excludeRaw
+    : (typeof excludeRaw === 'string' ? excludeRaw.split(',') : []);
+
+  const draw = await drawQuestionFromMarker(
+    { queryAll, queryOne },
+    markerRow,
+    chapterBiomeSlugs,
+    excludeCodes
+  );
+  if (draw.error || !draw.questionCode) {
+    return res.status(404).json({ error: draw.error || 'Aucune question disponible' });
+  }
+
+  const questionRow = draw.questionRow || await loadActiveQuestion(draw.questionCode);
+  if (!questionRow) return res.status(404).json({ error: 'Question introuvable' });
+
+  const glossaryByKey = await loadGlossaryLookup();
+  const glossaryTerms = await enrichQuestionWithGlossary(questionRow, glossaryByKey);
+  let presentation;
+  try {
+    presentation = presentQuestion(questionRow, glossaryTerms);
+  } catch (err) {
+    return res.status(400).json({ error: err.message || 'Présentation impossible' });
+  }
+
+  const actorType = req.glAuth.userType === 'gl_admin' ? 'mj' : 'team';
+  await execute(
+    `INSERT INTO gl_game_events (game_id, team_id, actor_type, actor_id, event_type, payload_json, created_at)
+     VALUES (?, ?, ?, ?, 'marker_question_presented', ?, NOW())`,
+    [
+      gameId,
+      teamId,
+      actorType,
+      String(req.glAuth.userId),
+      JSON.stringify({
+        markerId,
+        questionCode: draw.questionCode,
+        markerLabel: marker.label,
+      }),
+    ]
+  );
+  const evt = await queryOne(
+    `SELECT id, game_id, team_id, actor_type, actor_id, event_type, payload_json, created_at
+       FROM gl_game_events WHERE game_id = ? ORDER BY id DESC LIMIT 1`,
+    [gameId]
+  );
+  if (evt) emitGlGameEvent(gameId, normalizeEventRow(evt));
+
+  return res.json({
+    questionCode: draw.questionCode,
+    presentation,
+    markerId,
+    teamId,
   });
 });
 

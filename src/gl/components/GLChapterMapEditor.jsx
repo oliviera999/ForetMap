@@ -3,16 +3,15 @@ import { apiGL } from '../services/apiGL.js';
 import { useGlPctMapGestures } from '../hooks/useGlPctMapGestures.js';
 import { GLPctMapCanvas } from './GLPctMapCanvas.jsx';
 import { GLBoardMarkers } from './GLBoardMarkers.jsx';
+import { GLMarkerEventEditor } from './GLMarkerEventEditor.jsx';
 import { glImageFrameToStyle, normalizeGlImageFrame } from '../../utils/glImageFrame.js';
+import { defaultEventConfigForQuestion } from '../../utils/glMarkerEventConfig.js';
 
 const EMPTY_MARKER_FORM = {
   label: '',
   xPct: 50,
   yPct: 50,
-  eventType: '',
   description: '',
-  qcmCategorieSlug: '',
-  qcmQuestionCode: '',
   orderIndex: 0,
 };
 
@@ -22,30 +21,27 @@ function toFormFromMarker(marker) {
     label: marker.label || '',
     xPct: Number(marker.x_pct ?? 50),
     yPct: Number(marker.y_pct ?? 50),
-    eventType: marker.event_type || '',
     description: marker.description || '',
-    qcmCategorieSlug: marker.qcm_categorie_slug || '',
-    qcmQuestionCode: marker.qcm_question_code || '',
     orderIndex: Number(marker.order_index || 0),
   };
 }
 
-function toMarkerPayload(form) {
+function toMarkerPayload(form, eventDraft) {
   return {
     label: String(form.label || '').trim(),
     xPct: Number(form.xPct),
     yPct: Number(form.yPct),
-    eventType: String(form.eventType || '').trim(),
+    eventType: String(eventDraft?.eventType || 'question').trim(),
     description: String(form.description || '').trim(),
-    qcmCategorieSlug: String(form.qcmCategorieSlug || '').trim(),
-    qcmQuestionCode: String(form.qcmQuestionCode || '').trim(),
     orderIndex: Number(form.orderIndex) || 0,
+    eventConfig: eventDraft?.eventConfig || defaultEventConfigForQuestion(),
   };
 }
 
 export function GLChapterMapEditor({
   chapterId,
   chapterSlug,
+  chapterBiomes = [],
   mapImageUrl,
   mapImageFrame,
   markers,
@@ -57,6 +53,10 @@ export function GLChapterMapEditor({
   const [isAddMode, setIsAddMode] = useState(false);
   const [selectedMarkerId, setSelectedMarkerId] = useState(null);
   const [markerForm, setMarkerForm] = useState(EMPTY_MARKER_FORM);
+  const [eventDraft, setEventDraft] = useState({
+    eventType: 'question',
+    eventConfig: defaultEventConfigForQuestion(),
+  });
   const [editableMarkers, setEditableMarkers] = useState([]);
   const [dragState, setDragState] = useState(null);
   const [saving, setSaving] = useState(false);
@@ -128,10 +128,19 @@ export function GLChapterMapEditor({
     setMarkerForm(toFormFromMarker(marker));
   }
 
+  function resetForm() {
+    setSelectedMarkerId(null);
+    setMarkerForm(EMPTY_MARKER_FORM);
+    setEventDraft({
+      eventType: 'question',
+      eventConfig: defaultEventConfigForQuestion(),
+    });
+  }
+
   async function submitMarker(event) {
     event.preventDefault();
     if (!chapterId) return;
-    const payload = toMarkerPayload(markerForm);
+    const payload = toMarkerPayload(markerForm, eventDraft);
     if (!payload.label) {
       onError?.('Le label du repère est requis');
       return;
@@ -146,8 +155,7 @@ export function GLChapterMapEditor({
         onInfo?.('Repère ajouté');
       }
       setIsAddMode(false);
-      setSelectedMarkerId(null);
-      setMarkerForm(EMPTY_MARKER_FORM);
+      resetForm();
       await onReload?.(chapterSlug);
     } catch (err) {
       onError?.(err.message || 'Enregistrement du repère impossible');
@@ -162,9 +170,8 @@ export function GLChapterMapEditor({
     try {
       await apiGL(`/api/gl/chapters/admin/markers/${selectedMarkerId}`, 'DELETE');
       onInfo?.('Repère supprimé');
-      setSelectedMarkerId(null);
       setIsAddMode(false);
-      setMarkerForm(EMPTY_MARKER_FORM);
+      resetForm();
       await onReload?.(chapterSlug);
     } catch (err) {
       onError?.(err.message || 'Suppression du repère impossible');
@@ -178,8 +185,7 @@ export function GLChapterMapEditor({
           type="button"
           className={isAddMode ? 'is-active' : ''}
           onClick={() => {
-            setSelectedMarkerId(null);
-            setMarkerForm(EMPTY_MARKER_FORM);
+            resetForm();
             setIsAddMode((prev) => !prev);
           }}
         >
@@ -225,7 +231,14 @@ export function GLChapterMapEditor({
             className={Number(marker.id) === Number(selectedMarkerId) ? 'is-selected' : ''}
           >
             <button type="button" className="gl-marker-row-btn" onClick={() => selectMarker(marker)}>
-              <strong>{marker.label}</strong> — x:{Number(marker.x_pct).toFixed(1)}%, y:{Number(marker.y_pct).toFixed(1)}%
+              <strong>{marker.label}</strong>
+              {' '}
+              —
+              x:
+              {Number(marker.x_pct).toFixed(1)}
+              %, y:
+              {Number(marker.y_pct).toFixed(1)}
+              %
             </button>
           </li>
         ))}
@@ -264,37 +277,16 @@ export function GLChapterMapEditor({
           />
         </label>
         <label>
-          Type d'événement
-          <input
-            value={markerForm.eventType}
-            onChange={(event) => setField('eventType', event.target.value)}
-            placeholder="quiz, story, start..."
-          />
-        </label>
-        <label>
           Description
           <input value={markerForm.description} onChange={(event) => setField('description', event.target.value)} />
         </label>
-        {String(markerForm.eventType || '').toLowerCase() === 'quiz' ? (
-          <>
-            <label>
-              Catégorie QCM (slug, optionnel)
-              <input
-                value={markerForm.qcmCategorieSlug}
-                onChange={(event) => setField('qcmCategorieSlug', event.target.value)}
-                placeholder="faune, flore, geologie…"
-              />
-            </label>
-            <label>
-              Code question fixe (optionnel)
-              <input
-                value={markerForm.qcmQuestionCode}
-                onChange={(event) => setField('qcmQuestionCode', event.target.value)}
-                placeholder="QCM0001"
-              />
-            </label>
-          </>
-        ) : null}
+
+        <GLMarkerEventEditor
+          marker={selectedMarker}
+          chapterBiomes={chapterBiomes}
+          onChange={setEventDraft}
+        />
+
         <label>
           Ordre
           <input type="number" value={markerForm.orderIndex} onChange={(event) => setField('orderIndex', event.target.value)} />

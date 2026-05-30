@@ -72,6 +72,7 @@ test('GET /api/gl/gameplay-settings expose les 4 toggles (joueur)', async () => 
   assert.strictEqual(typeof s.narrationEnabled, 'boolean');
   assert.strictEqual(typeof s.playerActionsEnabled, 'boolean');
   assert.strictEqual(typeof s.scoringEnabled, 'boolean');
+  assert.ok(['every_arrival', 'once_per_team', 'once_per_game'].includes(s.markerQuestionRetrigger));
 });
 
 test('PUT /api/gl/admin/settings/:key garde la permission gl.settings.manage', async () => {

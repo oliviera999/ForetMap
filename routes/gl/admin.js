@@ -2,7 +2,7 @@ const express = require('express');
 const bcrypt = require('bcryptjs');
 const { queryAll, queryOne, execute } = require('../../database');
 const { requireGlPermission } = require('../../middleware/requireGlAuth');
-const { invalidateGameplayCache, invalidateModulesCache, MODULE_KEYS } = require('../../lib/glSettings');
+const { invalidateGameplayCache, invalidateModulesCache, MODULE_KEYS, MARKER_QUESTION_RETRIGGER_VALUES } = require('../../lib/glSettings');
 const {
   MAX_IMPORT_ROWS,
   PSEUDO_RE,
@@ -107,6 +107,7 @@ const ALLOWED_GAMEPLAY_SETTINGS = new Set([
   'gameplay.narration_enabled',
   'gameplay.player_actions_enabled',
   'gameplay.scoring_enabled',
+  'gameplay.marker_question_retrigger',
 ]);
 
 async function ensureClassExists(classId) {
@@ -661,6 +662,13 @@ router.put('/settings/:key', requireGlPermission('gl.settings.manage'), async (r
   }
   if (key.startsWith('gameplay.') && !ALLOWED_GAMEPLAY_SETTINGS.has(key)) {
     return res.status(400).json({ error: 'Clé gameplay inconnue' });
+  }
+  if (key === 'gameplay.marker_question_retrigger') {
+    const mode = typeof value === 'string' ? value.trim() : String(value || '').trim();
+    if (!MARKER_QUESTION_RETRIGGER_VALUES.has(mode)) {
+      return res.status(400).json({ error: 'Valeur marker_question_retrigger invalide' });
+    }
+    value = mode;
   }
   if (key === 'platform.brand') {
     if (!value || typeof value !== 'object' || Array.isArray(value)) {
