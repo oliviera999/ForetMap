@@ -50,6 +50,26 @@ module.exports = [
     },
   },
   {
+    files: [
+      'tests/map-view-mascot-motion.test.js',
+      'tests/visit-editorial-blocks.test.js',
+    ],
+    languageOptions: {
+      ecmaVersion: 2022,
+      sourceType: 'module',
+      globals: {
+        console: 'readonly',
+        process: 'readonly',
+      },
+    },
+    rules: {
+      'no-debugger': 'error',
+      'no-duplicate-case': 'error',
+      'no-func-assign': 'error',
+      'no-unreachable': 'warn',
+    },
+  },
+  {
     files: ['src/**/*.{js,jsx}'],
     languageOptions: {
       ecmaVersion: 2022,

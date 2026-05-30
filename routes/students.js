@@ -437,13 +437,18 @@ router.post('/import', requirePermission('students.import', { needsElevation: tr
   }
 });
 
-router.post('/register', async (req, res) => {
+router.post('/register', requireAuth, async (req, res) => {
   try {
     const { studentId } = req.body;
     if (!studentId) return res.status(400).json({ error: 'studentId requis' });
-    const s = await queryOne("SELECT * FROM users WHERE id = ? AND user_type = 'student'", [studentId]);
+    const askedStudentId = String(studentId || '').trim();
+    const authStudentId = String(req.auth?.userType === 'student' ? req.auth.userId : '').trim();
+    if (!authStudentId || authStudentId !== askedStudentId) {
+      return res.status(403).json({ error: 'Session n3beur non autorisée' });
+    }
+    const s = await queryOne("SELECT * FROM users WHERE id = ? AND user_type = 'student'", [askedStudentId]);
     if (!s) return res.status(401).json({ error: 'Compte supprimé', deleted: true });
-    await execute("UPDATE users SET last_seen = ? WHERE id = ? AND user_type = 'student'", [new Date().toISOString(), studentId]);
+    await execute("UPDATE users SET last_seen = ? WHERE id = ? AND user_type = 'student'", [new Date().toISOString(), askedStudentId]);
     res.json({ ...s, password_hash: undefined });
   } catch (e) {
     respondInternalError(res, req, e);

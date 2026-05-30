@@ -74,4 +74,12 @@ describe('Durcissement sécurité / robustesse', () => {
       if (prevE2e != null) process.env.E2E_DISABLE_RATE_LIMIT = prevE2e;
     }
   });
+
+  it('POST /api/students/register refuse un heartbeat sans session élève correspondante', async () => {
+    const res = await request(app)
+      .post('/api/students/register')
+      .send({ studentId: 'student-foreign-id' })
+      .expect(401);
+    assert.match(String(res.body?.error || ''), /token requis|non autoris/i);
+  });
 });

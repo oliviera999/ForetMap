@@ -6,6 +6,7 @@ const { emitGlGameEvent } = require('../../lib/realtime');
 const { getGameplaySettings } = require('../../lib/glSettings');
 const { logRouteError } = require('../../lib/routeLog');
 const { assignPlayerToTeamTx, unassignPlayerFromGameTx } = require('../../lib/glRoster');
+const { canAccessGlGame } = require('../../lib/glGameAccess');
 const { verifyPresentationAnswer } = require('../../lib/glQcmChoices');
 const { combineKeywords } = require('../../lib/glQcmImport');
 const { buildGlossaryLookupMap, matchGlossaryTermsForSpecies } = require('../../lib/glGlossaryMatch');
@@ -28,6 +29,17 @@ function normalizeOptionalString(value) {
   if (value == null) return null;
   const s = String(value).trim();
   return s.length > 0 ? s : null;
+}
+
+async function getPlayerGameMembership(gameId, playerId) {
+  return queryOne(
+    `SELECT team_id
+       FROM gl_team_members
+      WHERE game_id = ?
+        AND player_id = ?
+      LIMIT 1`,
+    [gameId, playerId]
+  );
 }
 
 function resolveRosterError(err) {
@@ -217,19 +229,8 @@ router.get('/games/:id', requireGlAuth, async (req, res) => {
   if (!gameId) return res.status(400).json({ error: 'Identifiant de partie invalide' });
   const state = await readGameState(gameId);
   if (!state) return res.status(404).json({ error: 'Partie introuvable' });
-  if (req.glAuth.userType === 'gl_player') {
-    const linked = await queryOne(
-      `SELECT 1 AS ok
-         FROM gl_team_members tm
-    INNER JOIN gl_players p ON p.id = tm.player_id
-        WHERE tm.game_id = ?
-          AND p.id = ?
-        LIMIT 1`,
-      [gameId, req.glAuth.userId]
-    );
-    if (!linked && req.glAuth.teamId == null) {
-      return res.status(403).json({ error: 'Accès refusé à cette partie' });
-    }
+  if (!(await canAccessGlGame(req.glAuth, gameId))) {
+    return res.status(403).json({ error: 'Accès refusé à cette partie' });
   }
   return res.json(state);
 });
@@ -353,6 +354,27 @@ router.post('/games/:id/join-team', requireGlAuth, async (req, res) => {
   const gameId = parseId(req.params.id);
   const teamId = parseId(req.body?.teamId);
   if (!gameId || !teamId) return res.status(400).json({ error: 'gameId/teamId invalides' });
+  const teamExists = await queryOne(
+    'SELECT id FROM gl_teams WHERE id = ? AND game_id = ? LIMIT 1',
+    [teamId, gameId]
+  );
+  if (!teamExists) {
+    return res.status(404).json({ error: 'Équipe introuvable' });
+  }
+  const team = await queryOne(
+    `SELECT t.id, t.game_id
+       FROM gl_teams t
+ INNER JOIN gl_games g ON g.id = t.game_id
+ INNER JOIN gl_players p ON p.id = ?
+      WHERE t.id = ?
+        AND t.game_id = ?
+        AND p.class_id = g.class_id
+      LIMIT 1`,
+    [req.glAuth.userId, teamId, gameId]
+  );
+  if (!team) {
+    return res.status(403).json({ error: 'Joueur non autorisé pour cette équipe' });
+  }
   try {
     await withTransaction(async (tx) => {
       await assignPlayerToTeamTx(tx, { gameId, teamId, playerId: req.glAuth.userId });
@@ -584,23 +606,18 @@ router.post('/games/:id/actions', requireGlPermission('gl.action.request'), asyn
   if (!actionType) return res.status(400).json({ error: 'actionType requis' });
   const payload = req.body?.payload ?? {};
 
-  const player = await queryOne(
-    'SELECT id, team_id FROM gl_players WHERE id = ? LIMIT 1',
-    [req.glAuth.userId]
-  );
-  if (!player || player.team_id == null) {
+  const player = await queryOne('SELECT id FROM gl_players WHERE id = ? LIMIT 1', [req.glAuth.userId]);
+  if (!player) {
     return res.status(403).json({ error: 'Aucune équipe associée à ce joueur' });
   }
-  const teamMembership = await queryOne(
-    'SELECT 1 AS ok FROM gl_team_members WHERE game_id = ? AND player_id = ? LIMIT 1',
-    [gameId, player.id]
-  );
+  const teamMembership = await getPlayerGameMembership(gameId, player.id);
   if (!teamMembership) {
     return res.status(403).json({ error: 'Joueur non rattaché à cette partie' });
   }
+  const teamIdForGame = teamMembership.team_id;
   if (settings.turnsEnabled) {
     const game = await queryOne('SELECT current_team_id FROM gl_games WHERE id = ? LIMIT 1', [gameId]);
-    if (game?.current_team_id != null && Number(game.current_team_id) !== Number(player.team_id)) {
+    if (game?.current_team_id != null && Number(game.current_team_id) !== Number(teamIdForGame)) {
       return res.status(409).json({ error: 'Ce n’est pas le tour de votre équipe' });
     }
   }
@@ -610,7 +627,7 @@ router.post('/games/:id/actions', requireGlPermission('gl.action.request'), asyn
     await tx.execute(
       `INSERT INTO gl_action_requests (game_id, team_id, player_id, action_type, payload_json, status, created_at)
        VALUES (?, ?, ?, ?, ?, 'pending', NOW())`,
-      [gameId, player.team_id, player.id, actionType, JSON.stringify(payload)]
+      [gameId, teamIdForGame, player.id, actionType, JSON.stringify(payload)]
     );
     const created = await tx.queryOne(
       'SELECT id FROM gl_action_requests WHERE game_id = ? AND player_id = ? ORDER BY id DESC LIMIT 1',
@@ -622,7 +639,7 @@ router.post('/games/:id/actions', requireGlPermission('gl.action.request'), asyn
        VALUES (?, ?, 'team', ?, 'action_request', ?, NOW())`,
       [
         gameId,
-        player.team_id,
+        teamIdForGame,
         String(player.id),
         JSON.stringify({ actionRequestId, actionType, playerId: player.id, payload }),
       ]
@@ -730,21 +747,16 @@ router.post('/games/:id/qcm/answer', requireGlPermission('gl.action.request'), a
   if (!questionCode) return res.status(400).json({ error: 'questionCode requis' });
 
   const settings = await getGameplaySettings();
-  const player = await queryOne(
-    'SELECT id, team_id FROM gl_players WHERE id = ? LIMIT 1',
-    [req.glAuth.userId]
-  );
-  if (!player?.team_id) return res.status(403).json({ error: 'Aucune équipe associée à ce joueur' });
+  const player = await queryOne('SELECT id FROM gl_players WHERE id = ? LIMIT 1', [req.glAuth.userId]);
+  if (!player) return res.status(403).json({ error: 'Aucune équipe associée à ce joueur' });
 
-  const membership = await queryOne(
-    'SELECT 1 AS ok FROM gl_team_members WHERE game_id = ? AND player_id = ? LIMIT 1',
-    [gameId, player.id]
-  );
+  const membership = await getPlayerGameMembership(gameId, player.id);
   if (!membership) return res.status(403).json({ error: 'Joueur non rattaché à cette partie' });
+  const teamIdForGame = membership.team_id;
 
   if (settings.turnsEnabled) {
     const gameTurn = await queryOne('SELECT current_team_id FROM gl_games WHERE id = ? LIMIT 1', [gameId]);
-    if (gameTurn?.current_team_id != null && Number(gameTurn.current_team_id) !== Number(player.team_id)) {
+    if (gameTurn?.current_team_id != null && Number(gameTurn.current_team_id) !== Number(teamIdForGame)) {
       return res.status(409).json({ error: 'Ce n’est pas le tour de votre équipe' });
     }
   }
@@ -777,7 +789,7 @@ router.post('/games/:id/qcm/answer', requireGlPermission('gl.action.request'), a
        VALUES (?, ?, 'team', ?, 'qcm_answer', ?, NOW())`,
       [
         gameId,
-        player.team_id,
+        teamIdForGame,
         String(player.id),
         JSON.stringify({
           questionCode,
@@ -796,14 +808,14 @@ router.post('/games/:id/qcm/answer', requireGlPermission('gl.action.request'), a
            score = score + VALUES(score),
            last_reason = VALUES(last_reason),
            updated_at = NOW()`,
-        [gameId, player.team_id, scoreDelta, 'Bonne réponse QCM']
+        [gameId, teamIdForGame, scoreDelta, 'Bonne réponse QCM']
       );
       await tx.execute(
         `INSERT INTO gl_game_events (game_id, team_id, actor_type, actor_id, event_type, payload_json, created_at)
          VALUES (?, ?, 'team', ?, 'score', ?, NOW())`,
         [
           gameId,
-          player.team_id,
+          teamIdForGame,
           String(player.id),
           JSON.stringify({ delta: scoreDelta, reason: 'Bonne réponse QCM', questionCode }),
         ]

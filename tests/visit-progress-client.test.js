@@ -32,6 +32,7 @@ let enqueueVisitSeenAction;
 let loadVisitSeenQueue;
 let applyVisitSeenQueueToSet;
 let flushVisitSeenQueue;
+let replaceQueuedVisitSeenAction;
 let VISIT_SEEN_QUEUE_STORAGE_KEY;
 
 before(async () => {
@@ -43,6 +44,7 @@ before(async () => {
   loadVisitSeenQueue = mod.loadVisitSeenQueue;
   applyVisitSeenQueueToSet = mod.applyVisitSeenQueueToSet;
   flushVisitSeenQueue = mod.flushVisitSeenQueue;
+  replaceQueuedVisitSeenAction = mod.replaceQueuedVisitSeenAction;
   VISIT_SEEN_QUEUE_STORAGE_KEY = mod.VISIT_SEEN_QUEUE_STORAGE_KEY;
 });
 
@@ -140,5 +142,29 @@ describe('visitProgressClient', () => {
     const left = loadVisitSeenQueue();
     assert.strictEqual(left.length, 1);
     assert.strictEqual(left[0].target_id, 'm1');
+  });
+
+  it('remplace une action en attente après un succès réseau pour la même cible', () => {
+    memoryStore = {};
+    enqueueVisitSeenAction({ target_type: 'zone', target_id: 'z1', seen: true });
+    const queue = replaceQueuedVisitSeenAction({ target_type: 'zone', target_id: 'z1', seen: false });
+    assert.strictEqual(queue.length, 1);
+    assert.strictEqual(queue[0].target_id, 'z1');
+    assert.strictEqual(queue[0].seen, false);
+  });
+
+  it('ne perd pas une mise à jour locale arrivée pendant le flush', async () => {
+    memoryStore = {};
+    enqueueVisitSeenAction({ target_type: 'zone', target_id: 'z1', seen: true });
+    const result = await flushVisitSeenQueue(async () => {
+      replaceQueuedVisitSeenAction({ target_type: 'zone', target_id: 'z1', seen: false });
+    });
+    assert.strictEqual(result.synced, 1);
+    assert.strictEqual(result.failed, 0);
+    assert.strictEqual(result.remaining, 1);
+    const left = loadVisitSeenQueue();
+    assert.strictEqual(left.length, 1);
+    assert.strictEqual(left[0].target_id, 'z1');
+    assert.strictEqual(left[0].seen, false);
   });
 });

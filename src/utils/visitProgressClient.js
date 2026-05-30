@@ -99,6 +99,26 @@ export function enqueueVisitSeenAction(action) {
   return saveVisitSeenQueue(next);
 }
 
+export function replaceQueuedVisitSeenAction(action) {
+  const target_type = String(action?.target_type || '').trim();
+  const target_id = String(action?.target_id ?? '').trim();
+  if (!target_type || !target_id) return loadVisitSeenQueue();
+  const key = visitSeenQueueItemKey(target_type, target_id);
+  const queue = loadVisitSeenQueue();
+  let found = false;
+  const next = queue.map((item) => {
+    if (visitSeenQueueItemKey(item.target_type, item.target_id) !== key) return item;
+    found = true;
+    return {
+      target_type,
+      target_id,
+      seen: action.seen !== false,
+      updated_at: Date.now(),
+    };
+  });
+  return found ? saveVisitSeenQueue(next) : queue;
+}
+
 /**
  * Applique la file locale sur un Set de clés `type:id` (état optimiste).
  * @param {Set<string>} seenSet
@@ -126,6 +146,7 @@ export async function flushVisitSeenQueue(postSeen) {
   let synced = 0;
   let failed = 0;
   const remaining = [];
+  const flushedByKey = new Map(queue.map((item) => [visitSeenQueueItemKey(item.target_type, item.target_id), item]));
   for (const item of queue) {
     try {
       await postSeen({
@@ -139,8 +160,25 @@ export async function flushVisitSeenQueue(postSeen) {
       remaining.push(item);
     }
   }
-  saveVisitSeenQueue(remaining);
-  return { synced, failed, remaining: remaining.length };
+  const failedKeys = new Set(remaining.map((item) => visitSeenQueueItemKey(item.target_type, item.target_id)));
+  const nextQueue = [];
+  for (const item of loadVisitSeenQueue()) {
+    const key = visitSeenQueueItemKey(item.target_type, item.target_id);
+    const flushed = flushedByKey.get(key);
+    if (!flushed) {
+      nextQueue.push(item);
+      continue;
+    }
+    if (failedKeys.has(key)) {
+      nextQueue.push(item);
+      continue;
+    }
+    const unchangedSinceFlushStarted =
+      item.seen === flushed.seen && Number(item.updated_at) === Number(flushed.updated_at);
+    if (!unchangedSinceFlushStarted) nextQueue.push(item);
+  }
+  const saved = saveVisitSeenQueue(nextQueue);
+  return { synced, failed, remaining: saved.length };
 }
 
 export function isBrowserOnline() {

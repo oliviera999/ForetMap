@@ -9,7 +9,6 @@ const fs      = require('fs');
 const cors    = require('cors');
 const compression = require('compression');
 const path    = require('path');
-const Layer   = require('express/lib/router/layer');
 const jwt = require('jsonwebtoken');
 const { initDatabase, ping: dbPing, isApplicationDatabaseReady, endPool, queryAll } = require('./database');
 const { validateEnv } = require('./lib/env');
@@ -82,32 +81,6 @@ function configureTrustProxy() {
   }
 }
 configureTrustProxy();
-
-function installAsyncErrorForwarding() {
-  if (Layer.prototype.__foretmapAsyncPatched) return;
-  const originalHandleRequest = Layer.prototype.handle_request;
-
-  Layer.prototype.handle_request = function patchedHandleRequest(req, res, next) {
-    const handler = this.handle;
-    if (handler.length > 3) {
-      return originalHandleRequest.call(this, req, res, next);
-    }
-
-    try {
-      const result = handler(req, res, next);
-      if (result && typeof result.then === 'function' && typeof result.catch === 'function') {
-        result.catch(next);
-      }
-      return result;
-    } catch (err) {
-      return next(err);
-    }
-  };
-
-  Layer.prototype.__foretmapAsyncPatched = true;
-}
-
-installAsyncErrorForwarding();
 
 function normalizeOptionalString(value) {
   if (value == null) return null;
@@ -636,7 +609,7 @@ app.get('/api/site-issues.json', (req, res) => {
 app.get('/favicon.ico', (req, res) => res.status(204).end());
 
 // Fallback SPA (build Vite en prod, sinon page d'aide locale)
-app.get('*', (req, res) => {
+app.get('/{*splat}', (req, res) => {
   let indexPath = path.resolve(__dirname, 'public', 'deploy-help.html');
   if (serveDist) {
     const product = resolveProductFromRequest(req);

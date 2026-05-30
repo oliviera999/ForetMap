@@ -207,11 +207,20 @@ export function AppGL() {
     try {
       const data = await apiGL('/api/gl/auth/me');
       setGlProfile(data?.profile || null);
+      if (data?.auth) {
+        updateSession({ auth: data.auth });
+        const nextGameId = data.auth.gameId != null
+          ? Number(data.auth.gameId)
+          : (data.profile?.activeGameId != null ? Number(data.profile.activeGameId) : null);
+        if (!isAdmin && nextGameId != null && Number.isFinite(nextGameId) && nextGameId > 0) {
+          setActiveGameId(nextGameId);
+        }
+      }
       setError('');
     } catch (err) {
       setError(err.message || 'Chargement profil impossible');
     }
-  }, [token]);
+  }, [token, isAdmin, updateSession]);
 
   const applyGlImpersonation = useCallback((payload) => {
     if (!payload?.authToken || !payload?.auth) {
@@ -256,12 +265,21 @@ export function AppGL() {
       setModules(normalizeGlModules(configData?.modules));
       setGlConfig(configData || {});
       setGlProfile(profileData?.profile || null);
+      if (profileData?.auth) {
+        updateSession({ auth: profileData.auth });
+        const nextGameId = profileData.auth.gameId != null
+          ? Number(profileData.auth.gameId)
+          : (profileData.profile?.activeGameId != null ? Number(profileData.profile.activeGameId) : null);
+        if (!isAdmin && nextGameId != null && Number.isFinite(nextGameId) && nextGameId > 0) {
+          setActiveGameId(nextGameId);
+        }
+      }
     });
     reloadGameplaySettings();
     return () => {
       cancelled = true;
     };
-  }, [token, reloadGameplaySettings, isAdmin]);
+  }, [token, reloadGameplaySettings, isAdmin, updateSession]);
 
   useEffect(() => {
     const nextTitle = String(glConfig?.title || '').trim();
@@ -397,7 +415,17 @@ export function AppGL() {
     }
     try {
       await apiGL(`/api/gl/games/${gameState.game.id}/join-team`, 'POST', { teamId });
-      updateSession({ auth: { ...auth, teamId } });
+      const me = await apiGL('/api/gl/auth/me');
+      if (me?.auth) {
+        updateSession({ auth: me.auth });
+        const nextGameId = me.auth.gameId != null
+          ? Number(me.auth.gameId)
+          : Number(gameState.game.id);
+        if (Number.isFinite(nextGameId) && nextGameId > 0) setActiveGameId(nextGameId);
+      } else {
+        updateSession({ auth: { ...auth, teamId, gameId: Number(gameState.game.id) } });
+        setActiveGameId(Number(gameState.game.id));
+      }
       await reloadGame();
       setError('');
     } catch (err) {
