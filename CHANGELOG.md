@@ -8,6 +8,20 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 ## [Non publié]
 
 ### Ajouté
+- **GL — accès parties verrouillé** : module `lib/glGameAccess.js` ; contrôle sur `GET /api/gl/games/:id`, journal et Socket.IO `subscribe:gl-game` ; tests `tests/gl-game-access.test.js`, extension `tests/gl-realtime.test.js`.
+- **Visite — file progression** : `replaceQueuedVisitSeenAction` dans `visitProgressClient.js` ; tests `tests/visit-progress-client.test.js`, `tests/service-worker-cache.test.js`.
+- **Sécurité — register élève** : `POST /api/students/register` exige une session élève correspondante.
+
+### Modifié
+- **GL — gameplay joueur** : session JWT/`GET /me` expose `gameId` depuis le roster (`gl_team_members`) ; sync `AppGL.jsx` après connexion et `join-team`.
+- **GL — actions joueur** : `team_id` pris depuis `gl_team_members` pour la partie (actions, QCM, tours) ; `join-team` vérifie classe/équipe ; blocage routes si `passwordMustReset`.
+- **Médiathèque** : suppression refusée hors dossier `media-library/` (anti-traversée).
+- **Service Worker visite** : `/api/visit/progress` exclu du cache stale-while-revalidate (`public/sw.js`, `dist/sw.js`).
+- **CI lint** : tests Node ESM autorisés dans `eslint.config.cjs`.
+- **Express 5** : migration `express@5.2.1`, retrait du patch `Layer` async ; route SPA `/{*splat}` ; deps `uuid@14`, `cross-env@10`.
+- **Intégration PR GitHub** : correctifs des PR Cursor #28–#37 et Dependabot #25–#30 appliqués sur `main` (PR obsolètes/doublons fermées).
+
+### Ajouté
 - **GL — thèmes couleurs plateforme et par chapitre** : édition des 8 couleurs de `platform.brand` dans **Réglages plateforme** (`GLBrandColorEditor`) ; surcharges optionnelles par chapitre (`gl_chapters.theme_json`, admin **Contenus → Chapitres**) fusionnées sur toute l’app quand une partie est active ou qu’un chapitre est sélectionné sur la **Carte du royaume**. Migration `100_gl_chapters_theme.sql` ; helpers `lib/glBrand.js` / `src/utils/glBrandTheme.js`. Tests `tests/gl-brand.test.js`, `tests/gl-chapters-admin.test.js`, `tests/gl-chapter-detail.test.js` ; `docs/API.md`.
 - **GL — biocénose (espèces/biomes) : modèle et export XLSX** : `GET /api/gl/admin/species/import/template`, `GET /api/gl/admin/species/export` (feuilles `especes` et `biomes_stats`, ré-importables) ; boutons dans **Contenus → Espèces** ; logique dans `lib/glSpeciesImport.js`. Tests étendus `tests/gl-content-import-export.test.js`.
 - **GL — glossaire & QCM : modèles et export XLSX** : `GET /api/gl/admin/glossary/import/template`, `GET /api/gl/admin/glossary/export`, `GET /api/gl/admin/qcm/import/template`, `GET /api/gl/admin/qcm/export` (fichiers ré-importables, permission `gl.content.manage`) ; boutons dans **Contenus → Glossaire** et **Contenus → QCM** ; logique partagée dans `lib/glGlossaryImport.js` et `lib/glQcmImport.js`. Tests `tests/gl-content-import-export.test.js` ; `docs/API.md`, `data/gl/README.md`.

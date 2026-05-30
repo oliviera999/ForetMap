@@ -9,19 +9,21 @@ vi.mock('../../src/gl/services/apiGL.js', () => ({
   apiGL: (...args) => apiGlMock(...args),
 }));
 
+vi.mock('../../src/gl/context/GLMascotCatalogContext.jsx', () => ({
+  useGLMascotCatalog: () => ({
+    mascots: [
+      { id: 'gl-gnome-mousse', label: 'Gnome Mousse', type: 'gnome', source: 'gl' },
+      { id: 'gl-gnome-flamme', label: 'Gnome Flamme', type: 'gnome', source: 'gl' },
+      { id: 'gl-licorne-aube', label: 'Licorne Aube', type: 'unicorn', source: 'gl' },
+    ],
+    reload: vi.fn(),
+  }),
+}));
+
 describe('GLGameMasterConsole', () => {
   beforeEach(() => {
     apiGlMock.mockReset();
     apiGlMock.mockImplementation((path) => {
-      if (path === '/api/gl/mascots') {
-        return Promise.resolve({
-          mascots: [
-            { id: 'gl-gnome-mousse', label: 'Gnome Mousse', type: 'gnome', source: 'gl' },
-            { id: 'gl-gnome-flamme', label: 'Gnome Flamme', type: 'gnome', source: 'gl' },
-            { id: 'gl-licorne-aube', label: 'Licorne Aube', type: 'unicorn', source: 'gl' },
-          ],
-        });
-      }
       if (String(path).startsWith('/api/gl/games')) return Promise.resolve([]);
       return Promise.resolve(null);
     });
@@ -42,7 +44,7 @@ describe('GLGameMasterConsole', () => {
     );
 
     expect(screen.getByRole('heading', { name: 'Console MJ' })).toBeTruthy();
-    await waitFor(() => expect(apiGlMock).toHaveBeenCalledWith('/api/gl/mascots'));
+    await waitFor(() => expect(apiGlMock).toHaveBeenCalledWith('/api/gl/games'));
   });
 
   test('affiche un menu déroulant de mascottes filtré par type d’équipe', async () => {
@@ -59,7 +61,7 @@ describe('GLGameMasterConsole', () => {
       />
     );
 
-    await waitFor(() => expect(apiGlMock).toHaveBeenCalledWith('/api/gl/mascots'));
+    await waitFor(() => expect(apiGlMock).toHaveBeenCalledWith('/api/gl/games'));
 
     const mascotSelect = screen.getByLabelText('Mascotte');
     expect(mascotSelect.tagName).toBe('SELECT');

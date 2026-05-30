@@ -35,6 +35,7 @@ import {
   flushVisitSeenQueue,
   isBrowserOnline,
   loadVisitSeenQueue,
+  replaceQueuedVisitSeenAction,
   safeVisitProgressPayload,
 } from '../utils/visitProgressClient.js';
 import { wheelZoomScaleFactor } from '../utils/mapWheelZoom';
@@ -1734,6 +1735,14 @@ function VisitView({
         target_id: payloadId,
         seen: nextSeen,
       });
+      const compact = replaceQueuedVisitSeenAction({
+        target_type: payloadType,
+        target_id: payloadId,
+        seen: nextSeen,
+      });
+      setPendingSyncCount(compact.length);
+      if (compact.length === 0) setSyncStatus((prev) => (prev === 'syncing' ? prev : 'idle'));
+      else setSyncStatus((prev) => (prev === 'syncing' ? prev : 'pending'));
       if (nextSeen) onMascotSeenCelebration();
     } catch (err) {
       if (err instanceof AccountDeletedError) {
