@@ -212,6 +212,38 @@ test('réglages mascotte visite : liste autorisée + défaut global normalisés'
     .expect(200);
 });
 
+test('réglages dialogues mascotte : defaults et surcharges catalogue', async () => {
+  const token = await getAdminToken();
+  const defaultsJson = JSON.stringify({ move: ['Ligne test globale'] });
+  await request(app)
+    .put('/api/settings/admin/content.visit.mascot_dialog.defaults')
+    .set('Authorization', `Bearer ${token}`)
+    .send({ value: defaultsJson })
+    .expect(200);
+  const catalogJson = JSON.stringify({ 'sprout-rive': { move: ['Ligne mascotte sprout'] } });
+  await request(app)
+    .put('/api/settings/admin/content.visit.mascot_dialog.catalog_overrides')
+    .set('Authorization', `Bearer ${token}`)
+    .send({ value: catalogJson })
+    .expect(200);
+  const pub = await request(app).get('/api/settings/public').expect(200);
+  assert.deepStrictEqual(pub.body?.settings?.visit?.mascot?.dialog?.defaults?.move, ['Ligne test globale']);
+  assert.deepStrictEqual(
+    pub.body?.settings?.visit?.mascot?.dialog?.catalogOverrides?.['sprout-rive']?.move,
+    ['Ligne mascotte sprout'],
+  );
+  await request(app)
+    .put('/api/settings/admin/content.visit.mascot_dialog.defaults')
+    .set('Authorization', `Bearer ${token}`)
+    .send({ value: '{}' })
+    .expect(200);
+  await request(app)
+    .put('/api/settings/admin/content.visit.mascot_dialog.catalog_overrides')
+    .set('Authorization', `Bearer ${token}`)
+    .send({ value: '{}' })
+    .expect(200);
+});
+
 test('PUT ui.map.emoji_label_center_gap valide et refuse hors plage', async () => {
   const token = await getAdminToken();
   await request(app)

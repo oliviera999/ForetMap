@@ -3307,6 +3307,7 @@ function MapView({ zones, markers, tasks = [], tutorials = [], plants, maps = []
     preferredMascotId: student?.visit_mascot_catalog_id,
     allowedMascotIds: visitMascotAllowedIds,
     defaultMascotId: visitMascotDefaultId,
+    mascotDialogSettings: publicSettings?.visit?.mascot?.dialog,
   });
   const { zoneTaskVisualById, markerTaskVisualById } = useMemo(() => {
     const zoneMap = new Map();

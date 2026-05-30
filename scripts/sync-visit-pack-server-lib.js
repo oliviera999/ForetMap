@@ -13,6 +13,8 @@ const files = [
   ['src/utils/mascotPack.js', 'mascotPack.js'],
   ['src/utils/visitMascotState.js', 'visitMascotState.js'],
   ['src/utils/visitMascotInteractionEvents.js', 'visitMascotInteractionEvents.js'],
+  ['src/utils/visitMascotDialogEvents.js', 'visitMascotDialogEvents.js'],
+  ['src/utils/visitMascotDialogApply.js', 'visitMascotDialogApply.js'],
 ];
 
 function main() {

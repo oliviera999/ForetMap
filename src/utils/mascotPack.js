@@ -6,6 +6,7 @@
 import { z } from 'zod';
 import { VISIT_MASCOT_STATE } from './visitMascotState.js';
 import { interactionProfileSchema } from './visitMascotInteractionEvents.js';
+import { dialogProfileSchema } from './visitMascotDialogEvents.js';
 
 const CANONICAL_STATE_KEYS = new Set(Object.values(VISIT_MASCOT_STATE));
 
@@ -78,6 +79,7 @@ export const mascotPackSchemaV1 = z.object({
 export const mascotPackSchemaV2 = z.object({
   mascotPackVersion: z.literal(2),
   interactionProfile: interactionProfileSchema.optional(),
+  dialogProfile: dialogProfileSchema.optional(),
 }).merge(packBodyObjectSchema).superRefine(refineMascotPackBody);
 
 export const mascotPackSchemaUnion = z.discriminatedUnion('mascotPackVersion', [

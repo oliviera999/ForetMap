@@ -8,6 +8,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 ## [Non publié]
 
 ### Ajouté
+- **Visite — gestionnaire bulles mascotte** : défauts globaux (`content.visit.mascot_dialog.defaults`), surcharges catalogue (`content.visit.mascot_dialog.catalog_overrides`), champ pack v2 `dialogProfile` ; studio **Packs mascotte** (vue **Dialogues** + onglet **Bulles de dialogue**) ; résolution runtime hybride (`visitMascotDialogEvents.js`, `visitMascotDialogApply.js`) ; tests `visit-mascot-dialog.test.js`, extension `mascot-pack.test.js` / `settings.test.js`.
 - **GL — accès parties verrouillé** : module `lib/glGameAccess.js` ; contrôle sur `GET /api/gl/games/:id`, journal et Socket.IO `subscribe:gl-game` ; tests `tests/gl-game-access.test.js`, extension `tests/gl-realtime.test.js`.
 - **Visite — file progression** : `replaceQueuedVisitSeenAction` dans `visitProgressClient.js` ; tests `tests/visit-progress-client.test.js`, `tests/service-worker-cache.test.js`.
 - **Sécurité — register élève** : `POST /api/students/register` exige une session élève correspondante.
@@ -24,6 +25,9 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 ### Corrigé
 - **GL — écran connexion** : `useGLBrandTheme` normalise la charte avant fusion thème chapitre — corrige le crash React « Une erreur s’est produite » au chargement (guest, `glConfig` vide). Test `tests-ui/gl/useGLBrandTheme.test.js`.
 - **Fallback SPA (Express 4/5)** : route `GET /` explicite + wildcard selon la version Express (`/{*splat}` en v5, `*` en v4) via `lib/spaFallback.js` — corrige « Cannot GET / » en prod si `node_modules` reste en Express 4 après déploiement du code v5. Tests `tests/spa-fallback.test.js`, `tests/gl-product-routing.test.js`.
+
+### Corrigé
+- **GL — téléchargement modèles / export XLSX** : routes aussi enregistrées sur le routeur `admin` (comme les joueurs), montage `/api/gl/admin` prioritaire, réponses binaires sans compression, messages d’erreur explicites côté UI (`downloadGlFile`).
 
 ### Ajouté
 - **GL — thèmes couleurs plateforme et par chapitre** : édition des 8 couleurs de `platform.brand` dans **Réglages plateforme** (`GLBrandColorEditor`) ; surcharges optionnelles par chapitre (`gl_chapters.theme_json`, admin **Contenus → Chapitres**) fusionnées sur toute l’app quand une partie est active ou qu’un chapitre est sélectionné sur la **Carte du royaume**. Migration `100_gl_chapters_theme.sql` ; helpers `lib/glBrand.js` / `src/utils/glBrandTheme.js`. Tests `tests/gl-brand.test.js`, `tests/gl-chapters-admin.test.js`, `tests/gl-chapter-detail.test.js` ; `docs/API.md`.

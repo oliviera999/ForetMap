@@ -26,6 +26,8 @@ import {
   VISIT_MASCOT_INTERACTION_LABELS,
   DEFAULT_VISIT_MASCOT_INTERACTION_PROFILE,
 } from '../utils/visitMascotInteractionEvents.js';
+import VisitMascotDialogEditor from './VisitMascotDialogEditor.jsx';
+import VisitMascotDialogStudioView from './VisitMascotDialogStudioView.jsx';
 import useVisitMascotStateMachine from '../hooks/useVisitMascotStateMachine.js';
 
 /** @param {string} url */
@@ -37,7 +39,13 @@ const RIGHT_TABS = [
   { id: 'workspace', label: 'Édition guidée' },
   { id: 'json', label: 'JSON' },
   { id: 'interaction', label: 'Comportements visite' },
+  { id: 'dialog', label: 'Bulles de dialogue' },
   { id: 'preview', label: 'Aperçu global' },
+];
+
+const STUDIO_MODES = [
+  { id: 'packs', label: 'Packs' },
+  { id: 'dialogues', label: 'Dialogues' },
 ];
 
 const VISIT_STATE_LABELS = {
@@ -247,7 +255,7 @@ function VisitMascotStudioPreviewSection({ packs, mapId, onForceLogout }) {
 
 /**
  * Gestionnaire GUI des packs mascotte serveur (prof élevé, par carte).
- * @param {{ mapId: string, mapLabel?: string, onPacksChanged?: () => void | Promise<void>, onForceLogout?: () => void, variant?: 'modal' | 'page' }} props
+ * @param {{ mapId: string, mapLabel?: string, onPacksChanged?: () => void | Promise<void>, onForceLogout?: () => void, variant?: 'modal' | 'page', mascotDialogSettings?: { defaults?: Record<string, string[]>, catalogOverrides?: Record<string, Record<string, string[]>> } | null }} props
  */
 export default function VisitMascotPackManager({
   mapId,
@@ -255,6 +263,7 @@ export default function VisitMascotPackManager({
   onPacksChanged,
   onForceLogout,
   variant = 'modal',
+  mascotDialogSettings = null,
 }) {
   const [packs, setPacks] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -266,6 +275,7 @@ export default function VisitMascotPackManager({
   /** @type {[Record<string, unknown>, React.Dispatch<React.SetStateAction<Record<string, unknown>>>]} */
   const [editorPack, setEditorPack] = useState({});
   const [editorTab, setEditorTab] = useState('workspace');
+  const [studioMode, setStudioMode] = useState('packs');
   const [jsonDraft, setJsonDraft] = useState('{}');
   const [jsonError, setJsonError] = useState('');
   const [labelDraft, setLabelDraft] = useState('');
@@ -617,15 +627,26 @@ export default function VisitMascotPackManager({
     }
   }, [selectedId, onRefresh, onForceLogout]);
 
-  const upgradePackToV2 = useCallback(() => {
+  const upgradePackToV2 = useCallback((nextTab = 'interaction') => {
     setEditorPack((prev) => ({
       ...prev,
       mascotPackVersion: 2,
       interactionProfile: typeof prev.interactionProfile === 'object' && prev.interactionProfile
         ? prev.interactionProfile
         : {},
+      dialogProfile: typeof prev.dialogProfile === 'object' && prev.dialogProfile
+        ? prev.dialogProfile
+        : {},
     }));
-    setEditorTab('interaction');
+    setEditorTab(nextTab);
+  }, []);
+
+  const patchDialogProfile = useCallback((nextProfile) => {
+    setEditorPack((prev) => ({
+      ...prev,
+      mascotPackVersion: 2,
+      dialogProfile: nextProfile && typeof nextProfile === 'object' ? nextProfile : {},
+    }));
   }, []);
 
   const patchInteractionRule = useCallback((key, partial) => {
@@ -762,20 +783,46 @@ export default function VisitMascotPackManager({
     setEditorTab('workspace');
   }, [globalTargetState]);
 
+  const packDialogInheritedContext = useMemo(() => {
+    const catalogId = String(selectedRow?.catalog_id || editorPack?.id || '').trim();
+    return {
+      mascotId: catalogId,
+      extraCatalogEntries: [],
+      globalDefaults: mascotDialogSettings?.defaults || null,
+      catalogOverrides: mascotDialogSettings?.catalogOverrides || null,
+    };
+  }, [editorPack?.id, mascotDialogSettings, selectedRow?.catalog_id]);
+
   return (
     <div
       className={`visit-mascot-pack-manager ${variant === 'page' ? 'visit-mascot-pack-manager--page' : ''}`}
       style={{
         display: 'flex',
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        gap: 16,
-        alignItems: 'stretch',
+        flexDirection: 'column',
+        gap: 12,
         ...(variant === 'page'
           ? { minHeight: '60vh' }
           : { maxHeight: 'min(85vh, 900px)', overflow: 'auto' }),
       }}
     >
+      <div className="visit-mascot-pack-manager__studio-modes" role="tablist" style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+        {STUDIO_MODES.map((mode) => (
+          <button
+            key={mode.id}
+            type="button"
+            role="tab"
+            aria-selected={studioMode === mode.id}
+            className={`btn btn-sm ${studioMode === mode.id ? 'btn-primary' : 'btn-ghost'}`}
+            onClick={() => setStudioMode(mode.id)}
+          >
+            {mode.label}
+          </button>
+        ))}
+      </div>
+      {studioMode === 'dialogues' ? (
+        <VisitMascotDialogStudioView onForceLogout={onForceLogout} />
+      ) : (
+      <div style={{ display: 'flex', flexDirection: 'row', flexWrap: 'wrap', gap: 16, alignItems: 'stretch', flex: 1 }}>
       <aside
         style={{
           flex: '0 0 280px',
@@ -1198,7 +1245,7 @@ export default function VisitMascotPackManager({
                   Réactions de la mascotte sur la carte (pack v2). Les valeurs par défaut reproduisent le comportement historique.
                 </p>
                 {Number(editorPack.mascotPackVersion) !== 2 ? (
-                  <button type="button" className="btn btn-primary btn-sm" onClick={upgradePackToV2}>
+                  <button type="button" className="btn btn-primary btn-sm" onClick={() => upgradePackToV2('interaction')}>
                     Passer ce pack en version 2 (profil d’interaction)
                   </button>
                 ) : (
@@ -1279,12 +1326,37 @@ export default function VisitMascotPackManager({
                 )}
               </div>
             ) : null}
+            {editorTab === 'dialog' ? (
+              <div>
+                <p className="section-sub" style={{ fontSize: '0.82rem', marginBottom: 10 }}>
+                  Messages de bulle pour ce pack (priorité maximale sur les défauts globaux et catalogue).
+                </p>
+                {Number(editorPack.mascotPackVersion) !== 2 ? (
+                  <button type="button" className="btn btn-primary btn-sm" onClick={() => upgradePackToV2('dialog')}>
+                    Passer ce pack en version 2 (bulles de dialogue)
+                  </button>
+                ) : (
+                  <VisitMascotDialogEditor
+                    profile={
+                      editorPack.dialogProfile && typeof editorPack.dialogProfile === 'object'
+                        ? editorPack.dialogProfile
+                        : {}
+                    }
+                    onProfileChange={patchDialogProfile}
+                    inheritedContext={packDialogInheritedContext}
+                    allowInheritToggle
+                  />
+                )}
+              </div>
+            ) : null}
             {editorTab === 'preview' ? (
               <VisitMascotStudioPreviewSection packs={packs} mapId={String(mapId || '')} onForceLogout={onForceLogout} />
             ) : null}
           </>
         )}
       </div>
+      </div>
+      )}
     </div>
   );
 }

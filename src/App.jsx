@@ -352,6 +352,16 @@ function App() {
               next.visit = { ...prev.visit, ...ui.visit };
             }
           }
+          if (d.settings.visit?.mascot?.dialog) {
+            next.visit = {
+              ...next.visit,
+              mascot: {
+                ...(next.visit?.mascot || {}),
+                ...(d.settings.visit?.mascot || {}),
+                dialog: d.settings.visit.mascot.dialog,
+              },
+            };
+          }
           return next;
         });
       })
@@ -1882,6 +1892,7 @@ function App() {
                       mapLabel={mascotStudioMapLabel}
                       onPacksChanged={fetchAll}
                       onForceLogout={forceLogout}
+                      mascotDialogSettings={publicSettings?.visit?.mascot?.dialog}
                     />
                   </Suspense>
                 </div>

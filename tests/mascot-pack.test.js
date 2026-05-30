@@ -119,6 +119,40 @@ test('validateMascotPack v2 + interactionProfile + bibliothèque API', async () 
   assert.strictEqual(r.pack.mascotPackVersion, 2);
 });
 
+test('validateMascotPack v2 + dialogProfile', async () => {
+  const { validateMascotPackV1 } = await loadMascotPack();
+  const r = validateMascotPackV1({
+    mascotPackVersion: 2,
+    id: 'dialog-pack',
+    label: 'Dialog',
+    renderer: 'sprite_cut',
+    framesBase: '/assets/mascots/dialog-pack/frames/',
+    frameWidth: 32,
+    frameHeight: 32,
+    fallbackSilhouette: 'gnome',
+    stateFrames: { idle: { files: ['a.png'], fps: 1 } },
+    dialogProfile: {
+      move: ['Pack bubble'],
+      markerMarkedSeen: ['Bravo pack'],
+    },
+  }, { relaxAssetPrefix: false });
+  assert.equal(r.ok, true);
+  assert.deepEqual(r.pack.dialogProfile.move, ['Pack bubble']);
+  const bad = validateMascotPackV1({
+    mascotPackVersion: 2,
+    id: 'dialog-bad',
+    label: 'Bad',
+    renderer: 'sprite_cut',
+    framesBase: '/assets/mascots/dialog-bad/frames/',
+    frameWidth: 32,
+    frameHeight: 32,
+    fallbackSilhouette: 'gnome',
+    stateFrames: { idle: { files: ['a.png'], fps: 1 } },
+    dialogProfile: { notAnEvent: ['x'] },
+  }, { relaxAssetPrefix: false });
+  assert.equal(bad.ok, false);
+});
+
 test('relaxAssetPrefix autorise framesBase hors /assets/', async () => {
   const { validateMascotPackV1 } = await loadMascotPack();
   const r = validateMascotPackV1({
