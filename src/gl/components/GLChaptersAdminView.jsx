@@ -10,17 +10,24 @@ import { GLImageSourceField } from './GLImageSourceField.jsx';
 import { GLImageFrameEditor } from './GLImageFrameEditor.jsx';
 import { glImageFrameToStyle, normalizeGlImageFrame } from '../../utils/glImageFrame.js';
 import { GLRichTextEditor } from './ui/GLRichTextEditor.jsx';
+import { GLBrandColorEditor } from './GLBrandColorEditor.jsx';
+import { normalizeBrand } from '../hooks/useGLBrandTheme.js';
+import { brandToCssVars, mergeBrandWithChapterTheme, normalizeChapterTheme } from '../../utils/glBrandTheme.js';
+
+const EMPTY_CHAPTER_THEME = { colors: {} };
 
 const EMPTY_CHAPTER_FORM = {
   slug: '',
   title: '',
   biome: '',
+  biomeSlug: '',
   mapImageUrl: '',
   storyMarkdown: '',
   biotopeMarkdown: '',
   biocenoseMarkdown: '',
   orderIndex: 0,
   mapImageFrame: normalizeGlImageFrame(null, 'chapter-map'),
+  theme: { ...EMPTY_CHAPTER_THEME },
 };
 
 export function GLChaptersAdminView() {
@@ -34,7 +41,27 @@ export function GLChaptersAdminView() {
   const [pendingMapImageFile, setPendingMapImageFile] = useState(null);
   const [pendingMapPreviewUrl, setPendingMapPreviewUrl] = useState('');
   const [frameEditorOpen, setFrameEditorOpen] = useState(false);
+  const [biomes, setBiomes] = useState([]);
+  const [platformBrand, setPlatformBrand] = useState(null);
   const previewMapGestures = useGlPctMapGestures();
+
+  async function loadPlatformBrand() {
+    try {
+      const config = await apiGL('/api/gl/auth/config');
+      setPlatformBrand(normalizeBrand(config?.brand));
+    } catch (_) {
+      setPlatformBrand(normalizeBrand(null));
+    }
+  }
+
+  async function loadBiomes() {
+    try {
+      const list = await apiGL('/api/gl/biomes');
+      setBiomes(Array.isArray(list) ? list : []);
+    } catch (_) {
+      setBiomes([]);
+    }
+  }
 
   async function loadChapters() {
     try {
@@ -60,12 +87,14 @@ export function GLChaptersAdminView() {
         slug: data.chapter.slug,
         title: data.chapter.title || '',
         biome: data.chapter.biome || '',
+        biomeSlug: data.chapter.biome_slug || '',
         mapImageUrl: data.chapter.map_image_url || '',
         mapImageFrame: normalizeGlImageFrame(data.chapter.map_image_frame, 'chapter-map'),
         storyMarkdown: data.chapter.story_markdown || '',
         biotopeMarkdown: data.chapter.biotope_markdown || '',
         biocenoseMarkdown: data.chapter.biocenose_markdown || '',
         orderIndex: Number(data.chapter.order_index || 0),
+        theme: normalizeChapterTheme(data.chapter.theme),
       });
       setSelectedId(Number(data.chapter.id));
       clearPendingMapImage();
@@ -76,6 +105,8 @@ export function GLChaptersAdminView() {
 
   useEffect(() => {
     loadChapters();
+    loadBiomes();
+    loadPlatformBrand();
   }, []);
 
   function clearPendingMapImage() {
@@ -104,6 +135,7 @@ export function GLChaptersAdminView() {
     const payload = {
       ...chapterForm,
       mapImageFrame: normalizeGlImageFrame(chapterForm.mapImageFrame, 'chapter-map'),
+      theme: normalizeChapterTheme(chapterForm.theme),
       orderIndex: Number(chapterForm.orderIndex) || 0,
     };
     try {
@@ -223,6 +255,10 @@ export function GLChaptersAdminView() {
     () => glImageFrameToStyle(normalizeGlImageFrame(chapterForm.mapImageFrame, 'chapter-map')),
     [chapterForm.mapImageFrame]
   );
+  const themePreviewStyle = useMemo(() => {
+    const merged = mergeBrandWithChapterTheme(platformBrand, chapterForm.theme);
+    return brandToCssVars(merged);
+  }, [platformBrand, chapterForm.theme]);
 
   return (
     <section className="gl-panel">
@@ -273,11 +309,25 @@ export function GLChaptersAdminView() {
               />
             </label>
             <label>
-              Biome
+              Biome (libellé libre)
               <input
                 value={chapterForm.biome}
                 onChange={(event) => setChapterForm({ ...chapterForm, biome: event.target.value })}
               />
+            </label>
+            <label>
+              Biome (catalogue espèces)
+              <select
+                value={chapterForm.biomeSlug}
+                onChange={(event) => setChapterForm({ ...chapterForm, biomeSlug: event.target.value })}
+              >
+                <option value="">— Aucun —</option>
+                {biomes.map((biome) => (
+                  <option key={biome.slug} value={biome.slug}>
+                    {biome.nom} ({biome.species_count || 0} esp.)
+                  </option>
+                ))}
+              </select>
             </label>
             <GLImageSourceField
               label="Image de carte"
@@ -324,6 +374,36 @@ export function GLChaptersAdminView() {
                 onChange={(event) => setChapterForm({ ...chapterForm, orderIndex: event.target.value })}
               />
             </label>
+
+            <h3>Thème du chapitre</h3>
+            <p className="gl-hint">
+              Laissez une couleur vide pour hériter de la charte plateforme. Seules les couleurs renseignées
+              remplacent la charte par défaut pendant une partie ou sur la carte du royaume.
+            </p>
+            <GLBrandColorEditor
+              sparse
+              value={chapterForm.theme?.colors || {}}
+              inheritedColors={platformBrand?.colors}
+              onChange={(updater) => {
+                setChapterForm((prev) => {
+                  const prevColors = prev.theme?.colors || {};
+                  const nextColors = typeof updater === 'function' ? updater(prevColors) : updater;
+                  return {
+                    ...prev,
+                    theme: { colors: nextColors },
+                  };
+                });
+              }}
+            />
+            <div className="gl-theme-preview gl-app" style={themePreviewStyle} aria-hidden>
+              <div className="gl-theme-preview-topbar">Barre haute</div>
+              <div className="gl-theme-preview-body">
+                <span className="gl-theme-preview-chip gl-theme-preview-chip--primary">Primaire</span>
+                <span className="gl-theme-preview-chip gl-theme-preview-chip--secondary">Secondaire</span>
+                <span className="gl-theme-preview-text">Texte et liens du chapitre</span>
+              </div>
+            </div>
+
             <label>
               Histoire (markdown)
               <GLRichTextEditor

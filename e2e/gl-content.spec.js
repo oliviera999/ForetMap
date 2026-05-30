@@ -87,4 +87,102 @@ test.describe('Gnomes & Licornes — édition des chapitres (Lot 2B)', () => {
 
     await request.delete(`/api/gl/chapters/admin/${chapterId}`, { headers: adminHeaders });
   });
+
+  test('import espèces dry-run puis lecture par biome', async ({ request }) => {
+    const now = Date.now();
+    const adminEmail = `e2e-species-mj-${now}@example.org`;
+    await execute(
+      'INSERT INTO gl_admins (email, display_name, role, is_active, created_at, updated_at) VALUES (?, ?, ?, 1, NOW(), NOW())',
+      [adminEmail, `MJ Species ${now}`, 'admin']
+    );
+    const adminRow = await queryOne('SELECT id FROM gl_admins WHERE email = ? LIMIT 1', [adminEmail]);
+    const adminToken = await signAuthToken({
+      product: 'gl',
+      userType: 'gl_admin',
+      userId: String(adminRow.id),
+      roleSlug: 'gl_admin',
+      permissions: ['gl.read', 'gl.content.manage'],
+    });
+    const fs = require('node:fs');
+    const path = require('node:path');
+    const xlsxPath = path.join(__dirname, '..', 'data', 'gl', 'especes-biomes-gnomes-et-licornes.xlsx');
+    const fileDataBase64 = fs.readFileSync(xlsxPath).toString('base64');
+    const importRes = await request.post('/api/gl/admin/species/import', {
+      headers: { Authorization: `Bearer ${adminToken}` },
+      data: { fileDataBase64, dryRun: true, syncBiomes: true },
+    });
+    expect(importRes.status()).toBe(200);
+    const importBody = await importRes.json();
+    expect(importBody?.report?.totals?.valid).toBeGreaterThan(200);
+
+    const biomesRes = await request.get('/api/gl/biomes', {
+      headers: { Authorization: `Bearer ${adminToken}` },
+    });
+    expect(biomesRes.status()).toBe(200);
+    const biomes = await biomesRes.json();
+    expect(biomes.some((b) => b.slug === 'sahara')).toBe(true);
+  });
+
+  test('import glossaire dry-run puis lecture par biome', async ({ request }) => {
+    const now = Date.now();
+    const adminEmail = `e2e-glossary-mj-${now}@example.org`;
+    await execute(
+      'INSERT INTO gl_admins (email, display_name, role, is_active, created_at, updated_at) VALUES (?, ?, ?, 1, NOW(), NOW())',
+      [adminEmail, `MJ Glossary ${now}`, 'admin']
+    );
+    const adminRow = await queryOne('SELECT id FROM gl_admins WHERE email = ? LIMIT 1', [adminEmail]);
+    const adminToken = await signAuthToken({
+      product: 'gl',
+      userType: 'gl_admin',
+      userId: String(adminRow.id),
+      roleSlug: 'gl_admin',
+      permissions: ['gl.read', 'gl.content.manage'],
+    });
+    const fs = require('node:fs');
+    const path = require('node:path');
+    const xlsxPath = path.join(__dirname, '..', 'data', 'gl', 'glossaire-gnomes-et-licornes.xlsx');
+    const fileDataBase64 = fs.readFileSync(xlsxPath).toString('base64');
+    const importRes = await request.post('/api/gl/admin/glossary/import', {
+      headers: { Authorization: `Bearer ${adminToken}` },
+      data: { fileDataBase64, dryRun: true },
+    });
+    expect(importRes.status()).toBe(200);
+    const importBody = await importRes.json();
+    expect(importBody?.report?.totals?.valid).toBeGreaterThan(200);
+
+    const glossaryRes = await request.get('/api/gl/glossary?biomeSlug=sahara', {
+      headers: { Authorization: `Bearer ${adminToken}` },
+    });
+    expect(glossaryRes.status()).toBe(200);
+    const glossaryBody = await glossaryRes.json();
+    expect(Array.isArray(glossaryBody?.items)).toBe(true);
+  });
+
+  test('import QCM dry-run puis present avec mélange', async ({ request }) => {
+    const now = Date.now();
+    const adminEmail = `e2e-qcm-mj-${now}@example.org`;
+    await execute(
+      'INSERT INTO gl_admins (email, display_name, role, is_active, created_at, updated_at) VALUES (?, ?, ?, 1, NOW(), NOW())',
+      [adminEmail, `MJ QCM ${now}`, 'admin']
+    );
+    const adminRow = await queryOne('SELECT id FROM gl_admins WHERE email = ? LIMIT 1', [adminEmail]);
+    const adminToken = await signAuthToken({
+      product: 'gl',
+      userType: 'gl_admin',
+      userId: String(adminRow.id),
+      roleSlug: 'gl_admin',
+      permissions: ['gl.read', 'gl.content.manage'],
+    });
+    const fs = require('node:fs');
+    const path = require('node:path');
+    const xlsxPath = path.join(__dirname, '..', 'data', 'gl', 'qcm-biomes-gnomes-et-licornes-consolide.xlsx');
+    const fileDataBase64 = fs.readFileSync(xlsxPath).toString('base64');
+    const importRes = await request.post('/api/gl/admin/qcm/import', {
+      headers: { Authorization: `Bearer ${adminToken}` },
+      data: { fileDataBase64, dryRun: true },
+    });
+    expect(importRes.status()).toBe(200);
+    const importBody = await importRes.json();
+    expect(importBody?.report?.totals?.valid).toBeGreaterThan(600);
+  });
 });

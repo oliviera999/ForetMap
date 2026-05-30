@@ -4,6 +4,11 @@ const { queryOne, queryAll, execute, withTransaction } = require('../../database
 const { requireGlPermission } = require('../../middleware/requireGlAuth');
 const { saveBase64ToDisk, deleteFile } = require('../../lib/uploads');
 const { normalizeGlImageFrame } = require('../../lib/glImageFrame');
+const {
+  parseChapterThemeJson,
+  serializeChapterTheme,
+  validateChapterThemeInput,
+} = require('../../lib/glBrand');
 const { normalizeOptionalString } = require('../../lib/shared/httpHelpers');
 
 const router = express.Router();
@@ -39,30 +44,51 @@ function parseMapImageFrameJson(value) {
   }
 }
 
+function normalizeBiomeSlug(value) {
+  if (value == null) return null;
+  const s = String(value).trim();
+  return s.length > 0 ? s : null;
+}
+
+function attachChapterTheme(chapter) {
+  if (!chapter) return chapter;
+  chapter.theme = parseChapterThemeJson(chapter.theme_json);
+  delete chapter.theme_json;
+  return chapter;
+}
+
 async function readChapterFull(slugOrId) {
   const isNumeric = typeof slugOrId === 'number' || /^\d+$/.test(String(slugOrId || ''));
   const chapter = isNumeric
     ? await queryOne(
-      `SELECT id, slug, title, biome, map_image_url, story_markdown, biotope_markdown,
-              biocenose_markdown, map_image_frame_json, order_index, created_at, updated_at
-         FROM gl_chapters
-        WHERE id = ?
+      `SELECT c.id, c.slug, c.title, c.biome, c.biome_slug, b.nom AS biome_nom,
+              c.map_image_url, c.story_markdown, c.biotope_markdown,
+              c.biocenose_markdown, c.map_image_frame_json, c.theme_json,
+              c.order_index, c.created_at, c.updated_at
+         FROM gl_chapters c
+    LEFT JOIN gl_biomes b ON b.slug = c.biome_slug
+        WHERE c.id = ?
         LIMIT 1`,
       [Number(slugOrId)]
     )
     : await queryOne(
-      `SELECT id, slug, title, biome, map_image_url, story_markdown, biotope_markdown,
-              biocenose_markdown, map_image_frame_json, order_index, created_at, updated_at
-         FROM gl_chapters
-        WHERE slug = ?
+      `SELECT c.id, c.slug, c.title, c.biome, c.biome_slug, b.nom AS biome_nom,
+              c.map_image_url, c.story_markdown, c.biotope_markdown,
+              c.biocenose_markdown, c.map_image_frame_json, c.theme_json,
+              c.order_index, c.created_at, c.updated_at
+         FROM gl_chapters c
+    LEFT JOIN gl_biomes b ON b.slug = c.biome_slug
+        WHERE c.slug = ?
         LIMIT 1`,
       [normalizeSlug(slugOrId)]
     );
   if (!chapter) return null;
   chapter.map_image_frame = parseMapImageFrameJson(chapter.map_image_frame_json);
   delete chapter.map_image_frame_json;
+  attachChapterTheme(chapter);
   const markers = await queryAll(
-    `SELECT id, chapter_id, x_pct, y_pct, event_type, label, description, order_index
+    `SELECT id, chapter_id, x_pct, y_pct, event_type, label, description,
+            qcm_categorie_slug, qcm_question_code, order_index
        FROM gl_chapter_markers
       WHERE chapter_id = ?
       ORDER BY order_index ASC, id ASC`,
@@ -74,15 +100,21 @@ async function readChapterFull(slugOrId) {
 /** GET /api/gl/chapters — liste publique des chapitres (sans markers). */
 router.get('/', requireGlPermission('gl.read'), async (_req, res) => {
   const rows = await queryAll(
-    `SELECT id, slug, title, biome, map_image_url, map_image_frame_json, order_index
-       FROM gl_chapters
-      ORDER BY order_index ASC, id ASC`
+    `SELECT c.id, c.slug, c.title, c.biome, c.biome_slug, b.nom AS biome_nom,
+            c.map_image_url, c.map_image_frame_json, c.theme_json, c.order_index
+       FROM gl_chapters c
+  LEFT JOIN gl_biomes b ON b.slug = c.biome_slug
+      ORDER BY c.order_index ASC, c.id ASC`
   );
-  const items = rows.map((row) => ({
-    ...row,
-    map_image_frame: parseMapImageFrameJson(row.map_image_frame_json),
-  }));
-  for (const row of items) delete row.map_image_frame_json;
+  const items = rows.map((row) => {
+    const item = {
+      ...row,
+      map_image_frame: parseMapImageFrameJson(row.map_image_frame_json),
+    };
+    delete item.map_image_frame_json;
+    attachChapterTheme(item);
+    return item;
+  });
   return res.json(items);
 });
 
@@ -106,6 +138,11 @@ router.post('/admin', requireGlPermission('gl.content.manage'), async (req, res)
   const title = normalizeOptionalString(req.body?.title);
   if (!slug || !title) return res.status(400).json({ error: 'slug et title requis' });
   const biome = normalizeOptionalString(req.body?.biome);
+  const biomeSlug = normalizeBiomeSlug(req.body?.biomeSlug);
+  if (biomeSlug) {
+    const biomeRow = await queryOne('SELECT slug FROM gl_biomes WHERE slug = ? LIMIT 1', [biomeSlug]);
+    if (!biomeRow) return res.status(400).json({ error: 'biomeSlug introuvable dans le catalogue' });
+  }
   const mapImageUrl = normalizeOptionalString(req.body?.mapImageUrl);
   const storyMarkdown = String(req.body?.storyMarkdown || '');
   const biotopeMarkdown = String(req.body?.biotopeMarkdown || '');
@@ -113,14 +150,20 @@ router.post('/admin', requireGlPermission('gl.content.manage'), async (req, res)
   const mapImageFrame = normalizeMapImageFrame(req.body?.mapImageFrame);
   if (!mapImageFrame) return res.status(400).json({ error: 'mapImageFrame invalide' });
   const orderIndex = toPositiveInt(req.body?.orderIndex, 0);
+  let themeJson = null;
+  if (req.body && Object.prototype.hasOwnProperty.call(req.body, 'theme')) {
+    const { theme, error: themeError } = validateChapterThemeInput(req.body.theme);
+    if (themeError) return res.status(400).json({ error: themeError });
+    themeJson = serializeChapterTheme(theme);
+  }
 
   try {
     await execute(
-      `INSERT INTO gl_chapters (slug, title, biome, map_image_url, story_markdown,
-                                 biotope_markdown, biocenose_markdown, map_image_frame_json, order_index,
-                                 created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
-      [slug, title, biome, mapImageUrl, storyMarkdown, biotopeMarkdown, biocenoseMarkdown, JSON.stringify(mapImageFrame), orderIndex]
+      `INSERT INTO gl_chapters (slug, title, biome, biome_slug, map_image_url, story_markdown,
+                                 biotope_markdown, biocenose_markdown, map_image_frame_json, theme_json,
+                                 order_index, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
+      [slug, title, biome, biomeSlug, mapImageUrl, storyMarkdown, biotopeMarkdown, biocenoseMarkdown, JSON.stringify(mapImageFrame), themeJson, orderIndex]
     );
   } catch (err) {
     if (err && err.code === 'ER_DUP_ENTRY') {
@@ -148,6 +191,15 @@ router.put('/admin/:id', requireGlPermission('gl.content.manage'), async (req, r
     updates.push('biome = ?');
     params.push(normalizeOptionalString(req.body.biome));
   }
+  if (req.body && Object.prototype.hasOwnProperty.call(req.body, 'biomeSlug')) {
+    const biomeSlug = normalizeBiomeSlug(req.body.biomeSlug);
+    if (biomeSlug) {
+      const biomeRow = await queryOne('SELECT slug FROM gl_biomes WHERE slug = ? LIMIT 1', [biomeSlug]);
+      if (!biomeRow) return res.status(400).json({ error: 'biomeSlug introuvable dans le catalogue' });
+    }
+    updates.push('biome_slug = ?');
+    params.push(biomeSlug);
+  }
   if (req.body && Object.prototype.hasOwnProperty.call(req.body, 'mapImageUrl')) {
     updates.push('map_image_url = ?');
     params.push(normalizeOptionalString(req.body.mapImageUrl));
@@ -173,6 +225,12 @@ router.put('/admin/:id', requireGlPermission('gl.content.manage'), async (req, r
     if (!mapImageFrame) return res.status(400).json({ error: 'mapImageFrame invalide' });
     updates.push('map_image_frame_json = ?');
     params.push(JSON.stringify(mapImageFrame));
+  }
+  if (req.body && Object.prototype.hasOwnProperty.call(req.body, 'theme')) {
+    const { theme, error: themeError } = validateChapterThemeInput(req.body.theme);
+    if (themeError) return res.status(400).json({ error: themeError });
+    updates.push('theme_json = ?');
+    params.push(serializeChapterTheme(theme));
   }
   if (updates.length === 0) return res.status(400).json({ error: 'Aucun champ à mettre à jour' });
   updates.push('updated_at = NOW()');
@@ -233,16 +291,22 @@ router.post('/admin/:id/markers', requireGlPermission('gl.content.manage'), asyn
   if (xPct == null || yPct == null) return res.status(400).json({ error: 'xPct et yPct requis (0..100)' });
   const eventType = normalizeOptionalString(req.body?.eventType);
   const description = req.body?.description != null ? String(req.body.description) : null;
+  const qcmCategorieSlug = normalizeOptionalString(req.body?.qcmCategorieSlug);
+  const qcmQuestionCode = normalizeOptionalString(req.body?.qcmQuestionCode);
   const orderIndex = toPositiveInt(req.body?.orderIndex, 0);
   const chapter = await queryOne('SELECT id FROM gl_chapters WHERE id = ? LIMIT 1', [chapterId]);
   if (!chapter) return res.status(404).json({ error: 'Chapitre introuvable' });
   await execute(
-    `INSERT INTO gl_chapter_markers (chapter_id, x_pct, y_pct, event_type, label, description, order_index, created_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, NOW())`,
-    [chapterId, xPct, yPct, eventType, label, description, orderIndex]
+    `INSERT INTO gl_chapter_markers (
+       chapter_id, x_pct, y_pct, event_type, label, description,
+       qcm_categorie_slug, qcm_question_code, order_index, created_at
+     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
+    [chapterId, xPct, yPct, eventType, label, description, qcmCategorieSlug, qcmQuestionCode, orderIndex]
   );
   const marker = await queryOne(
-    'SELECT id, chapter_id, x_pct, y_pct, event_type, label, description, order_index FROM gl_chapter_markers WHERE chapter_id = ? ORDER BY id DESC LIMIT 1',
+    `SELECT id, chapter_id, x_pct, y_pct, event_type, label, description,
+            qcm_categorie_slug, qcm_question_code, order_index
+       FROM gl_chapter_markers WHERE chapter_id = ? ORDER BY id DESC LIMIT 1`,
     [chapterId]
   );
   return res.status(201).json(marker);
@@ -284,11 +348,21 @@ router.put('/admin/markers/:markerId', requireGlPermission('gl.content.manage'),
     updates.push('order_index = ?');
     params.push(toPositiveInt(req.body.orderIndex, 0));
   }
+  if (Object.prototype.hasOwnProperty.call(req.body || {}, 'qcmCategorieSlug')) {
+    updates.push('qcm_categorie_slug = ?');
+    params.push(normalizeOptionalString(req.body.qcmCategorieSlug));
+  }
+  if (Object.prototype.hasOwnProperty.call(req.body || {}, 'qcmQuestionCode')) {
+    updates.push('qcm_question_code = ?');
+    params.push(normalizeOptionalString(req.body.qcmQuestionCode));
+  }
   if (updates.length === 0) return res.status(400).json({ error: 'Aucun champ à mettre à jour' });
   params.push(markerId);
   await execute(`UPDATE gl_chapter_markers SET ${updates.join(', ')} WHERE id = ?`, params);
   const updated = await queryOne(
-    'SELECT id, chapter_id, x_pct, y_pct, event_type, label, description, order_index FROM gl_chapter_markers WHERE id = ? LIMIT 1',
+    `SELECT id, chapter_id, x_pct, y_pct, event_type, label, description,
+            qcm_categorie_slug, qcm_question_code, order_index
+       FROM gl_chapter_markers WHERE id = ? LIMIT 1`,
     [markerId]
   );
   if (!updated) return res.status(404).json({ error: 'Marker introuvable' });

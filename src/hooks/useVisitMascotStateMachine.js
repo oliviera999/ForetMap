@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { VISIT_MASCOT_STATE, resolveVisitMascotState } from '../utils/visitMascotState.js';
 import {
-  getVisitMascotCatalog,
+  buildVisitMascotSelectionOptions,
   getDefaultVisitMascotId,
   resolveVisitMascotEntry,
   getVisitMascotSupportedStates,
@@ -53,17 +53,10 @@ function useVisitMascotStateMachine({
   const [visitMapMascotTransientState, setVisitMapMascotTransientState] = useState('');
   const visitMapMascotTransientStateTimeoutRef = useRef(null);
 
-  const rawVisitMascotOptions = useMemo(
-    () => [...getVisitMascotCatalog(), ...extraCatalogEntries],
-    [extraCatalogEntries],
+  const visitMascotOptions = useMemo(
+    () => buildVisitMascotSelectionOptions(extraCatalogEntries, allowedMascotIds),
+    [extraCatalogEntries, allowedMascotIds],
   );
-  const visitMascotOptions = useMemo(() => {
-    const allowed = Array.isArray(allowedMascotIds)
-      ? allowedMascotIds.map((id) => String(id || '').trim()).filter(Boolean)
-      : [];
-    if (allowed.length === 0) return rawVisitMascotOptions;
-    return rawVisitMascotOptions.filter((entry) => allowed.includes(String(entry?.id || '').trim()));
-  }, [rawVisitMascotOptions, allowedMascotIds]);
 
   useEffect(() => {
     const preferred = String(preferredMascotId || '').trim();

@@ -7,6 +7,9 @@ const { getGameplaySettings } = require('../../lib/glSettings');
 const { logRouteError } = require('../../lib/routeLog');
 const { assignPlayerToTeamTx, unassignPlayerFromGameTx } = require('../../lib/glRoster');
 const { canAccessGlGame } = require('../../lib/glGameAccess');
+const { verifyPresentationAnswer } = require('../../lib/glQcmChoices');
+const { combineKeywords } = require('../../lib/glQcmImport');
+const { buildGlossaryLookupMap, matchGlossaryTermsForSpecies } = require('../../lib/glGlossaryMatch');
 
 const router = express.Router();
 
@@ -46,11 +49,13 @@ async function readGameState(gameId) {
     `SELECT g.id, g.class_id, g.chapter_id, g.name, g.status, g.current_team_id,
             g.created_by, g.created_at, g.updated_at,
             c.name AS class_name,
-            ch.slug AS chapter_slug, ch.title AS chapter_title, ch.biome, ch.map_image_url,
+            ch.slug AS chapter_slug, ch.title AS chapter_title, ch.biome, ch.biome_slug,
+            b.nom AS biome_nom, ch.map_image_url,
             ch.story_markdown, ch.biotope_markdown, ch.biocenose_markdown
        FROM gl_games g
   LEFT JOIN gl_classes c ON c.id = g.class_id
   LEFT JOIN gl_chapters ch ON ch.id = g.chapter_id
+  LEFT JOIN gl_biomes b ON b.slug = ch.biome_slug
       WHERE g.id = ?
       LIMIT 1`,
     [gameId]
@@ -78,7 +83,8 @@ async function readGameState(gameId) {
   );
   const events = eventsRaw.map(normalizeEventRow);
   const markers = await queryAll(
-    `SELECT id, chapter_id, x_pct, y_pct, event_type, label, description, order_index
+    `SELECT id, chapter_id, x_pct, y_pct, event_type, label, description,
+            qcm_categorie_slug, qcm_question_code, order_index
        FROM gl_chapter_markers
       WHERE chapter_id = ?
       ORDER BY order_index ASC, id ASC`,
@@ -700,6 +706,122 @@ router.post('/games/:id/actions/:actionId/resolve', requireGlPermission('gl.game
     emitGlGameEvent(gameId, normalizeEventRow(row));
   }
   return res.json({ ok: true, decision, scoreDelta: appliedDelta });
+});
+
+/** POST /api/gl/games/:id/qcm/answer — validation QCM en partie (+ score si activé). */
+router.post('/games/:id/qcm/answer', requireGlPermission('gl.action.request'), async (req, res) => {
+  if (req.glAuth.userType !== 'gl_player') {
+    return res.status(403).json({ error: 'Réservé aux joueurs' });
+  }
+  const gameId = parseId(req.params.id);
+  if (!gameId) return res.status(400).json({ error: 'Identifiant de partie invalide' });
+
+  const questionCode = String(req.body?.questionCode || '').trim().toUpperCase();
+  if (!questionCode) return res.status(400).json({ error: 'questionCode requis' });
+
+  const settings = await getGameplaySettings();
+  const player = await queryOne(
+    'SELECT id, team_id FROM gl_players WHERE id = ? LIMIT 1',
+    [req.glAuth.userId]
+  );
+  if (!player?.team_id) return res.status(403).json({ error: 'Aucune équipe associée à ce joueur' });
+
+  const membership = await queryOne(
+    'SELECT 1 AS ok FROM gl_team_members WHERE game_id = ? AND player_id = ? LIMIT 1',
+    [gameId, player.id]
+  );
+  if (!membership) return res.status(403).json({ error: 'Joueur non rattaché à cette partie' });
+
+  if (settings.turnsEnabled) {
+    const gameTurn = await queryOne('SELECT current_team_id FROM gl_games WHERE id = ? LIMIT 1', [gameId]);
+    if (gameTurn?.current_team_id != null && Number(gameTurn.current_team_id) !== Number(player.team_id)) {
+      return res.status(409).json({ error: 'Ce n’est pas le tour de votre équipe' });
+    }
+  }
+
+  const questionRow = await queryOne(
+    `SELECT question_code, tags, mots_cles FROM gl_qcm_questions
+      WHERE question_code = ? AND statut = 'actif' LIMIT 1`,
+    [questionCode]
+  );
+  if (!questionRow) return res.status(404).json({ error: 'Question introuvable' });
+
+  let verification;
+  try {
+    verification = verifyPresentationAnswer(
+      req.body?.presentationToken,
+      questionCode,
+      req.body?.choiceId
+    );
+  } catch (err) {
+    return res.status(400).json({ error: err.message || 'Réponse invalide' });
+  }
+
+  let scoreDelta = 0;
+  const markerIdRaw = req.body?.markerId;
+  const markerId = markerIdRaw == null ? null : Number(markerIdRaw);
+
+  await withTransaction(async (tx) => {
+    await tx.execute(
+      `INSERT INTO gl_game_events (game_id, team_id, actor_type, actor_id, event_type, payload_json, created_at)
+       VALUES (?, ?, 'team', ?, 'qcm_answer', ?, NOW())`,
+      [
+        gameId,
+        player.team_id,
+        String(player.id),
+        JSON.stringify({
+          questionCode,
+          correct: verification.correct,
+          choiceId: verification.selectedChoiceId,
+          markerId: Number.isFinite(markerId) ? markerId : null,
+        }),
+      ]
+    );
+    if (verification.correct && settings.scoringEnabled) {
+      scoreDelta = 1;
+      await tx.execute(
+        `INSERT INTO gl_team_scores (game_id, team_id, score, last_reason, updated_at)
+         VALUES (?, ?, ?, ?, NOW())
+         ON DUPLICATE KEY UPDATE
+           score = score + VALUES(score),
+           last_reason = VALUES(last_reason),
+           updated_at = NOW()`,
+        [gameId, player.team_id, scoreDelta, 'Bonne réponse QCM']
+      );
+      await tx.execute(
+        `INSERT INTO gl_game_events (game_id, team_id, actor_type, actor_id, event_type, payload_json, created_at)
+         VALUES (?, ?, 'team', ?, 'score', ?, NOW())`,
+        [
+          gameId,
+          player.team_id,
+          String(player.id),
+          JSON.stringify({ delta: scoreDelta, reason: 'Bonne réponse QCM', questionCode }),
+        ]
+      );
+    }
+  });
+
+  const glossaryRows = await queryAll(
+    `SELECT glossary_code, terme, variantes, categorie, definition_courte
+       FROM gl_glossary_terms WHERE statut = 'actif'`
+  );
+  const glossaryTerms = verification.correct
+    ? matchGlossaryTermsForSpecies(combineKeywords(questionRow), buildGlossaryLookupMap(glossaryRows))
+    : [];
+
+  const evt = await queryOne(
+    `SELECT id, game_id, team_id, actor_type, actor_id, event_type, payload_json, created_at
+       FROM gl_game_events WHERE game_id = ? ORDER BY id DESC LIMIT 1`,
+    [gameId]
+  );
+  if (evt) emitGlGameEvent(gameId, normalizeEventRow(evt));
+
+  return res.json({
+    correct: verification.correct,
+    feedback: verification.correct ? 'Bonne réponse !' : 'Ce n’est pas la bonne réponse.',
+    scoreDelta,
+    glossaryTerms: verification.correct ? glossaryTerms : undefined,
+  });
 });
 
 async function updateGameStatus(req, res, nextStatus) {

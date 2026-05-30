@@ -28,7 +28,11 @@ body.gl-body {
   --gl-font-heading: var(--font-sans);
   min-height: 100vh;
   min-height: 100dvh;
-  background: linear-gradient(180deg, var(--gl-color-background, #f4fff5) 0%, #e8f7ff 100%);
+  background: linear-gradient(
+    180deg,
+    var(--gl-color-background, #f4fff5) 0%,
+    color-mix(in srgb, var(--gl-color-background, #f4fff5) 70%, #e8f7ff 30%) 100%
+  );
   color: var(--gl-color-text, #262626);
   font-family: var(--gl-font-body, var(--font-sans));
 }
@@ -1017,6 +1021,102 @@ button.gl-brand-hub__card:focus-visible {
   background: #fff;
 }
 
+.gl-color-editor {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.gl-color-editor-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 10px;
+}
+
+.gl-color-editor-field {
+  display: grid;
+  gap: 6px;
+  padding: 8px 10px;
+  border: 1px solid var(--gl-border, rgba(1, 58, 64, 0.18));
+  border-radius: var(--gl-radius-sm, 8px);
+  background: var(--gl-surface, #fff);
+}
+
+.gl-color-editor-label {
+  font-weight: 600;
+  font-size: 0.92rem;
+}
+
+.gl-color-editor-inputs {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.gl-color-editor-inputs input[type='color'] {
+  width: 44px;
+  height: 44px;
+  padding: 2px;
+  border: 1px solid var(--gl-border, rgba(1, 58, 64, 0.18));
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.gl-color-editor-inputs input[type='text'] {
+  flex: 1 1 120px;
+  min-height: 44px;
+  font-family: monospace;
+}
+
+.gl-color-editor-hint {
+  font-size: 0.82rem;
+}
+
+.gl-theme-preview {
+  margin: 12px 0 16px;
+  border: 1px solid var(--gl-border, rgba(1, 58, 64, 0.18));
+  border-radius: var(--gl-radius-md, 12px);
+  overflow: hidden;
+  min-height: 120px;
+}
+
+.gl-theme-preview-topbar {
+  background: var(--gl-color-topbar);
+  color: #f8fafc;
+  padding: 10px 14px;
+  font-weight: 600;
+}
+
+.gl-theme-preview-body {
+  padding: 14px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  background: var(--gl-color-background);
+}
+
+.gl-theme-preview-chip {
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.gl-theme-preview-chip--primary {
+  background: var(--gl-color-primary);
+  color: #fff;
+}
+
+.gl-theme-preview-chip--secondary {
+  background: var(--gl-color-secondary);
+  color: var(--gl-color-text);
+}
+
+.gl-theme-preview-text {
+  color: var(--gl-color-link);
+}
+
 .gl-profile-layout {
   display: grid;
   gap: 12px;
@@ -1873,4 +1973,332 @@ button.gl-brand-hub__card:focus-visible {
   border-radius: 12px;
   background: #ffffff;
   padding: 12px;
+}
+
+.gl-biocenose-intro {
+  margin-bottom: 1.25rem;
+}
+
+.gl-species-catalog__intro {
+  margin: 0 0 1rem;
+  color: var(--gl-color-text, #262626);
+}
+
+.gl-species-catalog__section {
+  margin-top: 1.5rem;
+}
+
+.gl-species-catalog__section > h3 {
+  margin: 0 0 0.75rem;
+  font-size: 1.25rem;
+}
+
+.gl-species-catalog__group {
+  margin-bottom: 1.25rem;
+}
+
+.gl-species-catalog__group > h4 {
+  margin: 0 0 0.65rem;
+  font-size: 1rem;
+  color: var(--gl-color-link, #778c88);
+}
+
+.gl-species-catalog__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr));
+  gap: 12px;
+}
+
+.gl-species-card {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--gl-border, rgba(1, 58, 64, 0.18));
+  border-radius: var(--gl-radius-md, 12px);
+  background: var(--gl-surface, #fff);
+  overflow: hidden;
+  box-shadow: var(--gl-shadow-sm);
+}
+
+.gl-species-card__media {
+  margin: 0;
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+  background: var(--gl-surface-muted, #f5fbf8);
+}
+
+.gl-species-card__media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.gl-species-card__credit {
+  padding: 4px 8px;
+  font-size: 0.72rem;
+  color: #64748b;
+  background: rgba(255, 255, 255, 0.92);
+}
+
+.gl-species-card__body {
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.gl-species-card__title {
+  margin: 0;
+  font-size: 1.05rem;
+}
+
+.gl-species-card__scientific {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #475569;
+}
+
+.gl-species-card__desc,
+.gl-species-card__role,
+.gl-species-card__adapt,
+.gl-species-card__anecdote,
+.gl-species-card__links {
+  margin: 0;
+  font-size: 0.92rem;
+  line-height: 1.45;
+}
+
+.gl-species-card__anecdote {
+  font-style: italic;
+  color: #334155;
+}
+
+.gl-species-card__links a {
+  color: var(--gl-color-link-hover, #2c5959);
+}
+
+.gl-species-card__glossary {
+  margin-top: 0.5rem;
+  font-size: 0.9rem;
+}
+
+.gl-species-card__glossary strong {
+  display: block;
+  margin-bottom: 0.35rem;
+}
+
+.gl-glossary-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.gl-glossary-chip {
+  border: 1px solid var(--gl-color-border, #cbd5e1);
+  background: var(--gl-color-surface-muted, #f1f5f9);
+  color: var(--gl-color-text, #0f172a);
+  border-radius: 999px;
+  padding: 0.2rem 0.65rem;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.gl-glossary-chip:hover,
+.gl-glossary-chip.is-active {
+  background: var(--gl-color-accent-soft, #dbeafe);
+  border-color: var(--gl-color-accent, #2563eb);
+}
+
+.gl-glossary__intro {
+  margin-bottom: 1rem;
+  color: #475569;
+}
+
+.gl-glossary__filters {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.gl-glossary__layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 1fr);
+  gap: 1rem;
+  align-items: start;
+}
+
+@media (max-width: 900px) {
+  .gl-glossary__layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.gl-glossary__group {
+  margin-bottom: 1rem;
+}
+
+.gl-glossary__group > h3 {
+  margin: 0 0 0.5rem;
+  font-size: 1rem;
+  color: #334155;
+}
+
+.gl-glossary__terms {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.35rem;
+}
+
+.gl-glossary__terms button {
+  width: 100%;
+  text-align: left;
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  align-items: center;
+  border: 1px solid var(--gl-color-border, #e2e8f0);
+  background: #fff;
+  border-radius: 8px;
+  padding: 0.55rem 0.75rem;
+  cursor: pointer;
+}
+
+.gl-glossary__terms button.is-active {
+  border-color: var(--gl-color-accent, #2563eb);
+  background: var(--gl-color-accent-soft, #eff6ff);
+}
+
+.gl-glossary__term-label {
+  font-weight: 600;
+}
+
+.gl-glossary__term-meta {
+  font-size: 0.8rem;
+  color: #64748b;
+}
+
+.gl-glossary__detail {
+  border: 1px solid var(--gl-color-border, #e2e8f0);
+  border-radius: 12px;
+  padding: 1rem;
+  background: #fff;
+  min-height: 200px;
+}
+
+.gl-glossary__detail-meta {
+  color: #64748b;
+  font-size: 0.9rem;
+}
+
+.gl-glossary__detail-lead {
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.gl-glossary__related {
+  margin-top: 1rem;
+}
+
+.gl-glossary__related > h4 {
+  margin: 0 0 0.5rem;
+  font-size: 0.95rem;
+}
+
+.gl-qcm-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background: rgba(15, 23, 42, 0.45);
+}
+
+.gl-qcm-modal--inline {
+  position: static;
+  inset: auto;
+  background: transparent;
+  padding: 0;
+  margin-top: 1rem;
+}
+
+.gl-qcm-modal__body {
+  width: min(640px, 100%);
+  max-height: 90vh;
+  overflow: auto;
+  background: #fff;
+  border-radius: 14px;
+  padding: 1.25rem;
+  box-shadow: 0 20px 40px rgba(15, 23, 42, 0.18);
+}
+
+.gl-qcm-modal__question {
+  font-size: 1.05rem;
+  line-height: 1.5;
+  margin: 0.75rem 0 1rem;
+}
+
+.gl-qcm-modal__photo {
+  max-width: 100%;
+  border-radius: 10px;
+  margin-bottom: 1rem;
+}
+
+.gl-qcm-modal__choices {
+  display: grid;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.gl-qcm-choice {
+  display: flex;
+  gap: 0.65rem;
+  align-items: flex-start;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid var(--gl-color-border, #e2e8f0);
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.gl-qcm-choice:has(input:checked) {
+  border-color: var(--gl-color-accent, #2563eb);
+  background: var(--gl-color-accent-soft, #eff6ff);
+}
+
+.gl-qcm-modal__glossary {
+  margin: 0.75rem 0 1rem;
+}
+
+.gl-qcm-feedback {
+  font-weight: 600;
+  margin: 0.75rem 0;
+}
+
+.gl-qcm-feedback--ok {
+  color: #15803d;
+}
+
+.gl-qcm-feedback--ko {
+  color: #b91c1c;
+}
+
+.gl-qcm-admin-list {
+  display: grid;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.gl-qcm-admin-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: flex-start;
+  padding: 0.75rem;
+  border: 1px solid var(--gl-color-border, #e2e8f0);
+  border-radius: 10px;
 }

@@ -2,6 +2,9 @@ import React, { useEffect, useState } from 'react';
 import { apiGL } from '../services/apiGL.js';
 import { GLContentPage } from './GLContentPage.jsx';
 import { GLChaptersAdminView } from './GLChaptersAdminView.jsx';
+import { GLSpeciesImportPanel } from './admin/GLSpeciesImportPanel.jsx';
+import { GLGlossaryImportPanel } from './admin/GLGlossaryImportPanel.jsx';
+import { GLQcmImportPanel } from './admin/GLQcmImportPanel.jsx';
 
 export function GLContentsAdminView({ auth, onNavigateTab }) {
   const [section, setSection] = useState('pages');
@@ -47,6 +50,30 @@ export function GLContentsAdminView({ auth, onNavigateTab }) {
         >
           Chapitres
         </button>
+        <button
+          type="button"
+          className={section === 'species' ? 'is-active' : ''}
+          onClick={() => setSection('species')}
+          data-subtab="species"
+        >
+          Espèces
+        </button>
+        <button
+          type="button"
+          className={section === 'glossary' ? 'is-active' : ''}
+          onClick={() => setSection('glossary')}
+          data-subtab="glossary"
+        >
+          Glossaire
+        </button>
+        <button
+          type="button"
+          className={section === 'qcm' ? 'is-active' : ''}
+          onClick={() => setSection('qcm')}
+          data-subtab="qcm"
+        >
+          QCM
+        </button>
       </nav>
 
       {section === 'pages' ? (
@@ -74,8 +101,14 @@ export function GLContentsAdminView({ auth, onNavigateTab }) {
             />
           ) : null}
         </>
-      ) : (
+      ) : section === 'chapters' ? (
         <GLChaptersAdminView />
+      ) : section === 'species' ? (
+        <GLSpeciesImportPanel />
+      ) : section === 'glossary' ? (
+        <GLGlossaryImportPanel />
+      ) : (
+        <GLQcmImportPanel />
       )}
     </section>
   );

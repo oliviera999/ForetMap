@@ -3,6 +3,7 @@ import { apiGL } from '../services/apiGL.js';
 import { GLMascotRenderer } from './GLMascotRenderer.jsx';
 import { GL_MASCOT_STATE } from '../hooks/useGLMascotStateMachine.js';
 import { GLMascotPackManager } from './GLMascotPackManager.jsx';
+import { useGLMascotCatalog } from '../context/GLMascotCatalogContext.jsx';
 
 const TYPE_FILTERS = [
   { id: 'all', label: 'Tous' },
@@ -17,7 +18,7 @@ const SOURCE_FILTERS = [
 ];
 
 export function GLMascotsAdminView({ gameState, onReloadGame }) {
-  const [mascots, setMascots] = useState([]);
+  const { mascots: catalogMascots, reload: reloadCatalog } = useGLMascotCatalog();
   const [assignments, setAssignments] = useState([]);
   const [typeFilter, setTypeFilter] = useState('all');
   const [sourceFilter, setSourceFilter] = useState('all');
@@ -31,15 +32,25 @@ export function GLMascotsAdminView({ gameState, onReloadGame }) {
 
   async function loadCatalog() {
     try {
-      const url = gameId ? `/api/gl/mascots?gameId=${encodeURIComponent(gameId)}` : '/api/gl/mascots';
-      const data = await apiGL(url);
-      setMascots(Array.isArray(data?.mascots) ? data.mascots : []);
-      setAssignments(Array.isArray(data?.assignments) ? data.assignments : []);
+      const gameId = gameState?.game?.id || null;
+      if (gameId) {
+        const url = `/api/gl/mascots?gameId=${encodeURIComponent(gameId)}`;
+        const data = await apiGL(url);
+        setAssignments(Array.isArray(data?.assignments) ? data.assignments : []);
+      } else {
+        setAssignments([]);
+      }
+      await reloadCatalog();
       setError('');
     } catch (err) {
       setError(err.message || 'Chargement catalogue mascotte impossible');
     }
   }
+
+  const mascots = useMemo(
+    () => (Array.isArray(catalogMascots) ? catalogMascots : []),
+    [catalogMascots],
+  );
 
   useEffect(() => {
     loadCatalog();

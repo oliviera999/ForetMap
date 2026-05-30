@@ -1,6 +1,7 @@
 import React from 'react';
 import VisitMapMascotRenderer from '../../components/VisitMapMascotRenderer.jsx';
 import { GLMascotAvatar } from './GLMascotAvatar.jsx';
+import { useGLMascotCatalog } from '../context/GLMascotCatalogContext.jsx';
 
 function isGlMascotId(id) {
   return typeof id === 'string' && id.startsWith('gl-');
@@ -22,12 +23,26 @@ function GLMascotBoardFallback({ mascotId, size = 48 }) {
   );
 }
 
-export function GLMascotRenderer({ mascotId, mascotState, size = 48, boardMode = false }) {
+export function GLMascotRenderer({
+  mascotId,
+  mascotState,
+  size = 48,
+  boardMode = false,
+  extraCatalogEntries: extraCatalogEntriesProp = null,
+}) {
+  const { extraCatalogEntries: extraCatalogEntriesCtx } = useGLMascotCatalog();
+  const extraCatalogEntries = extraCatalogEntriesProp ?? extraCatalogEntriesCtx;
   if (isGlMascotId(mascotId)) {
     if (boardMode) {
       return <GLMascotBoardFallback mascotId={mascotId} size={size} />;
     }
     return <GLMascotAvatar mascotId={mascotId} size={size} />;
   }
-  return <VisitMapMascotRenderer mascotState={mascotState} mascotId={mascotId} />;
+  return (
+    <VisitMapMascotRenderer
+      mascotState={mascotState}
+      mascotId={mascotId}
+      extraCatalogEntries={extraCatalogEntries}
+    />
+  );
 }

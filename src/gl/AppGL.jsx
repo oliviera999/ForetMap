@@ -13,6 +13,7 @@ import { GLSpellsView } from './components/GLSpellsView.jsx';
 import { GLMapView } from './components/GLMapView.jsx';
 import { GLBiotopeView } from './components/GLBiotopeView.jsx';
 import { GLBiocenoseView } from './components/GLBiocenoseView.jsx';
+import { GLGlossaryView } from './components/GLGlossaryView.jsx';
 import { GLHistoryView } from './components/GLHistoryView.jsx';
 import { GLUsersAdminView } from './components/GLUsersAdminView.jsx';
 import { GLContentsAdminView } from './components/GLContentsAdminView.jsx';
@@ -30,6 +31,7 @@ import { GLHelpPanel } from './components/GLHelpPanel.jsx';
 import { GLProfileModal } from './components/GLProfileModal.jsx';
 import { GLPasswordResetGate } from './components/GLPasswordResetGate.jsx';
 import { useGLBrandTheme } from './hooks/useGLBrandTheme.js';
+import { GLMascotCatalogProvider } from './context/GLMascotCatalogContext.jsx';
 
 const DEFAULT_GAMEPLAY = {
   turnsEnabled: false,
@@ -93,7 +95,34 @@ export function AppGL() {
   const [glProfile, setGlProfile] = useState(null);
   const [glConfig, setGlConfig] = useState({});
   const [showProfile, setShowProfile] = useState(false);
-  const { brand: glBrand, style: glBrandStyle } = useGLBrandTheme(glConfig?.brand);
+  const [glossaryFocusCode, setGlossaryFocusCode] = useState(null);
+  const [kingdomChapterId, setKingdomChapterId] = useState(null);
+
+  const themeChapterId = useMemo(() => {
+    if (gameState?.game?.chapter_id) return Number(gameState.game.chapter_id);
+    if (tab === 'kingdom' && kingdomChapterId) return Number(kingdomChapterId);
+    return null;
+  }, [gameState, tab, kingdomChapterId]);
+
+  const themeChapter = useMemo(() => {
+    if (!themeChapterId) return null;
+    return chapters.find((c) => Number(c.id) === themeChapterId) || null;
+  }, [chapters, themeChapterId]);
+
+  const { brand: glBrand, style: glBrandStyle } = useGLBrandTheme(glConfig?.brand, themeChapter?.theme);
+
+  useEffect(() => {
+    if (tab !== 'kingdom') setKingdomChapterId(null);
+  }, [tab]);
+
+  const navigateToGlossaryTerm = useCallback((code) => {
+    setGlossaryFocusCode(String(code || '').trim() || null);
+    setTab('glossary');
+  }, []);
+
+  const clearGlossaryFocus = useCallback(() => {
+    setGlossaryFocusCode(null);
+  }, []);
 
   const isAdmin = isAdminRole(auth);
   const isImpersonating = !!auth?.impersonating;
@@ -444,6 +473,7 @@ export function AppGL() {
   }
 
   return (
+    <GLMascotCatalogProvider token={token}>
     <div className="gl-app" style={glBrandStyle}>
       <GLPasswordResetGate
         open={!isAdmin && auth?.passwordMustReset === true}
@@ -514,6 +544,8 @@ export function AppGL() {
               onMoveMascotToPct={moveMascotToPct}
               onPlayerActionRequest={submitPlayerActionRequest}
               onSelectTeam={setSelectedTeamId}
+              onOpenGlossaryTerm={navigateToGlossaryTerm}
+              onQcmAnswered={reloadGame}
               canMoveMascot={isAdmin}
               canRequestAction={canRequestAction}
               selectedTeamId={selectedTeamId}
@@ -534,7 +566,20 @@ export function AppGL() {
           </>
         )}
         {tab === 'biotope' && <GLBiotopeView gameState={gameState} />}
-        {tab === 'biocenose' && <GLBiocenoseView gameState={gameState} />}
+        {tab === 'biocenose' && (
+          <GLBiocenoseView
+            gameState={gameState}
+            onOpenGlossaryTerm={navigateToGlossaryTerm}
+          />
+        )}
+        {tab === 'glossary' && (
+          <GLGlossaryView
+            gameState={gameState}
+            focusCode={glossaryFocusCode}
+            onOpenTerm={setGlossaryFocusCode}
+            onFocusHandled={clearGlossaryFocus}
+          />
+        )}
         {tab === 'history' && <GLHistoryView gameState={gameState} />}
         {tab === 'users' && isAdmin && (
           <GLUsersAdminView
@@ -578,7 +623,12 @@ export function AppGL() {
           <GLJournalView gameId={activeGameId} />
         )}
         {tab === 'kingdom' && isModuleEnabled(modules, 'kingdomMapEnabled') && (
-          <GLKingdomMapView chapter={activeChapter} chapters={chapters} canManage={isAdmin} />
+          <GLKingdomMapView
+            chapter={activeChapter}
+            chapters={chapters}
+            canManage={isAdmin}
+            onChapterChange={setKingdomChapterId}
+          />
         )}
         {isModuleEnabled(modules, 'helpEnabled') ? (
           <GLHelpPanel helpKey={`tab:${tab}`} title="Aide GL" defaultOpen={false}>
@@ -616,5 +666,6 @@ export function AppGL() {
         }}
       />
     </div>
+    </GLMascotCatalogProvider>
   );
 }

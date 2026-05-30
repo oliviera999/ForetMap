@@ -156,7 +156,7 @@ export function GLSettingsView() {
       <GLSurface style={{ marginTop: 12 }} variant="inset">
         <h3>Aperçu charte importée</h3>
         <p className="gl-hint">
-          Cette section est alimentée par la clé `platform.brand` (import WordPress).
+          Couleurs, images hero/cartes et cadres de la charte plateforme (`platform.brand`).
         </p>
         <form onSubmit={saveBrandSettings} className="gl-form">
           <GLBrandEditor

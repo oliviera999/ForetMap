@@ -100,6 +100,16 @@ test('POST /api/gl/chapters/admin refuse un slug déjà utilisé (409)', async (
     .expect(409);
 });
 
+test('PUT /api/gl/chapters/admin/:id met à jour biomeSlug', async () => {
+  const res = await request(app)
+    .put(`/api/gl/chapters/admin/${createdChapterId}`)
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ biomeSlug: 'foret_caducifoliee' })
+    .expect(200);
+  assert.strictEqual(res.body.chapter.biome_slug, 'foret_caducifoliee');
+  assert.ok(res.body.chapter.biome_nom);
+});
+
 test('PUT /api/gl/chapters/admin/:id met à jour le titre et l\'order_index', async () => {
   const res = await request(app)
     .put(`/api/gl/chapters/admin/${createdChapterId}`)
@@ -114,6 +124,32 @@ test('PUT /api/gl/chapters/admin/:id met à jour le titre et l\'order_index', as
   assert.strictEqual(Number(res.body.chapter.order_index), 5);
   assert.strictEqual(Number(res.body.chapter.map_image_frame.focalX), 15);
   assert.strictEqual(Number(res.body.chapter.map_image_frame.focalY), 25);
+});
+
+test('PUT /api/gl/chapters/admin/:id met à jour theme.colors', async () => {
+  const res = await request(app)
+    .put(`/api/gl/chapters/admin/${createdChapterId}`)
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({
+      theme: {
+        colors: {
+          primary: '#1a4d2e',
+          background: '#f0fdf4',
+        },
+      },
+    })
+    .expect(200);
+  assert.strictEqual(res.body.chapter.theme.colors.primary, '#1a4d2e');
+  assert.strictEqual(res.body.chapter.theme.colors.background, '#f0fdf4');
+  assert.strictEqual(res.body.chapter.theme.colors.secondary, undefined);
+});
+
+test('PUT /api/gl/chapters/admin/:id refuse theme.colors invalide', async () => {
+  await request(app)
+    .put(`/api/gl/chapters/admin/${createdChapterId}`)
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ theme: { colors: { primary: 'not-a-color' } } })
+    .expect(400);
 });
 
 test('POST /api/gl/chapters/admin/:id/map-image importe une image locale', async () => {

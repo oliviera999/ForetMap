@@ -66,13 +66,35 @@ Le script accepte aussi :
 |--------|-----|------|------------|
 | GET | `/api/gl/chapters` | — | `gl.read` |
 | GET | `/api/gl/chapters/:slug` | — | `gl.read` (réponse `{ chapter, markers }`) |
-| POST | `/api/gl/chapters/admin` | `{ slug, title, biome?, mapImageUrl?, mapImageFrame?, storyMarkdown?, biotopeMarkdown?, biocenoseMarkdown?, orderIndex? }` | `gl.content.manage` (refus `409` si slug existant) |
-| PUT | `/api/gl/chapters/admin/:id` | mise à jour partielle des mêmes champs (dont `mapImageFrame`) | `gl.content.manage` |
+| POST | `/api/gl/chapters/admin` | `{ slug, title, biome?, biomeSlug?, mapImageUrl?, mapImageFrame?, theme?, storyMarkdown?, biotopeMarkdown?, biocenoseMarkdown?, orderIndex? }` | `gl.content.manage` (refus `409` si slug existant ; `biomeSlug` doit exister dans `gl_biomes`) |
+| PUT | `/api/gl/chapters/admin/:id` | mise à jour partielle des mêmes champs (dont `mapImageFrame`, `biomeSlug`, `theme`) | `gl.content.manage` |
 | DELETE | `/api/gl/chapters/admin/:id` | — | `gl.content.manage` (refus `409` si partie liée) |
-| POST | `/api/gl/chapters/admin/:id/markers` | `{ label, xPct, yPct, eventType?, description?, orderIndex? }` | `gl.content.manage` |
+| POST | `/api/gl/chapters/admin/:id/markers` | `{ label, xPct, yPct, eventType?, description?, orderIndex?, qcmCategorieSlug?, qcmQuestionCode? }` | `gl.content.manage` |
 | POST | `/api/gl/chapters/admin/:id/map-image` | `{ image_data }` (data URL base64 image) | `gl.content.manage` |
-| PUT | `/api/gl/chapters/admin/markers/:markerId` | mise à jour partielle marker | `gl.content.manage` |
+| PUT | `/api/gl/chapters/admin/markers/:markerId` | mise à jour partielle marker (dont champs QCM si `event_type=quiz`) | `gl.content.manage` |
 | DELETE | `/api/gl/chapters/admin/markers/:markerId` | — | `gl.content.manage` (détache les équipes positionnées sur ce marker via `ON DELETE SET NULL`) |
+| GET | `/api/gl/biomes` | — | `gl.read` (liste biomes + effectifs espèces actives) |
+| GET | `/api/gl/species` | `?biomeSlug=` (requis) | `gl.read` (réponse `{ biome, items }` triées faune/flore/groupe/nom ; chaque espèce inclut `glossaryTerms[]` si `mots_cles` matchent le glossaire actif) |
+| POST | `/api/gl/admin/species/import` | `{ fileDataBase64, fileName?, dryRun?, syncBiomes? }` (XLSX feuilles `especes` / `biomes_stats`) | `gl.content.manage` (UPSERT par `species_code`, rapport `{ report }`) |
+| GET | `/api/gl/admin/species/import/template` | — | `gl.content.manage` (modèle XLSX biocénose + ligne d’exemple, feuilles `especes` et `biomes_stats`) |
+| GET | `/api/gl/admin/species/export` | `?biomeSlug=`, `?statut=actif\|all` (défaut `actif`) | `gl.content.manage` (export XLSX ré-importable du catalogue espèces/biomes) |
+| GET | `/api/gl/admin/species/stats` | — | `gl.content.manage` (total + agrégats par biome/type) |
+| GET | `/api/gl/glossary` | `?biomeSlug=`, `?categorie=`, `?niveau=`, `?q=` optionnels | `gl.read` (réponse `{ biome, items }` — termes actifs filtrés par biome si fourni) |
+| GET | `/api/gl/glossary/:code` | `?biomeSlug=` optionnel | `gl.read` (fiche `{ term, relatedTerms, relatedSpecies }`) |
+| POST | `/api/gl/admin/glossary/import` | `{ fileDataBase64, fileName?, dryRun? }` (XLSX feuille `glossaire`) | `gl.content.manage` (UPSERT par `glossary_code`, sync biomes + relations, rapport `{ report }`) |
+| GET | `/api/gl/admin/glossary/import/template` | — | `gl.content.manage` (modèle XLSX vierge + ligne d’exemple, feuille `glossaire`) |
+| GET | `/api/gl/admin/glossary/export` | `?statut=actif\|all` (défaut `actif`) | `gl.content.manage` (export XLSX ré-importable du catalogue en base) |
+| GET | `/api/gl/admin/glossary/stats` | — | `gl.content.manage` (total + agrégats par catégorie/niveau) |
+| GET | `/api/gl/qcm/categories` | — | `gl.read` (liste catégories QCM) |
+| GET | `/api/gl/qcm/questions` | `?biomeSlug=`, `?categorieSlug=`, `?q=` optionnels | `gl.read` (liste admin ; ordre canonique A–E, `glossaryTerms[]`) |
+| GET | `/api/gl/qcm/questions/:code/present` | — | `gl.read` (mélange des choix à chaque appel + `presentationToken` signé) |
+| POST | `/api/gl/qcm/questions/:code/answer` | `{ presentationToken, choiceId }` | `gl.read` (validation hors partie) |
+| GET | `/api/gl/qcm/draw` | `?biomeSlug=` (requis), `?categorieSlug=`, `?exclude=` optionnels | `gl.read` (tirage aléatoire `{ question_code }`) |
+| POST | `/api/gl/admin/qcm/import` | `{ fileDataBase64, fileName?, dryRun? }` (XLSX feuilles `categories`, `questions`) | `gl.content.manage` |
+| GET | `/api/gl/admin/qcm/import/template` | — | `gl.content.manage` (modèle XLSX vierge + exemples, feuilles `categories` et `questions`) |
+| GET | `/api/gl/admin/qcm/export` | `?biomeSlug=`, `?categorieSlug=`, `?statut=actif\|all` (défaut `actif`) | `gl.content.manage` (export XLSX ré-importable ; filtres biome/catégorie optionnels) |
+| GET | `/api/gl/admin/qcm/stats` | — | `gl.content.manage` (total, liens glossaire, agrégats biome/catégorie/difficulté) |
+| POST | `/api/gl/games/:id/qcm/answer` | `{ questionCode, presentationToken, choiceId, markerId? }` | `gl.action.request` (joueur ; score +1 si correct et scoring actif) |
 | GET | `/api/gl/gameplay-settings` | — | Auth GL (joueur ou admin) |
 | POST | `/api/gl/games` | `{ classId, chapterId, name }` | `gl.game.manage` (refus `404` si `classId`/`chapterId` introuvable, `409` si la ressource est supprimée entre validation et insertion) |
 | GET | `/api/gl/games` | `?classId=&status=` optionnels | `gl.game.manage` |
@@ -177,6 +199,15 @@ permission `gl.settings.manage`).
 `platform.brand.slots.{hero,card_world,card_rules,card_spells}.frame` avec
 `aspectRatio`, `objectFit`, `focalX`, `focalY`, `maxWidthPx`, `maxHeightPx`.
 Voir `docs/GL_IMAGE_FRAMES.md`.
+
+Couleurs plateforme (`platform.brand.colors`) : `primary`, `secondary`, `tertiary`,
+`text`, `link`, `linkHover`, `topbar`, `background` (hex `#RRGGBB`). Modifiables
+via l’admin GL (Réglages plateforme) ou `PUT /api/gl/admin/settings/platform.brand`.
+
+Thème chapitre (`theme` sur les routes `/api/gl/chapters*`) : surcharges partielles
+optionnelles `{ colors: { primary?, … } }`. Seules les clés renseignées remplacent
+la charte plateforme lorsqu’un chapitre est actif (partie en cours ou sélection
+sur la carte du royaume). Couleur invalide → `400`.
 
 ### Modules collaboration / pédagogie GL
 
