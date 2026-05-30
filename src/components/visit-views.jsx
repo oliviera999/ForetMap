@@ -1083,7 +1083,6 @@ function VisitView({
   const VISIT_IMMERSION_LS_KEY = 'foretmap_visit_immersion';
   const VISIT_TEACHER_PREVIEW_LS_KEY = 'foretmap_visit_teacher_preview_student';
   const VISIT_COMFORTABLE_READING_LS_KEY = 'foretmap_visit_comfortable_reading';
-  const VISIT_READING_TONE_LS_KEY = 'foretmap_visit_reading_tone';
 
   const [visitImmersion, setVisitImmersion] = useState(() => {
     return safeLocalStorageGetItem(VISIT_IMMERSION_LS_KEY, null) === '1';
@@ -1094,11 +1093,6 @@ function VisitView({
   });
   const [comfortableReading, setComfortableReading] = useState(() => {
     return safeLocalStorageGetItem(VISIT_COMFORTABLE_READING_LS_KEY, null) === '1';
-  });
-  const [readingTone, setReadingTone] = useState(() => {
-    const saved = String(safeLocalStorageGetItem(VISIT_READING_TONE_LS_KEY, 'paper') || 'paper').trim();
-    if (saved === 'nature' || saved === 'soft-contrast') return saved;
-    return 'paper';
   });
 
   useEffect(() => {
@@ -1117,10 +1111,6 @@ function VisitView({
   useEffect(() => {
     safeLocalStorageSetItem(VISIT_COMFORTABLE_READING_LS_KEY, comfortableReading ? '1' : '0');
   }, [comfortableReading]);
-
-  useEffect(() => {
-    safeLocalStorageSetItem(VISIT_READING_TONE_LS_KEY, readingTone);
-  }, [readingTone]);
 
   /** Tutoriels sous la carte : réservés au prof en édition (pas invité, pas élève, pas aperçu élève). */
   const showVisitMapTutorialsSection = isTeacher && !teacherPreviewAsStudent;
@@ -2719,7 +2709,7 @@ function VisitView({
           aria-modal="true"
           aria-labelledby={visitDetailPanelTitleId}
           data-testid="visit-detail-panel"
-          className={`visit-detail-panel${comfortableReading ? ' visit-detail-panel--comfortable' : ''} visit-detail-panel--tone-${readingTone}`}
+          className={`visit-detail-panel${comfortableReading ? ' visit-detail-panel--comfortable' : ''} visit-detail-panel--tone-paper`}
         >
           <div className="visit-detail-panel__handle" aria-hidden="true" />
           <div className="visit-detail-panel__head">
@@ -2735,35 +2725,6 @@ function VisitView({
             >
               Aa
             </button>
-            <div className="visit-reading-tone-switch" role="group" aria-label="Ambiance de lecture">
-              <button
-                type="button"
-                className={`btn btn-ghost btn-sm ${readingTone === 'nature' ? 'is-active' : ''}`}
-                aria-pressed={readingTone === 'nature'}
-                onClick={() => setReadingTone('nature')}
-                title="Ambiance nature"
-              >
-                Nature
-              </button>
-              <button
-                type="button"
-                className={`btn btn-ghost btn-sm ${readingTone === 'paper' ? 'is-active' : ''}`}
-                aria-pressed={readingTone === 'paper'}
-                onClick={() => setReadingTone('paper')}
-                title="Ambiance papier"
-              >
-                Papier
-              </button>
-              <button
-                type="button"
-                className={`btn btn-ghost btn-sm ${readingTone === 'soft-contrast' ? 'is-active' : ''}`}
-                aria-pressed={readingTone === 'soft-contrast'}
-                onClick={() => setReadingTone('soft-contrast')}
-                title="Ambiance contraste doux"
-              >
-                Doux
-              </button>
-            </div>
             <button type="button" className="btn btn-ghost btn-sm" onClick={closeVisitSelection}>
               Fermer
             </button>

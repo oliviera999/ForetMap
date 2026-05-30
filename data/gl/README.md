@@ -12,7 +12,7 @@ npm run gl:import:species -- --apply
 npm run gl:import:species -- --apply --file=chemin/vers/fichier.xlsx
 ```
 
-Depuis l’admin GL : **Contenus → Espèces** (upload XLSX, dry-run puis appliquer).
+Depuis l’admin GL : **Contenus → Espèces** (biocénose : upload XLSX, dry-run puis appliquer ; boutons **Modèle XLSX** et **Exporter le catalogue**, ou API `GET /api/gl/admin/species/import/template` et `GET /api/gl/admin/species/export?statut=actif|all` avec filtre optionnel `biomeSlug`).
 
 Après import, lier un chapitre à un biome via **Contenus → Chapitres → Biome (catalogue espèces)**.
 

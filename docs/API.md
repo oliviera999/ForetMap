@@ -76,6 +76,8 @@ Le script accepte aussi :
 | GET | `/api/gl/biomes` | — | `gl.read` (liste biomes + effectifs espèces actives) |
 | GET | `/api/gl/species` | `?biomeSlug=` (requis) | `gl.read` (réponse `{ biome, items }` triées faune/flore/groupe/nom ; chaque espèce inclut `glossaryTerms[]` si `mots_cles` matchent le glossaire actif) |
 | POST | `/api/gl/admin/species/import` | `{ fileDataBase64, fileName?, dryRun?, syncBiomes? }` (XLSX feuilles `especes` / `biomes_stats`) | `gl.content.manage` (UPSERT par `species_code`, rapport `{ report }`) |
+| GET | `/api/gl/admin/species/import/template` | — | `gl.content.manage` (modèle XLSX biocénose + ligne d’exemple, feuilles `especes` et `biomes_stats`) |
+| GET | `/api/gl/admin/species/export` | `?biomeSlug=`, `?statut=actif\|all` (défaut `actif`) | `gl.content.manage` (export XLSX ré-importable du catalogue espèces/biomes) |
 | GET | `/api/gl/admin/species/stats` | — | `gl.content.manage` (total + agrégats par biome/type) |
 | GET | `/api/gl/glossary` | `?biomeSlug=`, `?categorie=`, `?niveau=`, `?q=` optionnels | `gl.read` (réponse `{ biome, items }` — termes actifs filtrés par biome si fourni) |
 | GET | `/api/gl/glossary/:code` | `?biomeSlug=` optionnel | `gl.read` (fiche `{ term, relatedTerms, relatedSpecies }`) |
