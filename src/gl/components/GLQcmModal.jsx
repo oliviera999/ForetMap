@@ -5,7 +5,7 @@ import { GLButton } from './ui/GLButton.jsx';
 export function GLQcmModal({
   open,
   marker,
-  biomeSlug,
+  biomeSlugs = [],
   gameId,
   onClose,
   onOpenGlossaryTerm,
@@ -19,8 +19,10 @@ export function GLQcmModal({
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState(null);
 
+  const slugsKey = Array.isArray(biomeSlugs) ? biomeSlugs.join(',') : '';
+
   const loadQuestion = useCallback(async () => {
-    if (!open || !biomeSlug) return;
+    if (!open) return;
     setLoading(true);
     setError('');
     setPresentation(null);
@@ -29,7 +31,8 @@ export function GLQcmModal({
     try {
       let code = marker?.qcm_question_code || null;
       if (!code) {
-        const params = new URLSearchParams({ biomeSlug });
+        if (!slugsKey) throw new Error('Aucun biome catalogue lié au chapitre');
+        const params = new URLSearchParams({ biomeSlugs: slugsKey });
         if (marker?.qcm_categorie_slug) {
           params.set('categorieSlug', marker.qcm_categorie_slug);
         }
@@ -45,7 +48,7 @@ export function GLQcmModal({
     } finally {
       setLoading(false);
     }
-  }, [open, biomeSlug, marker?.qcm_question_code, marker?.qcm_categorie_slug]);
+  }, [open, slugsKey, marker?.qcm_question_code, marker?.qcm_categorie_slug]);
 
   useEffect(() => {
     if (open) loadQuestion();

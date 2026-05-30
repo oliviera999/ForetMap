@@ -17,6 +17,7 @@ const {
   matchGlossaryTermsForSpecies,
 } = require('../../lib/glGlossaryMatch');
 const { normalizeOptionalString } = require('../../lib/shared/httpHelpers');
+const { parseBiomeSlugsFromQuery } = require('../../lib/glChapterBiomes');
 
 const router = express.Router();
 
@@ -116,16 +117,19 @@ router.get('/qcm/questions', requireGlPermission('gl.read'), async (req, res) =>
   return res.json({ items });
 });
 
-/** GET /api/gl/qcm/draw — tirage aléatoire dans un pool biome/catégorie. */
+/** GET /api/gl/qcm/draw — tirage aléatoire dans un pool biome(s)/catégorie. */
 router.get('/qcm/draw', requireGlPermission('gl.read'), async (req, res) => {
-  const biomeSlug = normalizeBiomeSlug(req.query?.biomeSlug);
-  if (!biomeSlug) return res.status(400).json({ error: 'biomeSlug requis' });
+  const biomeSlugs = parseBiomeSlugsFromQuery(req.query);
+  if (biomeSlugs.length === 0) {
+    return res.status(400).json({ error: 'biomeSlug ou biomeSlugs requis' });
+  }
   const categorieSlug = normalizeOptionalString(req.query?.categorieSlug);
   const excludeRaw = normalizeOptionalString(req.query?.exclude);
   const exclude = excludeRaw ? excludeRaw.split(',').map((s) => s.trim()).filter(Boolean) : [];
 
-  const params = [biomeSlug];
-  let sql = `${QUESTION_SELECT} WHERE statut = 'actif' AND biome_slug = ?`;
+  const biomePlaceholders = biomeSlugs.map(() => '?').join(', ');
+  const params = [...biomeSlugs];
+  let sql = `${QUESTION_SELECT} WHERE statut = 'actif' AND biome_slug IN (${biomePlaceholders})`;
   if (categorieSlug) {
     sql += ' AND categorie_slug = ?';
     params.push(categorieSlug);

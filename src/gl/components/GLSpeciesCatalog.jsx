@@ -83,7 +83,7 @@ function GLSpeciesCard({ species, onOpenGlossaryTerm }) {
   );
 }
 
-export function GLSpeciesCatalog({ biomeSlug, biomeNom, onOpenGlossaryTerm }) {
+function GLSpeciesCatalogPanel({ biomeSlug, biomeNom, onOpenGlossaryTerm }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [items, setItems] = useState([]);
@@ -116,16 +116,6 @@ export function GLSpeciesCatalog({ biomeSlug, biomeNom, onOpenGlossaryTerm }) {
   }, [biomeSlug]);
 
   const grouped = useMemo(() => groupSpeciesByTypeAndGroup(items), [items]);
-
-  if (!biomeSlug) {
-    return (
-      <p className="gl-hint">
-        Aucun biome du catalogue n’est lié à ce chapitre. Un MJ peut en choisir un dans
-        {' '}
-        <strong>Contenus → Chapitres → Biome (catalogue espèces)</strong>.
-      </p>
-    );
-  }
 
   if (loading) return <p className="gl-hint">Chargement du catalogue…</p>;
   if (error) return <p className="gl-error">{error}</p>;
@@ -176,6 +166,76 @@ export function GLSpeciesCatalog({ biomeSlug, biomeNom, onOpenGlossaryTerm }) {
           </section>
         );
       })}
+    </div>
+  );
+}
+
+/**
+ * @param {{ biomes?: Array<{ slug: string, nom?: string }>, onOpenGlossaryTerm?: (code: string) => void }} props
+ */
+export function GLSpeciesCatalog({ biomes = [], onOpenGlossaryTerm }) {
+  const normalizedBiomes = useMemo(
+    () => (Array.isArray(biomes) ? biomes : [])
+      .filter((b) => b && b.slug)
+      .map((b) => ({ slug: String(b.slug), nom: String(b.nom || b.slug) })),
+    [biomes]
+  );
+  const [activeSlug, setActiveSlug] = useState(null);
+
+  useEffect(() => {
+    if (normalizedBiomes.length === 0) {
+      setActiveSlug(null);
+      return;
+    }
+    setActiveSlug((prev) => {
+      if (prev && normalizedBiomes.some((b) => b.slug === prev)) return prev;
+      return normalizedBiomes[0].slug;
+    });
+  }, [normalizedBiomes]);
+
+  if (normalizedBiomes.length === 0) {
+    return (
+      <p className="gl-hint">
+        Aucun biome du catalogue n’est lié à ce chapitre. Un MJ peut en choisir dans
+        {' '}
+        <strong>Contenus → Chapitres → Biomes (catalogue espèces)</strong>.
+      </p>
+    );
+  }
+
+  const activeBiome = normalizedBiomes.find((b) => b.slug === activeSlug) || normalizedBiomes[0];
+
+  return (
+    <div className="gl-species-catalog-multi">
+      {normalizedBiomes.length > 1 ? (
+        <>
+          <p className="gl-species-catalog__intro">
+            Biomes de ce chapitre :
+            {' '}
+            <strong>{normalizedBiomes.map((b) => b.nom).join(', ')}</strong>
+          </p>
+          <div className="gl-species-catalog__tabs" role="tablist" aria-label="Biomes du chapitre">
+            {normalizedBiomes.map((biome) => (
+              <button
+                key={biome.slug}
+                type="button"
+                role="tab"
+                aria-selected={activeBiome.slug === biome.slug}
+                className={activeBiome.slug === biome.slug ? 'is-active' : ''}
+                onClick={() => setActiveSlug(biome.slug)}
+              >
+                {biome.nom}
+              </button>
+            ))}
+          </div>
+        </>
+      ) : null}
+      <GLSpeciesCatalogPanel
+        key={activeBiome.slug}
+        biomeSlug={activeBiome.slug}
+        biomeNom={activeBiome.nom}
+        onOpenGlossaryTerm={onOpenGlossaryTerm}
+      />
     </div>
   );
 }

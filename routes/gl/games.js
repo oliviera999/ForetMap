@@ -10,6 +10,7 @@ const { canAccessGlGame } = require('../../lib/glGameAccess');
 const { verifyPresentationAnswer } = require('../../lib/glQcmChoices');
 const { combineKeywords } = require('../../lib/glQcmImport');
 const { buildGlossaryLookupMap, matchGlossaryTermsForSpecies } = require('../../lib/glGlossaryMatch');
+const { loadBiomesForChapterIds } = require('../../lib/glChapterBiomes');
 
 const router = express.Router();
 
@@ -60,18 +61,23 @@ async function readGameState(gameId) {
     `SELECT g.id, g.class_id, g.chapter_id, g.name, g.status, g.current_team_id,
             g.created_by, g.created_at, g.updated_at,
             c.name AS class_name,
-            ch.slug AS chapter_slug, ch.title AS chapter_title, ch.biome, ch.biome_slug,
-            b.nom AS biome_nom, ch.map_image_url,
+            ch.slug AS chapter_slug, ch.title AS chapter_title, ch.biome, ch.map_image_url,
             ch.story_markdown, ch.biotope_markdown, ch.biocenose_markdown
        FROM gl_games g
   LEFT JOIN gl_classes c ON c.id = g.class_id
   LEFT JOIN gl_chapters ch ON ch.id = g.chapter_id
-  LEFT JOIN gl_biomes b ON b.slug = ch.biome_slug
       WHERE g.id = ?
       LIMIT 1`,
     [gameId]
   );
   if (!game) return null;
+
+  if (game.chapter_id != null) {
+    const biomesMap = await loadBiomesForChapterIds({ queryAll }, [game.chapter_id]);
+    game.chapter_biomes = biomesMap.get(Number(game.chapter_id)) || [];
+  } else {
+    game.chapter_biomes = [];
+  }
 
   const teams = await queryAll(
     `SELECT t.id, t.game_id, t.name, t.type, t.mascot_id, t.position_marker_id, t.color, t.created_at, t.updated_at,

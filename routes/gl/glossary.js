@@ -15,6 +15,11 @@ const {
   matchSpeciesForGlossaryTerm,
   GLOSSARY_CATEGORY_LABELS,
 } = require('../../lib/glGlossaryMatch');
+const {
+  parseBiomeSlugsFromQuery,
+  loadBiomeMetaBySlugs,
+  normalizeBiomeSlugList,
+} = require('../../lib/glChapterBiomes');
 
 const router = express.Router();
 
@@ -30,8 +35,9 @@ function normalizeOptionalFilter(value) {
   return s.length > 0 ? s : null;
 }
 
-async function loadActiveGlossaryForBiome(biomeSlug) {
-  if (!biomeSlug) {
+async function loadActiveGlossaryForBiomes(biomeSlugs) {
+  const slugs = normalizeBiomeSlugList(biomeSlugs);
+  if (slugs.length === 0) {
     return queryAll(
       `SELECT glossary_code, terme, variantes, categorie, niveau, definition_courte,
               definition_complete, exemple, etymologie, all_biomes, statut
@@ -40,6 +46,20 @@ async function loadActiveGlossaryForBiome(biomeSlug) {
         ORDER BY categorie ASC, terme ASC`
     );
   }
+  if (slugs.length === 1) {
+    return queryAll(
+      `SELECT DISTINCT t.glossary_code, t.terme, t.variantes, t.categorie, t.niveau,
+              t.definition_courte, t.definition_complete, t.exemple, t.etymologie,
+              t.all_biomes, t.statut
+         FROM gl_glossary_terms t
+    LEFT JOIN gl_glossary_term_biomes b ON b.glossary_code = t.glossary_code
+        WHERE t.statut = 'actif'
+          AND (t.all_biomes = 1 OR b.biome_slug = ?)
+        ORDER BY t.categorie ASC, t.terme ASC`,
+      [slugs[0]]
+    );
+  }
+  const placeholders = slugs.map(() => '?').join(', ');
   return queryAll(
     `SELECT DISTINCT t.glossary_code, t.terme, t.variantes, t.categorie, t.niveau,
             t.definition_courte, t.definition_complete, t.exemple, t.etymologie,
@@ -47,10 +67,15 @@ async function loadActiveGlossaryForBiome(biomeSlug) {
        FROM gl_glossary_terms t
   LEFT JOIN gl_glossary_term_biomes b ON b.glossary_code = t.glossary_code
       WHERE t.statut = 'actif'
-        AND (t.all_biomes = 1 OR b.biome_slug = ?)
+        AND (t.all_biomes = 1 OR b.biome_slug IN (${placeholders}))
       ORDER BY t.categorie ASC, t.terme ASC`,
-    [biomeSlug]
+    slugs
   );
+}
+
+/** @deprecated Utiliser loadActiveGlossaryForBiomes */
+async function loadActiveGlossaryForBiome(biomeSlug) {
+  return loadActiveGlossaryForBiomes(biomeSlug ? [biomeSlug] : []);
 }
 
 function filterGlossaryList(rows, { categorie, niveau, q }) {
@@ -71,20 +96,22 @@ function filterGlossaryList(rows, { categorie, niveau, q }) {
   return items;
 }
 
-/** GET /api/gl/glossary — liste filtrée par biome / catégorie / recherche. */
+/** GET /api/gl/glossary — liste filtrée par biome(s) / catégorie / recherche. */
 router.get('/glossary', requireGlPermission('gl.read'), async (req, res) => {
-  const biomeSlug = normalizeBiomeSlug(req.query?.biomeSlug);
+  const biomeSlugs = parseBiomeSlugsFromQuery(req.query);
   const categorie = normalizeOptionalFilter(req.query?.categorie);
   const niveau = normalizeOptionalFilter(req.query?.niveau);
   const q = normalizeOptionalFilter(req.query?.q);
 
-  let biome = null;
-  if (biomeSlug) {
-    biome = await queryOne('SELECT slug, nom FROM gl_biomes WHERE slug = ? LIMIT 1', [biomeSlug]);
-    if (!biome) return res.status(404).json({ error: 'Biome introuvable' });
+  let biomes = [];
+  if (biomeSlugs.length > 0) {
+    biomes = await loadBiomeMetaBySlugs({ queryAll }, biomeSlugs);
+    if (biomes.length !== biomeSlugs.length) {
+      return res.status(404).json({ error: 'Biome introuvable' });
+    }
   }
 
-  const allRows = await loadActiveGlossaryForBiome(biomeSlug);
+  const allRows = await loadActiveGlossaryForBiomes(biomeSlugs);
   const items = filterGlossaryList(allRows, { categorie, niveau, q }).map((row) => ({
     glossary_code: row.glossary_code,
     terme: row.terme,
@@ -96,7 +123,11 @@ router.get('/glossary', requireGlPermission('gl.read'), async (req, res) => {
     all_biomes: !!row.all_biomes,
   }));
 
-  return res.json({ biome, items });
+  return res.json({
+    biome: biomes.length === 1 ? biomes[0] : null,
+    biomes,
+    items,
+  });
 });
 
 /** GET /api/gl/glossary/:code — fiche détaillée + termes liés + espèces liées. */
@@ -115,7 +146,7 @@ router.get('/glossary/:code', requireGlPermission('gl.read'), async (req, res) =
   );
   if (!term) return res.status(404).json({ error: 'Terme introuvable' });
 
-  const biomeSlug = normalizeBiomeSlug(req.query?.biomeSlug);
+  const biomeSlugs = parseBiomeSlugsFromQuery(req.query);
 
   const relatedTerms = await queryAll(
     `SELECT t.glossary_code, t.terme, t.categorie, t.definition_courte
@@ -127,12 +158,13 @@ router.get('/glossary/:code', requireGlPermission('gl.read'), async (req, res) =
   );
 
   let relatedSpecies = [];
-  if (biomeSlug) {
+  if (biomeSlugs.length > 0) {
+    const placeholders = biomeSlugs.map(() => '?').join(', ');
     const speciesRows = await queryAll(
       `SELECT species_code, nom_commun, type, mots_cles
          FROM gl_species
-        WHERE biome_slug = ? AND statut = 'actif'`,
-      [biomeSlug]
+        WHERE biome_slug IN (${placeholders}) AND statut = 'actif'`,
+      biomeSlugs
     );
     relatedSpecies = matchSpeciesForGlossaryTerm(term, speciesRows);
   }
@@ -230,6 +262,7 @@ router.post('/admin/glossary/import', requireGlPermission('gl.content.manage'), 
 module.exports = {
   router,
   loadActiveGlossaryForBiome,
+  loadActiveGlossaryForBiomes,
   buildGlossaryLookupMap,
   matchGlossaryTermsForSpecies,
 };
