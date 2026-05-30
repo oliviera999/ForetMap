@@ -5,6 +5,9 @@ const {
   resolveImportRows,
   applySpeciesImport,
   MAX_IMPORT_ROWS,
+  buildSpeciesTemplateWorkbook,
+  buildSpeciesExportWorkbook,
+  loadSpeciesExportRows,
 } = require('../../lib/glSpeciesImport');
 const {
   loadActiveGlossaryForBiome,
@@ -78,6 +81,32 @@ router.get('/admin/species/stats', requireGlPermission('gl.content.manage'), asy
     total: Number(total?.total || 0),
     byBiome,
   });
+});
+
+/** GET /api/gl/admin/species/import/template — modèle XLSX biocénose (especes + biomes_stats). */
+router.get('/admin/species/import/template', requireGlPermission('gl.content.manage'), async (_req, res) => {
+  const buffer = buildSpeciesTemplateWorkbook();
+  res.setHeader(
+    'Content-Type',
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+  );
+  res.setHeader('Content-Disposition', 'attachment; filename="foretmap-gl-modele-biocenose.xlsx"');
+  return res.send(buffer);
+});
+
+/** GET /api/gl/admin/species/export — export XLSX ré-importable. */
+router.get('/admin/species/export', requireGlPermission('gl.content.manage'), async (req, res) => {
+  const statutRaw = String(req.query?.statut || 'actif').toLowerCase();
+  const statut = statutRaw === 'all' ? 'all' : 'actif';
+  const biomeSlug = normalizeBiomeSlug(req.query?.biomeSlug);
+  const data = await loadSpeciesExportRows({ queryAll }, { statut, biomeSlug });
+  const buffer = buildSpeciesExportWorkbook(data);
+  res.setHeader(
+    'Content-Type',
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+  );
+  res.setHeader('Content-Disposition', 'attachment; filename="foretmap-gl-export-biocenose.xlsx"');
+  return res.send(buffer);
 });
 
 /** POST /api/gl/admin/species/import — import XLSX espèces/biomes. */

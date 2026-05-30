@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { apiGL } from '../../services/apiGL.js';
+import { withAppBase } from '../../../services/api.js';
+import { apiGL, getGlToken } from '../../services/apiGL.js';
 import { GLButton } from '../ui/GLButton.jsx';
 import { GLField } from '../ui/GLField.jsx';
 import { GLInput } from '../ui/GLInput.jsx';
@@ -23,6 +24,49 @@ export function GLSpeciesImportPanel() {
   const [info, setInfo] = useState('');
   const [report, setReport] = useState(null);
   const [stats, setStats] = useState(null);
+  const [exportStatut, setExportStatut] = useState('actif');
+  const [exportBiomeSlug, setExportBiomeSlug] = useState('');
+
+  async function downloadFile(url, filename) {
+    setLoading(true);
+    setError('');
+    setInfo('');
+    try {
+      const headers = new Headers();
+      const token = getGlToken();
+      if (token) headers.set('Authorization', `Bearer ${token}`);
+      const res = await fetch(withAppBase(url), { method: 'GET', headers });
+      if (!res.ok) throw new Error('Téléchargement impossible');
+      const blob = await res.blob();
+      const objectUrl = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = objectUrl;
+      link.download = filename;
+      link.click();
+      URL.revokeObjectURL(objectUrl);
+    } catch (err) {
+      setError(err.message || 'Erreur de téléchargement');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function downloadTemplate() {
+    await downloadFile('/api/gl/admin/species/import/template', 'foretmap-gl-modele-biocenose.xlsx');
+    setInfo('Modèle XLSX téléchargé (feuilles especes et biomes_stats).');
+  }
+
+  async function downloadExport() {
+    const params = new URLSearchParams();
+    if (exportStatut === 'all') params.set('statut', 'all');
+    if (exportBiomeSlug.trim()) params.set('biomeSlug', exportBiomeSlug.trim());
+    const query = params.toString();
+    await downloadFile(
+      `/api/gl/admin/species/export${query ? `?${query}` : ''}`,
+      'foretmap-gl-export-biocenose.xlsx'
+    );
+    setInfo('Export XLSX généré.');
+  }
 
   async function loadStats() {
     try {
@@ -67,9 +111,16 @@ export function GLSpeciesImportPanel() {
 
   return (
     <section className="gl-admin-section gl-animate-in">
-      <h3>Import espèces / biomes (XLSX)</h3>
+      <h3>Import biocénose — espèces / biomes (XLSX)</h3>
       <p className="gl-hint">
-        Fichier attendu : feuilles <code>especes</code> et <code>biomes_stats</code>
+        Catalogue espèces par biome (affiché dans la biocénose joueur). Fichier attendu : feuilles
+        {' '}
+        <code>especes</code>
+        {' '}
+        et
+        {' '}
+        <code>biomes_stats</code>
+        {' '}
         (voir <code>data/gl/README.md</code>).
       </p>
       {error ? <p className="gl-error">{error}</p> : null}
@@ -84,6 +135,28 @@ export function GLSpeciesImportPanel() {
           espèce(s) actives.
         </p>
       ) : null}
+
+      <div className="gl-inline-actions">
+        <GLButton type="button" variant="secondary" onClick={downloadTemplate} disabled={loading}>
+          Modèle XLSX
+        </GLButton>
+        <GLField label="Export — statut">
+          <GLSelect value={exportStatut} onChange={(e) => setExportStatut(e.target.value)}>
+            <option value="actif">Espèces actives</option>
+            <option value="all">Tous les statuts</option>
+          </GLSelect>
+        </GLField>
+        <GLField label="Export — biome (optionnel)">
+          <GLInput
+            value={exportBiomeSlug}
+            onChange={(e) => setExportBiomeSlug(e.target.value)}
+            placeholder="sahara"
+          />
+        </GLField>
+        <GLButton type="button" variant="secondary" onClick={downloadExport} disabled={loading}>
+          Exporter le catalogue
+        </GLButton>
+      </div>
 
       <form className="gl-form" onSubmit={runImport}>
         <GLField label="Fichier XLSX">

@@ -19,6 +19,11 @@ const {
   validateCategoryPayload,
   validateQuestionPayload,
 } = require('../lib/glQcmImport');
+const {
+  parseSpeciesWorkbook,
+  buildSpeciesPayload,
+  validateSpeciesPayload,
+} = require('../lib/glSpeciesImport');
 
 let adminToken = '';
 let playerToken = '';
@@ -182,6 +187,44 @@ test('GET template/export glossaire refuse sans permission', async () => {
     .get('/api/gl/admin/glossary/export')
     .set('Authorization', `Bearer ${playerToken}`)
     .expect(403);
+});
+
+test('GET /api/gl/admin/species/import/template retourne un modèle XLSX biocénose', async () => {
+  const buf = await getXlsxBuffer(request(app), '/api/gl/admin/species/import/template', adminToken);
+  const { speciesRows, biomeRows } = parseSpeciesWorkbook(buf);
+  assert.ok(speciesRows.length >= 1);
+  assert.ok(biomeRows.length >= 1);
+  assert.strictEqual(validateSpeciesPayload(buildSpeciesPayload(speciesRows[0]), 2).length, 0);
+});
+
+test('GET /api/gl/admin/species/export round-trip ré-importable', async () => {
+  const biomeSlug = `bio_exp_${stamp}`.slice(0, 40);
+  const code = `SP${String(stamp).slice(-6)}`.slice(0, 16);
+
+  await execute(
+    `INSERT INTO gl_biomes (slug, nom, order_index, created_at, updated_at)
+     VALUES (?, 'Biome export espèces', 999, NOW(), NOW())
+     ON DUPLICATE KEY UPDATE nom = VALUES(nom), updated_at = NOW()`,
+    [biomeSlug]
+  );
+  await execute(
+    `INSERT INTO gl_species (
+      species_code, biome_slug, type, nom_commun, statut, created_at, updated_at
+    ) VALUES (?, ?, 'faune', 'Espèce export test', 'actif', NOW(), NOW())
+    ON DUPLICATE KEY UPDATE nom_commun = VALUES(nom_commun), statut = 'actif', updated_at = NOW()`,
+    [code, biomeSlug]
+  );
+
+  const buf = await getXlsxBuffer(
+    request(app),
+    `/api/gl/admin/species/export?biomeSlug=${encodeURIComponent(biomeSlug)}`,
+    adminToken
+  );
+  const { speciesRows, biomeRows } = parseSpeciesWorkbook(buf);
+  const exported = speciesRows.find((row) => buildSpeciesPayload(row).species_code === code);
+  assert.ok(exported);
+  assert.strictEqual(validateSpeciesPayload(buildSpeciesPayload(exported), 2).length, 0);
+  assert.ok(biomeRows.some((row) => row.slug === biomeSlug));
 });
 
 test('GET template/export QCM refuse sans authentification', async () => {
