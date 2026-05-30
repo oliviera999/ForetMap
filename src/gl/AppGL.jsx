@@ -14,6 +14,7 @@ import { GLMapView } from './components/GLMapView.jsx';
 import { GLBiotopeView } from './components/GLBiotopeView.jsx';
 import { GLBiocenoseView } from './components/GLBiocenoseView.jsx';
 import { GLGlossaryView } from './components/GLGlossaryView.jsx';
+import { GLGlossaryPopover } from './components/GLGlossaryPopover.jsx';
 import { GLHistoryView } from './components/GLHistoryView.jsx';
 import { GLUsersAdminView } from './components/GLUsersAdminView.jsx';
 import { GLContentsAdminView } from './components/GLContentsAdminView.jsx';
@@ -96,6 +97,7 @@ export function AppGL() {
   const [glConfig, setGlConfig] = useState({});
   const [showProfile, setShowProfile] = useState(false);
   const [glossaryFocusCode, setGlossaryFocusCode] = useState(null);
+  const [glossaryPopoverCode, setGlossaryPopoverCode] = useState(null);
   const [kingdomChapterId, setKingdomChapterId] = useState(null);
 
   const themeChapterId = useMemo(() => {
@@ -111,12 +113,29 @@ export function AppGL() {
 
   const { brand: glBrand, style: glBrandStyle } = useGLBrandTheme(glConfig?.brand, themeChapter?.theme);
 
+  const chapterBiomeSlugs = useMemo(() => {
+    const biomes = gameState?.game?.chapter_biomes;
+    if (!Array.isArray(biomes)) return [];
+    return biomes.map((b) => b.slug).filter(Boolean);
+  }, [gameState?.game?.chapter_biomes]);
+
   useEffect(() => {
     if (tab !== 'kingdom') setKingdomChapterId(null);
   }, [tab]);
 
-  const navigateToGlossaryTerm = useCallback((code) => {
-    setGlossaryFocusCode(String(code || '').trim() || null);
+  const openGlossaryPopover = useCallback((code) => {
+    const trimmed = String(code || '').trim();
+    setGlossaryPopoverCode(trimmed || null);
+  }, []);
+
+  const closeGlossaryPopover = useCallback(() => {
+    setGlossaryPopoverCode(null);
+  }, []);
+
+  const openGlossaryFullTab = useCallback((code) => {
+    const trimmed = String(code || '').trim();
+    setGlossaryPopoverCode(null);
+    setGlossaryFocusCode(trimmed || null);
     setTab('glossary');
   }, []);
 
@@ -572,7 +591,7 @@ export function AppGL() {
               onMoveMascotToPct={moveMascotToPct}
               onPlayerActionRequest={submitPlayerActionRequest}
               onSelectTeam={setSelectedTeamId}
-              onOpenGlossaryTerm={navigateToGlossaryTerm}
+              onOpenGlossaryTerm={openGlossaryPopover}
               onQcmAnswered={reloadGame}
               canMoveMascot={isAdmin}
               canRequestAction={canRequestAction}
@@ -597,7 +616,7 @@ export function AppGL() {
         {tab === 'biocenose' && (
           <GLBiocenoseView
             gameState={gameState}
-            onOpenGlossaryTerm={navigateToGlossaryTerm}
+            onOpenGlossaryTerm={openGlossaryPopover}
           />
         )}
         {tab === 'glossary' && (
@@ -605,6 +624,7 @@ export function AppGL() {
             gameState={gameState}
             focusCode={glossaryFocusCode}
             onOpenTerm={setGlossaryFocusCode}
+            onOpenPopover={openGlossaryPopover}
             onFocusHandled={clearGlossaryFocus}
           />
         )}
@@ -692,6 +712,13 @@ export function AppGL() {
           }
           if (payload?.profile) setGlProfile(payload.profile);
         }}
+      />
+      <GLGlossaryPopover
+        open={!!glossaryPopoverCode}
+        glossaryCode={glossaryPopoverCode}
+        biomeSlugs={chapterBiomeSlugs}
+        onClose={closeGlossaryPopover}
+        onOpenFullGlossary={openGlossaryFullTab}
       />
     </div>
     </GLMascotCatalogProvider>

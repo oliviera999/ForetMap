@@ -48,7 +48,11 @@ describe('GLGlossaryView', () => {
 
     render(
       <GLGlossaryView
-        gameState={{ game: { biome_slug: 'sahara', biome_nom: 'Désert chaud (Sahara)' } }}
+        gameState={{
+          game: {
+            chapter_biomes: [{ slug: 'sahara', nom: 'Désert chaud (Sahara)' }],
+          },
+        }}
         focusCode={null}
         onOpenTerm={vi.fn()}
         onFocusHandled={vi.fn()}
@@ -58,7 +62,7 @@ describe('GLGlossaryView', () => {
     await waitFor(() => {
       expect(screen.getByText('Biome')).toBeInTheDocument();
     });
-    expect(screen.getByText(/Désert chaud \(Sahara\)/i)).toBeInTheDocument();
+    expect(screen.getByText(/Biomes du chapitre/i)).toBeInTheDocument();
   });
 
   test('ouvre une fiche au clic sur un terme', async () => {

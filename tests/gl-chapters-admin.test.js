@@ -100,14 +100,15 @@ test('POST /api/gl/chapters/admin refuse un slug déjà utilisé (409)', async (
     .expect(409);
 });
 
-test('PUT /api/gl/chapters/admin/:id met à jour biomeSlug', async () => {
+test('PUT /api/gl/chapters/admin/:id met à jour biomeSlugs', async () => {
   const res = await request(app)
     .put(`/api/gl/chapters/admin/${createdChapterId}`)
     .set('Authorization', `Bearer ${adminToken}`)
-    .send({ biomeSlug: 'foret_caducifoliee' })
+    .send({ biomeSlugs: ['foret_caducifoliee'] })
     .expect(200);
-  assert.strictEqual(res.body.chapter.biome_slug, 'foret_caducifoliee');
-  assert.ok(res.body.chapter.biome_nom);
+  assert.strictEqual(res.body.chapter.biomes.length, 1);
+  assert.strictEqual(res.body.chapter.biomes[0].slug, 'foret_caducifoliee');
+  assert.ok(res.body.chapter.biomes[0].nom);
 });
 
 test('PUT /api/gl/chapters/admin/:id met à jour le titre et l\'order_index', async () => {

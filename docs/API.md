@@ -64,10 +64,10 @@ Le script accepte aussi :
 
 | Méthode | URL | Body | Permission |
 |--------|-----|------|------------|
-| GET | `/api/gl/chapters` | — | `gl.read` |
-| GET | `/api/gl/chapters/:slug` | — | `gl.read` (réponse `{ chapter, markers }`) |
-| POST | `/api/gl/chapters/admin` | `{ slug, title, biome?, biomeSlug?, mapImageUrl?, mapImageFrame?, theme?, storyMarkdown?, biotopeMarkdown?, biocenoseMarkdown?, orderIndex? }` | `gl.content.manage` (refus `409` si slug existant ; `biomeSlug` doit exister dans `gl_biomes`) |
-| PUT | `/api/gl/chapters/admin/:id` | mise à jour partielle des mêmes champs (dont `mapImageFrame`, `biomeSlug`, `theme`) | `gl.content.manage` |
+| GET | `/api/gl/chapters` | — | `gl.read` (liste ; chaque chapitre inclut `biomes[]` : `{ slug, nom, order_index }`) |
+| GET | `/api/gl/chapters/:slug` | — | `gl.read` (réponse `{ chapter, markers }` ; `chapter.biomes[]`) |
+| POST | `/api/gl/chapters/admin` | `{ slug, title, biome?, biomeSlugs?, biomeSlug?, mapImageUrl?, mapImageFrame?, theme?, storyMarkdown?, biotopeMarkdown?, biocenoseMarkdown?, orderIndex? }` | `gl.content.manage` (refus `409` si slug existant ; chaque entrée de `biomeSlugs` doit exister dans `gl_biomes` ; `biomeSlug` legacy = un seul slug) |
+| PUT | `/api/gl/chapters/admin/:id` | mise à jour partielle des mêmes champs (dont `biomeSlugs`, `mapImageFrame`, `theme`) | `gl.content.manage` |
 | DELETE | `/api/gl/chapters/admin/:id` | — | `gl.content.manage` (refus `409` si partie liée) |
 | POST | `/api/gl/chapters/admin/:id/markers` | `{ label, xPct, yPct, eventType?, description?, orderIndex?, qcmCategorieSlug?, qcmQuestionCode? }` | `gl.content.manage` |
 | POST | `/api/gl/chapters/admin/:id/map-image` | `{ image_data }` (data URL base64 image) | `gl.content.manage` |
@@ -79,8 +79,8 @@ Le script accepte aussi :
 | GET | `/api/gl/admin/species/import/template` | — | `gl.content.manage` (modèle XLSX biocénose + ligne d’exemple, feuilles `especes` et `biomes_stats`) |
 | GET | `/api/gl/admin/species/export` | `?biomeSlug=`, `?statut=actif\|all` (défaut `actif`) | `gl.content.manage` (export XLSX ré-importable du catalogue espèces/biomes) |
 | GET | `/api/gl/admin/species/stats` | — | `gl.content.manage` (total + agrégats par biome/type) |
-| GET | `/api/gl/glossary` | `?biomeSlug=`, `?categorie=`, `?niveau=`, `?q=` optionnels | `gl.read` (réponse `{ biome, items }` — termes actifs filtrés par biome si fourni) |
-| GET | `/api/gl/glossary/:code` | `?biomeSlug=` optionnel | `gl.read` (fiche `{ term, relatedTerms, relatedSpecies }`) |
+| GET | `/api/gl/glossary` | `?biomeSlug=`, `?biomeSlugs=` (csv), `?categorie=`, `?niveau=`, `?q=` optionnels | `gl.read` (réponse `{ biome, biomes, items }` — termes actifs filtrés par biome(s) si fourni) |
+| GET | `/api/gl/glossary/:code` | `?biomeSlug=`, `?biomeSlugs=` (csv) optionnels | `gl.read` (fiche `{ term, relatedTerms, relatedSpecies }` ; espèces liées = union des biomes fournis) |
 | POST | `/api/gl/admin/glossary/import` | `{ fileDataBase64, fileName?, dryRun? }` (XLSX feuille `glossaire`) | `gl.content.manage` (UPSERT par `glossary_code`, sync biomes + relations, rapport `{ report }`) |
 | GET | `/api/gl/admin/glossary/import/template` | — | `gl.content.manage` (modèle XLSX vierge + ligne d’exemple, feuille `glossaire`) |
 | GET | `/api/gl/admin/glossary/export` | `?statut=actif\|all` (défaut `actif`) | `gl.content.manage` (export XLSX ré-importable du catalogue en base) |
@@ -89,7 +89,7 @@ Le script accepte aussi :
 | GET | `/api/gl/qcm/questions` | `?biomeSlug=`, `?categorieSlug=`, `?q=` optionnels | `gl.read` (liste admin ; ordre canonique A–E, `glossaryTerms[]`) |
 | GET | `/api/gl/qcm/questions/:code/present` | — | `gl.read` (mélange des choix à chaque appel + `presentationToken` signé) |
 | POST | `/api/gl/qcm/questions/:code/answer` | `{ presentationToken, choiceId }` | `gl.read` (validation hors partie) |
-| GET | `/api/gl/qcm/draw` | `?biomeSlug=` (requis), `?categorieSlug=`, `?exclude=` optionnels | `gl.read` (tirage aléatoire `{ question_code }`) |
+| GET | `/api/gl/qcm/draw` | `?biomeSlug=` ou `?biomeSlugs=` (csv, au moins 1 requis), `?categorieSlug=`, `?exclude=` optionnels | `gl.read` (tirage aléatoire `{ question_code }` dans l’union des biomes) |
 | POST | `/api/gl/admin/qcm/import` | `{ fileDataBase64, fileName?, dryRun? }` (XLSX feuilles `categories`, `questions`) | `gl.content.manage` |
 | GET | `/api/gl/admin/qcm/import/template` | — | `gl.content.manage` (modèle XLSX vierge + exemples, feuilles `categories` et `questions`) |
 | GET | `/api/gl/admin/qcm/export` | `?biomeSlug=`, `?categorieSlug=`, `?statut=actif\|all` (défaut `actif`) | `gl.content.manage` (export XLSX ré-importable ; filtres biome/catégorie optionnels) |

@@ -8,6 +8,8 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 ## [Non publié]
 
 ### Ajouté
+- **GL — popover glossaire (fiche rapide)** : composant `GLGlossaryPopover` (bottom sheet mobile, carte flottante desktop, blur, animations spring) ; ouverture depuis les puces Biocenose/QCM/carte sans quitter le contexte ; CTA « Voir le glossaire complet » ; onglet Glossaire conservé sur desktop, popover sur mobile. Tests `tests-ui/gl/GLGlossaryPopover.test.jsx`.
+- **GL — multi-biomes par chapitre** : table `gl_chapter_biomes` (N:N chapitre ↔ biomes catalogue), API chapitres (`biomes[]`, `biomeSlugs[]`), état de partie `chapter_biomes`, glossaire/QCM en union (`biomeSlugs` csv), admin cases à cocher + ordre, biocénose joueur en onglets par biome. Migration `101_gl_chapter_biomes.sql`, tests `tests/gl-chapter-biomes.test.js`.
 - **Visite — gestionnaire bulles mascotte** : défauts globaux (`content.visit.mascot_dialog.defaults`), surcharges catalogue (`content.visit.mascot_dialog.catalog_overrides`), champ pack v2 `dialogProfile` ; studio **Packs mascotte** (vue **Dialogues** + onglet **Bulles de dialogue**) ; résolution runtime hybride (`visitMascotDialogEvents.js`, `visitMascotDialogApply.js`) ; tests `visit-mascot-dialog.test.js`, extension `mascot-pack.test.js` / `settings.test.js`.
 - **GL — accès parties verrouillé** : module `lib/glGameAccess.js` ; contrôle sur `GET /api/gl/games/:id`, journal et Socket.IO `subscribe:gl-game` ; tests `tests/gl-game-access.test.js`, extension `tests/gl-realtime.test.js`.
 - **Visite — file progression** : `replaceQueuedVisitSeenAction` dans `visitProgressClient.js` ; tests `tests/visit-progress-client.test.js`, `tests/service-worker-cache.test.js`.

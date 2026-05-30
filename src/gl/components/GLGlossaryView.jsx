@@ -33,9 +33,38 @@ function groupByCategory(items) {
   return groups;
 }
 
-export function GLGlossaryView({ gameState, focusCode, onOpenTerm, onFocusHandled }) {
-  const biomeSlug = gameState?.game?.biome_slug || null;
-  const biomeNom = gameState?.game?.biome_nom || null;
+function useIsMobileGlossaryLayout() {
+  const [isMobile, setIsMobile] = useState(() => {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
+      return false;
+    }
+    return window.matchMedia('(max-width: 900px)').matches;
+  });
+
+  useEffect(() => {
+    if (typeof window.matchMedia !== 'function') return undefined;
+    const mq = window.matchMedia('(max-width: 900px)');
+    const onChange = () => setIsMobile(mq.matches);
+    mq.addEventListener('change', onChange);
+    return () => mq.removeEventListener('change', onChange);
+  }, []);
+
+  return isMobile;
+}
+
+export function GLGlossaryView({ gameState, focusCode, onOpenTerm, onOpenPopover, onFocusHandled }) {
+  const chapterBiomes = Array.isArray(gameState?.game?.chapter_biomes)
+    ? gameState.game.chapter_biomes
+    : [];
+  const biomeSlugs = useMemo(
+    () => chapterBiomes.map((b) => b.slug).filter(Boolean),
+    [chapterBiomes]
+  );
+  const biomeLabel = useMemo(
+    () => chapterBiomes.map((b) => b.nom || b.slug).join(', '),
+    [chapterBiomes]
+  );
+  const isMobileLayout = useIsMobileGlossaryLayout();
 
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -52,7 +81,7 @@ export function GLGlossaryView({ gameState, focusCode, onOpenTerm, onFocusHandle
     setError('');
     try {
       const params = new URLSearchParams();
-      if (biomeSlug) params.set('biomeSlug', biomeSlug);
+      if (biomeSlugs.length > 0) params.set('biomeSlugs', biomeSlugs.join(','));
       if (categorie) params.set('categorie', categorie);
       if (niveau) params.set('niveau', niveau);
       if (search.trim()) params.set('q', search.trim());
@@ -64,7 +93,7 @@ export function GLGlossaryView({ gameState, focusCode, onOpenTerm, onFocusHandle
     } finally {
       setLoading(false);
     }
-  }, [biomeSlug, categorie, niveau, search]);
+  }, [biomeSlugs, categorie, niveau, search]);
 
   const loadDetail = useCallback(async (code) => {
     if (!code) {
@@ -73,7 +102,9 @@ export function GLGlossaryView({ gameState, focusCode, onOpenTerm, onFocusHandle
     }
     setDetailLoading(true);
     try {
-      const params = biomeSlug ? `?biomeSlug=${encodeURIComponent(biomeSlug)}` : '';
+      const params = biomeSlugs.length > 0
+        ? `?biomeSlugs=${encodeURIComponent(biomeSlugs.join(','))}`
+        : '';
       const data = await apiGL(`/api/gl/glossary/${encodeURIComponent(code)}${params}`);
       setDetail(data);
     } catch (err) {
@@ -81,7 +112,7 @@ export function GLGlossaryView({ gameState, focusCode, onOpenTerm, onFocusHandle
     } finally {
       setDetailLoading(false);
     }
-  }, [biomeSlug]);
+  }, [biomeSlugs]);
 
   useEffect(() => {
     loadList();
@@ -89,19 +120,27 @@ export function GLGlossaryView({ gameState, focusCode, onOpenTerm, onFocusHandle
 
   useEffect(() => {
     if (focusCode) {
-      setSelectedCode(focusCode);
-      loadDetail(focusCode);
+      if (isMobileLayout && onOpenPopover) {
+        onOpenPopover(focusCode);
+      } else {
+        setSelectedCode(focusCode);
+        loadDetail(focusCode);
+      }
       onFocusHandled?.();
     }
-  }, [focusCode, loadDetail, onFocusHandled]);
+  }, [focusCode, isMobileLayout, loadDetail, onFocusHandled, onOpenPopover]);
 
   useEffect(() => {
-    if (selectedCode) loadDetail(selectedCode);
-  }, [selectedCode, loadDetail]);
+    if (selectedCode && !isMobileLayout) loadDetail(selectedCode);
+  }, [selectedCode, loadDetail, isMobileLayout]);
 
   const grouped = useMemo(() => groupByCategory(items), [items]);
 
   function selectTerm(code) {
+    if (isMobileLayout && onOpenPopover) {
+      onOpenPopover(code);
+      return;
+    }
     setSelectedCode(code);
     onOpenTerm?.(code);
   }
@@ -109,11 +148,11 @@ export function GLGlossaryView({ gameState, focusCode, onOpenTerm, onFocusHandle
   return (
     <article className="gl-panel gl-glossary gl-animate-in">
       <h2>Glossaire</h2>
-      {biomeNom ? (
+      {biomeLabel ? (
         <p className="gl-glossary__intro">
-          Biome du chapitre :
+          Biomes du chapitre :
           {' '}
-          <strong>{biomeNom}</strong>
+          <strong>{biomeLabel}</strong>
         </p>
       ) : (
         <p className="gl-hint">
@@ -178,7 +217,7 @@ export function GLGlossaryView({ gameState, focusCode, onOpenTerm, onFocusHandle
           ) : null}
         </div>
 
-        <aside className="gl-glossary__detail">
+        <aside className="gl-glossary__detail gl-glossary__detail--desktop-only">
           {!selectedCode ? (
             <p className="gl-hint">Sélectionnez un terme pour afficher la fiche.</p>
           ) : detailLoading ? (
@@ -224,7 +263,7 @@ export function GLGlossaryView({ gameState, focusCode, onOpenTerm, onFocusHandle
               ) : null}
               {Array.isArray(detail.relatedSpecies) && detail.relatedSpecies.length > 0 ? (
                 <div className="gl-glossary__related">
-                  <h4>Espèces liées (biome)</h4>
+                  <h4>Espèces liées (biomes du chapitre)</h4>
                   <ul>
                     {detail.relatedSpecies.map((sp) => (
                       <li key={sp.species_code}>

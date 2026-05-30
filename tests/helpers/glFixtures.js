@@ -90,6 +90,15 @@ async function createGlChapterWithMarker(options = {}) {
     [slug, title, biome, mapImageUrl, createdBy]
   );
   const chapter = await queryOne('SELECT * FROM gl_chapters WHERE slug = ? LIMIT 1', [slug]);
+  const biomeSlugs = Array.isArray(options.biomeSlugs) ? options.biomeSlugs : [];
+  for (let i = 0; i < biomeSlugs.length; i += 1) {
+    await execute(
+      `INSERT INTO gl_chapter_biomes (chapter_id, biome_slug, order_index)
+       VALUES (?, ?, ?)
+       ON DUPLICATE KEY UPDATE order_index = VALUES(order_index)`,
+      [chapter.id, biomeSlugs[i], i * 10]
+    );
+  }
   await execute(
     `INSERT INTO gl_chapter_markers (chapter_id, x_pct, y_pct, event_type, label, description, order_index)
      VALUES (?, 50, 50, 'point', ?, 'repere', 0)`,

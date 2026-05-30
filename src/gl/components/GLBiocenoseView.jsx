@@ -7,8 +7,9 @@ export function GLBiocenoseView({ gameState, onOpenGlossaryTerm }) {
   const introHtml = introMarkdown
     ? renderMarkdownToSafeHtml(introMarkdown, { allowImages: true })
     : '';
-  const biomeSlug = gameState?.game?.biome_slug || null;
-  const biomeNom = gameState?.game?.biome_nom || null;
+  const biomes = Array.isArray(gameState?.game?.chapter_biomes)
+    ? gameState.game.chapter_biomes
+    : [];
 
   return (
     <article className="gl-panel gl-markdown gl-animate-in">
@@ -17,8 +18,7 @@ export function GLBiocenoseView({ gameState, onOpenGlossaryTerm }) {
         <div className="gl-biocenose-intro" dangerouslySetInnerHTML={{ __html: introHtml }} />
       ) : null}
       <GLSpeciesCatalog
-        biomeSlug={biomeSlug}
-        biomeNom={biomeNom}
+        biomes={biomes}
         onOpenGlossaryTerm={onOpenGlossaryTerm}
       />
     </article>

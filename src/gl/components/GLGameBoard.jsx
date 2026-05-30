@@ -23,7 +23,7 @@ export function GLGameBoard({
   markers,
   teams,
   gameId,
-  biomeSlug,
+  biomeSlugs,
   onMarkerClick,
   onBoardClick,
   onPlayerActionRequest,
@@ -187,7 +187,7 @@ export function GLGameBoard({
         <GLQcmModal
           open
           marker={pendingMarker}
-          biomeSlug={biomeSlug || chapter?.biome_slug}
+          biomeSlugs={biomeSlugs || chapter?.chapter_biomes?.map((b) => b.slug) || []}
           gameId={gameId}
           onClose={() => setPendingMarker(null)}
           onOpenGlossaryTerm={onOpenGlossaryTerm}

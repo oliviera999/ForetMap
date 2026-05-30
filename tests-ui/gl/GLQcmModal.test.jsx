@@ -39,7 +39,7 @@ describe('GLQcmModal', () => {
       <GLQcmModal
         open
         marker={{ id: 5, label: 'Quiz test', event_type: 'quiz', qcm_question_code: 'QCM0001' }}
-        biomeSlug="sahara"
+        biomeSlugs={['sahara']}
         gameId={42}
         onClose={vi.fn()}
         onAnswered={vi.fn()}

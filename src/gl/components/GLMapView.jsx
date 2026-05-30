@@ -21,7 +21,7 @@ export function GLMapView({
       markers={gameState?.markers || []}
       teams={gameState?.teams || []}
       gameId={gameState?.game?.id}
-      biomeSlug={gameState?.game?.biome_slug}
+      biomeSlugs={gameState?.game?.chapter_biomes?.map((b) => b.slug) || []}
       onMarkerClick={onMoveMascot}
       onBoardClick={onMoveMascotToPct}
       onPlayerActionRequest={onPlayerActionRequest}

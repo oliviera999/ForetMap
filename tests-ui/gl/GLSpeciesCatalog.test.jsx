@@ -15,8 +15,8 @@ describe('GLSpeciesCatalog', () => {
     vi.mocked(apiGL).mockReset();
   });
 
-  test('affiche un hint si aucun biome_slug', () => {
-    render(<GLSpeciesCatalog biomeSlug={null} biomeNom={null} />);
+  test('affiche un hint si aucun biome catalogue', () => {
+    render(<GLSpeciesCatalog biomes={[]} />);
     expect(screen.getByText(/Aucun biome du catalogue/i)).toBeInTheDocument();
   });
 
@@ -41,13 +41,34 @@ describe('GLSpeciesCatalog', () => {
         },
       ],
     });
-    render(<GLSpeciesCatalog biomeSlug="sahara" biomeNom="Désert chaud (Sahara)" />);
+    render(<GLSpeciesCatalog biomes={[{ slug: 'sahara', nom: 'Désert chaud (Sahara)' }]} />);
     await waitFor(() => {
       expect(screen.getByText('Fennec')).toBeInTheDocument();
     });
     expect(screen.getByText('Faune')).toBeInTheDocument();
     expect(screen.getByText('Flore')).toBeInTheDocument();
     expect(screen.getByText('Acacia')).toBeInTheDocument();
+  });
+
+  test('affiche des onglets pour plusieurs biomes', async () => {
+    vi.mocked(apiGL).mockResolvedValue({
+      biome: { slug: 'sahara', nom: 'Désert chaud (Sahara)' },
+      items: [{ species_code: 'SP0001', type: 'faune', groupe: 'm', nom_commun: 'Fennec' }],
+    });
+    render(
+      <GLSpeciesCatalog
+        biomes={[
+          { slug: 'sahara', nom: 'Désert chaud (Sahara)' },
+          { slug: 'toundra', nom: 'Toundra arctique' },
+        ]}
+      />
+    );
+    expect(screen.getByRole('tab', { name: 'Désert chaud (Sahara)' })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Toundra arctique' })).toBeInTheDocument();
+    expect(screen.getByText(/Biomes de ce chapitre/i)).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText('Fennec')).toBeInTheDocument();
+    });
   });
 
   test('affiche les chips glossaire et déclenche la navigation', async () => {
@@ -66,8 +87,7 @@ describe('GLSpeciesCatalog', () => {
     });
     render(
       <GLSpeciesCatalog
-        biomeSlug="sahara"
-        biomeNom="Désert chaud (Sahara)"
+        biomes={[{ slug: 'sahara', nom: 'Désert chaud (Sahara)' }]}
         onOpenGlossaryTerm={onOpenGlossaryTerm}
       />
     );
