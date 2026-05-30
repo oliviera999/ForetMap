@@ -22,6 +22,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - **Intégration PR GitHub** : correctifs des PR Cursor #28–#37 et Dependabot #25–#30 appliqués sur `main` (PR obsolètes/doublons fermées).
 
 ### Corrigé
+- **GL — écran connexion** : `useGLBrandTheme` normalise la charte avant fusion thème chapitre — corrige le crash React « Une erreur s’est produite » au chargement (guest, `glConfig` vide). Test `tests-ui/gl/useGLBrandTheme.test.js`.
 - **Fallback SPA (Express 4/5)** : route `GET /` explicite + wildcard selon la version Express (`/{*splat}` en v5, `*` en v4) via `lib/spaFallback.js` — corrige « Cannot GET / » en prod si `node_modules` reste en Express 4 après déploiement du code v5. Tests `tests/spa-fallback.test.js`, `tests/gl-product-routing.test.js`.
 
 ### Ajouté
