@@ -609,23 +609,18 @@ app.get('/api/site-issues.json', (req, res) => {
 app.get('/favicon.ico', (req, res) => res.status(204).end());
 
 // Fallback SPA (build Vite en prod, sinon page d'aide locale)
-app.get('/{*splat}', (req, res) => {
-  let indexPath = path.resolve(__dirname, 'public', 'deploy-help.html');
-  if (serveDist) {
-    const product = resolveProductFromRequest(req);
-    const glIndexExists = fs.existsSync(distGlIndex);
-    indexPath = product === 'gl' && glIndexExists ? distGlIndex : distSpaIndex;
-  }
-  res.sendFile(indexPath, (err) => {
-    if (err) {
-      logger.error(
-        { err, path: req.path, resolvedPath: indexPath, code: err.code, requestId: req.requestId },
-        'Envoi index.html en échec'
-      );
-      if (!res.headersSent) res.status(500).json({ error: 'Erreur serveur' });
-    }
-  });
-});
+const { createSpaFallbackHandler, registerSpaFallbackRoutes } = require('./lib/spaFallback');
+registerSpaFallbackRoutes(
+  app,
+  createSpaFallbackHandler({
+    serveDist,
+    distSpaIndex,
+    distGlIndex,
+    deployHelpPath: path.resolve(__dirname, 'public', 'deploy-help.html'),
+    resolveProductFromRequest,
+    logger,
+  })
+);
 
 // Gestion d'erreurs centralisée (pour les routes qui font next(err))
 app.use((err, req, res, next) => {

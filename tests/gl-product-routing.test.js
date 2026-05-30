@@ -41,7 +41,8 @@ test('fallback SPA accepte override x-foretmap-product=gl', async () => {
   const res = await request(app)
     .get('/quelque-chose')
     .set('X-Foretmap-Product', 'gl');
-  assert.ok([200, 404].includes(res.status));
+  assert.strictEqual(res.status, 200);
+  assert.match(String(res.headers['content-type'] || ''), /html/i);
 });
 
 test('token GL refusé sur API ForetMap (/api/tasks)', async () => {
