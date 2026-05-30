@@ -17,7 +17,9 @@ const {
   matchGlossaryTermsForSpecies,
 } = require('../../lib/glGlossaryMatch');
 const { normalizeOptionalString } = require('../../lib/shared/httpHelpers');
-const { parseBiomeSlugsFromQuery } = require('../../lib/glChapterBiomes');
+const { parseBiomeSlugsFromQuery, loadBiomesForChapterIds } = require('../../lib/glChapterBiomes');
+const { previewQuestionPool } = require('../../lib/glMarkerQuestionPool');
+const { normalizeQuestionPool } = require('../../lib/glMarkerEventConfig');
 
 const router = express.Router();
 
@@ -115,6 +117,53 @@ router.get('/qcm/questions', requireGlPermission('gl.read'), async (req, res) =>
   })));
 
   return res.json({ items });
+});
+
+function parseCsvQuery(value) {
+  const raw = normalizeOptionalString(value);
+  if (!raw) return [];
+  return raw.split(',').map((s) => s.trim()).filter(Boolean);
+}
+
+function parseDifficulteQuery(value) {
+  if (value == null || value === '') return null;
+  const n = Number(value);
+  if (!Number.isFinite(n)) return null;
+  const i = Math.floor(n);
+  if (i < 1 || i > 5) return null;
+  return i;
+}
+
+/** GET /api/gl/qcm/pool-preview — aperçu pool questions pour config repère (admin). */
+router.get('/qcm/pool-preview', requireGlPermission('gl.content.manage'), async (req, res) => {
+  let biomeSlugs = parseBiomeSlugsFromQuery(req.query);
+  const chapterId = req.query?.chapterId != null ? Number(req.query.chapterId) : null;
+  if (chapterId != null && Number.isFinite(chapterId)) {
+    const biomesMap = await loadBiomesForChapterIds({ queryAll }, [chapterId]);
+    const chapterBiomes = biomesMap.get(chapterId) || [];
+    const chapterSlugs = chapterBiomes.map((b) => b.slug);
+    biomeSlugs = biomeSlugs.length > 0 ? biomeSlugs : chapterSlugs;
+  }
+  if (biomeSlugs.length === 0) {
+    return res.status(400).json({ error: 'biomeSlugs ou chapterId requis' });
+  }
+
+  const pool = normalizeQuestionPool({
+    biomeMode: 'custom',
+    biomeSlugs,
+    categorieSlugs: parseCsvQuery(req.query?.categorieSlugs || req.query?.categorieSlug),
+    niveaux: parseCsvQuery(req.query?.niveaux || req.query?.niveau),
+    difficulteMin: parseDifficulteQuery(req.query?.difficulteMin),
+    difficulteMax: parseDifficulteQuery(req.query?.difficulteMax),
+    searchQuery: normalizeOptionalString(req.query?.q) || '',
+    selectedQuestionCodes: parseCsvQuery(req.query?.selectedQuestionCodes),
+  });
+
+  const items = await previewQuestionPool(
+    { queryAll },
+    { pool, chapterBiomeSlugs: biomeSlugs }
+  );
+  return res.json({ items, total: items.length });
 });
 
 /** GET /api/gl/qcm/draw — tirage aléatoire dans un pool biome(s)/catégorie. */

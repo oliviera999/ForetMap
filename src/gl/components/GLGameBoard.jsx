@@ -1,10 +1,12 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { clampMapMascotPctForViewport } from '../../utils/mapViewMascotMotion.js';
+import { isQuestionMarker } from '../../utils/glMarkerEventConfig.js';
 import { GLBoardMarkers } from './GLBoardMarkers.jsx';
 import { GLBoardMascot } from './GLBoardMascot.jsx';
-import { GLQcmModal } from './GLQcmModal.jsx';
+import { GLQcmPopover } from './GLQcmPopover.jsx';
 import { glBoardPointToPct } from '../utils/glBoardPointToPct.js';
 import { useGLBoardMascotMotion } from '../hooks/useGLBoardMascotMotion.js';
+import { useGLMarkerArrival } from '../hooks/useGLMarkerArrival.js';
 
 function usePrefersReducedMotion() {
   const [reduced, setReduced] = useState(false);
@@ -23,7 +25,7 @@ export function GLGameBoard({
   markers,
   teams,
   gameId,
-  biomeSlugs,
+  watchTeamId,
   onMarkerClick,
   onBoardClick,
   onPlayerActionRequest,
@@ -42,6 +44,19 @@ export function GLGameBoard({
   const boardRef = useRef(null);
   const [boardHeightPx, setBoardHeightPx] = useState(0);
   const prefersReducedMotion = usePrefersReducedMotion();
+
+  const {
+    popover: questionPopover,
+    closePopover,
+    reshuffle,
+    setResult,
+  } = useGLMarkerArrival({
+    teams,
+    markers,
+    gameId,
+    watchTeamId,
+    enabled: Boolean(gameId && watchTeamId != null),
+  });
 
   const {
     getPositionForTeam,
@@ -66,9 +81,10 @@ export function GLGameBoard({
 
   const resolveActiveTeamId = useCallback(() => {
     const list = Array.isArray(teams) ? teams : [];
+    if (watchTeamId != null) return Number(watchTeamId);
     if (selectedTeamId != null) return Number(selectedTeamId);
     return list.length > 0 ? Number(list[0].id) : null;
-  }, [teams, selectedTeamId]);
+  }, [teams, selectedTeamId, watchTeamId]);
 
   const handleBoardMove = useCallback((xp, yp) => {
     const teamId = resolveActiveTeamId();
@@ -91,16 +107,10 @@ export function GLGameBoard({
       handleMarkerMove(marker);
       return;
     }
-    if (canRequestAction) {
-      if (String(marker?.event_type || '').toLowerCase() === 'quiz') {
-        setPendingMarker(marker);
-        return;
-      }
+    if (canRequestAction && !isQuestionMarker(marker)) {
       setPendingMarker(marker);
     }
   }
-
-  const isQuizMarker = pendingMarker && String(pendingMarker?.event_type || '').toLowerCase() === 'quiz';
 
   function confirmActionRequest() {
     if (!pendingMarker) return;
@@ -110,6 +120,10 @@ export function GLGameBoard({
     });
     setPendingMarker(null);
   }
+
+  const popoverAnchor = questionPopover?.marker
+    ? { xp: Number(questionPopover.marker.x_pct), yp: Number(questionPopover.marker.y_pct) }
+    : null;
 
   const teamList = Array.isArray(teams) ? teams : [];
 
@@ -181,21 +195,26 @@ export function GLGameBoard({
             </button>
           );
         })}
-      </div>
 
-      {pendingMarker && isQuizMarker ? (
-        <GLQcmModal
-          open
-          marker={pendingMarker}
-          biomeSlugs={biomeSlugs || chapter?.chapter_biomes?.map((b) => b.slug) || []}
+        <GLQcmPopover
+          open={Boolean(questionPopover)}
+          marker={questionPopover?.marker}
+          anchorPct={popoverAnchor}
           gameId={gameId}
-          onClose={() => setPendingMarker(null)}
+          presentation={questionPopover?.presentation}
+          questionCode={questionPopover?.questionCode}
+          loading={questionPopover?.loading}
+          error={questionPopover?.error}
+          result={questionPopover?.result}
+          onClose={closePopover}
           onOpenGlossaryTerm={onOpenGlossaryTerm}
           onAnswered={onQcmAnswered}
+          onReshuffle={reshuffle}
+          onSubmitResult={setResult}
         />
-      ) : null}
+      </div>
 
-      {pendingMarker && !isQuizMarker ? (
+      {pendingMarker ? (
         <div className="gl-action-modal" role="dialog" aria-label="Proposer une action">
           <div className="gl-action-modal-body">
             <h3>Proposer une action sur « {pendingMarker.label} »</h3>

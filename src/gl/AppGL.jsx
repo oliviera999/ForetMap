@@ -597,6 +597,7 @@ export function AppGL() {
               canRequestAction={canRequestAction}
               selectedTeamId={selectedTeamId}
               currentTeamId={currentTeamId}
+              playerTeamId={auth?.teamId != null ? Number(auth.teamId) : null}
               mascotStateMachine={mascotStateMachine}
             />
             {!isAdmin && gameState?.game && auth?.teamId == null && (

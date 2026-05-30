@@ -1252,6 +1252,113 @@ button.gl-brand-hub__card:focus-visible {
   cursor: pointer;
 }
 
+.gl-marker-event-editor {
+  display: grid;
+  gap: 10px;
+  padding: 10px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: #f9fafb;
+}
+
+.gl-marker-event-mode {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.gl-marker-event-difficulte {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.gl-marker-event-pool__header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.gl-marker-event-pool__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 240px;
+  overflow: auto;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.gl-marker-event-pool__list li {
+  border-bottom: 1px solid #f3f4f6;
+  padding: 6px 8px;
+}
+
+.gl-marker-event-pool__list label {
+  display: grid;
+  grid-template-columns: auto auto 1fr;
+  gap: 8px;
+  align-items: start;
+  cursor: pointer;
+}
+
+.gl-marker-event-pool__code {
+  font-family: ui-monospace, monospace;
+  font-size: 0.85rem;
+}
+
+.gl-marker-event-pool__meta {
+  font-size: 0.75rem;
+  color: #6b7280;
+}
+
+.gl-marker-event-pool__question {
+  grid-column: 2 / -1;
+  font-size: 0.9rem;
+}
+
+.gl-qcm-popover {
+  position: absolute;
+  z-index: 30;
+  width: min(360px, calc(100% - 16px));
+  transform: translate(-50%, -100%);
+  margin-top: -12px;
+  pointer-events: auto;
+}
+
+.gl-qcm-popover__body {
+  background: #fff;
+  border: 2px solid var(--gl-color-primary, #22c55e);
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+  padding: 12px 14px;
+  max-height: min(70vh, 420px);
+  overflow: auto;
+}
+
+.gl-qcm-popover__anchor {
+  position: absolute;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+
+.gl-gameplay-retrigger {
+  margin-top: 12px;
+}
+
+.gl-gameplay-retrigger select {
+  min-height: 44px;
+  width: 100%;
+  max-width: 420px;
+}
+
 .gl-info {
   padding: 6px 12px;
   background: var(--gl-accent-success);
