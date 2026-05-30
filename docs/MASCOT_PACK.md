@@ -10,6 +10,7 @@ Ce document décrit le JSON **mascot pack** versions **1** et **2** : source de 
 |--------|------|-------------|
 | `mascotPackVersion` | `2` | Active le profil d’interaction ci-dessous. |
 | `interactionProfile` | objet (optionnel) | Clés stables listées dans [`visitMascotInteractionEvents.js`](../src/utils/visitMascotInteractionEvents.js) (miroir prod : **`lib/visit-pack/visitMascotInteractionEvents.js`**) ; chaque valeur : `{ mode: 'none' \| 'happy' \| 'transient', state?: état canonique, durationMs?: nombre }` (pour `transient`, `state` requis). Absence d’entrée = **comportement par défaut** (équivalent historique ForetMap). |
+| `dialogProfile` | objet (optionnel) | Clés stables listées dans [`visitMascotDialogEvents.js`](../src/utils/visitMascotDialogEvents.js) (miroir prod : **`lib/visit-pack/visitMascotDialogEvents.js`**) ; chaque valeur : tableau de lignes de bulle (`string[]`, max 12 lignes × 160 car.). Priorité runtime : **pack** → surcharges catalogue (`content.visit.mascot_dialog.catalog_overrides`) → défauts globaux (`content.visit.mascot_dialog.defaults`) → textes code. Studio prof : onglet **Bulles de dialogue** + vue **Dialogues** du studio packs. |
 
 **Bibliothèque sprites** : `framesBase` peut aussi être `/api/visit/mascot-sprite-library/{mapId}/assets/` (PNG partagés par carte, voir **`docs/API.md`**).
 

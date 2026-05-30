@@ -545,7 +545,9 @@ Contenus éditables du site (micro-CMS texte brut) :
 - Format : texte brut uniquement (pas de HTML/Markdown côté API).
 - Validation serveur : contraintes `maxLength` par clé ; si dépassé, la route renvoie `400`.
 - Fallback frontend : en cas de valeur vide/absente, l’UI conserve un texte de secours local.
-- Exemples de clés : `content.auth.title`, `content.visit.subtitle`, `content.about.help_body`, `content.app.loader`.
+- Exemples de clés : `content.auth.title`, `content.visit.subtitle`, `content.visit.mascot_dialog.defaults`, `content.visit.mascot_dialog.catalog_overrides`, `content.about.help_body`, `content.app.loader`.
+- **`content.visit.mascot_dialog.defaults`** : JSON string — profil global `{ "move": ["…"], "markerMarkedSeen": ["…"], … }` (clés stables, voir `visitMascotDialogEvents.js`). Exposé côté public sous **`settings.visit.mascot.dialog.defaults`** (objet parsé).
+- **`content.visit.mascot_dialog.catalog_overrides`** : JSON string — `{ "gnome-foret-rive": { "move": ["…"] }, … }`. Exposé sous **`settings.visit.mascot.dialog.catalogOverrides`**.
 
 Aides contextuelles (public) :
 - `ui.help.show_context_hints` (booléen, défaut `true`) : affiche/masque les mini-astuces sur Carte, Tâches et Visite.

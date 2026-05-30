@@ -2,7 +2,8 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 import { computeVisitMascotStartPct } from '../utils/visitMascotPlacement.js';
 import { visitZoneCentroidPct } from '../utils/visitMapGeometry.js';
 import { loadVisitMascotPositionPct, saveVisitMascotPositionPct } from '../utils/visitMascotPositionPersistence.js';
-import { VISIT_MASCOT_STATE, pickMascotDialog } from '../utils/visitMascotState.js';
+import { resolveMascotDialogLine } from '../utils/visitMascotDialogApply.js';
+import { VISIT_MASCOT_STATE } from '../utils/visitMascotState.js';
 import {
   clampMapMascotPctForViewport,
   MAP_VIEW_MASCOT_DIALOG_MOVE_COOLDOWN_MS,
@@ -26,6 +27,7 @@ function useMapViewMascot({
   preferredMascotId = null,
   allowedMascotIds = [],
   defaultMascotId = '',
+  mascotDialogSettings = null,
 } = {}) {
   const [mascotPct, setMascotPct] = useState({ xp: 50, yp: 50 });
   const [faceRight, setFaceRight] = useState(true);
@@ -111,7 +113,12 @@ function useMapViewMascot({
   const showDialog = useCallback((eventKey, { force = false } = {}) => {
     const now = Date.now();
     if (!force && eventKey === 'move' && now < moveDialogCooldownUntilRef.current) return;
-    const text = pickMascotDialog(eventKey);
+    const text = resolveMascotDialogLine(eventKey, {
+      mascotId,
+      extraCatalogEntries,
+      globalDefaults: mascotDialogSettings?.defaults || null,
+      catalogOverrides: mascotDialogSettings?.catalogOverrides || null,
+    });
     if (!text) return;
     if (eventKey === 'move') {
       moveDialogCooldownUntilRef.current = now + MAP_VIEW_MASCOT_DIALOG_MOVE_COOLDOWN_MS;
@@ -123,7 +130,7 @@ function useMapViewMascot({
       setDialogVisible(false);
       dialogTimeoutRef.current = null;
     }, MAP_VIEW_MASCOT_DIALOG_MS);
-  }, []);
+  }, [extraCatalogEntries, mascotDialogSettings, mascotId]);
 
   const triggerHappy = useCallback(() => {
     if (happyTimeoutRef.current) {

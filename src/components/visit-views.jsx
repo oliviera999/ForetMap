@@ -48,7 +48,8 @@ const VISIT_PROGRESS_DONUT_R = 14;
 const VISIT_PROGRESS_DONUT_STROKE = 3;
 const VISIT_PROGRESS_DONUT_C = 2 * Math.PI * VISIT_PROGRESS_DONUT_R;
 import { buildVisitMascotCatalogExtrasFromContent } from '../utils/visitMascotPackExtras.js';
-import { VISIT_MASCOT_STATE, pickMascotDialog } from '../utils/visitMascotState.js';
+import { resolveMascotDialogLine } from '../utils/visitMascotDialogApply.js';
+import { VISIT_MASCOT_STATE } from '../utils/visitMascotState.js';
 import { loadVisitMascotPositionPct, saveVisitMascotPositionPct } from '../utils/visitMascotPositionPersistence.js';
 import useVisitMascotStateMachine from '../hooks/useVisitMascotStateMachine.js';
 import {
@@ -1532,10 +1533,20 @@ function VisitView({
     if (visitMascotDialogTimeoutRef.current) clearTimeout(visitMascotDialogTimeoutRef.current);
   }, [cancelVisitZoomAnim]);
 
+  const mascotDialogSettings = useMemo(
+    () => publicSettings?.visit?.mascot?.dialog || null,
+    [publicSettings?.visit?.mascot?.dialog],
+  );
+
   const showMascotDialog = useCallback((eventKey, { force = false } = {}) => {
     const now = Date.now();
     if (!force && eventKey === 'move' && now < visitMascotMoveDialogCooldownUntilRef.current) return;
-    const text = pickMascotDialog(eventKey);
+    const text = resolveMascotDialogLine(eventKey, {
+      mascotId: visitMascotId,
+      extraCatalogEntries: visitMascotCatalogExtras,
+      globalDefaults: mascotDialogSettings?.defaults || null,
+      catalogOverrides: mascotDialogSettings?.catalogOverrides || null,
+    });
     if (!text) return;
     if (eventKey === 'move') {
       visitMascotMoveDialogCooldownUntilRef.current = now + VISIT_MASCOT_DIALOG_MOVE_COOLDOWN_MS;
@@ -1547,7 +1558,7 @@ function VisitView({
       setVisitMascotDialogVisible(false);
       visitMascotDialogTimeoutRef.current = null;
     }, VISIT_MASCOT_DIALOG_MS);
-  }, []);
+  }, [visitMascotId, visitMascotCatalogExtras, mascotDialogSettings]);
 
   const triggerMascotHappy = useCallback(() => {
     if (visitMapMascotHappyTimeoutRef.current) {

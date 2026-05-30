@@ -3,7 +3,7 @@ import { validateMascotPackV1 } from './mascotPack.js';
 /**
  * Construit des entrées catalogue visite (`sprite_cut`) à partir de `GET /api/visit/content` → `mascot_packs`.
  * @param {Array<{ catalog_id: string, label: string, pack: object }>} mascotPacks
- * @returns {Array<{ id: string, label: string, renderer: 'sprite_cut', fallbackSilhouette: string, spriteCut: object, interactionProfile?: object, mascotPackVersion?: number }>}
+ * @returns {Array<{ id: string, label: string, renderer: 'sprite_cut', fallbackSilhouette: string, spriteCut: object, interactionProfile?: object, dialogProfile?: object, mascotPackVersion?: number }>}
  */
 export function buildVisitMascotCatalogExtrasFromContent(mascotPacks) {
   const rows = Array.isArray(mascotPacks) ? mascotPacks : [];
@@ -24,6 +24,9 @@ export function buildVisitMascotCatalogExtrasFromContent(mascotPacks) {
       spriteCut: relaxed.spriteCut,
       ...(ver === 2 && relaxed.pack.interactionProfile
         ? { interactionProfile: relaxed.pack.interactionProfile }
+        : {}),
+      ...(ver === 2 && relaxed.pack.dialogProfile
+        ? { dialogProfile: relaxed.pack.dialogProfile }
         : {}),
       mascotPackVersion: ver,
     });
