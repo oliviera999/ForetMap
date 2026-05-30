@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { apiGL } from '../services/apiGL.js';
 import { GLKingdomZoneEditor } from './GLKingdomZoneEditor.jsx';
 
-export function GLKingdomMapView({ chapter, chapters = [], canManage }) {
+export function GLKingdomMapView({ chapter, chapters = [], canManage, onChapterChange }) {
   const [zones, setZones] = useState([]);
   const [error, setError] = useState('');
   const [selectedChapterId, setSelectedChapterId] = useState(chapter?.id ? Number(chapter.id) : null);
@@ -12,6 +12,10 @@ export function GLKingdomMapView({ chapter, chapters = [], canManage }) {
     if (!chapter?.id) return;
     setSelectedChapterId((prev) => (prev == null ? Number(chapter.id) : prev));
   }, [chapter]);
+
+  useEffect(() => {
+    onChapterChange?.(selectedChapterId != null ? Number(selectedChapterId) : null);
+  }, [selectedChapterId, onChapterChange]);
 
   const chapterOptions = useMemo(
     () => (Array.isArray(chapters) ? chapters : []).map((item) => ({

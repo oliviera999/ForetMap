@@ -28,7 +28,11 @@ body.gl-body {
   --gl-font-heading: var(--font-sans);
   min-height: 100vh;
   min-height: 100dvh;
-  background: linear-gradient(180deg, var(--gl-color-background, #f4fff5) 0%, #e8f7ff 100%);
+  background: linear-gradient(
+    180deg,
+    var(--gl-color-background, #f4fff5) 0%,
+    color-mix(in srgb, var(--gl-color-background, #f4fff5) 70%, #e8f7ff 30%) 100%
+  );
   color: var(--gl-color-text, #262626);
   font-family: var(--gl-font-body, var(--font-sans));
 }
@@ -1015,6 +1019,102 @@ button.gl-brand-hub__card:focus-visible {
   border-radius: 12px;
   padding: 10px;
   background: #fff;
+}
+
+.gl-color-editor {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.gl-color-editor-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 10px;
+}
+
+.gl-color-editor-field {
+  display: grid;
+  gap: 6px;
+  padding: 8px 10px;
+  border: 1px solid var(--gl-border, rgba(1, 58, 64, 0.18));
+  border-radius: var(--gl-radius-sm, 8px);
+  background: var(--gl-surface, #fff);
+}
+
+.gl-color-editor-label {
+  font-weight: 600;
+  font-size: 0.92rem;
+}
+
+.gl-color-editor-inputs {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.gl-color-editor-inputs input[type='color'] {
+  width: 44px;
+  height: 44px;
+  padding: 2px;
+  border: 1px solid var(--gl-border, rgba(1, 58, 64, 0.18));
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.gl-color-editor-inputs input[type='text'] {
+  flex: 1 1 120px;
+  min-height: 44px;
+  font-family: monospace;
+}
+
+.gl-color-editor-hint {
+  font-size: 0.82rem;
+}
+
+.gl-theme-preview {
+  margin: 12px 0 16px;
+  border: 1px solid var(--gl-border, rgba(1, 58, 64, 0.18));
+  border-radius: var(--gl-radius-md, 12px);
+  overflow: hidden;
+  min-height: 120px;
+}
+
+.gl-theme-preview-topbar {
+  background: var(--gl-color-topbar);
+  color: #f8fafc;
+  padding: 10px 14px;
+  font-weight: 600;
+}
+
+.gl-theme-preview-body {
+  padding: 14px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  background: var(--gl-color-background);
+}
+
+.gl-theme-preview-chip {
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.gl-theme-preview-chip--primary {
+  background: var(--gl-color-primary);
+  color: #fff;
+}
+
+.gl-theme-preview-chip--secondary {
+  background: var(--gl-color-secondary);
+  color: var(--gl-color-text);
+}
+
+.gl-theme-preview-text {
+  color: var(--gl-color-link);
 }
 
 .gl-profile-layout {

@@ -66,8 +66,8 @@ Le script accepte aussi :
 |--------|-----|------|------------|
 | GET | `/api/gl/chapters` | — | `gl.read` |
 | GET | `/api/gl/chapters/:slug` | — | `gl.read` (réponse `{ chapter, markers }`) |
-| POST | `/api/gl/chapters/admin` | `{ slug, title, biome?, biomeSlug?, mapImageUrl?, mapImageFrame?, storyMarkdown?, biotopeMarkdown?, biocenoseMarkdown?, orderIndex? }` | `gl.content.manage` (refus `409` si slug existant ; `biomeSlug` doit exister dans `gl_biomes`) |
-| PUT | `/api/gl/chapters/admin/:id` | mise à jour partielle des mêmes champs (dont `mapImageFrame`, `biomeSlug`) | `gl.content.manage` |
+| POST | `/api/gl/chapters/admin` | `{ slug, title, biome?, biomeSlug?, mapImageUrl?, mapImageFrame?, theme?, storyMarkdown?, biotopeMarkdown?, biocenoseMarkdown?, orderIndex? }` | `gl.content.manage` (refus `409` si slug existant ; `biomeSlug` doit exister dans `gl_biomes`) |
+| PUT | `/api/gl/chapters/admin/:id` | mise à jour partielle des mêmes champs (dont `mapImageFrame`, `biomeSlug`, `theme`) | `gl.content.manage` |
 | DELETE | `/api/gl/chapters/admin/:id` | — | `gl.content.manage` (refus `409` si partie liée) |
 | POST | `/api/gl/chapters/admin/:id/markers` | `{ label, xPct, yPct, eventType?, description?, orderIndex?, qcmCategorieSlug?, qcmQuestionCode? }` | `gl.content.manage` |
 | POST | `/api/gl/chapters/admin/:id/map-image` | `{ image_data }` (data URL base64 image) | `gl.content.manage` |
@@ -199,6 +199,15 @@ permission `gl.settings.manage`).
 `platform.brand.slots.{hero,card_world,card_rules,card_spells}.frame` avec
 `aspectRatio`, `objectFit`, `focalX`, `focalY`, `maxWidthPx`, `maxHeightPx`.
 Voir `docs/GL_IMAGE_FRAMES.md`.
+
+Couleurs plateforme (`platform.brand.colors`) : `primary`, `secondary`, `tertiary`,
+`text`, `link`, `linkHover`, `topbar`, `background` (hex `#RRGGBB`). Modifiables
+via l’admin GL (Réglages plateforme) ou `PUT /api/gl/admin/settings/platform.brand`.
+
+Thème chapitre (`theme` sur les routes `/api/gl/chapters*`) : surcharges partielles
+optionnelles `{ colors: { primary?, … } }`. Seules les clés renseignées remplacent
+la charte plateforme lorsqu’un chapitre est actif (partie en cours ou sélection
+sur la carte du royaume). Couleur invalide → `400`.
 
 ### Modules collaboration / pédagogie GL
 

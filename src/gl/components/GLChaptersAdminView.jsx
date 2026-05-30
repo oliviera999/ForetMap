@@ -10,6 +10,11 @@ import { GLImageSourceField } from './GLImageSourceField.jsx';
 import { GLImageFrameEditor } from './GLImageFrameEditor.jsx';
 import { glImageFrameToStyle, normalizeGlImageFrame } from '../../utils/glImageFrame.js';
 import { GLRichTextEditor } from './ui/GLRichTextEditor.jsx';
+import { GLBrandColorEditor } from './GLBrandColorEditor.jsx';
+import { normalizeBrand } from '../hooks/useGLBrandTheme.js';
+import { brandToCssVars, mergeBrandWithChapterTheme, normalizeChapterTheme } from '../../utils/glBrandTheme.js';
+
+const EMPTY_CHAPTER_THEME = { colors: {} };
 
 const EMPTY_CHAPTER_FORM = {
   slug: '',
@@ -22,6 +27,7 @@ const EMPTY_CHAPTER_FORM = {
   biocenoseMarkdown: '',
   orderIndex: 0,
   mapImageFrame: normalizeGlImageFrame(null, 'chapter-map'),
+  theme: { ...EMPTY_CHAPTER_THEME },
 };
 
 export function GLChaptersAdminView() {
@@ -36,7 +42,17 @@ export function GLChaptersAdminView() {
   const [pendingMapPreviewUrl, setPendingMapPreviewUrl] = useState('');
   const [frameEditorOpen, setFrameEditorOpen] = useState(false);
   const [biomes, setBiomes] = useState([]);
+  const [platformBrand, setPlatformBrand] = useState(null);
   const previewMapGestures = useGlPctMapGestures();
+
+  async function loadPlatformBrand() {
+    try {
+      const config = await apiGL('/api/gl/auth/config');
+      setPlatformBrand(normalizeBrand(config?.brand));
+    } catch (_) {
+      setPlatformBrand(normalizeBrand(null));
+    }
+  }
 
   async function loadBiomes() {
     try {
@@ -78,6 +94,7 @@ export function GLChaptersAdminView() {
         biotopeMarkdown: data.chapter.biotope_markdown || '',
         biocenoseMarkdown: data.chapter.biocenose_markdown || '',
         orderIndex: Number(data.chapter.order_index || 0),
+        theme: normalizeChapterTheme(data.chapter.theme),
       });
       setSelectedId(Number(data.chapter.id));
       clearPendingMapImage();
@@ -89,6 +106,7 @@ export function GLChaptersAdminView() {
   useEffect(() => {
     loadChapters();
     loadBiomes();
+    loadPlatformBrand();
   }, []);
 
   function clearPendingMapImage() {
@@ -117,6 +135,7 @@ export function GLChaptersAdminView() {
     const payload = {
       ...chapterForm,
       mapImageFrame: normalizeGlImageFrame(chapterForm.mapImageFrame, 'chapter-map'),
+      theme: normalizeChapterTheme(chapterForm.theme),
       orderIndex: Number(chapterForm.orderIndex) || 0,
     };
     try {
@@ -236,6 +255,10 @@ export function GLChaptersAdminView() {
     () => glImageFrameToStyle(normalizeGlImageFrame(chapterForm.mapImageFrame, 'chapter-map')),
     [chapterForm.mapImageFrame]
   );
+  const themePreviewStyle = useMemo(() => {
+    const merged = mergeBrandWithChapterTheme(platformBrand, chapterForm.theme);
+    return brandToCssVars(merged);
+  }, [platformBrand, chapterForm.theme]);
 
   return (
     <section className="gl-panel">
@@ -351,6 +374,36 @@ export function GLChaptersAdminView() {
                 onChange={(event) => setChapterForm({ ...chapterForm, orderIndex: event.target.value })}
               />
             </label>
+
+            <h3>Thème du chapitre</h3>
+            <p className="gl-hint">
+              Laissez une couleur vide pour hériter de la charte plateforme. Seules les couleurs renseignées
+              remplacent la charte par défaut pendant une partie ou sur la carte du royaume.
+            </p>
+            <GLBrandColorEditor
+              sparse
+              value={chapterForm.theme?.colors || {}}
+              inheritedColors={platformBrand?.colors}
+              onChange={(updater) => {
+                setChapterForm((prev) => {
+                  const prevColors = prev.theme?.colors || {};
+                  const nextColors = typeof updater === 'function' ? updater(prevColors) : updater;
+                  return {
+                    ...prev,
+                    theme: { colors: nextColors },
+                  };
+                });
+              }}
+            />
+            <div className="gl-theme-preview gl-app" style={themePreviewStyle} aria-hidden>
+              <div className="gl-theme-preview-topbar">Barre haute</div>
+              <div className="gl-theme-preview-body">
+                <span className="gl-theme-preview-chip gl-theme-preview-chip--primary">Primaire</span>
+                <span className="gl-theme-preview-chip gl-theme-preview-chip--secondary">Secondaire</span>
+                <span className="gl-theme-preview-text">Texte et liens du chapitre</span>
+              </div>
+            </div>
+
             <label>
               Histoire (markdown)
               <GLRichTextEditor

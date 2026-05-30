@@ -5,6 +5,9 @@ const assert = require('node:assert');
 const {
   normalizeBrand,
   normalizeBrandSlots,
+  normalizeChapterTheme,
+  mergeBrandWithChapterTheme,
+  DEFAULT_GL_BRAND,
   DEFAULT_GL_BRAND_SLOTS,
 } = require('../lib/glBrand');
 
@@ -38,4 +41,28 @@ test('normalizeBrandSlots remplit les quatre emplacements', () => {
   assert.ok(slots.card_world.tab, 'world');
   assert.ok(slots.card_spells.tab, 'spells');
   assert.strictEqual(slots.card_rules.frame.objectFit, 'cover');
+});
+
+test('normalizeChapterTheme conserve uniquement les couleurs hex valides', () => {
+  const theme = normalizeChapterTheme({
+    colors: {
+      primary: '#1a4d2e',
+      secondary: 'invalid',
+      background: '',
+      text: '#262626',
+    },
+  });
+  assert.deepStrictEqual(theme.colors, {
+    primary: '#1a4d2e',
+    text: '#262626',
+  });
+});
+
+test('mergeBrandWithChapterTheme surcharge partiellement la charte plateforme', () => {
+  const merged = mergeBrandWithChapterTheme(DEFAULT_GL_BRAND, {
+    colors: { primary: '#112233', background: '#aabbcc' },
+  });
+  assert.strictEqual(merged.colors.primary, '#112233');
+  assert.strictEqual(merged.colors.background, '#aabbcc');
+  assert.strictEqual(merged.colors.secondary, DEFAULT_GL_BRAND.colors.secondary);
 });

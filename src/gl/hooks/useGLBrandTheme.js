@@ -1,5 +1,6 @@
 import { useEffect, useMemo } from 'react';
 import { normalizeGlImageFrame } from '../../utils/glImageFrame.js';
+import { mergeBrandWithChapterTheme } from '../../utils/glBrandTheme.js';
 
 export const GL_CONTENT_PAGE_SLOT_BY_SLUG = {
   world: 'card_world',
@@ -129,8 +130,11 @@ function upsertFontLink(families) {
   node.href = href;
 }
 
-export function useGLBrandTheme(rawBrand) {
-  const brand = useMemo(() => normalizeBrand(rawBrand), [rawBrand]);
+export function useGLBrandTheme(rawBrand, chapterTheme) {
+  const brand = useMemo(
+    () => mergeBrandWithChapterTheme(rawBrand, chapterTheme),
+    [rawBrand, chapterTheme]
+  );
   useEffect(() => {
     upsertFontLink(brand.fonts.googleFamilies);
   }, [brand]);
