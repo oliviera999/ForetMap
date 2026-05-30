@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { withAppBase } from '../../../services/api.js';
-import { apiGL, getGlToken } from '../../services/apiGL.js';
+import { apiGL } from '../../services/apiGL.js';
+import { downloadGlFile } from '../../utils/downloadGlFile.js';
 import { GLButton } from '../ui/GLButton.jsx';
 import { GLField } from '../ui/GLField.jsx';
 import { GLInput } from '../ui/GLInput.jsx';
@@ -28,21 +28,11 @@ export function GLPlayersImportPanel({ onReload }) {
     setError('');
     setInfo('');
     try {
-      const headers = new Headers();
-      const token = getGlToken();
-      if (token) headers.set('Authorization', `Bearer ${token}`);
-      const res = await fetch(withAppBase(`/api/gl/admin/players/import/template?format=${encodeURIComponent(format)}`), {
-        method: 'GET',
-        headers,
-      });
-      if (!res.ok) throw new Error('Téléchargement impossible');
-      const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = format === 'xlsx' ? 'foretmap-gl-modele-joueurs.xlsx' : 'foretmap-gl-modele-joueurs.csv';
-      link.click();
-      URL.revokeObjectURL(url);
+      const filename = format === 'xlsx' ? 'foretmap-gl-modele-joueurs.xlsx' : 'foretmap-gl-modele-joueurs.csv';
+      await downloadGlFile(
+        `/api/gl/admin/players/import/template?format=${encodeURIComponent(format)}`,
+        filename
+      );
       setInfo(`Modèle ${format.toUpperCase()} téléchargé.`);
     } catch (err) {
       setError(err.message || 'Erreur de téléchargement');

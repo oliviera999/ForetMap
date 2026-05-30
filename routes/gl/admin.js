@@ -19,8 +19,30 @@ const {
   deleteMediaLibraryItem,
 } = require('../../lib/mediaLibrary');
 const { normalizeBrand } = require('../../lib/glBrand');
+const { sendXlsxAttachment, wrapXlsxRoute } = require('../../lib/glXlsxAttachment');
+const {
+  buildGlossaryTemplateWorkbook,
+  buildGlossaryExportWorkbook,
+  loadGlossaryExportRows,
+} = require('../../lib/glGlossaryImport');
+const {
+  buildQcmTemplateWorkbook,
+  buildQcmExportWorkbook,
+  loadQcmExportRows,
+} = require('../../lib/glQcmImport');
+const {
+  buildSpeciesTemplateWorkbook,
+  buildSpeciesExportWorkbook,
+  loadSpeciesExportRows,
+} = require('../../lib/glSpeciesImport');
 
 const router = express.Router();
+
+function normalizeBiomeSlugFilter(value) {
+  if (value == null) return null;
+  const s = String(value).trim();
+  return s.length > 0 ? s : null;
+}
 
 function normalizeOptionalString(value) {
   if (value == null) return null;
@@ -382,22 +404,86 @@ router.post('/players/:id/reset-pin', requireGlPermission('gl.players.manage'), 
   return res.json({ ok: true });
 });
 
-router.get('/players/import/template', requireGlPermission('gl.players.manage'), async (req, res) => {
+router.get('/players/import/template', requireGlPermission('gl.players.manage'), wrapXlsxRoute(async (req, res) => {
   const format = String(req.query?.format || 'csv').toLowerCase();
   if (format === 'xlsx') {
-    const buffer = buildXlsxTemplate();
-    res.setHeader(
-      'Content-Type',
-      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-    );
-    res.setHeader('Content-Disposition', 'attachment; filename="foretmap-gl-modele-joueurs.xlsx"');
-    return res.send(buffer);
+    return sendXlsxAttachment(res, buildXlsxTemplate(), 'foretmap-gl-modele-joueurs.xlsx');
   }
   const csv = buildCsvTemplate();
   res.setHeader('Content-Type', 'text/csv; charset=utf-8');
   res.setHeader('Content-Disposition', 'attachment; filename="foretmap-gl-modele-joueurs.csv"');
   return res.send(csv);
-});
+}));
+
+/** Modèles / exports contenus (même URLs que routes /api/gl/admin/… sur routeurs dédiés). */
+router.get(
+  '/glossary/import/template',
+  requireGlPermission('gl.content.manage'),
+  wrapXlsxRoute(async (_req, res) => sendXlsxAttachment(
+    res,
+    buildGlossaryTemplateWorkbook(),
+    'foretmap-gl-modele-glossaire.xlsx'
+  ))
+);
+
+router.get(
+  '/glossary/export',
+  requireGlPermission('gl.content.manage'),
+  wrapXlsxRoute(async (req, res) => {
+    const statutRaw = String(req.query?.statut || 'actif').toLowerCase();
+    const statut = statutRaw === 'all' ? 'all' : 'actif';
+    const rows = await loadGlossaryExportRows({ queryAll }, { statut });
+    return sendXlsxAttachment(res, buildGlossaryExportWorkbook(rows), 'foretmap-gl-export-glossaire.xlsx');
+  })
+);
+
+router.get(
+  '/qcm/import/template',
+  requireGlPermission('gl.content.manage'),
+  wrapXlsxRoute(async (_req, res) => sendXlsxAttachment(
+    res,
+    buildQcmTemplateWorkbook(),
+    'foretmap-gl-modele-qcm.xlsx'
+  ))
+);
+
+router.get(
+  '/qcm/export',
+  requireGlPermission('gl.content.manage'),
+  wrapXlsxRoute(async (req, res) => {
+    const statutRaw = String(req.query?.statut || 'actif').toLowerCase();
+    const statut = statutRaw === 'all' ? 'all' : 'actif';
+    const biomeSlug = normalizeBiomeSlugFilter(req.query?.biomeSlug);
+    const categorieSlug = normalizeOptionalString(req.query?.categorieSlug);
+    const data = await loadQcmExportRows(
+      { queryAll },
+      { statut, biomeSlug, categorieSlug }
+    );
+    return sendXlsxAttachment(res, buildQcmExportWorkbook(data), 'foretmap-gl-export-qcm.xlsx');
+  })
+);
+
+router.get(
+  '/species/import/template',
+  requireGlPermission('gl.content.manage'),
+  wrapXlsxRoute(async (_req, res) => sendXlsxAttachment(
+    res,
+    buildSpeciesTemplateWorkbook(),
+    'foretmap-gl-modele-biocenose.xlsx'
+  ))
+);
+
+router.get(
+  '/species/export',
+  requireGlPermission('gl.content.manage'),
+  wrapXlsxRoute(async (req, res) => {
+    const statutRaw = String(req.query?.statut || 'actif').toLowerCase();
+    const statut = statutRaw === 'all' ? 'all' : 'actif';
+    const biomeSlug = normalizeBiomeSlugFilter(req.query?.biomeSlug);
+    const data = await loadSpeciesExportRows({ queryAll }, { statut, biomeSlug });
+    return sendXlsxAttachment(res, buildSpeciesExportWorkbook(data), 'foretmap-gl-export-biocenose.xlsx');
+  })
+);
 
 router.post('/players/import', requireGlPermission('gl.players.manage'), async (req, res) => {
   const dryRun = !!req.body?.dryRun;

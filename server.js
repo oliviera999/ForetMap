@@ -112,6 +112,7 @@ app.use(
     filter: (req, res) => {
       const p = String(req.path || '').split('?')[0];
       if (p === '/socket.io' || p.startsWith('/socket.io/')) return false;
+      if (p.includes('/import/template') || /\/export$/.test(p)) return false;
       return compression.filter(req, res);
     },
   })
@@ -524,6 +525,7 @@ app.get('/api/admin/oauth-debug', (req, res) => {
 });
 
 app.use('/api/gl/auth', glAuthRouter);
+app.use('/api/gl/admin', glAdminRouter);
 app.use('/api/gl/content', glContentRouter);
 app.use('/api/gl/chapters', glChaptersRouter);
 app.use('/api/gl/mascots', glMascotsRouter);
@@ -531,7 +533,6 @@ app.use('/api/gl', glSpeciesRouter);
 app.use('/api/gl', glGlossaryRouter);
 app.use('/api/gl', glQcmRouter);
 app.use('/api/gl', glGamesRouter);
-app.use('/api/gl/admin', glAdminRouter);
 app.use('/api/gl/context-comments', glContextCommentsRouter);
 app.use('/api/gl/forum', glForumRouter);
 app.use('/api/gl/tutorials', glTutorialsRouter);
