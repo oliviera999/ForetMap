@@ -132,7 +132,7 @@ function upsertFontLink(families) {
 
 export function useGLBrandTheme(rawBrand, chapterTheme) {
   const brand = useMemo(
-    () => mergeBrandWithChapterTheme(rawBrand, chapterTheme),
+    () => mergeBrandWithChapterTheme(normalizeBrand(rawBrand), chapterTheme),
     [rawBrand, chapterTheme]
   );
   useEffect(() => {
