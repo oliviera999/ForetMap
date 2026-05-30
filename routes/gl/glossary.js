@@ -5,6 +5,9 @@ const {
   resolveImportRows,
   applyGlossaryImport,
   MAX_IMPORT_ROWS,
+  buildGlossaryTemplateWorkbook,
+  buildGlossaryExportWorkbook,
+  loadGlossaryExportRows,
 } = require('../../lib/glGlossaryImport');
 const {
   buildGlossaryLookupMap,
@@ -169,6 +172,31 @@ router.get('/admin/glossary/stats', requireGlPermission('gl.content.manage'), as
     byCategory,
     byNiveau,
   });
+});
+
+/** GET /api/gl/admin/glossary/import/template — modèle XLSX vierge. */
+router.get('/admin/glossary/import/template', requireGlPermission('gl.content.manage'), async (_req, res) => {
+  const buffer = buildGlossaryTemplateWorkbook();
+  res.setHeader(
+    'Content-Type',
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+  );
+  res.setHeader('Content-Disposition', 'attachment; filename="foretmap-gl-modele-glossaire.xlsx"');
+  return res.send(buffer);
+});
+
+/** GET /api/gl/admin/glossary/export — export XLSX ré-importable. */
+router.get('/admin/glossary/export', requireGlPermission('gl.content.manage'), async (req, res) => {
+  const statutRaw = String(req.query?.statut || 'actif').toLowerCase();
+  const statut = statutRaw === 'all' ? 'all' : 'actif';
+  const rows = await loadGlossaryExportRows({ queryAll }, { statut });
+  const buffer = buildGlossaryExportWorkbook(rows);
+  res.setHeader(
+    'Content-Type',
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+  );
+  res.setHeader('Content-Disposition', 'attachment; filename="foretmap-gl-export-glossaire.xlsx"');
+  return res.send(buffer);
 });
 
 /** POST /api/gl/admin/glossary/import — import XLSX glossaire. */

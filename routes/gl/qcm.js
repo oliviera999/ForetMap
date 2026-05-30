@@ -6,13 +6,16 @@ const {
   resolveImportRows,
   applyQcmImport,
   MAX_IMPORT_ROWS,
+  buildQcmTemplateWorkbook,
+  buildQcmExportWorkbook,
+  loadQcmExportRows,
+  combineKeywords,
 } = require('../../lib/glQcmImport');
 const { presentQuestion, verifyPresentationAnswer } = require('../../lib/glQcmChoices');
 const {
   buildGlossaryLookupMap,
   matchGlossaryTermsForSpecies,
 } = require('../../lib/glGlossaryMatch');
-const { combineKeywords } = require('../../lib/glQcmImport');
 const { normalizeOptionalString } = require('../../lib/shared/httpHelpers');
 
 const router = express.Router();
@@ -214,6 +217,36 @@ router.get('/admin/qcm/stats', requireGlPermission('gl.content.manage'), async (
     byCategory,
     byDifficulte,
   });
+});
+
+/** GET /api/gl/admin/qcm/import/template — modèle XLSX (feuilles categories + questions). */
+router.get('/admin/qcm/import/template', requireGlPermission('gl.content.manage'), async (_req, res) => {
+  const buffer = buildQcmTemplateWorkbook();
+  res.setHeader(
+    'Content-Type',
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+  );
+  res.setHeader('Content-Disposition', 'attachment; filename="foretmap-gl-modele-qcm.xlsx"');
+  return res.send(buffer);
+});
+
+/** GET /api/gl/admin/qcm/export — export XLSX ré-importable. */
+router.get('/admin/qcm/export', requireGlPermission('gl.content.manage'), async (req, res) => {
+  const statutRaw = String(req.query?.statut || 'actif').toLowerCase();
+  const statut = statutRaw === 'all' ? 'all' : 'actif';
+  const biomeSlug = normalizeBiomeSlug(req.query?.biomeSlug);
+  const categorieSlug = normalizeOptionalString(req.query?.categorieSlug);
+  const data = await loadQcmExportRows(
+    { queryAll },
+    { statut, biomeSlug, categorieSlug }
+  );
+  const buffer = buildQcmExportWorkbook(data);
+  res.setHeader(
+    'Content-Type',
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+  );
+  res.setHeader('Content-Disposition', 'attachment; filename="foretmap-gl-export-qcm.xlsx"');
+  return res.send(buffer);
 });
 
 /** POST /api/gl/admin/qcm/import */

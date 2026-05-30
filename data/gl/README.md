@@ -25,7 +25,7 @@ npm run gl:import:glossary          # simulation (dry-run)
 npm run gl:import:glossary -- --apply
 ```
 
-Depuis l’admin GL : **Contenus → Glossaire**.
+Depuis l’admin GL : **Contenus → Glossaire** (boutons **Modèle XLSX** et **Exporter le catalogue**, ou API `GET /api/gl/admin/glossary/import/template` et `GET /api/gl/admin/glossary/export?statut=actif|all`).
 
 Les termes sont filtrés par biome du chapitre ; les fiches espèces affichent des liens glossaire via `mots_cles` (re-importer les espèces après ajout de la colonne).
 
@@ -38,6 +38,6 @@ npm run gl:import:qcm          # simulation (dry-run)
 npm run gl:import:qcm -- --apply
 ```
 
-Depuis l’admin GL : **Contenus → QCM**.
+Depuis l’admin GL : **Contenus → QCM** (boutons **Modèle XLSX** et **Exporter le catalogue**, ou API `GET /api/gl/admin/qcm/import/template` et `GET /api/gl/admin/qcm/export` avec filtres optionnels `biomeSlug`, `categorieSlug`, `statut`).
 
 Les questions sont liées au glossaire via `mots_cles` / `tags` (importer le glossaire avant ou re-importer le QCM après). Les réponses sont mélangées à chaque présentation (`GET /api/gl/qcm/questions/:code/present`).

@@ -1,8 +1,10 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { apiGL } from '../../services/apiGL.js';
+import { withAppBase } from '../../../services/api.js';
+import { apiGL, getGlToken } from '../../services/apiGL.js';
 import { GLButton } from '../ui/GLButton.jsx';
 import { GLField } from '../ui/GLField.jsx';
 import { GLInput } from '../ui/GLInput.jsx';
+import { GLSelect } from '../ui/GLSelect.jsx';
 
 async function fileToDataUrl(file) {
   return new Promise((resolve, reject) => {
@@ -31,6 +33,49 @@ export function GLQcmImportPanel() {
   const [answerLoading, setAnswerLoading] = useState(false);
   const [selectedChoiceId, setSelectedChoiceId] = useState(null);
   const [feedback, setFeedback] = useState(null);
+  const [exportStatut, setExportStatut] = useState('actif');
+
+  async function downloadFile(url, filename) {
+    setLoading(true);
+    setError('');
+    setInfo('');
+    try {
+      const headers = new Headers();
+      const token = getGlToken();
+      if (token) headers.set('Authorization', `Bearer ${token}`);
+      const res = await fetch(withAppBase(url), { method: 'GET', headers });
+      if (!res.ok) throw new Error('Téléchargement impossible');
+      const blob = await res.blob();
+      const objectUrl = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = objectUrl;
+      link.download = filename;
+      link.click();
+      URL.revokeObjectURL(objectUrl);
+    } catch (err) {
+      setError(err.message || 'Erreur de téléchargement');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function downloadTemplate() {
+    await downloadFile('/api/gl/admin/qcm/import/template', 'foretmap-gl-modele-qcm.xlsx');
+    setInfo('Modèle XLSX téléchargé (feuilles categories et questions).');
+  }
+
+  async function downloadExport() {
+    const params = new URLSearchParams();
+    if (exportStatut === 'all') params.set('statut', 'all');
+    if (biomeSlug.trim()) params.set('biomeSlug', biomeSlug.trim());
+    if (categorieSlug.trim()) params.set('categorieSlug', categorieSlug.trim());
+    const query = params.toString();
+    await downloadFile(
+      `/api/gl/admin/qcm/export${query ? `?${query}` : ''}`,
+      'foretmap-gl-export-qcm.xlsx'
+    );
+    setInfo('Export XLSX généré.');
+  }
 
   async function loadStats() {
     try {
@@ -139,7 +184,10 @@ export function GLQcmImportPanel() {
     <section className="gl-admin-section gl-animate-in">
       <h3>Import QCM (XLSX)</h3>
       <p className="gl-hint">
-        Fichier attendu : feuilles <code>categories</code> et <code>questions</code> (voir <code>data/gl/README.md</code>).
+        Fichier attendu : feuilles <code>categories</code> et <code>questions</code> (les questions sont dans la feuille
+        {' '}
+        <code>questions</code>
+        ; voir <code>data/gl/README.md</code>).
       </p>
       {error ? <p className="gl-error">{error}</p> : null}
       {info ? <p className="gl-hint">{info}</p> : null}
@@ -154,6 +202,24 @@ export function GLQcmImportPanel() {
           <strong>{stats.glossaryLinks || 0}</strong>
         </p>
       ) : null}
+
+      <div className="gl-inline-actions">
+        <GLButton type="button" variant="secondary" onClick={downloadTemplate} disabled={loading}>
+          Modèle XLSX
+        </GLButton>
+        <GLField label="Export">
+          <GLSelect value={exportStatut} onChange={(e) => setExportStatut(e.target.value)}>
+            <option value="actif">Questions actives</option>
+            <option value="all">Tous les statuts</option>
+          </GLSelect>
+        </GLField>
+        <GLButton type="button" variant="secondary" onClick={downloadExport} disabled={loading}>
+          Exporter le catalogue
+        </GLButton>
+      </div>
+      <p className="gl-hint">
+        L’export utilise les filtres biome / catégorie ci-dessous s’ils sont renseignés.
+      </p>
 
       <form className="gl-admin-form" onSubmit={runImport}>
         <GLField label="Fichier XLSX">

@@ -5,8 +5,9 @@ const { test, before } = require('node:test');
 const assert = require('node:assert');
 const request = require('supertest');
 const { app } = require('../server');
-const { initSchema, execute, queryOne } = require('../database');
+const { initSchema, queryOne, execute } = require('../database');
 const { createGlAdmin, createGlClass, createGlGameWithTeams, createGlPlayer, signTokens } = require('./helpers/glFixtures');
+const { signAuthToken } = require('../middleware/requireTeacher');
 
 let adminToken = '';
 let playerToken = '';
@@ -216,5 +217,70 @@ test('sprite library GL: ajout, liste, suppression', async () => {
   await request(app)
     .delete(`/api/gl/mascots/sprite-library/${id}`)
     .set('Authorization', `Bearer ${adminToken}`)
+    .expect(200);
+});
+
+test('GET /api/gl/mascots expose les packs visit publiés et GL persistés', async () => {
+  const { invalidateGlUnifiedMascotCatalogForTests } = require('../lib/glUnifiedMascotCatalog');
+  invalidateGlUnifiedMascotCatalogForTests();
+
+  const glPayload = {
+    id: `gl-pack-${stamp}`,
+    name: 'Pack GL catalogue',
+    renderer: 'sprite_cut',
+    assets: [{ key: 'atlas', src: '/uploads/x.png' }],
+    states: [{ key: 'idle', frames: [0], loop: true, fps: 12 }],
+  };
+  await request(app)
+    .post('/api/gl/mascots/packs')
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ name: 'Pack GL catalogue', payload: glPayload })
+    .expect(201);
+
+  const teacher = await queryOne("SELECT id FROM users WHERE user_type = 'teacher' ORDER BY id ASC LIMIT 1");
+  const adminRole = await queryOne("SELECT id FROM roles WHERE slug = 'admin' LIMIT 1");
+  assert.ok(teacher?.id && adminRole?.id);
+  const teacherToken = await signAuthToken({
+    userType: 'teacher',
+    userId: teacher.id,
+    canonicalUserId: teacher.id,
+    roleId: adminRole.id,
+    roleSlug: 'admin',
+    roleDisplayName: 'Administrateur',
+    elevated: true,
+  }, true);
+
+  const visitCreated = await request(app)
+    .post('/api/visit/mascot-packs')
+    .set('Authorization', `Bearer ${teacherToken}`)
+    .send({ map_id: 'foret', is_published: 0 })
+    .expect(201);
+  const visitPackId = visitCreated.body.id;
+  const visitCatalogId = visitCreated.body.catalog_id;
+
+  await request(app)
+    .put(`/api/visit/mascot-packs/${visitPackId}`)
+    .set('Authorization', `Bearer ${teacherToken}`)
+    .send({
+      map_id: 'foret',
+      label: 'Pack visite GL test',
+      pack: visitCreated.body.pack,
+      is_published: 1,
+    })
+    .expect(200);
+
+  invalidateGlUnifiedMascotCatalogForTests();
+
+  const res = await request(app)
+    .get('/api/gl/mascots')
+    .set('Authorization', `Bearer ${adminToken}`)
+    .expect(200);
+
+  assert.ok((res.body?.mascots || []).some((row) => row.id === glPayload.id));
+  assert.ok((res.body?.mascots || []).some((row) => row.id === visitCatalogId));
+
+  await request(app)
+    .delete(`/api/visit/mascot-packs/${visitPackId}`)
+    .set('Authorization', `Bearer ${teacherToken}`)
     .expect(200);
 });

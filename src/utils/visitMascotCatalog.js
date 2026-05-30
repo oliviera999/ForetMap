@@ -315,6 +315,39 @@ function getVisitMascotCatalog() {
   return VISIT_MASCOT_CATALOG.slice();
 }
 
+function isVisitMascotExtraEntry(mascotId, extraEntries = []) {
+  const id = String(mascotId || '').trim();
+  if (!id) return false;
+  const extras = Array.isArray(extraEntries) ? extraEntries : [];
+  return extras.some((entry) => entry && String(entry.id || '').trim() === id);
+}
+
+/**
+ * Options de sélection visite : liste statique filtrée par `allowedMascotIds`,
+ * plus les packs serveur publiés (`extraEntries`) toujours proposés.
+ */
+function buildVisitMascotSelectionOptions(extraEntries = [], allowedMascotIds = []) {
+  const staticCatalog = getVisitMascotCatalog();
+  const extras = Array.isArray(extraEntries) ? extraEntries : [];
+  const allowed = normalizeAllowedMascotIdsInput(allowedMascotIds)
+    .filter((id, idx, arr) => arr.indexOf(id) === idx);
+
+  let staticOptions = staticCatalog;
+  if (allowed.length > 0) {
+    staticOptions = staticCatalog.filter((entry) => allowed.includes(String(entry?.id || '').trim()));
+  }
+
+  const seen = new Set(staticOptions.map((entry) => String(entry?.id || '').trim()).filter(Boolean));
+  const merged = [...staticOptions];
+  for (const extra of extras) {
+    const extraId = String(extra?.id || '').trim();
+    if (!extraId || seen.has(extraId)) continue;
+    seen.add(extraId);
+    merged.push(extra);
+  }
+  return merged;
+}
+
 function getDefaultVisitMascotId(allowedMascotIds = null, extraEntries = [], forcedDefaultId = DEFAULT_VISIT_MASCOT_ID) {
   const normalizedAllowed = normalizeAllowedMascotIdsInput(allowedMascotIds)
     .filter((id, idx, arr) => arr.indexOf(id) === idx)
@@ -349,6 +382,9 @@ function getVisitMascotById(mascotId) {
 
 function normalizeVisitMascotId(mascotId, extraEntries = [], options = {}) {
   const id = String(mascotId || '').trim();
+  if (isVisitMascotExtraEntry(id, extraEntries) && resolveVisitMascotEntry(id, extraEntries)) {
+    return id;
+  }
   const allowedIds = normalizeAllowedMascotIdsInput(options.allowedMascotIds)
     .filter((allowedId, idx, arr) => arr.indexOf(allowedId) === idx)
     .filter((allowedId) => !!resolveVisitMascotEntry(allowedId, extraEntries));
@@ -391,6 +427,8 @@ function saveVisitMascotId(mascotId, extraEntries = [], options = {}) {
 export {
   VISIT_MASCOT_STORAGE_KEY,
   getVisitMascotCatalog,
+  buildVisitMascotSelectionOptions,
+  isVisitMascotExtraEntry,
   getDefaultVisitMascotId,
   getVisitMascotById,
   resolveVisitMascotEntry,

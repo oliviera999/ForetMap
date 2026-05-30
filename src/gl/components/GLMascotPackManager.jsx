@@ -2,8 +2,10 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { apiGL } from '../services/apiGL.js';
 import { GLMascotPackWysiwygEditor } from './GLMascotPackWysiwygEditor.jsx';
 import { GLMascotPackPreviewPanel } from './GLMascotPackPreviewPanel.jsx';
+import { useGLMascotCatalog } from '../context/GLMascotCatalogContext.jsx';
 
 export function GLMascotPackManager() {
+  const { reload: reloadMascotCatalog } = useGLMascotCatalog();
   const [packs, setPacks] = useState([]);
   const [selectedId, setSelectedId] = useState('new');
   const [error, setError] = useState('');
@@ -38,6 +40,7 @@ export function GLMascotPackManager() {
         setInfo('Pack créé.');
       }
       await loadPacks();
+      await reloadMascotCatalog();
     } catch (err) {
       setError(err.message || 'Sauvegarde impossible');
     }
@@ -49,6 +52,7 @@ export function GLMascotPackManager() {
       setSelectedId('new');
       setInfo('Pack supprimé.');
       await loadPacks();
+      await reloadMascotCatalog();
     } catch (err) {
       setError(err.message || 'Suppression impossible');
     }

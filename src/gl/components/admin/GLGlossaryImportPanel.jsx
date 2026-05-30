@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { apiGL } from '../../services/apiGL.js';
+import { withAppBase } from '../../../services/api.js';
+import { apiGL, getGlToken } from '../../services/apiGL.js';
 import { GLButton } from '../ui/GLButton.jsx';
 import { GLField } from '../ui/GLField.jsx';
 import { GLInput } from '../ui/GLInput.jsx';
@@ -22,6 +23,47 @@ export function GLGlossaryImportPanel() {
   const [info, setInfo] = useState('');
   const [report, setReport] = useState(null);
   const [stats, setStats] = useState(null);
+  const [exportStatut, setExportStatut] = useState('actif');
+
+  async function downloadFile(url, filename) {
+    setLoading(true);
+    setError('');
+    setInfo('');
+    try {
+      const headers = new Headers();
+      const token = getGlToken();
+      if (token) headers.set('Authorization', `Bearer ${token}`);
+      const res = await fetch(withAppBase(url), { method: 'GET', headers });
+      if (!res.ok) throw new Error('Téléchargement impossible');
+      const blob = await res.blob();
+      const objectUrl = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = objectUrl;
+      link.download = filename;
+      link.click();
+      URL.revokeObjectURL(objectUrl);
+    } catch (err) {
+      setError(err.message || 'Erreur de téléchargement');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function downloadTemplate() {
+    await downloadFile('/api/gl/admin/glossary/import/template', 'foretmap-gl-modele-glossaire.xlsx');
+    setInfo('Modèle XLSX téléchargé.');
+  }
+
+  async function downloadExport() {
+    const params = new URLSearchParams();
+    if (exportStatut === 'all') params.set('statut', 'all');
+    const query = params.toString();
+    await downloadFile(
+      `/api/gl/admin/glossary/export${query ? `?${query}` : ''}`,
+      'foretmap-gl-export-glossaire.xlsx'
+    );
+    setInfo('Export XLSX généré.');
+  }
 
   async function loadStats() {
     try {
@@ -80,6 +122,21 @@ export function GLGlossaryImportPanel() {
           terme(s) actifs.
         </p>
       ) : null}
+
+      <div className="gl-inline-actions">
+        <GLButton type="button" variant="secondary" onClick={downloadTemplate} disabled={loading}>
+          Modèle XLSX
+        </GLButton>
+        <GLField label="Export">
+          <GLSelect value={exportStatut} onChange={(e) => setExportStatut(e.target.value)}>
+            <option value="actif">Termes actifs</option>
+            <option value="all">Tous les statuts</option>
+          </GLSelect>
+        </GLField>
+        <GLButton type="button" variant="secondary" onClick={downloadExport} disabled={loading}>
+          Exporter le catalogue
+        </GLButton>
+      </div>
 
       <form className="gl-form" onSubmit={runImport}>
         <GLField label="Fichier XLSX">

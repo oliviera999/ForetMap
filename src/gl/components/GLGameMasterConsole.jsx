@@ -6,6 +6,7 @@ import { GLField } from './ui/GLField.jsx';
 import { GLInput } from './ui/GLInput.jsx';
 import { GLSelect } from './ui/GLSelect.jsx';
 import { GLTextarea } from './ui/GLTextarea.jsx';
+import { useGLMascotCatalog } from '../context/GLMascotCatalogContext.jsx';
 
 function formatTimestamp(value) {
   if (!value) return '';
@@ -46,7 +47,7 @@ export function GLGameMasterConsole({
   });
   const [editingTeamId, setEditingTeamId] = useState(null);
   const [rosterRefreshKey, setRosterRefreshKey] = useState(0);
-  const [mascotCatalog, setMascotCatalog] = useState([]);
+  const { mascots: mascotCatalog } = useGLMascotCatalog();
 
   const activeClasses = useMemo(
     () => (Array.isArray(classes) ? classes : []).filter((item) => Number(item.is_active) !== 0),
@@ -108,22 +109,6 @@ export function GLGameMasterConsole({
     if (fallback?.id) return fallback.id;
     return list[0]?.id || '';
   }, [mascotOptions]);
-
-  useEffect(() => {
-    let cancelled = false;
-    apiGL('/api/gl/mascots')
-      .then((data) => {
-        if (cancelled) return;
-        const rows = Array.isArray(data?.mascots) ? data.mascots : [];
-        setMascotCatalog(rows);
-      })
-      .catch(() => {
-        if (!cancelled) setMascotCatalog([]);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
 
   useEffect(() => {
     if (!mascotOptions.length) return;
