@@ -601,6 +601,11 @@ button.gl-brand-hub__card:focus-visible {
   text-underline-offset: 2px;
 }
 
+.gl-board-shell {
+  position: relative;
+  width: 100%;
+}
+
 .gl-board {
   position: relative;
   width: 100%;
