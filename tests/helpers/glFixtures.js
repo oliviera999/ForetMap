@@ -75,19 +75,18 @@ async function createGlChapterWithMarker(options = {}) {
   const title = String(options.title || `Chapitre ${stamp}`);
   const biome = String(options.biome || 'foret');
   const mapImageUrl = String(options.mapImageUrl || '');
-  const createdBy = Number(options.createdBy || 1);
   const markerLabel = String(options.markerLabel || 'Repere');
 
   await execute(
     `INSERT INTO gl_chapters
-      (slug, title, biome, map_image_url, story_markdown, biotope_markdown, biocenose_markdown, order_index, created_by, created_at, updated_at)
-     VALUES (?, ?, ?, ?, '# Story', '# Biotope', '# Biocenose', 0, ?, NOW(), NOW())
+      (slug, title, biome, map_image_url, story_markdown, biotope_markdown, biocenose_markdown, order_index, created_at, updated_at)
+     VALUES (?, ?, ?, ?, '# Story', '# Biotope', '# Biocenose', 0, NOW(), NOW())
      ON DUPLICATE KEY UPDATE
        title = VALUES(title),
        biome = VALUES(biome),
        map_image_url = VALUES(map_image_url),
        updated_at = NOW()`,
-    [slug, title, biome, mapImageUrl, createdBy]
+    [slug, title, biome, mapImageUrl]
   );
   const chapter = await queryOne('SELECT * FROM gl_chapters WHERE slug = ? LIMIT 1', [slug]);
   const biomeSlugs = Array.isArray(options.biomeSlugs) ? options.biomeSlugs : [];

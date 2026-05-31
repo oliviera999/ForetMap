@@ -15,7 +15,23 @@ const files = [
   ['src/utils/visitMascotInteractionEvents.js', 'visitMascotInteractionEvents.js'],
   ['src/utils/visitMascotDialogEvents.js', 'visitMascotDialogEvents.js'],
   ['src/utils/visitMascotDialogApply.js', 'visitMascotDialogApply.js'],
+  ['src/utils/browserStorage.js', 'browserStorage.js'],
+  ['src/utils/visitMascotCatalog.js', 'visitMascotCatalog.js'],
+  ['src/data/renard2-cut-manifest.js', 'data/renard2-cut-manifest.js'],
 ];
+
+function copyWithVisitCatalogImportFix(from, to) {
+  if (to.endsWith(`${path.sep}visitMascotCatalog.js`)) {
+    let text = fs.readFileSync(from, 'utf8');
+    text = text.replace(
+      "from '../data/renard2-cut-manifest.js'",
+      "from './data/renard2-cut-manifest.js'",
+    );
+    fs.writeFileSync(to, text, 'utf8');
+    return;
+  }
+  fs.copyFileSync(from, to);
+}
 
 function main() {
   const hasSrc = files.every(([relSrc]) => fs.existsSync(path.join(root, relSrc)));
@@ -32,7 +48,8 @@ function main() {
   for (const [relSrc, name] of files) {
     const from = path.join(root, relSrc);
     const to = path.join(outDir, name);
-    fs.copyFileSync(from, to);
+    fs.mkdirSync(path.dirname(to), { recursive: true });
+    copyWithVisitCatalogImportFix(from, to);
   }
   console.log('[sync-visit-pack-server-lib] OK → lib/visit-pack/');
 }

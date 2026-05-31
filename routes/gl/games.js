@@ -7,24 +7,14 @@ const { getGameplaySettings } = require('../../lib/glSettings');
 const { logRouteError } = require('../../lib/routeLog');
 const { assignPlayerToTeamTx, unassignPlayerFromGameTx } = require('../../lib/glRoster');
 const { canAccessGlGame } = require('../../lib/glGameAccess');
-const { verifyPresentationAnswer, presentQuestion } = require('../../lib/glQcmChoices');
+const { verifyPresentationAnswer } = require('../../lib/glQcmChoices');
 const { combineKeywords } = require('../../lib/glQcmImport');
 const { buildGlossaryLookupMap, matchGlossaryTermsForSpecies } = require('../../lib/glGlossaryMatch');
 const { loadBiomesForChapterIds } = require('../../lib/glChapterBiomes');
 const { MARKER_SELECT, formatMarkerRow, isQuestionMarker } = require('../../lib/glMarkerRow');
 const { drawQuestionFromMarker } = require('../../lib/glMarkerQuestionPool');
 const { canPresentMarkerQuestion } = require('../../lib/glMarkerQuestionRetrigger');
-
-const QUESTION_SELECT = `
-  SELECT question_code, biome_slug, categorie_slug, numero_dans_categorie, question,
-         choix_a, choix_b, choix_c, choix_d, choix_e,
-         reponse_correcte, reponse_texte, niveau, difficulte, difficulte_label,
-         notes_pedagogiques, tags, mots_cles,
-         photo_url, photo_url_hd, photo_description_url, photo_filename, photo_credit,
-         photo_licence, photo_licence_url, photo_legende, photo_sujet,
-         wikipedia_title, wikipedia_url, photo_method, statut
-    FROM gl_qcm_questions
-`;
+const { loadPresentableQuestion, buildPresentation } = require('../../lib/glQcmQuestionQuery');
 
 async function loadGlossaryLookup() {
   const rows = await queryAll(
@@ -37,13 +27,6 @@ async function loadGlossaryLookup() {
 async function enrichQuestionWithGlossary(questionRow, glossaryByKey) {
   if (!questionRow) return [];
   return matchGlossaryTermsForSpecies(combineKeywords(questionRow), glossaryByKey);
-}
-
-async function loadActiveQuestion(code) {
-  return queryOne(
-    `${QUESTION_SELECT} WHERE question_code = ? AND statut = 'actif' LIMIT 1`,
-    [code]
-  );
 }
 
 const router = express.Router();
@@ -1032,14 +1015,16 @@ router.post('/games/:id/markers/:markerId/present-question', requireGlAuth, asyn
     return res.status(404).json({ error: draw.error || 'Aucune question disponible' });
   }
 
-  const questionRow = await loadActiveQuestion(draw.questionCode);
-  if (!questionRow) return res.status(404).json({ error: 'Question introuvable' });
+  const questionRow = await loadPresentableQuestion({ queryOne }, draw.questionCode);
+  if (!questionRow) {
+    return res.status(404).json({ error: draw.error || `Question ${draw.questionCode} non présentable` });
+  }
 
   const glossaryByKey = await loadGlossaryLookup();
   const glossaryTerms = await enrichQuestionWithGlossary(questionRow, glossaryByKey);
   let presentation;
   try {
-    presentation = presentQuestion(questionRow, glossaryTerms);
+    presentation = buildPresentation(questionRow, glossaryTerms);
   } catch (err) {
     return res.status(400).json({ error: err.message || 'Présentation impossible' });
   }

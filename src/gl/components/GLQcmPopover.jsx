@@ -1,11 +1,11 @@
 import React, { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { apiGL } from '../services/apiGL.js';
 import { GLButton } from './ui/GLButton.jsx';
 
 export function GLQcmPopover({
   open,
   marker,
-  anchorPct,
   gameId,
   presentation,
   questionCode,
@@ -38,6 +38,15 @@ export function GLQcmPopover({
     return () => window.removeEventListener('keydown', onKey);
   }, [open, onClose]);
 
+  useEffect(() => {
+    if (!open || typeof document === 'undefined') return undefined;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [open]);
+
   async function submitAnswer() {
     if (!questionCode || !presentation?.presentationToken || selectedChoiceId == null) return;
     setSubmitting(true);
@@ -64,22 +73,22 @@ export function GLQcmPopover({
     }
   }
 
-  if (!open || !anchorPct) return null;
+  if (!open || typeof document === 'undefined') return null;
 
   const displayError = externalError || error;
 
-  return (
-    <>
-      <div
-        className="gl-qcm-popover__anchor"
-        style={{ left: `${anchorPct.xp}%`, top: `${anchorPct.yp}%` }}
-        aria-hidden
-      />
+  return createPortal(
+    <div
+      className="gl-qcm-popover-overlay"
+      role="presentation"
+      onClick={() => onClose?.()}
+    >
       <div
         className="gl-qcm-popover"
         role="dialog"
         aria-label="Question"
-        style={{ left: `${anchorPct.xp}%`, top: `${anchorPct.yp}%` }}
+        aria-modal="true"
+        onClick={(event) => event.stopPropagation()}
       >
         <div className="gl-qcm-popover__body">
           <h3>{marker?.label || 'Question'}</h3>
@@ -170,6 +179,7 @@ export function GLQcmPopover({
           ) : null}
         </div>
       </div>
-    </>
+    </div>,
+    document.body,
   );
 }
