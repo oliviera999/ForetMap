@@ -653,8 +653,12 @@ export function AppGL() {
               const vm = toGameViewModel(state);
               setGameState(vm);
               const nextId = vm?.game?.id ? Number(vm.game.id) : null;
-              setSelectedTeamId(null);
-              setActiveGameId(nextId);
+              setActiveGameId((prevId) => {
+                if (Number(prevId) !== Number(nextId)) {
+                  setSelectedTeamId(null);
+                }
+                return nextId;
+              });
               reloadGameplaySettings();
             }}
             onReloadGame={async () => {

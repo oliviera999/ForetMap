@@ -314,7 +314,13 @@ export function GLGameMasterConsole({
     try {
       await apiGL(`/api/gl/games/${game.id}/${nextStatus}`, 'POST');
       await onReloadGame?.();
-      showSuccess(`Statut : ${formatGameStatus(nextStatus === 'start' ? 'live' : nextStatus === 'end' ? 'ended' : 'paused')}.`);
+      await loadGames();
+      const statusLabel = nextStatus === 'start'
+        ? 'live'
+        : nextStatus === 'end'
+          ? 'ended'
+          : 'paused';
+      showSuccess(`Statut : ${formatGameStatus(statusLabel)}.`);
     } catch (err) {
       showFailure(err.message || `Action « ${nextStatus} » impossible`);
     } finally {
