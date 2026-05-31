@@ -225,9 +225,17 @@ function tasksTabButton(page) {
     .or(page.locator('.top-tabs').getByRole('button', { name: /✅\s*Tâches/ }));
 }
 
+async function clickTasksTab(page) {
+  const btn = tasksTabButton(page).first();
+  await btn.waitFor({ state: 'visible', timeout: 25_000 });
+  await btn.evaluate((el) => {
+    el.click();
+  });
+}
+
 async function openTeacherTasksTab(page) {
   await dismissProfilePromotionModalIfPresent(page);
-  await tasksTabButton(page).first().click({ timeout: 25_000 });
+  await clickTasksTab(page);
   await page.getByRole('heading', { name: '✅ Tâches' }).waitFor({ state: 'visible', timeout: 25_000 });
   await resetTaskFiltersInTasksView(page);
 }
@@ -235,7 +243,7 @@ async function openTeacherTasksTab(page) {
 async function openStudentTasksTab(page) {
   await dismissProfilePromotionModalIfPresent(page);
   await page.locator('nav.bottom-nav').waitFor({ state: 'visible', timeout: 15_000 }).catch(() => {});
-  await tasksTabButton(page).first().click({ timeout: 25_000 });
+  await clickTasksTab(page);
   const tasksHeading = page.getByRole('heading', { name: '✅ Tâches' });
   await tasksHeading.waitFor({ state: 'attached', timeout: 25_000 });
   await tasksHeading.scrollIntoViewIfNeeded().catch(() => {});

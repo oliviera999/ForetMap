@@ -54,11 +54,13 @@ for (const vp of VIEWPORTS) {
       await loginAsNewStudent(page);
 
       await page.getByRole('button', { name: 'Activer les droits étendus' }).click();
-      const pinModal = page.getByRole('dialog', { name: /^Mode / });
-      await expectDialogStableAndFitting(pinModal, vp.height);
-      await closeDialogSafely(page, pinModal);
-
-      await enableTeacherMode(page);
+      const pinCard = page.locator('.pin-card');
+      await expect(pinCard).toBeVisible({ timeout: 25_000 });
+      await expectDialogStableAndFitting(pinCard, vp.height);
+      const pin = process.env.E2E_ELEVATION_PIN || process.env.TEACHER_PIN || '1234';
+      await pinCard.locator('.pin-input').fill(pin);
+      await pinCard.getByRole('button', { name: 'Entrer', exact: true }).click();
+      await pinCard.waitFor({ state: 'detached', timeout: 30_000 });
       await openTeacherTasksTab(page);
 
       await clickTeacherNewTask(page);

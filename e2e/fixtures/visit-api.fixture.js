@@ -69,12 +69,25 @@ async function deleteVisitMarker(page, token, markerId) {
  * @param {import('@playwright/test').Page} page
  * @returns {Promise<{ token: string, suffix: string, n3: { zoneId: string, markerAId: string, markerBId: string, entranceId: string } }>}
  */
+async function deleteOldE2eN3EntranceMarkers(page, headers) {
+  const res = await page.request.get('/api/visit/content?map_id=n3', { headers });
+  if (!res.ok()) return;
+  const body = await res.json();
+  const markers = Array.isArray(body?.markers) ? body.markers : [];
+  for (const marker of markers) {
+    const label = String(marker?.label || '');
+    if (!/E2E N3 entrée mascotte/i.test(label)) continue;
+    await page.request.delete(`/api/visit/markers/${encodeURIComponent(marker.id)}`, { headers }).catch(() => false);
+  }
+}
+
 async function seedVisitMascotContent(page) {
   const token = await getTeacherBearerToken(page);
   const headers = {
     Authorization: `Bearer ${token}`,
     'Content-Type': 'application/json',
   };
+  await deleteOldE2eN3EntranceMarkers(page, headers);
   const suffix = `${Date.now()}-${Math.floor(Math.random() * 1e6)}`;
 
   const zone = await postVisitZone(page, headers, {

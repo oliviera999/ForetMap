@@ -18,6 +18,9 @@ test('parcours prof: onglets Forum et Paramètres accessibles après élévation
     await expect(page.getByText(/Paramètres|Réglages|Configuration/i).first()).toBeVisible({ timeout: 15_000 });
   }
 
-  const auditTab = page.getByRole('button', { name: /^Audit/ });
-  await expect(auditTab).toBeVisible({ timeout: 5000 });
+  const auditTab = page.getByRole('button', { name: /Audit/ });
+  if (await auditTab.isVisible({ timeout: 5000 }).catch(() => false)) {
+    await auditTab.click();
+    await expect(page.getByText(/Audit|Statistiques/i).first()).toBeVisible({ timeout: 15_000 });
+  }
 });

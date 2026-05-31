@@ -97,7 +97,17 @@ test.describe('GL users admin flow', () => {
     await page.reload();
 
     await expect(page.getByRole('heading', { name: 'Gestion utilisateurs' })).toBeVisible();
-    await page.getByRole('button', { name: 'Voir comme' }).first().click();
+    const playersRes = await page.request.get('/api/gl/admin/players', {
+      headers: { Authorization: `Bearer ${seeded.adminToken}` },
+    });
+    expect(playersRes.ok()).toBeTruthy();
+    const players = await playersRes.json();
+    expect(players.some((row) => row.pseudo === seeded.playerPseudo)).toBeTruthy();
+
+    const playerRow = page.locator('tr, .gl-data-card').filter({ hasText: seeded.playerPseudo }).first();
+    await playerRow.scrollIntoViewIfNeeded();
+    await expect(playerRow).toBeVisible({ timeout: 15_000 });
+    await playerRow.getByRole('button', { name: 'Voir comme' }).click({ timeout: 15_000 });
 
     await expect(page.getByText('Prise de contrôle (admin GL)')).toBeVisible();
     await expect(page.getByRole('button', { name: 'Revenir à mon compte admin' })).toBeVisible();
