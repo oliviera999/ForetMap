@@ -3,6 +3,12 @@ import { apiGL } from '../services/apiGL.js';
 import { isQuestionMarker } from '../../utils/glMarkerEventConfig.js';
 import { MAP_VIEW_MASCOT_MOVE_MS } from '../../utils/mapViewMascotMotion.js';
 
+const PRESENT_DEDUPE_MS = 3000;
+
+function presentationKey(teamId, markerId) {
+  return `${Number(teamId)}:${Number(markerId)}`;
+}
+
 /**
  * Détecte l'arrivée d'une équipe sur un repère question et déclenche la présentation QCM.
  */
@@ -15,13 +21,29 @@ export function useGLMarkerArrival({
   moveDelayMs = MAP_VIEW_MASCOT_MOVE_MS,
 }) {
   const prevMarkerByTeamRef = useRef(new Map());
+  const recentPresentRef = useRef({ key: '', at: 0 });
   const [popover, setPopover] = useState(null);
   const excludeCodesRef = useRef([]);
+
+  const wasRecentPresentation = useCallback((teamId, markerId, windowMs = PRESENT_DEDUPE_MS) => {
+    const { key, at } = recentPresentRef.current;
+    return key === presentationKey(teamId, markerId) && Date.now() - at < windowMs;
+  }, []);
+
+  const markRecentPresentation = useCallback((teamId, markerId) => {
+    recentPresentRef.current = {
+      key: presentationKey(teamId, markerId),
+      at: Date.now(),
+    };
+  }, []);
 
   const presentAtMarker = useCallback(async (marker, options = {}) => {
     if (!gameId || !marker?.id) return;
     const teamId = options.teamId != null ? Number(options.teamId) : (watchTeamId != null ? Number(watchTeamId) : null);
+    if (!options.force && wasRecentPresentation(teamId, marker.id)) return;
+
     const excludeCodes = options.excludeCodes || excludeCodesRef.current || [];
+    markRecentPresentation(teamId, marker.id);
     setPopover({
       marker,
       teamId,
@@ -60,7 +82,21 @@ export function useGLMarkerArrival({
         result: null,
       });
     }
-  }, [gameId, watchTeamId]);
+  }, [gameId, watchTeamId, wasRecentPresentation, markRecentPresentation]);
+
+  const schedulePresentOnArrival = useCallback((marker, teamId, options = {}) => {
+    if (!enabled || !gameId || !marker?.id || !isQuestionMarker(marker)) return undefined;
+    const resolvedTeamId = teamId != null ? Number(teamId) : (watchTeamId != null ? Number(watchTeamId) : null);
+    if (resolvedTeamId == null) return undefined;
+    const delay = Math.max(0, Number(options.moveDelayMs ?? moveDelayMs) || 0);
+    const timer = window.setTimeout(() => {
+      presentAtMarker(marker, {
+        teamId: resolvedTeamId,
+        force: options.force === true,
+      });
+    }, delay);
+    return () => window.clearTimeout(timer);
+  }, [enabled, gameId, watchTeamId, moveDelayMs, presentAtMarker]);
 
   const closePopover = useCallback(() => {
     setPopover(null);
@@ -75,6 +111,7 @@ export function useGLMarkerArrival({
     await presentAtMarker(popover.marker, {
       teamId: popover.teamId,
       excludeCodes: excludeCodesRef.current,
+      force: true,
     });
   }, [popover, presentAtMarker]);
 
@@ -101,16 +138,13 @@ export function useGLMarkerArrival({
     const marker = (Array.isArray(markers) ? markers : []).find((m) => Number(m.id) === markerId);
     if (!marker || !isQuestionMarker(marker)) return undefined;
 
-    const timer = window.setTimeout(() => {
-      presentAtMarker(marker, { teamId: Number(watchTeamId) });
-    }, Math.max(0, Number(moveDelayMs) || 0));
-
-    return () => window.clearTimeout(timer);
-  }, [teams, markers, watchTeamId, enabled, gameId, moveDelayMs, presentAtMarker]);
+    return schedulePresentOnArrival(marker, Number(watchTeamId));
+  }, [teams, markers, watchTeamId, enabled, gameId, schedulePresentOnArrival]);
 
   return {
     popover,
     presentAtMarker,
+    schedulePresentOnArrival,
     closePopover,
     reshuffle,
     setResult,
