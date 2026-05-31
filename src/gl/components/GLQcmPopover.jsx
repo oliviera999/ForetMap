@@ -116,6 +116,15 @@ export function GLQcmPopover({
                   </label>
                 ))}
               </div>
+              <GLButton
+                type="button"
+                className="gl-qcm-popover__submit"
+                onClick={submitAnswer}
+                disabled={submitting || selectedChoiceId == null}
+                loading={submitting}
+              >
+                {submitting ? 'Envoi…' : 'C\'est cette réponse !'}
+              </GLButton>
               {Array.isArray(presentation.glossaryTerms) && presentation.glossaryTerms.length > 0 ? (
                 <div className="gl-qcm-modal__glossary">
                   <strong>Glossaire :</strong>
@@ -134,14 +143,7 @@ export function GLQcmPopover({
                 </div>
               ) : null}
               <div className="gl-inline-actions">
-                <GLButton type="button" onClick={onReshuffle}>Re-mélanger</GLButton>
-                <GLButton
-                  type="button"
-                  onClick={submitAnswer}
-                  disabled={submitting || selectedChoiceId == null}
-                >
-                  {submitting ? 'Envoi…' : 'Valider'}
-                </GLButton>
+                <GLButton type="button" variant="ghost" onClick={onReshuffle}>Re-mélanger</GLButton>
                 <GLButton type="button" variant="ghost" onClick={onClose}>Fermer</GLButton>
               </div>
             </>

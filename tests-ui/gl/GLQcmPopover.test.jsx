@@ -44,7 +44,7 @@ describe('GLQcmPopover', () => {
     expect(screen.getByText(/Le fennec vit où/i)).toBeInTheDocument();
 
     await user.click(screen.getByLabelText('Désert'));
-    await user.click(screen.getByRole('button', { name: /^Valider$/i }));
+    await user.click(screen.getByRole('button', { name: /C'est cette réponse !/i }));
 
     await waitFor(() => {
       expect(apiGL).toHaveBeenCalledWith(

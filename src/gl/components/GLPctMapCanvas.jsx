@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import { useGlBoardImageFit } from '../hooks/useGlBoardImageFit.js';
 
 export function GLPctMapCanvas({
   imageUrl,
@@ -6,19 +7,28 @@ export function GLPctMapCanvas({
   mapGestures,
   onMapClick,
   onMapReady,
+  onFitLayout,
   className = 'gl-board',
   imageClassName = 'gl-board-image',
   imageStyle = undefined,
   cursor = 'default',
   children,
 }) {
+  const containerRef = mapGestures?.containerRef;
+  const imageRef = mapGestures?.imageRef;
+  const { fitLayerStyle, onImageLoad, fitHeightPx } = useGlBoardImageFit(containerRef, imageRef);
+
   useEffect(() => {
     onMapReady?.(mapGestures);
   }, [mapGestures, onMapReady]);
 
+  useEffect(() => {
+    onFitLayout?.({ height: fitHeightPx, fit: fitLayerStyle });
+  }, [fitHeightPx, fitLayerStyle, onFitLayout]);
+
   return (
     <div
-      ref={mapGestures?.containerRef}
+      ref={containerRef}
       className={className}
       style={{ cursor }}
       onClick={(event) => {
@@ -28,15 +38,18 @@ export function GLPctMapCanvas({
         onMapClick(pct, event);
       }}
     >
-      <img
-        ref={mapGestures?.imageRef}
-        src={imageUrl || '/maps/map-foret.svg'}
-        alt={imageAlt || 'Carte'}
-        className={imageClassName}
-        style={imageStyle}
-        draggable={false}
-      />
-      {children}
+      <div className="gl-board-fit-layer" style={fitLayerStyle}>
+        <img
+          ref={imageRef}
+          src={imageUrl || '/maps/map-foret.svg'}
+          alt={imageAlt || 'Carte'}
+          className={imageClassName}
+          style={imageStyle}
+          draggable={false}
+          onLoad={onImageLoad}
+        />
+        {children}
+      </div>
     </div>
   );
 }

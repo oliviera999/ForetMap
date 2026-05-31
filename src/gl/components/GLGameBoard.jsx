@@ -5,7 +5,8 @@ import { isQuestionMarker } from '../../utils/glMarkerEventConfig.js';
 import { GLBoardMarkers } from './GLBoardMarkers.jsx';
 import { GLBoardMascot } from './GLBoardMascot.jsx';
 import { GLQcmPopover } from './GLQcmPopover.jsx';
-import { glBoardPointToPct } from '../utils/glBoardPointToPct.js';
+import { GLPctMapCanvas } from './GLPctMapCanvas.jsx';
+import { useGlPctMapGestures } from '../hooks/useGlPctMapGestures.js';
 import { useGLBoardMascotMotion } from '../hooks/useGLBoardMascotMotion.js';
 import { useGLMarkerArrival } from '../hooks/useGLMarkerArrival.js';
 
@@ -43,8 +44,9 @@ export function GLGameBoard({
   const [pendingMarker, setPendingMarker] = useState(null);
   const [actionType, setActionType] = useState('explore');
   const [mapFullscreen, setMapFullscreen] = useState(false);
-  const boardRef = useRef(null);
   const [boardHeightPx, setBoardHeightPx] = useState(0);
+  const boardHeightPxRef = useRef(0);
+  const mapGestures = useGlPctMapGestures();
   const prefersReducedMotion = usePrefersReducedMotion();
 
   const {
@@ -81,17 +83,6 @@ export function GLGameBoard({
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [mapFullscreen, qcmOpen]);
-
-  useEffect(() => {
-    const el = boardRef.current;
-    if (!el || typeof ResizeObserver === 'undefined') return undefined;
-    const ro = new ResizeObserver((entries) => {
-      const h = entries[0]?.contentRect?.height;
-      if (Number.isFinite(h) && h > 0) setBoardHeightPx(h);
-    });
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, []);
 
   useEffect(() => {
     if (typeof document === 'undefined') return undefined;
@@ -171,22 +162,26 @@ export function GLGameBoard({
           Fermer
         </button>
       ) : null}
-      <div
-        ref={boardRef}
+      <GLPctMapCanvas
+        imageUrl={imageUrl}
+        imageAlt={chapter?.title || 'Carte du chapitre'}
+        mapGestures={mapGestures}
         className={boardClass}
-        onClick={(event) => {
+        onFitLayout={({ height }) => {
+          if (!Number.isFinite(height) || height <= 0) return;
+          boardHeightPxRef.current = height;
+          setBoardHeightPx(height);
+        }}
+        onMapClick={(pct) => {
           if (!canMoveMascot) return;
-          const point = glBoardPointToPct(event, event.currentTarget);
-          if (!point) return;
           const clamped = clampMapMascotPctForViewport(
-            point.xp,
-            point.yp,
-            event.currentTarget.clientHeight || 0,
+            pct.x,
+            pct.y,
+            boardHeightPxRef.current,
           );
           handleBoardMove(clamped.xp, clamped.yp);
         }}
       >
-        <img src={imageUrl} alt={chapter?.title || 'Carte du chapitre'} className="gl-board-image" />
         <GLBoardMarkers markers={markers} onMarkerClick={handleMarkerClick} />
 
         {teamList.map((team) => {
@@ -236,12 +231,12 @@ export function GLGameBoard({
             </button>
           );
         })}
-      </div>
+      </GLPctMapCanvas>
 
-        <GLQcmPopover
-          open={Boolean(questionPopover)}
-          marker={questionPopover?.marker}
-          gameId={gameId}
+      <GLQcmPopover
+        open={Boolean(questionPopover)}
+        marker={questionPopover?.marker}
+        gameId={gameId}
         presentation={questionPopover?.presentation}
         questionCode={questionPopover?.questionCode}
         loading={questionPopover?.loading}
