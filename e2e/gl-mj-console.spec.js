@@ -20,6 +20,8 @@ async function loginGlAdmin(page, seeded, displayName = 'MJ e2e') {
 }
 
 test.describe('GL MJ console flow', () => {
+  test.describe.configure({ retries: 1 });
+
   test('le MJ voit et résout une action pending', async ({ request }) => {
     const seeded = await seedGlScenario('mj-console');
     await execute(

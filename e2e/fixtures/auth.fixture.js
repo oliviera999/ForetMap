@@ -14,7 +14,16 @@ async function loginAsNewStudent(page) {
   await page.getByLabel('Email (optionnel)').fill(email);
   await page.getByLabel('Mon espace', { exact: true }).selectOption('both');
   await page.getByLabel('Confirmer le mot de passe', { exact: true }).fill(password);
+  const registerDone = page.waitForResponse(
+    (r) => r.url().includes('/api/auth/register') && r.request().method() === 'POST',
+    { timeout: 90_000 },
+  );
   await page.getByRole('button', { name: 'Créer le compte' }).click();
+  const registerResp = await registerDone;
+  if (!registerResp.ok()) {
+    const snippet = await registerResp.text().catch(() => '');
+    throw new Error(`Inscription élève refusée (HTTP ${registerResp.status()}). ${snippet.slice(0, 240)}`);
+  }
 
   await page.getByRole('button', { name: /Déconnexion/ }).waitFor({ state: 'visible', timeout: 60_000 });
   // Inscription = profil visiteur ; la 1re connexion identifiant/mot de passe promeut en n3beur novice (droits tâches).
@@ -72,19 +81,35 @@ async function loginByIdentifier(page, identifier, password) {
   await dismissProfilePromotionModalIfPresent(page);
 }
 
-async function enableTeacherMode(page, pin = process.env.E2E_ELEVATION_PIN || process.env.TEACHER_PIN || '1234') {
+async function enableTeacherMode(page, pin = process.env.E2E_ELEVATION_PIN || process.env.TEACHER_PIN || '1234', options = {}) {
+  const { pinCardAlreadyOpen = false } = options;
   /* La promo « nouveau palier » recouvre l’en-tête ; la désactiver avant le cadenas évite des PIN bloqués ou une 2e élévation lente. */
   await dismissProfilePromotionModalIfPresent(page);
-  await page.getByRole('button', { name: 'Activer les droits étendus' }).click({ timeout: 25_000 });
-  await page.locator('.pin-card .pin-input').waitFor({ state: 'visible', timeout: 25_000 });
+  await page.locator('header').waitFor({ state: 'visible', timeout: 25_000 });
+  const lockBtn = page.locator('header button.lock-btn[aria-label*="droits étendus"]').first();
+  await lockBtn.waitFor({ state: 'attached', timeout: 25_000 });
+  const lockLabel = await lockBtn.getAttribute('aria-label');
+  if (String(lockLabel || '').includes('Désactiver')) {
+    await page.locator('.teacher-main .top-tabs').waitFor({ state: 'attached', timeout: 45_000 });
+    await page.locator('.teacher-main .loader').waitFor({ state: 'hidden', timeout: 90_000 }).catch(() => {});
+    return;
+  }
+  if (!pinCardAlreadyOpen) {
+    await lockBtn.scrollIntoViewIfNeeded().catch(() => {});
+    await lockBtn.evaluate((el) => {
+      el.click();
+    });
+    await page.locator('.pin-card .pin-input').waitFor({ state: 'visible', timeout: 25_000 });
+  }
   await page.locator('.pin-card .pin-input').fill(pin);
-  // « Recentrer la carte » contient la sous-chaîne « Entrer » : cibler la modale PIN + exact.
-  const elevateDone = page.waitForResponse(
-    (r) => r.url().includes('/api/auth/elevate') && r.request().method() === 'POST',
-    { timeout: 90_000 },
-  );
-  await page.locator('.pin-card').getByRole('button', { name: 'Entrer', exact: true }).click();
-  const elevateResp = await elevateDone;
+  await dismissProfilePromotionModalIfPresent(page);
+  const [elevateResp] = await Promise.all([
+    page.waitForResponse(
+      (r) => r.url().includes('/api/auth/elevate') && r.request().method() === 'POST',
+      { timeout: 90_000 },
+    ),
+    page.locator('.pin-card').getByRole('button', { name: 'Entrer', exact: true }).click({ force: true }),
+  ]);
   if (!elevateResp.ok()) {
     const snippet = await elevateResp.text().catch(() => '');
     throw new Error(
@@ -151,6 +176,8 @@ async function enableTeacherMode(page, pin = process.env.E2E_ELEVATION_PIN || pr
     { timeout: 45_000 },
   );
   await dismissProfilePromotionModalIfPresent(page);
+  await page.locator('.teacher-main .top-tabs').waitFor({ state: 'attached', timeout: 45_000 });
+  await page.locator('.teacher-main .loader').waitFor({ state: 'hidden', timeout: 90_000 }).catch(() => {});
 }
 
 async function disableTeacherMode(page) {
@@ -221,11 +248,32 @@ async function resetTaskFiltersInTasksView(page) {
  * Onglet Tâches : nav basse élève ou barre d’onglets prof (évite les boutons hors navigation).
  */
 function tasksTabButton(page) {
-  return page.locator('nav.bottom-nav').getByRole('button', { name: /✅\s*Tâches/ })
-    .or(page.locator('.top-tabs').getByRole('button', { name: /✅\s*Tâches/ }));
+  return page.locator('nav.bottom-nav').getByRole('button', { name: /✅.*Tâches/ })
+    .or(page.locator('.top-tabs').getByRole('button', { name: /✅.*Tâches/ }));
 }
 
 async function clickTasksTab(page) {
+  await dismissProfilePromotionModalIfPresent(page);
+  await page.locator('.teacher-main .top-tabs, nav.bottom-nav').first().waitFor({ state: 'attached', timeout: 30_000 }).catch(() => {});
+
+  const teacherTab = page.locator('.teacher-main .top-tabs button.top-tab').filter({ hasText: /^✅/ }).first();
+  if (await teacherTab.count() > 0) {
+    await teacherTab.scrollIntoViewIfNeeded().catch(() => {});
+    await teacherTab.evaluate((el) => {
+      el.click();
+    });
+    return;
+  }
+
+  const topTab = page.locator('.top-tabs').getByRole('button', { name: /✅.*Tâches/ }).first();
+  if (await topTab.count() > 0) {
+    await topTab.scrollIntoViewIfNeeded().catch(() => {});
+    await topTab.evaluate((el) => {
+      el.click();
+    });
+    return;
+  }
+
   const btn = tasksTabButton(page).first();
   await btn.waitFor({ state: 'visible', timeout: 25_000 });
   await btn.evaluate((el) => {
@@ -235,8 +283,12 @@ async function clickTasksTab(page) {
 
 async function openTeacherTasksTab(page) {
   await dismissProfilePromotionModalIfPresent(page);
+  await page.locator('.teacher-main .top-tabs').waitFor({ state: 'visible', timeout: 60_000 });
   await clickTasksTab(page);
-  await page.getByRole('heading', { name: '✅ Tâches' }).waitFor({ state: 'visible', timeout: 25_000 });
+  await page.locator('.teacher-main .loader').first().waitFor({ state: 'hidden', timeout: 90_000 }).catch(() => {});
+  await page.locator('.teacher-main .tasks-view').waitFor({ state: 'visible', timeout: 90_000 });
+  const heading = page.getByRole('heading', { name: '✅ Tâches' });
+  await heading.waitFor({ state: 'visible', timeout: 45_000 });
   await resetTaskFiltersInTasksView(page);
 }
 
@@ -269,16 +321,22 @@ async function clickTeacherNewTask(page) {
     || (await page.getByRole('button', { name: 'Désactiver les droits étendus' }).isVisible().catch(() => false));
   let btn = page.getByRole('button', { name: /\+ Nouvelle tâche/ });
   if (!(await btn.isVisible().catch(() => false))) {
-    if (!elevated) {
-      const activer = page.getByRole('button', { name: 'Activer les droits étendus' });
-      if (await activer.isVisible().catch(() => false)) {
-        await enableTeacherMode(page);
+    const onTasks = await page.getByRole('heading', { name: '✅ Tâches' }).isVisible().catch(() => false);
+    if (!onTasks) {
+      if (!elevated) {
+        const activer = page.getByRole('button', { name: 'Activer les droits étendus' });
+        if (await activer.isVisible().catch(() => false)) {
+          await enableTeacherMode(page);
+        }
       }
+      await openTeacherTasksTab(page);
+    } else {
+      await page.locator('.loader').first().waitFor({ state: 'hidden', timeout: 60_000 }).catch(() => {});
     }
-    await openTeacherTasksTab(page);
     btn = page.getByRole('button', { name: /\+ Nouvelle tâche/ });
   }
   await btn.waitFor({ state: 'attached', timeout: 25_000 });
+  await btn.scrollIntoViewIfNeeded().catch(() => {});
   await btn.evaluate((el) => {
     el.click();
   });

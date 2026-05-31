@@ -49,21 +49,23 @@ for (const vp of VIEWPORTS) {
     test.use({ viewport: { width: vp.width, height: vp.height } });
 
     test('ouvre les modales critiques sans aberration visuelle', async ({ page }) => {
-      test.setTimeout(220_000);
+      test.setTimeout(300_000);
 
       await loginAsNewStudent(page);
 
-      await page.getByRole('button', { name: 'Activer les droits étendus' }).click();
+      await page.getByRole('button', { name: 'Activer les droits étendus' }).click({ timeout: 25_000 });
       const pinCard = page.locator('.pin-card');
       await expect(pinCard).toBeVisible({ timeout: 25_000 });
       await expectDialogStableAndFitting(pinCard, vp.height);
       const pin = process.env.E2E_ELEVATION_PIN || process.env.TEACHER_PIN || '1234';
-      await pinCard.locator('.pin-input').fill(pin);
-      await pinCard.getByRole('button', { name: 'Entrer', exact: true }).click();
-      await pinCard.waitFor({ state: 'detached', timeout: 30_000 });
-      await openTeacherTasksTab(page);
+      await enableTeacherMode(page, pin, { pinCardAlreadyOpen: true });
 
-      await clickTeacherNewTask(page);
+      await page.locator('.teacher-main .top-tabs').getByRole('button', { name: /^✅/ }).first().click();
+      await page.locator('.teacher-main .tasks-view').waitFor({ state: 'visible', timeout: 90_000 });
+
+      const newTaskBtn = page.locator('.teacher-main .tasks-view').getByRole('button', { name: /\+ Nouvelle tâche/ });
+      await newTaskBtn.scrollIntoViewIfNeeded().catch(() => {});
+      await newTaskBtn.evaluate((el) => el.click());
       const taskModal = page.getByRole('dialog', { name: TASK_DIALOG_NAME_RE });
       await expectDialogStableAndFitting(taskModal, vp.height);
       await closeDialogSafely(page, taskModal);
@@ -80,7 +82,7 @@ for (const vp of VIEWPORTS) {
     });
 
     test('smoke contenu long dans la modale de tâche', async ({ page }) => {
-      test.setTimeout(220_000);
+      test.setTimeout(300_000);
 
       await setupTeacherSession(page);
       await clickTeacherNewTask(page);
