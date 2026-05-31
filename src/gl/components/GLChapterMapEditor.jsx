@@ -1,11 +1,19 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { apiGL } from '../services/apiGL.js';
 import { useGlPctMapGestures } from '../hooks/useGlPctMapGestures.js';
 import { GLPctMapCanvas } from './GLPctMapCanvas.jsx';
 import { GLBoardMarkers } from './GLBoardMarkers.jsx';
 import { GLMarkerEventEditor } from './GLMarkerEventEditor.jsx';
+import {
+  GLMarkerAppearanceEditor,
+  EMPTY_APPEARANCE_FORM,
+  appearanceFormFromMarker,
+  appearanceDefaultsForEventType,
+  appearanceToPayload,
+} from './GLMarkerAppearanceEditor.jsx';
 import { glImageFrameToStyle, normalizeGlImageFrame } from '../../utils/glImageFrame.js';
 import { defaultEventConfigForQuestion } from '../../utils/glMarkerEventConfig.js';
+import { resolveMarkerAppearance } from '../../utils/glMarkerAppearance.js';
 
 const EMPTY_MARKER_FORM = {
   label: '',
@@ -26,7 +34,7 @@ function toFormFromMarker(marker) {
   };
 }
 
-function toMarkerPayload(form, eventDraft) {
+function toMarkerPayload(form, eventDraft, appearanceForm) {
   return {
     label: String(form.label || '').trim(),
     xPct: Number(form.xPct),
@@ -35,7 +43,31 @@ function toMarkerPayload(form, eventDraft) {
     description: String(form.description || '').trim(),
     orderIndex: Number(form.orderIndex) || 0,
     eventConfig: eventDraft?.eventConfig || defaultEventConfigForQuestion(),
+    ...appearanceToPayload(appearanceForm),
   };
+}
+
+function MarkerListVisual({ marker }) {
+  const appearance = resolveMarkerAppearance(marker);
+  if (appearance.displayMode === 'emoji' && appearance.emoji) {
+    return (
+      <span className="gl-markers-list__visual foretmap-emoji-text-mixed" aria-hidden>
+        {appearance.emoji}
+        {' '}
+      </span>
+    );
+  }
+  if (appearance.displayMode === 'icon' && appearance.iconUrl) {
+    return (
+      <img
+        className="gl-markers-list__visual gl-markers-list__visual--icon"
+        src={appearance.iconUrl}
+        alt=""
+        aria-hidden
+      />
+    );
+  }
+  return null;
 }
 
 export function GLChapterMapEditor({
@@ -53,6 +85,7 @@ export function GLChapterMapEditor({
   const [isAddMode, setIsAddMode] = useState(false);
   const [selectedMarkerId, setSelectedMarkerId] = useState(null);
   const [markerForm, setMarkerForm] = useState(EMPTY_MARKER_FORM);
+  const [appearanceForm, setAppearanceForm] = useState({ ...EMPTY_APPEARANCE_FORM });
   const [eventDraft, setEventDraft] = useState({
     eventType: 'question',
     eventConfig: defaultEventConfigForQuestion(),
@@ -65,6 +98,21 @@ export function GLChapterMapEditor({
     [mapImageFrame]
   );
 
+  const fetchMediaLibrary = useCallback(async () => {
+    const data = await apiGL('/api/gl/admin/media-library?limit=400');
+    return Array.isArray(data?.items) ? data.items : [];
+  }, []);
+
+  const uploadMediaLibrary = useCallback(async (mediaData) => {
+    await apiGL('/api/gl/admin/media-library', 'POST', { media_data: mediaData });
+    onInfo?.('Média ajouté à la bibliothèque');
+  }, [onInfo]);
+
+  const removeMediaLibrary = useCallback(async (relativePath) => {
+    await apiGL('/api/gl/admin/media-library', 'DELETE', { relative_path: relativePath });
+    onInfo?.('Média supprimé de la bibliothèque');
+  }, [onInfo]);
+
   useEffect(() => {
     setEditableMarkers(Array.isArray(markers) ? markers : []);
   }, [markers]);
@@ -74,6 +122,7 @@ export function GLChapterMapEditor({
     if (!editableMarkers.some((m) => Number(m.id) === Number(selectedMarkerId))) {
       setSelectedMarkerId(null);
       setMarkerForm(EMPTY_MARKER_FORM);
+      setAppearanceForm({ ...EMPTY_APPEARANCE_FORM });
     }
   }, [editableMarkers, selectedMarkerId]);
 
@@ -126,21 +175,36 @@ export function GLChapterMapEditor({
     setIsAddMode(false);
     setSelectedMarkerId(Number(marker.id));
     setMarkerForm(toFormFromMarker(marker));
+    setAppearanceForm(appearanceFormFromMarker(marker));
   }
 
   function resetForm() {
     setSelectedMarkerId(null);
     setMarkerForm(EMPTY_MARKER_FORM);
+    setAppearanceForm({ ...EMPTY_APPEARANCE_FORM });
     setEventDraft({
       eventType: 'question',
       eventConfig: defaultEventConfigForQuestion(),
     });
   }
 
+  function handleEventDraftChange(nextDraft) {
+    setEventDraft(nextDraft);
+    const defaults = appearanceDefaultsForEventType(nextDraft?.eventType, appearanceForm);
+    if (defaults) {
+      setAppearanceForm((prev) => ({
+        ...prev,
+        displayMode: defaults.displayMode,
+        emoji: defaults.emoji ?? prev.emoji,
+        iconUrl: defaults.iconUrl ?? '',
+      }));
+    }
+  }
+
   async function submitMarker(event) {
     event.preventDefault();
     if (!chapterId) return;
-    const payload = toMarkerPayload(markerForm, eventDraft);
+    const payload = toMarkerPayload(markerForm, eventDraft, appearanceForm);
     if (!payload.label) {
       onError?.('Le label du repère est requis');
       return;
@@ -231,6 +295,7 @@ export function GLChapterMapEditor({
             className={Number(marker.id) === Number(selectedMarkerId) ? 'is-selected' : ''}
           >
             <button type="button" className="gl-marker-row-btn" onClick={() => selectMarker(marker)}>
+              <MarkerListVisual marker={marker} />
               <strong>{marker.label}</strong>
               {' '}
               —
@@ -284,7 +349,16 @@ export function GLChapterMapEditor({
         <GLMarkerEventEditor
           marker={selectedMarker}
           chapterBiomes={chapterBiomes}
-          onChange={setEventDraft}
+          onChange={handleEventDraftChange}
+        />
+
+        <GLMarkerAppearanceEditor
+          value={appearanceForm}
+          onChange={setAppearanceForm}
+          eventType={eventDraft?.eventType}
+          fetchMediaLibrary={fetchMediaLibrary}
+          uploadMediaLibrary={uploadMediaLibrary}
+          removeMediaLibrary={removeMediaLibrary}
         />
 
         <label>

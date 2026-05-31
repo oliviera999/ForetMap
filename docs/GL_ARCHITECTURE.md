@@ -58,6 +58,7 @@ Ajouts Lot 2B (contenus & chapitres) :
 - `POST /api/gl/chapters/admin/:id/markers`, `PUT/DELETE /api/gl/chapters/admin/markers/:markerId` : CRUD repères de chapitre. La suppression détache d'abord les équipes positionnées sur ce marker (`gl_teams.position_marker_id` → `NULL`) avant l'effacement.
 - Front admin `GLChaptersAdminView` : aperçu de la carte chapitre et éditeur visuel des repères (clic pour positionner, glisser pour ajuster), avec persistance via `POST/PUT /api/gl/chapters/admin/.../markers`.
 - Repères événements (Lot QCM repères) : `event_config_json` sur `gl_chapter_markers` (type `question` : mode fixe ou pool aléatoire filtré biomes/catégories/niveaux/difficulté + sélection fine). Admin : `GLMarkerEventEditor` + `GET /api/gl/qcm/pool-preview`. Jeu : `POST /api/gl/games/:id/markers/:markerId/present-question`, popover `GLQcmPopover` à l'arrivée (`useGLMarkerArrival`), re-déclenchement via `gameplay.marker_question_retrigger`.
+- Affichage carte repères : colonnes `display_mode`, `emoji`, `icon_url` sur `gl_chapter_markers` ; normalisation partagée `glMarkerAppearanceCore` ; rendu via `GLBoardMarkers` (texte, emoji ou icône favicon). Défaut question/quiz : emoji `❓`.
 
 Ajouts Lot 2D (édition visuelle carte) :
 

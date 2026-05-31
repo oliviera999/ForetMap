@@ -41,6 +41,7 @@ export function GLGameBoard({
   const imageUrl = chapter?.map_image_url || '/maps/map-foret.svg';
   const [pendingMarker, setPendingMarker] = useState(null);
   const [actionType, setActionType] = useState('explore');
+  const [mapFullscreen, setMapFullscreen] = useState(false);
   const boardRef = useRef(null);
   const [boardHeightPx, setBoardHeightPx] = useState(0);
   const prefersReducedMotion = usePrefersReducedMotion();
@@ -69,6 +70,17 @@ export function GLGameBoard({
     prefersReducedMotion,
   });
 
+  const qcmOpen = Boolean(questionPopover);
+
+  useEffect(() => {
+    if (!mapFullscreen || qcmOpen) return undefined;
+    const onKey = (event) => {
+      if (event.key === 'Escape') setMapFullscreen(false);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [mapFullscreen, qcmOpen]);
+
   useEffect(() => {
     const el = boardRef.current;
     if (!el || typeof ResizeObserver === 'undefined') return undefined;
@@ -79,6 +91,19 @@ export function GLGameBoard({
     ro.observe(el);
     return () => ro.disconnect();
   }, []);
+
+  useEffect(() => {
+    if (typeof document === 'undefined') return undefined;
+    const body = document.body;
+    if (mapFullscreen) {
+      body.classList.add('gl-map-fullscreen-active');
+    } else {
+      body.classList.remove('gl-map-fullscreen-active');
+    }
+    return () => {
+      body.classList.remove('gl-map-fullscreen-active');
+    };
+  }, [mapFullscreen]);
 
   const resolveActiveTeamId = useCallback(() => {
     const list = Array.isArray(teams) ? teams : [];
@@ -131,13 +156,42 @@ export function GLGameBoard({
 
   const teamList = Array.isArray(teams) ? teams : [];
 
+  const boardShellClass = mapFullscreen
+    ? 'gl-board-shell gl-board-shell--fullscreen'
+    : 'gl-board-shell';
+  const boardClass = mapFullscreen ? 'gl-board gl-board--fullscreen' : 'gl-board';
+
   return (
     <section className="gl-panel">
-      <h2>{chapter?.title || 'Carte de jeu'}</h2>
-      <div className="gl-board-shell">
+      {!mapFullscreen ? (
+        <div className="gl-game-board-head">
+          <h2>{chapter?.title || 'Carte de jeu'}</h2>
+          <button
+            type="button"
+            className="gl-map-fullscreen-open"
+            data-testid="gl-map-fullscreen-open"
+            aria-label="Afficher la carte en plein écran"
+            onClick={() => setMapFullscreen(true)}
+          >
+            <span aria-hidden>⛶</span> Plein écran
+          </button>
+        </div>
+      ) : null}
+      <div className={boardShellClass}>
+        {mapFullscreen ? (
+          <button
+            type="button"
+            className="gl-map-fullscreen-close"
+            data-testid="gl-map-fullscreen-close"
+            aria-label="Quitter le plein écran"
+            onClick={() => setMapFullscreen(false)}
+          >
+            Fermer
+          </button>
+        ) : null}
         <div
           ref={boardRef}
-          className="gl-board"
+          className={boardClass}
           onClick={(event) => {
             if (!canMoveMascot) return;
             const point = glBoardPointToPct(event, event.currentTarget);

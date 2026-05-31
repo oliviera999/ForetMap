@@ -39,11 +39,14 @@ test.describe('GL chapitres — edition visuelle repere', () => {
 
     const createdMarker = await request.post(`/api/gl/chapters/admin/${chapterId}/markers`, {
       headers: adminHeaders,
-      data: { label: 'Repere drag', xPct: 20, yPct: 20 },
+      data: { label: 'Repere drag', xPct: 20, yPct: 20, eventType: 'question' },
     });
     expect(createdMarker.status()).toBe(201);
-    const markerId = Number((await createdMarker.json())?.id || 0);
+    const createdBody = await createdMarker.json();
+    const markerId = Number(createdBody?.id || 0);
     expect(markerId).toBeGreaterThan(0);
+    expect(createdBody.display_mode).toBe('emoji');
+    expect(createdBody.emoji).toBe('❓');
 
     const moved = await request.put(`/api/gl/chapters/admin/markers/${markerId}`, {
       headers: adminHeaders,

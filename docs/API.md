@@ -69,8 +69,8 @@ Le script accepte aussi :
 | POST | `/api/gl/chapters/admin` | `{ slug, title, biome?, biomeSlugs?, biomeSlug?, mapImageUrl?, mapImageFrame?, theme?, storyMarkdown?, biotopeMarkdown?, biocenoseMarkdown?, orderIndex? }` | `gl.content.manage` (refus `409` si slug existant ; chaque entrée de `biomeSlugs` doit exister dans `gl_biomes` ; `biomeSlug` legacy = un seul slug) |
 | PUT | `/api/gl/chapters/admin/:id` | mise à jour partielle des mêmes champs (dont `biomeSlugs`, `mapImageFrame`, `theme`) | `gl.content.manage` |
 | DELETE | `/api/gl/chapters/admin/:id` | — | `gl.content.manage` (refus `409` si partie liée) |
-| POST | `/api/gl/chapters/admin/:id/markers` | `{ label, xPct, yPct, eventType?, description?, orderIndex?, eventConfig?, qcmCategorieSlug?, qcmQuestionCode? }` | `gl.content.manage` (`eventConfig` : schéma versionné `{ version, question: { mode, fixedQuestionCode?, pool } }`) |
-| PUT | `/api/gl/chapters/admin/markers/:markerId` | mise à jour partielle marker (dont `eventConfig`) | `gl.content.manage` |
+| POST | `/api/gl/chapters/admin/:id/markers` | `{ label, xPct, yPct, eventType?, description?, orderIndex?, eventConfig?, qcmCategorieSlug?, qcmQuestionCode?, displayMode?, emoji?, iconUrl? }` | `gl.content.manage` (`eventConfig` : schéma versionné `{ version, question: { mode, fixedQuestionCode?, pool } }` ; affichage carte : `displayMode` = `label` \| `emoji` \| `icon` — défaut `emoji` + `❓` pour `eventType` question/quiz) |
+| PUT | `/api/gl/chapters/admin/markers/:markerId` | mise à jour partielle marker (dont `eventConfig`, `displayMode`, `emoji`, `iconUrl`) | `gl.content.manage` |
 | POST | `/api/gl/chapters/admin/:id/map-image` | `{ image_data }` (data URL base64 image) | `gl.content.manage` |
 | DELETE | `/api/gl/chapters/admin/markers/:markerId` | — | `gl.content.manage` (détache les équipes positionnées sur ce marker via `ON DELETE SET NULL`) |
 | GET | `/api/gl/biomes` | — | `gl.read` (liste biomes + effectifs espèces actives) |
