@@ -110,6 +110,15 @@ export function GLQcmModal({
                 </label>
               ))}
             </div>
+            <GLButton
+              type="button"
+              className="gl-qcm-popover__submit"
+              onClick={submitAnswer}
+              disabled={submitting || selectedChoiceId == null}
+              loading={submitting}
+            >
+              {submitting ? 'Envoi…' : 'C\'est cette réponse !'}
+            </GLButton>
             {Array.isArray(presentation.glossaryTerms) && presentation.glossaryTerms.length > 0 ? (
               <div className="gl-qcm-modal__glossary">
                 <strong>Glossaire :</strong>
@@ -128,14 +137,7 @@ export function GLQcmModal({
               </div>
             ) : null}
             <div className="gl-inline-actions">
-              <GLButton type="button" onClick={loadQuestion}>Re-mélanger</GLButton>
-              <GLButton
-                type="button"
-                onClick={submitAnswer}
-                disabled={submitting || selectedChoiceId == null}
-              >
-                {submitting ? 'Envoi…' : 'Valider ma réponse'}
-              </GLButton>
+              <GLButton type="button" variant="ghost" onClick={loadQuestion}>Re-mélanger</GLButton>
               <GLButton type="button" variant="ghost" onClick={onClose}>Fermer</GLButton>
             </div>
           </>

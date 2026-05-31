@@ -51,7 +51,7 @@ describe('GLQcmModal', () => {
     });
 
     await user.click(screen.getByLabelText('Désert'));
-    await user.click(screen.getByRole('button', { name: /Valider ma réponse/i }));
+    await user.click(screen.getByRole('button', { name: /C'est cette réponse !/i }));
 
     await waitFor(() => {
       expect(screen.getByText(/Bonne réponse/i)).toBeInTheDocument();

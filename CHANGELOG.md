@@ -19,6 +19,8 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - **Sécurité — register élève** : `POST /api/students/register` exige une session élève correspondante.
 
 ### Modifié
+- **GL — popover question QCM** : bouton explicite **« C'est cette réponse ! »** pour valider la proposition avant feedback ; glossaire popover au-dessus du popover question (`z-index`).
+- **GL — alignement repères sur l'image** : calque `gl-board-fit-layer` + hook `useGlBoardImageFit` pour positionner repères/mascottes sur l'image réelle (`object-fit: contain`). Tests `tests-ui/gl/useGlBoardImageFit.test.jsx`.
 - **GL — QCM repère (board joueur)** : module partagé `lib/glQcmQuestionQuery.js` (rechargement question complète, validation présentable) ; popover portal + scroll body ; refonte placement popover sur la carte. Tests `tests/gl-qcm-question-query.test.js`.
 - **GL — console MJ** : refonte ergonomique (sous-onglets Parties / Équipes & effectifs / Jeu en direct, bannière partie active, édition via `PUT /api/gl/games/:id`), contextualisation des équipes par partie, modernisation des actions (`GLButton` compact, `GLBadge`, `GLDataList`) ; reset de l’équipe sélectionnée au changement de partie. Tests `tests/gl-games.test.js`, `tests/gl-game-status.test.js`, `tests-ui/gl/GLGameMasterConsole.test.jsx`, e2e `e2e/gl-mj-console.spec.js`.
 - **Build production** : artefacts `dist/` régénérés localement (`npm run build`, bundle GL à jour pour plein écran et affichage repères).

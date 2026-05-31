@@ -612,6 +612,27 @@ button.gl-brand-hub__card:focus-visible {
   width: 100%;
 }
 
+/* Calque % aligné sur l’image réelle (object-fit: contain), pas sur la boîte carte */
+.gl-board-fit-layer {
+  position: absolute;
+  box-sizing: border-box;
+}
+
+.gl-board-fit-layer .gl-board-image,
+.gl-board-fit-layer .gl-kingdom-map-image {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+}
+
+.gl-board-fit-layer .gl-kingdom-map-overlay {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
 .gl-game-board-head {
   display: flex;
   flex-wrap: wrap;
@@ -673,13 +694,6 @@ button.gl-brand-hub__card:focus-visible {
   background: #0f172a;
 }
 
-.gl-board-shell--fullscreen .gl-board-image,
-.gl-board--fullscreen .gl-board-image {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-}
-
 .gl-map-fullscreen-close {
   position: absolute;
   top: max(12px, env(safe-area-inset-top, 0px));
@@ -734,7 +748,7 @@ body.gl-map-fullscreen-active .gl-action-modal {
 }
 
 body.gl-map-fullscreen-active .gl-glossary-popover {
-  z-index: 1500;
+  z-index: 1600;
 }
 
 body.gl-map-fullscreen-active .gl-qcm-popover-overlay {
@@ -1886,6 +1900,19 @@ body.gl-map-fullscreen-active .gl-qcm-popover-overlay {
   display: none;
 }
 
+.gl-qcm-popover__submit {
+  width: 100%;
+  min-height: 48px;
+  margin: 0.75rem 0 0.5rem;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.gl-qcm-popover__submit:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
 .gl-gameplay-retrigger {
   margin-top: 12px;
 }
@@ -3018,10 +3045,11 @@ body.gl-glossary-popover-open {
   overflow: hidden;
 }
 
+/* Au-dessus du popover question QCM (1450) pour les liens glossaire dans la question */
 .gl-glossary-popover {
   position: fixed;
   inset: 0;
-  z-index: 1300;
+  z-index: 1600;
   display: flex;
   align-items: center;
   justify-content: center;
