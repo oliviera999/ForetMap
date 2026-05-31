@@ -2,6 +2,7 @@ const { test, expect } = require('@playwright/test');
 const { io: clientIo } = require('socket.io-client');
 const { signAuthToken } = require('../middleware/requireTeacher');
 const { queryOne, execute } = require('../database');
+const { seedGlScenario } = require('./fixtures/gl.fixture');
 
 test.describe('Gnomes & Licornes game flow smoke', () => {
   test('la SPA GL est servie avec override produit', async ({ page }) => {
@@ -290,5 +291,41 @@ test.describe('Gnomes & Licornes game flow smoke', () => {
         data: { value: false },
       }).catch(() => {});
     }
+  });
+
+  test('onglet Cartes : plein écran carte puis Échap pour quitter', async ({ page }) => {
+    const seeded = await seedGlScenario('map-fullscreen');
+
+    await page.setExtraHTTPHeaders({ 'X-Foretmap-Product': 'gl' });
+    await page.goto('/');
+    await page.evaluate(({ sessionPayload, tab }) => {
+      localStorage.setItem('gl_session', JSON.stringify(sessionPayload));
+      localStorage.setItem('gl_active_tab', tab);
+    }, {
+      sessionPayload: {
+        token: seeded.playerToken,
+        auth: {
+          userType: 'gl_player',
+          roleSlug: 'gl_player',
+          displayName: seeded.playerPseudo,
+          teamId: seeded.teamId,
+          gameId: seeded.gameId,
+        },
+      },
+      tab: 'maps',
+    });
+    await page.reload();
+
+    const board = page.locator('.gl-board');
+    await expect(board).toBeVisible({ timeout: 15000 });
+
+    await page.getByTestId('gl-map-fullscreen-open').click();
+    await expect(board).toHaveClass(/gl-board--fullscreen/);
+    await expect(page.getByTestId('gl-map-fullscreen-open')).toHaveCount(0);
+    await expect(page.getByTestId('gl-map-fullscreen-close')).toBeVisible();
+
+    await page.keyboard.press('Escape');
+    await expect(board).not.toHaveClass(/gl-board--fullscreen/);
+    await expect(page.getByTestId('gl-map-fullscreen-open')).toBeVisible();
   });
 });

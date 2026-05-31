@@ -177,7 +177,41 @@ test('POST /api/gl/chapters/admin/:id/markers ajoute un marker', async () => {
     .expect(201);
   assert.strictEqual(res.body.label, 'Repère 1');
   assert.strictEqual(Number(res.body.chapter_id), createdChapterId);
+  assert.strictEqual(res.body.display_mode, 'emoji');
+  assert.strictEqual(res.body.emoji, '❓');
   createdMarkerId = Number(res.body.id);
+});
+
+test('PUT /api/gl/chapters/admin/markers/:markerId met à jour displayMode label', async () => {
+  const res = await request(app)
+    .put(`/api/gl/chapters/admin/markers/${createdMarkerId}`)
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ displayMode: 'label' })
+    .expect(200);
+  assert.strictEqual(res.body.display_mode, 'label');
+  assert.strictEqual(res.body.emoji, null);
+});
+
+test('PUT /api/gl/chapters/admin/markers/:markerId met à jour displayMode emoji', async () => {
+  const res = await request(app)
+    .put(`/api/gl/chapters/admin/markers/${createdMarkerId}`)
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ displayMode: 'emoji', emoji: '⭐' })
+    .expect(200);
+  assert.strictEqual(res.body.display_mode, 'emoji');
+  assert.strictEqual(res.body.emoji, '⭐');
+});
+
+test('PUT /api/gl/chapters/admin/markers/:markerId met à jour displayMode icon', async () => {
+  const iconUrl = '/uploads/media-library/image/2026/05/test-icon.png';
+  const res = await request(app)
+    .put(`/api/gl/chapters/admin/markers/${createdMarkerId}`)
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ displayMode: 'icon', iconUrl })
+    .expect(200);
+  assert.strictEqual(res.body.display_mode, 'icon');
+  assert.strictEqual(res.body.icon_url, iconUrl);
+  assert.strictEqual(res.body.emoji, null);
 });
 
 test('PUT /api/gl/chapters/admin/markers/:markerId met à jour le label', async () => {

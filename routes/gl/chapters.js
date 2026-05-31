@@ -23,6 +23,7 @@ const {
   buildMarkerWriteFields,
 } = require('../../lib/glMarkerRow');
 const { normalizeEventConfig } = require('../../lib/glMarkerEventConfig');
+const { parseAppearanceInput } = require('../../lib/glMarkerAppearance');
 
 const router = express.Router();
 
@@ -351,13 +352,24 @@ router.post('/admin/:id/markers', requireGlPermission('gl.content.manage'), asyn
     },
   });
 
+  const appearanceParsed = parseAppearanceInput(req.body, writeFields.eventType ?? eventType);
+  if (appearanceParsed.error) return res.status(400).json({ error: appearanceParsed.error });
+  const appearanceFields = buildMarkerWriteFields({
+    appearance: {
+      displayMode: appearanceParsed.displayMode,
+      emoji: appearanceParsed.emoji,
+      iconUrl: appearanceParsed.iconUrl,
+    },
+  });
+
   const chapter = await queryOne('SELECT id FROM gl_chapters WHERE id = ? LIMIT 1', [chapterId]);
   if (!chapter) return res.status(404).json({ error: 'Chapitre introuvable' });
   await execute(
     `INSERT INTO gl_chapter_markers (
        chapter_id, x_pct, y_pct, event_type, label, description,
-       qcm_categorie_slug, qcm_question_code, event_config_json, order_index, created_at
-     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
+       qcm_categorie_slug, qcm_question_code, event_config_json,
+       display_mode, emoji, icon_url, order_index, created_at
+     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
     [
       chapterId,
       xPct,
@@ -368,6 +380,9 @@ router.post('/admin/:id/markers', requireGlPermission('gl.content.manage'), asyn
       writeFields.qcmCategorieSlug,
       writeFields.qcmQuestionCode,
       writeFields.eventConfigJson,
+      appearanceFields.displayMode,
+      appearanceFields.emoji,
+      appearanceFields.iconUrl,
       writeFields.orderIndex,
     ]
   );
@@ -417,6 +432,24 @@ router.put('/admin/markers/:markerId', requireGlPermission('gl.content.manage'),
   if (Object.prototype.hasOwnProperty.call(req.body || {}, 'orderIndex')) {
     updates.push('order_index = ?');
     params.push(toPositiveInt(req.body.orderIndex, 0));
+  }
+
+  const appearanceKeys = ['displayMode', 'display_mode', 'emoji', 'iconUrl', 'icon_url'];
+  const hasAppearanceInput = appearanceKeys.some(
+    (key) => Object.prototype.hasOwnProperty.call(req.body || {}, key)
+  );
+  if (hasAppearanceInput) {
+    const nextEventType = Object.prototype.hasOwnProperty.call(req.body || {}, 'eventType')
+      ? normalizeOptionalString(req.body.eventType)
+      : existing.event_type;
+    const appearanceParsed = parseAppearanceInput(req.body, nextEventType);
+    if (appearanceParsed.error) return res.status(400).json({ error: appearanceParsed.error });
+    updates.push('display_mode = ?');
+    params.push(appearanceParsed.displayMode);
+    updates.push('emoji = ?');
+    params.push(appearanceParsed.emoji);
+    updates.push('icon_url = ?');
+    params.push(appearanceParsed.iconUrl);
   }
 
   const parsedCfg = parseEventConfigInput(req.body);
