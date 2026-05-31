@@ -954,7 +954,7 @@ router.post('/games/:id/markers/:markerId/present-question', requireGlAuth, asyn
     return res.status(404).json({ error: draw.error || 'Aucune question disponible' });
   }
 
-  const questionRow = draw.questionRow || await loadActiveQuestion(draw.questionCode);
+  const questionRow = await loadActiveQuestion(draw.questionCode);
   if (!questionRow) return res.status(404).json({ error: 'Question introuvable' });
 
   const glossaryByKey = await loadGlossaryLookup();

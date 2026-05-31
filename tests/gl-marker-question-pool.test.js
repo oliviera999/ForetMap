@@ -10,6 +10,7 @@ const {
   serializeEventConfig,
 } = require('../lib/glMarkerEventConfig');
 const { queryQuestionPool, drawQuestionFromMarker } = require('../lib/glMarkerQuestionPool');
+const { buildCanonicalChoices, presentQuestion } = require('../lib/glQcmChoices');
 
 test('normalizeEventConfig valide une config question fixe', () => {
   const cfg = normalizeEventConfig({
@@ -105,4 +106,21 @@ test('drawQuestionFromMarker mode fixed', async () => {
   }, ['b1']);
   assert.strictEqual(draw.questionCode, 'QCM0001');
   assert.strictEqual(draw.error, null);
+  assert.strictEqual(draw.questionRow, undefined);
+});
+
+test('ligne pool sans choix_* exige rechargement complet avant presentQuestion', () => {
+  const poolRow = { question_code: 'QCM0001', question: 'Test?' };
+  assert.strictEqual(buildCanonicalChoices(poolRow).length, 0);
+  assert.throws(() => presentQuestion(poolRow), /Choix insuffisants/);
+
+  const fullRow = {
+    question_code: 'QCM0001',
+    question: 'Test?',
+    choix_a: 'Un',
+    choix_b: 'Deux',
+    reponse_correcte: 'A',
+  };
+  const presentation = presentQuestion(fullRow);
+  assert.strictEqual(presentation.choices.length, 2);
 });
