@@ -35,9 +35,9 @@ test.describe('Gnomes & Licornes game flow smoke', () => {
     expect(classId).toBeGreaterThan(0);
 
     await execute(
-      `INSERT INTO gl_players (class_id, team_id, pseudo, pin_hash, linked_foretmap_user_id, is_active, created_at, updated_at)
-       VALUES (?, NULL, ?, ?, NULL, 1, NOW(), NOW())`,
-      [classId, `e2e_joueur_${now}`, 'not-used-in-this-spec']
+      `INSERT INTO gl_players (class_id, team_id, first_name, last_name, pseudo, password_hash, is_active, created_at, updated_at)
+       VALUES (?, NULL, 'Play', 'Er', ?, 'x', 1, NOW(), NOW())`,
+      [classId, `e2e_joueur_${now}`]
     );
     const playerRow = await queryOne('SELECT id FROM gl_players ORDER BY id DESC LIMIT 1');
     const playerId = Number(playerRow?.id || 0);
@@ -45,7 +45,7 @@ test.describe('Gnomes & Licornes game flow smoke', () => {
 
     await execute(
       `INSERT INTO gl_games (class_id, chapter_id, name, status, created_by, created_at, updated_at)
-       VALUES (?, ?, ?, 'draft', ?, NOW(), NOW())`,
+       VALUES (?, ?, ?, 'live', ?, NOW(), NOW())`,
       [classId, Number(chapter.id), `Partie E2E ${now}`, adminId]
     );
     const gameRow = await queryOne('SELECT id FROM gl_games ORDER BY id DESC LIMIT 1');
@@ -60,6 +60,13 @@ test.describe('Gnomes & Licornes game flow smoke', () => {
     const teamRow = await queryOne('SELECT id FROM gl_teams ORDER BY id DESC LIMIT 1');
     const teamId = Number(teamRow?.id || 0);
     expect(teamId).toBeGreaterThan(0);
+
+    const markerRow = await queryOne(
+      'SELECT id FROM gl_chapter_markers WHERE chapter_id = ? ORDER BY id ASC LIMIT 1',
+      [Number(chapter.id)]
+    );
+    const markerId = Number(markerRow?.id || 0);
+    expect(markerId).toBeGreaterThan(0);
 
     const adminToken = await signAuthToken({
       product: 'gl',
@@ -118,7 +125,7 @@ test.describe('Gnomes & Licornes game flow smoke', () => {
 
       const emitRes = await request.post(`/api/gl/games/${gameId}/events`, {
         headers: adminHeaders,
-        data: { teamId, eventType: 'move', payload: { source: 'e2e-mj' } },
+        data: { teamId, eventType: 'move', payload: { markerId, source: 'e2e-mj' } },
       });
       expect(emitRes.status()).toBe(201);
 
@@ -153,8 +160,8 @@ test.describe('Gnomes & Licornes game flow smoke', () => {
     const classId = Number(classRow?.id || 0);
 
     await execute(
-      `INSERT INTO gl_players (class_id, team_id, pseudo, pin_hash, is_active, created_at, updated_at)
-       VALUES (?, NULL, ?, 'x', 1, NOW(), NOW())`,
+      `INSERT INTO gl_players (class_id, team_id, first_name, last_name, pseudo, password_hash, is_active, created_at, updated_at)
+       VALUES (?, NULL, 'Play', 'Er', ?, 'x', 1, NOW(), NOW())`,
       [classId, `e2e_player_toggles_${now}`]
     );
     const playerRow = await queryOne('SELECT id FROM gl_players ORDER BY id DESC LIMIT 1');
@@ -321,6 +328,7 @@ test.describe('Gnomes & Licornes game flow smoke', () => {
 
     await page.getByTestId('gl-map-fullscreen-open').click();
     await expect(board).toHaveClass(/gl-board--fullscreen/);
+    await expect(page.getByTestId('gl-map-fullscreen-layer')).toBeVisible();
     await expect(page.getByTestId('gl-map-fullscreen-open')).toHaveCount(0);
     await expect(page.getByTestId('gl-map-fullscreen-close')).toBeVisible();
 

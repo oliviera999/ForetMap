@@ -19,6 +19,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - **Sécurité — register élève** : `POST /api/students/register` exige une session élève correspondante.
 
 ### Modifié
+- **GL — QCM repère (board joueur)** : module partagé `lib/glQcmQuestionQuery.js` (rechargement question complète, validation présentable) ; popover portal + scroll body ; refonte placement popover sur la carte. Tests `tests/gl-qcm-question-query.test.js`.
 - **GL — console MJ** : refonte ergonomique (sous-onglets Parties / Équipes & effectifs / Jeu en direct, bannière partie active, édition via `PUT /api/gl/games/:id`), contextualisation des équipes par partie, modernisation des actions (`GLButton` compact, `GLBadge`, `GLDataList`) ; reset de l’équipe sélectionnée au changement de partie. Tests `tests/gl-games.test.js`, `tests/gl-game-status.test.js`, `tests-ui/gl/GLGameMasterConsole.test.jsx`, e2e `e2e/gl-mj-console.spec.js`.
 - **Build production** : artefacts `dist/` régénérés localement (`npm run build`, bundle GL à jour pour plein écran et affichage repères).
 - **GL — admin repères question** : filtres biomes/catégories/niveaux via menus déroulants à cases à cocher (`GLMultiCheckDropdown`) ; liste des questions visible en mode fixe et aléatoire (`GLMarkerQuestionList`, aperçu pool aussi pour question fixe). Tests `tests-ui/gl/GLMultiCheckDropdown.test.jsx`, `tests-ui/gl/GLMarkerQuestionList.test.jsx`.
@@ -31,7 +32,10 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - **Intégration PR GitHub** : correctifs des PR Cursor #28–#37 et Dependabot #25–#30 appliqués sur `main` (PR obsolètes/doublons fermées).
 
 ### Corrigé
-- **GL — présentation QCM repère** : `POST …/present-question` recharge la question complète (`choix_a`…`e`, `reponse_correcte`) au lieu d’utiliser la ligne pool partielle — corrige « Choix insuffisants pour la question ». Test `tests/gl-marker-question-pool.test.js`.
+- **GL — présentation QCM repère** : `POST …/present-question` recharge la question complète (`choix_a`…`e`, `reponse_correcte`) via `glQcmQuestionQuery` — corrige « Choix insuffisants pour la question ». Test `tests/gl-marker-question-pool.test.js`, `tests/gl-qcm-question-query.test.js`.
+- **GL — tests fixtures** : création chapitre e2e sans colonne `created_by` absente sur `gl_chapters` (`tests/helpers/glFixtures.js`).
+- **Sync visit-pack serveur** : copie `visitMascotCatalog.js`, `browserStorage.js` et manifest renard — rétablit la validation pack et le catalogue mascottes unifié (`GET /api/gl/mascots`). Test `tests/gl-mascots.test.js`.
+- **E2e GL** : inserts joueurs avec `password_hash`, payload move avec `markerId`, sélecteurs console MJ stabilisés (`e2e/gl-game-flow.spec.js`, `e2e/gl-mj-console.spec.js`).
 - **GL — popover question à l’arrivée sur repère** : déclenchement au clic MJ sur repère question (`schedulePresentOnArrival`) sans attendre uniquement la sync `position_marker_id` ; popover rendu hors zone `overflow: hidden` de la carte (`.gl-board-shell`) ; anti-doublon API. Test `tests-ui/gl/useGLMarkerArrival.test.js`.
 - **GL — image de carte chapitre** : champ URL admin (`GLImageSourceField`) en `type="text"` au lieu de `type="url"` — les chemins `/uploads/…` après upload n’étaient plus bloqués par la validation HTML5 à l’enregistrement. Test `tests-ui/gl/GLImageSourceField.test.jsx`.
 - **GL — téléchargement modèles / export XLSX** : routes aussi enregistrées sur le routeur `admin` (comme les joueurs), montage `/api/gl/admin` prioritaire, réponses binaires sans compression, messages d’erreur explicites côté UI (`downloadGlFile`).

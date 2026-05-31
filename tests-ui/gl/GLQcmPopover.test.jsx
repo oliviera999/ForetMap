@@ -23,7 +23,6 @@ describe('GLQcmPopover', () => {
       <GLQcmPopover
         open
         marker={{ id: 5, label: 'Repère quiz', x_pct: 40, y_pct: 55 }}
-        anchorPct={{ xp: 40, yp: 55 }}
         gameId={42}
         questionCode="QCM0001"
         presentation={{
@@ -40,6 +39,7 @@ describe('GLQcmPopover', () => {
       />
     );
 
+    expect(document.querySelector('.gl-qcm-popover-overlay')).toBeTruthy();
     expect(document.querySelector('.gl-qcm-popover')).toBeTruthy();
     expect(screen.getByText(/Le fennec vit où/i)).toBeInTheDocument();
 

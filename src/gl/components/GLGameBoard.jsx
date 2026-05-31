@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { clampMapMascotPctForViewport } from '../../utils/mapViewMascotMotion.js';
 import { isQuestionMarker } from '../../utils/glMarkerEventConfig.js';
 import { GLBoardMarkers } from './GLBoardMarkers.jsx';
@@ -150,10 +151,6 @@ export function GLGameBoard({
     setPendingMarker(null);
   }
 
-  const popoverAnchor = questionPopover?.marker
-    ? { xp: Number(questionPopover.marker.x_pct), yp: Number(questionPopover.marker.y_pct) }
-    : null;
-
   const teamList = Array.isArray(teams) ? teams : [];
 
   const boardShellClass = mapFullscreen
@@ -161,8 +158,110 @@ export function GLGameBoard({
     : 'gl-board-shell';
   const boardClass = mapFullscreen ? 'gl-board gl-board--fullscreen' : 'gl-board';
 
+  const boardShell = (
+    <div className={boardShellClass} data-testid={mapFullscreen ? 'gl-map-fullscreen-layer' : undefined}>
+      {mapFullscreen ? (
+        <button
+          type="button"
+          className="gl-map-fullscreen-close"
+          data-testid="gl-map-fullscreen-close"
+          aria-label="Quitter le plein écran"
+          onClick={() => setMapFullscreen(false)}
+        >
+          Fermer
+        </button>
+      ) : null}
+      <div
+        ref={boardRef}
+        className={boardClass}
+        onClick={(event) => {
+          if (!canMoveMascot) return;
+          const point = glBoardPointToPct(event, event.currentTarget);
+          if (!point) return;
+          const clamped = clampMapMascotPctForViewport(
+            point.xp,
+            point.yp,
+            event.currentTarget.clientHeight || 0,
+          );
+          handleBoardMove(clamped.xp, clamped.yp);
+        }}
+      >
+        <img src={imageUrl} alt={chapter?.title || 'Carte du chapitre'} className="gl-board-image" />
+        <GLBoardMarkers markers={markers} onMarkerClick={handleMarkerClick} />
+
+        {teamList.map((team) => {
+          const position = getPositionForTeam(team.id);
+          const motion = getMotionForTeam(team.id);
+          const mascotState = mascotStateMachine?.getStateForTeam?.(team.id);
+          return (
+            <GLBoardMascot
+              key={`mascot-${team.id}`}
+              team={team}
+              position={position}
+              motion={motion}
+              mascotState={mascotState}
+              prefersReducedMotion={prefersReducedMotion}
+              zIndex={6 + (selectedTeamId != null && Number(selectedTeamId) === Number(team.id) ? 2 : 0)}
+            />
+          );
+        })}
+
+        {teamList.map((team) => {
+          const position = getPositionForTeam(team.id);
+          const isSelected = selectedTeamId != null && Number(selectedTeamId) === Number(team.id);
+          const isCurrentTurn = currentTeamId != null && Number(currentTeamId) === Number(team.id);
+          const classes = ['gl-board-team-pin'];
+          if (isSelected) classes.push('is-selected');
+          if (isCurrentTurn) classes.push('is-current-turn');
+          return (
+            <button
+              key={`pin-${team.id}`}
+              type="button"
+              className={classes.join(' ')}
+              style={{
+                left: `${position.xp}%`,
+                top: `${position.yp}%`,
+                '--gl-team-color': team.color || '#22c55e',
+              }}
+              title={team.name}
+              aria-selected={isSelected}
+              data-team-id={team.id}
+              data-team-mascot={team.mascot_id || ''}
+              onClick={(event) => {
+                event.stopPropagation();
+                onSelectTeam?.(Number(team.id));
+              }}
+            >
+              <span className="gl-board-team-pin-label">{team.name}</span>
+            </button>
+          );
+        })}
+      </div>
+
+        <GLQcmPopover
+          open={Boolean(questionPopover)}
+          marker={questionPopover?.marker}
+          gameId={gameId}
+        presentation={questionPopover?.presentation}
+        questionCode={questionPopover?.questionCode}
+        loading={questionPopover?.loading}
+        error={questionPopover?.error}
+        result={questionPopover?.result}
+        onClose={closePopover}
+        onOpenGlossaryTerm={onOpenGlossaryTerm}
+        onAnswered={onQcmAnswered}
+        onReshuffle={reshuffle}
+        onSubmitResult={setResult}
+      />
+    </div>
+  );
+
+  const boardShellNode = mapFullscreen && typeof document !== 'undefined' && document.body
+    ? createPortal(boardShell, document.body)
+    : boardShell;
+
   return (
-    <section className="gl-panel">
+    <section className={mapFullscreen ? 'gl-panel gl-panel--map-fullscreen-active' : 'gl-panel'}>
       {!mapFullscreen ? (
         <div className="gl-game-board-head">
           <h2>{chapter?.title || 'Carte de jeu'}</h2>
@@ -177,102 +276,7 @@ export function GLGameBoard({
           </button>
         </div>
       ) : null}
-      <div className={boardShellClass}>
-        {mapFullscreen ? (
-          <button
-            type="button"
-            className="gl-map-fullscreen-close"
-            data-testid="gl-map-fullscreen-close"
-            aria-label="Quitter le plein écran"
-            onClick={() => setMapFullscreen(false)}
-          >
-            Fermer
-          </button>
-        ) : null}
-        <div
-          ref={boardRef}
-          className={boardClass}
-          onClick={(event) => {
-            if (!canMoveMascot) return;
-            const point = glBoardPointToPct(event, event.currentTarget);
-            if (!point) return;
-            const clamped = clampMapMascotPctForViewport(
-              point.xp,
-              point.yp,
-              event.currentTarget.clientHeight || 0,
-            );
-            handleBoardMove(clamped.xp, clamped.yp);
-          }}
-        >
-          <img src={imageUrl} alt={chapter?.title || 'Carte du chapitre'} className="gl-board-image" />
-          <GLBoardMarkers markers={markers} onMarkerClick={handleMarkerClick} />
-
-          {teamList.map((team) => {
-            const position = getPositionForTeam(team.id);
-            const motion = getMotionForTeam(team.id);
-            const mascotState = mascotStateMachine?.getStateForTeam?.(team.id);
-            return (
-              <GLBoardMascot
-                key={`mascot-${team.id}`}
-                team={team}
-                position={position}
-                motion={motion}
-                mascotState={mascotState}
-                prefersReducedMotion={prefersReducedMotion}
-                zIndex={6 + (selectedTeamId != null && Number(selectedTeamId) === Number(team.id) ? 2 : 0)}
-              />
-            );
-          })}
-
-          {teamList.map((team) => {
-            const position = getPositionForTeam(team.id);
-            const isSelected = selectedTeamId != null && Number(selectedTeamId) === Number(team.id);
-            const isCurrentTurn = currentTeamId != null && Number(currentTeamId) === Number(team.id);
-            const classes = ['gl-board-team-pin'];
-            if (isSelected) classes.push('is-selected');
-            if (isCurrentTurn) classes.push('is-current-turn');
-            return (
-              <button
-                key={`pin-${team.id}`}
-                type="button"
-                className={classes.join(' ')}
-                style={{
-                  left: `${position.xp}%`,
-                  top: `${position.yp}%`,
-                  '--gl-team-color': team.color || '#22c55e',
-                }}
-                title={team.name}
-                aria-selected={isSelected}
-                data-team-id={team.id}
-                data-team-mascot={team.mascot_id || ''}
-                onClick={(event) => {
-                  event.stopPropagation();
-                  onSelectTeam?.(Number(team.id));
-                }}
-              >
-                <span className="gl-board-team-pin-label">{team.name}</span>
-              </button>
-            );
-          })}
-        </div>
-
-        <GLQcmPopover
-          open={Boolean(questionPopover)}
-          marker={questionPopover?.marker}
-          anchorPct={popoverAnchor}
-          gameId={gameId}
-          presentation={questionPopover?.presentation}
-          questionCode={questionPopover?.questionCode}
-          loading={questionPopover?.loading}
-          error={questionPopover?.error}
-          result={questionPopover?.result}
-          onClose={closePopover}
-          onOpenGlossaryTerm={onOpenGlossaryTerm}
-          onAnswered={onQcmAnswered}
-          onReshuffle={reshuffle}
-          onSubmitResult={setResult}
-        />
-      </div>
+      {boardShellNode}
 
       {pendingMarker ? (
         <div className="gl-action-modal" role="dialog" aria-label="Proposer une action">
