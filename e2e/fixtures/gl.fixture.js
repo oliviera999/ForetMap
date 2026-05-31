@@ -50,7 +50,7 @@ async function seedGlScenario(label = 'default') {
     userType: 'gl_admin',
     userId: String(admin.id),
     roleSlug: 'gl_admin',
-    permissions: ['gl.read', 'gl.game.manage', 'gl.event.emit', 'gl.action.request', 'gl.team.manage', 'gl.settings.manage'],
+    permissions: ['gl.read', 'gl.players.manage', 'gl.game.manage', 'gl.event.emit', 'gl.action.request', 'gl.team.manage', 'gl.settings.manage'],
     displayName: `MJ ${label}`,
   });
   const playerToken = await signAuthToken({

@@ -154,23 +154,35 @@ test('visite publique : marquage vu hors ligne puis synchronisation', async ({ p
   await expect(guestCta).toBeVisible({ timeout: 30_000 });
   await guestCta.click();
 
+  const onboarding = page.locator('.visit-mascot-onboarding');
+  if (await onboarding.isVisible({ timeout: 5000 }).catch(() => false)) {
+    await onboarding.locator('.visit-mascot-onboarding__option').first().click();
+    await onboarding.getByRole('button', { name: /Commencer la visite/i }).click();
+    await expect(onboarding).toHaveCount(0);
+  }
+
   await expect(page.locator('.visit-view--guest-public')).toBeVisible({ timeout: 30_000 });
   const stage = page.locator('.visit-map-stage');
   await expect(stage.locator('img.visit-map-img')).toBeVisible({ timeout: 15_000 });
 
+  const markerBtn = stage.locator('.visit-marker-btn').first();
   const zoneHit = stage.locator('.visit-zone-hit').first();
-  if ((await zoneHit.count()) === 0) {
+  if ((await markerBtn.count()) === 0 && (await zoneHit.count()) === 0) {
     test.skip();
     return;
   }
-  const poly = zoneHit.locator('polygon').first();
-  if (await poly.count()) {
-    await poly.click({ force: true, timeout: 10_000 });
+  if ((await markerBtn.count()) > 0) {
+    await markerBtn.click({ force: true, timeout: 10_000 });
   } else {
-    await zoneHit.click({ force: true, timeout: 10_000 });
+    const poly = zoneHit.locator('polygon').first();
+    if (await poly.count()) {
+      await poly.click({ force: true, timeout: 10_000 });
+    } else {
+      await zoneHit.click({ force: true, timeout: 10_000 });
+    }
   }
   const panel = page.getByTestId('visit-detail-panel');
-  await expect(panel).toBeVisible({ timeout: 10_000 });
+  await expect(panel).toBeVisible({ timeout: 20_000 });
 
   await context.setOffline(true);
   const status = page.getByTestId('visit-network-status');

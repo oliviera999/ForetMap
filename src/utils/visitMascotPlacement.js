@@ -14,7 +14,16 @@ export const VISIT_N3_ENTRANCE_LABEL_RE =
 
 export function findVisitN3EntranceMarker(markers) {
   if (!Array.isArray(markers)) return null;
-  return markers.find((mk) => VISIT_N3_ENTRANCE_LABEL_RE.test(String(mk.label || '').trim())) || null;
+  const matches = markers.filter((mk) => VISIT_N3_ENTRANCE_LABEL_RE.test(String(mk.label || '').trim()));
+  if (matches.length === 0) return null;
+  if (matches.length === 1) return matches[0];
+  return matches.reduce((best, mk) => {
+    const bestId = Number(best?.id);
+    const mkId = Number(mk?.id);
+    if (Number.isFinite(mkId) && Number.isFinite(bestId)) return mkId > bestId ? mk : best;
+    if (Number.isFinite(mkId) && !Number.isFinite(bestId)) return mk;
+    return best;
+  }, matches[0]);
 }
 
 export function computeVisitMascotStartPct(mapId, markers) {

@@ -74,6 +74,15 @@ describe('visitMascotPlacement', () => {
     }
   });
 
+  it('findVisitN3EntranceMarker : repère le plus récent si plusieurs entrées N3', () => {
+    const m = findVisitN3EntranceMarker([
+      { id: 1, label: 'Entrée N3', x_pct: 10, y_pct: 10 },
+      { id: 99, label: 'E2E N3 entrée mascotte', x_pct: 22, y_pct: 18 },
+    ]);
+    assert.equal(m.id, 99);
+    assert.equal(m.x_pct, 22);
+  });
+
   it('VISIT_N3_ENTRANCE_LABEL_RE : exemples documentés', () => {
     assert.match('Entrée N3', VISIT_N3_ENTRANCE_LABEL_RE);
     assert.match('n3 entrée', VISIT_N3_ENTRANCE_LABEL_RE);
