@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { apiGL } from '../../services/apiGL.js';
+import { GLButton } from '../ui/GLButton.jsx';
+import { GLSelect } from '../ui/GLSelect.jsx';
 
 export function GLGameRosterPanel({ gameId, teams, refreshKey, onRosterChanged }) {
   const [rows, setRows] = useState([]);
@@ -80,7 +82,7 @@ export function GLGameRosterPanel({ gameId, teams, refreshKey, onRosterChanged }
             <tr>
               <th>Joueur</th>
               <th>Pseudo</th>
-              <th>Équipe actuelle</th>
+              <th>Équipe (cette partie)</th>
               <th>Nouvelle équipe</th>
               <th>Actions</th>
             </tr>
@@ -92,7 +94,7 @@ export function GLGameRosterPanel({ gameId, teams, refreshKey, onRosterChanged }
                 <td>{item.pseudo}</td>
                 <td>{item.teamName || 'Non assigné'}</td>
                 <td>
-                  <select
+                  <GLSelect
                     value={selectedTeams[item.id] || ''}
                     onChange={(event) => setSelectedTeams((prev) => ({ ...prev, [item.id]: event.target.value }))}
                   >
@@ -100,15 +102,15 @@ export function GLGameRosterPanel({ gameId, teams, refreshKey, onRosterChanged }
                     {teams.map((team) => (
                       <option key={team.id} value={team.id}>{team.name}</option>
                     ))}
-                  </select>
+                  </GLSelect>
                 </td>
                 <td className="gl-admin-actions-cell">
-                  <button type="button" onClick={() => assignPlayer(item.id)} disabled={busy || !selectedTeams[item.id]}>
+                  <GLButton type="button" size="sm" onClick={() => assignPlayer(item.id)} disabled={busy || !selectedTeams[item.id]}>
                     Assigner
-                  </button>
-                  <button type="button" className="gl-btn-secondary" onClick={() => unassignPlayer(item.id)} disabled={busy || !item.teamId}>
+                  </GLButton>
+                  <GLButton type="button" size="sm" variant="secondary" onClick={() => unassignPlayer(item.id)} disabled={busy || !item.teamId}>
                     Retirer
-                  </button>
+                  </GLButton>
                 </td>
               </tr>
             ))}

@@ -19,6 +19,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - **Sécurité — register élève** : `POST /api/students/register` exige une session élève correspondante.
 
 ### Modifié
+- **GL — console MJ** : refonte ergonomique (sous-onglets Parties / Équipes & effectifs / Jeu en direct, bannière partie active, édition via `PUT /api/gl/games/:id`), contextualisation des équipes par partie, modernisation des actions (`GLButton` compact, `GLBadge`, `GLDataList`) ; reset de l’équipe sélectionnée au changement de partie. Tests `tests/gl-games.test.js`, `tests-ui/gl/GLGameMasterConsole.test.jsx`, e2e `e2e/gl-mj-console.spec.js`.
 - **Build production** : artefacts `dist/` régénérés localement (`npm run build`, bundle GL à jour pour plein écran et affichage repères).
 - **GL — admin repères question** : filtres biomes/catégories/niveaux via menus déroulants à cases à cocher (`GLMultiCheckDropdown`) ; liste des questions visible en mode fixe et aléatoire (`GLMarkerQuestionList`, aperçu pool aussi pour question fixe). Tests `tests-ui/gl/GLMultiCheckDropdown.test.jsx`, `tests-ui/gl/GLMarkerQuestionList.test.jsx`.
 - **GL — gameplay joueur** : session JWT/`GET /me` expose `gameId` depuis le roster (`gl_team_members`) ; sync `AppGL.jsx` après connexion et `join-team`.

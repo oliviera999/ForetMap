@@ -653,6 +653,7 @@ export function AppGL() {
               const vm = toGameViewModel(state);
               setGameState(vm);
               const nextId = vm?.game?.id ? Number(vm.game.id) : null;
+              setSelectedTeamId(null);
               setActiveGameId(nextId);
               reloadGameplaySettings();
             }}

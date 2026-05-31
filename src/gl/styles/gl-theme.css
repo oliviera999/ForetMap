@@ -520,6 +520,12 @@ button.gl-brand-hub__card:focus-visible {
   color: #991b1b;
 }
 
+.gl-btn--sm {
+  min-height: 36px;
+  padding: 4px 10px;
+  font-size: 0.875rem;
+}
+
 .gl-error,
 .gl-error-banner {
   color: #991b1b;
@@ -1065,6 +1071,113 @@ body.gl-map-fullscreen-active .gl-glossary-popover {
   font-size: 1.2rem;
   font-weight: 700;
   color: #1d4ed8;
+}
+
+/* Console MJ */
+.gl-mj-console {
+  display: grid;
+  gap: 14px;
+}
+
+.gl-mj-console .gl-subtabs {
+  margin-top: 4px;
+}
+
+.gl-active-game-banner {
+  display: grid;
+  gap: 12px;
+  padding: 14px 16px;
+  border: 1px solid var(--gl-border);
+  border-left-width: 4px;
+  border-radius: var(--gl-radius-sm);
+  background: color-mix(in srgb, #fff 88%, var(--gl-accent-info) 12%);
+}
+
+.gl-active-game-banner.is-status-draft {
+  border-left-color: #94a3b8;
+}
+
+.gl-active-game-banner.is-status-live {
+  border-left-color: #16a34a;
+}
+
+.gl-active-game-banner.is-status-paused {
+  border-left-color: #2563eb;
+}
+
+.gl-active-game-banner.is-status-ended {
+  border-left-color: #dc2626;
+}
+
+.gl-active-game-banner-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.gl-active-game-banner-title {
+  margin: 0;
+  font-size: 1.15rem;
+}
+
+.gl-active-game-banner-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  color: #475569;
+  font-size: 0.92rem;
+}
+
+.gl-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.gl-toolbar .gl-field {
+  min-width: 140px;
+  flex: 1 1 140px;
+}
+
+.gl-empty-state {
+  display: grid;
+  gap: 8px;
+  justify-items: center;
+  text-align: center;
+  padding: 28px 16px;
+  border: 1px dashed #cbd5e1;
+  border-radius: 12px;
+  background: #f8fafc;
+  color: #475569;
+}
+
+.gl-empty-state-icon {
+  font-size: 1.8rem;
+}
+
+.gl-admin-table tbody tr.is-active-row {
+  background: color-mix(in srgb, #fff 65%, #fde68a 35%);
+  box-shadow: inset 3px 0 0 #eab308;
+}
+
+.gl-team-chip-color {
+  width: 12px;
+  height: 12px;
+  border-radius: 999px;
+  flex-shrink: 0;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+}
+
+.gl-mj-create-toggle {
+  margin-bottom: 8px;
+}
+
+.gl-mj-feedback {
+  margin: 0;
 }
 
 .gl-narration-banner {

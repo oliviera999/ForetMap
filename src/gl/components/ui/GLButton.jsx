@@ -6,6 +6,7 @@ function joinClassNames(...parts) {
 
 export function GLButton({
   variant = 'primary',
+  size = 'md',
   loading = false,
   className = '',
   children,
@@ -13,10 +14,11 @@ export function GLButton({
   ...props
 }) {
   const variantClass = `gl-btn--${variant}`;
+  const sizeClass = size === 'sm' ? 'gl-btn--sm' : '';
   return (
     <button
       type={type}
-      className={joinClassNames('gl-btn', variantClass, className)}
+      className={joinClassNames('gl-btn', variantClass, sizeClass, className)}
       disabled={loading || props.disabled}
       {...props}
     >
