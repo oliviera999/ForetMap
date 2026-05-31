@@ -80,6 +80,73 @@ test('POST /api/gl/games : 400 si payload incomplet', async () => {
     .expect(400);
 });
 
+test('PUT /api/gl/games/:id met à jour le nom', async () => {
+  const res = await request(app)
+    .put(`/api/gl/games/${gameId}`)
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ name: 'Partie renommée' })
+    .expect(200);
+  assert.strictEqual(res.body?.game?.name, 'Partie renommée');
+});
+
+test('PUT /api/gl/games/:id : 409 chapitre si partie en cours', async () => {
+  await request(app)
+    .post(`/api/gl/games/${gameId}/start`)
+    .set('Authorization', `Bearer ${adminToken}`)
+    .expect(200);
+  const chapter = await queryOne("SELECT id FROM gl_chapters WHERE slug = 'foret-magique' LIMIT 1");
+  const res = await request(app)
+    .put(`/api/gl/games/${gameId}`)
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ chapterId: chapter.id })
+    .expect(409);
+  assert.match(String(res.body?.error || ''), /chapitre/i);
+  await request(app)
+    .post(`/api/gl/games/${gameId}/pause`)
+    .set('Authorization', `Bearer ${adminToken}`)
+    .expect(200);
+});
+
+test('PUT /api/gl/games/:id : 409 classe si roster non vide', async () => {
+  const cls = await queryOne('SELECT id FROM gl_classes ORDER BY id DESC LIMIT 1');
+  const chapter = await queryOne("SELECT id FROM gl_chapters WHERE slug = 'foret-magique' LIMIT 1");
+  const createRes = await request(app)
+    .post('/api/gl/games')
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ classId: cls.id, chapterId: chapter.id, name: 'Partie roster test' })
+    .expect(201);
+  const draftGameId = Number(createRes.body.game.id);
+  await request(app)
+    .post(`/api/gl/games/${draftGameId}/teams`)
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ name: 'Eq roster', type: 'gnome', color: '#65a30d' })
+    .expect(201);
+  const admin = await queryOne('SELECT id FROM gl_admins WHERE email = ? LIMIT 1', ['games.mj@ecole.local']);
+  await execute(
+    `INSERT INTO gl_players (class_id, pseudo, first_name, last_name, password_hash, is_active, created_at, updated_at)
+     VALUES (?, 'roster.test', 'Roster', 'Test', '$2b$10$abcdefghijklmnopqrstuv', 1, NOW(), NOW())`,
+    [cls.id]
+  );
+  const player = await queryOne('SELECT id FROM gl_players WHERE pseudo = ? LIMIT 1', ['roster.test']);
+  const team = await queryOne('SELECT id FROM gl_teams WHERE game_id = ? ORDER BY id DESC LIMIT 1', [draftGameId]);
+  await execute(
+    'INSERT INTO gl_team_members (game_id, team_id, player_id, joined_at) VALUES (?, ?, ?, NOW())',
+    [draftGameId, team.id, player.id]
+  );
+  await execute(
+    `INSERT INTO gl_classes (name, school, created_by, is_active, created_at, updated_at)
+     VALUES ('6e C roster', 'College Test', ?, 1, NOW(), NOW())`,
+    [admin.id]
+  );
+  const otherClass = await queryOne('SELECT id FROM gl_classes WHERE name = ? LIMIT 1', ['6e C roster']);
+  const res = await request(app)
+    .put(`/api/gl/games/${draftGameId}`)
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ classId: otherClass.id })
+    .expect(409);
+  assert.match(String(res.body?.error || ''), /classe|assign/i);
+});
+
 test('POST /api/gl/games/:id/teams ajoute une équipe', async () => {
   const res = await request(app)
     .post(`/api/gl/games/${gameId}/teams`)

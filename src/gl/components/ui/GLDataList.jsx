@@ -14,7 +14,9 @@ export function GLDataList({ columns = [], rows = [], emptyLabel = 'Aucune donn√
           </thead>
           <tbody>
             {rows.length > 0 ? (
-              rows.map((row) => <tr key={row.key}>{row.desktopCells}</tr>)
+              rows.map((row) => (
+                <tr key={row.key} className={row.rowClassName || ''}>{row.desktopCells}</tr>
+              ))
             ) : (
               <tr>
                 <td colSpan={columns.length}>{emptyLabel}</td>

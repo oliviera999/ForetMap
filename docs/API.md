@@ -101,6 +101,7 @@ Le script accepte aussi :
 | POST | `/api/gl/games` | `{ classId, chapterId, name }` | `gl.game.manage` (refus `404` si `classId`/`chapterId` introuvable, `409` si la ressource est supprimée entre validation et insertion) |
 | GET | `/api/gl/games` | `?classId=&status=` optionnels | `gl.game.manage` |
 | GET | `/api/gl/games/:id` | — | MJ/admin GL, ou joueur membre de cette partie |
+| PUT | `/api/gl/games/:id` | `{ name?, chapterId?, classId? }` | `gl.game.manage` (`name` toujours ; `chapterId` si `draft`/`paused` ; `classId` si `draft` et roster vide ; refus `404`/`409` selon règles) |
 | POST | `/api/gl/games/:id/teams` | `{ name, type, mascotId, color }` | `gl.team.manage` (refus `404` si partie introuvable) |
 | PUT | `/api/gl/games/:id/teams/:teamId` | `{ name?, type?, mascotId?, color? }` | `gl.team.manage` |
 | DELETE | `/api/gl/games/:id/teams/:teamId` | — | `gl.team.manage` (refus `409` si équipe avec membres) |

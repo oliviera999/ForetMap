@@ -310,6 +310,84 @@ router.post('/games', requireGlPermission('gl.game.manage'), async (req, res) =>
   return res.status(201).json(state);
 });
 
+router.put('/games/:id', requireGlPermission('gl.game.manage'), async (req, res) => {
+  const gameId = parseId(req.params.id);
+  if (!gameId) return res.status(400).json({ error: 'Identifiant de partie invalide' });
+
+  const existing = await queryOne(
+    'SELECT id, class_id, chapter_id, name, status FROM gl_games WHERE id = ? LIMIT 1',
+    [gameId]
+  );
+  if (!existing) return res.status(404).json({ error: 'Partie introuvable' });
+
+  const status = String(existing.status || '').toLowerCase();
+  const hasName = req.body?.name != null;
+  const hasChapterId = req.body?.chapterId != null;
+  const hasClassId = req.body?.classId != null;
+  if (!hasName && !hasChapterId && !hasClassId) {
+    return res.status(400).json({ error: 'Aucune modification fournie' });
+  }
+
+  const nextName = hasName ? normalizeOptionalString(req.body.name) : null;
+  if (hasName && !nextName) return res.status(400).json({ error: 'Nom de partie invalide' });
+
+  let nextChapterId = null;
+  if (hasChapterId) {
+    nextChapterId = parseId(req.body.chapterId);
+    if (!nextChapterId) return res.status(400).json({ error: 'chapterId invalide' });
+    if (!['draft', 'paused'].includes(status)) {
+      return res.status(409).json({ error: 'Chapitre modifiable uniquement en brouillon ou pause' });
+    }
+    const chapterRow = await queryOne('SELECT id FROM gl_chapters WHERE id = ? LIMIT 1', [nextChapterId]);
+    if (!chapterRow) return res.status(404).json({ error: 'Chapitre introuvable' });
+  }
+
+  let nextClassId = null;
+  if (hasClassId) {
+    nextClassId = parseId(req.body.classId);
+    if (!nextClassId) return res.status(400).json({ error: 'classId invalide' });
+    if (status !== 'draft') {
+      return res.status(409).json({ error: 'Classe modifiable uniquement en brouillon' });
+    }
+    if (Number(nextClassId) !== Number(existing.class_id)) {
+      const memberCount = await queryOne(
+        'SELECT COUNT(*) AS cnt FROM gl_team_members WHERE game_id = ?',
+        [gameId]
+      );
+      if (Number(memberCount?.cnt || 0) > 0) {
+        return res.status(409).json({ error: 'Classe non modifiable : des joueurs sont déjà assignés à cette partie' });
+      }
+    }
+    const classRow = await queryOne(
+      'SELECT id FROM gl_classes WHERE id = ? AND is_active = 1 LIMIT 1',
+      [nextClassId]
+    );
+    if (!classRow) return res.status(404).json({ error: 'Classe introuvable' });
+  }
+
+  try {
+    await execute(
+      `UPDATE gl_games
+          SET name = COALESCE(?, name),
+              chapter_id = COALESCE(?, chapter_id),
+              class_id = COALESCE(?, class_id),
+              updated_at = NOW()
+        WHERE id = ?`,
+      [nextName, nextChapterId, nextClassId, gameId]
+    );
+  } catch (err) {
+    if (err && err.code === 'ER_NO_REFERENCED_ROW_2') {
+      return res.status(409).json({ error: 'Classe ou chapitre supprimé entre-temps' });
+    }
+    logRouteError(err, req, 'PUT /api/gl/games/:id : UPDATE en échec');
+    return res.status(500).json({ error: 'Erreur lors de la mise à jour de la partie' });
+  }
+
+  const state = await readGameState(gameId);
+  if (!state) return res.status(404).json({ error: 'Partie introuvable' });
+  return res.json(state);
+});
+
 router.post('/games/:id/teams', requireGlPermission('gl.team.manage'), async (req, res) => {
   const gameId = parseId(req.params.id);
   if (!gameId) return res.status(400).json({ error: 'Identifiant de partie invalide' });
