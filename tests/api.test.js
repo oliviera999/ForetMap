@@ -5,8 +5,8 @@ const { initDatabase, initSchema, queryAll, queryOne, execute } = require('../da
 const { setSetting } = require('../lib/settings');
 const { app } = require('../server');
 const request = require('supertest');
-const { signAuthToken } = require('../middleware/requireTeacher');
 const { ensureRbacBootstrap } = require('../lib/rbac');
+const { ensureAdminTeacherAuthToken } = require('./helpers/adminAuth');
 
 test.before(async () => {
   await initSchema();
@@ -22,51 +22,15 @@ test('GET /api/ready après init BDD → 200', async () => {
 });
 
 async function getAdminAuthToken() {
-  const loginEmail = String(process.env.TEACHER_ADMIN_EMAIL || '').trim();
-  const teacher = await queryOne(
-    "SELECT id FROM users WHERE user_type = 'teacher' AND LOWER(email) = LOWER(?) LIMIT 1",
-    [loginEmail]
-  );
-  const adminRole = await queryOne("SELECT id FROM roles WHERE slug = 'admin' LIMIT 1");
-  assert.ok(teacher?.id, 'Compte admin enseignant introuvable');
-  assert.ok(adminRole?.id, 'Rôle admin introuvable');
-  const requiredPermissions = [
-    'stats.read.all', 'stats.export',
-    'tasks.manage', 'tasks.read.logs', 'tasks.validate',
-    'zones.manage', 'visit.manage',
-    'plants.manage',
-    'admin.settings.read', 'admin.settings.write',
-    'admin.roles.manage', 'admin.users.assign_roles',
-  ];
-  for (const key of requiredPermissions) {
-    await execute(
-      'INSERT IGNORE INTO permissions (`key`, label, description) VALUES (?, ?, ?)',
-      [key, key, 'Permission auto-seed tests']
-    );
-    await execute(
-      'INSERT IGNORE INTO role_permissions (role_id, permission_key, requires_elevation) VALUES (?, ?, 1)',
-      [adminRole.id, key]
-    );
+  return ensureAdminTeacherAuthToken({ elevated: true });
+}
+
+async function resetNoviceEnrollmentLimits() {
+  const noviceRole = await queryOne("SELECT id FROM roles WHERE slug = 'eleve_novice' LIMIT 1");
+  if (noviceRole?.id) {
+    await execute('UPDATE roles SET max_concurrent_tasks = NULL WHERE id = ?', [noviceRole.id]);
   }
-  if (teacher?.id && adminRole?.id) {
-    await execute('UPDATE user_roles SET is_primary = 0 WHERE user_type = ? AND user_id = ?', ['teacher', teacher.id]);
-    await execute(
-      'INSERT INTO user_roles (user_type, user_id, role_id, is_primary) VALUES (?, ?, ?, 1) ON DUPLICATE KEY UPDATE is_primary = 1',
-      ['teacher', teacher.id, adminRole.id]
-    );
-  }
-  return await signAuthToken(
-    {
-      userType: 'teacher',
-      userId: teacher?.id || null,
-      canonicalUserId: teacher?.id || null,
-      roleId: adminRole?.id || null,
-      roleSlug: 'admin',
-      roleDisplayName: 'Administrateur',
-      elevated: false,
-    },
-    false
-  );
+  await setSetting('tasks.student_max_active_assignments', 0, {});
 }
 
 async function setStudentPrimaryRole(studentId, roleSlug) {
@@ -662,6 +626,7 @@ test('Plafond auto-inscription : le profil RBAC (max_concurrent_tasks) prime sur
   const noviceRole = await queryOne("SELECT id FROM roles WHERE slug = 'eleve_novice' LIMIT 1");
   assert.ok(noviceRole?.id);
   try {
+    await resetNoviceEnrollmentLimits();
     await setSetting('tasks.student_max_active_assignments', 5, {});
     await execute('UPDATE roles SET max_concurrent_tasks = 1 WHERE id = ?', [noviceRole.id]);
 
@@ -723,6 +688,7 @@ test('max_concurrent_tasks = 0 sur le profil : pas de limite même si le réglag
   const noviceRole = await queryOne("SELECT id FROM roles WHERE slug = 'eleve_novice' LIMIT 1");
   assert.ok(noviceRole?.id);
   try {
+    await resetNoviceEnrollmentLimits();
     await setSetting('tasks.student_max_active_assignments', 2, {});
     await execute('UPDATE roles SET max_concurrent_tasks = 0 WHERE id = ?', [noviceRole.id]);
 

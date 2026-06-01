@@ -14,6 +14,8 @@ const PSEUDO_MUST_RESET = 'equipe_reinit';
 
 before(async () => {
   await initSchema();
+  const { execute } = require('../database');
+  await execute('DELETE FROM gl_players WHERE pseudo IN (?, ?)', [PSEUDO_NORMAL, PSEUDO_MUST_RESET]);
   const admin = await createGlAdmin({ email: 'mj.test@ecole.local', displayName: 'MJ Test' });
   const cls = await createGlClass({ name: '6e A', school: 'College Test', adminId: admin.id });
   await createGlPlayer({
