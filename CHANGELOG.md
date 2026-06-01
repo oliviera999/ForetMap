@@ -20,6 +20,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - **Sécurité — register élève** : `POST /api/students/register` exige une session élève correspondante.
 
 ### Modifié
+- **GL — version application (staff)** : pastille `vX.Y.Z` dans le bandeau et pied de page pour les comptes admin/MJ (`gl_admin`) ; ligne discrète sur l’écran de connexion ; hook partagé `useAppVersion` (`GET /api/version`). Tests `tests-ui/gl/GLTopBar.test.jsx`.
 - **Build production** : artefacts `dist/` régénérés (`npm run build`) — bundle GL à jour (QCM, carte fit, plein écran).
 - **GL — popover question QCM** : bouton explicite **« C'est cette réponse ! »** pour valider la proposition avant feedback ; glossaire popover au-dessus du popover question (`z-index`).
 - **GL — alignement repères sur l'image** : calque `gl-board-fit-layer` + hook `useGlBoardImageFit` pour positionner repères/mascottes sur l'image réelle (`object-fit: contain`). Tests `tests-ui/gl/useGlBoardImageFit.test.jsx`.

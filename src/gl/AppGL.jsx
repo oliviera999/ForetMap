@@ -36,6 +36,7 @@ import { GLMascotCatalogProvider } from './context/GLMascotCatalogContext.jsx';
 import { pickZoneAtPct } from '../utils/glZoneAtPct.js';
 import { useGLZoneMusic, readStoredMuted, writeStoredMuted } from './hooks/useGLZoneMusic.js';
 import { usePrefersReducedMotion } from './hooks/usePrefersReducedMotion.js';
+import { useAppVersion } from '../hooks/useAppVersion.js';
 
 const DEFAULT_GAMEPLAY = {
   turnsEnabled: false,
@@ -151,6 +152,7 @@ export function AppGL() {
   }, []);
 
   const isAdmin = isAdminRole(auth);
+  const appVersion = useAppVersion();
   const isImpersonating = !!auth?.impersonating;
   const zoneMusicEnabled = isModuleEnabled(modules, 'zoneMusicEnabled');
 
@@ -575,6 +577,7 @@ export function AppGL() {
       <GLAuthView
         config={glConfig}
         oauthNotice={oauthNotice}
+        appVersion={appVersion}
         onLogin={(data) => {
           updateSession({ token: data.authToken, auth: data.auth });
           setTab(defaultTabForAuth(data?.auth));
@@ -612,6 +615,8 @@ export function AppGL() {
           setGlProfile(null);
           setShowProfile(false);
         }}
+        showVersion={isAdmin}
+        appVersion={appVersion}
       />
 
       {error ? <div className="gl-error-banner">{error}</div> : null}
@@ -775,6 +780,11 @@ export function AppGL() {
           />
         ) : null}
       </main>
+      {isAdmin ? (
+        <footer className="gl-app-footer" aria-label="Version de l’application">
+          Version {appVersion != null ? appVersion : '…'}
+        </footer>
+      ) : null}
       <GLProfileModal
         open={showProfile}
         onClose={() => setShowProfile(false)}

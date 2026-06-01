@@ -36,7 +36,7 @@ function readResetParamsFromHash() {
   };
 }
 
-export function GLAuthView({ onLogin, oauthNotice, config }) {
+export function GLAuthView({ onLogin, oauthNotice, config, appVersion = null }) {
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [platformTitle, setPlatformTitle] = useState('Gnomes & Licornes');
@@ -286,6 +286,9 @@ export function GLAuthView({ onLogin, oauthNotice, config }) {
           </div>
         ) : null}
       </GLSurface>
+      {appVersion != null ? (
+        <p className="gl-auth-version auth-version">Version {appVersion}</p>
+      ) : null}
     </main>
   );
 }
