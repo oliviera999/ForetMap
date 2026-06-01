@@ -3006,17 +3006,22 @@ body.gl-map-fullscreen-active .gl-qcm-popover-overlay {
 
 .gl-species-detail-modal {
   z-index: 55;
+  box-sizing: border-box;
+  padding: max(12px, env(safe-area-inset-top, 0px)) max(12px, env(safe-area-inset-right, 0px))
+    max(12px, env(safe-area-inset-bottom, 0px)) max(12px, env(safe-area-inset-left, 0px));
 }
 
 .gl-species-detail-modal__body {
-  width: min(720px, calc(100% - 32px));
+  width: min(720px, 100%);
   max-width: 720px;
-  max-height: 88vh;
+  max-height: min(92dvh, 920px);
+  margin: auto;
   overflow: hidden;
   display: flex;
   flex-direction: column;
   gap: 0;
   padding: 0;
+  box-shadow: 0 20px 48px rgba(15, 23, 42, 0.22);
 }
 
 .gl-species-detail-modal__head {
@@ -3059,30 +3064,73 @@ body.gl-map-fullscreen-active .gl-qcm-popover-overlay {
 .gl-species-detail-modal__hero {
   margin: 0;
   flex-shrink: 0;
-  max-height: 220px;
-  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  max-height: min(36dvh, 300px);
+  padding: 8px 12px 0;
+  overflow: visible;
   background: var(--gl-surface-muted, #f5fbf8);
 }
 
 .gl-species-detail-modal__hero img {
-  width: 100%;
-  max-height: 220px;
-  object-fit: cover;
   display: block;
+  width: auto;
+  height: auto;
+  max-width: 100%;
+  max-height: min(34dvh, 280px);
+  object-fit: contain;
+  object-position: center center;
 }
 
 .gl-species-detail-modal__hero figcaption {
-  padding: 6px 16px;
+  width: 100%;
+  max-width: 100%;
+  padding: 6px 4px 0;
   font-size: 0.72rem;
+  text-align: center;
   color: #64748b;
-  background: rgba(255, 255, 255, 0.95);
 }
 
 .gl-species-detail-modal__scroll {
   overflow-y: auto;
+  overscroll-behavior: contain;
   padding: 0 16px 16px;
-  flex: 1;
+  flex: 1 1 auto;
   min-height: 0;
+}
+
+@media (min-width: 640px) {
+  .gl-species-detail-modal__body--has-photo {
+    display: grid;
+    grid-template-columns: minmax(200px, 38%) minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr);
+    align-items: stretch;
+  }
+
+  .gl-species-detail-modal__body--has-photo .gl-species-detail-modal__head {
+    grid-column: 1 / -1;
+  }
+
+  .gl-species-detail-modal__body--has-photo .gl-species-detail-modal__hero {
+    grid-column: 1;
+    grid-row: 2;
+    max-height: none;
+    height: 100%;
+    min-height: 0;
+    padding: 12px;
+    border-right: 1px solid var(--gl-border, rgba(1, 58, 64, 0.12));
+  }
+
+  .gl-species-detail-modal__body--has-photo .gl-species-detail-modal__hero img {
+    max-height: min(72dvh, 520px);
+  }
+
+  .gl-species-detail-modal__body--has-photo .gl-species-detail-modal__scroll {
+    grid-column: 2;
+    grid-row: 2;
+  }
 }
 
 .gl-species-detail-modal__section {
