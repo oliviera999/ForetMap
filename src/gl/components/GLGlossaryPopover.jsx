@@ -43,6 +43,7 @@ export function GLGlossaryPopover({
   biomeSlugs = [],
   onClose,
   onOpenFullGlossary,
+  showFullGlossaryLink = true,
 }) {
   const titleId = useId();
   const [activeCode, setActiveCode] = useState(null);
@@ -267,11 +268,13 @@ export function GLGlossaryPopover({
           </div>
         ) : null}
 
-        <footer className="gl-glossary-popover__footer">
-          <GLButton type="button" variant="ghost" onClick={openFullGlossary}>
-            Voir le glossaire complet
-          </GLButton>
-        </footer>
+        {showFullGlossaryLink ? (
+          <footer className="gl-glossary-popover__footer">
+            <GLButton type="button" variant="ghost" onClick={openFullGlossary}>
+              Voir le glossaire complet
+            </GLButton>
+          </footer>
+        ) : null}
       </div>
     </div>,
     document.body,

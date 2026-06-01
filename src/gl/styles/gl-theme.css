@@ -3164,14 +3164,16 @@ body.gl-map-fullscreen-active .gl-qcm-popover-overlay {
   gap: 12px;
 }
 
+/* Colonnes à largeur fixe : évite l’étirement des tuiles quand un groupe a peu d’espèces */
 .gl-species-catalog__grid--dense {
-  grid-template-columns: repeat(auto-fill, minmax(108px, 1fr));
+  grid-template-columns: repeat(auto-fill, 108px);
+  justify-content: start;
   gap: 8px;
 }
 
 @media (min-width: 480px) {
   .gl-species-catalog__grid--dense {
-    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    grid-template-columns: repeat(auto-fill, 120px);
   }
 }
 
@@ -3509,26 +3511,17 @@ body.gl-map-fullscreen-active .gl-qcm-popover-overlay {
   margin-bottom: 1rem;
 }
 
-.gl-glossary__layout {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(280px, 1fr);
-  gap: 1rem;
-  align-items: start;
-}
-
-@media (max-width: 900px) {
-  .gl-glossary__layout {
-    grid-template-columns: 1fr;
-  }
+.gl-glossary__list {
+  display: block;
 }
 
 .gl-glossary__group {
-  margin-bottom: 1rem;
+  margin-bottom: 0.85rem;
 }
 
 .gl-glossary__group > h3 {
-  margin: 0 0 0.5rem;
-  font-size: 1rem;
+  margin: 0 0 0.4rem;
+  font-size: 0.95rem;
   color: #334155;
 }
 
@@ -3537,21 +3530,43 @@ body.gl-map-fullscreen-active .gl-qcm-popover-overlay {
   margin: 0;
   padding: 0;
   display: grid;
-  gap: 0.35rem;
+  grid-template-columns: repeat(auto-fill, minmax(9.5rem, 1fr));
+  gap: 0.3rem;
+}
+
+@media (min-width: 640px) {
+  .gl-glossary__terms {
+    grid-template-columns: repeat(auto-fill, minmax(8.75rem, 1fr));
+    gap: 0.35rem;
+  }
+}
+
+@media (min-width: 1100px) {
+  .gl-glossary__terms {
+    grid-template-columns: repeat(auto-fill, minmax(7.75rem, 1fr));
+  }
 }
 
 .gl-glossary__terms button {
   width: 100%;
+  min-height: 2.75rem;
   text-align: left;
   display: flex;
-  justify-content: space-between;
-  gap: 0.5rem;
-  align-items: center;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.1rem;
+  align-items: flex-start;
   border: 1px solid var(--gl-color-border, #e2e8f0);
   background: #fff;
-  border-radius: 8px;
-  padding: 0.55rem 0.75rem;
+  border-radius: 6px;
+  padding: 0.35rem 0.5rem;
   cursor: pointer;
+  line-height: 1.2;
+}
+
+.gl-glossary__terms button:hover {
+  border-color: color-mix(in srgb, var(--gl-color-accent, #2563eb) 40%, #e2e8f0);
+  background: var(--gl-color-accent-soft, #f8fafc);
 }
 
 .gl-glossary__terms button.is-active {
@@ -3561,29 +3576,17 @@ body.gl-map-fullscreen-active .gl-qcm-popover-overlay {
 
 .gl-glossary__term-label {
   font-weight: 600;
+  font-size: 0.88rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
 }
 
 .gl-glossary__term-meta {
-  font-size: 0.8rem;
+  font-size: 0.68rem;
   color: #64748b;
-}
-
-.gl-glossary__detail {
-  border: 1px solid var(--gl-color-border, #e2e8f0);
-  border-radius: 12px;
-  padding: 1rem;
-  background: #fff;
-  min-height: 200px;
-}
-
-.gl-glossary__detail-meta {
-  color: #64748b;
-  font-size: 0.9rem;
-}
-
-.gl-glossary__detail-lead {
-  font-weight: 600;
-  color: #1e293b;
+  text-transform: capitalize;
 }
 
 .gl-glossary__related {
@@ -3890,10 +3893,6 @@ body.gl-glossary-popover-open {
   width: 55%;
 }
 
-.gl-glossary__detail--desktop-only {
-  display: none;
-}
-
 @keyframes glGlossaryOverlayIn {
   from { opacity: 0; }
   to { opacity: 1; }
@@ -3957,12 +3956,6 @@ body.gl-glossary-popover-open {
 
   .gl-glossary-popover.is-closing .gl-glossary-popover__panel {
     animation: glGlossarySheetDown 0.22s var(--ease-out, ease) both;
-  }
-}
-
-@media (min-width: 901px) {
-  .gl-glossary__detail--desktop-only {
-    display: block;
   }
 }
 

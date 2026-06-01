@@ -147,6 +147,25 @@ describe('GLGlossaryPopover', () => {
     expect(onOpenFullGlossary).toHaveBeenCalledWith('GL0001');
   });
 
+  test('masque le lien glossaire complet sur l\'onglet glossaire', async () => {
+    vi.mocked(apiGL).mockResolvedValue(TERM_DETAIL);
+
+    render(
+      <GLGlossaryPopover
+        open
+        glossaryCode="GL0001"
+        onClose={vi.fn()}
+        onOpenFullGlossary={vi.fn()}
+        showFullGlossaryLink={false}
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByRole('dialog', { name: /Biome/i })).toBeInTheDocument();
+    });
+    expect(screen.queryByRole('button', { name: /Voir le glossaire complet/i })).not.toBeInTheDocument();
+  });
+
   test('n\'est pas rendu quand fermé', () => {
     render(
       <GLGlossaryPopover
