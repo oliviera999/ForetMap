@@ -1,6 +1,6 @@
 import React from 'react';
 import { describe, test, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { GLSpeciesCatalog } from '../../src/gl/components/GLSpeciesCatalog.jsx';
 
@@ -20,7 +20,7 @@ describe('GLSpeciesCatalog', () => {
     expect(screen.getByText(/Aucun biome du catalogue/i)).toBeInTheDocument();
   });
 
-  test('affiche les espèces groupées par type', async () => {
+  test('affiche les espèces groupées par type en tuiles compactes', async () => {
     vi.mocked(apiGL).mockResolvedValue({
       biome: { slug: 'sahara', nom: 'Désert chaud (Sahara)' },
       items: [
@@ -48,6 +48,10 @@ describe('GLSpeciesCatalog', () => {
     expect(screen.getByText('Faune')).toBeInTheDocument();
     expect(screen.getByText('Flore')).toBeInTheDocument();
     expect(screen.getByText('Acacia')).toBeInTheDocument();
+    expect(screen.queryByText(/Rôle :/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/En savoir plus/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Adaptations :/i)).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Ouvrir la fiche de Fennec/i })).toBeInTheDocument();
   });
 
   test('affiche des onglets pour plusieurs biomes', async () => {
@@ -71,7 +75,7 @@ describe('GLSpeciesCatalog', () => {
     });
   });
 
-  test('affiche les chips glossaire et déclenche la navigation', async () => {
+  test('ouvre la modale fiche complète au clic sur une tuile', async () => {
     const onOpenGlossaryTerm = vi.fn();
     vi.mocked(apiGL).mockResolvedValue({
       biome: { slug: 'sahara', nom: 'Désert chaud (Sahara)' },
@@ -81,6 +85,9 @@ describe('GLSpeciesCatalog', () => {
           type: 'faune',
           groupe: 'mammifère',
           nom_commun: 'Fennec',
+          role_ecologique: 'Prédateur nocturne',
+          wikipedia_url: 'https://fr.wikipedia.org/wiki/Fennec',
+          wikipedia_title: 'Fennec',
           glossaryTerms: [{ glossary_code: 'GL0001', terme: 'Biome' }],
         },
       ],
@@ -92,9 +99,18 @@ describe('GLSpeciesCatalog', () => {
       />
     );
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: 'Biome' })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /Ouvrir la fiche de Fennec/i })).toBeInTheDocument();
     });
-    await userEvent.click(screen.getByRole('button', { name: 'Biome' }));
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: /Ouvrir la fiche de Fennec/i }));
+    const dialog = screen.getByRole('dialog', { name: /Fennec/i });
+    expect(within(dialog).getByText('Prédateur nocturne')).toBeInTheDocument();
+    expect(within(dialog).getByRole('link', { name: 'Fennec' })).toHaveAttribute(
+      'href',
+      'https://fr.wikipedia.org/wiki/Fennec'
+    );
+    expect(screen.queryByText(/Rôle :/i)).not.toBeInTheDocument();
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Biome' }));
     expect(onOpenGlossaryTerm).toHaveBeenCalledWith('GL0001');
   });
 });

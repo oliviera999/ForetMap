@@ -28,6 +28,7 @@ Ce document centralise les commandes et la matrice de couverture pour Gnomes & L
 - `tests-ui/gl/GLMascotAvatar.test.jsx`
 - `tests-ui/gl/GLMascotFallbackSvg.test.jsx`
 - `tests-ui/gl/GLUsersAdminView.test.jsx`
+- Biocénose (catalogue tuiles + fiche modale) : `tests-ui/gl/GLSpeciesCatalog.test.jsx`, `tests-ui/gl/GLSpeciesDetailModal.test.jsx`
 
 ## E2E Playwright GL
 

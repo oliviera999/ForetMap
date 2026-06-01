@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { apiGL } from '../services/apiGL.js';
+import { GLSpeciesDetailModal } from './GLSpeciesDetailModal.jsx';
 
 const TYPE_LABELS = {
   faune: 'Faune',
@@ -17,69 +18,34 @@ function groupSpeciesByTypeAndGroup(items) {
   return byType;
 }
 
-function GLSpeciesCard({ species, onOpenGlossaryTerm }) {
+function GLSpeciesTile({ species, onSelect }) {
+  const nomCommun = String(species.nom_commun || '').trim() || 'Espèce';
+  const nomScientifique = String(species.nom_scientifique || '').trim();
+
   return (
-    <article className="gl-species-card">
-      {species.photo_url ? (
-        <figure className="gl-species-card__media">
-          <img src={species.photo_url} alt={species.nom_commun} loading="lazy" />
-          {species.photo_credit ? (
-            <figcaption className="gl-species-card__credit">
-              {species.photo_credit}
-              {species.photo_licence ? ` — ${species.photo_licence}` : ''}
-            </figcaption>
-          ) : null}
-        </figure>
-      ) : null}
-      <div className="gl-species-card__body">
-        <h4 className="gl-species-card__title">{species.nom_commun}</h4>
-        {species.nom_scientifique ? (
-          <p className="gl-species-card__scientific">
-            <em>{species.nom_scientifique}</em>
-          </p>
+    <button
+      type="button"
+      className="gl-species-tile"
+      aria-label={`Ouvrir la fiche de ${nomCommun}`}
+      onClick={() => onSelect(species)}
+    >
+      <span className="gl-species-tile__media" aria-hidden="true">
+        {species.photo_url ? (
+          <img src={species.photo_url} alt="" loading="lazy" />
+        ) : (
+          <span className="gl-species-tile__placeholder" />
+        )}
+        <span className="gl-species-tile__hint">Fiche</span>
+      </span>
+      <span className="gl-species-tile__labels">
+        <span className="gl-species-tile__name">{nomCommun}</span>
+        {nomScientifique ? (
+          <span className="gl-species-tile__scientific">
+            <em>{nomScientifique}</em>
+          </span>
         ) : null}
-        {species.description_courte ? (
-          <p className="gl-species-card__desc">{species.description_courte}</p>
-        ) : null}
-        {species.role_ecologique ? (
-          <p className="gl-species-card__role">
-            <strong>Rôle :</strong> {species.role_ecologique}
-          </p>
-        ) : null}
-        {species.adaptations_cles ? (
-          <p className="gl-species-card__adapt">
-            <strong>Adaptations :</strong> {species.adaptations_cles}
-          </p>
-        ) : null}
-        {species.anecdote ? (
-          <p className="gl-species-card__anecdote">{species.anecdote}</p>
-        ) : null}
-        {species.wikipedia_url ? (
-          <p className="gl-species-card__links">
-            <a href={species.wikipedia_url} target="_blank" rel="noopener noreferrer">
-              En savoir plus (Wikipedia)
-            </a>
-          </p>
-        ) : null}
-        {Array.isArray(species.glossaryTerms) && species.glossaryTerms.length > 0 ? (
-          <div className="gl-species-card__glossary">
-            <strong>Glossaire :</strong>
-            <div className="gl-glossary-chips">
-              {species.glossaryTerms.map((term) => (
-                <button
-                  key={term.glossary_code}
-                  type="button"
-                  className="gl-glossary-chip"
-                  onClick={() => onOpenGlossaryTerm?.(term.glossary_code)}
-                >
-                  {term.terme}
-                </button>
-              ))}
-            </div>
-          </div>
-        ) : null}
-      </div>
-    </article>
+      </span>
+    </button>
   );
 }
 
@@ -87,16 +53,19 @@ function GLSpeciesCatalogPanel({ biomeSlug, biomeNom, onOpenGlossaryTerm }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [items, setItems] = useState([]);
+  const [selectedSpecies, setSelectedSpecies] = useState(null);
 
   useEffect(() => {
     if (!biomeSlug) {
       setItems([]);
       setError('');
+      setSelectedSpecies(null);
       return undefined;
     }
     let cancelled = false;
     setLoading(true);
     setError('');
+    setSelectedSpecies(null);
     apiGL(`/api/gl/species?biomeSlug=${encodeURIComponent(biomeSlug)}`)
       .then((data) => {
         if (cancelled) return;
@@ -152,12 +121,12 @@ function GLSpeciesCatalogPanel({ biomeSlug, biomeNom, onOpenGlossaryTerm }) {
             {groupNames.sort((a, b) => a.localeCompare(b, 'fr')).map((groupName) => (
               <div key={`${typeKey}-${groupName}`} className="gl-species-catalog__group">
                 <h4>{groupName}</h4>
-                <div className="gl-species-catalog__grid">
+                <div className="gl-species-catalog__grid gl-species-catalog__grid--dense">
                   {groups[groupName].map((species) => (
-                    <GLSpeciesCard
+                    <GLSpeciesTile
                       key={species.species_code || species.id}
                       species={species}
-                      onOpenGlossaryTerm={onOpenGlossaryTerm}
+                      onSelect={setSelectedSpecies}
                     />
                   ))}
                 </div>
@@ -166,6 +135,12 @@ function GLSpeciesCatalogPanel({ biomeSlug, biomeNom, onOpenGlossaryTerm }) {
           </section>
         );
       })}
+      <GLSpeciesDetailModal
+        species={selectedSpecies}
+        biomeNom={biomeNom}
+        onClose={() => setSelectedSpecies(null)}
+        onOpenGlossaryTerm={onOpenGlossaryTerm}
+      />
     </div>
   );
 }

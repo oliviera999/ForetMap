@@ -50,6 +50,26 @@ function normalizeOptionalString(value) {
   return s.length > 0 ? s : null;
 }
 
+/** Clé complète (ex. modules.zone_music_enabled) même si req.params.key est tronqué. */
+function resolveSettingsKey(req) {
+  const paramKey = normalizeOptionalString(req.params.key);
+  let pathKey = null;
+  const source = String(req.originalUrl || req.url || '');
+  const match = source.match(/\/settings\/([^?#]+)/);
+  if (match) {
+    try {
+      pathKey = normalizeOptionalString(decodeURIComponent(match[1]));
+    } catch (_) {
+      pathKey = normalizeOptionalString(match[1]);
+    }
+  }
+  if (!pathKey) return paramKey;
+  if (!paramKey) return pathKey;
+  if (pathKey.length > paramKey.length && pathKey.startsWith(`${paramKey}.`)) return pathKey;
+  if (paramKey.length > pathKey.length && paramKey.startsWith(`${pathKey}.`)) return paramKey;
+  return paramKey;
+}
+
 function normalizePseudo(value) {
   const pseudo = normalizeOptionalString(value);
   return pseudo ? pseudo.toLowerCase() : null;
@@ -649,7 +669,7 @@ router.get('/settings', requireGlPermission('gl.settings.manage'), async (_req, 
 });
 
 router.put('/settings/:key', requireGlPermission('gl.settings.manage'), async (req, res) => {
-  const key = normalizeOptionalString(req.params.key);
+  const key = resolveSettingsKey(req);
   if (!key) return res.status(400).json({ error: 'Clé invalide' });
   let value = req.body?.value ?? null;
   if (key.startsWith('modules.')) {

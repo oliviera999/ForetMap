@@ -1,18 +1,17 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { MediaLibraryMenu } from '../../components/MediaLibraryMenu.jsx';
+import {
+  findNearestEdgeInsertion,
+  insertPctPointAt,
+  normalizePctPoint,
+  normalizePctPoints,
+  pointsToSvgPolygon,
+  removePctPointAt,
+} from '../../shared/pct-map/pctPolygon.js';
+import { PctPolygonEditOverlay } from '../../shared/pct-map/PctPolygonEditOverlay.jsx';
+import { usePctPolygonEditSession } from '../../shared/pct-map/usePctPolygonEditSession.js';
 import { useGlPctMapGestures } from '../hooks/useGlPctMapGestures.js';
 import { GLPctMapCanvas } from './GLPctMapCanvas.jsx';
-
-function pointsToSvgPolygon(points) {
-  if (!Array.isArray(points)) return '';
-  return points.map((p) => `${Number(p.x)},${Number(p.y)}`).join(' ');
-}
-
-function normalizePoint(point) {
-  const x = Math.max(0, Math.min(100, Number(point?.x)));
-  const y = Math.max(0, Math.min(100, Number(point?.y)));
-  return { x: Number(x.toFixed(2)), y: Number(y.toFixed(2)) };
-}
 
 const DEFAULT_COLOR = '#22c55e';
 const DEFAULT_MUSIC_VOLUME = 0.7;
@@ -53,16 +52,22 @@ export function GLKingdomZoneEditor({
   const [draftColor, setDraftColor] = useState(DEFAULT_COLOR);
   const [draftMusicUrl, setDraftMusicUrl] = useState('');
   const [draftMusicVolumePct, setDraftMusicVolumePct] = useState(70);
-  const [dragVertex, setDragVertex] = useState(null);
+  const [selectedVertexIndex, setSelectedVertexIndex] = useState(null);
+  const [insertVertexMode, setInsertVertexMode] = useState(false);
 
   const selectedZone = useMemo(
     () => (Array.isArray(zones) ? zones.find((zone) => Number(zone.id) === Number(selectedZoneId)) : null) || null,
     [zones, selectedZoneId]
   );
-  const selectedPoints = useMemo(
-    () => (Array.isArray(selectedZone?.points) ? selectedZone.points.map(normalizePoint) : []),
-    [selectedZone]
-  );
+
+  const shapeSession = usePctPolygonEditSession({
+    onSave: async (points) => {
+      if (!selectedZoneId) return;
+      await onUpdateZone?.(selectedZoneId, { points });
+    },
+  });
+
+  const isEditingShape = shapeSession.active && mode === 'edit-shape';
 
   useEffect(() => {
     if (!selectedZone) {
@@ -79,36 +84,51 @@ export function GLKingdomZoneEditor({
   }, [selectedZone]);
 
   useEffect(() => {
+    if (isEditingShape) {
+      onSelectedZoneChange?.(null);
+      return;
+    }
     onSelectedZoneChange?.(selectedZone);
-  }, [selectedZone, onSelectedZoneChange]);
+  }, [selectedZone, isEditingShape, onSelectedZoneChange]);
 
-  useEffect(() => {
-    if (!dragVertex || !mapGestures?.toImagePct) return undefined;
-    const onMove = (event) => {
-      const pct = mapGestures.toImagePct(event.clientX, event.clientY);
-      if (!pct) return;
-      onUpdateZone?.(dragVertex.zoneId, {
-        points: selectedPoints.map((point, index) => (
-          index === dragVertex.pointIndex ? normalizePoint({ x: pct.x, y: pct.y }) : point
-        )),
-      }, { optimistic: true });
-    };
-    const onUp = async () => {
-      setDragVertex(null);
-      await onUpdateZone?.(dragVertex.zoneId, { points: selectedPoints }, { flushOptimistic: true });
-    };
-    window.addEventListener('pointermove', onMove);
-    window.addEventListener('pointerup', onUp, { once: true });
-    return () => {
-      window.removeEventListener('pointermove', onMove);
-      window.removeEventListener('pointerup', onUp);
-    };
-  }, [dragVertex, mapGestures, onUpdateZone, selectedPoints]);
+  const displayZones = useMemo(() => {
+    if (!Array.isArray(zones)) return [];
+    if (!isEditingShape || !selectedZoneId) return zones;
+    return zones.map((zone) => {
+      if (Number(zone.id) !== Number(selectedZoneId)) return zone;
+      return { ...zone, points: shapeSession.points };
+    });
+  }, [zones, isEditingShape, selectedZoneId, shapeSession.points]);
 
-  function selectZone(zoneId) {
+  const selectZone = useCallback((zoneId) => {
+    if (isEditingShape) return;
     setSelectedZoneId(zoneId);
     setMode('edit');
-  }
+    setSelectedVertexIndex(null);
+    setInsertVertexMode(false);
+  }, [isEditingShape]);
+
+  const startShapeEdit = useCallback(() => {
+    if (!selectedZone?.points?.length) return;
+    shapeSession.start(selectedZone.points);
+    setMode('edit-shape');
+    setSelectedVertexIndex(null);
+    setInsertVertexMode(false);
+  }, [selectedZone, shapeSession]);
+
+  const cancelShapeEdit = useCallback(() => {
+    shapeSession.discard();
+    setMode('edit');
+    setSelectedVertexIndex(null);
+    setInsertVertexMode(false);
+  }, [shapeSession]);
+
+  const saveShapeEdit = useCallback(async () => {
+    await shapeSession.save();
+    setMode('edit');
+    setSelectedVertexIndex(null);
+    setInsertVertexMode(false);
+  }, [shapeSession]);
 
   async function createZone() {
     if (!canManage) return;
@@ -116,7 +136,7 @@ export function GLKingdomZoneEditor({
     await onCreateZone?.({
       label: draftLabel.trim() || 'Zone',
       color: draftColor || DEFAULT_COLOR,
-      points: drawPoints.map(normalizePoint),
+      points: normalizePctPoints(drawPoints),
     });
     setDrawPoints([]);
     setDraftLabel('');
@@ -148,68 +168,88 @@ export function GLKingdomZoneEditor({
     onPreviewZoneMusic?.(url, Math.max(0, Math.min(1, Number(draftMusicVolumePct) / 100)));
   }
 
+  function handleMapClick(pct, event) {
+    if (!canManage) return;
+    if (event.target.closest('.gl-pct-edit-pt') || event.target.closest('.gl-pct-edit-zone-translate')) return;
+
+    if (isEditingShape) {
+      if (insertVertexMode) {
+        const hit = findNearestEdgeInsertion(shapeSession.points, pct, 4);
+        if (hit) {
+          shapeSession.setPoints(insertPctPointAt(shapeSession.points, hit.insertIndex, hit.point));
+          shapeSession.scheduleRecordHistory();
+          setSelectedVertexIndex(hit.insertIndex);
+        } else {
+          const next = [...shapeSession.points, normalizePctPoint(pct)];
+          shapeSession.setPoints(next);
+          shapeSession.scheduleRecordHistory();
+          setSelectedVertexIndex(next.length - 1);
+        }
+        setInsertVertexMode(false);
+      }
+      return;
+    }
+
+    if (event.target.closest('.gl-kingdom-zone-polygon')) return;
+
+    if (mode === 'draw') {
+      setDrawPoints((prev) => [...prev, normalizePctPoint(pct)]);
+    }
+  }
+
+  function removeSelectedVertex() {
+    if (!isEditingShape || selectedVertexIndex == null) return;
+    const next = removePctPointAt(shapeSession.points, selectedVertexIndex);
+    if (next.length === shapeSession.points.length) return;
+    shapeSession.setPoints(next);
+    shapeSession.scheduleRecordHistory();
+    setSelectedVertexIndex(null);
+  }
+
   const canUseMediaLibrary = typeof fetchMediaLibrary === 'function';
+  const editStrokeColor = draftColor || selectedZone?.color || DEFAULT_COLOR;
+  const mapCursor = mode === 'draw' || insertVertexMode ? 'crosshair' : 'default';
 
   return (
     <>
-      <GLPctMapCanvas
-        imageUrl={imageUrl}
-        imageAlt={chapterTitle || 'Carte du royaume'}
-        mapGestures={mapGestures}
-        className="gl-kingdom-map"
-        imageClassName="gl-kingdom-map-image"
-        cursor={mode === 'draw' ? 'crosshair' : 'default'}
-        onMapClick={(pct, event) => {
-          if (!canManage) return;
-          if (event.target.closest('.gl-zone-edit-pt') || event.target.closest('.gl-kingdom-zone-polygon')) return;
-          if (mode === 'draw') {
-            setDrawPoints((prev) => [...prev, normalizePoint({ x: pct.x, y: pct.y })]);
-          }
-        }}
-      >
-        <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="gl-kingdom-map-overlay">
-          {Array.isArray(zones) && zones.map((zone) => (
-            <polygon
-              key={zone.id}
-              className={`gl-kingdom-zone-polygon${Number(selectedZoneId) === Number(zone.id) ? ' is-selected' : ''}`}
-              points={pointsToSvgPolygon(zone.points)}
-              fill={zone.color || DEFAULT_COLOR}
-              fillOpacity="0.3"
-              stroke={zone.color || DEFAULT_COLOR}
-              strokeWidth="0.5"
-              data-zone-id={zone.id}
-              onClick={() => selectZone(zone.id)}
-            />
-          ))}
-          {drawPoints.length > 0 ? (
-            <polygon
-              className="gl-kingdom-zone-draft"
-              points={pointsToSvgPolygon(drawPoints)}
-              fill={draftColor || DEFAULT_COLOR}
-              fillOpacity="0.2"
-              stroke={draftColor || DEFAULT_COLOR}
-              strokeWidth="0.6"
-              strokeDasharray="1 1"
-            />
-          ) : null}
-          {mode === 'edit' && selectedZone ? selectedPoints.map((point, index) => (
-            <circle
-              key={`${selectedZone.id}-${index}`}
-              className="gl-zone-edit-pt"
-              cx={point.x}
-              cy={point.y}
-              r="1.3"
-              onPointerDown={(event) => {
-                if (!canManage) return;
-                event.preventDefault();
-                setDragVertex({ zoneId: selectedZone.id, pointIndex: index });
-              }}
-            />
-          )) : null}
-        </svg>
-      </GLPctMapCanvas>
+      {canManage && isEditingShape ? (
+        <div className="gl-map-editor-toolbar gl-map-editor-toolbar--shape" role="toolbar" aria-label="Édition du contour">
+          <span className="gl-shape-edit-badge">
+            Contour — {draftLabel || selectedZone?.label || 'Zone'}
+          </span>
+          <button
+            type="button"
+            className="is-active"
+            onClick={() => setInsertVertexMode((v) => !v)}
+            title="Cliquez sur un bord du polygone (ou sur la carte) pour ajouter un sommet"
+          >
+            {insertVertexMode ? 'Annuler ajout sommet' : 'Ajouter un sommet'}
+          </button>
+          <button
+            type="button"
+            disabled={selectedVertexIndex == null || shapeSession.points.length <= 3}
+            onClick={removeSelectedVertex}
+          >
+            Retirer le sommet
+          </button>
+          <button
+            type="button"
+            disabled={!shapeSession.canUndo}
+            onClick={shapeSession.undo}
+            title="Annuler (Ctrl+Z)"
+          >
+            Annuler
+          </button>
+          <button type="button" className="gl-primary" onClick={saveShapeEdit}>
+            Sauver le contour
+          </button>
+          <button type="button" onClick={cancelShapeEdit}>
+            Abandonner
+          </button>
+        </div>
+      ) : null}
 
-      {canManage ? (
+      {canManage && !isEditingShape ? (
         <div className="gl-map-editor-toolbar">
           <button
             type="button"
@@ -231,12 +271,90 @@ export function GLKingdomZoneEditor({
         </div>
       ) : null}
 
+      <GLPctMapCanvas
+        imageUrl={imageUrl}
+        imageAlt={chapterTitle || 'Carte du royaume'}
+        mapGestures={mapGestures}
+        className="gl-kingdom-map"
+        imageClassName="gl-kingdom-map-image"
+        cursor={mapCursor}
+        onMapClick={handleMapClick}
+      >
+        <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="gl-kingdom-map-overlay">
+          {displayZones.map((zone) => {
+            const isSelected = Number(selectedZoneId) === Number(zone.id);
+            const hideWhileShapeEdit = isEditingShape && !isSelected;
+            if (hideWhileShapeEdit) {
+              return (
+                <polygon
+                  key={zone.id}
+                  className="gl-kingdom-zone-polygon gl-kingdom-zone-polygon--dimmed"
+                  points={pointsToSvgPolygon(zone.points)}
+                  fill={zone.color || DEFAULT_COLOR}
+                  fillOpacity="0.12"
+                  stroke={zone.color || DEFAULT_COLOR}
+                  strokeWidth="0.35"
+                  style={{ pointerEvents: 'none' }}
+                />
+              );
+            }
+            return (
+              <polygon
+                key={zone.id}
+                className={`gl-kingdom-zone-polygon${isSelected ? ' is-selected' : ''}`}
+                points={pointsToSvgPolygon(zone.points)}
+                fill={zone.color || DEFAULT_COLOR}
+                fillOpacity={isEditingShape && isSelected ? 0.15 : 0.3}
+                stroke={zone.color || DEFAULT_COLOR}
+                strokeWidth="0.5"
+                data-zone-id={zone.id}
+                onClick={(e) => {
+                  if (isEditingShape) return;
+                  e.stopPropagation();
+                  selectZone(zone.id);
+                }}
+              />
+            );
+          })}
+          {drawPoints.length > 0 ? (
+            <polygon
+              className="gl-kingdom-zone-draft"
+              points={pointsToSvgPolygon(drawPoints)}
+              fill={draftColor || DEFAULT_COLOR}
+              fillOpacity="0.2"
+              stroke={draftColor || DEFAULT_COLOR}
+              strokeWidth="0.6"
+              strokeDasharray="1 1"
+            />
+          ) : null}
+          {isEditingShape ? (
+            <PctPolygonEditOverlay
+              points={shapeSession.points}
+              strokeColor={editStrokeColor}
+              fillColor={editStrokeColor}
+              toImagePct={mapGestures.toImagePct}
+              onPointsChange={shapeSession.setPoints}
+              onGestureEnd={shapeSession.scheduleRecordHistory}
+              onVertexSelect={setSelectedVertexIndex}
+            />
+          ) : null}
+        </svg>
+      </GLPctMapCanvas>
+
+      {isEditingShape ? (
+        <p className="gl-hint">
+          Glissez un sommet ou le polygone entier. « Ajouter un sommet » puis cliquez sur un bord (ou la carte).
+          Raccourci&nbsp;: Ctrl+Z pour annuler. Minimum 3 sommets.
+        </p>
+      ) : null}
+
       <ul className="gl-kingdom-map-zones">
-        {Array.isArray(zones) && zones.map((zone) => (
+        {displayZones.map((zone) => (
           <li key={zone.id} className={Number(selectedZoneId) === Number(zone.id) ? 'is-selected' : ''}>
             <button
               type="button"
               className="gl-marker-row-btn"
+              disabled={isEditingShape}
               onClick={() => selectZone(zone.id)}
             >
               <strong>{zone.label}</strong>
@@ -244,14 +362,14 @@ export function GLKingdomZoneEditor({
                 <span className="gl-zone-music-badge" aria-label="Musique associée" title="Musique associée"> 🎧</span>
               ) : null}
             </button>
-            {canManage ? (
+            {canManage && !isEditingShape ? (
               <button type="button" className="gl-danger" onClick={() => onDeleteZone?.(zone.id)}>
                 Supprimer
               </button>
             ) : null}
           </li>
         ))}
-        {Array.isArray(zones) && zones.length === 0 ? (
+        {displayZones.length === 0 ? (
           <li className="gl-empty gl-hint">
             <span className="gl-empty-icon" aria-hidden>🏰</span>
             Aucune zone.
@@ -275,8 +393,13 @@ export function GLKingdomZoneEditor({
         </form>
       ) : null}
 
-      {canManage && mode === 'edit' && selectedZone ? (
+      {canManage && mode === 'edit' && selectedZone && !isEditingShape ? (
         <form className="gl-form gl-zone-music-form" onSubmit={(event) => { event.preventDefault(); saveZoneMeta(); }}>
+          <div className="gl-inline-actions gl-zone-edit-actions">
+            <button type="button" className="gl-primary" onClick={startShapeEdit}>
+              Modifier le contour
+            </button>
+          </div>
           <label>
             Label
             <input value={draftLabel} onChange={(event) => setDraftLabel(event.target.value)} />

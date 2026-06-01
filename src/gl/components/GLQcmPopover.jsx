@@ -93,92 +93,102 @@ export function GLQcmPopover({
         onClick={(event) => event.stopPropagation()}
       >
         <div className="gl-qcm-popover__body">
-          <h3>{marker?.label || 'Question'}</h3>
-          {loading ? <p className="gl-hint">Chargement de la question…</p> : null}
-          {displayError ? <p className="gl-error">{displayError}</p> : null}
+          <header className="gl-qcm-popover__header">
+            <h3>{marker?.label || 'Question'}</h3>
+            {loading ? <p className="gl-hint">Chargement de la question…</p> : null}
+            {displayError ? <p className="gl-error">{displayError}</p> : null}
+          </header>
           {!loading && !result && presentation ? (
             <>
-              {questionCode ? (
-                <p className="gl-hint">Question {questionCode}</p>
-              ) : null}
-              <p className="gl-qcm-modal__question">{presentation.question}</p>
-              {presentation.photoUrl ? (
-                <img src={presentation.photoUrl} alt="" className="gl-qcm-modal__photo" />
-              ) : null}
-              <div className="gl-qcm-modal__choices">
-                {presentation.choices.map((choice) => (
-                  <label key={choice.id} className="gl-qcm-choice">
-                    <input
-                      type="radio"
-                      name="qcm-popover-choice"
-                      checked={selectedChoiceId === choice.id}
-                      onChange={() => setSelectedChoiceId(choice.id)}
-                    />
-                    <span>{choice.text}</span>
-                  </label>
-                ))}
-              </div>
-              <GLButton
-                type="button"
-                className="gl-qcm-popover__submit"
-                onClick={submitAnswer}
-                disabled={submitting || selectedChoiceId == null}
-                loading={submitting}
-              >
-                {submitting ? 'Envoi…' : 'C\'est cette réponse !'}
-              </GLButton>
-              {Array.isArray(presentation.glossaryTerms) && presentation.glossaryTerms.length > 0 ? (
-                <div className="gl-qcm-modal__glossary">
-                  <strong>Glossaire :</strong>
-                  <div className="gl-glossary-chips">
-                    {presentation.glossaryTerms.map((term) => (
-                      <button
-                        key={term.glossary_code}
-                        type="button"
-                        className="gl-glossary-chip"
-                        onClick={() => onOpenGlossaryTerm?.(term.glossary_code)}
-                      >
-                        {term.terme}
-                      </button>
-                    ))}
-                  </div>
+              <div className="gl-qcm-popover__scroll">
+                {questionCode ? (
+                  <p className="gl-hint">Question {questionCode}</p>
+                ) : null}
+                <p className="gl-qcm-modal__question">{presentation.question}</p>
+                {presentation.photoUrl ? (
+                  <img src={presentation.photoUrl} alt="" className="gl-qcm-modal__photo" />
+                ) : null}
+                <div className="gl-qcm-modal__choices">
+                  {presentation.choices.map((choice) => (
+                    <label key={choice.id} className="gl-qcm-choice">
+                      <input
+                        type="radio"
+                        name="qcm-popover-choice"
+                        checked={selectedChoiceId === choice.id}
+                        onChange={() => setSelectedChoiceId(choice.id)}
+                      />
+                      <span>{choice.text}</span>
+                    </label>
+                  ))}
                 </div>
-              ) : null}
-              <div className="gl-inline-actions">
-                <GLButton type="button" variant="ghost" onClick={onReshuffle}>Re-mélanger</GLButton>
-                <GLButton type="button" variant="ghost" onClick={onClose}>Fermer</GLButton>
+                {Array.isArray(presentation.glossaryTerms) && presentation.glossaryTerms.length > 0 ? (
+                  <div className="gl-qcm-modal__glossary">
+                    <strong>Glossaire :</strong>
+                    <div className="gl-glossary-chips">
+                      {presentation.glossaryTerms.map((term) => (
+                        <button
+                          key={term.glossary_code}
+                          type="button"
+                          className="gl-glossary-chip"
+                          onClick={() => onOpenGlossaryTerm?.(term.glossary_code)}
+                        >
+                          {term.terme}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
               </div>
+              <footer className="gl-qcm-popover__footer">
+                <GLButton
+                  type="button"
+                  className="gl-qcm-popover__submit"
+                  onClick={submitAnswer}
+                  disabled={submitting || selectedChoiceId == null}
+                  loading={submitting}
+                >
+                  {submitting ? 'Envoi…' : 'C\'est cette réponse !'}
+                </GLButton>
+                <div className="gl-inline-actions">
+                  <GLButton type="button" variant="ghost" onClick={onReshuffle}>Re-mélanger</GLButton>
+                  <GLButton type="button" variant="ghost" onClick={onClose}>Fermer</GLButton>
+                </div>
+              </footer>
             </>
           ) : null}
           {result ? (
             <>
-              <p className={result.correct ? 'gl-qcm-feedback gl-qcm-feedback--ok' : 'gl-qcm-feedback gl-qcm-feedback--ko'}>
-                {result.feedback}
-                {Number(result.scoreDelta) > 0 ? ` (+${result.scoreDelta} point)` : ''}
-              </p>
-              {Array.isArray(result.glossaryTerms) && result.glossaryTerms.length > 0 ? (
-                <div className="gl-qcm-modal__glossary">
-                  <strong>Termes liés :</strong>
-                  <div className="gl-glossary-chips">
-                    {result.glossaryTerms.map((term) => (
-                      <button
-                        key={term.glossary_code}
-                        type="button"
-                        className="gl-glossary-chip"
-                        onClick={() => onOpenGlossaryTerm?.(term.glossary_code)}
-                      >
-                        {term.terme}
-                      </button>
-                    ))}
+              <div className="gl-qcm-popover__scroll">
+                <p className={result.correct ? 'gl-qcm-feedback gl-qcm-feedback--ok' : 'gl-qcm-feedback gl-qcm-feedback--ko'}>
+                  {result.feedback}
+                  {Number(result.scoreDelta) > 0 ? ` (+${result.scoreDelta} point)` : ''}
+                </p>
+                {Array.isArray(result.glossaryTerms) && result.glossaryTerms.length > 0 ? (
+                  <div className="gl-qcm-modal__glossary">
+                    <strong>Termes liés :</strong>
+                    <div className="gl-glossary-chips">
+                      {result.glossaryTerms.map((term) => (
+                        <button
+                          key={term.glossary_code}
+                          type="button"
+                          className="gl-glossary-chip"
+                          onClick={() => onOpenGlossaryTerm?.(term.glossary_code)}
+                        >
+                          {term.terme}
+                        </button>
+                      ))}
+                    </div>
                   </div>
-                </div>
-              ) : null}
-              <div className="gl-inline-actions">
-                {!result.correct ? (
-                  <GLButton type="button" onClick={onReshuffle}>Réessayer</GLButton>
                 ) : null}
-                <GLButton type="button" onClick={onClose}>Fermer</GLButton>
               </div>
+              <footer className="gl-qcm-popover__footer">
+                <div className="gl-inline-actions">
+                  {!result.correct ? (
+                    <GLButton type="button" onClick={onReshuffle}>Réessayer</GLButton>
+                  ) : null}
+                  <GLButton type="button" onClick={onClose}>Fermer</GLButton>
+                </div>
+              </footer>
             </>
           ) : null}
         </div>
