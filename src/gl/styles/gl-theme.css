@@ -2575,32 +2575,15 @@ body.gl-map-fullscreen-active .gl-qcm-popover-overlay {
   border-left: 4px solid #3b82f6;
 }
 
+/* Même contrainte de hauteur que .gl-board : le calque fit est en position absolute */
 .gl-kingdom-map {
   position: relative;
   width: 100%;
+  min-height: 420px;
   border: 1px solid #bfdbfe;
   border-radius: 12px;
   overflow: hidden;
   background: #ffffff;
-}
-
-.gl-kingdom-map > img {
-  width: 100%;
-  display: block;
-  min-height: 280px;
-  object-fit: cover;
-}
-
-.gl-kingdom-map-image {
-  width: 100%;
-  display: block;
-  min-height: 280px;
-  object-fit: cover;
-}
-
-.gl-kingdom-map-overlay {
-  position: absolute;
-  inset: 0;
 }
 
 .gl-kingdom-map-zones li {
