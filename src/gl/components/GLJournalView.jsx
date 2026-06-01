@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { apiGL } from '../services/apiGL.js';
+import { GLButton } from './ui/GLButton.jsx';
 
 export function GLJournalView({ gameId }) {
   const [events, setEvents] = useState([]);
@@ -34,7 +35,7 @@ export function GLJournalView({ gameId }) {
       <h2>Journal de partie</h2>
       {error ? <p className="gl-error">{error}</p> : null}
       <div className="gl-inline-actions">
-        <button type="button" onClick={reload}>Rafraîchir</button>
+        <GLButton type="button" variant="secondary" onClick={reload}>Rafraîchir</GLButton>
       </div>
       <ul className="gl-journal-events">
         {events.map((evt) => (

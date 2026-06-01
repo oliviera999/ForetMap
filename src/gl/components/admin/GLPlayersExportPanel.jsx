@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { withAppBase } from '../../../services/api.js';
 import { getGlToken } from '../../services/apiGL.js';
+import { GLButton } from '../ui/GLButton.jsx';
 
 export function GLPlayersExportPanel({ classFilter }) {
   const [loading, setLoading] = useState(false);
@@ -43,9 +44,9 @@ export function GLPlayersExportPanel({ classFilter }) {
       <h3>Export joueurs</h3>
       {error ? <p className="gl-error">{error}</p> : null}
       {info ? <p className="gl-hint">{info}</p> : null}
-      <button type="button" className="gl-btn-secondary" onClick={exportCsv} disabled={loading}>
-        {loading ? 'Export…' : 'Télécharger le CSV'}
-      </button>
+      <GLButton type="button" variant="secondary" onClick={exportCsv} disabled={loading} loading={loading}>
+        Télécharger le CSV
+      </GLButton>
     </section>
   );
 }

@@ -153,18 +153,24 @@ body.gl-body {
 }
 
 .gl-logout {
-  border: 0;
-  border-radius: 8px;
+  border: 1px solid color-mix(in srgb, #fff 40%, var(--gl-color-primary) 60%);
+  border-radius: 10px;
   min-height: 44px;
   padding: 8px 12px;
   cursor: pointer;
+  font-weight: 600;
+  background: color-mix(in srgb, #fff 12%, var(--gl-color-primary) 88%);
+  color: #fff;
   transition:
     transform var(--motion-base) var(--spring),
-    box-shadow var(--motion-fast) var(--ease-out);
+    box-shadow var(--motion-fast) var(--ease-out),
+    filter var(--motion-fast) var(--ease-out);
 }
 
 .gl-logout:hover {
   transform: translateY(-1px);
+  filter: brightness(1.08);
+  box-shadow: var(--gl-shadow-sm);
 }
 
 .gl-logout:focus-visible {
@@ -547,6 +553,90 @@ button.gl-brand-hub__card:focus-visible {
   min-height: 36px;
   padding: 4px 10px;
   font-size: 0.875rem;
+}
+
+/* Boutons d'action hors composant GLButton (alias legacy + contextes) */
+.gl-primary,
+.gl-danger,
+.gl-btn-secondary:not(.gl-btn) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border-radius: 10px;
+  min-height: 44px;
+  padding: 8px 12px;
+  cursor: pointer;
+  font-family: var(--font-sans);
+  font-size: 1rem;
+  font-weight: 600;
+  transition:
+    transform var(--motion-base) var(--spring),
+    filter var(--motion-fast) var(--ease-out),
+    box-shadow var(--motion-fast) var(--ease-out),
+    background var(--motion-base),
+    color var(--motion-base),
+    border-color var(--motion-base);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.gl-primary,
+button.gl-primary {
+  border: 1px solid var(--gl-color-primary);
+  background: var(--gl-color-primary);
+  color: #fff;
+}
+
+.gl-danger,
+button.gl-danger {
+  border: 1px solid #dc2626;
+  background: var(--gl-accent-danger);
+  color: #991b1b;
+}
+
+.gl-btn-secondary:not(.gl-btn) {
+  border: 1px solid var(--gl-border);
+  background: #fff;
+  color: var(--gl-color-primary);
+}
+
+.gl-primary:hover,
+.gl-danger:hover,
+.gl-btn-secondary:not(.gl-btn):hover,
+.gl-inline-actions .gl-btn--ghost:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.06);
+  box-shadow: var(--gl-shadow-sm);
+}
+
+.gl-inline-actions .gl-btn--secondary,
+.gl-inline-actions .gl-btn--ghost,
+.gl-inline-actions .gl-btn--danger {
+  border: 1px solid transparent;
+}
+
+.gl-inline-actions .gl-btn--secondary {
+  border-color: var(--gl-border);
+  background: #fff;
+  color: var(--gl-color-primary);
+}
+
+.gl-inline-actions .gl-btn--ghost {
+  border-color: var(--gl-border);
+  background: color-mix(in srgb, #fff 75%, var(--gl-color-secondary) 25%);
+  color: var(--gl-color-primary);
+}
+
+.gl-inline-actions .gl-btn--danger {
+  border-color: #dc2626;
+  background: var(--gl-accent-danger);
+  color: #991b1b;
+}
+
+.gl-inline-actions button.gl-danger {
+  border-color: #dc2626;
+  background: var(--gl-accent-danger);
+  color: #991b1b;
 }
 
 .gl-error,
@@ -2151,10 +2241,121 @@ body.gl-map-fullscreen-active .gl-qcm-popover-overlay {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+  align-items: center;
+}
+
+.gl-map-editor-toolbar button {
+  border: 1px solid color-mix(in srgb, #fff 55%, var(--gl-color-primary) 45%);
+  background: color-mix(in srgb, #fff 76%, var(--gl-color-secondary) 24%);
+  color: var(--gl-color-primary);
+  border-radius: 10px;
+  min-height: 44px;
+  padding: 8px 12px;
+  cursor: pointer;
+  font-weight: 600;
+  transition:
+    transform var(--motion-fast) var(--ease-out),
+    box-shadow var(--motion-fast) var(--ease-out),
+    background var(--motion-fast) var(--ease-out);
+}
+
+.gl-map-editor-toolbar button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: var(--gl-shadow-sm);
 }
 
 .gl-map-editor-toolbar button.is-active {
-  background: #0b3d2e;
+  background: var(--gl-color-primary);
+  color: #fff;
+  border-color: var(--gl-color-primary);
+  box-shadow: var(--gl-shadow-sm);
+}
+
+.gl-map-editor-toolbar button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.gl-chapters-admin-grid > aside > button,
+.gl-chapters-admin-grid > aside > .gl-btn {
+  width: 100%;
+  margin-top: 8px;
+  border: 1px dashed color-mix(in srgb, var(--gl-color-primary) 40%, var(--gl-border) 60%);
+  background: color-mix(in srgb, #fff 88%, var(--gl-color-secondary) 12%);
+  color: var(--gl-color-primary);
+  border-radius: 10px;
+  min-height: 44px;
+  padding: 8px 12px;
+  cursor: pointer;
+  font-weight: 600;
+  transition:
+    transform var(--motion-fast) var(--ease-out),
+    box-shadow var(--motion-fast) var(--ease-out);
+}
+
+.gl-chapters-admin-grid > aside > button:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--gl-shadow-sm);
+  border-style: solid;
+}
+
+.gl-marker-question-list__header > button {
+  border: 1px solid var(--gl-border);
+  background: #fff;
+  color: var(--gl-color-primary);
+  border-radius: 10px;
+  min-height: 38px;
+  padding: 6px 12px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.875rem;
+  transition:
+    transform var(--motion-fast) var(--ease-out),
+    box-shadow var(--motion-fast) var(--ease-out);
+}
+
+.gl-marker-question-list__header > button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: var(--gl-shadow-sm);
+}
+
+.gl-marker-question-list__header > button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.gl-kingdom-map-zones > li {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+}
+
+.gl-kingdom-map-zones > li > button.gl-danger {
+  flex-shrink: 0;
+  align-self: center;
+  min-height: 38px;
+  padding: 6px 12px;
+  font-size: 0.875rem;
+}
+
+.gl-forum-thread > header > button {
+  border: 1px solid var(--gl-border);
+  background: #fff;
+  color: var(--gl-color-primary);
+  border-radius: 10px;
+  min-height: 38px;
+  padding: 6px 12px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.875rem;
+  transition:
+    transform var(--motion-fast) var(--ease-out),
+    box-shadow var(--motion-fast) var(--ease-out);
+}
+
+.gl-forum-thread > header > button:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--gl-shadow-sm);
 }
 
 @media (max-width: 800px) {
@@ -2185,17 +2386,29 @@ body.gl-map-fullscreen-active .gl-qcm-popover-overlay {
 }
 
 .gl-mascots-filters button {
-  padding: 4px 10px;
-  border: 1px solid #cbd5e1;
-  background: #f8fafc;
+  padding: 6px 12px;
+  min-height: 36px;
+  border: 1px solid color-mix(in srgb, #fff 55%, var(--gl-color-primary) 45%);
+  background: color-mix(in srgb, #fff 76%, var(--gl-color-secondary) 24%);
+  color: var(--gl-color-primary);
   border-radius: 999px;
   cursor: pointer;
+  font-weight: 600;
+  font-size: 0.875rem;
+  transition:
+    transform var(--motion-fast) var(--ease-out),
+    box-shadow var(--motion-fast) var(--ease-out);
 }
 
 .gl-mascots-filters button.is-active {
-  background: #1d4ed8;
-  color: white;
-  border-color: #1d4ed8;
+  background: var(--gl-color-primary);
+  color: #fff;
+  border-color: var(--gl-color-primary);
+  box-shadow: var(--gl-shadow-sm);
+}
+
+.gl-mascots-filters button:hover {
+  transform: translateY(-1px);
 }
 
 .gl-mascot-grid {
@@ -2242,11 +2455,24 @@ body.gl-map-fullscreen-active .gl-qcm-popover-overlay {
 
 .gl-mascot-card-body button {
   margin-top: 4px;
-  padding: 6px 10px;
-  border: 1px solid #1d4ed8;
-  background: #eff6ff;
-  border-radius: 8px;
+  align-self: flex-start;
+  border: 1px solid var(--gl-border);
+  background: #fff;
+  color: var(--gl-color-primary);
+  border-radius: 10px;
+  min-height: 40px;
+  padding: 6px 12px;
   cursor: pointer;
+  font-weight: 600;
+  font-size: 0.875rem;
+  transition:
+    transform var(--motion-fast) var(--ease-out),
+    box-shadow var(--motion-fast) var(--ease-out);
+}
+
+.gl-mascot-card-body button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: var(--gl-shadow-sm);
 }
 
 .gl-mascot-card-body button:disabled {
@@ -2254,6 +2480,8 @@ body.gl-map-fullscreen-active .gl-qcm-popover-overlay {
   background: #f1f5f9;
   border-color: #94a3b8;
   color: #64748b;
+  transform: none;
+  box-shadow: none;
 }
 
 .gl-mascot-svg {
@@ -2454,13 +2682,23 @@ body.gl-map-fullscreen-active .gl-qcm-popover-overlay {
 }
 
 .gl-help-panel > header button {
-  border: 1px solid #93c5fd;
+  border: 1px solid color-mix(in srgb, #fff 55%, var(--gl-color-primary) 45%);
   border-radius: 999px;
   background: #ffffff;
-  color: #1e3a8a;
+  color: var(--gl-color-primary);
   min-height: 36px;
   padding: 6px 12px;
   cursor: pointer;
+  font-weight: 600;
+  font-size: 0.875rem;
+  transition:
+    transform var(--motion-fast) var(--ease-out),
+    box-shadow var(--motion-fast) var(--ease-out);
+}
+
+.gl-help-panel > header button:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--gl-shadow-sm);
 }
 
 .gl-help-panel.is-pulse {
@@ -2589,19 +2827,31 @@ body.gl-map-fullscreen-active .gl-qcm-popover-overlay {
 .gl-tutorials-list li > button {
   width: 100%;
   text-align: left;
-  border: 1px solid #bfdbfe;
+  border: 1px solid color-mix(in srgb, #fff 50%, var(--gl-color-primary) 50%);
   border-radius: 10px;
-  background: #eff6ff;
-  color: #1e3a8a;
-  padding: 10px;
+  background: color-mix(in srgb, #fff 82%, var(--gl-color-secondary) 18%);
+  color: var(--gl-color-primary);
+  padding: 10px 12px;
   min-height: 44px;
   cursor: pointer;
+  font-weight: 600;
+  transition:
+    transform var(--motion-fast) var(--ease-out),
+    box-shadow var(--motion-fast) var(--ease-out),
+    border-color var(--motion-fast) var(--ease-out);
+}
+
+.gl-forum-threads li > button:hover,
+.gl-tutorials-list li > button:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--gl-shadow-sm);
 }
 
 .gl-forum-threads li.is-active > button,
 .gl-tutorials-list li.is-read > button {
-  border-color: #60a5fa;
-  background: #dbeafe;
+  border-color: var(--gl-color-primary);
+  background: color-mix(in srgb, #fff 68%, var(--gl-color-secondary) 32%);
+  box-shadow: var(--gl-shadow-sm);
 }
 
 .gl-forum-thread {

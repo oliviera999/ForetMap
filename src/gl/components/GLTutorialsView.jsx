@@ -168,8 +168,8 @@ export function GLTutorialsView({ canManage }) {
             </button>
             {canManage ? (
               <div className="gl-inline-actions">
-                <button type="button" onClick={() => startEdit(item.id)}>Éditer</button>
-                <button type="button" onClick={() => removeTutorial(item.id)}>Suppr.</button>
+                <GLButton type="button" size="sm" variant="secondary" onClick={() => startEdit(item.id)}>Éditer</GLButton>
+                <GLButton type="button" size="sm" variant="danger" onClick={() => removeTutorial(item.id)}>Suppr.</GLButton>
               </div>
             ) : null}
           </li>
@@ -187,8 +187,8 @@ export function GLTutorialsView({ canManage }) {
           <h3>{active.title}</h3>
           {canManage ? (
             <div className="gl-inline-actions" style={{ marginBottom: 8 }}>
-              <button type="button" onClick={() => startEdit(active.id)}>Modifier ce tutoriel</button>
-              <button type="button" onClick={() => removeTutorial(active.id)}>Supprimer ce tutoriel</button>
+              <GLButton type="button" variant="secondary" onClick={() => startEdit(active.id)}>Modifier ce tutoriel</GLButton>
+              <GLButton type="button" variant="danger" onClick={() => removeTutorial(active.id)}>Supprimer ce tutoriel</GLButton>
             </div>
           ) : null}
           <div dangerouslySetInnerHTML={{ __html: html }} />

@@ -13,6 +13,7 @@ import { GLRichTextEditor } from './ui/GLRichTextEditor.jsx';
 import { GLBrandColorEditor } from './GLBrandColorEditor.jsx';
 import { normalizeBrand } from '../hooks/useGLBrandTheme.js';
 import { brandToCssVars, mergeBrandWithChapterTheme, normalizeChapterTheme } from '../../utils/glBrandTheme.js';
+import { GLButton } from './ui/GLButton.jsx';
 
 const EMPTY_CHAPTER_THEME = { colors: {} };
 
@@ -303,9 +304,9 @@ export function GLChaptersAdminView() {
               </li>
             ))}
           </ul>
-          <button type="button" onClick={resetChapterForm}>
+          <GLButton type="button" variant="secondary" onClick={resetChapterForm}>
             + Nouveau chapitre
-          </button>
+          </GLButton>
         </aside>
 
         <div>
@@ -353,36 +354,39 @@ export function GLChaptersAdminView() {
                           {biome?.species_count != null ? ` (${biome.species_count} esp.)` : ''}
                         </span>
                         <span className="gl-inline-actions">
-                          <button
+                          <GLButton
                             type="button"
-                            className="gl-btn-secondary"
+                            size="sm"
+                            variant="secondary"
                             onClick={() => setChapterForm({
                               ...chapterForm,
                               biomeSlugs: moveBiomeSlug(chapterForm.biomeSlugs, slug, -1),
                             })}
                           >
                             ↑
-                          </button>
-                          <button
+                          </GLButton>
+                          <GLButton
                             type="button"
-                            className="gl-btn-secondary"
+                            size="sm"
+                            variant="secondary"
                             onClick={() => setChapterForm({
                               ...chapterForm,
                               biomeSlugs: moveBiomeSlug(chapterForm.biomeSlugs, slug, 1),
                             })}
                           >
                             ↓
-                          </button>
-                          <button
+                          </GLButton>
+                          <GLButton
                             type="button"
-                            className="gl-btn-secondary"
+                            size="sm"
+                            variant="secondary"
                             onClick={() => setChapterForm({
                               ...chapterForm,
                               biomeSlugs: chapterForm.biomeSlugs.filter((s) => s !== slug),
                             })}
                           >
                             Retirer
-                          </button>
+                          </GLButton>
                         </span>
                       </li>
                     );
@@ -428,9 +432,9 @@ export function GLChaptersAdminView() {
               filePickHint={mapImagePickHint}
             />
             <div className="gl-inline-actions">
-              <button type="button" className="gl-btn-secondary" onClick={() => setFrameEditorOpen(true)}>
+              <GLButton type="button" variant="secondary" onClick={() => setFrameEditorOpen(true)}>
                 Ajuster le cadre carte
-              </button>
+              </GLButton>
             </div>
             <MediaLibraryMenu
               title="Bibliothèque globale (images, audio, vidéo)"
@@ -519,11 +523,11 @@ export function GLChaptersAdminView() {
               />
             </label>
             <div className="gl-inline-actions">
-              <button type="submit">{selectedId ? 'Enregistrer' : 'Créer'}</button>
+              <GLButton type="submit">{selectedId ? 'Enregistrer' : 'Créer'}</GLButton>
               {selectedId ? (
-                <button type="button" className="gl-danger" onClick={deleteChapter}>
+                <GLButton type="button" variant="danger" onClick={deleteChapter}>
                   Supprimer
-                </button>
+                </GLButton>
               ) : null}
             </div>
           </form>

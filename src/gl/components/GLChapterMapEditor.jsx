@@ -13,6 +13,7 @@ import {
 } from './GLMarkerAppearanceEditor.jsx';
 import { glImageFrameToStyle, normalizeGlImageFrame } from '../../utils/glImageFrame.js';
 import { defaultEventConfigForQuestion } from '../../utils/glMarkerEventConfig.js';
+import { GLButton } from './ui/GLButton.jsx';
 import { resolveMarkerAppearance } from '../../utils/glMarkerAppearance.js';
 
 const EMPTY_MARKER_FORM = {
@@ -366,13 +367,13 @@ export function GLChapterMapEditor({
           <input type="number" value={markerForm.orderIndex} onChange={(event) => setField('orderIndex', event.target.value)} />
         </label>
         <div className="gl-inline-actions">
-          <button type="submit" disabled={saving}>
+          <GLButton type="submit" disabled={saving} loading={saving}>
             {selectedMarker ? 'Enregistrer le repère' : 'Ajouter le repère'}
-          </button>
+          </GLButton>
           {selectedMarker ? (
-            <button type="button" className="gl-danger" onClick={deleteMarker}>
+            <GLButton type="button" variant="danger" onClick={deleteMarker}>
               Supprimer
-            </button>
+            </GLButton>
           ) : null}
         </div>
       </form>

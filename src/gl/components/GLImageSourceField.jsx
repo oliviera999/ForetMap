@@ -40,7 +40,7 @@ export function GLImageSourceField({
       <div className="gl-image-source__upload-row">
         <label
           htmlFor={galleryId}
-          className="gl-btn-secondary gl-image-source__file-btn"
+          className="gl-btn gl-btn--secondary gl-image-source__file-btn"
           style={{ cursor: uploading || filePickDisabled ? 'not-allowed' : 'pointer' }}
         >
           {uploading ? 'Envoi…' : '📁 Galerie / fichier'}
@@ -59,7 +59,7 @@ export function GLImageSourceField({
         </label>
         <label
           htmlFor={cameraId}
-          className="gl-btn-secondary gl-image-source__file-btn"
+          className="gl-btn gl-btn--secondary gl-image-source__file-btn"
           style={{ cursor: uploading || filePickDisabled ? 'not-allowed' : 'pointer' }}
         >
           {uploading ? 'Envoi…' : '📸 Appareil photo'}

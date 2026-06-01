@@ -3,6 +3,7 @@ import { apiGL } from '../services/apiGL.js';
 import { GLMascotRenderer } from './GLMascotRenderer.jsx';
 import { GL_MASCOT_STATE } from '../hooks/useGLMascotStateMachine.js';
 import { GLMascotPackManager } from './GLMascotPackManager.jsx';
+import { GLButton } from './ui/GLButton.jsx';
 import { useGLMascotCatalog } from '../context/GLMascotCatalogContext.jsx';
 
 const TYPE_FILTERS = [
@@ -185,14 +186,16 @@ export function GLMascotsAdminView({ gameState, onReloadGame }) {
                     : (mascot.type === 'gnome' ? 'Gnome' : 'Licorne')}
                 </span>
                 <p>{mascot.description}</p>
-                <button
+                <GLButton
                   type="button"
+                  size="sm"
+                  variant={isMine ? 'secondary' : 'primary'}
                   onClick={() => assign(mascot)}
                   disabled={assignedToOther || !selectedTeamId || !gameId}
                   title={assignedToOther ? 'Déjà utilisée par une autre équipe de cette partie' : ''}
                 >
                   {isMine ? 'Assignée à cette équipe' : 'Assigner à l\'équipe sélectionnée'}
-                </button>
+                </GLButton>
               </div>
             </li>
           );

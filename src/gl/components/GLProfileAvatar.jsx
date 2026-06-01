@@ -2,6 +2,7 @@ import React, { useRef, useState } from 'react';
 import { getGlAvatarUrl } from '../utils/glAvatar.js';
 import { GLImageFrameEditor } from './GLImageFrameEditor.jsx';
 import { cropImageDataUrl, normalizeGlImageFrame } from '../../utils/glImageFrame.js';
+import { GLButton } from './ui/GLButton.jsx';
 
 function estimateDataUrlBytes(dataUrl) {
   const payload = String(dataUrl || '').split(',')[1] || '';
@@ -80,16 +81,17 @@ export function GLProfileAvatar({ profile, auth, avatarData, onAvatarData, remov
   return (
     <div className="gl-profile-avatar">
       <img src={preview} alt="Avatar profil" />
-      <div className="gl-profile-avatar-actions">
-        <button type="button" className="gl-btn-secondary" disabled={busy || processing} onClick={() => galleryRef.current?.click()}>
+      <div className="gl-profile-avatar-actions gl-inline-actions">
+        <GLButton type="button" variant="secondary" size="sm" disabled={busy || processing} onClick={() => galleryRef.current?.click()}>
           Galerie
-        </button>
-        <button type="button" className="gl-btn-secondary" disabled={busy || processing} onClick={() => cameraRef.current?.click()}>
+        </GLButton>
+        <GLButton type="button" variant="secondary" size="sm" disabled={busy || processing} onClick={() => cameraRef.current?.click()}>
           Camera
-        </button>
-        <button
+        </GLButton>
+        <GLButton
           type="button"
-          className="gl-btn-secondary"
+          variant="ghost"
+          size="sm"
           disabled={busy || processing}
           onClick={() => {
             onAvatarData?.(null);
@@ -97,7 +99,7 @@ export function GLProfileAvatar({ profile, auth, avatarData, onAvatarData, remov
           }}
         >
           {removeAvatar ? 'Annuler retrait' : 'Retirer avatar'}
-        </button>
+        </GLButton>
       </div>
       <input
         ref={galleryRef}

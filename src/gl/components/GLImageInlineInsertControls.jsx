@@ -59,7 +59,7 @@ export function GLImageInlineInsertControls({
       <p className="gl-hint gl-image-source__intro">{intro}</p>
       <div className="gl-image-source__upload-row">
         <label
-          className="gl-btn-secondary gl-image-source__file-btn"
+          className="gl-btn gl-btn--secondary gl-image-source__file-btn"
           style={{ cursor: uploading ? 'wait' : 'pointer' }}
         >
           {uploading ? 'Envoi…' : '📁 Galerie / fichier'}
@@ -76,7 +76,7 @@ export function GLImageInlineInsertControls({
           />
         </label>
         <label
-          className="gl-btn-secondary gl-image-source__file-btn"
+          className="gl-btn gl-btn--secondary gl-image-source__file-btn"
           style={{ cursor: uploading ? 'wait' : 'pointer' }}
         >
           {uploading ? 'Envoi…' : '📸 Appareil photo'}

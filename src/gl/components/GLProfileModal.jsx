@@ -1,5 +1,6 @@
 import React from 'react';
 import { GLProfileEditor } from './GLProfileEditor.jsx';
+import { GLButton } from './ui/GLButton.jsx';
 
 export function GLProfileModal({ open, onClose, auth, profile, config, onSessionUpdated, onReloadProfile }) {
   if (!open) return null;
@@ -8,7 +9,7 @@ export function GLProfileModal({ open, onClose, auth, profile, config, onSession
       <div className="gl-action-modal-body gl-profile-modal-body">
         <div className="gl-profile-modal-head">
           <h2>Mon profil</h2>
-          <button type="button" className="gl-btn-secondary" onClick={onClose}>Fermer</button>
+          <GLButton type="button" variant="secondary" onClick={onClose}>Fermer</GLButton>
         </div>
         <GLProfileEditor
           auth={auth}

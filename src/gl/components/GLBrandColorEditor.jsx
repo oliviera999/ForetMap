@@ -4,6 +4,7 @@ import {
   GL_BRAND_COLOR_KEYS,
   GL_BRAND_COLOR_LABELS,
 } from '../../utils/glBrandTheme.js';
+import { GLButton } from './ui/GLButton.jsx';
 
 function isValidHexColor(value) {
   return /^#[0-9a-f]{6}$/i.test(String(value || '').trim());
@@ -98,15 +99,16 @@ export function GLBrandColorEditor({
                   onChange={(event) => patchColor(key, event.target.value)}
                 />
                 {sparse && current ? (
-                  <button
+                  <GLButton
                     type="button"
-                    className="gl-btn-secondary gl-btn-sm"
+                    size="sm"
+                    variant="secondary"
                     disabled={disabled}
                     onClick={() => clearColor(key)}
                     title="Revenir à la charte plateforme"
                   >
                     ×
-                  </button>
+                  </GLButton>
                 ) : null}
               </span>
               {hint ? <span className="gl-hint gl-color-editor-hint">{hint}</span> : null}
@@ -116,9 +118,9 @@ export function GLBrandColorEditor({
       </div>
       {showReset ? (
         <div className="gl-inline-actions">
-          <button type="button" className="gl-btn-secondary" disabled={disabled} onClick={resetAll}>
+          <GLButton type="button" variant="secondary" disabled={disabled} onClick={resetAll}>
             {sparse ? 'Effacer les surcharges' : 'Réinitialiser aux valeurs par défaut'}
-          </button>
+          </GLButton>
         </div>
       ) : null}
     </div>

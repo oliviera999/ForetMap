@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { GLButton } from './ui/GLButton.jsx';
 
 export function GLNotificationsCenter({ items, unreadCount, onMarkAllRead, onClear }) {
   const [open, setOpen] = useState(false);
@@ -18,8 +19,8 @@ export function GLNotificationsCenter({ items, unreadCount, onMarkAllRead, onCle
           <header>
             <strong>Notifications GL</strong>
             <div className="gl-inline-actions">
-              <button type="button" onClick={onMarkAllRead}>Tout marquer lu</button>
-              <button type="button" onClick={onClear}>Vider</button>
+              <GLButton type="button" size="sm" variant="secondary" onClick={onMarkAllRead}>Tout marquer lu</GLButton>
+              <GLButton type="button" size="sm" variant="ghost" onClick={onClear}>Vider</GLButton>
             </div>
           </header>
           {items.length === 0 ? (

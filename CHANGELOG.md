@@ -20,6 +20,8 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - **Sécurité — register élève** : `POST /api/students/register` exige une session élève correspondante.
 
 ### Modifié
+- **GL — boutons interface** : styles partagés `.gl-primary` / `.gl-danger` / secondaire et déconnexion dans `gl-theme.css` ; remplacement des boutons HTML legacy par `GLButton` dans les vues admin, carte, profil et impersonation.
+- **Build production** : artefacts `dist/` régénérés (`npm run build`, bundle GL à jour).
 - **GL — biocénose (fiche espèce)** : modale centrée (`dvh`, marges sûres), photo en `object-fit: contain` (non rognée), mise en page deux colonnes sur écran large pour limiter le défilement.
 - **GL — biocénose (joueur)** : liste dense en tuiles (photo + noms) ; fiche complète en modale au clic (tous les champs catalogue `gl_species`, glossaire et liens conservés dans la modale uniquement). Tests `tests-ui/gl/GLSpeciesCatalog.test.jsx`, `tests-ui/gl/GLSpeciesDetailModal.test.jsx`.
 - **GL — version application (staff)** : pastille `vX.Y.Z` dans le bandeau et pied de page pour les comptes admin/MJ (`gl_admin`) ; ligne discrète sur l’écran de connexion ; hook partagé `useAppVersion` (`GET /api/version`). Tests `tests-ui/gl/GLTopBar.test.jsx`.
