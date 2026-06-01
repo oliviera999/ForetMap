@@ -39,6 +39,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - **Intégration PR GitHub** : correctifs des PR Cursor #28–#37 et Dependabot #25–#30 appliqués sur `main` (PR obsolètes/doublons fermées).
 
 ### Corrigé
+- **GL — popover question QCM** : boutons du pied (valider, Re-mélanger, Fermer) visibles — le portail `document.body` n’héritait pas des variables de thème GL ; jetons CSS par défaut sur l’overlay + propagation `glBrandStyle` depuis la carte. Test `tests-ui/gl/GLQcmPopover.test.jsx`.
 - **Tests API (stabilité suite)** : helper partagé `tests/helpers/adminAuth.js` (JWT admin élevé, permissions complètes) ; reset des plafonds d’inscription avant les scénarios RBAC ; forum groupes aligné sur le compte admin de test ; upsert `gl_admins` sans course ER_DUP_ENTRY ; parsing explicite de `max_concurrent_tasks = 0` dans `lib/studentTaskEnrollment.js`.
 - **Tests — tutoriels** : `tests/tutorials.test.js` utilise `ensureAdminTeacherAuthToken` (élévation + `tutorials.manage` sans PIN) avec `beforeEach` — corrige le 403 intermittent sur `PUT /api/tutorials/reorder` en suite complète.
 - **GL — module Musique des zones (réglages)** : activation du toggle `modules.zone_music_enabled` via `PUT /api/gl/admin/settings/:key` (clé autorisée, résolution robuste si le paramètre de route est tronqué). Test `tests/gl-settings.test.js`.

@@ -1890,6 +1890,13 @@ body.gl-map-fullscreen-active .gl-qcm-popover-overlay {
 }
 
 .gl-qcm-popover-overlay {
+  /* Portail sur body : reprendre les jetons GL (définis sur .gl-app en inline style) */
+  --gl-color-primary: #013a40;
+  --gl-color-secondary: #f2e8d5;
+  --gl-color-text: #262626;
+  --gl-border: rgba(1, 58, 64, 0.18);
+  --gl-border-focus: #047c8c;
+  color: var(--gl-color-text);
   position: fixed;
   inset: 0;
   z-index: 1450;
@@ -1902,6 +1909,18 @@ body.gl-map-fullscreen-active .gl-qcm-popover-overlay {
     max(12px, env(safe-area-inset-bottom, 0px))
     max(12px, env(safe-area-inset-left, 0px));
   background: rgba(15, 23, 42, 0.48);
+}
+
+.gl-qcm-popover-overlay .gl-btn--primary {
+  background: var(--gl-color-primary);
+  border-color: var(--gl-color-primary);
+  color: #fff;
+}
+
+.gl-qcm-popover-overlay .gl-btn--ghost {
+  color: var(--gl-color-primary);
+  border-color: var(--gl-border);
+  background: color-mix(in srgb, #fff 75%, var(--gl-color-secondary) 25%);
 }
 
 .gl-qcm-popover {

@@ -676,6 +676,7 @@ export function AppGL() {
               onZoneMusicToggle={handleZoneMusicToggle}
               onWatchTeamPctChange={handleWatchTeamPctChange}
               onZoneMusicUnlock={unlockZoneMusic}
+              brandThemeStyle={glBrandStyle}
             />
             {!isAdmin && gameState?.game && auth?.teamId == null && (
               <section className="gl-panel">

@@ -20,6 +20,7 @@ export function GLMapView({
   onZoneMusicToggle,
   onWatchTeamPctChange,
   onZoneMusicUnlock,
+  brandThemeStyle = null,
 }) {
   const watchTeamId = useMemo(() => {
     if (canMoveMascot) {
@@ -54,6 +55,7 @@ export function GLMapView({
       onZoneMusicToggle={onZoneMusicToggle}
       onWatchTeamPctChange={onWatchTeamPctChange}
       onZoneMusicUnlock={onZoneMusicUnlock}
+      brandThemeStyle={brandThemeStyle}
     />
   );
 }

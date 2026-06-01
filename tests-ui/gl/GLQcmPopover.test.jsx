@@ -55,4 +55,22 @@ describe('GLQcmPopover', () => {
       );
     });
   });
+
+  test('applique themeStyle sur le portail (hors .gl-app)', () => {
+    render(
+      <GLQcmPopover
+        open
+        marker={{ id: 1, label: 'Thème' }}
+        themeStyle={{ '--gl-color-primary': '#b91c1c' }}
+        presentation={{
+          presentationToken: 't',
+          question: 'Couleur thème ?',
+          choices: [{ id: 0, text: 'A' }, { id: 1, text: 'B' }],
+        }}
+        onClose={vi.fn()}
+      />,
+    );
+    const overlay = document.querySelector('.gl-qcm-popover-overlay');
+    expect(overlay?.style.getPropertyValue('--gl-color-primary')).toBe('#b91c1c');
+  });
 });
