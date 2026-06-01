@@ -18,6 +18,8 @@ export function GLQcmPopover({
   onAnswered,
   onReshuffle,
   onSubmitResult,
+  /** Variables CSS marque (hors `.gl-app` car portail `document.body`) */
+  themeStyle = null,
 }) {
   const [selectedChoiceId, setSelectedChoiceId] = useState(null);
   const [submitting, setSubmitting] = useState(false);
@@ -83,6 +85,7 @@ export function GLQcmPopover({
     <div
       className="gl-qcm-popover-overlay"
       role="presentation"
+      style={themeStyle || undefined}
       onClick={() => onClose?.()}
     >
       <div

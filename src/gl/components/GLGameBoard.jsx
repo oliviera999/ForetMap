@@ -34,6 +34,7 @@ export function GLGameBoard({
   onZoneMusicToggle,
   onWatchTeamPctChange,
   onZoneMusicUnlock,
+  brandThemeStyle = null,
 }) {
   const imageUrl = chapter?.map_image_url || '/maps/map-foret.svg';
   const [pendingMarker, setPendingMarker] = useState(null);
@@ -252,6 +253,7 @@ export function GLGameBoard({
         onAnswered={onQcmAnswered}
         onReshuffle={reshuffle}
         onSubmitResult={setResult}
+        themeStyle={brandThemeStyle}
       />
     </div>
   );
