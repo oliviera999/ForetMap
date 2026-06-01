@@ -198,6 +198,7 @@ dans `gl_settings` :
 - `modules.help_enabled`
 - `modules.journal_enabled`
 - `modules.kingdom_map_enabled`
+- `modules.zone_music_enabled`
 
 Modifiables via `PUT /api/gl/admin/settings/:key` (validation booléenne stricte,
 permission `gl.settings.manage`).
@@ -240,8 +241,8 @@ sur la carte du royaume). Couleur invalide → `400`.
 | DELETE | `/api/gl/tutorials/:id` | — | `gl.content.manage` |
 | GET | `/api/gl/journal/games/:id` | `?teamId=&limit=` | MJ/admin GL, ou joueur membre de cette partie |
 | GET | `/api/gl/kingdom-map/zones?chapterId=` | — | Auth GL |
-| POST | `/api/gl/kingdom-map/zones` | `{ chapterId, label, description?, color?, points: [{x,y}…] }` | `gl.content.manage` |
-| PUT | `/api/gl/kingdom-map/zones/:id` | mise à jour partielle | `gl.content.manage` |
+| POST | `/api/gl/kingdom-map/zones` | `{ chapterId, label, description?, color?, points: [{x,y}…], musicUrl?, musicVolume? }` | `gl.content.manage` |
+| PUT | `/api/gl/kingdom-map/zones/:id` | mise à jour partielle (`musicUrl` nullable pour retirer) | `gl.content.manage` |
 | DELETE | `/api/gl/kingdom-map/zones/:id` | — | `gl.content.manage` |
 
 ### Diagnostics GL (admin)

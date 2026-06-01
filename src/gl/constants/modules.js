@@ -7,6 +7,7 @@ export const GL_MODULE_DEFAULTS = {
   helpEnabled: true,
   journalEnabled: true,
   kingdomMapEnabled: true,
+  zoneMusicEnabled: false,
 };
 
 export function normalizeGlModules(raw) {

@@ -2638,6 +2638,61 @@ body.gl-map-fullscreen-active .gl-qcm-popover-overlay {
   cursor: grab;
 }
 
+.gl-zone-music-badge {
+  margin-left: 0.35rem;
+  font-size: 0.95em;
+}
+
+.gl-zone-music-fieldset {
+  border: 1px solid #dbeafe;
+  border-radius: 10px;
+  padding: 0.75rem 1rem;
+  margin: 0.5rem 0 1rem;
+}
+
+.gl-zone-music-fieldset legend {
+  padding: 0 0.35rem;
+  font-weight: 600;
+}
+
+.gl-zone-music-actions {
+  margin-top: 0.5rem;
+}
+
+.gl-zone-music-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-height: 44px;
+  padding: 0.45rem 0.75rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.92);
+  color: #0f172a;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08);
+}
+
+.gl-zone-music-toggle.is-muted {
+  opacity: 0.85;
+}
+
+.gl-zone-music-toggle--board {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  z-index: 12;
+}
+
+.gl-zone-music-toggle-icon {
+  line-height: 1;
+}
+
+.gl-zone-music-toggle-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
 .gl-tutorial-active {
   margin-top: 12px;
   border: 1px solid #dbeafe;

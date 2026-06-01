@@ -44,6 +44,7 @@ const MODULE_TOGGLES = [
   { key: 'modules.help_enabled', label: 'Aide contextuelle', hint: 'Prépare l’onboarding GL.' },
   { key: 'modules.journal_enabled', label: 'Journal/Histoire', hint: 'Affiche/masque l’onglet Histoire.' },
   { key: 'modules.kingdom_map_enabled', label: 'Carte royaume', hint: 'Prépare la carte royaume GL.' },
+  { key: 'modules.zone_music_enabled', label: 'Musique des zones', hint: 'Ambiance sonore par zone sur la carte de jeu (fondus en transition).' },
 ];
 
 function readGameplayFlag(settings, key) {

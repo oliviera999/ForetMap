@@ -3,6 +3,11 @@
 const express = require('express');
 const { queryAll, queryOne, execute } = require('../../database');
 const { requireGlAuth, requireGlPermission } = require('../../middleware/requireGlAuth');
+const {
+  DEFAULT_MUSIC_VOLUME,
+  parseZoneMusicInput,
+  serializeZoneMusicRow,
+} = require('../../lib/glZoneMusic');
 
 const router = express.Router();
 
@@ -29,37 +34,44 @@ function validatePoints(points) {
   return true;
 }
 
+function mapZoneRow(row) {
+  let points = [];
+  try {
+    points = row.points_json ? JSON.parse(row.points_json) : [];
+  } catch (_) {
+    points = [];
+  }
+  const music = serializeZoneMusicRow(row);
+  return {
+    id: Number(row.id),
+    chapter_id: Number(row.chapter_id),
+    label: row.label,
+    description: row.description,
+    points,
+    color: row.color,
+    music_url: music.music_url,
+    music_volume: music.music_volume,
+    musicUrl: music.musicUrl,
+    musicVolume: music.musicVolume,
+    created_at: row.created_at,
+    updated_at: row.updated_at,
+  };
+}
+
 router.get('/zones', requireGlAuth, async (req, res) => {
   const chapterId = req.query?.chapterId != null ? Number(req.query.chapterId) : null;
   if (chapterId == null || !Number.isFinite(chapterId)) {
     return res.status(400).json({ error: 'chapterId requis' });
   }
   const rows = await queryAll(
-    `SELECT id, chapter_id, label, description, points_json, color, created_at, updated_at
+    `SELECT id, chapter_id, label, description, points_json, color,
+            music_url, music_volume, created_at, updated_at
        FROM gl_kingdom_zones
       WHERE chapter_id = ?
       ORDER BY id ASC`,
     [chapterId]
   );
-  const zones = rows.map((row) => {
-    let points = [];
-    try {
-      points = row.points_json ? JSON.parse(row.points_json) : [];
-    } catch (_) {
-      points = [];
-    }
-    return {
-      id: Number(row.id),
-      chapter_id: Number(row.chapter_id),
-      label: row.label,
-      description: row.description,
-      points,
-      color: row.color,
-      created_at: row.created_at,
-      updated_at: row.updated_at,
-    };
-  });
-  return res.json({ zones });
+  return res.json({ zones: rows.map(mapZoneRow) });
 });
 
 router.post('/zones', requireGlPermission('gl.content.manage'), async (req, res) => {
@@ -68,6 +80,8 @@ router.post('/zones', requireGlPermission('gl.content.manage'), async (req, res)
   const description = normalizeOptionalString(req.body?.description);
   const color = normalizeOptionalString(req.body?.color) || '#22c55e';
   const points = req.body?.points;
+  const musicParsed = parseZoneMusicInput(req.body);
+  if (musicParsed.error) return res.status(400).json({ error: musicParsed.error });
   if (!Number.isFinite(chapterId)) return res.status(400).json({ error: 'chapterId invalide' });
   if (!label || label.length < MIN_LABEL || label.length > MAX_LABEL) {
     return res.status(400).json({ error: `Label invalide (${MIN_LABEL}-${MAX_LABEL} caractères)` });
@@ -77,22 +91,16 @@ router.post('/zones', requireGlPermission('gl.content.manage'), async (req, res)
   }
   const chapter = await queryOne('SELECT id FROM gl_chapters WHERE id = ? LIMIT 1', [chapterId]);
   if (!chapter) return res.status(404).json({ error: 'Chapitre introuvable' });
+  const musicUrl = musicParsed.hasMusicUrl ? musicParsed.musicUrl : null;
+  const musicVolume = musicParsed.hasMusicVolume ? musicParsed.musicVolume : DEFAULT_MUSIC_VOLUME;
   const result = await execute(
-    `INSERT INTO gl_kingdom_zones (chapter_id, label, description, points_json, color, created_by, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, NOW(), NOW())`,
-    [chapterId, label, description, JSON.stringify(points), color, req.glAuth.userId]
+    `INSERT INTO gl_kingdom_zones
+       (chapter_id, label, description, points_json, color, music_url, music_volume, created_by, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
+    [chapterId, label, description, JSON.stringify(points), color, musicUrl, musicVolume, req.glAuth.userId]
   );
   const created = await queryOne('SELECT * FROM gl_kingdom_zones WHERE id = ? LIMIT 1', [result.insertId]);
-  return res.status(201).json({
-    id: Number(created.id),
-    chapter_id: Number(created.chapter_id),
-    label: created.label,
-    description: created.description,
-    points: JSON.parse(created.points_json),
-    color: created.color,
-    created_at: created.created_at,
-    updated_at: created.updated_at,
-  });
+  return res.status(201).json(mapZoneRow(created));
 });
 
 router.put('/zones/:id', requireGlPermission('gl.content.manage'), async (req, res) => {
@@ -104,6 +112,8 @@ router.put('/zones/:id', requireGlPermission('gl.content.manage'), async (req, r
   const description = req.body?.description == null ? null : normalizeOptionalString(req.body.description);
   const color = normalizeOptionalString(req.body?.color);
   const points = req.body?.points;
+  const musicParsed = parseZoneMusicInput(req.body);
+  if (musicParsed.error) return res.status(400).json({ error: musicParsed.error });
   let pointsJson = null;
   if (points != null) {
     if (!validatePoints(points)) {
@@ -111,27 +121,30 @@ router.put('/zones/:id', requireGlPermission('gl.content.manage'), async (req, r
     }
     pointsJson = JSON.stringify(points);
   }
+  const musicUrl = musicParsed.hasMusicUrl ? musicParsed.musicUrl : undefined;
+  const musicVolume = musicParsed.hasMusicVolume ? musicParsed.musicVolume : undefined;
   await execute(
     `UPDATE gl_kingdom_zones
         SET label = COALESCE(?, label),
             description = COALESCE(?, description),
             color = COALESCE(?, color),
             points_json = COALESCE(?, points_json),
+            music_url = ${musicParsed.hasMusicUrl ? '?' : 'music_url'},
+            music_volume = ${musicParsed.hasMusicVolume ? '?' : 'music_volume'},
             updated_at = NOW()
       WHERE id = ?`,
-    [label, description, color, pointsJson, id]
+    [
+      label,
+      description,
+      color,
+      pointsJson,
+      ...(musicParsed.hasMusicUrl ? [musicUrl] : []),
+      ...(musicParsed.hasMusicVolume ? [musicVolume] : []),
+      id,
+    ]
   );
   const updated = await queryOne('SELECT * FROM gl_kingdom_zones WHERE id = ? LIMIT 1', [id]);
-  return res.json({
-    id: Number(updated.id),
-    chapter_id: Number(updated.chapter_id),
-    label: updated.label,
-    description: updated.description,
-    points: JSON.parse(updated.points_json),
-    color: updated.color,
-    created_at: updated.created_at,
-    updated_at: updated.updated_at,
-  });
+  return res.json(mapZoneRow(updated));
 });
 
 router.delete('/zones/:id', requireGlPermission('gl.content.manage'), async (req, res) => {

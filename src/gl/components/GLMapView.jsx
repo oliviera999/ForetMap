@@ -15,6 +15,11 @@ export function GLMapView({
   currentTeamId,
   playerTeamId,
   mascotStateMachine,
+  zoneMusicEnabled = false,
+  zoneMusicMuted = false,
+  onZoneMusicToggle,
+  onWatchTeamPctChange,
+  onZoneMusicUnlock,
 }) {
   const watchTeamId = useMemo(() => {
     if (canMoveMascot) {
@@ -44,6 +49,11 @@ export function GLMapView({
       selectedTeamId={selectedTeamId}
       currentTeamId={currentTeamId}
       mascotStateMachine={mascotStateMachine}
+      zoneMusicEnabled={zoneMusicEnabled}
+      zoneMusicMuted={zoneMusicMuted}
+      onZoneMusicToggle={onZoneMusicToggle}
+      onWatchTeamPctChange={onWatchTeamPctChange}
+      onZoneMusicUnlock={onZoneMusicUnlock}
     />
   );
 }

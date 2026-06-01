@@ -9,18 +9,8 @@ import { GLPctMapCanvas } from './GLPctMapCanvas.jsx';
 import { useGlPctMapGestures } from '../hooks/useGlPctMapGestures.js';
 import { useGLBoardMascotMotion } from '../hooks/useGLBoardMascotMotion.js';
 import { useGLMarkerArrival } from '../hooks/useGLMarkerArrival.js';
-
-function usePrefersReducedMotion() {
-  const [reduced, setReduced] = useState(false);
-  useEffect(() => {
-    const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
-    const apply = () => setReduced(Boolean(mq.matches));
-    apply();
-    mq.addEventListener('change', apply);
-    return () => mq.removeEventListener('change', apply);
-  }, []);
-  return reduced;
-}
+import { usePrefersReducedMotion } from '../hooks/usePrefersReducedMotion.js';
+import { GLZoneMusicMuteButton } from './GLZoneMusicMuteButton.jsx';
 
 export function GLGameBoard({
   chapter,
@@ -39,6 +29,11 @@ export function GLGameBoard({
   selectedTeamId,
   currentTeamId,
   mascotStateMachine,
+  zoneMusicEnabled = false,
+  zoneMusicMuted = false,
+  onZoneMusicToggle,
+  onWatchTeamPctChange,
+  onZoneMusicUnlock,
 }) {
   const imageUrl = chapter?.map_image_url || '/maps/map-foret.svg';
   const [pendingMarker, setPendingMarker] = useState(null);
@@ -74,6 +69,13 @@ export function GLGameBoard({
   });
 
   const qcmOpen = Boolean(questionPopover);
+
+  const watchPosition = watchTeamId != null ? getPositionForTeam(watchTeamId) : null;
+
+  useEffect(() => {
+    if (watchTeamId == null || !watchPosition || typeof onWatchTeamPctChange !== 'function') return;
+    onWatchTeamPctChange({ xp: watchPosition.xp, yp: watchPosition.yp });
+  }, [watchTeamId, watchPosition?.xp, watchPosition?.yp, onWatchTeamPctChange]);
 
   useEffect(() => {
     if (!mapFullscreen || qcmOpen) return undefined;
@@ -172,7 +174,9 @@ export function GLGameBoard({
           boardHeightPxRef.current = height;
           setBoardHeightPx(height);
         }}
+        onMapPointerDown={() => onZoneMusicUnlock?.()}
         onMapClick={(pct) => {
+          onZoneMusicUnlock?.();
           if (!canMoveMascot) return;
           const clamped = clampMapMascotPctForViewport(
             pct.x,
@@ -272,6 +276,15 @@ export function GLGameBoard({
         </div>
       ) : null}
       {boardShellNode}
+
+      {zoneMusicEnabled ? (
+        <GLZoneMusicMuteButton
+          visible
+          muted={zoneMusicMuted}
+          onToggle={onZoneMusicToggle}
+          className="gl-zone-music-toggle--board"
+        />
+      ) : null}
 
       {pendingMarker ? (
         <div className="gl-action-modal" role="dialog" aria-label="Proposer une action">

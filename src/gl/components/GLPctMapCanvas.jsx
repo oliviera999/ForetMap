@@ -6,6 +6,7 @@ export function GLPctMapCanvas({
   imageAlt,
   mapGestures,
   onMapClick,
+  onMapPointerDown,
   onMapReady,
   onFitLayout,
   className = 'gl-board',
@@ -31,6 +32,7 @@ export function GLPctMapCanvas({
       ref={containerRef}
       className={className}
       style={{ cursor }}
+      onPointerDown={(event) => onMapPointerDown?.(event)}
       onClick={(event) => {
         if (!onMapClick || !mapGestures?.toImagePct) return;
         const pct = mapGestures.toImagePct(event.clientX, event.clientY);

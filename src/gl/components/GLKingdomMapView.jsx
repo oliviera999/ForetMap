@@ -1,12 +1,40 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { apiGL } from '../services/apiGL.js';
+import { useGLZoneMusic } from '../hooks/useGLZoneMusic.js';
 import { GLKingdomZoneEditor } from './GLKingdomZoneEditor.jsx';
 
-export function GLKingdomMapView({ chapter, chapters = [], canManage, onChapterChange }) {
+export function GLKingdomMapView({ chapter, chapters = [], canManage, onChapterChange, zoneMusicEnabled = false }) {
   const [zones, setZones] = useState([]);
   const [error, setError] = useState('');
   const [selectedChapterId, setSelectedChapterId] = useState(chapter?.id ? Number(chapter.id) : null);
   const [optimisticPatchByZoneId, setOptimisticPatchByZoneId] = useState({});
+
+  const { previewUrl, stopAll } = useGLZoneMusic({
+    enabled: zoneMusicEnabled,
+    userMuted: false,
+    activeZone: null,
+  });
+
+  useEffect(() => {
+    if (!zoneMusicEnabled) stopAll();
+    return () => stopAll();
+  }, [zoneMusicEnabled, stopAll]);
+
+  const handlePreviewZoneMusic = useCallback((url, volume) => {
+    if (!zoneMusicEnabled || !url) return;
+    previewUrl(url, volume);
+  }, [zoneMusicEnabled, previewUrl]);
+
+  const handleSelectedZoneChange = useCallback((zone) => {
+    if (!zoneMusicEnabled || canManage) return;
+    const url = zone?.musicUrl ?? zone?.music_url ?? null;
+    if (url) {
+      const vol = zone?.musicVolume ?? zone?.music_volume ?? 0.7;
+      previewUrl(String(url), Number(vol));
+    } else {
+      stopAll();
+    }
+  }, [zoneMusicEnabled, canManage, previewUrl, stopAll]);
 
   useEffect(() => {
     if (!chapter?.id) return;
@@ -52,15 +80,33 @@ export function GLKingdomMapView({ chapter, chapters = [], canManage, onChapterC
     reload();
   }, [reload]);
 
-  async function createZone({ label, color, points }) {
+  const fetchMediaLibrary = useCallback(async () => {
+    const data = await apiGL('/api/gl/admin/media-library?limit=400');
+    return Array.isArray(data?.items) ? data.items : [];
+  }, []);
+
+  const uploadMediaLibrary = useCallback(async (mediaData) => {
+    await apiGL('/api/gl/admin/media-library', 'POST', { media_data: mediaData });
+  }, []);
+
+  const removeMediaLibrary = useCallback(async (relativePath) => {
+    await apiGL('/api/gl/admin/media-library', 'DELETE', { relative_path: relativePath });
+  }, []);
+
+  async function createZone({ label, color, points, musicUrl, musicVolume }) {
     if (!chapterId) return;
     try {
-      await apiGL('/api/gl/kingdom-map/zones', 'POST', {
+      const payload = {
         chapterId,
         label: label || 'Zone',
         color,
         points,
-      });
+      };
+      if (zoneMusicEnabled && musicUrl) {
+        payload.musicUrl = musicUrl;
+        payload.musicVolume = musicVolume;
+      }
+      await apiGL('/api/gl/kingdom-map/zones', 'POST', payload);
       setError('');
       await reload();
     } catch (err) {
@@ -80,6 +126,8 @@ export function GLKingdomMapView({ chapter, chapters = [], canManage, onChapterC
       if (patch?.label != null) payload.label = patch.label;
       if (patch?.color != null) payload.color = patch.color;
       if (patch?.points != null) payload.points = patch.points;
+      if (patch?.musicUrl !== undefined) payload.musicUrl = patch.musicUrl;
+      if (patch?.musicVolume != null) payload.musicVolume = patch.musicVolume;
       if (Object.keys(payload).length > 0) {
         await apiGL(`/api/gl/kingdom-map/zones/${id}`, 'PUT', payload);
       }
@@ -160,13 +208,23 @@ export function GLKingdomMapView({ chapter, chapters = [], canManage, onChapterC
         onCreateZone={createZone}
         onUpdateZone={updateZone}
         onDeleteZone={deleteZone}
+        fetchMediaLibrary={canManage ? fetchMediaLibrary : undefined}
+        uploadMediaLibrary={canManage ? uploadMediaLibrary : undefined}
+        removeMediaLibrary={canManage ? removeMediaLibrary : undefined}
+        zoneMusicEnabled={zoneMusicEnabled}
+        onSelectedZoneChange={handleSelectedZoneChange}
+        onPreviewZoneMusic={handlePreviewZoneMusic}
       />
       {canManage ? (
         <p className="gl-hint">
           Dessinez une zone par clics successifs sur la carte (minimum 3 points), puis ajustez les sommets en mode édition.
+          {zoneMusicEnabled ? ' Associez une piste audio par zone pour l’ambiance sur la carte de jeu.' : ''}
         </p>
       ) : (
-        <p className="gl-hint">Vue en lecture seule de la carte royaume.</p>
+        <p className="gl-hint">
+          Vue en lecture seule de la carte royaume.
+          {zoneMusicEnabled ? ' Sélectionnez une zone pour préécouter sa musique.' : ''}
+        </p>
       )}
     </section>
   );
