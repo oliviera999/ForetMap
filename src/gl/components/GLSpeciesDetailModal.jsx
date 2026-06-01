@@ -140,7 +140,9 @@ export function GLSpeciesDetailModal({ species, biomeNom = '', onClose, onOpenGl
       onClick={onClose}
     >
       <div
-        className="gl-action-modal-body gl-species-detail-modal__body"
+        className={`gl-action-modal-body gl-species-detail-modal__body${
+          hasGlSpeciesFieldValue(species.photo_url) ? ' gl-species-detail-modal__body--has-photo' : ''
+        }`}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="gl-species-detail-modal__head">
