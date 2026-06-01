@@ -24,4 +24,37 @@ describe('GLTopBar', () => {
     expect(screen.getByText('🗺️')).toHaveClass('gl-tab-icon');
     expect(screen.getByText('💬')).toHaveClass('gl-tab-icon');
   });
+
+  test('affiche la pastille version pour le staff admin', () => {
+    render(
+      <GLTopBar
+        tabs={[{ id: 'maps', label: 'Cartes', icon: '🗺️' }]}
+        activeTab="maps"
+        onTabChange={() => {}}
+        auth={{ displayName: 'MJ Test', userType: 'gl_admin' }}
+        onLogout={() => {}}
+        showVersion
+        appVersion="1.57.23"
+      />
+    );
+
+    expect(screen.getByLabelText('Version 1.57.23')).toBeInTheDocument();
+    expect(screen.getByText('v1.57.23')).toBeInTheDocument();
+  });
+
+  test('masque la pastille version pour les joueurs', () => {
+    render(
+      <GLTopBar
+        tabs={[{ id: 'maps', label: 'Cartes', icon: '🗺️' }]}
+        activeTab="maps"
+        onTabChange={() => {}}
+        auth={{ displayName: 'Joueur', userType: 'gl_player' }}
+        onLogout={() => {}}
+        showVersion={false}
+        appVersion="1.57.23"
+      />
+    );
+
+    expect(screen.queryByLabelText(/Version/)).not.toBeInTheDocument();
+  });
 });

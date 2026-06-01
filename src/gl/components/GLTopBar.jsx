@@ -1,4 +1,5 @@
 import React from 'react';
+import { GLAppVersionBadge } from './GLAppVersionBadge.jsx';
 import { GLMascotAvatar } from './GLMascotAvatar.jsx';
 
 function isGlMascotId(id) {
@@ -16,6 +17,8 @@ export function GLTopBar({
   onLogout,
   onOpenProfile,
   playerMascotId,
+  showVersion = false,
+  appVersion = null,
 }) {
   const title = String(platformTitle || 'Gnomes & Licornes');
   const subtitle = String(platformSubtitle || 'Le jeu de Sciences et Technologie');
@@ -44,6 +47,7 @@ export function GLTopBar({
         ))}
       </nav>
       <div className="gl-user">
+        {showVersion ? <GLAppVersionBadge appVersion={appVersion} /> : null}
         {isGlMascotId(playerMascotId) ? (
           <GLMascotAvatar mascotId={playerMascotId} size={32} />
         ) : null}

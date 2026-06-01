@@ -35,6 +35,8 @@ body.gl-body {
   );
   color: var(--gl-color-text, #262626);
   font-family: var(--gl-font-body, var(--font-sans));
+  display: flex;
+  flex-direction: column;
 }
 
 .gl-app h1,
@@ -171,9 +173,30 @@ body.gl-body {
 }
 
 .gl-main {
+  flex: 1 1 auto;
   max-width: 1200px;
   margin: 0 auto;
   padding: 16px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.gl-app-footer {
+  flex-shrink: 0;
+  text-align: center;
+  font-size: 0.7rem;
+  color: color-mix(in srgb, var(--gl-color-text, #262626) 52%, transparent);
+  padding: 6px 16px 10px;
+  border-top: 1px solid var(--gl-border);
+  background: color-mix(in srgb, var(--gl-surface, #fff) 55%, transparent);
+}
+
+.gl-app-version-badge {
+  flex-shrink: 0;
+}
+
+.gl-auth-version {
+  margin-top: 4px;
 }
 
 .gl-panel {
