@@ -138,9 +138,9 @@ export function GLForumView({ canModerate }) {
           <header>
             <h3>{activeThread.title}</h3>
             {canModerate ? (
-              <button type="button" onClick={toggleLock}>
+              <GLButton type="button" size="sm" variant="secondary" onClick={toggleLock}>
                 {Number(activeThread.is_locked) ? 'Déverrouiller' : 'Verrouiller'}
-              </button>
+              </GLButton>
             ) : null}
           </header>
           <ul className="gl-forum-posts">

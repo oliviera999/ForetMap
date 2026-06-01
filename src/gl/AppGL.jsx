@@ -28,6 +28,7 @@ import { GLTutorialsView } from './components/GLTutorialsView.jsx';
 import { GLJournalView } from './components/GLJournalView.jsx';
 import { GLKingdomMapView } from './components/GLKingdomMapView.jsx';
 import { GLNotificationsCenter } from './components/GLNotificationsCenter.jsx';
+import { GLButton } from './components/ui/GLButton.jsx';
 import { GLHelpPanel } from './components/GLHelpPanel.jsx';
 import { GLProfileModal } from './components/GLProfileModal.jsx';
 import { GLPasswordResetGate } from './components/GLPasswordResetGate.jsx';
@@ -632,9 +633,9 @@ export function AppGL() {
             </span>
           </div>
           <div className="impersonation-banner-actions">
-            <button type="button" className="btn btn-primary btn-sm" onClick={() => { stopGlImpersonation(); }}>
+            <GLButton type="button" size="sm" onClick={() => { stopGlImpersonation(); }}>
               Revenir à mon compte admin
-            </button>
+            </GLButton>
           </div>
         </div>
       ) : null}
@@ -684,9 +685,9 @@ export function AppGL() {
                 <p className="gl-hint" style={{ marginTop: 0 }}>
                   Sélectionnez une équipe sur la carte, puis confirmez l’affectation joueur.
                 </p>
-                <button type="button" onClick={joinSelectedTeam}>
+                <GLButton type="button" onClick={joinSelectedTeam}>
                   Rejoindre l’équipe sélectionnée
-                </button>
+                </GLButton>
               </section>
             )}
           </>

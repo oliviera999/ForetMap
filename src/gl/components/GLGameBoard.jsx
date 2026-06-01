@@ -11,6 +11,7 @@ import { useGLBoardMascotMotion } from '../hooks/useGLBoardMascotMotion.js';
 import { useGLMarkerArrival } from '../hooks/useGLMarkerArrival.js';
 import { usePrefersReducedMotion } from '../hooks/usePrefersReducedMotion.js';
 import { GLZoneMusicMuteButton } from './GLZoneMusicMuteButton.jsx';
+import { GLButton } from './ui/GLButton.jsx';
 
 export function GLGameBoard({
   chapter,
@@ -303,8 +304,8 @@ export function GLGameBoard({
               </select>
             </label>
             <div className="gl-inline-actions">
-              <button type="button" onClick={confirmActionRequest}>Envoyer la demande</button>
-              <button type="button" onClick={() => setPendingMarker(null)}>Annuler</button>
+              <GLButton type="button" onClick={confirmActionRequest}>Envoyer la demande</GLButton>
+              <GLButton type="button" variant="secondary" onClick={() => setPendingMarker(null)}>Annuler</GLButton>
             </div>
           </div>
         </div>

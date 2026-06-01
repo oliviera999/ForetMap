@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { GLButton } from './ui/GLButton.jsx';
 
 export function GLMascotPackWysiwygEditor({ initialPack, onSave, onDelete }) {
   const [name, setName] = useState('');
@@ -52,11 +53,11 @@ export function GLMascotPackWysiwygEditor({ initialPack, onSave, onDelete }) {
       </label>
       {error ? <p className="gl-error">{error}</p> : null}
       <div className="gl-inline-actions">
-        <button type="submit">Enregistrer le pack</button>
+        <GLButton type="submit">Enregistrer le pack</GLButton>
         {initialPack?.id ? (
-          <button type="button" onClick={() => onDelete?.(initialPack.id)}>
+          <GLButton type="button" variant="danger" onClick={() => onDelete?.(initialPack.id)}>
             Supprimer le pack
-          </button>
+          </GLButton>
         ) : null}
       </div>
     </form>

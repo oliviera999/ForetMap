@@ -1,4 +1,5 @@
 import React from 'react';
+import { GLButton } from './ui/GLButton.jsx';
 
 export function GLMarkerQuestionList({
   items = [],
@@ -41,11 +42,11 @@ export function GLMarkerQuestionList({
           {mode === 'random' && !allExplicit ? ' (toutes éligibles)' : ''}
         </span>
         {mode === 'random' ? (
-          <button type="button" onClick={onSelectAll}>Tout le pool</button>
+          <GLButton type="button" size="sm" variant="secondary" onClick={onSelectAll}>Tout le pool</GLButton>
         ) : null}
-        <button type="button" onClick={onRefresh} disabled={loading}>
-          {loading ? 'Chargement…' : 'Actualiser'}
-        </button>
+        <GLButton type="button" size="sm" variant="secondary" onClick={onRefresh} disabled={loading} loading={loading}>
+          Actualiser
+        </GLButton>
       </header>
       {error ? <p className="gl-error">{error}</p> : null}
       {loading && items.length === 0 ? (

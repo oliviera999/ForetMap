@@ -7,6 +7,7 @@ import {
   hasGlSpeciesFieldValue,
   isGlSpeciesUrlField,
 } from '../utils/glSpeciesFieldLabels.js';
+import { GLButton } from './ui/GLButton.jsx';
 
 function SpeciesFieldValue({ fieldKey, value, biomeNom, species }) {
   const formatted = formatGlSpeciesFieldValue(fieldKey, value, { biomeNom });
@@ -163,9 +164,9 @@ export function GLSpeciesDetailModal({ species, biomeNom = '', onClose, onOpenGl
               ) : null}
             </div>
           </div>
-          <button type="button" className="gl-btn-secondary" onClick={onClose}>
+          <GLButton type="button" variant="secondary" onClick={onClose}>
             Fermer
-          </button>
+          </GLButton>
         </div>
 
         {hasGlSpeciesFieldValue(species.photo_url) ? (

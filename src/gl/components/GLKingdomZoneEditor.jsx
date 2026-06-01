@@ -12,6 +12,7 @@ import { PctPolygonEditOverlay } from '../../shared/pct-map/PctPolygonEditOverla
 import { usePctPolygonEditSession } from '../../shared/pct-map/usePctPolygonEditSession.js';
 import { useGlPctMapGestures } from '../hooks/useGlPctMapGestures.js';
 import { GLPctMapCanvas } from './GLPctMapCanvas.jsx';
+import { GLButton } from './ui/GLButton.jsx';
 
 const DEFAULT_COLOR = '#22c55e';
 const DEFAULT_MUSIC_VOLUME = 0.7;
@@ -240,12 +241,12 @@ export function GLKingdomZoneEditor({
           >
             Annuler
           </button>
-          <button type="button" className="gl-primary" onClick={saveShapeEdit}>
+          <GLButton type="button" onClick={saveShapeEdit}>
             Sauver le contour
-          </button>
-          <button type="button" onClick={cancelShapeEdit}>
+          </GLButton>
+          <GLButton type="button" variant="secondary" onClick={cancelShapeEdit}>
             Abandonner
-          </button>
+          </GLButton>
         </div>
       ) : null}
 
@@ -363,9 +364,9 @@ export function GLKingdomZoneEditor({
               ) : null}
             </button>
             {canManage && !isEditingShape ? (
-              <button type="button" className="gl-danger" onClick={() => onDeleteZone?.(zone.id)}>
+              <GLButton type="button" size="sm" variant="danger" onClick={() => onDeleteZone?.(zone.id)}>
                 Supprimer
-              </button>
+              </GLButton>
             ) : null}
           </li>
         ))}
@@ -387,18 +388,18 @@ export function GLKingdomZoneEditor({
             Couleur
             <input value={draftColor} onChange={(event) => setDraftColor(event.target.value)} />
           </label>
-          <button type="submit" disabled={drawPoints.length < 3}>
+          <GLButton type="submit" disabled={drawPoints.length < 3}>
             Créer la zone ({drawPoints.length} points)
-          </button>
+          </GLButton>
         </form>
       ) : null}
 
       {canManage && mode === 'edit' && selectedZone && !isEditingShape ? (
         <form className="gl-form gl-zone-music-form" onSubmit={(event) => { event.preventDefault(); saveZoneMeta(); }}>
           <div className="gl-inline-actions gl-zone-edit-actions">
-            <button type="button" className="gl-primary" onClick={startShapeEdit}>
+            <GLButton type="button" onClick={startShapeEdit}>
               Modifier le contour
-            </button>
+            </GLButton>
           </div>
           <label>
             Label
@@ -442,16 +443,16 @@ export function GLKingdomZoneEditor({
                 />
               </label>
               <div className="gl-inline-actions gl-zone-music-actions">
-                <button type="button" onClick={previewDraftMusic} disabled={!draftMusicUrl.trim()}>
+                <GLButton type="button" variant="secondary" onClick={previewDraftMusic} disabled={!draftMusicUrl.trim()}>
                   Écouter
-                </button>
-                <button type="button" onClick={clearZoneMusic} disabled={!draftMusicUrl.trim()}>
+                </GLButton>
+                <GLButton type="button" variant="ghost" onClick={clearZoneMusic} disabled={!draftMusicUrl.trim()}>
                   Retirer la musique
-                </button>
+                </GLButton>
               </div>
             </fieldset>
           ) : null}
-          <button type="submit">Enregistrer la zone</button>
+          <GLButton type="submit">Enregistrer la zone</GLButton>
         </form>
       ) : null}
     </>
