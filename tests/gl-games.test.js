@@ -122,12 +122,13 @@ test('PUT /api/gl/games/:id : 409 classe si roster non vide', async () => {
     .send({ name: 'Eq roster', type: 'gnome', color: '#65a30d' })
     .expect(201);
   const admin = await queryOne('SELECT id FROM gl_admins WHERE email = ? LIMIT 1', ['games.mj@ecole.local']);
+  const rosterPseudo = `roster.test.${Date.now()}`;
   await execute(
     `INSERT INTO gl_players (class_id, pseudo, first_name, last_name, password_hash, is_active, created_at, updated_at)
-     VALUES (?, 'roster.test', 'Roster', 'Test', '$2b$10$abcdefghijklmnopqrstuv', 1, NOW(), NOW())`,
-    [cls.id]
+     VALUES (?, ?, 'Roster', 'Test', '$2b$10$abcdefghijklmnopqrstuv', 1, NOW(), NOW())`,
+    [cls.id, rosterPseudo]
   );
-  const player = await queryOne('SELECT id FROM gl_players WHERE pseudo = ? LIMIT 1', ['roster.test']);
+  const player = await queryOne('SELECT id FROM gl_players WHERE pseudo = ? LIMIT 1', [rosterPseudo]);
   const team = await queryOne('SELECT id FROM gl_teams WHERE game_id = ? ORDER BY id DESC LIMIT 1', [draftGameId]);
   await execute(
     'INSERT INTO gl_team_members (game_id, team_id, player_id, joined_at) VALUES (?, ?, ?, NOW())',

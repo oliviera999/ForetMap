@@ -2,19 +2,16 @@
 
 require('./helpers/setup');
 require('dotenv').config();
-const { describe, it, before } = require('node:test');
+const { describe, it, before, beforeEach } = require('node:test');
 const assert = require('node:assert');
 const request = require('supertest');
 const { app } = require('../server');
 const { initSchema, queryOne } = require('../database');
-const { signAuthToken } = require('../middleware/requireTeacher');
 const { ensureRbacBootstrap } = require('../lib/rbac');
 
 let teacherToken;
 
-before(async () => {
-  await initSchema();
-  await ensureRbacBootstrap();
+async function refreshAdminTeacherToken() {
   const loginEmail = String(process.env.TEACHER_ADMIN_EMAIL || '').trim();
   const teacher = await queryOne(
     "SELECT id FROM users WHERE user_type = 'teacher' AND LOWER(email) = LOWER(?) LIMIT 1",
@@ -23,18 +20,29 @@ before(async () => {
   const adminRole = await queryOne("SELECT id FROM roles WHERE slug = 'admin' LIMIT 1");
   assert.ok(teacher?.id, 'Compte admin enseignant introuvable');
   assert.ok(adminRole?.id, 'Rôle admin introuvable');
-  teacherToken = await signAuthToken(
-    {
-      userType: 'teacher',
-      userId: teacher.id,
-      canonicalUserId: teacher.id,
-      roleId: adminRole.id,
-      roleSlug: 'admin',
-      roleDisplayName: 'Administrateur',
-      elevated: false,
-    },
-    false
-  );
+  const login = await request(app)
+    .post('/api/auth/login')
+    .send({
+      identifier: loginEmail,
+      password: process.env.TEACHER_ADMIN_PASSWORD,
+    })
+    .expect(200);
+  const auth = await request(app)
+    .post('/api/auth/teacher')
+    .set({ Authorization: `Bearer ${login.body.authToken}` })
+    .send({ pin: process.env.TEACHER_PIN || '1234' })
+    .expect(200);
+  return auth.body.token;
+}
+
+before(async () => {
+  await initSchema();
+  await ensureRbacBootstrap();
+  teacherToken = await refreshAdminTeacherToken();
+});
+
+beforeEach(async () => {
+  teacherToken = await refreshAdminTeacherToken();
 });
 
 describe('Tâches — réordonnancement projet', () => {
