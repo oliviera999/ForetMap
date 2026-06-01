@@ -20,6 +20,8 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - **Sécurité — register élève** : `POST /api/students/register` exige une session élève correspondante.
 
 ### Modifié
+- **GL — onglet Glossaire** : clic sur un terme ouvre toujours le popover de définition (comme biocénose/QCM) ; liste pleine largeur en grille dense pour afficher plus de termes ; lien « Voir le glossaire complet » masqué lorsque le popover est déjà ouvert depuis l’onglet. Tests `tests-ui/gl/GLGlossaryView.test.jsx`, `tests-ui/gl/GLGlossaryPopover.test.jsx`.
+- **GL — biocénose (grille espèces)** : tuiles à largeur fixe (108–120 px) alignées à gauche ; plus d’étirement ni de grands vides lorsqu’un groupe ne contient que peu d’espèces.
 - **GL — boutons interface** : styles partagés `.gl-primary` / `.gl-danger` / secondaire et déconnexion dans `gl-theme.css` ; remplacement des boutons HTML legacy par `GLButton` dans les vues admin, carte, profil et impersonation.
 - **Build production** : artefacts `dist/` régénérés (`npm run build`, bundle GL à jour).
 - **GL — biocénose (fiche espèce)** : modale centrée (`dvh`, marges sûres), photo en `object-fit: contain` (non rognée), mise en page deux colonnes sur écran large pour limiter le défilement.

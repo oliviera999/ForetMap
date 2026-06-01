@@ -703,7 +703,7 @@ export function AppGL() {
           <GLGlossaryView
             gameState={gameState}
             focusCode={glossaryFocusCode}
-            onOpenTerm={setGlossaryFocusCode}
+            activeTermCode={glossaryPopoverCode}
             onOpenPopover={openGlossaryPopover}
             onFocusHandled={clearGlossaryFocus}
           />
@@ -810,6 +810,7 @@ export function AppGL() {
         biomeSlugs={chapterBiomeSlugs}
         onClose={closeGlossaryPopover}
         onOpenFullGlossary={openGlossaryFullTab}
+        showFullGlossaryLink={tab !== 'glossary'}
       />
     </div>
     </GLMascotCatalogProvider>

@@ -16,34 +16,18 @@ describe('GLGlossaryView', () => {
   });
 
   test('affiche la liste groupée par catégorie', async () => {
-    vi.mocked(apiGL).mockImplementation((url) => {
-      if (String(url).includes('/api/gl/glossary/GL0001')) {
-        return Promise.resolve({
-          term: {
-            glossary_code: 'GL0001',
-            terme: 'Biome',
-            categorie: 'biome',
-            categorie_label: 'Biome',
-            niveau: 'base',
-            definition_courte: 'Grande région écologique',
-          },
-          relatedTerms: [],
-          relatedSpecies: [],
-        });
-      }
-      return Promise.resolve({
-        biome: { slug: 'sahara', nom: 'Désert chaud (Sahara)' },
-        items: [
-          {
-            glossary_code: 'GL0001',
-            terme: 'Biome',
-            categorie: 'biome',
-            categorie_label: 'Biome',
-            niveau: 'base',
-            definition_courte: 'Grande région écologique',
-          },
-        ],
-      });
+    vi.mocked(apiGL).mockResolvedValue({
+      biome: { slug: 'sahara', nom: 'Désert chaud (Sahara)' },
+      items: [
+        {
+          glossary_code: 'GL0001',
+          terme: 'Biome',
+          categorie: 'biome',
+          categorie_label: 'Biome',
+          niveau: 'base',
+          definition_courte: 'Grande région écologique',
+        },
+      ],
     });
 
     render(
@@ -54,7 +38,7 @@ describe('GLGlossaryView', () => {
           },
         }}
         focusCode={null}
-        onOpenTerm={vi.fn()}
+        onOpenPopover={vi.fn()}
         onFocusHandled={vi.fn()}
       />
     );
@@ -65,49 +49,59 @@ describe('GLGlossaryView', () => {
     expect(screen.getByText(/Biomes du chapitre/i)).toBeInTheDocument();
   });
 
-  test('ouvre une fiche au clic sur un terme', async () => {
+  test('ouvre le popover glossaire au clic sur un terme', async () => {
     const user = userEvent.setup();
-    vi.mocked(apiGL).mockImplementation((url) => {
-      if (String(url).includes('/api/gl/glossary/GL0002')) {
-        return Promise.resolve({
-          term: {
-            glossary_code: 'GL0002',
-            terme: 'Désert',
-            categorie: 'biome',
-            categorie_label: 'Biome',
-            niveau: 'base',
-            definition_courte: 'Milieu aride',
-            definition_complete: 'Région où les précipitations sont très faibles.',
-          },
-          relatedTerms: [],
-          relatedSpecies: [{ species_code: 'SP0001', nom_commun: 'Fennec', type: 'faune' }],
-        });
-      }
-      return Promise.resolve({
-        biome: null,
-        items: [
-          {
-            glossary_code: 'GL0002',
-            terme: 'Désert',
-            categorie: 'biome',
-            categorie_label: 'Biome',
-            niveau: 'base',
-            definition_courte: 'Milieu aride',
-          },
-        ],
-      });
+    const onOpenPopover = vi.fn();
+
+    vi.mocked(apiGL).mockResolvedValue({
+      biome: null,
+      items: [
+        {
+          glossary_code: 'GL0002',
+          terme: 'Désert',
+          categorie: 'biome',
+          categorie_label: 'Biome',
+          niveau: 'base',
+          definition_courte: 'Milieu aride',
+        },
+      ],
     });
 
-    render(<GLGlossaryView gameState={{ game: {} }} focusCode={null} onOpenTerm={vi.fn()} onFocusHandled={vi.fn()} />);
+    render(
+      <GLGlossaryView
+        gameState={{ game: {} }}
+        focusCode={null}
+        onOpenPopover={onOpenPopover}
+        onFocusHandled={vi.fn()}
+      />
+    );
 
     await waitFor(() => {
       expect(screen.getByRole('button', { name: /Désert/i })).toBeInTheDocument();
     });
     await user.click(screen.getByRole('button', { name: /Désert/i }));
 
+    expect(onOpenPopover).toHaveBeenCalledWith('GL0002');
+  });
+
+  test('focusCode déclenche le popover', async () => {
+    const onOpenPopover = vi.fn();
+    const onFocusHandled = vi.fn();
+
+    vi.mocked(apiGL).mockResolvedValue({ biome: null, items: [] });
+
+    render(
+      <GLGlossaryView
+        gameState={{ game: {} }}
+        focusCode="GL0099"
+        onOpenPopover={onOpenPopover}
+        onFocusHandled={onFocusHandled}
+      />
+    );
+
     await waitFor(() => {
-      expect(screen.getByText(/Milieu aride/i)).toBeInTheDocument();
-      expect(screen.getByText('Fennec')).toBeInTheDocument();
+      expect(onOpenPopover).toHaveBeenCalledWith('GL0099');
+      expect(onFocusHandled).toHaveBeenCalled();
     });
   });
 });
