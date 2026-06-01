@@ -7,6 +7,7 @@ export function GLQcmPopover({
   open,
   marker,
   gameId,
+  teamId = null,
   presentation,
   questionCode,
   loading,
@@ -58,6 +59,7 @@ export function GLQcmPopover({
         choiceId: selectedChoiceId,
         markerId: marker?.id ?? null,
       };
+      if (teamId != null) body.teamId = Number(teamId);
       const data = gameId
         ? await apiGL(`/api/gl/games/${gameId}/qcm/answer`, 'POST', body)
         : await apiGL(`/api/gl/qcm/questions/${encodeURIComponent(questionCode)}/answer`, 'POST', {

@@ -1,6 +1,6 @@
 const express = require('express');
 const { queryAll, queryOne, execute, withTransaction } = require('../../database');
-const { requireGlAuth, requireGlPermission } = require('../../middleware/requireGlAuth');
+const { requireGlAuth, requireGlPermission, hasGlPermission } = require('../../middleware/requireGlAuth');
 const { normalizeEventRow, replayGameEvents } = require('../../lib/glGameEvents');
 const { emitGlGameEvent } = require('../../lib/realtime');
 const { getGameplaySettings } = require('../../lib/glSettings');
@@ -58,6 +58,60 @@ async function getPlayerGameMembership(gameId, playerId) {
       LIMIT 1`,
     [gameId, playerId]
   );
+}
+
+const QCM_ANSWER_STAFF_PERMISSIONS = ['gl.event.emit', 'gl.game.manage', 'gl.mascot.position'];
+
+function staffCanAnswerQcmForTeam(auth) {
+  if (!auth || auth.userType === 'gl_player') return false;
+  return QCM_ANSWER_STAFF_PERMISSIONS.some((key) => hasGlPermission(auth, key));
+}
+
+/** Contexte équipe / acteur pour POST /games/:id/qcm/answer (joueur ou MJ sur une équipe). */
+async function resolveQcmAnswerContext(req, gameId) {
+  const allowed = await canAccessGlGame(req.glAuth, gameId);
+  if (!allowed) {
+    return { ok: false, status: 403, error: 'Accès partie refusé' };
+  }
+
+  if (req.glAuth.userType === 'gl_player') {
+    if (!hasGlPermission(req.glAuth, 'gl.action.request')) {
+      return { ok: false, status: 403, error: 'Permission insuffisante' };
+    }
+    const player = await queryOne('SELECT id FROM gl_players WHERE id = ? LIMIT 1', [req.glAuth.userId]);
+    if (!player) {
+      return { ok: false, status: 403, error: 'Aucune équipe associée à ce joueur' };
+    }
+    const membership = await getPlayerGameMembership(gameId, player.id);
+    if (!membership?.team_id) {
+      return { ok: false, status: 403, error: 'Joueur non rattaché à cette partie' };
+    }
+    return {
+      ok: true,
+      teamId: Number(membership.team_id),
+      actorType: 'team',
+      actorId: String(player.id),
+    };
+  }
+
+  if (!staffCanAnswerQcmForTeam(req.glAuth)) {
+    return { ok: false, status: 403, error: 'Permission insuffisante' };
+  }
+
+  const teamId = req.body?.teamId != null ? parseId(req.body.teamId) : null;
+  if (teamId == null) {
+    return { ok: false, status: 400, error: 'teamId requis pour valider une réponse (mode MJ)' };
+  }
+  const team = await queryOne('SELECT id FROM gl_teams WHERE id = ? AND game_id = ? LIMIT 1', [teamId, gameId]);
+  if (!team) {
+    return { ok: false, status: 404, error: 'Équipe introuvable dans cette partie' };
+  }
+  return {
+    ok: true,
+    teamId,
+    actorType: 'mj',
+    actorId: String(req.glAuth.userId),
+  };
 }
 
 function resolveRosterError(err) {
@@ -837,23 +891,20 @@ router.post('/games/:id/actions/:actionId/resolve', requireGlPermission('gl.game
 });
 
 /** POST /api/gl/games/:id/qcm/answer — validation QCM en partie (+ score si activé). */
-router.post('/games/:id/qcm/answer', requireGlPermission('gl.action.request'), async (req, res) => {
-  if (req.glAuth.userType !== 'gl_player') {
-    return res.status(403).json({ error: 'Réservé aux joueurs' });
-  }
+router.post('/games/:id/qcm/answer', requireGlAuth, async (req, res) => {
   const gameId = parseId(req.params.id);
   if (!gameId) return res.status(400).json({ error: 'Identifiant de partie invalide' });
+
+  const answerCtx = await resolveQcmAnswerContext(req, gameId);
+  if (!answerCtx.ok) {
+    return res.status(answerCtx.status).json({ error: answerCtx.error });
+  }
+  const teamIdForGame = answerCtx.teamId;
 
   const questionCode = String(req.body?.questionCode || '').trim().toUpperCase();
   if (!questionCode) return res.status(400).json({ error: 'questionCode requis' });
 
   const settings = await getGameplaySettings();
-  const player = await queryOne('SELECT id FROM gl_players WHERE id = ? LIMIT 1', [req.glAuth.userId]);
-  if (!player) return res.status(403).json({ error: 'Aucune équipe associée à ce joueur' });
-
-  const membership = await getPlayerGameMembership(gameId, player.id);
-  if (!membership) return res.status(403).json({ error: 'Joueur non rattaché à cette partie' });
-  const teamIdForGame = membership.team_id;
 
   if (settings.turnsEnabled) {
     const gameTurn = await queryOne('SELECT current_team_id FROM gl_games WHERE id = ? LIMIT 1', [gameId]);
@@ -887,11 +938,12 @@ router.post('/games/:id/qcm/answer', requireGlPermission('gl.action.request'), a
   await withTransaction(async (tx) => {
     await tx.execute(
       `INSERT INTO gl_game_events (game_id, team_id, actor_type, actor_id, event_type, payload_json, created_at)
-       VALUES (?, ?, 'team', ?, 'qcm_answer', ?, NOW())`,
+       VALUES (?, ?, ?, ?, 'qcm_answer', ?, NOW())`,
       [
         gameId,
         teamIdForGame,
-        String(player.id),
+        answerCtx.actorType,
+        answerCtx.actorId,
         JSON.stringify({
           questionCode,
           correct: verification.correct,
@@ -913,11 +965,12 @@ router.post('/games/:id/qcm/answer', requireGlPermission('gl.action.request'), a
       );
       await tx.execute(
         `INSERT INTO gl_game_events (game_id, team_id, actor_type, actor_id, event_type, payload_json, created_at)
-         VALUES (?, ?, 'team', ?, 'score', ?, NOW())`,
+         VALUES (?, ?, ?, ?, 'score', ?, NOW())`,
         [
           gameId,
           teamIdForGame,
-          String(player.id),
+          answerCtx.actorType,
+          answerCtx.actorId,
           JSON.stringify({ delta: scoreDelta, reason: 'Bonne réponse QCM', questionCode }),
         ]
       );

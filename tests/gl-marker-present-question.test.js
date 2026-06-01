@@ -14,6 +14,7 @@ const {
   createGlGameWithTeams,
   signTokens,
 } = require('./helpers/glFixtures');
+const jwt = require('jsonwebtoken');
 const { serializeEventConfig } = require('../lib/glMarkerEventConfig');
 const { invalidateGameplayCache } = require('../lib/glSettings');
 
@@ -118,6 +119,52 @@ test('POST present-question pour joueur membre', async () => {
   assert.strictEqual(res.body.questionCode, 'QCM0001');
   assert.ok(res.body.presentation?.question);
   assert.ok(res.body.presentation?.presentationToken);
+});
+
+test('POST qcm/answer pour joueur membre après présentation', async () => {
+  const present = await request(app)
+    .post(`/api/gl/games/${gameId}/markers/${markerId}/present-question`)
+    .set('Authorization', `Bearer ${playerToken}`)
+    .send({})
+    .expect(200);
+  const tokenClaims = jwt.decode(present.body.presentation.presentationToken);
+  const choiceId = Number(tokenClaims?.correctChoiceId);
+
+  const answer = await request(app)
+    .post(`/api/gl/games/${gameId}/qcm/answer`)
+    .set('Authorization', `Bearer ${playerToken}`)
+    .send({
+      questionCode: present.body.questionCode,
+      presentationToken: present.body.presentation.presentationToken,
+      choiceId,
+      markerId,
+    })
+    .expect(200);
+  assert.strictEqual(answer.body.correct, true);
+  assert.match(String(answer.body.feedback || ''), /Bonne réponse/i);
+});
+
+test('POST qcm/answer pour MJ avec teamId (sans gl.action.request)', async () => {
+  const present = await request(app)
+    .post(`/api/gl/games/${gameId}/markers/${markerId}/present-question`)
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ teamId })
+    .expect(200);
+  const tokenClaims = jwt.decode(present.body.presentation.presentationToken);
+  const choiceId = Number(tokenClaims?.correctChoiceId);
+
+  const answer = await request(app)
+    .post(`/api/gl/games/${gameId}/qcm/answer`)
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({
+      questionCode: present.body.questionCode,
+      presentationToken: present.body.presentation.presentationToken,
+      choiceId,
+      markerId,
+      teamId,
+    })
+    .expect(200);
+  assert.strictEqual(answer.body.correct, true);
 });
 
 test('POST present-question refus once_per_team au second appel', async () => {

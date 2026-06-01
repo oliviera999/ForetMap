@@ -24,6 +24,7 @@ describe('GLQcmPopover', () => {
         open
         marker={{ id: 5, label: 'Repère quiz', x_pct: 40, y_pct: 55 }}
         gameId={42}
+        teamId={7}
         questionCode="QCM0001"
         presentation={{
           presentationToken: 'token-test',
@@ -50,7 +51,7 @@ describe('GLQcmPopover', () => {
       expect(apiGL).toHaveBeenCalledWith(
         '/api/gl/games/42/qcm/answer',
         'POST',
-        expect.objectContaining({ questionCode: 'QCM0001' }),
+        expect.objectContaining({ questionCode: 'QCM0001', teamId: 7 }),
       );
     });
   });

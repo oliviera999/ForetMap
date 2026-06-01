@@ -241,6 +241,7 @@ export function GLGameBoard({
         open={Boolean(questionPopover)}
         marker={questionPopover?.marker}
         gameId={gameId}
+        teamId={questionPopover?.teamId ?? watchTeamId}
         presentation={questionPopover?.presentation}
         questionCode={questionPopover?.questionCode}
         loading={questionPopover?.loading}

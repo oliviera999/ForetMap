@@ -35,6 +35,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - **Intégration PR GitHub** : correctifs des PR Cursor #28–#37 et Dependabot #25–#30 appliqués sur `main` (PR obsolètes/doublons fermées).
 
 ### Corrigé
+- **GL — validation réponse QCM** : `POST /api/gl/games/:id/qcm/answer` accepte le MJ (avec `teamId`) en plus du joueur ; le popover envoie `teamId` — corrige « Permission insuffisante » à la validation. Tests `tests/gl-marker-present-question.test.js`.
 - **GL — repères / zones / mascottes sur la carte** : calque `gl-board-fit-layer` aligné sur le rectangle réel de l’image (`object-fit: contain`) ; les % ne dépendent plus de la boîte carte (corrige le décalage en plein écran et au redimensionnement). Hook `useGlBoardImageFit`, `GLPctMapCanvas` partagé (jeu, éditeur chapitre, carte royaume). Tests `tests-ui/gl/useGlBoardImageFit.test.js`.
 - **GL — présentation QCM repère** : `POST …/present-question` recharge la question complète (`choix_a`…`e`, `reponse_correcte`) via `glQcmQuestionQuery` — corrige « Choix insuffisants pour la question ». Test `tests/gl-marker-question-pool.test.js`, `tests/gl-qcm-question-query.test.js`.
 - **GL — tests fixtures** : création chapitre e2e sans colonne `created_by` absente sur `gl_chapters` (`tests/helpers/glFixtures.js`).
