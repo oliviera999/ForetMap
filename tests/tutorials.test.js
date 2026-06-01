@@ -4,7 +4,7 @@ const assert = require('node:assert');
 const request = require('supertest');
 const { app } = require('../server');
 const { initSchema, queryOne, queryAll, execute } = require('../database');
-const { signAuthToken } = require('../middleware/requireTeacher');
+const { ensureAdminTeacherAuthToken } = require('./helpers/adminAuth');
 
 let teacherToken;
 
@@ -18,30 +18,11 @@ test.before(async () => {
       await new Promise((resolve) => setTimeout(resolve, 150 * (attempt + 1)));
     }
   }
-  const loginEmail = String(process.env.TEACHER_ADMIN_EMAIL || '').trim();
-  const teacher = await queryOne(
-    "SELECT id FROM users WHERE user_type = 'teacher' AND LOWER(email) = LOWER(?) LIMIT 1",
-    [loginEmail]
-  );
-  const adminRole = await queryOne("SELECT id FROM roles WHERE slug = 'admin' LIMIT 1");
-  assert.ok(teacher?.id, 'Compte admin enseignant introuvable');
-  assert.ok(adminRole?.id, 'Rôle admin introuvable');
-  if (teacher?.id && adminRole?.id) {
-    await execute('UPDATE user_roles SET is_primary = 0 WHERE user_type = ? AND user_id = ?', ['teacher', teacher.id]);
-    await execute(
-      'INSERT INTO user_roles (user_type, user_id, role_id, is_primary) VALUES (?, ?, ?, 1) ON DUPLICATE KEY UPDATE is_primary = 1',
-      ['teacher', teacher.id, adminRole.id]
-    );
-  }
-  teacherToken = await signAuthToken({
-    userType: 'teacher',
-    userId: teacher?.id || null,
-    canonicalUserId: teacher?.id || null,
-    roleId: adminRole?.id || null,
-    roleSlug: 'admin',
-    roleDisplayName: 'Administrateur',
-    elevated: false,
-  }, false);
+  teacherToken = await ensureAdminTeacherAuthToken({ elevated: true });
+});
+
+test.beforeEach(async () => {
+  teacherToken = await ensureAdminTeacherAuthToken({ elevated: true });
 });
 
 test('GET /api/tutorials renvoie les tutoriels seedés', async () => {

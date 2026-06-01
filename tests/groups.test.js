@@ -5,46 +5,14 @@ const request = require('supertest');
 const { v4: uuidv4 } = require('uuid');
 const { app } = require('../server');
 const { initSchema, queryOne, queryAll, execute } = require('../database');
-const { signAuthToken } = require('../middleware/requireTeacher');
+const { ensureAdminTeacherAuthToken, getAdminTeacherUserId } = require('./helpers/adminAuth');
 
 test.before(async () => {
   await initSchema();
 });
 
 async function getAdminToken() {
-  const loginEmail = process.env.TEACHER_ADMIN_EMAIL || 'admin.test@foretmap.local';
-  const teacher = await queryOne(
-    "SELECT id FROM users WHERE user_type = 'teacher' AND LOWER(email) = LOWER(?) LIMIT 1",
-    [loginEmail]
-  );
-  const adminRole = await queryOne("SELECT id FROM roles WHERE slug = 'admin' LIMIT 1");
-  assert.ok(teacher?.id, 'Compte admin enseignant introuvable');
-  assert.ok(adminRole?.id, 'Rôle admin introuvable');
-  const requiredPermissions = ['groups.read', 'groups.manage'];
-  for (const key of requiredPermissions) {
-    await execute(
-      'INSERT IGNORE INTO permissions (`key`, label, description) VALUES (?, ?, ?)',
-      [key, key, 'Permission auto-seed tests']
-    );
-    await execute(
-      'INSERT IGNORE INTO role_permissions (role_id, permission_key, requires_elevation) VALUES (?, ?, 0)',
-      [adminRole.id, key]
-    );
-  }
-  await execute('UPDATE user_roles SET is_primary = 0 WHERE user_type = ? AND user_id = ?', ['teacher', teacher.id]);
-  await execute(
-    'INSERT INTO user_roles (user_type, user_id, role_id, is_primary) VALUES (?, ?, ?, 1) ON DUPLICATE KEY UPDATE is_primary = 1',
-    ['teacher', teacher.id, adminRole.id]
-  );
-  return signAuthToken({
-    userType: 'teacher',
-    userId: teacher.id,
-    canonicalUserId: teacher.id,
-    roleId: adminRole.id,
-    roleSlug: 'admin',
-    roleDisplayName: 'Administrateur',
-    elevated: false,
-  }, false);
+  return ensureAdminTeacherAuthToken({ elevated: true });
 }
 
 async function createStudentForGroups(label) {
@@ -154,8 +122,7 @@ test('Stats: filtre group_id limite la liste des n3beurs', async () => {
 
 test('Forum: création de sujet dans un groupe et filtrage /threads', async () => {
   const token = await getAdminToken();
-  const teacher = await queryOne("SELECT id FROM users WHERE user_type = 'teacher' ORDER BY id LIMIT 1");
-  assert.ok(teacher?.id);
+  const teacherId = await getAdminTeacherUserId();
   const groupId = uuidv4();
   await execute(
     `INSERT INTO \`groups\` (id, slug, name, kind, is_active, created_at, updated_at)
@@ -165,7 +132,7 @@ test('Forum: création de sujet dans un groupe et filtrage /threads', async () =
   await execute(
     `INSERT INTO group_members (group_id, user_id, user_type, role_in_group)
      VALUES (?, ?, 'teacher', 'manager')`,
-    [groupId, teacher.id]
+    [groupId, teacherId]
   );
 
   const created = await request(app)
@@ -192,7 +159,7 @@ test('Forum: création de sujet dans un groupe et filtrage /threads', async () =
 
 test('Tasks: affectation rapide par groupe', async () => {
   const token = await getAdminToken();
-  const teacher = await queryOne("SELECT id FROM users WHERE user_type = 'teacher' ORDER BY id LIMIT 1");
+  const teacherId = await getAdminTeacherUserId();
   const student = await createStudentForGroups('Task');
   const groupId = uuidv4();
   const taskId = uuidv4();
@@ -204,7 +171,7 @@ test('Tasks: affectation rapide par groupe', async () => {
   await execute(
     `INSERT INTO group_members (group_id, user_id, user_type, role_in_group)
      VALUES (?, ?, 'teacher', 'manager')`,
-    [groupId, teacher.id]
+    [groupId, teacherId]
   );
   await execute(
     `INSERT INTO group_members (group_id, user_id, user_type, role_in_group)
