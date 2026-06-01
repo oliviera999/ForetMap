@@ -142,6 +142,25 @@ test('PUT /api/gl/admin/settings/modules.* valide booléen et persiste', async (
     .expect(400);
 });
 
+test('PUT modules.zone_music_enabled persiste et expose zoneMusicEnabled', async () => {
+  await request(app)
+    .put('/api/gl/admin/settings/modules.zone_music_enabled')
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ value: true })
+    .expect(200);
+
+  const cfg = await request(app)
+    .get('/api/gl/auth/config')
+    .expect(200);
+  assert.strictEqual(cfg.body?.modules?.zoneMusicEnabled, true);
+
+  await request(app)
+    .put('/api/gl/admin/settings/modules.zone_music_enabled')
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ value: false })
+    .expect(200);
+});
+
 test('media-library GL: upload, liste et suppression (gl.content.manage)', async () => {
   await request(app)
     .get('/api/gl/admin/media-library')

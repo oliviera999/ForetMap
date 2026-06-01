@@ -20,6 +20,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - **Sécurité — register élève** : `POST /api/students/register` exige une session élève correspondante.
 
 ### Modifié
+- **GL — biocénose (joueur)** : liste dense en tuiles (photo + noms) ; fiche complète en modale au clic (tous les champs catalogue `gl_species`, glossaire et liens conservés dans la modale uniquement). Tests `tests-ui/gl/GLSpeciesCatalog.test.jsx`, `tests-ui/gl/GLSpeciesDetailModal.test.jsx`.
 - **GL — version application (staff)** : pastille `vX.Y.Z` dans le bandeau et pied de page pour les comptes admin/MJ (`gl_admin`) ; ligne discrète sur l’écran de connexion ; hook partagé `useAppVersion` (`GET /api/version`). Tests `tests-ui/gl/GLTopBar.test.jsx`.
 - **Build production** : artefacts `dist/` régénérés (`npm run build`) — bundle GL à jour (QCM, carte fit, plein écran).
 - **GL — popover question QCM** : bouton explicite **« C'est cette réponse ! »** pour valider la proposition avant feedback ; glossaire popover au-dessus du popover question (`z-index`).
@@ -37,6 +38,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - **Intégration PR GitHub** : correctifs des PR Cursor #28–#37 et Dependabot #25–#30 appliqués sur `main` (PR obsolètes/doublons fermées).
 
 ### Corrigé
+- **GL — module Musique des zones (réglages)** : activation du toggle `modules.zone_music_enabled` via `PUT /api/gl/admin/settings/:key` (clé autorisée, résolution robuste si le paramètre de route est tronqué). Test `tests/gl-settings.test.js`.
 - **GL — carte royaume (CSS)** : `min-height` et retrait des styles image en double — les zones SVG s’alignent sur le calque fit comme la carte de jeu.
 - **Tests** : pseudo unique dans `tests/gl-games.test.js` (roster) ; token prof via login réel dans `tests/tasks-project-reorder.test.js` (évite 403 après élévation partagée).
 - **GL — validation réponse QCM** : `POST /api/gl/games/:id/qcm/answer` accepte le MJ (avec `teamId`) en plus du joueur ; le popover envoie `teamId` — corrige « Permission insuffisante » à la validation. Tests `tests/gl-marker-present-question.test.js`.

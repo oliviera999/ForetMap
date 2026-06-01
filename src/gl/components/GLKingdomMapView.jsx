@@ -7,8 +7,6 @@ export function GLKingdomMapView({ chapter, chapters = [], canManage, onChapterC
   const [zones, setZones] = useState([]);
   const [error, setError] = useState('');
   const [selectedChapterId, setSelectedChapterId] = useState(chapter?.id ? Number(chapter.id) : null);
-  const [optimisticPatchByZoneId, setOptimisticPatchByZoneId] = useState({});
-
   const { previewUrl, stopAll } = useGLZoneMusic({
     enabled: zoneMusicEnabled,
     userMuted: false,
@@ -114,13 +112,8 @@ export function GLKingdomMapView({ chapter, chapters = [], canManage, onChapterC
     }
   }
 
-  async function updateZone(id, patch, options = {}) {
+  async function updateZone(id, patch) {
     if (!id) return;
-    const optimistic = options?.optimistic === true;
-    if (optimistic && patch?.points) {
-      setOptimisticPatchByZoneId((prev) => ({ ...prev, [id]: patch.points }));
-      return;
-    }
     try {
       const payload = {};
       if (patch?.label != null) payload.label = patch.label;
@@ -131,24 +124,10 @@ export function GLKingdomMapView({ chapter, chapters = [], canManage, onChapterC
       if (Object.keys(payload).length > 0) {
         await apiGL(`/api/gl/kingdom-map/zones/${id}`, 'PUT', payload);
       }
-      setOptimisticPatchByZoneId((prev) => {
-        const next = { ...prev };
-        delete next[id];
-        return next;
-      });
       setError('');
-      if (options?.flushOptimistic) {
-        await reload();
-      } else if (Object.keys(payload).length > 0) {
-        await reload();
-      }
+      await reload();
     } catch (err) {
       setError(err.message || 'Mise à jour impossible');
-      setOptimisticPatchByZoneId((prev) => {
-        const next = { ...prev };
-        delete next[id];
-        return next;
-      });
       await reload();
     }
   }
@@ -162,14 +141,6 @@ export function GLKingdomMapView({ chapter, chapters = [], canManage, onChapterC
       setError(err.message || 'Suppression impossible');
     }
   }
-
-  const displayZones = useMemo(
-    () => zones.map((zone) => ({
-      ...zone,
-      points: optimisticPatchByZoneId[zone.id] || zone.points,
-    })),
-    [zones, optimisticPatchByZoneId]
-  );
 
   if (!activeChapter) {
     return (
@@ -203,7 +174,7 @@ export function GLKingdomMapView({ chapter, chapters = [], canManage, onChapterC
       <GLKingdomZoneEditor
         imageUrl={activeChapter.mapImageUrl}
         chapterTitle={activeChapter.label}
-        zones={displayZones}
+        zones={zones}
         canManage={canManage}
         onCreateZone={createZone}
         onUpdateZone={updateZone}
@@ -217,7 +188,7 @@ export function GLKingdomMapView({ chapter, chapters = [], canManage, onChapterC
       />
       {canManage ? (
         <p className="gl-hint">
-          Dessinez une zone par clics successifs sur la carte (minimum 3 points), puis ajustez les sommets en mode édition.
+          Dessinez une zone par clics successifs (minimum 3 points), puis « Modifier le contour » pour déplacer, ajouter ou retirer des sommets.
           {zoneMusicEnabled ? ' Associez une piste audio par zone pour l’ambiance sur la carte de jeu.' : ''}
         </p>
       ) : (
