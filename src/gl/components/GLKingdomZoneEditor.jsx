@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { MediaLibraryMenu } from '../../components/MediaLibraryMenu.jsx';
 import { useGlPctMapGestures } from '../hooks/useGlPctMapGestures.js';
 import { GLPctMapCanvas } from './GLPctMapCanvas.jsx';
 
@@ -14,6 +15,20 @@ function normalizePoint(point) {
 }
 
 const DEFAULT_COLOR = '#22c55e';
+const DEFAULT_MUSIC_VOLUME = 0.7;
+
+function readZoneMusicUrl(zone) {
+  const url = zone?.musicUrl ?? zone?.music_url ?? null;
+  if (url == null) return '';
+  return String(url).trim();
+}
+
+function readZoneMusicVolume(zone) {
+  const raw = zone?.musicVolume ?? zone?.music_volume;
+  const n = Number(raw);
+  if (!Number.isFinite(n)) return DEFAULT_MUSIC_VOLUME;
+  return Math.max(0, Math.min(1, n));
+}
 
 export function GLKingdomZoneEditor({
   imageUrl,
@@ -23,6 +38,12 @@ export function GLKingdomZoneEditor({
   onCreateZone,
   onUpdateZone,
   onDeleteZone,
+  fetchMediaLibrary,
+  uploadMediaLibrary,
+  removeMediaLibrary,
+  zoneMusicEnabled = false,
+  onSelectedZoneChange,
+  onPreviewZoneMusic,
 }) {
   const mapGestures = useGlPctMapGestures();
   const [mode, setMode] = useState('view');
@@ -30,6 +51,8 @@ export function GLKingdomZoneEditor({
   const [selectedZoneId, setSelectedZoneId] = useState(null);
   const [draftLabel, setDraftLabel] = useState('');
   const [draftColor, setDraftColor] = useState(DEFAULT_COLOR);
+  const [draftMusicUrl, setDraftMusicUrl] = useState('');
+  const [draftMusicVolumePct, setDraftMusicVolumePct] = useState(70);
   const [dragVertex, setDragVertex] = useState(null);
 
   const selectedZone = useMemo(
@@ -45,11 +68,19 @@ export function GLKingdomZoneEditor({
     if (!selectedZone) {
       setDraftLabel('');
       setDraftColor(DEFAULT_COLOR);
+      setDraftMusicUrl('');
+      setDraftMusicVolumePct(Math.round(DEFAULT_MUSIC_VOLUME * 100));
       return;
     }
     setDraftLabel(selectedZone.label || '');
     setDraftColor(selectedZone.color || DEFAULT_COLOR);
+    setDraftMusicUrl(readZoneMusicUrl(selectedZone));
+    setDraftMusicVolumePct(Math.round(readZoneMusicVolume(selectedZone) * 100));
   }, [selectedZone]);
+
+  useEffect(() => {
+    onSelectedZoneChange?.(selectedZone);
+  }, [selectedZone, onSelectedZoneChange]);
 
   useEffect(() => {
     if (!dragVertex || !mapGestures?.toImagePct) return undefined;
@@ -74,6 +105,11 @@ export function GLKingdomZoneEditor({
     };
   }, [dragVertex, mapGestures, onUpdateZone, selectedPoints]);
 
+  function selectZone(zoneId) {
+    setSelectedZoneId(zoneId);
+    setMode('edit');
+  }
+
   async function createZone() {
     if (!canManage) return;
     if (drawPoints.length < 3) return;
@@ -89,11 +125,30 @@ export function GLKingdomZoneEditor({
 
   async function saveZoneMeta() {
     if (!selectedZoneId) return;
-    await onUpdateZone?.(selectedZoneId, {
+    const payload = {
       label: draftLabel.trim() || 'Zone',
       color: draftColor || DEFAULT_COLOR,
-    });
+    };
+    if (zoneMusicEnabled) {
+      payload.musicUrl = draftMusicUrl.trim() || null;
+      payload.musicVolume = Math.max(0, Math.min(1, Number(draftMusicVolumePct) / 100));
+    }
+    await onUpdateZone?.(selectedZoneId, payload);
   }
+
+  async function clearZoneMusic() {
+    if (!selectedZoneId) return;
+    setDraftMusicUrl('');
+    await onUpdateZone?.(selectedZoneId, { musicUrl: null });
+  }
+
+  function previewDraftMusic() {
+    const url = draftMusicUrl.trim();
+    if (!url) return;
+    onPreviewZoneMusic?.(url, Math.max(0, Math.min(1, Number(draftMusicVolumePct) / 100)));
+  }
+
+  const canUseMediaLibrary = typeof fetchMediaLibrary === 'function';
 
   return (
     <>
@@ -123,10 +178,7 @@ export function GLKingdomZoneEditor({
               stroke={zone.color || DEFAULT_COLOR}
               strokeWidth="0.5"
               data-zone-id={zone.id}
-              onClick={() => {
-                setSelectedZoneId(zone.id);
-                setMode('edit');
-              }}
+              onClick={() => selectZone(zone.id)}
             />
           ))}
           {drawPoints.length > 0 ? (
@@ -185,12 +237,12 @@ export function GLKingdomZoneEditor({
             <button
               type="button"
               className="gl-marker-row-btn"
-              onClick={() => {
-                setSelectedZoneId(zone.id);
-                setMode('edit');
-              }}
+              onClick={() => selectZone(zone.id)}
             >
               <strong>{zone.label}</strong>
+              {zoneMusicEnabled && readZoneMusicUrl(zone) ? (
+                <span className="gl-zone-music-badge" aria-label="Musique associée" title="Musique associée"> 🎧</span>
+              ) : null}
             </button>
             {canManage ? (
               <button type="button" className="gl-danger" onClick={() => onDeleteZone?.(zone.id)}>
@@ -224,7 +276,7 @@ export function GLKingdomZoneEditor({
       ) : null}
 
       {canManage && mode === 'edit' && selectedZone ? (
-        <form className="gl-form" onSubmit={(event) => { event.preventDefault(); saveZoneMeta(); }}>
+        <form className="gl-form gl-zone-music-form" onSubmit={(event) => { event.preventDefault(); saveZoneMeta(); }}>
           <label>
             Label
             <input value={draftLabel} onChange={(event) => setDraftLabel(event.target.value)} />
@@ -233,6 +285,49 @@ export function GLKingdomZoneEditor({
             Couleur
             <input value={draftColor} onChange={(event) => setDraftColor(event.target.value)} />
           </label>
+          {zoneMusicEnabled ? (
+            <fieldset className="gl-zone-music-fieldset">
+              <legend>Musique d’ambiance</legend>
+              <label>
+                URL audio
+                <input
+                  value={draftMusicUrl}
+                  onChange={(event) => setDraftMusicUrl(event.target.value)}
+                  placeholder="/uploads/media-library/audio/..."
+                />
+              </label>
+              {canUseMediaLibrary ? (
+                <MediaLibraryMenu
+                  title="Bibliothèque audio"
+                  fetchItems={fetchMediaLibrary}
+                  uploadDataUrl={uploadMediaLibrary}
+                  removeItem={removeMediaLibrary}
+                  onPickUrl={(url) => setDraftMusicUrl(String(url || ''))}
+                  canUpload
+                  canRemove
+                  manageHint="Filtrez sur Audio pour choisir une piste."
+                />
+              ) : null}
+              <label>
+                Volume ({draftMusicVolumePct} %)
+                <input
+                  type="range"
+                  min="0"
+                  max="100"
+                  value={draftMusicVolumePct}
+                  onChange={(event) => setDraftMusicVolumePct(Number(event.target.value))}
+                />
+              </label>
+              <div className="gl-inline-actions gl-zone-music-actions">
+                <button type="button" onClick={previewDraftMusic} disabled={!draftMusicUrl.trim()}>
+                  Écouter
+                </button>
+                <button type="button" onClick={clearZoneMusic} disabled={!draftMusicUrl.trim()}>
+                  Retirer la musique
+                </button>
+              </div>
+            </fieldset>
+          ) : null}
           <button type="submit">Enregistrer la zone</button>
         </form>
       ) : null}

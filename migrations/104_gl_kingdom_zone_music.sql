@@ -1,0 +1,3 @@
+ALTER TABLE gl_kingdom_zones
+  ADD COLUMN music_url VARCHAR(512) DEFAULT NULL,
+  ADD COLUMN music_volume DECIMAL(4,3) NOT NULL DEFAULT 0.700;

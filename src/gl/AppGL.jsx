@@ -33,6 +33,9 @@ import { GLProfileModal } from './components/GLProfileModal.jsx';
 import { GLPasswordResetGate } from './components/GLPasswordResetGate.jsx';
 import { useGLBrandTheme } from './hooks/useGLBrandTheme.js';
 import { GLMascotCatalogProvider } from './context/GLMascotCatalogContext.jsx';
+import { pickZoneAtPct } from '../utils/glZoneAtPct.js';
+import { useGLZoneMusic, readStoredMuted, writeStoredMuted } from './hooks/useGLZoneMusic.js';
+import { usePrefersReducedMotion } from './hooks/usePrefersReducedMotion.js';
 
 const DEFAULT_GAMEPLAY = {
   turnsEnabled: false,
@@ -99,6 +102,10 @@ export function AppGL() {
   const [glossaryFocusCode, setGlossaryFocusCode] = useState(null);
   const [glossaryPopoverCode, setGlossaryPopoverCode] = useState(null);
   const [kingdomChapterId, setKingdomChapterId] = useState(null);
+  const [zoneMusicZones, setZoneMusicZones] = useState([]);
+  const [watchTeamPct, setWatchTeamPct] = useState(null);
+  const [zoneMusicMuted, setZoneMusicMuted] = useState(() => readStoredMuted());
+  const prefersReducedMotion = usePrefersReducedMotion();
 
   const themeChapterId = useMemo(() => {
     if (gameState?.game?.chapter_id) return Number(gameState.game.chapter_id);
@@ -145,6 +152,66 @@ export function AppGL() {
 
   const isAdmin = isAdminRole(auth);
   const isImpersonating = !!auth?.impersonating;
+  const zoneMusicEnabled = isModuleEnabled(modules, 'zoneMusicEnabled');
+
+  const activeZoneForMusic = useMemo(() => {
+    if (!watchTeamPct) return null;
+    return pickZoneAtPct(zoneMusicZones, watchTeamPct.xp, watchTeamPct.yp);
+  }, [zoneMusicZones, watchTeamPct]);
+
+  const zoneMusicRuntimeActive = tab === 'maps' && zoneMusicEnabled && Boolean(gameState?.game);
+
+  const { unlock: unlockZoneMusic, stopAll: stopZoneMusic } = useGLZoneMusic({
+    enabled: zoneMusicRuntimeActive,
+    userMuted: zoneMusicMuted,
+    activeZone: activeZoneForMusic,
+    prefersReducedMotion,
+  });
+
+  useEffect(() => {
+    if (zoneMusicRuntimeActive) return undefined;
+    stopZoneMusic();
+    return undefined;
+  }, [zoneMusicRuntimeActive, stopZoneMusic]);
+
+  useEffect(() => {
+    if (!token || !zoneMusicEnabled) {
+      setZoneMusicZones([]);
+      return undefined;
+    }
+    const chapterId = gameState?.game?.chapter_id;
+    if (!chapterId) {
+      setZoneMusicZones([]);
+      return undefined;
+    }
+    let cancelled = false;
+    (async () => {
+      try {
+        const data = await apiGL(`/api/gl/kingdom-map/zones?chapterId=${chapterId}`);
+        if (!cancelled) {
+          setZoneMusicZones(Array.isArray(data?.zones) ? data.zones : []);
+        }
+      } catch (_) {
+        if (!cancelled) setZoneMusicZones([]);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [token, zoneMusicEnabled, gameState?.game?.chapter_id]);
+
+  const handleWatchTeamPctChange = useCallback((pct) => {
+    setWatchTeamPct(pct);
+  }, []);
+
+  const handleZoneMusicToggle = useCallback(() => {
+    setZoneMusicMuted((prev) => {
+      const next = !prev;
+      writeStoredMuted(next);
+      if (!next) unlockZoneMusic();
+      return next;
+    });
+  }, [unlockZoneMusic]);
 
   useEffect(() => {
     const hashRaw = window.location.hash.startsWith('#') ? window.location.hash.slice(1) : '';
@@ -599,6 +666,11 @@ export function AppGL() {
               currentTeamId={currentTeamId}
               playerTeamId={auth?.teamId != null ? Number(auth.teamId) : null}
               mascotStateMachine={mascotStateMachine}
+              zoneMusicEnabled={zoneMusicEnabled}
+              zoneMusicMuted={zoneMusicMuted}
+              onZoneMusicToggle={handleZoneMusicToggle}
+              onWatchTeamPctChange={handleWatchTeamPctChange}
+              onZoneMusicUnlock={unlockZoneMusic}
             />
             {!isAdmin && gameState?.game && auth?.teamId == null && (
               <section className="gl-panel">
@@ -682,6 +754,7 @@ export function AppGL() {
             chapters={chapters}
             canManage={isAdmin}
             onChapterChange={setKingdomChapterId}
+            zoneMusicEnabled={zoneMusicEnabled}
           />
         )}
         {isModuleEnabled(modules, 'helpEnabled') ? (

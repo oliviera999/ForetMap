@@ -249,3 +249,64 @@ test('GL kingdom-map: refuse points hors plage', async () => {
     .send({ chapterId, label: 'Hors plage', points: [{ x: -1, y: 50 }, { x: 50, y: 50 }, { x: 50, y: 150 }] })
     .expect(400);
 });
+
+test('GL kingdom-map: musique de zone — CRUD musicUrl et musicVolume', async () => {
+  const points = [
+    { x: 20, y: 20 },
+    { x: 80, y: 20 },
+    { x: 50, y: 80 },
+  ];
+  const musicUrl = '/uploads/media-library/audio/2026/05/test-ambiance.mp3';
+  const created = await request(app)
+    .post('/api/gl/kingdom-map/zones')
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({
+      chapterId,
+      label: 'Zone musicale',
+      points,
+      musicUrl,
+      musicVolume: 0.55,
+    })
+    .expect(201);
+  const zoneId = created.body?.id;
+  assert.strictEqual(created.body?.musicUrl, musicUrl);
+  assert.strictEqual(created.body?.musicVolume, 0.55);
+
+  const updated = await request(app)
+    .put(`/api/gl/kingdom-map/zones/${zoneId}`)
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ musicVolume: 0.9 })
+    .expect(200);
+  assert.strictEqual(updated.body?.musicVolume, 0.9);
+  assert.strictEqual(updated.body?.musicUrl, musicUrl);
+
+  const cleared = await request(app)
+    .put(`/api/gl/kingdom-map/zones/${zoneId}`)
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ musicUrl: null })
+    .expect(200);
+  assert.strictEqual(cleared.body?.musicUrl, null);
+
+  await request(app)
+    .delete(`/api/gl/kingdom-map/zones/${zoneId}`)
+    .set('Authorization', `Bearer ${adminToken}`)
+    .expect(200);
+});
+
+test('GL kingdom-map: refuse musicUrl invalide', async () => {
+  const points = [
+    { x: 15, y: 15 },
+    { x: 85, y: 15 },
+    { x: 50, y: 85 },
+  ];
+  await request(app)
+    .post('/api/gl/kingdom-map/zones')
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({
+      chapterId,
+      label: 'Zone audio invalide',
+      points,
+      musicUrl: '/uploads/media-library/image/2026/05/not-audio.mp3',
+    })
+    .expect(400);
+});
