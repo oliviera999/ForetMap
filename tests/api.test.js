@@ -75,7 +75,7 @@ test('POST /api/auth/login avec mauvais mot de passe renvoie 401', async () => {
 });
 
 test('POST /api/auth/admin/impersonate puis stop restaure l’admin', async () => {
-  const adminToken = await getAdminAuthToken();
+  const adminToken = await ensureAdminTeacherAuthToken({ elevated: false });
   const reg = await request(app)
     .post('/api/auth/register')
     .send({ firstName: 'Imp', lastName: 'Ctrl' + Date.now(), password: 'pass1234' })

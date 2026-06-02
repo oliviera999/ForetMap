@@ -17,6 +17,7 @@ export const GL_PLAYER_TABS = [
 ];
 
 export const GL_ADMIN_EXTRA_TABS = [
+  { id: 'stats', label: 'Statistiques', icon: '📊' },
   { id: 'users', label: 'Gestion utilisateurs', icon: '👥' },
   { id: 'contents', label: 'Contenus', icon: '🧩' },
   { id: 'settings', label: 'Reglages plateforme', icon: '⚙️' },

@@ -17,6 +17,7 @@ export function GLTopBar({
   brandLogoUrl,
   onLogout,
   onOpenProfile,
+  onOpenStats = null,
   playerMascotId,
   vitalityEnabled = false,
   playerHealthPoints = null,
@@ -56,7 +57,11 @@ export function GLTopBar({
           <GLMascotAvatar mascotId={playerMascotId} size={32} />
         ) : null}
         {vitalityEnabled && playerHealthPoints != null && playerPowerPoints != null ? (
-          <GLVitalityBadge health={playerHealthPoints} power={playerPowerPoints} />
+          <GLVitalityBadge
+            health={playerHealthPoints}
+            power={playerPowerPoints}
+            onClick={typeof onOpenStats === 'function' ? onOpenStats : null}
+          />
         ) : null}
         <span>{auth?.displayName || auth?.roleSlug || 'Session'}</span>
         <button type="button" className="gl-logout" onClick={onOpenProfile}>

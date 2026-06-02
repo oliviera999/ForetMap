@@ -11,6 +11,7 @@ import { getVisitMascotCatalog } from '../utils/visitMascotCatalog.js';
 import { useHelp } from '../hooks/useHelp';
 import { HelpPanel } from './HelpPanel';
 import { HELP_PANELS } from '../constants/help';
+import { StatCard, StatsSummaryGrid } from '../shared/components/StatsSummaryGrid.jsx';
 
 function Toast({ msg, onDone }) {
   useEffect(() => { const t = setTimeout(onDone, 2400); return () => clearTimeout(t); }, []);
@@ -140,47 +141,31 @@ function StudentStats({ student, isN3Affiliated = false }) {
         </div>
       </div>
 
-      <div className="stats-grid">
-        <div className="stat-card highlight">
-          <div className="stat-icon">✅</div>
-          <div className="stat-number">{stats.done}</div>
-          <div className="stat-label">Tâches validées</div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-icon">⏳</div>
-          <div className="stat-number">{stats.pending}</div>
-          <div className="stat-label">En cours</div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-icon">📋</div>
-          <div className="stat-number">{stats.submitted}</div>
-          <div className="stat-label">En attente {roleTerms.teacherShort}</div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-icon">🌱</div>
-          <div className="stat-number">{stats.total}</div>
-          <div className="stat-label">Total prises</div>
-        </div>
-      </div>
+      <StatsSummaryGrid>
+        <StatCard icon="✅" value={stats.done} label="Tâches validées" highlight />
+        <StatCard icon="⏳" value={stats.pending} label="En cours" />
+        <StatCard icon="📋" value={stats.submitted} label={`En attente ${roleTerms.teacherShort}`} />
+        <StatCard icon="🌱" value={stats.total} label="Total prises" />
+      </StatsSummaryGrid>
 
       <h3 style={{ fontFamily: 'Playfair Display,serif', fontSize: '1.05rem', margin: '20px 0 10px', color: 'var(--forest)' }}>Biodiversité & tutoriels</h3>
-      <div className="stats-grid">
-        <div className="stat-card">
-          <div className="stat-icon">🌿</div>
-          <div className="stat-number">{Number(stats.plant_species_observed ?? 0).toLocaleString('fr-FR')}</div>
-          <div className="stat-label">Espèces observées (fiches)</div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-icon">🔭</div>
-          <div className="stat-number">{Number(stats.plant_observation_events ?? 0).toLocaleString('fr-FR')}</div>
-          <div className="stat-label">Observations fiches plantes</div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-icon">📖</div>
-          <div className="stat-number">{Number(stats.tutorials_read ?? 0).toLocaleString('fr-FR')}</div>
-          <div className="stat-label">Tutoriels lus</div>
-        </div>
-      </div>
+      <StatsSummaryGrid>
+        <StatCard
+          icon="🌿"
+          value={Number(stats.plant_species_observed ?? 0).toLocaleString('fr-FR')}
+          label="Espèces observées (fiches)"
+        />
+        <StatCard
+          icon="🔭"
+          value={Number(stats.plant_observation_events ?? 0).toLocaleString('fr-FR')}
+          label="Observations fiches plantes"
+        />
+        <StatCard
+          icon="📖"
+          value={Number(stats.tutorials_read ?? 0).toLocaleString('fr-FR')}
+          label="Tutoriels lus"
+        />
+      </StatsSummaryGrid>
 
       <h3 style={{ fontFamily: 'Playfair Display,serif', fontSize: '1.1rem', marginBottom: 12, color: 'var(--forest)' }}>Activité récente</h3>
       <div className="activity-list">
@@ -583,42 +568,18 @@ function TeacherStats({ isN3Affiliated = false }) {
         </div>
       )}
 
-      <div className="stats-grid" style={{ gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', marginBottom: 16 }}>
-        <div className="stat-card highlight">
-          <div className="stat-icon">✅</div>
-          <div className="stat-number">{totalValidated}</div>
-          <div className="stat-label">Tâches validées</div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-icon">⏳</div>
-          <div className="stat-number">{totalPending}</div>
-          <div className="stat-label">En cours</div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-icon">👤</div>
-          <div className="stat-number">{activeStudents}</div>
-          <div className="stat-label">Actifs</div>
-        </div>
-      </div>
+      <StatsSummaryGrid style={{ gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', marginBottom: 16 }}>
+        <StatCard icon="✅" value={totalValidated} label="Tâches validées" highlight />
+        <StatCard icon="⏳" value={totalPending} label="En cours" />
+        <StatCard icon="👤" value={activeStudents} label="Actifs" />
+      </StatsSummaryGrid>
 
       <p className="section-sub" style={{ marginTop: 0, marginBottom: 8 }}>Tout le site (biodiversité & tutoriels)</p>
-      <div className="stats-grid" style={{ gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', marginBottom: 20 }}>
-        <div className="stat-card">
-          <div className="stat-icon">🌿</div>
-          <div className="stat-number">{siteSpecies.toLocaleString('fr-FR')}</div>
-          <div className="stat-label">Espèces observées (catalogue)</div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-icon">🔭</div>
-          <div className="stat-number">{siteObsEvents.toLocaleString('fr-FR')}</div>
-          <div className="stat-label">Observations fiches plantes</div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-icon">📖</div>
-          <div className="stat-number">{siteTutorials.toLocaleString('fr-FR')}</div>
-          <div className="stat-label">Marquages tutoriel lus</div>
-        </div>
-      </div>
+      <StatsSummaryGrid style={{ gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', marginBottom: 20 }}>
+        <StatCard icon="🌿" value={siteSpecies.toLocaleString('fr-FR')} label="Espèces observées (catalogue)" />
+        <StatCard icon="🔭" value={siteObsEvents.toLocaleString('fr-FR')} label="Observations fiches plantes" />
+        <StatCard icon="📖" value={siteTutorials.toLocaleString('fr-FR')} label="Marquages tutoriel lus" />
+      </StatsSummaryGrid>
 
       <div className="field" style={{ marginBottom: 12 }}>
         <input value={search} onChange={e => setSearch(e.target.value)}

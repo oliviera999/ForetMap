@@ -23,6 +23,7 @@ export function GLMapView({
   brandThemeStyle = null,
   canSpellCast = false,
   onLaunchSpell,
+  virtualDiceEnabled = false,
 }) {
   const watchTeamId = useMemo(() => {
     if (canMoveMascot) {
@@ -60,6 +61,7 @@ export function GLMapView({
       brandThemeStyle={brandThemeStyle}
       canSpellCast={canSpellCast}
       onLaunchSpell={onLaunchSpell}
+      virtualDiceEnabled={virtualDiceEnabled}
     />
   );
 }

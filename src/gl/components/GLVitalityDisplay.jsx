@@ -17,10 +17,24 @@ export function GLVitalityCounts({ health = 0, power = 0, className = '' }) {
   );
 }
 
-export function GLVitalityBadge({ health = 0, power = 0 }) {
+export function GLVitalityBadge({ health = 0, power = 0, onClick = null }) {
+  const content = <GLVitalityCounts health={health} power={power} />;
+  if (typeof onClick === 'function') {
+    return (
+      <button
+        type="button"
+        className="gl-vitality-badge gl-vitality-badge--button"
+        role="status"
+        aria-label={`${health} points de vie, ${power} points de pouvoir — voir mes statistiques`}
+        onClick={onClick}
+      >
+        {content}
+      </button>
+    );
+  }
   return (
     <span className="gl-vitality-badge" role="status" aria-label={`${health} points de vie, ${power} points de pouvoir`}>
-      <GLVitalityCounts health={health} power={power} />
+      {content}
     </span>
   );
 }

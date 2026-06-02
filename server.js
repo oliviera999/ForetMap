@@ -64,6 +64,7 @@ const glSpellsRouter = require('./routes/gl/spells');
 const glGlossaryRouter = require('./routes/gl/glossary').router;
 const glQcmRouter = require('./routes/gl/qcm').router;
 const glLearningRouter = require('./routes/gl/learning');
+const glStatsRouter = require('./routes/gl/stats');
 
 const app = express();
 
@@ -541,6 +542,7 @@ app.use('/api/gl/context-comments', glContextCommentsRouter);
 app.use('/api/gl/forum', glForumRouter);
 app.use('/api/gl/market', glMarketRouter);
 app.use('/api/gl/learning', glLearningRouter);
+app.use('/api/gl/stats', glStatsRouter);
 app.use('/api/gl/tutorials', glTutorialsRouter);
 app.use('/api/gl/journal', glJournalRouter);
 app.use('/api/gl/kingdom-map', glKingdomMapRouter);

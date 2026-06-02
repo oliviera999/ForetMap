@@ -11,6 +11,7 @@ import { useGLBoardMascotMotion } from '../hooks/useGLBoardMascotMotion.js';
 import { useGLMarkerArrival } from '../hooks/useGLMarkerArrival.js';
 import { usePrefersReducedMotion } from '../hooks/usePrefersReducedMotion.js';
 import { GLZoneMusicMuteButton } from './GLZoneMusicMuteButton.jsx';
+import { GLVirtualDiceDock } from './GLVirtualDiceDock.jsx';
 import { GLButton } from './ui/GLButton.jsx';
 
 export function GLGameBoard({
@@ -38,6 +39,7 @@ export function GLGameBoard({
   brandThemeStyle = null,
   canSpellCast = false,
   onLaunchSpell,
+  virtualDiceEnabled = false,
 }) {
   const imageUrl = chapter?.map_image_url || '/maps/map-foret.svg';
   const [pendingMarker, setPendingMarker] = useState(null);
@@ -240,6 +242,10 @@ export function GLGameBoard({
           );
         })}
       </GLPctMapCanvas>
+
+      {virtualDiceEnabled && gameId ? (
+        <GLVirtualDiceDock themeStyle={brandThemeStyle} />
+      ) : null}
 
       <GLQcmPopover
         open={Boolean(questionPopover)}
