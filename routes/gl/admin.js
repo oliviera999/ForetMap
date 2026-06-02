@@ -2,7 +2,15 @@ const express = require('express');
 const bcrypt = require('bcryptjs');
 const { queryAll, queryOne, execute } = require('../../database');
 const { requireGlPermission } = require('../../middleware/requireGlAuth');
-const { invalidateGameplayCache, invalidateModulesCache, MODULE_KEYS, MARKER_QUESTION_RETRIGGER_VALUES, getGameplaySettings } = require('../../lib/glSettings');
+const {
+  invalidateGameplayCache,
+  invalidateModulesCache,
+  MODULE_KEYS,
+  MARKER_QUESTION_RETRIGGER_VALUES,
+  SPELL_CAST_CONTRIBUTION_MODES,
+  SPELL_CAST_TEAM_SCOPES,
+  getGameplaySettings,
+} = require('../../lib/glSettings');
 const { getDefaultVitalityFromSettings, clampVitality } = require('../../lib/glVitality');
 const {
   MAX_IMPORT_ROWS,
@@ -132,6 +140,8 @@ const ALLOWED_GAMEPLAY_SETTINGS = new Set([
   'gameplay.vitality_enabled',
   'gameplay.default_health_points',
   'gameplay.default_power_points',
+  'gameplay.spell_cast_contribution_mode',
+  'gameplay.spell_cast_team_scope',
 ]);
 
 async function ensureClassExists(classId) {
@@ -700,6 +710,20 @@ router.put('/settings/:key', requireGlPermission('gl.settings.manage'), async (r
       return res.status(400).json({ error: 'Valeur marker_question_retrigger invalide' });
     }
     value = mode;
+  }
+  if (key === 'gameplay.spell_cast_contribution_mode') {
+    const mode = typeof value === 'string' ? value.trim() : String(value || '').trim();
+    if (!SPELL_CAST_CONTRIBUTION_MODES.has(mode)) {
+      return res.status(400).json({ error: 'Mode de contribution invalide (coordinator, self_only, both)' });
+    }
+    value = mode;
+  }
+  if (key === 'gameplay.spell_cast_team_scope') {
+    const scope = typeof value === 'string' ? value.trim() : String(value || '').trim();
+    if (!SPELL_CAST_TEAM_SCOPES.has(scope)) {
+      return res.status(400).json({ error: 'Périmètre équipe invalide (any_team, own_team, mj_any)' });
+    }
+    value = scope;
   }
   if (key === 'gameplay.vitality_enabled') {
     if (typeof value !== 'boolean') {

@@ -51,6 +51,21 @@ const MODULE_TOGGLES = [
   { key: 'modules.journal_enabled', label: 'Journal/Histoire', hint: 'Affiche/masque l’onglet Histoire.' },
   { key: 'modules.kingdom_map_enabled', label: 'Carte royaume', hint: 'Prépare la carte royaume GL.' },
   { key: 'modules.zone_music_enabled', label: 'Musique des zones', hint: 'Ambiance sonore par zone sur la carte de jeu (fondus en transition).' },
+  { key: 'modules.market_enabled', label: 'Marché', hint: 'Échanges de cœurs et gemmes entre joueurs de la classe (nécessite la vitalité).' },
+  { key: 'modules.spell_cast_enabled', label: 'Lancement de sortilèges', hint: 'Pool collaboratif gemmes/cœurs par équipe depuis Sortilèges ou la carte (nécessite la vitalité).' },
+  { key: 'modules.virtual_dice_enabled', label: 'Dés virtuels', hint: 'Bouton et lanceur de dés D6 sur la carte de jeu (jusqu’à 5 dés).' },
+];
+
+const SPELL_CAST_CONTRIBUTION_OPTIONS = [
+  { value: 'both', label: 'Les deux (soi + répartition équipe avec confirmation)' },
+  { value: 'coordinator', label: 'Coordinateur (une personne répartit pour toute l’équipe)' },
+  { value: 'self_only', label: 'Chaque joueur saisit uniquement sa contribution' },
+];
+
+const SPELL_CAST_TEAM_SCOPE_OPTIONS = [
+  { value: 'any_team', label: 'Toutes les équipes de la partie' },
+  { value: 'own_team', label: 'Uniquement son équipe' },
+  { value: 'mj_any', label: 'Joueur : son équipe · MJ : toutes les équipes' },
 ];
 
 function readGameplayFlag(settings, key) {
@@ -302,6 +317,57 @@ export function GLSettingsView() {
         </label>
         <p className="gl-hint">
           Contrôle l&apos;ouverture du popover question quand une mascotte arrive sur un repère QCM.
+        </p>
+      </div>
+
+      <div className="gl-spell-cast-settings gl-form">
+        <h4>Lancement de sortilèges</h4>
+        <label>
+          Mode de contribution
+          <select
+            value={String(settings['gameplay.spell_cast_contribution_mode'] || 'both').replace(/^"|"$/g, '')}
+            disabled={savingKey === 'gameplay.spell_cast_contribution_mode'}
+            onChange={async (event) => {
+              setSavingKey('gameplay.spell_cast_contribution_mode');
+              try {
+                await apiGL('/api/gl/admin/settings/gameplay.spell_cast_contribution_mode', 'PUT', { value: event.target.value });
+                await load();
+              } catch (err) {
+                setError(err.message || 'Enregistrement impossible');
+              } finally {
+                setSavingKey('');
+              }
+            }}
+          >
+            {SPELL_CAST_CONTRIBUTION_OPTIONS.map((opt) => (
+              <option key={opt.value} value={opt.value}>{opt.label}</option>
+            ))}
+          </select>
+        </label>
+        <label>
+          Équipes pouvant lancer
+          <select
+            value={String(settings['gameplay.spell_cast_team_scope'] || 'any_team').replace(/^"|"$/g, '')}
+            disabled={savingKey === 'gameplay.spell_cast_team_scope'}
+            onChange={async (event) => {
+              setSavingKey('gameplay.spell_cast_team_scope');
+              try {
+                await apiGL('/api/gl/admin/settings/gameplay.spell_cast_team_scope', 'PUT', { value: event.target.value });
+                await load();
+              } catch (err) {
+                setError(err.message || 'Enregistrement impossible');
+              } finally {
+                setSavingKey('');
+              }
+            }}
+          >
+            {SPELL_CAST_TEAM_SCOPE_OPTIONS.map((opt) => (
+              <option key={opt.value} value={opt.value}>{opt.label}</option>
+            ))}
+          </select>
+        </label>
+        <p className="gl-hint">
+          Activez aussi le module « Lancement de sortilèges » ci-dessous et la vitalité (gemmes / cœurs).
         </p>
       </div>
 

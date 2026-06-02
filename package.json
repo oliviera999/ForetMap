@@ -1,6 +1,6 @@
 {
   "name": "foretmap",
-  "version": "1.57.32",
+  "version": "1.57.33",
   "description": "Application de gestion de la forêt comestible - Lycée Lyautey",
   "main": "server.js",
   "engines": {
@@ -126,6 +126,7 @@
     "deploy:check:prod:foret": "node scripts/post-deploy-check.js --base-url https://foretmap.olution.info",
     "gl:import:wp": "node scripts/gl-import-wp.js",
     "gl:import:species": "node scripts/gl-import-species.js",
+    "gl:import:spells": "node scripts/gl-import-spells.js",
     "gl:import:glossary": "node scripts/gl-import-glossary.js",
     "gl:import:qcm": "node scripts/gl-import-qcm.js",
     "tasks:spawn-recurring": "node scripts/spawn-recurring-tasks.js",

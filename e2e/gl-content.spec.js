@@ -123,6 +123,41 @@ test.describe('Gnomes & Licornes — édition des chapitres (Lot 2B)', () => {
     expect(biomes.some((b) => b.slug === 'sahara')).toBe(true);
   });
 
+  test('import sortilèges dry-run puis lecture par codes', async ({ request }) => {
+    const now = Date.now();
+    const adminEmail = `e2e-spells-mj-${now}@example.org`;
+    await execute(
+      'INSERT INTO gl_admins (email, display_name, role, is_active, created_at, updated_at) VALUES (?, ?, ?, 1, NOW(), NOW())',
+      [adminEmail, `MJ Spells ${now}`, 'admin']
+    );
+    const adminRow = await queryOne('SELECT id FROM gl_admins WHERE email = ? LIMIT 1', [adminEmail]);
+    const adminToken = await signAuthToken({
+      product: 'gl',
+      userType: 'gl_admin',
+      userId: String(adminRow.id),
+      roleSlug: 'gl_admin',
+      permissions: ['gl.read', 'gl.content.manage'],
+    });
+    const fs = require('node:fs');
+    const path = require('node:path');
+    const xlsxPath = path.join(__dirname, '..', 'data', 'gl', 'sortileges-gnomes-et-licornes.xlsx');
+    const fileDataBase64 = fs.readFileSync(xlsxPath).toString('base64');
+    const importRes = await request.post('/api/gl/admin/spells/import', {
+      headers: { Authorization: `Bearer ${adminToken}` },
+      data: { fileDataBase64, dryRun: true, syncCategories: true },
+    });
+    expect(importRes.status()).toBe(200);
+    const importBody = await importRes.json();
+    expect(importBody?.report?.totals?.valid).toBeGreaterThan(30);
+
+    const spellsRes = await request.get('/api/gl/spells?spellCodes=SL002', {
+      headers: { Authorization: `Bearer ${adminToken}` },
+    });
+    expect(spellsRes.status()).toBe(200);
+    const spellsBody = await spellsRes.json();
+    expect(spellsBody?.items?.some((s) => s.spell_code === 'SL002')).toBe(true);
+  });
+
   test('import glossaire dry-run puis lecture par biome', async ({ request }) => {
     const now = Date.now();
     const adminEmail = `e2e-glossary-mj-${now}@example.org`;
@@ -184,5 +219,65 @@ test.describe('Gnomes & Licornes — édition des chapitres (Lot 2B)', () => {
     expect(importRes.status()).toBe(200);
     const importBody = await importRes.json();
     expect(importBody?.report?.totals?.valid).toBeGreaterThan(600);
+  });
+
+  test('CRUD manuel glossaire et espèce via API admin', async ({ request }) => {
+    const now = Date.now();
+    const adminEmail = `e2e-manual-crud-${now}@example.org`;
+    const biomeSlug = `e2e_manual_biome_${now}`;
+    const glossaryCode = `GLM${String(now).slice(-5)}`;
+    const speciesCode = `SPM${String(now).slice(-5)}`;
+
+    await execute(
+      'INSERT INTO gl_biomes (slug, nom, order_index, created_at, updated_at) VALUES (?, ?, 9998, NOW(), NOW())',
+      [biomeSlug, `Biome manual ${now}`]
+    );
+    await execute(
+      'INSERT INTO gl_admins (email, display_name, role, is_active, created_at, updated_at) VALUES (?, ?, ?, 1, NOW(), NOW())',
+      [adminEmail, `MJ Manual ${now}`, 'admin']
+    );
+    const adminRow = await queryOne('SELECT id FROM gl_admins WHERE email = ? LIMIT 1', [adminEmail]);
+    const adminToken = await signAuthToken({
+      product: 'gl',
+      userType: 'gl_admin',
+      userId: String(adminRow.id),
+      roleSlug: 'gl_admin',
+      permissions: ['gl.read', 'gl.content.manage'],
+    });
+    const headers = { Authorization: `Bearer ${adminToken}` };
+
+    const termCreate = await request.post('/api/gl/admin/glossary/terms', {
+      headers,
+      data: {
+        glossary_code: glossaryCode,
+        terme: `Terme manual ${now}`,
+        categorie: 'ecologie',
+        niveau: 'base',
+        definition_courte: 'Test saisie manuelle',
+        all_biomes: true,
+        statut: 'actif',
+      },
+    });
+    expect(termCreate.status()).toBe(201);
+
+    const glossaryRead = await request.get('/api/gl/glossary', { headers });
+    const glossaryBody = await glossaryRead.json();
+    expect(glossaryBody.items.some((t) => t.glossary_code === glossaryCode)).toBe(true);
+
+    const speciesCreate = await request.post('/api/gl/admin/species', {
+      headers,
+      data: {
+        species_code: speciesCode,
+        biome_slug: biomeSlug,
+        type: 'faune',
+        nom_commun: `Espèce manual ${now}`,
+        statut: 'actif',
+      },
+    });
+    expect(speciesCreate.status()).toBe(201);
+
+    const speciesRead = await request.get(`/api/gl/species?biomeSlug=${encodeURIComponent(biomeSlug)}`, { headers });
+    const speciesBody = await speciesRead.json();
+    expect(speciesBody.items.some((s) => s.species_code === speciesCode)).toBe(true);
   });
 });

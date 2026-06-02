@@ -39,6 +39,7 @@ export function GLGlossaryView({
   activeTermCode = null,
   onOpenPopover,
   onFocusHandled,
+  learningProgress,
 }) {
   const chapterBiomes = Array.isArray(gameState?.game?.chapter_biomes)
     ? gameState.game.chapter_biomes
@@ -148,19 +149,29 @@ export function GLGlossaryView({
           <section key={catLabel} className="gl-glossary__group">
             <h3>{catLabel}</h3>
             <ul className="gl-glossary__terms">
-              {grouped[catLabel].map((term) => (
-                <li key={term.glossary_code}>
-                  <button
-                    type="button"
-                    className={activeTermCode === term.glossary_code ? 'is-active' : ''}
-                    onClick={() => selectTerm(term.glossary_code)}
-                    title={term.definition_courte || term.terme}
-                  >
-                    <span className="gl-glossary__term-label">{term.terme}</span>
-                    <span className="gl-glossary__term-meta">{term.niveau}</span>
-                  </button>
-                </li>
-              ))}
+              {grouped[catLabel].map((term) => {
+                const code = String(term.glossary_code || '').trim();
+                const learned = learningProgress?.isGlossaryLearned?.(code) || !!term.learned;
+                return (
+                  <li key={term.glossary_code}>
+                    <button
+                      type="button"
+                      className={[
+                        activeTermCode === term.glossary_code ? 'is-active' : '',
+                        learned ? 'is-learned' : '',
+                      ].filter(Boolean).join(' ')}
+                      onClick={() => selectTerm(term.glossary_code)}
+                      title={term.definition_courte || term.terme}
+                    >
+                      <span className="gl-glossary__term-label">{term.terme}</span>
+                      <span className="gl-glossary__term-meta">
+                        {learned ? '✓ Appris · ' : ''}
+                        {term.niveau}
+                      </span>
+                    </button>
+                  </li>
+                );
+              })}
             </ul>
           </section>
         ))}

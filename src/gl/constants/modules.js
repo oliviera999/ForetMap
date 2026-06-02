@@ -8,6 +8,9 @@ export const GL_MODULE_DEFAULTS = {
   journalEnabled: true,
   kingdomMapEnabled: true,
   zoneMusicEnabled: false,
+  marketEnabled: false,
+  spellCastEnabled: false,
+  virtualDiceEnabled: false,
 };
 
 export function normalizeGlModules(raw) {

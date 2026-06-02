@@ -1,0 +1,318 @@
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { apiGL } from '../../services/apiGL.js';
+import {
+  GL_SPELL_CATEGORY_LABELS,
+  GL_SPELL_FIELD_LABELS,
+  GL_SPELL_STATUT_LABELS,
+} from '../../utils/glSpellFieldLabels.js';
+import { GLButton } from '../ui/GLButton.jsx';
+import { GLField } from '../ui/GLField.jsx';
+import { GLInput } from '../ui/GLInput.jsx';
+import { GLSelect } from '../ui/GLSelect.jsx';
+import { GLTextarea } from '../ui/GLTextarea.jsx';
+
+const TEXTAREA_FIELDS = new Set(['effet_court', 'effet_detaille', 'notes_pedagogiques']);
+
+const EMPTY_FORM = {
+  spell_code: '',
+  category_slug: '',
+  nom: '',
+  emoji: '',
+  cout_gemmes: '0',
+  cout_coeurs: '0',
+  cout_total_eq: '',
+  portee: '',
+  cible: '',
+  timing: '',
+  effet_court: '',
+  effet_detaille: '',
+  limite_usage: '',
+  cumul: '',
+  statut: 'officiel',
+  source: '',
+  notes_pedagogiques: '',
+  cree_le: '',
+};
+
+function spellToForm(spell) {
+  if (!spell) return { ...EMPTY_FORM };
+  const next = { ...EMPTY_FORM };
+  for (const key of Object.keys(EMPTY_FORM)) {
+    if (key === 'cout_gemmes' || key === 'cout_coeurs') {
+      next[key] = spell[key] != null ? String(spell[key]) : '0';
+    } else {
+      next[key] = spell[key] != null ? String(spell[key]) : '';
+    }
+  }
+  if (spell.cree_le) next.cree_le = String(spell.cree_le).slice(0, 10);
+  return next;
+}
+
+function formToPayload(form) {
+  return {
+    ...form,
+    cout_gemmes: Number(form.cout_gemmes) || 0,
+    cout_coeurs: Number(form.cout_coeurs) || 0,
+    spell_code: form.spell_code.trim() || undefined,
+    id: form.spell_code.trim() || undefined,
+  };
+}
+
+function SpellField({ fieldKey, value, onChange, disabled }) {
+  const label = GL_SPELL_FIELD_LABELS[fieldKey] || fieldKey;
+  if (fieldKey === 'category_slug') {
+    return (
+      <GLField label={label}>
+        <GLSelect value={value} onChange={(e) => onChange(fieldKey, e.target.value)} disabled={disabled} required>
+          <option value="">—</option>
+          {Object.entries(GL_SPELL_CATEGORY_LABELS).map(([slug, nom]) => (
+            <option key={slug} value={slug}>{nom}</option>
+          ))}
+        </GLSelect>
+      </GLField>
+    );
+  }
+  if (fieldKey === 'statut') {
+    return (
+      <GLField label={label}>
+        <GLSelect value={value} onChange={(e) => onChange(fieldKey, e.target.value)} disabled={disabled}>
+          {Object.entries(GL_SPELL_STATUT_LABELS).map(([val, lab]) => (
+            <option key={val} value={val}>{lab}</option>
+          ))}
+        </GLSelect>
+      </GLField>
+    );
+  }
+  if (TEXTAREA_FIELDS.has(fieldKey)) {
+    return (
+      <GLField label={label}>
+        <GLTextarea value={value} onChange={(e) => onChange(fieldKey, e.target.value)} rows={3} disabled={disabled} />
+      </GLField>
+    );
+  }
+  return (
+    <GLField label={label}>
+      <GLInput
+        value={value}
+        onChange={(e) => onChange(fieldKey, e.target.value)}
+        disabled={disabled}
+        required={fieldKey === 'nom'}
+        type={fieldKey === 'cout_gemmes' || fieldKey === 'cout_coeurs' ? 'number' : 'text'}
+        min={fieldKey === 'cout_gemmes' || fieldKey === 'cout_coeurs' ? 0 : undefined}
+      />
+    </GLField>
+  );
+}
+
+const FORM_FIELDS = [
+  'spell_code', 'category_slug', 'nom', 'emoji',
+  'cout_gemmes', 'cout_coeurs', 'cout_total_eq',
+  'portee', 'cible', 'timing',
+  'effet_court', 'effet_detaille', 'limite_usage', 'cumul',
+  'statut', 'source', 'notes_pedagogiques', 'cree_le',
+];
+
+export function GLSpellsEditorPanel() {
+  const [categories, setCategories] = useState([]);
+  const [categorySlug, setCategorySlug] = useState('');
+  const [items, setItems] = useState([]);
+  const [selectedCode, setSelectedCode] = useState(null);
+  const [form, setForm] = useState(EMPTY_FORM);
+  const [filterQ, setFilterQ] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [info, setInfo] = useState('');
+
+  const filteredItems = useMemo(() => {
+    if (!filterQ.trim()) return items;
+    const needle = filterQ.trim().toLowerCase();
+    return items.filter((row) => {
+      const hay = `${row.nom} ${row.spell_code}`.toLowerCase();
+      return hay.includes(needle);
+    });
+  }, [items, filterQ]);
+
+  const loadCategories = useCallback(async () => {
+    const list = await apiGL('/api/gl/spell-categories');
+    const rows = Array.isArray(list) ? list : [];
+    setCategories(rows);
+    setCategorySlug((prev) => prev || rows[0]?.slug || '');
+  }, []);
+
+  const loadList = useCallback(async () => {
+    if (!categorySlug) {
+      setItems([]);
+      return;
+    }
+    const params = new URLSearchParams({ categorySlug, statutFilter: 'all' });
+    if (filterQ.trim()) params.set('q', filterQ.trim());
+    const data = await apiGL(`/api/gl/admin/spells?${params.toString()}`);
+    setItems(Array.isArray(data?.items) ? data.items : []);
+  }, [categorySlug, filterQ]);
+
+  useEffect(() => {
+    loadCategories().catch(() => setCategories([]));
+  }, [loadCategories]);
+
+  useEffect(() => {
+    loadList().catch((err) => setError(err.message || 'Chargement impossible'));
+  }, [loadList]);
+
+  useEffect(() => {
+    setForm((prev) => ({ ...prev, category_slug: categorySlug }));
+  }, [categorySlug]);
+
+  async function loadSpell(code) {
+    if (!code) return;
+    setLoading(true);
+    setError('');
+    try {
+      const data = await apiGL(`/api/gl/admin/spells/${encodeURIComponent(code)}`);
+      setForm(spellToForm(data?.spell));
+      setSelectedCode(code);
+      if (data?.spell?.category_slug) setCategorySlug(data.spell.category_slug);
+    } catch (err) {
+      setError(err.message || 'Fiche introuvable');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function startNewSpell() {
+    setLoading(true);
+    setError('');
+    setInfo('');
+    try {
+      const data = await apiGL('/api/gl/admin/spells/next-code');
+      setSelectedCode(null);
+      setForm({
+        ...EMPTY_FORM,
+        spell_code: data?.spell_code || '',
+        category_slug: categorySlug,
+      });
+    } catch (err) {
+      setError(err.message || 'Impossible de préparer un nouveau sort');
+      setSelectedCode(null);
+      setForm({ ...EMPTY_FORM, category_slug: categorySlug });
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function saveSpell(event) {
+    event.preventDefault();
+    setLoading(true);
+    setError('');
+    setInfo('');
+    try {
+      const payload = formToPayload({ ...form, category_slug: categorySlug || form.category_slug });
+      const isEdit = Boolean(selectedCode);
+      const path = isEdit
+        ? `/api/gl/admin/spells/${encodeURIComponent(selectedCode)}`
+        : '/api/gl/admin/spells';
+      const method = isEdit ? 'PUT' : 'POST';
+      const data = await apiGL(path, method, payload);
+      const code = data?.spell?.spell_code || form.spell_code;
+      setSelectedCode(code);
+      setForm(spellToForm(data?.spell));
+      setInfo(isEdit ? 'Sort mis à jour.' : 'Sort créé.');
+      await loadList();
+    } catch (err) {
+      setError(err.message || 'Enregistrement impossible');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function deleteSpell() {
+    if (!selectedCode) return;
+    if (!window.confirm('Supprimer définitivement ce sort du catalogue ?')) return;
+    setLoading(true);
+    setError('');
+    try {
+      await apiGL(`/api/gl/admin/spells/${encodeURIComponent(selectedCode)}`, 'DELETE');
+      setInfo('Sort supprimé.');
+      setSelectedCode(null);
+      setForm({ ...EMPTY_FORM, category_slug: categorySlug });
+      await loadList();
+    } catch (err) {
+      setError(err.message || 'Suppression impossible');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function setField(key, value) {
+    setForm((prev) => ({ ...prev, [key]: value }));
+  }
+
+  return (
+    <section className="gl-admin-section gl-animate-in">
+      <h3>Saisie manuelle — sortilèges</h3>
+      <p className="gl-hint">
+        Fiches de sorts par catégorie. Liez les sorts aux chapitres dans Contenus → Chapitres.
+      </p>
+      {error ? <p className="gl-error">{error}</p> : null}
+      {info ? <p className="gl-hint">{info}</p> : null}
+
+      <GLField label="Catégorie">
+        <GLSelect value={categorySlug} onChange={(e) => { setCategorySlug(e.target.value); setSelectedCode(null); }}>
+          {categories.map((c) => (
+            <option key={c.slug} value={c.slug}>{c.nom || c.slug}</option>
+          ))}
+        </GLSelect>
+      </GLField>
+
+      <div className="gl-chapters-admin-grid">
+        <aside>
+          <GLField label="Recherche">
+            <GLInput value={filterQ} onChange={(e) => setFilterQ(e.target.value)} placeholder="Nom ou code…" />
+          </GLField>
+          <ul className="gl-chapters-admin-list">
+            {filteredItems.map((row) => (
+              <li key={row.spell_code}>
+                <button
+                  type="button"
+                  className={selectedCode === row.spell_code ? 'is-active' : ''}
+                  onClick={() => loadSpell(row.spell_code)}
+                >
+                  <span aria-hidden="true">{row.emoji || '✨'}</span>
+                  {' '}
+                  <strong>{row.nom}</strong>
+                  <span className="gl-hint">{row.spell_code}</span>
+                </button>
+              </li>
+            ))}
+          </ul>
+          <GLButton type="button" variant="secondary" onClick={startNewSpell} disabled={loading || !categorySlug}>
+            + Nouveau sort
+          </GLButton>
+        </aside>
+
+        <div>
+          <form className="gl-form" onSubmit={saveSpell}>
+            {FORM_FIELDS.map((key) => (
+              <SpellField
+                key={key}
+                fieldKey={key}
+                value={form[key]}
+                onChange={setField}
+                disabled={key === 'spell_code' && Boolean(selectedCode)}
+              />
+            ))}
+            <div className="gl-inline-actions">
+              <GLButton type="submit" disabled={loading || !categorySlug}>
+                {loading ? 'Enregistrement…' : 'Enregistrer'}
+              </GLButton>
+              {selectedCode ? (
+                <GLButton type="button" variant="danger" onClick={deleteSpell} disabled={loading}>
+                  Supprimer
+                </GLButton>
+              ) : null}
+            </div>
+          </form>
+        </div>
+      </div>
+    </section>
+  );
+}

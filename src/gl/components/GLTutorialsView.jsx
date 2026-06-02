@@ -5,10 +5,10 @@ import { GLButton } from './ui/GLButton.jsx';
 import { GLField } from './ui/GLField.jsx';
 import { GLInput } from './ui/GLInput.jsx';
 import { GLRichTextEditor } from './ui/GLRichTextEditor.jsx';
+import { GLLearningAcknowledgeButton } from './GLLearningAcknowledgeButton.jsx';
 
-export function GLTutorialsView({ canManage }) {
+export function GLTutorialsView({ canManage, learningProgress }) {
   const [items, setItems] = useState([]);
-  const [readIds, setReadIds] = useState([]);
   const [active, setActive] = useState(null);
   const [error, setError] = useState('');
   const [draft, setDraft] = useState({ id: null, slug: '', title: '', bodyMarkdown: '', isPublished: true });
@@ -18,13 +18,12 @@ export function GLTutorialsView({ canManage }) {
     try {
       const list = await apiGL('/api/gl/tutorials');
       setItems(Array.isArray(list?.tutorials) ? list.tutorials : []);
-      const reads = await apiGL('/api/gl/tutorials/me/read-ids').catch(() => ({ ids: [] }));
-      setReadIds(Array.isArray(reads?.ids) ? reads.ids : []);
+      await learningProgress?.reload?.();
       setError('');
     } catch (err) {
       setError(err.message || 'Chargement impossible');
     }
-  }, []);
+  }, [learningProgress]);
 
   useEffect(() => {
     reload();
@@ -34,12 +33,13 @@ export function GLTutorialsView({ canManage }) {
     try {
       const data = await apiGL(`/api/gl/tutorials/${id}`);
       setActive(data || null);
-      await apiGL(`/api/gl/tutorials/${id}/read`, 'POST').catch(() => null);
-      await reload();
     } catch (err) {
       setError(err.message || 'Lecture impossible');
     }
   }
+
+  const readIds = learningProgress?.tutorialIds ?? [];
+  const isTutorialRead = (id) => learningProgress?.isTutorialRead?.(id) ?? false;
 
   async function createDraft(event) {
     event.preventDefault();
@@ -161,10 +161,10 @@ export function GLTutorialsView({ canManage }) {
 
       <ul className="gl-tutorials-list">
         {items.map((item) => (
-          <li key={item.id} className={readIds.includes(item.id) ? 'is-read' : ''}>
+          <li key={item.id} className={isTutorialRead(item.id) ? 'is-read' : ''}>
             <button type="button" onClick={() => openTutorial(item.id)}>
               <strong>{item.title}</strong>
-              {readIds.includes(item.id) ? <span className="gl-hint"> · lu</span> : null}
+              {isTutorialRead(item.id) ? <span className="gl-hint"> · lu</span> : null}
             </button>
             {canManage ? (
               <div className="gl-inline-actions">
@@ -184,7 +184,28 @@ export function GLTutorialsView({ canManage }) {
 
       {active ? (
         <article className="gl-tutorial-active gl-markdown">
-          <h3>{active.title}</h3>
+          <div className="gl-tutorial-active__head">
+            <h3>{active.title}</h3>
+            {learningProgress ? (
+              <GLLearningAcknowledgeButton
+                acknowledgePath={`/api/gl/learning/tutorials/${active.id}`}
+                itemTitle={active.title}
+                labelAction="✓ Marquer comme lu"
+                labelDone="✓ Lu"
+                titleDone="Tu as confirmé avoir lu et compris ce tutoriel"
+                confirmIntro={(
+                  <>
+                    En validant, tu t&apos;engages à avoir lu et compris le tutoriel
+                    {' '}
+                    <strong>« {active.title || 'ce tutoriel'} »</strong>.
+                  </>
+                )}
+                confirmCheckboxLabel="Je confirme avoir lu et compris ce contenu."
+                isDone={isTutorialRead(active.id)}
+                onAcknowledged={() => learningProgress.markLocal('tutorial', String(active.id))}
+              />
+            ) : null}
+          </div>
           {canManage ? (
             <div className="gl-inline-actions" style={{ marginBottom: 8 }}>
               <GLButton type="button" variant="secondary" onClick={() => startEdit(active.id)}>Modifier ce tutoriel</GLButton>

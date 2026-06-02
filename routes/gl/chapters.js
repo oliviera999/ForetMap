@@ -17,6 +17,12 @@ const {
   validateBiomeSlugsExist,
 } = require('../../lib/glChapterBiomes');
 const {
+  parseSpellCodesFromBody,
+  loadSpellsForChapterIds,
+  syncChapterSpells,
+  validateSpellCodesExist,
+} = require('../../lib/glChapterSpells');
+const {
   MARKER_SELECT,
   formatMarkerRow,
   parseEventConfigInput,
@@ -72,13 +78,19 @@ function attachChapterBiomes(chapter, biomesMap) {
   return chapter;
 }
 
+function attachChapterSpells(chapter, spellsMap) {
+  if (!chapter) return chapter;
+  chapter.spells = spellsMap.get(Number(chapter.id)) || [];
+  return chapter;
+}
+
 async function readChapterFull(slugOrId) {
   const isNumeric = typeof slugOrId === 'number' || /^\d+$/.test(String(slugOrId || ''));
   const chapter = isNumeric
     ? await queryOne(
       `SELECT c.id, c.slug, c.title, c.biome,
               c.map_image_url, c.story_markdown, c.biotope_markdown,
-              c.biocenose_markdown, c.map_image_frame_json, c.theme_json,
+              c.biocenose_markdown, c.sortileges_markdown, c.map_image_frame_json, c.theme_json,
               c.order_index, c.created_at, c.updated_at
          FROM gl_chapters c
         WHERE c.id = ?
@@ -88,7 +100,7 @@ async function readChapterFull(slugOrId) {
     : await queryOne(
       `SELECT c.id, c.slug, c.title, c.biome,
               c.map_image_url, c.story_markdown, c.biotope_markdown,
-              c.biocenose_markdown, c.map_image_frame_json, c.theme_json,
+              c.biocenose_markdown, c.sortileges_markdown, c.map_image_frame_json, c.theme_json,
               c.order_index, c.created_at, c.updated_at
          FROM gl_chapters c
         WHERE c.slug = ?
@@ -101,6 +113,8 @@ async function readChapterFull(slugOrId) {
   attachChapterTheme(chapter);
   const biomesMap = await loadBiomesForChapterIds({ queryAll }, [chapter.id]);
   attachChapterBiomes(chapter, biomesMap);
+  const spellsMap = await loadSpellsForChapterIds({ queryAll }, [chapter.id]);
+  attachChapterSpells(chapter, spellsMap);
   const markerRows = await queryAll(
     `SELECT ${MARKER_SELECT}
        FROM gl_chapter_markers
@@ -120,7 +134,9 @@ router.get('/', requireGlPermission('gl.read'), async (_req, res) => {
        FROM gl_chapters c
       ORDER BY c.order_index ASC, c.id ASC`
   );
-  const biomesMap = await loadBiomesForChapterIds({ queryAll }, rows.map((row) => row.id));
+  const chapterIds = rows.map((row) => row.id);
+  const biomesMap = await loadBiomesForChapterIds({ queryAll }, chapterIds);
+  const spellsMap = await loadSpellsForChapterIds({ queryAll }, chapterIds);
   const items = rows.map((row) => {
     const item = {
       ...row,
@@ -129,6 +145,7 @@ router.get('/', requireGlPermission('gl.read'), async (_req, res) => {
     delete item.map_image_frame_json;
     attachChapterTheme(item);
     attachChapterBiomes(item, biomesMap);
+    attachChapterSpells(item, spellsMap);
     return item;
   });
   return res.json(items);
@@ -159,10 +176,16 @@ router.post('/admin', requireGlPermission('gl.content.manage'), async (req, res)
     const biomeError = await validateBiomeSlugsExist({ queryAll }, biomeSlugs);
     if (biomeError) return res.status(400).json({ error: biomeError });
   }
+  const spellCodes = parseSpellCodesFromBody(req.body);
+  if (spellCodes != null) {
+    const spellError = await validateSpellCodesExist({ queryAll }, spellCodes);
+    if (spellError) return res.status(400).json({ error: spellError });
+  }
   const mapImageUrl = normalizeOptionalString(req.body?.mapImageUrl);
   const storyMarkdown = String(req.body?.storyMarkdown || '');
   const biotopeMarkdown = String(req.body?.biotopeMarkdown || '');
   const biocenoseMarkdown = String(req.body?.biocenoseMarkdown || '');
+  const sortilegesMarkdown = String(req.body?.sortilegesMarkdown || '');
   const mapImageFrame = normalizeMapImageFrame(req.body?.mapImageFrame);
   if (!mapImageFrame) return res.status(400).json({ error: 'mapImageFrame invalide' });
   const orderIndex = toPositiveInt(req.body?.orderIndex, 0);
@@ -177,14 +200,18 @@ router.post('/admin', requireGlPermission('gl.content.manage'), async (req, res)
     await withTransaction(async (tx) => {
       await tx.execute(
         `INSERT INTO gl_chapters (slug, title, biome, map_image_url, story_markdown,
-                                   biotope_markdown, biocenose_markdown, map_image_frame_json, theme_json,
-                                   order_index, created_at, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
-        [slug, title, biome, mapImageUrl, storyMarkdown, biotopeMarkdown, biocenoseMarkdown, JSON.stringify(mapImageFrame), themeJson, orderIndex]
+                                   biotope_markdown, biocenose_markdown, sortileges_markdown,
+                                   map_image_frame_json, theme_json, order_index, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
+        [slug, title, biome, mapImageUrl, storyMarkdown, biotopeMarkdown, biocenoseMarkdown, sortilegesMarkdown, JSON.stringify(mapImageFrame), themeJson, orderIndex]
       );
+      const inserted = await tx.queryOne('SELECT id FROM gl_chapters WHERE slug = ? LIMIT 1', [slug]);
+      const chapterId = Number(inserted.id);
       if (biomeSlugs != null) {
-        const inserted = await tx.queryOne('SELECT id FROM gl_chapters WHERE slug = ? LIMIT 1', [slug]);
-        await syncChapterBiomes(tx, Number(inserted.id), biomeSlugs);
+        await syncChapterBiomes(tx, chapterId, biomeSlugs);
+      }
+      if (spellCodes != null) {
+        await syncChapterSpells(tx, chapterId, spellCodes);
       }
     });
   } catch (err) {
@@ -205,6 +232,11 @@ router.put('/admin/:id', requireGlPermission('gl.content.manage'), async (req, r
   if (biomeSlugs != null) {
     const biomeError = await validateBiomeSlugsExist({ queryAll }, biomeSlugs);
     if (biomeError) return res.status(400).json({ error: biomeError });
+  }
+  const spellCodes = parseSpellCodesFromBody(req.body);
+  if (spellCodes != null) {
+    const spellError = await validateSpellCodesExist({ queryAll }, spellCodes);
+    if (spellError) return res.status(400).json({ error: spellError });
   }
   const updates = [];
   const params = [];
@@ -234,6 +266,10 @@ router.put('/admin/:id', requireGlPermission('gl.content.manage'), async (req, r
     updates.push('biocenose_markdown = ?');
     params.push(String(req.body.biocenoseMarkdown || ''));
   }
+  if (req.body && Object.prototype.hasOwnProperty.call(req.body, 'sortilegesMarkdown')) {
+    updates.push('sortileges_markdown = ?');
+    params.push(String(req.body.sortilegesMarkdown || ''));
+  }
   if (req.body && Object.prototype.hasOwnProperty.call(req.body, 'orderIndex')) {
     updates.push('order_index = ?');
     params.push(toPositiveInt(req.body.orderIndex, 0));
@@ -250,7 +286,7 @@ router.put('/admin/:id', requireGlPermission('gl.content.manage'), async (req, r
     updates.push('theme_json = ?');
     params.push(serializeChapterTheme(theme));
   }
-  if (updates.length === 0 && biomeSlugs == null) {
+  if (updates.length === 0 && biomeSlugs == null && spellCodes == null) {
     return res.status(400).json({ error: 'Aucun champ à mettre à jour' });
   }
 
@@ -262,6 +298,9 @@ router.put('/admin/:id', requireGlPermission('gl.content.manage'), async (req, r
     }
     if (biomeSlugs != null) {
       await syncChapterBiomes(tx, id, biomeSlugs);
+    }
+    if (spellCodes != null) {
+      await syncChapterSpells(tx, id, spellCodes);
     }
   });
 

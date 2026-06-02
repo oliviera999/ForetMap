@@ -36,6 +36,8 @@ export function GLGameBoard({
   onWatchTeamPctChange,
   onZoneMusicUnlock,
   brandThemeStyle = null,
+  canSpellCast = false,
+  onLaunchSpell,
 }) {
   const imageUrl = chapter?.map_image_url || '/maps/map-foret.svg';
   const [pendingMarker, setPendingMarker] = useState(null);
@@ -268,15 +270,22 @@ export function GLGameBoard({
       {!mapFullscreen ? (
         <div className="gl-game-board-head">
           <h2>{chapter?.title || 'Carte de jeu'}</h2>
-          <button
-            type="button"
-            className="gl-map-fullscreen-open"
-            data-testid="gl-map-fullscreen-open"
-            aria-label="Afficher la carte en plein écran"
-            onClick={() => setMapFullscreen(true)}
-          >
-            <span aria-hidden>⛶</span> Plein écran
-          </button>
+          <div className="gl-game-board-head__actions">
+            {canSpellCast ? (
+              <GLButton type="button" variant="secondary" onClick={() => onLaunchSpell?.()}>
+                Lancer un sortilège
+              </GLButton>
+            ) : null}
+            <button
+              type="button"
+              className="gl-map-fullscreen-open"
+              data-testid="gl-map-fullscreen-open"
+              aria-label="Afficher la carte en plein écran"
+              onClick={() => setMapFullscreen(true)}
+            >
+              <span aria-hidden>⛶</span> Plein écran
+            </button>
+          </div>
         </div>
       ) : null}
       {boardShellNode}

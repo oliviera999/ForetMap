@@ -2,9 +2,14 @@ import React, { useEffect, useState } from 'react';
 import { apiGL } from '../services/apiGL.js';
 import { GLContentPage } from './GLContentPage.jsx';
 import { GLChaptersAdminView } from './GLChaptersAdminView.jsx';
+import { GLContentCatalogPanel } from './admin/GLContentCatalogPanel.jsx';
 import { GLSpeciesImportPanel } from './admin/GLSpeciesImportPanel.jsx';
+import { GLSpeciesEditorPanel } from './admin/GLSpeciesEditorPanel.jsx';
 import { GLGlossaryImportPanel } from './admin/GLGlossaryImportPanel.jsx';
+import { GLGlossaryEditorPanel } from './admin/GLGlossaryEditorPanel.jsx';
 import { GLQcmImportPanel } from './admin/GLQcmImportPanel.jsx';
+import { GLSpellsEditorPanel } from './admin/GLSpellsEditorPanel.jsx';
+import { GLSpellsImportPanel } from './admin/GLSpellsImportPanel.jsx';
 
 export function GLContentsAdminView({ auth, onNavigateTab }) {
   const [section, setSection] = useState('pages');
@@ -68,6 +73,14 @@ export function GLContentsAdminView({ auth, onNavigateTab }) {
         </button>
         <button
           type="button"
+          className={section === 'spells' ? 'is-active' : ''}
+          onClick={() => setSection('spells')}
+          data-subtab="spells"
+        >
+          Sortilèges
+        </button>
+        <button
+          type="button"
           className={section === 'qcm' ? 'is-active' : ''}
           onClick={() => setSection('qcm')}
           data-subtab="qcm"
@@ -104,9 +117,26 @@ export function GLContentsAdminView({ auth, onNavigateTab }) {
       ) : section === 'chapters' ? (
         <GLChaptersAdminView />
       ) : section === 'species' ? (
-        <GLSpeciesImportPanel />
+        <GLContentCatalogPanel
+          manualLabel="Saisie manuelle"
+          importLabel="Import XLSX"
+          ManualPanel={GLSpeciesEditorPanel}
+          ImportPanel={GLSpeciesImportPanel}
+        />
       ) : section === 'glossary' ? (
-        <GLGlossaryImportPanel />
+        <GLContentCatalogPanel
+          manualLabel="Saisie manuelle"
+          importLabel="Import XLSX"
+          ManualPanel={GLGlossaryEditorPanel}
+          ImportPanel={GLGlossaryImportPanel}
+        />
+      ) : section === 'spells' ? (
+        <GLContentCatalogPanel
+          manualLabel="Saisie manuelle"
+          importLabel="Import XLSX"
+          ManualPanel={GLSpellsEditorPanel}
+          ImportPanel={GLSpellsImportPanel}
+        />
       ) : (
         <GLQcmImportPanel />
       )}
