@@ -116,6 +116,8 @@ test.describe('GL marché', () => {
     await pageA.getByLabel('J’accepte').check();
     await expect(pageA.getByText('Les offres sont figées')).toBeVisible();
 
+    await expect(pageB.getByText('L’autre joueur a accepté.')).toBeVisible({ timeout: 15000 });
+
     await pageB.getByLabel('J’accepte').check();
     await expect(pageB.getByText('terminé')).toBeVisible({ timeout: 15000 });
 

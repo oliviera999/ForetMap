@@ -7,6 +7,15 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Modifié
+
+- **GL — statistiques joueurs** : libellés et infobulles sur le périmètre « vie en classe » ; affichage de la classe active quand une seule classe ; e2e `e2e/gl-stats.spec.js`.
+- **ForetMap — stats collectives** : test `stats.read.all` pour un prof membre d’un groupe (vue globale sans filtre `group_id`).
+
+### Corrigé
+
+- **GL — marché e2e** : attente explicite du message « L’autre joueur a accepté » avant la double acceptation.
+
 ### Ajouté
 
 - **GL — statistiques joueurs** : stats personnelles (`GET /api/gl/stats/me`, modal joueur depuis badge vitalité ou profil) et collectives classe (`GET /api/gl/stats/class`, onglet admin **Statistiques**) — cœurs/gemmes possédés, gagnés, perdus (agrégat vie en classe), espèces/glossaire/tutoriels appris ; `lib/glPlayerStats.js`, `GLStatsView`, composants partagés `StatCard` / `StatsSummaryGrid`. Tests `tests/gl-player-stats.test.js`, Vitest `tests-ui/gl/GLStatsView.test.jsx`. Doc `docs/API.md`, `docs/GL_ARCHITECTURE.md`.

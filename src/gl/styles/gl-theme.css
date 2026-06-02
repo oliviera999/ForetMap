@@ -5136,6 +5136,12 @@ body.gl-glossary-popover-open {
   max-width: 320px;
 }
 
+.gl-stats-class-name {
+  margin: 0;
+  font-weight: 600;
+  color: #334155;
+}
+
 .gl-stats-search input {
   width: 100%;
   min-height: 44px;
