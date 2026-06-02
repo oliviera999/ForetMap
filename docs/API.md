@@ -105,6 +105,8 @@ Le script accepte aussi :
 | POST | `/api/gl/learning/species/:code` | `{ confirm: true }` | Auth GL — marque une espèce active comme **étudiée** (UPSERT idempotent) |
 | POST | `/api/gl/learning/glossary/:code` | `{ confirm: true }` | Auth GL — marque un terme actif comme **appris** |
 | POST | `/api/gl/learning/tutorials/:id` | `{ confirm: true }` | Auth GL — marque un tutoriel comme **lu** (remplace l’ancien `POST /api/gl/tutorials/:id/read`) |
+| GET | `/api/gl/stats/me` | — | Auth GL joueur — stats personnelles : vitalité (cœurs/gemmes possédés, gagnés, perdus sur la vie en classe) + apprentissages (`species_learned`, `glossary_learned`, `tutorials_read`) + `catalogTotals` ; bloc vitalité omis si `gameplay.vitality_enabled` = false |
+| GET | `/api/gl/stats/class` | `?class_id=` optionnel | `gl.players.manage` — stats collectives de la classe (liste joueurs + `classTotals`) ; `class_id` déduit du JWT ou première classe active si absent |
 | GET | `/api/gl/admin/glossary/meta` | — | `gl.content.manage` (`{ categories, niveaux, biomes }`) |
 | GET | `/api/gl/admin/glossary/terms` | `?q=`, `?categorie=`, `?statut=actif\|all` | `gl.content.manage` (liste admin `{ items, total }`) |
 | GET | `/api/gl/admin/glossary/terms/next-code` | — | `gl.content.manage` (`{ glossary_code }` — prochain code `GL####` suggéré) |

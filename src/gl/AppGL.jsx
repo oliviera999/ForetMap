@@ -35,6 +35,7 @@ import { GLNotificationsCenter } from './components/GLNotificationsCenter.jsx';
 import { GLButton } from './components/ui/GLButton.jsx';
 import { GLHelpPanel } from './components/GLHelpPanel.jsx';
 import { GLProfileModal } from './components/GLProfileModal.jsx';
+import { GLStatsView } from './components/GLStatsView.jsx';
 import { GLPasswordResetGate } from './components/GLPasswordResetGate.jsx';
 import { useGLBrandTheme } from './hooks/useGLBrandTheme.js';
 import { GLMascotCatalogProvider } from './context/GLMascotCatalogContext.jsx';
@@ -113,6 +114,7 @@ export function AppGL() {
   const [glProfile, setGlProfile] = useState(null);
   const [glConfig, setGlConfig] = useState({});
   const [showProfile, setShowProfile] = useState(false);
+  const [showPlayerStats, setShowPlayerStats] = useState(false);
   const [glossaryFocusCode, setGlossaryFocusCode] = useState(null);
   const [glossaryPopoverCode, setGlossaryPopoverCode] = useState(null);
   const [spellPopoverCode, setSpellPopoverCode] = useState(null);
@@ -180,6 +182,7 @@ export function AppGL() {
   const appVersion = useAppVersion();
   const isImpersonating = !!auth?.impersonating;
   const zoneMusicEnabled = isModuleEnabled(modules, 'zoneMusicEnabled');
+  const virtualDiceEnabled = isModuleEnabled(modules, 'virtualDiceEnabled');
 
   const activeZoneForMusic = useMemo(() => {
     if (!watchTeamPct) return null;
@@ -685,6 +688,7 @@ export function AppGL() {
         playerHealthPoints={playerVitality?.health}
         playerPowerPoints={playerVitality?.power}
         onOpenProfile={() => setShowProfile(true)}
+        onOpenStats={!isAdmin ? () => setShowPlayerStats(true) : undefined}
         onLogout={() => {
           logout();
           setGameState(null);
@@ -764,6 +768,7 @@ export function AppGL() {
               onWatchTeamPctChange={handleWatchTeamPctChange}
               onZoneMusicUnlock={unlockZoneMusic}
               brandThemeStyle={glBrandStyle}
+              virtualDiceEnabled={virtualDiceEnabled}
             />
             {!isAdmin && gameState?.game && auth?.teamId == null && (
               <section className="gl-panel">
@@ -797,6 +802,14 @@ export function AppGL() {
           />
         )}
         {tab === 'history' && <GLHistoryView gameState={gameState} />}
+        {tab === 'stats' && isAdmin && (
+          <GLStatsView
+            mode="class"
+            classes={classes}
+            auth={auth}
+            vitalityEnabled={!!gameplaySettings.vitalityEnabled}
+          />
+        )}
         {tab === 'users' && isAdmin && (
           <GLUsersAdminView
             auth={auth}
@@ -892,6 +905,10 @@ export function AppGL() {
         profile={glProfile}
         config={glConfig}
         onReloadProfile={reloadProfile}
+        onOpenStats={!isAdmin ? () => {
+          setShowProfile(false);
+          setShowPlayerStats(true);
+        } : null}
         onSessionUpdated={(payload) => {
           if (payload?.authToken || payload?.auth) {
             updateSession({
@@ -902,6 +919,26 @@ export function AppGL() {
           if (payload?.profile) setGlProfile(payload.profile);
         }}
       />
+      {showPlayerStats && !isAdmin ? (
+        <div
+          className="gl-stats-modal-overlay"
+          role="dialog"
+          aria-label="Mes statistiques"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setShowPlayerStats(false);
+          }}
+        >
+          <div className="gl-stats-modal-panel">
+            <GLStatsView
+              mode="self"
+              auth={auth}
+              vitalityEnabled={!!gameplaySettings.vitalityEnabled}
+              compact
+              onClose={() => setShowPlayerStats(false)}
+            />
+          </div>
+        </div>
+      ) : null}
       <GLGlossaryPopover
         open={!!glossaryPopoverCode}
         glossaryCode={glossaryPopoverCode}
