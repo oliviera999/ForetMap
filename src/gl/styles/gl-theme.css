@@ -1223,6 +1223,90 @@ body.gl-map-fullscreen-active .gl-qcm-popover-overlay {
   color: #1d4ed8;
 }
 
+.gl-vitality-counts {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.gl-vitality-count {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.gl-vitality-count--health .gl-vitality-count-value {
+  color: #b91c1c;
+}
+
+.gl-vitality-count--power .gl-vitality-count-value {
+  color: #1d4ed8;
+}
+
+.gl-vitality-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: color-mix(in srgb, #fff 85%, var(--gl-accent-warm) 15%);
+  border: 1px solid var(--gl-border);
+}
+
+.gl-vitality-adjust {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+}
+
+.gl-vitality-adjust-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.gl-vitality-adjust-label {
+  min-width: 1.5rem;
+  text-align: center;
+}
+
+.gl-vitality-btn {
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0 12px;
+  border-radius: var(--gl-radius-sm);
+  border: 1px solid var(--gl-border);
+  background: #fff;
+  font-size: 1.1rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background var(--motion-fast), border-color var(--motion-fast);
+}
+
+.gl-vitality-btn:hover:not(:disabled) {
+  background: color-mix(in srgb, #fff 80%, var(--gl-accent-info) 20%);
+  border-color: color-mix(in srgb, var(--gl-border) 60%, var(--gl-accent-info) 40%);
+}
+
+.gl-vitality-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.gl-vitality-team-panel {
+  display: grid;
+  gap: 10px;
+}
+
+.gl-vitality-defaults {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px dashed var(--gl-border);
+}
+
 /* Console MJ */
 .gl-mj-console {
   display: grid;

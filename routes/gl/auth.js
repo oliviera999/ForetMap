@@ -709,7 +709,8 @@ router.get('/me', requireGlAuth, async (req, res) => {
     const player = await queryOne(
       `SELECT p.id, p.first_name, p.last_name, p.pseudo, p.class_id, p.team_id,
               p.email, p.description, p.avatar_path, p.password_must_reset, p.linked_foretmap_user_id,
-              p.google_sub, c.name AS class_name, t.name AS team_name
+              p.google_sub, p.health_points, p.power_points,
+              c.name AS class_name, t.name AS team_name
          FROM gl_players p
     LEFT JOIN gl_classes c ON c.id = p.class_id
     LEFT JOIN gl_teams t ON t.id = p.team_id

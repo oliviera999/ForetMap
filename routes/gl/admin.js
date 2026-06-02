@@ -2,7 +2,8 @@ const express = require('express');
 const bcrypt = require('bcryptjs');
 const { queryAll, queryOne, execute } = require('../../database');
 const { requireGlPermission } = require('../../middleware/requireGlAuth');
-const { invalidateGameplayCache, invalidateModulesCache, MODULE_KEYS, MARKER_QUESTION_RETRIGGER_VALUES } = require('../../lib/glSettings');
+const { invalidateGameplayCache, invalidateModulesCache, MODULE_KEYS, MARKER_QUESTION_RETRIGGER_VALUES, getGameplaySettings } = require('../../lib/glSettings');
+const { getDefaultVitalityFromSettings, clampVitality } = require('../../lib/glVitality');
 const {
   MAX_IMPORT_ROWS,
   PSEUDO_RE,
@@ -128,6 +129,9 @@ const ALLOWED_GAMEPLAY_SETTINGS = new Set([
   'gameplay.player_actions_enabled',
   'gameplay.scoring_enabled',
   'gameplay.marker_question_retrigger',
+  'gameplay.vitality_enabled',
+  'gameplay.default_health_points',
+  'gameplay.default_power_points',
 ]);
 
 async function ensureClassExists(classId) {
@@ -286,14 +290,18 @@ router.post('/players', requireGlPermission('gl.players.manage'), async (req, re
     ? (password ? 0 : 1)
     : (passwordMustResetInput ? 1 : 0);
   const passwordHash = await bcrypt.hash(effectivePassword, 10);
+  const gameplayDefaults = getDefaultVitalityFromSettings(await getGameplaySettings());
   await execute(
     `INSERT INTO gl_players
-      (class_id, team_id, first_name, last_name, email, pseudo, password_must_reset, password_hash, linked_foretmap_user_id, is_active, created_at, updated_at)
-     VALUES (?, NULL, ?, ?, ?, ?, ?, ?, NULL, 1, NOW(), NOW())`,
-    [classId, firstName, lastName, email, pseudo, passwordMustReset, passwordHash]
+      (class_id, team_id, first_name, last_name, email, pseudo, password_must_reset, password_hash,
+       linked_foretmap_user_id, is_active, health_points, power_points, created_at, updated_at)
+     VALUES (?, NULL, ?, ?, ?, ?, ?, ?, NULL, 1, ?, ?, NOW(), NOW())`,
+    [classId, firstName, lastName, email, pseudo, passwordMustReset, passwordHash,
+      gameplayDefaults.health, gameplayDefaults.power]
   );
   const created = await queryOne(
-    `SELECT p.id, p.class_id, p.team_id, p.first_name, p.last_name, p.pseudo, p.email, p.password_must_reset, p.is_active
+    `SELECT p.id, p.class_id, p.team_id, p.first_name, p.last_name, p.pseudo, p.email, p.password_must_reset, p.is_active,
+            p.health_points, p.power_points
        FROM gl_players p
       WHERE p.class_id = ? AND p.pseudo = ?
       ORDER BY p.id DESC
@@ -584,11 +592,14 @@ router.post('/players/import', requireGlPermission('gl.players.manage'), async (
       const passwordHash = await bcrypt.hash(effectivePassword, 10);
       const passwordMustReset = row.password ? 0 : 1;
       try {
+        const gameplayDefaults = getDefaultVitalityFromSettings(await getGameplaySettings());
         await execute(
           `INSERT INTO gl_players
-            (class_id, team_id, first_name, last_name, email, pseudo, password_must_reset, password_hash, linked_foretmap_user_id, is_active, created_at, updated_at)
-           VALUES (?, NULL, ?, ?, ?, ?, ?, ?, NULL, 1, NOW(), NOW())`,
-          [row.classId, row.firstName, row.lastName, row.email, row.pseudo, passwordMustReset, passwordHash]
+            (class_id, team_id, first_name, last_name, email, pseudo, password_must_reset, password_hash,
+             linked_foretmap_user_id, is_active, health_points, power_points, created_at, updated_at)
+           VALUES (?, NULL, ?, ?, ?, ?, ?, ?, NULL, 1, ?, ?, NOW(), NOW())`,
+          [row.classId, row.firstName, row.lastName, row.email, row.pseudo, passwordMustReset, passwordHash,
+            gameplayDefaults.health, gameplayDefaults.power]
         );
         created += 1;
       } catch (err) {
@@ -689,6 +700,18 @@ router.put('/settings/:key', requireGlPermission('gl.settings.manage'), async (r
       return res.status(400).json({ error: 'Valeur marker_question_retrigger invalide' });
     }
     value = mode;
+  }
+  if (key === 'gameplay.vitality_enabled') {
+    if (typeof value !== 'boolean') {
+      return res.status(400).json({ error: 'La valeur de vitality_enabled doit être booléenne' });
+    }
+  }
+  if (key === 'gameplay.default_health_points' || key === 'gameplay.default_power_points') {
+    const n = Number(value);
+    if (!Number.isFinite(n) || !Number.isInteger(n) || n < 0 || n > 99) {
+      return res.status(400).json({ error: 'La valeur doit être un entier entre 0 et 99' });
+    }
+    value = clampVitality(n);
   }
   if (key === 'platform.brand') {
     if (!value || typeof value !== 'object' || Array.isArray(value)) {

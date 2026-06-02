@@ -44,6 +44,9 @@ const DEFAULT_GAMEPLAY = {
   narrationEnabled: false,
   playerActionsEnabled: false,
   scoringEnabled: false,
+  vitalityEnabled: false,
+  defaultHealthPoints: 3,
+  defaultPowerPoints: 3,
 };
 
 function decodeBase64UrlJson(value) {
@@ -553,6 +556,24 @@ export function AppGL() {
     return team?.mascot_id || null;
   }, [isAdmin, auth, gameState]);
 
+  const playerVitality = useMemo(() => {
+    if (isAdmin || !gameplaySettings.vitalityEnabled) return null;
+    const playerId = auth?.userId != null ? Number(auth.userId) : null;
+    if (playerId == null) return null;
+    const fromGame = gameState?.vitality?.byPlayerId?.[playerId];
+    if (fromGame) {
+      return { health: fromGame.health, power: fromGame.power };
+    }
+    const profile = glProfile || {};
+    if (profile.health_points != null || profile.power_points != null) {
+      return {
+        health: Number(profile.health_points) || 0,
+        power: Number(profile.power_points) || 0,
+      };
+    }
+    return null;
+  }, [isAdmin, gameplaySettings.vitalityEnabled, auth, gameState, glProfile]);
+
   const notifications = useGLNotificationCenter();
   useEffect(() => {
     if (narrationToast) {
@@ -608,6 +629,9 @@ export function AppGL() {
         platformSubtitle={glConfig?.subtitle}
         brandLogoUrl={glBrand?.logoUrl}
         playerMascotId={playerMascotId}
+        vitalityEnabled={!!gameplaySettings.vitalityEnabled}
+        playerHealthPoints={playerVitality?.health}
+        playerPowerPoints={playerVitality?.power}
         onOpenProfile={() => setShowProfile(true)}
         onLogout={() => {
           logout();

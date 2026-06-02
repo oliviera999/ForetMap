@@ -109,6 +109,8 @@ Le script accepte aussi :
 | GET | `/api/gl/games/:id/roster` | — | `gl.players.manage` |
 | POST | `/api/gl/games/:id/roster/assign` | `{ playerId, teamId }` | `gl.players.manage` |
 | POST | `/api/gl/games/:id/roster/unassign` | `{ playerId }` | `gl.players.manage` |
+| POST | `/api/gl/games/:id/vitality/player` | `{ playerId, healthDelta?, powerDelta?, reason? }` | `gl.event.emit` (refus `409` si `gameplay.vitality_enabled=false` ; au moins un delta non nul ; joueur de la classe de la partie) |
+| POST | `/api/gl/games/:id/vitality/team` | `{ teamId, healthDelta?, powerDelta?, reason? }` | `gl.event.emit` (applique aux membres `gl_team_members` ; refus `400` si équipe vide) |
 | POST | `/api/gl/games/:id/events` | `{ teamId?, eventType, payload }` | `gl.event.emit` (`move` exige `teamId`) |
 | POST | `/api/gl/games/:id/turn/next` | — | `gl.game.manage` (refus `409` si `gameplay.turns_enabled=false`) |
 | POST | `/api/gl/games/:id/actions` | `{ actionType, payload }` | `gl.action.request` (joueur) (refus `409` si toggle off / hors tour) |
@@ -144,8 +146,11 @@ Note UX admin GL : l’édition des chapitres et de la carte royaume est désorm
 - `action_resolved` — décision MJ (`payload: { actionRequestId, decision, scoreDelta, reason }`).
 - `marker_question_presented` — question affichée depuis un repère (`payload: { markerId, questionCode, markerLabel? }`).
 - `qcm_answer` — réponse joueur à un QCM (`payload: { questionCode, correct, choiceId, markerId? }`).
+- `vitality_change` — ajustement PV/PP par le MJ (`payload: { healthDelta, powerDelta, reason?, results: [{ playerId, health, power }] }`). Met à jour `gl_players.health_points` / `power_points` (persistant inter-parties). Requiert `gameplay.vitality_enabled=true`.
 
-**Toggles `gameplay.*`** persistés dans `gl_settings` (table `(key, value_json)`), modifiables via `PUT /api/gl/admin/settings/:key` (permission `gl.settings.manage`). Snapshot public (joueur + admin) exposé par `GET /api/gl/gameplay-settings` (réponse `{ settings: { turnsEnabled, narrationEnabled, playerActionsEnabled, scoringEnabled, markerQuestionRetrigger } }`). Cache mémoire 30 s côté serveur, invalidé à chaque PUT sur une clé `gameplay.*`.
+**Toggles `gameplay.*`** persistés dans `gl_settings` (table `(key, value_json)`), modifiables via `PUT /api/gl/admin/settings/:key` (permission `gl.settings.manage`). Snapshot public (joueur + admin) exposé par `GET /api/gl/gameplay-settings` (réponse `{ settings: { turnsEnabled, narrationEnabled, playerActionsEnabled, scoringEnabled, markerQuestionRetrigger, vitalityEnabled, defaultHealthPoints, defaultPowerPoints } }`). Cache mémoire 30 s côté serveur, invalidé à chaque PUT sur une clé `gameplay.*`.
+
+**Vitalité joueur** : colonnes `gl_players.health_points` et `power_points` (défauts initiaux `gameplay.default_health_points` / `gameplay.default_power_points`, appliqués à la **création** d’un joueur uniquement). `GET /api/gl/games/:id` renvoie `vitality: { enabled, byPlayerId }` si le module est actif ; `GET /api/gl/games/:id/roster` inclut `healthPoints` / `powerPoints` ; `GET /api/gl/auth/me` expose les compteurs sur le profil joueur.
 
 **Réglage `gameplay.marker_question_retrigger`** (chaîne JSON, défaut `"every_arrival"`) : `every_arrival` | `once_per_team` | `once_per_game` — contrôle la réouverture du popover question à l'arrivée sur un repère.
 

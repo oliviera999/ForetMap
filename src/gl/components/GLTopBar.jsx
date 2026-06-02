@@ -1,6 +1,7 @@
 import React from 'react';
 import { GLAppVersionBadge } from './GLAppVersionBadge.jsx';
 import { GLMascotAvatar } from './GLMascotAvatar.jsx';
+import { GLVitalityBadge } from './GLVitalityDisplay.jsx';
 
 function isGlMascotId(id) {
   return typeof id === 'string' && id.startsWith('gl-');
@@ -17,6 +18,9 @@ export function GLTopBar({
   onLogout,
   onOpenProfile,
   playerMascotId,
+  vitalityEnabled = false,
+  playerHealthPoints = null,
+  playerPowerPoints = null,
   showVersion = false,
   appVersion = null,
 }) {
@@ -50,6 +54,9 @@ export function GLTopBar({
         {showVersion ? <GLAppVersionBadge appVersion={appVersion} /> : null}
         {isGlMascotId(playerMascotId) ? (
           <GLMascotAvatar mascotId={playerMascotId} size={32} />
+        ) : null}
+        {vitalityEnabled && playerHealthPoints != null && playerPowerPoints != null ? (
+          <GLVitalityBadge health={playerHealthPoints} power={playerPowerPoints} />
         ) : null}
         <span>{auth?.displayName || auth?.roleSlug || 'Session'}</span>
         <button type="button" className="gl-logout" onClick={onOpenProfile}>

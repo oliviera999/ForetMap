@@ -48,11 +48,13 @@ async function createGlPlayer(options = {}) {
   const passwordHash = options.passwordHash || await bcrypt.hash(password, 10);
 
   await execute('DELETE FROM gl_players WHERE pseudo = ?', [pseudo]);
+  const healthPoints = options.healthPoints == null ? 3 : Number(options.healthPoints);
+  const powerPoints = options.powerPoints == null ? 3 : Number(options.powerPoints);
   await execute(
     `INSERT INTO gl_players
       (class_id, team_id, first_name, last_name, email, pseudo, password_must_reset, password_hash,
-       linked_foretmap_user_id, is_active, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
+       linked_foretmap_user_id, is_active, health_points, power_points, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
     [
       classId,
       teamId,
@@ -64,6 +66,8 @@ async function createGlPlayer(options = {}) {
       passwordHash,
       linkedForetmapUserId,
       isActive,
+      healthPoints,
+      powerPoints,
     ]
   );
   return queryOne('SELECT * FROM gl_players WHERE pseudo = ? ORDER BY id DESC LIMIT 1', [pseudo]);
