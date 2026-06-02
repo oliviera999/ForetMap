@@ -90,4 +90,9 @@ Le catalogue **visite** (`src/utils/visitMascotCatalog.js`, mascottes forêt com
 
 Le catalogue **G&L** reste **séparé** pour la production des mascottes (`src/utils/glMascotCatalog.js` : gnomes/licornes `gl-*`, rendu `GLMascotFallbackSvg`). Toutefois, l’assignation en jeu (`GET/POST /api/gl/mascots*`) expose désormais un **catalogue unifié** : entrées G&L (`source: 'gl'`) + mascottes ForetMap visite (`source: 'foretmap'`, renderers `rive`/`spritesheet`/`sprite_cut`). Cela permet d’utiliser les mascottes ForetMap dans G&L sans casser la compatibilité des ids historiques déjà stockés dans `gl_teams.mascot_id`.
 
-À terme, si des packs `mascot_pack` G&L doivent être livrés, on pourra ajouter un renderer `sprite_cut` dans `glMascotCatalog.js` en réutilisant `expandMascotPackToSpriteCut` (déjà partagé dans `lib/visit-pack/`).
+### Packs GL (`sprite_cut`) et mutualisation
+
+- Schéma JSON GL distinct : [`src/utils/glMascotPack.js`](../src/utils/glMascotPack.js) (liste `assets` / `states`), miroir serveur **`lib/gl-pack/mascotPack.js`** (**`npm run sync:gl-pack-lib`**, enchaîné par **`npm run build`** comme pour la visite).
+- Studio admin GL : `GLMascotPackWysiwygEditor` — validation Zod inline + prévisualisation via [`src/utils/glMascotPackToVisit.js`](../src/utils/glMascotPackToVisit.js) (conversion vers le format visite + `expandMascotPackToSpriteCut`).
+- UI partagée : [`src/shared/mascot-pack/`](../src/shared/mascot-pack/) (`MascotPackValidationList`, `MascotPackSpriteCutPreview`, helpers Zod).
+- Le catalogue **visite** et le catalogue **`gl-*`** restent séparés ; l’assignation jeu GL peut toutefois référencer les deux sources (`docs/GL_ARCHITECTURE.md`).

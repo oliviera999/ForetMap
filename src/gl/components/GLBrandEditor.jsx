@@ -8,7 +8,7 @@ import { GLImageSourceField } from './GLImageSourceField.jsx';
 import { GLImageFrameEditor } from './GLImageFrameEditor.jsx';
 import { normalizeGlImageFrame } from '../../utils/glImageFrame.js';
 import { normalizeBrand } from '../hooks/useGLBrandTheme.js';
-import { compressImage, isLikelyImageFile } from '../../utils/image.js';
+import { compressImageWithPreset, isLikelyImageFile } from '../../utils/image.js';
 import { GLBrandColorEditor } from './GLBrandColorEditor.jsx';
 
 const SLOT_DEFS = [
@@ -63,7 +63,7 @@ export function GLBrandEditor({ value, onChange, onStatus, disabled = false }) {
       return;
     }
     try {
-      const mediaData = await compressImage(file, 2400, 0.9);
+      const mediaData = await compressImageWithPreset(file, 'glChapter');
       const saved = await apiGL('/api/gl/admin/media-library', 'POST', { media_data: mediaData });
       const url = String(saved?.url || '').trim();
       if (!url) throw new Error('URL media manquante apres import');

@@ -4,7 +4,7 @@ import { statusBadge } from '../utils/badges';
 import { getDicebearAvatarUrl, getStudentAvatarUrl } from '../utils/avatar';
 import { getRoleTerms } from '../utils/n3-terminology';
 import { StudentAvatar } from './student-avatar';
-import { compressImage } from '../utils/image';
+import { compressImageWithPreset } from '../utils/image';
 import { buildAffiliationSelectOptions } from '../utils/affiliationSelectOptions';
 import { MarkdownTextarea } from './MarkdownTextarea.jsx';
 import { getVisitMascotCatalog } from '../utils/visitMascotCatalog.js';
@@ -269,7 +269,7 @@ function StudentProfileEditor({ student, onUpdated, onClose, isN3Affiliated = fa
     setAvatarProcessing(true);
     try {
       // Uniformise les uploads (galerie/caméra) et limite la taille.
-      const compressed = await compressImage(file, 1200, 0.72);
+      const compressed = await compressImageWithPreset(file, 'taskForm');
       if (estimateDataUrlBytes(compressed) > 2 * 1024 * 1024) {
         setErr('Image trop lourde après compression (max 2 Mo)');
         return;
