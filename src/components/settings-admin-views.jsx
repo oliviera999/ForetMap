@@ -530,7 +530,7 @@ function SettingsAdminView({ isN3Affiliated = false }) {
     setMsg('');
     setSavingKey(`map-image:${mapId}`);
     try {
-      const dataUrl = await compressImage(file, 2200, 0.85);
+      const dataUrl = await compressImageWithPreset(file, 'adminProfile');
       await api(`/api/settings/admin/maps/${encodeURIComponent(mapId)}/image`, 'POST', { image_data: dataUrl });
       await load();
       setMsg('Image de plan mise à jour');

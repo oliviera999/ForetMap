@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo, useId, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { api, API, getAuthToken, AccountDeletedError, withAppBase } from '../services/api';
-import { compressImage, isLikelyImageFile } from '../utils/image';
+import { compressImageWithPreset, isLikelyImageFile } from '../utils/image';
 import { taskStatusIndicator, daysUntil, dueDateChip, TaskDifficultyAndRiskChips, taskRequiresReferentBriefingBeforeStart } from '../utils/badges';
 import { getRoleTerms } from '../utils/n3-terminology';
 import { useDialogA11y } from '../hooks/useDialogA11y';
@@ -444,7 +444,7 @@ function TaskFormModal({
     setErr('');
     setTaskImageBusy(true);
     try {
-      const compressed = await compressImage(file, 1600, 0.82);
+      const compressed = await compressImageWithPreset(file, 'taskLog');
       const payload = String(compressed || '').split(',')[1] || '';
       const padding = payload.endsWith('==') ? 2 : (payload.endsWith('=') ? 1 : 0);
       const approxBytes = Math.floor((payload.length * 3) / 4) - padding;
@@ -3221,7 +3221,7 @@ function LogModal({ task, student, onClose, onDone, onForceLogout }) {
     }
     setErr('');
     try {
-      const compressed = await compressImage(file, 1200, 0.72);
+      const compressed = await compressImageWithPreset(file, 'taskForm');
       setImageData(compressed);
       setPreview(compressed);
     } catch (errImg) {

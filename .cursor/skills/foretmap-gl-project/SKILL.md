@@ -63,8 +63,10 @@ Lu par le front au login via `GET /api/gl/auth/config`.
 - Packs persistés : tables `gl_mascot_packs`, `gl_mascot_pack_assets`,
   `gl_mascot_sprite_library` ; routes `/api/gl/mascots/packs*` et
   `/api/gl/mascots/sprite-library*` (permission `gl.content.manage`).
-- Validation Zod partagée : `src/utils/glMascotPack.js` +
-  `lib/gl-pack/mascotPack.js`.
+- Validation Zod : `src/utils/glMascotPack.js` + miroir CJS
+  `lib/gl-pack/mascotPack.js` (**`npm run sync:gl-pack-lib`**, enchaîné par le build).
+- UI / preview partagée : `src/shared/mascot-pack/`, conversion
+  `src/utils/glMascotPackToVisit.js` pour `sprite_cut` → renderer visite.
 - Studio front : `src/gl/components/GLMascotPackManager.jsx`,
   `GLMascotPackWysiwygEditor.jsx`, `GLMascotPackPreviewPanel.jsx`.
 - Renderer multi-mode : `src/gl/components/GLMascotRenderer.jsx`

@@ -3,7 +3,7 @@ import { useOverlayHistoryBack } from '../hooks/useOverlayHistoryBack';
 import { api, AccountDeletedError } from '../services/api';
 import { SPECIAL_EMOJI, SPECIAL_DESC, TREE_LEGEND, TREE_DOTS } from '../constants/garden';
 import { PLANT_EMOJIS } from '../constants/emojis';
-import { compressImage } from '../utils/image';
+import { compressImage, compressImageWithPreset } from '../utils/image';
 import { useHelp } from '../hooks/useHelp';
 import { TaskFormModal, TasksView, LogModal, TaskLogsViewer } from './tasks-views';
 import {
@@ -776,7 +776,7 @@ function PlantEditForm({ title, form, setForm, onSave, onCancel, saving, plantId
     }
     setUploadingField(field);
     try {
-      const imageData = await compressImage(file, 1600, 0.82);
+      const imageData = await compressImageWithPreset(file, 'plant');
       const position = field === 'photo' ? 'prepend' : 'append';
       const result = await api(`/api/plants/${targetId}/photo-upload`, 'POST', { field, imageData, position });
       setForm((prev) => ({ ...prev, [field]: result?.plant?.[field] || result?.url || prev[field] }));
@@ -816,7 +816,7 @@ function PlantEditForm({ title, form, setForm, onSave, onCancel, saving, plantId
         }
         const fld = photoFields[slotIdx].key;
         try {
-          const imageData = await compressImage(files[i], 1600, 0.82);
+          const imageData = await compressImageWithPreset(files[i], 'plant');
           const result = await api(`/api/plants/${targetId}/photo-upload`, 'POST', { field: fld, imageData, position: 'append' });
           setForm((prev) => ({ ...prev, [fld]: result?.plant?.[fld] || result?.url || prev[fld] }));
           ok += 1;
@@ -855,7 +855,7 @@ function PlantEditForm({ title, form, setForm, onSave, onCancel, saving, plantId
   const onIdentifyFileChosen = async (key, file) => {
     if (!file) return;
     try {
-      const imageData = await compressImage(file, 1600, 0.82);
+      const imageData = await compressImageWithPreset(file, 'plant');
       setIdentifySlots((prev) => prev.map((r) => (r.key === key ? { ...r, imageData, fileName: file.name || '' } : r)));
     } catch {
       onToast?.('Impossible de lire cette image.');

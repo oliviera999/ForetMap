@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { apiGL } from '../services/apiGL.js';
-import { compressImage, isLikelyImageFile } from '../../utils/image.js';
+import { compressImageWithPreset, isLikelyImageFile } from '../../utils/image.js';
 import { GLChapterMapEditor } from './GLChapterMapEditor.jsx';
 import { GLPctMapCanvas } from './GLPctMapCanvas.jsx';
 import { useGlPctMapGestures } from '../hooks/useGlPctMapGestures.js';
@@ -232,7 +232,7 @@ export function GLChaptersAdminView() {
     setError('');
     setInfo('');
     try {
-      const imageData = await compressImage(file, 2400, 0.9);
+      const imageData = await compressImageWithPreset(file, 'glChapter');
       const data = await apiGL(`/api/gl/chapters/admin/${targetId}/map-image`, 'POST', { image_data: imageData });
       setDetail(data);
       setChapterForm((prev) => ({

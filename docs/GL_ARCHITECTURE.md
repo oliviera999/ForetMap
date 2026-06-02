@@ -10,6 +10,25 @@ Ce document décrit l'architecture du second mode **Gnomes & Licornes** (GL) dan
   - `gl.olution.info` (Gnomes & Licornes)
 - Isoler les sessions, permissions et données GL sans modifier le métier ForetMap.
 
+## Code partagé ForetMap ↔ GL (mutualisation)
+
+Couches **autorisées** (sans fusionner auth, thème `gl-theme` ni catalogues métier) :
+
+| Couche | Emplacement | Usage |
+|--------|-------------|--------|
+| Infra | `server.js`, `database.js`, `lib/productResolver.js` | Un serveur, isolation JWT `product` |
+| Utilitaires | `src/utils/image.js` (`IMAGE_COMPRESSION_PRESETS`), `markdown.js`, `visitMascotState.js`, `mapViewMascotMotion.js` | ForetMap + imports depuis `src/gl/` |
+| Noyaux | `src/shared/*`, `lib/shared/*Core.js` | Parité front/back (cadres image, repères, etc.) |
+| Packs mascotte | `src/shared/mascot-pack/` (validation UI, preview sprite_cut), `src/utils/glMascotPackToVisit.js` | Studio GL + mapper `sprite_cut` → format visite |
+| Miroir serveur GL | `lib/gl-pack/mascotPack.js` via **`npm run sync:gl-pack-lib`** (enchaîné par **`npm run build`**) | Validation Zod `/api/gl/mascots/packs*` sans `src/` |
+| Miroir serveur visite | `lib/visit-pack/` via **`npm run sync:visit-pack-lib`** | Validation packs visite |
+| Renderer mascotte | `VisitMapMascotRenderer` via `GLMascotRenderer` | Mascottes `foretmap` dans le plateau GL |
+| Collab | `lib/shared/contextCommentsCore.js`, `lib/shared/reactionEmojiCore.js` | Routeurs fins `routes/context-comments.js` et `routes/gl/context-comments.js` |
+
+**À ne pas mutualiser** : tables `gl_*`, RBAC GL, catalogue `glMascotCatalog.js` (ids `gl-*`), styles couleur GL.
+
+**Commentaires contextuels** : types `gl_*` uniquement sur **`/api/gl/context-comments`** (retirés de l’API ForetMap standard pour éviter deux chemins JWT).
+
 ## Routage produit
 
 - La résolution de produit se fait via `lib/productResolver.js`.

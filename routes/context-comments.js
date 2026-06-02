@@ -8,19 +8,26 @@ const { emitContextCommentsChanged } = require('../lib/realtime');
 const { getSettingValue } = require('../lib/settings');
 const {
   persistUserContentImages,
-  deleteUserContentImagesFromJson,
   attachPublicImageUrls,
   validateImagesPayload,
 } = require('../lib/userContentImages');
 const {
   normalizeOptionalString,
   parsePageQuery,
-  buildInClauseParams,
 } = require('../lib/shared/httpHelpers');
+const {
+  AUTO_BODY_WITH_PHOTOS: CORE_AUTO_BODY_WITH_PHOTOS,
+  getAllowedReactionSet,
+  normalizeEmoji,
+  loadContextCommentReactions,
+  listContextComments,
+  toggleContextCommentReaction,
+  softDeleteContextComment,
+} = require('../lib/shared/contextCommentsCore');
 
 const router = express.Router();
 
-const AUTO_BODY_WITH_PHOTOS = '(Photo)';
+const AUTO_BODY_WITH_PHOTOS = CORE_AUTO_BODY_WITH_PHOTOS;
 
 const ALLOWED_CONTEXT_TYPES = new Set([
   'task',
@@ -29,10 +36,6 @@ const ALLOWED_CONTEXT_TYPES = new Set([
   'marker',
   'plant',
   'tutorial',
-  'gl_chapter',
-  'gl_scene',
-  'gl_game',
-  'gl_mascot_pack',
 ]);
 const DEFAULT_PAGE_SIZE = 20;
 const MAX_PAGE_SIZE = 50;
@@ -41,36 +44,11 @@ const MAX_COMMENT_LEN = 4000;
 const MIN_REPORT_REASON_LEN = 3;
 const MAX_REPORT_REASON_LEN = 500;
 const COMMENT_COOLDOWN_MS = 3_000;
-const DEFAULT_REACTIONS = ['👍', '❤️', '😂', '😮', '😢', '😡', '🔥', '👏'];
-
 const cooldownState = new Map();
 
 function normalizeContextType(value) {
   const type = String(value || '').trim().toLowerCase();
   return ALLOWED_CONTEXT_TYPES.has(type) ? type : '';
-}
-
-function parseReactionEmojiList(rawValue) {
-  const raw = String(rawValue || '').trim();
-  if (!raw) return [...DEFAULT_REACTIONS];
-  const tokens = raw
-    .replace(/,/g, ' ')
-    .split(/\s+/)
-    .map((item) => String(item || '').trim())
-    .filter(Boolean)
-    .filter((item) => item.length <= 16);
-  const unique = [...new Set(tokens)].slice(0, 24);
-  return unique.length > 0 ? unique : [...DEFAULT_REACTIONS];
-}
-
-async function getAllowedReactionSet() {
-  const configured = await getSettingValue('ui.reactions.allowed_emojis', DEFAULT_REACTIONS.join(' '));
-  return new Set(parseReactionEmojiList(configured));
-}
-
-function normalizeEmoji(value, allowedReactions) {
-  const emoji = String(value || '').trim();
-  return allowedReactions.has(emoji) ? emoji : '';
 }
 
 function getActor(auth) {
@@ -152,47 +130,7 @@ async function contextExists(contextType, contextId) {
     const row = await queryOne('SELECT id FROM tutorials WHERE id = ? LIMIT 1', [contextId]);
     return !!row;
   }
-  if (contextType === 'gl_chapter') {
-    const row = await queryOne('SELECT id FROM gl_chapters WHERE id = ? LIMIT 1', [contextId]);
-    return !!row;
-  }
-  if (contextType === 'gl_scene') {
-    const row = await queryOne('SELECT id FROM gl_chapter_markers WHERE id = ? LIMIT 1', [contextId]);
-    return !!row;
-  }
-  if (contextType === 'gl_game') {
-    const row = await queryOne('SELECT id FROM gl_games WHERE id = ? LIMIT 1', [contextId]);
-    return !!row;
-  }
-  if (contextType === 'gl_mascot_pack') {
-    const row = await queryOne('SELECT id FROM gl_mascot_packs WHERE id = ? LIMIT 1', [contextId]);
-    return !!row;
-  }
   return false;
-}
-
-async function loadContextCommentReactions(commentIds = [], actor = null) {
-  if (!Array.isArray(commentIds) || commentIds.length === 0) return new Map();
-  const inClause = buildInClauseParams(commentIds);
-  const rows = await queryAll(
-    `SELECT r.comment_id, r.emoji, COUNT(*) AS c,
-            SUM(CASE WHEN r.reactor_user_type = ? AND r.reactor_user_id = ? THEN 1 ELSE 0 END) AS mine
-       FROM context_comment_reactions r
-      WHERE r.comment_id IN ${inClause.clause}
-      GROUP BY r.comment_id, r.emoji
-      ORDER BY r.comment_id ASC, MIN(r.created_at) ASC, r.emoji ASC`,
-    [actor?.userType || '', actor?.userId || '', ...inClause.params]
-  );
-  const map = new Map();
-  for (const row of rows) {
-    if (!map.has(row.comment_id)) map.set(row.comment_id, []);
-    map.get(row.comment_id).push({
-      emoji: row.emoji,
-      count: Number(row.c || 0),
-      reacted_by_me: Number(row.mine || 0) > 0,
-    });
-  }
-  return map;
 }
 
 router.use(requireAuth);
@@ -235,37 +173,10 @@ router.get('/', async (req, res) => {
     });
     const sqlLimit = Math.max(1, Number(pageSize) || DEFAULT_PAGE_SIZE);
     const sqlOffset = Math.max(0, Number(offset) || 0);
-    const totalRow = await queryOne(
-      'SELECT COUNT(*) AS c FROM context_comments WHERE context_type = ? AND context_id = ?',
-      [contextType, contextId]
-    );
-    const total = Number(totalRow?.c || 0);
-    const rows = await queryAll(
-      `SELECT c.id, c.context_type, c.context_id, c.body, c.image_paths_json, c.author_user_type, c.author_user_id, c.is_deleted, c.created_at, c.updated_at,
-              COALESCE(
-                NULLIF(u.display_name, ''),
-                NULLIF(CONCAT(COALESCE(u.first_name, ''), ' ', COALESCE(u.last_name, '')), ''),
-                NULLIF(u.pseudo, ''),
-                NULLIF(u.email, ''),
-                c.author_user_id
-              ) AS author_display_name
-         FROM context_comments c
-    LEFT JOIN users u ON u.id = c.author_user_id AND u.user_type = c.author_user_type
-        WHERE c.context_type = ?
-          AND c.context_id = ?
-        ORDER BY c.created_at DESC, c.id DESC
-        LIMIT ${sqlLimit} OFFSET ${sqlOffset}`,
-      [contextType, contextId]
-    );
-    const items = rows.map((row) => {
-      const item = { ...row, body: Number(row.is_deleted) ? '' : row.body };
-      if (Number(row.is_deleted)) {
-        delete item.image_paths_json;
-        item.image_urls = [];
-      } else {
-        attachPublicImageUrls(item, 'context-comments');
-      }
-      return item;
+    const { items, total } = await listContextComments(contextType, contextId, {
+      includeAuthorDisplayName: true,
+      pageSize: sqlLimit,
+      offset: sqlOffset,
     });
     const reactionsByComment = await loadContextCommentReactions(items.map((item) => item.id), actor);
     const enrichedItems = items.map((item) => ({
@@ -288,41 +199,10 @@ router.post('/:id/reactions', async (req, res) => {
     const emoji = normalizeEmoji(req.body?.emoji, allowedReactions);
     if (!emoji) return res.status(400).json({ error: 'Emoji non supporté' });
 
-    const comment = await queryOne(
-      `SELECT id, context_type, context_id, is_deleted
-         FROM context_comments
-        WHERE id = ?
-        LIMIT 1`,
-      [req.params.id]
-    );
-    if (!comment) return res.status(404).json({ error: 'Commentaire introuvable' });
-    if (Number(comment.is_deleted)) return res.status(409).json({ error: 'Commentaire supprimé' });
-
-    const existing = await queryOne(
-      `SELECT comment_id
-         FROM context_comment_reactions
-        WHERE comment_id = ? AND reactor_user_type = ? AND reactor_user_id = ? AND emoji = ?
-        LIMIT 1`,
-      [comment.id, actor.userType, actor.userId, emoji]
-    );
-
-    let reacted = false;
-    if (existing) {
-      await execute(
-        `DELETE FROM context_comment_reactions
-          WHERE comment_id = ? AND reactor_user_type = ? AND reactor_user_id = ? AND emoji = ?`,
-        [comment.id, actor.userType, actor.userId, emoji]
-      );
-      reacted = false;
-    } else {
-      await execute(
-        `INSERT INTO context_comment_reactions
-          (comment_id, reactor_user_type, reactor_user_id, emoji)
-         VALUES (?, ?, ?, ?)`,
-        [comment.id, actor.userType, actor.userId, emoji]
-      );
-      reacted = true;
-    }
+    const toggle = await toggleContextCommentReaction(req.params.id, actor, emoji);
+    if (toggle.error === 'not_found') return res.status(404).json({ error: 'Commentaire introuvable' });
+    if (toggle.error === 'deleted') return res.status(409).json({ error: 'Commentaire supprimé' });
+    const { comment, reacted } = toggle;
 
     await logAudit('context_comment_reaction_toggle', 'context_comment', comment.id, 'Réaction emoji commentaire contextuel', {
       req,
@@ -422,25 +302,20 @@ router.delete('/:id', async (req, res) => {
     if (!(await requireContextCommentParticipation(req, res))) return;
     const actor = getActor(req.auth);
     if (!actor) return res.status(401).json({ error: 'Session invalide' });
-    const comment = await queryOne(
-      `SELECT id, context_type, context_id, author_user_type, author_user_id, is_deleted, image_paths_json
-         FROM context_comments
-        WHERE id = ?
-        LIMIT 1`,
-      [req.params.id]
+    const existing = await queryOne(
+      `SELECT id, context_type, context_id, author_user_type, author_user_id, is_deleted
+         FROM context_comments WHERE id = ? LIMIT 1`,
+      [req.params.id],
     );
-    if (!comment) return res.status(404).json({ error: 'Commentaire introuvable' });
-    if (Number(comment.is_deleted)) return res.json({ ok: true, already_deleted: true });
+    if (!existing) return res.status(404).json({ error: 'Commentaire introuvable' });
+    if (Number(existing.is_deleted)) return res.json({ ok: true, already_deleted: true });
 
-    const ownsComment = comment.author_user_type === actor.userType && comment.author_user_id === actor.userId;
+    const ownsComment = existing.author_user_type === actor.userType && existing.author_user_id === actor.userId;
     const moderator = canModerateComments(req.auth);
     if (!ownsComment && !moderator) return res.status(403).json({ error: 'Permission insuffisante' });
 
-    deleteUserContentImagesFromJson(comment.image_paths_json, 'context-comments');
-    await execute(
-      'UPDATE context_comments SET is_deleted = 1, body = ?, image_paths_json = NULL, updated_at = NOW() WHERE id = ?',
-      ['[commentaire supprimé]', comment.id]
-    );
+    const deleted = await softDeleteContextComment(req.params.id);
+    const comment = deleted.comment;
     await logAudit('context_comment_delete', 'context_comment', comment.id, 'Suppression commentaire contextuel', {
       req,
       actorUserType: actor.userType,

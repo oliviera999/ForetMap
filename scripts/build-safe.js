@@ -35,11 +35,23 @@ function syncVisitPackServerLib() {
   return child.status === 0;
 }
 
+function syncGlPackServerLib() {
+  const script = path.join(root, 'scripts', 'sync-gl-pack-server-lib.js');
+  if (!fs.existsSync(script)) return true;
+  const child = spawnSync(process.execPath, [script], {
+    cwd: root,
+    stdio: 'inherit',
+    env: process.env,
+  });
+  return child.status === 0;
+}
+
 function main() {
   if (fs.existsSync(viteBin)) {
     const ok = runViteBuild();
     if (!ok) process.exit(1);
     if (!syncVisitPackServerLib()) process.exit(1);
+    if (!syncGlPackServerLib()) process.exit(1);
     process.exit(0);
   }
 
@@ -47,6 +59,7 @@ function main() {
     console.warn('[build-safe] Vite indisponible (dépendances dev absentes).');
     console.warn('[build-safe] dist/ détecté : build ignoré (mode prébuild local).');
     if (!syncVisitPackServerLib()) process.exit(1);
+    if (!syncGlPackServerLib()) process.exit(1);
     process.exit(0);
   }
 

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { apiGL } from '../services/apiGL.js';
-import { compressImage, isLikelyImageFile } from '../../utils/image.js';
+import { compressImageWithPreset, isLikelyImageFile } from '../../utils/image.js';
 import { MediaLibraryMenu } from '../../components/MediaLibraryMenu.jsx';
 import { GLImageFrameEditor } from './GLImageFrameEditor.jsx';
 import { normalizeGlImageFrame } from '../../utils/glImageFrame.js';
@@ -21,7 +21,7 @@ export function GLImageInlineInsertControls({
     }
     setUploading(true);
     try {
-      const mediaData = await compressImage(file, 2000, 0.85);
+      const mediaData = await compressImageWithPreset(file, 'glInline');
       const saved = await apiGL('/api/gl/admin/media-library', 'POST', { media_data: mediaData });
       const url = String(saved?.url || '').trim();
       if (!url) throw new Error('URL média manquante après import');

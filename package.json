@@ -1,6 +1,6 @@
 {
   "name": "foretmap",
-  "version": "1.57.30",
+  "version": "1.57.31",
   "description": "Application de gestion de la forêt comestible - Lycée Lyautey",
   "main": "server.js",
   "engines": {
@@ -108,6 +108,7 @@
     "mascot:renard2-cut-align-walk": "node scripts/renard2-cut-align-walk.cjs",
     "mascot:pack:validate": "node scripts/mascot-pack-validate.cjs",
     "sync:visit-pack-lib": "node scripts/sync-visit-pack-server-lib.js",
+    "sync:gl-pack-lib": "node scripts/sync-gl-pack-server-lib.js",
     "build": "node scripts/build-safe.js",
     "preview": "vite preview",
     "deploy:prepare": "node scripts/prepare-dist-deploy.js",
