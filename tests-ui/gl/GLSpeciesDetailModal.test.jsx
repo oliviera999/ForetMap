@@ -87,6 +87,37 @@ describe('GLSpeciesDetailModal', () => {
     expect(onOpenGlossaryTerm).toHaveBeenCalledWith('GL0001');
   });
 
+  test('affiche le badge étudiée si learningProgress indique appris', () => {
+    const learningProgress = {
+      isSpeciesLearned: (code) => code === 'SP0001',
+      markLocal: vi.fn(),
+    };
+    render(
+      <GLSpeciesDetailModal
+        species={fullSpecies}
+        onClose={vi.fn()}
+        learningProgress={learningProgress}
+      />
+    );
+    expect(screen.getByTitle(/étudié/i)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Marquer comme étudiée/i })).not.toBeInTheDocument();
+  });
+
+  test('affiche le bouton marquer comme étudiée si non appris', () => {
+    const learningProgress = {
+      isSpeciesLearned: () => false,
+      markLocal: vi.fn(),
+    };
+    render(
+      <GLSpeciesDetailModal
+        species={fullSpecies}
+        onClose={vi.fn()}
+        learningProgress={learningProgress}
+      />
+    );
+    expect(screen.getByRole('button', { name: /Marquer comme étudiée/i })).toBeInTheDocument();
+  });
+
   test('masque les sections sans champ renseigné', () => {
     render(
       <GLSpeciesDetailModal

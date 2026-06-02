@@ -4,6 +4,8 @@ const { requireGlPermission } = require('../../middleware/requireGlAuth');
 const {
   resolveImportRows,
   applySpeciesImport,
+  upsertSpeciesRow,
+  allocateNextSpeciesCode,
   MAX_IMPORT_ROWS,
   buildSpeciesTemplateWorkbook,
   buildSpeciesExportWorkbook,
@@ -14,6 +16,21 @@ const {
   buildGlossaryLookupMap,
   matchGlossaryTermsForSpecies,
 } = require('./glossary');
+const {
+  buildReaderKey,
+  listLearningAcks,
+  groupLearningAcksByType,
+  markItemsLearned,
+} = require('../../lib/shared/learningAckCore');
+
+const db = { queryAll, queryOne, execute };
+
+async function loadSpeciesLearnedCodes(glAuth) {
+  const reader = buildReaderKey(glAuth);
+  if (!reader) return [];
+  const rows = await listLearningAcks(db, reader, 'species');
+  return groupLearningAcksByType(rows).species_codes;
+}
 
 const router = express.Router();
 
@@ -57,11 +74,107 @@ router.get('/species', requireGlPermission('gl.read'), async (req, res) => {
   );
   const glossaryRows = await loadActiveGlossaryForBiome(biomeSlug);
   const glossaryByKey = buildGlossaryLookupMap(glossaryRows);
-  const items = itemsRaw.map((row) => ({
-    ...row,
-    glossaryTerms: matchGlossaryTermsForSpecies(row.mots_cles, glossaryByKey),
-  }));
+  const learnedCodes = await loadSpeciesLearnedCodes(req.glAuth);
+  const items = markItemsLearned(
+    itemsRaw.map((row) => ({
+      ...row,
+      glossaryTerms: matchGlossaryTermsForSpecies(row.mots_cles, glossaryByKey),
+    })),
+    learnedCodes,
+    'species_code'
+  );
   return res.json({ biome, items });
+});
+
+const ADMIN_SPECIES_LIST_LIMIT = 500;
+
+function normalizeOptionalFilter(value) {
+  if (value == null) return null;
+  const s = String(value).trim();
+  return s.length > 0 ? s : null;
+}
+
+function handleSpeciesCrudError(res, err) {
+  const status = err.statusCode || 400;
+  return res.status(status).json({
+    error: err.message || 'Opération impossible',
+    details: Array.isArray(err.details) ? err.details : undefined,
+  });
+}
+
+async function loadAdminSpeciesDetail(code) {
+  const row = await queryOne(
+    `SELECT id, species_code, biome_slug, type, nom_commun, nom_scientifique, groupe, famille,
+            statut_iucn, endemique, role_ecologique, adaptations_cles, taille_adulte, poids_adulte,
+            regime_alimentaire, longevite, reproduction, observation_terrain, description_courte,
+            anecdote, present_dans_qcm, mots_cles, wikipedia_title, wikipedia_url, photo_url, photo_credit,
+            photo_licence, photo_licence_url, statut
+       FROM gl_species
+      WHERE species_code = ?
+      LIMIT 1`,
+    [code]
+  );
+  return row || null;
+}
+
+function filterSpeciesAdminList(rows, { type, q }) {
+  let items = rows;
+  if (type) items = items.filter((row) => row.type === type);
+  if (q) {
+    const needle = String(q).toLowerCase();
+    items = items.filter((row) => {
+      const hay = `${row.nom_commun} ${row.nom_scientifique || ''} ${row.species_code}`.toLowerCase();
+      return hay.includes(needle);
+    });
+  }
+  return items;
+}
+
+/** GET /api/gl/admin/species/next-code — prochain code SP#### suggéré. */
+router.get('/admin/species/next-code', requireGlPermission('gl.content.manage'), async (_req, res) => {
+  const species_code = await allocateNextSpeciesCode(queryAll);
+  return res.json({ species_code });
+});
+
+/** GET /api/gl/admin/species — liste admin par biome. */
+router.get('/admin/species', requireGlPermission('gl.content.manage'), async (req, res) => {
+  const biomeSlug = normalizeBiomeSlug(req.query?.biomeSlug);
+  if (!biomeSlug) return res.status(400).json({ error: 'biomeSlug requis' });
+  const biome = await queryOne('SELECT slug, nom FROM gl_biomes WHERE slug = ? LIMIT 1', [biomeSlug]);
+  if (!biome) return res.status(404).json({ error: 'Biome introuvable' });
+
+  const type = normalizeOptionalFilter(req.query?.type);
+  const q = normalizeOptionalFilter(req.query?.q);
+  const statutRaw = String(req.query?.statut || 'actif').toLowerCase();
+  const statutClause = statutRaw === 'all' ? '' : " AND statut = 'actif' ";
+
+  const rows = await queryAll(
+    `SELECT species_code, biome_slug, type, nom_commun, nom_scientifique, groupe, statut
+       FROM gl_species
+      WHERE biome_slug = ?${statutClause}
+      ORDER BY type ASC, nom_commun ASC
+      LIMIT ${ADMIN_SPECIES_LIST_LIMIT}`,
+    [biomeSlug]
+  );
+
+  const items = filterSpeciesAdminList(rows, { type, q });
+  return res.json({ biome, items, total: items.length });
+});
+
+/** POST /api/gl/admin/species — création. */
+router.post('/admin/species', requireGlPermission('gl.content.manage'), async (req, res) => {
+  try {
+    const explicitCode = String(req.body?.species_code || '').trim();
+    const result = await upsertSpeciesRow(
+      { queryAll, execute },
+      req.body || {},
+      { requireNew: Boolean(explicitCode) }
+    );
+    const species = await loadAdminSpeciesDetail(result.payload.species_code);
+    return res.status(201).json({ ok: true, created: result.created, species });
+  } catch (err) {
+    return handleSpeciesCrudError(res, err);
+  }
 });
 
 /** GET /api/gl/admin/species/stats — agrégats catalogue (admin). */
@@ -136,6 +249,50 @@ router.post('/admin/species/import', requireGlPermission('gl.content.manage'), a
   } catch (err) {
     return res.status(400).json({ error: err.message || 'Import impossible' });
   }
+});
+
+/** GET /api/gl/admin/species/:code — fiche admin. */
+router.get('/admin/species/:code', requireGlPermission('gl.content.manage'), async (req, res) => {
+  const code = String(req.params.code || '').trim();
+  if (!code) return res.status(400).json({ error: 'Code invalide' });
+  const species = await loadAdminSpeciesDetail(code);
+  if (!species) return res.status(404).json({ error: 'Espèce introuvable' });
+  return res.json({ species });
+});
+
+/** PUT /api/gl/admin/species/:code — mise à jour. */
+router.put('/admin/species/:code', requireGlPermission('gl.content.manage'), async (req, res) => {
+  const code = String(req.params.code || '').trim();
+  if (!code) return res.status(400).json({ error: 'Code invalide' });
+  try {
+    const result = await upsertSpeciesRow(
+      { queryAll, execute },
+      req.body || {},
+      { species_code: code, requireExisting: true }
+    );
+    const species = await loadAdminSpeciesDetail(result.payload.species_code);
+    return res.json({ ok: true, created: false, species });
+  } catch (err) {
+    return handleSpeciesCrudError(res, err);
+  }
+});
+
+/** PATCH /api/gl/admin/species/:code — archivage. */
+router.patch('/admin/species/:code', requireGlPermission('gl.content.manage'), async (req, res) => {
+  const code = String(req.params.code || '').trim();
+  if (!code) return res.status(400).json({ error: 'Code invalide' });
+  const existing = await queryOne(
+    'SELECT species_code FROM gl_species WHERE species_code = ? LIMIT 1',
+    [code]
+  );
+  if (!existing) return res.status(404).json({ error: 'Espèce introuvable' });
+  const statut = normalizeOptionalFilter(req.body?.statut) || 'inactif';
+  await execute(
+    'UPDATE gl_species SET statut = ?, updated_at = NOW() WHERE species_code = ?',
+    [statut, code]
+  );
+  const species = await loadAdminSpeciesDetail(code);
+  return res.json({ ok: true, species });
 });
 
 module.exports = router;

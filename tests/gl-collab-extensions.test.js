@@ -170,8 +170,9 @@ test('GL tutorials: CRUD admin + accusé de lecture joueur', async () => {
   assert.ok(tutorialId);
 
   await request(app)
-    .post(`/api/gl/tutorials/${tutorialId}/read`)
+    .post(`/api/gl/learning/tutorials/${tutorialId}`)
     .set('Authorization', `Bearer ${playerToken}`)
+    .send({ confirm: true })
     .expect(200);
 
   const reads = await request(app)

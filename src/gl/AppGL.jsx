@@ -15,6 +15,9 @@ import { GLBiotopeView } from './components/GLBiotopeView.jsx';
 import { GLBiocenoseView } from './components/GLBiocenoseView.jsx';
 import { GLGlossaryView } from './components/GLGlossaryView.jsx';
 import { GLGlossaryPopover } from './components/GLGlossaryPopover.jsx';
+import { GLSpellPopover } from './components/GLSpellPopover.jsx';
+import { GLSpellCastWizard } from './components/GLSpellCastWizard.jsx';
+import { useGLSpellCast } from './hooks/useGLSpellCast.js';
 import { GLHistoryView } from './components/GLHistoryView.jsx';
 import { GLUsersAdminView } from './components/GLUsersAdminView.jsx';
 import { GLContentsAdminView } from './components/GLContentsAdminView.jsx';
@@ -24,6 +27,7 @@ import { GLGameMasterConsole } from './components/GLGameMasterConsole.jsx';
 import { useGLMascotStateMachine } from './hooks/useGLMascotStateMachine.js';
 import { useGLNotificationCenter } from './hooks/useGLNotificationCenter.js';
 import { GLForumView } from './components/GLForumView.jsx';
+import { GLMarketView } from './components/GLMarketView.jsx';
 import { GLTutorialsView } from './components/GLTutorialsView.jsx';
 import { GLJournalView } from './components/GLJournalView.jsx';
 import { GLKingdomMapView } from './components/GLKingdomMapView.jsx';
@@ -38,6 +42,7 @@ import { pickZoneAtPct } from '../utils/glZoneAtPct.js';
 import { useGLZoneMusic, readStoredMuted, writeStoredMuted } from './hooks/useGLZoneMusic.js';
 import { usePrefersReducedMotion } from './hooks/usePrefersReducedMotion.js';
 import { useAppVersion } from '../hooks/useAppVersion.js';
+import { useGlLearningProgress } from './hooks/useGlLearningProgress.js';
 
 const DEFAULT_GAMEPLAY = {
   turnsEnabled: false,
@@ -47,6 +52,9 @@ const DEFAULT_GAMEPLAY = {
   vitalityEnabled: false,
   defaultHealthPoints: 3,
   defaultPowerPoints: 3,
+  spellCastEnabled: false,
+  spellCastContributionMode: 'both',
+  spellCastTeamScope: 'any_team',
 };
 
 function decodeBase64UrlJson(value) {
@@ -89,6 +97,7 @@ function toGameViewModel(raw) {
 
 export function AppGL() {
   const { session, auth, token, updateSession, logout } = useGLSession();
+  const learningProgress = useGlLearningProgress(token);
   const [tab, setTab] = useState(() => readStoredTab());
   const [chapters, setChapters] = useState([]);
   const [classes, setClasses] = useState([]);
@@ -106,6 +115,9 @@ export function AppGL() {
   const [showProfile, setShowProfile] = useState(false);
   const [glossaryFocusCode, setGlossaryFocusCode] = useState(null);
   const [glossaryPopoverCode, setGlossaryPopoverCode] = useState(null);
+  const [spellPopoverCode, setSpellPopoverCode] = useState(null);
+  const [spellCastOpen, setSpellCastOpen] = useState(false);
+  const [spellCastInitialCode, setSpellCastInitialCode] = useState(null);
   const [kingdomChapterId, setKingdomChapterId] = useState(null);
   const [zoneMusicZones, setZoneMusicZones] = useState([]);
   const [watchTeamPct, setWatchTeamPct] = useState(null);
@@ -142,6 +154,15 @@ export function AppGL() {
 
   const closeGlossaryPopover = useCallback(() => {
     setGlossaryPopoverCode(null);
+  }, []);
+
+  const openSpellPopover = useCallback((code) => {
+    const trimmed = String(code || '').trim().toUpperCase();
+    setSpellPopoverCode(trimmed || null);
+  }, []);
+
+  const closeSpellPopover = useCallback(() => {
+    setSpellPopoverCode(null);
   }, []);
 
   const openGlossaryFullTab = useCallback((code) => {
@@ -259,6 +280,9 @@ export function AppGL() {
       if (tab.id === 'kingdom') return isModuleEnabled(modules, 'kingdomMapEnabled');
       if (tab.id === 'tutorials') return isModuleEnabled(modules, 'tutorialsEnabled');
       if (tab.id === 'forum') return isModuleEnabled(modules, 'forumEnabled');
+      if (tab.id === 'market') {
+        return isModuleEnabled(modules, 'marketEnabled') && !!gameplaySettings.vitalityEnabled;
+      }
       if (tab.id === 'journal') return isModuleEnabled(modules, 'journalEnabled');
       return true;
     });
@@ -542,6 +566,34 @@ export function AppGL() {
     if (gameplaySettings.turnsEnabled && currentTeamId != null && currentTeamId !== myTeamId) return false;
     return true;
   }, [isAdmin, gameplaySettings, auth, currentTeamId]);
+
+  const canSpellCast = useMemo(() => {
+    const moduleOn = isModuleEnabled(modules, 'spellCastEnabled')
+      || gameplaySettings.spellCastEnabled === true;
+    if (!moduleOn || !gameplaySettings.vitalityEnabled) return false;
+    if (!gameState?.game?.id || gameState?.game?.status !== 'live') return false;
+    if (gameplaySettings.turnsEnabled && currentTeamId != null) {
+      const myTeamId = auth?.teamId != null ? Number(auth.teamId) : null;
+      if (!isAdmin && myTeamId != null && currentTeamId !== myTeamId) return false;
+    }
+    return true;
+  }, [modules, gameplaySettings, gameState, auth, currentTeamId, isAdmin]);
+
+  const spellCast = useGLSpellCast({
+    token,
+    gameId: gameState?.game?.id,
+    enabled: canSpellCast && spellCastOpen,
+    onCastComplete: async () => {
+      await reloadGame();
+      await reloadProfile();
+    },
+  });
+
+  const openSpellCastWizard = useCallback((code = null) => {
+    setSpellCastInitialCode(code ? String(code).trim().toUpperCase() : null);
+    setSpellCastOpen(true);
+    if (code) setSpellPopoverCode(null);
+  }, []);
   const mascotStateMachine = useGLMascotStateMachine({
     gameState,
     selectedTeamId,
@@ -679,7 +731,15 @@ export function AppGL() {
       <main className="gl-main fade-in">
         {tab === 'world' && <GLWorldView auth={auth} brandSlots={glBrand?.slots} onNavigateTab={setTab} />}
         {tab === 'rules' && <GLRulesView auth={auth} brandSlots={glBrand?.slots} onNavigateTab={setTab} />}
-        {tab === 'spells' && <GLSpellsView auth={auth} brandSlots={glBrand?.slots} onNavigateTab={setTab} />}
+        {tab === 'spells' && (
+          <GLSpellsView
+            gameState={gameState}
+            brandSlots={glBrand?.slots}
+            onOpenSpell={openSpellPopover}
+            canSpellCast={canSpellCast}
+            onLaunchSpell={openSpellCastWizard}
+          />
+        )}
         {tab === 'maps' && (
           <>
             <GLMapView
@@ -692,6 +752,8 @@ export function AppGL() {
               onQcmAnswered={reloadGame}
               canMoveMascot={isAdmin}
               canRequestAction={canRequestAction}
+              canSpellCast={canSpellCast}
+              onLaunchSpell={() => openSpellCastWizard(null)}
               selectedTeamId={selectedTeamId}
               currentTeamId={currentTeamId}
               playerTeamId={auth?.teamId != null ? Number(auth.teamId) : null}
@@ -721,6 +783,7 @@ export function AppGL() {
           <GLBiocenoseView
             gameState={gameState}
             onOpenGlossaryTerm={openGlossaryPopover}
+            learningProgress={learningProgress}
           />
         )}
         {tab === 'glossary' && (
@@ -730,6 +793,7 @@ export function AppGL() {
             activeTermCode={glossaryPopoverCode}
             onOpenPopover={openGlossaryPopover}
             onFocusHandled={clearGlossaryFocus}
+            learningProgress={learningProgress}
           />
         )}
         {tab === 'history' && <GLHistoryView gameState={gameState} />}
@@ -773,8 +837,18 @@ export function AppGL() {
         {tab === 'forum' && isModuleEnabled(modules, 'forumEnabled') && (
           <GLForumView canModerate={isAdmin} />
         )}
+        {tab === 'market' && isModuleEnabled(modules, 'marketEnabled') && gameplaySettings.vitalityEnabled && !isAdmin && (
+          <GLMarketView
+            token={token}
+            classId={auth?.classId ?? glProfile?.class_id}
+            playerId={auth?.userId}
+            onTradeCompleted={() => {
+              reloadProfile();
+            }}
+          />
+        )}
         {tab === 'tutorials' && isModuleEnabled(modules, 'tutorialsEnabled') && (
-          <GLTutorialsView canManage={isAdmin} />
+          <GLTutorialsView canManage={isAdmin} learningProgress={learningProgress} />
         )}
         {tab === 'journal' && isModuleEnabled(modules, 'journalEnabled') && (
           <GLJournalView gameId={activeGameId} />
@@ -835,6 +909,34 @@ export function AppGL() {
         onClose={closeGlossaryPopover}
         onOpenFullGlossary={openGlossaryFullTab}
         showFullGlossaryLink={tab !== 'glossary'}
+        learningProgress={learningProgress}
+      />
+      <GLSpellPopover
+        open={!!spellPopoverCode}
+        spellCode={spellPopoverCode}
+        onClose={closeSpellPopover}
+        canLaunch={canSpellCast}
+        onLaunchSpell={() => openSpellCastWizard(spellPopoverCode)}
+      />
+      <GLSpellCastWizard
+        open={spellCastOpen}
+        onClose={() => {
+          setSpellCastOpen(false);
+          setSpellCastInitialCode(null);
+        }}
+        spellCode={spellCastInitialCode}
+        teams={gameState?.teams || []}
+        gameId={gameState?.game?.id}
+        playerId={auth?.userId != null ? Number(auth.userId) : null}
+        playerTeamId={auth?.teamId != null ? Number(auth.teamId) : null}
+        currentTeamId={currentTeamId}
+        turnsEnabled={!!gameplaySettings.turnsEnabled}
+        contributionMode={gameplaySettings.spellCastContributionMode || 'both'}
+        teamScope={gameplaySettings.spellCastTeamScope || 'any_team'}
+        isStaff={isAdmin}
+        spellCast={spellCast}
+        chapterSpells={gameState?.game?.chapter_spells || []}
+        onPickSpell={(code) => setSpellCastInitialCode(code)}
       />
     </div>
     </GLMascotCatalogProvider>

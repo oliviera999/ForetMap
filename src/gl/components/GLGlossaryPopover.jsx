@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { useDialogA11y } from '../../hooks/useDialogA11y.js';
 import { apiGL } from '../services/apiGL.js';
 import { GLButton } from './ui/GLButton.jsx';
+import { GLLearningAcknowledgeButton } from './GLLearningAcknowledgeButton.jsx';
 
 const CLOSE_MS = 200;
 
@@ -44,6 +45,7 @@ export function GLGlossaryPopover({
   onClose,
   onOpenFullGlossary,
   showFullGlossaryLink = true,
+  learningProgress,
 }) {
   const titleId = useId();
   const [activeCode, setActiveCode] = useState(null);
@@ -156,6 +158,8 @@ export function GLGlossaryPopover({
   }
 
   const term = detail?.term;
+  const activeGlossaryCode = String(activeCode || '').trim();
+  const isLearned = learningProgress?.isGlossaryLearned?.(activeGlossaryCode) || !!term?.learned;
   const accent = categoryAccent(term?.categorie);
   const overlayClass = [
     'gl-glossary-popover',
@@ -268,13 +272,32 @@ export function GLGlossaryPopover({
           </div>
         ) : null}
 
-        {showFullGlossaryLink ? (
-          <footer className="gl-glossary-popover__footer">
+        <footer className="gl-glossary-popover__footer">
+          {activeGlossaryCode && learningProgress ? (
+            <GLLearningAcknowledgeButton
+              acknowledgePath={`/api/gl/learning/glossary/${encodeURIComponent(activeGlossaryCode)}`}
+              itemTitle={term?.terme}
+              labelAction="Marquer comme appris"
+              labelDone="✓ Appris"
+              titleDone="Tu as confirmé avoir appris ce terme"
+              confirmIntro={(
+                <>
+                  En validant, tu confirmes avoir compris le terme
+                  {' '}
+                  <strong>« {term?.terme || activeGlossaryCode} »</strong>.
+                </>
+              )}
+              confirmCheckboxLabel="Je confirme avoir lu et compris cette définition."
+              isDone={isLearned}
+              onAcknowledged={() => learningProgress.markLocal('glossary', activeGlossaryCode)}
+            />
+          ) : null}
+          {showFullGlossaryLink ? (
             <GLButton type="button" variant="ghost" onClick={openFullGlossary}>
               Voir le glossaire complet
             </GLButton>
-          </footer>
-        ) : null}
+          ) : null}
+        </footer>
       </div>
     </div>,
     document.body,

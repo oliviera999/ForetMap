@@ -12,6 +12,7 @@ export const GL_PLAYER_TABS = [
   { id: 'kingdom', label: 'Royaume', icon: '🏰' },
   { id: 'tutorials', label: 'Tutoriels', icon: '🎓' },
   { id: 'forum', label: 'Forum', icon: '💬' },
+  { id: 'market', label: 'Marché', icon: '🤝' },
   { id: 'journal', label: 'Journal', icon: '📓' },
 ];
 

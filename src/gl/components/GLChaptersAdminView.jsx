@@ -14,6 +14,7 @@ import { GLBrandColorEditor } from './GLBrandColorEditor.jsx';
 import { normalizeBrand } from '../hooks/useGLBrandTheme.js';
 import { brandToCssVars, mergeBrandWithChapterTheme, normalizeChapterTheme } from '../../utils/glBrandTheme.js';
 import { GLButton } from './ui/GLButton.jsx';
+import { GL_SPELL_CATEGORY_LABELS } from '../utils/glSpellFieldLabels.js';
 
 const EMPTY_CHAPTER_THEME = { colors: {} };
 
@@ -22,10 +23,12 @@ const EMPTY_CHAPTER_FORM = {
   title: '',
   biome: '',
   biomeSlugs: [],
+  spellCodes: [],
   mapImageUrl: '',
   storyMarkdown: '',
   biotopeMarkdown: '',
   biocenoseMarkdown: '',
+  sortilegesMarkdown: '',
   orderIndex: 0,
   mapImageFrame: normalizeGlImageFrame(null, 'chapter-map'),
   theme: { ...EMPTY_CHAPTER_THEME },
@@ -53,6 +56,7 @@ export function GLChaptersAdminView() {
   const [pendingMapPreviewUrl, setPendingMapPreviewUrl] = useState('');
   const [frameEditorOpen, setFrameEditorOpen] = useState(false);
   const [biomes, setBiomes] = useState([]);
+  const [spellCatalog, setSpellCatalog] = useState([]);
   const [platformBrand, setPlatformBrand] = useState(null);
   const previewMapGestures = useGlPctMapGestures();
 
@@ -101,11 +105,15 @@ export function GLChaptersAdminView() {
         biomeSlugs: Array.isArray(data.chapter.biomes)
           ? data.chapter.biomes.map((b) => b.slug)
           : [],
+        spellCodes: Array.isArray(data.chapter.spells)
+          ? data.chapter.spells.map((s) => s.spell_code)
+          : [],
         mapImageUrl: data.chapter.map_image_url || '',
         mapImageFrame: normalizeGlImageFrame(data.chapter.map_image_frame, 'chapter-map'),
         storyMarkdown: data.chapter.story_markdown || '',
         biotopeMarkdown: data.chapter.biotope_markdown || '',
         biocenoseMarkdown: data.chapter.biocenose_markdown || '',
+        sortilegesMarkdown: data.chapter.sortileges_markdown || '',
         orderIndex: Number(data.chapter.order_index || 0),
         theme: normalizeChapterTheme(data.chapter.theme),
       });
@@ -116,9 +124,19 @@ export function GLChaptersAdminView() {
     }
   }
 
+  async function loadSpellCatalog() {
+    try {
+      const data = await apiGL('/api/gl/admin/spells/all');
+      setSpellCatalog(Array.isArray(data?.items) ? data.items : []);
+    } catch (_) {
+      setSpellCatalog([]);
+    }
+  }
+
   useEffect(() => {
     loadChapters();
     loadBiomes();
+    loadSpellCatalog();
     loadPlatformBrand();
   }, []);
 
@@ -264,6 +282,50 @@ export function GLChaptersAdminView() {
     : (!selectedId ? 'Vous pouvez choisir une photo avant l’enregistrement ; l’envoi se fera à la création du chapitre.' : '');
 
   const markers = useMemo(() => (Array.isArray(detail?.markers) ? detail.markers : []), [detail]);
+
+  const spellsByCategory = useMemo(() => {
+    const map = new Map();
+    for (const spell of spellCatalog) {
+      const slug = String(spell.category_slug || 'autre');
+      if (!map.has(slug)) {
+        map.set(slug, {
+          slug,
+          nom: GL_SPELL_CATEGORY_LABELS[slug] || spell.category_nom || slug,
+          spells: [],
+        });
+      }
+      map.get(slug).spells.push(spell);
+    }
+    return [...map.values()].sort((a, b) => a.nom.localeCompare(b.nom, 'fr'));
+  }, [spellCatalog]);
+
+  const allSpellCodes = useMemo(
+    () => spellCatalog.map((s) => String(s.spell_code || '').trim()).filter(Boolean),
+    [spellCatalog]
+  );
+
+  function setSpellCodes(next) {
+    setChapterForm((prev) => ({ ...prev, spellCodes: next }));
+  }
+
+  function toggleSpellCode(code, checked) {
+    const c = String(code || '').trim();
+    if (!c) return;
+    setSpellCodes(
+      checked
+        ? [...new Set([...chapterForm.spellCodes, c])]
+        : chapterForm.spellCodes.filter((item) => item !== c)
+    );
+  }
+
+  function selectAllSpells(codes) {
+    setSpellCodes([...new Set([...chapterForm.spellCodes, ...codes])]);
+  }
+
+  function deselectAllSpells(codes) {
+    const remove = new Set(codes);
+    setSpellCodes(chapterForm.spellCodes.filter((c) => !remove.has(c)));
+  }
   const mapPreviewStyle = useMemo(
     () => glImageFrameToStyle(normalizeGlImageFrame(chapterForm.mapImageFrame, 'chapter-map')),
     [chapterForm.mapImageFrame]
@@ -423,6 +485,96 @@ export function GLChaptersAdminView() {
                 })}
               </ul>
             </fieldset>
+            <fieldset className="gl-fieldset">
+              <legend>Sorts du chapitre (grimoire)</legend>
+              <p className="gl-hint">
+                Cochez les sorts disponibles pour ce chapitre en partie (onglet Sortilèges).
+              </p>
+              <div className="gl-inline-actions gl-inline-actions--wrap">
+                <GLButton
+                  type="button"
+                  size="sm"
+                  variant="secondary"
+                  onClick={() => selectAllSpells(allSpellCodes)}
+                  disabled={allSpellCodes.length === 0}
+                >
+                  Tout cocher
+                </GLButton>
+                <GLButton
+                  type="button"
+                  size="sm"
+                  variant="secondary"
+                  onClick={() => setSpellCodes([])}
+                  disabled={chapterForm.spellCodes.length === 0}
+                >
+                  Tout décocher
+                </GLButton>
+              </div>
+              {chapterForm.spellCodes.length > 0 ? (
+                <p className="gl-hint">
+                  {chapterForm.spellCodes.length}
+                  {' '}
+                  sort(s) sélectionné(s).
+                </p>
+              ) : (
+                <p className="gl-hint">Aucun sort sélectionné.</p>
+              )}
+              {spellsByCategory.length === 0 ? (
+                <p className="gl-hint">
+                  Catalogue vide — importez des sorts dans Contenus → Sortilèges.
+                </p>
+              ) : (
+                spellsByCategory.map((group) => {
+                  const groupCodes = group.spells.map((s) => s.spell_code);
+                  const allInGroup = groupCodes.every((c) => chapterForm.spellCodes.includes(c));
+                  return (
+                    <div key={group.slug} className="gl-chapter-spells-group">
+                      <div className="gl-inline-actions gl-inline-actions--wrap">
+                        <strong>{group.nom}</strong>
+                        <GLButton
+                          type="button"
+                          size="sm"
+                          variant="secondary"
+                          onClick={() => (
+                            allInGroup
+                              ? deselectAllSpells(groupCodes)
+                              : selectAllSpells(groupCodes)
+                          )}
+                        >
+                          {allInGroup ? 'Tout décocher' : 'Tout cocher'}
+                          {' '}
+                          (
+                          {group.spells.length}
+                          )
+                        </GLButton>
+                      </div>
+                      <ul className="gl-chapter-spells-options">
+                        {group.spells.map((spell) => {
+                          const code = spell.spell_code;
+                          const checked = chapterForm.spellCodes.includes(code);
+                          return (
+                            <li key={code}>
+                              <label>
+                                <input
+                                  type="checkbox"
+                                  checked={checked}
+                                  onChange={(event) => toggleSpellCode(code, event.target.checked)}
+                                />
+                                <span aria-hidden="true">{spell.emoji || '✨'}</span>
+                                {' '}
+                                {spell.nom}
+                                {' '}
+                                <span className="gl-hint">({code})</span>
+                              </label>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    </div>
+                  );
+                })
+              )}
+            </fieldset>
             <GLImageSourceField
               label="Image de carte"
               url={chapterForm.mapImageUrl}
@@ -520,6 +672,14 @@ export function GLChaptersAdminView() {
                 value={chapterForm.biocenoseMarkdown}
                 onChange={(event) => setChapterForm({ ...chapterForm, biocenoseMarkdown: event.target.value })}
                 imageLegend="Images de la biocénose"
+              />
+            </label>
+            <label>
+              Sortilèges (markdown)
+              <GLRichTextEditor
+                value={chapterForm.sortilegesMarkdown}
+                onChange={(event) => setChapterForm({ ...chapterForm, sortilegesMarkdown: event.target.value })}
+                imageLegend="Images du grimoire"
               />
             </label>
             <div className="gl-inline-actions">

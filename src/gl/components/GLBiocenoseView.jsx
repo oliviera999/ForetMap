@@ -2,7 +2,7 @@ import React from 'react';
 import { renderMarkdownToSafeHtml } from '../../utils/markdown.js';
 import { GLSpeciesCatalog } from './GLSpeciesCatalog.jsx';
 
-export function GLBiocenoseView({ gameState, onOpenGlossaryTerm }) {
+export function GLBiocenoseView({ gameState, onOpenGlossaryTerm, learningProgress }) {
   const introMarkdown = String(gameState?.game?.biocenose_markdown || '').trim();
   const introHtml = introMarkdown
     ? renderMarkdownToSafeHtml(introMarkdown, { allowImages: true })
@@ -20,6 +20,7 @@ export function GLBiocenoseView({ gameState, onOpenGlossaryTerm }) {
       <GLSpeciesCatalog
         biomes={biomes}
         onOpenGlossaryTerm={onOpenGlossaryTerm}
+        learningProgress={learningProgress}
       />
     </article>
   );

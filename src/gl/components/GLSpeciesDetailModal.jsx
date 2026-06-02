@@ -8,6 +8,7 @@ import {
   isGlSpeciesUrlField,
 } from '../utils/glSpeciesFieldLabels.js';
 import { GLButton } from './ui/GLButton.jsx';
+import { GLLearningAcknowledgeButton } from './GLLearningAcknowledgeButton.jsx';
 
 function SpeciesFieldValue({ fieldKey, value, biomeNom, species }) {
   const formatted = formatGlSpeciesFieldValue(fieldKey, value, { biomeNom });
@@ -116,7 +117,13 @@ function SpeciesGlossarySection({ species, glossaryTerms, onOpenGlossaryTerm }) 
  *   onOpenGlossaryTerm?: (code: string) => void,
  * }} props
  */
-export function GLSpeciesDetailModal({ species, biomeNom = '', onClose, onOpenGlossaryTerm }) {
+export function GLSpeciesDetailModal({
+  species,
+  biomeNom = '',
+  onClose,
+  onOpenGlossaryTerm,
+  learningProgress,
+}) {
   useEffect(() => {
     if (!species) return undefined;
     const onKeyDown = (e) => {
@@ -131,6 +138,8 @@ export function GLSpeciesDetailModal({ species, biomeNom = '', onClose, onOpenGl
   const nomCommun = String(species.nom_commun || '').trim() || 'Espèce';
   const typeLabel = GL_SPECIES_TYPE_LABELS[species.type === 'flore' ? 'flore' : 'faune'] || '';
   const glossaryTerms = Array.isArray(species.glossaryTerms) ? species.glossaryTerms : [];
+  const speciesCode = String(species.species_code || '').trim();
+  const isLearned = learningProgress?.isSpeciesLearned?.(speciesCode) || !!species.learned;
 
   return (
     <div
@@ -164,9 +173,30 @@ export function GLSpeciesDetailModal({ species, biomeNom = '', onClose, onOpenGl
               ) : null}
             </div>
           </div>
-          <GLButton type="button" variant="secondary" onClick={onClose}>
-            Fermer
-          </GLButton>
+          <div className="gl-species-detail-modal__head-actions">
+            {speciesCode && learningProgress ? (
+              <GLLearningAcknowledgeButton
+                acknowledgePath={`/api/gl/learning/species/${encodeURIComponent(speciesCode)}`}
+                itemTitle={nomCommun}
+                labelAction="Marquer comme étudiée"
+                labelDone="✓ Étudiée"
+                titleDone="Tu as confirmé avoir étudié cette espèce"
+                confirmIntro={(
+                  <>
+                    En validant, tu confirmes avoir étudié la fiche de
+                    {' '}
+                    <strong>« {nomCommun} »</strong>.
+                  </>
+                )}
+                confirmCheckboxLabel="Je confirme avoir lu et compris cette fiche espèce."
+                isDone={isLearned}
+                onAcknowledged={() => learningProgress.markLocal('species', speciesCode)}
+              />
+            ) : null}
+            <GLButton type="button" variant="secondary" onClick={onClose}>
+              Fermer
+            </GLButton>
+          </div>
         </div>
 
         {hasGlSpeciesFieldValue(species.photo_url) ? (

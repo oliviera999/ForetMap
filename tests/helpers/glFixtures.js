@@ -181,11 +181,21 @@ async function signTokens(options = {}) {
   return out;
 }
 
+async function assignPlayerToGameTeam({ gameId, teamId, playerId }) {
+  await execute(
+    `INSERT INTO gl_team_members (game_id, team_id, player_id)
+     VALUES (?, ?, ?)
+     ON DUPLICATE KEY UPDATE team_id = VALUES(team_id)`,
+    [Number(gameId), Number(teamId), Number(playerId)]
+  );
+}
+
 module.exports = {
   createGlAdmin,
   createGlClass,
   createGlPlayer,
   createGlChapterWithMarker,
   createGlGameWithTeams,
+  assignPlayerToGameTeam,
   signTokens,
 };

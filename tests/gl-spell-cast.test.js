@@ -1,0 +1,246 @@
+'use strict';
+
+require('./helpers/setup');
+const { test, before } = require('node:test');
+const assert = require('node:assert');
+const request = require('supertest');
+const { app } = require('../server');
+const { initSchema, execute, queryOne } = require('../database');
+const {
+  invalidateGameplayCache,
+  invalidateModulesCache,
+} = require('../lib/glSettings');
+const { signAuthToken } = require('../middleware/requireTeacher');
+const {
+  createGlAdmin,
+  createGlClass,
+  createGlPlayer,
+  createGlChapterWithMarker,
+  createGlGameWithTeams,
+  assignPlayerToGameTeam,
+} = require('./helpers/glFixtures');
+
+const stamp = Date.now();
+let gameId = null;
+let teamAId = null;
+let teamBId = null;
+let chapterId = null;
+let playerAId = null;
+let playerBId = null;
+let tokenA = '';
+let tokenB = '';
+
+async function enableSpellCast(extra = {}) {
+  await execute(
+    `INSERT INTO gl_settings (\`key\`, value_json, updated_at)
+     VALUES ('gameplay.vitality_enabled', 'true', NOW()),
+            ('modules.spell_cast_enabled', 'true', NOW()),
+            ('gameplay.spell_cast_contribution_mode', ?, NOW()),
+            ('gameplay.spell_cast_team_scope', ?, NOW())
+     ON DUPLICATE KEY UPDATE value_json = VALUES(value_json), updated_at = NOW()`,
+    [
+      JSON.stringify(extra.contributionMode || 'coordinator'),
+      JSON.stringify(extra.teamScope || 'any_team'),
+    ]
+  );
+  invalidateGameplayCache();
+  invalidateModulesCache();
+}
+
+before(async () => {
+  await initSchema();
+  await enableSpellCast();
+
+  const admin = await createGlAdmin({
+    email: `spellcast.mj.${stamp}@ecole.local`,
+    displayName: 'MJ SpellCast',
+  });
+  const cls = await createGlClass({
+    name: `Classe SpellCast ${stamp}`,
+    school: 'Ecole Test',
+    adminId: admin.id,
+  });
+
+  const { chapter } = await createGlChapterWithMarker({
+    slug: `ch-spellcast-${stamp}`,
+    title: 'Chapitre SpellCast',
+  });
+  chapterId = Number(chapter.id);
+
+  await execute(
+    `INSERT INTO gl_spells (spell_code, category_slug, nom, emoji, cout_gemmes, cout_coeurs, statut, created_at, updated_at)
+     VALUES ('SCT01', 'vie', 'Sort gemmes', '💎', 2, 0, 'officiel', NOW(), NOW()),
+            ('SCT02', 'vie', 'Sort coeurs', '❤️', 0, 2, 'officiel', NOW(), NOW()),
+            ('SCT03', 'vie', 'Sort mixte', '✨', 1, 1, 'officiel', NOW(), NOW())
+     ON DUPLICATE KEY UPDATE nom = VALUES(nom), cout_gemmes = VALUES(cout_gemmes),
+       cout_coeurs = VALUES(cout_coeurs), updated_at = NOW()`
+  );
+  await execute(
+    `INSERT INTO gl_chapter_spells (chapter_id, spell_code, order_index)
+     VALUES (?, 'SCT01', 0), (?, 'SCT02', 10), (?, 'SCT03', 20)
+     ON DUPLICATE KEY UPDATE order_index = VALUES(order_index)`,
+    [chapterId, chapterId, chapterId]
+  );
+
+  const playerA = await createGlPlayer({
+    classId: cls.id,
+    pseudo: `sc-a-${stamp}`,
+    healthPoints: 5,
+    powerPoints: 5,
+  });
+  const playerB = await createGlPlayer({
+    classId: cls.id,
+    pseudo: `sc-b-${stamp}`,
+    healthPoints: 4,
+    powerPoints: 3,
+  });
+  playerAId = Number(playerA.id);
+  playerBId = Number(playerB.id);
+
+  const { game, teams } = await createGlGameWithTeams({
+    classId: cls.id,
+    chapterId,
+    createdBy: admin.id,
+    status: 'live',
+    name: `Partie SpellCast ${stamp}`,
+    teams: [
+      { name: 'Gnomes', type: 'gnome' },
+      { name: 'Licornes', type: 'unicorn' },
+    ],
+  });
+  gameId = Number(game.id);
+  teamAId = Number(teams[0].id);
+  teamBId = Number(teams[1].id);
+
+  await assignPlayerToGameTeam({ gameId, teamId: teamAId, playerId: playerAId });
+  await assignPlayerToGameTeam({ gameId, teamId: teamAId, playerId: playerBId });
+
+  tokenA = await signAuthToken({
+    product: 'gl',
+    userType: 'gl_player',
+    userId: String(playerAId),
+    roleSlug: 'gl_player',
+    permissions: ['gl.read', 'gl.action.request'],
+    displayName: playerA.pseudo,
+    classId: cls.id,
+    teamId: teamAId,
+    gameId,
+  });
+  tokenB = await signAuthToken({
+    product: 'gl',
+    userType: 'gl_player',
+    userId: String(playerBId),
+    roleSlug: 'gl_player',
+    permissions: ['gl.read', 'gl.action.request'],
+    displayName: playerB.pseudo,
+    classId: cls.id,
+    teamId: teamAId,
+    gameId,
+  });
+});
+
+test('module désactivé → 409', async () => {
+  await execute(
+    `INSERT INTO gl_settings (\`key\`, value_json, updated_at)
+     VALUES ('modules.spell_cast_enabled', 'false', NOW())
+     ON DUPLICATE KEY UPDATE value_json = VALUES(value_json), updated_at = NOW()`
+  );
+  invalidateModulesCache();
+  const res = await request(app)
+    .post(`/api/gl/games/${gameId}/spell-casts/drafts`)
+    .set('Authorization', `Bearer ${tokenA}`)
+    .send({ spellCode: 'SCT01', teamId: teamAId });
+  assert.strictEqual(res.status, 409);
+  await enableSpellCast();
+});
+
+test('sort hors chapitre → 400', async () => {
+  await execute(
+    `INSERT INTO gl_spells (spell_code, category_slug, nom, cout_gemmes, cout_coeurs, statut, created_at, updated_at)
+     VALUES ('SCT99', 'vie', 'Hors chapitre', 1, 0, 'officiel', NOW(), NOW())
+     ON DUPLICATE KEY UPDATE updated_at = NOW()`
+  );
+  const res = await request(app)
+    .post(`/api/gl/games/${gameId}/spell-casts/drafts`)
+    .set('Authorization', `Bearer ${tokenA}`)
+    .send({ spellCode: 'SCT99', teamId: teamAId });
+  assert.strictEqual(res.status, 400);
+});
+
+test('lancement gemmes : débit et événement spell_cast', async () => {
+  const draftRes = await request(app)
+    .post(`/api/gl/games/${gameId}/spell-casts/drafts`)
+    .set('Authorization', `Bearer ${tokenA}`)
+    .send({ spellCode: 'SCT01', teamId: teamAId });
+  assert.strictEqual(draftRes.status, 201);
+  const draftId = draftRes.body.draft.id;
+
+  await request(app)
+    .put(`/api/gl/games/${gameId}/spell-casts/drafts/${draftId}/contributions`)
+    .set('Authorization', `Bearer ${tokenA}`)
+    .send({
+      contributions: [
+        { playerId: playerAId, gems: 1, hearts: 0 },
+        { playerId: playerBId, gems: 1, hearts: 0 },
+      ],
+    })
+    .expect(200);
+
+  const launchRes = await request(app)
+    .post(`/api/gl/games/${gameId}/spell-casts/drafts/${draftId}/launch`)
+    .set('Authorization', `Bearer ${tokenA}`);
+  assert.strictEqual(launchRes.status, 200);
+  assert.strictEqual(launchRes.body.ok, true);
+
+  const rowA = await queryOne('SELECT power_points FROM gl_players WHERE id = ?', [playerAId]);
+  const rowB = await queryOne('SELECT power_points FROM gl_players WHERE id = ?', [playerBId]);
+  assert.strictEqual(Number(rowA.power_points), 4);
+  assert.strictEqual(Number(rowB.power_points), 2);
+
+  const evt = await queryOne(
+    `SELECT event_type, payload_json FROM gl_game_events
+      WHERE game_id = ? AND event_type = 'spell_cast' ORDER BY id DESC LIMIT 1`,
+    [gameId]
+  );
+  assert.ok(evt);
+  const payload = JSON.parse(evt.payload_json);
+  assert.strictEqual(payload.spellCode, 'SCT01');
+});
+
+test('self_only refuse contribution autre joueur', async () => {
+  await enableSpellCast({ contributionMode: 'self_only' });
+  const draftRes = await request(app)
+    .post(`/api/gl/games/${gameId}/spell-casts/drafts`)
+    .set('Authorization', `Bearer ${tokenA}`)
+    .send({ spellCode: 'SCT02', teamId: teamAId });
+  const draftId = draftRes.body.draft.id;
+
+  const forbidden = await request(app)
+    .put(`/api/gl/games/${gameId}/spell-casts/drafts/${draftId}/contributions`)
+    .set('Authorization', `Bearer ${tokenA}`)
+    .send({ contributions: [{ playerId: playerBId, gems: 0, hearts: 2 }] });
+  assert.strictEqual(forbidden.status, 403);
+
+  await request(app)
+    .put(`/api/gl/games/${gameId}/spell-casts/drafts/${draftId}/contributions`)
+    .set('Authorization', `Bearer ${tokenA}`)
+    .send({ contributions: [{ playerId: playerAId, gems: 0, hearts: 2 }] })
+    .expect(200);
+
+  await request(app)
+    .delete(`/api/gl/games/${gameId}/spell-casts/drafts/${draftId}`)
+    .set('Authorization', `Bearer ${tokenA}`)
+    .expect(200);
+
+  await enableSpellCast({ contributionMode: 'coordinator' });
+});
+
+test('own_team : joueur ne peut pas choisir autre équipe', async () => {
+  await enableSpellCast({ teamScope: 'own_team' });
+  const res = await request(app)
+    .post(`/api/gl/games/${gameId}/spell-casts/drafts`)
+    .set('Authorization', `Bearer ${tokenA}`)
+    .send({ spellCode: 'SCT01', teamId: teamBId });
+  assert.strictEqual(res.status, 403);
+  await enableSpellCast({ teamScope: 'any_team' });
+});

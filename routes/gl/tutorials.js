@@ -4,6 +4,13 @@ const express = require('express');
 const { queryAll, queryOne, execute } = require('../../database');
 const { requireGlAuth, requireGlPermission } = require('../../middleware/requireGlAuth');
 const { normalizeOptionalString } = require('../../lib/shared/httpHelpers');
+const {
+  buildReaderKey,
+  listLearningAcks,
+  groupLearningAcksByType,
+} = require('../../lib/shared/learningAckCore');
+
+const db = { queryAll, queryOne, execute };
 
 const router = express.Router();
 
@@ -36,12 +43,11 @@ router.get('/', requireGlAuth, async (req, res) => {
 });
 
 router.get('/me/read-ids', requireGlAuth, async (req, res) => {
-  const rows = await queryAll(
-    `SELECT tutorial_id FROM gl_tutorial_reads
-      WHERE reader_user_type = ? AND reader_user_id = ?`,
-    [String(req.glAuth.userType || ''), String(req.glAuth.userId || '')]
-  );
-  return res.json({ ids: rows.map((r) => Number(r.tutorial_id)) });
+  const reader = buildReaderKey(req.glAuth);
+  if (!reader) return res.json({ ids: [] });
+  const rows = await listLearningAcks(db, reader, 'tutorial');
+  const { tutorial_ids: ids } = groupLearningAcksByType(rows);
+  return res.json({ ids });
 });
 
 router.get('/:idOrSlug', requireGlAuth, async (req, res) => {
@@ -52,20 +58,6 @@ router.get('/:idOrSlug', requireGlAuth, async (req, res) => {
     : await queryOne('SELECT * FROM gl_tutorials WHERE slug = ? LIMIT 1', [idOrSlug]);
   if (!row) return res.status(404).json({ error: 'Tutoriel introuvable' });
   return res.json(row);
-});
-
-router.post('/:id/read', requireGlAuth, async (req, res) => {
-  const id = Number(req.params.id);
-  if (!Number.isFinite(id)) return res.status(400).json({ error: 'Identifiant invalide' });
-  const tutorial = await queryOne('SELECT id FROM gl_tutorials WHERE id = ? LIMIT 1', [id]);
-  if (!tutorial) return res.status(404).json({ error: 'Tutoriel introuvable' });
-  await execute(
-    `INSERT INTO gl_tutorial_reads (tutorial_id, reader_user_type, reader_user_id, read_at)
-     VALUES (?, ?, ?, NOW())
-     ON DUPLICATE KEY UPDATE read_at = NOW()`,
-    [id, String(req.glAuth.userType || ''), String(req.glAuth.userId || '')]
-  );
-  return res.json({ ok: true });
 });
 
 router.post('/', requireGlPermission('gl.content.manage'), async (req, res) => {

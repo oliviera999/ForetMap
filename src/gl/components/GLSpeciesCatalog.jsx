@@ -18,14 +18,14 @@ function groupSpeciesByTypeAndGroup(items) {
   return byType;
 }
 
-function GLSpeciesTile({ species, onSelect }) {
+function GLSpeciesTile({ species, onSelect, isLearned }) {
   const nomCommun = String(species.nom_commun || '').trim() || 'Espèce';
   const nomScientifique = String(species.nom_scientifique || '').trim();
 
   return (
     <button
       type="button"
-      className="gl-species-tile"
+      className={`gl-species-tile${isLearned ? ' gl-species-tile--learned' : ''}`}
       aria-label={`Ouvrir la fiche de ${nomCommun}`}
       onClick={() => onSelect(species)}
     >
@@ -35,10 +35,11 @@ function GLSpeciesTile({ species, onSelect }) {
         ) : (
           <span className="gl-species-tile__placeholder" />
         )}
-        <span className="gl-species-tile__hint">Fiche</span>
+        <span className="gl-species-tile__hint">{isLearned ? 'Étudiée' : 'Fiche'}</span>
       </span>
       <span className="gl-species-tile__labels">
         <span className="gl-species-tile__name">{nomCommun}</span>
+        {isLearned ? <span className="gl-species-tile__learned-badge" aria-hidden>✓</span> : null}
         {nomScientifique ? (
           <span className="gl-species-tile__scientific">
             <em>{nomScientifique}</em>
@@ -49,7 +50,7 @@ function GLSpeciesTile({ species, onSelect }) {
   );
 }
 
-function GLSpeciesCatalogPanel({ biomeSlug, biomeNom, onOpenGlossaryTerm }) {
+function GLSpeciesCatalogPanel({ biomeSlug, biomeNom, onOpenGlossaryTerm, learningProgress }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [items, setItems] = useState([]);
@@ -122,13 +123,19 @@ function GLSpeciesCatalogPanel({ biomeSlug, biomeNom, onOpenGlossaryTerm }) {
               <div key={`${typeKey}-${groupName}`} className="gl-species-catalog__group">
                 <h4>{groupName}</h4>
                 <div className="gl-species-catalog__grid gl-species-catalog__grid--dense">
-                  {groups[groupName].map((species) => (
-                    <GLSpeciesTile
-                      key={species.species_code || species.id}
-                      species={species}
-                      onSelect={setSelectedSpecies}
-                    />
-                  ))}
+                  {groups[groupName].map((species) => {
+                    const code = String(species.species_code || '').trim();
+                    const learned = learningProgress?.isSpeciesLearned?.(code)
+                      || !!species.learned;
+                    return (
+                      <GLSpeciesTile
+                        key={species.species_code || species.id}
+                        species={species}
+                        onSelect={setSelectedSpecies}
+                        isLearned={learned}
+                      />
+                    );
+                  })}
                 </div>
               </div>
             ))}
@@ -140,6 +147,7 @@ function GLSpeciesCatalogPanel({ biomeSlug, biomeNom, onOpenGlossaryTerm }) {
         biomeNom={biomeNom}
         onClose={() => setSelectedSpecies(null)}
         onOpenGlossaryTerm={onOpenGlossaryTerm}
+        learningProgress={learningProgress}
       />
     </div>
   );
@@ -148,7 +156,7 @@ function GLSpeciesCatalogPanel({ biomeSlug, biomeNom, onOpenGlossaryTerm }) {
 /**
  * @param {{ biomes?: Array<{ slug: string, nom?: string }>, onOpenGlossaryTerm?: (code: string) => void }} props
  */
-export function GLSpeciesCatalog({ biomes = [], onOpenGlossaryTerm }) {
+export function GLSpeciesCatalog({ biomes = [], onOpenGlossaryTerm, learningProgress }) {
   const normalizedBiomes = useMemo(
     () => (Array.isArray(biomes) ? biomes : [])
       .filter((b) => b && b.slug)
@@ -210,6 +218,7 @@ export function GLSpeciesCatalog({ biomes = [], onOpenGlossaryTerm }) {
         biomeSlug={activeBiome.slug}
         biomeNom={activeBiome.nom}
         onOpenGlossaryTerm={onOpenGlossaryTerm}
+        learningProgress={learningProgress}
       />
     </div>
   );

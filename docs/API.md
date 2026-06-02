@@ -64,23 +64,54 @@ Le script accepte aussi :
 
 | Méthode | URL | Body | Permission |
 |--------|-----|------|------------|
-| GET | `/api/gl/chapters` | — | `gl.read` (liste ; chaque chapitre inclut `biomes[]` : `{ slug, nom, order_index }`) |
-| GET | `/api/gl/chapters/:slug` | — | `gl.read` (réponse `{ chapter, markers }` ; `chapter.biomes[]`) |
-| POST | `/api/gl/chapters/admin` | `{ slug, title, biome?, biomeSlugs?, biomeSlug?, mapImageUrl?, mapImageFrame?, theme?, storyMarkdown?, biotopeMarkdown?, biocenoseMarkdown?, orderIndex? }` | `gl.content.manage` (refus `409` si slug existant ; chaque entrée de `biomeSlugs` doit exister dans `gl_biomes` ; `biomeSlug` legacy = un seul slug) |
-| PUT | `/api/gl/chapters/admin/:id` | mise à jour partielle des mêmes champs (dont `biomeSlugs`, `mapImageFrame`, `theme`) | `gl.content.manage` |
+| GET | `/api/gl/chapters` | — | `gl.read` (liste ; chaque chapitre inclut `biomes[]`, `spells[]`) |
+| GET | `/api/gl/chapters/:slug` | — | `gl.read` (réponse `{ chapter, markers }` ; `chapter.biomes[]`, `chapter.spells[]`) |
+| POST | `/api/gl/chapters/admin` | `{ slug, title, biome?, biomeSlugs?, biomeSlug?, spellCodes?, mapImageUrl?, mapImageFrame?, theme?, storyMarkdown?, biotopeMarkdown?, biocenoseMarkdown?, sortilegesMarkdown?, orderIndex? }` | `gl.content.manage` (refus `409` si slug existant ; `biomeSlugs` / `spellCodes` validés contre le catalogue) |
+| PUT | `/api/gl/chapters/admin/:id` | mise à jour partielle des mêmes champs (dont `biomeSlugs`, `spellCodes`, `sortilegesMarkdown`, `mapImageFrame`, `theme`) | `gl.content.manage` |
 | DELETE | `/api/gl/chapters/admin/:id` | — | `gl.content.manage` (refus `409` si partie liée) |
 | POST | `/api/gl/chapters/admin/:id/markers` | `{ label, xPct, yPct, eventType?, description?, orderIndex?, eventConfig?, qcmCategorieSlug?, qcmQuestionCode?, displayMode?, emoji?, iconUrl? }` | `gl.content.manage` (`eventConfig` : schéma versionné `{ version, question: { mode, fixedQuestionCode?, pool } }` ; affichage carte : `displayMode` = `label` \| `emoji` \| `icon` — défaut `emoji` + `❓` pour `eventType` question/quiz) |
 | PUT | `/api/gl/chapters/admin/markers/:markerId` | mise à jour partielle marker (dont `eventConfig`, `displayMode`, `emoji`, `iconUrl`) | `gl.content.manage` |
 | POST | `/api/gl/chapters/admin/:id/map-image` | `{ image_data }` (data URL base64 image) | `gl.content.manage` |
 | DELETE | `/api/gl/chapters/admin/markers/:markerId` | — | `gl.content.manage` (détache les équipes positionnées sur ce marker via `ON DELETE SET NULL`) |
 | GET | `/api/gl/biomes` | — | `gl.read` (liste biomes + effectifs espèces actives) |
-| GET | `/api/gl/species` | `?biomeSlug=` (requis) | `gl.read` (réponse `{ biome, items }` triées faune/flore/groupe/nom ; chaque espèce inclut `glossaryTerms[]` si `mots_cles` matchent le glossaire actif) |
+| GET | `/api/gl/species` | `?biomeSlug=` (requis) | `gl.read` (réponse `{ biome, items }` triées faune/flore/groupe/nom ; chaque espèce inclut `glossaryTerms[]` et `learned: boolean` pour le lecteur connecté) |
+| GET | `/api/gl/admin/species` | `?biomeSlug=` (requis), `?q=`, `?type=faune\|flore`, `?statut=actif\|all` | `gl.content.manage` (liste admin `{ biome, items, total }`) |
+| GET | `/api/gl/admin/species/next-code` | — | `gl.content.manage` (`{ species_code }` — prochain code `SP####` suggéré) |
+| GET | `/api/gl/admin/species/:code` | — | `gl.content.manage` (fiche complète `{ species }`) |
+| POST | `/api/gl/admin/species` | corps aligné sur le modèle XLSX `especes` (`species_code` optionnel → auto `SP####`) | `gl.content.manage` (`201` + `{ ok, created, species }` ; `409` si code existant à la création) |
+| PUT | `/api/gl/admin/species/:code` | mise à jour (code immuable) | `gl.content.manage` |
+| PATCH | `/api/gl/admin/species/:code` | `{ statut }` (ex. `inactif` pour archiver) | `gl.content.manage` |
 | POST | `/api/gl/admin/species/import` | `{ fileDataBase64, fileName?, dryRun?, syncBiomes? }` (XLSX feuilles `especes` / `biomes_stats`) | `gl.content.manage` (UPSERT par `species_code`, rapport `{ report }`) |
 | GET | `/api/gl/admin/species/import/template` | — | `gl.content.manage` (modèle XLSX biocénose + ligne d’exemple, feuilles `especes` et `biomes_stats`) |
 | GET | `/api/gl/admin/species/export` | `?biomeSlug=`, `?statut=actif\|all` (défaut `actif`) | `gl.content.manage` (export XLSX ré-importable du catalogue espèces/biomes) |
 | GET | `/api/gl/admin/species/stats` | — | `gl.content.manage` (total + agrégats par biome/type) |
-| GET | `/api/gl/glossary` | `?biomeSlug=`, `?biomeSlugs=` (csv), `?categorie=`, `?niveau=`, `?q=` optionnels | `gl.read` (réponse `{ biome, biomes, items }` — termes actifs filtrés par biome(s) si fourni) |
-| GET | `/api/gl/glossary/:code` | `?biomeSlug=`, `?biomeSlugs=` (csv) optionnels | `gl.read` (fiche `{ term, relatedTerms, relatedSpecies }` ; espèces liées = union des biomes fournis) |
+| GET | `/api/gl/spell-categories` | — | `gl.read` (liste catégories + effectifs sorts) |
+| GET | `/api/gl/spells` | `?spellCodes=` (csv, requis) | `gl.read` (réponse `{ items, total }`) |
+| GET | `/api/gl/spells/:code` | — | `gl.read` (fiche `{ spell, category }` pour popover joueur) |
+| GET | `/api/gl/admin/spells` | `?categorySlug=` (requis), `?q=`, `?statutFilter=officiel\|all` | `gl.content.manage` (liste admin par catégorie) |
+| GET | `/api/gl/admin/spells/all` | — | `gl.content.manage` (liste complète pour sélection chapitre) |
+| GET | `/api/gl/admin/spells/next-code` | — | `gl.content.manage` (`{ spell_code }` — prochain `SL###` suggéré) |
+| GET | `/api/gl/admin/spells/:code` | — | `gl.content.manage` (fiche `{ spell }`) |
+| POST | `/api/gl/admin/spells` | corps feuille `sortileges` (`spell_code` / `id` optionnel) | `gl.content.manage` (`201` ; `409` si code existant) |
+| PUT | `/api/gl/admin/spells/:code` | mise à jour | `gl.content.manage` |
+| DELETE | `/api/gl/admin/spells/:code` | — | `gl.content.manage` (`409` si sort lié à un chapitre) |
+| POST | `/api/gl/admin/spells/import` | `{ fileDataBase64, dryRun?, syncCategories? }` (XLSX `sortileges` / `categories_stats`) | `gl.content.manage` |
+| GET | `/api/gl/admin/spells/import/template` | — | `gl.content.manage` (modèle XLSX sortilèges) |
+| GET | `/api/gl/admin/spells/export` | `?categorySlug=`, `?statut=all\|officiel\|propose` | `gl.content.manage` |
+| GET | `/api/gl/admin/spells/stats` | — | `gl.content.manage` |
+| GET | `/api/gl/glossary` | `?biomeSlug=`, `?biomeSlugs=` (csv), `?categorie=`, `?niveau=`, `?q=` optionnels | `gl.read` (réponse `{ biome, biomes, items }` — chaque item inclut `learned: boolean` pour le lecteur connecté) |
+| GET | `/api/gl/glossary/:code` | `?biomeSlug=`, `?biomeSlugs=` (csv) optionnels | `gl.read` (fiche `{ term, relatedTerms, relatedSpecies }` — `term.learned` pour le lecteur ; espèces liées = union des biomes fournis) |
+| GET | `/api/gl/learning/me` | — | Auth GL — `{ species_codes, glossary_codes, tutorial_ids }` (progression globale du lecteur, inter-parties) |
+| POST | `/api/gl/learning/species/:code` | `{ confirm: true }` | Auth GL — marque une espèce active comme **étudiée** (UPSERT idempotent) |
+| POST | `/api/gl/learning/glossary/:code` | `{ confirm: true }` | Auth GL — marque un terme actif comme **appris** |
+| POST | `/api/gl/learning/tutorials/:id` | `{ confirm: true }` | Auth GL — marque un tutoriel comme **lu** (remplace l’ancien `POST /api/gl/tutorials/:id/read`) |
+| GET | `/api/gl/admin/glossary/meta` | — | `gl.content.manage` (`{ categories, niveaux, biomes }`) |
+| GET | `/api/gl/admin/glossary/terms` | `?q=`, `?categorie=`, `?statut=actif\|all` | `gl.content.manage` (liste admin `{ items, total }`) |
+| GET | `/api/gl/admin/glossary/terms/next-code` | — | `gl.content.manage` (`{ glossary_code }` — prochain code `GL####` suggéré) |
+| GET | `/api/gl/admin/glossary/terms/:code` | — | `gl.content.manage` (fiche `{ term }` avec `biome_slugs[]`, `related_codes[]`) |
+| POST | `/api/gl/admin/glossary/terms` | corps aligné sur le modèle XLSX `glossaire` (`glossary_code` optionnel → auto `GL####`) | `gl.content.manage` (`201` + `{ ok, created, term }` ; `409` si code existant à la création) |
+| PUT | `/api/gl/admin/glossary/terms/:code` | mise à jour (code immuable) | `gl.content.manage` |
+| PATCH | `/api/gl/admin/glossary/terms/:code` | `{ statut }` (ex. `inactif` pour archiver) | `gl.content.manage` |
 | POST | `/api/gl/admin/glossary/import` | `{ fileDataBase64, fileName?, dryRun? }` (XLSX feuille `glossaire`) | `gl.content.manage` (UPSERT par `glossary_code`, sync biomes + relations, rapport `{ report }`) |
 | GET | `/api/gl/admin/glossary/import/template` | — | `gl.content.manage` (modèle XLSX vierge + ligne d’exemple, feuille `glossaire`) |
 | GET | `/api/gl/admin/glossary/export` | `?statut=actif\|all` (défaut `actif`) | `gl.content.manage` (export XLSX ré-importable du catalogue en base) |
@@ -113,6 +144,12 @@ Le script accepte aussi :
 | POST | `/api/gl/games/:id/vitality/team` | `{ teamId, healthDelta?, powerDelta?, reason? }` | `gl.event.emit` (applique aux membres `gl_team_members` ; refus `400` si équipe vide) |
 | POST | `/api/gl/games/:id/events` | `{ teamId?, eventType, payload }` | `gl.event.emit` (`move` exige `teamId`) |
 | POST | `/api/gl/games/:id/turn/next` | — | `gl.game.manage` (refus `409` si `gameplay.turns_enabled=false`) |
+| POST | `/api/gl/games/:id/spell-casts/drafts` | `{ spellCode, teamId }` | `gl.action.request` ou `gl.event.emit` (refus `409` si module off / vitalité off / partie non `live`) |
+| GET | `/api/gl/games/:id/spell-casts/drafts/:draftId` | — | idem |
+| PUT | `/api/gl/games/:id/spell-casts/drafts/:draftId/contributions` | `{ contributions: [{ playerId, gems?, hearts? }] }` | idem (règles `gameplay.spell_cast_contribution_mode`) |
+| POST | `/api/gl/games/:id/spell-casts/drafts/:draftId/launch` | — | idem (somme contributions = coût sort ; débit PP/PV) |
+| DELETE | `/api/gl/games/:id/spell-casts/drafts/:draftId` | — | créateur ou MJ |
+| GET | `/api/gl/spell-cast-settings` | — | Auth GL (snapshot module + modes) |
 | POST | `/api/gl/games/:id/actions` | `{ actionType, payload }` | `gl.action.request` (joueur) (refus `409` si toggle off / hors tour) |
 | POST | `/api/gl/games/:id/actions/:actionId/resolve` | `{ decision: "accepted"\|"refused", scoreDelta?, reason? }` | `gl.game.manage` |
 | POST | `/api/gl/games/:id/start` | — | `gl.game.manage` |
@@ -147,8 +184,9 @@ Note UX admin GL : l’édition des chapitres et de la carte royaume est désorm
 - `marker_question_presented` — question affichée depuis un repère (`payload: { markerId, questionCode, markerLabel? }`).
 - `qcm_answer` — réponse joueur à un QCM (`payload: { questionCode, correct, choiceId, markerId? }`).
 - `vitality_change` — ajustement PV/PP par le MJ (`payload: { healthDelta, powerDelta, reason?, results: [{ playerId, health, power }] }`). Met à jour `gl_players.health_points` / `power_points` (persistant inter-parties). Requiert `gameplay.vitality_enabled=true`.
+- `spell_cast` — lancement collaboratif d’un sortilège (`payload: { spellCode, spellName, teamId, cost: { gems, hearts }, contributions[], results[] }`). Débite les PP (💎) et PV (❤️) selon `gl_spells.cout_gemmes` / `cout_coeurs`. Requiert `modules.spell_cast_enabled` et `gameplay.vitality_enabled`. Socket.IO complémentaire : `gl:spell_cast:draft` (room `gl:game:{id}`).
 
-**Toggles `gameplay.*`** persistés dans `gl_settings` (table `(key, value_json)`), modifiables via `PUT /api/gl/admin/settings/:key` (permission `gl.settings.manage`). Snapshot public (joueur + admin) exposé par `GET /api/gl/gameplay-settings` (réponse `{ settings: { turnsEnabled, narrationEnabled, playerActionsEnabled, scoringEnabled, markerQuestionRetrigger, vitalityEnabled, defaultHealthPoints, defaultPowerPoints } }`). Cache mémoire 30 s côté serveur, invalidé à chaque PUT sur une clé `gameplay.*`.
+**Toggles `gameplay.*`** persistés dans `gl_settings` (table `(key, value_json)`), modifiables via `PUT /api/gl/admin/settings/:key` (permission `gl.settings.manage`). Snapshot public (joueur + admin) exposé par `GET /api/gl/gameplay-settings` (réponse inclut notamment `turnsEnabled`, `narrationEnabled`, `playerActionsEnabled`, `scoringEnabled`, `markerQuestionRetrigger`, `vitalityEnabled`, `defaultHealthPoints`, `defaultPowerPoints`, `spellCastEnabled`, `spellCastContributionMode` (`coordinator` \| `self_only` \| `both`), `spellCastTeamScope` (`any_team` \| `own_team` \| `mj_any`)). Module **`modules.spell_cast_enabled`** (défaut `false`, requiert vitalité). Cache mémoire 30 s côté serveur, invalidé à chaque PUT sur une clé `gameplay.*` ou `modules.*`.
 
 **Vitalité joueur** : colonnes `gl_players.health_points` et `power_points` (défauts initiaux `gameplay.default_health_points` / `gameplay.default_power_points`, appliqués à la **création** d’un joueur uniquement). `GET /api/gl/games/:id` renvoie `vitality: { enabled, byPlayerId }` si le module est actif ; `GET /api/gl/games/:id/roster` inclut `healthPoints` / `powerPoints` ; `GET /api/gl/auth/me` expose les compteurs sur le profil joueur.
 
@@ -204,6 +242,8 @@ dans `gl_settings` :
 - `modules.journal_enabled`
 - `modules.kingdom_map_enabled`
 - `modules.zone_music_enabled`
+- `modules.virtual_dice_enabled` — lanceur de dés D6 (1 à 5) sur la carte de jeu (client uniquement, défaut `false`)
+- `modules.market_enabled`
 
 Modifiables via `PUT /api/gl/admin/settings/:key` (validation booléenne stricte,
 permission `gl.settings.manage`).
@@ -237,10 +277,20 @@ sur la carte du royaume). Couleur invalide → `400`.
 | POST | `/api/gl/forum/threads/:id/posts` | `{ body }` | Auth GL (refus 409 si verrouillé sauf `gl_admin`) |
 | PATCH | `/api/gl/forum/threads/:id/lock` | `{ locked }` | `gl_admin` |
 | DELETE | `/api/gl/forum/posts/:id` | — | Auteur ou `gl_admin` |
+| GET | `/api/gl/market/classmates` | — | Joueur GL (`gl_player`) ; refus `503` si `modules.market_enabled=false` ou `gameplay.vitality_enabled=false` |
+| GET | `/api/gl/market/trades` | `?page=&page_size=` | Joueur GL (négociations en cours + historique récent `completed`) |
+| POST | `/api/gl/market/trades` | `{ peerPlayerId }` | Joueur GL (même classe) ; `409` si échange `negotiating` déjà ouvert (corps `{ error, trade? }`) |
+| GET | `/api/gl/market/trades/:id` | — | Participant à l’échange |
+| PATCH | `/api/gl/market/trades/:id/offer` | `{ offerHealth, offerPower }` | Participant ; refus `409` si offres figées (`frozen_at`) |
+| PATCH | `/api/gl/market/trades/:id/accept` | `{ accepted: boolean }` | Participant ; fige au premier `accepted: true` ; exécute l’échange si les deux acceptent (transaction atomique sur `gl_players`) |
+| POST | `/api/gl/market/trades/:id/messages` | `{ body }` (2–2000 car.) | Participant (échange `negotiating` uniquement) |
+| POST | `/api/gl/market/trades/:id/cancel` | — | Participant (annule l’échange `negotiating`) |
+
+**Marché GL** : tables `gl_market_trades`, `gl_market_trade_sides`, `gl_market_trade_messages` (migration `106_gl_market.sql`). Chaque joueur propose ce qu’il **donne** (`offerHealth` / `offerPower`, 0–99). Dons autorisés (une offre nulle). Temps réel : room Socket.IO `gl:class:{classId}`, événement `gl:market:trade-changed` (abonnement `subscribe:gl-class`).
+
 | GET | `/api/gl/tutorials` | `?chapterId=` optionnel | Auth GL |
-| GET | `/api/gl/tutorials/me/read-ids` | — | Auth GL |
+| GET | `/api/gl/tutorials/me/read-ids` | — | Auth GL (IDs lus — source `gl_learning_acknowledgements`, aligné sur `GET /api/gl/learning/me`) |
 | GET | `/api/gl/tutorials/:idOrSlug` | — | Auth GL |
-| POST | `/api/gl/tutorials/:id/read` | — | Auth GL |
 | POST | `/api/gl/tutorials` | `{ slug, title, bodyMarkdown, chapterId?, markerId?, orderIndex?, isPublished? }` | `gl.content.manage` |
 | PUT | `/api/gl/tutorials/:id` | mise à jour partielle | `gl.content.manage` |
 | DELETE | `/api/gl/tutorials/:id` | — | `gl.content.manage` |
