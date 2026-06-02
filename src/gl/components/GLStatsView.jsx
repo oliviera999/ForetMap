@@ -46,18 +46,22 @@ function playerLabel(row) {
   return pseudo || name || `Joueur #${row?.id ?? '?'}`;
 }
 
+const VITALITY_HISTORY_HINT =
+  'Cumul sur toute la vie en classe (événements MJ, lancements de sorts, échanges marché terminés). Ne reflète pas uniquement la partie en cours.';
+
 function VitalityStatsGrid({ stats, highlightPossessed = false }) {
   if (!stats || stats.hearts == null) return null;
   return (
     <>
       <h3 className="gl-stats-section-title">Vitalité (cœurs & gemmes)</h3>
+      <p className="gl-hint gl-stats-note">{VITALITY_HISTORY_HINT}</p>
       <StatsSummaryGrid className="gl-stats-grid">
-        <GlStatCard icon="❤️" value={formatCount(stats.hearts)} label="Cœurs possédés" highlight={highlightPossessed} />
-        <GlStatCard icon="💎" value={formatCount(stats.gems)} label="Gemmes possédées" highlight={highlightPossessed} />
-        <GlStatCard icon="⬆️" value={formatCount(stats.hearts_gained)} label="Cœurs gagnés" title="Sur toute la vie en classe" />
-        <GlStatCard icon="⬇️" value={formatCount(stats.hearts_lost)} label="Cœurs perdus" title="Sur toute la vie en classe" />
-        <GlStatCard icon="⬆️" value={formatCount(stats.gems_gained)} label="Gemmes gagnées" title="Sur toute la vie en classe" />
-        <GlStatCard icon="⬇️" value={formatCount(stats.gems_lost)} label="Gemmes perdues" title="Sur toute la vie en classe" />
+        <GlStatCard icon="❤️" value={formatCount(stats.hearts)} label="Cœurs possédés" highlight={highlightPossessed} title="Solde actuel sur ton compte joueur" />
+        <GlStatCard icon="💎" value={formatCount(stats.gems)} label="Gemmes possédées" highlight={highlightPossessed} title="Solde actuel sur ton compte joueur" />
+        <GlStatCard icon="⬆️" value={formatCount(stats.hearts_gained)} label="Cœurs gagnés" title={VITALITY_HISTORY_HINT} />
+        <GlStatCard icon="⬇️" value={formatCount(stats.hearts_lost)} label="Cœurs perdus" title={VITALITY_HISTORY_HINT} />
+        <GlStatCard icon="⬆️" value={formatCount(stats.gems_gained)} label="Gemmes gagnées" title={VITALITY_HISTORY_HINT} />
+        <GlStatCard icon="⬇️" value={formatCount(stats.gems_lost)} label="Gemmes perdues" title={VITALITY_HISTORY_HINT} />
       </StatsSummaryGrid>
     </>
   );
@@ -109,8 +113,8 @@ function ClassLeaderboardRow({ row, vitalityEnabled, rank }) {
           <>
             <span title="Cœurs possédés">❤️ {formatCount(s.hearts)}</span>
             <span title="Gemmes possédées">💎 {formatCount(s.gems)}</span>
-            <span title="Cœurs gagnés / perdus">❤️ +{formatCount(s.hearts_gained)} / −{formatCount(s.hearts_lost)}</span>
-            <span title="Gemmes gagnées / perdues">💎 +{formatCount(s.gems_gained)} / −{formatCount(s.gems_lost)}</span>
+            <span title={VITALITY_HISTORY_HINT}>❤️ +{formatCount(s.hearts_gained)} / −{formatCount(s.hearts_lost)}</span>
+            <span title={VITALITY_HISTORY_HINT}>💎 +{formatCount(s.gems_gained)} / −{formatCount(s.gems_lost)}</span>
           </>
         ) : null}
         <span title="Espèces étudiées">🦋 {formatCount(s.species_learned)}</span>
@@ -225,20 +229,26 @@ export function GLStatsView({
         </GLButton>
       </div>
 
-      {activeClasses.length > 1 ? (
+      {activeClasses.length > 0 ? (
         <div className="gl-stats-filter">
-          <GLField label="Classe">
-            <GLSelect
-              value={classFilterId}
-              onChange={(e) => setClassFilterId(e.target.value)}
-            >
-              {activeClasses.map((cls) => (
-                <option key={cls.id} value={String(cls.id)}>{cls.name}</option>
-              ))}
-            </GLSelect>
+          <GLField label="Classe" hint={activeClasses.length > 1 ? 'Choisis la classe à analyser.' : undefined}>
+            {activeClasses.length > 1 ? (
+              <GLSelect
+                value={classFilterId}
+                onChange={(e) => setClassFilterId(e.target.value)}
+              >
+                {activeClasses.map((cls) => (
+                  <option key={cls.id} value={String(cls.id)}>{cls.name}</option>
+                ))}
+              </GLSelect>
+            ) : (
+              <p className="gl-stats-class-name">{activeClasses[0]?.name || '—'}</p>
+            )}
           </GLField>
         </div>
-      ) : null}
+      ) : (
+        <p className="gl-error" role="alert">Aucune classe active disponible.</p>
+      )}
 
       {error ? <p className="gl-error" role="alert">{error}</p> : null}
 

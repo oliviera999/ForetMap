@@ -5,6 +5,7 @@ const request = require('supertest');
 const { v4: uuidv4 } = require('uuid');
 const { app } = require('../server');
 const { initSchema, queryOne, queryAll, execute } = require('../database');
+const { signAuthToken } = require('../middleware/requireTeacher');
 const { ensureAdminTeacherAuthToken, getAdminTeacherUserId } = require('./helpers/adminAuth');
 
 test.before(async () => {
@@ -80,6 +81,69 @@ test('Groupes: CRUD basique + membres + scopes', async () => {
   const fromList = list.body.groups.find((g) => g.id === created.body.id);
   assert.ok(fromList);
   assert.ok(Array.isArray(fromList.members));
+});
+
+async function createProfTeacherToken(label) {
+  const stamp = `${Date.now()}-${Math.random().toString(16).slice(2, 8)}`;
+  const teacherId = `teacher-prof-${label}-${stamp}`.slice(0, 64);
+  const teacherEmail = `${teacherId}@foretmap.local`;
+  const profRole = await queryOne("SELECT id FROM roles WHERE slug = 'prof' LIMIT 1");
+  assert.ok(profRole?.id, 'Rôle prof introuvable');
+  await execute(
+    `INSERT INTO users (id, user_type, email, pseudo, display_name, password_hash, auth_provider, is_active, created_at, updated_at)
+     VALUES (?, 'teacher', ?, ?, ?, 'x', 'local', 1, NOW(), NOW())`,
+    [teacherId, teacherEmail, teacherId, `Prof ${label}`]
+  );
+  await execute(
+    `INSERT INTO user_roles (user_type, user_id, role_id, is_primary)
+     VALUES ('teacher', ?, ?, 1)
+     ON DUPLICATE KEY UPDATE role_id = VALUES(role_id), is_primary = 1`,
+    [teacherId, profRole.id]
+  );
+  const token = await signAuthToken({
+    userType: 'teacher',
+    userId: teacherId,
+    canonicalUserId: teacherId,
+    roleId: profRole.id,
+    roleSlug: 'prof',
+    roleDisplayName: 'n3boss',
+    elevated: false,
+  }, false);
+  return { token, teacherId };
+}
+
+test('Stats: prof avec stats.read.all et membre d’un groupe voit tous les n3beurs sans filtre', async () => {
+  const { token, teacherId } = await createProfTeacherToken('scope-all');
+
+  const studentInGroup = await createStudentForGroups('ProfIn');
+  const studentOutGroup = await createStudentForGroups('ProfOut');
+  const groupId = uuidv4();
+  await execute(
+    `INSERT INTO \`groups\` (id, slug, name, kind, is_active, created_at, updated_at)
+     VALUES (?, ?, ?, 'class', 1, NOW(), NOW())`,
+    [groupId, `stats-prof-group-${Date.now()}`, `Stats Prof Group ${Date.now()}`]
+  );
+  await execute(
+    `INSERT INTO group_members (group_id, user_id, user_type, role_in_group)
+     VALUES (?, ?, 'student', 'member'), (?, ?, 'teacher', 'manager')`,
+    [groupId, studentInGroup.id, groupId, teacherId]
+  );
+
+  const allStats = await request(app)
+    .get('/api/stats/all')
+    .set('Authorization', `Bearer ${token}`)
+    .expect(200);
+  const allIds = new Set((allStats.body.students || []).map((s) => String(s.id)));
+  assert.ok(allIds.has(studentInGroup.id), 'élève du groupe visible');
+  assert.ok(allIds.has(studentOutGroup.id), 'élève hors groupe visible avec stats.read.all');
+
+  const scoped = await request(app)
+    .get(`/api/stats/all?group_id=${encodeURIComponent(groupId)}`)
+    .set('Authorization', `Bearer ${token}`)
+    .expect(200);
+  const scopedIds = new Set((scoped.body.students || []).map((s) => String(s.id)));
+  assert.ok(scopedIds.has(studentInGroup.id));
+  assert.ok(!scopedIds.has(studentOutGroup.id));
 });
 
 test('Stats: filtre group_id limite la liste des n3beurs', async () => {
