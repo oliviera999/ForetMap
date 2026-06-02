@@ -72,7 +72,18 @@ test('GET /api/gl/gameplay-settings expose les 4 toggles (joueur)', async () => 
   assert.strictEqual(typeof s.narrationEnabled, 'boolean');
   assert.strictEqual(typeof s.playerActionsEnabled, 'boolean');
   assert.strictEqual(typeof s.scoringEnabled, 'boolean');
+  assert.strictEqual(typeof s.vitalityEnabled, 'boolean');
+  assert.strictEqual(typeof s.defaultHealthPoints, 'number');
+  assert.strictEqual(typeof s.defaultPowerPoints, 'number');
   assert.ok(['every_arrival', 'once_per_team', 'once_per_game'].includes(s.markerQuestionRetrigger));
+});
+
+test('PUT défauts vitalité invalide → 400', async () => {
+  await request(app)
+    .put('/api/gl/admin/settings/gameplay.default_health_points')
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ value: 120 })
+    .expect(400);
 });
 
 test('PUT /api/gl/admin/settings/:key garde la permission gl.settings.manage', async () => {

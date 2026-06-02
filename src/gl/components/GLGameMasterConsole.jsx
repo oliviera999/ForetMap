@@ -52,6 +52,8 @@ export function GLGameMasterConsole({
   const [narration, setNarration] = useState('');
   const [scoreDelta, setScoreDelta] = useState(1);
   const [scoreReason, setScoreReason] = useState('');
+  const [teamHealthDelta, setTeamHealthDelta] = useState(1);
+  const [teamPowerDelta, setTeamPowerDelta] = useState(1);
   const [resolveDeltas, setResolveDeltas] = useState({});
   const [actionError, setActionError] = useState('');
   const [feedback, setFeedback] = useState(null);
@@ -91,6 +93,7 @@ export function GLGameMasterConsole({
   const narrationEnabled = !!flags.narrationEnabled;
   const playerActionsEnabled = !!flags.playerActionsEnabled;
   const scoringEnabled = !!flags.scoringEnabled;
+  const vitalityEnabled = !!flags.vitalityEnabled;
 
   const effectiveSelectedTeamId = useMemo(() => {
     if (selectedTeamId != null && teams.some((team) => Number(team.id) === Number(selectedTeamId))) {
@@ -468,6 +471,29 @@ export function GLGameMasterConsole({
       showSuccess(`Score ${delta > 0 ? '+' : ''}${delta}`);
     } catch (err) {
       showFailure(err.message || 'Score impossible');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function applyTeamVitality({ healthDelta = 0, powerDelta = 0 }) {
+    if (!game?.id || effectiveSelectedTeamId == null) return;
+    const h = Number(healthDelta) || 0;
+    const p = Number(powerDelta) || 0;
+    if (h === 0 && p === 0) return;
+    setBusy(true);
+    try {
+      const data = await apiGL(`/api/gl/games/${game.id}/vitality/team`, 'POST', {
+        teamId: effectiveSelectedTeamId,
+        healthDelta: h,
+        powerDelta: p,
+      });
+      const count = Array.isArray(data?.results) ? data.results.length : 0;
+      await onReloadGame?.();
+      setRosterRefreshKey((value) => value + 1);
+      showSuccess(`Points mis à jour pour ${count} joueur${count > 1 ? 's' : ''}.`);
+    } catch (err) {
+      showFailure(err.message || 'Mise à jour des points impossible');
     } finally {
       setBusy(false);
     }
@@ -878,6 +904,7 @@ export function GLGameMasterConsole({
               gameId={game.id}
               teams={teams}
               refreshKey={rosterRefreshKey}
+              vitalityEnabled={vitalityEnabled}
               onRosterChanged={async () => {
                 await onReloadGame?.();
                 setRosterRefreshKey((value) => value + 1);
@@ -1004,6 +1031,56 @@ export function GLGameMasterConsole({
               </div>
             )}
 
+            {vitalityEnabled && teams.length > 0 && (
+              <div className="gl-gameplay-block gl-vitality-team-panel">
+                <h3>Points de vie et de pouvoir (équipe active)</h3>
+                <p className="gl-hint">
+                  Ajuste tous les joueurs assignés à l&apos;équipe sélectionnée sur la carte.
+                </p>
+                <div className="gl-inline-actions">
+                  <GLField label="Δ PV (❤️)">
+                    <GLInput
+                      type="number"
+                      value={teamHealthDelta}
+                      onChange={(event) => setTeamHealthDelta(Number(event.target.value) || 0)}
+                      style={{ width: 72 }}
+                    />
+                  </GLField>
+                  <GLField label="Δ PP (💎)">
+                    <GLInput
+                      type="number"
+                      value={teamPowerDelta}
+                      onChange={(event) => setTeamPowerDelta(Number(event.target.value) || 0)}
+                      style={{ width: 72 }}
+                    />
+                  </GLField>
+                  <GLButton
+                    type="button"
+                    disabled={busy || effectiveSelectedTeamId == null}
+                    onClick={() => applyTeamVitality({ healthDelta: teamHealthDelta, powerDelta: 0 })}
+                  >
+                    Appliquer PV à l&apos;équipe
+                  </GLButton>
+                  <GLButton
+                    type="button"
+                    variant="secondary"
+                    disabled={busy || effectiveSelectedTeamId == null}
+                    onClick={() => applyTeamVitality({ healthDelta: 0, powerDelta: teamPowerDelta })}
+                  >
+                    Appliquer PP à l&apos;équipe
+                  </GLButton>
+                  <GLButton
+                    type="button"
+                    variant="secondary"
+                    disabled={busy || effectiveSelectedTeamId == null}
+                    onClick={() => applyTeamVitality({ healthDelta: teamHealthDelta, powerDelta: teamPowerDelta })}
+                  >
+                    Appliquer les deux
+                  </GLButton>
+                </div>
+              </div>
+            )}
+
             {scoringEnabled && teams.length > 0 && (
               <div className="gl-gameplay-block">
                 <h3>Tableau des scores</h3>
@@ -1041,7 +1118,7 @@ export function GLGameMasterConsole({
               </div>
             )}
 
-            {!turnsEnabled && !narrationEnabled && !playerActionsEnabled && !scoringEnabled ? (
+            {!turnsEnabled && !narrationEnabled && !playerActionsEnabled && !scoringEnabled && !vitalityEnabled ? (
               <div className="gl-empty-state">
                 <span className="gl-empty-state-icon foretmap-emoji-text-mixed" aria-hidden="true">⚙️</span>
                 <p>Aucun module de jeu en direct activé. Configurez-les dans l’onglet Réglages.</p>

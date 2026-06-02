@@ -33,6 +33,12 @@ const GAMEPLAY_TOGGLES = [
     label: 'Score par équipe',
     hint: 'Tableau de score et bonus à la validation des actions (mode complet).',
   },
+  {
+    key: 'gameplay.vitality_enabled',
+    camel: 'vitalityEnabled',
+    label: 'Points de vie et de pouvoir',
+    hint: 'PV (❤️) et points de pouvoir (💎) persistants par joueur, gérés par le MJ.',
+  },
 ];
 
 const MODULE_TOGGLES = [
@@ -61,6 +67,8 @@ export function GLSettingsView() {
   const [savingKey, setSavingKey] = useState('');
   const [savingTitle, setSavingTitle] = useState(false);
   const [savingBrand, setSavingBrand] = useState(false);
+  const [defaultHealthPoints, setDefaultHealthPoints] = useState('3');
+  const [defaultPowerPoints, setDefaultPowerPoints] = useState('3');
   const [brandDraft, setBrandDraft] = useState(() => normalizeBrand({}));
 
   async function load() {
@@ -71,6 +79,14 @@ export function GLSettingsView() {
       setTitle(String(next['platform.title'] || 'Gnomes & Licornes'));
       setSubtitle(String(next['platform.subtitle'] || ''));
       setBrandDraft(normalizeBrand(next['platform.brand'] || {}));
+      const rawHealth = next['gameplay.default_health_points'];
+      const rawPower = next['gameplay.default_power_points'];
+      setDefaultHealthPoints(String(
+        typeof rawHealth === 'number' ? rawHealth : (Number(rawHealth) || 3)
+      ));
+      setDefaultPowerPoints(String(
+        typeof rawPower === 'number' ? rawPower : (Number(rawPower) || 3)
+      ));
       setError('');
     } catch (err) {
       setError(err.message || 'Chargement impossible');
@@ -203,6 +219,62 @@ export function GLSettingsView() {
           );
         })}
       </ul>
+
+      <div className="gl-vitality-defaults gl-form">
+        <h4>Valeurs initiales (nouveaux joueurs)</h4>
+        <p className="gl-hint">
+          S&apos;appliquent uniquement à la création d&apos;un joueur. Les comptes existants ne sont pas réinitialisés.
+        </p>
+        <div className="gl-inline-actions">
+          <GLField label="PV initiaux (❤️)">
+            <GLInput
+              type="number"
+              min={0}
+              max={99}
+              value={defaultHealthPoints}
+              disabled={savingKey === 'gameplay.default_health_points'}
+              onChange={(event) => setDefaultHealthPoints(event.target.value)}
+            />
+          </GLField>
+          <GLField label="PP initiaux (💎)">
+            <GLInput
+              type="number"
+              min={0}
+              max={99}
+              value={defaultPowerPoints}
+              disabled={savingKey === 'gameplay.default_power_points'}
+              onChange={(event) => setDefaultPowerPoints(event.target.value)}
+            />
+          </GLField>
+          <GLButton
+            type="button"
+            disabled={savingKey === 'gameplay.default_health_points' || savingKey === 'gameplay.default_power_points'}
+            onClick={async () => {
+              const health = Number(defaultHealthPoints);
+              const power = Number(defaultPowerPoints);
+              if (!Number.isInteger(health) || health < 0 || health > 99
+                || !Number.isInteger(power) || power < 0 || power > 99) {
+                setError('Les valeurs initiales doivent être des entiers entre 0 et 99.');
+                return;
+              }
+              setSavingKey('gameplay.default_health_points');
+              setError('');
+              try {
+                await apiGL('/api/gl/admin/settings/gameplay.default_health_points', 'PUT', { value: health });
+                await apiGL('/api/gl/admin/settings/gameplay.default_power_points', 'PUT', { value: power });
+                await load();
+                setSuccessMessage('Valeurs initiales enregistrées.');
+              } catch (err) {
+                setError(err.message || 'Enregistrement impossible');
+              } finally {
+                setSavingKey('');
+              }
+            }}
+          >
+            Enregistrer les valeurs initiales
+          </GLButton>
+        </div>
+      </div>
 
       <div className="gl-gameplay-retrigger gl-form">
         <label>

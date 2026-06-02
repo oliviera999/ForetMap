@@ -2,11 +2,19 @@ import React, { useEffect, useState } from 'react';
 import { apiGL } from '../../services/apiGL.js';
 import { GLButton } from '../ui/GLButton.jsx';
 import { GLSelect } from '../ui/GLSelect.jsx';
+import { GLVitalityAdjustButtons, GLVitalityCounts } from '../GLVitalityDisplay.jsx';
 
-export function GLGameRosterPanel({ gameId, teams, refreshKey, onRosterChanged }) {
+export function GLGameRosterPanel({
+  gameId,
+  teams,
+  refreshKey,
+  onRosterChanged,
+  vitalityEnabled = false,
+}) {
   const [rows, setRows] = useState([]);
   const [selectedTeams, setSelectedTeams] = useState({});
   const [busy, setBusy] = useState(false);
+  const [vitalityBusyId, setVitalityBusyId] = useState(null);
   const [error, setError] = useState('');
   const [info, setInfo] = useState('');
 
@@ -71,6 +79,27 @@ export function GLGameRosterPanel({ gameId, teams, refreshKey, onRosterChanged }
     }
   }
 
+  async function adjustPlayerVitality(playerId, deltas) {
+    setVitalityBusyId(playerId);
+    setError('');
+    setInfo('');
+    try {
+      await apiGL(`/api/gl/games/${gameId}/vitality/player`, 'POST', {
+        playerId: Number(playerId),
+        ...deltas,
+      });
+      setInfo('Points mis à jour.');
+      await loadRoster();
+      await onRosterChanged?.();
+    } catch (err) {
+      setError(err.message || 'Mise à jour des points impossible');
+    } finally {
+      setVitalityBusyId(null);
+    }
+  }
+
+  const colSpan = vitalityEnabled ? 7 : 5;
+
   return (
     <section className="gl-gameplay-block">
       <h3>Effectifs de la partie</h3>
@@ -83,6 +112,12 @@ export function GLGameRosterPanel({ gameId, teams, refreshKey, onRosterChanged }
               <th>Joueur</th>
               <th>Pseudo</th>
               <th>Équipe (cette partie)</th>
+              {vitalityEnabled ? (
+                <>
+                  <th>PV / PP</th>
+                  <th>Ajuster</th>
+                </>
+              ) : null}
               <th>Nouvelle équipe</th>
               <th>Actions</th>
             </tr>
@@ -93,6 +128,25 @@ export function GLGameRosterPanel({ gameId, teams, refreshKey, onRosterChanged }
                 <td>{`${item.firstName || ''} ${item.lastName || ''}`.trim() || '—'}</td>
                 <td>{item.pseudo}</td>
                 <td>{item.teamName || 'Non assigné'}</td>
+                {vitalityEnabled ? (
+                  <>
+                    <td>
+                      <GLVitalityCounts
+                        health={item.healthPoints}
+                        power={item.powerPoints}
+                      />
+                    </td>
+                    <td>
+                      <GLVitalityAdjustButtons
+                        health={item.healthPoints}
+                        power={item.powerPoints}
+                        busy={vitalityBusyId === item.id}
+                        disabled={busy}
+                        onAdjust={(deltas) => adjustPlayerVitality(item.id, deltas)}
+                      />
+                    </td>
+                  </>
+                ) : null}
                 <td>
                   <GLSelect
                     value={selectedTeams[item.id] || ''}
@@ -116,7 +170,7 @@ export function GLGameRosterPanel({ gameId, teams, refreshKey, onRosterChanged }
             ))}
             {rows.length === 0 ? (
               <tr>
-                <td colSpan={5}>Aucun joueur dans la classe de cette partie.</td>
+                <td colSpan={colSpan}>Aucun joueur dans la classe de cette partie.</td>
               </tr>
             ) : null}
           </tbody>

@@ -4,6 +4,13 @@ const { requireGlAuth, requireGlPermission, hasGlPermission } = require('../../m
 const { normalizeEventRow, replayGameEvents } = require('../../lib/glGameEvents');
 const { emitGlGameEvent } = require('../../lib/realtime');
 const { getGameplaySettings } = require('../../lib/glSettings');
+const {
+  parseVitalityDelta,
+  applyPlayerVitalityDelta,
+  applyTeamVitalityDelta,
+  loadVitalityForGame,
+  resolveVitalityError,
+} = require('../../lib/glVitality');
 const { logRouteError } = require('../../lib/routeLog');
 const { assignPlayerToTeamTx, unassignPlayerFromGameTx } = require('../../lib/glRoster');
 const { canAccessGlGame } = require('../../lib/glGameAccess');
@@ -223,6 +230,8 @@ async function readGameState(gameId) {
       team.position_marker_id != null ? Number(team.position_marker_id) : null,
     ])),
   });
+  const settings = await getGameplaySettings();
+  const vitality = await loadVitalityForGame(queryAll, queryOne, gameId, settings.vitalityEnabled);
   return {
     game,
     teams,
@@ -231,7 +240,46 @@ async function readGameState(gameId) {
     scores,
     pendingActions,
     replay,
+    vitality,
   };
+}
+
+async function ensurePlayerInGameClass(playerId, gameId) {
+  const row = await queryOne(
+    `SELECT p.id
+       FROM gl_players p
+ INNER JOIN gl_games g ON g.class_id = p.class_id
+      WHERE p.id = ? AND g.id = ?
+      LIMIT 1`,
+    [playerId, gameId]
+  );
+  if (!row) {
+    const err = new Error('PLAYER_CLASS_MISMATCH');
+    err.status = 409;
+    throw err;
+  }
+}
+
+async function recordVitalityChangeEvent(tx, {
+  gameId,
+  teamId,
+  actorId,
+  healthDelta,
+  powerDelta,
+  reason,
+  results,
+}) {
+  const payload = {
+    healthDelta: parseVitalityDelta(healthDelta),
+    powerDelta: parseVitalityDelta(powerDelta),
+    reason: normalizeOptionalString(reason),
+    results,
+  };
+  await tx.execute(
+    `INSERT INTO gl_game_events (game_id, team_id, actor_type, actor_id, event_type, payload_json, created_at)
+     VALUES (?, ?, 'mj', ?, 'vitality_change', ?, NOW())`,
+    [gameId, teamId, actorId, JSON.stringify(payload)]
+  );
 }
 
 router.get('/chapters', requireGlPermission('gl.read'), async (_req, res) => {
@@ -551,9 +599,13 @@ router.get('/games/:id/roster', requireGlPermission('gl.players.manage'), async 
   );
   if (!game) return res.status(404).json({ error: 'Partie introuvable' });
 
+  const settings = await getGameplaySettings();
+  const vitalitySelect = settings.vitalityEnabled
+    ? ', p.health_points, p.power_points'
+    : '';
   const rows = await queryAll(
     `SELECT p.id, p.first_name, p.last_name, p.pseudo, p.is_active,
-            tm.team_id, t.name AS team_name
+            tm.team_id, t.name AS team_name${vitalitySelect}
        FROM gl_players p
   LEFT JOIN gl_team_members tm ON tm.game_id = ? AND tm.player_id = p.id
   LEFT JOIN gl_teams t ON t.id = tm.team_id
@@ -561,15 +613,123 @@ router.get('/games/:id/roster', requireGlPermission('gl.players.manage'), async 
       ORDER BY p.last_name ASC, p.first_name ASC, p.id ASC`,
     [gameId, game.class_id]
   );
-  return res.json(rows.map((row) => ({
-    id: Number(row.id),
-    firstName: row.first_name || '',
-    lastName: row.last_name || '',
-    pseudo: row.pseudo || '',
-    isActive: !!Number(row.is_active),
-    teamId: row.team_id != null ? Number(row.team_id) : null,
-    teamName: row.team_name || null,
-  })));
+  return res.json(rows.map((row) => {
+    const out = {
+      id: Number(row.id),
+      firstName: row.first_name || '',
+      lastName: row.last_name || '',
+      pseudo: row.pseudo || '',
+      isActive: !!Number(row.is_active),
+      teamId: row.team_id != null ? Number(row.team_id) : null,
+      teamName: row.team_name || null,
+    };
+    if (settings.vitalityEnabled) {
+      out.healthPoints = Number(row.health_points) || 0;
+      out.powerPoints = Number(row.power_points) || 0;
+    }
+    return out;
+  }));
+});
+
+router.post('/games/:id/vitality/player', requireGlPermission('gl.event.emit'), async (req, res) => {
+  const gameId = parseId(req.params.id);
+  const playerId = parseId(req.body?.playerId);
+  const healthDelta = req.body?.healthDelta;
+  const powerDelta = req.body?.powerDelta;
+  const reason = req.body?.reason;
+  if (!gameId || !playerId) {
+    return res.status(400).json({ error: 'gameId et playerId requis' });
+  }
+  if (parseVitalityDelta(healthDelta) === 0 && parseVitalityDelta(powerDelta) === 0) {
+    return res.status(400).json({ error: 'Au moins un delta (healthDelta ou powerDelta) non nul requis' });
+  }
+  const settings = await getGameplaySettings();
+  if (!settings.vitalityEnabled) {
+    return res.status(409).json({ error: 'Points de vie et de pouvoir désactivés dans les réglages' });
+  }
+  const game = await queryOne('SELECT id FROM gl_games WHERE id = ? LIMIT 1', [gameId]);
+  if (!game) return res.status(404).json({ error: 'Partie introuvable' });
+  try {
+    await ensurePlayerInGameClass(playerId, gameId);
+    let result;
+    await withTransaction(async (tx) => {
+      result = await applyPlayerVitalityDelta(tx, { playerId, healthDelta, powerDelta });
+      await recordVitalityChangeEvent(tx, {
+        gameId,
+        teamId: null,
+        actorId: String(req.glAuth.userId),
+        healthDelta,
+        powerDelta,
+        reason,
+        results: [result],
+      });
+    });
+    const evt = await queryOne(
+      `SELECT id, game_id, team_id, actor_type, actor_id, event_type, payload_json, created_at
+         FROM gl_game_events
+        WHERE game_id = ?
+        ORDER BY id DESC
+        LIMIT 1`,
+      [gameId]
+    );
+    const normalized = normalizeEventRow(evt);
+    emitGlGameEvent(gameId, normalized);
+    return res.status(200).json({ ok: true, result });
+  } catch (err) {
+    const mapped = resolveVitalityError(err);
+    if (mapped) return res.status(mapped.status).json({ error: mapped.error });
+    throw err;
+  }
+});
+
+router.post('/games/:id/vitality/team', requireGlPermission('gl.event.emit'), async (req, res) => {
+  const gameId = parseId(req.params.id);
+  const teamId = parseId(req.body?.teamId);
+  const healthDelta = req.body?.healthDelta;
+  const powerDelta = req.body?.powerDelta;
+  const reason = req.body?.reason;
+  if (!gameId || !teamId) {
+    return res.status(400).json({ error: 'gameId et teamId requis' });
+  }
+  if (parseVitalityDelta(healthDelta) === 0 && parseVitalityDelta(powerDelta) === 0) {
+    return res.status(400).json({ error: 'Au moins un delta (healthDelta ou powerDelta) non nul requis' });
+  }
+  const settings = await getGameplaySettings();
+  if (!settings.vitalityEnabled) {
+    return res.status(409).json({ error: 'Points de vie et de pouvoir désactivés dans les réglages' });
+  }
+  const team = await queryOne('SELECT id FROM gl_teams WHERE id = ? AND game_id = ? LIMIT 1', [teamId, gameId]);
+  if (!team) return res.status(404).json({ error: 'Équipe introuvable' });
+  try {
+    let results;
+    await withTransaction(async (tx) => {
+      results = await applyTeamVitalityDelta(tx, { gameId, teamId, healthDelta, powerDelta });
+      await recordVitalityChangeEvent(tx, {
+        gameId,
+        teamId,
+        actorId: String(req.glAuth.userId),
+        healthDelta,
+        powerDelta,
+        reason,
+        results,
+      });
+    });
+    const evt = await queryOne(
+      `SELECT id, game_id, team_id, actor_type, actor_id, event_type, payload_json, created_at
+         FROM gl_game_events
+        WHERE game_id = ?
+        ORDER BY id DESC
+        LIMIT 1`,
+      [gameId]
+    );
+    const normalized = normalizeEventRow(evt);
+    emitGlGameEvent(gameId, normalized);
+    return res.status(200).json({ ok: true, results });
+  } catch (err) {
+    const mapped = resolveVitalityError(err);
+    if (mapped) return res.status(mapped.status).json({ error: mapped.error });
+    throw err;
+  }
 });
 
 router.post('/games/:id/roster/assign', requireGlPermission('gl.players.manage'), async (req, res) => {

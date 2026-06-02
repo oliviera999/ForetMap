@@ -104,6 +104,9 @@ Chaque toggle est une clé dans `gl_settings` (modifiable via `PUT /api/gl/admin
 | `gameplay.narration_enabled` | Le MJ peut envoyer un événement `narration` (texte affiché en bandeau temporaire chez les joueurs). |
 | `gameplay.player_actions_enabled` | Les joueurs peuvent soumettre une demande d'action sur un marker via la modale carte ; insérée dans `gl_action_requests` (`status=pending`). |
 | `gameplay.scoring_enabled` | Activation du tableau de scores par équipe (`gl_team_scores`) ; bonus possible à la résolution d'une action acceptée. |
+| `gameplay.vitality_enabled` | Points de vie (❤️) et points de pouvoir (💎) **persistants par joueur** (`gl_players`) ; ajustements MJ par joueur ou par équipe (`POST .../vitality/player`, `POST .../vitality/team`), événement `vitality_change`. Pas de réinitialisation entre les parties. |
+| `gameplay.default_health_points` | PV initiaux des **nouveaux** joueurs (entier 0–99, défaut `3`). |
+| `gameplay.default_power_points` | PP initiaux des **nouveaux** joueurs (entier 0–99, défaut `3`). |
 
 Côté serveur : module `lib/glSettings.js` (cache mémoire 30 s, invalidé à chaque PUT `gameplay.*`). Côté client : `apiGL('/api/gl/gameplay-settings')` au login et au déclenchement de chaque event reçu côté MJ ; UI conditionnelle dans `GLGameMasterConsole` et `GLMapView`.
 
