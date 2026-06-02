@@ -73,6 +73,16 @@ function buildSession(token, auth) {
   return { token, auth };
 }
 
+function waitMarketPatch(page, pathPart) {
+  return page.waitForResponse(
+    (res) => res.url().includes(pathPart)
+      && res.request().method() === 'PATCH'
+      && res.status() >= 200
+      && res.status() < 300,
+    { timeout: 15000 }
+  );
+}
+
 async function loginGlPlayer(page, seeded, which) {
   const isA = which === 'A';
   await page.setExtraHTTPHeaders({ 'X-Foretmap-Product': 'gl' });
@@ -105,20 +115,30 @@ test.describe('GL marché', () => {
     await expect(pageA.getByText('Comment fonctionne le marché ?')).toBeVisible();
 
     await pageA.getByRole('button', { name: 'Proposer un échange' }).first().click();
+    const offerPatchA = waitMarketPatch(pageA, '/offer');
     await pageA.getByLabel('Cœurs ❤️').fill('1');
     await pageA.getByLabel('Cœurs ❤️').blur();
+    await offerPatchA;
 
     await pageB.getByRole('button', { name: 'Marché' }).click();
     await pageB.getByRole('button', { name: seeded.pseudoA }).click();
+    await expect(pageB.getByRole('heading', { name: new RegExp(`Échange avec ${seeded.pseudoA}`, 'i') })).toBeVisible();
+
+    const offerPatchB = waitMarketPatch(pageB, '/offer');
     await pageB.getByLabel('Gemmes 💎').fill('1');
     await pageB.getByLabel('Gemmes 💎').blur();
+    await offerPatchB;
 
-    await pageA.getByLabel('J’accepte').check();
+    const acceptPatchA = waitMarketPatch(pageA, '/accept');
+    await pageA.getByLabel('J’accepte').click();
+    await acceptPatchA;
     await expect(pageA.getByText('Les offres sont figées')).toBeVisible();
 
     await expect(pageB.getByText('L’autre joueur a accepté.')).toBeVisible({ timeout: 15000 });
 
-    await pageB.getByLabel('J’accepte').check();
+    const acceptPatchB = waitMarketPatch(pageB, '/accept');
+    await pageB.getByLabel('J’accepte').click();
+    await acceptPatchB;
     await expect(pageB.getByText('terminé')).toBeVisible({ timeout: 15000 });
 
     await contextA.close();

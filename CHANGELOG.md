@@ -14,7 +14,8 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ### Corrigé
 
-- **GL — marché e2e** : attente explicite du message « L’autre joueur a accepté » avant la double acceptation.
+- **GL — marché e2e** : synchronisation PATCH offre/acceptation et attente « L’autre joueur a accepté » avant la double validation.
+- **GL — profil e2e** : gate `passwordMustReset` alimentée depuis `gl_players.password_must_reset` (cohérent avec `GET /api/gl/auth/me`).
 
 ### Ajouté
 
