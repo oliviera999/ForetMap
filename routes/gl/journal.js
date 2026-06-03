@@ -55,7 +55,7 @@ router.get('/games/:id', async (req, res) => {
     const normalized = normalizeEventRow(row);
     return {
       ...normalized,
-      presentation: presentJournalEvent(normalized, { teamsById }),
+      presentation: presentJournalEvent(normalized, { teamsById, forPlayer: true }),
     };
   });
   return res.json({ events, total: events.length, teams });
