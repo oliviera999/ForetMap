@@ -9,6 +9,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ### Modifié
 
+- **GL — vue joueur staff (MJ / admin)** : aperçu UI « vue joueur » (onglets joueur seuls, bandeau, boutons ↩️ / 🎮 dans la barre) sans changer le JWT ; prise de contrôle joueur étendue au **MJ** (`gl_mj`) avec restauration du rôle d’origine ; corps optionnel **`gameId`** sur `POST /api/gl/auth/admin/impersonate` pour contextualiser partie/équipe ; entrées **Voir comme** dans la gestion joueurs et l’effectif console MJ. Fichiers `routes/gl/auth.js`, `src/gl/AppGL.jsx`, `src/gl/utils/glStaffView.js`, composants admin/roster. Tests `tests/gl-auth.test.js`, `tests-ui/gl/glStaffView.test.js`, e2e `e2e/gl-users-admin.spec.js`. Doc `docs/API.md`.
 - **GL — statistiques joueurs** : libellés et infobulles sur le périmètre « vie en classe » ; affichage de la classe active quand une seule classe ; e2e `e2e/gl-stats.spec.js`.
 - **ForetMap — stats collectives** : test `stats.read.all` pour un prof membre d’un groupe (vue globale sans filtre `group_id`).
 

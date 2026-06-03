@@ -4,6 +4,7 @@ import { GLClassesPanel } from './admin/GLClassesPanel.jsx';
 import { GLPlayersPanel } from './admin/GLPlayersPanel.jsx';
 import { GLPlayersImportPanel } from './admin/GLPlayersImportPanel.jsx';
 import { GLPlayersExportPanel } from './admin/GLPlayersExportPanel.jsx';
+import { canGlStaffImpersonate } from '../utils/glStaffView.js';
 
 export function GLUsersAdminView({ auth = null, onImpersonationApplied = null }) {
   const [classes, setClasses] = useState([]);
@@ -44,7 +45,7 @@ export function GLUsersAdminView({ auth = null, onImpersonationApplied = null })
         classFilter={classFilter}
         onClassFilterChange={setClassFilter}
         onReload={() => reload(classFilter)}
-        canImpersonate={auth?.roleSlug === 'gl_admin' && !auth?.impersonating}
+        canImpersonate={canGlStaffImpersonate(auth)}
         onImpersonationApplied={onImpersonationApplied}
       />
       <GLPlayersImportPanel onReload={() => reload(classFilter)} />

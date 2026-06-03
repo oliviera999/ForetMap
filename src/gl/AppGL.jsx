@@ -44,6 +44,11 @@ import { useGLZoneMusic, readStoredMuted, writeStoredMuted } from './hooks/useGL
 import { usePrefersReducedMotion } from './hooks/usePrefersReducedMotion.js';
 import { useAppVersion } from '../hooks/useAppVersion.js';
 import { useGlLearningProgress } from './hooks/useGlLearningProgress.js';
+import {
+  isGlStaffAuth,
+  canGlStaffImpersonate,
+  glImpersonationBannerCopy,
+} from './utils/glStaffView.js';
 
 const DEFAULT_GAMEPLAY = {
   turnsEnabled: false,
@@ -124,6 +129,7 @@ export function AppGL() {
   const [zoneMusicZones, setZoneMusicZones] = useState([]);
   const [watchTeamPct, setWatchTeamPct] = useState(null);
   const [zoneMusicMuted, setZoneMusicMuted] = useState(() => readStoredMuted());
+  const [glViewMode, setGlViewMode] = useState('native'); // native | player
   const prefersReducedMotion = usePrefersReducedMotion();
 
   const themeChapterId = useMemo(() => {
@@ -181,6 +187,15 @@ export function AppGL() {
   const isAdmin = isAdminRole(auth);
   const appVersion = useAppVersion();
   const isImpersonating = !!auth?.impersonating;
+  const isStaff = isGlStaffAuth(auth);
+  const isStaffPlayerPreview = isStaff && glViewMode === 'player';
+  const showStaffAdminUi = isAdmin && !isStaffPlayerPreview;
+  const isMjMapControls = showStaffAdminUi;
+  const showsPlayerChrome = !isAdmin || isStaffPlayerPreview;
+  const impersonationBanner = useMemo(
+    () => (isImpersonating ? glImpersonationBannerCopy(auth?.impersonatedBy) : null),
+    [isImpersonating, auth?.impersonatedBy]
+  );
   const zoneMusicEnabled = isModuleEnabled(modules, 'zoneMusicEnabled');
   const virtualDiceEnabled = isModuleEnabled(modules, 'virtualDiceEnabled');
 
@@ -293,8 +308,8 @@ export function AppGL() {
       if (tab.id === 'mascots') return isModuleEnabled(modules, 'mascotPacksEnabled');
       return true;
     });
-    return isAdmin ? [...playerTabs, ...adminTabs] : playerTabs;
-  }, [isAdmin, modules]);
+    return showStaffAdminUi ? [...playerTabs, ...adminTabs] : playerTabs;
+  }, [showStaffAdminUi, modules, gameplaySettings.vitalityEnabled]);
 
   useEffect(() => {
     try {
@@ -346,8 +361,13 @@ export function AppGL() {
       setError('Réponse serveur invalide');
       return;
     }
+    setGlViewMode('native');
     updateSession({ token: payload.authToken, auth: payload.auth });
-    setTab(defaultTabForAuth(payload.auth));
+    const nextGameId = payload.auth?.gameId != null ? Number(payload.auth.gameId) : null;
+    if (Number.isFinite(nextGameId) && nextGameId > 0) {
+      setActiveGameId(nextGameId);
+    }
+    setTab('maps');
     setError('');
   }, [updateSession]);
 
@@ -358,6 +378,7 @@ export function AppGL() {
         setError('Réponse serveur invalide');
         return;
       }
+      setGlViewMode('native');
       updateSession({ token: payload.authToken, auth: payload.auth });
       setTab(defaultTabForAuth(payload.auth));
       setError('');
@@ -477,7 +498,7 @@ export function AppGL() {
 
   /** MJ : déplacement libre de la mascotte de l'équipe active sélectionnée. */
   async function moveMascotToPct(point) {
-    if (!isAdmin || !gameState?.game?.id || !point) return;
+    if (!isMjMapControls || !gameState?.game?.id || !point) return;
     const teamId = resolveTargetTeamId();
     if (teamId == null) return;
     try {
@@ -494,7 +515,7 @@ export function AppGL() {
 
   /** MJ : déplace la mascotte de l'équipe active sélectionnée vers le marker cliqué. */
   async function moveMascotToMarker(marker) {
-    if (!isAdmin || !gameState?.game?.id || !marker?.id) return;
+    if (!isMjMapControls || !gameState?.game?.id || !marker?.id) return;
     const teamId = resolveTargetTeamId();
     if (teamId == null) return;
     try {
@@ -526,7 +547,7 @@ export function AppGL() {
   }
 
   async function joinSelectedTeam() {
-    if (isAdmin || !gameState?.game?.id) return;
+    if (showStaffAdminUi || !gameState?.game?.id) return;
     const teamId = resolveTargetTeamId();
     if (teamId == null) {
       setError('Choisissez une équipe avant de rejoindre.');
@@ -563,12 +584,12 @@ export function AppGL() {
   }, [gameState]);
 
   const canRequestAction = useMemo(() => {
-    if (isAdmin || !gameplaySettings.playerActionsEnabled) return false;
+    if (showStaffAdminUi || !gameplaySettings.playerActionsEnabled) return false;
     const myTeamId = auth?.teamId != null ? Number(auth.teamId) : null;
     if (myTeamId == null) return false;
     if (gameplaySettings.turnsEnabled && currentTeamId != null && currentTeamId !== myTeamId) return false;
     return true;
-  }, [isAdmin, gameplaySettings, auth, currentTeamId]);
+  }, [showStaffAdminUi, gameplaySettings, auth, currentTeamId]);
 
   const canSpellCast = useMemo(() => {
     const moduleOn = isModuleEnabled(modules, 'spellCastEnabled')
@@ -577,10 +598,10 @@ export function AppGL() {
     if (!gameState?.game?.id || gameState?.game?.status !== 'live') return false;
     if (gameplaySettings.turnsEnabled && currentTeamId != null) {
       const myTeamId = auth?.teamId != null ? Number(auth.teamId) : null;
-      if (!isAdmin && myTeamId != null && currentTeamId !== myTeamId) return false;
+      if (showsPlayerChrome && myTeamId != null && currentTeamId !== myTeamId) return false;
     }
     return true;
-  }, [modules, gameplaySettings, gameState, auth, currentTeamId, isAdmin]);
+  }, [modules, gameplaySettings, gameState, auth, currentTeamId, showsPlayerChrome]);
 
   const spellCast = useGLSpellCast({
     token,
@@ -604,15 +625,15 @@ export function AppGL() {
   });
 
   const playerMascotId = useMemo(() => {
-    if (isAdmin) return null;
+    if (!showsPlayerChrome) return null;
     const myTeamId = auth?.teamId != null ? Number(auth.teamId) : null;
     if (myTeamId == null || !Array.isArray(gameState?.teams)) return null;
     const team = gameState.teams.find((t) => Number(t.id) === myTeamId);
     return team?.mascot_id || null;
-  }, [isAdmin, auth, gameState]);
+  }, [showsPlayerChrome, auth, gameState]);
 
   const playerVitality = useMemo(() => {
-    if (isAdmin || !gameplaySettings.vitalityEnabled) return null;
+    if (!showsPlayerChrome || !gameplaySettings.vitalityEnabled) return null;
     const playerId = auth?.userId != null ? Number(auth.userId) : null;
     if (playerId == null) return null;
     const fromGame = gameState?.vitality?.byPlayerId?.[playerId];
@@ -627,7 +648,7 @@ export function AppGL() {
       };
     }
     return null;
-  }, [isAdmin, gameplaySettings.vitalityEnabled, auth, gameState, glProfile]);
+  }, [showsPlayerChrome, gameplaySettings.vitalityEnabled, auth, gameState, glProfile]);
 
   const notifications = useGLNotificationCenter();
   useEffect(() => {
@@ -688,25 +709,48 @@ export function AppGL() {
         playerHealthPoints={playerVitality?.health}
         playerPowerPoints={playerVitality?.power}
         onOpenProfile={() => setShowProfile(true)}
-        onOpenStats={!isAdmin ? () => setShowPlayerStats(true) : undefined}
+        onOpenStats={showsPlayerChrome ? () => setShowPlayerStats(true) : undefined}
+        canSwitchGlPlayerView={isStaff}
+        glViewMode={glViewMode}
+        onGlViewModeNative={() => {
+          setGlViewMode('native');
+          setTab(defaultTabForAuth(auth));
+        }}
+        onGlViewModePlayer={() => {
+          setGlViewMode('player');
+          setTab('maps');
+        }}
         onLogout={() => {
           logout();
           setGameState(null);
           setActiveGameId(null);
           setGlProfile(null);
           setShowProfile(false);
+          setGlViewMode('native');
         }}
-        showVersion={isAdmin}
+        showVersion={showStaffAdminUi}
         appVersion={appVersion}
       />
 
       {error ? <div className="gl-error-banner">{error}</div> : null}
 
-      {isImpersonating ? (
+      {isStaffPlayerPreview ? (
+        <div className="role-preview-banner fade-in" role="status">
+          <span className="role-preview-banner__icon" aria-hidden>🎮</span>
+          <div className="role-preview-banner__text">
+            <strong>Vue joueur (aperçu)</strong>
+            <span>
+              Navigation limitée aux onglets joueur. Tes droits MJ/admin restent actifs côté serveur.
+            </span>
+          </div>
+        </div>
+      ) : null}
+
+      {isImpersonating && impersonationBanner ? (
         <div className="role-preview-banner role-preview-banner--impersonation fade-in" role="status">
           <span className="role-preview-banner__icon" aria-hidden>👤</span>
           <div className="role-preview-banner__text" style={{ flex: '1 1 200px' }}>
-            <strong>Prise de contrôle (admin GL)</strong>
+            <strong>{impersonationBanner.title}</strong>
             <span>
               Tu navigues avec l’identité de <strong>{String(auth?.displayName || 'joueur')}</strong>.
               Les actions sont enregistrées pour ce compte.
@@ -714,7 +758,7 @@ export function AppGL() {
           </div>
           <div className="impersonation-banner-actions">
             <GLButton type="button" size="sm" onClick={() => { stopGlImpersonation(); }}>
-              Revenir à mon compte admin
+              {impersonationBanner.stopLabel}
             </GLButton>
           </div>
         </div>
@@ -754,7 +798,7 @@ export function AppGL() {
               onSelectTeam={setSelectedTeamId}
               onOpenGlossaryTerm={openGlossaryPopover}
               onQcmAnswered={reloadGame}
-              canMoveMascot={isAdmin}
+              canMoveMascot={isMjMapControls}
               canRequestAction={canRequestAction}
               canSpellCast={canSpellCast}
               onLaunchSpell={() => openSpellCastWizard(null)}
@@ -770,7 +814,7 @@ export function AppGL() {
               brandThemeStyle={glBrandStyle}
               virtualDiceEnabled={virtualDiceEnabled}
             />
-            {!isAdmin && gameState?.game && auth?.teamId == null && (
+            {showsPlayerChrome && gameState?.game && auth?.teamId == null && (
               <section className="gl-panel">
                 <h3>Rejoindre une équipe</h3>
                 <p className="gl-hint" style={{ marginTop: 0 }}>
@@ -802,7 +846,7 @@ export function AppGL() {
           />
         )}
         {tab === 'history' && <GLHistoryView gameState={gameState} />}
-        {tab === 'stats' && isAdmin && (
+        {tab === 'stats' && showStaffAdminUi && (
           <GLStatsView
             mode="class"
             classes={classes}
@@ -810,18 +854,18 @@ export function AppGL() {
             vitalityEnabled={!!gameplaySettings.vitalityEnabled}
           />
         )}
-        {tab === 'users' && isAdmin && (
+        {tab === 'users' && showStaffAdminUi && (
           <GLUsersAdminView
             auth={auth}
             onImpersonationApplied={applyGlImpersonation}
           />
         )}
-        {tab === 'contents' && isAdmin && <GLContentsAdminView auth={auth} onNavigateTab={setTab} />}
-        {tab === 'settings' && isAdmin && <GLSettingsView />}
-        {tab === 'mascots' && isAdmin && (
+        {tab === 'contents' && showStaffAdminUi && <GLContentsAdminView auth={auth} onNavigateTab={setTab} />}
+        {tab === 'settings' && showStaffAdminUi && <GLSettingsView />}
+        {tab === 'mascots' && showStaffAdminUi && (
           <GLMascotsAdminView gameState={gameState} onReloadGame={reloadGame} />
         )}
-        {tab === 'mj' && isAdmin && (
+        {tab === 'mj' && showStaffAdminUi && (
           <GLGameMasterConsole
             chapters={chapters}
             classes={classes}
@@ -829,6 +873,8 @@ export function AppGL() {
             gameplaySettings={gameplaySettings}
             selectedTeamId={selectedTeamId}
             onSelectTeam={setSelectedTeamId}
+            canImpersonate={canGlStaffImpersonate(auth)}
+            onImpersonationApplied={applyGlImpersonation}
             onGameStateChange={(state) => {
               const vm = toGameViewModel(state);
               setGameState(vm);
@@ -848,9 +894,9 @@ export function AppGL() {
           />
         )}
         {tab === 'forum' && isModuleEnabled(modules, 'forumEnabled') && (
-          <GLForumView canModerate={isAdmin} />
+          <GLForumView canModerate={showStaffAdminUi} />
         )}
-        {tab === 'market' && isModuleEnabled(modules, 'marketEnabled') && gameplaySettings.vitalityEnabled && !isAdmin && (
+        {tab === 'market' && isModuleEnabled(modules, 'marketEnabled') && gameplaySettings.vitalityEnabled && showsPlayerChrome && (
           <GLMarketView
             token={token}
             classId={auth?.classId ?? glProfile?.class_id}
@@ -861,7 +907,7 @@ export function AppGL() {
           />
         )}
         {tab === 'tutorials' && isModuleEnabled(modules, 'tutorialsEnabled') && (
-          <GLTutorialsView canManage={isAdmin} learningProgress={learningProgress} />
+          <GLTutorialsView canManage={showStaffAdminUi} learningProgress={learningProgress} />
         )}
         {tab === 'journal' && isModuleEnabled(modules, 'journalEnabled') && (
           <GLJournalView gameId={activeGameId} />
@@ -870,7 +916,7 @@ export function AppGL() {
           <GLKingdomMapView
             chapter={activeChapter}
             chapters={chapters}
-            canManage={isAdmin}
+            canManage={showStaffAdminUi}
             onChapterChange={setKingdomChapterId}
             zoneMusicEnabled={zoneMusicEnabled}
           />
@@ -893,7 +939,7 @@ export function AppGL() {
           />
         ) : null}
       </main>
-      {isAdmin ? (
+      {showStaffAdminUi ? (
         <footer className="gl-app-footer" aria-label="Version de l’application">
           Version {appVersion != null ? appVersion : '…'}
         </footer>
@@ -905,7 +951,7 @@ export function AppGL() {
         profile={glProfile}
         config={glConfig}
         onReloadProfile={reloadProfile}
-        onOpenStats={!isAdmin ? () => {
+        onOpenStats={showsPlayerChrome ? () => {
           setShowProfile(false);
           setShowPlayerStats(true);
         } : null}
@@ -919,7 +965,7 @@ export function AppGL() {
           if (payload?.profile) setGlProfile(payload.profile);
         }}
       />
-      {showPlayerStats && !isAdmin ? (
+      {showPlayerStats && showsPlayerChrome ? (
         <div
           className="gl-stats-modal-overlay"
           role="dialog"
@@ -970,7 +1016,7 @@ export function AppGL() {
         turnsEnabled={!!gameplaySettings.turnsEnabled}
         contributionMode={gameplaySettings.spellCastContributionMode || 'both'}
         teamScope={gameplaySettings.spellCastTeamScope || 'any_team'}
-        isStaff={isAdmin}
+        isStaff={showStaffAdminUi}
         spellCast={spellCast}
         chapterSpells={gameState?.game?.chapter_spells || []}
         onPickSpell={(code) => setSpellCastInitialCode(code)}

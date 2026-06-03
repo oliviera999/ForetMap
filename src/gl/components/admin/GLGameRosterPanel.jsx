@@ -10,6 +10,8 @@ export function GLGameRosterPanel({
   refreshKey,
   onRosterChanged,
   vitalityEnabled = false,
+  canImpersonate = false,
+  onImpersonationApplied = null,
 }) {
   const [rows, setRows] = useState([]);
   const [selectedTeams, setSelectedTeams] = useState({});
@@ -79,6 +81,36 @@ export function GLGameRosterPanel({
     }
   }
 
+  async function impersonatePlayer(player) {
+    if (!canImpersonate || !player?.id) return;
+    setBusy(true);
+    setError('');
+    setInfo('');
+    try {
+      const body = {
+        userType: 'gl_player',
+        userId: String(player.id),
+      };
+      const gid = gameId != null ? Number(gameId) : null;
+      if (Number.isFinite(gid) && gid > 0) {
+        body.gameId = gid;
+      }
+      const payload = await apiGL('/api/gl/auth/admin/impersonate', 'POST', body);
+      if (!payload?.authToken) {
+        setError('Réponse serveur invalide');
+        return;
+      }
+      if (typeof onImpersonationApplied === 'function') {
+        onImpersonationApplied(payload);
+      }
+      setInfo(`Prise de contrôle active : ${player.pseudo}`);
+    } catch (err) {
+      setError(err.message || 'Prise de contrôle impossible');
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function adjustPlayerVitality(playerId, deltas) {
     setVitalityBusyId(playerId);
     setError('');
@@ -98,7 +130,7 @@ export function GLGameRosterPanel({
     }
   }
 
-  const colSpan = vitalityEnabled ? 7 : 5;
+  const colSpan = vitalityEnabled ? (canImpersonate ? 8 : 7) : (canImpersonate ? 6 : 5);
 
   return (
     <section className="gl-gameplay-block">
@@ -119,6 +151,7 @@ export function GLGameRosterPanel({
                 </>
               ) : null}
               <th>Nouvelle équipe</th>
+              {canImpersonate ? <th>Voir comme</th> : null}
               <th>Actions</th>
             </tr>
           </thead>
@@ -158,6 +191,19 @@ export function GLGameRosterPanel({
                     ))}
                   </GLSelect>
                 </td>
+                {canImpersonate ? (
+                  <td>
+                    <GLButton
+                      type="button"
+                      size="sm"
+                      variant="secondary"
+                      onClick={() => impersonatePlayer(item)}
+                      disabled={busy}
+                    >
+                      Voir comme
+                    </GLButton>
+                  </td>
+                ) : null}
                 <td className="gl-admin-actions-cell">
                   <GLButton type="button" size="sm" onClick={() => assignPlayer(item.id)} disabled={busy || !selectedTeams[item.id]}>
                     Assigner
