@@ -178,11 +178,14 @@ Tables GL préfixées `gl_` :
 
 ### Cohérence esthétique avec ForetMap
 
-- GL charge `src/index.css` puis `src/gl/styles/gl-theme.css`.
+- GL charge `src/index.css` (imports `src/shared/styles/motion.css` + `modal-shell.css`) puis `src/gl/styles/gl-theme.css`.
 - Les couleurs GL restent locales (hex dédiés dans `gl-theme.css`), sans bascule vers la palette ForetMap.
-- Les conventions visuelles ForetMap sont reprises côté structure:
-  - icones d'onglets en emoji (`gl-tab-icon`)
-  - micro-interactions (`fade-in`, `popIn`, toasts et transitions `--motion-*`)
+- Couche CSS partagée (`src/shared/styles/`) :
+  - **motion.css** : tokens `--spring` / `--motion-*`, keyframes (`fadeIn`, `popIn`, `toastIn`, `statPop`, `attentionPulse`), utilitaires `.fade-in`, `.stagger`, `.animate-pop`
+  - **modal-shell.css** : `.fm-modal-overlay` / `.fm-modal-panel` thématisables via variables `--fm-modal-*` (surchargées sous `.gl-app`)
+- Les conventions visuelles ForetMap sont reprises côté structure :
+  - icones d'onglets en emoji (`gl-tab-icon`, `foretmap-emoji-text-mixed`)
+  - micro-interactions partagées et modales via `DialogShell`
   - zones tactiles à `min-height: 44px` pour les boutons principaux
 - Les modules GL (forum, tutoriels, journal de partie, **carnet personnel** `my-journal`, carte royaume, notifications, commentaires contextuels, aide) ont des styles dédiés dans `gl-theme.css` pour rester homogènes avec le shell GL.
 

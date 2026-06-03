@@ -176,7 +176,7 @@ export function GLGlossaryPopover({
     >
       <div
         ref={dialogRef}
-        className="gl-glossary-popover__panel gl-animate-pop"
+        className="gl-glossary-popover__panel animate-pop"
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
@@ -215,8 +215,8 @@ export function GLGlossaryPopover({
         ) : null}
 
         {term && !error ? (
-          <div key={activeCode} className="gl-glossary-popover__content gl-animate-in">
-            <div className="gl-glossary-popover__badges gl-stagger">
+          <div key={activeCode} className="gl-glossary-popover__content fade-in">
+            <div className="gl-glossary-popover__badges stagger">
               {term.categorie_label || term.categorie ? (
                 <span className="gl-badge gl-glossary-popover__badge-cat">
                   {term.categorie_label || term.categorie}

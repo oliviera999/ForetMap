@@ -69,7 +69,7 @@ export function GLPlayersImportPanel({ onReload }) {
   }
 
   return (
-    <section className="gl-admin-section gl-animate-in">
+    <section className="gl-admin-section fade-in">
       <h3>Import joueurs (CSV / XLSX)</h3>
       {error ? <p className="gl-error">{error}</p> : null}
       {info ? <p className="gl-hint">{info}</p> : null}

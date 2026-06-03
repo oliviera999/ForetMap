@@ -44,13 +44,17 @@ Lu par le front au login via `GET /api/gl/auth/config`.
 
 ## Conventions UI GL
 
-- Le front GL charge `src/index.css` puis `src/gl/styles/gl-theme.css`.
+- Le front GL charge `src/index.css` (qui importe `src/shared/styles/motion.css` et `modal-shell.css`) puis `src/gl/styles/gl-theme.css`.
 - Garder la palette GL locale (hex dans `gl-theme.css`), sans remplacer par `--forest`, `--leaf`, etc.
+- Réutiliser les effets visuels partagés dans `src/shared/styles/` :
+  - tokens motion (`--spring`, `--motion-*`, `--safe-*`)
+  - utilitaires (`fade-in`, `stagger`, `animate-pop`, `is-attention-pulse`)
+  - shell modale (`fm-modal-overlay`, `fm-modal-panel`) via `DialogShell`
 - Réutiliser les conventions ForetMap sur la forme :
   - icones emoji pour la navigation (`gl-tab-icon`, `foretmap-emoji-text-mixed`)
-  - micro-animations (`fade-in`, `popIn`, `toastIn`, transitions `--motion-*`)
+  - toasts et transitions `--motion-*`
   - cibles tactiles `min-height: 44px` sur boutons/actions primaires
-- Toute nouvelle vue GL doit ajouter ses classes dans `gl-theme.css` (préfixe `gl-`) pour éviter de dépendre implicitement des styles ForetMap globaux.
+- Toute nouvelle vue GL doit ajouter ses classes dans `gl-theme.css` (préfixe `gl-`) pour les styles spécifiques au thème GL.
 
 ## Convention tests
 

@@ -57,7 +57,7 @@ export function GLContextComments({ contextType, contextId }) {
 
   if (!valid) return null;
   return (
-    <section className="gl-panel gl-animate-in">
+    <section className="gl-panel fade-in">
       <h3>Commentaires</h3>
       {error ? <p className="gl-error">{error}</p> : null}
       <form className="gl-form" onSubmit={submit}>

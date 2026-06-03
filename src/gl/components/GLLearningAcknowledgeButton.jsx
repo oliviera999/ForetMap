@@ -19,8 +19,8 @@ export function GLLearningAcknowledgeButton({
     <LearningAcknowledgeButton
       buttonClassName="gl-btn gl-btn--secondary gl-btn--sm gl-learning-ack__btn"
       doneClassName="gl-badge gl-learning-badge"
-      overlayClassName="gl-learning-ack-overlay"
-      dialogClassName="gl-action-modal gl-learning-ack-modal"
+      overlayClassName="fm-modal-overlay gl-learning-ack-overlay"
+      dialogClassName="fm-modal-panel gl-learning-ack-modal fade-in"
       submitLabel="Confirmer"
       submittingLabel="Enregistrement…"
       onSubmit={submit}

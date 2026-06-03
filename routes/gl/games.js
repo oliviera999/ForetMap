@@ -25,7 +25,8 @@ const {
 } = require('../../lib/glVitality');
 const { logRouteError } = require('../../lib/routeLog');
 const { assignPlayerToTeamTx, unassignPlayerFromGameTx } = require('../../lib/glRoster');
-const { canAccessGlGame } = require('../../lib/glGameAccess');
+const { canAccessGlGame } = require('../../lib/glGameAccess');
+
 const { parseNarrationImageUrl } = require('../../lib/glJournalPresent');
 const { verifyPresentationAnswer, resolveQcmAnswerFeedback } = require('../../lib/glQcmChoices');
 const { combineKeywords } = require('../../lib/glQcmImport');

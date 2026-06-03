@@ -169,7 +169,7 @@ export function GLAuthView({ onLogin, oauthNotice, config, appVersion = null }) 
     <main className="gl-auth auth-wrap">
       <GLBrandHub slots={brandSlots || config?.brand?.slots} />
 
-      <GLSurface className="gl-auth-card gl-animate-in" variant="elevated">
+      <GLSurface className="gl-auth-card fade-in" variant="elevated">
         {platformLogoUrl ? (
           <div className="gl-auth-logo-wrap">
             <img src={platformLogoUrl} alt="Logo plateforme" className="gl-auth-logo" />

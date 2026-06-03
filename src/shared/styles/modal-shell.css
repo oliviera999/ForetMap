@@ -1,0 +1,83 @@
+/* Shell modale partagé ForetMap + GL (overlay + panneau thématisable). */
+
+:root {
+  --fm-modal-overlay-bg: rgba(12, 30, 20, .52);
+  --fm-modal-overlay-z: 200;
+  --fm-modal-panel-bg: var(--surface-1, #fff);
+  --fm-modal-panel-border: rgba(255, 255, 255, .46);
+  --fm-modal-panel-shadow: var(--shadow-strong, 0 18px 42px rgba(20, 54, 37, 0.16));
+  --fm-modal-pop-duration: .28s;
+}
+
+.fm-modal-overlay,
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: var(--fm-modal-overlay-z);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: max(16px, var(--safe-top)) 16px max(16px, var(--safe-bottom));
+  background: var(--fm-modal-overlay-bg);
+  backdrop-filter: blur(4px);
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+
+.fm-modal-panel {
+  position: relative;
+  z-index: 1;
+  flex: 0 1 auto;
+  min-width: 0;
+  min-height: 0;
+  box-sizing: border-box;
+  background: var(--fm-modal-panel-bg);
+  border-radius: 20px;
+  padding: 20px 20px calc(20px + var(--safe-bottom));
+  width: min(100%, calc(100vw - 32px));
+  max-width: min(920px, calc(100vw - 32px));
+  max-height: min(90vh, calc(100vh - var(--safe-top) - var(--safe-bottom) - 32px));
+  max-height: min(90dvh, calc(100dvh - var(--safe-top) - var(--safe-bottom) - 32px));
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  border: 1px solid var(--fm-modal-panel-border);
+  box-shadow: var(--fm-modal-panel-shadow);
+  animation: popIn var(--fm-modal-pop-duration) var(--spring) forwards;
+}
+
+@media (max-width: 720px) {
+  .fm-modal-overlay,
+  .modal-overlay {
+    align-items: flex-start;
+  }
+
+  .fm-modal-overlay > .fm-modal-panel:not(.fm-modal-panel--scroll-body),
+  .modal-overlay > .fm-modal-panel:not(.fm-modal-panel--scroll-body) {
+    max-height: none;
+    height: auto;
+    overflow: visible;
+  }
+}
+
+@media (hover: none) and (pointer: coarse) {
+  .fm-modal-overlay,
+  .modal-overlay {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    --fm-modal-overlay-bg: rgba(12, 30, 20, 0.72);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fm-modal-panel,
+  .modal,
+  .log-modal,
+  .pin-card {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}

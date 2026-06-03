@@ -36,7 +36,7 @@ description: Sécurise les commandes de commit Git sous PowerShell (messages mul
    git commit -m $msg
    git status --short
    ```
-4. Push :
+4. Push (obligatoire après chaque lot livré, sauf consigne utilisateur contraire) :
    ```powershell
    git push
    ```

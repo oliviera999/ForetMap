@@ -96,7 +96,7 @@ export function GLGlossaryView({
   }
 
   return (
-    <article className="gl-panel gl-glossary gl-animate-in">
+    <article className="gl-panel gl-glossary fade-in">
       <h2>Glossaire</h2>
       {biomeLabel ? (
         <p className="gl-glossary__intro">

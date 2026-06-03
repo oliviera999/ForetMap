@@ -1,0 +1,141 @@
+/* Couche motion partagée ForetMap + GL (tokens, keyframes, utilitaires). */
+
+:root {
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-top: env(safe-area-inset-top, 0px);
+  --spring: cubic-bezier(.34, 1.56, .64, 1);
+  --spring-touch: cubic-bezier(.34, 1.2, .64, 1);
+  --ease-out: cubic-bezier(.22, 1, .36, 1);
+  --motion-fast: .16s;
+  --motion-base: .24s;
+  --motion-slow: .34s;
+  --font-emoji-stack: 'ForetMapColorEmoji', 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', sans-serif;
+  --font-sans-with-emoji: 'DM Sans', 'ForetMapColorEmoji', 'Segoe UI Emoji', 'Apple Color Emoji', 'Noto Color Emoji', sans-serif;
+  --attention-pulse-color: rgba(82, 183, 136, .45);
+  --attention-pulse-spread: 12px;
+}
+
+@media (hover: none) and (pointer: coarse) {
+  :root {
+    --spring: var(--spring-touch);
+    --motion-fast: .12s;
+    --motion-base: .20s;
+    --motion-slow: .28s;
+  }
+}
+
+.foretmap-emoji-text-mixed {
+  font-family: var(--font-sans-with-emoji);
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translate3d(0, 8px, 0); }
+  to { opacity: 1; transform: translate3d(0, 0, 0); }
+}
+
+@keyframes popIn {
+  from { transform: scale3d(.88, .88, 1) translate3d(0, 12px, 0); opacity: 0; }
+  to { transform: scale3d(1, 1, 1) translate3d(0, 0, 0); opacity: 1; }
+}
+
+@keyframes toastIn {
+  from { opacity: 0; transform: translate3d(0, 16px, 0) scale3d(.92, .92, 1); }
+  to { opacity: 1; transform: translate3d(0, 0, 0) scale3d(1, 1, 1); }
+}
+
+@keyframes shake {
+  0%, 100% { transform: translate3d(0, 0, 0); }
+  25% { transform: translate3d(-6px, 0, 0); }
+  75% { transform: translate3d(6px, 0, 0); }
+}
+
+@keyframes statPop {
+  from { opacity: 0; transform: scale3d(.88, .88, 1) translate3d(0, 10px, 0); }
+  to { opacity: 1; transform: scale3d(1, 1, 1) translate3d(0, 0, 0); }
+}
+
+@keyframes overlayFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes overlayFadeOut {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+@keyframes attentionPulse {
+  0% { box-shadow: 0 0 0 0 var(--attention-pulse-color); }
+  70% { box-shadow: 0 0 0 var(--attention-pulse-spread, 12px) var(--attention-pulse-color-end, rgba(82, 183, 136, 0)); }
+  100% { box-shadow: 0 0 0 0 var(--attention-pulse-color-end, rgba(82, 183, 136, 0)); }
+}
+
+.fade-in {
+  animation: fadeIn var(--motion-base) var(--ease-out) both;
+}
+
+.stagger > * {
+  animation: fadeIn var(--motion-base) var(--ease-out) both;
+}
+
+.stagger > *:nth-child(1) { animation-delay: .04s; }
+.stagger > *:nth-child(2) { animation-delay: .08s; }
+.stagger > *:nth-child(3) { animation-delay: .12s; }
+.stagger > *:nth-child(4) { animation-delay: .16s; }
+.stagger > *:nth-child(5) { animation-delay: .20s; }
+.stagger > *:nth-child(n+6) { animation-delay: .22s; }
+
+.animate-pop {
+  animation: popIn var(--fm-modal-pop-duration, .28s) var(--spring) forwards;
+}
+
+.is-attention-pulse {
+  animation: attentionPulse 2s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .fade-in,
+  .stagger > *,
+  .animate-pop,
+  .fm-toast,
+  .fm-modal-panel,
+  .modal,
+  .log-modal {
+    backface-visibility: hidden;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fade-in,
+  .stagger > *,
+  .animate-pop,
+  .fm-toast,
+  .fm-modal-panel,
+  .modal,
+  .log-modal,
+  .pin-card {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+
+  .is-attention-pulse {
+    animation: none !important;
+  }
+
+  .btn,
+  .gl-btn,
+  .top-tab,
+  .task-card,
+  .visit-map-ctrl {
+    transition-duration: 0.01ms !important;
+  }
+
+  .btn:active,
+  .gl-btn:active,
+  .task-card:active,
+  .top-tab:active,
+  .visit-map-ctrl:active {
+    transform: none !important;
+  }
+}

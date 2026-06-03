@@ -12,7 +12,7 @@ export function GLBiocenoseView({ gameState, onOpenGlossaryTerm, learningProgres
     : [];
 
   return (
-    <article className="gl-panel gl-markdown gl-animate-in">
+    <article className="gl-panel gl-markdown fade-in">
       <h2>Biocenose</h2>
       {introHtml ? (
         <div className="gl-biocenose-intro" dangerouslySetInnerHTML={{ __html: introHtml }} />

@@ -176,7 +176,7 @@ export function GLQcmImportPanel() {
   }
 
   return (
-    <section className="gl-admin-section gl-animate-in">
+    <section className="gl-admin-section fade-in">
       <h3>Import QCM (XLSX)</h3>
       <p className="gl-hint">
         Fichier attendu : feuilles <code>categories</code> et <code>questions</code> (les questions sont dans la feuille

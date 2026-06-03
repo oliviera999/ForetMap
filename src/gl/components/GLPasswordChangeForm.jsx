@@ -32,7 +32,7 @@ export function GLPasswordChangeForm({ isAdmin, onChanged }) {
   }
 
   return (
-    <GLSurface as="form" className="gl-form gl-animate-in" variant="flat" onSubmit={submit}>
+    <GLSurface as="form" className="gl-form fade-in" variant="flat" onSubmit={submit}>
       <h3>{isAdmin ? 'Mot de passe staff' : 'Mot de passe joueur'}</h3>
       {error ? <p className="gl-error">{error}</p> : null}
       {info ? <p className="gl-profile-ok">{info}</p> : null}

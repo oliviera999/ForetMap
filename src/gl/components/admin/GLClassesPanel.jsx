@@ -98,7 +98,7 @@ export function GLClassesPanel({ classes, onReload }) {
   }
 
   return (
-    <section className="gl-admin-section gl-animate-in">
+    <section className="gl-admin-section fade-in">
       <h3>Classes</h3>
       {error ? <p className="gl-error">{error}</p> : null}
       {info ? <p className="gl-hint">{info}</p> : null}

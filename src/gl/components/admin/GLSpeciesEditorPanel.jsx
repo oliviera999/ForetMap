@@ -252,7 +252,7 @@ export function GLSpeciesEditorPanel() {
   const coreFields = ['species_code', 'type', 'nom_commun', 'nom_scientifique', 'groupe', 'famille', 'mots_cles', 'photo_url'];
 
   return (
-    <section className="gl-admin-section gl-animate-in">
+    <section className="gl-admin-section fade-in">
       <h3>Saisie manuelle — biocénose (espèces)</h3>
       <p className="gl-hint">
         Fiches espèces par biome. Les mots-clés relient la fiche au glossaire (séparés par des virgules).
