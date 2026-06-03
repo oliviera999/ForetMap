@@ -1,6 +1,7 @@
 const { test, expect } = require('@playwright/test');
 const { seedGlScenario } = require('./fixtures/gl.fixture');
 const { signAuthToken } = require('../middleware/requireTeacher');
+const { execute } = require('../database');
 
 test.describe('GL users admin flow', () => {
   test('MJ gère classes, joueurs, équipes et affectations', async ({ request, page }) => {
@@ -114,6 +115,77 @@ test.describe('GL users admin flow', () => {
 
     await page.getByRole('button', { name: 'Revenir à mon compte admin' }).click();
     await expect(page.getByText('Prise de contrôle (admin GL)')).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Console MJ' })).toBeVisible();
+  });
+
+  test('MJ GL peut voir comme un joueur puis revenir à son compte MJ', async ({ page }) => {
+    const seeded = await seedGlScenario('mj-impersonation');
+    await execute('UPDATE gl_admins SET role = ? WHERE id = ?', ['mj', seeded.adminId]);
+    const mjToken = await signAuthToken({
+      product: 'gl',
+      userType: 'gl_admin',
+      userId: String(seeded.adminId),
+      roleSlug: 'gl_mj',
+      permissions: ['gl.read', 'gl.players.manage', 'gl.game.manage', 'gl.team.manage', 'gl.event.emit'],
+      displayName: 'MJ impersonation',
+    });
+
+    await page.setExtraHTTPHeaders({ 'X-Foretmap-Product': 'gl' });
+    await page.goto('/');
+    await page.evaluate((payload) => {
+      localStorage.setItem('gl_session', JSON.stringify(payload));
+      localStorage.setItem('gl_active_tab', 'users');
+    }, {
+      token: mjToken,
+      auth: {
+        product: 'gl',
+        userType: 'gl_admin',
+        userId: String(seeded.adminId),
+        roleSlug: 'gl_mj',
+        displayName: 'MJ impersonation',
+        permissions: ['gl.read', 'gl.players.manage', 'gl.game.manage', 'gl.team.manage', 'gl.event.emit'],
+      },
+    });
+    await page.reload();
+
+    const playerRow = page.locator('tr, .gl-data-card').filter({ hasText: seeded.playerPseudo }).first();
+    await playerRow.scrollIntoViewIfNeeded();
+    await expect(playerRow).toBeVisible({ timeout: 15_000 });
+    await playerRow.getByRole('button', { name: 'Voir comme' }).click({ timeout: 15_000 });
+
+    await expect(page.getByText('Prise de contrôle (MJ GL)')).toBeVisible();
+    await page.getByRole('button', { name: 'Revenir à mon compte MJ' }).click();
+    await expect(page.getByText('Prise de contrôle (MJ GL)')).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Console MJ' })).toBeVisible();
+  });
+
+  test('staff GL peut passer en vue joueur aperçu puis revenir', async ({ page }) => {
+    const seeded = await seedGlScenario('player-preview');
+
+    await page.setExtraHTTPHeaders({ 'X-Foretmap-Product': 'gl' });
+    await page.goto('/');
+    await page.evaluate((payload) => {
+      localStorage.setItem('gl_session', JSON.stringify(payload));
+      localStorage.setItem('gl_active_tab', 'maps');
+    }, {
+      token: seeded.adminToken,
+      auth: {
+        product: 'gl',
+        userType: 'gl_admin',
+        userId: String(seeded.adminId),
+        roleSlug: 'gl_admin',
+        displayName: 'Admin preview',
+        permissions: ['gl.read', 'gl.game.manage'],
+      },
+    });
+    await page.reload();
+
+    await page.getByRole('button', { name: 'Passer en vue joueur' }).click();
+    await expect(page.getByText('Vue joueur (aperçu)')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Console MJ' })).toHaveCount(0);
+
+    await page.getByRole('button', { name: 'Revenir au rôle normal' }).click();
+    await expect(page.getByText('Vue joueur (aperçu)')).toHaveCount(0);
     await expect(page.getByRole('button', { name: 'Console MJ' })).toBeVisible();
   });
 });

@@ -42,6 +42,8 @@ export function GLGameMasterConsole({
   gameplaySettings,
   selectedTeamId,
   onSelectTeam,
+  canImpersonate = false,
+  onImpersonationApplied = null,
 }) {
   const [mjSection, setMjSection] = useState('parties');
   const [showCreateForm, setShowCreateForm] = useState(false);
@@ -905,6 +907,8 @@ export function GLGameMasterConsole({
               teams={teams}
               refreshKey={rosterRefreshKey}
               vitalityEnabled={vitalityEnabled}
+              canImpersonate={canImpersonate}
+              onImpersonationApplied={onImpersonationApplied}
               onRosterChanged={async () => {
                 await onReloadGame?.();
                 setRosterRefreshKey((value) => value + 1);

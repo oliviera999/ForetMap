@@ -243,13 +243,17 @@ function buildGlOAuthFrontendErrorRedirect(frontendOrigin, code, mode) {
   return `${base}/#oauth_error=${encodeURIComponent(code)}${modeParam}`;
 }
 
-async function resolveGlPlayerActiveMembership(playerId, preferredTeamId = null) {
+async function resolveGlPlayerActiveMembership(playerId, preferredTeamId = null, preferredGameId = null) {
+  const preferredGame = preferredGameId != null && Number.isFinite(Number(preferredGameId))
+    ? Number(preferredGameId)
+    : -1;
   const membership = await queryOne(
     `SELECT tm.game_id, tm.team_id
        FROM gl_team_members tm
  INNER JOIN gl_games g ON g.id = tm.game_id
       WHERE tm.player_id = ?
       ORDER BY
+        CASE WHEN tm.game_id = ? THEN 0 ELSE 1 END ASC,
         CASE g.status
           WHEN 'live' THEN 0
           WHEN 'paused' THEN 1
@@ -260,7 +264,7 @@ async function resolveGlPlayerActiveMembership(playerId, preferredTeamId = null)
         g.updated_at DESC,
         tm.joined_at DESC
       LIMIT 1`,
-    [playerId, preferredTeamId != null ? Number(preferredTeamId) : 0]
+    [playerId, preferredGame, preferredTeamId != null ? Number(preferredTeamId) : 0]
   );
   if (!membership) return null;
   return {
@@ -269,8 +273,9 @@ async function resolveGlPlayerActiveMembership(playerId, preferredTeamId = null)
   };
 }
 
-async function issueGlPlayerSession(player) {
-  const membership = await resolveGlPlayerActiveMembership(player.id, player.team_id);
+async function issueGlPlayerSession(player, options = {}) {
+  const preferredGameId = options.preferredGameId ?? null;
+  const membership = await resolveGlPlayerActiveMembership(player.id, player.team_id, preferredGameId);
   const claims = {
     userType: 'gl_player',
     userId: String(player.id),
@@ -296,8 +301,21 @@ async function issueGlStaffSession(admin, glRole) {
   return { authToken: token, auth: exposeGlAuth(claims) };
 }
 
-function isStrictGlAdmin(auth) {
-  return auth?.userType === 'gl_admin' && auth?.roleSlug === 'gl_admin';
+const GL_STAFF_IMPERSONATE_ROLE_SLUGS = new Set(['gl_admin', 'gl_mj']);
+
+function canGlStaffImpersonate(auth) {
+  if (!auth || auth.impersonating) return false;
+  if (auth.userType !== 'gl_admin') return false;
+  return GL_STAFF_IMPERSONATE_ROLE_SLUGS.has(String(auth.roleSlug || '').toLowerCase());
+}
+
+function glStaffRoleSlugToDbRole(roleSlug) {
+  return String(roleSlug || '').toLowerCase() === 'gl_mj' ? 'mj' : 'admin';
+}
+
+function isGlStaffDbRole(role) {
+  const normalized = String(role || '').toLowerCase();
+  return normalized === 'admin' || normalized === 'mj';
 }
 
 async function completeGlGoogleOAuth({ cfg, payload, mode }) {
@@ -789,8 +807,8 @@ router.get('/me', requireGlAuth, async (req, res) => {
 
 router.post('/admin/impersonate', requireGlAuth, async (req, res) => {
   try {
-    if (!isStrictGlAdmin(req.glAuth)) {
-      return res.status(403).json({ error: 'Action réservée aux administrateurs GL' });
+    if (!canGlStaffImpersonate(req.glAuth)) {
+      return res.status(403).json({ error: 'Action réservée au staff GL (MJ ou administrateur)' });
     }
     if (req.glAuth.impersonating) {
       return res.status(400).json({ error: 'Quittez d’abord la prise de contrôle en cours' });
@@ -798,6 +816,10 @@ router.post('/admin/impersonate', requireGlAuth, async (req, res) => {
 
     const targetUserType = String(req.body?.userType || '').trim().toLowerCase();
     const targetUserId = String(req.body?.userId || '').trim();
+    const rawGameId = req.body?.gameId;
+    const preferredGameId = rawGameId == null || rawGameId === ''
+      ? null
+      : Number(rawGameId);
     if (targetUserType !== 'gl_player') {
       return res.status(400).json({ error: 'Type utilisateur invalide (gl_player uniquement)' });
     }
@@ -808,6 +830,8 @@ router.post('/admin/impersonate', requireGlAuth, async (req, res) => {
       return res.status(400).json({ error: 'Impossible de prendre le contrôle de votre propre compte' });
     }
 
+    const actorRoleSlug = String(req.glAuth.roleSlug || 'gl_admin').toLowerCase();
+
     const actorAdmin = await queryOne(
       `SELECT id, email, display_name, role, is_active
          FROM gl_admins
@@ -815,8 +839,8 @@ router.post('/admin/impersonate', requireGlAuth, async (req, res) => {
         LIMIT 1`,
       [req.glAuth.userId]
     );
-    if (!actorAdmin || !Number(actorAdmin.is_active) || String(actorAdmin.role || '').toLowerCase() !== 'admin') {
-      return res.status(403).json({ error: 'Compte administrateur GL invalide ou inactif' });
+    if (!actorAdmin || !Number(actorAdmin.is_active) || !isGlStaffDbRole(actorAdmin.role)) {
+      return res.status(403).json({ error: 'Compte staff GL invalide ou inactif' });
     }
 
     const player = await queryOne(
@@ -830,13 +854,15 @@ router.post('/admin/impersonate', requireGlAuth, async (req, res) => {
       return res.status(404).json({ error: 'Joueur introuvable ou inactif' });
     }
 
-    const playerSession = await issueGlPlayerSession(player);
+    const playerSession = await issueGlPlayerSession(player, {
+      preferredGameId: Number.isFinite(preferredGameId) && preferredGameId > 0 ? preferredGameId : null,
+    });
     const claims = {
       ...playerSession.auth,
       impersonating: true,
       actorUserType: 'gl_admin',
       actorUserId: String(actorAdmin.id),
-      actorRoleSlug: 'gl_admin',
+      actorRoleSlug,
     };
     const token = await signGlToken(claims);
 
@@ -847,6 +873,7 @@ router.post('/admin/impersonate', requireGlAuth, async (req, res) => {
       payload: {
         target_user_type: 'gl_player',
         target_user_id: String(player.id),
+        preferred_game_id: Number.isFinite(preferredGameId) && preferredGameId > 0 ? preferredGameId : null,
       },
     });
     await logSecurityEvent('gl.auth.impersonate.start', {
@@ -856,7 +883,7 @@ router.post('/admin/impersonate', requireGlAuth, async (req, res) => {
       targetType: 'gl_player',
       targetId: String(player.id),
       payload: {
-        actor_role: 'gl_admin',
+        actor_role: actorRoleSlug,
       },
     });
 
@@ -882,7 +909,8 @@ router.post('/admin/impersonate/stop', requireGlAuth, async (req, res) => {
       return res.status(400).json({ error: 'Aucune prise de contrôle en cours' });
     }
     const actor = req.glAuth.impersonatedBy;
-    if (actor.userType !== 'gl_admin' || actor.roleSlug !== 'gl_admin') {
+    const actorRoleSlug = String(actor.roleSlug || '').toLowerCase();
+    if (actor.userType !== 'gl_admin' || !GL_STAFF_IMPERSONATE_ROLE_SLUGS.has(actorRoleSlug)) {
       return res.status(403).json({ error: 'Compte de reprise invalide' });
     }
 
@@ -893,11 +921,12 @@ router.post('/admin/impersonate/stop', requireGlAuth, async (req, res) => {
         LIMIT 1`,
       [actor.userId]
     );
-    if (!actorAdmin || !Number(actorAdmin.is_active) || String(actorAdmin.role || '').toLowerCase() !== 'admin') {
-      return res.status(403).json({ error: 'Compte administrateur GL introuvable ou inactif' });
+    if (!actorAdmin || !Number(actorAdmin.is_active) || !isGlStaffDbRole(actorAdmin.role)) {
+      return res.status(403).json({ error: 'Compte staff GL introuvable ou inactif' });
     }
 
-    const restored = await issueGlStaffSession(actorAdmin, 'admin');
+    const restoreRole = glStaffRoleSlugToDbRole(actorRoleSlug);
+    const restored = await issueGlStaffSession(actorAdmin, restoreRole);
 
     await logAudit('gl_auth_impersonate_stop', 'gl_auth', String(actorAdmin.id), 'Fin prise de contrôle compte GL', {
       req,
@@ -906,6 +935,7 @@ router.post('/admin/impersonate/stop', requireGlAuth, async (req, res) => {
       payload: {
         target_user_type: req.glAuth.userType,
         target_user_id: req.glAuth.userId,
+        restored_role_slug: restored?.auth?.roleSlug || null,
       },
     });
     await logSecurityEvent('gl.auth.impersonate.stop', {
@@ -914,6 +944,9 @@ router.post('/admin/impersonate/stop', requireGlAuth, async (req, res) => {
       actorUserId: String(actorAdmin.id),
       targetType: req.glAuth.userType,
       targetId: String(req.glAuth.userId),
+      payload: {
+        actor_role: actorRoleSlug,
+      },
     });
 
     return res.json(restored);

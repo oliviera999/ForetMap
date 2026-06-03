@@ -19,6 +19,7 @@ export function GLPlayersPanel({
   onReload,
   canImpersonate = false,
   onImpersonationApplied = null,
+  impersonateGameId = null,
 }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -161,10 +162,15 @@ export function GLPlayersPanel({
     setError('');
     setInfo('');
     try {
-      const payload = await apiGL('/api/gl/auth/admin/impersonate', 'POST', {
+      const body = {
         userType: 'gl_player',
         userId: String(player.id),
-      });
+      };
+      const gameId = impersonateGameId != null ? Number(impersonateGameId) : null;
+      if (Number.isFinite(gameId) && gameId > 0) {
+        body.gameId = gameId;
+      }
+      const payload = await apiGL('/api/gl/auth/admin/impersonate', 'POST', body);
       if (!payload?.authToken) {
         setError('Réponse serveur invalide');
         return;

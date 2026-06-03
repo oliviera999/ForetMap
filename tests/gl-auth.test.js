@@ -7,7 +7,14 @@ const request = require('supertest');
 const { app } = require('../server');
 const { initSchema, queryOne } = require('../database');
 const { signAuthToken } = require('../middleware/requireTeacher');
-const { createGlAdmin, createGlClass, createGlPlayer } = require('./helpers/glFixtures');
+const {
+  createGlAdmin,
+  createGlClass,
+  createGlPlayer,
+  createGlChapterWithMarker,
+  createGlGameWithTeams,
+  assignPlayerToGameTeam,
+} = require('./helpers/glFixtures');
 
 const PSEUDO_NORMAL = 'equipe_aurore';
 const PSEUDO_MUST_RESET = 'equipe_reinit';
@@ -118,24 +125,87 @@ test('POST /api/gl/auth/admin/impersonate puis stop restaure l’admin GL', asyn
   assert.ok(!stop.body?.auth?.impersonating);
 });
 
-test('POST /api/gl/auth/admin/impersonate refuse un token MJ', async () => {
-  const admin = await queryOne('SELECT id FROM gl_admins WHERE LOWER(email) = LOWER(?) LIMIT 1', ['mj.test@ecole.local']);
-  assert.ok(admin?.id);
+test('POST /api/gl/auth/admin/impersonate MJ puis stop restaure gl_mj', async () => {
+  const email = `gl.mj.impersonate.${Date.now()}@ecole.local`;
+  const mjAdmin = await createGlAdmin({ email, displayName: 'MJ Impersonate', role: 'mj' });
   const player = await queryOne('SELECT id FROM gl_players WHERE pseudo = ? LIMIT 1', [PSEUDO_NORMAL]);
   assert.ok(player?.id);
 
   const mjToken = await signAuthToken({
     product: 'gl',
     userType: 'gl_admin',
-    userId: String(admin.id),
+    userId: String(mjAdmin.id),
     roleSlug: 'gl_mj',
-    permissions: ['gl.read', 'gl.players.manage'],
-    displayName: 'MJ Test',
+    permissions: ['gl.read', 'gl.players.manage', 'gl.game.manage'],
+    displayName: 'MJ Impersonate',
   });
 
-  await request(app)
+  const imp = await request(app)
     .post('/api/gl/auth/admin/impersonate')
     .set('Authorization', `Bearer ${mjToken}`)
     .send({ userType: 'gl_player', userId: String(player.id) })
-    .expect(403);
+    .expect(200);
+  assert.strictEqual(imp.body?.auth?.impersonating, true);
+  assert.strictEqual(imp.body?.auth?.impersonatedBy?.roleSlug, 'gl_mj');
+
+  const stop = await request(app)
+    .post('/api/gl/auth/admin/impersonate/stop')
+    .set('Authorization', `Bearer ${imp.body.authToken}`)
+    .expect(200);
+  assert.strictEqual(stop.body?.auth?.roleSlug, 'gl_mj');
+  assert.ok(!stop.body?.auth?.impersonating);
+});
+
+test('POST /api/gl/auth/admin/impersonate avec gameId priorise la partie', async () => {
+  const email = `gl.admin.gamepick.${Date.now()}@ecole.local`;
+  const admin = await createGlAdmin({ email, displayName: 'Admin Game Pick', role: 'admin' });
+  const cls = await createGlClass({ name: `Classe pick ${Date.now()}`, adminId: admin.id });
+  const pseudo = `pick-player-${Date.now()}`;
+  const player = await createGlPlayer({ classId: cls.id, pseudo, password: '1234' });
+  const { chapter } = await createGlChapterWithMarker({ slug: `pick-ch-${Date.now()}` });
+  const gameA = await createGlGameWithTeams({
+    classId: cls.id,
+    chapterId: chapter.id,
+    createdBy: admin.id,
+    name: `Partie A ${Date.now()}`,
+    teams: [{ name: 'Equipe A' }],
+  });
+  const gameB = await createGlGameWithTeams({
+    classId: cls.id,
+    chapterId: chapter.id,
+    createdBy: admin.id,
+    name: `Partie B ${Date.now()}`,
+    teams: [{ name: 'Equipe B' }],
+  });
+  await assignPlayerToGameTeam({
+    gameId: gameA.game.id,
+    teamId: gameA.teams[0].id,
+    playerId: player.id,
+  });
+  await assignPlayerToGameTeam({
+    gameId: gameB.game.id,
+    teamId: gameB.teams[0].id,
+    playerId: player.id,
+  });
+
+  const adminToken = await signAuthToken({
+    product: 'gl',
+    userType: 'gl_admin',
+    userId: String(admin.id),
+    roleSlug: 'gl_admin',
+    permissions: ['gl.read', 'gl.players.manage', 'gl.game.manage'],
+    displayName: 'Admin Game Pick',
+  });
+
+  const imp = await request(app)
+    .post('/api/gl/auth/admin/impersonate')
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({
+      userType: 'gl_player',
+      userId: String(player.id),
+      gameId: Number(gameA.game.id),
+    })
+    .expect(200);
+  assert.strictEqual(Number(imp.body?.auth?.gameId), Number(gameA.game.id));
+  assert.strictEqual(Number(imp.body?.auth?.teamId), Number(gameA.teams[0].id));
 });

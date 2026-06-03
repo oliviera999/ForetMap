@@ -24,6 +24,10 @@ export function GLTopBar({
   playerPowerPoints = null,
   showVersion = false,
   appVersion = null,
+  canSwitchGlPlayerView = false,
+  glViewMode = 'native',
+  onGlViewModeNative = null,
+  onGlViewModePlayer = null,
 }) {
   const title = String(platformTitle || 'Gnomes & Licornes');
   const subtitle = String(platformSubtitle || 'Le jeu de Sciences et Technologie');
@@ -64,6 +68,32 @@ export function GLTopBar({
           />
         ) : null}
         <span>{auth?.displayName || auth?.roleSlug || 'Session'}</span>
+        {canSwitchGlPlayerView ? (
+          <>
+            {glViewMode !== 'native' && typeof onGlViewModeNative === 'function' ? (
+              <button
+                type="button"
+                className="gl-logout"
+                aria-label="Revenir au rôle normal"
+                title="Revenir au rôle normal"
+                onClick={onGlViewModeNative}
+              >
+                ↩️
+              </button>
+            ) : null}
+            {glViewMode !== 'player' && typeof onGlViewModePlayer === 'function' ? (
+              <button
+                type="button"
+                className="gl-logout"
+                aria-label="Passer en vue joueur"
+                title="Passer en vue joueur (aperçu)"
+                onClick={onGlViewModePlayer}
+              >
+                🎮
+              </button>
+            ) : null}
+          </>
+        ) : null}
         <button type="button" className="gl-logout" onClick={onOpenProfile}>
           Mon profil
         </button>
