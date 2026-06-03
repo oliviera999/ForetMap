@@ -25,6 +25,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ### Corrigé
 
+- **GL — mascottes (gestionnaire + carte)** : CSS partagé `visit-map-mascot.css` chargé dans l’app GL (ancrage %, transitions, animations) ; catalogue API enrichi avec `spriteCut` pour les packs GL `sprite_cut` ; onglet assignation découplé du module studio ; type gnome/licorne sur les packs ; preview admin honnête et machine à états filtrée par équipe ; avatar barre haute via `GLMascotRenderer` ; journal temps réel (reload debouncé Socket.IO). Tests `tests/gl-mascots.test.js`, `tests/gl-visit-map-mascot-css.test.js`, `tests-ui/gl/GLBoardMascot.test.jsx`.
 - **GL — marché e2e** : synchronisation PATCH offre/acceptation et attente « L’autre joueur a accepté » avant la double validation.
 - **GL — profil e2e** : gate `passwordMustReset` alimentée depuis `gl_players.password_must_reset` (cohérent avec `GET /api/gl/auth/me`).
 
