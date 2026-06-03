@@ -14,6 +14,7 @@ test.describe('Gnomes & Licornes foundations', () => {
     expect(config.ok()).toBeTruthy();
     const body = await config.json();
     expect(typeof body?.modules?.journalEnabled).toBe('boolean');
+    expect(typeof body?.modules?.playerJournalEnabled).toBe('boolean');
     expect(typeof body?.modules?.mascotPacksEnabled).toBe('boolean');
   });
 

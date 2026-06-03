@@ -146,7 +146,7 @@ Le script accepte aussi :
 | POST | `/api/gl/games/:id/vitality/team` | `{ teamId, healthDelta?, powerDelta?, reason? }` | `gl.event.emit` (applique aux membres `gl_team_members` ; refus `400` si équipe vide) |
 | POST | `/api/gl/games/:id/events` | `{ teamId?, eventType, payload }` | `gl.event.emit` (`move` exige `teamId`) |
 | POST | `/api/gl/games/:id/turn/next` | — | `gl.game.manage` (refus `409` si `gameplay.turns_enabled=false`) |
-| POST | `/api/gl/games/:id/spell-casts/drafts` | `{ spellCode, teamId }` | `gl.action.request` ou `gl.event.emit` (refus `409` si module off / vitalité off / partie non `live`) |
+| POST | `/api/gl/games/:id/spell-casts/drafts` | `{ spellCode, teamId }` | `gl.action.request` ou `gl.event.emit` (refus `403` si `gameplay.spell_cast_mj_only=true` et acteur joueur ; refus `409` si module off / vitalité off / partie non `live`) |
 | GET | `/api/gl/games/:id/spell-casts/drafts/:draftId` | — | idem |
 | PUT | `/api/gl/games/:id/spell-casts/drafts/:draftId/contributions` | `{ contributions: [{ playerId, gems?, hearts? }] }` | idem (règles `gameplay.spell_cast_contribution_mode`) |
 | POST | `/api/gl/games/:id/spell-casts/drafts/:draftId/launch` | — | idem (somme contributions = coût sort ; débit PP/PV) |
@@ -179,7 +179,7 @@ Note UX admin GL : l’édition des chapitres et de la carte royaume est désorm
 - `move` — déplacement d'une mascotte d'équipe vers un marker **ou** en position libre (`payload: { markerId, markerLabel?, xp?, yp? }` ou `{ xp, yp }`, bornes `0..100`). Si `xp/yp` sont fournis seuls, la position marker est détachée (`position_marker_id = NULL`).
 - `game_status` — changement de statut de partie (`payload: { status }`).
 - `turn_change` — équipe dont c'est le tour (`payload: { teamId }`). Requiert `gameplay.turns_enabled=true`.
-- `narration` — texte narratif diffusé en bandeau (`payload: { text }`). Requiert `gameplay.narration_enabled=true`.
+- `narration` — texte narratif diffusé en bandeau et journal (`payload: { text, imageUrl? }`). `imageUrl` optionnel : chemin `/uploads/media-library/...` (bibliothèque média GL). Texte requis. Requiert `gameplay.narration_enabled=true`.
 - `score` — variation de score d'équipe (`payload: { delta, reason? }`). Met à jour `gl_team_scores`. Requiert `gameplay.scoring_enabled=true`.
 - `action_request` — demande joueur (`payload: { actionRequestId, actionType, playerId, payload }`).
 - `action_resolved` — décision MJ (`payload: { actionRequestId, decision, scoreDelta, reason }`).
@@ -188,7 +188,7 @@ Note UX admin GL : l’édition des chapitres et de la carte royaume est désorm
 - `vitality_change` — ajustement PV/PP par le MJ (`payload: { healthDelta, powerDelta, reason?, results: [{ playerId, health, power }] }`). Met à jour `gl_players.health_points` / `power_points` (persistant inter-parties). Requiert `gameplay.vitality_enabled=true`.
 - `spell_cast` — lancement collaboratif d’un sortilège (`payload: { spellCode, spellName, teamId, cost: { gems, hearts }, contributions[], results[] }`). Débite les PP (💎) et PV (❤️) selon `gl_spells.cout_gemmes` / `cout_coeurs`. Requiert `modules.spell_cast_enabled` et `gameplay.vitality_enabled`. Socket.IO complémentaire : `gl:spell_cast:draft` (room `gl:game:{id}`).
 
-**Toggles `gameplay.*`** persistés dans `gl_settings` (table `(key, value_json)`), modifiables via `PUT /api/gl/admin/settings/:key` (permission `gl.settings.manage`). Snapshot public (joueur + admin) exposé par `GET /api/gl/gameplay-settings` (réponse inclut notamment `turnsEnabled`, `narrationEnabled`, `playerActionsEnabled`, `scoringEnabled`, `markerQuestionRetrigger`, `vitalityEnabled`, `defaultHealthPoints`, `defaultPowerPoints`, `spellCastEnabled`, `spellCastContributionMode` (`coordinator` \| `self_only` \| `both`), `spellCastTeamScope` (`any_team` \| `own_team` \| `mj_any`)). Module **`modules.spell_cast_enabled`** (défaut `false`, requiert vitalité). Cache mémoire 30 s côté serveur, invalidé à chaque PUT sur une clé `gameplay.*` ou `modules.*`.
+**Toggles `gameplay.*`** persistés dans `gl_settings` (table `(key, value_json)`), modifiables via `PUT /api/gl/admin/settings/:key` (permission `gl.settings.manage`). Snapshot public (joueur + admin) exposé par `GET /api/gl/gameplay-settings` (réponse inclut notamment `turnsEnabled`, `narrationEnabled`, `playerActionsEnabled`, `scoringEnabled`, `markerQuestionRetrigger`, `vitalityEnabled`, `defaultHealthPoints`, `defaultPowerPoints`, `spellCastEnabled`, `spellCastContributionMode` (`coordinator` \| `self_only` \| `both`), `spellCastTeamScope` (`any_team` \| `own_team` \| `mj_any`), `spellCastMjOnly` (booléen, défaut `false` : si `true`, seul le staff MJ peut lancer — les joueurs consultent le catalogue sans assistant de lancement)). Module **`modules.spell_cast_enabled`** (défaut `false`, requiert vitalité). Cache mémoire 30 s côté serveur, invalidé à chaque PUT sur une clé `gameplay.*` ou `modules.*`.
 
 **Vitalité joueur** : colonnes `gl_players.health_points` et `power_points` (défauts initiaux `gameplay.default_health_points` / `gameplay.default_power_points`, appliqués à la **création** d’un joueur uniquement). `GET /api/gl/games/:id` renvoie `vitality: { enabled, byPlayerId }` si le module est actif ; `GET /api/gl/games/:id/roster` inclut `healthPoints` / `powerPoints` ; `GET /api/gl/auth/me` expose les compteurs sur le profil joueur.
 
@@ -242,6 +242,7 @@ dans `gl_settings` :
 - `modules.tutorials_enabled`
 - `modules.help_enabled`
 - `modules.journal_enabled`
+- `modules.player_journal_enabled` — carnet personnel éditable par joueur (onglet « Mon journal »)
 - `modules.kingdom_map_enabled`
 - `modules.zone_music_enabled`
 - `modules.virtual_dice_enabled` — lanceur de dés D6 (1 à 5) sur la carte de jeu (client uniquement, défaut `false`)
@@ -296,7 +297,17 @@ sur la carte du royaume). Couleur invalide → `400`.
 | POST | `/api/gl/tutorials` | `{ slug, title, bodyMarkdown, chapterId?, markerId?, orderIndex?, isPublished? }` | `gl.content.manage` |
 | PUT | `/api/gl/tutorials/:id` | mise à jour partielle | `gl.content.manage` |
 | DELETE | `/api/gl/tutorials/:id` | — | `gl.content.manage` |
-| GET | `/api/gl/journal/games/:id` | `?teamId=&limit=` | MJ/admin GL, ou joueur membre de cette partie |
+| GET | `/api/gl/journal/games/:id` | `?teamId=&limit=` (1–500, défaut 100) | MJ/admin GL, ou joueur membre de cette partie. Réponse `{ events, total, teams }` : chaque événement inclut les champs normalisés (`id`, `eventType`, `payload`, `createdAt`, …) plus **`presentation`** (titres et libellés FR : `kind`, `title`, `body`, `imageUrl`, `actorLabel`, `teamLabel`, `technical`). Filtre `teamId` : événements de l’équipe et événements globaux (`team_id` NULL). |
+
+**Carnet personnel joueur** (module `modules.player_journal_enabled`) : tables `gl_player_journals`, `gl_player_journal_assets`. Limites via `gameplay.player_journal_max_chars` (défaut 20000) et `gameplay.player_journal_max_assets` (défaut 30).
+
+| Méthode | URL | Body | Accès |
+|--------|-----|------|--------|
+| GET | `/api/gl/player-journal/me` | — | Joueur GL — carnet + quotas (`limits`, `usage`, `assets`) |
+| PUT | `/api/gl/player-journal/me` | `{ bodyMarkdown }` | Joueur GL — sauvegarde (validation longueur, encarts `gl-journal-embed`, URLs images limitées au préfixe `/uploads/gl-player-journal/{playerId}/`) |
+| POST | `/api/gl/player-journal/me/assets` | `{ imageData }` (data URL / base64) | Joueur GL — illustration personnelle (JPEG/PNG/WebP) |
+| DELETE | `/api/gl/player-journal/me/assets/:assetId` | — | Joueur GL — propriétaire |
+| GET | `/api/gl/player-journal/players/:playerId` | — | `gl.players.manage` — lecture carnet d’un joueur (recette MJ) |
 | GET | `/api/gl/kingdom-map/zones?chapterId=` | — | Auth GL |
 | POST | `/api/gl/kingdom-map/zones` | `{ chapterId, label, description?, color?, points: [{x,y}…], musicUrl?, musicVolume? }` | `gl.content.manage` |
 | PUT | `/api/gl/kingdom-map/zones/:id` | mise à jour partielle (`musicUrl` nullable pour retirer) | `gl.content.manage` |

@@ -8,6 +8,7 @@ import { GLField } from './ui/GLField.jsx';
 import { GLInput } from './ui/GLInput.jsx';
 import { GLSelect } from './ui/GLSelect.jsx';
 import { GLTextarea } from './ui/GLTextarea.jsx';
+import { GLImageInlineInsertControls } from './GLImageInlineInsertControls.jsx';
 import { useGLMascotCatalog } from '../context/GLMascotCatalogContext.jsx';
 import {
   canEditGameChapter,
@@ -52,6 +53,7 @@ export function GLGameMasterConsole({
   const [createClassId, setCreateClassId] = useState('');
   const [editGameForm, setEditGameForm] = useState({ name: '', chapterId: '', classId: '' });
   const [narration, setNarration] = useState('');
+  const [narrationImageUrl, setNarrationImageUrl] = useState('');
   const [scoreDelta, setScoreDelta] = useState(1);
   const [scoreReason, setScoreReason] = useState('');
   const [teamHealthDelta, setTeamHealthDelta] = useState(1);
@@ -444,12 +446,16 @@ export function GLGameMasterConsole({
     if (!text) return;
     setBusy(true);
     try {
+      const payload = { text };
+      const imageUrl = String(narrationImageUrl || '').trim();
+      if (imageUrl) payload.imageUrl = imageUrl;
       await apiGL(`/api/gl/games/${game.id}/events`, 'POST', {
         eventType: 'narration',
         teamId: effectiveSelectedTeamId,
-        payload: { text },
+        payload,
       });
       setNarration('');
+      setNarrationImageUrl('');
       await onReloadGame?.();
       showSuccess('Narration envoyée.');
     } catch (err) {
@@ -984,6 +990,22 @@ export function GLGameMasterConsole({
                   value={narration}
                   placeholder="Texte affiché en bandeau aux joueurs..."
                   onChange={(event) => setNarration(event.target.value)}
+                />
+                {narrationImageUrl ? (
+                  <p className="gl-hint">
+                    Illustration : <code>{narrationImageUrl}</code>{' '}
+                    <GLButton type="button" variant="secondary" onClick={() => setNarrationImageUrl('')}>
+                      Retirer
+                    </GLButton>
+                  </p>
+                ) : null}
+                <GLImageInlineInsertControls
+                  legend="Illustration (optionnelle)"
+                  intro="Image de la bibliothèque média, visible dans le journal de partie."
+                  onInsert={({ url }) => setNarrationImageUrl(String(url || '').trim())}
+                  onStatus={(msg, isErr) => {
+                    if (isErr) showFailure(msg);
+                  }}
                 />
                 <GLButton type="submit" disabled={busy}>Envoyer la narration</GLButton>
               </form>

@@ -142,6 +142,9 @@ const ALLOWED_GAMEPLAY_SETTINGS = new Set([
   'gameplay.default_power_points',
   'gameplay.spell_cast_contribution_mode',
   'gameplay.spell_cast_team_scope',
+  'gameplay.spell_cast_mj_only',
+  'gameplay.player_journal_max_chars',
+  'gameplay.player_journal_max_assets',
 ]);
 
 async function ensureClassExists(classId) {
@@ -725,6 +728,11 @@ router.put('/settings/:key', requireGlPermission('gl.settings.manage'), async (r
     }
     value = scope;
   }
+  if (key === 'gameplay.spell_cast_mj_only') {
+    if (typeof value !== 'boolean') {
+      return res.status(400).json({ error: 'La valeur de spell_cast_mj_only doit être booléenne' });
+    }
+  }
   if (key === 'gameplay.vitality_enabled') {
     if (typeof value !== 'boolean') {
       return res.status(400).json({ error: 'La valeur de vitality_enabled doit être booléenne' });
@@ -736,6 +744,20 @@ router.put('/settings/:key', requireGlPermission('gl.settings.manage'), async (r
       return res.status(400).json({ error: 'La valeur doit être un entier entre 0 et 99' });
     }
     value = clampVitality(n);
+  }
+  if (key === 'gameplay.player_journal_max_chars') {
+    const n = Number(value);
+    if (!Number.isFinite(n) || !Number.isInteger(n) || n < 500 || n > 200000) {
+      return res.status(400).json({ error: 'La valeur doit être un entier entre 500 et 200000' });
+    }
+    value = n;
+  }
+  if (key === 'gameplay.player_journal_max_assets') {
+    const n = Number(value);
+    if (!Number.isFinite(n) || !Number.isInteger(n) || n < 1 || n > 200) {
+      return res.status(400).json({ error: 'La valeur doit être un entier entre 1 et 200' });
+    }
+    value = n;
   }
   if (key === 'platform.brand') {
     if (!value || typeof value !== 'object' || Array.isArray(value)) {

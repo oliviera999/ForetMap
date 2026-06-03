@@ -11,6 +11,7 @@ export const GL_MODULE_DEFAULTS = {
   marketEnabled: false,
   spellCastEnabled: false,
   virtualDiceEnabled: false,
+  playerJournalEnabled: true,
 };
 
 export function normalizeGlModules(raw) {

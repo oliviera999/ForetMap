@@ -26,6 +26,9 @@ const ALLOWED_TAGS = [
 const ALLOWED_ATTR = ['href', 'rel', 'target', 'title'];
 const ALLOWED_TAGS_WITH_IMAGES = [...ALLOWED_TAGS, 'img'];
 const ALLOWED_ATTR_WITH_IMAGES = [...ALLOWED_ATTR, 'src', 'alt', 'title', 'loading', 'class', 'data-gl-frame', 'style'];
+const ALLOWED_TAGS_WITH_JOURNAL = [...ALLOWED_TAGS_WITH_IMAGES, 'aside'];
+const ALLOWED_ATTR_WITH_JOURNAL = [...ALLOWED_ATTR_WITH_IMAGES, 'data-gl-embed-type', 'data-gl-ref'];
+const JOURNAL_EMBED_TYPES = new Set(['spell', 'species', 'glossary', 'chapter', 'module_stub']);
 
 marked.setOptions({
   breaks: true,
@@ -60,6 +63,22 @@ DOMPurify.addHook('afterSanitizeAttributes', (node) => {
       node.setAttribute('class', `${className} gl-content-image`.trim());
     }
   }
+  if (node.tagName === 'ASIDE') {
+    const className = String(node.getAttribute('class') || '');
+    if (!className.includes('gl-journal-embed')) {
+      node.remove();
+      return;
+    }
+    const embedType = String(node.getAttribute('data-gl-embed-type') || '').trim().toLowerCase();
+    const embedRef = String(node.getAttribute('data-gl-ref') || '').trim();
+    if (!JOURNAL_EMBED_TYPES.has(embedType) || !embedRef) {
+      node.remove();
+      return;
+    }
+    node.setAttribute('class', 'gl-journal-embed');
+    node.setAttribute('data-gl-embed-type', embedType);
+    node.setAttribute('data-gl-ref', embedRef);
+  }
 });
 
 /**
@@ -72,7 +91,25 @@ export function renderMarkdownToSafeHtml(markdown, options = {}) {
   if (!raw) return '';
   const parsed = marked.parse(raw, { async: false });
   const html = typeof parsed === 'string' ? parsed : '';
-  return sanitizeRichHtml(html, options);
+  return sanitizeRichHtml(html, {
+    allowImages: options?.allowImages,
+    allowJournalEmbeds: options?.allowJournalEmbeds,
+  });
+}
+
+/**
+ * Insère un encart de carnet personnel GL.
+ */
+export function applyJournalEmbed(value, selectionStart, selectionEnd, type, ref) {
+  const text = String(value ?? '');
+  const start = Math.max(0, Math.min(selectionStart, text.length));
+  const end = Math.max(start, Math.min(selectionEnd, text.length));
+  const safeType = String(type || '').trim().toLowerCase();
+  const safeRef = String(ref || '').trim().replace(/"/g, '');
+  const snippet = `\n\n<aside class="gl-journal-embed" data-gl-embed-type="${safeType}" data-gl-ref="${safeRef}"></aside>\n\n`;
+  const nextValue = `${text.slice(0, start)}${snippet}${text.slice(end)}`;
+  const cursor = start + snippet.length;
+  return { value: nextValue, selectionStart: cursor, selectionEnd: cursor };
 }
 
 /**
@@ -82,10 +119,20 @@ export function renderMarkdownToSafeHtml(markdown, options = {}) {
  */
 export function sanitizeRichHtml(html, options = {}) {
   const allowImages = Boolean(options?.allowImages);
+  const allowJournalEmbeds = Boolean(options?.allowJournalEmbeds);
+  let tags = ALLOWED_TAGS;
+  let attrs = ALLOWED_ATTR;
+  if (allowJournalEmbeds) {
+    tags = ALLOWED_TAGS_WITH_JOURNAL;
+    attrs = ALLOWED_ATTR_WITH_JOURNAL;
+  } else if (allowImages) {
+    tags = ALLOWED_TAGS_WITH_IMAGES;
+    attrs = ALLOWED_ATTR_WITH_IMAGES;
+  }
   return DOMPurify.sanitize(html, {
-    ALLOWED_TAGS: allowImages ? ALLOWED_TAGS_WITH_IMAGES : ALLOWED_TAGS,
-    ALLOWED_ATTR: allowImages ? ALLOWED_ATTR_WITH_IMAGES : ALLOWED_ATTR,
-    ALLOW_DATA_ATTR: false,
+    ALLOWED_TAGS: tags,
+    ALLOWED_ATTR: attrs,
+    ALLOW_DATA_ATTR: allowJournalEmbeds,
   });
 }
 

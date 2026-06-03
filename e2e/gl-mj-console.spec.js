@@ -99,5 +99,24 @@ test.describe('GL MJ console flow', () => {
     const teamsPanel = page.locator('.gl-mj-console');
     await expect(teamsPanel.getByRole('cell', { name: betaTeamName })).toBeVisible();
     await expect(teamsPanel.getByRole('cell', { name: 'Equipe A' })).toHaveCount(0);
+  
+  test('journal : narration visible avec presentation FR via API', async ({ request }) => {
+    const seeded = await seedGlScenario('journal-api');
+    const text = `E2E journal ${Date.now()}`;
+    const posted = await request.post(`/api/gl/games/${seeded.gameId}/events`, {
+      headers: { Authorization: `Bearer ${seeded.adminToken}` },
+      data: { eventType: 'narration', payload: { text } },
+    });
+    expect(posted.status()).toBe(201);
+
+    const journal = await request.get(`/api/gl/journal/games/${seeded.gameId}?limit=10`, {
+      headers: { Authorization: `Bearer ${seeded.playerToken}` },
+    });
+    expect(journal.status()).toBe(200);
+    const body = await journal.json();
+    const hit = (body.events || []).find((e) => e.presentation?.body === text);
+    expect(hit).toBeTruthy();
+    expect(hit.presentation.title).toMatch(/Narration/i);
   });
+});
 });

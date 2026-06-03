@@ -6,6 +6,7 @@ const { emitGlGameEvent, emitGlSpellCastDraftChanged } = require('../../lib/real
 const {
   getSpellCastConfig,
   assertSpellCastAvailable,
+  assertSpellCastActorAllowed,
   resolveSpellCastError,
   createOrGetDraft,
   getDraftById,
@@ -24,7 +25,8 @@ const {
 } = require('../../lib/glVitality');
 const { logRouteError } = require('../../lib/routeLog');
 const { assignPlayerToTeamTx, unassignPlayerFromGameTx } = require('../../lib/glRoster');
-const { canAccessGlGame } = require('../../lib/glGameAccess');
+const { canAccessGlGame } = require('../../lib/glGameAccess');
+const { parseNarrationImageUrl } = require('../../lib/glJournalPresent');
 const { verifyPresentationAnswer } = require('../../lib/glQcmChoices');
 const { combineKeywords } = require('../../lib/glQcmImport');
 const { buildGlossaryLookupMap, matchGlossaryTermsForSpecies } = require('../../lib/glGlossaryMatch');
@@ -332,6 +334,7 @@ router.get('/gameplay-settings', requireGlAuth, async (_req, res) => {
       spellCastEnabled: spellCast.enabled,
       spellCastContributionMode: spellCast.contributionMode,
       spellCastTeamScope: spellCast.teamScope,
+      spellCastMjOnly: spellCast.mjOnly,
     },
   });
 });
@@ -821,13 +824,25 @@ router.post('/games/:id/events', requireGlPermission('gl.event.emit'), async (re
   if (eventType === 'score' && !settings.scoringEnabled) {
     return res.status(409).json({ error: 'Score desactivé dans les réglages' });
   }
+  let payloadToStore = payload;
+  if (eventType === 'narration') {
+    const text = normalizeOptionalString(payload?.text);
+    if (!text) return res.status(400).json({ error: 'Texte de narration requis' });
+    try {
+      const imageUrl = parseNarrationImageUrl(payload?.imageUrl);
+      payloadToStore = imageUrl ? { text, imageUrl } : { text };
+    } catch (err) {
+      if (err?.status === 400) return res.status(400).json({ error: err.message || 'URL image invalide' });
+      throw err;
+    }
+  }
   const actorType = req.glAuth.userType === 'gl_admin' ? 'mj' : 'team';
   const actorId = String(req.glAuth.userId);
   await withTransaction(async (tx) => {
     await tx.execute(
       `INSERT INTO gl_game_events (game_id, team_id, actor_type, actor_id, event_type, payload_json, created_at)
        VALUES (?, ?, ?, ?, ?, ?, NOW())`,
-      [gameId, teamId, actorType, actorId, eventType, JSON.stringify(payload)]
+      [gameId, teamId, actorType, actorId, eventType, JSON.stringify(payloadToStore)]
     );
     if (eventType === 'move' && teamId != null) {
       if (moveMarkerId != null) {
@@ -1351,6 +1366,7 @@ async function handleSpellCastRoute(req, res, handler) {
     if (!allowed) return res.status(403).json({ error: 'Accès partie refusé' });
     const config = await getSpellCastConfig();
     await assertSpellCastAvailable(config);
+    assertSpellCastActorAllowed(req.glAuth, config);
     return handler({ gameId, config });
   } catch (err) {
     const mapped = resolveSpellCastError(err);
@@ -1367,6 +1383,7 @@ router.get('/spell-cast-settings', requireGlAuth, async (_req, res) => {
       vitalityRequired: true,
       contributionMode: config.contributionMode,
       teamScope: config.teamScope,
+      mjOnly: config.mjOnly,
     },
   });
 });
