@@ -9,6 +9,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ### Modifié
 
+- **Build production** : artefacts `dist/` régénérés (bundle GL feedback QCM).
 - **GL — affichage feedback QCM** : bloc dédié après validation (carte, popover repère, aperçu admin) ; textes longs lisibles (`pre-wrap`, défilement) ; masquage des choix une fois la réponse envoyée. Composants `GLQcmFeedbackBlock`, `glQcmDisplay.js` ; tests `tests-ui/gl/glQcmDisplay.test.js`, `tests-ui/gl/GLQcmPopover.test.jsx`, `tests/gl-qcm-catalog.test.js`.
 - **GL — journal de partie (lecture joueur)** : libellés entièrement en français, phrases naturelles par type d'évènement ; plus de JSON ni de codes techniques dans l'onglet Journal.
 - **GL — lancement de sortilèges** : réglage `gameplay.spell_cast_mj_only` (case **Réglages → Lancement de sortilèges**) ; si activé, seul le MJ ouvre l’assistant et appelle `/api/gl/games/:id/spell-casts/*` (les joueurs consultent le catalogue). Migration `110_gl_spell_cast_mj_only.sql` ; tests `tests/gl-spell-cast.test.js`. Doc `docs/API.md`, `docs/GL_ARCHITECTURE.md`.
