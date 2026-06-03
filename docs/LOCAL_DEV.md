@@ -168,6 +168,27 @@ Après une modification **frontend** : **`npm run build`** si le serveur sert **
 
 Référence de couverture GL: `docs/GL_TESTS.md`.
 
+### Recette visuelle GL (effets partagés ForetMap ↔ GL)
+
+Prérequis : MySQL local, puis :
+
+```bash
+npm run build
+npm run test:ui -- tests-ui/gl/GLProfileModal.test.jsx tests-ui/gl/GLPasswordResetGate.test.jsx tests-ui/gl/GLPlayerJournalEmbedPicker.test.jsx
+npm run test:e2e -- e2e/gl-profile.spec.js e2e/gl-foundations.spec.js e2e/gl-stats.spec.js
+```
+
+Checklist GUI (~10 min) sur l’entrée GL (`gl.html` / sous-domaine `gl.*`) :
+
+- Modale **Mon profil** : ouverture topbar, Escape, overlay, scroll mobile
+- Gate **mot de passe obligatoire** si `passwordMustReset`
+- Modale **Mes statistiques** joueur
+- Toast **tour MJ** (`FixedToast`)
+- Popover **sort** : fade overlay (pas d’animation cassée)
+- Panneau **aide contextuelle** : pulse `is-attention-pulse`
+
+Conventions CSS/JS : tableau dans `docs/GL_ARCHITECTURE.md` (*Cohérence esthétique*).
+
 ### Audit QA UX par personae (routine)
 
 Pour une recette plus complete qu'un simple run automatisé, utilisez le prompt dedie:

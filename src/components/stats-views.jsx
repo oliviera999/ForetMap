@@ -12,10 +12,11 @@ import { useHelp } from '../hooks/useHelp';
 import { HelpPanel } from './HelpPanel';
 import { HELP_PANELS } from '../constants/help';
 import { StatCard, StatsSummaryGrid } from '../shared/components/StatsSummaryGrid.jsx';
+import { FixedToast } from '../shared/components/FixedToast.jsx';
 
 function Toast({ msg, onDone }) {
   useEffect(() => { const t = setTimeout(onDone, 2400); return () => clearTimeout(t); }, []);
-  return <div className="toast" role="status" aria-live="polite" aria-atomic="true">{msg}</div>;
+  return <FixedToast>{msg}</FixedToast>;
 }
 
 function StudentStats({ student, isN3Affiliated = false }) {
@@ -450,7 +451,7 @@ function StudentProfileEditor({ student, onUpdated, onClose, isN3Affiliated = fa
         />
       </div>
       {err && <div className="auth-error">⚠️ {err}</div>}
-      {okMsg && <div className="toast" style={{ position: 'static', marginTop: 4 }}>{okMsg}</div>}
+      {okMsg && <div className="fm-toast fm-toast--inline">{okMsg}</div>}
       <div style={{ display: 'flex', gap: 10, marginTop: 10 }}>
         <button className="btn btn-primary" onClick={save} disabled={loading || avatarProcessing} style={{ flex: 1 }}>
           {loading ? 'Enregistrement…' : 'Enregistrer'}

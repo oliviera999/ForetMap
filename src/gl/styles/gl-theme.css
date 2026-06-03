@@ -31,6 +31,7 @@ body.gl-body {
   --fm-modal-panel-border: var(--gl-border);
   --fm-modal-panel-shadow: var(--gl-shadow-md);
   --fm-modal-overlay-z: 1200;
+  --fm-toast-bottom: 16px;
   --attention-pulse-color: rgba(37, 99, 235, 0.16);
   --attention-pulse-color-end: rgba(37, 99, 235, 0);
   --attention-pulse-spread: 8px;
@@ -571,6 +572,10 @@ button.gl-brand-hub__card:focus-visible {
   font-size: 0.875rem;
 }
 
+.gl-btn--full {
+  width: 100%;
+}
+
 /* Boutons d'action hors composant GLButton (alias legacy + contextes) */
 .gl-primary,
 .gl-danger,
@@ -868,11 +873,7 @@ body.gl-map-fullscreen-active > .gl-board-shell--fullscreen {
   pointer-events: none;
 }
 
-.gl-panel--map-fullscreen-active .gl-action-modal {
-  pointer-events: auto;
-}
-
-body.gl-map-fullscreen-active .gl-action-modal {
+body.gl-map-fullscreen-active .fm-modal-overlay {
   z-index: 1450;
 }
 
@@ -1450,24 +1451,16 @@ body.gl-map-fullscreen-active .gl-qcm-popover-overlay {
   border-left: 4px solid #facc15;
 }
 
-.gl-toast {
-  position: fixed;
-  left: 50%;
-  bottom: 16px;
-  transform: translateX(-50%);
-  z-index: 210;
-  width: min(92vw, 560px);
-  padding: 10px 14px;
-  border-radius: 14px;
-  box-shadow: 0 14px 28px rgba(15, 23, 42, 0.2);
-  animation: toastIn 0.35s var(--spring) forwards;
-}
-
-.gl-turn-toast {
+.gl-toast,
+.fm-toast--turn {
   background: #ecfeff;
   border: 1px solid #06b6d4;
   color: #083344;
   text-align: center;
+  --fm-toast-bg: #ecfeff;
+  --fm-toast-color: #083344;
+  --fm-toast-border: #06b6d4;
+  --fm-toast-shadow: 0 14px 28px rgba(15, 23, 42, 0.2);
 }
 
 .gl-board-team-pin.is-selected {
@@ -1484,25 +1477,13 @@ body.gl-map-fullscreen-active .gl-qcm-popover-overlay {
   outline-offset: 2px;
 }
 
-.gl-action-modal {
-  position: fixed;
-  inset: 0;
-  background: rgba(15, 23, 42, 0.55);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 50;
-}
-
-.gl-action-modal-body {
-  background: white;
-  border-radius: 14px;
-  padding: 16px;
+.fm-modal-panel.gl-action-modal-body {
   max-width: 360px;
   width: calc(100% - 32px);
+  padding: 16px;
+  border-radius: 14px;
   display: grid;
   gap: 10px;
-  animation: popIn 0.24s var(--spring) both;
 }
 
 .gl-profile-modal-body {

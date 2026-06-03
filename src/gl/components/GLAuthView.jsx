@@ -211,7 +211,7 @@ export function GLAuthView({ onLogin, oauthNotice, config, appVersion = null }) 
           <GLButton
             type="button"
             variant="ghost"
-            className="btn-full"
+            className="gl-btn--full"
             onClick={() => {
               setShowForgot((v) => !v);
               setError('');
@@ -225,7 +225,7 @@ export function GLAuthView({ onLogin, oauthNotice, config, appVersion = null }) 
             <GLButton
               type="button"
               variant="ghost"
-              className="btn-full"
+              className="gl-btn--full"
               onClick={() => startGlGoogleAuth()}
               disabled={busy}
             >

@@ -1,5 +1,6 @@
     @import './shared/styles/motion.css';
     @import './shared/styles/modal-shell.css';
+    @import './shared/styles/toast-shell.css';
 
     @font-face {
       font-family: 'ForetMapColorEmoji';
@@ -1913,22 +1914,7 @@
     .empty-icon { font-size:2.5rem; margin-bottom:10px; opacity:.72; }
     .empty p { font-size:.9rem; color:#6b7280; line-height:1.5; }
 
-    /* ── TOAST ── */
-    .toast {
-      position:fixed;
-      bottom:calc(var(--bottom-nav-height) + var(--safe-bottom) + 12px);
-      left:50%; transform:translateX(-50%);
-      background:linear-gradient(160deg, rgba(26,71,49,.96), rgba(26,71,49,.88)); color:white;
-      padding:11px 16px; border-radius:16px; font-size:.88rem;
-      z-index:500; pointer-events:none;
-      white-space:normal; max-width:min(90vw, 560px);
-      text-wrap:balance;
-      line-height:1.35;
-      text-align:center;
-      animation:toastIn .35s var(--spring) forwards;
-      box-shadow:0 16px 30px rgba(26,71,49,.26);
-      border:1px solid rgba(255,255,255,.18);
-    }
+    /* ── TOAST : shell partagé dans src/shared/styles/toast-shell.css ── */
 
     @media (min-width:1024px) and (hover:hover) and (pointer:fine) {
       .bottom-nav {

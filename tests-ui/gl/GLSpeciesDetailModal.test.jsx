@@ -70,7 +70,7 @@ describe('GLSpeciesDetailModal', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Fermer' }));
     expect(onClose).toHaveBeenCalledTimes(1);
     onClose.mockClear();
-    fireEvent.keyDown(window, { key: 'Escape' });
+    fireEvent.keyDown(document, { key: 'Escape' });
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 

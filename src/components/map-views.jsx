@@ -50,10 +50,11 @@ import {
   VisitEditorialMapPhotoImportList,
   VisitEditorialMediaIdPicker,
 } from './VisitEditorialPhotoUi.jsx';
+import { FixedToast } from '../shared/components/FixedToast.jsx';
 
 function Toast({ msg, onDone }) {
   useEffect(() => { const t = setTimeout(onDone, 2400); return () => clearTimeout(t); }, []);
-  return <div className="toast" role="status" aria-live="polite" aria-atomic="true">{msg}</div>;
+  return <FixedToast>{msg}</FixedToast>;
 }
 
 function Lightbox({ src, caption, onClose }) {

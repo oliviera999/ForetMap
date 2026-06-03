@@ -44,17 +44,18 @@ Lu par le front au login via `GET /api/gl/auth/config`.
 
 ## Conventions UI GL
 
-- Le front GL charge `src/index.css` (qui importe `src/shared/styles/motion.css` et `modal-shell.css`) puis `src/gl/styles/gl-theme.css`.
+- Le front GL charge **sans** tout `index.css` :
+  - `src/shared/styles/motion.css`, `modal-shell.css`, `toast-shell.css`
+  - `src/gl/styles/gl-base.css` (reset, emoji, bannières rôle)
+  - `src/gl/styles/gl-theme.css`
 - Garder la palette GL locale (hex dans `gl-theme.css`), sans remplacer par `--forest`, `--leaf`, etc.
-- Réutiliser les effets visuels partagés dans `src/shared/styles/` :
-  - tokens motion (`--spring`, `--motion-*`, `--safe-*`)
-  - utilitaires (`fade-in`, `stagger`, `animate-pop`, `is-attention-pulse`)
-  - shell modale (`fm-modal-overlay`, `fm-modal-panel`) via `DialogShell`
-- Réutiliser les conventions ForetMap sur la forme :
-  - icones emoji pour la navigation (`gl-tab-icon`, `foretmap-emoji-text-mixed`)
-  - toasts et transitions `--motion-*`
-  - cibles tactiles `min-height: 44px` sur boutons/actions primaires
-- Toute nouvelle vue GL doit ajouter ses classes dans `gl-theme.css` (préfixe `gl-`) pour les styles spécifiques au thème GL.
+- Effets visuels partagés (`src/shared/styles/`) :
+  - motion : `.fade-in`, `.stagger`, `.animate-pop`, `.is-attention-pulse`
+  - modales : `DialogShell` + `fm-modal-overlay` / `fm-modal-panel`
+  - toasts : `FixedToast` ou `.fm-toast-anchor` + `.fm-toast`
+- Animation d’entrée : préférer `.gl-main-inner.fade-in` plutôt que `.gl-main.fade-in` (évite le piège `transform` sur les portails).
+- Hook `usePrefersReducedMotion` : `src/shared/hooks/` (réexport GL dans `src/gl/hooks/`).
+- Toute nouvelle vue GL : styles métier dans `gl-theme.css` (préfixe `gl-`).
 
 ## Convention tests
 

@@ -1,0 +1,85 @@
+/* Toast partagé ForetMap + GL (ancre fixe + panneau animé). */
+
+:root {
+  --fm-toast-bg: linear-gradient(160deg, rgba(26, 71, 49, .96), rgba(26, 71, 49, .88));
+  --fm-toast-color: #fff;
+  --fm-toast-border: rgba(255, 255, 255, .18);
+  --fm-toast-shadow: 0 16px 30px rgba(26, 71, 49, .26);
+  --fm-toast-bottom: calc(var(--bottom-nav-height, 72px) + var(--safe-bottom) + 12px);
+  --fm-toast-z: 500;
+}
+
+.fm-toast-anchor {
+  position: fixed;
+  left: 50%;
+  bottom: var(--fm-toast-bottom);
+  transform: translateX(-50%);
+  z-index: var(--fm-toast-z);
+  pointer-events: none;
+  width: min(90vw, 560px);
+  max-width: min(90vw, 560px);
+}
+
+.fm-toast {
+  background: var(--fm-toast-bg);
+  color: var(--fm-toast-color);
+  padding: 11px 16px;
+  border-radius: 16px;
+  font-size: .88rem;
+  white-space: normal;
+  text-wrap: balance;
+  line-height: 1.35;
+  text-align: center;
+  border: 1px solid var(--fm-toast-border);
+  box-shadow: var(--fm-toast-shadow);
+  animation: toastIn .35s var(--spring) forwards;
+}
+
+.fm-toast--inline {
+  position: static;
+  transform: none;
+  animation: fadeIn var(--motion-base) var(--ease-out) both;
+  margin-top: 4px;
+  width: 100%;
+  max-width: none;
+}
+
+/* Alias rétro ForetMap */
+.toast {
+  background: var(--fm-toast-bg);
+  color: var(--fm-toast-color);
+  padding: 11px 16px;
+  border-radius: 16px;
+  font-size: .88rem;
+  white-space: normal;
+  text-wrap: balance;
+  line-height: 1.35;
+  text-align: center;
+  border: 1px solid var(--fm-toast-border);
+  box-shadow: var(--fm-toast-shadow);
+  animation: toastIn .35s var(--spring) forwards;
+}
+
+.toast:not(.toast--inline) {
+  position: fixed;
+  left: 50%;
+  bottom: var(--fm-toast-bottom);
+  transform: translateX(-50%);
+  z-index: var(--fm-toast-z);
+  pointer-events: none;
+  max-width: min(90vw, 560px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fm-toast,
+  .toast {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: translateX(-50%) !important;
+  }
+
+  .fm-toast--inline,
+  .toast--inline {
+    transform: none !important;
+  }
+}

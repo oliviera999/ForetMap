@@ -178,15 +178,28 @@ Tables GL préfixées `gl_` :
 
 ### Cohérence esthétique avec ForetMap
 
-- GL charge `src/index.css` (imports `src/shared/styles/motion.css` + `modal-shell.css`) puis `src/gl/styles/gl-theme.css`.
-- Les couleurs GL restent locales (hex dédiés dans `gl-theme.css`), sans bascule vers la palette ForetMap.
-- Couche CSS partagée (`src/shared/styles/`) :
-  - **motion.css** : tokens `--spring` / `--motion-*`, keyframes (`fadeIn`, `popIn`, `toastIn`, `statPop`, `attentionPulse`), utilitaires `.fade-in`, `.stagger`, `.animate-pop`
-  - **modal-shell.css** : `.fm-modal-overlay` / `.fm-modal-panel` thématisables via variables `--fm-modal-*` (surchargées sous `.gl-app`)
-- Les conventions visuelles ForetMap sont reprises côté structure :
-  - icones d'onglets en emoji (`gl-tab-icon`, `foretmap-emoji-text-mixed`)
-  - micro-interactions partagées et modales via `DialogShell`
-  - zones tactiles à `min-height: 44px` pour les boutons principaux
+- GL charge directement la couche partagée puis le thème local (sans tout `index.css`) :
+  - [`src/shared/styles/motion.css`](../src/shared/styles/motion.css)
+  - [`src/shared/styles/modal-shell.css`](../src/shared/styles/modal-shell.css)
+  - [`src/shared/styles/toast-shell.css`](../src/shared/styles/toast-shell.css)
+  - [`src/gl/styles/gl-base.css`](../src/gl/styles/gl-base.css)
+  - [`src/gl/styles/gl-theme.css`](../src/gl/styles/gl-theme.css)
+- ForetMap importe les mêmes fichiers `src/shared/styles/*` via [`src/index.css`](../src/index.css).
+- Les couleurs GL restent locales (hex dans `gl-theme.css`), sans bascule vers la palette ForetMap.
+
+#### Quand utiliser quoi (effets visuels)
+
+| Besoin | Classe / composant |
+|--------|-------------------|
+| Entrée de vue | `.fade-in` sur un wrapper (ex. `.gl-main-inner`, pas sur `<main>` fixed) |
+| Liste décalée | `.stagger` |
+| Modale | `DialogShell` + `fm-modal-overlay` / `fm-modal-panel` |
+| Toast fixe | `FixedToast` ou `.fm-toast-anchor` + `.fm-toast` |
+| Pulse aide | `.is-attention-pulse` |
+| Stats animées | keyframe `statPop` via `.stat-card` / `.gl-stat-card` |
+
+- Hook partagé : [`src/shared/hooks/usePrefersReducedMotion.js`](../src/shared/hooks/usePrefersReducedMotion.js) (popovers, plateau, etc.).
+- Variables modale/toast thématisées sous `.gl-app` : `--fm-modal-*`, `--fm-toast-*`.
 - Les modules GL (forum, tutoriels, journal de partie, **carnet personnel** `my-journal`, carte royaume, notifications, commentaires contextuels, aide) ont des styles dédiés dans `gl-theme.css` pour rester homogènes avec le shell GL.
 
 ### Carnet personnel joueur
