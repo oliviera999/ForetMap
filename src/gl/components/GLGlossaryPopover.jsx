@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useDialogA11y } from '../../hooks/useDialogA11y.js';
+import { usePrefersReducedMotion } from '../../shared/hooks/usePrefersReducedMotion.js';
 import { apiGL } from '../services/apiGL.js';
 import { GLButton } from './ui/GLButton.jsx';
 import { GLLearningAcknowledgeButton } from './GLLearningAcknowledgeButton.jsx';
@@ -54,15 +55,20 @@ export function GLGlossaryPopover({
   const [error, setError] = useState('');
   const [isClosing, setIsClosing] = useState(false);
   const closeTimerRef = useRef(null);
+  const prefersReducedMotion = usePrefersReducedMotion();
 
   const requestClose = useCallback(() => {
     if (isClosing) return;
+    if (prefersReducedMotion) {
+      onClose?.();
+      return;
+    }
     setIsClosing(true);
     closeTimerRef.current = window.setTimeout(() => {
       setIsClosing(false);
       onClose?.();
     }, CLOSE_MS);
-  }, [isClosing, onClose]);
+  }, [isClosing, onClose, prefersReducedMotion]);
 
   const dialogRef = useDialogA11y(() => {
     requestClose();
@@ -176,7 +182,7 @@ export function GLGlossaryPopover({
     >
       <div
         ref={dialogRef}
-        className="gl-glossary-popover__panel animate-pop"
+        className={`gl-glossary-popover__panel${prefersReducedMotion ? '' : ' animate-pop'}`}
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
