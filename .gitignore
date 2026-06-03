@@ -33,6 +33,8 @@ Thumbs.db
 .vscode/
 .profillocal
 tmp-*.txt
+tmp/
+*.bak
 
 # Rapports Artillery horodatés (runs locaux ; les rapports déjà suivis le restent)
 load/reports/*T*-*.json
