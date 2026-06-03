@@ -15,6 +15,7 @@ const stateSchema = z.object({
 export const glMascotPackSchema = z.object({
   id: z.string().min(1).max(120),
   name: z.string().min(1).max(160),
+  type: z.enum(['gnome', 'unicorn']).optional(),
   renderer: z.enum(['sprite_cut', 'spritesheet', 'rive', 'fallback']),
   assets: z.array(assetSchema).default([]),
   states: z.array(stateSchema).default([]),

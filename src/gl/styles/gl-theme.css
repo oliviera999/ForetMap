@@ -62,6 +62,34 @@ body.gl-body {
   color: var(--gl-color-link-hover, #2c5959);
 }
 
+.gl-editorial-body a:not(.gl-btn):not(.gl-tab) {
+  position: relative;
+  text-decoration: none;
+}
+
+.gl-editorial-body a:not(.gl-btn):not(.gl-tab)::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: -2px;
+  width: 100%;
+  height: 2px;
+  background: var(--gl-color-accent, #52b788);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform var(--motion-base) var(--ease-out);
+}
+
+.gl-editorial-body a:not(.gl-btn):not(.gl-tab):hover::after,
+.gl-editorial-body a:not(.gl-btn):not(.gl-tab):focus-visible::after {
+  transform: scaleX(1);
+}
+
+.gl-content-page {
+  --scroll-progress-start: var(--gl-color-accent, #52b788);
+  --scroll-progress-end: var(--gl-color-topbar, #013a40);
+}
+
 /* role=banner : évite la balise <header> (styles globaux ForetMap = 56px + overflow:hidden) */
 .gl-topbar {
   display: grid;
@@ -81,6 +109,23 @@ body.gl-body {
   top: 0;
   z-index: 100;
   box-sizing: border-box;
+  transition:
+    background-color var(--motion-base) var(--ease-out),
+    box-shadow var(--motion-base) var(--ease-out);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .gl-topbar.is-scrolled {
+    background: rgba(1, 58, 64, 0.88);
+    backdrop-filter: blur(12px);
+    box-shadow: 0 4px 20px rgba(1, 58, 64, 0.22);
+  }
+}
+
+@media (hover: none), (pointer: coarse) {
+  .gl-topbar.is-scrolled {
+    box-shadow: 0 2px 12px rgba(1, 58, 64, 0.18);
+  }
 }
 
 .gl-brand-title {
@@ -244,6 +289,8 @@ body.gl-body {
   padding: 20px;
   display: grid;
   gap: 14px;
+  --scroll-progress-start: var(--gl-color-accent, #52b788);
+  --scroll-progress-end: var(--gl-color-topbar, #013a40);
 }
 
 .gl-auth-logo-wrap {
@@ -277,6 +324,25 @@ body.gl-body {
 .gl-brand-hub {
   display: grid;
   gap: 14px;
+  position: relative;
+}
+
+.gl-brand-hub::before {
+  content: '';
+  position: absolute;
+  top: -20px;
+  right: -12px;
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(82, 183, 136, 0.12) 0%, transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.gl-brand-hub > * {
+  position: relative;
+  z-index: 1;
 }
 
 .gl-brand-hub__hero {
@@ -285,6 +351,7 @@ body.gl-body {
   border-radius: 16px;
   background-color: var(--gl-color-tertiary, #bdbfb4);
   background-size: cover;
+  background-repeat: no-repeat;
   background-position: center;
   overflow: hidden;
   box-shadow: 0 10px 28px rgba(1, 58, 64, 0.18);
@@ -335,21 +402,35 @@ body.gl-body {
   transition: transform var(--motion-fast) var(--ease-out), box-shadow var(--motion-fast) var(--ease-out);
 }
 
-button.gl-brand-hub__card {
-  cursor: pointer;
-}
-
-button.gl-brand-hub__card:hover,
-button.gl-brand-hub__card:focus-visible {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 20px rgba(1, 58, 64, 0.14);
+.gl-brand-hub__card-image-wrap {
+  overflow: hidden;
+  aspect-ratio: 4 / 3;
 }
 
 .gl-brand-hub__card-image {
   width: 100%;
+  height: 100%;
   aspect-ratio: 4 / 3;
   object-fit: cover;
   display: block;
+  transition: transform 0.8s var(--ease-out);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .gl-brand-hub__card:hover .gl-brand-hub__card-image,
+  .gl-brand-hub__card:focus-visible .gl-brand-hub__card-image {
+    transform: scale3d(1.08, 1.08, 1);
+  }
+
+  button.gl-brand-hub__card:hover,
+  button.gl-brand-hub__card:focus-visible {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(1, 58, 64, 0.14);
+  }
+}
+
+button.gl-brand-hub__card {
+  cursor: pointer;
 }
 
 .gl-brand-hub__card-image--placeholder {
@@ -1015,7 +1096,7 @@ body.gl-map-fullscreen-active .gl-qcm-popover-overlay {
   border-radius: 3px;
 }
 
-/* Mascottes : classes visit-map-mascot (index.css) — pas de cadre blanc */
+/* Mascottes : classes visit-map-mascot (visit-map-mascot.css partagé) — pas de cadre blanc */
 .gl-board .gl-board-mascot {
   z-index: 8;
 }

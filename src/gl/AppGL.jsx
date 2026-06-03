@@ -312,10 +312,7 @@ export function AppGL() {
       if (tab.id === 'my-journal') return isModuleEnabled(modules, 'playerJournalEnabled');
       return true;
     });
-    const adminTabs = GL_ADMIN_EXTRA_TABS.filter((tab) => {
-      if (tab.id === 'mascots') return isModuleEnabled(modules, 'mascotPacksEnabled');
-      return true;
-    });
+    const adminTabs = GL_ADMIN_EXTRA_TABS;
     return showStaffAdminUi ? [...playerTabs, ...adminTabs] : playerTabs;
   }, [showStaffAdminUi, modules, gameplaySettings.vitalityEnabled]);
 
@@ -912,7 +909,11 @@ export function AppGL() {
         )}
         {tab === 'settings' && showStaffAdminUi && <GLSettingsView />}
         {tab === 'mascots' && showStaffAdminUi && (
-          <GLMascotsAdminView gameState={gameState} onReloadGame={reloadGame} />
+          <GLMascotsAdminView
+            gameState={gameState}
+            onReloadGame={reloadGame}
+            mascotPacksEnabled={isModuleEnabled(modules, 'mascotPacksEnabled')}
+          />
         )}
         {tab === 'mj' && showStaffAdminUi && (
           <GLGameMasterConsole

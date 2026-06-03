@@ -7,6 +7,7 @@ import { GLButton } from './ui/GLButton.jsx';
 import { GLField } from './ui/GLField.jsx';
 import { GLInput } from './ui/GLInput.jsx';
 import { GLSurface } from './ui/GLSurface.jsx';
+import { ScrollProgressBar } from '../../shared/components/ScrollProgressBar.jsx';
 
 const OAUTH_ERROR_MESSAGES = {
   oauth_not_configured: 'Connexion Google indisponible (configuration serveur incomplète).',
@@ -167,6 +168,7 @@ export function GLAuthView({ onLogin, oauthNotice, config, appVersion = null }) 
 
   return (
     <main className="gl-auth auth-wrap">
+      <ScrollProgressBar />
       <GLBrandHub slots={brandSlots || config?.brand?.slots} />
 
       <GLSurface className="gl-auth-card fade-in" variant="elevated">

@@ -57,8 +57,8 @@ function VitalityStatsGrid({ stats, highlightPossessed = false }) {
       <h3 className="gl-stats-section-title">Vitalité (cœurs & gemmes)</h3>
       <p className="gl-hint gl-stats-note">{VITALITY_HISTORY_HINT}</p>
       <StatsSummaryGrid className="gl-stats-grid">
-        <GlStatCard icon="❤️" value={formatCount(stats.hearts)} label="Cœurs possédés" highlight={highlightPossessed} title="Solde actuel sur ton compte joueur" />
-        <GlStatCard icon="💎" value={formatCount(stats.gems)} label="Gemmes possédées" highlight={highlightPossessed} title="Solde actuel sur ton compte joueur" />
+        <GlStatCard icon="❤️" value={stats.hearts} animateCount label="Cœurs possédés" highlight={highlightPossessed} title="Solde actuel sur ton compte joueur" />
+        <GlStatCard icon="💎" value={stats.gems} animateCount label="Gemmes possédées" highlight={highlightPossessed} title="Solde actuel sur ton compte joueur" />
         <GlStatCard icon="⬆️" value={formatCount(stats.hearts_gained)} label="Cœurs gagnés" title={VITALITY_HISTORY_HINT} />
         <GlStatCard icon="⬇️" value={formatCount(stats.hearts_lost)} label="Cœurs perdus" title={VITALITY_HISTORY_HINT} />
         <GlStatCard icon="⬆️" value={formatCount(stats.gems_gained)} label="Gemmes gagnées" title={VITALITY_HISTORY_HINT} />

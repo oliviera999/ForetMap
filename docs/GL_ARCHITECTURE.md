@@ -182,6 +182,7 @@ Tables GL préfixées `gl_` :
   - [`src/shared/styles/motion.css`](../src/shared/styles/motion.css)
   - [`src/shared/styles/modal-shell.css`](../src/shared/styles/modal-shell.css)
   - [`src/shared/styles/toast-shell.css`](../src/shared/styles/toast-shell.css)
+  - [`src/shared/styles/visit-map-mascot.css`](../src/shared/styles/visit-map-mascot.css)
   - [`src/gl/styles/gl-base.css`](../src/gl/styles/gl-base.css)
   - [`src/gl/styles/gl-theme.css`](../src/gl/styles/gl-theme.css)
 - ForetMap importe les mêmes fichiers `src/shared/styles/*` via [`src/index.css`](../src/index.css).

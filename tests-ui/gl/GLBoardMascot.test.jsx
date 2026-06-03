@@ -1,10 +1,18 @@
 // @vitest-environment jsdom
-import { describe, it, expect } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { describe, it, expect, beforeAll } from 'vitest';
+import { render } from '@testing-library/react';
 import { GLBoardMascot } from '../../src/gl/components/GLBoardMascot.jsx';
 import { VISIT_MASCOT_STATE } from '../../src/utils/visitMascotState.js';
 
 describe('GLBoardMascot', () => {
+  beforeAll(() => {
+    if (document.getElementById('visit-map-mascot-test-css')) return;
+    const style = document.createElement('style');
+    style.id = 'visit-map-mascot-test-css';
+    style.textContent = '.visit-map-mascot { position: absolute; width: 0; height: 0; }';
+    document.head.appendChild(style);
+  });
+
   it('rend la mascotte sans cadre blanc (classes visit-map-mascot)', () => {
     const { container } = render(
       <GLBoardMascot
@@ -22,5 +30,6 @@ describe('GLBoardMascot', () => {
     expect(container.querySelector('.visit-map-mascot-inner')).toBeTruthy();
     expect(container.querySelector('.visit-map-mascot-rive-shell')).toBeTruthy();
     expect(container.querySelector('.gl-mascot-svg')).toBeTruthy();
+    expect(window.getComputedStyle(root).position).toBe('absolute');
   });
 });

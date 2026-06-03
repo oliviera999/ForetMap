@@ -161,13 +161,18 @@ router.post('/packs', requireGlPermission('gl.content.manage'), async (req, res)
   if (chapterId != null && !Number.isFinite(chapterId)) {
     return res.status(400).json({ error: 'chapterId invalide' });
   }
-  await execute(
+  const result = await execute(
     `INSERT INTO gl_mascot_packs (chapter_id, name, version, payload_json, created_by, created_at, updated_at)
      VALUES (?, ?, ?, ?, ?, NOW(), NOW())`,
     [chapterId, name, version, JSON.stringify(parsed.data), req.glAuth.userId]
   );
+  const insertId = Number(result?.insertId);
+  if (!Number.isFinite(insertId) || insertId <= 0) {
+    return res.status(500).json({ error: 'Création pack impossible' });
+  }
   const created = await queryOne(
-    'SELECT id, chapter_id, name, version, payload_json, updated_at FROM gl_mascot_packs ORDER BY id DESC LIMIT 1'
+    'SELECT id, chapter_id, name, version, payload_json, updated_at FROM gl_mascot_packs WHERE id = ? LIMIT 1',
+    [insertId]
   );
   return res.status(201).json({
     pack: {
