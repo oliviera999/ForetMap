@@ -65,6 +65,42 @@ async function setStudentPrimaryRole(studentId, roleSlug) {
   );
 }
 
+async function validateTasksForStudent({ teacherToken, studentId, firstName, lastName, zoneId, count, titlePrefix, ts }) {
+  for (let i = 0; i < count; i += 1) {
+    const task = await request(app)
+      .post('/api/tasks')
+      .set('Authorization', `Bearer ${teacherToken}`)
+      .send({ title: `${titlePrefix} ${ts}-${i}`, zone_id: zoneId, required_students: 1 })
+      .expect(201);
+    await request(app)
+      .post(`/api/tasks/${task.body.id}/assign`)
+      .set('Authorization', `Bearer ${teacherToken}`)
+      .send({ firstName, lastName, studentId })
+      .expect(200);
+    await request(app)
+      .post(`/api/tasks/${task.body.id}/done`)
+      .set('Authorization', `Bearer ${teacherToken}`)
+      .send({ firstName, lastName, studentId })
+      .expect(200);
+    await request(app)
+      .post(`/api/tasks/${task.body.id}/validate`)
+      .set('Authorization', `Bearer ${teacherToken}`)
+      .expect(200);
+  }
+}
+
+async function getStudentPrimaryRoleSlug(studentId) {
+  const role = await queryOne(
+    `SELECT r.slug
+       FROM user_roles ur
+       INNER JOIN roles r ON r.id = ur.role_id
+      WHERE ur.user_type = 'student' AND ur.user_id = ? AND ur.is_primary = 1
+      LIMIT 1`,
+    [studentId]
+  );
+  return role?.slug || null;
+}
+
 test('getStudentProgressionConfig agrège tous les seuils min_done_tasks des profils n3beur', async () => {
   const teacherToken = await getAdminAuthToken();
   const ts = Date.now();
@@ -192,4 +228,105 @@ test('progression auto : palier perso. après profil manuel hors eleve_* (valida
 
   await execute('DELETE FROM roles WHERE id = ?', [targetRole.body.id]);
   await execute('DELETE FROM roles WHERE slug = ?', [manualSlug]);
+});
+
+test('progression auto : palier perso. rank < eleve_chevronne (seuil supérieur)', async () => {
+  const teacherToken = await getAdminAuthToken();
+  const ts = Date.now();
+  const expertSlug = `palier_expert_${ts}`;
+
+  const expertRole = await request(app)
+    .post('/api/rbac/profiles')
+    .set('Authorization', `Bearer ${teacherToken}`)
+    .send({
+      slug: expertSlug,
+      display_name: 'Palier expert test',
+      rank: 100,
+      emoji: '⭐',
+      min_done_tasks: 3,
+      display_order: 9910,
+    })
+    .expect(201);
+
+  const studentRes = await request(app)
+    .post('/api/auth/register')
+    .send({ firstName: 'Expert', lastName: `Rank${ts}`, password: 'pass1234' })
+    .expect(201);
+  const { id: studentId, first_name: firstName, last_name: lastName } = studentRes.body;
+  await setStudentPrimaryRole(studentId, 'eleve_chevronne');
+
+  const zones = await request(app).get('/api/zones').expect(200);
+  const zoneId = zones.body[0]?.id || 'pg';
+
+  await validateTasksForStudent({
+    teacherToken,
+    studentId,
+    firstName,
+    lastName,
+    zoneId,
+    count: 3,
+    titlePrefix: `Expert rank ${ts}`,
+    ts,
+  });
+
+  assert.strictEqual(await getStudentPrimaryRoleSlug(studentId), expertSlug);
+
+  const stats = await request(app)
+    .get(`/api/stats/me/${studentId}`)
+    .set('Authorization', `Bearer ${studentRes.body.authToken}`)
+    .expect(200);
+  assert.strictEqual(stats.body?.progression?.roleSlug, expertSlug);
+
+  await execute('DELETE FROM roles WHERE id = ?', [expertRole.body.id]);
+});
+
+test('progression auto : pas de rétrogradation si placement manuel au-dessus du compteur', async () => {
+  const teacherToken = await getAdminAuthToken();
+  const ts = Date.now();
+  const highSlug = `palier_haut_${ts}`;
+
+  await request(app)
+    .post('/api/rbac/profiles')
+    .set('Authorization', `Bearer ${teacherToken}`)
+    .send({
+      slug: highSlug,
+      display_name: 'Palier haut manuel',
+      rank: 280,
+      emoji: '🛡️',
+      min_done_tasks: 50,
+      display_order: 9911,
+    })
+    .expect(201);
+
+  const studentRes = await request(app)
+    .post('/api/auth/register')
+    .send({ firstName: 'Haut', lastName: `Manuel${ts}`, password: 'pass1234' })
+    .expect(201);
+  const { id: studentId, first_name: firstName, last_name: lastName } = studentRes.body;
+  await setStudentPrimaryRole(studentId, highSlug);
+
+  const zones = await request(app).get('/api/zones').expect(200);
+  const zoneId = zones.body[0]?.id || 'pg';
+
+  await validateTasksForStudent({
+    teacherToken,
+    studentId,
+    firstName,
+    lastName,
+    zoneId,
+    count: 2,
+    titlePrefix: `Anti demote ${ts}`,
+    ts,
+  });
+
+  assert.strictEqual(await getStudentPrimaryRoleSlug(studentId), highSlug);
+
+  const stats = await request(app)
+    .get(`/api/stats/me/${studentId}`)
+    .set('Authorization', `Bearer ${studentRes.body.authToken}`)
+    .expect(200);
+  assert.strictEqual(stats.body?.progression?.roleSlug, highSlug);
+  assert.strictEqual(stats.body?.stats?.done, 2);
+
+  await execute('DELETE FROM roles WHERE slug = ?', [highSlug]);
 });
