@@ -121,14 +121,14 @@ Le script accepte aussi :
 | GET | `/api/gl/qcm/categories` | — | `gl.read` (liste catégories QCM) |
 | GET | `/api/gl/qcm/questions` | `?biomeSlug=`, `?categorieSlug=`, `?q=` optionnels | `gl.read` (liste admin ; ordre canonique A–E, `glossaryTerms[]`) |
 | GET | `/api/gl/qcm/questions/:code/present` | — | `gl.read` (mélange des choix à chaque appel + `presentationToken` signé) |
-| POST | `/api/gl/qcm/questions/:code/answer` | `{ presentationToken, choiceId }` | `gl.read` (validation hors partie) |
+| POST | `/api/gl/qcm/questions/:code/answer` | `{ presentationToken, choiceId }` | `gl.read` (validation hors partie ; réponse `{ correct, feedback, glossaryTerms? }` — `feedback` issu du catalogue : `feedback_correct` ou `feedback_a`…`feedback_e` selon le choix canonique, sinon message par défaut) |
 | GET | `/api/gl/qcm/pool-preview` | `?biomeSlugs=`, `?chapterId=`, `?categorieSlugs=`, `?niveaux=`, `?difficulteMin=`, `?difficulteMax=`, `?q=`, `?selectedQuestionCodes=` | `gl.content.manage` (aperçu pool pour config repère ; `{ items, total }`) |
 | GET | `/api/gl/qcm/draw` | `?biomeSlug=` ou `?biomeSlugs=` (csv, au moins 1 requis), `?categorieSlug=`, `?exclude=` optionnels | `gl.read` (tirage aléatoire `{ question_code }` dans l’union des biomes) |
-| POST | `/api/gl/admin/qcm/import` | `{ fileDataBase64, fileName?, dryRun? }` (XLSX feuilles `categories`, `questions`) | `gl.content.manage` |
-| GET | `/api/gl/admin/qcm/import/template` | — | `gl.content.manage` (modèle XLSX vierge + exemples, feuilles `categories` et `questions`) |
-| GET | `/api/gl/admin/qcm/export` | `?biomeSlug=`, `?categorieSlug=`, `?statut=actif\|all` (défaut `actif`) | `gl.content.manage` (export XLSX ré-importable ; filtres biome/catégorie optionnels) |
+| POST | `/api/gl/admin/qcm/import` | `{ fileDataBase64, fileName?, dryRun? }` (XLSX feuilles `categories`, `questions` ; colonnes feedback optionnelles : `feedback_correct`, `feedback_a`…`feedback_e` ; re-import par `question_code` complète les champs vides sans écraser un feedback déjà renseigné) | `gl.content.manage` |
+| GET | `/api/gl/admin/qcm/import/template` | — | `gl.content.manage` (modèle XLSX vierge + exemples, feuilles `categories` et `questions`, colonnes feedback incluses) |
+| GET | `/api/gl/admin/qcm/export` | `?biomeSlug=`, `?categorieSlug=`, `?statut=actif\|all` (défaut `actif`) | `gl.content.manage` (export XLSX ré-importable avec colonnes feedback ; filtres biome/catégorie optionnels) |
 | GET | `/api/gl/admin/qcm/stats` | — | `gl.content.manage` (total, liens glossaire, agrégats biome/catégorie/difficulté) |
-| POST | `/api/gl/games/:id/qcm/answer` | `{ questionCode, presentationToken, choiceId, markerId?, teamId? }` | Auth GL : **joueur** avec `gl.action.request` (équipe déduite du roster) ; **MJ/admin** avec `gl.event.emit` / `gl.game.manage` / `gl.mascot.position` et `teamId` obligatoire. Score +1 si correct et scoring actif. |
+| POST | `/api/gl/games/:id/qcm/answer` | `{ questionCode, presentationToken, choiceId, markerId?, teamId? }` | Auth GL : **joueur** avec `gl.action.request` (équipe déduite du roster) ; **MJ/admin** avec `gl.event.emit` / `gl.game.manage` / `gl.mascot.position` et `teamId` obligatoire. Score +1 si correct et scoring actif. Réponse `{ correct, feedback, scoreDelta, glossaryTerms? }` avec `feedback` personnalisé depuis le catalogue (même logique que `POST /api/gl/qcm/questions/:code/answer`). |
 | POST | `/api/gl/games/:id/markers/:markerId/present-question` | `{ teamId?, excludeCodes? }` | Auth GL + accès partie (joueur membre ; MJ avec `teamId`) — tirage selon `event_config` du repère, événement `marker_question_presented` ; refus `409` si re-déclenchement interdit |
 | GET | `/api/gl/gameplay-settings` | — | Auth GL (joueur ou admin) |
 | POST | `/api/gl/games` | `{ classId, chapterId, name }` | `gl.game.manage` (refus `404` si `classId`/`chapterId` introuvable, `409` si la ressource est supprimée entre validation et insertion) |

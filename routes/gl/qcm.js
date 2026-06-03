@@ -11,7 +11,11 @@ const {
   loadQcmExportRows,
   combineKeywords,
 } = require('../../lib/glQcmImport');
-const { presentQuestion, verifyPresentationAnswer } = require('../../lib/glQcmChoices');
+const {
+  presentQuestion,
+  verifyPresentationAnswer,
+  resolveQcmAnswerFeedback,
+} = require('../../lib/glQcmChoices');
 const {
   buildGlossaryLookupMap,
   matchGlossaryTermsForSpecies,
@@ -41,7 +45,8 @@ const QUESTION_SELECT = `
          notes_pedagogiques, tags, mots_cles,
          photo_url, photo_url_hd, photo_description_url, photo_filename, photo_credit,
          photo_licence, photo_licence_url, photo_legende, photo_sujet,
-         wikipedia_title, wikipedia_url, photo_method, statut
+         wikipedia_title, wikipedia_url, photo_method, statut,
+         feedback_correct, feedback_a, feedback_b, feedback_c, feedback_d, feedback_e
     FROM gl_qcm_questions
 `;
 
@@ -231,7 +236,7 @@ router.post('/qcm/questions/:code/answer', requireGlPermission('gl.read'), async
     const glossaryTerms = await enrichQuestionWithGlossary(row, glossaryByKey);
     return res.json({
       correct: result.correct,
-      feedback: result.correct ? 'Bonne réponse !' : 'Ce n’est pas la bonne réponse.',
+      feedback: resolveQcmAnswerFeedback(row, result),
       correctChoiceId: result.correct ? result.correctChoiceId : undefined,
       glossaryTerms: result.correct ? glossaryTerms : undefined,
     });

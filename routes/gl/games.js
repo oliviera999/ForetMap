@@ -27,7 +27,7 @@ const { logRouteError } = require('../../lib/routeLog');
 const { assignPlayerToTeamTx, unassignPlayerFromGameTx } = require('../../lib/glRoster');
 const { canAccessGlGame } = require('../../lib/glGameAccess');
 const { parseNarrationImageUrl } = require('../../lib/glJournalPresent');
-const { verifyPresentationAnswer } = require('../../lib/glQcmChoices');
+const { verifyPresentationAnswer, resolveQcmAnswerFeedback } = require('../../lib/glQcmChoices');
 const { combineKeywords } = require('../../lib/glQcmImport');
 const { buildGlossaryLookupMap, matchGlossaryTermsForSpecies } = require('../../lib/glGlossaryMatch');
 const { loadBiomesForChapterIds } = require('../../lib/glChapterBiomes');
@@ -35,7 +35,11 @@ const { loadSpellsForChapterIds } = require('../../lib/glChapterSpells');
 const { MARKER_SELECT, formatMarkerRow, isQuestionMarker } = require('../../lib/glMarkerRow');
 const { drawQuestionFromMarker } = require('../../lib/glMarkerQuestionPool');
 const { canPresentMarkerQuestion } = require('../../lib/glMarkerQuestionRetrigger');
-const { loadPresentableQuestion, buildPresentation } = require('../../lib/glQcmQuestionQuery');
+const {
+  loadPresentableQuestion,
+  loadActiveQuestion,
+  buildPresentation,
+} = require('../../lib/glQcmQuestionQuery');
 
 async function loadGlossaryLookup() {
   const rows = await queryAll(
@@ -1205,7 +1209,7 @@ router.post('/games/:id/qcm/answer', requireGlAuth, async (req, res) => {
 
   return res.json({
     correct: verification.correct,
-    feedback: verification.correct ? 'Bonne réponse !' : 'Ce n’est pas la bonne réponse.',
+    feedback: resolveQcmAnswerFeedback(questionRow, verification),
     scoreDelta,
     glossaryTerms: verification.correct ? glossaryTerms : undefined,
   });

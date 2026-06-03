@@ -6,6 +6,7 @@ const assert = require('node:assert');
 const {
   presentQuestion,
   verifyPresentationAnswer,
+  resolveQcmAnswerFeedback,
   fisherYates,
 } = require('../lib/glQcmChoices');
 
@@ -49,6 +50,39 @@ test('verifyPresentationAnswer valide la bonne réponse', () => {
     wrongId
   );
   assert.strictEqual(ko.correct, false);
+});
+
+test('resolveQcmAnswerFeedback utilise le feedback du choix sélectionné', () => {
+  const row = {
+    feedback_correct: 'Exact !',
+    feedback_a: 'Msg A',
+    feedback_b: 'Msg B',
+  };
+  assert.strictEqual(
+    resolveQcmAnswerFeedback(row, { correct: true, selectedLetter: 'A' }),
+    'Exact !'
+  );
+  assert.strictEqual(
+    resolveQcmAnswerFeedback(row, { correct: false, selectedLetter: 'B' }),
+    'Msg B'
+  );
+  assert.match(
+    resolveQcmAnswerFeedback(row, { correct: false, selectedLetter: null }),
+    /pas la bonne/i
+  );
+});
+
+test('verifyPresentationAnswer expose selectedLetter via JWT', () => {
+  const presentation = presentQuestion(SAMPLE_QUESTION);
+  const wrongId = presentation.choices.findIndex((c) => c.text !== 'Alpha');
+  const ko = verifyPresentationAnswer(
+    presentation.presentationToken,
+    'QCM0001',
+    wrongId
+  );
+  assert.strictEqual(ko.correct, false);
+  assert.ok(ko.selectedLetter);
+  assert.notStrictEqual(ko.selectedLetter, 'A');
 });
 
 test('fisherYates préserve les éléments', () => {
