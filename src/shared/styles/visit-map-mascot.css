@@ -1,0 +1,228 @@
+/* Mascottes carte / plateau — partagé ForetMap visite + GL (ancrage %, shells, animations de base). */
+
+.visit-map-mascot {
+  position:absolute;
+  z-index:16;
+  width:0;
+  height:0;
+  pointer-events:none;
+  transition:left .55s cubic-bezier(0.25, 0.8, 0.25, 1),
+    top .55s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+.visit-map-mascot--reduced-motion {
+  transition:none;
+}
+.visit-map-mascot-inner {
+  position:absolute;
+  left:0;
+  top:0;
+  transform-origin:50% 100%;
+}
+/* Carte forêt : mêmes dimensions que la visite (.visit-map-mascot-rive-shell, etc.) */
+.map-view-forest-mascot {
+  z-index:12;
+}
+.visit-map-mascot-rive-shell {
+  position:relative;
+  width:clamp(54px, 11.5vw, 72px);
+  height:clamp(62px, 13vw, 84px);
+  pointer-events:none;
+  user-select:none;
+  filter:drop-shadow(0 2px 6px rgba(26,71,49,.35));
+}
+.visit-map-mascot-static {
+  position:absolute;
+  inset:0;
+  opacity:0.85;
+}
+.visit-map-mascot-static svg {
+  display:block;
+  width:100%;
+  height:100%;
+}
+.visit-gnome-arm--front {
+  transform-origin:91px 86px;
+}
+.visit-gnome-arm--back {
+  transform-origin:60px 87px;
+  opacity:.9;
+}
+.visit-gnome-leg--front {
+  transform-origin:86px 111px;
+}
+.visit-gnome-leg--back {
+  transform-origin:67px 111px;
+  opacity:.92;
+}
+.visit-map-mascot-rive-shell > .visit-map-mascot-rive {
+  position:absolute;
+  inset:0;
+}
+.visit-map-mascot-rive svg {
+  display:block;
+  width:100% !important;
+  height:100% !important;
+}
+.visit-map-mascot-rive canvas {
+  display:block;
+  width:100% !important;
+  height:100% !important;
+}
+.visit-map-mascot-rive {
+  width:100%;
+  height:100%;
+  opacity:.96;
+}
+.visit-map-mascot-spritesheet-shell {
+  position:relative;
+  width:clamp(54px, 11.5vw, 72px);
+  height:clamp(62px, 13vw, 84px);
+  pointer-events:none;
+  user-select:none;
+  filter:drop-shadow(0 2px 6px rgba(26,71,49,.35));
+}
+.visit-map-mascot-spritesheet {
+  position:absolute;
+  inset:0;
+  margin:auto;
+  max-width:100%;
+  max-height:100%;
+  background-repeat:no-repeat;
+  background-position-x:0;
+  background-size:auto 100%;
+  animation:visitMascotSpriteFrames calc(1s / var(--visit-sprite-fps, 8) * var(--visit-sprite-frames, 1)) steps(var(--visit-sprite-frames, 1)) infinite;
+  image-rendering:auto;
+}
+.visit-map-mascot-spritesheet--pixelated {
+  image-rendering:pixelated;
+}
+.visit-map-mascot-sprite-cut {
+  position:absolute;
+  inset:0;
+  margin:auto;
+  max-width:100%;
+  max-height:100%;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  pointer-events:none;
+  user-select:none;
+}
+.visit-map-mascot-sprite-cut img {
+  display:block;
+  width:100%;
+  height:100%;
+  max-width:100%;
+  max-height:100%;
+  object-fit:contain;
+  image-rendering:auto;
+}
+.visit-map-mascot-sprite-cut.visit-map-mascot-spritesheet--pixelated img {
+  image-rendering:pixelated;
+}
+.visit-map-mascot-sprite-preload {
+  display:none;
+}
+.visit-map-mascot:not(.visit-map-mascot--walking):not(.visit-map-mascot--happy) .visit-map-mascot-rive-shell,
+.visit-map-mascot:not(.visit-map-mascot--walking):not(.visit-map-mascot--happy) .visit-map-mascot-spritesheet-shell {
+  animation:visitMascotIdleBreath 2.4s ease-in-out infinite;
+}
+.visit-map-mascot--walking .visit-map-mascot-rive-shell,
+.visit-map-mascot--walking .visit-map-mascot-spritesheet-shell {
+  animation:visitMascotWalkBob .36s ease-in-out infinite;
+}
+.visit-map-mascot--walking .visit-gnome-arm--front {
+  animation:visitGnomeArmFrontSwing .36s ease-in-out infinite;
+}
+.visit-map-mascot--walking .visit-gnome-arm--back {
+  animation:visitGnomeArmBackSwing .36s ease-in-out infinite;
+}
+.visit-map-mascot--walking .visit-gnome-leg--front {
+  animation:visitGnomeLegFrontStep .36s ease-in-out infinite;
+}
+.visit-map-mascot--walking .visit-gnome-leg--back {
+  animation:visitGnomeLegBackStep .36s ease-in-out infinite;
+}
+.visit-map-mascot--happy .visit-map-mascot-rive-shell,
+.visit-map-mascot--happy .visit-map-mascot-spritesheet-shell {
+  animation:visitMascotHappyBounce .42s ease-in-out 3;
+}
+.visit-map-mascot--happy .visit-gnome-arm--front,
+.visit-map-mascot--happy .visit-gnome-arm--back {
+  transform:rotate(-58deg) translateY(-4px);
+}
+.visit-map-mascot--reduced-motion .visit-map-mascot-rive-shell,
+.visit-map-mascot--reduced-motion .visit-map-mascot-spritesheet-shell,
+.visit-map-mascot--reduced-motion .visit-map-mascot-dialog {
+  animation:none !important;
+  transition:none !important;
+}
+.visit-map-mascot-dialog {
+  position:absolute;
+  left:50%;
+  bottom:calc(100% + 6px);
+  transform:translateX(-50%) scaleX(var(--visit-mascot-dialog-x, 1));
+  transform-origin:50% 100%;
+  min-width:120px;
+  max-width:220px;
+  border-radius:12px;
+  border:1px solid rgba(26,71,49,.2);
+  background:rgba(255,255,255,.94);
+  color:#1a4731;
+  font-size:.76rem;
+  font-weight:700;
+  line-height:1.35;
+  text-align:center;
+  box-shadow:0 6px 14px rgba(26,71,49,.2);
+  padding:6px 9px;
+  animation:visitMascotDialogPop .22s ease-out;
+}
+.visit-map-mascot-dialog::after {
+  content:'';
+  position:absolute;
+  left:50%;
+  top:100%;
+  width:12px;
+  height:12px;
+  transform:translateX(-50%) rotate(45deg);
+  background:rgba(255,255,255,.94);
+  border-right:1px solid rgba(26,71,49,.2);
+  border-bottom:1px solid rgba(26,71,49,.2);
+}
+@keyframes visitMascotWalkBob {
+  0%, 100% { transform:translateY(0); }
+  50% { transform:translateY(-3px); }
+}
+@keyframes visitMascotIdleBreath {
+  0%, 100% { transform:translateY(0) scale(1); }
+  50% { transform:translateY(-1px) scale(1.015); }
+}
+@keyframes visitMascotHappyBounce {
+  0%, 100% { transform:translateY(0) scale(1); }
+  40% { transform:translateY(-6px) scale(1.04); }
+  70% { transform:translateY(-2px) scale(1.02); }
+}
+@keyframes visitGnomeArmFrontSwing {
+  0%, 100% { transform:rotate(-15deg); }
+  50% { transform:rotate(20deg); }
+}
+@keyframes visitGnomeArmBackSwing {
+  0%, 100% { transform:rotate(18deg); }
+  50% { transform:rotate(-14deg); }
+}
+@keyframes visitGnomeLegFrontStep {
+  0%, 100% { transform:rotate(11deg) translateY(-1px); }
+  50% { transform:rotate(-12deg) translateY(0); }
+}
+@keyframes visitGnomeLegBackStep {
+  0%, 100% { transform:rotate(-12deg) translateY(0); }
+  50% { transform:rotate(10deg) translateY(-1px); }
+}
+@keyframes visitMascotDialogPop {
+  from { opacity:0; transform:translateX(-50%) scale(.86); }
+  to { opacity:1; transform:translateX(-50%) scale(1); }
+}
+@keyframes visitMascotSpriteFrames {
+  from { background-position-x:var(--visit-sprite-start-x, 0px); }
+  to { background-position-x:calc(var(--visit-sprite-start-x, 0px) - (var(--visit-sprite-frames, 1) * var(--visit-sprite-frame-width, 64px))); }
+}

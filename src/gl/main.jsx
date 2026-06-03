@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client';
 import '../shared/styles/motion.css';
 import '../shared/styles/modal-shell.css';
 import '../shared/styles/toast-shell.css';
+import '../shared/styles/visit-map-mascot.css';
 import './styles/gl-base.css';
 import './styles/gl-theme.css';
 import { AppGL } from './AppGL.jsx';

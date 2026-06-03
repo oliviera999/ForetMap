@@ -70,6 +70,23 @@
   100% { box-shadow: 0 0 0 0 var(--attention-pulse-color-end, rgba(82, 183, 136, 0)); }
 }
 
+@keyframes heroFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes heroStagger {
+  from { opacity: 0; transform: translate3d(0, 16px, 0); }
+  to { opacity: 1; transform: translate3d(0, 0, 0); }
+}
+
+@keyframes kenBurns {
+  0% { background-position: 50% 50%; background-size: 100%; }
+  33% { background-position: 52% 51%; background-size: 102%; }
+  66% { background-position: 49% 52%; background-size: 103%; }
+  100% { background-position: 50% 50%; background-size: 100%; }
+}
+
 .fade-in {
   animation: fadeIn var(--motion-base) var(--ease-out) both;
 }
@@ -93,6 +110,117 @@
   animation: attentionPulse 2s ease-in-out infinite;
 }
 
+.scroll-progress {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 0%;
+  height: 4px;
+  z-index: 9999;
+  pointer-events: none;
+  background: linear-gradient(
+    90deg,
+    var(--scroll-progress-start, #52b788),
+    var(--scroll-progress-end, #2d6a4f)
+  );
+  transition: width 0.1s ease-out;
+}
+
+.scroll-reveal {
+  opacity: 0;
+  transform: translate3d(0, 12px, 0);
+  transition:
+    opacity var(--motion-base) var(--ease-out),
+    transform var(--motion-base) var(--ease-out);
+}
+
+.scroll-reveal.is-visible {
+  opacity: 1;
+  transform: translate3d(0, 0, 0);
+}
+
+.hero-stagger > * {
+  opacity: 0;
+  animation: heroStagger 0.5s var(--ease-out) both;
+}
+
+.hero-stagger > *:nth-child(1) { animation-delay: 0.2s; }
+.hero-stagger > *:nth-child(2) { animation-delay: 0.45s; }
+.hero-stagger > *:nth-child(3) { animation-delay: 0.65s; }
+.hero-stagger > *:nth-child(4) { animation-delay: 0.85s; }
+.hero-stagger > *:nth-child(n+5) { animation-delay: 1s; }
+
+.hero-ken-burns {
+  animation: heroFadeIn 2s var(--ease-out) forwards;
+}
+
+@media (prefers-reduced-motion: no-preference) and (min-width: 769px) {
+  .hero-ken-burns {
+    animation: heroFadeIn 2s var(--ease-out) forwards, kenBurns 30s ease-in-out 2.5s infinite;
+  }
+}
+
+.fm-lightbox-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(0, 0, 0, 0.93);
+  animation: overlayFadeIn var(--motion-fast) var(--ease-out) both;
+}
+
+.fm-lightbox-panel {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  max-width: 95vw;
+  animation: popIn var(--motion-base) var(--spring) both;
+}
+
+.fm-lightbox-image {
+  max-width: 95vw;
+  max-height: 85vh;
+  border-radius: 10px;
+  object-fit: contain;
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.5);
+}
+
+.fm-lightbox-caption {
+  color: rgba(255, 255, 255, 0.8);
+  margin-top: 12px;
+  font-size: 0.9rem;
+  max-width: 80vw;
+  text-align: center;
+}
+
+.fm-lightbox-close {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  background: rgba(255, 255, 255, 0.15);
+  border: none;
+  color: #fff;
+  border-radius: 50%;
+  width: 44px;
+  height: 44px;
+  font-size: 1.1rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .fm-lightbox-close {
+    backdrop-filter: blur(4px);
+  }
+}
+
 @media (prefers-reduced-motion: no-preference) {
   .fade-in,
   .stagger > *,
@@ -113,10 +241,24 @@
   .fm-modal-panel,
   .modal,
   .log-modal,
-  .pin-card {
+  .pin-card,
+  .hero-stagger > *,
+  .hero-ken-burns,
+  .fm-lightbox-overlay,
+  .fm-lightbox-panel {
     animation: none !important;
     opacity: 1 !important;
     transform: none !important;
+  }
+
+  .scroll-reveal {
+    opacity: 1 !important;
+    transform: none !important;
+    transition: none !important;
+  }
+
+  .scroll-progress {
+    transition: none !important;
   }
 
   .is-attention-pulse {

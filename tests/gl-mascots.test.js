@@ -227,6 +227,7 @@ test('GET /api/gl/mascots expose les packs visit publiés et GL persistés', asy
   const glPayload = {
     id: `gl-pack-${stamp}`,
     name: 'Pack GL catalogue',
+    type: 'unicorn',
     renderer: 'sprite_cut',
     assets: [{ key: 'atlas', src: '/uploads/x.png' }],
     states: [{ key: 'idle', frames: [0], loop: true, fps: 12 }],
@@ -278,6 +279,10 @@ test('GET /api/gl/mascots expose les packs visit publiés et GL persistés', asy
 
   assert.ok((res.body?.mascots || []).some((row) => row.id === glPayload.id));
   assert.ok((res.body?.mascots || []).some((row) => row.id === visitCatalogId));
+  const glPackRow = (res.body?.mascots || []).find((row) => row.id === glPayload.id);
+  assert.ok(glPackRow?.spriteCut?.stateFrames);
+  assert.equal(glPackRow.renderer, 'sprite_cut');
+  assert.equal(glPackRow.type, 'unicorn');
 
   await request(app)
     .delete(`/api/visit/mascot-packs/${visitPackId}`)

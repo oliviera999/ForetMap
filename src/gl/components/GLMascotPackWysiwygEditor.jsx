@@ -9,6 +9,7 @@ import { VISIT_MASCOT_STATE } from '../../utils/visitMascotState.js';
 const DEFAULT_PAYLOAD = {
   id: 'gl-pack',
   name: 'Nouveau pack GL',
+  type: 'gnome',
   renderer: 'sprite_cut',
   assets: [],
   states: [{ key: 'idle', frames: [0] }],
@@ -17,6 +18,7 @@ const DEFAULT_PAYLOAD = {
 export function GLMascotPackWysiwygEditor({ initialPack, onSave, onDelete }) {
   const [name, setName] = useState('');
   const [chapterId, setChapterId] = useState('');
+  const [packType, setPackType] = useState('gnome');
   const [jsonText, setJsonText] = useState('');
   const [parseError, setParseError] = useState('');
   const [validation, setValidation] = useState({ ok: false, issueLines: [] });
@@ -26,7 +28,9 @@ export function GLMascotPackWysiwygEditor({ initialPack, onSave, onDelete }) {
     const pack = initialPack || null;
     setName(pack?.name || '');
     setChapterId(pack?.chapter_id == null ? '' : String(pack.chapter_id));
-    setJsonText(JSON.stringify(pack?.payload || DEFAULT_PAYLOAD, null, 2));
+    const payload = pack?.payload || DEFAULT_PAYLOAD;
+    setPackType(payload?.type === 'unicorn' ? 'unicorn' : 'gnome');
+    setJsonText(JSON.stringify(payload, null, 2));
     setParseError('');
     setValidation({ ok: false, issueLines: [] });
     setVisitPreview(null);
@@ -69,7 +73,10 @@ export function GLMascotPackWysiwygEditor({ initialPack, onSave, onDelete }) {
       id: initialPack?.id || null,
       name: String(name || '').trim() || 'Pack GL',
       chapterId: chapterId ? Number(chapterId) : null,
-      payload: parsedPayload.value,
+      payload: {
+        ...parsedPayload.value,
+        type: packType === 'unicorn' ? 'unicorn' : 'gnome',
+      },
     });
     setParseError('');
   }
@@ -79,6 +86,13 @@ export function GLMascotPackWysiwygEditor({ initialPack, onSave, onDelete }) {
       <label>
         Nom du pack
         <input value={name} onChange={(event) => setName(event.target.value)} />
+      </label>
+      <label>
+        Type mascotte
+        <select value={packType} onChange={(event) => setPackType(event.target.value)}>
+          <option value="gnome">Gnome</option>
+          <option value="unicorn">Licorne</option>
+        </select>
       </label>
       <label>
         Chapter ID (optionnel)

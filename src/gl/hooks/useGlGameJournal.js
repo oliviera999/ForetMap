@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { io } from 'socket.io-client';
 import { withAppBase } from '../../services/api.js';
 import { apiGL } from '../services/apiGL.js';
+
 export function useGlGameJournal({
   gameId,
   token,
@@ -48,16 +49,17 @@ export function useGlGameJournal({
     socket.on('connect', () => {
       socket.emit('subscribe:gl-game', { gameId: Number(gameId) });
     });
+    let debounceId = null;
     socket.on('gl:game:event', (evt) => {
       if (Number(evt?.gameId) !== Number(gameId)) return;
-      const id = Number(evt?.id);
-      if (!Number.isFinite(id)) {
+      if (debounceId) clearTimeout(debounceId);
+      debounceId = setTimeout(() => {
+        debounceId = null;
         reload();
-        return;
-      }
-      setEvents((prev) => mergeEvent(prev, evt, teamsByIdRef.current));
+      }, 350);
     });
     return () => {
+      if (debounceId) clearTimeout(debounceId);
       socket.close();
     };
   }, [token, gameId, reload]);

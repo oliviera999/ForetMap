@@ -10,22 +10,29 @@ export const GL_MASCOT_STATE = {
   VICTORY: VISIT_MASCOT_STATE.HAPPY,
 };
 
+function resolveStateForTeam(teamId, lastEvent) {
+  const id = Number(teamId);
+  if (!lastEvent) return GL_MASCOT_STATE.IDLE;
+  const eventTeamId = lastEvent?.teamId != null ? Number(lastEvent.teamId) : null;
+  if (lastEvent.eventType === 'score' && eventTeamId === id) {
+    return GL_MASCOT_STATE.HAPPY;
+  }
+  if (lastEvent.eventType === 'narration') {
+    if (eventTeamId == null || eventTeamId === id) {
+      return GL_MASCOT_STATE.TALKING;
+    }
+  }
+  return GL_MASCOT_STATE.IDLE;
+}
+
 export function useGLMascotStateMachine({ gameState }) {
   return useMemo(() => {
-    const map = new Map();
     const teams = Array.isArray(gameState?.teams) ? gameState.teams : [];
     const events = Array.isArray(gameState?.events) ? gameState.events : [];
     const lastEvent = events.length > 0 ? events[events.length - 1] : null;
+    const map = new Map();
     for (const team of teams) {
-      const teamId = Number(team.id);
-      let state = GL_MASCOT_STATE.IDLE;
-      if (lastEvent?.eventType === 'narration') {
-        state = GL_MASCOT_STATE.TALKING;
-      }
-      if (lastEvent?.eventType === 'score' && Number(lastEvent?.teamId) === teamId) {
-        state = GL_MASCOT_STATE.HAPPY;
-      }
-      map.set(teamId, state);
+      map.set(Number(team.id), resolveStateForTeam(team.id, lastEvent));
     }
     return {
       getStateForTeam(teamId) {

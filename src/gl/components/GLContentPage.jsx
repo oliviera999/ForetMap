@@ -8,6 +8,8 @@ import { GLInput } from './ui/GLInput.jsx';
 import { GLRichTextEditor } from './ui/GLRichTextEditor.jsx';
 import { GLImageFrameHelp } from './GLImageFrameHelp.jsx';
 import { GLGlossaryMarkdown } from './GLGlossaryMarkdown.jsx';
+import { ScrollProgressBar } from '../../shared/components/ScrollProgressBar.jsx';
+import { useScrollReveal } from '../../shared/hooks/useScrollReveal.js';
 
 function canManageContent(auth) {
   const permissions = Array.isArray(auth?.permissions) ? auth.permissions : [];
@@ -108,9 +110,11 @@ export function GLContentPage({
   const previewMarkdown = manageable && editing ? draftBody : (content?.bodyMarkdown || draftBody || '');
   const pageSlotKey = GL_CONTENT_PAGE_SLOT_BY_SLUG[slug];
   const pageBannerSlot = pageSlotKey && brandSlots ? brandSlots[pageSlotKey] : null;
+  const [bodyRef, bodyVisible] = useScrollReveal({ once: true, threshold: 0.05 });
 
   return (
-    <article className="gl-panel gl-markdown">
+    <article className="gl-panel gl-markdown gl-content-page">
+      <ScrollProgressBar />
       <GLBrandPageBanner slot={pageBannerSlot} />
       <h2>{displayTitle}</h2>
 
@@ -184,12 +188,17 @@ export function GLContentPage({
       ) : null}
 
       {manageable && editing ? <h3>Aperçu</h3> : null}
-      <GLGlossaryMarkdown
-        markdown={previewMarkdown || '_Contenu vide._'}
-        glossaryItems={glossaryLinkItems}
-        onOpenGlossaryTerm={onOpenGlossaryTerm}
-        allowImages
-      />
+      <div
+        ref={bodyRef}
+        className={`gl-editorial-body scroll-reveal${bodyVisible ? ' is-visible' : ''}`}
+      >
+        <GLGlossaryMarkdown
+          markdown={previewMarkdown || '_Contenu vide._'}
+          glossaryItems={glossaryLinkItems}
+          onOpenGlossaryTerm={onOpenGlossaryTerm}
+          allowImages
+        />
+      </div>
     </article>
   );
 }

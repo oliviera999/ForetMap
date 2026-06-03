@@ -51,64 +51,22 @@ import {
   VisitEditorialMediaIdPicker,
 } from './VisitEditorialPhotoUi.jsx';
 import { FixedToast } from '../shared/components/FixedToast.jsx';
+import { ImageLightbox } from '../shared/components/ImageLightbox.jsx';
 
 function Toast({ msg, onDone }) {
   useEffect(() => { const t = setTimeout(onDone, 2400); return () => clearTimeout(t); }, []);
   return <FixedToast>{msg}</FixedToast>;
 }
 
-function Lightbox({ src, caption, onClose }) {
-  const el = useMemo(() => document.createElement('div'), []);
-  const dialogRef = useDialogA11y(onClose);
-  useEffect(() => {
-    const releaseBodyScroll = lockBodyScroll();
-    document.body.appendChild(el);
-    return () => {
-      try {
-        if (document.body.contains(el)) document.body.removeChild(el);
-      } finally {
-        releaseBodyScroll();
-      }
-    };
-  }, [el]);
-
-  const content = (
-    <div
-      style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.93)', zIndex: 99999,
-        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-        padding: 20 }}
-      onClick={onClose}>
-      <div
-        ref={dialogRef}
-        role="dialog"
-        aria-modal="true"
-        aria-label="Aperçu image"
-        tabIndex={-1}
-        style={{ position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center' }}
-        onClick={(e) => e.stopPropagation()}
-      >
-      <img src={src} onClick={e => e.stopPropagation()}
-        style={{ maxWidth: '95vw', maxHeight: '85vh', borderRadius: 10,
-          objectFit: 'contain', boxShadow: '0 8px 40px rgba(0,0,0,.5)',
-          animation: 'popIn .25s var(--spring,cubic-bezier(.34,1.56,.64,1))' }}
-        alt={caption || ''} decoding="async" />
-      {caption && (
-        <p style={{ color: 'rgba(255,255,255,.8)', marginTop: 12, fontSize: '.9rem',
-          maxWidth: '80vw', textAlign: 'center' }}>{caption}</p>
-      )}
-      <button
-        style={{ position: 'absolute', top: 16, right: 16,
-          background: 'rgba(255,255,255,.15)', backdropFilter: 'blur(4px)',
-          border: 'none', color: 'white', borderRadius: '50%',
-          width: 40, height: 40, fontSize: '1.1rem', cursor: 'pointer',
-          display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-        aria-label="Fermer l'aperçu"
-        onClick={onClose}>✕</button>
-      </div>
-    </div>
+function Lightbox({ src, caption, onClose, useOverlayHistory = false }) {
+  return (
+    <ImageLightbox
+      src={src}
+      caption={caption}
+      onClose={onClose}
+      useOverlayHistory={useOverlayHistory}
+    />
   );
-
-  return createPortal(content, el);
 }
 
 /** Emoji catalogue plantes pour un nom d’être vivant (fiches Info zone/repère). */
