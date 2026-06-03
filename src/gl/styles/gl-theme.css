@@ -5453,3 +5453,8 @@ body.gl-glossary-popover-open {
 .gl-journal-qcm_answer {
   border-left: 4px solid #14b8a6;
 }
+
+.gl-journal-event__actor {
+  font-size: 0.85rem;
+  color: #475569;
+}
