@@ -9,6 +9,8 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ### Modifié
 
+- **Dépendances (PR GitHub #39–#43)** : lot Dependabot unifié — `vite` 8, `@vitejs/plugin-react` 6, `eslint` 10, `dotenv` 17 ; patch/minor (`mysql2`, `zod`, `react`, `@playwright/test`, `sharp`, `vitest`, etc.). `engines.node` ≥ 20.19 (requis par Vite 8). Chargement `.env` silencieux via `database.js` (`quiet: true`). Mock `matchMedia` dans `tests-ui/setup.js`. Artefacts `dist/` régénérés.
+- **GL / ForetMap — effets visuels partagés (phase 2)** : `toast-shell.css`, `FixedToast` ; bundle GL sans `index.css` (`gl-base.css`) ; 4 modales restantes sur `DialogShell` ; perf animation multi-périphériques (`motion.css`, backdrop mobile, `gl-main-inner`) ; hook `usePrefersReducedMotion` partagé ; tests Vitest modales GL ; doc `GL_ARCHITECTURE`, skill GL, recette `LOCAL_DEV`.
 - **GL — sortilèges (thème grimoire)** : onglet Sortilèges, fiche `GLSpellPopover` et assistant `GLSpellCastWizard` en style parchemin (scope `.gl-grimoire`, texture CSS, titres Playfair) ; police Playfair dans `gl.html` ; test Vitest `tests-ui/gl/GLSpellsView.test.jsx`.
 - **GL — popover glossaire** : respect de `prefers-reduced-motion` pour la fermeture et l’animation d’ouverture.
 - **Build production** : artefacts `dist/` régénérés (bundle GL feedback QCM).

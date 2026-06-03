@@ -1,4 +1,4 @@
-require('dotenv').config();
+require('dotenv').config({ quiet: true });
 const mysql = require('mysql2/promise');
 const { v4: uuidv4 } = require('uuid');
 const path = require('path');
