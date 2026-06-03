@@ -41,6 +41,7 @@ Ce document centralise les commandes et la matrice de couverture pour Gnomes & L
 - `e2e/gl-users-admin.spec.js`
 - `e2e/gl-socket-reconnect.spec.js`
 - `e2e/gl-responsive-accessibility.spec.js`
+- `e2e/gl-player-journal.spec.js` (carnet personnel Mon journal, sauvegarde, lecture MJ)
 
 ## Charge et snapshots
 
