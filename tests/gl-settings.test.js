@@ -125,6 +125,7 @@ test('GET /api/gl/auth/config expose les modules GL', async () => {
     .expect(200);
   assert.ok(res.body?.modules);
   assert.strictEqual(typeof res.body.modules.journalEnabled, 'boolean');
+  assert.strictEqual(typeof res.body.modules.playerJournalEnabled, 'boolean');
   assert.strictEqual(typeof res.body.modules.mascotPacksEnabled, 'boolean');
 });
 

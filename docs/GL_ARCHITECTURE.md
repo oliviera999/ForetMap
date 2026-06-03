@@ -152,7 +152,7 @@ Tables GL préfixées `gl_` :
 - Lancement de sortilèges (`migrations/109_gl_spell_cast.sql`, module `modules.spell_cast_enabled`)
   - `gl_spell_cast_drafts` / `gl_spell_cast_contributions` — pool collaboratif par équipe et sort
   - Coût : `cout_gemmes` → PP (💎), `cout_coeurs` → PV (❤️) sur `gl_players`
-  - Réglages : `gameplay.spell_cast_contribution_mode`, `gameplay.spell_cast_team_scope`
+  - Réglages : `gameplay.spell_cast_contribution_mode`, `gameplay.spell_cast_team_scope`, `gameplay.spell_cast_mj_only` (lancement réservé au MJ)
   - Routes `/api/gl/games/:id/spell-casts/*`, logique `lib/glSpellCast.js`, UI `GLSpellCastWizard` (entrées Sortilèges, carte, popover fiche)
   - Événement `spell_cast` + Socket.IO `gl:spell_cast:draft`
 
@@ -184,7 +184,13 @@ Tables GL préfixées `gl_` :
   - icones d'onglets en emoji (`gl-tab-icon`)
   - micro-interactions (`fade-in`, `popIn`, toasts et transitions `--motion-*`)
   - zones tactiles à `min-height: 44px` pour les boutons principaux
-- Les modules GL (forum, tutoriels, journal, carte royaume, notifications, commentaires contextuels, aide) ont des styles dédiés dans `gl-theme.css` pour rester homogènes avec le shell GL.
+- Les modules GL (forum, tutoriels, journal de partie, **carnet personnel** `my-journal`, carte royaume, notifications, commentaires contextuels, aide) ont des styles dédiés dans `gl-theme.css` pour rester homogènes avec le shell GL.
+
+### Carnet personnel joueur
+
+- Module `modules.player_journal_enabled` ; limites `gameplay.player_journal_max_chars` / `player_journal_max_assets`.
+- Tables `gl_player_journals`, `gl_player_journal_assets` ; API `routes/gl/player-journal.js`.
+- UI `GLPlayerJournalView` (joueur), lecture MJ via `GLPlayerJournalReadModal` (statistiques classe, `gl.players.manage`).
 
 ### Cadres d'image configurables
 

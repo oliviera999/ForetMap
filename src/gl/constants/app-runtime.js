@@ -14,6 +14,7 @@ export const GL_PLAYER_TABS = [
   { id: 'forum', label: 'Forum', icon: '💬' },
   { id: 'market', label: 'Marché', icon: '🤝' },
   { id: 'journal', label: 'Journal', icon: '📓' },
+  { id: 'my-journal', label: 'Mon journal', icon: '📔' },
 ];
 
 export const GL_ADMIN_EXTRA_TABS = [

@@ -58,6 +58,7 @@ const glForumRouter = require('./routes/gl/forum');
 const glMarketRouter = require('./routes/gl/market');
 const glTutorialsRouter = require('./routes/gl/tutorials');
 const glJournalRouter = require('./routes/gl/journal');
+const glPlayerJournalRouter = require('./routes/gl/player-journal');
 const glKingdomMapRouter = require('./routes/gl/kingdom-map');
 const glSpeciesRouter = require('./routes/gl/species');
 const glSpellsRouter = require('./routes/gl/spells');
@@ -545,6 +546,7 @@ app.use('/api/gl/learning', glLearningRouter);
 app.use('/api/gl/stats', glStatsRouter);
 app.use('/api/gl/tutorials', glTutorialsRouter);
 app.use('/api/gl/journal', glJournalRouter);
+app.use('/api/gl/player-journal', glPlayerJournalRouter);
 app.use('/api/gl/kingdom-map', glKingdomMapRouter);
 
 app.use('/api', (req, res, next) => {

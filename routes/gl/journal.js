@@ -5,6 +5,7 @@ const { queryAll, queryOne } = require('../../database');
 const { requireGlAuth } = require('../../middleware/requireGlAuth');
 const { normalizeEventRow } = require('../../lib/glGameEvents');
 const { canAccessGlGame } = require('../../lib/glGameAccess');
+const { presentJournalEvent, buildTeamsById } = require('../../lib/glJournalPresent');
 
 const router = express.Router();
 
@@ -40,8 +41,24 @@ router.get('/games/:id', async (req, res) => {
       [gameId]
     );
 
-  const events = rows.map(normalizeEventRow);
-  return res.json({ events, total: events.length });
+  const teamRows = await queryAll(
+    'SELECT id, name, color FROM gl_teams WHERE game_id = ? ORDER BY id ASC',
+    [gameId]
+  );
+  const teams = teamRows.map((row) => ({
+    id: Number(row.id),
+    name: String(row.name || ''),
+    color: row.color ? String(row.color) : null,
+  }));
+  const teamsById = buildTeamsById(teams);
+  const events = rows.map((row) => {
+    const normalized = normalizeEventRow(row);
+    return {
+      ...normalized,
+      presentation: presentJournalEvent(normalized, { teamsById }),
+    };
+  });
+  return res.json({ events, total: events.length, teams });
 });
 
 module.exports = router;

@@ -29,7 +29,7 @@ description: Donne le contexte du sous-module Gnomes & Licornes (GL) dans le mon
 `modules.mascot_packs_enabled`, `modules.context_comments_enabled`,
 `modules.forum_enabled`, `modules.notifications_enabled`,
 `modules.tutorials_enabled`, `modules.help_enabled`,
-`modules.journal_enabled`, `modules.kingdom_map_enabled`,
+`modules.journal_enabled`, `modules.player_journal_enabled`, `modules.kingdom_map_enabled`,
 `modules.market_enabled`, `modules.spell_cast_enabled`,
 `modules.virtual_dice_enabled`.
 

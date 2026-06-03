@@ -36,11 +36,13 @@ async function enableSpellCast(extra = {}) {
      VALUES ('gameplay.vitality_enabled', 'true', NOW()),
             ('modules.spell_cast_enabled', 'true', NOW()),
             ('gameplay.spell_cast_contribution_mode', ?, NOW()),
-            ('gameplay.spell_cast_team_scope', ?, NOW())
+            ('gameplay.spell_cast_team_scope', ?, NOW()),
+            ('gameplay.spell_cast_mj_only', ?, NOW())
      ON DUPLICATE KEY UPDATE value_json = VALUES(value_json), updated_at = NOW()`,
     [
       JSON.stringify(extra.contributionMode || 'coordinator'),
       JSON.stringify(extra.teamScope || 'any_team'),
+      JSON.stringify(extra.mjOnly === true),
     ]
   );
   invalidateGameplayCache();
@@ -243,4 +245,32 @@ test('own_team : joueur ne peut pas choisir autre équipe', async () => {
     .send({ spellCode: 'SCT01', teamId: teamBId });
   assert.strictEqual(res.status, 403);
   await enableSpellCast({ teamScope: 'any_team' });
+});
+
+test('mj_only : joueur refusé, staff autorisé', async () => {
+  await enableSpellCast({ mjOnly: true });
+  const playerRes = await request(app)
+    .post(`/api/gl/games/${gameId}/spell-casts/drafts`)
+    .set('Authorization', `Bearer ${tokenA}`)
+    .send({ spellCode: 'SCT01', teamId: teamAId });
+  assert.strictEqual(playerRes.status, 403);
+  assert.match(String(playerRes.body?.error || ''), /MJ/i);
+
+  const mjToken = await signAuthToken({
+    product: 'gl',
+    userType: 'gl_admin',
+    userId: '1',
+    roleSlug: 'gl_admin',
+    permissions: ['gl.read', 'gl.game.manage', 'gl.event.emit'],
+    displayName: 'MJ test',
+    classId: null,
+    gameId,
+  });
+  const staffRes = await request(app)
+    .post(`/api/gl/games/${gameId}/spell-casts/drafts`)
+    .set('Authorization', `Bearer ${mjToken}`)
+    .send({ spellCode: 'SCT01', teamId: teamAId });
+  assert.strictEqual(staffRes.status, 201);
+
+  await enableSpellCast({ mjOnly: false });
 });

@@ -30,6 +30,7 @@ import { GLForumView } from './components/GLForumView.jsx';
 import { GLMarketView } from './components/GLMarketView.jsx';
 import { GLTutorialsView } from './components/GLTutorialsView.jsx';
 import { GLJournalView } from './components/GLJournalView.jsx';
+import { GLPlayerJournalView } from './components/GLPlayerJournalView.jsx';
 import { GLKingdomMapView } from './components/GLKingdomMapView.jsx';
 import { GLNotificationsCenter } from './components/GLNotificationsCenter.jsx';
 import { GLButton } from './components/ui/GLButton.jsx';
@@ -61,6 +62,7 @@ const DEFAULT_GAMEPLAY = {
   spellCastEnabled: false,
   spellCastContributionMode: 'both',
   spellCastTeamScope: 'any_team',
+  spellCastMjOnly: false,
 };
 
 function decodeBase64UrlJson(value) {
@@ -302,6 +304,7 @@ export function AppGL() {
         return isModuleEnabled(modules, 'marketEnabled') && !!gameplaySettings.vitalityEnabled;
       }
       if (tab.id === 'journal') return isModuleEnabled(modules, 'journalEnabled');
+      if (tab.id === 'my-journal') return isModuleEnabled(modules, 'playerJournalEnabled');
       return true;
     });
     const adminTabs = GL_ADMIN_EXTRA_TABS.filter((tab) => {
@@ -596,12 +599,13 @@ export function AppGL() {
       || gameplaySettings.spellCastEnabled === true;
     if (!moduleOn || !gameplaySettings.vitalityEnabled) return false;
     if (!gameState?.game?.id || gameState?.game?.status !== 'live') return false;
+    if (gameplaySettings.spellCastMjOnly && !showStaffAdminUi) return false;
     if (gameplaySettings.turnsEnabled && currentTeamId != null) {
       const myTeamId = auth?.teamId != null ? Number(auth.teamId) : null;
       if (showsPlayerChrome && myTeamId != null && currentTeamId !== myTeamId) return false;
     }
     return true;
-  }, [modules, gameplaySettings, gameState, auth, currentTeamId, showsPlayerChrome]);
+  }, [modules, gameplaySettings, gameState, auth, currentTeamId, showsPlayerChrome, showStaffAdminUi]);
 
   const spellCast = useGLSpellCast({
     token,
@@ -910,7 +914,16 @@ export function AppGL() {
           <GLTutorialsView canManage={showStaffAdminUi} learningProgress={learningProgress} />
         )}
         {tab === 'journal' && isModuleEnabled(modules, 'journalEnabled') && (
-          <GLJournalView gameId={activeGameId} />
+          <GLJournalView
+            gameId={activeGameId}
+            token={token}
+            canEmit={showStaffAdminUi}
+            defaultTeamId={selectedTeamId}
+            narrationEnabled={!!gameplaySettings.narrationEnabled}
+          />
+        )}
+        {tab === 'my-journal' && isModuleEnabled(modules, 'playerJournalEnabled') && (
+          <GLPlayerJournalView gameState={gameState} />
         )}
         {tab === 'kingdom' && isModuleEnabled(modules, 'kingdomMapEnabled') && (
           <GLKingdomMapView

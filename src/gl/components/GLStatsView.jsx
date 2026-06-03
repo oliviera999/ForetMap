@@ -2,6 +2,7 @@ import React, { useMemo, useState, useEffect } from 'react';
 import { StatCard, StatsSummaryGrid } from '../../shared/components/StatsSummaryGrid.jsx';
 import { useGLPlayerStats } from '../hooks/useGLPlayerStats.js';
 import { GLButton } from './ui/GLButton.jsx';
+import { GLPlayerJournalReadModal } from './GLPlayerJournalReadModal.jsx';
 import { GLField } from './ui/GLField.jsx';
 import { GLSelect } from './ui/GLSelect.jsx';
 
@@ -93,7 +94,7 @@ function LearningStatsGrid({ stats, catalogTotals }) {
   );
 }
 
-function ClassLeaderboardRow({ row, vitalityEnabled, rank }) {
+function ClassLeaderboardRow({ row, vitalityEnabled, rank, onViewJournal, showJournalButton }) {
   const s = row.stats || {};
   return (
     <div className="gl-stats-lb-row">
@@ -121,6 +122,16 @@ function ClassLeaderboardRow({ row, vitalityEnabled, rank }) {
         <span title="Termes glossaire">📚 {formatCount(s.glossary_learned)}</span>
         <span title="Tutoriels lus">🎓 {formatCount(s.tutorials_read)}</span>
       </div>
+      {showJournalButton ? (
+        <GLButton
+          type="button"
+          variant="secondary"
+          className="gl-stats-lb-journal-btn"
+          onClick={() => onViewJournal?.(row.id)}
+        >
+          📔 Carnet
+        </GLButton>
+      ) : null}
     </div>
   );
 }
@@ -149,6 +160,12 @@ export function GLStatsView({
 
   const [classFilterId, setClassFilterId] = useState(defaultClassId);
   const [search, setSearch] = useState('');
+  const [journalPlayerId, setJournalPlayerId] = useState(null);
+
+  const canViewPlayerJournal = useMemo(
+    () => Array.isArray(auth?.permissions) && auth.permissions.includes('gl.players.manage'),
+    [auth?.permissions]
+  );
 
   useEffect(() => {
     if (mode !== 'class') return;
@@ -289,10 +306,18 @@ export function GLStatsView({
               row={row}
               vitalityEnabled={vitalityOn}
               rank={index + 1}
+              showJournalButton={canViewPlayerJournal}
+              onViewJournal={setJournalPlayerId}
             />
           ))
         )}
       </div>
+
+      <GLPlayerJournalReadModal
+        playerId={journalPlayerId}
+        open={journalPlayerId != null}
+        onClose={() => setJournalPlayerId(null)}
+      />
     </div>
   );
 }

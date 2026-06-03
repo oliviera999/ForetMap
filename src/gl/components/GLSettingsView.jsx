@@ -48,7 +48,8 @@ const MODULE_TOGGLES = [
   { key: 'modules.notifications_enabled', label: 'Notifications', hint: 'Prépare le centre de notifications GL.' },
   { key: 'modules.tutorials_enabled', label: 'Tutoriels', hint: 'Prépare le module tutoriels GL.' },
   { key: 'modules.help_enabled', label: 'Aide contextuelle', hint: 'Prépare l’onboarding GL.' },
-  { key: 'modules.journal_enabled', label: 'Journal/Histoire', hint: 'Affiche/masque l’onglet Histoire.' },
+  { key: 'modules.journal_enabled', label: 'Journal/Histoire', hint: 'Affiche l’onglet Histoire et la timeline évènements de partie.' },
+  { key: 'modules.player_journal_enabled', label: 'Mon journal (carnet personnel)', hint: 'Carnet éditable par chaque joueur (texte, images, encarts).' },
   { key: 'modules.kingdom_map_enabled', label: 'Carte royaume', hint: 'Prépare la carte royaume GL.' },
   { key: 'modules.zone_music_enabled', label: 'Musique des zones', hint: 'Ambiance sonore par zone sur la carte de jeu (fondus en transition).' },
   { key: 'modules.market_enabled', label: 'Marché', hint: 'Échanges de cœurs et gemmes entre joueurs de la classe (nécessite la vitalité).' },
@@ -366,6 +367,31 @@ export function GLSettingsView() {
             ))}
           </select>
         </label>
+        <label className="gl-gameplay-toggle-row">
+          <input
+            type="checkbox"
+            checked={readGameplayFlag(settings, 'gameplay.spell_cast_mj_only')}
+            disabled={savingKey === 'gameplay.spell_cast_mj_only'}
+            onChange={async (event) => {
+              setSavingKey('gameplay.spell_cast_mj_only');
+              try {
+                await apiGL('/api/gl/admin/settings/gameplay.spell_cast_mj_only', 'PUT', {
+                  value: event.target.checked,
+                });
+                await load();
+              } catch (err) {
+                setError(err.message || 'Enregistrement impossible');
+              } finally {
+                setSavingKey('');
+              }
+            }}
+          />
+          <span>Seul le MJ peut lancer les sortilèges</span>
+        </label>
+        <p className="gl-hint">
+          Si activé, les joueurs consultent le catalogue mais ne peuvent pas ouvrir l&apos;assistant de lancement
+          (réservé au MJ sur la console / carte).
+        </p>
         <p className="gl-hint">
           Activez aussi le module « Lancement de sortilèges » ci-dessous et la vitalité (gemmes / cœurs).
         </p>

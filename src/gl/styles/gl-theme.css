@@ -3015,6 +3015,120 @@ body.gl-map-fullscreen-active .gl-qcm-popover-overlay {
   border-left: 4px solid #3b82f6;
 }
 
+.gl-player-journal-embed-picker__body {
+  max-width: 420px;
+}
+
+.gl-player-journal-read-modal__body {
+  width: min(720px, calc(100% - 32px));
+  max-width: 720px;
+}
+
+.gl-player-journal__intro {
+  max-width: 52rem;
+  margin: 0 0 10px;
+}
+
+.gl-player-journal__quotas {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 20px;
+  margin: 10px 0 12px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: color-mix(in srgb, #fff 88%, var(--gl-color-secondary) 12%);
+  border: 1px solid #dbeafe;
+}
+
+.gl-player-journal__quota {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--gl-color-primary);
+}
+
+.gl-player-journal__quota.is-over {
+  color: #b91c1c;
+}
+
+.gl-player-journal__saved {
+  color: #15803d;
+}
+
+.gl-player-journal__textarea {
+  width: 100%;
+  min-height: 280px;
+  font-family: inherit;
+  font-size: 1rem;
+  line-height: 1.5;
+  border: 1px solid #93c5fd;
+  border-radius: 10px;
+  padding: 12px;
+  resize: vertical;
+}
+
+.gl-player-journal__editor-label {
+  display: block;
+  font-weight: 600;
+  margin-top: 8px;
+}
+
+.gl-player-journal__preview {
+  margin-top: 16px;
+  padding: 12px;
+  border: 1px dashed #93c5fd;
+  border-radius: 10px;
+  background: #f8fafc;
+}
+
+.gl-player-journal__assets ul {
+  list-style: none;
+  padding: 0;
+  margin: 8px 0 0;
+  display: grid;
+  gap: 8px;
+}
+
+.gl-player-journal__assets li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.gl-player-journal__asset-thumb {
+  width: 64px;
+  height: 64px;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 1px solid #cbd5e1;
+}
+
+.gl-journal-embed {
+  display: block;
+  margin: 12px 0;
+  padding: 10px 12px;
+  border-left: 4px solid var(--gl-color-primary);
+  border-radius: 0 8px 8px 0;
+  background: color-mix(in srgb, #fff 75%, var(--gl-color-secondary) 25%);
+  font-size: 0.9rem;
+}
+
+.gl-journal-embed::before {
+  content: '📎 Élément du site · ' attr(data-gl-embed-type) ' · ' attr(data-gl-ref);
+  display: block;
+  font-weight: 600;
+  color: var(--gl-color-primary);
+}
+
+.gl-help-list {
+  margin: 0;
+  padding-left: 1.2rem;
+}
+
+.gl-help-list li {
+  margin-bottom: 6px;
+}
+
 /* Même contrainte de hauteur que .gl-board : le calque fit est en position absolute */
 .gl-kingdom-map {
   position: relative;
@@ -5187,6 +5301,12 @@ body.gl-glossary-popover-open {
   margin-top: 0.15rem;
 }
 
+.gl-stats-lb-journal-btn {
+  flex-shrink: 0;
+  min-height: 44px;
+  margin-left: auto;
+}
+
 .gl-stats-lb-metrics {
   display: flex;
   flex-wrap: wrap;
@@ -5214,4 +5334,122 @@ body.gl-glossary-popover-open {
   box-shadow: 0 12px 40px rgba(15, 23, 42, 0.18);
   margin-top: 2vh;
   margin-bottom: 2vh;
+}
+
+/* Journal de partie — timeline enrichie */
+.gl-journal-panel__head {
+  margin-bottom: 12px;
+}
+
+.gl-journal-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: flex-end;
+  margin-bottom: 16px;
+}
+
+.gl-journal-toolbar .gl-field {
+  flex: 1 1 200px;
+  min-width: 160px;
+  margin: 0;
+}
+
+.gl-journal-toolbar__order {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  font-size: 0.9rem;
+}
+
+.gl-journal-compose {
+  border: 1px solid #bfdbfe;
+  border-radius: 12px;
+  padding: 12px;
+  margin-bottom: 16px;
+  background: color-mix(in srgb, #fff 90%, var(--gl-color-secondary) 10%);
+}
+
+.gl-journal-compose h3 {
+  margin: 0 0 10px;
+  font-size: 1rem;
+}
+
+.gl-journal-event__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.gl-journal-event__title {
+  font-size: 1rem;
+}
+
+.gl-journal-event__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.gl-journal-event__badge {
+  display: inline-block;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #1d4ed8;
+  background: #dbeafe;
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+
+.gl-journal-event__body {
+  margin: 4px 0 0;
+  line-height: 1.45;
+}
+
+.gl-journal-event__figure {
+  margin: 8px 0 0;
+}
+
+.gl-journal-event__img {
+  max-width: 100%;
+  max-height: 280px;
+  border-radius: 8px;
+  border: 1px solid #cbd5e1;
+  object-fit: contain;
+}
+
+.gl-journal-event__details {
+  margin-top: 6px;
+  font-size: 0.85rem;
+}
+
+.gl-journal-event__details summary {
+  cursor: pointer;
+  min-height: 32px;
+  display: flex;
+  align-items: center;
+}
+
+.gl-journal-move {
+  border-left: 4px solid #a855f7;
+}
+
+.gl-journal-vitality_change {
+  border-left: 4px solid #ec4899;
+}
+
+.gl-journal-spell_cast {
+  border-left: 4px solid #8b5cf6;
+}
+
+.gl-journal-action_request {
+  border-left: 4px solid #f97316;
+}
+
+.gl-journal-qcm_answer {
+  border-left: 4px solid #14b8a6;
 }
