@@ -598,7 +598,7 @@ Ces routes sont destinées à la console admin et exigent un token avec permissi
 | POST | `/api/settings/admin/system/restart` | Redémarrage applicatif contrôlé |
 
 Progression n3beurs :
-- l’échelle est construite à partir de **tous les profils n3beur** configurés dans Profils & utilisateurs : slugs **`eleve_*`** (seuils par défaut si besoin) et paliers personnalisés (`roles.rank` &lt; **400**, hors `admin` / `prof` / `visiteur` / `gl_*`) dès qu’un **`roles.min_done_tasks`** est renseigné pour le profil ; chaque seuil ainsi défini est pris en compte pour déterminer le palier cible selon le nombre de tâches **validées**.
+- l’échelle est construite à partir de **tous les profils n3beur** configurés dans Profils & utilisateurs : slugs **`eleve_*`** (seuils par défaut si besoin) et paliers personnalisés (`roles.rank` &lt; **400**, hors `admin` / `prof` / `visiteur` / `gl_*`) dès qu’un **`roles.min_done_tasks`** est renseigné pour le profil ; chaque seuil ainsi défini est pris en compte pour déterminer le palier cible selon le nombre de tâches **validées**. Un profil n3beur **sans** `min_done_tasks` (hors seed `eleve_*`) n’apparaît ni dans la promotion auto ni dans **`progression.steps`** côté stats élève.
 - montée automatique (si `rbac.progression_by_validated_tasks` est actif) : uniquement **promotion** selon l’ordre des seuils `min_done_tasks` (palier cible ≥ palier actuel sur l’échelle), y compris après attribution manuelle — le champ `roles.rank` sert à la hiérarchie RBAC / permissions, pas à autoriser ou bloquer une montée par tâches validées ; déclenchée à la consultation des stats, aux actions tâche élève, et à chaque **validation** de tâche (`POST`/`PUT` → `validated`) pour les n3beurs assignés.
 - les anciens réglages `progression.student_role_min_done_*` ne sont plus utilisés.
 
@@ -1117,7 +1117,7 @@ Règles d’accès:
 
 `GET /api/stats/me/:studentId` renvoie aussi `progression` pour les n3beurs :
 - `progression.thresholds` : seuils actifs par profil (clés dynamiques selon les profils `eleve_*`)
-- `progression.steps` : paliers affichables (min + label + emoji + ordre d’affichage)
+- `progression.steps` : paliers affichables (min + label + emoji + `displayOrder`), triés par le serveur (min → displayOrder → label) ; **uniquement** les profils avec seuil (`min_done_tasks` ou seed `eleve_*`)
 - `progression.roleSlug` / `progression.roleDisplayName` : profil principal actuel après synchronisation.
 
 Champ **`stats`** (tous les utilisateurs cibles, y compris non-élève) inclut en plus des tâches :

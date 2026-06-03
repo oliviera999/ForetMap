@@ -13,6 +13,14 @@ import { HelpPanel } from './HelpPanel';
 import { HELP_PANELS } from '../constants/help';
 import { StatCard, StatsSummaryGrid } from '../shared/components/StatsSummaryGrid.jsx';
 import { FixedToast } from '../shared/components/FixedToast.jsx';
+import {
+  sortProgressionSteps,
+  resolveTaskTierSlug,
+  findProgressionStep,
+  getNextProgressionStep,
+  getProgressionStepIndex,
+  computeProgressPercent,
+} from '../utils/studentProgressionLadder.js';
 
 function Toast({ msg, onDone }) {
   useEffect(() => { const t = setTimeout(onDone, 2400); return () => clearTimeout(t); }, []);
@@ -46,24 +54,25 @@ function StudentStats({ student, isN3Affiliated = false }) {
     eleve_avance: '🌿',
     eleve_chevronne: '🏆',
   };
-  const RANKS = (Array.isArray(data?.progression?.steps) && data.progression.steps.length > 0
+  const rawSteps = Array.isArray(data?.progression?.steps) && data.progression.steps.length > 0
     ? data.progression.steps
     : [
       { roleSlug: 'eleve_novice', min: 0, label: 'n3beur novice' },
       { roleSlug: 'eleve_avance', min: 5, label: 'n3beur avancé' },
       { roleSlug: 'eleve_chevronne', min: 10, label: 'n3beur chevronné' },
-    ])
-    .map((step, i) => ({
-      ...step,
-      color: i === 0 ? '#94a3b8' : i === 1 ? '#52b788' : '#1a4731',
-      icon: String(step.emoji || '').trim() || defaultIconBySlug[String(step.roleSlug || '').toLowerCase()] || '🌿',
-    }))
-    .sort((a, b) => a.min - b.min);
+    ];
+  const RANKS = sortProgressionSteps(rawSteps).map((step, i) => ({
+    ...step,
+    color: i === 0 ? '#94a3b8' : i === 1 ? '#52b788' : '#1a4731',
+    icon: String(step.emoji || '').trim() || defaultIconBySlug[String(step.roleSlug || '').toLowerCase()] || '🌿',
+  }));
   const autoProgressionEnabled = data?.progression?.autoProgressionEnabled !== false;
-  const taskTier = [...RANKS].reverse().find(r => stats.done >= r.min) || RANKS[0];
+  const taskTierSlug = resolveTaskTierSlug(stats.done, RANKS);
+  const taskTier = findProgressionStep(RANKS, taskTierSlug) || RANKS[0];
+  const taskTierIndex = getProgressionStepIndex(RANKS, taskTierSlug);
   const actualSlug = String(data?.progression?.roleSlug || '').toLowerCase();
   const actualTier =
-    RANKS.find((r) => String(r.roleSlug || '').toLowerCase() === actualSlug)
+    findProgressionStep(RANKS, actualSlug)
     || (data?.progression?.roleDisplayName
       ? {
         roleSlug: actualSlug,
@@ -73,15 +82,21 @@ function StudentStats({ student, isN3Affiliated = false }) {
         color: taskTier.color,
       }
       : taskTier);
-  const nextRank = RANKS[RANKS.indexOf(taskTier) + 1];
-  const progressPct = nextRank
-    ? Math.min(100, ((stats.done - taskTier.min) / (nextRank.min - taskTier.min)) * 100)
-    : 100;
+  const actualIndex = getProgressionStepIndex(RANKS, actualSlug);
+  const nextRank = getNextProgressionStep(RANKS, taskTierSlug);
+  const progressPct = computeProgressPercent(stats.done, taskTier, nextRank);
   const profileAheadOfTasks =
     autoProgressionEnabled
-    && actualSlug
-    && taskTier.roleSlug
-    && actualSlug !== String(taskTier.roleSlug || '').toLowerCase();
+    && actualIndex >= 0
+    && taskTierIndex >= 0
+    && actualIndex > taskTierIndex;
+  const profileBehindOfTasks =
+    autoProgressionEnabled
+    && actualIndex >= 0
+    && taskTierIndex >= 0
+    && actualIndex < taskTierIndex;
+  const showTaskObjective = profileAheadOfTasks || profileBehindOfTasks;
+  const tasksRemaining = nextRank ? Math.max(0, nextRank.min - stats.done) : 0;
 
   return (
     <div className="fade-in">
@@ -124,20 +139,39 @@ function StudentStats({ student, isN3Affiliated = false }) {
           (ton profil attribué est plus avancé).
         </p>
       )}
+      {profileBehindOfTasks && (
+        <p className="section-sub" style={{ marginTop: 8, fontSize: '.85rem', color: '#555' }}>
+          Objectif tâches validées : {taskTier.icon} {taskTier.label}
+          {' '}
+          — ton profil sera mis à jour automatiquement.
+        </p>
+      )}
       <div className="rank-progress">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
           <span style={{ fontSize: '.82rem', fontWeight: 600, color: 'var(--forest)' }}>
-            {profileAheadOfTasks ? 'Objectif (tâches validées)' : 'Profil actuel'} : {taskTier.icon} {taskTier.label}
+            {showTaskObjective ? 'Objectif (tâches validées)' : 'Progression'} : {taskTier.icon} {taskTier.label}
           </span>
-          {nextRank && <span style={{ fontSize: '.76rem', color: '#aaa' }}>Prochain palier : {nextRank.icon} {nextRank.label} ({nextRank.min - stats.done} tâche{nextRank.min - stats.done > 1 ? 's' : ''} restante{nextRank.min - stats.done > 1 ? 's' : ''})</span>}
+          {nextRank && (
+            <span style={{ fontSize: '.76rem', color: '#aaa' }}>
+              Prochain palier : {nextRank.icon} {nextRank.label}
+              {' '}
+              ({tasksRemaining} tâche{tasksRemaining > 1 ? 's' : ''} restante{tasksRemaining > 1 ? 's' : ''})
+            </span>
+          )}
           {!nextRank && <span style={{ fontSize: '.76rem', color: taskTier.color, fontWeight: 600 }}>Palier maximum atteint (tâches validées) !</span>}
         </div>
         <div className="rank-bar-bg">
           <div className="rank-bar-fill" style={{ width: `${progressPct}%` }} />
         </div>
         <div className="rank-steps">
-          {RANKS.map(r => (
-            <span key={`${r.roleSlug || r.label}-${r.min}`} className={stats.done >= r.min ? 'current' : ''}>{r.icon}</span>
+          {RANKS.map((r, i) => (
+            <span
+              key={`${r.roleSlug || r.label}-${r.min}`}
+              className={taskTierIndex >= 0 && i <= taskTierIndex ? 'current' : ''}
+              title={r.label}
+            >
+              {r.icon}
+            </span>
           ))}
         </div>
       </div>
