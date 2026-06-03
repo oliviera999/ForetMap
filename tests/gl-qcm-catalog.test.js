@@ -112,7 +112,8 @@ test('POST /api/gl/qcm/questions/:code/answer valide une réponse', async () => 
     .set('Authorization', `Bearer ${playerToken}`)
     .expect(200);
   const row = await queryOne(
-    "SELECT reponse_correcte, choix_a, choix_b, choix_c, choix_d, choix_e FROM gl_qcm_questions WHERE question_code = 'QCM0001'"
+    `SELECT reponse_correcte, choix_a, choix_b, choix_c, choix_d, choix_e, feedback_correct
+       FROM gl_qcm_questions WHERE question_code = 'QCM0001'`
   );
   const letter = String(row.reponse_correcte).toLowerCase();
   const correctText = row[`choix_${letter}`];
@@ -125,6 +126,10 @@ test('POST /api/gl/qcm/questions/:code/answer valide une réponse', async () => 
     .send({ presentationToken: present.body.presentationToken, choiceId: correctId })
     .expect(200);
   assert.strictEqual(ok.body.correct, true);
+  assert.ok(String(ok.body.feedback || '').trim().length > 0);
+  if (row.feedback_correct) {
+    assert.strictEqual(ok.body.feedback, String(row.feedback_correct).trim());
+  }
 });
 
 test('GET /api/gl/qcm/draw retourne une question du biome', async () => {

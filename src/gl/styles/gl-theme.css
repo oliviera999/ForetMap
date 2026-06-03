@@ -4438,9 +4438,32 @@ body.gl-map-fullscreen-active .gl-qcm-popover-overlay {
   margin: 0.75rem 0 1rem;
 }
 
+.gl-qcm-feedback-block {
+  margin: 0.75rem 0 1rem;
+  padding: 0.85rem 1rem;
+  border-radius: 10px;
+  border: 1px solid var(--gl-color-border, #e2e8f0);
+  max-height: min(40vh, 280px);
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.gl-qcm-feedback-block--ok {
+  background: color-mix(in srgb, #15803d 8%, #fff 92%);
+  border-color: color-mix(in srgb, #15803d 35%, #e2e8f0 65%);
+}
+
+.gl-qcm-feedback-block--ko {
+  background: color-mix(in srgb, #b91c1c 8%, #fff 92%);
+  border-color: color-mix(in srgb, #b91c1c 30%, #e2e8f0 70%);
+}
+
 .gl-qcm-feedback {
   font-weight: 600;
-  margin: 0.75rem 0;
+  margin: 0;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  word-break: break-word;
 }
 
 .gl-qcm-feedback--ok {

@@ -17,9 +17,11 @@ describe('GLQcmPopover', () => {
 
   test('affiche la question ancrée et valide une réponse', async () => {
     const user = userEvent.setup();
-    vi.mocked(apiGL).mockResolvedValue({ correct: true, feedback: 'Bonne réponse !', scoreDelta: 1 });
+    const onSubmitResult = vi.fn();
+    const feedbackText = 'Exact ! Les grandes oreilles du fennec dissipent la chaleur.';
+    vi.mocked(apiGL).mockResolvedValue({ correct: true, feedback: feedbackText, scoreDelta: 1 });
 
-    render(
+    const { rerender } = render(
       <GLQcmPopover
         open
         marker={{ id: 5, label: 'Repère quiz', x_pct: 40, y_pct: 55 }}
@@ -36,7 +38,7 @@ describe('GLQcmPopover', () => {
           glossaryTerms: [],
         }}
         onClose={vi.fn()}
-        onSubmitResult={vi.fn()}
+        onSubmitResult={onSubmitResult}
       />
     );
 
@@ -53,7 +55,29 @@ describe('GLQcmPopover', () => {
         'POST',
         expect.objectContaining({ questionCode: 'QCM0001', teamId: 7 }),
       );
+      expect(onSubmitResult).toHaveBeenCalled();
     });
+
+    rerender(
+      <GLQcmPopover
+        open
+        marker={{ id: 5, label: 'Repère quiz' }}
+        gameId={42}
+        teamId={7}
+        questionCode="QCM0001"
+        presentation={{
+          presentationToken: 'token-test',
+          question: 'Le fennec vit où ?',
+          choices: [{ id: 0, text: 'Désert' }, { id: 1, text: 'Banquise' }],
+        }}
+        result={{ correct: true, feedback: feedbackText, scoreDelta: 1 }}
+        onClose={vi.fn()}
+        onSubmitResult={onSubmitResult}
+      />,
+    );
+
+    expect(screen.getByRole('status')).toHaveTextContent(feedbackText);
+    expect(screen.queryByLabelText('Désert')).not.toBeInTheDocument();
   });
 
   test('applique themeStyle sur le portail (hors .gl-app)', () => {

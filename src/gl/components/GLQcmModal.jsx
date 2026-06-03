@@ -1,6 +1,8 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { apiGL } from '../services/apiGL.js';
 import { GLButton } from './ui/GLButton.jsx';
+import { GLQcmFeedbackBlock } from './GLQcmFeedbackBlock.jsx';
+import { hasQcmAnswerFeedback } from '../utils/glQcmDisplay.js';
 
 export function GLQcmModal({
   open,
@@ -82,6 +84,8 @@ export function GLQcmModal({
 
   if (!open) return null;
 
+  const showAnswer = hasQcmAnswerFeedback(result);
+
   return (
     <div className="gl-qcm-modal" role="dialog" aria-label="Quiz">
       <div className="gl-qcm-modal__body">
@@ -148,13 +152,13 @@ export function GLQcmModal({
             </footer>
           </>
         ) : null}
-        {result ? (
+        {showAnswer ? (
           <>
             <div className="gl-qcm-popover__scroll">
-              <p className={result.correct ? 'gl-qcm-feedback gl-qcm-feedback--ok' : 'gl-qcm-feedback gl-qcm-feedback--ko'}>
-                {result.feedback}
-                {Number(result.scoreDelta) > 0 ? ` (+${result.scoreDelta} point)` : ''}
-              </p>
+              {questionCode ? (
+                <p className="gl-hint">Question {questionCode}</p>
+              ) : null}
+              <GLQcmFeedbackBlock result={result} scoreDelta={result?.scoreDelta} />
               {Array.isArray(result.glossaryTerms) && result.glossaryTerms.length > 0 ? (
                 <div className="gl-qcm-modal__glossary">
                   <strong>Termes liés :</strong>

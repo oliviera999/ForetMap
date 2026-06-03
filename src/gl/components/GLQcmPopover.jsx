@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { apiGL } from '../services/apiGL.js';
 import { GLButton } from './ui/GLButton.jsx';
+import { GLQcmFeedbackBlock } from './GLQcmFeedbackBlock.jsx';
+import { hasQcmAnswerFeedback } from '../utils/glQcmDisplay.js';
 
 export function GLQcmPopover({
   open,
@@ -80,6 +82,7 @@ export function GLQcmPopover({
   if (!open || typeof document === 'undefined') return null;
 
   const displayError = externalError || error;
+  const showAnswer = hasQcmAnswerFeedback(result);
 
   return createPortal(
     <div
@@ -159,13 +162,13 @@ export function GLQcmPopover({
               </footer>
             </>
           ) : null}
-          {result ? (
+          {showAnswer ? (
             <>
               <div className="gl-qcm-popover__scroll">
-                <p className={result.correct ? 'gl-qcm-feedback gl-qcm-feedback--ok' : 'gl-qcm-feedback gl-qcm-feedback--ko'}>
-                  {result.feedback}
-                  {Number(result.scoreDelta) > 0 ? ` (+${result.scoreDelta} point)` : ''}
-                </p>
+                {questionCode ? (
+                  <p className="gl-hint">Question {questionCode}</p>
+                ) : null}
+                <GLQcmFeedbackBlock result={result} scoreDelta={result?.scoreDelta} />
                 {Array.isArray(result.glossaryTerms) && result.glossaryTerms.length > 0 ? (
                   <div className="gl-qcm-modal__glossary">
                     <strong>Termes liés :</strong>
