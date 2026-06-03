@@ -92,7 +92,7 @@ export function GLForumView({ canModerate }) {
   }
 
   return (
-    <section className="gl-panel gl-animate-in">
+    <section className="gl-panel fade-in">
       <h2>Forum GL</h2>
       {error ? <p className="gl-error">{error}</p> : null}
       <div className="gl-inline-actions">

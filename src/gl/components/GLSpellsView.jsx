@@ -20,8 +20,8 @@ export function GLSpellsView({
     : [];
 
   return (
-    <article className="gl-panel gl-markdown gl-animate-in">
-      <h2>Sortilèges</h2>
+    <article className="gl-panel gl-spells-panel gl-grimoire gl-markdown fade-in">
+      <h2 className="gl-spells-panel__title">Sortilèges</h2>
       {brandSlots?.card_spells ? (
         <GLBrandPageBanner slot={brandSlots.card_spells} />
       ) : null}

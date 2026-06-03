@@ -15,6 +15,7 @@ import { GLBiotopeView } from './components/GLBiotopeView.jsx';
 import { GLBiocenoseView } from './components/GLBiocenoseView.jsx';
 import { GLGlossaryView } from './components/GLGlossaryView.jsx';
 import { GLGlossaryPopover } from './components/GLGlossaryPopover.jsx';
+import { DialogShell } from '../components/DialogShell.jsx';
 import { GLSpellPopover } from './components/GLSpellPopover.jsx';
 import { GLSpellCastWizard } from './components/GLSpellCastWizard.jsx';
 import { useGLSpellCast } from './hooks/useGLSpellCast.js';
@@ -780,7 +781,8 @@ export function AppGL() {
         </div>
       ) : null}
 
-      <main className="gl-main fade-in">
+      <main className="gl-main">
+        <div className="gl-main-inner fade-in">
         {tab === 'world' && <GLWorldView auth={auth} brandSlots={glBrand?.slots} onNavigateTab={setTab} />}
         {tab === 'rules' && <GLRulesView auth={auth} brandSlots={glBrand?.slots} onNavigateTab={setTab} />}
         {tab === 'spells' && (
@@ -951,6 +953,7 @@ export function AppGL() {
             onClear={notifications.clear}
           />
         ) : null}
+        </div>
       </main>
       {showStaffAdminUi ? (
         <footer className="gl-app-footer" aria-label="Version de l’application">
@@ -979,24 +982,21 @@ export function AppGL() {
         }}
       />
       {showPlayerStats && showsPlayerChrome ? (
-        <div
-          className="gl-stats-modal-overlay"
-          role="dialog"
-          aria-label="Mes statistiques"
-          onClick={(e) => {
-            if (e.target === e.currentTarget) setShowPlayerStats(false);
-          }}
+        <DialogShell
+          open={showPlayerStats}
+          onClose={() => setShowPlayerStats(false)}
+          overlayClassName="fm-modal-overlay gl-stats-modal-overlay"
+          dialogClassName="fm-modal-panel gl-stats-modal-panel animate-pop fm-modal-panel--scroll-body"
+          ariaLabel="Mes statistiques"
         >
-          <div className="gl-stats-modal-panel">
-            <GLStatsView
-              mode="self"
-              auth={auth}
-              vitalityEnabled={!!gameplaySettings.vitalityEnabled}
-              compact
-              onClose={() => setShowPlayerStats(false)}
-            />
-          </div>
-        </div>
+          <GLStatsView
+            mode="self"
+            auth={auth}
+            vitalityEnabled={!!gameplaySettings.vitalityEnabled}
+            compact
+            onClose={() => setShowPlayerStats(false)}
+          />
+        </DialogShell>
       ) : null}
       <GLGlossaryPopover
         open={!!glossaryPopoverCode}

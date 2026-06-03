@@ -53,7 +53,7 @@ export function GLForetmapLinkPanel({ enabled, profile, onReload }) {
   }
 
   return (
-    <GLSurface className="gl-form gl-animate-in">
+    <GLSurface className="gl-form fade-in">
       <h3>Liaison ForetMap</h3>
       {error ? <p className="gl-error">{error}</p> : null}
       {info ? <p className="gl-profile-ok">{info}</p> : null}

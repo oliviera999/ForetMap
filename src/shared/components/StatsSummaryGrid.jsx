@@ -3,6 +3,7 @@ import React from 'react';
 /**
  * Carte de statistique réutilisable (ForetMap + GL).
  * Les classes CSS par défaut ciblent le thème ForetMap ; passer gridClassName/cardClassName pour GL.
+ * Les cartes utilisent l'animation partagée `statPop` (voir src/shared/styles/motion.css).
  */
 export function StatCard({
   icon,

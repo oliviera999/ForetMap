@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useDialogA11y } from '../../hooks/useDialogA11y.js';
+import { usePrefersReducedMotion } from '../../shared/hooks/usePrefersReducedMotion.js';
 import { apiGL } from '../services/apiGL.js';
 import { GLButton } from './ui/GLButton.jsx';
 import {
@@ -46,15 +47,20 @@ export function GLSpellPopover({
   const [error, setError] = useState('');
   const [isClosing, setIsClosing] = useState(false);
   const closeTimerRef = useRef(null);
+  const prefersReducedMotion = usePrefersReducedMotion();
 
   const requestClose = useCallback(() => {
     if (isClosing) return;
+    if (prefersReducedMotion) {
+      onClose?.();
+      return;
+    }
     setIsClosing(true);
     closeTimerRef.current = window.setTimeout(() => {
       setIsClosing(false);
       onClose?.();
     }, CLOSE_MS);
-  }, [isClosing, onClose]);
+  }, [isClosing, onClose, prefersReducedMotion]);
 
   const dialogRef = useDialogA11y(() => {
     requestClose();
@@ -156,7 +162,7 @@ export function GLSpellPopover({
     >
       <div
         ref={dialogRef}
-        className="gl-spell-popover__panel gl-animate-pop"
+        className={`gl-spell-popover__panel gl-grimoire${prefersReducedMotion ? '' : ' animate-pop'}`}
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
@@ -197,8 +203,8 @@ export function GLSpellPopover({
         ) : null}
 
         {spell && !error ? (
-          <div key={activeCode} className="gl-spell-popover__content gl-animate-in">
-            <div className="gl-spell-popover__badges gl-stagger">
+          <div key={activeCode} className="gl-spell-popover__content fade-in">
+            <div className="gl-spell-popover__badges stagger">
               {spell.category_slug ? (
                 <span className="gl-badge gl-spell-popover__badge-cat">
                   {GL_SPELL_CATEGORY_LABELS[spell.category_slug] || spell.category_slug}

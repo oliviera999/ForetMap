@@ -9,6 +9,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ### Modifié
 
+- **GL — sortilèges (thème grimoire)** : onglet Sortilèges, fiche `GLSpellPopover` et assistant `GLSpellCastWizard` en style parchemin (scope `.gl-grimoire`, texture CSS, titres Playfair) ; police Playfair dans `gl.html` ; test Vitest `tests-ui/gl/GLSpellsView.test.jsx`.
 - **Build production** : artefacts `dist/` régénérés (bundle GL feedback QCM).
 - **GL — affichage feedback QCM** : bloc dédié après validation (carte, popover repère, aperçu admin) ; textes longs lisibles (`pre-wrap`, défilement) ; masquage des choix une fois la réponse envoyée. Composants `GLQcmFeedbackBlock`, `glQcmDisplay.js` ; tests `tests-ui/gl/glQcmDisplay.test.js`, `tests-ui/gl/GLQcmPopover.test.jsx`, `tests/gl-qcm-catalog.test.js`.
 - **GL — journal de partie (lecture joueur)** : libellés entièrement en français, phrases naturelles par type d'évènement ; plus de JSON ni de codes techniques dans l'onglet Journal.

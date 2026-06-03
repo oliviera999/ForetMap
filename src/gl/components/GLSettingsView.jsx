@@ -169,7 +169,7 @@ export function GLSettingsView() {
   }
 
   return (
-    <GLSurface className="gl-animate-in">
+    <GLSurface className="fade-in">
       <h2>Réglages plateforme</h2>
       {error ? <p className="gl-error">{error}</p> : null}
       {successMessage ? <div className="gl-success-banner" role="status">{successMessage}</div> : null}

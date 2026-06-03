@@ -119,7 +119,7 @@ export function GLJournalView({
       </div>
 
       {canEmit && narrationEnabled ? (
-        <form className="gl-journal-compose gl-animate-in" onSubmit={sendNarration}>
+        <form className="gl-journal-compose fade-in" onSubmit={sendNarration}>
           <h3>Ajouter une narration</h3>
           {composeError ? <p className="gl-error">{composeError}</p> : null}
           <GLField label="Équipe concernée (optionnel)">

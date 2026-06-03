@@ -101,7 +101,7 @@ export function GLSpellsImportPanel() {
   }
 
   return (
-    <section className="gl-admin-section gl-animate-in">
+    <section className="gl-admin-section fade-in">
       <h3>Import sortilèges (XLSX)</h3>
       <p className="gl-hint">
         Catalogue des sorts (onglet joueur Sortilèges). Fichier attendu : feuilles

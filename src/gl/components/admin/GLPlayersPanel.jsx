@@ -187,7 +187,7 @@ export function GLPlayersPanel({
   }
 
   return (
-    <section className="gl-admin-section gl-animate-in">
+    <section className="gl-admin-section fade-in">
       <h3>Joueurs</h3>
       {error ? <p className="gl-error">{error}</p> : null}
       {info ? <p className="gl-hint">{info}</p> : null}
@@ -314,7 +314,7 @@ export function GLPlayersPanel({
 
       {resetPlayer ? (
         <div className="gl-action-modal" role="dialog" aria-label="Réinitialiser mot de passe joueur">
-          <div className="gl-action-modal-body gl-animate-pop">
+          <div className="gl-action-modal-body animate-pop">
             <h4>Réinitialiser {resetPlayer.pseudo}</h4>
             <GLField label="Nouveau mot de passe">
               <GLInput

@@ -178,7 +178,7 @@ export function GLPlayerJournalView({ gameState }) {
   }
 
   return (
-    <section className="gl-panel gl-player-journal gl-animate-in">
+    <section className="gl-panel gl-player-journal fade-in">
       <header className="gl-player-journal__header">
         <div>
           <h2>Mon journal</h2>

@@ -613,7 +613,7 @@ export function GLGameMasterConsole({
   });
 
   return (
-    <section className="gl-panel gl-mj-console gl-animate-in">
+    <section className="gl-panel gl-mj-console fade-in">
       <h2>Console MJ</h2>
 
       {actionError ? <p className="gl-error-banner gl-mj-feedback">{actionError}</p> : null}

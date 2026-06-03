@@ -247,7 +247,7 @@ export function GLSpellsEditorPanel() {
   }
 
   return (
-    <section className="gl-admin-section gl-animate-in">
+    <section className="gl-admin-section fade-in">
       <h3>Saisie manuelle — sortilèges</h3>
       <p className="gl-hint">
         Fiches de sorts par catégorie. Liez les sorts aux chapitres dans Contenus → Chapitres.

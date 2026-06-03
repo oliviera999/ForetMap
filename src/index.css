@@ -1,3 +1,6 @@
+    @import './shared/styles/motion.css';
+    @import './shared/styles/modal-shell.css';
+
     @font-face {
       font-family: 'ForetMapColorEmoji';
       font-style: normal;
@@ -24,11 +27,6 @@
       --alert:    #e76f51;
       --shadow:   0 4px 24px rgba(26,71,49,.13);
       --radius:   14px;
-      --safe-bottom: env(safe-area-inset-bottom, 0px);
-      --safe-top:    env(safe-area-inset-top, 0px);
-      /* Spring easing */
-      --spring: cubic-bezier(.34,1.56,.64,1);
-      --ease-out: cubic-bezier(.22,1,.36,1);
       --bottom-nav-height: 72px;
       --bottom-nav-height-desktop: 62px;
       /* Barre d’onglets n3boss (parchemin) : une seule hauteur sur tous les écrans et tous les onglets (carte, tâches, etc.). */
@@ -42,14 +40,6 @@
       --outline-soft: rgba(45, 106, 79, 0.15);
       --shadow-soft: 0 10px 26px rgba(26, 71, 49, 0.08);
       --shadow-strong: 0 18px 42px rgba(20, 54, 37, 0.16);
-      --motion-fast: .16s;
-      --motion-base: .24s;
-      --motion-slow: .34s;
-    }
-
-    /* Libellés mélangeant texte latin et emoji (ex. profils RBAC). */
-    .foretmap-emoji-text-mixed {
-      font-family:var(--font-sans-with-emoji);
     }
 
     html {
@@ -1236,53 +1226,8 @@
     .status-done        { background:#dbeafe; color:#1e40af; }
     .status-validated   { background:#f1f5f9; color:#64748b; }
 
-    /* ── MODALS — centrées dans la fenêtre (viewport) ── */
-    /* Fond fixe (pas d’animation transparent→opaque) : évite calque invisible qui bloque les clics
-       (Safari / mouvement réduit / bugs backdrop-filter). */
-    .modal-overlay {
-      position:fixed; inset:0; z-index:200;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      padding: max(16px, var(--safe-top)) 16px max(16px, var(--safe-bottom));
-      background:rgba(12, 30, 20, .52);
-      backdrop-filter:blur(4px);
-      overflow-y:auto;
-      overflow-x:hidden;
-      -webkit-overflow-scrolling:touch;
-      overscroll-behavior:contain;
-    }
-
-    .modal {
-      position:relative;
-      z-index:1;
-      flex:0 1 auto;
-      min-width:0;
-      min-height:0;
-      box-sizing:border-box;
-      background:var(--surface-1);
-      border-radius:20px;
-      padding:20px 20px calc(20px + var(--safe-bottom));
-      width:min(100%, calc(100vw - 32px));
-      max-width:min(720px, calc(100vw - 32px));
-      max-height:min(90vh, calc(100vh - var(--safe-top) - var(--safe-bottom) - 32px));
-      max-height:min(90dvh, calc(100dvh - var(--safe-top) - var(--safe-bottom) - 32px));
-      overflow-y:auto;
-      -webkit-overflow-scrolling:touch;
-      overscroll-behavior:contain;
-      border:1px solid rgba(255,255,255,.46);
-      box-shadow:var(--shadow-strong);
-      animation:popIn .28s var(--spring) forwards;
-    }
-
-    @media (prefers-reduced-motion: reduce) {
-      .modal, .log-modal, .pin-card {
-        animation: none !important;
-        opacity: 1 !important;
-        transform: none !important;
-      }
-    }
-
+    /* ── MODALS — shell partagé dans src/shared/styles/modal-shell.css ── */
+    .modal,
     .log-modal {
       position:relative;
       z-index:1;
@@ -1290,19 +1235,26 @@
       min-width:0;
       min-height:0;
       box-sizing:border-box;
-      background:var(--surface-1);
+      background:var(--fm-modal-panel-bg, var(--surface-1));
       border-radius:20px;
       padding:20px 20px calc(20px + var(--safe-bottom));
       width:min(100%, calc(100vw - 32px));
-      max-width:min(920px, calc(100vw - 32px));
       max-height:min(90vh, calc(100vh - var(--safe-top) - var(--safe-bottom) - 32px));
       max-height:min(90dvh, calc(100dvh - var(--safe-top) - var(--safe-bottom) - 32px));
       overflow-y:auto;
       -webkit-overflow-scrolling:touch;
       overscroll-behavior:contain;
-      border:1px solid rgba(255,255,255,.46);
-      box-shadow:var(--shadow-strong);
-      animation:popIn .28s var(--spring) forwards;
+      border:1px solid var(--fm-modal-panel-border, rgba(255,255,255,.46));
+      box-shadow:var(--fm-modal-panel-shadow, var(--shadow-strong));
+      animation:popIn var(--fm-modal-pop-duration, .28s) var(--spring) forwards;
+    }
+
+    .modal {
+      max-width:min(720px, calc(100vw - 32px));
+    }
+
+    .log-modal {
+      max-width:min(920px, calc(100vw - 32px));
     }
 
     /*
@@ -1548,7 +1500,6 @@
       text-align:center;
       animation:popIn .3s var(--spring) forwards;
     }
-    @keyframes popIn { from{transform:scale3d(.88,.88,1) translate3d(0,12px,0);opacity:0} to{transform:scale3d(1,1,1) translate3d(0,0,0);opacity:1} }
     .pin-card h3 { font-size:1.2rem; margin-bottom:8px; }
     .pin-card p { font-size:.85rem; color:#aaa; margin-bottom:20px; }
     .pin-input {
@@ -1559,7 +1510,6 @@
     }
     .pin-input:focus { border-color:var(--sage); box-shadow:0 0 0 3px rgba(82,183,136,.15); }
     .pin-error { color:var(--alert); font-size:.85rem; margin-bottom:10px; animation:shake .3s ease; }
-    @keyframes shake { 0%,100%{transform:translate3d(0,0,0)} 25%{transform:translate3d(-6px,0,0)} 75%{transform:translate3d(6px,0,0)} }
 
     /* ── Promotion profil auto (progression tâches) ── */
     .profile-promo-overlay {
@@ -1963,19 +1913,6 @@
     .empty-icon { font-size:2.5rem; margin-bottom:10px; opacity:.72; }
     .empty p { font-size:.9rem; color:#6b7280; line-height:1.5; }
 
-    /* ── ANIMATIONS ── */
-    .fade-in { animation:fadeIn .22s var(--ease-out) both; }
-    @keyframes fadeIn { from{opacity:0;transform:translate3d(0,8px,0)} to{opacity:1;transform:translate3d(0,0,0)} }
-
-    /* Staggered children */
-    .stagger > * { animation:fadeIn .22s var(--ease-out) both; }
-    .stagger > *:nth-child(1) { animation-delay:.04s }
-    .stagger > *:nth-child(2) { animation-delay:.08s }
-    .stagger > *:nth-child(3) { animation-delay:.12s }
-    .stagger > *:nth-child(4) { animation-delay:.16s }
-    .stagger > *:nth-child(5) { animation-delay:.20s }
-    .stagger > *:nth-child(n+6) { animation-delay:.22s }
-
     /* ── TOAST ── */
     .toast {
       position:fixed;
@@ -2036,11 +1973,6 @@
       .section-sub { font-size:.82rem; }
       .app-version-badge { font-size:.64rem; }
     }
-    @keyframes toastIn {
-      from { opacity:0; transform:translate3d(-50%, 16px, 0) scale3d(.92,.92,1); }
-      to   { opacity:1; transform:translate3d(-50%, 0, 0) scale3d(1,1,1); }
-    }
-
     .divider { height:1px; background:var(--mint); margin:20px 0; }
 
     /* ── UPLOAD / LOG ── */
@@ -2313,7 +2245,6 @@
     .stat-card:nth-child(2) { animation-delay:.1s }
     .stat-card:nth-child(3) { animation-delay:.15s }
     .stat-card:nth-child(4) { animation-delay:.2s }
-    @keyframes statPop { from{opacity:0;transform:scale3d(.88,.88,1) translate3d(0,10px,0)} to{opacity:1;transform:scale3d(1,1,1) translate3d(0,0,0)} }
     .stat-card.highlight { border-color:var(--sage); background:#f7fef9; }
     .stat-number { font-family:'Playfair Display',serif; font-size:clamp(1.85rem, 1.45rem + 1vw, 2.2rem); font-weight:700; color:var(--forest); line-height:1; }
     .stat-label { font-size:.7rem; color:#aaa; margin-top:4px; text-transform:uppercase; letter-spacing:.07em; }
@@ -4773,20 +4704,6 @@
   display:grid;
   gap:10px;
 }
-@media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-    scroll-behavior: auto !important;
-  }
-  .btn:active,
-  .task-card:active,
-  .top-tab:active,
-  .visit-map-ctrl:active {
-    transform:none !important;
-  }
-}
 .forum-form {
   display:grid;
   gap:8px;
@@ -5206,7 +5123,7 @@
   transform: translateY(-1px);
 }
 .fm-help-btn.is-pulsing {
-  animation: fmHelpPulse 2s ease-in-out infinite;
+  animation: attentionPulse 2s ease-in-out infinite;
 }
 
 .fm-help-panel {
@@ -5239,12 +5156,6 @@
   display: flex;
   justify-content: flex-end;
   margin-bottom: 8px;
-}
-
-@keyframes fmHelpPulse {
-  0% { box-shadow: 0 0 0 0 rgba(82,183,136,.45); }
-  70% { box-shadow: 0 0 0 12px rgba(82,183,136,0); }
-  100% { box-shadow: 0 0 0 0 rgba(82,183,136,0); }
 }
 
 @media (max-width: 720px) {

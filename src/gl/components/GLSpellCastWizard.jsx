@@ -215,7 +215,7 @@ export function GLSpellCastWizard({
     >
       <div
         ref={dialogRef}
-        className="gl-spell-cast-panel gl-animate-pop"
+        className="gl-spell-cast-panel gl-grimoire animate-pop"
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
