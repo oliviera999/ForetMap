@@ -45,7 +45,7 @@ Les termes sont filtrés par biome du chapitre ; les fiches espèces affichent d
 
 ## QCM biomes
 
-Fichier de référence : `qcm-biomes-gnomes-et-licornes-consolide.xlsx` (feuilles `categories`, `questions`).
+Fichier de référence : `qcm-biomes-gnomes-et-licornes-consolide.xlsx` (feuilles `categories`, `questions`). La feuille `questions` inclut les retours pédagogiques `feedback_correct`, `feedback_a`…`feedback_e` (re-import par `id` / `question_code` pour compléter le catalogue sans recréer les lignes).
 
 ```bash
 npm run gl:import:qcm          # simulation (dry-run)
@@ -54,4 +54,4 @@ npm run gl:import:qcm -- --apply
 
 Depuis l’admin GL : **Contenus → QCM** (boutons **Modèle XLSX** et **Exporter le catalogue**, ou API `GET /api/gl/admin/qcm/import/template` et `GET /api/gl/admin/qcm/export` avec filtres optionnels `biomeSlug`, `categorieSlug`, `statut`).
 
-Les questions sont liées au glossaire via `mots_cles` / `tags` (importer le glossaire avant ou re-importer le QCM après). Les réponses sont mélangées à chaque présentation (`GET /api/gl/qcm/questions/:code/present`).
+Les questions sont liées au glossaire via `mots_cles` / `tags` (importer le glossaire avant ou re-importer le QCM après). Les réponses sont mélangées à chaque présentation (`GET /api/gl/qcm/questions/:code/present`) ; le message affiché après validation provient des colonnes feedback du fichier consolidé.

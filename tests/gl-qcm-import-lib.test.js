@@ -54,7 +54,28 @@ test('validateQuestionPayload signale biome inconnu', () => {
   assert.ok(errors.some((e) => e.field === 'biome_slug'));
 });
 
-test('buildQuestionUpsertParams aligne 31 paramètres', () => {
+test('buildQuestionPayload lit les colonnes feedback', () => {
+  const payload = buildQuestionPayload({
+    id: 1,
+    biome_slug: 'sahara',
+    categorie_slug: 'faune',
+    numero_dans_categorie: 1,
+    question: 'Test ?',
+    choix_a: 'A',
+    choix_b: 'B',
+    choix_c: 'C',
+    choix_d: 'D',
+    choix_e: 'E',
+    reponse_correcte: 'A',
+    feedback_correct: 'Bravo !',
+    feedback_b: 'Non, essayez encore.',
+  });
+  assert.strictEqual(payload.feedback_correct, 'Bravo !');
+  assert.strictEqual(payload.feedback_b, 'Non, essayez encore.');
+  assert.strictEqual(payload.feedback_c, null);
+});
+
+test('buildQuestionUpsertParams aligne 37 paramètres', () => {
   const payload = buildQuestionPayload({
     id: 1,
     biome_slug: 'sahara',
@@ -69,7 +90,7 @@ test('buildQuestionUpsertParams aligne 31 paramètres', () => {
     reponse_correcte: 'A',
   });
   const params = buildQuestionUpsertParams(payload);
-  assert.strictEqual(params.length, 31);
+  assert.strictEqual(params.length, 37);
   assert.strictEqual(params[0], 'QCM0001');
 });
 
