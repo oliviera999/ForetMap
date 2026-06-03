@@ -61,7 +61,12 @@ test('cycle complet tâche: création prof -> prise élève -> soumission -> val
   const teacherPendingCard = page.locator('.task-card', { hasText: taskTitle }).first();
   await expect(teacherPendingCard).toBeVisible({ timeout: 45_000 });
   await dismissProfilePromotionModalIfPresent(page);
+  const validateResp = page.waitForResponse(
+    (r) => r.url().includes('/validate') && r.request().method() === 'POST' && r.status() === 200,
+    { timeout: 45_000 },
+  );
   await teacherPendingCard.getByRole('button', { name: '✔️ Validée' }).click({ force: true });
+  await validateResp;
 
   await expect(page.locator('.task-card', { hasText: taskTitle }).first()).toBeVisible();
   await expect(page.getByText('C’est noté : statut « Validée ».')).toBeVisible();

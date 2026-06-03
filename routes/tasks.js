@@ -3,7 +3,12 @@ const jwt = require('jsonwebtoken');
 const XLSX = require('xlsx');
 const { v4: uuidv4 } = require('uuid');
 const { queryAll, queryOne, execute, withTransaction } = require('../database');
-const { requirePermission, JWT_SECRET, hydrateAuthFromTokenClaims } = require('../middleware/requireTeacher');
+const {
+  requirePermission,
+  hasPermission,
+  JWT_SECRET,
+  hydrateAuthFromTokenClaims,
+} = require('../middleware/requireTeacher');
 const { saveBase64ToDisk, getAbsolutePath, deleteFile, writeBufferToDisk } = require('../lib/uploads');
 const { logRouteError } = require('../lib/routeLog');
 const logger = require('../lib/logger');
@@ -492,8 +497,38 @@ function canReadAllAssignments(auth) {
 }
 
 function canManageTasks(auth) {
+  return hasPermission(auth, 'tasks.manage', true);
+}
+
+function canValidateTasks(auth) {
+  return hasPermission(auth, 'tasks.validate', true);
+}
+
+/**
+ * Contrôle changement de statut tâche (PUT ou logique partagée avec POST validate).
+ * @returns {{ ok: true } | { ok: false, status: number, error: string }}
+ */
+function assertCanTeacherSetTaskStatus(auth, targetStatus) {
+  const status = normalizeTaskStatusForRead(targetStatus);
+  if (!status) {
+    return { ok: false, status: 400, error: 'Statut invalide' };
+  }
+  if (status === 'validated') {
+    if (canValidateTasks(auth)) return { ok: true };
+    const perms = Array.isArray(auth?.permissions) ? auth.permissions : [];
+    const elev = Array.isArray(auth?.elevatedPermissions) ? auth.elevatedPermissions : [];
+    if (elev.includes('tasks.validate') && !perms.includes('tasks.validate')) {
+      return { ok: false, status: 403, error: 'Élévation PIN requise' };
+    }
+    return { ok: false, status: 403, error: 'Permission insuffisante' };
+  }
+  if (canManageTasks(auth)) return { ok: true };
   const perms = Array.isArray(auth?.permissions) ? auth.permissions : [];
-  return perms.includes('tasks.manage');
+  const elev = Array.isArray(auth?.elevatedPermissions) ? auth.elevatedPermissions : [];
+  if (elev.includes('tasks.manage') && !perms.includes('tasks.manage')) {
+    return { ok: false, status: 403, error: 'Élévation PIN requise' };
+  }
+  return { ok: false, status: 403, error: 'Permission insuffisante' };
 }
 
 /** Actions « pour le compte d’un n3beur » (assign / done / unassign) : aligné sur la lecture des assignations (GET liste). */
@@ -595,15 +630,51 @@ async function getTaskMarkerIds(taskId) {
 /** Récurrences pour lesquelles on conserve un snapshot zones/repères à la validation (job récurrence). */
 const RECURRENCE_WITH_TEMPLATE_LOCS = new Set(['weekly', 'biweekly', 'monthly']);
 
+let recurrenceTemplateColumnsReady = null;
+
+async function hasRecurrenceTemplateColumns() {
+  if (recurrenceTemplateColumnsReady !== null) return recurrenceTemplateColumnsReady;
+  try {
+    const row = await queryOne(
+      `SELECT COUNT(*) AS c
+         FROM information_schema.COLUMNS
+        WHERE TABLE_SCHEMA = DATABASE()
+          AND TABLE_NAME = 'tasks'
+          AND COLUMN_NAME = 'recurrence_template_zone_ids'`
+    );
+    recurrenceTemplateColumnsReady = Number(row?.c) > 0;
+  } catch (err) {
+    logger.warn({ err }, 'Vérification colonnes recurrence_template_* en échec');
+    recurrenceTemplateColumnsReady = false;
+  }
+  return recurrenceTemplateColumnsReady;
+}
+
 async function persistRecurringTemplateLocations(taskId, recurrenceRaw, zoneIds, markerIds) {
   const r = String(recurrenceRaw || '').trim().toLowerCase();
   if (!r || !RECURRENCE_WITH_TEMPLATE_LOCS.has(r)) return;
+  if (!(await hasRecurrenceTemplateColumns())) {
+    logger.warn(
+      { taskId, recurrence: r },
+      'Colonnes recurrence_template_* absentes — snapshot récurrence ignoré (migration 051 ?)'
+    );
+    return;
+  }
   const z = Array.isArray(zoneIds) ? zoneIds : [];
   const m = Array.isArray(markerIds) ? markerIds : [];
-  await execute(
-    'UPDATE tasks SET recurrence_template_zone_ids = ?, recurrence_template_marker_ids = ? WHERE id = ?',
-    [JSON.stringify(z), JSON.stringify(m), taskId]
-  );
+  try {
+    await execute(
+      'UPDATE tasks SET recurrence_template_zone_ids = ?, recurrence_template_marker_ids = ? WHERE id = ?',
+      [JSON.stringify(z), JSON.stringify(m), taskId]
+    );
+  } catch (err) {
+    if (err && (err.errno === 1054 || err.code === 'ER_BAD_FIELD_ERROR')) {
+      recurrenceTemplateColumnsReady = false;
+      logger.warn({ err, taskId }, 'Snapshot récurrence ignoré — colonnes manquantes');
+      return;
+    }
+    throw err;
+  }
 }
 
 async function getTaskTutorialIds(taskId) {
@@ -1959,7 +2030,9 @@ router.put('/:id', async (req, res) => {
       ? String(task.project_id).trim()
       : null;
     const auth = await parseOptionalAuth(req);
-    const isTeacherAction = canManageTasks(auth);
+    const isTeacherManageAction = canManageTasks(auth);
+    const isTeacherValidateAction = canValidateTasks(auth);
+    const isTeacherPut = isTeacherManageAction || isTeacherValidateAction;
     const isStudentSession = auth?.userType === 'student' && !!auth?.userId;
     const proposerStudentId = await getTaskProposerStudentId(task.id);
     const isProposerAction = isStudentSession
@@ -1967,8 +2040,23 @@ router.put('/:id', async (req, res) => {
       && !!proposerStudentId
       && String(proposerStudentId) === String(auth.userId);
 
-    if (!isTeacherAction && !isProposerAction) {
+    if (!isTeacherPut && !isProposerAction) {
       return res.status(403).json({ error: 'Accès refusé' });
+    }
+
+    if (isTeacherValidateAction && !isTeacherManageAction) {
+      const bodyKeys = Object.keys(req.body || {}).filter(
+        (k) => Object.prototype.hasOwnProperty.call(req.body, k)
+      );
+      const disallowed = bodyKeys.filter((k) => k !== 'status');
+      if (disallowed.length) {
+        return res.status(403).json({
+          error: 'Ce profil ne peut modifier que la validation des tâches (bouton Validée ou POST /validate).',
+        });
+      }
+      if (!Object.prototype.hasOwnProperty.call(req.body || {}, 'status')) {
+        return res.status(403).json({ error: 'Accès refusé' });
+      }
     }
 
     if (isProposerAction) {
@@ -2029,17 +2117,17 @@ router.put('/:id', async (req, res) => {
 
     const loc = await validateTaskLocations(nextZoneIds, nextMarkerIds, explicitMap);
     if (loc.error) return res.status(400).json({ error: loc.error });
-    const nextProjectId = isTeacherAction && Object.prototype.hasOwnProperty.call(req.body, 'project_id')
+    const nextProjectId = isTeacherManageAction && Object.prototype.hasOwnProperty.call(req.body, 'project_id')
       ? normalizeOptionalId(project_id)
       : task.project_id || null;
     const projectValidation = await validateTaskProject(nextProjectId, loc.mapId);
     if (projectValidation.error) return res.status(400).json({ error: projectValidation.error });
-    const nextGroupId = isTeacherAction && Object.prototype.hasOwnProperty.call(req.body, 'group_id')
+    const nextGroupId = isTeacherManageAction && Object.prototype.hasOwnProperty.call(req.body, 'group_id')
       ? normalizeOptionalId(group_id)
       : normalizeOptionalId(task.group_id);
 
     let nextTutorialIds;
-    if (isTeacherAction && Object.prototype.hasOwnProperty.call(req.body, 'tutorial_ids')) {
+    if (isTeacherManageAction && Object.prototype.hasOwnProperty.call(req.body, 'tutorial_ids')) {
       nextTutorialIds = normalizeTutorialIdArray(tutorial_ids);
     } else {
       nextTutorialIds = await getTaskTutorialIds(task.id);
@@ -2048,7 +2136,7 @@ router.put('/:id', async (req, res) => {
     if (tutorialValidation.error) return res.status(400).json({ error: tutorialValidation.error });
 
     let nextReferentIds;
-    if (isTeacherAction && Object.prototype.hasOwnProperty.call(req.body, 'referent_user_ids')) {
+    if (isTeacherManageAction && Object.prototype.hasOwnProperty.call(req.body, 'referent_user_ids')) {
       nextReferentIds = normalizeIdArray(referent_user_ids);
     } else {
       const refRows = await queryAll('SELECT user_id FROM task_referents WHERE task_id = ? ORDER BY user_id', [task.id]);
@@ -2058,11 +2146,19 @@ router.put('/:id', async (req, res) => {
     if (referentValidation.error) return res.status(400).json({ error: referentValidation.error });
 
     const reqStudents = required_students != null ? sanitizeRequiredStudents(required_students) : task.required_students;
-    let nextStatus = isTeacherAction && Object.prototype.hasOwnProperty.call(req.body, 'status')
+    const teacherSetsStatus = (isTeacherManageAction || isTeacherValidateAction)
+      && Object.prototype.hasOwnProperty.call(req.body, 'status');
+    let nextStatus = teacherSetsStatus
       ? normalizeImportTaskStatus(status)
       : normalizeTaskStatusForRead(task.status);
     if (!nextStatus) return res.status(400).json({ error: 'Statut invalide' });
-    const nextCompletionMode = isTeacherAction && Object.prototype.hasOwnProperty.call(req.body, 'completion_mode')
+    if (teacherSetsStatus) {
+      const statusAuth = assertCanTeacherSetTaskStatus(auth, nextStatus);
+      if (!statusAuth.ok) {
+        return res.status(statusAuth.status).json({ error: statusAuth.error });
+      }
+    }
+    const nextCompletionMode = isTeacherManageAction && Object.prototype.hasOwnProperty.call(req.body, 'completion_mode')
       ? normalizeTaskCompletionMode(completion_mode)
       : (normalizeTaskCompletionMode(task.completion_mode) || 'single_done');
     if (!nextCompletionMode) return res.status(400).json({ error: 'Mode de validation invalide' });
@@ -2140,13 +2236,13 @@ router.put('/:id', async (req, res) => {
         nextDifficultyLevel,
         nextImportanceLevel,
         nextLivingDb,
-        isTeacherAction
+        isTeacherManageAction
           ? (recurrence !== undefined ? recurrence || null : task.recurrence || null)
           : task.recurrence || null,
         task.id,
       ]
     );
-    if (isTeacherAction
+    if (isTeacherManageAction
       && Object.prototype.hasOwnProperty.call(req.body, 'completion_mode')
       && !Object.prototype.hasOwnProperty.call(req.body, 'status')) {
       const recalculated = await recalculateTaskStatus({
