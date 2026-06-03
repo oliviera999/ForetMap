@@ -9,6 +9,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ### Corrigé
 
+- **Stats élève — jauge de progression** : alignement de la barre et des paliers affichés sur la logique serveur (`min_done_tasks`, tie-break `displayOrder`) ; prise en charge des paliers perso. intermédiaires (ex. expert) ; messages distincts profil en avance / en retard sur l’objectif tâches. Utilitaire `src/utils/studentProgressionLadder.js`, tests `tests/student-progression-ladder.test.js` ; tri stable de `progression.steps` dans `getStudentProgressionConfig`.
 - **RBAC / progression n3beur** : la montée automatique vers un palier personnalisé (ex. « expert », seuil 40 tâches) n’est plus bloquée lorsque le `rank` RBAC du palier cible est inférieur à celui d’un profil système attribué manuellement (ex. `eleve_chevronne`, rank 300) ; la promotion suit désormais l’ordre des seuils `min_done_tasks`. Tests `tests/rbac-progression.test.js` ; doc **`docs/API.md`**.
 - **Validation des tâches (prof)** : boutons de statut filtrés selon `tasks.validate` / `tasks.manage` et état d’élévation PIN ; toasts explicites (cadenas, droits manquants). `PUT /api/tasks/:id` aligné sur le RBAC (`validated` → `tasks.validate`, autres statuts → `tasks.manage`). Snapshot récurrence à la validation tolère l’absence des colonnes migration 051 (log + pas de 500). Tests `tests/tasks-validate-rbac.test.js`, `tests/task-action-errors.test.js` ; doc **`docs/API.md`**.
 
