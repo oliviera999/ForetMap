@@ -31,6 +31,11 @@ import {
 } from '../utils/browserStorage.js';
 import { FixedToast } from '../shared/components/FixedToast.jsx';
 import { ImageLightbox } from '../shared/components/ImageLightbox.jsx';
+import {
+  formatTaskActionError,
+  filterTeacherStatusActions,
+  teacherStatusActionDisabled,
+} from '../utils/taskActionErrors.js';
 
 function zonePickDisplayName(z) {
   const line = formatLivingBeingsListLine(
@@ -1499,9 +1504,44 @@ function mapLabelFromMaps(mapId, maps) {
   return map ? map.label : mapId;
 }
 
-function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], tutorials = [], plants = [], activeMapId = 'foret', isTeacher, student, canSelfAssignTasks = true, canEnrollOnTasks, canParticipateContextComments = true, canViewOtherUsersIdentity = true, onRefresh, onForceLogout, isN3Affiliated = false, publicSettings = null, onTaskFormOverlayOpenChange = null, mapLocationFocus = null, onMapLocationFocusChange = null, onOpenPlantCatalogPreview = null }) {
+function TasksView({
+  tasks,
+  taskProjects = [],
+  zones,
+  markers = [],
+  maps = [],
+  tutorials = [],
+  plants = [],
+  activeMapId = 'foret',
+  isTeacher,
+  student,
+  canSelfAssignTasks = true,
+  canEnrollOnTasks,
+  canParticipateContextComments = true,
+  canViewOtherUsersIdentity = true,
+  onRefresh,
+  onForceLogout,
+  isN3Affiliated = false,
+  publicSettings = null,
+  onTaskFormOverlayOpenChange = null,
+  mapLocationFocus = null,
+  onMapLocationFocusChange = null,
+  onOpenPlantCatalogPreview = null,
+  hasPermission = () => false,
+  hasPermissionInRole = () => false,
+}) {
   const canEnrollNewTask = canEnrollOnTasks !== undefined ? canEnrollOnTasks : canSelfAssignTasks;
   const roleTerms = getRoleTerms(isN3Affiliated);
+  const teacherTaskPerms = useMemo(() => ({
+    canManageTasks: hasPermissionInRole('tasks.manage'),
+    canValidateTasks: hasPermissionInRole('tasks.validate'),
+    hasActiveManage: hasPermission('tasks.manage'),
+    hasActiveValidate: hasPermission('tasks.validate'),
+  }), [hasPermission, hasPermissionInRole]);
+  const teacherStatusActions = useMemo(
+    () => filterTeacherStatusActions(TEACHER_STATUS_ACTIONS, teacherTaskPerms),
+    [teacherTaskPerms]
+  );
   const [showForm, setShowForm] = useState(false);
   const [showProjectForm, setShowProjectForm] = useState(false);
   const [editProject, setEditProject] = useState(null);
@@ -1727,7 +1767,7 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
     try { await fn(); await onRefresh(); }
     catch (e) {
       if (e instanceof AccountDeletedError) onForceLogout();
-      else setToast('Oups : ' + e.message);
+      else setToast('Oups : ' + formatTaskActionError(e.message));
     }
     setLoading(l => ({ ...l, [id]: false }));
   };
@@ -2411,6 +2451,8 @@ function TasksView({ tasks, taskProjects = [], zones, markers = [], maps = [], t
     setQuickAssignStudentIds,
     runTeacherQuickAssign,
     teacherMarkCollectiveAssignmentDone,
+    teacherStatusActions,
+    teacherTaskPerms,
     tooltipText,
     openTasksTutorialPreview,
     onForceLogout,
@@ -3402,6 +3444,8 @@ function TaskTileCard({
   setQuickAssignStudentIds,
   runTeacherQuickAssign,
   teacherMarkCollectiveAssignmentDone,
+  teacherStatusActions = TEACHER_STATUS_ACTIONS,
+  teacherTaskPerms = null,
   tooltipText,
   openTasksTutorialPreview,
   onForceLogout,
@@ -3822,18 +3866,25 @@ function TaskTileCard({
               </button>
             </div>
           )}
-          {isTeacher && (
+          {isTeacher && teacherStatusActions.length > 0 && (
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-              {TEACHER_STATUS_ACTIONS.map((opt) => {
+              {teacherStatusActions.map((opt) => {
                 const isCurrent = t.status === opt.value;
                 const isBusy = !!loading[`${t.id}status${opt.value}`];
+                const gate = teacherTaskPerms
+                  ? teacherStatusActionDisabled(opt.value, teacherTaskPerms)
+                  : { disabled: false, title: '' };
+                const disabled = isCurrent || isBusy || gate.disabled;
+                const title = disabled && gate.title
+                  ? gate.title
+                  : (isCurrent ? `Statut actuel: ${opt.label}` : `Passer en ${opt.label.toLowerCase()}`);
                 return (
                   <button
                     key={opt.value}
                     className={`btn btn-sm ${isCurrent ? 'btn-primary' : 'btn-ghost'}`}
-                    disabled={isCurrent || isBusy}
+                    disabled={disabled}
                     onClick={() => setTaskStatus(t, opt.value)}
-                    title={isCurrent ? `Statut actuel: ${opt.label}` : `Passer en ${opt.label.toLowerCase()}`}
+                    title={title}
                   >
                     {isBusy ? '...' : `${opt.icon} ${opt.label}`}
                   </button>

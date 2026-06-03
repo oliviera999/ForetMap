@@ -7,6 +7,10 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé
+
+- **Validation des tâches (prof)** : boutons de statut filtrés selon `tasks.validate` / `tasks.manage` et état d’élévation PIN ; toasts explicites (cadenas, droits manquants). `PUT /api/tasks/:id` aligné sur le RBAC (`validated` → `tasks.validate`, autres statuts → `tasks.manage`). Snapshot récurrence à la validation tolère l’absence des colonnes migration 051 (log + pas de 500). Tests `tests/tasks-validate-rbac.test.js`, `tests/task-action-errors.test.js` ; doc **`docs/API.md`**.
+
 ### Modifié
 
 - **GL / ForetMap — effets visuels index_olution (transposition)** : couche motion enrichie (`kenBurns`, `heroStagger`, `scroll-reveal`, lightbox `fm-lightbox-*`) ; hooks partagés `useScrollReveal`, `useScrollProgress`, `useCountUp`, `useStickyHeaderScrolled` ; `ScrollProgressBar`, `ImageLightbox` ; hub marque `GLBrandHub` (Ken Burns desktop, stagger, reveal cartes, zoom hover) ; barre scroll + reveal sur auth et pages éditoriales ; topbar GL glassmorphism au scroll (sans backdrop tactile) ; compteurs animés sur stats vitalité ; tests `tests/motion-hooks.test.js`.

@@ -905,7 +905,7 @@ Contrat principal :
 | GET | `/api/tasks/:id/image` | non | Fichier image illustrative (fallback) ; en pratique `image_url` pointe vers **`/uploads/tasks/…`** (fichier statique, même origine) |
 | POST | `/api/tasks` | oui | Créer tâche |
 | POST | `/api/tasks/reorder-project` | oui | Réordonner les tâches d’un projet (drag & drop prof/admin) |
-| PUT | `/api/tasks/:id` | oui\* | Modifier tâche |
+| PUT | `/api/tasks/:id` | oui\* | Modifier tâche (changement de `status` : `validated` → `tasks.validate` + élévation si requis ; autres statuts → `tasks.manage` + élévation si requis) |
 | DELETE | `/api/tasks/:id` | oui | Supprimer tâche |
 | POST | `/api/tasks/:id/assign` | non | S’assigner (n3beur) |
 | POST | `/api/tasks/:id/assign-group` | oui (`tasks.assign.group` + élévation) | Affecter en masse les n3beurs d’un groupe à une tâche |
@@ -913,9 +913,9 @@ Contrat principal :
 | POST | `/api/tasks/:id/done` | non | Marquer comme fait (commentaire/image) |
 | GET | `/api/tasks/:id/logs` | non | Logs de la tâche |
 | GET | `/api/tasks/:id/logs/:logId/image` | non | Image d’un log (fichier disque) |
-| POST | `/api/tasks/:id/validate` | oui | Valider la tâche (depuis n’importe quel statut sauf `validated`) |
+| POST | `/api/tasks/:id/validate` | oui (`tasks.validate` + élévation si requis) | Valider la tâche (depuis n’importe quel statut sauf `validated`) |
 
-\* Un n3beur peut aussi modifier **sa propre proposition** (statut `proposed`, préfixe de description `Proposition n3beur:`) ; les champs sensibles (`status`, `project_id`, `tutorial_ids`, `referent_user_ids`, `recurrence`, `completion_mode`) restent réservés aux profils avec `tasks.manage`.
+\* Un n3beur peut aussi modifier **sa propre proposition** (statut `proposed`, préfixe de description `Proposition n3beur:`) ; les champs sensibles (`status`, `project_id`, `tutorial_ids`, `referent_user_ids`, `recurrence`, `completion_mode`) restent réservés aux profils avec `tasks.manage`. Un profil n’ayant que `tasks.validate` (sans `tasks.manage`) peut uniquement passer une tâche en `validated` via `POST /validate` ou `PUT` avec `{ "status": "validated" }` (pas les autres champs ni statuts).
 
 **Photo illustrative (fiche tâche)** — `POST /api/tasks`, `POST /api/tasks/proposals`, `PUT /api/tasks/:id` :
 
