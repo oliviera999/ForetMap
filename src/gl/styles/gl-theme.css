@@ -741,6 +741,23 @@ button.gl-danger {
   text-underline-offset: 2px;
 }
 
+a.gl-glossary-inline-link,
+.gl-markdown a.gl-glossary-inline-link {
+  color: #047c8c;
+  font-weight: 600;
+  text-decoration: underline;
+  text-decoration-style: dotted;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+a.gl-glossary-inline-link:hover,
+.gl-markdown a.gl-glossary-inline-link:hover {
+  text-decoration-style: solid;
+  background: color-mix(in srgb, #047c8c 10%, transparent);
+  border-radius: 2px;
+}
+
 .gl-board-shell {
   position: relative;
   width: 100%;

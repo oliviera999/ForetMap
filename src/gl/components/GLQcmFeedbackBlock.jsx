@@ -1,10 +1,17 @@
 import React from 'react';
 import { getQcmFeedbackText } from '../utils/glQcmDisplay.js';
+import { GLGlossaryInlineText } from './GLGlossaryMarkdown.jsx';
 
 /**
  * Bloc de retour pédagogique après validation d'une réponse QCM.
  */
-export function GLQcmFeedbackBlock({ result, scoreDelta = 0, className = '' }) {
+export function GLQcmFeedbackBlock({
+  result,
+  scoreDelta = 0,
+  className = '',
+  glossaryLinkItems = [],
+  onOpenGlossaryTerm,
+}) {
   const text = getQcmFeedbackText(result);
   if (!text) return null;
 
@@ -18,8 +25,11 @@ export function GLQcmFeedbackBlock({ result, scoreDelta = 0, className = '' }) {
       aria-live="polite"
     >
       <p className={`gl-qcm-feedback ${correct ? 'gl-qcm-feedback--ok' : 'gl-qcm-feedback--ko'}`}>
-        {text}
-        {scoreSuffix}
+        <GLGlossaryInlineText
+          text={`${text}${scoreSuffix}`}
+          glossaryItems={glossaryLinkItems}
+          onOpenGlossaryTerm={onOpenGlossaryTerm}
+        />
       </p>
     </div>
   );

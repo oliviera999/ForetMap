@@ -1,12 +1,14 @@
 import React from 'react';
-import { renderMarkdownToSafeHtml } from '../../utils/markdown.js';
+import { GLGlossaryMarkdown } from './GLGlossaryMarkdown.jsx';
 import { GLSpeciesCatalog } from './GLSpeciesCatalog.jsx';
 
-export function GLBiocenoseView({ gameState, onOpenGlossaryTerm, learningProgress }) {
+export function GLBiocenoseView({
+  gameState,
+  onOpenGlossaryTerm,
+  learningProgress,
+  glossaryLinkItems = [],
+}) {
   const introMarkdown = String(gameState?.game?.biocenose_markdown || '').trim();
-  const introHtml = introMarkdown
-    ? renderMarkdownToSafeHtml(introMarkdown, { allowImages: true })
-    : '';
   const biomes = Array.isArray(gameState?.game?.chapter_biomes)
     ? gameState.game.chapter_biomes
     : [];
@@ -14,8 +16,14 @@ export function GLBiocenoseView({ gameState, onOpenGlossaryTerm, learningProgres
   return (
     <article className="gl-panel gl-markdown fade-in">
       <h2>Biocenose</h2>
-      {introHtml ? (
-        <div className="gl-biocenose-intro" dangerouslySetInnerHTML={{ __html: introHtml }} />
+      {introMarkdown ? (
+        <GLGlossaryMarkdown
+          className="gl-biocenose-intro"
+          markdown={introMarkdown}
+          glossaryItems={glossaryLinkItems}
+          onOpenGlossaryTerm={onOpenGlossaryTerm}
+          allowImages
+        />
       ) : null}
       <GLSpeciesCatalog
         biomes={biomes}

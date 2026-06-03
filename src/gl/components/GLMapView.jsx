@@ -8,6 +8,7 @@ export function GLMapView({
   onPlayerActionRequest,
   onSelectTeam,
   onOpenGlossaryTerm,
+  glossaryLinkItems = [],
   onQcmAnswered,
   canMoveMascot,
   canRequestAction,
@@ -47,6 +48,7 @@ export function GLMapView({
       onPlayerActionRequest={onPlayerActionRequest}
       onSelectTeam={onSelectTeam}
       onOpenGlossaryTerm={onOpenGlossaryTerm}
+      glossaryLinkItems={glossaryLinkItems}
       onQcmAnswered={onQcmAnswered}
       canMoveMascot={canMoveMascot}
       canRequestAction={canRequestAction}

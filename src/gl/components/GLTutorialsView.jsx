@@ -1,13 +1,18 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { apiGL } from '../services/apiGL.js';
-import { renderMarkdownToSafeHtml } from '../../utils/markdown.js';
 import { GLButton } from './ui/GLButton.jsx';
 import { GLField } from './ui/GLField.jsx';
 import { GLInput } from './ui/GLInput.jsx';
 import { GLRichTextEditor } from './ui/GLRichTextEditor.jsx';
 import { GLLearningAcknowledgeButton } from './GLLearningAcknowledgeButton.jsx';
+import { GLGlossaryMarkdown } from './GLGlossaryMarkdown.jsx';
 
-export function GLTutorialsView({ canManage, learningProgress }) {
+export function GLTutorialsView({
+  canManage,
+  learningProgress,
+  glossaryLinkItems = [],
+  onOpenGlossaryTerm,
+}) {
   const [items, setItems] = useState([]);
   const [active, setActive] = useState(null);
   const [error, setError] = useState('');
@@ -98,9 +103,9 @@ export function GLTutorialsView({ canManage, learningProgress }) {
   let html = '';
   if (active?.body_markdown) {
     try {
-      html = renderMarkdownToSafeHtml(active.body_markdown, { allowImages: true });
+      html = active.body_markdown;
     } catch (_) {
-      html = '<p>Aperçu indisponible.</p>';
+      html = '';
     }
   }
 
@@ -212,7 +217,12 @@ export function GLTutorialsView({ canManage, learningProgress }) {
               <GLButton type="button" variant="danger" onClick={() => removeTutorial(active.id)}>Supprimer ce tutoriel</GLButton>
             </div>
           ) : null}
-          <div dangerouslySetInnerHTML={{ __html: html }} />
+          <GLGlossaryMarkdown
+            markdown={html || 'Aperçu indisponible.'}
+            glossaryItems={glossaryLinkItems}
+            onOpenGlossaryTerm={onOpenGlossaryTerm}
+            allowImages
+          />
         </article>
       ) : null}
     </section>

@@ -47,6 +47,7 @@ import { FixedToast } from '../shared/components/FixedToast.jsx';
 import { usePrefersReducedMotion } from './hooks/usePrefersReducedMotion.js';
 import { useAppVersion } from '../hooks/useAppVersion.js';
 import { useGlLearningProgress } from './hooks/useGlLearningProgress.js';
+import { useGlGlossaryLinkIndex } from './hooks/useGlGlossaryLinkIndex.js';
 import {
   isGlStaffAuth,
   canGlStaffImpersonate,
@@ -154,6 +155,8 @@ export function AppGL() {
     if (!Array.isArray(biomes)) return [];
     return biomes.map((b) => b.slug).filter(Boolean);
   }, [gameState?.game?.chapter_biomes]);
+
+  const glossaryLinkItems = useGlGlossaryLinkIndex(token, chapterBiomeSlugs);
 
   useEffect(() => {
     if (tab !== 'kingdom') setKingdomChapterId(null);
@@ -784,8 +787,24 @@ export function AppGL() {
 
       <main className="gl-main">
         <div className="gl-main-inner fade-in">
-        {tab === 'world' && <GLWorldView auth={auth} brandSlots={glBrand?.slots} onNavigateTab={setTab} />}
-        {tab === 'rules' && <GLRulesView auth={auth} brandSlots={glBrand?.slots} onNavigateTab={setTab} />}
+        {tab === 'world' && (
+          <GLWorldView
+            auth={auth}
+            brandSlots={glBrand?.slots}
+            onNavigateTab={setTab}
+            glossaryLinkItems={glossaryLinkItems}
+            onOpenGlossaryTerm={openGlossaryPopover}
+          />
+        )}
+        {tab === 'rules' && (
+          <GLRulesView
+            auth={auth}
+            brandSlots={glBrand?.slots}
+            onNavigateTab={setTab}
+            glossaryLinkItems={glossaryLinkItems}
+            onOpenGlossaryTerm={openGlossaryPopover}
+          />
+        )}
         {tab === 'spells' && (
           <GLSpellsView
             gameState={gameState}
@@ -793,6 +812,8 @@ export function AppGL() {
             onOpenSpell={openSpellPopover}
             canSpellCast={canSpellCast}
             onLaunchSpell={openSpellCastWizard}
+            glossaryLinkItems={glossaryLinkItems}
+            onOpenGlossaryTerm={openGlossaryPopover}
           />
         )}
         {tab === 'maps' && (
@@ -804,6 +825,7 @@ export function AppGL() {
               onPlayerActionRequest={submitPlayerActionRequest}
               onSelectTeam={setSelectedTeamId}
               onOpenGlossaryTerm={openGlossaryPopover}
+              glossaryLinkItems={glossaryLinkItems}
               onQcmAnswered={reloadGame}
               canMoveMascot={isMjMapControls}
               canRequestAction={canRequestAction}
@@ -834,12 +856,19 @@ export function AppGL() {
             )}
           </>
         )}
-        {tab === 'biotope' && <GLBiotopeView gameState={gameState} />}
+        {tab === 'biotope' && (
+          <GLBiotopeView
+            gameState={gameState}
+            glossaryLinkItems={glossaryLinkItems}
+            onOpenGlossaryTerm={openGlossaryPopover}
+          />
+        )}
         {tab === 'biocenose' && (
           <GLBiocenoseView
             gameState={gameState}
             onOpenGlossaryTerm={openGlossaryPopover}
             learningProgress={learningProgress}
+            glossaryLinkItems={glossaryLinkItems}
           />
         )}
         {tab === 'glossary' && (
@@ -852,7 +881,13 @@ export function AppGL() {
             learningProgress={learningProgress}
           />
         )}
-        {tab === 'history' && <GLHistoryView gameState={gameState} />}
+        {tab === 'history' && (
+          <GLHistoryView
+            gameState={gameState}
+            glossaryLinkItems={glossaryLinkItems}
+            onOpenGlossaryTerm={openGlossaryPopover}
+          />
+        )}
         {tab === 'stats' && showStaffAdminUi && (
           <GLStatsView
             mode="class"
@@ -867,7 +902,14 @@ export function AppGL() {
             onImpersonationApplied={applyGlImpersonation}
           />
         )}
-        {tab === 'contents' && showStaffAdminUi && <GLContentsAdminView auth={auth} onNavigateTab={setTab} />}
+        {tab === 'contents' && showStaffAdminUi && (
+          <GLContentsAdminView
+            auth={auth}
+            onNavigateTab={setTab}
+            glossaryLinkItems={glossaryLinkItems}
+            onOpenGlossaryTerm={openGlossaryPopover}
+          />
+        )}
         {tab === 'settings' && showStaffAdminUi && <GLSettingsView />}
         {tab === 'mascots' && showStaffAdminUi && (
           <GLMascotsAdminView gameState={gameState} onReloadGame={reloadGame} />
@@ -914,7 +956,12 @@ export function AppGL() {
           />
         )}
         {tab === 'tutorials' && isModuleEnabled(modules, 'tutorialsEnabled') && (
-          <GLTutorialsView canManage={showStaffAdminUi} learningProgress={learningProgress} />
+          <GLTutorialsView
+            canManage={showStaffAdminUi}
+            learningProgress={learningProgress}
+            glossaryLinkItems={glossaryLinkItems}
+            onOpenGlossaryTerm={openGlossaryPopover}
+          />
         )}
         {tab === 'journal' && isModuleEnabled(modules, 'journalEnabled') && (
           <GLJournalView

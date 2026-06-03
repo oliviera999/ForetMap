@@ -4,6 +4,7 @@ import { apiGL } from '../services/apiGL.js';
 import { GLButton } from './ui/GLButton.jsx';
 import { GLQcmFeedbackBlock } from './GLQcmFeedbackBlock.jsx';
 import { hasQcmAnswerFeedback } from '../utils/glQcmDisplay.js';
+import { GLGlossaryInlineText } from './GLGlossaryMarkdown.jsx';
 
 export function GLQcmPopover({
   open,
@@ -17,6 +18,7 @@ export function GLQcmPopover({
   result,
   onClose,
   onOpenGlossaryTerm,
+  glossaryLinkItems = [],
   onAnswered,
   onReshuffle,
   onSubmitResult,
@@ -110,7 +112,13 @@ export function GLQcmPopover({
                 {questionCode ? (
                   <p className="gl-hint">Question {questionCode}</p>
                 ) : null}
-                <p className="gl-qcm-modal__question">{presentation.question}</p>
+                <GLGlossaryInlineText
+                  className="gl-qcm-modal__question"
+                  text={presentation.question}
+                  glossaryItems={glossaryLinkItems}
+                  onOpenGlossaryTerm={onOpenGlossaryTerm}
+                  tag="p"
+                />
                 {presentation.photoUrl ? (
                   <img src={presentation.photoUrl} alt="" className="gl-qcm-modal__photo" />
                 ) : null}
@@ -123,7 +131,11 @@ export function GLQcmPopover({
                         checked={selectedChoiceId === choice.id}
                         onChange={() => setSelectedChoiceId(choice.id)}
                       />
-                      <span>{choice.text}</span>
+                      <GLGlossaryInlineText
+                        text={choice.text}
+                        glossaryItems={glossaryLinkItems}
+                        onOpenGlossaryTerm={onOpenGlossaryTerm}
+                      />
                     </label>
                   ))}
                 </div>
@@ -168,7 +180,12 @@ export function GLQcmPopover({
                 {questionCode ? (
                   <p className="gl-hint">Question {questionCode}</p>
                 ) : null}
-                <GLQcmFeedbackBlock result={result} scoreDelta={result?.scoreDelta} />
+                <GLQcmFeedbackBlock
+                  result={result}
+                  scoreDelta={result?.scoreDelta}
+                  glossaryLinkItems={glossaryLinkItems}
+                  onOpenGlossaryTerm={onOpenGlossaryTerm}
+                />
                 {Array.isArray(result.glossaryTerms) && result.glossaryTerms.length > 0 ? (
                   <div className="gl-qcm-modal__glossary">
                     <strong>Termes liés :</strong>

@@ -1,7 +1,13 @@
 import React from 'react';
 import { GLContentPage } from './GLContentPage.jsx';
 
-export function GLWorldView({ auth, brandSlots, onNavigateTab }) {
+export function GLWorldView({
+  auth,
+  brandSlots,
+  onNavigateTab,
+  glossaryLinkItems = [],
+  onOpenGlossaryTerm,
+}) {
   return (
     <GLContentPage
       slug="world"
@@ -9,6 +15,8 @@ export function GLWorldView({ auth, brandSlots, onNavigateTab }) {
       auth={auth}
       brandSlots={brandSlots}
       onNavigateTab={onNavigateTab}
+      glossaryLinkItems={glossaryLinkItems}
+      onOpenGlossaryTerm={onOpenGlossaryTerm}
     />
   );
 }

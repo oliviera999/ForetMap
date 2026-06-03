@@ -26,6 +26,7 @@ export function GLGameBoard({
   onPlayerActionRequest,
   onSelectTeam,
   onOpenGlossaryTerm,
+  glossaryLinkItems = [],
   onQcmAnswered,
   canMoveMascot,
   canRequestAction,
@@ -260,6 +261,7 @@ export function GLGameBoard({
         result={questionPopover?.result}
         onClose={closePopover}
         onOpenGlossaryTerm={onOpenGlossaryTerm}
+        glossaryLinkItems={glossaryLinkItems}
         onAnswered={onQcmAnswered}
         onReshuffle={reshuffle}
         onSubmitResult={setResult}
