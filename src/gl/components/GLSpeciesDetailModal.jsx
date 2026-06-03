@@ -1,4 +1,5 @@
-import React, { useEffect } from 'react';
+import React from 'react';
+import { DialogShell } from '../../components/DialogShell.jsx';
 import {
   GL_SPECIES_DETAIL_SECTIONS,
   GL_SPECIES_TYPE_LABELS,
@@ -124,15 +125,6 @@ export function GLSpeciesDetailModal({
   onOpenGlossaryTerm,
   learningProgress,
 }) {
-  useEffect(() => {
-    if (!species) return undefined;
-    const onKeyDown = (e) => {
-      if (e.key === 'Escape') onClose();
-    };
-    window.addEventListener('keydown', onKeyDown);
-    return () => window.removeEventListener('keydown', onKeyDown);
-  }, [species, onClose]);
-
   if (!species) return null;
 
   const nomCommun = String(species.nom_commun || '').trim() || 'Espèce';
@@ -142,19 +134,15 @@ export function GLSpeciesDetailModal({
   const isLearned = learningProgress?.isSpeciesLearned?.(speciesCode) || !!species.learned;
 
   return (
-    <div
-      className="gl-action-modal gl-species-detail-modal"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="gl-species-detail-title"
-      onClick={onClose}
+    <DialogShell
+      open={!!species}
+      onClose={onClose}
+      overlayClassName="fm-modal-overlay gl-species-detail-modal"
+      dialogClassName={`fm-modal-panel animate-pop gl-species-detail-modal__body${
+        hasGlSpeciesFieldValue(species.photo_url) ? ' gl-species-detail-modal__body--has-photo' : ''
+      }`}
+      ariaLabelledBy="gl-species-detail-title"
     >
-      <div
-        className={`gl-action-modal-body gl-species-detail-modal__body${
-          hasGlSpeciesFieldValue(species.photo_url) ? ' gl-species-detail-modal__body--has-photo' : ''
-        }`}
-        onClick={(e) => e.stopPropagation()}
-      >
         <div className="gl-species-detail-modal__head">
           <div className="gl-species-detail-modal__head-text">
             <h2 id="gl-species-detail-title">{nomCommun}</h2>
@@ -226,7 +214,6 @@ export function GLSpeciesDetailModal({
             onOpenGlossaryTerm={onOpenGlossaryTerm}
           />
         </div>
-      </div>
-    </div>
+    </DialogShell>
   );
 }

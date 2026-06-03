@@ -36,11 +36,12 @@ import { DialogShell } from './DialogShell';
 import { MarkdownContent } from './MarkdownContent.jsx';
 import { MarkdownTextarea } from './MarkdownTextarea.jsx';
 import { buildMapImageCandidates } from '../utils/mapImageCandidates';
+import { FixedToast } from '../shared/components/FixedToast.jsx';
 
 // ── TOAST ──────────────────────────────────────────────────────────────────
 function Toast({ msg, onDone }) {
   useEffect(() => { const t = setTimeout(onDone, 2400); return () => clearTimeout(t); }, []);
-  return <div className="toast" role="status" aria-live="polite" aria-atomic="true">{msg}</div>;
+  return <FixedToast>{msg}</FixedToast>;
 }
 
 // ── INTERACTIVE MAP ──────────────────────────────────────────────────────────

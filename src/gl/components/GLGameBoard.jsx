@@ -13,6 +13,7 @@ import { usePrefersReducedMotion } from '../hooks/usePrefersReducedMotion.js';
 import { GLZoneMusicMuteButton } from './GLZoneMusicMuteButton.jsx';
 import { GLVirtualDiceDock } from './GLVirtualDiceDock.jsx';
 import { GLButton } from './ui/GLButton.jsx';
+import { DialogShell } from '../../components/DialogShell.jsx';
 
 export function GLGameBoard({
   chapter,
@@ -305,26 +306,28 @@ export function GLGameBoard({
         />
       ) : null}
 
-      {pendingMarker ? (
-        <div className="gl-action-modal" role="dialog" aria-label="Proposer une action">
-          <div className="gl-action-modal-body">
-            <h3>Proposer une action sur « {pendingMarker.label} »</h3>
-            <label>
-              Type d’action
-              <select value={actionType} onChange={(event) => setActionType(event.target.value)}>
-                <option value="explore">Explorer</option>
-                <option value="quiz">Répondre à un quiz</option>
-                <option value="observe">Observer la biocénose</option>
-                <option value="story">Avancer dans l’histoire</option>
-              </select>
-            </label>
-            <div className="gl-inline-actions">
-              <GLButton type="button" onClick={confirmActionRequest}>Envoyer la demande</GLButton>
-              <GLButton type="button" variant="secondary" onClick={() => setPendingMarker(null)}>Annuler</GLButton>
-            </div>
-          </div>
+      <DialogShell
+        open={!!pendingMarker}
+        onClose={() => setPendingMarker(null)}
+        overlayClassName="fm-modal-overlay"
+        dialogClassName="fm-modal-panel animate-pop gl-action-modal-body"
+        ariaLabel="Proposer une action"
+      >
+        <h3>Proposer une action sur « {pendingMarker?.label} »</h3>
+        <label>
+          Type d’action
+          <select value={actionType} onChange={(event) => setActionType(event.target.value)}>
+            <option value="explore">Explorer</option>
+            <option value="quiz">Répondre à un quiz</option>
+            <option value="observe">Observer la biocénose</option>
+            <option value="story">Avancer dans l’histoire</option>
+          </select>
+        </label>
+        <div className="gl-inline-actions">
+          <GLButton type="button" onClick={confirmActionRequest}>Envoyer la demande</GLButton>
+          <GLButton type="button" variant="secondary" onClick={() => setPendingMarker(null)}>Annuler</GLButton>
         </div>
-      ) : null}
+      </DialogShell>
     </section>
   );
 }

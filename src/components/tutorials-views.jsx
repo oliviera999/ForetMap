@@ -8,6 +8,7 @@ import { orderedLivingBeingsForForm, formatLivingBeingsListLine } from '../utils
 import { DialogShell } from './DialogShell';
 import { MarkdownContent } from './MarkdownContent.jsx';
 import { MarkdownTextarea } from './MarkdownTextarea.jsx';
+import { FixedToast } from '../shared/components/FixedToast.jsx';
 
 function tutorialZonePickLabel(z) {
   const line = formatLivingBeingsListLine(
@@ -507,7 +508,7 @@ function TutorialsView({
         </DialogShell>
       )}
     <div className="fade-in">
-      {toast && <div className="toast">{toast}</div>}
+      {toast ? <FixedToast>{toast}</FixedToast> : null}
 
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4, flexWrap: 'wrap', gap: 8 }}>
         <h2 className="section-title">📘 Tutoriels</h2>

@@ -43,6 +43,7 @@ import { useGLBrandTheme } from './hooks/useGLBrandTheme.js';
 import { GLMascotCatalogProvider } from './context/GLMascotCatalogContext.jsx';
 import { pickZoneAtPct } from '../utils/glZoneAtPct.js';
 import { useGLZoneMusic, readStoredMuted, writeStoredMuted } from './hooks/useGLZoneMusic.js';
+import { FixedToast } from '../shared/components/FixedToast.jsx';
 import { usePrefersReducedMotion } from './hooks/usePrefersReducedMotion.js';
 import { useAppVersion } from '../hooks/useAppVersion.js';
 import { useGlLearningProgress } from './hooks/useGlLearningProgress.js';
@@ -776,9 +777,9 @@ export function AppGL() {
       ) : null}
 
       {turnToast ? (
-        <div className="gl-turn-toast gl-toast fade-in" role="status">
+        <FixedToast className="fm-toast--turn gl-turn-toast">
           C’est au tour de <strong>{turnToastTeam?.name || `équipe #${turnToast.teamId}`}</strong>.
-        </div>
+        </FixedToast>
       ) : null}
 
       <main className="gl-main">

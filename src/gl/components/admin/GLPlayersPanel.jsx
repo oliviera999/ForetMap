@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import { DialogShell } from '../../../components/DialogShell.jsx';
 import { apiGL } from '../../services/apiGL.js';
 import { GLBadge } from '../ui/GLBadge.jsx';
 import { GLButton } from '../ui/GLButton.jsx';
@@ -312,36 +313,41 @@ export function GLPlayersPanel({
         })}
       />
 
-      {resetPlayer ? (
-        <div className="gl-action-modal" role="dialog" aria-label="Réinitialiser mot de passe joueur">
-          <div className="gl-action-modal-body animate-pop">
-            <h4>Réinitialiser {resetPlayer.pseudo}</h4>
-            <GLField label="Nouveau mot de passe">
-              <GLInput
-                type="password"
-                value={resetPasswordValue}
-                onChange={(event) => setResetPasswordValue(event.target.value)}
-                autoComplete="new-password"
-              />
-            </GLField>
-            <div className="gl-inline-actions">
-              <GLButton type="button" onClick={() => resetPlayerPassword(resetPlayer)}>
-                Valider
-              </GLButton>
-              <GLButton
-                type="button"
-                variant="secondary"
-                onClick={() => {
-                  setResetPlayer(null);
-                  setResetPasswordValue('');
-                }}
-              >
-                Annuler
-              </GLButton>
-            </div>
-          </div>
+      <DialogShell
+        open={!!resetPlayer}
+        onClose={() => {
+          setResetPlayer(null);
+          setResetPasswordValue('');
+        }}
+        overlayClassName="fm-modal-overlay"
+        dialogClassName="fm-modal-panel animate-pop gl-action-modal-body"
+        ariaLabel="Réinitialiser mot de passe joueur"
+      >
+        <h4>Réinitialiser {resetPlayer?.pseudo}</h4>
+        <GLField label="Nouveau mot de passe">
+          <GLInput
+            type="password"
+            value={resetPasswordValue}
+            onChange={(event) => setResetPasswordValue(event.target.value)}
+            autoComplete="new-password"
+          />
+        </GLField>
+        <div className="gl-inline-actions">
+          <GLButton type="button" onClick={() => resetPlayerPassword(resetPlayer)}>
+            Valider
+          </GLButton>
+          <GLButton
+            type="button"
+            variant="secondary"
+            onClick={() => {
+              setResetPlayer(null);
+              setResetPasswordValue('');
+            }}
+          >
+            Annuler
+          </GLButton>
         </div>
-      ) : null}
+      </DialogShell>
     </section>
   );
 }
