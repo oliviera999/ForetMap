@@ -28,6 +28,7 @@ const ALLOWED_TAGS_WITH_IMAGES = [...ALLOWED_TAGS, 'img'];
 const ALLOWED_ATTR_WITH_IMAGES = [...ALLOWED_ATTR, 'src', 'alt', 'title', 'loading', 'class', 'data-gl-frame', 'style'];
 const ALLOWED_TAGS_WITH_JOURNAL = [...ALLOWED_TAGS_WITH_IMAGES, 'aside'];
 const ALLOWED_ATTR_WITH_JOURNAL = [...ALLOWED_ATTR_WITH_IMAGES, 'data-gl-embed-type', 'data-gl-ref'];
+const ALLOWED_ATTR_WITH_GLOSSARY = [...ALLOWED_ATTR, 'class', 'data-gl-glossary-code'];
 const JOURNAL_EMBED_TYPES = new Set(['spell', 'species', 'glossary', 'chapter', 'module_stub']);
 
 marked.setOptions({
@@ -37,6 +38,17 @@ marked.setOptions({
 
 DOMPurify.addHook('afterSanitizeAttributes', (node) => {
   if (node.tagName === 'A') {
+    const glossaryCode = String(node.getAttribute('data-gl-glossary-code') || '').trim();
+    if (glossaryCode) {
+      node.setAttribute('href', '#');
+      node.removeAttribute('target');
+      node.removeAttribute('rel');
+      const className = String(node.getAttribute('class') || '').trim();
+      if (!className.includes('gl-glossary-inline-link')) {
+        node.setAttribute('class', `${className} gl-glossary-inline-link`.trim());
+      }
+      return;
+    }
     const href = node.getAttribute('href') || '';
     if (/^https?:/i.test(href)) {
       node.setAttribute('rel', 'noopener noreferrer');
@@ -94,6 +106,7 @@ export function renderMarkdownToSafeHtml(markdown, options = {}) {
   return sanitizeRichHtml(html, {
     allowImages: options?.allowImages,
     allowJournalEmbeds: options?.allowJournalEmbeds,
+    allowGlossaryLinks: options?.allowGlossaryLinks,
   });
 }
 
@@ -120,6 +133,7 @@ export function applyJournalEmbed(value, selectionStart, selectionEnd, type, ref
 export function sanitizeRichHtml(html, options = {}) {
   const allowImages = Boolean(options?.allowImages);
   const allowJournalEmbeds = Boolean(options?.allowJournalEmbeds);
+  const allowGlossaryLinks = Boolean(options?.allowGlossaryLinks);
   let tags = ALLOWED_TAGS;
   let attrs = ALLOWED_ATTR;
   if (allowJournalEmbeds) {
@@ -129,10 +143,13 @@ export function sanitizeRichHtml(html, options = {}) {
     tags = ALLOWED_TAGS_WITH_IMAGES;
     attrs = ALLOWED_ATTR_WITH_IMAGES;
   }
+  if (allowGlossaryLinks) {
+    attrs = Array.from(new Set([...attrs, ...ALLOWED_ATTR_WITH_GLOSSARY]));
+  }
   return DOMPurify.sanitize(html, {
     ALLOWED_TAGS: tags,
     ALLOWED_ATTR: attrs,
-    ALLOW_DATA_ATTR: allowJournalEmbeds,
+    ALLOW_DATA_ATTR: allowJournalEmbeds || allowGlossaryLinks,
   });
 }
 

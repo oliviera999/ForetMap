@@ -1,12 +1,16 @@
 import React from 'react';
-import { renderMarkdownToSafeHtml } from '../../utils/markdown.js';
+import { GLGlossaryMarkdown } from './GLGlossaryMarkdown.jsx';
 
-export function GLHistoryView({ gameState }) {
-  const html = renderMarkdownToSafeHtml(gameState?.game?.story_markdown || 'Histoire non renseignee.', { allowImages: true });
+export function GLHistoryView({ gameState, glossaryLinkItems = [], onOpenGlossaryTerm }) {
   return (
     <article className="gl-panel gl-markdown fade-in">
       <h2>Histoire</h2>
-      <div dangerouslySetInnerHTML={{ __html: html }} />
+      <GLGlossaryMarkdown
+        markdown={gameState?.game?.story_markdown || 'Histoire non renseignee.'}
+        glossaryItems={glossaryLinkItems}
+        onOpenGlossaryTerm={onOpenGlossaryTerm}
+        allowImages
+      />
     </article>
   );
 }

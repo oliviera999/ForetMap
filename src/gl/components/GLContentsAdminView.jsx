@@ -11,7 +11,12 @@ import { GLQcmImportPanel } from './admin/GLQcmImportPanel.jsx';
 import { GLSpellsEditorPanel } from './admin/GLSpellsEditorPanel.jsx';
 import { GLSpellsImportPanel } from './admin/GLSpellsImportPanel.jsx';
 
-export function GLContentsAdminView({ auth, onNavigateTab }) {
+export function GLContentsAdminView({
+  auth,
+  onNavigateTab,
+  glossaryLinkItems = [],
+  onOpenGlossaryTerm,
+}) {
   const [section, setSection] = useState('pages');
   const [items, setItems] = useState([]);
   const [activeSlug, setActiveSlug] = useState('world');
@@ -111,6 +116,8 @@ export function GLContentsAdminView({ auth, onNavigateTab }) {
               auth={auth}
               onSaved={load}
               onNavigateTab={onNavigateTab}
+              glossaryLinkItems={glossaryLinkItems}
+              onOpenGlossaryTerm={onOpenGlossaryTerm}
             />
           ) : null}
         </>

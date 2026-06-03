@@ -1,12 +1,16 @@
 import React from 'react';
-import { renderMarkdownToSafeHtml } from '../../utils/markdown.js';
+import { GLGlossaryMarkdown } from './GLGlossaryMarkdown.jsx';
 
-export function GLBiotopeView({ gameState }) {
-  const html = renderMarkdownToSafeHtml(gameState?.game?.biotope_markdown || 'Biotope non renseigne.', { allowImages: true });
+export function GLBiotopeView({ gameState, glossaryLinkItems = [], onOpenGlossaryTerm }) {
   return (
     <article className="gl-panel gl-markdown fade-in">
       <h2>Biotope</h2>
-      <div dangerouslySetInnerHTML={{ __html: html }} />
+      <GLGlossaryMarkdown
+        markdown={gameState?.game?.biotope_markdown || 'Biotope non renseigne.'}
+        glossaryItems={glossaryLinkItems}
+        onOpenGlossaryTerm={onOpenGlossaryTerm}
+        allowImages
+      />
     </article>
   );
 }

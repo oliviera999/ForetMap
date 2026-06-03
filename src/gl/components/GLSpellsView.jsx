@@ -1,8 +1,8 @@
 import React from 'react';
-import { renderMarkdownToSafeHtml } from '../../utils/markdown.js';
 import { GLBrandPageBanner } from './GLBrandHub.jsx';
 import { GLSpellCatalog } from './GLSpellCatalog.jsx';
 import { GLButton } from './ui/GLButton.jsx';
+import { GLGlossaryMarkdown } from './GLGlossaryMarkdown.jsx';
 
 export function GLSpellsView({
   gameState,
@@ -10,11 +10,10 @@ export function GLSpellsView({
   onOpenSpell,
   canSpellCast = false,
   onLaunchSpell,
+  glossaryLinkItems = [],
+  onOpenGlossaryTerm,
 }) {
   const introMarkdown = String(gameState?.game?.sortileges_markdown || '').trim();
-  const introHtml = introMarkdown
-    ? renderMarkdownToSafeHtml(introMarkdown, { allowImages: true })
-    : '';
   const chapterSpells = Array.isArray(gameState?.game?.chapter_spells)
     ? gameState.game.chapter_spells
     : [];
@@ -25,8 +24,14 @@ export function GLSpellsView({
       {brandSlots?.card_spells ? (
         <GLBrandPageBanner slot={brandSlots.card_spells} />
       ) : null}
-      {introHtml ? (
-        <div className="gl-spells-intro" dangerouslySetInnerHTML={{ __html: introHtml }} />
+      {introMarkdown ? (
+        <GLGlossaryMarkdown
+          className="gl-spells-intro"
+          markdown={introMarkdown}
+          glossaryItems={glossaryLinkItems}
+          onOpenGlossaryTerm={onOpenGlossaryTerm}
+          allowImages
+        />
       ) : null}
       {canSpellCast ? (
         <p className="gl-spells-launch-bar">
