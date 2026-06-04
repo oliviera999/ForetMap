@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { apiGL } from '../services/apiGL.js';
+import { apiGL, clearGlSession } from '../services/apiGL.js';
 import { GLBrandPageBanner } from './GLBrandHub.jsx';
 import { GL_CONTENT_PAGE_SLOT_BY_SLUG } from '../hooks/useGLBrandTheme.js';
 import { GLButton } from './ui/GLButton.jsx';
@@ -32,6 +32,8 @@ export function GLContentPage({
 }) {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
+  const [loadHttpStatus, setLoadHttpStatus] = useState(null);
+  const [reloadKey, setReloadKey] = useState(0);
   const [saveError, setSaveError] = useState('');
   const [content, setContent] = useState(null);
   const [draftTitle, setDraftTitle] = useState('');
@@ -42,11 +44,18 @@ export function GLContentPage({
   const bodyTextareaRef = useRef(null);
 
   const manageable = canManageContent(auth);
+  const [bodyRef, bodyVisible] = useScrollReveal({ once: true, threshold: 0.05 });
+
+  const displayTitle = content?.title || fallbackTitle || slug;
+  const previewMarkdown = manageable && editing ? draftBody : (content?.bodyMarkdown || draftBody || '');
+  const pageSlotKey = GL_CONTENT_PAGE_SLOT_BY_SLUG[slug];
+  const pageBannerSlot = pageSlotKey && brandSlots ? brandSlots[pageSlotKey] : null;
 
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
     setLoadError('');
+    setLoadHttpStatus(null);
     setSaveError('');
     setSavedMessage('');
     apiGL(`/api/gl/content/${encodeURIComponent(slug)}`)
@@ -58,7 +67,10 @@ export function GLContentPage({
         setEditing(manageable && !hasExistingContent(data));
       })
       .catch((err) => {
-        if (!cancelled) setLoadError(err.message || 'Chargement impossible');
+        if (!cancelled) {
+          setLoadError(err.message || 'Chargement impossible');
+          setLoadHttpStatus(err.status ?? null);
+        }
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -66,7 +78,16 @@ export function GLContentPage({
     return () => {
       cancelled = true;
     };
-  }, [slug, fallbackTitle, manageable]);
+  }, [slug, fallbackTitle, manageable, reloadKey]);
+
+  function retryLoad() {
+    setReloadKey((key) => key + 1);
+  }
+
+  function reconnect() {
+    clearGlSession();
+    window.location.reload();
+  }
 
   async function save() {
     if (!manageable || saving) return;
@@ -101,16 +122,17 @@ export function GLContentPage({
     return (
       <div className="gl-panel gl-error">
         <p>{loadError}</p>
-        <GLButton type="button" onClick={() => window.location.reload()}>Réessayer</GLButton>
+        <div className="gl-inline-actions">
+          <GLButton type="button" onClick={retryLoad}>Réessayer</GLButton>
+          {loadHttpStatus === 401 ? (
+            <GLButton type="button" variant="secondary" onClick={reconnect}>
+              Se reconnecter
+            </GLButton>
+          ) : null}
+        </div>
       </div>
     );
   }
-
-  const displayTitle = content?.title || fallbackTitle || slug;
-  const previewMarkdown = manageable && editing ? draftBody : (content?.bodyMarkdown || draftBody || '');
-  const pageSlotKey = GL_CONTENT_PAGE_SLOT_BY_SLUG[slug];
-  const pageBannerSlot = pageSlotKey && brandSlots ? brandSlots[pageSlotKey] : null;
-  const [bodyRef, bodyVisible] = useScrollReveal({ once: true, threshold: 0.05 });
 
   return (
     <article className="gl-panel gl-markdown gl-content-page">

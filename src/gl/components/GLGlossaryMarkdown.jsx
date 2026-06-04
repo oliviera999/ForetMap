@@ -38,7 +38,12 @@ export function GLGlossaryMarkdown({
     if (!hasGlossary) {
       return renderMarkdownToSafeHtml(raw, { allowImages, allowJournalEmbeds });
     }
-    return renderGlMarkdownWithGlossaryLinks(raw, glossaryItems, { allowImages, allowJournalEmbeds });
+    try {
+      return renderGlMarkdownWithGlossaryLinks(raw, glossaryItems, { allowImages, allowJournalEmbeds });
+    } catch (err) {
+      console.warn('GLGlossaryMarkdown: auto-lien glossaire désactivé', err);
+      return renderMarkdownToSafeHtml(raw, { allowImages, allowJournalEmbeds });
+    }
   }, [markdown, glossaryItems, hasGlossary, allowImages, allowJournalEmbeds]);
 
   useEffect(() => {
@@ -72,7 +77,12 @@ export function GLGlossaryInlineText({
     const raw = String(text ?? '');
     if (!raw) return '';
     if (!hasGlossary) return '';
-    return renderGlPlainTextWithGlossaryLinks(raw, glossaryItems);
+    try {
+      return renderGlPlainTextWithGlossaryLinks(raw, glossaryItems);
+    } catch (err) {
+      console.warn('GLGlossaryInlineText: auto-lien glossaire désactivé', err);
+      return '';
+    }
   }, [text, glossaryItems, hasGlossary]);
 
   useEffect(() => {

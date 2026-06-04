@@ -30,6 +30,13 @@ const {
 } = require('../../lib/glMarkerRow');
 const { normalizeEventConfig } = require('../../lib/glMarkerEventConfig');
 const { parseAppearanceInput } = require('../../lib/glMarkerAppearance');
+const {
+  resolveImportRows,
+  applyChapterCharteImport,
+  buildChapterCharteTemplateWorkbook,
+  buildChapterCharteExportWorkbook,
+  loadChapterCharteExportRows,
+} = require('../../lib/glChapterCharteImport');
 
 const router = express.Router();
 
@@ -528,6 +535,51 @@ router.put('/admin/markers/:markerId', requireGlPermission('gl.content.manage'),
   const updated = await queryOne(`SELECT ${MARKER_SELECT} FROM gl_chapter_markers WHERE id = ? LIMIT 1`, [markerId]);
   if (!updated) return res.status(404).json({ error: 'Marker introuvable' });
   return res.json(formatMarkerRow(updated));
+});
+
+/** GET /api/gl/chapters/admin/charte/import/template — modèle XLSX charte chapitres. */
+router.get('/admin/charte/import/template', requireGlPermission('gl.content.manage'), async (_req, res) => {
+  const buffer = buildChapterCharteTemplateWorkbook();
+  res.setHeader(
+    'Content-Type',
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+  );
+  res.setHeader('Content-Disposition', 'attachment; filename="foretmap-gl-modele-chapitres-charte.xlsx"');
+  return res.send(buffer);
+});
+
+/** GET /api/gl/chapters/admin/charte/export — export XLSX chartes chapitres. */
+router.get('/admin/charte/export', requireGlPermission('gl.content.manage'), async (req, res) => {
+  const slug = normalizeSlug(req.query?.slug);
+  const rows = await loadChapterCharteExportRows({ queryAll }, { slug: slug || undefined });
+  const buffer = buildChapterCharteExportWorkbook(rows);
+  res.setHeader(
+    'Content-Type',
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+  );
+  res.setHeader('Content-Disposition', 'attachment; filename="foretmap-gl-export-chapitres-charte.xlsx"');
+  return res.send(buffer);
+});
+
+/** POST /api/gl/chapters/admin/charte/import — import XLSX charte chapitres. */
+router.post('/admin/charte/import', requireGlPermission('gl.content.manage'), async (req, res) => {
+  const dryRun = !!req.body?.dryRun;
+  let parsed;
+  try {
+    parsed = resolveImportRows(req.body || {});
+  } catch (err) {
+    return res.status(400).json({ error: err.message || 'Fichier import invalide' });
+  }
+  const rows = parsed?.rows || [];
+  if (!Array.isArray(rows) || rows.length === 0) {
+    return res.status(400).json({ error: 'Fichier import vide ou sans lignes exploitables' });
+  }
+  try {
+    const report = await applyChapterCharteImport({ queryAll, execute }, rows, { dryRun });
+    return res.json({ report });
+  } catch (err) {
+    return res.status(400).json({ error: err.message || 'Import impossible' });
+  }
 });
 
 /** DELETE /api/gl/chapters/admin/markers/:markerId — supprime un marker. */

@@ -15,6 +15,7 @@ import { normalizeBrand } from '../hooks/useGLBrandTheme.js';
 import { brandToCssVars, mergeBrandWithChapterTheme, normalizeChapterTheme } from '../../utils/glBrandTheme.js';
 import { GLButton } from './ui/GLButton.jsx';
 import { GL_SPELL_CATEGORY_LABELS } from '../utils/glSpellFieldLabels.js';
+import { GLChapterCharteImportPanel } from './admin/GLChapterCharteImportPanel.jsx';
 
 const EMPTY_CHAPTER_THEME = { colors: {} };
 
@@ -335,11 +336,27 @@ export function GLChaptersAdminView() {
     return brandToCssVars(merged);
   }, [platformBrand, chapterForm.theme]);
 
+  async function handleCharteImportApplied() {
+    const slugToReload = chapterForm.slug
+      || chapters.find((c) => Number(c.id) === Number(selectedId))?.slug;
+    await loadChapters();
+    if (slugToReload) {
+      await loadDetail(slugToReload);
+    }
+  }
+
   return (
     <section className="gl-panel">
       <h2>Chapitres</h2>
       {error ? <p className="gl-error">{error}</p> : null}
       {info ? <p className="gl-info">{info}</p> : null}
+
+      <details className="plant-more" style={{ marginBottom: 16 }}>
+        <summary>Import / export charte graphique (XLSX)</summary>
+        <div style={{ marginTop: 12 }}>
+          <GLChapterCharteImportPanel onImportApplied={handleCharteImportApplied} />
+        </div>
+      </details>
 
       <div className="gl-chapters-admin-grid">
         <aside>

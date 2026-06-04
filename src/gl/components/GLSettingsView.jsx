@@ -53,7 +53,7 @@ const MODULE_TOGGLES = [
   { key: 'modules.kingdom_map_enabled', label: 'Carte royaume', hint: 'Prépare la carte royaume GL.' },
   { key: 'modules.zone_music_enabled', label: 'Musique des zones', hint: 'Ambiance sonore par zone sur la carte de jeu (fondus en transition).' },
   { key: 'modules.market_enabled', label: 'Marché', hint: 'Échanges de cœurs et gemmes entre joueurs de la classe (nécessite la vitalité).' },
-  { key: 'modules.spell_cast_enabled', label: 'Lancement de sortilèges', hint: 'Pool collaboratif gemmes/cœurs par équipe depuis Sortilèges ou la carte (nécessite la vitalité).' },
+  { key: 'modules.spell_cast_enabled', label: 'Lancement de sortilèges', hint: 'Assistant MJ : pool multi-équipes (gemmes/cœurs). Activer aussi la vitalité et « MJ only » pour réserver le lancement au staff.' },
   { key: 'modules.virtual_dice_enabled', label: 'Dés virtuels', hint: 'Bouton et lanceur de dés D6 sur la carte de jeu (jusqu’à 5 dés).' },
 ];
 

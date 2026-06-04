@@ -941,6 +941,8 @@ export function AppGL() {
               await reloadGame();
               await reloadGameplaySettings();
             }}
+            canSpellCast={canSpellCast}
+            onLaunchSpell={openSpellCastWizard}
           />
         )}
         {tab === 'forum' && isModuleEnabled(modules, 'forumEnabled') && (

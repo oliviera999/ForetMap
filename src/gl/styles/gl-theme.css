@@ -5364,6 +5364,21 @@ body.gl-glossary-popover-open {
   }
 }
 
+.gl-grimoire .gl-spell-cast-panel__cost {
+  margin: 0.25rem 0 0;
+  font-size: 0.9rem;
+}
+
+.gl-grimoire .gl-spell-cast-roster-group {
+  margin-top: 1rem;
+}
+
+.gl-grimoire .gl-spell-cast-roster-group__title {
+  margin: 0 0 0.5rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
 .gl-grimoire .gl-spell-cast-roster {
   list-style: none;
   margin: 0;

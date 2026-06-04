@@ -72,6 +72,35 @@ export function gatewayUnavailableUserMessage() {
   return 'Service momentanément indisponible (redémarrage ou surcharge réseau). Réessayez dans quelques secondes.';
 }
 
+/** Tente de parser un corps texte qui ressemble à du JSON (sans en-tête Content-Type). */
+export function tryParseJsonText(text) {
+  const trimmed = String(text || '').trim();
+  if (!trimmed || !(trimmed.startsWith('{') || trimmed.startsWith('['))) return null;
+  try {
+    const parsed = JSON.parse(trimmed);
+    return parsed != null && typeof parsed === 'object' ? parsed : null;
+  } catch (_) {
+    return null;
+  }
+}
+
+export function isParsedApiJsonObject(body) {
+  if (body == null || typeof body !== 'object') return false;
+  if (body.parseError || body.raw != null) return false;
+  return true;
+}
+
+export function unexpectedApiBodyUserMessage({ ok, looksHtml } = {}) {
+  if (looksHtml) {
+    return ok
+      ? 'Impossible de charger le contenu — le serveur a renvoyé une page HTML (vérifiez l’API / le proxy).'
+      : 'Réponse serveur illisible — page HTML reçue à la place du JSON.';
+  }
+  return ok
+    ? 'Impossible de charger le contenu — réponse serveur inattendue (JSON invalide). Réessayez ou contactez l’administrateur.'
+    : 'Réponse serveur illisible (JSON invalide). Réessayez.';
+}
+
 export function normalizeApiErrorMessage(message, status) {
   const msg = String(message || '').trim();
   if (!msg) return msg;
@@ -94,21 +123,17 @@ export async function parseApiBody(res) {
     }
   }
   const text = await res.text().catch(() => '');
-  return text ? { raw: text } : null;
+  if (!text) return null;
+  const parsed = tryParseJsonText(text);
+  if (parsed != null) return parsed;
+  return { raw: text };
 }
 
 export function assertJsonApiBody(body, { ok } = {}) {
   if (body == null) return;
-  if (!body.parseError && body.raw == null) return;
+  if (isParsedApiJsonObject(body)) return;
   const looksHtml = isHtmlLikeApiPayload(body.raw);
-  const prefix = ok
-    ? 'Le serveur a renvoyé une page ou un texte inattendu au lieu du JSON attendu'
-    : 'Réponse serveur illisible';
-  throw new Error(
-    looksHtml
-      ? `${prefix} — vérifiez que l’API ForetMap est à jour et joignable (proxy / déploiement).`
-      : `${prefix} (JSON invalide). Rechargez la page puis réessayez.`,
-  );
+  throw new Error(unexpectedApiBodyUserMessage({ ok, looksHtml }));
 }
 
 /**

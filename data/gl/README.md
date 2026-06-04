@@ -16,6 +16,14 @@ Depuis l’admin GL : **Contenus → Espèces** — onglet **Saisie manuelle** (
 
 Après import, lier un ou plusieurs biomes catalogue à un chapitre via **Contenus → Chapitres → Biomes (catalogue espèces)** (sélection multiple ; alimente biocénose, glossaire et QCM du chapitre).
 
+## Charte graphique des chapitres
+
+Feuille XLSX : `chapitres_charte` (colonnes `slug`, `titre`, `image_carte_url`, couleurs `couleur_*`, cadre `cadre_*`).
+
+Depuis l’admin GL : **Contenus → Chapitres** — section **Import / export charte graphique (XLSX)** (modèle, export, simulation puis import). API : `GET /api/gl/chapters/admin/charte/import/template`, `GET /api/gl/chapters/admin/charte/export?slug=`, `POST /api/gl/chapters/admin/charte/import`.
+
+Sémantique import : cellule **vide** = ne pas modifier le champ ; **`reset`** ou **`-`** sur une couleur = réhériter de la charte plateforme pour cette teinte ; **titre** obligatoire pour créer un chapitre inconnu.
+
 ## Catalogue sortilèges
 
 Fichier de référence : `sortileges-gnomes-et-licornes.xlsx` (feuilles `sortileges`, `categories_stats`).
