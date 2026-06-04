@@ -24,6 +24,7 @@ import {
   DESKTOP_SPLIT_MIN_TASKS_PX,
   TAB_STORAGE_KEY,
   FETCH_ALL_AUTO_DEBOUNCE_MS,
+  getFetchAllLoopAbortReason,
   DATA_REFRESH_INTERVAL_MS,
   POLLING_COARSE_TABS,
   IOS_INSTALL_HINT_DISMISSED_KEY,
@@ -206,6 +207,7 @@ function App() {
   /** Promesse du chargement global en cours ; les appels suivants s’y accrochent et peuvent demander une nouvelle passe. */
   const fetchAllRunPromiseRef = useRef(null);
   const fetchAllPendingRef = useRef(false);
+  const initialFetchDoneRef = useRef(false);
   /** Incrémenté après succès modale PIN / login prof : déclenche un `fetchAll` sans s’accrocher à chaque changement de `authClaims`. */
   const [pinSuccessFetchAllTick, setPinSuccessFetchAllTick] = useState(0);
   const isIosDevice = useMemo(() => detectIosDevice(), []);
@@ -764,9 +766,23 @@ function App() {
       return fetchAllRunPromiseRef.current;
     }
     const job = (async () => {
+      const jobStartedAt = Date.now();
+      let loopIterations = 0;
       try {
         // Tant qu’une action (ex. changement de statut) a demandé un rafraîchissement pendant la passe en cours, on relit le ref à jour.
         while (true) {
+          loopIterations += 1;
+          const abortReason = getFetchAllLoopAbortReason({ loopIterations, jobStartedAt });
+          if (abortReason === 'iterations') {
+            console.warn('[ForetMap] fetchAll : plafond d’itérations atteint');
+            break;
+          }
+          if (abortReason === 'wall') {
+            console.warn('[ForetMap] fetchAll : délai maximal dépassé');
+            setServerDown(true);
+            setRefreshMs(120000);
+            break;
+          }
           fetchAllPendingRef.current = false;
           const snap = fetchAllContextRef.current;
           const {
@@ -874,6 +890,7 @@ function App() {
         }
       } finally {
         fetchAllRunPromiseRef.current = null;
+        initialFetchDoneRef.current = true;
         setLoading(false);
       }
     })();
@@ -1078,16 +1095,28 @@ function App() {
   const teacherSyncStatus = effectiveIsTeacher ? (rtStatus === 'off' ? 'polling' : rtStatus) : rtStatus;
   const isAdmin = effectiveRoleContext.roleSlug === 'admin';
 
+  const hasAuthenticatedShell = !!(student || isTeacher);
+
   useEffect(() => {
+    if (!hasAuthenticatedShell) return undefined;
+    if (initialFetchDoneRef.current) return undefined;
+    void fetchAll();
+    return undefined;
+  }, [hasAuthenticatedShell, fetchAll]);
+
+  useEffect(() => {
+    if (!hasAuthenticatedShell) return undefined;
     let cancelled = false;
     const id = window.setTimeout(() => {
       if (!cancelled) void fetchAll();
     }, FETCH_ALL_AUTO_DEBOUNCE_MS);
     return () => {
+      if (!initialFetchDoneRef.current) return;
       cancelled = true;
       window.clearTimeout(id);
     };
   }, [
+    hasAuthenticatedShell,
     activeMapId,
     publicSettingsReady,
     effectiveIsTeacher,

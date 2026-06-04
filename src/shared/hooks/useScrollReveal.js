@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { isElementScrollRevealVisible } from '../utils/motionMath.js';
 
 /**
@@ -11,16 +11,22 @@ export function useScrollReveal(options = {}) {
     threshold = 0.08,
     once = true,
   } = options;
-  const ref = useRef(null);
   const [visible, setVisible] = useState(false);
+  const elementRef = useRef(null);
+  const observerRef = useRef(null);
 
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return undefined;
+  const disconnectObserver = useCallback(() => {
+    observerRef.current?.disconnect();
+    observerRef.current = null;
+  }, []);
+
+  const attachReveal = useCallback((el) => {
+    disconnectObserver();
+    if (!el) return;
 
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
       setVisible(true);
-      return undefined;
+      return;
     }
 
     const revealIfVisible = () => {
@@ -41,17 +47,26 @@ export function useScrollReveal(options = {}) {
       { rootMargin, threshold },
     );
 
+    observerRef.current = observer;
     observer.observe(el);
 
-    const rafId = requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
       if (revealIfVisible() && once) observer.disconnect();
     });
+  }, [disconnectObserver, once, rootMargin, threshold]);
 
-    return () => {
-      cancelAnimationFrame(rafId);
-      observer.disconnect();
-    };
-  }, [rootMargin, threshold, once]);
+  const setRef = useCallback((node) => {
+    elementRef.current = node;
+    attachReveal(node);
+  }, [attachReveal]);
 
-  return [ref, visible];
+  useEffect(() => () => {
+    disconnectObserver();
+  }, [disconnectObserver]);
+
+  useEffect(() => {
+    if (elementRef.current) attachReveal(elementRef.current);
+  }, [attachReveal]);
+
+  return [setRef, visible];
 }
