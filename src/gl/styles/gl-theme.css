@@ -1799,6 +1799,21 @@ body.gl-map-fullscreen-active .gl-qcm-popover-overlay {
 
 /* --- Lot 2B : contenus & chapitres --- */
 
+.gl-chapter-map-studio__subtitle {
+  margin: 1rem 0 0.5rem;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--gl-color-primary);
+}
+
+.gl-chapter-map-studio .gl-kingdom-map-overlay {
+  z-index: 1;
+}
+
+.gl-chapter-map-studio .gl-board-marker {
+  z-index: 2;
+}
+
 .gl-subtabs {
   display: flex;
   gap: 6px;

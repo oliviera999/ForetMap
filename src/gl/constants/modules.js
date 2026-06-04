@@ -6,7 +6,6 @@ export const GL_MODULE_DEFAULTS = {
   tutorialsEnabled: true,
   helpEnabled: true,
   journalEnabled: true,
-  kingdomMapEnabled: true,
   zoneMusicEnabled: false,
   marketEnabled: false,
   spellCastEnabled: false,

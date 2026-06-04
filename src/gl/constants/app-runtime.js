@@ -9,7 +9,6 @@ export const GL_PLAYER_TABS = [
   { id: 'world', label: 'Le monde de G&L', icon: '🌍' },
   { id: 'spells', label: 'Sortileges', icon: '✨' },
   { id: 'rules', label: 'Regles du jeu', icon: '📖' },
-  { id: 'kingdom', label: 'Royaume', icon: '🏰' },
   { id: 'tutorials', label: 'Tutoriels', icon: '🎓' },
   { id: 'forum', label: 'Forum', icon: '💬' },
   { id: 'market', label: 'Marché', icon: '🤝' },

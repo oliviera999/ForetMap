@@ -174,7 +174,7 @@ Le script accepte aussi :
 | POST | `/api/gl/mascots/sprite-library` | `{ chapterId?, filename, mimeType?, dataBase64 }` | `gl.content.manage` |
 | DELETE | `/api/gl/mascots/sprite-library/:id` | — | `gl.content.manage` |
 
-Note UX admin GL : l’édition des chapitres et de la carte royaume est désormais visuelle côté frontend (placement des repères au clic/glisser, dessin/édition des zones polygonales). Le contrat HTTP des endpoints ci-dessus ne change pas.
+Note UX admin GL : l’édition des chapitres (repères + zones polygonales sur la même carte) se fait dans **Contenus → Chapitres** via `GLChapterMapStudio`. Le contrat HTTP des endpoints ci-dessus et `/api/gl/kingdom-map/*` ne change pas.
 
 Événements de partie stockés dans `gl_game_events` et diffusés en Socket.IO (`gl:game:event`, room `gl:game:{id}`).
 
@@ -246,7 +246,6 @@ dans `gl_settings` :
 - `modules.help_enabled`
 - `modules.journal_enabled`
 - `modules.player_journal_enabled` — carnet personnel éditable par joueur (onglet « Mon journal »)
-- `modules.kingdom_map_enabled`
 - `modules.zone_music_enabled`
 - `modules.virtual_dice_enabled` — lanceur de dés D6 (1 à 5) sur la carte de jeu (client uniquement, défaut `false`)
 - `modules.market_enabled`
