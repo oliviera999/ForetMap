@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { isElementScrollRevealVisible } from '../utils/motionMath.js';
 
 /**
  * Révèle un élément au scroll (remplacement léger d'AOS).
@@ -22,6 +23,12 @@ export function useScrollReveal(options = {}) {
       return undefined;
     }
 
+    const revealIfVisible = () => {
+      if (!isElementScrollRevealVisible(el, { rootMargin, threshold })) return false;
+      setVisible(true);
+      return true;
+    };
+
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry?.isIntersecting) {
@@ -35,7 +42,15 @@ export function useScrollReveal(options = {}) {
     );
 
     observer.observe(el);
-    return () => observer.disconnect();
+
+    const rafId = requestAnimationFrame(() => {
+      if (revealIfVisible() && once) observer.disconnect();
+    });
+
+    return () => {
+      cancelAnimationFrame(rafId);
+      observer.disconnect();
+    };
   }, [rootMargin, threshold, once]);
 
   return [ref, visible];

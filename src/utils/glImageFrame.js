@@ -6,13 +6,40 @@ import {
 
 export { getGlImageFrameDefaults, normalizeGlImageFrame };
 
-export function glImageFrameToStyle(frame) {
-  const normalized = normalizeGlImageFrame(frame, 'default');
-  const style = {
+/** Style du conteneur cadre (ratio / bornes max). */
+export function glImageFrameToWrapStyle(frame, context = 'default') {
+  const normalized = normalizeGlImageFrame(frame, context);
+  const style = {};
+  if (normalized.aspectRatio !== 'auto') style.aspectRatio = normalized.aspectRatio;
+  if (normalized.maxWidthPx != null) style.maxWidth = `${normalized.maxWidthPx}px`;
+  if (normalized.maxHeightPx != null) style.maxHeight = `${normalized.maxHeightPx}px`;
+  return style;
+}
+
+/** Style de remplissage image à l'intérieur d'un cadre. */
+export function glImageFrameToImgFillStyle(frame, context = 'default') {
+  const normalized = normalizeGlImageFrame(frame, context);
+  return {
+    width: '100%',
+    height: '100%',
+    maxWidth: '100%',
     objectFit: normalized.objectFit,
     objectPosition: `${normalized.focalX}% ${normalized.focalY}%`,
   };
-  if (normalized.aspectRatio !== 'auto') style.aspectRatio = normalized.aspectRatio;
+}
+
+export function glImageFrameToStyle(frame, context = 'default') {
+  const normalized = normalizeGlImageFrame(frame, context);
+  const style = {
+    ...glImageFrameToImgFillStyle(frame, context),
+    display: 'block',
+  };
+  if (normalized.aspectRatio !== 'auto') {
+    style.aspectRatio = normalized.aspectRatio;
+    style.width = '100%';
+    style.maxWidth = '100%';
+    style.height = 'auto';
+  }
   if (normalized.maxWidthPx != null) style.maxWidth = `${normalized.maxWidthPx}px`;
   if (normalized.maxHeightPx != null) style.maxHeight = `${normalized.maxHeightPx}px`;
   return style;

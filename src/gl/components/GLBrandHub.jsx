@@ -1,5 +1,10 @@
 import React from 'react';
-import { glImageFrameToStyle, normalizeGlImageFrame } from '../../utils/glImageFrame.js';
+import {
+  glImageFrameToImgFillStyle,
+  glImageFrameToStyle,
+  glImageFrameToWrapStyle,
+  normalizeGlImageFrame,
+} from '../../utils/glImageFrame.js';
 import { useScrollReveal } from '../../shared/hooks/useScrollReveal.js';
 
 const CARD_SLOT_IDS = ['card_world', 'card_rules', 'card_spells'];
@@ -15,7 +20,7 @@ export function GLBrandHub({ slots, onOpenTab, compact = false }) {
   const cards = CARD_SLOT_IDS
     .map((id) => ({ id, ...slots?.[id] }))
     .filter((card) => String(card?.imageUrl || '').trim() || String(card?.title || '').trim());
-  const [cardsRef, cardsVisible] = useScrollReveal({ once: true, threshold: 0.12 });
+  const [cardsRef, cardsVisible] = useScrollReveal({ once: true, threshold: 0.01, rootMargin: '0px' });
 
   if (!heroImage && cards.length === 0) return null;
 
@@ -28,7 +33,9 @@ export function GLBrandHub({ slots, onOpenTab, compact = false }) {
           className="gl-brand-hub__hero hero-ken-burns"
           style={{
             backgroundImage: `url(${heroImage})`,
-            backgroundPosition: `${heroFrame.focalX}% ${heroFrame.focalY}%`,
+            '--gl-hero-focal-x': `${heroFrame.focalX}%`,
+            '--gl-hero-focal-y': `${heroFrame.focalY}%`,
+            backgroundPosition: 'var(--gl-hero-focal-x) var(--gl-hero-focal-y)',
           }}
           role="img"
           aria-label={hero?.title || 'Illustration Gnomes et Licornes'}
@@ -60,13 +67,16 @@ export function GLBrandHub({ slots, onOpenTab, compact = false }) {
                 onClick={canNavigate ? () => onOpenTab(tab) : undefined}
               >
                 {imageUrl ? (
-                  <div className="gl-brand-hub__card-image-wrap">
+                  <div
+                    className="gl-brand-hub__card-image-wrap"
+                    style={glImageFrameToWrapStyle(cardFrame, 'brand-card')}
+                  >
                     <img
                       src={imageUrl}
                       alt=""
                       className="gl-brand-hub__card-image"
                       loading="lazy"
-                      style={glImageFrameToStyle(cardFrame)}
+                      style={glImageFrameToImgFillStyle(cardFrame, 'brand-card')}
                     />
                   </div>
                 ) : (
