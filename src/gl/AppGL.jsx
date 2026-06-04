@@ -32,7 +32,6 @@ import { GLMarketView } from './components/GLMarketView.jsx';
 import { GLTutorialsView } from './components/GLTutorialsView.jsx';
 import { GLJournalView } from './components/GLJournalView.jsx';
 import { GLPlayerJournalView } from './components/GLPlayerJournalView.jsx';
-import { GLKingdomMapView } from './components/GLKingdomMapView.jsx';
 import { GLNotificationsCenter } from './components/GLNotificationsCenter.jsx';
 import { GLButton } from './components/ui/GLButton.jsx';
 import { GLHelpPanel } from './components/GLHelpPanel.jsx';
@@ -130,7 +129,6 @@ export function AppGL() {
   const [spellPopoverCode, setSpellPopoverCode] = useState(null);
   const [spellCastOpen, setSpellCastOpen] = useState(false);
   const [spellCastInitialCode, setSpellCastInitialCode] = useState(null);
-  const [kingdomChapterId, setKingdomChapterId] = useState(null);
   const [zoneMusicZones, setZoneMusicZones] = useState([]);
   const [watchTeamPct, setWatchTeamPct] = useState(null);
   const [zoneMusicMuted, setZoneMusicMuted] = useState(() => readStoredMuted());
@@ -139,9 +137,8 @@ export function AppGL() {
 
   const themeChapterId = useMemo(() => {
     if (gameState?.game?.chapter_id) return Number(gameState.game.chapter_id);
-    if (tab === 'kingdom' && kingdomChapterId) return Number(kingdomChapterId);
     return null;
-  }, [gameState, tab, kingdomChapterId]);
+  }, [gameState]);
 
   const themeChapter = useMemo(() => {
     if (!themeChapterId) return null;
@@ -157,10 +154,6 @@ export function AppGL() {
   }, [gameState?.game?.chapter_biomes]);
 
   const glossaryLinkItems = useGlGlossaryLinkIndex(token, chapterBiomeSlugs);
-
-  useEffect(() => {
-    if (tab !== 'kingdom') setKingdomChapterId(null);
-  }, [tab]);
 
   const openGlossaryPopover = useCallback((code) => {
     const trimmed = String(code || '').trim();
@@ -302,7 +295,6 @@ export function AppGL() {
   const tabs = useMemo(() => {
     const playerTabs = GL_PLAYER_TABS.filter((tab) => {
       if (tab.id === 'history') return isModuleEnabled(modules, 'journalEnabled');
-      if (tab.id === 'kingdom') return isModuleEnabled(modules, 'kingdomMapEnabled');
       if (tab.id === 'tutorials') return isModuleEnabled(modules, 'tutorialsEnabled');
       if (tab.id === 'forum') return isModuleEnabled(modules, 'forumEnabled');
       if (tab.id === 'market') {
@@ -977,15 +969,6 @@ export function AppGL() {
         )}
         {tab === 'my-journal' && isModuleEnabled(modules, 'playerJournalEnabled') && (
           <GLPlayerJournalView gameState={gameState} />
-        )}
-        {tab === 'kingdom' && isModuleEnabled(modules, 'kingdomMapEnabled') && (
-          <GLKingdomMapView
-            chapter={activeChapter}
-            chapters={chapters}
-            canManage={showStaffAdminUi}
-            onChapterChange={setKingdomChapterId}
-            zoneMusicEnabled={zoneMusicEnabled}
-          />
         )}
         {isModuleEnabled(modules, 'helpEnabled') ? (
           <GLHelpPanel helpKey={`tab:${tab}`} title="Aide GL" defaultOpen={false}>

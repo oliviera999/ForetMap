@@ -83,8 +83,9 @@ Ajouts Lot 2B (contenus & chapitres) :
 
 Ajouts Lot 2D (édition visuelle carte) :
 
-- `GLChapterMapEditor` : édition visuelle des repères de chapitre alignée avec les conventions ForetMap (coordonnées `%` sur image, sélection, déplacement).
-- `GLKingdomMapView` + `GLKingdomZoneEditor` : dessin polygonal des zones royaume à la souris, édition des sommets en direct, sélection de chapitre indépendante de la partie active.
+- `GLChapterMapEditor` : édition visuelle des repères de chapitre (composant de base ; utilisé seul si besoin).
+- `GLChapterMapStudio` : studio admin **Contenus → Chapitres** — carte unique avec repères (`GLBoardMarkers`) et zones polygonales (`GLKingdomZoneMapOverlay` + `useGLKingdomZones` / `useGLKingdomZoneEditor`) ; musique de zone si `modules.zone_music_enabled`.
+- `GLKingdomZoneEditor` : variante autonome (carte + panneaux) ; l’édition courante passe par le studio chapitre.
 - Socle frontend partagé : `useGlPctMapGestures`, `GLPctMapCanvas`, `GLBoardMarkers` pour homogénéiser les interactions carte GL.
 
 Ajouts Lot 2C (mascottes & équipes) :
@@ -202,7 +203,7 @@ Tables GL préfixées `gl_` :
 
 - Hook partagé : [`src/shared/hooks/usePrefersReducedMotion.js`](../src/shared/hooks/usePrefersReducedMotion.js) (popovers, plateau, etc.).
 - Variables modale/toast thématisées sous `.gl-app` : `--fm-modal-*`, `--fm-toast-*`.
-- Les modules GL (forum, tutoriels, journal de partie, **carnet personnel** `my-journal`, carte royaume, notifications, commentaires contextuels, aide) ont des styles dédiés dans `gl-theme.css` pour rester homogènes avec le shell GL.
+- Les modules GL (forum, tutoriels, journal de partie, **carnet personnel** `my-journal`, musique de zones, notifications, commentaires contextuels, aide) ont des styles dédiés dans `gl-theme.css` pour rester homogènes avec le shell GL.
 
 ### Carnet personnel joueur
 

@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { apiGL } from '../services/apiGL.js';
 import { compressImageWithPreset, isLikelyImageFile } from '../../utils/image.js';
-import { GLChapterMapEditor } from './GLChapterMapEditor.jsx';
+import { GLChapterMapStudio } from './GLChapterMapStudio.jsx';
+import { isModuleEnabled } from '../constants/modules.js';
 import { GLPctMapCanvas } from './GLPctMapCanvas.jsx';
 import { useGlPctMapGestures } from '../hooks/useGlPctMapGestures.js';
 import { GLBoardMarkers } from './GLBoardMarkers.jsx';
@@ -59,14 +60,17 @@ export function GLChaptersAdminView() {
   const [biomes, setBiomes] = useState([]);
   const [spellCatalog, setSpellCatalog] = useState([]);
   const [platformBrand, setPlatformBrand] = useState(null);
+  const [glModules, setGlModules] = useState(null);
   const previewMapGestures = useGlPctMapGestures();
 
   async function loadPlatformBrand() {
     try {
       const config = await apiGL('/api/gl/auth/config');
       setPlatformBrand(normalizeBrand(config?.brand));
+      setGlModules(config?.modules ?? null);
     } catch (_) {
       setPlatformBrand(normalizeBrand(null));
+      setGlModules(null);
     }
   }
 
@@ -641,7 +645,7 @@ export function GLChaptersAdminView() {
             <h3>Thème du chapitre</h3>
             <p className="gl-hint">
               Laissez une couleur vide pour hériter de la charte plateforme. Seules les couleurs renseignées
-              remplacent la charte par défaut pendant une partie ou sur la carte du royaume.
+              remplacent la charte par défaut pendant une partie.
             </p>
             <GLBrandColorEditor
               sparse
@@ -711,14 +715,22 @@ export function GLChaptersAdminView() {
 
           {selectedId ? (
             <>
-              <h3>Repères du chapitre</h3>
-              <GLChapterMapEditor
+              <h3>Carte du chapitre — repères et zones</h3>
+              <p className="gl-hint">
+                Repères interactifs et zones polygonales sur la même image de carte.
+                {isModuleEnabled(glModules, 'zoneMusicEnabled')
+                  ? ' La musique d’ambiance par zone s’applique sur l’onglet Cartes en partie.'
+                  : ''}
+              </p>
+              <GLChapterMapStudio
                 chapterId={selectedId}
                 chapterSlug={chapterForm.slug}
+                chapterTitle={chapterForm.title}
                 chapterBiomes={detail?.chapter?.biomes || []}
                 mapImageUrl={chapterForm.mapImageUrl}
                 mapImageFrame={chapterForm.mapImageFrame}
                 markers={markers}
+                zoneMusicEnabled={isModuleEnabled(glModules, 'zoneMusicEnabled')}
                 onReload={loadDetail}
                 onInfo={(message) => {
                   setInfo(message);

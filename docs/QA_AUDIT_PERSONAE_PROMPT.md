@@ -173,7 +173,7 @@ Utiliser cette checklist pour la recette ciblee de `gl.olution.info` apres un lo
 - Decouverte des onglets actifs (modules `modules.*` selon flags MJ)
 - Onboarding aide contextuelle GL (`GLHelpPanel`) consulte au moins une fois
 - Lecture d'un tutoriel GL (accuse de lecture `/api/gl/tutorials/:id/read`)
-- Consultation de la carte du royaume si `kingdomMapEnabled`
+- Édition des zones et repères chapitre (admin **Contenus → Chapitres**, `GLChapterMapStudio`)
 
 ### Persona GL Joueur confirme (rejoue)
 
