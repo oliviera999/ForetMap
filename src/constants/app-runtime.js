@@ -4,6 +4,20 @@ export const DESKTOP_SPLIT_MIN_TASKS_PX = 420;
 export const TAB_STORAGE_KEY = 'foretmap_active_tab';
 /** Regroupe les rafraîchissements auto quand plusieurs états changent à la suite (réglages, carte, session). */
 export const FETCH_ALL_AUTO_DEBOUNCE_MS = 250;
+/** Durée max d’une passe fetchAll avant déblocage UI (loader + bannière serverDown). */
+export const FETCH_ALL_MAX_WALL_MS = 90_000;
+/** Plafond d’itérations de la boucle while (rafraîchissements concurrents). */
+export const FETCH_ALL_MAX_LOOP_ITERATIONS = 8;
+
+/**
+ * @param {{ loopIterations: number, jobStartedAt: number, now?: number }} params
+ * @returns {'iterations'|'wall'|null}
+ */
+export function getFetchAllLoopAbortReason({ loopIterations, jobStartedAt, now = Date.now() }) {
+  if (loopIterations > FETCH_ALL_MAX_LOOP_ITERATIONS) return 'iterations';
+  if (now - jobStartedAt > FETCH_ALL_MAX_WALL_MS) return 'wall';
+  return null;
+}
 /** Intervalle de polling par défaut (rafraîchissement complet) — compromis charge serveur / fraîcheur des données. */
 export const DATA_REFRESH_INTERVAL_MS = 60000;
 /** Onglets où les tâches / carte changent rarement : on double l’intervalle quand le temps réel Socket.IO est inactif. */

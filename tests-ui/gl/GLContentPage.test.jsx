@@ -38,6 +38,8 @@ describe('GLContentPage', () => {
       expect(screen.getByRole('heading', { level: 2, name: /monde de Gnomes/i })).toBeTruthy();
     });
     expect(apiGlMock).toHaveBeenCalledWith('/api/gl/content/world');
+    const body = document.querySelector('.gl-editorial-body.scroll-reveal');
+    expect(body?.classList.contains('is-visible')).toBe(true);
   });
 
   test('401 : boutons Réessayer et Se reconnecter', async () => {

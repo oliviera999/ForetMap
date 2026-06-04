@@ -1,5 +1,5 @@
 /** @vitest-environment jsdom */
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { describe, expect, it, vi, afterEach } from 'vitest';
 import { act, render, screen } from '@testing-library/react';
 import { useScrollReveal } from '../../src/shared/hooks/useScrollReveal.js';
@@ -52,6 +52,55 @@ describe('useScrollReveal', () => {
     render(<TestReveal rootMargin="0px" threshold={0.01} />);
 
     await act(async () => {
+      await new Promise((resolve) => requestAnimationFrame(resolve));
+    });
+
+    expect(screen.getByTestId('target').dataset.visible).toBe('yes');
+  });
+
+  it('révèle quand le ref est attaché après un premier rendu sans élément', async () => {
+    globalThis.IntersectionObserver = class SilentIO {
+      observe() {}
+
+      disconnect() {}
+
+      unobserve() {}
+    };
+
+    Object.defineProperty(window, 'innerWidth', { value: 800, configurable: true, writable: true });
+    Object.defineProperty(window, 'innerHeight', { value: 600, configurable: true, writable: true });
+
+    rectSpy = vi.spyOn(Element.prototype, 'getBoundingClientRect').mockImplementation(function mockRect() {
+      return {
+        top: 40,
+        left: 0,
+        bottom: 140,
+        right: 320,
+        width: 320,
+        height: 100,
+        x: 0,
+        y: 40,
+      };
+    });
+
+    function TestDelayedReveal() {
+      const [show, setShow] = useState(false);
+      const [ref, visible] = useScrollReveal({ once: true, rootMargin: '0px', threshold: 0.01 });
+      useEffect(() => {
+        setShow(true);
+      }, []);
+      if (!show) return <div data-testid="placeholder" />;
+      return (
+        <div data-testid="target" ref={ref} data-visible={visible ? 'yes' : 'no'}>
+          contenu
+        </div>
+      );
+    }
+
+    render(<TestDelayedReveal />);
+
+    await act(async () => {
+      await new Promise((resolve) => requestAnimationFrame(resolve));
       await new Promise((resolve) => requestAnimationFrame(resolve));
     });
 
