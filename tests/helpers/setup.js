@@ -17,7 +17,11 @@ if (typeof rbac.resetRbacBootstrapForTests === 'function') {
 
   database.initSchema = async (...args) => {
     rbac.resetRbacBootstrapForTests();
-    return originalInitSchema(...args);
+    const result = await originalInitSchema(...args);
+    // Middleware /api (SERVICE_NOT_READY) exige initDatabase() ; la plupart des fichiers
+    // de test n’appellent que initSchema() — marquer la BDD prête après chaque init.
+    await originalInitDatabase(...args);
+    return result;
   };
 
   database.initDatabase = async (...args) => {
