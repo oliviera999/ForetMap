@@ -71,6 +71,19 @@ export function formatPlayerLabel(player) {
   return name || `Joueur #${player?.playerId}`;
 }
 
+/** Payload PUT contributions : une entrée par joueur du roster (y compris zéros). */
+export function buildContributionsSavePayload(roster, localContribs = []) {
+  const byId = new Map((localContribs || []).map((r) => [Number(r.playerId), r]));
+  return (roster || []).map((p) => {
+    const row = byId.get(Number(p.playerId));
+    return {
+      playerId: Number(p.playerId),
+      gems: Number(row?.gems) || 0,
+      hearts: Number(row?.hearts) || 0,
+    };
+  });
+}
+
 export function buildLocalContributions(roster, existing = []) {
   const byId = new Map((existing || []).map((c) => [Number(c.playerId), c]));
   return (roster || []).map((p) => {

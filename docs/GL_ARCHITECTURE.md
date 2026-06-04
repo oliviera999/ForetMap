@@ -150,6 +150,7 @@ Tables GL préfixées `gl_` :
   - `gl_market_trade_messages` — fil de discussion par échange
   - Routes `/api/gl/market/*`, logique `lib/glMarket.js`, UI `GLMarketView`
 - Lancement de sortilèges (`migrations/109_gl_spell_cast.sql`, `110_gl_spell_cast_mj_only.sql`, `113_gl_spell_cast_game_scope.sql`, module `modules.spell_cast_enabled`)
+  - Après déploiement d’un lot touchant les sortilèges : vérifier `schema_version >= 113` et la colonne `gl_spell_cast_drafts.roster_scope` (redémarrage Node pour appliquer les migrations au boot).
   - `gl_spell_cast_drafts` / `gl_spell_cast_contributions` — pool collaboratif ; `roster_scope` : `team` (joueur, une équipe) ou `game` (staff MJ, toutes équipes via `gl_team_members`)
   - Coût : `cout_gemmes` → PP (💎), `cout_coeurs` → PV (❤️) sur `gl_players` ; débit au `launch`, stats via événement `spell_cast`
   - Réglages : `gameplay.spell_cast_contribution_mode`, `gameplay.spell_cast_team_scope`, `gameplay.spell_cast_mj_only` (lancement réservé au MJ — flux principal)

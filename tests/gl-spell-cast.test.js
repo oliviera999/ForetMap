@@ -193,6 +193,8 @@ test('lancement gemmes : débit et événement spell_cast', async () => {
     .set('Authorization', `Bearer ${tokenA}`);
   assert.strictEqual(launchRes.status, 200);
   assert.strictEqual(launchRes.body.ok, true);
+  assert.strictEqual(launchRes.body.event?.eventType, 'spell_cast');
+  assert.ok(Number(launchRes.body.event?.id) > 0);
 
   const rowA = await queryOne('SELECT power_points FROM gl_players WHERE id = ?', [playerAId]);
   const rowB = await queryOne('SELECT power_points FROM gl_players WHERE id = ?', [playerBId]);
@@ -281,6 +283,14 @@ test('MJ : brouillon multi-équipes sans teamId, contributions cross-team', asyn
     [gameId]
   );
   await execute('DELETE FROM gl_spell_cast_drafts WHERE game_id = ?', [gameId]);
+  await execute(
+    'UPDATE gl_players SET health_points = 5, power_points = 5 WHERE id = ?',
+    [playerAId]
+  );
+  await execute(
+    'UPDATE gl_players SET health_points = 4, power_points = 3 WHERE id = ?',
+    [playerBId]
+  );
   await assignPlayerToGameTeam({ gameId, teamId: teamBId, playerId: playerBId });
 
   const mjToken = await signAuthToken({

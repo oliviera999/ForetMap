@@ -7,6 +7,7 @@ import {
   groupRosterByTeam,
   formatSpellCost,
   resolveSpellCastInitialStep,
+  buildContributionsSavePayload,
 } from '../../src/gl/utils/glSpellCastRules.js';
 
 describe('glSpellCastRules', () => {
@@ -62,6 +63,21 @@ describe('glSpellCastRules', () => {
     expect(resolveSpellCastInitialStep({ isStaff: true, activeSpellCode: 'SCT01' })).toBe('fund');
     expect(resolveSpellCastInitialStep({ isStaff: false, activeSpellCode: 'SCT01' })).toBe('team');
     expect(resolveSpellCastInitialStep({ isStaff: true, activeSpellCode: null })).toBe('spell');
+  });
+
+  it('buildContributionsSavePayload aligne roster et contributions locales', () => {
+    const roster = [
+      { playerId: 1, teamId: 10 },
+      { playerId: 2, teamId: 10 },
+    ];
+    const payload = buildContributionsSavePayload(roster, [
+      { playerId: 1, gems: 2, hearts: 0 },
+      { playerId: 2, gems: 0, hearts: 1 },
+    ]);
+    expect(payload).toEqual([
+      { playerId: 1, gems: 2, hearts: 0 },
+      { playerId: 2, gems: 0, hearts: 1 },
+    ]);
   });
 
   it('needsOtherPlayerConfirm en mode both uniquement', () => {

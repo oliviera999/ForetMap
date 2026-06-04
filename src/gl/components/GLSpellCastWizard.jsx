@@ -14,6 +14,7 @@ import {
   needsOtherPlayerConfirm,
   resolveSpellCastInitialStep,
   sumContributionTotals,
+  buildContributionsSavePayload,
 } from '../utils/glSpellCastRules.js';
 
 const CLOSE_MS = 200;
@@ -247,7 +248,7 @@ export function GLSpellCastWizard({
 
   const totals = useMemo(() => sumContributionTotals(localContribs), [localContribs]);
   const required = spellCast?.draft?.required || { gems: 0, hearts: 0 };
-  const ready = isSpellCastReady(totals, required);
+  const readyLocal = isSpellCastReady(totals, required);
 
   async function handleSelectTeam(teamId) {
     if (!activeSpellCode || !gameId) return;
@@ -297,9 +298,14 @@ export function GLSpellCastWizard({
   }
 
   async function handleLaunch() {
-    if (!spellCast?.draft?.id || !ready) return;
+    if (!spellCast?.draft?.id || !readyLocal) return;
     try {
-      await spellCast.launch(spellCast.draft.id);
+      const payload = buildContributionsSavePayload(spellCast.draft.roster, localContribs);
+      const savedDraft = await spellCast.saveContributions(spellCast.draft.id, payload);
+      if (!savedDraft?.ready && !isSpellCastReady(savedDraft?.totals, required)) {
+        return;
+      }
+      await spellCast.launch(savedDraft?.id ?? spellCast.draft.id);
       requestClose();
     } catch (_) {
       // error shown via spellCast.error
@@ -498,7 +504,7 @@ export function GLSpellCastWizard({
               <GLButton
                 type="button"
                 variant="primary"
-                disabled={!ready || spellCast?.busy || fundLoading || !spellCast?.draft}
+                disabled={!readyLocal || spellCast?.busy || fundLoading || !spellCast?.draft}
                 onClick={handleLaunch}
               >
                 Lancer le sortilège
