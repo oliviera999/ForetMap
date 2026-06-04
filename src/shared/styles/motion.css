@@ -81,10 +81,22 @@
 }
 
 @keyframes kenBurns {
-  0% { background-position: 50% 50%; background-size: 100%; }
-  33% { background-position: 52% 51%; background-size: 102%; }
-  66% { background-position: 49% 52%; background-size: 103%; }
-  100% { background-position: 50% 50%; background-size: 100%; }
+  0% {
+    background-position: var(--gl-hero-focal-x, 50%) var(--gl-hero-focal-y, 50%);
+    background-size: 100%;
+  }
+  33% {
+    background-position: calc(var(--gl-hero-focal-x, 50%) + 2%) calc(var(--gl-hero-focal-y, 50%) + 1%);
+    background-size: 102%;
+  }
+  66% {
+    background-position: calc(var(--gl-hero-focal-x, 50%) - 1%) calc(var(--gl-hero-focal-y, 50%) + 2%);
+    background-size: 103%;
+  }
+  100% {
+    background-position: var(--gl-hero-focal-x, 50%) var(--gl-hero-focal-y, 50%);
+    background-size: 100%;
+  }
 }
 
 .fade-in {
