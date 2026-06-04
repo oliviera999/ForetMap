@@ -153,6 +153,44 @@ test('PUT /api/gl/chapters/admin/:id refuse theme.colors invalide', async () => 
     .expect(400);
 });
 
+test('POST /api/gl/chapters/admin/charte/import apply met à jour theme_json', async () => {
+  const XLSX = require('xlsx');
+  const wb = XLSX.utils.book_new();
+  const data = [
+    [
+      'slug', 'titre', 'image_carte_url',
+      'couleur_primaire', 'couleur_secondaire', 'couleur_tertiaire', 'couleur_texte',
+      'couleur_liens', 'couleur_liens_survol', 'couleur_barre_haute', 'couleur_fond',
+      'cadre_ratio', 'cadre_ajustement', 'cadre_focal_x', 'cadre_focal_y',
+      'cadre_largeur_max', 'cadre_hauteur_max',
+    ],
+    [slugCreated, '', '', '#2c5959', '', '', '', '', '', '', '#e8f5e9', '', '', '', '', '', ''],
+  ];
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(data), 'chapitres_charte');
+  const buffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
+  const fileDataBase64 = `data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,${buffer.toString('base64')}`;
+
+  const res = await request(app)
+    .post('/api/gl/chapters/admin/charte/import')
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ fileDataBase64, dryRun: false })
+    .expect(200);
+  assert.strictEqual(res.body.report.totals.updated, 1);
+
+  const row = await queryOne('SELECT theme_json FROM gl_chapters WHERE slug = ? LIMIT 1', [slugCreated]);
+  const theme = JSON.parse(String(row.theme_json));
+  assert.strictEqual(theme.colors.primary, '#2c5959');
+  assert.strictEqual(theme.colors.background, '#e8f5e9');
+});
+
+test('POST /api/gl/chapters/admin/charte/import refuse sans gl.content.manage', async () => {
+  await request(app)
+    .post('/api/gl/chapters/admin/charte/import')
+    .set('Authorization', `Bearer ${playerToken}`)
+    .send({ fileDataBase64: 'data:;base64,', dryRun: true })
+    .expect(403);
+});
+
 test('POST /api/gl/chapters/admin/:id/map-image importe une image locale', async () => {
   const res = await request(app)
     .post(`/api/gl/chapters/admin/${createdChapterId}/map-image`)

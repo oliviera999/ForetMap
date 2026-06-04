@@ -24,6 +24,12 @@ const {
   buildSpeciesPayload,
   validateSpeciesPayload,
 } = require('../lib/glSpeciesImport');
+const {
+  CHARTE_SHEET,
+  parseChapterCharteWorkbook,
+  buildChapterChartePayload,
+  validateChapterChartePayload,
+} = require('../lib/glChapterCharteImport');
 
 let adminToken = '';
 let playerToken = '';
@@ -225,6 +231,26 @@ test('GET /api/gl/admin/species/export round-trip ré-importable', async () => {
   assert.ok(exported);
   assert.strictEqual(validateSpeciesPayload(buildSpeciesPayload(exported), 2).length, 0);
   assert.ok(biomeRows.some((row) => row.slug === biomeSlug));
+});
+
+test('GET /api/gl/chapters/admin/charte/import/template retourne un modèle XLSX', async () => {
+  const buf = await getXlsxBuffer(
+    request(app),
+    '/api/gl/chapters/admin/charte/import/template',
+    adminToken
+  );
+  const { rows } = parseChapterCharteWorkbook(buf);
+  assert.ok(rows.length >= 1);
+  assert.strictEqual(validateChapterChartePayload(buildChapterChartePayload(rows[0]), 2).length, 0);
+  const wb = require('xlsx').read(buf, { type: 'buffer' });
+  assert.ok(wb.SheetNames.includes(CHARTE_SHEET));
+});
+
+test('GET /api/gl/chapters/admin/charte/export refuse sans permission', async () => {
+  await request(app)
+    .get('/api/gl/chapters/admin/charte/export')
+    .set('Authorization', `Bearer ${playerToken}`)
+    .expect(403);
 });
 
 test('GET template/export QCM refuse sans authentification', async () => {

@@ -274,3 +274,112 @@ test('mj_only : joueur refusé, staff autorisé', async () => {
 
   await enableSpellCast({ mjOnly: false });
 });
+
+test('MJ : brouillon multi-équipes sans teamId, contributions cross-team', async () => {
+  await execute(
+    'DELETE FROM gl_spell_cast_contributions WHERE draft_id IN (SELECT id FROM gl_spell_cast_drafts WHERE game_id = ?)',
+    [gameId]
+  );
+  await execute('DELETE FROM gl_spell_cast_drafts WHERE game_id = ?', [gameId]);
+  await assignPlayerToGameTeam({ gameId, teamId: teamBId, playerId: playerBId });
+
+  const mjToken = await signAuthToken({
+    product: 'gl',
+    userType: 'gl_admin',
+    userId: '1',
+    roleSlug: 'gl_admin',
+    permissions: ['gl.read', 'gl.game.manage', 'gl.event.emit'],
+    displayName: 'MJ cross-team',
+    classId: null,
+    gameId,
+  });
+
+  const draftRes = await request(app)
+    .post(`/api/gl/games/${gameId}/spell-casts/drafts`)
+    .set('Authorization', `Bearer ${mjToken}`)
+    .send({ spellCode: 'SCT03' });
+  assert.strictEqual(draftRes.status, 201);
+  assert.strictEqual(draftRes.body.draft.rosterScope, 'game');
+  const rosterIds = (draftRes.body.draft.roster || []).map((r) => r.playerId);
+  assert.ok(rosterIds.includes(playerAId));
+  assert.ok(rosterIds.includes(playerBId));
+  const draftId = draftRes.body.draft.id;
+
+  await request(app)
+    .put(`/api/gl/games/${gameId}/spell-casts/drafts/${draftId}/contributions`)
+    .set('Authorization', `Bearer ${mjToken}`)
+    .send({
+      contributions: [
+        { playerId: playerAId, gems: 1, hearts: 0 },
+        { playerId: playerBId, gems: 0, hearts: 1 },
+      ],
+    })
+    .expect(200);
+
+  const launchRes = await request(app)
+    .post(`/api/gl/games/${gameId}/spell-casts/drafts/${draftId}/launch`)
+    .set('Authorization', `Bearer ${mjToken}`);
+  assert.strictEqual(launchRes.status, 200);
+
+  const rowA = await queryOne('SELECT power_points, health_points FROM gl_players WHERE id = ?', [playerAId]);
+  const rowB = await queryOne('SELECT power_points, health_points FROM gl_players WHERE id = ?', [playerBId]);
+  assert.strictEqual(Number(rowA.power_points), 4);
+  assert.strictEqual(Number(rowB.health_points), 3);
+
+  const payload = JSON.parse(
+    (await queryOne(
+      `SELECT payload_json FROM gl_game_events
+        WHERE game_id = ? AND event_type = 'spell_cast' ORDER BY id DESC LIMIT 1`,
+      [gameId]
+    )).payload_json
+  );
+  const contribTeams = payload.contributions.map((c) => c.teamId);
+  assert.ok(contribTeams.includes(teamAId) || contribTeams.includes(teamBId));
+
+  await assignPlayerToGameTeam({ gameId, teamId: teamAId, playerId: playerBId });
+});
+
+test('contribution > solde → 409 CONTRIBUTION_EXCEEDS_BALANCE', async () => {
+  const draftRes = await request(app)
+    .post(`/api/gl/games/${gameId}/spell-casts/drafts`)
+    .set('Authorization', `Bearer ${tokenA}`)
+    .send({ spellCode: 'SCT01', teamId: teamAId });
+  const draftId = draftRes.body.draft.id;
+
+  const res = await request(app)
+    .put(`/api/gl/games/${gameId}/spell-casts/drafts/${draftId}/contributions`)
+    .set('Authorization', `Bearer ${tokenA}`)
+    .send({ contributions: [{ playerId: playerAId, gems: 99, hearts: 0 }] });
+  assert.strictEqual(res.status, 409);
+  assert.match(String(res.body?.error || ''), /solde/i);
+
+  await request(app)
+    .delete(`/api/gl/games/${gameId}/spell-casts/drafts/${draftId}`)
+    .set('Authorization', `Bearer ${tokenA}`)
+    .expect(200);
+});
+
+test('mj_only : staff peut créer brouillon sans teamId', async () => {
+  await enableSpellCast({ mjOnly: true });
+  const mjToken = await signAuthToken({
+    product: 'gl',
+    userType: 'gl_admin',
+    userId: '2',
+    roleSlug: 'gl_admin',
+    permissions: ['gl.read', 'gl.game.manage', 'gl.event.emit'],
+    displayName: 'MJ only draft',
+    classId: null,
+    gameId,
+  });
+  const res = await request(app)
+    .post(`/api/gl/games/${gameId}/spell-casts/drafts`)
+    .set('Authorization', `Bearer ${mjToken}`)
+    .send({ spellCode: 'SCT02' });
+  assert.strictEqual(res.status, 201);
+  assert.strictEqual(res.body.draft.rosterScope, 'game');
+  await request(app)
+    .delete(`/api/gl/games/${gameId}/spell-casts/drafts/${res.body.draft.id}`)
+    .set('Authorization', `Bearer ${mjToken}`)
+    .expect(200);
+  await enableSpellCast({ mjOnly: false });
+});

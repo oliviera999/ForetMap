@@ -13,6 +13,7 @@ const {
   updateDraftContributions,
   launchDraft,
   cancelDraft,
+  isStaff,
 } = require('../../lib/glSpellCast');
 const { normalizeSpellCode } = require('../../lib/glChapterSpells');
 const { getGameplaySettings } = require('../../lib/glSettings');
@@ -1129,11 +1130,7 @@ router.post('/games/:id/qcm/answer', requireGlAuth, async (req, res) => {
     }
   }
 
-  const questionRow = await queryOne(
-    `SELECT question_code, tags, mots_cles FROM gl_qcm_questions
-      WHERE question_code = ? AND statut = 'actif' LIMIT 1`,
-    [questionCode]
-  );
+  const questionRow = await loadActiveQuestion({ queryOne }, questionCode);
   if (!questionRow) return res.status(404).json({ error: 'Question introuvable' });
 
   let verification;
@@ -1396,9 +1393,12 @@ router.get('/spell-cast-settings', requireGlAuth, async (_req, res) => {
 router.post('/games/:id/spell-casts/drafts', requireSpellCastPermission, async (req, res) => {
   return handleSpellCastRoute(req, res, async ({ gameId, config }) => {
     const spellCode = normalizeSpellCode(req.body?.spellCode);
+    if (!spellCode) {
+      return res.status(400).json({ error: 'spellCode requis' });
+    }
     const teamId = parseId(req.body?.teamId);
-    if (!spellCode || !teamId) {
-      return res.status(400).json({ error: 'spellCode et teamId requis' });
+    if (!teamId && !isStaff(req.glAuth)) {
+      return res.status(400).json({ error: 'teamId requis pour les joueurs' });
     }
     const draft = await createOrGetDraft({
       gameId,

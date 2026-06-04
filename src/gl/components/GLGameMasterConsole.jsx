@@ -45,6 +45,8 @@ export function GLGameMasterConsole({
   onSelectTeam,
   canImpersonate = false,
   onImpersonationApplied = null,
+  canSpellCast = false,
+  onLaunchSpell = null,
 }) {
   const [mjSection, setMjSection] = useState('parties');
   const [showCreateForm, setShowCreateForm] = useState(false);
@@ -966,6 +968,18 @@ export function GLGameMasterConsole({
                 </div>
               </div>
             )}
+
+            {canSpellCast && gameStatus === 'live' ? (
+              <div className="gl-gameplay-block">
+                <h3>Sortilèges</h3>
+                <p className="gl-hint">
+                  Lancement collaboratif (toutes équipes) : répartissez gemmes et cœurs entre les joueurs.
+                </p>
+                <GLButton type="button" onClick={() => onLaunchSpell?.(null)} disabled={busy}>
+                  Lancer un sortilège
+                </GLButton>
+              </div>
+            ) : null}
 
             {turnsEnabled && (
               <div className="gl-gameplay-block">

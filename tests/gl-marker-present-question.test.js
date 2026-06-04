@@ -141,7 +141,15 @@ test('POST qcm/answer pour joueur membre après présentation', async () => {
     })
     .expect(200);
   assert.strictEqual(answer.body.correct, true);
-  assert.match(String(answer.body.feedback || ''), /Bonne réponse/i);
+  assert.ok(String(answer.body.feedback || '').trim().length > 0);
+  const row = await queryOne(
+    `SELECT feedback_correct FROM gl_qcm_questions WHERE question_code = 'QCM0001' LIMIT 1`
+  );
+  if (row?.feedback_correct) {
+    assert.strictEqual(answer.body.feedback, String(row.feedback_correct).trim());
+  } else {
+    assert.match(String(answer.body.feedback || ''), /Bonne réponse/i);
+  }
 });
 
 test('POST qcm/answer pour MJ avec teamId (sans gl.action.request)', async () => {

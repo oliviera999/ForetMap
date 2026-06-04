@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { apiGL } from '../services/apiGL.js';
 import { GLButton } from './ui/GLButton.jsx';
 import { GLQcmFeedbackBlock } from './GLQcmFeedbackBlock.jsx';
-import { hasQcmAnswerFeedback } from '../utils/glQcmDisplay.js';
+import { shouldShowQcmAnswerPhase } from '../utils/glQcmDisplay.js';
 import { GLGlossaryInlineText } from './GLGlossaryMarkdown.jsx';
 
 export function GLQcmPopover({
@@ -28,11 +28,13 @@ export function GLQcmPopover({
   const [selectedChoiceId, setSelectedChoiceId] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [answerResult, setAnswerResult] = useState(null);
 
   useEffect(() => {
     if (open) {
       setSelectedChoiceId(null);
       setError('');
+      setAnswerResult(null);
     }
   }, [open, questionCode, presentation?.presentationToken]);
 
@@ -72,8 +74,11 @@ export function GLQcmPopover({
           presentationToken: body.presentationToken,
           choiceId: body.choiceId,
         });
+      setAnswerResult(data);
       onSubmitResult?.(data);
-      if (gameId && data?.correct) onAnswered?.(data);
+      if (gameId && data?.correct) {
+        queueMicrotask(() => onAnswered?.(data));
+      }
     } catch (err) {
       setError(err.message || 'Envoi de la réponse impossible');
     } finally {
@@ -84,7 +89,9 @@ export function GLQcmPopover({
   if (!open || typeof document === 'undefined') return null;
 
   const displayError = externalError || error;
-  const showAnswer = hasQcmAnswerFeedback(result);
+  const displayResult = answerResult ?? result;
+  const showAnswer = shouldShowQcmAnswerPhase(displayResult);
+  const showChoices = !loading && !showAnswer && presentation;
 
   return createPortal(
     <div
@@ -106,7 +113,7 @@ export function GLQcmPopover({
             {loading ? <p className="gl-hint">Chargement de la question…</p> : null}
             {displayError ? <p className="gl-error">{displayError}</p> : null}
           </header>
-          {!loading && !result && presentation ? (
+          {showChoices ? (
             <>
               <div className="gl-qcm-popover__scroll">
                 {questionCode ? (
@@ -181,16 +188,16 @@ export function GLQcmPopover({
                   <p className="gl-hint">Question {questionCode}</p>
                 ) : null}
                 <GLQcmFeedbackBlock
-                  result={result}
-                  scoreDelta={result?.scoreDelta}
+                  result={displayResult}
+                  scoreDelta={displayResult?.scoreDelta}
                   glossaryLinkItems={glossaryLinkItems}
                   onOpenGlossaryTerm={onOpenGlossaryTerm}
                 />
-                {Array.isArray(result.glossaryTerms) && result.glossaryTerms.length > 0 ? (
+                {Array.isArray(displayResult.glossaryTerms) && displayResult.glossaryTerms.length > 0 ? (
                   <div className="gl-qcm-modal__glossary">
                     <strong>Termes liés :</strong>
                     <div className="gl-glossary-chips">
-                      {result.glossaryTerms.map((term) => (
+                      {displayResult.glossaryTerms.map((term) => (
                         <button
                           key={term.glossary_code}
                           type="button"
@@ -206,7 +213,7 @@ export function GLQcmPopover({
               </div>
               <footer className="gl-qcm-popover__footer">
                 <div className="gl-inline-actions">
-                  {!result.correct ? (
+                  {!displayResult.correct ? (
                     <GLButton type="button" onClick={onReshuffle}>Réessayer</GLButton>
                   ) : null}
                   <GLButton type="button" onClick={onClose}>Fermer</GLButton>

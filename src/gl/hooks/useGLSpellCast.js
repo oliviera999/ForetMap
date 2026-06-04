@@ -35,10 +35,9 @@ export function useGLSpellCast({
   const startDraft = useCallback(async ({ spellCode, teamId }) => {
     if (!gameId) throw new Error('Aucune partie active');
     return runAction(async () => {
-      const data = await apiGL(`/api/gl/games/${gameId}/spell-casts/drafts`, 'POST', {
-        spellCode,
-        teamId,
-      });
+      const body = { spellCode };
+      if (teamId != null && Number(teamId) > 0) body.teamId = Number(teamId);
+      const data = await apiGL(`/api/gl/games/${gameId}/spell-casts/drafts`, 'POST', body);
       setDraft(data?.draft || null);
       return data?.draft;
     });

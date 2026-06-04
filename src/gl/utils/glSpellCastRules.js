@@ -82,3 +82,35 @@ export function buildLocalContributions(roster, existing = []) {
     };
   });
 }
+
+/** Groupe le roster par équipe (ordre stable). */
+export function groupRosterByTeam(roster = []) {
+  const groups = new Map();
+  for (const player of roster) {
+    const key = player?.teamId != null ? Number(player.teamId) : 0;
+    const label = player?.teamName || (key ? `Équipe ${key}` : 'Sans équipe');
+    if (!groups.has(key)) {
+      groups.set(key, { teamId: key, teamName: label, players: [] });
+    }
+    groups.get(key).players.push(player);
+  }
+  return [...groups.values()];
+}
+
+/** Coût affiché à partir des champs catalogue ou du brouillon. */
+export function formatSpellCost(spellOrRequired) {
+  const req = spellOrRequired?.required || spellOrRequired;
+  const gems = Number(req?.gems ?? req?.cout_gemmes) || 0;
+  const hearts = Number(req?.hearts ?? req?.cout_coeurs) || 0;
+  const parts = [];
+  if (gems > 0) parts.push(`${gems} 💎`);
+  if (hearts > 0) parts.push(`${hearts} ❤️`);
+  return parts.length ? parts.join(' · ') : '';
+}
+
+/** Étape initiale du wizard selon rôle et sort présélectionné. */
+export function resolveSpellCastInitialStep({ isStaff, activeSpellCode }) {
+  if (!activeSpellCode) return 'spell';
+  if (isStaff) return 'fund';
+  return 'team';
+}

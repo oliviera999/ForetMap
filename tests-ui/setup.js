@@ -16,6 +16,30 @@ Object.defineProperty(window, 'matchMedia', {
   })),
 });
 
+/** useScrollReveal et effets index_olution (jsdom n’expose pas IntersectionObserver). */
+class MockIntersectionObserver {
+  constructor(callback) {
+    this.callback = callback;
+  }
+
+  observe(target) {
+    this.callback?.([{ isIntersecting: true, target }]);
+  }
+
+  disconnect() {}
+
+  unobserve() {}
+}
+
+globalThis.IntersectionObserver = MockIntersectionObserver;
+
+/** useCountUp : termine l’animation en un frame (jsdom ne pilote pas rAF). */
+globalThis.requestAnimationFrame = (callback) => {
+  callback(performance.now() + 2000);
+  return 1;
+};
+globalThis.cancelAnimationFrame = vi.fn();
+
 afterEach(() => {
   cleanup();
   vi.restoreAllMocks();

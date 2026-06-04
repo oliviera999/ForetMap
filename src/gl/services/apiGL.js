@@ -98,6 +98,22 @@ export async function apiGL(path, method = 'GET', body = null) {
       continue;
     }
 
+    if (res.status === 401 && token) {
+      const errText = String(errBody.error || '').toLowerCase();
+      const sessionExpired =
+        errText.includes('token invalide')
+        || errText.includes('expiré')
+        || errText.includes('expired');
+      if (sessionExpired) {
+        clearGlSession();
+        const expiredErr = new Error('Session expirée — reconnectez-vous à Gnomes & Licornes.');
+        expiredErr.status = 401;
+        expiredErr.body = errBody;
+        expiredErr.sessionExpired = true;
+        throw expiredErr;
+      }
+    }
+
     const contentType = String(res.headers.get('content-type') || '').toLowerCase();
     const isJson = contentType.includes('application/json');
     let message = typeof errBody.error === 'string' && errBody.error ? errBody.error : '';
@@ -108,7 +124,7 @@ export async function apiGL(path, method = 'GET', body = null) {
         const built = buildApiHttpErrorMessage({
           res,
           errBody,
-          authToken: null,
+          authToken: token,
           sawGatewayResponse,
         });
         message = built.errMsg || `Erreur HTTP ${res.status}`;

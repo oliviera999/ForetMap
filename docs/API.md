@@ -72,6 +72,9 @@ Le script accepte aussi :
 | POST | `/api/gl/chapters/admin/:id/markers` | `{ label, xPct, yPct, eventType?, description?, orderIndex?, eventConfig?, qcmCategorieSlug?, qcmQuestionCode?, displayMode?, emoji?, iconUrl? }` | `gl.content.manage` (`eventConfig` : schéma versionné `{ version, question: { mode, fixedQuestionCode?, pool } }` ; affichage carte : `displayMode` = `label` \| `emoji` \| `icon` — défaut `emoji` + `❓` pour `eventType` question/quiz) |
 | PUT | `/api/gl/chapters/admin/markers/:markerId` | mise à jour partielle marker (dont `eventConfig`, `displayMode`, `emoji`, `iconUrl`) | `gl.content.manage` |
 | POST | `/api/gl/chapters/admin/:id/map-image` | `{ image_data }` (data URL base64 image) | `gl.content.manage` |
+| GET | `/api/gl/chapters/admin/charte/import/template` | — | `gl.content.manage` (modèle XLSX feuille `chapitres_charte` : couleurs thème, image carte, cadre) |
+| GET | `/api/gl/chapters/admin/charte/export` | `?slug=` optionnel | `gl.content.manage` (export XLSX ré-importable des chartes chapitres) |
+| POST | `/api/gl/chapters/admin/charte/import` | `{ fileDataBase64, fileName?, dryRun? }` (XLSX feuille `chapitres_charte` ; UPSERT par `slug` — mise à jour partielle : cellule vide = inchangé, `reset` ou `-` = retirer une couleur ; création minimale si slug absent et `titre` fourni) | `gl.content.manage` (rapport `{ report }`) |
 | DELETE | `/api/gl/chapters/admin/markers/:markerId` | — | `gl.content.manage` (détache les équipes positionnées sur ce marker via `ON DELETE SET NULL`) |
 | GET | `/api/gl/biomes` | — | `gl.read` (liste biomes + effectifs espèces actives) |
 | GET | `/api/gl/species` | `?biomeSlug=` (requis) | `gl.read` (réponse `{ biome, items }` triées faune/flore/groupe/nom ; chaque espèce inclut `glossaryTerms[]` et `learned: boolean` pour le lecteur connecté) |
@@ -146,9 +149,9 @@ Le script accepte aussi :
 | POST | `/api/gl/games/:id/vitality/team` | `{ teamId, healthDelta?, powerDelta?, reason? }` | `gl.event.emit` (applique aux membres `gl_team_members` ; refus `400` si équipe vide) |
 | POST | `/api/gl/games/:id/events` | `{ teamId?, eventType, payload }` | `gl.event.emit` (`move` exige `teamId`) |
 | POST | `/api/gl/games/:id/turn/next` | — | `gl.game.manage` (refus `409` si `gameplay.turns_enabled=false`) |
-| POST | `/api/gl/games/:id/spell-casts/drafts` | `{ spellCode, teamId }` | `gl.action.request` ou `gl.event.emit` (refus `403` si `gameplay.spell_cast_mj_only=true` et acteur joueur ; refus `409` si module off / vitalité off / partie non `live`) |
-| GET | `/api/gl/games/:id/spell-casts/drafts/:draftId` | — | idem |
-| PUT | `/api/gl/games/:id/spell-casts/drafts/:draftId/contributions` | `{ contributions: [{ playerId, gems?, hearts? }] }` | idem (règles `gameplay.spell_cast_contribution_mode`) |
+| POST | `/api/gl/games/:id/spell-casts/drafts` | `{ spellCode, teamId? }` | `gl.action.request` ou `gl.event.emit` — **joueur** : `teamId` requis (roster une équipe) ; **staff MJ** : `teamId` optionnel (défaut `current_team_id` pour tour/journal, roster **toutes équipes**, `rosterScope: "game"`, un brouillon `collecting` par sort et partie). Refus `403` si `spell_cast_mj_only` et acteur joueur ; `409` si module off / vitalité off / partie non `live`. |
+| GET | `/api/gl/games/:id/spell-casts/drafts/:draftId` | — | idem ; réponse `draft.roster[]` inclut `teamId`, `teamName`, soldes PP/PV |
+| PUT | `/api/gl/games/:id/spell-casts/drafts/:draftId/contributions` | `{ contributions: [{ playerId, gems?, hearts? }] }` | idem ; `409` si contribution &gt; solde joueur (`CONTRIBUTION_EXCEEDS_BALANCE`) ; règles `gameplay.spell_cast_contribution_mode` |
 | POST | `/api/gl/games/:id/spell-casts/drafts/:draftId/launch` | — | idem (somme contributions = coût sort ; débit PP/PV) |
 | DELETE | `/api/gl/games/:id/spell-casts/drafts/:draftId` | — | créateur ou MJ |
 | GET | `/api/gl/spell-cast-settings` | — | Auth GL (snapshot module + modes) |
