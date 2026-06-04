@@ -12,6 +12,14 @@ describe('taskActionErrors (client)', () => {
     );
   });
 
+  it('formatTaskActionError — indisponibilité passerelle', async () => {
+    const { formatTaskActionError } = await import('../src/utils/taskActionErrors.js');
+    assert.match(
+      formatTaskActionError('Service momentanément indisponible (redémarrage ou surcharge réseau).'),
+      /quelques secondes/i
+    );
+  });
+
   it('filterTeacherStatusActions — validate seul', async () => {
     const { filterTeacherStatusActions } = await import('../src/utils/taskActionErrors.js');
     const actions = [

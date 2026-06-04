@@ -43,4 +43,84 @@ describe('api ForetMap', () => {
     expect(thrown?.status).toBe(401);
     expect(thrown?.body).toEqual({ error: 'Token requis' });
   });
+
+  test('envoie Accept application/json sur les requêtes api()', async () => {
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue({
+      ok: true,
+      status: 200,
+      headers: { get: () => 'application/json' },
+      json: async () => ({}),
+    });
+    await api('/api/version');
+    expect(fetchMock.mock.calls[0][1].headers.Accept).toBe('application/json');
+  });
+
+  test('POST réessaie sur 503 HTML passerelle puis réussit', async () => {
+    const html503 = '<html><body>Service Unavailable</body></html>';
+    const fetchMock = vi.spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 503,
+        headers: { get: (name) => (String(name).toLowerCase() === 'content-type' ? 'text/html' : null) },
+        json: async () => { throw new Error('not json'); },
+        text: async () => html503,
+      })
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 503,
+        headers: { get: (name) => (String(name).toLowerCase() === 'content-type' ? 'text/html' : null) },
+        json: async () => { throw new Error('not json'); },
+        text: async () => html503,
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        headers: { get: () => 'application/json' },
+        json: async () => ({ validated: true }),
+      });
+
+    const result = await api('/api/tasks/task-1/validate', 'POST');
+    expect(result).toEqual({ validated: true });
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+  });
+
+  test('POST ne réessaie pas sur 503 JSON métier', async () => {
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue({
+      ok: false,
+      status: 503,
+      headers: { get: (name) => (String(name).toLowerCase() === 'content-type' ? 'application/json' : null) },
+      json: async () => ({ error: 'Forum désactivé' }),
+      text: async () => '',
+    });
+
+    await expect(api('/api/forum/posts', 'POST', { body: 'x' })).rejects.toMatchObject({
+      message: 'Forum désactivé',
+      status: 503,
+    });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  test('POST réessaie sur 503 JSON SERVICE_RESTARTING puis réussit', async () => {
+    const fetchMock = vi.spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 503,
+        headers: { get: () => 'application/json' },
+        json: async () => ({
+          error: 'Service en redémarrage — réessayez dans quelques secondes.',
+          code: 'SERVICE_RESTARTING',
+        }),
+        text: async () => '',
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        headers: { get: () => 'application/json' },
+        json: async () => ({ ok: true }),
+      });
+
+    const result = await api('/api/tasks/task-2/validate', 'POST');
+    expect(result).toEqual({ ok: true });
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
 });
