@@ -69,6 +69,9 @@ const glStatsRouter = require('./routes/gl/stats');
 
 const app = express();
 
+/** Arrêt gracieux en cours (redémarrage deploy, SIGTERM, etc.). */
+let shutdownInProgress = false;
+
 /** Derrière nginx / Passenger / load balancer : IP client pour rate-limit et logs. */
 function configureTrustProxy() {
   const raw = String(process.env.FORETMAP_TRUST_PROXY || '').trim();
@@ -232,6 +235,30 @@ app.use('/api/auth/reset-password', authLimiter);
 app.use('/api/gl/auth/login', authLimiter);
 app.use('/api/gl/auth/forgot-password', authLimiter);
 app.use('/api/gl/auth/reset-password', authLimiter);
+
+/** Santé / readiness : toujours joignables pendant boot ou redémarrage. */
+function isApiAvailabilityExemptPath(originalUrl) {
+  const p = String(originalUrl || '').split('?')[0];
+  return p === '/api/health' || p === '/api/health/db' || p === '/api/ready';
+}
+
+app.use('/api', (req, res, next) => {
+  const pathname = String(req.originalUrl || req.url || '').split('?')[0];
+  if (isApiAvailabilityExemptPath(pathname)) return next();
+  if (shutdownInProgress) {
+    return res.status(503).type('application/json').json({
+      error: 'Service en redémarrage — réessayez dans quelques secondes.',
+      code: 'SERVICE_RESTARTING',
+    });
+  }
+  if (!isApplicationDatabaseReady()) {
+    return res.status(503).type('application/json').json({
+      error: 'Service non prêt — initialisation en cours.',
+      code: 'SERVICE_NOT_READY',
+    });
+  }
+  return next();
+});
 
 // JSON volumineux (ex. photos base64 forum). Défaut 25mb ; surcharge : FORETMAP_JSON_BODY_LIMIT (ex. 100mb).
 const jsonBodyLimit = String(process.env.FORETMAP_JSON_BODY_LIMIT || '25mb').trim() || '25mb';
@@ -641,6 +668,10 @@ app.use((err, req, res, next) => {
   );
   const status = Number(err?.status) || 500;
   const message = status >= 500 ? 'Erreur serveur' : (err?.message || 'Requête invalide');
+  const originalUrl = String(req.originalUrl || req.url || '');
+  if (originalUrl.startsWith('/api')) {
+    res.type('application/json');
+  }
   res.status(status).json({ error: message });
 });
 
@@ -654,7 +685,6 @@ let httpServer = null;
 let recurringJobFirstTimeoutId = null;
 let recurringJobIntervalId = null;
 let shutdownHandlersRegistered = false;
-let shutdownInProgress = false;
 
 function parseShutdownTimeoutMs() {
   const raw = String(process.env.FORETMAP_SHUTDOWN_TIMEOUT_MS || '').trim();
@@ -831,4 +861,10 @@ if (require.main === module) {
   boot();
 }
 
-module.exports = { app, boot };
+/** Tests uniquement : simuler un redémarrage applicatif. */
+function setShutdownInProgressForTests(value) {
+  if (String(process.env.NODE_ENV || '').trim().toLowerCase() !== 'test') return;
+  shutdownInProgress = !!value;
+}
+
+module.exports = { app, boot, setShutdownInProgressForTests };

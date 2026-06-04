@@ -392,7 +392,13 @@ Sans `LOAD_TEST_SECRET`, le comportement reste inchangé : le rate limiting s'ap
 
 ### Client HTTP (SPA)
 
-Les requêtes **`GET`** sans corps émises par **`api()`** (`src/services/api.js`) réessayent automatiquement jusqu’à **4** tentatives (backoff avec jitter) en cas de réponse **502**, **503**, **504** ou d’échec réseau typique (`TypeError`, ex. *Failed to fetch*), afin d’absorber de courtes indisponibilités proxy / hébergeur. Les autres méthodes HTTP et les réponses **429** ne sont pas réessayées automatiquement.
+Les requêtes **`GET`** sans corps émises par **`api()`** / **`apiGL()`** (`src/services/api.js`, `src/services/apiTransport.js`) réessayent automatiquement jusqu’à **4** tentatives (backoff avec jitter) en cas de réponse **502**, **503**, **504** ou d’échec réseau typique (`TypeError`, ex. *Failed to fetch*), afin d’absorber de courtes indisponibilités proxy / hébergeur.
+
+Les **mutations** (**`POST`**, **`PUT`**, **`PATCH`**, **`DELETE`**) réessayent jusqu’à **4** tentatives uniquement lorsque la réponse ressemble à une **panne passerelle** (corps HTML, `Content-Type` non JSON, ou JSON transitoire avec `code: SERVICE_RESTARTING` / `SERVICE_NOT_READY`). Les **503 JSON métier** (ex. forum désactivé, module indisponible) ne sont **pas** réessayées. En-tête **`Accept: application/json`** sur toutes les requêtes.
+
+Pendant un **redémarrage** applicatif (`POST /api/admin/restart`, deploy cron), les routes **`/api/*`** (hors **`/api/health`**, **`/api/health/db`**, **`/api/ready`**) renvoient **503** JSON `{ error, code: SERVICE_RESTARTING }`. Pendant l’**init BDD** au boot, **503** JSON `{ code: SERVICE_NOT_READY }` sur le même périmètre.
+
+Les réponses **429** ne sont pas réessayées automatiquement.
 
 Le plafond global sur **`/api/*`** (hors bypass ci-dessus) est de **1200 requêtes par minute par adresse IP** par défaut, configurable avec **`FORETMAP_API_RATE_LIMIT_PER_MIN`** (entier entre 60 et 20000). Objectif : limiter les abus tout en évitant des **429** lorsque plusieurs utilisateurs ou onglets passent par la **même IP publique** (ex. Wi‑Fi établissement).
 

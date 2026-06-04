@@ -1,4 +1,17 @@
 import { withAppBase } from '../../services/api.js';
+import {
+  API_FETCH_TIMEOUT_MS,
+  assertJsonApiBody,
+  buildApiHttpErrorMessage,
+  gatewayUnavailableUserMessage,
+  isGatewayStyleResponse,
+  parseApiBody,
+  resolveMaxAttempts,
+  shouldRetryAfterHttpError,
+  shouldRetryAfterNetworkError,
+  sleepMs,
+  transientRetryDelayMs,
+} from '../../services/apiTransport.js';
 
 const GL_SESSION_KEY = 'gl_session';
 
@@ -29,31 +42,83 @@ export function clearGlSession() {
   localStorage.removeItem(GL_SESSION_KEY);
 }
 
+function glDevUnavailableMessage() {
+  return 'Serveur indisponible — lancez l’API ForetMap (port 3000) ou vérifiez NODE_ENV et le fichier .env.';
+}
+
 export async function apiGL(path, method = 'GET', body = null) {
-  const headers = { 'Content-Type': 'application/json' };
+  const headers = {
+    'Content-Type': 'application/json',
+    Accept: 'application/json',
+  };
   const token = getGlToken();
   if (token) headers.Authorization = `Bearer ${token}`;
-  const res = await fetch(withAppBase(path), {
-    method,
-    headers,
-    body: body == null ? undefined : JSON.stringify(body),
-  });
-  const contentType = String(res.headers.get('content-type') || '').toLowerCase();
-  const isJson = contentType.includes('application/json');
-  const payload = isJson ? await res.json().catch(() => ({})) : await res.text().catch(() => '');
-  if (!res.ok) {
-    let message = typeof payload?.error === 'string' && payload.error ? payload.error : '';
+  const maxAttempts = resolveMaxAttempts(method, body);
+  const hasBody = body !== undefined && body !== null;
+
+  for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), API_FETCH_TIMEOUT_MS);
+    let res;
+    let sawGatewayResponse = false;
+    try {
+      res = await fetch(withAppBase(path), {
+        method,
+        headers,
+        body: hasBody ? JSON.stringify(body) : undefined,
+        signal: controller.signal,
+      });
+    } catch (err) {
+      clearTimeout(timeoutId);
+      if (err?.name === 'AbortError') {
+        throw new Error('Délai d’attente dépassé pour la requête réseau.');
+      }
+      if (shouldRetryAfterNetworkError(method, body, attempt, maxAttempts) && err instanceof TypeError) {
+        await sleepMs(transientRetryDelayMs(attempt));
+        continue;
+      }
+      throw err;
+    } finally {
+      clearTimeout(timeoutId);
+    }
+
+    if (res.ok) {
+      const okBody = await parseApiBody(res);
+      assertJsonApiBody(okBody, { ok: true });
+      return okBody;
+    }
+
+    const errBody = (await parseApiBody(res)) || {};
+    if (isGatewayStyleResponse(res, errBody)) {
+      sawGatewayResponse = true;
+    }
+
+    if (shouldRetryAfterHttpError(method, body, res, errBody, attempt, maxAttempts)) {
+      await sleepMs(transientRetryDelayMs(attempt));
+      continue;
+    }
+
+    const contentType = String(res.headers.get('content-type') || '').toLowerCase();
+    const isJson = contentType.includes('application/json');
+    let message = typeof errBody.error === 'string' && errBody.error ? errBody.error : '';
     if (!message) {
-      if (res.status >= 500 && !isJson) {
-        message = 'Serveur indisponible — lancez l’API ForetMap (port 3000) ou vérifiez NODE_ENV et le fichier .env.';
+      if (sawGatewayResponse || (res.status >= 500 && !isJson)) {
+        message = import.meta.env.DEV ? glDevUnavailableMessage() : gatewayUnavailableUserMessage();
       } else {
-        message = `Erreur HTTP ${res.status}`;
+        const built = buildApiHttpErrorMessage({
+          res,
+          errBody,
+          authToken: null,
+          sawGatewayResponse,
+        });
+        message = built.errMsg || `Erreur HTTP ${res.status}`;
       }
     }
     const err = new Error(message);
     err.status = res.status;
-    err.body = payload;
+    err.body = errBody;
     throw err;
   }
-  return payload;
+
+  throw new Error('Erreur serveur');
 }

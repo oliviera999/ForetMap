@@ -15,6 +15,9 @@ export function formatTaskActionError(message) {
   if (/accès refusé/i.test(raw)) {
     return 'Action refusée : vérifiez vos droits ou activez le mode professeur élevé (cadenas).';
   }
+  if (/momentanément indisponible|redémarrage|SERVICE_RESTARTING|SERVICE_NOT_READY/i.test(raw)) {
+    return 'Le serveur est momentanément indisponible (redémarrage ou surcharge). Attendez quelques secondes puis réessayez.';
+  }
   return raw;
 }
 

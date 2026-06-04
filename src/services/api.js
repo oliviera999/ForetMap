@@ -2,6 +2,18 @@ import {
   safeLocalStorageGetItem,
   safeLocalStorageRemoveItem,
 } from '../utils/browserStorage.js';
+import {
+  API_FETCH_TIMEOUT_MS,
+  assertJsonApiBody,
+  buildApiHttpErrorMessage,
+  isGatewayStyleResponse,
+  parseApiBody,
+  resolveMaxAttempts,
+  shouldRetryAfterHttpError,
+  shouldRetryAfterNetworkError,
+  sleepMs,
+  transientRetryDelayMs,
+} from './apiTransport.js';
 
 /**
  * Préfixe de base de l'app (Vite `base`) sans slash final.
@@ -234,65 +246,6 @@ export function isElevatedJwt(token) {
   return !!decodeJwtPayload(token)?.elevated;
 }
 
-function isHtmlLikeApiPayload(raw) {
-  const s = String(raw || '').trimStart().toLowerCase();
-  return s.startsWith('<!doctype') || s.startsWith('<html') || s.startsWith('<!');
-}
-
-function normalizeApiErrorMessage(message, status) {
-  const msg = String(message || '').trim();
-  if (!msg) return msg;
-  if (/unexpected token.*json|json.*position|not valid json|in json at/i.test(msg)) {
-    return status >= 500
-      ? 'Le serveur ou la passerelle a renvoyé une réponse illisible (JSON invalide). Réessayez plus tard ou contactez l’administrateur.'
-      : 'Requête ou réponse invalide. Rechargez la page puis réessayez.';
-  }
-  return msg;
-}
-
-async function parseApiBody(res) {
-  if (!res || res.status === 204 || res.status === 205) return null;
-  const contentType = String(res.headers?.get('content-type') || '').toLowerCase();
-  if (contentType.includes('application/json')) {
-    try {
-      return await res.json();
-    } catch (err) {
-      return { raw: String(err?.message || 'JSON invalide'), parseError: true };
-    }
-  }
-  const text = await res.text().catch(() => '');
-  return text ? { raw: text } : null;
-}
-
-function assertJsonApiBody(body, { ok } = {}) {
-  if (body == null) return;
-  if (!body.parseError && body.raw == null) return;
-  const looksHtml = isHtmlLikeApiPayload(body.raw);
-  const prefix = ok
-    ? 'Le serveur a renvoyé une page ou un texte inattendu au lieu du JSON attendu'
-    : 'Réponse serveur illisible';
-  throw new Error(
-    looksHtml
-      ? `${prefix} — vérifiez que l’API ForetMap est à jour et joignable (proxy / déploiement).`
-      : `${prefix} (JSON invalide). Rechargez la page puis réessayez.`,
-  );
-}
-
-const API_FETCH_TIMEOUT_MS = 40000;
-
-/** Réponses « passerelle / origine temporairement indisponible » — réessai GET idempotent côté client. */
-const TRANSIENT_HTTP_STATUSES = new Set([502, 503, 504]);
-
-function transientGetRetryDelayMs(attemptIndex) {
-  const bases = [400, 1200, 2800];
-  const base = bases[Math.min(attemptIndex, bases.length - 1)];
-  return base + Math.floor(Math.random() * 250);
-}
-
-function sleepMs(ms) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
 /** Message navigateur (Chrome « Failed to fetch », Firefox « NetworkError… », etc.) */
 export function isLikelyNetworkTransportFailure(err) {
   if (!err) return false;
@@ -331,21 +284,20 @@ function networkFailureUserMessage() {
   );
 }
 
-function isIdempotentGet(method, body) {
-  return String(method || 'GET').toUpperCase() === 'GET' && (body === undefined || body === null);
-}
-
 export async function api(path, method = 'GET', body) {
-  const headers = { 'Content-Type': 'application/json' };
+  const headers = {
+    'Content-Type': 'application/json',
+    Accept: 'application/json',
+  };
   const authToken = getAuthToken();
   if (authToken) headers.Authorization = 'Bearer ' + authToken;
-  const allowTransientRetry = isIdempotentGet(method, body);
-  const maxAttempts = allowTransientRetry ? 4 : 1;
+  const maxAttempts = resolveMaxAttempts(method, body);
 
   for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), API_FETCH_TIMEOUT_MS);
     let res;
+    let sawGatewayResponse = false;
     try {
       res = await fetch(withAppBase(path), {
         method,
@@ -360,8 +312,8 @@ export async function api(path, method = 'GET', body) {
       if (isAbort) {
         throw new Error('Délai d’attente dépassé pour la requête réseau.');
       }
-      if (allowTransientRetry && !isAbort && err instanceof TypeError && attempt < maxAttempts - 1) {
-        await sleepMs(transientGetRetryDelayMs(attempt));
+      if (shouldRetryAfterNetworkError(method, body, attempt, maxAttempts) && err instanceof TypeError) {
+        await sleepMs(transientRetryDelayMs(attempt));
         continue;
       }
       if (isLikelyNetworkTransportFailure(err)) {
@@ -378,12 +330,16 @@ export async function api(path, method = 'GET', body) {
       return okBody;
     }
 
-    if (allowTransientRetry && TRANSIENT_HTTP_STATUSES.has(res.status) && attempt < maxAttempts - 1) {
-      await sleepMs(transientGetRetryDelayMs(attempt));
+    const errBody = (await parseApiBody(res)) || {};
+    if (isGatewayStyleResponse(res, errBody)) {
+      sawGatewayResponse = true;
+    }
+
+    if (shouldRetryAfterHttpError(method, body, res, errBody, attempt, maxAttempts)) {
+      await sleepMs(transientRetryDelayMs(attempt));
       continue;
     }
 
-    const errBody = (await parseApiBody(res)) || {};
     if (res.status === 401 && errBody.deleted) throw new AccountDeletedError();
     if (res.status === 401 && authToken) {
       const errText = String(errBody.error || '').toLowerCase();
@@ -397,33 +353,12 @@ export async function api(path, method = 'GET', body) {
         window.dispatchEvent(new CustomEvent('foretmap_teacher_expired'));
       }
     }
-    const reqId = (typeof res.headers?.get === 'function' && (res.headers.get('X-Request-Id') || res.headers.get('x-request-id'))) || '';
-    let errMsg = typeof errBody.error === 'string' && errBody.error.trim() ? errBody.error.trim() : '';
-    if (res.status === 401 && !authToken && /^token requis$/i.test(errMsg)) {
-      errMsg = 'Session locale incomplète : reconnecte-toi pour continuer.';
-    }
-    if (!errMsg) {
-      if (errBody.parseError) {
-        errMsg = normalizeApiErrorMessage(errBody.raw, res.status);
-      } else if (errBody.raw != null && String(errBody.raw).length > 0) {
-        errMsg = isHtmlLikeApiPayload(errBody.raw)
-          ? (res.status >= 500
-            ? `Le serveur a répondu par une page HTML (HTTP ${res.status}) au lieu du JSON — souvent une mauvaise URL d’API, un proxy ou une panne temporaire.`
-            : `Réponse inattendue du serveur (HTTP ${res.status}) — page HTML reçue à la place du JSON.`)
-          : (res.status >= 500
-            ? `Le serveur a répondu par une page ou un texte inattendu (HTTP ${res.status}), pas par du JSON — souvent une mauvaise URL d’API, un proxy ou une panne temporaire.`
-            : `Réponse inattendue du serveur (HTTP ${res.status}).`);
-      } else {
-        errMsg = res.status >= 500 ? `Erreur serveur (HTTP ${res.status})` : `Erreur (HTTP ${res.status})`;
-      }
-    }
-    errMsg = normalizeApiErrorMessage(errMsg, res.status);
-    if (errBody.debugDetail && typeof errBody.debugDetail === 'string') {
-      errMsg = `${errMsg} — ${errBody.debugDetail}`;
-    }
-    if (reqId) {
-      errMsg = `${errMsg} [requête ${reqId}]`;
-    }
+    const { errMsg, reqId } = buildApiHttpErrorMessage({
+      res,
+      errBody,
+      authToken,
+      sawGatewayResponse,
+    });
     const ex = new Error(errMsg);
     ex.status = res.status;
     ex.body = errBody;
