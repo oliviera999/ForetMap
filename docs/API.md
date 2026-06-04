@@ -152,7 +152,7 @@ Le script accepte aussi :
 | POST | `/api/gl/games/:id/spell-casts/drafts` | `{ spellCode, teamId? }` | `gl.action.request` ou `gl.event.emit` — **joueur** : `teamId` requis (roster une équipe) ; **staff MJ** : `teamId` optionnel (défaut `current_team_id` pour tour/journal, roster **toutes équipes**, `rosterScope: "game"`, un brouillon `collecting` par sort et partie). Refus `403` si `spell_cast_mj_only` et acteur joueur ; `409` si module off / vitalité off / partie non `live`. |
 | GET | `/api/gl/games/:id/spell-casts/drafts/:draftId` | — | idem ; réponse `draft.roster[]` inclut `teamId`, `teamName`, soldes PP/PV |
 | PUT | `/api/gl/games/:id/spell-casts/drafts/:draftId/contributions` | `{ contributions: [{ playerId, gems?, hearts? }] }` | idem ; `409` si contribution &gt; solde joueur (`CONTRIBUTION_EXCEEDS_BALANCE`) ; règles `gameplay.spell_cast_contribution_mode` |
-| POST | `/api/gl/games/:id/spell-casts/drafts/:draftId/launch` | — | idem (somme contributions = coût sort ; débit PP/PV) |
+| POST | `/api/gl/games/:id/spell-casts/drafts/:draftId/launch` | — | idem (somme contributions = coût sort ; débit PP/PV ; réponse `event` = événement `spell_cast` créé, identifié par `insertId` — pas le dernier événement de la partie). **Prérequis schéma** : migration `113_gl_spell_cast_game_scope.sql` (`roster_scope` sur `gl_spell_cast_drafts`) pour le flux MJ `rosterScope: "game"` ; sinon **503** JSON explicite. |
 | DELETE | `/api/gl/games/:id/spell-casts/drafts/:draftId` | — | créateur ou MJ |
 | GET | `/api/gl/spell-cast-settings` | — | Auth GL (snapshot module + modes) |
 | POST | `/api/gl/games/:id/actions` | `{ actionType, payload }` | `gl.action.request` (joueur) (refus `409` si toggle off / hors tour) |
