@@ -72,6 +72,7 @@ test('GET /api/gl/gameplay-settings expose les 4 toggles (joueur)', async () => 
   assert.strictEqual(typeof s.narrationEnabled, 'boolean');
   assert.strictEqual(typeof s.playerActionsEnabled, 'boolean');
   assert.strictEqual(typeof s.scoringEnabled, 'boolean');
+  assert.strictEqual(typeof s.qcmMjOnly, 'boolean');
   assert.strictEqual(typeof s.vitalityEnabled, 'boolean');
   assert.strictEqual(typeof s.defaultHealthPoints, 'number');
   assert.strictEqual(typeof s.defaultPowerPoints, 'number');
@@ -113,6 +114,29 @@ test('PUT par admin met à jour le toggle, lu ensuite par /gameplay-settings', a
 
   await request(app)
     .put('/api/gl/admin/settings/gameplay.narration_enabled')
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ value: false })
+    .expect(200);
+  invalidateGameplayCache();
+});
+
+test('PUT gameplay.qcm_mj_only persiste et est lu par /gameplay-settings', async () => {
+  await request(app)
+    .put('/api/gl/admin/settings/gameplay.qcm_mj_only')
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ value: true })
+    .expect(200);
+
+  invalidateGameplayCache();
+
+  const res = await request(app)
+    .get('/api/gl/gameplay-settings')
+    .set('Authorization', `Bearer ${playerToken}`)
+    .expect(200);
+  assert.strictEqual(res.body.settings.qcmMjOnly, true);
+
+  await request(app)
+    .put('/api/gl/admin/settings/gameplay.qcm_mj_only')
     .set('Authorization', `Bearer ${adminToken}`)
     .send({ value: false })
     .expect(200);

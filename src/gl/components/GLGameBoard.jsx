@@ -30,6 +30,7 @@ export function GLGameBoard({
   onQcmAnswered,
   canMoveMascot,
   canRequestAction,
+  markerArrivalEnabled = true,
   selectedTeamId,
   currentTeamId,
   mascotStateMachine,
@@ -63,7 +64,7 @@ export function GLGameBoard({
     markers,
     gameId,
     watchTeamId,
-    enabled: Boolean(gameId && watchTeamId != null),
+    enabled: Boolean(gameId && watchTeamId != null && markerArrivalEnabled),
   });
 
   const {

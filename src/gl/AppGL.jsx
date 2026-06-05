@@ -67,6 +67,7 @@ const DEFAULT_GAMEPLAY = {
   spellCastContributionMode: 'both',
   spellCastTeamScope: 'any_team',
   spellCastMjOnly: false,
+  qcmMjOnly: false,
 };
 
 function decodeBase64UrlJson(value) {
@@ -601,6 +602,11 @@ export function AppGL() {
     return true;
   }, [showStaffAdminUi, gameplaySettings, auth, currentTeamId]);
 
+  const markerArrivalEnabled = useMemo(() => {
+    if (showStaffAdminUi) return true;
+    return !gameplaySettings.qcmMjOnly;
+  }, [showStaffAdminUi, gameplaySettings.qcmMjOnly]);
+
   const canSpellCast = useMemo(() => {
     const moduleOn = isModuleEnabled(modules, 'spellCastEnabled')
       || gameplaySettings.spellCastEnabled === true;
@@ -834,6 +840,7 @@ export function AppGL() {
               onQcmAnswered={reloadGame}
               canMoveMascot={isMjMapControls}
               canRequestAction={canRequestAction}
+              markerArrivalEnabled={markerArrivalEnabled}
               canSpellCast={canSpellCast}
               onLaunchSpell={() => openSpellCastWizard(null)}
               selectedTeamId={selectedTeamId}
