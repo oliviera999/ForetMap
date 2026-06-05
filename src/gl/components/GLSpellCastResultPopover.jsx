@@ -4,11 +4,6 @@ import { useDialogA11y } from '../../hooks/useDialogA11y.js';
 import { usePrefersReducedMotion } from '../../shared/hooks/usePrefersReducedMotion.js';
 import { fetchSpellDetail } from '../utils/glSpellDetailCache.js';
 import { GLButton } from './ui/GLButton.jsx';
-import {
-  GL_SPELL_CATEGORY_LABELS,
-  GL_SPELL_FIELD_LABELS,
-  GL_SPELL_STATUT_LABELS,
-} from '../utils/glSpellFieldLabels.js';
 
 const CLOSE_MS = 200;
 
@@ -23,29 +18,21 @@ function categoryAccent(slug) {
   return CATEGORY_ACCENT[String(slug || '').toLowerCase()] || '#047c8c';
 }
 
-function formatMeta(spell) {
-  const parts = [];
-  if (spell.portee) parts.push(`${GL_SPELL_FIELD_LABELS.portee} : ${spell.portee}`);
-  if (spell.cible) parts.push(`${GL_SPELL_FIELD_LABELS.cible} : ${spell.cible}`);
-  if (spell.timing) parts.push(`${GL_SPELL_FIELD_LABELS.timing} : ${spell.timing}`);
-  return parts;
-}
-
-export function GLSpellPopover({
+export function GLSpellCastResultPopover({
   open = false,
-  spellCode = null,
+  result = null,
   onClose,
-  canLaunch = false,
-  onLaunchSpell,
 }) {
   const titleId = useId();
-  const [activeCode, setActiveCode] = useState(null);
+  const castersId = useId();
   const [detail, setDetail] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [isClosing, setIsClosing] = useState(false);
   const closeTimerRef = useRef(null);
   const prefersReducedMotion = usePrefersReducedMotion();
+
+  const spellCode = result?.spellCode || null;
 
   const requestClose = useCallback(() => {
     if (isClosing) return;
@@ -75,12 +62,11 @@ export function GLSpellPopover({
         closeTimerRef.current = null;
       }
       setIsClosing(false);
-      setActiveCode(String(spellCode || '').trim().toUpperCase() || null);
     }
-  }, [open, spellCode]);
+  }, [open]);
 
   useEffect(() => {
-    if (!open || !activeCode) {
+    if (!open || !spellCode) {
       setDetail(null);
       setError('');
       setLoading(false);
@@ -92,7 +78,7 @@ export function GLSpellPopover({
     setError('');
     setDetail(null);
 
-    fetchSpellDetail(activeCode)
+    fetchSpellDetail(spellCode)
       .then((data) => {
         if (cancelled) return;
         setDetail(data);
@@ -109,7 +95,7 @@ export function GLSpellPopover({
     return () => {
       cancelled = true;
     };
-  }, [open, activeCode]);
+  }, [open, spellCode]);
 
   useEffect(() => {
     if (!open && !isClosing) return undefined;
@@ -123,7 +109,7 @@ export function GLSpellPopover({
     };
   }, [open, isClosing]);
 
-  if ((!open && !isClosing) || typeof document === 'undefined' || !document.body) {
+  if ((!open && !isClosing) || !result || typeof document === 'undefined' || !document.body) {
     return null;
   }
 
@@ -131,15 +117,11 @@ export function GLSpellPopover({
   const accent = categoryAccent(spell?.category_slug);
   const overlayClass = [
     'gl-spell-popover',
+    'gl-spell-cast-result',
     isClosing ? 'is-closing' : '',
   ].filter(Boolean).join(' ');
 
-  const costParts = [];
-  if (spell?.cout_total_eq) costParts.push(spell.cout_total_eq);
-  else {
-    if (Number(spell?.cout_gemmes) > 0) costParts.push(`${spell.cout_gemmes} 💎`);
-    if (Number(spell?.cout_coeurs) > 0) costParts.push(`${spell.cout_coeurs} ❤️`);
-  }
+  const casters = Array.isArray(result.casters) ? result.casters : [];
 
   return createPortal(
     <div
@@ -162,53 +144,62 @@ export function GLSpellPopover({
         <div className="gl-spell-popover__category-strip" aria-hidden="true" />
 
         <header className="gl-spell-popover__header">
-          {loading && !spell ? (
-            <div className="gl-spell-popover__skeleton gl-spell-popover__skeleton-title" />
-          ) : (
-            <h3 id={titleId}>
-              <span className="gl-spell-popover__emoji" aria-hidden="true">{spell?.emoji || '✨'}</span>
-              {spell?.nom || 'Sortilège'}
-            </h3>
-          )}
+          <h3 id={titleId}>
+            <span className="gl-spell-popover__emoji" aria-hidden="true">
+              {result.spellEmoji || '✨'}
+            </span>
+            {result.spellName || 'Sortilège'}
+          </h3>
           <button
             type="button"
             className="gl-spell-popover__close"
             onClick={requestClose}
-            aria-label="Fermer la fiche sort"
+            aria-label="Fermer le récapitulatif du sortilège"
           >
             ✕
           </button>
         </header>
 
-        {error ? (
-          <p className="gl-error gl-spell-popover__error">{error}</p>
-        ) : null}
-
-        {loading && !spell && !error ? (
-          <div className="gl-spell-popover__body gl-spell-popover__body--loading">
-            <div className="gl-spell-popover__skeleton" />
-            <div className="gl-spell-popover__skeleton gl-spell-popover__skeleton--short" />
+        <div className="gl-spell-popover__content fade-in">
+          <div className="gl-spell-popover__badges stagger">
+            <span className="gl-badge gl-badge--success">Sortilège lancé</span>
+            {result.costLabel ? (
+              <span className="gl-badge">Coût : {result.costLabel}</span>
+            ) : null}
           </div>
-        ) : null}
 
-        {spell && !error ? (
-          <div key={activeCode} className="gl-spell-popover__content fade-in">
-            <div className="gl-spell-popover__badges stagger">
-              {spell.category_slug ? (
-                <span className="gl-badge gl-spell-popover__badge-cat">
-                  {GL_SPELL_CATEGORY_LABELS[spell.category_slug] || spell.category_slug}
-                </span>
-              ) : null}
-              {spell.statut ? (
-                <span className="gl-badge gl-badge--info">
-                  {GL_SPELL_STATUT_LABELS[spell.statut] || spell.statut}
-                </span>
-              ) : null}
-              {costParts.length > 0 ? (
-                <span className="gl-badge">{costParts.join(' · ')}</span>
-              ) : null}
+          {casters.length > 0 ? (
+            <section className="gl-spell-cast-result__casters" aria-labelledby={castersId}>
+              <h4 id={castersId} className="gl-spell-cast-result__casters-title">
+                Lancé par
+              </h4>
+              <ul className="gl-spell-cast-result__casters-list">
+                {casters.map((caster) => (
+                  <li key={caster.playerId} className="gl-spell-cast-result__caster">
+                    <span className="gl-spell-cast-result__caster-name">{caster.displayName}</span>
+                    {caster.contributionLabel ? (
+                      <span className="gl-spell-cast-result__caster-contrib">
+                        {caster.contributionLabel}
+                      </span>
+                    ) : null}
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ) : null}
+
+          {error ? (
+            <p className="gl-error gl-spell-popover__error">{error}</p>
+          ) : null}
+
+          {loading && !spell && !error ? (
+            <div className="gl-spell-popover__body gl-spell-popover__body--loading">
+              <div className="gl-spell-popover__skeleton" />
+              <div className="gl-spell-popover__skeleton gl-spell-popover__skeleton--short" />
             </div>
+          ) : null}
 
+          {spell && !error ? (
             <div className="gl-spell-popover__body">
               {spell.effet_court ? (
                 <p className="gl-spell-popover__lead">{spell.effet_court}</p>
@@ -216,35 +207,16 @@ export function GLSpellPopover({
               {spell.effet_detaille ? (
                 <p className="gl-spell-popover__text">{spell.effet_detaille}</p>
               ) : null}
-              {formatMeta(spell).map((line) => (
-                <p key={line} className="gl-spell-popover__meta">{line}</p>
-              ))}
-              {spell.limite_usage ? (
-                <p className="gl-spell-popover__meta">
-                  <strong>{GL_SPELL_FIELD_LABELS.limite_usage} :</strong>
-                  {' '}
-                  {spell.limite_usage}
-                </p>
-              ) : null}
-              {spell.cumul ? (
-                <p className="gl-spell-popover__meta">
-                  <strong>{GL_SPELL_FIELD_LABELS.cumul} :</strong>
-                  {' '}
-                  {spell.cumul}
-                </p>
+              {!spell.effet_court && !spell.effet_detaille ? (
+                <p className="gl-hint">Aucune description enregistrée pour ce sortilège.</p>
               ) : null}
             </div>
-          </div>
-        ) : null}
+          ) : null}
+        </div>
 
         <footer className="gl-spell-popover__footer">
-          {canLaunch && spell ? (
-            <GLButton type="button" variant="primary" onClick={() => onLaunchSpell?.()}>
-              Lancer ce sortilège
-            </GLButton>
-          ) : null}
-          <GLButton type="button" variant="ghost" onClick={requestClose}>
-            Fermer
+          <GLButton type="button" variant="primary" onClick={requestClose}>
+            Compris
           </GLButton>
         </footer>
       </div>

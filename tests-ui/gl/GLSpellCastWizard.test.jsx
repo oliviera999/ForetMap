@@ -8,6 +8,7 @@ import {
   formatSpellCost,
   resolveSpellCastInitialStep,
   buildContributionsSavePayload,
+  buildSpellCastResultViewModel,
 } from '../../src/gl/utils/glSpellCastRules.js';
 
 describe('glSpellCastRules', () => {
@@ -78,6 +79,51 @@ describe('glSpellCastRules', () => {
       { playerId: 1, gems: 2, hearts: 0 },
       { playerId: 2, gems: 0, hearts: 1 },
     ]);
+  });
+
+  it('buildSpellCastResultViewModel utilise payload.casters enrichi', () => {
+    const vm = buildSpellCastResultViewModel({
+      event: {
+        id: 42,
+        payload: {
+          spellCode: 'SCT01',
+          spellName: 'Bouclier',
+          spellEmoji: '🛡️',
+          cost: { gems: 2, hearts: 0 },
+          casters: [
+            { playerId: 1, displayName: 'Alice', gems: 1, hearts: 0 },
+            { playerId: 2, displayName: 'Bob', gems: 1, hearts: 0 },
+          ],
+        },
+      },
+    });
+    expect(vm.eventId).toBe(42);
+    expect(vm.spellName).toBe('Bouclier');
+    expect(vm.costLabel).toBe('2 💎');
+    expect(vm.casters).toHaveLength(2);
+    expect(vm.casters[0].contributionLabel).toContain('💎');
+  });
+
+  it('buildSpellCastResultViewModel reconstitue les casters depuis le roster', () => {
+    const vm = buildSpellCastResultViewModel({
+      event: {
+        id: 7,
+        payload: {
+          spellCode: 'SCT02',
+          spellName: 'Soin',
+          cost: { gems: 0, hearts: 2 },
+          contributions: [
+            { playerId: 5, gems: 0, hearts: 2 },
+          ],
+        },
+      },
+      draft: {
+        roster: [{ playerId: 5, pseudo: 'Léa', firstName: '', lastName: '' }],
+      },
+    });
+    expect(vm.casters).toHaveLength(1);
+    expect(vm.casters[0].displayName).toBe('Léa');
+    expect(vm.casters[0].contributionLabel).toBe('2 ❤️');
   });
 
   it('needsOtherPlayerConfirm en mode both uniquement', () => {

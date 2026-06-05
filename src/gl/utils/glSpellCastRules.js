@@ -127,3 +127,67 @@ export function resolveSpellCastInitialStep({ isStaff, activeSpellCode }) {
   if (isStaff) return 'fund';
   return 'team';
 }
+
+function formatCasterContribution(caster) {
+  const parts = [];
+  const gems = Number(caster?.gems) || 0;
+  const hearts = Number(caster?.hearts) || 0;
+  if (gems > 0) parts.push(`${gems} 💎`);
+  if (hearts > 0) parts.push(`${hearts} ❤️`);
+  return parts.join(' · ');
+}
+
+function resolveCastersFromPayload(payload = {}, roster = []) {
+  if (Array.isArray(payload.casters) && payload.casters.length > 0) {
+    return payload.casters
+      .filter((c) => (Number(c?.gems) || 0) > 0 || (Number(c?.hearts) || 0) > 0)
+      .map((c) => ({
+        playerId: Number(c.playerId),
+        displayName: String(c.displayName || `Joueur #${c.playerId}`),
+        gems: Number(c.gems) || 0,
+        hearts: Number(c.hearts) || 0,
+        contributionLabel: formatCasterContribution(c),
+      }));
+  }
+
+  const rosterById = new Map((roster || []).map((p) => [Number(p.playerId), p]));
+  const contribs = Array.isArray(payload.contributions) ? payload.contributions : [];
+  return contribs
+    .filter((c) => (Number(c?.gems) || 0) > 0 || (Number(c?.hearts) || 0) > 0)
+    .map((c) => {
+      const row = rosterById.get(Number(c.playerId));
+      return {
+        playerId: Number(c.playerId),
+        displayName: row ? formatPlayerLabel(row) : `Joueur #${c.playerId}`,
+        gems: Number(c.gems) || 0,
+        hearts: Number(c.hearts) || 0,
+        contributionLabel: formatCasterContribution(c),
+      };
+    });
+}
+
+/**
+ * View-model pour le popup de résultat après lancement.
+ * @param {{ event?: object, draft?: object }} source
+ */
+export function buildSpellCastResultViewModel({ event, draft } = {}) {
+  const evt = event || {};
+  const payload = evt.payload || {};
+  const eventId = evt.id != null ? Number(evt.id) : null;
+  const spellCode = String(payload.spellCode || draft?.spellCode || '').trim().toUpperCase() || null;
+  const spellName = String(payload.spellName || draft?.spell?.nom || spellCode || 'Sortilège');
+  const spellEmoji = payload.spellEmoji != null
+    ? String(payload.spellEmoji)
+    : (draft?.spell?.emoji != null ? String(draft.spell.emoji) : '✨');
+  const costLabel = formatSpellCost(payload.cost || draft?.required);
+  const casters = resolveCastersFromPayload(payload, draft?.roster);
+
+  return {
+    eventId,
+    spellCode,
+    spellName,
+    spellEmoji,
+    costLabel,
+    casters,
+  };
+}
