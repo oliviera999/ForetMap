@@ -37,6 +37,13 @@ const {
   buildChapterCharteExportWorkbook,
   loadChapterCharteExportRows,
 } = require('../../lib/glChapterCharteImport');
+const {
+  normalizeExportScope,
+  resolveChaptersImportRows,
+  applyChaptersImport,
+  buildChaptersTemplateWorkbook,
+  buildChaptersExportWorkbook,
+} = require('../../lib/glChaptersImport');
 
 const router = express.Router();
 
@@ -535,6 +542,69 @@ router.put('/admin/markers/:markerId', requireGlPermission('gl.content.manage'),
   const updated = await queryOne(`SELECT ${MARKER_SELECT} FROM gl_chapter_markers WHERE id = ? LIMIT 1`, [markerId]);
   if (!updated) return res.status(404).json({ error: 'Marker introuvable' });
   return res.json(formatMarkerRow(updated));
+});
+
+/** GET /api/gl/chapters/admin/import/template — modèle XLSX série de chapitres. */
+router.get('/admin/import/template', requireGlPermission('gl.content.manage'), async (req, res) => {
+  const scope = normalizeExportScope(req.query?.scope);
+  const buffer = buildChaptersTemplateWorkbook(scope);
+  res.setHeader(
+    'Content-Type',
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+  );
+  res.setHeader('Content-Disposition', 'attachment; filename="foretmap-gl-modele-chapitres.xlsx"');
+  return res.send(buffer);
+});
+
+/** GET /api/gl/chapters/admin/export — export XLSX série de chapitres. */
+router.get('/admin/export', requireGlPermission('gl.content.manage'), async (req, res) => {
+  const scope = normalizeExportScope(req.query?.scope);
+  const slug = normalizeSlug(req.query?.slug);
+  const buffer = await buildChaptersExportWorkbook(
+    { queryAll },
+    { scope, slug: slug || undefined }
+  );
+  res.setHeader(
+    'Content-Type',
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+  );
+  res.setHeader('Content-Disposition', 'attachment; filename="foretmap-gl-export-chapitres.xlsx"');
+  return res.send(buffer);
+});
+
+/** POST /api/gl/chapters/admin/import — import XLSX série de chapitres. */
+router.post('/admin/import', requireGlPermission('gl.content.manage'), async (req, res) => {
+  const dryRun = !!req.body?.dryRun;
+  const syncReperes = !!req.body?.syncReperes;
+  const syncZones = !!req.body?.syncZones;
+  let parsed;
+  try {
+    parsed = resolveChaptersImportRows(req.body || {});
+  } catch (err) {
+    return res.status(400).json({ error: err.message || 'Fichier import invalide' });
+  }
+  const hasAnyRows = (parsed.chapterRows?.length || 0)
+    + (parsed.markerRows?.length || 0)
+    + (parsed.zoneRows?.length || 0)
+    + (parsed.charteRows?.length || 0);
+  if (hasAnyRows === 0) {
+    return res.status(400).json({ error: 'Fichier import vide ou sans lignes exploitables' });
+  }
+  try {
+    const report = await withTransaction(async (tx) => applyChaptersImport(
+      { queryAll: tx.queryAll, execute: tx.execute },
+      parsed,
+      {
+        dryRun,
+        syncReperes,
+        syncZones,
+        createdBy: req.glAuth?.userId != null ? Number(req.glAuth.userId) : null,
+      }
+    ));
+    return res.json({ report });
+  } catch (err) {
+    return res.status(400).json({ error: err.message || 'Import impossible' });
+  }
 });
 
 /** GET /api/gl/chapters/admin/charte/import/template — modèle XLSX charte chapitres. */

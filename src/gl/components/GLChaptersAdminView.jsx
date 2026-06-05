@@ -16,7 +16,7 @@ import { normalizeBrand } from '../hooks/useGLBrandTheme.js';
 import { brandToCssVars, mergeBrandWithChapterTheme, normalizeChapterTheme } from '../../utils/glBrandTheme.js';
 import { GLButton } from './ui/GLButton.jsx';
 import { GL_SPELL_CATEGORY_LABELS } from '../utils/glSpellFieldLabels.js';
-import { GLChapterCharteImportPanel } from './admin/GLChapterCharteImportPanel.jsx';
+import { GLChaptersImportExportPanel } from './admin/GLChaptersImportExportPanel.jsx';
 
 const EMPTY_CHAPTER_THEME = { colors: {} };
 
@@ -356,9 +356,9 @@ export function GLChaptersAdminView() {
       {info ? <p className="gl-info">{info}</p> : null}
 
       <details className="plant-more" style={{ marginBottom: 16 }}>
-        <summary>Import / export charte graphique (XLSX)</summary>
+        <summary>Import / export chapitres (XLSX)</summary>
         <div style={{ marginTop: 12 }}>
-          <GLChapterCharteImportPanel onImportApplied={handleCharteImportApplied} />
+          <GLChaptersImportExportPanel onImportApplied={handleCharteImportApplied} />
         </div>
       </details>
 

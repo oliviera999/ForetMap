@@ -30,6 +30,14 @@ const {
   buildChapterChartePayload,
   validateChapterChartePayload,
 } = require('../lib/glChapterCharteImport');
+const {
+  parseChaptersWorkbook,
+  buildChapterPayload,
+  validateChapterPayload,
+  CHAPTERS_SHEET,
+  MARKERS_SHEET,
+  ZONES_SHEET,
+} = require('../lib/glChaptersImport');
 
 let adminToken = '';
 let playerToken = '';
@@ -231,6 +239,42 @@ test('GET /api/gl/admin/species/export round-trip ré-importable', async () => {
   assert.ok(exported);
   assert.strictEqual(validateSpeciesPayload(buildSpeciesPayload(exported), 2).length, 0);
   assert.ok(biomeRows.some((row) => row.slug === biomeSlug));
+});
+
+test('GET /api/gl/chapters/admin/import/template retourne un modèle XLSX (scope full)', async () => {
+  const buf = await getXlsxBuffer(
+    request(app),
+    '/api/gl/chapters/admin/import/template?scope=full',
+    adminToken
+  );
+  const parsed = parseChaptersWorkbook(buf);
+  assert.ok(parsed.chapterRows.length >= 1);
+  assert.ok(parsed.markerRows.length >= 1);
+  assert.ok(parsed.zoneRows.length >= 1);
+  assert.ok(parsed.charteRows.length >= 1);
+  assert.strictEqual(validateChapterPayload(buildChapterPayload(parsed.chapterRows[0]), 2).length, 0);
+  const wb = require('xlsx').read(buf, { type: 'buffer' });
+  assert.ok(wb.SheetNames.includes(CHAPTERS_SHEET));
+  assert.ok(wb.SheetNames.includes(MARKERS_SHEET));
+  assert.ok(wb.SheetNames.includes(ZONES_SHEET));
+  assert.ok(wb.SheetNames.includes(CHARTE_SHEET));
+});
+
+test('GET /api/gl/chapters/admin/export scope full round-trip dry-run', async () => {
+  const buf = await getXlsxBuffer(
+    request(app),
+    '/api/gl/chapters/admin/export?scope=full&slug=foret-magique',
+    adminToken
+  );
+  const parsed = parseChaptersWorkbook(buf);
+  assert.ok(parsed.chapterRows.length >= 1);
+  const fileDataBase64 = `data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,${buf.toString('base64')}`;
+  const res = await request(app)
+    .post('/api/gl/chapters/admin/import')
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ fileDataBase64, dryRun: true, syncReperes: false, syncZones: false })
+    .expect(200);
+  assert.ok(res.body.report.totals.valid >= 1);
 });
 
 test('GET /api/gl/chapters/admin/charte/import/template retourne un modèle XLSX', async () => {

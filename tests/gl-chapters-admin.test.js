@@ -191,6 +191,74 @@ test('POST /api/gl/chapters/admin/charte/import refuse sans gl.content.manage', 
     .expect(403);
 });
 
+test('GET /api/gl/chapters/admin/import/template retourne un modèle XLSX (scope content_markers)', async () => {
+  const res = await request(app)
+    .get('/api/gl/chapters/admin/import/template?scope=content_markers')
+    .set('Authorization', `Bearer ${adminToken}`)
+    .buffer(true)
+    .parse((response, callback) => {
+      const chunks = [];
+      response.on('data', (chunk) => chunks.push(chunk));
+      response.on('end', () => callback(null, Buffer.concat(chunks)));
+    })
+    .expect(200);
+  const buf = Buffer.isBuffer(res.body) ? res.body : Buffer.from(res.body);
+  assert.strictEqual(buf.slice(0, 2).toString('latin1'), 'PK');
+  const XLSX = require('xlsx');
+  const wb = XLSX.read(buf, { type: 'buffer' });
+  assert.ok(wb.SheetNames.includes('chapitres'));
+  assert.ok(wb.SheetNames.includes('reperes'));
+});
+
+test('GET /api/gl/chapters/admin/export filtre par slug', async () => {
+  const res = await request(app)
+    .get(`/api/gl/chapters/admin/export?scope=content&slug=${encodeURIComponent(slugCreated)}`)
+    .set('Authorization', `Bearer ${adminToken}`)
+    .buffer(true)
+    .parse((response, callback) => {
+      const chunks = [];
+      response.on('data', (chunk) => chunks.push(chunk));
+      response.on('end', () => callback(null, Buffer.concat(chunks)));
+    })
+    .expect(200);
+  const buf = Buffer.isBuffer(res.body) ? res.body : Buffer.from(res.body);
+  const { parseChaptersWorkbook } = require('../lib/glChaptersImport');
+  const parsed = parseChaptersWorkbook(buf);
+  assert.strictEqual(parsed.chapterRows.length, 1);
+  assert.strictEqual(String(parsed.chapterRows[0].slug || parsed.chapterRows[0].Slug).toLowerCase(), slugCreated);
+});
+
+test('POST /api/gl/chapters/admin/import met à jour histoire_markdown', async () => {
+  const XLSX = require('xlsx');
+  const wb = XLSX.utils.book_new();
+  const data = [
+    ['slug', 'titre', 'ordre', 'biome', 'biomes_slugs', 'sorts_codes', 'image_carte_url',
+      'histoire_markdown', 'biotope_markdown', 'biocenose_markdown', 'sortileges_markdown'],
+    [slugCreated, '', '', '', '', '', '', '# Histoire import XLSX', '', '', ''],
+  ];
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(data), 'chapitres');
+  const buffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
+  const fileDataBase64 = `data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,${buffer.toString('base64')}`;
+
+  const res = await request(app)
+    .post('/api/gl/chapters/admin/import')
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ fileDataBase64, dryRun: false })
+    .expect(200);
+  assert.strictEqual(res.body.report.totals.updated, 1);
+
+  const row = await queryOne('SELECT story_markdown FROM gl_chapters WHERE slug = ? LIMIT 1', [slugCreated]);
+  assert.strictEqual(String(row.story_markdown), '# Histoire import XLSX');
+});
+
+test('POST /api/gl/chapters/admin/import refuse sans gl.content.manage', async () => {
+  await request(app)
+    .post('/api/gl/chapters/admin/import')
+    .set('Authorization', `Bearer ${playerToken}`)
+    .send({ fileDataBase64: 'data:;base64,', dryRun: true })
+    .expect(403);
+});
+
 test('POST /api/gl/chapters/admin/:id/map-image importe une image locale', async () => {
   const res = await request(app)
     .post(`/api/gl/chapters/admin/${createdChapterId}/map-image`)
