@@ -1,4 +1,4 @@
-import React, { useEffect, useId, useRef } from 'react';
+import React, { useEffect, useId } from 'react';
 import { useDialogA11y } from '../../hooks/useDialogA11y.js';
 
 function GlNavTabButton({
@@ -15,7 +15,6 @@ function GlNavTabButton({
   const isActive = activeTab === tab.id;
   return (
     <button
-      key={tab.id}
       id={tabDomId}
       type="button"
       role="tab"
@@ -42,8 +41,7 @@ export function GLMobileNavDrawer({
   panelIdPrefix,
 }) {
   const titleId = useId();
-  const panelRef = useRef(null);
-  useDialogA11y(open, onClose, panelRef);
+  const panelRef = useDialogA11y(onClose);
 
   useEffect(() => {
     if (!open || typeof document === 'undefined') return undefined;
@@ -115,7 +113,7 @@ export function GLBottomNav({
 }) {
   const showMoreActive = primaryTabs.every((tab) => tab.id !== activeTab);
   return (
-    <nav className="gl-bottom-nav" aria-label="Navigation principale">
+    <nav className="gl-bottom-nav" role="tablist" aria-label="Navigation principale">
       {primaryTabs.map((tab) => (
         <GlNavTabButton
           key={tab.id}

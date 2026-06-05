@@ -17,6 +17,10 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - **GL — lancement de sortilèges (MJ, multi-équipes)** : roster partie entière pour le staff (`roster_scope: game`, migration `113_gl_spell_cast_game_scope.sql`) ; `teamId` optionnel à la création du brouillon ; assistant sans étape « choix d’équipe » pour le MJ, liste groupée par équipe, état de chargement et message roster vide ; entrée **Lancer un sortilège** dans la console MJ (onglet En direct) ; garde-fou PUT si contribution &gt; solde. Tests `tests/gl-spell-cast.test.js`, `tests-ui/gl/GLSpellCastWizard.test.jsx`. Doc `docs/API.md`, `docs/GL_ARCHITECTURE.md`.
 - **GL — import / export XLSX charte chapitres** : feuille `chapitres_charte` (couleurs thème sparse, image carte, cadre) ; API `GET/POST /api/gl/chapters/admin/charte/import/template|export|import` ; module `lib/glChapterCharteImport.js` ; panneau **Contenus → Chapitres**. Tests `tests/gl-chapter-charte-import.test.js`, extensions `tests/gl-chapters-admin.test.js`, `tests/gl-content-import-export.test.js`. Doc `docs/API.md`, `data/gl/README.md`.
 
+### Changé
+
+- **GL — console MJ et navigation mobile** : sections Parties / Équipes / En direct chargées à la demande (`React.lazy`) ; sous-onglets MJ en `role="tablist"` ; tiroir mobile monté uniquement à l’ouverture ; scénarios e2e accessibilité responsive (`e2e/gl-responsive-accessibility.spec.js`). Tests `tests-ui/gl/GLGameMasterConsole.test.jsx`.
+
 ### Corrigé
 
 - **GL — lancement de sortilège (502 prod, flux MJ)** : `PUT` contributions et `launch` rechargeaient le brouillon sans `roster_scope` (roster limité à une équipe → 400 « joueur hors roster » en multi-équipes) ; corrigé. `POST .../launch` charge l’événement `spell_cast` par `insertId` ; garde si événement absent ; **503** si migration `113` manquante ; `handleSpellCastRoute` journalise en JSON. Assistant `GLSpellCastWizard` : batch contributions avant **Lancer**. Tests `tests/gl-spell-cast.test.js`, `tests-ui/gl/GLSpellCastWizard.test.jsx`. Doc `docs/API.md`, `docs/GL_ARCHITECTURE.md`.
