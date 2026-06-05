@@ -16,13 +16,36 @@ Depuis l’admin GL : **Contenus → Espèces** — onglet **Saisie manuelle** (
 
 Après import, lier un ou plusieurs biomes catalogue à un chapitre via **Contenus → Chapitres → Biomes (catalogue espèces)** (sélection multiple ; alimente biocénose, glossaire et QCM du chapitre).
 
-## Charte graphique des chapitres
+## Série de chapitres (import / export)
 
-Feuille XLSX : `chapitres_charte` (colonnes `slug`, `titre`, `image_carte_url`, couleurs `couleur_*`, cadre `cadre_*`).
+Fichier de référence : `chapitres-gnomes-et-licornes-exemple.xlsx` (portée `full` : feuilles `chapitres`, `reperes`, `zones_royaume`, `chapitres_charte`).
 
-Depuis l’admin GL : **Contenus → Chapitres** — section **Import / export charte graphique (XLSX)** (modèle, export, simulation puis import). API : `GET /api/gl/chapters/admin/charte/import/template`, `GET /api/gl/chapters/admin/charte/export?slug=`, `POST /api/gl/chapters/admin/charte/import`.
+```bash
+npm run gl:import:chapters          # simulation (dry-run)
+npm run gl:import:chapters -- --apply
+npm run gl:import:chapters -- --apply --sync-reperes --sync-zones
+npm run gl:import:chapters:example  # régénère le fichier exemple
+```
 
-Sémantique import : cellule **vide** = ne pas modifier le champ ; **`reset`** ou **`-`** sur une couleur = réhériter de la charte plateforme pour cette teinte ; **titre** obligatoire pour créer un chapitre inconnu.
+Depuis l’admin GL : **Contenus → Chapitres** — section **Import / export chapitres (XLSX)**. Trois portées au choix :
+
+| Portée | Feuilles |
+|--------|----------|
+| Contenu éditorial | `chapitres` |
+| Contenu + repères | `chapitres`, `reperes` |
+| Export complet | `chapitres`, `reperes`, `zones_royaume`, `chapitres_charte` |
+
+API : `GET /api/gl/chapters/admin/import/template?scope=`, `GET /api/gl/chapters/admin/export?scope=&slug=`, `POST /api/gl/chapters/admin/import` (`syncReperes`, `syncZones` pour remplacer repères/zones absents du fichier, par chapitre).
+
+Sémantique import chapitres : cellule **vide** = champ inchangé ; **titre** obligatoire pour créer un slug inconnu ; `biomes_slugs` et `sorts_codes` en CSV.
+
+## Charte graphique des chapitres (import dédié)
+
+Feuille XLSX : `chapitres_charte` (colonnes `slug`, `titre`, `image_carte_url`, couleurs `couleur_*`, cadre `cadre_*`). Incluse aussi dans l’export **complet** ci-dessus.
+
+API dédiée (inchangée) : `GET /api/gl/chapters/admin/charte/import/template`, `GET /api/gl/chapters/admin/charte/export?slug=`, `POST /api/gl/chapters/admin/charte/import`.
+
+Sémantique import charte : cellule **vide** = ne pas modifier le champ ; **`reset`** ou **`-`** sur une couleur = réhériter de la charte plateforme pour cette teinte ; **titre** obligatoire pour créer un chapitre inconnu.
 
 ## Catalogue sortilèges
 
