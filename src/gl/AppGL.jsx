@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { io } from 'socket.io-client';
 import { withAppBase } from '../services/api.js';
 import { useGLSession } from './hooks/useGLSession.js';
@@ -18,7 +18,9 @@ import { GLGlossaryPopover } from './components/GLGlossaryPopover.jsx';
 import { DialogShell } from '../components/DialogShell.jsx';
 import { GLSpellPopover } from './components/GLSpellPopover.jsx';
 import { GLSpellCastWizard } from './components/GLSpellCastWizard.jsx';
+import { GLSpellCastResultPopover } from './components/GLSpellCastResultPopover.jsx';
 import { useGLSpellCast } from './hooks/useGLSpellCast.js';
+import { buildSpellCastResultViewModel } from './utils/glSpellCastRules.js';
 import { GLHistoryView } from './components/GLHistoryView.jsx';
 import { GLUsersAdminView } from './components/GLUsersAdminView.jsx';
 import { GLContentsAdminView } from './components/GLContentsAdminView.jsx';
@@ -129,6 +131,8 @@ export function AppGL() {
   const [spellPopoverCode, setSpellPopoverCode] = useState(null);
   const [spellCastOpen, setSpellCastOpen] = useState(false);
   const [spellCastInitialCode, setSpellCastInitialCode] = useState(null);
+  const [spellCastResult, setSpellCastResult] = useState(null);
+  const lastShownSpellCastEventIdRef = useRef(null);
   const [zoneMusicZones, setZoneMusicZones] = useState([]);
   const [watchTeamPct, setWatchTeamPct] = useState(null);
   const [zoneMusicMuted, setZoneMusicMuted] = useState(() => readStoredMuted());
@@ -444,6 +448,13 @@ export function AppGL() {
     }
   }, [activeGameId]);
 
+  const showSpellCastResult = useCallback((source) => {
+    const vm = buildSpellCastResultViewModel(source);
+    if (!vm.eventId || vm.eventId === lastShownSpellCastEventIdRef.current) return;
+    lastShownSpellCastEventIdRef.current = vm.eventId;
+    setSpellCastResult(vm);
+  }, []);
+
   useEffect(() => {
     reloadGame();
   }, [reloadGame]);
@@ -467,13 +478,15 @@ export function AppGL() {
       } else if (type === 'turn_change') {
         const nextTeamId = evt?.payload?.teamId != null ? Number(evt.payload.teamId) : null;
         if (nextTeamId != null) setTurnToast({ teamId: nextTeamId, ts: Date.now() });
+      } else if (type === 'spell_cast') {
+        showSpellCastResult({ event: evt });
       }
       reloadGame();
     });
     return () => {
       socket.close();
     };
-  }, [token, activeGameId, reloadGame]);
+  }, [token, activeGameId, reloadGame, showSpellCastResult]);
 
   useEffect(() => {
     if (!narrationToast) return undefined;
@@ -605,7 +618,10 @@ export function AppGL() {
     token,
     gameId: gameState?.game?.id,
     enabled: canSpellCast && spellCastOpen,
-    onCastComplete: async () => {
+    onCastComplete: async (data) => {
+      if (data?.event) {
+        showSpellCastResult({ event: data.event, draft: data.draft });
+      }
       await reloadGame();
       await reloadProfile();
     },
@@ -1047,6 +1063,11 @@ export function AppGL() {
         onClose={closeSpellPopover}
         canLaunch={canSpellCast}
         onLaunchSpell={() => openSpellCastWizard(spellPopoverCode)}
+      />
+      <GLSpellCastResultPopover
+        open={!!spellCastResult}
+        result={spellCastResult}
+        onClose={() => setSpellCastResult(null)}
       />
       <GLSpellCastWizard
         open={spellCastOpen}

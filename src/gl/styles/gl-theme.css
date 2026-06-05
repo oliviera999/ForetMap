@@ -4027,6 +4027,47 @@ body.gl-map-fullscreen-active .gl-qcm-popover-overlay {
   width: 40%;
 }
 
+.gl-spell-cast-result__casters {
+  margin: 0 0 1rem;
+  padding: 0;
+}
+
+.gl-spell-cast-result__casters-title {
+  margin: 0 0 0.5rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--gl-color-text, #262626);
+}
+
+.gl-spell-cast-result__casters-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.gl-spell-cast-result__caster {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.35rem 0.75rem;
+  padding: 0.4rem 0.55rem;
+  border-radius: 8px;
+  background: rgba(4, 124, 140, 0.08);
+}
+
+.gl-spell-cast-result__caster-name {
+  font-weight: 600;
+}
+
+.gl-spell-cast-result__caster-contrib {
+  font-size: 0.9rem;
+  color: var(--gl-color-text-muted, #525252);
+}
+
 .gl-species-catalog__intro {
   margin: 0 0 1rem;
   color: var(--gl-color-text, #262626);

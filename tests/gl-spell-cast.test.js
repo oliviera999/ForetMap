@@ -209,6 +209,12 @@ test('lancement gemmes : débit et événement spell_cast', async () => {
   assert.ok(evt);
   const payload = JSON.parse(evt.payload_json);
   assert.strictEqual(payload.spellCode, 'SCT01');
+  assert.ok(Array.isArray(payload.casters));
+  assert.ok(payload.casters.length >= 1);
+  for (const caster of payload.casters) {
+    assert.ok(String(caster.displayName || '').length > 0);
+    assert.ok(Number(caster.playerId) > 0);
+  }
 });
 
 test('self_only refuse contribution autre joueur', async () => {
