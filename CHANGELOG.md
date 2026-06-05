@@ -24,6 +24,8 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ### Corrigé
 
+- **GL — import carnet Sélène** : alias de biomes narratifs (`jungle`, `caduc`, `toundra-hiver`) normalisés vers le catalogue `gl_biomes` à l'import XLSX ; 144 feuillets importables sans skip. Tests `tests/gl-lore-import.test.js`.
+
 - **GL — lancement de sortilège (502 prod, flux MJ)** : `PUT` contributions et `launch` rechargeaient le brouillon sans `roster_scope` (roster limité à une équipe → 400 « joueur hors roster » en multi-équipes) ; corrigé. `POST .../launch` charge l’événement `spell_cast` par `insertId` ; garde si événement absent ; **503** si migration `113` manquante ; `handleSpellCastRoute` journalise en JSON. Assistant `GLSpellCastWizard` : batch contributions avant **Lancer**. Tests `tests/gl-spell-cast.test.js`, `tests-ui/gl/GLSpellCastWizard.test.jsx`. Doc `docs/API.md`, `docs/GL_ARCHITECTURE.md`.
 - **ForetMap — chargement initial bloqué** : garde-fous sur `fetchAll` (plafond 90 s / 8 itérations, bannière `serverDown`), premier chargement garanti sans famine du debounce 250 ms quand la carte active change ; utilitaire `getFetchAllLoopAbortReason` ([`src/constants/app-runtime.js`](src/constants/app-runtime.js)). Tests `tests/fetch-all-loop-guard.test.js`.
 - **GL — contenus éditoriaux** : `useScrollReveal` ré-observe quand le `ref` est attaché après un chargement différé (`GLContentPage`, etc.) ; tests `tests-ui/shared/useScrollReveal.test.jsx`, `tests-ui/gl/GLContentPage.test.jsx`.
