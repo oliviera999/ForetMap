@@ -16,6 +16,9 @@ import { GLBiotopeView } from './components/GLBiotopeView.jsx';
 import { GLBiocenoseView } from './components/GLBiocenoseView.jsx';
 import { GLGlossaryView } from './components/GLGlossaryView.jsx';
 import { GLGlossaryPopover } from './components/GLGlossaryPopover.jsx';
+import { GLLoreGlossaryView } from './components/GLLoreGlossaryView.jsx';
+import { GLLoreGlossaryPopover } from './components/GLLoreGlossaryPopover.jsx';
+import { GLSeleneCarnetView } from './components/GLSeleneCarnetView.jsx';
 import { DialogShell } from '../components/DialogShell.jsx';
 import { GLSpellPopover } from './components/GLSpellPopover.jsx';
 import { GLSpellCastWizard } from './components/GLSpellCastWizard.jsx';
@@ -50,6 +53,7 @@ import { usePrefersReducedMotion } from './hooks/usePrefersReducedMotion.js';
 import { useAppVersion } from '../hooks/useAppVersion.js';
 import { useGlLearningProgress } from './hooks/useGlLearningProgress.js';
 import { useGlGlossaryLinkIndex } from './hooks/useGlGlossaryLinkIndex.js';
+import { useGlLoreGlossaryLinkIndex } from './hooks/useGlLoreGlossaryLinkIndex.js';
 import {
   isGlStaffAuth,
   canGlStaffImpersonate,
@@ -131,6 +135,8 @@ export function AppGL() {
   const [showPlayerStats, setShowPlayerStats] = useState(false);
   const [glossaryFocusCode, setGlossaryFocusCode] = useState(null);
   const [glossaryPopoverCode, setGlossaryPopoverCode] = useState(null);
+  const [loreGlossaryPopoverCode, setLoreGlossaryPopoverCode] = useState(null);
+  const [loreGlossaryFocusCode, setLoreGlossaryFocusCode] = useState(null);
   const [spellPopoverCode, setSpellPopoverCode] = useState(null);
   const [spellCastOpen, setSpellCastOpen] = useState(false);
   const [spellCastInitialCode, setSpellCastInitialCode] = useState(null);
@@ -161,6 +167,7 @@ export function AppGL() {
   }, [gameState?.game?.chapter_biomes]);
 
   const glossaryLinkItems = useGlGlossaryLinkIndex(token, chapterBiomeSlugs);
+  const loreGlossaryLinkItems = useGlLoreGlossaryLinkIndex(token);
 
   const openGlossaryPopover = useCallback((code) => {
     const trimmed = String(code || '').trim();
@@ -169,6 +176,24 @@ export function AppGL() {
 
   const closeGlossaryPopover = useCallback(() => {
     setGlossaryPopoverCode(null);
+  }, []);
+
+  const openLoreGlossaryPopover = useCallback((code) => {
+    const trimmed = String(code || '').trim();
+    setLoreGlossaryPopoverCode(trimmed || null);
+  }, []);
+
+  const closeLoreGlossaryPopover = useCallback(() => {
+    setLoreGlossaryPopoverCode(null);
+  }, []);
+
+  const openLoreGlossaryFullTab = useCallback(() => {
+    setTab('lore-glossary');
+    setLoreGlossaryFocusCode(loreGlossaryPopoverCode);
+  }, [loreGlossaryPopoverCode]);
+
+  const clearLoreGlossaryFocus = useCallback(() => {
+    setLoreGlossaryFocusCode(null);
   }, []);
 
   const openSpellPopover = useCallback((code) => {
@@ -311,6 +336,8 @@ export function AppGL() {
       }
       if (tab.id === 'journal') return isModuleEnabled(modules, 'journalEnabled');
       if (tab.id === 'my-journal') return isModuleEnabled(modules, 'playerJournalEnabled');
+      if (tab.id === 'selene-carnet') return isModuleEnabled(modules, 'loreCarnetEnabled');
+      if (tab.id === 'lore-glossary') return isModuleEnabled(modules, 'loreGlossaryEnabled');
       return true;
     });
     const adminTabs = GL_ADMIN_EXTRA_TABS;
@@ -846,6 +873,9 @@ export function AppGL() {
               onSelectTeam={setSelectedTeamId}
               onOpenGlossaryTerm={openGlossaryPopover}
               glossaryLinkItems={glossaryLinkItems}
+              onOpenLoreTerm={openLoreGlossaryPopover}
+              loreGlossaryLinkItems={loreGlossaryLinkItems}
+              loreCarnetEnabled={isModuleEnabled(modules, 'loreCarnetEnabled')}
               onQcmAnswered={reloadGame}
               canMoveMascot={isMjMapControls}
               canRequestAction={canRequestAction}
@@ -901,6 +931,24 @@ export function AppGL() {
             onOpenPopover={openGlossaryPopover}
             onFocusHandled={clearGlossaryFocus}
             learningProgress={learningProgress}
+          />
+        )}
+        {tab === 'lore-glossary' && isModuleEnabled(modules, 'loreGlossaryEnabled') && (
+          <GLLoreGlossaryView
+            focusCode={loreGlossaryFocusCode}
+            activeTermCode={loreGlossaryPopoverCode}
+            onOpenPopover={openLoreGlossaryPopover}
+            onFocusHandled={clearLoreGlossaryFocus}
+          />
+        )}
+        {tab === 'selene-carnet' && isModuleEnabled(modules, 'loreCarnetEnabled') && (
+          <GLSeleneCarnetView
+            gameState={gameState}
+            glossaryLinkItems={glossaryLinkItems}
+            loreGlossaryLinkItems={loreGlossaryLinkItems}
+            onOpenGlossaryTerm={openGlossaryPopover}
+            onOpenLoreTerm={openLoreGlossaryPopover}
+            isMj={showStaffAdminUi}
           />
         )}
         {tab === 'history' && (
@@ -1073,6 +1121,12 @@ export function AppGL() {
         onOpenFullGlossary={openGlossaryFullTab}
         showFullGlossaryLink={tab !== 'glossary'}
         learningProgress={learningProgress}
+      />
+      <GLLoreGlossaryPopover
+        open={!!loreGlossaryPopoverCode}
+        loreCode={loreGlossaryPopoverCode}
+        onClose={closeLoreGlossaryPopover}
+        onOpenFullGlossary={openLoreGlossaryFullTab}
       />
       <GLSpellPopover
         open={!!spellPopoverCode}

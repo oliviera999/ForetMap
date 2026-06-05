@@ -215,6 +215,28 @@ Tables GL préfixées `gl_` :
 - Tables `gl_player_journals`, `gl_player_journal_assets` ; API `routes/gl/player-journal.js`.
 - UI `GLPlayerJournalView` (joueur), lecture MJ via `GLPlayerJournalReadModal` (statistiques classe, `gl.players.manage`).
 
+### Lore — Carnet de Sélène et glossaire narratif
+
+Deux lexiques **distincts** : glossaire SVT (`gl_glossary_*`, routes `/api/gl/glossary/*`) et glossaire lore (`gl_lore_glossary_*`, routes `/api/gl/lore/glossary/*`). Seul le rendu des feuillets combine les auto-liens (SVT sur `ancrage_scientifique`, lore sur `texte`).
+
+| Couche | Emplacement | Rôle |
+|--------|-------------|------|
+| Schéma | migration `117_gl_lore_carnet.sql` | `gl_lore_plateaux`, `gl_lore_feuillets`, `gl_lore_glossary_terms`, `gl_lore_glossary_relations`, `gl_game_feuillet_states` ; surcharges partie sur `gl_games` (`lore_*`) |
+| Import | `lib/glLoreFeuilletsImport.js`, `lib/glLoreGlossaryImport.js` | XLSX `data/gl/corpus-feuillets-selene.xlsx`, `glossaire-lore-gnomes-et-licornes.xlsx` ; scripts `npm run gl:import:lore-feuillets`, `gl:import:lore-glossary` |
+| Runtime | `lib/glLoreFeuillets.js`, `glLoreFeuilletRetrigger.js`, `glLoreFeuilletEffects.js`, `glLoreGlossaryMatch.js` | Progression, re-déclenchement, effacement/gemmes/cœurs, filtre spoiler |
+| API | `routes/gl/lore.js` (`/api/gl/lore/*`) | Lecture feuillets/glossaire, `present`/`read`/`hold`, admin import/export |
+| Réglages | `lib/glSettings.js`, `GLSettingsView`, console MJ | Modules `lore_carnet_enabled`, `lore_glossary_enabled` ; gameplay `lore_feuillet_retrigger`, `lore_effacement_enabled`, `lore_gemme_costs_enabled`, `lore_heart_rewards_enabled`, `lore_spoiler_max_level` ; cascade NULL sur `gl_games` → plateforme |
+| Carte | `useGLLoreFeuilletArrival`, `GLFeuilletDiscoveryPopover` | Déclenchement à l’entrée zone (`kingdom_zone_id` ou heuristique `zone_label` / `plateau_number` / `biome_slug`) |
+| UI joueur | `GLSeleneCarnetView`, `GLLoreGlossaryView`, `GLLoreGlossaryPopover`, `GLLoreGlossaryMarkdown` | Onglets `selene-carnet`, `lore-glossary` ; styles `mode_apparition` / effacement dans `gl-theme.css` |
+| Admin | `GLContentsAdminView` (sous-onglets Carnet Sélène / Glossaire lore), `GLKingdomZoneFeuilletLinker` | Import XLSX, liaison feuillet ↔ zone polygonale |
+| Journal | `lib/glJournalPresent.js` | Types `feuillet_discovered`, `feuillet_read`, `feuillet_held`, `feuillet_effaced` |
+
+**Zone narrative vs zone carte** : le champ Excel `zone` alimente `zone_label` / `plateau_number` ; la FK `kingdom_zone_id` reste NULL jusqu’à assignation admin (studio carte).
+
+**Accessibilité** : `texte_accessible` servi par défaut aux joueurs si présent ; bascule narratif / accessible dans le carnet.
+
+Tests : `tests/gl-lore-import.test.js`, `tests/gl-lore-feuillets.test.js`, `tests-ui/gl/GLSeleneCarnetView.test.jsx`. Doc API section `/api/gl/lore/*`, données `data/gl/README.md`.
+
 ### Cadres d'image configurables
 
 - Modèle partagé : `src/utils/glImageFrame.js` (`lib/glImageFrame.js` côté serveur).

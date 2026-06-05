@@ -186,6 +186,8 @@ async function readGameState(gameId) {
   const game = await queryOne(
     `SELECT g.id, g.class_id, g.chapter_id, g.name, g.status, g.current_team_id,
             g.zone_content_retrigger,
+            g.lore_feuillet_retrigger, g.lore_effacement_enabled,
+            g.lore_gemme_costs_enabled, g.lore_heart_rewards_enabled,
             g.created_by, g.created_at, g.updated_at,
             c.name AS class_name,
             ch.slug AS chapter_slug, ch.title AS chapter_title, ch.biome, ch.map_image_url,
@@ -473,7 +475,17 @@ router.put('/games/:id', requireGlPermission('gl.game.manage'), async (req, res)
   const hasClassId = req.body?.classId != null;
   const hasZoneContentRetrigger = Object.prototype.hasOwnProperty.call(req.body || {}, 'zoneContentRetrigger')
     || Object.prototype.hasOwnProperty.call(req.body || {}, 'zone_content_retrigger');
-  if (!hasName && !hasChapterId && !hasClassId && !hasZoneContentRetrigger) {
+  const hasLoreFeuilletRetrigger = Object.prototype.hasOwnProperty.call(req.body || {}, 'loreFeuilletRetrigger')
+    || Object.prototype.hasOwnProperty.call(req.body || {}, 'lore_feuillet_retrigger');
+  const hasLoreEffacementEnabled = Object.prototype.hasOwnProperty.call(req.body || {}, 'loreEffacementEnabled')
+    || Object.prototype.hasOwnProperty.call(req.body || {}, 'lore_effacement_enabled');
+  const hasLoreGemmeCostsEnabled = Object.prototype.hasOwnProperty.call(req.body || {}, 'loreGemmeCostsEnabled')
+    || Object.prototype.hasOwnProperty.call(req.body || {}, 'lore_gemme_costs_enabled');
+  const hasLoreHeartRewardsEnabled = Object.prototype.hasOwnProperty.call(req.body || {}, 'loreHeartRewardsEnabled')
+    || Object.prototype.hasOwnProperty.call(req.body || {}, 'lore_heart_rewards_enabled');
+  if (!hasName && !hasChapterId && !hasClassId && !hasZoneContentRetrigger
+    && !hasLoreFeuilletRetrigger && !hasLoreEffacementEnabled
+    && !hasLoreGemmeCostsEnabled && !hasLoreHeartRewardsEnabled) {
     return res.status(400).json({ error: 'Aucune modification fournie' });
   }
 
@@ -528,6 +540,36 @@ router.put('/games/:id', requireGlPermission('gl.game.manage'), async (req, res)
     }
   }
 
+  function parseOptionalBool(raw) {
+    if (raw == null || raw === '') return null;
+    if (raw === true || raw === 1 || raw === '1' || raw === 'true') return 1;
+    if (raw === false || raw === 0 || raw === '0' || raw === 'false') return 0;
+    return null;
+  }
+
+  let nextLoreFeuilletRetrigger = undefined;
+  if (hasLoreFeuilletRetrigger) {
+    const raw = req.body?.loreFeuilletRetrigger ?? req.body?.lore_feuillet_retrigger;
+    if (raw == null || raw === '') {
+      nextLoreFeuilletRetrigger = null;
+    } else {
+      const mode = String(raw).trim();
+      if (!MARKER_QUESTION_RETRIGGER_VALUES.has(mode)) {
+        return res.status(400).json({ error: 'loreFeuilletRetrigger invalide' });
+      }
+      nextLoreFeuilletRetrigger = mode;
+    }
+  }
+  const nextLoreEffacementEnabled = hasLoreEffacementEnabled
+    ? parseOptionalBool(req.body?.loreEffacementEnabled ?? req.body?.lore_effacement_enabled)
+    : undefined;
+  const nextLoreGemmeCostsEnabled = hasLoreGemmeCostsEnabled
+    ? parseOptionalBool(req.body?.loreGemmeCostsEnabled ?? req.body?.lore_gemme_costs_enabled)
+    : undefined;
+  const nextLoreHeartRewardsEnabled = hasLoreHeartRewardsEnabled
+    ? parseOptionalBool(req.body?.loreHeartRewardsEnabled ?? req.body?.lore_heart_rewards_enabled)
+    : undefined;
+
   try {
     await execute(
       `UPDATE gl_games
@@ -535,6 +577,10 @@ router.put('/games/:id', requireGlPermission('gl.game.manage'), async (req, res)
               chapter_id = COALESCE(?, chapter_id),
               class_id = COALESCE(?, class_id),
               zone_content_retrigger = ${hasZoneContentRetrigger ? '?' : 'zone_content_retrigger'},
+              lore_feuillet_retrigger = ${hasLoreFeuilletRetrigger ? '?' : 'lore_feuillet_retrigger'},
+              lore_effacement_enabled = ${hasLoreEffacementEnabled ? '?' : 'lore_effacement_enabled'},
+              lore_gemme_costs_enabled = ${hasLoreGemmeCostsEnabled ? '?' : 'lore_gemme_costs_enabled'},
+              lore_heart_rewards_enabled = ${hasLoreHeartRewardsEnabled ? '?' : 'lore_heart_rewards_enabled'},
               updated_at = NOW()
         WHERE id = ?`,
       [
@@ -542,6 +588,10 @@ router.put('/games/:id', requireGlPermission('gl.game.manage'), async (req, res)
         nextChapterId,
         nextClassId,
         ...(hasZoneContentRetrigger ? [nextZoneContentRetrigger] : []),
+        ...(hasLoreFeuilletRetrigger ? [nextLoreFeuilletRetrigger] : []),
+        ...(hasLoreEffacementEnabled ? [nextLoreEffacementEnabled] : []),
+        ...(hasLoreGemmeCostsEnabled ? [nextLoreGemmeCostsEnabled] : []),
+        ...(hasLoreHeartRewardsEnabled ? [nextLoreHeartRewardsEnabled] : []),
         gameId,
       ]
     );

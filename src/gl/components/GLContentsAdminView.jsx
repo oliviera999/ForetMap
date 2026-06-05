@@ -10,6 +10,8 @@ import { GLGlossaryEditorPanel } from './admin/GLGlossaryEditorPanel.jsx';
 import { GLQcmImportPanel } from './admin/GLQcmImportPanel.jsx';
 import { GLSpellsEditorPanel } from './admin/GLSpellsEditorPanel.jsx';
 import { GLSpellsImportPanel } from './admin/GLSpellsImportPanel.jsx';
+import { GLLoreFeuilletsImportPanel } from './admin/GLLoreFeuilletsImportPanel.jsx';
+import { GLLoreGlossaryImportPanel } from './admin/GLLoreGlossaryImportPanel.jsx';
 
 export function GLContentsAdminView({
   auth,
@@ -92,6 +94,22 @@ export function GLContentsAdminView({
         >
           QCM
         </button>
+        <button
+          type="button"
+          className={section === 'lore-carnet' ? 'is-active' : ''}
+          onClick={() => setSection('lore-carnet')}
+          data-subtab="lore-carnet"
+        >
+          Carnet Sélène
+        </button>
+        <button
+          type="button"
+          className={section === 'lore-glossary' ? 'is-active' : ''}
+          onClick={() => setSection('lore-glossary')}
+          data-subtab="lore-glossary"
+        >
+          Glossaire lore
+        </button>
       </nav>
 
       {section === 'pages' ? (
@@ -144,6 +162,10 @@ export function GLContentsAdminView({
           ManualPanel={GLSpellsEditorPanel}
           ImportPanel={GLSpellsImportPanel}
         />
+      ) : section === 'lore-carnet' ? (
+        <GLLoreFeuilletsImportPanel />
+      ) : section === 'lore-glossary' ? (
+        <GLLoreGlossaryImportPanel />
       ) : (
         <GLQcmImportPanel />
       )}

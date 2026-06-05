@@ -9,6 +9,9 @@ export function GLMapView({
   onSelectTeam,
   onOpenGlossaryTerm,
   glossaryLinkItems = [],
+  onOpenLoreTerm,
+  loreGlossaryLinkItems = [],
+  loreCarnetEnabled = false,
   onQcmAnswered,
   canMoveMascot,
   canRequestAction,
@@ -51,6 +54,9 @@ export function GLMapView({
       onSelectTeam={onSelectTeam}
       onOpenGlossaryTerm={onOpenGlossaryTerm}
       glossaryLinkItems={glossaryLinkItems}
+      onOpenLoreTerm={onOpenLoreTerm}
+      loreGlossaryLinkItems={loreGlossaryLinkItems}
+      loreCarnetEnabled={loreCarnetEnabled}
       onQcmAnswered={onQcmAnswered}
       canMoveMascot={canMoveMascot}
       canRequestAction={canRequestAction}

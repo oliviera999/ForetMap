@@ -11,6 +11,8 @@ export const GL_MODULE_DEFAULTS = {
   spellCastEnabled: false,
   virtualDiceEnabled: false,
   playerJournalEnabled: true,
+  loreCarnetEnabled: true,
+  loreGlossaryEnabled: true,
 };
 
 export function normalizeGlModules(raw) {

@@ -12,7 +12,9 @@ import { useGlPctMapGestures } from '../hooks/useGlPctMapGestures.js';
 import { useGLBoardMascotMotion } from '../hooks/useGLBoardMascotMotion.js';
 import { useGLMarkerArrival } from '../hooks/useGLMarkerArrival.js';
 import { useGLZoneContentArrival } from '../hooks/useGLZoneContentArrival.js';
+import { useGLLoreFeuilletArrival } from '../hooks/useGLLoreFeuilletArrival.js';
 import { GLZoneContentPopover } from './GLZoneContentPopover.jsx';
+import { GLFeuilletDiscoveryPopover } from './GLFeuilletDiscoveryPopover.jsx';
 import { usePrefersReducedMotion } from '../hooks/usePrefersReducedMotion.js';
 import { GLZoneMusicMuteButton } from './GLZoneMusicMuteButton.jsx';
 import { GLVirtualDiceDock } from './GLVirtualDiceDock.jsx';
@@ -32,6 +34,9 @@ export function GLGameBoard({
   onSelectTeam,
   onOpenGlossaryTerm,
   glossaryLinkItems = [],
+  onOpenLoreTerm,
+  loreGlossaryLinkItems = [],
+  loreCarnetEnabled = false,
   onQcmAnswered,
   canMoveMascot,
   canRequestAction,
@@ -101,6 +106,19 @@ export function GLGameBoard({
     qcmOpen: modalOpen,
   });
 
+  const {
+    discovery: feuilletDiscovery,
+    closeDiscovery: closeFeuilletDiscovery,
+    handlePositionChange: handleFeuilletPositionChange,
+    markRead: markFeuilletRead,
+  } = useGLLoreFeuilletArrival({
+    kingdomZones,
+    gameId,
+    watchTeamId,
+    enabled: loreCarnetEnabled && Boolean(gameId && watchTeamId != null),
+    qcmOpen: modalOpen,
+  });
+
   const watchPosition = watchTeamId != null ? getPositionForTeam(watchTeamId) : null;
 
   useEffect(() => {
@@ -110,8 +128,13 @@ export function GLGameBoard({
 
   useEffect(() => {
     if (watchTeamId == null || !watchPosition) return undefined;
-    return handleZoneContentPositionChange({ xp: watchPosition.xp, yp: watchPosition.yp });
-  }, [watchTeamId, watchPosition?.xp, watchPosition?.yp, handleZoneContentPositionChange]);
+    const cleanupZone = handleZoneContentPositionChange({ xp: watchPosition.xp, yp: watchPosition.yp });
+    const cleanupFeuillet = handleFeuilletPositionChange({ xp: watchPosition.xp, yp: watchPosition.yp });
+    return () => {
+      cleanupZone?.();
+      cleanupFeuillet?.();
+    };
+  }, [watchTeamId, watchPosition?.xp, watchPosition?.yp, handleZoneContentPositionChange, handleFeuilletPositionChange]);
 
   useEffect(() => {
     if (!mapFullscreen || modalOpen) return undefined;
@@ -295,6 +318,21 @@ export function GLGameBoard({
         onClose={closeZoneContentPopover}
         onOpenGlossaryTerm={onOpenGlossaryTerm}
         glossaryLinkItems={glossaryLinkItems}
+        themeStyle={brandThemeStyle}
+      />
+
+      <GLFeuilletDiscoveryPopover
+        open={Boolean(feuilletDiscovery)}
+        feuillet={feuilletDiscovery?.feuillet}
+        zone={feuilletDiscovery?.zone}
+        loading={feuilletDiscovery?.loading}
+        error={feuilletDiscovery?.error}
+        onClose={closeFeuilletDiscovery}
+        onMarkRead={markFeuilletRead}
+        onOpenGlossaryTerm={onOpenGlossaryTerm}
+        onOpenLoreTerm={onOpenLoreTerm}
+        glossaryLinkItems={glossaryLinkItems}
+        loreGlossaryLinkItems={loreGlossaryLinkItems}
         themeStyle={brandThemeStyle}
       />
 

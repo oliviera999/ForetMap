@@ -65,6 +65,7 @@ const glSpellsRouter = require('./routes/gl/spells');
 const glGlossaryRouter = require('./routes/gl/glossary').router;
 const glQcmRouter = require('./routes/gl/qcm').router;
 const glLearningRouter = require('./routes/gl/learning');
+const glLoreRouter = require('./routes/gl/lore').router;
 const glStatsRouter = require('./routes/gl/stats');
 
 const app = express();
@@ -575,6 +576,7 @@ app.use('/api/gl/tutorials', glTutorialsRouter);
 app.use('/api/gl/journal', glJournalRouter);
 app.use('/api/gl/player-journal', glPlayerJournalRouter);
 app.use('/api/gl/kingdom-map', glKingdomMapRouter);
+app.use('/api/gl/lore', glLoreRouter);
 
 app.use('/api', (req, res, next) => {
   if (String(req.path || '').startsWith('/gl')) return next();

@@ -55,6 +55,8 @@ const MODULE_TOGGLES = [
   { key: 'modules.market_enabled', label: 'Marché', hint: 'Échanges de cœurs et gemmes entre joueurs de la classe (nécessite la vitalité).' },
   { key: 'modules.spell_cast_enabled', label: 'Lancement de sortilèges', hint: 'Assistant MJ : pool multi-équipes (gemmes/cœurs). Activer aussi la vitalité et « MJ only » pour réserver le lancement au staff.' },
   { key: 'modules.virtual_dice_enabled', label: 'Dés virtuels', hint: 'Bouton et lanceur de dés D6 sur la carte de jeu (jusqu’à 5 dés).' },
+  { key: 'modules.lore_carnet_enabled', label: 'Carnet de Sélène', hint: 'Feuillets narratifs, découverte par zone et onglet carnet.' },
+  { key: 'modules.lore_glossary_enabled', label: 'Lexique du lore', hint: 'Glossaire narratif distinct du glossaire SVT.' },
 ];
 
 const SPELL_CAST_CONTRIBUTION_OPTIONS = [
@@ -421,6 +423,76 @@ export function GLSettingsView() {
         <p className="gl-hint">
           Contrôle l&apos;affichage du popover texte/images quand une équipe entre ou traverse une zone.
         </p>
+        <h4>Carnet de Sélène (lore)</h4>
+        <label>
+          Re-déclenchement des feuillets
+          <select
+            value={String(settings['gameplay.lore_feuillet_retrigger'] || 'once_per_team').replace(/^"|"$/g, '')}
+            disabled={savingKey === 'gameplay.lore_feuillet_retrigger'}
+            onChange={async (event) => {
+              setSavingKey('gameplay.lore_feuillet_retrigger');
+              try {
+                await apiGL('/api/gl/admin/settings/gameplay.lore_feuillet_retrigger', 'PUT', { value: event.target.value });
+                await load();
+              } catch (err) {
+                setError(err.message || 'Enregistrement impossible');
+              } finally {
+                setSavingKey('');
+              }
+            }}
+          >
+            <option value="every_arrival">À chaque entrée ou traversée</option>
+            <option value="once_per_team">Une fois par équipe</option>
+            <option value="once_per_game">Une fois par partie</option>
+          </select>
+        </label>
+        <label>
+          Plafond spoiler glossaire lore
+          <select
+            value={String(settings['gameplay.lore_spoiler_max_level'] || 'recit').replace(/^"|"$/g, '')}
+            disabled={savingKey === 'gameplay.lore_spoiler_max_level'}
+            onChange={async (event) => {
+              setSavingKey('gameplay.lore_spoiler_max_level');
+              try {
+                await apiGL('/api/gl/admin/settings/gameplay.lore_spoiler_max_level', 'PUT', { value: event.target.value });
+                await load();
+              } catch (err) {
+                setError(err.message || 'Enregistrement impossible');
+              } finally {
+                setSavingKey('');
+              }
+            }}
+          >
+            <option value="cle">Clé uniquement</option>
+            <option value="recit">Récit</option>
+            <option value="secret">Secret (MJ)</option>
+          </select>
+        </label>
+        {[
+          ['gameplay.lore_effacement_enabled', 'Effacement des feuillets'],
+          ['gameplay.lore_gemme_costs_enabled', 'Coûts en gemmes (feuillets)'],
+          ['gameplay.lore_heart_rewards_enabled', 'Gains de cœurs (feuillets)'],
+        ].map(([key, label]) => (
+          <label key={key} className="gl-checkbox-row">
+            <input
+              type="checkbox"
+              checked={readGameplayFlag(settings, key)}
+              disabled={savingKey === key}
+              onChange={async (event) => {
+                setSavingKey(key);
+                try {
+                  await apiGL(`/api/gl/admin/settings/${key}`, 'PUT', { value: event.target.checked });
+                  await load();
+                } catch (err) {
+                  setError(err.message || 'Enregistrement impossible');
+                } finally {
+                  setSavingKey('');
+                }
+              }}
+            />
+            {label}
+          </label>
+        ))}
       </div>
 
       <div className="gl-spell-cast-settings gl-form">

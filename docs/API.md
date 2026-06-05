@@ -124,6 +124,21 @@ Le script accepte aussi :
 | GET | `/api/gl/admin/glossary/import/template` | — | `gl.content.manage` (modèle XLSX vierge + ligne d’exemple, feuille `glossaire`) |
 | GET | `/api/gl/admin/glossary/export` | `?statut=actif\|all` (défaut `actif`) | `gl.content.manage` (export XLSX ré-importable du catalogue en base) |
 | GET | `/api/gl/admin/glossary/stats` | — | `gl.content.manage` (total + agrégats par catégorie/niveau) |
+| GET | `/api/gl/lore/feuillets` | `?gameId=`, `?teamId=`, `?biomeSlugs=` (csv), `?liasse=` | Auth GL + `modules.lore_carnet_enabled` — liste feuillets avec statut progression équipe |
+| GET | `/api/gl/lore/feuillets/:code` | `?gameId=`, `?teamId=` | Auth GL — détail feuillet (texte masqué si effacement ; `403` si locked) |
+| POST | `/api/gl/lore/games/:id/feuillets/:code/present` | `{ teamId?, kingdomZoneId? }` | Auth GL + accès partie — découverte, effets gemmes/cœurs si activés, événement `feuillet_discovered` ; `409` si re-déclenchement interdit |
+| POST | `/api/gl/lore/games/:id/feuillets/:code/read` | `{ teamId? }` | Auth GL — marque lu (`feuillet_read`) |
+| POST | `/api/gl/lore/games/:id/feuillets/:code/hold` | `{ teamId? }` | Auth GL — marque tenu si `tenir` défini (`feuillet_held`) |
+| GET | `/api/gl/lore/games/:id/zones/:zoneId/feuillets` | — | Auth GL — candidats liés (`kingdom_zone_id` ou heuristique zone/biome) |
+| GET | `/api/gl/lore/glossary` | `?categorie=`, `?niveau=`, `?q=`, `?chapitreScope=` | Auth GL + `modules.lore_glossary_enabled` — lexique narratif (filtré par `gameplay.lore_spoiler_max_level`) |
+| GET | `/api/gl/lore/glossary/:code` | — | Auth GL — fiche terme + `relatedTerms` ; `403` pour `secret` (joueur) |
+| GET | `/api/gl/lore/glossary/link-index` | — | Auth GL — index auto-liens front (`lore_code`, `terme`, `variantes`) |
+| GET | `/api/gl/lore/admin/feuillets` | `?q=` | `gl.content.manage` |
+| PUT | `/api/gl/lore/admin/feuillets/:code/kingdom-zone` | `{ kingdomZoneId \| null }` | `gl.content.manage` |
+| POST | `/api/gl/lore/admin/feuillets/import` | `{ fileDataBase64, dryRun? }` | `gl.content.manage` (feuilles `feuillets`, `plateaux`) |
+| GET | `/api/gl/lore/admin/feuillets/import/template` | — | `gl.content.manage` |
+| GET | `/api/gl/lore/admin/feuillets/export` | — | `gl.content.manage` |
+| GET/POST/PUT | `/api/gl/lore/admin/glossary/*` | — | CRUD + import/export glossaire lore (miroir admin glossaire SVT) |
 | GET | `/api/gl/qcm/categories` | — | `gl.read` (liste catégories QCM) |
 | GET | `/api/gl/qcm/questions` | `?biomeSlug=`, `?categorieSlug=`, `?q=` optionnels | `gl.read` (liste admin ; ordre canonique A–E, `glossaryTerms[]`) |
 | GET | `/api/gl/qcm/questions/:code/present` | — | `gl.read` (mélange des choix à chaque appel + `presentationToken` signé) |
