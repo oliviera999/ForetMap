@@ -17,7 +17,7 @@ import { usePrefersReducedMotion } from '../hooks/usePrefersReducedMotion.js';
 import { GLZoneMusicMuteButton } from './GLZoneMusicMuteButton.jsx';
 import { GLVirtualDiceDock } from './GLVirtualDiceDock.jsx';
 import { GLButton } from './ui/GLButton.jsx';
-import { GLGameBoardHud } from './GLGameBoardHud.jsx';
+import { GLGameBoardHud, GLGameBoardHudToolbar } from './GLGameBoardHud.jsx';
 import { DialogShell } from '../../components/DialogShell.jsx';
 
 export function GLGameBoard({
@@ -278,8 +278,7 @@ export function GLGameBoard({
       ) : null}
 
       {!mapFullscreen ? (
-        <GLGameBoardHud
-          chapterTitle={chapter?.title}
+        <GLGameBoardHudToolbar
           canSpellCast={canSpellCast}
           onLaunchSpell={onLaunchSpell}
           onOpenFullscreen={() => setMapFullscreen(true)}
@@ -339,6 +338,14 @@ export function GLGameBoard({
 
   return (
     <section className={mapFullscreen ? 'gl-panel gl-panel--map-fullscreen-active' : 'gl-panel'}>
+      {!mapFullscreen ? (
+        <GLGameBoardHud
+          chapterTitle={chapter?.title}
+          canSpellCast={canSpellCast}
+          onLaunchSpell={onLaunchSpell}
+          onOpenFullscreen={() => setMapFullscreen(true)}
+        />
+      ) : null}
       {boardShellNode}
 
       {zoneMusicEnabled ? (
