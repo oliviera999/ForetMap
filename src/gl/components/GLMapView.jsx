@@ -12,6 +12,7 @@ export function GLMapView({
   onQcmAnswered,
   canMoveMascot,
   canRequestAction,
+  markerArrivalEnabled = true,
   selectedTeamId,
   currentTeamId,
   playerTeamId,
@@ -52,6 +53,7 @@ export function GLMapView({
       onQcmAnswered={onQcmAnswered}
       canMoveMascot={canMoveMascot}
       canRequestAction={canRequestAction}
+      markerArrivalEnabled={markerArrivalEnabled}
       selectedTeamId={selectedTeamId}
       currentTeamId={currentTeamId}
       mascotStateMachine={mascotStateMachine}

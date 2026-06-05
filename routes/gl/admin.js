@@ -143,6 +143,7 @@ const ALLOWED_GAMEPLAY_SETTINGS = new Set([
   'gameplay.spell_cast_contribution_mode',
   'gameplay.spell_cast_team_scope',
   'gameplay.spell_cast_mj_only',
+  'gameplay.qcm_mj_only',
   'gameplay.player_journal_max_chars',
   'gameplay.player_journal_max_assets',
 ]);
@@ -731,6 +732,11 @@ router.put('/settings/:key', requireGlPermission('gl.settings.manage'), async (r
   if (key === 'gameplay.spell_cast_mj_only') {
     if (typeof value !== 'boolean') {
       return res.status(400).json({ error: 'La valeur de spell_cast_mj_only doit être booléenne' });
+    }
+  }
+  if (key === 'gameplay.qcm_mj_only') {
+    if (typeof value !== 'boolean') {
+      return res.status(400).json({ error: 'La valeur de qcm_mj_only doit être booléenne' });
     }
   }
   if (key === 'gameplay.vitality_enabled') {

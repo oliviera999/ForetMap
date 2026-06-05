@@ -7,6 +7,7 @@ import { GLField } from './ui/GLField.jsx';
 import { GLInput } from './ui/GLInput.jsx';
 import { GLSurface } from './ui/GLSurface.jsx';
 import { normalizeBrand } from '../hooks/useGLBrandTheme.js';
+import { GAMEPLAY_PRESETS } from '../constants/gameplayPresets.js';
 
 const GAMEPLAY_TOGGLES = [
   {
@@ -80,6 +81,7 @@ export function GLSettingsView() {
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
   const [savingKey, setSavingKey] = useState('');
+  const [applyingPresetId, setApplyingPresetId] = useState('');
   const [savingTitle, setSavingTitle] = useState(false);
   const [savingBrand, setSavingBrand] = useState(false);
   const [defaultHealthPoints, setDefaultHealthPoints] = useState('3');
@@ -151,6 +153,38 @@ export function GLSettingsView() {
     }
   }
 
+  async function applyGameplayPreset(preset) {
+    if (!preset?.settings) return;
+    const changes = Object.entries(preset.settings).filter(([key, value]) => {
+      const current = readGameplayFlag(settings, key);
+      return current !== value;
+    });
+    if (changes.length === 0) {
+      setSuccessMessage(`Profil « ${preset.label} » déjà actif.`);
+      setError('');
+      return;
+    }
+    const ok = window.confirm(
+      `Appliquer le profil « ${preset.label} » ?\n${changes.length} réglage(s) gameplay seront modifiés.`
+    );
+    if (!ok) return;
+
+    setApplyingPresetId(preset.id);
+    setError('');
+    setSuccessMessage('');
+    try {
+      for (const [key, value] of Object.entries(preset.settings)) {
+        await apiGL(`/api/gl/admin/settings/${key}`, 'PUT', { value });
+      }
+      await load();
+      setSuccessMessage(`Profil « ${preset.label} » appliqué.`);
+    } catch (err) {
+      setError(err.message || 'Application du profil impossible');
+    } finally {
+      setApplyingPresetId('');
+    }
+  }
+
   async function saveBrandSettings(event) {
     event.preventDefault();
     setSavingBrand(true);
@@ -214,6 +248,34 @@ export function GLSettingsView() {
         Tous les toggles sont désactivés par défaut. Le MJ active progressivement les modes
         standard puis complet selon la séance.
       </p>
+
+      <div className="gl-gameplay-presets">
+        <h4>Profils de séance</h4>
+        <p className="gl-hint">
+          Applique en un clic une combinaison de réglages gameplay. Les modules (sortilèges, forum, etc.)
+          et le re-déclenchement des questions sur repère ne sont pas modifiés.
+        </p>
+        <ul className="gl-gameplay-presets-list">
+          {GAMEPLAY_PRESETS.map((preset) => (
+            <li key={preset.id} className="gl-gameplay-preset-card">
+              <div className="gl-gameplay-preset-head">
+                <strong>{preset.label}</strong>
+                <GLButton
+                  type="button"
+                  size="sm"
+                  disabled={applyingPresetId !== ''}
+                  loading={applyingPresetId === preset.id}
+                  onClick={() => applyGameplayPreset(preset)}
+                >
+                  Appliquer
+                </GLButton>
+              </div>
+              <p className="gl-hint">{preset.description}</p>
+            </li>
+          ))}
+        </ul>
+      </div>
+
       <ul className="gl-gameplay-toggles">
         {GAMEPLAY_TOGGLES.map((toggle) => {
           const current = readGameplayFlag(settings, toggle.key);
@@ -292,6 +354,21 @@ export function GLSettingsView() {
       </div>
 
       <div className="gl-gameplay-retrigger gl-form">
+        <label className="gl-gameplay-toggle-row">
+          <input
+            type="checkbox"
+            checked={readGameplayFlag(settings, 'gameplay.qcm_mj_only')}
+            disabled={savingKey === 'gameplay.qcm_mj_only'}
+            onChange={async (event) => {
+              await toggleGameplayFlag('gameplay.qcm_mj_only', event.target.checked);
+            }}
+          />
+          <span>QCM réservé au MJ</span>
+        </label>
+        <p className="gl-hint">
+          Si activé, les joueurs ne voient plus le popover question à l&apos;arrivée sur un repère ;
+          le MJ présente et valide depuis la carte (équipe sélectionnée).
+        </p>
         <label>
           Re-déclenchement des questions sur repère
           <select

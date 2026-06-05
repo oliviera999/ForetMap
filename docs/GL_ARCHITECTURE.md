@@ -110,6 +110,10 @@ Chaque toggle est une clé dans `gl_settings` (modifiable via `PUT /api/gl/admin
 | `gameplay.vitality_enabled` | Points de vie (❤️) et points de pouvoir (💎) **persistants par joueur** (`gl_players`) ; ajustements MJ par joueur ou par équipe (`POST .../vitality/player`, `POST .../vitality/team`), événement `vitality_change`. Pas de réinitialisation entre les parties. |
 | `gameplay.default_health_points` | PV initiaux des **nouveaux** joueurs (entier 0–99, défaut `3`). |
 | `gameplay.default_power_points` | PP initiaux des **nouveaux** joueurs (entier 0–99, défaut `3`). |
+| `gameplay.qcm_mj_only` | Seul le staff MJ peut présenter et valider les QCM en partie (`present-question`, `qcm/answer`) ; les joueurs n’ont plus le popover à l’arrivée sur un repère. |
+| `gameplay.spell_cast_mj_only` | Seul le staff MJ peut ouvrir l’assistant de lancement de sortilèges. |
+
+**Profils de séance** : combinaisons recommandées applicables en un clic dans Réglages GL — voir [GL_GAMEPLAY_PRESETS.md](GL_GAMEPLAY_PRESETS.md).
 
 Côté serveur : module `lib/glSettings.js` (cache mémoire 30 s, invalidé à chaque PUT `gameplay.*`). Côté client : `apiGL('/api/gl/gameplay-settings')` au login et au déclenchement de chaque event reçu côté MJ ; UI conditionnelle dans `GLGameMasterConsole` et `GLMapView`.
 

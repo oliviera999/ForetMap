@@ -1124,6 +1124,10 @@ router.post('/games/:id/qcm/answer', requireGlAuth, async (req, res) => {
 
   const settings = await getGameplaySettings();
 
+  if (settings.qcmMjOnly && req.glAuth.userType === 'gl_player') {
+    return res.status(403).json({ error: 'QCM réservé au maître du jeu' });
+  }
+
   if (settings.turnsEnabled) {
     const gameTurn = await queryOne('SELECT current_team_id FROM gl_games WHERE id = ? LIMIT 1', [gameId]);
     if (gameTurn?.current_team_id != null && Number(gameTurn.current_team_id) !== Number(teamIdForGame)) {
@@ -1237,6 +1241,11 @@ router.post('/games/:id/markers/:markerId/present-question', requireGlAuth, asyn
     return res.status(409).json({ error: 'Repère hors chapitre de la partie' });
   }
 
+  const settings = await getGameplaySettings();
+  if (settings.qcmMjOnly && req.glAuth.userType === 'gl_player') {
+    return res.status(403).json({ error: 'QCM réservé au maître du jeu' });
+  }
+
   let teamId = req.body?.teamId != null ? parseId(req.body.teamId) : null;
   if (req.glAuth.userType === 'gl_player') {
     const membership = await getPlayerGameMembership(gameId, req.glAuth.userId);
@@ -1248,8 +1257,6 @@ router.post('/games/:id/markers/:markerId/present-question', requireGlAuth, asyn
 
   const team = await queryOne('SELECT id FROM gl_teams WHERE id = ? AND game_id = ? LIMIT 1', [teamId, gameId]);
   if (!team) return res.status(404).json({ error: 'Équipe introuvable dans cette partie' });
-
-  const settings = await getGameplaySettings();
   const canPresent = await canPresentMarkerQuestion(
     { queryAll },
     {
