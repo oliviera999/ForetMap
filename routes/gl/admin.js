@@ -137,6 +137,7 @@ const ALLOWED_GAMEPLAY_SETTINGS = new Set([
   'gameplay.player_actions_enabled',
   'gameplay.scoring_enabled',
   'gameplay.marker_question_retrigger',
+  'gameplay.zone_content_retrigger',
   'gameplay.vitality_enabled',
   'gameplay.default_health_points',
   'gameplay.default_power_points',
@@ -712,6 +713,13 @@ router.put('/settings/:key', requireGlPermission('gl.settings.manage'), async (r
     const mode = typeof value === 'string' ? value.trim() : String(value || '').trim();
     if (!MARKER_QUESTION_RETRIGGER_VALUES.has(mode)) {
       return res.status(400).json({ error: 'Valeur marker_question_retrigger invalide' });
+    }
+    value = mode;
+  }
+  if (key === 'gameplay.zone_content_retrigger') {
+    const mode = typeof value === 'string' ? value.trim() : String(value || '').trim();
+    if (!MARKER_QUESTION_RETRIGGER_VALUES.has(mode)) {
+      return res.status(400).json({ error: 'Valeur zone_content_retrigger invalide' });
     }
     value = mode;
   }

@@ -72,7 +72,7 @@ Le script accepte aussi :
 | POST | `/api/gl/chapters/admin/:id/markers` | `{ label, xPct, yPct, eventType?, description?, orderIndex?, eventConfig?, qcmCategorieSlug?, qcmQuestionCode?, displayMode?, emoji?, iconUrl? }` | `gl.content.manage` (`eventConfig` : schéma versionné `{ version, question: { mode, fixedQuestionCode?, pool } }` ; affichage carte : `displayMode` = `label` \| `emoji` \| `icon` — défaut `emoji` + `❓` pour `eventType` question/quiz) |
 | PUT | `/api/gl/chapters/admin/markers/:markerId` | mise à jour partielle marker (dont `eventConfig`, `displayMode`, `emoji`, `iconUrl`) | `gl.content.manage` |
 | POST | `/api/gl/chapters/admin/:id/map-image` | `{ image_data }` (data URL base64 image) | `gl.content.manage` |
-| GET | `/api/gl/chapters/admin/import/template` | `?scope=content\|content_markers\|full` (défaut `content`) | `gl.content.manage` (modèle XLSX série de chapitres : feuilles `chapitres` ; + `reperes` ; + `zones_royaume` et `chapitres_charte` si `full`) |
+| GET | `/api/gl/chapters/admin/import/template` | `?scope=content\|content_markers\|full` (défaut `content`) | `gl.content.manage` (modèle XLSX série de chapitres : feuilles `chapitres` (+ `souffle_face`) ; + `reperes` (traits plateau : sous-biome, effets gnome/licorne, deltas, alias type FR) ; + `zones_royaume` et `chapitres_charte` si `full`) |
 | GET | `/api/gl/chapters/admin/export` | `?scope=content\|content_markers\|full`, `?slug=` optionnel | `gl.content.manage` (export XLSX ré-importable selon la portée) |
 | POST | `/api/gl/chapters/admin/import` | `{ fileDataBase64, fileName?, dryRun?, syncReperes?, syncZones? }` (UPSERT chapitres par `slug` — cellule vide = inchangé ; `titre` requis pour créer ; feuilles `reperes` / `zones_royaume` / `chapitres_charte` optionnelles ; `syncReperes` / `syncZones` : remplacement par chapitre des entrées absentes du fichier) | `gl.content.manage` (rapport `{ report }`) |
 | GET | `/api/gl/chapters/admin/charte/import/template` | — | `gl.content.manage` (modèle XLSX feuille `chapitres_charte` : couleurs thème, image carte, cadre) |
@@ -136,6 +136,9 @@ Le script accepte aussi :
 | GET | `/api/gl/admin/qcm/stats` | — | `gl.content.manage` (total, liens glossaire, agrégats biome/catégorie/difficulté) |
 | POST | `/api/gl/games/:id/qcm/answer` | `{ questionCode, presentationToken, choiceId, markerId?, teamId? }` | Auth GL : **joueur** avec `gl.action.request` (équipe déduite du roster) ; **MJ/admin** avec `gl.event.emit` / `gl.game.manage` / `gl.mascot.position` et `teamId` obligatoire. Refus `403` si `gameplay.qcm_mj_only=true` et acteur joueur. Score +1 si correct et scoring actif. Réponse `{ correct, feedback, scoreDelta, glossaryTerms? }` avec `feedback` personnalisé depuis le catalogue (même logique que `POST /api/gl/qcm/questions/:code/answer`). |
 | POST | `/api/gl/games/:id/markers/:markerId/present-question` | `{ teamId?, excludeCodes? }` | Auth GL + accès partie (joueur membre ; MJ avec `teamId`) — tirage selon `event_config` du repère, événement `marker_question_presented` ; refus `403` si `gameplay.qcm_mj_only=true` et acteur joueur ; refus `409` si re-déclenchement interdit |
+| POST | `/api/gl/games/:id/markers/:markerId/present-arrival` | `{ teamId? }` | Auth GL + accès partie — résumé d’arrivée sur repère à effets (`sous_biome_slug`, `effet_mecanique`, `event_config.effects` selon peuple) ; événement `marker_arrival` ; refus `403` si `gameplay.qcm_mj_only=true` et acteur joueur ; refus `404` si repère sans effet |
+| POST | `/api/gl/games/:id/markers/:markerId/apply-effects` | `{ teamId, reason? }` | `gl.event.emit` — applique les deltas vitalité du repère à l’équipe (`applyTeamVitalityDelta` si `gameplay.vitality_enabled`) ; enregistre `marker_effect` (deltas cœurs/gemmes/cases suggérées) |
+| POST | `/api/gl/games/:id/zones/:zoneId/present-content` | `{ teamId? }` | Auth GL + accès partie (joueur membre ; MJ avec `teamId`) — popover texte/images de zone (`popoverMarkdown`, `popoverImages`), événement `zone_content_presented` ; partie `live` ou `paused` ; refus `409` si re-déclenchement interdit (`gameplay.zone_content_retrigger` ou `gl_games.zone_content_retrigger`) |
 | GET | `/api/gl/gameplay-settings` | — | Auth GL (joueur ou admin) |
 | POST | `/api/gl/games` | `{ classId, chapterId, name }` | `gl.game.manage` (refus `404` si `classId`/`chapterId` introuvable, `409` si la ressource est supprimée entre validation et insertion) |
 | GET | `/api/gl/games` | `?classId=&status=` optionnels | `gl.game.manage` |
@@ -314,8 +317,8 @@ sur la carte du royaume). Couleur invalide → `400`.
 | DELETE | `/api/gl/player-journal/me/assets/:assetId` | — | Joueur GL — propriétaire |
 | GET | `/api/gl/player-journal/players/:playerId` | — | `gl.players.manage` — lecture carnet d’un joueur (recette MJ) |
 | GET | `/api/gl/kingdom-map/zones?chapterId=` | — | Auth GL |
-| POST | `/api/gl/kingdom-map/zones` | `{ chapterId, label, description?, color?, points: [{x,y}…], musicUrl?, musicVolume? }` | `gl.content.manage` |
-| PUT | `/api/gl/kingdom-map/zones/:id` | mise à jour partielle (`musicUrl` nullable pour retirer) | `gl.content.manage` |
+| POST | `/api/gl/kingdom-map/zones` | `{ chapterId, label, description?, color?, points: [{x,y}…], musicUrl?, musicVolume?, popoverMarkdown?, popoverImages?: [{ url, caption?, sortOrder? }] }` | `gl.content.manage` |
+| PUT | `/api/gl/kingdom-map/zones/:id` | mise à jour partielle (`musicUrl` nullable pour retirer ; `popoverMarkdown` / `popoverImages` optionnels) | `gl.content.manage` |
 | DELETE | `/api/gl/kingdom-map/zones/:id` | — | `gl.content.manage` |
 
 ### Diagnostics GL (admin)

@@ -1,7 +1,12 @@
 import React from 'react';
 import { MediaLibraryMenu } from '../../components/MediaLibraryMenu.jsx';
 import { GLButton } from './ui/GLButton.jsx';
-import { readZoneMusicUrl } from '../hooks/useGLKingdomZoneEditor.js';
+import {
+  readZoneMusicUrl,
+  readZonePopoverMarkdown,
+  readZonePopoverImages,
+  zoneHasPopoverDraft,
+} from '../hooks/useGLKingdomZoneEditor.js';
 
 /** @typedef {'all' | 'toolbars' | 'panels'} GLKingdomZoneSidePanelsVariant */
 
@@ -29,6 +34,10 @@ export function GLKingdomZoneSidePanels({
     setDraftMusicUrl,
     draftMusicVolumePct,
     setDraftMusicVolumePct,
+    draftPopoverMarkdown,
+    setDraftPopoverMarkdown,
+    draftPopoverImages,
+    setDraftPopoverImages,
     selectedVertexIndex,
     insertVertexMode,
     setInsertVertexMode,
@@ -133,6 +142,9 @@ export function GLKingdomZoneSidePanels({
               {zoneMusicEnabled && readZoneMusicUrl(zone) ? (
                 <span className="gl-zone-music-badge" aria-label="Musique associée" title="Musique associée"> 🎧</span>
               ) : null}
+              {zoneHasPopoverDraft(readZonePopoverMarkdown(zone), readZonePopoverImages(zone)) ? (
+                <span className="gl-zone-content-badge" aria-label="Contenu popover" title="Contenu popover"> 📄</span>
+              ) : null}
             </button>
             {canManage && !isEditingShape ? (
               <GLButton type="button" size="sm" variant="danger" onClick={() => onDeleteZone?.(zone.id)}>
@@ -180,6 +192,70 @@ export function GLKingdomZoneSidePanels({
             Couleur
             <input value={draftColor} onChange={(event) => setDraftColor(event.target.value)} />
           </label>
+          <fieldset className="gl-zone-content-fieldset">
+            <legend>Popover (texte et images)</legend>
+            <label>
+              Texte markdown
+              <textarea
+                rows={5}
+                value={draftPopoverMarkdown}
+                onChange={(event) => setDraftPopoverMarkdown(event.target.value)}
+                placeholder="Texte affiché quand une équipe entre ou traverse la zone…"
+              />
+            </label>
+            <p className="gl-hint">Markdown accepté (glossaire, images inline via la bibliothèque média).</p>
+            <div className="gl-zone-popover-images">
+              <div className="gl-inline-actions">
+                <strong>Galerie d’images</strong>
+                {canUseMediaLibrary ? (
+                  <MediaLibraryMenu
+                    title="Ajouter une image"
+                    fetchItems={fetchMediaLibrary}
+                    uploadDataUrl={uploadMediaLibrary}
+                    removeItem={removeMediaLibrary}
+                    onPickUrl={(url) => {
+                      const nextUrl = String(url || '').trim();
+                      if (!nextUrl) return;
+                      setDraftPopoverImages((prev) => [
+                        ...prev,
+                        { url: nextUrl, caption: '', sortOrder: prev.length },
+                      ]);
+                    }}
+                    canUpload
+                    canRemove
+                    manageHint="Choisissez une image de la bibliothèque."
+                  />
+                ) : null}
+              </div>
+              {draftPopoverImages.map((img, index) => (
+                <div key={`${img.url}-${index}`} className="gl-zone-popover-image-row">
+                  <img src={img.url} alt="" className="gl-zone-popover-image-thumb" loading="lazy" />
+                  <label>
+                    Légende
+                    <input
+                      value={img.caption || ''}
+                      onChange={(event) => {
+                        const caption = event.target.value;
+                        setDraftPopoverImages((prev) => prev.map((row, rowIndex) => (
+                          rowIndex === index ? { ...row, caption } : row
+                        )));
+                      }}
+                    />
+                  </label>
+                  <GLButton
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => {
+                      setDraftPopoverImages((prev) => prev.filter((_, rowIndex) => rowIndex !== index));
+                    }}
+                  >
+                    Retirer
+                  </GLButton>
+                </div>
+              ))}
+            </div>
+          </fieldset>
           {zoneMusicEnabled ? (
             <fieldset className="gl-zone-music-fieldset">
               <legend>Musique d’ambiance</legend>

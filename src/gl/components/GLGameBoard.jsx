@@ -2,13 +2,17 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { clampMapMascotPctForViewport } from '../../utils/mapViewMascotMotion.js';
 import { isQuestionMarker } from '../../utils/glMarkerEventConfig.js';
+import { shouldPresentMarkerOnArrival } from '../../utils/glMarkerEffects.js';
 import { GLBoardMarkers } from './GLBoardMarkers.jsx';
 import { GLBoardMascot } from './GLBoardMascot.jsx';
 import { GLQcmPopover } from './GLQcmPopover.jsx';
+import { GLMarkerEffectPopover } from './GLMarkerEffectPopover.jsx';
 import { GLPctMapCanvas } from './GLPctMapCanvas.jsx';
 import { useGlPctMapGestures } from '../hooks/useGlPctMapGestures.js';
 import { useGLBoardMascotMotion } from '../hooks/useGLBoardMascotMotion.js';
 import { useGLMarkerArrival } from '../hooks/useGLMarkerArrival.js';
+import { useGLZoneContentArrival } from '../hooks/useGLZoneContentArrival.js';
+import { GLZoneContentPopover } from './GLZoneContentPopover.jsx';
 import { usePrefersReducedMotion } from '../hooks/usePrefersReducedMotion.js';
 import { GLZoneMusicMuteButton } from './GLZoneMusicMuteButton.jsx';
 import { GLVirtualDiceDock } from './GLVirtualDiceDock.jsx';
@@ -34,6 +38,7 @@ export function GLGameBoard({
   selectedTeamId,
   currentTeamId,
   mascotStateMachine,
+  kingdomZones = [],
   zoneMusicEnabled = false,
   zoneMusicMuted = false,
   onZoneMusicToggle,
@@ -55,7 +60,9 @@ export function GLGameBoard({
 
   const {
     popover: questionPopover,
+    effectPopover,
     closePopover,
+    closeEffectPopover,
     reshuffle,
     setResult,
     schedulePresentOnArrival,
@@ -78,6 +85,20 @@ export function GLGameBoard({
   });
 
   const qcmOpen = Boolean(questionPopover);
+  const effectOpen = Boolean(effectPopover);
+  const modalOpen = qcmOpen || effectOpen;
+
+  const {
+    popover: zoneContentPopover,
+    closePopover: closeZoneContentPopover,
+    handlePositionChange: handleZoneContentPositionChange,
+  } = useGLZoneContentArrival({
+    kingdomZones,
+    gameId,
+    watchTeamId,
+    enabled: Boolean(gameId && watchTeamId != null),
+    qcmOpen: modalOpen,
+  });
 
   const watchPosition = watchTeamId != null ? getPositionForTeam(watchTeamId) : null;
 
@@ -87,13 +108,18 @@ export function GLGameBoard({
   }, [watchTeamId, watchPosition?.xp, watchPosition?.yp, onWatchTeamPctChange]);
 
   useEffect(() => {
-    if (!mapFullscreen || qcmOpen) return undefined;
+    if (watchTeamId == null || !watchPosition) return undefined;
+    return handleZoneContentPositionChange({ xp: watchPosition.xp, yp: watchPosition.yp });
+  }, [watchTeamId, watchPosition?.xp, watchPosition?.yp, handleZoneContentPositionChange]);
+
+  useEffect(() => {
+    if (!mapFullscreen || modalOpen) return undefined;
     const onKey = (event) => {
       if (event.key === 'Escape') setMapFullscreen(false);
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [mapFullscreen, qcmOpen]);
+  }, [mapFullscreen, modalOpen]);
 
   useEffect(() => {
     if (typeof document === 'undefined') return undefined;
@@ -129,7 +155,7 @@ export function GLGameBoard({
     const yp = Number(marker.y_pct);
     moveTeamTo(teamId, xp, yp, { triggerHappy: true, arrival: 'marker' });
     onMarkerClick?.(marker);
-    if (isQuestionMarker(marker)) {
+    if (isQuestionMarker(marker) || shouldPresentMarkerOnArrival(marker)) {
       schedulePresentOnArrival(marker, teamId, { force: true });
     }
   }, [resolveActiveTeamId, moveTeamTo, onMarkerClick, schedulePresentOnArrival]);
@@ -250,6 +276,19 @@ export function GLGameBoard({
         <GLVirtualDiceDock themeStyle={brandThemeStyle} />
       ) : null}
 
+      <GLZoneContentPopover
+        open={Boolean(zoneContentPopover)}
+        zone={zoneContentPopover?.zone}
+        popoverMarkdown={zoneContentPopover?.popoverMarkdown}
+        popoverImages={zoneContentPopover?.popoverImages}
+        loading={zoneContentPopover?.loading}
+        error={zoneContentPopover?.error}
+        onClose={closeZoneContentPopover}
+        onOpenGlossaryTerm={onOpenGlossaryTerm}
+        glossaryLinkItems={glossaryLinkItems}
+        themeStyle={brandThemeStyle}
+      />
+
       <GLQcmPopover
         open={Boolean(questionPopover)}
         marker={questionPopover?.marker}
@@ -266,6 +305,19 @@ export function GLGameBoard({
         onAnswered={onQcmAnswered}
         onReshuffle={reshuffle}
         onSubmitResult={setResult}
+        themeStyle={brandThemeStyle}
+      />
+
+      <GLMarkerEffectPopover
+        open={Boolean(effectPopover)}
+        marker={effectPopover?.marker}
+        gameId={gameId}
+        teamId={effectPopover?.teamId ?? watchTeamId}
+        arrival={effectPopover?.arrival}
+        loading={effectPopover?.loading}
+        error={effectPopover?.error}
+        canApplyEffects={canMoveMascot}
+        onClose={closeEffectPopover}
         themeStyle={brandThemeStyle}
       />
     </div>

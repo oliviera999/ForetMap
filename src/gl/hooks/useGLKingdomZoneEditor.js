@@ -24,6 +24,24 @@ export function readZoneMusicVolume(zone) {
   return Math.max(0, Math.min(1, n));
 }
 
+export function readZonePopoverMarkdown(zone) {
+  return String(zone?.popoverMarkdown ?? zone?.popover_markdown ?? '');
+}
+
+export function readZonePopoverImages(zone) {
+  const images = zone?.popoverImages ?? zone?.popover_images;
+  return Array.isArray(images) ? images.map((img, index) => ({
+    url: String(img?.url || '').trim(),
+    caption: img?.caption != null ? String(img.caption) : '',
+    sortOrder: Number.isFinite(Number(img?.sortOrder ?? img?.sort_order)) ? Number(img.sortOrder ?? img.sort_order) : index,
+  })).filter((img) => img.url) : [];
+}
+
+export function zoneHasPopoverDraft(markdown, images) {
+  if (String(markdown || '').trim()) return true;
+  return Array.isArray(images) && images.some((img) => String(img?.url || '').trim());
+}
+
 /**
  * État UI édition zones royaume (polygones %).
  * @param {object} options
@@ -51,6 +69,8 @@ export function useGLKingdomZoneEditor({
   const [draftColor, setDraftColor] = useState(GL_KINGDOM_ZONE_DEFAULT_COLOR);
   const [draftMusicUrl, setDraftMusicUrl] = useState('');
   const [draftMusicVolumePct, setDraftMusicVolumePct] = useState(70);
+  const [draftPopoverMarkdown, setDraftPopoverMarkdown] = useState('');
+  const [draftPopoverImages, setDraftPopoverImages] = useState([]);
   const [selectedVertexIndex, setSelectedVertexIndex] = useState(null);
   const [insertVertexMode, setInsertVertexMode] = useState(false);
 
@@ -75,12 +95,16 @@ export function useGLKingdomZoneEditor({
       setDraftColor(GL_KINGDOM_ZONE_DEFAULT_COLOR);
       setDraftMusicUrl('');
       setDraftMusicVolumePct(Math.round(DEFAULT_MUSIC_VOLUME * 100));
+      setDraftPopoverMarkdown('');
+      setDraftPopoverImages([]);
       return;
     }
     setDraftLabel(selectedZone.label || '');
     setDraftColor(selectedZone.color || GL_KINGDOM_ZONE_DEFAULT_COLOR);
     setDraftMusicUrl(readZoneMusicUrl(selectedZone));
     setDraftMusicVolumePct(Math.round(readZoneMusicVolume(selectedZone) * 100));
+    setDraftPopoverMarkdown(readZonePopoverMarkdown(selectedZone));
+    setDraftPopoverImages(readZonePopoverImages(selectedZone));
   }, [selectedZone]);
 
   const displayZones = useMemo(() => {
@@ -145,6 +169,14 @@ export function useGLKingdomZoneEditor({
       payload.musicUrl = draftMusicUrl.trim() || null;
       payload.musicVolume = Math.max(0, Math.min(1, Number(draftMusicVolumePct) / 100));
     }
+    payload.popoverMarkdown = draftPopoverMarkdown.trim() || null;
+    payload.popoverImages = draftPopoverImages
+      .filter((img) => String(img?.url || '').trim())
+      .map((img, index) => ({
+        url: String(img.url).trim(),
+        caption: String(img.caption || '').trim() || null,
+        sortOrder: index,
+      }));
     await onUpdateZone?.(selectedZoneId, payload);
   }, [
     selectedZoneId,
@@ -153,6 +185,8 @@ export function useGLKingdomZoneEditor({
     zoneMusicEnabled,
     draftMusicUrl,
     draftMusicVolumePct,
+    draftPopoverMarkdown,
+    draftPopoverImages,
     onUpdateZone,
   ]);
 
@@ -237,6 +271,10 @@ export function useGLKingdomZoneEditor({
     setDraftMusicUrl,
     draftMusicVolumePct,
     setDraftMusicVolumePct,
+    draftPopoverMarkdown,
+    setDraftPopoverMarkdown,
+    draftPopoverImages,
+    setDraftPopoverImages,
     selectedVertexIndex,
     setSelectedVertexIndex,
     insertVertexMode,

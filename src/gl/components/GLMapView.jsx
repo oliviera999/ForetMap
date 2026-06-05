@@ -17,6 +17,7 @@ export function GLMapView({
   currentTeamId,
   playerTeamId,
   mascotStateMachine,
+  kingdomZones = [],
   zoneMusicEnabled = false,
   zoneMusicMuted = false,
   onZoneMusicToggle,
@@ -57,6 +58,7 @@ export function GLMapView({
       selectedTeamId={selectedTeamId}
       currentTeamId={currentTeamId}
       mascotStateMachine={mascotStateMachine}
+      kingdomZones={kingdomZones}
       zoneMusicEnabled={zoneMusicEnabled}
       zoneMusicMuted={zoneMusicMuted}
       onZoneMusicToggle={onZoneMusicToggle}

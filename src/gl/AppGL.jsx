@@ -134,7 +134,7 @@ export function AppGL() {
   const [spellCastInitialCode, setSpellCastInitialCode] = useState(null);
   const [spellCastResult, setSpellCastResult] = useState(null);
   const lastShownSpellCastEventIdRef = useRef(null);
-  const [zoneMusicZones, setZoneMusicZones] = useState([]);
+  const [kingdomZones, setKingdomZones] = useState([]);
   const [watchTeamPct, setWatchTeamPct] = useState(null);
   const [zoneMusicMuted, setZoneMusicMuted] = useState(() => readStoredMuted());
   const [glViewMode, setGlViewMode] = useState('native'); // native | player
@@ -206,8 +206,8 @@ export function AppGL() {
 
   const activeZoneForMusic = useMemo(() => {
     if (!watchTeamPct) return null;
-    return pickZoneAtPct(zoneMusicZones, watchTeamPct.xp, watchTeamPct.yp);
-  }, [zoneMusicZones, watchTeamPct]);
+    return pickZoneAtPct(kingdomZones, watchTeamPct.xp, watchTeamPct.yp);
+  }, [kingdomZones, watchTeamPct]);
 
   const zoneMusicRuntimeActive = tab === 'maps' && zoneMusicEnabled && Boolean(gameState?.game);
 
@@ -224,14 +224,16 @@ export function AppGL() {
     return undefined;
   }, [zoneMusicRuntimeActive, stopZoneMusic]);
 
+  const kingdomZonesRuntimeActive = tab === 'maps' && Boolean(gameState?.game?.chapter_id);
+
   useEffect(() => {
-    if (!token || !zoneMusicEnabled) {
-      setZoneMusicZones([]);
+    if (!token || !kingdomZonesRuntimeActive) {
+      setKingdomZones([]);
       return undefined;
     }
     const chapterId = gameState?.game?.chapter_id;
     if (!chapterId) {
-      setZoneMusicZones([]);
+      setKingdomZones([]);
       return undefined;
     }
     let cancelled = false;
@@ -239,16 +241,16 @@ export function AppGL() {
       try {
         const data = await apiGL(`/api/gl/kingdom-map/zones?chapterId=${chapterId}`);
         if (!cancelled) {
-          setZoneMusicZones(Array.isArray(data?.zones) ? data.zones : []);
+          setKingdomZones(Array.isArray(data?.zones) ? data.zones : []);
         }
       } catch (_) {
-        if (!cancelled) setZoneMusicZones([]);
+        if (!cancelled) setKingdomZones([]);
       }
     })();
     return () => {
       cancelled = true;
     };
-  }, [token, zoneMusicEnabled, gameState?.game?.chapter_id]);
+  }, [token, kingdomZonesRuntimeActive, gameState?.game?.chapter_id]);
 
   const handleWatchTeamPctChange = useCallback((pct) => {
     setWatchTeamPct(pct);
@@ -847,6 +849,7 @@ export function AppGL() {
               currentTeamId={currentTeamId}
               playerTeamId={auth?.teamId != null ? Number(auth.teamId) : null}
               mascotStateMachine={mascotStateMachine}
+              kingdomZones={kingdomZones}
               zoneMusicEnabled={zoneMusicEnabled}
               zoneMusicMuted={zoneMusicMuted}
               onZoneMusicToggle={handleZoneMusicToggle}

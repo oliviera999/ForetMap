@@ -8,6 +8,10 @@ const {
   parseZoneMusicInput,
   serializeZoneMusicRow,
 } = require('../../lib/glZoneMusic');
+const {
+  parseZonePopoverInput,
+  serializeZonePopoverRow,
+} = require('../../lib/glZoneContent');
 
 const router = express.Router();
 
@@ -42,6 +46,7 @@ function mapZoneRow(row) {
     points = [];
   }
   const music = serializeZoneMusicRow(row);
+  const popover = serializeZonePopoverRow(row);
   return {
     id: Number(row.id),
     chapter_id: Number(row.chapter_id),
@@ -53,6 +58,10 @@ function mapZoneRow(row) {
     music_volume: music.music_volume,
     musicUrl: music.musicUrl,
     musicVolume: music.musicVolume,
+    popover_markdown: popover.popover_markdown,
+    popoverMarkdown: popover.popoverMarkdown,
+    popover_images: popover.popover_images,
+    popoverImages: popover.popoverImages,
     created_at: row.created_at,
     updated_at: row.updated_at,
   };
@@ -65,7 +74,8 @@ router.get('/zones', requireGlAuth, async (req, res) => {
   }
   const rows = await queryAll(
     `SELECT id, chapter_id, label, description, points_json, color,
-            music_url, music_volume, created_at, updated_at
+            music_url, music_volume, popover_markdown, popover_images_json,
+            created_at, updated_at
        FROM gl_kingdom_zones
       WHERE chapter_id = ?
       ORDER BY id ASC`,
@@ -82,6 +92,8 @@ router.post('/zones', requireGlPermission('gl.content.manage'), async (req, res)
   const points = req.body?.points;
   const musicParsed = parseZoneMusicInput(req.body);
   if (musicParsed.error) return res.status(400).json({ error: musicParsed.error });
+  const popoverParsed = parseZonePopoverInput(req.body);
+  if (popoverParsed.error) return res.status(400).json({ error: popoverParsed.error });
   if (!Number.isFinite(chapterId)) return res.status(400).json({ error: 'chapterId invalide' });
   if (!label || label.length < MIN_LABEL || label.length > MAX_LABEL) {
     return res.status(400).json({ error: `Label invalide (${MIN_LABEL}-${MAX_LABEL} caractères)` });
@@ -93,11 +105,19 @@ router.post('/zones', requireGlPermission('gl.content.manage'), async (req, res)
   if (!chapter) return res.status(404).json({ error: 'Chapitre introuvable' });
   const musicUrl = musicParsed.hasMusicUrl ? musicParsed.musicUrl : null;
   const musicVolume = musicParsed.hasMusicVolume ? musicParsed.musicVolume : DEFAULT_MUSIC_VOLUME;
+  const popoverMarkdown = popoverParsed.hasPopoverMarkdown ? popoverParsed.popoverMarkdown : null;
+  const popoverImagesJson = popoverParsed.hasPopoverImages
+    ? (popoverParsed.popoverImages ? JSON.stringify(popoverParsed.popoverImages) : null)
+    : null;
   const result = await execute(
     `INSERT INTO gl_kingdom_zones
-       (chapter_id, label, description, points_json, color, music_url, music_volume, created_by, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
-    [chapterId, label, description, JSON.stringify(points), color, musicUrl, musicVolume, req.glAuth.userId]
+       (chapter_id, label, description, points_json, color, music_url, music_volume,
+        popover_markdown, popover_images_json, created_by, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
+    [
+      chapterId, label, description, JSON.stringify(points), color, musicUrl, musicVolume,
+      popoverMarkdown, popoverImagesJson, req.glAuth.userId,
+    ]
   );
   const created = await queryOne('SELECT * FROM gl_kingdom_zones WHERE id = ? LIMIT 1', [result.insertId]);
   return res.status(201).json(mapZoneRow(created));
@@ -114,6 +134,8 @@ router.put('/zones/:id', requireGlPermission('gl.content.manage'), async (req, r
   const points = req.body?.points;
   const musicParsed = parseZoneMusicInput(req.body);
   if (musicParsed.error) return res.status(400).json({ error: musicParsed.error });
+  const popoverParsed = parseZonePopoverInput(req.body);
+  if (popoverParsed.error) return res.status(400).json({ error: popoverParsed.error });
   let pointsJson = null;
   if (points != null) {
     if (!validatePoints(points)) {
@@ -123,6 +145,10 @@ router.put('/zones/:id', requireGlPermission('gl.content.manage'), async (req, r
   }
   const musicUrl = musicParsed.hasMusicUrl ? musicParsed.musicUrl : undefined;
   const musicVolume = musicParsed.hasMusicVolume ? musicParsed.musicVolume : undefined;
+  const popoverMarkdown = popoverParsed.hasPopoverMarkdown ? popoverParsed.popoverMarkdown : undefined;
+  const popoverImagesJson = popoverParsed.hasPopoverImages
+    ? (popoverParsed.popoverImages ? JSON.stringify(popoverParsed.popoverImages) : null)
+    : undefined;
   await execute(
     `UPDATE gl_kingdom_zones
         SET label = COALESCE(?, label),
@@ -131,6 +157,8 @@ router.put('/zones/:id', requireGlPermission('gl.content.manage'), async (req, r
             points_json = COALESCE(?, points_json),
             music_url = ${musicParsed.hasMusicUrl ? '?' : 'music_url'},
             music_volume = ${musicParsed.hasMusicVolume ? '?' : 'music_volume'},
+            popover_markdown = ${popoverParsed.hasPopoverMarkdown ? '?' : 'popover_markdown'},
+            popover_images_json = ${popoverParsed.hasPopoverImages ? '?' : 'popover_images_json'},
             updated_at = NOW()
       WHERE id = ?`,
     [
@@ -140,6 +168,8 @@ router.put('/zones/:id', requireGlPermission('gl.content.manage'), async (req, r
       pointsJson,
       ...(musicParsed.hasMusicUrl ? [musicUrl] : []),
       ...(musicParsed.hasMusicVolume ? [musicVolume] : []),
+      ...(popoverParsed.hasPopoverMarkdown ? [popoverMarkdown] : []),
+      ...(popoverParsed.hasPopoverImages ? [popoverImagesJson] : []),
       id,
     ]
   );

@@ -53,7 +53,12 @@ export function GLGameMasterConsole({
   const [createName, setCreateName] = useState('Partie découverte');
   const [createChapterId, setCreateChapterId] = useState('');
   const [createClassId, setCreateClassId] = useState('');
-  const [editGameForm, setEditGameForm] = useState({ name: '', chapterId: '', classId: '' });
+  const [editGameForm, setEditGameForm] = useState({
+    name: '',
+    chapterId: '',
+    classId: '',
+    zoneContentRetrigger: '',
+  });
   const [narration, setNarration] = useState('');
   const [narrationImageUrl, setNarrationImageUrl] = useState('');
   const [scoreDelta, setScoreDelta] = useState(1);
@@ -149,8 +154,9 @@ export function GLGameMasterConsole({
       name: game.name || '',
       chapterId: game.chapter_id != null ? String(game.chapter_id) : '',
       classId: game.class_id != null ? String(game.class_id) : '',
+      zoneContentRetrigger: game.zone_content_retrigger != null ? String(game.zone_content_retrigger) : '',
     });
-  }, [game?.id, game?.name, game?.chapter_id, game?.class_id]);
+  }, [game?.id, game?.name, game?.chapter_id, game?.class_id, game?.zone_content_retrigger]);
 
   useEffect(() => {
     if (!feedback) return undefined;
@@ -282,6 +288,7 @@ export function GLGameMasterConsole({
       if (canEditGameClass(gameStatus) && editGameForm.classId) {
         payload.classId = Number(editGameForm.classId);
       }
+      payload.zoneContentRetrigger = editGameForm.zoneContentRetrigger || null;
       const updated = await apiGL(`/api/gl/games/${game.id}`, 'PUT', payload);
       onGameStateChange(updated);
       showSuccess('Partie mise à jour.');
@@ -699,6 +706,20 @@ export function GLGameMasterConsole({
                       {item.school ? ` (${item.school})` : ''}
                     </option>
                   ))}
+                </GLSelect>
+              </GLField>
+              <GLField label="Popover zones (cette partie)">
+                <GLSelect
+                  value={editGameForm.zoneContentRetrigger}
+                  onChange={(event) => setEditGameForm((prev) => ({
+                    ...prev,
+                    zoneContentRetrigger: event.target.value,
+                  }))}
+                >
+                  <option value="">Hériter des réglages globaux</option>
+                  <option value="every_arrival">À chaque entrée ou traversée</option>
+                  <option value="once_per_team">Une fois par équipe et zone</option>
+                  <option value="once_per_game">Une fois par zone (toute la partie)</option>
                 </GLSelect>
               </GLField>
             </div>

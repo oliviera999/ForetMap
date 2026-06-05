@@ -68,6 +68,8 @@ export function useGLKingdomZones(chapterId, { zoneMusicEnabled = false } = {}) 
     if (patch?.points != null) payload.points = patch.points;
     if (patch?.musicUrl !== undefined) payload.musicUrl = patch.musicUrl;
     if (patch?.musicVolume != null) payload.musicVolume = patch.musicVolume;
+    if (patch?.popoverMarkdown !== undefined) payload.popoverMarkdown = patch.popoverMarkdown;
+    if (patch?.popoverImages !== undefined) payload.popoverImages = patch.popoverImages;
     if (Object.keys(payload).length === 0) return;
     try {
       await apiGL(`/api/gl/kingdom-map/zones/${zoneId}`, 'PUT', payload);
