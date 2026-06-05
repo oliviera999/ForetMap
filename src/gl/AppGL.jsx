@@ -6,7 +6,8 @@ import { apiGL } from './services/apiGL.js';
 import { GL_TAB_STORAGE_KEY, GL_PLAYER_TABS, GL_ADMIN_EXTRA_TABS, GL_VALID_TABS } from './constants/app-runtime.js';
 import { GL_MODULE_DEFAULTS, normalizeGlModules, isModuleEnabled } from './constants/modules.js';
 import { GLAuthView } from './components/GLAuthView.jsx';
-import { GLTopBar } from './components/GLTopBar.jsx';
+import { GLTopBar, GL_TAB_ID_PREFIX, GL_TABPANEL_ID_PREFIX } from './components/GLTopBar.jsx';
+import { useGlCompactNav } from './hooks/useGlCompactNav.js';
 import { GLWorldView } from './components/GLWorldView.jsx';
 import { GLRulesView } from './components/GLRulesView.jsx';
 import { GLSpellsView } from './components/GLSpellsView.jsx';
@@ -110,6 +111,7 @@ function toGameViewModel(raw) {
 
 export function AppGL() {
   const { session, auth, token, updateSession, logout } = useGLSession();
+  const compactNav = useGlCompactNav();
   const learningProgress = useGlLearningProgress(token);
   const [tab, setTab] = useState(() => readStoredTab());
   const [chapters, setChapters] = useState([]);
@@ -711,7 +713,7 @@ export function AppGL() {
 
   return (
     <GLMascotCatalogProvider token={token}>
-    <div className="gl-app" style={glBrandStyle}>
+    <div className={`gl-app${compactNav ? ' gl-app--has-bottom-nav' : ''}`} style={glBrandStyle}>
       <GLPasswordResetGate
         open={!isAdmin && auth?.passwordMustReset === true}
         onCompleted={() => {
@@ -798,8 +800,13 @@ export function AppGL() {
         </FixedToast>
       ) : null}
 
-      <main className="gl-main">
-        <div className="gl-main-inner fade-in">
+      <main className="gl-main" id="gl-main-content">
+        <div
+          className="gl-main-inner fade-in"
+          role="tabpanel"
+          id={`${GL_TABPANEL_ID_PREFIX}-${tab}`}
+          aria-labelledby={`${GL_TAB_ID_PREFIX}-${tab}`}
+        >
         {tab === 'world' && (
           <GLWorldView
             auth={auth}
