@@ -8,6 +8,7 @@ const {
   parseFeuilletsWorkbook,
   buildFeuilletPayload,
   applyFeuilletsImport,
+  normalizeLoreBiomeSlug,
 } = require('../lib/glLoreFeuilletsImport');
 const {
   parseLoreGlossaryWorkbook,
@@ -31,6 +32,14 @@ test('buildFeuilletPayload valide le code', () => {
   const { payload, errors } = buildFeuilletPayload({ feuillet_code: 'test-feui', type: 'feuillet' });
   assert.strictEqual(errors.length, 0);
   assert.strictEqual(payload.feuillet_code, 'test-feui');
+});
+
+test('normalizeLoreBiomeSlug résout les alias corpus Sélène', () => {
+  assert.strictEqual(normalizeLoreBiomeSlug('jungle'), 'jungle_afc');
+  assert.strictEqual(normalizeLoreBiomeSlug('caduc'), 'foret_caducifoliee');
+  assert.strictEqual(normalizeLoreBiomeSlug('toundra-hiver'), 'toundra');
+  assert.strictEqual(normalizeLoreBiomeSlug('toundra (été / hiver polaire)'), 'toundra');
+  assert.strictEqual(normalizeLoreBiomeSlug('jungle_afc'), 'jungle_afc');
 });
 
 test('parseLoreGlossaryWorkbook lit le fichier de référence', () => {
@@ -75,16 +84,24 @@ test('filterLoreGlossaryList respecte le plafond spoiler', () => {
 test('applyFeuilletsImport dry-run sans erreur fatale', async () => {
   const file = path.join(process.cwd(), 'data', 'gl', 'corpus-feuillets-selene.xlsx');
   const parsed = parseFeuilletsWorkbook(fs.readFileSync(file));
+  const catalogBiomes = [
+    'sahara', 'jungle_afc', 'toundra', 'foret_caducifoliee', 'savane', 'mangrove',
+    'taiga', 'foret_mediterraneenne', 'prairie_steppe', 'desert_froid', 'landes',
+  ];
   const deps = {
     queryAll: async (sql) => {
-      if (String(sql).includes('gl_biomes')) return [{ slug: 'jungle_afc' }, { slug: 'savane' }];
+      if (String(sql).includes('gl_biomes')) {
+        return catalogBiomes.map((slug) => ({ slug }));
+      }
       return [];
     },
     execute: async () => ({ affectedRows: 1 }),
   };
   const report = await applyFeuilletsImport(deps, parsed, { dryRun: true });
   assert.strictEqual(report.dryRun, true);
-  assert.ok(report.feuillets.upserted > 0);
+  assert.strictEqual(report.feuillets.upserted, 144);
+  assert.strictEqual(report.feuillets.skipped, 0);
+  assert.strictEqual(report.feuillets.errors.length, 0);
 });
 
 test('applyLoreGlossaryImport dry-run', async () => {
