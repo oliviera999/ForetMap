@@ -17,6 +17,7 @@ import { usePrefersReducedMotion } from '../hooks/usePrefersReducedMotion.js';
 import { GLZoneMusicMuteButton } from './GLZoneMusicMuteButton.jsx';
 import { GLVirtualDiceDock } from './GLVirtualDiceDock.jsx';
 import { GLButton } from './ui/GLButton.jsx';
+import { GLGameBoardHud } from './GLGameBoardHud.jsx';
 import { DialogShell } from '../../components/DialogShell.jsx';
 
 export function GLGameBoard({
@@ -276,6 +277,15 @@ export function GLGameBoard({
         <GLVirtualDiceDock themeStyle={brandThemeStyle} />
       ) : null}
 
+      {!mapFullscreen ? (
+        <GLGameBoardHud
+          chapterTitle={chapter?.title}
+          canSpellCast={canSpellCast}
+          onLaunchSpell={onLaunchSpell}
+          onOpenFullscreen={() => setMapFullscreen(true)}
+        />
+      ) : null}
+
       <GLZoneContentPopover
         open={Boolean(zoneContentPopover)}
         zone={zoneContentPopover?.zone}
@@ -329,27 +339,6 @@ export function GLGameBoard({
 
   return (
     <section className={mapFullscreen ? 'gl-panel gl-panel--map-fullscreen-active' : 'gl-panel'}>
-      {!mapFullscreen ? (
-        <div className="gl-game-board-head">
-          <h2>{chapter?.title || 'Carte de jeu'}</h2>
-          <div className="gl-game-board-head__actions">
-            {canSpellCast ? (
-              <GLButton type="button" variant="secondary" onClick={() => onLaunchSpell?.()}>
-                Lancer un sortilège
-              </GLButton>
-            ) : null}
-            <button
-              type="button"
-              className="gl-map-fullscreen-open"
-              data-testid="gl-map-fullscreen-open"
-              aria-label="Afficher la carte en plein écran"
-              onClick={() => setMapFullscreen(true)}
-            >
-              <span aria-hidden>⛶</span> Plein écran
-            </button>
-          </div>
-        </div>
-      ) : null}
       {boardShellNode}
 
       {zoneMusicEnabled ? (

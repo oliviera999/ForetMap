@@ -200,6 +200,205 @@ body.gl-body {
   box-shadow: 0 8px 16px rgba(15, 23, 42, 0.16);
 }
 
+/* —— Navigation mobile (bottom bar + drawer) —— */
+.gl-app--has-bottom-nav {
+  --gl-bottom-nav-height: 64px;
+}
+
+.gl-app--has-bottom-nav .gl-main {
+  padding-bottom: calc(var(--gl-bottom-nav-height) + var(--safe-bottom, 0px) + 8px);
+}
+
+.gl-topbar--compact {
+  gap: 8px;
+  padding: 10px 12px;
+}
+
+.gl-topbar--compact .gl-brand-title {
+  font-size: 1.05rem;
+}
+
+.gl-topbar--compact .gl-user {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.gl-topbar--compact .gl-user-name {
+  display: none;
+}
+
+.gl-topbar--compact .gl-logout {
+  padding: 6px 10px;
+  font-size: 0.85rem;
+}
+
+.gl-bottom-nav {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 110;
+  display: flex;
+  align-items: stretch;
+  justify-content: space-around;
+  gap: 2px;
+  padding: 6px 8px calc(6px + var(--safe-bottom, 0px));
+  background: var(--gl-color-topbar, #013a40);
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 -4px 20px rgba(1, 58, 64, 0.2);
+}
+
+.gl-bottom-nav-item {
+  flex: 1 1 0;
+  min-width: 0;
+  max-width: 88px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  min-height: 44px;
+  padding: 4px 6px;
+  border: none;
+  border-radius: 10px;
+  background: transparent;
+  color: rgba(248, 250, 252, 0.85);
+  cursor: pointer;
+  font: inherit;
+  transition: background-color var(--motion-fast) var(--ease-out);
+}
+
+.gl-bottom-nav-item .gl-tab-label {
+  font-size: 0.65rem;
+  line-height: 1.1;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.gl-bottom-nav-item .gl-tab-icon {
+  font-size: 1.15rem;
+}
+
+.gl-bottom-nav-item:hover,
+.gl-bottom-nav-item:focus-visible {
+  background: rgba(255, 255, 255, 0.12);
+  outline: none;
+}
+
+.gl-bottom-nav-item:focus-visible {
+  box-shadow: inset 0 0 0 2px #f8fafc;
+}
+
+.gl-bottom-nav-item.is-active {
+  background: rgba(248, 250, 252, 0.95);
+  color: var(--gl-color-text, #262626);
+}
+
+.gl-nav-drawer-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1300;
+  background: var(--fm-modal-overlay-bg, rgba(15, 23, 42, 0.55));
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 0;
+}
+
+.gl-nav-drawer {
+  width: 100%;
+  max-height: min(85dvh, 560px);
+  background: var(--gl-surface, #fff);
+  color: var(--gl-color-text, #262626);
+  border-radius: var(--gl-radius-lg, 16px) var(--gl-radius-lg, 16px) 0 0;
+  box-shadow: var(--gl-shadow-md);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: glNavDrawerUp 0.28s var(--spring, cubic-bezier(.34, 1.56, .64, 1)) both;
+}
+
+@keyframes glNavDrawerUp {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 100%, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+.gl-nav-drawer-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--gl-border);
+}
+
+.gl-nav-drawer-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  margin: 0;
+}
+
+.gl-nav-drawer-close {
+  min-width: 44px;
+  min-height: 44px;
+  border: none;
+  border-radius: 10px;
+  background: var(--gl-surface-muted, #f5fbf8);
+  cursor: pointer;
+  font-size: 1.1rem;
+}
+
+.gl-nav-drawer-tabs {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  padding: 12px 16px calc(16px + var(--safe-bottom, 0px));
+  overflow-y: auto;
+}
+
+.gl-nav-drawer-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 10px 12px;
+  border: 1px solid var(--gl-border);
+  border-radius: var(--gl-radius-md, 12px);
+  background: var(--gl-surface-muted, #f5fbf8);
+  color: var(--gl-color-text, #262626);
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+}
+
+.gl-nav-drawer-tab.is-active {
+  border-color: var(--gl-color-primary, #013a40);
+  background: color-mix(in srgb, var(--gl-color-primary, #013a40) 12%, #fff);
+  font-weight: 600;
+}
+
+@media (min-width: 640px) {
+  .gl-bottom-nav,
+  .gl-nav-drawer-overlay {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gl-nav-drawer {
+    animation: none;
+  }
+}
+
 .gl-user {
   display: flex;
   align-items: center;
@@ -5464,6 +5663,76 @@ body.gl-glossary-popover-open {
   flex-wrap: wrap;
   align-items: center;
   gap: 0.5rem;
+}
+
+/* —— HUD plateau (actions flottantes) —— */
+.gl-board-hud {
+  position: absolute;
+  left: 50%;
+  bottom: 12px;
+  transform: translateX(-50%);
+  z-index: 12;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  max-width: calc(100% - 24px);
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(1, 58, 64, 0.88);
+  backdrop-filter: blur(10px);
+  box-shadow: var(--gl-shadow-md);
+}
+
+.gl-board-hud__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 8px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.1);
+  color: #f8fafc;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.9rem;
+  white-space: nowrap;
+  transition: background-color var(--motion-fast) var(--ease-out);
+}
+
+.gl-board-hud__btn:hover,
+.gl-board-hud__btn:focus-visible {
+  background: rgba(255, 255, 255, 0.2);
+  outline: none;
+}
+
+.gl-board-hud__btn:focus-visible {
+  box-shadow: 0 0 0 2px #f8fafc;
+}
+
+.gl-board-hud__btn--primary {
+  background: rgba(248, 250, 252, 0.95);
+  color: var(--gl-color-text, #262626);
+  border-color: transparent;
+}
+
+@media (max-width: 640px) {
+  .gl-game-board-head__actions .gl-map-fullscreen-open,
+  .gl-game-board-head__actions .gl-btn {
+    display: none;
+  }
+
+  .gl-board-hud__btn .gl-board-hud__label--long {
+    display: none;
+  }
+}
+
+@media (min-width: 641px) {
+  .gl-board-hud {
+    display: none;
+  }
 }
 
 .gl-spell-cast-overlay {
