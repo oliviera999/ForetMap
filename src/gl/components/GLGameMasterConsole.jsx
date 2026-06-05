@@ -62,6 +62,10 @@ export function GLGameMasterConsole({
     chapterId: '',
     classId: '',
     zoneContentRetrigger: '',
+    loreFeuilletRetrigger: '',
+    loreEffacementEnabled: '',
+    loreGemmeCostsEnabled: '',
+    loreHeartRewardsEnabled: '',
   });
   const [narration, setNarration] = useState('');
   const [narrationImageUrl, setNarrationImageUrl] = useState('');
@@ -159,8 +163,14 @@ export function GLGameMasterConsole({
       chapterId: game.chapter_id != null ? String(game.chapter_id) : '',
       classId: game.class_id != null ? String(game.class_id) : '',
       zoneContentRetrigger: game.zone_content_retrigger != null ? String(game.zone_content_retrigger) : '',
+      loreFeuilletRetrigger: game.lore_feuillet_retrigger != null ? String(game.lore_feuillet_retrigger) : '',
+      loreEffacementEnabled: game.lore_effacement_enabled == null ? '' : (game.lore_effacement_enabled ? '1' : '0'),
+      loreGemmeCostsEnabled: game.lore_gemme_costs_enabled == null ? '' : (game.lore_gemme_costs_enabled ? '1' : '0'),
+      loreHeartRewardsEnabled: game.lore_heart_rewards_enabled == null ? '' : (game.lore_heart_rewards_enabled ? '1' : '0'),
     });
-  }, [game?.id, game?.name, game?.chapter_id, game?.class_id, game?.zone_content_retrigger]);
+  }, [game?.id, game?.name, game?.chapter_id, game?.class_id, game?.zone_content_retrigger,
+    game?.lore_feuillet_retrigger, game?.lore_effacement_enabled,
+    game?.lore_gemme_costs_enabled, game?.lore_heart_rewards_enabled]);
 
   useEffect(() => {
     if (!feedback) return undefined;
@@ -293,6 +303,16 @@ export function GLGameMasterConsole({
         payload.classId = Number(editGameForm.classId);
       }
       payload.zoneContentRetrigger = editGameForm.zoneContentRetrigger || null;
+      payload.loreFeuilletRetrigger = editGameForm.loreFeuilletRetrigger || null;
+      if (editGameForm.loreEffacementEnabled !== '') {
+        payload.loreEffacementEnabled = editGameForm.loreEffacementEnabled === '1';
+      }
+      if (editGameForm.loreGemmeCostsEnabled !== '') {
+        payload.loreGemmeCostsEnabled = editGameForm.loreGemmeCostsEnabled === '1';
+      }
+      if (editGameForm.loreHeartRewardsEnabled !== '') {
+        payload.loreHeartRewardsEnabled = editGameForm.loreHeartRewardsEnabled === '1';
+      }
       const updated = await apiGL(`/api/gl/games/${game.id}`, 'PUT', payload);
       onGameStateChange(updated);
       showSuccess('Partie mise à jour.');
@@ -724,6 +744,59 @@ export function GLGameMasterConsole({
                   <option value="every_arrival">À chaque entrée ou traversée</option>
                   <option value="once_per_team">Une fois par équipe et zone</option>
                   <option value="once_per_game">Une fois par zone (toute la partie)</option>
+                </GLSelect>
+              </GLField>
+              <GLField label="Feuillets Sélène (cette partie)">
+                <GLSelect
+                  value={editGameForm.loreFeuilletRetrigger}
+                  onChange={(event) => setEditGameForm((prev) => ({
+                    ...prev,
+                    loreFeuilletRetrigger: event.target.value,
+                  }))}
+                >
+                  <option value="">Hériter des réglages globaux</option>
+                  <option value="every_arrival">À chaque entrée ou traversée</option>
+                  <option value="once_per_team">Une fois par équipe</option>
+                  <option value="once_per_game">Une fois par partie</option>
+                </GLSelect>
+              </GLField>
+              <GLField label="Effacement feuillets">
+                <GLSelect
+                  value={editGameForm.loreEffacementEnabled}
+                  onChange={(event) => setEditGameForm((prev) => ({
+                    ...prev,
+                    loreEffacementEnabled: event.target.value,
+                  }))}
+                >
+                  <option value="">Hériter plateforme</option>
+                  <option value="1">Activé</option>
+                  <option value="0">Désactivé</option>
+                </GLSelect>
+              </GLField>
+              <GLField label="Coûts gemmes (feuillets)">
+                <GLSelect
+                  value={editGameForm.loreGemmeCostsEnabled}
+                  onChange={(event) => setEditGameForm((prev) => ({
+                    ...prev,
+                    loreGemmeCostsEnabled: event.target.value,
+                  }))}
+                >
+                  <option value="">Hériter plateforme</option>
+                  <option value="1">Activé</option>
+                  <option value="0">Désactivé</option>
+                </GLSelect>
+              </GLField>
+              <GLField label="Gains cœurs (feuillets)">
+                <GLSelect
+                  value={editGameForm.loreHeartRewardsEnabled}
+                  onChange={(event) => setEditGameForm((prev) => ({
+                    ...prev,
+                    loreHeartRewardsEnabled: event.target.value,
+                  }))}
+                >
+                  <option value="">Hériter plateforme</option>
+                  <option value="1">Activé</option>
+                  <option value="0">Désactivé</option>
                 </GLSelect>
               </GLField>
             </div>

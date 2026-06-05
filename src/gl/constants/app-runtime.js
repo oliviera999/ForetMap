@@ -8,6 +8,8 @@ export const GL_PLAYER_TABS = [
   { id: 'biotope', label: 'Biotope', icon: '🌿' },
   { id: 'biocenose', label: 'Biocénose', icon: '🦋' },
   { id: 'glossary', label: 'Glossaire', icon: '📚' },
+  { id: 'lore-glossary', label: 'Lexique lore', icon: '📜' },
+  { id: 'selene-carnet', label: 'Carnet Sélène', icon: '📒' },
   { id: 'history', label: 'Histoire', icon: '📜' },
   { id: 'world', label: 'Le monde de G&L', icon: '🌍' },
   { id: 'spells', label: 'Sortilèges', icon: '✨' },

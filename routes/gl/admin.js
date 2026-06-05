@@ -7,6 +7,7 @@ const {
   invalidateModulesCache,
   MODULE_KEYS,
   MARKER_QUESTION_RETRIGGER_VALUES,
+  LORE_SPOILER_LEVELS,
   SPELL_CAST_CONTRIBUTION_MODES,
   SPELL_CAST_TEAM_SCOPES,
   getGameplaySettings,
@@ -147,6 +148,11 @@ const ALLOWED_GAMEPLAY_SETTINGS = new Set([
   'gameplay.qcm_mj_only',
   'gameplay.player_journal_max_chars',
   'gameplay.player_journal_max_assets',
+  'gameplay.lore_feuillet_retrigger',
+  'gameplay.lore_effacement_enabled',
+  'gameplay.lore_gemme_costs_enabled',
+  'gameplay.lore_heart_rewards_enabled',
+  'gameplay.lore_spoiler_max_level',
 ]);
 
 async function ensureClassExists(classId) {
@@ -772,6 +778,29 @@ router.put('/settings/:key', requireGlPermission('gl.settings.manage'), async (r
       return res.status(400).json({ error: 'La valeur doit être un entier entre 1 et 200' });
     }
     value = n;
+  }
+  if (key === 'gameplay.lore_feuillet_retrigger') {
+    const mode = typeof value === 'string' ? value.trim() : String(value || '').trim();
+    if (!MARKER_QUESTION_RETRIGGER_VALUES.has(mode)) {
+      return res.status(400).json({ error: 'Valeur lore_feuillet_retrigger invalide' });
+    }
+    value = mode;
+  }
+  if (key === 'gameplay.lore_spoiler_max_level') {
+    const level = typeof value === 'string' ? value.trim() : String(value || '').trim();
+    if (!LORE_SPOILER_LEVELS.has(level)) {
+      return res.status(400).json({ error: 'Niveau spoiler lore invalide (cle, recit, secret)' });
+    }
+    value = level;
+  }
+  if (
+    key === 'gameplay.lore_effacement_enabled'
+    || key === 'gameplay.lore_gemme_costs_enabled'
+    || key === 'gameplay.lore_heart_rewards_enabled'
+  ) {
+    if (typeof value !== 'boolean') {
+      return res.status(400).json({ error: 'La valeur doit être booléenne' });
+    }
   }
   if (key === 'platform.brand') {
     if (!value || typeof value !== 'object' || Array.isArray(value)) {

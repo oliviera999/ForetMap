@@ -7,6 +7,7 @@ import {
   readZonePopoverImages,
   zoneHasPopoverDraft,
 } from '../hooks/useGLKingdomZoneEditor.js';
+import { GLKingdomZoneFeuilletLinker } from './GLKingdomZoneFeuilletLinker.jsx';
 
 /** @typedef {'all' | 'toolbars' | 'panels'} GLKingdomZoneSidePanelsVariant */
 
@@ -256,6 +257,7 @@ export function GLKingdomZoneSidePanels({
               ))}
             </div>
           </fieldset>
+          <GLKingdomZoneFeuilletLinker zoneId={selectedZone?.id} canManage={canManage} />
           {zoneMusicEnabled ? (
             <fieldset className="gl-zone-music-fieldset">
               <legend>Musique d’ambiance</legend>
