@@ -13,6 +13,7 @@ export default function GLGameMasterConsoleTeams({
   setTeamForm,
   editingTeamId,
   selectableMascots,
+  defaultMascotByType,
   addTeam,
   upsertTeam,
   resetTeamEditing,
@@ -69,7 +70,7 @@ export default function GLGameMasterConsoleTeams({
                   setTeamForm((prev) => ({
                     ...prev,
                     type: nextType,
-                    mascotId: prev.mascotId || '',
+                    mascotId: defaultMascotByType(nextType),
                   }));
                 }}
               >

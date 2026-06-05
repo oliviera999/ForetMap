@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState, Suspense, lazy } from 'react';
 import { apiGL } from '../services/apiGL.js';
 import { GLGameRosterPanel } from './admin/GLGameRosterPanel.jsx';
 import { GLBadge } from './ui/GLBadge.jsx';
@@ -17,6 +17,14 @@ import {
   gameLifecycleAction,
   gameStatusTone,
 } from '../utils/glGameStatus.js';
+
+const GLGameMasterConsoleParties = lazy(() => import('./mj/GLGameMasterConsoleParties.jsx'));
+const GLGameMasterConsoleTeams = lazy(() => import('./mj/GLGameMasterConsoleTeams.jsx'));
+const GLGameMasterConsoleLive = lazy(() => import('./mj/GLGameMasterConsoleLive.jsx'));
+
+function MjSectionFallback() {
+  return <p className="gl-hint">Chargement de la section…</p>;
+}
 
 function formatTimestamp(value) {
   if (!value) return '';
