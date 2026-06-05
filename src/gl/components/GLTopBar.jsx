@@ -148,15 +148,17 @@ export function GLTopBar({
             tabIdPrefix={GL_TAB_ID_PREFIX}
             panelIdPrefix={GL_TABPANEL_ID_PREFIX}
           />
-          <GLMobileNavDrawer
-            open={drawerOpen}
-            onClose={() => setDrawerOpen(false)}
-            tabs={tabs}
-            activeTab={activeTab}
-            onTabChange={handleTabChange}
-            tabIdPrefix={GL_TAB_ID_PREFIX}
-            panelIdPrefix={GL_TABPANEL_ID_PREFIX}
-          />
+          {drawerOpen ? (
+            <GLMobileNavDrawer
+              open={drawerOpen}
+              onClose={() => setDrawerOpen(false)}
+              tabs={tabs}
+              activeTab={activeTab}
+              onTabChange={handleTabChange}
+              tabIdPrefix={GL_TAB_ID_PREFIX}
+              panelIdPrefix={GL_TABPANEL_ID_PREFIX}
+            />
+          ) : null}
         </>
       ) : null}
     </>

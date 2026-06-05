@@ -72,16 +72,18 @@ describe('GLGameMasterConsole', () => {
     render(<GLGameMasterConsole {...baseProps} gameState={null} />);
 
     expect(screen.getByRole('heading', { name: 'Console MJ' })).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Parties' })).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Équipes & effectifs' })).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Jeu en direct' })).toBeTruthy();
+    expect(screen.getByRole('tab', { name: 'Parties' })).toBeTruthy();
+    expect(screen.getByRole('tab', { name: 'Équipes & effectifs' })).toBeTruthy();
+    expect(screen.getByRole('tab', { name: 'Jeu en direct' })).toBeTruthy();
     await waitFor(() => expect(apiGlMock).toHaveBeenCalledWith('/api/gl/games?classId=1'));
   });
 
   test('affiche la bannière partie active et le formulaire d’édition', async () => {
     render(<GLGameMasterConsole {...baseProps} gameState={loadedGameState} />);
 
-    expect(screen.getByRole('heading', { name: 'Partie active' })).toBeTruthy();
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: 'Partie active' })).toBeTruthy();
+    });
     expect(screen.getByRole('button', { name: 'Enregistrer la partie' })).toBeTruthy();
     expect(document.querySelector('.gl-active-game-banner .gl-badge')).toBeTruthy();
   });
@@ -89,6 +91,10 @@ describe('GLGameMasterConsole', () => {
   test('réinitialise l’équipe sélectionnée au chargement d’une partie', async () => {
     render(<GLGameMasterConsole {...baseProps} gameState={null} />);
     await waitFor(() => expect(apiGlMock).toHaveBeenCalled());
+
+    await waitFor(() => {
+      expect(screen.getAllByRole('button', { name: 'Ouvrir' }).length).toBeGreaterThan(0);
+    });
 
     apiGlMock.mockResolvedValueOnce(loadedGameState);
     fireEvent.click(screen.getAllByRole('button', { name: 'Ouvrir' })[0]);
@@ -102,7 +108,11 @@ describe('GLGameMasterConsole', () => {
   test('affiche un menu déroulant de mascottes filtré par type d’équipe', async () => {
     render(<GLGameMasterConsole {...baseProps} gameState={loadedGameState} />);
 
-    fireEvent.click(screen.getByRole('button', { name: 'Équipes & effectifs' }));
+    fireEvent.click(screen.getByRole('tab', { name: 'Équipes & effectifs' }));
+
+    await waitFor(() => {
+      expect(screen.getByLabelText('Mascotte')).toBeTruthy();
+    });
 
     const mascotSelect = screen.getByLabelText('Mascotte');
     expect(mascotSelect.tagName).toBe('SELECT');
@@ -114,7 +124,10 @@ describe('GLGameMasterConsole', () => {
   test('empty state équipes sans partie chargée', async () => {
     render(<GLGameMasterConsole {...baseProps} gameState={null} />);
 
-    fireEvent.click(screen.getByRole('button', { name: 'Équipes & effectifs' }));
-    expect(screen.getByText(/Sélectionnez ou créez une partie/i)).toBeTruthy();
+    fireEvent.click(screen.getByRole('tab', { name: 'Équipes & effectifs' }));
+
+    await waitFor(() => {
+      expect(screen.getByText(/Sélectionnez ou créez une partie/i)).toBeTruthy();
+    });
   });
 });
