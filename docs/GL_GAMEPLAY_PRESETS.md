@@ -15,7 +15,11 @@ Ces deux réglages sont **orthogonaux** : on peut avoir les tours sans actions j
 
 ## Profils prédéfinis (UI Réglages)
 
-Les profils ne modifient **pas** les modules (`modules.*`) ni `gameplay.marker_question_retrigger`. Activez séparément sortilèges, vitalité, forum, etc.
+Les profils ne modifient **pas** les modules (`modules.*`) ni `gameplay.marker_question_retrigger` / `gameplay.zone_content_retrigger`. Activez séparément sortilèges, vitalité, forum, etc.
+
+## Toggle `gameplay.zone_content_retrigger`
+
+Contrôle l’affichage du popover texte/images quand une équipe entre ou traverse une zone royaume ayant du contenu (`popoverMarkdown` / `popoverImages`). Valeurs : `every_arrival`, `once_per_team`, `once_per_game` (défaut global). Une partie peut surcharger via `gl_games.zone_content_retrigger` (console MJ → édition de partie).
 
 | Profil | Tours | Narration | Actions joueurs | Score | QCM MJ only | Sorts MJ only |
 |--------|:-----:|:---------:|:---------------:|:-----:|:-----------:|:-------------:|

@@ -22,6 +22,7 @@ const baseSettings = {
   'gameplay.default_health_points': 3,
   'gameplay.default_power_points': 3,
   'gameplay.marker_question_retrigger': 'every_arrival',
+  'gameplay.zone_content_retrigger': 'once_per_game',
 };
 
 describe('GLSettingsView', () => {

@@ -84,7 +84,7 @@ Ajouts Lot 2B (contenus & chapitres) :
 Ajouts Lot 2D (édition visuelle carte) :
 
 - `GLChapterMapEditor` : édition visuelle des repères de chapitre (composant de base ; utilisé seul si besoin).
-- `GLChapterMapStudio` : studio admin **Contenus → Chapitres** — carte unique avec repères (`GLBoardMarkers`) et zones polygonales (`GLKingdomZoneMapOverlay` + `useGLKingdomZones` / `useGLKingdomZoneEditor`) ; musique de zone si `modules.zone_music_enabled`.
+- `GLChapterMapStudio` : studio admin **Contenus → Chapitres** — carte unique avec repères (`GLBoardMarkers`) et zones polygonales (`GLKingdomZoneMapOverlay` + `useGLKingdomZones` / `useGLKingdomZoneEditor`) ; musique de zone si `modules.zone_music_enabled` ; **popover texte/images** par zone (`popoverMarkdown`, `popoverImages`) affiché en partie via `POST /api/gl/games/:id/zones/:zoneId/present-content` et `GLZoneContentPopover` (re-déclenchement `gameplay.zone_content_retrigger` / `gl_games.zone_content_retrigger`).
 - `GLKingdomZoneEditor` : variante autonome (carte + panneaux) ; l’édition courante passe par le studio chapitre.
 - Socle frontend partagé : `useGlPctMapGestures`, `GLPctMapCanvas`, `GLBoardMarkers` pour homogénéiser les interactions carte GL.
 

@@ -3340,6 +3340,136 @@ body.gl-map-fullscreen-active .gl-qcm-popover-overlay {
   font-size: 0.95em;
 }
 
+.gl-zone-content-badge {
+  margin-left: 0.35rem;
+  font-size: 0.95em;
+}
+
+.gl-zone-content-fieldset {
+  border: 1px solid #d1fae5;
+  border-radius: 10px;
+  padding: 0.75rem 1rem;
+  margin: 0.5rem 0 1rem;
+}
+
+.gl-zone-content-fieldset legend {
+  padding: 0 0.35rem;
+  font-weight: 600;
+}
+
+.gl-zone-popover-images {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  margin-top: 0.5rem;
+}
+
+.gl-zone-popover-image-row {
+  display: grid;
+  grid-template-columns: 72px 1fr auto;
+  gap: 0.5rem;
+  align-items: start;
+}
+
+.gl-zone-popover-image-thumb {
+  width: 72px;
+  height: 54px;
+  object-fit: cover;
+  border-radius: 6px;
+  border: 1px solid #e2e8f0;
+}
+
+.gl-zone-content-popover-overlay {
+  --gl-color-primary: #013a40;
+  --gl-color-secondary: #f2e8d5;
+  --gl-color-text: #262626;
+  --gl-border: rgba(1, 58, 64, 0.18);
+  color: var(--gl-color-text);
+  position: fixed;
+  inset: 0;
+  z-index: 1440;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding:
+    max(12px, env(safe-area-inset-top, 0px))
+    max(12px, env(safe-area-inset-right, 0px))
+    max(12px, env(safe-area-inset-bottom, 0px))
+    max(12px, env(safe-area-inset-left, 0px));
+  background: rgba(15, 23, 42, 0.48);
+}
+
+.gl-zone-content-popover {
+  width: min(520px, 100%);
+  max-height: min(90dvh, 90vh, 680px);
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+  border: 2px solid var(--gl-color-primary, #047c8c);
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+  overflow: hidden;
+  animation: popIn 0.24s var(--spring, cubic-bezier(0.34, 1.56, 0.64, 1)) both;
+}
+
+.gl-zone-content-popover__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--gl-border);
+}
+
+.gl-zone-content-popover__head h3 {
+  margin: 0;
+  font-size: 1.05rem;
+}
+
+.gl-zone-content-popover__close {
+  border: none;
+  background: transparent;
+  font-size: 1.1rem;
+  cursor: pointer;
+  min-width: 44px;
+  min-height: 44px;
+}
+
+.gl-zone-content-popover__body {
+  padding: 12px 14px;
+  overflow: auto;
+  flex: 1 1 auto;
+}
+
+.gl-zone-content-popover__gallery {
+  display: grid;
+  gap: 0.75rem;
+  margin-top: 0.75rem;
+}
+
+.gl-zone-content-popover__figure {
+  margin: 0;
+}
+
+.gl-zone-content-popover__figure img {
+  width: 100%;
+  max-height: 280px;
+  object-fit: contain;
+  border-radius: 8px;
+  background: #f8fafc;
+}
+
+.gl-zone-content-popover__figure figcaption {
+  margin-top: 0.35rem;
+  font-size: 0.9rem;
+  color: #475569;
+}
+
+.gl-zone-content-popover__foot {
+  padding: 10px 14px 14px;
+  border-top: 1px solid var(--gl-border);
+}
+
 .gl-zone-music-fieldset {
   border: 1px solid #dbeafe;
   border-radius: 10px;
@@ -5851,4 +5981,41 @@ body.gl-glossary-popover-open {
 .gl-journal-event__actor {
   font-size: 0.85rem;
   color: #475569;
+}
+
+.gl-marker-effects-editor {
+  display: grid;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+.gl-marker-effects-branch {
+  border: 1px solid color-mix(in srgb, var(--gl-texte, #262626) 12%, transparent);
+  border-radius: 8px;
+  padding: 0.65rem 0.75rem;
+}
+
+.gl-marker-effects-deltas {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+
+.gl-marker-effect-popover {
+  max-width: min(92vw, 28rem);
+}
+
+.gl-marker-effect-popover__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.gl-marker-effect-popover__footer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: flex-end;
+  margin-top: 1rem;
 }

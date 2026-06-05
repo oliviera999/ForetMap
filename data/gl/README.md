@@ -31,9 +31,11 @@ Depuis l’admin GL : **Contenus → Chapitres** — section **Import / export c
 
 | Portée | Feuilles |
 |--------|----------|
-| Contenu éditorial | `chapitres` |
+| Contenu éditorial | `chapitres` (incl. `souffle_face`) |
 | Contenu + repères | `chapitres`, `reperes` |
 | Export complet | `chapitres`, `reperes`, `zones_royaume`, `chapitres_charte` |
+
+La feuille **`reperes`** inclut les traits plateau : `sous_biome_slug`, `effet_mecanique`, effets Gnome/Licorne (`effet_*`, `dpv_*`, `dgem_*`, `dmvt_*`), deltas neutres (`delta_pv`, `delta_gemmes`, `delta_mouvement`), métadonnées QCM (`categorie_question`, `niveau_question`) et optionnellement `tonalite` / `rarete`. Les alias FR de type (`depart`, `evenement`, `souffle`, `trame`, `defi`, `raccourci`, `frontiere`, `arrivee`) sont acceptés à l'import.
 
 API : `GET /api/gl/chapters/admin/import/template?scope=`, `GET /api/gl/chapters/admin/export?scope=&slug=`, `POST /api/gl/chapters/admin/import` (`syncReperes`, `syncZones` pour remplacer repères/zones absents du fichier, par chapitre).
 

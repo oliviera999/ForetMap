@@ -28,7 +28,7 @@ const {
   parseEventConfigInput,
   buildMarkerWriteFields,
 } = require('../../lib/glMarkerRow');
-const { normalizeEventConfig } = require('../../lib/glMarkerEventConfig');
+const { normalizeEventConfig, normalizeEventTypeAlias, MARKER_EVENT_TYPES } = require('../../lib/glMarkerEventConfig');
 const { parseAppearanceInput } = require('../../lib/glMarkerAppearance');
 const {
   resolveImportRows,
@@ -105,7 +105,7 @@ async function readChapterFull(slugOrId) {
       `SELECT c.id, c.slug, c.title, c.biome,
               c.map_image_url, c.story_markdown, c.biotope_markdown,
               c.biocenose_markdown, c.sortileges_markdown, c.map_image_frame_json, c.theme_json,
-              c.order_index, c.created_at, c.updated_at
+              c.souffle_face, c.order_index, c.created_at, c.updated_at
          FROM gl_chapters c
         WHERE c.id = ?
         LIMIT 1`,
@@ -115,7 +115,7 @@ async function readChapterFull(slugOrId) {
       `SELECT c.id, c.slug, c.title, c.biome,
               c.map_image_url, c.story_markdown, c.biotope_markdown,
               c.biocenose_markdown, c.sortileges_markdown, c.map_image_frame_json, c.theme_json,
-              c.order_index, c.created_at, c.updated_at
+              c.souffle_face, c.order_index, c.created_at, c.updated_at
          FROM gl_chapters c
         WHERE c.slug = ?
         LIMIT 1`,
@@ -300,6 +300,10 @@ router.put('/admin/:id', requireGlPermission('gl.content.manage'), async (req, r
     updates.push('theme_json = ?');
     params.push(serializeChapterTheme(theme));
   }
+  if (req.body && Object.prototype.hasOwnProperty.call(req.body, 'souffleFace')) {
+    updates.push('souffle_face = ?');
+    params.push(normalizeOptionalString(req.body.souffleFace));
+  }
   if (updates.length === 0 && biomeSlugs == null && spellCodes == null) {
     return res.status(400).json({ error: 'Aucun champ à mettre à jour' });
   }
@@ -371,8 +375,17 @@ router.post('/admin/:id/markers', requireGlPermission('gl.content.manage'), asyn
   const xPct = clampPercent(req.body?.xPct);
   const yPct = clampPercent(req.body?.yPct);
   if (xPct == null || yPct == null) return res.status(400).json({ error: 'xPct et yPct requis (0..100)' });
-  const eventType = normalizeOptionalString(req.body?.eventType);
+  const eventType = normalizeEventTypeAlias(req.body?.eventType) || normalizeOptionalString(req.body?.eventType);
+  if (eventType && !MARKER_EVENT_TYPES.has(eventType)) {
+    return res.status(400).json({ error: `eventType invalide : ${eventType}` });
+  }
   const description = req.body?.description != null ? String(req.body.description) : null;
+  const sousBiomeSlug = normalizeOptionalString(req.body?.sousBiomeSlug);
+  if (sousBiomeSlug) {
+    const biomeError = await validateBiomeSlugsExist({ queryAll }, [sousBiomeSlug]);
+    if (biomeError) return res.status(400).json({ error: biomeError });
+  }
+  const effetMecanique = req.body?.effetMecanique != null ? String(req.body.effetMecanique) : null;
   const orderIndex = toPositiveInt(req.body?.orderIndex, 0);
   const parsedCfg = parseEventConfigInput(req.body);
   if (parsedCfg.error) return res.status(400).json({ error: parsedCfg.error });
@@ -403,6 +416,8 @@ router.post('/admin/:id/markers', requireGlPermission('gl.content.manage'), asyn
       qcmCategorieSlug: normalizeOptionalString(req.body?.qcmCategorieSlug),
       qcmQuestionCode: normalizeOptionalString(req.body?.qcmQuestionCode),
     },
+    sousBiomeSlug,
+    effetMecanique,
   });
 
   const appearanceParsed = parseAppearanceInput(req.body, writeFields.eventType ?? eventType);
@@ -420,9 +435,10 @@ router.post('/admin/:id/markers', requireGlPermission('gl.content.manage'), asyn
   await execute(
     `INSERT INTO gl_chapter_markers (
        chapter_id, x_pct, y_pct, event_type, label, description,
+       sous_biome_slug, effet_mecanique,
        qcm_categorie_slug, qcm_question_code, event_config_json,
        display_mode, emoji, icon_url, order_index, created_at
-     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
+     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
     [
       chapterId,
       xPct,
@@ -430,6 +446,8 @@ router.post('/admin/:id/markers', requireGlPermission('gl.content.manage'), asyn
       writeFields.eventType,
       label,
       writeFields.description,
+      writeFields.sousBiomeSlug,
+      writeFields.effetMecanique,
       writeFields.qcmCategorieSlug,
       writeFields.qcmQuestionCode,
       writeFields.eventConfigJson,
@@ -475,12 +493,29 @@ router.put('/admin/markers/:markerId', requireGlPermission('gl.content.manage'),
     params.push(v);
   }
   if (Object.prototype.hasOwnProperty.call(req.body || {}, 'eventType')) {
+    const nextType = normalizeEventTypeAlias(req.body.eventType) || normalizeOptionalString(req.body.eventType);
+    if (nextType && !MARKER_EVENT_TYPES.has(nextType)) {
+      return res.status(400).json({ error: `eventType invalide : ${nextType}` });
+    }
     updates.push('event_type = ?');
-    params.push(normalizeOptionalString(req.body.eventType));
+    params.push(nextType);
   }
   if (Object.prototype.hasOwnProperty.call(req.body || {}, 'description')) {
     updates.push('description = ?');
     params.push(req.body.description == null ? null : String(req.body.description));
+  }
+  if (Object.prototype.hasOwnProperty.call(req.body || {}, 'sousBiomeSlug')) {
+    const sousBiomeSlug = normalizeOptionalString(req.body.sousBiomeSlug);
+    if (sousBiomeSlug) {
+      const biomeError = await validateBiomeSlugsExist({ queryAll }, [sousBiomeSlug]);
+      if (biomeError) return res.status(400).json({ error: biomeError });
+    }
+    updates.push('sous_biome_slug = ?');
+    params.push(sousBiomeSlug);
+  }
+  if (Object.prototype.hasOwnProperty.call(req.body || {}, 'effetMecanique')) {
+    updates.push('effet_mecanique = ?');
+    params.push(req.body.effetMecanique == null ? null : String(req.body.effetMecanique));
   }
   if (Object.prototype.hasOwnProperty.call(req.body || {}, 'orderIndex')) {
     updates.push('order_index = ?');

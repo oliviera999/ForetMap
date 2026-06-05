@@ -7,11 +7,22 @@ import {
 } from '../../utils/glMarkerEventConfig.js';
 import { GLMultiCheckDropdown } from './GLMultiCheckDropdown.jsx';
 import { GLMarkerQuestionList } from './GLMarkerQuestionList.jsx';
+import { GLMarkerEffectsEditor } from './GLMarkerEffectsEditor.jsx';
 
 const EVENT_TYPE_OPTIONS = [
+  { value: 'start', label: 'Départ', enabled: true },
   { value: 'question', label: 'Question (QCM)', enabled: true },
-  { value: 'narration', label: 'Narration (bientôt)', enabled: false },
-  { value: 'behavior', label: 'Comportement (bientôt)', enabled: false },
+  { value: 'event', label: 'Événement', enabled: true },
+  { value: 'souffle', label: 'Souffle', enabled: true },
+  { value: 'trame', label: 'Trame', enabled: true },
+  { value: 'challenge', label: 'Défi', enabled: true },
+  { value: 'shortcut', label: 'Raccourci', enabled: true },
+  { value: 'frontier', label: 'Frontière', enabled: true },
+  { value: 'finish', label: 'Arrivée', enabled: true },
+  { value: 'story', label: 'Histoire', enabled: true },
+  { value: 'point', label: 'Point d\'intérêt', enabled: true },
+  { value: 'narration', label: 'Narration', enabled: true },
+  { value: 'behavior', label: 'Comportement', enabled: true },
 ];
 
 const DEFAULT_NIVEAUX = ['base', 'approfondissement', 'avance'];
@@ -39,15 +50,23 @@ function formFromMarker(marker) {
   };
 }
 
-function buildEventConfigFromForm(form) {
-  if (form.eventType !== 'question') return null;
+function buildEventConfigFromForm(form, effectsDraft = null) {
+  const base = form.eventType === 'question'
+    ? normalizeEventConfig({
+      version: 2,
+      question: {
+        mode: form.questionMode,
+        fixedQuestionCode: form.fixedQuestionCode || null,
+        pool: normalizeQuestionPool(form.pool),
+      },
+    })
+    : null;
+  if (!effectsDraft?.effects && !effectsDraft?.eventMeta) return base;
   return normalizeEventConfig({
-    version: 1,
-    question: {
-      mode: form.questionMode,
-      fixedQuestionCode: form.fixedQuestionCode || null,
-      pool: normalizeQuestionPool(form.pool),
-    },
+    version: 2,
+    ...(base?.question ? { question: base.question } : {}),
+    ...(effectsDraft.effects ? { effects: effectsDraft.effects } : {}),
+    ...(effectsDraft.eventMeta ? { eventMeta: effectsDraft.eventMeta } : {}),
   });
 }
 
@@ -55,6 +74,8 @@ export function GLMarkerEventEditor({
   marker,
   chapterBiomes = [],
   onChange,
+  effectsDraft,
+  onEffectsDraftChange,
 }) {
   const [form, setForm] = useState(() => formFromMarker(marker));
   const [allBiomes, setAllBiomes] = useState([]);
@@ -75,9 +96,9 @@ export function GLMarkerEventEditor({
   useEffect(() => {
     onChange?.({
       eventType: form.eventType,
-      eventConfig: buildEventConfigFromForm(form),
+      eventConfig: buildEventConfigFromForm(form, effectsDraft),
     });
-  }, [form, onChange]);
+  }, [form, effectsDraft, onChange]);
 
   useEffect(() => {
     let cancelled = false;
@@ -359,7 +380,12 @@ export function GLMarkerEventEditor({
             onRefresh={loadPoolPreview}
           />
         </>
-      ) : null}
+      ) : (
+        <GLMarkerEffectsEditor
+          eventConfig={marker?.event_config}
+          onChange={onEffectsDraftChange}
+        />
+      )}
     </div>
   );
 }

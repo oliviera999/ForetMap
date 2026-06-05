@@ -27,6 +27,8 @@ const EMPTY_MARKER_FORM = {
   yPct: 50,
   description: '',
   orderIndex: 0,
+  sousBiomeSlug: '',
+  effetMecanique: '',
 };
 
 function toFormFromMarker(marker) {
@@ -37,6 +39,8 @@ function toFormFromMarker(marker) {
     yPct: Number(marker.y_pct ?? 50),
     description: marker.description || '',
     orderIndex: Number(marker.order_index || 0),
+    sousBiomeSlug: marker.sous_biome_slug || '',
+    effetMecanique: marker.effet_mecanique || '',
   };
 }
 
@@ -48,6 +52,8 @@ function toMarkerPayload(form, eventDraft, appearanceForm) {
     eventType: String(eventDraft?.eventType || 'question').trim(),
     description: String(form.description || '').trim(),
     orderIndex: Number(form.orderIndex) || 0,
+    sousBiomeSlug: String(form.sousBiomeSlug || '').trim() || null,
+    effetMecanique: String(form.effetMecanique || '').trim() || null,
     eventConfig: eventDraft?.eventConfig || defaultEventConfigForQuestion(),
     ...appearanceToPayload(appearanceForm),
   };
@@ -98,6 +104,7 @@ export function GLChapterMapStudio({
     eventType: 'question',
     eventConfig: defaultEventConfigForQuestion(),
   });
+  const [effectsDraft, setEffectsDraft] = useState({ effects: null, eventMeta: null });
   const [editableMarkers, setEditableMarkers] = useState([]);
   const [dragState, setDragState] = useState(null);
   const [saving, setSaving] = useState(false);
@@ -238,6 +245,10 @@ export function GLChapterMapStudio({
     setSelectedMarkerId(Number(marker.id));
     setMarkerForm(toFormFromMarker(marker));
     setAppearanceForm(appearanceFormFromMarker(marker));
+    setEffectsDraft({
+      effects: marker.event_config?.effects || null,
+      eventMeta: marker.event_config?.eventMeta || null,
+    });
   }
 
   function resetForm() {
@@ -461,11 +472,35 @@ export function GLChapterMapStudio({
           Description
           <input value={markerForm.description} onChange={(event) => setField('description', event.target.value)} />
         </label>
+        <label>
+          Sous-biome (slug catalogue)
+          <input
+            list="gl-chapter-biome-slugs"
+            value={markerForm.sousBiomeSlug}
+            onChange={(event) => setField('sousBiomeSlug', event.target.value)}
+            placeholder="jungle_afc, savane…"
+          />
+          <datalist id="gl-chapter-biome-slugs">
+            {(chapterBiomes || []).map((b) => (
+              <option key={b.slug} value={b.slug}>{b.nom || b.slug}</option>
+            ))}
+          </datalist>
+        </label>
+        <label>
+          Effet mécanique (résumé)
+          <input
+            value={markerForm.effetMecanique}
+            onChange={(event) => setField('effetMecanique', event.target.value)}
+            placeholder="Avance de 2 cases, +1 gemme…"
+          />
+        </label>
 
         <GLMarkerEventEditor
           marker={selectedMarker}
           chapterBiomes={chapterBiomes}
           onChange={handleEventDraftChange}
+          effectsDraft={effectsDraft}
+          onEffectsDraftChange={setEffectsDraft}
         />
 
         <GLMarkerAppearanceEditor

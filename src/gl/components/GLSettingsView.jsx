@@ -395,6 +395,32 @@ export function GLSettingsView() {
         <p className="gl-hint">
           Contrôle l&apos;ouverture du popover question quand une mascotte arrive sur un repère QCM.
         </p>
+        <label>
+          Re-déclenchement des popovers de zone
+          <select
+            value={String(settings['gameplay.zone_content_retrigger'] || 'once_per_game').replace(/^"|"$/g, '')}
+            disabled={savingKey === 'gameplay.zone_content_retrigger'}
+            onChange={async (event) => {
+              const next = event.target.value;
+              setSavingKey('gameplay.zone_content_retrigger');
+              try {
+                await apiGL('/api/gl/admin/settings/gameplay.zone_content_retrigger', 'PUT', { value: next });
+                await load();
+              } catch (err) {
+                setError(err.message || 'Enregistrement impossible');
+              } finally {
+                setSavingKey('');
+              }
+            }}
+          >
+            <option value="every_arrival">À chaque entrée ou traversée</option>
+            <option value="once_per_team">Une fois par équipe et zone</option>
+            <option value="once_per_game">Une fois par zone (toute la partie)</option>
+          </select>
+        </label>
+        <p className="gl-hint">
+          Contrôle l&apos;affichage du popover texte/images quand une équipe entre ou traverse une zone.
+        </p>
       </div>
 
       <div className="gl-spell-cast-settings gl-form">

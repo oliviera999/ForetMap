@@ -36,8 +36,23 @@ const { buildGlossaryLookupMap, matchGlossaryTermsForSpecies } = require('../../
 const { loadBiomesForChapterIds } = require('../../lib/glChapterBiomes');
 const { loadSpellsForChapterIds } = require('../../lib/glChapterSpells');
 const { MARKER_SELECT, formatMarkerRow, isQuestionMarker } = require('../../lib/glMarkerRow');
+const {
+  buildMarkerArrivalPayload,
+  hasApplicableMarkerEffects,
+  resolveMarkerEffects,
+} = require('../../lib/glMarkerEffects');
 const { drawQuestionFromMarker } = require('../../lib/glMarkerQuestionPool');
 const { canPresentMarkerQuestion } = require('../../lib/glMarkerQuestionRetrigger');
+const {
+  canPresentZoneContent,
+  resolveZoneContentRetrigger,
+  PRESENT_EVENT_TYPE: ZONE_CONTENT_PRESENT_EVENT,
+} = require('../../lib/glZoneContentRetrigger');
+const {
+  serializeZonePopoverRow,
+  zoneHasPopoverContent,
+} = require('../../lib/glZoneContent');
+const { MARKER_QUESTION_RETRIGGER_VALUES } = require('../../lib/glSettings');
 const {
   loadPresentableQuestion,
   loadActiveQuestion,
@@ -170,6 +185,7 @@ function resolveRosterError(err) {
 async function readGameState(gameId) {
   const game = await queryOne(
     `SELECT g.id, g.class_id, g.chapter_id, g.name, g.status, g.current_team_id,
+            g.zone_content_retrigger,
             g.created_by, g.created_at, g.updated_at,
             c.name AS class_name,
             ch.slug AS chapter_slug, ch.title AS chapter_title, ch.biome, ch.map_image_url,
@@ -455,7 +471,9 @@ router.put('/games/:id', requireGlPermission('gl.game.manage'), async (req, res)
   const hasName = req.body?.name != null;
   const hasChapterId = req.body?.chapterId != null;
   const hasClassId = req.body?.classId != null;
-  if (!hasName && !hasChapterId && !hasClassId) {
+  const hasZoneContentRetrigger = Object.prototype.hasOwnProperty.call(req.body || {}, 'zoneContentRetrigger')
+    || Object.prototype.hasOwnProperty.call(req.body || {}, 'zone_content_retrigger');
+  if (!hasName && !hasChapterId && !hasClassId && !hasZoneContentRetrigger) {
     return res.status(400).json({ error: 'Aucune modification fournie' });
   }
 
@@ -496,15 +514,36 @@ router.put('/games/:id', requireGlPermission('gl.game.manage'), async (req, res)
     if (!classRow) return res.status(404).json({ error: 'Classe introuvable' });
   }
 
+  let nextZoneContentRetrigger = undefined;
+  if (hasZoneContentRetrigger) {
+    const raw = req.body?.zoneContentRetrigger ?? req.body?.zone_content_retrigger;
+    if (raw == null || raw === '') {
+      nextZoneContentRetrigger = null;
+    } else {
+      const mode = String(raw).trim();
+      if (!MARKER_QUESTION_RETRIGGER_VALUES.has(mode)) {
+        return res.status(400).json({ error: 'zoneContentRetrigger invalide' });
+      }
+      nextZoneContentRetrigger = mode;
+    }
+  }
+
   try {
     await execute(
       `UPDATE gl_games
           SET name = COALESCE(?, name),
               chapter_id = COALESCE(?, chapter_id),
               class_id = COALESCE(?, class_id),
+              zone_content_retrigger = ${hasZoneContentRetrigger ? '?' : 'zone_content_retrigger'},
               updated_at = NOW()
         WHERE id = ?`,
-      [nextName, nextChapterId, nextClassId, gameId]
+      [
+        nextName,
+        nextChapterId,
+        nextClassId,
+        ...(hasZoneContentRetrigger ? [nextZoneContentRetrigger] : []),
+        gameId,
+      ]
     );
   } catch (err) {
     if (err && err.code === 'ER_NO_REFERENCED_ROW_2') {
@@ -1331,6 +1370,258 @@ router.post('/games/:id/markers/:markerId/present-question', requireGlAuth, asyn
     presentation,
     markerId,
     teamId,
+  });
+});
+
+/** POST /api/gl/games/:id/markers/:markerId/present-arrival — résumé d'arrivée sur repère (effets plateau). */
+router.post('/games/:id/markers/:markerId/present-arrival', requireGlAuth, async (req, res) => {
+  const gameId = parseId(req.params.id);
+  const markerId = parseId(req.params.markerId);
+  if (!gameId || !markerId) {
+    return res.status(400).json({ error: 'Identifiants invalides' });
+  }
+
+  const allowed = await canAccessGlGame(req.glAuth, gameId);
+  if (!allowed) return res.status(403).json({ error: 'Accès partie refusé' });
+
+  const game = await queryOne('SELECT id, chapter_id, status FROM gl_games WHERE id = ? LIMIT 1', [gameId]);
+  if (!game) return res.status(404).json({ error: 'Partie introuvable' });
+
+  const markerRow = await queryOne(`SELECT ${MARKER_SELECT} FROM gl_chapter_markers WHERE id = ? LIMIT 1`, [markerId]);
+  const marker = formatMarkerRow(markerRow);
+  if (!marker || Number(marker.chapter_id) !== Number(game.chapter_id)) {
+    return res.status(404).json({ error: 'Repère introuvable' });
+  }
+  if (isQuestionMarker(marker)) {
+    return res.status(409).json({ error: 'Repère question : utiliser present-question' });
+  }
+  if (!hasApplicableMarkerEffects(marker)) {
+    return res.status(404).json({ error: 'Repère sans effet à présenter' });
+  }
+
+  const settings = await getGameplaySettings();
+  if (settings.qcmMjOnly && req.glAuth.userType === 'gl_player') {
+    return res.status(403).json({ error: 'Présentation réservée au maître du jeu' });
+  }
+
+  let teamId = req.body?.teamId != null ? parseId(req.body.teamId) : null;
+  if (req.glAuth.userType === 'gl_player') {
+    const membership = await getPlayerGameMembership(gameId, req.glAuth.userId);
+    if (!membership?.team_id) return res.status(403).json({ error: 'Joueur non rattaché à une équipe' });
+    teamId = Number(membership.team_id);
+  } else if (teamId == null) {
+    return res.status(400).json({ error: 'teamId requis pour le MJ' });
+  }
+
+  const team = await queryOne('SELECT id, type, name FROM gl_teams WHERE id = ? AND game_id = ? LIMIT 1', [teamId, gameId]);
+  if (!team) return res.status(404).json({ error: 'Équipe introuvable dans cette partie' });
+
+  const arrival = buildMarkerArrivalPayload(marker, team);
+  const actorType = req.glAuth.userType === 'gl_admin' ? 'mj' : 'team';
+  await execute(
+    `INSERT INTO gl_game_events (game_id, team_id, actor_type, actor_id, event_type, payload_json, created_at)
+     VALUES (?, ?, ?, ?, 'marker_arrival', ?, NOW())`,
+    [
+      gameId,
+      teamId,
+      actorType,
+      String(req.glAuth.userId),
+      JSON.stringify({
+        markerId,
+        markerLabel: marker.label,
+        eventType: marker.event_type,
+        effectSummary: arrival.effectSummary,
+      }),
+    ]
+  );
+  const evt = await queryOne(
+    `SELECT id, game_id, team_id, actor_type, actor_id, event_type, payload_json, created_at
+       FROM gl_game_events WHERE game_id = ? ORDER BY id DESC LIMIT 1`,
+    [gameId]
+  );
+  if (evt) emitGlGameEvent(gameId, normalizeEventRow(evt));
+
+  return res.json({ ...arrival, teamId: Number(teamId), teamType: team.type });
+});
+
+/** POST /api/gl/games/:id/markers/:markerId/apply-effects — applique les effets vitalité du repère (MJ). */
+router.post('/games/:id/markers/:markerId/apply-effects', requireGlPermission('gl.event.emit'), async (req, res) => {
+  const gameId = parseId(req.params.id);
+  const markerId = parseId(req.params.markerId);
+  const teamId = parseId(req.body?.teamId);
+  if (!gameId || !markerId || !teamId) {
+    return res.status(400).json({ error: 'gameId, markerId et teamId requis' });
+  }
+
+  const game = await queryOne('SELECT id, chapter_id FROM gl_games WHERE id = ? LIMIT 1', [gameId]);
+  if (!game) return res.status(404).json({ error: 'Partie introuvable' });
+
+  const markerRow = await queryOne(`SELECT ${MARKER_SELECT} FROM gl_chapter_markers WHERE id = ? LIMIT 1`, [markerId]);
+  const marker = formatMarkerRow(markerRow);
+  if (!marker || Number(marker.chapter_id) !== Number(game.chapter_id)) {
+    return res.status(404).json({ error: 'Repère introuvable' });
+  }
+
+  const team = await queryOne('SELECT id, type, name FROM gl_teams WHERE id = ? AND game_id = ? LIMIT 1', [teamId, gameId]);
+  if (!team) return res.status(404).json({ error: 'Équipe introuvable' });
+
+  const resolved = resolveMarkerEffects(marker, team.type);
+  if (!resolved) {
+    return res.status(409).json({ error: 'Aucun effet applicable sur ce repère' });
+  }
+
+  const healthDelta = parseVitalityDelta(resolved.deltaPv);
+  const powerDelta = parseVitalityDelta(resolved.deltaGems);
+  const moveDelta = parseVitalityDelta(resolved.deltaMove);
+  const settings = await getGameplaySettings();
+  const reason = String(req.body?.reason || marker.label || 'Repère').trim();
+
+  let vitalityResults = null;
+  if (settings.vitalityEnabled && (healthDelta !== 0 || powerDelta !== 0)) {
+    try {
+      await withTransaction(async (tx) => {
+        vitalityResults = await applyTeamVitalityDelta(tx, { gameId, teamId, healthDelta, powerDelta });
+        await recordVitalityChangeEvent(tx, {
+          gameId,
+          teamId,
+          actorId: String(req.glAuth.userId),
+          healthDelta,
+          powerDelta,
+          reason,
+          results: vitalityResults,
+        });
+      });
+    } catch (err) {
+      const mapped = resolveVitalityError(err);
+      if (mapped) return res.status(mapped.status).json({ error: mapped.error });
+      throw err;
+    }
+  }
+
+  await execute(
+    `INSERT INTO gl_game_events (game_id, team_id, actor_type, actor_id, event_type, payload_json, created_at)
+     VALUES (?, ?, 'mj', ?, 'marker_effect', ?, NOW())`,
+    [
+      gameId,
+      teamId,
+      String(req.glAuth.userId),
+      JSON.stringify({
+        markerId,
+        markerLabel: marker.label,
+        eventType: marker.event_type,
+        branch: resolved.branch,
+        healthDelta,
+        powerDelta,
+        moveDelta,
+        passTurn: Boolean(resolved.passTurn),
+        reason,
+      }),
+    ]
+  );
+  const evt = await queryOne(
+    `SELECT id, game_id, team_id, actor_type, actor_id, event_type, payload_json, created_at
+       FROM gl_game_events WHERE game_id = ? ORDER BY id DESC LIMIT 1`,
+    [gameId]
+  );
+  if (evt) emitGlGameEvent(gameId, normalizeEventRow(evt));
+
+  return res.json({
+    ok: true,
+    markerId,
+    teamId,
+    resolvedEffect: resolved,
+    moveDelta,
+    passTurn: Boolean(resolved.passTurn),
+    vitalityResults,
+    vitalityRequired: settings.vitalityEnabled && (healthDelta !== 0 || powerDelta !== 0),
+  });
+});
+
+/** POST /api/gl/games/:id/zones/:zoneId/present-content — popover texte/images à l'entrée ou traversée. */
+router.post('/games/:id/zones/:zoneId/present-content', requireGlAuth, async (req, res) => {
+  const gameId = parseId(req.params.id);
+  const zoneId = parseId(req.params.zoneId);
+  if (!gameId || !zoneId) {
+    return res.status(400).json({ error: 'Identifiants invalides' });
+  }
+
+  const allowed = await canAccessGlGame(req.glAuth, gameId);
+  if (!allowed) return res.status(403).json({ error: 'Accès partie refusé' });
+
+  const game = await queryOne(
+    'SELECT id, chapter_id, status, zone_content_retrigger FROM gl_games WHERE id = ? LIMIT 1',
+    [gameId]
+  );
+  if (!game) return res.status(404).json({ error: 'Partie introuvable' });
+  if (!['live', 'paused'].includes(String(game.status || '').toLowerCase())) {
+    return res.status(409).json({ error: 'Partie non active' });
+  }
+
+  const zoneRow = await queryOne(
+    `SELECT id, chapter_id, label, description, points_json, color,
+            music_url, music_volume, popover_markdown, popover_images_json
+       FROM gl_kingdom_zones WHERE id = ? LIMIT 1`,
+    [zoneId]
+  );
+  if (!zoneRow || Number(zoneRow.chapter_id) !== Number(game.chapter_id)) {
+    return res.status(404).json({ error: 'Zone introuvable' });
+  }
+  if (!zoneHasPopoverContent(zoneRow)) {
+    return res.status(404).json({ error: 'Cette zone n’a pas de contenu popover' });
+  }
+
+  let teamId = req.body?.teamId != null ? parseId(req.body.teamId) : null;
+  if (req.glAuth.userType === 'gl_player') {
+    const membership = await getPlayerGameMembership(gameId, req.glAuth.userId);
+    if (!membership?.team_id) return res.status(403).json({ error: 'Joueur non rattaché à une équipe' });
+    teamId = Number(membership.team_id);
+  } else if (teamId == null) {
+    return res.status(400).json({ error: 'teamId requis pour le MJ' });
+  }
+
+  const team = await queryOne('SELECT id FROM gl_teams WHERE id = ? AND game_id = ? LIMIT 1', [teamId, gameId]);
+  if (!team) return res.status(404).json({ error: 'Équipe introuvable dans cette partie' });
+
+  const settings = await getGameplaySettings();
+  const retriggerMode = resolveZoneContentRetrigger(game, settings);
+  const canPresent = await canPresentZoneContent(
+    { queryAll },
+    { gameId, teamId, zoneId, retriggerMode }
+  );
+  if (!canPresent) {
+    return res.status(409).json({ error: 'Contenu zone déjà présenté selon les réglages' });
+  }
+
+  const popover = serializeZonePopoverRow(zoneRow);
+  const actorType = req.glAuth.userType === 'gl_admin' ? 'mj' : 'team';
+  await execute(
+    `INSERT INTO gl_game_events (game_id, team_id, actor_type, actor_id, event_type, payload_json, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, NOW())`,
+    [
+      gameId,
+      teamId,
+      actorType,
+      String(req.glAuth.userId),
+      ZONE_CONTENT_PRESENT_EVENT,
+      JSON.stringify({ zoneId, zoneLabel: zoneRow.label }),
+    ]
+  );
+  const evt = await queryOne(
+    `SELECT id, game_id, team_id, actor_type, actor_id, event_type, payload_json, created_at
+       FROM gl_game_events WHERE game_id = ? ORDER BY id DESC LIMIT 1`,
+    [gameId]
+  );
+  if (evt) emitGlGameEvent(gameId, normalizeEventRow(evt));
+
+  return res.json({
+    zone: {
+      id: Number(zoneRow.id),
+      label: zoneRow.label,
+      color: zoneRow.color,
+    },
+    teamId,
+    popoverMarkdown: popover.popoverMarkdown,
+    popoverImages: popover.popoverImages,
   });
 });
 

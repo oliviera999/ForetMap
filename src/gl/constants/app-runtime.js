@@ -1,14 +1,17 @@
 export const GL_TAB_STORAGE_KEY = 'gl_active_tab';
 
+/** Onglets épinglés sur la barre mobile (bottom-nav + raccourcis desktop compacts). */
+export const GL_MOBILE_PRIMARY_TAB_IDS = ['maps', 'biotope', 'glossary', 'rules'];
+
 export const GL_PLAYER_TABS = [
   { id: 'maps', label: 'Cartes', icon: '🗺️' },
   { id: 'biotope', label: 'Biotope', icon: '🌿' },
-  { id: 'biocenose', label: 'Biocenose', icon: '🦋' },
+  { id: 'biocenose', label: 'Biocénose', icon: '🦋' },
   { id: 'glossary', label: 'Glossaire', icon: '📚' },
   { id: 'history', label: 'Histoire', icon: '📜' },
   { id: 'world', label: 'Le monde de G&L', icon: '🌍' },
-  { id: 'spells', label: 'Sortileges', icon: '✨' },
-  { id: 'rules', label: 'Regles du jeu', icon: '📖' },
+  { id: 'spells', label: 'Sortilèges', icon: '✨' },
+  { id: 'rules', label: 'Règles du jeu', icon: '📖' },
   { id: 'tutorials', label: 'Tutoriels', icon: '🎓' },
   { id: 'forum', label: 'Forum', icon: '💬' },
   { id: 'market', label: 'Marché', icon: '🤝' },
@@ -20,7 +23,7 @@ export const GL_ADMIN_EXTRA_TABS = [
   { id: 'stats', label: 'Statistiques', icon: '📊' },
   { id: 'users', label: 'Gestion utilisateurs', icon: '👥' },
   { id: 'contents', label: 'Contenus', icon: '🧩' },
-  { id: 'settings', label: 'Reglages plateforme', icon: '⚙️' },
+  { id: 'settings', label: 'Réglages plateforme', icon: '⚙️' },
   { id: 'mascots', label: 'Gestion mascottes', icon: '🧙' },
   { id: 'mj', label: 'Console MJ', icon: '🎲' },
 ];
