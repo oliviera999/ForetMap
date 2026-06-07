@@ -58,3 +58,12 @@ test('re-upload même slug met à jour la résolution', () => {
   deleteMediaLibraryItem(first.relativePath, { skipManifestSync: true });
   deleteMediaLibraryItem(second.relativePath);
 });
+
+test('resolveMediaByStableKey accepte clé GL_ préfixée (intro)', () => {
+  const fileName = 'GL_intro_01_la-boite.png';
+  const saved = saveMediaFromBuffer(TINY_PNG, 'image/png', fileName, { skipManifestSync: true });
+  syncAssetManifests();
+  const resolved = resolveMediaByStableKey('GL_intro_01_la-boite');
+  assert.ok(resolved?.url?.includes(saved.relativePath.split('/').pop().split('.')[0].slice(0, 8)) || resolved?.url?.startsWith('/uploads/'));
+  deleteMediaLibraryItem(saved.relativePath);
+});

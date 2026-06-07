@@ -2,6 +2,8 @@ import embeddedImages from './manifest.images.json';
 import embeddedAudio from './manifest.audio.json';
 import placeholderUrl from './placeholder.svg?url';
 import { biomeAssetSlug } from '../data/biomes.registry.js';
+import { resolvePlateauBoardSlug } from '../utils/resolvePlateauBoardSlug.js';
+import { normalizeGlMediaStableKey } from '../utils/glMediaStableKey.js';
 
 const KEYS_URL = '/uploads/media-library/_keys.json';
 const MANIFEST_IMAGES_URL = '/uploads/media-library/_manifest.images.json';
@@ -72,12 +74,17 @@ function getKeysIndex() {
 export function img(slug) {
   const key = String(slug || '').trim();
   if (!key) return placeholderUrl;
-  const url = resolveStableKey(key, getKeysIndex(), getImagesManifest());
-  if (!url) {
-    warnMissing(key, 'img');
-    return placeholderUrl;
+  const keysIndex = getKeysIndex();
+  const imagesManifest = getImagesManifest();
+  const candidates = [key];
+  const normalized = normalizeGlMediaStableKey(key);
+  if (normalized && normalized !== key) candidates.push(normalized);
+  for (const candidate of candidates) {
+    const url = resolveStableKey(candidate, keysIndex, imagesManifest);
+    if (url) return url;
   }
-  return url;
+  warnMissing(key, 'img');
+  return placeholderUrl;
 }
 
 export function audio(slug) {
@@ -98,8 +105,9 @@ export function audio(slug) {
 }
 
 export function feuilletIllustration(code) {
-  const prefix = `recit_feuillet-action_${String(code || '').trim()}_`;
-  if (!prefix.endsWith('_')) return null;
+  const normalizedCode = String(code || '').trim().toLowerCase();
+  const prefix = `recit_feuillet-action_${normalizedCode}_`;
+  if (!normalizedCode) return null;
   const images = getImagesManifest();
   const keys = getKeysIndex();
   const match = Object.keys({ ...images, ...keys }).find((slug) => slug.startsWith(prefix));
@@ -118,9 +126,17 @@ export function biomeImg(biomeSlug, kind = 'biome', saison = null) {
 }
 
 export function plateauBoardImg(plateauNumber) {
-  const n = Number(plateauNumber);
-  if (!Number.isFinite(n) || n < 1 || n > 5) return placeholderUrl;
-  return img(`plateau-${n}_fond`);
+  const keysIndex = getKeysIndex();
+  const imagesManifest = getImagesManifest();
+  const knownSlugs = [...new Set([...Object.keys(keysIndex), ...Object.keys(imagesManifest)])];
+  const slug = resolvePlateauBoardSlug(plateauNumber, knownSlugs);
+  if (!slug) {
+    warnMissing(`plateau-${plateauNumber}`, 'plateau-board');
+    return placeholderUrl;
+  }
+  return img(slug);
 }
+
+export { resolvePlateauBoardSlug } from '../utils/resolvePlateauBoardSlug.js';
 
 export { placeholderUrl as GL_ASSET_PLACEHOLDER_URL };

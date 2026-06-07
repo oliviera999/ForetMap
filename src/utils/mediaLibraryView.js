@@ -92,3 +92,10 @@ export function pruneMediaLibrarySelection(selectedPaths, items = []) {
   const valid = new Set((Array.isArray(items) ? items : []).map((item) => item.relativePath));
   return new Set([...(selectedPaths || [])].filter((path) => valid.has(path)));
 }
+
+/** Sélecteur intégré (onPickUrl) → galerie ; gestion seule sans picker → liste par défaut. */
+export function resolveMediaLibraryLayout({ layout = 'list', onPickUrl } = {}) {
+  if (layout === 'gallery') return 'gallery';
+  if (typeof onPickUrl === 'function') return 'gallery';
+  return 'list';
+}
