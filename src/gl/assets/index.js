@@ -3,6 +3,7 @@ import embeddedAudio from './manifest.audio.json';
 import placeholderUrl from './placeholder.svg?url';
 import { biomeAssetSlug } from '../data/biomes.registry.js';
 import { resolvePlateauBoardSlug } from '../utils/resolvePlateauBoardSlug.js';
+import { resolvePlateauAudioSlug, resolveIntroAudioSlug } from '../utils/resolvePlateauAudioSlug.js';
 import { normalizeGlMediaStableKey } from '../utils/glMediaStableKey.js';
 
 const KEYS_URL = '/uploads/media-library/_keys.json';
@@ -87,6 +88,24 @@ export function img(slug) {
   return placeholderUrl;
 }
 
+export function audioByStableKey(stableKey, defaults = {}) {
+  const key = String(stableKey || '').trim();
+  if (!key) {
+    return { url: null, loop: defaults.loop ?? true, gain: defaults.gain ?? 0.7 };
+  }
+  const keysIndex = getKeysIndex();
+  const candidates = [key, normalizeGlMediaStableKey(key)].filter(Boolean);
+  const unique = [...new Set(candidates)];
+  for (const candidate of unique) {
+    const url = resolveStableKey(candidate, keysIndex, getImagesManifest());
+    if (url) {
+      return { url, loop: defaults.loop ?? true, gain: defaults.gain ?? 0.7 };
+    }
+  }
+  warnMissing(key, 'audio');
+  return { url: null, loop: defaults.loop ?? true, gain: defaults.gain ?? 0.7 };
+}
+
 export function audio(slug) {
   const slot = String(slug || '').trim();
   const manifest = getAudioManifest();
@@ -96,12 +115,26 @@ export function audio(slug) {
     warnMissing(slot, 'audio');
     return { url: null, loop: entry?.loop ?? true, gain: entry?.gain ?? 0.7 };
   }
-  const url = resolveStableKey(stableKey, getKeysIndex(), getImagesManifest());
-  if (!url) {
-    warnMissing(stableKey, 'audio');
-    return { url: null, loop: entry?.loop ?? true, gain: entry?.gain ?? 0.7 };
+  return audioByStableKey(stableKey, { loop: entry?.loop ?? true, gain: entry?.gain ?? 0.7 });
+}
+
+export function plateauAudio(plateauNumber, biomeSlug = null, saison = null) {
+  const keysIndex = getKeysIndex();
+  const knownSlugs = Object.keys(keysIndex);
+  const stableKey = resolvePlateauAudioSlug(plateauNumber, biomeSlug, saison, knownSlugs);
+  if (stableKey) return audioByStableKey(stableKey);
+  const slot = Number(plateauNumber);
+  if (Number.isFinite(slot) && slot >= 1 && slot <= 5) {
+    return audio(`plateau-${slot}`);
   }
-  return { url, loop: entry?.loop ?? true, gain: entry?.gain ?? 0.7 };
+  return audioByStableKey(null);
+}
+
+export function introAudio() {
+  const knownSlugs = Object.keys(getKeysIndex());
+  const stableKey = resolveIntroAudioSlug(knownSlugs);
+  if (stableKey) return audioByStableKey(stableKey);
+  return audio('intro');
 }
 
 export function feuilletIllustration(code) {
@@ -138,5 +171,6 @@ export function plateauBoardImg(plateauNumber) {
 }
 
 export { resolvePlateauBoardSlug } from '../utils/resolvePlateauBoardSlug.js';
+export { resolvePlateauAudioSlug, resolveIntroAudioSlug } from '../utils/resolvePlateauAudioSlug.js';
 
 export { placeholderUrl as GL_ASSET_PLACEHOLDER_URL };

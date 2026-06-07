@@ -1,0 +1,68 @@
+{
+  "generatedAt": "2026-06-07T18:56:10.389Z",
+  "sourceDir": "c:\\Users\\olivi\\Downloads",
+  "files": [
+    {
+      "dest": "GL_plateau-1_jungle.mp3",
+      "from": "jungle.mp3",
+      "sizeMb": "9.9",
+      "note": "Plateau 1 — jungle / mangrove"
+    },
+    {
+      "dest": "GL_plateau-1_desert-chaud.mp3",
+      "from": "désert.mp3",
+      "sizeMb": "10.7",
+      "note": "Plateau 1 — sahara"
+    },
+    {
+      "dest": "GL_plateau-2_savane.mp3",
+      "from": "savane.mp3",
+      "sizeMb": "10.3",
+      "note": "Plateau 2 — savane"
+    },
+    {
+      "dest": "GL_plateau-2_mediterranee.mp3",
+      "from": "Méditerranée (2).mp3",
+      "sizeMb": "6.8",
+      "note": "Plateau 2 — forêt méditerranéenne"
+    },
+    {
+      "dest": "GL_plateau-3_landes.mp3",
+      "from": "landes.mp3",
+      "sizeMb": "5.7",
+      "note": "Plateau 3 — landes"
+    },
+    {
+      "dest": "GL_plateau-4_foret-caducifoliee.mp3",
+      "from": "forêt caducifolié.mp3",
+      "sizeMb": "5.1",
+      "note": "Plateau 4 — forêt caducifoliée"
+    },
+    {
+      "dest": "GL_plateau-4_desert-froid.mp3",
+      "from": "désert froid.mp3",
+      "sizeMb": "7.9",
+      "note": "Plateau 4 — désert froid"
+    },
+    {
+      "dest": "GL_plateau-5_taiga.mp3",
+      "from": "taiga.mp3",
+      "sizeMb": "9.7",
+      "note": "Plateau 5 — taïga"
+    },
+    {
+      "dest": "GL_plateau-5_toundra-jour.mp3",
+      "from": "toundra jour.mp3",
+      "sizeMb": "4.5",
+      "note": "Plateau 5 — toundra été"
+    },
+    {
+      "dest": "GL_plateau-5_toundra-nuit.mp3",
+      "from": "toundra nuit.mp3",
+      "sizeMb": "7.6",
+      "note": "Plateau 5 — toundra hiver"
+    }
+  ],
+  "skipped": [],
+  "uploadHint": "Contenus → Bibliothèque GL : importer les GL_plateau-*.mp3 (ZIP ou fichiers)."
+}

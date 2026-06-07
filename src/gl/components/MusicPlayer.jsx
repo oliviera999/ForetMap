@@ -9,6 +9,8 @@ export function MusicPlayer({
   enabled = true,
   plateauNumber = null,
   introActive = false,
+  biomeSlug = null,
+  biomeSaison = null,
   className = '',
 }) {
   const {
@@ -19,6 +21,8 @@ export function MusicPlayer({
     enabled,
     plateauNumber,
     introActive,
+    biomeSlug,
+    biomeSaison,
   });
 
   useEffect(() => {
