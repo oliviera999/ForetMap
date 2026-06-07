@@ -11,7 +11,16 @@ const feuilletRevealFixture = {
 };
 
 vi.mock('../../src/gl/components/GLLearningAcknowledgeButton.jsx', () => ({
-  GLLearningAcknowledgeButton({ onAcknowledged, labelAction = 'Marquer comme étudiée' }) {
+  GLLearningAcknowledgeButton({
+    onAcknowledged,
+    labelAction = 'Marquer comme étudiée',
+    labelDone = '✓ Étudiée',
+    titleDone = 'Tu as confirmé avoir étudié cette espèce',
+    isDone = false,
+  }) {
+    if (isDone) {
+      return <span title={titleDone}>{labelDone}</span>;
+    }
     return (
       <button
         type="button"

@@ -7,6 +7,10 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé
+
+- **GL — tests révélation feuillets espèce** : mock UI `GLLearningAcknowledgeButton` respecte `isDone` ; scénario pays 5 aligné sur 5 feuillets ; retrait import corpus lourd du hook `before` (tests plus rapides).
+
 ### Ajouté
 
 - **GL — révélation de feuillets par étude d'espèces** : migration `119_gl_lore_feuillets_lien_espece.sql` (colonnes `lien_*` sur `gl_lore_feuillets`, `unlocked_via: espece` sur `gl_game_feuillet_states`) ; import/export XLSX enrichi ; révélation équipe à la première étude (`POST /api/gl/learning/species/:code` + `gameId`, feuillet `espece` prioritaire puis route `espece_pays` ordonnée par `lien_ordre_recit`) ; popover `GLFeuilletDiscoveryPopover` depuis la fiche espèce ; tri zone incluant `lien_ordre_recit` pour les intros `cop-mov`. Tests `tests/gl-lore-feuillet-species-reveal.test.js`, extensions import/UI. Doc `docs/API.md`, `data/gl/README.md`.
