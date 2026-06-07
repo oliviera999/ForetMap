@@ -39,7 +39,8 @@ describe('MediaLibraryMenu layout gallery', () => {
 
     expect(await screen.findByRole('button', { name: /Copier l’URL — a\.png/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Copier l’URL — track\.mp3/i })).toBeInTheDocument();
-    expect(document.querySelector('.media-library-menu__gallery-type')).toHaveTextContent('Audio');
+    const trackBtn = screen.getByRole('button', { name: /Copier l’URL — track\.mp3/i });
+    expect(trackBtn.querySelector('.media-library-menu__gallery-type')).toHaveTextContent('Audio');
 
     fireEvent.click(screen.getByRole('button', { name: /Copier l’URL — a\.png/i }));
     expect(onPickUrl).toHaveBeenCalledWith('/uploads/media-library/image/2026/06/a.png');

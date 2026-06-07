@@ -102,7 +102,14 @@ export function GLQcmModal({
               ) : null}
               <p className="gl-qcm-modal__question">{presentation.question}</p>
               {presentation.photoUrl ? (
-                <img src={presentation.photoUrl} alt="" className="gl-qcm-modal__photo" />
+                <figure className="gl-qcm-modal__photo-wrap">
+                  <img src={presentation.photoUrl} alt="" className="gl-qcm-modal__photo" />
+                  {presentation.photoCredit || presentation.photoLicence ? (
+                    <figcaption className="gl-qcm-modal__photo-credit">
+                      {[presentation.photoCredit, presentation.photoLicence].filter(Boolean).join(' — ')}
+                    </figcaption>
+                  ) : null}
+                </figure>
               ) : null}
               <div className="gl-qcm-modal__choices">
                 {presentation.choices.map((choice) => (

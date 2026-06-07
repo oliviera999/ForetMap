@@ -1,5 +1,13 @@
 # Données Gnomes & Licornes
 
+## Assets GL (images / audio conventionnels)
+
+Les illustrations de jeu (`GL_plateau-*`, `GL_biome_*`, `GL_recit_feuillet-action_*`, etc.) se déposent via **Contenus → Bibliothèque** (ZIP ou galerie). Le nom d’origine (`GL_<slug>.ext`) devient la **clé stable** ; les manifestes `_keys.json` / `_manifest.*.json` sont régénérés automatiquement sous `uploads/media-library/`.
+
+Sprites à alpha (`app_*`, `embleme_*`) : versionner dans `public/gl/sprites/` (PNG/WebP).
+
+Snapshot build prod : `npm run gl:build:assets` (appelé aussi par `npm run build`).
+
 ## Catalogue espèces / biomes
 
 Fichier de référence : `especes-biomes-gnomes-et-licornes.xlsx` (feuilles `especes`, `biomes_stats`, `groupes_stats`).

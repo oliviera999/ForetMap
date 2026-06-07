@@ -1,0 +1,1181 @@
+{
+ "format": "coords normalisees 0-1, origine haut-gauche; superposer sur board_image; declenchement 1ere traversee",
+ "zones": [
+  {
+   "zone_id": "zf-p1-01",
+   "plateau": 1,
+   "board_image": "watermarked_img_13496490473232250296.jpg",
+   "feuillet_code": "ep-I-01",
+   "titre": "Premier matin",
+   "centre": [
+    0.17,
+    0.62
+   ],
+   "polygone": [
+    [
+     0.1885,
+     0.6338
+    ],
+    [
+     0.1777,
+     0.6533
+    ],
+    [
+     0.1623,
+     0.6533
+    ],
+    [
+     0.1515,
+     0.6338
+    ],
+    [
+     0.1515,
+     0.6062
+    ],
+    [
+     0.1623,
+     0.5867
+    ],
+    [
+     0.1777,
+     0.5867
+    ],
+    [
+     0.1885,
+     0.6062
+    ]
+   ],
+   "declenchement": "traversee_unique",
+   "cout_gemme": 1,
+   "gain_coeur": 1,
+   "popover": "Selene regarde la savane. Elle comprend que la nature n'est jamais deux fois la même. Elle change sans arrêt, et c'est normal."
+  },
+  {
+   "zone_id": "zf-p1-02",
+   "plateau": 1,
+   "board_image": "watermarked_img_13496490473232250296.jpg",
+   "feuillet_code": "ep-I-02",
+   "titre": "Le corbeau",
+   "centre": [
+    0.33,
+    0.28
+   ],
+   "polygone": [
+    [
+     0.3485,
+     0.2938
+    ],
+    [
+     0.3377,
+     0.3133
+    ],
+    [
+     0.3223,
+     0.3133
+    ],
+    [
+     0.3115,
+     0.2938
+    ],
+    [
+     0.3115,
+     0.2662
+    ],
+    [
+     0.3223,
+     0.2467
+    ],
+    [
+     0.3377,
+     0.2467
+    ],
+    [
+     0.3485,
+     0.2662
+    ]
+   ],
+   "declenchement": "traversee_unique",
+   "cout_gemme": 1,
+   "gain_coeur": 1,
+   "popover": "Un corbeau suit Selene depuis trois jours. Elle ne lui a pas donné de nom, mais elle lui parle."
+  },
+  {
+   "zone_id": "zf-p1-03",
+   "plateau": 1,
+   "board_image": "watermarked_img_13496490473232250296.jpg",
+   "feuillet_code": "ep-I-03",
+   "titre": "Le point d'eau tari",
+   "centre": [
+    0.55,
+    0.5
+   ],
+   "polygone": [
+    [
+     0.5685,
+     0.5138
+    ],
+    [
+     0.5577,
+     0.5333
+    ],
+    [
+     0.5423,
+     0.5333
+    ],
+    [
+     0.5315,
+     0.5138
+    ],
+    [
+     0.5315,
+     0.4862
+    ],
+    [
+     0.5423,
+     0.4667
+    ],
+    [
+     0.5577,
+     0.4667
+    ],
+    [
+     0.5685,
+     0.4862
+    ]
+   ],
+   "declenchement": "traversee_unique",
+   "cout_gemme": 1,
+   "gain_coeur": 1,
+   "popover": "Selene cherchait un coupable, un monstre. Elle comprend que le Souffle n'est pas méchant. Le vrai problème, c'est qu'il va trop vite pour qu'on puisse réparer."
+  },
+  {
+   "zone_id": "zf-p1-04",
+   "plateau": 1,
+   "board_image": "watermarked_img_13496490473232250296.jpg",
+   "feuillet_code": "ep-I-04",
+   "titre": "La lumière dans la mer",
+   "centre": [
+    0.74,
+    0.55
+   ],
+   "polygone": [
+    [
+     0.7585,
+     0.5638
+    ],
+    [
+     0.7477,
+     0.5833
+    ],
+    [
+     0.7323,
+     0.5833
+    ],
+    [
+     0.7215,
+     0.5638
+    ],
+    [
+     0.7215,
+     0.5362
+    ],
+    [
+     0.7323,
+     0.5167
+    ],
+    [
+     0.7477,
+     0.5167
+    ],
+    [
+     0.7585,
+     0.5362
+    ]
+   ],
+   "declenchement": "traversee_unique",
+   "cout_gemme": 1,
+   "gain_coeur": 1,
+   "popover": "Une bête ne choisit pas ce qu'elle fait. Un humain, oui. C'est pour ça qu'un humain peut faire le mal : parce qu'il peut choisir."
+  },
+  {
+   "zone_id": "zf-p2-05",
+   "plateau": 2,
+   "board_image": "watermarked_img_16999739831612660178.jpg",
+   "feuillet_code": "ep-I-05",
+   "titre": "La Grise",
+   "centre": [
+    0.165,
+    0.46
+   ],
+   "polygone": [
+    [
+     0.1835,
+     0.4738
+    ],
+    [
+     0.1727,
+     0.4933
+    ],
+    [
+     0.1573,
+     0.4933
+    ],
+    [
+     0.1465,
+     0.4738
+    ],
+    [
+     0.1465,
+     0.4462
+    ],
+    [
+     0.1573,
+     0.4267
+    ],
+    [
+     0.1727,
+     0.4267
+    ],
+    [
+     0.1835,
+     0.4462
+    ]
+   ],
+   "declenchement": "traversee_unique",
+   "cout_gemme": 1,
+   "gain_coeur": 1,
+   "popover": "Selene voit la plaine perdre ses couleurs. Tout devient gris. C'est le premier signe que le milieu va mal."
+  },
+  {
+   "zone_id": "zf-p2-06",
+   "plateau": 2,
+   "board_image": "watermarked_img_16999739831612660178.jpg",
+   "feuillet_code": "ep-I-06",
+   "titre": "La Nature avec une majuscule",
+   "centre": [
+    0.47,
+    0.55
+   ],
+   "polygone": [
+    [
+     0.4885,
+     0.5638
+    ],
+    [
+     0.4777,
+     0.5833
+    ],
+    [
+     0.4623,
+     0.5833
+    ],
+    [
+     0.4515,
+     0.5638
+    ],
+    [
+     0.4515,
+     0.5362
+    ],
+    [
+     0.4623,
+     0.5167
+    ],
+    [
+     0.4777,
+     0.5167
+    ],
+    [
+     0.4885,
+     0.5362
+    ]
+   ],
+   "declenchement": "traversee_unique",
+   "cout_gemme": 1,
+   "gain_coeur": 1,
+   "popover": "Un homme dit que la Nature est parfaite et que les humains sont sales. Selene n'est pas d'accord. Elle protège ce monde parce qu'elle l'aime, c'est tout."
+  },
+  {
+   "zone_id": "zf-p2-07",
+   "plateau": 2,
+   "board_image": "watermarked_img_16999739831612660178.jpg",
+   "feuillet_code": "ep-I-08",
+   "titre": "Nommer fait tenir la page",
+   "centre": [
+    0.7985,
+    0.3303
+   ],
+   "polygone": [
+    [
+     0.817,
+     0.3441
+    ],
+    [
+     0.8062,
+     0.3636
+    ],
+    [
+     0.7908,
+     0.3636
+    ],
+    [
+     0.78,
+     0.3441
+    ],
+    [
+     0.78,
+     0.3165
+    ],
+    [
+     0.7908,
+     0.297
+    ],
+    [
+     0.8062,
+     0.297
+    ],
+    [
+     0.817,
+     0.3165
+    ]
+   ],
+   "declenchement": "traversee_unique",
+   "cout_gemme": 1,
+   "gain_coeur": 1,
+   "popover": "Selene remarque une chose étrange : quand elle nomme bien un animal, la page ne s'efface pas. Nommer, c'est garder."
+  },
+  {
+   "zone_id": "zf-p3-08",
+   "plateau": 3,
+   "board_image": "watermarked_img_6895487107210024833.jpg",
+   "feuillet_code": "ep-I-07",
+   "titre": "Pas un chant",
+   "centre": [
+    0.16,
+    0.64
+   ],
+   "polygone": [
+    [
+     0.1785,
+     0.6538
+    ],
+    [
+     0.1677,
+     0.6733
+    ],
+    [
+     0.1523,
+     0.6733
+    ],
+    [
+     0.1415,
+     0.6538
+    ],
+    [
+     0.1415,
+     0.6262
+    ],
+    [
+     0.1523,
+     0.6067
+    ],
+    [
+     0.1677,
+     0.6067
+    ],
+    [
+     0.1785,
+     0.6262
+    ]
+   ],
+   "declenchement": "traversee_unique",
+   "cout_gemme": 1,
+   "gain_coeur": 1,
+   "popover": "Un matin, Selene n'entend plus aucun oiseau. Les animaux ont disparu peu à peu, et personne ne l'a remarqué. C'est le Silence."
+  },
+  {
+   "zone_id": "zf-p3-09",
+   "plateau": 3,
+   "board_image": "watermarked_img_6895487107210024833.jpg",
+   "feuillet_code": "ep-I-09",
+   "titre": "Les fils qui mentent",
+   "centre": [
+    0.31,
+    0.41
+   ],
+   "polygone": [
+    [
+     0.3285,
+     0.4238
+    ],
+    [
+     0.3177,
+     0.4433
+    ],
+    [
+     0.3023,
+     0.4433
+    ],
+    [
+     0.2915,
+     0.4238
+    ],
+    [
+     0.2915,
+     0.3962
+    ],
+    [
+     0.3023,
+     0.3767
+    ],
+    [
+     0.3177,
+     0.3767
+    ],
+    [
+     0.3285,
+     0.3962
+    ]
+   ],
+   "declenchement": "traversee_unique",
+   "cout_gemme": 1,
+   "gain_coeur": 1,
+   "popover": "Des poisons tuent. Mais le pire fait croire aux animaux que c'est le printemps en plein hiver. Il ment, et c'est très dur à repérer."
+  },
+  {
+   "zone_id": "zf-p3-10",
+   "plateau": 3,
+   "board_image": "watermarked_img_6895487107210024833.jpg",
+   "feuillet_code": "ep-I-10",
+   "titre": "Je ne suis pas un bon Gnome",
+   "centre": [
+    0.48,
+    0.62
+   ],
+   "polygone": [
+    [
+     0.4985,
+     0.6338
+    ],
+    [
+     0.4877,
+     0.6533
+    ],
+    [
+     0.4723,
+     0.6533
+    ],
+    [
+     0.4615,
+     0.6338
+    ],
+    [
+     0.4615,
+     0.6062
+    ],
+    [
+     0.4723,
+     0.5867
+    ],
+    [
+     0.4877,
+     0.5867
+    ],
+    [
+     0.4985,
+     0.6062
+    ]
+   ],
+   "declenchement": "traversee_unique",
+   "cout_gemme": 1,
+   "gain_coeur": 1,
+   "popover": "Selene répare mal, mais elle sait bien observer. Pour soigner la nature, il faut les deux : voir le problème, puis le réparer."
+  },
+  {
+   "zone_id": "zf-p3-11",
+   "plateau": 3,
+   "board_image": "watermarked_img_6895487107210024833.jpg",
+   "feuillet_code": "ep-III-05",
+   "titre": "Le grand-père et le ciel d'oiseaux",
+   "centre": [
+    0.7528,
+    0.3191
+   ],
+   "polygone": [
+    [
+     0.7713,
+     0.3329
+    ],
+    [
+     0.7605,
+     0.3524
+    ],
+    [
+     0.7451,
+     0.3524
+    ],
+    [
+     0.7343,
+     0.3329
+    ],
+    [
+     0.7343,
+     0.3053
+    ],
+    [
+     0.7451,
+     0.2858
+    ],
+    [
+     0.7605,
+     0.2858
+    ],
+    [
+     0.7713,
+     0.3053
+    ]
+   ],
+   "declenchement": "traversee_unique",
+   "cout_gemme": 1,
+   "gain_coeur": 1,
+   "popover": "Un grand-père se souvient d'un ciel plein d'oiseaux. Son petit-fils n'a jamais vu ça : pour lui, le ciel presque vide est normal. C'est comme ça qu'on oublie ce qu'on a perdu."
+  },
+  {
+   "zone_id": "zf-p4-12",
+   "plateau": 4,
+   "board_image": "watermarked_img_15989862586475956910.png",
+   "feuillet_code": "ep-I-11",
+   "titre": "Le Détricotage",
+   "centre": [
+    0.14,
+    0.54
+   ],
+   "polygone": [
+    [
+     0.1585,
+     0.5538
+    ],
+    [
+     0.1477,
+     0.5733
+    ],
+    [
+     0.1323,
+     0.5733
+    ],
+    [
+     0.1215,
+     0.5538
+    ],
+    [
+     0.1215,
+     0.5262
+    ],
+    [
+     0.1323,
+     0.5067
+    ],
+    [
+     0.1477,
+     0.5067
+    ],
+    [
+     0.1585,
+     0.5262
+    ]
+   ],
+   "declenchement": "traversee_unique",
+   "cout_gemme": 1,
+   "gain_coeur": 1,
+   "popover": "Quand l'abeille manque, la fleur ne fait plus de fruit, puis l'oiseau part. Tout est lié : un fil lâche, et cent suivent."
+  },
+  {
+   "zone_id": "zf-p4-13",
+   "plateau": 4,
+   "board_image": "watermarked_img_15989862586475956910.png",
+   "feuillet_code": "ep-I-12",
+   "titre": "Un fil, pas une étrangère",
+   "centre": [
+    0.32,
+    0.72
+   ],
+   "polygone": [
+    [
+     0.3385,
+     0.7338
+    ],
+    [
+     0.3277,
+     0.7533
+    ],
+    [
+     0.3123,
+     0.7533
+    ],
+    [
+     0.3015,
+     0.7338
+    ],
+    [
+     0.3015,
+     0.7062
+    ],
+    [
+     0.3123,
+     0.6867
+    ],
+    [
+     0.3277,
+     0.6867
+    ],
+    [
+     0.3385,
+     0.7062
+    ]
+   ],
+   "declenchement": "traversee_unique",
+   "cout_gemme": 1,
+   "gain_coeur": 1,
+   "popover": "Selene est tentée de se croire en dehors de la nature. Mais non : elle en fait partie, comme tout le monde. Donc elle peut aussi aider à réparer."
+  },
+  {
+   "zone_id": "zf-p4-14",
+   "plateau": 4,
+   "board_image": "watermarked_img_15989862586475956910.png",
+   "feuillet_code": "ep-III-01",
+   "titre": "Sur ma propre mémoire",
+   "centre": [
+    0.4987,
+    0.4151
+   ],
+   "polygone": [
+    [
+     0.5172,
+     0.4289
+    ],
+    [
+     0.5064,
+     0.4484
+    ],
+    [
+     0.491,
+     0.4484
+    ],
+    [
+     0.4802,
+     0.4289
+    ],
+    [
+     0.4802,
+     0.4013
+    ],
+    [
+     0.491,
+     0.3818
+    ],
+    [
+     0.5064,
+     0.3818
+    ],
+    [
+     0.5172,
+     0.4013
+    ]
+   ],
+   "declenchement": "traversee_unique",
+   "cout_gemme": 1,
+   "gain_coeur": 1,
+   "popover": "Selene s'aperçoit qu'elle oublie. Elle trouve un mot écrit de sa main dont elle ne se souvient pas. Alors elle écrit pour ne pas tout perdre."
+  },
+  {
+   "zone_id": "zf-p4-15",
+   "plateau": 4,
+   "board_image": "watermarked_img_15989862586475956910.png",
+   "feuillet_code": "ep-III-02",
+   "titre": "Perdre n'est pas être effacée",
+   "centre": [
+    0.7657,
+    0.2624
+   ],
+   "polygone": [
+    [
+     0.7842,
+     0.2762
+    ],
+    [
+     0.7734,
+     0.2957
+    ],
+    [
+     0.758,
+     0.2957
+    ],
+    [
+     0.7472,
+     0.2762
+    ],
+    [
+     0.7472,
+     0.2486
+    ],
+    [
+     0.758,
+     0.2291
+    ],
+    [
+     0.7734,
+     0.2291
+    ],
+    [
+     0.7842,
+     0.2486
+    ]
+   ],
+   "declenchement": "traversee_unique",
+   "cout_gemme": 1,
+   "gain_coeur": 1,
+   "popover": "Quand Selene perd un feuillet, elle le sait. Mais quand le Souffle l'efface, elle oublie qu'il a existé. Ça, c'est bien pire."
+  },
+  {
+   "zone_id": "zf-p4-16",
+   "plateau": 4,
+   "board_image": "watermarked_img_15989862586475956910.png",
+   "feuillet_code": "ep-III-03",
+   "titre": "À qui trouvera une page blanche",
+   "centre": [
+    0.7124,
+    0.5978
+   ],
+   "polygone": [
+    [
+     0.7309,
+     0.6116
+    ],
+    [
+     0.7201,
+     0.6311
+    ],
+    [
+     0.7047,
+     0.6311
+    ],
+    [
+     0.6939,
+     0.6116
+    ],
+    [
+     0.6939,
+     0.584
+    ],
+    [
+     0.7047,
+     0.5645
+    ],
+    [
+     0.7201,
+     0.5645
+    ],
+    [
+     0.7309,
+     0.584
+    ]
+   ],
+   "declenchement": "traversee_unique",
+   "cout_gemme": 1,
+   "gain_coeur": 1,
+   "popover": "Tu trouveras des pages blanches. Ce n'est pas du papier neuf : il y avait des mots, et le Souffle les a pris. Garde-les pour montrer qu'il y avait quelque chose."
+  },
+  {
+   "zone_id": "zf-p5-17",
+   "plateau": 5,
+   "board_image": "watermarked_img_12187730459568620673.jpg",
+   "feuillet_code": "ep-I-14",
+   "titre": "Deux voix",
+   "centre": [
+    0.14,
+    0.4
+   ],
+   "polygone": [
+    [
+     0.1585,
+     0.4138
+    ],
+    [
+     0.1477,
+     0.4333
+    ],
+    [
+     0.1323,
+     0.4333
+    ],
+    [
+     0.1215,
+     0.4138
+    ],
+    [
+     0.1215,
+     0.3862
+    ],
+    [
+     0.1323,
+     0.3667
+    ],
+    [
+     0.1477,
+     0.3667
+    ],
+    [
+     0.1585,
+     0.3862
+    ]
+   ],
+   "declenchement": "traversee_unique",
+   "cout_gemme": 1,
+   "gain_coeur": 1,
+   "popover": "Deux voix disent à Selene d'abandonner. Elle répond : on a déjà réparé un trou dans le ciel en arrêtant le poison. Donc rien n'est joué."
+  },
+  {
+   "zone_id": "zf-p5-18",
+   "plateau": 5,
+   "board_image": "watermarked_img_12187730459568620673.jpg",
+   "feuillet_code": "ep-III-04",
+   "titre": "Ce que tu fais en me lisant",
+   "centre": [
+    0.165,
+    0.6
+   ],
+   "polygone": [
+    [
+     0.1835,
+     0.6138
+    ],
+    [
+     0.1727,
+     0.6333
+    ],
+    [
+     0.1573,
+     0.6333
+    ],
+    [
+     0.1465,
+     0.6138
+    ],
+    [
+     0.1465,
+     0.5862
+    ],
+    [
+     0.1573,
+     0.5667
+    ],
+    [
+     0.1727,
+     0.5667
+    ],
+    [
+     0.1835,
+     0.5862
+    ]
+   ],
+   "declenchement": "traversee_unique",
+   "cout_gemme": 1,
+   "gain_coeur": 1,
+   "popover": "En lisant ce feuillet, tu te souviens de Selene. Tu fais pour elle ce qu'elle a fait pour les animaux : tu la gardes un peu en vie."
+  },
+  {
+   "zone_id": "zf-p5-19",
+   "plateau": 5,
+   "board_image": "watermarked_img_12187730459568620673.jpg",
+   "feuillet_code": "ep-I-16",
+   "titre": "Le carnet ne se finit pas",
+   "centre": [
+    0.24,
+    0.82
+   ],
+   "polygone": [
+    [
+     0.2585,
+     0.8338
+    ],
+    [
+     0.2477,
+     0.8533
+    ],
+    [
+     0.2323,
+     0.8533
+    ],
+    [
+     0.2215,
+     0.8338
+    ],
+    [
+     0.2215,
+     0.8062
+    ],
+    [
+     0.2323,
+     0.7867
+    ],
+    [
+     0.2477,
+     0.7867
+    ],
+    [
+     0.2585,
+     0.8062
+    ]
+   ],
+   "declenchement": "traversee_unique",
+   "cout_gemme": 1,
+   "gain_coeur": 1,
+   "popover": "Selene comprend qu'on ne finit jamais ce carnet. On le donne à la personne suivante, qui continue."
+  },
+  {
+   "zone_id": "zf-p5-20",
+   "plateau": 5,
+   "board_image": "watermarked_img_12187730459568620673.jpg",
+   "feuillet_code": "ep-I-13",
+   "titre": "La cendre sur la neige",
+   "centre": [
+    0.42,
+    0.76
+   ],
+   "polygone": [
+    [
+     0.4385,
+     0.7738
+    ],
+    [
+     0.4277,
+     0.7933
+    ],
+    [
+     0.4123,
+     0.7933
+    ],
+    [
+     0.4015,
+     0.7738
+    ],
+    [
+     0.4015,
+     0.7462
+    ],
+    [
+     0.4123,
+     0.7267
+    ],
+    [
+     0.4277,
+     0.7267
+    ],
+    [
+     0.4385,
+     0.7462
+    ]
+   ],
+   "declenchement": "traversee_unique",
+   "cout_gemme": 0,
+   "gain_coeur": 0,
+   "popover": "Selene voit de la cendre sur la neige et entend un grondement venu du sud, de chez elle. Elle se demande si le Souffle ne vient pas des humains."
+  },
+  {
+   "zone_id": "zf-p5-21",
+   "plateau": 5,
+   "board_image": "watermarked_img_12187730459568620673.jpg",
+   "feuillet_code": "ep-I-15",
+   "titre": "Le dernier blanc",
+   "centre": [
+    0.55,
+    0.56
+   ],
+   "polygone": [
+    [
+     0.5685,
+     0.5738
+    ],
+    [
+     0.5577,
+     0.5933
+    ],
+    [
+     0.5423,
+     0.5933
+    ],
+    [
+     0.5315,
+     0.5738
+    ],
+    [
+     0.5315,
+     0.5462
+    ],
+    [
+     0.5423,
+     0.5267
+    ],
+    [
+     0.5577,
+     0.5267
+    ],
+    [
+     0.5685,
+     0.5462
+    ]
+   ],
+   "declenchement": "traversee_unique",
+   "cout_gemme": 1,
+   "gain_coeur": 0,
+   "popover": "Selene écrit contre l'oubli. Le pire n'est pas qu'un animal disparaisse : c'est qu'on oublie même qu'il a existé."
+  },
+  {
+   "zone_id": "zf-p5-22",
+   "plateau": 5,
+   "board_image": "watermarked_img_12187730459568620673.jpg",
+   "feuillet_code": "ep-III-06",
+   "titre": "Plus on s'approche, plus elle s'efface",
+   "centre": [
+    0.64,
+    0.38
+   ],
+   "polygone": [
+    [
+     0.6585,
+     0.3938
+    ],
+    [
+     0.6477,
+     0.4133
+    ],
+    [
+     0.6323,
+     0.4133
+    ],
+    [
+     0.6215,
+     0.3938
+    ],
+    [
+     0.6215,
+     0.3662
+    ],
+    [
+     0.6323,
+     0.3467
+    ],
+    [
+     0.6477,
+     0.3467
+    ],
+    [
+     0.6585,
+     0.3662
+    ]
+   ],
+   "declenchement": "traversee_unique",
+   "cout_gemme": 0,
+   "gain_coeur": 0,
+   "popover": "Plus on avance vers le pôle, plus les feuillets s'effacent. Au bout, on comprend la vérité : la voyageuse, c'était nous."
+  },
+  {
+   "zone_id": "zf-p5-23",
+   "plateau": 5,
+   "board_image": "watermarked_img_12187730459568620673.jpg",
+   "feuillet_code": "ep-III-07",
+   "titre": "Ne fais pas de moi un trésor",
+   "centre": [
+    0.8,
+    0.34
+   ],
+   "polygone": [
+    [
+     0.8185,
+     0.3538
+    ],
+    [
+     0.8077,
+     0.3733
+    ],
+    [
+     0.7923,
+     0.3733
+    ],
+    [
+     0.7815,
+     0.3538
+    ],
+    [
+     0.7815,
+     0.3262
+    ],
+    [
+     0.7923,
+     0.3067
+    ],
+    [
+     0.8077,
+     0.3067
+    ],
+    [
+     0.8185,
+     0.3262
+    ]
+   ],
+   "declenchement": "traversee_unique",
+   "cout_gemme": 1,
+   "gain_coeur": 1,
+   "popover": "Selene dit : ne me garde pas comme un trésor. Recopie, donne, et un jour laisse à ton tour des feuillets pour les suivants."
+  },
+  {
+   "zone_id": "zf-p5-24",
+   "plateau": 5,
+   "board_image": "watermarked_img_12187730459568620673.jpg",
+   "feuillet_code": "ep-I-17",
+   "titre": "Prenez le crayon",
+   "centre": [
+    0.82,
+    0.66
+   ],
+   "polygone": [
+    [
+     0.8385,
+     0.6738
+    ],
+    [
+     0.8277,
+     0.6933
+    ],
+    [
+     0.8123,
+     0.6933
+    ],
+    [
+     0.8015,
+     0.6738
+    ],
+    [
+     0.8015,
+     0.6462
+    ],
+    [
+     0.8123,
+     0.6267
+    ],
+    [
+     0.8277,
+     0.6267
+    ],
+    [
+     0.8385,
+     0.6462
+    ]
+   ],
+   "declenchement": "traversee_unique",
+   "cout_gemme": 1,
+   "gain_coeur": 1,
+   "popover": "Selene s'adresse à toi : prends le crayon, observe mieux qu'elle, répare ce qu'elle n'a pas pu, puis passe le relais."
+  }
+ ]
+}

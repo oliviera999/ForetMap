@@ -1,0 +1,32 @@
+{
+  "intro": {
+    "src": null,
+    "loop": true,
+    "gain": 0.7
+  },
+  "plateau-1": {
+    "src": null,
+    "loop": true,
+    "gain": 0.7
+  },
+  "plateau-2": {
+    "src": null,
+    "loop": true,
+    "gain": 0.7
+  },
+  "plateau-3": {
+    "src": null,
+    "loop": true,
+    "gain": 0.7
+  },
+  "plateau-4": {
+    "src": null,
+    "loop": true,
+    "gain": 0.7
+  },
+  "plateau-5": {
+    "src": null,
+    "loop": true,
+    "gain": 0.7
+  }
+}

@@ -2,7 +2,7 @@ import React, { useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { GLLoreGlossaryMarkdown } from './GLLoreGlossaryMarkdown.jsx';
 import { GLGlossaryMarkdown } from './GLGlossaryMarkdown.jsx';
-import { GLButton } from './ui/GLButton.jsx';
+import { GLFeuilletIllustration } from './GLFeuilletIllustration.jsx';
 
 export function GLFeuilletDiscoveryPopover({
   open = false,
@@ -33,7 +33,7 @@ export function GLFeuilletDiscoveryPopover({
     ? `gl-feui-${String(feuillet.modeApparition).replace(/_/g, '-')}`
     : 'gl-feui-boite';
   const effPct = Number(feuillet?.effacementPct) || 0;
-  const hasBody = feuillet?.displayText || feuillet?.imageUrl || feuillet?.imageCoupeUrl;
+  const hasBody = feuillet?.displayText || feuillet?.imageUrl || feuillet?.imageCoupeUrl || feuillet?.feuilletCode;
 
   return createPortal(
     <div
@@ -66,11 +66,11 @@ export function GLFeuilletDiscoveryPopover({
             className="gl-feui-discovery__body"
             style={effPct > 0 && effPct < 100 ? { opacity: Math.max(0.35, 1 - effPct / 100) } : undefined}
           >
-            {feuillet.imageUrl ? (
-              <figure className="gl-feui-discovery__illu">
-                <img src={feuillet.imageUrl} alt="" loading="lazy" />
-              </figure>
-            ) : null}
+            <GLFeuilletIllustration
+              feuilletCode={feuillet?.feuilletCode}
+              fallbackUrl={feuillet?.imageUrl}
+              figureClassName="gl-feui-discovery__illu"
+            />
             {feuillet.displayText ? (
               <GLLoreGlossaryMarkdown
                 markdown={feuillet.displayText}

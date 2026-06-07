@@ -63,6 +63,13 @@ function toPositiveInt(value, fallback = 0) {
   return Math.max(0, Math.floor(n));
 }
 
+function parsePlateauNumber(value) {
+  if (value == null || value === '') return null;
+  const n = Number(value);
+  if (!Number.isFinite(n) || n < 1 || n > 5) return null;
+  return Math.floor(n);
+}
+
 function normalizeMapImageFrame(value) {
   if (value == null) return normalizeGlImageFrame(null, 'chapter-map');
   if (typeof value !== 'object' || Array.isArray(value)) return null;
@@ -105,7 +112,7 @@ async function readChapterFull(slugOrId) {
       `SELECT c.id, c.slug, c.title, c.biome,
               c.map_image_url, c.story_markdown, c.biotope_markdown,
               c.biocenose_markdown, c.sortileges_markdown, c.map_image_frame_json, c.theme_json,
-              c.souffle_face, c.order_index, c.created_at, c.updated_at
+              c.souffle_face, c.plateau_number, c.order_index, c.created_at, c.updated_at
          FROM gl_chapters c
         WHERE c.id = ?
         LIMIT 1`,
@@ -115,7 +122,7 @@ async function readChapterFull(slugOrId) {
       `SELECT c.id, c.slug, c.title, c.biome,
               c.map_image_url, c.story_markdown, c.biotope_markdown,
               c.biocenose_markdown, c.sortileges_markdown, c.map_image_frame_json, c.theme_json,
-              c.souffle_face, c.order_index, c.created_at, c.updated_at
+              c.souffle_face, c.plateau_number, c.order_index, c.created_at, c.updated_at
          FROM gl_chapters c
         WHERE c.slug = ?
         LIMIT 1`,
@@ -144,7 +151,7 @@ async function readChapterFull(slugOrId) {
 router.get('/', requireGlPermission('gl.read'), async (_req, res) => {
   const rows = await queryAll(
     `SELECT c.id, c.slug, c.title, c.biome,
-            c.map_image_url, c.map_image_frame_json, c.theme_json, c.order_index
+            c.map_image_url, c.map_image_frame_json, c.theme_json, c.plateau_number, c.order_index
        FROM gl_chapters c
       ORDER BY c.order_index ASC, c.id ASC`
   );
@@ -203,6 +210,7 @@ router.post('/admin', requireGlPermission('gl.content.manage'), async (req, res)
   const mapImageFrame = normalizeMapImageFrame(req.body?.mapImageFrame);
   if (!mapImageFrame) return res.status(400).json({ error: 'mapImageFrame invalide' });
   const orderIndex = toPositiveInt(req.body?.orderIndex, 0);
+  const plateauNumber = parsePlateauNumber(req.body?.plateauNumber);
   let themeJson = null;
   if (req.body && Object.prototype.hasOwnProperty.call(req.body, 'theme')) {
     const { theme, error: themeError } = validateChapterThemeInput(req.body.theme);
@@ -215,9 +223,9 @@ router.post('/admin', requireGlPermission('gl.content.manage'), async (req, res)
       await tx.execute(
         `INSERT INTO gl_chapters (slug, title, biome, map_image_url, story_markdown,
                                    biotope_markdown, biocenose_markdown, sortileges_markdown,
-                                   map_image_frame_json, theme_json, order_index, created_at, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
-        [slug, title, biome, mapImageUrl, storyMarkdown, biotopeMarkdown, biocenoseMarkdown, sortilegesMarkdown, JSON.stringify(mapImageFrame), themeJson, orderIndex]
+                                   map_image_frame_json, theme_json, plateau_number, order_index, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
+        [slug, title, biome, mapImageUrl, storyMarkdown, biotopeMarkdown, biocenoseMarkdown, sortilegesMarkdown, JSON.stringify(mapImageFrame), themeJson, plateauNumber, orderIndex]
       );
       const inserted = await tx.queryOne('SELECT id FROM gl_chapters WHERE slug = ? LIMIT 1', [slug]);
       const chapterId = Number(inserted.id);
@@ -303,6 +311,14 @@ router.put('/admin/:id', requireGlPermission('gl.content.manage'), async (req, r
   if (req.body && Object.prototype.hasOwnProperty.call(req.body, 'souffleFace')) {
     updates.push('souffle_face = ?');
     params.push(normalizeOptionalString(req.body.souffleFace));
+  }
+  if (req.body && Object.prototype.hasOwnProperty.call(req.body, 'plateauNumber')) {
+    const plateauNumber = parsePlateauNumber(req.body.plateauNumber);
+    if (req.body.plateauNumber != null && req.body.plateauNumber !== '' && plateauNumber == null) {
+      return res.status(400).json({ error: 'plateauNumber doit être entre 1 et 5' });
+    }
+    updates.push('plateau_number = ?');
+    params.push(plateauNumber);
   }
   if (updates.length === 0 && biomeSlugs == null && spellCodes == null) {
     return res.status(400).json({ error: 'Aucun champ à mettre à jour' });

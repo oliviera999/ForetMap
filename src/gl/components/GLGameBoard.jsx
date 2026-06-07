@@ -13,14 +13,19 @@ import { useGLBoardMascotMotion } from '../hooks/useGLBoardMascotMotion.js';
 import { useGLMarkerArrival } from '../hooks/useGLMarkerArrival.js';
 import { useGLZoneContentArrival } from '../hooks/useGLZoneContentArrival.js';
 import { useGLLoreFeuilletArrival } from '../hooks/useGLLoreFeuilletArrival.js';
+import { useGLFeuilletZoneArrival } from '../hooks/useGLFeuilletZoneArrival.js';
 import { GLZoneContentPopover } from './GLZoneContentPopover.jsx';
 import { GLFeuilletDiscoveryPopover } from './GLFeuilletDiscoveryPopover.jsx';
+import { GLFeuilletPopover } from './GLFeuilletPopover.jsx';
+import { GLFeuilletZoneOverlay } from './GLFeuilletZoneOverlay.jsx';
+import { GLFeuilletZoneEditor } from './GLFeuilletZoneEditor.jsx';
+import { apiGL } from '../services/apiGL.js';
 import { usePrefersReducedMotion } from '../hooks/usePrefersReducedMotion.js';
 import { GLZoneMusicMuteButton } from './GLZoneMusicMuteButton.jsx';
 import { GLVirtualDiceDock } from './GLVirtualDiceDock.jsx';
 import { GLButton } from './ui/GLButton.jsx';
 import { GLGameBoardHud, GLGameBoardHudToolbar } from './GLGameBoardHud.jsx';
-import { DialogShell } from '../../components/DialogShell.jsx';
+import { plateauBoardImg, GL_ASSET_PLACEHOLDER_URL } from '../assets/index.js';
 
 export function GLGameBoard({
   chapter,
@@ -54,8 +59,14 @@ export function GLGameBoard({
   canSpellCast = false,
   onLaunchSpell,
   virtualDiceEnabled = false,
+  feuilletZones = [],
+  feuilletZoneEditMode = false,
 }) {
-  const imageUrl = chapter?.map_image_url || '/maps/map-foret.svg';
+  const plateauNumber = chapter?.chapter_plateau_number ?? chapter?.plateau_number ?? null;
+  const conventionBoard = plateauNumber ? plateauBoardImg(plateauNumber) : null;
+  const imageUrl = chapter?.map_image_url
+    || (conventionBoard && conventionBoard !== GL_ASSET_PLACEHOLDER_URL ? conventionBoard : null)
+    || '/maps/map-foret.svg';
   const [pendingMarker, setPendingMarker] = useState(null);
   const [actionType, setActionType] = useState('explore');
   const [mapFullscreen, setMapFullscreen] = useState(false);
@@ -119,6 +130,58 @@ export function GLGameBoard({
     qcmOpen: modalOpen,
   });
 
+  const [presentedFeuilletZoneIds, setPresentedFeuilletZoneIds] = useState([]);
+  const [editZones, setEditZones] = useState(feuilletZones);
+
+  useEffect(() => {
+    setEditZones(feuilletZones);
+  }, [feuilletZones]);
+
+  useEffect(() => {
+    if (!gameId || watchTeamId == null) {
+      setPresentedFeuilletZoneIds([]);
+      return undefined;
+    }
+    let cancelled = false;
+    (async () => {
+      try {
+        const data = await apiGL(
+          `/api/gl/games/${gameId}/feuillet-zones/presented?teamId=${Number(watchTeamId)}`,
+        );
+        if (!cancelled) {
+          setPresentedFeuilletZoneIds(Array.isArray(data?.zoneIds) ? data.zoneIds : []);
+        }
+      } catch {
+        if (!cancelled) setPresentedFeuilletZoneIds([]);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [gameId, watchTeamId]);
+
+  const activeFeuilletZones = feuilletZoneEditMode ? editZones : feuilletZones;
+
+  const {
+    popover: feuilletZonePopover,
+    closePopover: closeFeuilletZonePopover,
+    handlePositionChange: handleFeuilletZonePositionChange,
+  } = useGLFeuilletZoneArrival({
+    feuilletZones: activeFeuilletZones,
+    gameId,
+    watchTeamId,
+    presentedZoneIds: presentedFeuilletZoneIds,
+    enabled: Boolean(gameId && watchTeamId != null && activeFeuilletZones.length > 0) && !feuilletZoneEditMode,
+    qcmOpen: modalOpen,
+    loreCarnetEnabled,
+  });
+
+  useEffect(() => {
+    if (!feuilletZonePopover?.zone?.zoneId || feuilletZonePopover?.loading) return;
+    setPresentedFeuilletZoneIds((prev) => {
+      const id = String(feuilletZonePopover.zone.zoneId);
+      return prev.includes(id) ? prev : [...prev, id];
+    });
+  }, [feuilletZonePopover?.zone?.zoneId, feuilletZonePopover?.loading]);
+
   const watchPosition = watchTeamId != null ? getPositionForTeam(watchTeamId) : null;
 
   useEffect(() => {
@@ -130,11 +193,20 @@ export function GLGameBoard({
     if (watchTeamId == null || !watchPosition) return undefined;
     const cleanupZone = handleZoneContentPositionChange({ xp: watchPosition.xp, yp: watchPosition.yp });
     const cleanupFeuillet = handleFeuilletPositionChange({ xp: watchPosition.xp, yp: watchPosition.yp });
+    const cleanupFeuilletZone = handleFeuilletZonePositionChange({ xp: watchPosition.xp, yp: watchPosition.yp });
     return () => {
       cleanupZone?.();
       cleanupFeuillet?.();
+      cleanupFeuilletZone?.();
     };
-  }, [watchTeamId, watchPosition?.xp, watchPosition?.yp, handleZoneContentPositionChange, handleFeuilletPositionChange]);
+  }, [
+    watchTeamId,
+    watchPosition?.xp,
+    watchPosition?.yp,
+    handleZoneContentPositionChange,
+    handleFeuilletPositionChange,
+    handleFeuilletZonePositionChange,
+  ]);
 
   useEffect(() => {
     if (!mapFullscreen || modalOpen) return undefined;
@@ -245,6 +317,22 @@ export function GLGameBoard({
           handleBoardMove(clamped.xp, clamped.yp);
         }}
       >
+        {feuilletZoneEditMode ? (
+          <GLFeuilletZoneEditor
+            zones={editZones}
+            onZonesChange={setEditZones}
+            presentedZoneIds={presentedFeuilletZoneIds}
+            mapGestures={mapGestures}
+            plateauNumber={plateauNumber}
+          />
+        ) : (
+          <GLFeuilletZoneOverlay
+            zones={activeFeuilletZones}
+            presentedZoneIds={presentedFeuilletZoneIds}
+            watchPosition={watchPosition}
+          />
+        )}
+
         <GLBoardMarkers markers={markers} onMarkerClick={handleMarkerClick} />
 
         {teamList.map((team) => {
@@ -318,6 +406,18 @@ export function GLGameBoard({
         onClose={closeZoneContentPopover}
         onOpenGlossaryTerm={onOpenGlossaryTerm}
         glossaryLinkItems={glossaryLinkItems}
+        themeStyle={brandThemeStyle}
+      />
+
+      <GLFeuilletPopover
+        open={Boolean(feuilletZonePopover)}
+        titre={feuilletZonePopover?.titre}
+        popover={feuilletZonePopover?.popover}
+        coutGemme={feuilletZonePopover?.coutGemme}
+        gainCoeur={feuilletZonePopover?.gainCoeur}
+        loading={feuilletZonePopover?.loading}
+        error={feuilletZonePopover?.error}
+        onClose={closeFeuilletZonePopover}
         themeStyle={brandThemeStyle}
       />
 

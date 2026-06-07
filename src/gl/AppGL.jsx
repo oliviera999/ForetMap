@@ -46,7 +46,11 @@ import { GLStatsView } from './components/GLStatsView.jsx';
 import { GLPasswordResetGate } from './components/GLPasswordResetGate.jsx';
 import { useGLBrandTheme } from './hooks/useGLBrandTheme.js';
 import { GLMascotCatalogProvider } from './context/GLMascotCatalogContext.jsx';
+import { MusicPlayer } from './components/MusicPlayer.jsx';
+import { loadGlAssetRuntime } from './assets/index.js';
 import { pickZoneAtPct } from '../utils/glZoneAtPct.js';
+import { getRuntimeFeuilletZonesForPlateau } from './data/glFeuilletZonesBundle.js';
+import { isFeuilletZoneEditMode } from './utils/glFeuilletZoneEditMode.js';
 import { useGLZoneMusic, readStoredMuted, writeStoredMuted } from './hooks/useGLZoneMusic.js';
 import { FixedToast } from '../shared/components/FixedToast.jsx';
 import { usePrefersReducedMotion } from './hooks/usePrefersReducedMotion.js';
@@ -230,6 +234,18 @@ export function AppGL() {
   );
   const zoneMusicEnabled = isModuleEnabled(modules, 'zoneMusicEnabled');
   const virtualDiceEnabled = isModuleEnabled(modules, 'virtualDiceEnabled');
+  const feuilletZoneEditMode = isFeuilletZoneEditMode() && showStaffAdminUi;
+  const chapterPlateauNumber = gameState?.game?.chapter_plateau_number ?? null;
+
+  useEffect(() => {
+    if (!token) return undefined;
+    loadGlAssetRuntime().catch(() => {});
+    return undefined;
+  }, [token]);
+  const feuilletZones = useMemo(() => {
+    if (chapterPlateauNumber == null) return [];
+    return getRuntimeFeuilletZonesForPlateau(chapterPlateauNumber);
+  }, [chapterPlateauNumber]);
 
   const activeZoneForMusic = useMemo(() => {
     if (!watchTeamPct) return null;
@@ -894,6 +910,8 @@ export function AppGL() {
               onZoneMusicUnlock={unlockZoneMusic}
               brandThemeStyle={glBrandStyle}
               virtualDiceEnabled={virtualDiceEnabled}
+              feuilletZones={feuilletZones}
+              feuilletZoneEditMode={feuilletZoneEditMode}
             />
             {showsPlayerChrome && gameState?.game && auth?.teamId == null && (
               <section className="gl-panel">
@@ -1160,6 +1178,11 @@ export function AppGL() {
         spellCast={spellCast}
         chapterSpells={gameState?.game?.chapter_spells || []}
         onPickSpell={(code) => setSpellCastInitialCode(code)}
+      />
+      <MusicPlayer
+        enabled={Boolean(token && gameState?.game)}
+        plateauNumber={chapterPlateauNumber}
+        introActive={chapterPlateauNumber == null && Boolean(gameState?.game)}
       />
     </div>
     </GLMascotCatalogProvider>
