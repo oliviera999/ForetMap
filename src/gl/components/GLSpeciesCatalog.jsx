@@ -50,7 +50,7 @@ function GLSpeciesTile({ species, onSelect, isLearned }) {
   );
 }
 
-function GLSpeciesCatalogPanel({ biomeSlug, biomeNom, onOpenGlossaryTerm, learningProgress }) {
+function GLSpeciesCatalogPanel({ biomeSlug, biomeNom, gameId, loreCarnetEnabled, onOpenGlossaryTerm, learningProgress }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [items, setItems] = useState([]);
@@ -145,6 +145,8 @@ function GLSpeciesCatalogPanel({ biomeSlug, biomeNom, onOpenGlossaryTerm, learni
       <GLSpeciesDetailModal
         species={selectedSpecies}
         biomeNom={biomeNom}
+        gameId={gameId}
+        loreCarnetEnabled={loreCarnetEnabled}
         onClose={() => setSelectedSpecies(null)}
         onOpenGlossaryTerm={onOpenGlossaryTerm}
         learningProgress={learningProgress}
@@ -156,7 +158,13 @@ function GLSpeciesCatalogPanel({ biomeSlug, biomeNom, onOpenGlossaryTerm, learni
 /**
  * @param {{ biomes?: Array<{ slug: string, nom?: string }>, onOpenGlossaryTerm?: (code: string) => void }} props
  */
-export function GLSpeciesCatalog({ biomes = [], onOpenGlossaryTerm, learningProgress }) {
+export function GLSpeciesCatalog({
+  biomes = [],
+  gameId = null,
+  loreCarnetEnabled = false,
+  onOpenGlossaryTerm,
+  learningProgress,
+}) {
   const normalizedBiomes = useMemo(
     () => (Array.isArray(biomes) ? biomes : [])
       .filter((b) => b && b.slug)

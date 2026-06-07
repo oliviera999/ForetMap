@@ -2,6 +2,7 @@ const express = require('express');
 const bcrypt = require('bcryptjs');
 const { queryAll, queryOne, execute } = require('../../database');
 const { requireGlPermission } = require('../../middleware/requireGlAuth');
+const { logAudit } = require('../audit');
 const {
   invalidateGameplayCache,
   invalidateModulesCache,
@@ -28,6 +29,10 @@ const {
   listMediaLibraryItems,
   deleteMediaLibraryItem,
 } = require('../../lib/mediaLibrary');
+const {
+  analyzeContentLibraryBulk,
+  applyContentLibraryBulk,
+} = require('../../lib/contentLibraryBulk');
 const { normalizeBrand } = require('../../lib/glBrand');
 const { sendXlsxAttachment, wrapXlsxRoute } = require('../../lib/glXlsxAttachment');
 const {
@@ -866,6 +871,62 @@ router.delete('/media-library', requireGlPermission('gl.content.manage'), async 
   } catch (err) {
     if (Number.isFinite(err?.status)) {
       return res.status(err.status).json({ error: err.message || 'Suppression média refusée' });
+    }
+    throw err;
+  }
+});
+
+router.post('/content-library/analyze', requireGlPermission('gl.content.manage'), async (req, res) => {
+  try {
+    const payload = await analyzeContentLibraryBulk({ queryAll, execute }, req.body || {});
+    await logAudit(
+      'content_library_analyze',
+      'gl_content_library',
+      'bulk',
+      'Analyse import bibliothèque contenu GL',
+      {
+        req,
+        payload: {
+          total: payload.summary?.total || 0,
+          applyable: payload.summary?.applyable || 0,
+          errors: payload.summary?.errors || 0,
+        },
+      }
+    );
+    return res.json(payload);
+  } catch (err) {
+    if (Number.isFinite(err?.status)) {
+      return res.status(err.status).json({ error: err.message || 'Analyse impossible' });
+    }
+    throw err;
+  }
+});
+
+router.post('/content-library/apply', requireGlPermission('gl.content.manage'), async (req, res) => {
+  try {
+    const payload = await applyContentLibraryBulk(
+      { queryAll, execute },
+      req.body || {},
+      { createdBy: req.glAuth?.userId != null ? Number(req.glAuth.userId) : null }
+    );
+    await logAudit(
+      'content_library_apply',
+      'gl_content_library',
+      'bulk',
+      'Application import bibliothèque contenu GL',
+      {
+        req,
+        payload: {
+          total: payload.summary?.total || 0,
+          applied: payload.summary?.applied || 0,
+          failed: payload.summary?.failed || 0,
+        },
+      }
+    );
+    return res.json(payload);
+  } catch (err) {
+    if (Number.isFinite(err?.status)) {
+      return res.status(err.status).json({ error: err.message || 'Application impossible' });
     }
     throw err;
   }

@@ -6,10 +6,12 @@ const { requireGlAuth, requireGlPermission } = require('../../middleware/require
 const { canAccessGlGame } = require('../../lib/glGameAccess');
 const { getGameplaySettings, getGlModulesSettings, LORE_SPOILER_LEVELS } = require('../../lib/glSettings');
 const { parseBiomeSlugsFromQuery, normalizeBiomeSlugList } = require('../../lib/glChapterBiomes');
-const { emitGlGameEvent } = require('../../lib/realtime');
 const { sendXlsxAttachment, wrapXlsxRoute } = require('../../lib/glXlsxAttachment');
+const { parseGlId, resolveTeamContext } = require('../../lib/glTeamContext');
+const { recordFeuilletEvent } = require('../../lib/glLoreFeuilletEvents');
 const {
   FEUILLET_SELECT,
+  FEUILLET_ZONE_ORDER_SQL,
   formatFeuilletRow,
   loadFeuilletStates,
   findFeuilletsForZone,
@@ -56,51 +58,7 @@ const router = express.Router();
 const db = { queryAll, queryOne, execute };
 
 function parseId(value) {
-  const n = Number(value);
-  return Number.isFinite(n) && n > 0 ? Math.trunc(n) : null;
-}
-
-async function getPlayerGameMembership(gameId, playerId) {
-  return queryOne(
-    `SELECT tm.team_id, tm.game_id
-       FROM gl_team_members tm
-      WHERE tm.game_id = ? AND tm.player_id = ?
-      LIMIT 1`,
-    [gameId, playerId]
-  );
-}
-
-function normalizeEventRow(row) {
-  let payload = {};
-  try {
-    payload = row.payload_json ? JSON.parse(row.payload_json) : {};
-  } catch (_) {
-    payload = {};
-  }
-  return {
-    id: Number(row.id),
-    gameId: Number(row.game_id),
-    teamId: row.team_id != null ? Number(row.team_id) : null,
-    actorType: row.actor_type,
-    actorId: row.actor_id,
-    eventType: row.event_type,
-    payload,
-    createdAt: row.created_at,
-  };
-}
-
-async function recordFeuilletEvent(gameId, teamId, actorType, actorId, eventType, payload) {
-  await execute(
-    `INSERT INTO gl_game_events (game_id, team_id, actor_type, actor_id, event_type, payload_json, created_at)
-     VALUES (?, ?, ?, ?, ?, ?, NOW())`,
-    [gameId, teamId, actorType, actorId, eventType, JSON.stringify(payload)]
-  );
-  const evt = await queryOne(
-    `SELECT id, game_id, team_id, actor_type, actor_id, event_type, payload_json, created_at
-       FROM gl_game_events WHERE game_id = ? ORDER BY id DESC LIMIT 1`,
-    [gameId]
-  );
-  if (evt) emitGlGameEvent(gameId, normalizeEventRow(evt));
+  return parseGlId(value);
 }
 
 function resolveLoreSettings(gameRow, gameplaySettings) {
@@ -117,19 +75,6 @@ function resolveLoreSettings(gameRow, gameplaySettings) {
     ),
     spoilerMaxLevel: gameplaySettings.loreSpoilerMaxLevel || 'recit',
   };
-}
-
-async function resolveTeamContext(req, gameId, bodyTeamId) {
-  if (req.glAuth.userType === 'gl_player') {
-    const membership = await getPlayerGameMembership(gameId, req.glAuth.userId);
-    if (!membership?.team_id) return { error: { status: 403, message: 'Joueur non rattaché à une équipe' } };
-    return { teamId: Number(membership.team_id) };
-  }
-  const teamId = parseId(bodyTeamId);
-  if (!teamId) return { error: { status: 400, message: 'teamId requis pour le MJ' } };
-  const team = await queryOne('SELECT id FROM gl_teams WHERE id = ? AND game_id = ? LIMIT 1', [teamId, gameId]);
-  if (!team) return { error: { status: 404, message: 'Équipe introuvable' } };
-  return { teamId };
 }
 
 /** GET /api/gl/lore/feuillets */
@@ -379,7 +324,7 @@ router.get('/games/:id/zones/:zoneId/feuillets', requireGlAuth, async (req, res)
   const linked = await queryAll(
     `SELECT ${FEUILLET_SELECT} FROM gl_lore_feuillets f
       WHERE f.statut = 'actif' AND f.kingdom_zone_id = ?
-      ORDER BY f.ordre_voyage ASC`,
+      ${FEUILLET_ZONE_ORDER_SQL}`,
     [zoneId]
   );
   const candidates = linked.length
