@@ -233,3 +233,52 @@ test('PUT marker avec eventConfig', async () => {
   assert.strictEqual(res.body.event_config.question.mode, 'random');
   assert.deepStrictEqual(res.body.event_config.question.pool.selectedQuestionCodes, ['QCM0001']);
 });
+
+test('POST present-question repère lore fixe LQCM', async () => {
+  await execute(
+    `INSERT INTO gl_qcm_lore_scopes (slug, nom, order_index, created_at, updated_at)
+     VALUES ('tous', 'Transversal', 0, NOW(), NOW())
+     ON DUPLICATE KEY UPDATE nom = VALUES(nom), updated_at = NOW()`
+  );
+  await execute(
+    `INSERT INTO gl_qcm_lore_categories (slug, nom, order_index, created_at, updated_at)
+     VALUES ('test-lore-cat', 'Test lore', 0, NOW(), NOW())
+     ON DUPLICATE KEY UPDATE nom = VALUES(nom), updated_at = NOW()`
+  );
+  await execute(
+    `INSERT INTO gl_qcm_lore_questions (
+       question_code, chapitre_slug, categorie_slug, numero_dans_categorie, tier_lore, question,
+       choix_a, choix_b, choix_c, choix_d, choix_e, reponse_correcte, statut, created_at, updated_at
+     ) VALUES (
+       'LQCM9999', 'tous', 'test-lore-cat', 1, 'cle', 'Question lore marker?',
+       'A', 'B', 'C', 'D', 'E', 'A', 'actif', NOW(), NOW()
+     )
+     ON DUPLICATE KEY UPDATE question = VALUES(question), updated_at = NOW()`
+  );
+
+  const loreEventConfig = serializeEventConfig({
+    version: 1,
+    question: {
+      set: 'lore',
+      mode: 'fixed',
+      fixedQuestionCode: 'LQCM9999',
+      pool: { chapitreMode: 'chapter' },
+    },
+  });
+  await execute(
+    `UPDATE gl_chapter_markers
+        SET event_type = 'question', event_config_json = ?
+      WHERE id = ?`,
+    [loreEventConfig, markerId]
+  );
+
+  const res = await request(app)
+    .post(`/api/gl/games/${gameId}/markers/${markerId}/present-question`)
+    .set('Authorization', `Bearer ${playerToken}`)
+    .send({})
+    .expect(200);
+  assert.strictEqual(res.body.questionCode, 'LQCM9999');
+  assert.strictEqual(res.body.qcmSet, 'lore');
+  assert.ok(res.body.presentation?.question);
+  assert.ok(res.body.presentation?.presentationToken);
+});

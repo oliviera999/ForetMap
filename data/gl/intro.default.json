@@ -1,0 +1,190 @@
+{
+  "enabled": true,
+  "opening": {
+    "kicker": "une boîte vous a été confiée",
+    "titleHtml": "Gnomes <span class=\"amp\">&amp;</span> Licornes",
+    "credit": "le carnet de Selene — recopié par le copiste",
+    "button": "Ouvrir la boîte",
+    "foot": "jeu pédagogique d'écologie · cycle 3"
+  },
+  "finale": {
+    "button": "Prends le crayon. Cours."
+  },
+  "audio": {
+    "loopKey": "GL_intro_audio_loop",
+    "finalKey": "GL_intro_audio_final"
+  },
+  "scenes": [
+    {
+      "id": "boite",
+      "voice": "copiste",
+      "kicker": "avant d'ouvrir",
+      "text": "Cette boîte m'est tombée dessus. Une morte, un carnet qui s'efface, des feuillets dans tous les sens.",
+      "imageKey": "GL_intro_01_la-boite",
+      "hold": 2600,
+      "erase": false,
+      "finale": false,
+      "cta": false,
+      "kb": [
+        -3,
+        -2
+      ],
+      "kb0": [
+        2,
+        1
+      ]
+    },
+    {
+      "id": "copiste",
+      "voice": "copiste",
+      "kicker": "celui qui recopie",
+      "text": "Je recopie quand même. Les blancs que tu verras ne sont pas des erreurs — ce sont des morceaux que le Souffle a mangés avant moi.",
+      "imageKey": "GL_intro_02_le-copiste",
+      "hold": 3000,
+      "erase": false,
+      "finale": false,
+      "cta": false,
+      "kb": [
+        3,
+        -1
+      ],
+      "kb0": [
+        -2,
+        1
+      ]
+    },
+    {
+      "id": "carnet",
+      "voice": "selene",
+      "kicker": "la première page de la boîte",
+      "text": "Des noms s'effacent. J'en ai tenu autant que j'ai pu. Il en reste beaucoup, et moi, je ne peux plus.",
+      "imageKey": "GL_intro_03_le-carnet-de-selene",
+      "hold": 1600,
+      "erase": true,
+      "finale": false,
+      "cta": false,
+      "kb": [
+        -2,
+        1
+      ],
+      "kb0": [
+        2,
+        -1
+      ]
+    },
+    {
+      "id": "miroir",
+      "voice": "selene",
+      "kicker": "comment on passe",
+      "text": "Ne vous regardez pas dans la plaque. Regardez au travers.",
+      "imageKey": "GL_intro_04_le-miroir-passage",
+      "hold": 2800,
+      "erase": false,
+      "finale": false,
+      "cta": false,
+      "kb": [
+        3,
+        -2
+      ],
+      "kb0": [
+        -2,
+        1
+      ]
+    },
+    {
+      "id": "selene",
+      "voice": "selene",
+      "kicker": "celle qui est passée avant",
+      "text": "Je m'appelle Selene. Je suis seulement passée par là avant vous.",
+      "imageKey": "GL_intro_05_selene-au-seuil",
+      "hold": 2800,
+      "erase": false,
+      "finale": false,
+      "cta": false,
+      "kb": [
+        -2,
+        -2
+      ],
+      "kb0": [
+        2,
+        1
+      ]
+    },
+    {
+      "id": "corbeau",
+      "voice": "copiste",
+      "kicker": "de l'équateur au pôle",
+      "text": "Elle a marché de la chaleur de l'équateur jusqu'à la glace du pôle. Puis son carnet est revenu seul, à moitié vide.",
+      "imageKey": "GL_intro_06_le-corbeau-messager",
+      "hold": 2900,
+      "erase": false,
+      "finale": false,
+      "cta": false,
+      "kb": [
+        3,
+        1
+      ],
+      "kb0": [
+        -3,
+        -1
+      ]
+    },
+    {
+      "id": "souffle",
+      "voice": "passeur",
+      "kicker": "ici, maintenant",
+      "text": "Quelque chose ne va pas. Et ça commence ici, chez nous.",
+      "imageKey": "GL_intro_07_salle-de-classe",
+      "hold": 2900,
+      "erase": false,
+      "finale": false,
+      "cta": false,
+      "kb": [
+        -2,
+        1
+      ],
+      "kb0": [
+        2,
+        -1
+      ]
+    },
+    {
+      "id": "seuil",
+      "voice": "selene",
+      "kicker": "votre tour",
+      "text": "Choisissez une chose vivante. Dites son nom, tous, à voix haute. Vous serez déjà de l'autre côté.",
+      "imageKey": "GL_intro_08_le-carnet-dans-la-savane",
+      "hold": 3600,
+      "erase": false,
+      "finale": false,
+      "cta": false,
+      "kb": [
+        2,
+        -2
+      ],
+      "kb0": [
+        -2,
+        1
+      ]
+    },
+    {
+      "id": "bienvenue",
+      "voice": "selene",
+      "kicker": "de l'autre côté du miroir",
+      "text": "Bienvenue dans le monde de<br><span class=\"big\">Gnomes <i>&amp;</i> Licornes</span>",
+      "imageKey": "GL_intro_09_la-traversee-des-biomes",
+      "hold": 99999,
+      "erase": false,
+      "finale": true,
+      "cta": true,
+      "kb": [
+        0,
+        -1
+      ],
+      "kb0": [
+        0,
+        1
+      ]
+    }
+  ]
+}

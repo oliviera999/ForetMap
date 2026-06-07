@@ -5,6 +5,11 @@ import { GLButton } from './ui/GLButton.jsx';
 import { GLQcmFeedbackBlock } from './GLQcmFeedbackBlock.jsx';
 import { shouldShowQcmAnswerPhase } from '../utils/glQcmDisplay.js';
 import { GLGlossaryInlineText } from './GLGlossaryMarkdown.jsx';
+import { GLLoreGlossaryInlineText } from './GLLoreGlossaryMarkdown.jsx';
+
+function isLoreQcmCode(code) {
+  return /^LQCM\d+$/i.test(String(code || '').trim());
+}
 
 export function GLQcmPopover({
   open,
@@ -13,12 +18,15 @@ export function GLQcmPopover({
   teamId = null,
   presentation,
   questionCode,
+  qcmSet = null,
   loading,
   error: externalError,
   result,
   onClose,
   onOpenGlossaryTerm,
+  onOpenLoreTerm,
   glossaryLinkItems = [],
+  loreGlossaryLinkItems = [],
   onAnswered,
   onReshuffle,
   onSubmitResult,
@@ -92,6 +100,12 @@ export function GLQcmPopover({
   const displayResult = answerResult ?? result;
   const showAnswer = shouldShowQcmAnswerPhase(displayResult);
   const showChoices = !loading && !showAnswer && presentation;
+  const resolvedQcmSet = qcmSet || presentation?.qcmSet || (isLoreQcmCode(questionCode) ? 'lore' : 'biome');
+  const isLore = resolvedQcmSet === 'lore';
+  const InlineText = isLore ? GLLoreGlossaryInlineText : GLGlossaryInlineText;
+  const inlineGlossaryProps = isLore
+    ? { loreGlossaryItems: loreGlossaryLinkItems, onOpenLoreTerm: onOpenLoreTerm }
+    : { glossaryItems: glossaryLinkItems, onOpenGlossaryTerm: onOpenGlossaryTerm };
 
   return createPortal(
     <div
@@ -119,11 +133,10 @@ export function GLQcmPopover({
                 {questionCode ? (
                   <p className="gl-hint">Question {questionCode}</p>
                 ) : null}
-                <GLGlossaryInlineText
+                <InlineText
                   className="gl-qcm-modal__question"
                   text={presentation.question}
-                  glossaryItems={glossaryLinkItems}
-                  onOpenGlossaryTerm={onOpenGlossaryTerm}
+                  {...inlineGlossaryProps}
                   tag="p"
                 />
                 {presentation.photoUrl ? (
@@ -145,24 +158,25 @@ export function GLQcmPopover({
                         checked={selectedChoiceId === choice.id}
                         onChange={() => setSelectedChoiceId(choice.id)}
                       />
-                      <GLGlossaryInlineText
+                      <InlineText
                         text={choice.text}
-                        glossaryItems={glossaryLinkItems}
-                        onOpenGlossaryTerm={onOpenGlossaryTerm}
+                        {...inlineGlossaryProps}
                       />
                     </label>
                   ))}
                 </div>
-                {Array.isArray(presentation.glossaryTerms) && presentation.glossaryTerms.length > 0 ? (
+                {(isLore ? presentation.loreGlossaryTerms : presentation.glossaryTerms)?.length > 0 ? (
                   <div className="gl-qcm-modal__glossary">
-                    <strong>Glossaire :</strong>
+                    <strong>{isLore ? 'Lexique lore :' : 'Glossaire :'}</strong>
                     <div className="gl-glossary-chips">
-                      {presentation.glossaryTerms.map((term) => (
+                      {(isLore ? presentation.loreGlossaryTerms : presentation.glossaryTerms).map((term) => (
                         <button
-                          key={term.glossary_code}
+                          key={isLore ? term.lore_code : term.glossary_code}
                           type="button"
                           className="gl-glossary-chip"
-                          onClick={() => onOpenGlossaryTerm?.(term.glossary_code)}
+                          onClick={() => (isLore
+                            ? onOpenLoreTerm?.(term.lore_code)
+                            : onOpenGlossaryTerm?.(term.glossary_code))}
                         >
                           {term.terme}
                         </button>
@@ -200,16 +214,18 @@ export function GLQcmPopover({
                   glossaryLinkItems={glossaryLinkItems}
                   onOpenGlossaryTerm={onOpenGlossaryTerm}
                 />
-                {Array.isArray(displayResult.glossaryTerms) && displayResult.glossaryTerms.length > 0 ? (
+                {((isLore ? displayResult.loreGlossaryTerms : displayResult.glossaryTerms) || []).length > 0 ? (
                   <div className="gl-qcm-modal__glossary">
                     <strong>Termes liés :</strong>
                     <div className="gl-glossary-chips">
-                      {displayResult.glossaryTerms.map((term) => (
+                      {(isLore ? displayResult.loreGlossaryTerms : displayResult.glossaryTerms).map((term) => (
                         <button
-                          key={term.glossary_code}
+                          key={isLore ? term.lore_code : term.glossary_code}
                           type="button"
                           className="gl-glossary-chip"
-                          onClick={() => onOpenGlossaryTerm?.(term.glossary_code)}
+                          onClick={() => (isLore
+                            ? onOpenLoreTerm?.(term.lore_code)
+                            : onOpenGlossaryTerm?.(term.glossary_code))}
                         >
                           {term.terme}
                         </button>

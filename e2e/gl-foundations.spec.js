@@ -16,6 +16,7 @@ test.describe('Gnomes & Licornes foundations', () => {
     expect(typeof body?.modules?.journalEnabled).toBe('boolean');
     expect(typeof body?.modules?.playerJournalEnabled).toBe('boolean');
     expect(typeof body?.modules?.mascotPacksEnabled).toBe('boolean');
+    expect(typeof body?.modules?.introEnabled).toBe('boolean');
   });
 
   test('navigation GL affiche icones et cloche notifications', async ({ request, page }) => {

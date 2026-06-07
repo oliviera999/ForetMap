@@ -47,8 +47,12 @@ La matrice de couverture des tests GL est documentée dans `docs/GL_TESTS.md`.
 
 | Méthode | URL | Body | Permission |
 |--------|-----|------|------------|
+| GET | `/api/gl/content/intro` | — | **Public** — config intro cinématique (textes + URLs média résolues). Réponse `{ enabled: false }` si `modules.intro_enabled` ou `content.intro.enabled` est faux. |
 | GET | `/api/gl/content/:slug` | — | `gl.read` |
 | PUT | `/api/gl/content/:slug` | `{ title, bodyMarkdown }` | `gl.content.manage` |
+| GET | `/api/gl/admin/content/intro` | — | `gl.content.manage` — config éditable (clés média stables, sans résolution URL). |
+| PUT | `/api/gl/admin/content/intro` | objet `content.intro` | `gl.content.manage` |
+| POST | `/api/gl/admin/content/intro/reset` | — | `gl.content.manage` — réinitialise depuis `data/gl/intro.default.json`. |
 
 Slugs livrés en seed : `world`, `rules`, `spells`.
 
@@ -139,7 +143,18 @@ Le script accepte aussi :
 | GET | `/api/gl/lore/admin/feuillets/import/template` | — | `gl.content.manage` (modèle inclut `image_url`, `image_coupe_url`) |
 | GET | `/api/gl/lore/admin/feuillets/export` | — | `gl.content.manage` (export XLSX avec `image_url`, `image_coupe_url`) |
 | GET/POST/PUT | `/api/gl/lore/admin/glossary/*` | — | CRUD + import/export glossaire lore (miroir admin glossaire SVT) |
-| GET | `/api/gl/qcm/categories` | — | `gl.read` (liste catégories QCM) |
+| GET | `/api/gl/lore/qcm/scopes` | — | `gl.read` (scopes chapitre : `ch0`…`ch5`, `tous`) |
+| GET | `/api/gl/lore/qcm/categories` | — | `gl.read` (catégories QCM lore) |
+| GET | `/api/gl/lore/qcm/questions` | `?chapitreSlug=`, `?categorieSlug=`, `?q=` optionnels | `gl.read` (liste admin ; ordre canonique A–E, `loreGlossaryTerms[]`) |
+| GET | `/api/gl/lore/qcm/questions/:code/present` | — | `gl.read` (mélange des choix + `presentationToken` signé ; pas de photo) |
+| POST | `/api/gl/lore/qcm/questions/:code/answer` | `{ presentationToken, choiceId }` | `gl.read` (validation hors partie ; `{ correct, feedback, loreGlossaryTerms? }`) |
+| GET | `/api/gl/lore/qcm/pool-preview` | `?chapitreSlugs=`, `?chapterId=`, `?categorieSlugs=`, `?tierLore=`, `?niveaux=`, `?difficulteMin=`, `?difficulteMax=`, `?q=`, `?selectedQuestionCodes=` | `gl.content.manage` (aperçu pool repère lore ; `{ items, total }`) |
+| GET | `/api/gl/lore/qcm/draw` | `?chapitreSlug=` ou `?chapitreSlugs=` (csv), `?categorieSlug=`, `?tierLore=`, `?exclude=` optionnels | `gl.read` (tirage aléatoire `{ question_code }`) |
+| POST | `/api/gl/lore/admin/qcm/import` | `{ fileDataBase64, fileName?, dryRun? }` (XLSX feuilles `chapitres`, `categories`, `questions` ; colonnes `tier_lore`, `source_lore`, feedback optionnels) | `gl.content.manage` |
+| GET | `/api/gl/lore/admin/qcm/import/template` | — | `gl.content.manage` (modèle XLSX vierge) |
+| GET | `/api/gl/lore/admin/qcm/export` | `?chapitreSlug=`, `?categorieSlug=`, `?statut=actif\|all` | `gl.content.manage` |
+| GET | `/api/gl/lore/admin/qcm/stats` | — | `gl.content.manage` (total, liens glossaire lore, agrégats chapitre/catégorie/tier) |
+| GET | `/api/gl/qcm/categories` | — | `gl.read` (liste catégories QCM biomes) |
 | GET | `/api/gl/qcm/questions` | `?biomeSlug=`, `?categorieSlug=`, `?q=` optionnels | `gl.read` (liste admin ; ordre canonique A–E, `glossaryTerms[]`) |
 | GET | `/api/gl/qcm/questions/:code/present` | — | `gl.read` (mélange des choix à chaque appel + `presentationToken` signé) |
 | POST | `/api/gl/qcm/questions/:code/answer` | `{ presentationToken, choiceId }` | `gl.read` (validation hors partie ; réponse `{ correct, feedback, glossaryTerms? }` — `feedback` issu du catalogue : `feedback_correct` ou `feedback_a`…`feedback_e` selon le choix canonique, sinon message par défaut) |
@@ -149,8 +164,8 @@ Le script accepte aussi :
 | GET | `/api/gl/admin/qcm/import/template` | — | `gl.content.manage` (modèle XLSX vierge + exemples, feuilles `categories` et `questions`, colonnes feedback incluses) |
 | GET | `/api/gl/admin/qcm/export` | `?biomeSlug=`, `?categorieSlug=`, `?statut=actif\|all` (défaut `actif`) | `gl.content.manage` (export XLSX ré-importable avec colonnes feedback ; filtres biome/catégorie optionnels) |
 | GET | `/api/gl/admin/qcm/stats` | — | `gl.content.manage` (total, liens glossaire, agrégats biome/catégorie/difficulté) |
-| POST | `/api/gl/games/:id/qcm/answer` | `{ questionCode, presentationToken, choiceId, markerId?, teamId? }` | Auth GL : **joueur** avec `gl.action.request` (équipe déduite du roster) ; **MJ/admin** avec `gl.event.emit` / `gl.game.manage` / `gl.mascot.position` et `teamId` obligatoire. Refus `403` si `gameplay.qcm_mj_only=true` et acteur joueur. Score +1 si correct et scoring actif. Réponse `{ correct, feedback, scoreDelta, glossaryTerms? }` avec `feedback` personnalisé depuis le catalogue (même logique que `POST /api/gl/qcm/questions/:code/answer`). |
-| POST | `/api/gl/games/:id/markers/:markerId/present-question` | `{ teamId?, excludeCodes? }` | Auth GL + accès partie (joueur membre ; MJ avec `teamId`) — tirage selon `event_config` du repère, événement `marker_question_presented` ; refus `403` si `gameplay.qcm_mj_only=true` et acteur joueur ; refus `409` si re-déclenchement interdit |
+| POST | `/api/gl/games/:id/qcm/answer` | `{ questionCode, presentationToken, choiceId, markerId?, teamId? }` | Auth GL : **joueur** avec `gl.action.request` (équipe déduite du roster) ; **MJ/admin** avec `gl.event.emit` / `gl.game.manage` / `gl.mascot.position` et `teamId` obligatoire. Refus `403` si `gameplay.qcm_mj_only=true` et acteur joueur. Score +1 si correct et scoring actif. Réponse `{ correct, feedback, scoreDelta, glossaryTerms?, loreGlossaryTerms? }` selon catalogue biomes (`QCM…`) ou lore (`LQCM…`). |
+| POST | `/api/gl/games/:id/markers/:markerId/present-question` | `{ teamId?, excludeCodes? }` | Auth GL + accès partie — tirage selon `event_config` du repère (`question.set`: `biome` ou `lore`) ; réponse inclut `qcmSet` ; événement `marker_question_presented` ; refus `403` si `gameplay.qcm_mj_only=true` et acteur joueur ; refus `409` si re-déclenchement interdit |
 | POST | `/api/gl/games/:id/markers/:markerId/present-arrival` | `{ teamId? }` | Auth GL + accès partie — résumé d’arrivée sur repère à effets (`sous_biome_slug`, `effet_mecanique`, `event_config.effects` selon peuple) ; événement `marker_arrival` ; refus `403` si `gameplay.qcm_mj_only=true` et acteur joueur ; refus `404` si repère sans effet |
 | POST | `/api/gl/games/:id/markers/:markerId/apply-effects` | `{ teamId, reason? }` | `gl.event.emit` — applique les deltas vitalité du repère à l’équipe (`applyTeamVitalityDelta` si `gameplay.vitality_enabled`) ; enregistre `marker_effect` (deltas cœurs/gemmes/cases suggérées) |
 | POST | `/api/gl/games/:id/zones/:zoneId/present-content` | `{ teamId? }` | Auth GL + accès partie (joueur membre ; MJ avec `teamId`) — popover texte/images de zone (`popoverMarkdown`, `popoverImages`), événement `zone_content_presented` ; partie `live` ou `paused` ; refus `409` si re-déclenchement interdit (`gameplay.zone_content_retrigger` ou `gl_games.zone_content_retrigger`) |

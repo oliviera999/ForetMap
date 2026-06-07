@@ -8,11 +8,13 @@ import { GLSpeciesEditorPanel } from './admin/GLSpeciesEditorPanel.jsx';
 import { GLGlossaryImportPanel } from './admin/GLGlossaryImportPanel.jsx';
 import { GLGlossaryEditorPanel } from './admin/GLGlossaryEditorPanel.jsx';
 import { GLQcmImportPanel } from './admin/GLQcmImportPanel.jsx';
+import { GLQcmLoreImportPanel } from './admin/GLQcmLoreImportPanel.jsx';
 import { GLSpellsEditorPanel } from './admin/GLSpellsEditorPanel.jsx';
 import { GLSpellsImportPanel } from './admin/GLSpellsImportPanel.jsx';
 import { GLLoreFeuilletsImportPanel } from './admin/GLLoreFeuilletsImportPanel.jsx';
 import { GLLoreGlossaryImportPanel } from './admin/GLLoreGlossaryImportPanel.jsx';
 import { GLContentLibraryView } from './admin/GLContentLibraryView.jsx';
+import { GLIntroAdminPanel } from './admin/GLIntroAdminPanel.jsx';
 
 export function GLContentsAdminView({
   auth,
@@ -89,11 +91,19 @@ export function GLContentsAdminView({
         </button>
         <button
           type="button"
-          className={section === 'qcm' ? 'is-active' : ''}
-          onClick={() => setSection('qcm')}
-          data-subtab="qcm"
+          className={section === 'qcm-biomes' ? 'is-active' : ''}
+          onClick={() => setSection('qcm-biomes')}
+          data-subtab="qcm-biomes"
         >
-          QCM
+          QCM biomes
+        </button>
+        <button
+          type="button"
+          className={section === 'qcm-lore' ? 'is-active' : ''}
+          onClick={() => setSection('qcm-lore')}
+          data-subtab="qcm-lore"
+        >
+          QCM lore
         </button>
         <button
           type="button"
@@ -110,6 +120,14 @@ export function GLContentsAdminView({
           data-subtab="lore-glossary"
         >
           Glossaire lore
+        </button>
+        <button
+          type="button"
+          className={section === 'intro' ? 'is-active' : ''}
+          onClick={() => setSection('intro')}
+          data-subtab="intro"
+        >
+          Intro
         </button>
         <button
           type="button"
@@ -175,8 +193,12 @@ export function GLContentsAdminView({
         <GLLoreFeuilletsImportPanel />
       ) : section === 'lore-glossary' ? (
         <GLLoreGlossaryImportPanel />
+      ) : section === 'intro' ? (
+        <GLIntroAdminPanel />
       ) : section === 'library' ? (
         <GLContentLibraryView onOpenSubTab={setSection} />
+      ) : section === 'qcm-lore' ? (
+        <GLQcmLoreImportPanel />
       ) : (
         <GLQcmImportPanel />
       )}

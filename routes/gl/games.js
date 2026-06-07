@@ -32,7 +32,12 @@ const { canAccessGlGame } = require('../../lib/glGameAccess');
 const { parseNarrationImageUrl } = require('../../lib/glJournalPresent');
 const { verifyPresentationAnswer, resolveQcmAnswerFeedback } = require('../../lib/glQcmChoices');
 const { combineKeywords } = require('../../lib/glQcmImport');
+const { combineKeywords: combineLoreKeywords } = require('../../lib/glQcmLoreImport');
 const { buildGlossaryLookupMap, matchGlossaryTermsForSpecies } = require('../../lib/glGlossaryMatch');
+const {
+  buildLoreGlossaryLookupMap,
+  matchLoreGlossaryTermsForText,
+} = require('../../lib/glLoreGlossaryMatch');
 const { loadBiomesForChapterIds } = require('../../lib/glChapterBiomes');
 const { loadSpellsForChapterIds } = require('../../lib/glChapterSpells');
 const { MARKER_SELECT, formatMarkerRow, isQuestionMarker } = require('../../lib/glMarkerRow');
@@ -63,6 +68,12 @@ const {
   loadActiveQuestion,
   buildPresentation,
 } = require('../../lib/glQcmQuestionQuery');
+const {
+  loadAnyActiveQuestion,
+  loadAnyPresentableQuestion,
+  buildAnyPresentation,
+  isLoreQuestionCode,
+} = require('../../lib/glQcmResolve');
 
 async function loadGlossaryLookup() {
   const rows = await queryAll(
@@ -72,8 +83,20 @@ async function loadGlossaryLookup() {
   return buildGlossaryLookupMap(rows);
 }
 
+async function loadLoreGlossaryLookup() {
+  const rows = await queryAll(
+    `SELECT lore_code, terme, variantes, categorie, definition_courte, niveau
+       FROM gl_lore_glossary_terms WHERE statut = 'actif'`
+  );
+  return buildLoreGlossaryLookupMap(rows);
+}
+
 async function enrichQuestionWithGlossary(questionRow, glossaryByKey) {
   if (!questionRow) return [];
+  if (isLoreQuestionCode(questionRow.question_code)) {
+    const loreByKey = glossaryByKey.loreByKey || glossaryByKey;
+    return matchLoreGlossaryTermsForText(combineLoreKeywords(questionRow), loreByKey);
+  }
   return matchGlossaryTermsForSpecies(combineKeywords(questionRow), glossaryByKey);
 }
 
@@ -1230,7 +1253,7 @@ router.post('/games/:id/qcm/answer', requireGlAuth, async (req, res) => {
     }
   }
 
-  const questionRow = await loadActiveQuestion({ queryOne }, questionCode);
+  const questionRow = await loadAnyActiveQuestion({ queryOne }, questionCode);
   if (!questionRow) return res.status(404).json({ error: 'Question introuvable' });
 
   let verification;
@@ -1290,12 +1313,21 @@ router.post('/games/:id/qcm/answer', requireGlAuth, async (req, res) => {
     }
   });
 
+  const isLore = isLoreQuestionCode(questionCode);
   const glossaryRows = await queryAll(
-    `SELECT glossary_code, terme, variantes, categorie, definition_courte
-       FROM gl_glossary_terms WHERE statut = 'actif'`
+    isLore
+      ? `SELECT lore_code, terme, variantes, categorie, definition_courte, niveau
+           FROM gl_lore_glossary_terms WHERE statut = 'actif'`
+      : `SELECT glossary_code, terme, variantes, categorie, definition_courte
+           FROM gl_glossary_terms WHERE statut = 'actif'`
   );
   const glossaryTerms = verification.correct
-    ? matchGlossaryTermsForSpecies(combineKeywords(questionRow), buildGlossaryLookupMap(glossaryRows))
+    ? (isLore
+      ? matchLoreGlossaryTermsForText(
+        combineLoreKeywords(questionRow),
+        buildLoreGlossaryLookupMap(glossaryRows)
+      )
+      : matchGlossaryTermsForSpecies(combineKeywords(questionRow), buildGlossaryLookupMap(glossaryRows)))
     : [];
 
   const evt = await queryOne(
@@ -1309,7 +1341,9 @@ router.post('/games/:id/qcm/answer', requireGlAuth, async (req, res) => {
     correct: verification.correct,
     feedback: resolveQcmAnswerFeedback(questionRow, verification),
     scoreDelta,
-    glossaryTerms: verification.correct ? glossaryTerms : undefined,
+    qcmSet: isLore ? 'lore' : 'biome',
+    glossaryTerms: !isLore && verification.correct ? glossaryTerms : undefined,
+    loreGlossaryTerms: isLore && verification.correct ? glossaryTerms : undefined,
   });
 });
 
@@ -1326,6 +1360,12 @@ router.post('/games/:id/markers/:markerId/present-question', requireGlAuth, asyn
 
   const game = await queryOne('SELECT id, chapter_id, status FROM gl_games WHERE id = ? LIMIT 1', [gameId]);
   if (!game) return res.status(404).json({ error: 'Partie introuvable' });
+
+  const chapterRow = await queryOne(
+    'SELECT id, plateau_number FROM gl_chapters WHERE id = ? LIMIT 1',
+    [game.chapter_id]
+  );
+  const chapterPlateauNumber = chapterRow?.plateau_number ?? null;
 
   const markerRow = await queryOne(`SELECT ${MARKER_SELECT} FROM gl_chapter_markers WHERE id = ? LIMIT 1`, [markerId]);
   const marker = formatMarkerRow(markerRow);
@@ -1378,22 +1418,24 @@ router.post('/games/:id/markers/:markerId/present-question', requireGlAuth, asyn
     { queryAll, queryOne },
     markerRow,
     chapterBiomeSlugs,
-    excludeCodes
+    excludeCodes,
+    chapterPlateauNumber
   );
   if (draw.error || !draw.questionCode) {
     return res.status(404).json({ error: draw.error || 'Aucune question disponible' });
   }
 
-  const questionRow = await loadPresentableQuestion({ queryOne }, draw.questionCode);
+  const questionRow = await loadAnyPresentableQuestion({ queryOne }, draw.questionCode);
   if (!questionRow) {
     return res.status(404).json({ error: draw.error || `Question ${draw.questionCode} non présentable` });
   }
 
-  const glossaryByKey = await loadGlossaryLookup();
+  const isLore = isLoreQuestionCode(draw.questionCode);
+  const glossaryByKey = isLore ? await loadLoreGlossaryLookup() : await loadGlossaryLookup();
   const glossaryTerms = await enrichQuestionWithGlossary(questionRow, glossaryByKey);
   let presentation;
   try {
-    presentation = buildPresentation(questionRow, glossaryTerms);
+    presentation = buildAnyPresentation(questionRow, glossaryTerms);
   } catch (err) {
     return res.status(400).json({ error: err.message || 'Présentation impossible' });
   }
@@ -1410,6 +1452,7 @@ router.post('/games/:id/markers/:markerId/present-question', requireGlAuth, asyn
       JSON.stringify({
         markerId,
         questionCode: draw.questionCode,
+        qcmSet: draw.qcmSet || (isLore ? 'lore' : 'biome'),
         markerLabel: marker.label,
       }),
     ]
@@ -1423,6 +1466,7 @@ router.post('/games/:id/markers/:markerId/present-question', requireGlAuth, asyn
 
   return res.json({
     questionCode: draw.questionCode,
+    qcmSet: draw.qcmSet || (isLore ? 'lore' : 'biome'),
     presentation,
     markerId,
     teamId,

@@ -30,6 +30,12 @@ const {
   executeMediaLibraryDeleteRequest,
 } = require('../../lib/mediaLibrary');
 const {
+  INTRO_SETTINGS_KEY,
+  loadDefaultIntroConfig,
+  normalizeIntroConfig,
+  getIntroConfigFromDb,
+} = require('../../lib/glIntro');
+const {
   analyzeContentLibraryBulk,
   applyContentLibraryBulk,
 } = require('../../lib/contentLibraryBulk');
@@ -846,6 +852,33 @@ router.get('/content', requireGlPermission('gl.content.manage'), async (_req, re
     updatedBy: row.updated_by || null,
     updatedAt: row.updated_at || null,
   })));
+});
+
+router.get('/content/intro', requireGlPermission('gl.content.manage'), async (_req, res) => {
+  const config = await getIntroConfigFromDb();
+  return res.json(config);
+});
+
+router.put('/content/intro', requireGlPermission('gl.content.manage'), async (req, res) => {
+  const normalized = normalizeIntroConfig(req.body);
+  await execute(
+    `INSERT INTO gl_settings (\`key\`, value_json, updated_by, updated_at)
+     VALUES (?, ?, ?, NOW())
+     ON DUPLICATE KEY UPDATE value_json = VALUES(value_json), updated_by = VALUES(updated_by), updated_at = NOW()`,
+    [INTRO_SETTINGS_KEY, JSON.stringify(normalized), req.glAuth.userId]
+  );
+  return res.json(normalized);
+});
+
+router.post('/content/intro/reset', requireGlPermission('gl.content.manage'), async (req, res) => {
+  const normalized = normalizeIntroConfig(loadDefaultIntroConfig());
+  await execute(
+    `INSERT INTO gl_settings (\`key\`, value_json, updated_by, updated_at)
+     VALUES (?, ?, ?, NOW())
+     ON DUPLICATE KEY UPDATE value_json = VALUES(value_json), updated_by = VALUES(updated_by), updated_at = NOW()`,
+    [INTRO_SETTINGS_KEY, JSON.stringify(normalized), req.glAuth.userId]
+  );
+  return res.json(normalized);
 });
 
 router.get('/media-library', requireGlPermission('gl.content.manage'), async (req, res) => {

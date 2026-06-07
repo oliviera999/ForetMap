@@ -49,6 +49,7 @@ const MODULE_TOGGLES = [
   { key: 'modules.notifications_enabled', label: 'Notifications', hint: 'Prépare le centre de notifications GL.' },
   { key: 'modules.tutorials_enabled', label: 'Tutoriels', hint: 'Prépare le module tutoriels GL.' },
   { key: 'modules.help_enabled', label: 'Aide contextuelle', hint: 'Prépare l’onboarding GL.' },
+  { key: 'modules.intro_enabled', label: 'Intro cinématique', hint: 'Écran d’introduction avant la connexion (1ère visite + lien « Revoir l’intro »).' },
   { key: 'modules.journal_enabled', label: 'Journal/Histoire', hint: 'Affiche l’onglet Histoire et la timeline évènements de partie.' },
   { key: 'modules.player_journal_enabled', label: 'Mon journal (carnet personnel)', hint: 'Carnet éditable par chaque joueur (texte, images, encarts).' },
   { key: 'modules.zone_music_enabled', label: 'Musique des zones', hint: 'Ambiance sonore par zone sur la carte de jeu (fondus en transition). Les zones se définissent dans Contenus → Chapitres.' },

@@ -52,7 +52,28 @@ const {
   LORE_GLOSSARY_CATEGORY_LABELS,
   LORE_NIVEAU_LABELS,
   filterLoreGlossaryList,
+  buildLoreGlossaryLookupMap,
+  matchLoreGlossaryTermsForText,
 } = require('../../lib/glLoreGlossaryMatch');
+const {
+  resolveImportRows: resolveQcmLoreImportRows,
+  applyQcmLoreImport,
+  buildQcmLoreTemplateWorkbook,
+  buildQcmLoreExportWorkbook,
+  loadQcmLoreExportRows,
+  combineKeywords: combineLoreQcmKeywords,
+  MAX_IMPORT_ROWS: QCM_LORE_MAX_IMPORT_ROWS,
+} = require('../../lib/glQcmLoreImport');
+const {
+  verifyPresentationAnswer,
+  resolveQcmAnswerFeedback,
+} = require('../../lib/glQcmChoices');
+const {
+  buildLorePresentation,
+} = require('../../lib/glQcmLoreQuestionQuery');
+const { previewLoreQuestionPool } = require('../../lib/glMarkerLoreQuestionPool');
+const { normalizeLoreQuestionPool } = require('../../lib/glMarkerEventConfig');
+const { normalizeOptionalString } = require('../../lib/shared/httpHelpers');
 
 const router = express.Router();
 const db = { queryAll, queryOne, execute };
@@ -550,6 +571,314 @@ router.post('/admin/glossary/import', requireGlPermission('gl.content.manage'), 
   try {
     const { glossaryRows } = resolveLoreGlossaryImportBody(req.body || {});
     const report = await applyLoreGlossaryImport(db, glossaryRows, { dryRun });
+    return res.json({ report });
+  } catch (err) {
+    return res.status(400).json({ error: err.message || 'Import impossible' });
+  }
+});
+
+function normalizeLoreQuestionCode(value) {
+  const s = String(value || '').trim().toUpperCase();
+  return s.length > 0 ? s : null;
+}
+
+function normalizeChapitreSlug(value) {
+  if (value == null) return null;
+  const s = String(value).trim().toLowerCase();
+  return s.length > 0 ? s : null;
+}
+
+function parseCsvQuery(value) {
+  const raw = normalizeOptionalString(value);
+  if (!raw) return [];
+  return raw.split(',').map((s) => s.trim()).filter(Boolean);
+}
+
+function parseDifficulteQuery(value) {
+  if (value == null || value === '') return null;
+  const n = Number(value);
+  if (!Number.isFinite(n)) return null;
+  const i = Math.floor(n);
+  if (i < 1 || i > 5) return null;
+  return i;
+}
+
+const LORE_QUESTION_SELECT = `
+  SELECT question_code, chapitre_slug, categorie_slug, numero_dans_categorie, tier_lore, question,
+         choix_a, choix_b, choix_c, choix_d, choix_e,
+         reponse_correcte, reponse_texte, niveau, difficulte, difficulte_label,
+         notes_pedagogiques, source_lore, tags, mots_cles, statut,
+         feedback_correct, feedback_a, feedback_b, feedback_c, feedback_d, feedback_e
+    FROM gl_qcm_lore_questions
+`;
+
+async function loadLoreGlossaryLookupForQcm() {
+  const rows = await queryAll(
+    `SELECT lore_code, terme, variantes, categorie, definition_courte, niveau
+       FROM gl_lore_glossary_terms WHERE statut = 'actif'`
+  );
+  return buildLoreGlossaryLookupMap(rows);
+}
+
+async function enrichLoreQuestionWithGlossary(questionRow, glossaryByKey) {
+  if (!questionRow) return [];
+  return matchLoreGlossaryTermsForText(combineLoreQcmKeywords(questionRow), glossaryByKey);
+}
+
+async function loadActiveLoreQuestionRow(code) {
+  return queryOne(
+    `${LORE_QUESTION_SELECT} WHERE question_code = ? AND statut = 'actif' LIMIT 1`,
+    [code]
+  );
+}
+
+/** GET /api/gl/lore/qcm/categories */
+router.get('/qcm/categories', requireGlPermission('gl.read'), async (_req, res) => {
+  const items = await queryAll(
+    `SELECT slug, nom, emoji, description, order_index
+       FROM gl_qcm_lore_categories
+      ORDER BY order_index ASC, nom ASC`
+  );
+  return res.json(items);
+});
+
+/** GET /api/gl/lore/qcm/scopes */
+router.get('/qcm/scopes', requireGlPermission('gl.read'), async (_req, res) => {
+  const items = await queryAll(
+    `SELECT slug, nom, plateau, description, order_index
+       FROM gl_qcm_lore_scopes
+      ORDER BY order_index ASC, nom ASC`
+  );
+  return res.json(items);
+});
+
+/** GET /api/gl/lore/qcm/questions */
+router.get('/qcm/questions', requireGlPermission('gl.read'), async (req, res) => {
+  const chapitreSlug = normalizeChapitreSlug(req.query?.chapitreSlug);
+  const categorieSlug = normalizeOptionalString(req.query?.categorieSlug);
+  const q = normalizeOptionalString(req.query?.q);
+
+  const params = [];
+  let sql = `${LORE_QUESTION_SELECT} WHERE statut = 'actif'`;
+  if (chapitreSlug) {
+    sql += ' AND chapitre_slug = ?';
+    params.push(chapitreSlug);
+  }
+  if (categorieSlug) {
+    sql += ' AND categorie_slug = ?';
+    params.push(categorieSlug);
+  }
+  sql += ' ORDER BY chapitre_slug ASC, categorie_slug ASC, numero_dans_categorie ASC';
+
+  let rows = await queryAll(sql, params);
+  if (q) {
+    const needle = q.toLowerCase();
+    rows = rows.filter((row) => {
+      const hay = `${row.question} ${row.tags || ''} ${row.mots_cles || ''}`.toLowerCase();
+      return hay.includes(needle);
+    });
+  }
+
+  const glossaryByKey = await loadLoreGlossaryLookupForQcm();
+  const items = await Promise.all(rows.map(async (row) => ({
+    question_code: row.question_code,
+    chapitre_slug: row.chapitre_slug,
+    categorie_slug: row.categorie_slug,
+    numero_dans_categorie: row.numero_dans_categorie,
+    tier_lore: row.tier_lore,
+    question: row.question,
+    niveau: row.niveau,
+    difficulte: row.difficulte,
+    difficulte_label: row.difficulte_label,
+    reponse_correcte: row.reponse_correcte,
+    source_lore: row.source_lore,
+    loreGlossaryTerms: await enrichLoreQuestionWithGlossary(row, glossaryByKey),
+  })));
+
+  return res.json({ items });
+});
+
+/** GET /api/gl/lore/qcm/pool-preview */
+router.get('/qcm/pool-preview', requireGlPermission('gl.content.manage'), async (req, res) => {
+  const chapterId = req.query?.chapterId != null ? Number(req.query.chapterId) : null;
+  let chapterPlateauNumber = null;
+  if (chapterId != null && Number.isFinite(chapterId)) {
+    const chapter = await queryOne(
+      'SELECT plateau_number FROM gl_chapters WHERE id = ? LIMIT 1',
+      [chapterId]
+    );
+    chapterPlateauNumber = chapter?.plateau_number ?? null;
+  }
+
+  const pool = normalizeLoreQuestionPool({
+    chapitreMode: req.query?.chapitreMode || 'chapter',
+    chapitreSlugs: parseCsvQuery(req.query?.chapitreSlugs || req.query?.chapitreSlug),
+    categorieSlugs: parseCsvQuery(req.query?.categorieSlugs || req.query?.categorieSlug),
+    tierLore: parseCsvQuery(req.query?.tierLore),
+    niveaux: parseCsvQuery(req.query?.niveaux || req.query?.niveau),
+    difficulteMin: parseDifficulteQuery(req.query?.difficulteMin),
+    difficulteMax: parseDifficulteQuery(req.query?.difficulteMax),
+    searchQuery: normalizeOptionalString(req.query?.q) || '',
+    selectedQuestionCodes: parseCsvQuery(req.query?.selectedQuestionCodes),
+  });
+
+  const items = await previewLoreQuestionPool(
+    { queryAll },
+    { pool, chapterPlateauNumber }
+  );
+  return res.json({ items, total: items.length });
+});
+
+/** GET /api/gl/lore/qcm/draw */
+router.get('/qcm/draw', requireGlPermission('gl.read'), async (req, res) => {
+  const chapitreSlugs = parseCsvQuery(req.query?.chapitreSlug || req.query?.chapitreSlugs);
+  if (chapitreSlugs.length === 0) {
+    return res.status(400).json({ error: 'chapitreSlug ou chapitreSlugs requis' });
+  }
+  const categorieSlug = normalizeOptionalString(req.query?.categorieSlug);
+  const excludeRaw = normalizeOptionalString(req.query?.exclude);
+  const exclude = excludeRaw ? excludeRaw.split(',').map((s) => s.trim()).filter(Boolean) : [];
+
+  const placeholders = chapitreSlugs.map(() => '?').join(', ');
+  const params = [...chapitreSlugs];
+  let sql = `${LORE_QUESTION_SELECT} WHERE statut = 'actif' AND chapitre_slug IN (${placeholders})`;
+  if (categorieSlug) {
+    sql += ' AND categorie_slug = ?';
+    params.push(categorieSlug);
+  }
+  if (exclude.length > 0) {
+    sql += ` AND question_code NOT IN (${exclude.map(() => '?').join(', ')})`;
+    params.push(...exclude);
+  }
+
+  const pool = await queryAll(sql, params);
+  if (pool.length === 0) return res.status(404).json({ error: 'Aucune question disponible' });
+  const picked = pool[Math.floor(Math.random() * pool.length)];
+  return res.json({ question_code: picked.question_code });
+});
+
+/** GET /api/gl/lore/qcm/questions/:code/present */
+router.get('/qcm/questions/:code/present', requireGlPermission('gl.read'), async (req, res) => {
+  const code = normalizeLoreQuestionCode(req.params.code);
+  if (!code) return res.status(400).json({ error: 'Code invalide' });
+
+  const row = await loadActiveLoreQuestionRow(code);
+  if (!row) return res.status(404).json({ error: 'Question introuvable' });
+
+  const glossaryByKey = await loadLoreGlossaryLookupForQcm();
+  const loreGlossaryTerms = await enrichLoreQuestionWithGlossary(row, glossaryByKey);
+
+  try {
+    const presentation = buildLorePresentation(row, loreGlossaryTerms);
+    return res.json(presentation);
+  } catch (err) {
+    return res.status(400).json({ error: err.message || 'Présentation impossible' });
+  }
+});
+
+/** POST /api/gl/lore/qcm/questions/:code/answer */
+router.post('/qcm/questions/:code/answer', requireGlPermission('gl.read'), async (req, res) => {
+  const code = normalizeLoreQuestionCode(req.params.code);
+  if (!code) return res.status(400).json({ error: 'Code invalide' });
+
+  const row = await loadActiveLoreQuestionRow(code);
+  if (!row) return res.status(404).json({ error: 'Question introuvable' });
+
+  try {
+    const result = verifyPresentationAnswer(
+      req.body?.presentationToken,
+      code,
+      req.body?.choiceId
+    );
+    const glossaryByKey = await loadLoreGlossaryLookupForQcm();
+    const loreGlossaryTerms = await enrichLoreQuestionWithGlossary(row, glossaryByKey);
+    return res.json({
+      correct: result.correct,
+      feedback: resolveQcmAnswerFeedback(row, result),
+      correctChoiceId: result.correct ? result.correctChoiceId : undefined,
+      qcmSet: 'lore',
+      loreGlossaryTerms: result.correct ? loreGlossaryTerms : undefined,
+    });
+  } catch (err) {
+    return res.status(400).json({ error: err.message || 'Réponse invalide' });
+  }
+});
+
+/** GET /api/gl/lore/admin/qcm/stats */
+router.get('/admin/qcm/stats', requireGlPermission('gl.content.manage'), async (_req, res) => {
+  const total = await queryOne(
+    `SELECT COUNT(*) AS total FROM gl_qcm_lore_questions WHERE statut = 'actif'`
+  );
+  const byChapitre = await queryAll(
+    `SELECT chapitre_slug, COUNT(*) AS effectif
+       FROM gl_qcm_lore_questions WHERE statut = 'actif'
+      GROUP BY chapitre_slug ORDER BY effectif DESC`
+  );
+  const byCategory = await queryAll(
+    `SELECT categorie_slug, COUNT(*) AS effectif
+       FROM gl_qcm_lore_questions WHERE statut = 'actif'
+      GROUP BY categorie_slug ORDER BY effectif DESC`
+  );
+  const byTier = await queryAll(
+    `SELECT tier_lore, COUNT(*) AS effectif
+       FROM gl_qcm_lore_questions WHERE statut = 'actif'
+      GROUP BY tier_lore ORDER BY tier_lore ASC`
+  );
+  const glossaryLinks = await queryOne(
+    'SELECT COUNT(*) AS total FROM gl_qcm_lore_question_glossary'
+  );
+  return res.json({
+    total: Number(total?.total || 0),
+    glossaryLinks: Number(glossaryLinks?.total || 0),
+    byChapitre,
+    byCategory,
+    byTier,
+  });
+});
+
+router.get('/admin/qcm/import/template', requireGlPermission('gl.content.manage'), wrapXlsxRoute(async () => ({
+  buffer: buildQcmLoreTemplateWorkbook(),
+  filename: 'foretmap-gl-modele-qcm-lore.xlsx',
+})));
+
+router.get('/admin/qcm/export', requireGlPermission('gl.content.manage'), wrapXlsxRoute(async (req) => {
+  const statutRaw = String(req.query?.statut || 'actif').toLowerCase();
+  const statut = statutRaw === 'all' ? 'all' : 'actif';
+  const chapitreSlug = normalizeChapitreSlug(req.query?.chapitreSlug);
+  const categorieSlug = normalizeOptionalString(req.query?.categorieSlug);
+  const data = await loadQcmLoreExportRows(
+    { queryAll },
+    { statut, chapitreSlug, categorieSlug }
+  );
+  return {
+    buffer: buildQcmLoreExportWorkbook(data),
+    filename: 'foretmap-gl-export-qcm-lore.xlsx',
+  };
+}));
+
+router.post('/admin/qcm/import', requireGlPermission('gl.content.manage'), async (req, res) => {
+  const dryRun = !!req.body?.dryRun;
+  let parsed;
+  try {
+    parsed = resolveQcmLoreImportRows(req.body || {});
+  } catch (err) {
+    return res.status(400).json({ error: err.message || 'Fichier import invalide' });
+  }
+  const { scopeRows, categoryRows, questionRows } = parsed;
+  if (!Array.isArray(questionRows) || questionRows.length === 0) {
+    return res.status(400).json({ error: 'Feuille questions vide ou absente' });
+  }
+  if (questionRows.length > QCM_LORE_MAX_IMPORT_ROWS) {
+    return res.status(400).json({ error: `Trop de lignes (max ${QCM_LORE_MAX_IMPORT_ROWS})` });
+  }
+  try {
+    const report = await applyQcmLoreImport(
+      { queryAll, execute },
+      scopeRows || [],
+      categoryRows || [],
+      questionRows,
+      { dryRun }
+    );
     return res.json({ report });
   } catch (err) {
     return res.status(400).json({ error: err.message || 'Import impossible' });

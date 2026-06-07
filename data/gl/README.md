@@ -6,6 +6,12 @@ Les illustrations de jeu (`GL_plateau-*`, `GL_biome_*`, `GL_recit_feuillet-actio
 
 Sprites à alpha (`app_*`, `embleme_*`) : versionner dans `public/gl/sprites/` (PNG/WebP).
 
+## Intro cinématique (écran de lancement)
+
+- Assets statiques extraits du bundle hors-ligne : `public/gl/intro/` (commande `npm run gl:intro:debundle` depuis le fichier `Intro Gnomes & Licornes (hors-ligne).html`).
+- Config éditoriale : clé `content.intro` dans `gl_settings`, modèle par défaut `data/gl/intro.default.json`, admin **Contenus → Intro**.
+- Images/audio personnalisés : clés stables `GL_intro_*` via **Contenus → Bibliothèque** (ex. `GL_intro_01_la-boite`, `GL_intro_audio_loop`, `GL_intro_audio_final`).
+
 Snapshot build prod : `npm run gl:build:assets` (appelé aussi par `npm run build`).
 
 ## Catalogue espèces / biomes
@@ -93,9 +99,24 @@ npm run gl:import:qcm          # simulation (dry-run)
 npm run gl:import:qcm -- --apply
 ```
 
-Depuis l’admin GL : **Contenus → QCM** (boutons **Modèle XLSX** et **Exporter le catalogue**, ou API `GET /api/gl/admin/qcm/import/template` et `GET /api/gl/admin/qcm/export` avec filtres optionnels `biomeSlug`, `categorieSlug`, `statut`).
+Depuis l’admin GL : **Contenus → QCM biomes** (boutons **Modèle XLSX** et **Exporter le catalogue**, ou API `GET /api/gl/admin/qcm/import/template` et `GET /api/gl/admin/qcm/export` avec filtres optionnels `biomeSlug`, `categorieSlug`, `statut`).
 
-Les questions sont liées au glossaire via `mots_cles` / `tags` (importer le glossaire avant ou re-importer le QCM après). Les réponses sont mélangées à chaque présentation (`GET /api/gl/qcm/questions/:code/present`) ; le message affiché après validation provient des colonnes feedback du fichier consolidé.
+Les questions sont liées au glossaire SVT via `mots_cles` / `tags` (importer le glossaire avant ou re-importer le QCM après). Les réponses sont mélangées à chaque présentation (`GET /api/gl/qcm/questions/:code/present`) ; le message affiché après validation provient des colonnes feedback du fichier consolidé.
+
+## QCM lore (histoire G&L)
+
+Fichier de référence : `qcm-lore-gnomes-et-licornes.xlsx` (feuilles `chapitres`, `categories`, `questions`). Codes questions **`LQCM0001`**… ; scopes chapitre `ch0`…`ch5` et `tous` ; `tier_lore` (`cle` / `recit`) ; pas de colonnes photo.
+
+```bash
+npm run gl:import:qcm-lore          # simulation (dry-run)
+npm run gl:import:qcm-lore -- --apply
+```
+
+Depuis l’admin GL : **Contenus → QCM lore** (ou API `GET /api/gl/lore/admin/qcm/import/template`, `GET /api/gl/lore/admin/qcm/export`).
+
+En partie, le pool repère lore résout les scopes via `gl_chapters.plateau_number` : mode `chapter` inclut toujours `tous` plus `ch{N}` (ex. plateau 3 → `ch3` + `tous`). Les questions `ch0` (accroche) ne sont pas auto-incluses : pool `custom` ou sélection explicite dans l’éditeur de repère.
+
+Liens auto vers le glossaire lore (`gl_lore_glossary_terms`) via `mots_cles` / `tags` — importer le glossaire lore avant le QCM lore pour maximiser les liens.
 
 ## Carnet de Sélène (feuillets lore)
 

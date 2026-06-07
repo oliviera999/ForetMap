@@ -13,6 +13,7 @@ export const GL_MODULE_DEFAULTS = {
   playerJournalEnabled: true,
   loreCarnetEnabled: true,
   loreGlossaryEnabled: true,
+  introEnabled: true,
 };
 
 export function normalizeGlModules(raw) {
