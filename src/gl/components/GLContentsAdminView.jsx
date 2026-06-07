@@ -12,6 +12,7 @@ import { GLSpellsEditorPanel } from './admin/GLSpellsEditorPanel.jsx';
 import { GLSpellsImportPanel } from './admin/GLSpellsImportPanel.jsx';
 import { GLLoreFeuilletsImportPanel } from './admin/GLLoreFeuilletsImportPanel.jsx';
 import { GLLoreGlossaryImportPanel } from './admin/GLLoreGlossaryImportPanel.jsx';
+import { GLContentLibraryView } from './admin/GLContentLibraryView.jsx';
 
 export function GLContentsAdminView({
   auth,
@@ -110,6 +111,14 @@ export function GLContentsAdminView({
         >
           Glossaire lore
         </button>
+        <button
+          type="button"
+          className={section === 'library' ? 'is-active' : ''}
+          onClick={() => setSection('library')}
+          data-subtab="library"
+        >
+          Bibliothèque
+        </button>
       </nav>
 
       {section === 'pages' ? (
@@ -166,6 +175,8 @@ export function GLContentsAdminView({
         <GLLoreFeuilletsImportPanel />
       ) : section === 'lore-glossary' ? (
         <GLLoreGlossaryImportPanel />
+      ) : section === 'library' ? (
+        <GLContentLibraryView onOpenSubTab={setSection} />
       ) : (
         <GLQcmImportPanel />
       )}

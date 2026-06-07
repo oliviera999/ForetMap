@@ -93,6 +93,13 @@ Les questions sont liées au glossaire via `mots_cles` / `tags` (importer le glo
 
 Fichier de référence : `corpus-feuillets-selene.xlsx` (feuilles `feuillets`, `plateaux`, `biomes`).
 
+Colonnes optionnelles sur la feuille `feuillets` :
+
+- **`image_url`** — illustration de scène (`/uploads/media-library/image/<nom>.png`, voir `MANIFESTE-images.md` dans la bibliothèque média).
+- **`image_coupe_url`** — coupe pédagogique (pages-biome), même format d’URL.
+
+Ré-import partiel : cellule **vide** = valeur en base conservée (`COALESCE` côté serveur). Les feuillets de type `reponse` ou `vierge` restent généralement sans illustration.
+
 ```bash
 npm run gl:import:lore-feuillets          # simulation (dry-run)
 npm run gl:import:lore-feuillets -- --apply

@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 
 function readFileAsDataUrl(file) {
   return new Promise((resolve, reject) => {
@@ -24,8 +24,11 @@ export function MediaLibraryMenu({
   canUpload = true,
   canRemove = true,
   manageHint = '',
+  defaultOpen = false,
+  showToggle = true,
+  allowMultiple = false,
 }) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(defaultOpen);
   const [items, setItems] = useState([]);
   const [filter, setFilter] = useState('all');
   const [busy, setBusy] = useState(false);
@@ -56,6 +59,14 @@ export function MediaLibraryMenu({
     }
   }
 
+  useEffect(() => {
+    if (!defaultOpen) return;
+    setBusy(true);
+    reload()
+      .catch((err) => setError(err.message || 'Chargement impossible'))
+      .finally(() => setBusy(false));
+  }, [defaultOpen]);
+
   async function onUploadFile(file) {
     if (!file) return;
     setBusy(true);
@@ -68,6 +79,14 @@ export function MediaLibraryMenu({
       setError(err.message || 'Upload impossible');
     } finally {
       setBusy(false);
+    }
+  }
+
+  async function onUploadFiles(fileList) {
+    const files = Array.from(fileList || []).filter(Boolean);
+    if (files.length === 0) return;
+    for (const file of files) {
+      await onUploadFile(file);
     }
   }
 
@@ -87,9 +106,11 @@ export function MediaLibraryMenu({
 
   return (
     <div className="media-library-menu">
-      <button type="button" className="btn btn-secondary btn-sm" onClick={ensureOpen}>
-        {open ? 'Fermer bibliothèque média' : 'Ouvrir bibliothèque média'}
-      </button>
+      {showToggle ? (
+        <button type="button" className="btn btn-secondary btn-sm" onClick={ensureOpen}>
+          {open ? 'Fermer bibliothèque média' : 'Ouvrir bibliothèque média'}
+        </button>
+      ) : null}
       {open ? (
         <div className="media-library-menu__panel">
           <h4 style={{ marginTop: 0 }}>{title}</h4>
@@ -102,12 +123,17 @@ export function MediaLibraryMenu({
                 <input
                   type="file"
                   accept="image/*,audio/*,video/*"
+                  multiple={allowMultiple}
                   style={{ display: 'none' }}
                   disabled={busy}
                   onChange={(event) => {
-                    const f = event.target.files?.[0];
+                    const selected = event.target.files;
                     event.target.value = '';
-                    onUploadFile(f);
+                    if (allowMultiple) {
+                      onUploadFiles(selected);
+                      return;
+                    }
+                    onUploadFile(selected?.[0]);
                   }}
                 />
               </label>

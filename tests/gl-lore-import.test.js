@@ -4,11 +4,15 @@ const { test } = require('node:test');
 const assert = require('node:assert');
 const fs = require('node:fs');
 const path = require('node:path');
+const XLSX = require('xlsx');
 const {
   parseFeuilletsWorkbook,
   buildFeuilletPayload,
   applyFeuilletsImport,
   normalizeLoreBiomeSlug,
+  normalizeFeuilletImageUrl,
+  buildFeuilletsExportWorkbook,
+  loadFeuilletsExportRows,
 } = require('../lib/glLoreFeuilletsImport');
 const {
   parseLoreGlossaryWorkbook,
@@ -79,6 +83,65 @@ test('filterLoreGlossaryList respecte le plafond spoiler', () => {
   ];
   const filtered = filterLoreGlossaryList(rows, { maxSpoilerLevel: 'recit', isMj: false });
   assert.strictEqual(filtered.length, 1);
+});
+
+test('buildFeuilletPayload accepte image_url et image_coupe_url', () => {
+  const imageUrl = '/uploads/media-library/image/scene-test.png';
+  const coupeUrl = '/uploads/media-library/image/coupe-test.png';
+  const { payload, errors, warnings } = buildFeuilletPayload({
+    feuillet_code: 'test-img-feui',
+    type: 'feuillet',
+    image_url: imageUrl,
+    image_coupe_url: coupeUrl,
+  });
+  assert.strictEqual(errors.length, 0);
+  assert.strictEqual(warnings.length, 0);
+  assert.strictEqual(payload.image_url, imageUrl);
+  assert.strictEqual(payload.image_coupe_url, coupeUrl);
+});
+
+test('normalizeFeuilletImageUrl avertit sur chemin non reconnu sans bloquer', () => {
+  const warnings = [];
+  const url = normalizeFeuilletImageUrl('/bad/local/path.png', 'image_url', warnings);
+  assert.strictEqual(url, '/bad/local/path.png');
+  assert.ok(warnings.some((w) => w.field === 'image_url'));
+});
+
+test('import feuillet image_url persiste et export round-trip', async () => {
+  require('./helpers/setup');
+  const { initSchema, queryOne } = require('../database');
+  const execute = require('../database').execute;
+  await initSchema();
+
+  const code = `test-img-feui-${Date.now()}`;
+  const imageUrl = '/uploads/media-library/image/test-scene.png';
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(
+    wb,
+    XLSX.utils.aoa_to_sheet([
+      ['code', 'type', 'titre', 'image_url'],
+      [code, 'feuillet', 'Feuillet illustré test', imageUrl],
+    ]),
+    'feuillets',
+  );
+  const parsed = parseFeuilletsWorkbook(XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' }));
+  const deps = { queryAll: require('../database').queryAll, execute };
+  const report = await applyFeuilletsImport(deps, parsed, { dryRun: false });
+  assert.strictEqual(report.feuillets.skipped, 0);
+
+  const row = await queryOne(
+    'SELECT image_url FROM gl_lore_feuillets WHERE feuillet_code = ? LIMIT 1',
+    [code],
+  );
+  assert.strictEqual(row.image_url, imageUrl);
+
+  const exportRows = await loadFeuilletsExportRows(deps);
+  const exported = exportRows.find((r) => r.feuillet_code === code);
+  assert.strictEqual(exported.image_url, imageUrl);
+
+  const exportBuffer = buildFeuilletsExportWorkbook([exported]);
+  const reparsed = parseFeuilletsWorkbook(exportBuffer);
+  assert.strictEqual(reparsed.feuilletRows[0].image_url, imageUrl);
 });
 
 test('applyFeuilletsImport dry-run sans erreur fatale', async () => {

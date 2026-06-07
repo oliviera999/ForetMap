@@ -159,31 +159,46 @@ export function GLSeleneCarnetView({
           {!active ? (
             <p className="gl-hint">Sélectionnez un feuillet dans la liste.</p>
           ) : (
-            <>
-              <h3>{active.titre}</h3>
-              {active.incipit ? <p className="gl-selene-carnet__incipit">{active.incipit}</p> : null}
-              <GLLoreGlossaryMarkdown
-                markdown={showNarrative && active.texte ? active.texte : active.displayText}
-                loreGlossaryItems={loreGlossaryLinkItems}
-                onOpenLoreTerm={onOpenLoreTerm}
-                className="gl-selene-carnet__text"
-              />
-              {active.ancrageScientifique ? (
-                <aside className="gl-selene-carnet__science">
-                  <h4>Ancrage scientifique</h4>
-                  <GLGlossaryMarkdown
-                    markdown={active.ancrageScientifique}
-                    glossaryItems={glossaryLinkItems}
-                    onOpenGlossaryTerm={onOpenGlossaryTerm}
-                  />
-                </aside>
+            <div className={active.imageUrl ? 'gl-selene-carnet__spread' : undefined}>
+              {active.imageUrl ? (
+                <figure className="gl-selene-carnet__illu">
+                  <img src={active.imageUrl} alt="" loading="lazy" />
+                </figure>
               ) : null}
-              {gameId && teamId && active.progressStatus !== 'locked' ? (
-                <GLButton type="button" onClick={() => markRead(active.feuilletCode)}>
-                  Marquer comme lu
-                </GLButton>
-              ) : null}
-            </>
+              <div className="gl-selene-carnet__content">
+                <h3>{active.titre}</h3>
+                {active.incipit ? <p className="gl-selene-carnet__incipit">{active.incipit}</p> : null}
+                <GLLoreGlossaryMarkdown
+                  markdown={showNarrative && active.texte ? active.texte : active.displayText}
+                  loreGlossaryItems={loreGlossaryLinkItems}
+                  onOpenLoreTerm={onOpenLoreTerm}
+                  className="gl-selene-carnet__text"
+                />
+                {active.imageCoupeUrl ? (
+                  <details className="gl-selene-carnet__coupe">
+                    <summary>Coupe</summary>
+                    <figure className="gl-selene-carnet__illu">
+                      <img src={active.imageCoupeUrl} alt="Coupe pédagogique" loading="lazy" />
+                    </figure>
+                  </details>
+                ) : null}
+                {active.ancrageScientifique ? (
+                  <aside className="gl-selene-carnet__science">
+                    <h4>Ancrage scientifique</h4>
+                    <GLGlossaryMarkdown
+                      markdown={active.ancrageScientifique}
+                      glossaryItems={glossaryLinkItems}
+                      onOpenGlossaryTerm={onOpenGlossaryTerm}
+                    />
+                  </aside>
+                ) : null}
+                {gameId && teamId && active.progressStatus !== 'locked' ? (
+                  <GLButton type="button" onClick={() => markRead(active.feuilletCode)}>
+                    Marquer comme lu
+                  </GLButton>
+                ) : null}
+              </div>
+            </div>
           )}
         </section>
       </div>

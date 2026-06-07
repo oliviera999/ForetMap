@@ -124,8 +124,8 @@ Le script accepte aussi :
 | GET | `/api/gl/admin/glossary/import/template` | — | `gl.content.manage` (modèle XLSX vierge + ligne d’exemple, feuille `glossaire`) |
 | GET | `/api/gl/admin/glossary/export` | `?statut=actif\|all` (défaut `actif`) | `gl.content.manage` (export XLSX ré-importable du catalogue en base) |
 | GET | `/api/gl/admin/glossary/stats` | — | `gl.content.manage` (total + agrégats par catégorie/niveau) |
-| GET | `/api/gl/lore/feuillets` | `?gameId=`, `?teamId=`, `?biomeSlugs=` (csv), `?liasse=` | Auth GL + `modules.lore_carnet_enabled` — liste feuillets avec statut progression équipe |
-| GET | `/api/gl/lore/feuillets/:code` | `?gameId=`, `?teamId=` | Auth GL — détail feuillet (texte masqué si effacement ; `403` si locked) |
+| GET | `/api/gl/lore/feuillets` | `?gameId=`, `?teamId=`, `?biomeSlugs=` (csv), `?liasse=` | Auth GL + `modules.lore_carnet_enabled` — liste feuillets avec statut progression équipe ; chaque item inclut `imageUrl` et `imageCoupeUrl` (nullable, chemins `/uploads/media-library/image/...`) |
+| GET | `/api/gl/lore/feuillets/:code` | `?gameId=`, `?teamId=` | Auth GL — détail feuillet (texte masqué si effacement ; `403` si locked) ; `imageUrl`, `imageCoupeUrl` |
 | POST | `/api/gl/lore/games/:id/feuillets/:code/present` | `{ teamId?, kingdomZoneId? }` | Auth GL + accès partie — découverte, effets gemmes/cœurs si activés, événement `feuillet_discovered` ; `409` si re-déclenchement interdit |
 | POST | `/api/gl/lore/games/:id/feuillets/:code/read` | `{ teamId? }` | Auth GL — marque lu (`feuillet_read`) |
 | POST | `/api/gl/lore/games/:id/feuillets/:code/hold` | `{ teamId? }` | Auth GL — marque tenu si `tenir` défini (`feuillet_held`) |
@@ -135,9 +135,9 @@ Le script accepte aussi :
 | GET | `/api/gl/lore/glossary/link-index` | — | Auth GL — index auto-liens front (`lore_code`, `terme`, `variantes`) |
 | GET | `/api/gl/lore/admin/feuillets` | `?q=` | `gl.content.manage` |
 | PUT | `/api/gl/lore/admin/feuillets/:code/kingdom-zone` | `{ kingdomZoneId \| null }` | `gl.content.manage` |
-| POST | `/api/gl/lore/admin/feuillets/import` | `{ fileDataBase64, dryRun? }` | `gl.content.manage` (feuilles `feuillets`, `plateaux`) |
-| GET | `/api/gl/lore/admin/feuillets/import/template` | — | `gl.content.manage` |
-| GET | `/api/gl/lore/admin/feuillets/export` | — | `gl.content.manage` |
+| POST | `/api/gl/lore/admin/feuillets/import` | `{ fileDataBase64, dryRun? }` | `gl.content.manage` (feuilles `feuillets`, `plateaux` ; colonnes `image_url`, `image_coupe_url` optionnelles ; cellule vide = inchangé en mise à jour) |
+| GET | `/api/gl/lore/admin/feuillets/import/template` | — | `gl.content.manage` (modèle inclut `image_url`, `image_coupe_url`) |
+| GET | `/api/gl/lore/admin/feuillets/export` | — | `gl.content.manage` (export XLSX avec `image_url`, `image_coupe_url`) |
 | GET/POST/PUT | `/api/gl/lore/admin/glossary/*` | — | CRUD + import/export glossaire lore (miroir admin glossaire SVT) |
 | GET | `/api/gl/qcm/categories` | — | `gl.read` (liste catégories QCM) |
 | GET | `/api/gl/qcm/questions` | `?biomeSlug=`, `?categorieSlug=`, `?q=` optionnels | `gl.read` (liste admin ; ordre canonique A–E, `glossaryTerms[]`) |
@@ -241,6 +241,10 @@ Note UX admin GL : l’édition des chapitres (repères + zones polygonales sur 
 | GET | `/api/gl/admin/media-library` | `?limit=` optionnel (défaut 300, max 800) | `gl.content.manage` |
 | POST | `/api/gl/admin/media-library` | `{ media_data }` (data URL base64 image/audio/vidéo) | `gl.content.manage` |
 | DELETE | `/api/gl/admin/media-library` | `{ relative_path }` (`media-library/...`) | `gl.content.manage` |
+| POST | `/api/gl/admin/content-library/analyze` | `{ files: [{ fileName, fileDataBase64 }] }` **ou** `{ archive: { fileName, fileDataBase64 } }` (ZIP, max 32 Mo, 200 fichiers) — classification + dry-run catalogue sans écriture | `gl.content.manage` |
+| POST | `/api/gl/admin/content-library/apply` | `{ entries: [{ fileName, kind, fileDataBase64?, mimeType?, options? }] }` ; si import depuis ZIP analysé : `{ archive: { fileName, fileDataBase64 }, entries: [{ fileName, kind, ... }] }` (sans re-envoyer chaque binaire) | `gl.content.manage` |
+
+**Bibliothèque contenu (admin GL)** — sous-onglet **Contenus → Bibliothèque**. Nature (`kind`) détectée : `media`, `species`, `glossary`, `lore_glossary`, `spells`, `qcm`, `chapters`, `chapter_charte`, `lore_feuillets`, `unknown`. Réponse `analyze` : `{ entries[], summary: { total, byKind, errors, applyable } }` ; chaque entrée inclut `kindLabel`, `subTab` (lien UI), `preview` (dry-run), `canApply`, `warnings`. Réponse `apply` : `{ results[], summary: { total, applied, failed } }`. Les médias sont stockés dans `uploads/media-library/` ; les catalogues réutilisent les imports XLSX existants.
 
 ### Permissions RBAC GL ajoutées
 

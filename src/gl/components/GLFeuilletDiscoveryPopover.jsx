@@ -33,6 +33,7 @@ export function GLFeuilletDiscoveryPopover({
     ? `gl-feui-${String(feuillet.modeApparition).replace(/_/g, '-')}`
     : 'gl-feui-boite';
   const effPct = Number(feuillet?.effacementPct) || 0;
+  const hasBody = feuillet?.displayText || feuillet?.imageUrl || feuillet?.imageCoupeUrl;
 
   return createPortal(
     <div
@@ -60,17 +61,32 @@ export function GLFeuilletDiscoveryPopover({
         {error ? <p className="gl-error">{error}</p> : null}
         {loading ? <p className="gl-hint">Ouverture du feuillet…</p> : null}
 
-        {!loading && feuillet?.displayText ? (
+        {!loading && hasBody ? (
           <div
             className="gl-feui-discovery__body"
             style={effPct > 0 && effPct < 100 ? { opacity: Math.max(0.35, 1 - effPct / 100) } : undefined}
           >
-            <GLLoreGlossaryMarkdown
-              markdown={feuillet.displayText}
-              loreGlossaryItems={loreGlossaryLinkItems}
-              onOpenLoreTerm={onOpenLoreTerm}
-              className="gl-feui-discovery__text"
-            />
+            {feuillet.imageUrl ? (
+              <figure className="gl-feui-discovery__illu">
+                <img src={feuillet.imageUrl} alt="" loading="lazy" />
+              </figure>
+            ) : null}
+            {feuillet.displayText ? (
+              <GLLoreGlossaryMarkdown
+                markdown={feuillet.displayText}
+                loreGlossaryItems={loreGlossaryLinkItems}
+                onOpenLoreTerm={onOpenLoreTerm}
+                className="gl-feui-discovery__text"
+              />
+            ) : null}
+            {feuillet.imageCoupeUrl ? (
+              <details className="gl-feui-discovery__coupe">
+                <summary>Coupe</summary>
+                <figure className="gl-feui-discovery__illu">
+                  <img src={feuillet.imageCoupeUrl} alt="Coupe pédagogique" loading="lazy" />
+                </figure>
+              </details>
+            ) : null}
             {feuillet.ancrageScientifique ? (
               <aside className="gl-feui-discovery__science">
                 <h4>Ancrage scientifique</h4>

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { DialogShell } from '../../components/DialogShell.jsx';
 import {
   GL_SPECIES_DETAIL_SECTIONS,
@@ -10,6 +10,8 @@ import {
 } from '../utils/glSpeciesFieldLabels.js';
 import { GLButton } from './ui/GLButton.jsx';
 import { GLLearningAcknowledgeButton } from './GLLearningAcknowledgeButton.jsx';
+import { GLFeuilletDiscoveryPopover } from './GLFeuilletDiscoveryPopover.jsx';
+import { apiGL } from '../services/apiGL.js';
 
 function SpeciesFieldValue({ fieldKey, value, biomeNom, species }) {
   const formatted = formatGlSpeciesFieldValue(fieldKey, value, { biomeNom });
@@ -114,6 +116,8 @@ function SpeciesGlossarySection({ species, glossaryTerms, onOpenGlossaryTerm }) 
  * @param {{
  *   species: Record<string, unknown> | null,
  *   biomeNom?: string,
+ *   gameId?: number | null,
+ *   loreCarnetEnabled?: boolean,
  *   onClose: () => void,
  *   onOpenGlossaryTerm?: (code: string) => void,
  * }} props
@@ -121,10 +125,41 @@ function SpeciesGlossarySection({ species, glossaryTerms, onOpenGlossaryTerm }) 
 export function GLSpeciesDetailModal({
   species,
   biomeNom = '',
+  gameId = null,
+  loreCarnetEnabled = false,
   onClose,
   onOpenGlossaryTerm,
   learningProgress,
 }) {
+  const [feuilletDiscovery, setFeuilletDiscovery] = useState(null);
+
+  const acknowledgeBody = useMemo(() => {
+    if (!loreCarnetEnabled || !gameId) return undefined;
+    return { gameId: Number(gameId) };
+  }, [gameId, loreCarnetEnabled]);
+
+  const handleAcknowledged = useCallback((data) => {
+    const code = String(species?.species_code || '').trim();
+    if (code) learningProgress?.markLocal?.('species', code);
+    if (data?.feuilletRevealed) {
+      setFeuilletDiscovery(data.feuilletRevealed);
+    }
+  }, [learningProgress, species?.species_code]);
+
+  const closeFeuilletDiscovery = useCallback(() => {
+    setFeuilletDiscovery(null);
+  }, []);
+
+  const markFeuilletRead = useCallback(async () => {
+    const code = feuilletDiscovery?.feuilletCode;
+    if (!gameId || !code) return;
+    try {
+      await apiGL(`/api/gl/lore/games/${Number(gameId)}/feuillets/${encodeURIComponent(code)}/read`, 'POST', {});
+    } catch (_) {
+      /* lecture best-effort */
+    }
+  }, [feuilletDiscovery?.feuilletCode, gameId]);
+
   if (!species) return null;
 
   const nomCommun = String(species.nom_commun || '').trim() || 'Espèce';
@@ -134,86 +169,96 @@ export function GLSpeciesDetailModal({
   const isLearned = learningProgress?.isSpeciesLearned?.(speciesCode) || !!species.learned;
 
   return (
-    <DialogShell
-      open={!!species}
-      onClose={onClose}
-      overlayClassName="fm-modal-overlay gl-species-detail-modal"
-      dialogClassName={`fm-modal-panel animate-pop gl-species-detail-modal__body${
-        hasGlSpeciesFieldValue(species.photo_url) ? ' gl-species-detail-modal__body--has-photo' : ''
-      }`}
-      ariaLabelledBy="gl-species-detail-title"
-    >
-        <div className="gl-species-detail-modal__head">
-          <div className="gl-species-detail-modal__head-text">
-            <h2 id="gl-species-detail-title">{nomCommun}</h2>
-            {hasGlSpeciesFieldValue(species.nom_scientifique) ? (
-              <p className="gl-species-detail-modal__scientific">
-                <em>{String(species.nom_scientifique).trim()}</em>
-              </p>
-            ) : null}
-            <div className="gl-species-detail-modal__badges">
-              {typeLabel ? <span className="gl-species-detail-modal__badge">{typeLabel}</span> : null}
-              {hasGlSpeciesFieldValue(species.groupe) ? (
-                <span className="gl-species-detail-modal__badge">{String(species.groupe).trim()}</span>
+    <>
+      <DialogShell
+        open={!!species}
+        onClose={onClose}
+        overlayClassName="fm-modal-overlay gl-species-detail-modal"
+        dialogClassName={`fm-modal-panel animate-pop gl-species-detail-modal__body${
+          hasGlSpeciesFieldValue(species.photo_url) ? ' gl-species-detail-modal__body--has-photo' : ''
+        }`}
+        ariaLabelledBy="gl-species-detail-title"
+      >
+          <div className="gl-species-detail-modal__head">
+            <div className="gl-species-detail-modal__head-text">
+              <h2 id="gl-species-detail-title">{nomCommun}</h2>
+              {hasGlSpeciesFieldValue(species.nom_scientifique) ? (
+                <p className="gl-species-detail-modal__scientific">
+                  <em>{String(species.nom_scientifique).trim()}</em>
+                </p>
               ) : null}
-              {hasGlSpeciesFieldValue(species.famille) ? (
-                <span className="gl-species-detail-modal__badge">{String(species.famille).trim()}</span>
+              <div className="gl-species-detail-modal__badges">
+                {typeLabel ? <span className="gl-species-detail-modal__badge">{typeLabel}</span> : null}
+                {hasGlSpeciesFieldValue(species.groupe) ? (
+                  <span className="gl-species-detail-modal__badge">{String(species.groupe).trim()}</span>
+                ) : null}
+                {hasGlSpeciesFieldValue(species.famille) ? (
+                  <span className="gl-species-detail-modal__badge">{String(species.famille).trim()}</span>
+                ) : null}
+              </div>
+            </div>
+            <div className="gl-species-detail-modal__head-actions">
+              {speciesCode && learningProgress ? (
+                <GLLearningAcknowledgeButton
+                  acknowledgePath={`/api/gl/learning/species/${encodeURIComponent(speciesCode)}`}
+                  requestBody={acknowledgeBody}
+                  itemTitle={nomCommun}
+                  labelAction="Marquer comme étudiée"
+                  labelDone="✓ Étudiée"
+                  titleDone="Tu as confirmé avoir étudié cette espèce"
+                  confirmIntro={(
+                    <>
+                      En validant, tu confirmes avoir étudié la fiche de
+                      {' '}
+                      <strong>« {nomCommun} »</strong>.
+                    </>
+                  )}
+                  confirmCheckboxLabel="Je confirme avoir lu et compris cette fiche espèce."
+                  isDone={isLearned}
+                  onAcknowledged={handleAcknowledged}
+                />
               ) : null}
+              <GLButton type="button" variant="secondary" onClick={onClose}>
+                Fermer
+              </GLButton>
             </div>
           </div>
-          <div className="gl-species-detail-modal__head-actions">
-            {speciesCode && learningProgress ? (
-              <GLLearningAcknowledgeButton
-                acknowledgePath={`/api/gl/learning/species/${encodeURIComponent(speciesCode)}`}
-                itemTitle={nomCommun}
-                labelAction="Marquer comme étudiée"
-                labelDone="✓ Étudiée"
-                titleDone="Tu as confirmé avoir étudié cette espèce"
-                confirmIntro={(
-                  <>
-                    En validant, tu confirmes avoir étudié la fiche de
-                    {' '}
-                    <strong>« {nomCommun} »</strong>.
-                  </>
-                )}
-                confirmCheckboxLabel="Je confirme avoir lu et compris cette fiche espèce."
-                isDone={isLearned}
-                onAcknowledged={() => learningProgress.markLocal('species', speciesCode)}
+
+          {hasGlSpeciesFieldValue(species.photo_url) ? (
+            <figure className="gl-species-detail-modal__hero">
+              <img src={String(species.photo_url).trim()} alt={nomCommun} />
+              {hasGlSpeciesFieldValue(species.photo_credit) || hasGlSpeciesFieldValue(species.photo_licence) ? (
+                <figcaption>
+                  {[species.photo_credit, species.photo_licence].filter((v) => hasGlSpeciesFieldValue(v)).join(' — ')}
+                </figcaption>
+              ) : null}
+            </figure>
+          ) : null}
+
+          <div className="gl-species-detail-modal__scroll">
+            {GL_SPECIES_DETAIL_SECTIONS.map((section) => (
+              <SpeciesDetailFieldsSection
+                key={section.id}
+                title={section.title}
+                species={species}
+                fields={section.fields}
+                biomeNom={biomeNom}
               />
-            ) : null}
-            <GLButton type="button" variant="secondary" onClick={onClose}>
-              Fermer
-            </GLButton>
-          </div>
-        </div>
-
-        {hasGlSpeciesFieldValue(species.photo_url) ? (
-          <figure className="gl-species-detail-modal__hero">
-            <img src={String(species.photo_url).trim()} alt={nomCommun} />
-            {hasGlSpeciesFieldValue(species.photo_credit) || hasGlSpeciesFieldValue(species.photo_licence) ? (
-              <figcaption>
-                {[species.photo_credit, species.photo_licence].filter((v) => hasGlSpeciesFieldValue(v)).join(' — ')}
-              </figcaption>
-            ) : null}
-          </figure>
-        ) : null}
-
-        <div className="gl-species-detail-modal__scroll">
-          {GL_SPECIES_DETAIL_SECTIONS.map((section) => (
-            <SpeciesDetailFieldsSection
-              key={section.id}
-              title={section.title}
+            ))}
+            <SpeciesGlossarySection
               species={species}
-              fields={section.fields}
-              biomeNom={biomeNom}
+              glossaryTerms={glossaryTerms}
+              onOpenGlossaryTerm={onOpenGlossaryTerm}
             />
-          ))}
-          <SpeciesGlossarySection
-            species={species}
-            glossaryTerms={glossaryTerms}
-            onOpenGlossaryTerm={onOpenGlossaryTerm}
-          />
-        </div>
-    </DialogShell>
+          </div>
+      </DialogShell>
+      <GLFeuilletDiscoveryPopover
+        open={!!feuilletDiscovery}
+        feuillet={feuilletDiscovery}
+        onClose={closeFeuilletDiscovery}
+        onMarkRead={markFeuilletRead}
+        onOpenGlossaryTerm={onOpenGlossaryTerm}
+      />
+    </>
   );
 }

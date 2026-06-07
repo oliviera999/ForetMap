@@ -88,6 +88,21 @@ test('GET /api/gl/lore/feuillets liste le corpus', async () => {
   assert.ok(res.body.items.length > 0);
 });
 
+test('GET /api/gl/lore/feuillets expose imageUrl après mise à jour', async () => {
+  const imageUrl = '/uploads/media-library/image/ep-IV-01-scene.png';
+  await execute(
+    'UPDATE gl_lore_feuillets SET image_url = ? WHERE feuillet_code = ?',
+    [imageUrl, feuilletCode],
+  );
+  const res = await request(app)
+    .get('/api/gl/lore/feuillets')
+    .set('Authorization', `Bearer ${adminToken}`)
+    .expect(200);
+  const item = res.body.items.find((row) => row.feuilletCode === feuilletCode);
+  assert.ok(item);
+  assert.strictEqual(item.imageUrl, imageUrl);
+});
+
 test('GET /api/gl/lore/glossary liste les termes lore', async () => {
   const res = await request(app)
     .get('/api/gl/lore/glossary')

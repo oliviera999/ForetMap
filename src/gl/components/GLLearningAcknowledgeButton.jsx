@@ -8,12 +8,14 @@ import { apiGL } from '../services/apiGL.js';
 export function GLLearningAcknowledgeButton({
   acknowledgePath,
   onAcknowledged,
+  requestBody,
   ...rest
 }) {
   const submit = useCallback(async () => {
-    await apiGL(acknowledgePath, 'POST', { confirm: true });
-    onAcknowledged?.();
-  }, [acknowledgePath, onAcknowledged]);
+    const data = await apiGL(acknowledgePath, 'POST', { confirm: true, ...(requestBody || {}) });
+    onAcknowledged?.(data);
+    return data;
+  }, [acknowledgePath, onAcknowledged, requestBody]);
 
   return (
     <LearningAcknowledgeButton
