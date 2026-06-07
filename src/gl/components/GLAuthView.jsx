@@ -57,9 +57,10 @@ export function GLAuthView({ onLogin, oauthNotice, config, appVersion = null }) 
   const [resetToken, setResetToken] = useState('');
   const [resetPassword, setResetPassword] = useState('');
   const [forceIntro, setForceIntro] = useState(false);
+  const [introDismissed, setIntroDismissed] = useState(false);
 
   const introModuleEnabled = modulesLoaded && isModuleEnabled(modules || config?.modules, 'introEnabled');
-  const shouldShowIntro = introModuleEnabled && (forceIntro || !hasSeenGlIntro());
+  const shouldShowIntro = introModuleEnabled && !introDismissed && (forceIntro || !hasSeenGlIntro());
 
   const fieldIdPrefix = useId();
   const fieldIds = {
@@ -185,7 +186,10 @@ export function GLAuthView({ onLogin, oauthNotice, config, appVersion = null }) 
     <main className="gl-auth auth-wrap">
       <GLIntroOverlay
         open={shouldShowIntro}
-        onComplete={() => setForceIntro(false)}
+        onComplete={() => {
+          setIntroDismissed(true);
+          setForceIntro(false);
+        }}
       />
       <ScrollProgressBar />
       <GLBrandHub slots={brandSlots || config?.brand?.slots} />
@@ -207,7 +211,10 @@ export function GLAuthView({ onLogin, oauthNotice, config, appVersion = null }) 
             type="button"
             variant="ghost"
             className="gl-btn--full"
-            onClick={() => setForceIntro(true)}
+            onClick={() => {
+              setIntroDismissed(false);
+              setForceIntro(true);
+            }}
             disabled={busy || shouldShowIntro}
           >
             Revoir l&apos;intro

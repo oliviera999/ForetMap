@@ -1,6 +1,7 @@
 const { test, expect } = require('@playwright/test');
 const { execute, queryOne } = require('../database');
 const { signAuthToken } = require('../middleware/requireTeacher');
+const { mountGlSession } = require('./fixtures/gl.fixture');
 const bcrypt = require('bcryptjs');
 
 async function seedGlMarketE2E(label) {
@@ -69,9 +70,6 @@ async function seedGlMarketE2E(label) {
   };
 }
 
-function buildSession(token, auth) {
-  return { token, auth };
-}
 
 function waitMarketPatch(page, pathPart) {
   return page.waitForResponse(
@@ -85,18 +83,17 @@ function waitMarketPatch(page, pathPart) {
 
 async function loginGlPlayer(page, seeded, which) {
   const isA = which === 'A';
-  await page.setExtraHTTPHeaders({ 'X-Foretmap-Product': 'gl' });
-  await page.goto('/');
-  await page.evaluate((payload) => {
-    localStorage.setItem('gl_session', JSON.stringify(payload));
-  }, buildSession(isA ? seeded.tokenA : seeded.tokenB, {
-    userType: 'gl_player',
-    roleSlug: 'gl_player',
-    displayName: isA ? seeded.pseudoA : seeded.pseudoB,
-    userId: String(isA ? seeded.playerAId : seeded.playerBId),
-    classId: seeded.classId,
-  }));
-  await page.reload();
+  await mountGlSession(page, {
+    token: isA ? seeded.tokenA : seeded.tokenB,
+    auth: {
+      userType: 'gl_player',
+      roleSlug: 'gl_player',
+      displayName: isA ? seeded.pseudoA : seeded.pseudoB,
+      userId: String(isA ? seeded.playerAId : seeded.playerBId),
+      classId: seeded.classId,
+    },
+    tab: 'maps',
+  });
 }
 
 test.describe('GL marché', () => {
@@ -110,7 +107,7 @@ test.describe('GL marché', () => {
     await loginGlPlayer(pageA, seeded, 'A');
     await loginGlPlayer(pageB, seeded, 'B');
 
-    await pageA.getByRole('button', { name: 'Marché' }).click();
+    await pageA.getByRole('tab', { name: 'Marché' }).click();
     await expect(pageA.getByRole('note', { name: 'Règles du marché' })).toBeVisible();
     await expect(pageA.getByText('Comment fonctionne le marché ?')).toBeVisible();
 
@@ -120,7 +117,7 @@ test.describe('GL marché', () => {
     await pageA.getByLabel('Cœurs ❤️').blur();
     await offerPatchA;
 
-    await pageB.getByRole('button', { name: 'Marché' }).click();
+    await pageB.getByRole('tab', { name: 'Marché' }).click();
     await pageB.getByRole('button', { name: seeded.pseudoA }).click();
     await expect(pageB.getByRole('heading', { name: new RegExp(`Échange avec ${seeded.pseudoA}`, 'i') })).toBeVisible();
 

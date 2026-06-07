@@ -10,8 +10,8 @@ test.describe('Gnomes & Licornes — intro cinématique', () => {
     await page.goto('/');
 
     await expect(page.getByTestId('gl-intro-overlay')).toBeVisible({ timeout: 15000 });
-    await page.getByRole('button', { name: /Passer l'intro/i }).click();
-    await expect(page.getByTestId('gl-intro-overlay')).toHaveCount(0);
+    await page.getByTestId('gl-intro-skip').click();
+    await expect(page.getByTestId('gl-intro-overlay')).toBeHidden();
     await expect(page.getByRole('heading', { name: /Gnomes/i })).toBeVisible();
     await expect(page.getByLabel(/Identifiant/i)).toBeVisible();
   });

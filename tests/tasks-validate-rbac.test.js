@@ -23,13 +23,12 @@ async function ensureValidateOnlyTeacher() {
 
   await execute(
     `INSERT INTO users (id, user_type, email, first_name, last_name, password_hash, is_active, created_at)
-     VALUES (?, 'teacher', ?, 'Valide', 'Seul', ?, 1, ?)
+     VALUES (?, 'teacher', ?, 'Valide', 'Seul', ?, 1, NOW())
      ON DUPLICATE KEY UPDATE is_active = 1`,
     [
       teacherId,
       loginEmail,
       '$2a$10$abcdefghijklmnopqrstuvabcdefghijklmnopqrstuvabcdefghi',
-      new Date().toISOString(),
     ]
   );
 

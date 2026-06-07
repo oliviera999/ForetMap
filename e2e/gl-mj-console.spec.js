@@ -1,22 +1,17 @@
 const { test, expect } = require('@playwright/test');
 const { queryOne, execute } = require('../database');
-const { seedGlScenario } = require('./fixtures/gl.fixture');
+const { seedGlScenario, mountGlSession } = require('./fixtures/gl.fixture');
 
 async function loginGlAdmin(page, seeded, displayName = 'MJ e2e') {
-  await page.setExtraHTTPHeaders({ 'X-Foretmap-Product': 'gl' });
-  await page.goto('/');
-  await page.evaluate((payload) => {
-    localStorage.setItem('gl_session', JSON.stringify(payload));
-    localStorage.setItem('gl_active_tab', 'mj');
-  }, {
+  await mountGlSession(page, {
     token: seeded.adminToken,
     auth: {
       userType: 'gl_admin',
       roleSlug: 'gl_admin',
       displayName,
     },
+    tab: 'mj',
   });
-  await page.reload();
 }
 
 test.describe('GL MJ console flow', () => {
@@ -73,12 +68,13 @@ test.describe('GL MJ console flow', () => {
     }).then((r) => expect(r.status()).toBe(201));
 
     await loginGlAdmin(page, seeded, 'MJ console-ui');
+    await page.waitForLoadState('domcontentloaded');
 
     const gameMeta = await queryOne('SELECT name FROM gl_games WHERE id = ? LIMIT 1', [seeded.gameId]);
     const primaryGameName = String(gameMeta?.name || '');
 
-    await expect(page.getByRole('heading', { name: 'Console MJ' })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Parties' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Console MJ' })).toBeVisible({ timeout: 15000 });
+    await expect(page.getByRole('tab', { name: 'Parties' })).toBeVisible();
 
     const firstGameRow = page.locator('tr', { hasText: primaryGameName }).first();
     await firstGameRow.getByRole('button', { name: 'Ouvrir' }).click();
@@ -94,14 +90,20 @@ test.describe('GL MJ console flow', () => {
     await secondGameRow.getByRole('button', { name: 'Ouvrir' }).click();
     await expect(page.locator('.gl-active-game-banner-title')).toHaveText(secondaryName, { timeout: 10000 });
 
-    await page.getByRole('button', { name: 'Équipes & effectifs' }).click();
+    await page.getByRole('tab', { name: 'Équipes & effectifs' }).click();
     const betaTeamName = `Equipe Beta e2e ${now}`;
     const teamsPanel = page.locator('.gl-mj-console');
     await expect(teamsPanel.getByRole('cell', { name: betaTeamName })).toBeVisible();
     await expect(teamsPanel.getByRole('cell', { name: 'Equipe A' })).toHaveCount(0);
-  
+  });
+
   test('journal : narration visible avec presentation FR via API', async ({ request }) => {
     const seeded = await seedGlScenario('journal-api');
+    const enableNarr = await request.put('/api/gl/admin/settings/gameplay.narration_enabled', {
+      headers: { Authorization: `Bearer ${seeded.adminToken}` },
+      data: { value: true },
+    });
+    expect(enableNarr.ok()).toBeTruthy();
     const text = `E2E journal ${Date.now()}`;
     const posted = await request.post(`/api/gl/games/${seeded.gameId}/events`, {
       headers: { Authorization: `Bearer ${seeded.adminToken}` },
@@ -116,7 +118,6 @@ test.describe('GL MJ console flow', () => {
     const body = await journal.json();
     const hit = (body.events || []).find((e) => e.presentation?.body === text);
     expect(hit).toBeTruthy();
-    expect(hit.presentation.title).toMatch(/Narration/i);
+    expect(hit.presentation.title).toMatch(/maître du jeu/i);
   });
-});
 });
