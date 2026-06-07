@@ -3,8 +3,6 @@
 require('./helpers/setup');
 const { test, before } = require('node:test');
 const assert = require('node:assert');
-const fs = require('node:fs');
-const path = require('node:path');
 const request = require('supertest');
 const { app } = require('../server');
 const { initSchema, execute, queryOne, queryAll } = require('../database');
@@ -16,7 +14,6 @@ const {
   assignPlayerToGameTeam,
   signTokens,
 } = require('./helpers/glFixtures');
-const { applyFeuilletsImport, parseFeuilletsWorkbook } = require('../lib/glLoreFeuilletsImport');
 const { biomeToPays } = require('../lib/glLoreFeuilletSpeciesReveal');
 
 const stamp = Date.now();
@@ -25,7 +22,7 @@ let gameId = null;
 let teamId = null;
 let playerId = null;
 
-const PAYS5_FEUILLETS = ['test-p5-a', 'test-p5-b', 'test-p5-c'];
+const PAYS5_FEUILLETS = ['test-p5-a', 'test-p5-b', 'test-p5-c', 'test-p5-d', 'test-p5-e'];
 const TUNDRA_SPECIES = ['SP-T01', 'SP-T02', 'SP-T03', 'SP-T04', 'SP-T05'];
 
 before(async () => {
@@ -54,16 +51,6 @@ before(async () => {
 
   const tokens = await signTokens({ playerId: player.id, teamId });
   playerToken = tokens.playerToken;
-
-  const corpusFile = path.join(process.cwd(), 'data', 'gl', 'corpus-feuillets-selene.xlsx');
-  if (fs.existsSync(corpusFile)) {
-    const parsed = parseFeuilletsWorkbook(fs.readFileSync(corpusFile));
-    await applyFeuilletsImport(
-      { queryAll: require('../database').queryAll, execute },
-      parsed,
-      { dryRun: false }
-    );
-  }
 
   for (let i = 0; i < PAYS5_FEUILLETS.length; i += 1) {
     const code = PAYS5_FEUILLETS[i];
