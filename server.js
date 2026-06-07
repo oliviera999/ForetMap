@@ -266,6 +266,13 @@ const jsonBodyLimit = String(process.env.FORETMAP_JSON_BODY_LIMIT || '25mb').tri
 app.use(express.json({ limit: jsonBodyLimit }));
 app.use(express.urlencoded({ extended: true, limit: jsonBodyLimit }));
 app.use((err, req, res, next) => {
+  if (err?.type === 'entity.too.large' || err?.status === 413 || err?.statusCode === 413) {
+    return res.status(413).json({
+      error: 'Fichier ou lot trop volumineux pour le serveur.',
+      code: 'PAYLOAD_TOO_LARGE',
+      hint: 'Réduisez la taille ou utilisez l’import multipart depuis Contenus → Bibliothèque.',
+    });
+  }
   if (err instanceof SyntaxError && err.status === 400 && 'body' in err) {
     return res.status(400).json({ error: 'Corps JSON invalide pour la requête' });
   }

@@ -2,6 +2,7 @@ require('./helpers/setup');
 const test = require('node:test');
 const assert = require('node:assert');
 const request = require('supertest');
+const { v4: uuidv4 } = require('uuid');
 const { app } = require('../server');
 const { initDatabase, queryOne, execute } = require('../database');
 
@@ -36,7 +37,26 @@ async function registerStudent(prefix) {
     .expect(200);
   assert.ok(login.body?.authToken);
   res.body.authToken = login.body.authToken;
+  await ensureStudentInForumGroup(res.body.id);
   return res.body;
+}
+
+async function ensureStudentInForumGroup(studentId) {
+  let group = await queryOne('SELECT id FROM `groups` WHERE is_active = 1 ORDER BY name ASC LIMIT 1');
+  if (!group?.id) {
+    const groupId = uuidv4();
+    await execute(
+      `INSERT INTO \`groups\` (id, slug, name, kind, is_active, created_at, updated_at)
+       VALUES (?, ?, ?, 'class', 1, NOW(), NOW())`,
+      [groupId, `forum-test-${Date.now()}`, `Forum test ${Date.now()}`]
+    );
+    group = { id: groupId };
+  }
+  await execute(
+    `INSERT IGNORE INTO group_members (group_id, user_id, user_type, role_in_group)
+     VALUES (?, ?, 'student', 'member')`,
+    [group.id, studentId]
+  );
 }
 
 async function teacherToken() {

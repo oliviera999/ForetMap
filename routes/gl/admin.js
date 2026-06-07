@@ -33,6 +33,12 @@ const {
   analyzeContentLibraryBulk,
   applyContentLibraryBulk,
 } = require('../../lib/contentLibraryBulk');
+const {
+  contentLibraryUploadMiddleware,
+  readAnalyzeUploadPayload,
+  readApplyUploadPayload,
+  getContentLibraryLimits,
+} = require('../../lib/contentLibraryUpload');
 const { normalizeBrand } = require('../../lib/glBrand');
 const { sendXlsxAttachment, wrapXlsxRoute } = require('../../lib/glXlsxAttachment');
 const {
@@ -876,9 +882,10 @@ router.delete('/media-library', requireGlPermission('gl.content.manage'), async 
   }
 });
 
-router.post('/content-library/analyze', requireGlPermission('gl.content.manage'), async (req, res) => {
+router.post('/content-library/analyze', requireGlPermission('gl.content.manage'), contentLibraryUploadMiddleware, async (req, res) => {
   try {
-    const payload = await analyzeContentLibraryBulk({ queryAll, execute }, req.body || {});
+    const uploadPayload = readAnalyzeUploadPayload(req);
+    const payload = await analyzeContentLibraryBulk({ queryAll, execute }, uploadPayload);
     await logAudit(
       'content_library_analyze',
       'gl_content_library',
@@ -902,11 +909,16 @@ router.post('/content-library/analyze', requireGlPermission('gl.content.manage')
   }
 });
 
-router.post('/content-library/apply', requireGlPermission('gl.content.manage'), async (req, res) => {
+router.get('/content-library/limits', requireGlPermission('gl.content.manage'), async (_req, res) => {
+  return res.json(getContentLibraryLimits());
+});
+
+router.post('/content-library/apply', requireGlPermission('gl.content.manage'), contentLibraryUploadMiddleware, async (req, res) => {
   try {
+    const uploadPayload = readApplyUploadPayload(req);
     const payload = await applyContentLibraryBulk(
       { queryAll, execute },
-      req.body || {},
+      uploadPayload,
       { createdBy: req.glAuth?.userId != null ? Number(req.glAuth.userId) : null }
     );
     await logAudit(

@@ -19,8 +19,8 @@ describe('GLTopBar', () => {
       />
     );
 
-    expect(screen.getByRole('button', { name: 'Cartes' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Forum' })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Cartes' })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Forum' })).toBeInTheDocument();
     expect(screen.getByText('🗺️')).toHaveClass('gl-tab-icon');
     expect(screen.getByText('💬')).toHaveClass('gl-tab-icon');
   });

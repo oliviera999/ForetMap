@@ -6411,3 +6411,37 @@ body.gl-glossary-popover-open {
   padding-left: 1rem;
   color: #92400e;
 }
+
+.gl-content-library__limits-banner {
+  margin: 0.35rem 0 0.75rem;
+  padding: 0.45rem 0.65rem;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--gl-primary, #047c8c) 10%, #f8fafc);
+  font-size: 0.88rem;
+}
+
+.gl-content-library__file-item {
+  margin-bottom: 0.55rem;
+}
+
+.gl-content-library__file-head {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.35rem 0.75rem;
+}
+
+.gl-content-library__progress {
+  margin-top: 0.35rem;
+  height: 6px;
+  border-radius: 999px;
+  background: #e5e7eb;
+  overflow: hidden;
+}
+
+.gl-content-library__progress-bar {
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--gl-primary, #047c8c), #0ea5e9);
+  transition: width 0.15s ease;
+}
