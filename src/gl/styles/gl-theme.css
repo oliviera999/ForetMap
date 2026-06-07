@@ -6445,3 +6445,24 @@ body.gl-glossary-popover-open {
   background: linear-gradient(90deg, var(--gl-primary, #047c8c), #0ea5e9);
   transition: width 0.15s ease;
 }
+
+.gl-content-library .media-library-menu__gallery {
+  grid-template-columns: repeat(auto-fill, minmax(148px, 1fr));
+  gap: 14px;
+}
+
+.gl-content-library .media-library-menu__panel--gallery {
+  border: 1px solid color-mix(in srgb, var(--gl-primary, #047c8c) 16%, #e5e7eb);
+  border-radius: 12px;
+  background: color-mix(in srgb, #fff 94%, var(--gl-primary, #047c8c) 6%);
+}
+
+.gl-content-library .media-library-menu__filters {
+  gap: 12px;
+}
+
+.gl-content-library .media-library-menu__search input:focus,
+.gl-content-library .media-library-menu__filter select:focus {
+  outline: 2px solid color-mix(in srgb, var(--gl-primary, #047c8c) 35%, transparent);
+  border-color: var(--gl-primary, #047c8c);
+}

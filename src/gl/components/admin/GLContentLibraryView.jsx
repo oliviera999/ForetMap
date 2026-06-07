@@ -344,7 +344,8 @@ export function GLContentLibraryView({ onOpenSubTab }) {
           canRemove
           defaultOpen
           showToggle={false}
-          manageHint="Clique sur un média pour copier son URL. Les imports en masse sont disponibles ci-dessous."
+          layout="gallery"
+          manageHint="Clique sur une miniature pour copier l’URL du média. Les imports en masse sont disponibles ci-dessous."
         />
       </section>
 
