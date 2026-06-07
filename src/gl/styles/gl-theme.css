@@ -6467,6 +6467,13 @@ body.gl-glossary-popover-open {
   border-color: var(--gl-primary, #047c8c);
 }
 
+.gl-marker-appearance-editor .media-library-menu__gallery,
+.gl-zone-popover-images .media-library-menu__gallery,
+fieldset .media-library-menu__gallery {
+  grid-template-columns: repeat(auto-fill, minmax(76px, 1fr));
+  gap: 6px;
+}
+
 /* Zones feuillets (calque carte de jeu) */
 .gl-feuillet-zone-overlay {
   position: absolute;

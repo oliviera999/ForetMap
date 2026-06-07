@@ -6,6 +6,7 @@ import {
   MEDIA_LIBRARY_SORT_OPTIONS,
   MEDIA_LIBRARY_TYPE_FILTERS,
   pruneMediaLibrarySelection,
+  resolveMediaLibraryLayout,
 } from '../utils/mediaLibraryView.js';
 
 function readFileAsDataUrl(file) {
@@ -99,6 +100,7 @@ export function MediaLibraryMenu({
   showGalleryMeta = true,
   enableGalleryBulkActions = false,
 }) {
+  const effectiveLayout = resolveMediaLibraryLayout({ layout, onPickUrl });
   const [open, setOpen] = useState(defaultOpen);
   const [items, setItems] = useState([]);
   const [typeFilter, setTypeFilter] = useState('all');
@@ -109,7 +111,7 @@ export function MediaLibraryMenu({
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
 
-  const galleryBulkEnabled = enableGalleryBulkActions && canRemove && layout === 'gallery';
+  const galleryBulkEnabled = enableGalleryBulkActions && canRemove && effectiveLayout === 'gallery';
 
   const visibleItems = useMemo(
     () => filterAndSortMediaLibraryItems(items, {
@@ -259,7 +261,7 @@ export function MediaLibraryMenu({
     );
   }
 
-  const panelClassName = layout === 'gallery'
+  const panelClassName = effectiveLayout === 'gallery'
     ? 'media-library-menu__panel media-library-menu__panel--gallery'
     : 'media-library-menu__panel';
 
@@ -268,7 +270,7 @@ export function MediaLibraryMenu({
     : `${visibleItems.length} / ${items.length} média${items.length > 1 ? 's' : ''}`;
 
   return (
-    <div className={`media-library-menu${layout === 'gallery' ? ' media-library-menu--gallery' : ''}`}>
+    <div className={`media-library-menu${effectiveLayout === 'gallery' ? ' media-library-menu--gallery' : ''}`}>
       {showToggle ? (
         <button type="button" className="btn btn-secondary btn-sm" onClick={ensureOpen}>
           {open ? 'Fermer bibliothèque média' : 'Ouvrir bibliothèque média'}
@@ -361,7 +363,7 @@ export function MediaLibraryMenu({
             {galleryBulkEnabled && selectedCount > 0 ? ` · ${selectedCount} sélectionné${selectedCount > 1 ? 's' : ''}` : ''}
           </p>
           {busy ? <p className="gl-hint">Chargement…</p> : null}
-          {layout === 'gallery' ? (
+          {effectiveLayout === 'gallery' ? (
             <ul className="media-library-menu__gallery">
               {visibleItems.map((item) => (
                 <li key={item.relativePath} className="media-library-menu__gallery-item">

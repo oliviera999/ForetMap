@@ -46,6 +46,31 @@ describe('MediaLibraryMenu layout gallery', () => {
     expect(onPickUrl).toHaveBeenCalledWith('/uploads/media-library/image/2026/06/a.png');
   });
 
+  test('utilise la galerie par défaut quand onPickUrl est fourni', async () => {
+    render(
+      <MediaLibraryMenu
+        defaultOpen
+        showToggle={false}
+        fetchItems={async () => ([
+          {
+            relativePath: 'media-library/image/2026/06/pick.png',
+            url: '/uploads/media-library/image/2026/06/pick.png',
+            filename: 'pick.png',
+            mediaType: 'image',
+          },
+        ])}
+        uploadDataUrl={vi.fn()}
+        removeItem={vi.fn()}
+        onPickUrl={vi.fn()}
+        canUpload={false}
+        canRemove={false}
+      />
+    );
+
+    expect(await screen.findByRole('button', { name: /Copier l’URL — pick\.png/i })).toBeInTheDocument();
+    expect(document.querySelector('.media-library-menu__gallery')).toBeTruthy();
+  });
+
   test('filtre par recherche et affiche le décompte', async () => {
     render(
       <MediaLibraryMenu

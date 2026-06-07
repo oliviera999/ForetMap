@@ -3,6 +3,7 @@ import {
   filterAndSortMediaLibraryItems,
   filterMediaLibraryItems,
   pruneMediaLibrarySelection,
+  resolveMediaLibraryLayout,
   sortMediaLibraryItems,
 } from '../../src/utils/mediaLibraryView.js';
 
@@ -54,6 +55,13 @@ describe('mediaLibraryView', () => {
       sort: 'updated_desc',
     });
     expect(rows[0].filename).toBe('forêt.png');
+  });
+
+  test('resolveMediaLibraryLayout — picker en galerie, gestion en liste', () => {
+    expect(resolveMediaLibraryLayout({ onPickUrl: () => {} })).toBe('gallery');
+    expect(resolveMediaLibraryLayout({})).toBe('list');
+    expect(resolveMediaLibraryLayout({ layout: 'list', onPickUrl: () => {} })).toBe('gallery');
+    expect(resolveMediaLibraryLayout({ layout: 'gallery' })).toBe('gallery');
   });
 
   test('pruneMediaLibrarySelection retire les chemins absents', () => {
