@@ -12,6 +12,7 @@ const { buildSpeciesTemplateWorkbook } = require('../lib/glSpeciesImport');
 const { buildGlossaryTemplateWorkbook } = require('../lib/glGlossaryImport');
 const { buildQcmTemplateWorkbook } = require('../lib/glQcmImport');
 const { previewMediaFromBuffer, saveMediaFromBuffer } = require('../lib/mediaLibrary');
+const { MAX_ARCHIVE_BYTES, MAX_FILE_BYTES } = require('../lib/contentLibraryUpload');
 const fs = require('fs');
 const path = require('path');
 const { UPLOADS_DIR } = require('../lib/uploads');
@@ -50,6 +51,11 @@ test('saveMediaFromBuffer écrit sous media-library/image', () => {
   assert.ok(saved.relativePath.startsWith('media-library/image/'));
   assert.ok(fs.existsSync(path.join(UPLOADS_DIR, saved.relativePath)));
   fs.unlinkSync(path.join(UPLOADS_DIR, saved.relativePath));
+});
+
+test('limites bibliothèque — archive 50 Mo et fichier 32 Mo', () => {
+  assert.strictEqual(MAX_ARCHIVE_BYTES, 50 * 1024 * 1024);
+  assert.strictEqual(MAX_FILE_BYTES, 32 * 1024 * 1024);
 });
 
 test('previewMediaFromBuffer ne crée pas de fichier', () => {

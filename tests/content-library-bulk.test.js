@@ -171,3 +171,78 @@ test('analyze XLSX espèces retourne un aperçu dry-run', async () => {
   assert.strictEqual(analyzed.body?.entries?.[0]?.kind, 'species');
   assert.ok(analyzed.body?.entries?.[0]?.preview);
 });
+
+test('GET /api/gl/admin/content-library/limits retourne les plafonds', async () => {
+  const res = await request(app)
+    .get('/api/gl/admin/content-library/limits')
+    .set('Authorization', `Bearer ${contentAdminToken}`)
+    .expect(200);
+
+  assert.ok(res.body.maxArchiveBytes >= 50 * 1024 * 1024);
+  assert.ok(res.body.maxFileBytes >= 32 * 1024 * 1024);
+  assert.ok(res.body.maxFileCount >= 200);
+});
+
+test('analyze multipart PNG via supertest attach', async () => {
+  const pngBuffer = decodeBase64Payload(TINY_PNG_DATA_URL);
+  const analyzed = await request(app)
+    .post('/api/gl/admin/content-library/analyze')
+    .set('Authorization', `Bearer ${contentAdminToken}`)
+    .attach('files', pngBuffer, 'multipart-test.png')
+    .expect(200);
+
+  assert.strictEqual(analyzed.body?.summary?.total, 1);
+  assert.strictEqual(analyzed.body?.entries?.[0]?.kind, 'media');
+});
+
+test('analyze + apply multipart média', async () => {
+  const pngBuffer = decodeBase64Payload(TINY_PNG_DATA_URL);
+  const analyzed = await request(app)
+    .post('/api/gl/admin/content-library/analyze')
+    .set('Authorization', `Bearer ${contentAdminToken}`)
+    .attach('files', pngBuffer, 'apply-multipart.png')
+    .expect(200);
+
+  assert.strictEqual(analyzed.body?.entries?.[0]?.canApply, true);
+
+  const entries = JSON.stringify([{
+    fileName: 'apply-multipart.png',
+    kind: 'media',
+  }]);
+
+  const applied = await request(app)
+    .post('/api/gl/admin/content-library/apply')
+    .set('Authorization', `Bearer ${contentAdminToken}`)
+    .field('entries', entries)
+    .attach('files', pngBuffer, 'apply-multipart.png')
+    .expect(200);
+
+  assert.strictEqual(applied.body?.summary?.applied, 1);
+});
+
+test('analyze archive ZIP multipart', async () => {
+  const zip = new AdmZip();
+  zip.addFile('zip-multipart.png', decodeBase64Payload(TINY_PNG_DATA_URL));
+  const zipBuffer = zip.toBuffer();
+
+  const analyzed = await request(app)
+    .post('/api/gl/admin/content-library/analyze')
+    .set('Authorization', `Bearer ${contentAdminToken}`)
+    .attach('archive', zipBuffer, 'lot-multipart.zip')
+    .expect(200);
+
+  assert.strictEqual(analyzed.body?.summary?.total, 1);
+  assert.strictEqual(analyzed.body?.entries?.[0]?.fileName, 'zip-multipart.png');
+});
+
+test('analyze multipart refuse un fichier trop volumineux', async () => {
+  const { MAX_ARCHIVE_BYTES } = require('../lib/contentLibraryUpload');
+  const huge = Buffer.alloc(MAX_ARCHIVE_BYTES + 1024, 1);
+  const res = await request(app)
+    .post('/api/gl/admin/content-library/analyze')
+    .set('Authorization', `Bearer ${contentAdminToken}`)
+    .attach('files', huge, 'too-big.bin')
+    .expect(413);
+
+  assert.strictEqual(res.body.code, 'PAYLOAD_TOO_LARGE');
+});

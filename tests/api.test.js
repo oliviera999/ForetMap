@@ -43,6 +43,15 @@ async function setStudentPrimaryRole(studentId, roleSlug) {
   );
 }
 
+async function loginStudentAfterRole(studentRes, password, identifier) {
+  const loginRes = await request(app)
+    .post('/api/auth/login')
+    .send({ identifier: identifier || studentRes.body.email, password })
+    .expect(200);
+  assert.ok(loginRes.body.authToken);
+  return loginRes.body;
+}
+
 async function allowStudentProposalsAtZeroDone() {
   await execute('UPDATE roles SET min_done_tasks = ? WHERE slug = ?', [1, 'eleve_novice']);
   await execute('UPDATE roles SET min_done_tasks = ? WHERE slug = ?', [0, 'eleve_avance']);
@@ -493,6 +502,7 @@ test('Assign puis unassign met à jour le statut de la tâche', async () => {
 
 test('Plafond auto-inscription n3beur : TASK_ENROLLMENT_LIMIT et GET /api/auth/me', async () => {
   try {
+    await resetNoviceEnrollmentLimits();
     await setSetting('tasks.student_max_active_assignments', 1, {});
 
     const teacherToken = await getAdminAuthToken();
@@ -515,13 +525,10 @@ test('Plafond auto-inscription n3beur : TASK_ENROLLMENT_LIMIT et GET /api/auth/m
       .post('/api/auth/register')
       .send({ firstName: 'Limite', lastName: `N3b${Date.now()}`, password: 'pwd1', email: enrollEmail })
       .expect(201);
-    const { first_name, last_name, id: studentId } = studentRes.body;
-    await setStudentPrimaryRole(studentId, 'eleve_novice');
-    const loginRes = await request(app)
-      .post('/api/auth/login')
-      .send({ identifier: enrollEmail, password: 'pwd1' })
-      .expect(200);
-    const authToken = loginRes.body.authToken;
+    await setStudentPrimaryRole(studentRes.body.id, 'eleve_novice');
+    const session = await loginStudentAfterRole(studentRes, 'pwd1', enrollEmail);
+    const authToken = session.authToken;
+    const { first_name, last_name, id: studentId } = session;
 
     await request(app)
       .post(`/api/tasks/${t1.body.id}/assign`)
@@ -552,6 +559,7 @@ test('Plafond auto-inscription n3beur : TASK_ENROLLMENT_LIMIT et GET /api/auth/m
 
 test('Plafond auto-inscription : tâche all_assignees_done avec partie individuelle terminée ne compte plus', async () => {
   try {
+    await resetNoviceEnrollmentLimits();
     await setSetting('tasks.student_max_active_assignments', 1, {});
     const teacherToken = await getAdminAuthToken();
     const zones = await request(app).get('/api/zones').expect(200);
@@ -578,13 +586,10 @@ test('Plafond auto-inscription : tâche all_assignees_done avec partie individue
       .post('/api/auth/register')
       .send({ firstName: 'Coll', lastName: `N3b${Date.now()}`, password: 'pwd1', email: enrollEmail })
       .expect(201);
-    const { first_name, last_name, id: studentId } = studentRes.body;
-    await setStudentPrimaryRole(studentId, 'eleve_novice');
-    const loginRes = await request(app)
-      .post('/api/auth/login')
-      .send({ identifier: enrollEmail, password: 'pwd1' })
-      .expect(200);
-    const authToken = loginRes.body.authToken;
+    await setStudentPrimaryRole(studentRes.body.id, 'eleve_novice');
+    const session = await loginStudentAfterRole(studentRes, 'pwd1', enrollEmail);
+    const authToken = session.authToken;
+    const { first_name, last_name, id: studentId } = session;
 
     await request(app)
       .post(`/api/tasks/${collective.body.id}/assign`)
@@ -650,13 +655,10 @@ test('Plafond auto-inscription : le profil RBAC (max_concurrent_tasks) prime sur
       .post('/api/auth/register')
       .send({ firstName: 'Limite', lastName: `Profil${Date.now()}`, password: 'pwd1', email: enrollEmail })
       .expect(201);
-    const { first_name, last_name, id: studentId } = studentRes.body;
-    await setStudentPrimaryRole(studentId, 'eleve_novice');
-    const loginRes = await request(app)
-      .post('/api/auth/login')
-      .send({ identifier: enrollEmail, password: 'pwd1' })
-      .expect(200);
-    const authToken = loginRes.body.authToken;
+    await setStudentPrimaryRole(studentRes.body.id, 'eleve_novice');
+    const session = await loginStudentAfterRole(studentRes, 'pwd1', enrollEmail);
+    const authToken = session.authToken;
+    const { first_name, last_name, id: studentId } = session;
 
     await request(app)
       .post(`/api/tasks/${t1.body.id}/assign`)
@@ -711,13 +713,10 @@ test('max_concurrent_tasks = 0 sur le profil : pas de limite même si le réglag
       .post('/api/auth/register')
       .send({ firstName: 'Sans', lastName: `Limite${Date.now()}`, password: 'pwd1', email: enrollEmail })
       .expect(201);
-    const { first_name, last_name, id: studentId } = studentRes.body;
-    await setStudentPrimaryRole(studentId, 'eleve_novice');
-    const loginRes = await request(app)
-      .post('/api/auth/login')
-      .send({ identifier: enrollEmail, password: 'pwd1' })
-      .expect(200);
-    const authToken = loginRes.body.authToken;
+    await setStudentPrimaryRole(studentRes.body.id, 'eleve_novice');
+    const session = await loginStudentAfterRole(studentRes, 'pwd1', enrollEmail);
+    const authToken = session.authToken;
+    const { first_name, last_name, id: studentId } = session;
 
     for (const t of tasks) {
       await request(app)

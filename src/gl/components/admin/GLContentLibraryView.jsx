@@ -1,19 +1,27 @@
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { apiGL } from '../../services/apiGL.js';
+import { apiGLMultipart, formatBytesLabel } from '../../services/apiGLUpload.js';
+import {
+  ANALYZE_UPLOAD_CONCURRENCY,
+  DEFAULT_CONTENT_LIBRARY_LIMITS,
+  mergeAnalyzeResponses,
+  resolveSelectionMode,
+  runPool,
+  validateContentLibrarySelection,
+} from '../../utils/contentLibraryClient.js';
 import { MediaLibraryMenu } from '../../../components/MediaLibraryMenu.jsx';
 import { GLButton } from '../ui/GLButton.jsx';
 
 const TINY_PNG_DATA_URL =
   'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO6pJkQAAAAASUVORK5CYII=';
 
-async function fileToDataUrl(file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(String(reader.result || ''));
-    reader.onerror = () => reject(new Error('Lecture du fichier impossible'));
-    reader.readAsDataURL(file);
-  });
-}
+const FILE_STATUS_LABEL = {
+  pending: 'En attente',
+  uploading: 'Envoi',
+  analyzing: 'Analyse',
+  ok: 'OK',
+  error: 'Erreur',
+};
 
 function canUseClipboard() {
   return typeof navigator !== 'undefined' && !!navigator.clipboard?.writeText;
@@ -43,21 +51,56 @@ function kindBadgeClass(kind) {
   return 'gl-content-library-kind gl-content-library-kind--catalog';
 }
 
+function createFileRow(file) {
+  return {
+    file,
+    status: 'pending',
+    progress: 0,
+    error: null,
+  };
+}
+
 export function GLContentLibraryView({ onOpenSubTab }) {
   const fileInputRef = useRef(null);
   const [msg, setMsg] = useState('');
   const [err, setErr] = useState('');
   const [busy, setBusy] = useState(false);
-  const [selectedFiles, setSelectedFiles] = useState([]);
+  const [busyLabel, setBusyLabel] = useState('');
+  const [limits, setLimits] = useState(DEFAULT_CONTENT_LIBRARY_LIMITS);
+  const [selectionWarnings, setSelectionWarnings] = useState([]);
+  const [fileRows, setFileRows] = useState([]);
   const [archiveFile, setArchiveFile] = useState(null);
   const [analysisEntries, setAnalysisEntries] = useState([]);
   const [selectedKeys, setSelectedKeys] = useState(new Set());
   const [mediaReloadKey, setMediaReloadKey] = useState(0);
 
+  const selectedFiles = useMemo(() => fileRows.map((row) => row.file), [fileRows]);
+
   const applyableEntries = useMemo(
     () => analysisEntries.filter((entry) => entry.canApply && !entry.error),
     [analysisEntries]
   );
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const data = await apiGL('/api/gl/admin/content-library/limits');
+        if (cancelled || !data) return;
+        setLimits({
+          maxArchiveBytes: data.maxArchiveBytes || DEFAULT_CONTENT_LIBRARY_LIMITS.maxArchiveBytes,
+          maxFileBytes: data.maxFileBytes || DEFAULT_CONTENT_LIBRARY_LIMITS.maxFileBytes,
+          maxDecompressedBytes: data.maxDecompressedBytes || DEFAULT_CONTENT_LIBRARY_LIMITS.maxDecompressedBytes,
+          maxFileCount: data.maxFileCount || DEFAULT_CONTENT_LIBRARY_LIMITS.maxFileCount,
+        });
+      } catch (_) {
+        /* constantes locales */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const fetchMediaLibrary = async () => {
     const data = await apiGL('/api/gl/admin/media-library?limit=400');
@@ -107,49 +150,92 @@ export function GLContentLibraryView({ onOpenSubTab }) {
     setSelectedKeys(new Set(applyableEntries.map((entry, index) => entryKey(entry, analysisEntries.indexOf(entry)))));
   }
 
-  async function buildPayloadFromFiles(files) {
-    const list = Array.from(files || []).filter(Boolean);
-    if (list.length === 0) throw new Error('Sélectionnez au moins un fichier');
-    if (list.length === 1 && /\.zip$/i.test(list[0].name || '')) {
-      const fileDataBase64 = await fileToDataUrl(list[0]);
-      return {
-        mode: 'archive',
-        archiveFile: list[0],
-        payload: { archive: { fileName: list[0].name, fileDataBase64 } },
-      };
-    }
-    const encoded = [];
-    for (const file of list) {
-      encoded.push({
-        fileName: file.name,
-        fileDataBase64: await fileToDataUrl(file),
+  function updateFileRow(fileName, patch) {
+    setFileRows((prev) => prev.map((row) => (
+      row.file.name === fileName ? { ...row, ...patch } : row
+    )));
+  }
+
+  async function analyzeArchive(zipFile) {
+    updateFileRow(zipFile.name, { status: 'uploading', progress: 0, error: null });
+    const formData = new FormData();
+    formData.append('archive', zipFile, zipFile.name);
+    setBusyLabel(`Envoi — ${zipFile.name}`);
+    const data = await apiGLMultipart('/api/gl/admin/content-library/analyze', formData, {
+      limits,
+      onProgress: (percent) => {
+        updateFileRow(zipFile.name, { status: 'uploading', progress: percent });
+      },
+    });
+    updateFileRow(zipFile.name, { status: 'ok', progress: 100 });
+    return data;
+  }
+
+  async function analyzeSingleFile(file, index, total) {
+    updateFileRow(file.name, { status: 'uploading', progress: 0, error: null });
+    const formData = new FormData();
+    formData.append('files', file, file.name);
+    setBusyLabel(`Envoi ${index + 1}/${total} — ${file.name}`);
+    try {
+      const data = await apiGLMultipart('/api/gl/admin/content-library/analyze', formData, {
+        limits,
+        onProgress: (percent) => {
+          updateFileRow(file.name, { status: 'uploading', progress: percent });
+        },
       });
+      updateFileRow(file.name, { status: 'ok', progress: 100 });
+      return data;
+    } catch (e) {
+      updateFileRow(file.name, { status: 'error', progress: 0, error: e.message || 'Analyse impossible' });
+      throw e;
     }
-    return { mode: 'files', archiveFile: null, payload: { files: encoded } };
   }
 
   async function runAnalyze() {
+    const validation = validateContentLibrarySelection(selectedFiles, limits);
+    setSelectionWarnings(validation.warnings);
+    if (!validation.ok) {
+      setErr(validation.errors.join(' · '));
+      return;
+    }
+
+    const { mode, files, zipFile } = validation.resolved;
     setBusy(true);
     setErr('');
     setMsg('');
+    setArchiveFile(zipFile);
+    setAnalysisEntries([]);
+    setSelectedKeys(new Set());
+
     try {
-      const built = await buildPayloadFromFiles(selectedFiles);
-      setArchiveFile(built.archiveFile);
-      const data = await apiGL('/api/gl/admin/content-library/analyze', 'POST', built.payload);
-      const entries = Array.isArray(data?.entries) ? data.entries : [];
+      let merged;
+      if (mode === 'archive') {
+        setBusyLabel(`Analyse — ${zipFile.name}`);
+        merged = await analyzeArchive(zipFile);
+      } else {
+        setBusyLabel('Analyse des fichiers…');
+        const responses = await runPool(files, ANALYZE_UPLOAD_CONCURRENCY, async (file, index) => {
+          updateFileRow(file.name, { status: 'analyzing', progress: 100 });
+          return analyzeSingleFile(file, index, files.length);
+        });
+        merged = mergeAnalyzeResponses(responses);
+      }
+
+      const entries = Array.isArray(merged?.entries) ? merged.entries : [];
       setAnalysisEntries(entries);
       const keys = new Set();
       entries.forEach((entry, index) => {
         if (entry.canApply && !entry.error) keys.add(entryKey(entry, index));
       });
       setSelectedKeys(keys);
-      setMsg(`Analyse terminée : ${entries.length} fichier(s), ${data?.summary?.applyable || 0} applicable(s).`);
+      setMsg(`Analyse terminée : ${entries.length} fichier(s), ${merged?.summary?.applyable || 0} applicable(s).`);
     } catch (e) {
       setErr(e.message || 'Analyse impossible');
       setAnalysisEntries([]);
       setSelectedKeys(new Set());
     } finally {
       setBusy(false);
+      setBusyLabel('');
     }
   }
 
@@ -158,54 +244,79 @@ export function GLContentLibraryView({ onOpenSubTab }) {
       setErr('Sélectionnez au moins un fichier à appliquer');
       return;
     }
+
     setBusy(true);
     setErr('');
     setMsg('');
+
     try {
       const entries = [];
+      const filesToSend = [];
+      let applyIndex = 0;
+
       for (let index = 0; index < analysisEntries.length; index += 1) {
         const entry = analysisEntries[index];
         const key = entryKey(entry, index);
         if (!selectedKeys.has(key)) continue;
-        const row = {
+        applyIndex += 1;
+        entries.push({
           fileName: entry.fileName,
           kind: entry.kind,
           mimeType: entry.mimeType || null,
-        };
+        });
         if (!archiveFile) {
           const sourceFile = selectedFiles.find((file) => file.name === entry.fileName);
           if (!sourceFile) {
             throw new Error(`Fichier source introuvable pour ${entry.fileName}`);
           }
-          row.fileDataBase64 = await fileToDataUrl(sourceFile);
+          filesToSend.push(sourceFile);
         }
-        entries.push(row);
       }
-      const applyBody = { entries };
+
+      const formData = new FormData();
+      formData.append('entries', JSON.stringify(entries));
+
       if (archiveFile) {
-        applyBody.archive = {
-          fileName: archiveFile.name,
-          fileDataBase64: await fileToDataUrl(archiveFile),
-        };
+        formData.append('archive', archiveFile, archiveFile.name);
+        setBusyLabel(`Application — archive ${archiveFile.name}`);
+      } else {
+        for (const file of filesToSend) {
+          formData.append('files', file, file.name);
+        }
+        setBusyLabel(`Application ${applyIndex} fichier(s)…`);
       }
-      const data = await apiGL('/api/gl/admin/content-library/apply', 'POST', applyBody);
+
+      const data = await apiGLMultipart('/api/gl/admin/content-library/apply', formData, {
+        limits,
+        onProgress: (percent) => {
+          setBusyLabel(`${archiveFile ? 'Application archive' : 'Application'} — ${percent} %`);
+        },
+      });
+
       const applied = Number(data?.summary?.applied || 0);
       const failed = Number(data?.summary?.failed || 0);
       setMsg(`Application terminée : ${applied} réussi(s), ${failed} échec(s).`);
       if (applied > 0) setMediaReloadKey((value) => value + 1);
-      if (failed > 0) {
-        const details = (data?.results || [])
-          .filter((row) => !row.ok)
-          .map((row) => `${row.fileName}: ${row.error}`)
-          .join(' · ');
+
+      const failedRows = (data?.results || []).filter((row) => !row.ok);
+      if (failedRows.length > 0) {
+        setAnalysisEntries((prev) => prev.map((entry) => {
+          const failed = failedRows.find((row) => row.fileName === entry.fileName);
+          if (!failed) return entry;
+          return { ...entry, error: failed.error || entry.error || 'Application impossible' };
+        }));
+        const details = failedRows.map((row) => `${row.fileName}: ${row.error}`).join(' · ');
         setErr(details || 'Certains fichiers n’ont pas pu être importés');
       }
     } catch (e) {
       setErr(e.message || 'Application impossible');
     } finally {
       setBusy(false);
+      setBusyLabel('');
     }
   }
+
+  const limitsBanner = `ZIP jusqu'à ${formatBytesLabel(limits.maxArchiveBytes)} · fichier unitaire ${formatBytesLabel(limits.maxFileBytes)} · ${limits.maxFileCount} fichiers · analyse sans écriture BDD`;
 
   return (
     <div className="gl-content-library">
@@ -213,8 +324,10 @@ export function GLContentLibraryView({ onOpenSubTab }) {
         Bibliothèque globale partagée avec ForetMap (images, audio, vidéo) et imports catalogue G&amp;L (XLSX).
         L’analyse classe les fichiers sans écrire en base ; l’application est explicite.
       </p>
+      <p className="gl-content-library__limits-banner">{limitsBanner}</p>
       {err ? <p className="gl-error">{err}</p> : null}
       {msg ? <p className="gl-success">{msg}</p> : null}
+      {busy && busyLabel ? <p className="gl-hint">{busyLabel}</p> : null}
 
       <section className="gl-content-library__section">
         <h3>Consulter</h3>
@@ -252,15 +365,23 @@ export function GLContentLibraryView({ onOpenSubTab }) {
                 disabled={busy}
                 onChange={(event) => {
                   const next = Array.from(event.target.files || []);
-                  setSelectedFiles(next);
-                  setArchiveFile(next.length === 1 && /\.zip$/i.test(next[0]?.name || '') ? next[0] : null);
+                  const resolved = resolveSelectionMode(next);
+                  setFileRows(resolved.files.map(createFileRow));
+                  setArchiveFile(resolved.zipFile);
+                  setSelectionWarnings(
+                    resolved.ignoredCount > 0
+                      ? [`Archive ZIP détectée : les ${resolved.ignoredCount} autre(s) fichier(s) seront ignorés.`]
+                      : []
+                  );
                   setAnalysisEntries([]);
                   setSelectedKeys(new Set());
+                  setErr('');
+                  setMsg('');
                   event.target.value = '';
                 }}
               />
             </label>
-            <GLButton type="button" disabled={busy || selectedFiles.length === 0} onClick={runAnalyze}>
+            <GLButton type="button" disabled={busy || fileRows.length === 0} onClick={runAnalyze}>
               Analyser
             </GLButton>
             <GLButton
@@ -275,10 +396,39 @@ export function GLContentLibraryView({ onOpenSubTab }) {
               Tout sélectionner (applicables)
             </GLButton>
           </div>
-          {selectedFiles.length > 0 ? (
+          {selectionWarnings.length > 0 ? (
+            <ul className="gl-content-library__warnings">
+              {selectionWarnings.map((warning) => (
+                <li key={warning}>{warning}</li>
+              ))}
+            </ul>
+          ) : null}
+          {fileRows.length > 0 ? (
             <ul className="gl-content-library__file-list">
-              {selectedFiles.map((file) => (
-                <li key={`${file.name}-${file.size}`}>{file.name} ({Math.round(file.size / 1024)} Ko)</li>
+              {fileRows.map((row) => (
+                <li key={`${row.file.name}-${row.file.size}`} className="gl-content-library__file-item">
+                  <div className="gl-content-library__file-head">
+                    <span>{row.file.name}</span>
+                    <span className="gl-hint">
+                      {formatBytesLabel(row.file.size)} · {FILE_STATUS_LABEL[row.status] || row.status}
+                    </span>
+                  </div>
+                  {row.status === 'uploading' || row.status === 'analyzing' ? (
+                    <div
+                      className="gl-content-library__progress"
+                      role="progressbar"
+                      aria-valuemin={0}
+                      aria-valuemax={100}
+                      aria-valuenow={row.progress}
+                    >
+                      <div
+                        className="gl-content-library__progress-bar"
+                        style={{ width: `${row.progress}%` }}
+                      />
+                    </div>
+                  ) : null}
+                  {row.error ? <div className="gl-error">{row.error}</div> : null}
+                </li>
               ))}
             </ul>
           ) : (
@@ -314,7 +464,7 @@ export function GLContentLibraryView({ onOpenSubTab }) {
                       </td>
                       <td>
                         <strong>{entry.fileName}</strong>
-                        <div className="gl-hint">{Math.round((entry.size || 0) / 1024)} Ko</div>
+                        <div className="gl-hint">{formatBytesLabel(entry.size || 0)}</div>
                       </td>
                       <td>
                         <span className={kindBadgeClass(entry.kind)}>{entry.kindLabel || entry.kind}</span>
@@ -352,3 +502,5 @@ export function GLContentLibraryView({ onOpenSubTab }) {
     </div>
   );
 }
+
+export { TINY_PNG_DATA_URL };
