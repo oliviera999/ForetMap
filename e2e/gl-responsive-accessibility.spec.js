@@ -1,13 +1,8 @@
 const { test, expect } = require('@playwright/test');
-const { seedGlScenario } = require('./fixtures/gl.fixture');
+const { seedGlScenario, mountGlSession } = require('./fixtures/gl.fixture');
 
 async function seedGlPlayerSession(page, seeded, displayName = 'Joueur e2e a11y') {
-  await page.setExtraHTTPHeaders({ 'X-Foretmap-Product': 'gl' });
-  await page.goto('/');
-  await page.evaluate((payload) => {
-    localStorage.setItem('gl_session', JSON.stringify(payload));
-    localStorage.setItem('gl_active_tab', 'maps');
-  }, {
+  await mountGlSession(page, {
     token: seeded.playerToken,
     auth: {
       userType: 'gl_player',
@@ -15,34 +10,29 @@ async function seedGlPlayerSession(page, seeded, displayName = 'Joueur e2e a11y'
       displayName,
       teamId: seeded.teamId,
     },
+    tab: 'maps',
   });
-  await page.reload();
 }
 
 async function loginGlAdmin(page, seeded, tab = 'mj') {
-  await page.setExtraHTTPHeaders({ 'X-Foretmap-Product': 'gl' });
-  await page.goto('/');
-  await page.evaluate((payload) => {
-    localStorage.setItem('gl_session', JSON.stringify(payload.session));
-    localStorage.setItem('gl_active_tab', payload.tab);
-  }, {
-    session: {
-      token: seeded.adminToken,
-      auth: {
-        userType: 'gl_admin',
-        roleSlug: 'gl_admin',
-        displayName: 'MJ e2e a11y',
-      },
+  await mountGlSession(page, {
+    token: seeded.adminToken,
+    auth: {
+      userType: 'gl_admin',
+      roleSlug: 'gl_admin',
+      displayName: 'MJ e2e a11y',
     },
     tab,
   });
-  await page.reload();
 }
 
 test.describe('GL responsive & accessibilité', () => {
   test('auth GL reste navigable au clavier en viewport tablette', async ({ page }) => {
     await page.setViewportSize({ width: 1024, height: 768 });
     await page.setExtraHTTPHeaders({ 'X-Foretmap-Product': 'gl' });
+    await page.addInitScript(() => {
+      localStorage.setItem('gl_intro_seen', '1');
+    });
     await page.goto('/');
     await expect(page.locator('body')).toBeVisible();
 
@@ -69,9 +59,9 @@ test.describe('GL responsive & accessibilité', () => {
 
     await page.getByRole('button', { name: /Plus d'onglets/ }).click();
     await expect(page.getByRole('dialog', { name: 'Navigation' })).toBeVisible();
-    await expect(page.getByRole('tab', { name: 'Histoire' })).toBeVisible();
+    await expect(page.getByRole('tab', { name: 'Le monde de G&L' })).toBeVisible();
 
-    await page.getByRole('tab', { name: 'Histoire' }).click();
+    await page.getByRole('tab', { name: 'Le monde de G&L' }).click();
     await expect(page.getByRole('dialog', { name: 'Navigation' })).toBeHidden();
     await expect(page.getByRole('button', { name: /Plus d'onglets/ })).toHaveClass(/is-active/);
   });

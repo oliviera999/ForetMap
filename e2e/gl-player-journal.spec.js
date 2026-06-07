@@ -1,26 +1,18 @@
 const { test, expect } = require('@playwright/test');
-const { seedGlScenario } = require('./fixtures/gl.fixture');
+const { seedGlScenario, mountGlSession } = require('./fixtures/gl.fixture');
 
 async function loginGlPlayer(page, seeded, { tab = 'my-journal' } = {}) {
-  await page.setExtraHTTPHeaders({ 'X-Foretmap-Product': 'gl' });
-  await page.goto('/');
-  await page.evaluate((payload) => {
-    localStorage.setItem('gl_session', JSON.stringify(payload.session));
-    if (payload.tab) localStorage.setItem('gl_active_tab', payload.tab);
-  }, {
-    session: {
-      token: seeded.playerToken,
-      auth: {
-        userType: 'gl_player',
-        roleSlug: 'gl_player',
-        displayName: seeded.playerPseudo,
-        userId: String(seeded.playerId),
-        teamId: seeded.teamId,
-      },
+  await mountGlSession(page, {
+    token: seeded.playerToken,
+    auth: {
+      userType: 'gl_player',
+      roleSlug: 'gl_player',
+      displayName: seeded.playerPseudo,
+      userId: String(seeded.playerId),
+      teamId: seeded.teamId,
     },
     tab,
   });
-  await page.reload();
 }
 
 test.describe('GL carnet personnel (Mon journal)', () => {
@@ -77,7 +69,7 @@ test.describe('GL carnet personnel (Mon journal)', () => {
 
     await loginGlPlayer(page, seeded, { tab: 'maps' });
 
-    const tabBtn = page.getByRole('button', { name: /Mon journal/i });
+    const tabBtn = page.getByRole('tab', { name: /Mon journal/i });
     await expect(tabBtn).toBeVisible();
     await tabBtn.click();
     await expect(page.getByRole('heading', { name: 'Mon journal', level: 2 })).toBeVisible();

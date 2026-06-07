@@ -74,4 +74,22 @@ async function seedGlScenario(label = 'default') {
   };
 }
 
-module.exports = { seedGlScenario };
+/** Prépare localStorage GL (intro passée) puis recharge la page. */
+async function mountGlSession(page, { token, auth, tab = null, skipIntro = true } = {}) {
+  await page.setExtraHTTPHeaders({ 'X-Foretmap-Product': 'gl' });
+  await page.goto('/');
+  await page.evaluate((payload) => {
+    if (payload.skipIntro) localStorage.setItem('gl_intro_seen', '1');
+    if (payload.session) {
+      localStorage.setItem('gl_session', JSON.stringify(payload.session));
+    }
+    if (payload.tab) localStorage.setItem('gl_active_tab', payload.tab);
+  }, {
+    skipIntro,
+    session: token ? { token, auth } : null,
+    tab,
+  });
+  await page.reload();
+}
+
+module.exports = { seedGlScenario, mountGlSession };

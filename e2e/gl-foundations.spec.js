@@ -1,5 +1,5 @@
 const { test, expect } = require('@playwright/test');
-const { seedGlScenario } = require('./fixtures/gl.fixture');
+const { seedGlScenario, mountGlSession } = require('./fixtures/gl.fixture');
 
 test.describe('Gnomes & Licornes foundations', () => {
   test('API GL de base répond', async ({ request }) => {
@@ -28,22 +28,18 @@ test.describe('Gnomes & Licornes foundations', () => {
     });
     expect(enableNotifications.ok()).toBeTruthy();
 
-    await page.setExtraHTTPHeaders({ 'X-Foretmap-Product': 'gl' });
-    await page.goto('/');
-    await page.evaluate((payload) => {
-      localStorage.setItem('gl_session', JSON.stringify(payload));
-    }, {
+    await mountGlSession(page, {
       token: seeded.adminToken,
       auth: {
         userType: 'gl_admin',
         roleSlug: 'gl_admin',
         displayName: 'MJ foundations-ui',
       },
+      tab: 'maps',
     });
-    await page.reload();
 
-    await expect(page.getByRole('button', { name: 'Cartes' })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Royaume' })).toBeVisible();
+    await expect(page.getByRole('tab', { name: 'Cartes' })).toBeVisible();
+    await expect(page.getByRole('tab', { name: 'Le monde de G&L' })).toBeVisible();
     await expect(page.locator('.gl-notifications-bell')).toBeVisible();
   });
 });

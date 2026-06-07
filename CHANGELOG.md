@@ -9,12 +9,18 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ### Ajouté
 
+- **GL — e2e liaison médias** : scénarios `e2e/gl-media-assets.spec.js` (API `_keys.json`, intro, chapitres).
+- **GL — helper e2e session** : `mountGlSession` dans `e2e/fixtures/gl.fixture.js` (intro passée, onglet actif).
+
 - **GL — import médias local** : script `npm run gl:import:media` (`médias/images.zip` + MP3 → médiathèque, manifestes auto) ; audit `npm run gl:audit:media-keys` ; module `lib/glMediaKeysAudit.js`. Tests `tests/gl-media-chapter-link.test.js`. Doc `data/gl/README.md`.
 
 - **GL — musique plateau par biome** : résolution `resolvePlateauAudioSlug` (sahara/jungle, savane/méditerranée, toundra jour/nuit, etc.) ; `plateauAudio` / `introAudio` ; script `node scripts/prepare-gl-audio-pack.mjs` → `data/gl/audio-pack/` (noms `GL_plateau-*`). Tests `tests/gl-plateau-audio-slug.test.js`. Doc `data/gl/README.md`.
 
 ### Corrigé
 
+- **GL — fermeture intro login** : état `introDismissed` pour re-render après « Passer l'intro » (évite no-op `setForceIntro(false)`). E2E `gl-intro.spec.js`.
+- **GL — e2e navigation** : sélecteurs `role=tab` (remplace `button`), onglet « Royaume » → « Le monde de G&L », drawer mobile sans « Histoire » si module journal off.
+- **RBAC — progression élève** : promotion automatique au palier mérité (montée de rang ou palier perso après tâches validées). Tests `rbac-progression`, `tasks-validate-rbac`.
 - **GL — résolution fond plateau vs audio** : `resolvePlateauBoardSlug` exclut les clés audio du même préfixe `plateau-N_*` ; `audioByStableKey` résout via `_keys.json` en priorité. Tests `gl-plateau-board-slug`, `gl-media-chapter-link`.
 - **GL — imports UI manquants** : `GLButton`, `DialogShell`, `GLSpeciesDetailModal` dans les composants feuillet/carte/biocénose.
 - **GL — test QCM lore scopes** : alignement sur réponse API tableau (sans wrapper `items`).

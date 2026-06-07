@@ -41,6 +41,7 @@ export function GLIntroOverlay({ open, onComplete }) {
       <button
         type="button"
         className="gl-intro-overlay__skip"
+        data-testid="gl-intro-skip"
         onClick={finish}
       >
         Passer l&apos;intro ›
