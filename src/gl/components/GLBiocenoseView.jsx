@@ -7,6 +7,7 @@ export function GLBiocenoseView({
   onOpenGlossaryTerm,
   learningProgress,
   glossaryLinkItems = [],
+  loreCarnetEnabled = false,
 }) {
   const introMarkdown = String(gameState?.game?.biocenose_markdown || '').trim();
   const biomes = Array.isArray(gameState?.game?.chapter_biomes)
@@ -27,6 +28,8 @@ export function GLBiocenoseView({
       ) : null}
       <GLSpeciesCatalog
         biomes={biomes}
+        gameId={gameState?.game?.id ?? null}
+        loreCarnetEnabled={loreCarnetEnabled}
         onOpenGlossaryTerm={onOpenGlossaryTerm}
         learningProgress={learningProgress}
       />

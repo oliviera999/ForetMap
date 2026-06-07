@@ -921,6 +921,7 @@ export function AppGL() {
             onOpenGlossaryTerm={openGlossaryPopover}
             learningProgress={learningProgress}
             glossaryLinkItems={glossaryLinkItems}
+            loreCarnetEnabled={isModuleEnabled(modules, 'loreCarnetEnabled')}
           />
         )}
         {tab === 'glossary' && (

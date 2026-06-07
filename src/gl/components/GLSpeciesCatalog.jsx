@@ -225,6 +225,8 @@ export function GLSpeciesCatalog({
         key={activeBiome.slug}
         biomeSlug={activeBiome.slug}
         biomeNom={activeBiome.nom}
+        gameId={gameId}
+        loreCarnetEnabled={loreCarnetEnabled}
         onOpenGlossaryTerm={onOpenGlossaryTerm}
         learningProgress={learningProgress}
       />

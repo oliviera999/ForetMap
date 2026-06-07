@@ -97,8 +97,13 @@ Colonnes optionnelles sur la feuille `feuillets` :
 
 - **`image_url`** — illustration de scène (`/uploads/media-library/image/<nom>.png`, voir `MANIFESTE-images.md` dans la bibliothèque média).
 - **`image_coupe_url`** — coupe pédagogique (pages-biome), même format d’URL.
+- **`lien_canal`** — canal de liaison (`espece`, `espece_pays`, `intro_pays`) ; cellule vide = pas de liaison.
+- **`lien_ref`** — référence du lien : code espèce (`espece`, ex. `SP0049`) ou biomes du pays (`espece_pays`, ex. `taiga,desert_froid`).
+- **`lien_pays`** — numéro de pays du voyage (1–5, ordre équateur→pôle) pour `espece_pays`.
+- **`lien_ordre_recit`** — ordre narratif des feuillets liés (route pays ou intros `cop-mov`).
+- **`lien_note`** — note éditoriale interne (non affichée en jeu).
 
-Ré-import partiel : cellule **vide** = valeur en base conservée (`COALESCE` côté serveur). Les feuillets de type `reponse` ou `vierge` restent généralement sans illustration.
+Ré-import partiel : cellule **vide** sur `image_*` et `lien_*` = valeur en base conservée (`COALESCE` côté serveur). Les feuillets `reponse`, `vierge` et les `copiste` hors `cop-mov` restent volontairement non branchés à l’étude d’espèces ; les feuillets `reponse` / `vierge` restent généralement sans illustration.
 
 ```bash
 npm run gl:import:lore-feuillets          # simulation (dry-run)
@@ -108,7 +113,7 @@ npm run gl:import:lore-feuillets -- --apply --file=chemin/vers/fichier.xlsx
 
 Depuis l’admin GL : **Contenus → Carnet Sélène** — import XLSX (boutons **Modèle XLSX** / **Exporter**, API `GET /api/gl/lore/admin/feuillets/import/template` et `GET /api/gl/lore/admin/feuillets/export`). Liaison optionnelle d’un feuillet à une zone polygonale : panneau zone du studio carte ou `PUT /api/gl/lore/admin/feuillets/:code/kingdom-zone`.
 
-Runtime : découverte à l’entrée en zone (`POST /api/gl/lore/games/:id/feuillets/:code/present`), onglet joueur **Carnet de Sélène**, réglages plateforme/partie (`gameplay.lore_*`, `modules.lore_carnet_enabled`).
+Runtime : découverte à l’entrée en zone (`POST /api/gl/lore/games/:id/feuillets/:code/present`) **ou** à la première étude d’espèce (`POST /api/gl/learning/species/:code` avec `gameId`, voir `docs/API.md`), onglet joueur **Carnet de Sélène**, réglages plateforme/partie (`gameplay.lore_*`, `modules.lore_carnet_enabled`).
 
 ## Glossaire narratif (lore)
 
