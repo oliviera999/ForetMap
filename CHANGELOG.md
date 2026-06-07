@@ -7,6 +7,10 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Ajouté
+
+- **GL — musique plateau par biome** : résolution `resolvePlateauAudioSlug` (sahara/jungle, savane/méditerranée, toundra jour/nuit, etc.) ; `plateauAudio` / `introAudio` ; script `node scripts/prepare-gl-audio-pack.mjs` → `data/gl/audio-pack/` (noms `GL_plateau-*`). Tests `tests/gl-plateau-audio-slug.test.js`. Doc `data/gl/README.md`.
+
 ### Corrigé
 
 - **GL — import bibliothèque, noms de fichiers accentués** : décodage UTF-8 des noms multipart (`forÃªt` → `forêt`) côté serveur ; conservation `sourceFileName` côté client pour l’application après analyse parallèle. Tests upload/UI.

@@ -4,6 +4,8 @@
 
 Les illustrations de jeu (`GL_plateau-*`, `GL_biome_*`, `GL_recit_feuillet-action_*`, etc.) se déposent via **Contenus → Bibliothèque** (ZIP ou galerie). Le nom d’origine (`GL_<slug>.ext`) devient la **clé stable** ; les manifestes `_keys.json` / `_manifest.*.json` sont régénérés automatiquement sous `uploads/media-library/`.
 
+**Audio plateaux** : nommer `GL_plateau-<N>_<variante>.mp3` (ex. `GL_plateau-2_savane.mp3`, `GL_plateau-5_toundra-nuit.mp3`). Préparation depuis les MP3 sources : `node scripts/prepare-gl-audio-pack.mjs [dossier]` → `data/gl/audio-pack/`. La musique en jeu choisit la piste selon le **plateau** et le **biome** du chapitre (toundra été/hiver automatique).
+
 Sprites à alpha (`app_*`, `embleme_*`) : versionner dans `public/gl/sprites/` (PNG/WebP).
 
 ## Intro cinématique (écran de lancement)

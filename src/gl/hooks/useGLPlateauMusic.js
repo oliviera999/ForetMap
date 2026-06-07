@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { audio, loadGlAssetRuntime } from '../assets/index.js';
+import { introAudio, loadGlAssetRuntime, plateauAudio } from '../assets/index.js';
 import { GL_ZONE_MUSIC_FADE_MS, GL_ZONE_MUSIC_MUTED_KEY } from './useGLZoneMusic.js';
 
 function readStoredMuted() {
@@ -48,17 +48,18 @@ function runCrossfade({ outgoing, incoming, outFrom, inTo, durationMs, rafRef, o
   rafRef.current = requestAnimationFrame(step);
 }
 
-function resolvePlateauSlot(plateauNumber, introActive) {
-  if (introActive) return 'intro';
-  const n = Number(plateauNumber);
-  if (Number.isFinite(n) && n >= 1 && n <= 5) return `plateau-${n}`;
-  return null;
+function resolveTrack(introActive, plateauNumber, biomeSlug, saison) {
+  if (introActive) return introAudio();
+  if (plateauNumber != null) return plateauAudio(plateauNumber, biomeSlug, saison);
+  return { url: null, loop: true, gain: 0.7 };
 }
 
 export function useGLPlateauMusic({
   enabled = false,
   plateauNumber = null,
   introActive = false,
+  biomeSlug = null,
+  biomeSaison = null,
   fadeMs = GL_ZONE_MUSIC_FADE_MS,
 }) {
   const [userMuted, setUserMuted] = useState(readStoredMuted);
@@ -102,9 +103,8 @@ export function useGLPlateauMusic({
 
   useEffect(() => {
     if (!enabled || userMuted || !unlockedRef.current) return undefined;
-    const slot = resolvePlateauSlot(plateauNumber, introActive);
-    const track = slot ? audio(slot) : { url: null, loop: true, gain: 0.7 };
-    const trackKey = track.url ? `${slot}:${track.url}` : null;
+    const track = resolveTrack(introActive, plateauNumber, biomeSlug, biomeSaison);
+    const trackKey = track.url ? `${introActive ? 'intro' : plateauNumber}:${biomeSlug || ''}:${track.url}` : null;
 
     if (!track.url) {
       const outgoing = activeSlotRef.current === 'a' ? audioARef.current
@@ -166,7 +166,7 @@ export function useGLPlateauMusic({
     });
 
     return () => cancelFade(fadeRafRef);
-  }, [enabled, userMuted, plateauNumber, introActive, fadeMs, ensureAudios]);
+  }, [enabled, userMuted, plateauNumber, introActive, biomeSlug, biomeSaison, fadeMs, ensureAudios]);
 
   useEffect(() => () => {
     cancelFade(fadeRafRef);

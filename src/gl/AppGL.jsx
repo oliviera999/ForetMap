@@ -236,6 +236,11 @@ export function AppGL() {
   const virtualDiceEnabled = isModuleEnabled(modules, 'virtualDiceEnabled');
   const feuilletZoneEditMode = isFeuilletZoneEditMode() && showStaffAdminUi;
   const chapterPlateauNumber = gameState?.game?.chapter_plateau_number ?? null;
+  const chapterMusicBiomeSlug = useMemo(() => {
+    const fromList = chapterBiomeSlugs[0];
+    if (fromList) return fromList;
+    return gameState?.game?.biome || null;
+  }, [chapterBiomeSlugs, gameState?.game?.biome]);
 
   useEffect(() => {
     if (!token) return undefined;
@@ -1183,6 +1188,7 @@ export function AppGL() {
         enabled={Boolean(token && gameState?.game)}
         plateauNumber={chapterPlateauNumber}
         introActive={chapterPlateauNumber == null && Boolean(gameState?.game)}
+        biomeSlug={chapterMusicBiomeSlug}
       />
     </div>
     </GLMascotCatalogProvider>
