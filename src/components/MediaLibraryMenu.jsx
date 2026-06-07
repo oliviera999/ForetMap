@@ -1,4 +1,11 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { withAppBase } from '../services/api.js';
+import {
+  filterAndSortMediaLibraryItems,
+  formatMediaLibrarySize,
+  MEDIA_LIBRARY_SORT_OPTIONS,
+  MEDIA_LIBRARY_TYPE_FILTERS,
+} from '../utils/mediaLibraryView.js';
 
 function readFileAsDataUrl(file) {
   return new Promise((resolve, reject) => {
@@ -15,6 +22,47 @@ function mediaEmoji(type) {
   return '🖼️';
 }
 
+function resolveMediaUrl(url) {
+  return withAppBase(String(url || ''));
+}
+
+function MediaLibraryGalleryTile({ item, onPickUrl, showMeta = false }) {
+  const mediaType = String(item.mediaType || 'image');
+  const mediaUrl = resolveMediaUrl(item.url);
+
+  return (
+    <button
+      type="button"
+      className="media-library-menu__gallery-tile"
+      title={`Copier l’URL — ${item.filename}`}
+      aria-label={`Copier l’URL — ${item.filename}`}
+      onClick={() => onPickUrl?.(item.url)}
+    >
+      <span className="media-library-menu__gallery-preview">
+        {mediaType === 'image' ? (
+          <img src={mediaUrl} alt="" loading="lazy" decoding="async" />
+        ) : mediaType === 'video' ? (
+          <>
+            <video src={mediaUrl} preload="metadata" muted playsInline aria-hidden="true" />
+            <span className="media-library-menu__gallery-type">Vidéo</span>
+          </>
+        ) : (
+          <>
+            <span className="media-library-menu__gallery-icon" aria-hidden="true">🎧</span>
+            <span className="media-library-menu__gallery-type">Audio</span>
+          </>
+        )}
+      </span>
+      <span className="media-library-menu__gallery-caption">{item.filename}</span>
+      {showMeta ? (
+        <span className="media-library-menu__gallery-meta">
+          {formatMediaLibrarySize(item.size)}
+        </span>
+      ) : null}
+    </button>
+  );
+}
+
 export function MediaLibraryMenu({
   title = 'Bibliothèque média',
   fetchItems,
@@ -27,17 +75,25 @@ export function MediaLibraryMenu({
   defaultOpen = false,
   showToggle = true,
   allowMultiple = false,
+  layout = 'list',
+  showGalleryMeta = true,
 }) {
   const [open, setOpen] = useState(defaultOpen);
   const [items, setItems] = useState([]);
-  const [filter, setFilter] = useState('all');
+  const [typeFilter, setTypeFilter] = useState('all');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [sortBy, setSortBy] = useState('updated_desc');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
 
-  const filtered = useMemo(() => {
-    if (filter === 'all') return items;
-    return items.filter((item) => String(item.mediaType || '') === filter);
-  }, [filter, items]);
+  const visibleItems = useMemo(
+    () => filterAndSortMediaLibraryItems(items, {
+      filter: typeFilter,
+      query: searchQuery,
+      sort: sortBy,
+    }),
+    [items, typeFilter, searchQuery, sortBy]
+  );
 
   async function reload() {
     setError('');
@@ -104,69 +160,132 @@ export function MediaLibraryMenu({
     }
   }
 
+  const panelClassName = layout === 'gallery'
+    ? 'media-library-menu__panel media-library-menu__panel--gallery'
+    : 'media-library-menu__panel';
+
+  const countLabel = visibleItems.length === items.length
+    ? `${visibleItems.length} média${visibleItems.length > 1 ? 's' : ''}`
+    : `${visibleItems.length} / ${items.length} média${items.length > 1 ? 's' : ''}`;
+
   return (
-    <div className="media-library-menu">
+    <div className={`media-library-menu${layout === 'gallery' ? ' media-library-menu--gallery' : ''}`}>
       {showToggle ? (
         <button type="button" className="btn btn-secondary btn-sm" onClick={ensureOpen}>
           {open ? 'Fermer bibliothèque média' : 'Ouvrir bibliothèque média'}
         </button>
       ) : null}
       {open ? (
-        <div className="media-library-menu__panel">
+        <div className={panelClassName}>
           <h4 style={{ marginTop: 0 }}>{title}</h4>
           {error ? <p className="gl-error">{error}</p> : null}
           {manageHint ? <p className="gl-hint">{manageHint}</p> : null}
-          <div className="media-library-menu__actions">
-            {canUpload ? (
-              <label className="btn btn-secondary btn-sm">
-                📁 Importer
+          <div className="media-library-menu__toolbar">
+            <div className="media-library-menu__filters">
+              <label className="media-library-menu__search">
+                <span className="media-library-menu__filter-label">Rechercher</span>
                 <input
-                  type="file"
-                  accept="image/*,audio/*,video/*"
-                  multiple={allowMultiple}
-                  style={{ display: 'none' }}
+                  type="search"
+                  value={searchQuery}
+                  placeholder="Nom de fichier…"
                   disabled={busy}
-                  onChange={(event) => {
-                    const selected = event.target.files;
-                    event.target.value = '';
-                    if (allowMultiple) {
-                      onUploadFiles(selected);
-                      return;
-                    }
-                    onUploadFile(selected?.[0]);
-                  }}
+                  onChange={(event) => setSearchQuery(event.target.value)}
                 />
               </label>
-            ) : (
-              <button type="button" className="btn btn-secondary btn-sm" disabled>
-                📁 Importer
+              <label className="media-library-menu__filter">
+                <span className="media-library-menu__filter-label">Type</span>
+                <select value={typeFilter} disabled={busy} onChange={(event) => setTypeFilter(event.target.value)}>
+                  {MEDIA_LIBRARY_TYPE_FILTERS.map((option) => (
+                    <option key={option.value} value={option.value}>{option.label}</option>
+                  ))}
+                </select>
+              </label>
+              <label className="media-library-menu__filter">
+                <span className="media-library-menu__filter-label">Tri</span>
+                <select value={sortBy} disabled={busy} onChange={(event) => setSortBy(event.target.value)}>
+                  {MEDIA_LIBRARY_SORT_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>{option.label}</option>
+                  ))}
+                </select>
+              </label>
+            </div>
+            <div className="media-library-menu__actions">
+              {canUpload ? (
+                <label className="btn btn-secondary btn-sm">
+                  📁 Importer
+                  <input
+                    type="file"
+                    accept="image/*,audio/*,video/*"
+                    multiple={allowMultiple}
+                    style={{ display: 'none' }}
+                    disabled={busy}
+                    onChange={(event) => {
+                      const selected = event.target.files;
+                      event.target.value = '';
+                      if (allowMultiple) {
+                        onUploadFiles(selected);
+                        return;
+                      }
+                      onUploadFile(selected?.[0]);
+                    }}
+                  />
+                </label>
+              ) : (
+                <button type="button" className="btn btn-secondary btn-sm" disabled>
+                  📁 Importer
+                </button>
+              )}
+              <button type="button" className="btn btn-secondary btn-sm" disabled={busy} onClick={reload}>
+                Rafraîchir
               </button>
-            )}
-            <button type="button" className="btn btn-secondary btn-sm" disabled={busy} onClick={reload}>
-              Rafraîchir
-            </button>
-            <select value={filter} onChange={(event) => setFilter(event.target.value)} disabled={busy}>
-              <option value="all">Tous</option>
-              <option value="image">Images</option>
-              <option value="audio">Audio</option>
-              <option value="video">Vidéo</option>
-            </select>
+            </div>
           </div>
+          <p className="media-library-menu__count gl-hint">{countLabel}</p>
           {busy ? <p className="gl-hint">Chargement…</p> : null}
-          <ul className="media-library-menu__list">
-            {filtered.map((item) => (
-              <li key={item.relativePath}>
-                <button type="button" className="gl-marker-row-btn" onClick={() => onPickUrl?.(item.url)}>
-                  {mediaEmoji(item.mediaType)} <strong>{item.filename}</strong>
-                  <span className="gl-hint"> — {item.url}</span>
-                </button>
-                <button type="button" className="gl-danger" onClick={() => onDelete(item)} disabled={busy || !canRemove}>
-                  Supprimer
-                </button>
-              </li>
-            ))}
-            {filtered.length === 0 && !busy ? <li className="gl-hint">Aucun média dans ce filtre.</li> : null}
-          </ul>
+          {layout === 'gallery' ? (
+            <ul className="media-library-menu__gallery">
+              {visibleItems.map((item) => (
+                <li key={item.relativePath} className="media-library-menu__gallery-item">
+                  <MediaLibraryGalleryTile
+                    item={item}
+                    onPickUrl={onPickUrl}
+                    showMeta={showGalleryMeta}
+                  />
+                  {canRemove ? (
+                    <button
+                      type="button"
+                      className="media-library-menu__gallery-remove"
+                      title="Supprimer"
+                      aria-label={`Supprimer ${item.filename}`}
+                      disabled={busy}
+                      onClick={() => onDelete(item)}
+                    >
+                      ×
+                    </button>
+                  ) : null}
+                </li>
+              ))}
+              {visibleItems.length === 0 && !busy ? (
+                <li className="media-library-menu__gallery-empty gl-hint">Aucun média ne correspond aux filtres.</li>
+              ) : null}
+            </ul>
+          ) : (
+            <ul className="media-library-menu__list">
+              {visibleItems.map((item) => (
+                <li key={item.relativePath}>
+                  <button type="button" className="gl-marker-row-btn" onClick={() => onPickUrl?.(item.url)}>
+                    {mediaEmoji(item.mediaType)} <strong>{item.filename}</strong>
+                    <span className="gl-hint"> — {item.url}</span>
+                    {item.size ? <span className="gl-hint"> ({formatMediaLibrarySize(item.size)})</span> : null}
+                  </button>
+                  <button type="button" className="gl-danger" onClick={() => onDelete(item)} disabled={busy || !canRemove}>
+                    Supprimer
+                  </button>
+                </li>
+              ))}
+              {visibleItems.length === 0 && !busy ? <li className="gl-hint">Aucun média ne correspond aux filtres.</li> : null}
+            </ul>
+          )}
         </div>
       ) : null}
     </div>
