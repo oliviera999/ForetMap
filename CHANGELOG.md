@@ -9,6 +9,8 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ### Corrigé
 
+- **GL — import bibliothèque, noms de fichiers accentués** : décodage UTF-8 des noms multipart (`forÃªt` → `forêt`) côté serveur ; conservation `sourceFileName` côté client pour l’application après analyse parallèle. Tests upload/UI.
+
 - **GL — import bibliothèque volumineux (~28 Mo)** : transport **multipart binaire** (`multer`, champs `archive` / `files[]`) à la place du JSON base64 ; limites **50 Mo** (ZIP) / **32 Mo** (fichier) / **100 Mo** décompressé ; XLSX bibliothèque via `lib/glImportLimits.js` ; handler **413** explicite (`PAYLOAD_TOO_LARGE`) ; UI avec validation client, uploads parallèles (×3), barres de progression et `GET /api/gl/admin/content-library/limits`. Tests `tests/content-library-upload.test.js`, extensions bulk/UI. Doc `docs/API.md`, `docs/EXPLOITATION.md`, `.env.example`.
 
 - **GL — tests révélation feuillets espèce** : mock UI `GLLearningAcknowledgeButton` respecte `isDone` ; scénario pays 5 aligné sur 5 feuillets ; retrait import corpus lourd du hook `before` (tests plus rapides).

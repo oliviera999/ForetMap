@@ -1,6 +1,8 @@
 import { describe, test, expect } from 'vitest';
 import {
   DEFAULT_CONTENT_LIBRARY_LIMITS,
+  findSelectedSourceFile,
+  mergeAnalyzeResponses,
   validateContentLibrarySelection,
 } from '../../src/gl/utils/contentLibraryClient.js';
 import { formatBytesLabel } from '../../src/gl/services/apiGLUpload.js';
@@ -32,6 +34,23 @@ describe('contentLibraryClient', () => {
     expect(result.ok).toBe(true);
     expect(result.resolved.mode).toBe('archive');
     expect(result.warnings.length).toBeGreaterThan(0);
+  });
+
+  test('findSelectedSourceFile retrouve le File malgré un fileName serveur corrompu', () => {
+    const file = mockFile('forêt caducifolié (2).mp3', 1024);
+    const entry = {
+      fileName: 'forÃªt caducifoliÃ© (2).mp3',
+      sourceFileName: 'forêt caducifolié (2).mp3',
+    };
+    expect(findSelectedSourceFile([file], entry)).toBe(file);
+  });
+
+  test('mergeAnalyzeResponses conserve sourceFileName', () => {
+    const merged = mergeAnalyzeResponses(
+      [{ entries: [{ fileName: 'forÃªt.mp3', kind: 'media' }] }],
+      [mockFile('forêt.mp3', 100)]
+    );
+    expect(merged.entries[0].sourceFileName).toBe('forêt.mp3');
   });
 });
 

@@ -6,6 +6,7 @@ const {
   MAX_ARCHIVE_BYTES,
   MAX_FILE_BYTES,
   MAX_FILE_COUNT,
+  decodeMultipartFileName,
   readAnalyzeUploadPayload,
   readApplyUploadPayload,
   getContentLibraryLimits,
@@ -44,16 +45,25 @@ test('getContentLibraryLimits expose les tailles attendues', () => {
   assert.strictEqual(limits.maxFileCount, MAX_FILE_COUNT);
 });
 
+test('decodeMultipartFileName corrige les accents UTF-8 mal lus en latin1', () => {
+  assert.strictEqual(
+    decodeMultipartFileName('forÃªt caducifoliÃ© (2).mp3'),
+    'forêt caducifolié (2).mp3'
+  );
+  assert.strictEqual(decodeMultipartFileName('dÃ©sert froid.mp3'), 'désert froid.mp3');
+  assert.strictEqual(decodeMultipartFileName('photo.png'), 'photo.png');
+});
+
 test('readAnalyzeUploadPayload multipart — archive', () => {
   const buffer = Buffer.from('zip-content');
   const payload = readAnalyzeUploadPayload(mockReq({
     headers: { 'content-type': 'multipart/form-data; boundary=abc' },
     files: {
-      archive: [{ originalname: 'lot.zip', buffer }],
+      archive: [{ originalname: 'forÃªt.zip', buffer }],
     },
   }));
   assert.strictEqual(payload.transport, 'multipart');
-  assert.strictEqual(payload.archive.fileName, 'lot.zip');
+  assert.strictEqual(payload.archive.fileName, 'forêt.zip');
   assert.deepStrictEqual(payload.archive.buffer, buffer);
 });
 

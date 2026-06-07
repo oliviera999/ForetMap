@@ -83,10 +83,31 @@ export async function runPool(items, concurrency, worker) {
   return results;
 }
 
-export function mergeAnalyzeResponses(responses = []) {
+export function findSelectedSourceFile(selectedFiles = [], entry = {}) {
+  const preferred = asTrimmedString(entry.sourceFileName) || asTrimmedString(entry.fileName);
+  if (!preferred) return null;
+  return selectedFiles.find((file) => file.name === preferred)
+    || selectedFiles.find((file) => file.name === entry.fileName)
+    || null;
+}
+
+function asTrimmedString(value) {
+  if (value == null) return '';
+  return String(value).trim();
+}
+
+export function mergeAnalyzeResponses(responses = [], sourceFiles = []) {
   const entries = [];
-  for (const response of responses) {
-    if (Array.isArray(response?.entries)) entries.push(...response.entries);
+  for (let index = 0; index < responses.length; index += 1) {
+    const response = responses[index];
+    const sourceFileName = sourceFiles[index]?.name;
+    if (!Array.isArray(response?.entries)) continue;
+    for (const entry of response.entries) {
+      entries.push({
+        ...entry,
+        sourceFileName: sourceFileName || entry.fileName,
+      });
+    }
   }
   const summary = {
     total: entries.length,
