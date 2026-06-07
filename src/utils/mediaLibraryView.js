@@ -87,3 +87,8 @@ export function formatMediaLibrarySize(bytes) {
   if (value >= 1024) return `${Math.round(value / 1024)} Ko`;
   return `${value} o`;
 }
+
+export function pruneMediaLibrarySelection(selectedPaths, items = []) {
+  const valid = new Set((Array.isArray(items) ? items : []).map((item) => item.relativePath));
+  return new Set([...(selectedPaths || [])].filter((path) => valid.has(path)));
+}

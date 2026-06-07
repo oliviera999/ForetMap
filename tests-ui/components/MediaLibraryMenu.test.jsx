@@ -81,4 +81,46 @@ describe('MediaLibraryMenu layout gallery', () => {
     expect(await screen.findByText('1 / 2 médias')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Copier l’URL — b\.png/i })).not.toBeInTheDocument();
   });
+
+  test('sélection multiple et suppression groupée', async () => {
+    const removeItem = vi.fn().mockResolvedValue({ ok: true });
+    window.confirm = vi.fn(() => true);
+
+    render(
+      <MediaLibraryMenu
+        defaultOpen
+        showToggle={false}
+        layout="gallery"
+        enableGalleryBulkActions
+        fetchItems={async () => ([
+          {
+            relativePath: 'media-library/image/2026/06/a.png',
+            url: '/uploads/media-library/image/2026/06/a.png',
+            filename: 'a.png',
+            mediaType: 'image',
+          },
+          {
+            relativePath: 'media-library/image/2026/06/b.png',
+            url: '/uploads/media-library/image/2026/06/b.png',
+            filename: 'b.png',
+            mediaType: 'image',
+          },
+        ])}
+        uploadDataUrl={vi.fn()}
+        removeItem={removeItem}
+        onPickUrl={vi.fn()}
+        canUpload={false}
+        canRemove
+      />
+    );
+
+    expect(await screen.findByRole('button', { name: 'Tout sélectionner' })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Tout sélectionner' }));
+    expect(screen.getByText(/2 sélectionnés/)).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Supprimer la sélection (2)' }));
+    expect(window.confirm).toHaveBeenCalled();
+    await screen.findByText('2 médias supprimés.');
+    expect(removeItem).toHaveBeenCalledTimes(2);
+  });
 });

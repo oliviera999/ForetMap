@@ -5082,13 +5082,49 @@
   margin: 0;
   padding: 0;
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(128px, 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(auto-fill, minmax(84px, 1fr));
+  gap: 8px;
 }
 
 .media-library-menu__gallery-item {
   position: relative;
   min-width: 0;
+}
+
+.media-library-menu__gallery-card {
+  position: relative;
+  height: 100%;
+}
+
+.media-library-menu__gallery-card.is-selected .media-library-menu__gallery-tile {
+  border-color: #047c8c;
+  box-shadow: 0 0 0 2px color-mix(in srgb, #047c8c 28%, transparent);
+}
+
+.media-library-menu__gallery-select {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: 1.35rem;
+  height: 1.35rem;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.18);
+}
+
+.media-library-menu__gallery-select input {
+  margin: 0;
+  cursor: pointer;
+}
+
+.media-library-menu__bulk {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 0 8px;
 }
 
 .media-library-menu__gallery-empty {
@@ -5101,21 +5137,20 @@
   margin: 0;
   padding: 0;
   border: 1px solid #e5e7eb;
-  border-radius: 10px;
+  border-radius: 8px;
   overflow: hidden;
   background: #f8fafc;
   cursor: pointer;
   display: flex;
   flex-direction: column;
   text-align: left;
-  transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
 .media-library-menu__gallery-tile:hover,
 .media-library-menu__gallery-tile:focus-visible {
   border-color: #047c8c;
-  box-shadow: 0 6px 16px rgba(4, 124, 140, 0.12);
-  transform: translateY(-1px);
+  box-shadow: 0 3px 10px rgba(4, 124, 140, 0.1);
   outline: none;
 }
 
@@ -5140,7 +5175,7 @@
   inset: 0;
   display: grid;
   place-items: center;
-  font-size: 2rem;
+  font-size: 1.2rem;
   background: linear-gradient(145deg, #dbeafe 0%, #e0e7ff 100%);
 }
 
@@ -5150,11 +5185,11 @@
 
 .media-library-menu__gallery-type {
   position: absolute;
-  left: 6px;
-  bottom: 6px;
-  padding: 2px 6px;
+  left: 4px;
+  bottom: 4px;
+  padding: 1px 4px;
   border-radius: 999px;
-  font-size: 0.65rem;
+  font-size: 0.58rem;
   font-weight: 700;
   letter-spacing: 0.02em;
   text-transform: uppercase;
@@ -5164,9 +5199,9 @@
 
 .media-library-menu__gallery-caption {
   display: block;
-  padding: 7px 8px 0;
-  font-size: 0.72rem;
-  line-height: 1.25;
+  padding: 4px 5px 0;
+  font-size: 0.62rem;
+  line-height: 1.2;
   color: #334155;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -5175,8 +5210,8 @@
 
 .media-library-menu__gallery-meta {
   display: block;
-  padding: 2px 8px 7px;
-  font-size: 0.68rem;
+  padding: 1px 5px 4px;
+  font-size: 0.58rem;
   color: #64748b;
 }
 
