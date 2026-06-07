@@ -27,6 +27,7 @@ import { GLButton } from './ui/GLButton.jsx';
 import { GLGameBoardHud, GLGameBoardHudToolbar } from './GLGameBoardHud.jsx';
 import { plateauBoardImg, GL_ASSET_PLACEHOLDER_URL } from '../assets/index.js';
 import { useGlAssetsReady } from './GLFeuilletIllustration.jsx';
+import { DialogShell } from '../../components/DialogShell.jsx';
 
 export function GLGameBoard({
   chapter,

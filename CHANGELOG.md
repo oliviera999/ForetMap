@@ -9,9 +9,16 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ### Ajouté
 
+- **GL — import médias local** : script `npm run gl:import:media` (`médias/images.zip` + MP3 → médiathèque, manifestes auto) ; audit `npm run gl:audit:media-keys` ; module `lib/glMediaKeysAudit.js`. Tests `tests/gl-media-chapter-link.test.js`. Doc `data/gl/README.md`.
+
 - **GL — musique plateau par biome** : résolution `resolvePlateauAudioSlug` (sahara/jungle, savane/méditerranée, toundra jour/nuit, etc.) ; `plateauAudio` / `introAudio` ; script `node scripts/prepare-gl-audio-pack.mjs` → `data/gl/audio-pack/` (noms `GL_plateau-*`). Tests `tests/gl-plateau-audio-slug.test.js`. Doc `data/gl/README.md`.
 
 ### Corrigé
+
+- **GL — résolution fond plateau vs audio** : `resolvePlateauBoardSlug` exclut les clés audio du même préfixe `plateau-N_*` ; `audioByStableKey` résout via `_keys.json` en priorité. Tests `gl-plateau-board-slug`, `gl-media-chapter-link`.
+- **GL — imports UI manquants** : `GLButton`, `DialogShell`, `GLSpeciesDetailModal` dans les composants feuillet/carte/biocénose.
+- **GL — test QCM lore scopes** : alignement sur réponse API tableau (sans wrapper `items`).
+- **GL — test zones feuillets** : joueur assigné à l'équipe (évite `TEAM_EMPTY`).
 
 - **GL — import bibliothèque, noms de fichiers accentués** : décodage UTF-8 des noms multipart (`forÃªt` → `forêt`) côté serveur ; conservation `sourceFileName` côté client pour l’application après analyse parallèle. Tests upload/UI.
 

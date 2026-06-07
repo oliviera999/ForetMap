@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { apiGL } from '../services/apiGL.js';
 import { biomeImg } from '../assets/index.js';
 import { useGlAssetsReady } from './GLFeuilletIllustration.jsx';
+import { GLSpeciesDetailModal } from './GLSpeciesDetailModal.jsx';
 
 const TYPE_LABELS = {
   faune: 'Faune',

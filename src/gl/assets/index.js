@@ -30,10 +30,20 @@ function resolveStableKey(stableKey, keysIndex, imagesManifest) {
   if (key.startsWith('local:/')) {
     return key.slice('local:'.length);
   }
-  const mapped = imagesManifest?.[key] || key;
-  const entry = keysIndex?.[mapped];
-  if (entry?.relativePath) {
-    return `/uploads/${entry.relativePath.replace(/\\/g, '/')}`;
+  const candidates = [key];
+  const normalized = normalizeGlMediaStableKey(key);
+  if (normalized && normalized !== key) candidates.push(normalized);
+  for (const candidate of candidates) {
+    const entry = keysIndex?.[candidate];
+    if (entry?.relativePath) {
+      return `/uploads/${entry.relativePath.replace(/\\/g, '/')}`;
+    }
+  }
+  for (const candidate of candidates) {
+    const mapped = imagesManifest?.[candidate];
+    if (typeof mapped === 'string' && mapped.startsWith('local:/')) {
+      return mapped.slice('local:'.length);
+    }
   }
   return null;
 }
@@ -162,7 +172,7 @@ export function plateauBoardImg(plateauNumber) {
   const keysIndex = getKeysIndex();
   const imagesManifest = getImagesManifest();
   const knownSlugs = [...new Set([...Object.keys(keysIndex), ...Object.keys(imagesManifest)])];
-  const slug = resolvePlateauBoardSlug(plateauNumber, knownSlugs);
+  const slug = resolvePlateauBoardSlug(plateauNumber, knownSlugs, keysIndex);
   if (!slug) {
     warnMissing(`plateau-${plateauNumber}`, 'plateau-board');
     return placeholderUrl;

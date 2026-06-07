@@ -20,8 +20,22 @@ test('resolvePlateauBoardSlug — préfixe plateau-N_* (prod)', async () => {
   assert.strictEqual(resolvePlateauBoardSlug(5, prodKeys), 'plateau-5_toundra-arctique');
 });
 
+test('resolvePlateauBoardSlug — ignore les clés audio du même plateau', async () => {
+  const { resolvePlateauBoardSlug } = await import('../src/gl/utils/resolvePlateauBoardSlug.js');
+  const keys = ['plateau-1_jungle', 'plateau-1_tropiques-africains'];
+  const index = {
+    'plateau-1_jungle': { relativePath: 'media-library/audio/2026/06/a.mp3' },
+    'plateau-1_tropiques-africains': { relativePath: 'media-library/image/2026/06/b.jpg' },
+  };
+  assert.strictEqual(resolvePlateauBoardSlug(1, keys, index), 'plateau-1_tropiques-africains');
+});
+
 test('resolvePlateauBoardSlug — préfère plateau-N_fond si présent', async () => {
   const { resolvePlateauBoardSlug } = await import('../src/gl/utils/resolvePlateauBoardSlug.js');
   const keys = ['plateau-1_tropiques-africains', 'plateau-1_fond'];
-  assert.strictEqual(resolvePlateauBoardSlug(1, keys), 'plateau-1_fond');
+  const index = {
+    'plateau-1_tropiques-africains': { relativePath: 'media-library/image/2026/06/a.jpg' },
+    'plateau-1_fond': { relativePath: 'media-library/image/2026/06/fond.jpg' },
+  };
+  assert.strictEqual(resolvePlateauBoardSlug(1, keys, index), 'plateau-1_fond');
 });

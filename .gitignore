@@ -17,6 +17,10 @@ deploy/
 # Uploads (images zones / task-logs)
 uploads/
 
+# Médias GL locaux (import via npm run gl:import:media)
+médias/
+medias/
+
 # Logs
 logs/
 *.log
