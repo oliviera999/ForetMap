@@ -4,6 +4,7 @@ import { apiGLMultipart, formatBytesLabel } from '../../services/apiGLUpload.js'
 import {
   ANALYZE_UPLOAD_CONCURRENCY,
   DEFAULT_CONTENT_LIBRARY_LIMITS,
+  findSelectedSourceFile,
   mergeAnalyzeResponses,
   resolveSelectionMode,
   runPool,
@@ -218,7 +219,7 @@ export function GLContentLibraryView({ onOpenSubTab }) {
           updateFileRow(file.name, { status: 'analyzing', progress: 100 });
           return analyzeSingleFile(file, index, files.length);
         });
-        merged = mergeAnalyzeResponses(responses);
+        merged = mergeAnalyzeResponses(responses, files);
       }
 
       const entries = Array.isArray(merged?.entries) ? merged.entries : [];
@@ -259,15 +260,16 @@ export function GLContentLibraryView({ onOpenSubTab }) {
         const key = entryKey(entry, index);
         if (!selectedKeys.has(key)) continue;
         applyIndex += 1;
+        const sourceFileName = entry.sourceFileName || entry.fileName;
         entries.push({
-          fileName: entry.fileName,
+          fileName: sourceFileName,
           kind: entry.kind,
           mimeType: entry.mimeType || null,
         });
         if (!archiveFile) {
-          const sourceFile = selectedFiles.find((file) => file.name === entry.fileName);
+          const sourceFile = findSelectedSourceFile(selectedFiles, entry);
           if (!sourceFile) {
-            throw new Error(`Fichier source introuvable pour ${entry.fileName}`);
+            throw new Error(`Fichier source introuvable pour ${sourceFileName}`);
           }
           filesToSend.push(sourceFile);
         }
@@ -463,7 +465,7 @@ export function GLContentLibraryView({ onOpenSubTab }) {
                         />
                       </td>
                       <td>
-                        <strong>{entry.fileName}</strong>
+                        <strong>{entry.sourceFileName || entry.fileName}</strong>
                         <div className="gl-hint">{formatBytesLabel(entry.size || 0)}</div>
                       </td>
                       <td>
