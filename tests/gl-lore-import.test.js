@@ -38,6 +38,24 @@ test('buildFeuilletPayload valide le code', () => {
   assert.strictEqual(payload.feuillet_code, 'test-feui');
 });
 
+test('buildFeuilletPayload normalise les colonnes lien_*', () => {
+  const { payload, errors } = buildFeuilletPayload({
+    feuillet_code: 'test-lien',
+    type: 'feuillet',
+    lien_canal: 'Espece_Pays',
+    lien_ref: 'SP0049',
+    lien_pays: '5',
+    lien_ordre_recit: '12',
+    lien_note: 'note test',
+  });
+  assert.strictEqual(errors.length, 0);
+  assert.strictEqual(payload.lien_canal, 'espece_pays');
+  assert.strictEqual(payload.lien_ref, 'SP0049');
+  assert.strictEqual(payload.lien_pays, 5);
+  assert.strictEqual(payload.lien_ordre_recit, 12);
+  assert.strictEqual(payload.lien_note, 'note test');
+});
+
 test('normalizeLoreBiomeSlug résout les alias corpus Sélène', () => {
   assert.strictEqual(normalizeLoreBiomeSlug('jungle'), 'jungle_afc');
   assert.strictEqual(normalizeLoreBiomeSlug('caduc'), 'foret_caducifoliee');

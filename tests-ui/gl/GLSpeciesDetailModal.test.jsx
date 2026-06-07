@@ -2,8 +2,28 @@ import React from 'react';
 import { describe, test, expect, vi } from 'vitest';
 import { render, screen, within, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { GLSpeciesDetailModal } from '../../src/gl/components/GLSpeciesDetailModal.jsx';
 
+const feuilletRevealFixture = {
+  feuilletCode: 'ep-VI-06',
+  titre: 'Ours polaire',
+  displayText: 'Texte du feuillet révélé.',
+  modeApparition: 'boite',
+};
+
+vi.mock('../../src/gl/components/GLLearningAcknowledgeButton.jsx', () => ({
+  GLLearningAcknowledgeButton({ onAcknowledged, labelAction = 'Marquer comme étudiée' }) {
+    return (
+      <button
+        type="button"
+        onClick={() => onAcknowledged?.({ feuilletRevealed: feuilletRevealFixture })}
+      >
+        {labelAction}
+      </button>
+    );
+  },
+}));
+
+import { GLSpeciesDetailModal } from '../../src/gl/components/GLSpeciesDetailModal.jsx';
 const fullSpecies = {
   species_code: 'SP0001',
   biome_slug: 'sahara',
@@ -116,6 +136,25 @@ describe('GLSpeciesDetailModal', () => {
       />
     );
     expect(screen.getByRole('button', { name: /Marquer comme étudiée/i })).toBeInTheDocument();
+  });
+
+  test('affiche le popover feuillet après révélation à l étude', async () => {
+    const learningProgress = {
+      isSpeciesLearned: () => false,
+      markLocal: vi.fn(),
+    };
+    render(
+      <GLSpeciesDetailModal
+        species={fullSpecies}
+        gameId={42}
+        loreCarnetEnabled
+        onClose={vi.fn()}
+        learningProgress={learningProgress}
+      />
+    );
+    await userEvent.click(screen.getByRole('button', { name: /Marquer comme étudiée/i }));
+    expect(screen.getByRole('dialog', { name: /Feuillet : Ours polaire/i })).toBeInTheDocument();
+    expect(screen.getByText('Texte du feuillet révélé.')).toBeInTheDocument();
   });
 
   test('masque les sections sans champ renseigné', () => {
