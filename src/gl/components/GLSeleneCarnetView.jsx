@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { apiGL } from '../services/apiGL.js';
 import { GLLoreGlossaryMarkdown } from './GLLoreGlossaryMarkdown.jsx';
 import { GLGlossaryMarkdown } from './GLGlossaryMarkdown.jsx';
-import { GLButton } from './ui/GLButton.jsx';
+import { GLFeuilletIllustration } from './GLFeuilletIllustration.jsx';
 
 function groupByLiasse(items) {
   const groups = {};
@@ -159,12 +159,12 @@ export function GLSeleneCarnetView({
           {!active ? (
             <p className="gl-hint">Sélectionnez un feuillet dans la liste.</p>
           ) : (
-            <div className={active.imageUrl ? 'gl-selene-carnet__spread' : undefined}>
-              {active.imageUrl ? (
-                <figure className="gl-selene-carnet__illu">
-                  <img src={active.imageUrl} alt="" loading="lazy" />
-                </figure>
-              ) : null}
+            <div className={(active.imageUrl || active.feuilletCode) ? 'gl-selene-carnet__spread' : undefined}>
+              <GLFeuilletIllustration
+                feuilletCode={active.feuilletCode}
+                fallbackUrl={active.imageUrl}
+                figureClassName="gl-selene-carnet__illu"
+              />
               <div className="gl-selene-carnet__content">
                 <h3>{active.titre}</h3>
                 {active.incipit ? <p className="gl-selene-carnet__incipit">{active.incipit}</p> : null}

@@ -30,6 +30,8 @@ export function GLMapView({
   canSpellCast = false,
   onLaunchSpell,
   virtualDiceEnabled = false,
+  feuilletZones = [],
+  feuilletZoneEditMode = false,
 }) {
   const watchTeamId = useMemo(() => {
     if (canMoveMascot) {
@@ -74,6 +76,8 @@ export function GLMapView({
       canSpellCast={canSpellCast}
       onLaunchSpell={onLaunchSpell}
       virtualDiceEnabled={virtualDiceEnabled}
+      feuilletZones={feuilletZones}
+      feuilletZoneEditMode={feuilletZoneEditMode}
     />
   );
 }

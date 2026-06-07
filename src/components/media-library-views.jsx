@@ -15,9 +15,12 @@ function MediaLibraryView({ canManage = false }) {
     return Array.isArray(data?.items) ? data.items : [];
   };
 
-  const uploadMediaLibrary = async (mediaData) => {
+  const uploadMediaLibrary = async (mediaData, options = {}) => {
     setErr('');
-    await api('/api/media-library', 'POST', { media_data: mediaData });
+    await api('/api/media-library', 'POST', {
+      media_data: mediaData,
+      original_name: options.originalName || null,
+    });
     setMsg('Média ajouté à la bibliothèque');
   };
 

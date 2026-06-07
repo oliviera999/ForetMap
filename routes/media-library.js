@@ -5,7 +5,7 @@ const { logAudit } = require('./audit');
 const {
   saveMediaFromDataUrl,
   listMediaLibraryItems,
-  deleteMediaLibraryItem,
+  executeMediaLibraryDeleteRequest,
 } = require('../lib/mediaLibrary');
 
 const router = express.Router();
@@ -24,7 +24,8 @@ router.post('/', requirePermission('teacher.access', { needsElevation: true }), 
   try {
     const mediaData = String(req.body?.media_data || '').trim();
     if (!mediaData) return res.status(400).json({ error: 'media_data requis' });
-    const saved = saveMediaFromDataUrl(mediaData);
+    const originalName = String(req.body?.original_name || req.body?.originalName || '').trim() || null;
+    const saved = saveMediaFromDataUrl(mediaData, { originalName });
     await logAudit('media_library_upload', 'media', saved.relativePath, 'Média uploadé depuis ForetMap', {
       req,
       payload: {
@@ -45,11 +46,19 @@ router.post('/', requirePermission('teacher.access', { needsElevation: true }), 
 
 router.delete('/', requirePermission('teacher.access', { needsElevation: true }), async (req, res) => {
   try {
-    const relativePath = String(req.body?.relative_path || '').trim();
-    if (!relativePath) return res.status(400).json({ error: 'relative_path requis' });
-    deleteMediaLibraryItem(relativePath);
-    await logAudit('media_library_delete', 'media', relativePath, 'Média supprimé depuis ForetMap', { req });
-    return res.json({ ok: true });
+    const payload = executeMediaLibraryDeleteRequest(req.body || {});
+    const auditTarget = payload.results?.length === 1
+      ? payload.results[0].relativePath
+      : 'bulk';
+    await logAudit('media_library_delete', 'media', auditTarget, 'Média supprimé depuis ForetMap', {
+      req,
+      payload: {
+        deleted: payload.deleted,
+        failed: payload.failed,
+        total: payload.total,
+      },
+    });
+    return res.json(payload);
   } catch (e) {
     if (Number.isFinite(e?.status)) {
       return res.status(e.status).json({ error: e.message || 'Suppression média refusée' });

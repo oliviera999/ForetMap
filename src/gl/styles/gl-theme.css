@@ -6461,8 +6461,149 @@ body.gl-glossary-popover-open {
   gap: 12px;
 }
 
-.gl-content-library .media-library-menu__search input:focus,
-.gl-content-library .media-library-menu__filter select:focus {
+.gl-content-library .media-library-menu__filter select:focus,
+.gl-content-library .media-library-menu__search input:focus {
   outline: 2px solid color-mix(in srgb, var(--gl-primary, #047c8c) 35%, transparent);
   border-color: var(--gl-primary, #047c8c);
+}
+
+/* Zones feuillets (calque carte de jeu) */
+.gl-feuillet-zone-overlay {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 4;
+}
+
+.gl-board-fit-layer .gl-feuillet-zone-polygon {
+  fill: color-mix(in srgb, #b45309 55%, transparent);
+  fill-opacity: 0.15;
+  stroke: color-mix(in srgb, #b45309 80%, #fff);
+  stroke-width: 0.35;
+  pointer-events: none;
+  transition: fill-opacity 0.2s ease, stroke-width 0.2s ease;
+}
+
+.gl-feuillet-zone-polygon.is-near {
+  fill-opacity: 0.28;
+  stroke-width: 0.55;
+}
+
+.gl-feuillet-zone-polygon.is-read {
+  fill-opacity: 0.06;
+  stroke-opacity: 0.35;
+  opacity: 0.35;
+}
+
+.gl-feuillet-zone-editor-layer .gl-feuillet-zone-polygon {
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+.gl-feuillet-zone-polygon.is-selected {
+  stroke-width: 0.7;
+  fill-opacity: 0.25;
+}
+
+.gl-feuillet-zone-centre {
+  fill: #b45309;
+  stroke: #fff;
+  stroke-width: 0.15;
+  pointer-events: none;
+}
+
+.gl-feuillet-zone-label {
+  font-size: 2px;
+  fill: #1f2937;
+  pointer-events: none;
+}
+
+.gl-feuillet-zone-handle {
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  margin: -9px 0 0 -9px;
+  border-radius: 50%;
+  border: 2px solid #fff;
+  background: #b45309;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.25);
+  cursor: grab;
+  z-index: 8;
+  pointer-events: auto;
+  padding: 0;
+}
+
+.gl-feuillet-zone-handle.is-selected {
+  background: #047c8c;
+}
+
+.gl-feuillet-zone-debug-panel {
+  position: fixed;
+  right: 12px;
+  bottom: 12px;
+  z-index: 120;
+  width: min(320px, calc(100vw - 24px));
+  max-height: 50vh;
+  overflow: auto;
+  padding: 0.75rem 0.9rem;
+  border-radius: 12px;
+  border: 1px solid #e7dcc8;
+  background: rgba(255, 253, 248, 0.96);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+}
+
+.gl-feuillet-zone-debug-list {
+  list-style: none;
+  margin: 0.5rem 0;
+  padding: 0;
+}
+
+.gl-feuillet-zone-debug-list button {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  text-align: left;
+  padding: 0.35rem 0.4rem;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+}
+
+.gl-feuillet-zone-debug-list button.is-active {
+  background: color-mix(in srgb, var(--gl-primary, #047c8c) 12%, white);
+}
+
+.gl-feuillet-zone-debug-state {
+  font-size: 0.85em;
+  opacity: 0.75;
+}
+
+.gl-feuillet-zone-debug-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.gl-feuillet-popover__body {
+  font-size: clamp(1.05rem, 2.2vw, 1.35rem);
+  line-height: 1.55;
+}
+
+.gl-feuillet-popover__text {
+  margin: 0;
+  white-space: pre-wrap;
+}
+
+.gl-feuillet-popover__mechanics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1.25rem;
+  margin: 0.75rem 0 0;
+  font-size: 1.05rem;
+  font-weight: 600;
 }

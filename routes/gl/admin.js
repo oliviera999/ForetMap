@@ -27,7 +27,7 @@ const {
 const {
   saveMediaFromDataUrl,
   listMediaLibraryItems,
-  deleteMediaLibraryItem,
+  executeMediaLibraryDeleteRequest,
 } = require('../../lib/mediaLibrary');
 const {
   analyzeContentLibraryBulk,
@@ -858,7 +858,8 @@ router.post('/media-library', requireGlPermission('gl.content.manage'), async (r
   try {
     const mediaData = String(req.body?.media_data || '').trim();
     if (!mediaData) return res.status(400).json({ error: 'media_data requis' });
-    const saved = saveMediaFromDataUrl(mediaData);
+    const originalName = String(req.body?.original_name || req.body?.originalName || '').trim() || null;
+    const saved = saveMediaFromDataUrl(mediaData, { originalName });
     return res.status(201).json(saved);
   } catch (err) {
     if (Number.isFinite(err?.status)) {
@@ -870,10 +871,8 @@ router.post('/media-library', requireGlPermission('gl.content.manage'), async (r
 
 router.delete('/media-library', requireGlPermission('gl.content.manage'), async (req, res) => {
   try {
-    const relativePath = String(req.body?.relative_path || '').trim();
-    if (!relativePath) return res.status(400).json({ error: 'relative_path requis' });
-    deleteMediaLibraryItem(relativePath);
-    return res.json({ ok: true });
+    const payload = executeMediaLibraryDeleteRequest(req.body || {});
+    return res.json(payload);
   } catch (err) {
     if (Number.isFinite(err?.status)) {
       return res.status(err.status).json({ error: err.message || 'Suppression média refusée' });

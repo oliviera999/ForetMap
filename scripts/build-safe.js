@@ -46,8 +46,20 @@ function syncGlPackServerLib() {
   return child.status === 0;
 }
 
+function syncGlAssetManifests() {
+  const script = path.join(root, 'scripts', 'build-asset-manifest.mjs');
+  if (!fs.existsSync(script)) return true;
+  const child = spawnSync(process.execPath, [script], {
+    cwd: root,
+    stdio: 'inherit',
+    env: process.env,
+  });
+  return child.status === 0;
+}
+
 function main() {
   if (fs.existsSync(viteBin)) {
+    if (!syncGlAssetManifests()) process.exit(1);
     const ok = runViteBuild();
     if (!ok) process.exit(1);
     if (!syncVisitPackServerLib()) process.exit(1);

@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { apiGL } from '../services/apiGL.js';
-import { GLSpeciesDetailModal } from './GLSpeciesDetailModal.jsx';
+import { biomeImg } from '../assets/index.js';
+import { useGlAssetsReady } from './GLFeuilletIllustration.jsx';
 
 const TYPE_LABELS = {
   faune: 'Faune',
@@ -51,6 +52,7 @@ function GLSpeciesTile({ species, onSelect, isLearned }) {
 }
 
 function GLSpeciesCatalogPanel({ biomeSlug, biomeNom, gameId, loreCarnetEnabled, onOpenGlossaryTerm, learningProgress }) {
+  const assetsReady = useGlAssetsReady();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [items, setItems] = useState([]);
@@ -97,8 +99,15 @@ function GLSpeciesCatalogPanel({ biomeSlug, biomeNom, gameId, loreCarnetEnabled,
     );
   }
 
+  const biocenoseArt = assetsReady && biomeSlug ? biomeImg(biomeSlug, 'biocenose') : null;
+
   return (
     <div className="gl-species-catalog">
+      {biocenoseArt ? (
+        <figure className="gl-species-catalog__biome-art">
+          <img src={biocenoseArt} alt="" loading="lazy" />
+        </figure>
+      ) : null}
       {biomeNom ? (
         <p className="gl-species-catalog__intro">
           Biome :

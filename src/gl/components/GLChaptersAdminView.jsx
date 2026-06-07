@@ -32,6 +32,7 @@ const EMPTY_CHAPTER_FORM = {
   biocenoseMarkdown: '',
   sortilegesMarkdown: '',
   orderIndex: 0,
+  plateauNumber: '',
   mapImageFrame: normalizeGlImageFrame(null, 'chapter-map'),
   theme: { ...EMPTY_CHAPTER_THEME },
 };
@@ -120,6 +121,7 @@ export function GLChaptersAdminView() {
         biocenoseMarkdown: data.chapter.biocenose_markdown || '',
         sortilegesMarkdown: data.chapter.sortileges_markdown || '',
         orderIndex: Number(data.chapter.order_index || 0),
+        plateauNumber: data.chapter.plateau_number != null ? String(data.chapter.plateau_number) : '',
         theme: normalizeChapterTheme(data.chapter.theme),
       });
       setSelectedId(Number(data.chapter.id));
@@ -173,6 +175,7 @@ export function GLChaptersAdminView() {
       mapImageFrame: normalizeGlImageFrame(chapterForm.mapImageFrame, 'chapter-map'),
       theme: normalizeChapterTheme(chapterForm.theme),
       orderIndex: Number(chapterForm.orderIndex) || 0,
+      plateauNumber: chapterForm.plateauNumber === '' ? null : Number(chapterForm.plateauNumber),
     };
     try {
       let chapterId = selectedId;
@@ -640,6 +643,20 @@ export function GLChaptersAdminView() {
                 value={chapterForm.orderIndex}
                 onChange={(event) => setChapterForm({ ...chapterForm, orderIndex: event.target.value })}
               />
+            </label>
+            <label>
+              Plateau narratif (1–5)
+              <select
+                value={chapterForm.plateauNumber}
+                onChange={(event) => setChapterForm({ ...chapterForm, plateauNumber: event.target.value })}
+              >
+                <option value="">— Non défini —</option>
+                <option value="1">P1 — Tropiques africains</option>
+                <option value="2">P2 — Sahara &amp; Méditerranée</option>
+                <option value="3">P3 — Forêts &amp; landes atlantiques</option>
+                <option value="4">P4 — Taïga &amp; steppes d&apos;Eurasie</option>
+                <option value="5">P5 — Toundra arctique</option>
+              </select>
             </label>
 
             <h3>Thème du chapitre</h3>

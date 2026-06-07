@@ -10,7 +10,7 @@ const { saveBase64ToDisk, deleteFile } = require('../lib/uploads');
 const {
   saveMediaFromDataUrl,
   listMediaLibraryItems,
-  deleteMediaLibraryItem,
+  executeMediaLibraryDeleteRequest,
 } = require('../lib/mediaLibrary');
 const {
   getSettings,
@@ -286,7 +286,8 @@ router.post(
     try {
       const mediaData = String(req.body?.media_data || '').trim();
       if (!mediaData) return res.status(400).json({ error: 'media_data requis' });
-      const saved = saveMediaFromDataUrl(mediaData);
+      const originalName = String(req.body?.original_name || req.body?.originalName || '').trim() || null;
+      const saved = saveMediaFromDataUrl(mediaData, { originalName });
       await logAudit('settings_media_upload', 'media', saved.relativePath, 'Média uploadé', {
         req,
         payload: {
@@ -311,11 +312,16 @@ router.delete(
   requirePermission('admin.settings.write', { needsElevation: true }),
   async (req, res) => {
     try {
-      const relativePath = String(req.body?.relative_path || '').trim();
-      if (!relativePath) return res.status(400).json({ error: 'relative_path requis' });
-      deleteMediaLibraryItem(relativePath);
-      await logAudit('settings_media_delete', 'media', relativePath, 'Média supprimé', { req });
-      res.json({ ok: true });
+      const payload = executeMediaLibraryDeleteRequest(req.body || {});
+      await logAudit('settings_media_delete', 'media', 'bulk', 'Média(s) supprimé(s)', {
+        req,
+        payload: {
+          deleted: payload.deleted,
+          failed: payload.failed,
+          total: payload.total,
+        },
+      });
+      res.json(payload);
     } catch (e) {
       if (Number.isFinite(e?.status)) {
         return res.status(e.status).json({ error: e.message || 'Suppression média refusée' });
