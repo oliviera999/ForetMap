@@ -3,6 +3,8 @@ import React, { useEffect, useId, useState } from 'react';
 import { withAppBase } from '../../services/api.js';
 import { apiGL } from '../services/apiGL.js';
 import { GLBrandHub } from './GLBrandHub.jsx';
+import { GLIntroOverlay, hasSeenGlIntro } from './GLIntroOverlay.jsx';
+import { isModuleEnabled } from '../constants/modules.js';
 import { GLButton } from './ui/GLButton.jsx';
 import { GLField } from './ui/GLField.jsx';
 import { GLInput } from './ui/GLInput.jsx';
@@ -44,6 +46,8 @@ export function GLAuthView({ onLogin, oauthNotice, config, appVersion = null }) 
   const [platformSubtitle, setPlatformSubtitle] = useState('');
   const [platformLogoUrl, setPlatformLogoUrl] = useState('');
   const [brandSlots, setBrandSlots] = useState(null);
+  const [modules, setModules] = useState(config?.modules || null);
+  const [modulesLoaded, setModulesLoaded] = useState(Boolean(config?.modules));
   const [allowGoogle, setAllowGoogle] = useState(false);
   const [error, setError] = useState('');
   const [info, setInfo] = useState('');
@@ -52,6 +56,10 @@ export function GLAuthView({ onLogin, oauthNotice, config, appVersion = null }) 
   const [forgotEmail, setForgotEmail] = useState('');
   const [resetToken, setResetToken] = useState('');
   const [resetPassword, setResetPassword] = useState('');
+  const [forceIntro, setForceIntro] = useState(false);
+
+  const introModuleEnabled = modulesLoaded && isModuleEnabled(modules || config?.modules, 'introEnabled');
+  const shouldShowIntro = introModuleEnabled && (forceIntro || !hasSeenGlIntro());
 
   const fieldIdPrefix = useId();
   const fieldIds = {
@@ -69,11 +77,14 @@ export function GLAuthView({ onLogin, oauthNotice, config, appVersion = null }) 
         if (data?.subtitle) setPlatformSubtitle(String(data.subtitle));
         if (data?.brand?.logoUrl) setPlatformLogoUrl(String(data.brand.logoUrl));
         if (data?.brand?.slots) setBrandSlots(data.brand.slots);
+        if (data?.modules) setModules(data.modules);
+        setModulesLoaded(true);
         const googleReady = !!(data?.allowGoogleStaff || data?.allowGooglePlayer);
         setAllowGoogle(googleReady);
       })
       .catch(() => {
         setAllowGoogle(false);
+        setModulesLoaded(true);
       });
   }, []);
 
@@ -83,6 +94,10 @@ export function GLAuthView({ onLogin, oauthNotice, config, appVersion = null }) 
     if (config.subtitle) setPlatformSubtitle(String(config.subtitle));
     if (config?.brand?.logoUrl) setPlatformLogoUrl(String(config.brand.logoUrl));
     if (config?.brand?.slots) setBrandSlots(config.brand.slots);
+    if (config?.modules) {
+      setModules(config.modules);
+      setModulesLoaded(true);
+    }
   }, [config]);
 
   useEffect(() => {
@@ -168,6 +183,10 @@ export function GLAuthView({ onLogin, oauthNotice, config, appVersion = null }) 
 
   return (
     <main className="gl-auth auth-wrap">
+      <GLIntroOverlay
+        open={shouldShowIntro}
+        onComplete={() => setForceIntro(false)}
+      />
       <ScrollProgressBar />
       <GLBrandHub slots={brandSlots || config?.brand?.slots} />
 
@@ -183,6 +202,17 @@ export function GLAuthView({ onLogin, oauthNotice, config, appVersion = null }) 
         <p className="gl-hint">
           Connecte-toi avec ton pseudo ou ton identifiant. Ton profil (joueur, MJ ou admin) est déterminé après connexion.
         </p>
+        {introModuleEnabled ? (
+          <GLButton
+            type="button"
+            variant="ghost"
+            className="gl-btn--full"
+            onClick={() => setForceIntro(true)}
+            disabled={busy || shouldShowIntro}
+          >
+            Revoir l&apos;intro
+          </GLButton>
+        ) : null}
 
         {info ? <div className="gl-success-banner">{info}</div> : null}
         {error ? <p className="gl-error">⚠️ {error}</p> : null}

@@ -1,7 +1,18 @@
 import React from 'react';
 import { describe, test, expect, vi, beforeEach } from 'vitest';
-import { render } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import { GLGameBoard } from '../../src/gl/components/GLGameBoard.jsx';
+
+const plateauBoardImgMock = vi.fn(() => '/uploads/media-library/image/2026/06/plateau-2.jpg');
+
+vi.mock('../../src/gl/assets/index.js', async (importOriginal) => {
+  const actual = await importOriginal();
+  return {
+    ...actual,
+    plateauBoardImg: (...args) => plateauBoardImgMock(...args),
+    loadGlAssetRuntime: vi.fn(() => Promise.resolve({ keys: {}, images: {}, audio: {} })),
+  };
+});
 
 const markerArrivalEnabledRef = { value: null };
 
@@ -50,6 +61,7 @@ const baseProps = {
 describe('GLGameBoard', () => {
   beforeEach(() => {
     markerArrivalEnabledRef.value = null;
+    plateauBoardImgMock.mockClear();
   });
 
   test('useGLMarkerArrival enabled quand markerArrivalEnabled=true', () => {
@@ -60,5 +72,21 @@ describe('GLGameBoard', () => {
   test('useGLMarkerArrival désactivé quand markerArrivalEnabled=false', () => {
     render(<GLGameBoard {...baseProps} markerArrivalEnabled={false} />);
     expect(markerArrivalEnabledRef.value).toBe(false);
+  });
+
+  test('affiche le fond plateau conventionnel après chargement des assets', async () => {
+    render(
+      <GLGameBoard
+        {...baseProps}
+        chapter={{ title: 'Savane', plateau_number: 2 }}
+      />,
+    );
+    await waitFor(() => {
+      expect(plateauBoardImgMock).toHaveBeenCalledWith(2);
+    });
+    expect(screen.getByRole('img', { name: 'Savane' })).toHaveAttribute(
+      'src',
+      '/uploads/media-library/image/2026/06/plateau-2.jpg',
+    );
   });
 });

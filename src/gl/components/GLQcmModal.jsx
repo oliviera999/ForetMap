@@ -4,13 +4,27 @@ import { GLButton } from './ui/GLButton.jsx';
 import { GLQcmFeedbackBlock } from './GLQcmFeedbackBlock.jsx';
 import { hasQcmAnswerFeedback } from '../utils/glQcmDisplay.js';
 
+function isLoreQcmCode(code) {
+  return /^LQCM\d+$/i.test(String(code || '').trim());
+}
+
+function resolveQuestionSet(marker) {
+  const set = marker?.event_config?.question?.set;
+  if (set === 'lore' || set === 'biome') return set;
+  const legacy = marker?.qcm_question_code || '';
+  if (isLoreQcmCode(legacy)) return 'lore';
+  return 'biome';
+}
+
 export function GLQcmModal({
   open,
   marker,
   biomeSlugs = [],
+  chapitreSlugs = [],
   gameId,
   onClose,
   onOpenGlossaryTerm,
+  onOpenLoreTerm,
   onAnswered,
 }) {
   const [questionCode, setQuestionCode] = useState(null);
@@ -22,6 +36,8 @@ export function GLQcmModal({
   const [result, setResult] = useState(null);
 
   const slugsKey = Array.isArray(biomeSlugs) ? biomeSlugs.join(',') : '';
+  const chapitreSlugsKey = Array.isArray(chapitreSlugs) ? chapitreSlugs.join(',') : '';
+  const qcmSet = resolveQuestionSet(marker);
 
   const loadQuestion = useCallback(async () => {
     if (!open) return;
@@ -32,25 +48,37 @@ export function GLQcmModal({
     setResult(null);
     try {
       let code = marker?.qcm_question_code || null;
+      if (isLoreQcmCode(code)) code = String(code).trim().toUpperCase();
       if (!code) {
-        if (!slugsKey) throw new Error('Aucun biome catalogue lié au chapitre');
-        const params = new URLSearchParams({ biomeSlugs: slugsKey });
-        if (marker?.qcm_categorie_slug) {
-          params.set('categorieSlug', marker.qcm_categorie_slug);
+        if (qcmSet === 'lore') {
+          if (!chapitreSlugsKey) throw new Error('Aucun scope chapitre lié au repère');
+          const params = new URLSearchParams({ chapitreSlugs: chapitreSlugsKey });
+          if (marker?.qcm_categorie_slug) {
+            params.set('categorieSlug', marker.qcm_categorie_slug);
+          }
+          const draw = await apiGL(`/api/gl/lore/qcm/draw?${params.toString()}`);
+          code = draw?.question_code || null;
+        } else {
+          if (!slugsKey) throw new Error('Aucun biome catalogue lié au chapitre');
+          const params = new URLSearchParams({ biomeSlugs: slugsKey });
+          if (marker?.qcm_categorie_slug) {
+            params.set('categorieSlug', marker.qcm_categorie_slug);
+          }
+          const draw = await apiGL(`/api/gl/qcm/draw?${params.toString()}`);
+          code = draw?.question_code || null;
         }
-        const draw = await apiGL(`/api/gl/qcm/draw?${params.toString()}`);
-        code = draw?.question_code || null;
       }
       if (!code) throw new Error('Aucune question disponible');
       setQuestionCode(code);
-      const present = await apiGL(`/api/gl/qcm/questions/${encodeURIComponent(code)}/present`);
+      const apiBase = isLoreQcmCode(code) ? '/api/gl/lore/qcm' : '/api/gl/qcm';
+      const present = await apiGL(`${apiBase}/questions/${encodeURIComponent(code)}/present`);
       setPresentation(present);
     } catch (err) {
       setError(err.message || 'Chargement du quiz impossible');
     } finally {
       setLoading(false);
     }
-  }, [open, slugsKey, marker?.qcm_question_code, marker?.qcm_categorie_slug]);
+  }, [open, slugsKey, chapitreSlugsKey, qcmSet, marker?.qcm_question_code, marker?.qcm_categorie_slug, marker?.event_config]);
 
   useEffect(() => {
     if (open) loadQuestion();
@@ -69,7 +97,7 @@ export function GLQcmModal({
       };
       const data = gameId
         ? await apiGL(`/api/gl/games/${gameId}/qcm/answer`, 'POST', body)
-        : await apiGL(`/api/gl/qcm/questions/${encodeURIComponent(questionCode)}/answer`, 'POST', {
+        : await apiGL(`${isLoreQcmCode(questionCode) ? '/api/gl/lore/qcm' : '/api/gl/qcm'}/questions/${encodeURIComponent(questionCode)}/answer`, 'POST', {
           presentationToken: body.presentationToken,
           choiceId: body.choiceId,
         });
@@ -124,6 +152,23 @@ export function GLQcmModal({
                   </label>
                 ))}
               </div>
+              {Array.isArray(presentation.loreGlossaryTerms) && presentation.loreGlossaryTerms.length > 0 ? (
+                <div className="gl-qcm-modal__glossary">
+                  <strong>Glossaire lore :</strong>
+                  <div className="gl-glossary-chips">
+                    {presentation.loreGlossaryTerms.map((term) => (
+                      <button
+                        key={term.lore_code}
+                        type="button"
+                        className="gl-glossary-chip"
+                        onClick={() => onOpenLoreTerm?.(term.lore_code)}
+                      >
+                        {term.terme}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
               {Array.isArray(presentation.glossaryTerms) && presentation.glossaryTerms.length > 0 ? (
                 <div className="gl-qcm-modal__glossary">
                   <strong>Glossaire :</strong>
@@ -166,6 +211,23 @@ export function GLQcmModal({
                 <p className="gl-hint">Question {questionCode}</p>
               ) : null}
               <GLQcmFeedbackBlock result={result} scoreDelta={result?.scoreDelta} />
+              {Array.isArray(result.loreGlossaryTerms) && result.loreGlossaryTerms.length > 0 ? (
+                <div className="gl-qcm-modal__glossary">
+                  <strong>Termes lore liés :</strong>
+                  <div className="gl-glossary-chips">
+                    {result.loreGlossaryTerms.map((term) => (
+                      <button
+                        key={term.lore_code}
+                        type="button"
+                        className="gl-glossary-chip"
+                        onClick={() => onOpenLoreTerm?.(term.lore_code)}
+                      >
+                        {term.terme}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
               {Array.isArray(result.glossaryTerms) && result.glossaryTerms.length > 0 ? (
                 <div className="gl-qcm-modal__glossary">
                   <strong>Termes liés :</strong>

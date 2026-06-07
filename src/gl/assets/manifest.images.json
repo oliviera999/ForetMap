@@ -1,3 +1,4 @@
 {
-  ".gitkeep": "local:/gl/sprites/.gitkeep"
+  ".gitkeep": "local:/gl/sprites/.gitkeep",
+  "unit-test": "unit-test"
 }

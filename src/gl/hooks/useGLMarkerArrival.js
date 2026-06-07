@@ -72,6 +72,7 @@ export function useGLMarkerArrival({
         error: '',
         presentation: data?.presentation || null,
         questionCode: data?.questionCode || null,
+        qcmSet: data?.qcmSet || data?.presentation?.qcmSet || null,
         result: null,
       });
     } catch (err) {

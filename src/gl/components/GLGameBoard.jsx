@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { clampMapMascotPctForViewport } from '../../utils/mapViewMascotMotion.js';
 import { isQuestionMarker } from '../../utils/glMarkerEventConfig.js';
@@ -26,6 +26,7 @@ import { GLVirtualDiceDock } from './GLVirtualDiceDock.jsx';
 import { GLButton } from './ui/GLButton.jsx';
 import { GLGameBoardHud, GLGameBoardHudToolbar } from './GLGameBoardHud.jsx';
 import { plateauBoardImg, GL_ASSET_PLACEHOLDER_URL } from '../assets/index.js';
+import { useGlAssetsReady } from './GLFeuilletIllustration.jsx';
 
 export function GLGameBoard({
   chapter,
@@ -62,11 +63,17 @@ export function GLGameBoard({
   feuilletZones = [],
   feuilletZoneEditMode = false,
 }) {
+  const assetsReady = useGlAssetsReady();
   const plateauNumber = chapter?.chapter_plateau_number ?? chapter?.plateau_number ?? null;
-  const conventionBoard = plateauNumber ? plateauBoardImg(plateauNumber) : null;
-  const imageUrl = chapter?.map_image_url
+  const conventionBoard = useMemo(() => {
+    if (!assetsReady || !plateauNumber) return null;
+    return plateauBoardImg(plateauNumber);
+  }, [assetsReady, plateauNumber]);
+  const imageUrl = useMemo(() => (
+    chapter?.map_image_url
     || (conventionBoard && conventionBoard !== GL_ASSET_PLACEHOLDER_URL ? conventionBoard : null)
-    || '/maps/map-foret.svg';
+    || '/maps/map-foret.svg'
+  ), [chapter?.map_image_url, conventionBoard]);
   const [pendingMarker, setPendingMarker] = useState(null);
   const [actionType, setActionType] = useState('explore');
   const [mapFullscreen, setMapFullscreen] = useState(false);
@@ -443,12 +450,15 @@ export function GLGameBoard({
         teamId={questionPopover?.teamId ?? watchTeamId}
         presentation={questionPopover?.presentation}
         questionCode={questionPopover?.questionCode}
+        qcmSet={questionPopover?.qcmSet}
         loading={questionPopover?.loading}
         error={questionPopover?.error}
         result={questionPopover?.result}
         onClose={closePopover}
         onOpenGlossaryTerm={onOpenGlossaryTerm}
+        onOpenLoreTerm={onOpenLoreTerm}
         glossaryLinkItems={glossaryLinkItems}
+        loreGlossaryLinkItems={loreGlossaryLinkItems}
         onAnswered={onQcmAnswered}
         onReshuffle={reshuffle}
         onSubmitResult={setResult}

@@ -1,6 +1,12 @@
 const express = require('express');
 const { queryOne, execute } = require('../../database');
 const { requireGlPermission } = require('../../middleware/requireGlAuth');
+const { getGlModulesSettings } = require('../../lib/glSettings');
+const {
+  buildPublicIntroPayload,
+  getIntroConfigFromDb,
+} = require('../../lib/glIntro');
+const { logRouteError } = require('../../lib/routeLog');
 
 const router = express.Router();
 
@@ -13,6 +19,24 @@ function normalizeOptionalString(value) {
   const s = String(value).trim();
   return s.length > 0 ? s : null;
 }
+
+/** GET /api/gl/content/intro — config publique (textes + URLs média résolues). */
+router.get('/intro', async (req, res) => {
+  try {
+    const modules = await getGlModulesSettings();
+    if (modules.introEnabled !== true) {
+      return res.json({ enabled: false });
+    }
+    const config = await getIntroConfigFromDb();
+    if (config.enabled === false) {
+      return res.json({ enabled: false });
+    }
+    return res.json(buildPublicIntroPayload(config));
+  } catch (err) {
+    logRouteError(err, req, 'GET /api/gl/content/intro');
+    return res.status(500).json({ error: 'Erreur serveur' });
+  }
+});
 
 router.get('/:slug', requireGlPermission('gl.read'), async (req, res) => {
   const slug = normalizeSlug(req.params.slug);

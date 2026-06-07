@@ -6,6 +6,7 @@ export function GLMarkerQuestionList({
   loading = false,
   error = '',
   mode = 'random',
+  qcmSet = 'biome',
   fixedQuestionCode = '',
   selectedQuestionCodes = [],
   onToggleCode,
@@ -93,9 +94,20 @@ export function GLMarkerQuestionList({
                   <div className="gl-marker-question-list__top">
                     <span className="gl-marker-question-list__code">{code}</span>
                     <span className="gl-marker-question-list__meta">
-                      {item.biome_slug}
-                      {' · '}
-                      {item.categorie_slug}
+                      {qcmSet === 'lore' ? (
+                        <>
+                          {item.chapitre_slug}
+                          {' · '}
+                          {item.categorie_slug}
+                          {item.tier_lore ? ` · ${item.tier_lore}` : ''}
+                        </>
+                      ) : (
+                        <>
+                          {item.biome_slug}
+                          {' · '}
+                          {item.categorie_slug}
+                        </>
+                      )}
                       {item.niveau ? ` · ${item.niveau}` : ''}
                       {item.difficulte != null ? ` · diff. ${item.difficulte}` : ''}
                     </span>
