@@ -100,14 +100,15 @@ test('GET /api/gl/lore/qcm/scopes et categories', async () => {
     .get('/api/gl/lore/qcm/scopes')
     .set('Authorization', `Bearer ${adminToken}`)
     .expect(200);
-  assert.ok(Array.isArray(scopes.body.items));
-  assert.ok(scopes.body.items.some((s) => s.slug === 'tous'));
+  assert.ok(Array.isArray(scopes.body));
+  assert.ok(scopes.body.some((s) => s.slug === 'tous'));
 
   const categories = await request(app)
     .get('/api/gl/lore/qcm/categories')
     .set('Authorization', `Bearer ${adminToken}`)
     .expect(200);
-  assert.ok(categories.body.items.length >= 8);
+  assert.ok(Array.isArray(categories.body));
+  assert.ok(categories.body.length >= 8);
 });
 
 test('GET /api/gl/lore/qcm/questions/:code/present mélange à chaque appel', async () => {

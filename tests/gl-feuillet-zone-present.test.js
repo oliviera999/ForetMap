@@ -10,6 +10,8 @@ const {
   createGlAdmin,
   createGlClass,
   createGlGameWithTeams,
+  createGlPlayer,
+  assignPlayerToGameTeam,
   signTokens,
 } = require('./helpers/glFixtures');
 
@@ -39,6 +41,12 @@ before(async () => {
   });
   gameId = Number(gameSeed.game.id);
   teamId = Number(gameSeed.teams[0].id);
+  const player = await createGlPlayer({
+    classId: cls.id,
+    teamId,
+    pseudo: `fz-player-${stamp}`,
+  });
+  await assignPlayerToGameTeam({ gameId, teamId, playerId: player.id });
   await execute('UPDATE gl_games SET status = ?, current_team_id = ? WHERE id = ?', ['live', teamId, gameId]);
 
   const tokens = await signTokens({
