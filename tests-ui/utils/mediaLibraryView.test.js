@@ -2,6 +2,7 @@ import { describe, test, expect } from 'vitest';
 import {
   filterAndSortMediaLibraryItems,
   filterMediaLibraryItems,
+  pruneMediaLibrarySelection,
   sortMediaLibraryItems,
 } from '../../src/utils/mediaLibraryView.js';
 
@@ -53,5 +54,13 @@ describe('mediaLibraryView', () => {
       sort: 'updated_desc',
     });
     expect(rows[0].filename).toBe('forêt.png');
+  });
+
+  test('pruneMediaLibrarySelection retire les chemins absents', () => {
+    const pruned = pruneMediaLibrarySelection(
+      new Set(['media-library/image/a.png', 'media-library/image/ghost.png']),
+      [{ relativePath: 'media-library/image/a.png' }]
+    );
+    expect([...pruned]).toEqual(['media-library/image/a.png']);
   });
 });
