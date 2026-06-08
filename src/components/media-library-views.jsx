@@ -15,6 +15,11 @@ function MediaLibraryView({ canManage = false }) {
     return Array.isArray(data?.items) ? data.items : [];
   };
 
+  const fetchMediaUsage = async () => {
+    const data = await api('/api/media-library/usage');
+    return data && typeof data.usage === 'object' ? data.usage : {};
+  };
+
   const uploadMediaLibrary = async (mediaData, options = {}) => {
     setErr('');
     await api('/api/media-library', 'POST', {
@@ -47,8 +52,8 @@ function MediaLibraryView({ canManage = false }) {
   };
 
   const manageHint = canManage
-    ? 'Clique sur un média pour copier son URL, ou importe images, audio et vidéos.'
-    : 'Lecture seule : active les droits étendus pour importer ou supprimer des médias.';
+    ? 'Clique sur un média pour copier son URL, ou importe images, audio et vidéos. Chaque média indique s’il est utilisé et où.'
+    : 'Lecture seule : active les droits étendus pour importer ou supprimer des médias. Chaque média indique s’il est utilisé et où.';
 
   return (
     <div className="fade-in settings-admin">
@@ -62,6 +67,7 @@ function MediaLibraryView({ canManage = false }) {
         <MediaLibraryMenu
           title="Médiathèque ForetMap (images, audio, vidéo)"
           fetchItems={fetchMediaLibrary}
+          fetchUsage={fetchMediaUsage}
           uploadDataUrl={uploadMediaLibrary}
           removeItem={deleteMediaLibrary}
           onPickUrl={copyUrl}

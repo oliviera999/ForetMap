@@ -28,6 +28,45 @@ function resolveMediaUrl(url) {
   return withAppBase(String(url || ''));
 }
 
+function formatUsageLocation(loc) {
+  const kind = String(loc?.kind || 'Référence');
+  const label = loc?.label ? ` — ${loc.label}` : '';
+  const field = loc?.field ? ` (${loc.field})` : '';
+  return `${kind}${label}${field}`;
+}
+
+function MediaUsageInfo({ usage, ready, limit = 3 }) {
+  if (!ready) {
+    return <span className="media-library-menu__usage media-library-menu__usage--pending">Usage…</span>;
+  }
+  if (!usage || !usage.count) {
+    return <span className="media-library-menu__usage media-library-menu__usage--unused">Inutilisée</span>;
+  }
+  const locations = Array.isArray(usage.locations) ? usage.locations : [];
+  const shown = locations.slice(0, limit);
+  const extra = usage.count - shown.length;
+  const fullList = locations.map(formatUsageLocation).join('\n');
+  return (
+    <span className="media-library-menu__usage media-library-menu__usage--used">
+      <span className="media-library-menu__usage-badge" title={fullList}>
+        Utilisée · {usage.count}
+      </span>
+      <span className="media-library-menu__usage-list">
+        {shown.map((loc, index) => (
+          <span key={`${loc.kind}-${loc.id}-${loc.field}-${index}`} className="media-library-menu__usage-loc">
+            {formatUsageLocation(loc)}
+          </span>
+        ))}
+        {extra > 0 ? (
+          <span className="media-library-menu__usage-loc media-library-menu__usage-more">
+            +{extra} autre{extra > 1 ? 's' : ''}
+          </span>
+        ) : null}
+      </span>
+    </span>
+  );
+}
+
 function MediaLibraryGalleryTile({
   item,
   onPickUrl,
@@ -35,6 +74,9 @@ function MediaLibraryGalleryTile({
   selected = false,
   showSelect = false,
   onToggleSelect,
+  usage,
+  usageReady = false,
+  showUsage = false,
 }) {
   const mediaType = String(item.mediaType || 'image');
   const mediaUrl = resolveMediaUrl(item.url);
@@ -85,6 +127,7 @@ function MediaLibraryGalleryTile({
           </span>
         ) : null}
       </button>
+      {showUsage ? <MediaUsageInfo usage={usage} ready={usageReady} /> : null}
     </div>
   );
 }
@@ -104,6 +147,7 @@ export function MediaLibraryMenu({
   layout = 'list',
   showGalleryMeta = true,
   enableGalleryBulkActions = false,
+  fetchUsage = null,
 }) {
   const effectiveLayout = resolveMediaLibraryLayout({ layout, onPickUrl });
   const [open, setOpen] = useState(defaultOpen);
@@ -115,6 +159,10 @@ export function MediaLibraryMenu({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
+  const [usageByPath, setUsageByPath] = useState({});
+  const [usageReady, setUsageReady] = useState(false);
+
+  const showUsage = typeof fetchUsage === 'function';
 
   const galleryBulkEnabled = enableGalleryBulkActions && canRemove && effectiveLayout === 'gallery';
 
@@ -129,12 +177,26 @@ export function MediaLibraryMenu({
 
   const selectedCount = selectedPaths.size;
 
+  async function reloadUsage() {
+    if (!showUsage) return;
+    setUsageReady(false);
+    try {
+      const usage = await fetchUsage();
+      setUsageByPath(usage && typeof usage === 'object' ? usage : {});
+    } catch (_) {
+      setUsageByPath({});
+    } finally {
+      setUsageReady(true);
+    }
+  }
+
   async function reload() {
     setError('');
     const rows = await fetchItems();
     const nextItems = Array.isArray(rows) ? rows : [];
     setItems(nextItems);
     setSelectedPaths((prev) => pruneMediaLibrarySelection(prev, nextItems));
+    await reloadUsage();
   }
 
   async function ensureOpen() {
@@ -379,6 +441,9 @@ export function MediaLibraryMenu({
                     showSelect={galleryBulkEnabled}
                     selected={selectedPaths.has(item.relativePath)}
                     onToggleSelect={(checked) => toggleSelection(item.relativePath, checked)}
+                    showUsage={showUsage}
+                    usage={usageByPath[item.relativePath]}
+                    usageReady={usageReady}
                   />
                   {canRemove && !galleryBulkEnabled ? (
                     <button
@@ -411,6 +476,11 @@ export function MediaLibraryMenu({
                   <button type="button" className="gl-danger" onClick={() => onDelete(item)} disabled={busy || !canRemove}>
                     Supprimer
                   </button>
+                  {showUsage ? (
+                    <div className="media-library-menu__usage-row">
+                      <MediaUsageInfo usage={usageByPath[item.relativePath]} ready={usageReady} limit={5} />
+                    </div>
+                  ) : null}
                 </li>
               ))}
               {visibleItems.length === 0 && !busy ? <li className="gl-hint">Aucun média ne correspond aux filtres.</li> : null}

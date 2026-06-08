@@ -29,6 +29,7 @@ const {
   listMediaLibraryItems,
   executeMediaLibraryDeleteRequest,
 } = require('../../lib/mediaLibrary');
+const { collectMediaLibraryUsage } = require('../../lib/mediaLibraryUsage');
 const {
   INTRO_SETTINGS_KEY,
   loadDefaultIntroConfig,
@@ -885,6 +886,11 @@ router.get('/media-library', requireGlPermission('gl.content.manage'), async (re
   const limitRaw = Number(req.query?.limit);
   const items = listMediaLibraryItems(Number.isFinite(limitRaw) ? limitRaw : 300, { app: 'gl' });
   return res.json({ items });
+});
+
+router.get('/media-library/usage', requireGlPermission('gl.content.manage'), async (_req, res) => {
+  const usage = await collectMediaLibraryUsage({ queryAll }, { app: 'gl' });
+  return res.json({ usage });
 });
 
 router.post('/media-library', requireGlPermission('gl.content.manage'), async (req, res) => {
