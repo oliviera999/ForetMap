@@ -28,7 +28,7 @@ describe('chapterIllustrationKeys (manifest embarqué)', () => {
     const keys = chapterIllustrationKeys(1);
     expect(keys.length).toBeGreaterThan(0);
     expect(keys.every((k) => k.startsWith('recit_01-chap1_'))).toBe(true);
-    expect(keys).toContain('recit_01-chap1_le-carnet-dans-la-savane');
+    expect(keys).toContain('recit_01-chap1_le-carnet-et-le-monde');
   });
 
   test('résout les scènes du prologue', () => {
