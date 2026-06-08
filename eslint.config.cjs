@@ -53,6 +53,8 @@ module.exports = [
     files: [
       'tests/map-view-mascot-motion.test.js',
       'tests/visit-editorial-blocks.test.js',
+      'tests/fetch-all-loop-guard.test.js',
+      'tests/motion-hooks.test.js',
     ],
     languageOptions: {
       ecmaVersion: 2022,
