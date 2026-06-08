@@ -101,6 +101,14 @@ async function getStudentPrimaryRoleSlug(studentId) {
   return role?.slug || null;
 }
 
+test('resolveStudentRoleSlugFromValidatedCount : min=0 retient le palier au display_order le plus bas', () => {
+  const steps = [
+    { roleSlug: 'eleve_novice', min: 0, displayOrder: 50, label: 'novice' },
+    { roleSlug: 'eleve_ctx_ro_test', min: 0, displayOrder: 9990, label: 'test RO' },
+  ];
+  assert.strictEqual(resolveStudentRoleSlugFromValidatedCount(0, steps), 'eleve_novice');
+});
+
 test('getStudentProgressionConfig agrège tous les seuils min_done_tasks des profils n3beur', async () => {
   const teacherToken = await getAdminAuthToken();
   const ts = Date.now();

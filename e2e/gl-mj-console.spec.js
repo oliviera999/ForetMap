@@ -1,5 +1,5 @@
 const { test, expect } = require('@playwright/test');
-const { queryOne, execute } = require('../database');
+const { queryOne } = require('../database');
 const { seedGlScenario, mountGlSession } = require('./fixtures/gl.fixture');
 
 async function loginGlAdmin(page, seeded, displayName = 'MJ e2e') {
@@ -19,11 +19,11 @@ test.describe('GL MJ console flow', () => {
 
   test('le MJ voit et résout une action pending', async ({ request }) => {
     const seeded = await seedGlScenario('mj-console');
-    await execute(
-      `INSERT INTO gl_settings (\`key\`, value_json, updated_at)
-       VALUES ('gameplay.player_actions_enabled', 'true', NOW())
-       ON DUPLICATE KEY UPDATE value_json = VALUES(value_json), updated_at = NOW()`
-    );
+    const enableActions = await request.put('/api/gl/admin/settings/gameplay.player_actions_enabled', {
+      headers: { Authorization: `Bearer ${seeded.adminToken}` },
+      data: { value: true },
+    });
+    expect(enableActions.ok()).toBeTruthy();
 
     const created = await request.post(`/api/gl/games/${seeded.gameId}/actions`, {
       headers: { Authorization: `Bearer ${seeded.playerToken}` },

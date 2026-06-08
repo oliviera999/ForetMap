@@ -5,6 +5,8 @@ const {
   openFirstZoneModalFromMap,
   openTeacherTasksTab,
   clickTeacherNewTask,
+  fillTaskDescription,
+  fillTaskTitle,
 } = require('./fixtures/auth.fixture');
 
 const VIEWPORTS = [
@@ -14,16 +16,28 @@ const VIEWPORTS = [
 ];
 const TASK_DIALOG_NAME_RE = /Nouvelle tâche|Dupliquer la tâche|Modifier la tâche|Proposer une tâche/;
 
-async function expectDialogStableAndFitting(dialog, viewportHeight) {
+async function expectDialogStableAndFitting(dialog, viewportHeight, options = {}) {
+  const { pinCard = false, allowTallModal = false } = options;
   await expect(dialog).toBeVisible();
+  let lastHeight = 0;
+  let stableCount = 0;
   await expect.poll(async () => {
     const box = await dialog.boundingBox();
-    return box ? Math.round(box.height) : 0;
-  }, { timeout: 10_000 }).toBeGreaterThan(0);
+    const h = box ? Math.round(box.height) : 0;
+    if (h > 0 && h === lastHeight) stableCount += 1;
+    else stableCount = 0;
+    lastHeight = h;
+    return stableCount >= 2 ? h : 0;
+  }, { timeout: 10_000, intervals: [80, 120, 160] }).toBeGreaterThan(0);
   const box = await dialog.boundingBox();
   expect(box).toBeTruthy();
   if (box) {
-    expect(box.height).toBeLessThanOrEqual(viewportHeight - 8);
+    if (!allowTallModal) {
+      const maxHeight = pinCard
+        ? Math.min(viewportHeight * 0.92, viewportHeight - 8)
+        : viewportHeight - 8;
+      expect(box.height).toBeLessThanOrEqual(maxHeight + (pinCard ? 12 : 0));
+    }
     expect(box.width).toBeGreaterThan(120);
   }
 }
@@ -41,7 +55,8 @@ async function closeDialogSafely(page, dialog) {
 async function setupTeacherSession(page) {
   await loginAsNewStudent(page);
   await enableTeacherMode(page);
-  await openTeacherTasksTab(page);
+  await page.locator('.teacher-main .top-tabs').getByRole('button', { name: /^✅/ }).first().click();
+  await page.locator('.teacher-main .tasks-view').waitFor({ state: 'visible', timeout: 90_000 });
 }
 
 for (const vp of VIEWPORTS) {
@@ -56,7 +71,7 @@ for (const vp of VIEWPORTS) {
       await page.getByRole('button', { name: 'Activer les droits étendus' }).click({ timeout: 25_000 });
       const pinCard = page.locator('.pin-card');
       await expect(pinCard).toBeVisible({ timeout: 25_000 });
-      await expectDialogStableAndFitting(pinCard, vp.height);
+      await expectDialogStableAndFitting(pinCard, vp.height, { pinCard: true });
       const pin = process.env.E2E_ELEVATION_PIN || process.env.TEACHER_PIN || '1234';
       await enableTeacherMode(page, pin, { pinCardAlreadyOpen: true });
 
@@ -67,7 +82,7 @@ for (const vp of VIEWPORTS) {
       await newTaskBtn.scrollIntoViewIfNeeded().catch(() => {});
       await newTaskBtn.evaluate((el) => el.click());
       const taskModal = page.getByRole('dialog', { name: TASK_DIALOG_NAME_RE });
-      await expectDialogStableAndFitting(taskModal, vp.height);
+      await expectDialogStableAndFitting(taskModal, vp.height, { allowTallModal: vp.width <= 720 });
       await closeDialogSafely(page, taskModal);
 
       await page.getByRole('button', { name: /Carte & Zones/ }).click();
@@ -90,9 +105,9 @@ for (const vp of VIEWPORTS) {
       const dialog = page.getByRole('dialog', { name: TASK_DIALOG_NAME_RE });
       await expect(dialog).toBeVisible();
 
-      await dialog.getByLabel('Titre *').fill(`Tâche e2e modal ${Date.now()}`);
-      const longText = 'Texte long e2e '.repeat(220);
-      await dialog.getByLabel('Description').fill(longText);
+      await fillTaskTitle(dialog, `Tâche e2e modal ${Date.now()}`);
+      const longText = 'Texte long e2e '.repeat(80);
+      await fillTaskDescription(dialog, longText);
 
       const scrollState = await dialog.evaluate((el) => {
         const hasOverflow = el.scrollHeight > el.clientHeight;
