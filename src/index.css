@@ -5208,6 +5208,18 @@
   white-space: nowrap;
 }
 
+.media-library-menu__gallery-slug {
+  display: block;
+  padding: 0 5px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.56rem;
+  line-height: 1.25;
+  color: #2563eb;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .media-library-menu__gallery-meta {
   display: block;
   padding: 1px 5px 4px;

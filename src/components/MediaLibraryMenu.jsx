@@ -74,6 +74,11 @@ function MediaLibraryGalleryTile({
           )}
         </span>
         <span className="media-library-menu__gallery-caption">{item.filename}</span>
+        {item.stableKey ? (
+          <span className="media-library-menu__gallery-slug" title={`Slug : ${item.stableKey}`}>
+            {item.stableKey}
+          </span>
+        ) : null}
         {showMeta ? (
           <span className="media-library-menu__gallery-meta">
             {formatMediaLibrarySize(item.size)}
@@ -399,6 +404,7 @@ export function MediaLibraryMenu({
                 <li key={item.relativePath}>
                   <button type="button" className="gl-marker-row-btn" onClick={() => onPickUrl?.(item.url)}>
                     {mediaEmoji(item.mediaType)} <strong>{item.filename}</strong>
+                    {item.stableKey ? <span className="gl-hint"> · slug : {item.stableKey}</span> : null}
                     <span className="gl-hint"> — {item.url}</span>
                     {item.size ? <span className="gl-hint"> ({formatMediaLibrarySize(item.size)})</span> : null}
                   </button>
