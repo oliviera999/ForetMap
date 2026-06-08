@@ -1,6 +1,7 @@
 import React from 'react';
 import { GLGlossaryMarkdown } from './GLGlossaryMarkdown.jsx';
 import { GLSpeciesCatalog } from './GLSpeciesCatalog.jsx';
+import { GLChapterIllustration } from './GLChapterIllustration.jsx';
 
 export function GLBiocenoseView({
   gameState,
@@ -10,6 +11,7 @@ export function GLBiocenoseView({
   loreCarnetEnabled = false,
 }) {
   const introMarkdown = String(gameState?.game?.biocenose_markdown || '').trim();
+  const chapterNumber = gameState?.game?.chapter_plateau_number ?? null;
   const biomes = Array.isArray(gameState?.game?.chapter_biomes)
     ? gameState.game.chapter_biomes
     : [];
@@ -17,6 +19,11 @@ export function GLBiocenoseView({
   return (
     <article className="gl-panel gl-markdown fade-in">
       <h2>Biocenose</h2>
+      <GLChapterIllustration
+        chapterNumber={chapterNumber}
+        alt="Illustration du chapitre"
+        figureClassName="gl-chapter-illustration gl-chapter-illustration--cover"
+      />
       {introMarkdown ? (
         <GLGlossaryMarkdown
           className="gl-biocenose-intro"
