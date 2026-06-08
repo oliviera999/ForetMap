@@ -82,10 +82,14 @@ async function expectVisitMascotPaintReady(stage) {
     .toBe(true);
 }
 
-async function openVisitMap(page) {
+async function openVisitMap(page, mapId = 'n3') {
   await dismissProfilePromotionModalIfPresent(page);
   await page.getByRole('button', { name: /^🧭 Visite$/ }).click();
   await expect(page.locator('.visit-view')).toBeVisible({ timeout: 30_000 });
+  const mapSelect = page.getByRole('combobox', { name: 'Sélection de carte visite' });
+  if (mapId && (await mapSelect.isVisible({ timeout: 5000 }).catch(() => false))) {
+    await mapSelect.selectOption(mapId);
+  }
   const stage = page.locator('.visit-map-stage');
   await expect(stage).toBeVisible({ timeout: 30_000 });
   await expect(stage.locator('img.visit-map-img')).toBeVisible({ timeout: 20_000 });
@@ -103,17 +107,21 @@ test.describe.serial('mascotte visite (comportement carte)', () => {
   let teacherToken = '';
   /** @type {string} */
   let seededSuffix = '';
+  /** @type {{ x_pct: number, y_pct: number }} */
+  let entrancePct = { x_pct: 22, y_pct: 18 };
 
   test.beforeEach(async ({ page }) => {
     seededIds = null;
     teacherToken = '';
     seededSuffix = '';
+    entrancePct = { x_pct: 22, y_pct: 18 };
     await loginAsNewStudent(page);
     await dismissProfilePromotionModalIfPresent(page);
     await enableTeacherMode(page);
     const seeded = await seedVisitMascotContent(page);
     teacherToken = seeded.token;
     seededSuffix = seeded.suffix;
+    entrancePct = seeded.entrancePct || entrancePct;
     seededIds = { n3: seeded.n3 };
     await disableTeacherMode(page);
     await dismissProfilePromotionModalIfPresent(page);
@@ -136,8 +144,8 @@ test.describe.serial('mascotte visite (comportement carte)', () => {
 
   test('position initiale sous le repère entrée N3 (plan n3)', async ({ page }) => {
     const { xp, yp } = await readMascotPct(page);
-    expect(Math.abs(xp - 22)).toBeLessThan(1.2);
-    const expectedY = 18 + N3_ENTRANCE_Y_OFFSET;
+    expect(Math.abs(xp - entrancePct.x_pct)).toBeLessThan(1.2);
+    const expectedY = entrancePct.y_pct + N3_ENTRANCE_Y_OFFSET;
     expect(Math.abs(yp - expectedY)).toBeLessThan(1.2);
   });
 

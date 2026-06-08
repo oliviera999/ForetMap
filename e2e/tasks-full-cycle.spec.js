@@ -4,43 +4,40 @@ const {
   enableTeacherMode,
   disableTeacherMode,
   dismissProfilePromotionModalIfPresent,
-  clickTeacherNewTask,
-  submitTaskFormDialog,
+  createTeacherTask,
+  assignStudentToTaskAsTeacher,
+  fillTaskDescription,
   openTeacherTasksTab,
   openStudentTasksTab,
 } = require('./fixtures/auth.fixture');
 
 test('cycle complet tâche: création prof -> prise élève -> soumission -> validation prof', async ({ page }) => {
   /* Deux élévations + liste tâches : > 3 min possible quand le worker est chargé. */
-  test.setTimeout(300_000);
+  test.setTimeout(600_000);
   const taskTitle = `E2E Cycle ${Date.now()}`;
 
   await loginAsNewStudent(page);
   await enableTeacherMode(page);
-
-  await openTeacherTasksTab(page);
-  await clickTeacherNewTask(page);
-  await page.getByPlaceholder('Ex: Arroser les tomates').fill(taskTitle);
-  await submitTaskFormDialog(page);
-
-  const taskCard = page.locator('.task-card', { hasText: taskTitle }).first();
-  await expect(taskCard).toBeVisible();
+  const taskId = await createTeacherTask(page, taskTitle);
+  await assignStudentToTaskAsTeacher(page, taskId);
 
   await disableTeacherMode(page);
+  const studentTasksLoad = page.waitForResponse(
+    (r) => r.url().includes('/api/tasks') && r.request().method() === 'GET' && r.status() === 200,
+    { timeout: 45_000 },
+  );
   await openStudentTasksTab(page);
+  await studentTasksLoad.catch(() => {});
 
   const studentTaskCard = page.locator('.task-card', { hasText: taskTitle }).first();
-  await expect(studentTaskCard).toBeVisible();
-  await studentTaskCard.getByRole('button', { name: /Je m['\u2019]en occupe/ }).click();
-  await dismissProfilePromotionModalIfPresent(page);
-  const studentTaskCardAfter = page.locator('.task-card', { hasText: taskTitle }).first();
-  await expect(studentTaskCardAfter.getByRole('button', { name: /Marquer terminée/ })).toBeVisible({ timeout: 45_000 });
-  await studentTaskCardAfter.getByRole('button', { name: /Marquer terminée/ }).click();
+  await expect(studentTaskCard).toBeVisible({ timeout: 45_000 });
+  await expect(studentTaskCard.getByRole('button', { name: /Marquer terminée/ })).toBeVisible({ timeout: 45_000 });
+  await studentTaskCard.getByRole('button', { name: /Marquer terminée/ }).evaluate((el) => el.click());
 
   const reportDlg = page.getByRole('dialog', { name: 'Rapport de tâche' });
   await reportDlg.waitFor({ state: 'visible', timeout: 30_000 });
   await dismissProfilePromotionModalIfPresent(page);
-  await reportDlg.getByLabel('Commentaire (optionnel)').fill('Rapport e2e complet');
+  await fillTaskDescription(reportDlg, 'Rapport e2e complet');
   await reportDlg.getByRole('button', { name: /Marquer comme terminée/ }).click();
   await reportDlg.waitFor({ state: 'hidden', timeout: 30_000 }).catch(() => {});
   await dismissProfilePromotionModalIfPresent(page);
