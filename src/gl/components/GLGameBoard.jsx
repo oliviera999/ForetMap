@@ -25,7 +25,7 @@ import { GLZoneMusicMuteButton } from './GLZoneMusicMuteButton.jsx';
 import { GLVirtualDiceDock } from './GLVirtualDiceDock.jsx';
 import { GLButton } from './ui/GLButton.jsx';
 import { GLGameBoardHud, GLGameBoardHudToolbar } from './GLGameBoardHud.jsx';
-import { plateauBoardImg, GL_ASSET_PLACEHOLDER_URL } from '../assets/index.js';
+import { plateauBoardImg, chapterIllustration, GL_ASSET_PLACEHOLDER_URL } from '../assets/index.js';
 import { useGlAssetsReady } from './GLFeuilletIllustration.jsx';
 import { DialogShell } from '../../components/DialogShell.jsx';
 
@@ -70,11 +70,16 @@ export function GLGameBoard({
     if (!assetsReady || !plateauNumber) return null;
     return plateauBoardImg(plateauNumber);
   }, [assetsReady, plateauNumber]);
+  const conventionChapter = useMemo(() => {
+    if (!assetsReady || plateauNumber == null) return null;
+    return chapterIllustration(plateauNumber);
+  }, [assetsReady, plateauNumber]);
   const imageUrl = useMemo(() => (
     chapter?.map_image_url
     || (conventionBoard && conventionBoard !== GL_ASSET_PLACEHOLDER_URL ? conventionBoard : null)
+    || conventionChapter
     || '/maps/map-foret.svg'
-  ), [chapter?.map_image_url, conventionBoard]);
+  ), [chapter?.map_image_url, conventionBoard, conventionChapter]);
   const [pendingMarker, setPendingMarker] = useState(null);
   const [actionType, setActionType] = useState('explore');
   const [mapFullscreen, setMapFullscreen] = useState(false);
