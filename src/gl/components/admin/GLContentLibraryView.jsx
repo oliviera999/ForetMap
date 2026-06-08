@@ -326,8 +326,9 @@ export function GLContentLibraryView({ onOpenSubTab }) {
   return (
     <div className="gl-content-library">
       <p className="gl-hint">
-        Bibliothèque globale partagée avec ForetMap (images, audio, vidéo) et imports catalogue G&amp;L (XLSX).
-        L’analyse classe les fichiers sans écrire en base ; l’application est explicite.
+        Médiathèque Gnomes &amp; Licornes (images, audio, vidéo) et imports catalogue G&amp;L (XLSX).
+        Cloisonnée : séparée de la médiathèque ForetMap. L’analyse classe les fichiers sans écrire en base ;
+        l’application est explicite.
       </p>
       <p className="gl-content-library__limits-banner">{limitsBanner}</p>
       {err ? <p className="gl-error">{err}</p> : null}
@@ -338,7 +339,7 @@ export function GLContentLibraryView({ onOpenSubTab }) {
         <h3>Consulter</h3>
         <MediaLibraryMenu
           key={mediaReloadKey}
-          title="Bibliothèque globale (images, audio, vidéo)"
+          title="Médiathèque Gnomes & Licornes (images, audio, vidéo)"
           fetchItems={fetchMediaLibrary}
           uploadDataUrl={uploadMediaLibrary}
           removeItem={deleteMediaLibrary}

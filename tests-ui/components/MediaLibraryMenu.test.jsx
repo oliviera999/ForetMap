@@ -71,6 +71,69 @@ describe('MediaLibraryMenu layout gallery', () => {
     expect(document.querySelector('.media-library-menu__gallery')).toBeTruthy();
   });
 
+  test('affiche le slug de la ressource sous la miniature', async () => {
+    render(
+      <MediaLibraryMenu
+        defaultOpen
+        showToggle={false}
+        layout="gallery"
+        fetchItems={async () => ([
+          {
+            relativePath: 'media-library/image/2026/06/a.png',
+            url: '/uploads/media-library/image/2026/06/a.png',
+            filename: 'a.png',
+            mediaType: 'image',
+            stableKey: 'embleme_foret',
+          },
+        ])}
+        uploadDataUrl={vi.fn()}
+        removeItem={vi.fn()}
+        onPickUrl={vi.fn()}
+        canUpload={false}
+        canRemove={false}
+      />
+    );
+
+    expect(await screen.findByText('embleme_foret')).toBeInTheDocument();
+    expect(document.querySelector('.media-library-menu__gallery-slug')).toHaveTextContent('embleme_foret');
+  });
+
+  test('recherche aussi sur le slug', async () => {
+    render(
+      <MediaLibraryMenu
+        defaultOpen
+        showToggle={false}
+        layout="gallery"
+        fetchItems={async () => ([
+          {
+            relativePath: 'media-library/image/2026/06/a.png',
+            url: '/uploads/media-library/image/2026/06/a.png',
+            filename: 'a.png',
+            mediaType: 'image',
+            stableKey: 'embleme_foret',
+          },
+          {
+            relativePath: 'media-library/image/2026/06/b.png',
+            url: '/uploads/media-library/image/2026/06/b.png',
+            filename: 'b.png',
+            mediaType: 'image',
+            stableKey: 'plateau-1_jungle',
+          },
+        ])}
+        uploadDataUrl={vi.fn()}
+        removeItem={vi.fn()}
+        onPickUrl={vi.fn()}
+        canUpload={false}
+        canRemove={false}
+      />
+    );
+
+    expect(await screen.findByText('2 médias')).toBeInTheDocument();
+    fireEvent.change(screen.getByPlaceholderText('Nom de fichier…'), { target: { value: 'jungle' } });
+    expect(await screen.findByText('1 / 2 médias')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Copier l’URL — a\.png/i })).not.toBeInTheDocument();
+  });
+
   test('filtre par recherche et affiche le décompte', async () => {
     render(
       <MediaLibraryMenu
