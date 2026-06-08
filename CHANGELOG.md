@@ -20,6 +20,8 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ### Corrigé
 
+- **CI — suite de tests backend stabilisée (72 échecs)** : depuis la réactivation des tests backend en CI (lint + glob `tests/*.test.js`), 72 échecs préexistants apparaissaient. Causes corrigées : `tests/gl-chapters-admin.test.js` ne supprime plus le chapitre seedé partagé `foret-magique` (le test « DELETE chapitre lié (409) » acceptait « 200 ou 409 » et supprimait le seed quand aucune partie n'était liée → cascade sur ~70 suites GL) — il lie désormais une partie et exige un 409 strict ; `tests/gl-learning.test.js` génère des codes espèce/glossaire longs (timestamp complet) pour éviter la collision avec le corpus importé (`GL0083`).
+- **GL — prise de contrôle (impersonate) bloquée si IDs identiques** : `POST /api/gl/auth/admin/impersonate` refusait à tort (400 « propre compte ») lorsqu'un `gl_admin` et un `gl_player` partageaient le même identifiant numérique (auto-increments indépendants). Le garde-fou anti-auto-impersonation compare désormais aussi le **type d'utilisateur**. Tests `tests/gl-auth.test.js`.
 - **Médiathèques — doc API usage** : endpoints `GET /api/media-library/usage` et `GET /api/gl/admin/media-library/usage` documentés (format `{ usage }`, sources scannées, limites).
 
 - **Tests UI — Node 22+ / localStorage natif** : polyfill dans `tests-ui/setup.js` lorsque le stub Node (`--localstorage-file`) casse `setItem` / `clear` sous Vitest/jsdom (régression sur Node 25).

@@ -6,11 +6,13 @@ const assert = require('node:assert');
 const request = require('supertest');
 const { app } = require('../server');
 const { initSchema, execute, queryOne } = require('../database');
-const { createGlPlayer } = require('./helpers/glFixtures');
+const { createGlPlayer, createGlGameWithTeams } = require('./helpers/glFixtures');
 const { signAuthToken } = require('../middleware/requireTeacher');
 
 let adminToken = '';
 let playerToken = '';
+let adminId = null;
+let classId = null;
 let createdChapterId = null;
 let createdMarkerId = null;
 const stamp = Date.now();
@@ -30,6 +32,7 @@ before(async () => {
     'SELECT id FROM gl_admins WHERE email = ? LIMIT 1',
     [`chapters.admin.${stamp}@ecole.local`]
   );
+  adminId = admin.id;
   adminToken = await signAuthToken({
     product: 'gl',
     userType: 'gl_admin',
@@ -45,6 +48,7 @@ before(async () => {
     [`Classe Chapters Admin ${stamp}`, admin.id]
   );
   const cls = await queryOne('SELECT id FROM gl_classes WHERE name = ? LIMIT 1', [`Classe Chapters Admin ${stamp}`]);
+  classId = cls.id;
   const player = await createGlPlayer({
     classId: cls.id,
     pseudo: `chapters-admin-player-${stamp}`,
@@ -362,12 +366,19 @@ test('DELETE /api/gl/chapters/admin/:id supprime le chapitre (aucune partie lié
 
 test('DELETE /api/gl/chapters/admin/:id refuse si chapitre lié à une partie (409)', async () => {
   const chapter = await queryOne("SELECT id FROM gl_chapters WHERE slug = 'foret-magique' LIMIT 1");
+  assert.ok(chapter?.id, 'Chapitre seedé « foret-magique » requis');
+  // On lie explicitement une partie au chapitre seedé : la suppression doit être
+  // refusée (409) et le chapitre partagé préservé pour les autres suites GL.
+  await createGlGameWithTeams({
+    classId,
+    chapterId: chapter.id,
+    createdBy: adminId,
+    name: `Partie lien chapitre seedé ${stamp}`,
+  });
   await request(app)
     .delete(`/api/gl/chapters/admin/${chapter.id}`)
     .set('Authorization', `Bearer ${adminToken}`)
-    .expect((res) => {
-      if (res.status !== 409 && res.status !== 200) {
-        throw new Error(`Expected 200 or 409, got ${res.status}`);
-      }
-    });
+    .expect(409);
+  const stillThere = await queryOne("SELECT id FROM gl_chapters WHERE slug = 'foret-magique' LIMIT 1");
+  assert.ok(stillThere?.id, 'Le chapitre seedé ne doit pas avoir été supprimé');
 });
