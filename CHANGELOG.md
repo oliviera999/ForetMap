@@ -19,6 +19,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ### Corrigé
 
+- **GL — liaison médias des chapitres (scènes de récit)** : les visuels conventionnels `recit_0N-chapN_*` / `recit_00-prologue_*` de la médiathèque ne se liaient à aucun chapitre (asymétrie avec les feuillets de Sélène, déjà résolus via `feuilletIllustration`). Ajout du resolver runtime `chapterIllustration` / `chapterIllustrations` / `chapterIllustrationKeys` (`src/gl/assets/index.js`) et du composant `GLChapterIllustration` / `GLChapterScenes` ; câblage dans l'Histoire (galerie des scènes), la Biocénose (couverture) et en repli du fond de carte (`GLGameBoard`). Audit `glMediaKeysAudit` étendu (catégorie `chapitre-recit`, plus aucune scène orpheline). Tests `tests-ui/gl/glChapterIllustration.test.js`, extension `tests/gl-media-chapter-link.test.js`.
 - **GL — fermeture intro login** : état `introDismissed` pour re-render après « Passer l'intro » (évite no-op `setForceIntro(false)`). E2E `gl-intro.spec.js`.
 - **GL — e2e navigation** : sélecteurs `role=tab` (remplace `button`), onglet « Royaume » → « Le monde de G&L », drawer mobile sans « Histoire » si module journal off.
 - **RBAC — progression élève** : promotion automatique au palier mérité (montée de rang ou palier perso après tâches validées). Tests `rbac-progression`, `tasks-validate-rbac`.
