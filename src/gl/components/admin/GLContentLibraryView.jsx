@@ -108,6 +108,11 @@ export function GLContentLibraryView({ onOpenSubTab }) {
     return Array.isArray(data?.items) ? data.items : [];
   };
 
+  const fetchMediaUsage = async () => {
+    const data = await apiGL('/api/gl/admin/media-library/usage');
+    return data && typeof data.usage === 'object' ? data.usage : {};
+  };
+
   const uploadMediaLibrary = async (mediaData, options = {}) => {
     await apiGL('/api/gl/admin/media-library', 'POST', {
       media_data: mediaData,
@@ -341,6 +346,7 @@ export function GLContentLibraryView({ onOpenSubTab }) {
           key={mediaReloadKey}
           title="Médiathèque Gnomes & Licornes (images, audio, vidéo)"
           fetchItems={fetchMediaLibrary}
+          fetchUsage={fetchMediaUsage}
           uploadDataUrl={uploadMediaLibrary}
           removeItem={deleteMediaLibrary}
           onPickUrl={copyUrl}
@@ -350,7 +356,7 @@ export function GLContentLibraryView({ onOpenSubTab }) {
           showToggle={false}
           layout="gallery"
           enableGalleryBulkActions
-          manageHint="Clique sur une miniature pour copier l’URL. Cochez plusieurs médias pour les supprimer en lot, ou videz la bibliothèque si besoin."
+          manageHint="Clique sur une miniature pour copier l’URL. Chaque média indique s’il est utilisé et où. Cochez plusieurs médias pour les supprimer en lot, ou videz la bibliothèque si besoin."
         />
       </section>
 

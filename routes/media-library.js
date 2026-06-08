@@ -2,11 +2,13 @@ const express = require('express');
 const { requirePermission } = require('../middleware/requireTeacher');
 const { respondInternalError } = require('../lib/routeLog');
 const { logAudit } = require('./audit');
+const { queryAll } = require('../database');
 const {
   saveMediaFromDataUrl,
   listMediaLibraryItems,
   executeMediaLibraryDeleteRequest,
 } = require('../lib/mediaLibrary');
+const { collectMediaLibraryUsage } = require('../lib/mediaLibraryUsage');
 
 const router = express.Router();
 
@@ -15,6 +17,15 @@ router.get('/', requirePermission('teacher.access'), async (req, res) => {
     const limitRaw = Number(req.query?.limit);
     const items = listMediaLibraryItems(Number.isFinite(limitRaw) ? limitRaw : 300, { app: 'foretmap' });
     return res.json({ items });
+  } catch (e) {
+    return respondInternalError(res, req, e);
+  }
+});
+
+router.get('/usage', requirePermission('teacher.access'), async (req, res) => {
+  try {
+    const usage = await collectMediaLibraryUsage({ queryAll }, { app: 'foretmap' });
+    return res.json({ usage });
   } catch (e) {
     return respondInternalError(res, req, e);
   }

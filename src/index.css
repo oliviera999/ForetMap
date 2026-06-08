@@ -5227,6 +5227,62 @@
   color: #64748b;
 }
 
+.media-library-menu__usage {
+  display: block;
+  padding: 2px 5px 5px;
+  font-size: 0.56rem;
+  line-height: 1.3;
+}
+
+.media-library-menu__usage--pending {
+  color: #94a3b8;
+  font-style: italic;
+}
+
+.media-library-menu__usage--unused {
+  color: #94a3b8;
+}
+
+.media-library-menu__usage--used {
+  color: #15803d;
+}
+
+.media-library-menu__usage-badge {
+  display: inline-block;
+  margin-bottom: 2px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: #dcfce7;
+  color: #166534;
+  font-weight: 600;
+}
+
+.media-library-menu__usage--unused .media-library-menu__usage-badge {
+  background: #f1f5f9;
+  color: #64748b;
+}
+
+.media-library-menu__usage-list {
+  display: block;
+}
+
+.media-library-menu__usage-loc {
+  display: block;
+  color: #475569;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.media-library-menu__usage-more {
+  color: #94a3b8;
+  font-style: italic;
+}
+
+.media-library-menu__usage-row {
+  margin-top: 2px;
+}
+
 .media-library-menu__gallery-remove {
   position: absolute;
   top: 6px;

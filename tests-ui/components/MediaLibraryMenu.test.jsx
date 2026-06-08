@@ -134,6 +134,53 @@ describe('MediaLibraryMenu layout gallery', () => {
     expect(screen.queryByRole('button', { name: /Copier l’URL — a\.png/i })).not.toBeInTheDocument();
   });
 
+  test('affiche l’usage de chaque ressource (utilisée / inutilisée)', async () => {
+    const fetchUsage = vi.fn(async () => ({
+      'media-library/image/2026/06/a.png': {
+        count: 2,
+        locations: [
+          { app: 'gl', kind: 'Chapitre', label: 'Forêt', field: 'image de carte', id: 7 },
+          { app: 'gl', kind: 'Feuillet de Sélène', label: 'Le copiste', field: 'illustration', id: 3 },
+        ],
+      },
+    }));
+
+    render(
+      <MediaLibraryMenu
+        defaultOpen
+        showToggle={false}
+        layout="gallery"
+        fetchItems={async () => ([
+          {
+            relativePath: 'media-library/image/2026/06/a.png',
+            url: '/uploads/media-library/image/2026/06/a.png',
+            filename: 'a.png',
+            mediaType: 'image',
+            stableKey: 'embleme_foret',
+          },
+          {
+            relativePath: 'media-library/image/2026/06/b.png',
+            url: '/uploads/media-library/image/2026/06/b.png',
+            filename: 'b.png',
+            mediaType: 'image',
+            stableKey: 'orphelin',
+          },
+        ])}
+        fetchUsage={fetchUsage}
+        uploadDataUrl={vi.fn()}
+        removeItem={vi.fn()}
+        onPickUrl={vi.fn()}
+        canUpload={false}
+        canRemove={false}
+      />
+    );
+
+    expect(await screen.findByText('Utilisée · 2')).toBeInTheDocument();
+    expect(screen.getByText('Chapitre — Forêt (image de carte)')).toBeInTheDocument();
+    expect(screen.getByText('Inutilisée')).toBeInTheDocument();
+    expect(fetchUsage).toHaveBeenCalled();
+  });
+
   test('filtre par recherche et affiche le décompte', async () => {
     render(
       <MediaLibraryMenu
