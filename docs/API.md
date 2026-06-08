@@ -255,8 +255,8 @@ Note UX admin GL : l’édition des chapitres (repères + zones polygonales sur 
 | GET | `/api/gl/admin/settings` | — | `gl.settings.manage` |
 | PUT | `/api/gl/admin/settings/:key` | `{ value }` ; pour `platform.brand`, `value` doit être un objet JSON valide (normalisé serveur) | `gl.settings.manage` |
 | GET | `/api/gl/admin/content` | — | `gl.content.manage` |
-| GET | `/api/gl/admin/media-library` | `?limit=` optionnel (défaut 300, max 800) | `gl.content.manage` |
-| POST | `/api/gl/admin/media-library` | `{ media_data }` (data URL base64 image/audio/vidéo) | `gl.content.manage` |
+| GET | `/api/gl/admin/media-library` | `?limit=` optionnel (défaut 300, max 800) — liste **G&L** (médias `app: 'gl'` + hérités sans étiquette) | `gl.content.manage` |
+| POST | `/api/gl/admin/media-library` | `{ media_data }` (data URL base64 image/audio/vidéo) — enregistre `app: 'gl'` | `gl.content.manage` |
 | DELETE | `/api/gl/admin/media-library` | `{ relative_path }` (`media-library/...`) | `gl.content.manage` |
 | GET | `/api/gl/admin/content-library/limits` | — ; `{ maxArchiveBytes, maxFileBytes, maxDecompressedBytes, maxFileCount }` | `gl.content.manage` |
 | POST | `/api/gl/admin/content-library/analyze` | **Recommandé** : `multipart/form-data` — champ `archive` (ZIP, max **50 Mo** par défaut) **ou** `files[]` (max **32 Mo** / fichier, **200** fichiers). **Legacy JSON** (petits fichiers / tests) : `{ files: [{ fileName, fileDataBase64 }] }` ou `{ archive: { fileName, fileDataBase64 } }` — soumis à `FORETMAP_JSON_BODY_LIMIT` (défaut 25 Mo). Classification + dry-run sans écriture BDD. Erreur **413** : `{ code: 'PAYLOAD_TOO_LARGE', error, hint? }` | `gl.content.manage` |
@@ -616,12 +616,21 @@ Les profils sont entièrement paramétrables ; ce tableau documente les **valeur
 
 ## Médiathèque ForetMap
 
-Bibliothèque globale sur disque (`uploads/media-library/`) partagée avec les contenus ForetMap et GL. Les routes ci-dessous refusent les tokens produit GL sur l’API ForetMap standard.
+Stockage physique unique sur disque (`uploads/media-library/`), avec **deux médiathèques logiques** cloisonnées côté API et UI :
+
+- **`foretmap`** — routes ForetMap ci-dessous et `GET/POST/DELETE /api/settings/admin/media-library`.
+- **`gl`** — routes `GET/POST/DELETE /api/gl/admin/media-library` et import en masse bibliothèque contenu (`content-library/apply`, médias étiquetés `app: 'gl'`).
+
+L’étiquette d’origine est portée par `_keys.json` (champ `app` sur chaque entrée de clé stable, **sans déplacer** les fichiers). Les médias **hérités** (sans `app`) restent rattachés à **G&L** : visibles dans la médiathèque GL, masqués côté ForetMap (le jeu GL résout les assets par clés stables).
+
+Chaque item listé expose notamment : `relativePath`, `url`, `filename`, `mediaType`, `stableKey` (slug / clé stable), `app` (médiathèque d’affichage : `foretmap` ou `gl`), `label`.
+
+Les routes ForetMap ci-dessous refusent les tokens produit GL sur l’API ForetMap standard.
 
 | Méthode | URL | Description | Accès |
 |--------|-----|-------------|-------|
-| GET | `/api/media-library` | Liste les médias (`?limit=` optionnel ; défaut 300, max 800) | `teacher.access` |
-| POST | `/api/media-library` | Upload média (`{ media_data }` data URL base64 image/audio/vidéo) | `teacher.access` + droits étendus |
+| GET | `/api/media-library` | Liste les médias **ForetMap** uniquement (`?limit=` optionnel ; défaut 300, max 800) | `teacher.access` |
+| POST | `/api/media-library` | Upload média ForetMap (`{ media_data }` data URL base64 image/audio/vidéo) | `teacher.access` + droits étendus |
 | DELETE | `/api/media-library` | Suppression média (`{ relative_path }`, préfixe `media-library/`) | `teacher.access` + droits étendus |
 
 ---
@@ -639,8 +648,8 @@ Ces routes sont destinées à la console admin et exigent un token avec permissi
 | POST | `/api/settings/admin/maps` | Créer une carte (`{ id, label, sort_order?, map_image_url?, is_active? }`) — `id` : slug minuscules/chiffres/tirets (1–31 caractères), réservé `both` interdit |
 | PUT | `/api/settings/admin/maps/:id` | Mettre à jour une carte (label, ordre, activation, URL image, padding) |
 | POST | `/api/settings/admin/maps/:id/image` | Upload image de plan (`{ image_data }`) |
-| GET | `/api/settings/admin/media-library` | Liste bibliothèque médias globale (`?limit=` optionnel ; images/audio/vidéo, source disque `uploads/media-library/`) |
-| POST | `/api/settings/admin/media-library` | Upload média (`{ media_data }` data URL base64) |
+| GET | `/api/settings/admin/media-library` | Liste bibliothèque médias **ForetMap** (`?limit=` optionnel ; images/audio/vidéo, source disque `uploads/media-library/`) |
+| POST | `/api/settings/admin/media-library` | Upload média ForetMap (`{ media_data }` data URL base64) |
 | DELETE | `/api/settings/admin/media-library` | Suppression média (`{ relative_path }`, préfixe `media-library/`) |
 | GET | `/api/settings/admin/system/logs` | Lecture des logs applicatifs via GUI |
 | GET | `/api/settings/admin/system/diagnostics` | Snapshot diagnostics système via GUI admin (runtime Node, mémoire, ping BDD, métriques HTTP, tampon logs, `runtimeProcess`) ; nécessite `admin.settings.read` + élévation PIN et `ops.allow_remote_logs=true` |
