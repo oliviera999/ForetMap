@@ -20,7 +20,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ### Corrigé
 
-- **RBAC — échelle de progression (min = 0)** : `resolveStudentRoleSlugFromValidatedCount` ne retient plus le dernier palier `min_done_tasks = 0` (ex. rôle de test `eleve_ctx_ro_test`) au détriment de `eleve_novice` ; tie-break explicite à seuil nul vs paliers supérieurs. Test `tests/rbac-progression.test.js`.
+- **RBAC — échelle de progression (min = 0)** : `resolveStudentRoleSlugFromValidatedCount` ne retient plus le dernier palier `min_done_tasks = 0` (ex. rôle de test `eleve_ctx_ro_test`) au détriment de `eleve_novice` ; tie-break explicite à seuil nul vs paliers supérieurs, tie-break stable sur `display_order` / slug. Tests `tests/rbac-progression.test.js` (purge paliers orphelins + réparation seuils `eleve_*` en `before`).
 - **E2E — tâches (assign / unassign / cycle complet)** : fixtures auth (session élève après élévation, création tâche prof, sync JWT), global-setup (purge tâches E2E + rôle test), specs `tasks-unassign-flow` et `tasks-full-cycle` ; rapport RichText via `fillTaskDescription`. Correctif logout (`studentRef` réinitialisé dans `App.jsx`).
 - **E2E — stabilité suite** : `gl-mj-console` (cache gameplay), `modals-responsive`, `visit-mascot`, `visit-mode`, `realtime-multi-session` ; `playwright.config.js` (`globalSetup`).
 

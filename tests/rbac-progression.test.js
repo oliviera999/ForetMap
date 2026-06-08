@@ -14,6 +14,27 @@ const {
 test.before(async () => {
   await initSchema();
   await ensureRbacBootstrap();
+  /* BDD locale : paliers e2e/tests orphelins et seuils eleve_* parfois corrompus. */
+  await execute(
+    `DELETE ur FROM user_roles ur
+      INNER JOIN roles r ON r.id = ur.role_id
+     WHERE r.slug LIKE 'palier_expert_%'
+        OR (r.slug LIKE 'palier_%' AND r.is_system = 0)`,
+  );
+  await execute(
+    `DELETE rp FROM role_permissions rp
+      INNER JOIN roles r ON r.id = rp.role_id
+     WHERE r.slug LIKE 'palier_expert_%'
+        OR (r.slug LIKE 'palier_%' AND r.is_system = 0)`,
+  );
+  await execute(
+    `DELETE FROM roles
+      WHERE slug LIKE 'palier_expert_%'
+         OR (slug LIKE 'palier_%' AND is_system = 0)`,
+  );
+  await execute("UPDATE roles SET min_done_tasks = 0 WHERE slug = 'eleve_novice'");
+  await execute("UPDATE roles SET min_done_tasks = 5 WHERE slug = 'eleve_avance'");
+  await execute("UPDATE roles SET min_done_tasks = 10 WHERE slug = 'eleve_chevronne'");
 });
 
 async function getAdminAuthToken() {
@@ -252,7 +273,7 @@ test('progression auto : palier perso. rank < eleve_chevronne (seuil supérieur)
       rank: 100,
       emoji: '⭐',
       min_done_tasks: 3,
-      display_order: 9910,
+      display_order: 9910 + (ts % 1000),
     })
     .expect(201);
 
