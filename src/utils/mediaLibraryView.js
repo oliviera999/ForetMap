@@ -44,7 +44,9 @@ export function filterMediaLibraryItems(items = [], options = {}) {
   return (Array.isArray(items) ? items : []).filter((item) => {
     if (filter !== 'all' && String(item.mediaType || '') !== filter) return false;
     if (!query) return true;
-    const haystack = normalizeSearchText(item.filename || item.relativePath || item.url);
+    const haystack = normalizeSearchText(
+      [item.filename, item.stableKey, item.relativePath, item.url].filter(Boolean).join(' ')
+    );
     return haystack.includes(query);
   });
 }

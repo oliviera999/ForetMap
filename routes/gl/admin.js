@@ -883,7 +883,7 @@ router.post('/content/intro/reset', requireGlPermission('gl.content.manage'), as
 
 router.get('/media-library', requireGlPermission('gl.content.manage'), async (req, res) => {
   const limitRaw = Number(req.query?.limit);
-  const items = listMediaLibraryItems(Number.isFinite(limitRaw) ? limitRaw : 300);
+  const items = listMediaLibraryItems(Number.isFinite(limitRaw) ? limitRaw : 300, { app: 'gl' });
   return res.json({ items });
 });
 
@@ -892,7 +892,7 @@ router.post('/media-library', requireGlPermission('gl.content.manage'), async (r
     const mediaData = String(req.body?.media_data || '').trim();
     if (!mediaData) return res.status(400).json({ error: 'media_data requis' });
     const originalName = String(req.body?.original_name || req.body?.originalName || '').trim() || null;
-    const saved = saveMediaFromDataUrl(mediaData, { originalName });
+    const saved = saveMediaFromDataUrl(mediaData, { originalName, app: 'gl' });
     return res.status(201).json(saved);
   } catch (err) {
     if (Number.isFinite(err?.status)) {

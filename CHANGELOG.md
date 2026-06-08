@@ -9,6 +9,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ### Ajouté
 
+- **Médiathèques — cloisonnement ForetMap / Gnomes & Licornes** : les deux médiathèques ne partagent plus le même affichage. Étiquetage par médiathèque d'origine dans `_keys.json` (champ `app`, sans déplacer de fichier), filtrage côté serveur (`listMediaLibraryItems(limit, { app })`, helpers `normalizeMediaApp` / `resolveMediaItemApp` / `mediaItemMatchesApp`) ; les médias hérités (non étiquetés) restent rattachés à G&L, dont le jeu dépend. Routes `app: 'foretmap'` (`/api/media-library`, `/api/settings/admin/media-library`) et `app: 'gl'` (`/api/gl/admin/media-library`, import en masse `content-library`). Présentation G&L alignée sur ForetMap (galerie). Affichage du **slug** (clé stable) de chaque ressource sous la miniature et en liste, recherche incluant le slug ; clic = copie de l'URL. Tests `tests/media-library-scope.test.js`, `tests-ui/components/MediaLibraryMenu.test.jsx`.
 - **GL — e2e liaison médias** : scénarios `e2e/gl-media-assets.spec.js` (API `_keys.json`, intro, chapitres).
 - **GL — helper e2e session** : `mountGlSession` dans `e2e/fixtures/gl.fixture.js` (intro passée, onglet actif).
 

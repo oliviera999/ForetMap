@@ -54,13 +54,13 @@ function MediaLibraryView({ canManage = false }) {
     <div className="fade-in settings-admin">
       <h2 className="section-title">🗂️ Médiathèque ForetMap</h2>
       <p className="section-sub">
-        Accès à la bibliothèque globale partagée avec les contenus ForetMap et Gnomes & Licornes.
+        Bibliothèque des médias ForetMap (images, audio, vidéos). Cloisonnée : séparée de la médiathèque Gnomes & Licornes.
       </p>
       {err && <div className="auth-error">⚠️ {err}</div>}
       {msg && <div className="auth-success">{msg}</div>}
       <div style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: 12, padding: 12 }}>
         <MediaLibraryMenu
-          title="Bibliothèque globale (images, audio, vidéo)"
+          title="Médiathèque ForetMap (images, audio, vidéo)"
           fetchItems={fetchMediaLibrary}
           uploadDataUrl={uploadMediaLibrary}
           removeItem={deleteMediaLibrary}
