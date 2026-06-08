@@ -159,6 +159,45 @@ export function feuilletIllustration(code) {
   return url === placeholderUrl ? null : url;
 }
 
+/**
+ * Préfixe de clé média des illustrations de récit pour un chapitre (pays 1–5)
+ * ou le prologue (0). Convention : `recit_0N-chapN_*`, `recit_00-prologue_*`.
+ */
+export function chapterIllustrationPrefix(chapterNumber) {
+  if (chapterNumber === null || chapterNumber === undefined || chapterNumber === '') return null;
+  const n = Number(chapterNumber);
+  if (!Number.isInteger(n) || n < 0 || n > 5) return null;
+  if (n === 0) return 'recit_00-prologue_';
+  return `recit_0${n}-chap${n}_`;
+}
+
+/** Clés médiathèque (triées) des scènes de récit d'un chapitre. */
+export function chapterIllustrationKeys(chapterNumber) {
+  const prefix = chapterIllustrationPrefix(chapterNumber);
+  if (!prefix) return [];
+  const images = getImagesManifest();
+  const keys = getKeysIndex();
+  return [...new Set(Object.keys({ ...images, ...keys }))]
+    .filter((slug) => slug.startsWith(prefix))
+    .sort();
+}
+
+/**
+ * Liste résolue { key, url } des scènes de récit d'un chapitre, dans l'ordre des clés.
+ * Les clés non résolues (média absent) sont écartées.
+ */
+export function chapterIllustrations(chapterNumber) {
+  return chapterIllustrationKeys(chapterNumber)
+    .map((key) => ({ key, url: img(key) }))
+    .filter((item) => item.url && item.url !== placeholderUrl);
+}
+
+/** Illustration de couverture d'un chapitre (première scène de récit résolue) ou null. */
+export function chapterIllustration(chapterNumber) {
+  const list = chapterIllustrations(chapterNumber);
+  return list.length ? list[0].url : null;
+}
+
 export function biomeImg(biomeSlug, kind = 'biome', saison = null) {
   const assetSlug = biomeAssetSlug(biomeSlug, kind, saison);
   if (!assetSlug) {

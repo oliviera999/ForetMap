@@ -116,6 +116,33 @@ test('auditGlMediaKeys — compte les entrées importées', () => {
   }
 });
 
+test('auditGlMediaKeys — branche les scènes de récit de chapitre (recit_0N-chapN_*)', () => {
+  const recitFiles = [
+    { fileName: 'GL_recit_01-chap1_le-carnet-dans-la-savane.png', buffer: TINY_PNG, mime: 'image/png' },
+    { fileName: 'GL_recit_01-chap1_savane-emerveillement.png', buffer: TINY_PNG, mime: 'image/png' },
+    { fileName: 'GL_recit_00-prologue_la-boite-portail.png', buffer: TINY_PNG, mime: 'image/png' },
+  ];
+  const saved = recitFiles.map((f) => saveMediaFromBuffer(f.buffer, f.mime, f.fileName, { skipManifestSync: true }));
+  syncAssetManifests();
+  try {
+    const index = loadMediaKeyIndex();
+    const report = auditGlMediaKeys(index);
+
+    const chap1 = report.ok.find((row) => row.category === 'chapitre-recit' && row.ref === 'chap1');
+    assert.ok(chap1, 'le chapitre 1 doit être branché');
+    assert.ok(chap1.slug.startsWith('recit_01-chap1_'));
+
+    const prologue = report.ok.find((row) => row.category === 'chapitre-recit' && row.ref === 'prologue');
+    assert.ok(prologue, 'le prologue doit être branché');
+
+    // Toutes les scènes du chapitre (pas seulement la couverture) sortent des clés orphelines.
+    assert.ok(!report.unwired.includes('recit_01-chap1_savane-emerveillement'));
+    assert.ok(!report.unwired.includes('recit_01-chap1_le-carnet-dans-la-savane'));
+  } finally {
+    cleanupSaved(saved);
+  }
+});
+
 test('deriveMediaStableKey — cohérence noms importés images.zip', () => {
   assert.strictEqual(
     deriveMediaStableKey('GL_plateau-1_tropiques-africains.jpg'),
