@@ -20,6 +20,8 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ### Corrigé
 
+- **Médiathèques — doc API usage** : endpoints `GET /api/media-library/usage` et `GET /api/gl/admin/media-library/usage` documentés (format `{ usage }`, sources scannées, limites).
+
 - **Tests UI — Node 22+ / localStorage natif** : polyfill dans `tests-ui/setup.js` lorsque le stub Node (`--localstorage-file`) casse `setItem` / `clear` sous Vitest/jsdom (régression sur Node 25).
 - **Médiathèques — doc API** : section `docs/API.md` alignée sur le cloisonnement ForetMap / G&L (`app`, champs `stableKey` / `app` dans les items, médias hérités).
 - **Médiathèques — test route HTTP** : extension `tests/media-library-scope.test.js` (supertest `GET /api/media-library` vs `GET /api/gl/admin/media-library`).

@@ -256,6 +256,7 @@ Note UX admin GL : l’édition des chapitres (repères + zones polygonales sur 
 | PUT | `/api/gl/admin/settings/:key` | `{ value }` ; pour `platform.brand`, `value` doit être un objet JSON valide (normalisé serveur) | `gl.settings.manage` |
 | GET | `/api/gl/admin/content` | — | `gl.content.manage` |
 | GET | `/api/gl/admin/media-library` | `?limit=` optionnel (défaut 300, max 800) — liste **G&L** (médias `app: 'gl'` + hérités sans étiquette) | `gl.content.manage` |
+| GET | `/api/gl/admin/media-library/usage` | Usage des médias **G&L** (même format `{ usage }` que ForetMap ; voir section **Médiathèque ForetMap**) | `gl.content.manage` |
 | POST | `/api/gl/admin/media-library` | `{ media_data }` (data URL base64 image/audio/vidéo) — enregistre `app: 'gl'` | `gl.content.manage` |
 | DELETE | `/api/gl/admin/media-library` | `{ relative_path }` (`media-library/...`) | `gl.content.manage` |
 | GET | `/api/gl/admin/content-library/limits` | — ; `{ maxArchiveBytes, maxFileBytes, maxDecompressedBytes, maxFileCount }` | `gl.content.manage` |
@@ -630,8 +631,33 @@ Les routes ForetMap ci-dessous refusent les tokens produit GL sur l’API ForetM
 | Méthode | URL | Description | Accès |
 |--------|-----|-------------|-------|
 | GET | `/api/media-library` | Liste les médias **ForetMap** uniquement (`?limit=` optionnel ; défaut 300, max 800) | `teacher.access` |
+| GET | `/api/media-library/usage` | Usage des médias **ForetMap** (voir ci-dessous) | `teacher.access` |
 | POST | `/api/media-library` | Upload média ForetMap (`{ media_data }` data URL base64 image/audio/vidéo) | `teacher.access` + droits étendus |
 | DELETE | `/api/media-library` | Suppression média (`{ relative_path }`, préfixe `media-library/`) | `teacher.access` + droits étendus |
+
+**Usage des ressources** (`GET /api/media-library/usage` et `GET /api/gl/admin/media-library/usage`) — scanner `lib/mediaLibraryUsage.js` : pour chaque média de la médiathèque filtrée (`app: 'foretmap'` ou `app: 'gl'`), indique s'il est référencé en base et où. Réponse JSON :
+
+```json
+{
+  "usage": {
+    "media-library/image/2026/06/aaa.png": {
+      "count": 2,
+      "locations": [
+        { "app": "gl", "kind": "Chapitre", "label": "Forêt", "field": "image de carte", "id": 7 }
+      ]
+    }
+  }
+}
+```
+
+- Clé de `usage` : `relativePath` du média (sans préfixe `/uploads/`).
+- `count` : nombre d'emplacements distincts (dédupliqués par table + id + champ).
+- `locations` : au plus **80** emplacements par média ; champs `app` (`foretmap` ou `gl`), `kind` (libellé source), `label` (titre/ligne si disponible), `field` (colonne ou rôle : `récit`, `scène boite`, `audio (boucle)`, etc.), `id` (identifiant ligne ou `null`).
+- Détection : **URL** `/uploads/media-library/…` dans markdown, JSON ou colonnes `*_url` ; **slug** (clés stables intro G&L : `scenes[].imageKey`, `audio.loopKey` / `finalKey`, normalisation préfixe `GL_`).
+- Sources **ForetMap** : `app_settings`, `tutorials`, `visit_zones`, `visit_markers`.
+- Sources **G&L** : `gl_chapters`, `gl_lore_feuillets`, `gl_kingdom_zones`, `gl_species`, `gl_qcm_questions`, `gl_qcm_lore_questions`, `gl_content_pages`, `gl_player_journals`, `gl_settings` (intro `content.intro`).
+- Couche BDD **défensive** : `SHOW COLUMNS` par table ; colonne ou table absente sur un déploiement → ignorée sans erreur. Limite **5000** lignes par table scannée.
+- Consommation UI : `MediaLibraryMenu` (`fetchUsage`) affiche badge « Utilisée · N » ou « Inutilisée » + liste des emplacements (galerie ForetMap et G&L).
 
 ---
 
