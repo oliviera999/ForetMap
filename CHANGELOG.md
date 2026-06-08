@@ -20,6 +20,8 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ### Corrigé
 
+- **GL — prise de contrôle (impersonate) bloquée si IDs identiques** : `POST /api/gl/auth/admin/impersonate` refusait à tort (400 « propre compte ») lorsqu'un `gl_admin` et un `gl_player` partageaient le même identifiant numérique (auto-increments indépendants). Le garde-fou anti-auto-impersonation compare désormais aussi le **type d'utilisateur**. Tests `tests/gl-auth.test.js`.
+- **CI — suite de tests backend stabilisée** : `eslint .` et `npm test` (glob `tests/*.test.js` non développé sous Node 20) ré-exécutent enfin les tests backend en CI, révélant des fragilités d'isolation préexistantes désormais corrigées : `tests/gl-chapters-admin.test.js` ne supprime plus le chapitre seedé partagé `foret-magique` (lie une partie et exige un 409 strict au lieu d'un « 200 ou 409 » destructeur) ; `tests/gl-learning.test.js` génère des codes espèce/glossaire longs pour éviter la collision avec le corpus importé (`GL0083`). CI Node 20 → 22.
 - **GL — fermeture intro login** : état `introDismissed` pour re-render après « Passer l'intro » (évite no-op `setForceIntro(false)`). E2E `gl-intro.spec.js`.
 - **GL — e2e navigation** : sélecteurs `role=tab` (remplace `button`), onglet « Royaume » → « Le monde de G&L », drawer mobile sans « Histoire » si module journal off.
 - **RBAC — progression élève** : promotion automatique au palier mérité (montée de rang ou palier perso après tâches validées). Tests `rbac-progression`, `tasks-validate-rbac`.
