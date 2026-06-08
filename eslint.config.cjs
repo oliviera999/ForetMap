@@ -51,7 +51,9 @@ module.exports = [
   },
   {
     files: [
+      'tests/fetch-all-loop-guard.test.js',
       'tests/map-view-mascot-motion.test.js',
+      'tests/motion-hooks.test.js',
       'tests/visit-editorial-blocks.test.js',
     ],
     languageOptions: {
