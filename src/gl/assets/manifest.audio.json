@@ -5,27 +5,27 @@
     "gain": 0.7
   },
   "plateau-1": {
-    "src": "plateau-1_desert-chaud",
+    "src": null,
     "loop": true,
     "gain": 0.7
   },
   "plateau-2": {
-    "src": "plateau-2_mediterranee",
+    "src": null,
     "loop": true,
     "gain": 0.7
   },
   "plateau-3": {
-    "src": "plateau-3_landes",
+    "src": null,
     "loop": true,
     "gain": 0.7
   },
   "plateau-4": {
-    "src": "plateau-4_desert-froid",
+    "src": null,
     "loop": true,
     "gain": 0.7
   },
   "plateau-5": {
-    "src": "plateau-5_taiga",
+    "src": null,
     "loop": true,
     "gain": 0.7
   }
