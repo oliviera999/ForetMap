@@ -198,7 +198,7 @@ router.get('/admin/species/stats', requireGlPermission('gl.content.manage'), asy
 
 /** GET /api/gl/admin/species/import/template — modèle XLSX biocénose (especes + biomes_stats). */
 router.get('/admin/species/import/template', requireGlPermission('gl.content.manage'), async (_req, res) => {
-  const buffer = buildSpeciesTemplateWorkbook();
+  const buffer = await buildSpeciesTemplateWorkbook();
   res.setHeader(
     'Content-Type',
     'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
@@ -213,7 +213,7 @@ router.get('/admin/species/export', requireGlPermission('gl.content.manage'), as
   const statut = statutRaw === 'all' ? 'all' : 'actif';
   const biomeSlug = normalizeBiomeSlug(req.query?.biomeSlug);
   const data = await loadSpeciesExportRows({ queryAll }, { statut, biomeSlug });
-  const buffer = buildSpeciesExportWorkbook(data);
+  const buffer = await buildSpeciesExportWorkbook(data);
   res.setHeader(
     'Content-Type',
     'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
@@ -228,7 +228,7 @@ router.post('/admin/species/import', requireGlPermission('gl.content.manage'), a
   const syncBiomes = req.body?.syncBiomes !== false;
   let parsed;
   try {
-    parsed = resolveImportRows(req.body || {});
+    parsed = await resolveImportRows(req.body || {});
   } catch (err) {
     return res.status(400).json({ error: err.message || 'Fichier import invalide' });
   }

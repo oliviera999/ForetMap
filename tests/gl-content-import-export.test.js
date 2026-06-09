@@ -205,7 +205,7 @@ test('GET template/export glossaire refuse sans permission', async () => {
 
 test('GET /api/gl/admin/species/import/template retourne un modèle XLSX biocénose', async () => {
   const buf = await getXlsxBuffer(request(app), '/api/gl/admin/species/import/template', adminToken);
-  const { speciesRows, biomeRows } = parseSpeciesWorkbook(buf);
+  const { speciesRows, biomeRows } = await parseSpeciesWorkbook(buf);
   assert.ok(speciesRows.length >= 1);
   assert.ok(biomeRows.length >= 1);
   assert.strictEqual(validateSpeciesPayload(buildSpeciesPayload(speciesRows[0]), 2).length, 0);
@@ -234,7 +234,7 @@ test('GET /api/gl/admin/species/export round-trip ré-importable', async () => {
     `/api/gl/admin/species/export?biomeSlug=${encodeURIComponent(biomeSlug)}`,
     adminToken
   );
-  const { speciesRows, biomeRows } = parseSpeciesWorkbook(buf);
+  const { speciesRows, biomeRows } = await parseSpeciesWorkbook(buf);
   const exported = speciesRows.find((row) => buildSpeciesPayload(row).species_code === code);
   assert.ok(exported);
   assert.strictEqual(validateSpeciesPayload(buildSpeciesPayload(exported), 2).length, 0);
