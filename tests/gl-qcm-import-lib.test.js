@@ -15,9 +15,9 @@ const {
 
 const XLSX_PATH = path.join(__dirname, '..', 'data', 'gl', 'qcm-biomes-gnomes-et-licornes-consolide.xlsx');
 
-test('parseQcmWorkbook lit le fichier de référence', () => {
+test('parseQcmWorkbook lit le fichier de référence', async () => {
   const buffer = fs.readFileSync(XLSX_PATH);
-  const { categoryRows, questionRows } = parseQcmWorkbook(buffer);
+  const { categoryRows, questionRows } = await parseQcmWorkbook(buffer);
   assert.ok(categoryRows.length >= 6);
   assert.ok(questionRows.length >= 650);
   const first = buildQuestionPayload(questionRows[0]);

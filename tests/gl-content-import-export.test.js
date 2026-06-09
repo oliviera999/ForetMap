@@ -113,7 +113,7 @@ test('GET /api/gl/admin/glossary/import/template retourne un modèle XLSX', asyn
 
 test('GET /api/gl/admin/qcm/import/template retourne un modèle XLSX (2 feuilles)', async () => {
   const buf = await getXlsxBuffer(request(app), '/api/gl/admin/qcm/import/template', adminToken);
-  const { categoryRows, questionRows } = parseQcmWorkbook(buf);
+  const { categoryRows, questionRows } = await parseQcmWorkbook(buf);
   assert.ok(categoryRows.length >= 1);
   assert.ok(questionRows.length >= 1);
   assert.strictEqual(validateCategoryPayload(buildCategoryPayload(categoryRows[0]), 2).length, 0);
@@ -177,7 +177,7 @@ test('GET /api/gl/admin/qcm/export round-trip ré-importable', async () => {
     `/api/gl/admin/qcm/export?biomeSlug=${encodeURIComponent(biomeSlug)}`,
     adminToken
   );
-  const { categoryRows, questionRows } = parseQcmWorkbook(buf);
+  const { categoryRows, questionRows } = await parseQcmWorkbook(buf);
   assert.ok(categoryRows.some((row) => buildCategoryPayload(row).slug === catSlug));
   const knownBiomes = new Set([biomeSlug]);
   const knownCategories = new Set(categoryRows.map((row) => buildCategoryPayload(row).slug));
