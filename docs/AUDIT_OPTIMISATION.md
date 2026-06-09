@@ -55,7 +55,7 @@ Statuts : `todo` · `wip` · `done` · `differe` (décision produit requise).
 | O2 | Haute | Perf | `taskTileProps` recréé chaque render + `TaskTileCard` non mémoïsé ⇒ re-render de toutes les tuiles par tick | **Fondation posée** : `TaskTileCard` exporté + `React.memo` + test `tests-ui/components/TaskTileCard.test.jsx`. **Reste** : stabiliser les ~11 handlers de `TasksView` (`assign`/`unassign`/`setTaskStatus`…) en `useCallback` + `useMemo(taskTileProps)` pour rendre le memo *effectif* (à faire avec couverture d'interaction) | Faible→Moyen | wip |
 | O3 | Haute | Perf | RBAC : 3-5 requêtes DB par requête authentifiée, non caché | **Tenté puis reverté** : un cache TTL avec invalidation par hook (`setPrimaryRole`/routes rbac) s'est avéré à invalidation **incomplète** — des chemins mutent `roles`/`user_roles` en SQL direct (dédup `rbac.js`, tests) → permissions périmées (a cassé `api.test.js`). Re-tenter avec un **compteur de version RBAC global** inclus dans la clé de cache (incrémenté de façon centralisée à toute écriture des tables RBAC) **ou** un cache **request-scoped**. Sécurité-critique : à ne pas livrer sans preuve d'invalidation complète | Moyen | differe |
 | O4 | Haute | Sécu/Maint | `xlsx@0.18.5` — 2 CVE High via uploads | **Fait** : adaptateur `lib/spreadsheet.js` (exceljs) + preuve d'équivalence xlsx ; **14 modules d'import migrés** (app principale + 11 libs GL + `contentLibraryBulk`). Production **100 % xlsx-free** ; `xlsx` déplacé en **devDependencies** (fixtures de tests uniquement) → CVE-2023-30533 / CVE-2024-22363 **non joignables au runtime prod**. exceljs corrige en bonus le mojibake emoji de xlsx | Élevé | done |
-| O5 | Haute | Extensibilité | `App.jsx` God component + prop-drilling ×4 | Contexts par domaine (session, données, settings) | Élevé | wip |
+| O5 | Haute | Extensibilité | `App.jsx` God component + prop-drilling ×4 | Contexts par domaine (session, données, settings). **`PublicSettingsContext` livré** : `Provider` câblé sur les 2 points de sortie d'`App.jsx`, **9 vues** migrées sur `usePublicSettings()` (about, profiles, stats `StudentProfileEditor`, visit, map, tasks, tutorials, foretmap `PlantManager`/`PlantCatalogPreviewModal`/`PlantViewer`) → **18 passes `publicSettings={…}` supprimées**, prop-drilling de `publicSettings` **éliminé**. Reste : Contexts session/données (incrémental) | Élevé | wip |
 | O6 | Haute | Maint/Test | Composants monolithiques + 0 test UI sur ~21k LOC | **Démarré** : 1er test UI sur l'app principale ForetMap (`TaskTileCard`, le plus complexe). À étendre aux autres méga-composants, puis découper | Élevé | wip |
 | O7 | Moyenne | Extens/Sécu | `zod` jamais utilisé ; validation manuelle hétérogène | **Infra livrée** : middleware réutilisable `lib/validate.js` (`validate({ body, query, params })`, `req.validatedQuery`/`Params` pour Express 5) + test `tests/validate-middleware.test.js`. Rollout par route **incrémental** (préserver l'ordre auth→validation et les messages existants) | Moyen | wip |
 | O8 | Moyenne | Maint | ~338 try/catch dispersés ; `respondInternalError` redéfini en doublon | **Infra livrée** : `lib/asyncHandler.js` (catch sync+async → `next(err)` → handler central `server.js`) + test `tests/async-handler.test.js`. Rollout **incrémental** par route (préserver statut + corps d'erreur existants) | Moyen | wip |
@@ -69,8 +69,12 @@ Statuts : `todo` · `wip` · `done` · `differe` (décision produit requise).
 ## 4. Détail technique par module
 
 ### Frontend — état & rendu
-- `App.jsx` (2141 l.) : hub d'état unique (37 `useState`, 30 `useEffect`). Prop-drilling :
+- `App.jsx` (2143 l.) : hub d'état unique (37 `useState`, 30 `useEffect`). Prop-drilling :
   blocs de props `TasksView`/`MapView` **dupliqués ×4** (prof/élève × split/simple).
+  **O5 — `publicSettings` retiré du prop-drilling** : `src/contexts/PublicSettingsContext.jsx`
+  (`Provider` + `usePublicSettings(fallback)`) câblé sur les 2 returns d'`App.jsx` ; les 9 vues
+  consommatrices lisent via le hook (fallback `null`, comportement identique hors Provider en test).
+  Reste à extraire : Contexts `session` (user/permissions) et `données` (zones/markers/plants/tasks).
 - **0 `React.memo`** dans `src/`. `taskTileProps` (`tasks-views.jsx:2408`) recréé chaque
   render, spreadé dans ~16 `.map()` vers `TaskTileCard` (`:3399`) non mémoïsé.
 - Composants monolithiques : voir tableau §2. Logique dupliquée : `Lightbox` ×2
