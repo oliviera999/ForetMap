@@ -74,6 +74,7 @@ import { abandonAllOverlays, pushOverlayClose } from './utils/overlayHistory';
 import { AutoProfilePromotionModal } from './components/AutoProfilePromotionModal.jsx';
 import { DialogShell } from './components/DialogShell';
 import { PublicSettingsProvider } from './contexts/PublicSettingsContext.jsx';
+import { SessionProvider } from './contexts/SessionContext.jsx';
 
 const OAUTH_ERROR_MESSAGES = {
   oauth_not_configured: 'Connexion Google indisponible (configuration serveur incomplète).',
@@ -1265,6 +1266,14 @@ function App() {
     }
   }, [effectiveIsTeacher, markAsRead, studentForUi, trackActionClick, validateStudentSession]);
 
+  // O5 — valeurs de session globales exposées par contexte (cf. SessionContext).
+  const sessionContextValue = useMemo(() => ({
+    isN3Affiliated,
+    hasPermission,
+    hasPermissionInRole,
+    canParticipateContextComments,
+  }), [isN3Affiliated, hasPermission, hasPermissionInRole, canParticipateContextComments]);
+
   if (!student && !isTeacher) return (
     <PublicSettingsProvider value={publicSettings}>
     <>
@@ -1340,6 +1349,7 @@ function App() {
 
   return (
     <PublicSettingsProvider value={publicSettings}>
+    <SessionProvider value={sessionContextValue}>
     <div id="app">
       {plantCatalogPreview && (
         <Suspense fallback={null}>
@@ -1448,7 +1458,7 @@ function App() {
           </div>
           <div className="log-modal__scroll">
             <Suspense fallback={null}>
-              <StudentStatsLazy student={{ id: profileTargetUserId }} isN3Affiliated={isN3Affiliated} />
+              <StudentStatsLazy student={{ id: profileTargetUserId }} />
             </Suspense>
           </div>
         </DialogShell>
@@ -1486,7 +1496,6 @@ function App() {
                   updateStudentSession(updated);
                 }}
                 onClose={() => setShowProfile(false)}
-                isN3Affiliated={isN3Affiliated}
               />
             </Suspense>
           </div>
@@ -1846,7 +1855,6 @@ function App() {
                         hasPermissionInRole={hasPermissionInRole}
                         onRefresh={fetchAll}
                         onForceLogout={forceLogout}
-                        isN3Affiliated={isN3Affiliated}
                         onTaskFormOverlayOpenChange={onTaskFormOverlayOpenChange}
                         mapLocationFocus={tasksLocationFocus}
                         onMapLocationFocusChange={setTasksLocationFocus}
@@ -1857,7 +1865,7 @@ function App() {
                 </div>
               )}
               {!useSplitMapTasks && tab === 'map'    && <MapView zones={zones} markers={markers} tasks={tasks} tutorials={tutorials} plants={plants} maps={visibleMaps} activeMapId={activeMapId} onMapChange={setActiveMapId} isTeacher student={currentUser} canSelfAssignTasks canParticipateContextComments={canParticipateContextComments} onZoneUpdate={updateZone} onRefresh={fetchAll} onLocationTasksFocus={handleMapLocationTasksFocus} onNavigateToTasksForLocation={(effectiveIsTeacher || canAccessStudentMapTasks) ? navigateToTasksForLocation : undefined} onOpenPlantCatalogPreview={openPlantCatalogPreviewById} onForceLogout={forceLogout}/>}
-              {!useSplitMapTasks && tab === 'tasks'  && <TasksView  tasks={tasks} taskProjects={taskProjects} zones={zones} markers={markers} maps={visibleMaps} tutorials={tutorials} plants={plants} activeMapId={activeMapId} isTeacher student={currentUser} canSelfAssignTasks canParticipateContextComments={canParticipateContextComments} canViewOtherUsersIdentity hasPermission={hasPermission} hasPermissionInRole={hasPermissionInRole} onRefresh={fetchAll} onForceLogout={forceLogout} isN3Affiliated={isN3Affiliated} onTaskFormOverlayOpenChange={onTaskFormOverlayOpenChange} mapLocationFocus={tasksLocationFocus} onMapLocationFocusChange={setTasksLocationFocus} onOpenPlantCatalogPreview={openPlantCatalogPreviewById} />}
+              {!useSplitMapTasks && tab === 'tasks'  && <TasksView  tasks={tasks} taskProjects={taskProjects} zones={zones} markers={markers} maps={visibleMaps} tutorials={tutorials} plants={plants} activeMapId={activeMapId} isTeacher student={currentUser} canSelfAssignTasks canParticipateContextComments={canParticipateContextComments} canViewOtherUsersIdentity hasPermission={hasPermission} hasPermissionInRole={hasPermissionInRole} onRefresh={fetchAll} onForceLogout={forceLogout} onTaskFormOverlayOpenChange={onTaskFormOverlayOpenChange} mapLocationFocus={tasksLocationFocus} onMapLocationFocusChange={setTasksLocationFocus} onOpenPlantCatalogPreview={openPlantCatalogPreviewById} />}
               {tab === 'plants' && (
                 <TabSuspense>
                   <PlantManagerLazy
@@ -1878,7 +1886,7 @@ function App() {
               )}
               {publicSettings?.modules?.stats_enabled !== false && tab === 'stats' && (
                 hasPermission('stats.read.all') ? (
-                  <TabSuspense><TeacherStatsLazy isN3Affiliated={isN3Affiliated} /></TabSuspense>
+                  <TabSuspense><TeacherStatsLazy /></TabSuspense>
                 ) : (
                   <div className="empty"><p>Pas l’accès stats ici — demande un coup de main côté n3boss si besoin.</p></div>
                 )
@@ -1886,7 +1894,6 @@ function App() {
               {tab === 'profiles' && (
                 <TabSuspense>
                   <ProfilesAdminViewLazy
-                    isN3Affiliated={isN3Affiliated}
                     maps={maps}
                     onImpersonationApplied={handleAdminImpersonationApplied}
                   />
@@ -1894,7 +1901,7 @@ function App() {
               )}
               {tab === 'audit' && (
                 hasPermission('audit.read') ? (
-                  <TabSuspense><AuditLogLazy isN3Affiliated={isN3Affiliated} /></TabSuspense>
+                  <TabSuspense><AuditLogLazy /></TabSuspense>
                 ) : (
                   <div className="empty"><p>Journal d’audit réservé — il te manque un droit pour l’ouvrir.</p></div>
                 )
@@ -1907,7 +1914,6 @@ function App() {
                   availableTutorials={tutorials}
                   initialMapId={activeMapId}
                   onForceLogout={forceLogout}
-                  isN3Affiliated={isN3Affiliated}
                   canParticipateContextComments={canParticipateContextComments}
                   onOpenMascotPackStudioTab={openMascotPackStudioTab}
                   profileVisitMascotId={currentUser?.visit_mascot_catalog_id || null}
@@ -1955,10 +1961,10 @@ function App() {
                   </Suspense>
                 </div>
               )}
-              {tab === 'settings' && <TabSuspense><SettingsAdminViewLazy isN3Affiliated={isN3Affiliated} /></TabSuspense>}
+              {tab === 'settings' && <TabSuspense><SettingsAdminViewLazy /></TabSuspense>}
               {tab === 'media_library' && <TabSuspense><MediaLibraryViewLazy canManage={canManageMediaLibrary} /></TabSuspense>}
               {tab === 'forum' && canAccessForum && <TabSuspense><ForumViewLazy authClaims={authClaims} canParticipateForum /></TabSuspense>}
-              {tab === 'about' && <TabSuspense><AboutViewLazy appVersion={appVersion} isN3Affiliated={isN3Affiliated} isTeacher={effectiveIsTeacher} /></TabSuspense>}
+              {tab === 'about' && <TabSuspense><AboutViewLazy appVersion={appVersion} isTeacher={effectiveIsTeacher} /></TabSuspense>}
             </>
           )}
         </div>
@@ -2016,7 +2022,6 @@ function App() {
                           canViewOtherUsersIdentity={canViewOtherUsersIdentity}
                           onRefresh={fetchAll}
                           onForceLogout={forceLogout}
-                          isN3Affiliated={isN3Affiliated}
                           onTaskFormOverlayOpenChange={onTaskFormOverlayOpenChange}
                           mapLocationFocus={tasksLocationFocus}
                           onMapLocationFocusChange={setTasksLocationFocus}
@@ -2027,7 +2032,7 @@ function App() {
                   </div>
                 )}
                 {!useSplitMapTasks && tab === 'map'    && canAccessStudentMapTasks && <MapView zones={zones} markers={markers} tasks={tasks} tutorials={tutorials} plants={plants} maps={visibleMaps} activeMapId={activeMapId} onMapChange={setActiveMapId} isTeacher={false} student={studentForUi} canSelfAssignTasks={canSelfAssignTasks} canEnrollOnTasks={canSelfAssignMoreTasks} canParticipateContextComments={canParticipateContextComments} onZoneUpdate={updateZone} onRefresh={fetchAll} onLocationTasksFocus={handleMapLocationTasksFocus} onNavigateToTasksForLocation={navigateToTasksForLocation} onOpenPlantCatalogPreview={openPlantCatalogPreviewById} onForceLogout={forceLogout}/>}
-                {!useSplitMapTasks && tab === 'tasks'  && canAccessStudentMapTasks && <TasksView tasks={tasks} taskProjects={taskProjects} zones={zones} markers={markers} maps={visibleMaps} tutorials={tutorials} plants={plants} activeMapId={activeMapId} isTeacher={false} student={studentForUi} canSelfAssignTasks={canSelfAssignTasks} canEnrollOnTasks={canSelfAssignMoreTasks} canParticipateContextComments={canParticipateContextComments} canViewOtherUsersIdentity={canViewOtherUsersIdentity} onRefresh={fetchAll} onForceLogout={forceLogout} isN3Affiliated={isN3Affiliated} onTaskFormOverlayOpenChange={onTaskFormOverlayOpenChange} mapLocationFocus={tasksLocationFocus} onMapLocationFocusChange={setTasksLocationFocus} onOpenPlantCatalogPreview={openPlantCatalogPreviewById} />}
+                {!useSplitMapTasks && tab === 'tasks'  && canAccessStudentMapTasks && <TasksView tasks={tasks} taskProjects={taskProjects} zones={zones} markers={markers} maps={visibleMaps} tutorials={tutorials} plants={plants} activeMapId={activeMapId} isTeacher={false} student={studentForUi} canSelfAssignTasks={canSelfAssignTasks} canEnrollOnTasks={canSelfAssignMoreTasks} canParticipateContextComments={canParticipateContextComments} canViewOtherUsersIdentity={canViewOtherUsersIdentity} onRefresh={fetchAll} onForceLogout={forceLogout} onTaskFormOverlayOpenChange={onTaskFormOverlayOpenChange} mapLocationFocus={tasksLocationFocus} onMapLocationFocusChange={setTasksLocationFocus} onOpenPlantCatalogPreview={openPlantCatalogPreviewById} />}
                 {tab === 'plants' && (
                   <TabSuspense>
                     <PlantViewerLazy
@@ -2045,7 +2050,7 @@ function App() {
                     <TutorialsViewLazy tutorials={tutorials} zones={zones} markers={markers} maps={visibleMaps} activeMapId={activeMapId} isTeacher={false} onRefresh={fetchAll} onForceLogout={forceLogout} canParticipateContextComments={canParticipateContextComments} />
                   </TabSuspense>
                 )}
-                {tab === 'stats' && canViewGeneralStats && <TabSuspense><TeacherStatsLazy isN3Affiliated={isN3Affiliated} /></TabSuspense>}
+                {tab === 'stats' && canViewGeneralStats && <TabSuspense><TeacherStatsLazy /></TabSuspense>}
                 {publicSettings?.modules?.observations_enabled !== false && tab === 'notebook' && (
                   <TabSuspense><ObservationNotebookLazy student={studentForUi} zones={zones} onForceLogout={forceLogout} /></TabSuspense>
                 )}
@@ -2057,7 +2062,6 @@ function App() {
                     availableTutorials={tutorials}
                     initialMapId={activeMapId}
                     onForceLogout={forceLogout}
-                    isN3Affiliated={isN3Affiliated}
                     canParticipateContextComments={canParticipateContextComments}
                   profileVisitMascotId={studentForUi?.visit_mascot_catalog_id || null}
                     mapZones={zones}
@@ -2070,7 +2074,7 @@ function App() {
                   </TabSuspense>
                 )}
                 {tab === 'forum' && canAccessForum && <TabSuspense><ForumViewLazy authClaims={authClaims} canParticipateForum={canParticipateForum} /></TabSuspense>}
-                {tab === 'about' && <TabSuspense><AboutViewLazy appVersion={appVersion} isN3Affiliated={isN3Affiliated} isTeacher={false} /></TabSuspense>}
+                {tab === 'about' && <TabSuspense><AboutViewLazy appVersion={appVersion} isTeacher={false} /></TabSuspense>}
               </>
             )}
           </div>
@@ -2135,6 +2139,7 @@ function App() {
       )}
       <footer className="app-footer">{appFooterVersionPrefix} {appVersion != null ? appVersion : '…'}</footer>
     </div>
+    </SessionProvider>
     </PublicSettingsProvider>
   );
 }

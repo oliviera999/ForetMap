@@ -3,6 +3,7 @@ import { api } from '../services/api';
 import { compressImage } from '../utils/image';
 import { getRoleTerms } from '../utils/n3-terminology';
 import { MediaLibraryMenu } from './MediaLibraryMenu.jsx';
+import { useSession } from '../contexts/SessionContext.jsx';
 
 const SECTION_DEFS = {
   auth: { title: 'Accueil & authentification', order: 10 },
@@ -282,7 +283,8 @@ function AdminNumberSettingField({
   );
 }
 
-function SettingsAdminView({ isN3Affiliated = false }) {
+function SettingsAdminView() {
+  const { isN3Affiliated = false } = useSession();
   const roleTerms = getRoleTerms(isN3Affiliated);
   const [loading, setLoading] = useState(true);
   const [savingKey, setSavingKey] = useState('');
