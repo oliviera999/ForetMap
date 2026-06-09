@@ -157,7 +157,7 @@ function TasksView({
     'help.tasks_quick_tip',
     'Filtre d abord par carte ou groupe, puis traite les retours en attente.'
   );
-  const tooltipText = (entry) => resolveRoleText(entry, isTeacher);
+  const tooltipText = useCallback((entry) => resolveRoleText(entry, isTeacher), [isTeacher]);
   const [quickTutoLinkId, setQuickTutoLinkId] = useState('');
   const [tasksTutorialPreview, setTasksTutorialPreview] = useState(null);
   const [tasksTutorialReadIds, setTasksTutorialReadIds] = useState(() => new Set());
@@ -310,7 +310,7 @@ function TasksView({
     return true;
   }), [tasks, filterMap, activeMapId]);
 
-  const withLoad = async (id, fn) => {
+  const withLoad = useCallback(async (id, fn) => {
     setLoading(l => ({ ...l, [id]: true }));
     try { await fn(); await onRefresh(); }
     catch (e) {
@@ -318,7 +318,7 @@ function TasksView({
       else setToast('Oups : ' + formatTaskActionError(e.message));
     }
     setLoading(l => ({ ...l, [id]: false }));
-  };
+  }, [onRefresh, onForceLogout]);
 
   const clearTaskDragState = useCallback(() => {
     setTaskDragPayload(null);
@@ -397,7 +397,7 @@ function TasksView({
   }, [clearTaskDragState, taskDragPayload, tasks]);
 
   /** Marque `done_at` pour un assigné (tâche en mode collectif) — `POST /api/tasks/:id/done` côté n3boss. */
-  const teacherMarkCollectiveAssignmentDone = (task, assignment) => {
+  const teacherMarkCollectiveAssignmentDone = useCallback((task, assignment) => {
     const who = `${assignment?.student_first_name || ''} ${assignment?.student_last_name || ''}`.trim() || 'cet élève';
     const loadKey = teacherCollectiveAssigneeLoadKey(task.id, assignment);
     void withLoad(loadKey, async () => {
@@ -415,7 +415,7 @@ function TasksView({
       await api(`/api/tasks/${task.id}/done`, 'POST', body);
       setToast(who !== 'cet élève' ? `Part de ${who} marquée terminée ✓` : 'Part marquée terminée ✓');
     });
-  };
+  }, [withLoad]);
 
   const linkTutorialAtFocus = (tutorialId) => withLoad(`tuto-link-${tutorialId}`, async () => {
     const tu = (tutorials || []).find((x) => Number(x.id) === Number(tutorialId));
@@ -449,14 +449,14 @@ function TasksView({
     setToast('Tutoriel dissocié de ce lieu ✓');
   });
 
-  const assign = t => withLoad(t.id + 'assign', async () => {
+  const assign = useCallback(t => withLoad(t.id + 'assign', async () => {
     await api(`/api/tasks/${t.id}/assign`, 'POST', {
       firstName: student.first_name, lastName: student.last_name, studentId: student.id
     });
     setToast('C’est noté, tu t’en occupes — merci ! 🌱');
-  });
+  }), [withLoad, student]);
 
-  const assignGroupToTask = (task) => {
+  const assignGroupToTask = useCallback((task) => {
     const status = taskEffectiveStatus(task);
     if (['on_hold', 'project_completed', 'project_validated', 'validated'].includes(status)) {
       setToast('Affectation groupe indisponible pour ce statut.');
@@ -487,9 +487,9 @@ function TasksView({
           : 'Affectation groupe enregistrée ✓'
       );
     });
-  };
+  }, [groupOptions, filterGroupId, withLoad]);
 
-  const unassign = t => {
+  const unassign = useCallback(t => {
     setConfirmTask({
       task: t,
       label: `Tu lâches la main sur « ${t.title} » ?`,
@@ -502,18 +502,18 @@ function TasksView({
         });
       }
     });
-  };
+  }, [withLoad, student]);
 
-  const setTaskStatus = (task, nextStatus) => withLoad(`${task.id}status${nextStatus}`, async () => {
+  const setTaskStatus = useCallback((task, nextStatus) => withLoad(`${task.id}status${nextStatus}`, async () => {
     if (nextStatus === 'validated') {
       await api(`/api/tasks/${task.id}/validate`, 'POST');
     } else {
       await api(`/api/tasks/${task.id}`, 'PUT', { status: nextStatus });
     }
     setToast(`C’est noté : statut « ${TEACHER_STATUS_ACTIONS.find((s) => s.value === nextStatus)?.label || nextStatus} ».`);
-  });
+  }), [withLoad]);
 
-  const deleteTask = t => {
+  const deleteTask = useCallback(t => {
     setConfirmTask({
       task: t,
       label: `Supprimer "${t.title}" ?`,
@@ -524,7 +524,7 @@ function TasksView({
         });
       }
     });
-  };
+  }, [withLoad]);
 
   const saveTask = async form => {
     const { assign_student_ids: rawAssignIds = [], ...taskPayload } = form || {};
@@ -853,7 +853,7 @@ function TasksView({
     ? 'tasks-grid'
     : (viewMode === 'condensed' ? 'tasks-condensed' : 'tasks-list');
   /** Inscriptions à ajouter / retirer (liste n3beurs chargée côté n3boss) pour l’affectation rapide. */
-  const teacherQuickAssignDelta = (task, selectedIds) => {
+  const teacherQuickAssignDelta = useCallback((task, selectedIds) => {
     const idSet = new Set((selectedIds || []).map(String));
     const toAdd = teacherStudents.filter(
       (s) => idSet.has(String(s.id)) && !isStudentAlreadyAssignedToTask(task, s)
@@ -862,8 +862,8 @@ function TasksView({
       (s) => !idSet.has(String(s.id)) && isStudentAlreadyAssignedToTask(task, s)
     );
     return { toAdd, toRemove };
-  };
-  const teacherQuickAssignCanApply = (task, selectedIds) => {
+  }, [teacherStudents]);
+  const teacherQuickAssignCanApply = useCallback((task, selectedIds) => {
     if (!isTeacher || !task) return false;
     const { toAdd, toRemove } = teacherQuickAssignDelta(task, selectedIds);
     if (toAdd.length === 0 && toRemove.length === 0) return false;
@@ -876,8 +876,8 @@ function TasksView({
       if (toAdd.length > slotsAfterRemovals) return false;
     }
     return true;
-  };
-  const quickAssignHint = (task, selectedIds) => {
+  }, [isTeacher, teacherQuickAssignDelta]);
+  const quickAssignHint = useCallback((task, selectedIds) => {
     if (!task) return "Cette tâche n’est pas dispo ici";
     const te = taskEffectiveStatus(task);
     if (te === 'on_hold') return "Patience : tâche ou projet en pause";
@@ -900,8 +900,8 @@ function TasksView({
     if (toRemove.length > 0) parts.push(`Retirer ${toRemove.length} n3beur${toRemove.length > 1 ? 's' : ''}`);
     if (toAdd.length > 0) parts.push(`Inscrire ${toAdd.length} n3beur${toAdd.length > 1 ? 's' : ''}`);
     return parts.join(' · ');
-  };
-  const runTeacherQuickAssign = (task, selectedIds) => withLoad(`${task.id}assign_teacher_quick`, async () => {
+  }, [teacherQuickAssignDelta]);
+  const runTeacherQuickAssign = useCallback((task, selectedIds) => withLoad(`${task.id}assign_teacher_quick`, async () => {
     const { toAdd, toRemove } = teacherQuickAssignDelta(task, selectedIds);
     if (toAdd.length === 0 && toRemove.length === 0) {
       setToast('Rien à faire : tout était déjà comme prévu.');
@@ -960,8 +960,16 @@ function TasksView({
     }
     setQuickAssignTaskId(null);
     setQuickAssignStudentIds([]);
-  });
-  const taskTileProps = {
+  }), [withLoad, teacherQuickAssignDelta]);
+
+  const onOpenBiodiversityFromTaskName = useCallback((name) => {
+    if (typeof onOpenPlantCatalogPreview !== 'function') return;
+    const p = (plants || []).find((x) => String(x?.name || '').trim() === String(name || '').trim());
+    if (p) onOpenPlantCatalogPreview(p.id);
+    else setToast('Pas de fiche « Biodiversité » pour ce nom. Un prof peut compléter le catalogue.');
+  }, [onOpenPlantCatalogPreview, plants, setToast]);
+
+  const taskTileProps = useMemo(() => ({
     viewMode,
     isN3Affiliated,
     student,
@@ -1008,13 +1016,45 @@ function TasksView({
     onTaskDragStart: startTaskDrag,
     onTaskDragEnd: clearTaskDragState,
     draggingTaskId: taskDragPayload?.taskId ?? null,
-    onOpenBiodiversityFromTaskName: (name) => {
-      if (typeof onOpenPlantCatalogPreview !== 'function') return;
-      const p = (plants || []).find((x) => String(x?.name || '').trim() === String(name || '').trim());
-      if (p) onOpenPlantCatalogPreview(p.id);
-      else setToast('Pas de fiche « Biodiversité » pour ce nom. Un prof peut compléter le catalogue.');
-    },
-  };
+    onOpenBiodiversityFromTaskName,
+  }), [
+    viewMode,
+    isN3Affiliated,
+    student,
+    plants,
+    isTeacher,
+    canViewOtherUsersIdentity,
+    canEnrollNewTask,
+    canSelfAssignTasks,
+    canParticipateContextComments,
+    contextCommentsEnabled,
+    roleTerms,
+    loading,
+    quickAssignTaskId,
+    quickAssignStudentIds,
+    teacherStudents,
+    loadingTeacherStudents,
+    teacherQuickAssignDelta,
+    teacherQuickAssignCanApply,
+    quickAssignHint,
+    assign,
+    assignGroupToTask,
+    groupOptions,
+    unassign,
+    setTaskStatus,
+    deleteTask,
+    runTeacherQuickAssign,
+    teacherMarkCollectiveAssignmentDone,
+    teacherStatusActions,
+    teacherTaskPerms,
+    tooltipText,
+    openTasksTutorialPreview,
+    onForceLogout,
+    startTaskDrag,
+    clearTaskDragState,
+    taskDragPayload,
+    onOpenBiodiversityFromTaskName,
+  ]);
 
   return (
     <div className="tasks-view fade-in">
