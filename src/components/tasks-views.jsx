@@ -59,11 +59,12 @@ import {
   tutorialRefsFromTasksAtLocationFilter,
 } from '../utils/taskListHelpers.js';
 import { fileToDataUrl } from '../utils/fileToDataUrl.js';
-
-function taskLivingBeingEmoji(plants, name) {
-  const p = (plants || []).find((x) => x.name === name);
-  return p?.emoji || '🌱';
-}
+import {
+  taskLivingBeingEmoji,
+  formatAssigneeName,
+  teacherCollectiveAssigneeLoadKey,
+  toQuickAssignStudentId,
+} from '../utils/taskDisplayHelpers.js';
 
 function Lightbox({ src, caption, onClose }) {
   return (
@@ -84,46 +85,6 @@ function startDateChip(startDate) {
     ? normalized
     : parsed.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' });
   return <span className="task-chip">🚦 Départ: {label}</span>;
-}
-
-function formatAssigneeName(assignee, student, canViewIdentity = true) {
-  const firstName = String(assignee?.student_first_name || '').trim();
-  const lastName = String(assignee?.student_last_name || '').trim();
-  if (!canViewIdentity) {
-    const isCurrentStudent = !!student
-      && (
-        String(assignee?.student_id || '') === String(student?.id || '')
-        || (
-          firstName.toLowerCase() === String(student?.first_name || '').trim().toLowerCase()
-          && lastName.toLowerCase() === String(student?.last_name || '').trim().toLowerCase()
-        )
-      );
-    return { fullName: isCurrentStudent ? 'Toi' : 'Participant', isCurrentStudent };
-  }
-  const fullName = `${firstName} ${lastName}`.trim() || 'n3beur';
-  const isCurrentStudent = !!student
-    && firstName.toLowerCase() === String(student.first_name || '').trim().toLowerCase()
-    && lastName.toLowerCase() === String(student.last_name || '').trim().toLowerCase();
-  return { fullName, isCurrentStudent };
-}
-
-/** Clé `loading[…]` pour POST /done côté n3boss (tâche collective) — doit coïncider entre la carte et `withLoad`. */
-function teacherCollectiveAssigneeLoadKey(taskId, assignment) {
-  const tid = String(taskId || '');
-  const rawId = assignment?.id != null ? String(assignment.id) : '';
-  if (rawId !== '') return `${tid}_teacher_collective_done_${rawId}`;
-  const sid = assignment?.student_id ?? assignment?.studentId;
-  if (sid != null && String(sid).trim() !== '') {
-    return `${tid}_teacher_collective_done_sid:${String(sid).trim()}`;
-  }
-  const fn = String(assignment?.student_first_name || '').trim();
-  const ln = String(assignment?.student_last_name || '').trim();
-  if (fn && ln) return `${tid}_teacher_collective_done_${fn}|${ln}`;
-  return `${tid}_teacher_collective_done_legacy`;
-}
-
-function toQuickAssignStudentId(id) {
-  return String(id ?? '');
 }
 
 const TEACHER_STATUS_ACTIONS = [
