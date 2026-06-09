@@ -126,11 +126,7 @@ function parsePct(value) {
   return Number(n.toFixed(2));
 }
 
-function normalizeOptionalString(value) {
-  if (value == null) return null;
-  const s = String(value).trim();
-  return s.length > 0 ? s : null;
-}
+const { normalizeOptionalString } = require('../../lib/shared/httpHelpers');
 
 async function getPlayerGameMembership(gameId, playerId) {
   return queryOne(
