@@ -1,6 +1,8 @@
 'use strict';
 
-/** ESLint minimal — garde-fous sans imposer un refactor massif du legacy. */
+const reactHooks = require('eslint-plugin-react-hooks');
+
+/** ESLint — garde-fous progressifs (incl. regles des Hooks React) sans refactor massif du legacy. */
 module.exports = [
   {
     ignores: [
@@ -40,6 +42,9 @@ module.exports = [
         setInterval: 'readonly',
         clearInterval: 'readonly',
         fetch: 'readonly',
+        URL: 'readonly',
+        URLSearchParams: 'readonly',
+        performance: 'readonly',
       },
     },
     rules: {
@@ -47,6 +52,7 @@ module.exports = [
       'no-duplicate-case': 'error',
       'no-func-assign': 'error',
       'no-unreachable': 'warn',
+      'no-unused-vars': ['warn', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
     },
   },
   {
@@ -100,13 +106,23 @@ module.exports = [
         clearTimeout: 'readonly',
         setInterval: 'readonly',
         clearInterval: 'readonly',
+        requestAnimationFrame: 'readonly',
+        cancelAnimationFrame: 'readonly',
       },
+    },
+    plugins: {
+      'react-hooks': reactHooks,
     },
     rules: {
       'no-debugger': 'error',
       'no-duplicate-case': 'error',
       'no-func-assign': 'error',
       'no-unreachable': 'warn',
+      'no-unused-vars': ['warn', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
+      // Regles des Hooks : violations reelles bloquantes (hook conditionnel, etc.) ;
+      // dependances manquantes en avertissement pour guider la stabilisation (useCallback/useMemo).
+      'react-hooks/rules-of-hooks': 'error',
+      'react-hooks/exhaustive-deps': 'warn',
     },
   },
 ];
