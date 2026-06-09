@@ -1295,22 +1295,24 @@ function App() {
       {showPublicVisit ? (
         <div id="app">
           <div className="main main--guest-visit">
-            <VisitView
-              student={null}
-              isTeacher={false}
-              initialMapId={publicSettings?.map?.default_map_visit || activeMapId}
-              onBackToAuth={() => {
-                abandonAllOverlays();
-                setGuestVisitNeedsMascotChoice(false);
-                setShowPublicVisit(false);
-              }}
-              availableTutorials={[]}
-              requireGuestMascotChoice={guestVisitNeedsMascotChoice}
-              onGuestMascotChoiceDone={() => {
-                safeLocalStorageSetItem(GUEST_VISIT_MASCOT_CONFIRMED_KEY, '1');
-                setGuestVisitNeedsMascotChoice(false);
-              }}
-            />
+            <TabSuspense>
+              <VisitViewLazy
+                student={null}
+                isTeacher={false}
+                initialMapId={publicSettings?.map?.default_map_visit || activeMapId}
+                onBackToAuth={() => {
+                  abandonAllOverlays();
+                  setGuestVisitNeedsMascotChoice(false);
+                  setShowPublicVisit(false);
+                }}
+                availableTutorials={[]}
+                requireGuestMascotChoice={guestVisitNeedsMascotChoice}
+                onGuestMascotChoiceDone={() => {
+                  safeLocalStorageSetItem(GUEST_VISIT_MASCOT_CONFIRMED_KEY, '1');
+                  setGuestVisitNeedsMascotChoice(false);
+                }}
+              />
+            </TabSuspense>
           </div>
           <footer className="app-footer">{appFooterVersionPrefix} {appVersion != null ? appVersion : '…'}</footer>
         </div>
