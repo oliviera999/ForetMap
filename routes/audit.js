@@ -1,24 +1,20 @@
 const express = require('express');
 const { queryAll, queryOne, execute } = require('../database');
 const { requirePermission } = require('../middleware/requireTeacher');
-const { logRouteError, respondInternalError } = require('../lib/routeLog');
+const asyncHandler = require('../lib/asyncHandler');
 const { ensureCanonicalUserByAuth, resolveActorFromReq } = require('../lib/identity');
 
 const router = express.Router();
 
 // Consulter l'historique (prof uniquement)
-router.get('/', requirePermission('audit.read', { needsElevation: true }), async (req, res) => {
-  try {
-    const limit = Math.max(1, Math.min(parseInt(req.query.limit, 10) || 50, 200));
-    const rows = await queryAll(
-      `SELECT * FROM audit_log ORDER BY id DESC LIMIT ${limit}`,
-      []
-    );
-    res.json(rows);
-  } catch (e) {
-    respondInternalError(res, req, e);
-  }
-});
+router.get('/', requirePermission('audit.read', { needsElevation: true }), asyncHandler(async (req, res) => {
+  const limit = Math.max(1, Math.min(parseInt(req.query.limit, 10) || 50, 200));
+  const rows = await queryAll(
+    `SELECT * FROM audit_log ORDER BY id DESC LIMIT ${limit}`,
+    []
+  );
+  res.json(rows);
+}));
 
 /**
  * Enregistre une action dans l'audit log.
