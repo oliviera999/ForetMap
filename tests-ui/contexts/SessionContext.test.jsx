@@ -5,10 +5,9 @@ import { SessionProvider, useSession } from '../../src/contexts/SessionContext.j
 
 function Probe() {
   const { isN3Affiliated = false, canParticipateContextComments = true } = useSession();
-  const can = useSession().hasPermission?.('x') ?? 'no-fn';
   return (
     <span data-testid="v">
-      {String(isN3Affiliated)}|{String(canParticipateContextComments)}|{String(can)}
+      {String(isN3Affiliated)}|{String(canParticipateContextComments)}
     </span>
   );
 }
@@ -16,16 +15,16 @@ function Probe() {
 describe('SessionContext', () => {
   test('fournit les valeurs aux consommateurs', () => {
     render(
-      <SessionProvider value={{ isN3Affiliated: true, canParticipateContextComments: false, hasPermission: () => true }}>
+      <SessionProvider value={{ isN3Affiliated: true, canParticipateContextComments: false }}>
         <Probe />
       </SessionProvider>,
     );
-    expect(screen.getByTestId('v').textContent).toBe('true|false|true');
+    expect(screen.getByTestId('v').textContent).toBe('true|false');
   });
 
   test('hors Provider : déstructuration sur les défauts (false/true) sans crash', () => {
     render(<Probe />);
-    expect(screen.getByTestId('v').textContent).toBe('false|true|no-fn');
+    expect(screen.getByTestId('v').textContent).toBe('false|true');
   });
 
   test('value null = hors Provider', () => {
@@ -34,6 +33,6 @@ describe('SessionContext', () => {
         <Probe />
       </SessionProvider>,
     );
-    expect(screen.getByTestId('v').textContent).toBe('false|true|no-fn');
+    expect(screen.getByTestId('v').textContent).toBe('false|true');
   });
 });
