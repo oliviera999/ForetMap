@@ -9,6 +9,10 @@ import { DialogShell } from './DialogShell';
 import { MarkdownContent } from './MarkdownContent.jsx';
 import { MarkdownTextarea } from './MarkdownTextarea.jsx';
 import { FixedToast } from '../shared/components/FixedToast.jsx';
+import { usePublicSettings } from '../contexts/PublicSettingsContext.jsx';
+import { useSession } from '../contexts/SessionContext.jsx';
+import { useData } from '../contexts/DataContext.jsx';
+import { fileToDataUrl } from '../utils/fileToDataUrl.js';
 
 function tutorialZonePickLabel(z) {
   const line = formatLivingBeingsListLine(
@@ -40,15 +44,6 @@ function downloadUrl(url) {
   document.body.appendChild(a);
   a.click();
   a.remove();
-}
-
-function fileToDataUrl(file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(String(reader.result || ''));
-    reader.onerror = () => reject(new Error('Lecture du fichier impossible'));
-    reader.readAsDataURL(file);
-  });
 }
 
 const LINKED_TASK_STATUS_LABELS = {
@@ -128,17 +123,14 @@ function initialForm() {
 }
 
 function TutorialsView({
-  tutorials,
   isTeacher,
   onRefresh,
   onForceLogout,
-  zones = [],
-  markers = [],
   maps = [],
-  activeMapId = 'foret',
-  publicSettings = null,
-  canParticipateContextComments = true,
 }) {
+  const publicSettings = usePublicSettings();
+  const { canParticipateContextComments = true } = useSession();
+  const { tutorials = [], zones = [], markers = [], activeMapId = 'foret' } = useData();
   const contextCommentsEnabled = publicSettings?.modules?.context_comments_enabled !== false;
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState('all');
