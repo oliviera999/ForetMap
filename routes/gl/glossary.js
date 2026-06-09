@@ -396,7 +396,7 @@ router.get('/admin/glossary/stats', requireGlPermission('gl.content.manage'), as
 
 /** GET /api/gl/admin/glossary/import/template — modèle XLSX vierge. */
 router.get('/admin/glossary/import/template', requireGlPermission('gl.content.manage'), async (_req, res) => {
-  const buffer = buildGlossaryTemplateWorkbook();
+  const buffer = await buildGlossaryTemplateWorkbook();
   res.setHeader(
     'Content-Type',
     'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
@@ -410,7 +410,7 @@ router.get('/admin/glossary/export', requireGlPermission('gl.content.manage'), a
   const statutRaw = String(req.query?.statut || 'actif').toLowerCase();
   const statut = statutRaw === 'all' ? 'all' : 'actif';
   const rows = await loadGlossaryExportRows({ queryAll }, { statut });
-  const buffer = buildGlossaryExportWorkbook(rows);
+  const buffer = await buildGlossaryExportWorkbook(rows);
   res.setHeader(
     'Content-Type',
     'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
@@ -424,7 +424,7 @@ router.post('/admin/glossary/import', requireGlPermission('gl.content.manage'), 
   const dryRun = !!req.body?.dryRun;
   let parsed;
   try {
-    parsed = resolveImportRows(req.body || {});
+    parsed = await resolveImportRows(req.body || {});
   } catch (err) {
     return res.status(400).json({ error: err.message || 'Fichier import invalide' });
   }

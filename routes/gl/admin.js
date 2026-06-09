@@ -485,7 +485,7 @@ router.get(
   requireGlPermission('gl.content.manage'),
   wrapXlsxRoute(async (_req, res) => sendXlsxAttachment(
     res,
-    buildGlossaryTemplateWorkbook(),
+    await buildGlossaryTemplateWorkbook(),
     'foretmap-gl-modele-glossaire.xlsx'
   ))
 );
@@ -497,7 +497,7 @@ router.get(
     const statutRaw = String(req.query?.statut || 'actif').toLowerCase();
     const statut = statutRaw === 'all' ? 'all' : 'actif';
     const rows = await loadGlossaryExportRows({ queryAll }, { statut });
-    return sendXlsxAttachment(res, buildGlossaryExportWorkbook(rows), 'foretmap-gl-export-glossaire.xlsx');
+    return sendXlsxAttachment(res, await buildGlossaryExportWorkbook(rows), 'foretmap-gl-export-glossaire.xlsx');
   })
 );
 
