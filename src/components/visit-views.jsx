@@ -42,6 +42,7 @@ import { wheelZoomScaleFactor } from '../utils/mapWheelZoom';
 import { pointToContainedRectPct } from '../shared/pct-map/pctMapPointer.js';
 import VisitMapMascotRenderer from './VisitMapMascotRenderer.jsx';
 import { usePublicSettings } from '../contexts/PublicSettingsContext.jsx';
+import { useSession } from '../contexts/SessionContext.jsx';
 
 /** Diagramme circulaire de progression visite (viewBox carré, cercle centré). */
 const VISIT_PROGRESS_DONUT_VB = 40;
@@ -910,7 +911,6 @@ function VisitView({
   initialMapId = 'foret',
   availableTutorials = [],
   onBackToAuth,
-  isN3Affiliated = false,
   canParticipateContextComments = true,
   /** Prof : ouvre l’onglet dédié « Packs mascotte » dans l’app principale. */
   onOpenMascotPackStudioTab,
@@ -927,6 +927,7 @@ function VisitView({
   onGuestMascotChoiceDone = null,
 }) {
   const publicSettings = usePublicSettings();
+  const { isN3Affiliated = false } = useSession();
   const contextCommentsEnabled = publicSettings?.modules?.context_comments_enabled !== false;
   const configuredLocationEmojis = String(
     publicSettings?.ui?.map?.location_emojis

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../services/api';
 import { getRoleTerms } from '../utils/n3-terminology';
+import { useSession } from '../contexts/SessionContext.jsx';
 
 function AuditHistoryPanel({ roleTerms }) {
   const [entries, setEntries] = useState([]);
@@ -159,7 +160,8 @@ function VisitStatsPanel({ roleTerms }) {
   );
 }
 
-function AuditLog({ isN3Affiliated = false }) {
+function AuditLog() {
+  const { isN3Affiliated = false } = useSession();
   const roleTerms = getRoleTerms(isN3Affiliated);
   const [subTab, setSubTab] = useState('history');
 

@@ -47,6 +47,7 @@ import {
   teacherStatusActionDisabled,
 } from '../utils/taskActionErrors.js';
 import { usePublicSettings } from '../contexts/PublicSettingsContext.jsx';
+import { useSession } from '../contexts/SessionContext.jsx';
 import {
   compareTasksByImportanceThenDueDate,
   normalizeDateOnly,
@@ -1311,7 +1312,6 @@ function TasksView({
   canViewOtherUsersIdentity = true,
   onRefresh,
   onForceLogout,
-  isN3Affiliated = false,
   onTaskFormOverlayOpenChange = null,
   mapLocationFocus = null,
   onMapLocationFocusChange = null,
@@ -1320,6 +1320,7 @@ function TasksView({
   hasPermissionInRole = () => false,
 }) {
   const publicSettings = usePublicSettings();
+  const { isN3Affiliated = false } = useSession();
   const canEnrollNewTask = canEnrollOnTasks !== undefined ? canEnrollOnTasks : canSelfAssignTasks;
   const roleTerms = getRoleTerms(isN3Affiliated);
   const teacherTaskPerms = useMemo(() => ({
