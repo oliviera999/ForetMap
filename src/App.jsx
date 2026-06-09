@@ -1688,6 +1688,7 @@ function App() {
           <Tooltip text={helpText(HELP_TOOLTIPS.header.logout)}>
             <button className="lock-btn" aria-label="Déconnexion" onClick={() => {
               clearStoredSession();
+              studentRef.current = null;
               setStudent(null); setSessionUser(null); setIsTeacher(false); setAuthClaims(null);
             }}>↩️</button>
           </Tooltip>

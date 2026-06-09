@@ -566,8 +566,8 @@ function TaskFormModal({
         <button className="modal-close" aria-label="Fermer la fenêtre" onClick={onClose}>✕</button>
         <h3>{isDuplicate ? 'Dupliquer la tâche' : editTask ? 'Modifier la tâche' : isProposal ? 'Proposer une tâche' : 'Nouvelle tâche'}</h3>
         {err && <p style={{ color: var_alert, marginBottom: 12, fontSize: '.85rem' }}>{err}</p>}
-        <div className="field"><label>Titre *</label><input value={form.title} onChange={set('title')} placeholder="Ex: Arroser les tomates" /></div>
-        <div className="field"><label>Description</label><MarkdownTextarea value={form.description} onChange={set('description')} rows={2} placeholder="Instructions détaillées..." /></div>
+        <div className="field"><label htmlFor="task-form-title">Titre *</label><input id="task-form-title" value={form.title} onChange={set('title')} placeholder="Ex: Arroser les tomates" /></div>
+        <div className="field"><label htmlFor="task-form-description">Description</label><MarkdownTextarea id="task-form-description" aria-label="Description" value={form.description} onChange={set('description')} rows={2} placeholder="Instructions détaillées..." /></div>
         <div className="field">
           <label>Photo illustrative (optionnel)</label>
           <p style={{ fontSize: '.8rem', color: '#555', margin: '0 0 8px', lineHeight: 1.45 }}>

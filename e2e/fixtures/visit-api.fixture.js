@@ -4,6 +4,10 @@
  * Les données sont sur la carte **n3** : l’onglet visite s’ouvre souvent sur ce plan pour les élèves affiliés N3.
  */
 
+/** Aligné sur `VISIT_N3_ENTRANCE_LABEL_RE` (visitMascotPlacement.js). */
+const VISIT_N3_ENTRANCE_LABEL_RE =
+  /entr[ée]e.*n3|n3.*entr[ée]e|entr[ée]e\s*\(?\s*n3|portail.*n3|acc[èe]s.*n3/i;
+
 /**
  * @param {import('@playwright/test').Page} page
  * @returns {Promise<string>}
@@ -67,16 +71,16 @@ async function deleteVisitMarker(page, token, markerId) {
 /**
  * Crée zone + repères sur la carte **n3** (repère « entrée » pour le placement initial mascotte).
  * @param {import('@playwright/test').Page} page
- * @returns {Promise<{ token: string, suffix: string, n3: { zoneId: string, markerAId: string, markerBId: string, entranceId: string } }>}
+ * @returns {Promise<{ token: string, suffix: string, entrancePct: { x_pct: number, y_pct: number }, n3: { zoneId: string, markerAId: string, markerBId: string, entranceId: string } }>}
  */
-async function deleteOldE2eN3EntranceMarkers(page, headers) {
+async function deleteAllN3EntranceMarkers(page, headers) {
   const res = await page.request.get('/api/visit/content?map_id=n3', { headers });
   if (!res.ok()) return;
   const body = await res.json();
   const markers = Array.isArray(body?.markers) ? body.markers : [];
   for (const marker of markers) {
-    const label = String(marker?.label || '');
-    if (!/E2E N3 entrée mascotte/i.test(label)) continue;
+    const label = String(marker?.label || '').trim();
+    if (!VISIT_N3_ENTRANCE_LABEL_RE.test(label)) continue;
     await page.request.delete(`/api/visit/markers/${encodeURIComponent(marker.id)}`, { headers }).catch(() => false);
   }
 }
@@ -87,7 +91,7 @@ async function seedVisitMascotContent(page) {
     Authorization: `Bearer ${token}`,
     'Content-Type': 'application/json',
   };
-  await deleteOldE2eN3EntranceMarkers(page, headers);
+  await deleteAllN3EntranceMarkers(page, headers);
   const suffix = `${Date.now()}-${Math.floor(Math.random() * 1e6)}`;
 
   const zone = await postVisitZone(page, headers, {
@@ -131,6 +135,7 @@ async function seedVisitMascotContent(page) {
   return {
     token,
     suffix,
+    entrancePct: { x_pct: 22, y_pct: 18 },
     n3: { zoneId: zone.id, markerAId: markerA.id, markerBId: markerB.id, entranceId: entranceN3.id },
   };
 }
