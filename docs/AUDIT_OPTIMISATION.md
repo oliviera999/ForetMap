@@ -63,7 +63,7 @@ Statuts : `todo` · `wip` · `done` · `differe` (décision produit requise).
 | O10 | Moyenne | Perf | Routes obèses (visit/tasks/games 2000+ l.) ; N+1 d'écriture (boucles INSERT) | Couche service par domaine ; INSERT multi-valeurs | Élevé/Faible | wip |
 | O11 | Moyenne | Perf bundle | Lazy ineffectif (`foretmap-views`/`stats-views`) ; markdown eager ; GL sans lazy ; sourcemap prod | Corriger les lazy, lazifier markdown/GL, `sourcemap: hidden` | Moyen | done |
 | O12 | Basse | Maint | ESLint 4 règles sans react-hooks ; pas de Prettier ; 0 typage | `eslint-plugin-react-hooks` + `no-unused-vars` ; Prettier ; `checkJS` incrémental | Faible | done |
-| O13 | Basse | Sécu | Pas de `helmet` ; CORS ouvert par défaut ; `DEPLOY_SECRET` non constant-time | `helmet()` ; boot refusé sans origine prod ; `timingSafeEqual` | Faible | done |
+| O13 | Basse | Sécu | Pas de `helmet` ; CORS ouvert par défaut ; `DEPLOY_SECRET` non constant-time | `helmet()` (sans CSP, COEP/CORP off) + `timingSafeEqual`. CORS laisse tel quel volontairement : SPA servie same-origin (CORS peu pertinent) et un refus de boot casserait un deploy prod sans `FRONTEND_ORIGIN` | Faible | done |
 | O14 | Basse | Maint | Fichiers morts ; `fs.readFileSync(package.json)` en chemin requête | Suppression ; servir `startupVersion` | Trivial | done |
 
 ## 4. Détail technique par module
