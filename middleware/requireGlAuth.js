@@ -1,5 +1,5 @@
-const jwt = require('jsonwebtoken');
 const { JWT_SECRET, parseBearerToken } = require('./requireTeacher');
+const { verifyJwtForProduct } = require('../lib/auth/jwtPipeline');
 
 function hasGlPermission(auth, permission) {
   if (!auth) return false;
@@ -22,10 +22,11 @@ function requireGlAuth(req, res, next) {
   const token = parseBearerToken(req);
   if (!token) return res.status(401).json({ error: 'Token requis' });
   try {
-    const claims = jwt.verify(token, JWT_SECRET);
-    if (String(claims.product || '').toLowerCase() !== 'gl') {
-      return res.status(403).json({ error: 'Session non autorisée pour Gnomes & Licornes' });
+    const verified = verifyJwtForProduct(token, JWT_SECRET, 'gl');
+    if (verified.error) {
+      return res.status(verified.status).json({ error: verified.error });
     }
+    const claims = verified.claims;
     req.glAuth = {
       product: 'gl',
       userType: String(claims.userType || 'gl_player'),

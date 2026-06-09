@@ -6,7 +6,7 @@ Ce document centralise les commandes et la matrice de couverture pour Gnomes & L
 
 - Backend GL ciblé: `node --test --test-concurrency=1 --test-force-exit tests/gl-*.test.js`
 - Suite backend globale: `npm test`
-- UI GL (Vitest): `npm run test:ui`
+- UI (Vitest, ForetMap + GL): `npm run test:ui` — **exécuté en CI** après la suite backend
 - E2E GL: `npx playwright test e2e/gl-*.spec.js`
 - Snapshot GL: `npm run test:snapshot:gl`
 - Charge GL (Artillery): `npm run test:load:gl`
@@ -29,6 +29,13 @@ Ce document centralise les commandes et la matrice de couverture pour Gnomes & L
 - `tests-ui/gl/GLMascotFallbackSvg.test.jsx`
 - `tests-ui/gl/GLUsersAdminView.test.jsx`
 - Biocénose (catalogue tuiles + fiche modale) : `tests-ui/gl/GLSpeciesCatalog.test.jsx`, `tests-ui/gl/GLSpeciesDetailModal.test.jsx`
+
+## E2E Playwright ForetMap (hors GL)
+
+- `e2e/plants-biodiversity.spec.js` — onglet Biodiversité (prof)
+- `e2e/stats-foretmap.spec.js` — onglet Stats (prof)
+- `e2e/admin-impersonation.spec.js` — prise de contrôle admin (skip si permission absente)
+- `e2e/observations-notebook.spec.js` — carnet observations élève (skip si module off)
 
 ## E2E Playwright GL
 

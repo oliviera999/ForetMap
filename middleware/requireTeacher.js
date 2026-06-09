@@ -1,4 +1,9 @@
 const jwt = require('jsonwebtoken');
+const {
+  parseBearerToken: parseBearerTokenFromPipeline,
+  verifyJwtToken,
+  verifyJwtForProduct,
+} = require('../lib/auth/jwtPipeline');
 const { ensureRbacBootstrap, buildAuthzPayload } = require('../lib/rbac');
 const { getAuthJwtTtls } = require('../lib/settings');
 const { getUserAccessibleGroupIds } = require('../lib/groupScope');
@@ -20,8 +25,7 @@ async function signAuthToken(payload, elevated = false) {
 }
 
 function parseBearerToken(req) {
-  const auth = req.headers.authorization;
-  return auth && auth.startsWith('Bearer ') ? auth.slice(7) : null;
+  return parseBearerTokenFromPipeline(req);
 }
 
 async function hydrateAuthFromTokenClaims(claims) {
@@ -91,7 +95,7 @@ async function authenticate(req, res, next) {
     return next();
   }
   try {
-    const claims = jwt.verify(token, JWT_SECRET);
+    const claims = verifyJwtToken(token, JWT_SECRET);
     req.auth = await hydrateAuthFromTokenClaims(claims);
   } catch (e) {
     req.auth = null;
@@ -105,7 +109,7 @@ async function requireAuth(req, res, next) {
   const token = parseBearerToken(req);
   if (!token) return res.status(401).json({ error: 'Token requis' });
   try {
-    const claims = jwt.verify(token, JWT_SECRET);
+    const claims = verifyJwtToken(token, JWT_SECRET);
     req.auth = await hydrateAuthFromTokenClaims(claims);
     if (!req.auth) return res.status(403).json({ error: 'Aucun profil attribué' });
     next();
@@ -132,7 +136,7 @@ function requirePermission(permissionKey, options = {}) {
     const token = parseBearerToken(req);
     if (!token) return res.status(401).json({ error: 'Token requis' });
     try {
-      const claims = jwt.verify(token, JWT_SECRET);
+      const claims = verifyJwtToken(token, JWT_SECRET);
       req.auth = await hydrateAuthFromTokenClaims(claims);
       if (!req.auth) return res.status(403).json({ error: 'Aucun profil attribué' });
     } catch (e) {
@@ -153,12 +157,11 @@ function requireProduct(expectedProduct) {
     const token = parseBearerToken(req);
     if (!token) return res.status(401).json({ error: 'Token requis' });
     try {
-      const claims = jwt.verify(token, JWT_SECRET);
-      const product = String(claims.product || 'foret').toLowerCase();
-      if (product !== expected) {
-        return res.status(403).json({ error: 'Session non autorisée pour ce produit' });
+      const verified = verifyJwtForProduct(token, JWT_SECRET, expected);
+      if (verified.error) {
+        return res.status(verified.status).json({ error: verified.error });
       }
-      req.auth = await hydrateAuthFromTokenClaims(claims);
+      req.auth = await hydrateAuthFromTokenClaims(verified.claims);
       if (!req.auth) return res.status(403).json({ error: 'Aucun profil attribué' });
       return next();
     } catch (_) {

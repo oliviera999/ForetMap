@@ -49,10 +49,17 @@ const REQUIRED_RUNTIME_BASE = [
   'package.json',
   'package-lock.json',
   'dist',
-  /** Validation POST/PUT `/api/visit/mascot-packs` sans dossier `src/` (voir `npm run sync:visit-pack-lib`). */
+  /** Validation packs mascotte visite sans dossier `src/` (voir `npm run sync:visit-pack-lib`). */
   'lib/visit-pack/mascotPack.js',
   'lib/visit-pack/visitMascotState.js',
   'lib/visit-pack/visitMascotInteractionEvents.js',
+  'lib/visit-pack/visitMascotDialogEvents.js',
+  'lib/visit-pack/visitMascotDialogApply.js',
+  'lib/visit-pack/browserStorage.js',
+  'lib/visit-pack/visitMascotCatalog.js',
+  'lib/visit-pack/data/renard2-cut-manifest.js',
+  /** Validation packs mascotte GL (`npm run sync:gl-pack-lib`). */
+  'lib/gl-pack/mascotPack.js',
 ];
 const REQUIRED_RUNTIME = includeNodeModules
   ? [...REQUIRED_RUNTIME_BASE, 'node_modules']

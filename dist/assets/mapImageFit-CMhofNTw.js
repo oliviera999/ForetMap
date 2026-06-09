@@ -1,0 +1,2 @@
+function e(e,t,n,r){let i=Math.max(1,n),a=Math.max(1,r);if(!e||!t)return{offsetX:0,offsetY:0,width:i,height:a};let o=Math.min(i/e,a/t),s=e*o,c=t*o;return{offsetX:(i-s)/2,offsetY:(a-c)/2,width:s,height:c}}export{e as t};
+//# sourceMappingURL=mapImageFit-CMhofNTw.js.map

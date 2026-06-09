@@ -29,7 +29,8 @@ import {
   safeSessionStorageRemoveItem,
   safeSessionStorageSetItem,
 } from '../utils/browserStorage.js';
-import { FixedToast } from '../shared/components/FixedToast.jsx';
+import { TimedToast } from '../shared/components/TimedToast.jsx';
+import { isTaskUrgentCategory } from './tasks/taskViewHelpers.js';
 import { ImageLightbox } from '../shared/components/ImageLightbox.jsx';
 import {
   formatTaskActionError,
@@ -73,15 +74,6 @@ function compareTasksByImportanceThenDueDate(a, b) {
   const db = String(b?.due_date || '');
   if (da !== db) return da.localeCompare(db);
   return String(a?.id || '').localeCompare(String(b?.id || ''));
-}
-
-function isTaskUrgentCategory(task) {
-  return String(task?.importance_level || '').trim().toLowerCase() === 'absolute';
-}
-
-function Toast({ msg, onDone }) {
-  useEffect(() => { const t = setTimeout(onDone, 2400); return () => clearTimeout(t); }, []);
-  return <FixedToast>{msg}</FixedToast>;
 }
 
 function taskLogCommentDraftKey(taskId) {
@@ -2470,7 +2462,7 @@ function TasksView({
 
   return (
     <div className="tasks-view fade-in">
-      {toast && <Toast msg={toast} onDone={() => setToast(null)} />}
+      {toast && <TimedToast msg={toast} onDone={() => setToast(null)} />}
       {tasksTutorialPreview && (
         <TutorialPreviewModal
           tutorial={tasksTutorialPreview}
@@ -3376,7 +3368,7 @@ function TaskLogsViewer({ task, onClose }) {
       dialogRef={dialogRef}
     >
       {big && <Lightbox src={big} caption="" onClose={() => setBig(null)} />}
-      {toast && <Toast msg={toast} onDone={() => setToast(null)} />}
+      {toast && <TimedToast msg={toast} onDone={() => setToast(null)} />}
       <button className="modal-close" aria-label="Fermer la fenêtre" onClick={onClose}>✕</button>
       <h3>📋 Rapports — {task.title}</h3>
       {logs.length === 0

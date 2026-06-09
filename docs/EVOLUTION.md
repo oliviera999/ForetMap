@@ -47,8 +47,11 @@ Il reflète l’état réel du dépôt (avril 2026) et priorise la suite en comm
 - **Couverture tests (partiellement réalisé)** :
   - parcours critiques scripts/images déjà renforcés (`post-deploy-check`, images tâches/zones/observations en mode disque).
   - checklist de vérifications UI manuelles post-modularisation ajoutée dans `docs/EXPLOITATION.md` + tests UI Playwright (smoke + cycles complets) + exécution e2e en CI.
-  - **Avancement récent** : ajout des flux complets tâche (création -> prise -> soumission -> validation), photo zone (upload/suppression), retrait d’une tâche par élève et cas PIN invalide.
+  - **Avancement récent** : ajout des flux complets tâche (création -> prise -> soumission -> validation), photo zone (upload/suppression), retrait d’une tâche par élève et cas PIN invalide ; **Vitest en CI** (`npm run test:ui`) ; e2e ForetMap étendus (biodiversité, stats, impersonation, carnet observations).
   - **Reste à faire** : élargir progressivement vers des cas limites métiers rares (multi-élèves concurrents côté **UI** e2e, interruptions réseau réelles). Côté **API / une IP**, le profil **`test:load:10vu`** couvre déjà une approximation « ~10 utilisateurs » avec rate limiting actif.
+- **Frontend — optimisation bundle (partiellement réalisé, juin 2026)** :
+  - lazy-load des onglets rares dans `App.jsx`, `manualChunks` Vite, composant toast partagé `TimedToast`, extraction `LivingBeingsCatalogPanel` et `lib/tasks/taskImport.js`, pipeline JWT `lib/auth/jwtPipeline.js`.
+  - **Reste à faire** : scinder `plants-views.jsx` hors de `foretmap-views.jsx` (supprimer l’avertissement Vite sur import dynamique), poursuivre le découpage `map-views` / `tasks-views`.
 
 ## 1.3 Fonctionnalité livrée — Projets de tâches (V1 minimale)
 
