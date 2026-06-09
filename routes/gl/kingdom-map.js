@@ -19,11 +19,7 @@ const MIN_LABEL = 1;
 const MAX_LABEL = 180;
 const MAX_POINTS = 200;
 
-function normalizeOptionalString(value) {
-  if (value == null) return null;
-  const s = String(value).trim();
-  return s.length > 0 ? s : null;
-}
+const { normalizeOptionalString } = require('../../lib/shared/httpHelpers');
 
 function validatePoints(points) {
   if (!Array.isArray(points)) return false;

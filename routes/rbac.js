@@ -73,11 +73,7 @@ function canConfigureStudentTierForumContext(slug, rank) {
   return Number.isFinite(r) && r < 400;
 }
 
-function normalizeOptionalString(value) {
-  if (value == null) return null;
-  const s = String(value).trim();
-  return s.length > 0 ? s : null;
-}
+const { normalizeOptionalString } = require('../lib/shared/httpHelpers');
 
 function normalizeEmail(value) {
   const email = normalizeOptionalString(value);
