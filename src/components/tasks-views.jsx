@@ -48,6 +48,7 @@ import {
 } from '../utils/taskActionErrors.js';
 import { usePublicSettings } from '../contexts/PublicSettingsContext.jsx';
 import { useSession } from '../contexts/SessionContext.jsx';
+import { useData } from '../contexts/DataContext.jsx';
 import {
   compareTasksByImportanceThenDueDate,
   normalizeDateOnly,
@@ -1296,14 +1297,7 @@ const TASK_STATUS_FILTER_OPTIONS = [
 ];
 
 function TasksView({
-  tasks,
-  taskProjects = [],
-  zones,
-  markers = [],
   maps = [],
-  tutorials = [],
-  plants = [],
-  activeMapId = 'foret',
   isTeacher,
   student,
   canSelfAssignTasks = true,
@@ -1320,6 +1314,9 @@ function TasksView({
 }) {
   const publicSettings = usePublicSettings();
   const { isN3Affiliated = false, canParticipateContextComments = true } = useSession();
+  const {
+    tasks = [], taskProjects = [], zones = [], markers = [], tutorials = [], plants = [], activeMapId = 'foret',
+  } = useData();
   const canEnrollNewTask = canEnrollOnTasks !== undefined ? canEnrollOnTasks : canSelfAssignTasks;
   const roleTerms = getRoleTerms(isN3Affiliated);
   const teacherTaskPerms = useMemo(() => ({

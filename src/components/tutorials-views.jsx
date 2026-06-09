@@ -11,6 +11,7 @@ import { MarkdownTextarea } from './MarkdownTextarea.jsx';
 import { FixedToast } from '../shared/components/FixedToast.jsx';
 import { usePublicSettings } from '../contexts/PublicSettingsContext.jsx';
 import { useSession } from '../contexts/SessionContext.jsx';
+import { useData } from '../contexts/DataContext.jsx';
 import { fileToDataUrl } from '../utils/fileToDataUrl.js';
 
 function tutorialZonePickLabel(z) {
@@ -122,17 +123,14 @@ function initialForm() {
 }
 
 function TutorialsView({
-  tutorials,
   isTeacher,
   onRefresh,
   onForceLogout,
-  zones = [],
-  markers = [],
   maps = [],
-  activeMapId = 'foret',
 }) {
   const publicSettings = usePublicSettings();
   const { canParticipateContextComments = true } = useSession();
+  const { tutorials = [], zones = [], markers = [], activeMapId = 'foret' } = useData();
   const contextCommentsEnabled = publicSettings?.modules?.context_comments_enabled !== false;
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState('all');
