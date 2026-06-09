@@ -279,7 +279,7 @@ router.get('/admin/qcm/stats', requireGlPermission('gl.content.manage'), async (
 
 /** GET /api/gl/admin/qcm/import/template — modèle XLSX (feuilles categories + questions). */
 router.get('/admin/qcm/import/template', requireGlPermission('gl.content.manage'), async (_req, res) => {
-  const buffer = buildQcmTemplateWorkbook();
+  const buffer = await buildQcmTemplateWorkbook();
   res.setHeader(
     'Content-Type',
     'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
@@ -298,7 +298,7 @@ router.get('/admin/qcm/export', requireGlPermission('gl.content.manage'), async 
     { queryAll },
     { statut, biomeSlug, categorieSlug }
   );
-  const buffer = buildQcmExportWorkbook(data);
+  const buffer = await buildQcmExportWorkbook(data);
   res.setHeader(
     'Content-Type',
     'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
@@ -312,7 +312,7 @@ router.post('/admin/qcm/import', requireGlPermission('gl.content.manage'), async
   const dryRun = !!req.body?.dryRun;
   let parsed;
   try {
-    parsed = resolveImportRows(req.body || {});
+    parsed = await resolveImportRows(req.body || {});
   } catch (err) {
     return res.status(400).json({ error: err.message || 'Fichier import invalide' });
   }

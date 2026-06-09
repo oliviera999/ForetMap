@@ -506,7 +506,7 @@ router.get(
   requireGlPermission('gl.content.manage'),
   wrapXlsxRoute(async (_req, res) => sendXlsxAttachment(
     res,
-    buildQcmTemplateWorkbook(),
+    await buildQcmTemplateWorkbook(),
     'foretmap-gl-modele-qcm.xlsx'
   ))
 );
@@ -523,7 +523,7 @@ router.get(
       { queryAll },
       { statut, biomeSlug, categorieSlug }
     );
-    return sendXlsxAttachment(res, buildQcmExportWorkbook(data), 'foretmap-gl-export-qcm.xlsx');
+    return sendXlsxAttachment(res, await buildQcmExportWorkbook(data), 'foretmap-gl-export-qcm.xlsx');
   })
 );
 
