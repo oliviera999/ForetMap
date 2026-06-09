@@ -1370,8 +1370,6 @@ function App() {
         <Suspense fallback={null}>
           <PlantCatalogPreviewModalLazy
             plant={plantCatalogPreview}
-            zones={zones}
-            markers={markers}
             maps={visibleMaps}
             onClose={() => setPlantCatalogPreview(null)}
             onForceLogout={forceLogout}
@@ -1830,13 +1828,7 @@ function App() {
                 <div className="desktop-split-view" role="region" aria-label={tutorialsModuleEnabled ? 'Vue carte, tâches et tutoriels' : 'Vue carte et tâches'}>
                   <section className="desktop-split-pane desktop-split-pane--map">
                     <MapView
-                      zones={zones}
-                      markers={markers}
-                      tasks={tasks}
-                      tutorials={tutorials}
-                      plants={plants}
                       maps={visibleMaps}
-                      activeMapId={activeMapId}
                       onMapChange={setActiveMapId}
                       isTeacher
                       student={currentUser}
@@ -1851,14 +1843,7 @@ function App() {
                   <section className="desktop-split-pane desktop-split-pane--tasks">
                     <div className="desktop-split-scroll">
                       <TasksView
-                        tasks={tasks}
-                        taskProjects={taskProjects}
-                        zones={zones}
-                        markers={markers}
                         maps={visibleMaps}
-                        tutorials={tutorials}
-                        plants={plants}
-                        activeMapId={activeMapId}
                         isTeacher
                         student={currentUser}
                         canSelfAssignTasks
@@ -1876,15 +1861,12 @@ function App() {
                   </section>
                 </div>
               )}
-              {!useSplitMapTasks && tab === 'map'    && <MapView zones={zones} markers={markers} tasks={tasks} tutorials={tutorials} plants={plants} maps={visibleMaps} activeMapId={activeMapId} onMapChange={setActiveMapId} isTeacher student={currentUser} canSelfAssignTasks onZoneUpdate={updateZone} onRefresh={fetchAll} onLocationTasksFocus={handleMapLocationTasksFocus} onNavigateToTasksForLocation={(effectiveIsTeacher || canAccessStudentMapTasks) ? navigateToTasksForLocation : undefined} onOpenPlantCatalogPreview={openPlantCatalogPreviewById} onForceLogout={forceLogout}/>}
-              {!useSplitMapTasks && tab === 'tasks'  && <TasksView  tasks={tasks} taskProjects={taskProjects} zones={zones} markers={markers} maps={visibleMaps} tutorials={tutorials} plants={plants} activeMapId={activeMapId} isTeacher student={currentUser} canSelfAssignTasks canViewOtherUsersIdentity hasPermission={hasPermission} hasPermissionInRole={hasPermissionInRole} onRefresh={fetchAll} onForceLogout={forceLogout} onTaskFormOverlayOpenChange={onTaskFormOverlayOpenChange} mapLocationFocus={tasksLocationFocus} onMapLocationFocusChange={setTasksLocationFocus} onOpenPlantCatalogPreview={openPlantCatalogPreviewById} />}
+              {!useSplitMapTasks && tab === 'map'    && <MapView maps={visibleMaps} onMapChange={setActiveMapId} isTeacher student={currentUser} canSelfAssignTasks onZoneUpdate={updateZone} onRefresh={fetchAll} onLocationTasksFocus={handleMapLocationTasksFocus} onNavigateToTasksForLocation={(effectiveIsTeacher || canAccessStudentMapTasks) ? navigateToTasksForLocation : undefined} onOpenPlantCatalogPreview={openPlantCatalogPreviewById} onForceLogout={forceLogout}/>}
+              {!useSplitMapTasks && tab === 'tasks'  && <TasksView  maps={visibleMaps} isTeacher student={currentUser} canSelfAssignTasks canViewOtherUsersIdentity hasPermission={hasPermission} hasPermissionInRole={hasPermissionInRole} onRefresh={fetchAll} onForceLogout={forceLogout} onTaskFormOverlayOpenChange={onTaskFormOverlayOpenChange} mapLocationFocus={tasksLocationFocus} onMapLocationFocusChange={setTasksLocationFocus} onOpenPlantCatalogPreview={openPlantCatalogPreviewById} />}
               {tab === 'plants' && (
                 <TabSuspense>
                   <PlantManagerLazy
-                    plants={plants}
                     onRefresh={fetchAll}
-                    zones={zones}
-                    markers={markers}
                     maps={visibleMaps}
                     onForceLogout={forceLogout}
                   />
@@ -1892,7 +1874,7 @@ function App() {
               )}
               {publicSettings?.modules?.tutorials_enabled !== false && tab === 'tuto' && (
                 <TabSuspense>
-                  <TutorialsViewLazy tutorials={tutorials} zones={zones} markers={markers} maps={visibleMaps} activeMapId={activeMapId} isTeacher onRefresh={fetchAll} onForceLogout={forceLogout} />
+                  <TutorialsViewLazy maps={visibleMaps} isTeacher onRefresh={fetchAll} onForceLogout={forceLogout} />
                 </TabSuspense>
               )}
               {publicSettings?.modules?.stats_enabled !== false && tab === 'stats' && (
@@ -1929,9 +1911,7 @@ function App() {
                   profileVisitMascotId={currentUser?.visit_mascot_catalog_id || null}
                   mapZones={zones}
                   mapMarkers={markers}
-                  tasks={tasks}
                   catalogTutorials={tutorials}
-                  plants={plants}
                   onOpenPlantCatalogPreview={openPlantCatalogPreviewById}
                 />
                 </TabSuspense>
@@ -1992,13 +1972,7 @@ function App() {
                   <div className="desktop-split-view" role="region" aria-label={tutorialsModuleEnabled ? 'Vue carte, tâches et tutoriels' : 'Vue carte et tâches'}>
                     <section className="desktop-split-pane desktop-split-pane--map">
                       <MapView
-                        zones={zones}
-                        markers={markers}
-                        tasks={tasks}
-                        tutorials={tutorials}
-                        plants={plants}
                         maps={visibleMaps}
-                        activeMapId={activeMapId}
                         onMapChange={setActiveMapId}
                         isTeacher={false}
                         student={studentForUi}
@@ -2015,14 +1989,7 @@ function App() {
                     <section className="desktop-split-pane desktop-split-pane--tasks">
                       <div className="desktop-split-scroll">
                         <TasksView
-                          tasks={tasks}
-                          taskProjects={taskProjects}
-                          zones={zones}
-                          markers={markers}
                           maps={visibleMaps}
-                          tutorials={tutorials}
-                          plants={plants}
-                          activeMapId={activeMapId}
                           isTeacher={false}
                           student={studentForUi}
                           canSelfAssignTasks={canSelfAssignTasks}
@@ -2039,14 +2006,11 @@ function App() {
                     </section>
                   </div>
                 )}
-                {!useSplitMapTasks && tab === 'map'    && canAccessStudentMapTasks && <MapView zones={zones} markers={markers} tasks={tasks} tutorials={tutorials} plants={plants} maps={visibleMaps} activeMapId={activeMapId} onMapChange={setActiveMapId} isTeacher={false} student={studentForUi} canSelfAssignTasks={canSelfAssignTasks} canEnrollOnTasks={canSelfAssignMoreTasks} onZoneUpdate={updateZone} onRefresh={fetchAll} onLocationTasksFocus={handleMapLocationTasksFocus} onNavigateToTasksForLocation={navigateToTasksForLocation} onOpenPlantCatalogPreview={openPlantCatalogPreviewById} onForceLogout={forceLogout}/>}
-                {!useSplitMapTasks && tab === 'tasks'  && canAccessStudentMapTasks && <TasksView tasks={tasks} taskProjects={taskProjects} zones={zones} markers={markers} maps={visibleMaps} tutorials={tutorials} plants={plants} activeMapId={activeMapId} isTeacher={false} student={studentForUi} canSelfAssignTasks={canSelfAssignTasks} canEnrollOnTasks={canSelfAssignMoreTasks} canViewOtherUsersIdentity={canViewOtherUsersIdentity} onRefresh={fetchAll} onForceLogout={forceLogout} onTaskFormOverlayOpenChange={onTaskFormOverlayOpenChange} mapLocationFocus={tasksLocationFocus} onMapLocationFocusChange={setTasksLocationFocus} onOpenPlantCatalogPreview={openPlantCatalogPreviewById} />}
+                {!useSplitMapTasks && tab === 'map'    && canAccessStudentMapTasks && <MapView maps={visibleMaps} onMapChange={setActiveMapId} isTeacher={false} student={studentForUi} canSelfAssignTasks={canSelfAssignTasks} canEnrollOnTasks={canSelfAssignMoreTasks} onZoneUpdate={updateZone} onRefresh={fetchAll} onLocationTasksFocus={handleMapLocationTasksFocus} onNavigateToTasksForLocation={navigateToTasksForLocation} onOpenPlantCatalogPreview={openPlantCatalogPreviewById} onForceLogout={forceLogout}/>}
+                {!useSplitMapTasks && tab === 'tasks'  && canAccessStudentMapTasks && <TasksView maps={visibleMaps} isTeacher={false} student={studentForUi} canSelfAssignTasks={canSelfAssignTasks} canEnrollOnTasks={canSelfAssignMoreTasks} canViewOtherUsersIdentity={canViewOtherUsersIdentity} onRefresh={fetchAll} onForceLogout={forceLogout} onTaskFormOverlayOpenChange={onTaskFormOverlayOpenChange} mapLocationFocus={tasksLocationFocus} onMapLocationFocusChange={setTasksLocationFocus} onOpenPlantCatalogPreview={openPlantCatalogPreviewById} />}
                 {tab === 'plants' && (
                   <TabSuspense>
                     <PlantViewerLazy
-                      plants={plants}
-                      zones={zones}
-                      markers={markers}
                       maps={visibleMaps}
                       onForceLogout={forceLogout}
                     />
@@ -2054,12 +2018,12 @@ function App() {
                 )}
                 {publicSettings?.modules?.tutorials_enabled !== false && tab === 'tuto' && (
                   <TabSuspense>
-                    <TutorialsViewLazy tutorials={tutorials} zones={zones} markers={markers} maps={visibleMaps} activeMapId={activeMapId} isTeacher={false} onRefresh={fetchAll} onForceLogout={forceLogout} />
+                    <TutorialsViewLazy maps={visibleMaps} isTeacher={false} onRefresh={fetchAll} onForceLogout={forceLogout} />
                   </TabSuspense>
                 )}
                 {tab === 'stats' && canViewGeneralStats && <TabSuspense><TeacherStatsLazy /></TabSuspense>}
                 {publicSettings?.modules?.observations_enabled !== false && tab === 'notebook' && (
-                  <TabSuspense><ObservationNotebookLazy student={studentForUi} zones={zones} onForceLogout={forceLogout} /></TabSuspense>
+                  <TabSuspense><ObservationNotebookLazy student={studentForUi} onForceLogout={forceLogout} /></TabSuspense>
                 )}
                 {publicSettings?.modules?.visit_enabled !== false && tab === 'visit' && (
                   <TabSuspense>
@@ -2072,9 +2036,7 @@ function App() {
                   profileVisitMascotId={studentForUi?.visit_mascot_catalog_id || null}
                     mapZones={zones}
                     mapMarkers={markers}
-                    tasks={tasks}
                     catalogTutorials={tutorials}
-                    plants={plants}
                     onOpenPlantCatalogPreview={openPlantCatalogPreviewById}
                   />
                   </TabSuspense>
