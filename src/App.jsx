@@ -1266,6 +1266,7 @@ function App() {
   }, [effectiveIsTeacher, markAsRead, studentForUi, trackActionClick, validateStudentSession]);
 
   if (!student && !isTeacher) return (
+    <PublicSettingsProvider value={publicSettings}>
     <>
       {toast && <Toast msg={toast} onDone={() => setToast(null)}/>}
       {showPublicVisit ? (
@@ -1325,6 +1326,7 @@ function App() {
         />
       )}
     </>
+    </PublicSettingsProvider>
   );
   const currentUser = (effectiveIsTeacher ? sessionUser : studentForUi) || sessionUser || {
     pseudo: null,
@@ -1877,7 +1879,7 @@ function App() {
               )}
               {publicSettings?.modules?.tutorials_enabled !== false && tab === 'tuto' && (
                 <TabSuspense>
-                  <TutorialsViewLazy tutorials={tutorials} zones={zones} markers={markers} maps={visibleMaps} activeMapId={activeMapId} isTeacher onRefresh={fetchAll} onForceLogout={forceLogout} publicSettings={publicSettings} canParticipateContextComments={canParticipateContextComments} />
+                  <TutorialsViewLazy tutorials={tutorials} zones={zones} markers={markers} maps={visibleMaps} activeMapId={activeMapId} isTeacher onRefresh={fetchAll} onForceLogout={forceLogout} canParticipateContextComments={canParticipateContextComments} />
                 </TabSuspense>
               )}
               {publicSettings?.modules?.stats_enabled !== false && tab === 'stats' && (
@@ -2051,7 +2053,7 @@ function App() {
                 )}
                 {publicSettings?.modules?.tutorials_enabled !== false && tab === 'tuto' && (
                   <TabSuspense>
-                    <TutorialsViewLazy tutorials={tutorials} zones={zones} markers={markers} maps={visibleMaps} activeMapId={activeMapId} isTeacher={false} onRefresh={fetchAll} onForceLogout={forceLogout} publicSettings={publicSettings} canParticipateContextComments={canParticipateContextComments} />
+                    <TutorialsViewLazy tutorials={tutorials} zones={zones} markers={markers} maps={visibleMaps} activeMapId={activeMapId} isTeacher={false} onRefresh={fetchAll} onForceLogout={forceLogout} canParticipateContextComments={canParticipateContextComments} />
                   </TabSuspense>
                 )}
                 {tab === 'stats' && canViewGeneralStats && <TabSuspense><TeacherStatsLazy isN3Affiliated={isN3Affiliated} /></TabSuspense>}
