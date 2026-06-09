@@ -26,6 +26,7 @@ import { HELP_PANELS, HELP_TOOLTIPS, resolveRoleText } from '../constants/help';
 import { lockBodyScroll } from '../utils/body-scroll-lock';
 import { resolveMapOverlayTypography } from '../utils/mapOverlayTypography';
 import { isStudentAssignedToTask } from '../utils/task-assignments';
+import { taskEffectiveStatus } from '../utils/taskListHelpers.js';
 import { parseLivingBeings, orderedLivingBeingsForForm, nextLivingBeingsFromMultiSelect } from '../utils/livingBeings';
 import { getContentText } from '../utils/content';
 import { wheelZoomScaleFactor } from '../utils/mapWheelZoom';
@@ -381,36 +382,6 @@ function taskOpenSlots(task) {
   const required = Number(task?.required_students || 1);
   const assigned = Array.isArray(task?.assignments) ? task.assignments.length : 0;
   return Math.max(0, required - assigned);
-}
-
-function normalizeDateOnly(value) {
-  const raw = String(value || '').trim();
-  if (!raw) return null;
-  if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw;
-  const parsed = new Date(raw);
-  if (Number.isNaN(parsed.getTime())) return null;
-  return parsed.toISOString().slice(0, 10);
-}
-
-function currentLocalDateOnly() {
-  const now = new Date();
-  const y = now.getFullYear();
-  const m = String(now.getMonth() + 1).padStart(2, '0');
-  const d = String(now.getDate()).padStart(2, '0');
-  return `${y}-${m}-${d}`;
-}
-
-function taskEffectiveStatus(task) {
-  const baseStatus = task?.status || 'available';
-  if (baseStatus === 'done' || baseStatus === 'validated' || baseStatus === 'proposed') return baseStatus;
-  const startDate = normalizeDateOnly(task?.start_date);
-  const blockedByStartDate = !!startDate && startDate > currentLocalDateOnly();
-  if (task?.project_status === 'completed') return 'project_completed';
-  if (task?.project_status === 'validated') return 'project_validated';
-  if (baseStatus === 'on_hold' || task?.project_status === 'on_hold' || task?.is_before_start_date || blockedByStartDate) {
-    return 'on_hold';
-  }
-  return baseStatus;
 }
 
 function canStudentAssignTask(task, student) {
