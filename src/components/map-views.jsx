@@ -45,7 +45,11 @@ import { parseLivingBeings, orderedLivingBeingsForForm, nextLivingBeingsFromMult
 import { getContentText } from '../utils/content';
 import { wheelZoomScaleFactor } from '../utils/mapWheelZoom';
 import { buildMapImageCandidates } from '../utils/mapImageCandidates';
-import { mergeDefaultVisitMediaImageBlocks } from '../utils/visitEditorialBlocks.js';
+import {
+  mergeDefaultVisitMediaImageBlocks,
+  parseVisitEditorialBlocksFromJson,
+  normalizeVisitEditorialBlocksForSave,
+} from '../utils/visitEditorialBlocks.js';
 import { pointToContainedRectPct } from '../shared/pct-map/pctMapPointer.js';
 import {
   taskLocationIds,
@@ -383,72 +387,6 @@ function TaskEnrollmentLegend() {
       ))}
     </div>
   );
-}
-
-function parseVisitEditorialBlocksFromJson(raw) {
-  if (!raw) return [];
-  try {
-    const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;
-    if (!Array.isArray(parsed)) return [];
-    return parsed
-      .filter((block) => block && typeof block === 'object' && typeof block.type === 'string')
-      .map((block, index) => ({
-        id: String(block.id || `${block.type}-${index + 1}`),
-        type: String(block.type || '').trim(),
-        media_ids: Array.isArray(block.media_ids)
-          ? block.media_ids.map((id) => Number(id)).filter((id, idx, arr) => Number.isFinite(id) && id > 0 && arr.indexOf(id) === idx).slice(0, 2)
-          : [],
-        layout: block.layout === 'single' ? 'single' : 'duo',
-        size: block.size === 'sm' || block.size === 'lg' ? block.size : 'md',
-        align: block.align === 'left' || block.align === 'right' ? block.align : 'center',
-        caption: String(block.caption || '').trim(),
-        markdown: String(block.markdown || ''),
-        text: String(block.text || ''),
-        level: Number.isFinite(Number(block.level)) ? Number(block.level) : 3,
-      }));
-  } catch (_) {
-    return [];
-  }
-}
-
-function normalizeVisitEditorialBlocksForSave(blocks) {
-  if (!Array.isArray(blocks)) return [];
-  return blocks
-    .filter((b) => b && typeof b === 'object' && typeof b.type === 'string')
-    .map((b) => {
-      if (b.type === 'image') {
-        return {
-          id: String(b.id || ''),
-          type: 'image',
-          media_ids: (Array.isArray(b.media_ids) ? b.media_ids : [])
-            .map((id) => Number(id))
-            .filter((id, idx, arr) => Number.isFinite(id) && id > 0 && arr.indexOf(id) === idx)
-            .slice(0, 2),
-          layout: b.layout === 'single' ? 'single' : 'duo',
-          size: b.size === 'sm' || b.size === 'lg' ? b.size : 'md',
-          align: b.align === 'left' || b.align === 'right' ? b.align : 'center',
-          caption: String(b.caption || '').trim(),
-        };
-      }
-      if (b.type === 'heading') {
-        return {
-          id: String(b.id || ''),
-          type: 'heading',
-          text: String(b.text || '').trim(),
-          level: Number.isFinite(Number(b.level)) ? Number(b.level) : 3,
-        };
-      }
-      return {
-        id: String(b.id || ''),
-        type: 'paragraph',
-        markdown: String(b.markdown || ''),
-      };
-    })
-    .filter((b) => (
-      (b.type === 'image' && b.media_ids.length > 0)
-      || (b.type === 'heading' && b.text)
-      || (b.type === 'paragraph' && String(b.markdown || '').trim())
-    ));
 }
 
 function ZoneInfoModal({ zone, plants, tasks, tutorials = [], isTeacher, student, canSelfAssignTasks = true, canEnrollOnTasks, markerEmojis = MARKER_EMOJIS, emojiParsingList = MARKER_EMOJIS, contextCommentsEnabled = true, canParticipateContextComments = true, onClose, onUpdate, onDelete, onDuplicate, onEditPoints, onLinkTask, onUnlinkTask, onAssignTasks, onLinkTutorial, onUnlinkTutorial, onNavigateToTasksForLocation = null, onOpenTutorialPreview = null, onOpenPlantCatalogPreview = null }) {
