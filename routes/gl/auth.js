@@ -826,7 +826,10 @@ router.post('/admin/impersonate', requireGlAuth, async (req, res) => {
     if (!targetUserId) {
       return res.status(400).json({ error: 'Identifiant utilisateur requis' });
     }
-    if (targetUserId === String(req.glAuth.userId)) {
+    if (
+      targetUserType === String(req.glAuth.userType || '').trim().toLowerCase()
+      && targetUserId === String(req.glAuth.userId)
+    ) {
       return res.status(400).json({ error: 'Impossible de prendre le contrôle de votre propre compte' });
     }
 

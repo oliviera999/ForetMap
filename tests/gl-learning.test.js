@@ -49,7 +49,9 @@ before(async () => {
     permissions: ['gl.read'],
   });
 
-  speciesCode = `SL${String(stamp).slice(-4)}`;
+  // Codes longs basés sur le timestamp complet : évite toute collision avec les
+  // codes du corpus importé (format GL####/SL#### sur 4 chiffres, ex. « GL0083 »).
+  speciesCode = `SL${stamp}`.slice(0, 16);
   await execute(
     `INSERT INTO gl_species (
       species_code, biome_slug, type, nom_commun, nom_scientifique, statut, created_at, updated_at
@@ -57,7 +59,7 @@ before(async () => {
     [speciesCode]
   );
 
-  glossaryCode = `GL${String(stamp).slice(-4)}`;
+  glossaryCode = `GL${stamp}`.slice(0, 16);
   await execute(
     `INSERT INTO gl_glossary_terms (
       glossary_code, terme, categorie, niveau, definition_courte, all_biomes, statut, created_at, updated_at
