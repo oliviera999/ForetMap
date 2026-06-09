@@ -105,7 +105,7 @@ before(async () => {
 test('GET /api/gl/admin/glossary/import/template retourne un modèle XLSX', async () => {
   const buf = await getXlsxBuffer(request(app), '/api/gl/admin/glossary/import/template', adminToken);
   assert.ok(buf.length > 100);
-  const { glossaryRows } = parseGlossaryWorkbook(buf);
+  const { glossaryRows } = await parseGlossaryWorkbook(buf);
   assert.ok(glossaryRows.length >= 1);
   const errors = validateGlossaryPayload(buildGlossaryPayload(glossaryRows[0]), 2);
   assert.strictEqual(errors.length, 0);
@@ -113,7 +113,7 @@ test('GET /api/gl/admin/glossary/import/template retourne un modèle XLSX', asyn
 
 test('GET /api/gl/admin/qcm/import/template retourne un modèle XLSX (2 feuilles)', async () => {
   const buf = await getXlsxBuffer(request(app), '/api/gl/admin/qcm/import/template', adminToken);
-  const { categoryRows, questionRows } = parseQcmWorkbook(buf);
+  const { categoryRows, questionRows } = await parseQcmWorkbook(buf);
   assert.ok(categoryRows.length >= 1);
   assert.ok(questionRows.length >= 1);
   assert.strictEqual(validateCategoryPayload(buildCategoryPayload(categoryRows[0]), 2).length, 0);
@@ -136,7 +136,7 @@ test('GET /api/gl/admin/glossary/export round-trip ré-importable', async () => 
     `/api/gl/admin/glossary/export?statut=actif`,
     adminToken
   );
-  const { glossaryRows } = parseGlossaryWorkbook(buf);
+  const { glossaryRows } = await parseGlossaryWorkbook(buf);
   const exported = glossaryRows.find((row) => {
     const payload = buildGlossaryPayload(row);
     return payload.glossary_code === code;
@@ -177,7 +177,7 @@ test('GET /api/gl/admin/qcm/export round-trip ré-importable', async () => {
     `/api/gl/admin/qcm/export?biomeSlug=${encodeURIComponent(biomeSlug)}`,
     adminToken
   );
-  const { categoryRows, questionRows } = parseQcmWorkbook(buf);
+  const { categoryRows, questionRows } = await parseQcmWorkbook(buf);
   assert.ok(categoryRows.some((row) => buildCategoryPayload(row).slug === catSlug));
   const knownBiomes = new Set([biomeSlug]);
   const knownCategories = new Set(categoryRows.map((row) => buildCategoryPayload(row).slug));
@@ -205,7 +205,7 @@ test('GET template/export glossaire refuse sans permission', async () => {
 
 test('GET /api/gl/admin/species/import/template retourne un modèle XLSX biocénose', async () => {
   const buf = await getXlsxBuffer(request(app), '/api/gl/admin/species/import/template', adminToken);
-  const { speciesRows, biomeRows } = parseSpeciesWorkbook(buf);
+  const { speciesRows, biomeRows } = await parseSpeciesWorkbook(buf);
   assert.ok(speciesRows.length >= 1);
   assert.ok(biomeRows.length >= 1);
   assert.strictEqual(validateSpeciesPayload(buildSpeciesPayload(speciesRows[0]), 2).length, 0);
@@ -234,7 +234,7 @@ test('GET /api/gl/admin/species/export round-trip ré-importable', async () => {
     `/api/gl/admin/species/export?biomeSlug=${encodeURIComponent(biomeSlug)}`,
     adminToken
   );
-  const { speciesRows, biomeRows } = parseSpeciesWorkbook(buf);
+  const { speciesRows, biomeRows } = await parseSpeciesWorkbook(buf);
   const exported = speciesRows.find((row) => buildSpeciesPayload(row).species_code === code);
   assert.ok(exported);
   assert.strictEqual(validateSpeciesPayload(buildSpeciesPayload(exported), 2).length, 0);
@@ -247,7 +247,7 @@ test('GET /api/gl/chapters/admin/import/template retourne un modèle XLSX (scope
     '/api/gl/chapters/admin/import/template?scope=full',
     adminToken
   );
-  const parsed = parseChaptersWorkbook(buf);
+  const parsed = await parseChaptersWorkbook(buf);
   assert.ok(parsed.chapterRows.length >= 1);
   assert.ok(parsed.markerRows.length >= 1);
   assert.ok(parsed.zoneRows.length >= 1);
@@ -266,7 +266,7 @@ test('GET /api/gl/chapters/admin/export scope full round-trip dry-run', async ()
     '/api/gl/chapters/admin/export?scope=full&slug=foret-magique',
     adminToken
   );
-  const parsed = parseChaptersWorkbook(buf);
+  const parsed = await parseChaptersWorkbook(buf);
   assert.ok(parsed.chapterRows.length >= 1);
   const fileDataBase64 = `data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,${buf.toString('base64')}`;
   const res = await request(app)
@@ -283,7 +283,7 @@ test('GET /api/gl/chapters/admin/charte/import/template retourne un modèle XLSX
     '/api/gl/chapters/admin/charte/import/template',
     adminToken
   );
-  const { rows } = parseChapterCharteWorkbook(buf);
+  const { rows } = await parseChapterCharteWorkbook(buf);
   assert.ok(rows.length >= 1);
   assert.strictEqual(validateChapterChartePayload(buildChapterChartePayload(rows[0]), 2).length, 0);
   const wb = require('xlsx').read(buf, { type: 'buffer' });

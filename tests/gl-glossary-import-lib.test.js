@@ -20,9 +20,9 @@ const {
 
 const XLSX_PATH = path.join(__dirname, '..', 'data', 'gl', 'glossaire-gnomes-et-licornes.xlsx');
 
-test('parseGlossaryWorkbook lit le fichier de référence', () => {
+test('parseGlossaryWorkbook lit le fichier de référence', async () => {
   const buffer = fs.readFileSync(XLSX_PATH);
-  const { glossaryRows } = parseGlossaryWorkbook(buffer);
+  const { glossaryRows } = await parseGlossaryWorkbook(buffer);
   assert.ok(glossaryRows.length >= 270);
   const first = buildGlossaryPayload(glossaryRows[0]);
   assert.ok(first.glossary_code);

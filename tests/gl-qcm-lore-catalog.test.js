@@ -74,7 +74,7 @@ test('POST /api/gl/lore/admin/qcm/import dryRun sans écriture', async () => {
 
 test('POST /api/gl/lore/admin/qcm/import apply upsert le catalogue', async () => {
   if (fs.existsSync(LORE_GLOSSARY_XLSX)) {
-    const { glossaryRows } = parseLoreGlossaryWorkbook(fs.readFileSync(LORE_GLOSSARY_XLSX));
+    const { glossaryRows } = await parseLoreGlossaryWorkbook(fs.readFileSync(LORE_GLOSSARY_XLSX));
     await applyLoreGlossaryImport(
       { queryAll: require('../database').queryAll, execute },
       glossaryRows,

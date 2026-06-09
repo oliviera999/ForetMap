@@ -52,13 +52,13 @@ Statuts : `todo` · `wip` · `done` · `differe` (décision produit requise).
 | ID | Prio | Axe | Problème | Recommandation | Effort | Statut |
 |----|------|-----|----------|----------------|--------|--------|
 | O1 | Haute | Perf | 268 KB de renderers mascotte (rive+spriteCut) chargés en eager sur la Carte (`VisitMapMascotRenderer.jsx`) | `React.lazy` par renderer + `Suspense` | Faible | done |
-| O2 | Haute | Perf | `taskTileProps` recréé chaque render + `TaskTileCard` non mémoïsé ⇒ re-render de toutes les tuiles par tick | `useMemo` + `React.memo` | Faible | done |
+| O2 | Haute | Perf | `taskTileProps` recréé chaque render + `TaskTileCard` non mémoïsé ⇒ re-render de toutes les tuiles par tick | **Fondation posée** : `TaskTileCard` exporté + `React.memo` + test `tests-ui/components/TaskTileCard.test.jsx`. **Reste** : stabiliser les ~11 handlers de `TasksView` (`assign`/`unassign`/`setTaskStatus`…) en `useCallback` + `useMemo(taskTileProps)` pour rendre le memo *effectif* (à faire avec couverture d'interaction) | Faible→Moyen | wip |
 | O3 | Haute | Perf | RBAC : 3-5 requêtes DB par requête authentifiée, non caché | **Tenté puis reverté** : un cache TTL avec invalidation par hook (`setPrimaryRole`/routes rbac) s'est avéré à invalidation **incomplète** — des chemins mutent `roles`/`user_roles` en SQL direct (dédup `rbac.js`, tests) → permissions périmées (a cassé `api.test.js`). Re-tenter avec un **compteur de version RBAC global** inclus dans la clé de cache (incrémenté de façon centralisée à toute écriture des tables RBAC) **ou** un cache **request-scoped**. Sécurité-critique : à ne pas livrer sans preuve d'invalidation complète | Moyen | differe |
-| O4 | Haute | Sécu/Maint | `xlsx@0.18.5` — 2 CVE High via uploads | Migration `exceljs` (npm) ou SheetJS CDN | Élevé | differe |
-| O5 | Haute | Extensibilité | `App.jsx` God component + prop-drilling ×4 | Contexts par domaine (session, données, settings) | Élevé | wip |
-| O6 | Haute | Maint/Test | Composants monolithiques + 0 test UI sur ~21k LOC | Extraire logique pure → tests ; puis découper | Élevé | wip |
+| O4 | Haute | Sécu/Maint | `xlsx@0.18.5` — 2 CVE High via uploads | **Fait** : adaptateur `lib/spreadsheet.js` (exceljs) + preuve d'équivalence xlsx ; **14 modules d'import migrés** (app principale + 11 libs GL + `contentLibraryBulk`). Production **100 % xlsx-free** ; `xlsx` déplacé en **devDependencies** (fixtures de tests uniquement) → CVE-2023-30533 / CVE-2024-22363 **non joignables au runtime prod**. exceljs corrige en bonus le mojibake emoji de xlsx | Élevé | done |
+| O5 | Haute | Extensibilité | `App.jsx` God component + prop-drilling ×4 | **3 contexts livrés** (Provider sur le retour principal d'`App` ; retour invité hors Provider → défauts identiques). **(1) `PublicSettingsContext`** : 9 vues, 18 passes retirées. **(2) `SessionContext`** (valeurs **réellement globales** uniquement) : `isN3Affiliated` + `canParticipateContextComments`, **30 passes retirées** ; `hasPermission`/`hasPermissionInRole`/`isTeacher`/`student`/identités **restent en props** (chemin élève les supprime volontairement). **(3) `DataContext`** : `zones`/`markers`/`plants`/`tasks`/`tutorials`/`taskProjects`/`activeMapId` sur 8 vues, **73 passes retirées** (`App` 2155→2117 l) ; `maps` (variante `visibleMaps`/`maps`) et les noms distincts de `VisitView` (`mapZones`…) restent en props. **Total : ~121 passes de props éliminées.** Reste : découpage JSX (O6) | Élevé | wip |
+| O6 | Haute | Maint/Test | Composants monolithiques + 0 test UI sur ~21k LOC | **En cours** : (1) 1er test UI app principale (`TaskTileCard`) ; (2) **logique pure extraite + testée** → `taskComputations.js` (7 fn, 19 tests), `taskListHelpers.js` (18 fn, 35 tests), `taskEnrollment.js` (7 fn, 16 tests), `taskLogDraft.js` (3 fn, 5 tests) + dédup `fileToDataUrl`/date-statut ; (3) **découpage JSX** : 3 modals sortis vers `src/components/tasks/` — `TaskLogModals` (`LogModal`+`TaskLogsViewer`), `TaskProjectFormModal`, `TaskFormModal` (~779 l) ; helpers de formulaire/affichage mutualisés (`taskFormHelpers.js` 9 tests, `taskDisplayHelpers.js` 7 tests). Côté **`map-views.jsx`** : géométrie d'édition de zone → `zoneEditGeometry.js` (8 tests), blocs éditoriaux purs → `visitEditorialBlocks.js` (5 tests), puis `ZoneDrawModal` + champ partagé `ZoneOrMarkerEmojiField` + `PhotoGallery` (+ son helper de réordonnancement testé) → `src/components/map/`. `TaskTileCard` (+`startDateChip`/`Lightbox`) + `TaskProjectsBlock` → `tasks/`, hook `useMapGestures` (~452 l) → `src/hooks/`. Côté carte : blocs partagés (`mapModalShared`) puis les 2 gros modals `ZoneInfoModal` (~800 l) + `MarkerModal` (~935 l) → `src/components/map/` (en-têtes d'imports générés + scan d'exhaustivité des réfs). **`tasks-views.jsx` 4230→1735 l (-59%)** ; **`map-views.jsx` 4049→1302 l (-68%)**. Stratégie : étendre le filet de tests par extraction de logique pure **avant** de découper les méga-composants | Élevé | wip |
 | O7 | Moyenne | Extens/Sécu | `zod` jamais utilisé ; validation manuelle hétérogène | **Infra livrée** : middleware réutilisable `lib/validate.js` (`validate({ body, query, params })`, `req.validatedQuery`/`Params` pour Express 5) + test `tests/validate-middleware.test.js`. Rollout par route **incrémental** (préserver l'ordre auth→validation et les messages existants) | Moyen | wip |
-| O8 | Moyenne | Maint | ~338 try/catch dispersés ; `respondInternalError` redéfini en doublon | Wrapper `asyncHandler` → handler central | Moyen | todo |
+| O8 | Moyenne | Maint | ~338 try/catch dispersés ; `respondInternalError` redéfini en doublon | **Infra livrée** : `lib/asyncHandler.js` (catch sync+async → `next(err)` → handler central `server.js`) + test `tests/async-handler.test.js`. Rollout **incrémental** par route (préserver statut + corps d'erreur existants) | Moyen | wip |
 | O9 | Moyenne | Maint | Helpers dupliqués (`normalizeOptionalString` ×25, pagination ×3, `Lightbox` ×2, compression image ×7) | `lib/strings.js`, `lib/pagination.js`, `src/shared/` | Faible | done |
 | O10 | Moyenne | Perf | Routes obèses (visit/tasks/games 2000+ l.) ; N+1 d'écriture (boucles INSERT) | Couche service par domaine ; INSERT multi-valeurs | Élevé/Faible | wip |
 | O11 | Moyenne | Perf bundle | Lazy ineffectif (`foretmap-views`/`stats-views`) ; markdown eager ; GL sans lazy ; sourcemap prod | Lazy renderers mascotte + GL ; **`foretmap-views`/`stats-views` rendus purement lazy** (`Toast`←shared, `PlantCatalogPreviewModal`/`StudentStats`/`StudentProfileEditor` en `lazy`) → `main` **431→315 Ko** (gzip 111→81) ; `sourcemap: false`. (markdown encore eager : reste) | Moyen | done |
@@ -69,8 +69,19 @@ Statuts : `todo` · `wip` · `done` · `differe` (décision produit requise).
 ## 4. Détail technique par module
 
 ### Frontend — état & rendu
-- `App.jsx` (2141 l.) : hub d'état unique (37 `useState`, 30 `useEffect`). Prop-drilling :
-  blocs de props `TasksView`/`MapView` **dupliqués ×4** (prof/élève × split/simple).
+- `App.jsx` (2117 l.) : hub d'état unique (37 `useState`, 30 `useEffect`). Prop-drilling :
+  blocs de props `TasksView`/`MapView` **dupliqués ×4** (prof/élève × split/simple) — **fortement
+  réduits par O5**. **3 contexts** (`Provider` sur le retour principal ; retour invité hors Provider,
+  les hooks renvoyant un objet vide → défauts identiques) :
+  (a) `PublicSettingsContext` (`usePublicSettings`) — 9 vues, 18 passes ;
+  (b) `SessionContext` (`useSession()`) — valeurs **passées à l'identique dans les 2 chemins prof/élève**
+  uniquement : `isN3Affiliated` + `canParticipateContextComments` (30 passes). Les valeurs dépendantes
+  du chemin (`isTeacher`, `student`, identités, et `hasPermission`/`hasPermissionInRole` que le chemin
+  élève omet pour forcer `false`) restent **volontairement en props** ;
+  (c) `DataContext` (`useData()`) — `zones`/`markers`/`plants`/`tasks`/`tutorials`/`taskProjects`/
+  `activeMapId`, 8 vues, **73 passes** retirées. `maps` (variante `visibleMaps`/complet) et `VisitView`
+  (noms de props distincts `mapZones`/`catalogTutorials`/`initialMapId`) restent en props.
+  **~121 passes de props éliminées au total.** Reste : découpage JSX des méga-composants (O6).
 - **0 `React.memo`** dans `src/`. `taskTileProps` (`tasks-views.jsx:2408`) recréé chaque
   render, spreadé dans ~16 `.map()` vers `TaskTileCard` (`:3399`) non mémoïsé.
 - Composants monolithiques : voir tableau §2. Logique dupliquée : `Lightbox` ×2
@@ -102,8 +113,13 @@ Statuts : `todo` · `wip` · `done` · `differe` (décision produit requise).
 - `fs.readFileSync(package.json)` à chaque `/api/version` et `/api/admin/diagnostics`.
 
 ### Tests & qualité
-- Trou de tests frontend : seuls 3 composants ForetMap testés ; `App.jsx` + tous les
-  `*-views.jsx` (~21k LOC) = 0 test Vitest. GL bien couvert (~50 composants).
+- Trou de tests frontend (constat initial) : seuls 3 composants ForetMap testés ;
+  `App.jsx` + tous les `*-views.jsx` (~21k LOC) = 0 test Vitest. GL bien couvert (~50 composants).
+- **O6 en cours** : la logique métier pure des méga-composants est extraite vers `src/utils/`
+  et couverte (taskComputations, taskListHelpers, taskEnrollment, PublicSettingsContext…) →
+  suite UI 213→264 tests. Au passage, `map-views.jsx` réutilise désormais `taskListHelpers`
+  (dédup des copies `normalizeDateOnly`/`currentLocalDateOnly`/`taskEffectiveStatus`).
+  Cela bâtit le filet de sécurité avant le découpage proprement dit des `*-views.jsx`.
 - ESLint laxiste (4 règles, sans `eslint-plugin-react-hooks` sur 65k LOC React).
 - Pas de Prettier. 0 typage (`tsconfig`/`.d.ts` absents), JSDoc épars non vérifié.
 

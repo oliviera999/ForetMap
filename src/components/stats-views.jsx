@@ -21,8 +21,11 @@ import {
   getProgressionStepIndex,
   computeProgressPercent,
 } from '../utils/studentProgressionLadder.js';
+import { usePublicSettings } from '../contexts/PublicSettingsContext.jsx';
+import { useSession } from '../contexts/SessionContext.jsx';
 
-function StudentStats({ student, isN3Affiliated = false }) {
+function StudentStats({ student }) {
+  const { isN3Affiliated = false } = useSession();
   const roleTerms = getRoleTerms(isN3Affiliated);
   const [data, setData] = useState(null);
   const [error, setError] = useState('');
@@ -220,7 +223,9 @@ function StudentStats({ student, isN3Affiliated = false }) {
   );
 }
 
-function StudentProfileEditor({ student, onUpdated, onClose, isN3Affiliated = false, maps = [], publicSettings = null }) {
+function StudentProfileEditor({ student, onUpdated, onClose, maps = [] }) {
+  const publicSettings = usePublicSettings();
+  const { isN3Affiliated = false } = useSession();
   const roleTerms = getRoleTerms(isN3Affiliated);
   const fallbackDisplayName = String(student?.display_name || student?.displayName || student?.email || 'Utilisateur').trim();
   const displayFirstName = String(student?.first_name || '').trim() || fallbackDisplayName;
@@ -493,7 +498,8 @@ function StudentProfileEditor({ student, onUpdated, onClose, isN3Affiliated = fa
   );
 }
 
-function TeacherStats({ isN3Affiliated = false }) {
+function TeacherStats() {
+  const { isN3Affiliated = false } = useSession();
   const roleTerms = getRoleTerms(isN3Affiliated);
   const {
     isHelpEnabled,

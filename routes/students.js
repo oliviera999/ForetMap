@@ -3,7 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const bcrypt = require('bcryptjs');
 const { v4: uuidv4 } = require('uuid');
-const XLSX = require('xlsx');
+const { parseFirstSheetRows, buildWorkbookBuffer, jsonRowsToAoa } = require('../lib/spreadsheet');
 const { queryAll, queryOne, execute } = require('../database');
 const { requireAuth, requirePermission } = require('../middleware/requireTeacher');
 const { logRouteError, respondInternalError } = require('../lib/routeLog');
@@ -120,12 +120,8 @@ function normalizeImportHeader(value) {
     .replace(/^_+|_+$/g, '');
 }
 
-function parseWorkbookRowsFromBuffer(buffer) {
-  const wb = XLSX.read(buffer, { type: 'buffer', raw: false, cellDates: false });
-  const first = wb.SheetNames[0];
-  if (!first) return [];
-  const ws = wb.Sheets[first];
-  return XLSX.utils.sheet_to_json(ws, { defval: '', raw: false, blankrows: false });
+async function parseWorkbookRowsFromBuffer(buffer) {
+  return parseFirstSheetRows(buffer);
 }
 
 function parseCsvLine(line, delimiter) {
@@ -264,10 +260,8 @@ router.get('/import/template', requirePermission('students.import', { needsEleva
   try {
     const format = asTrimmedString(req.query?.format || 'csv').toLowerCase();
     if (format === 'xlsx') {
-      const wb = XLSX.utils.book_new();
-      const ws = XLSX.utils.json_to_sheet(buildTemplateWorkbookRows(), { header: TEMPLATE_COLUMNS });
-      XLSX.utils.book_append_sheet(wb, ws, 'n3beurs');
-      const buffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
+      const aoa = jsonRowsToAoa(buildTemplateWorkbookRows(), TEMPLATE_COLUMNS);
+      const buffer = await buildWorkbookBuffer([{ name: 'n3beurs', aoa }]);
       res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
       res.setHeader('Content-Disposition', 'attachment; filename="foretmap-modele-n3beurs.xlsx"');
       return res.send(buffer);

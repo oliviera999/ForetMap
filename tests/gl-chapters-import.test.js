@@ -88,7 +88,7 @@ test('buildZonePayload parse points_json', () => {
   assert.strictEqual(validateZonePayload(payload, 2, new Set(['foret-magique'])).length, 0);
 });
 
-test('parseChaptersWorkbook lit les feuilles présentes', () => {
+test('parseChaptersWorkbook lit les feuilles présentes', async () => {
   const buffer = buildWorkbookBuffer([
     {
       name: CHAPTERS_SHEET,
@@ -107,15 +107,15 @@ test('parseChaptersWorkbook lit les feuilles présentes', () => {
       ],
     },
   ]);
-  const parsed = parseChaptersWorkbook(buffer);
+  const parsed = await parseChaptersWorkbook(buffer);
   assert.strictEqual(parsed.chapterRows.length, 1);
   assert.strictEqual(parsed.markerRows.length, 1);
   assert.strictEqual(parsed.hasMarkersSheet, true);
   assert.strictEqual(parsed.hasZonesSheet, false);
 });
 
-test('buildChaptersTemplateWorkbook scope full inclut 4 feuilles', () => {
-  const buffer = buildChaptersTemplateWorkbook('full');
+test('buildChaptersTemplateWorkbook scope full inclut 4 feuilles', async () => {
+  const buffer = await buildChaptersTemplateWorkbook('full');
   const wb = XLSX.read(buffer, { type: 'buffer' });
   assert.ok(wb.SheetNames.includes(CHAPTERS_SHEET));
   assert.ok(wb.SheetNames.includes(MARKERS_SHEET));
@@ -123,8 +123,8 @@ test('buildChaptersTemplateWorkbook scope full inclut 4 feuilles', () => {
   assert.ok(wb.SheetNames.includes(CHARTE_SHEET));
 });
 
-test('buildChaptersTemplateWorkbook scope content une seule feuille', () => {
-  const buffer = buildChaptersTemplateWorkbook('content');
+test('buildChaptersTemplateWorkbook scope content une seule feuille', async () => {
+  const buffer = await buildChaptersTemplateWorkbook('content');
   const wb = XLSX.read(buffer, { type: 'buffer' });
   assert.deepStrictEqual(wb.SheetNames, [CHAPTERS_SHEET]);
 });
