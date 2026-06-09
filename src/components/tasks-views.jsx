@@ -31,6 +31,15 @@ import {
 } from '../utils/browserStorage.js';
 import { TimedToast } from '../shared/components/TimedToast.jsx';
 import { isTaskUrgentCategory } from './tasks/taskViewHelpers.js';
+import {
+  getAssignedCount,
+  getAvailableSlots,
+  getCompletionMode,
+  getAssigneesDoneCount,
+  completionModeLabel,
+  isStudentAlreadyAssignedToTask,
+  proposalMetaFromDescription,
+} from '../utils/taskComputations.js';
 import { ImageLightbox } from '../shared/components/ImageLightbox.jsx';
 import {
   formatTaskActionError,
@@ -1356,18 +1365,6 @@ function tutorialRefsFromTasksAtLocationFilter(filterZone, tasks, tutorialsCatal
   return dedupeTutorialsByIdForTasks(refs);
 }
 
-function proposalMetaFromDescription(description) {
-  const raw = String(description || '');
-  if (!raw) return { proposer: '', cleanedDescription: '' };
-  const match = raw.match(/(?:^|\n)Proposition (?:élève|n3beur):\s*(.+)\s*$/m);
-  const proposer = match?.[1]?.trim() || '';
-  const cleanedDescription = raw
-    .replace(/(?:^|\n)Proposition (?:élève|n3beur):\s*.+\s*$/m, '')
-    .replace(/\n{3,}/g, '\n\n')
-    .trim();
-  return { proposer, cleanedDescription };
-}
-
 function formatAssigneeName(assignee, student, canViewIdentity = true) {
   const firstName = String(assignee?.student_first_name || '').trim();
   const lastName = String(assignee?.student_last_name || '').trim();
@@ -1389,28 +1386,6 @@ function formatAssigneeName(assignee, student, canViewIdentity = true) {
   return { fullName, isCurrentStudent };
 }
 
-function getAssignedCount(task) {
-  const fromApi = Number(task?.assigned_count);
-  if (Number.isFinite(fromApi) && fromApi >= 0) return fromApi;
-  return Array.isArray(task?.assignments) ? task.assignments.length : 0;
-}
-
-function getAvailableSlots(task) {
-  const required = Math.max(1, Number(task?.required_students || 1));
-  return Math.max(0, required - getAssignedCount(task));
-}
-
-function getCompletionMode(task) {
-  return task?.completion_mode === 'all_assignees_done' ? 'all_assignees_done' : 'single_done';
-}
-
-function getAssigneesDoneCount(task) {
-  const fromApi = Number(task?.assignees_done_count);
-  if (Number.isFinite(fromApi) && fromApi >= 0) return fromApi;
-  if (!Array.isArray(task?.assignments)) return 0;
-  return task.assignments.reduce((count, assignment) => (assignment?.done_at ? count + 1 : count), 0);
-}
-
 /** Clé `loading[…]` pour POST /done côté n3boss (tâche collective) — doit coïncider entre la carte et `withLoad`. */
 function teacherCollectiveAssigneeLoadKey(taskId, assignment) {
   const tid = String(taskId || '');
@@ -1424,22 +1399,6 @@ function teacherCollectiveAssigneeLoadKey(taskId, assignment) {
   const ln = String(assignment?.student_last_name || '').trim();
   if (fn && ln) return `${tid}_teacher_collective_done_${fn}|${ln}`;
   return `${tid}_teacher_collective_done_legacy`;
-}
-
-function completionModeLabel(mode) {
-  return mode === 'all_assignees_done' ? 'Validation collective' : 'Validation individuelle';
-}
-
-/** Aligné sur l’API (student_id + noms) pour l’affectation rapide côté n3boss. */
-function isStudentAlreadyAssignedToTask(task, targetStudent = null) {
-  if (!task || !targetStudent) return false;
-  return (task.assignments || []).some((a) => (
-    String(a.student_id || '') === String(targetStudent.id || '')
-    || (
-      String(a.student_first_name || '').trim().toLowerCase() === String(targetStudent.first_name || '').trim().toLowerCase()
-      && String(a.student_last_name || '').trim().toLowerCase() === String(targetStudent.last_name || '').trim().toLowerCase()
-    )
-  ));
 }
 
 function toQuickAssignStudentId(id) {
