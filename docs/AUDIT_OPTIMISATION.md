@@ -55,7 +55,7 @@ Statuts : `todo` · `wip` · `done` · `differe` (décision produit requise).
 | O2 | Haute | Perf | `taskTileProps` recréé chaque render + `TaskTileCard` non mémoïsé ⇒ re-render de toutes les tuiles par tick | **Fondation posée** : `TaskTileCard` exporté + `React.memo` + test `tests-ui/components/TaskTileCard.test.jsx`. **Reste** : stabiliser les ~11 handlers de `TasksView` (`assign`/`unassign`/`setTaskStatus`…) en `useCallback` + `useMemo(taskTileProps)` pour rendre le memo *effectif* (à faire avec couverture d'interaction) | Faible→Moyen | wip |
 | O3 | Haute | Perf | RBAC : 3-5 requêtes DB par requête authentifiée, non caché | **Tenté puis reverté** : un cache TTL avec invalidation par hook (`setPrimaryRole`/routes rbac) s'est avéré à invalidation **incomplète** — des chemins mutent `roles`/`user_roles` en SQL direct (dédup `rbac.js`, tests) → permissions périmées (a cassé `api.test.js`). Re-tenter avec un **compteur de version RBAC global** inclus dans la clé de cache (incrémenté de façon centralisée à toute écriture des tables RBAC) **ou** un cache **request-scoped**. Sécurité-critique : à ne pas livrer sans preuve d'invalidation complète | Moyen | differe |
 | O4 | Haute | Sécu/Maint | `xlsx@0.18.5` — 2 CVE High via uploads | **Fait** : adaptateur `lib/spreadsheet.js` (exceljs) + preuve d'équivalence xlsx ; **14 modules d'import migrés** (app principale + 11 libs GL + `contentLibraryBulk`). Production **100 % xlsx-free** ; `xlsx` déplacé en **devDependencies** (fixtures de tests uniquement) → CVE-2023-30533 / CVE-2024-22363 **non joignables au runtime prod**. exceljs corrige en bonus le mojibake emoji de xlsx | Élevé | done |
-| O5 | Haute | Extensibilité | `App.jsx` God component + prop-drilling ×4 | Contexts par domaine. **(1) `PublicSettingsContext`** : 9 vues sur `usePublicSettings()`, **18 passes `publicSettings={…}` supprimées**. **(2) `SessionContext`** : `Provider` sur le retour principal d'`App` (retour invité laissé hors Provider → défauts), valeurs **réellement globales** seulement → `isN3Affiliated` (8 vues, 15 passes retirées dont 2 mortes) + `canParticipateContextComments` (7 vues top-level, 15 passes retirées). `hasPermission`/`hasPermissionInRole`/`isTeacher`/`student`/identités **restent en props** (le chemin élève les supprime volontairement ; un prof en « vue élève » garde ses droits réels). Reste : Context `données` (zones/markers/plants/tasks) + découpage JSX (O6) | Élevé | wip |
+| O5 | Haute | Extensibilité | `App.jsx` God component + prop-drilling ×4 | **3 contexts livrés** (Provider sur le retour principal d'`App` ; retour invité hors Provider → défauts identiques). **(1) `PublicSettingsContext`** : 9 vues, 18 passes retirées. **(2) `SessionContext`** (valeurs **réellement globales** uniquement) : `isN3Affiliated` + `canParticipateContextComments`, **30 passes retirées** ; `hasPermission`/`hasPermissionInRole`/`isTeacher`/`student`/identités **restent en props** (chemin élève les supprime volontairement). **(3) `DataContext`** : `zones`/`markers`/`plants`/`tasks`/`tutorials`/`taskProjects`/`activeMapId` sur 8 vues, **73 passes retirées** (`App` 2155→2117 l) ; `maps` (variante `visibleMaps`/`maps`) et les noms distincts de `VisitView` (`mapZones`…) restent en props. **Total : ~121 passes de props éliminées.** Reste : découpage JSX (O6) | Élevé | wip |
 | O6 | Haute | Maint/Test | Composants monolithiques + 0 test UI sur ~21k LOC | **En cours** : (1) 1er test UI app principale (`TaskTileCard`) ; (2) **logique pure extraite + testée** → `src/utils/taskComputations.js` (7 fn, 19 tests), `src/utils/taskListHelpers.js` (tri/statut/libellés/filtrage lieu — 18 fn, 35 tests), `src/utils/taskEnrollment.js` (inscription élève + statut visuel carte — 7 fn, 16 tests). `tasks-views.jsx` 4195→4041 l ; `map-views.jsx` allégé + **dédup** des copies date/statut (réutilise `taskListHelpers`). Stratégie : étendre le filet de tests par extraction de logique pure **avant** de découper les méga-composants | Élevé | wip |
 | O7 | Moyenne | Extens/Sécu | `zod` jamais utilisé ; validation manuelle hétérogène | **Infra livrée** : middleware réutilisable `lib/validate.js` (`validate({ body, query, params })`, `req.validatedQuery`/`Params` pour Express 5) + test `tests/validate-middleware.test.js`. Rollout par route **incrémental** (préserver l'ordre auth→validation et les messages existants) | Moyen | wip |
 | O8 | Moyenne | Maint | ~338 try/catch dispersés ; `respondInternalError` redéfini en doublon | **Infra livrée** : `lib/asyncHandler.js` (catch sync+async → `next(err)` → handler central `server.js`) + test `tests/async-handler.test.js`. Rollout **incrémental** par route (préserver statut + corps d'erreur existants) | Moyen | wip |
@@ -69,15 +69,19 @@ Statuts : `todo` · `wip` · `done` · `differe` (décision produit requise).
 ## 4. Détail technique par module
 
 ### Frontend — état & rendu
-- `App.jsx` (2143 l.) : hub d'état unique (37 `useState`, 30 `useEffect`). Prop-drilling :
-  blocs de props `TasksView`/`MapView` **dupliqués ×4** (prof/élève × split/simple).
-  **O5 — prop-drilling cassé par contextes** : (a) `PublicSettingsContext` (`usePublicSettings`),
-  9 vues, 18 passes retirées ; (b) `SessionContext` (`useSession()` → `{}` gelé hors Provider),
-  porte uniquement les valeurs **passées à l'identique dans les 2 chemins prof/élève** :
-  `isN3Affiliated` et `canParticipateContextComments` (30 passes retirées). Les valeurs dépendantes
-  du chemin (`isTeacher`, `student`, identités, et surtout `hasPermission`/`hasPermissionInRole`
-  que le chemin élève omet pour forcer `false`) restent **volontairement en props**.
-  Reste à extraire : Context `données` (zones/markers/plants/tasks).
+- `App.jsx` (2117 l.) : hub d'état unique (37 `useState`, 30 `useEffect`). Prop-drilling :
+  blocs de props `TasksView`/`MapView` **dupliqués ×4** (prof/élève × split/simple) — **fortement
+  réduits par O5**. **3 contexts** (`Provider` sur le retour principal ; retour invité hors Provider,
+  les hooks renvoyant un objet vide → défauts identiques) :
+  (a) `PublicSettingsContext` (`usePublicSettings`) — 9 vues, 18 passes ;
+  (b) `SessionContext` (`useSession()`) — valeurs **passées à l'identique dans les 2 chemins prof/élève**
+  uniquement : `isN3Affiliated` + `canParticipateContextComments` (30 passes). Les valeurs dépendantes
+  du chemin (`isTeacher`, `student`, identités, et `hasPermission`/`hasPermissionInRole` que le chemin
+  élève omet pour forcer `false`) restent **volontairement en props** ;
+  (c) `DataContext` (`useData()`) — `zones`/`markers`/`plants`/`tasks`/`tutorials`/`taskProjects`/
+  `activeMapId`, 8 vues, **73 passes** retirées. `maps` (variante `visibleMaps`/complet) et `VisitView`
+  (noms de props distincts `mapZones`/`catalogTutorials`/`initialMapId`) restent en props.
+  **~121 passes de props éliminées au total.** Reste : découpage JSX des méga-composants (O6).
 - **0 `React.memo`** dans `src/`. `taskTileProps` (`tasks-views.jsx:2408`) recréé chaque
   render, spreadé dans ~16 `.map()` vers `TaskTileCard` (`:3399`) non mémoïsé.
 - Composants monolithiques : voir tableau §2. Logique dupliquée : `Lightbox` ×2
