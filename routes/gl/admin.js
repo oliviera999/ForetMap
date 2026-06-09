@@ -471,7 +471,7 @@ router.post('/players/:id/reset-pin', requireGlPermission('gl.players.manage'), 
 router.get('/players/import/template', requireGlPermission('gl.players.manage'), wrapXlsxRoute(async (req, res) => {
   const format = String(req.query?.format || 'csv').toLowerCase();
   if (format === 'xlsx') {
-    return sendXlsxAttachment(res, buildXlsxTemplate(), 'foretmap-gl-modele-joueurs.xlsx');
+    return sendXlsxAttachment(res, await buildXlsxTemplate(), 'foretmap-gl-modele-joueurs.xlsx');
   }
   const csv = buildCsvTemplate();
   res.setHeader('Content-Type', 'text/csv; charset=utf-8');
@@ -553,7 +553,7 @@ router.post('/players/import', requireGlPermission('gl.players.manage'), async (
   const dryRun = !!req.body?.dryRun;
   let parsedRows;
   try {
-    parsedRows = resolveImportRows(req.body || {});
+    parsedRows = await resolveImportRows(req.body || {});
   } catch (err) {
     return res.status(400).json({ error: err.message || 'Fichier import invalide' });
   }
