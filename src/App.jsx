@@ -1359,7 +1359,6 @@ function App() {
             zones={zones}
             markers={markers}
             maps={visibleMaps}
-            canParticipateContextComments={canParticipateContextComments}
             onClose={() => setPlantCatalogPreview(null)}
             onForceLogout={forceLogout}
           />
@@ -1827,7 +1826,6 @@ function App() {
                       onMapChange={setActiveMapId}
                       isTeacher
                       student={currentUser}
-                      canParticipateContextComments={canParticipateContextComments}
                       onZoneUpdate={updateZone}
                       onRefresh={fetchAll}
                       embedded
@@ -1850,7 +1848,6 @@ function App() {
                         isTeacher
                         student={currentUser}
                         canSelfAssignTasks
-                        canParticipateContextComments={canParticipateContextComments}
                         canViewOtherUsersIdentity
                         hasPermission={hasPermission}
                         hasPermissionInRole={hasPermissionInRole}
@@ -1865,8 +1862,8 @@ function App() {
                   </section>
                 </div>
               )}
-              {!useSplitMapTasks && tab === 'map'    && <MapView zones={zones} markers={markers} tasks={tasks} tutorials={tutorials} plants={plants} maps={visibleMaps} activeMapId={activeMapId} onMapChange={setActiveMapId} isTeacher student={currentUser} canSelfAssignTasks canParticipateContextComments={canParticipateContextComments} onZoneUpdate={updateZone} onRefresh={fetchAll} onLocationTasksFocus={handleMapLocationTasksFocus} onNavigateToTasksForLocation={(effectiveIsTeacher || canAccessStudentMapTasks) ? navigateToTasksForLocation : undefined} onOpenPlantCatalogPreview={openPlantCatalogPreviewById} onForceLogout={forceLogout}/>}
-              {!useSplitMapTasks && tab === 'tasks'  && <TasksView  tasks={tasks} taskProjects={taskProjects} zones={zones} markers={markers} maps={visibleMaps} tutorials={tutorials} plants={plants} activeMapId={activeMapId} isTeacher student={currentUser} canSelfAssignTasks canParticipateContextComments={canParticipateContextComments} canViewOtherUsersIdentity hasPermission={hasPermission} hasPermissionInRole={hasPermissionInRole} onRefresh={fetchAll} onForceLogout={forceLogout} onTaskFormOverlayOpenChange={onTaskFormOverlayOpenChange} mapLocationFocus={tasksLocationFocus} onMapLocationFocusChange={setTasksLocationFocus} onOpenPlantCatalogPreview={openPlantCatalogPreviewById} />}
+              {!useSplitMapTasks && tab === 'map'    && <MapView zones={zones} markers={markers} tasks={tasks} tutorials={tutorials} plants={plants} maps={visibleMaps} activeMapId={activeMapId} onMapChange={setActiveMapId} isTeacher student={currentUser} canSelfAssignTasks onZoneUpdate={updateZone} onRefresh={fetchAll} onLocationTasksFocus={handleMapLocationTasksFocus} onNavigateToTasksForLocation={(effectiveIsTeacher || canAccessStudentMapTasks) ? navigateToTasksForLocation : undefined} onOpenPlantCatalogPreview={openPlantCatalogPreviewById} onForceLogout={forceLogout}/>}
+              {!useSplitMapTasks && tab === 'tasks'  && <TasksView  tasks={tasks} taskProjects={taskProjects} zones={zones} markers={markers} maps={visibleMaps} tutorials={tutorials} plants={plants} activeMapId={activeMapId} isTeacher student={currentUser} canSelfAssignTasks canViewOtherUsersIdentity hasPermission={hasPermission} hasPermissionInRole={hasPermissionInRole} onRefresh={fetchAll} onForceLogout={forceLogout} onTaskFormOverlayOpenChange={onTaskFormOverlayOpenChange} mapLocationFocus={tasksLocationFocus} onMapLocationFocusChange={setTasksLocationFocus} onOpenPlantCatalogPreview={openPlantCatalogPreviewById} />}
               {tab === 'plants' && (
                 <TabSuspense>
                   <PlantManagerLazy
@@ -1875,14 +1872,13 @@ function App() {
                     zones={zones}
                     markers={markers}
                     maps={visibleMaps}
-                    canParticipateContextComments={canParticipateContextComments}
                     onForceLogout={forceLogout}
                   />
                 </TabSuspense>
               )}
               {publicSettings?.modules?.tutorials_enabled !== false && tab === 'tuto' && (
                 <TabSuspense>
-                  <TutorialsViewLazy tutorials={tutorials} zones={zones} markers={markers} maps={visibleMaps} activeMapId={activeMapId} isTeacher onRefresh={fetchAll} onForceLogout={forceLogout} canParticipateContextComments={canParticipateContextComments} />
+                  <TutorialsViewLazy tutorials={tutorials} zones={zones} markers={markers} maps={visibleMaps} activeMapId={activeMapId} isTeacher onRefresh={fetchAll} onForceLogout={forceLogout} />
                 </TabSuspense>
               )}
               {publicSettings?.modules?.stats_enabled !== false && tab === 'stats' && (
@@ -1915,7 +1911,6 @@ function App() {
                   availableTutorials={tutorials}
                   initialMapId={activeMapId}
                   onForceLogout={forceLogout}
-                  canParticipateContextComments={canParticipateContextComments}
                   onOpenMascotPackStudioTab={openMascotPackStudioTab}
                   profileVisitMascotId={currentUser?.visit_mascot_catalog_id || null}
                   mapZones={zones}
@@ -1995,7 +1990,6 @@ function App() {
                         student={studentForUi}
                         canSelfAssignTasks={canSelfAssignTasks}
                         canEnrollOnTasks={canSelfAssignMoreTasks}
-                        canParticipateContextComments={canParticipateContextComments}
                         onZoneUpdate={updateZone}
                         onRefresh={fetchAll}
                         embedded
@@ -2019,7 +2013,6 @@ function App() {
                           student={studentForUi}
                           canSelfAssignTasks={canSelfAssignTasks}
                           canEnrollOnTasks={canSelfAssignMoreTasks}
-                          canParticipateContextComments={canParticipateContextComments}
                           canViewOtherUsersIdentity={canViewOtherUsersIdentity}
                           onRefresh={fetchAll}
                           onForceLogout={forceLogout}
@@ -2032,8 +2025,8 @@ function App() {
                     </section>
                   </div>
                 )}
-                {!useSplitMapTasks && tab === 'map'    && canAccessStudentMapTasks && <MapView zones={zones} markers={markers} tasks={tasks} tutorials={tutorials} plants={plants} maps={visibleMaps} activeMapId={activeMapId} onMapChange={setActiveMapId} isTeacher={false} student={studentForUi} canSelfAssignTasks={canSelfAssignTasks} canEnrollOnTasks={canSelfAssignMoreTasks} canParticipateContextComments={canParticipateContextComments} onZoneUpdate={updateZone} onRefresh={fetchAll} onLocationTasksFocus={handleMapLocationTasksFocus} onNavigateToTasksForLocation={navigateToTasksForLocation} onOpenPlantCatalogPreview={openPlantCatalogPreviewById} onForceLogout={forceLogout}/>}
-                {!useSplitMapTasks && tab === 'tasks'  && canAccessStudentMapTasks && <TasksView tasks={tasks} taskProjects={taskProjects} zones={zones} markers={markers} maps={visibleMaps} tutorials={tutorials} plants={plants} activeMapId={activeMapId} isTeacher={false} student={studentForUi} canSelfAssignTasks={canSelfAssignTasks} canEnrollOnTasks={canSelfAssignMoreTasks} canParticipateContextComments={canParticipateContextComments} canViewOtherUsersIdentity={canViewOtherUsersIdentity} onRefresh={fetchAll} onForceLogout={forceLogout} onTaskFormOverlayOpenChange={onTaskFormOverlayOpenChange} mapLocationFocus={tasksLocationFocus} onMapLocationFocusChange={setTasksLocationFocus} onOpenPlantCatalogPreview={openPlantCatalogPreviewById} />}
+                {!useSplitMapTasks && tab === 'map'    && canAccessStudentMapTasks && <MapView zones={zones} markers={markers} tasks={tasks} tutorials={tutorials} plants={plants} maps={visibleMaps} activeMapId={activeMapId} onMapChange={setActiveMapId} isTeacher={false} student={studentForUi} canSelfAssignTasks={canSelfAssignTasks} canEnrollOnTasks={canSelfAssignMoreTasks} onZoneUpdate={updateZone} onRefresh={fetchAll} onLocationTasksFocus={handleMapLocationTasksFocus} onNavigateToTasksForLocation={navigateToTasksForLocation} onOpenPlantCatalogPreview={openPlantCatalogPreviewById} onForceLogout={forceLogout}/>}
+                {!useSplitMapTasks && tab === 'tasks'  && canAccessStudentMapTasks && <TasksView tasks={tasks} taskProjects={taskProjects} zones={zones} markers={markers} maps={visibleMaps} tutorials={tutorials} plants={plants} activeMapId={activeMapId} isTeacher={false} student={studentForUi} canSelfAssignTasks={canSelfAssignTasks} canEnrollOnTasks={canSelfAssignMoreTasks} canViewOtherUsersIdentity={canViewOtherUsersIdentity} onRefresh={fetchAll} onForceLogout={forceLogout} onTaskFormOverlayOpenChange={onTaskFormOverlayOpenChange} mapLocationFocus={tasksLocationFocus} onMapLocationFocusChange={setTasksLocationFocus} onOpenPlantCatalogPreview={openPlantCatalogPreviewById} />}
                 {tab === 'plants' && (
                   <TabSuspense>
                     <PlantViewerLazy
@@ -2041,14 +2034,13 @@ function App() {
                       zones={zones}
                       markers={markers}
                       maps={visibleMaps}
-                      canParticipateContextComments={canParticipateContextComments}
                       onForceLogout={forceLogout}
                     />
                   </TabSuspense>
                 )}
                 {publicSettings?.modules?.tutorials_enabled !== false && tab === 'tuto' && (
                   <TabSuspense>
-                    <TutorialsViewLazy tutorials={tutorials} zones={zones} markers={markers} maps={visibleMaps} activeMapId={activeMapId} isTeacher={false} onRefresh={fetchAll} onForceLogout={forceLogout} canParticipateContextComments={canParticipateContextComments} />
+                    <TutorialsViewLazy tutorials={tutorials} zones={zones} markers={markers} maps={visibleMaps} activeMapId={activeMapId} isTeacher={false} onRefresh={fetchAll} onForceLogout={forceLogout} />
                   </TabSuspense>
                 )}
                 {tab === 'stats' && canViewGeneralStats && <TabSuspense><TeacherStatsLazy /></TabSuspense>}
@@ -2063,7 +2055,6 @@ function App() {
                     availableTutorials={tutorials}
                     initialMapId={activeMapId}
                     onForceLogout={forceLogout}
-                    canParticipateContextComments={canParticipateContextComments}
                   profileVisitMascotId={studentForUi?.visit_mascot_catalog_id || null}
                     mapZones={zones}
                     mapMarkers={markers}

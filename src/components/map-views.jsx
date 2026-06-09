@@ -67,6 +67,7 @@ import {
   BiodiversitySpeciesOpenLinks,
 } from './map/LivingBeingsCatalogPanel.jsx';
 import { usePublicSettings } from '../contexts/PublicSettingsContext.jsx';
+import { useSession } from '../contexts/SessionContext.jsx';
 
 function Lightbox({ src, caption, onClose, useOverlayHistory = false }) {
   return (
@@ -2820,8 +2821,9 @@ function useMapGestures({ mapImageSrc, activeMapId, mode, onRefresh, embedded = 
   };
 }
 
-function MapView({ zones, markers, tasks = [], tutorials = [], plants, maps = [], activeMapId = '', onMapChange, isTeacher, student, canSelfAssignTasks = true, canEnrollOnTasks, canParticipateContextComments = true, onZoneUpdate, onRefresh, embedded = false, onLocationTasksFocus = null, onNavigateToTasksForLocation = null, onOpenPlantCatalogPreview = null, onForceLogout }) {
+function MapView({ zones, markers, tasks = [], tutorials = [], plants, maps = [], activeMapId = '', onMapChange, isTeacher, student, canSelfAssignTasks = true, canEnrollOnTasks, onZoneUpdate, onRefresh, embedded = false, onLocationTasksFocus = null, onNavigateToTasksForLocation = null, onOpenPlantCatalogPreview = null, onForceLogout }) {
   const publicSettings = usePublicSettings();
+  const { canParticipateContextComments = true } = useSession();
   const canEnrollNewTasks = canEnrollOnTasks !== undefined ? canEnrollOnTasks : canSelfAssignTasks;
   const [mode, setMode] = useState('view');
   const [showLabels, setShowLabels] = useState(true);

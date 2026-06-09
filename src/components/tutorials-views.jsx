@@ -10,6 +10,7 @@ import { MarkdownContent } from './MarkdownContent.jsx';
 import { MarkdownTextarea } from './MarkdownTextarea.jsx';
 import { FixedToast } from '../shared/components/FixedToast.jsx';
 import { usePublicSettings } from '../contexts/PublicSettingsContext.jsx';
+import { useSession } from '../contexts/SessionContext.jsx';
 import { fileToDataUrl } from '../utils/fileToDataUrl.js';
 
 function tutorialZonePickLabel(z) {
@@ -129,9 +130,9 @@ function TutorialsView({
   markers = [],
   maps = [],
   activeMapId = 'foret',
-  canParticipateContextComments = true,
 }) {
   const publicSettings = usePublicSettings();
+  const { canParticipateContextComments = true } = useSession();
   const contextCommentsEnabled = publicSettings?.modules?.context_comments_enabled !== false;
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState('all');
