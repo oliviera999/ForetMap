@@ -9,7 +9,8 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ### Performance & sécurité (audit optimisation — `docs/AUDIT_OPTIMISATION.md`, items O1-O14)
 
-- **Bundle (O1, O11)** : `VisitMapMascotRenderer` charge le renderer sélectionné via `React.lazy`/`Suspense` — `rive` (~166 Ko) et `sprite_cut` (~102 Ko) quittent le preload initial de la Carte (seul le renderer monté est téléchargé) ; `vite.config` `sourcemap: false` en build prod (~6 Mo de `.map` évités).
+- **Bundle (O1, O11)** : `VisitMapMascotRenderer` charge le renderer sélectionné via `React.lazy`/`Suspense` — `rive` (~166 Ko) et `sprite_cut` (~102 Ko) quittent le preload initial de la Carte (seul le renderer monté est téléchargé) ; vues GL d'onglet en `lazy` (chunk `gl` 501→255 Ko) ; **`foretmap-views`/`stats-views` rendus purement lazy** (chunk `main` 431→315 Ko, gzip 111→81) ; `vite.config` `sourcemap: false` en build prod (~6 Mo de `.map` évités).
+- **Build (correctif)** : `scripts/build-asset-manifest.mjs` ne **rétrécit plus** le manifest GL committé (`src/gl/assets/manifest.images.json`) quand la médiathèque GL n'est pas importée (CI / conteneur sans média) — évite des illustrations GL vides dans le bundle.
 - **Tâches (O10)** : `replaceTaskJoinRows` — un INSERT multi-valeurs pour zones/repères/tutoriels/référents au lieu de boucles N+1.
 - **Serveur (O13, O14)** : `helmet` (nosniff/frameguard/HSTS/referrer-policy ; CSP `img-src` conservé) ; `crypto.timingSafeEqual` pour `DEPLOY_SECRET` ; `/api/version` et `/api/admin/diagnostics` servent `startupVersion` sans relecture disque de `package.json`.
 
