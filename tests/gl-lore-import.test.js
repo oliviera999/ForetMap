@@ -187,7 +187,7 @@ test('applyFeuilletsImport dry-run sans erreur fatale', async () => {
 
 test('applyLoreGlossaryImport dry-run', async () => {
   const file = path.join(process.cwd(), 'data', 'gl', 'glossaire-lore-gnomes-et-licornes.xlsx');
-  const { glossaryRows } = parseLoreGlossaryWorkbook(fs.readFileSync(file));
+  const { glossaryRows } = await parseLoreGlossaryWorkbook(fs.readFileSync(file));
   const report = await applyLoreGlossaryImport(
     { queryAll: async () => [], execute: async () => ({}) },
     glossaryRows,

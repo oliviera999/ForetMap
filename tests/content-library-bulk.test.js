@@ -64,22 +64,22 @@ before(async () => {
   });
 });
 
-test('classifyContentFile reconnaît média PNG et XLSX espèces', () => {
+test('classifyContentFile reconnaît média PNG et XLSX espèces', async () => {
   const pngBuffer = decodeBase64Payload(TINY_PNG_DATA_URL);
-  const media = classifyContentFile('photo.png', pngBuffer);
+  const media = await classifyContentFile('photo.png', pngBuffer);
   assert.strictEqual(media.kind, 'media');
   assert.strictEqual(media.mediaType, 'image');
 
-  const speciesXlsx = buildSpeciesTemplateWorkbook();
-  const species = classifyContentFile('biocenose.xlsx', speciesXlsx);
+  const speciesXlsx = await buildSpeciesTemplateWorkbook();
+  const species = await classifyContentFile('biocenose.xlsx', speciesXlsx);
   assert.strictEqual(species.kind, 'species');
 
-  const glossaryXlsx = buildGlossaryTemplateWorkbook();
-  const glossary = classifyContentFile('glossaire-svt.xlsx', glossaryXlsx);
+  const glossaryXlsx = await buildGlossaryTemplateWorkbook();
+  const glossary = await classifyContentFile('glossaire-svt.xlsx', glossaryXlsx);
   assert.strictEqual(glossary.kind, 'glossary');
 
-  const qcmXlsx = buildQcmTemplateWorkbook();
-  const qcm = classifyContentFile('qcm.xlsx', qcmXlsx);
+  const qcmXlsx = await buildQcmTemplateWorkbook();
+  const qcm = await classifyContentFile('qcm.xlsx', qcmXlsx);
   assert.strictEqual(qcm.kind, 'qcm');
 });
 
@@ -161,7 +161,7 @@ test('analyze archive ZIP avec média et apply via archive', async () => {
 });
 
 test('analyze XLSX espèces retourne un aperçu dry-run', async () => {
-  const speciesXlsx = buildSpeciesTemplateWorkbook().toString('base64');
+  const speciesXlsx = (await buildSpeciesTemplateWorkbook()).toString('base64');
   const analyzed = await request(app)
     .post('/api/gl/admin/content-library/analyze')
     .set('Authorization', `Bearer ${contentAdminToken}`)
