@@ -598,7 +598,7 @@ router.put('/admin/markers/:markerId', requireGlPermission('gl.content.manage'),
 /** GET /api/gl/chapters/admin/import/template — modèle XLSX série de chapitres. */
 router.get('/admin/import/template', requireGlPermission('gl.content.manage'), async (req, res) => {
   const scope = normalizeExportScope(req.query?.scope);
-  const buffer = buildChaptersTemplateWorkbook(scope);
+  const buffer = await buildChaptersTemplateWorkbook(scope);
   res.setHeader(
     'Content-Type',
     'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
@@ -630,7 +630,7 @@ router.post('/admin/import', requireGlPermission('gl.content.manage'), async (re
   const syncZones = !!req.body?.syncZones;
   let parsed;
   try {
-    parsed = resolveChaptersImportRows(req.body || {});
+    parsed = await resolveChaptersImportRows(req.body || {});
   } catch (err) {
     return res.status(400).json({ error: err.message || 'Fichier import invalide' });
   }
