@@ -57,7 +57,7 @@ Statuts : `todo` · `wip` · `done` · `differe` (décision produit requise).
 | O4 | Haute | Sécu/Maint | `xlsx@0.18.5` — 2 CVE High via uploads | Migration `exceljs` (npm) ou SheetJS CDN | Élevé | differe |
 | O5 | Haute | Extensibilité | `App.jsx` God component + prop-drilling ×4 | Contexts par domaine (session, données, settings) | Élevé | wip |
 | O6 | Haute | Maint/Test | Composants monolithiques + 0 test UI sur ~21k LOC | Extraire logique pure → tests ; puis découper | Élevé | wip |
-| O7 | Moyenne | Extens/Sécu | `zod` jamais utilisé ; validation manuelle hétérogène | Middleware `validate(schema)` + schémas par endpoint | Moyen | wip |
+| O7 | Moyenne | Extens/Sécu | `zod` jamais utilisé ; validation manuelle hétérogène | **Infra livrée** : middleware réutilisable `lib/validate.js` (`validate({ body, query, params })`, `req.validatedQuery`/`Params` pour Express 5) + test `tests/validate-middleware.test.js`. Rollout par route **incrémental** (préserver l'ordre auth→validation et les messages existants) | Moyen | wip |
 | O8 | Moyenne | Maint | ~338 try/catch dispersés ; `respondInternalError` redéfini en doublon | Wrapper `asyncHandler` → handler central | Moyen | todo |
 | O9 | Moyenne | Maint | Helpers dupliqués (`normalizeOptionalString` ×25, pagination ×3, `Lightbox` ×2, compression image ×7) | `lib/strings.js`, `lib/pagination.js`, `src/shared/` | Faible | done |
 | O10 | Moyenne | Perf | Routes obèses (visit/tasks/games 2000+ l.) ; N+1 d'écriture (boucles INSERT) | Couche service par domaine ; INSERT multi-valeurs | Élevé/Faible | wip |
