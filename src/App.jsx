@@ -1267,12 +1267,13 @@ function App() {
   }, [effectiveIsTeacher, markAsRead, studentForUi, trackActionClick, validateStudentSession]);
 
   // O5 — valeurs de session globales exposées par contexte (cf. SessionContext).
+  // NB : hasPermission/hasPermissionInRole restent en props (volontairement) — le chemin élève
+  // les omet pour forcer `() => false` ; un prof en « vue élève » garde ses droits réels, donc les
+  // exposer globalement ferait réapparaître des contrôles prof côté vue élève. Idem identités.
   const sessionContextValue = useMemo(() => ({
     isN3Affiliated,
-    hasPermission,
-    hasPermissionInRole,
     canParticipateContextComments,
-  }), [isN3Affiliated, hasPermission, hasPermissionInRole, canParticipateContextComments]);
+  }), [isN3Affiliated, canParticipateContextComments]);
 
   if (!student && !isTeacher) return (
     <PublicSettingsProvider value={publicSettings}>
