@@ -14,11 +14,7 @@ function normalizeSlug(value) {
   return String(value || '').trim().toLowerCase();
 }
 
-function normalizeOptionalString(value) {
-  if (value == null) return null;
-  const s = String(value).trim();
-  return s.length > 0 ? s : null;
-}
+const { normalizeOptionalString } = require('../../lib/shared/httpHelpers');
 
 /** GET /api/gl/content/intro — config publique (textes + URLs média résolues). */
 router.get('/intro', async (req, res) => {

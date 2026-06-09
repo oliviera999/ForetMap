@@ -52,6 +52,10 @@ Il reflète l’état réel du dépôt (avril 2026) et priorise la suite en comm
 - **Frontend — optimisation bundle (partiellement réalisé, juin 2026)** :
   - lazy-load des onglets rares dans `App.jsx`, `manualChunks` Vite, composant toast partagé `TimedToast`, extraction `LivingBeingsCatalogPanel` et `lib/tasks/taskImport.js`, pipeline JWT `lib/auth/jwtPipeline.js`.
   - **Reste à faire** : scinder `plants-views.jsx` hors de `foretmap-views.jsx` (supprimer l’avertissement Vite sur import dynamique), poursuivre le découpage `map-views` / `tasks-views`.
+- **Audit d'optimisation (juin 2026, tracker `docs/AUDIT_OPTIMISATION.md` items O1-O14)** :
+  - **Livré** : lazy renderers mascotte + `sourcemap:false` prod (O1/O11) ; cache TTL RBAC (O3) ; INSERT multi-valeurs jointures tâches (O10) ; `helmet` + `timingSafeEqual` + `startupVersion` (O13/O14) ; outillage react-hooks/Prettier + correctif hooks conditionnels (O12) ; nettoyage fichiers morts (O14). Couche helpers partagés (O9, en cours).
+  - **Reste à faire (structurel, multi-lots)** : Contexts par domaine pour casser le prop-drilling d'`App.jsx` (O5) ; découpage des méga-composants avec tests UI préalables (O6) ; adoption `zod` par middleware `validate(schema)` sur les 39 routeurs (O7) ; wrapper `asyncHandler` (O8) ; couche service par domaine (O10) ; lazy-loading des vues GL ; CSS-modules progressifs.
+  - **Décision produit en attente** : migration `xlsx@0.18.5` (CVE) — `exceljs` (npm) vs SheetJS CDN (O4).
 
 ## 1.3 Fonctionnalité livrée — Projets de tâches (V1 minimale)
 

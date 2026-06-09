@@ -2534,10 +2534,6 @@ function BiodivLocationMapBlock({ mapId, maps, zones, markers }) {
     [markers],
   );
 
-  if (drawableZones.length === 0 && drawableMarkers.length === 0) return null;
-
-  const src = candidates[Math.min(ci, candidates.length - 1)];
-
   const onImgError = useCallback(() => {
     setCi((c) => (c < candidates.length - 1 ? c + 1 : c));
   }, [candidates.length]);
@@ -2562,6 +2558,11 @@ function BiodivLocationMapBlock({ mapId, maps, zones, markers }) {
     [imgNatural.w, imgNatural.h, stageBox.w, stageBox.h],
   );
 
+  // Court-circuit APRES tous les hooks (Rules of Hooks) : evite le crash "rendered fewer/more
+  // hooks than expected" quand zones/markers passent de vide a non-vide entre deux refetch.
+  if (drawableZones.length === 0 && drawableMarkers.length === 0) return null;
+
+  const src = candidates[Math.min(ci, candidates.length - 1)];
   const label = activeMap?.label || mapId;
 
   return (

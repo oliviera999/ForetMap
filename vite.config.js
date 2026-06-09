@@ -8,7 +8,10 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     emptyOutDir: true,
-    sourcemap: true,
+    // Pas de sourcemap en build prod : aucun consommateur (pas de Sentry/error-tracking) et
+    // ~6 MB de `.map` versionnes a chaque deploy. Le serveur de dev Vite garde ses sourcemaps
+    // (esbuild) inchanges. Repasser a 'hidden' si un agregateur d'erreurs est ajoute plus tard.
+    sourcemap: false,
     rollupOptions: {
       input: {
         main: path.resolve(process.cwd(), 'index.vite.html'),

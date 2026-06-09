@@ -33,11 +33,12 @@ import {
   KNOWN_TAB_VALUES,
 } from './constants/app-runtime';
 import { ErrorBoundary } from './components/ErrorBoundary';
-import { Toast, PlantCatalogPreviewModal } from './components/foretmap-views';
+import { TimedToast as Toast } from './shared/components/TimedToast.jsx';
 import { TasksView } from './components/tasks-views';
 import { MapView } from './components/map-views';
 import { AuthScreen, PinModal } from './components/auth-views';
-import { StudentProfileEditor, StudentStats } from './components/stats-views';
+const StudentStatsLazy = lazy(() => import('./components/stats-views').then((m) => ({ default: m.StudentStats })));
+const StudentProfileEditorLazy = lazy(() => import('./components/stats-views').then((m) => ({ default: m.StudentProfileEditor })));
 import { StudentAvatar } from './components/student-avatar';
 import { NotificationCenter } from './components/notifications-center';
 import { TabSuspense } from './components/TabSuspense.jsx';
@@ -46,6 +47,8 @@ const VisitViewLazy = lazy(() => import('./components/visit-views').then((m) => 
 const PlantManagerLazy = lazy(() => import('./components/foretmap-views').then((m) => ({ default: m.PlantManager })));
 const PlantViewerLazy = lazy(() => import('./components/foretmap-views').then((m) => ({ default: m.PlantViewer })));
 const ObservationNotebookLazy = lazy(() => import('./components/foretmap-views').then((m) => ({ default: m.ObservationNotebook })));
+// Modale a la demande : lazy pour que foretmap-views (PlantManager/Viewer/Notebook ~52 Ko) quitte le chunk main.
+const PlantCatalogPreviewModalLazy = lazy(() => import('./components/foretmap-views').then((m) => ({ default: m.PlantCatalogPreviewModal })));
 const TutorialsViewLazy = lazy(() => import('./components/tutorials-views').then((m) => ({ default: m.TutorialsView })));
 const TeacherStatsLazy = lazy(() => import('./components/stats-views').then((m) => ({ default: m.TeacherStats })));
 const ProfilesAdminViewLazy = lazy(() => import('./components/profiles-views').then((m) => ({ default: m.ProfilesAdminView })));
@@ -1336,16 +1339,18 @@ function App() {
   return (
     <div id="app">
       {plantCatalogPreview && (
-        <PlantCatalogPreviewModal
-          plant={plantCatalogPreview}
-          zones={zones}
-          markers={markers}
-          maps={visibleMaps}
-          publicSettings={publicSettings}
-          canParticipateContextComments={canParticipateContextComments}
-          onClose={() => setPlantCatalogPreview(null)}
-          onForceLogout={forceLogout}
-        />
+        <Suspense fallback={null}>
+          <PlantCatalogPreviewModalLazy
+            plant={plantCatalogPreview}
+            zones={zones}
+            markers={markers}
+            maps={visibleMaps}
+            publicSettings={publicSettings}
+            canParticipateContextComments={canParticipateContextComments}
+            onClose={() => setPlantCatalogPreview(null)}
+            onForceLogout={forceLogout}
+          />
+        </Suspense>
       )}
       {showIosInstallHint && !deferredInstallPrompt && !isStandaloneMode && (
         <div className="fade-in install-ios-banner" role="status" aria-live="polite">
@@ -1440,7 +1445,9 @@ function App() {
             </button>
           </div>
           <div className="log-modal__scroll">
-            <StudentStats student={{ id: profileTargetUserId }} isN3Affiliated={isN3Affiliated} />
+            <Suspense fallback={null}>
+              <StudentStatsLazy student={{ id: profileTargetUserId }} isN3Affiliated={isN3Affiliated} />
+            </Suspense>
           </div>
         </DialogShell>
       )}
@@ -1465,20 +1472,22 @@ function App() {
             </button>
           </div>
           <div className="log-modal__scroll">
-            <StudentProfileEditor
-              student={profileTargetUser}
-              maps={maps}
-              publicSettings={publicSettings}
-              onUpdated={(updated) => {
-                if (effectiveIsTeacher) {
-                  updateTeacherSession(updated);
-                  return;
-                }
-                updateStudentSession(updated);
-              }}
-              onClose={() => setShowProfile(false)}
-              isN3Affiliated={isN3Affiliated}
-            />
+            <Suspense fallback={null}>
+              <StudentProfileEditorLazy
+                student={profileTargetUser}
+                maps={maps}
+                publicSettings={publicSettings}
+                onUpdated={(updated) => {
+                  if (effectiveIsTeacher) {
+                    updateTeacherSession(updated);
+                    return;
+                  }
+                  updateStudentSession(updated);
+                }}
+                onClose={() => setShowProfile(false)}
+                isN3Affiliated={isN3Affiliated}
+              />
+            </Suspense>
           </div>
         </DialogShell>
       )}
