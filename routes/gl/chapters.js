@@ -660,7 +660,7 @@ router.post('/admin/import', requireGlPermission('gl.content.manage'), async (re
 
 /** GET /api/gl/chapters/admin/charte/import/template — modèle XLSX charte chapitres. */
 router.get('/admin/charte/import/template', requireGlPermission('gl.content.manage'), async (_req, res) => {
-  const buffer = buildChapterCharteTemplateWorkbook();
+  const buffer = await buildChapterCharteTemplateWorkbook();
   res.setHeader(
     'Content-Type',
     'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
@@ -673,7 +673,7 @@ router.get('/admin/charte/import/template', requireGlPermission('gl.content.mana
 router.get('/admin/charte/export', requireGlPermission('gl.content.manage'), async (req, res) => {
   const slug = normalizeSlug(req.query?.slug);
   const rows = await loadChapterCharteExportRows({ queryAll }, { slug: slug || undefined });
-  const buffer = buildChapterCharteExportWorkbook(rows);
+  const buffer = await buildChapterCharteExportWorkbook(rows);
   res.setHeader(
     'Content-Type',
     'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
@@ -687,7 +687,7 @@ router.post('/admin/charte/import', requireGlPermission('gl.content.manage'), as
   const dryRun = !!req.body?.dryRun;
   let parsed;
   try {
-    parsed = resolveImportRows(req.body || {});
+    parsed = await resolveImportRows(req.body || {});
   } catch (err) {
     return res.status(400).json({ error: err.message || 'Fichier import invalide' });
   }

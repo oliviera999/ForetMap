@@ -283,7 +283,7 @@ test('GET /api/gl/chapters/admin/charte/import/template retourne un modèle XLSX
     '/api/gl/chapters/admin/charte/import/template',
     adminToken
   );
-  const { rows } = parseChapterCharteWorkbook(buf);
+  const { rows } = await parseChapterCharteWorkbook(buf);
   assert.ok(rows.length >= 1);
   assert.strictEqual(validateChapterChartePayload(buildChapterChartePayload(rows[0]), 2).length, 0);
   const wb = require('xlsx').read(buf, { type: 'buffer' });
