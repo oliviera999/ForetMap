@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState, lazy, Suspense } from 'react';
 import { io } from 'socket.io-client';
 import { withAppBase } from '../services/api.js';
 import { useGLSession } from './hooks/useGLSession.js';
@@ -25,19 +25,21 @@ import { GLSpellCastWizard } from './components/GLSpellCastWizard.jsx';
 import { GLSpellCastResultPopover } from './components/GLSpellCastResultPopover.jsx';
 import { useGLSpellCast } from './hooks/useGLSpellCast.js';
 import { buildSpellCastResultViewModel } from './utils/glSpellCastRules.js';
-import { GLHistoryView } from './components/GLHistoryView.jsx';
-import { GLUsersAdminView } from './components/GLUsersAdminView.jsx';
-import { GLContentsAdminView } from './components/GLContentsAdminView.jsx';
-import { GLSettingsView } from './components/GLSettingsView.jsx';
-import { GLMascotsAdminView } from './components/GLMascotsAdminView.jsx';
-import { GLGameMasterConsole } from './components/GLGameMasterConsole.jsx';
+// Vues d'onglet chargees a la demande (lazy) : restent hors du chunk gl initial.
+// Vues staff/admin (rarement chargees par un joueur) + onglets secondaires souvent module-gated.
+const GLHistoryView = lazy(() => import('./components/GLHistoryView.jsx').then((m) => ({ default: m.GLHistoryView })));
+const GLUsersAdminView = lazy(() => import('./components/GLUsersAdminView.jsx').then((m) => ({ default: m.GLUsersAdminView })));
+const GLContentsAdminView = lazy(() => import('./components/GLContentsAdminView.jsx').then((m) => ({ default: m.GLContentsAdminView })));
+const GLSettingsView = lazy(() => import('./components/GLSettingsView.jsx').then((m) => ({ default: m.GLSettingsView })));
+const GLMascotsAdminView = lazy(() => import('./components/GLMascotsAdminView.jsx').then((m) => ({ default: m.GLMascotsAdminView })));
+const GLGameMasterConsole = lazy(() => import('./components/GLGameMasterConsole.jsx').then((m) => ({ default: m.GLGameMasterConsole })));
 import { useGLMascotStateMachine } from './hooks/useGLMascotStateMachine.js';
 import { useGLNotificationCenter } from './hooks/useGLNotificationCenter.js';
-import { GLForumView } from './components/GLForumView.jsx';
-import { GLMarketView } from './components/GLMarketView.jsx';
-import { GLTutorialsView } from './components/GLTutorialsView.jsx';
-import { GLJournalView } from './components/GLJournalView.jsx';
-import { GLPlayerJournalView } from './components/GLPlayerJournalView.jsx';
+const GLForumView = lazy(() => import('./components/GLForumView.jsx').then((m) => ({ default: m.GLForumView })));
+const GLMarketView = lazy(() => import('./components/GLMarketView.jsx').then((m) => ({ default: m.GLMarketView })));
+const GLTutorialsView = lazy(() => import('./components/GLTutorialsView.jsx').then((m) => ({ default: m.GLTutorialsView })));
+const GLJournalView = lazy(() => import('./components/GLJournalView.jsx').then((m) => ({ default: m.GLJournalView })));
+const GLPlayerJournalView = lazy(() => import('./components/GLPlayerJournalView.jsx').then((m) => ({ default: m.GLPlayerJournalView })));
 import { GLNotificationsCenter } from './components/GLNotificationsCenter.jsx';
 import { GLButton } from './components/ui/GLButton.jsx';
 import { GLHelpPanel } from './components/GLHelpPanel.jsx';
@@ -855,6 +857,7 @@ export function AppGL() {
           id={`${GL_TABPANEL_ID_PREFIX}-${tab}`}
           aria-labelledby={`${GL_TAB_ID_PREFIX}-${tab}`}
         >
+        <Suspense fallback={<div className="gl-tab-loading" aria-busy="true" />}>
         {tab === 'world' && (
           <GLWorldView
             auth={auth}
@@ -1092,6 +1095,7 @@ export function AppGL() {
             onClear={notifications.clear}
           />
         ) : null}
+        </Suspense>
         </div>
       </main>
       {showStaffAdminUi ? (
