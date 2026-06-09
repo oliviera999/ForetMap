@@ -62,6 +62,7 @@ import {
   dedupeTutorialsByIdForTasks,
   tutorialRefsFromTasksAtLocationFilter,
 } from '../utils/taskListHelpers.js';
+import { fileToDataUrl } from '../utils/fileToDataUrl.js';
 
 function zonePickDisplayName(z) {
   const line = formatLivingBeingsListLine(
@@ -103,15 +104,6 @@ function Lightbox({ src, caption, onClose }) {
 }
 
 const var_alert = 'var(--alert)';
-
-function fileToDataUrl(file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(String(reader.result || ''));
-    reader.onerror = () => reject(new Error('Lecture du fichier impossible'));
-    reader.readAsDataURL(file);
-  });
-}
 
 function initialLocationIds(editTask, keyMulti, keySingle) {
   if (!editTask) return [];

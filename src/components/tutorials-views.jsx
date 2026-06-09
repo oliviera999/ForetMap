@@ -10,6 +10,7 @@ import { MarkdownContent } from './MarkdownContent.jsx';
 import { MarkdownTextarea } from './MarkdownTextarea.jsx';
 import { FixedToast } from '../shared/components/FixedToast.jsx';
 import { usePublicSettings } from '../contexts/PublicSettingsContext.jsx';
+import { fileToDataUrl } from '../utils/fileToDataUrl.js';
 
 function tutorialZonePickLabel(z) {
   const line = formatLivingBeingsListLine(
@@ -41,15 +42,6 @@ function downloadUrl(url) {
   document.body.appendChild(a);
   a.click();
   a.remove();
-}
-
-function fileToDataUrl(file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(String(reader.result || ''));
-    reader.onerror = () => reject(new Error('Lecture du fichier impossible'));
-    reader.readAsDataURL(file);
-  });
 }
 
 const LINKED_TASK_STATUS_LABELS = {
