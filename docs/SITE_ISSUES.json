@@ -79,7 +79,7 @@
     "optimisation": [
       { "id": "O1", "status": "done", "summary": "Renderers mascotte en eager sur la Carte (~268 KB) ; lazy par renderer" },
       { "id": "O2", "status": "done", "summary": "Tuiles de taches non memoisees ; useMemo + React.memo" },
-      { "id": "O3", "status": "done", "summary": "RBAC recalcule depuis la DB a chaque requete ; cache TTL court" },
+      { "id": "O3", "status": "differe", "summary": "RBAC cache TTL tente puis reverte (invalidation incomplete) ; a refaire avec compteur de version global ou request-scoped" },
       { "id": "O4", "status": "differe", "summary": "xlsx@0.18.5 CVE via parsing uploads ; exceljs vs SheetJS CDN a trancher" },
       { "id": "O5", "status": "wip", "summary": "App.jsx God component + prop-drilling x4 ; Contexts par domaine" },
       { "id": "O6", "status": "wip", "summary": "Composants monolithiques + 0 test UI (~21k LOC)" },

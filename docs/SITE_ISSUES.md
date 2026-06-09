@@ -46,7 +46,7 @@ Source et tracker detaille: `docs/AUDIT_OPTIMISATION.md`. Statuts: todo / wip / 
 
 - `O1` - [done] Renderers mascotte charges en eager sur la Carte (~268 KB inutiles) ; lazy par renderer.
 - `O2` - [done] Tuiles de taches non memoisees (re-render par tick) ; `useMemo` + `React.memo`.
-- `O3` - [done] RBAC recalcule depuis la DB a chaque requete authentifiee ; cache TTL court.
+- `O3` - [differe] RBAC recalcule a chaque requete ; cache TTL tente puis reverte (invalidation incomplete, SQL direct hors hooks). A refaire avec compteur de version RBAC global ou cache request-scoped.
 - `O4` - [differe] `xlsx@0.18.5` (CVE-2023-30533 / CVE-2024-22363) via parsing uploads ; choix exceljs vs SheetJS CDN a trancher.
 - `O5` - [wip] `App.jsx` God component + prop-drilling x4 ; Contexts par domaine.
 - `O6` - [wip] Composants monolithiques + 0 test UI (~21k LOC) ; extraire logique pure + tests, puis decouper.
