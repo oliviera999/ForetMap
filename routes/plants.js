@@ -2,7 +2,7 @@ const express = require('express');
 const http = require('http');
 const https = require('https');
 const crypto = require('crypto');
-const XLSX = require('xlsx');
+const { parseFirstSheetRows } = require('../lib/spreadsheet');
 const { pool, queryAll, queryOne, execute } = require('../database');
 const { requirePermission, requireAuth } = require('../middleware/requireTeacher');
 const { logRouteError, respondInternalError } = require('../lib/routeLog');
@@ -261,12 +261,8 @@ function validateHttpsPhotoLinks(body = {}) {
   return null;
 }
 
-function parseWorkbookRowsFromBuffer(buffer) {
-  const wb = XLSX.read(buffer, { type: 'buffer', raw: false, cellDates: false });
-  const first = wb.SheetNames[0];
-  if (!first) return [];
-  const ws = wb.Sheets[first];
-  return XLSX.utils.sheet_to_json(ws, { defval: '', raw: false, blankrows: false });
+async function parseWorkbookRowsFromBuffer(buffer) {
+  return parseFirstSheetRows(buffer);
 }
 
 function toGoogleSheetCsvUrl(rawUrl) {
