@@ -59,9 +59,9 @@ before(async () => {
 
   const feuilletFile = path.join(process.cwd(), 'data', 'gl', 'corpus-feuillets-selene.xlsx');
   const glossaryFile = path.join(process.cwd(), 'data', 'gl', 'glossaire-lore-gnomes-et-licornes.xlsx');
-  const feuilletParsed = parseFeuilletsWorkbook(fs.readFileSync(feuilletFile));
+  const feuilletParsed = await parseFeuilletsWorkbook(fs.readFileSync(feuilletFile));
   await applyFeuilletsImport({ queryAll: require('../database').queryAll, execute }, feuilletParsed, { dryRun: false });
-  const { glossaryRows } = parseLoreGlossaryWorkbook(fs.readFileSync(glossaryFile));
+  const { glossaryRows } = await parseLoreGlossaryWorkbook(fs.readFileSync(glossaryFile));
   await applyLoreGlossaryImport({ queryAll: require('../database').queryAll, execute }, glossaryRows, { dryRun: false });
 
   const created = await request(app)
