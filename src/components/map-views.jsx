@@ -27,6 +27,13 @@ import { lockBodyScroll } from '../utils/body-scroll-lock';
 import { resolveMapOverlayTypography } from '../utils/mapOverlayTypography';
 import { isStudentAssignedToTask } from '../utils/task-assignments';
 import { taskEffectiveStatus } from '../utils/taskListHelpers.js';
+import {
+  canStudentAssignTask,
+  taskEnrollmentMeta,
+  taskVisualStatus,
+  mergeTaskVisualStatus,
+  TASK_VISUAL_LABEL,
+} from '../utils/taskEnrollment.js';
 import { parseLivingBeings, orderedLivingBeingsForForm, nextLivingBeingsFromMultiSelect } from '../utils/livingBeings';
 import { getContentText } from '../utils/content';
 import { wheelZoomScaleFactor } from '../utils/mapWheelZoom';
@@ -378,46 +385,6 @@ function tutorialLinkedToSameMap(tu, mapId) {
   return [...zl, ...ml].every((x) => x.map_id === mapId);
 }
 
-function taskOpenSlots(task) {
-  const required = Number(task?.required_students || 1);
-  const assigned = Array.isArray(task?.assignments) ? task.assignments.length : 0;
-  return Math.max(0, required - assigned);
-}
-
-function canStudentAssignTask(task, student) {
-  if (!task || !student) return false;
-  const effectiveStatus = taskEffectiveStatus(task);
-  if (effectiveStatus === 'validated' || effectiveStatus === 'done' || effectiveStatus === 'on_hold' || effectiveStatus === 'project_completed' || effectiveStatus === 'project_validated') return false;
-  if (isStudentAssignedToTask(task, student)) return false;
-  return taskOpenSlots(task) > 0;
-}
-
-function taskEnrollmentMeta(task, student) {
-  const isMine = isStudentAssignedToTask(task, student);
-  const slots = taskOpenSlots(task);
-  const effectiveStatus = taskEffectiveStatus(task);
-  const isClosed = effectiveStatus === 'validated' || effectiveStatus === 'done';
-  if (isMine) {
-    return { tone: '#0f766e', bg: '#f0fdfa', border: '#99f6e4', dot: '●', label: 'Déjà prise par toi' };
-  }
-  if (effectiveStatus === 'on_hold') {
-    return { tone: '#92400e', bg: '#fffbeb', border: '#fde68a', dot: '●', label: 'En attente' };
-  }
-  if (effectiveStatus === 'project_completed') {
-    return { tone: '#92400e', bg: '#fffbeb', border: '#fde68a', dot: '●', label: 'Projet terminé' };
-  }
-  if (effectiveStatus === 'project_validated') {
-    return { tone: '#166534', bg: '#f0fdf4', border: '#86efac', dot: '●', label: 'Projet validé' };
-  }
-  if (isClosed) {
-    return { tone: '#92400e', bg: '#fffbeb', border: '#fde68a', dot: '●', label: effectiveStatus === 'done' ? 'Terminée (en attente)' : 'Validée' };
-  }
-  if (slots <= 0) {
-    return { tone: '#991b1b', bg: '#fef2f2', border: '#fecaca', dot: '●', label: 'Complet' };
-  }
-  return { tone: '#166534', bg: '#f0fdf4', border: '#86efac', dot: '●', label: `${slots} place${slots > 1 ? 's' : ''} disponible${slots > 1 ? 's' : ''}` };
-}
-
 function TaskEnrollmentLegend() {
   const items = [
     { key: 'mine', color: '#0f766e', label: 'Déjà prise' },
@@ -435,27 +402,6 @@ function TaskEnrollmentLegend() {
       ))}
     </div>
   );
-}
-
-const TASK_VISUAL_PRIORITY = { done: 1, progress: 2, todo: 3 };
-const TASK_VISUAL_LABEL = {
-  todo: 'Tâche à faire',
-  progress: 'Tâche en cours',
-  done: 'Tâche terminée',
-};
-
-function taskVisualStatus(status) {
-  if (status === 'on_hold') return null;
-  if (status === 'available') return 'todo';
-  if (status === 'in_progress') return 'progress';
-  if (status === 'done' || status === 'validated') return 'done';
-  return null;
-}
-
-function mergeTaskVisualStatus(current, next) {
-  if (!current) return next;
-  if (!next) return current;
-  return (TASK_VISUAL_PRIORITY[next] || 0) > (TASK_VISUAL_PRIORITY[current] || 0) ? next : current;
 }
 
 function parseVisitEditorialBlocksFromJson(raw) {
