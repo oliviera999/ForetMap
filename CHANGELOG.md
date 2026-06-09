@@ -14,6 +14,11 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - **Tâches (O10)** : `replaceTaskJoinRows` — un INSERT multi-valeurs pour zones/repères/tutoriels/référents au lieu de boucles N+1.
 - **Serveur (O13, O14)** : `helmet` (nosniff/frameguard/HSTS/referrer-policy ; CSP `img-src` conservé) ; `crypto.timingSafeEqual` pour `DEPLOY_SECRET` ; `/api/version` et `/api/admin/diagnostics` servent `startupVersion` sans relecture disque de `package.json`.
 
+### Tests & rendu (O6, O2)
+
+- **1er test UI de l'app principale ForetMap** : `tests-ui/components/TaskTileCard.test.jsx` (titre, actions n3boss vs n3beur, garde-fou mémoïsation) — `TaskTileCard` est désormais exporté et testé.
+- **`TaskTileCard` mémoïsé** (`React.memo`) : fondation pour supprimer les re-rendus de tuiles à chaque tick de polling. Gain plein conditionné à la stabilisation `useCallback` des handlers de `TasksView` (suite documentée dans `docs/AUDIT_OPTIMISATION.md`, O2).
+
 ### Outillage (O12)
 
 - `eslint-plugin-react-hooks` (`rules-of-hooks: error`, `exhaustive-deps: warn`) + `no-unused-vars` (warn) sur `src/` et backend ; config **Prettier** (`.prettierrc.json`, `.prettierignore`) + scripts `format` / `format:check`.

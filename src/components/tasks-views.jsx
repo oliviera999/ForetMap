@@ -3396,7 +3396,7 @@ function TaskLogsViewer({ task, onClose }) {
   );
 }
 
-function TaskTileCard({
+function TaskTileCardImpl({
   t,
   index = 0,
   viewMode,
@@ -4227,4 +4227,9 @@ if (visibleProjects.length <= 0) return null;
 }
 
 
-export { TaskFormModal, TasksView, LogModal, TaskLogsViewer };
+// Tuile de tâche mémoïsée : évite de re-réconcilier chaque tuile à chaque rendu de TasksView
+// (polling 60 s / events temps réel). Le gain est plein une fois les handlers passés en props
+// stabilisés (useCallback) côté TasksView — voir docs/AUDIT_OPTIMISATION.md (O2).
+const TaskTileCard = React.memo(TaskTileCardImpl);
+
+export { TaskFormModal, TasksView, LogModal, TaskLogsViewer, TaskTileCard };
