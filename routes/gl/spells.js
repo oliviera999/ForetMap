@@ -192,7 +192,7 @@ router.get('/admin/spells/stats', requireGlPermission('gl.content.manage'), asyn
 
 /** GET /api/gl/admin/spells/import/template */
 router.get('/admin/spells/import/template', requireGlPermission('gl.content.manage'), async (_req, res) => {
-  const buffer = buildSpellsTemplateWorkbook();
+  const buffer = await buildSpellsTemplateWorkbook();
   res.setHeader(
     'Content-Type',
     'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
@@ -207,7 +207,7 @@ router.get('/admin/spells/export', requireGlPermission('gl.content.manage'), asy
   const statut = statutRaw === 'all' ? 'all' : statutRaw;
   const categorySlug = normalizeCategorySlug(req.query?.categorySlug);
   const data = await loadSpellsExportRows({ queryAll }, { statut, categorySlug });
-  const buffer = buildSpellsExportWorkbook(data);
+  const buffer = await buildSpellsExportWorkbook(data);
   res.setHeader(
     'Content-Type',
     'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
@@ -222,7 +222,7 @@ router.post('/admin/spells/import', requireGlPermission('gl.content.manage'), as
   const syncCategories = req.body?.syncCategories !== false;
   let parsed;
   try {
-    parsed = resolveImportRows(req.body || {});
+    parsed = await resolveImportRows(req.body || {});
   } catch (err) {
     return res.status(400).json({ error: err.message || 'Fichier import invalide' });
   }
