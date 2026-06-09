@@ -47,6 +47,21 @@ import {
   teacherStatusActionDisabled,
 } from '../utils/taskActionErrors.js';
 import { usePublicSettings } from '../contexts/PublicSettingsContext.jsx';
+import {
+  compareTasksByImportanceThenDueDate,
+  normalizeDateOnly,
+  currentLocalDateOnly,
+  taskEffectiveStatus,
+  projectStatusLabel,
+  normalizeProjectUiStatus,
+  mapLabelFromMaps,
+  taskHasLocation,
+  tutorialPickerLocationIds,
+  tutorialPickerHasLocation,
+  tutorialPickerLinkedToSameMap,
+  dedupeTutorialsByIdForTasks,
+  tutorialRefsFromTasksAtLocationFilter,
+} from '../utils/taskListHelpers.js';
 
 function zonePickDisplayName(z) {
   const line = formatLivingBeingsListLine(
@@ -58,32 +73,6 @@ function zonePickDisplayName(z) {
 function taskLivingBeingEmoji(plants, name) {
   const p = (plants || []).find((x) => x.name === name);
   return p?.emoji || '🌱';
-}
-
-const TASK_IMPORTANCE_SORT_WEIGHT = {
-  not_important: 1,
-  low: 2,
-  medium: 3,
-  high: 4,
-  absolute: 5,
-};
-
-/** Même logique que GET /api/tasks : importance explicite d’abord (poids décroissant), puis sans importance, puis date limite. */
-function compareTasksByImportanceThenDueDate(a, b) {
-  const rawA = String(a?.importance_level || '').trim().toLowerCase();
-  const rawB = String(b?.importance_level || '').trim().toLowerCase();
-  const tierA = rawA && TASK_IMPORTANCE_SORT_WEIGHT[rawA] != null ? 0 : 1;
-  const tierB = rawB && TASK_IMPORTANCE_SORT_WEIGHT[rawB] != null ? 0 : 1;
-  if (tierA !== tierB) return tierA - tierB;
-  if (tierA === 0) {
-    const wA = TASK_IMPORTANCE_SORT_WEIGHT[rawA] || 0;
-    const wB = TASK_IMPORTANCE_SORT_WEIGHT[rawB] || 0;
-    if (wA !== wB) return wB - wA;
-  }
-  const da = String(a?.due_date || '');
-  const db = String(b?.due_date || '');
-  if (da !== db) return da.localeCompare(db);
-  return String(a?.id || '').localeCompare(String(b?.id || ''));
 }
 
 function taskLogCommentDraftKey(taskId) {
@@ -152,29 +141,6 @@ function normalizeTutorialIds(ids) {
     unique.add(n);
   }
   return [...unique];
-}
-
-function normalizeDateOnly(value) {
-  const raw = String(value || '').trim();
-  if (!raw) return null;
-  if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw;
-  const parsed = new Date(raw);
-  if (Number.isNaN(parsed.getTime())) return null;
-  return parsed.toISOString().slice(0, 10);
-}
-
-function currentLocalDateOnly() {
-  const now = new Date();
-  const y = now.getFullYear();
-  const m = String(now.getMonth() + 1).padStart(2, '0');
-  const d = String(now.getDate()).padStart(2, '0');
-  return `${y}-${m}-${d}`;
-}
-
-function isBeforeTaskStartDate(task) {
-  const startDate = normalizeDateOnly(task?.start_date);
-  if (!startDate) return false;
-  return startDate > currentLocalDateOnly();
 }
 
 function startDateChip(startDate) {
@@ -1277,95 +1243,6 @@ function TaskProjectFormModal({
   );
 }
 
-function taskHasZone(t, zoneId) {
-  if (!zoneId) return true;
-  const normalizedZoneId = String(zoneId || '').trim();
-  if (!normalizedZoneId) return true;
-  if ((t.zone_ids || []).some((id) => String(id || '').trim() === normalizedZoneId)) return true;
-  return String(t.zone_id || '').trim() === normalizedZoneId;
-}
-
-function taskHasMarker(t, markerId) {
-  if (!markerId) return true;
-  const normalizedMarkerId = String(markerId || '').trim();
-  if (!normalizedMarkerId) return true;
-  if ((t.marker_ids || []).some((id) => String(id || '').trim() === normalizedMarkerId)) return true;
-  return String(t.marker_id || '').trim() === normalizedMarkerId;
-}
-
-function taskHasLocation(t, locationFilterValue) {
-  if (!locationFilterValue) return true;
-  const [kind, rawId] = String(locationFilterValue).split(':');
-  if (!rawId) return taskHasZone(t, locationFilterValue);
-  if (kind === 'zone') return taskHasZone(t, rawId);
-  if (kind === 'marker') return taskHasMarker(t, rawId);
-  return true;
-}
-
-function tutorialPickerLocationIds(tu) {
-  if (!tu) return { zoneIds: [], markerIds: [] };
-  const zoneIds = [...new Set((tu.zone_ids || []).map((id) => String(id || '').trim()).filter(Boolean))];
-  const markerIds = [...new Set((tu.marker_ids || []).map((id) => String(id || '').trim()).filter(Boolean))];
-  return { zoneIds, markerIds };
-}
-
-function tutorialPickerHasLocation(tu, locationFilterValue) {
-  if (!locationFilterValue) return true;
-  const [kind, rawId] = String(locationFilterValue).split(':');
-  const { zoneIds: zl, markerIds: ml } = tutorialPickerLocationIds(tu);
-  if (!rawId) return zl.includes(String(locationFilterValue).trim());
-  if (kind === 'zone') return zl.includes(String(rawId).trim());
-  if (kind === 'marker') return ml.includes(String(rawId).trim());
-  return true;
-}
-
-function tutorialPickerLinkedToSameMap(tu, mapId) {
-  if (!mapId) return true;
-  const zl = tu.zones_linked || [];
-  const ml = tu.markers_linked || [];
-  if (zl.length === 0 && ml.length === 0) return true;
-  return [...zl, ...ml].every((x) => x.map_id === mapId);
-}
-
-function dedupeTutorialsByIdForTasks(list) {
-  const seen = new Set();
-  const out = [];
-  for (const tu of list || []) {
-    if (!tu || tu.id == null) continue;
-    const k = String(tu.id);
-    if (seen.has(k)) continue;
-    seen.add(k);
-    out.push(tu);
-  }
-  return out;
-}
-
-/** Tutoriels référencés par une tâche (tutorials_linked ou tutorial_ids + catalogue). */
-function taskLinkedTutorialRefsForPicker(task, tutorialsCatalog = []) {
-  if (!task) return [];
-  const linked = task.tutorials_linked;
-  if (Array.isArray(linked) && linked.length) return linked;
-  const ids = task.tutorial_ids;
-  if (!Array.isArray(ids) || !ids.length) return [];
-  const out = [];
-  for (const raw of ids) {
-    const tu = tutorialsCatalog.find((x) => Number(x.id) === Number(raw));
-    if (tu) out.push(tu);
-  }
-  return out;
-}
-
-function tutorialRefsFromTasksAtLocationFilter(filterZone, tasks, tutorialsCatalog) {
-  if (!filterZone) return [];
-  const refs = [];
-  for (const t of tasks || []) {
-    if (t.status === 'done' || t.status === 'validated') continue;
-    if (!taskHasLocation(t, filterZone)) continue;
-    refs.push(...taskLinkedTutorialRefsForPicker(t, tutorialsCatalog));
-  }
-  return dedupeTutorialsByIdForTasks(refs);
-}
-
 function formatAssigneeName(assignee, student, canViewIdentity = true) {
   const firstName = String(assignee?.student_first_name || '').trim();
   const lastName = String(assignee?.student_last_name || '').trim();
@@ -1424,37 +1301,6 @@ const TASK_STATUS_FILTER_OPTIONS = [
   { value: 'project_completed', label: 'Projet terminé (auto)' },
   { value: 'project_validated', label: 'Projet validé' },
 ];
-
-function taskEffectiveStatus(task) {
-  const baseStatus = task?.status || 'available';
-  if (baseStatus === 'done' || baseStatus === 'validated' || baseStatus === 'proposed') return baseStatus;
-  if (task?.project_status === 'validated') return 'project_validated';
-  if (task?.project_status === 'completed') return 'project_completed';
-  if (baseStatus === 'on_hold' || task?.project_status === 'on_hold' || task?.is_before_start_date || isBeforeTaskStartDate(task)) {
-    return 'on_hold';
-  }
-  return baseStatus;
-}
-
-function projectStatusLabel(status) {
-  if (status === 'on_hold') return ' (en attente)';
-  if (status === 'completed') return ' (terminé)';
-  if (status === 'validated') return ' (validé)';
-  return '';
-}
-
-function normalizeProjectUiStatus(status) {
-  if (status === 'on_hold') return 'on_hold';
-  if (status === 'completed') return 'completed';
-  if (status === 'validated') return 'validated';
-  return 'active';
-}
-
-function mapLabelFromMaps(mapId, maps) {
-  if (!mapId) return 'Globale';
-  const map = maps.find((m) => m.id === mapId);
-  return map ? map.label : mapId;
-}
 
 function TasksView({
   tasks,
