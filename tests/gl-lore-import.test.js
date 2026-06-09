@@ -22,11 +22,11 @@ const {
 const { computeEffacementPct, maskFeuilletText } = require('../lib/glLoreFeuilletEffects');
 const { filterLoreGlossaryList } = require('../lib/glLoreGlossaryMatch');
 
-test('parseFeuilletsWorkbook lit le fichier de référence', () => {
+test('parseFeuilletsWorkbook lit le fichier de référence', async () => {
   const file = path.join(process.cwd(), 'data', 'gl', 'corpus-feuillets-selene.xlsx');
   assert.ok(fs.existsSync(file), 'fichier corpus attendu');
   const buffer = fs.readFileSync(file);
-  const { feuilletRows, plateauRows } = parseFeuilletsWorkbook(buffer);
+  const { feuilletRows, plateauRows } = await parseFeuilletsWorkbook(buffer);
   assert.ok(feuilletRows.length >= 100);
   assert.ok(plateauRows.length >= 5);
   assert.ok(feuilletRows.some((row) => row.feuillet_code === 'cop-cover'));
@@ -64,10 +64,10 @@ test('normalizeLoreBiomeSlug résout les alias corpus Sélène', () => {
   assert.strictEqual(normalizeLoreBiomeSlug('jungle_afc'), 'jungle_afc');
 });
 
-test('parseLoreGlossaryWorkbook lit le fichier de référence', () => {
+test('parseLoreGlossaryWorkbook lit le fichier de référence', async () => {
   const file = path.join(process.cwd(), 'data', 'gl', 'glossaire-lore-gnomes-et-licornes.xlsx');
   assert.ok(fs.existsSync(file));
-  const { glossaryRows } = parseLoreGlossaryWorkbook(fs.readFileSync(file));
+  const { glossaryRows } = await parseLoreGlossaryWorkbook(fs.readFileSync(file));
   assert.ok(glossaryRows.length >= 40);
 });
 
@@ -142,7 +142,7 @@ test('import feuillet image_url persiste et export round-trip', async () => {
     ]),
     'feuillets',
   );
-  const parsed = parseFeuilletsWorkbook(XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' }));
+  const parsed = await parseFeuilletsWorkbook(XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' }));
   const deps = { queryAll: require('../database').queryAll, execute };
   const report = await applyFeuilletsImport(deps, parsed, { dryRun: false });
   assert.strictEqual(report.feuillets.skipped, 0);
@@ -157,14 +157,14 @@ test('import feuillet image_url persiste et export round-trip', async () => {
   const exported = exportRows.find((r) => r.feuillet_code === code);
   assert.strictEqual(exported.image_url, imageUrl);
 
-  const exportBuffer = buildFeuilletsExportWorkbook([exported]);
-  const reparsed = parseFeuilletsWorkbook(exportBuffer);
+  const exportBuffer = await buildFeuilletsExportWorkbook([exported]);
+  const reparsed = await parseFeuilletsWorkbook(exportBuffer);
   assert.strictEqual(reparsed.feuilletRows[0].image_url, imageUrl);
 });
 
 test('applyFeuilletsImport dry-run sans erreur fatale', async () => {
   const file = path.join(process.cwd(), 'data', 'gl', 'corpus-feuillets-selene.xlsx');
-  const parsed = parseFeuilletsWorkbook(fs.readFileSync(file));
+  const parsed = await parseFeuilletsWorkbook(fs.readFileSync(file));
   const catalogBiomes = [
     'sahara', 'jungle_afc', 'toundra', 'foret_caducifoliee', 'savane', 'mangrove',
     'taiga', 'foret_mediterraneenne', 'prairie_steppe', 'desert_froid', 'landes',

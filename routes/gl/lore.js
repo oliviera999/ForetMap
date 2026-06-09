@@ -490,19 +490,19 @@ router.put('/admin/feuillets/:code/kingdom-zone', requireGlPermission('gl.conten
 });
 
 router.get('/admin/feuillets/import/template', requireGlPermission('gl.content.manage'), wrapXlsxRoute(async () => ({
-  buffer: buildFeuilletsTemplateWorkbook(),
+  buffer: await buildFeuilletsTemplateWorkbook(),
   filename: 'modele-feuillets-selene.xlsx',
 })));
 
 router.get('/admin/feuillets/export', requireGlPermission('gl.content.manage'), wrapXlsxRoute(async () => ({
-  buffer: buildFeuilletsExportWorkbook(await loadFeuilletsExportRows(db)),
+  buffer: await buildFeuilletsExportWorkbook(await loadFeuilletsExportRows(db)),
   filename: 'export-feuillets-selene.xlsx',
 })));
 
 router.post('/admin/feuillets/import', requireGlPermission('gl.content.manage'), async (req, res) => {
   const dryRun = !!req.body?.dryRun;
   try {
-    const parsed = resolveFeuilletsImportBody(req.body || {});
+    const parsed = await resolveFeuilletsImportBody(req.body || {});
     const report = await applyFeuilletsImport(db, parsed, { dryRun });
     return res.json({ report });
   } catch (err) {
@@ -554,14 +554,14 @@ router.put('/admin/glossary/terms/:code', requireGlPermission('gl.content.manage
 });
 
 router.get('/admin/glossary/import/template', requireGlPermission('gl.content.manage'), wrapXlsxRoute(async () => ({
-  buffer: buildLoreGlossaryTemplateWorkbook(),
+  buffer: await buildLoreGlossaryTemplateWorkbook(),
   filename: 'modele-glossaire-lore.xlsx',
 })));
 
 router.get('/admin/glossary/export', requireGlPermission('gl.content.manage'), wrapXlsxRoute(async (req) => {
   const statut = String(req.query?.statut || 'actif').toLowerCase();
   return {
-    buffer: buildLoreGlossaryExportWorkbook(await loadLoreGlossaryExportRows(db, statut)),
+    buffer: await buildLoreGlossaryExportWorkbook(await loadLoreGlossaryExportRows(db, statut)),
     filename: 'export-glossaire-lore.xlsx',
   };
 }));
@@ -569,7 +569,7 @@ router.get('/admin/glossary/export', requireGlPermission('gl.content.manage'), w
 router.post('/admin/glossary/import', requireGlPermission('gl.content.manage'), async (req, res) => {
   const dryRun = !!req.body?.dryRun;
   try {
-    const { glossaryRows } = resolveLoreGlossaryImportBody(req.body || {});
+    const { glossaryRows } = await resolveLoreGlossaryImportBody(req.body || {});
     const report = await applyLoreGlossaryImport(db, glossaryRows, { dryRun });
     return res.json({ report });
   } catch (err) {
