@@ -532,7 +532,7 @@ router.get(
   requireGlPermission('gl.content.manage'),
   wrapXlsxRoute(async (_req, res) => sendXlsxAttachment(
     res,
-    buildSpeciesTemplateWorkbook(),
+    await buildSpeciesTemplateWorkbook(),
     'foretmap-gl-modele-biocenose.xlsx'
   ))
 );
@@ -545,7 +545,7 @@ router.get(
     const statut = statutRaw === 'all' ? 'all' : 'actif';
     const biomeSlug = normalizeBiomeSlugFilter(req.query?.biomeSlug);
     const data = await loadSpeciesExportRows({ queryAll }, { statut, biomeSlug });
-    return sendXlsxAttachment(res, buildSpeciesExportWorkbook(data), 'foretmap-gl-export-biocenose.xlsx');
+    return sendXlsxAttachment(res, await buildSpeciesExportWorkbook(data), 'foretmap-gl-export-biocenose.xlsx');
   })
 );
 
