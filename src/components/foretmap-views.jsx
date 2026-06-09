@@ -38,6 +38,7 @@ import { MarkdownTextarea } from './MarkdownTextarea.jsx';
 import { buildMapImageCandidates } from '../utils/mapImageCandidates';
 import { TimedToast } from '../shared/components/TimedToast.jsx';
 import { usePublicSettings } from '../contexts/PublicSettingsContext.jsx';
+import { useSession } from '../contexts/SessionContext.jsx';
 import { fileToDataUrl } from '../utils/fileToDataUrl.js';
 
 // ── INTERACTIVE MAP ──────────────────────────────────────────────────────────
@@ -1784,10 +1785,10 @@ function PlantManager({
   zones = [],
   markers = [],
   maps = [],
-  canParticipateContextComments = true,
   onForceLogout = null,
 }) {
   const publicSettings = usePublicSettings();
+  const { canParticipateContextComments = true } = useSession();
   const contextCommentsEnabled = publicSettings?.modules?.context_comments_enabled !== false;
   const [editId,  setEditId]  = useState(null);
   const [form,    setForm]    = useState({ ...EMPTY_PLANT_FORM });
@@ -2743,11 +2744,11 @@ function PlantCatalogPreviewModal({
   zones = [],
   markers = [],
   maps = [],
-  canParticipateContextComments = true,
   onClose,
   onForceLogout = null,
 }) {
   const publicSettings = usePublicSettings();
+  const { canParticipateContextComments = true } = useSession();
   useOverlayHistoryBack(!!plant, onClose);
   const contextCommentsEnabled = publicSettings?.modules?.context_comments_enabled !== false;
   const [obs, setObs] = useState({ my: 0, site: 0 });
@@ -2815,10 +2816,10 @@ function PlantViewer({
   zones,
   markers = [],
   maps = [],
-  canParticipateContextComments = true,
   onForceLogout = null,
 }) {
   const publicSettings = usePublicSettings();
+  const { canParticipateContextComments = true } = useSession();
   const contextCommentsEnabled = publicSettings?.modules?.context_comments_enabled !== false;
   const [search, setSearch] = useState('');
   const [group1, setGroup1] = useState('');

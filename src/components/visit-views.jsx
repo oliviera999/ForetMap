@@ -911,7 +911,6 @@ function VisitView({
   initialMapId = 'foret',
   availableTutorials = [],
   onBackToAuth,
-  canParticipateContextComments = true,
   /** Prof : ouvre l’onglet dédié « Packs mascotte » dans l’app principale. */
   onOpenMascotPackStudioTab,
   /** Carte source : mêmes IDs que la visite — pour biodiversité / tutos comme en mode carte. */
@@ -927,7 +926,7 @@ function VisitView({
   onGuestMascotChoiceDone = null,
 }) {
   const publicSettings = usePublicSettings();
-  const { isN3Affiliated = false } = useSession();
+  const { isN3Affiliated = false, canParticipateContextComments = true } = useSession();
   const contextCommentsEnabled = publicSettings?.modules?.context_comments_enabled !== false;
   const configuredLocationEmojis = String(
     publicSettings?.ui?.map?.location_emojis

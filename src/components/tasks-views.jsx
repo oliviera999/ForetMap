@@ -1308,7 +1308,6 @@ function TasksView({
   student,
   canSelfAssignTasks = true,
   canEnrollOnTasks,
-  canParticipateContextComments = true,
   canViewOtherUsersIdentity = true,
   onRefresh,
   onForceLogout,
@@ -1320,7 +1319,7 @@ function TasksView({
   hasPermissionInRole = () => false,
 }) {
   const publicSettings = usePublicSettings();
-  const { isN3Affiliated = false } = useSession();
+  const { isN3Affiliated = false, canParticipateContextComments = true } = useSession();
   const canEnrollNewTask = canEnrollOnTasks !== undefined ? canEnrollOnTasks : canSelfAssignTasks;
   const roleTerms = getRoleTerms(isN3Affiliated);
   const teacherTaskPerms = useMemo(() => ({
