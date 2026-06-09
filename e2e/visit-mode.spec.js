@@ -1,6 +1,26 @@
 const { test, expect } = require('@playwright/test');
 const { loginAsNewStudent, enableTeacherMode } = require('./fixtures/auth.fixture');
 
+const VISIT_MAP_MASCOT_MOVE_MS = 560;
+
+/** Clic fiable sur la première zone visite (polygon ou hitbox). */
+async function clickFirstVisitZone(stage) {
+  const zoneHit = stage.locator('.visit-zone-hit').first();
+  const poly = zoneHit.locator('polygon').first();
+  if (await poly.count()) {
+    const box = await poly.boundingBox();
+    if (box && box.width > 0 && box.height > 0) {
+      await poly.click({
+        position: { x: box.width / 2, y: box.height / 2 },
+        force: true,
+        timeout: 10_000,
+      });
+      return;
+    }
+  }
+  await zoneHit.click({ force: true, timeout: 10_000 });
+}
+
 test('visite publique : choix mascotte obligatoire au premier lancement puis mémorisé', async ({ page }) => {
   await page.goto('/');
   const guestCta = page.getByRole('button', { name: /Visiter sans compte/i });
@@ -105,14 +125,9 @@ test('visite connectée : clic sur une zone ouvre le panneau détail', async ({ 
     test.skip();
     return;
   }
-  const poly = zoneHit.locator('polygon').first();
-  if (await poly.count()) {
-    await poly.click({ force: true, timeout: 10_000 });
-  } else {
-    await zoneHit.click({ force: true, timeout: 10_000 });
-  }
+  await clickFirstVisitZone(stage);
   const panel = page.getByTestId('visit-detail-panel');
-  await expect(panel).toBeVisible({ timeout: 10_000 });
+  await expect(panel).toBeVisible({ timeout: VISIT_MAP_MASCOT_MOVE_MS + 15_000 });
   await expect(panel).toHaveAttribute('role', 'dialog');
   await panel.getByRole('button', { name: 'Fermer' }).click();
   await expect(panel).toHaveCount(0);
@@ -155,11 +170,10 @@ test('visite publique : marquage vu hors ligne puis synchronisation', async ({ p
   await guestCta.click();
 
   const onboarding = page.locator('.visit-mascot-onboarding');
-  if (await onboarding.isVisible({ timeout: 5000 }).catch(() => false)) {
-    await onboarding.locator('.visit-mascot-onboarding__option').first().click();
-    await onboarding.getByRole('button', { name: /Commencer la visite/i }).click();
-    await expect(onboarding).toHaveCount(0);
-  }
+  await expect(onboarding).toBeVisible({ timeout: 30_000 });
+  await onboarding.locator('.visit-mascot-onboarding__option').first().click();
+  await onboarding.getByRole('button', { name: /Commencer la visite/i }).click();
+  await expect(onboarding).toHaveCount(0);
 
   await expect(page.locator('.visit-view--guest-public')).toBeVisible({ timeout: 30_000 });
   const stage = page.locator('.visit-map-stage');
@@ -174,15 +188,10 @@ test('visite publique : marquage vu hors ligne puis synchronisation', async ({ p
   if ((await markerBtn.count()) > 0) {
     await markerBtn.click({ force: true, timeout: 10_000 });
   } else {
-    const poly = zoneHit.locator('polygon').first();
-    if (await poly.count()) {
-      await poly.click({ force: true, timeout: 10_000 });
-    } else {
-      await zoneHit.click({ force: true, timeout: 10_000 });
-    }
+    await clickFirstVisitZone(stage);
   }
   const panel = page.getByTestId('visit-detail-panel');
-  await expect(panel).toBeVisible({ timeout: 20_000 });
+  await expect(panel).toBeVisible({ timeout: VISIT_MAP_MASCOT_MOVE_MS + 20_000 });
 
   await context.setOffline(true);
   const status = page.getByTestId('visit-network-status');
