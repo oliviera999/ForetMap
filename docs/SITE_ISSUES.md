@@ -7,6 +7,7 @@ Il consolide les constats des audits internes, notamment:
 
 - `docs/AUDIT_BUGS_INCOHERENCES.md`
 - `docs/AUDIT_PHOTOS_BIODIVERSITE.md`
+- `docs/AUDIT_OPTIMISATION.md` (extensibilite / maintenabilite / performance)
 
 ## Critiques / Haute priorite
 
@@ -38,6 +39,25 @@ Il consolide les constats des audits internes, notamment:
 - `B1` - Suppression d'observation protegee (proprietaire ou n3boss selon perimetre).
 - `B2` - Lecture observations protegee contre IDOR inter-eleves.
 - `B8` - `PATCH /api/students/:id/profile` protege par JWT et verification proprietaire.
+
+## Optimisation (extensibilite / maintenabilite / performance)
+
+Source et tracker detaille: `docs/AUDIT_OPTIMISATION.md`. Statuts: todo / wip / done / differe.
+
+- `O1` - [done] Renderers mascotte charges en eager sur la Carte (~268 KB inutiles) ; lazy par renderer.
+- `O2` - [done] Tuiles de taches non memoisees (re-render par tick) ; `useMemo` + `React.memo`.
+- `O3` - [differe] RBAC recalcule a chaque requete ; cache TTL tente puis reverte (invalidation incomplete, SQL direct hors hooks). A refaire avec compteur de version RBAC global ou cache request-scoped.
+- `O4` - [differe] `xlsx@0.18.5` (CVE-2023-30533 / CVE-2024-22363) via parsing uploads ; choix exceljs vs SheetJS CDN a trancher.
+- `O5` - [wip] `App.jsx` God component + prop-drilling x4 ; Contexts par domaine.
+- `O6` - [wip] Composants monolithiques + 0 test UI (~21k LOC) ; extraire logique pure + tests, puis decouper.
+- `O7` - [wip] `zod` installe mais jamais utilise ; middleware `validate(schema)` par endpoint.
+- `O8` - [todo] try/catch disperses + `respondInternalError` redefini ; wrapper `asyncHandler`.
+- `O9` - [done] Helpers dupliques (`normalizeOptionalString` x25, pagination, `Lightbox` x2, compression image) ; mutualisation.
+- `O10` - [wip] Routes obeses (2000+ l.) + N+1 d'ecriture (boucles INSERT) ; services par domaine + INSERT multi-valeurs.
+- `O11` - [done] Lazy ineffectif + markdown/GL eager + sourcemap prod ; corrections bundle.
+- `O12` - [done] ESLint sans react-hooks ; pas de Prettier ; 0 typage ; outillage durci.
+- `O13` - [done] Pas de `helmet` ; CORS ouvert par defaut ; `DEPLOY_SECRET` non constant-time ; durcissement.
+- `O14` - [done] Fichiers morts + `fs.readFileSync(package.json)` en chemin requete ; nettoyage.
 
 ## Endpoint d'acces
 

@@ -1,0 +1,16 @@
+dist/
+node_modules/
+deploy/
+load/reports/
+coverage/
+playwright-report/
+test-results/
+*.min.js
+package-lock.json
+src/index.css
+src/gl/styles/gl-theme.css
+CHANGELOG.md
+data/
+public/
+lib/visit-pack/
+lib/gl-pack/

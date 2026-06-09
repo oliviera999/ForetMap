@@ -32,8 +32,29 @@ if (dryRun) {
   process.exit(0);
 }
 
-copyManifestSnapshotsToSrcAssets(root);
-console.log(`Manifestes GL synchronisés (${result.imageCount} images, ${result.warnings.length} avertissement(s)).`);
+// Garde-fou : ne jamais RETRECIR le manifest committe `src/gl/assets/`. En CI / conteneur sans
+// mediatheque GL importee (`npm run gl:import:media`), la generation ne voit que des placeholders
+// (ex. `.gitkeep`) ; ecraser le manifest viderait les illustrations GL embarquees dans le bundle.
+// On ne met a jour le manifest src que si la generation contient AU MOINS autant d'images que le committe.
+function committedSrcImageCount() {
+  try {
+    const p = path.join(root, 'src', 'gl', 'assets', 'manifest.images.json');
+    return Object.keys(JSON.parse(fs.readFileSync(p, 'utf8'))).length;
+  } catch (_) {
+    return 0;
+  }
+}
+const existingCount = committedSrcImageCount();
+if (result.imageCount < existingCount) {
+  console.warn(
+    `⚠ Manifest GL genere (${result.imageCount} images) plus petit que le committe (${existingCount}) — `
+    + 'manifest src/gl/assets PRESERVE (mediatheque GL non importee dans cet environnement). '
+    + 'Lancez `npm run gl:import:media` pour (re)generer depuis la mediatheque.'
+  );
+} else {
+  copyManifestSnapshotsToSrcAssets(root);
+  console.log(`Manifestes GL synchronisés (${result.imageCount} images, ${result.warnings.length} avertissement(s)).`);
+}
 if (result.warnings.length) {
   for (const warning of result.warnings) console.warn('⚠', warning);
 }

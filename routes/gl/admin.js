@@ -72,11 +72,7 @@ function normalizeBiomeSlugFilter(value) {
   return s.length > 0 ? s : null;
 }
 
-function normalizeOptionalString(value) {
-  if (value == null) return null;
-  const s = String(value).trim();
-  return s.length > 0 ? s : null;
-}
+const { normalizeOptionalString } = require('../../lib/shared/httpHelpers');
 
 /** Clé complète (ex. modules.zone_music_enabled) même si req.params.key est tronqué. */
 function resolveSettingsKey(req) {

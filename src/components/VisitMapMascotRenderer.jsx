@@ -1,13 +1,17 @@
-import React from 'react';
+import React, { lazy, Suspense } from 'react';
 import { VISIT_MASCOT_STATE } from '../utils/visitMascotState.js';
 import {
   resolveVisitMascotEntry,
   getDefaultVisitMascotId,
 } from '../utils/visitMascotCatalog.js';
-import VisitMapMascotRive from './VisitMapMascotRive.jsx';
 import VisitMascotFallbackSvg from './VisitMascotFallbackSvg.jsx';
-import VisitMapMascotSpritesheet from './VisitMapMascotSpritesheet.jsx';
-import VisitMapMascotSpriteCut from './VisitMapMascotSpriteCut.jsx';
+
+// Renderers lourds chargés à la demande : seul le renderer effectivement sélectionné est
+// téléchargé (rive ~166 KB, sprite_cut ~102 KB). Le fallback SVG (eager) sert de placeholder
+// Suspense pendant le chargement du chunk — comportement visuel identique à l'ancien fallback.
+const VisitMapMascotRive = lazy(() => import('./VisitMapMascotRive.jsx'));
+const VisitMapMascotSpritesheet = lazy(() => import('./VisitMapMascotSpritesheet.jsx'));
+const VisitMapMascotSpriteCut = lazy(() => import('./VisitMapMascotSpriteCut.jsx'));
 
 function VisitMapMascotRenderer({
   mascotState = VISIT_MASCOT_STATE.IDLE,
@@ -24,35 +28,20 @@ function VisitMapMascotRenderer({
   );
   const renderer = selectedMascot?.renderer;
 
-  if (renderer === 'spritesheet') {
-    return (
-      <VisitMapMascotSpritesheet
-        mascotState={mascotState}
-        mascotConfig={selectedMascot}
-        fallback={fallback}
-        mascotId={selectedMascotId}
-      />
-    );
-  }
-
-  if (renderer === 'sprite_cut') {
-    return (
-      <VisitMapMascotSpriteCut
-        mascotState={mascotState}
-        mascotConfig={selectedMascot}
-        fallback={fallback}
-        mascotId={selectedMascotId}
-      />
-    );
-  }
+  let Active;
+  if (renderer === 'spritesheet') Active = VisitMapMascotSpritesheet;
+  else if (renderer === 'sprite_cut') Active = VisitMapMascotSpriteCut;
+  else Active = VisitMapMascotRive;
 
   return (
-    <VisitMapMascotRive
-      mascotState={mascotState}
-      mascotConfig={selectedMascot}
-      fallback={fallback}
-      mascotId={selectedMascotId}
-    />
+    <Suspense fallback={fallback}>
+      <Active
+        mascotState={mascotState}
+        mascotConfig={selectedMascot}
+        fallback={fallback}
+        mascotId={selectedMascotId}
+      />
+    </Suspense>
   );
 }
 
