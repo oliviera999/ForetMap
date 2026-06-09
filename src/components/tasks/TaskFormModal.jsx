@@ -13,6 +13,8 @@ import {
   initialLinkedObjectIds,
   normalizeTutorialIds,
 } from '../../utils/taskFormHelpers.js';
+import { currentLocalDateOnly, projectStatusLabel } from '../../utils/taskListHelpers.js';
+import { getCompletionMode } from '../../utils/taskComputations.js';
 
 const var_alert = 'var(--alert)';
 

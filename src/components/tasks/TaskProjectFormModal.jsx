@@ -5,6 +5,8 @@ import { DialogShell } from '../DialogShell';
 import { MarkdownTextarea } from '../MarkdownTextarea.jsx';
 import { initialLocationIds, normalizeTutorialIds, zonePickDisplayName } from '../../utils/taskFormHelpers.js';
 
+const var_alert = 'var(--alert)';
+
 function TaskProjectFormModal({
   maps = [],
   zones = [],
