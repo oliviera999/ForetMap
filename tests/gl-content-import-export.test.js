@@ -247,7 +247,7 @@ test('GET /api/gl/chapters/admin/import/template retourne un modèle XLSX (scope
     '/api/gl/chapters/admin/import/template?scope=full',
     adminToken
   );
-  const parsed = parseChaptersWorkbook(buf);
+  const parsed = await parseChaptersWorkbook(buf);
   assert.ok(parsed.chapterRows.length >= 1);
   assert.ok(parsed.markerRows.length >= 1);
   assert.ok(parsed.zoneRows.length >= 1);
@@ -266,7 +266,7 @@ test('GET /api/gl/chapters/admin/export scope full round-trip dry-run', async ()
     '/api/gl/chapters/admin/export?scope=full&slug=foret-magique',
     adminToken
   );
-  const parsed = parseChaptersWorkbook(buf);
+  const parsed = await parseChaptersWorkbook(buf);
   assert.ok(parsed.chapterRows.length >= 1);
   const fileDataBase64 = `data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,${buf.toString('base64')}`;
   const res = await request(app)
