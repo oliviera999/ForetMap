@@ -206,6 +206,19 @@ function mergePlantPhotoUploadValue(prevValue, newUrl, position = 'append') {
   return [...existing, url].join('\n');
 }
 
+function extractUploadsRelativePath(value) {
+  const raw = asTrimmedString(value);
+  if (!raw) return null;
+  if (raw.startsWith('/uploads/')) return raw.slice('/uploads/'.length);
+  try {
+    const u = new URL(raw);
+    if (u.pathname.startsWith('/uploads/')) return u.pathname.slice('/uploads/'.length);
+  } catch {
+    return null;
+  }
+  return null;
+}
+
 function extractUploadsRelativePaths(value) {
   const links = parseLinkCandidates(value);
   const candidates = links.length > 0 ? links : [asTrimmedString(value)].filter(Boolean);

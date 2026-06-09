@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { api } from '../services/api';
-import { compressImage } from '../utils/image';
+import { compressImageWithPreset } from '../utils/image';
 import { getRoleTerms } from '../utils/n3-terminology';
 import { MediaLibraryMenu } from './MediaLibraryMenu.jsx';
 import { useSession } from '../contexts/SessionContext.jsx';
