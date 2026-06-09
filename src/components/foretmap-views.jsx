@@ -37,6 +37,7 @@ import { MarkdownContent } from './MarkdownContent.jsx';
 import { MarkdownTextarea } from './MarkdownTextarea.jsx';
 import { buildMapImageCandidates } from '../utils/mapImageCandidates';
 import { TimedToast } from '../shared/components/TimedToast.jsx';
+import { usePublicSettings } from '../contexts/PublicSettingsContext.jsx';
 
 // ── INTERACTIVE MAP ──────────────────────────────────────────────────────────
 
@@ -1788,13 +1789,13 @@ function PlantCatalogFilterPanel({
 function PlantManager({
   plants,
   onRefresh,
-  publicSettings = null,
   zones = [],
   markers = [],
   maps = [],
   canParticipateContextComments = true,
   onForceLogout = null,
 }) {
+  const publicSettings = usePublicSettings();
   const contextCommentsEnabled = publicSettings?.modules?.context_comments_enabled !== false;
   const [editId,  setEditId]  = useState(null);
   const [form,    setForm]    = useState({ ...EMPTY_PLANT_FORM });
@@ -2750,11 +2751,11 @@ function PlantCatalogPreviewModal({
   zones = [],
   markers = [],
   maps = [],
-  publicSettings = null,
   canParticipateContextComments = true,
   onClose,
   onForceLogout = null,
 }) {
+  const publicSettings = usePublicSettings();
   useOverlayHistoryBack(!!plant, onClose);
   const contextCommentsEnabled = publicSettings?.modules?.context_comments_enabled !== false;
   const [obs, setObs] = useState({ my: 0, site: 0 });
@@ -2822,10 +2823,10 @@ function PlantViewer({
   zones,
   markers = [],
   maps = [],
-  publicSettings = null,
   canParticipateContextComments = true,
   onForceLogout = null,
 }) {
+  const publicSettings = usePublicSettings();
   const contextCommentsEnabled = publicSettings?.modules?.context_comments_enabled !== false;
   const [search, setSearch] = useState('');
   const [group1, setGroup1] = useState('');

@@ -9,6 +9,7 @@ import { DialogShell } from './DialogShell';
 import { MarkdownTextarea } from './MarkdownTextarea.jsx';
 import { buildAffiliationSelectOptions } from '../utils/affiliationSelectOptions';
 import { GroupsAdminView } from './groups-views.jsx';
+import { usePublicSettings } from '../contexts/PublicSettingsContext.jsx';
 
 const EDIT_EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -117,7 +118,8 @@ function buildUserEditInitialFields(u) {
   return { firstName, lastName, pseudo, email, description, affiliation };
 }
 
-function ProfilesAdminView({ isN3Affiliated = false, onImpersonationApplied, publicSettings, maps = [] }) {
+function ProfilesAdminView({ isN3Affiliated = false, onImpersonationApplied, maps = [] }) {
+  const publicSettings = usePublicSettings();
   const roleTerms = getRoleTerms(isN3Affiliated);
   const affiliationOptions = useMemo(() => buildAffiliationSelectOptions(maps), [maps]);
   const { isHelpEnabled, hasSeenSection, markSectionSeen, trackPanelOpen, trackPanelDismiss } = useHelp({

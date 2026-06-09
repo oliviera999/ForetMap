@@ -21,6 +21,7 @@ import {
   getProgressionStepIndex,
   computeProgressPercent,
 } from '../utils/studentProgressionLadder.js';
+import { usePublicSettings } from '../contexts/PublicSettingsContext.jsx';
 
 function StudentStats({ student, isN3Affiliated = false }) {
   const roleTerms = getRoleTerms(isN3Affiliated);
@@ -220,7 +221,8 @@ function StudentStats({ student, isN3Affiliated = false }) {
   );
 }
 
-function StudentProfileEditor({ student, onUpdated, onClose, isN3Affiliated = false, maps = [], publicSettings = null }) {
+function StudentProfileEditor({ student, onUpdated, onClose, isN3Affiliated = false, maps = [] }) {
+  const publicSettings = usePublicSettings();
   const roleTerms = getRoleTerms(isN3Affiliated);
   const fallbackDisplayName = String(student?.display_name || student?.displayName || student?.email || 'Utilisateur').trim();
   const displayFirstName = String(student?.first_name || '').trim() || fallbackDisplayName;

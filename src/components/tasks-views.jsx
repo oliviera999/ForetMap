@@ -46,6 +46,7 @@ import {
   filterTeacherStatusActions,
   teacherStatusActionDisabled,
 } from '../utils/taskActionErrors.js';
+import { usePublicSettings } from '../contexts/PublicSettingsContext.jsx';
 
 function zonePickDisplayName(z) {
   const line = formatLivingBeingsListLine(
@@ -1473,7 +1474,6 @@ function TasksView({
   onRefresh,
   onForceLogout,
   isN3Affiliated = false,
-  publicSettings = null,
   onTaskFormOverlayOpenChange = null,
   mapLocationFocus = null,
   onMapLocationFocusChange = null,
@@ -1481,6 +1481,7 @@ function TasksView({
   hasPermission = () => false,
   hasPermissionInRole = () => false,
 }) {
+  const publicSettings = usePublicSettings();
   const canEnrollNewTask = canEnrollOnTasks !== undefined ? canEnrollOnTasks : canSelfAssignTasks;
   const roleTerms = getRoleTerms(isN3Affiliated);
   const teacherTaskPerms = useMemo(() => ({
