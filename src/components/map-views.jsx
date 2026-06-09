@@ -34,6 +34,13 @@ import {
   mergeTaskVisualStatus,
   TASK_VISUAL_LABEL,
 } from '../utils/taskEnrollment.js';
+import {
+  clampEditZonePct,
+  clampEditPts,
+  cloneEditPts,
+  editPtsSnapshotEqual,
+  offsetDuplicateZonePoints,
+} from '../utils/zoneEditGeometry.js';
 import { parseLivingBeings, orderedLivingBeingsForForm, nextLivingBeingsFromMultiSelect } from '../utils/livingBeings';
 import { getContentText } from '../utils/content';
 import { wheelZoomScaleFactor } from '../utils/mapWheelZoom';
@@ -2335,38 +2342,6 @@ function MarkerModal({
 
     </DialogShell>
   );
-}
-
-function clampEditZonePct(p) {
-  return {
-    xp: Math.min(100, Math.max(0, Number(p.xp) || 0)),
-    yp: Math.min(100, Math.max(0, Number(p.yp) || 0)),
-  };
-}
-
-function clampEditPts(pts) {
-  return (pts || []).map(clampEditZonePct);
-}
-
-function cloneEditPts(pts) {
-  return pts.map((p) => ({ xp: p.xp, yp: p.yp }));
-}
-
-function editPtsSnapshotEqual(a, b) {
-  if (!a || !b || a.length !== b.length) return false;
-  for (let i = 0; i < a.length; i += 1) {
-    if (a[i].xp !== b[i].xp || a[i].yp !== b[i].yp) return false;
-  }
-  return true;
-}
-
-/** Décale le polygone (%) pour une copie visible à côté de l’original. */
-function offsetDuplicateZonePoints(pts, dx = 2.5, dy = 2.5) {
-  if (!Array.isArray(pts) || pts.length < 3) return null;
-  return pts.map((p) => clampEditZonePct({
-    xp: (Number(p.xp) || 0) + dx,
-    yp: (Number(p.yp) || 0) + dy,
-  }));
 }
 
 function useMapGestures({ mapImageSrc, activeMapId, mode, onRefresh, embedded = false, mapLayoutOuterRef = null }) {
