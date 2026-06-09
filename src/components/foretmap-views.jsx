@@ -38,6 +38,7 @@ import { MarkdownTextarea } from './MarkdownTextarea.jsx';
 import { buildMapImageCandidates } from '../utils/mapImageCandidates';
 import { TimedToast } from '../shared/components/TimedToast.jsx';
 import { usePublicSettings } from '../contexts/PublicSettingsContext.jsx';
+import { fileToDataUrl } from '../utils/fileToDataUrl.js';
 
 // ── INTERACTIVE MAP ──────────────────────────────────────────────────────────
 
@@ -361,15 +362,6 @@ const PLANTNET_IDENTIFY_PHOTO_FIELD_ORDER = [
   'photo_fruit',
   'photo_harvest_part',
 ];
-
-function fileToDataUrl(file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(String(reader.result || ''));
-    reader.onerror = () => reject(new Error('Lecture du fichier impossible'));
-    reader.readAsDataURL(file);
-  });
-}
 
 function downloadCsvTemplate(headers, filename) {
   const csv = `${headers.join(',')}\n`;
