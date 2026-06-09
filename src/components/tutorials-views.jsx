@@ -9,6 +9,7 @@ import { DialogShell } from './DialogShell';
 import { MarkdownContent } from './MarkdownContent.jsx';
 import { MarkdownTextarea } from './MarkdownTextarea.jsx';
 import { FixedToast } from '../shared/components/FixedToast.jsx';
+import { usePublicSettings } from '../contexts/PublicSettingsContext.jsx';
 
 function tutorialZonePickLabel(z) {
   const line = formatLivingBeingsListLine(
@@ -136,9 +137,9 @@ function TutorialsView({
   markers = [],
   maps = [],
   activeMapId = 'foret',
-  publicSettings = null,
   canParticipateContextComments = true,
 }) {
+  const publicSettings = usePublicSettings();
   const contextCommentsEnabled = publicSettings?.modules?.context_comments_enabled !== false;
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState('all');
