@@ -33,29 +33,28 @@ import {
   KNOWN_TAB_VALUES,
 } from './constants/app-runtime';
 import { ErrorBoundary } from './components/ErrorBoundary';
-import {
-  Toast,
-  TasksView,
-  PlantManager,
-  PlantViewer,
-  ObservationNotebook,
-  PlantCatalogPreviewModal,
-} from './components/foretmap-views';
+import { Toast, PlantCatalogPreviewModal } from './components/foretmap-views';
+import { TasksView } from './components/tasks-views';
 import { MapView } from './components/map-views';
 import { AuthScreen, PinModal } from './components/auth-views';
-import { StudentProfileEditor, StudentStats, TeacherStats } from './components/stats-views';
-import { AuditLog } from './components/audit-views';
-import { AboutView } from './components/about-views';
+import { StudentProfileEditor, StudentStats } from './components/stats-views';
 import { StudentAvatar } from './components/student-avatar';
-import { TutorialsView } from './components/tutorials-views';
-import { VisitView } from './components/visit-views';
-
-const VisitMascotPackManagerLazy = lazy(() => import('./components/VisitMascotPackManager.jsx'));
-import { ProfilesAdminView } from './components/profiles-views';
-import { SettingsAdminView } from './components/settings-admin-views';
-import { MediaLibraryView } from './components/media-library-views';
 import { NotificationCenter } from './components/notifications-center';
-import { ForumView } from './components/forum-views';
+import { TabSuspense } from './components/TabSuspense.jsx';
+
+const VisitViewLazy = lazy(() => import('./components/visit-views').then((m) => ({ default: m.VisitView })));
+const PlantManagerLazy = lazy(() => import('./components/foretmap-views').then((m) => ({ default: m.PlantManager })));
+const PlantViewerLazy = lazy(() => import('./components/foretmap-views').then((m) => ({ default: m.PlantViewer })));
+const ObservationNotebookLazy = lazy(() => import('./components/foretmap-views').then((m) => ({ default: m.ObservationNotebook })));
+const TutorialsViewLazy = lazy(() => import('./components/tutorials-views').then((m) => ({ default: m.TutorialsView })));
+const TeacherStatsLazy = lazy(() => import('./components/stats-views').then((m) => ({ default: m.TeacherStats })));
+const ProfilesAdminViewLazy = lazy(() => import('./components/profiles-views').then((m) => ({ default: m.ProfilesAdminView })));
+const AuditLogLazy = lazy(() => import('./components/audit-views').then((m) => ({ default: m.AuditLog })));
+const SettingsAdminViewLazy = lazy(() => import('./components/settings-admin-views').then((m) => ({ default: m.SettingsAdminView })));
+const MediaLibraryViewLazy = lazy(() => import('./components/media-library-views').then((m) => ({ default: m.MediaLibraryView })));
+const ForumViewLazy = lazy(() => import('./components/forum-views').then((m) => ({ default: m.ForumView })));
+const AboutViewLazy = lazy(() => import('./components/about-views').then((m) => ({ default: m.AboutView })));
+const VisitMascotPackManagerLazy = lazy(() => import('./components/VisitMascotPackManager.jsx'));
 import { Tooltip } from './components/Tooltip';
 import { getRoleTerms, isN3OnlyAffiliation } from './utils/n3-terminology';
 import { allowedMapIdsFromAffiliation, mapsForAffiliationScope } from './utils/mapAffiliation';
@@ -1852,30 +1851,51 @@ function App() {
               {!useSplitMapTasks && tab === 'map'    && <MapView zones={zones} markers={markers} tasks={tasks} tutorials={tutorials} plants={plants} maps={visibleMaps} activeMapId={activeMapId} onMapChange={setActiveMapId} isTeacher student={currentUser} canSelfAssignTasks canParticipateContextComments={canParticipateContextComments} onZoneUpdate={updateZone} onRefresh={fetchAll} publicSettings={publicSettings} onLocationTasksFocus={handleMapLocationTasksFocus} onNavigateToTasksForLocation={(effectiveIsTeacher || canAccessStudentMapTasks) ? navigateToTasksForLocation : undefined} onOpenPlantCatalogPreview={openPlantCatalogPreviewById} onForceLogout={forceLogout}/>}
               {!useSplitMapTasks && tab === 'tasks'  && <TasksView  tasks={tasks} taskProjects={taskProjects} zones={zones} markers={markers} maps={visibleMaps} tutorials={tutorials} plants={plants} activeMapId={activeMapId} isTeacher student={currentUser} canSelfAssignTasks canParticipateContextComments={canParticipateContextComments} canViewOtherUsersIdentity hasPermission={hasPermission} hasPermissionInRole={hasPermissionInRole} onRefresh={fetchAll} onForceLogout={forceLogout} isN3Affiliated={isN3Affiliated} publicSettings={publicSettings} onTaskFormOverlayOpenChange={onTaskFormOverlayOpenChange} mapLocationFocus={tasksLocationFocus} onMapLocationFocusChange={setTasksLocationFocus} onOpenPlantCatalogPreview={openPlantCatalogPreviewById} />}
               {tab === 'plants' && (
-                <PlantManager
-                  plants={plants}
-                  onRefresh={fetchAll}
-                  publicSettings={publicSettings}
-                  zones={zones}
-                  markers={markers}
-                  maps={visibleMaps}
-                  canParticipateContextComments={canParticipateContextComments}
-                  onForceLogout={forceLogout}
-                />
+                <TabSuspense>
+                  <PlantManagerLazy
+                    plants={plants}
+                    onRefresh={fetchAll}
+                    publicSettings={publicSettings}
+                    zones={zones}
+                    markers={markers}
+                    maps={visibleMaps}
+                    canParticipateContextComments={canParticipateContextComments}
+                    onForceLogout={forceLogout}
+                  />
+                </TabSuspense>
               )}
-              {publicSettings?.modules?.tutorials_enabled !== false && tab === 'tuto'   && <TutorialsView tutorials={tutorials} zones={zones} markers={markers} maps={visibleMaps} activeMapId={activeMapId} isTeacher onRefresh={fetchAll} onForceLogout={forceLogout} publicSettings={publicSettings} canParticipateContextComments={canParticipateContextComments} />}
-              {publicSettings?.modules?.stats_enabled !== false && tab === 'stats'  && (hasPermission('stats.read.all') ? <TeacherStats isN3Affiliated={isN3Affiliated} /> : <div className="empty"><p>Pas l’accès stats ici — demande un coup de main côté n3boss si besoin.</p></div>)}
+              {publicSettings?.modules?.tutorials_enabled !== false && tab === 'tuto' && (
+                <TabSuspense>
+                  <TutorialsViewLazy tutorials={tutorials} zones={zones} markers={markers} maps={visibleMaps} activeMapId={activeMapId} isTeacher onRefresh={fetchAll} onForceLogout={forceLogout} publicSettings={publicSettings} canParticipateContextComments={canParticipateContextComments} />
+                </TabSuspense>
+              )}
+              {publicSettings?.modules?.stats_enabled !== false && tab === 'stats' && (
+                hasPermission('stats.read.all') ? (
+                  <TabSuspense><TeacherStatsLazy isN3Affiliated={isN3Affiliated} /></TabSuspense>
+                ) : (
+                  <div className="empty"><p>Pas l’accès stats ici — demande un coup de main côté n3boss si besoin.</p></div>
+                )
+              )}
               {tab === 'profiles' && (
-                <ProfilesAdminView
-                  isN3Affiliated={isN3Affiliated}
-                  maps={maps}
-                  publicSettings={publicSettings}
-                  onImpersonationApplied={handleAdminImpersonationApplied}
-                />
+                <TabSuspense>
+                  <ProfilesAdminViewLazy
+                    isN3Affiliated={isN3Affiliated}
+                    maps={maps}
+                    publicSettings={publicSettings}
+                    onImpersonationApplied={handleAdminImpersonationApplied}
+                  />
+                </TabSuspense>
               )}
-              {tab === 'audit'  && (hasPermission('audit.read') ? <AuditLog isN3Affiliated={isN3Affiliated} /> : <div className="empty"><p>Journal d’audit réservé — il te manque un droit pour l’ouvrir.</p></div>)}
-              {publicSettings?.modules?.visit_enabled !== false && tab === 'visit'  && (
-                <VisitView
+              {tab === 'audit' && (
+                hasPermission('audit.read') ? (
+                  <TabSuspense><AuditLogLazy isN3Affiliated={isN3Affiliated} /></TabSuspense>
+                ) : (
+                  <div className="empty"><p>Journal d’audit réservé — il te manque un droit pour l’ouvrir.</p></div>
+                )
+              )}
+              {publicSettings?.modules?.visit_enabled !== false && tab === 'visit' && (
+                <TabSuspense>
+                <VisitViewLazy
                   student={currentUser}
                   isTeacher
                   availableTutorials={tutorials}
@@ -1893,6 +1913,7 @@ function App() {
                   plants={plants}
                   onOpenPlantCatalogPreview={openPlantCatalogPreviewById}
                 />
+                </TabSuspense>
               )}
               {publicSettings?.modules?.visit_enabled !== false && tab === 'mascot_packs' && (
                 <div className="mascot-pack-studio-page" style={{ padding: '12px 16px 24px' }}>
@@ -1929,10 +1950,10 @@ function App() {
                   </Suspense>
                 </div>
               )}
-              {tab === 'settings' && <SettingsAdminView isN3Affiliated={isN3Affiliated} />}
-              {tab === 'media_library' && <MediaLibraryView canManage={canManageMediaLibrary} />}
-              {tab === 'forum' && canAccessForum && <ForumView authClaims={authClaims} canParticipateForum />}
-              {tab === 'about'  && <AboutView appVersion={appVersion} isN3Affiliated={isN3Affiliated} publicSettings={publicSettings} isTeacher={effectiveIsTeacher} />}
+              {tab === 'settings' && <TabSuspense><SettingsAdminViewLazy isN3Affiliated={isN3Affiliated} /></TabSuspense>}
+              {tab === 'media_library' && <TabSuspense><MediaLibraryViewLazy canManage={canManageMediaLibrary} /></TabSuspense>}
+              {tab === 'forum' && canAccessForum && <TabSuspense><ForumViewLazy authClaims={authClaims} canParticipateForum /></TabSuspense>}
+              {tab === 'about' && <TabSuspense><AboutViewLazy appVersion={appVersion} isN3Affiliated={isN3Affiliated} publicSettings={publicSettings} isTeacher={effectiveIsTeacher} /></TabSuspense>}
             </>
           )}
         </div>
@@ -2005,21 +2026,30 @@ function App() {
                 {!useSplitMapTasks && tab === 'map'    && canAccessStudentMapTasks && <MapView zones={zones} markers={markers} tasks={tasks} tutorials={tutorials} plants={plants} maps={visibleMaps} activeMapId={activeMapId} onMapChange={setActiveMapId} isTeacher={false} student={studentForUi} canSelfAssignTasks={canSelfAssignTasks} canEnrollOnTasks={canSelfAssignMoreTasks} canParticipateContextComments={canParticipateContextComments} onZoneUpdate={updateZone} onRefresh={fetchAll} publicSettings={publicSettings} onLocationTasksFocus={handleMapLocationTasksFocus} onNavigateToTasksForLocation={navigateToTasksForLocation} onOpenPlantCatalogPreview={openPlantCatalogPreviewById} onForceLogout={forceLogout}/>}
                 {!useSplitMapTasks && tab === 'tasks'  && canAccessStudentMapTasks && <TasksView tasks={tasks} taskProjects={taskProjects} zones={zones} markers={markers} maps={visibleMaps} tutorials={tutorials} plants={plants} activeMapId={activeMapId} isTeacher={false} student={studentForUi} canSelfAssignTasks={canSelfAssignTasks} canEnrollOnTasks={canSelfAssignMoreTasks} canParticipateContextComments={canParticipateContextComments} canViewOtherUsersIdentity={canViewOtherUsersIdentity} onRefresh={fetchAll} onForceLogout={forceLogout} isN3Affiliated={isN3Affiliated} publicSettings={publicSettings} onTaskFormOverlayOpenChange={onTaskFormOverlayOpenChange} mapLocationFocus={tasksLocationFocus} onMapLocationFocusChange={setTasksLocationFocus} onOpenPlantCatalogPreview={openPlantCatalogPreviewById} />}
                 {tab === 'plants' && (
-                  <PlantViewer
-                    plants={plants}
-                    zones={zones}
-                    markers={markers}
-                    maps={visibleMaps}
-                    publicSettings={publicSettings}
-                    canParticipateContextComments={canParticipateContextComments}
-                    onForceLogout={forceLogout}
-                  />
+                  <TabSuspense>
+                    <PlantViewerLazy
+                      plants={plants}
+                      zones={zones}
+                      markers={markers}
+                      maps={visibleMaps}
+                      publicSettings={publicSettings}
+                      canParticipateContextComments={canParticipateContextComments}
+                      onForceLogout={forceLogout}
+                    />
+                  </TabSuspense>
                 )}
-                {publicSettings?.modules?.tutorials_enabled !== false && tab === 'tuto' && <TutorialsView tutorials={tutorials} zones={zones} markers={markers} maps={visibleMaps} activeMapId={activeMapId} isTeacher={false} onRefresh={fetchAll} onForceLogout={forceLogout} publicSettings={publicSettings} canParticipateContextComments={canParticipateContextComments} />}
-                {tab === 'stats' && canViewGeneralStats && <TeacherStats isN3Affiliated={isN3Affiliated} />}
-                {publicSettings?.modules?.observations_enabled !== false && tab === 'notebook' && <ObservationNotebook student={studentForUi} zones={zones} onForceLogout={forceLogout} />}
+                {publicSettings?.modules?.tutorials_enabled !== false && tab === 'tuto' && (
+                  <TabSuspense>
+                    <TutorialsViewLazy tutorials={tutorials} zones={zones} markers={markers} maps={visibleMaps} activeMapId={activeMapId} isTeacher={false} onRefresh={fetchAll} onForceLogout={forceLogout} publicSettings={publicSettings} canParticipateContextComments={canParticipateContextComments} />
+                  </TabSuspense>
+                )}
+                {tab === 'stats' && canViewGeneralStats && <TabSuspense><TeacherStatsLazy isN3Affiliated={isN3Affiliated} /></TabSuspense>}
+                {publicSettings?.modules?.observations_enabled !== false && tab === 'notebook' && (
+                  <TabSuspense><ObservationNotebookLazy student={studentForUi} zones={zones} onForceLogout={forceLogout} /></TabSuspense>
+                )}
                 {publicSettings?.modules?.visit_enabled !== false && tab === 'visit' && (
-                  <VisitView
+                  <TabSuspense>
+                  <VisitViewLazy
                     student={studentForUi}
                     isTeacher={false}
                     availableTutorials={tutorials}
@@ -2036,9 +2066,10 @@ function App() {
                     plants={plants}
                     onOpenPlantCatalogPreview={openPlantCatalogPreviewById}
                   />
+                  </TabSuspense>
                 )}
-                {tab === 'forum' && canAccessForum && <ForumView authClaims={authClaims} canParticipateForum={canParticipateForum} />}
-                {tab === 'about' && <AboutView appVersion={appVersion} isN3Affiliated={isN3Affiliated} publicSettings={publicSettings} isTeacher={false} />}
+                {tab === 'forum' && canAccessForum && <TabSuspense><ForumViewLazy authClaims={authClaims} canParticipateForum={canParticipateForum} /></TabSuspense>}
+                {tab === 'about' && <TabSuspense><AboutViewLazy appVersion={appVersion} isN3Affiliated={isN3Affiliated} publicSettings={publicSettings} isTeacher={false} /></TabSuspense>}
               </>
             )}
           </div>

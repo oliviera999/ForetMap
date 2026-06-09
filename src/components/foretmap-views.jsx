@@ -36,13 +36,7 @@ import { DialogShell } from './DialogShell';
 import { MarkdownContent } from './MarkdownContent.jsx';
 import { MarkdownTextarea } from './MarkdownTextarea.jsx';
 import { buildMapImageCandidates } from '../utils/mapImageCandidates';
-import { FixedToast } from '../shared/components/FixedToast.jsx';
-
-// ── TOAST ──────────────────────────────────────────────────────────────────
-function Toast({ msg, onDone }) {
-  useEffect(() => { const t = setTimeout(onDone, 2400); return () => clearTimeout(t); }, []);
-  return <FixedToast>{msg}</FixedToast>;
-}
+import { TimedToast } from '../shared/components/TimedToast.jsx';
 
 // ── INTERACTIVE MAP ──────────────────────────────────────────────────────────
 
@@ -1957,7 +1951,7 @@ function PlantManager({
 
   return (
     <div>
-      {toast && <Toast msg={toast} onDone={() => setToast(null)}/>}
+      {toast && <TimedToast msg={toast} onDone={() => setToast(null)} />}
       <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:4}}>
         <h2 className="section-title">🌱 Base biodiversité</h2>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
@@ -2354,7 +2348,7 @@ function ObservationNotebook({ student, zones, onForceLogout = null }) {
 
   return (
     <div className="fade-in">
-      {toast && <Toast msg={toast} onDone={() => setToast(null)}/>}
+      {toast && <TimedToast msg={toast} onDone={() => setToast(null)} />}
       <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:4}}>
         <h2 className="section-title">📓 Mon carnet</h2>
         {!showForm && <button className="btn btn-primary btn-sm" onClick={() => setShowForm(true)}>+ Observation</button>}
@@ -2969,7 +2963,7 @@ function PlantViewer({
 }
 
 export {
-  Toast,
+  TimedToast as Toast,
   Lightbox,
   PhotoGallery,
   ZoneInfoModal,

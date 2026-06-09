@@ -58,6 +58,9 @@ jobs:
           TEACHER_PIN: '1234'
           JWT_SECRET: 'ci-test-secret-not-for-production'
 
+      - name: Run UI tests (Vitest)
+        run: npm run test:ui
+
       - name: Run backend coverage
         run: npm run test:coverage
         env:

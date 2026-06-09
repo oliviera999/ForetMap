@@ -12,7 +12,7 @@ import { useHelp } from '../hooks/useHelp';
 import { HelpPanel } from './HelpPanel';
 import { HELP_PANELS } from '../constants/help';
 import { StatCard, StatsSummaryGrid } from '../shared/components/StatsSummaryGrid.jsx';
-import { FixedToast } from '../shared/components/FixedToast.jsx';
+import { TimedToast } from '../shared/components/TimedToast.jsx';
 import {
   sortProgressionSteps,
   resolveTaskTierSlug,
@@ -21,11 +21,6 @@ import {
   getProgressionStepIndex,
   computeProgressPercent,
 } from '../utils/studentProgressionLadder.js';
-
-function Toast({ msg, onDone }) {
-  useEffect(() => { const t = setTimeout(onDone, 2400); return () => clearTimeout(t); }, []);
-  return <FixedToast>{msg}</FixedToast>;
-}
 
 function StudentStats({ student, isN3Affiliated = false }) {
   const roleTerms = getRoleTerms(isN3Affiliated);
@@ -580,7 +575,7 @@ function TeacherStats({ isN3Affiliated = false }) {
 
   return (
     <div className="fade-in">
-      {toast && <Toast msg={toast} onDone={() => setToast(null)} />}
+      {toast && <TimedToast msg={toast} onDone={() => setToast(null)} />}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
         <h2 className="section-title">📊 Statistiques des {roleTerms.studentPlural}</h2>
         {isHelpEnabled && (

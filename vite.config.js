@@ -15,6 +15,19 @@ export default defineConfig({
         mascotPackTool: path.resolve(process.cwd(), 'mascot-pack-tool.html'),
         gl: path.resolve(process.cwd(), 'gl.html'),
       },
+      output: {
+        manualChunks(id) {
+          if (id.includes('node_modules/react') || id.includes('node_modules/react-dom')) {
+            return 'react-vendor';
+          }
+          if (id.includes('node_modules/socket.io-client')) return 'socket-io';
+          if (id.includes('node_modules/@rive-app')) return 'rive';
+          if (id.includes('node_modules/marked') || id.includes('node_modules/isomorphic-dompurify')
+            || id.includes('node_modules/dompurify')) {
+            return 'markdown';
+          }
+        },
+      },
     },
   },
   server: {

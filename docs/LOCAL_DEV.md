@@ -4,7 +4,7 @@ Environnement aligné sur la CI : **MariaDB 11.4** (image Docker `mariadb:11.4.1
 
 ## Prérequis
 
-- Node.js 18 ou 20
+- Node.js **≥ 20.19** (aligné sur `package.json` `engines` et la CI **Node 22**)
 - [Docker Desktop](https://www.docker.com/products/docker-desktop/) (Windows / macOS / Linux)
 
 ## 1. Démarrer MariaDB (Docker)
@@ -156,7 +156,8 @@ Le script force `DB_NAME=foretmap_test` ; le schéma est (re)créé par les fich
 | Commande | Rôle |
 |----------|------|
 | `npm test` | Tous les **`tests/*.test.js`** (API + utilitaires **`src/utils`** : géométrie visite, mascotte, etc.) |
-| `npm run test:ui` | Tests UI Vitest (`tests-ui/**`) |
+| `npm run test:ui` | Tests UI Vitest (`tests-ui/**`) — exécutés aussi en **CI** (après `npm test`) |
+| `npm run test:all` | `npm test` puis `npm run test:ui` |
 | `npm run test:e2e` | Playwright sur **`e2e/`** (inclut visite / mascotte) |
 | `npm run smoke:local:fast` | Smoke applicatif (`scripts/local-smoke.js`) |
 | `npm run test:snapshot` | Snapshot DB importée (`FORETMAP_SNAPSHOT_TESTS=1`, voir § 5ter) |
@@ -164,7 +165,7 @@ Le script force `DB_NAME=foretmap_test` ; le schéma est (re)créé par les fich
 | `npm run test:load` (et variantes) | Charge Artillery (`LOAD_TEST_SECRET`, voir § **5quinquies**) |
 | `npm run test:load:gl` | Charge Artillery ciblée GL (`load/artillery-gl.yml`) |
 
-Après une modification **frontend** : **`npm run build`** si le serveur sert **`dist/`** (`NODE_ENV=production`), avant **`npm run test:e2e`**.
+Après une modification **frontend** : **`npm run build`** si le serveur sert **`dist/`** (`NODE_ENV=production`), avant **`npm run test:e2e`**. Le build Vite applique un **code-splitting** par onglet (`React.lazy` dans `App.jsx`) et des chunks vendor (`react-vendor`, `socket-io`, `rive`, `markdown` — voir `vite.config.js`).
 
 Référence de couverture GL: `docs/GL_TESTS.md`.
 
@@ -256,7 +257,7 @@ Si **`NODE_ENV=production`** dans l’environnement du serveur (souvent via **`.
 
 **Ne pas** lancer seulement **`npx playwright test …`** si un **`npm start`** « normal » occupe déjà le port : Playwright peut réutiliser ce serveur **sans** bypass → échecs **429** ou code périmé.
 
-**CI** : le workflow démarre le serveur avec **`npm run start:e2e`**, puis exécute **`npm run test:e2e`** avec **`E2E_BASE_URL`** (pas de **`webServer`** Playwright quand **`CI=true`**).
+**CI** (`.github/workflows/ci.yml`) : `npm run lint` → `npm test` → **`npm run test:ui`** → `npm run test:coverage` → `npm run build` → serveur **`npm run start:e2e`** → **`npm run test:e2e`** (`E2E_BASE_URL`). Pas de **`webServer`** Playwright quand **`CI=true`**.
 
 Vous pouvez cibler une autre URL avec **`E2E_BASE_URL`**.
 
