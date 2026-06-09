@@ -17,7 +17,10 @@ module.exports = defineConfig({
   testDir: './e2e',
   globalSetup: './e2e/global-setup.js',
   timeout: 60_000,
-  globalTimeout: process.env.CI ? 12 * 60_000 : undefined,
+  // 12 min ne suffisait pas à la suite e2e complète en CI (38 specs, workers=1,
+  // retries=2) : la suite était coupée en plein vol → faux « failed » / « did not run ».
+  // 30 min laisse une marge confortable une fois les vrais blocages corrigés.
+  globalTimeout: process.env.CI ? 30 * 60_000 : undefined,
   // Plusieurs workers sur une même BDD locale = inscriptions / sessions en collision.
   workers: 1,
   forbidOnly: !!process.env.CI,
