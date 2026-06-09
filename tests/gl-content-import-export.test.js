@@ -105,7 +105,7 @@ before(async () => {
 test('GET /api/gl/admin/glossary/import/template retourne un modèle XLSX', async () => {
   const buf = await getXlsxBuffer(request(app), '/api/gl/admin/glossary/import/template', adminToken);
   assert.ok(buf.length > 100);
-  const { glossaryRows } = parseGlossaryWorkbook(buf);
+  const { glossaryRows } = await parseGlossaryWorkbook(buf);
   assert.ok(glossaryRows.length >= 1);
   const errors = validateGlossaryPayload(buildGlossaryPayload(glossaryRows[0]), 2);
   assert.strictEqual(errors.length, 0);
@@ -136,7 +136,7 @@ test('GET /api/gl/admin/glossary/export round-trip ré-importable', async () => 
     `/api/gl/admin/glossary/export?statut=actif`,
     adminToken
   );
-  const { glossaryRows } = parseGlossaryWorkbook(buf);
+  const { glossaryRows } = await parseGlossaryWorkbook(buf);
   const exported = glossaryRows.find((row) => {
     const payload = buildGlossaryPayload(row);
     return payload.glossary_code === code;
