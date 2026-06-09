@@ -37,6 +37,10 @@ import { MarkdownContent } from './MarkdownContent.jsx';
 import { MarkdownTextarea } from './MarkdownTextarea.jsx';
 import { buildMapImageCandidates } from '../utils/mapImageCandidates';
 import { TimedToast } from '../shared/components/TimedToast.jsx';
+import { usePublicSettings } from '../contexts/PublicSettingsContext.jsx';
+import { useSession } from '../contexts/SessionContext.jsx';
+import { useData } from '../contexts/DataContext.jsx';
+import { fileToDataUrl } from '../utils/fileToDataUrl.js';
 
 // ── INTERACTIVE MAP ──────────────────────────────────────────────────────────
 
@@ -360,15 +364,6 @@ const PLANTNET_IDENTIFY_PHOTO_FIELD_ORDER = [
   'photo_fruit',
   'photo_harvest_part',
 ];
-
-function fileToDataUrl(file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(String(reader.result || ''));
-    reader.onerror = () => reject(new Error('Lecture du fichier impossible'));
-    reader.readAsDataURL(file);
-  });
-}
 
 function downloadCsvTemplate(headers, filename) {
   const csv = `${headers.join(',')}\n`;
@@ -1786,15 +1781,13 @@ function PlantCatalogFilterPanel({
 
 // ── PLANT MANAGER (teacher) ───────────────────────────────────────────────────
 function PlantManager({
-  plants,
   onRefresh,
-  publicSettings = null,
-  zones = [],
-  markers = [],
   maps = [],
-  canParticipateContextComments = true,
   onForceLogout = null,
 }) {
+  const publicSettings = usePublicSettings();
+  const { canParticipateContextComments = true } = useSession();
+  const { plants = [], zones = [], markers = [] } = useData();
   const contextCommentsEnabled = publicSettings?.modules?.context_comments_enabled !== false;
   const [editId,  setEditId]  = useState(null);
   const [form,    setForm]    = useState({ ...EMPTY_PLANT_FORM });
@@ -2244,7 +2237,8 @@ function PlantManager({
 }
 
 // ── OBSERVATION NOTEBOOK (student) ────────────────────────────────────────────
-function ObservationNotebook({ student, zones, onForceLogout = null }) {
+function ObservationNotebook({ student, onForceLogout = null }) {
+  const { zones = [] } = useData();
   const [entries, setEntries] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
@@ -2747,14 +2741,13 @@ function PlantBiodiversityCatalogPreviewCard({
 /** Aperçu plein écran (portal) d’une fiche catalogue — même principe que `TutorialPreviewModal`. */
 function PlantCatalogPreviewModal({
   plant,
-  zones = [],
-  markers = [],
   maps = [],
-  publicSettings = null,
-  canParticipateContextComments = true,
   onClose,
   onForceLogout = null,
 }) {
+  const publicSettings = usePublicSettings();
+  const { canParticipateContextComments = true } = useSession();
+  const { zones = [], markers = [] } = useData();
   useOverlayHistoryBack(!!plant, onClose);
   const contextCommentsEnabled = publicSettings?.modules?.context_comments_enabled !== false;
   const [obs, setObs] = useState({ my: 0, site: 0 });
@@ -2818,14 +2811,12 @@ function PlantCatalogPreviewModal({
 
 // ── PLANT VIEWER (student read-only) ──────────────────────────────────────────
 function PlantViewer({
-  plants,
-  zones,
-  markers = [],
   maps = [],
-  publicSettings = null,
-  canParticipateContextComments = true,
   onForceLogout = null,
 }) {
+  const publicSettings = usePublicSettings();
+  const { canParticipateContextComments = true } = useSession();
+  const { plants = [], zones = [], markers = [] } = useData();
   const contextCommentsEnabled = publicSettings?.modules?.context_comments_enabled !== false;
   const [search, setSearch] = useState('');
   const [group1, setGroup1] = useState('');

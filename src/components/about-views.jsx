@@ -1,8 +1,10 @@
 import React from 'react';
 import { useHelp } from '../hooks/useHelp';
 import { getContentText } from '../utils/content';
+import { usePublicSettings } from '../contexts/PublicSettingsContext.jsx';
 
-function AboutView({ appVersion, publicSettings = null, isTeacher = false }) {
+function AboutView({ appVersion, isTeacher = false }) {
+  const publicSettings = usePublicSettings();
   const { resetHelp, metrics, resetHelpMetrics } = useHelp({ publicSettings, isTeacher });
   const aboutTitle = getContentText(publicSettings, 'about.title', 'ℹ️ À propos');
   const aboutSubtitle = getContentText(publicSettings, 'about.subtitle', 'Informations du projet ForetMap');

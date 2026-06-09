@@ -41,6 +41,9 @@ import {
 import { wheelZoomScaleFactor } from '../utils/mapWheelZoom';
 import { pointToContainedRectPct } from '../shared/pct-map/pctMapPointer.js';
 import VisitMapMascotRenderer from './VisitMapMascotRenderer.jsx';
+import { usePublicSettings } from '../contexts/PublicSettingsContext.jsx';
+import { useSession } from '../contexts/SessionContext.jsx';
+import { useData } from '../contexts/DataContext.jsx';
 
 /** Diagramme circulaire de progression visite (viewBox carré, cercle centré). */
 const VISIT_PROGRESS_DONUT_VB = 40;
@@ -909,23 +912,21 @@ function VisitView({
   initialMapId = 'foret',
   availableTutorials = [],
   onBackToAuth,
-  isN3Affiliated = false,
-  publicSettings = null,
-  canParticipateContextComments = true,
   /** Prof : ouvre l’onglet dédié « Packs mascotte » dans l’app principale. */
   onOpenMascotPackStudioTab,
   /** Carte source : mêmes IDs que la visite — pour biodiversité / tutos comme en mode carte. */
   mapZones = [],
   mapMarkers = [],
-  tasks = [],
   /** Catalogue tutoriels (liens lieu + missions), distinct de la sélection `visit_tutorials`. */
   catalogTutorials = [],
-  plants = [],
   onOpenPlantCatalogPreview = null,
   profileVisitMascotId = null,
   requireGuestMascotChoice = false,
   onGuestMascotChoiceDone = null,
 }) {
+  const publicSettings = usePublicSettings();
+  const { isN3Affiliated = false, canParticipateContextComments = true } = useSession();
+  const { tasks = [], plants = [] } = useData();
   const contextCommentsEnabled = publicSettings?.modules?.context_comments_enabled !== false;
   const configuredLocationEmojis = String(
     publicSettings?.ui?.map?.location_emojis
