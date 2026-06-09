@@ -75,6 +75,7 @@ import { AutoProfilePromotionModal } from './components/AutoProfilePromotionModa
 import { DialogShell } from './components/DialogShell';
 import { PublicSettingsProvider } from './contexts/PublicSettingsContext.jsx';
 import { SessionProvider } from './contexts/SessionContext.jsx';
+import { DataProvider } from './contexts/DataContext.jsx';
 
 const OAUTH_ERROR_MESSAGES = {
   oauth_not_configured: 'Connexion Google indisponible (configuration serveur incomplète).',
@@ -1275,6 +1276,18 @@ function App() {
     canParticipateContextComments,
   }), [isN3Affiliated, canParticipateContextComments]);
 
+  // O5 — données partagées exposées par contexte (cf. DataContext). `maps` exclu (variante
+  // visibleMaps/maps) et VisitView exclu (noms de props distincts) : ces deux-là restent en props.
+  const dataContextValue = useMemo(() => ({
+    zones,
+    markers,
+    plants,
+    tasks,
+    tutorials,
+    taskProjects,
+    activeMapId,
+  }), [zones, markers, plants, tasks, tutorials, taskProjects, activeMapId]);
+
   if (!student && !isTeacher) return (
     <PublicSettingsProvider value={publicSettings}>
     <>
@@ -1351,6 +1364,7 @@ function App() {
   return (
     <PublicSettingsProvider value={publicSettings}>
     <SessionProvider value={sessionContextValue}>
+    <DataProvider value={dataContextValue}>
     <div id="app">
       {plantCatalogPreview && (
         <Suspense fallback={null}>
@@ -2131,6 +2145,7 @@ function App() {
       )}
       <footer className="app-footer">{appFooterVersionPrefix} {appVersion != null ? appVersion : '…'}</footer>
     </div>
+    </DataProvider>
     </SessionProvider>
     </PublicSettingsProvider>
   );
