@@ -14,9 +14,9 @@ const {
 
 const XLSX_PATH = path.join(__dirname, '..', 'data', 'gl', 'especes-biomes-gnomes-et-licornes.xlsx');
 
-test('parseSpeciesWorkbook lit le fichier de référence', () => {
+test('parseSpeciesWorkbook lit le fichier de référence', async () => {
   const buffer = fs.readFileSync(XLSX_PATH);
-  const { speciesRows, biomeRows } = parseSpeciesWorkbook(buffer);
+  const { speciesRows, biomeRows } = await parseSpeciesWorkbook(buffer);
   assert.ok(speciesRows.length >= 250);
   assert.ok(biomeRows.length >= 11);
   const first = buildSpeciesPayload(speciesRows[0]);

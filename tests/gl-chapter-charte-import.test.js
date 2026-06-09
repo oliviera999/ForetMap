@@ -78,20 +78,20 @@ test('mergeThemeWithColorDeltas retire une couleur sur reset', () => {
   assert.strictEqual(merged.colors.secondary, '#222222');
 });
 
-test('parseChapterCharteWorkbook lit la feuille chapitres_charte', () => {
+test('parseChapterCharteWorkbook lit la feuille chapitres_charte', async () => {
   const buffer = buildWorkbookBuffer([[slug, 'T', '', '#012345', '', '', '', '', '', '', '', '', '', '', '', '', '']]);
-  const { rows } = parseChapterCharteWorkbook(buffer);
+  const { rows } = await parseChapterCharteWorkbook(buffer);
   assert.strictEqual(rows.length, 1);
   assert.strictEqual(rows[0].slug, slug);
 });
 
-test('buildChapterCharteTemplateWorkbook et export sont des XLSX valides', () => {
-  const tpl = buildChapterCharteTemplateWorkbook();
+test('buildChapterCharteTemplateWorkbook et export sont des XLSX valides', async () => {
+  const tpl = await buildChapterCharteTemplateWorkbook();
   assert.strictEqual(tpl.slice(0, 2).toString('latin1'), 'PK');
   const wb = XLSX.read(tpl, { type: 'buffer' });
   assert.ok(wb.SheetNames.includes(CHARTE_SHEET));
 
-  const exp = buildChapterCharteExportWorkbook([{
+  const exp = await buildChapterCharteExportWorkbook([{
     slug,
     title: 'Charte test',
     map_image_url: '/maps/map-foret.svg',
@@ -101,9 +101,9 @@ test('buildChapterCharteTemplateWorkbook et export sont des XLSX valides', () =>
   assert.strictEqual(exp.slice(0, 2).toString('latin1'), 'PK');
 });
 
-test('modèle XLSX contient une ligne d’exemple valide', () => {
-  const buffer = buildChapterCharteTemplateWorkbook();
-  const { rows } = parseChapterCharteWorkbook(buffer);
+test('modèle XLSX contient une ligne d’exemple valide', async () => {
+  const buffer = await buildChapterCharteTemplateWorkbook();
+  const { rows } = await parseChapterCharteWorkbook(buffer);
   assert.ok(rows.length >= 1);
   assert.strictEqual(validateChapterChartePayload(buildChapterChartePayload(rows[0]), 2).length, 0);
 });

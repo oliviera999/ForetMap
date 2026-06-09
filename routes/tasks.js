@@ -1218,7 +1218,7 @@ router.get('/import/template', requirePermission('tasks.manage', { needsElevatio
   try {
     const format = asTrimmedString(req.query?.format || 'csv').toLowerCase();
     if (format === 'xlsx') {
-      const buffer = buildImportTemplateXlsxBuffer();
+      const buffer = await buildImportTemplateXlsxBuffer();
       res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
       res.setHeader('Content-Disposition', 'attachment; filename="foretmap-modele-taches-projets.xlsx"');
       return res.send(buffer);

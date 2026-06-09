@@ -16,9 +16,9 @@ const {
 
 const XLSX_PATH = path.join(__dirname, '..', 'data', 'gl', 'qcm-lore-gnomes-et-licornes.xlsx');
 
-test('parseQcmLoreWorkbook lit le fichier de référence', () => {
+test('parseQcmLoreWorkbook lit le fichier de référence', async () => {
   const buffer = fs.readFileSync(XLSX_PATH);
-  const { scopeRows, categoryRows, questionRows } = parseQcmLoreWorkbook(buffer);
+  const { scopeRows, categoryRows, questionRows } = await parseQcmLoreWorkbook(buffer);
   assert.ok(scopeRows.length >= 7);
   assert.ok(categoryRows.length >= 8);
   assert.ok(questionRows.length >= 150);

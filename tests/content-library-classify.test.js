@@ -20,19 +20,19 @@ const { UPLOADS_DIR } = require('../lib/uploads');
 const TINY_PNG_DATA_URL =
   'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO6pJkQAAAAASUVORK5CYII=';
 
-test('classifyContentFile reconnaît média PNG et XLSX catalogues', () => {
+test('classifyContentFile reconnaît média PNG et XLSX catalogues', async () => {
   const pngBuffer = decodeBase64Payload(TINY_PNG_DATA_URL);
-  const media = classifyContentFile('photo.png', pngBuffer);
+  const media = await classifyContentFile('photo.png', pngBuffer);
   assert.strictEqual(media.kind, 'media');
   assert.strictEqual(media.mediaType, 'image');
 
-  const species = classifyContentFile('biocenose.xlsx', buildSpeciesTemplateWorkbook());
+  const species = await classifyContentFile('biocenose.xlsx', await buildSpeciesTemplateWorkbook());
   assert.strictEqual(species.kind, 'species');
 
-  const glossary = classifyContentFile('glossaire-svt.xlsx', buildGlossaryTemplateWorkbook());
+  const glossary = await classifyContentFile('glossaire-svt.xlsx', await buildGlossaryTemplateWorkbook());
   assert.strictEqual(glossary.kind, 'glossary');
 
-  const qcm = classifyContentFile('qcm.xlsx', buildQcmTemplateWorkbook());
+  const qcm = await classifyContentFile('qcm.xlsx', await buildQcmTemplateWorkbook());
   assert.strictEqual(qcm.kind, 'qcm');
 });
 

@@ -227,7 +227,7 @@ test('GET /api/gl/chapters/admin/export filtre par slug', async () => {
     .expect(200);
   const buf = Buffer.isBuffer(res.body) ? res.body : Buffer.from(res.body);
   const { parseChaptersWorkbook } = require('../lib/glChaptersImport');
-  const parsed = parseChaptersWorkbook(buf);
+  const parsed = await parseChaptersWorkbook(buf);
   assert.strictEqual(parsed.chapterRows.length, 1);
   assert.strictEqual(String(parsed.chapterRows[0].slug || parsed.chapterRows[0].Slug).toLowerCase(), slugCreated);
 });

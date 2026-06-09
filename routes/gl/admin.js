@@ -471,7 +471,7 @@ router.post('/players/:id/reset-pin', requireGlPermission('gl.players.manage'), 
 router.get('/players/import/template', requireGlPermission('gl.players.manage'), wrapXlsxRoute(async (req, res) => {
   const format = String(req.query?.format || 'csv').toLowerCase();
   if (format === 'xlsx') {
-    return sendXlsxAttachment(res, buildXlsxTemplate(), 'foretmap-gl-modele-joueurs.xlsx');
+    return sendXlsxAttachment(res, await buildXlsxTemplate(), 'foretmap-gl-modele-joueurs.xlsx');
   }
   const csv = buildCsvTemplate();
   res.setHeader('Content-Type', 'text/csv; charset=utf-8');
@@ -485,7 +485,7 @@ router.get(
   requireGlPermission('gl.content.manage'),
   wrapXlsxRoute(async (_req, res) => sendXlsxAttachment(
     res,
-    buildGlossaryTemplateWorkbook(),
+    await buildGlossaryTemplateWorkbook(),
     'foretmap-gl-modele-glossaire.xlsx'
   ))
 );
@@ -497,7 +497,7 @@ router.get(
     const statutRaw = String(req.query?.statut || 'actif').toLowerCase();
     const statut = statutRaw === 'all' ? 'all' : 'actif';
     const rows = await loadGlossaryExportRows({ queryAll }, { statut });
-    return sendXlsxAttachment(res, buildGlossaryExportWorkbook(rows), 'foretmap-gl-export-glossaire.xlsx');
+    return sendXlsxAttachment(res, await buildGlossaryExportWorkbook(rows), 'foretmap-gl-export-glossaire.xlsx');
   })
 );
 
@@ -506,7 +506,7 @@ router.get(
   requireGlPermission('gl.content.manage'),
   wrapXlsxRoute(async (_req, res) => sendXlsxAttachment(
     res,
-    buildQcmTemplateWorkbook(),
+    await buildQcmTemplateWorkbook(),
     'foretmap-gl-modele-qcm.xlsx'
   ))
 );
@@ -523,7 +523,7 @@ router.get(
       { queryAll },
       { statut, biomeSlug, categorieSlug }
     );
-    return sendXlsxAttachment(res, buildQcmExportWorkbook(data), 'foretmap-gl-export-qcm.xlsx');
+    return sendXlsxAttachment(res, await buildQcmExportWorkbook(data), 'foretmap-gl-export-qcm.xlsx');
   })
 );
 
@@ -532,7 +532,7 @@ router.get(
   requireGlPermission('gl.content.manage'),
   wrapXlsxRoute(async (_req, res) => sendXlsxAttachment(
     res,
-    buildSpeciesTemplateWorkbook(),
+    await buildSpeciesTemplateWorkbook(),
     'foretmap-gl-modele-biocenose.xlsx'
   ))
 );
@@ -545,7 +545,7 @@ router.get(
     const statut = statutRaw === 'all' ? 'all' : 'actif';
     const biomeSlug = normalizeBiomeSlugFilter(req.query?.biomeSlug);
     const data = await loadSpeciesExportRows({ queryAll }, { statut, biomeSlug });
-    return sendXlsxAttachment(res, buildSpeciesExportWorkbook(data), 'foretmap-gl-export-biocenose.xlsx');
+    return sendXlsxAttachment(res, await buildSpeciesExportWorkbook(data), 'foretmap-gl-export-biocenose.xlsx');
   })
 );
 
@@ -553,7 +553,7 @@ router.post('/players/import', requireGlPermission('gl.players.manage'), async (
   const dryRun = !!req.body?.dryRun;
   let parsedRows;
   try {
-    parsedRows = resolveImportRows(req.body || {});
+    parsedRows = await resolveImportRows(req.body || {});
   } catch (err) {
     return res.status(400).json({ error: err.message || 'Fichier import invalide' });
   }
