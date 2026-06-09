@@ -7,8 +7,28 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Performance & sécurité (audit optimisation — `docs/AUDIT_OPTIMISATION.md`, items O1-O14)
+
+- **Bundle (O1, O11)** : `VisitMapMascotRenderer` charge le renderer sélectionné via `React.lazy`/`Suspense` — `rive` (~166 Ko) et `sprite_cut` (~102 Ko) quittent le preload initial de la Carte (seul le renderer monté est téléchargé) ; `vite.config` `sourcemap: false` en build prod (~6 Mo de `.map` évités).
+- **RBAC (O3)** : cache mémoire TTL court (30 s, `lib/memoryTtlCache`) de `buildAuthzPayload`, appelé sur chaque requête authentifiée (3-5 SELECT). Clé `userType:userId:elevated` (élévation PIN / impersonation = effet immédiat) ; invalidation par-utilisateur (`setPrimaryRole`, `ensurePrimaryRole`) et globale après mutation `/api/rbac`.
+- **Tâches (O10)** : `replaceTaskJoinRows` — un INSERT multi-valeurs pour zones/repères/tutoriels/référents au lieu de boucles N+1.
+- **Serveur (O13, O14)** : `helmet` (nosniff/frameguard/HSTS/referrer-policy ; CSP `img-src` conservé) ; `crypto.timingSafeEqual` pour `DEPLOY_SECRET` ; `/api/version` et `/api/admin/diagnostics` servent `startupVersion` sans relecture disque de `package.json`.
+
+### Outillage (O12)
+
+- `eslint-plugin-react-hooks` (`rules-of-hooks: error`, `exhaustive-deps: warn`) + `no-unused-vars` (warn) sur `src/` et backend ; config **Prettier** (`.prettierrc.json`, `.prettierignore`) + scripts `format` / `format:check`.
+
+### Corrigé
+
+- **Hooks conditionnels** (`BiodivLocationMapBlock`, `src/components/foretmap-views.jsx`) : 6 hooks appelés après un `return` anticipé → risque de crash React « rendered fewer/more hooks than expected » quand zones/repères passaient de vide à non-vide entre deux refetch. Court-circuit déplacé après tous les hooks (révélé par le lint react-hooks).
+
+### Supprimé
+
+- Fichiers morts : `tmp-test-ctx-one.js` (stub debug cassé) et `scripts/_patch_map_solo.py` (orphelin).
+
 ### Ajouté
 
+- **Audit d'optimisation** : `docs/AUDIT_OPTIMISATION.md` (extensibilité / maintenabilité / performance) + tracker O1-O14, référencé dans `docs/SITE_ISSUES.md` / `.json`.
 - **Optimisation ForetMap (bundle, maintenabilité, tests)** : lazy-load des onglets rares dans `App.jsx` + `manualChunks` Vite (`react-vendor`, `socket-io`, `rive`, `markdown`) — bundle `main` allégé (~431 Ko vs ~611 Ko) ; toast partagé `TimedToast` ; extraction `lib/tasks/taskImport.js`, `lib/auth/jwtPipeline.js`, `LivingBeingsCatalogPanel` ; garde-fous deploy runtime complets (`lib/visit-pack/*` + `lib/gl-pack/mascotPack.js`). **CI** : étape `npm run test:ui`. Tests : `tests/jwt-pipeline.test.js`, `tests-ui/components/AuthScreen.test.jsx`, `tests-ui/shared/TimedToast.test.jsx`. E2E : `plants-biodiversity`, `stats-foretmap`, `admin-impersonation`, `observations-notebook`.
 - **Médiathèques — cloisonnement ForetMap / Gnomes & Licornes** : les deux médiathèques ne partagent plus le même affichage. Étiquetage par médiathèque d'origine dans `_keys.json` (champ `app`, sans déplacer de fichier), filtrage côté serveur (`listMediaLibraryItems(limit, { app })`, helpers `normalizeMediaApp` / `resolveMediaItemApp` / `mediaItemMatchesApp`) ; les médias hérités (non étiquetés) restent rattachés à G&L, dont le jeu dépend. Routes `app: 'foretmap'` (`/api/media-library`, `/api/settings/admin/media-library`) et `app: 'gl'` (`/api/gl/admin/media-library`, import en masse `content-library`). Présentation G&L alignée sur ForetMap (galerie). Affichage du **slug** (clé stable) de chaque ressource sous la miniature et en liste, recherche incluant le slug ; clic = copie de l'URL. Tests `tests/media-library-scope.test.js`, `tests-ui/components/MediaLibraryMenu.test.jsx`.
 - **Médiathèques — usage des ressources (utilisée et où)** : à l'ouverture de la médiathèque, chaque média indique s'il est **utilisé** et **où** (badge « Utilisée · N » avec la liste des emplacements, ou « Inutilisée »). Scanner `lib/mediaLibraryUsage.js` : détection par **URL** (`/uploads/media-library/…` dans markdown / JSON / colonnes `*_url`) et par **slug** (config intro G&L `scenes[].imageKey`, `audio.*Key`) ; couche BDD défensive (introspection `SHOW COLUMNS`, n'interroge que les colonnes présentes). Sources G&L (chapitres, feuillets Sélène, zones royaume, espèces, QCM, QCM lore, pages de contenu, carnets joueur, intro/réglages) et ForetMap (réglages du site, tutoriels, zones/repères de visite). Endpoints `GET /api/media-library/usage` et `GET /api/gl/admin/media-library/usage`. Tests `tests/media-library-usage.test.js`, `tests-ui/components/MediaLibraryMenu.test.jsx`.
