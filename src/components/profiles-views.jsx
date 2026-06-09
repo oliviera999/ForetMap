@@ -3,121 +3,20 @@ import { API, api, getAuthToken } from '../services/api';
 import { getRoleTerms } from '../utils/n3-terminology';
 import { useHelp } from '../hooks/useHelp';
 import { HelpPanel } from './HelpPanel';
-import { HELP_PANELS, HELP_TOOLTIPS, resolveRoleText } from '../constants/help';
-import { Tooltip } from './Tooltip';
-import { DialogShell } from './DialogShell';
+import { HELP_PANELS } from '../constants/help';
 import { MarkdownTextarea } from './MarkdownTextarea.jsx';
 import { buildAffiliationSelectOptions } from '../utils/affiliationSelectOptions';
 import { GroupsAdminView } from './groups-views.jsx';
 import { usePublicSettings } from '../contexts/PublicSettingsContext.jsx';
 import { useSession } from '../contexts/SessionContext.jsx';
-
-const EDIT_EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-/** Lit un champ utilisateur quelle que soit la casse des clés (snake_case / camelCase) ou Buffer éventuel. */
-function pickUserField(obj, ...logicalNames) {
-  if (!obj || typeof obj !== 'object') return undefined;
-  const wanted = new Set(
-    logicalNames.flatMap((n) => {
-      const s = String(n);
-      return [s.toLowerCase(), s.toLowerCase().replace(/_/g, '')];
-    })
-  );
-  for (const k of Object.keys(obj)) {
-    const keyNorm = k.toLowerCase().replace(/_/g, '');
-    if (wanted.has(keyNorm)) return obj[k];
-  }
-  return undefined;
-}
-
-function toUiString(v) {
-  if (v == null) return '';
-  if (typeof Buffer !== 'undefined' && Buffer.isBuffer(v)) return v.toString('utf8');
-  return String(v);
-}
-
-/** Fusionne la ligne liste et la fiche détail en objet stable pour le formulaire. */
-function mergeRbacUserRowsForEdit(listRow, detailRow) {
-  const pick = (o, ...names) => {
-    if (!o) return undefined;
-    for (const n of names) {
-      const v = pickUserField(o, n);
-      if (v !== undefined && v !== null && toUiString(v).trim() !== '') return v;
-    }
-    return undefined;
-  };
-  const pickLoose = (o, ...names) => {
-    if (!o) return undefined;
-    for (const n of names) {
-      const v = pickUserField(o, n);
-      if (v !== undefined && v !== null) return v;
-    }
-    return undefined;
-  };
-  const a = listRow && typeof listRow === 'object' ? listRow : {};
-  const b = detailRow && typeof detailRow === 'object' && !detailRow.raw ? detailRow : {};
-  const idRaw = pickUserField(b, 'id') ?? pickUserField(a, 'id');
-  const id = idRaw != null ? toUiString(idRaw).trim() : '';
-  const user_type = String(
-    pick(b, 'user_type', 'userType') ?? pick(a, 'user_type', 'userType') ?? ''
-  ).toLowerCase();
-  const displayRaw = pickLoose(b, 'display_name', 'displayName') ?? pickLoose(a, 'display_name', 'displayName');
-  return {
-    id,
-    user_type,
-    display_name: displayRaw != null ? toUiString(displayRaw).trim() : '',
-    first_name: pick(b, 'first_name', 'firstName') ?? pick(a, 'first_name', 'firstName'),
-    last_name: pick(b, 'last_name', 'lastName') ?? pick(a, 'last_name', 'lastName'),
-    pseudo: pick(b, 'pseudo') ?? pick(a, 'pseudo'),
-    email: pick(b, 'email') ?? pick(a, 'email'),
-    description: pickLoose(b, 'description') ?? pickLoose(a, 'description'),
-    affiliation: pick(b, 'affiliation') ?? pick(a, 'affiliation'),
-    role_id: pickUserField(b, 'role_id', 'roleId') ?? pickUserField(a, 'role_id', 'roleId'),
-    role_slug: pickUserField(b, 'role_slug', 'roleSlug') ?? pickUserField(a, 'role_slug', 'roleSlug'),
-    role_display_name:
-      pickUserField(b, 'role_display_name', 'roleDisplayName')
-      ?? pickUserField(a, 'role_display_name', 'roleDisplayName'),
-    forum_participate: pickUserField(b, 'forum_participate', 'forumParticipate')
-      ?? pickUserField(a, 'forum_participate', 'forumParticipate'),
-    context_comment_participate:
-      pickUserField(b, 'context_comment_participate', 'contextCommentParticipate')
-      ?? pickUserField(a, 'context_comment_participate', 'contextCommentParticipate'),
-  };
-}
-
-function isLikelyApiUserPayload(x) {
-  return x && typeof x === 'object' && !Array.isArray(x) && x.raw == null && x.id != null;
-}
-
-/** Préremplit le formulaire d’édition à partir de la fiche API (prénom/nom manquants → display_name ou identifiant email). */
-function buildUserEditInitialFields(u) {
-  let firstName = toUiString(pickUserField(u, 'first_name', 'firstName')).trim();
-  let lastName = toUiString(pickUserField(u, 'last_name', 'lastName')).trim();
-  const pseudo = toUiString(pickUserField(u, 'pseudo')).trim();
-  const email = toUiString(pickUserField(u, 'email')).trim();
-  const descRaw = pickUserField(u, 'description');
-  const description = descRaw != null ? toUiString(descRaw) : '';
-  let affiliation = toUiString(pickUserField(u, 'affiliation') ?? 'both').toLowerCase();
-  if (!affiliation) affiliation = 'both';
-
-  if (!firstName && !lastName) {
-    const dn = toUiString(pickUserField(u, 'display_name', 'displayName')).trim();
-    if (dn && !EDIT_EMAIL_RE.test(dn)) {
-      const parts = dn.split(/\s+/).filter(Boolean);
-      if (parts.length >= 1) firstName = parts[0];
-      if (parts.length >= 2) lastName = parts.slice(1).join(' ');
-    } else if (dn && EDIT_EMAIL_RE.test(dn)) {
-      const at = dn.indexOf('@');
-      const local = at > 0 ? dn.slice(0, at) : dn;
-      const rawTokens = local.replace(/[._-]+/g, ' ').split(/\s+/).filter(Boolean);
-      const tokens = rawTokens.map((t) => (t ? t.charAt(0).toUpperCase() + t.slice(1).toLowerCase() : '')).filter(Boolean);
-      if (tokens.length >= 1) firstName = tokens[0];
-      if (tokens.length >= 2) lastName = tokens.slice(1).join(' ');
-    }
-  }
-
-  return { firstName, lastName, pseudo, email, description, affiliation };
-}
+import {
+  pickUserField,
+  mergeRbacUserRowsForEdit,
+  isLikelyApiUserPayload,
+  buildUserEditInitialFields,
+} from '../utils/profilesUserFields.js';
+import { UserEditModal } from './profiles/UserEditModal.jsx';
+import { DeleteUserConfirmModal } from './profiles/DeleteUserConfirmModal.jsx';
 
 function ProfilesAdminView({ onImpersonationApplied, maps = [] }) {
   const publicSettings = usePublicSettings();
@@ -979,173 +878,40 @@ function ProfilesAdminView({ onImpersonationApplied, maps = [] }) {
       )}
       {msg && <div className="auth-success">{msg}</div>}
 
-      {editModalOpen && (
-        <DialogShell
-          open={editModalOpen}
-          onClose={() => {
-            if (!editLoading && editUserLoadState !== 'loading') closeEditUser();
-          }}
-          overlayClassName="modal-overlay modal-overlay--centered"
-          dialogClassName="log-modal log-modal--dialog fade-in"
-          dialogStyle={{ paddingBottom: 'calc(20px + var(--safe-bottom))' }}
-          ariaLabel="Modifier le compte"
-          closeOnOverlay={!editLoading && editUserLoadState !== 'loading'}
-        >
-            <h3 style={{ marginBottom: 8 }}>Modifier le compte</h3>
-            {editUserLoadState === 'loading' && (
-              <p style={{ margin: '12px 0', fontSize: '.9rem', color: '#64748b' }}>Chargement des données du compte…</p>
-            )}
-            {editUserLoadState === 'ready' && editingUser && (
-              <>
-                <p style={{ fontSize: '.82rem', color: '#64748b', marginBottom: 12, lineHeight: 1.45 }}>
-                  <strong>{editingUser.display_name}</strong>
-                  <span style={{ color: '#94a3b8' }}> ({editingUser.user_type})</span>
-                </p>
-                {err && (
-                  <div className="auth-error" style={{ marginBottom: 12 }} role="alert">
-                    ⚠️ {err}
-                  </div>
-                )}
-                <form
-                  className="profiles-admin-create-grid"
-                  style={{ display: 'grid', gap: 10 }}
-                  noValidate
-                  onSubmit={(e) => {
-                    e.preventDefault();
-                    saveEditUser();
-                  }}
-                >
-                  <div className="field" style={{ margin: 0 }}>
-                    <label htmlFor="edit-user-first">Prénom (obligatoire)</label>
-                    <input
-                      id="edit-user-first"
-                      value={editFirstName}
-                      onChange={(e) => setEditFirstName(e.target.value)}
-                      disabled={editLoading}
-                      autoComplete="off"
-                    />
-                  </div>
-                  <div className="field" style={{ margin: 0 }}>
-                    <label htmlFor="edit-user-last">Nom (obligatoire)</label>
-                    <input
-                      id="edit-user-last"
-                      value={editLastName}
-                      onChange={(e) => setEditLastName(e.target.value)}
-                      disabled={editLoading}
-                      autoComplete="off"
-                    />
-                  </div>
-                  <div className="field" style={{ margin: 0 }}>
-                    <label htmlFor="edit-user-pseudo">Pseudo</label>
-                    <input
-                      id="edit-user-pseudo"
-                      value={editPseudo}
-                      onChange={(e) => setEditPseudo(e.target.value)}
-                      disabled={editLoading}
-                      autoComplete="off"
-                      placeholder={editPseudo ? undefined : 'Aucun pseudo en base'}
-                    />
-                  </div>
-                  <div className="field" style={{ margin: 0 }}>
-                    <label htmlFor="edit-user-email">Email</label>
-                    <input
-                      id="edit-user-email"
-                      type="email"
-                      value={editEmail}
-                      onChange={(e) => setEditEmail(e.target.value)}
-                      disabled={editLoading}
-                      autoComplete="off"
-                      placeholder={editEmail ? undefined : 'Aucun email en base'}
-                    />
-                  </div>
-                  <div className="field" style={{ margin: 0 }}>
-                    <label htmlFor="edit-user-desc">Description</label>
-                    <MarkdownTextarea
-                      id="edit-user-desc"
-                      value={editDescription}
-                      onChange={(e) => setEditDescription(e.target.value)}
-                      disabled={editLoading}
-                      maxLength={300}
-                      rows={2}
-                      autoComplete="off"
-                      placeholder={editDescription ? undefined : 'Aucune description en base'}
-                    />
-                  </div>
-                  {editingUser.user_type === 'student' && (
-                    <div className="field" style={{ margin: 0 }}>
-                      <label htmlFor="edit-user-aff">Affiliation</label>
-                      <select id="edit-user-aff" value={editAffiliation} onChange={(e) => setEditAffiliation(e.target.value)} disabled={editLoading}>
-                        {affiliationOptionsForEdit.map((o) => (
-                          <option key={o.value} value={o.value}>{o.label}</option>
-                        ))}
-                      </select>
-                    </div>
-                  )}
-                  <div className="field" style={{ margin: 0 }}>
-                    <label htmlFor="edit-user-pw">Nouveau mot de passe (laisser vide pour ne pas changer)</label>
-                    <input id="edit-user-pw" type="password" value={editPassword} onChange={(e) => setEditPassword(e.target.value)} disabled={editLoading} autoComplete="new-password" />
-                  </div>
-                  {authPerms.includes('admin.impersonate') && (
-                    <div style={{ gridColumn: '1 / -1', marginTop: 4 }}>
-                      <Tooltip text={resolveRoleText(HELP_TOOLTIPS.profiles.impersonateUser, true)}>
-                        <button
-                          type="button"
-                          className="btn btn-secondary"
-                          disabled={editLoading || impersonateLoading}
-                          onClick={() => { startImpersonation(); }}
-                        >
-                          {impersonateLoading ? 'Connexion…' : 'Voir comme cet utilisateur'}
-                        </button>
-                      </Tooltip>
-                      <p style={{ fontSize: '.72rem', color: '#64748b', margin: '8px 0 0', lineHeight: 1.45 }}>
-                        L’interface reflète le compte choisi (support ou diagnostic). Utilise le bandeau orange en haut pour retrouver ta session administrateur.
-                      </p>
-                    </div>
-                  )}
-                  <div style={{ display: 'flex', gap: 10, marginTop: 6, gridColumn: '1 / -1' }}>
-                    <button type="submit" className="btn btn-primary" style={{ flex: 1 }} disabled={editLoading}>
-                      {editLoading ? 'Enregistrement…' : 'Enregistrer'}
-                    </button>
-                    <button type="button" className="btn btn-ghost" style={{ flex: 1 }} onClick={closeEditUser} disabled={editLoading}>
-                      Annuler
-                    </button>
-                  </div>
-                </form>
-              </>
-            )}
-            {editUserLoadState === 'loading' && (
-              <div style={{ marginTop: 16 }}>
-                <button type="button" className="btn btn-ghost" style={{ width: '100%' }} onClick={closeEditUser}>
-                  Annuler
-                </button>
-              </div>
-            )}
-        </DialogShell>
-      )}
+      <UserEditModal
+        editModalOpen={editModalOpen}
+        editUserLoadState={editUserLoadState}
+        editingUser={editingUser}
+        err={err}
+        editFirstName={editFirstName}
+        editLastName={editLastName}
+        editPseudo={editPseudo}
+        editEmail={editEmail}
+        editDescription={editDescription}
+        editAffiliation={editAffiliation}
+        editPassword={editPassword}
+        editLoading={editLoading}
+        impersonateLoading={impersonateLoading}
+        affiliationOptionsForEdit={affiliationOptionsForEdit}
+        authPerms={authPerms}
+        setEditFirstName={setEditFirstName}
+        setEditLastName={setEditLastName}
+        setEditPseudo={setEditPseudo}
+        setEditEmail={setEditEmail}
+        setEditDescription={setEditDescription}
+        setEditAffiliation={setEditAffiliation}
+        setEditPassword={setEditPassword}
+        closeEditUser={closeEditUser}
+        saveEditUser={saveEditUser}
+        startImpersonation={startImpersonation}
+      />
 
-      {confirmStudent && (
-        <DialogShell
-          open={!!confirmStudent}
-          onClose={() => setConfirmStudent(null)}
-          overlayClassName="modal-overlay modal-overlay--centered"
-          dialogClassName="log-modal log-modal--dialog fade-in"
-          dialogStyle={{ paddingBottom: 'calc(20px + var(--safe-bottom))' }}
-          ariaLabel="Confirmer la suppression"
-          closeOnOverlay
-        >
-            <h3 style={{ marginBottom: 8 }}>Supprimer le/la {roleTerms.studentSingular} ?</h3>
-            <p style={{ fontSize: '.95rem', color: '#444', marginBottom: 6, lineHeight: 1.5 }}>
-              <strong>{confirmStudent.first_name} {confirmStudent.last_name}</strong>
-            </p>
-            <p style={{ fontSize: '.85rem', color: '#888', marginBottom: 20, lineHeight: 1.5 }}>
-              Ses assignations de tâches seront également supprimées.
-            </p>
-            <div style={{ display: 'flex', gap: 10 }}>
-              <button className="btn btn-danger" style={{ flex: 1 }} onClick={confirmDelete}>Supprimer</button>
-              <button className="btn btn-ghost" style={{ flex: 1 }} onClick={() => setConfirmStudent(null)}>Annuler</button>
-            </div>
-        </DialogShell>
-      )}
+      <DeleteUserConfirmModal
+        confirmStudent={confirmStudent}
+        roleTerms={roleTerms}
+        onConfirm={confirmDelete}
+        onCancel={() => setConfirmStudent(null)}
+      />
 
       {canManageProfiles && (
         <>
