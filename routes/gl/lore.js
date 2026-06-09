@@ -837,7 +837,7 @@ router.get('/admin/qcm/stats', requireGlPermission('gl.content.manage'), async (
 });
 
 router.get('/admin/qcm/import/template', requireGlPermission('gl.content.manage'), wrapXlsxRoute(async () => ({
-  buffer: buildQcmLoreTemplateWorkbook(),
+  buffer: await buildQcmLoreTemplateWorkbook(),
   filename: 'foretmap-gl-modele-qcm-lore.xlsx',
 })));
 
@@ -851,7 +851,7 @@ router.get('/admin/qcm/export', requireGlPermission('gl.content.manage'), wrapXl
     { statut, chapitreSlug, categorieSlug }
   );
   return {
-    buffer: buildQcmLoreExportWorkbook(data),
+    buffer: await buildQcmLoreExportWorkbook(data),
     filename: 'foretmap-gl-export-qcm-lore.xlsx',
   };
 }));
@@ -860,7 +860,7 @@ router.post('/admin/qcm/import', requireGlPermission('gl.content.manage'), async
   const dryRun = !!req.body?.dryRun;
   let parsed;
   try {
-    parsed = resolveQcmLoreImportRows(req.body || {});
+    parsed = await resolveQcmLoreImportRows(req.body || {});
   } catch (err) {
     return res.status(400).json({ error: err.message || 'Fichier import invalide' });
   }
