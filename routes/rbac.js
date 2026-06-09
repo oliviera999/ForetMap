@@ -3,7 +3,7 @@ const bcrypt = require('bcryptjs');
 const { v4: uuidv4 } = require('uuid');
 const { queryAll, queryOne, execute, withTransaction } = require('../database');
 const { requirePermission } = require('../middleware/requireTeacher');
-const { setPrimaryRole, getPrimaryRoleForUser, invalidateAllAuthzCache } = require('../lib/rbac');
+const { setPrimaryRole, getPrimaryRoleForUser } = require('../lib/rbac');
 const { getSettingValue, setSetting } = require('../lib/settings');
 const { emitStudentsChanged } = require('../lib/realtime');
 const { resolveStudentAffiliationForPersist } = require('../lib/studentAffiliation');
@@ -21,20 +21,6 @@ const { logRouteError, respondInternalError } = require('../lib/routeLog');
 const { logAudit } = require('./audit');
 
 const router = express.Router();
-
-// Toute mutation RBAC reussie (creation/edition de role, grille de permissions, attribution de
-// role) invalide le cache d'autorisation (lib/rbac) pour que les changements admin prennent effet
-// immediatement, sans attendre le TTL. Couvre toutes les routes mutantes du routeur en un seul point.
-router.use((req, res, next) => {
-  if (req.method === 'GET' || req.method === 'HEAD' || req.method === 'OPTIONS') return next();
-  res.on('finish', () => {
-    if (res.statusCode >= 200 && res.statusCode < 400) {
-      try { invalidateAllAuthzCache(); } catch (_) { /* best effort */ }
-    }
-  });
-  next();
-});
-
 const MAX_DESCRIPTION_LEN = 300;
 const PSEUDO_RE = /^[A-Za-z0-9_.-]{3,30}$/;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;

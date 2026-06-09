@@ -10,7 +10,6 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 ### Performance & sécurité (audit optimisation — `docs/AUDIT_OPTIMISATION.md`, items O1-O14)
 
 - **Bundle (O1, O11)** : `VisitMapMascotRenderer` charge le renderer sélectionné via `React.lazy`/`Suspense` — `rive` (~166 Ko) et `sprite_cut` (~102 Ko) quittent le preload initial de la Carte (seul le renderer monté est téléchargé) ; `vite.config` `sourcemap: false` en build prod (~6 Mo de `.map` évités).
-- **RBAC (O3)** : cache mémoire TTL court (30 s, `lib/memoryTtlCache`) de `buildAuthzPayload`, appelé sur chaque requête authentifiée (3-5 SELECT). Clé `userType:userId:elevated` (élévation PIN / impersonation = effet immédiat) ; invalidation par-utilisateur (`setPrimaryRole`, `ensurePrimaryRole`) et globale après mutation `/api/rbac`.
 - **Tâches (O10)** : `replaceTaskJoinRows` — un INSERT multi-valeurs pour zones/repères/tutoriels/référents au lieu de boucles N+1.
 - **Serveur (O13, O14)** : `helmet` (nosniff/frameguard/HSTS/referrer-policy ; CSP `img-src` conservé) ; `crypto.timingSafeEqual` pour `DEPLOY_SECRET` ; `/api/version` et `/api/admin/diagnostics` servent `startupVersion` sans relecture disque de `package.json`.
 

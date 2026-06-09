@@ -53,7 +53,7 @@ Statuts : `todo` · `wip` · `done` · `differe` (décision produit requise).
 |----|------|-----|----------|----------------|--------|--------|
 | O1 | Haute | Perf | 268 KB de renderers mascotte (rive+spriteCut) chargés en eager sur la Carte (`VisitMapMascotRenderer.jsx`) | `React.lazy` par renderer + `Suspense` | Faible | done |
 | O2 | Haute | Perf | `taskTileProps` recréé chaque render + `TaskTileCard` non mémoïsé ⇒ re-render de toutes les tuiles par tick | `useMemo` + `React.memo` | Faible | done |
-| O3 | Haute | Perf | RBAC : 3-5 requêtes DB par requête authentifiée, non caché | Cache TTL court (`lib/memoryTtlCache.js`), invalidé sur mutation de rôle | Moyen | done |
+| O3 | Haute | Perf | RBAC : 3-5 requêtes DB par requête authentifiée, non caché | **Tenté puis reverté** : un cache TTL avec invalidation par hook (`setPrimaryRole`/routes rbac) s'est avéré à invalidation **incomplète** — des chemins mutent `roles`/`user_roles` en SQL direct (dédup `rbac.js`, tests) → permissions périmées (a cassé `api.test.js`). Re-tenter avec un **compteur de version RBAC global** inclus dans la clé de cache (incrémenté de façon centralisée à toute écriture des tables RBAC) **ou** un cache **request-scoped**. Sécurité-critique : à ne pas livrer sans preuve d'invalidation complète | Moyen | differe |
 | O4 | Haute | Sécu/Maint | `xlsx@0.18.5` — 2 CVE High via uploads | Migration `exceljs` (npm) ou SheetJS CDN | Élevé | differe |
 | O5 | Haute | Extensibilité | `App.jsx` God component + prop-drilling ×4 | Contexts par domaine (session, données, settings) | Élevé | wip |
 | O6 | Haute | Maint/Test | Composants monolithiques + 0 test UI sur ~21k LOC | Extraire logique pure → tests ; puis découper | Élevé | wip |

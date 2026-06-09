@@ -555,35 +555,32 @@ async function fetchTaskAssignmentAggregates(taskIds) {
   );
 }
 
-/**
- * Remplace les lignes de jointure d'une tache (DELETE puis re-INSERT) en UNE seule requete
- * multi-valeurs au lieu d'une boucle N+1. `table`/`column` sont des litteraux codes en dur
- * (jamais de l'entree client) ; les valeurs passent en parametres `?`.
- */
-async function replaceTaskJoinRows(table, column, taskId, ids) {
-  await execute(`DELETE FROM ${table} WHERE task_id = ?`, [taskId]);
-  const list = Array.isArray(ids) ? ids : [];
-  if (list.length === 0) return;
-  const placeholders = list.map(() => '(?, ?)').join(', ');
-  const params = [];
-  for (const id of list) params.push(taskId, id);
-  await execute(`INSERT INTO ${table} (task_id, ${column}) VALUES ${placeholders}`, params);
-}
-
 async function setTaskZones(taskId, zoneIds) {
-  return replaceTaskJoinRows('task_zones', 'zone_id', taskId, zoneIds);
+  await execute('DELETE FROM task_zones WHERE task_id = ?', [taskId]);
+  for (const zid of zoneIds) {
+    await execute('INSERT INTO task_zones (task_id, zone_id) VALUES (?, ?)', [taskId, zid]);
+  }
 }
 
 async function setTaskMarkers(taskId, markerIds) {
-  return replaceTaskJoinRows('task_markers', 'marker_id', taskId, markerIds);
+  await execute('DELETE FROM task_markers WHERE task_id = ?', [taskId]);
+  for (const mid of markerIds) {
+    await execute('INSERT INTO task_markers (task_id, marker_id) VALUES (?, ?)', [taskId, mid]);
+  }
 }
 
 async function setTaskTutorials(taskId, tutorialIds) {
-  return replaceTaskJoinRows('task_tutorials', 'tutorial_id', taskId, tutorialIds);
+  await execute('DELETE FROM task_tutorials WHERE task_id = ?', [taskId]);
+  for (const tid of tutorialIds) {
+    await execute('INSERT INTO task_tutorials (task_id, tutorial_id) VALUES (?, ?)', [taskId, tid]);
+  }
 }
 
 async function setTaskReferents(taskId, userIds) {
-  return replaceTaskJoinRows('task_referents', 'user_id', taskId, userIds);
+  await execute('DELETE FROM task_referents WHERE task_id = ?', [taskId]);
+  for (const uid of userIds) {
+    await execute('INSERT INTO task_referents (task_id, user_id) VALUES (?, ?)', [taskId, uid]);
+  }
 }
 
 function referentPublicLabel(row) {

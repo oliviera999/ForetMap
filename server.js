@@ -6,9 +6,7 @@ if (process.argv.includes('--foretmap-e2e-no-rate-limit')) {
 const express = require('express');
 const http    = require('http');
 const fs      = require('fs');
-const crypto  = require('crypto');
 const cors    = require('cors');
-const helmet  = require('helmet');
 const compression = require('compression');
 const path    = require('path');
 const jwt = require('jsonwebtoken');
@@ -118,23 +116,6 @@ function buildCorsOptions() {
 
 const corsOpts = buildCorsOptions();
 app.use(cors(corsOpts));
-// En-tetes de securite (nosniff, frameguard, HSTS, referrer-policy, etc.).
-// CSP laisse au middleware dedie ci-dessous (img-src) : le CSP par defaut de helmet
-// casserait la SPA (polices Google, styles inline). COEP/CORP desactives : /uploads et
-// photos externes plantes doivent rester chargeables.
-app.use(helmet({
-  contentSecurityPolicy: false,
-  crossOriginEmbedderPolicy: false,
-  crossOriginResourcePolicy: false,
-}));
-
-/** Comparaison de secret a temps constant (evite l'oracle temporel sur DEPLOY_SECRET). */
-function timingSafeSecretEqual(provided, expected) {
-  const a = Buffer.from(String(provided == null ? '' : provided));
-  const b = Buffer.from(String(expected == null ? '' : expected));
-  if (a.length !== b.length || a.length === 0) return false;
-  return crypto.timingSafeEqual(a, b);
-}
 app.use(
   compression({
     filter: (req, res) => {
@@ -407,15 +388,21 @@ app.get('/api/ready', async (req, res) => {
 // Version de l'app (pied de page frontend)
 const startupVersion = require(path.join(__dirname, 'package.json')).version;
 app.get('/api/version', (req, res) => {
-  // `startupVersion` est lu une fois au boot ; le process redemarre a chaque deploy,
-  // donc pas de relecture disque (fs.readFileSync) sur ce endpoint appele a chaque page.
-  res.json({ version: startupVersion });
+  try {
+    const pkgPath = path.join(__dirname, 'package.json');
+    const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
+    const version = typeof pkg?.version === 'string' ? pkg.version : startupVersion;
+    res.json({ version });
+  } catch (err) {
+    logger.warn({ err }, 'Lecture package.json échouée pour /api/version');
+    res.json({ version: startupVersion });
+  }
 });
 
 // Redémarrage déclenché après déploiement (secret requis ; le gestionnaire de process relance l'app)
 app.post('/api/admin/restart', (req, res) => {
   const secret = req.headers['x-deploy-secret'] || req.body?.secret;
-  if (!process.env.DEPLOY_SECRET || !timingSafeSecretEqual(secret, process.env.DEPLOY_SECRET)) {
+  if (!process.env.DEPLOY_SECRET || secret !== process.env.DEPLOY_SECRET) {
     return res.status(403).json({ error: 'Secret invalide' });
   }
   res.json({ ok: true, message: 'Redémarrage gracieux' });
@@ -425,7 +412,7 @@ app.post('/api/admin/restart', (req, res) => {
 // Dernières lignes de log Pino (tampon mémoire) — même secret que /api/admin/restart ; uniquement en HTTPS en prod
 app.get('/api/admin/logs', (req, res) => {
   const secret = req.headers['x-deploy-secret'];
-  if (!process.env.DEPLOY_SECRET || !timingSafeSecretEqual(secret, process.env.DEPLOY_SECRET)) {
+  if (!process.env.DEPLOY_SECRET || secret !== process.env.DEPLOY_SECRET) {
     return res.status(403).json({ error: 'Secret invalide ou DEPLOY_SECRET non configuré' });
   }
   const raw = parseInt(req.query.lines, 10);
@@ -443,7 +430,7 @@ app.get('/api/admin/logs', (req, res) => {
 // Instantané d’exploitation (secret requis) : version, uptime, mémoire, latence BDD, tampon logs — pour diag à distance / MCP
 app.get('/api/admin/diagnostics', async (req, res) => {
   const secret = req.headers['x-deploy-secret'];
-  if (!process.env.DEPLOY_SECRET || !timingSafeSecretEqual(secret, process.env.DEPLOY_SECRET)) {
+  if (!process.env.DEPLOY_SECRET || secret !== process.env.DEPLOY_SECRET) {
     return res.status(403).json({ error: 'Secret invalide ou DEPLOY_SECRET non configuré' });
   }
   const mem = process.memoryUsage();
@@ -457,7 +444,14 @@ app.get('/api/admin/diagnostics', async (req, res) => {
     logger.warn({ err }, 'Diagnostics admin : ping BDD en échec');
     database = { ok: false, error: 'Database unavailable' };
   }
-  const pkgVersion = startupVersion;
+  let pkgVersion = startupVersion;
+  try {
+    const pkgPath = path.join(__dirname, 'package.json');
+    const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
+    if (typeof pkg?.version === 'string') pkgVersion = pkg.version;
+  } catch (_) {
+    /* repli startupVersion */
+  }
   let visitMascotHint = { maps: [], error: null };
   try {
     visitMascotHint = await getVisitMascotHintSnapshot(queryAll);
@@ -523,7 +517,7 @@ app.get('/api/admin/diagnostics', async (req, res) => {
 // Diagnostic OAuth (sans secrets) : vérifie les URLs réellement résolues au runtime.
 app.get('/api/admin/oauth-debug', (req, res) => {
   const secret = req.headers['x-deploy-secret'];
-  if (!process.env.DEPLOY_SECRET || !timingSafeSecretEqual(secret, process.env.DEPLOY_SECRET)) {
+  if (!process.env.DEPLOY_SECRET || secret !== process.env.DEPLOY_SECRET) {
     return res.status(403).json({ error: 'Secret invalide ou DEPLOY_SECRET non configuré' });
   }
 
