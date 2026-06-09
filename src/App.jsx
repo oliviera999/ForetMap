@@ -73,6 +73,7 @@ import { useOverlayHistoryBack } from './hooks/useOverlayHistoryBack';
 import { abandonAllOverlays, pushOverlayClose } from './utils/overlayHistory';
 import { AutoProfilePromotionModal } from './components/AutoProfilePromotionModal.jsx';
 import { DialogShell } from './components/DialogShell';
+import { PublicSettingsProvider } from './contexts/PublicSettingsContext.jsx';
 
 const OAUTH_ERROR_MESSAGES = {
   oauth_not_configured: 'Connexion Google indisponible (configuration serveur incomplète).',
@@ -1337,6 +1338,7 @@ function App() {
     || 'Utilisateur';
 
   return (
+    <PublicSettingsProvider value={publicSettings}>
     <div id="app">
       {plantCatalogPreview && (
         <Suspense fallback={null}>
@@ -2143,6 +2145,7 @@ function App() {
       )}
       <footer className="app-footer">{appFooterVersionPrefix} {appVersion != null ? appVersion : '…'}</footer>
     </div>
+    </PublicSettingsProvider>
   );
 }
 
