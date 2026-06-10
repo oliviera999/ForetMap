@@ -41,6 +41,14 @@ import { usePublicSettings } from '../contexts/PublicSettingsContext.jsx';
 import { useSession } from '../contexts/SessionContext.jsx';
 import { useData } from '../contexts/DataContext.jsx';
 import { fileToDataUrl } from '../utils/fileToDataUrl.js';
+import {
+  isHttpLink,
+  isLocalUploadsPath,
+  isLikelyDirectImageUrl,
+  commonsFilePageToDisplaySrc,
+  parseCommonsCategoryFromUrl,
+  getSourceLabel,
+} from '../utils/plantSourceLinks.js';
 
 // ── INTERACTIVE MAP ──────────────────────────────────────────────────────────
 
@@ -378,65 +386,6 @@ function downloadCsvTemplate(headers, filename) {
   URL.revokeObjectURL(url);
 }
 
-function isHttpLink(value) {
-  return /^https?:\/\//i.test(value);
-}
-
-function isLocalUploadsPath(value) {
-  return /^\/uploads\/[^?#\s]+/i.test(value);
-}
-
-function isLikelyDirectImageUrl(value) {
-  if (isLocalUploadsPath(value)) {
-    return /\.(avif|bmp|gif|jpe?g|png|svg|webp)(?:$|\?)/i.test(value);
-  }
-  if (!isHttpLink(value)) return false;
-  try {
-    const url = new URL(value);
-    const path = url.pathname.toLowerCase();
-    // Accepte les URLs pointant vers un fichier image direct
-    // ou les liens Wikimedia FilePath (binaire direct).
-    if (/\.(avif|bmp|gif|jpe?g|png|svg|webp)$/.test(path)) return true;
-    if (/\/wiki\/special:filepath\//.test(path)) return true;
-    return false;
-  } catch {
-    return false;
-  }
-}
-
-/** Page fichier Commons /wiki/File:… → URL affichable en miniature (redirige vers le binaire). */
-function parseCommonsFilePageFromUrl(value) {
-  if (!isHttpLink(value)) return null;
-  try {
-    const url = new URL(value);
-    if (!/^(?:www\.)?commons\.wikimedia\.org$/i.test(url.hostname)) return null;
-    const m = url.pathname.match(/^\/wiki\/File:(.+)$/i);
-    if (!m) return null;
-    return m[1];
-  } catch {
-    return null;
-  }
-}
-
-function commonsFilePageToDisplaySrc(value) {
-  const fileTitle = parseCommonsFilePageFromUrl(value);
-  if (!fileTitle) return null;
-  return `https://commons.wikimedia.org/wiki/Special:FilePath/${fileTitle}`;
-}
-
-function parseCommonsCategoryFromUrl(value) {
-  if (!isHttpLink(value)) return null;
-  try {
-    const url = new URL(value);
-    if (!/^(?:www\.)?commons\.wikimedia\.org$/i.test(url.hostname)) return null;
-    const m = url.pathname.match(/^\/wiki\/(Category:.+)$/i);
-    if (!m) return null;
-    return decodeURIComponent(m[1]);
-  } catch {
-    return null;
-  }
-}
-
 async function fetchCommonsCategoryPreview(urlValue) {
   const categoryTitle = parseCommonsCategoryFromUrl(urlValue);
   if (!categoryTitle) return null;
@@ -458,16 +407,6 @@ async function fetchCommonsCategoryPreview(urlValue) {
   const first = pages[0];
   const info = first?.imageinfo?.[0];
   return info?.thumburl || info?.url || null;
-}
-
-function getSourceLabel(value) {
-  if (isLocalUploadsPath(value)) return 'fichier local';
-  try {
-    const url = new URL(value);
-    return url.hostname.replace(/^www\./i, '');
-  } catch {
-    return value;
-  }
 }
 
 /** Groupe (taxon) 1 catalogue type « Végétal (Chlorobiontes) » — nutrition souvent redondante (autotrophe). */
