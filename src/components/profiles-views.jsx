@@ -4,7 +4,6 @@ import { getRoleTerms } from '../utils/n3-terminology';
 import { useHelp } from '../hooks/useHelp';
 import { HelpPanel } from './HelpPanel';
 import { HELP_PANELS } from '../constants/help';
-import { MarkdownTextarea } from './MarkdownTextarea.jsx';
 import { buildAffiliationSelectOptions } from '../utils/affiliationSelectOptions';
 import { GroupsAdminView } from './groups-views.jsx';
 import { usePublicSettings } from '../contexts/PublicSettingsContext.jsx';
@@ -17,6 +16,9 @@ import {
 } from '../utils/profilesUserFields.js';
 import { UserEditModal } from './profiles/UserEditModal.jsx';
 import { DeleteUserConfirmModal } from './profiles/DeleteUserConfirmModal.jsx';
+import { CreateUserPanel } from './profiles/CreateUserPanel.jsx';
+import { StudentImportPanel } from './profiles/StudentImportPanel.jsx';
+import { StudentDeletePanel } from './profiles/StudentDeletePanel.jsx';
 
 function ProfilesAdminView({ onImpersonationApplied, maps = [] }) {
   const publicSettings = usePublicSettings();
@@ -1272,170 +1274,56 @@ function ProfilesAdminView({ onImpersonationApplied, maps = [] }) {
             </button>
           </div>
 
-          <div style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: 12, padding: 12, marginTop: 12, opacity: canCreateUsers ? 1 : 0.65 }}>
-            <h3 style={{ margin: '0 0 8px', fontSize: '1rem', color: 'var(--forest)' }}>Création unitaire d&apos;utilisateur</h3>
-            <p style={{ margin: '0 0 10px', fontSize: '.85rem', color: '#6b7280' }}>
-              Créez un compte sans import. Action réservée aux sessions élevées (PIN).
-            </p>
-            <div className="profiles-admin-create-grid">
-              <div className="field" style={{ margin: 0 }}>
-                <label>Profil</label>
-                <select value={createRole} onChange={(e) => setCreateRole(e.target.value)} disabled={!canCreateUsers || createLoading}>
-                  <option value="eleve_novice">{roleTerms.studentSingular}</option>
-                  <option value="prof">{roleTerms.teacherShort}</option>
-                  {isAdmin && <option value="admin">Admin</option>}
-                </select>
-              </div>
-              <div className="field" style={{ margin: 0 }}>
-                <label>Prénom</label>
-                <input value={createFirstName} onChange={(e) => setCreateFirstName(e.target.value)} disabled={!canCreateUsers || createLoading} />
-              </div>
-              <div className="field" style={{ margin: 0 }}>
-                <label>Nom</label>
-                <input value={createLastName} onChange={(e) => setCreateLastName(e.target.value)} disabled={!canCreateUsers || createLoading} />
-              </div>
-              <div className="field" style={{ margin: 0 }}>
-                <label>Mot de passe</label>
-                <input type="password" value={createPassword} onChange={(e) => setCreatePassword(e.target.value)} disabled={!canCreateUsers || createLoading} />
-              </div>
-              <div className="field" style={{ margin: 0 }}>
-                <label>Pseudo (optionnel)</label>
-                <input value={createPseudo} onChange={(e) => setCreatePseudo(e.target.value)} disabled={!canCreateUsers || createLoading} />
-              </div>
-              <div className="field" style={{ margin: 0 }}>
-                <label>Email (optionnel)</label>
-                <input type="email" value={createEmail} onChange={(e) => setCreateEmail(e.target.value)} disabled={!canCreateUsers || createLoading} />
-              </div>
-              <div className="field" style={{ margin: 0 }}>
-                <label>Description (optionnel)</label>
-                <MarkdownTextarea value={createDescription} onChange={(e) => setCreateDescription(e.target.value)} disabled={!canCreateUsers || createLoading} rows={2} maxLength={300} />
-              </div>
-              <div className="field" style={{ margin: 0 }}>
-                <label>Affiliation {roleTerms.studentSingular}</label>
-                <select value={createAffiliation} onChange={(e) => setCreateAffiliation(e.target.value)} disabled={!canCreateUsers || createLoading || createRole !== 'eleve_novice'}>
-                  {affiliationOptions.map((o) => (
-                    <option key={o.value} value={o.value}>{o.label}</option>
-                  ))}
-                </select>
-              </div>
-            </div>
-            <div style={{ marginTop: 10 }}>
-              <button className="btn btn-primary btn-sm" onClick={createUser} disabled={!canCreateUsers || createLoading}>
-                {createLoading ? 'Création…' : `Créer ${canCreateUsers ? '' : '(PIN requis)'}`}
-              </button>
-            </div>
-          </div>
+          <CreateUserPanel
+            roleTerms={roleTerms}
+            affiliationOptions={affiliationOptions}
+            isAdmin={isAdmin}
+            canCreateUsers={canCreateUsers}
+            createRole={createRole}
+            createFirstName={createFirstName}
+            createLastName={createLastName}
+            createPassword={createPassword}
+            createPseudo={createPseudo}
+            createEmail={createEmail}
+            createDescription={createDescription}
+            createAffiliation={createAffiliation}
+            createLoading={createLoading}
+            setCreateRole={setCreateRole}
+            setCreateFirstName={setCreateFirstName}
+            setCreateLastName={setCreateLastName}
+            setCreatePassword={setCreatePassword}
+            setCreatePseudo={setCreatePseudo}
+            setCreateEmail={setCreateEmail}
+            setCreateDescription={setCreateDescription}
+            setCreateAffiliation={setCreateAffiliation}
+            createUser={createUser}
+          />
 
-          <div style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: 12, padding: 12, marginTop: 12, opacity: canImport ? 1 : 0.65 }}>
-            <h3 style={{ margin: '0 0 8px', fontSize: '1rem', color: 'var(--forest)' }}>Import {roleTerms.studentPlural} (CSV / XLSX)</h3>
-            <p style={{ margin: '0 0 10px', fontSize: '.85rem', color: '#6b7280' }}>
-              Téléchargez un modèle vierge, complétez-le puis importez le fichier.
-            </p>
-            <p style={{ margin: '0 0 10px', fontSize: '.8rem', color: '#9a3412' }}>
-              Le modèle contient une ligne d&apos;exemple: pensez à la remplacer ou la supprimer avant l&apos;import.
-            </p>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 10 }}>
-              <button className="btn btn-ghost btn-sm" onClick={() => downloadStudentsTemplate('csv')}>
-                📄 Modèle CSV
-              </button>
-              <button className="btn btn-ghost btn-sm" onClick={() => downloadStudentsTemplate('xlsx')}>
-                📗 Modèle XLSX
-              </button>
-            </div>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
-              <input
-                type="file"
-                accept=".csv,.xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,text/csv"
-                onChange={(e) => {
-                  setImportFile(e.target.files?.[0] || null);
-                  setImportReport(null);
-                }}
-              />
-              <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: '.85rem', color: '#374151' }}>
-                <input
-                  type="checkbox"
-                  checked={dryRunImport}
-                  onChange={(e) => setDryRunImport(e.target.checked)}
-                />
-                Simulation (sans création)
-              </label>
-              <button className="btn btn-primary btn-sm" onClick={importStudents} disabled={importLoading || !canImport}>
-                {importLoading ? 'Import…' : 'Importer'}
-              </button>
-            </div>
-            {importFile && (
-              <p style={{ margin: '8px 0 0', fontSize: '.8rem', color: '#6b7280' }}>
-                Fichier sélectionné: <strong>{importFile.name}</strong>
-              </p>
-            )}
-            {importReport && (
-              <div style={{ marginTop: 10, padding: 10, background: '#f8fafc', borderRadius: 10, border: '1px solid #e2e8f0' }}>
-                <div style={{ fontSize: '.85rem', color: '#1f2937', marginBottom: 4 }}>
-                  Reçus: <strong>{importReport.totals?.received || 0}</strong> ·
-                  Valides: <strong>{importReport.totals?.valid || 0}</strong> ·
-                  Créés: <strong>{importReport.totals?.created || 0}</strong> ·
-                  Déjà existants: <strong>{importReport.totals?.skipped_existing || 0}</strong> ·
-                  Invalides: <strong>{importReport.totals?.skipped_invalid || 0}</strong>
-                </div>
-                {Array.isArray(importReport.errors) && importReport.errors.length > 0 && (
-                  <div style={{ maxHeight: 120, overflow: 'auto', fontSize: '.8rem', color: '#991b1b' }}>
-                    {importReport.errors.slice(0, 15).map((item, idx) => (
-                      <div key={`${item.row}-${item.field}-${idx}`}>
-                        Ligne {item.row} ({item.field}): {item.error}
-                      </div>
-                    ))}
-                    {importReport.errors.length > 15 && (
-                      <div>… {importReport.errors.length - 15} erreur(s) supplémentaire(s)</div>
-                    )}
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
+          <StudentImportPanel
+            roleTerms={roleTerms}
+            canImport={canImport}
+            importFile={importFile}
+            importLoading={importLoading}
+            importReport={importReport}
+            dryRunImport={dryRunImport}
+            setImportFile={setImportFile}
+            setImportReport={setImportReport}
+            setDryRunImport={setDryRunImport}
+            downloadStudentsTemplate={downloadStudentsTemplate}
+            importStudents={importStudents}
+          />
 
           {canReadAllStats && (
-            <div style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: 12, padding: 12, marginTop: 12, opacity: canDeleteUi ? 1 : 0.65 }}>
-            <h3 style={{ marginTop: 0 }}>Suppression de {roleTerms.studentPlural}</h3>
-            <div className="field" style={{ marginBottom: 10 }}>
-              <input
-                value={searchStudent}
-                onChange={(e) => setSearchStudent(e.target.value)}
-                placeholder={`🔍 Rechercher un(e) ${roleTerms.studentSingular}...`}
-                style={{ background: 'white' }}
-              />
-            </div>
-            <div style={{ maxHeight: 280, overflow: 'auto' }}>
-              {filteredStudents.length === 0 ? (
-                <p style={{ margin: 0, color: '#6b7280' }}>
-                  {searchStudent ? `Aucun(e) ${roleTerms.studentSingular} trouvé(e).` : `Aucun(e) ${roleTerms.studentSingular} disponible.`}
-                </p>
-              ) : (
-                filteredStudents.map((s) => (
-                  <div className="profiles-admin-delete-row" key={s.id}>
-                    <div>
-                      <strong>{s.first_name} {s.last_name}</strong>
-                      <div style={{ fontSize: '.78rem', color: '#6b7280' }}>
-                        {s.stats?.done || 0} validée(s) · {s.stats?.pending || 0} en cours
-                      </div>
-                    </div>
-                    <div style={{ display: 'flex', gap: 8 }}>
-                      <button
-                        className="btn btn-ghost btn-sm"
-                        disabled={!canDuplicateStudents}
-                        onClick={() => duplicateStudent(s)}
-                        title={canDuplicateStudents ? 'Dupliquer ce compte n3beur' : 'Permission users.create + élévation requises'}
-                      >
-                        📄 Dupliquer
-                      </button>
-                      <button className="btn btn-danger btn-sm" disabled={!canDeleteUi} onClick={() => setConfirmStudent(s)}>
-                        🗑️ Supprimer
-                      </button>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
+            <StudentDeletePanel
+              roleTerms={roleTerms}
+              canDeleteUi={canDeleteUi}
+              canDuplicateStudents={canDuplicateStudents}
+              searchStudent={searchStudent}
+              filteredStudents={filteredStudents}
+              setSearchStudent={setSearchStudent}
+              setConfirmStudent={setConfirmStudent}
+              duplicateStudent={duplicateStudent}
+            />
           )}
         </>
       )}
