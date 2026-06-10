@@ -83,8 +83,8 @@ async function expectVisitMascotPaintReady(stage) {
 }
 
 async function openVisitMap(page, mapId = 'n3') {
-  // [DIAG #54 — TEMPORAIRE] capture console/erreurs/requêtes échouées du navigateur
-  // pendant le montage de la mascotte (à retirer une fois la cause identifiée).
+  // [DIAG #54 — TEMPORAIRE] capture console/erreurs/requêtes navigateur + traçage
+  // de l'étape bloquante. À retirer une fois la cause identifiée.
   const diagLogs = [];
   const onConsole = (m) => diagLogs.push(`[console:${m.type()}] ${m.text()}`);
   const onPageError = (e) => diagLogs.push(`[pageerror] ${e.message}`);
@@ -92,71 +92,64 @@ async function openVisitMap(page, mapId = 'n3') {
   page.on('console', onConsole);
   page.on('pageerror', onPageError);
   page.on('requestfailed', onReqFailed);
-
-  // [#54] Le beforeEach (inscription + seed API + bascule prof + navigation +
-  // peinture de la mascotte WASM) dépasse par intermittence le timeout test de
-  // 60s sous charge CI → flakiness (le test passe en ~4s quand openVisitMap est
-  // rapide). openVisitMap cumule à lui seul jusqu'à ~130s de waits potentiels :
-  // on élargit le budget pour ces tests à setup lourd.
-  test.setTimeout(120_000);
-
-  await dismissProfilePromotionModalIfPresent(page);
-  await page.getByRole('button', { name: /^🧭 Visite$/ }).click();
-  await expect(page.locator('.visit-view')).toBeVisible({ timeout: 30_000 });
-  const mapSelect = page.getByRole('combobox', { name: 'Sélection de carte visite' });
-  if (mapId && (await mapSelect.isVisible({ timeout: 5000 }).catch(() => false))) {
-    await mapSelect.selectOption(mapId);
-  }
-  const stage = page.locator('.visit-map-stage');
-  await expect(stage).toBeVisible({ timeout: 30_000 });
-  await expect(stage.locator('img.visit-map-img')).toBeVisible({ timeout: 20_000 });
-  /* Le conteneur .visit-map-mascot est volontairement en 0×0 (ancrage %) : Playwright le voit « hidden ». */
-  await expect(stage.locator('.visit-map-mascot')).toBeAttached();
-  try {
-    await expect(stage.locator('.visit-map-mascot-inner')).toBeVisible({ timeout: 25_000 });
-    await expectVisitMascotPaintReady(stage);
-  } catch (err) {
-    // [DIAG #54 — TEMPORAIRE] dump DOM + boxes + logs navigateur puis relance
-    const dump = await stage.evaluate((stageEl) => {
-      const box = (n) => {
-        if (!n) return null;
-        const b = n.getBoundingClientRect();
-        return { tag: n.tagName, w: Math.round(b.width), h: Math.round(b.height) };
-      };
-      const inner = stageEl.querySelector('.visit-map-mascot-inner');
-      const shell = stageEl.querySelector('.visit-map-mascot-rive-shell');
-      const sheet = stageEl.querySelector('.visit-map-mascot-spritesheet-shell');
-      return {
-        mascotAttached: !!stageEl.querySelector('.visit-map-mascot'),
-        innerBox: box(inner),
-        shellAttrs: shell
-          ? {
-              renderer: shell.getAttribute('data-renderer'),
-              riveStatus: shell.getAttribute('data-rive-status'),
-              mascotId: shell.getAttribute('data-mascot-id'),
-              shape: shell.getAttribute('data-mascot-shape'),
-            }
-          : 'NO .visit-map-mascot-rive-shell',
-        spritesheetShell: !!sheet,
-        boxes: {
-          shell: box(shell),
-          staticSvg: box(stageEl.querySelector('.visit-map-mascot-static svg')),
-          canvas: box(stageEl.querySelector('canvas')),
-        },
-        outerHTML: (inner ? inner.outerHTML : stageEl.outerHTML || '').slice(0, 1800),
-      };
-    }).catch((e) => ({ evalError: String(e) }));
-    // eslint-disable-next-line no-console
-    console.log('\n[DIAG #54] === openVisitMap a échoué ===\n' + JSON.stringify(dump, null, 2));
-    // eslint-disable-next-line no-console
-    console.log('[DIAG #54] === logs navigateur (40 derniers) ===\n' + diagLogs.slice(-40).join('\n') + '\n');
-    throw err;
-  } finally {
+  // Borne TOUTES les actions à 20s : un hang échoue de façon rattrapable (et non
+  // via le timeout de hook 60s qui tue le catch avant le dump).
+  page.setDefaultTimeout(20_000);
+  const off = () => {
     page.off('console', onConsole);
     page.off('pageerror', onPageError);
     page.off('requestfailed', onReqFailed);
+  };
+
+  let lastStep = 'init';
+  try {
+    lastStep = 'dismiss-modal-1';
+    await dismissProfilePromotionModalIfPresent(page);
+    lastStep = 'click-Visite';
+    await page.getByRole('button', { name: /^🧭 Visite$/ }).click({ timeout: 20_000 });
+    lastStep = 'visit-view-visible';
+    await expect(page.locator('.visit-view')).toBeVisible({ timeout: 20_000 });
+    const mapSelect = page.getByRole('combobox', { name: 'Sélection de carte visite' });
+    lastStep = 'map-select';
+    if (mapId && (await mapSelect.isVisible({ timeout: 5000 }).catch(() => false))) {
+      await mapSelect.selectOption(mapId);
+    }
+    const stage = page.locator('.visit-map-stage');
+    lastStep = 'stage-visible';
+    await expect(stage).toBeVisible({ timeout: 20_000 });
+    lastStep = 'map-img-visible';
+    await expect(stage.locator('img.visit-map-img')).toBeVisible({ timeout: 20_000 });
+    /* Le conteneur .visit-map-mascot est volontairement en 0×0 (ancrage %) : Playwright le voit « hidden ». */
+    lastStep = 'mascot-attached';
+    await expect(stage.locator('.visit-map-mascot')).toBeAttached();
+    lastStep = 'mascot-inner-visible';
+    await expect(stage.locator('.visit-map-mascot-inner')).toBeVisible({ timeout: 20_000 });
+    lastStep = 'paint-ready';
+    await expectVisitMascotPaintReady(stage);
+    off();
+    return stage;
+  } catch (err) {
+    const info = await page.evaluate(() => ({
+      url: location.href,
+      visitView: !!document.querySelector('.visit-view'),
+      stage: !!document.querySelector('.visit-map-stage'),
+      mapImg: !!document.querySelector('img.visit-map-img'),
+      mascot: !!document.querySelector('.visit-map-mascot'),
+      mascotInner: !!document.querySelector('.visit-map-mascot-inner'),
+      riveShell: (() => {
+        const s = document.querySelector('.visit-map-mascot-rive-shell');
+        return s ? { renderer: s.getAttribute('data-renderer'), riveStatus: s.getAttribute('data-rive-status') } : null;
+      })(),
+      visiteBtn: !!Array.from(document.querySelectorAll('button')).find((b) => /🧭 Visite/.test(b.textContent || '')),
+      bodyText: (document.body.innerText || '').replace(/\s+/g, ' ').slice(0, 280),
+    })).catch((e) => ({ evalError: String(e) }));
+    // eslint-disable-next-line no-console
+    console.log(`\n[DIAG #54] === openVisitMap a échoué à l'étape: ${lastStep} ===\n` + JSON.stringify(info, null, 2));
+    // eslint-disable-next-line no-console
+    console.log('[DIAG #54] === logs navigateur (40 derniers) ===\n' + diagLogs.slice(-40).join('\n') + '\n');
+    off();
+    throw err;
   }
-  return stage;
 }
 
 test.describe.serial('mascotte visite (comportement carte)', () => {
