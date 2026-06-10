@@ -55,6 +55,11 @@ import {
   parseLinkCandidates,
   mergePlantPhotoFieldValue,
 } from '../utils/plantFormValues.js';
+import {
+  pickPlantnetVernacularName,
+  prefillPhotoSlotKey,
+  findFirstBiodivHeroPhotoCandidate,
+} from '../utils/biodivPlantForm.js';
 import { parseZonePointsJson, computeBiodivMapFitRect } from '../utils/biodivMapGeometry.js';
 
 // ── INTERACTIVE MAP ──────────────────────────────────────────────────────────
@@ -288,16 +293,6 @@ function newPlantnetIdentifySlot() {
   return { key: `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`, organ: 'auto', imageData: '', fileName: '' };
 }
 
-function pickPlantnetVernacularName(commonNames) {
-  const list = Array.isArray(commonNames) ? commonNames.map((x) => String(x || '').trim()).filter(Boolean) : [];
-  if (!list.length) return '';
-  const frHint = (s) => /[àâäéèêëïîôùûüçœæ]/i.test(s) || /\b(l'|d'|de la |des |le |la |les |du |au )\b/i.test(` ${s} `);
-  const scored = list.map((s) => ({ s, score: frHint(s) ? 2 : 0 }));
-  scored.sort((a, b) => b.score - a.score);
-  if (scored[0].score > 0) return scored[0].s;
-  return list[0];
-}
-
 /** Champs photo du formulaire (ordre affichage upload + menu pré-saisie). */
 const PLANT_PHOTO_FIELD_OPTIONS = [
   { key: 'photo_species', label: 'Photo espèce' },
@@ -307,26 +302,6 @@ const PLANT_PHOTO_FIELD_OPTIONS = [
   { key: 'photo_harvest_part', label: 'Photo partie récoltée' },
   { key: 'photo', label: 'Photo (générale)' },
 ];
-
-function prefillPhotoSlotKey(field, idx) {
-  return `${String(field).trim()}:${Number(idx)}`;
-}
-
-/** Champs candidats pour la vignette « photo principale » sous la description (ordre de priorité). */
-const BIODIV_HERO_PHOTO_KEYS = ['photo', 'photo_species'];
-
-function findFirstBiodivHeroPhotoCandidate(plant) {
-  for (const key of BIODIV_HERO_PHOTO_KEYS) {
-    const entries = parseLinkCandidates(plant[key]).filter((e) => isHttpLink(e) || isLocalUploadsPath(e));
-    for (const entry of entries) {
-      if (isLikelyDirectImageUrl(entry)) return { kind: 'direct', src: entry };
-      const fileSrc = commonsFilePageToDisplaySrc(entry);
-      if (fileSrc) return { kind: 'direct', src: fileSrc };
-      if (parseCommonsCategoryFromUrl(entry)) return { kind: 'category', categoryUrl: entry };
-    }
-  }
-  return null;
-}
 
 function extractPlantForm(plant = {}) {
   const form = { ...EMPTY_PLANT_FORM };
