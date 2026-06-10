@@ -10,7 +10,7 @@ const { logRouteError, respondInternalError } = require('../lib/routeLog');
 const { logAudit } = require('./audit');
 const { emitStudentsChanged, emitTasksChanged } = require('../lib/realtime');
 const { saveBase64ToDisk, deleteFile, getAbsolutePath, ensureDir } = require('../lib/uploads');
-const { ensurePrimaryRole, getPrimaryRoleForUser, setPrimaryRole } = require('../lib/rbac');
+const { getPrimaryRoleForUser, setPrimaryRole } = require('../lib/rbac');
 const { deleteStudentById } = require('../lib/studentDeletion');
 const { getSettingValue, getVisitMascotSettings } = require('../lib/settings');
 const logger = require('../lib/logger');
@@ -385,6 +385,15 @@ router.post('/import', requirePermission('students.import', { needsElevation: tr
       return res.json({ report });
     }
 
+    // Rôle primaire des comptes créés : résolu en UNE requête (au lieu d'un getRoleBySlug +
+    // getPrimaryRoleForUser + INSERT par ligne via `ensurePrimaryRole`), puis assigné en UNE
+    // requête multi-valeurs après la boucle. Les ids sont des UUID neufs → aucun rôle préexistant,
+    // donc `INSERT IGNORE … is_primary = 1` équivaut à `ensurePrimaryRole` pour des comptes frais.
+    const roleIdBySlug = new Map();
+    const roleRows = await queryAll("SELECT slug, id FROM roles WHERE slug IN ('prof', 'eleve_novice')");
+    for (const r of roleRows) roleIdBySlug.set(r.slug, r.id);
+    const createdRoleAssignments = [];
+
     for (const rowItem of affiliationResolvedRows) {
       const { payload, rowNumber } = rowItem;
       const hash = await bcrypt.hash(payload.password, 10);
@@ -398,8 +407,9 @@ router.post('/import', requirePermission('students.import', { needsElevation: tr
            VALUES (?, ?, NULL, ?, ?, ?, ?, ?, ?, NULL, ?, ?, 'local', 1, ?, NOW(), NOW())`,
           [id, payload.userType, payload.email, payload.pseudo, payload.firstName, payload.lastName, `${payload.firstName} ${payload.lastName}`.trim(), payload.description, payload.affiliation, hash, now]
         );
-        await ensurePrimaryRole(payload.userType, id, roleSlug);
         report.totals.created += 1;
+        const roleId = roleIdBySlug.get(roleSlug);
+        if (roleId != null) createdRoleAssignments.push([payload.userType, id, roleId]);
       } catch (err) {
         if (err && (err.errno === 1062 || err.code === 'ER_DUP_ENTRY')) {
           report.totals.skipped_existing += 1;
@@ -411,6 +421,22 @@ router.post('/import', requirePermission('students.import', { needsElevation: tr
           continue;
         }
         throw err;
+      }
+    }
+
+    // Assigne le rôle primaire de tous les comptes créés en INSERT multi-valeurs par lots
+    // (au lieu d'un INSERT par compte). Le rôle inconnu (slug absent) est ignoré, comme `ensurePrimaryRole`.
+    if (createdRoleAssignments.length > 0) {
+      const ROLE_CHUNK = 500;
+      for (let i = 0; i < createdRoleAssignments.length; i += ROLE_CHUNK) {
+        const chunk = createdRoleAssignments.slice(i, i + ROLE_CHUNK);
+        const placeholders = chunk.map(() => '(?, ?, ?, 1)').join(', ');
+        const params = [];
+        for (const [ut, uid, rid] of chunk) params.push(ut, uid, rid);
+        await execute(
+          `INSERT IGNORE INTO user_roles (user_type, user_id, role_id, is_primary) VALUES ${placeholders}`,
+          params
+        );
       }
     }
 
