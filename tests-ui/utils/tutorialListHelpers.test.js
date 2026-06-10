@@ -47,3 +47,47 @@ describe('linkedTaskStatusLabel', () => {
     expect(linkedTaskStatusLabel(null)).toBe('—');
   });
 });
+
+import { tutorialZonePickLabel, createInitialTutorialForm } from '../../src/utils/tutorialListHelpers.js';
+
+describe('tutorialZonePickLabel', () => {
+  test('zone sans êtres vivants → juste le nom', () => {
+    expect(tutorialZonePickLabel({ name: 'Verger' })).toBe('Verger');
+    expect(tutorialZonePickLabel({ name: 'Mare', living_beings_list: [] })).toBe('Mare');
+  });
+  test('zone avec êtres vivants → « Nom — … » (préfixe nom + séparateur)', () => {
+    const label = tutorialZonePickLabel({
+      name: 'Verger',
+      living_beings_list: [{ name: 'Pommier' }],
+    });
+    expect(label.startsWith('Verger — ')).toBe(true);
+    expect(label.length).toBeGreaterThan('Verger — '.length);
+  });
+});
+
+describe('createInitialTutorialForm', () => {
+  test('forme attendue, type html, actif par défaut', () => {
+    expect(createInitialTutorialForm()).toEqual({
+      id: null,
+      title: '',
+      summary: '',
+      type: 'html',
+      html_content: '',
+      source_url: '',
+      source_file_path: '',
+      sort_order: 0,
+      is_active: true,
+      map_id: '',
+      zone_ids: [],
+      marker_ids: [],
+    });
+  });
+  test('objet et tableaux neufs à chaque appel (pas de partage de référence)', () => {
+    const a = createInitialTutorialForm();
+    const b = createInitialTutorialForm();
+    expect(a).not.toBe(b);
+    expect(a.zone_ids).not.toBe(b.zone_ids);
+    a.zone_ids.push(1);
+    expect(b.zone_ids).toEqual([]);
+  });
+});
