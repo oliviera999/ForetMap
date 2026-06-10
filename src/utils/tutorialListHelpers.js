@@ -1,9 +1,37 @@
 /**
  * Helpers purs de liste de tutoriels — extraits de `tutorials-views.jsx` (O6).
  *
- * Tri par `sort_order` (puis titre, locale fr), déplacement d'index (réordonnancement) et libellé
- * de statut d'une tâche liée. Aucune dépendance ni effet de bord ; logique testable.
+ * Tri par `sort_order` (puis titre, locale fr), déplacement d'index (réordonnancement), libellé
+ * de statut d'une tâche liée, libellé de zone et formulaire vierge. Logique testable.
  */
+
+import { orderedLivingBeingsForForm, formatLivingBeingsListLine } from './livingBeings';
+
+/** Libellé d'une zone pour les sélecteurs de tutoriel : « Nom — espèces » (ou « Nom » si aucune). */
+export function tutorialZonePickLabel(z) {
+  const line = formatLivingBeingsListLine(
+    orderedLivingBeingsForForm(z.living_beings_list || z.living_beings, z.current_plant),
+  );
+  return line ? `${z.name} — ${line}` : z.name;
+}
+
+/** Formulaire de tutoriel vierge (objet neuf à chaque appel : `zone_ids`/`marker_ids` non partagés). */
+export function createInitialTutorialForm() {
+  return {
+    id: null,
+    title: '',
+    summary: '',
+    type: 'html',
+    html_content: '',
+    source_url: '',
+    source_file_path: '',
+    sort_order: 0,
+    is_active: true,
+    map_id: '',
+    zone_ids: [],
+    marker_ids: [],
+  };
+}
 
 /** Trie une liste de tutoriels par `sort_order` croissant, puis par titre (locale fr). Ne mute pas l'entrée. */
 export function sortTutorialsByOrder(list) {
