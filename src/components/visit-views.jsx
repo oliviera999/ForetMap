@@ -23,7 +23,12 @@ import { parseVisitZonePoints as parsePctPoints, visitZoneCentroidPct } from '..
 import {
   normalizeEditorialBlocks,
   resolveEditorialBlocksForEditor,
+  buildNewEditorialBlock,
+  updateEditorialBlockById,
+  moveEditorialBlockById,
+  removeEditorialBlockById,
 } from '../utils/visitEditorialBlocks.js';
+import { VisitEditorialBuilder } from './visit/VisitEditorialBuilder.jsx';
 import { computeVisitMascotStartPct } from '../utils/visitMascotPlacement.js';
 import {
   shouldShowVisitMapMascot as computeShowVisitMapMascot,
@@ -72,10 +77,7 @@ import {
   LocationTutorialPreviewList,
   LivingBeingsCatalogPanel,
 } from './map-views';
-import {
-  VisitEditorialMapPhotoImportList,
-  VisitEditorialMediaIdPicker,
-} from './VisitEditorialPhotoUi.jsx';
+import { VisitEditorialMapPhotoImportList } from './VisitEditorialPhotoUi.jsx';
 import { orderedLivingBeingsForForm } from '../utils/livingBeings';
 import {
   tutorialLocationIds,
@@ -568,36 +570,19 @@ function VisitEditorPanel({ selected, selectedType, onSaved, onForceLogout, isTe
 
   const addEditorialBlock = (type) => {
     const blockId = `${type}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
-    if (type === 'heading') {
-      setEditorialBlocks((prev) => [...prev, { id: blockId, type: 'heading', level: 3, text: 'Intertitre' }]);
-      return;
-    }
-    if (type === 'image') {
-      setEditorialBlocks((prev) => [...prev, { id: blockId, type: 'image', media_ids: [], layout: 'single', size: 'md', align: 'center', caption: '' }]);
-      return;
-    }
-    setEditorialBlocks((prev) => [...prev, { id: blockId, type: 'paragraph', markdown: '' }]);
+    setEditorialBlocks((prev) => [...prev, buildNewEditorialBlock(type, blockId)]);
   };
 
   const updateEditorialBlock = (id, patch) => {
-    setEditorialBlocks((prev) => prev.map((b) => (b.id === id ? { ...b, ...patch } : b)));
+    setEditorialBlocks((prev) => updateEditorialBlockById(prev, id, patch));
   };
 
   const moveEditorialBlock = (id, delta) => {
-    setEditorialBlocks((prev) => {
-      const from = prev.findIndex((b) => b.id === id);
-      if (from < 0) return prev;
-      const to = Math.max(0, Math.min(prev.length - 1, from + delta));
-      if (to === from) return prev;
-      const next = [...prev];
-      const [removed] = next.splice(from, 1);
-      next.splice(to, 0, removed);
-      return next;
-    });
+    setEditorialBlocks((prev) => moveEditorialBlockById(prev, id, delta));
   };
 
   const removeEditorialBlock = (id) => {
-    setEditorialBlocks((prev) => prev.filter((b) => b.id !== id));
+    setEditorialBlocks((prev) => removeEditorialBlockById(prev, id));
   };
 
   return (
@@ -623,68 +608,14 @@ function VisitEditorPanel({ selected, selectedType, onSaved, onForceLogout, isTe
         <label>Détails dépliables</label>
         <MarkdownTextarea rows={4} value={form.details_text} onChange={(e) => setForm((f) => ({ ...f, details_text: e.target.value }))} />
       </div>
-      <div className="visit-editorial-builder">
-        <h5>Mise en page éditoriale</h5>
-        <p className="section-sub">Ajoute des blocs texte/image, puis réordonne-les pour placer les images où tu veux.</p>
-        <div className="visit-editorial-builder__actions">
-          <button type="button" className="btn btn-ghost btn-sm" onClick={() => addEditorialBlock('paragraph')}>+ Paragraphe</button>
-          <button type="button" className="btn btn-ghost btn-sm" onClick={() => addEditorialBlock('heading')}>+ Intertitre</button>
-          <button type="button" className="btn btn-ghost btn-sm" onClick={() => addEditorialBlock('image')}>+ Bloc image</button>
-        </div>
-        <div className="visit-editorial-builder__list">
-          {editorialBlocks.map((block, index) => (
-            <div key={block.id} className="visit-editorial-builder__item">
-              <div className="visit-editorial-builder__head">
-                <strong>{block.type === 'paragraph' ? 'Paragraphe' : block.type === 'heading' ? 'Intertitre' : 'Image(s)'}</strong>
-                <div className="visit-editorial-builder__head-actions">
-                  <button type="button" className="btn btn-ghost btn-sm" onClick={() => moveEditorialBlock(block.id, -1)} disabled={index === 0}>↑</button>
-                  <button type="button" className="btn btn-ghost btn-sm" onClick={() => moveEditorialBlock(block.id, 1)} disabled={index === editorialBlocks.length - 1}>↓</button>
-                  <button type="button" className="btn btn-danger btn-sm" onClick={() => removeEditorialBlock(block.id)}>Suppr.</button>
-                </div>
-              </div>
-              {block.type === 'paragraph' ? (
-                <MarkdownTextarea
-                  rows={3}
-                  value={block.markdown || ''}
-                  onChange={(e) => updateEditorialBlock(block.id, { markdown: e.target.value })}
-                  placeholder="Texte (Markdown léger)"
-                />
-              ) : null}
-              {block.type === 'heading' ? (
-                <div className="visit-editorial-builder__heading">
-                  <input
-                    value={block.text || ''}
-                    onChange={(e) => updateEditorialBlock(block.id, { text: e.target.value })}
-                    placeholder="Titre de section"
-                  />
-                </div>
-              ) : null}
-              {block.type === 'image' ? (
-                <div className="visit-editorial-builder__image">
-                  <label>Images du bloc (1 ou 2)</label>
-                  <VisitEditorialMediaIdPicker
-                    mediaList={sortedVisitMedia}
-                    selectedIds={block.media_ids || []}
-                    onChange={(ids) => updateEditorialBlock(block.id, { media_ids: ids })}
-                  />
-                  <div className="visit-editorial-builder__image-meta">
-                    <select value={block.size || 'md'} onChange={(e) => updateEditorialBlock(block.id, { size: e.target.value })}>
-                      <option value="sm">Compact</option>
-                      <option value="md">Normal</option>
-                      <option value="lg">Large</option>
-                    </select>
-                  </div>
-                  <input
-                    value={block.caption || ''}
-                    onChange={(e) => updateEditorialBlock(block.id, { caption: e.target.value })}
-                    placeholder="Légende du bloc (optionnel)"
-                  />
-                </div>
-              ) : null}
-            </div>
-          ))}
-        </div>
-      </div>
+      <VisitEditorialBuilder
+        blocks={editorialBlocks}
+        mediaList={sortedVisitMedia}
+        onAdd={addEditorialBlock}
+        onMove={moveEditorialBlock}
+        onUpdate={updateEditorialBlock}
+        onRemove={removeEditorialBlock}
+      />
       <div className="row">
         <div className="field">
           <label>Ordre</label>
