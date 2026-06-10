@@ -648,9 +648,23 @@ router.post('/import', requirePermission('plants.manage', { needsElevation: true
       await conn.beginTransaction();
       if (strategy === 'replace_all') {
         await conn.execute('DELETE FROM plants');
-        for (const payload of validRows) {
-          await conn.execute(insertSql, PLANT_COLUMNS.map((c) => payload[c]));
-          report.totals.created += 1;
+        // INSERT multi-valeurs par lots au lieu d'un INSERT par ligne (cette branche ne dépend
+        // d'aucun insertId). Lots bornés : 33 colonnes × MAX_IMPORT_ROWS dépasseraient la limite
+        // de placeholders d'une requête préparée.
+        const INSERT_CHUNK = 200;
+        const rowPlaceholder = `(${PLANT_COLUMNS.map(() => '?').join(', ')})`;
+        for (let i = 0; i < validRows.length; i += INSERT_CHUNK) {
+          const chunk = validRows.slice(i, i + INSERT_CHUNK);
+          const placeholders = chunk.map(() => rowPlaceholder).join(', ');
+          const params = [];
+          for (const payload of chunk) {
+            for (const c of PLANT_COLUMNS) params.push(payload[c]);
+          }
+          await conn.execute(
+            `INSERT INTO plants (${PLANT_COLUMNS.join(', ')}) VALUES ${placeholders}`,
+            params
+          );
+          report.totals.created += chunk.length;
         }
       } else {
         const [existingRows] = await conn.execute('SELECT id, name FROM plants');
