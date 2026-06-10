@@ -17,7 +17,11 @@ jobs:
           MARIADB_DATABASE: foretmap_test
         ports:
           - 3306:3306
-        options: --health-cmd="healthcheck.sh --connect --innodb_initialized" --health-interval=10s --health-timeout=5s --health-retries=3
+        # `--health-start-period=40s` : laisse à MariaDB 11.4 le temps de son
+        # init InnoDB à froid avant que les échecs de health-check ne comptent
+        # (sinon le step « Initialize containers » échoue par intermittence en
+        # ~55s, 3×10s de retries trop justes). retries relevé à 5 par sécurité.
+        options: --health-cmd="healthcheck.sh --connect --innodb_initialized" --health-interval=10s --health-timeout=5s --health-retries=5 --health-start-period=40s
 
     steps:
       - uses: actions/checkout@v4
