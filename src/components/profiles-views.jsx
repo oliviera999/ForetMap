@@ -20,6 +20,8 @@ import { CreateUserPanel } from './profiles/CreateUserPanel.jsx';
 import { StudentImportPanel } from './profiles/StudentImportPanel.jsx';
 import { StudentDeletePanel } from './profiles/StudentDeletePanel.jsx';
 import { ProfilesRoleList } from './profiles/ProfilesRoleList.jsx';
+import { ProfilesPermissionRows } from './profiles/ProfilesPermissionRows.jsx';
+import { ProfilesUserAssignmentList } from './profiles/ProfilesUserAssignmentList.jsx';
 import {
   isN3beurTierConfigurableProfile as isN3beurTierConfigurableRole,
   sortRolesForDisplay,
@@ -640,7 +642,6 @@ function ProfilesAdminView({ onImpersonationApplied, maps = [] }) {
     setEditLoading(false);
   };
 
-  const canEditUserRow = (u) => isAdmin || String(u.role_slug || '').toLowerCase() !== 'admin';
 
   const setRoleForumParticipate = async (roleId, forumParticipate) => {
     setLoading(true);
@@ -1133,28 +1134,14 @@ function ProfilesAdminView({ onImpersonationApplied, maps = [] }) {
                       </div>
                     </div>
                   )}
-                  {catalog
-                    .filter(
-                      (perm) =>
-                        !(isN3beurTierConfigurableProfile && perm.key === 'tasks.propose')
-                    )
-                    .map((perm) => {
-                    const current = (selectedRole.permissions || []).find((p) => p.key === perm.key);
-                    return (
-                      <div className="profiles-admin-perm-row" key={perm.key}>
-                        <div>
-                          <div style={{ fontSize: '.86rem', fontWeight: 600 }}>{perm.label}</div>
-                          <div style={{ fontSize: '.75rem', color: '#6b7280' }}>{perm.key}</div>
-                        </div>
-                        <label style={{ fontSize: '.8rem' }}>
-                          <input type="checkbox" checked={!!current} onChange={(e) => togglePermission(perm.key, e.target.checked)} disabled={loading} /> Actif
-                        </label>
-                        <label style={{ fontSize: '.8rem' }}>
-                          <input type="checkbox" checked={!!current?.requires_elevation} onChange={(e) => togglePermissionElevation(perm.key, e.target.checked)} disabled={!current || loading} /> PIN
-                        </label>
-                      </div>
-                    );
-                  })}
+                  <ProfilesPermissionRows
+                    catalog={catalog}
+                    rolePermissions={selectedRole.permissions}
+                    loading={loading}
+                    hideTasksPropose={isN3beurTierConfigurableProfile}
+                    onToggle={togglePermission}
+                    onToggleElevation={togglePermissionElevation}
+                  />
                 </>
               )}
             </div>
@@ -1165,28 +1152,15 @@ function ProfilesAdminView({ onImpersonationApplied, maps = [] }) {
             <p style={{ margin: '0 0 10px', fontSize: '.78rem', color: '#64748b', lineHeight: 1.45 }}>
               Choisir le profil principal définit notamment forum et commentaires contextuels (réglés par profil dans la colonne de gauche, section Permissions). L’attribution peut exiger une session élevée (PIN) selon les droits du compte administrateur. Utilisez « Modifier » pour changer prénom, nom, pseudo, email, description, affiliation ou mot de passe.
             </p>
-            <div style={{ maxHeight: 360, overflow: 'auto' }}>
-              {users.map((u) => (
-                <div className="profiles-admin-user-row" key={`${u.user_type}-${u.id}`} style={{ flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
-                  <div style={{ flex: '1 1 180px', minWidth: 0 }}>
-                    <strong>{u.display_name}</strong> <span style={{ color: '#6b7280' }}>({u.user_type})</span>
-                  </div>
-                  <select value={u.role_id || ''} onChange={(e) => assignRole(u.user_type, u.id, parseInt(e.target.value, 10))} disabled={loading}>
-                    <option value="">Aucun profil</option>
-                    {sortedRoles.map((r) => <option key={r.id} value={r.id}>{r.display_name}</option>)}
-                  </select>
-                  <button
-                    type="button"
-                    className="btn btn-secondary btn-sm"
-                    onClick={() => openEditUser(u)}
-                    disabled={loading || editUserLoadState === 'loading' || !canEditUserRow(u)}
-                    title={!canEditUserRow(u) ? 'Seul un administrateur peut modifier un autre administrateur' : 'Modifier ce compte'}
-                  >
-                    Modifier
-                  </button>
-                </div>
-              ))}
-            </div>
+            <ProfilesUserAssignmentList
+              users={users}
+              roles={sortedRoles}
+              loading={loading}
+              editUserLoadState={editUserLoadState}
+              isAdmin={isAdmin}
+              onAssignRole={assignRole}
+              onOpenEditUser={openEditUser}
+            />
           </div>
         </>
       )}
