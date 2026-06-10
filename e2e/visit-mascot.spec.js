@@ -93,6 +93,13 @@ async function openVisitMap(page, mapId = 'n3') {
   page.on('pageerror', onPageError);
   page.on('requestfailed', onReqFailed);
 
+  // [#54] Le beforeEach (inscription + seed API + bascule prof + navigation +
+  // peinture de la mascotte WASM) dépasse par intermittence le timeout test de
+  // 60s sous charge CI → flakiness (le test passe en ~4s quand openVisitMap est
+  // rapide). openVisitMap cumule à lui seul jusqu'à ~130s de waits potentiels :
+  // on élargit le budget pour ces tests à setup lourd.
+  test.setTimeout(120_000);
+
   await dismissProfilePromotionModalIfPresent(page);
   await page.getByRole('button', { name: /^🧭 Visite$/ }).click();
   await expect(page.locator('.visit-view')).toBeVisible({ timeout: 30_000 });
