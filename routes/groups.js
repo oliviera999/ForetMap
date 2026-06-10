@@ -313,37 +313,59 @@ router.put('/:id/members', async (req, res) => {
 
     await withTransaction(async (tx) => {
       await tx.execute('DELETE FROM group_members WHERE group_id = ?', [groupId]);
-      for (const userId of memberUserIds) {
-        const user = await tx.queryOne('SELECT user_type FROM users WHERE id = ? LIMIT 1', [userId]);
-        if (!user) continue;
+      // Resout les `user_type` des membres ET managers en UNE requete (au lieu d'un SELECT par
+      // utilisateur), puis insere chaque groupe de roles en UNE requete multi-valeurs (au lieu
+      // d'une boucle N+1). Les utilisateurs introuvables sont ignores, comme la version par boucle.
+      const allMemberIds = [...new Set([...memberUserIds, ...managerUserIds])];
+      const userTypeById = new Map();
+      if (allMemberIds.length > 0) {
+        const userRows = await tx.queryAll(
+          `SELECT id, user_type FROM users WHERE id IN (${allMemberIds.map(() => '?').join(',')})`,
+          allMemberIds
+        );
+        for (const row of userRows) userTypeById.set(String(row.id), row.user_type);
+      }
+
+      const memberRows = memberUserIds.filter((userId) => userTypeById.has(String(userId)));
+      if (memberRows.length > 0) {
+        const placeholders = memberRows.map(() => "(?, ?, ?, 'member')").join(', ');
+        const params = [];
+        for (const userId of memberRows) params.push(groupId, userId, userTypeById.get(String(userId)));
         await tx.execute(
-          `INSERT INTO group_members (group_id, user_id, user_type, role_in_group)
-           VALUES (?, ?, ?, 'member')`,
-          [groupId, userId, user.user_type]
+          `INSERT INTO group_members (group_id, user_id, user_type, role_in_group) VALUES ${placeholders}`,
+          params
         );
       }
-      for (const userId of managerUserIds) {
-        const user = await tx.queryOne('SELECT user_type FROM users WHERE id = ? LIMIT 1', [userId]);
-        if (!user) continue;
+
+      const managerRows = managerUserIds.filter((userId) => userTypeById.has(String(userId)));
+      if (managerRows.length > 0) {
+        const placeholders = managerRows.map(() => "(?, ?, ?, 'manager')").join(', ');
+        const params = [];
+        for (const userId of managerRows) params.push(groupId, userId, userTypeById.get(String(userId)));
         await tx.execute(
-          `INSERT INTO group_members (group_id, user_id, user_type, role_in_group)
-           VALUES (?, ?, ?, 'manager')
+          `INSERT INTO group_members (group_id, user_id, user_type, role_in_group) VALUES ${placeholders}
            ON DUPLICATE KEY UPDATE role_in_group = 'manager'`,
-          [groupId, userId, user.user_type]
+          params
         );
       }
 
       await tx.execute('DELETE FROM group_scopes WHERE group_id = ?', [groupId]);
-      for (const mapId of scopeMapIds) {
+      if (scopeMapIds.length > 0) {
+        const placeholders = scopeMapIds.map(() => '(?, ?, NULL)').join(', ');
+        const params = [];
+        for (const mapId of scopeMapIds) params.push(groupId, mapId);
         await tx.execute(
-          'INSERT INTO group_scopes (group_id, map_id, project_id) VALUES (?, ?, NULL)',
-          [groupId, mapId]
+          `INSERT INTO group_scopes (group_id, map_id, project_id) VALUES ${placeholders}`,
+          params
         );
       }
-      for (const projectId of scopeProjectIds) {
+      if (scopeProjectIds.length > 0) {
+        const placeholders = scopeProjectIds.map(() => '(?, NULL, ?)').join(', ');
+        const params = [];
+        for (const projectId of scopeProjectIds) params.push(groupId, projectId);
         await tx.execute(
-          'INSERT INTO group_scopes (group_id, map_id, project_id) VALUES (?, NULL, ?)',
-          [groupId, projectId]
+          `INSERT INTO group_scopes (group_id, map_id, project_id) VALUES ${placeholders}`,
+          params
         );
       }
     });
