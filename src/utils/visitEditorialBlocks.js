@@ -151,6 +151,46 @@ export function parseVisitEditorialBlocksFromJson(raw) {
   }
 }
 
+/**
+ * Fabrique un nouveau bloc éditorial vierge pour le constructeur de l'éditeur.
+ * L'`id` est injecté par l'appelant (le générateur `Date.now()/Math.random` reste
+ * dans le composant) pour garder cette fonction pure et testable.
+ */
+export function buildNewEditorialBlock(type, id) {
+  if (type === 'heading') {
+    return { id, type: 'heading', level: 3, text: 'Intertitre' };
+  }
+  if (type === 'image') {
+    return { id, type: 'image', media_ids: [], layout: 'single', size: 'md', align: 'center', caption: '' };
+  }
+  return { id, type: 'paragraph', markdown: '' };
+}
+
+/** Applique un patch partiel au bloc d'`id` donné (les autres blocs inchangés). */
+export function updateEditorialBlockById(blocks, id, patch) {
+  return blocks.map((b) => (b.id === id ? { ...b, ...patch } : b));
+}
+
+/**
+ * Déplace le bloc d'`id` donné de `delta` positions, borné à [0, length-1].
+ * No-op (retourne le tableau d'origine) si l'`id` est introuvable ou la position inchangée.
+ */
+export function moveEditorialBlockById(blocks, id, delta) {
+  const from = blocks.findIndex((b) => b.id === id);
+  if (from < 0) return blocks;
+  const to = Math.max(0, Math.min(blocks.length - 1, from + delta));
+  if (to === from) return blocks;
+  const next = [...blocks];
+  const [removed] = next.splice(from, 1);
+  next.splice(to, 0, removed);
+  return next;
+}
+
+/** Retire le bloc d'`id` donné. */
+export function removeEditorialBlockById(blocks, id) {
+  return blocks.filter((b) => b.id !== id);
+}
+
 export function normalizeVisitEditorialBlocksForSave(blocks) {
   if (!Array.isArray(blocks)) return [];
   return blocks
