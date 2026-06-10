@@ -9,6 +9,7 @@ const {
 } = require('../middleware/requireTeacher');
 const { saveBase64ToDisk, getAbsolutePath, deleteFile, writeBufferToDisk } = require('../lib/uploads');
 const { logRouteError } = require('../lib/routeLog');
+const asyncHandler = require('../lib/asyncHandler');
 const logger = require('../lib/logger');
 const { logAudit } = require('./audit');
 const { emitTasksChanged } = require('../lib/realtime');
@@ -1138,102 +1139,86 @@ router.post('/reorder-project', requirePermission('tasks.manage', { needsElevati
   }
 });
 
-router.get('/referent-candidates', requirePermission('tasks.manage', { needsElevation: true }), async (req, res) => {
-  try {
-    const [scopedStudentIds, scopedTeacherIds] = await Promise.all([
-      getScopedAssignableStudentIds(req.auth),
-      getScopedTeacherIds(req.auth),
-    ]);
-    const rows = await queryAll(
-      `SELECT u.id, u.user_type, u.first_name, u.last_name, u.display_name, r.slug AS primary_role_slug
-         FROM users u
-         LEFT JOIN user_roles ur ON ur.user_id = u.id AND ur.user_type = u.user_type AND ur.is_primary = 1
-         LEFT JOIN roles r ON r.id = ur.role_id
-        WHERE u.is_active = 1 AND u.user_type IN ('teacher', 'student')`
-    );
-    function teacherTier(slug) {
-      const s = String(slug || '').toLowerCase();
-      if (s === 'admin') return 0;
-      if (s === 'prof') return 1;
-      return 2;
-    }
-    function labelForSort(row) {
-      return referentPublicLabel({ ...row, uid: row.id });
-    }
-    const teachers = rows.filter((r) => {
-      if (r.user_type !== 'teacher') return false;
-      if (scopedTeacherIds == null) return true;
-      return scopedTeacherIds.includes(String(r.id));
-    });
-    const students = rows.filter((r) => {
-      if (r.user_type !== 'student') return false;
-      if (scopedStudentIds == null) return true;
-      return scopedStudentIds.includes(String(r.id));
-    });
-    teachers.sort((a, b) => {
-      const ta = teacherTier(a.primary_role_slug);
-      const tb = teacherTier(b.primary_role_slug);
-      if (ta !== tb) return ta - tb;
-      return labelForSort(a).localeCompare(labelForSort(b), 'fr', { sensitivity: 'base' });
-    });
-    students.sort((a, b) => labelForSort(a).localeCompare(labelForSort(b), 'fr', { sensitivity: 'base' }));
-    res.json([...teachers, ...students]);
-  } catch (e) {
-    respondInternalError(res, req, e);
+router.get('/referent-candidates', requirePermission('tasks.manage', { needsElevation: true }), asyncHandler(async (req, res) => {
+  const [scopedStudentIds, scopedTeacherIds] = await Promise.all([
+    getScopedAssignableStudentIds(req.auth),
+    getScopedTeacherIds(req.auth),
+  ]);
+  const rows = await queryAll(
+    `SELECT u.id, u.user_type, u.first_name, u.last_name, u.display_name, r.slug AS primary_role_slug
+       FROM users u
+       LEFT JOIN user_roles ur ON ur.user_id = u.id AND ur.user_type = u.user_type AND ur.is_primary = 1
+       LEFT JOIN roles r ON r.id = ur.role_id
+      WHERE u.is_active = 1 AND u.user_type IN ('teacher', 'student')`
+  );
+  function teacherTier(slug) {
+    const s = String(slug || '').toLowerCase();
+    if (s === 'admin') return 0;
+    if (s === 'prof') return 1;
+    return 2;
   }
-});
+  function labelForSort(row) {
+    return referentPublicLabel({ ...row, uid: row.id });
+  }
+  const teachers = rows.filter((r) => {
+    if (r.user_type !== 'teacher') return false;
+    if (scopedTeacherIds == null) return true;
+    return scopedTeacherIds.includes(String(r.id));
+  });
+  const students = rows.filter((r) => {
+    if (r.user_type !== 'student') return false;
+    if (scopedStudentIds == null) return true;
+    return scopedStudentIds.includes(String(r.id));
+  });
+  teachers.sort((a, b) => {
+    const ta = teacherTier(a.primary_role_slug);
+    const tb = teacherTier(b.primary_role_slug);
+    if (ta !== tb) return ta - tb;
+    return labelForSort(a).localeCompare(labelForSort(b), 'fr', { sensitivity: 'base' });
+  });
+  students.sort((a, b) => labelForSort(a).localeCompare(labelForSort(b), 'fr', { sensitivity: 'base' }));
+  res.json([...teachers, ...students]);
+}));
 
-router.get('/:id/image', async (req, res) => {
-  try {
-    const row = await queryOne('SELECT image_path FROM tasks WHERE id = ?', [req.params.id]);
-    if (!row?.image_path) return res.status(404).json({ error: 'Aucune image' });
-    const absolutePath = getAbsolutePath(row.image_path);
-    return res.sendFile(absolutePath, (err) => {
-      if (err && !res.headersSent) res.status(404).json({ error: 'Fichier introuvable' });
-    });
-  } catch (e) {
-    respondInternalError(res, req, e);
-  }
-});
+router.get('/:id/image', asyncHandler(async (req, res) => {
+  const row = await queryOne('SELECT image_path FROM tasks WHERE id = ?', [req.params.id]);
+  if (!row?.image_path) return res.status(404).json({ error: 'Aucune image' });
+  const absolutePath = getAbsolutePath(row.image_path);
+  return res.sendFile(absolutePath, (err) => {
+    if (err && !res.headersSent) res.status(404).json({ error: 'Fichier introuvable' });
+  });
+}));
 
-router.get('/:id', async (req, res) => {
-  try {
-    const task = await getTaskWithAssignments(req.params.id);
-    if (!task) return res.status(404).json({ error: 'Tâche introuvable' });
-    const authOne = await parseOptionalAuth(req);
-    if (authOne?.userType === 'student' && isVisitorRole(authOne)) {
-      const mine = (task.assignments || []).filter((a) => String(a.student_id || '') === String(authOne.userId));
-      task.assignments = mine;
-      if (task.proposed_by_student_id && String(task.proposed_by_student_id) !== String(authOne.userId)) {
-        task.proposed_by_student_id = null;
-      }
+router.get('/:id', asyncHandler(async (req, res) => {
+  const task = await getTaskWithAssignments(req.params.id);
+  if (!task) return res.status(404).json({ error: 'Tâche introuvable' });
+  const authOne = await parseOptionalAuth(req);
+  if (authOne?.userType === 'student' && isVisitorRole(authOne)) {
+    const mine = (task.assignments || []).filter((a) => String(a.student_id || '') === String(authOne.userId));
+    task.assignments = mine;
+    if (task.proposed_by_student_id && String(task.proposed_by_student_id) !== String(authOne.userId)) {
+      task.proposed_by_student_id = null;
     }
-    res.json(task);
-  } catch (e) {
-    respondInternalError(res, req, e);
   }
-});
+  res.json(task);
+}));
 
-router.get('/import/template', requirePermission('tasks.manage', { needsElevation: true }), async (req, res) => {
-  try {
-    const format = asTrimmedString(req.query?.format || 'csv').toLowerCase();
-    if (format === 'xlsx') {
-      const buffer = await buildImportTemplateXlsxBuffer();
-      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-      res.setHeader('Content-Disposition', 'attachment; filename="foretmap-modele-taches-projets.xlsx"');
-      return res.send(buffer);
-    }
-    if (format !== 'csv') {
-      return res.status(400).json({ error: 'Format invalide (csv ou xlsx)' });
-    }
-    const csv = buildImportTemplateCsvString();
-    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-    res.setHeader('Content-Disposition', 'attachment; filename="foretmap-modele-taches-projets.csv"');
-    res.send(csv);
-  } catch (e) {
-    respondInternalError(res, req, e);
+router.get('/import/template', requirePermission('tasks.manage', { needsElevation: true }), asyncHandler(async (req, res) => {
+  const format = asTrimmedString(req.query?.format || 'csv').toLowerCase();
+  if (format === 'xlsx') {
+    const buffer = await buildImportTemplateXlsxBuffer();
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', 'attachment; filename="foretmap-modele-taches-projets.xlsx"');
+    return res.send(buffer);
   }
-});
+  if (format !== 'csv') {
+    return res.status(400).json({ error: 'Format invalide (csv ou xlsx)' });
+  }
+  const csv = buildImportTemplateCsvString();
+  res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+  res.setHeader('Content-Disposition', 'attachment; filename="foretmap-modele-taches-projets.csv"');
+  res.send(csv);
+}));
 
 router.post('/import', requirePermission('tasks.manage', { needsElevation: true }), async (req, res) => {
   try {
@@ -2047,44 +2032,36 @@ router.post('/:id/done', async (req, res) => {
   }
 });
 
-router.get('/:id/logs', async (req, res) => {
-  try {
-    const auth = await parseOptionalAuth(req);
-    if (isVisitorRole(auth)) {
-      return res.status(403).json({ error: 'Accès refusé aux journaux de tâche pour le profil visiteur' });
-    }
-    const logs = await queryAll(
-      'SELECT id, task_id, student_id, student_first_name, student_last_name, comment, image_path, created_at FROM task_logs WHERE task_id = ? ORDER BY created_at DESC',
-      [req.params.id]
-    );
-    const taskId = req.params.id;
-    const baseUrl = `/api/tasks/${taskId}/logs`;
-    res.json(
-      logs.map((l) => ({
-        ...l,
-        image_url: l.image_path ? `${baseUrl}/${l.id}/image` : null,
-      }))
-    );
-  } catch (e) {
-    respondInternalError(res, req, e);
+router.get('/:id/logs', asyncHandler(async (req, res) => {
+  const auth = await parseOptionalAuth(req);
+  if (isVisitorRole(auth)) {
+    return res.status(403).json({ error: 'Accès refusé aux journaux de tâche pour le profil visiteur' });
   }
-});
+  const logs = await queryAll(
+    'SELECT id, task_id, student_id, student_first_name, student_last_name, comment, image_path, created_at FROM task_logs WHERE task_id = ? ORDER BY created_at DESC',
+    [req.params.id]
+  );
+  const taskId = req.params.id;
+  const baseUrl = `/api/tasks/${taskId}/logs`;
+  res.json(
+    logs.map((l) => ({
+      ...l,
+      image_url: l.image_path ? `${baseUrl}/${l.id}/image` : null,
+    }))
+  );
+}));
 
-router.get('/:id/logs/:logId/image', async (req, res) => {
-  try {
-    const log = await queryOne('SELECT image_path FROM task_logs WHERE id = ? AND task_id = ?', [req.params.logId, req.params.id]);
-    if (!log) return res.status(404).json({ error: 'Log introuvable' });
-    if (log.image_path) {
-      const absolutePath = getAbsolutePath(log.image_path);
-      return res.sendFile(absolutePath, (err) => {
-        if (err && !res.headersSent) res.status(404).json({ error: 'Fichier introuvable' });
-      });
-    }
-    res.status(404).json({ error: 'Aucune image' });
-  } catch (e) {
-    respondInternalError(res, req, e);
+router.get('/:id/logs/:logId/image', asyncHandler(async (req, res) => {
+  const log = await queryOne('SELECT image_path FROM task_logs WHERE id = ? AND task_id = ?', [req.params.logId, req.params.id]);
+  if (!log) return res.status(404).json({ error: 'Log introuvable' });
+  if (log.image_path) {
+    const absolutePath = getAbsolutePath(log.image_path);
+    return res.sendFile(absolutePath, (err) => {
+      if (err && !res.headersSent) res.status(404).json({ error: 'Fichier introuvable' });
+    });
   }
-});
+  res.status(404).json({ error: 'Aucune image' });
+}));
 
 router.delete('/:id/logs/:logId', requirePermission('tasks.manage', { needsElevation: true }), async (req, res) => {
   try {
