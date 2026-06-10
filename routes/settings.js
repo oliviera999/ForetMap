@@ -3,8 +3,16 @@ const path = require('path');
 const { queryAll, queryOne, execute } = require('../database');
 const { requirePermission } = require('../middleware/requireTeacher');
 const { logRouteError, respondInternalError } = require('../lib/routeLog');
+const { z, validate } = require('../lib/validate');
 const { logAudit } = require('./audit');
 const { invalidateMapsListCache } = require('./maps');
+
+// `limit` : coercition permissive (repli sur le défaut côté handler si absent/non numérique) — jamais de 400.
+const settingsMediaQuerySchema = z.object({ limit: z.coerce.number().optional().catch(undefined) });
+// `lines` : coercition tolérante reproduisant `Number.isFinite(parseInt(lines, 10)) ? raw : 200` (0 conservé).
+const settingsLogsQuerySchema = z.object({
+  lines: z.preprocess((v) => parseInt(v, 10), z.number().finite().catch(200)),
+});
 const { tailLogLines, getBufferedLineCount, getMaxLines } = require('../lib/logBuffer');
 const { saveBase64ToDisk, deleteFile } = require('../lib/uploads');
 const {
@@ -268,10 +276,11 @@ router.post(
 router.get(
   '/admin/media-library',
   requirePermission('admin.settings.read', { needsElevation: true }),
+  validate({ query: settingsMediaQuerySchema }),
   async (req, res) => {
     try {
-      const limitRaw = Number(req.query?.limit);
-      const items = listMediaLibraryItems(Number.isFinite(limitRaw) ? limitRaw : 300, { app: 'foretmap' });
+      const limit = req.validatedQuery?.limit;
+      const items = listMediaLibraryItems(Number.isFinite(limit) ? limit : 300, { app: 'foretmap' });
       res.json({ items });
     } catch (e) {
       respondInternalError(res, req, e);
@@ -378,14 +387,14 @@ router.get(
 router.get(
   '/admin/system/logs',
   requirePermission('admin.settings.read', { needsElevation: true }),
+  validate({ query: settingsLogsQuerySchema }),
   async (req, res) => {
     try {
       const settings = await getSettings('admin');
       if (!settings.flat['ops.allow_remote_logs']) {
         return res.status(403).json({ error: 'Consultation des logs désactivée' });
       }
-      const raw = parseInt(req.query.lines, 10);
-      const n = Number.isFinite(raw) ? raw : 200;
+      const n = req.validatedQuery.lines;
       const entries = tailLogLines(n);
       res.json({
         ok: true,
@@ -461,3 +470,6 @@ router.post(
 );
 
 module.exports = router;
+// Exportés pour les tests no-DB du contrat de validation O7.
+module.exports.settingsMediaQuerySchema = settingsMediaQuerySchema;
+module.exports.settingsLogsQuerySchema = settingsLogsQuerySchema;
