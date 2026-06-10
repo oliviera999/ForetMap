@@ -83,73 +83,21 @@ async function expectVisitMascotPaintReady(stage) {
 }
 
 async function openVisitMap(page, mapId = 'n3') {
-  // [DIAG #54 — TEMPORAIRE] capture console/erreurs/requêtes navigateur + traçage
-  // de l'étape bloquante. À retirer une fois la cause identifiée.
-  const diagLogs = [];
-  const onConsole = (m) => diagLogs.push(`[console:${m.type()}] ${m.text()}`);
-  const onPageError = (e) => diagLogs.push(`[pageerror] ${e.message}`);
-  const onReqFailed = (r) => diagLogs.push(`[reqfail] ${r.url()} :: ${r.failure() ? r.failure().errorText : ''}`);
-  page.on('console', onConsole);
-  page.on('pageerror', onPageError);
-  page.on('requestfailed', onReqFailed);
-  // Borne TOUTES les actions à 20s : un hang échoue de façon rattrapable (et non
-  // via le timeout de hook 60s qui tue le catch avant le dump).
-  page.setDefaultTimeout(20_000);
-  const off = () => {
-    page.off('console', onConsole);
-    page.off('pageerror', onPageError);
-    page.off('requestfailed', onReqFailed);
-  };
-
-  let lastStep = 'init';
-  try {
-    lastStep = 'dismiss-modal-1';
-    await dismissProfilePromotionModalIfPresent(page);
-    lastStep = 'click-Visite';
-    await page.getByRole('button', { name: /^🧭 Visite$/ }).click({ timeout: 20_000 });
-    lastStep = 'visit-view-visible';
-    await expect(page.locator('.visit-view')).toBeVisible({ timeout: 20_000 });
-    const mapSelect = page.getByRole('combobox', { name: 'Sélection de carte visite' });
-    lastStep = 'map-select';
-    if (mapId && (await mapSelect.isVisible({ timeout: 5000 }).catch(() => false))) {
-      await mapSelect.selectOption(mapId);
-    }
-    const stage = page.locator('.visit-map-stage');
-    lastStep = 'stage-visible';
-    await expect(stage).toBeVisible({ timeout: 20_000 });
-    lastStep = 'map-img-visible';
-    await expect(stage.locator('img.visit-map-img')).toBeVisible({ timeout: 20_000 });
-    /* Le conteneur .visit-map-mascot est volontairement en 0×0 (ancrage %) : Playwright le voit « hidden ». */
-    lastStep = 'mascot-attached';
-    await expect(stage.locator('.visit-map-mascot')).toBeAttached();
-    lastStep = 'mascot-inner-visible';
-    await expect(stage.locator('.visit-map-mascot-inner')).toBeVisible({ timeout: 20_000 });
-    lastStep = 'paint-ready';
-    await expectVisitMascotPaintReady(stage);
-    off();
-    return stage;
-  } catch (err) {
-    const info = await page.evaluate(() => ({
-      url: location.href,
-      visitView: !!document.querySelector('.visit-view'),
-      stage: !!document.querySelector('.visit-map-stage'),
-      mapImg: !!document.querySelector('img.visit-map-img'),
-      mascot: !!document.querySelector('.visit-map-mascot'),
-      mascotInner: !!document.querySelector('.visit-map-mascot-inner'),
-      riveShell: (() => {
-        const s = document.querySelector('.visit-map-mascot-rive-shell');
-        return s ? { renderer: s.getAttribute('data-renderer'), riveStatus: s.getAttribute('data-rive-status') } : null;
-      })(),
-      visiteBtn: !!Array.from(document.querySelectorAll('button')).find((b) => /🧭 Visite/.test(b.textContent || '')),
-      bodyText: (document.body.innerText || '').replace(/\s+/g, ' ').slice(0, 280),
-    })).catch((e) => ({ evalError: String(e) }));
-    // eslint-disable-next-line no-console
-    console.log(`\n[DIAG #54] === openVisitMap a échoué à l'étape: ${lastStep} ===\n` + JSON.stringify(info, null, 2));
-    // eslint-disable-next-line no-console
-    console.log('[DIAG #54] === logs navigateur (40 derniers) ===\n' + diagLogs.slice(-40).join('\n') + '\n');
-    off();
-    throw err;
+  await dismissProfilePromotionModalIfPresent(page);
+  await page.getByRole('button', { name: /^🧭 Visite$/ }).click();
+  await expect(page.locator('.visit-view')).toBeVisible({ timeout: 30_000 });
+  const mapSelect = page.getByRole('combobox', { name: 'Sélection de carte visite' });
+  if (mapId && (await mapSelect.isVisible({ timeout: 5000 }).catch(() => false))) {
+    await mapSelect.selectOption(mapId);
   }
+  const stage = page.locator('.visit-map-stage');
+  await expect(stage).toBeVisible({ timeout: 30_000 });
+  await expect(stage.locator('img.visit-map-img')).toBeVisible({ timeout: 20_000 });
+  /* Le conteneur .visit-map-mascot est volontairement en 0×0 (ancrage %) : Playwright le voit « hidden ». */
+  await expect(stage.locator('.visit-map-mascot')).toBeAttached();
+  await expect(stage.locator('.visit-map-mascot-inner')).toBeVisible({ timeout: 25_000 });
+  await expectVisitMascotPaintReady(stage);
+  return stage;
 }
 
 test.describe.serial('mascotte visite (comportement carte)', () => {
@@ -163,6 +111,10 @@ test.describe.serial('mascotte visite (comportement carte)', () => {
   let entrancePct = { x_pct: 22, y_pct: 18 };
 
   test.beforeEach(async ({ page }) => {
+    // [#54] beforeEach lourd (inscription + login + bascule prof + seed + nav +
+    // peinture mascotte) : ses attentes internes vont jusqu'à 90s, > le timeout
+    // test de 60s → timeout de hook flaky sous charge CI. On aligne le budget.
+    test.setTimeout(120_000);
     seededIds = null;
     teacherToken = '';
     seededSuffix = '';
@@ -246,6 +198,8 @@ test.describe.serial('mascotte visite (prefers-reduced-motion)', () => {
   let teacherToken = '';
 
   test.beforeEach(async ({ page }) => {
+    // [#54] beforeEach lourd : budget aligné sur les attentes internes (cf. ci-dessus).
+    test.setTimeout(120_000);
     await page.emulateMedia({ reducedMotion: 'reduce' });
     seededIds = null;
     teacherToken = '';
@@ -282,6 +236,8 @@ test.describe.serial('mascotte visite (sélecteur prof)', () => {
   let teacherToken = '';
 
   test.beforeEach(async ({ page }) => {
+    // [#54] beforeEach lourd : budget aligné sur les attentes internes (cf. ci-dessus).
+    test.setTimeout(120_000);
     seededIds = null;
     teacherToken = '';
     await loginAsNewStudent(page);
