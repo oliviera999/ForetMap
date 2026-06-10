@@ -7,6 +7,7 @@ const { parseFirstSheetRows, buildWorkbookBuffer, jsonRowsToAoa } = require('../
 const { queryAll, queryOne, execute } = require('../database');
 const { requireAuth, requirePermission } = require('../middleware/requireTeacher');
 const { logRouteError, respondInternalError } = require('../lib/routeLog');
+const asyncHandler = require('../lib/asyncHandler');
 const { logAudit } = require('./audit');
 const { emitStudentsChanged, emitTasksChanged } = require('../lib/realtime');
 const { saveBase64ToDisk, deleteFile, getAbsolutePath, ensureDir } = require('../lib/uploads');
@@ -256,40 +257,36 @@ function buildTemplateWorkbookRows() {
   }];
 }
 
-router.get('/import/template', requirePermission('students.import', { needsElevation: true }), async (req, res) => {
-  try {
-    const format = asTrimmedString(req.query?.format || 'csv').toLowerCase();
-    if (format === 'xlsx') {
-      const aoa = jsonRowsToAoa(buildTemplateWorkbookRows(), TEMPLATE_COLUMNS);
-      const buffer = await buildWorkbookBuffer([{ name: 'n3beurs', aoa }]);
-      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-      res.setHeader('Content-Disposition', 'attachment; filename="foretmap-modele-n3beurs.xlsx"');
-      return res.send(buffer);
-    }
-    if (format !== 'csv') {
-      return res.status(400).json({ error: 'Format invalide (csv ou xlsx)' });
-    }
-
-    const BOM = '\uFEFF';
-    const line = TEMPLATE_COLUMNS.map(csvEscape).join(';');
-    const sampleRow = [
-      'eleve',
-      'Exemple',
-      'Eleve',
-      'azerty123',
-      'both',
-      'exemple_eleve',
-      'exemple.eleve@lyautey.ma',
-      'Remplacer ou supprimer cette ligne avant import.',
-    ].map(csvEscape).join(';');
-    const csv = `${BOM}${line}\r\n${sampleRow}\r\n`;
-    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-    res.setHeader('Content-Disposition', 'attachment; filename="foretmap-modele-n3beurs.csv"');
-    res.send(csv);
-  } catch (e) {
-    respondInternalError(res, req, e);
+router.get('/import/template', requirePermission('students.import', { needsElevation: true }), asyncHandler(async (req, res) => {
+  const format = asTrimmedString(req.query?.format || 'csv').toLowerCase();
+  if (format === 'xlsx') {
+    const aoa = jsonRowsToAoa(buildTemplateWorkbookRows(), TEMPLATE_COLUMNS);
+    const buffer = await buildWorkbookBuffer([{ name: 'n3beurs', aoa }]);
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', 'attachment; filename="foretmap-modele-n3beurs.xlsx"');
+    return res.send(buffer);
   }
-});
+  if (format !== 'csv') {
+    return res.status(400).json({ error: 'Format invalide (csv ou xlsx)' });
+  }
+
+  const BOM = '\uFEFF';
+  const line = TEMPLATE_COLUMNS.map(csvEscape).join(';');
+  const sampleRow = [
+    'eleve',
+    'Exemple',
+    'Eleve',
+    'azerty123',
+    'both',
+    'exemple_eleve',
+    'exemple.eleve@lyautey.ma',
+    'Remplacer ou supprimer cette ligne avant import.',
+  ].map(csvEscape).join(';');
+  const csv = `${BOM}${line}\r\n${sampleRow}\r\n`;
+  res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+  res.setHeader('Content-Disposition', 'attachment; filename="foretmap-modele-n3beurs.csv"');
+  res.send(csv);
+}));
 
 router.post('/import', requirePermission('students.import', { needsElevation: true }), async (req, res) => {
   try {
@@ -453,23 +450,19 @@ router.post('/import', requirePermission('students.import', { needsElevation: tr
   }
 });
 
-router.post('/register', requireAuth, async (req, res) => {
-  try {
-    const { studentId } = req.body;
-    if (!studentId) return res.status(400).json({ error: 'studentId requis' });
-    const askedStudentId = String(studentId || '').trim();
-    const authStudentId = String(req.auth?.userType === 'student' ? req.auth.userId : '').trim();
-    if (!authStudentId || authStudentId !== askedStudentId) {
-      return res.status(403).json({ error: 'Session n3beur non autorisée' });
-    }
-    const s = await queryOne("SELECT * FROM users WHERE id = ? AND user_type = 'student'", [askedStudentId]);
-    if (!s) return res.status(401).json({ error: 'Compte supprimé', deleted: true });
-    await execute("UPDATE users SET last_seen = ? WHERE id = ? AND user_type = 'student'", [new Date().toISOString(), askedStudentId]);
-    res.json({ ...s, password_hash: undefined });
-  } catch (e) {
-    respondInternalError(res, req, e);
+router.post('/register', requireAuth, asyncHandler(async (req, res) => {
+  const { studentId } = req.body;
+  if (!studentId) return res.status(400).json({ error: 'studentId requis' });
+  const askedStudentId = String(studentId || '').trim();
+  const authStudentId = String(req.auth?.userType === 'student' ? req.auth.userId : '').trim();
+  if (!authStudentId || authStudentId !== askedStudentId) {
+    return res.status(403).json({ error: 'Session n3beur non autorisée' });
   }
-});
+  const s = await queryOne("SELECT * FROM users WHERE id = ? AND user_type = 'student'", [askedStudentId]);
+  if (!s) return res.status(401).json({ error: 'Compte supprimé', deleted: true });
+  await execute("UPDATE users SET last_seen = ? WHERE id = ? AND user_type = 'student'", [new Date().toISOString(), askedStudentId]);
+  res.json({ ...s, password_hash: undefined });
+}));
 
 async function getPasswordMinLength() {
   const n = await getSettingValue('security.password_min_length', 4);
@@ -722,38 +715,34 @@ router.patch('/:id/profile', requireAuth, async (req, res) => {
   }
 });
 
-router.delete('/:id', requirePermission('students.delete', { needsElevation: true }), async (req, res) => {
-  try {
-    const result = await deleteStudentById(req.params.id);
-    if (!result.ok) {
-      if (result.reason === 'not_found' || result.reason === 'missing_id') {
-        return res.status(404).json({ error: 'n3beur introuvable' });
-      }
-      return res.status(400).json({ error: 'Suppression impossible' });
+router.delete('/:id', requirePermission('students.delete', { needsElevation: true }), asyncHandler(async (req, res) => {
+  const result = await deleteStudentById(req.params.id);
+  if (!result.ok) {
+    if (result.reason === 'not_found' || result.reason === 'missing_id') {
+      return res.status(404).json({ error: 'n3beur introuvable' });
     }
-    logAudit('delete_student', 'student', result.studentId, result.displayName, {
-      req,
-      payload: { affected_tasks: result.affectedTaskIds.length },
-    });
-    emitStudentsChanged({ reason: 'delete_student', studentId: result.studentId });
-    if (result.affectedTaskIds && result.affectedTaskIds.length > 0) {
-      const mapIds = Array.isArray(result.affectedMapIds) ? result.affectedMapIds : [];
-      if (mapIds.length > 0) {
-        for (const mapId of mapIds) {
-          emitTasksChanged({
-            reason: 'delete_student_assignments',
-            studentId: result.studentId,
-            mapId,
-          });
-        }
-      } else {
-        emitTasksChanged({ reason: 'delete_student_assignments', studentId: result.studentId });
-      }
-    }
-    res.json({ success: true });
-  } catch (e) {
-    respondInternalError(res, req, e);
+    return res.status(400).json({ error: 'Suppression impossible' });
   }
-});
+  logAudit('delete_student', 'student', result.studentId, result.displayName, {
+    req,
+    payload: { affected_tasks: result.affectedTaskIds.length },
+  });
+  emitStudentsChanged({ reason: 'delete_student', studentId: result.studentId });
+  if (result.affectedTaskIds && result.affectedTaskIds.length > 0) {
+    const mapIds = Array.isArray(result.affectedMapIds) ? result.affectedMapIds : [];
+    if (mapIds.length > 0) {
+      for (const mapId of mapIds) {
+        emitTasksChanged({
+          reason: 'delete_student_assignments',
+          studentId: result.studentId,
+          mapId,
+        });
+      }
+    } else {
+      emitTasksChanged({ reason: 'delete_student_assignments', studentId: result.studentId });
+    }
+  }
+  res.json({ success: true });
+}));
 
 module.exports = router;
