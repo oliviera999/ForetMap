@@ -1,7 +1,7 @@
 const express = require('express');
 const { queryAll, queryOne } = require('../database');
 const { requireAuth } = require('../middleware/requireTeacher');
-const { logRouteError, respondInternalError } = require('../lib/routeLog');
+const asyncHandler = require('../lib/asyncHandler');
 const { getStudentProgressionConfig, syncStudentPrimaryRoleFromProgress } = require('../lib/rbac');
 const { getScopedStudentIds, canAccessStudentId } = require('../lib/groupScope');
 
@@ -170,198 +170,186 @@ async function userStats(userId, options = {}) {
   };
 }
 
-router.get('/me/:studentId', requireAuth, async (req, res) => {
-  try {
-    const askedStudentId = String(req.params.studentId || '').trim();
-    const auth = req.auth || null;
-    const perms = Array.isArray(auth?.permissions) ? auth.permissions : [];
-    const canReadAll = perms.includes('stats.read.all');
-    const canReadGroup = perms.includes('stats.read.group');
-    // Autorise l'accès aux propres stats sur l'ID du compte, y compris profils legacy.
-    const isOwner = String(auth?.userId || '') === askedStudentId;
-    if (!canReadAll && !isOwner && !canReadGroup) {
-      return res.status(403).json({ error: 'Accès refusé à ces statistiques' });
-    }
-    if (!canReadAll && !isOwner && canReadGroup) {
-      const allowed = await canAccessStudentId(auth, askedStudentId);
-      if (!allowed) return res.status(403).json({ error: 'Accès refusé à ces statistiques' });
-    }
-    const recordPromotionNotice = isOwner && String(auth?.userType || '').toLowerCase() === 'student';
-    const data = await userStats(askedStudentId, { recordPromotionNotice });
-    if (!data) return res.status(404).json({ error: 'Utilisateur introuvable' });
-    res.json(data);
-  } catch (e) {
-    respondInternalError(res, req, e);
+router.get('/me/:studentId', requireAuth, asyncHandler(async (req, res) => {
+  const askedStudentId = String(req.params.studentId || '').trim();
+  const auth = req.auth || null;
+  const perms = Array.isArray(auth?.permissions) ? auth.permissions : [];
+  const canReadAll = perms.includes('stats.read.all');
+  const canReadGroup = perms.includes('stats.read.group');
+  // Autorise l'accès aux propres stats sur l'ID du compte, y compris profils legacy.
+  const isOwner = String(auth?.userId || '') === askedStudentId;
+  if (!canReadAll && !isOwner && !canReadGroup) {
+    return res.status(403).json({ error: 'Accès refusé à ces statistiques' });
   }
-});
-
-router.get('/all', requireAuth, async (req, res) => {
-  try {
-    const perms = Array.isArray(req.auth?.permissions) ? req.auth.permissions : [];
-    const canReadAll = perms.includes('stats.read.all');
-    const canReadGroup = perms.includes('stats.read.group');
-    if (!canReadAll && !canReadGroup) {
-      return res.status(403).json({ error: 'Permission insuffisante' });
-    }
-    const requestedGroupId = String(req.query?.group_id || '').trim();
-    const requestedSubgroupId = String(req.query?.subgroup_id || '').trim();
-    const scope = await getScopedStudentIds(req.auth, {
-      groupId: requestedSubgroupId || requestedGroupId || null,
-      mapId: req.query?.map_id || null,
-      projectId: req.query?.project_id || null,
-    });
-    if (scope.unauthorizedGroup) {
-      return res.status(403).json({ error: 'Groupe hors périmètre' });
-    }
-    const [students, progressionConfig, { plantMap, tutMap }, site] = await Promise.all([
-      scope.all
-        ? queryAll("SELECT * FROM users WHERE user_type = 'student'")
-        : (scope.studentIds.length > 0
-          ? queryAll(
-            `SELECT * FROM users
-              WHERE user_type = 'student'
-                AND id IN (${scope.studentIds.map(() => '?').join(',')})`,
-            scope.studentIds
-          )
-          : Promise.resolve([])),
-      getStudentProgressionConfig(),
-      fetchEngagementByUserId(),
-      fetchSiteEngagementTotals(),
-    ]);
-    const result = await mapWithConcurrency(students, STATS_STUDENT_AGG_CONCURRENCY, async (s) => {
-      const assignments = await queryAll(
-        `SELECT ta.*, t.status FROM task_assignments ta
-         JOIN tasks t ON ta.task_id = t.id
-         WHERE ta.student_id = ? OR (ta.student_first_name = ? AND ta.student_last_name = ?)`,
-        [s.id, s.first_name, s.last_name]
-      );
-      const done = assignments.filter(a => a.status === 'validated').length;
-      const sync = await syncStudentPrimaryRoleFromProgress(s.id, done, progressionConfig);
-      const currentStep = (sync.steps || []).find((step) => String(step.roleSlug) === String(sync.currentRoleSlug));
-      const extra = engagementStatsForUser(s.id, plantMap, tutMap);
-      return {
-        id: s.id,
-        first_name: s.first_name,
-        last_name: s.last_name,
-        pseudo: s.pseudo,
-        description: s.description,
-        avatar_path: s.avatar_path,
-        last_seen: s.last_seen,
-        stats: {
-          total: assignments.length,
-          done,
-          pending: assignments.filter(a => a.status === 'available' || a.status === 'in_progress').length,
-          submitted: assignments.filter(a => a.status === 'done').length,
-          plant_species_observed: extra.plant_species_observed,
-          plant_observation_events: extra.plant_observation_events,
-          tutorials_read: extra.tutorials_read,
-        },
-        progression: {
-          roleSlug: sync.currentRoleSlug,
-          roleDisplayName: sync.currentRoleDisplayName,
-          roleEmoji: currentStep?.emoji || null,
-          autoProgressionEnabled: sync.autoProgressionEnabled !== false,
-        },
-      };
-    });
-    result.sort((a, b) => b.stats.done - a.stats.done);
-    res.json({ students: result, site });
-  } catch (e) {
-    respondInternalError(res, req, e);
+  if (!canReadAll && !isOwner && canReadGroup) {
+    const allowed = await canAccessStudentId(auth, askedStudentId);
+    if (!allowed) return res.status(403).json({ error: 'Accès refusé à ces statistiques' });
   }
-});
+  const recordPromotionNotice = isOwner && String(auth?.userType || '').toLowerCase() === 'student';
+  const data = await userStats(askedStudentId, { recordPromotionNotice });
+  if (!data) return res.status(404).json({ error: 'Utilisateur introuvable' });
+  res.json(data);
+}));
 
-// Export CSV des stats n3beurs (n3boss uniquement)
-router.get('/export', requireAuth, async (req, res) => {
-  try {
-    const perms = Array.isArray(req.auth?.permissions) ? req.auth.permissions : [];
-    const canExport = perms.includes('stats.export');
-    if (!canExport) return res.status(403).json({ error: 'Permission insuffisante' });
-    const requestedGroupId = String(req.query?.group_id || '').trim();
-    const requestedSubgroupId = String(req.query?.subgroup_id || '').trim();
-    const scope = await getScopedStudentIds(req.auth, {
-      groupId: requestedSubgroupId || requestedGroupId || null,
-      mapId: req.query?.map_id || null,
-      projectId: req.query?.project_id || null,
-    });
-    if (scope.unauthorizedGroup) {
-      return res.status(403).json({ error: 'Groupe hors périmètre' });
-    }
-    const [students, { plantMap, tutMap }] = await Promise.all([
-      scope.all
-        ? queryAll("SELECT * FROM users WHERE user_type = 'student'")
-        : (scope.studentIds.length > 0
-          ? queryAll(
-            `SELECT * FROM users
-              WHERE user_type = 'student'
-                AND id IN (${scope.studentIds.map(() => '?').join(',')})`,
-            scope.studentIds
-          )
-          : Promise.resolve([])),
-      fetchEngagementByUserId(),
-    ]);
-    const result = await mapWithConcurrency(students, STATS_STUDENT_AGG_CONCURRENCY, async (s) => {
-      const assignments = await queryAll(
-        `SELECT ta.*, t.status FROM task_assignments ta
-         JOIN tasks t ON ta.task_id = t.id
-         WHERE ta.student_id = ? OR (ta.student_first_name = ? AND ta.student_last_name = ?)`,
-        [s.id, s.first_name, s.last_name]
-      );
-      const extra = engagementStatsForUser(s.id, plantMap, tutMap);
-      return {
-        first_name: s.first_name,
-        last_name: s.last_name,
-        last_seen: s.last_seen,
-        validated: assignments.filter(a => a.status === 'validated').length,
+router.get('/all', requireAuth, asyncHandler(async (req, res) => {
+  const perms = Array.isArray(req.auth?.permissions) ? req.auth.permissions : [];
+  const canReadAll = perms.includes('stats.read.all');
+  const canReadGroup = perms.includes('stats.read.group');
+  if (!canReadAll && !canReadGroup) {
+    return res.status(403).json({ error: 'Permission insuffisante' });
+  }
+  const requestedGroupId = String(req.query?.group_id || '').trim();
+  const requestedSubgroupId = String(req.query?.subgroup_id || '').trim();
+  const scope = await getScopedStudentIds(req.auth, {
+    groupId: requestedSubgroupId || requestedGroupId || null,
+    mapId: req.query?.map_id || null,
+    projectId: req.query?.project_id || null,
+  });
+  if (scope.unauthorizedGroup) {
+    return res.status(403).json({ error: 'Groupe hors périmètre' });
+  }
+  const [students, progressionConfig, { plantMap, tutMap }, site] = await Promise.all([
+    scope.all
+      ? queryAll("SELECT * FROM users WHERE user_type = 'student'")
+      : (scope.studentIds.length > 0
+        ? queryAll(
+          `SELECT * FROM users
+            WHERE user_type = 'student'
+              AND id IN (${scope.studentIds.map(() => '?').join(',')})`,
+          scope.studentIds
+        )
+        : Promise.resolve([])),
+    getStudentProgressionConfig(),
+    fetchEngagementByUserId(),
+    fetchSiteEngagementTotals(),
+  ]);
+  const result = await mapWithConcurrency(students, STATS_STUDENT_AGG_CONCURRENCY, async (s) => {
+    const assignments = await queryAll(
+      `SELECT ta.*, t.status FROM task_assignments ta
+       JOIN tasks t ON ta.task_id = t.id
+       WHERE ta.student_id = ? OR (ta.student_first_name = ? AND ta.student_last_name = ?)`,
+      [s.id, s.first_name, s.last_name]
+    );
+    const done = assignments.filter(a => a.status === 'validated').length;
+    const sync = await syncStudentPrimaryRoleFromProgress(s.id, done, progressionConfig);
+    const currentStep = (sync.steps || []).find((step) => String(step.roleSlug) === String(sync.currentRoleSlug));
+    const extra = engagementStatsForUser(s.id, plantMap, tutMap);
+    return {
+      id: s.id,
+      first_name: s.first_name,
+      last_name: s.last_name,
+      pseudo: s.pseudo,
+      description: s.description,
+      avatar_path: s.avatar_path,
+      last_seen: s.last_seen,
+      stats: {
+        total: assignments.length,
+        done,
         pending: assignments.filter(a => a.status === 'available' || a.status === 'in_progress').length,
         submitted: assignments.filter(a => a.status === 'done').length,
-        total: assignments.length,
         plant_species_observed: extra.plant_species_observed,
         plant_observation_events: extra.plant_observation_events,
         tutorials_read: extra.tutorials_read,
-      };
-    });
-    result.sort((a, b) => b.validated - a.validated);
-
-    const headers = [
-      'Prénom',
-      'Nom',
-      'Validées',
-      'En cours',
-      'En attente',
-      'Total',
-      'Espèces observées (fiches)',
-      'Observations fiches plantes',
-      'Tutoriels lus',
-      'Dernière connexion',
-    ];
-    const escapeCSV = v => {
-      const s = String(v ?? '');
-      return s.includes(';') || s.includes('"') || s.includes('\n')
-        ? `"${s.replace(/"/g, '""')}"` : s;
+      },
+      progression: {
+        roleSlug: sync.currentRoleSlug,
+        roleDisplayName: sync.currentRoleDisplayName,
+        roleEmoji: currentStep?.emoji || null,
+        autoProgressionEnabled: sync.autoProgressionEnabled !== false,
+      },
     };
-    const rows = result.map(s => [
-      s.first_name,
-      s.last_name,
-      s.validated,
-      s.pending,
-      s.submitted,
-      s.total,
-      s.plant_species_observed,
-      s.plant_observation_events,
-      s.tutorials_read,
-      s.last_seen ? new Date(s.last_seen).toLocaleDateString('fr-FR') : 'Jamais',
-    ].map(escapeCSV).join(';'));
+  });
+  result.sort((a, b) => b.stats.done - a.stats.done);
+  res.json({ students: result, site });
+}));
 
-    const BOM = '\uFEFF';
-    const csv = BOM + [headers.join(';'), ...rows].join('\r\n');
-
-    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-    res.setHeader('Content-Disposition', `attachment; filename="foretmap-stats-${new Date().toISOString().slice(0,10)}.csv"`);
-    res.send(csv);
-  } catch (e) {
-    respondInternalError(res, req, e);
+// Export CSV des stats n3beurs (n3boss uniquement)
+router.get('/export', requireAuth, asyncHandler(async (req, res) => {
+  const perms = Array.isArray(req.auth?.permissions) ? req.auth.permissions : [];
+  const canExport = perms.includes('stats.export');
+  if (!canExport) return res.status(403).json({ error: 'Permission insuffisante' });
+  const requestedGroupId = String(req.query?.group_id || '').trim();
+  const requestedSubgroupId = String(req.query?.subgroup_id || '').trim();
+  const scope = await getScopedStudentIds(req.auth, {
+    groupId: requestedSubgroupId || requestedGroupId || null,
+    mapId: req.query?.map_id || null,
+    projectId: req.query?.project_id || null,
+  });
+  if (scope.unauthorizedGroup) {
+    return res.status(403).json({ error: 'Groupe hors périmètre' });
   }
-});
+  const [students, { plantMap, tutMap }] = await Promise.all([
+    scope.all
+      ? queryAll("SELECT * FROM users WHERE user_type = 'student'")
+      : (scope.studentIds.length > 0
+        ? queryAll(
+          `SELECT * FROM users
+            WHERE user_type = 'student'
+              AND id IN (${scope.studentIds.map(() => '?').join(',')})`,
+          scope.studentIds
+        )
+        : Promise.resolve([])),
+    fetchEngagementByUserId(),
+  ]);
+  const result = await mapWithConcurrency(students, STATS_STUDENT_AGG_CONCURRENCY, async (s) => {
+    const assignments = await queryAll(
+      `SELECT ta.*, t.status FROM task_assignments ta
+       JOIN tasks t ON ta.task_id = t.id
+       WHERE ta.student_id = ? OR (ta.student_first_name = ? AND ta.student_last_name = ?)`,
+      [s.id, s.first_name, s.last_name]
+    );
+    const extra = engagementStatsForUser(s.id, plantMap, tutMap);
+    return {
+      first_name: s.first_name,
+      last_name: s.last_name,
+      last_seen: s.last_seen,
+      validated: assignments.filter(a => a.status === 'validated').length,
+      pending: assignments.filter(a => a.status === 'available' || a.status === 'in_progress').length,
+      submitted: assignments.filter(a => a.status === 'done').length,
+      total: assignments.length,
+      plant_species_observed: extra.plant_species_observed,
+      plant_observation_events: extra.plant_observation_events,
+      tutorials_read: extra.tutorials_read,
+    };
+  });
+  result.sort((a, b) => b.validated - a.validated);
+
+  const headers = [
+    'Prénom',
+    'Nom',
+    'Validées',
+    'En cours',
+    'En attente',
+    'Total',
+    'Espèces observées (fiches)',
+    'Observations fiches plantes',
+    'Tutoriels lus',
+    'Dernière connexion',
+  ];
+  const escapeCSV = v => {
+    const s = String(v ?? '');
+    return s.includes(';') || s.includes('"') || s.includes('\n')
+      ? `"${s.replace(/"/g, '""')}"` : s;
+  };
+  const rows = result.map(s => [
+    s.first_name,
+    s.last_name,
+    s.validated,
+    s.pending,
+    s.submitted,
+    s.total,
+    s.plant_species_observed,
+    s.plant_observation_events,
+    s.tutorials_read,
+    s.last_seen ? new Date(s.last_seen).toLocaleDateString('fr-FR') : 'Jamais',
+  ].map(escapeCSV).join(';'));
+
+  const BOM = '\uFEFF';
+  const csv = BOM + [headers.join(';'), ...rows].join('\r\n');
+
+  res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+  res.setHeader('Content-Disposition', `attachment; filename="foretmap-stats-${new Date().toISOString().slice(0,10)}.csv"`);
+  res.send(csv);
+}));
 
 module.exports = router;

@@ -2,7 +2,7 @@ const express = require('express');
 const { v4: uuidv4 } = require('uuid');
 const { queryAll, queryOne, execute, withTransaction } = require('../database');
 const { requireAuth, requirePermission } = require('../middleware/requireTeacher');
-const { logRouteError, respondInternalError } = require('../lib/routeLog');
+const asyncHandler = require('../lib/asyncHandler');
 const { emitGardenChanged } = require('../lib/realtime');
 const { saveBase64ToDisk, getAbsolutePath } = require('../lib/uploads');
 const { serializeMarkerPhotoListRow, redirectIfPublicMarkerPhotoDataUrl } = require('../lib/uploadsPublicUrls');
@@ -124,231 +124,195 @@ const MARKERS_LIST_SQL = `SELECT m.*,
 FROM map_markers m
 LEFT JOIN visit_markers vm ON vm.id = m.id`;
 
-router.get('/markers/:id/photos/:pid/data', requireAuth, async (req, res) => {
-  try {
-    const markerId = String(req.params.id || '').trim();
-    const p = await queryOne(
-      'SELECT mp.image_path FROM marker_photos mp WHERE mp.id=? AND mp.marker_id=?',
-      [req.params.pid, markerId]
-    );
-    if (!p) return res.status(404).json({ error: 'Photo introuvable' });
-    if (p.image_path) {
-      const redirectTo = redirectIfPublicMarkerPhotoDataUrl(p.image_path, markerId, req.params.pid);
-      if (redirectTo) return res.redirect(302, redirectTo);
-      const absolutePath = getAbsolutePath(p.image_path);
-      return res.sendFile(absolutePath, sendFilePublicImageOptions(), (err) => {
-        if (err && !res.headersSent) res.status(404).json({ error: 'Fichier introuvable' });
-      });
-    }
-    return res.status(404).json({ error: 'Aucune image' });
-  } catch (e) {
-    respondInternalError(res, req, e);
-  }
-});
-
-router.get('/markers/:id/photos', async (req, res) => {
-  try {
-    const markerId = String(req.params.id || '').trim();
-    const photos = await queryAll(
-      'SELECT id, marker_id, caption, sort_order, uploaded_at, image_path FROM marker_photos WHERE marker_id=? ORDER BY sort_order ASC, id ASC',
-      [markerId]
-    );
-    res.json(photos.map((p) => serializeMarkerPhotoListRow(p, markerId)));
-  } catch (e) {
-    respondInternalError(res, req, e);
-  }
-});
-
-router.put('/markers/:id/photos/reorder', requirePermission('map.manage_markers', { needsElevation: true }), async (req, res) => {
-  try {
-    const markerId = String(req.params.id || '').trim();
-    const m = await queryOne('SELECT id, map_id FROM map_markers WHERE id=?', [markerId]);
-    if (!m) return res.status(404).json({ error: 'Repère introuvable' });
-    const raw = req.body?.photo_ids ?? req.body?.ordered_ids;
-    if (!Array.isArray(raw)) {
-      return res.status(400).json({ error: 'Liste photo_ids (ou ordered_ids) requise' });
-    }
-    const photoIds = raw.map((x) => Number(x)).filter((n) => Number.isFinite(n) && n > 0);
-    const rows = await queryAll('SELECT id FROM marker_photos WHERE marker_id = ?', [markerId]);
-    const existing = rows.map((r) => r.id);
-    if (photoIds.length !== existing.length || existing.length === 0) {
-      return res.status(400).json({ error: 'La liste doit contenir exactement toutes les photos du repère' });
-    }
-    const set = new Set(existing);
-    for (const id of photoIds) {
-      if (!set.has(id)) return res.status(400).json({ error: 'Identifiant de photo invalide' });
-    }
-    if (new Set(photoIds).size !== photoIds.length) {
-      return res.status(400).json({ error: 'photo_ids en double' });
-    }
-    await withTransaction(async (tx) => {
-      for (let i = 0; i < photoIds.length; i += 1) {
-        await tx.execute('UPDATE marker_photos SET sort_order = ? WHERE id = ? AND marker_id = ?', [i, photoIds[i], markerId]);
-      }
+router.get('/markers/:id/photos/:pid/data', requireAuth, asyncHandler(async (req, res) => {
+  const markerId = String(req.params.id || '').trim();
+  const p = await queryOne(
+    'SELECT mp.image_path FROM marker_photos mp WHERE mp.id=? AND mp.marker_id=?',
+    [req.params.pid, markerId]
+  );
+  if (!p) return res.status(404).json({ error: 'Photo introuvable' });
+  if (p.image_path) {
+    const redirectTo = redirectIfPublicMarkerPhotoDataUrl(p.image_path, markerId, req.params.pid);
+    if (redirectTo) return res.redirect(302, redirectTo);
+    const absolutePath = getAbsolutePath(p.image_path);
+    return res.sendFile(absolutePath, sendFilePublicImageOptions(), (err) => {
+      if (err && !res.headersSent) res.status(404).json({ error: 'Fichier introuvable' });
     });
-    emitGardenChanged({ reason: 'reorder_marker_photos', markerId, mapId: m.map_id });
-    res.json({ ok: true });
-  } catch (e) {
-    respondInternalError(res, req, e);
   }
-});
+  return res.status(404).json({ error: 'Aucune image' });
+}));
 
-router.post('/markers/:id/photos', requirePermission('map.manage_markers', { needsElevation: true }), async (req, res) => {
+router.get('/markers/:id/photos', asyncHandler(async (req, res) => {
+  const markerId = String(req.params.id || '').trim();
+  const photos = await queryAll(
+    'SELECT id, marker_id, caption, sort_order, uploaded_at, image_path FROM marker_photos WHERE marker_id=? ORDER BY sort_order ASC, id ASC',
+    [markerId]
+  );
+  res.json(photos.map((p) => serializeMarkerPhotoListRow(p, markerId)));
+}));
+
+router.put('/markers/:id/photos/reorder', requirePermission('map.manage_markers', { needsElevation: true }), asyncHandler(async (req, res) => {
+  const markerId = String(req.params.id || '').trim();
+  const m = await queryOne('SELECT id, map_id FROM map_markers WHERE id=?', [markerId]);
+  if (!m) return res.status(404).json({ error: 'Repère introuvable' });
+  const raw = req.body?.photo_ids ?? req.body?.ordered_ids;
+  if (!Array.isArray(raw)) {
+    return res.status(400).json({ error: 'Liste photo_ids (ou ordered_ids) requise' });
+  }
+  const photoIds = raw.map((x) => Number(x)).filter((n) => Number.isFinite(n) && n > 0);
+  const rows = await queryAll('SELECT id FROM marker_photos WHERE marker_id = ?', [markerId]);
+  const existing = rows.map((r) => r.id);
+  if (photoIds.length !== existing.length || existing.length === 0) {
+    return res.status(400).json({ error: 'La liste doit contenir exactement toutes les photos du repère' });
+  }
+  const set = new Set(existing);
+  for (const id of photoIds) {
+    if (!set.has(id)) return res.status(400).json({ error: 'Identifiant de photo invalide' });
+  }
+  if (new Set(photoIds).size !== photoIds.length) {
+    return res.status(400).json({ error: 'photo_ids en double' });
+  }
+  await withTransaction(async (tx) => {
+    for (let i = 0; i < photoIds.length; i += 1) {
+      await tx.execute('UPDATE marker_photos SET sort_order = ? WHERE id = ? AND marker_id = ?', [i, photoIds[i], markerId]);
+    }
+  });
+  emitGardenChanged({ reason: 'reorder_marker_photos', markerId, mapId: m.map_id });
+  res.json({ ok: true });
+}));
+
+router.post('/markers/:id/photos', requirePermission('map.manage_markers', { needsElevation: true }), asyncHandler(async (req, res) => {
   let photoId = null;
+  const m = await queryOne('SELECT * FROM map_markers WHERE id=?', [req.params.id]);
+  if (!m) return res.status(404).json({ error: 'Repère introuvable' });
+  const { image_data, caption } = req.body;
+  if (!image_data) return res.status(400).json({ error: 'Image requise' });
+  const nextSortRow = await queryOne(
+    'SELECT COALESCE(MAX(sort_order), -1) + 1 AS n FROM marker_photos WHERE marker_id = ?',
+    [req.params.id]
+  );
+  const sortOrder = Number(nextSortRow?.n) >= 0 ? Number(nextSortRow.n) : 0;
+  const result = await execute(
+    'INSERT INTO marker_photos (marker_id, image_path, caption, sort_order, uploaded_at) VALUES (?, ?, ?, ?, ?)',
+    [req.params.id, null, caption || '', sortOrder, new Date().toISOString()]
+  );
+  photoId = result.insertId;
+  const relativePath = `markers/${req.params.id}/${photoId}.jpg`;
   try {
-    const m = await queryOne('SELECT * FROM map_markers WHERE id=?', [req.params.id]);
-    if (!m) return res.status(404).json({ error: 'Repère introuvable' });
-    const { image_data, caption } = req.body;
-    if (!image_data) return res.status(400).json({ error: 'Image requise' });
-    const nextSortRow = await queryOne(
-      'SELECT COALESCE(MAX(sort_order), -1) + 1 AS n FROM marker_photos WHERE marker_id = ?',
-      [req.params.id]
-    );
-    const sortOrder = Number(nextSortRow?.n) >= 0 ? Number(nextSortRow.n) : 0;
-    const result = await execute(
-      'INSERT INTO marker_photos (marker_id, image_path, caption, sort_order, uploaded_at) VALUES (?, ?, ?, ?, ?)',
-      [req.params.id, null, caption || '', sortOrder, new Date().toISOString()]
-    );
-    photoId = result.insertId;
-    const relativePath = `markers/${req.params.id}/${photoId}.jpg`;
-    try {
-      saveBase64ToDisk(relativePath, image_data);
-    } catch (fileErr) {
-      await execute('DELETE FROM marker_photos WHERE id = ?', [photoId]);
-      throw fileErr;
-    }
-    await execute('UPDATE marker_photos SET image_path = ? WHERE id = ?', [relativePath, photoId]);
-    await generateMapPhotoThumbFromMainRelativePath(relativePath);
-    const photo = await queryOne(
-      'SELECT id, marker_id, caption, sort_order, uploaded_at, image_path FROM marker_photos WHERE id=?',
-      [photoId]
-    );
-    emitGardenChanged({ reason: 'add_marker_photo', markerId: req.params.id, mapId: m.map_id });
-    res.status(201).json(serializeMarkerPhotoListRow(photo, req.params.id));
-  } catch (e) {
-    respondInternalError(res, req, e);
+    saveBase64ToDisk(relativePath, image_data);
+  } catch (fileErr) {
+    await execute('DELETE FROM marker_photos WHERE id = ?', [photoId]);
+    throw fileErr;
   }
-});
+  await execute('UPDATE marker_photos SET image_path = ? WHERE id = ?', [relativePath, photoId]);
+  await generateMapPhotoThumbFromMainRelativePath(relativePath);
+  const photo = await queryOne(
+    'SELECT id, marker_id, caption, sort_order, uploaded_at, image_path FROM marker_photos WHERE id=?',
+    [photoId]
+  );
+  emitGardenChanged({ reason: 'add_marker_photo', markerId: req.params.id, mapId: m.map_id });
+  res.status(201).json(serializeMarkerPhotoListRow(photo, req.params.id));
+}));
 
-router.delete('/markers/:id/photos/:pid', requirePermission('map.manage_markers', { needsElevation: true }), async (req, res) => {
-  try {
-    const m = await queryOne('SELECT map_id FROM map_markers WHERE id = ?', [req.params.id]);
-    const p = await queryOne('SELECT image_path FROM marker_photos WHERE id=? AND marker_id=?', [req.params.pid, req.params.id]);
-    if (p && p.image_path) deleteMapPhotoMainAndThumb(p.image_path);
-    await execute('DELETE FROM marker_photos WHERE id=? AND marker_id=?', [req.params.pid, req.params.id]);
-    emitGardenChanged({ reason: 'delete_marker_photo', markerId: req.params.id, mapId: m?.map_id || null });
-    res.json({ success: true });
-  } catch (e) {
-    respondInternalError(res, req, e);
+router.delete('/markers/:id/photos/:pid', requirePermission('map.manage_markers', { needsElevation: true }), asyncHandler(async (req, res) => {
+  const m = await queryOne('SELECT map_id FROM map_markers WHERE id = ?', [req.params.id]);
+  const p = await queryOne('SELECT image_path FROM marker_photos WHERE id=? AND marker_id=?', [req.params.pid, req.params.id]);
+  if (p && p.image_path) deleteMapPhotoMainAndThumb(p.image_path);
+  await execute('DELETE FROM marker_photos WHERE id=? AND marker_id=?', [req.params.pid, req.params.id]);
+  emitGardenChanged({ reason: 'delete_marker_photo', markerId: req.params.id, mapId: m?.map_id || null });
+  res.json({ success: true });
+}));
+
+router.get('/markers', asyncHandler(async (req, res) => {
+  const mapId = req.query.map_id ? String(req.query.map_id).trim() : '';
+  if (mapId && !(await mapExists(mapId))) {
+    return res.status(400).json({ error: 'Carte introuvable' });
   }
-});
+  const rows = mapId
+    ? await queryAll(`${MARKERS_LIST_SQL} WHERE m.map_id = ? ORDER BY m.created_at`, [mapId])
+    : await queryAll(`${MARKERS_LIST_SQL} ORDER BY m.created_at`);
+  res.json(rows.map(withLivingBeings));
+}));
 
-router.get('/markers', async (req, res) => {
-  try {
-    const mapId = req.query.map_id ? String(req.query.map_id).trim() : '';
-    if (mapId && !(await mapExists(mapId))) {
-      return res.status(400).json({ error: 'Carte introuvable' });
-    }
-    const rows = mapId
-      ? await queryAll(`${MARKERS_LIST_SQL} WHERE m.map_id = ? ORDER BY m.created_at`, [mapId])
-      : await queryAll(`${MARKERS_LIST_SQL} ORDER BY m.created_at`);
-    res.json(rows.map(withLivingBeings));
-  } catch (e) {
-    respondInternalError(res, req, e);
+router.post('/markers', requirePermission('map.manage_markers', { needsElevation: true }), asyncHandler(async (req, res) => {
+  const { x_pct, y_pct, label, plant_name, living_beings, note, emoji, map_id } = req.body;
+  const mapId = String(map_id || '').trim() || await resolveDefaultMapId('teacher');
+  if (!mapId) return res.status(400).json({ error: 'map_id requis' });
+  if (!(await mapExists(mapId))) return res.status(400).json({ error: 'Carte introuvable' });
+  if (!label?.trim()) return res.status(400).json({ error: 'Label requis' });
+  const nextLiving = normalizeLivingBeings(living_beings, plant_name);
+  const nextPlantName = nextLiving.length > 0 ? '' : String(plant_name || '').trim();
+  const id = uuidv4();
+  await execute(
+    'INSERT INTO map_markers (id, map_id, x_pct, y_pct, label, plant_name, living_beings, note, emoji, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+    [id, mapId, x_pct, y_pct, label.trim(), nextPlantName, serializeLivingBeings(nextLiving, nextPlantName), note || '', normalizeMarkerEmoji(emoji, { allowEmpty: true, fallback: '' }), new Date().toISOString()]
+  );
+  let row = await queryOne(`${MARKERS_LIST_SQL} WHERE m.id = ?`, [id]);
+  if (hasVisitMarkerContentPatch(req.body)) {
+    await upsertVisitMarkerEditorial(req.body, row);
+    row = await queryOne(`${MARKERS_LIST_SQL} WHERE m.id = ?`, [id]);
   }
-});
+  emitGardenChanged({ reason: 'create_marker', markerId: id, mapId });
+  res.status(201).json(withLivingBeings(row));
+}));
 
-router.post('/markers', requirePermission('map.manage_markers', { needsElevation: true }), async (req, res) => {
-  try {
-    const { x_pct, y_pct, label, plant_name, living_beings, note, emoji, map_id } = req.body;
-    const mapId = String(map_id || '').trim() || await resolveDefaultMapId('teacher');
-    if (!mapId) return res.status(400).json({ error: 'map_id requis' });
+router.put('/markers/:id', requirePermission('map.manage_markers', { needsElevation: true }), asyncHandler(async (req, res) => {
+  const m = await queryOne('SELECT * FROM map_markers WHERE id = ?', [req.params.id]);
+  if (!m) return res.status(404).json({ error: 'Repère introuvable' });
+  const { x_pct, y_pct, label, plant_name, living_beings, note, emoji, map_id } = req.body;
+  if (label !== undefined && !String(label).trim()) {
+    return res.status(400).json({ error: 'Label requis' });
+  }
+  if (map_id != null) {
+    const mapId = String(map_id).trim();
+    if (!mapId) return res.status(400).json({ error: 'map_id invalide' });
     if (!(await mapExists(mapId))) return res.status(400).json({ error: 'Carte introuvable' });
-    if (!label?.trim()) return res.status(400).json({ error: 'Label requis' });
-    const nextLiving = normalizeLivingBeings(living_beings, plant_name);
-    const nextPlantName = nextLiving.length > 0 ? '' : String(plant_name || '').trim();
-    const id = uuidv4();
-    await execute(
-      'INSERT INTO map_markers (id, map_id, x_pct, y_pct, label, plant_name, living_beings, note, emoji, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-      [id, mapId, x_pct, y_pct, label.trim(), nextPlantName, serializeLivingBeings(nextLiving, nextPlantName), note || '', normalizeMarkerEmoji(emoji, { allowEmpty: true, fallback: '' }), new Date().toISOString()]
-    );
-    let row = await queryOne(`${MARKERS_LIST_SQL} WHERE m.id = ?`, [id]);
-    if (hasVisitMarkerContentPatch(req.body)) {
-      await upsertVisitMarkerEditorial(req.body, row);
-      row = await queryOne(`${MARKERS_LIST_SQL} WHERE m.id = ?`, [id]);
-    }
-    emitGardenChanged({ reason: 'create_marker', markerId: id, mapId });
-    res.status(201).json(withLivingBeings(row));
-  } catch (e) {
-    respondInternalError(res, req, e);
   }
-});
+  const existingLiving = normalizeLivingBeings(m.living_beings, m.plant_name);
+  const nextLiving = living_beings !== undefined
+    ? normalizeLivingBeings(living_beings, '')
+    : existingLiving;
+  const nextPlantName = nextLiving.length > 0
+    ? ''
+    : (plant_name !== undefined
+      ? String(plant_name || '').trim()
+      : String(m.plant_name || '').trim());
+  await execute(
+    'UPDATE map_markers SET map_id=?, x_pct=?, y_pct=?, label=?, plant_name=?, living_beings=?, note=?, emoji=? WHERE id=?',
+    [
+      map_id != null ? String(map_id).trim() : m.map_id,
+      x_pct ?? m.x_pct,
+      y_pct ?? m.y_pct,
+      label !== undefined ? String(label).trim() : m.label,
+      nextPlantName,
+      serializeLivingBeings(nextLiving, nextPlantName),
+      note ?? m.note,
+      emoji !== undefined
+        ? normalizeMarkerEmoji(emoji, { allowEmpty: true, fallback: '' })
+        : String(m.emoji ?? ''),
+      m.id,
+    ]
+  );
+  let updated = await queryOne(`${MARKERS_LIST_SQL} WHERE m.id = ?`, [m.id]);
+  if (hasVisitMarkerContentPatch(req.body)) {
+    await upsertVisitMarkerEditorial(req.body, updated);
+    updated = await queryOne(`${MARKERS_LIST_SQL} WHERE m.id = ?`, [m.id]);
+  }
+  emitGardenChanged({ reason: 'update_marker', markerId: m.id, mapId: updated.map_id });
+  res.json(withLivingBeings(updated));
+}));
 
-router.put('/markers/:id', requirePermission('map.manage_markers', { needsElevation: true }), async (req, res) => {
-  try {
-    const m = await queryOne('SELECT * FROM map_markers WHERE id = ?', [req.params.id]);
-    if (!m) return res.status(404).json({ error: 'Repère introuvable' });
-    const { x_pct, y_pct, label, plant_name, living_beings, note, emoji, map_id } = req.body;
-    if (label !== undefined && !String(label).trim()) {
-      return res.status(400).json({ error: 'Label requis' });
-    }
-    if (map_id != null) {
-      const mapId = String(map_id).trim();
-      if (!mapId) return res.status(400).json({ error: 'map_id invalide' });
-      if (!(await mapExists(mapId))) return res.status(400).json({ error: 'Carte introuvable' });
-    }
-    const existingLiving = normalizeLivingBeings(m.living_beings, m.plant_name);
-    const nextLiving = living_beings !== undefined
-      ? normalizeLivingBeings(living_beings, '')
-      : existingLiving;
-    const nextPlantName = nextLiving.length > 0
-      ? ''
-      : (plant_name !== undefined
-        ? String(plant_name || '').trim()
-        : String(m.plant_name || '').trim());
-    await execute(
-      'UPDATE map_markers SET map_id=?, x_pct=?, y_pct=?, label=?, plant_name=?, living_beings=?, note=?, emoji=? WHERE id=?',
-      [
-        map_id != null ? String(map_id).trim() : m.map_id,
-        x_pct ?? m.x_pct,
-        y_pct ?? m.y_pct,
-        label !== undefined ? String(label).trim() : m.label,
-        nextPlantName,
-        serializeLivingBeings(nextLiving, nextPlantName),
-        note ?? m.note,
-        emoji !== undefined
-          ? normalizeMarkerEmoji(emoji, { allowEmpty: true, fallback: '' })
-          : String(m.emoji ?? ''),
-        m.id,
-      ]
-    );
-    let updated = await queryOne(`${MARKERS_LIST_SQL} WHERE m.id = ?`, [m.id]);
-    if (hasVisitMarkerContentPatch(req.body)) {
-      await upsertVisitMarkerEditorial(req.body, updated);
-      updated = await queryOne(`${MARKERS_LIST_SQL} WHERE m.id = ?`, [m.id]);
-    }
-    emitGardenChanged({ reason: 'update_marker', markerId: m.id, mapId: updated.map_id });
-    res.json(withLivingBeings(updated));
-  } catch (e) {
-    respondInternalError(res, req, e);
+router.delete('/markers/:id', requirePermission('map.manage_markers', { needsElevation: true }), asyncHandler(async (req, res) => {
+  const m = await queryOne('SELECT * FROM map_markers WHERE id = ?', [req.params.id]);
+  if (!m) return res.status(404).json({ error: 'Repère introuvable' });
+  const photos = await queryAll('SELECT image_path FROM marker_photos WHERE marker_id = ?', [req.params.id]);
+  for (const p of photos) {
+    if (p && p.image_path) deleteMapPhotoMainAndThumb(p.image_path);
   }
-});
-
-router.delete('/markers/:id', requirePermission('map.manage_markers', { needsElevation: true }), async (req, res) => {
-  try {
-    const m = await queryOne('SELECT * FROM map_markers WHERE id = ?', [req.params.id]);
-    if (!m) return res.status(404).json({ error: 'Repère introuvable' });
-    const photos = await queryAll('SELECT image_path FROM marker_photos WHERE marker_id = ?', [req.params.id]);
-    for (const p of photos) {
-      if (p && p.image_path) deleteMapPhotoMainAndThumb(p.image_path);
-    }
-    await execute('DELETE FROM marker_photos WHERE marker_id = ?', [req.params.id]);
-    await execute('DELETE FROM map_markers WHERE id = ?', [req.params.id]);
-    emitGardenChanged({ reason: 'delete_marker', markerId: req.params.id, mapId: m.map_id });
-    res.json({ success: true });
-  } catch (e) {
-    respondInternalError(res, req, e);
-  }
-});
+  await execute('DELETE FROM marker_photos WHERE marker_id = ?', [req.params.id]);
+  await execute('DELETE FROM map_markers WHERE id = ?', [req.params.id]);
+  emitGardenChanged({ reason: 'delete_marker', markerId: req.params.id, mapId: m.map_id });
+  res.json({ success: true });
+}));
 
 module.exports = router;
