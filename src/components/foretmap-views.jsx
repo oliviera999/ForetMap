@@ -63,6 +63,7 @@ import {
   findFirstBiodivHeroPhotoCandidate,
 } from '../utils/biodivPlantForm.js';
 import { isVegetalCatalogEntry, groupPlantLocationsByMap } from '../utils/plantCatalogHelpers.js';
+import { groupPrefillPhotosByField } from '../utils/plantPrefillHelpers.js';
 import { parseZonePointsJson, computeBiodivMapFitRect } from '../utils/biodivMapGeometry.js';
 
 // ── INTERACTIVE MAP ──────────────────────────────────────────────────────────
@@ -775,16 +776,7 @@ function PlantEditForm({ title, form, setForm, onSave, onCancel, saving, plantId
     }
   };
 
-  const groupedPrefillPhotos = useMemo(() => {
-    const groups = {};
-    for (const photo of prefillResult?.photos || []) {
-      const field = String(photo?.field || '').trim();
-      if (!field) continue;
-      if (!groups[field]) groups[field] = [];
-      groups[field].push(photo);
-    }
-    return groups;
-  }, [prefillResult]);
+  const groupedPrefillPhotos = useMemo(() => groupPrefillPhotosByField(prefillResult?.photos), [prefillResult]);
 
   const prefillQuery = (form.scientific_name || form.name || '').trim();
 
