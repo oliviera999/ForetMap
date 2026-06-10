@@ -19,6 +19,7 @@ async function emitStudentsWithPrimaryRole(roleId) {
 }
 const { logRouteError, respondInternalError } = require('../lib/routeLog');
 const asyncHandler = require('../lib/asyncHandler');
+const { rethrowSlugConflict } = require('../lib/slugConflict');
 const { logAudit } = require('./audit');
 
 const router = express.Router();
@@ -305,56 +306,54 @@ router.patch(
 router.post(
   '/profiles',
   requirePermission('admin.roles.manage', { needsElevation: true }),
-  async (req, res) => {
+  asyncHandler(async (req, res) => {
+    const slug = String(req.body?.slug || '').trim().toLowerCase().replace(/[^a-z0-9_]+/g, '_').replace(/^_+|_+$/g, '');
+    const displayName = String(req.body?.display_name || '').trim();
+    const rank = Number.isFinite(parseInt(req.body?.rank, 10)) ? parseInt(req.body.rank, 10) : 100;
+    const emoji = normalizeRoleEmoji(req.body?.emoji);
+    const minDoneTasks = parseOptionalNonNegativeInt(req.body?.min_done_tasks, null);
+    const displayOrder = parseOptionalNonNegativeInt(req.body?.display_order, 0);
+    let maxConcurrentTasks = null;
+    if (Object.prototype.hasOwnProperty.call(req.body || {}, 'max_concurrent_tasks')
+      || Object.prototype.hasOwnProperty.call(req.body || {}, 'maxConcurrentTasks')) {
+      if (!canConfigureStudentTierForumContext(slug, rank)) {
+        return res.status(400).json({
+          error:
+            'max_concurrent_tasks : réservé aux profils n3beur (slug eleve_* ou rang strictement inférieur à celui du n3boss, hors admin, prof, visiteur)',
+        });
+      }
+      const rawMct = Object.prototype.hasOwnProperty.call(req.body || {}, 'max_concurrent_tasks')
+        ? req.body.max_concurrent_tasks
+        : req.body.maxConcurrentTasks;
+      const parsed = rawMct === undefined ? null : parseOptionalMaxConcurrentTasks(rawMct);
+      if (Number.isNaN(parsed)) {
+        return res.status(400).json({ error: 'max_concurrent_tasks invalide (0–99, vide ou null pour hériter du réglage global)' });
+      }
+      maxConcurrentTasks = parsed;
+    }
+    if (!slug || !displayName) return res.status(400).json({ error: 'slug et display_name requis' });
+    const reservedCreate = reservedRoleSlugError(slug);
+    if (reservedCreate) return res.status(400).json({ error: reservedCreate });
+    if (Number.isNaN(minDoneTasks)) return res.status(400).json({ error: 'min_done_tasks invalide (entier >= 0)' });
+    if (Number.isNaN(displayOrder)) return res.status(400).json({ error: 'display_order invalide (entier >= 0)' });
+    if (STUDENT_ROLE_SLUG_RE.test(slug) && (emoji == null || minDoneTasks == null)) {
+      return res.status(400).json({ error: 'Un profil n3beur doit définir emoji et min_done_tasks' });
+    }
     try {
-      const slug = String(req.body?.slug || '').trim().toLowerCase().replace(/[^a-z0-9_]+/g, '_').replace(/^_+|_+$/g, '');
-      const displayName = String(req.body?.display_name || '').trim();
-      const rank = Number.isFinite(parseInt(req.body?.rank, 10)) ? parseInt(req.body.rank, 10) : 100;
-      const emoji = normalizeRoleEmoji(req.body?.emoji);
-      const minDoneTasks = parseOptionalNonNegativeInt(req.body?.min_done_tasks, null);
-      const displayOrder = parseOptionalNonNegativeInt(req.body?.display_order, 0);
-      let maxConcurrentTasks = null;
-      if (Object.prototype.hasOwnProperty.call(req.body || {}, 'max_concurrent_tasks')
-        || Object.prototype.hasOwnProperty.call(req.body || {}, 'maxConcurrentTasks')) {
-        if (!canConfigureStudentTierForumContext(slug, rank)) {
-          return res.status(400).json({
-            error:
-              'max_concurrent_tasks : réservé aux profils n3beur (slug eleve_* ou rang strictement inférieur à celui du n3boss, hors admin, prof, visiteur)',
-          });
-        }
-        const rawMct = Object.prototype.hasOwnProperty.call(req.body || {}, 'max_concurrent_tasks')
-          ? req.body.max_concurrent_tasks
-          : req.body.maxConcurrentTasks;
-        const parsed = rawMct === undefined ? null : parseOptionalMaxConcurrentTasks(rawMct);
-        if (Number.isNaN(parsed)) {
-          return res.status(400).json({ error: 'max_concurrent_tasks invalide (0–99, vide ou null pour hériter du réglage global)' });
-        }
-        maxConcurrentTasks = parsed;
-      }
-      if (!slug || !displayName) return res.status(400).json({ error: 'slug et display_name requis' });
-      const reservedCreate = reservedRoleSlugError(slug);
-      if (reservedCreate) return res.status(400).json({ error: reservedCreate });
-      if (Number.isNaN(minDoneTasks)) return res.status(400).json({ error: 'min_done_tasks invalide (entier >= 0)' });
-      if (Number.isNaN(displayOrder)) return res.status(400).json({ error: 'display_order invalide (entier >= 0)' });
-      if (STUDENT_ROLE_SLUG_RE.test(slug) && (emoji == null || minDoneTasks == null)) {
-        return res.status(400).json({ error: 'Un profil n3beur doit définir emoji et min_done_tasks' });
-      }
       await execute(
         'INSERT INTO roles (slug, display_name, emoji, min_done_tasks, display_order, `rank`, is_system, max_concurrent_tasks) VALUES (?, ?, ?, ?, ?, ?, 0, ?)',
         [slug, displayName, emoji, minDoneTasks, displayOrder ?? 0, rank, maxConcurrentTasks]
       );
-      const role = await queryOne(
-        'SELECT id, slug, display_name, emoji, min_done_tasks, display_order, `rank` AS `rank`, is_system, forum_participate, context_comment_participate, max_concurrent_tasks FROM roles WHERE slug = ? LIMIT 1',
-        [slug]
-      );
-      logAudit('rbac_create_profile', 'role', role?.id || null, slug, { req });
-      res.status(201).json(role);
     } catch (e) {
-      logRouteError(e, req);
-      if (e && (e.errno === 1062 || e.code === 'ER_DUP_ENTRY')) return res.status(409).json({ error: 'Slug déjà utilisé' });
-      respondInternalError(res, req, e);
+      rethrowSlugConflict(e);
     }
-  }
+    const role = await queryOne(
+      'SELECT id, slug, display_name, emoji, min_done_tasks, display_order, `rank` AS `rank`, is_system, forum_participate, context_comment_participate, max_concurrent_tasks FROM roles WHERE slug = ? LIMIT 1',
+      [slug]
+    );
+    logAudit('rbac_create_profile', 'role', role?.id || null, slug, { req });
+    res.status(201).json(role);
+  })
 );
 
 router.post(
