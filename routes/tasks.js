@@ -949,195 +949,187 @@ async function resolveStudentActionContext(req, payload = {}, permissionKey) {
   return { errorStatus: 400, error: 'Identifiant n3beur requis' };
 }
 
-router.get('/', async (req, res) => {
-  try {
-    const auth = await parseOptionalAuth(req);
-    const mapId = req.query.map_id ? String(req.query.map_id).trim() : '';
-    const projectId = req.query.project_id ? String(req.query.project_id).trim() : '';
-    const groupId = req.query.group_id ? String(req.query.group_id).trim() : '';
-    if (mapId && !(await mapExists(mapId))) {
-      return res.status(400).json({ error: 'Carte introuvable' });
-    }
-    if (projectId && !(await getTaskProject(projectId))) {
-      return res.status(400).json({ error: 'Projet introuvable' });
-    }
-    const sqlBase = `
-      SELECT t.*, z.name AS zone_name, z.map_id AS zone_map_id,
-             mkr.label AS marker_label, mkr.map_id AS marker_map_id,
-             tp.map_id AS project_map_id, tp.title AS project_title, tp.status AS project_status,
-             m.id AS map_id_resolved_join, m.label AS map_label,
-             t.image_path AS task_cover_image_path
-        FROM tasks t
-        LEFT JOIN zones z ON t.zone_id = z.id
-        LEFT JOIN map_markers mkr ON t.marker_id = mkr.id
-        LEFT JOIN task_projects tp ON tp.id = t.project_id
-        LEFT JOIN maps m ON m.id = COALESCE(t.map_id, z.map_id, mkr.map_id)
-    `;
-    const where = [];
-    const params = [];
-    if (mapId) {
-      where.push(`(
-           t.id IN (SELECT tz.task_id FROM task_zones tz INNER JOIN zones zz ON zz.id = tz.zone_id WHERE zz.map_id = ?)
-           OR t.id IN (SELECT tm.task_id FROM task_markers tm INNER JOIN map_markers mm ON mm.id = tm.marker_id WHERE mm.map_id = ?)
-           OR (
-             NOT EXISTS (SELECT 1 FROM task_zones tz2 WHERE tz2.task_id = t.id)
-             AND NOT EXISTS (SELECT 1 FROM task_markers tm2 WHERE tm2.task_id = t.id)
-             AND (t.map_id = ? OR t.map_id IS NULL)
-           )
-         )`);
-      params.push(mapId, mapId, mapId);
-    }
-    if (projectId) {
-      where.push('t.project_id = ?');
-      params.push(projectId);
-    }
-    if (groupId) {
-      where.push('t.group_id = ?');
-      params.push(groupId);
-    }
-    const whereSql = where.length ? `WHERE ${where.join(' AND ')}` : '';
-    const orderSql = `ORDER BY
-      CASE WHEN COALESCE(t.sort_order, 0) > 0 THEN 0 ELSE 1 END ASC,
-      CASE WHEN COALESCE(t.sort_order, 0) > 0 THEN t.sort_order ELSE NULL END ASC,
-      CASE WHEN COALESCE(NULLIF(TRIM(t.importance_level), ''), '') = '' THEN 1 ELSE 0 END ASC,
-      CASE LOWER(TRIM(t.importance_level))
-        WHEN 'absolute' THEN 5
-        WHEN 'high' THEN 4
-        WHEN 'medium' THEN 3
-        WHEN 'low' THEN 2
-        WHEN 'not_important' THEN 1
-        ELSE 0
-      END DESC,
-      t.due_date ASC`;
-    const tasks = await queryAll(`${sqlBase} ${whereSql} ${orderSql}`, params);
-    const taskIds = tasks.map((t) => t.id);
-    const proposedTaskIds = tasks
-      .filter((t) => normalizeTaskStatusForRead(t?.status) === 'proposed')
-      .map((t) => t.id);
-    const [zm, mm, tutorialsMap, referentsMap, proposerByTask, assignments, countRows] = await Promise.all([
-      fetchZonesForTasks(taskIds),
-      fetchMarkersForTasks(taskIds),
-      fetchTutorialsForTasks(taskIds),
-      fetchReferentsForTasks(taskIds),
-      fetchTaskProposerMap(proposedTaskIds),
-      fetchTaskListAssignments(auth, taskIds),
-      fetchTaskAssignmentAggregates(taskIds),
-    ]);
-    const assignmentsByTask = new Map();
-    for (const a of assignments) {
-      if (!assignmentsByTask.has(a.task_id)) assignmentsByTask.set(a.task_id, []);
-      assignmentsByTask.get(a.task_id).push(a);
-    }
-    const assignedCountByTask = new Map();
-    const doneCountByTask = new Map();
-    for (const row of countRows) {
-      assignedCountByTask.set(row.task_id, Number(row.assigned_count) || 0);
-      doneCountByTask.set(row.task_id, Number(row.done_count) || 0);
-    }
-    const enriched = tasks.map((t) => {
-      const row = { ...t };
-      enrichTaskRow(row, zm.get(t.id), mm.get(t.id), tutorialsMap.get(t.id), referentsMap.get(t.id));
-      row.status = normalizeTaskStatusForRead(row.status);
-      row.completion_mode = normalizeTaskCompletionMode(row.completion_mode) || 'single_done';
-      row.danger_level = taskDangerLevelForResponse(row.danger_level);
-      row.difficulty_level = taskDifficultyLevelForResponse(row.difficulty_level);
-      row.importance_level = taskImportanceLevelForResponse(row.importance_level);
-      row.is_before_start_date = isTaskBeforeStartDate(row);
-      delete row.map_id_resolved_join;
-      row.assignments = assignmentsByTask.get(t.id) || [];
-      row.assigned_count = assignedCountByTask.get(t.id) || 0;
-      row.assignees_total_count = row.assigned_count;
-      row.assignees_done_count = doneCountByTask.get(t.id) || 0;
-      row.proposed_by_student_id = proposerByTask.get(t.id) || null;
-      attachTaskLivingBeingsApiFields(row);
-      attachTaskImagePublicFields(row);
-      return row;
-    });
-    const mapLabelIds = [...new Set(enriched.map((r) => r.map_id_resolved).filter(Boolean))];
-    if (mapLabelIds.length) {
-      const ph = mapLabelIds.map(() => '?').join(',');
-      const mrows = await queryAll(`SELECT id, label FROM maps WHERE id IN (${ph})`, mapLabelIds);
-      const labelByMap = Object.fromEntries(mrows.map((r) => [r.id, r.label]));
-      for (const row of enriched) {
-        if (row.map_id_resolved && labelByMap[row.map_id_resolved]) {
-          row.map_label = labelByMap[row.map_id_resolved];
-        }
-      }
-    }
-    res.json(enriched);
-  } catch (e) {
-    respondInternalError(res, req, e);
+router.get('/', asyncHandler(async (req, res) => {
+  const auth = await parseOptionalAuth(req);
+  const mapId = req.query.map_id ? String(req.query.map_id).trim() : '';
+  const projectId = req.query.project_id ? String(req.query.project_id).trim() : '';
+  const groupId = req.query.group_id ? String(req.query.group_id).trim() : '';
+  if (mapId && !(await mapExists(mapId))) {
+    return res.status(400).json({ error: 'Carte introuvable' });
   }
-});
-
-router.post('/reorder-project', requirePermission('tasks.manage', { needsElevation: true }), async (req, res) => {
-  try {
-    const projectId = normalizeOptionalId(req.body?.project_id);
-    const orderedTaskIdsInput = normalizeIdArray(req.body?.task_ids);
-    if (!projectId) return res.status(400).json({ error: 'Projet requis' });
-    if (!orderedTaskIdsInput.length) return res.status(400).json({ error: 'Liste de tâches requise' });
-    const project = await getTaskProject(projectId);
-    if (!project) return res.status(404).json({ error: 'Projet introuvable' });
-
-    const mapId = project.map_id || null;
-    const projectTasks = await queryAll(
-      `SELECT id, sort_order, importance_level, due_date
-         FROM tasks
-        WHERE project_id = ?
-        ORDER BY
-          CASE WHEN COALESCE(sort_order, 0) > 0 THEN 0 ELSE 1 END ASC,
-          CASE WHEN COALESCE(sort_order, 0) > 0 THEN sort_order ELSE NULL END ASC,
-          CASE WHEN COALESCE(NULLIF(TRIM(importance_level), ''), '') = '' THEN 1 ELSE 0 END ASC,
-          CASE LOWER(TRIM(importance_level))
-            WHEN 'absolute' THEN 5
-            WHEN 'high' THEN 4
-            WHEN 'medium' THEN 3
-            WHEN 'low' THEN 2
-            WHEN 'not_important' THEN 1
-            ELSE 0
-          END DESC,
-          due_date ASC,
-          id ASC`,
-      [projectId]
-    );
-    if (!projectTasks.length) return res.status(400).json({ error: 'Ce projet ne contient aucune tâche à ordonner' });
-
-    const knownIds = new Set(projectTasks.map((row) => String(row.id)));
-    const orderedTaskIds = [];
-    const seen = new Set();
-    for (const tid of orderedTaskIdsInput) {
-      const normalized = String(tid || '').trim();
-      if (!normalized || seen.has(normalized)) continue;
-      if (!knownIds.has(normalized)) {
-        return res.status(400).json({ error: 'La liste contient une tâche qui n’appartient pas au projet cible' });
-      }
-      seen.add(normalized);
-      orderedTaskIds.push(normalized);
-    }
-    for (const row of projectTasks) {
-      const tid = String(row.id);
-      if (!seen.has(tid)) orderedTaskIds.push(tid);
-    }
-
-    await withTransaction(async (tx) => {
-      for (let idx = 0; idx < orderedTaskIds.length; idx += 1) {
-        await tx.execute('UPDATE tasks SET sort_order = ? WHERE id = ?', [idx + 1, orderedTaskIds[idx]]);
-      }
-    });
-
-    logAudit('reorder_project_tasks', 'task_project', projectId, project.title || 'Projet', {
-      req,
-      payload: {
-        project_id: projectId,
-        task_count: orderedTaskIds.length,
-      },
-    });
-    emitTasksChanged({ reason: 'reorder_project_tasks', projectId, mapId });
-    res.json({ success: true, project_id: projectId, ordered_task_ids: orderedTaskIds });
-  } catch (e) {
-    respondInternalError(res, req, e);
+  if (projectId && !(await getTaskProject(projectId))) {
+    return res.status(400).json({ error: 'Projet introuvable' });
   }
-});
+  const sqlBase = `
+    SELECT t.*, z.name AS zone_name, z.map_id AS zone_map_id,
+           mkr.label AS marker_label, mkr.map_id AS marker_map_id,
+           tp.map_id AS project_map_id, tp.title AS project_title, tp.status AS project_status,
+           m.id AS map_id_resolved_join, m.label AS map_label,
+           t.image_path AS task_cover_image_path
+      FROM tasks t
+      LEFT JOIN zones z ON t.zone_id = z.id
+      LEFT JOIN map_markers mkr ON t.marker_id = mkr.id
+      LEFT JOIN task_projects tp ON tp.id = t.project_id
+      LEFT JOIN maps m ON m.id = COALESCE(t.map_id, z.map_id, mkr.map_id)
+  `;
+  const where = [];
+  const params = [];
+  if (mapId) {
+    where.push(`(
+         t.id IN (SELECT tz.task_id FROM task_zones tz INNER JOIN zones zz ON zz.id = tz.zone_id WHERE zz.map_id = ?)
+         OR t.id IN (SELECT tm.task_id FROM task_markers tm INNER JOIN map_markers mm ON mm.id = tm.marker_id WHERE mm.map_id = ?)
+         OR (
+           NOT EXISTS (SELECT 1 FROM task_zones tz2 WHERE tz2.task_id = t.id)
+           AND NOT EXISTS (SELECT 1 FROM task_markers tm2 WHERE tm2.task_id = t.id)
+           AND (t.map_id = ? OR t.map_id IS NULL)
+         )
+       )`);
+    params.push(mapId, mapId, mapId);
+  }
+  if (projectId) {
+    where.push('t.project_id = ?');
+    params.push(projectId);
+  }
+  if (groupId) {
+    where.push('t.group_id = ?');
+    params.push(groupId);
+  }
+  const whereSql = where.length ? `WHERE ${where.join(' AND ')}` : '';
+  const orderSql = `ORDER BY
+    CASE WHEN COALESCE(t.sort_order, 0) > 0 THEN 0 ELSE 1 END ASC,
+    CASE WHEN COALESCE(t.sort_order, 0) > 0 THEN t.sort_order ELSE NULL END ASC,
+    CASE WHEN COALESCE(NULLIF(TRIM(t.importance_level), ''), '') = '' THEN 1 ELSE 0 END ASC,
+    CASE LOWER(TRIM(t.importance_level))
+      WHEN 'absolute' THEN 5
+      WHEN 'high' THEN 4
+      WHEN 'medium' THEN 3
+      WHEN 'low' THEN 2
+      WHEN 'not_important' THEN 1
+      ELSE 0
+    END DESC,
+    t.due_date ASC`;
+  const tasks = await queryAll(`${sqlBase} ${whereSql} ${orderSql}`, params);
+  const taskIds = tasks.map((t) => t.id);
+  const proposedTaskIds = tasks
+    .filter((t) => normalizeTaskStatusForRead(t?.status) === 'proposed')
+    .map((t) => t.id);
+  const [zm, mm, tutorialsMap, referentsMap, proposerByTask, assignments, countRows] = await Promise.all([
+    fetchZonesForTasks(taskIds),
+    fetchMarkersForTasks(taskIds),
+    fetchTutorialsForTasks(taskIds),
+    fetchReferentsForTasks(taskIds),
+    fetchTaskProposerMap(proposedTaskIds),
+    fetchTaskListAssignments(auth, taskIds),
+    fetchTaskAssignmentAggregates(taskIds),
+  ]);
+  const assignmentsByTask = new Map();
+  for (const a of assignments) {
+    if (!assignmentsByTask.has(a.task_id)) assignmentsByTask.set(a.task_id, []);
+    assignmentsByTask.get(a.task_id).push(a);
+  }
+  const assignedCountByTask = new Map();
+  const doneCountByTask = new Map();
+  for (const row of countRows) {
+    assignedCountByTask.set(row.task_id, Number(row.assigned_count) || 0);
+    doneCountByTask.set(row.task_id, Number(row.done_count) || 0);
+  }
+  const enriched = tasks.map((t) => {
+    const row = { ...t };
+    enrichTaskRow(row, zm.get(t.id), mm.get(t.id), tutorialsMap.get(t.id), referentsMap.get(t.id));
+    row.status = normalizeTaskStatusForRead(row.status);
+    row.completion_mode = normalizeTaskCompletionMode(row.completion_mode) || 'single_done';
+    row.danger_level = taskDangerLevelForResponse(row.danger_level);
+    row.difficulty_level = taskDifficultyLevelForResponse(row.difficulty_level);
+    row.importance_level = taskImportanceLevelForResponse(row.importance_level);
+    row.is_before_start_date = isTaskBeforeStartDate(row);
+    delete row.map_id_resolved_join;
+    row.assignments = assignmentsByTask.get(t.id) || [];
+    row.assigned_count = assignedCountByTask.get(t.id) || 0;
+    row.assignees_total_count = row.assigned_count;
+    row.assignees_done_count = doneCountByTask.get(t.id) || 0;
+    row.proposed_by_student_id = proposerByTask.get(t.id) || null;
+    attachTaskLivingBeingsApiFields(row);
+    attachTaskImagePublicFields(row);
+    return row;
+  });
+  const mapLabelIds = [...new Set(enriched.map((r) => r.map_id_resolved).filter(Boolean))];
+  if (mapLabelIds.length) {
+    const ph = mapLabelIds.map(() => '?').join(',');
+    const mrows = await queryAll(`SELECT id, label FROM maps WHERE id IN (${ph})`, mapLabelIds);
+    const labelByMap = Object.fromEntries(mrows.map((r) => [r.id, r.label]));
+    for (const row of enriched) {
+      if (row.map_id_resolved && labelByMap[row.map_id_resolved]) {
+        row.map_label = labelByMap[row.map_id_resolved];
+      }
+    }
+  }
+  res.json(enriched);
+}));
+
+router.post('/reorder-project', requirePermission('tasks.manage', { needsElevation: true }), asyncHandler(async (req, res) => {
+  const projectId = normalizeOptionalId(req.body?.project_id);
+  const orderedTaskIdsInput = normalizeIdArray(req.body?.task_ids);
+  if (!projectId) return res.status(400).json({ error: 'Projet requis' });
+  if (!orderedTaskIdsInput.length) return res.status(400).json({ error: 'Liste de tâches requise' });
+  const project = await getTaskProject(projectId);
+  if (!project) return res.status(404).json({ error: 'Projet introuvable' });
+
+  const mapId = project.map_id || null;
+  const projectTasks = await queryAll(
+    `SELECT id, sort_order, importance_level, due_date
+       FROM tasks
+      WHERE project_id = ?
+      ORDER BY
+        CASE WHEN COALESCE(sort_order, 0) > 0 THEN 0 ELSE 1 END ASC,
+        CASE WHEN COALESCE(sort_order, 0) > 0 THEN sort_order ELSE NULL END ASC,
+        CASE WHEN COALESCE(NULLIF(TRIM(importance_level), ''), '') = '' THEN 1 ELSE 0 END ASC,
+        CASE LOWER(TRIM(importance_level))
+          WHEN 'absolute' THEN 5
+          WHEN 'high' THEN 4
+          WHEN 'medium' THEN 3
+          WHEN 'low' THEN 2
+          WHEN 'not_important' THEN 1
+          ELSE 0
+        END DESC,
+        due_date ASC,
+        id ASC`,
+    [projectId]
+  );
+  if (!projectTasks.length) return res.status(400).json({ error: 'Ce projet ne contient aucune tâche à ordonner' });
+
+  const knownIds = new Set(projectTasks.map((row) => String(row.id)));
+  const orderedTaskIds = [];
+  const seen = new Set();
+  for (const tid of orderedTaskIdsInput) {
+    const normalized = String(tid || '').trim();
+    if (!normalized || seen.has(normalized)) continue;
+    if (!knownIds.has(normalized)) {
+      return res.status(400).json({ error: 'La liste contient une tâche qui n’appartient pas au projet cible' });
+    }
+    seen.add(normalized);
+    orderedTaskIds.push(normalized);
+  }
+  for (const row of projectTasks) {
+    const tid = String(row.id);
+    if (!seen.has(tid)) orderedTaskIds.push(tid);
+  }
+
+  await withTransaction(async (tx) => {
+    for (let idx = 0; idx < orderedTaskIds.length; idx += 1) {
+      await tx.execute('UPDATE tasks SET sort_order = ? WHERE id = ?', [idx + 1, orderedTaskIds[idx]]);
+    }
+  });
+
+  logAudit('reorder_project_tasks', 'task_project', projectId, project.title || 'Projet', {
+    req,
+    payload: {
+      project_id: projectId,
+      task_count: orderedTaskIds.length,
+    },
+  });
+  emitTasksChanged({ reason: 'reorder_project_tasks', projectId, mapId });
+  res.json({ success: true, project_id: projectId, ordered_task_ids: orderedTaskIds });
+}));
 
 router.get('/referent-candidates', requirePermission('tasks.manage', { needsElevation: true }), asyncHandler(async (req, res) => {
   const [scopedStudentIds, scopedTeacherIds] = await Promise.all([
@@ -1786,162 +1778,150 @@ router.put('/:id', async (req, res) => {
   }
 });
 
-router.delete('/:id', requirePermission('tasks.manage', { needsElevation: true }), async (req, res) => {
-  try {
-    const task = await queryOne('SELECT * FROM tasks WHERE id = ?', [req.params.id]);
-    if (!task) return res.status(404).json({ error: 'Tâche introuvable' });
-    if (task.image_path) deleteFile(task.image_path);
-    await execute('DELETE FROM task_logs WHERE task_id = ?', [req.params.id]);
-    await execute('DELETE FROM task_assignments WHERE task_id = ?', [req.params.id]);
-    await execute('DELETE FROM tasks WHERE id = ?', [req.params.id]);
-    logAudit('delete_task', 'task', req.params.id, task.title, { req });
-    emitTasksChanged({ reason: 'delete_task', taskId: req.params.id, mapId: resolveTaskMapId(task) });
-    const delProjectId = task.project_id != null && String(task.project_id).trim()
-      ? String(task.project_id).trim()
-      : null;
-    await syncTaskProjectCompletionForProjects([delProjectId]);
-    res.json({ success: true });
-  } catch (e) {
-    respondInternalError(res, req, e);
+router.delete('/:id', requirePermission('tasks.manage', { needsElevation: true }), asyncHandler(async (req, res) => {
+  const task = await queryOne('SELECT * FROM tasks WHERE id = ?', [req.params.id]);
+  if (!task) return res.status(404).json({ error: 'Tâche introuvable' });
+  if (task.image_path) deleteFile(task.image_path);
+  await execute('DELETE FROM task_logs WHERE task_id = ?', [req.params.id]);
+  await execute('DELETE FROM task_assignments WHERE task_id = ?', [req.params.id]);
+  await execute('DELETE FROM tasks WHERE id = ?', [req.params.id]);
+  logAudit('delete_task', 'task', req.params.id, task.title, { req });
+  emitTasksChanged({ reason: 'delete_task', taskId: req.params.id, mapId: resolveTaskMapId(task) });
+  const delProjectId = task.project_id != null && String(task.project_id).trim()
+    ? String(task.project_id).trim()
+    : null;
+  await syncTaskProjectCompletionForProjects([delProjectId]);
+  res.json({ success: true });
+}));
+
+router.post('/:id/assign', asyncHandler(async (req, res) => {
+  const task = await getTaskWithAssignments(req.params.id);
+  if (!task) return res.status(404).json({ error: 'Tâche introuvable' });
+  if (task.status === 'validated') return res.status(400).json({ error: 'Tâche déjà validée' });
+  if (task.status === 'on_hold') return res.status(400).json({ error: 'Tâche en attente : inscription indisponible' });
+  if (task.project_status === 'on_hold') {
+    return res.status(400).json({ error: 'Projet en attente : inscription indisponible' });
   }
-});
+  if (task.project_status === 'completed') {
+    return res.status(400).json({ error: 'Projet terminé : inscription indisponible' });
+  }
+  if (task.project_status === 'validated') {
+    return res.status(400).json({ error: 'Projet validé : inscription indisponible' });
+  }
+  if (isTaskBeforeStartDate(task)) return res.status(400).json({ error: 'Date de départ non atteinte : inscription indisponible' });
 
-router.post('/:id/assign', async (req, res) => {
-  try {
-    const task = await getTaskWithAssignments(req.params.id);
-    if (!task) return res.status(404).json({ error: 'Tâche introuvable' });
-    if (task.status === 'validated') return res.status(400).json({ error: 'Tâche déjà validée' });
-    if (task.status === 'on_hold') return res.status(400).json({ error: 'Tâche en attente : inscription indisponible' });
-    if (task.project_status === 'on_hold') {
-      return res.status(400).json({ error: 'Projet en attente : inscription indisponible' });
-    }
-    if (task.project_status === 'completed') {
-      return res.status(400).json({ error: 'Projet terminé : inscription indisponible' });
-    }
-    if (task.project_status === 'validated') {
-      return res.status(400).json({ error: 'Projet validé : inscription indisponible' });
-    }
-    if (isTaskBeforeStartDate(task)) return res.status(400).json({ error: 'Date de départ non atteinte : inscription indisponible' });
+  const action = await resolveStudentActionContext(req, req.body || {}, 'tasks.assign_self');
+  if (action.error) {
+    return res.status(action.errorStatus || 400).json({ error: action.error, ...(action.deleted ? { deleted: true } : {}) });
+  }
 
-    const action = await resolveStudentActionContext(req, req.body || {}, 'tasks.assign_self');
-    if (action.error) {
-      return res.status(action.errorStatus || 400).json({ error: action.error, ...(action.deleted ? { deleted: true } : {}) });
-    }
-
-    const already = task.assignments.find(
-      (a) => (
-        (action.studentId && a.student_id && String(a.student_id) === String(action.studentId))
-        || (
-          String(a.student_first_name || '').toLowerCase() === action.firstName.toLowerCase()
-          && String(a.student_last_name || '').toLowerCase() === action.lastName.toLowerCase()
-        )
+  const already = task.assignments.find(
+    (a) => (
+      (action.studentId && a.student_id && String(a.student_id) === String(action.studentId))
+      || (
+        String(a.student_first_name || '').toLowerCase() === action.firstName.toLowerCase()
+        && String(a.student_last_name || '').toLowerCase() === action.lastName.toLowerCase()
       )
-    );
-    if (already) return res.status(400).json({ error: 'Déjà assigné à cette tâche' });
+    )
+  );
+  if (already) return res.status(400).json({ error: 'Déjà assigné à cette tâche' });
 
-    if (action.actorUserType === 'student' && action.studentId) {
-      const maxActive = await getEffectiveMaxActiveTaskAssignments(action.studentId);
-      if (maxActive > 0) {
-        const current = await countStudentActiveTaskAssignments(
-          action.studentId,
-          action.firstName,
-          action.lastName
-        );
-        if (current >= maxActive) {
-          return res.status(400).json({
-            error:
-              `Limite atteinte : tu as déjà ${maxActive} tâche(s) active(s) (non validées par un n3boss). Retire-toi d’une tâche ou attends une validation.`,
-            code: 'TASK_ENROLLMENT_LIMIT',
-            maxActiveAssignments: maxActive,
-            currentActiveAssignments: current,
-          });
-        }
-      }
-    }
-
-    if (task.assignments.length >= task.required_students) {
-      return res.status(400).json({ error: 'Plus de place disponible sur cette tâche' });
-    }
-
-    await execute(
-      'INSERT INTO task_assignments (task_id, student_id, student_first_name, student_last_name, assigned_at) VALUES (?, ?, ?, ?, ?)',
-      [task.id, action.studentId || null, action.firstName, action.lastName, new Date().toISOString()]
-    );
-
-    const recalculated = await recalculateTaskStatus(task);
-    const newStatus = recalculated?.status || normalizeTaskStatusForRead(task.status);
-
-    const updated = await getTaskWithAssignments(task.id);
-    logAudit('assign_task', 'task', task.id, `${action.firstName} ${action.lastName}`, {
-      req,
-      actorUserType: action.actorUserType,
-      actorUserId: action.actorUserId,
-      payload: { student_id: action.studentId || null, status: newStatus },
-    });
-    emitTasksChanged({ reason: 'assign', taskId: task.id, mapId: resolveTaskMapId(updated) });
-    await syncTaskProjectCompletionForProjects([updated.project_id]);
-    res.json(updated);
-  } catch (e) {
-    respondInternalError(res, req, e);
-  }
-});
-
-router.post('/:id/assign-group', requirePermission('tasks.assign.group', { needsElevation: true }), async (req, res) => {
-  try {
-    const task = await getTaskWithAssignments(req.params.id);
-    if (!task) return res.status(404).json({ error: 'Tâche introuvable' });
-    if (task.status === 'validated') return res.status(400).json({ error: 'Tâche déjà validée' });
-    const groupId = normalizeOptionalId(req.body?.group_id);
-    if (!groupId) return res.status(400).json({ error: 'group_id requis' });
-    const scope = await getScopedStudentIds(req.auth, { groupId });
-    if (scope.unauthorizedGroup) return res.status(403).json({ error: 'Groupe hors périmètre' });
-    if (!scope.studentIds.length) return res.status(400).json({ error: 'Aucun n3beur dans ce groupe' });
-    const students = await queryAll(
-      `SELECT id, first_name, last_name
-         FROM users
-        WHERE user_type = 'student'
-          AND is_active = 1
-          AND id IN (${scope.studentIds.map(() => '?').join(',')})`,
-      scope.studentIds
-    );
-    const already = new Set((task.assignments || []).map((a) => String(a.student_id || '')));
-    const maxSlots = Math.max(0, Number(task.required_students || 1) - Number(task.assignments?.length || 0));
-    // Sélectionne (dans l'ordre) les n3beurs à affecter en préservant la sémantique de la boucle :
-    // `skipped` compte les déjà-affectés rencontrés AVANT que les créneaux soient pleins, puis on
-    // insère tout en UNE requête multi-valeurs (au lieu d'un INSERT par n3beur).
-    const toAssign = [];
-    let skipped = 0;
-    for (const student of students) {
-      if (already.has(String(student.id))) {
-        skipped += 1;
-        continue;
-      }
-      if (toAssign.length >= maxSlots) break;
-      toAssign.push(student);
-    }
-    const assigned = toAssign.length;
-    if (toAssign.length > 0) {
-      const assignedAt = new Date().toISOString();
-      const placeholders = toAssign.map(() => '(?, ?, ?, ?, ?)').join(', ');
-      const params = [];
-      for (const student of toAssign) {
-        params.push(task.id, student.id, student.first_name || '', student.last_name || '', assignedAt);
-      }
-      await execute(
-        `INSERT INTO task_assignments (task_id, student_id, student_first_name, student_last_name, assigned_at)
-         VALUES ${placeholders}`,
-        params
+  if (action.actorUserType === 'student' && action.studentId) {
+    const maxActive = await getEffectiveMaxActiveTaskAssignments(action.studentId);
+    if (maxActive > 0) {
+      const current = await countStudentActiveTaskAssignments(
+        action.studentId,
+        action.firstName,
+        action.lastName
       );
+      if (current >= maxActive) {
+        return res.status(400).json({
+          error:
+            `Limite atteinte : tu as déjà ${maxActive} tâche(s) active(s) (non validées par un n3boss). Retire-toi d’une tâche ou attends une validation.`,
+          code: 'TASK_ENROLLMENT_LIMIT',
+          maxActiveAssignments: maxActive,
+          currentActiveAssignments: current,
+        });
+      }
     }
-    await recalculateTaskStatus(task);
-    const updated = await getTaskWithAssignments(task.id);
-    emitTasksChanged({ reason: 'assign_group', taskId: task.id, mapId: resolveTaskMapId(updated) });
-    await syncTaskProjectCompletionForProjects([updated.project_id]);
-    return res.json({ task: updated, assigned, skipped, considered: students.length });
-  } catch (e) {
-    return respondInternalError(res, req, e);
   }
-});
+
+  if (task.assignments.length >= task.required_students) {
+    return res.status(400).json({ error: 'Plus de place disponible sur cette tâche' });
+  }
+
+  await execute(
+    'INSERT INTO task_assignments (task_id, student_id, student_first_name, student_last_name, assigned_at) VALUES (?, ?, ?, ?, ?)',
+    [task.id, action.studentId || null, action.firstName, action.lastName, new Date().toISOString()]
+  );
+
+  const recalculated = await recalculateTaskStatus(task);
+  const newStatus = recalculated?.status || normalizeTaskStatusForRead(task.status);
+
+  const updated = await getTaskWithAssignments(task.id);
+  logAudit('assign_task', 'task', task.id, `${action.firstName} ${action.lastName}`, {
+    req,
+    actorUserType: action.actorUserType,
+    actorUserId: action.actorUserId,
+    payload: { student_id: action.studentId || null, status: newStatus },
+  });
+  emitTasksChanged({ reason: 'assign', taskId: task.id, mapId: resolveTaskMapId(updated) });
+  await syncTaskProjectCompletionForProjects([updated.project_id]);
+  res.json(updated);
+}));
+
+router.post('/:id/assign-group', requirePermission('tasks.assign.group', { needsElevation: true }), asyncHandler(async (req, res) => {
+  const task = await getTaskWithAssignments(req.params.id);
+  if (!task) return res.status(404).json({ error: 'Tâche introuvable' });
+  if (task.status === 'validated') return res.status(400).json({ error: 'Tâche déjà validée' });
+  const groupId = normalizeOptionalId(req.body?.group_id);
+  if (!groupId) return res.status(400).json({ error: 'group_id requis' });
+  const scope = await getScopedStudentIds(req.auth, { groupId });
+  if (scope.unauthorizedGroup) return res.status(403).json({ error: 'Groupe hors périmètre' });
+  if (!scope.studentIds.length) return res.status(400).json({ error: 'Aucun n3beur dans ce groupe' });
+  const students = await queryAll(
+    `SELECT id, first_name, last_name
+       FROM users
+      WHERE user_type = 'student'
+        AND is_active = 1
+        AND id IN (${scope.studentIds.map(() => '?').join(',')})`,
+    scope.studentIds
+  );
+  const already = new Set((task.assignments || []).map((a) => String(a.student_id || '')));
+  const maxSlots = Math.max(0, Number(task.required_students || 1) - Number(task.assignments?.length || 0));
+  // Sélectionne (dans l'ordre) les n3beurs à affecter en préservant la sémantique de la boucle :
+  // `skipped` compte les déjà-affectés rencontrés AVANT que les créneaux soient pleins, puis on
+  // insère tout en UNE requête multi-valeurs (au lieu d'un INSERT par n3beur).
+  const toAssign = [];
+  let skipped = 0;
+  for (const student of students) {
+    if (already.has(String(student.id))) {
+      skipped += 1;
+      continue;
+    }
+    if (toAssign.length >= maxSlots) break;
+    toAssign.push(student);
+  }
+  const assigned = toAssign.length;
+  if (toAssign.length > 0) {
+    const assignedAt = new Date().toISOString();
+    const placeholders = toAssign.map(() => '(?, ?, ?, ?, ?)').join(', ');
+    const params = [];
+    for (const student of toAssign) {
+      params.push(task.id, student.id, student.first_name || '', student.last_name || '', assignedAt);
+    }
+    await execute(
+      `INSERT INTO task_assignments (task_id, student_id, student_first_name, student_last_name, assigned_at)
+       VALUES ${placeholders}`,
+      params
+    );
+  }
+  await recalculateTaskStatus(task);
+  const updated = await getTaskWithAssignments(task.id);
+  emitTasksChanged({ reason: 'assign_group', taskId: task.id, mapId: resolveTaskMapId(updated) });
+  await syncTaskProjectCompletionForProjects([updated.project_id]);
+  return res.json({ task: updated, assigned, skipped, considered: students.length });
+}));
 
 router.post('/:id/done', async (req, res) => {
   try {
@@ -2086,32 +2066,28 @@ router.delete('/:id/logs/:logId', requirePermission('tasks.manage', { needsEleva
   }
 });
 
-router.post('/:id/validate', requirePermission('tasks.validate', { needsElevation: true }), async (req, res) => {
-  try {
-    const task = await queryOne('SELECT * FROM tasks WHERE id = ?', [req.params.id]);
-    if (!task) return res.status(404).json({ error: 'Tâche introuvable' });
-    const currentStatus = normalizeTaskStatusForRead(task.status);
-    if (currentStatus === 'validated') {
-      return res.status(400).json({ error: 'Tâche déjà validée' });
-    }
-    const zonesBeforeValidate = await getTaskZoneIds(task.id);
-    const markersBeforeValidate = await getTaskMarkerIds(task.id);
-    await persistRecurringTemplateLocations(task.id, task.recurrence, zonesBeforeValidate, markersBeforeValidate);
-    // Comme PUT avec statut validated : une tâche validée ne reste pas liée à des zones/repères.
-    await setTaskZones(task.id, []);
-    await setTaskMarkers(task.id, []);
-    await syncLegacyLocationColumns(task.id, [], []);
-    await execute("UPDATE tasks SET status = 'validated' WHERE id = ?", [req.params.id]);
-    logAudit('validate_task', 'task', req.params.id, task.title, { req });
-    await syncProgressionForValidatedTask(task.id);
-    const updated = await getTaskWithAssignments(task.id);
-    emitTasksChanged({ reason: 'validate', taskId: task.id, mapId: resolveTaskMapId(updated) });
-    await syncTaskProjectCompletionForProjects([task.project_id]);
-    res.json(updated);
-  } catch (e) {
-    respondInternalError(res, req, e);
+router.post('/:id/validate', requirePermission('tasks.validate', { needsElevation: true }), asyncHandler(async (req, res) => {
+  const task = await queryOne('SELECT * FROM tasks WHERE id = ?', [req.params.id]);
+  if (!task) return res.status(404).json({ error: 'Tâche introuvable' });
+  const currentStatus = normalizeTaskStatusForRead(task.status);
+  if (currentStatus === 'validated') {
+    return res.status(400).json({ error: 'Tâche déjà validée' });
   }
-});
+  const zonesBeforeValidate = await getTaskZoneIds(task.id);
+  const markersBeforeValidate = await getTaskMarkerIds(task.id);
+  await persistRecurringTemplateLocations(task.id, task.recurrence, zonesBeforeValidate, markersBeforeValidate);
+  // Comme PUT avec statut validated : une tâche validée ne reste pas liée à des zones/repères.
+  await setTaskZones(task.id, []);
+  await setTaskMarkers(task.id, []);
+  await syncLegacyLocationColumns(task.id, [], []);
+  await execute("UPDATE tasks SET status = 'validated' WHERE id = ?", [req.params.id]);
+  logAudit('validate_task', 'task', req.params.id, task.title, { req });
+  await syncProgressionForValidatedTask(task.id);
+  const updated = await getTaskWithAssignments(task.id);
+  emitTasksChanged({ reason: 'validate', taskId: task.id, mapId: resolveTaskMapId(updated) });
+  await syncTaskProjectCompletionForProjects([task.project_id]);
+  res.json(updated);
+}));
 
 /** Même modèle que POST assign, avec identité n3beur vérifiée (session ou permission n3boss). */
 router.post('/:id/unassign', async (req, res) => {
