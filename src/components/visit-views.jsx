@@ -61,6 +61,10 @@ import {
   visitMediaGalleryLightboxSrc,
   reorderVisitMediaRows,
 } from '../utils/visitMediaGallery.js';
+import {
+  visitZoneSvgTextUniformYTransform,
+  clampVisitMascotPctForViewport,
+} from '../utils/visitMascotGeometry.js';
 import useVisitMascotStateMachine from '../hooks/useVisitMascotStateMachine.js';
 import {
   Lightbox,
@@ -88,7 +92,6 @@ const VISIT_MAP_MASCOT_MOVE_MS = 560;
 const VISIT_MAP_MASCOT_HAPPY_MS = 1800;
 const VISIT_MASCOT_DIALOG_MS = 2600;
 const VISIT_MASCOT_DIALOG_MOVE_COOLDOWN_MS = 4200;
-const VISIT_MAP_MASCOT_ESTIMATED_HEIGHT_PX = 78;
 
 /** Vignette cliquable : aperçu sans rognage (CSS `object-fit: contain`) + lightbox plein écran. */
 function VisitMediaGalleryThumb({ media, onOpenLightbox }) {
@@ -157,31 +160,8 @@ function VisitEditorialRenderer({ blocks, selectedVisitMedia, onOpenLightbox }) 
   );
 }
 
-/**
- * Compense l’étirement anisotrope du SVG (viewBox carré + preserveAspectRatio="none" sur un rectangle carte) :
- * sans cela, les <text> et emojis paraissent tassés sur l’axe Y dès que largeur ≠ hauteur du calque.
- */
-function visitZoneSvgTextUniformYTransform(cx, cy, fitW, fitH) {
-  if (!(fitW > 0 && fitH > 0)) return undefined;
-  const r = fitW / fitH;
-  if (Math.abs(r - 1) < 0.0005) return undefined;
-  return `translate(${cx},${cy}) scale(1,${r}) translate(${-cx},${-cy})`;
-}
-
 function pointToPct(event, stageEl, transform = { x: 0, y: 0, s: 1 }, fit = null) {
   return pointToContainedRectPct(event, stageEl, transform, fit, { clamp: true, decimals: 2 });
-}
-
-function clampVisitMascotPctForViewport(xp, yp, fitHeightPx = 0) {
-  const nx = Math.max(0, Math.min(100, Number(xp) || 0));
-  const rawY = Math.max(0, Math.min(100, Number(yp) || 0));
-  if (!(fitHeightPx > 0)) return { xp: nx, yp: rawY };
-  const minVisibleY = Math.max(
-    6,
-    (VISIT_MAP_MASCOT_ESTIMATED_HEIGHT_PX / Math.max(1, fitHeightPx)) * 100
-  );
-  const ny = Math.max(minVisibleY, Math.min(99.2, rawY));
-  return { xp: nx, yp: ny };
 }
 
 function VisitSyncPanel({ isTeacher, mapId, onSynced, onForceLogout }) {
