@@ -49,6 +49,13 @@ import {
   parseCommonsCategoryFromUrl,
   getSourceLabel,
 } from '../utils/plantSourceLinks.js';
+import {
+  normalizedPlantValue,
+  isGenericPotagerLabel,
+  parseLinkCandidates,
+  mergePlantPhotoFieldValue,
+} from '../utils/plantFormValues.js';
+import { parseZonePointsJson, computeBiodivMapFitRect } from '../utils/biodivMapGeometry.js';
 
 // ── INTERACTIVE MAP ──────────────────────────────────────────────────────────
 
@@ -321,18 +328,6 @@ function findFirstBiodivHeroPhotoCandidate(plant) {
   return null;
 }
 
-function normalizedPlantValue(value) {
-  if (value == null) return '';
-  const s = String(value).trim();
-  if (!s || s === '-') return '';
-  return s;
-}
-
-/** Libellé « Potager » souvent identique sur toutes les fiches — masqué en pastille (pas le lien carte). */
-function isGenericPotagerLabel(value) {
-  return normalizedPlantValue(value).toLowerCase() === 'potager';
-}
-
 function extractPlantForm(plant = {}) {
   const form = { ...EMPTY_PLANT_FORM };
   Object.keys(form).forEach((k) => {
@@ -340,24 +335,6 @@ function extractPlantForm(plant = {}) {
   });
   if (!form.emoji) form.emoji = '🌱';
   return form;
-}
-
-function parseLinkCandidates(value) {
-  return normalizedPlantValue(value)
-    .split(/\n|,\s*/)
-    .map(s => s.trim())
-    .filter(Boolean);
-}
-
-/** Fusionne une URL uploadée avec les liens déjà présents (évite les doublons). */
-function mergePlantPhotoFieldValue(prevValue, newUrl, position) {
-  const url = String(newUrl || '').trim();
-  if (!url) return normalizedPlantValue(prevValue);
-  const existing = parseLinkCandidates(prevValue);
-  if (existing.includes(url)) return existing.join('\n');
-  if (existing.length === 0) return url;
-  if (position === 'prepend') return [url, ...existing].join('\n');
-  return [...existing, url].join('\n');
 }
 
 /**
@@ -2400,32 +2377,6 @@ function ObservationNotebook({ student, onForceLogout = null }) {
 }
 
 // ── Mini-cartes emplacement (zones / repères) sur les fiches biodiversité ─────
-function parseZonePointsJson(raw) {
-  try {
-    const points = JSON.parse(raw || '[]');
-    if (!Array.isArray(points)) return [];
-    return points
-      .map((p) => ({ xp: Number(p?.xp), yp: Number(p?.yp) }))
-      .filter((p) => Number.isFinite(p.xp) && Number.isFinite(p.yp));
-  } catch (_) {
-    return [];
-  }
-}
-
-function computeBiodivMapFitRect(nw, nh, cw, ch) {
-  const boxW = Math.max(1, cw);
-  const boxH = Math.max(1, ch);
-  if (!nw || !nh) {
-    return { offsetX: 0, offsetY: 0, width: boxW, height: boxH };
-  }
-  const scale = Math.min(boxW / nw, boxH / nh);
-  const width = nw * scale;
-  const height = nh * scale;
-  const offsetX = (boxW - width) / 2;
-  const offsetY = (boxH - height) / 2;
-  return { offsetX, offsetY, width, height };
-}
-
 function groupPlantLocationsByMap(zoneList, markerList) {
   const map = new Map();
   const ensure = (mapId) => {
