@@ -4,6 +4,8 @@ import {
   isGenericPotagerLabel,
   parseLinkCandidates,
   mergePlantPhotoFieldValue,
+  EMPTY_PLANT_FORM,
+  extractPlantForm,
 } from '../../src/utils/plantFormValues.js';
 
 describe('normalizedPlantValue', () => {
@@ -52,5 +54,41 @@ describe('mergePlantPhotoFieldValue', () => {
   test('append par défaut, prepend si demandé', () => {
     expect(mergePlantPhotoFieldValue('http://a', 'http://b')).toBe('http://a\nhttp://b');
     expect(mergePlantPhotoFieldValue('http://a', 'http://b', 'prepend')).toBe('http://b\nhttp://a');
+  });
+});
+
+describe('EMPTY_PLANT_FORM', () => {
+  test('toutes les valeurs vides sauf emoji (🌱)', () => {
+    expect(EMPTY_PLANT_FORM.emoji).toBe('🌱');
+    const others = Object.entries(EMPTY_PLANT_FORM).filter(([k]) => k !== 'emoji');
+    expect(others.every(([, v]) => v === '')).toBe(true);
+  });
+  test('couvre les colonnes attendues du modèle', () => {
+    expect(EMPTY_PLANT_FORM).toHaveProperty('name');
+    expect(EMPTY_PLANT_FORM).toHaveProperty('scientific_name');
+    expect(EMPTY_PLANT_FORM).toHaveProperty('photo_harvest_part');
+  });
+});
+
+describe('extractPlantForm', () => {
+  test('plante vide → formulaire vierge (emoji par défaut)', () => {
+    expect(extractPlantForm()).toEqual(EMPTY_PLANT_FORM);
+    expect(extractPlantForm({})).toEqual(EMPTY_PLANT_FORM);
+  });
+  test('normalise chaque champ (`-`/espaces → "")', () => {
+    const out = extractPlantForm({ name: '  Pommier  ', habitat: '-', scientific_name: 'Malus' });
+    expect(out.name).toBe('Pommier');
+    expect(out.habitat).toBe('');
+    expect(out.scientific_name).toBe('Malus');
+  });
+  test('emoji vide/absent → 🌱 ; emoji fourni conservé', () => {
+    expect(extractPlantForm({ emoji: '' }).emoji).toBe('🌱');
+    expect(extractPlantForm({ emoji: '-' }).emoji).toBe('🌱');
+    expect(extractPlantForm({ emoji: '🍎' }).emoji).toBe('🍎');
+  });
+  test('ignore les champs hors modèle', () => {
+    const out = extractPlantForm({ name: 'X', inexistant: 'zzz' });
+    expect(out).not.toHaveProperty('inexistant');
+    expect(Object.keys(out)).toEqual(Object.keys(EMPTY_PLANT_FORM));
   });
 });

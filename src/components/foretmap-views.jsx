@@ -54,6 +54,8 @@ import {
   isGenericPotagerLabel,
   parseLinkCandidates,
   mergePlantPhotoFieldValue,
+  EMPTY_PLANT_FORM,
+  extractPlantForm,
 } from '../utils/plantFormValues.js';
 import {
   pickPlantnetVernacularName,
@@ -65,41 +67,6 @@ import { parseZonePointsJson, computeBiodivMapFitRect } from '../utils/biodivMap
 // ── INTERACTIVE MAP ──────────────────────────────────────────────────────────
 
 
-const EMPTY_PLANT_FORM = {
-  name: '',
-  emoji: '🌱',
-  description: '',
-  second_name: '',
-  scientific_name: '',
-  group_1: '',
-  group_2: '',
-  group_3: '',
-  group_4: '',
-  habitat: '',
-  photo: '',
-  nutrition: '',
-  agroecosystem_category: '',
-  longevity: '',
-  remark_1: '',
-  remark_2: '',
-  remark_3: '',
-  reproduction: '',
-  size: '',
-  sources: '',
-  ideal_temperature_c: '',
-  optimal_ph: '',
-  ecosystem_role: '',
-  geographic_origin: '',
-  human_utility: '',
-  harvest_part: '',
-  planting_recommendations: '',
-  preferred_nutrients: '',
-  photo_species: '',
-  photo_leaf: '',
-  photo_flower: '',
-  photo_fruit: '',
-  photo_harvest_part: '',
-};
 const PLANTS_IMPORT_TEMPLATE_HEADERS = [
   'name',
   'emoji',
@@ -302,15 +269,6 @@ const PLANT_PHOTO_FIELD_OPTIONS = [
   { key: 'photo_harvest_part', label: 'Photo partie récoltée' },
   { key: 'photo', label: 'Photo (générale)' },
 ];
-
-function extractPlantForm(plant = {}) {
-  const form = { ...EMPTY_PLANT_FORM };
-  Object.keys(form).forEach((k) => {
-    form[k] = normalizedPlantValue(plant[k]);
-  });
-  if (!form.emoji) form.emoji = '🌱';
-  return form;
-}
 
 /**
  * Ordre des champs pour les images envoyées à Pl@ntNet : la 1re image = illustration principale (`photo`),
