@@ -83,6 +83,16 @@ async function expectVisitMascotPaintReady(stage) {
 }
 
 async function openVisitMap(page, mapId = 'n3') {
+  // [DIAG #54 — TEMPORAIRE] capture console/erreurs/requêtes échouées du navigateur
+  // pendant le montage de la mascotte (à retirer une fois la cause identifiée).
+  const diagLogs = [];
+  const onConsole = (m) => diagLogs.push(`[console:${m.type()}] ${m.text()}`);
+  const onPageError = (e) => diagLogs.push(`[pageerror] ${e.message}`);
+  const onReqFailed = (r) => diagLogs.push(`[reqfail] ${r.url()} :: ${r.failure() ? r.failure().errorText : ''}`);
+  page.on('console', onConsole);
+  page.on('pageerror', onPageError);
+  page.on('requestfailed', onReqFailed);
+
   await dismissProfilePromotionModalIfPresent(page);
   await page.getByRole('button', { name: /^🧭 Visite$/ }).click();
   await expect(page.locator('.visit-view')).toBeVisible({ timeout: 30_000 });
@@ -95,8 +105,50 @@ async function openVisitMap(page, mapId = 'n3') {
   await expect(stage.locator('img.visit-map-img')).toBeVisible({ timeout: 20_000 });
   /* Le conteneur .visit-map-mascot est volontairement en 0×0 (ancrage %) : Playwright le voit « hidden ». */
   await expect(stage.locator('.visit-map-mascot')).toBeAttached();
-  await expect(stage.locator('.visit-map-mascot-inner')).toBeVisible({ timeout: 25_000 });
-  await expectVisitMascotPaintReady(stage);
+  try {
+    await expect(stage.locator('.visit-map-mascot-inner')).toBeVisible({ timeout: 25_000 });
+    await expectVisitMascotPaintReady(stage);
+  } catch (err) {
+    // [DIAG #54 — TEMPORAIRE] dump DOM + boxes + logs navigateur puis relance
+    const dump = await stage.evaluate((stageEl) => {
+      const box = (n) => {
+        if (!n) return null;
+        const b = n.getBoundingClientRect();
+        return { tag: n.tagName, w: Math.round(b.width), h: Math.round(b.height) };
+      };
+      const inner = stageEl.querySelector('.visit-map-mascot-inner');
+      const shell = stageEl.querySelector('.visit-map-mascot-rive-shell');
+      const sheet = stageEl.querySelector('.visit-map-mascot-spritesheet-shell');
+      return {
+        mascotAttached: !!stageEl.querySelector('.visit-map-mascot'),
+        innerBox: box(inner),
+        shellAttrs: shell
+          ? {
+              renderer: shell.getAttribute('data-renderer'),
+              riveStatus: shell.getAttribute('data-rive-status'),
+              mascotId: shell.getAttribute('data-mascot-id'),
+              shape: shell.getAttribute('data-mascot-shape'),
+            }
+          : 'NO .visit-map-mascot-rive-shell',
+        spritesheetShell: !!sheet,
+        boxes: {
+          shell: box(shell),
+          staticSvg: box(stageEl.querySelector('.visit-map-mascot-static svg')),
+          canvas: box(stageEl.querySelector('canvas')),
+        },
+        outerHTML: (inner ? inner.outerHTML : stageEl.outerHTML || '').slice(0, 1800),
+      };
+    }).catch((e) => ({ evalError: String(e) }));
+    // eslint-disable-next-line no-console
+    console.log('\n[DIAG #54] === openVisitMap a échoué ===\n' + JSON.stringify(dump, null, 2));
+    // eslint-disable-next-line no-console
+    console.log('[DIAG #54] === logs navigateur (40 derniers) ===\n' + diagLogs.slice(-40).join('\n') + '\n');
+    throw err;
+  } finally {
+    page.off('console', onConsole);
+    page.off('pageerror', onPageError);
+    page.off('requestfailed', onReqFailed);
+  }
   return stage;
 }
 
