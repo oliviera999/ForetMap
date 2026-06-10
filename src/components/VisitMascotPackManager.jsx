@@ -13,6 +13,7 @@ import {
   MASCOT_PACK_FALLBACK_SILHOUETTES,
 } from '../utils/mascotPackEditorModel.js';
 import { validateMascotPackV1 } from '../utils/mascotPack.js';
+import { isSpriteLibraryPreviewableUrl, estimateStateDurationMs } from '../utils/visitMascotPackTiming.js';
 import { buildVisitMascotCatalogExtrasFromContent } from '../utils/visitMascotPackExtras.js';
 import { getVisitMascotCatalog } from '../utils/visitMascotCatalog.js';
 import { VISIT_MASCOT_STATE } from '../utils/visitMascotState.js';
@@ -31,10 +32,6 @@ import VisitMascotDialogStudioView from './VisitMascotDialogStudioView.jsx';
 import useVisitMascotStateMachine from '../hooks/useVisitMascotStateMachine.js';
 
 /** @param {string} url */
-function isSpriteLibraryPreviewableUrl(url) {
-  return /\.(png|jpg|jpeg|webp|gif|svg)(\?|$)/i.test(String(url || ''));
-}
-
 const RIGHT_TABS = [
   { id: 'workspace', label: 'Édition guidée' },
   { id: 'json', label: 'JSON' },
@@ -63,19 +60,6 @@ const VISIT_STATE_LABELS = {
   [VISIT_MASCOT_STATE.ANGRY]: 'Fâchée',
   [VISIT_MASCOT_STATE.SURPRISE]: 'Surprise',
 };
-
-/** @param {Record<string, unknown>} pack */
-function estimateStateDurationMs(pack, stateKey) {
-  const sf = pack?.stateFrames && typeof pack.stateFrames === 'object' ? pack.stateFrames[stateKey] : null;
-  if (!sf || typeof sf !== 'object') return null;
-  const nFiles = Array.isArray(sf.files) ? sf.files.length : (Array.isArray(sf.srcs) ? sf.srcs.length : 0);
-  if (nFiles <= 0) return null;
-  if (Array.isArray(sf.frameDwellMs) && sf.frameDwellMs.length === nFiles) {
-    return sf.frameDwellMs.reduce((a, b) => a + (Number(b) || 0), 0);
-  }
-  const fps = Math.max(1, Number(sf.fps) || 8);
-  return Math.round((1000 / fps) * nFiles);
-}
 
 /**
  * @param {Record<string, unknown>} pack
