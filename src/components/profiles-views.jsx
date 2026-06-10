@@ -19,6 +19,17 @@ import { DeleteUserConfirmModal } from './profiles/DeleteUserConfirmModal.jsx';
 import { CreateUserPanel } from './profiles/CreateUserPanel.jsx';
 import { StudentImportPanel } from './profiles/StudentImportPanel.jsx';
 import { StudentDeletePanel } from './profiles/StudentDeletePanel.jsx';
+import { ProfilesRoleList } from './profiles/ProfilesRoleList.jsx';
+import { ProfilesPermissionRows } from './profiles/ProfilesPermissionRows.jsx';
+import { ProfilesUserAssignmentList } from './profiles/ProfilesUserAssignmentList.jsx';
+import { ProfilesRoleQuickConfig } from './profiles/ProfilesRoleQuickConfig.jsx';
+import { ProfilesRoleProgressionConfig } from './profiles/ProfilesRoleProgressionConfig.jsx';
+import {
+  isN3beurTierConfigurableProfile as isN3beurTierConfigurableRole,
+  sortRolesForDisplay,
+  deriveProfilesCapabilities,
+  normalizeRoleEditFields,
+} from '../utils/profilesRbacHelpers.js';
 
 function ProfilesAdminView({ onImpersonationApplied, maps = [] }) {
   const publicSettings = usePublicSettings();
@@ -138,45 +149,29 @@ function ProfilesAdminView({ onImpersonationApplied, maps = [] }) {
     [roles, selectedRoleId]
   );
   /** Paliers n3beur : slug eleve_* ou profil perso. avec rang strictement inférieur à 400 (n3boss) ; exclus admin, n3boss, visiteur. */
-  const isN3beurTierConfigurableProfile = useMemo(() => {
-    if (!selectedRole) return false;
-    const slug = String(selectedRole.slug || '').trim().toLowerCase();
-    if (slug === 'admin' || slug === 'prof' || slug === 'visiteur') return false;
-    if (/^eleve_/i.test(String(selectedRole.slug || ''))) return true;
-    const r = Number(selectedRole.rank);
-    return Number.isFinite(r) && r < 400;
-  }, [selectedRole]);
+  const isN3beurTierConfigurableProfile = useMemo(
+    () => isN3beurTierConfigurableRole(selectedRole),
+    [selectedRole]
+  );
   const tasksProposeEntry = useMemo(() => {
     if (!selectedRole) return null;
     return (selectedRole.permissions || []).find((p) => p.key === 'tasks.propose') || null;
   }, [selectedRole]);
-  const canManageProfiles = authPerms.includes('admin.roles.manage') || authPerms.includes('admin.users.assign_roles');
-  const canEditRoleDefinition = authPerms.includes('admin.roles.manage');
-  const effectiveElevated = authElevated || authNativePrivileged;
-  const canExport = authPerms.includes('stats.export') && effectiveElevated;
-  const canImport = authPerms.includes('students.import') && effectiveElevated;
-  const canDelete = authPerms.includes('students.delete') && effectiveElevated;
-  const canCreateUsers = authPerms.includes('users.create') && effectiveElevated;
-  const canReadAllStats = authPerms.includes('stats.read.all');
-  const canDuplicateStudents = authPerms.includes('users.create') && effectiveElevated && canReadAllStats;
-  const isAdmin = authRoleSlug === 'admin';
-  const canManageStudents = canExport || canImport || canDelete || canCreateUsers;
-  const canDeleteUi = canDelete && canReadAllStats;
+  const {
+    canManageProfiles,
+    canEditRoleDefinition,
+    canExport,
+    canImport,
+    canCreateUsers,
+    canReadAllStats,
+    canDuplicateStudents,
+    isAdmin,
+    canManageStudents,
+    canDeleteUi,
+  } = deriveProfilesCapabilities({ authPerms, authElevated, authNativePrivileged, authRoleSlug });
 
   /** Même tri que GET /api/rbac/profiles (affichage cohérent avec la progression n3beur côté serveur). */
-  const sortedRoles = useMemo(() => {
-    const copy = [...roles];
-    copy.sort((a, b) => {
-      const ao = Number(a.display_order) || 0;
-      const bo = Number(b.display_order) || 0;
-      if (ao !== bo) return ao - bo;
-      const ar = Number(a.rank) || 0;
-      const br = Number(b.rank) || 0;
-      if (ar !== br) return br - ar;
-      return Number(a.id) - Number(b.id);
-    });
-    return copy;
-  }, [roles]);
+  const sortedRoles = useMemo(() => sortRolesForDisplay(roles), [roles]);
 
   const reorderRole = async (roleId, direction) => {
     const idx = sortedRoles.findIndex((r) => Number(r.id) === Number(roleId));
@@ -210,29 +205,11 @@ function ProfilesAdminView({ onImpersonationApplied, maps = [] }) {
   }, [students, searchStudent]);
 
   useEffect(() => {
-    if (!selectedRole) {
-      setRoleEmoji('');
-      setRoleMinDoneTasks('');
-      setRoleDisplayOrder('');
-      setRoleMaxConcurrentTasks('');
-      return;
-    }
-    setRoleEmoji(String(selectedRole.emoji || ''));
-    setRoleMinDoneTasks(
-      selectedRole.min_done_tasks == null || Number.isNaN(Number(selectedRole.min_done_tasks))
-        ? ''
-        : String(Math.max(0, Math.floor(Number(selectedRole.min_done_tasks))))
-    );
-    setRoleDisplayOrder(
-      selectedRole.display_order == null || Number.isNaN(Number(selectedRole.display_order))
-        ? '0'
-        : String(Math.max(0, Math.floor(Number(selectedRole.display_order))))
-    );
-    setRoleMaxConcurrentTasks(
-      selectedRole.max_concurrent_tasks == null || selectedRole.max_concurrent_tasks === ''
-        ? ''
-        : String(Math.max(0, Math.floor(Number(selectedRole.max_concurrent_tasks))))
-    );
+    const fields = normalizeRoleEditFields(selectedRole);
+    setRoleEmoji(fields.emoji);
+    setRoleMinDoneTasks(fields.minDoneTasks);
+    setRoleDisplayOrder(fields.displayOrder);
+    setRoleMaxConcurrentTasks(fields.maxConcurrentTasks);
   }, [selectedRole]);
 
   const saveRoleDetails = async (role) => {
@@ -667,7 +644,6 @@ function ProfilesAdminView({ onImpersonationApplied, maps = [] }) {
     setEditLoading(false);
   };
 
-  const canEditUserRow = (u) => isAdmin || String(u.role_slug || '').toLowerCase() !== 'admin';
 
   const setRoleForumParticipate = async (roleId, forumParticipate) => {
     setLoading(true);
@@ -919,109 +895,29 @@ function ProfilesAdminView({ onImpersonationApplied, maps = [] }) {
         <>
           <div className="profiles-admin-grid">
             <div style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: 12, padding: 12 }}>
-              <h3 style={{ marginTop: 0 }}>Profils</h3>
-              <p style={{ margin: '0 0 10px', fontSize: '.8rem', color: '#6b7280', lineHeight: 1.45 }}>
-                Utilisez ↑ ↓ pour définir l’ordre d’affichage (liste ci-dessous, menus d’attribution et progression n3beur alignés sur cet ordre).
-              </p>
-              <button className="btn btn-secondary btn-sm" onClick={createRoleProfile} disabled={loading} style={{ marginBottom: 10 }}>
-                + Créer un profil
-              </button>
-              {sortedRoles.map((r, idx) => (
-                <div key={r.id} style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 8, flexWrap: 'wrap' }}>
-                  <div style={{ display: 'inline-flex', flexDirection: 'column', gap: 2 }}>
-                    <button
-                      type="button"
-                      className="btn btn-ghost btn-sm"
-                      style={{ minHeight: 28, padding: '2px 8px', lineHeight: 1.1 }}
-                      aria-label={`Monter « ${r.display_name} » dans la liste`}
-                      title="Monter"
-                      disabled={loading || idx === 0}
-                      onClick={() => reorderRole(r.id, -1)}
-                    >
-                      ↑
-                    </button>
-                    <button
-                      type="button"
-                      className="btn btn-ghost btn-sm"
-                      style={{ minHeight: 28, padding: '2px 8px', lineHeight: 1.1 }}
-                      aria-label={`Descendre « ${r.display_name} » dans la liste`}
-                      title="Descendre"
-                      disabled={loading || idx === sortedRoles.length - 1}
-                      onClick={() => reorderRole(r.id, 1)}
-                    >
-                      ↓
-                    </button>
-                  </div>
-                  <button
-                    type="button"
-                    className={`btn btn-sm foretmap-emoji-text-mixed ${Number(selectedRoleId) === Number(r.id) ? 'btn-primary' : 'btn-ghost'}`}
-                    onClick={() => setSelectedRoleId(r.id)}
-                  >
-                    {(r.emoji ? `${r.emoji} ` : '') + r.display_name}
-                  </button>
-                  <button className="btn btn-ghost btn-sm" onClick={() => saveRoleDetails(r)} disabled={loading}>Modifier</button>
-                  {canEditRoleDefinition && (
-                    <button
-                      type="button"
-                      className="btn btn-ghost btn-sm"
-                      onClick={() => duplicateRoleProfile(r)}
-                      disabled={loading}
-                      title="Copier permissions et réglages vers un nouveau profil (slug et nom distincts ; PIN non copié)"
-                    >
-                      Dupliquer
-                    </button>
-                  )}
-                  <span style={{ fontSize: '.72rem', color: '#6b7280' }}>
-                    ordre {Number.isFinite(Number(r.display_order)) ? Number(r.display_order) : 0}
-                  </span>
-                </div>
-              ))}
+              <ProfilesRoleList
+                roles={sortedRoles}
+                loading={loading}
+                selectedRoleId={selectedRoleId}
+                canEditRoleDefinition={canEditRoleDefinition}
+                onCreate={createRoleProfile}
+                onSelect={setSelectedRoleId}
+                onReorder={reorderRole}
+                onEditDetails={saveRoleDetails}
+                onDuplicate={duplicateRoleProfile}
+              />
               {selectedRole && (
-                <div style={{ marginTop: 8 }}>
-                  <div style={{ fontSize: '.78rem', color: '#6b7280', marginBottom: 6 }}>
-                    Progression: emoji {selectedRole.emoji || '—'} · niveau requis {selectedRole.min_done_tasks ?? '—'} · ordre {selectedRole.display_order ?? 0}
-                  </div>
-                  <div className="field" style={{ marginBottom: 10 }}>
-                    <label htmlFor="profile-emoji-input">Emoji du profil</label>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
-                      <input
-                        id="profile-emoji-input"
-                        type="text"
-                        value={roleEmoji}
-                        onChange={(e) => setRoleEmoji(e.target.value)}
-                        maxLength={16}
-                        disabled={loading}
-                        placeholder="ex. 🌿"
-                        autoComplete="off"
-                        style={{
-                          width: 120,
-                          padding: '6px 8px',
-                          borderRadius: 8,
-                          border: '1px solid #cbd5e1',
-                          fontSize: '1.2rem',
-                          lineHeight: 1.2,
-                        }}
-                        aria-label={`Emoji pour le profil ${selectedRole.display_name}`}
-                      />
-                      <span style={{ fontSize: '1.5rem', lineHeight: 1 }} title="Aperçu" aria-hidden>
-                        {roleEmoji.trim() || '—'}
-                      </span>
-                      <button type="button" className="btn btn-secondary btn-sm" onClick={saveProfileEmoji} disabled={loading}>
-                        Enregistrer l’emoji
-                      </button>
-                    </div>
-                    <p style={{ fontSize: '.72rem', color: '#6b7280', margin: '6px 0 0', lineHeight: 1.4 }}>
-                      {/^eleve_/i.test(String(selectedRole.slug || ''))
-                        ? `Obligatoire pour un profil ${roleTerms.studentSingular} (max. 16 caractères).`
-                        : 'Optionnel pour les autres profils (max. 16 caractères).'}
-                    </p>
-                  </div>
-                  <div className="field">
-                    <label>PIN du profil {selectedRole.display_name}</label>
-                    <input type="password" value={pin} onChange={(e) => setPin(e.target.value)} placeholder="Nouveau PIN" />
-                  </div>
-                  <button className="btn btn-secondary btn-sm" onClick={savePin} disabled={loading}>Enregistrer PIN</button>
-                </div>
+                <ProfilesRoleQuickConfig
+                  role={selectedRole}
+                  roleEmoji={roleEmoji}
+                  onRoleEmojiChange={setRoleEmoji}
+                  onSaveEmoji={saveProfileEmoji}
+                  pin={pin}
+                  onPinChange={setPin}
+                  onSavePin={savePin}
+                  loading={loading}
+                  roleTerms={roleTerms}
+                />
               )}
             </div>
 
@@ -1030,204 +926,34 @@ function ProfilesAdminView({ onImpersonationApplied, maps = [] }) {
               {!selectedRole && <p style={{ margin: 0 }}>Choisis un profil dans la liste.</p>}
               {selectedRole && (
                 <>
-                  <div
-                    className="profiles-admin-progression-block"
-                    style={{
-                      border: '1px solid #e0e7ff',
-                      background: '#f8fafc',
-                      borderRadius: 10,
-                      padding: 12,
-                      marginBottom: 14,
-                    }}
-                  >
-                    <div style={{ fontSize: '.88rem', fontWeight: 700, color: '#1e3a5f', marginBottom: 8 }}>
-                      Progression par tâches validées
-                    </div>
-                    <label style={{ display: 'flex', alignItems: 'flex-start', gap: 10, fontSize: '.84rem', cursor: loading ? 'default' : 'pointer', marginBottom: 8 }}>
-                      <input
-                        type="checkbox"
-                        checked={progressionByTasksEnabled}
-                        onChange={(e) => toggleProgressionByValidatedTasks(e.target.checked)}
-                        disabled={loading}
-                        style={{ marginTop: 3 }}
-                      />
-                      <span>
-                        Activer la montée de niveau automatique : le profil {roleTerms.studentSingular} suit le nombre de tâches validées selon les seuils définis pour chaque palier.
-                      </span>
-                    </label>
-                    <p style={{ fontSize: '.76rem', color: '#64748b', margin: '0 0 10px', lineHeight: 1.45 }}>
-                      Si cette option est désactivée, aucun changement automatique de profil ne s’applique : utilisez la section « Attribution des profils » pour les niveaux.
-                    </p>
-                    {isN3beurTierConfigurableProfile && (
-                      <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: 10 }}>
-                        <div style={{ fontSize: '.8rem', fontWeight: 600, color: '#334155', marginBottom: 6 }}>
-                          Seuil pour « {selectedRole.display_name} »
-                        </div>
-                        <label style={{ fontSize: '.76rem', color: '#64748b', display: 'block', marginBottom: 6 }}>
-                          Nombre de tâches validées requises pour atteindre ce niveau (palier suivant = seuil supérieur ou égal).
-                        </label>
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
-                          <input
-                            type="number"
-                            min={0}
-                            step={1}
-                            value={roleMinDoneTasks}
-                            onChange={(e) => setRoleMinDoneTasks(e.target.value)}
-                            disabled={loading}
-                            style={{ width: 110, padding: '6px 8px', borderRadius: 8, border: '1px solid #cbd5e1' }}
-                            aria-label={`Tâches validées requises pour ${selectedRole.display_name}`}
-                          />
-                          <button type="button" className="btn btn-secondary btn-sm" onClick={saveStudentMinDoneThreshold} disabled={loading}>
-                            Enregistrer le seuil
-                          </button>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                  {isN3beurTierConfigurableProfile && (
-                      <div
-                        className="profiles-admin-propose-block"
-                        style={{
-                          border: '1px solid #d8f3dc',
-                          background: '#f1fcf4',
-                          borderRadius: 10,
-                          padding: 12,
-                          marginBottom: 14,
-                        }}
-                      >
-                        <div style={{ fontSize: '.88rem', fontWeight: 700, color: '#1b4332', marginBottom: 8 }}>
-                          Proposition de tâches
-                        </div>
-                        <label style={{ display: 'flex', alignItems: 'flex-start', gap: 10, fontSize: '.84rem', cursor: loading ? 'default' : 'pointer', marginBottom: 8 }}>
-                          <input
-                            type="checkbox"
-                            checked={!!tasksProposeEntry}
-                            onChange={(e) => togglePermission('tasks.propose', e.target.checked)}
-                            disabled={loading}
-                            style={{ marginTop: 3 }}
-                          />
-                          <span>
-                            Autoriser les {roleTerms.studentPlural} de ce profil à proposer de nouvelles tâches (statut « proposée », validation par un {roleTerms.teacherShort}).
-                          </span>
-                        </label>
-                        <label style={{ display: 'flex', alignItems: 'flex-start', gap: 10, fontSize: '.8rem', color: '#374151', cursor: loading || !tasksProposeEntry ? 'default' : 'pointer' }}>
-                          <input
-                            type="checkbox"
-                            checked={!!tasksProposeEntry?.requires_elevation}
-                            onChange={(e) => togglePermissionElevation('tasks.propose', e.target.checked)}
-                            disabled={!tasksProposeEntry || loading}
-                            style={{ marginTop: 2 }}
-                          />
-                          <span>Exiger le PIN du profil pour accéder à la proposition (élévation).</span>
-                        </label>
-                        <p style={{ fontSize: '.72rem', color: '#64748b', margin: '10px 0 0', lineHeight: 1.45 }}>
-                          Correspond à la permission <code style={{ fontSize: '.7rem' }}>tasks.propose</code> (retirée de la liste ci-dessous pour éviter le doublon).
-                        </p>
-                      </div>
-                  )}
-                  {isN3beurTierConfigurableProfile && (
-                    <div
-                      style={{
-                        border: '1px solid #e0e7ff',
-                        background: '#f8fafc',
-                        borderRadius: 10,
-                        padding: 12,
-                        marginBottom: 14,
-                      }}
-                    >
-                      <div style={{ fontSize: '.88rem', fontWeight: 700, color: '#1e3a5f', marginBottom: 8 }}>
-                        Forum et commentaires (tâches, zones…)
-                      </div>
-                      <label style={{ display: 'flex', alignItems: 'flex-start', gap: 10, fontSize: '.84rem', cursor: loading || !canEditRoleDefinition ? 'default' : 'pointer', marginBottom: 8 }}>
-                        <input
-                          type="checkbox"
-                          checked={Number(selectedRole.forum_participate) !== 0}
-                          onChange={(e) => setRoleForumParticipate(selectedRole.id, e.target.checked)}
-                          disabled={loading || !canEditRoleDefinition}
-                          style={{ marginTop: 3 }}
-                        />
-                        <span>
-                          Permettre la <strong>participation au forum</strong> (publier, répondre, réagir, etc.) pour les {roleTerms.studentPlural} de ce profil ; décoché = lecture seule.
-                        </span>
-                      </label>
-                      <label style={{ display: 'flex', alignItems: 'flex-start', gap: 10, fontSize: '.84rem', cursor: loading || !canEditRoleDefinition ? 'default' : 'pointer', marginBottom: 0 }}>
-                        <input
-                          type="checkbox"
-                          checked={Number(selectedRole.context_comment_participate) !== 0}
-                          onChange={(e) => setRoleContextCommentParticipate(selectedRole.id, e.target.checked)}
-                          disabled={loading || !canEditRoleDefinition}
-                          style={{ marginTop: 3 }}
-                        />
-                        <span>
-                          Permettre les <strong>commentaires contextuels</strong> sur les tâches, projets et zones ; décoché = lecture seule sur ces fils (le forum reste régi par la case ci-dessus).
-                        </span>
-                      </label>
-                      <p style={{ fontSize: '.72rem', color: '#64748b', margin: '10px 0 0', lineHeight: 1.45 }}>
-                        Réglages communs à tous les comptes ayant ce profil principal. Le profil visiteur reste sans accès forum / commentaires de contexte.
-                      </p>
-                    </div>
-                  )}
-                  {isN3beurTierConfigurableProfile && (
-                    <div
-                      style={{
-                        border: '1px solid #fde68a',
-                        background: '#fffbeb',
-                        borderRadius: 10,
-                        padding: 12,
-                        marginBottom: 14,
-                      }}
-                    >
-                      <div style={{ fontSize: '.88rem', fontWeight: 700, color: '#92400e', marginBottom: 8 }}>
-                        Inscriptions simultanées aux tâches
-                      </div>
-                      <p style={{ fontSize: '.76rem', color: '#78350f', margin: '0 0 10px', lineHeight: 1.45 }}>
-                        Nombre maximum de tâches <strong>non validées</strong> auxquelles un {roleTerms.studentSingular} peut s’inscrire en même temps (toutes cartes).
-                        Une tâche <strong>validée</strong> par un {roleTerms.teacherShort} ne compte plus : le compteur se libère.
-                        Champ vide = utiliser le plafond défini dans <strong>Paramètres n3boss</strong> (
-                        <code style={{ fontSize: '.72rem' }}>tasks.student_max_active_assignments</code>
-                        ). <strong>0</strong> = pas de limite pour ce profil (même si le réglage global est actif).
-                      </p>
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
-                        <input
-                          type="number"
-                          min={0}
-                          max={99}
-                          step={1}
-                          value={roleMaxConcurrentTasks}
-                          onChange={(e) => setRoleMaxConcurrentTasks(e.target.value)}
-                          disabled={loading}
-                          placeholder="Hériter du réglage global"
-                          style={{ width: 200, padding: '6px 8px', borderRadius: 8, border: '1px solid #d97706' }}
-                          aria-label={`Plafond d'inscriptions simultanées pour ${selectedRole.display_name}`}
-                        />
-                        <button type="button" className="btn btn-secondary btn-sm" onClick={saveMaxConcurrentTasks} disabled={loading}>
-                          Enregistrer le plafond
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                  {catalog
-                    .filter(
-                      (perm) =>
-                        !(isN3beurTierConfigurableProfile && perm.key === 'tasks.propose')
-                    )
-                    .map((perm) => {
-                    const current = (selectedRole.permissions || []).find((p) => p.key === perm.key);
-                    return (
-                      <div className="profiles-admin-perm-row" key={perm.key}>
-                        <div>
-                          <div style={{ fontSize: '.86rem', fontWeight: 600 }}>{perm.label}</div>
-                          <div style={{ fontSize: '.75rem', color: '#6b7280' }}>{perm.key}</div>
-                        </div>
-                        <label style={{ fontSize: '.8rem' }}>
-                          <input type="checkbox" checked={!!current} onChange={(e) => togglePermission(perm.key, e.target.checked)} disabled={loading} /> Actif
-                        </label>
-                        <label style={{ fontSize: '.8rem' }}>
-                          <input type="checkbox" checked={!!current?.requires_elevation} onChange={(e) => togglePermissionElevation(perm.key, e.target.checked)} disabled={!current || loading} /> PIN
-                        </label>
-                      </div>
-                    );
-                  })}
+                  <ProfilesRoleProgressionConfig
+                    role={selectedRole}
+                    loading={loading}
+                    roleTerms={roleTerms}
+                    isTier={isN3beurTierConfigurableProfile}
+                    canEditRoleDefinition={canEditRoleDefinition}
+                    progressionEnabled={progressionByTasksEnabled}
+                    onToggleProgression={toggleProgressionByValidatedTasks}
+                    minDoneTasks={roleMinDoneTasks}
+                    onMinDoneTasksChange={setRoleMinDoneTasks}
+                    onSaveMinDoneThreshold={saveStudentMinDoneThreshold}
+                    proposeEntry={tasksProposeEntry}
+                    onTogglePermission={togglePermission}
+                    onTogglePermissionElevation={togglePermissionElevation}
+                    onSetForumParticipate={setRoleForumParticipate}
+                    onSetContextCommentParticipate={setRoleContextCommentParticipate}
+                    maxConcurrentTasks={roleMaxConcurrentTasks}
+                    onMaxConcurrentChange={setRoleMaxConcurrentTasks}
+                    onSaveMaxConcurrent={saveMaxConcurrentTasks}
+                  />
+                  <ProfilesPermissionRows
+                    catalog={catalog}
+                    rolePermissions={selectedRole.permissions}
+                    loading={loading}
+                    hideTasksPropose={isN3beurTierConfigurableProfile}
+                    onToggle={togglePermission}
+                    onToggleElevation={togglePermissionElevation}
+                  />
                 </>
               )}
             </div>
@@ -1238,28 +964,15 @@ function ProfilesAdminView({ onImpersonationApplied, maps = [] }) {
             <p style={{ margin: '0 0 10px', fontSize: '.78rem', color: '#64748b', lineHeight: 1.45 }}>
               Choisir le profil principal définit notamment forum et commentaires contextuels (réglés par profil dans la colonne de gauche, section Permissions). L’attribution peut exiger une session élevée (PIN) selon les droits du compte administrateur. Utilisez « Modifier » pour changer prénom, nom, pseudo, email, description, affiliation ou mot de passe.
             </p>
-            <div style={{ maxHeight: 360, overflow: 'auto' }}>
-              {users.map((u) => (
-                <div className="profiles-admin-user-row" key={`${u.user_type}-${u.id}`} style={{ flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
-                  <div style={{ flex: '1 1 180px', minWidth: 0 }}>
-                    <strong>{u.display_name}</strong> <span style={{ color: '#6b7280' }}>({u.user_type})</span>
-                  </div>
-                  <select value={u.role_id || ''} onChange={(e) => assignRole(u.user_type, u.id, parseInt(e.target.value, 10))} disabled={loading}>
-                    <option value="">Aucun profil</option>
-                    {sortedRoles.map((r) => <option key={r.id} value={r.id}>{r.display_name}</option>)}
-                  </select>
-                  <button
-                    type="button"
-                    className="btn btn-secondary btn-sm"
-                    onClick={() => openEditUser(u)}
-                    disabled={loading || editUserLoadState === 'loading' || !canEditUserRow(u)}
-                    title={!canEditUserRow(u) ? 'Seul un administrateur peut modifier un autre administrateur' : 'Modifier ce compte'}
-                  >
-                    Modifier
-                  </button>
-                </div>
-              ))}
-            </div>
+            <ProfilesUserAssignmentList
+              users={users}
+              roles={sortedRoles}
+              loading={loading}
+              editUserLoadState={editUserLoadState}
+              isAdmin={isAdmin}
+              onAssignRole={assignRole}
+              onOpenEditUser={openEditUser}
+            />
           </div>
         </>
       )}
