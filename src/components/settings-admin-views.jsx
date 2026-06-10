@@ -1,6 +1,13 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { api } from '../services/api';
 import { compressImageWithPreset } from '../utils/image';
+import {
+  humanizeKey,
+  inferSectionFromKey,
+  scopeLabel,
+  typeLabel,
+  buildConstraintHelp,
+} from '../utils/settingDisplay.js';
 import { getRoleTerms } from '../utils/n3-terminology';
 import { MediaLibraryMenu } from './MediaLibraryMenu.jsx';
 import { useSession } from '../contexts/SessionContext.jsx';
@@ -115,65 +122,6 @@ const KEY_META = {
   'ops.allow_remote_logs': { label: 'Autoriser consultation logs', section: 'operations', order: 30 },
   'ops.allow_remote_restart': { label: 'Autoriser redémarrage distant', section: 'operations', order: 40 },
 };
-
-function humanizeKey(key) {
-  const raw = String(key || '').trim();
-  if (!raw) return '';
-  const last = raw.split('.').pop() || raw;
-  return last
-    .replace(/_/g, ' ')
-    .replace(/\b\w/g, (c) => c.toUpperCase());
-}
-
-function inferSectionFromKey(key) {
-  const normalized = String(key || '').toLowerCase();
-  if (normalized.startsWith('ui.auth.')) return 'auth';
-  if (normalized.startsWith('content.')) return 'content';
-  if (normalized.startsWith('ui.modules.') || normalized.startsWith('ui.map.')) return 'modules';
-  if (normalized.startsWith('tasks.')) return 'tasks';
-  if (normalized.startsWith('progression.') || normalized.startsWith('rbac.')) return 'progression';
-  if (normalized.startsWith('security.') || normalized.startsWith('integration.')) return 'security';
-  if (normalized.startsWith('system.') || normalized.startsWith('ops.')) return 'operations';
-  return 'other';
-}
-
-function scopeLabel(scope) {
-  const s = String(scope || '').toLowerCase();
-  if (s === 'admin') return 'Admin';
-  if (s === 'teacher') return 'n3boss';
-  return 'Public';
-}
-
-function typeLabel(type) {
-  const t = String(type || '').toLowerCase();
-  if (t === 'boolean') return 'booléen';
-  if (t === 'number') return 'numérique';
-  if (t === 'enum') return 'liste';
-  if (t === 'string') return 'texte';
-  return t || 'inconnu';
-}
-
-function buildConstraintHelp(row) {
-  const parts = [`Type: ${typeLabel(row?.type)}`];
-  const constraints = row?.constraints || {};
-  // Ne pas utiliser Number(null) === 0 : les contraintes absentes arrivent en null depuis l’API.
-  if (constraints.min != null && Number.isFinite(Number(constraints.min))) {
-    parts.push(`min ${Number(constraints.min)}`);
-  }
-  if (constraints.max != null && Number.isFinite(Number(constraints.max))) {
-    parts.push(`max ${Number(constraints.max)}`);
-  }
-  if (constraints.maxLength != null && Number.isFinite(Number(constraints.maxLength))) {
-    parts.push(`max ${Number(constraints.maxLength)} caractères`);
-  }
-  if (Array.isArray(constraints.values) && constraints.values.length > 0) {
-    parts.push(`valeurs: ${constraints.values.map((v) => String(v)).join(', ')}`);
-  }
-  if (row?.default_value != null && row?.default_value !== '') {
-    parts.push(`défaut: ${String(row.default_value)}`);
-  }
-  return parts.join(' • ');
-}
 
 /** Champs texte pilotés par l’état : collage (Ctrl+V / presse-papiers) fiable + resync après chargement serveur. */
 function AdminTextSettingField({

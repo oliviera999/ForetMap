@@ -13,28 +13,13 @@ import { usePublicSettings } from '../contexts/PublicSettingsContext.jsx';
 import { useSession } from '../contexts/SessionContext.jsx';
 import { useData } from '../contexts/DataContext.jsx';
 import { fileToDataUrl } from '../utils/fileToDataUrl.js';
+import { sortTutorialsByOrder, moveIndex, linkedTaskStatusLabel } from '../utils/tutorialListHelpers.js';
 
 function tutorialZonePickLabel(z) {
   const line = formatLivingBeingsListLine(
     orderedLivingBeingsForForm(z.living_beings_list || z.living_beings, z.current_plant),
   );
   return line ? `${z.name} — ${line}` : z.name;
-}
-
-function sortTutorialsByOrder(list) {
-  return [...list].sort(
-    (a, b) =>
-      (Number(a.sort_order) || 0) - (Number(b.sort_order) || 0) ||
-      String(a.title || '').localeCompare(String(b.title || ''), 'fr')
-  );
-}
-
-function moveIndex(arr, from, to) {
-  if (from === to || from < 0 || to < 0 || from >= arr.length || to >= arr.length) return arr;
-  const next = [...arr];
-  const [item] = next.splice(from, 1);
-  next.splice(to, 0, item);
-  return next;
 }
 
 function downloadUrl(url) {
@@ -44,20 +29,6 @@ function downloadUrl(url) {
   document.body.appendChild(a);
   a.click();
   a.remove();
-}
-
-const LINKED_TASK_STATUS_LABELS = {
-  available: 'À faire',
-  in_progress: 'En cours',
-  done: 'Terminée',
-  validated: 'Validée',
-  proposed: 'Proposée',
-  on_hold: 'En attente',
-};
-
-function linkedTaskStatusLabel(status) {
-  const s = String(status || '').toLowerCase();
-  return LINKED_TASK_STATUS_LABELS[s] || status || '—';
 }
 
 function TutorialLinkedTasksModal({ state, onClose }) {
