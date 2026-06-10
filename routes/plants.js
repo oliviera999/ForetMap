@@ -552,158 +552,150 @@ router.post('/:id/acknowledge-discovery', requireAuth, async (req, res) => {
   }
 });
 
-router.post('/:id/photo-upload', requirePermission('plants.manage', { needsElevation: true }), async (req, res) => {
-  try {
-    const plant = await queryOne('SELECT * FROM plants WHERE id = ?', [req.params.id]);
-    if (!plant) return res.status(404).json({ error: 'Plante introuvable' });
+router.post('/:id/photo-upload', requirePermission('plants.manage', { needsElevation: true }), asyncHandler(async (req, res) => {
+  const plant = await queryOne('SELECT * FROM plants WHERE id = ?', [req.params.id]);
+  if (!plant) return res.status(404).json({ error: 'Plante introuvable' });
 
-    const field = asTrimmedString(req.body?.field);
-    const imageData = asTrimmedString(req.body?.imageData);
-    if (!PHOTO_FIELDS.includes(field)) {
-      return res.status(400).json({ error: 'Champ photo invalide' });
-    }
-    if (!imageData) {
-      return res.status(400).json({ error: 'Image requise' });
-    }
-
-    const ext = detectImageExtensionFromDataUrl(imageData);
-    if (!ext) {
-      return res.status(400).json({ error: 'Format image invalide (png/jpg/webp/gif/bmp/avif)' });
-    }
-    const base64Payload = imageData.includes(',') ? imageData.split(',')[1] : imageData;
-    const bytes = Buffer.byteLength(base64Payload, 'base64');
-    if (bytes > MAX_PLANT_PHOTO_BYTES) {
-      return res.status(400).json({ error: 'Image trop lourde (max 5 Mo)' });
-    }
-
-    const relativePath = `plants/${plant.id}/${field}-${Date.now()}.${ext}`;
-    saveBase64ToDisk(relativePath, imageData);
-    const publicUrl = `/uploads/${relativePath}`;
-    const position = asTrimmedString(req.body?.position) === 'prepend' ? 'prepend' : 'append';
-    const nextPhotoValue = mergePlantPhotoUploadValue(plant[field], publicUrl, position);
-
-    await execute(`UPDATE plants SET ${field} = ? WHERE id = ?`, [nextPhotoValue, plant.id]);
-    const updated = await queryOne('SELECT * FROM plants WHERE id = ?', [plant.id]);
-    invalidatePlantsListCache();
-    emitGardenChanged({ reason: 'update_plant_photo', plantId: plant.id });
-    res.json({ field, url: publicUrl, value: nextPhotoValue, plant: updated });
-  } catch (e) {
-    respondInternalError(res, req, e);
+  const field = asTrimmedString(req.body?.field);
+  const imageData = asTrimmedString(req.body?.imageData);
+  if (!PHOTO_FIELDS.includes(field)) {
+    return res.status(400).json({ error: 'Champ photo invalide' });
   }
-});
+  if (!imageData) {
+    return res.status(400).json({ error: 'Image requise' });
+  }
 
-router.post('/import', requirePermission('plants.manage', { needsElevation: true }), async (req, res) => {
-  try {
-    const strategy = asTrimmedString(req.body?.strategy) || 'upsert_name';
-    const dryRun = !!req.body?.dryRun;
-    const sourceType = asTrimmedString(req.body?.sourceType) || 'unknown';
-    if (!IMPORT_STRATEGIES.has(strategy)) {
-      return res.status(400).json({ error: 'Stratégie d’import invalide' });
+  const ext = detectImageExtensionFromDataUrl(imageData);
+  if (!ext) {
+    return res.status(400).json({ error: 'Format image invalide (png/jpg/webp/gif/bmp/avif)' });
+  }
+  const base64Payload = imageData.includes(',') ? imageData.split(',')[1] : imageData;
+  const bytes = Buffer.byteLength(base64Payload, 'base64');
+  if (bytes > MAX_PLANT_PHOTO_BYTES) {
+    return res.status(400).json({ error: 'Image trop lourde (max 5 Mo)' });
+  }
+
+  const relativePath = `plants/${plant.id}/${field}-${Date.now()}.${ext}`;
+  saveBase64ToDisk(relativePath, imageData);
+  const publicUrl = `/uploads/${relativePath}`;
+  const position = asTrimmedString(req.body?.position) === 'prepend' ? 'prepend' : 'append';
+  const nextPhotoValue = mergePlantPhotoUploadValue(plant[field], publicUrl, position);
+
+  await execute(`UPDATE plants SET ${field} = ? WHERE id = ?`, [nextPhotoValue, plant.id]);
+  const updated = await queryOne('SELECT * FROM plants WHERE id = ?', [plant.id]);
+  invalidatePlantsListCache();
+  emitGardenChanged({ reason: 'update_plant_photo', plantId: plant.id });
+  res.json({ field, url: publicUrl, value: nextPhotoValue, plant: updated });
+}));
+
+router.post('/import', requirePermission('plants.manage', { needsElevation: true }), asyncHandler(async (req, res) => {
+  const strategy = asTrimmedString(req.body?.strategy) || 'upsert_name';
+  const dryRun = !!req.body?.dryRun;
+  const sourceType = asTrimmedString(req.body?.sourceType) || 'unknown';
+  if (!IMPORT_STRATEGIES.has(strategy)) {
+    return res.status(400).json({ error: 'Stratégie d’import invalide' });
+  }
+
+  const rawRows = await resolveImportRows(req.body || {});
+  if (!Array.isArray(rawRows) || rawRows.length === 0) {
+    return res.status(400).json({ error: 'Aucune ligne importable détectée' });
+  }
+  if (rawRows.length > MAX_IMPORT_ROWS) {
+    return res.status(400).json({ error: `Import limité à ${MAX_IMPORT_ROWS} lignes` });
+  }
+
+  const report = buildImportReportBase(strategy, dryRun, sourceType, rawRows.length);
+  const validRows = [];
+
+  rawRows.forEach((rawRow, idx) => {
+    const rowNumber = idx + 2;
+    const { payload, errors } = validateImportPayloadRow(rawRow, rowNumber);
+    if (!payload || errors.length > 0) {
+      report.totals.skipped_invalid += 1;
+      report.errors.push(...errors);
+      return;
     }
-
-    const rawRows = await resolveImportRows(req.body || {});
-    if (!Array.isArray(rawRows) || rawRows.length === 0) {
-      return res.status(400).json({ error: 'Aucune ligne importable détectée' });
-    }
-    if (rawRows.length > MAX_IMPORT_ROWS) {
-      return res.status(400).json({ error: `Import limité à ${MAX_IMPORT_ROWS} lignes` });
-    }
-
-    const report = buildImportReportBase(strategy, dryRun, sourceType, rawRows.length);
-    const validRows = [];
-
-    rawRows.forEach((rawRow, idx) => {
-      const rowNumber = idx + 2;
-      const { payload, errors } = validateImportPayloadRow(rawRow, rowNumber);
-      if (!payload || errors.length > 0) {
-        report.totals.skipped_invalid += 1;
-        report.errors.push(...errors);
-        return;
-      }
-      validRows.push(payload);
-      if (report.preview.length < 10) {
-        report.preview.push({
-          row: rowNumber,
-          name: payload.name,
-          scientific_name: payload.scientific_name || null,
-        });
-      }
-    });
-
-    report.totals.valid = validRows.length;
-    if (strategy === 'replace_all' && report.errors.length > 0 && !dryRun) {
-      return res.status(400).json({
-        error: 'Import interrompu: corrige les lignes invalides avant un remplacement complet',
-        report,
+    validRows.push(payload);
+    if (report.preview.length < 10) {
+      report.preview.push({
+        row: rowNumber,
+        name: payload.name,
+        scientific_name: payload.scientific_name || null,
       });
     }
-    if (dryRun || validRows.length === 0) {
-      return res.json({ report });
-    }
+  });
 
-    const insertSql = `INSERT INTO plants (${PLANT_COLUMNS.join(', ')}) VALUES (${PLANT_COLUMNS.map(() => '?').join(', ')})`;
-    const updateSql = `UPDATE plants SET ${PLANT_COLUMNS.map((c) => `${c}=?`).join(', ')} WHERE id=?`;
-
-    const conn = await pool.getConnection();
-    try {
-      await conn.beginTransaction();
-      if (strategy === 'replace_all') {
-        await conn.execute('DELETE FROM plants');
-        // INSERT multi-valeurs par lots au lieu d'un INSERT par ligne (cette branche ne dépend
-        // d'aucun insertId). Lots bornés : 33 colonnes × MAX_IMPORT_ROWS dépasseraient la limite
-        // de placeholders d'une requête préparée.
-        const INSERT_CHUNK = 200;
-        const rowPlaceholder = `(${PLANT_COLUMNS.map(() => '?').join(', ')})`;
-        for (let i = 0; i < validRows.length; i += INSERT_CHUNK) {
-          const chunk = validRows.slice(i, i + INSERT_CHUNK);
-          const placeholders = chunk.map(() => rowPlaceholder).join(', ');
-          const params = [];
-          for (const payload of chunk) {
-            for (const c of PLANT_COLUMNS) params.push(payload[c]);
-          }
-          await conn.execute(
-            `INSERT INTO plants (${PLANT_COLUMNS.join(', ')}) VALUES ${placeholders}`,
-            params
-          );
-          report.totals.created += chunk.length;
-        }
-      } else {
-        const [existingRows] = await conn.execute('SELECT id, name FROM plants');
-        const existing = Array.isArray(existingRows) ? existingRows : [];
-        const existingByName = new Map(existing.map((p) => [asTrimmedString(p.name).toLowerCase(), p]));
-
-        for (const payload of validRows) {
-          const key = asTrimmedString(payload.name).toLowerCase();
-          const found = existingByName.get(key);
-          if (found && strategy === 'insert_only') {
-            report.totals.skipped_existing += 1;
-            continue;
-          }
-          if (found && strategy === 'upsert_name') {
-            await conn.execute(updateSql, [...PLANT_COLUMNS.map((c) => payload[c]), found.id]);
-            report.totals.updated += 1;
-            continue;
-          }
-          const [insertResult] = await conn.execute(insertSql, PLANT_COLUMNS.map((c) => payload[c]));
-          report.totals.created += 1;
-          existingByName.set(key, { id: insertResult.insertId, name: payload.name });
-        }
-      }
-      await conn.commit();
-    } catch (err) {
-      await conn.rollback();
-      throw err;
-    } finally {
-      conn.release();
-    }
-
-    invalidatePlantsListCache();
-    emitGardenChanged({ reason: 'import_plants' });
-    res.json({ report });
-  } catch (e) {
-    respondInternalError(res, req, e);
+  report.totals.valid = validRows.length;
+  if (strategy === 'replace_all' && report.errors.length > 0 && !dryRun) {
+    return res.status(400).json({
+      error: 'Import interrompu: corrige les lignes invalides avant un remplacement complet',
+      report,
+    });
   }
-});
+  if (dryRun || validRows.length === 0) {
+    return res.json({ report });
+  }
+
+  const insertSql = `INSERT INTO plants (${PLANT_COLUMNS.join(', ')}) VALUES (${PLANT_COLUMNS.map(() => '?').join(', ')})`;
+  const updateSql = `UPDATE plants SET ${PLANT_COLUMNS.map((c) => `${c}=?`).join(', ')} WHERE id=?`;
+
+  const conn = await pool.getConnection();
+  try {
+    await conn.beginTransaction();
+    if (strategy === 'replace_all') {
+      await conn.execute('DELETE FROM plants');
+      // INSERT multi-valeurs par lots au lieu d'un INSERT par ligne (cette branche ne dépend
+      // d'aucun insertId). Lots bornés : 33 colonnes × MAX_IMPORT_ROWS dépasseraient la limite
+      // de placeholders d'une requête préparée.
+      const INSERT_CHUNK = 200;
+      const rowPlaceholder = `(${PLANT_COLUMNS.map(() => '?').join(', ')})`;
+      for (let i = 0; i < validRows.length; i += INSERT_CHUNK) {
+        const chunk = validRows.slice(i, i + INSERT_CHUNK);
+        const placeholders = chunk.map(() => rowPlaceholder).join(', ');
+        const params = [];
+        for (const payload of chunk) {
+          for (const c of PLANT_COLUMNS) params.push(payload[c]);
+        }
+        await conn.execute(
+          `INSERT INTO plants (${PLANT_COLUMNS.join(', ')}) VALUES ${placeholders}`,
+          params
+        );
+        report.totals.created += chunk.length;
+      }
+    } else {
+      const [existingRows] = await conn.execute('SELECT id, name FROM plants');
+      const existing = Array.isArray(existingRows) ? existingRows : [];
+      const existingByName = new Map(existing.map((p) => [asTrimmedString(p.name).toLowerCase(), p]));
+
+      for (const payload of validRows) {
+        const key = asTrimmedString(payload.name).toLowerCase();
+        const found = existingByName.get(key);
+        if (found && strategy === 'insert_only') {
+          report.totals.skipped_existing += 1;
+          continue;
+        }
+        if (found && strategy === 'upsert_name') {
+          await conn.execute(updateSql, [...PLANT_COLUMNS.map((c) => payload[c]), found.id]);
+          report.totals.updated += 1;
+          continue;
+        }
+        const [insertResult] = await conn.execute(insertSql, PLANT_COLUMNS.map((c) => payload[c]));
+        report.totals.created += 1;
+        existingByName.set(key, { id: insertResult.insertId, name: payload.name });
+      }
+    }
+    await conn.commit();
+  } catch (err) {
+    await conn.rollback();
+    throw err;
+  } finally {
+    conn.release();
+  }
+
+  invalidatePlantsListCache();
+  emitGardenChanged({ reason: 'import_plants' });
+  res.json({ report });
+}));
 
 router.get('/', asyncHandler(async (req, res) => {
   const cached = plantsListCache.get('all');
