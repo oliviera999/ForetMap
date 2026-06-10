@@ -83,7 +83,18 @@ jobs:
         run: |
           nohup npm run start:e2e > /tmp/foretmap-server.log 2>&1 &
         env:
-          NODE_ENV: test
+          # Le SPA `dist/` n'est servi QU'EN production (server.js : `serveDist =
+          # NODE_ENV === 'production'`). En `test`, server.js sert `public/` (pas
+          # de SPA) → boutons/onglets absents → toute la suite UI e2e échoue
+          # (login « Créer un compte », nav GL, mascotte…). On aligne donc sur le
+          # webServer Playwright local, lui aussi en production.
+          NODE_ENV: production
+          # Requis en production (lib/env.js) — cookie visite anonyme. Valeur de
+          # test, identique au repli du webServer Playwright local.
+          VISIT_COOKIE_SECRET: 'foretmap-e2e-visit-cookie-secret'
+          # `start:e2e` pose déjà ce bypass via --foretmap-e2e-no-rate-limit ;
+          # explicite ici pour mirror exact du webServer local.
+          E2E_DISABLE_RATE_LIMIT: '1'
           DB_HOST: 127.0.0.1
           DB_PORT: 3306
           DB_NAME: foretmap_test
