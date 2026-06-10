@@ -1,7 +1,7 @@
 import React, {
   useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState,
 } from 'react';
-import { api, AccountDeletedError, isLikelyNetworkTransportFailure, withAppBase } from '../services/api';
+import { api, AccountDeletedError, isLikelyNetworkTransportFailure } from '../services/api';
 import { compressImage } from '../utils/image';
 import { MARKER_EMOJIS, parseEmojiListSetting, detectLeadingMarkerEmoji, stripLeadingMarkerEmoji } from '../constants/emojis';
 import { getRoleTerms } from '../utils/n3-terminology';
@@ -54,6 +54,13 @@ import { buildVisitMascotCatalogExtrasFromContent } from '../utils/visitMascotPa
 import { resolveMascotDialogLine } from '../utils/visitMascotDialogApply.js';
 import { VISIT_MASCOT_STATE } from '../utils/visitMascotState.js';
 import { loadVisitMascotPositionPct, saveVisitMascotPositionPct } from '../utils/visitMascotPositionPersistence.js';
+import {
+  itemSeenKey,
+  visitMediaImgSrc,
+  visitMediaGalleryThumbDisplaySrc,
+  visitMediaGalleryLightboxSrc,
+  reorderVisitMediaRows,
+} from '../utils/visitMediaGallery.js';
 import useVisitMascotStateMachine from '../hooks/useVisitMascotStateMachine.js';
 import {
   Lightbox,
@@ -82,30 +89,6 @@ const VISIT_MAP_MASCOT_HAPPY_MS = 1800;
 const VISIT_MASCOT_DIALOG_MS = 2600;
 const VISIT_MASCOT_DIALOG_MOVE_COOLDOWN_MS = 4200;
 const VISIT_MAP_MASCOT_ESTIMATED_HEIGHT_PX = 78;
-
-function itemSeenKey(type, id) {
-  return `${type}:${id}`;
-}
-
-function visitMediaImgSrc(m) {
-  const u = m?.image_url;
-  if (!u) return '';
-  return withAppBase(u);
-}
-
-/** Vignette galerie visite : préfère `thumb_url` (carte) si fourni par l’API. */
-function visitMediaGalleryThumbDisplaySrc(m) {
-  const u = m?.thumb_url || m?.image_url;
-  if (!u) return '';
-  return withAppBase(u);
-}
-
-/** Image plein écran (lightbox) : toujours la résolution principale. */
-function visitMediaGalleryLightboxSrc(m) {
-  const u = m?.image_url || m?.thumb_url;
-  if (!u) return '';
-  return withAppBase(u);
-}
 
 /** Vignette cliquable : aperçu sans rognage (CSS `object-fit: contain`) + lightbox plein écran. */
 function VisitMediaGalleryThumb({ media, onOpenLightbox }) {
@@ -386,17 +369,6 @@ function VisitSyncPanel({ isTeacher, mapId, onSynced, onForceLogout }) {
 }
 
 const FORETMAP_VISIT_MEDIA_DRAG_MIME = 'application/x-foretmap-visit-media-id';
-
-function reorderVisitMediaRows(list, draggedId, dropTargetId) {
-  const ids = list.map((m) => m.id);
-  const from = ids.indexOf(draggedId);
-  const to = ids.indexOf(dropTargetId);
-  if (from < 0 || to < 0 || from === to) return list;
-  const next = [...list];
-  const [removed] = next.splice(from, 1);
-  next.splice(to, 0, removed);
-  return next;
-}
 
 function VisitEditorPanel({ selected, selectedType, onSaved, onForceLogout, isTeacher, roleTerms, markerEmojis = MARKER_EMOJIS }) {
   const [form, setForm] = useState({
