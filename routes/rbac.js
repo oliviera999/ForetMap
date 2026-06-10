@@ -427,12 +427,25 @@ router.post(
         'SELECT permission_key, requires_elevation FROM role_permissions WHERE role_id = ? ORDER BY permission_key ASC',
         [sourceId]
       );
-      for (const row of sourcePerms) {
-        const p = await queryOne('SELECT `key` FROM permissions WHERE `key` = ? LIMIT 1', [row.permission_key]);
-        if (!p) continue;
+      // Ne conserve que les permissions encore presentes au catalogue (resolues en UNE requete au
+      // lieu d'un SELECT par cle), puis les copie en UNE requete multi-valeurs (au lieu d'une boucle N+1).
+      const sourceKeys = sourcePerms.map((row) => row.permission_key);
+      const validKeys = new Set();
+      if (sourceKeys.length > 0) {
+        const catalogRows = await queryAll(
+          `SELECT \`key\` FROM permissions WHERE \`key\` IN (${sourceKeys.map(() => '?').join(',')})`,
+          sourceKeys
+        );
+        for (const row of catalogRows) validKeys.add(row.key);
+      }
+      const permsToCopy = sourcePerms.filter((row) => validKeys.has(row.permission_key));
+      if (permsToCopy.length > 0) {
+        const placeholders = permsToCopy.map(() => '(?, ?, ?)').join(', ');
+        const params = [];
+        for (const row of permsToCopy) params.push(newRole.id, row.permission_key, row.requires_elevation ? 1 : 0);
         await execute(
-          'INSERT INTO role_permissions (role_id, permission_key, requires_elevation) VALUES (?, ?, ?)',
-          [newRole.id, row.permission_key, row.requires_elevation ? 1 : 0]
+          `INSERT INTO role_permissions (role_id, permission_key, requires_elevation) VALUES ${placeholders}`,
+          params
         );
       }
       logAudit('rbac_duplicate_profile', 'role', newRole.id, `from=${sourceId} slug=${slug}`, { req });
