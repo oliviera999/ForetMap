@@ -77,6 +77,29 @@ pool.on('error', (err) => {
   logger.error({ err, msg: 'mysql_pool_connection_error' }, 'Erreur pool MySQL (connexion perdue)');
 });
 
+/**
+ * Compteur de version « écriture RBAC » (O3) — incrémenté à TOUTE écriture touchant les tables
+ * RBAC (`roles`/`user_roles`/`role_permissions`), détectée de façon centralisée ici (tous les
+ * chemins d'écriture RBAC passent par `execute`/`tx.execute` ; aucune connexion brute n'écrit ces
+ * tables). Inclus dans la clé du cache RBAC (`lib/rbac.js`) → invalidation **prouvablement complète** :
+ * toute écriture (y compris SQL direct des tests) périme instantanément le cache, sans hook par route.
+ */
+let rbacWriteVersion = 0;
+const RBAC_WRITE_RE = /^\s*(?:INSERT|UPDATE|DELETE|REPLACE|TRUNCATE)\b[\s\S]*\b(?:role_permissions|user_roles|roles)\b/i;
+/** Vrai si `sql` est une écriture (INSERT/UPDATE/DELETE/REPLACE/TRUNCATE) touchant une table RBAC. */
+function isRbacWriteSql(sql) {
+  return typeof sql === 'string' && RBAC_WRITE_RE.test(sql);
+}
+function bumpRbacVersionIfRbacWrite(sql) {
+  if (isRbacWriteSql(sql)) {
+    rbacWriteVersion += 1;
+  }
+}
+/** Version courante des écritures RBAC (clé de cache). */
+function getRbacWriteVersion() {
+  return rbacWriteVersion;
+}
+
 /** Exécute une requête et retourne les lignes (tableau). */
 async function queryAll(sql, params = []) {
   const [rows] = await pool.execute(sql, params);
@@ -95,6 +118,7 @@ async function queryOne(sql, params = []) {
  */
 async function execute(sql, params = []) {
   const [result] = await pool.execute(sql, params);
+  bumpRbacVersionIfRbacWrite(sql);
   return {
     insertId: result.insertId,
     affectedRows: result.affectedRows,
@@ -103,6 +127,10 @@ async function execute(sql, params = []) {
 
 async function withTransaction(work) {
   const conn = await pool.getConnection();
+  // Bump de version RBAC reporté APRÈS le commit (O3) : pendant la transaction, les lectures RBAC
+  // passent par le pool (état committé, sans voir les écritures en cours) — bumper avant commit
+  // pourrait cacher une valeur pré-commit à la nouvelle version. On bumpe une fois, post-commit.
+  let rbacDirty = false;
   try {
     await conn.beginTransaction();
     const tx = {
@@ -116,6 +144,7 @@ async function withTransaction(work) {
       },
       execute: async (sql, params = []) => {
         const [result] = await conn.execute(sql, params);
+        if (isRbacWriteSql(sql)) rbacDirty = true;
         return {
           insertId: result.insertId,
           affectedRows: result.affectedRows,
@@ -124,6 +153,7 @@ async function withTransaction(work) {
     };
     const result = await work(tx);
     await conn.commit();
+    if (rbacDirty) rbacWriteVersion += 1;
     return result;
   } catch (err) {
     try {
@@ -510,6 +540,8 @@ module.exports = {
   queryOne,
   execute,
   withTransaction,
+  getRbacWriteVersion,
+  isRbacWriteSql,
   ping,
   initSchema,
   seedData,
