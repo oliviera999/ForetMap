@@ -1919,22 +1919,34 @@ router.post('/:id/assign-group', requirePermission('tasks.assign.group', { needs
           AND id IN (${scope.studentIds.map(() => '?').join(',')})`,
       scope.studentIds
     );
-    let assigned = 0;
-    let skipped = 0;
     const already = new Set((task.assignments || []).map((a) => String(a.student_id || '')));
     const maxSlots = Math.max(0, Number(task.required_students || 1) - Number(task.assignments?.length || 0));
+    // Sélectionne (dans l'ordre) les n3beurs à affecter en préservant la sémantique de la boucle :
+    // `skipped` compte les déjà-affectés rencontrés AVANT que les créneaux soient pleins, puis on
+    // insère tout en UNE requête multi-valeurs (au lieu d'un INSERT par n3beur).
+    const toAssign = [];
+    let skipped = 0;
     for (const student of students) {
       if (already.has(String(student.id))) {
         skipped += 1;
         continue;
       }
-      if (assigned >= maxSlots) break;
+      if (toAssign.length >= maxSlots) break;
+      toAssign.push(student);
+    }
+    const assigned = toAssign.length;
+    if (toAssign.length > 0) {
+      const assignedAt = new Date().toISOString();
+      const placeholders = toAssign.map(() => '(?, ?, ?, ?, ?)').join(', ');
+      const params = [];
+      for (const student of toAssign) {
+        params.push(task.id, student.id, student.first_name || '', student.last_name || '', assignedAt);
+      }
       await execute(
         `INSERT INTO task_assignments (task_id, student_id, student_first_name, student_last_name, assigned_at)
-         VALUES (?, ?, ?, ?, ?)`,
-        [task.id, student.id, student.first_name || '', student.last_name || '', new Date().toISOString()]
+         VALUES ${placeholders}`,
+        params
       );
-      assigned += 1;
     }
     await recalculateTaskStatus(task);
     const updated = await getTaskWithAssignments(task.id);
