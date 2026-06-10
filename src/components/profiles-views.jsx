@@ -19,6 +19,13 @@ import { DeleteUserConfirmModal } from './profiles/DeleteUserConfirmModal.jsx';
 import { CreateUserPanel } from './profiles/CreateUserPanel.jsx';
 import { StudentImportPanel } from './profiles/StudentImportPanel.jsx';
 import { StudentDeletePanel } from './profiles/StudentDeletePanel.jsx';
+import { ProfilesRoleList } from './profiles/ProfilesRoleList.jsx';
+import {
+  isN3beurTierConfigurableProfile as isN3beurTierConfigurableRole,
+  sortRolesForDisplay,
+  deriveProfilesCapabilities,
+  normalizeRoleEditFields,
+} from '../utils/profilesRbacHelpers.js';
 
 function ProfilesAdminView({ onImpersonationApplied, maps = [] }) {
   const publicSettings = usePublicSettings();
@@ -138,45 +145,29 @@ function ProfilesAdminView({ onImpersonationApplied, maps = [] }) {
     [roles, selectedRoleId]
   );
   /** Paliers n3beur : slug eleve_* ou profil perso. avec rang strictement inférieur à 400 (n3boss) ; exclus admin, n3boss, visiteur. */
-  const isN3beurTierConfigurableProfile = useMemo(() => {
-    if (!selectedRole) return false;
-    const slug = String(selectedRole.slug || '').trim().toLowerCase();
-    if (slug === 'admin' || slug === 'prof' || slug === 'visiteur') return false;
-    if (/^eleve_/i.test(String(selectedRole.slug || ''))) return true;
-    const r = Number(selectedRole.rank);
-    return Number.isFinite(r) && r < 400;
-  }, [selectedRole]);
+  const isN3beurTierConfigurableProfile = useMemo(
+    () => isN3beurTierConfigurableRole(selectedRole),
+    [selectedRole]
+  );
   const tasksProposeEntry = useMemo(() => {
     if (!selectedRole) return null;
     return (selectedRole.permissions || []).find((p) => p.key === 'tasks.propose') || null;
   }, [selectedRole]);
-  const canManageProfiles = authPerms.includes('admin.roles.manage') || authPerms.includes('admin.users.assign_roles');
-  const canEditRoleDefinition = authPerms.includes('admin.roles.manage');
-  const effectiveElevated = authElevated || authNativePrivileged;
-  const canExport = authPerms.includes('stats.export') && effectiveElevated;
-  const canImport = authPerms.includes('students.import') && effectiveElevated;
-  const canDelete = authPerms.includes('students.delete') && effectiveElevated;
-  const canCreateUsers = authPerms.includes('users.create') && effectiveElevated;
-  const canReadAllStats = authPerms.includes('stats.read.all');
-  const canDuplicateStudents = authPerms.includes('users.create') && effectiveElevated && canReadAllStats;
-  const isAdmin = authRoleSlug === 'admin';
-  const canManageStudents = canExport || canImport || canDelete || canCreateUsers;
-  const canDeleteUi = canDelete && canReadAllStats;
+  const {
+    canManageProfiles,
+    canEditRoleDefinition,
+    canExport,
+    canImport,
+    canCreateUsers,
+    canReadAllStats,
+    canDuplicateStudents,
+    isAdmin,
+    canManageStudents,
+    canDeleteUi,
+  } = deriveProfilesCapabilities({ authPerms, authElevated, authNativePrivileged, authRoleSlug });
 
   /** Même tri que GET /api/rbac/profiles (affichage cohérent avec la progression n3beur côté serveur). */
-  const sortedRoles = useMemo(() => {
-    const copy = [...roles];
-    copy.sort((a, b) => {
-      const ao = Number(a.display_order) || 0;
-      const bo = Number(b.display_order) || 0;
-      if (ao !== bo) return ao - bo;
-      const ar = Number(a.rank) || 0;
-      const br = Number(b.rank) || 0;
-      if (ar !== br) return br - ar;
-      return Number(a.id) - Number(b.id);
-    });
-    return copy;
-  }, [roles]);
+  const sortedRoles = useMemo(() => sortRolesForDisplay(roles), [roles]);
 
   const reorderRole = async (roleId, direction) => {
     const idx = sortedRoles.findIndex((r) => Number(r.id) === Number(roleId));
@@ -210,29 +201,11 @@ function ProfilesAdminView({ onImpersonationApplied, maps = [] }) {
   }, [students, searchStudent]);
 
   useEffect(() => {
-    if (!selectedRole) {
-      setRoleEmoji('');
-      setRoleMinDoneTasks('');
-      setRoleDisplayOrder('');
-      setRoleMaxConcurrentTasks('');
-      return;
-    }
-    setRoleEmoji(String(selectedRole.emoji || ''));
-    setRoleMinDoneTasks(
-      selectedRole.min_done_tasks == null || Number.isNaN(Number(selectedRole.min_done_tasks))
-        ? ''
-        : String(Math.max(0, Math.floor(Number(selectedRole.min_done_tasks))))
-    );
-    setRoleDisplayOrder(
-      selectedRole.display_order == null || Number.isNaN(Number(selectedRole.display_order))
-        ? '0'
-        : String(Math.max(0, Math.floor(Number(selectedRole.display_order))))
-    );
-    setRoleMaxConcurrentTasks(
-      selectedRole.max_concurrent_tasks == null || selectedRole.max_concurrent_tasks === ''
-        ? ''
-        : String(Math.max(0, Math.floor(Number(selectedRole.max_concurrent_tasks))))
-    );
+    const fields = normalizeRoleEditFields(selectedRole);
+    setRoleEmoji(fields.emoji);
+    setRoleMinDoneTasks(fields.minDoneTasks);
+    setRoleDisplayOrder(fields.displayOrder);
+    setRoleMaxConcurrentTasks(fields.maxConcurrentTasks);
   }, [selectedRole]);
 
   const saveRoleDetails = async (role) => {
@@ -919,63 +892,17 @@ function ProfilesAdminView({ onImpersonationApplied, maps = [] }) {
         <>
           <div className="profiles-admin-grid">
             <div style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: 12, padding: 12 }}>
-              <h3 style={{ marginTop: 0 }}>Profils</h3>
-              <p style={{ margin: '0 0 10px', fontSize: '.8rem', color: '#6b7280', lineHeight: 1.45 }}>
-                Utilisez ↑ ↓ pour définir l’ordre d’affichage (liste ci-dessous, menus d’attribution et progression n3beur alignés sur cet ordre).
-              </p>
-              <button className="btn btn-secondary btn-sm" onClick={createRoleProfile} disabled={loading} style={{ marginBottom: 10 }}>
-                + Créer un profil
-              </button>
-              {sortedRoles.map((r, idx) => (
-                <div key={r.id} style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 8, flexWrap: 'wrap' }}>
-                  <div style={{ display: 'inline-flex', flexDirection: 'column', gap: 2 }}>
-                    <button
-                      type="button"
-                      className="btn btn-ghost btn-sm"
-                      style={{ minHeight: 28, padding: '2px 8px', lineHeight: 1.1 }}
-                      aria-label={`Monter « ${r.display_name} » dans la liste`}
-                      title="Monter"
-                      disabled={loading || idx === 0}
-                      onClick={() => reorderRole(r.id, -1)}
-                    >
-                      ↑
-                    </button>
-                    <button
-                      type="button"
-                      className="btn btn-ghost btn-sm"
-                      style={{ minHeight: 28, padding: '2px 8px', lineHeight: 1.1 }}
-                      aria-label={`Descendre « ${r.display_name} » dans la liste`}
-                      title="Descendre"
-                      disabled={loading || idx === sortedRoles.length - 1}
-                      onClick={() => reorderRole(r.id, 1)}
-                    >
-                      ↓
-                    </button>
-                  </div>
-                  <button
-                    type="button"
-                    className={`btn btn-sm foretmap-emoji-text-mixed ${Number(selectedRoleId) === Number(r.id) ? 'btn-primary' : 'btn-ghost'}`}
-                    onClick={() => setSelectedRoleId(r.id)}
-                  >
-                    {(r.emoji ? `${r.emoji} ` : '') + r.display_name}
-                  </button>
-                  <button className="btn btn-ghost btn-sm" onClick={() => saveRoleDetails(r)} disabled={loading}>Modifier</button>
-                  {canEditRoleDefinition && (
-                    <button
-                      type="button"
-                      className="btn btn-ghost btn-sm"
-                      onClick={() => duplicateRoleProfile(r)}
-                      disabled={loading}
-                      title="Copier permissions et réglages vers un nouveau profil (slug et nom distincts ; PIN non copié)"
-                    >
-                      Dupliquer
-                    </button>
-                  )}
-                  <span style={{ fontSize: '.72rem', color: '#6b7280' }}>
-                    ordre {Number.isFinite(Number(r.display_order)) ? Number(r.display_order) : 0}
-                  </span>
-                </div>
-              ))}
+              <ProfilesRoleList
+                roles={sortedRoles}
+                loading={loading}
+                selectedRoleId={selectedRoleId}
+                canEditRoleDefinition={canEditRoleDefinition}
+                onCreate={createRoleProfile}
+                onSelect={setSelectedRoleId}
+                onReorder={reorderRole}
+                onEditDetails={saveRoleDetails}
+                onDuplicate={duplicateRoleProfile}
+              />
               {selectedRole && (
                 <div style={{ marginTop: 8 }}>
                   <div style={{ fontSize: '.78rem', color: '#6b7280', marginBottom: 6 }}>
