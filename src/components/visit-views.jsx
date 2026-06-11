@@ -83,12 +83,21 @@ import {
   safeLocalStorageGetItem,
   safeLocalStorageSetItem,
 } from '../utils/browserStorage.js';
+import {
+  visitZoneSvgTextUniformYTransform,
+  clampVisitMascotPctForViewport,
+  computeVisitCartographyProgress,
+  computeVisitNetworkStatusLabel,
+} from '../utils/visitMapDisplay.js';
+import {
+  buildMapAssociatedPhotos,
+  parseVisitMascotAllowedIds,
+} from '../utils/visitEditorHelpers.js';
 
 const VISIT_MAP_MASCOT_MOVE_MS = 560;
 const VISIT_MAP_MASCOT_HAPPY_MS = 1800;
 const VISIT_MASCOT_DIALOG_MS = 2600;
 const VISIT_MASCOT_DIALOG_MOVE_COOLDOWN_MS = 4200;
-const VISIT_MAP_MASCOT_ESTIMATED_HEIGHT_PX = 78;
 
 /** Vignette cliquable : aperçu sans rognage (CSS `object-fit: contain`) + lightbox plein écran. */
 function VisitMediaGalleryThumb({ media, onOpenLightbox }) {
@@ -157,31 +166,8 @@ function VisitEditorialRenderer({ blocks, selectedVisitMedia, onOpenLightbox }) 
   );
 }
 
-/**
- * Compense l’étirement anisotrope du SVG (viewBox carré + preserveAspectRatio="none" sur un rectangle carte) :
- * sans cela, les <text> et emojis paraissent tassés sur l’axe Y dès que largeur ≠ hauteur du calque.
- */
-function visitZoneSvgTextUniformYTransform(cx, cy, fitW, fitH) {
-  if (!(fitW > 0 && fitH > 0)) return undefined;
-  const r = fitW / fitH;
-  if (Math.abs(r - 1) < 0.0005) return undefined;
-  return `translate(${cx},${cy}) scale(1,${r}) translate(${-cx},${-cy})`;
-}
-
 function pointToPct(event, stageEl, transform = { x: 0, y: 0, s: 1 }, fit = null) {
   return pointToContainedRectPct(event, stageEl, transform, fit, { clamp: true, decimals: 2 });
-}
-
-function clampVisitMascotPctForViewport(xp, yp, fitHeightPx = 0) {
-  const nx = Math.max(0, Math.min(100, Number(xp) || 0));
-  const rawY = Math.max(0, Math.min(100, Number(yp) || 0));
-  if (!(fitHeightPx > 0)) return { xp: nx, yp: rawY };
-  const minVisibleY = Math.max(
-    6,
-    (VISIT_MAP_MASCOT_ESTIMATED_HEIGHT_PX / Math.max(1, fitHeightPx)) * 100
-  );
-  const ny = Math.max(minVisibleY, Math.min(99.2, rawY));
-  return { xp: nx, yp: ny };
 }
 
 function VisitSyncPanel({ isTeacher, mapId, onSynced, onForceLogout }) {
@@ -398,28 +384,7 @@ function VisitEditorPanel({ selected, selectedType, onSaved, onForceLogout, isTe
     );
     return arr;
   }, [selected]);
-  const mapAssociatedPhotos = useMemo(() => {
-    if (!selected) return [];
-    const list = [];
-    if (selected?.map_lead_photo?.image_url) {
-      list.push({
-        id: `map-lead-${selected.map_lead_photo.id || 'x'}`,
-        image_url: selected.map_lead_photo.image_url,
-        thumb_url: selected.map_lead_photo.thumb_url,
-        caption: selected.map_lead_photo.caption || '',
-      });
-    }
-    for (const ph of selected?.map_extra_photos || []) {
-      if (!ph?.image_url) continue;
-      list.push({
-        id: `map-extra-${ph.id || Math.random()}`,
-        image_url: ph.image_url,
-        thumb_url: ph.thumb_url,
-        caption: ph.caption || '',
-      });
-    }
-    return list;
-  }, [selected]);
+  const mapAssociatedPhotos = useMemo(() => buildMapAssociatedPhotos(selected), [selected]);
 
   useEffect(() => {
     const nextTitle = selectedType === 'zone' ? (selected?.name || '') : (selected?.label || '');
@@ -910,17 +875,10 @@ function VisitView({
     [configuredLocationEmojis]
   );
   const roleTerms = getRoleTerms(isN3Affiliated);
-  const visitMascotAllowedIds = useMemo(() => {
-    const raw = publicSettings?.visit?.mascot?.allowed_ids;
-    if (Array.isArray(raw)) return raw.map((id) => String(id || '').trim()).filter(Boolean);
-    if (typeof raw === 'string') {
-      return raw
-        .split(/[,\n;]+/g)
-        .map((id) => String(id || '').trim())
-        .filter(Boolean);
-    }
-    return [];
-  }, [publicSettings?.visit?.mascot?.allowed_ids]);
+  const visitMascotAllowedIds = useMemo(
+    () => parseVisitMascotAllowedIds(publicSettings?.visit?.mascot?.allowed_ids),
+    [publicSettings?.visit?.mascot?.allowed_ids]
+  );
   const visitMascotDefaultId = String(publicSettings?.visit?.mascot?.default_id || '').trim() || 'renard2-cut-spritesheet';
   const visitTitle = getContentText(publicSettings, 'visit.title', '🧭 Visite de la carte');
   const helpHintPrefix = getContentText(publicSettings, 'help.hint_prefix', 'Astuce :');
@@ -1091,23 +1049,10 @@ function VisitView({
   const showVisitMapTutorialsSection = isTeacher && !teacherPreviewAsStudent;
 
   /** Zones affichées sur le plan (polygone valide) + repères : aligné sur ce que l’utilisateur peut parcourir sur la carte courante. */
-  const visitCartographyProgress = useMemo(() => {
-    const zones = content.zones || [];
-    const markers = content.markers || [];
-    let total = 0;
-    let seenCount = 0;
-    for (const z of zones) {
-      if (parsePctPoints(z.points).length < 3) continue;
-      total += 1;
-      if (seen.has(itemSeenKey('zone', z.id))) seenCount += 1;
-    }
-    for (const m of markers) {
-      total += 1;
-      if (seen.has(itemSeenKey('marker', m.id))) seenCount += 1;
-    }
-    const pct = total > 0 ? Math.min(100, Math.round((seenCount / total) * 100)) : 0;
-    return { total, seenCount, pct };
-  }, [content.zones, content.markers, seen]);
+  const visitCartographyProgress = useMemo(
+    () => computeVisitCartographyProgress(content.zones, content.markers, seen, itemSeenKey, parsePctPoints),
+    [content.zones, content.markers, seen]
+  );
 
   /** Bandeau carte : ouverture du premier tutoriel « présentation » (tous les profils en navigation). */
   const showVisitPresentationButton = mode === 'view' && !!visitPresentationTutorial;
@@ -1118,16 +1063,10 @@ function VisitView({
     && visitCartographyProgress.seenCount === 0
     && !prefersReducedMotion;
 
-  const visitNetworkStatusLabel = useMemo(() => {
-    if (!isOnline) return 'Hors ligne — consultation locale';
-    if (syncStatus === 'syncing') return 'Synchronisation en cours…';
-    if (pendingSyncCount > 0) {
-      return `${pendingSyncCount} action${pendingSyncCount > 1 ? 's' : ''} en attente de sync.`;
-    }
-    if (syncStatus === 'error') return 'Synchronisation en attente';
-    if (syncStatus === 'synced') return 'Synchronisé';
-    return null;
-  }, [isOnline, syncStatus, pendingSyncCount]);
+  const visitNetworkStatusLabel = useMemo(
+    () => computeVisitNetworkStatusLabel(isOnline, syncStatus, pendingSyncCount),
+    [isOnline, syncStatus, pendingSyncCount]
+  );
 
   /** Mascotte : zones/repères visibles, total parcourable, ou tutoriels du plan (évite plan « vide » côté API alors que la visite est animée). */
   const showVisitMapMascot = computeShowVisitMapMascot(
