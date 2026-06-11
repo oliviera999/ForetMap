@@ -3,7 +3,7 @@ import {
   renderGlMarkdownWithLoreGlossaryLinks,
   renderGlPlainTextWithLoreGlossaryLinks,
 } from '../../utils/glLoreGlossaryAutolink.js';
-import { renderMarkdownToSafeHtml } from '../../utils/markdown.js';
+import { renderMarkdownToSafeHtml } from '../../utils/markdownRender.js';
 
 function bindLoreClick(container, onOpenLoreTerm) {
   if (!container || typeof onOpenLoreTerm !== 'function') return () => {};

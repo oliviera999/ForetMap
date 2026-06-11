@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { DialogShell } from '../../components/DialogShell.jsx';
 import { apiGL } from '../services/apiGL.js';
-import { renderMarkdownToSafeHtml } from '../../utils/markdown.js';
+import { renderMarkdownToSafeHtml } from '../../utils/markdownRender.js';
 import { GLButton } from './ui/GLButton.jsx';
 
 function playerLabel(player) {

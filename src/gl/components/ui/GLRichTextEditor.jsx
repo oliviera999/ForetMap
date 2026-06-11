@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import TurndownService from 'turndown';
-import { renderMarkdownToSafeHtml, sanitizeRichHtml } from '../../../utils/markdown.js';
+import { renderMarkdownToSafeHtml, sanitizeRichHtml } from '../../../utils/markdownRender.js';
 import { glImageFrameToStyle, normalizeGlImageFrame, serializeGlImageFrameAttr } from '../../../utils/glImageFrame.js';
 import { GLImageInlineInsertControls } from '../GLImageInlineInsertControls.jsx';
 

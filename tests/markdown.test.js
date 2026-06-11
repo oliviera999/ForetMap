@@ -14,7 +14,8 @@ let applyMarkdownHtmlImage;
 
 before(async () => {
   const mod = await import(pathToFileURL(join(__dirname, '../src/utils/markdown.js')).href);
-  renderMarkdownToSafeHtml = mod.renderMarkdownToSafeHtml;
+  const renderMod = await import(pathToFileURL(join(__dirname, '../src/utils/markdownRender.js')).href);
+  renderMarkdownToSafeHtml = renderMod.renderMarkdownToSafeHtml;
   applyMarkdownWrap = mod.applyMarkdownWrap;
   applyMarkdownList = mod.applyMarkdownList;
   applyMarkdownLink = mod.applyMarkdownLink;

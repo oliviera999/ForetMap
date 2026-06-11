@@ -3,7 +3,7 @@ import {
   renderGlMarkdownWithGlossaryLinks,
   renderGlPlainTextWithGlossaryLinks,
 } from '../../utils/glGlossaryAutolink.js';
-import { renderMarkdownToSafeHtml } from '../../utils/markdown.js';
+import { renderMarkdownToSafeHtml } from '../../utils/markdownRender.js';
 
 function bindGlossaryClick(container, onOpenGlossaryTerm) {
   if (!container || typeof onOpenGlossaryTerm !== 'function') return () => {};
