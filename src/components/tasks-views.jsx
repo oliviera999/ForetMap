@@ -56,7 +56,7 @@ import {
   teacherCollectiveAssigneeLoadKey,
   toQuickAssignStudentId,
 } from '../utils/taskDisplayHelpers.js';
-import { quickAssignDelta, quickAssignCanApply, quickAssignHint } from '../utils/taskQuickAssign.js';
+import { quickAssignDelta, quickAssignCanApply, quickAssignHint, buildQuickAssignSummary } from '../utils/taskQuickAssign.js';
 
 function TasksView({
   maps = [],
@@ -908,21 +908,14 @@ function TasksView({
         if (String(e.message || '').toLowerCase().includes('plus de place')) break;
       }
     }
-    const bits = [];
-    if (removeOk > 0) bits.push(`${removeOk} retrait${removeOk > 1 ? 's' : ''}`);
-    if (addOk > 0) bits.push(`${addOk} inscription${addOk > 1 ? 's' : ''}`);
-    const errBits = [];
-    if (removeFail > 0) errBits.push(`${removeFail} retrait${removeFail > 1 ? 's' : ''}`);
-    if (addFail > 0) errBits.push(`${addFail} inscription${addFail > 1 ? 's' : ''}`);
-    if (bits.length > 0 && errBits.length > 0) {
-      setToast(`${bits.join(', ')} — échec : ${errBits.join(', ')}${firstRemoveError || firstAddError ? ` (${firstRemoveError || firstAddError})` : ''}`);
-    } else if (bits.length > 0) {
-      setToast(`${bits.join(', ')} sur « ${task.title} »`);
-    } else if (firstRemoveError || firstAddError) {
-      setToast(`Aucune mise à jour : ${firstRemoveError || firstAddError}`);
-    } else {
-      setToast('Aucun changement appliqué — déjà à jour.');
-    }
+    setToast(buildQuickAssignSummary({
+      removeOk,
+      addOk,
+      removeFail,
+      addFail,
+      firstError: firstRemoveError || firstAddError,
+      taskTitle: task.title,
+    }));
     setQuickAssignTaskId(null);
     setQuickAssignStudentIds([]);
   }), [withLoad, teacherQuickAssignDelta]);

@@ -77,3 +77,23 @@ describe('quickAssignHint', () => {
     expect(quickAssignHint(task({ required_students: 2 }), [1, 2, 3], STUDENTS)).toMatch(/Pas assez de places/);
   });
 });
+
+import { buildQuickAssignSummary } from '../../src/utils/taskQuickAssign.js';
+
+describe('buildQuickAssignSummary', () => {
+  test('aucun changement → message « déjà à jour »', () => {
+    expect(buildQuickAssignSummary()).toBe('Aucun changement appliqué — déjà à jour.');
+  });
+  test('succès seuls → résumé + titre (pluriels)', () => {
+    expect(buildQuickAssignSummary({ removeOk: 2, addOk: 1, taskTitle: 'Arroser' }))
+      .toBe('2 retraits, 1 inscription sur « Arroser »');
+  });
+  test('succès + échecs → mention « échec » avec la 1re erreur', () => {
+    expect(buildQuickAssignSummary({ addOk: 1, addFail: 2, firstError: 'plus de place' }))
+      .toBe('1 inscription — échec : 2 inscriptions (plus de place)');
+  });
+  test('échec seul → « Aucune mise à jour »', () => {
+    expect(buildQuickAssignSummary({ removeFail: 1, firstError: 'boom' }))
+      .toBe('Aucune mise à jour : boom');
+  });
+});
