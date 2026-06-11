@@ -1,14 +1,28 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { GLGlossaryMarkdown } from './GLGlossaryMarkdown.jsx';
 import { GLChapterScenes } from './GLChapterIllustration.jsx';
+import { useGlAssetsReady } from './GLFeuilletIllustration.jsx';
+import { chapterIllustrations } from '../assets/index.js';
+import { applyStorySceneRefs } from '../utils/glStorySceneRefs.js';
 
 export function GLHistoryView({ gameState, glossaryLinkItems = [], onOpenGlossaryTerm }) {
   const chapterNumber = gameState?.game?.chapter_plateau_number ?? null;
+  const assetsReady = useGlAssetsReady();
+  const scenes = useMemo(
+    () => (assetsReady && chapterNumber != null ? chapterIllustrations(chapterNumber) : []),
+    [assetsReady, chapterNumber],
+  );
+  // Les références `![légende](scene:N)` du récit sont résolues vers les
+  // scènes conventionnelles ; celles-ci quittent alors la galerie de fin.
+  const { markdown, usedKeys } = useMemo(
+    () => applyStorySceneRefs(gameState?.game?.story_markdown || '', scenes),
+    [gameState?.game?.story_markdown, scenes],
+  );
   return (
     <article className="gl-panel gl-markdown fade-in">
       <h2>Histoire</h2>
       <GLGlossaryMarkdown
-        markdown={gameState?.game?.story_markdown || 'Histoire non renseignee.'}
+        markdown={markdown || 'Histoire non renseignee.'}
         glossaryItems={glossaryLinkItems}
         onOpenGlossaryTerm={onOpenGlossaryTerm}
         allowImages
@@ -18,6 +32,7 @@ export function GLHistoryView({ gameState, glossaryLinkItems = [], onOpenGlossar
         alt="Scène du récit"
         className="gl-chapter-scenes"
         figureClassName="gl-chapter-illustration gl-chapter-illustration--scene"
+        excludeKeys={usedKeys}
       />
     </article>
   );
