@@ -7,6 +7,10 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Import carte (fork SQLite)
+
+- **Export zones/repères forêt** : conversion fork SQLite → SQL MySQL (`lib/legacyZoneShapeConvert.js`, `lib/sqliteGardenSqlExport.js`, `npm run export:sqlite-garden`) — polygones %, `living_beings` depuis `cultures`, `map_id=foret` ; fichier exemple `data/import/foret-comestible-garden.sql` ; migration `migrate:sqlite-to-mysql` alignée ; tests `tests/legacy-zone-shape-convert.test.js` ; devDep `better-sqlite3`.
+
 ### Performance & sécurité (audit optimisation — `docs/AUDIT_OPTIMISATION.md`, items O1-O14)
 
 - **Bundle (O1, O11)** : `VisitMapMascotRenderer` charge le renderer sélectionné via `React.lazy`/`Suspense` — `rive` (~166 Ko) et `sprite_cut` (~102 Ko) quittent le preload initial de la Carte (seul le renderer monté est téléchargé) ; vues GL d'onglet en `lazy` (chunk `gl` 501→255 Ko) ; **`foretmap-views`/`stats-views` rendus purement lazy** (chunk `main` 431→315 Ko, gzip 111→81) ; `vite.config` `sourcemap: false` en build prod (~6 Mo de `.map` évités).
